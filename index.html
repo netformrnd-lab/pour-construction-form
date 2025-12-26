@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<!-- saved from url=(0064)file:///C:/Users/User/Downloads/construction-request-form_1.html -->
-<html lang="ko"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>POUR스토어 시공의뢰</title>
     <style>
@@ -287,17 +287,17 @@
         <form id="requestForm" class="form-body">
             <div class="form-group">
                 <label class="form-label required">이름</label>
-                <input type="text" class="form-input" id="name" placeholder="홍길동" required="">
+                <input type="text" class="form-input" id="name" placeholder="홍길동" required>
             </div>
             
             <div class="form-group">
                 <label class="form-label required">연락처</label>
-                <input type="tel" class="form-input" id="phone" placeholder="010-0000-0000" required="">
+                <input type="tel" class="form-input" id="phone" placeholder="010-0000-0000" required>
             </div>
             
             <div class="form-group">
                 <label class="form-label required">고객유형</label>
-                <select class="form-input form-select" id="customerType" required="">
+                <select class="form-input form-select" id="customerType" required>
                     <option value="">선택하세요</option>
                     <option value="건물주">건물주</option>
                     <option value="세대주">세대주</option>
@@ -311,7 +311,7 @@
             
             <div class="form-group">
                 <label class="form-label required">시공유형</label>
-                <select class="form-input form-select" id="workType" required="">
+                <select class="form-input form-select" id="workType" required>
                     <option value="">선택하세요</option>
                     <option value="슬라브">슬라브</option>
                     <option value="아스팔트슁글">아스팔트슁글</option>
@@ -329,7 +329,7 @@
             
             <div class="form-group">
                 <label class="form-label required">건물구조</label>
-                <select class="form-input form-select" id="buildingType" required="">
+                <select class="form-input form-select" id="buildingType" required>
                     <option value="">선택하세요</option>
                     <option value="빌라">빌라</option>
                     <option value="단독주택">단독주택</option>
@@ -350,7 +350,7 @@
             
             <div class="form-group">
                 <label class="form-label required">주소</label>
-                <input type="text" class="form-input" id="address" placeholder="시공 현장 주소를 입력해주세요" required="">
+                <input type="text" class="form-input" id="address" placeholder="시공 현장 주소를 입력해주세요" required>
             </div>
             
             <div class="form-group">
@@ -363,9 +363,9 @@
                 <div class="file-upload-area" id="uploadArea">
                     <div class="file-upload-icon">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="17 8 12 3 7 8"></polyline>
-                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
                         </svg>
                     </div>
                     <p class="file-upload-text">
@@ -373,7 +373,7 @@
                         <span style="font-size:12px; color:#94A3B8;">최대 5장까지 첨부 가능</span>
                     </p>
                 </div>
-                <input type="file" class="file-input" id="photos" accept="image/*" multiple="">
+                <input type="file" class="file-input" id="photos" accept="image/*" multiple>
                 <div class="preview-container" id="previewContainer"></div>
                 <p style="font-size:12px; color:#64748B; margin-top:8px;">현장 사진을 첨부해 주시면 보다 정확하고 빠른 시공 매칭이 가능합니다.</p>
             </div>
@@ -536,16 +536,14 @@
                     images: images
                 };
                 
-                // 서버로 전송
+                // 서버로 전송 (Google Apps Script는 리다이렉트 방식 사용)
                 const response = await fetch(WEBAPP_URL, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(formData)
+                    body: JSON.stringify(formData),
+                    redirect: 'follow'
                 });
                 
-                // 성공 표시 (no-cors라서 응답 확인 불가, 항상 성공 처리)
+                // 성공 표시
                 loading.classList.remove('show');
                 success.classList.add('show');
                 
@@ -558,6 +556,5 @@
             }
         });
     </script>
-
-
-</body></html>
+</body>
+</html>

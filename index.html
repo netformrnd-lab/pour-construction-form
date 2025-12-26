@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<!-- saved from url=(0064)file:///C:/Users/User/Downloads/construction-request-form_1.html -->
+<html lang="ko"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>POUR스토어 시공의뢰</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1B2B4D 0%, #2C3E5C 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1B2B4D 0%, #2C3E5C 100%);
+            color: white;
+            padding: 30px 24px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .form-body {
+            padding: 24px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .form-label.required::after {
+            content: ' *';
+            color: #FF5252;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #E2E8F0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.2s;
+            -webkit-appearance: none;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #1B2B4D;
+            box-shadow: 0 0 0 3px rgba(27,43,77,0.1);
+        }
+        
+        .form-select {
+            background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 12px center;
+            background-size: 20px;
+            padding-right: 44px;
+            cursor: pointer;
+        }
+        
+        .file-upload-area {
+            border: 2px dashed #CBD5E0;
+            border-radius: 12px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #F8FAFC;
+        }
+        
+        .file-upload-area:hover {
+            border-color: #1B2B4D;
+            background: #F0F7FF;
+        }
+        
+        .file-upload-area.dragover {
+            border-color: #1B2B4D;
+            background: #E8F4FF;
+        }
+        
+        .file-upload-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 12px;
+            background: #E2E8F0;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .file-upload-icon svg {
+            width: 24px;
+            height: 24px;
+            stroke: #64748B;
+        }
+        
+        .file-upload-text {
+            font-size: 14px;
+            color: #64748B;
+        }
+        
+        .file-upload-text strong {
+            color: #1B2B4D;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .preview-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
+        }
+        
+        .preview-item {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #E2E8F0;
+        }
+        
+        .preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .preview-remove {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 20px;
+            height: 20px;
+            background: rgba(0,0,0,0.6);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #1B2B4D 0%, #2C3E5C 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 10px;
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(27,43,77,0.4);
+        }
+        
+        .submit-btn:disabled {
+            background: #CBD5E0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #E2E8F0;
+            border-top-color: #1B2B4D;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .success-message {
+            display: none;
+            text-align: center;
+            padding: 60px 24px;
+        }
+        
+        .success-message.show {
+            display: block;
+        }
+        
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #00C853 0%, #69F0AE 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+        
+        .success-icon svg {
+            width: 40px;
+            height: 40px;
+            stroke: white;
+            stroke-width: 3;
+        }
+        
+        .success-message h2 {
+            font-size: 22px;
+            color: #333;
+            margin-bottom: 12px;
+        }
+        
+        .success-message p {
+            font-size: 14px;
+            color: #64748B;
+            line-height: 1.6;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: white;
+            font-size: 12px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>POUR스토어 시공의뢰</h1>
+            <p>아래 정보를 입력해 주시면 빠르게 연락드리겠습니다</p>
+        </div>
+        
+        <form id="requestForm" class="form-body">
+            <div class="form-group">
+                <label class="form-label required">이름</label>
+                <input type="text" class="form-input" id="name" placeholder="홍길동" required="">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label required">연락처</label>
+                <input type="tel" class="form-input" id="phone" placeholder="010-0000-0000" required="">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label required">고객유형</label>
+                <select class="form-input form-select" id="customerType" required="">
+                    <option value="">선택하세요</option>
+                    <option value="건물주">건물주</option>
+                    <option value="세대주">세대주</option>
+                    <option value="직원">직원</option>
+                    <option value="관리사무소">관리사무소</option>
+                    <option value="시공업체">시공업체</option>
+                    <option value="기업">기업</option>
+                    <option value="기타">기타</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label required">시공유형</label>
+                <select class="form-input form-select" id="workType" required="">
+                    <option value="">선택하세요</option>
+                    <option value="슬라브">슬라브</option>
+                    <option value="아스팔트슁글">아스팔트슁글</option>
+                    <option value="금속/함석기와">금속/함석기와</option>
+                    <option value="점토기와">점토기와</option>
+                    <option value="징크판넬">징크판넬</option>
+                    <option value="칼라강판">칼라강판</option>
+                    <option value="콘크리트">콘크리트</option>
+                    <option value="외벽균열">외벽균열</option>
+                    <option value="도장">도장</option>
+                    <option value="에폭시">에폭시</option>
+                    <option value="기타">기타</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label required">건물구조</label>
+                <select class="form-input form-select" id="buildingType" required="">
+                    <option value="">선택하세요</option>
+                    <option value="빌라">빌라</option>
+                    <option value="단독주택">단독주택</option>
+                    <option value="상가">상가</option>
+                    <option value="오피스텔">오피스텔</option>
+                    <option value="빌딩">빌딩</option>
+                    <option value="펜션">펜션</option>
+                    <option value="공장">공장</option>
+                    <option value="창고">창고</option>
+                    <option value="관공서">관공서</option>
+                    <option value="기숙사">기숙사</option>
+                    <option value="교회">교회</option>
+                    <option value="병원">병원</option>
+                    <option value="어린이집">어린이집</option>
+                    <option value="기타">기타</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label required">주소</label>
+                <input type="text" class="form-input" id="address" placeholder="시공 현장 주소를 입력해주세요" required="">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">문의사항</label>
+                <textarea class="form-input" id="inquiry" rows="3" placeholder="문의사항이 있으시면 입력해주세요" style="resize:vertical;"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">시공부위 사진</label>
+                <div class="file-upload-area" id="uploadArea">
+                    <div class="file-upload-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                    </div>
+                    <p class="file-upload-text">
+                        <strong>사진을 선택</strong>하거나 여기에 끌어다 놓으세요<br>
+                        <span style="font-size:12px; color:#94A3B8;">최대 5장까지 첨부 가능</span>
+                    </p>
+                </div>
+                <input type="file" class="file-input" id="photos" accept="image/*" multiple="">
+                <div class="preview-container" id="previewContainer"></div>
+                <p style="font-size:12px; color:#64748B; margin-top:8px;">현장 사진을 첨부해 주시면 보다 정확하고 빠른 시공 매칭이 가능합니다.</p>
+            </div>
+            
+            <button type="submit" class="submit-btn" id="submitBtn">시공의뢰 제출하기</button>
+        </form>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>제출 중입니다...</p>
+        </div>
+        
+        <div class="success-message" id="successMessage">
+            <div class="success-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            </div>
+            <h2>접수 완료!</h2>
+            <p>시공의뢰가 정상적으로 접수되었습니다.<br>빠른 시일 내에 연락드리겠습니다.<br>감사합니다.</p>
+        </div>
+    </div>
+    
+    <div class="footer">
+        © POUR스토어. All rights reserved.
+    </div>
+    
+    <script>
+        // ⚠️ 이 URL을 Apps Script 웹앱 URL로 변경하세요
+        const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbyFVmPg24G3kt4jMOFOo5kmVlmm4Qw91SErIEQjvh48_pptg-4zn-No_v6-DkesLiBR/exec';
+        
+        let selectedFiles = [];
+        
+        // 파일 업로드 영역 클릭
+        document.getElementById('uploadArea').addEventListener('click', () => {
+            document.getElementById('photos').click();
+        });
+        
+        // 드래그 앤 드롭
+        const uploadArea = document.getElementById('uploadArea');
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+        
+        // 파일 선택
+        document.getElementById('photos').addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+        
+        function handleFiles(files) {
+            const newFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+            
+            if (selectedFiles.length + newFiles.length > 5) {
+                alert('사진은 최대 5장까지 첨부 가능합니다.');
+                return;
+            }
+            
+            selectedFiles = [...selectedFiles, ...newFiles].slice(0, 5);
+            updatePreview();
+        }
+        
+        function updatePreview() {
+            const container = document.getElementById('previewContainer');
+            container.innerHTML = '';
+            
+            selectedFiles.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const div = document.createElement('div');
+                    div.className = 'preview-item';
+                    div.innerHTML = `
+                        <img src="${e.target.result}" alt="미리보기">
+                        <button type="button" class="preview-remove" onclick="removeFile(${index})">×</button>
+                    `;
+                    container.appendChild(div);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            updatePreview();
+        }
+        
+        // 전화번호 정규화
+        function normalizePhone(phone) {
+            let normalized = phone.replace(/[^0-9]/g, '');
+            if (normalized.length === 10 && !normalized.startsWith('0')) {
+                normalized = '0' + normalized;
+            }
+            return normalized;
+        }
+        
+        // 폼 제출
+        document.getElementById('requestForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const form = document.getElementById('requestForm');
+            const loading = document.getElementById('loading');
+            const success = document.getElementById('successMessage');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            // 유효성 검사
+            const name = document.getElementById('name').value.trim();
+            const phone = normalizePhone(document.getElementById('phone').value);
+            const customerType = document.getElementById('customerType').value;
+            const workType = document.getElementById('workType').value;
+            const buildingType = document.getElementById('buildingType').value;
+            const address = document.getElementById('address').value.trim();
+            
+            if (!name || !phone || !customerType || !workType || !buildingType || !address) {
+                alert('이름, 연락처, 고객유형, 시공유형, 건물구조, 주소는 필수입니다.');
+                return;
+            }
+            
+            // UI 변경
+            form.style.display = 'none';
+            loading.classList.add('show');
+            submitBtn.disabled = true;
+            
+            try {
+                // 이미지를 Base64로 변환
+                const imagePromises = selectedFiles.map(file => {
+                    return new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve({
+                            name: file.name,
+                            type: file.type,
+                            data: e.target.result.split(',')[1] // Base64 데이터만
+                        });
+                        reader.readAsDataURL(file);
+                    });
+                });
+                
+                const images = await Promise.all(imagePromises);
+                
+                // 데이터 준비
+                const formData = {
+                    action: 'addConstructionRequest',
+                    name: name,
+                    phone: phone,
+                    customerType: document.getElementById('customerType').value,
+                    workType: document.getElementById('workType').value,
+                    buildingType: document.getElementById('buildingType').value,
+                    address: address,
+                    inquiry: document.getElementById('inquiry').value.trim(),
+                    images: images
+                };
+                
+                // 서버로 전송
+                const response = await fetch(WEBAPP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                // 성공 표시 (no-cors라서 응답 확인 불가, 항상 성공 처리)
+                loading.classList.remove('show');
+                success.classList.add('show');
+                
+            } catch (error) {
+                console.error('Error:', error);
+                loading.classList.remove('show');
+                form.style.display = 'block';
+                submitBtn.disabled = false;
+                alert('제출 중 오류가 발생했습니다. 다시 시도해주세요.');
+            }
+        });
+    </script>
+
+
+</body></html>

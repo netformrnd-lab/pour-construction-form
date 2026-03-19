@@ -630,10 +630,10 @@ const DEFAULT_CASE_PHOTOS={
   maintenance:{causes:['','',''],before:'',after:''},
 };
 const loadCasePhotos=()=>{try{return{...DEFAULT_CASE_PHOTOS,...JSON.parse(localStorage.getItem('pourCasePhotos')||'{}')};}catch{return DEFAULT_CASE_PHOTOS;}};
-const saveCasePhotos=p=>localStorage.setItem('pourCasePhotos',JSON.stringify(p));
+const saveCasePhotos=p=>{try{localStorage.setItem('pourCasePhotos',JSON.stringify(p));}catch(e){alert('저장 공간이 부족합니다. 일부 사진을 삭제해주세요.');}};
 // 보유니즈 카드 사진 — localStorage
 const loadProblemPhotos=()=>{try{return JSON.parse(localStorage.getItem('pourProblemPhotos')||'{}');}catch{return{};}};
-const saveProblemPhotos=p=>localStorage.setItem('pourProblemPhotos',JSON.stringify(p));
+const saveProblemPhotos=p=>{try{localStorage.setItem('pourProblemPhotos',JSON.stringify(p));}catch(e){alert('저장 공간이 부족합니다. 일부 사진을 삭제해주세요.');}};
 
 const SOLUTIONS={
   // a. 아스팔트슁글 (누수/탈락/부식 → 동일 솔루션)
@@ -1694,7 +1694,18 @@ function PhotoSlot({src,label,onSet,onRemove,wide,aspect}){
   const handleFile=(file)=>{
     if(!file||!file.type.startsWith('image/'))return;
     const reader=new FileReader();
-    reader.onload=(e)=>onSet(e.target.result);
+    reader.onload=(e)=>{
+      const img=new Image();
+      img.onload=()=>{
+        const MAX=480;
+        let w=img.width,h=img.height;
+        if(w>MAX||h>MAX){const r=Math.min(MAX/w,MAX/h);w=Math.round(w*r);h=Math.round(h*r);}
+        const c=document.createElement('canvas');c.width=w;c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        onSet(c.toDataURL('image/jpeg',0.7));
+      };
+      img.src=e.target.result;
+    };
     reader.readAsDataURL(file);
   };
   useEffect(()=>{
@@ -2308,7 +2319,7 @@ function App(){
       {screen==='leads'&&<LeadsScreen onBack={goHome}/>}
 
       {/* ADMIN */}
-      {screen==='admin'&&<AdminScreen onBack={goHome}/>}
+      {screen==='admin'&&<AdminScreen onBack={()=>{setProbPhotos(loadProblemPhotos());goHome();}}/>}
 
       {/* ── 전역 FAB: 홈 제외 모든 화면 ── */}
       {screen!=='home'&&screen!=='admin'&&(

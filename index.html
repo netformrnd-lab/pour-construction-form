@@ -90,9 +90,9 @@ input,textarea{font-family:inherit;}
 .content::-webkit-scrollbar{display:none;}
 
 /* ── HOME ── */
-.home-screen{background:var(--navy);position:relative;overflow:hidden;}
+.home-screen{background:var(--navy);position:relative;overflow:hidden;min-height:100vh;}
 .hbg{position:absolute;border-radius:50%;background:rgba(37,99,235,.12);pointer-events:none;}
-.home-inner{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;padding:40px 40px 0;box-sizing:border-box;gap:0;}
+.home-inner{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;min-height:100vh;padding:40px 40px 40px;box-sizing:border-box;gap:0;}
 .home-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:100px;background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.28);color:var(--gold);font-size:13px;font-weight:600;margin-bottom:20px;letter-spacing:.03em;}
 .home-logo{font-size:72px;font-weight:900;color:#fff;letter-spacing:-3px;line-height:1;margin-bottom:8px;}
 .home-logo em{color:var(--gold);font-style:normal;}
@@ -1240,53 +1240,22 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                   </div>
                 </div>
 
-                {/* ── 2분할 본문 ── */}
-                <div style={{flex:1,display:'flex',overflow:'hidden'}}>
+                {/* ── 본문 ── */}
+                <div className="note-sheet-scroll">
 
-                  {/* 왼쪽: 고객정보 + 메모 */}
-                  <div style={{flex:'0 0 58%',display:'flex',flexDirection:'column',borderRight:'1px solid var(--border)',overflow:'hidden'}}>
-                    {/* 고객 정보 */}
-                    <div style={{padding:'12px 14px 8px',flexShrink:0}}>
-                      <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>고객 정보</div>
-                      <input className="note-input" style={{marginBottom:6,fontSize:13}} placeholder="건물명 또는 업체명" value={ntCompany} onChange={e=>setNtCompany(e.target.value)}/>
-                      <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 2fr',gap:5}}>
-                        <input className="note-input" style={{fontSize:13}} placeholder="성함 *" value={ntName} onChange={e=>setNtName(e.target.value)}/>
-                        <input className="note-input" style={{fontSize:13}} placeholder="직급" value={ntPosition} onChange={e=>setNtPosition(e.target.value)}/>
-                        <input className="note-input" style={{fontSize:13}} placeholder="연락처 *" value={ntPhone} onChange={e=>setNtPhone(e.target.value)} inputMode="tel"/>
-                      </div>
-                    </div>
-
-                    {/* 입력 모드 토글 */}
-                    <div style={{padding:'0 14px 8px',flexShrink:0}}>
-                      <div className="mode-toggle">
-                        <button className={`mode-btn ${!ntPencilMode?'on':''}`} onClick={()=>setNtPencilMode(false)}>⌨️ 키보드 입력</button>
-                        <button className={`mode-btn ${ntPencilMode?'on':''}`} onClick={()=>setNtPencilMode(true)}>✏️ 펜슬 필기</button>
-                      </div>
-                      {ntPencilMode&&<div style={{fontSize:11,color:'var(--text-sm)',textAlign:'center',marginTop:5,fontWeight:600}}>Apple Pencil로 바로 필기하세요 · Scribble 지원</div>}
-                    </div>
-
-                    {/* 메모 영역 (매우 크게) */}
-                    <div style={{flex:1,padding:'0 14px 12px',display:'flex',flexDirection:'column',minHeight:500}}>
-                      <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>상담 메모</div>
-                      <textarea
-                        className={`note-memo ${ntPencilMode?'memo-pencil':''}`}
-                        style={{flex:1,resize:'none',minHeight:500,
-                          fontSize:ntPencilMode?17:15,
-                          lineHeight:ntPencilMode?'2.6em':'1.85',
-                        }}
-                        inputMode={ntPencilMode?'none':undefined}
-                        autoCorrect={ntPencilMode?'off':'on'}
-                        autoCapitalize={ntPencilMode?'off':'sentences'}
-                        spellCheck={!ntPencilMode}
-                        placeholder={ntPencilMode?'Apple Pencil로 필기하세요 ✏️':'고객 반응, 특이사항, 요청사항...'}
-                        value={ntMemo} onChange={e=>setNtMemo(e.target.value)}
-                      />
+                  {/* 고객 정보 */}
+                  <div style={{padding:'12px 0 8px',flexShrink:0}}>
+                    <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>고객 정보</div>
+                    <input className="note-input" style={{marginBottom:6,fontSize:13}} placeholder="건물명 또는 업체명" value={ntCompany} onChange={e=>setNtCompany(e.target.value)}/>
+                    <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 2fr',gap:5}}>
+                      <input className="note-input" style={{fontSize:13}} placeholder="성함 *" value={ntName} onChange={e=>setNtName(e.target.value)}/>
+                      <input className="note-input" style={{fontSize:13}} placeholder="직급" value={ntPosition} onChange={e=>setNtPosition(e.target.value)}/>
+                      <input className="note-input" style={{fontSize:13}} placeholder="연락처 *" value={ntPhone} onChange={e=>setNtPhone(e.target.value)} inputMode="tel"/>
                     </div>
                   </div>
 
-                  {/* 오른쪽: 아코디언 옵션들 */}
-                  <div style={{flex:1,overflowY:'auto',display:'flex',flexDirection:'column'}}>
-
+                  {/* 아코디언 옵션들 (관심 공사 종류 / 연락 방법 / 후속 조치) */}
+                  <div style={{marginBottom:10,border:'1px solid var(--border)',borderRadius:9,overflow:'hidden'}}>
                     {/* 관심 공사 종류 */}
                     <div className="acc-row">
                       <button className="acc-head" onClick={()=>ntToggleSec('interests')}>
@@ -1336,7 +1305,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     </div>
 
                     {/* 후속 조치 */}
-                    <div className="acc-row">
+                    <div className="acc-row" style={{borderBottom:'none'}}>
                       <button className="acc-head" onClick={()=>ntToggleSec('delivery')}>
                         <div className="acc-head-left">
                           <span className="acc-head-title">📬 후속 조치</span>
@@ -1367,12 +1336,36 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                         </div>
                       )}
                     </div>
-
-                    {/* 여백 */}
-                    <div style={{flex:1}}/>
                   </div>
 
-                </div>{/* 2분할 끝 */}
+                  {/* 입력 모드 토글 */}
+                  <div style={{marginBottom:8,flexShrink:0}}>
+                    <div className="mode-toggle">
+                      <button className={`mode-btn ${!ntPencilMode?'on':''}`} onClick={()=>setNtPencilMode(false)}>⌨️ 키보드 입력</button>
+                      <button className={`mode-btn ${ntPencilMode?'on':''}`} onClick={()=>setNtPencilMode(true)}>✏️ 펜슬 필기</button>
+                    </div>
+                    {ntPencilMode&&<div style={{fontSize:11,color:'var(--text-sm)',textAlign:'center',marginTop:5,fontWeight:600}}>Apple Pencil로 바로 필기하세요 · Scribble 지원</div>}
+                  </div>
+
+                  {/* 상담 메모 */}
+                  <div style={{flex:1,display:'flex',flexDirection:'column',minHeight:400}}>
+                    <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>상담 메모</div>
+                    <textarea
+                      className={`note-memo ${ntPencilMode?'memo-pencil':''}`}
+                      style={{flex:1,resize:'none',minHeight:400,
+                        fontSize:ntPencilMode?17:15,
+                        lineHeight:ntPencilMode?'2.6em':'1.85',
+                      }}
+                      inputMode={ntPencilMode?'none':undefined}
+                      autoCorrect={ntPencilMode?'off':'on'}
+                      autoCapitalize={ntPencilMode?'off':'sentences'}
+                      spellCheck={!ntPencilMode}
+                      placeholder={ntPencilMode?'Apple Pencil로 필기하세요 ✏️':'고객 반응, 특이사항, 요청사항...'}
+                      value={ntMemo} onChange={e=>setNtMemo(e.target.value)}
+                    />
+                  </div>
+
+                </div>{/* 본문 끝 */}
 
                 {/* ── 저장 버튼 ── */}
                 <div className="note-sheet-foot">
@@ -1532,52 +1525,22 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
               </div>
             </div>
 
-            {/* ── 2분할 본문 ── */}
-            <div style={{flex:1,display:'flex',overflow:'hidden'}}>
+            {/* ── 본문 ── */}
+            <div className="note-sheet-scroll">
 
-              {/* 왼쪽: 고객정보 + 메모 */}
-              <div style={{flex:'0 0 58%',display:'flex',flexDirection:'column',borderRight:'1px solid var(--border)',overflow:'hidden'}}>
-                <div style={{padding:'12px 14px 8px',flexShrink:0}}>
-                  <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>고객 정보</div>
-                  <input className="note-input" style={{marginBottom:6,fontSize:13}} placeholder="건물명 또는 업체명" value={company} onChange={e=>setCompany(e.target.value)}/>
-                  <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 2fr',gap:5}}>
-                    <input className="note-input" style={{fontSize:13}} placeholder="성함 *" value={name} onChange={e=>setName(e.target.value)}/>
-                    <input className="note-input" style={{fontSize:13}} placeholder="직급" value={position} onChange={e=>setPosition(e.target.value)}/>
-                    <input className="note-input" style={{fontSize:13}} placeholder="연락처 *" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
-                  </div>
-                </div>
-
-                {/* 모드 토글 */}
-                <div style={{padding:'0 14px 8px',flexShrink:0}}>
-                  <div className="mode-toggle">
-                    <button className={`mode-btn ${!pencilMode?'on':''}`} onClick={()=>setPencilMode(false)}>⌨️ 키보드 입력</button>
-                    <button className={`mode-btn ${pencilMode?'on':''}`} onClick={()=>setPencilMode(true)}>✏️ 펜슬 필기</button>
-                  </div>
-                  {pencilMode&&<div style={{fontSize:11,color:'var(--text-sm)',textAlign:'center',marginTop:5,fontWeight:600}}>Apple Pencil로 바로 필기하세요 · Scribble 지원</div>}
-                </div>
-
-                {/* 메모 영역 */}
-                <div style={{flex:1,padding:'0 14px 12px',display:'flex',flexDirection:'column',minHeight:0}}>
-                  <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>상담 메모</div>
-                  <textarea
-                    className={`note-memo ${pencilMode?'memo-pencil':''}`}
-                    style={{flex:1,resize:'none',minHeight:0,
-                      fontSize:pencilMode?17:14,
-                      lineHeight:pencilMode?'2.6em':'1.75',
-                    }}
-                    inputMode={pencilMode?'none':undefined}
-                    autoCorrect={pencilMode?'off':'on'}
-                    autoCapitalize={pencilMode?'off':'sentences'}
-                    spellCheck={!pencilMode}
-                    placeholder={pencilMode?'Apple Pencil로 필기하세요 ✏️':'고객 반응, 특이사항, 요청사항...'}
-                    value={memo} onChange={e=>setMemo(e.target.value)}
-                  />
+              {/* 고객 정보 */}
+              <div style={{padding:'12px 0 8px',flexShrink:0}}>
+                <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>고객 정보</div>
+                <input className="note-input" style={{marginBottom:6,fontSize:13}} placeholder="건물명 또는 업체명" value={company} onChange={e=>setCompany(e.target.value)}/>
+                <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 2fr',gap:5}}>
+                  <input className="note-input" style={{fontSize:13}} placeholder="성함 *" value={name} onChange={e=>setName(e.target.value)}/>
+                  <input className="note-input" style={{fontSize:13}} placeholder="직급" value={position} onChange={e=>setPosition(e.target.value)}/>
+                  <input className="note-input" style={{fontSize:13}} placeholder="연락처 *" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
                 </div>
               </div>
 
-              {/* 오른쪽: 아코디언 */}
-              <div style={{flex:1,overflowY:'auto',display:'flex',flexDirection:'column'}}>
-
+              {/* 아코디언 옵션들 */}
+              <div style={{marginBottom:10,border:'1px solid var(--border)',borderRadius:9,overflow:'hidden'}}>
                 {/* 관심 공사 종류 */}
                 <div className="acc-row">
                   <button className="acc-head" onClick={()=>toggleSec('interests')}>
@@ -1627,7 +1590,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
                 </div>
 
                 {/* 후속 조치 */}
-                <div className="acc-row">
+                <div className="acc-row" style={{borderBottom:'none'}}>
                   <button className="acc-head" onClick={()=>toggleSec('delivery')}>
                     <div className="acc-head-left">
                       <span className="acc-head-title">📬 후속 조치</span>
@@ -1658,11 +1621,36 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
                     </div>
                   )}
                 </div>
-
-                <div style={{flex:1}}/>
               </div>
 
-            </div>{/* 2분할 끝 */}
+              {/* 모드 토글 */}
+              <div style={{marginBottom:8,flexShrink:0}}>
+                <div className="mode-toggle">
+                  <button className={`mode-btn ${!pencilMode?'on':''}`} onClick={()=>setPencilMode(false)}>⌨️ 키보드 입력</button>
+                  <button className={`mode-btn ${pencilMode?'on':''}`} onClick={()=>setPencilMode(true)}>✏️ 펜슬 필기</button>
+                </div>
+                {pencilMode&&<div style={{fontSize:11,color:'var(--text-sm)',textAlign:'center',marginTop:5,fontWeight:600}}>Apple Pencil로 바로 필기하세요 · Scribble 지원</div>}
+              </div>
+
+              {/* 상담 메모 */}
+              <div style={{flex:1,display:'flex',flexDirection:'column',minHeight:400}}>
+                <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>상담 메모</div>
+                <textarea
+                  className={`note-memo ${pencilMode?'memo-pencil':''}`}
+                  style={{flex:1,resize:'none',minHeight:400,
+                    fontSize:pencilMode?17:15,
+                    lineHeight:pencilMode?'2.6em':'1.85',
+                  }}
+                  inputMode={pencilMode?'none':undefined}
+                  autoCorrect={pencilMode?'off':'on'}
+                  autoCapitalize={pencilMode?'off':'sentences'}
+                  spellCheck={!pencilMode}
+                  placeholder={pencilMode?'Apple Pencil로 필기하세요 ✏️':'고객 반응, 특이사항, 요청사항...'}
+                  value={memo} onChange={e=>setMemo(e.target.value)}
+                />
+              </div>
+
+            </div>{/* 본문 끝 */}
 
             {/* ── 저장 ── */}
             <div className="note-sheet-foot">

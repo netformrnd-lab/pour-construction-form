@@ -488,11 +488,11 @@ function DrawCanvas({onDataUrl}){
     const dpr=window.devicePixelRatio||1;
     // save current image
     const img=c.toDataURL();
-    c.width=wrap.clientWidth*dpr;c.height=Math.max(wrap.clientHeight,400)*dpr;
-    c.style.width=wrap.clientWidth+'px';c.style.height=Math.max(wrap.clientHeight,400)+'px';
+    c.width=wrap.clientWidth*dpr;c.height=Math.max(wrap.clientHeight,800)*dpr;
+    c.style.width=wrap.clientWidth+'px';c.style.height=Math.max(wrap.clientHeight,800)+'px';
     const ctx=getCtx();ctx.scale(dpr,dpr);
     // restore
-    const i=new Image();i.onload=()=>{ctx.drawImage(i,0,0,wrap.clientWidth,Math.max(wrap.clientHeight,400));};i.src=img;
+    const i=new Image();i.onload=()=>{ctx.drawImage(i,0,0,wrap.clientWidth,Math.max(wrap.clientHeight,800));};i.src=img;
   },[]);
 
   useEffect(()=>{resize();window.addEventListener('resize',resize);return()=>window.removeEventListener('resize',resize);},[resize]);
@@ -539,7 +539,7 @@ function DrawCanvas({onDataUrl}){
     <div>
       <div className="draw-toolbar">
         <button className={`draw-tool ${tool==='pen'?'on':''}`} onClick={()=>setTool('pen')} title="펜">✏️</button>
-        <button className={`draw-tool ${tool==='eraser'?'on':''}`} onClick={()=>setTool('eraser')} title="지우개">🧹</button>
+        <button className={`draw-tool ${tool==='eraser'?'on':''}`} onClick={()=>setTool('eraser')} title="지우개" style={{fontSize:13,fontWeight:800}}>{tool==='eraser'?'⬜':'▭'}</button>
         <div style={{width:1,height:20,background:'var(--border)',margin:'0 2px'}}/>
         {DRAW_COLORS.map(c=>(
           <div key={c} className={`draw-color ${color===c&&tool==='pen'?'on':''}`} style={{background:c}} onClick={()=>{setColor(c);setTool('pen');}}/>
@@ -553,7 +553,7 @@ function DrawCanvas({onDataUrl}){
         <button className="draw-tool" onClick={undo} title="되돌리기">↩️</button>
         <button className="draw-tool" onClick={clearAll} title="전체 지우기">🗑️</button>
       </div>
-      <div className="draw-canvas-wrap" style={{minHeight:400}}>
+      <div className="draw-canvas-wrap" style={{minHeight:800}}>
         <canvas ref={canvasRef}
           onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerLeave={end}
           style={{display:'block',cursor:tool==='eraser'?'crosshair':'default'}}
@@ -620,7 +620,8 @@ const GUIDES=[
 // ── 사진 슬롯 ──
 // causes: 원인 카드별 현장 사진 (3장), before/after: 시공 전후 사진
 // URL을 채우면 즉시 반영됩니다.
-const CASE_PHOTOS={
+// 사진 데이터 — localStorage에서 로드 (관리자 페이지에서 편집 가능)
+const DEFAULT_CASE_PHOTOS={
   shingle:{causes:['','',''],before:'',after:''},
   metal:  {causes:['','',''],before:'',after:''},
   slab:   {causes:['','',''],before:'',after:''},
@@ -628,6 +629,11 @@ const CASE_PHOTOS={
   exterior:{causes:['','',''],before:'',after:''},
   maintenance:{causes:['','',''],before:'',after:''},
 };
+const loadCasePhotos=()=>{try{return{...DEFAULT_CASE_PHOTOS,...JSON.parse(localStorage.getItem('pourCasePhotos')||'{}')};}catch{return DEFAULT_CASE_PHOTOS;}};
+const saveCasePhotos=p=>localStorage.setItem('pourCasePhotos',JSON.stringify(p));
+// 보유니즈 카드 사진 — localStorage
+const loadProblemPhotos=()=>{try{return JSON.parse(localStorage.getItem('pourProblemPhotos')||'{}');}catch{return{};}};
+const saveProblemPhotos=p=>localStorage.setItem('pourProblemPhotos',JSON.stringify(p));
 
 const SOLUTIONS={
   // a. 아스팔트슁글 (누수/탈락/부식 → 동일 솔루션)
@@ -1031,7 +1037,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [ntMemo,setNtMemo]=useState('');
   const [ntSaving,setNtSaving]=useState(false);
   const [ntDone,setNtDone]=useState(false);
-  const [ntPencilMode,setNtPencilMode]=useState(false);
+  const [ntPencilMode,setNtPencilMode]=useState(true);
   const [ntOpenSec,setNtOpenSec]=useState(new Set([]));
 
   const ntToggleSec=sec=>setNtOpenSec(p=>{const n=new Set(p);n.has(sec)?n.delete(sec):n.add(sec);return n;});
@@ -1041,7 +1047,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   if(!sol||!problem) return null;
 
   const guide=sol.guideId?GUIDES.find(g=>g.id===sol.guideId):null;
-  const photos=sol.photosKey?CASE_PHOTOS[sol.photosKey]:null;
+  const [casePhotos]=useState(()=>loadCasePhotos());
+  const photos=sol.photosKey?casePhotos[sol.photosKey]:null;
   const today=new Date();
   const dateStr=`2026년 4월 ${today.getDate()<=18?today.getDate():'__'}일`;
 
@@ -1460,7 +1467,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
   const [memo,setMemo]=useState('');
   const [saving,setSaving]=useState(false);
   const [done,setDone]=useState(false);
-  const [pencilMode,setPencilMode]=useState(false);
+  const [pencilMode,setPencilMode]=useState(true);
   const [openSec,setOpenSec]=useState(new Set([]));
   const toggle=(arr,set,v)=>set(p=>p.includes(v)?p.filter(x=>x!==v):[...p,v]);
   const toggleSec=sec=>setOpenSec(p=>{const n=new Set(p);n.has(sec)?n.delete(sec):n.add(sec);return n;});
@@ -1656,7 +1663,9 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
 function AdminScreen({onBack}){
   const [leads,setLeads]=useState([]);
   const [loading,setLoading]=useState(true);
-  const [tab,setTab]=useState('stat'); // 'stat' | 'list'
+  const [tab,setTab]=useState('stat'); // 'stat' | 'list' | 'photos'
+  const [casePhotos,setCasePhotos]=useState(()=>loadCasePhotos());
+  const [probPhotos,setProbPhotos]=useState(()=>loadProblemPhotos());
   const [search,setSearch]=useState('');
   const [filterDay,setFilterDay]=useState('전체');
   const [filterStaff,setFilterStaff]=useState('전체');
@@ -1754,7 +1763,7 @@ function AdminScreen({onBack}){
 
       {/* 탭 */}
       <div style={{display:'flex',background:'var(--navy)',borderBottom:'1px solid rgba(255,255,255,.1)',flexShrink:0}}>
-        {[['stat','📊 통계'],['list','📋 리드 관리']].map(([k,label])=>(
+        {[['stat','📊 통계'],['list','📋 리드 관리'],['photos','📸 사진 관리']].map(([k,label])=>(
           <button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:'12px 0',background:'none',border:'none',color:tab===k?'#fff':'rgba(255,255,255,.4)',fontSize:13,fontWeight:tab===k?800:600,cursor:'pointer',borderBottom:tab===k?'2px solid #60A5FA':'2px solid transparent',transition:'all .15s'}}>
             {label}
           </button>
@@ -1958,6 +1967,124 @@ function AdminScreen({onBack}){
           </div>
         </div>
       )}
+
+      {/* ── 사진 관리 탭 ── */}
+      {!loading&&tab==='photos'&&(
+        <div style={{flex:1,overflowY:'auto',padding:'16px'}}>
+          {/* 하자 현장 사진 관리 */}
+          <div style={{background:'var(--card)',borderRadius:12,padding:'16px',border:'1px solid var(--border)',marginBottom:14}}>
+            <div style={{fontSize:13,fontWeight:800,color:'var(--text)',marginBottom:12}}>📸 하자 현장 사진 관리</div>
+            <div style={{fontSize:11,color:'var(--text-sm)',marginBottom:12}}>URL을 입력하거나 이미지를 복사해서 붙여넣기 하세요</div>
+            {Object.entries(casePhotos).map(([key,data])=>(
+              <div key={key} style={{marginBottom:16,padding:'12px',background:'var(--bg)',borderRadius:10}}>
+                <div style={{fontSize:12,fontWeight:800,color:'var(--text)',marginBottom:8,textTransform:'capitalize'}}>{key}</div>
+                <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:4}}>현장 사진 (causes)</div>
+                <div style={{display:'flex',gap:6,marginBottom:8,flexWrap:'wrap'}}>
+                  {(data.causes||[]).map((url,i)=>(
+                    <div key={i} style={{position:'relative',width:80,height:60,borderRadius:8,overflow:'hidden',border:'1.5px solid var(--border)',background:'#fff',flexShrink:0}}>
+                      {url?<img src={url} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                        :<div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,opacity:.2}}>📷</div>}
+                      <input
+                        style={{position:'absolute',inset:0,opacity:0,cursor:'pointer'}}
+                        value=""
+                        onChange={()=>{}}
+                        onPaste={(e)=>{
+                          const items=e.clipboardData.items;
+                          for(let it of items){
+                            if(it.type.startsWith('image/')){
+                              const reader=new FileReader();
+                              reader.onload=(ev)=>{
+                                const up={...casePhotos};up[key].causes[i]=ev.target.result;
+                                setCasePhotos(up);saveCasePhotos(up);
+                              };
+                              reader.readAsDataURL(it.getAsFile());
+                              return;
+                            }
+                          }
+                        }}
+                        onClick={(e)=>{
+                          const url=prompt(`${key} 사진 ${i+1} URL 입력 (또는 이미지 붙여넣기):`,data.causes[i]||'');
+                          if(url!==null){const up={...casePhotos};up[key].causes[i]=url;setCasePhotos(up);saveCasePhotos(up);}
+                        }}
+                        title="클릭하여 URL 입력 또는 이미지 붙여넣기"
+                      />
+                    </div>
+                  ))}
+                  <button onClick={()=>{const up={...casePhotos};up[key].causes=[...(up[key].causes||[]),''];setCasePhotos(up);saveCasePhotos(up);}}
+                    style={{width:80,height:60,borderRadius:8,border:'1.5px dashed var(--border)',background:'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,color:'var(--text-sm)'}}>+</button>
+                </div>
+                <div style={{display:'flex',gap:6}}>
+                  {['before','after'].map(t=>(
+                    <div key={t} style={{flex:1}}>
+                      <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:4}}>{t==='before'?'시공 전':'시공 후'}</div>
+                      <div style={{position:'relative',height:50,borderRadius:8,overflow:'hidden',border:'1.5px solid var(--border)',background:'#fff'}}>
+                        {data[t]?<img src={data[t]} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                          :<div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,opacity:.2}}>📷</div>}
+                        <input
+                          style={{position:'absolute',inset:0,opacity:0,cursor:'pointer'}}
+                          value="" onChange={()=>{}}
+                          onPaste={(e)=>{
+                            const items=e.clipboardData.items;
+                            for(let it of items){
+                              if(it.type.startsWith('image/')){
+                                const reader=new FileReader();
+                                reader.onload=(ev)=>{const up={...casePhotos};up[key][t]=ev.target.result;setCasePhotos(up);saveCasePhotos(up);};
+                                reader.readAsDataURL(it.getAsFile());return;
+                              }
+                            }
+                          }}
+                          onClick={()=>{
+                            const url=prompt(`${key} ${t} 사진 URL:`,data[t]||'');
+                            if(url!==null){const up={...casePhotos};up[key][t]=url;setCasePhotos(up);saveCasePhotos(up);}
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* 보유 니즈 카드 사진 관리 */}
+          <div style={{background:'var(--card)',borderRadius:12,padding:'16px',border:'1px solid var(--border)'}}>
+            <div style={{fontSize:13,fontWeight:800,color:'var(--text)',marginBottom:12}}>🏗 보유 니즈 카드 사진 관리</div>
+            <div style={{fontSize:11,color:'var(--text-sm)',marginBottom:12}}>문제 선택 화면의 카드 썸네일 사진을 설정합니다</div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8}}>
+              {ALL_PROBLEMS.map(p=>(
+                <div key={p.id} style={{borderRadius:10,border:'1.5px solid var(--border)',overflow:'hidden',background:'var(--bg)'}}>
+                  <div style={{position:'relative',aspectRatio:'4/3',background:'#fff',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    {(probPhotos[p.id]||p.img)?<img src={probPhotos[p.id]||p.img} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                      :<span style={{fontSize:28}}>{p.icon}</span>}
+                    <input
+                      style={{position:'absolute',inset:0,opacity:0,cursor:'pointer'}}
+                      value="" onChange={()=>{}}
+                      onPaste={(e)=>{
+                        const items=e.clipboardData.items;
+                        for(let it of items){
+                          if(it.type.startsWith('image/')){
+                            const reader=new FileReader();
+                            reader.onload=(ev)=>{const up={...probPhotos,[p.id]:ev.target.result};setProbPhotos(up);saveProblemPhotos(up);};
+                            reader.readAsDataURL(it.getAsFile());return;
+                          }
+                        }
+                      }}
+                      onClick={()=>{
+                        const url=prompt(`${p.label} 사진 URL:`,probPhotos[p.id]||'');
+                        if(url!==null){const up={...probPhotos,[p.id]:url};setProbPhotos(up);saveProblemPhotos(up);}
+                      }}
+                    />
+                  </div>
+                  <div style={{padding:'6px 8px'}}>
+                    <div style={{fontSize:11,fontWeight:700,color:'var(--text)',lineHeight:1.3}}>{p.label}</div>
+                    <div style={{fontSize:10,color:'var(--text-sm)'}}>{p.cat}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1983,6 +2110,7 @@ function App(){
   const [todayCount,setTodayCount]=useState(0);
   const [globalNote,setGlobalNote]=useState(false);
   const [confirmNew,setConfirmNew]=useState(false);
+  const [probPhotos,setProbPhotos]=useState(()=>loadProblemPhotos());
 
   const isSetup=!!(staffId&&staffName);
 
@@ -2117,7 +2245,7 @@ function App(){
             {filtered.map(p=>(
               <button key={p.id} className="prob-chip" onClick={()=>{setProblem(p);setScreen('solution');}}>
                 <div className="prob-chip-thumb">
-                  {p.img?<img src={p.img} alt={p.label}/>:<span>{p.icon}</span>}
+                  {(probPhotos[p.id]||p.img)?<img src={probPhotos[p.id]||p.img} alt={p.label}/>:<span>{p.icon}</span>}
                 </div>
                 <div className="prob-chip-body">
                   <div className="prob-chip-text">{p.label}</div>

@@ -253,9 +253,9 @@ input,textarea{font-family:inherit;}
 .memo-scroll-wrap{flex:1;display:flex;overflow:hidden;position:relative;}
 .memo-scroll{flex:1;overflow-y:auto;padding:20px 20px 90px;}
 .memo-scroll::-webkit-scrollbar{display:none;}
-.scroll-rail{width:28px;flex-shrink:0;background:var(--bg);border-left:1.5px solid var(--border);display:flex;align-items:stretch;justify-content:center;touch-action:none;cursor:pointer;-webkit-user-select:none;user-select:none;}
-.scroll-rail-track{width:6px;background:var(--border);border-radius:3px;position:relative;margin:8px 0;}
-.scroll-rail-thumb{position:absolute;left:0;width:6px;background:var(--navy);border-radius:3px;min-height:30px;transition:background .12s;}
+.scroll-rail{width:36px;flex-shrink:0;background:linear-gradient(to right,var(--border-s),var(--bg));border-left:1.5px solid var(--border);display:flex;align-items:stretch;justify-content:center;touch-action:none;cursor:pointer;-webkit-user-select:none;user-select:none;}
+.scroll-rail-track{width:8px;background:var(--border);border-radius:4px;position:relative;margin:12px 0;}
+.scroll-rail-thumb{position:absolute;left:0;width:8px;background:var(--navy);border-radius:4px;min-height:40px;transition:background .12s;box-shadow:0 1px 4px rgba(0,0,0,.15);}
 .scroll-rail-thumb:active{background:var(--blue);}
 /* ── Photo Zoom Modal ── */
 .photo-zoom-overlay{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:1100;display:flex;flex-direction:column;align-items:center;justify-content:center;touch-action:none;-webkit-user-select:none;user-select:none;}
@@ -912,19 +912,14 @@ const getAvatar=n=>n?n.charAt(0).toUpperCase():'?';
 const getColor=id=>STAFF_COLORS[(id||'').length%STAFF_COLORS.length];
 
 /* ── Scroll Rail (memo 전용 오른쪽 스크롤 드래그 레일) ── */
-function ScrollRail({targetRef}){
-  const railRef=useRef();
+function ScrollRail({scrollRef}){
   const trackRef=useRef();
   const thumbRef=useRef();
-  const scrollElRef=useRef(null);
   const dragging=useRef(false);
 
   useEffect(()=>{
-    const wrap=railRef.current?.parentElement;
-    if(!wrap)return;
-    const el=wrap.querySelector(targetRef);
+    const el=scrollRef?.current;
     if(!el)return;
-    scrollElRef.current=el;
     const update=()=>{
       if(!trackRef.current||!thumbRef.current)return;
       const {scrollTop,scrollHeight,clientHeight}=el;
@@ -939,27 +934,28 @@ function ScrollRail({targetRef}){
     };
     el.addEventListener('scroll',update,{passive:true});
     const ro=new ResizeObserver(update);ro.observe(el);
-    update();
+    setTimeout(update,150);
     return()=>{el.removeEventListener('scroll',update);ro.disconnect();};
-  },[targetRef]);
+  },[scrollRef]);
 
-  const onPointerDown=(e)=>{
-    e.preventDefault();e.target.setPointerCapture(e.pointerId);
-    dragging.current=true;
-    scrollTo(e);
-  };
-  const onPointerMove=(e)=>{if(dragging.current){e.preventDefault();scrollTo(e);}};
-  const onPointerUp=(e)=>{dragging.current=false;};
-  const scrollTo=(e)=>{
-    const el=scrollElRef.current;
+  const doScroll=(e)=>{
+    const el=scrollRef?.current;
     if(!el||!trackRef.current)return;
     const rect=trackRef.current.getBoundingClientRect();
     const ratio=Math.max(0,Math.min(1,(e.clientY-rect.top)/rect.height));
     el.scrollTop=ratio*(el.scrollHeight-el.clientHeight);
   };
+  const onPointerDown=(e)=>{
+    e.preventDefault();
+    if(e.target.setPointerCapture)e.target.setPointerCapture(e.pointerId);
+    dragging.current=true;
+    doScroll(e);
+  };
+  const onPointerMove=(e)=>{if(dragging.current){e.preventDefault();doScroll(e);}};
+  const onPointerUp=()=>{dragging.current=false;};
 
   return(
-    <div className="scroll-rail" ref={railRef}
+    <div className="scroll-rail"
       onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}>
       <div className="scroll-rail-track" ref={trackRef}>
         <div className="scroll-rail-thumb" ref={thumbRef}/>
@@ -1148,6 +1144,8 @@ function CSMemoScreen({building,problem,staffId,staffName,staffDay,onBack,onSave
   const [csActions,setCsActions]=useState([]);
   const [csMemo,setCsMemo]=useState('');
   const [saving,setSaving]=useState(false);
+  const [saveConfirm,setSaveConfirm]=useState(false);
+  const memoScrollRef=useRef(null);
   const toggle=(arr,set,v)=>set(p=>p.includes(v)?p.filter(x=>x!==v):[...p,v]);
 
   const save=async()=>{
@@ -1183,7 +1181,7 @@ function CSMemoScreen({building,problem,staffId,staffName,staffDay,onBack,onSave
         <div className="hdr-r"><button className="btn-back" onClick={onBack}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg></button></div>
       </div>
       <div className="memo-scroll-wrap">
-      <div className="memo-scroll" ref={el=>{if(el)el.__memoScrollEl=el;}}>
+      <div className="memo-scroll" ref={memoScrollRef}>
 
         {/* 담당자 확인 */}
         <div className="msec">
@@ -1250,11 +1248,27 @@ function CSMemoScreen({building,problem,staffId,staffName,staffDay,onBack,onSave
           <textarea className="minput" style={{borderColor:'var(--purple-m)'}} rows={3} placeholder="고객 반응, 특이사항, 후속 참고사항..." value={csMemo} onChange={e=>setCsMemo(e.target.value)}/>
         </div>
       </div>
-      <ScrollRail targetRef=".memo-scroll"/>
+      <ScrollRail scrollRef={memoScrollRef}/>
       </div>
+
+      {/* 저장 확인 모달 */}
+      {saveConfirm&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}} onClick={()=>setSaveConfirm(false)}>
+          <div style={{background:'#fff',borderRadius:16,padding:'28px 24px',width:'min(320px,85vw)',textAlign:'center',boxShadow:'0 12px 40px rgba(0,0,0,.2)'}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:36,marginBottom:12}}>💾</div>
+            <div style={{fontSize:17,fontWeight:800,color:'var(--text)',marginBottom:6}}>저장하시겠습니까?</div>
+            <div style={{fontSize:13,color:'var(--text-md)',marginBottom:20,lineHeight:1.5}}>입력한 상담 메모를 저장합니다</div>
+            <div style={{display:'flex',gap:10}}>
+              <button style={{flex:1,padding:'13px 0',borderRadius:10,border:'1.5px solid var(--border)',background:'var(--bg)',fontSize:14,fontWeight:700,color:'var(--text-md)',cursor:'pointer',fontFamily:'inherit'}} onClick={()=>setSaveConfirm(false)}>취소</button>
+              <button style={{flex:2,padding:'13px 0',borderRadius:10,border:'none',background:'var(--blue)',fontSize:14,fontWeight:800,color:'#fff',cursor:'pointer',fontFamily:'inherit'}} onClick={()=>{setSaveConfirm(false);save();}} disabled={saving}>{saving?'저장 중...':'저장하기'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bottom-bar">
         <button className="btn btn-outline btn-lg" style={{flex:1}} onClick={onBack}>취소</button>
-        <button className="btn btn-blue btn-lg" style={{flex:2}} onClick={save} disabled={saving}>{saving?'저장 중...':'저장하기'}</button>
+        <button className="btn btn-blue btn-lg" style={{flex:2}} onClick={()=>setSaveConfirm(true)} disabled={saving}>{saving?'저장 중...':'저장하기'}</button>
       </div>
     </div>
   );

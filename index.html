@@ -463,7 +463,7 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
 .draw-sep{width:1px;height:22px;background:var(--border);margin:0 2px;flex-shrink:0;}
 .draw-size{display:flex;align-items:center;gap:4px;}
 .draw-size-label{font-size:10px;font-weight:700;color:var(--text-sm);}
-.draw-canvas-wrap{border-radius:12px;border:1.5px solid var(--border);overflow:hidden;background:#fff;touch-action:none;position:relative;}
+.draw-canvas-wrap{border-radius:12px;border:1.5px solid var(--border);overflow:hidden;background:#fff;touch-action:none;position:relative;width:100%;box-sizing:border-box;}
 .draw-tool-tip{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;color:var(--text-sm);white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;}
 .draw-tool:hover .draw-tool-tip{opacity:1;}
 .draw-highlight-tool{position:relative;}
@@ -485,6 +485,7 @@ function DrawCanvas({onDataUrl}){
   const [hlColor,setHlColor]=useState(HIGHLIGHT_COLORS[0]);
   const [lineW,setLineW]=useState(2);
   const drawing=useRef(false);
+  const penDetected=useRef(false);
   const [,forceRender]=useState(0);
 
   /* stroke-based storage: {points:[{x,y,p}], color, width, type:'pen'|'hl', opacity} */
@@ -606,7 +607,9 @@ function DrawCanvas({onDataUrl}){
   };
 
   const start=(e)=>{
-    /* palm rejection: ignore touch if pen is detected */
+    /* palm rejection: once pen is detected, always ignore touch */
+    if(e.pointerType==='pen')penDetected.current=true;
+    if(e.pointerType==='touch'&&penDetected.current)return;
     if(e.pointerType==='touch'&&drawing.current)return;
     e.preventDefault();e.target.setPointerCapture(e.pointerId);
     drawing.current=true;
@@ -632,7 +635,9 @@ function DrawCanvas({onDataUrl}){
     }
   };
   const move=(e)=>{
-    if(!drawing.current)return;e.preventDefault();
+    if(!drawing.current)return;
+    if(e.pointerType==='touch'&&penDetected.current)return;
+    e.preventDefault();
     const p=getPos(e);
     if(tool==='eraser'){
       const thresh=15;let changed=false;

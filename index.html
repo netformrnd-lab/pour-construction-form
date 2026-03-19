@@ -453,12 +453,115 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
 .mode-toggle{display:flex;gap:0;border-radius:10px;overflow:hidden;border:1.5px solid var(--border);background:var(--bg);}
 .mode-btn{flex:1;padding:7px 0;border:none;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;background:transparent;color:var(--text-sm);}
 .mode-btn.on{background:var(--navy);color:#fff;}
+/* ── Drawing Canvas ── */
+.draw-toolbar{display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--bg);border-radius:9px;border:1px solid var(--border);margin-bottom:8px;flex-wrap:wrap;}
+.draw-tool{width:32px;height:32px;border-radius:8px;border:1.5px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;transition:all .12s;flex-shrink:0;}
+.draw-tool.on{background:var(--navy);border-color:var(--navy);color:#fff;}
+.draw-tool:active{transform:scale(.93);}
+.draw-color{width:24px;height:24px;border-radius:50%;border:2px solid var(--border);cursor:pointer;transition:all .12s;flex-shrink:0;}
+.draw-color.on{border-color:var(--navy);box-shadow:0 0 0 2px var(--navy);}
+.draw-size{display:flex;align-items:center;gap:4px;margin-left:auto;}
+.draw-size-label{font-size:10px;font-weight:700;color:var(--text-sm);}
+.draw-canvas-wrap{border-radius:9px;border:1.5px solid var(--border);overflow:hidden;background:#fff;touch-action:none;position:relative;}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
 const {useState,useRef,useEffect,useCallback}=React;
+
+/* ══ DrawCanvas Component ══ */
+const DRAW_COLORS=['#111827','#DC2626','#2563EB','#059669','#D97706','#7C3AED'];
+function DrawCanvas({onDataUrl}){
+  const canvasRef=useRef(null);
+  const [tool,setTool]=useState('pen'); // 'pen' | 'eraser'
+  const [color,setColor]=useState('#111827');
+  const [lineW,setLineW]=useState(2);
+  const drawing=useRef(false);
+  const history=useRef([]);
+  const histIdx=useRef(-1);
+
+  const getCtx=()=>canvasRef.current?.getContext('2d');
+  const resize=useCallback(()=>{
+    const c=canvasRef.current;if(!c)return;
+    const wrap=c.parentElement;
+    const dpr=window.devicePixelRatio||1;
+    // save current image
+    const img=c.toDataURL();
+    c.width=wrap.clientWidth*dpr;c.height=Math.max(wrap.clientHeight,400)*dpr;
+    c.style.width=wrap.clientWidth+'px';c.style.height=Math.max(wrap.clientHeight,400)+'px';
+    const ctx=getCtx();ctx.scale(dpr,dpr);
+    // restore
+    const i=new Image();i.onload=()=>{ctx.drawImage(i,0,0,wrap.clientWidth,Math.max(wrap.clientHeight,400));};i.src=img;
+  },[]);
+
+  useEffect(()=>{resize();window.addEventListener('resize',resize);return()=>window.removeEventListener('resize',resize);},[resize]);
+
+  const saveState=()=>{
+    const c=canvasRef.current;if(!c)return;
+    histIdx.current++;
+    history.current=history.current.slice(0,histIdx.current);
+    history.current.push(c.toDataURL());
+  };
+  const undo=()=>{
+    if(histIdx.current<=0)return;
+    histIdx.current--;
+    const ctx=getCtx();const c=canvasRef.current;
+    const i=new Image();i.onload=()=>{ctx.clearRect(0,0,c.width,c.height);const dpr=window.devicePixelRatio||1;ctx.save();ctx.scale(1/dpr,1/dpr);ctx.drawImage(i,0,0);ctx.restore();};
+    i.src=history.current[histIdx.current];
+  };
+  const clearAll=()=>{
+    const c=canvasRef.current;if(!c)return;
+    const ctx=getCtx();ctx.clearRect(0,0,c.width,c.height);saveState();
+  };
+
+  const getPos=(e)=>{
+    const c=canvasRef.current;const r=c.getBoundingClientRect();
+    const t=e.touches?e.touches[0]:e;
+    return{x:t.clientX-r.left,y:t.clientY-r.top};
+  };
+  const start=(e)=>{
+    e.preventDefault();drawing.current=true;
+    const ctx=getCtx();const p=getPos(e);
+    ctx.beginPath();ctx.moveTo(p.x,p.y);
+    ctx.lineCap='round';ctx.lineJoin='round';
+    if(tool==='eraser'){ctx.globalCompositeOperation='destination-out';ctx.lineWidth=lineW*10;}
+    else{ctx.globalCompositeOperation='source-over';ctx.strokeStyle=color;ctx.lineWidth=lineW;}
+  };
+  const move=(e)=>{
+    if(!drawing.current)return;e.preventDefault();
+    const ctx=getCtx();const p=getPos(e);
+    ctx.lineTo(p.x,p.y);ctx.stroke();
+  };
+  const end=()=>{if(drawing.current){drawing.current=false;saveState();}};
+
+  return(
+    <div>
+      <div className="draw-toolbar">
+        <button className={`draw-tool ${tool==='pen'?'on':''}`} onClick={()=>setTool('pen')} title="펜">✏️</button>
+        <button className={`draw-tool ${tool==='eraser'?'on':''}`} onClick={()=>setTool('eraser')} title="지우개">🧹</button>
+        <div style={{width:1,height:20,background:'var(--border)',margin:'0 2px'}}/>
+        {DRAW_COLORS.map(c=>(
+          <div key={c} className={`draw-color ${color===c&&tool==='pen'?'on':''}`} style={{background:c}} onClick={()=>{setColor(c);setTool('pen');}}/>
+        ))}
+        <div style={{width:1,height:20,background:'var(--border)',margin:'0 2px'}}/>
+        <div className="draw-size">
+          <span className="draw-size-label">굵기</span>
+          <input type="range" min="1" max="8" value={lineW} onChange={e=>setLineW(+e.target.value)} style={{width:60,accentColor:'var(--navy)'}}/>
+        </div>
+        <div style={{width:1,height:20,background:'var(--border)',margin:'0 2px'}}/>
+        <button className="draw-tool" onClick={undo} title="되돌리기">↩️</button>
+        <button className="draw-tool" onClick={clearAll} title="전체 지우기">🗑️</button>
+      </div>
+      <div className="draw-canvas-wrap" style={{minHeight:400}}>
+        <canvas ref={canvasRef}
+          onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerLeave={end}
+          style={{display:'block',cursor:tool==='eraser'?'crosshair':'default'}}
+        />
+      </div>
+    </div>
+  );
+}
 
 /* ══ CONSTANTS ══ */
 const STAFF_COLORS=['#1A56DB','#7C3AED','#059669','#DC2626','#D97706','#0891B2','#BE185D'];
@@ -973,7 +1076,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
   const logText=[
     `박람회: 공동주택관리산업박람회 (벡스코)`,`상담일시: ${dateStr}`,``,
-    `건물유형: ${building.label} (${building.sub})`,
+    `건물유형: ${building?.label||'-'} (${building?.sub||'-'})`,
     `주요 문제: [${problem.cat}] ${problem.label}`,
     `추천 공법: ${sol.methods.map(m=>m.name).join(', ')}`,
     `시방서: ${sol.methods[0].specUrl}`,`시공사례: ${sol.caseUrl}`,``,
@@ -1006,7 +1109,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
       <div className="content">
         <div className="breadcrumb">
-          <span>{building.label}</span><span className="bc-sep">›</span>
+          <span>{problem.cat}</span><span className="bc-sep">›</span>
           <span>{problem.label}</span>
         </div>
 
@@ -1014,14 +1117,17 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
         <>
             {/* ── 섹션1: 공법 + 완성 사진 ── */}
             <div style={{background:'var(--navy)',borderRadius:'var(--r)',overflow:'hidden',marginBottom:14}}>
-              {/* 공법명 */}
-              <div style={{padding:'14px 18px 12px',display:'flex',alignItems:'center',gap:10}}>
-                <div style={{width:26,height:26,borderRadius:'50%',background:'rgba(255,255,255,.15)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:800,color:'#fff',flexShrink:0}}>✓</div>
-                <div>
-                  <div style={{fontSize:15,fontWeight:900,color:'#fff',letterSpacing:'-.3px'}}>{sol.methods[0].name}</div>
-                  <div style={{fontSize:11,color:'rgba(255,255,255,.5)',marginTop:1}}>{sol.methods[0].feature}</div>
+              {/* 공법 목록 */}
+              {sol.methods.map((m,i)=>(
+                <div key={i} style={{padding:'12px 18px',display:'flex',alignItems:'center',gap:10,borderTop:i>0?'1px solid rgba(255,255,255,.08)':'none'}}>
+                  <div style={{width:26,height:26,borderRadius:'50%',background:'rgba(255,255,255,.15)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,color:'#fff',flexShrink:0}}>{i+1}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:14,fontWeight:800,color:'#fff',letterSpacing:'-.3px'}}>{m.name}</div>
+                    <div style={{fontSize:11,color:'rgba(255,255,255,.5)',marginTop:1}}>{m.feature}</div>
+                  </div>
+                  <a href={m.specUrl} target="_blank" rel="noreferrer" style={{fontSize:10,fontWeight:700,color:'var(--blue-m)',padding:'4px 8px',border:'1px solid rgba(255,255,255,.15)',borderRadius:6,textDecoration:'none',flexShrink:0}}>시방서</a>
                 </div>
-              </div>
+              ))}
               {/* 완성 사진 슬롯 */}
               <div style={{position:'relative',width:'100%',aspectRatio:'16/6',background:'rgba(255,255,255,.05)',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:6,borderTop:'1px solid rgba(255,255,255,.08)'}}>
                 {photos?.after
@@ -1035,24 +1141,48 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               </div>
             </div>
 
+            {/* ── 하자 현장 사진 ── */}
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:10}}>📸 하자 현장 사진</div>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8}}>
+                {(photos?.causes||['','','']).map((src,i)=>(
+                  <div key={i} style={{aspectRatio:'4/3',borderRadius:10,overflow:'hidden',border:'1.5px solid var(--border)',background:'var(--bg)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4,position:'relative'}}>
+                    {src
+                      ?<img src={src} alt={`하자사진${i+1}`} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}/>
+                      :<>
+                        <span style={{fontSize:22,opacity:.25}}>📷</span>
+                        <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:600}}>사진 {i+1}</span>
+                      </>
+                    }
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* ── 섹션2: 자료 + QR — 1행 2열 카드 ── */}
             <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:10}}>📱 자료 바로가기 · QR 전달</div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:10}}>
               {[
-                {label:'제안서/\n시방서',icon:'📄',url:'https://www.poursolution.net/36',qrTitle:'제안서/시방서'},
-                {label:guide?'가이드북':'가이드북',icon:'📖',url:guide?guide.url:'https://www.poursolution.net/203',qrTitle:'시공 가이드북'},
+                {label:'제안서/\n시방서',icon:'📄',url:sol.methods[0].specUrl||'https://www.poursolution.net/36',qrTitle:'제안서/시방서'},
+                {label:'가이드북',icon:'📖',url:guide?guide.url:'',qrTitle:'시공 가이드북',empty:!guide},
               ].map(l=>(
-                <div key={l.label} style={{background:'var(--card)',border:'1.5px solid var(--border)',borderRadius:14,overflow:'hidden',display:'flex',flexDirection:'column'}}>
-                  <a href={l.url} target="_blank" rel="noreferrer"
-                    style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,padding:'18px 8px 14px',textDecoration:'none'}}>
-                    <span style={{fontSize:30}}>{l.icon}</span>
-                    <span style={{fontSize:12,fontWeight:700,color:'var(--text)',textAlign:'center',whiteSpace:'pre-line',lineHeight:1.4}}>{l.label}</span>
-                  </a>
-                  <button onClick={()=>setQr({url:l.url,title:l.qrTitle})}
+                <div key={l.label} style={{background:l.empty?'var(--bg)':'var(--card)',border:'1.5px solid var(--border)',borderRadius:14,overflow:'hidden',display:'flex',flexDirection:'column',opacity:l.empty?.4:1}}>
+                  {l.empty
+                    ?<div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,padding:'18px 8px 14px'}}>
+                      <span style={{fontSize:30,opacity:.3}}>{l.icon}</span>
+                      <span style={{fontSize:12,fontWeight:700,color:'var(--text-sm)',textAlign:'center'}}>준비 중</span>
+                    </div>
+                    :<a href={l.url} target="_blank" rel="noreferrer"
+                      style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,padding:'18px 8px 14px',textDecoration:'none'}}>
+                      <span style={{fontSize:30}}>{l.icon}</span>
+                      <span style={{fontSize:12,fontWeight:700,color:'var(--text)',textAlign:'center',whiteSpace:'pre-line',lineHeight:1.4}}>{l.label}</span>
+                    </a>
+                  }
+                  {!l.empty&&<button onClick={()=>setQr({url:l.url,title:l.qrTitle})}
                     style={{width:'100%',padding:'10px 0',border:'none',borderTop:'1px solid var(--border)',background:'var(--accent-l)',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
                     <span style={{fontSize:16}}>📱</span>
                     <span style={{fontSize:10,fontWeight:800,color:'var(--accent)'}}>QR 전달</span>
-                  </button>
+                  </button>}
                 </div>
               ))}
             </div>
@@ -1204,27 +1334,22 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                   <div style={{marginBottom:8,flexShrink:0}}>
                     <div className="mode-toggle">
                       <button className={`mode-btn ${!ntPencilMode?'on':''}`} onClick={()=>setNtPencilMode(false)}>⌨️ 키보드 입력</button>
-                      <button className={`mode-btn ${ntPencilMode?'on':''}`} onClick={()=>setNtPencilMode(true)}>✏️ 펜슬 필기</button>
+                      <button className={`mode-btn ${ntPencilMode?'on':''}`} onClick={()=>setNtPencilMode(true)}>✏️ 펜슬 낙서</button>
                     </div>
-                    {ntPencilMode&&<div style={{fontSize:11,color:'var(--text-sm)',textAlign:'center',marginTop:5,fontWeight:600}}>Apple Pencil로 바로 필기하세요 · Scribble 지원</div>}
                   </div>
 
                   {/* 상담 메모 */}
                   <div style={{marginBottom:10}}>
                     <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>상담 메모</div>
-                    <textarea
-                      className={`note-memo ${ntPencilMode?'memo-pencil':''}`}
-                      style={{resize:'none',minHeight:300,width:'100%',
-                        fontSize:ntPencilMode?17:15,
-                        lineHeight:ntPencilMode?'2.6em':'1.85',
-                      }}
-                      inputMode={ntPencilMode?'none':undefined}
-                      autoCorrect={ntPencilMode?'off':'on'}
-                      autoCapitalize={ntPencilMode?'off':'sentences'}
-                      spellCheck={!ntPencilMode}
-                      placeholder={ntPencilMode?'Apple Pencil로 필기하세요 ✏️':'고객 반응, 특이사항, 요청사항...'}
-                      value={ntMemo} onChange={e=>setNtMemo(e.target.value)}
-                    />
+                    {ntPencilMode
+                      ?<DrawCanvas/>
+                      :<textarea
+                        className="note-memo"
+                        style={{resize:'none',minHeight:300,width:'100%',fontSize:15,lineHeight:'1.85'}}
+                        placeholder="고객 반응, 특이사항, 요청사항..."
+                        value={ntMemo} onChange={e=>setNtMemo(e.target.value)}
+                      />
+                    }
                   </div>
 
                 </div>{/* 본문 끝 */}
@@ -1497,27 +1622,22 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
               <div style={{marginBottom:8,flexShrink:0}}>
                 <div className="mode-toggle">
                   <button className={`mode-btn ${!pencilMode?'on':''}`} onClick={()=>setPencilMode(false)}>⌨️ 키보드 입력</button>
-                  <button className={`mode-btn ${pencilMode?'on':''}`} onClick={()=>setPencilMode(true)}>✏️ 펜슬 필기</button>
+                  <button className={`mode-btn ${pencilMode?'on':''}`} onClick={()=>setPencilMode(true)}>✏️ 펜슬 낙서</button>
                 </div>
-                {pencilMode&&<div style={{fontSize:11,color:'var(--text-sm)',textAlign:'center',marginTop:5,fontWeight:600}}>Apple Pencil로 바로 필기하세요 · Scribble 지원</div>}
               </div>
 
               {/* 상담 메모 */}
               <div style={{marginBottom:10}}>
                 <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>상담 메모</div>
-                <textarea
-                  className={`note-memo ${pencilMode?'memo-pencil':''}`}
-                  style={{resize:'none',minHeight:300,width:'100%',
-                    fontSize:pencilMode?17:15,
-                    lineHeight:pencilMode?'2.6em':'1.85',
-                  }}
-                  inputMode={pencilMode?'none':undefined}
-                  autoCorrect={pencilMode?'off':'on'}
-                  autoCapitalize={pencilMode?'off':'sentences'}
-                  spellCheck={!pencilMode}
-                  placeholder={pencilMode?'Apple Pencil로 필기하세요 ✏️':'고객 반응, 특이사항, 요청사항...'}
-                  value={memo} onChange={e=>setMemo(e.target.value)}
-                />
+                {pencilMode
+                  ?<DrawCanvas/>
+                  :<textarea
+                    className="note-memo"
+                    style={{resize:'none',minHeight:300,width:'100%',fontSize:15,lineHeight:'1.85'}}
+                    placeholder="고객 반응, 특이사항, 요청사항..."
+                    value={memo} onChange={e=>setMemo(e.target.value)}
+                  />
+                }
               </div>
 
             </div>{/* 본문 끝 */}

@@ -473,54 +473,36 @@ const BUILDING_TYPES=[
 
 // img: 문제 선택 칩에 보여줄 사진 URL (비워두면 이모지, 채우면 사진)
 const ALL_PROBLEMS=[
-  {id:'wp_shingle',cat:'방수',label:'아스팔트슁글 누수',icon:'🌧',img:''},
-  {id:'wp_shingle_drain',cat:'방수',label:'슁글 + 배수로 불량',icon:'🌊',img:''},
-  {id:'wp_metal',cat:'방수',label:'금속기와 누수',icon:'🌧',img:''},
-  {id:'wp_metal_drain',cat:'방수',label:'금속기와 + 배수로',icon:'🌊',img:''},
-  {id:'wp_slab',cat:'방수',label:'옥상 슬라브 누수',icon:'💧',img:''},
-  {id:'wp_underground',cat:'방수',label:'지하 누수 (PVC)',icon:'🚿',img:''},
-  {id:'wp_urethane',cat:'방수',label:'일반 옥상 누수',icon:'☔',img:''},
-  {id:'wp_acrylic',cat:'방수',label:'지하·수조 배면 누수',icon:'💦',img:''},
-  {id:'pt_metal',cat:'도장',label:'금속기와 녹·열화',icon:'🔴',img:''},
-  {id:'pt_parking',cat:'도장',label:'지하주차장 바닥 열화',icon:'🚗',img:''},
-  {id:'pt_slip',cat:'도장',label:'바닥 미끄럼·내구성',icon:'⚠️',img:''},
-  {id:'pt_crack_premium',cat:'도장',label:'외벽 균열 재도장 (고급)',icon:'🏠',img:''},
-  {id:'pt_crack_mid',cat:'도장',label:'외벽 균열 재도장 (중급)',icon:'🏠',img:''},
-  {id:'pt_crack_eco',cat:'도장',label:'외벽 균열 재도장 (경제)',icon:'🏠',img:''},
-  {id:'rp_shingle_replace',cat:'보수보강',label:'슁글 파손·교체',icon:'🔨',img:''},
-  {id:'rp_base',cat:'보수보강',label:'바탕면 노후화',icon:'🧱',img:''},
-  {id:'rp_section',cat:'보수보강',label:'콘크리트 단면 복구',icon:'🔧',img:''},
-  {id:'rp_crack_sheet',cat:'보수보강',label:'균열 보수 (시트)',icon:'📋',img:''},
-  {id:'rp_vent_paper',cat:'보수보강',label:'지붕 환기 불량',icon:'🌬',img:''},
-  {id:'rp_vent',cat:'보수보강',label:'옥상 환기구 설치',icon:'💨',img:''},
-  {id:'rp_hooker',cat:'보수보강',label:'구조 보강',icon:'⚙️',img:''},
-  {id:'rp_pipe_trap',cat:'보수보강',label:'옥상 배관 누수',icon:'🔩',img:''},
-  {id:'cv_ascon',cat:'토목',label:'아스콘 균열·파손',icon:'🛣',img:''},
-  {id:'cv_seal',cat:'토목',label:'주차장·도로 씰코팅',icon:'🖌',img:''},
-  {id:'cv_block',cat:'토목',label:'보도블록 파손·침하',icon:'🧱',img:''},
-  {id:'cv_asphalt',cat:'토목',label:'아스팔트 도로포장',icon:'🚧',img:''},
-  {id:'cv_mma',cat:'토목',label:'고강도 바닥 마감',icon:'💪',img:''},
+  // a. 아스팔트슁글
+  {id:'shingle_leak',cat:'방수',label:'아스팔트슁글 누수',icon:'🌧',img:''},
+  {id:'shingle_fall',cat:'방수',label:'아스팔트슁글 탈락',icon:'🔨',img:''},
+  {id:'shingle_rust',cat:'방수',label:'아스팔트슁글 부식',icon:'🔴',img:''},
+  // b. 금속기와
+  {id:'metal_leak',cat:'방수',label:'금속기와 누수',icon:'🌧',img:''},
+  {id:'metal_fall',cat:'방수',label:'금속기와 탈락',icon:'🔨',img:''},
+  {id:'metal_rust',cat:'도장',label:'금속기와 부식',icon:'🔴',img:''},
+  // c. 슬라브
+  {id:'slab_leak',cat:'방수',label:'슬라브 누수',icon:'💧',img:''},
+  {id:'slab_fall',cat:'방수',label:'슬라브 탈락',icon:'🔨',img:''},
+  {id:'slab_rust',cat:'방수',label:'슬라브 부식',icon:'🔴',img:''},
+  // d. 지하주차장
+  {id:'parking_leak',cat:'도장',label:'지하주차장 누수',icon:'🚗',img:''},
+  {id:'parking_fall',cat:'도장',label:'지하주차장 탈락',icon:'🔨',img:''},
+  {id:'parking_rust',cat:'도장',label:'지하주차장 부식',icon:'🔴',img:''},
+  // e. 외벽/재도장
+  {id:'wall_leak',cat:'도장',label:'외벽/재도장 누수',icon:'🏠',img:''},
+  {id:'wall_fall',cat:'도장',label:'외벽/재도장 탈락',icon:'🏠',img:''},
+  {id:'wall_rust',cat:'도장',label:'외벽/재도장 부식',icon:'🏠',img:''},
+  // f. 아스콘
+  {id:'ascon_crack',cat:'토목',label:'아스콘 균열',icon:'🛣',img:''},
+  {id:'ascon_rust',cat:'토목',label:'아스콘 부식',icon:'🔴',img:''},
+  // g. 보도블럭
+  {id:'block_crack',cat:'토목',label:'보도블럭 균열',icon:'🧱',img:''},
+  {id:'block_rust',cat:'토목',label:'보도블럭 부식',icon:'🧱',img:''},
 ];
-const CATS=['전체','방수','도장','보수보강','토목'];
+const CATS=['전체','방수','도장','토목'];
 
-// 건물 유형별 적합 문제 ID 목록
-const BUILDING_PROBLEMS={
-  apt:['wp_shingle','wp_shingle_drain','wp_metal','wp_metal_drain','wp_slab','wp_urethane',
-       'pt_metal','pt_parking','pt_slip','pt_crack_premium','pt_crack_mid','pt_crack_eco',
-       'rp_shingle_replace','rp_base','rp_crack_sheet','rp_vent_paper','rp_vent','rp_pipe_trap'],
-  gov:['wp_slab','wp_urethane','wp_underground',
-       'pt_parking','pt_slip','pt_crack_premium','pt_crack_mid',
-       'rp_base','rp_section','rp_crack_sheet','rp_hooker',
-       'cv_ascon','cv_seal','cv_block','cv_asphalt'],
-  gen:['wp_slab','wp_urethane','wp_underground','wp_acrylic',
-       'pt_parking','pt_slip','pt_crack_premium','pt_crack_eco',
-       'rp_base','rp_section',
-       'cv_ascon','cv_seal','cv_mma'],
-  con:['wp_slab','wp_underground','wp_urethane','wp_acrylic',
-       'pt_crack_premium','pt_crack_mid','pt_crack_eco',
-       'rp_section','rp_hooker',
-       'cv_ascon','cv_seal','cv_block','cv_asphalt','cv_mma'],
-};
+// (건물 유형별 필터 제거 — 전체 문제 표시)
 
 const GUIDES=[
   {id:'g1',title:'아스팔트슁글 지붕편',url:'https://featpaper.com/v/K1lvPVMp'},
@@ -545,33 +527,32 @@ const CASE_PHOTOS={
 };
 
 const SOLUTIONS={
-  wp_shingle:{cause:'아스팔트슁글은 자외선·온도 변화로 수축·열화되면서 틈새가 생깁니다. 이 틈을 통해 빗물이 침투해 단열재와 슬라브까지 손상을 줍니다. 단순 표면 문제가 아니라 지붕 전체 방수 기능이 저하된 상태입니다.',methods:[{name:'아스팔트슁글 방수공법',feature:'슁글 틈새를 전용 실링재로 완벽 밀폐, 고내구성 방수 시스템',specUrl:'https://www.poursolution.net/128'}],caseUrl:'https://www.poursolution.net/110',caseName:'아스팔트싱글 시공사례',guideId:'g1',photosKey:'shingle'},
-  wp_shingle_drain:{cause:'슁글 지붕에 배수로 불량이 겹치면 빗물이 고여 침투 압력이 높아집니다. 배수로 막힘이 지속되면 구조체까지 손상이 확산됩니다. 방수와 배수로를 동시에 처리해야 근본 해결이 가능합니다.',methods:[{name:'아스팔트슁글 및 배수로 방수공법',feature:'슁글 방수 + 배수로 보수를 동시 시공하는 통합 공법',specUrl:'https://www.poursolution.net/129'}],caseUrl:'https://www.poursolution.net/110',caseName:'아스팔트싱글 시공사례',guideId:'g1',photosKey:'shingle'},
-  wp_metal:{cause:'금속기와는 접합부와 나사 구멍에서 누수가 시작됩니다. 표면 도장이 벗겨지면 녹이 발생하고 수밀성이 급격히 저하됩니다. 조기 처리하지 않으면 기와 전체 교체로 이어질 수 있습니다.',methods:[{name:'금속기와 방수 공법',feature:'접합부·나사홀을 전용 실링제로 밀폐하고 방수층 형성',specUrl:'https://www.poursolution.net/130'}],caseUrl:'https://www.poursolution.net/127',caseName:'금속기와 시공사례',guideId:'g2',photosKey:'metal'},
-  wp_metal_drain:{cause:'금속기와와 배수로가 동시에 불량인 경우 우수기에 집중 누수가 발생합니다. 별도 시공 시 비용과 시간이 증가하므로 통합 공법으로 처리하는 것이 효율적입니다.',methods:[{name:'금속기와 및 배수로 방수 공법',feature:'금속기와 방수 + 배수로 보수 통합 시공',specUrl:'https://www.poursolution.net/131'}],caseUrl:'https://www.poursolution.net/127',caseName:'금속기와 시공사례',guideId:'g2',photosKey:'metal'},
-  wp_slab:{cause:'옥상 슬라브 누수는 방수층 노후화와 균열 확대로 발생합니다. 슬라브 균열을 통해 철근까지 수분이 침투하면 부식이 진행되어 구조 안전성에도 영향을 줍니다.',methods:[{name:'슬라브 듀얼강화방수공법',feature:'2중 방수층으로 슬라브 균열 부위를 완벽 밀폐하는 고강도 방수 시스템',specUrl:'https://www.poursolution.net/132'}],caseUrl:'https://www.poursolution.net/111',caseName:'슬라브 시공사례',guideId:'g3',photosKey:'slab'},
-  wp_underground:{cause:'지하 PVC 방수는 접합부 이탈과 수압에 의한 들뜸이 발생합니다. 지하수압이 높을수록 누수 속도가 빨라지며 방치 시 주차장 전체로 확산됩니다.',methods:[{name:'PVC 방수공법',feature:'PVC 시트 전면 재시공으로 지하 수압에 강한 방수층 구성',specUrl:'https://www.poursolution.net/136'}],caseUrl:'https://www.poursolution.net/96',caseName:'지하주차장 시공사례',guideId:'g7',photosKey:'parking'},
-  wp_urethane:{cause:'일반 옥상 누수는 기존 방수층의 균열·박리·노화가 원인입니다. 우레탄 방수는 탄성이 뛰어나 슬라브 미세균열에도 대응 가능합니다.',methods:[{name:'우레탄 방수 공법',feature:'탄성 우레탄으로 균열 추종성이 높은 무결점 방수층 형성',specUrl:'https://www.poursolution.net/124'}],caseUrl:'https://www.poursolution.net/111',caseName:'슬라브 시공사례',guideId:'g6',photosKey:'slab'},
-  wp_acrylic:{cause:'지하 배면 누수는 외부 수압으로 내부에서 막기가 어렵습니다. 아크릴 배면차수 공법은 수압 방향과 무관하게 내부에서 시공 가능합니다.',methods:[{name:'아크릴배면차수공법',feature:'수압 방향과 무관하게 내부에서 시공 가능한 배면 차수 시스템',specUrl:'https://www.poursolution.net/137'}],caseUrl:'https://www.poursolution.net/96',caseName:'지하주차장 시공사례',guideId:'g7',photosKey:'parking'},
-  pt_metal:{cause:'금속기와 표면 코팅이 자외선·산성비에 의해 열화되면 녹이 발생합니다. 녹이 퍼지면 기와 자체가 부식되어 방수 기능도 동시에 상실됩니다.',methods:[{name:'금속기와 코팅 방수 공사',feature:'방수+도장 기능을 동시에 제공하는 금속기와 전용 코팅 시스템',specUrl:'https://www.poursolution.net/138'}],caseUrl:'https://www.poursolution.net/127',caseName:'금속기와 시공사례',guideId:'g2',photosKey:'metal'},
-  pt_parking:{cause:'지하주차장 바닥 에폭시는 차량 하중과 화학물질에 의해 박리·열화됩니다. 표면이 들뜨면 먼지 발생과 미끄럼 사고 위험이 높아집니다.',methods:[{name:'에폭시 도장 공법',feature:'고부착력 에폭시로 내화학성·내마모성이 뛰어난 바닥면 구성',specUrl:'https://www.poursolution.net/125'}],caseUrl:'https://www.poursolution.net/96',caseName:'지하주차장 시공사례',guideId:'g4',photosKey:'parking'},
-  pt_slip:{cause:'바닥 미끄럼 문제는 표면 마감재 마모와 물·기름에 의한 마찰력 저하로 발생합니다. 엠보 패턴 도장은 표면에 요철을 형성하여 안전성을 높입니다.',methods:[{name:'엠보라이닝 도장공법',feature:'엠보 패턴으로 논슬립 효과와 내구성을 동시에 확보',specUrl:'https://www.poursolution.net/195'}],caseUrl:'https://www.poursolution.net/96',caseName:'지하주차장 시공사례',guideId:'g4',photosKey:'parking'},
-  pt_crack_premium:{cause:'외벽 균열은 콘크리트 건조수축과 온도변화로 발생하며 방치 시 철근 부식으로 이어집니다. 고급형 공법은 탄성 바인더+플러스 도장으로 추후 균열에도 대응합니다.',methods:[{name:'균열보수 및 재도장 (바인더+플러스)',feature:'균열 충전 + 탄성 바인더 + 고급 플러스 도장의 3중 구성',specUrl:'https://www.poursolution.net/139'}],caseUrl:'https://www.poursolution.net/98',caseName:'도장 시공사례',guideId:'g5',photosKey:'exterior'},
-  pt_crack_mid:{cause:'외벽 균열 재도장이 필요하지만 예산 효율도 고려해야 하는 경우입니다. 플러스+수성 조합으로 균열 방어와 미관 개선을 균형 있게 해결합니다.',methods:[{name:'균열보수 및 재도장 (플러스+수성)',feature:'균열 충전 + 플러스 + 수성 도료의 중급형 조합',specUrl:'https://www.poursolution.net/140'}],caseUrl:'https://www.poursolution.net/98',caseName:'도장 시공사례',guideId:'g5',photosKey:'exterior'},
-  pt_crack_eco:{cause:'예산이 제한적이지만 외벽 균열 보수와 재도장이 모두 필요한 상황입니다. 바인더+수성 조합으로 균열 방어와 깔끔한 외관을 경제적으로 구현합니다.',methods:[{name:'균열보수 및 재도장 (바인더+수성)',feature:'균열 충전 + 탄성 바인더 + 수성 도료의 경제형 조합',specUrl:'https://www.poursolution.net/190'}],caseUrl:'https://www.poursolution.net/98',caseName:'도장 시공사례',guideId:'g5',photosKey:'exterior'},
-  rp_shingle_replace:{cause:'아스팔트슁글이 물리적으로 파손되거나 수명이 다한 경우 부분 보수로는 한계가 있습니다. 전면 교체 후 신규 방수층을 구성하는 것이 장기적으로 경제적입니다.',methods:[{name:'아스팔트슁글 교체 공법',feature:'기존 슁글 완전 철거 후 신규 슁글 재시공으로 방수 기능 회복',specUrl:'https://www.poursolution.net/141'}],caseUrl:'https://www.poursolution.net/110',caseName:'아스팔트싱글 시공사례',guideId:'g1',photosKey:'shingle'},
-  rp_base:{cause:'바탕면이 노후화되면 그 위에 시공하는 방수·도장의 접착력이 크게 저하됩니다. 바탕면 강화 처리 없이 시공하면 재시공 주기가 단축됩니다.',methods:[{name:'탄성강화 보강공법 (바탕면)',feature:'노후 바탕면에 탄성 강화재를 침투시켜 강도와 접착력 회복',specUrl:'https://www.poursolution.net/143'}],caseUrl:'https://www.poursolution.net/114',caseName:'아파트 유지보수 시공사례',guideId:'g3',photosKey:'slab'},
-  rp_section:{cause:'콘크리트 단면이 파손되면 철근이 노출되어 부식이 급속히 진행됩니다. 단면 복구는 단순 미관 문제가 아니라 구조 안전과 직결됩니다.',methods:[{name:'탄성강화 보강 공법 (단면복구)',feature:'파손 부위를 전용 보수재로 단면 복구하여 구조 강도 회복',specUrl:'https://www.poursolution.net/144'}],caseUrl:'https://www.poursolution.net/114',caseName:'아파트 유지보수 시공사례',guideId:'g3',photosKey:'slab'},
-  rp_crack_sheet:{cause:'균열 부위는 충전재만으로 재균열이 발생할 수 있습니다. 복합시트로 균열 부위를 보강하면 균열 추종성과 방수성이 동시에 확보됩니다.',methods:[{name:'복합시트 균열보수 공법',feature:'복합시트로 균열 부위를 덮어 재균열 방지 및 방수 기능 확보',specUrl:'https://www.poursolution.net/145'}],caseUrl:'https://www.poursolution.net/114',caseName:'아파트 유지보수 시공사례',guideId:'g3',photosKey:'slab'},
-  rp_vent_paper:{cause:'지붕 환기 불량은 실내 결로를 유발하고 단열재를 습윤 상태로 만듭니다. 페이퍼 팬 벤트는 지붕 하부 습기를 외부로 배출합니다.',methods:[{name:'페이퍼 팬 벤트',feature:'지붕 하부 습기를 자연 환기로 배출하는 환기 시스템',specUrl:'https://www.poursolution.net/146'}],caseUrl:'https://www.poursolution.net/114',caseName:'아파트 유지보수 시공사례',guideId:null,photosKey:null},
-  rp_vent:{cause:'옥상 환기구 부재 시 옥상과 내부 공간 간 압력차로 빗물이 역류하거나 습기가 정체됩니다. 벤트 설치로 자연 대류 환기를 유도합니다.',methods:[{name:'벤트',feature:'옥상 자연환기를 위한 벤트 설치로 결로 및 습기 문제 해소',specUrl:'https://www.poursolution.net/147'}],caseUrl:'https://www.poursolution.net/114',caseName:'아파트 유지보수 시공사례',guideId:null,photosKey:null},
-  rp_hooker:{cause:'구조 보강이 필요한 경우 일반 보수재만으로는 하중 분산이 어렵습니다. 후커보강공법은 앵커와 보강재를 조합하여 구조 내력을 효과적으로 회복시킵니다.',methods:[{name:'후커보강공법',feature:'앵커+보강재 조합으로 노후 구조체의 내력 회복',specUrl:'https://www.poursolution.net/148'}],caseUrl:'https://www.poursolution.net/114',caseName:'아파트 유지보수 시공사례',guideId:null,photosKey:null},
-  rp_pipe_trap:{cause:'옥상 배관 관통부는 방수층과 파이프 사이 틈새에서 누수가 발생합니다. 배관 주변 복잡한 형상에 일반 방수로는 대응이 어려우며 전용 트랩이 필요합니다.',methods:[{name:'옥상배관방수트랩',feature:'배관 관통부에 전용 트랩을 설치하여 누수 원천 차단',specUrl:'https://www.poursolution.net/149'}],caseUrl:'https://www.poursolution.net/114',caseName:'아파트 유지보수 시공사례',guideId:null,photosKey:null},
-  cv_ascon:{cause:'아스콘 균열은 하부 기층의 지지력 저하와 열팽창 스트레스가 복합 작용하여 발생합니다. 표층만 처리하면 재균열이 빠르게 발생하므로 기층 보강이 중요합니다.',methods:[{name:'아스콘균열보수',feature:'균열부 절삭 → 기층 보강 → 아스콘 재포장의 3단계 공법',specUrl:'https://www.poursolution.net/150'}],caseUrl:'https://www.poursolution.net/portfolio',caseName:'토목 시공사례',guideId:null,photosKey:null},
-  cv_seal:{cause:'주차장·도로 아스팔트는 산화와 UV에 의해 표면이 취약해집니다. 씰코팅은 산화 방지막을 형성하여 포장 수명을 크게 연장합니다.',methods:[{name:'씰코팅공법',feature:'아스팔트 표면 산화 방지 + 방수성 강화로 포장 수명 2~3배 연장',specUrl:'https://www.poursolution.net/173'}],caseUrl:'https://www.poursolution.net/portfolio',caseName:'토목 시공사례',guideId:null,photosKey:null},
-  cv_block:{cause:'보도블록 침하는 하부 기층 유실과 우수 침투로 인한 지반 약화가 원인입니다. 블록만 교체하면 재침하가 반복되므로 기층 보강이 필수입니다.',methods:[{name:'보도블럭',feature:'기층 보강 + 블록 재시공으로 침하 재발 방지',specUrl:'https://www.poursolution.net/77'}],caseUrl:'https://www.poursolution.net/portfolio',caseName:'토목 시공사례',guideId:null,photosKey:null},
-  cv_asphalt:{cause:'노후 아스팔트 포장은 균열과 침하가 복합적으로 발생하며 전면 재포장이 필요합니다. 하부층 정비부터 표층 시공까지 전 공정의 품질이 내구성을 결정합니다.',methods:[{name:'아스팔트도로포장공법',feature:'하부층 정비부터 표층 시공까지 전 공정 일괄 시공',specUrl:'https://www.poursolution.net/167'}],caseUrl:'https://www.poursolution.net/portfolio',caseName:'토목 시공사례',guideId:null,photosKey:null},
-  cv_mma:{cause:'고하중·화학물질에 노출되는 바닥은 일반 에폭시로는 내구성이 부족합니다. MMA 수지는 경화 속도가 빠르고 내충격·내화학성이 뛰어나 단시간 시공이 가능합니다.',methods:[{name:'MMA공법',feature:'고강도 MMA 수지로 내충격·내화학성 바닥 마감, 조기 개방 가능',specUrl:'https://www.poursolution.net/197'}],caseUrl:'https://www.poursolution.net/portfolio',caseName:'토목 시공사례',guideId:null,photosKey:null},
+  // a. 아스팔트슁글 (누수/탈락/부식 → 동일 솔루션)
+  shingle_leak:{cause:'아스팔트슁글은 자외선·온도 변화로 수축·열화되면서 틈새가 생깁니다. 이 틈을 통해 빗물이 침투해 단열재와 슬라브까지 손상을 줍니다.',methods:[{name:'POUR 아스팔트슁글 방수 공법',feature:'슁글 틈새를 전용 실링재로 완벽 밀폐, 고내구성 방수 시스템',specUrl:'https://www.poursolution.net/128'}],caseUrl:'https://www.poursolution.net/110',caseName:'아스팔트싱글 시공사례',guideId:'g1',photosKey:'shingle'},
+  shingle_fall:{cause:'아스팔트슁글이 물리적으로 파손·탈락되어 지붕 방수 기능이 소실된 상태입니다. 탈락 부위를 통해 빗물이 직접 침투합니다.',methods:[{name:'POUR 아스팔트슁글 방수 공법',feature:'슁글 틈새를 전용 실링재로 완벽 밀폐, 고내구성 방수 시스템',specUrl:'https://www.poursolution.net/128'}],caseUrl:'https://www.poursolution.net/110',caseName:'아스팔트싱글 시공사례',guideId:'g1',photosKey:'shingle'},
+  shingle_rust:{cause:'아스팔트슁글 표면이 부식·열화되면서 방수 기능이 저하된 상태입니다. 표면 처리 없이 방치하면 지붕 전체로 손상이 확산됩니다.',methods:[{name:'POUR 아스팔트슁글 방수 공법',feature:'슁글 틈새를 전용 실링재로 완벽 밀폐, 고내구성 방수 시스템',specUrl:'https://www.poursolution.net/128'}],caseUrl:'https://www.poursolution.net/110',caseName:'아스팔트싱글 시공사례',guideId:'g1',photosKey:'shingle'},
+  // b. 금속기와 (누수/탈락 → 방수, 부식 → 코팅도장)
+  metal_leak:{cause:'금속기와는 접합부와 나사 구멍에서 누수가 시작됩니다. 표면 도장이 벗겨지면 녹이 발생하고 수밀성이 급격히 저하됩니다.',methods:[{name:'POUR 금속기와 방수 공법',feature:'접합부·나사홀을 전용 실링제로 밀폐하고 방수층 형성',specUrl:'https://www.poursolution.net/130'}],caseUrl:'https://www.poursolution.net/127',caseName:'금속기와 시공사례',guideId:'g2',photosKey:'metal'},
+  metal_fall:{cause:'금속기와가 탈락하면 지붕 구조가 직접 노출되어 빗물 침투가 가속됩니다. 조기 보수가 필수입니다.',methods:[{name:'POUR 금속기와 방수 공법',feature:'접합부·나사홀을 전용 실링제로 밀폐하고 방수층 형성',specUrl:'https://www.poursolution.net/130'}],caseUrl:'https://www.poursolution.net/127',caseName:'금속기와 시공사례',guideId:'g2',photosKey:'metal'},
+  metal_rust:{cause:'금속기와 표면 코팅이 자외선·산성비에 의해 열화되면 녹이 발생합니다. 녹이 퍼지면 기와 자체가 부식되어 방수 기능도 동시에 상실됩니다.',methods:[{name:'POUR 금속기와/칼라강판 코팅 공법',feature:'방수+도장 기능을 동시에 제공하는 금속기와 전용 코팅 시스템',specUrl:'https://www.poursolution.net/138'}],caseUrl:'https://www.poursolution.net/127',caseName:'금속기와 시공사례',guideId:null,photosKey:'metal'},
+  // c. 슬라브 (누수/탈락/부식 → 3가지 솔루션)
+  slab_leak:{cause:'옥상 슬라브 누수는 방수층 노후화와 균열 확대로 발생합니다. 슬라브 균열을 통해 철근까지 수분이 침투하면 부식이 진행됩니다.',methods:[{name:'POUR 슬라브 듀얼강화방수 공법',feature:'2중 방수층으로 슬라브 균열 부위를 완벽 밀폐하는 고강도 방수 시스템',specUrl:'https://www.poursolution.net/132'},{name:'POUR 우레탄 방수 공법',feature:'탄성 우레탄으로 균열 추종성이 높은 무결점 방수층 형성',specUrl:'https://www.poursolution.net/124'},{name:'POUR PVC 방수 공법',feature:'PVC 시트 전면 재시공으로 수압에 강한 방수층 구성',specUrl:'https://www.poursolution.net/136'}],caseUrl:'https://www.poursolution.net/111',caseName:'슬라브 시공사례',guideId:'g3',photosKey:'slab'},
+  slab_fall:{cause:'슬라브 방수층이 들뜨고 탈락되면 콘크리트가 직접 노출되어 급속히 열화됩니다.',methods:[{name:'POUR 슬라브 듀얼강화방수 공법',feature:'2중 방수층으로 슬라브 균열 부위를 완벽 밀폐하는 고강도 방수 시스템',specUrl:'https://www.poursolution.net/132'},{name:'POUR 우레탄 방수 공법',feature:'탄성 우레탄으로 균열 추종성이 높은 무결점 방수층 형성',specUrl:'https://www.poursolution.net/124'},{name:'POUR PVC 방수 공법',feature:'PVC 시트 전면 재시공으로 수압에 강한 방수층 구성',specUrl:'https://www.poursolution.net/136'}],caseUrl:'https://www.poursolution.net/111',caseName:'슬라브 시공사례',guideId:'g3',photosKey:'slab'},
+  slab_rust:{cause:'슬라브 표면 부식은 철근 노출과 콘크리트 중성화가 원인입니다. 방수층 복원과 함께 구조 보강이 필요합니다.',methods:[{name:'POUR 슬라브 듀얼강화방수 공법',feature:'2중 방수층으로 슬라브 균열 부위를 완벽 밀폐하는 고강도 방수 시스템',specUrl:'https://www.poursolution.net/132'},{name:'POUR 우레탄 방수 공법',feature:'탄성 우레탄으로 균열 추종성이 높은 무결점 방수층 형성',specUrl:'https://www.poursolution.net/124'},{name:'POUR PVC 방수 공법',feature:'PVC 시트 전면 재시공으로 수압에 강한 방수층 구성',specUrl:'https://www.poursolution.net/136'}],caseUrl:'https://www.poursolution.net/111',caseName:'슬라브 시공사례',guideId:'g3',photosKey:'slab'},
+  // d. 지하주차장 (누수/탈락/부식 → 에폭시 + 엠보라이닝)
+  parking_leak:{cause:'지하주차장 바닥 에폭시는 차량 하중과 화학물질에 의해 박리·열화됩니다. 표면이 들뜨면 먼지 발생과 미끄럼 사고 위험이 높아집니다.',methods:[{name:'POUR 에폭시 도장 공법',feature:'고부착력 에폭시로 내화학성·내마모성이 뛰어난 바닥면 구성',specUrl:'https://www.poursolution.net/125'},{name:'POUR 엠보라이닝 도장 공법',feature:'엠보 패턴으로 논슬립 효과와 내구성을 동시에 확보',specUrl:'https://www.poursolution.net/195'}],caseUrl:'https://www.poursolution.net/96',caseName:'지하주차장 시공사례',guideId:'g4',photosKey:'parking'},
+  parking_fall:{cause:'지하주차장 에폭시 도막이 들뜨고 탈락되면 바닥 콘크리트가 노출되어 분진이 발생합니다.',methods:[{name:'POUR 에폭시 도장 공법',feature:'고부착력 에폭시로 내화학성·내마모성이 뛰어난 바닥면 구성',specUrl:'https://www.poursolution.net/125'},{name:'POUR 엠보라이닝 도장 공법',feature:'엠보 패턴으로 논슬립 효과와 내구성을 동시에 확보',specUrl:'https://www.poursolution.net/195'}],caseUrl:'https://www.poursolution.net/96',caseName:'지하주차장 시공사례',guideId:'g4',photosKey:'parking'},
+  parking_rust:{cause:'지하주차장 바닥 부식은 제설제·오일 등 화학물질과 차량 반복 하중이 복합 작용한 결과입니다.',methods:[{name:'POUR 에폭시 도장 공법',feature:'고부착력 에폭시로 내화학성·내마모성이 뛰어난 바닥면 구성',specUrl:'https://www.poursolution.net/125'},{name:'POUR 엠보라이닝 도장 공법',feature:'엠보 패턴으로 논슬립 효과와 내구성을 동시에 확보',specUrl:'https://www.poursolution.net/195'}],caseUrl:'https://www.poursolution.net/96',caseName:'지하주차장 시공사례',guideId:'g4',photosKey:'parking'},
+  // e. 외벽/재도장 (누수/탈락/부식 → 3등급 재도장)
+  wall_leak:{cause:'외벽 균열은 콘크리트 건조수축과 온도변화로 발생하며 방치 시 철근 부식으로 이어집니다.',methods:[{name:'POUR 균열보수 및 재도장 공법(바인더+플러스)',feature:'균열 충전 + 탄성 바인더 + 고급 플러스 도장의 3중 구성',specUrl:'https://www.poursolution.net/139'},{name:'POUR 균열보수 및 재도장 공법(플러스+수성)',feature:'균열 충전 + 플러스 + 수성 도료의 중급형 조합',specUrl:'https://www.poursolution.net/140'},{name:'POUR 균열보수 및 재도장 공법(바인더+수성)',feature:'균열 충전 + 탄성 바인더 + 수성 도료의 경제형 조합',specUrl:'https://www.poursolution.net/190'}],caseUrl:'https://www.poursolution.net/98',caseName:'도장 시공사례',guideId:'g5',photosKey:'exterior'},
+  wall_fall:{cause:'외벽 도막이 탈락되면 벽체가 직접 노출되어 수분 침투와 추가 균열이 발생합니다.',methods:[{name:'POUR 균열보수 및 재도장 공법(바인더+플러스)',feature:'균열 충전 + 탄성 바인더 + 고급 플러스 도장의 3중 구성',specUrl:'https://www.poursolution.net/139'},{name:'POUR 균열보수 및 재도장 공법(플러스+수성)',feature:'균열 충전 + 플러스 + 수성 도료의 중급형 조합',specUrl:'https://www.poursolution.net/140'},{name:'POUR 균열보수 및 재도장 공법(바인더+수성)',feature:'균열 충전 + 탄성 바인더 + 수성 도료의 경제형 조합',specUrl:'https://www.poursolution.net/190'}],caseUrl:'https://www.poursolution.net/98',caseName:'도장 시공사례',guideId:'g5',photosKey:'exterior'},
+  wall_rust:{cause:'외벽 표면이 부식·변색되면 미관 저하뿐 아니라 벽체 강도가 떨어져 구조적 위험이 높아집니다.',methods:[{name:'POUR 균열보수 및 재도장 공법(바인더+플러스)',feature:'균열 충전 + 탄성 바인더 + 고급 플러스 도장의 3중 구성',specUrl:'https://www.poursolution.net/139'},{name:'POUR 균열보수 및 재도장 공법(플러스+수성)',feature:'균열 충전 + 플러스 + 수성 도료의 중급형 조합',specUrl:'https://www.poursolution.net/140'},{name:'POUR 균열보수 및 재도장 공법(바인더+수성)',feature:'균열 충전 + 탄성 바인더 + 수성 도료의 경제형 조합',specUrl:'https://www.poursolution.net/190'}],caseUrl:'https://www.poursolution.net/98',caseName:'도장 시공사례',guideId:'g5',photosKey:'exterior'},
+  // f. 아스콘 (균열/부식 → 3가지 솔루션)
+  ascon_crack:{cause:'아스콘 균열은 하부 기층의 지지력 저하와 열팽창 스트레스가 복합 작용하여 발생합니다.',methods:[{name:'POUR 아스콘 균열보수 및 단면복구 공법',feature:'균열부 절삭 → 기층 보강 → 아스콘 재포장의 3단계 공법',specUrl:'https://www.poursolution.net/150'},{name:'POUR 아스콘 씰코팅 공법',feature:'아스팔트 표면 산화 방지 + 방수성 강화로 포장 수명 2~3배 연장',specUrl:'https://www.poursolution.net/173'},{name:'POUR MMA 공법',feature:'고강도 MMA 수지로 내충격·내화학성 바닥 마감, 조기 개방 가능',specUrl:'https://www.poursolution.net/197'}],caseUrl:'https://www.poursolution.net/portfolio',caseName:'토목 시공사례',guideId:null,photosKey:null},
+  ascon_rust:{cause:'아스콘 표면이 산화·부식되면 포장 수명이 급격히 단축됩니다. 표면 보호 처리가 필요합니다.',methods:[{name:'POUR 아스콘 균열보수 및 단면복구 공법',feature:'균열부 절삭 → 기층 보강 → 아스콘 재포장의 3단계 공법',specUrl:'https://www.poursolution.net/150'},{name:'POUR 아스콘 씰코팅 공법',feature:'아스팔트 표면 산화 방지 + 방수성 강화로 포장 수명 2~3배 연장',specUrl:'https://www.poursolution.net/173'},{name:'POUR MMA 공법',feature:'고강도 MMA 수지로 내충격·내화학성 바닥 마감, 조기 개방 가능',specUrl:'https://www.poursolution.net/197'}],caseUrl:'https://www.poursolution.net/portfolio',caseName:'토목 시공사례',guideId:null,photosKey:null},
+  // g. 보도블럭 (균열/부식)
+  block_crack:{cause:'보도블록 침하는 하부 기층 유실과 우수 침투로 인한 지반 약화가 원인입니다.',methods:[{name:'POUR 보도블럭 보수 및 단면 복구',feature:'기층 보강 + 블록 재시공으로 침하 재발 방지',specUrl:'https://www.poursolution.net/77'}],caseUrl:'https://www.poursolution.net/portfolio',caseName:'토목 시공사례',guideId:null,photosKey:null},
+  block_rust:{cause:'보도블록 표면 부식은 동결융해와 화학물질에 의해 발생하며 보행 안전에 위협이 됩니다.',methods:[{name:'POUR 보도블럭 보수 및 단면 복구',feature:'기층 보강 + 블록 재시공으로 침하 재발 방지',specUrl:'https://www.poursolution.net/77'}],caseUrl:'https://www.poursolution.net/portfolio',caseName:'토목 시공사례',guideId:null,photosKey:null},
 };
 
 
@@ -579,171 +560,47 @@ const SOLUTIONS={
 // ── 원인 카드 데이터 ──
 // keyword: 영업사원 브리핑 키워드, desc: 고객 설명 한 줄
 const CAUSE_POINTS={
-  wp_shingle:[
-    {keyword:'열화·수축',desc:'자외선·온도 변화로 슁글이 수축·열화되면서 틈새 발생'},
-    {keyword:'빗물 침투',desc:'틈새를 통해 빗물이 단열재와 슬라브까지 침투'},
-    {keyword:'방수 기능 저하',desc:'단순 표면 문제가 아니라 지붕 전체 방수 기능이 저하된 상태'},
-  ],
-  wp_shingle_drain:[
-    {keyword:'슁글 열화',desc:'자외선·온도 변화로 슁글 틈새 발생 및 누수 시작'},
-    {keyword:'배수로 막힘',desc:'배수로 이물질 축적으로 빗물 정체 및 역류'},
-    {keyword:'수압 집중',desc:'고인 빗물이 압력을 높여 누수 속도 급속 악화'},
-  ],
-  wp_metal:[
-    {keyword:'접합부 틈새',desc:'금속기와 접합부·나사홀에서 누수가 시작'},
-    {keyword:'녹 발생',desc:'표면 도장이 벗겨지면서 금속 부식 진행'},
-    {keyword:'수밀성 저하',desc:'녹이 퍼지면 방수 기능 급격히 저하, 교체 위험'},
-  ],
-  wp_metal_drain:[
-    {keyword:'기와 누수',desc:'금속기와 접합부에서 시작된 누수가 내부로 확산'},
-    {keyword:'배수 불량',desc:'배수로 막힘으로 빗물이 고여 침투 압력 증가'},
-    {keyword:'복합 손상',desc:'두 문제가 겹쳐 우수기에 집중 누수 발생'},
-  ],
-  wp_slab:[
-    {keyword:'방수층 노화',desc:'시간이 지나면서 방수층이 균열·박리·수축'},
-    {keyword:'균열 확대',desc:'슬라브 균열을 통해 수분이 구조체 내부로 침투'},
-    {keyword:'철근 부식',desc:'수분이 철근에 닿으면 부식 시작 → 구조 안전 위협'},
-  ],
-  wp_underground:[
-    {keyword:'접합부 이탈',desc:'PVC 시트 접합부가 수압에 의해 벌어지면서 누수'},
-    {keyword:'수압 들뜸',desc:'지하수압으로 방수층이 들뜨고 구멍 발생'},
-    {keyword:'누수 확산',desc:'방치하면 주차장 전체로 누수가 빠르게 번짐'},
-  ],
-  wp_urethane:[
-    {keyword:'방수층 균열',desc:'옥상 방수층에 미세 균열이 생기면서 빗물 침투'},
-    {keyword:'박리·노화',desc:'기존 방수층이 들뜨고 접착력이 떨어진 상태'},
-    {keyword:'탄성 저하',desc:'탄성을 잃은 방수층은 온도변화에 균열 재발 반복'},
-  ],
-  wp_acrylic:[
-    {keyword:'배면 수압',desc:'외부 지하수압이 내부 벽면을 직접 밀어내는 상태'},
-    {keyword:'내부 침투',desc:'압력 방향 때문에 외부에서 막는 방법으로는 해결 불가'},
-    {keyword:'차수 불가',desc:'일반 공법으로는 수압을 역방향으로 차단하기 어려움'},
-  ],
-  pt_metal:[
-    {keyword:'코팅 열화',desc:'자외선·산성비에 의해 기와 표면 코팅이 벗겨짐'},
-    {keyword:'녹 발생',desc:'코팅이 없어진 금속에 산화·부식이 빠르게 진행'},
-    {keyword:'방수 기능 상실',desc:'녹이 확산되면 방수·도장 기능 동시에 소실'},
-  ],
-  pt_parking:[
-    {keyword:'하중·화학물질',desc:'차량 반복 하중과 오일·제설제가 에폭시를 공격'},
-    {keyword:'박리·들뜸',desc:'에폭시 층이 바닥에서 분리되어 들뜨고 갈라짐'},
-    {keyword:'분진·미끄럼',desc:'표면이 파손되면 분진 발생과 미끄럼 사고 위험'},
-  ],
-  pt_slip:[
-    {keyword:'마감재 마모',desc:'반복 보행·차량으로 바닥 표면이 닳아 평탄화'},
-    {keyword:'마찰력 저하',desc:'요철이 사라지면 물·기름에 미끄럼 저항 거의 없음'},
-    {keyword:'미끄럼 위험',desc:'젖은 바닥에서 보행자 낙상 사고 위험 고조'},
-  ],
-  pt_crack_premium:[
-    {keyword:'균열 발생',desc:'콘크리트 건조수축·온도변화로 외벽에 균열 생성'},
-    {keyword:'수분 침투',desc:'균열 틈으로 빗물·습기가 벽체 내부로 침투'},
-    {keyword:'철근 부식',desc:'수분이 철근에 닿으면 부식 팽창 → 추가 균열 유발'},
-  ],
-  pt_crack_mid:[
-    {keyword:'균열 발생',desc:'외벽 온도차·진동에 의해 균열이 점점 확대'},
-    {keyword:'도막 노화',desc:'기존 도장이 퇴색·갈라지면서 방수 기능 저하'},
-    {keyword:'외관 열화',desc:'건물 외관이 낡아 보여 자산 가치에도 영향'},
-  ],
-  pt_crack_eco:[
-    {keyword:'균열 발생',desc:'외벽에 크고 작은 균열이 여러 곳에 발생'},
-    {keyword:'방수성 저하',desc:'균열을 통해 수분이 침투해 벽체 손상 시작'},
-    {keyword:'오염·변색',desc:'외벽 오염·변색이 심해져 건물 이미지 저하'},
-  ],
-  rp_shingle_replace:[
-    {keyword:'슁글 파손',desc:'슁글이 물리적으로 파손·변형·탈락된 상태'},
-    {keyword:'방수 기능 소실',desc:'파손 부위에서 빗물이 직접 침투'},
-    {keyword:'부분보수 한계',desc:'부분 보수로는 재파손이 반복되어 근본 해결 불가'},
-  ],
-  rp_base:[
-    {keyword:'바탕면 노화',desc:'콘크리트 바탕면이 노후화되어 강도가 떨어진 상태'},
-    {keyword:'접착력 저하',desc:'약한 바탕면 위 시공은 방수·도장이 금방 박리'},
-    {keyword:'재시공 주기 단축',desc:'바탕면 처리 없이는 같은 문제가 빠르게 재발'},
-  ],
-  rp_section:[
-    {keyword:'단면 파손',desc:'콘크리트 표면이 떨어져 나가면서 내부 노출'},
-    {keyword:'철근 노출',desc:'파손 부위에서 철근이 드러나 직접 공기·수분에 접촉'},
-    {keyword:'부식 진행',desc:'노출된 철근이 빠르게 부식 → 구조 안전 위협'},
-  ],
-  rp_crack_sheet:[
-    {keyword:'균열 발생',desc:'콘크리트 균열이 벽·바닥에 생긴 상태'},
-    {keyword:'충전재 한계',desc:'충전재만으로는 온도변화에 의한 재균열 방지 어려움'},
-    {keyword:'재균열 반복',desc:'처리 후에도 같은 자리에 균열이 반복적으로 재발'},
-  ],
-  rp_vent_paper:[
-    {keyword:'환기 불량',desc:'지붕 하부 공간 환기가 막혀 습기가 정체'},
-    {keyword:'결로 발생',desc:'습기가 찬 공기가 차가운 면에 닿아 결로 형성'},
-    {keyword:'단열재 습윤',desc:'결로가 단열재를 적셔 단열 성능이 급격히 저하'},
-  ],
-  rp_vent:[
-    {keyword:'압력차 발생',desc:'옥상 내외부 압력차로 빗물이 역류하는 현상'},
-    {keyword:'습기 정체',desc:'환기구 없이는 옥상 공간 습기가 빠져나가지 못함'},
-    {keyword:'구조 손상',desc:'장기 습기 정체로 방수층·구조체 노화 가속'},
-  ],
-  rp_hooker:[
-    {keyword:'구조 약화',desc:'노후화로 구조체 부재의 내력이 설계값 이하로 저하'},
-    {keyword:'하중 분산 불가',desc:'약해진 구조는 외력을 분산하지 못하고 집중'},
-    {keyword:'안전 위협',desc:'방치 시 균열 확산·붕괴 위험으로 이어질 수 있음'},
-  ],
-  rp_pipe_trap:[
-    {keyword:'관통부 틈새',desc:'배관이 방수층을 관통하는 부위에 틈새 발생'},
-    {keyword:'방수층 단절',desc:'복잡한 배관 형상에 일반 방수로는 밀착이 어려움'},
-    {keyword:'누수 발생',desc:'틈새를 통해 지속적으로 빗물이 내부로 유입'},
-  ],
-  cv_ascon:[
-    {keyword:'기층 약화',desc:'아스콘 하부 기층이 수분·하중에 의해 강도 저하'},
-    {keyword:'열팽창 스트레스',desc:'온도 변화로 팽창·수축을 반복하며 균열 누적'},
-    {keyword:'균열 확산',desc:'표층 균열이 기층까지 관통하며 파손 범위 확대'},
-  ],
-  cv_seal:[
-    {keyword:'표면 산화',desc:'아스팔트가 산소·자외선과 반응하여 표면 경화·취약화'},
-    {keyword:'UV 열화',desc:'자외선으로 바인더 성분이 분해되어 접착력 저하'},
-    {keyword:'수분 침투',desc:'표면 미세 균열로 빗물이 스며들어 포장 수명 단축'},
-  ],
-  cv_block:[
-    {keyword:'기층 유실',desc:'보도블록 하부 모래·쇄석 기층이 빗물에 의해 쓸려나감'},
-    {keyword:'지반 약화',desc:'기층이 없어진 자리에 지반이 내려앉아 침하 발생'},
-    {keyword:'침하·파손',desc:'블록이 불균일하게 가라앉아 보행자 안전 위협'},
-  ],
-  cv_asphalt:[
-    {keyword:'균열 확산',desc:'노후 아스팔트에 균열이 여러 방향으로 확산'},
-    {keyword:'침하 복합',desc:'기층 약화로 차량 통행 시 포장이 꺼지는 현상'},
-    {keyword:'구조 손상',desc:'표층·기층 동시 손상으로 전면 재포장이 필요한 상태'},
-  ],
-  cv_mma:[
-    {keyword:'고하중 반복',desc:'중장비·화물차 반복 통행으로 바닥에 극심한 피로 누적'},
-    {keyword:'화학물질 노출',desc:'오일·용제·산성 물질이 일반 에폭시를 빠르게 분해'},
-    {keyword:'일반 도료 한계',desc:'일반 에폭시는 이 환경에서 1~2년 내 박리·파손'},
-  ],
+  shingle_leak:[{keyword:'열화·수축',desc:'자외선·온도 변화로 슁글이 수축·열화되면서 틈새 발생'},{keyword:'빗물 침투',desc:'틈새를 통해 빗물이 단열재와 슬라브까지 침투'},{keyword:'방수 기능 저하',desc:'지붕 전체 방수 기능이 저하된 상태'}],
+  shingle_fall:[{keyword:'슁글 파손',desc:'슁글이 물리적으로 파손·변형·탈락된 상태'},{keyword:'방수 기능 소실',desc:'탈락 부위에서 빗물이 직접 침투'},{keyword:'확산 위험',desc:'방치 시 인접 슁글까지 연쇄 탈락'}],
+  shingle_rust:[{keyword:'표면 열화',desc:'슁글 표면이 자외선에 의해 부식·열화'},{keyword:'방수층 약화',desc:'부식된 슁글은 방수 기능을 상실'},{keyword:'구조 손상',desc:'방치 시 지붕 전체로 손상 확산'}],
+  metal_leak:[{keyword:'접합부 틈새',desc:'금속기와 접합부·나사홀에서 누수 시작'},{keyword:'녹 발생',desc:'표면 도장이 벗겨지면서 금속 부식 진행'},{keyword:'수밀성 저하',desc:'녹이 퍼지면 방수 기능 급격히 저하'}],
+  metal_fall:[{keyword:'기와 탈락',desc:'금속기와가 풍압·노후화로 탈락'},{keyword:'구조 노출',desc:'지붕 구조가 직접 빗물에 노출'},{keyword:'2차 피해',desc:'탈락된 기와로 안전사고 우려'}],
+  metal_rust:[{keyword:'코팅 열화',desc:'자외선·산성비에 의해 기와 표면 코팅 벗겨짐'},{keyword:'녹 발생',desc:'코팅 없는 금속에 산화·부식 진행'},{keyword:'방수 기능 상실',desc:'녹 확산 시 방수·도장 기능 동시 소실'}],
+  slab_leak:[{keyword:'방수층 노화',desc:'시간이 지나면서 방수층이 균열·박리·수축'},{keyword:'균열 확대',desc:'슬라브 균열을 통해 수분이 구조체 내부로 침투'},{keyword:'철근 부식',desc:'수분이 철근에 닿으면 부식 시작 → 구조 안전 위협'}],
+  slab_fall:[{keyword:'방수층 탈락',desc:'방수층이 들뜨고 바닥에서 분리'},{keyword:'콘크리트 노출',desc:'탈락 부위 콘크리트가 직접 노출'},{keyword:'열화 가속',desc:'노출된 콘크리트가 급속히 열화'}],
+  slab_rust:[{keyword:'표면 부식',desc:'슬라브 표면 콘크리트가 중성화·부식'},{keyword:'철근 노출',desc:'부식으로 철근이 외부에 노출'},{keyword:'구조 약화',desc:'철근 부식으로 구조 안전성 저하'}],
+  parking_leak:[{keyword:'하중·화학물질',desc:'차량 반복 하중과 오일·제설제가 바닥을 공격'},{keyword:'박리·들뜸',desc:'에폭시 층이 바닥에서 분리되어 들뜨고 갈라짐'},{keyword:'분진·미끄럼',desc:'표면 파손 시 분진 발생과 미끄럼 사고 위험'}],
+  parking_fall:[{keyword:'도막 탈락',desc:'에폭시 도막이 바닥에서 분리·탈락'},{keyword:'바닥 노출',desc:'콘크리트 바닥이 직접 노출되어 분진 발생'},{keyword:'안전 위험',desc:'미끄럼 사고 위험 증가'}],
+  parking_rust:[{keyword:'화학물질 침투',desc:'제설제·오일이 바닥 콘크리트를 부식'},{keyword:'표면 열화',desc:'바닥 표면이 거칠어지고 파손'},{keyword:'내구성 저하',desc:'차량 하중에 견디지 못하는 상태'}],
+  wall_leak:[{keyword:'균열 발생',desc:'콘크리트 건조수축·온도변화로 외벽에 균열 생성'},{keyword:'수분 침투',desc:'균열 틈으로 빗물·습기가 벽체 내부로 침투'},{keyword:'철근 부식',desc:'수분이 철근에 닿으면 부식 팽창 → 추가 균열 유발'}],
+  wall_fall:[{keyword:'도막 탈락',desc:'외벽 도장이 벽체에서 벗겨지고 탈락'},{keyword:'벽체 노출',desc:'벽체가 직접 외부 환경에 노출'},{keyword:'손상 확산',desc:'수분 침투로 추가 균열과 탈락 반복'}],
+  wall_rust:[{keyword:'표면 변색',desc:'외벽 표면이 산화·변색되어 미관 저하'},{keyword:'벽체 약화',desc:'부식으로 벽체 강도가 저하'},{keyword:'구조 위험',desc:'장기 방치 시 구조적 안전 위협'}],
+  ascon_crack:[{keyword:'기층 약화',desc:'아스콘 하부 기층이 수분·하중에 의해 강도 저하'},{keyword:'열팽창 스트레스',desc:'온도 변화로 팽창·수축을 반복하며 균열 누적'},{keyword:'균열 확산',desc:'표층 균열이 기층까지 관통하며 파손 범위 확대'}],
+  ascon_rust:[{keyword:'표면 산화',desc:'아스팔트가 산소·자외선과 반응하여 표면 경화·취약화'},{keyword:'UV 열화',desc:'자외선으로 바인더 성분이 분해되어 접착력 저하'},{keyword:'수분 침투',desc:'표면 미세 균열로 빗물이 스며들어 포장 수명 단축'}],
+  block_crack:[{keyword:'기층 유실',desc:'보도블록 하부 모래·쇄석 기층이 빗물에 쓸려나감'},{keyword:'지반 약화',desc:'기층이 없어진 자리에 지반이 내려앉아 침하 발생'},{keyword:'침하·파손',desc:'블록이 불균일하게 가라앉아 보행자 안전 위협'}],
+  block_rust:[{keyword:'동결융해',desc:'겨울철 동결·융해 반복으로 블록 표면 파손'},{keyword:'화학물질',desc:'제설제 등 화학물질에 의한 표면 부식'},{keyword:'보행 위험',desc:'부식된 블록으로 보행 안전 위협'}],
 };
 
 const BENEFITS={
-  wp_shingle:['슁글 틈새 완전 밀폐로 누수 재발 방지','자외선·온도변화에 강한 고내구성 방수층','기존 슁글 위 시공으로 폐기물 최소화','시공 직후 즉시 방수 효과 발휘'],
-  wp_shingle_drain:['방수+배수 동시 해결로 재시공 불필요','배수로 막힘으로 인한 수압 집중 해소','통합 시공으로 공사 기간 단축','우기 전 단기 완료 가능한 공법'],
-  wp_metal:['접합부·나사홀 누수 원천 차단','녹 발생 억제로 기와 수명 연장','코팅층이 방수·도장 기능 동시 제공','기와 교체 없이 누수 해결'],
-  wp_metal_drain:['금속기와+배수로 일괄 처리로 비용 절감','집중 호우 시에도 안정적 배수 확보','1회 시공으로 두 가지 문제 동시 해결','공사 중 건물 사용 지장 최소화'],
-  wp_slab:['2중 방수층으로 균열 재발 원천 방지','슬라브 철근 부식 완전 차단','탄성층이 미세균열에 자동 추종','내구연한 10년 이상 보장'],
-  wp_underground:['지하수압에 강한 PVC 시트 방수','접합부 이탈 없는 완전 밀착 시공','누수 확산 방지로 주차장 전체 보호','시공 후 즉시 차량 사용 가능'],
-  wp_urethane:['탄성 방수층으로 균열 추종 우수','슬라브 미세균열에도 완벽 대응','경량 시공으로 구조체 부담 없음','다양한 형상에 끊김 없는 시공'],
-  wp_acrylic:['수압 방향 무관 내부 시공 가능','건물 사용 중 시공 가능','배면 수압에 강한 차수 시스템','외부 굴착 없이 빠른 해결'],
-  pt_metal:['방수+도장 기능 동시 제공','녹 발생 억제로 기와 수명 대폭 연장','기와 교체 비용 대비 경제적 해결','색상 복원으로 건물 외관 개선'],
-  pt_parking:['고부착 에폭시로 박리·재발 방지','내화학성으로 오일·제설제에 강함','분진 발생 억제로 위생 환경 개선','차량 하중에 내구성 탁월'],
-  pt_slip:['엠보 패턴으로 논슬립 안전성 확보','미끄럼 사고 위험 획기적 감소','내마모성 뛰어나 수명 장기간 유지','젖은 바닥에서도 안전한 보행'],
-  pt_crack_premium:['3중 구성으로 균열 추후 재발 방지','탄성 바인더로 온도변화 대응','최고급 도료로 외관 품질 극대화','장기적으로 유지보수 비용 절감'],
-  pt_crack_mid:['균열 방어+미관 개선 균형 실현','비용 대비 높은 내구성 확보','외벽 오염·변색 효과적 방지','아파트 장기수선충당금 활용 적합'],
-  pt_crack_eco:['예산 내 균열보수+재도장 동시 해결','깔끔한 외관 복원으로 가치 상승','경제적 선택으로 유지 부담 절감','빠른 공기로 입주민 불편 최소화'],
-  rp_shingle_replace:['파손 슁글 완전 제거로 근본 해결','신규 슁글로 방수 기능 100% 회복','기존 자재 재활용 최소화 친환경 시공','교체 후 10년 이상 방수 보증'],
-  rp_base:['바탕면 강화로 이후 시공 접착력 극대화','방수·도장 재시공 주기 대폭 연장','침투형 강화재로 구조체 내부까지 보강','선행 처리로 전체 공사 내구성 향상'],
-  rp_section:['파손 단면 완전 복구로 철근 부식 차단','구조 안전성 회복으로 안심 거주','단면 복구재의 높은 접착·압축 강도','외관 복원으로 건물 품질 유지'],
-  rp_crack_sheet:['복합시트로 균열 재발 원천 차단','방수성+균열 추종성 동시 확보','시트 보강으로 구조 일체화','다양한 균열 형상에 적용 가능'],
-  rp_vent_paper:['지붕 하부 습기 자연 배출','결로·곰팡이 발생 근본 해결','단열재 습윤 방지로 단열 성능 유지','별도 전력 없는 자연 환기 방식'],
-  rp_vent:['옥상 자연 대류 환기 유도','빗물 역류·습기 정체 방지','설치 후 유지관리 거의 불필요','다양한 옥상 형태에 적용 가능'],
-  rp_hooker:['앵커+보강재로 구조 내력 효과적 회복','노후 구조체 보강으로 안전 확보','기존 구조 손상 없는 비파괴 시공','장기 내구성 확보'],
-  rp_pipe_trap:['배관 관통부 누수 원천 차단','복잡한 배관 형상에도 완벽 밀착','트랩 설치 후 유지관리 간편','옥상 방수층과 일체화 시공'],
-  cv_ascon:['기층 보강으로 재균열 재발 방지','절삭→보강→재포장 3단계 완전 복구','통행 재개 시간 최소화','내구성 향상으로 유지보수 주기 연장'],
-  cv_seal:['아스팔트 산화 방지막 형성','포장 수명 2~3배 연장 효과','방수성 강화로 우수 침투 방지','경제적 예방 유지보수로 교체 시기 연장'],
-  cv_block:['기층 보강으로 침하 재발 방지','블록 재시공으로 보행 안전 확보','균일한 배수 구배 복원','보행자 사고 위험 제거'],
-  cv_asphalt:['하부층부터 표층까지 전 공정 관리','균열·침하 동시 해결하는 완전 재포장','고내구성 표층재로 수명 극대화','차량 통행 재개 신속'],
-  cv_mma:['고강도 MMA로 내충격·내화학성 최강','빠른 경화로 단시간 내 개방 가능','극한 하중 환경에서도 박리 없음','일반 에폭시 대비 3~5배 내구성'],
+  shingle_leak:['슁글 틈새 완전 밀폐로 누수 재발 방지','자외선·온도변화에 강한 고내구성 방수층','기존 슁글 위 시공으로 폐기물 최소화','시공 직후 즉시 방수 효과 발휘'],
+  shingle_fall:['파손 슁글 완전 밀폐로 근본 해결','신규 방수층으로 기능 100% 회복','기존 슁글 위 시공으로 폐기물 최소화','교체 후 장기 방수 보증'],
+  shingle_rust:['부식 부위 전용 실링 처리','고내구성 방수층으로 추가 부식 방지','기존 슁글 위 시공 가능','시공 직후 즉시 방수 효과'],
+  metal_leak:['접합부·나사홀 누수 원천 차단','녹 발생 억제로 기와 수명 연장','코팅층이 방수 기능 제공','기와 교체 없이 누수 해결'],
+  metal_fall:['탈락 부위 완전 보수','방수층 재형성으로 누수 방지','기와 교체 비용 대비 경제적','빠른 시공으로 2차 피해 방지'],
+  metal_rust:['방수+도장 기능 동시 제공','녹 발생 억제로 기와 수명 대폭 연장','기와 교체 비용 대비 경제적 해결','색상 복원으로 건물 외관 개선'],
+  slab_leak:['2중 방수층으로 균열 재발 원천 방지','슬라브 철근 부식 완전 차단','탄성층이 미세균열에 자동 추종','내구연한 10년 이상 보장'],
+  slab_fall:['탈락 부위 완전 복구 후 방수층 재시공','콘크리트 보호로 추가 열화 방지','다양한 공법 중 현장 맞춤 선택','장기 내구성 확보'],
+  slab_rust:['부식 부위 단면 복구 후 방수 처리','철근 보호로 구조 안전성 회복','방수+보강 동시 시공 가능','장기적 유지보수 비용 절감'],
+  parking_leak:['고부착 에폭시로 박리·재발 방지','내화학성으로 오일·제설제에 강함','분진 발생 억제로 위생 환경 개선','차량 하중에 내구성 탁월'],
+  parking_fall:['고부착력 에폭시로 재탈락 방지','바닥면 완전 복구로 분진 해소','미끄럼 방지 효과','빠른 경화로 조기 차량 사용 가능'],
+  parking_rust:['내화학성 에폭시로 부식 근본 차단','엠보 패턴으로 논슬립 효과','차량 하중에 높은 내구성','위생적 환경 조성'],
+  wall_leak:['3중 구성으로 균열 추후 재발 방지','탄성 바인더로 온도변화 대응','외관 품질 극대화','장기적으로 유지보수 비용 절감'],
+  wall_fall:['도막 완전 제거 후 재시공','균열 충전으로 수분 침투 방지','깔끔한 외관 복원','벽체 보호 효과'],
+  wall_rust:['부식 부위 보수 후 재도장','균열 방어+미관 개선 균형 실현','경제적 선택으로 유지 부담 절감','건물 자산 가치 상승'],
+  ascon_crack:['기층 보강으로 재균열 재발 방지','절삭→보강→재포장 3단계 완전 복구','통행 재개 시간 최소화','내구성 향상으로 유지보수 주기 연장'],
+  ascon_rust:['아스팔트 산화 방지막 형성','포장 수명 2~3배 연장 효과','방수성 강화로 우수 침투 방지','경제적 예방 유지보수'],
+  block_crack:['기층 보강으로 침하 재발 방지','블록 재시공으로 보행 안전 확보','균일한 배수 구배 복원','보행자 사고 위험 제거'],
+  block_rust:['부식 블록 교체로 안전 확보','기층 보강으로 재침하 방지','동결융해 대응 내구성 확보','보행 환경 개선'],
 };
 
 const ACTION_TAGS=[
@@ -1061,6 +918,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [ntName,setNtName]=useState('');
   const [ntCompany,setNtCompany]=useState('');
   const [ntPosition,setNtPosition]=useState('');
+  const [ntShowPosition,setNtShowPosition]=useState(false);
   const [ntPhone,setNtPhone]=useState('');
   const [ntEmail,setNtEmail]=useState('');
   const [ntContact,setNtContact]=useState([]);
@@ -1077,7 +935,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
   const sol=problem?SOLUTIONS[problem.id]:null;
   if(externalNote&&!showNote){setShowNote(true);if(onExternalNote)onExternalNote(false);}
-  if(!sol||!building||!problem) return null;
+  if(!sol||!problem) return null;
 
   const guide=sol.guideId?GUIDES.find(g=>g.id===sol.guideId):null;
   const photos=sol.photosKey?CASE_PHOTOS[sol.photosKey]:null;
@@ -1246,7 +1104,14 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     <input className="note-input" style={{marginBottom:6,fontSize:13}} placeholder="건물명 또는 업체명" value={ntCompany} onChange={e=>setNtCompany(e.target.value)}/>
                     <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 2fr',gap:5}}>
                       <input className="note-input" style={{fontSize:13}} placeholder="성함 *" value={ntName} onChange={e=>setNtName(e.target.value)}/>
-                      <input className="note-input" style={{fontSize:13}} placeholder="직급" value={ntPosition} onChange={e=>setNtPosition(e.target.value)}/>
+                      <div style={{position:'relative'}}>
+                        <button className="note-input" style={{fontSize:13,textAlign:'left',cursor:'pointer',color:ntPosition?'var(--text)':'var(--text-sm)'}} onClick={()=>setNtShowPosition(!ntShowPosition)}>{ntPosition||'직급'}<span style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',fontSize:10,color:'var(--text-sm)'}}>▼</span></button>
+                        {ntShowPosition&&<div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1.5px solid var(--border)',borderRadius:9,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:10,overflow:'hidden',marginTop:2}}>
+                          {['관리소장','시공사','입주민','건물주'].map(p=>(
+                            <button key={p} onClick={()=>{setNtPosition(p);setNtShowPosition(false);}} style={{width:'100%',padding:'10px 14px',border:'none',background:ntPosition===p?'var(--blue-l)':'#fff',color:ntPosition===p?'var(--blue)':'var(--text)',fontSize:13,fontWeight:ntPosition===p?700:500,cursor:'pointer',fontFamily:'inherit',textAlign:'left',borderBottom:'1px solid var(--border-s)'}}>{p}</button>
+                          ))}
+                        </div>}
+                      </div>
                       <input className="note-input" style={{fontSize:13}} placeholder="연락처 *" value={ntPhone} onChange={e=>setNtPhone(e.target.value)} inputMode="tel"/>
                     </div>
                   </div>
@@ -1461,6 +1326,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
   const [name,setName]=useState('');
   const [company,setCompany]=useState('');
   const [position,setPosition]=useState('');
+  const [showPosition,setShowPosition]=useState(false);
   const [phone,setPhone]=useState('');
   const [contact,setContact]=useState([]);
   const [interests,setInterests]=useState([]);
@@ -1531,7 +1397,14 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
                 <input className="note-input" style={{marginBottom:6,fontSize:13}} placeholder="건물명 또는 업체명" value={company} onChange={e=>setCompany(e.target.value)}/>
                 <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 2fr',gap:5}}>
                   <input className="note-input" style={{fontSize:13}} placeholder="성함 *" value={name} onChange={e=>setName(e.target.value)}/>
-                  <input className="note-input" style={{fontSize:13}} placeholder="직급" value={position} onChange={e=>setPosition(e.target.value)}/>
+                  <div style={{position:'relative'}}>
+                    <button className="note-input" style={{fontSize:13,textAlign:'left',cursor:'pointer',color:position?'var(--text)':'var(--text-sm)'}} onClick={()=>setShowPosition(!showPosition)}>{position||'직급'}<span style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',fontSize:10,color:'var(--text-sm)'}}>▼</span></button>
+                    {showPosition&&<div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1.5px solid var(--border)',borderRadius:9,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:10,overflow:'hidden',marginTop:2}}>
+                      {['관리소장','시공사','입주민','건물주'].map(p=>(
+                        <button key={p} onClick={()=>{setPosition(p);setShowPosition(false);}} style={{width:'100%',padding:'10px 14px',border:'none',background:position===p?'var(--blue-l)':'#fff',color:position===p?'var(--blue)':'var(--text)',fontSize:13,fontWeight:position===p?700:500,cursor:'pointer',fontFamily:'inherit',textAlign:'left',borderBottom:'1px solid var(--border-s)'}}>{p}</button>
+                      ))}
+                    </div>}
+                  </div>
                   <input className="note-input" style={{fontSize:13}} placeholder="연락처 *" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
                 </div>
               </div>

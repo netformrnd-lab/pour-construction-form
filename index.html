@@ -630,10 +630,10 @@ const DEFAULT_CASE_PHOTOS={
   maintenance:{causes:['','',''],before:'',after:''},
 };
 const loadCasePhotos=()=>{try{return{...DEFAULT_CASE_PHOTOS,...JSON.parse(localStorage.getItem('pourCasePhotos')||'{}')};}catch{return DEFAULT_CASE_PHOTOS;}};
-const saveCasePhotos=p=>localStorage.setItem('pourCasePhotos',JSON.stringify(p));
+const saveCasePhotos=p=>{try{localStorage.setItem('pourCasePhotos',JSON.stringify(p));}catch(e){alert('저장 공간이 부족합니다. 일부 사진을 삭제해주세요.');}};
 // 보유니즈 카드 사진 — localStorage
 const loadProblemPhotos=()=>{try{return JSON.parse(localStorage.getItem('pourProblemPhotos')||'{}');}catch{return{};}};
-const saveProblemPhotos=p=>localStorage.setItem('pourProblemPhotos',JSON.stringify(p));
+const saveProblemPhotos=p=>{try{localStorage.setItem('pourProblemPhotos',JSON.stringify(p));}catch(e){alert('저장 공간이 부족합니다. 일부 사진을 삭제해주세요.');}};
 
 const SOLUTIONS={
   // a. 아스팔트슁글 (누수/탈락/부식 → 동일 솔루션)
@@ -1136,34 +1136,60 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                   <a href={m.specUrl} target="_blank" rel="noreferrer" style={{fontSize:10,fontWeight:700,color:'var(--blue-m)',padding:'4px 8px',border:'1px solid rgba(255,255,255,.15)',borderRadius:6,textDecoration:'none',flexShrink:0}}>시방서</a>
                 </div>
               ))}
-              {/* 완성 사진 슬롯 */}
-              <div style={{position:'relative',width:'100%',aspectRatio:'16/6',background:'rgba(255,255,255,.05)',display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:6,borderTop:'1px solid rgba(255,255,255,.08)'}}>
-                {photos?.after
-                  ?<img src={photos.after} alt="시공 완성" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}/>
-                  :<>
-                    <span style={{fontSize:28,opacity:.2}}>📷</span>
-                    <span style={{fontSize:11,color:'rgba(255,255,255,.3)',fontWeight:600}}>시공 완성 사진 첨부 예정</span>
-                  </>
-                }
-                <span style={{position:'absolute',top:8,left:8,padding:'2px 8px',borderRadius:5,fontSize:10,fontWeight:800,background:'rgba(5,150,105,.8)',color:'#fff'}}>시공 완료</span>
-              </div>
             </div>
 
-            {/* ── 하자 현장 사진 ── */}
+            {/* ── 하자 현장 사진 (가로 슬라이드) ── */}
+            {(photos?.causes||[]).filter(s=>s).length>0&&(
+              <div style={{marginBottom:14}}>
+                <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>📸 하자 현장 사진</div>
+                <div style={{display:'flex',gap:10,overflowX:'auto',paddingBottom:6,scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch'}}>
+                  {(photos.causes||[]).filter(s=>s).map((src,i)=>(
+                    <div key={i} style={{flex:'0 0 70%',scrollSnapAlign:'start',borderRadius:12,overflow:'hidden',border:'1.5px solid var(--border)',background:'var(--bg)',position:'relative',aspectRatio:'16/10'}}>
+                      <img src={src} alt={`하자사진${i+1}`} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+                      <span style={{position:'absolute',bottom:6,left:8,padding:'2px 8px',borderRadius:5,fontSize:10,fontWeight:800,background:'rgba(0,0,0,.6)',color:'#fff'}}>현장 {i+1}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {(photos?.causes||[]).filter(s=>s).length===0&&(
+              <div style={{marginBottom:14}}>
+                <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>📸 하자 현장 사진</div>
+                <div style={{display:'flex',gap:10,overflowX:'auto',paddingBottom:6}}>
+                  {['','',''].map((_,i)=>(
+                    <div key={i} style={{flex:'0 0 45%',borderRadius:12,border:'1.5px dashed var(--border)',background:'var(--bg)',aspectRatio:'16/10',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
+                      <span style={{fontSize:22,opacity:.2}}>📷</span>
+                      <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:600}}>관리자에서 추가</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── 시공 전/후 사진 ── */}
             <div style={{marginBottom:14}}>
-              <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:10}}>📸 하자 현장 사진</div>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8}}>
-                {(photos?.causes||['','','']).map((src,i)=>(
-                  <div key={i} style={{aspectRatio:'4/3',borderRadius:10,overflow:'hidden',border:'1.5px solid var(--border)',background:'var(--bg)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4,position:'relative'}}>
-                    {src
-                      ?<img src={src} alt={`하자사진${i+1}`} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover'}}/>
-                      :<>
-                        <span style={{fontSize:22,opacity:.25}}>📷</span>
-                        <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:600}}>사진 {i+1}</span>
-                      </>
-                    }
-                  </div>
-                ))}
+              <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>🔄 시공 전/후 비교</div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                <div style={{borderRadius:12,overflow:'hidden',border:'1.5px solid var(--border)',position:'relative',aspectRatio:'4/3',background:'var(--bg)'}}>
+                  {photos?.before
+                    ?<img src={photos.before} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+                    :<div style={{width:'100%',height:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
+                      <span style={{fontSize:22,opacity:.2}}>📷</span>
+                      <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:600}}>관리자에서 추가</span>
+                    </div>
+                  }
+                  <span style={{position:'absolute',top:6,left:6,padding:'2px 8px',borderRadius:5,fontSize:10,fontWeight:800,background:'rgba(220,38,38,.85)',color:'#fff'}}>시공 전</span>
+                </div>
+                <div style={{borderRadius:12,overflow:'hidden',border:'1.5px solid var(--border)',position:'relative',aspectRatio:'4/3',background:'var(--bg)'}}>
+                  {photos?.after
+                    ?<img src={photos.after} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+                    :<div style={{width:'100%',height:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
+                      <span style={{fontSize:22,opacity:.2}}>📷</span>
+                      <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:600}}>관리자에서 추가</span>
+                    </div>
+                  }
+                  <span style={{position:'absolute',top:6,left:6,padding:'2px 8px',borderRadius:5,fontSize:10,fontWeight:800,background:'rgba(5,150,105,.85)',color:'#fff'}}>시공 후</span>
+                </div>
               </div>
             </div>
 
@@ -1668,7 +1694,18 @@ function PhotoSlot({src,label,onSet,onRemove,wide,aspect}){
   const handleFile=(file)=>{
     if(!file||!file.type.startsWith('image/'))return;
     const reader=new FileReader();
-    reader.onload=(e)=>onSet(e.target.result);
+    reader.onload=(e)=>{
+      const img=new Image();
+      img.onload=()=>{
+        const MAX=480;
+        let w=img.width,h=img.height;
+        if(w>MAX||h>MAX){const r=Math.min(MAX/w,MAX/h);w=Math.round(w*r);h=Math.round(h*r);}
+        const c=document.createElement('canvas');c.width=w;c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        onSet(c.toDataURL('image/jpeg',0.7));
+      };
+      img.src=e.target.result;
+    };
     reader.readAsDataURL(file);
   };
   useEffect(()=>{
@@ -2023,8 +2060,13 @@ function AdminScreen({onBack}){
 
           {/* ── 하자 현장 사진 관리 ── */}
           <div style={{background:'var(--card)',borderRadius:12,padding:'16px',border:'1px solid var(--border)',marginBottom:14}}>
-            <div style={{fontSize:14,fontWeight:900,color:'var(--text)',marginBottom:4}}>📸 하자 현장 사진</div>
-            <div style={{fontSize:12,color:'var(--text-sm)',marginBottom:14}}>솔루션 화면에 노출되는 현장 사진입니다. 사진을 클릭하면 파일 선택 또는 URL 입력이 가능하고, 이미지를 복사한 뒤 붙여넣기(Ctrl+V)도 됩니다.</div>
+            <div style={{fontSize:14,fontWeight:900,color:'var(--text)',marginBottom:4}}>📸 하자 현장 사진 · 시공 전후</div>
+            <div style={{fontSize:12,color:'var(--text-sm)',marginBottom:6,lineHeight:1.6}}>
+              아래 사진은 <b>공법 분석 화면</b>에 표시됩니다.<br/>
+              · <b>현장 하자 사진</b> → 가로 슬라이드로 노출<br/>
+              · <b>시공 전/후</b> → 전후 비교 영역에 노출<br/>
+              사진 클릭 → 파일 선택 / 이미지 복사 후 붙여넣기(Ctrl+V) 가능
+            </div>
 
             {[
               {key:'shingle',label:'아스팔트슁글'},
@@ -2277,7 +2319,7 @@ function App(){
       {screen==='leads'&&<LeadsScreen onBack={goHome}/>}
 
       {/* ADMIN */}
-      {screen==='admin'&&<AdminScreen onBack={goHome}/>}
+      {screen==='admin'&&<AdminScreen onBack={()=>{setProbPhotos(loadProblemPhotos());goHome();}}/>}
 
       {/* ── 전역 FAB: 홈 제외 모든 화면 ── */}
       {screen!=='home'&&screen!=='admin'&&(

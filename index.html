@@ -622,12 +622,12 @@ const GUIDES=[
 // URL을 채우면 즉시 반영됩니다.
 // 사진 데이터 — localStorage에서 로드 (관리자 페이지에서 편집 가능)
 const DEFAULT_CASE_PHOTOS={
-  shingle:{causes:['','',''],before:'',after:''},
-  metal:  {causes:['','',''],before:'',after:''},
-  slab:   {causes:['','',''],before:'',after:''},
-  parking:{causes:['','',''],before:'',after:''},
-  exterior:{causes:['','',''],before:'',after:''},
-  maintenance:{causes:['','',''],before:'',after:''},
+  shingle:{causes:['','',''],completed:''},
+  metal:  {causes:['','',''],completed:''},
+  slab:   {causes:['','',''],completed:''},
+  parking:{causes:['','',''],completed:''},
+  exterior:{causes:['','',''],completed:''},
+  maintenance:{causes:['','',''],completed:''},
 };
 const loadCasePhotos=()=>{try{return{...DEFAULT_CASE_PHOTOS,...JSON.parse(localStorage.getItem('pourCasePhotos')||'{}')};}catch{return DEFAULT_CASE_PHOTOS;}};
 const saveCasePhotos=p=>{try{localStorage.setItem('pourCasePhotos',JSON.stringify(p));}catch(e){alert('저장 공간이 부족합니다. 일부 사진을 삭제해주세요.');}};
@@ -1123,9 +1123,23 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
         {/* ── 솔루션 ── */}
         <>
-            {/* ── 섹션1: 공법 + 완성 사진 ── */}
+            {/* ── 완성본 사진 ── */}
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>✅ 완성본</div>
+              <div style={{borderRadius:12,overflow:'hidden',border:'1.5px solid var(--border)',position:'relative',aspectRatio:'16/10',background:'var(--bg)'}}>
+                {photos?.completed
+                  ?<img src={photos.completed} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+                  :<div style={{width:'100%',height:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
+                    <span style={{fontSize:22,opacity:.2}}>📷</span>
+                    <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:600}}>관리자에서 추가</span>
+                  </div>
+                }
+                <span style={{position:'absolute',top:6,left:6,padding:'2px 8px',borderRadius:5,fontSize:10,fontWeight:800,background:'rgba(5,150,105,.85)',color:'#fff'}}>완성본</span>
+              </div>
+            </div>
+
+            {/* ── 섹션1: 공법 ── */}
             <div style={{background:'var(--navy)',borderRadius:'var(--r)',overflow:'hidden',marginBottom:14}}>
-              {/* 공법 목록 */}
               {sol.methods.map((m,i)=>(
                 <div key={i} style={{padding:'12px 18px',display:'flex',alignItems:'center',gap:10,borderTop:i>0?'1px solid rgba(255,255,255,.08)':'none'}}>
                   <div style={{width:26,height:26,borderRadius:'50%',background:'rgba(255,255,255,.15)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,color:'#fff',flexShrink:0}}>{i+1}</div>
@@ -1165,33 +1179,6 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 </div>
               </div>
             )}
-
-            {/* ── 시공 전/후 사진 ── */}
-            <div style={{marginBottom:14}}>
-              <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>🔄 시공 전/후 비교</div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-                <div style={{borderRadius:12,overflow:'hidden',border:'1.5px solid var(--border)',position:'relative',aspectRatio:'4/3',background:'var(--bg)'}}>
-                  {photos?.before
-                    ?<img src={photos.before} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-                    :<div style={{width:'100%',height:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
-                      <span style={{fontSize:22,opacity:.2}}>📷</span>
-                      <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:600}}>관리자에서 추가</span>
-                    </div>
-                  }
-                  <span style={{position:'absolute',top:6,left:6,padding:'2px 8px',borderRadius:5,fontSize:10,fontWeight:800,background:'rgba(220,38,38,.85)',color:'#fff'}}>시공 전</span>
-                </div>
-                <div style={{borderRadius:12,overflow:'hidden',border:'1.5px solid var(--border)',position:'relative',aspectRatio:'4/3',background:'var(--bg)'}}>
-                  {photos?.after
-                    ?<img src={photos.after} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-                    :<div style={{width:'100%',height:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
-                      <span style={{fontSize:22,opacity:.2}}>📷</span>
-                      <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:600}}>관리자에서 추가</span>
-                    </div>
-                  }
-                  <span style={{position:'absolute',top:6,left:6,padding:'2px 8px',borderRadius:5,fontSize:10,fontWeight:800,background:'rgba(5,150,105,.85)',color:'#fff'}}>시공 후</span>
-                </div>
-              </div>
-            </div>
 
             {/* ── 섹션2: 자료 + QR — 1행 2열 카드 ── */}
             <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:10}}>📱 자료 바로가기 · QR 전달</div>
@@ -2060,11 +2047,11 @@ function AdminScreen({onBack}){
 
           {/* ── 하자 현장 사진 관리 ── */}
           <div style={{background:'var(--card)',borderRadius:12,padding:'16px',border:'1px solid var(--border)',marginBottom:14}}>
-            <div style={{fontSize:14,fontWeight:900,color:'var(--text)',marginBottom:4}}>📸 하자 현장 사진 · 시공 전후</div>
+            <div style={{fontSize:14,fontWeight:900,color:'var(--text)',marginBottom:4}}>📸 완성본 · 하자 현장 사진</div>
             <div style={{fontSize:12,color:'var(--text-sm)',marginBottom:6,lineHeight:1.6}}>
               아래 사진은 <b>공법 분석 화면</b>에 표시됩니다.<br/>
-              · <b>현장 하자 사진</b> → 가로 슬라이드로 노출<br/>
-              · <b>시공 전/후</b> → 전후 비교 영역에 노출<br/>
+              · <b>완성본</b> → 상단에 노출<br/>
+              · <b>현장 하자 사진</b> → 하단 가로 슬라이드로 노출<br/>
               사진 클릭 → 파일 선택 / 이미지 복사 후 붙여넣기(Ctrl+V) 가능
             </div>
 
@@ -2076,7 +2063,7 @@ function AdminScreen({onBack}){
               {key:'exterior',label:'외벽/재도장'},
               {key:'maintenance',label:'보수보강/토목'},
             ].map(({key,label})=>{
-              const data=casePhotos[key]||{causes:['','',''],before:'',after:''};
+              const data=casePhotos[key]||{causes:['','',''],completed:''};
               return(
                 <div key={key} style={{marginBottom:18,padding:'14px',background:'var(--bg)',borderRadius:12,border:'1px solid var(--border)'}}>
                   <div style={{fontSize:13,fontWeight:800,color:'var(--text)',marginBottom:10}}>{label}</div>
@@ -2086,28 +2073,22 @@ function AdminScreen({onBack}){
                   <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}}>
                     {(data.causes||[]).map((url,i)=>(
                       <PhotoSlot key={i} src={url} label={`사진 ${i+1}`}
-                        onSet={(v)=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:['','',''],before:'',after:''};up[key].causes[i]=v;setCasePhotos(up);saveCasePhotos(up);}}
+                        onSet={(v)=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:['','',''],completed:''};up[key].causes[i]=v;setCasePhotos(up);saveCasePhotos(up);}}
                         onRemove={()=>{const up=JSON.parse(JSON.stringify(casePhotos));up[key].causes.splice(i,1);setCasePhotos(up);saveCasePhotos(up);}}
                       />
                     ))}
-                    <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],before:'',after:''};up[key].causes.push('');setCasePhotos(up);saveCasePhotos(up);}}
+                    <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:''};up[key].causes.push('');setCasePhotos(up);saveCasePhotos(up);}}
                       style={{width:100,height:75,borderRadius:10,border:'2px dashed var(--border)',background:'#fff',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,color:'var(--text-sm)',fontSize:11,fontWeight:700}}>
                       <span style={{fontSize:24}}>+</span>추가
                     </button>
                   </div>
 
-                  {/* 시공 전/후 사진 */}
-                  <div style={{display:'flex',gap:10}}>
-                    {['before','after'].map(t=>(
-                      <div key={t} style={{flex:1}}>
-                        <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:4}}>{t==='before'?'시공 전':'시공 후'}</div>
-                        <PhotoSlot src={data[t]||''} label={t==='before'?'시공 전':'시공 후'} wide
-                          onSet={(v)=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],before:'',after:''};up[key][t]=v;setCasePhotos(up);saveCasePhotos(up);}}
-                          onRemove={()=>{const up=JSON.parse(JSON.stringify(casePhotos));up[key][t]='';setCasePhotos(up);saveCasePhotos(up);}}
-                        />
-                      </div>
-                    ))}
-                  </div>
+                  {/* 완성본 사진 */}
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>완성본</div>
+                  <PhotoSlot src={data.completed||''} label="완성본" wide
+                    onSet={(v)=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:''};up[key].completed=v;setCasePhotos(up);saveCasePhotos(up);}}
+                    onRemove={()=>{const up=JSON.parse(JSON.stringify(casePhotos));up[key].completed='';setCasePhotos(up);saveCasePhotos(up);}}
+                  />
                 </div>
               );
             })}

@@ -1200,7 +1200,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [ntMemo,setNtMemo]=useState('');
   const [ntSaving,setNtSaving]=useState(false);
   const [ntDone,setNtDone]=useState(false);
-  const [ntPencilMode,setNtPencilMode]=useState(true);
+  const [ntPencilMode,setNtPencilMode]=useState(false);
   const [ntOpenSec,setNtOpenSec]=useState(new Set([]));
 
   const ntToggleSec=sec=>setNtOpenSec(p=>{const n=new Set(p);n.has(sec)?n.delete(sec):n.add(sec);return n;});
@@ -1532,6 +1532,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                         style={{resize:'none',minHeight:300,width:'100%',fontSize:15,lineHeight:'1.85'}}
                         placeholder="고객 반응, 특이사항, 요청사항..."
                         value={ntMemo} onChange={e=>setNtMemo(e.target.value)}
+                        autoFocus
                       />
                     }
                   </div>
@@ -1644,7 +1645,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
   const [memo,setMemo]=useState('');
   const [saving,setSaving]=useState(false);
   const [done,setDone]=useState(false);
-  const [pencilMode,setPencilMode]=useState(true);
+  const [pencilMode,setPencilMode]=useState(false);
   const [openSec,setOpenSec]=useState(new Set([]));
   const toggle=(arr,set,v)=>set(p=>p.includes(v)?p.filter(x=>x!==v):[...p,v]);
   const toggleSec=sec=>setOpenSec(p=>{const n=new Set(p);n.has(sec)?n.delete(sec):n.add(sec);return n;});
@@ -1820,6 +1821,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
                     style={{resize:'none',minHeight:300,width:'100%',fontSize:15,lineHeight:'1.85'}}
                     placeholder="고객 반응, 특이사항, 요청사항..."
                     value={memo} onChange={e=>setMemo(e.target.value)}
+                    autoFocus
                   />
                 }
               </div>

@@ -1288,9 +1288,9 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
         {/* ── 솔루션 ── */}
         <>
-            {/* ── 완성본 사진 ── */}
+            {/* ── 완공사진 ── */}
             <div style={{marginBottom:14}}>
-              <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>✅ 완성본</div>
+              <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>✅ 완공사진</div>
               <div style={{borderRadius:12,overflow:'hidden',border:'1.5px solid var(--border)',position:'relative',aspectRatio:'16/10',background:'var(--bg)'}}>
                 {photos?.completed
                   ?<img src={photos.completed} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
@@ -1299,7 +1299,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:600}}>관리자에서 추가</span>
                   </div>
                 }
-                <span style={{position:'absolute',top:6,left:6,padding:'2px 8px',borderRadius:5,fontSize:10,fontWeight:800,background:'rgba(5,150,105,.85)',color:'#fff'}}>완성본</span>
+                <span style={{position:'absolute',top:6,left:6,padding:'2px 8px',borderRadius:5,fontSize:10,fontWeight:800,background:'rgba(5,150,105,.85)',color:'#fff'}}>완공사진</span>
               </div>
             </div>
 
@@ -2216,10 +2216,10 @@ function AdminScreen({onBack}){
 
           {/* ── 하자 현장 사진 관리 ── */}
           <div style={{background:'var(--card)',borderRadius:12,padding:'16px',border:'1px solid var(--border)',marginBottom:14}}>
-            <div style={{fontSize:14,fontWeight:900,color:'var(--text)',marginBottom:4}}>📸 완성본 · 하자 현장 사진</div>
+            <div style={{fontSize:14,fontWeight:900,color:'var(--text)',marginBottom:4}}>📸 완공사진 · 하자 현장 사진</div>
             <div style={{fontSize:12,color:'var(--text-sm)',marginBottom:6,lineHeight:1.6}}>
               아래 사진은 <b>공법 분석 화면</b>에 표시됩니다.<br/>
-              · <b>완성본</b> → 상단에 노출<br/>
+              · <b>완공사진</b> → 상단에 노출<br/>
               · <b>현장 하자 사진</b> → 하단 가로 슬라이드로 노출<br/>
               사진 클릭 → 파일 선택 / 이미지 복사 후 붙여넣기(Ctrl+V) 가능
             </div>
@@ -2252,9 +2252,9 @@ function AdminScreen({onBack}){
                     </button>
                   </div>
 
-                  {/* 완성본 사진 */}
-                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>완성본</div>
-                  <PhotoSlot src={data.completed||''} label="완성본" wide
+                  {/* 완공사진 */}
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>완공사진</div>
+                  <PhotoSlot src={data.completed||''} label="완공사진" wide
                     onSet={(v)=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:''};up[key].completed=v;setCasePhotos(up);saveCasePhotos(up);}}
                     onRemove={()=>{const up=JSON.parse(JSON.stringify(casePhotos));up[key].completed='';setCasePhotos(up);saveCasePhotos(up);}}
                   />

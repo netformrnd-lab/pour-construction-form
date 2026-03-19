@@ -453,16 +453,21 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
 .mode-toggle{display:flex;gap:0;border-radius:10px;overflow:hidden;border:1.5px solid var(--border);background:var(--bg);}
 .mode-btn{flex:1;padding:7px 0;border:none;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;background:transparent;color:var(--text-sm);}
 .mode-btn.on{background:var(--navy);color:#fff;}
-/* ── Drawing Canvas ── */
-.draw-toolbar{display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--bg);border-radius:9px;border:1px solid var(--border);margin-bottom:8px;flex-wrap:wrap;}
-.draw-tool{width:32px;height:32px;border-radius:8px;border:1.5px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;transition:all .12s;flex-shrink:0;}
-.draw-tool.on{background:var(--navy);border-color:var(--navy);color:#fff;}
-.draw-tool:active{transform:scale(.93);}
-.draw-color{width:24px;height:24px;border-radius:50%;border:2px solid var(--border);cursor:pointer;transition:all .12s;flex-shrink:0;}
-.draw-color.on{border-color:var(--navy);box-shadow:0 0 0 2px var(--navy);}
-.draw-size{display:flex;align-items:center;gap:4px;margin-left:auto;}
+/* ── Drawing Canvas (Notability-style) ── */
+.draw-toolbar{display:flex;align-items:center;gap:5px;padding:6px 10px;background:var(--bg);border-radius:12px;border:1px solid var(--border);margin-bottom:8px;flex-wrap:wrap;}
+.draw-tool{width:34px;height:34px;border-radius:10px;border:1.5px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;transition:all .12s;flex-shrink:0;position:relative;}
+.draw-tool.on{background:var(--navy);border-color:var(--navy);color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15);}
+.draw-tool:active{transform:scale(.92);}
+.draw-color{width:26px;height:26px;border-radius:50%;border:2.5px solid transparent;cursor:pointer;transition:all .12s;flex-shrink:0;box-shadow:inset 0 0 0 1px rgba(0,0,0,.1);}
+.draw-color.on{border-color:var(--navy);box-shadow:0 0 0 2px var(--navy),inset 0 0 0 1px rgba(0,0,0,.1);transform:scale(1.15);}
+.draw-sep{width:1px;height:22px;background:var(--border);margin:0 2px;flex-shrink:0;}
+.draw-size{display:flex;align-items:center;gap:4px;}
 .draw-size-label{font-size:10px;font-weight:700;color:var(--text-sm);}
-.draw-canvas-wrap{border-radius:9px;border:1.5px solid var(--border);overflow:hidden;background:#fff;touch-action:none;position:relative;}
+.draw-canvas-wrap{border-radius:12px;border:1.5px solid var(--border);overflow:hidden;background:#fff;touch-action:none;position:relative;}
+.draw-tool-tip{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;color:var(--text-sm);white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;}
+.draw-tool:hover .draw-tool-tip{opacity:1;}
+.draw-highlight-tool{position:relative;}
+.draw-highlight-tool::after{content:'';position:absolute;bottom:2px;right:2px;width:8px;height:8px;border-radius:50%;border:1.5px solid #fff;}
 </style>
 </head>
 <body>
@@ -470,93 +475,251 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
 <script type="text/babel">
 const {useState,useRef,useEffect,useCallback}=React;
 
-/* ══ DrawCanvas Component ══ */
+/* ══ DrawCanvas Component (Notability-style) ══ */
 const DRAW_COLORS=['#111827','#DC2626','#2563EB','#059669','#D97706','#7C3AED'];
+const HIGHLIGHT_COLORS=['rgba(255,235,59,.35)','rgba(76,175,80,.30)','rgba(33,150,243,.30)','rgba(244,67,54,.30)','rgba(255,152,0,.30)'];
 function DrawCanvas({onDataUrl}){
   const canvasRef=useRef(null);
-  const [tool,setTool]=useState('pen'); // 'pen' | 'eraser'
+  const [tool,setTool]=useState('pen'); // 'pen'|'highlighter'|'eraser'
   const [color,setColor]=useState('#111827');
+  const [hlColor,setHlColor]=useState(HIGHLIGHT_COLORS[0]);
   const [lineW,setLineW]=useState(2);
   const drawing=useRef(false);
-  const history=useRef([]);
-  const histIdx=useRef(-1);
+  const [,forceRender]=useState(0);
+
+  /* stroke-based storage: {points:[{x,y,p}], color, width, type:'pen'|'hl', opacity} */
+  const strokes=useRef([]);
+  const currentStroke=useRef(null);
+  const undoStack=useRef([]);   // snapshots of strokes array for undo
+  const redoStack=useRef([]);
 
   const getCtx=()=>canvasRef.current?.getContext('2d');
+
+  /* ── smooth bezier curve through points ── */
+  const drawSmoothStroke=(ctx,s)=>{
+    const pts=s.points;if(pts.length<2)return;
+    ctx.save();
+    ctx.globalAlpha=s.opacity||1;
+    ctx.globalCompositeOperation=s.type==='hl'?'multiply':'source-over';
+    ctx.strokeStyle=s.color;
+    ctx.lineCap='round';ctx.lineJoin='round';
+
+    if(pts.length===2){
+      ctx.lineWidth=s.width*(pts[0].p||1);
+      ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);ctx.lineTo(pts[1].x,pts[1].y);ctx.stroke();
+      ctx.restore();return;
+    }
+
+    /* variable-width via segments (pressure) */
+    for(let i=0;i<pts.length-1;i++){
+      const p0=pts[i],p1=pts[i+1];
+      const pressure=(p0.p+p1.p)/2||1;
+      ctx.lineWidth=s.width*pressure;
+      ctx.beginPath();
+      if(i===0){ctx.moveTo(p0.x,p0.y);ctx.lineTo(p1.x,p1.y);}
+      else{
+        const prev=pts[i-1];
+        const cpx=(prev.x+p0.x*2+p1.x)/4;
+        const cpy=(prev.y+p0.y*2+p1.y)/4;
+        ctx.moveTo((prev.x+p0.x)/2,(prev.y+p0.y)/2);
+        ctx.quadraticCurveTo(p0.x,p0.y,(p0.x+p1.x)/2,(p0.y+p1.y)/2);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+  };
+
+  const redraw=()=>{
+    const c=canvasRef.current;if(!c)return;
+    const ctx=getCtx();const dpr=window.devicePixelRatio||1;
+    ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,c.width/dpr,c.height/dpr);
+    /* draw ruled lines */
+    const h=c.height/dpr;const spacing=32;
+    ctx.strokeStyle='#e8ecf0';ctx.lineWidth=0.5;
+    for(let y=spacing;y<h;y+=spacing){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(c.width/dpr,y);ctx.stroke();}
+    /* draw strokes */
+    strokes.current.forEach(s=>drawSmoothStroke(ctx,s));
+    if(currentStroke.current)drawSmoothStroke(ctx,currentStroke.current);
+    ctx.restore();
+  };
+
   const resize=useCallback(()=>{
     const c=canvasRef.current;if(!c)return;
-    const wrap=c.parentElement;
-    const dpr=window.devicePixelRatio||1;
-    // save current image
-    const img=c.toDataURL();
+    const wrap=c.parentElement;const dpr=window.devicePixelRatio||1;
     c.width=wrap.clientWidth*dpr;c.height=Math.max(wrap.clientHeight,800)*dpr;
     c.style.width=wrap.clientWidth+'px';c.style.height=Math.max(wrap.clientHeight,800)+'px';
     const ctx=getCtx();ctx.scale(dpr,dpr);
-    // restore
-    const i=new Image();i.onload=()=>{ctx.drawImage(i,0,0,wrap.clientWidth,Math.max(wrap.clientHeight,800));};i.src=img;
+    redraw();
   },[]);
 
   useEffect(()=>{resize();window.addEventListener('resize',resize);return()=>window.removeEventListener('resize',resize);},[resize]);
 
-  const saveState=()=>{
-    const c=canvasRef.current;if(!c)return;
-    histIdx.current++;
-    history.current=history.current.slice(0,histIdx.current);
-    history.current.push(c.toDataURL());
-  };
+  const pushUndo=()=>{undoStack.current.push(JSON.parse(JSON.stringify(strokes.current)));redoStack.current=[];};
   const undo=()=>{
-    if(histIdx.current<=0)return;
-    histIdx.current--;
-    const ctx=getCtx();const c=canvasRef.current;
-    const i=new Image();i.onload=()=>{ctx.clearRect(0,0,c.width,c.height);const dpr=window.devicePixelRatio||1;ctx.save();ctx.scale(1/dpr,1/dpr);ctx.drawImage(i,0,0);ctx.restore();};
-    i.src=history.current[histIdx.current];
+    if(undoStack.current.length===0)return;
+    redoStack.current.push(JSON.parse(JSON.stringify(strokes.current)));
+    strokes.current=undoStack.current.pop();
+    redraw();forceRender(n=>n+1);
+  };
+  const redo=()=>{
+    if(redoStack.current.length===0)return;
+    undoStack.current.push(JSON.parse(JSON.stringify(strokes.current)));
+    strokes.current=redoStack.current.pop();
+    redraw();forceRender(n=>n+1);
   };
   const clearAll=()=>{
-    const c=canvasRef.current;if(!c)return;
-    const ctx=getCtx();ctx.clearRect(0,0,c.width,c.height);saveState();
+    if(strokes.current.length===0)return;
+    pushUndo();strokes.current=[];currentStroke.current=null;
+    redraw();forceRender(n=>n+1);
+  };
+
+  /* keyboard shortcuts: Ctrl+Z undo, Ctrl+Y/Ctrl+Shift+Z redo */
+  useEffect(()=>{
+    const handler=(e)=>{
+      if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.shiftKey){e.preventDefault();undo();}
+      if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.key==='z'&&e.shiftKey))){e.preventDefault();redo();}
+    };
+    window.addEventListener('keydown',handler);return()=>window.removeEventListener('keydown',handler);
+  },[]);
+
+  /* hit-test with line-segment distance */
+  const distToSeg=(px,py,ax,ay,bx,by)=>{
+    const dx=bx-ax,dy=by-ay,len2=dx*dx+dy*dy;
+    if(len2===0)return Math.hypot(px-ax,py-ay);
+    let t=((px-ax)*dx+(py-ay)*dy)/len2;
+    t=Math.max(0,Math.min(1,t));
+    return Math.hypot(px-(ax+t*dx),py-(ay+t*dy));
+  };
+  const hitStroke=(s,px,py,thresh)=>{
+    for(let i=0;i<s.points.length-1;i++){
+      if(distToSeg(px,py,s.points[i].x,s.points[i].y,s.points[i+1].x,s.points[i+1].y)<thresh+s.width/2)return true;
+    }
+    if(s.points.length===1)return Math.hypot(s.points[0].x-px,s.points[0].y-py)<thresh;
+    return false;
   };
 
   const getPos=(e)=>{
     const c=canvasRef.current;const r=c.getBoundingClientRect();
-    const t=e.touches?e.touches[0]:e;
-    return{x:t.clientX-r.left,y:t.clientY-r.top};
+    const pressure=e.pressure||0.5;
+    return{x:e.clientX-r.left,y:e.clientY-r.top,p:Math.max(0.2,Math.min(1.5,pressure*1.5))};
   };
+
   const start=(e)=>{
-    e.preventDefault();drawing.current=true;
-    const ctx=getCtx();const p=getPos(e);
-    ctx.beginPath();ctx.moveTo(p.x,p.y);
-    ctx.lineCap='round';ctx.lineJoin='round';
-    if(tool==='eraser'){ctx.globalCompositeOperation='destination-out';ctx.lineWidth=lineW*10;}
-    else{ctx.globalCompositeOperation='source-over';ctx.strokeStyle=color;ctx.lineWidth=lineW;}
+    /* palm rejection: ignore touch if pen is detected */
+    if(e.pointerType==='touch'&&drawing.current)return;
+    e.preventDefault();e.target.setPointerCapture(e.pointerId);
+    drawing.current=true;
+    const p=getPos(e);
+    if(tool==='eraser'){
+      const thresh=15;
+      let changed=false;
+      pushUndo();
+      strokes.current=strokes.current.filter(s=>{
+        if(hitStroke(s,p.x,p.y,thresh)){changed=true;return false;}
+        return true;
+      });
+      if(changed)redraw();else undoStack.current.pop();
+    }else{
+      const isHl=tool==='highlighter';
+      currentStroke.current={
+        points:[p],
+        color:isHl?hlColor:color,
+        width:isHl?lineW*8:lineW,
+        type:isHl?'hl':'pen',
+        opacity:isHl?1:1
+      };
+    }
   };
   const move=(e)=>{
     if(!drawing.current)return;e.preventDefault();
-    const ctx=getCtx();const p=getPos(e);
-    ctx.lineTo(p.x,p.y);ctx.stroke();
+    const p=getPos(e);
+    if(tool==='eraser'){
+      const thresh=15;let changed=false;
+      const before=strokes.current.length;
+      strokes.current=strokes.current.filter(s=>{
+        if(hitStroke(s,p.x,p.y,thresh)){changed=true;return false;}
+        return true;
+      });
+      if(changed)redraw();
+    }else if(currentStroke.current){
+      currentStroke.current.points.push(p);
+      /* incremental draw for performance */
+      const ctx=getCtx();const pts=currentStroke.current.points;const len=pts.length;
+      if(len>=2){
+        const dpr=window.devicePixelRatio||1;const s=currentStroke.current;
+        ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);
+        ctx.globalAlpha=s.opacity||1;
+        ctx.globalCompositeOperation=s.type==='hl'?'multiply':'source-over';
+        ctx.strokeStyle=s.color;ctx.lineCap='round';ctx.lineJoin='round';
+        const p0=pts[len-2],p1=pts[len-1];
+        ctx.lineWidth=s.width*((p0.p+p1.p)/2||1);
+        ctx.beginPath();ctx.moveTo(p0.x,p0.y);ctx.lineTo(p1.x,p1.y);ctx.stroke();
+        ctx.restore();
+      }
+    }
   };
-  const end=()=>{if(drawing.current){drawing.current=false;saveState();}};
+  const end=(e)=>{
+    if(!drawing.current)return;
+    drawing.current=false;
+    if(tool!=='eraser'&&currentStroke.current){
+      if(currentStroke.current.points.length>=2){
+        pushUndo();
+        strokes.current.push(currentStroke.current);
+        forceRender(n=>n+1);
+      }
+      currentStroke.current=null;
+      redraw(); /* full redraw for smooth bezier */
+    }
+  };
+
+  const canUndo=undoStack.current.length>0;
+  const canRedo=redoStack.current.length>0;
 
   return(
     <div>
       <div className="draw-toolbar">
-        <button className={`draw-tool ${tool==='pen'?'on':''}`} onClick={()=>setTool('pen')} title="펜">✏️</button>
-        <button className={`draw-tool ${tool==='eraser'?'on':''}`} onClick={()=>setTool('eraser')} title="지우개" style={{fontSize:13,fontWeight:800}}>{tool==='eraser'?'⬜':'▭'}</button>
-        <div style={{width:1,height:20,background:'var(--border)',margin:'0 2px'}}/>
-        {DRAW_COLORS.map(c=>(
-          <div key={c} className={`draw-color ${color===c&&tool==='pen'?'on':''}`} style={{background:c}} onClick={()=>{setColor(c);setTool('pen');}}/>
-        ))}
-        <div style={{width:1,height:20,background:'var(--border)',margin:'0 2px'}}/>
+        {/* tools row 1 */}
+        <button className={`draw-tool ${tool==='pen'?'on':''}`} onClick={()=>setTool('pen')} title="펜">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+        </button>
+        <button className={`draw-tool ${tool==='highlighter'?'on':''}`} onClick={()=>setTool('highlighter')} title="형광펜" style={{background:tool==='highlighter'?hlColor:'#fff',borderColor:tool==='highlighter'?'var(--navy)':'var(--border)'}}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={tool==='highlighter'?'#333':'currentColor'} strokeWidth="2" strokeLinecap="round"><path d="M15.5 4.5l4 4L8 20H4v-4L15.5 4.5z"/><path d="M12 8l4 4"/></svg>
+        </button>
+        <button className={`draw-tool ${tool==='eraser'?'on':''}`} onClick={()=>setTool('eraser')} title="획 지우개">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20 20H7L3 16l9-9 8 8-4 4"/><path d="M6 11l8 8"/></svg>
+        </button>
+        <div className="draw-sep"/>
+        {/* colors: show pen or highlighter colors based on tool */}
+        {tool==='highlighter'
+          ?HIGHLIGHT_COLORS.map(c=>(
+            <div key={c} className={`draw-color ${hlColor===c?'on':''}`} style={{background:c}} onClick={()=>setHlColor(c)}/>
+          ))
+          :DRAW_COLORS.map(c=>(
+            <div key={c} className={`draw-color ${color===c&&tool!=='eraser'?'on':''}`} style={{background:c}} onClick={()=>{setColor(c);if(tool==='eraser')setTool('pen');}}/>
+          ))
+        }
+        <div className="draw-sep"/>
         <div className="draw-size">
-          <span className="draw-size-label">굵기</span>
-          <input type="range" min="1" max="8" value={lineW} onChange={e=>setLineW(+e.target.value)} style={{width:60,accentColor:'var(--navy)'}}/>
+          <span className="draw-size-label">{tool==='highlighter'?'폭':'굵기'}</span>
+          <input type="range" min="1" max="8" value={lineW} onChange={e=>setLineW(+e.target.value)} style={{width:55,accentColor:'var(--navy)'}}/>
+          <span style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',minWidth:14,textAlign:'center'}}>{lineW}</span>
         </div>
-        <div style={{width:1,height:20,background:'var(--border)',margin:'0 2px'}}/>
-        <button className="draw-tool" onClick={undo} title="되돌리기">↩️</button>
-        <button className="draw-tool" onClick={clearAll} title="전체 지우기">🗑️</button>
+        <div className="draw-sep"/>
+        <button className="draw-tool" onClick={undo} title="되돌리기 (Ctrl+Z)" style={{opacity:canUndo?1:.35}}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M3 10h13a4 4 0 010 8H9"/><path d="M3 10l5-5M3 10l5 5"/></svg>
+        </button>
+        <button className="draw-tool" onClick={redo} title="다시하기 (Ctrl+Y)" style={{opacity:canRedo?1:.35}}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 10H8a4 4 0 000 8h7"/><path d="M21 10l-5-5M21 10l-5 5"/></svg>
+        </button>
+        <button className="draw-tool" onClick={clearAll} title="전체 지우기" style={{opacity:strokes.current.length>0?1:.35}}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M8 6V4h8v2M5 6v14a2 2 0 002 2h10a2 2 0 002-2V6"/></svg>
+        </button>
       </div>
       <div className="draw-canvas-wrap" style={{minHeight:800}}>
         <canvas ref={canvasRef}
           onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerLeave={end}
-          style={{display:'block',cursor:tool==='eraser'?'crosshair':'default'}}
+          style={{display:'block',cursor:tool==='eraser'?'cell':'crosshair',touchAction:'none'}}
         />
       </div>
     </div>
@@ -622,12 +785,12 @@ const GUIDES=[
 // URL을 채우면 즉시 반영됩니다.
 // 사진 데이터 — localStorage에서 로드 (관리자 페이지에서 편집 가능)
 const DEFAULT_CASE_PHOTOS={
-  shingle:{causes:['','',''],before:'',after:''},
-  metal:  {causes:['','',''],before:'',after:''},
-  slab:   {causes:['','',''],before:'',after:''},
-  parking:{causes:['','',''],before:'',after:''},
-  exterior:{causes:['','',''],before:'',after:''},
-  maintenance:{causes:['','',''],before:'',after:''},
+  shingle:{causes:['','',''],completed:''},
+  metal:  {causes:['','',''],completed:''},
+  slab:   {causes:['','',''],completed:''},
+  parking:{causes:['','',''],completed:''},
+  exterior:{causes:['','',''],completed:''},
+  maintenance:{causes:['','',''],completed:''},
 };
 const loadCasePhotos=()=>{try{return{...DEFAULT_CASE_PHOTOS,...JSON.parse(localStorage.getItem('pourCasePhotos')||'{}')};}catch{return DEFAULT_CASE_PHOTOS;}};
 const saveCasePhotos=p=>{try{localStorage.setItem('pourCasePhotos',JSON.stringify(p));}catch(e){alert('저장 공간이 부족합니다. 일부 사진을 삭제해주세요.');}};
@@ -1038,6 +1201,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [ntSaving,setNtSaving]=useState(false);
   const [ntDone,setNtDone]=useState(false);
   const [ntPencilMode,setNtPencilMode]=useState(true);
+  const ntMemoRef=useRef(null);
+  useEffect(()=>{if(!ntPencilMode&&ntMemoRef.current){ntMemoRef.current.focus();}},[ntPencilMode]);
   const [ntOpenSec,setNtOpenSec]=useState(new Set([]));
 
   const ntToggleSec=sec=>setNtOpenSec(p=>{const n=new Set(p);n.has(sec)?n.delete(sec):n.add(sec);return n;});
@@ -1123,9 +1288,23 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
         {/* ── 솔루션 ── */}
         <>
-            {/* ── 섹션1: 공법 + 완성 사진 ── */}
+            {/* ── 완성본 사진 ── */}
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>✅ 완성본</div>
+              <div style={{borderRadius:12,overflow:'hidden',border:'1.5px solid var(--border)',position:'relative',aspectRatio:'16/10',background:'var(--bg)'}}>
+                {photos?.completed
+                  ?<img src={photos.completed} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+                  :<div style={{width:'100%',height:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
+                    <span style={{fontSize:22,opacity:.2}}>📷</span>
+                    <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:600}}>관리자에서 추가</span>
+                  </div>
+                }
+                <span style={{position:'absolute',top:6,left:6,padding:'2px 8px',borderRadius:5,fontSize:10,fontWeight:800,background:'rgba(5,150,105,.85)',color:'#fff'}}>완성본</span>
+              </div>
+            </div>
+
+            {/* ── 섹션1: 공법 ── */}
             <div style={{background:'var(--navy)',borderRadius:'var(--r)',overflow:'hidden',marginBottom:14}}>
-              {/* 공법 목록 */}
               {sol.methods.map((m,i)=>(
                 <div key={i} style={{padding:'12px 18px',display:'flex',alignItems:'center',gap:10,borderTop:i>0?'1px solid rgba(255,255,255,.08)':'none'}}>
                   <div style={{width:26,height:26,borderRadius:'50%',background:'rgba(255,255,255,.15)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,color:'#fff',flexShrink:0}}>{i+1}</div>
@@ -1165,33 +1344,6 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 </div>
               </div>
             )}
-
-            {/* ── 시공 전/후 사진 ── */}
-            <div style={{marginBottom:14}}>
-              <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>🔄 시공 전/후 비교</div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-                <div style={{borderRadius:12,overflow:'hidden',border:'1.5px solid var(--border)',position:'relative',aspectRatio:'4/3',background:'var(--bg)'}}>
-                  {photos?.before
-                    ?<img src={photos.before} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-                    :<div style={{width:'100%',height:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
-                      <span style={{fontSize:22,opacity:.2}}>📷</span>
-                      <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:600}}>관리자에서 추가</span>
-                    </div>
-                  }
-                  <span style={{position:'absolute',top:6,left:6,padding:'2px 8px',borderRadius:5,fontSize:10,fontWeight:800,background:'rgba(220,38,38,.85)',color:'#fff'}}>시공 전</span>
-                </div>
-                <div style={{borderRadius:12,overflow:'hidden',border:'1.5px solid var(--border)',position:'relative',aspectRatio:'4/3',background:'var(--bg)'}}>
-                  {photos?.after
-                    ?<img src={photos.after} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-                    :<div style={{width:'100%',height:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
-                      <span style={{fontSize:22,opacity:.2}}>📷</span>
-                      <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:600}}>관리자에서 추가</span>
-                    </div>
-                  }
-                  <span style={{position:'absolute',top:6,left:6,padding:'2px 8px',borderRadius:5,fontSize:10,fontWeight:800,background:'rgba(5,150,105,.85)',color:'#fff'}}>시공 후</span>
-                </div>
-              </div>
-            </div>
 
             {/* ── 섹션2: 자료 + QR — 1행 2열 카드 ── */}
             <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:10}}>📱 자료 바로가기 · QR 전달</div>
@@ -1381,6 +1533,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                         className="note-memo"
                         style={{resize:'none',minHeight:300,width:'100%',fontSize:15,lineHeight:'1.85'}}
                         placeholder="고객 반응, 특이사항, 요청사항..."
+                        ref={ntMemoRef}
                         value={ntMemo} onChange={e=>setNtMemo(e.target.value)}
                       />
                     }
@@ -1495,6 +1648,8 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
   const [saving,setSaving]=useState(false);
   const [done,setDone]=useState(false);
   const [pencilMode,setPencilMode]=useState(true);
+  const memoRef=useRef(null);
+  useEffect(()=>{if(!pencilMode&&memoRef.current){memoRef.current.focus();}},[pencilMode]);
   const [openSec,setOpenSec]=useState(new Set([]));
   const toggle=(arr,set,v)=>set(p=>p.includes(v)?p.filter(x=>x!==v):[...p,v]);
   const toggleSec=sec=>setOpenSec(p=>{const n=new Set(p);n.has(sec)?n.delete(sec):n.add(sec);return n;});
@@ -1666,6 +1821,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
                 {pencilMode
                   ?<DrawCanvas/>
                   :<textarea
+                    ref={memoRef}
                     className="note-memo"
                     style={{resize:'none',minHeight:300,width:'100%',fontSize:15,lineHeight:'1.85'}}
                     placeholder="고객 반응, 특이사항, 요청사항..."
@@ -2060,11 +2216,11 @@ function AdminScreen({onBack}){
 
           {/* ── 하자 현장 사진 관리 ── */}
           <div style={{background:'var(--card)',borderRadius:12,padding:'16px',border:'1px solid var(--border)',marginBottom:14}}>
-            <div style={{fontSize:14,fontWeight:900,color:'var(--text)',marginBottom:4}}>📸 하자 현장 사진 · 시공 전후</div>
+            <div style={{fontSize:14,fontWeight:900,color:'var(--text)',marginBottom:4}}>📸 완성본 · 하자 현장 사진</div>
             <div style={{fontSize:12,color:'var(--text-sm)',marginBottom:6,lineHeight:1.6}}>
               아래 사진은 <b>공법 분석 화면</b>에 표시됩니다.<br/>
-              · <b>현장 하자 사진</b> → 가로 슬라이드로 노출<br/>
-              · <b>시공 전/후</b> → 전후 비교 영역에 노출<br/>
+              · <b>완성본</b> → 상단에 노출<br/>
+              · <b>현장 하자 사진</b> → 하단 가로 슬라이드로 노출<br/>
               사진 클릭 → 파일 선택 / 이미지 복사 후 붙여넣기(Ctrl+V) 가능
             </div>
 
@@ -2076,7 +2232,7 @@ function AdminScreen({onBack}){
               {key:'exterior',label:'외벽/재도장'},
               {key:'maintenance',label:'보수보강/토목'},
             ].map(({key,label})=>{
-              const data=casePhotos[key]||{causes:['','',''],before:'',after:''};
+              const data=casePhotos[key]||{causes:['','',''],completed:''};
               return(
                 <div key={key} style={{marginBottom:18,padding:'14px',background:'var(--bg)',borderRadius:12,border:'1px solid var(--border)'}}>
                   <div style={{fontSize:13,fontWeight:800,color:'var(--text)',marginBottom:10}}>{label}</div>
@@ -2086,28 +2242,22 @@ function AdminScreen({onBack}){
                   <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}}>
                     {(data.causes||[]).map((url,i)=>(
                       <PhotoSlot key={i} src={url} label={`사진 ${i+1}`}
-                        onSet={(v)=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:['','',''],before:'',after:''};up[key].causes[i]=v;setCasePhotos(up);saveCasePhotos(up);}}
+                        onSet={(v)=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:['','',''],completed:''};up[key].causes[i]=v;setCasePhotos(up);saveCasePhotos(up);}}
                         onRemove={()=>{const up=JSON.parse(JSON.stringify(casePhotos));up[key].causes.splice(i,1);setCasePhotos(up);saveCasePhotos(up);}}
                       />
                     ))}
-                    <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],before:'',after:''};up[key].causes.push('');setCasePhotos(up);saveCasePhotos(up);}}
+                    <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:''};up[key].causes.push('');setCasePhotos(up);saveCasePhotos(up);}}
                       style={{width:100,height:75,borderRadius:10,border:'2px dashed var(--border)',background:'#fff',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,color:'var(--text-sm)',fontSize:11,fontWeight:700}}>
                       <span style={{fontSize:24}}>+</span>추가
                     </button>
                   </div>
 
-                  {/* 시공 전/후 사진 */}
-                  <div style={{display:'flex',gap:10}}>
-                    {['before','after'].map(t=>(
-                      <div key={t} style={{flex:1}}>
-                        <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:4}}>{t==='before'?'시공 전':'시공 후'}</div>
-                        <PhotoSlot src={data[t]||''} label={t==='before'?'시공 전':'시공 후'} wide
-                          onSet={(v)=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],before:'',after:''};up[key][t]=v;setCasePhotos(up);saveCasePhotos(up);}}
-                          onRemove={()=>{const up=JSON.parse(JSON.stringify(casePhotos));up[key][t]='';setCasePhotos(up);saveCasePhotos(up);}}
-                        />
-                      </div>
-                    ))}
-                  </div>
+                  {/* 완성본 사진 */}
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>완성본</div>
+                  <PhotoSlot src={data.completed||''} label="완성본" wide
+                    onSet={(v)=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:''};up[key].completed=v;setCasePhotos(up);saveCasePhotos(up);}}
+                    onRemove={()=>{const up=JSON.parse(JSON.stringify(casePhotos));up[key].completed='';setCasePhotos(up);saveCasePhotos(up);}}
+                  />
                 </div>
               );
             })}

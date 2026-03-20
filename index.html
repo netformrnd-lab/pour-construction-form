@@ -928,6 +928,39 @@ const SOLUTIONS={
 
 
 
+// ── 공법 선택 조건 (복수 공법이 있는 경우 현장 상태에 따라 추천) ──
+const METHOD_CONDITIONS={
+  metal:{q:'지붕 상태·고객 니즈를 선택하세요',opts:[
+    {id:'waterproof',icon:'💧',label:'누수·방수만 문제',desc:'접합부/나사홀 누수 중심 → 방수 공법 권장',idx:[0]},
+    {id:'coating',icon:'🎨',label:'도장 벗겨짐+누수',desc:'녹 발생·미관 저하 → 코팅 공법 권장',idx:[1]},
+    {id:'both',icon:'✨',label:'방수+미관 모두',desc:'방수·외관 동시 개선 → 두 공법 함께 검토',idx:[0,1]},
+  ]},
+  slab:{q:'슬라브 상태를 선택하세요',opts:[
+    {id:'dual',icon:'💥',label:'심각한 균열·노후',desc:'2중 강화방수 필요 — 듀얼강화방수 권장',idx:[0]},
+    {id:'urethane',icon:'〰️',label:'경미한 균열',desc:'탄성 추종성이 필요한 경우 — 우레탄 권장',idx:[1]},
+    {id:'pvc',icon:'🔄',label:'전면 재방수',desc:'방수층 완전 교체 필요 — PVC 시트 권장',idx:[2]},
+  ]},
+  parking:{q:'바닥 개선 목표를 선택하세요',opts:[
+    {id:'epoxy',icon:'🏢',label:'내화학 도장',desc:'내화학·내마모 중심 → 에폭시 도장 권장',idx:[0]},
+    {id:'emboss',icon:'⚠️',label:'논슬립 필요',desc:'미끄럼 방지 필수 → 엠보라이닝 권장',idx:[1]},
+  ]},
+  wall:{q:'예산·품질 등급을 선택하세요',opts:[
+    {id:'premium',icon:'⭐',label:'고급형',desc:'바인더+플러스 — 최고 내구성 조합',idx:[0]},
+    {id:'mid',icon:'✅',label:'중급형',desc:'플러스+수성 — 품질·비용 균형',idx:[1]},
+    {id:'economy',icon:'💰',label:'경제형',desc:'바인더+수성 — 가성비 우선',idx:[2]},
+  ]},
+  crack:{q:'균열 유형을 선택하세요',opts:[
+    {id:'surface',icon:'〰️',label:'바탕면 균열',desc:'표면 균열 → 탄성강화 바탕면 보강 권장',idx:[0]},
+    {id:'section',icon:'🔧',label:'단면 손상',desc:'단면 파손 → 단면복구+탄성강화 권장',idx:[1]},
+    {id:'sheet',icon:'📋',label:'넓은 구조 균열',desc:'구조적 보강 필요 → 복합시트 공법 권장',idx:[2]},
+  ]},
+  ascon:{q:'포장 상태를 선택하세요',opts:[
+    {id:'repair',icon:'💥',label:'균열·단면 파손',desc:'절삭 후 기층 보강·단면복구 권장',idx:[0]},
+    {id:'seal',icon:'🛡️',label:'표면 산화·예방',desc:'씰코팅으로 포장 수명 2~3배 연장 권장',idx:[1]},
+    {id:'mma',icon:'💪',label:'고강도 바닥 필요',desc:'MMA 수지 — 내충격·내화학 마감 권장',idx:[2]},
+  ]},
+};
+
 // ── 원인 카드 데이터 ──
 // keyword: 영업사원 브리핑 키워드, desc: 고객 설명 한 줄
 const CAUSE_POINTS={
@@ -1596,13 +1629,20 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const ntHasData=()=>!!(ntName||ntCompany||ntPhone||ntEmail||ntMemo||ntInterests.length||ntContact.length||ntBizCard?.front);
   const ntSafeClose=()=>{if(ntHasData()&&!window.confirm('입력한 내용이 저장되지 않았습니다. 닫으시겠어요?'))return;setShowNote(false);};
   const [effectiveBuildingId,setEffectiveBuildingId]=useState(building?.id||null);
+  const [methodCondition,setMethodCondition]=useState(null);
 
   const sol=problem?SOLUTIONS[problem.id]:null;
   const [casePhotos,setCasePhotos]=useState(()=>loadCasePhotos());
   useEffect(()=>{syncPhotosFromFirestore(setCasePhotos,null);},[]);
+  useEffect(()=>{setMethodCondition(null);},[problem?.id]);
 
   if(externalNote&&!showNote){setShowNote(true);if(onExternalNote)onExternalNote(false);}
   if(!sol||!problem) return null;
+
+  const cond=METHOD_CONDITIONS[problem.id];
+  const selOpt=cond?.opts.find(o=>o.id===methodCondition);
+  const recIdxs=selOpt?selOpt.idx:null;
+  const activeMethods=recIdxs?sol.methods.filter((_,i)=>recIdxs.includes(i)):sol.methods;
 
   const guide=sol.guideId?GUIDES.find(g=>g.id===sol.guideId):null;
   const photos=sol.photosKey?casePhotos[sol.photosKey]:null;
@@ -1621,7 +1661,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       building:building?.label||'-',buildingId:building?.id||'-',
       problem:problem?.label||'-',problemCat:problem?.cat||'-',
       problems:[problem?.label].filter(Boolean),
-      method:sol?.methods?.[0]?.name||'-',
+      method:activeMethods.map(m=>m.name).join(' / ')||'-',
       interests:ntInterests,
       deliveryDocs:ntDeliveryDocs,
       deliveryMedia:ntDeliveryMedia,
@@ -1655,8 +1695,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
     `박람회: 공동주택관리산업박람회 (벡스코)`,`상담일시: ${dateStr}`,``,
     `건물유형: ${building?.label||'-'} (${building?.sub||'-'})`,
     `주요 문제: [${problem.cat}] ${problem.label}`,
-    `추천 공법: ${sol.methods.map(m=>m.name).join(', ')}`,
-    `시방서: ${sol.methods[0].specUrl}`,`시공사례: ${sol.caseUrl}`,``,
+    `추천 공법: ${activeMethods.map(m=>m.name).join(', ')}`,
+    `시방서: ${activeMethods[0].specUrl}`,`시공사례: ${sol.caseUrl}`,``,
     `다음 액션: □ 방문진단  □ 시방서 전달  □ 회사소개서`,
     `특이사항: ${memo||'(없음)'}`,
   ].join('\n');
@@ -1679,7 +1719,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       </div>
       <div className="sol-header">
         
-        <div className="sol-name">{problem.label} <span style={{fontSize:12,fontWeight:500,color:"rgba(255,255,255,.5)"}}>— {sol.methods[0].name}</span></div>
+        <div className="sol-name">{problem.label} <span style={{fontSize:12,fontWeight:500,color:"rgba(255,255,255,.5)"}}>— {selOpt?activeMethods.map(m=>m.name).join(' · '):sol.methods[0].name}</span></div>
       </div>
 
       {/* 탭 */}
@@ -1709,17 +1749,40 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
             </div>
 
             {/* ── 섹션1: 공법 ── */}
-            <div style={{background:'var(--navy)',borderRadius:'var(--r)',overflow:'hidden',marginBottom:14}}>
-              {sol.methods.map((m,i)=>(
-                <div key={i} style={{padding:'12px 18px',display:'flex',alignItems:'center',gap:10,borderTop:i>0?'1px solid rgba(255,255,255,.08)':'none'}}>
-                  <div style={{width:26,height:26,borderRadius:'50%',background:'rgba(255,255,255,.15)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,color:'#fff',flexShrink:0}}>{i+1}</div>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:14,fontWeight:800,color:'#fff',letterSpacing:'-.3px'}}>{m.name}</div>
-                    <div style={{fontSize:11,color:'rgba(255,255,255,.5)',marginTop:1}}>{m.feature}</div>
-                  </div>
-                  <a href={m.specUrl} target="_blank" rel="noreferrer" style={{fontSize:10,fontWeight:700,color:'var(--blue-m)',padding:'4px 8px',border:'1px solid rgba(255,255,255,.15)',borderRadius:6,textDecoration:'none',flexShrink:0}}>시방서</a>
+            {cond&&(
+              <div style={{marginBottom:12,background:'rgba(255,255,255,.04)',borderRadius:12,padding:'12px 14px',border:'1px solid rgba(255,255,255,.08)'}}>
+                <div style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,.5)',letterSpacing:'.06em',marginBottom:8}}>🔍 {cond.q}</div>
+                <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                  {cond.opts.map(opt=>{
+                    const active=methodCondition===opt.id;
+                    return(
+                      <button key={opt.id} onClick={()=>setMethodCondition(p=>p===opt.id?null:opt.id)}
+                        style={{padding:'6px 12px',borderRadius:20,border:`1.5px solid ${active?'var(--blue)':'rgba(255,255,255,.15)'}`,background:active?'var(--blue)':'transparent',color:active?'#fff':'rgba(255,255,255,.65)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',transition:'all .15s',display:'flex',alignItems:'center',gap:4}}>
+                        <span>{opt.icon}</span><span>{opt.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
-              ))}
+                {selOpt&&<div style={{fontSize:11,color:'rgba(255,255,255,.45)',marginTop:8,paddingLeft:2}}>{selOpt.desc}</div>}
+              </div>
+            )}
+            <div style={{background:'var(--navy)',borderRadius:'var(--r)',overflow:'hidden',marginBottom:14,border:'1px solid rgba(255,255,255,.06)'}}>
+              {sol.methods.map((m,i)=>{
+                const isRec=recIdxs?recIdxs.includes(i):true;
+                return(
+                  <div key={i} style={{padding:'12px 18px',display:'flex',alignItems:'center',gap:10,borderTop:i>0?'1px solid rgba(255,255,255,.08)':'none',opacity:recIdxs&&!isRec?0.3:1,transition:'opacity .2s',background:isRec&&recIdxs?'rgba(37,99,235,.12)':'transparent'}}>
+                    <div style={{width:26,height:26,borderRadius:'50%',background:isRec&&recIdxs?'var(--blue)':'rgba(255,255,255,.15)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,color:'#fff',flexShrink:0,transition:'background .2s'}}>{isRec&&recIdxs?'✓':i+1}</div>
+                    <div style={{flex:1}}>
+                      <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                        <div style={{fontSize:14,fontWeight:800,color:'#fff',letterSpacing:'-.3px'}}>{m.name}</div>
+                        {isRec&&recIdxs&&<span style={{fontSize:10,fontWeight:800,background:'var(--blue)',color:'#fff',padding:'2px 6px',borderRadius:4}}>추천</span>}
+                      </div>
+                      <div style={{fontSize:11,color:'rgba(255,255,255,.5)',marginTop:1}}>{m.feature}</div>
+                    </div>
+                    <a href={m.specUrl} target="_blank" rel="noreferrer" style={{fontSize:10,fontWeight:700,color:'var(--blue-m)',padding:'4px 8px',border:'1px solid rgba(255,255,255,.15)',borderRadius:6,textDecoration:'none',flexShrink:0}}>시방서</a>
+                  </div>
+                );
+              })}
             </div>
 
             {/* ── 하자 현장 사진 (가로 슬라이드) ── */}
@@ -1755,7 +1818,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
             <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:10}}>📱 자료 바로가기 · QR 전달</div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:10}}>
               {[
-                {label:'제안서/\n시방서',icon:'📄',url:sol.methods[0].specUrl||'https://www.poursolution.net/36',qrTitle:'제안서/시방서'},
+                {label:'제안서/\n시방서',icon:'📄',url:activeMethods[0].specUrl||'https://www.poursolution.net/36',qrTitle:'제안서/시방서'},
                 {label:'가이드북',icon:'📖',url:guide?guide.url:'',qrTitle:'시공 가이드북',empty:!guide},
               ].map(l=>(
                 <div key={l.label} style={{background:l.empty?'var(--bg)':'var(--card)',border:'1.5px solid var(--border)',borderRadius:14,overflow:'hidden',display:'flex',flexDirection:'column',opacity:l.empty?.4:1}}>
@@ -1848,7 +1911,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                       {problem?.cat&&<span className="note-ctx-tag">{problem.cat}</span>}
                       {problem?.label&&<span className="note-ctx-tag">{problem.label}</span>}
                     </div>
-                    {sol?.methods?.[0]?.name&&<div className="note-ctx-method">→ {sol.methods[0].name}</div>}
+                    {sol?.methods?.[0]?.name&&<div className="note-ctx-method">→ {activeMethods.map(m=>m.name).join(' · ')}</div>}
                   </div>
                 </div>
 

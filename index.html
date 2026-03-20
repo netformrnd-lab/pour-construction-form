@@ -1012,13 +1012,84 @@ const BENEFITS={
 };
 
 const ACTION_TAGS=[
-  {id:'estimate',label:'견적서',icon:'💰'},{id:'proposal',label:'공법 시방서',icon:'📄'},
-  {id:'brochure',label:'소개서',icon:'📖'},{id:'meeting',label:'미팅요청',icon:'🤝'},
-  {id:'sample',label:'샘플요청',icon:'📦'},{id:'visit',label:'현장방문',icon:'🔍'},
+  {id:'catalog_method',label:'카탈로그(공법)',icon:'📘'},
+  {id:'catalog_material',label:'카탈로그(자재)',icon:'📙'},
+  {id:'sample',label:'샘플(슁글·기와·슬라브·균열)',icon:'📦'},
   {id:'spec',label:'시방서',icon:'📋'},
+  {id:'proposal',label:'제안서',icon:'📄'},
+  {id:'price_list',label:'단가표',icon:'💲'},
+  {id:'cert',label:'인증서/시험성적서',icon:'🏅'},
+  {id:'estimate',label:'견적산출',icon:'🔢'},
 ];
 
 /* ── POUR스토어 데이터 ── */
+const STORE_PROBLEMS=[
+  {id:'roof_leak',    label:'옥상·지붕 누수',    icon:'💧', cat:'방수', desc:'방수층 손상·물고임·침수'},
+  {id:'crack',        label:'균열·크랙',          icon:'⚡', cat:'보수', desc:'콘크리트 벽·바닥 균열 발생'},
+  {id:'gap_leak',     label:'틈새·이음부 누수',   icon:'🔩', cat:'방수', desc:'창문·배관·조인트 주변 누수'},
+  {id:'drain_leak',   label:'배수구·배수로 문제', icon:'🌊', cat:'방수', desc:'배수구 막힘·주변 누수'},
+  {id:'rust_iron',    label:'철재 부식·녹',       icon:'🦀', cat:'도장', desc:'철재 구조물·지붕 녹 발생'},
+  {id:'wall_paint',   label:'외벽 도장·박리',     icon:'🏚️', cat:'도장', desc:'외벽 페인트 벗겨짐·오염'},
+  {id:'wood_damage',  label:'목재 손상·부식',     icon:'🌳', cat:'도장', desc:'목재 구조물·가구 부식·손상'},
+  {id:'concrete_base',label:'바탕면·미장 손상',   icon:'🧱', cat:'보수', desc:'콘크리트 바탕면 박리·손상'},
+];
+const STORE_SOLUTION_MAP={
+  roof_leak:{
+    headline:'옥상·지붕 방수 패키지 추천',
+    tip:'POUR 코트재 기반 — 우레탄보다 쉽고 튼튼! 롤러 하나로 셀프시공 완성',
+    packages:[
+      {name:'평형 옥상 방수 패키지',desc:'우레탄보다 쉽고 튼튼한 옥상방수',tag:'51% · 25,000원/m²',icon:'💧'},
+      {name:'슁글 지붕 방수 패키지',desc:'슁글 탈락 방지와 방수층 형성',tag:'43% · 20,000원/m²',icon:'🏠'},
+    ]},
+  crack:{
+    headline:'균열 보수 패키지 추천',
+    tip:'고탄성 POUR 퍼티 + 균열보수시트 — 셀프 보수 완성, 재발 방지까지',
+    packages:[
+      {name:'균열보수 스타터 패키지',desc:'첫 시공도 걱정없이 손쉽게',tag:'49% · 35,000원',icon:'⚡'},
+      {name:'외벽 균열 및 도장 패키지',desc:'균열 보수부터 도장까지 한 번에',tag:'51% · 3,000원/m²',icon:'🏚️'},
+    ]},
+  gap_leak:{
+    headline:'틈새·이음부 방수 패키지 추천',
+    tip:'POUR 균열보수시트 — 이음부 누수 완전 차단, 신축성 높아 재발 없음',
+    packages:[
+      {name:'틈새 누수 차단 패키지',desc:'이음부 보수 셀프로 간편하게',tag:'45% · 1,800원/m',icon:'🔩'},
+      {name:'균열보수 스타터 패키지',desc:'첫 시공도 걱정없이 손쉽게',tag:'49% · 35,000원',icon:'⚡'},
+    ]},
+  drain_leak:{
+    headline:'배수구·배수로 방수 패키지 추천',
+    tip:'국내 유일 배수관 비파괴 방수 트랩 — 배관 교체 없이 근본 해결',
+    packages:[
+      {name:'배수로 방수 패키지',desc:'배수로 누수 막는 셀프시공',tag:'33% · 18,000원/m²',icon:'🌊'},
+      {name:'배수구 방수 보강 패키지',desc:'배수구 틈새와 누수방지 최적 조합',tag:'57% · 64,900원',icon:'💧'},
+    ]},
+  rust_iron:{
+    headline:'철재 방청·도장 패키지 추천',
+    tip:'칼라강판 전용 POUR 도료 — 부식 걱정 없이 새 지붕처럼 리뉴얼',
+    packages:[
+      {name:'칼라강판 도장 패키지',desc:'부식 걱정 없이 새 지붕처럼',tag:'30% · 7,000원/m²',icon:'🦀'},
+      {name:'철재 도장 페인트 패키지',desc:'철재 특화 보호 코팅',tag:'43% · 1,500원/m',icon:'⚙️'},
+    ]},
+  wall_paint:{
+    headline:'외벽 도장 패키지 추천',
+    tip:'균열 보수부터 도장까지 한 번에 — POUR 외벽 패키지로 깔끔하게',
+    packages:[
+      {name:'외벽 균열 및 도장 패키지',desc:'균열 보수부터 도장까지 한 번에',tag:'51% · 3,000원/m²',icon:'🏚️'},
+      {name:'균열보수 스타터 패키지',desc:'균열 먼저 잡고 도장',tag:'49% · 35,000원',icon:'⚡'},
+    ]},
+  wood_damage:{
+    headline:'목재·가구 도장 패키지 추천',
+    tip:'목재 전용 POUR 도료 — 우수한 코팅력, 초보도 롤러 하나로 간단하게',
+    packages:[
+      {name:'목재 가구 페인트 패키지',desc:'목재 및 가구용 도장 코트재',tag:'57% · 1,500원/m',icon:'🌳'},
+    ]},
+  concrete_base:{
+    headline:'바탕면 보강 패키지 추천',
+    tip:'기존 몰탈 대비 뛰어난 강도 — POUR 바탕면 보강재로 완벽한 기초',
+    packages:[
+      {name:'콘크리트 바탕면 보강 패키지',desc:'기존 몰탈 대비 뛰어난 강도',tag:'33% · 11,000원/m²',icon:'🧱'},
+      {name:'배수구 방수 보강 패키지',desc:'배수구 틈새와 누수방지 최적 조합',tag:'57% · 64,900원',icon:'⚙️'},
+    ]},
+};
 const STORE_PACKAGE_CATS=[
   {id:'waterproof',label:'방수',icon:'💧',items:[
     {name:'평형 옥상 방수 패키지',desc:'우레탄보다 쉽고 튼튼한 옥상방수',tag:'51% 25,000원/m²'},
@@ -2350,87 +2421,110 @@ function BusinessCardCapture({onCapture,openRef}){
 }
 
 /* ── POUR스토어: 카테고리 선택 화면 ── */
-function StoreCategoryScreen({staffId,staffName,staffDay,onBack,storeMode,setStoreMode,storeCat,setStoreCat}){
+function StoreCategoryScreen({staffId,staffName,staffDay,onBack}){
+  const [step,setStep]=useState('building'); // 'building' | 'problem' | 'solution'
+  const [bld,setBld]=useState(null);
+  const [prob,setProb]=useState(null);
   const [showNote,setShowNote]=useState(false);
-  const cats=storeMode==='package'?STORE_PACKAGE_CATS:storeMode==='item'?STORE_ITEM_CATS:[];
-  const accentOrange='#EA580C';
+  const accent='#EA580C';
   const accentBg='rgba(234,88,12,.12)';
+  const sol=prob?STORE_SOLUTION_MAP[prob.id]:null;
+  const stepLabels=['건물유형','하자유형','패키지추천'];
+  const stepIdx=step==='building'?0:step==='problem'?1:2;
+  const goBack=()=>{
+    if(step==='building')onBack();
+    else if(step==='problem'){setStep('building');}
+    else{setStep('problem');}
+  };
   return(
     <div className="screen active" style={{background:'var(--bg)'}}>
       <div className="hdr" style={{borderBottom:'2px solid rgba(234,88,12,.3)'}}>
-        <div className="hdr-brand" style={{gap:2}}>
-          <span style={{fontSize:14,fontWeight:900,color:accentOrange,letterSpacing:'.02em'}}>🛒 POUR스토어</span>
-          <span style={{fontSize:10,color:'rgba(255,255,255,.4)'}}>자재 · 패키지 · 시공매칭</span>
+        <div className="hdr-brand" style={{gap:3}}>
+          <span style={{fontSize:14,fontWeight:900,color:accent,letterSpacing:'.02em'}}>🛒 POUR스토어</span>
+          <span style={{fontSize:10,color:'rgba(255,255,255,.4)'}}>
+            {stepLabels.map((l,i)=>(
+              <span key={i}>{i>0&&<span style={{opacity:.3}}> › </span>}<span style={{opacity:i===stepIdx?1:.35,fontWeight:i===stepIdx?700:400,color:i===stepIdx?accent:'rgba(255,255,255,.6)'}}>{l}</span></span>
+            ))}
+          </span>
         </div>
-        <div className="hdr-r"><button className="btn-back" onClick={onBack}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg></button></div>
+        <div className="hdr-r"><button className="btn-back" onClick={goBack}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg></button></div>
       </div>
       <div className="content" style={{paddingTop:16}}>
-        {!storeMode?(
+
+        {/* ── Step 1: 건물유형 ── */}
+        {step==='building'&&(
           <>
-            <div className="page-h" style={{marginBottom:6}}>어떤 목적으로 방문하셨나요?</div>
-            <div className="page-sub" style={{marginBottom:20}}>관심 유형을 선택하시면 맞춤 제품을 안내해드립니다.</div>
-            <div style={{display:'flex',flexDirection:'column',gap:12}}>
-              {[
-                {id:'package',icon:'📦',title:'올인원 패키지',sub:'방수·보수·도장 한 세트 — 초보 셀프시공 추천',color:accentOrange,bg:accentBg},
-                {id:'item',icon:'🪣',title:'개별 자재 구매',sub:'도료·시트·보강자재·안전용품 개별 선택',color:'#0891B2',bg:'rgba(8,145,178,.1)'},
-              ].map(m=>(
-                <button key={m.id} onClick={()=>setStoreMode(m.id)}
-                  style={{padding:'18px 20px',borderRadius:14,border:`1.5px solid ${m.color}`,background:m.bg,display:'flex',alignItems:'center',gap:14,cursor:'pointer',fontFamily:'inherit',textAlign:'left',width:'100%',boxSizing:'border-box'}}>
-                  <span style={{fontSize:26}}>{m.icon}</span>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:15,fontWeight:800,color:'var(--text)',marginBottom:3}}>{m.title}</div>
-                    <div style={{fontSize:12,color:'var(--text-sm)'}}>{m.sub}</div>
+            <div className="page-h" style={{marginBottom:6}}>어떤 건물을 관리하고 계신가요?</div>
+            <div className="page-sub" style={{marginBottom:16}}>건물 유형을 선택하시면 맞춤 패키지를 안내해드립니다.</div>
+            <div className="building-grid">
+              {BUILDING_TYPES.map(b=>(
+                <div key={b.id} className="building-card" onClick={()=>{setBld(b);setStep('problem');}}>
+                  <div className="bc-arrow">→</div>
+                  <div className="bc-icon">{b.icon}</div>
+                  <div className="bc-name">{b.label}</div>
+                  <div className="bc-sub">{b.sub}</div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* ── Step 2: 하자유형 ── */}
+        {step==='problem'&&(
+          <>
+            <div className="page-h" style={{marginBottom:6}}>어떤 하자가 발생했나요?</div>
+            <div className="page-sub" style={{marginBottom:16}}>{bld?.icon} {bld?.label} · 해당하는 하자 유형을 선택해주세요.</div>
+            <div className="prob-chips">
+              {STORE_PROBLEMS.map(p=>(
+                <button key={p.id} className="prob-chip" onClick={()=>{setProb(p);setStep('solution');}}>
+                  <div className="prob-chip-thumb"><span style={{fontSize:22}}>{p.icon}</span></div>
+                  <div className="prob-chip-body">
+                    <div className="prob-chip-text">{p.label}</div>
+                    <div className="prob-chip-cat">{p.cat}</div>
                   </div>
-                  <span style={{color:'var(--text-sm)',fontSize:20}}>›</span>
                 </button>
               ))}
             </div>
           </>
-        ):(
+        )}
+
+        {/* ── Step 3: 패키지 추천 ── */}
+        {step==='solution'&&sol&&(
           <>
-            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:14}}>
-              <button onClick={()=>{setStoreMode(null);setStoreCat(null);}} style={{padding:'4px 10px',borderRadius:7,border:'1.5px solid var(--border)',background:'var(--bg)',fontSize:11,fontWeight:700,color:'var(--text-sm)',cursor:'pointer',fontFamily:'inherit'}}>← 유형 변경</button>
-              <span style={{fontSize:12,fontWeight:700,color:accentOrange}}>{storeMode==='package'?'올인원 패키지':'개별 자재'}</span>
+            {/* 진단 요약 */}
+            <div style={{display:'flex',gap:6,marginBottom:12,flexWrap:'wrap'}}>
+              {bld&&<span style={{padding:'3px 10px',borderRadius:20,border:'1.5px solid rgba(234,88,12,.4)',background:accentBg,fontSize:11,fontWeight:700,color:accent}}>{bld.icon} {bld.label}</span>}
+              {prob&&<span style={{padding:'3px 10px',borderRadius:20,border:'1.5px solid rgba(234,88,12,.4)',background:accentBg,fontSize:11,fontWeight:700,color:accent}}>{prob.icon} {prob.label}</span>}
             </div>
-            {/* 카테고리 탭 */}
-            <div className="tabs" style={{marginBottom:14}}>
-              {cats.map(c=>(
-                <button key={c.id} className={`tab ${storeCat?.id===c.id?'on':''}`}
-                  style={{padding:'5px 13px',fontSize:12}}
-                  onClick={()=>setStoreCat(c)}>
-                  {c.icon} {c.label}
-                </button>
+            {/* 추천 헤드라인 */}
+            <div style={{padding:'12px 14px',borderRadius:10,background:accentBg,border:`1px solid rgba(234,88,12,.25)`,marginBottom:16}}>
+              <div style={{fontSize:14,fontWeight:900,color:accent,marginBottom:3}}>📦 {sol.headline}</div>
+              <div style={{fontSize:12,color:'var(--text-sm)',lineHeight:1.6}}>{sol.tip}</div>
+            </div>
+            {/* 패키지 카드 */}
+            <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:20}}>
+              {sol.packages.map((pkg,idx)=>(
+                <div key={idx} style={{padding:'14px 16px',borderRadius:12,border:'1.5px solid var(--border)',background:'#fff',display:'flex',gap:12,alignItems:'flex-start'}}>
+                  <div style={{width:42,height:42,borderRadius:10,background:accentBg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,flexShrink:0}}>{pkg.icon}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:14,fontWeight:800,color:'var(--text)',marginBottom:3}}>{pkg.name}</div>
+                    <div style={{fontSize:12,color:'var(--text-sm)',marginBottom:6}}>{pkg.desc}</div>
+                    <span style={{fontSize:11,fontWeight:700,color:accent,background:accentBg,padding:'2px 8px',borderRadius:10}}>{pkg.tag}</span>
+                  </div>
+                </div>
               ))}
             </div>
-            {/* 제품 카드 */}
-            {(storeCat||cats[0])&&(()=>{
-              const cat=storeCat||cats[0];
-              return(
-                <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
-                  {cat.items.map((item,idx)=>(
-                    <div key={idx} style={{padding:'12px 14px',borderRadius:12,border:'1.5px solid var(--border)',background:'#fff',display:'flex',alignItems:'flex-start',gap:12}}>
-                      <div style={{width:36,height:36,borderRadius:10,background:accentBg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>{cat.icon}</div>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:13,fontWeight:800,color:'var(--text)',marginBottom:2}}>{item.name}</div>
-                        <div style={{fontSize:11,color:'var(--text-sm)',marginBottom:4}}>{item.desc}</div>
-                        {item.tag&&<span style={{fontSize:10,fontWeight:700,color:accentOrange,background:'rgba(234,88,12,.1)',padding:'2px 7px',borderRadius:10}}>{item.tag}</span>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              );
-            })()}
-            {/* 메모 저장 버튼 */}
-            <button className="btn-start" style={{width:'100%',background:accentOrange,marginBottom:8}} onClick={()=>setShowNote(true)}>
+            <button className="btn-start" style={{width:'100%',background:accent,marginBottom:8}} onClick={()=>setShowNote(true)}>
               📝 영업 메모 저장
             </button>
           </>
         )}
+
       </div>
       {showNote&&(
         <StoreNoteSheet
           staffId={staffId} staffName={staffName} staffDay={staffDay}
-          storeMode={storeMode} storeCat={storeCat}
+          building={bld} problem={prob}
           onClose={()=>setShowNote(false)}
         />
       )}
@@ -2439,7 +2533,7 @@ function StoreCategoryScreen({staffId,staffName,staffDay,onBack,storeMode,setSto
 }
 
 /* ── POUR스토어: 영업 메모 시트 ── */
-function StoreNoteSheet({staffId,staffName,staffDay,storeMode,storeCat,onClose}){
+function StoreNoteSheet({staffId,staffName,staffDay,building,problem,onClose}){
   const [name,setName]=useState('');
   const [company,setCompany]=useState('');
   const [phone,setPhone]=useState('');
@@ -2460,7 +2554,7 @@ function StoreNoteSheet({staffId,staffName,staffDay,storeMode,storeCat,onClose})
     setSaving(true);
     const data={
       savedAt:new Date().toISOString(),day:staffDay,staffId,staff:staffName,
-      brand:'store',storeMode,storeCat:storeCat?.label||'-',
+      brand:'store',building:building?.label||'-',problem:problem?.label||'-',
       name,company,phone,
       actions:actions.map(id=>STORE_ACTION_TAGS.find(t=>t.id===id)?.label||id),
       memo,memoImgs,status:'신규',
@@ -2494,11 +2588,11 @@ function StoreNoteSheet({staffId,staffName,staffDay,storeMode,storeCat,onClose})
                   <button onClick={safeClose} style={{width:32,height:32,borderRadius:'50%',border:'none',background:'var(--bg)',color:'var(--text-md)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
                 </div>
               </div>
-              {(storeMode||storeCat)&&(
+              {(building||problem)&&(
                 <div className="note-ctx" style={{marginTop:8,marginBottom:0}}>
                   <div className="note-ctx-row">
-                    {storeMode&&<span className="note-ctx-tag">{storeMode==='package'?'올인원 패키지':'개별 자재'}</span>}
-                    {storeCat&&<span className="note-ctx-tag">{storeCat.icon} {storeCat.label}</span>}
+                    {building&&<span className="note-ctx-tag">{building.icon} {building.label}</span>}
+                    {problem&&<span className="note-ctx-tag">{problem.icon} {problem.label}</span>}
                   </div>
                 </div>
               )}
@@ -3739,8 +3833,6 @@ function App(){
   const [staffMgrMode,setStaffMgrMode]=useState('setup');
   const [screen,setScreen]=useState('home');
   const [brand,setBrand]=useState(null); // null | 'construction' | 'store' | 'grohome'
-  const [storeMode,setStoreMode]=useState(null); // 'package' | 'item'
-  const [storeCat,setStoreCat]=useState(null);
   const [grohomeCat,setGrohomeCat]=useState(null);
   const [building,setBuilding]=useState(null);
   const [problem,setProblem]=useState(null);
@@ -3769,7 +3861,7 @@ function App(){
   },[staffDay]);
   useEffect(()=>{if(isSetup)loadCount();},[isSetup,loadCount]);
 
-  const goHome=()=>{setScreen('home');setBuilding(null);setProblem(null);setCat('전체');setBrand(null);setStoreMode(null);setStoreCat(null);setGrohomeCat(null);loadCount();};
+  const goHome=()=>{setScreen('home');setBuilding(null);setProblem(null);setCat('전체');setBrand(null);setGrohomeCat(null);loadCount();};
   // 건물유형에 맞는 문제만 필터 → 추가로 카테고리 탭 필터
   const buildingProblems=ALL_PROBLEMS;
   const filtered=cat==='전체'?buildingProblems:buildingProblems.filter(p=>p.cat===cat);
@@ -3933,8 +4025,6 @@ function App(){
         <StoreCategoryScreen
           staffId={staffId} staffName={staffName} staffDay={staffDay}
           onBack={goHome}
-          storeMode={storeMode} setStoreMode={setStoreMode}
-          storeCat={storeCat} setStoreCat={setStoreCat}
         />
       )}
 

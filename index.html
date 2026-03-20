@@ -740,7 +740,28 @@ function DrawCanvas({onDataUrl}){
       }
     }
   };
-  const emitDataUrl=()=>{if(onDataUrl){const c=canvasRef.current;if(c)onDataUrl(c.toDataURL('image/png'));}};
+  const emitDataUrl=()=>{
+    if(!onDataUrl)return;
+    const c=canvasRef.current;if(!c)return;
+    // 현재 페이지 저장
+    pages.current[currentPage]={strokes:strokes.current,undoStack:undoStack.current,redoStack:redoStack.current};
+    const dpr=window.devicePixelRatio||1;
+    const w=c.width/dpr;const h=c.height/dpr;const spacing=32;
+    const imgs=pages.current
+      .filter(pg=>pg.strokes.length>0)
+      .map(pg=>{
+        const off=document.createElement('canvas');off.width=c.width;off.height=c.height;
+        const ctx=off.getContext('2d');
+        ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);
+        ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);
+        ctx.strokeStyle='#e8ecf0';ctx.lineWidth=0.5;
+        for(let y=spacing;y<h;y+=spacing){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+        pg.strokes.forEach(s=>drawSmoothStroke(ctx,s));
+        ctx.restore();
+        return off.toDataURL('image/png');
+      });
+    onDataUrl(imgs);
+  };
   const end=(e)=>{
     if(!drawing.current)return;
     drawing.current=false;
@@ -1619,7 +1640,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [ntSaving,setNtSaving]=useState(false);
   const [ntDone,setNtDone]=useState(false);
   const [ntPencilMode,setNtPencilMode]=useState(true);
-  const [ntMemoImg,setNtMemoImg]=useState(null);
+  const [ntMemoImgs,setNtMemoImgs]=useState([]);
   const ntMemoRef=useRef(null);
   useEffect(()=>{if(!ntPencilMode&&ntMemoRef.current){ntMemoRef.current.focus();}},[ntPencilMode]);
   const [ntOpenSec,setNtOpenSec]=useState(new Set([]));
@@ -1670,7 +1691,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       deliveryDocs:ntDeliveryDocs,
       deliveryMedia:ntDeliveryMedia,
       businessCard:ntBizCard,
-      memo:ntMemo,memoImg:ntMemoImg||null,status:'신규',
+      memo:ntMemo,memoImgs:ntMemoImgs,status:'신규',
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
     // 자동 SMS 발송 (fire-and-forget)
@@ -1692,7 +1713,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
     setNtName('');setNtCompany('');setNtPosition('');
     setNtPhone('');setNtEmail('');setNtContact([]);
     setNtInterests([]);setNtDeliveryDocs([]);setNtDeliveryMedia([]);
-    setNtMemo('');setNtMemoImg(null);
+    setNtMemo('');setNtMemoImgs([]);
   };
 
   const logText=[
@@ -2020,7 +2041,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                   <div style={{marginBottom:10}}>
                     <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>상담 메모</div>
                     {ntPencilMode
-                      ?<DrawCanvas onDataUrl={setNtMemoImg}/>
+                      ?<DrawCanvas onDataUrl={setNtMemoImgs}/>
                       :<textarea
                         className="note-memo"
                         style={{resize:'none',minHeight:300,width:'100%',fontSize:15,lineHeight:'1.85'}}
@@ -2053,6 +2074,7 @@ function  LeadsScreen({onBack}){
   const [loading,setLoading]=useState(true);
   const [filterStaff,setFilterStaff]=useState('전체');
   const [staffList,setStaffList]=useState([]);
+  const [expandedId,setExpandedId]=useState(null);
 
   useEffect(()=>{
     db.collection('leads').orderBy('savedAt','desc').get()
@@ -2085,32 +2107,61 @@ function  LeadsScreen({onBack}){
       <div className="leads-scroll">
         {loading&&<div style={{padding:'40px',textAlign:'center'}}><div className="spinner" style={{margin:'0 auto'}}/></div>}
         {!loading&&display.length===0&&<div className="empty">저장된 상담 내역이 없어요</div>}
-        {display.map((l,i)=>(
-          <div key={l.id||i} className="lead-card">
-            <div className="lead-top">
-              <div style={{display:'flex',alignItems:'center'}}>
-                <div className="lead-num">{i+1}</div>
-                <div className="lead-name">{l.name}</div>
+        {display.map((l,i)=>{
+          const isOpen=expandedId===(l.id||i);
+          const hasMemo=l.memo||l.memoImgs?.length>0;
+          return(
+          <div key={l.id||i} className="lead-card" style={{padding:0,overflow:'hidden'}}>
+            {/* 헤더 — 항상 표시 */}
+            <div style={{padding:'12px 14px',cursor:'pointer',display:'flex',alignItems:'center',gap:8}} onClick={()=>setExpandedId(isOpen?null:(l.id||i))}>
+              <div className="lead-num">{i+1}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:'flex',alignItems:'center',gap:6}}>
+                  <span className="lead-name" style={{margin:0}}>{l.name}</span>
+                  {l.phone&&<span style={{fontSize:11,color:'var(--text-sm)',fontWeight:600}}>{l.phone}</span>}
+                </div>
+                <div style={{fontSize:11,color:'var(--text-sm)',fontWeight:600,marginTop:1}}>
+                  {l.staff} · {l.day}{l.building?` · ${l.building}`:''}
+                </div>
               </div>
-              <span className="lead-staff-tag">{l.staff} · {l.day}</span>
+              <div style={{display:'flex',alignItems:'center',gap:4,flexShrink:0}}>
+                {hasMemo&&<span style={{fontSize:10,background:'#FEF3C7',color:'#92400E',padding:'2px 6px',borderRadius:8,fontWeight:700}}>메모</span>}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-sm)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{transform:isOpen?'rotate(180deg)':'rotate(0deg)',transition:'transform .2s'}}><path d="M6 9l6 6 6-6"/></svg>
+              </div>
             </div>
-            <div className="lead-pills">
-              {l.phone&&<span className="lpill">📞 {l.phone}</span>}
-              {l.email&&<span className="lpill">📧 {l.email}</span>}
-              {l.building&&<span className="lpill blue">{l.building}</span>}
-              {l.contactMethod?.length>0&&<span className="lpill">💬 {l.contactMethod.join('·')}</span>}
-            </div>
-            {l.problems?.length>0&&<div className="lead-prob">🔧 {l.problems.join(' · ')}</div>}
-            {l.actions?.length>0&&<div className="lead-atags">{l.actions.map(a=><span key={a} className="latag">{a}</span>)}</div>}
-            {(l.memo||l.memoImg)&&<div className="lead-memo">{l.memo&&`"${l.memo}"`}{l.memoImg&&<img src={l.memoImg} alt="펜슬 메모" style={{width:'100%',borderRadius:6,marginTop:l.memo?4:0,display:'block'}}/>}</div>}
-            <div className="lead-cta">
-              {l.phone&&<a href={`tel:${l.phone}`} className="lcta">📞 전화</a>}
-              {l.phone&&<button className="lcta" onClick={()=>setSmsTarget({phone:l.phone,name:l.name,building:l.building,problem:l.problem,staff:l.staff})}>💬 솔라피</button>}
-              {l.phone&&<a href={`sms:${l.phone}`} className="lcta">💬 기본</a>}
-              {l.email&&<a href={`mailto:${l.email}`} className="lcta mail">📧 메일</a>}
-            </div>
+            {/* 펼쳐진 상세 */}
+            {isOpen&&(
+              <div style={{borderTop:'1px solid var(--border)',padding:'10px 14px',display:'flex',flexDirection:'column',gap:8}}>
+                <div className="lead-pills" style={{margin:0}}>
+                  {l.phone&&<span className="lpill">📞 {l.phone}</span>}
+                  {l.email&&<span className="lpill">📧 {l.email}</span>}
+                  {l.building&&<span className="lpill blue">{l.building}</span>}
+                  {l.contactMethod?.length>0&&<span className="lpill">💬 {l.contactMethod.join('·')}</span>}
+                </div>
+                {l.problems?.length>0&&<div className="lead-prob" style={{margin:0}}>🔧 {l.problems.join(' · ')}</div>}
+                {l.actions?.length>0&&<div className="lead-atags" style={{margin:0}}>{l.actions.map(a=><span key={a} className="latag">{a}</span>)}</div>}
+                {hasMemo&&(
+                  <div className="lead-memo" style={{padding:'8px 10px',background:'#FFFBEB',borderRadius:8,border:'1px solid #FDE68A',fontStyle:'normal'}}>
+                    {l.memo&&<div style={{fontSize:12,lineHeight:1.5,marginBottom:l.memoImgs?.length>0?6:0}}>"{l.memo}"</div>}
+                    {l.memoImgs?.map((img,pi)=>(
+                      <div key={pi} style={{marginBottom:pi<l.memoImgs.length-1?6:0}}>
+                        {l.memoImgs.length>1&&<div style={{fontSize:9,fontWeight:700,color:'#B45309',marginBottom:2}}>{pi+1}페이지</div>}
+                        <img src={img} alt={`펜슬 메모 ${pi+1}p`} style={{width:'100%',borderRadius:6,display:'block'}}/>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="lead-cta" style={{margin:0}}>
+                  {l.phone&&<a href={`tel:${l.phone}`} className="lcta">📞 전화</a>}
+                  {l.phone&&<button className="lcta" onClick={()=>setSmsTarget({phone:l.phone,name:l.name,building:l.building,problem:l.problem,staff:l.staff})}>💬 솔라피</button>}
+                  {l.phone&&<a href={`sms:${l.phone}`} className="lcta">💬 기본</a>}
+                  {l.email&&<a href={`mailto:${l.email}`} className="lcta mail">📧 메일</a>}
+                </div>
+              </div>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
       <div className="bottom-bar">
         <button className="btn btn-outline btn-lg" onClick={onBack}>홈으로</button>
@@ -2227,7 +2278,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
   const [saving,setSaving]=useState(false);
   const [done,setDone]=useState(false);
   const [pencilMode,setPencilMode]=useState(true);
-  const [memoImg,setMemoImg]=useState(null);
+  const [memoImgs,setMemoImgs]=useState([]);
   const memoRef=useRef(null);
   const bizCardOpenRef=useRef(null);
   useEffect(()=>{if(!pencilMode&&memoRef.current){memoRef.current.focus();}},[pencilMode]);
@@ -2255,7 +2306,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
       problems:problem?[problem.label]:[],
       interests,deliveryDocs,deliveryMedia,
       businessCard:bizCard,
-      memo,memoImg:memoImg||null,status:'신규',
+      memo,memoImgs,status:'신규',
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
     // 자동 SMS 발송 (fire-and-forget)
@@ -2452,7 +2503,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
               <div style={{marginBottom:10}}>
                 <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>상담 메모</div>
                 {pencilMode
-                  ?<DrawCanvas onDataUrl={setMemoImg}/>
+                  ?<DrawCanvas onDataUrl={setMemoImgs}/>
                   :<textarea
                     ref={memoRef}
                     className="note-memo"
@@ -2834,11 +2885,16 @@ function AdminScreen({onBack}){
                           </div>
                         </div>
                       )}
-                      {(l.memo||l.memoImg)&&(
+                      {(l.memo||l.memoImgs?.length>0)&&(
                         <div style={{background:'#FFFBEB',border:'1px solid #FDE68A',borderRadius:8,padding:'8px 10px'}}>
                           <div style={{fontSize:10,fontWeight:700,color:'#92400E',marginBottom:4}}>메모</div>
-                          {l.memo&&<div style={{fontSize:12,color:'#78350F',lineHeight:1.5,marginBottom:l.memoImg?6:0}}>{l.memo}</div>}
-                          {l.memoImg&&<img src={l.memoImg} alt="펜슬 메모" style={{width:'100%',borderRadius:6,display:'block'}}/>}
+                          {l.memo&&<div style={{fontSize:12,color:'#78350F',lineHeight:1.5,marginBottom:l.memoImgs?.length>0?6:0}}>{l.memo}</div>}
+                          {l.memoImgs?.map((img,pi)=>(
+                            <div key={pi} style={{marginBottom:pi<l.memoImgs.length-1?6:0}}>
+                              {l.memoImgs.length>1&&<div style={{fontSize:9,fontWeight:700,color:'#B45309',marginBottom:2}}>{pi+1}페이지</div>}
+                              <img src={img} alt={`펜슬 메모 ${pi+1}p`} style={{width:'100%',borderRadius:6,display:'block'}}/>
+                            </div>
+                          ))}
                         </div>
                       )}
 

@@ -1887,6 +1887,9 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                   </div>
                 </div>
 
+                {/* 명함 촬영 (헤더 버튼용 - 숨김) */}
+                <div style={{position:'absolute',left:'-9999px'}}><BusinessCardCapture onCapture={(side,img)=>setNtBizCard(p=>({...p,[side]:img}))} openRef={ntBizCardOpenRef}/></div>
+
                 {/* ── 본문 ── */}
                 <div style={{display:'flex',flex:1,overflow:'hidden'}}>
                 <div className="note-sheet-scroll" style={{flex:1,minWidth:0}}>
@@ -2329,6 +2332,9 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
                 </div>
               </div>
             </div>
+
+            {/* 명함 촬영 (헤더 버튼용 - 숨김) */}
+            <div style={{position:'absolute',left:'-9999px'}}><BusinessCardCapture onCapture={(side,img)=>setBizCard(p=>({...p,[side]:img}))} openRef={bizCardOpenRef}/></div>
 
             {/* ── 본문 ── */}
             <div style={{display:'flex',flex:1,overflow:'hidden'}}>

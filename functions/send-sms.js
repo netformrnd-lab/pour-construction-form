@@ -44,10 +44,6 @@ export async function onRequestOptions() {
 export async function onRequestPost(context) {
   const { env } = context;
 
-  if (!env.SOLAPI_API_KEY || !env.SOLAPI_API_SECRET || !env.SOLAPI_SENDER) {
-    return jsonResponse({ error: 'Server config missing' }, 500);
-  }
-
   let body;
   try {
     body = await context.request.json();
@@ -55,15 +51,25 @@ export async function onRequestPost(context) {
     return jsonResponse({ error: 'Invalid JSON' }, 400);
   }
 
-  const { to, text } = body;
+  const { to, text, apiKey, apiSecret, sender } = body;
+
+  // 요청 본문의 credentials 우선, 없으면 환경변수 fallback
+  const finalApiKey = apiKey || env.SOLAPI_API_KEY;
+  const finalApiSecret = apiSecret || env.SOLAPI_API_SECRET;
+  const finalSender = sender || env.SOLAPI_SENDER;
+
+  if (!finalApiKey || !finalApiSecret || !finalSender) {
+    return jsonResponse({ error: 'API Key, Secret, 발신번호가 필요합니다' }, 400);
+  }
+
   if (!to || !text) {
     return jsonResponse({ error: 'to, text 필수' }, 400);
   }
 
   const date = new Date().toISOString();
   const salt = crypto.randomUUID();
-  const signature = await generateSignature(env.SOLAPI_API_SECRET, date, salt);
-  const authorization = `HMAC-SHA256 apiKey=${env.SOLAPI_API_KEY}, date=${date}, salt=${salt}, signature=${signature}`;
+  const signature = await generateSignature(finalApiSecret, date, salt);
+  const authorization = `HMAC-SHA256 apiKey=${finalApiKey}, date=${date}, salt=${salt}, signature=${signature}`;
 
   try {
     const res = await fetch(SOLAPI_URL, {
@@ -75,7 +81,7 @@ export async function onRequestPost(context) {
       body: JSON.stringify({
         message: {
           to: to.replace(/[^0-9]/g, ''),
-          from: env.SOLAPI_SENDER.replace(/[^0-9]/g, ''),
+          from: finalSender.replace(/[^0-9]/g, ''),
           text,
         },
       }),

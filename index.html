@@ -401,6 +401,7 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
 
 .spinner{width:32px;height:32px;border:3px solid var(--blue-l);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(16px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
 
 /* ── SCROLL HINT ── */
 .scroll-fade{position:relative;}
@@ -911,6 +912,118 @@ const saveStaffList=l=>localStorage.setItem('pourStaffList',JSON.stringify(l));
 const getAvatar=n=>n?n.charAt(0).toUpperCase():'?';
 const getColor=id=>STAFF_COLORS[(id||'').length%STAFF_COLORS.length];
 
+/* ── SMS 유틸 ── */
+const DEFAULT_TEMPLATES={
+  customerThank:'{{name}}님, POUR솔루션 상담 감사합니다. 맞춤 자료를 보내드리겠습니다. 문의 1577-6587',
+  staffNotify:'[POUR상담] {{name}} 고객 등록 / 건물: {{building}} / 하자: {{problem}} / 담당: {{staff}}'
+};
+function loadSolapiConfig(){try{return JSON.parse(localStorage.getItem('solapiConfig')||'{}');}catch{return{};}}
+function saveSolapiConfig(c){localStorage.setItem('solapiConfig',JSON.stringify(c));}
+function loadSmsTemplates(){
+  try{const t=JSON.parse(localStorage.getItem('smsTemplates')||'{}');return{customerThank:t.customerThank||DEFAULT_TEMPLATES.customerThank,staffNotify:t.staffNotify||DEFAULT_TEMPLATES.staffNotify};}
+  catch{return{...DEFAULT_TEMPLATES};}
+}
+function saveSmsTemplates(t){localStorage.setItem('smsTemplates',JSON.stringify(t));}
+function fillTemplate(tpl,data){return tpl.replace(/\{\{(\w+)\}\}/g,(_,k)=>data[k]||'');}
+
+async function sendSMS(to,text){
+  const cfg=loadSolapiConfig();
+  if(!cfg.workerUrl)return{success:false,error:'솔라피 Worker URL 미설정'};
+  try{
+    const res=await fetch(cfg.workerUrl.replace(/\/$/,'')+'/send-sms',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({to:to.replace(/[^0-9]/g,''),text})
+    });
+    const json=await res.json();
+    return res.ok?{success:true,data:json}:{success:false,error:json.error||'발송실패'};
+  }catch(e){return{success:false,error:e.message};}
+}
+
+async function autoSendSMS(data){
+  const tpls=loadSmsTemplates();
+  const cfg=loadSolapiConfig();
+  if(!cfg.workerUrl)return[];
+  const vars={name:data.name||'',building:data.building||'',problem:data.problem||'',staff:data.staff||'',phone:data.phone||''};
+  const results=[];
+  if(data.phone){
+    results.push(sendSMS(data.phone,fillTemplate(tpls.customerThank,vars)).then(r=>({type:'고객',r})));
+  }
+  const staffPhone=loadStaffList().find(s=>s.id===data.staffId)?.phone;
+  if(staffPhone){
+    results.push(sendSMS(staffPhone,fillTemplate(tpls.staffNotify,vars)).then(r=>({type:'담당자',r})));
+  }
+  return Promise.allSettled(results);
+}
+
+/* ── Toast 컴포넌트 ── */
+function SmsToast({message,type,onDone}){
+  useEffect(()=>{const t=setTimeout(onDone,3000);return()=>clearTimeout(t);},[]);
+  return(
+    <div style={{position:'fixed',bottom:80,left:'50%',transform:'translateX(-50%)',zIndex:2000,
+      padding:'12px 22px',borderRadius:12,fontSize:13,fontWeight:700,
+      background:type==='success'?'#059669':'#DC2626',color:'#fff',
+      boxShadow:'0 6px 24px rgba(0,0,0,.25)',whiteSpace:'nowrap',
+      animation:'toastIn .25s ease'}}>
+      {type==='success'?'✅':'❌'} {message}
+    </div>
+  );
+}
+
+/* ── SMS 발송 모달 ── */
+function SmsModal({phone,name,building,problem,staff,onClose,onToast}){
+  const tpls=loadSmsTemplates();
+  const [msgType,setMsgType]=useState('customer');
+  const vars={name:name||'',building:building||'',problem:problem||'',staff:staff||'',phone:phone||''};
+  const [text,setText]=useState(fillTemplate(tpls.customerThank,vars));
+  const [sending,setSending]=useState(false);
+
+  const switchType=(t)=>{
+    setMsgType(t);
+    setText(fillTemplate(t==='customer'?tpls.customerThank:tpls.staffNotify,vars));
+  };
+
+  const doSend=async()=>{
+    if(!phone){onToast('수신번호가 없습니다','error');return;}
+    setSending(true);
+    const r=await sendSMS(phone,text);
+    setSending(false);
+    if(r.success){onToast('문자 발송 완료','success');onClose();}
+    else{onToast('발송 실패: '+(typeof r.error==='string'?r.error:JSON.stringify(r.error)),'error');}
+  };
+
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}} onClick={onClose}>
+      <div style={{background:'#fff',borderRadius:16,padding:'24px 20px',width:'min(380px,90vw)',boxShadow:'0 12px 40px rgba(0,0,0,.2)'}} onClick={e=>e.stopPropagation()}>
+        <div style={{fontSize:16,fontWeight:800,marginBottom:14}}>💬 문자 발송</div>
+        <div style={{fontSize:12,color:'var(--text-md)',marginBottom:10}}>수신: <b>{phone}</b> ({name})</div>
+        <div style={{display:'flex',gap:6,marginBottom:12}}>
+          <button style={{flex:1,padding:'8px 0',borderRadius:8,border:'1.5px solid '+(msgType==='customer'?'var(--blue)':'var(--border)'),
+            background:msgType==='customer'?'var(--blue-l)':'#fff',fontSize:12,fontWeight:700,
+            color:msgType==='customer'?'var(--blue)':'var(--text-md)',cursor:'pointer',fontFamily:'inherit'}}
+            onClick={()=>switchType('customer')}>고객 감사</button>
+          <button style={{flex:1,padding:'8px 0',borderRadius:8,border:'1.5px solid '+(msgType==='staff'?'var(--purple)':'var(--border)'),
+            background:msgType==='staff'?'var(--purple-l)':'#fff',fontSize:12,fontWeight:700,
+            color:msgType==='staff'?'var(--purple)':'var(--text-md)',cursor:'pointer',fontFamily:'inherit'}}
+            onClick={()=>switchType('staff')}>담당자 알림</button>
+        </div>
+        <textarea value={text} onChange={e=>setText(e.target.value)}
+          style={{width:'100%',minHeight:100,padding:'12px 14px',borderRadius:10,border:'1.5px solid var(--border)',fontSize:13,
+            lineHeight:1.7,color:'var(--text)',fontFamily:'inherit',resize:'none',outline:'none',boxSizing:'border-box'}}/>
+        <div style={{fontSize:10,color:'var(--text-sm)',margin:'6px 0 14px'}}>
+          {text.length}자 {text.length>90?'(LMS)':'(SMS)'}
+        </div>
+        <div style={{display:'flex',gap:10}}>
+          <button style={{flex:1,padding:'13px 0',borderRadius:10,border:'1.5px solid var(--border)',background:'var(--bg)',
+            fontSize:14,fontWeight:700,color:'var(--text-md)',cursor:'pointer',fontFamily:'inherit'}} onClick={onClose}>취소</button>
+          <button style={{flex:2,padding:'13px 0',borderRadius:10,border:'none',background:'var(--blue)',
+            fontSize:14,fontWeight:800,color:'#fff',cursor:'pointer',fontFamily:'inherit',opacity:sending?.6:1}}
+            onClick={doSend} disabled={sending}>{sending?'발송 중...':'발송하기'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Scroll Rail (memo 전용 오른쪽 스크롤 드래그 레일) ── */
 function ScrollRail({scrollRef}){
   const trackRef=useRef();
@@ -1058,18 +1171,19 @@ function StaffModal({mode,currentStaffId,staffDay,onSelect,onClose}){
   const [addMode,setAddMode]=useState(false);
   const [editTarget,setEditTarget]=useState(null);
   const [inputName,setInputName]=useState('');
+  const [inputPhone,setInputPhone]=useState('');
 
   const handleSaveStaff=()=>{
     if(!inputName.trim())return;
     if(editTarget){
-      const next=loadStaffList().map(s=>s.id===editTarget.id?{...s,name:inputName.trim()}:s);
+      const next=loadStaffList().map(s=>s.id===editTarget.id?{...s,name:inputName.trim(),phone:(inputPhone||'').replace(/[^0-9]/g,'')}:s);
       saveStaffList(next);setList(next);
     }else{
-      const ns={id:'s'+Date.now(),name:inputName.trim()};
+      const ns={id:'s'+Date.now(),name:inputName.trim(),phone:(inputPhone||'').replace(/[^0-9]/g,'')};
       const next=[...loadStaffList(),ns];
       saveStaffList(next);setList(next);setSelId(ns.id);
     }
-    setAddMode(false);setEditTarget(null);setInputName('');
+    setAddMode(false);setEditTarget(null);setInputName('');setInputPhone('');
   };
   const handleDelete=id=>{
     if(!confirm('삭제하시겠어요?'))return;
@@ -1077,7 +1191,7 @@ function StaffModal({mode,currentStaffId,staffDay,onSelect,onClose}){
     saveStaffList(next);setList(next);
     if(selId===id)setSelId('');
   };
-  const handleEdit=s=>{setEditTarget(s);setInputName(s.name);setAddMode(true);};
+  const handleEdit=s=>{setEditTarget(s);setInputName(s.name);setInputPhone(s.phone||'');setAddMode(true);};
   const handleConfirm=()=>{
     if(!selId){alert('담당자를 선택해주세요');return;}
     const s=list.find(x=>x.id===selId);if(!s)return;
@@ -1103,7 +1217,10 @@ function StaffModal({mode,currentStaffId,staffDay,onSelect,onClose}){
           {list.map(s=>(
             <div key={s.id} className={`staff-row ${selId===s.id?'sel':''}`} onClick={()=>setSelId(s.id)}>
               <div className="sr-avatar" style={{background:getColor(s.id)}}>{getAvatar(s.name)}</div>
-              <span className={`sr-name ${selId===s.id?'sel':''}`}>{s.name}</span>
+              <div style={{flex:1,minWidth:0}}>
+                <span className={`sr-name ${selId===s.id?'sel':''}`}>{s.name}</span>
+                {s.phone&&<div style={{fontSize:10,color:'var(--text-sm)',marginTop:1}}>{s.phone.replace(/(\d{3})(\d{4})(\d{4})/,'$1-$2-$3')}</div>}
+              </div>
               <div className="sr-btns" onClick={e=>e.stopPropagation()}>
                 <button className="sr-btn" onClick={()=>handleEdit(s)}>✏️</button>
                 <button className="sr-btn del" onClick={()=>handleDelete(s.id)}>🗑</button>
@@ -1113,9 +1230,10 @@ function StaffModal({mode,currentStaffId,staffDay,onSelect,onClose}){
         </div>
         {addMode?(
           <div style={{background:'var(--bg)',borderRadius:12,padding:13,marginBottom:14}}>
-            <div style={{fontSize:12,fontWeight:700,color:'var(--text-sm)',marginBottom:8}}>{editTarget?'이름 수정':'새 담당자 추가'}</div>
+            <div style={{fontSize:12,fontWeight:700,color:'var(--text-sm)',marginBottom:8}}>{editTarget?'정보 수정':'새 담당자 추가'}</div>
             <input className="sheet-input" placeholder="담당자 이름" value={inputName} onChange={e=>setInputName(e.target.value)} autoFocus/>
-            <div style={{display:'flex',gap:8}}>
+            <input className="sheet-input" placeholder="전화번호 (문자 알림용, 선택)" value={inputPhone} onChange={e=>setInputPhone(e.target.value)} type="tel" style={{marginTop:6}}/>
+            <div style={{display:'flex',gap:8,marginTop:6}}>
               <button onClick={()=>{setAddMode(false);setEditTarget(null);setInputName('');}} style={{flex:1,padding:'10px',borderRadius:9,border:'1.5px solid var(--border)',background:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit',color:'var(--text-md)'}}>취소</button>
               <button onClick={handleSaveStaff} style={{flex:2,padding:'10px',borderRadius:9,border:'none',background:'var(--navy)',color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>{editTarget?'수정':'추가'}</button>
             </div>
@@ -1161,6 +1279,18 @@ function CSMemoScreen({building,problem,staffId,staffName,staffDay,onBack,onSave
       memo:csMemo,status:'신규',
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
+    // 자동 SMS 발송 (fire-and-forget)
+    const smsCfg=loadSolapiConfig();
+    if(smsCfg.workerUrl){
+      const smsData={name:csName,phone:csPhone,building:building?.label||'-',problem:problem?.label||'-',staff:memoStaffName,staffId:memoStaffId};
+      if(smsCfg.autoCustomer!==false&&csPhone){
+        sendSMS(csPhone,fillTemplate(loadSmsTemplates().customerThank,smsData)).catch(()=>{});
+      }
+      if(smsCfg.autoStaff!==false){
+        const sp=loadStaffList().find(s=>s.id===memoStaffId)?.phone;
+        if(sp)sendSMS(sp,fillTemplate(loadSmsTemplates().staffNotify,smsData)).catch(()=>{});
+      }
+    }
     setSaving(false);
     onSaved(data);
   };
@@ -1396,6 +1526,18 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       memo:ntMemo,status:'신규',
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
+    // 자동 SMS 발송 (fire-and-forget)
+    const smsCfg=loadSolapiConfig();
+    if(smsCfg.workerUrl){
+      const smsData={name:ntName,phone:ntPhone,building:building?.label||'-',problem:problem?.label||'-',staff:staffName,staffId};
+      if(smsCfg.autoCustomer!==false&&ntPhone){
+        sendSMS(ntPhone,fillTemplate(loadSmsTemplates().customerThank,smsData)).catch(()=>{});
+      }
+      if(smsCfg.autoStaff!==false){
+        const sp=loadStaffList().find(s=>s.id===staffId)?.phone;
+        if(sp)sendSMS(sp,fillTemplate(loadSmsTemplates().staffNotify,smsData)).catch(()=>{});
+      }
+    }
     setNtSaving(false);setNtDone(true);
     setTimeout(()=>{
       setShowNote(false);setNtDone(false);
@@ -1777,7 +1919,8 @@ function  LeadsScreen({onBack}){
             {l.memo&&<div className="lead-memo">"{l.memo}"</div>}
             <div className="lead-cta">
               {l.phone&&<a href={`tel:${l.phone}`} className="lcta">📞 전화</a>}
-              {l.phone&&<a href={`sms:${l.phone}`} className="lcta">💬 문자</a>}
+              {l.phone&&<button className="lcta" onClick={()=>setSmsTarget({phone:l.phone,name:l.name,building:l.building,problem:l.problem,staff:l.staff})}>💬 솔라피</button>}
+              {l.phone&&<a href={`sms:${l.phone}`} className="lcta">💬 기본</a>}
               {l.email&&<a href={`mailto:${l.email}`} className="lcta mail">📧 메일</a>}
             </div>
           </div>
@@ -1828,6 +1971,18 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
       memo,status:'신규',
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
+    // 자동 SMS 발송 (fire-and-forget)
+    const smsCfg=loadSolapiConfig();
+    if(smsCfg.workerUrl){
+      const smsData={name,phone,building:building?.label||'-',problem:problem?.label||'-',staff:staffName,staffId};
+      if(smsCfg.autoCustomer!==false&&phone){
+        sendSMS(phone,fillTemplate(loadSmsTemplates().customerThank,smsData)).catch(()=>{});
+      }
+      if(smsCfg.autoStaff!==false){
+        const sp=loadStaffList().find(s=>s.id===staffId)?.phone;
+        if(sp)sendSMS(sp,fillTemplate(loadSmsTemplates().staffNotify,smsData)).catch(()=>{});
+      }
+    }
     setSaving(false);setDone(true);
     setTimeout(()=>onClose(),1400);
   };
@@ -2066,7 +2221,7 @@ function PhotoSlot({src,label,onSet,onRemove,wide,aspect}){
 function AdminScreen({onBack}){
   const [leads,setLeads]=useState([]);
   const [loading,setLoading]=useState(true);
-  const [tab,setTab]=useState('stat'); // 'stat' | 'list' | 'photos'
+  const [tab,setTab]=useState('stat'); // 'stat' | 'list' | 'photos' | 'sms'
   const [casePhotos,setCasePhotos]=useState(()=>loadCasePhotos());
   const [probPhotos,setProbPhotos]=useState(()=>loadProblemPhotos());
   const [search,setSearch]=useState('');
@@ -2075,6 +2230,8 @@ function AdminScreen({onBack}){
   const [filterBuilding,setFilterBuilding]=useState('전체');
   const [filterStatus,setFilterStatus]=useState('전체');
   const [expanded,setExpanded]=useState(null);
+  const [smsTarget,setSmsTarget]=useState(null);
+  const [toast,setToast]=useState(null);
 
   const DAYS=['4/16(목)','4/17(금)','4/18(토)'];
   const STATUS_OPTIONS=['신규','연락완료','계약예정','보류','기타'];
@@ -2166,7 +2323,7 @@ function AdminScreen({onBack}){
 
       {/* 탭 */}
       <div style={{display:'flex',background:'var(--navy)',borderBottom:'1px solid rgba(255,255,255,.1)',flexShrink:0}}>
-        {[['stat','📊 통계'],['list','📋 리드 관리'],['photos','📸 사진 관리']].map(([k,label])=>(
+        {[['stat','📊 통계'],['list','📋 리드 관리'],['photos','📸 사진'],['sms','💬 문자']].map(([k,label])=>(
           <button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:'12px 0',background:'none',border:'none',color:tab===k?'#fff':'rgba(255,255,255,.4)',fontSize:13,fontWeight:tab===k?800:600,cursor:'pointer',borderBottom:tab===k?'2px solid #60A5FA':'2px solid transparent',transition:'all .15s'}}>
             {label}
           </button>
@@ -2317,7 +2474,7 @@ function AdminScreen({onBack}){
                       {/* 연락처 */}
                       <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
                         {l.phone&&<a href={`tel:${l.phone}`} style={{flex:1,minWidth:80,textAlign:'center',padding:'8px',background:'var(--accent-l)',border:'1px solid #BFDBFE',borderRadius:8,color:'var(--accent)',fontSize:12,fontWeight:700,textDecoration:'none'}}>📞 전화</a>}
-                        {l.phone&&<a href={`sms:${l.phone}`} style={{flex:1,minWidth:80,textAlign:'center',padding:'8px',background:'var(--accent-l)',border:'1px solid #BFDBFE',borderRadius:8,color:'var(--accent)',fontSize:12,fontWeight:700,textDecoration:'none'}}>💬 문자</a>}
+                        {l.phone&&<button onClick={()=>setSmsTarget({phone:l.phone,name:l.name,building:l.building,problem:l.problem,staff:l.staff})} style={{flex:1,minWidth:80,textAlign:'center',padding:'8px',background:'var(--purple-l)',border:'1px solid var(--purple-m)',borderRadius:8,color:'var(--purple)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>💬 솔라피</button>}
                         {l.email&&<a href={`mailto:${l.email}`} style={{flex:1,minWidth:80,textAlign:'center',padding:'8px',background:'#F0FDF4',border:'1px solid #BBF7D0',borderRadius:8,color:'#059669',fontSize:12,fontWeight:700,textDecoration:'none'}}>📧 메일</a>}
                       </div>
 
@@ -2445,6 +2602,146 @@ function AdminScreen({onBack}){
           </div>
         </div>
       )}
+
+      {/* ── 문자 설정 탭 ── */}
+      {!loading&&tab==='sms'&&(
+        <SmsSettingsTab/>
+      )}
+
+      {/* SMS 모달 & 토스트 */}
+      {smsTarget&&<SmsModal phone={smsTarget.phone} name={smsTarget.name} building={smsTarget.building} problem={smsTarget.problem} staff={smsTarget.staff}
+        onClose={()=>setSmsTarget(null)} onToast={(msg,type)=>setToast({msg,type})}/>}
+      {toast&&<SmsToast message={toast.msg} type={toast.type} onDone={()=>setToast(null)}/>}
+    </div>
+  );
+}
+
+/* ── SMS 설정 탭 컴포넌트 ── */
+function SmsSettingsTab(){
+  const [cfg,setCfg]=useState(loadSolapiConfig);
+  const [tpls,setTpls]=useState(loadSmsTemplates);
+  const [saved,setSaved]=useState('');
+  const [testPhone,setTestPhone]=useState('');
+  const [testing,setTesting]=useState(false);
+
+  const saveCfg=(next)=>{setCfg(next);saveSolapiConfig(next);setSaved('설정 저장됨');setTimeout(()=>setSaved(''),2000);};
+  const saveTpl=(next)=>{setTpls(next);saveSmsTemplates(next);setSaved('템플릿 저장됨');setTimeout(()=>setSaved(''),2000);};
+
+  const testSend=async()=>{
+    if(!testPhone.trim()){alert('테스트 번호를 입력하세요');return;}
+    setTesting(true);
+    const r=await sendSMS(testPhone,'[POUR솔루션] 테스트 문자입니다. 정상 수신되면 설정 완료!');
+    setTesting(false);
+    if(r.success)setSaved('테스트 발송 성공!');
+    else alert('발송 실패: '+(typeof r.error==='string'?r.error:JSON.stringify(r.error)));
+  };
+
+  const previewVars={name:'홍길동',building:'아파트',problem:'옥상 누수',staff:'김영업',phone:'01012345678'};
+
+  return(
+    <div style={{flex:1,overflowY:'auto',padding:'16px'}}>
+      {saved&&<div style={{position:'fixed',top:80,left:'50%',transform:'translateX(-50%)',zIndex:2000,
+        padding:'8px 18px',borderRadius:10,fontSize:12,fontWeight:700,background:'#059669',color:'#fff',boxShadow:'0 4px 16px rgba(0,0,0,.15)'}}>{saved}</div>}
+
+      {/* 솔라피 연결 설정 */}
+      <div style={{background:'var(--card)',borderRadius:12,padding:'16px',border:'1px solid var(--border)',marginBottom:14}}>
+        <div style={{fontSize:14,fontWeight:900,color:'var(--text)',marginBottom:4}}>⚙️ 솔라피 연결</div>
+        <div style={{fontSize:11,color:'var(--text-sm)',marginBottom:12,lineHeight:1.6}}>
+          Cloudflare Worker 배포 후 URL을 입력하세요.<br/>
+          API Key/Secret는 Worker에 안전하게 보관됩니다.
+        </div>
+        <div style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:5}}>Worker URL</div>
+        <input value={cfg.workerUrl||''} onChange={e=>saveCfg({...cfg,workerUrl:e.target.value})}
+          placeholder="https://solapi-proxy.xxx.workers.dev"
+          style={{width:'100%',padding:'11px 13px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:13,color:'var(--text)',background:'var(--bg)',outline:'none',fontFamily:'inherit',boxSizing:'border-box',marginBottom:10}}/>
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+          <input value={testPhone} onChange={e=>setTestPhone(e.target.value)} placeholder="테스트 번호 (01012345678)"
+            style={{flex:1,padding:'10px 12px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:12,color:'var(--text)',background:'var(--bg)',outline:'none',fontFamily:'inherit',boxSizing:'border-box'}} type="tel"/>
+          <button onClick={testSend} disabled={testing||!cfg.workerUrl}
+            style={{padding:'10px 16px',borderRadius:9,border:'none',background:cfg.workerUrl?'var(--blue)':'var(--border)',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',opacity:testing?.6:1,whiteSpace:'nowrap'}}>
+            {testing?'발송중...':'테스트 발송'}
+          </button>
+        </div>
+        <div style={{marginTop:8,padding:'8px 10px',background:'var(--bg)',borderRadius:8,fontSize:10,color:'var(--text-sm)',lineHeight:1.6}}>
+          상태: {cfg.workerUrl?'✅ Worker URL 설정됨':'❌ 미설정 — 문자 발송 불가'}
+        </div>
+      </div>
+
+      {/* 자동 발송 설정 */}
+      <div style={{background:'var(--card)',borderRadius:12,padding:'16px',border:'1px solid var(--border)',marginBottom:14}}>
+        <div style={{fontSize:14,fontWeight:900,color:'var(--text)',marginBottom:4}}>🔔 자동 발송 설정</div>
+        <div style={{fontSize:11,color:'var(--text-sm)',marginBottom:12,lineHeight:1.6}}>
+          상담 저장 시 자동으로 문자를 보낼지 설정합니다.
+        </div>
+        <label style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:'var(--bg)',borderRadius:9,marginBottom:8,cursor:'pointer'}}>
+          <input type="checkbox" checked={cfg.autoCustomer!==false} onChange={e=>saveCfg({...cfg,autoCustomer:e.target.checked})}
+            style={{width:18,height:18,accentColor:'var(--blue)'}}/>
+          <div><div style={{fontSize:13,fontWeight:700}}>고객 감사 문자</div><div style={{fontSize:11,color:'var(--text-sm)'}}>저장 시 고객에게 자동 발송</div></div>
+        </label>
+        <label style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:'var(--bg)',borderRadius:9,cursor:'pointer'}}>
+          <input type="checkbox" checked={cfg.autoStaff!==false} onChange={e=>saveCfg({...cfg,autoStaff:e.target.checked})}
+            style={{width:18,height:18,accentColor:'var(--purple)'}}/>
+          <div><div style={{fontSize:13,fontWeight:700}}>담당자 알림 문자</div><div style={{fontSize:11,color:'var(--text-sm)'}}>저장 시 담당 영업사원에게 알림</div></div>
+        </label>
+      </div>
+
+      {/* 고객 감사 템플릿 */}
+      <div style={{background:'var(--card)',borderRadius:12,padding:'16px',border:'1px solid var(--border)',marginBottom:14}}>
+        <div style={{fontSize:14,fontWeight:900,color:'var(--text)',marginBottom:4}}>📨 고객 감사 문자 템플릿</div>
+        <div style={{fontSize:10,color:'var(--text-sm)',marginBottom:8,lineHeight:1.5}}>
+          변수: <code style={{background:'var(--bg)',padding:'1px 5px',borderRadius:4}}>{'{{name}}'}</code>{' '}
+          <code style={{background:'var(--bg)',padding:'1px 5px',borderRadius:4}}>{'{{building}}'}</code>{' '}
+          <code style={{background:'var(--bg)',padding:'1px 5px',borderRadius:4}}>{'{{problem}}'}</code>{' '}
+          <code style={{background:'var(--bg)',padding:'1px 5px',borderRadius:4}}>{'{{staff}}'}</code>
+        </div>
+        <textarea value={tpls.customerThank} onChange={e=>saveTpl({...tpls,customerThank:e.target.value})}
+          style={{width:'100%',minHeight:80,padding:'12px 14px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:13,
+            lineHeight:1.7,color:'var(--text)',fontFamily:'inherit',resize:'none',outline:'none',boxSizing:'border-box',marginBottom:6}}/>
+        <div style={{fontSize:11,color:'var(--text-sm)',marginBottom:6}}>{tpls.customerThank.length}자 {tpls.customerThank.length>90?'(LMS)':'(SMS)'}</div>
+        <div style={{padding:'10px 12px',background:'var(--blue-l)',borderRadius:8,fontSize:11,color:'var(--blue)',lineHeight:1.6,fontWeight:600}}>
+          미리보기: {fillTemplate(tpls.customerThank,previewVars)}
+        </div>
+        <button onClick={()=>saveTpl({...tpls,customerThank:DEFAULT_TEMPLATES.customerThank})}
+          style={{marginTop:8,padding:'7px 14px',borderRadius:7,border:'1px solid var(--border)',background:'var(--bg)',fontSize:11,fontWeight:600,color:'var(--text-sm)',cursor:'pointer',fontFamily:'inherit'}}>
+          기본값으로 리셋
+        </button>
+      </div>
+
+      {/* 담당자 알림 템플릿 */}
+      <div style={{background:'var(--card)',borderRadius:12,padding:'16px',border:'1px solid var(--border)',marginBottom:14}}>
+        <div style={{fontSize:14,fontWeight:900,color:'var(--text)',marginBottom:4}}>📢 담당자 알림 문자 템플릿</div>
+        <div style={{fontSize:10,color:'var(--text-sm)',marginBottom:8,lineHeight:1.5}}>
+          변수: <code style={{background:'var(--bg)',padding:'1px 5px',borderRadius:4}}>{'{{name}}'}</code>{' '}
+          <code style={{background:'var(--bg)',padding:'1px 5px',borderRadius:4}}>{'{{building}}'}</code>{' '}
+          <code style={{background:'var(--bg)',padding:'1px 5px',borderRadius:4}}>{'{{problem}}'}</code>{' '}
+          <code style={{background:'var(--bg)',padding:'1px 5px',borderRadius:4}}>{'{{staff}}'}</code>
+        </div>
+        <textarea value={tpls.staffNotify} onChange={e=>saveTpl({...tpls,staffNotify:e.target.value})}
+          style={{width:'100%',minHeight:80,padding:'12px 14px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:13,
+            lineHeight:1.7,color:'var(--text)',fontFamily:'inherit',resize:'none',outline:'none',boxSizing:'border-box',marginBottom:6}}/>
+        <div style={{fontSize:11,color:'var(--text-sm)',marginBottom:6}}>{tpls.staffNotify.length}자 {tpls.staffNotify.length>90?'(LMS)':'(SMS)'}</div>
+        <div style={{padding:'10px 12px',background:'var(--purple-l)',borderRadius:8,fontSize:11,color:'var(--purple)',lineHeight:1.6,fontWeight:600}}>
+          미리보기: {fillTemplate(tpls.staffNotify,previewVars)}
+        </div>
+        <button onClick={()=>saveTpl({...tpls,staffNotify:DEFAULT_TEMPLATES.staffNotify})}
+          style={{marginTop:8,padding:'7px 14px',borderRadius:7,border:'1px solid var(--border)',background:'var(--bg)',fontSize:11,fontWeight:600,color:'var(--text-sm)',cursor:'pointer',fontFamily:'inherit'}}>
+          기본값으로 리셋
+        </button>
+      </div>
+
+      {/* 배포 가이드 */}
+      <div style={{background:'var(--navy)',borderRadius:12,padding:'16px',marginBottom:14}}>
+        <div style={{fontSize:13,fontWeight:800,color:'#fff',marginBottom:8}}>🚀 Cloudflare Worker 배포 가이드</div>
+        <div style={{fontSize:11,color:'rgba(255,255,255,.7)',lineHeight:2}}>
+          1. <span style={{color:'var(--gold)'}}>npx wrangler init solapi-proxy</span><br/>
+          2. worker.js 내용을 src/index.js에 복사<br/>
+          3. <span style={{color:'var(--gold)'}}>npx wrangler secret put SOLAPI_API_KEY</span><br/>
+          4. <span style={{color:'var(--gold)'}}>npx wrangler secret put SOLAPI_API_SECRET</span><br/>
+          5. <span style={{color:'var(--gold)'}}>npx wrangler secret put SOLAPI_SENDER</span><br/>
+          6. <span style={{color:'var(--gold)'}}>npx wrangler deploy</span><br/>
+          7. 배포 URL을 위 Worker URL에 입력
+        </div>
+      </div>
     </div>
   );
 }

@@ -618,6 +618,7 @@ function DrawCanvas({onDataUrl}){
   };
   const clearAll=()=>{
     if(strokes.current.length===0)return;
+    if(!window.confirm('그린 내용을 모두 지우시겠어요?'))return;
     pushUndo();strokes.current=[];currentStroke.current=null;
     redraw();forceRender(n=>n+1);
   };
@@ -956,6 +957,14 @@ const DEFAULT_POSITIONS=['대표','부장','차장','과장','대리','팀장','
 const getPositions=(buildingId)=>POSITIONS_BY_BUILDING[buildingId]||DEFAULT_POSITIONS;
 
 /* ── helpers ── */
+const BUILDING_LABEL_TO_ID=Object.fromEntries(BUILDING_TYPES.map(b=>[b.label,b.id]));
+
+/* ── Admin PIN ── */
+const ADMIN_PIN_KEY='pourAdminPin';
+const hashPin=async(pin)=>{const enc=new TextEncoder().encode(pin);const buf=await crypto.subtle.digest('SHA-256',enc);return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');};
+const loadAdminPin=()=>localStorage.getItem(ADMIN_PIN_KEY);
+const saveAdminPin=hash=>localStorage.setItem(ADMIN_PIN_KEY,hash);
+
 const loadStaffList=()=>{try{return JSON.parse(localStorage.getItem('pourStaffList')||'[]');}catch{return[];}};
 const saveStaffList=l=>localStorage.setItem('pourStaffList',JSON.stringify(l));
 const getAvatar=n=>n?n.charAt(0).toUpperCase():'?';
@@ -1555,11 +1564,15 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   useEffect(()=>{if(!ntPencilMode&&ntMemoRef.current){ntMemoRef.current.focus();}},[ntPencilMode]);
   const [ntOpenSec,setNtOpenSec]=useState(new Set([]));
   const [ntBizCard,setNtBizCard]=useState({front:null,back:null});
+  const ntBizCardOpenRef=useRef(null);
   const [ntQuickSms,setNtQuickSms]=useState(false);
   const [ntSmsText,setNtSmsText]=useState('');
   const [ntSmsSending,setNtSmsSending]=useState(false);
 
   const ntToggleSec=sec=>setNtOpenSec(p=>{const n=new Set(p);n.has(sec)?n.delete(sec):n.add(sec);return n;});
+  const ntHasData=()=>!!(ntName||ntCompany||ntPhone||ntEmail||ntMemo||ntInterests.length||ntContact.length||ntBizCard?.front);
+  const ntSafeClose=()=>{if(ntHasData()&&!window.confirm('입력한 내용이 저장되지 않았습니다. 닫으시겠어요?'))return;setShowNote(false);};
+  const [effectiveBuildingId,setEffectiveBuildingId]=useState(building?.id||null);
 
   const sol=problem?SOLUTIONS[problem.id]:null;
   const [casePhotos]=useState(()=>loadCasePhotos());
@@ -1799,9 +1812,10 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                         <span style={{fontSize:11,color:'var(--text-sm)'}}>· {staffDay}</span>
                       </div>
                     </div>
-                    <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <div style={{display:'flex',alignItems:'center',gap:6}}>
+                      <button onClick={()=>ntBizCardOpenRef.current?.()} style={{padding:'5px 10px',borderRadius:8,border:'1.5px solid var(--border)',background:'var(--bg)',fontSize:12,fontWeight:700,color:'var(--text)',cursor:'pointer',display:'flex',alignItems:'center',gap:3}}>📇 명함</button>
                       <button className="note-head-save" onPointerDown={e=>{if(e.pointerType==='touch'&&isPenActive()){e.preventDefault();e.stopPropagation();}}} onClick={e=>{if(isPenActive())return;saveNote();}} disabled={ntSaving}>{ntSaving?'저장 중...':'저장하기'}</button>
-                      <button onClick={()=>setShowNote(false)} style={{width:32,height:32,borderRadius:'50%',border:'none',background:'var(--bg)',color:'var(--text-md)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                      <button onClick={ntSafeClose} style={{width:32,height:32,borderRadius:'50%',border:'none',background:'var(--bg)',color:'var(--text-md)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
                     </div>
                   </div>
                   <div className="note-ctx" style={{marginTop:8,marginBottom:0}}>
@@ -1826,7 +1840,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                       <div style={{position:'relative'}}>
                         <button className="note-input" style={{fontSize:13,textAlign:'left',cursor:'pointer',color:ntPosition?'var(--text)':'var(--text-sm)'}} onClick={()=>setNtShowPosition(!ntShowPosition)}>{ntPosition||'직급'}<span style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',fontSize:10,color:'var(--text-sm)'}}>▼</span></button>
                         {ntShowPosition&&<div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1.5px solid var(--border)',borderRadius:9,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:10,overflow:'hidden',marginTop:2}}>
-                          {getPositions(building?.id).map(p=>(
+                          {getPositions(effectiveBuildingId).map(p=>(
                             <button key={p} onClick={()=>{setNtPosition(p);setNtShowPosition(false);}} style={{width:'100%',padding:'10px 14px',border:'none',background:ntPosition===p?'var(--blue-l)':'#fff',color:ntPosition===p?'var(--blue)':'var(--text)',fontSize:13,fontWeight:ntPosition===p?700:500,cursor:'pointer',fontFamily:'inherit',textAlign:'left',borderBottom:'1px solid var(--border-s)'}}>{p}</button>
                           ))}
                         </div>}
@@ -1837,7 +1851,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
                   {/* 명함 촬영 */}
                   <div style={{marginBottom:8,position:'relative'}}>
-                    <BusinessCardCapture onCapture={(side,img)=>setNtBizCard(p=>({...p,[side]:img}))}/>
+                    <BusinessCardCapture onCapture={(side,img)=>setNtBizCard(p=>({...p,[side]:img}))} openRef={ntBizCardOpenRef}/>
                   </div>
 
                   {/* 아코디언 옵션들 (관심 공사 종류 / 연락 방법 / 후속 조치) */}
@@ -1858,7 +1872,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                               <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:5,textTransform:'uppercase',letterSpacing:'.05em'}}>{cat}</div>
                               <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
                                 {items.map(item=>(
-                                  <button key={item} onClick={()=>toggleNt(ntInterests,setNtInterests,item)}
+                                  <button key={item} onClick={()=>{toggleNt(ntInterests,setNtInterests,item);if(!ntInterests.includes(item)){const bid=BUILDING_LABEL_TO_ID[item];if(bid){setEffectiveBuildingId(bid);setNtPosition('');}}}}
                                     style={{padding:'6px 10px',borderRadius:20,border:`1.5px solid ${ntInterests.includes(item)?'var(--navy)':'var(--border)'}`,background:ntInterests.includes(item)?'var(--navy)':'#fff',color:ntInterests.includes(item)?'#fff':'var(--text)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',transition:'all .12s'}}>
                                     {item}
                                   </button>
@@ -2041,7 +2055,7 @@ function  LeadsScreen({onBack}){
 }
 
 /* ── 명함 촬영 컴포넌트 ── */
-function BusinessCardCapture({onCapture}){
+function BusinessCardCapture({onCapture,openRef}){
   const [frontImg,setFrontImg]=useState(null);
   const [backImg,setBackImg]=useState(null);
   const [camOpen,setCamOpen]=useState(false);
@@ -2058,6 +2072,7 @@ function BusinessCardCapture({onCapture}){
         .catch(e=>{alert('카메라 접근 권한이 필요합니다');setCamOpen(false);});
     },100);
   };
+  useEffect(()=>{if(openRef)openRef.current=()=>openCam('front');},[]);
   const closeCam=()=>{
     if(streamRef.current)streamRef.current.getTracks().forEach(t=>t.stop());
     streamRef.current=null;setCamOpen(false);
@@ -2144,14 +2159,18 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
   const [done,setDone]=useState(false);
   const [pencilMode,setPencilMode]=useState(true);
   const memoRef=useRef(null);
+  const bizCardOpenRef=useRef(null);
   useEffect(()=>{if(!pencilMode&&memoRef.current){memoRef.current.focus();}},[pencilMode]);
   const [openSec,setOpenSec]=useState(new Set([]));
   const [bizCard,setBizCard]=useState({front:null,back:null});
+  const [effectiveBuildingId,setEffectiveBuildingId]=useState(building?.id||null);
   const [quickSms,setQuickSms]=useState(false);
   const [smsText,setSmsText]=useState('');
   const [smsSending,setSmsSending]=useState(false);
   const toggle=(arr,set,v)=>set(p=>p.includes(v)?p.filter(x=>x!==v):[...p,v]);
   const toggleSec=sec=>setOpenSec(p=>{const n=new Set(p);n.has(sec)?n.delete(sec):n.add(sec);return n;});
+  const hasData=()=>!!(name||company||phone||memo||interests.length||contact.length||bizCard?.front);
+  const safeClose=()=>{if(hasData()&&!window.confirm('입력한 내용이 저장되지 않았습니다. 닫으시겠어요?'))return;onClose();};
 
   const save=async()=>{
     if(!name.trim()||!phone.trim()){alert('성함과 전화번호를 입력해주세요');return;}
@@ -2183,7 +2202,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
   };
 
   return(
-    <div className="sheet-bg" onClick={onClose}>
+    <div className="sheet-bg" onClick={safeClose}>
       <div className="note-sheet" onClick={e=>e.stopPropagation()}>
         {done?(
           <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'40px 20px'}}>
@@ -2235,9 +2254,10 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
                     <span style={{fontSize:11,color:'var(--text-sm)'}}>· {staffDay}</span>
                   </div>
                 </div>
-                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <div style={{display:'flex',alignItems:'center',gap:6}}>
+                  <button onClick={()=>bizCardOpenRef.current?.()} style={{padding:'5px 10px',borderRadius:8,border:'1.5px solid var(--border)',background:'var(--bg)',fontSize:12,fontWeight:700,color:'var(--text)',cursor:'pointer',display:'flex',alignItems:'center',gap:3}}>📇 명함</button>
                   <button className="note-head-save" onPointerDown={e=>{if(e.pointerType==='touch'&&isPenActive()){e.preventDefault();e.stopPropagation();}}} onClick={e=>{if(isPenActive())return;save();}} disabled={saving}>{saving?'저장 중...':'저장하기'}</button>
-                  <button onClick={onClose} style={{width:32,height:32,borderRadius:'50%',border:'none',background:'var(--bg)',color:'var(--text-md)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                  <button onClick={safeClose} style={{width:32,height:32,borderRadius:'50%',border:'none',background:'var(--bg)',color:'var(--text-md)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
                 </div>
               </div>
               <div className="note-ctx" style={{marginTop:8,marginBottom:0}}>
@@ -2260,7 +2280,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
                   <div style={{position:'relative'}}>
                     <button className="note-input" style={{fontSize:13,textAlign:'left',cursor:'pointer',color:position?'var(--text)':'var(--text-sm)'}} onClick={()=>setShowPosition(!showPosition)}>{position||'직급'}<span style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',fontSize:10,color:'var(--text-sm)'}}>▼</span></button>
                     {showPosition&&<div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1.5px solid var(--border)',borderRadius:9,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:10,overflow:'hidden',marginTop:2}}>
-                      {getPositions(building?.id).map(p=>(
+                      {getPositions(effectiveBuildingId).map(p=>(
                         <button key={p} onClick={()=>{setPosition(p);setShowPosition(false);}} style={{width:'100%',padding:'10px 14px',border:'none',background:position===p?'var(--blue-l)':'#fff',color:position===p?'var(--blue)':'var(--text)',fontSize:13,fontWeight:position===p?700:500,cursor:'pointer',fontFamily:'inherit',textAlign:'left',borderBottom:'1px solid var(--border-s)'}}>{p}</button>
                       ))}
                     </div>}
@@ -2271,7 +2291,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
 
               {/* 명함 촬영 */}
               <div style={{marginBottom:8,position:'relative'}}>
-                <BusinessCardCapture onCapture={(side,img)=>setBizCard(p=>({...p,[side]:img}))}/>
+                <BusinessCardCapture onCapture={(side,img)=>setBizCard(p=>({...p,[side]:img}))} openRef={bizCardOpenRef}/>
               </div>
 
               {/* 아코디언 옵션들 */}
@@ -2292,7 +2312,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
                           <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:5,textTransform:'uppercase',letterSpacing:'.05em'}}>{cat}</div>
                           <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
                             {items.map(item=>(
-                              <button key={item} onClick={()=>toggle(interests,setInterests,item)}
+                              <button key={item} onClick={()=>{toggle(interests,setInterests,item);if(!interests.includes(item)){const bid=BUILDING_LABEL_TO_ID[item];if(bid){setEffectiveBuildingId(bid);setPosition('');}}}}
                                 style={{padding:'6px 10px',borderRadius:20,border:`1.5px solid ${interests.includes(item)?'var(--navy)':'var(--border)'}`,background:interests.includes(item)?'var(--navy)':'#fff',color:interests.includes(item)?'#fff':'var(--text)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',transition:'all .12s'}}>
                                 {item}
                               </button>
@@ -2467,6 +2487,7 @@ function AdminScreen({onBack}){
   const [expanded,setExpanded]=useState(null);
   const [smsTarget,setSmsTarget]=useState(null);
   const [toast,setToast]=useState(null);
+  const [showPinChange,setShowPinChange]=useState(false);
 
   const DAYS=['4/16(목)','4/17(금)','4/18(토)'];
   const STATUS_OPTIONS=['신규','연락완료','계약예정','보류','기타'];
@@ -2549,6 +2570,7 @@ function AdminScreen({onBack}){
           <span style={{fontSize:11,color:'rgba(255,255,255,.5)',fontWeight:600}}>전체 {leads.length}건</span>
         </div>
         <div className="hdr-r">
+          <button onClick={()=>setShowPinChange(true)} style={{background:'rgba(255,255,255,.12)',border:'none',borderRadius:7,padding:'6px 12px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',marginRight:4}}>🔑 비번</button>
           <button onClick={downloadCSV} style={{background:'rgba(255,255,255,.12)',border:'none',borderRadius:7,padding:'6px 12px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',marginRight:8}}>CSV ↓</button>
           <button className="btn-back" onClick={onBack}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg>
@@ -2977,6 +2999,86 @@ function SmsSettingsTab(){
           7. 배포 URL을 위 Worker URL에 입력
         </div>
       </div>
+      {showPinChange&&<PinChangeModal onClose={()=>setShowPinChange(false)} onDone={()=>{setShowPinChange(false);setToast({type:'success',msg:'비밀번호가 변경되었습니다'});setTimeout(()=>setToast(null),2500);}}/>}
+    </div>
+  );
+}
+
+/* ── PIN Change Modal ── */
+function PinChangeModal({onClose,onDone}){
+  const [current,setCurrent]=useState('');
+  const [newPin,setNewPin]=useState('');
+  const [confirm,setConfirm]=useState('');
+  const [error,setError]=useState('');
+  const handleChange=async()=>{
+    const currentHash=await hashPin(current);
+    if(currentHash!==loadAdminPin()){setError('현재 비밀번호가 틀렸습니다');return;}
+    if(newPin.length<4){setError('4자리 이상 입력하세요');return;}
+    if(newPin!==confirm){setError('새 비밀번호가 일치하지 않습니다');return;}
+    const hash=await hashPin(newPin);
+    saveAdminPin(hash);
+    onDone();
+  };
+  const s={position:'fixed',inset:0,background:'rgba(0,0,0,.6)',zIndex:2000,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(6px)'};
+  const b={background:'#fff',borderRadius:18,padding:'28px 24px',width:'min(340px,88vw)',boxShadow:'0 12px 40px rgba(0,0,0,.25)'};
+  const i={width:'100%',padding:'12px',borderRadius:10,border:'1.5px solid var(--border)',fontSize:16,fontWeight:700,textAlign:'center',letterSpacing:'.4em',outline:'none',fontFamily:'inherit',boxSizing:'border-box',marginBottom:8};
+  return(
+    <div style={s} onClick={onClose}>
+      <div style={b} onClick={e=>e.stopPropagation()}>
+        <div style={{textAlign:'center',fontSize:17,fontWeight:800,marginBottom:16}}>🔑 비밀번호 변경</div>
+        <input type="password" inputMode="numeric" value={current} onChange={e=>setCurrent(e.target.value.replace(/[^0-9]/g,''))} placeholder="현재 비밀번호" style={i} maxLength={8} autoFocus/>
+        <input type="password" inputMode="numeric" value={newPin} onChange={e=>setNewPin(e.target.value.replace(/[^0-9]/g,''))} placeholder="새 비밀번호" style={i} maxLength={8}/>
+        <input type="password" inputMode="numeric" value={confirm} onChange={e=>setConfirm(e.target.value.replace(/[^0-9]/g,''))} placeholder="새 비밀번호 확인" style={i} maxLength={8} onKeyDown={e=>{if(e.key==='Enter')handleChange();}}/>
+        {error&&<div style={{fontSize:12,color:'#DC2626',fontWeight:700,textAlign:'center',marginBottom:6}}>{error}</div>}
+        <button onClick={handleChange} style={{width:'100%',padding:'13px',borderRadius:10,border:'none',background:'var(--navy)',color:'#fff',fontSize:15,fontWeight:800,cursor:'pointer',fontFamily:'inherit',marginTop:4}}>변경하기</button>
+        <button onClick={onClose} style={{width:'100%',padding:'11px',borderRadius:10,border:'1.5px solid var(--border)',background:'transparent',color:'var(--text-sm)',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit',marginTop:6}}>취소</button>
+      </div>
+    </div>
+  );
+}
+
+/* ── PIN Modal ── */
+function PinModal({mode,onSuccess,onClose}){
+  const [pin,setPin]=useState('');
+  const [pinConfirm,setPinConfirm]=useState('');
+  const [error,setError]=useState('');
+  const [failCount,setFailCount]=useState(0);
+  const [locked,setLocked]=useState(false);
+  const [lockTimer,setLockTimer]=useState(0);
+  useEffect(()=>{if(lockTimer<=0){setLocked(false);return;}const t=setInterval(()=>setLockTimer(p=>{if(p<=1){setLocked(false);return 0;}return p-1;}),1000);return()=>clearInterval(t);},[lockTimer]);
+
+  const handleSetup=async()=>{
+    if(pin.length<4){setError('4자리 이상 입력하세요');return;}
+    if(pin!==pinConfirm){setError('비밀번호가 일치하지 않습니다');return;}
+    const hash=await hashPin(pin);
+    saveAdminPin(hash);
+    onSuccess();
+  };
+  const handleVerify=async()=>{
+    if(locked)return;
+    const hash=await hashPin(pin);
+    if(hash===loadAdminPin()){setFailCount(0);onSuccess();}
+    else{const next=failCount+1;setFailCount(next);if(next>=3){setLocked(true);setLockTimer(30);setError('3회 실패 — 30초 후 재시도');}else{setError(`비밀번호가 틀렸습니다 (${next}/3)`);}setPin('');}
+  };
+
+  const overlayStyle={position:'fixed',inset:0,background:'rgba(0,0,0,.6)',zIndex:2000,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(6px)'};
+  const boxStyle={background:'#fff',borderRadius:18,padding:'32px 24px',width:'min(340px,88vw)',textAlign:'center',boxShadow:'0 12px 40px rgba(0,0,0,.25)'};
+  const inputStyle={width:'100%',padding:'14px',borderRadius:10,border:'1.5px solid var(--border)',fontSize:20,fontWeight:800,textAlign:'center',letterSpacing:'0.5em',outline:'none',fontFamily:'inherit',boxSizing:'border-box',marginBottom:8};
+  const btnStyle={width:'100%',padding:'14px',borderRadius:10,border:'none',background:'var(--navy)',color:'#fff',fontSize:15,fontWeight:800,cursor:'pointer',fontFamily:'inherit',marginTop:8};
+
+  return(
+    <div style={overlayStyle} onClick={onClose}>
+      <div style={boxStyle} onClick={e=>e.stopPropagation()}>
+        <div style={{fontSize:32,marginBottom:8}}>{mode==='setup'?'🔐':'🔒'}</div>
+        <div style={{fontSize:17,fontWeight:800,color:'var(--text)',marginBottom:4}}>{mode==='setup'?'관리자 비밀번호 설정':'관리자 인증'}</div>
+        <div style={{fontSize:12,color:'var(--text-sm)',marginBottom:18}}>{mode==='setup'?'4자리 이상 숫자를 입력하세요':'비밀번호를 입력하세요'}</div>
+        <input type="password" inputMode="numeric" value={pin} onChange={e=>setPin(e.target.value.replace(/[^0-9]/g,''))} placeholder="비밀번호" style={inputStyle} autoFocus maxLength={8} onKeyDown={e=>{if(e.key==='Enter'){mode==='setup'?undefined:handleVerify();}}}/>
+        {mode==='setup'&&<input type="password" inputMode="numeric" value={pinConfirm} onChange={e=>setPinConfirm(e.target.value.replace(/[^0-9]/g,''))} placeholder="비밀번호 확인" style={inputStyle} maxLength={8} onKeyDown={e=>{if(e.key==='Enter')handleSetup();}}/>}
+        {error&&<div style={{fontSize:12,color:'#DC2626',fontWeight:700,marginBottom:4}}>{error}</div>}
+        {locked&&<div style={{fontSize:11,color:'var(--text-sm)',marginBottom:4}}>{lockTimer}초 후 재시도 가능</div>}
+        <button style={{...btnStyle,opacity:locked?.5:1}} disabled={locked} onClick={mode==='setup'?handleSetup:handleVerify}>{mode==='setup'?'설정 완료':'확인'}</button>
+        <button style={{...btnStyle,background:'transparent',color:'var(--text-sm)',border:'1.5px solid var(--border)',marginTop:6}} onClick={onClose}>취소</button>
+      </div>
     </div>
   );
 }
@@ -3003,6 +3105,8 @@ function App(){
   const [globalNote,setGlobalNote]=useState(false);
   const [confirmNew,setConfirmNew]=useState(false);
   const [probPhotos,setProbPhotos]=useState(()=>loadProblemPhotos());
+  const [adminAuth,setAdminAuth]=useState(()=>sessionStorage.getItem('pourAdminAuth')==='true');
+  const [showPinModal,setShowPinModal]=useState(false);
 
   const isSetup=!!(staffId&&staffName);
 
@@ -3084,8 +3188,8 @@ function App(){
           </div>
 
           {/* 관리 페이지 진입 */}
-          <button onClick={()=>setScreen('admin')} style={{width:'100%',maxWidth:360,marginTop:8,padding:'10px 0',background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',borderRadius:10,color:'rgba(255,255,255,.6)',fontSize:12,fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
-            ⚙️ 관리자 페이지<span style={{fontSize:10,opacity:.7,marginLeft:4}}>— 통계 · 리드 관리</span>
+          <button onClick={()=>{const stored=loadAdminPin();if(!stored){setShowPinModal('setup');}else if(!adminAuth){setShowPinModal('verify');}else{setScreen('admin');}}} style={{width:'100%',maxWidth:360,marginTop:8,padding:'10px 0',background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',borderRadius:10,color:'rgba(255,255,255,.6)',fontSize:12,fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
+            🔒 관리자 페이지<span style={{fontSize:10,opacity:.7,marginLeft:4}}>— 통계 · 리드 관리</span>
           </button>
         </div>
       </div>
@@ -3202,6 +3306,9 @@ function App(){
           onClose={()=>setGlobalNote(false)}
         />
       )}
+
+      {/* ── PIN 인증 모달 ── */}
+      {showPinModal&&<PinModal mode={showPinModal} onSuccess={()=>{setAdminAuth(true);sessionStorage.setItem('pourAdminAuth','true');setShowPinModal(false);setScreen('admin');}} onClose={()=>setShowPinModal(false)}/>}
     </div>
   );
 }

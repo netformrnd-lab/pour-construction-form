@@ -3118,7 +3118,6 @@ function SmsSettingsTab(){
           7. 배포 URL을 위 Worker URL에 입력
         </div>
       </div>
-      {showPinChange&&<PinChangeModal onClose={()=>setShowPinChange(false)} onDone={()=>{setShowPinChange(false);setToast({type:'success',msg:'비밀번호가 변경되었습니다'});setTimeout(()=>setToast(null),2500);}}/>}
     </div>
   );
 }

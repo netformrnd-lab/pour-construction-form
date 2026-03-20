@@ -2197,6 +2197,8 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
   const [quickSms,setQuickSms]=useState(false);
   const [smsText,setSmsText]=useState('');
   const [smsSending,setSmsSending]=useState(false);
+  const [smsType,setSmsType]=useState('customer');
+  const [showSmsModal,setShowSmsModal]=useState(false);
   const toggle=(arr,set,v)=>set(p=>p.includes(v)?p.filter(x=>x!==v):[...p,v]);
   const toggleSec=sec=>setOpenSec(p=>{const n=new Set(p);n.has(sec)?n.delete(sec):n.add(sec);return n;});
   const hasData=()=>!!(name||company||phone||memo||interests.length||contact.length||bizCard?.front);
@@ -2234,6 +2236,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
   return(
     <div className="sheet-bg" onClick={safeClose}>
       <div className="note-sheet" onClick={e=>e.stopPropagation()}>
+        {showSmsModal&&<SmsModal phone={phone} name={name} building={building?.label||'-'} problem={problem?.label||'-'} staff={staffName} onClose={()=>setShowSmsModal(false)} onToast={(msg,type)=>{if(type==='error')alert(msg);}}/>}
         {done?(
           <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'40px 20px'}}>
             <div style={{fontSize:44,marginBottom:10}}>✅</div>
@@ -2254,7 +2257,15 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
               </div>
             ):(
               <div style={{width:'100%',maxWidth:360,padding:'0 10px'}}>
-                <div style={{fontSize:13,fontWeight:700,color:'var(--text)',marginBottom:6}}>수신: <span style={{color:'var(--blue)'}}>{phone}</span> ({name})</div>
+                <div style={{fontSize:13,fontWeight:700,color:'var(--text)',marginBottom:8}}>수신: <span style={{color:'var(--blue)'}}>{phone}</span> ({name})</div>
+                <div style={{display:'flex',gap:6,marginBottom:10}}>
+                  {[{key:'customer',label:'고객 감사',color:'var(--blue)',bg:'var(--blue-l)',tpl:'customerThank'},{key:'staff',label:'담당자 알림',color:'var(--purple)',bg:'var(--purple-l)',tpl:'staffNotify'}].map(({key,label,color,bg,tpl})=>(
+                    <button key={key} style={{flex:1,padding:'8px 0',borderRadius:8,border:'1.5px solid '+(smsType===key?color:'var(--border)'),background:smsType===key?bg:'#fff',fontSize:12,fontWeight:700,color:smsType===key?color:'var(--text-md)',cursor:'pointer',fontFamily:'inherit'}}
+                      onClick={()=>{setSmsType(key);const vars={name,building:building?.label||'-',problem:problem?.label||'-',staff:staffName,phone};setSmsText(fillTemplate(loadSmsTemplates()[tpl],vars));}}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
                 <textarea value={smsText} onChange={e=>setSmsText(e.target.value)}
                   style={{width:'100%',minHeight:100,padding:'12px 14px',borderRadius:10,border:'1.5px solid var(--border)',fontSize:13,lineHeight:1.7,color:'var(--text)',fontFamily:'inherit',resize:'none',outline:'none',boxSizing:'border-box'}}/>
                 <div style={{fontSize:10,color:'var(--text-sm)',margin:'6px 0 12px'}}>{smsText.length}자 {smsText.length>90?'(LMS)':'(SMS)'}</div>
@@ -2286,6 +2297,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
                 </div>
                 <div style={{display:'flex',alignItems:'center',gap:6}}>
                   <button onClick={()=>bizCardOpenRef.current?.()} style={{padding:'5px 10px',borderRadius:8,border:'1.5px solid var(--border)',background:'var(--bg)',fontSize:12,fontWeight:700,color:'var(--text)',cursor:'pointer',display:'flex',alignItems:'center',gap:3}}>📇 명함</button>
+                  {phone&&loadSolapiConfig().workerUrl&&(<button onClick={()=>setShowSmsModal(true)} style={{padding:'5px 10px',borderRadius:8,border:'1.5px solid var(--blue)',background:'var(--blue-l)',fontSize:12,fontWeight:700,color:'var(--blue)',cursor:'pointer',display:'flex',alignItems:'center',gap:3}}>💬 문자</button>)}
                   <button className="note-head-save" onPointerDown={e=>{if(e.pointerType==='touch'&&isPenActive()){e.preventDefault();e.stopPropagation();}}} onClick={e=>{if(isPenActive())return;save();}} disabled={saving}>{saving?'저장 중...':'저장하기'}</button>
                   <button onClick={safeClose} style={{width:32,height:32,borderRadius:'50%',border:'none',background:'var(--bg)',color:'var(--text-md)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
                 </div>

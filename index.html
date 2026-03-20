@@ -2869,6 +2869,7 @@ function AdminScreen({onBack}){
       {smsTarget&&<SmsModal phone={smsTarget.phone} name={smsTarget.name} building={smsTarget.building} problem={smsTarget.problem} staff={smsTarget.staff}
         onClose={()=>setSmsTarget(null)} onToast={(msg,type)=>setToast({msg,type})}/>}
       {toast&&<SmsToast message={toast.msg} type={toast.type} onDone={()=>setToast(null)}/>}
+      {showPinChange&&<PinChangeModal onClose={()=>setShowPinChange(false)} onDone={()=>{setShowPinChange(false);setToast({type:'success',msg:'비밀번호가 변경되었습니다'});setTimeout(()=>setToast(null),2500);}}/>}
     </div>
   );
 }

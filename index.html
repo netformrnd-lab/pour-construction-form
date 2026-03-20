@@ -431,6 +431,30 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
 .note-atag.on{background:var(--purple);color:#fff;border-color:var(--purple);}
 .note-memo-wrap{position:relative;margin-bottom:10px;}
 
+/* ── 명함 촬영 ── */
+.bc-btn{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:1.5px dashed var(--border);background:var(--bg);cursor:pointer;font-family:inherit;width:100%;margin-bottom:8px;transition:all .14s;}
+.bc-btn:active{background:var(--blue-l);border-color:var(--blue);}
+.bc-btn-icon{font-size:20px;}
+.bc-btn-text{font-size:13px;font-weight:700;color:var(--text);}
+.bc-btn-sub{font-size:11px;color:var(--text-sm);}
+.bc-preview-row{display:flex;gap:8px;margin-bottom:8px;}
+.bc-preview-card{flex:1;position:relative;border-radius:10px;overflow:hidden;border:1.5px solid var(--border);background:var(--bg);}
+.bc-preview-card img{width:100%;height:auto;display:block;}
+.bc-preview-label{position:absolute;top:6px;left:6px;padding:2px 8px;border-radius:6px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;font-weight:700;}
+.bc-preview-del{position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:none;background:rgba(220,38,38,.85);color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.bc-cam-overlay{position:fixed;inset:0;background:#000;z-index:9999;display:flex;flex-direction:column;}
+.bc-cam-header{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,.8);flex-shrink:0;}
+.bc-cam-header-title{color:#fff;font-size:15px;font-weight:800;}
+.bc-cam-close{width:36px;height:36px;border-radius:50%;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.bc-cam-body{flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
+.bc-cam-video{width:100%;height:100%;object-fit:cover;}
+.bc-cam-guide{position:absolute;border:2.5px dashed rgba(255,255,255,.7);border-radius:12px;pointer-events:none;box-shadow:0 0 0 9999px rgba(0,0,0,.45);}
+.bc-cam-guide-label{position:absolute;bottom:-28px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.8);font-size:12px;font-weight:700;white-space:nowrap;text-shadow:0 1px 4px rgba(0,0,0,.6);}
+.bc-cam-footer{padding:20px;display:flex;align-items:center;justify-content:center;gap:20px;background:rgba(0,0,0,.8);flex-shrink:0;padding-bottom:max(20px,env(safe-area-inset-bottom));}
+.bc-cam-shutter{width:68px;height:68px;border-radius:50%;border:4px solid #fff;background:transparent;cursor:pointer;position:relative;transition:all .12s;}
+.bc-cam-shutter::after{content:'';position:absolute;inset:4px;border-radius:50%;background:#fff;transition:all .12s;}
+.bc-cam-shutter:active::after{background:var(--blue);transform:scale(.85);}
+
 .note-save-btn{width:100%;padding:15px;border-radius:var(--r);border:none;background:var(--purple);color:#fff;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit;}
 .note-save-btn:disabled{opacity:.5;}
 .note-save-btn:active{background:#6D28D9;}
@@ -486,6 +510,12 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
 <div id="root"></div>
 <script type="text/babel">
 const {useState,useRef,useEffect,useCallback}=React;
+
+/* ── 글로벌 펜 감지: 필기 중 저장버튼 팜 터치 방지 ── */
+window.__penActive=false;
+window.__penTimer=null;
+const markPenActive=()=>{window.__penActive=true;clearTimeout(window.__penTimer);window.__penTimer=setTimeout(()=>{window.__penActive=false;},800);};
+const isPenActive=()=>window.__penActive;
 
 /* ══ DrawCanvas Component (Notability-style) ══ */
 const DRAW_COLORS=['#111827','#DC2626','#2563EB','#059669','#D97706','#7C3AED'];
@@ -621,7 +651,7 @@ function DrawCanvas({onDataUrl}){
   const start=(e)=>{
     e.preventDefault();
     /* palm rejection: once pen is detected, always ignore touch */
-    if(e.pointerType==='pen')penDetected.current=true;
+    if(e.pointerType==='pen'){penDetected.current=true;markPenActive();}
     if(e.pointerType==='touch'&&penDetected.current)return;
     if(e.pointerType==='touch'&&drawing.current)return;
     e.target.setPointerCapture(e.pointerId);
@@ -650,6 +680,7 @@ function DrawCanvas({onDataUrl}){
   const move=(e)=>{
     e.preventDefault();
     if(!drawing.current)return;
+    if(e.pointerType==='pen')markPenActive();
     if(e.pointerType==='touch'&&penDetected.current)return;
     const p=getPos(e);
     if(tool==='eraser'){
@@ -751,8 +782,10 @@ const DAYS=['4/16(목)','4/17(금)','4/18(토)'];
 const BUILDING_TYPES=[
   {id:'apt',label:'아파트',sub:'공동주택',icon:'🏢',targets:'입주자대표회의 · 관리사무소장 · 장기수선 담당자',contactUrl:'https://www.poursolution.net/163'},
   {id:'gov',label:'관공서',sub:'공공건물',icon:'🏛',targets:'시설관리팀 · 행정담당자 · 조달청 담당자',contactUrl:'https://www.poursolution.net/168'},
-  {id:'gen',label:'일반건물',sub:'상업·산업',icon:'🏗',targets:'건물주 · 임대관리업체 · 시설팀',contactUrl:'https://www.poursolution.net/169'},
-  {id:'con',label:'종합건설사',sub:'신축·리모델링',icon:'🔩',targets:'현장소장 · 공무팀 · 구매팀',contactUrl:'https://www.poursolution.net/170'},
+  {id:'house',label:'주택',sub:'단독·다세대',icon:'🏠',targets:'건물주 · 시공업체',contactUrl:''},
+  {id:'villa',label:'빌라/오피스텔',sub:'소규모 공동주택',icon:'🏬',targets:'건물주 · 관리업체 · 임대관리',contactUrl:''},
+  {id:'hospital',label:'병원',sub:'의료시설',icon:'🏥',targets:'시설팀 · 행정팀 · 원무과',contactUrl:''},
+  {id:'school',label:'학교',sub:'교육시설',icon:'🏫',targets:'행정실 · 시설관리팀 · 교육청 담당자',contactUrl:''},
 ];
 
 // img: 문제 선택 칩에 보여줄 사진 URL (비워두면 이모지, 채우면 사진)
@@ -901,9 +934,9 @@ const ACTION_TAGS=[
 ];
 
 const INTEREST_CATS=[
-  {cat:'건물 유형',items:['아파트','관공서','일반건물','종합건설사']},
+  {cat:'건물 유형',items:['아파트','관공서','주택','빌라/오피스텔','병원','학교']},
 ];
-const DELIVERY_DOCS=['견적서','공법 시방서','회사소개서','기술 가이드북'];
+const DELIVERY_DOCS=['견적서','공법 시방서','회사소개서','기술 가이드북','시공사례집','인증서/시험성적서','단가표','카탈로그'];
 const DELIVERY_MEDIA=['이메일','문자','카카오톡','방문 직접 전달'];
 
 /* ── helpers ── */
@@ -1398,7 +1431,7 @@ function CSMemoScreen({building,problem,staffId,staffName,staffDay,onBack,onSave
 
       <div className="bottom-bar">
         <button className="btn btn-outline btn-lg" style={{flex:1}} onClick={onBack}>취소</button>
-        <button className="btn btn-blue btn-lg" style={{flex:2}} onClick={()=>setSaveConfirm(true)} disabled={saving}>{saving?'저장 중...':'저장하기'}</button>
+        <button className="btn btn-blue btn-lg" style={{flex:2}} onPointerDown={e=>{if(e.pointerType==='touch'&&isPenActive()){e.preventDefault();e.stopPropagation();}}} onClick={()=>{if(isPenActive())return;setSaveConfirm(true);}} disabled={saving}>{saving?'저장 중...':'저장하기'}</button>
       </div>
     </div>
   );
@@ -1493,6 +1526,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const ntMemoRef=useRef(null);
   useEffect(()=>{if(!ntPencilMode&&ntMemoRef.current){ntMemoRef.current.focus();}},[ntPencilMode]);
   const [ntOpenSec,setNtOpenSec]=useState(new Set([]));
+  const [ntBizCard,setNtBizCard]=useState({front:null,back:null});
 
   const ntToggleSec=sec=>setNtOpenSec(p=>{const n=new Set(p);n.has(sec)?n.delete(sec):n.add(sec);return n;});
 
@@ -1523,6 +1557,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       interests:ntInterests,
       deliveryDocs:ntDeliveryDocs,
       deliveryMedia:ntDeliveryMedia,
+      businessCard:ntBizCard,
       memo:ntMemo,status:'신규',
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
@@ -1726,13 +1761,18 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                       <div style={{position:'relative'}}>
                         <button className="note-input" style={{fontSize:13,textAlign:'left',cursor:'pointer',color:ntPosition?'var(--text)':'var(--text-sm)'}} onClick={()=>setNtShowPosition(!ntShowPosition)}>{ntPosition||'직급'}<span style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',fontSize:10,color:'var(--text-sm)'}}>▼</span></button>
                         {ntShowPosition&&<div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1.5px solid var(--border)',borderRadius:9,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:10,overflow:'hidden',marginTop:2}}>
-                          {['관리소장','시공사','입주민','건물주'].map(p=>(
+                          {['대표','부장','차장','과장','대리','팀장','관리소장','시설팀장','건물주','입주민'].map(p=>(
                             <button key={p} onClick={()=>{setNtPosition(p);setNtShowPosition(false);}} style={{width:'100%',padding:'10px 14px',border:'none',background:ntPosition===p?'var(--blue-l)':'#fff',color:ntPosition===p?'var(--blue)':'var(--text)',fontSize:13,fontWeight:ntPosition===p?700:500,cursor:'pointer',fontFamily:'inherit',textAlign:'left',borderBottom:'1px solid var(--border-s)'}}>{p}</button>
                           ))}
                         </div>}
                       </div>
                       <input className="note-input" style={{fontSize:13}} placeholder="연락처 *" value={ntPhone} onChange={e=>setNtPhone(e.target.value)} inputMode="tel"/>
                     </div>
+                  </div>
+
+                  {/* 명함 촬영 */}
+                  <div style={{marginBottom:8,position:'relative'}}>
+                    <BusinessCardCapture onCapture={(side,img)=>setNtBizCard(p=>({...p,[side]:img}))}/>
                   </div>
 
                   {/* 아코디언 옵션들 (관심 공사 종류 / 연락 방법 / 후속 조치) */}
@@ -1845,8 +1885,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 </div>{/* 본문 끝 */}
 
                 {/* ── 저장 버튼 ── */}
-                <div className="note-sheet-foot">
-                  <button className="note-save-btn" onClick={saveNote} disabled={ntSaving}>
+                <div className="note-sheet-foot" style={{paddingTop:16}}>
+                  <button className="note-save-btn" onPointerDown={e=>{if(e.pointerType==='touch'&&isPenActive()){e.preventDefault();e.stopPropagation();}}} onClick={e=>{if(isPenActive())return;saveNote();}} disabled={ntSaving}>
                     {ntSaving?'저장 중...':'저장하기'}
                   </button>
                 </div>
@@ -1937,6 +1977,94 @@ function  LeadsScreen({onBack}){
   );
 }
 
+/* ── 명함 촬영 컴포넌트 ── */
+function BusinessCardCapture({onCapture}){
+  const [frontImg,setFrontImg]=useState(null);
+  const [backImg,setBackImg]=useState(null);
+  const [camOpen,setCamOpen]=useState(false);
+  const [camSide,setCamSide]=useState('front'); // 'front' or 'back'
+  const videoRef=useRef(null);
+  const streamRef=useRef(null);
+  const canvasRef=useRef(null);
+
+  const openCam=(side)=>{
+    setCamSide(side);setCamOpen(true);
+    setTimeout(()=>{
+      navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}}})
+        .then(stream=>{streamRef.current=stream;if(videoRef.current)videoRef.current.srcObject=stream;})
+        .catch(e=>{alert('카메라 접근 권한이 필요합니다');setCamOpen(false);});
+    },100);
+  };
+  const closeCam=()=>{
+    if(streamRef.current)streamRef.current.getTracks().forEach(t=>t.stop());
+    streamRef.current=null;setCamOpen(false);
+  };
+  const capture=()=>{
+    const video=videoRef.current;if(!video)return;
+    const c=canvasRef.current||document.createElement('canvas');
+    canvasRef.current=c;
+    c.width=video.videoWidth;c.height=video.videoHeight;
+    const ctx=c.getContext('2d');ctx.drawImage(video,0,0);
+    const dataUrl=c.toDataURL('image/jpeg',0.85);
+    if(camSide==='front'){setFrontImg(dataUrl);if(onCapture)onCapture('front',dataUrl);}
+    else{setBackImg(dataUrl);if(onCapture)onCapture('back',dataUrl);}
+    closeCam();
+    // 앞면 촬영 직후 뒷면 안내
+    if(camSide==='front'&&!backImg){
+      setTimeout(()=>{if(confirm('뒷면도 촬영하시겠어요?'))openCam('back');},400);
+    }
+  };
+  const removeFront=()=>{setFrontImg(null);if(onCapture)onCapture('front',null);};
+  const removeBack=()=>{setBackImg(null);if(onCapture)onCapture('back',null);};
+
+  return(
+    <>
+      {(frontImg||backImg)?(
+        <div className="bc-preview-row">
+          {frontImg&&<div className="bc-preview-card">
+            <img src={frontImg} alt="앞면"/>
+            <span className="bc-preview-label">앞면</span>
+            <button className="bc-preview-del" onClick={removeFront}>✕</button>
+          </div>}
+          {backImg&&<div className="bc-preview-card">
+            <img src={backImg} alt="뒷면"/>
+            <span className="bc-preview-label">뒷면</span>
+            <button className="bc-preview-del" onClick={removeBack}>✕</button>
+          </div>}
+          {!backImg&&<button className="bc-preview-card" style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:80,cursor:'pointer',border:'1.5px dashed var(--border)'}} onClick={()=>openCam('back')}>
+            <div style={{textAlign:'center',padding:10}}><div style={{fontSize:20,marginBottom:4}}>📸</div><div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)'}}>뒷면 촬영</div></div>
+          </button>}
+          {frontImg&&!backImg&&null}
+          <button style={{position:'absolute',right:4,bottom:4,fontSize:10,background:'none',border:'none',color:'var(--blue)',fontWeight:700,cursor:'pointer',padding:4}} onClick={()=>openCam('front')}>앞면 재촬영</button>
+        </div>
+      ):(
+        <button className="bc-btn" onClick={()=>openCam('front')}>
+          <span className="bc-btn-icon">📇</span>
+          <div><div className="bc-btn-text">명함 촬영</div><div className="bc-btn-sub">앞면 필수 · 뒷면 선택</div></div>
+        </button>
+      )}
+
+      {camOpen&&(
+        <div className="bc-cam-overlay">
+          <div className="bc-cam-header">
+            <span className="bc-cam-header-title">명함 {camSide==='front'?'앞면':'뒷면'} 촬영</span>
+            <button className="bc-cam-close" onClick={closeCam}>✕</button>
+          </div>
+          <div className="bc-cam-body">
+            <video ref={videoRef} className="bc-cam-video" autoPlay playsInline muted/>
+            <div className="bc-cam-guide" style={{width:'80%',aspectRatio:'9/5',top:'50%',left:'10%',transform:'translateY(-50%)'}}>
+              <span className="bc-cam-guide-label">명함을 테두리 안에 맞춰주세요</span>
+            </div>
+          </div>
+          <div className="bc-cam-footer">
+            <button className="bc-cam-shutter" onClick={capture}/>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 /* ── Global Note Sheet (솔루션 외 화면) ── */
 function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
   const [name,setName]=useState('');
@@ -1955,6 +2083,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
   const memoRef=useRef(null);
   useEffect(()=>{if(!pencilMode&&memoRef.current){memoRef.current.focus();}},[pencilMode]);
   const [openSec,setOpenSec]=useState(new Set([]));
+  const [bizCard,setBizCard]=useState({front:null,back:null});
   const toggle=(arr,set,v)=>set(p=>p.includes(v)?p.filter(x=>x!==v):[...p,v]);
   const toggleSec=sec=>setOpenSec(p=>{const n=new Set(p);n.has(sec)?n.delete(sec):n.add(sec);return n;});
 
@@ -1968,6 +2097,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
       problem:problem?.label||'-',problemCat:problem?.cat||'-',
       problems:problem?[problem.label]:[],
       interests,deliveryDocs,deliveryMedia,
+      businessCard:bizCard,
       memo,status:'신규',
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
@@ -2030,13 +2160,18 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
                   <div style={{position:'relative'}}>
                     <button className="note-input" style={{fontSize:13,textAlign:'left',cursor:'pointer',color:position?'var(--text)':'var(--text-sm)'}} onClick={()=>setShowPosition(!showPosition)}>{position||'직급'}<span style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',fontSize:10,color:'var(--text-sm)'}}>▼</span></button>
                     {showPosition&&<div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1.5px solid var(--border)',borderRadius:9,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:10,overflow:'hidden',marginTop:2}}>
-                      {['관리소장','시공사','입주민','건물주'].map(p=>(
+                      {['대표','부장','차장','과장','대리','팀장','관리소장','시설팀장','건물주','입주민'].map(p=>(
                         <button key={p} onClick={()=>{setPosition(p);setShowPosition(false);}} style={{width:'100%',padding:'10px 14px',border:'none',background:position===p?'var(--blue-l)':'#fff',color:position===p?'var(--blue)':'var(--text)',fontSize:13,fontWeight:position===p?700:500,cursor:'pointer',fontFamily:'inherit',textAlign:'left',borderBottom:'1px solid var(--border-s)'}}>{p}</button>
                       ))}
                     </div>}
                   </div>
                   <input className="note-input" style={{fontSize:13}} placeholder="연락처 *" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
                 </div>
+              </div>
+
+              {/* 명함 촬영 */}
+              <div style={{marginBottom:8,position:'relative'}}>
+                <BusinessCardCapture onCapture={(side,img)=>setBizCard(p=>({...p,[side]:img}))}/>
               </div>
 
               {/* 아코디언 옵션들 */}
@@ -2149,8 +2284,8 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
             </div>{/* 본문 끝 */}
 
             {/* ── 저장 ── */}
-            <div className="note-sheet-foot">
-              <button className="note-save-btn" onClick={save} disabled={saving}>{saving?'저장 중...':'저장하기'}</button>
+            <div className="note-sheet-foot" style={{paddingTop:16}}>
+              <button className="note-save-btn" onPointerDown={e=>{if(e.pointerType==='touch'&&isPenActive()){e.preventDefault();e.stopPropagation();}}} onClick={e=>{if(isPenActive())return;save();}} disabled={saving}>{saving?'저장 중...':'저장하기'}</button>
             </div>
           </>
         )}

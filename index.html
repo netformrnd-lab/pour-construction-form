@@ -401,6 +401,7 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
 
 .spinner{width:32px;height:32px;border:3px solid var(--blue-l);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(16px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
 
 /* ── SCROLL HINT ── */
 .scroll-fade{position:relative;}
@@ -429,6 +430,30 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
 .note-atag{display:flex;align-items:center;gap:4px;padding:6px 11px;border-radius:8px;border:1.5px solid var(--purple-m);background:#fff;font-size:12px;font-weight:700;color:var(--purple);cursor:pointer;font-family:inherit;}
 .note-atag.on{background:var(--purple);color:#fff;border-color:var(--purple);}
 .note-memo-wrap{position:relative;margin-bottom:10px;}
+
+/* ── 명함 촬영 ── */
+.bc-btn{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:1.5px dashed var(--border);background:var(--bg);cursor:pointer;font-family:inherit;width:100%;margin-bottom:8px;transition:all .14s;}
+.bc-btn:active{background:var(--blue-l);border-color:var(--blue);}
+.bc-btn-icon{font-size:20px;}
+.bc-btn-text{font-size:13px;font-weight:700;color:var(--text);}
+.bc-btn-sub{font-size:11px;color:var(--text-sm);}
+.bc-preview-row{display:flex;gap:8px;margin-bottom:8px;}
+.bc-preview-card{flex:1;position:relative;border-radius:10px;overflow:hidden;border:1.5px solid var(--border);background:var(--bg);}
+.bc-preview-card img{width:100%;height:auto;display:block;}
+.bc-preview-label{position:absolute;top:6px;left:6px;padding:2px 8px;border-radius:6px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;font-weight:700;}
+.bc-preview-del{position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;border:none;background:rgba(220,38,38,.85);color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.bc-cam-overlay{position:fixed;inset:0;background:#000;z-index:9999;display:flex;flex-direction:column;}
+.bc-cam-header{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,.8);flex-shrink:0;}
+.bc-cam-header-title{color:#fff;font-size:15px;font-weight:800;}
+.bc-cam-close{width:36px;height:36px;border-radius:50%;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.bc-cam-body{flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
+.bc-cam-video{width:100%;height:100%;object-fit:cover;}
+.bc-cam-guide{position:absolute;border:2.5px dashed rgba(255,255,255,.7);border-radius:12px;pointer-events:none;box-shadow:0 0 0 9999px rgba(0,0,0,.45);}
+.bc-cam-guide-label{position:absolute;bottom:-28px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.8);font-size:12px;font-weight:700;white-space:nowrap;text-shadow:0 1px 4px rgba(0,0,0,.6);}
+.bc-cam-footer{padding:20px;display:flex;align-items:center;justify-content:center;gap:20px;background:rgba(0,0,0,.8);flex-shrink:0;padding-bottom:max(20px,env(safe-area-inset-bottom));}
+.bc-cam-shutter{width:68px;height:68px;border-radius:50%;border:4px solid #fff;background:transparent;cursor:pointer;position:relative;transition:all .12s;}
+.bc-cam-shutter::after{content:'';position:absolute;inset:4px;border-radius:50%;background:#fff;transition:all .12s;}
+.bc-cam-shutter:active::after{background:var(--blue);transform:scale(.85);}
 
 .note-save-btn{width:100%;padding:15px;border-radius:var(--r);border:none;background:var(--purple);color:#fff;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit;}
 .note-save-btn:disabled{opacity:.5;}
@@ -485,6 +510,12 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
 <div id="root"></div>
 <script type="text/babel">
 const {useState,useRef,useEffect,useCallback}=React;
+
+/* ── 글로벌 펜 감지: 필기 중 저장버튼 팜 터치 방지 ── */
+window.__penActive=false;
+window.__penTimer=null;
+const markPenActive=()=>{window.__penActive=true;clearTimeout(window.__penTimer);window.__penTimer=setTimeout(()=>{window.__penActive=false;},800);};
+const isPenActive=()=>window.__penActive;
 
 /* ══ DrawCanvas Component (Notability-style) ══ */
 const DRAW_COLORS=['#111827','#DC2626','#2563EB','#059669','#D97706','#7C3AED'];
@@ -620,7 +651,7 @@ function DrawCanvas({onDataUrl}){
   const start=(e)=>{
     e.preventDefault();
     /* palm rejection: once pen is detected, always ignore touch */
-    if(e.pointerType==='pen')penDetected.current=true;
+    if(e.pointerType==='pen'){penDetected.current=true;markPenActive();}
     if(e.pointerType==='touch'&&penDetected.current)return;
     if(e.pointerType==='touch'&&drawing.current)return;
     e.target.setPointerCapture(e.pointerId);
@@ -649,6 +680,7 @@ function DrawCanvas({onDataUrl}){
   const move=(e)=>{
     e.preventDefault();
     if(!drawing.current)return;
+    if(e.pointerType==='pen')markPenActive();
     if(e.pointerType==='touch'&&penDetected.current)return;
     const p=getPos(e);
     if(tool==='eraser'){
@@ -750,8 +782,10 @@ const DAYS=['4/16(목)','4/17(금)','4/18(토)'];
 const BUILDING_TYPES=[
   {id:'apt',label:'아파트',sub:'공동주택',icon:'🏢',targets:'입주자대표회의 · 관리사무소장 · 장기수선 담당자',contactUrl:'https://www.poursolution.net/163'},
   {id:'gov',label:'관공서',sub:'공공건물',icon:'🏛',targets:'시설관리팀 · 행정담당자 · 조달청 담당자',contactUrl:'https://www.poursolution.net/168'},
-  {id:'gen',label:'일반건물',sub:'상업·산업',icon:'🏗',targets:'건물주 · 임대관리업체 · 시설팀',contactUrl:'https://www.poursolution.net/169'},
-  {id:'con',label:'종합건설사',sub:'신축·리모델링',icon:'🔩',targets:'현장소장 · 공무팀 · 구매팀',contactUrl:'https://www.poursolution.net/170'},
+  {id:'house',label:'주택',sub:'단독·다세대',icon:'🏠',targets:'건물주 · 시공업체',contactUrl:''},
+  {id:'villa',label:'빌라/오피스텔',sub:'소규모 공동주택',icon:'🏬',targets:'건물주 · 관리업체 · 임대관리',contactUrl:''},
+  {id:'hospital',label:'병원',sub:'의료시설',icon:'🏥',targets:'시설팀 · 행정팀 · 원무과',contactUrl:''},
+  {id:'school',label:'학교',sub:'교육시설',icon:'🏫',targets:'행정실 · 시설관리팀 · 교육청 담당자',contactUrl:''},
 ];
 
 // img: 문제 선택 칩에 보여줄 사진 URL (비워두면 이모지, 채우면 사진)
@@ -900,16 +934,139 @@ const ACTION_TAGS=[
 ];
 
 const INTEREST_CATS=[
-  {cat:'건물 유형',items:['아파트','관공서','일반건물','종합건설사']},
+  {cat:'건물 유형',items:['아파트','관공서','주택','빌라/오피스텔','병원','학교']},
 ];
-const DELIVERY_DOCS=['견적서','공법 시방서','회사소개서','기술 가이드북'];
+const DELIVERY_DOCS=['견적서','공법 시방서','회사소개서','기술 가이드북','시공사례집','인증서/시험성적서','단가표','카탈로그'];
 const DELIVERY_MEDIA=['이메일','문자','카카오톡','방문 직접 전달'];
+
+const POSITIONS_BY_BUILDING={
+  apt:['관리소장','시설팀장','입주자대표','경비팀장','입주민'],
+  gov:['팀장','과장','주무관','시설담당'],
+  house:['건물주','세입자'],
+  villa:['건물주','관리인','임대관리'],
+  hospital:['원장','행정팀장','시설팀장','과장'],
+  school:['교장','교감','행정실장','시설관리'],
+};
+const DEFAULT_POSITIONS=['대표','부장','차장','과장','대리','팀장','관리소장','건물주'];
+const getPositions=(buildingId)=>POSITIONS_BY_BUILDING[buildingId]||DEFAULT_POSITIONS;
 
 /* ── helpers ── */
 const loadStaffList=()=>{try{return JSON.parse(localStorage.getItem('pourStaffList')||'[]');}catch{return[];}};
 const saveStaffList=l=>localStorage.setItem('pourStaffList',JSON.stringify(l));
 const getAvatar=n=>n?n.charAt(0).toUpperCase():'?';
 const getColor=id=>STAFF_COLORS[(id||'').length%STAFF_COLORS.length];
+
+/* ── SMS 유틸 ── */
+const DEFAULT_TEMPLATES={
+  customerThank:'{{name}}님, POUR솔루션 상담 감사합니다. 맞춤 자료를 보내드리겠습니다. 문의 1577-6587',
+  staffNotify:'[POUR상담] {{name}} 고객 등록 / 건물: {{building}} / 하자: {{problem}} / 담당: {{staff}}'
+};
+function loadSolapiConfig(){try{return JSON.parse(localStorage.getItem('solapiConfig')||'{}');}catch{return{};}}
+function saveSolapiConfig(c){localStorage.setItem('solapiConfig',JSON.stringify(c));}
+function loadSmsTemplates(){
+  try{const t=JSON.parse(localStorage.getItem('smsTemplates')||'{}');return{customerThank:t.customerThank||DEFAULT_TEMPLATES.customerThank,staffNotify:t.staffNotify||DEFAULT_TEMPLATES.staffNotify};}
+  catch{return{...DEFAULT_TEMPLATES};}
+}
+function saveSmsTemplates(t){localStorage.setItem('smsTemplates',JSON.stringify(t));}
+function fillTemplate(tpl,data){return tpl.replace(/\{\{(\w+)\}\}/g,(_,k)=>data[k]||'');}
+
+async function sendSMS(to,text){
+  const cfg=loadSolapiConfig();
+  if(!cfg.workerUrl)return{success:false,error:'솔라피 Worker URL 미설정'};
+  try{
+    const res=await fetch(cfg.workerUrl.replace(/\/$/,'')+'/send-sms',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({to:to.replace(/[^0-9]/g,''),text})
+    });
+    const json=await res.json();
+    return res.ok?{success:true,data:json}:{success:false,error:json.error||'발송실패'};
+  }catch(e){return{success:false,error:e.message};}
+}
+
+async function autoSendSMS(data){
+  const tpls=loadSmsTemplates();
+  const cfg=loadSolapiConfig();
+  if(!cfg.workerUrl)return[];
+  const vars={name:data.name||'',building:data.building||'',problem:data.problem||'',staff:data.staff||'',phone:data.phone||''};
+  const results=[];
+  if(data.phone){
+    results.push(sendSMS(data.phone,fillTemplate(tpls.customerThank,vars)).then(r=>({type:'고객',r})));
+  }
+  const staffPhone=loadStaffList().find(s=>s.id===data.staffId)?.phone;
+  if(staffPhone){
+    results.push(sendSMS(staffPhone,fillTemplate(tpls.staffNotify,vars)).then(r=>({type:'담당자',r})));
+  }
+  return Promise.allSettled(results);
+}
+
+/* ── Toast 컴포넌트 ── */
+function SmsToast({message,type,onDone}){
+  useEffect(()=>{const t=setTimeout(onDone,3000);return()=>clearTimeout(t);},[]);
+  return(
+    <div style={{position:'fixed',bottom:80,left:'50%',transform:'translateX(-50%)',zIndex:2000,
+      padding:'12px 22px',borderRadius:12,fontSize:13,fontWeight:700,
+      background:type==='success'?'#059669':'#DC2626',color:'#fff',
+      boxShadow:'0 6px 24px rgba(0,0,0,.25)',whiteSpace:'nowrap',
+      animation:'toastIn .25s ease'}}>
+      {type==='success'?'✅':'❌'} {message}
+    </div>
+  );
+}
+
+/* ── SMS 발송 모달 ── */
+function SmsModal({phone,name,building,problem,staff,onClose,onToast}){
+  const tpls=loadSmsTemplates();
+  const [msgType,setMsgType]=useState('customer');
+  const vars={name:name||'',building:building||'',problem:problem||'',staff:staff||'',phone:phone||''};
+  const [text,setText]=useState(fillTemplate(tpls.customerThank,vars));
+  const [sending,setSending]=useState(false);
+
+  const switchType=(t)=>{
+    setMsgType(t);
+    setText(fillTemplate(t==='customer'?tpls.customerThank:tpls.staffNotify,vars));
+  };
+
+  const doSend=async()=>{
+    if(!phone){onToast('수신번호가 없습니다','error');return;}
+    setSending(true);
+    const r=await sendSMS(phone,text);
+    setSending(false);
+    if(r.success){onToast('문자 발송 완료','success');onClose();}
+    else{onToast('발송 실패: '+(typeof r.error==='string'?r.error:JSON.stringify(r.error)),'error');}
+  };
+
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:1100,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}} onClick={onClose}>
+      <div style={{background:'#fff',borderRadius:16,padding:'24px 20px',width:'min(380px,90vw)',boxShadow:'0 12px 40px rgba(0,0,0,.2)'}} onClick={e=>e.stopPropagation()}>
+        <div style={{fontSize:16,fontWeight:800,marginBottom:14}}>💬 문자 발송</div>
+        <div style={{fontSize:12,color:'var(--text-md)',marginBottom:10}}>수신: <b>{phone}</b> ({name})</div>
+        <div style={{display:'flex',gap:6,marginBottom:12}}>
+          <button style={{flex:1,padding:'8px 0',borderRadius:8,border:'1.5px solid '+(msgType==='customer'?'var(--blue)':'var(--border)'),
+            background:msgType==='customer'?'var(--blue-l)':'#fff',fontSize:12,fontWeight:700,
+            color:msgType==='customer'?'var(--blue)':'var(--text-md)',cursor:'pointer',fontFamily:'inherit'}}
+            onClick={()=>switchType('customer')}>고객 감사</button>
+          <button style={{flex:1,padding:'8px 0',borderRadius:8,border:'1.5px solid '+(msgType==='staff'?'var(--purple)':'var(--border)'),
+            background:msgType==='staff'?'var(--purple-l)':'#fff',fontSize:12,fontWeight:700,
+            color:msgType==='staff'?'var(--purple)':'var(--text-md)',cursor:'pointer',fontFamily:'inherit'}}
+            onClick={()=>switchType('staff')}>담당자 알림</button>
+        </div>
+        <textarea value={text} onChange={e=>setText(e.target.value)}
+          style={{width:'100%',minHeight:100,padding:'12px 14px',borderRadius:10,border:'1.5px solid var(--border)',fontSize:13,
+            lineHeight:1.7,color:'var(--text)',fontFamily:'inherit',resize:'none',outline:'none',boxSizing:'border-box'}}/>
+        <div style={{fontSize:10,color:'var(--text-sm)',margin:'6px 0 14px'}}>
+          {text.length}자 {text.length>90?'(LMS)':'(SMS)'}
+        </div>
+        <div style={{display:'flex',gap:10}}>
+          <button style={{flex:1,padding:'13px 0',borderRadius:10,border:'1.5px solid var(--border)',background:'var(--bg)',
+            fontSize:14,fontWeight:700,color:'var(--text-md)',cursor:'pointer',fontFamily:'inherit'}} onClick={onClose}>취소</button>
+          <button style={{flex:2,padding:'13px 0',borderRadius:10,border:'none',background:'var(--blue)',
+            fontSize:14,fontWeight:800,color:'#fff',cursor:'pointer',fontFamily:'inherit',opacity:sending?.6:1}}
+            onClick={doSend} disabled={sending}>{sending?'발송 중...':'발송하기'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /* ── Scroll Rail (memo 전용 오른쪽 스크롤 드래그 레일) ── */
 function ScrollRail({scrollRef}){
@@ -1058,18 +1215,19 @@ function StaffModal({mode,currentStaffId,staffDay,onSelect,onClose}){
   const [addMode,setAddMode]=useState(false);
   const [editTarget,setEditTarget]=useState(null);
   const [inputName,setInputName]=useState('');
+  const [inputPhone,setInputPhone]=useState('');
 
   const handleSaveStaff=()=>{
     if(!inputName.trim())return;
     if(editTarget){
-      const next=loadStaffList().map(s=>s.id===editTarget.id?{...s,name:inputName.trim()}:s);
+      const next=loadStaffList().map(s=>s.id===editTarget.id?{...s,name:inputName.trim(),phone:(inputPhone||'').replace(/[^0-9]/g,'')}:s);
       saveStaffList(next);setList(next);
     }else{
-      const ns={id:'s'+Date.now(),name:inputName.trim()};
+      const ns={id:'s'+Date.now(),name:inputName.trim(),phone:(inputPhone||'').replace(/[^0-9]/g,'')};
       const next=[...loadStaffList(),ns];
       saveStaffList(next);setList(next);setSelId(ns.id);
     }
-    setAddMode(false);setEditTarget(null);setInputName('');
+    setAddMode(false);setEditTarget(null);setInputName('');setInputPhone('');
   };
   const handleDelete=id=>{
     if(!confirm('삭제하시겠어요?'))return;
@@ -1077,7 +1235,7 @@ function StaffModal({mode,currentStaffId,staffDay,onSelect,onClose}){
     saveStaffList(next);setList(next);
     if(selId===id)setSelId('');
   };
-  const handleEdit=s=>{setEditTarget(s);setInputName(s.name);setAddMode(true);};
+  const handleEdit=s=>{setEditTarget(s);setInputName(s.name);setInputPhone(s.phone||'');setAddMode(true);};
   const handleConfirm=()=>{
     if(!selId){alert('담당자를 선택해주세요');return;}
     const s=list.find(x=>x.id===selId);if(!s)return;
@@ -1103,7 +1261,10 @@ function StaffModal({mode,currentStaffId,staffDay,onSelect,onClose}){
           {list.map(s=>(
             <div key={s.id} className={`staff-row ${selId===s.id?'sel':''}`} onClick={()=>setSelId(s.id)}>
               <div className="sr-avatar" style={{background:getColor(s.id)}}>{getAvatar(s.name)}</div>
-              <span className={`sr-name ${selId===s.id?'sel':''}`}>{s.name}</span>
+              <div style={{flex:1,minWidth:0}}>
+                <span className={`sr-name ${selId===s.id?'sel':''}`}>{s.name}</span>
+                {s.phone&&<div style={{fontSize:10,color:'var(--text-sm)',marginTop:1}}>{s.phone.replace(/(\d{3})(\d{4})(\d{4})/,'$1-$2-$3')}</div>}
+              </div>
               <div className="sr-btns" onClick={e=>e.stopPropagation()}>
                 <button className="sr-btn" onClick={()=>handleEdit(s)}>✏️</button>
                 <button className="sr-btn del" onClick={()=>handleDelete(s.id)}>🗑</button>
@@ -1113,9 +1274,10 @@ function StaffModal({mode,currentStaffId,staffDay,onSelect,onClose}){
         </div>
         {addMode?(
           <div style={{background:'var(--bg)',borderRadius:12,padding:13,marginBottom:14}}>
-            <div style={{fontSize:12,fontWeight:700,color:'var(--text-sm)',marginBottom:8}}>{editTarget?'이름 수정':'새 담당자 추가'}</div>
+            <div style={{fontSize:12,fontWeight:700,color:'var(--text-sm)',marginBottom:8}}>{editTarget?'정보 수정':'새 담당자 추가'}</div>
             <input className="sheet-input" placeholder="담당자 이름" value={inputName} onChange={e=>setInputName(e.target.value)} autoFocus/>
-            <div style={{display:'flex',gap:8}}>
+            <input className="sheet-input" placeholder="전화번호 (문자 알림용, 선택)" value={inputPhone} onChange={e=>setInputPhone(e.target.value)} type="tel" style={{marginTop:6}}/>
+            <div style={{display:'flex',gap:8,marginTop:6}}>
               <button onClick={()=>{setAddMode(false);setEditTarget(null);setInputName('');}} style={{flex:1,padding:'10px',borderRadius:9,border:'1.5px solid var(--border)',background:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit',color:'var(--text-md)'}}>취소</button>
               <button onClick={handleSaveStaff} style={{flex:2,padding:'10px',borderRadius:9,border:'none',background:'var(--navy)',color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>{editTarget?'수정':'추가'}</button>
             </div>
@@ -1161,6 +1323,18 @@ function CSMemoScreen({building,problem,staffId,staffName,staffDay,onBack,onSave
       memo:csMemo,status:'신규',
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
+    // 자동 SMS 발송 (fire-and-forget)
+    const smsCfg=loadSolapiConfig();
+    if(smsCfg.workerUrl){
+      const smsData={name:csName,phone:csPhone,building:building?.label||'-',problem:problem?.label||'-',staff:memoStaffName,staffId:memoStaffId};
+      if(smsCfg.autoCustomer!==false&&csPhone){
+        sendSMS(csPhone,fillTemplate(loadSmsTemplates().customerThank,smsData)).catch(()=>{});
+      }
+      if(smsCfg.autoStaff!==false){
+        const sp=loadStaffList().find(s=>s.id===memoStaffId)?.phone;
+        if(sp)sendSMS(sp,fillTemplate(loadSmsTemplates().staffNotify,smsData)).catch(()=>{});
+      }
+    }
     setSaving(false);
     onSaved(data);
   };
@@ -1268,7 +1442,7 @@ function CSMemoScreen({building,problem,staffId,staffName,staffDay,onBack,onSave
 
       <div className="bottom-bar">
         <button className="btn btn-outline btn-lg" style={{flex:1}} onClick={onBack}>취소</button>
-        <button className="btn btn-blue btn-lg" style={{flex:2}} onClick={()=>setSaveConfirm(true)} disabled={saving}>{saving?'저장 중...':'저장하기'}</button>
+        <button className="btn btn-blue btn-lg" style={{flex:2}} onPointerDown={e=>{if(e.pointerType==='touch'&&isPenActive()){e.preventDefault();e.stopPropagation();}}} onClick={()=>{if(isPenActive())return;setSaveConfirm(true);}} disabled={saving}>{saving?'저장 중...':'저장하기'}</button>
       </div>
     </div>
   );
@@ -1363,6 +1537,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const ntMemoRef=useRef(null);
   useEffect(()=>{if(!ntPencilMode&&ntMemoRef.current){ntMemoRef.current.focus();}},[ntPencilMode]);
   const [ntOpenSec,setNtOpenSec]=useState(new Set([]));
+  const [ntBizCard,setNtBizCard]=useState({front:null,back:null});
 
   const ntToggleSec=sec=>setNtOpenSec(p=>{const n=new Set(p);n.has(sec)?n.delete(sec):n.add(sec);return n;});
 
@@ -1393,9 +1568,22 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       interests:ntInterests,
       deliveryDocs:ntDeliveryDocs,
       deliveryMedia:ntDeliveryMedia,
+      businessCard:ntBizCard,
       memo:ntMemo,status:'신규',
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
+    // 자동 SMS 발송 (fire-and-forget)
+    const smsCfg=loadSolapiConfig();
+    if(smsCfg.workerUrl){
+      const smsData={name:ntName,phone:ntPhone,building:building?.label||'-',problem:problem?.label||'-',staff:staffName,staffId};
+      if(smsCfg.autoCustomer!==false&&ntPhone){
+        sendSMS(ntPhone,fillTemplate(loadSmsTemplates().customerThank,smsData)).catch(()=>{});
+      }
+      if(smsCfg.autoStaff!==false){
+        const sp=loadStaffList().find(s=>s.id===staffId)?.phone;
+        if(sp)sendSMS(sp,fillTemplate(loadSmsTemplates().staffNotify,smsData)).catch(()=>{});
+      }
+    }
     setNtSaving(false);setNtDone(true);
     setTimeout(()=>{
       setShowNote(false);setNtDone(false);
@@ -1584,13 +1772,18 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                       <div style={{position:'relative'}}>
                         <button className="note-input" style={{fontSize:13,textAlign:'left',cursor:'pointer',color:ntPosition?'var(--text)':'var(--text-sm)'}} onClick={()=>setNtShowPosition(!ntShowPosition)}>{ntPosition||'직급'}<span style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',fontSize:10,color:'var(--text-sm)'}}>▼</span></button>
                         {ntShowPosition&&<div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1.5px solid var(--border)',borderRadius:9,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:10,overflow:'hidden',marginTop:2}}>
-                          {['관리소장','시공사','입주민','건물주'].map(p=>(
+                          {getPositions(building?.id).map(p=>(
                             <button key={p} onClick={()=>{setNtPosition(p);setNtShowPosition(false);}} style={{width:'100%',padding:'10px 14px',border:'none',background:ntPosition===p?'var(--blue-l)':'#fff',color:ntPosition===p?'var(--blue)':'var(--text)',fontSize:13,fontWeight:ntPosition===p?700:500,cursor:'pointer',fontFamily:'inherit',textAlign:'left',borderBottom:'1px solid var(--border-s)'}}>{p}</button>
                           ))}
                         </div>}
                       </div>
                       <input className="note-input" style={{fontSize:13}} placeholder="연락처 *" value={ntPhone} onChange={e=>setNtPhone(e.target.value)} inputMode="tel"/>
                     </div>
+                  </div>
+
+                  {/* 명함 촬영 */}
+                  <div style={{marginBottom:8,position:'relative'}}>
+                    <BusinessCardCapture onCapture={(side,img)=>setNtBizCard(p=>({...p,[side]:img}))}/>
                   </div>
 
                   {/* 아코디언 옵션들 (관심 공사 종류 / 연락 방법 / 후속 조치) */}
@@ -1703,8 +1896,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 </div>{/* 본문 끝 */}
 
                 {/* ── 저장 버튼 ── */}
-                <div className="note-sheet-foot">
-                  <button className="note-save-btn" onClick={saveNote} disabled={ntSaving}>
+                <div className="note-sheet-foot" style={{paddingTop:16}}>
+                  <button className="note-save-btn" onPointerDown={e=>{if(e.pointerType==='touch'&&isPenActive()){e.preventDefault();e.stopPropagation();}}} onClick={e=>{if(isPenActive())return;saveNote();}} disabled={ntSaving}>
                     {ntSaving?'저장 중...':'저장하기'}
                   </button>
                 </div>
@@ -1777,7 +1970,8 @@ function  LeadsScreen({onBack}){
             {l.memo&&<div className="lead-memo">"{l.memo}"</div>}
             <div className="lead-cta">
               {l.phone&&<a href={`tel:${l.phone}`} className="lcta">📞 전화</a>}
-              {l.phone&&<a href={`sms:${l.phone}`} className="lcta">💬 문자</a>}
+              {l.phone&&<button className="lcta" onClick={()=>setSmsTarget({phone:l.phone,name:l.name,building:l.building,problem:l.problem,staff:l.staff})}>💬 솔라피</button>}
+              {l.phone&&<a href={`sms:${l.phone}`} className="lcta">💬 기본</a>}
               {l.email&&<a href={`mailto:${l.email}`} className="lcta mail">📧 메일</a>}
             </div>
           </div>
@@ -1791,6 +1985,94 @@ function  LeadsScreen({onBack}){
         }}>전체 복사</button>
       </div>
     </div>
+  );
+}
+
+/* ── 명함 촬영 컴포넌트 ── */
+function BusinessCardCapture({onCapture}){
+  const [frontImg,setFrontImg]=useState(null);
+  const [backImg,setBackImg]=useState(null);
+  const [camOpen,setCamOpen]=useState(false);
+  const [camSide,setCamSide]=useState('front'); // 'front' or 'back'
+  const videoRef=useRef(null);
+  const streamRef=useRef(null);
+  const canvasRef=useRef(null);
+
+  const openCam=(side)=>{
+    setCamSide(side);setCamOpen(true);
+    setTimeout(()=>{
+      navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}}})
+        .then(stream=>{streamRef.current=stream;if(videoRef.current)videoRef.current.srcObject=stream;})
+        .catch(e=>{alert('카메라 접근 권한이 필요합니다');setCamOpen(false);});
+    },100);
+  };
+  const closeCam=()=>{
+    if(streamRef.current)streamRef.current.getTracks().forEach(t=>t.stop());
+    streamRef.current=null;setCamOpen(false);
+  };
+  const capture=()=>{
+    const video=videoRef.current;if(!video)return;
+    const c=canvasRef.current||document.createElement('canvas');
+    canvasRef.current=c;
+    c.width=video.videoWidth;c.height=video.videoHeight;
+    const ctx=c.getContext('2d');ctx.drawImage(video,0,0);
+    const dataUrl=c.toDataURL('image/jpeg',0.85);
+    if(camSide==='front'){setFrontImg(dataUrl);if(onCapture)onCapture('front',dataUrl);}
+    else{setBackImg(dataUrl);if(onCapture)onCapture('back',dataUrl);}
+    closeCam();
+    // 앞면 촬영 직후 뒷면 안내
+    if(camSide==='front'&&!backImg){
+      setTimeout(()=>{if(confirm('뒷면도 촬영하시겠어요?'))openCam('back');},400);
+    }
+  };
+  const removeFront=()=>{setFrontImg(null);if(onCapture)onCapture('front',null);};
+  const removeBack=()=>{setBackImg(null);if(onCapture)onCapture('back',null);};
+
+  return(
+    <>
+      {(frontImg||backImg)?(
+        <div className="bc-preview-row">
+          {frontImg&&<div className="bc-preview-card">
+            <img src={frontImg} alt="앞면"/>
+            <span className="bc-preview-label">앞면</span>
+            <button className="bc-preview-del" onClick={removeFront}>✕</button>
+          </div>}
+          {backImg&&<div className="bc-preview-card">
+            <img src={backImg} alt="뒷면"/>
+            <span className="bc-preview-label">뒷면</span>
+            <button className="bc-preview-del" onClick={removeBack}>✕</button>
+          </div>}
+          {!backImg&&<button className="bc-preview-card" style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:80,cursor:'pointer',border:'1.5px dashed var(--border)'}} onClick={()=>openCam('back')}>
+            <div style={{textAlign:'center',padding:10}}><div style={{fontSize:20,marginBottom:4}}>📸</div><div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)'}}>뒷면 촬영</div></div>
+          </button>}
+          {frontImg&&!backImg&&null}
+          <button style={{position:'absolute',right:4,bottom:4,fontSize:10,background:'none',border:'none',color:'var(--blue)',fontWeight:700,cursor:'pointer',padding:4}} onClick={()=>openCam('front')}>앞면 재촬영</button>
+        </div>
+      ):(
+        <button className="bc-btn" onClick={()=>openCam('front')}>
+          <span className="bc-btn-icon">📇</span>
+          <div><div className="bc-btn-text">명함 촬영</div><div className="bc-btn-sub">앞면 필수 · 뒷면 선택</div></div>
+        </button>
+      )}
+
+      {camOpen&&(
+        <div className="bc-cam-overlay">
+          <div className="bc-cam-header">
+            <span className="bc-cam-header-title">명함 {camSide==='front'?'앞면':'뒷면'} 촬영</span>
+            <button className="bc-cam-close" onClick={closeCam}>✕</button>
+          </div>
+          <div className="bc-cam-body">
+            <video ref={videoRef} className="bc-cam-video" autoPlay playsInline muted/>
+            <div className="bc-cam-guide" style={{width:'80%',aspectRatio:'9/5',top:'50%',left:'10%',transform:'translateY(-50%)'}}>
+              <span className="bc-cam-guide-label">명함을 테두리 안에 맞춰주세요</span>
+            </div>
+          </div>
+          <div className="bc-cam-footer">
+            <button className="bc-cam-shutter" onClick={capture}/>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -1812,6 +2094,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
   const memoRef=useRef(null);
   useEffect(()=>{if(!pencilMode&&memoRef.current){memoRef.current.focus();}},[pencilMode]);
   const [openSec,setOpenSec]=useState(new Set([]));
+  const [bizCard,setBizCard]=useState({front:null,back:null});
   const toggle=(arr,set,v)=>set(p=>p.includes(v)?p.filter(x=>x!==v):[...p,v]);
   const toggleSec=sec=>setOpenSec(p=>{const n=new Set(p);n.has(sec)?n.delete(sec):n.add(sec);return n;});
 
@@ -1825,9 +2108,22 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
       problem:problem?.label||'-',problemCat:problem?.cat||'-',
       problems:problem?[problem.label]:[],
       interests,deliveryDocs,deliveryMedia,
+      businessCard:bizCard,
       memo,status:'신규',
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
+    // 자동 SMS 발송 (fire-and-forget)
+    const smsCfg=loadSolapiConfig();
+    if(smsCfg.workerUrl){
+      const smsData={name,phone,building:building?.label||'-',problem:problem?.label||'-',staff:staffName,staffId};
+      if(smsCfg.autoCustomer!==false&&phone){
+        sendSMS(phone,fillTemplate(loadSmsTemplates().customerThank,smsData)).catch(()=>{});
+      }
+      if(smsCfg.autoStaff!==false){
+        const sp=loadStaffList().find(s=>s.id===staffId)?.phone;
+        if(sp)sendSMS(sp,fillTemplate(loadSmsTemplates().staffNotify,smsData)).catch(()=>{});
+      }
+    }
     setSaving(false);setDone(true);
     setTimeout(()=>onClose(),1400);
   };
@@ -1875,13 +2171,18 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
                   <div style={{position:'relative'}}>
                     <button className="note-input" style={{fontSize:13,textAlign:'left',cursor:'pointer',color:position?'var(--text)':'var(--text-sm)'}} onClick={()=>setShowPosition(!showPosition)}>{position||'직급'}<span style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',fontSize:10,color:'var(--text-sm)'}}>▼</span></button>
                     {showPosition&&<div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1.5px solid var(--border)',borderRadius:9,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:10,overflow:'hidden',marginTop:2}}>
-                      {['관리소장','시공사','입주민','건물주'].map(p=>(
+                      {getPositions(building?.id).map(p=>(
                         <button key={p} onClick={()=>{setPosition(p);setShowPosition(false);}} style={{width:'100%',padding:'10px 14px',border:'none',background:position===p?'var(--blue-l)':'#fff',color:position===p?'var(--blue)':'var(--text)',fontSize:13,fontWeight:position===p?700:500,cursor:'pointer',fontFamily:'inherit',textAlign:'left',borderBottom:'1px solid var(--border-s)'}}>{p}</button>
                       ))}
                     </div>}
                   </div>
                   <input className="note-input" style={{fontSize:13}} placeholder="연락처 *" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
                 </div>
+              </div>
+
+              {/* 명함 촬영 */}
+              <div style={{marginBottom:8,position:'relative'}}>
+                <BusinessCardCapture onCapture={(side,img)=>setBizCard(p=>({...p,[side]:img}))}/>
               </div>
 
               {/* 아코디언 옵션들 */}
@@ -1994,8 +2295,8 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
             </div>{/* 본문 끝 */}
 
             {/* ── 저장 ── */}
-            <div className="note-sheet-foot">
-              <button className="note-save-btn" onClick={save} disabled={saving}>{saving?'저장 중...':'저장하기'}</button>
+            <div className="note-sheet-foot" style={{paddingTop:16}}>
+              <button className="note-save-btn" onPointerDown={e=>{if(e.pointerType==='touch'&&isPenActive()){e.preventDefault();e.stopPropagation();}}} onClick={e=>{if(isPenActive())return;save();}} disabled={saving}>{saving?'저장 중...':'저장하기'}</button>
             </div>
           </>
         )}
@@ -2066,7 +2367,7 @@ function PhotoSlot({src,label,onSet,onRemove,wide,aspect}){
 function AdminScreen({onBack}){
   const [leads,setLeads]=useState([]);
   const [loading,setLoading]=useState(true);
-  const [tab,setTab]=useState('stat'); // 'stat' | 'list' | 'photos'
+  const [tab,setTab]=useState('stat'); // 'stat' | 'list' | 'photos' | 'sms'
   const [casePhotos,setCasePhotos]=useState(()=>loadCasePhotos());
   const [probPhotos,setProbPhotos]=useState(()=>loadProblemPhotos());
   const [search,setSearch]=useState('');
@@ -2075,6 +2376,8 @@ function AdminScreen({onBack}){
   const [filterBuilding,setFilterBuilding]=useState('전체');
   const [filterStatus,setFilterStatus]=useState('전체');
   const [expanded,setExpanded]=useState(null);
+  const [smsTarget,setSmsTarget]=useState(null);
+  const [toast,setToast]=useState(null);
 
   const DAYS=['4/16(목)','4/17(금)','4/18(토)'];
   const STATUS_OPTIONS=['신규','연락완료','계약예정','보류','기타'];
@@ -2166,7 +2469,7 @@ function AdminScreen({onBack}){
 
       {/* 탭 */}
       <div style={{display:'flex',background:'var(--navy)',borderBottom:'1px solid rgba(255,255,255,.1)',flexShrink:0}}>
-        {[['stat','📊 통계'],['list','📋 리드 관리'],['photos','📸 사진 관리']].map(([k,label])=>(
+        {[['stat','📊 통계'],['list','📋 리드 관리'],['photos','📸 사진'],['sms','💬 문자']].map(([k,label])=>(
           <button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:'12px 0',background:'none',border:'none',color:tab===k?'#fff':'rgba(255,255,255,.4)',fontSize:13,fontWeight:tab===k?800:600,cursor:'pointer',borderBottom:tab===k?'2px solid #60A5FA':'2px solid transparent',transition:'all .15s'}}>
             {label}
           </button>
@@ -2317,7 +2620,7 @@ function AdminScreen({onBack}){
                       {/* 연락처 */}
                       <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
                         {l.phone&&<a href={`tel:${l.phone}`} style={{flex:1,minWidth:80,textAlign:'center',padding:'8px',background:'var(--accent-l)',border:'1px solid #BFDBFE',borderRadius:8,color:'var(--accent)',fontSize:12,fontWeight:700,textDecoration:'none'}}>📞 전화</a>}
-                        {l.phone&&<a href={`sms:${l.phone}`} style={{flex:1,minWidth:80,textAlign:'center',padding:'8px',background:'var(--accent-l)',border:'1px solid #BFDBFE',borderRadius:8,color:'var(--accent)',fontSize:12,fontWeight:700,textDecoration:'none'}}>💬 문자</a>}
+                        {l.phone&&<button onClick={()=>setSmsTarget({phone:l.phone,name:l.name,building:l.building,problem:l.problem,staff:l.staff})} style={{flex:1,minWidth:80,textAlign:'center',padding:'8px',background:'var(--purple-l)',border:'1px solid var(--purple-m)',borderRadius:8,color:'var(--purple)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>💬 솔라피</button>}
                         {l.email&&<a href={`mailto:${l.email}`} style={{flex:1,minWidth:80,textAlign:'center',padding:'8px',background:'#F0FDF4',border:'1px solid #BBF7D0',borderRadius:8,color:'#059669',fontSize:12,fontWeight:700,textDecoration:'none'}}>📧 메일</a>}
                       </div>
 
@@ -2445,6 +2748,146 @@ function AdminScreen({onBack}){
           </div>
         </div>
       )}
+
+      {/* ── 문자 설정 탭 ── */}
+      {!loading&&tab==='sms'&&(
+        <SmsSettingsTab/>
+      )}
+
+      {/* SMS 모달 & 토스트 */}
+      {smsTarget&&<SmsModal phone={smsTarget.phone} name={smsTarget.name} building={smsTarget.building} problem={smsTarget.problem} staff={smsTarget.staff}
+        onClose={()=>setSmsTarget(null)} onToast={(msg,type)=>setToast({msg,type})}/>}
+      {toast&&<SmsToast message={toast.msg} type={toast.type} onDone={()=>setToast(null)}/>}
+    </div>
+  );
+}
+
+/* ── SMS 설정 탭 컴포넌트 ── */
+function SmsSettingsTab(){
+  const [cfg,setCfg]=useState(loadSolapiConfig);
+  const [tpls,setTpls]=useState(loadSmsTemplates);
+  const [saved,setSaved]=useState('');
+  const [testPhone,setTestPhone]=useState('');
+  const [testing,setTesting]=useState(false);
+
+  const saveCfg=(next)=>{setCfg(next);saveSolapiConfig(next);setSaved('설정 저장됨');setTimeout(()=>setSaved(''),2000);};
+  const saveTpl=(next)=>{setTpls(next);saveSmsTemplates(next);setSaved('템플릿 저장됨');setTimeout(()=>setSaved(''),2000);};
+
+  const testSend=async()=>{
+    if(!testPhone.trim()){alert('테스트 번호를 입력하세요');return;}
+    setTesting(true);
+    const r=await sendSMS(testPhone,'[POUR솔루션] 테스트 문자입니다. 정상 수신되면 설정 완료!');
+    setTesting(false);
+    if(r.success)setSaved('테스트 발송 성공!');
+    else alert('발송 실패: '+(typeof r.error==='string'?r.error:JSON.stringify(r.error)));
+  };
+
+  const previewVars={name:'홍길동',building:'아파트',problem:'옥상 누수',staff:'김영업',phone:'01012345678'};
+
+  return(
+    <div style={{flex:1,overflowY:'auto',padding:'16px'}}>
+      {saved&&<div style={{position:'fixed',top:80,left:'50%',transform:'translateX(-50%)',zIndex:2000,
+        padding:'8px 18px',borderRadius:10,fontSize:12,fontWeight:700,background:'#059669',color:'#fff',boxShadow:'0 4px 16px rgba(0,0,0,.15)'}}>{saved}</div>}
+
+      {/* 솔라피 연결 설정 */}
+      <div style={{background:'var(--card)',borderRadius:12,padding:'16px',border:'1px solid var(--border)',marginBottom:14}}>
+        <div style={{fontSize:14,fontWeight:900,color:'var(--text)',marginBottom:4}}>⚙️ 솔라피 연결</div>
+        <div style={{fontSize:11,color:'var(--text-sm)',marginBottom:12,lineHeight:1.6}}>
+          Cloudflare Worker 배포 후 URL을 입력하세요.<br/>
+          API Key/Secret는 Worker에 안전하게 보관됩니다.
+        </div>
+        <div style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:5}}>Worker URL</div>
+        <input value={cfg.workerUrl||''} onChange={e=>saveCfg({...cfg,workerUrl:e.target.value})}
+          placeholder="https://solapi-proxy.xxx.workers.dev"
+          style={{width:'100%',padding:'11px 13px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:13,color:'var(--text)',background:'var(--bg)',outline:'none',fontFamily:'inherit',boxSizing:'border-box',marginBottom:10}}/>
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+          <input value={testPhone} onChange={e=>setTestPhone(e.target.value)} placeholder="테스트 번호 (01012345678)"
+            style={{flex:1,padding:'10px 12px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:12,color:'var(--text)',background:'var(--bg)',outline:'none',fontFamily:'inherit',boxSizing:'border-box'}} type="tel"/>
+          <button onClick={testSend} disabled={testing||!cfg.workerUrl}
+            style={{padding:'10px 16px',borderRadius:9,border:'none',background:cfg.workerUrl?'var(--blue)':'var(--border)',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',opacity:testing?.6:1,whiteSpace:'nowrap'}}>
+            {testing?'발송중...':'테스트 발송'}
+          </button>
+        </div>
+        <div style={{marginTop:8,padding:'8px 10px',background:'var(--bg)',borderRadius:8,fontSize:10,color:'var(--text-sm)',lineHeight:1.6}}>
+          상태: {cfg.workerUrl?'✅ Worker URL 설정됨':'❌ 미설정 — 문자 발송 불가'}
+        </div>
+      </div>
+
+      {/* 자동 발송 설정 */}
+      <div style={{background:'var(--card)',borderRadius:12,padding:'16px',border:'1px solid var(--border)',marginBottom:14}}>
+        <div style={{fontSize:14,fontWeight:900,color:'var(--text)',marginBottom:4}}>🔔 자동 발송 설정</div>
+        <div style={{fontSize:11,color:'var(--text-sm)',marginBottom:12,lineHeight:1.6}}>
+          상담 저장 시 자동으로 문자를 보낼지 설정합니다.
+        </div>
+        <label style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:'var(--bg)',borderRadius:9,marginBottom:8,cursor:'pointer'}}>
+          <input type="checkbox" checked={cfg.autoCustomer!==false} onChange={e=>saveCfg({...cfg,autoCustomer:e.target.checked})}
+            style={{width:18,height:18,accentColor:'var(--blue)'}}/>
+          <div><div style={{fontSize:13,fontWeight:700}}>고객 감사 문자</div><div style={{fontSize:11,color:'var(--text-sm)'}}>저장 시 고객에게 자동 발송</div></div>
+        </label>
+        <label style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',background:'var(--bg)',borderRadius:9,cursor:'pointer'}}>
+          <input type="checkbox" checked={cfg.autoStaff!==false} onChange={e=>saveCfg({...cfg,autoStaff:e.target.checked})}
+            style={{width:18,height:18,accentColor:'var(--purple)'}}/>
+          <div><div style={{fontSize:13,fontWeight:700}}>담당자 알림 문자</div><div style={{fontSize:11,color:'var(--text-sm)'}}>저장 시 담당 영업사원에게 알림</div></div>
+        </label>
+      </div>
+
+      {/* 고객 감사 템플릿 */}
+      <div style={{background:'var(--card)',borderRadius:12,padding:'16px',border:'1px solid var(--border)',marginBottom:14}}>
+        <div style={{fontSize:14,fontWeight:900,color:'var(--text)',marginBottom:4}}>📨 고객 감사 문자 템플릿</div>
+        <div style={{fontSize:10,color:'var(--text-sm)',marginBottom:8,lineHeight:1.5}}>
+          변수: <code style={{background:'var(--bg)',padding:'1px 5px',borderRadius:4}}>{'{{name}}'}</code>{' '}
+          <code style={{background:'var(--bg)',padding:'1px 5px',borderRadius:4}}>{'{{building}}'}</code>{' '}
+          <code style={{background:'var(--bg)',padding:'1px 5px',borderRadius:4}}>{'{{problem}}'}</code>{' '}
+          <code style={{background:'var(--bg)',padding:'1px 5px',borderRadius:4}}>{'{{staff}}'}</code>
+        </div>
+        <textarea value={tpls.customerThank} onChange={e=>saveTpl({...tpls,customerThank:e.target.value})}
+          style={{width:'100%',minHeight:80,padding:'12px 14px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:13,
+            lineHeight:1.7,color:'var(--text)',fontFamily:'inherit',resize:'none',outline:'none',boxSizing:'border-box',marginBottom:6}}/>
+        <div style={{fontSize:11,color:'var(--text-sm)',marginBottom:6}}>{tpls.customerThank.length}자 {tpls.customerThank.length>90?'(LMS)':'(SMS)'}</div>
+        <div style={{padding:'10px 12px',background:'var(--blue-l)',borderRadius:8,fontSize:11,color:'var(--blue)',lineHeight:1.6,fontWeight:600}}>
+          미리보기: {fillTemplate(tpls.customerThank,previewVars)}
+        </div>
+        <button onClick={()=>saveTpl({...tpls,customerThank:DEFAULT_TEMPLATES.customerThank})}
+          style={{marginTop:8,padding:'7px 14px',borderRadius:7,border:'1px solid var(--border)',background:'var(--bg)',fontSize:11,fontWeight:600,color:'var(--text-sm)',cursor:'pointer',fontFamily:'inherit'}}>
+          기본값으로 리셋
+        </button>
+      </div>
+
+      {/* 담당자 알림 템플릿 */}
+      <div style={{background:'var(--card)',borderRadius:12,padding:'16px',border:'1px solid var(--border)',marginBottom:14}}>
+        <div style={{fontSize:14,fontWeight:900,color:'var(--text)',marginBottom:4}}>📢 담당자 알림 문자 템플릿</div>
+        <div style={{fontSize:10,color:'var(--text-sm)',marginBottom:8,lineHeight:1.5}}>
+          변수: <code style={{background:'var(--bg)',padding:'1px 5px',borderRadius:4}}>{'{{name}}'}</code>{' '}
+          <code style={{background:'var(--bg)',padding:'1px 5px',borderRadius:4}}>{'{{building}}'}</code>{' '}
+          <code style={{background:'var(--bg)',padding:'1px 5px',borderRadius:4}}>{'{{problem}}'}</code>{' '}
+          <code style={{background:'var(--bg)',padding:'1px 5px',borderRadius:4}}>{'{{staff}}'}</code>
+        </div>
+        <textarea value={tpls.staffNotify} onChange={e=>saveTpl({...tpls,staffNotify:e.target.value})}
+          style={{width:'100%',minHeight:80,padding:'12px 14px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:13,
+            lineHeight:1.7,color:'var(--text)',fontFamily:'inherit',resize:'none',outline:'none',boxSizing:'border-box',marginBottom:6}}/>
+        <div style={{fontSize:11,color:'var(--text-sm)',marginBottom:6}}>{tpls.staffNotify.length}자 {tpls.staffNotify.length>90?'(LMS)':'(SMS)'}</div>
+        <div style={{padding:'10px 12px',background:'var(--purple-l)',borderRadius:8,fontSize:11,color:'var(--purple)',lineHeight:1.6,fontWeight:600}}>
+          미리보기: {fillTemplate(tpls.staffNotify,previewVars)}
+        </div>
+        <button onClick={()=>saveTpl({...tpls,staffNotify:DEFAULT_TEMPLATES.staffNotify})}
+          style={{marginTop:8,padding:'7px 14px',borderRadius:7,border:'1px solid var(--border)',background:'var(--bg)',fontSize:11,fontWeight:600,color:'var(--text-sm)',cursor:'pointer',fontFamily:'inherit'}}>
+          기본값으로 리셋
+        </button>
+      </div>
+
+      {/* 배포 가이드 */}
+      <div style={{background:'var(--navy)',borderRadius:12,padding:'16px',marginBottom:14}}>
+        <div style={{fontSize:13,fontWeight:800,color:'#fff',marginBottom:8}}>🚀 Cloudflare Worker 배포 가이드</div>
+        <div style={{fontSize:11,color:'rgba(255,255,255,.7)',lineHeight:2}}>
+          1. <span style={{color:'var(--gold)'}}>npx wrangler init solapi-proxy</span><br/>
+          2. worker.js 내용을 src/index.js에 복사<br/>
+          3. <span style={{color:'var(--gold)'}}>npx wrangler secret put SOLAPI_API_KEY</span><br/>
+          4. <span style={{color:'var(--gold)'}}>npx wrangler secret put SOLAPI_API_SECRET</span><br/>
+          5. <span style={{color:'var(--gold)'}}>npx wrangler secret put SOLAPI_SENDER</span><br/>
+          6. <span style={{color:'var(--gold)'}}>npx wrangler deploy</span><br/>
+          7. 배포 URL을 위 Worker URL에 입력
+        </div>
+      </div>
     </div>
   );
 }

@@ -504,6 +504,11 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
 .draw-tool:hover .draw-tool-tip{opacity:1;}
 .draw-highlight-tool{position:relative;}
 .draw-highlight-tool::after{content:'';position:absolute;bottom:2px;right:2px;width:8px;height:8px;border-radius:50%;border:1.5px solid #fff;}
+.pencil-scroll-zone{width:44px;flex-shrink:0;background:linear-gradient(135deg,#F3F4F6 0%,#E5E7EB 50%,#F3F4F6 100%);border-radius:0 12px 12px 0;border:1.5px solid var(--border);border-left:1px dashed var(--border);display:flex;align-items:center;justify-content:center;touch-action:auto;-webkit-user-select:none;user-select:none;min-height:800px;position:relative;}
+.pencil-scroll-label{writing-mode:vertical-rl;text-orientation:mixed;font-size:11px;font-weight:700;color:var(--text-sm);letter-spacing:3px;opacity:.7;}
+.note-head-save{padding:7px 18px;border-radius:10px;border:none;background:var(--purple);color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap;transition:opacity .12s;}
+.note-head-save:disabled{opacity:.5;}
+.note-head-save:active{opacity:.8;}
 </style>
 </head>
 <body>
@@ -1305,6 +1310,8 @@ function CSMemoScreen({building,problem,staffId,staffName,staffDay,onBack,onSave
   const [csProbs,setCsProbs]=useState(problem?[problem.label]:[]);
   const [csActions,setCsActions]=useState([]);
   const [csMemo,setCsMemo]=useState('');
+  const [csPosition,setCsPosition]=useState('');
+  const [csShowPosition,setCsShowPosition]=useState(false);
   const [saving,setSaving]=useState(false);
   const [saveConfirm,setSaveConfirm]=useState(false);
   const memoScrollRef=useRef(null);
@@ -1315,7 +1322,7 @@ function CSMemoScreen({building,problem,staffId,staffName,staffDay,onBack,onSave
     setSaving(true);
     const data={
       savedAt:new Date().toISOString(),day:memoDay,staffId:memoStaffId,staff:memoStaffName,
-      name:csName,phone:csPhone,email:csEmail,contactMethod:csContact,
+      name:csName,phone:csPhone,email:csEmail,position:csPosition,contactMethod:csContact,
       building:building?.label||'-',buildingId:building?.id||'-',
       problem:problem?.label||'-',problemCat:problem?.cat||'-',
       problems:csProbs,
@@ -1392,7 +1399,17 @@ function CSMemoScreen({building,problem,staffId,staffName,staffDay,onBack,onSave
         <div className="msec">
           <div className="msec-title">고객 정보 <span style={{color:'var(--blue)',fontWeight:700,fontSize:11,letterSpacing:0,textTransform:'none'}}>* 전화 또는 이메일 필수</span></div>
           <div style={{display:'flex',flexDirection:'column',gap:9}}>
-            <input className="minput" placeholder="성함 *" value={csName} onChange={e=>setCsName(e.target.value)}/>
+            <div style={{display:'grid',gridTemplateColumns:'2fr 1fr',gap:8}}>
+              <input className="minput" placeholder="성함 *" value={csName} onChange={e=>setCsName(e.target.value)}/>
+              <div style={{position:'relative'}}>
+                <button className="minput" style={{textAlign:'left',cursor:'pointer',color:csPosition?'var(--text)':'var(--text-sm)',position:'relative',paddingRight:28}} onClick={()=>setCsShowPosition(!csShowPosition)}>{csPosition||'직급'}<span style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',fontSize:10,color:'var(--text-sm)'}}>▼</span></button>
+                {csShowPosition&&<div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1.5px solid var(--border)',borderRadius:9,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:10,overflow:'hidden',marginTop:2,maxHeight:200,overflowY:'auto'}}>
+                  {getPositions(building?.id).map(p=>(
+                    <button key={p} onClick={()=>{setCsPosition(p);setCsShowPosition(false);}} style={{width:'100%',padding:'10px 14px',border:'none',background:csPosition===p?'var(--blue-l)':'#fff',color:csPosition===p?'var(--blue)':'var(--text)',fontSize:13,fontWeight:csPosition===p?700:500,cursor:'pointer',fontFamily:'inherit',textAlign:'left',borderBottom:'1px solid var(--border-s)'}}>{p}</button>
+                  ))}
+                </div>}
+              </div>
+            </div>
             <input className="minput" placeholder="전화번호" value={csPhone} onChange={e=>setCsPhone(e.target.value)} inputMode="tel"/>
             <input className="minput" placeholder="이메일 (선택)" value={csEmail} onChange={e=>setCsEmail(e.target.value)} inputMode="email"/>
           </div>
@@ -1538,6 +1555,9 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   useEffect(()=>{if(!ntPencilMode&&ntMemoRef.current){ntMemoRef.current.focus();}},[ntPencilMode]);
   const [ntOpenSec,setNtOpenSec]=useState(new Set([]));
   const [ntBizCard,setNtBizCard]=useState({front:null,back:null});
+  const [ntQuickSms,setNtQuickSms]=useState(false);
+  const [ntSmsText,setNtSmsText]=useState('');
+  const [ntSmsSending,setNtSmsSending]=useState(false);
 
   const ntToggleSec=sec=>setNtOpenSec(p=>{const n=new Set(p);n.has(sec)?n.delete(sec):n.add(sec);return n;});
 
@@ -1585,13 +1605,13 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       }
     }
     setNtSaving(false);setNtDone(true);
-    setTimeout(()=>{
-      setShowNote(false);setNtDone(false);
-      setNtName('');setNtCompany('');setNtPosition('');
-      setNtPhone('');setNtEmail('');setNtContact([]);
-      setNtInterests([]);setNtDeliveryDocs([]);setNtDeliveryMedia([]);
-      setNtMemo('');
-    },2000);
+  };
+  const ntResetAndClose=()=>{
+    setShowNote(false);setNtDone(false);setNtQuickSms(false);
+    setNtName('');setNtCompany('');setNtPosition('');
+    setNtPhone('');setNtEmail('');setNtContact([]);
+    setNtInterests([]);setNtDeliveryDocs([]);setNtDeliveryMedia([]);
+    setNtMemo('');
   };
 
   const logText=[
@@ -1733,7 +1753,38 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px 20px 40px'}}>
                 <div style={{fontSize:44,marginBottom:10}}>✅</div>
                 <div style={{fontSize:17,fontWeight:800,color:'var(--text)',marginBottom:4}}>영업 메모 저장됐어요!</div>
-                <div style={{fontSize:13,color:'var(--text-sm)'}}>{ntName}님 · {staffName} · {staffDay}</div>
+                <div style={{fontSize:13,color:'var(--text-sm)',marginBottom:20}}>{ntName}님 · {staffName} · {staffDay}</div>
+                {!ntQuickSms?(
+                  <div style={{display:'flex',flexDirection:'column',gap:10,width:'100%',maxWidth:300}}>
+                    {ntPhone&&loadSolapiConfig().workerUrl&&(
+                      <button onClick={()=>{const tpls=loadSmsTemplates();const vars={name:ntName,building:building?.label||'-',problem:problem?.label||'-',staff:staffName,phone:ntPhone};setNtSmsText(fillTemplate(tpls.customerThank,vars));setNtQuickSms(true);}}
+                        style={{padding:'14px 20px',borderRadius:12,border:'none',background:'var(--blue)',color:'#fff',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>
+                        💬 바로 문자 보내기
+                      </button>
+                    )}
+                    <button onClick={ntResetAndClose}
+                      style={{padding:'12px 20px',borderRadius:12,border:'1.5px solid var(--border)',background:'#fff',color:'var(--text-md)',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
+                      닫기
+                    </button>
+                  </div>
+                ):(
+                  <div style={{width:'100%',maxWidth:360,padding:'0 10px'}}>
+                    <div style={{fontSize:13,fontWeight:700,color:'var(--text)',marginBottom:6}}>수신: <span style={{color:'var(--blue)'}}>{ntPhone}</span> ({ntName})</div>
+                    <textarea value={ntSmsText} onChange={e=>setNtSmsText(e.target.value)}
+                      style={{width:'100%',minHeight:100,padding:'12px 14px',borderRadius:10,border:'1.5px solid var(--border)',fontSize:13,lineHeight:1.7,color:'var(--text)',fontFamily:'inherit',resize:'none',outline:'none',boxSizing:'border-box'}}/>
+                    <div style={{fontSize:10,color:'var(--text-sm)',margin:'6px 0 12px'}}>{ntSmsText.length}자 {ntSmsText.length>90?'(LMS)':'(SMS)'}</div>
+                    <div style={{display:'flex',gap:10}}>
+                      <button onClick={ntResetAndClose}
+                        style={{flex:1,padding:'12px 0',borderRadius:10,border:'1.5px solid var(--border)',background:'var(--bg)',fontSize:13,fontWeight:700,color:'var(--text-md)',cursor:'pointer',fontFamily:'inherit'}}>
+                        건너뛰기
+                      </button>
+                      <button onClick={async()=>{if(!ntPhone)return;setNtSmsSending(true);const r=await sendSMS(ntPhone,ntSmsText);setNtSmsSending(false);if(r.success){setNtQuickSms(false);ntResetAndClose();}else{alert('발송 실패: '+(typeof r.error==='string'?r.error:JSON.stringify(r.error)));}}} disabled={ntSmsSending}
+                        style={{flex:2,padding:'12px 0',borderRadius:10,border:'none',background:'var(--blue)',fontSize:14,fontWeight:800,color:'#fff',cursor:'pointer',fontFamily:'inherit',opacity:ntSmsSending?.6:1}}>
+                        {ntSmsSending?'발송 중...':'발송하기'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ):(
               <>
@@ -1748,7 +1799,10 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                         <span style={{fontSize:11,color:'var(--text-sm)'}}>· {staffDay}</span>
                       </div>
                     </div>
-                    <button onClick={()=>setShowNote(false)} style={{width:32,height:32,borderRadius:'50%',border:'none',background:'var(--bg)',color:'var(--text-md)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                    <div style={{display:'flex',alignItems:'center',gap:8}}>
+                      <button className="note-head-save" onPointerDown={e=>{if(e.pointerType==='touch'&&isPenActive()){e.preventDefault();e.stopPropagation();}}} onClick={e=>{if(isPenActive())return;saveNote();}} disabled={ntSaving}>{ntSaving?'저장 중...':'저장하기'}</button>
+                      <button onClick={()=>setShowNote(false)} style={{width:32,height:32,borderRadius:'50%',border:'none',background:'var(--bg)',color:'var(--text-md)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                    </div>
                   </div>
                   <div className="note-ctx" style={{marginTop:8,marginBottom:0}}>
                     <div className="note-ctx-row">
@@ -1882,7 +1936,12 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                   <div style={{marginBottom:10}}>
                     <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>상담 메모</div>
                     {ntPencilMode
-                      ?<DrawCanvas/>
+                      ?<div style={{display:'flex',gap:0}}>
+                        <div style={{flex:1,minWidth:0}}><DrawCanvas/></div>
+                        <div className="pencil-scroll-zone">
+                          <span className="pencil-scroll-label">손으로 터치하여 스크롤</span>
+                        </div>
+                      </div>
                       :<textarea
                         className="note-memo"
                         style={{resize:'none',minHeight:300,width:'100%',fontSize:15,lineHeight:'1.85'}}
@@ -1894,13 +1953,6 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                   </div>
 
                 </div>{/* 본문 끝 */}
-
-                {/* ── 저장 버튼 ── */}
-                <div className="note-sheet-foot" style={{paddingTop:16}}>
-                  <button className="note-save-btn" onPointerDown={e=>{if(e.pointerType==='touch'&&isPenActive()){e.preventDefault();e.stopPropagation();}}} onClick={e=>{if(isPenActive())return;saveNote();}} disabled={ntSaving}>
-                    {ntSaving?'저장 중...':'저장하기'}
-                  </button>
-                </div>
               </>
             )}
           </div>
@@ -2095,6 +2147,9 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
   useEffect(()=>{if(!pencilMode&&memoRef.current){memoRef.current.focus();}},[pencilMode]);
   const [openSec,setOpenSec]=useState(new Set([]));
   const [bizCard,setBizCard]=useState({front:null,back:null});
+  const [quickSms,setQuickSms]=useState(false);
+  const [smsText,setSmsText]=useState('');
+  const [smsSending,setSmsSending]=useState(false);
   const toggle=(arr,set,v)=>set(p=>p.includes(v)?p.filter(x=>x!==v):[...p,v]);
   const toggleSec=sec=>setOpenSec(p=>{const n=new Set(p);n.has(sec)?n.delete(sec):n.add(sec);return n;});
 
@@ -2125,7 +2180,6 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
       }
     }
     setSaving(false);setDone(true);
-    setTimeout(()=>onClose(),1400);
   };
 
   return(
@@ -2134,7 +2188,39 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
         {done?(
           <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'40px 20px'}}>
             <div style={{fontSize:44,marginBottom:10}}>✅</div>
-            <div style={{fontSize:17,fontWeight:800,color:'var(--text)'}}>영업 메모 저장됐어요!</div>
+            <div style={{fontSize:17,fontWeight:800,color:'var(--text)',marginBottom:4}}>영업 메모 저장됐어요!</div>
+            <div style={{fontSize:13,color:'var(--text-sm)',marginBottom:20}}>{name}님 · {staffName} · {staffDay}</div>
+            {!quickSms?(
+              <div style={{display:'flex',flexDirection:'column',gap:10,width:'100%',maxWidth:300}}>
+                {phone&&loadSolapiConfig().workerUrl&&(
+                  <button onClick={()=>{const tpls=loadSmsTemplates();const vars={name,building:building?.label||'-',problem:problem?.label||'-',staff:staffName,phone};setSmsText(fillTemplate(tpls.customerThank,vars));setQuickSms(true);}}
+                    style={{padding:'14px 20px',borderRadius:12,border:'none',background:'var(--blue)',color:'#fff',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>
+                    💬 바로 문자 보내기
+                  </button>
+                )}
+                <button onClick={onClose}
+                  style={{padding:'12px 20px',borderRadius:12,border:'1.5px solid var(--border)',background:'#fff',color:'var(--text-md)',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
+                  닫기
+                </button>
+              </div>
+            ):(
+              <div style={{width:'100%',maxWidth:360,padding:'0 10px'}}>
+                <div style={{fontSize:13,fontWeight:700,color:'var(--text)',marginBottom:6}}>수신: <span style={{color:'var(--blue)'}}>{phone}</span> ({name})</div>
+                <textarea value={smsText} onChange={e=>setSmsText(e.target.value)}
+                  style={{width:'100%',minHeight:100,padding:'12px 14px',borderRadius:10,border:'1.5px solid var(--border)',fontSize:13,lineHeight:1.7,color:'var(--text)',fontFamily:'inherit',resize:'none',outline:'none',boxSizing:'border-box'}}/>
+                <div style={{fontSize:10,color:'var(--text-sm)',margin:'6px 0 12px'}}>{smsText.length}자 {smsText.length>90?'(LMS)':'(SMS)'}</div>
+                <div style={{display:'flex',gap:10}}>
+                  <button onClick={onClose}
+                    style={{flex:1,padding:'12px 0',borderRadius:10,border:'1.5px solid var(--border)',background:'var(--bg)',fontSize:13,fontWeight:700,color:'var(--text-md)',cursor:'pointer',fontFamily:'inherit'}}>
+                    건너뛰기
+                  </button>
+                  <button onClick={async()=>{if(!phone)return;setSmsSending(true);const r=await sendSMS(phone,smsText);setSmsSending(false);if(r.success){onClose();}else{alert('발송 실패: '+(typeof r.error==='string'?r.error:JSON.stringify(r.error)));}}} disabled={smsSending}
+                    style={{flex:2,padding:'12px 0',borderRadius:10,border:'none',background:'var(--blue)',fontSize:14,fontWeight:800,color:'#fff',cursor:'pointer',fontFamily:'inherit',opacity:smsSending?.6:1}}>
+                    {smsSending?'발송 중...':'발송하기'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ):(
           <>
@@ -2149,7 +2235,10 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
                     <span style={{fontSize:11,color:'var(--text-sm)'}}>· {staffDay}</span>
                   </div>
                 </div>
-                <button onClick={onClose} style={{width:32,height:32,borderRadius:'50%',border:'none',background:'var(--bg)',color:'var(--text-md)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  <button className="note-head-save" onPointerDown={e=>{if(e.pointerType==='touch'&&isPenActive()){e.preventDefault();e.stopPropagation();}}} onClick={e=>{if(isPenActive())return;save();}} disabled={saving}>{saving?'저장 중...':'저장하기'}</button>
+                  <button onClick={onClose} style={{width:32,height:32,borderRadius:'50%',border:'none',background:'var(--bg)',color:'var(--text-md)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                </div>
               </div>
               <div className="note-ctx" style={{marginTop:8,marginBottom:0}}>
                 <div className="note-ctx-row">
@@ -2281,7 +2370,12 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
               <div style={{marginBottom:10}}>
                 <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>상담 메모</div>
                 {pencilMode
-                  ?<DrawCanvas/>
+                  ?<div style={{display:'flex',gap:0}}>
+                    <div style={{flex:1,minWidth:0}}><DrawCanvas/></div>
+                    <div className="pencil-scroll-zone">
+                      <span className="pencil-scroll-label">손으로 터치하여 스크롤</span>
+                    </div>
+                  </div>
                   :<textarea
                     ref={memoRef}
                     className="note-memo"
@@ -2293,11 +2387,6 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
               </div>
 
             </div>{/* 본문 끝 */}
-
-            {/* ── 저장 ── */}
-            <div className="note-sheet-foot" style={{paddingTop:16}}>
-              <button className="note-save-btn" onPointerDown={e=>{if(e.pointerType==='touch'&&isPenActive()){e.preventDefault();e.stopPropagation();}}} onClick={e=>{if(isPenActive())return;save();}} disabled={saving}>{saving?'저장 중...':'저장하기'}</button>
-            </div>
           </>
         )}
       </div>

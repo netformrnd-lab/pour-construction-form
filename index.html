@@ -939,6 +939,17 @@ const INTEREST_CATS=[
 const DELIVERY_DOCS=['견적서','공법 시방서','회사소개서','기술 가이드북','시공사례집','인증서/시험성적서','단가표','카탈로그'];
 const DELIVERY_MEDIA=['이메일','문자','카카오톡','방문 직접 전달'];
 
+const POSITIONS_BY_BUILDING={
+  apt:['관리소장','시설팀장','입주자대표','경비팀장','입주민'],
+  gov:['팀장','과장','주무관','시설담당'],
+  house:['건물주','세입자'],
+  villa:['건물주','관리인','임대관리'],
+  hospital:['원장','행정팀장','시설팀장','과장'],
+  school:['교장','교감','행정실장','시설관리'],
+};
+const DEFAULT_POSITIONS=['대표','부장','차장','과장','대리','팀장','관리소장','건물주'];
+const getPositions=(buildingId)=>POSITIONS_BY_BUILDING[buildingId]||DEFAULT_POSITIONS;
+
 /* ── helpers ── */
 const loadStaffList=()=>{try{return JSON.parse(localStorage.getItem('pourStaffList')||'[]');}catch{return[];}};
 const saveStaffList=l=>localStorage.setItem('pourStaffList',JSON.stringify(l));
@@ -1761,7 +1772,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                       <div style={{position:'relative'}}>
                         <button className="note-input" style={{fontSize:13,textAlign:'left',cursor:'pointer',color:ntPosition?'var(--text)':'var(--text-sm)'}} onClick={()=>setNtShowPosition(!ntShowPosition)}>{ntPosition||'직급'}<span style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',fontSize:10,color:'var(--text-sm)'}}>▼</span></button>
                         {ntShowPosition&&<div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1.5px solid var(--border)',borderRadius:9,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:10,overflow:'hidden',marginTop:2}}>
-                          {['대표','부장','차장','과장','대리','팀장','관리소장','시설팀장','건물주','입주민'].map(p=>(
+                          {getPositions(building?.id).map(p=>(
                             <button key={p} onClick={()=>{setNtPosition(p);setNtShowPosition(false);}} style={{width:'100%',padding:'10px 14px',border:'none',background:ntPosition===p?'var(--blue-l)':'#fff',color:ntPosition===p?'var(--blue)':'var(--text)',fontSize:13,fontWeight:ntPosition===p?700:500,cursor:'pointer',fontFamily:'inherit',textAlign:'left',borderBottom:'1px solid var(--border-s)'}}>{p}</button>
                           ))}
                         </div>}
@@ -2160,7 +2171,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
                   <div style={{position:'relative'}}>
                     <button className="note-input" style={{fontSize:13,textAlign:'left',cursor:'pointer',color:position?'var(--text)':'var(--text-sm)'}} onClick={()=>setShowPosition(!showPosition)}>{position||'직급'}<span style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',fontSize:10,color:'var(--text-sm)'}}>▼</span></button>
                     {showPosition&&<div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1.5px solid var(--border)',borderRadius:9,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:10,overflow:'hidden',marginTop:2}}>
-                      {['대표','부장','차장','과장','대리','팀장','관리소장','시설팀장','건물주','입주민'].map(p=>(
+                      {getPositions(building?.id).map(p=>(
                         <button key={p} onClick={()=>{setPosition(p);setShowPosition(false);}} style={{width:'100%',padding:'10px 14px',border:'none',background:position===p?'var(--blue-l)':'#fff',color:position===p?'var(--blue)':'var(--text)',fontSize:13,fontWeight:position===p?700:500,cursor:'pointer',fontFamily:'inherit',textAlign:'left',borderBottom:'1px solid var(--border-s)'}}>{p}</button>
                       ))}
                     </div>}

@@ -740,7 +740,28 @@ function DrawCanvas({onDataUrl}){
       }
     }
   };
-  const emitDataUrl=()=>{if(onDataUrl){const c=canvasRef.current;if(c)onDataUrl(c.toDataURL('image/png'));}};
+  const emitDataUrl=()=>{
+    if(!onDataUrl)return;
+    const c=canvasRef.current;if(!c)return;
+    // 현재 페이지 저장
+    pages.current[currentPage]={strokes:strokes.current,undoStack:undoStack.current,redoStack:redoStack.current};
+    const dpr=window.devicePixelRatio||1;
+    const w=c.width/dpr;const h=c.height/dpr;const spacing=32;
+    const imgs=pages.current
+      .filter(pg=>pg.strokes.length>0)
+      .map(pg=>{
+        const off=document.createElement('canvas');off.width=c.width;off.height=c.height;
+        const ctx=off.getContext('2d');
+        ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);
+        ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);
+        ctx.strokeStyle='#e8ecf0';ctx.lineWidth=0.5;
+        for(let y=spacing;y<h;y+=spacing){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+        pg.strokes.forEach(s=>drawSmoothStroke(ctx,s));
+        ctx.restore();
+        return off.toDataURL('image/png');
+      });
+    onDataUrl(imgs);
+  };
   const end=(e)=>{
     if(!drawing.current)return;
     drawing.current=false;
@@ -991,10 +1012,167 @@ const BENEFITS={
 };
 
 const ACTION_TAGS=[
-  {id:'estimate',label:'견적서',icon:'💰'},{id:'proposal',label:'공법 시방서',icon:'📄'},
-  {id:'brochure',label:'소개서',icon:'📖'},{id:'meeting',label:'미팅요청',icon:'🤝'},
-  {id:'sample',label:'샘플요청',icon:'📦'},{id:'visit',label:'현장방문',icon:'🔍'},
+  {id:'catalog_method',label:'카탈로그(공법)',icon:'📘'},
+  {id:'catalog_material',label:'카탈로그(자재)',icon:'📙'},
+  {id:'sample',label:'샘플(슁글·기와·슬라브·균열)',icon:'📦'},
   {id:'spec',label:'시방서',icon:'📋'},
+  {id:'proposal',label:'제안서',icon:'📄'},
+  {id:'price_list',label:'단가표',icon:'💲'},
+  {id:'cert',label:'인증서/시험성적서',icon:'🏅'},
+  {id:'estimate',label:'견적산출',icon:'🔢'},
+];
+
+/* ── POUR스토어 데이터 ── */
+const STORE_PROBLEMS=[
+  {id:'roof_leak',    label:'옥상·지붕 누수',    icon:'💧', cat:'방수', desc:'방수층 손상·물고임·침수'},
+  {id:'crack',        label:'균열·크랙',          icon:'⚡', cat:'보수', desc:'콘크리트 벽·바닥 균열 발생'},
+  {id:'gap_leak',     label:'틈새·이음부 누수',   icon:'🔩', cat:'방수', desc:'창문·배관·조인트 주변 누수'},
+  {id:'drain_leak',   label:'배수구·배수로 문제', icon:'🌊', cat:'방수', desc:'배수구 막힘·주변 누수'},
+  {id:'rust_iron',    label:'철재 부식·녹',       icon:'🦀', cat:'도장', desc:'철재 구조물·지붕 녹 발생'},
+  {id:'wall_paint',   label:'외벽 도장·박리',     icon:'🏚️', cat:'도장', desc:'외벽 페인트 벗겨짐·오염'},
+  {id:'wood_damage',  label:'목재 손상·부식',     icon:'🌳', cat:'도장', desc:'목재 구조물·가구 부식·손상'},
+  {id:'concrete_base',label:'바탕면·미장 손상',   icon:'🧱', cat:'보수', desc:'콘크리트 바탕면 박리·손상'},
+];
+const STORE_SOLUTION_MAP={
+  roof_leak:{
+    headline:'옥상·지붕 방수 패키지 추천',
+    tip:'POUR 코트재 기반 — 우레탄보다 쉽고 튼튼! 롤러 하나로 셀프시공 완성',
+    packages:[
+      {name:'평형 옥상 방수 패키지',desc:'우레탄보다 쉽고 튼튼한 옥상방수',tag:'51% · 25,000원/m²',icon:'💧'},
+      {name:'슁글 지붕 방수 패키지',desc:'슁글 탈락 방지와 방수층 형성',tag:'43% · 20,000원/m²',icon:'🏠'},
+    ]},
+  crack:{
+    headline:'균열 보수 패키지 추천',
+    tip:'고탄성 POUR 퍼티 + 균열보수시트 — 셀프 보수 완성, 재발 방지까지',
+    packages:[
+      {name:'균열보수 스타터 패키지',desc:'첫 시공도 걱정없이 손쉽게',tag:'49% · 35,000원',icon:'⚡'},
+      {name:'외벽 균열 및 도장 패키지',desc:'균열 보수부터 도장까지 한 번에',tag:'51% · 3,000원/m²',icon:'🏚️'},
+    ]},
+  gap_leak:{
+    headline:'틈새·이음부 방수 패키지 추천',
+    tip:'POUR 균열보수시트 — 이음부 누수 완전 차단, 신축성 높아 재발 없음',
+    packages:[
+      {name:'틈새 누수 차단 패키지',desc:'이음부 보수 셀프로 간편하게',tag:'45% · 1,800원/m',icon:'🔩'},
+      {name:'균열보수 스타터 패키지',desc:'첫 시공도 걱정없이 손쉽게',tag:'49% · 35,000원',icon:'⚡'},
+    ]},
+  drain_leak:{
+    headline:'배수구·배수로 방수 패키지 추천',
+    tip:'국내 유일 배수관 비파괴 방수 트랩 — 배관 교체 없이 근본 해결',
+    packages:[
+      {name:'배수로 방수 패키지',desc:'배수로 누수 막는 셀프시공',tag:'33% · 18,000원/m²',icon:'🌊'},
+      {name:'배수구 방수 보강 패키지',desc:'배수구 틈새와 누수방지 최적 조합',tag:'57% · 64,900원',icon:'💧'},
+    ]},
+  rust_iron:{
+    headline:'철재 방청·도장 패키지 추천',
+    tip:'칼라강판 전용 POUR 도료 — 부식 걱정 없이 새 지붕처럼 리뉴얼',
+    packages:[
+      {name:'칼라강판 도장 패키지',desc:'부식 걱정 없이 새 지붕처럼',tag:'30% · 7,000원/m²',icon:'🦀'},
+      {name:'철재 도장 페인트 패키지',desc:'철재 특화 보호 코팅',tag:'43% · 1,500원/m',icon:'⚙️'},
+    ]},
+  wall_paint:{
+    headline:'외벽 도장 패키지 추천',
+    tip:'균열 보수부터 도장까지 한 번에 — POUR 외벽 패키지로 깔끔하게',
+    packages:[
+      {name:'외벽 균열 및 도장 패키지',desc:'균열 보수부터 도장까지 한 번에',tag:'51% · 3,000원/m²',icon:'🏚️'},
+      {name:'균열보수 스타터 패키지',desc:'균열 먼저 잡고 도장',tag:'49% · 35,000원',icon:'⚡'},
+    ]},
+  wood_damage:{
+    headline:'목재·가구 도장 패키지 추천',
+    tip:'목재 전용 POUR 도료 — 우수한 코팅력, 초보도 롤러 하나로 간단하게',
+    packages:[
+      {name:'목재 가구 페인트 패키지',desc:'목재 및 가구용 도장 코트재',tag:'57% · 1,500원/m',icon:'🌳'},
+    ]},
+  concrete_base:{
+    headline:'바탕면 보강 패키지 추천',
+    tip:'기존 몰탈 대비 뛰어난 강도 — POUR 바탕면 보강재로 완벽한 기초',
+    packages:[
+      {name:'콘크리트 바탕면 보강 패키지',desc:'기존 몰탈 대비 뛰어난 강도',tag:'33% · 11,000원/m²',icon:'🧱'},
+      {name:'배수구 방수 보강 패키지',desc:'배수구 틈새와 누수방지 최적 조합',tag:'57% · 64,900원',icon:'⚙️'},
+    ]},
+};
+const STORE_PACKAGE_CATS=[
+  {id:'waterproof',label:'방수',icon:'💧',items:[
+    {name:'평형 옥상 방수 패키지',desc:'우레탄보다 쉽고 튼튼한 옥상방수',tag:'51% 25,000원/m²'},
+    {name:'슁글 지붕 방수 패키지',desc:'슁글 탈락 방지와 방수층 형성',tag:'43% 20,000원/m²'},
+    {name:'틈새 누수 차단 패키지',desc:'이음부 보수 셀프로 간편하게',tag:'45% 1,800원/m'},
+    {name:'배수로 방수 패키지',desc:'배수로 누수 막는 셀프시공',tag:'33% 18,000원/m²'},
+  ]},
+  {id:'repair',label:'보수',icon:'🔧',items:[
+    {name:'균열보수 스타터 패키지',desc:'첫 시공도 걱정없이 손쉽게',tag:'49% 35,000원'},
+    {name:'배수구 방수 보강 패키지',desc:'배수구 틈새와 누수방지 최적 조합',tag:'57% 64,900원'},
+    {name:'콘크리트 바탕면 보강 패키지',desc:'기존 몰탈 대비 뛰어난 강도',tag:'33% 11,000원/m²'},
+  ]},
+  {id:'paint',label:'도장',icon:'🎨',items:[
+    {name:'칼라강판 도장 패키지',desc:'부식 걱정 없이 새 지붕처럼',tag:'30% 7,000원/m²'},
+    {name:'외벽 균열 및 도장 패키지',desc:'균열 보수부터 도장까지 한 번에',tag:'51% 3,000원/m²'},
+    {name:'목재 가구 페인트 패키지',desc:'목재 및 가구용 도장 코트재',tag:'57% 1,500원/m'},
+    {name:'철재 도장 페인트 패키지',desc:'철재 특화 보호 코팅',tag:'43% 1,500원/m'},
+  ]},
+];
+const STORE_ITEM_CATS=[
+  {id:'paint_mat',label:'도료',icon:'🪣',items:[
+    {name:'POUR 코트재',desc:'#친환경 #다목적방수 #옥상방수',tag:'9%'},
+    {name:'POUR 써밋페인트 플러스',desc:'#고기능성 #10배강도 #내구성',tag:'19%'},
+    {name:'POUR 탑코트재',desc:'#단열 #차열 #상도방수',tag:'10%'},
+    {name:'POUR 강화재',desc:'#접착력향상 #침투방수 #하도재',tag:'8%'},
+  ]},
+  {id:'sheet',label:'방수시트',icon:'📋',items:[
+    {name:'POUR듀얼복합강화시트',desc:'#3중구조 #밀실방수 #20cm부터',tag:'49%'},
+    {name:'POUR슈퍼복합압축시트',desc:'#높은침투력 #방수시트',tag:'10%'},
+    {name:'POUR균열보수시트',desc:'#크랙보수 #사용편리 #내구성',tag:'9%'},
+    {name:'POUR PVC시트',desc:'#자외선차단 #고탄성',tag:''},
+  ]},
+  {id:'reinforce',label:'보강자재',icon:'⚙️',items:[
+    {name:'옥상 배관 방수 트랩',desc:'#국내유일 #배수관방수 #옥상필수',tag:'9%'},
+    {name:'페이퍼 팬 벤트',desc:'#수분증발 #에어포켓방지 #통풍',tag:'9%'},
+    {name:'POUR 에어벤트',desc:'#지하주차장 #습기배출 #25개입',tag:'18%'},
+  ]},
+  {id:'safety',label:'안전용품',icon:'🦺',items:[
+    {name:'고급 경량 안전 작업모',desc:'#건설현장 #필수안전모 #경량',tag:'50%'},
+    {name:'현장 형광 신호수 안전조끼',desc:'#작업자안전 #형광조끼',tag:'50%'},
+    {name:'추락방지 안전그네',desc:'#고소작업 #안전강화 #필수용품',tag:'20%'},
+  ]},
+];
+const STORE_ACTION_TAGS=[
+  {id:'store_link',label:'스토어 바로가기',icon:'🛒'},
+  {id:'diy_video',label:'셀프시공 영상',icon:'▶️'},
+  {id:'showroom',label:'전시장 교육 신청',icon:'🏫'},
+  {id:'partner_match',label:'파트너 시공 매칭',icon:'🤝'},
+  {id:'catalog',label:'제품 카탈로그',icon:'📖'},
+];
+
+/* ── 그로홈 데이터 ── */
+const GROHOME_CATS=[
+  {id:'homedeco',label:'홈데코',icon:'🪟',sub:'인테리어 · 프라이버시',
+   items:[
+    {name:'그로홈 유리블러 페인트 1L',desc:'#시선차단 #프라이버시보호 #초보자용',tag:'48,000원'},
+    {name:'유리블러 올인원',desc:'#시선차단 #프라이버시보호 #올인원',tag:'38,900원 7%'},
+   ],
+   tip:'유리창에 롤러 하나로 완성! 커튼 없이 프라이버시 OK'},
+  {id:'homerepair',label:'홈리페어',icon:'🔨',sub:'집 수리 · DIY 페인트',
+   items:[
+    {name:'롤러일체형 페인트',desc:'#낙서제거 #흠집제거 #은폐력',tag:'29,900원'},
+    {name:'벽체용 브러쉬 페인트',desc:'#모서리 #좁은틈새 #쉬운사용',tag:'23,900원'},
+    {name:'미끄럼 방지 롤러페인트',desc:'#논슬립 #가족지키미 #욕실바닥',tag:'34,900원'},
+    {name:'목재용 브러쉬 페인트',desc:'#목재코팅 #우수한코팅력',tag:'23,900원'},
+    {name:'철제용 브러쉬 페인트',desc:'#부식방지 #방청도료',tag:'23,900원'},
+   ],
+   tip:'도구 없이 바로 칠하는 롤러일체형! 초보도 깔끔하게'},
+  {id:'exterior',label:'익스테리어',icon:'🏠',sub:'외부 방수 · 보수',
+   items:[
+    {name:'옥상/지붕 셀프 방수 POUR 코트재',desc:'#셀프방수 #균열보수 #옥상',tag:'142,000원 9%'},
+    {name:'외벽 균열보수 POUR 고탄성 퍼티',desc:'#외벽균열 #셀프보수',tag:'136,000원 5%'},
+    {name:'옥상 배수구 방수 트랩',desc:'#배관방수 #비파괴',tag:'17,000원 9%'},
+    {name:'POUR 에어벤트',desc:'#습기배출 #결로방지',tag:'90,000원 18%'},
+   ],
+   tip:'외부 방수·보수도 셀프로! POUR 자재로 전문가 수준 완성'},
+];
+const GROHOME_ACTION_TAGS=[
+  {id:'grohome_link',label:'그로홈 바로가기',icon:'🛍️'},
+  {id:'diy_video',label:'DIY 영상 보기',icon:'▶️'},
+  {id:'review',label:'후기 보기',icon:'⭐'},
+  {id:'coupon',label:'할인쿠폰 안내',icon:'🎟️'},
+  {id:'kakao',label:'카카오 문의',icon:'💬'},
 ];
 
 const INTEREST_CATS=[
@@ -1619,7 +1797,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [ntSaving,setNtSaving]=useState(false);
   const [ntDone,setNtDone]=useState(false);
   const [ntPencilMode,setNtPencilMode]=useState(true);
-  const [ntMemoImg,setNtMemoImg]=useState(null);
+  const [ntMemoImgs,setNtMemoImgs]=useState([]);
   const ntMemoRef=useRef(null);
   useEffect(()=>{if(!ntPencilMode&&ntMemoRef.current){ntMemoRef.current.focus();}},[ntPencilMode]);
   const [ntOpenSec,setNtOpenSec]=useState(new Set([]));
@@ -1670,7 +1848,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       deliveryDocs:ntDeliveryDocs,
       deliveryMedia:ntDeliveryMedia,
       businessCard:ntBizCard,
-      memo:ntMemo,memoImg:ntMemoImg||null,status:'신규',
+      memo:ntMemo,memoImgs:ntMemoImgs,status:'신규',
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
     // 자동 SMS 발송 (fire-and-forget)
@@ -1692,7 +1870,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
     setNtName('');setNtCompany('');setNtPosition('');
     setNtPhone('');setNtEmail('');setNtContact([]);
     setNtInterests([]);setNtDeliveryDocs([]);setNtDeliveryMedia([]);
-    setNtMemo('');setNtMemoImg(null);
+    setNtMemo('');setNtMemoImgs([]);
   };
 
   const logText=[
@@ -2020,7 +2198,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                   <div style={{marginBottom:10}}>
                     <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>상담 메모</div>
                     {ntPencilMode
-                      ?<DrawCanvas onDataUrl={setNtMemoImg}/>
+                      ?<DrawCanvas onDataUrl={setNtMemoImgs}/>
                       :<textarea
                         className="note-memo"
                         style={{resize:'none',minHeight:300,width:'100%',fontSize:15,lineHeight:'1.85'}}
@@ -2053,6 +2231,7 @@ function  LeadsScreen({onBack}){
   const [loading,setLoading]=useState(true);
   const [filterStaff,setFilterStaff]=useState('전체');
   const [staffList,setStaffList]=useState([]);
+  const [expandedId,setExpandedId]=useState(null);
 
   useEffect(()=>{
     db.collection('leads').orderBy('savedAt','desc').get()
@@ -2069,7 +2248,7 @@ function  LeadsScreen({onBack}){
         <div className="hdr-brand">
           <img src="data:image/png;base64,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" alt="Netform R&D" style={{height:'32px',width:'auto',display:'block',filter:'brightness(0) invert(1)'}}/>
         </div>
-        <div className="hdr-div"/><div className="hdr-sub">상담 리드</div>
+        <div className="hdr-div"/><div className="hdr-sub">상담 유입</div>
         <div className="hdr-r">
           <span style={{fontSize:12,color:'rgba(255,255,255,.5)',fontWeight:700}}>{display.length}건</span>
           <button className="btn-back" onClick={onBack}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg></button>
@@ -2085,32 +2264,61 @@ function  LeadsScreen({onBack}){
       <div className="leads-scroll">
         {loading&&<div style={{padding:'40px',textAlign:'center'}}><div className="spinner" style={{margin:'0 auto'}}/></div>}
         {!loading&&display.length===0&&<div className="empty">저장된 상담 내역이 없어요</div>}
-        {display.map((l,i)=>(
-          <div key={l.id||i} className="lead-card">
-            <div className="lead-top">
-              <div style={{display:'flex',alignItems:'center'}}>
-                <div className="lead-num">{i+1}</div>
-                <div className="lead-name">{l.name}</div>
+        {display.map((l,i)=>{
+          const isOpen=expandedId===(l.id||i);
+          const hasMemo=l.memo||l.memoImgs?.length>0;
+          return(
+          <div key={l.id||i} className="lead-card" style={{padding:0,overflow:'hidden'}}>
+            {/* 헤더 — 항상 표시 */}
+            <div style={{padding:'12px 14px',cursor:'pointer',display:'flex',alignItems:'center',gap:8}} onClick={()=>setExpandedId(isOpen?null:(l.id||i))}>
+              <div className="lead-num">{i+1}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:'flex',alignItems:'center',gap:6}}>
+                  <span className="lead-name" style={{margin:0}}>{l.name}</span>
+                  {l.phone&&<span style={{fontSize:11,color:'var(--text-sm)',fontWeight:600}}>{l.phone}</span>}
+                </div>
+                <div style={{fontSize:11,color:'var(--text-sm)',fontWeight:600,marginTop:1}}>
+                  {l.staff} · {l.day}{l.building?` · ${l.building}`:''}
+                </div>
               </div>
-              <span className="lead-staff-tag">{l.staff} · {l.day}</span>
+              <div style={{display:'flex',alignItems:'center',gap:4,flexShrink:0}}>
+                {hasMemo&&<span style={{fontSize:10,background:'#FEF3C7',color:'#92400E',padding:'2px 6px',borderRadius:8,fontWeight:700}}>메모</span>}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-sm)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{transform:isOpen?'rotate(180deg)':'rotate(0deg)',transition:'transform .2s'}}><path d="M6 9l6 6 6-6"/></svg>
+              </div>
             </div>
-            <div className="lead-pills">
-              {l.phone&&<span className="lpill">📞 {l.phone}</span>}
-              {l.email&&<span className="lpill">📧 {l.email}</span>}
-              {l.building&&<span className="lpill blue">{l.building}</span>}
-              {l.contactMethod?.length>0&&<span className="lpill">💬 {l.contactMethod.join('·')}</span>}
-            </div>
-            {l.problems?.length>0&&<div className="lead-prob">🔧 {l.problems.join(' · ')}</div>}
-            {l.actions?.length>0&&<div className="lead-atags">{l.actions.map(a=><span key={a} className="latag">{a}</span>)}</div>}
-            {(l.memo||l.memoImg)&&<div className="lead-memo">{l.memo&&`"${l.memo}"`}{l.memoImg&&<img src={l.memoImg} alt="펜슬 메모" style={{width:'100%',borderRadius:6,marginTop:l.memo?4:0,display:'block'}}/>}</div>}
-            <div className="lead-cta">
-              {l.phone&&<a href={`tel:${l.phone}`} className="lcta">📞 전화</a>}
-              {l.phone&&<button className="lcta" onClick={()=>setSmsTarget({phone:l.phone,name:l.name,building:l.building,problem:l.problem,staff:l.staff})}>💬 솔라피</button>}
-              {l.phone&&<a href={`sms:${l.phone}`} className="lcta">💬 기본</a>}
-              {l.email&&<a href={`mailto:${l.email}`} className="lcta mail">📧 메일</a>}
-            </div>
+            {/* 펼쳐진 상세 */}
+            {isOpen&&(
+              <div style={{borderTop:'1px solid var(--border)',padding:'10px 14px',display:'flex',flexDirection:'column',gap:8}}>
+                <div className="lead-pills" style={{margin:0}}>
+                  {l.phone&&<span className="lpill">📞 {l.phone}</span>}
+                  {l.email&&<span className="lpill">📧 {l.email}</span>}
+                  {l.building&&<span className="lpill blue">{l.building}</span>}
+                  {l.contactMethod?.length>0&&<span className="lpill">💬 {l.contactMethod.join('·')}</span>}
+                </div>
+                {l.problems?.length>0&&<div className="lead-prob" style={{margin:0}}>🔧 {l.problems.join(' · ')}</div>}
+                {l.actions?.length>0&&<div className="lead-atags" style={{margin:0}}>{l.actions.map(a=><span key={a} className="latag">{a}</span>)}</div>}
+                {hasMemo&&(
+                  <div className="lead-memo" style={{padding:'8px 10px',background:'#FFFBEB',borderRadius:8,border:'1px solid #FDE68A',fontStyle:'normal'}}>
+                    {l.memo&&<div style={{fontSize:12,lineHeight:1.5,marginBottom:l.memoImgs?.length>0?6:0}}>"{l.memo}"</div>}
+                    {l.memoImgs?.map((img,pi)=>(
+                      <div key={pi} style={{marginBottom:pi<l.memoImgs.length-1?6:0}}>
+                        {l.memoImgs.length>1&&<div style={{fontSize:9,fontWeight:700,color:'#B45309',marginBottom:2}}>{pi+1}페이지</div>}
+                        <img src={img} alt={`펜슬 메모 ${pi+1}p`} style={{width:'100%',borderRadius:6,display:'block'}}/>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="lead-cta" style={{margin:0}}>
+                  {l.phone&&<a href={`tel:${l.phone}`} className="lcta">📞 전화</a>}
+                  {l.phone&&<button className="lcta" onClick={()=>setSmsTarget({phone:l.phone,name:l.name,building:l.building,problem:l.problem,staff:l.staff})}>💬 솔라피</button>}
+                  {l.phone&&<a href={`sms:${l.phone}`} className="lcta">💬 기본</a>}
+                  {l.email&&<a href={`mailto:${l.email}`} className="lcta mail">📧 메일</a>}
+                </div>
+              </div>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
       <div className="bottom-bar">
         <button className="btn btn-outline btn-lg" onClick={onBack}>홈으로</button>
@@ -2212,6 +2420,819 @@ function BusinessCardCapture({onCapture,openRef}){
   );
 }
 
+/* ── 기술연구소: 기술/MOU 상담 메모 ── */
+function TechMemoSheet({staffId,staffName,staffDay,onBack}){
+  const [name,setName]=useState('');
+  const [company,setCompany]=useState('');
+  const [phone,setPhone]=useState('');
+  const [techType,setTechType]=useState([]);
+  const [actions,setActions]=useState([]);
+  const [memo,setMemo]=useState('');
+  const [pencilMode,setPencilMode]=useState(true);
+  const [memoImgs,setMemoImgs]=useState([]);
+  const [saving,setSaving]=useState(false);
+  const [done,setDone]=useState(false);
+  const accent='#059669';
+  const accentBg='rgba(5,150,105,.1)';
+  const techTypes=['기술 R&D','MOU 제안','특허 협력','해외 기술이전','기타'];
+  const techActions=[
+    {id:'exchange',label:'연락처 교환',icon:'📇'},
+    {id:'send_doc',label:'기술자료 발송',icon:'📄'},
+    {id:'meeting',label:'미팅 일정',icon:'📅'},
+    {id:'sample',label:'샘플 발송',icon:'📦'},
+  ];
+  const toggle=(arr,set,v)=>set(p=>p.includes(v)?p.filter(x=>x!==v):[...p,v]);
+  const hasData=()=>!!(name||phone||memo||techType.length);
+  const safeClose=()=>{if(hasData()&&!window.confirm('입력한 내용이 저장되지 않았습니다. 닫으시겠어요?'))return;onBack();};
+
+  const save=async()=>{
+    if(!name.trim()||!phone.trim()){alert('성함과 전화번호를 입력해주세요');return;}
+    setSaving(true);
+    const data={
+      savedAt:new Date().toISOString(),day:staffDay,staffId,staff:staffName,
+      brand:'tech',inquiryType:'tech_mou',
+      name,company,phone,
+      techType,
+      actions:actions.map(id=>techActions.find(t=>t.id===id)?.label||id),
+      memo,memoImgs,status:'신규',
+    };
+    try{await db.collection('leads-store').add(data);}catch(e){console.warn(e);}
+    const smsCfg=loadSolapiConfig();
+    if(smsCfg.workerUrl&&smsCfg.autoStaff!==false&&staffId){
+      const sp=loadStaffList().find(s=>s.id===staffId)?.phone;
+      if(sp){const txt=`[기술연구소 문의] ${name}(${company||'-'}) · ${techType.join(',')||'기타'} · ${phone}`;sendSMS(sp,txt).catch(()=>{});}
+    }
+    setSaving(false);setDone(true);
+  };
+
+  return(
+    <div className="screen active" style={{background:'var(--bg)'}}>
+      <div className="hdr" style={{borderBottom:`2px solid rgba(5,150,105,.3)`}}>
+        <div className="hdr-brand" style={{gap:2}}>
+          <span style={{fontSize:14,fontWeight:900,color:accent,letterSpacing:'.02em'}}>🔬 기술연구소</span>
+          <span style={{fontSize:10,color:'rgba(255,255,255,.4)'}}>기술문의 · MOU · R&D 협력</span>
+        </div>
+        <div className="hdr-r"><button className="btn-back" onClick={safeClose}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg></button></div>
+      </div>
+      <div className="content" style={{paddingTop:16}}>
+        {done?(
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'60px 20px',textAlign:'center'}}>
+            <div style={{fontSize:44,marginBottom:10}}>✅</div>
+            <div style={{fontSize:17,fontWeight:800,color:'var(--text)',marginBottom:4}}>기술연구소 상담 메모 저장됐어요!</div>
+            <div style={{fontSize:13,color:'var(--text-sm)',marginBottom:20}}>{name}님 · {staffName} · {staffDay}</div>
+            <button onClick={onBack} style={{padding:'12px 28px',borderRadius:12,border:'none',background:accent,color:'#fff',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>홈으로</button>
+          </div>
+        ):(
+          <>
+            {/* 안내 배너 */}
+            <div style={{padding:'12px 16px',borderRadius:12,background:accentBg,border:`1px solid rgba(5,150,105,.3)`,marginBottom:18,display:'flex',gap:10,alignItems:'flex-start'}}>
+              <span style={{fontSize:20,lineHeight:1.3}}>🔬</span>
+              <div>
+                <div style={{fontSize:13,fontWeight:800,color:accent,marginBottom:2}}>기술연구소 담당 문의</div>
+                <div style={{fontSize:11,color:'var(--text-sm)',lineHeight:1.6}}>기술 R&D · MOU 협력은 기술연구소에서 담당합니다.<br/>방문자 정보와 문의 내용을 기록해주세요.</div>
+              </div>
+            </div>
+
+            {/* 고객 정보 */}
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>방문자 정보</div>
+              <input className="note-input" style={{marginBottom:6,fontSize:13}} placeholder="소속 기관 / 기업명 (선택)" value={company} onChange={e=>setCompany(e.target.value)}/>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5}}>
+                <input className="note-input" style={{fontSize:13}} placeholder="성함 *" value={name} onChange={e=>setName(e.target.value)}/>
+                <input className="note-input" style={{fontSize:13}} placeholder="연락처 *" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
+              </div>
+            </div>
+
+            {/* 문의 유형 칩 */}
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>문의 유형</div>
+              <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                {techTypes.map(t=>(
+                  <button key={t} className={`note-chip ${techType.includes(t)?'on':''}`}
+                    style={{fontSize:12,padding:'6px 12px',borderColor:techType.includes(t)?accent:'',color:techType.includes(t)?accent:''}}
+                    onClick={()=>toggle(techType,setTechType,t)}>{t}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* 후속 조치 */}
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>후속 조치</div>
+              <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                {techActions.map(t=>(
+                  <button key={t.id} className={`note-chip ${actions.includes(t.id)?'on':''}`}
+                    style={{fontSize:12,padding:'6px 12px',borderColor:actions.includes(t.id)?accent:'',color:actions.includes(t.id)?accent:''}}
+                    onClick={()=>toggle(actions,setActions,t.id)}>{t.icon} {t.label}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* 메모 */}
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>상담 메모</div>
+              <div className="mode-toggle" style={{marginBottom:8}}>
+                <button className={`mode-btn ${!pencilMode?'on':''}`} onClick={()=>setPencilMode(false)}>⌨️ 키보드</button>
+                <button className={`mode-btn ${pencilMode?'on':''}`} onClick={()=>setPencilMode(true)}>✏️ 펜슬</button>
+              </div>
+              {pencilMode
+                ?<DrawCanvas onDataUrl={setMemoImgs}/>
+                :<textarea className="note-memo"
+                  style={{resize:'none',minHeight:160,width:'100%',fontSize:14,lineHeight:'1.8'}}
+                  placeholder="기술 문의 내용, 협력 방향, 요청사항..."
+                  value={memo} onChange={e=>setMemo(e.target.value)}/>
+              }
+            </div>
+
+            <button className="btn-start" style={{width:'100%',background:accent}} onClick={save} disabled={saving}>
+              {saving?'저장 중...':'📝 기술 상담 메모 저장'}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── POUR스토어: 카테고리 선택 화면 ── */
+function StoreCategoryScreen({staffId,staffName,staffDay,onBack}){
+  const [step,setStep]=useState('inquiry'); // 'inquiry' | 'building' | 'problem' | 'solution'
+  const [inquiryType,setInquiryType]=useState(null); // 'product' | 'partner' | 'other'
+  const [otherType,setOtherType]=useState(null); // 'management' | 'method' | 'export'
+  const [bld,setBld]=useState(null);
+  const [prob,setProb]=useState(null);
+  const [showNote,setShowNote]=useState(false);
+  const [showPartner,setShowPartner]=useState(false);
+  const [showOther,setShowOther]=useState(false);
+  const accent='#EA580C';
+  const accentBg='rgba(234,88,12,.12)';
+  const sol=prob?STORE_SOLUTION_MAP[prob.id]:null;
+  const productStepLabels=['건물유형','하자유형','패키지추천'];
+  const productStepIdx=step==='building'?0:step==='problem'?1:2;
+  const goBack=()=>{
+    if(step==='inquiry')onBack();
+    else if(step==='building'){setStep('inquiry');setInquiryType(null);}
+    else if(step==='problem'){setStep('building');}
+    else{setStep('problem');}
+  };
+  return(
+    <div className="screen active" style={{background:'var(--bg)'}}>
+      <div className="hdr" style={{borderBottom:'2px solid rgba(234,88,12,.3)'}}>
+        <div className="hdr-brand" style={{gap:3}}>
+          <span style={{fontSize:14,fontWeight:900,color:accent,letterSpacing:'.02em'}}>🛒 POUR스토어</span>
+          <span style={{fontSize:10,color:'rgba(255,255,255,.4)'}}>
+            {step==='inquiry'
+              ?<span style={{color:'rgba(255,255,255,.6)'}}>DIY 자재 · 패키지 · 시공 매칭</span>
+              :productStepLabels.map((l,i)=>(
+                <span key={i}>{i>0&&<span style={{opacity:.3}}> › </span>}<span style={{opacity:i===productStepIdx?1:.35,fontWeight:i===productStepIdx?700:400,color:i===productStepIdx?accent:'rgba(255,255,255,.6)'}}>{l}</span></span>
+              ))
+            }
+          </span>
+        </div>
+        <div className="hdr-r"><button className="btn-back" onClick={goBack}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg></button></div>
+      </div>
+      <div className="content" style={{paddingTop:16}}>
+
+        {/* ── Step 0: 문의유형 ── */}
+        {step==='inquiry'&&(
+          <>
+            <div className="page-h" style={{marginBottom:6}}>어떤 문의로 오셨나요?</div>
+            <div className="page-sub" style={{marginBottom:16}}>문의 유형을 선택하시면 맞춤 안내를 드립니다.</div>
+            <div style={{display:'flex',flexDirection:'column',gap:10}}>
+              {[
+                {id:'product',icon:'📦',label:'상품/셀프시공 문의',sub:'제품 추천 · 패키지 안내 · DIY 방법'},
+                {id:'partner',icon:'🤝',label:'파트너사/시공연결',sub:'파트너 혜택 · 시공 매칭 · 사업 제휴'},
+                {id:'other',icon:'📋',label:'기타 문의 접수',sub:'관리주체 · 공법협력 · 해외수출'},
+              ].map(t=>(
+                <button key={t.id} onClick={()=>{
+                  setInquiryType(t.id);
+                  if(t.id==='product')setStep('building');
+                  else if(t.id==='partner')setShowPartner(true);
+                  else setShowOther(true);
+                }}
+                  style={{width:'100%',padding:'16px 18px',borderRadius:14,border:'1.5px solid rgba(234,88,12,.35)',background:accentBg,display:'flex',alignItems:'center',gap:14,cursor:'pointer',fontFamily:'inherit',textAlign:'left',transition:'all .15s'}}>
+                  <span style={{fontSize:24,lineHeight:1}}>{t.icon}</span>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:15,fontWeight:800,color:'var(--text)',marginBottom:2}}>{t.label}</div>
+                    <div style={{fontSize:11,color:'var(--text-sm)'}}>{t.sub}</div>
+                  </div>
+                  <span style={{color:'rgba(255,255,255,.25)',fontSize:18}}>›</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* ── Step 1: 건물유형 ── */}
+        {step==='building'&&(
+          <>
+            <div className="page-h" style={{marginBottom:6}}>어떤 건물을 관리하고 계신가요?</div>
+            <div className="page-sub" style={{marginBottom:16}}>건물 유형을 선택하시면 맞춤 패키지를 안내해드립니다.</div>
+            <div className="building-grid">
+              {BUILDING_TYPES.map(b=>(
+                <div key={b.id} className="building-card" onClick={()=>{setBld(b);setStep('problem');}}>
+                  <div className="bc-arrow">→</div>
+                  <div className="bc-icon">{b.icon}</div>
+                  <div className="bc-name">{b.label}</div>
+                  <div className="bc-sub">{b.sub}</div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* ── Step 2: 하자유형 ── */}
+        {step==='problem'&&(
+          <>
+            <div className="page-h" style={{marginBottom:6}}>어떤 하자가 발생했나요?</div>
+            <div className="page-sub" style={{marginBottom:16}}>{bld?.icon} {bld?.label} · 해당하는 하자 유형을 선택해주세요.</div>
+            <div className="prob-chips">
+              {STORE_PROBLEMS.map(p=>(
+                <button key={p.id} className="prob-chip" onClick={()=>{setProb(p);setStep('solution');}}>
+                  <div className="prob-chip-thumb"><span style={{fontSize:22}}>{p.icon}</span></div>
+                  <div className="prob-chip-body">
+                    <div className="prob-chip-text">{p.label}</div>
+                    <div className="prob-chip-cat">{p.cat}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* ── Step 3: 패키지 추천 ── */}
+        {step==='solution'&&sol&&(
+          <>
+            {/* 진단 요약 */}
+            <div style={{display:'flex',gap:6,marginBottom:12,flexWrap:'wrap'}}>
+              {bld&&<span style={{padding:'3px 10px',borderRadius:20,border:'1.5px solid rgba(234,88,12,.4)',background:accentBg,fontSize:11,fontWeight:700,color:accent}}>{bld.icon} {bld.label}</span>}
+              {prob&&<span style={{padding:'3px 10px',borderRadius:20,border:'1.5px solid rgba(234,88,12,.4)',background:accentBg,fontSize:11,fontWeight:700,color:accent}}>{prob.icon} {prob.label}</span>}
+            </div>
+            {/* 추천 헤드라인 */}
+            <div style={{padding:'12px 14px',borderRadius:10,background:accentBg,border:`1px solid rgba(234,88,12,.25)`,marginBottom:16}}>
+              <div style={{fontSize:14,fontWeight:900,color:accent,marginBottom:3}}>📦 {sol.headline}</div>
+              <div style={{fontSize:12,color:'var(--text-sm)',lineHeight:1.6}}>{sol.tip}</div>
+            </div>
+            {/* 패키지 카드 */}
+            <div style={{display:'flex',flexDirection:'column',gap:10,marginBottom:20}}>
+              {sol.packages.map((pkg,idx)=>(
+                <div key={idx} style={{padding:'14px 16px',borderRadius:12,border:'1.5px solid var(--border)',background:'#fff',display:'flex',gap:12,alignItems:'flex-start'}}>
+                  <div style={{width:42,height:42,borderRadius:10,background:accentBg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,flexShrink:0}}>{pkg.icon}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:14,fontWeight:800,color:'var(--text)',marginBottom:3}}>{pkg.name}</div>
+                    <div style={{fontSize:12,color:'var(--text-sm)',marginBottom:6}}>{pkg.desc}</div>
+                    <span style={{fontSize:11,fontWeight:700,color:accent,background:accentBg,padding:'2px 8px',borderRadius:10}}>{pkg.tag}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button className="btn-start" style={{width:'100%',background:accent,marginBottom:8}} onClick={()=>setShowNote(true)}>
+              📝 영업 메모 저장
+            </button>
+          </>
+        )}
+
+      </div>
+      {showNote&&(
+        <StoreNoteSheet
+          staffId={staffId} staffName={staffName} staffDay={staffDay}
+          building={bld} problem={prob}
+          onClose={()=>setShowNote(false)}
+        />
+      )}
+      {showPartner&&(
+        <StorePartnerSheet
+          staffId={staffId} staffName={staffName} staffDay={staffDay}
+          onClose={()=>{setShowPartner(false);setInquiryType(null);setStep('inquiry');}}
+        />
+      )}
+      {showOther&&(
+        <StoreOtherSheet
+          staffId={staffId} staffName={staffName} staffDay={staffDay}
+          initialType={otherType}
+          onClose={()=>{setShowOther(false);setOtherType(null);setInquiryType(null);setStep('inquiry');}}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ── POUR스토어: 영업 메모 시트 ── */
+function StoreNoteSheet({staffId,staffName,staffDay,building,problem,onClose}){
+  const [name,setName]=useState('');
+  const [company,setCompany]=useState('');
+  const [phone,setPhone]=useState('');
+  const [actions,setActions]=useState([]);
+  const [memo,setMemo]=useState('');
+  const [pencilMode,setPencilMode]=useState(true);
+  const [memoImgs,setMemoImgs]=useState([]);
+  const [saving,setSaving]=useState(false);
+  const [done,setDone]=useState(false);
+  const memoRef=useRef(null);
+  const toggle=(arr,set,v)=>set(p=>p.includes(v)?p.filter(x=>x!==v):[...p,v]);
+  const hasData=()=>!!(name||phone||memo||actions.length);
+  const safeClose=()=>{if(hasData()&&!window.confirm('입력한 내용이 저장되지 않았습니다. 닫으시겠어요?'))return;onClose();};
+  const accentOrange='#EA580C';
+
+  const save=async()=>{
+    if(!name.trim()||!phone.trim()){alert('성함과 전화번호를 입력해주세요');return;}
+    setSaving(true);
+    const data={
+      savedAt:new Date().toISOString(),day:staffDay,staffId,staff:staffName,
+      brand:'store',building:building?.label||'-',problem:problem?.label||'-',
+      name,company,phone,
+      actions:actions.map(id=>STORE_ACTION_TAGS.find(t=>t.id===id)?.label||id),
+      memo,memoImgs,status:'신규',
+    };
+    try{await db.collection('leads-store').add(data);}catch(e){console.warn(e);}
+    const smsCfg=loadSolapiConfig();
+    if(smsCfg.workerUrl&&smsCfg.autoCustomer!==false&&phone){
+      const txt=`${name}님, POUR스토어 상담 감사합니다. 관심 자재 정보를 보내드릴게요. pourstore.kr`;
+      sendSMS(phone,txt).catch(()=>{});
+    }
+    setSaving(false);setDone(true);
+  };
+
+  return(
+    <div className="sheet-bg" onClick={safeClose}>
+      <div className="note-sheet" onClick={e=>e.stopPropagation()}>
+        {done?(
+          <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'40px 20px'}}>
+            <div style={{fontSize:44,marginBottom:10}}>✅</div>
+            <div style={{fontSize:17,fontWeight:800,color:'var(--text)',marginBottom:4}}>스토어 상담 메모 저장됐어요!</div>
+            <div style={{fontSize:13,color:'var(--text-sm)',marginBottom:20}}>{name}님 · {staffName} · {staffDay}</div>
+            <button onClick={onClose} style={{padding:'12px 28px',borderRadius:12,border:'none',background:accentOrange,color:'#fff',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>닫기</button>
+          </div>
+        ):(
+          <>
+            <div className="note-sheet-head" style={{borderBottom:'1px solid var(--border)',paddingBottom:10}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <span style={{fontSize:16,fontWeight:900,color:'var(--text)'}}>🛒 스토어 영업 메모</span>
+                <div style={{display:'flex',gap:6}}>
+                  <button className="note-head-save" style={{background:accentOrange}} onClick={save} disabled={saving}>{saving?'저장 중...':'저장하기'}</button>
+                  <button onClick={safeClose} style={{width:32,height:32,borderRadius:'50%',border:'none',background:'var(--bg)',color:'var(--text-md)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                </div>
+              </div>
+              {(building||problem)&&(
+                <div className="note-ctx" style={{marginTop:8,marginBottom:0}}>
+                  <div className="note-ctx-row">
+                    {building&&<span className="note-ctx-tag">{building.icon} {building.label}</span>}
+                    {problem&&<span className="note-ctx-tag">{problem.icon} {problem.label}</span>}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="note-sheet-scroll">
+              <div style={{padding:'12px 0 8px'}}>
+                <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>고객 정보</div>
+                <input className="note-input" style={{marginBottom:6,fontSize:13}} placeholder="회사명 / 업체명 (선택)" value={company} onChange={e=>setCompany(e.target.value)}/>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5}}>
+                  <input className="note-input" style={{fontSize:13}} placeholder="성함 *" value={name} onChange={e=>setName(e.target.value)}/>
+                  <input className="note-input" style={{fontSize:13}} placeholder="연락처 *" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
+                </div>
+              </div>
+              {/* 액션 태그 */}
+              <div style={{marginBottom:10}}>
+                <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>후속 조치</div>
+                <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                  {STORE_ACTION_TAGS.map(t=>(
+                    <button key={t.id} className={`note-chip ${actions.includes(t.id)?'on':''}`}
+                      style={{fontSize:12,padding:'6px 12px',borderColor:actions.includes(t.id)?accentOrange:'',color:actions.includes(t.id)?accentOrange:''}}
+                      onClick={()=>toggle(actions,setActions,t.id)}>
+                      {t.icon} {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* 메모 */}
+              <div style={{marginBottom:10}}>
+                <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>상담 메모</div>
+                <div className="mode-toggle" style={{marginBottom:8}}>
+                  <button className={`mode-btn ${!pencilMode?'on':''}`} onClick={()=>setPencilMode(false)}>⌨️ 키보드</button>
+                  <button className={`mode-btn ${pencilMode?'on':''}`} onClick={()=>setPencilMode(true)}>✏️ 펜슬</button>
+                </div>
+                {pencilMode
+                  ?<DrawCanvas onDataUrl={setMemoImgs}/>
+                  :<textarea ref={memoRef} className="note-memo"
+                    style={{resize:'none',minHeight:180,width:'100%',fontSize:14,lineHeight:'1.8'}}
+                    placeholder="고객 반응, 관심 제품, 요청사항..."
+                    value={memo} onChange={e=>setMemo(e.target.value)}/>
+                }
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── POUR스토어: 파트너사 상담 메모 ── */
+function StorePartnerSheet({staffId,staffName,staffDay,onClose}){
+  const [company,setCompany]=useState('');
+  const [name,setName]=useState('');
+  const [phone,setPhone]=useState('');
+  const [domains,setDomains]=useState([]);
+  const [region,setRegion]=useState('');
+  const [memo,setMemo]=useState('');
+  const [actions,setActions]=useState([]);
+  const [pencilMode,setPencilMode]=useState(true);
+  const [memoImgs,setMemoImgs]=useState([]);
+  const [saving,setSaving]=useState(false);
+  const [done,setDone]=useState(false);
+  const accent='#EA580C';
+  const accentBg='rgba(234,88,12,.12)';
+  const domainList=['방수','도장','보수','토목','기타'];
+  const toggle=(arr,set,v)=>set(p=>p.includes(v)?p.filter(x=>x!==v):[...p,v]);
+  const hasData=()=>!!(name||phone||memo||domains.length);
+  const safeClose=()=>{if(hasData()&&!window.confirm('입력한 내용이 저장되지 않았습니다. 닫으시겠어요?'))return;onClose();};
+
+  const save=async()=>{
+    if(!company.trim()||!name.trim()||!phone.trim()){alert('업체명, 성함, 전화번호를 입력해주세요');return;}
+    setSaving(true);
+    const data={
+      savedAt:new Date().toISOString(),day:staffDay,staffId,staff:staffName,
+      brand:'store',inquiryType:'partner',
+      name,company,phone,
+      domains,region,
+      actions:actions.map(id=>STORE_ACTION_TAGS.find(t=>t.id===id)?.label||id),
+      memo,memoImgs,status:'신규',
+    };
+    try{await db.collection('leads-store').add(data);}catch(e){console.warn(e);}
+    const smsCfg=loadSolapiConfig();
+    if(smsCfg.workerUrl&&smsCfg.autoCustomer!==false&&phone){
+      const txt=`${name}님(${company}), POUR스토어 파트너 문의 감사합니다. 담당자가 연락드릴게요. pourstore.kr`;
+      sendSMS(phone,txt).catch(()=>{});
+    }
+    setSaving(false);setDone(true);
+  };
+
+  return(
+    <div className="sheet-bg" onClick={safeClose}>
+      <div className="note-sheet" onClick={e=>e.stopPropagation()}>
+        {done?(
+          <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'40px 20px'}}>
+            <div style={{fontSize:44,marginBottom:10}}>✅</div>
+            <div style={{fontSize:17,fontWeight:800,color:'var(--text)',marginBottom:4}}>파트너 상담 메모 저장됐어요!</div>
+            <div style={{fontSize:13,color:'var(--text-sm)',marginBottom:20}}>{company} · {name}님</div>
+            <button onClick={onClose} style={{padding:'12px 28px',borderRadius:12,border:'none',background:accent,color:'#fff',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>닫기</button>
+          </div>
+        ):(
+          <>
+            <div className="note-sheet-head" style={{borderBottom:'1px solid var(--border)',paddingBottom:10}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <span style={{fontSize:16,fontWeight:900,color:'var(--text)'}}>🤝 파트너사 상담</span>
+                <div style={{display:'flex',gap:6}}>
+                  <button className="note-head-save" style={{background:accent}} onClick={save} disabled={saving}>{saving?'저장 중...':'저장하기'}</button>
+                  <button onClick={safeClose} style={{width:32,height:32,borderRadius:'50%',border:'none',background:'var(--bg)',color:'var(--text-md)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                </div>
+              </div>
+            </div>
+            <div className="note-sheet-scroll">
+              <div style={{padding:'12px 0 8px'}}>
+                <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>업체 정보</div>
+                <input className="note-input" style={{marginBottom:6,fontSize:13}} placeholder="업체명 *" value={company} onChange={e=>setCompany(e.target.value)}/>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5}}>
+                  <input className="note-input" style={{fontSize:13}} placeholder="담당자 성함 *" value={name} onChange={e=>setName(e.target.value)}/>
+                  <input className="note-input" style={{fontSize:13}} placeholder="연락처 *" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
+                </div>
+              </div>
+              <div style={{marginBottom:10}}>
+                <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>시공 분야</div>
+                <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                  {domainList.map(d=>(
+                    <button key={d} className={`note-chip ${domains.includes(d)?'on':''}`}
+                      style={{fontSize:12,padding:'6px 12px',borderColor:domains.includes(d)?accent:'',color:domains.includes(d)?accent:''}}
+                      onClick={()=>toggle(domains,setDomains,d)}>{d}</button>
+                  ))}
+                </div>
+              </div>
+              <div style={{marginBottom:10}}>
+                <input className="note-input" style={{fontSize:13}} placeholder="주요 활동 지역 (예: 서울 강남, 경기 남부)" value={region} onChange={e=>setRegion(e.target.value)}/>
+              </div>
+              <div style={{marginBottom:10}}>
+                <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>후속 조치</div>
+                <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                  {STORE_ACTION_TAGS.map(t=>(
+                    <button key={t.id} className={`note-chip ${actions.includes(t.id)?'on':''}`}
+                      style={{fontSize:12,padding:'6px 12px',borderColor:actions.includes(t.id)?accent:'',color:actions.includes(t.id)?accent:''}}
+                      onClick={()=>toggle(actions,setActions,t.id)}>{t.icon} {t.label}</button>
+                  ))}
+                </div>
+              </div>
+              <div style={{marginBottom:10}}>
+                <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>상담 메모</div>
+                <div className="mode-toggle" style={{marginBottom:8}}>
+                  <button className={`mode-btn ${!pencilMode?'on':''}`} onClick={()=>setPencilMode(false)}>⌨️ 키보드</button>
+                  <button className={`mode-btn ${pencilMode?'on':''}`} onClick={()=>setPencilMode(true)}>✏️ 펜슬</button>
+                </div>
+                {pencilMode
+                  ?<DrawCanvas onDataUrl={setMemoImgs}/>
+                  :<textarea className="note-memo"
+                    style={{resize:'none',minHeight:160,width:'100%',fontSize:14,lineHeight:'1.8'}}
+                    placeholder="파트너 니즈, 월 시공량, 요청사항..."
+                    value={memo} onChange={e=>setMemo(e.target.value)}/>
+                }
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── POUR스토어: 기타문의 라우팅 메모 ── */
+const STORE_ROUTING_INFO={
+  management:{label:'관리주체 문의',icon:'🏢',to:'POUR솔루션 팀',color:'#2563EB',info:'아파트·관공서 등 관리주체는 POUR솔루션에서 전문 상담합니다.'},
+  method:{label:'공법/특허 협력',icon:'⚙️',to:'POUR공법 팀',color:'#7C3AED',info:'협력사 계약·특허 문의는 POUR공법 담당자가 연결드립니다.'},
+  export:{label:'해외수출 문의',icon:'🌏',to:'본부장님',color:'#D97706',info:'해외수출 지원 가능합니다.',extra:'🇻🇳 베트남: 하이퐁 건설협회와 MOU 체결 완료. 현지 파트너 연결 가능.'},
+};
+function StoreOtherSheet({staffId,staffName,staffDay,onClose}){
+  const [otherType,setOtherType]=useState(null);
+  const [name,setName]=useState('');
+  const [company,setCompany]=useState('');
+  const [phone,setPhone]=useState('');
+  const [memo,setMemo]=useState('');
+  const [pencilMode,setPencilMode]=useState(true);
+  const [memoImgs,setMemoImgs]=useState([]);
+  const [saving,setSaving]=useState(false);
+  const [done,setDone]=useState(false);
+  const accent='#475569';
+  const hasData=()=>!!(name||phone||memo);
+  const safeClose=()=>{if((otherType&&hasData())&&!window.confirm('입력한 내용이 저장되지 않았습니다. 닫으시겠어요?'))return;onClose();};
+
+  const save=async()=>{
+    if(!name.trim()||!phone.trim()){alert('성함과 전화번호를 입력해주세요');return;}
+    setSaving(true);
+    const ri=STORE_ROUTING_INFO[otherType];
+    const data={
+      savedAt:new Date().toISOString(),day:staffDay,staffId,staff:staffName,
+      brand:'store',inquiryType:otherType,routingTo:ri?.to||'-',
+      name,company,phone,memo,memoImgs,status:'신규',
+    };
+    try{await db.collection('leads-store').add(data);}catch(e){console.warn(e);}
+    setSaving(false);setDone(true);
+  };
+
+  const ri=otherType?STORE_ROUTING_INFO[otherType]:null;
+
+  return(
+    <div className="sheet-bg" onClick={safeClose}>
+      <div className="note-sheet" onClick={e=>e.stopPropagation()}>
+        {done?(
+          <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'40px 20px'}}>
+            <div style={{fontSize:44,marginBottom:10}}>✅</div>
+            <div style={{fontSize:17,fontWeight:800,color:'var(--text)',marginBottom:4}}>문의 접수 완료!</div>
+            <div style={{fontSize:13,color:'var(--text-sm)',marginBottom:4}}>{name}님 · {ri?.to||''}</div>
+            <div style={{fontSize:12,color:'var(--text-sm)',marginBottom:20}}>담당 팀에서 연락드릴 예정입니다.</div>
+            <button onClick={onClose} style={{padding:'12px 28px',borderRadius:12,border:'none',background:'#1A56DB',color:'#fff',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>닫기</button>
+          </div>
+        ):(
+          <>
+            <div className="note-sheet-head" style={{borderBottom:'1px solid var(--border)',paddingBottom:10}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <span style={{fontSize:16,fontWeight:900,color:'var(--text)'}}>📋 기타 문의 접수</span>
+                <button onClick={safeClose} style={{width:32,height:32,borderRadius:'50%',border:'none',background:'var(--bg)',color:'var(--text-md)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+              </div>
+            </div>
+            <div className="note-sheet-scroll">
+              {!otherType?(
+                <>
+                  <div style={{fontSize:13,color:'var(--text-sm)',marginBottom:12,marginTop:8}}>문의 유형을 선택하세요</div>
+                  <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                    {Object.entries(STORE_ROUTING_INFO).map(([key,ri])=>(
+                      <button key={key} onClick={()=>setOtherType(key)}
+                        style={{width:'100%',padding:'14px 16px',borderRadius:12,border:`1.5px solid ${ri.color}44`,background:`${ri.color}11`,display:'flex',alignItems:'center',gap:12,cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
+                        <span style={{fontSize:22}}>{ri.icon}</span>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:14,fontWeight:800,color:'var(--text)',marginBottom:2}}>{ri.label}</div>
+                          <div style={{fontSize:11,color:'var(--text-sm)'}}>{ri.to}에서 담당</div>
+                        </div>
+                        <span style={{fontSize:16,color:'rgba(255,255,255,.3)'}}>›</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ):(
+                <>
+                  {/* 라우팅 안내 배너 */}
+                  <div style={{padding:'12px 16px',borderRadius:12,background:`${ri.color}15`,border:`1px solid ${ri.color}44`,marginBottom:14,marginTop:8}}>
+                    <div style={{fontSize:13,fontWeight:800,color:ri.color,marginBottom:3}}>{ri.icon} {ri.label} → {ri.to}</div>
+                    <div style={{fontSize:11,color:'var(--text-sm)',lineHeight:1.6}}>{ri.info}</div>
+                    {ri.extra&&<div style={{fontSize:11,color:ri.color,marginTop:6,fontWeight:600}}>{ri.extra}</div>}
+                  </div>
+                  {/* 폼 */}
+                  <div style={{marginBottom:10}}>
+                    <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>방문자 정보</div>
+                    <input className="note-input" style={{marginBottom:6,fontSize:13}} placeholder="소속 기관 / 기업명 (선택)" value={company} onChange={e=>setCompany(e.target.value)}/>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5}}>
+                      <input className="note-input" style={{fontSize:13}} placeholder="성함 *" value={name} onChange={e=>setName(e.target.value)}/>
+                      <input className="note-input" style={{fontSize:13}} placeholder="연락처 *" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
+                    </div>
+                  </div>
+                  <div style={{marginBottom:12}}>
+                    <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>문의 내용</div>
+                    <div className="mode-toggle" style={{marginBottom:8}}>
+                      <button className={`mode-btn ${!pencilMode?'on':''}`} onClick={()=>setPencilMode(false)}>⌨️ 키보드</button>
+                      <button className={`mode-btn ${pencilMode?'on':''}`} onClick={()=>setPencilMode(true)}>✏️ 펜슬</button>
+                    </div>
+                    {pencilMode
+                      ?<DrawCanvas onDataUrl={setMemoImgs}/>
+                      :<textarea className="note-memo"
+                        style={{resize:'none',minHeight:120,width:'100%',fontSize:14,lineHeight:'1.8'}}
+                        placeholder="문의 내용, 요청사항..."
+                        value={memo} onChange={e=>setMemo(e.target.value)}/>
+                    }
+                  </div>
+                  <div style={{display:'flex',gap:8}}>
+                    <button onClick={()=>setOtherType(null)} style={{flex:1,padding:'12px',borderRadius:10,border:'1px solid var(--border)',background:'transparent',color:'var(--text-md)',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>← 다시 선택</button>
+                    <button onClick={save} disabled={saving} style={{flex:2,padding:'12px',borderRadius:10,border:'none',background:ri.color,color:'#fff',fontSize:13,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>{saving?'저장 중...':'접수 저장하기'}</button>
+                  </div>
+                </>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── 그로홈: 카테고리 선택 화면 ── */
+function GrohomeCategoryScreen({staffId,staffName,staffDay,onBack,grohomeCat,setGrohomeCat}){
+  const [showNote,setShowNote]=useState(false);
+  const accentColor='#F97316';
+  const accentBg='rgba(249,115,22,.12)';
+  return(
+    <div className="screen active" style={{background:'var(--bg)'}}>
+      <div className="hdr" style={{borderBottom:'2px solid rgba(249,115,22,.3)'}}>
+        <div className="hdr-brand" style={{gap:2}}>
+          <span style={{fontSize:14,fontWeight:900,color:accentColor,letterSpacing:'.02em'}}>🏠 그로홈</span>
+          <span style={{fontSize:10,color:'rgba(255,255,255,.4)'}}>홈데코 · 홈리페어 · 익스테리어</span>
+        </div>
+        <div className="hdr-r"><button className="btn-back" onClick={onBack}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg></button></div>
+      </div>
+      <div className="content" style={{paddingTop:16}}>
+        <div className="page-h" style={{marginBottom:6}}>어떤 분야에 관심 있으신가요?</div>
+        <div className="page-sub" style={{marginBottom:16}}>관심 카테고리를 선택하시면 맞춤 제품을 안내해드립니다.</div>
+        {/* 카테고리 탭 */}
+        <div className="tabs" style={{marginBottom:14}}>
+          {GROHOME_CATS.map(c=>(
+            <button key={c.id} className={`tab ${grohomeCat?.id===c.id?'on':''}`}
+              style={{padding:'5px 13px',fontSize:12}}
+              onClick={()=>setGrohomeCat(c)}>
+              {c.icon} {c.label}
+            </button>
+          ))}
+        </div>
+        {/* 선택된 카테고리 tip */}
+        {(grohomeCat||GROHOME_CATS[0])&&(()=>{
+          const cat=grohomeCat||GROHOME_CATS[0];
+          return(
+            <>
+              <div style={{padding:'10px 14px',borderRadius:10,background:accentBg,border:`1px solid rgba(249,115,22,.25)`,marginBottom:14}}>
+                <div style={{fontSize:12,fontWeight:700,color:accentColor,marginBottom:2}}>{cat.icon} {cat.label} <span style={{fontWeight:500,color:'var(--text-sm)'}}>— {cat.sub}</span></div>
+                <div style={{fontSize:11,color:'var(--text-sm)'}}>{cat.tip}</div>
+              </div>
+              {/* 제품 카드 */}
+              <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
+                {cat.items.map((item,idx)=>(
+                  <div key={idx} style={{padding:'12px 14px',borderRadius:12,border:'1.5px solid var(--border)',background:'#fff',display:'flex',alignItems:'flex-start',gap:12}}>
+                    <div style={{width:36,height:36,borderRadius:10,background:accentBg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>{cat.icon}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:13,fontWeight:800,color:'var(--text)',marginBottom:2}}>{item.name}</div>
+                      <div style={{fontSize:11,color:'var(--text-sm)',marginBottom:4}}>{item.desc}</div>
+                      {item.tag&&<span style={{fontSize:10,fontWeight:700,color:accentColor,background:accentBg,padding:'2px 7px',borderRadius:10}}>{item.tag}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          );
+        })()}
+        <button className="btn-start" style={{width:'100%',background:accentColor,marginBottom:8}} onClick={()=>setShowNote(true)}>
+          📝 영업 메모 저장
+        </button>
+      </div>
+      {showNote&&(
+        <GrohomeNoteSheet
+          staffId={staffId} staffName={staffName} staffDay={staffDay}
+          grohomeCat={grohomeCat||GROHOME_CATS[0]}
+          onClose={()=>setShowNote(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ── 그로홈: 영업 메모 시트 (간소화) ── */
+function GrohomeNoteSheet({staffId,staffName,staffDay,grohomeCat,onClose}){
+  const [name,setName]=useState('');
+  const [phone,setPhone]=useState('');
+  const [actions,setActions]=useState([]);
+  const [memo,setMemo]=useState('');
+  const [pencilMode,setPencilMode]=useState(true);
+  const [memoImgs,setMemoImgs]=useState([]);
+  const [saving,setSaving]=useState(false);
+  const [done,setDone]=useState(false);
+  const memoRef=useRef(null);
+  const toggle=(arr,set,v)=>set(p=>p.includes(v)?p.filter(x=>x!==v):[...p,v]);
+  const hasData=()=>!!(name||phone||memo||actions.length);
+  const safeClose=()=>{if(hasData()&&!window.confirm('입력한 내용이 저장되지 않았습니다. 닫으시겠어요?'))return;onClose();};
+  const accentColor='#F97316';
+
+  const save=async()=>{
+    if(!name.trim()||!phone.trim()){alert('성함과 전화번호를 입력해주세요');return;}
+    setSaving(true);
+    const data={
+      savedAt:new Date().toISOString(),day:staffDay,staffId,staff:staffName,
+      brand:'grohome',category:grohomeCat?.label||'-',
+      name,phone,
+      actions:actions.map(id=>GROHOME_ACTION_TAGS.find(t=>t.id===id)?.label||id),
+      memo,memoImgs,status:'신규',
+    };
+    try{await db.collection('leads-grohome').add(data);}catch(e){console.warn(e);}
+    const smsCfg=loadSolapiConfig();
+    if(smsCfg.workerUrl&&smsCfg.autoCustomer!==false&&phone){
+      const txt=`${name}님, 그로홈 상담 감사합니다. 관심 상품 정보 보내드릴게요. grohome.co.kr`;
+      sendSMS(phone,txt).catch(()=>{});
+    }
+    setSaving(false);setDone(true);
+  };
+
+  return(
+    <div className="sheet-bg" onClick={safeClose}>
+      <div className="note-sheet" onClick={e=>e.stopPropagation()}>
+        {done?(
+          <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'40px 20px'}}>
+            <div style={{fontSize:44,marginBottom:10}}>✅</div>
+            <div style={{fontSize:17,fontWeight:800,color:'var(--text)',marginBottom:4}}>그로홈 상담 메모 저장됐어요!</div>
+            <div style={{fontSize:13,color:'var(--text-sm)',marginBottom:20}}>{name}님 · {staffName} · {staffDay}</div>
+            <button onClick={onClose} style={{padding:'12px 28px',borderRadius:12,border:'none',background:accentColor,color:'#fff',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>닫기</button>
+          </div>
+        ):(
+          <>
+            <div className="note-sheet-head" style={{borderBottom:'1px solid var(--border)',paddingBottom:10}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <span style={{fontSize:16,fontWeight:900,color:'var(--text)'}}>🏠 그로홈 메모</span>
+                <div style={{display:'flex',gap:6}}>
+                  <button className="note-head-save" style={{background:accentColor}} onClick={save} disabled={saving}>{saving?'저장 중...':'저장하기'}</button>
+                  <button onClick={safeClose} style={{width:32,height:32,borderRadius:'50%',border:'none',background:'var(--bg)',color:'var(--text-md)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                </div>
+              </div>
+              {grohomeCat&&(
+                <div className="note-ctx" style={{marginTop:8,marginBottom:0}}>
+                  <div className="note-ctx-row">
+                    <span className="note-ctx-tag">{grohomeCat.icon} {grohomeCat.label}</span>
+                    <span className="note-ctx-tag" style={{opacity:.7}}>{grohomeCat.sub}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="note-sheet-scroll">
+              <div style={{padding:'12px 0 8px'}}>
+                <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>고객 정보</div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:5}}>
+                  <input className="note-input" style={{fontSize:13}} placeholder="성함 *" value={name} onChange={e=>setName(e.target.value)}/>
+                  <input className="note-input" style={{fontSize:13}} placeholder="연락처 *" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
+                </div>
+              </div>
+              {/* 액션 태그 */}
+              <div style={{marginBottom:10}}>
+                <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>후속 조치</div>
+                <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                  {GROHOME_ACTION_TAGS.map(t=>(
+                    <button key={t.id} className={`note-chip ${actions.includes(t.id)?'on':''}`}
+                      style={{fontSize:12,padding:'6px 12px',borderColor:actions.includes(t.id)?accentColor:'',color:actions.includes(t.id)?accentColor:''}}
+                      onClick={()=>toggle(actions,setActions,t.id)}>
+                      {t.icon} {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* 메모 */}
+              <div style={{marginBottom:10}}>
+                <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>상담 메모</div>
+                <div className="mode-toggle" style={{marginBottom:8}}>
+                  <button className={`mode-btn ${!pencilMode?'on':''}`} onClick={()=>setPencilMode(false)}>⌨️ 키보드</button>
+                  <button className={`mode-btn ${pencilMode?'on':''}`} onClick={()=>setPencilMode(true)}>✏️ 펜슬</button>
+                </div>
+                {pencilMode
+                  ?<DrawCanvas onDataUrl={setMemoImgs}/>
+                  :<textarea ref={memoRef} className="note-memo"
+                    style={{resize:'none',minHeight:180,width:'100%',fontSize:14,lineHeight:'1.8'}}
+                    placeholder="고객 반응, 관심 제품, 요청사항..."
+                    value={memo} onChange={e=>setMemo(e.target.value)}/>
+                }
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ── Global Note Sheet (솔루션 외 화면) ── */
 function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
   const [name,setName]=useState('');
@@ -2227,7 +3248,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
   const [saving,setSaving]=useState(false);
   const [done,setDone]=useState(false);
   const [pencilMode,setPencilMode]=useState(true);
-  const [memoImg,setMemoImg]=useState(null);
+  const [memoImgs,setMemoImgs]=useState([]);
   const memoRef=useRef(null);
   const bizCardOpenRef=useRef(null);
   useEffect(()=>{if(!pencilMode&&memoRef.current){memoRef.current.focus();}},[pencilMode]);
@@ -2255,7 +3276,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
       problems:problem?[problem.label]:[],
       interests,deliveryDocs,deliveryMedia,
       businessCard:bizCard,
-      memo,memoImg:memoImg||null,status:'신규',
+      memo,memoImgs,status:'신규',
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
     // 자동 SMS 발송 (fire-and-forget)
@@ -2452,7 +3473,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
               <div style={{marginBottom:10}}>
                 <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>상담 메모</div>
                 {pencilMode
-                  ?<DrawCanvas onDataUrl={setMemoImg}/>
+                  ?<DrawCanvas onDataUrl={setMemoImgs}/>
                   :<textarea
                     ref={memoRef}
                     className="note-memo"
@@ -2636,7 +3657,7 @@ function AdminScreen({onBack}){
     const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
     const a=document.createElement('a');
     a.href=URL.createObjectURL(blob);
-    a.download=`POUR박람회_리드_${new Date().toLocaleDateString('ko')}.csv`;
+    a.download=`POUR박람회_유입_${new Date().toLocaleDateString('ko')}.csv`;
     a.click();
   };
 
@@ -2662,7 +3683,7 @@ function AdminScreen({onBack}){
 
       {/* 탭 */}
       <div style={{display:'flex',background:'var(--navy)',borderBottom:'1px solid rgba(255,255,255,.1)',flexShrink:0}}>
-        {[['stat','📊 통계'],['list','📋 리드 관리'],['photos','📸 사진'],['sms','💬 문자'],['trash','🗑']].map(([k,label])=>(
+        {[['stat','📊 통계'],['list','📋 유입 관리'],['photos','📸 사진'],['sms','💬 문자'],['trash','🗑']].map(([k,label])=>(
           <button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:'12px 0',background:'none',border:'none',color:tab===k?'#fff':'rgba(255,255,255,.4)',fontSize:13,fontWeight:tab===k?800:600,cursor:'pointer',borderBottom:tab===k?'2px solid #60A5FA':'2px solid transparent',transition:'all .15s'}}>
             {label}
           </button>
@@ -2750,7 +3771,7 @@ function AdminScreen({onBack}){
         </div>
       )}
 
-      {/* ── 리드 관리 탭 ── */}
+      {/* ── 유입 관리 탭 ── */}
       {!loading&&tab==='list'&&(
         <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
           {/* 검색 + 필터 */}
@@ -2834,11 +3855,16 @@ function AdminScreen({onBack}){
                           </div>
                         </div>
                       )}
-                      {(l.memo||l.memoImg)&&(
+                      {(l.memo||l.memoImgs?.length>0)&&(
                         <div style={{background:'#FFFBEB',border:'1px solid #FDE68A',borderRadius:8,padding:'8px 10px'}}>
                           <div style={{fontSize:10,fontWeight:700,color:'#92400E',marginBottom:4}}>메모</div>
-                          {l.memo&&<div style={{fontSize:12,color:'#78350F',lineHeight:1.5,marginBottom:l.memoImg?6:0}}>{l.memo}</div>}
-                          {l.memoImg&&<img src={l.memoImg} alt="펜슬 메모" style={{width:'100%',borderRadius:6,display:'block'}}/>}
+                          {l.memo&&<div style={{fontSize:12,color:'#78350F',lineHeight:1.5,marginBottom:l.memoImgs?.length>0?6:0}}>{l.memo}</div>}
+                          {l.memoImgs?.map((img,pi)=>(
+                            <div key={pi} style={{marginBottom:pi<l.memoImgs.length-1?6:0}}>
+                              {l.memoImgs.length>1&&<div style={{fontSize:9,fontWeight:700,color:'#B45309',marginBottom:2}}>{pi+1}페이지</div>}
+                              <img src={img} alt={`펜슬 메모 ${pi+1}p`} style={{width:'100%',borderRadius:6,display:'block'}}/>
+                            </div>
+                          ))}
                         </div>
                       )}
 
@@ -3222,6 +4248,9 @@ function App(){
   const [showStaffMgr,setShowStaffMgr]=useState(false);
   const [staffMgrMode,setStaffMgrMode]=useState('setup');
   const [screen,setScreen]=useState('home');
+  const [brand,setBrand]=useState(null); // null | 'construction' | 'store' | 'grohome' | 'tech'
+  const [homeBrand,setHomeBrand]=useState('construction'); // default selected on home
+  const [grohomeCat,setGrohomeCat]=useState(null);
   const [building,setBuilding]=useState(null);
   const [problem,setProblem]=useState(null);
   const [cat,setCat]=useState('전체');
@@ -3249,7 +4278,7 @@ function App(){
   },[staffDay]);
   useEffect(()=>{if(isSetup)loadCount();},[isSetup,loadCount]);
 
-  const goHome=()=>{setScreen('home');setBuilding(null);setProblem(null);setCat('전체');loadCount();};
+  const goHome=()=>{setScreen('home');setBuilding(null);setProblem(null);setCat('전체');setBrand(null);setGrohomeCat(null);loadCount();};
   // 건물유형에 맞는 문제만 필터 → 추가로 카테고리 탭 필터
   const buildingProblems=ALL_PROBLEMS;
   const filtered=cat==='전체'?buildingProblems:buildingProblems.filter(p=>p.cat===cat);
@@ -3296,16 +4325,42 @@ function App(){
             <div className="home-expo-date">벡스코 &nbsp;|&nbsp; 2026.04.16 (목) ~ 04.18 (토)</div>
           </div>
 
-          {/* 핵심 CTA 하나 */}
-          <button className="btn-start" style={{width:'100%',maxWidth:360,marginBottom:12}} onClick={()=>setScreen('problem')}>
-            <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 000 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clipRule="evenodd"/></svg>
-            상담 시작하기
-          </button>
+          {/* 브랜드 선택 CTA */}
+          <div style={{display:'flex',flexDirection:'column',gap:8,width:'100%',maxWidth:360,marginBottom:12}}>
+            <div style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,.4)',letterSpacing:'.08em',textAlign:'center',marginBottom:2}}>상담 유형을 선택하세요</div>
+            {[
+              {id:'construction',label:'POUR공법 · 솔루션',sub:'시공사 · 관리주체 · 전문 상담',icon:'🏗️',bc:'rgba(37,99,235,.7)',bg:'rgba(37,99,235,.12)',sbg:'rgba(37,99,235,.28)'},
+              {id:'store',label:'POUR스토어',sub:'DIY 자재 · 패키지 · 시공 매칭',icon:'🛒',bc:'rgba(234,88,12,.7)',bg:'rgba(234,88,12,.12)',sbg:'rgba(234,88,12,.28)'},
+              {id:'grohome',label:'그로홈',sub:'홈데코 · 홈리페어 · 익스테리어',icon:'🏠',bc:'rgba(249,115,22,.7)',bg:'rgba(249,115,22,.12)',sbg:'rgba(249,115,22,.28)'},
+              {id:'tech',label:'기술연구소',sub:'기술문의 · MOU · R&D 협력',icon:'🔬',bc:'rgba(5,150,105,.7)',bg:'rgba(5,150,105,.08)',sbg:'rgba(5,150,105,.25)'},
+            ].map(b=>{
+              const sel=homeBrand===b.id;
+              return(
+                <button key={b.id} onClick={()=>setHomeBrand(b.id)}
+                  style={{width:'100%',padding:'12px 16px',borderRadius:12,border:`${sel?'2px':'1.5px'} solid ${b.bc}`,background:sel?b.sbg:b.bg,display:'flex',alignItems:'center',gap:12,cursor:'pointer',fontFamily:'inherit',textAlign:'left',transition:'all .15s'}}>
+                  <span style={{fontSize:20,lineHeight:1}}>{b.icon}</span>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:14,fontWeight:800,color:'#fff',marginBottom:1}}>{b.label}</div>
+                    <div style={{fontSize:11,color:'rgba(255,255,255,.5)'}}>{b.sub}</div>
+                  </div>
+                  {sel?<span style={{fontSize:16,color:'#4ade80',fontWeight:900}}>✓</span>:<span style={{color:'rgba(255,255,255,.25)',fontSize:16}}>›</span>}
+                </button>
+              );
+            })}
+            <button onClick={()=>{
+              if(homeBrand==='construction'){setBrand('construction');setScreen('problem');}
+              else if(homeBrand==='store'){setBrand('store');setScreen('store-category');}
+              else if(homeBrand==='grohome'){setBrand('grohome');setScreen('grohome-category');}
+              else if(homeBrand==='tech'){setBrand('tech');setScreen('tech-memo');}
+            }} style={{width:'100%',padding:'14px',borderRadius:12,background:'#1A56DB',border:'none',color:'#fff',fontSize:15,fontWeight:900,cursor:'pointer',fontFamily:'inherit',marginTop:4,display:'flex',alignItems:'center',justifyContent:'center',gap:8,letterSpacing:'.02em'}}>
+              상담 시작하기 &nbsp;→
+            </button>
+          </div>
 
           {/* 리드 + 통계 한 줄 */}
           <div style={{display:'flex',gap:8,width:'100%',maxWidth:360}}>
             <button className="home-leads-btn" style={{flex:2,margin:0,padding:'12px'}} onClick={()=>setScreen('leads')}>
-              📋 리드 목록
+              📋 유입 목록
             </button>
             <div className="hstat" style={{flex:1,textAlign:'center'}}>
               <div className="hstat-n">{todayCount}</div>
@@ -3315,7 +4370,7 @@ function App(){
 
           {/* 관리 페이지 진입 */}
           <button onClick={()=>{const stored=loadAdminPin();if(!stored){setShowPinModal('setup');}else if(!adminAuth){setShowPinModal('verify');}else{setScreen('admin');}}} style={{width:'100%',maxWidth:360,marginTop:8,padding:'10px 0',background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',borderRadius:10,color:'rgba(255,255,255,.6)',fontSize:12,fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
-            🔒 관리자 페이지<span style={{fontSize:10,opacity:.7,marginLeft:4}}>— 통계 · 리드 관리</span>
+            🔒 관리자 페이지<span style={{fontSize:10,opacity:.7,marginLeft:4}}>— 통계 · 유입 관리</span>
           </button>
         </div>
       </div>
@@ -3394,14 +4449,38 @@ function App(){
       {/* ADMIN */}
       {screen==='admin'&&<AdminScreen onBack={()=>{setProbPhotos(loadProblemPhotos());goHome();}}/>}
 
-      {/* ── 전역 FAB: 홈 제외 모든 화면 ── */}
-      {screen!=='home'&&screen!=='admin'&&(
+      {/* POUR스토어 */}
+      {screen==='store-category'&&(
+        <StoreCategoryScreen
+          staffId={staffId} staffName={staffName} staffDay={staffDay}
+          onBack={goHome}
+        />
+      )}
+
+      {/* 그로홈 */}
+      {screen==='grohome-category'&&(
+        <GrohomeCategoryScreen
+          staffId={staffId} staffName={staffName} staffDay={staffDay}
+          onBack={goHome}
+          grohomeCat={grohomeCat} setGrohomeCat={setGrohomeCat}
+        />
+      )}
+
+      {/* 기술연구소 */}
+      {screen==='tech-memo'&&(
+        <TechMemoSheet
+          staffId={staffId} staffName={staffName} staffDay={staffDay}
+          onBack={goHome}
+        />
+      )}
+
+      {/* ── 전역 FAB: 홈/어드민/스토어/그로홈/기술연구소 제외 ── */}
+      {screen!=='home'&&screen!=='admin'&&screen!=='store-category'&&screen!=='grohome-category'&&screen!=='tech-memo'&&(
         <div className="fab-wrap">
           <button className="fab fab-new" onClick={()=>setConfirmNew(true)} title="새 상담 시작">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
             <span className="fab-label">새 상담</span>
           </button>
-          {/* 새 상담 FAB 위 툴팁 */}
           <button className="fab fab-memo" onClick={()=>setGlobalNote(true)} title="영업 메모">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             <span className="fab-label">메모</span>

@@ -1207,7 +1207,23 @@ const loadAdminPin=()=>localStorage.getItem(ADMIN_PIN_KEY);
 const saveAdminPin=hash=>localStorage.setItem(ADMIN_PIN_KEY,hash);
 
 const loadStaffList=()=>{try{return JSON.parse(localStorage.getItem('pourStaffList')||'[]');}catch{return[];}};
-const saveStaffList=l=>localStorage.setItem('pourStaffList',JSON.stringify(l));
+const saveStaffList=l=>{
+  localStorage.setItem('pourStaffList',JSON.stringify(l));
+  try{db.collection('config').doc('staffList').set({list:l}).catch(()=>{});}catch(e){}
+};
+const syncStaffFromFirestore=async()=>{
+  try{
+    const snap=await db.collection('config').doc('staffList').get();
+    if(snap.exists){
+      const data=snap.data();
+      if(data.list&&Array.isArray(data.list)){
+        localStorage.setItem('pourStaffList',JSON.stringify(data.list));
+        return data.list;
+      }
+    }
+  }catch(e){}
+  return null;
+};
 const getAvatar=n=>n?n.charAt(0).toUpperCase():'?';
 const getColor=id=>STAFF_COLORS[(id||'').length%STAFF_COLORS.length];
 
@@ -1472,6 +1488,9 @@ function StaffModal({mode,currentStaffId,staffDay,onSelect,onClose}){
   const [editTarget,setEditTarget]=useState(null);
   const [inputName,setInputName]=useState('');
   const [inputPhone,setInputPhone]=useState('');
+
+  /* 열릴 때 Firestore에서 최신 담당자 목록 동기화 */
+  useEffect(()=>{syncStaffFromFirestore().then(r=>{if(r)setList(r);});},[]);
 
   const handleSaveStaff=()=>{
     if(!inputName.trim())return;
@@ -1814,7 +1833,9 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
   // 새 구조: problem 자체가 공법 정보를 담고 있음
   const guide=problem.guideId?GUIDES.find(g=>g.id===problem.guideId):null;
-  const photos=casePhotos[problem.id]||{causes:['','',''],completed:'',gif:''};
+  const rawPhotos=casePhotos[problem.id]||{causes:['','',''],completed:'',gif:''};
+  /* gif를 배열(media)로 통합: 기존 단일 gif 문자열도 호환 */
+  const photos={...rawPhotos,media:rawPhotos.media||( rawPhotos.gif?[rawPhotos.gif]:[] )};
   const today=new Date();
   const dateStr=`2026년 4월 ${today.getDate()<=18?today.getDate():'__'}일`;
 
@@ -1903,23 +1924,24 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
         {/* ── 공법 상세 ── */}
         <>
-            {/* ── 1. 하자 현장 사진 (가로 슬라이드) ── */}
+            {/* ── 1. 현장 사진 (정사각형 인스타 피드) ── */}
             <div style={{marginBottom:16}}>
               <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>📸 현장 사진</div>
               {(photos?.causes||[]).filter(s=>s).length>0?(
-                <div style={{display:'flex',gap:10,overflowX:'auto',paddingBottom:6,scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch'}}>
+                <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:6,scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch'}}>
                   {(photos.causes||[]).filter(s=>s).map((src,i)=>(
-                    <div key={i} style={{flex:'0 0 92%',scrollSnapAlign:'start',borderRadius:12,overflow:'hidden',border:'1.5px solid var(--border)',background:'#000',position:'relative',aspectRatio:'16/10',cursor:'pointer'}} onClick={()=>setZoomPhoto({src,alt:`현장사진 ${i+1}`})}>
-                      <img src={src} alt={`현장사진${i+1}`} style={{width:'100%',height:'100%',objectFit:'contain',display:'block'}}/>
-                      <span style={{position:'absolute',bottom:6,left:8,padding:'2px 8px',borderRadius:5,fontSize:10,fontWeight:800,background:'rgba(0,0,0,.6)',color:'#fff'}}>현장 {i+1}</span>
-                      <span style={{position:'absolute',top:6,right:8,padding:'2px 8px',borderRadius:5,fontSize:10,fontWeight:700,background:'rgba(0,0,0,.5)',color:'#fff'}}>🔍 확대</span>
+                    <div key={i} style={{flex:'0 0 80%',maxWidth:320,scrollSnapAlign:'start',borderRadius:14,overflow:'hidden',border:'1.5px solid var(--border)',background:'#000',position:'relative',aspectRatio:'1/1',cursor:'pointer'}} onClick={()=>setZoomPhoto({src,alt:`현장사진 ${i+1}`})}>
+                      <img src={src} alt={`현장사진${i+1}`} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+                      <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'24px 12px 10px',background:'linear-gradient(transparent,rgba(0,0,0,.6))'}}>
+                        <span style={{fontSize:11,fontWeight:800,color:'#fff'}}>현장 {i+1}/{(photos.causes||[]).filter(s=>s).length}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
               ):(
-                <div style={{display:'flex',gap:10,overflowX:'auto',paddingBottom:6}}>
+                <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:6}}>
                   {['','',''].map((_,i)=>(
-                    <div key={i} style={{flex:'0 0 60%',borderRadius:12,border:'1.5px dashed var(--border)',background:'var(--bg)',aspectRatio:'16/10',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
+                    <div key={i} style={{flex:'0 0 45%',maxWidth:160,borderRadius:14,border:'1.5px dashed var(--border)',background:'var(--bg)',aspectRatio:'1/1',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
                       <span style={{fontSize:22,opacity:.2}}>📷</span>
                       <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:600}}>관리자에서 추가</span>
                     </div>
@@ -1928,17 +1950,31 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               )}
             </div>
 
-            {/* ── 2. GIF / 동영상 미디어 ── */}
+            {/* ── 2. 관련 미디어 (숏츠/릴스 스타일 슬라이드) ── */}
             <div style={{marginBottom:16}}>
               <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>🎬 관련 미디어</div>
-              {(photos?.gif||problem.gifUrl)?(
-                <div style={{borderRadius:12,overflow:'hidden',border:'1.5px solid var(--border)',background:'#000',position:'relative',maxHeight:400}}>
-                  <img src={photos?.gif||problem.gifUrl} alt="관련 미디어" style={{width:'100%',maxHeight:400,objectFit:'contain',display:'block',imageRendering:'auto'}}/>
+              {(photos.media||[]).filter(s=>s).length>0?(
+                <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:6,scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch'}}>
+                  {photos.media.filter(s=>s).map((src,i)=>{
+                    const isVideo=/\.(mp4|webm|mov)(\?|$)/i.test(src);
+                    return(
+                      <div key={i} style={{flex:'0 0 65%',maxWidth:260,scrollSnapAlign:'start',borderRadius:14,overflow:'hidden',border:'1.5px solid var(--border)',background:'#000',position:'relative',aspectRatio:'9/16'}}>
+                        {isVideo?(
+                          <video src={src} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}} controls playsInline muted loop/>
+                        ):(
+                          <img src={src} alt={`미디어 ${i+1}`} style={{width:'100%',height:'100%',objectFit:'cover',display:'block',imageRendering:'auto'}} onClick={()=>setZoomPhoto({src,alt:`미디어 ${i+1}`})}/>
+                        )}
+                        <div style={{position:'absolute',top:8,left:8,padding:'3px 8px',borderRadius:6,fontSize:10,fontWeight:800,background:'rgba(0,0,0,.55)',color:'#fff',backdropFilter:'blur(4px)'}}>
+                          {i+1}/{photos.media.filter(s=>s).length}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               ):(
-                <div style={{borderRadius:12,border:'1.5px dashed var(--border)',background:'var(--bg)',aspectRatio:'16/9',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6}}>
+                <div style={{borderRadius:14,border:'1.5px dashed var(--border)',background:'var(--bg)',aspectRatio:'9/16',maxWidth:200,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6}}>
                   <span style={{fontSize:28,opacity:.2}}>🎬</span>
-                  <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:600}}>관리자에서 GIF/영상 추가</span>
+                  <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:600}}>관리자에서 추가</span>
                 </div>
               )}
             </div>
@@ -3631,8 +3667,7 @@ function AdminScreen({onBack}){
             <div style={{fontSize:12,color:'var(--text-sm)',marginBottom:6,lineHeight:1.6}}>
               아래 사진은 <b>공법 상세 화면</b>에 표시됩니다.<br/>
               · <b>현장 사진</b> → 상단 가로 슬라이드<br/>
-              · <b>GIF</b> → 관련 미디어 (하자/비교 영상)<br/>
-              · <b>완공사진</b> → 하단에 노출<br/>
+              · <b>미디어</b> → 관련 미디어 슬라이드 (GIF/영상/비교사진, 복수 등록 가능)<br/>
               사진 클릭 → 파일 선택 / 이미지 복사 후 붙여넣기(Ctrl+V) 가능
             </div>
 
@@ -3659,17 +3694,19 @@ function AdminScreen({onBack}){
                     </button>
                   </div>
 
-                  {/* GIF URL */}
-                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>🎬 GIF URL</div>
-                  <input value={data.gif||''} placeholder="https://... GIF 또는 영상 URL" onChange={e=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:'',gif:''};up[key].gif=e.target.value;setCasePhotos(up);saveCasePhotos(up);}}
-                    style={{width:'100%',padding:'8px 10px',borderRadius:8,border:'1px solid var(--border)',fontSize:12,fontFamily:'inherit',marginBottom:12,boxSizing:'border-box'}}/>
-
-                  {/* 완공사진 */}
-                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>완공사진</div>
-                  <PhotoSlot src={data.completed||''} label="완공사진" wide
-                    onSet={(v)=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:'',gif:''};up[key].completed=v;setCasePhotos(up);saveCasePhotos(up);}}
-                    onRemove={()=>{const up=JSON.parse(JSON.stringify(casePhotos));up[key].completed='';setCasePhotos(up);saveCasePhotos(up);}}
-                  />
+                  {/* 관련 미디어 (복수) */}
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>🎬 관련 미디어 (GIF/영상 URL)</div>
+                  {(data.media||(data.gif?[data.gif]:[])).map((url,mi)=>(
+                    <div key={mi} style={{display:'flex',gap:6,marginBottom:6}}>
+                      <input value={url||''} placeholder={`https://... 미디어 URL ${mi+1}`}
+                        onChange={e=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:'',media:[]};const m=up[key].media||(up[key].gif?[up[key].gif]:[]);m[mi]=e.target.value;up[key].media=m;delete up[key].gif;setCasePhotos(up);saveCasePhotos(up);}}
+                        style={{flex:1,padding:'8px 10px',borderRadius:8,border:'1px solid var(--border)',fontSize:12,fontFamily:'inherit',boxSizing:'border-box'}}/>
+                      <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));const m=up[key]?.media||(up[key]?.gif?[up[key].gif]:[]);m.splice(mi,1);up[key].media=m;delete up[key].gif;setCasePhotos(up);saveCasePhotos(up);}}
+                        style={{padding:'0 10px',borderRadius:8,border:'1px solid #FCA5A5',background:'#FEF2F2',color:'#DC2626',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>✕</button>
+                    </div>
+                  ))}
+                  <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:'',media:[]};const m=up[key].media||(up[key].gif?[up[key].gif]:[]);m.push('');up[key].media=m;delete up[key].gif;setCasePhotos(up);saveCasePhotos(up);}}
+                    style={{padding:'6px 14px',borderRadius:8,border:'1.5px dashed var(--border)',background:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',color:'var(--accent)',marginBottom:12}}>+ 미디어 추가</button>
                 </div>
               );
             })}
@@ -4062,6 +4099,18 @@ function App(){
   const [showPinModal,setShowPinModal]=useState(false);
 
   useEffect(()=>{syncPhotosFromFirestore(null,setProbPhotos);},[]);
+
+  /* Firestore에서 담당자 목록 동기화 — 다른 기기에서 등록한 담당자도 반영 */
+  useEffect(()=>{
+    syncStaffFromFirestore().then(list=>{
+      if(!list)return;
+      const id=localStorage.getItem('pourStaffId');
+      if(id){
+        const found=list.find(s=>s.id===id);
+        if(found&&!staffName){setStaffName(found.name);localStorage.setItem('pourStaffName',found.name);}
+      }
+    });
+  },[]);
 
   const isSetup=!!(staffId&&staffName);
 

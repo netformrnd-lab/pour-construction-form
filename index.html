@@ -1921,12 +1921,12 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
             {sol.methods.some(m=>m.photosKey)?(
               <div style={{marginBottom:14}}>
                 <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:10}}>✅ 공법별 완공사진</div>
-                <div style={{display:'flex',gap:10,overflowX:'auto',paddingBottom:6,scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch'}}>
+                <div style={{display:'flex',flexDirection:'column',gap:10}}>
                   {sol.methods.map((m,i)=>{
                     if(!m.photosKey)return null;
                     const mPhotos=casePhotos[m.photosKey]||null;
                     return(
-                      <div key={i} style={{flex:'0 0 85%',scrollSnapAlign:'start',borderRadius:12,overflow:'hidden',border:'1.5px solid var(--border)',background:'var(--bg)'}}>
+                      <div key={i} style={{borderRadius:12,overflow:'hidden',border:'1.5px solid var(--border)',background:'var(--bg)'}}>
                         <div style={{position:'relative',aspectRatio:'16/10',background:'var(--bg)',cursor:mPhotos?.completed?'pointer':'default'}} onClick={()=>mPhotos?.completed&&setZoomPhoto({src:mPhotos.completed,alt:m.name+' 완공사진'})}>
                           {mPhotos?.completed
                             ?<img src={mPhotos.completed} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
@@ -1938,9 +1938,12 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                           <span style={{position:'absolute',top:6,left:6,padding:'2px 8px',borderRadius:5,fontSize:10,fontWeight:800,background:'rgba(5,150,105,.85)',color:'#fff'}}>완공사진</span>
                           {mPhotos?.completed&&<span style={{position:'absolute',top:6,right:6,padding:'2px 8px',borderRadius:5,fontSize:10,fontWeight:700,background:'rgba(0,0,0,.5)',color:'#fff'}}>🔍 확대</span>}
                         </div>
-                        <div style={{padding:'8px 12px',background:'var(--card)',borderTop:'1px solid var(--border)'}}>
-                          <div style={{fontSize:12,fontWeight:800,color:'var(--text)',letterSpacing:'-.2px'}}>{m.need||m.name}</div>
-                          {m.needDesc&&<div style={{fontSize:10,color:'var(--text-sm)',marginTop:2}}>{m.needDesc}</div>}
+                        <div style={{padding:'10px 14px',background:'var(--navy)',borderTop:'none'}}>
+                          <div style={{display:'flex',alignItems:'center',gap:6}}>
+                            <span style={{fontSize:14}}>{m.needIcon||'🔧'}</span>
+                            <div style={{fontSize:13,fontWeight:800,color:'#fff',letterSpacing:'-.2px'}}>{m.need||m.name}</div>
+                          </div>
+                          {m.needDesc&&<div style={{fontSize:11,color:'rgba(255,255,255,.6)',marginTop:3,paddingLeft:22}}>{m.needDesc}</div>}
                         </div>
                       </div>
                     );
@@ -1965,20 +1968,20 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
             {/* ── 섹션1: 공법 ── */}
             {cond&&(
-              <div style={{marginBottom:12,background:'rgba(255,255,255,.04)',borderRadius:12,padding:'12px 14px',border:'1px solid rgba(255,255,255,.08)'}}>
-                <div style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,.5)',letterSpacing:'.06em',marginBottom:8}}>🔍 {cond.q}</div>
+              <div style={{marginBottom:12,background:'rgba(37,99,235,.08)',borderRadius:12,padding:'12px 14px',border:'1px solid rgba(37,99,235,.2)'}}>
+                <div style={{fontSize:12,fontWeight:800,color:'#fff',letterSpacing:'.02em',marginBottom:8}}>🔍 {cond.q}</div>
                 <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
                   {cond.opts.map(opt=>{
                     const active=methodCondition===opt.id;
                     return(
                       <button key={opt.id} onClick={()=>setMethodCondition(p=>p===opt.id?null:opt.id)}
-                        style={{padding:'6px 12px',borderRadius:20,border:`1.5px solid ${active?'var(--blue)':'rgba(255,255,255,.15)'}`,background:active?'var(--blue)':'transparent',color:active?'#fff':'rgba(255,255,255,.65)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',transition:'all .15s',display:'flex',alignItems:'center',gap:4}}>
+                        style={{padding:'6px 12px',borderRadius:20,border:`1.5px solid ${active?'var(--blue)':'rgba(255,255,255,.25)'}`,background:active?'var(--blue)':'rgba(255,255,255,.08)',color:active?'#fff':'rgba(255,255,255,.85)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',transition:'all .15s',display:'flex',alignItems:'center',gap:4}}>
                         <span>{opt.icon}</span><span>{opt.label}</span>
                       </button>
                     );
                   })}
                 </div>
-                {selOpt&&<div style={{fontSize:11,color:'rgba(255,255,255,.45)',marginTop:8,paddingLeft:2}}>{selOpt.desc}</div>}
+                {selOpt&&<div style={{fontSize:11,color:'rgba(255,255,255,.7)',marginTop:8,paddingLeft:2,fontWeight:600}}>{selOpt.desc}</div>}
               </div>
             )}
             <div style={{background:'var(--navy)',borderRadius:'var(--r)',overflow:'hidden',marginBottom:14,border:'1px solid rgba(255,255,255,.06)'}}>

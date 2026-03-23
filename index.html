@@ -1792,6 +1792,10 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   /* ── 모든 useState 최상단 선언 (React 훅 규칙) ── */
   const [qr,setQr]=useState(null);
   const [zoomPhoto,setZoomPhoto]=useState(null);
+  const [mediaViewer,setMediaViewer]=useState(null);
+  const [mvPlaying,setMvPlaying]=useState(false);
+  const mvVideoRef=React.useRef(null);
+  const mvSwipeRef=React.useRef(0);
   const [subScreen,setSubScreen]=useState('main');
   const [contactDone,setContactDone]=useState(false);
   const [memo,setMemo]=useState('');
@@ -1897,6 +1901,58 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
     <div className={`screen ${visible?'active':''}`} style={{background:'var(--bg)'}}>
       {qr&&<QRModal url={qr.url} title={qr.title} onClose={()=>setQr(null)}/>}
       {zoomPhoto&&<PhotoZoomModal src={zoomPhoto.src} alt={zoomPhoto.alt} onClose={()=>setZoomPhoto(null)}/>}
+      {mediaViewer!==null&&(()=>{
+        const mList=(photos.media||[]).filter(s=>s);
+        const mSrc=mList[mediaViewer]||'';
+        const mIsVid=/\.(mp4|webm|mov)(\?|$)/i.test(mSrc)||mSrc.startsWith('data:video/');
+        return(
+          <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'#000',zIndex:950}}
+            onTouchStart={e=>{mvSwipeRef.current=e.touches[0].clientX;}}
+            onTouchEnd={e=>{
+              const dx=e.changedTouches[0].clientX-(mvSwipeRef.current||0);
+              if(dx<-50&&mediaViewer<mList.length-1)setMediaViewer(v=>v+1);
+              else if(dx>50&&mediaViewer>0)setMediaViewer(v=>v-1);
+            }}
+          >
+            {/* 상단: 뒤로 + 진행 바 */}
+            <div style={{position:'absolute',top:0,left:0,right:0,padding:'16px 16px 28px',background:'linear-gradient(to bottom,rgba(0,0,0,.75) 0%,transparent 100%)',zIndex:2,display:'flex',alignItems:'center',gap:10}}>
+              <button onClick={()=>setMediaViewer(null)}
+                style={{width:38,height:38,borderRadius:'50%',border:'none',background:'rgba(255,255,255,.18)',color:'#fff',fontSize:22,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit',flexShrink:0,lineHeight:1}}>
+                ‹
+              </button>
+              <div style={{flex:1,display:'flex',gap:3}}>
+                {mList.map((_,i)=>(
+                  <div key={i} onClick={()=>setMediaViewer(i)}
+                    style={{flex:1,height:3,borderRadius:2,background:i===mediaViewer?'#fff':'rgba(255,255,255,.3)',cursor:'pointer',transition:'background .2s'}}/>
+                ))}
+              </div>
+            </div>
+            {/* 미디어 영역: 탭 → 영상 재생/일시정지 */}
+            <div style={{position:'absolute',top:0,left:0,right:0,bottom:0,display:'flex',alignItems:'center',justifyContent:'center'}}
+              onClick={()=>{if(mIsVid&&mvVideoRef.current){if(mvVideoRef.current.paused){mvVideoRef.current.play();setMvPlaying(true);}else{mvVideoRef.current.pause();setMvPlaying(false);}}}}
+            >
+              {mIsVid?(
+                <video key={mSrc} ref={mvVideoRef} src={mSrc}
+                  style={{width:'100%',height:'100%',objectFit:'contain',display:'block'}}
+                  playsInline muted loop autoPlay
+                  onPlay={()=>setMvPlaying(true)} onPause={()=>setMvPlaying(false)}/>
+              ):(
+                <img src={mSrc} alt="미디어" style={{width:'100%',height:'100%',objectFit:'contain',display:'block'}}/>
+              )}
+              {mIsVid&&!mvPlaying&&(
+                <div style={{position:'absolute',pointerEvents:'none',width:68,height:68,borderRadius:'50%',background:'rgba(0,0,0,.55)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <span style={{fontSize:30,color:'#fff',marginLeft:5}}>▶</span>
+                </div>
+              )}
+            </div>
+            {/* 하단: 카운터 + 스와이프 힌트 */}
+            <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'24px 16px',background:'linear-gradient(to top,rgba(0,0,0,.55) 0%,transparent 100%)',zIndex:2,display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
+              <span style={{fontSize:11,color:'rgba(255,255,255,.55)',fontWeight:600}}>{mList.length>1?'← 스와이프 →':''}</span>
+              <div style={{padding:'4px 10px',borderRadius:6,background:'rgba(0,0,0,.5)',color:'#fff',fontSize:12,fontWeight:700}}>{mediaViewer+1} / {mList.length}</div>
+            </div>
+          </div>
+        );
+      })()}
 
 
 
@@ -1956,17 +2012,19 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               {(photos.media||[]).filter(s=>s).length>0?(
                 <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:6,scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch'}}>
                   {photos.media.filter(s=>s).map((src,i)=>{
-                    const isVideo=/\.(mp4|webm|mov)(\?|$)/i.test(src);
+                    const isVideo=/\.(mp4|webm|mov)(\?|$)/i.test(src)||src.startsWith('data:video/');
                     return(
-                      <div key={i} style={{flex:'0 0 65%',maxWidth:260,scrollSnapAlign:'start',borderRadius:14,overflow:'hidden',border:'1.5px solid var(--border)',background:'#000',position:'relative',aspectRatio:'9/16'}}>
+                      <div key={i} onClick={()=>setMediaViewer(i)}
+                        style={{flex:'0 0 65%',maxWidth:260,scrollSnapAlign:'start',borderRadius:14,overflow:'hidden',border:'1.5px solid var(--border)',background:'#000',position:'relative',aspectRatio:'9/16',cursor:'pointer'}}>
                         {isVideo?(
-                          <video src={src} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}} controls playsInline muted loop/>
+                          <video src={src} style={{width:'100%',height:'100%',objectFit:'cover',display:'block',pointerEvents:'none'}} playsInline muted/>
                         ):(
-                          <img src={src} alt={`미디어 ${i+1}`} style={{width:'100%',height:'100%',objectFit:'cover',display:'block',imageRendering:'auto'}} onClick={()=>setZoomPhoto({src,alt:`미디어 ${i+1}`})}/>
+                          <img src={src} alt={`미디어 ${i+1}`} style={{width:'100%',height:'100%',objectFit:'cover',display:'block',imageRendering:'auto',pointerEvents:'none'}}/>
                         )}
                         <div style={{position:'absolute',top:8,left:8,padding:'3px 8px',borderRadius:6,fontSize:10,fontWeight:800,background:'rgba(0,0,0,.55)',color:'#fff',backdropFilter:'blur(4px)'}}>
                           {i+1}/{photos.media.filter(s=>s).length}
                         </div>
+                        {isVideo&&<div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',pointerEvents:'none'}}><div style={{width:40,height:40,borderRadius:'50%',background:'rgba(0,0,0,.5)',display:'flex',alignItems:'center',justifyContent:'center'}}><span style={{fontSize:18,color:'#fff',marginLeft:3}}>▶</span></div></div>}
                       </div>
                     );
                   })}

@@ -3683,16 +3683,47 @@ function AdminScreen({onBack}){
                   </div>
 
                   {/* 관련 미디어 (복수) */}
-                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>🎬 관련 미디어 (GIF/영상 URL)</div>
-                  {(data.media||(data.gif?[data.gif]:[])).map((url,mi)=>(
-                    <div key={mi} style={{display:'flex',gap:6,marginBottom:6}}>
-                      <input value={url||''} placeholder={`https://... 미디어 URL ${mi+1}`}
-                        onChange={e=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:'',media:[]};const m=up[key].media||(up[key].gif?[up[key].gif]:[]);m[mi]=e.target.value;up[key].media=m;delete up[key].gif;setCasePhotos(up);saveCasePhotos(up);}}
-                        style={{flex:1,padding:'8px 10px',borderRadius:8,border:'1px solid var(--border)',fontSize:12,fontFamily:'inherit',boxSizing:'border-box'}}/>
-                      <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));const m=up[key]?.media||(up[key]?.gif?[up[key].gif]:[]);m.splice(mi,1);up[key].media=m;delete up[key].gif;setCasePhotos(up);saveCasePhotos(up);}}
-                        style={{padding:'0 10px',borderRadius:8,border:'1px solid #FCA5A5',background:'#FEF2F2',color:'#DC2626',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>✕</button>
-                    </div>
-                  ))}
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>🎬 관련 미디어 (GIF/영상)</div>
+                  {(data.media||(data.gif?[data.gif]:[])).map((url,mi)=>{
+                    const isVideo=url&&(/\.(mp4|webm|mov)(\?|$)/i.test(url)||url.startsWith('data:video/'));
+                    return(
+                      <div key={mi} style={{marginBottom:8}}>
+                        {url&&(
+                          <div style={{marginBottom:4,borderRadius:8,overflow:'hidden',border:'1px solid var(--border)',background:'#000',display:'inline-block',width:120,height:90}}>
+                            {isVideo
+                              ?<video src={url} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}} muted playsInline/>
+                              :<img src={url} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}} alt={`미디어 ${mi+1}`}/>
+                            }
+                          </div>
+                        )}
+                        <div style={{display:'flex',gap:6}}>
+                          <input value={url||''} placeholder={`URL 직접 입력 ${mi+1}`}
+                            onChange={e=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:'',media:[]};const m=up[key].media||(up[key].gif?[up[key].gif]:[]);m[mi]=e.target.value;up[key].media=m;delete up[key].gif;setCasePhotos(up);saveCasePhotos(up);}}
+                            style={{flex:1,padding:'8px 10px',borderRadius:8,border:'1px solid var(--border)',fontSize:12,fontFamily:'inherit',boxSizing:'border-box'}}/>
+                          <input type="file" accept="image/gif,video/mp4,video/webm,video/quicktime,.gif,.mp4,.webm,.mov"
+                            id={`mf-${key}-${mi}`} style={{display:'none'}}
+                            onChange={e=>{
+                              const file=e.target.files[0];if(!file)return;
+                              if(file.size>50*1024*1024){alert('파일이 너무 큽니다 (최대 50MB)');e.target.value='';return;}
+                              const reader=new FileReader();
+                              reader.onload=(ev)=>{
+                                const up=JSON.parse(JSON.stringify(casePhotos));
+                                if(!up[key])up[key]={causes:[],completed:'',media:[]};
+                                const m=up[key].media||(up[key].gif?[up[key].gif]:[]);
+                                m[mi]=ev.target.result;up[key].media=m;delete up[key].gif;
+                                setCasePhotos(up);saveCasePhotos(up);
+                              };
+                              reader.readAsDataURL(file);e.target.value='';
+                            }}/>
+                          <button onClick={()=>document.getElementById(`mf-${key}-${mi}`)?.click()}
+                            title="GIF/영상 파일 업로드"
+                            style={{padding:'0 10px',borderRadius:8,border:'1px solid var(--border)',background:'#f3f4f6',fontSize:16,cursor:'pointer',lineHeight:1,fontFamily:'inherit'}}>📁</button>
+                          <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));const m=up[key]?.media||(up[key]?.gif?[up[key].gif]:[]);m.splice(mi,1);up[key].media=m;delete up[key].gif;setCasePhotos(up);saveCasePhotos(up);}}
+                            style={{padding:'0 10px',borderRadius:8,border:'1px solid #FCA5A5',background:'#FEF2F2',color:'#DC2626',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>✕</button>
+                        </div>
+                      </div>
+                    );
+                  })}
                   <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:'',media:[]};const m=up[key].media||(up[key].gif?[up[key].gif]:[]);m.push('');up[key].media=m;delete up[key].gif;setCasePhotos(up);saveCasePhotos(up);}}
                     style={{padding:'6px 14px',borderRadius:8,border:'1.5px dashed var(--border)',background:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',color:'var(--accent)',marginBottom:12}}>+ 미디어 추가</button>
                 </div>

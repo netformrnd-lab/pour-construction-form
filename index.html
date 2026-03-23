@@ -3227,8 +3227,11 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
               </div>
 
             </div>{/* 본문 끝 */}
-            <div className="pencil-scroll-zone" style={{minHeight:'auto'}}>
-              <span className="pencil-scroll-label">손으로 터치하여 스크롤</span>
+            <div className="pencil-scroll-zone" style={{minHeight:'auto'}}
+              onTouchStart={e=>{e.currentTarget._lastY=e.touches[0].clientY;}}
+              onTouchMove={e=>{const dy=e.currentTarget._lastY-e.touches[0].clientY;e.currentTarget._lastY=e.touches[0].clientY;const scr=e.currentTarget.previousElementSibling;if(scr)scr.scrollTop+=dy;}}
+            >
+              <span className="pencil-scroll-label">스크롤</span>
             </div>
             </div>{/* flex wrapper 끝 */}
           </>

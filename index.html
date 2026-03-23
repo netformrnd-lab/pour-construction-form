@@ -31,6 +31,9 @@ const db = firebase.firestore();
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
+/* 이미지 화질 최적화 */
+img{image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges;}
+img[src$=".gif"],img[alt*="GIF"]{image-rendering:auto;}
 :root{
   /* 브랜드 코어 */
   --navy:#0D1B2A; --navy2:#1A2E42;
@@ -261,7 +264,7 @@ input,textarea{font-family:inherit;}
 .photo-zoom-overlay{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:1100;display:flex;flex-direction:column;align-items:center;justify-content:center;touch-action:none;-webkit-user-select:none;user-select:none;}
 .photo-zoom-close{position:absolute;top:14px;right:14px;width:38px;height:38px;border-radius:50%;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:20px;cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center;}
 .photo-zoom-container{width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;}
-.photo-zoom-container img{max-width:100%;max-height:100%;object-fit:contain;transform-origin:center center;transition:transform .15s ease;}
+.photo-zoom-container img{max-width:100%;max-height:100%;object-fit:contain;transform-origin:center center;transition:transform .15s ease;image-rendering:-webkit-optimize-contrast;}
 .photo-zoom-hint{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);font-size:12px;color:rgba(255,255,255,.5);font-weight:600;pointer-events:none;}
 .msec{background:var(--card);border-radius:var(--r);padding:18px 18px;margin-bottom:10px;box-shadow:var(--shadow);}
 .msec-title{font-size:11px;font-weight:700;color:var(--text-sm);letter-spacing:.07em;margin-bottom:12px;display:flex;align-items:center;gap:7px;text-transform:uppercase;}
@@ -853,26 +856,31 @@ const BUILDING_TYPES=[
 
 // img: 문제 선택 칩에 보여줄 사진 URL (비워두면 이모지, 채우면 사진)
 const ALL_PROBLEMS=[
-  // a. 아스팔트슁글
-  {id:'shingle',cat:'방수',label:'아스팔트슁글',icon:'🏠',img:''},
-  // b. 금속기와
-  {id:'metal',cat:'방수',label:'금속기와',icon:'🏠',img:''},
-  // c. 슬라브
-  {id:'slab',cat:'방수',label:'슬라브',icon:'💧',img:''},
-  // d. 지하주차장
-  {id:'parking',cat:'도장',label:'지하주차장',icon:'🚗',img:''},
-  // e. 외벽/재도장
-  {id:'wall',cat:'도장',label:'외벽/재도장',icon:'🏠',img:''},
-  // f. 균열
-  {id:'crack',cat:'보수/보강',label:'균열',icon:'⚡',img:''},
-  // f. 아스콘
-  {id:'ascon',cat:'토목',label:'아스콘',icon:'🛣',img:''},
-  // g. 보도블럭 균열, 부식
-  {id:'block',cat:'토목',label:'보도블럭 균열, 부식',icon:'🧱',img:''},
-  // h. 기타 보강자재
-  {id:'material',cat:'보강자재',label:'기타 보강자재',icon:'🔧',img:''},
+  // ── 방수 ──
+  {id:'shingle',cat:'방수',label:'POUR 아스팔트싱글 방수 공법',sub:'경사/박공형',icon:'🏠',img:'',tags:['#아스팔트슁글','#후레싱 탈락방지','#반영구적 방수층 형성','#일체화'],specUrl:'https://www.poursolution.net/128',proposalUrl:'',gifUrl:'',guideId:'g1',caseUrl:'https://www.poursolution.net/110'},
+  {id:'metal',cat:'방수',label:'POUR 금속기와 방수 공법',sub:'경사/박공형',icon:'🏠',img:'',tags:['#금속기와 및 후레싱 탈락방지','#금음, 단차에도 완벽 방수층 형성'],specUrl:'https://www.poursolution.net/130',proposalUrl:'',gifUrl:'',guideId:'g2',caseUrl:'https://www.poursolution.net/127'},
+  {id:'slab_dual',cat:'방수',label:'POUR 듀얼강화방수 공법',sub:'슬라브/평형',icon:'💧',img:'',tags:['#평형 옥상 견고한 복합시트 방수층 형성','#통기성 확보','#물고임,코너,에어포켓 대응','#콘크리트 중성화 방지'],specUrl:'https://www.poursolution.net/132',proposalUrl:'',gifUrl:'',guideId:'g3',caseUrl:'https://www.poursolution.net/111'},
+  {id:'slab_pvc',cat:'방수',label:'POUR PVC 방수 공법',sub:'슬라브/평형',icon:'💧',img:'',tags:['#친환경 PVC 방수층 형성','#통기성 확보','#결로방지단열시트 활용','#콘크리트 중성화 방지'],specUrl:'https://www.poursolution.net/136',proposalUrl:'',gifUrl:'',guideId:'g7',caseUrl:'https://www.poursolution.net/111'},
+  {id:'slab_urethane',cat:'방수',label:'POUR 우레탄 방수 공법',sub:'슬라브/평형',icon:'💧',img:'',tags:['#코너,이음부 복합시트 방수보강','#모체콘크리트 중성화 방지','#통기성 확보'],specUrl:'https://www.poursolution.net/124',proposalUrl:'',gifUrl:'',guideId:'g6',caseUrl:'https://www.poursolution.net/111'},
+  {id:'slab_acrylic',cat:'방수',label:'POUR 아크릴 배면차수 방수 공법',sub:'지하주차장',icon:'🚗',img:'',tags:['#경화속도 조절 통한 근본적 그라우팅 차수','#2액형 아크릴 주입방수','#인접선 약점 보완'],specUrl:'https://www.poursolution.net/195',proposalUrl:'',gifUrl:'',guideId:null,caseUrl:''},
+  // ── 도장 ──
+  {id:'parking_epoxy',cat:'도장',label:'POUR 에폭시 도장 공법',sub:'지하주차장',icon:'🚗',img:'',tags:['#고부착 에폭시','#내화학성·내마모성','#분진 방지'],specUrl:'https://www.poursolution.net/125',proposalUrl:'',gifUrl:'',guideId:'g4',caseUrl:'https://www.poursolution.net/96'},
+  {id:'parking_emboss',cat:'도장',label:'POUR 엠보라이닝 도장 공법',sub:'지하주차장',icon:'🚗',img:'',tags:['#엠보 패턴 논슬립','#내구성 동시 확보'],specUrl:'https://www.poursolution.net/195',proposalUrl:'',gifUrl:'',guideId:'g4',caseUrl:'https://www.poursolution.net/96'},
+  {id:'wall_premium',cat:'도장',label:'POUR 균열보수 및 재도장 공법(바인더+플러스)',sub:'외벽',icon:'🏠',img:'',tags:['#균열 충전+탄성 바인더','#고급 플러스 도장의 3중 구성'],specUrl:'https://www.poursolution.net/139',proposalUrl:'',gifUrl:'',guideId:'g5',caseUrl:'https://www.poursolution.net/98'},
+  {id:'wall_mid',cat:'도장',label:'POUR 균열보수 및 재도장 공법(플러스+수성)',sub:'외벽',icon:'🏠',img:'',tags:['#균열 충전+플러스+수성 도료','#중급형 조합'],specUrl:'https://www.poursolution.net/140',proposalUrl:'',gifUrl:'',guideId:'g5',caseUrl:'https://www.poursolution.net/98'},
+  {id:'wall_economy',cat:'도장',label:'POUR 균열보수 및 재도장 공법(바인더+수성)',sub:'외벽',icon:'🏠',img:'',tags:['#균열 충전+탄성 바인더+수성 도료','#경제형 조합'],specUrl:'https://www.poursolution.net/190',proposalUrl:'',gifUrl:'',guideId:'g5',caseUrl:'https://www.poursolution.net/98'},
+  // ── 보수/보강 ──
+  {id:'crack_surface',cat:'보수/보강',label:'POUR 탄성강화 보강공법 (바탕면)',sub:'균열보수',icon:'⚡',img:'',tags:['#바탕면 균열 탄성 보강재 충전','#구조 안전성 회복'],specUrl:'https://www.poursolution.net/143',proposalUrl:'',gifUrl:'',guideId:null,caseUrl:'https://www.poursolution.net/portfolio'},
+  {id:'crack_section',cat:'보수/보강',label:'POUR 탄성강화 보강공법 (단면복구)',sub:'균열보수',icon:'⚡',img:'',tags:['#단면 손상 복구','#탄성 보강 재균열 방지'],specUrl:'https://www.poursolution.net/144',proposalUrl:'',gifUrl:'',guideId:null,caseUrl:'https://www.poursolution.net/portfolio'},
+  {id:'crack_sheet',cat:'보수/보강',label:'POUR 복합시트 균열보수 공법',sub:'균열보수',icon:'⚡',img:'',tags:['#복합시트 균열부 보강','#구조적 안정성 확보'],specUrl:'https://www.poursolution.net/145',proposalUrl:'',gifUrl:'',guideId:null,caseUrl:'https://www.poursolution.net/portfolio'},
+  // ── 토목 ──
+  {id:'ascon_repair',cat:'토목',label:'POUR 아스콘 균열보수 및 단면복구 공법',sub:'아스콘',icon:'🛣',img:'',tags:['#균열부 절삭→기층 보강→재포장'],specUrl:'https://www.poursolution.net/150',proposalUrl:'',gifUrl:'',guideId:null,caseUrl:'https://www.poursolution.net/portfolio'},
+  {id:'ascon_seal',cat:'토목',label:'POUR 아스콘 씰코팅 공법',sub:'아스콘',icon:'🛣',img:'',tags:['#표면 산화 방지','#방수성 강화','#포장 수명 2~3배 연장'],specUrl:'https://www.poursolution.net/173',proposalUrl:'',gifUrl:'',guideId:null,caseUrl:'https://www.poursolution.net/portfolio'},
+  {id:'ascon_mma',cat:'토목',label:'POUR MMA 공법',sub:'아스콘',icon:'🛣',img:'',tags:['#고강도 MMA 수지','#내충격·내화학성','#조기 개방 가능'],specUrl:'https://www.poursolution.net/197',proposalUrl:'',gifUrl:'',guideId:null,caseUrl:'https://www.poursolution.net/portfolio'},
+  {id:'block',cat:'토목',label:'POUR 보도블럭 보수 및 단면 복구',sub:'보도블럭',icon:'🧱',img:'',tags:['#기층 보강+블록 재시공','#침하 재발 방지'],specUrl:'https://www.poursolution.net/77',proposalUrl:'',gifUrl:'',guideId:null,caseUrl:'https://www.poursolution.net/portfolio'},
 ];
-const CATS=['전체','방수','도장','보수/보강','토목','보강자재'];
+const CATS=['전체','방수','도장','보수/보강','토목'];
+const CAT_LINKS={방수:'https://www.poursolution.net/36',도장:'https://www.poursolution.net/38','보수/보강':'https://www.poursolution.net/37',토목:'https://www.poursolution.net/39'};
 
 // (건물 유형별 필터 제거 — 전체 문제 표시)
 
@@ -890,16 +898,8 @@ const GUIDES=[
 // causes: 원인 카드별 현장 사진 (3장), before/after: 시공 전후 사진
 // URL을 채우면 즉시 반영됩니다.
 // 사진 데이터 — localStorage에서 로드 (관리자 페이지에서 편집 가능)
-const DEFAULT_CASE_PHOTOS={
-  shingle:{causes:['','',''],completed:''},
-  metal:  {causes:['','',''],completed:''},
-  metal_waterproof:{causes:[],completed:''},
-  metal_coating:{causes:[],completed:''},
-  slab:   {causes:['','',''],completed:''},
-  parking:{causes:['','',''],completed:''},
-  exterior:{causes:['','',''],completed:''},
-  maintenance:{causes:['','',''],completed:''},
-};
+const DEFAULT_CASE_PHOTOS={};
+// 각 공법별 사진은 동적으로 관리 (pourCasePhotos에 {[methodId]:{causes:['','',''],completed:'',gif:''}} 형태)
 const loadCasePhotos=()=>{try{return{...DEFAULT_CASE_PHOTOS,...JSON.parse(localStorage.getItem('pourCasePhotos')||'{}')};}catch{return DEFAULT_CASE_PHOTOS;}};
 const saveCasePhotos=p=>{
   try{localStorage.setItem('pourCasePhotos',JSON.stringify(p));}catch(e){alert('저장 공간이 부족합니다. 일부 사진을 삭제해주세요.');}
@@ -931,8 +931,10 @@ const syncPhotosFromFirestore=async(setCasePhotos,setProbPhotos)=>{
   }catch(e){}
 };
 
+// SOLUTIONS는 더 이상 사용하지 않음 — ALL_PROBLEMS에 통합됨
+// 하위 호환을 위해 빈 객체로 유지
 const SOLUTIONS={
-  // a. 아스팔트슁글
+  // (legacy — 사용되지 않음) a. 아스팔트슁글
   shingle:{cause:'아스팔트슁글은 자외선·온도 변화로 수축·열화되면서 틈새가 생깁니다. 이 틈을 통해 빗물이 침투해 단열재와 슬라브까지 손상을 줍니다.',methods:[{name:'POUR 아스팔트슁글 방수 공법',feature:'슁글 틈새를 전용 실링재로 완벽 밀폐, 고내구성 방수 시스템',specUrl:'https://www.poursolution.net/128'}],caseUrl:'https://www.poursolution.net/110',caseName:'아스팔트싱글 시공사례',guideId:'g1',photosKey:'shingle'},
   // b. 금속기와
   metal:{cause:'금속기와는 접합부와 나사 구멍에서 누수가 시작됩니다. 표면 도장이 벗겨지면 녹이 발생하고 수밀성이 급격히 저하됩니다.',methods:[{name:'POUR 금속기와 방수 공법',feature:'접합부·나사홀을 전용 실링제로 밀폐하고 방수층 형성',specUrl:'https://www.poursolution.net/130',need:'누수만 해결',needDesc:'누수 차단이 최우선이고 외관은 현재 상태 유지 가능',needIcon:'💧',photosKey:'metal_waterproof'},{name:'POUR 금속기와/칼라강판 코팅 공법',feature:'방수+도장 기능을 동시에 제공하는 금속기와 전용 코팅 시스템',specUrl:'https://www.poursolution.net/138',need:'누수+미관 동시 해결',needDesc:'누수 차단과 함께 외관(색상/광택)도 새것처럼 복원',needIcon:'✨',photosKey:'metal_coating'}],caseUrl:'https://www.poursolution.net/127',caseName:'금속기와 시공사례',guideId:'g2',photosKey:'metal'},
@@ -1813,23 +1815,15 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const ntHasData=()=>!!(ntName||ntCompany||ntPhone||ntEmail||ntMemo||ntInterests.length||ntContact.length||ntBizCard?.front);
   const ntSafeClose=()=>{if(ntHasData()&&!window.confirm('입력한 내용이 저장되지 않았습니다. 닫으시겠어요?'))return;setShowNote(false);};
   const [effectiveBuildingId,setEffectiveBuildingId]=useState(building?.id||null);
-  const [methodCondition,setMethodCondition]=useState(null);
-
-  const sol=problem?SOLUTIONS[problem.id]:null;
   const [casePhotos,setCasePhotos]=useState(()=>loadCasePhotos());
   useEffect(()=>{syncPhotosFromFirestore(setCasePhotos,null);},[]);
-  useEffect(()=>{setMethodCondition(null);},[problem?.id]);
 
   if(externalNote&&!showNote){setShowNote(true);if(onExternalNote)onExternalNote(false);}
-  if(!sol||!problem) return null;
+  if(!problem) return null;
 
-  const cond=METHOD_CONDITIONS[problem.id];
-  const selOpt=cond?.opts.find(o=>o.id===methodCondition);
-  const recIdxs=selOpt?selOpt.idx:null;
-  const activeMethods=recIdxs?sol.methods.filter((_,i)=>recIdxs.includes(i)):sol.methods;
-
-  const guide=sol.guideId?GUIDES.find(g=>g.id===sol.guideId):null;
-  const photos=sol.photosKey?casePhotos[sol.photosKey]:null;
+  // 새 구조: problem 자체가 공법 정보를 담고 있음
+  const guide=problem.guideId?GUIDES.find(g=>g.id===problem.guideId):null;
+  const photos=casePhotos[problem.id]||{causes:['','',''],completed:'',gif:''};
   const today=new Date();
   const dateStr=`2026년 4월 ${today.getDate()<=18?today.getDate():'__'}일`;
 
@@ -1845,7 +1839,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       building:building?.label||'-',buildingId:building?.id||'-',
       problem:problem?.label||'-',problemCat:problem?.cat||'-',
       problems:[problem?.label].filter(Boolean),
-      method:activeMethods.map(m=>m.name).join(' / ')||'-',
+      method:problem?.label||'-',
       interests:ntInterests,
       deliveryDocs:ntDeliveryDocs,
       deliveryMedia:ntDeliveryMedia,
@@ -1879,8 +1873,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
     `박람회: 공동주택관리산업박람회 (벡스코)`,`상담일시: ${dateStr}`,``,
     `건물유형: ${building?.label||'-'} (${building?.sub||'-'})`,
     `주요 문제: [${problem.cat}] ${problem.label}`,
-    `추천 공법: ${activeMethods.map(m=>m.name).join(', ')}`,
-    `시방서: ${activeMethods[0].specUrl}`,`시공사례: ${sol.caseUrl}`,``,
+    `추천 공법: ${problem.label}`,
+    `시방서: ${problem.specUrl}`,`시공사례: ${problem.caseUrl||''}`,``,
     `다음 액션: □ 방문진단  □ 시방서 전달  □ 회사소개서`,
     `특이사항: ${memo||'(없음)'}`,
   ].join('\n');
@@ -1903,7 +1897,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       </div>
       <div className="sol-header">
         
-        <div className="sol-name">{problem.label} <span style={{fontSize:12,fontWeight:500,color:"rgba(255,255,255,.5)"}}>— {selOpt?activeMethods.map(m=>m.name).join(' · '):sol.methods[0].name}</span></div>
+        <div className="sol-name">{problem.label}</div>
+        {problem.sub&&<div style={{fontSize:12,fontWeight:500,color:"rgba(255,255,255,.55)",marginTop:2}}>{problem.sub}</div>}
       </div>
 
       {/* 탭 */}
@@ -1915,147 +1910,113 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
           <span>{problem.label}</span>
         </div>
 
-        {/* ── 솔루션 ── */}
+        {/* ── 공법 상세 ── */}
         <>
-            {/* ── 완공사진 — 공법별 분리 or 단일 ── */}
-            {sol.methods.some(m=>m.photosKey)?(
-              <div style={{marginBottom:14}}>
-                <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:10}}>✅ 공법별 완공사진</div>
-                <div style={{display:'flex',gap:10,overflowX:'auto',paddingBottom:6,scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch'}}>
-                  {sol.methods.map((m,i)=>{
-                    if(!m.photosKey)return null;
-                    const mPhotos=casePhotos[m.photosKey]||null;
-                    return(
-                      <div key={i} style={{flex:'0 0 85%',scrollSnapAlign:'start',borderRadius:12,overflow:'hidden',border:'1.5px solid var(--border)',background:'var(--bg)'}}>
-                        <div style={{position:'relative',aspectRatio:'16/10',background:'var(--bg)',cursor:mPhotos?.completed?'pointer':'default'}} onClick={()=>mPhotos?.completed&&setZoomPhoto({src:mPhotos.completed,alt:m.name+' 완공사진'})}>
-                          {mPhotos?.completed
-                            ?<img src={mPhotos.completed} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-                            :<div style={{width:'100%',height:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
-                              <span style={{fontSize:22,opacity:.2}}>📷</span>
-                              <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:600}}>관리자에서 추가</span>
-                            </div>
-                          }
-                          <span style={{position:'absolute',top:6,left:6,padding:'2px 8px',borderRadius:5,fontSize:10,fontWeight:800,background:'rgba(5,150,105,.85)',color:'#fff'}}>완공사진</span>
-                          {mPhotos?.completed&&<span style={{position:'absolute',top:6,right:6,padding:'2px 8px',borderRadius:5,fontSize:10,fontWeight:700,background:'rgba(0,0,0,.5)',color:'#fff'}}>🔍 확대</span>}
-                        </div>
-                        <div style={{padding:'8px 12px',background:'var(--card)',borderTop:'1px solid var(--border)'}}>
-                          <div style={{fontSize:12,fontWeight:800,color:'var(--text)',letterSpacing:'-.2px'}}>{m.need||m.name}</div>
-                          {m.needDesc&&<div style={{fontSize:10,color:'var(--text-sm)',marginTop:2}}>{m.needDesc}</div>}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ):(
-              <div style={{marginBottom:14}}>
-                <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>✅ 완공사진</div>
-                <div style={{borderRadius:12,overflow:'hidden',border:'1.5px solid var(--border)',position:'relative',aspectRatio:'16/10',background:'var(--bg)',cursor:photos?.completed?'pointer':'default'}} onClick={()=>photos?.completed&&setZoomPhoto({src:photos.completed,alt:'완공사진'})}>
-                  {photos?.completed
-                    ?<img src={photos.completed} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-                    :<div style={{width:'100%',height:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
-                      <span style={{fontSize:22,opacity:.2}}>📷</span>
-                      <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:600}}>관리자에서 추가</span>
-                    </div>
-                  }
-                  <span style={{position:'absolute',top:6,left:6,padding:'2px 8px',borderRadius:5,fontSize:10,fontWeight:800,background:'rgba(5,150,105,.85)',color:'#fff'}}>완공사진</span>
-                </div>
-              </div>
-            )}
-
-            {/* ── 섹션1: 공법 ── */}
-            {cond&&(
-              <div style={{marginBottom:12,background:'rgba(255,255,255,.04)',borderRadius:12,padding:'12px 14px',border:'1px solid rgba(255,255,255,.08)'}}>
-                <div style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,.5)',letterSpacing:'.06em',marginBottom:8}}>🔍 {cond.q}</div>
-                <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-                  {cond.opts.map(opt=>{
-                    const active=methodCondition===opt.id;
-                    return(
-                      <button key={opt.id} onClick={()=>setMethodCondition(p=>p===opt.id?null:opt.id)}
-                        style={{padding:'6px 12px',borderRadius:20,border:`1.5px solid ${active?'var(--blue)':'rgba(255,255,255,.15)'}`,background:active?'var(--blue)':'transparent',color:active?'#fff':'rgba(255,255,255,.65)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',transition:'all .15s',display:'flex',alignItems:'center',gap:4}}>
-                        <span>{opt.icon}</span><span>{opt.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-                {selOpt&&<div style={{fontSize:11,color:'rgba(255,255,255,.45)',marginTop:8,paddingLeft:2}}>{selOpt.desc}</div>}
-              </div>
-            )}
-            <div style={{background:'var(--navy)',borderRadius:'var(--r)',overflow:'hidden',marginBottom:14,border:'1px solid rgba(255,255,255,.06)'}}>
-              {sol.methods.map((m,i)=>{
-                const isRec=recIdxs?recIdxs.includes(i):true;
-                return(
-                  <div key={i} style={{padding:'12px 18px',display:'flex',alignItems:'center',gap:10,borderTop:i>0?'1px solid rgba(255,255,255,.08)':'none',opacity:recIdxs&&!isRec?0.3:1,transition:'opacity .2s',background:isRec&&recIdxs?'rgba(37,99,235,.12)':'transparent'}}>
-                    <div style={{width:26,height:26,borderRadius:'50%',background:isRec&&recIdxs?'var(--blue)':'rgba(255,255,255,.15)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,color:'#fff',flexShrink:0,transition:'background .2s'}}>{isRec&&recIdxs?'✓':i+1}</div>
-                    <div style={{flex:1}}>
-                      <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
-                        <div style={{fontSize:14,fontWeight:800,color:'#fff',letterSpacing:'-.3px'}}>{m.name}</div>
-                        {isRec&&recIdxs&&<span style={{fontSize:10,fontWeight:800,background:'var(--blue)',color:'#fff',padding:'2px 6px',borderRadius:4}}>추천</span>}
-                      </div>
-                      <div style={{fontSize:11,color:'rgba(255,255,255,.5)',marginTop:1}}>{m.feature}</div>
-                    </div>
-                    <a href={m.specUrl} target="_blank" rel="noreferrer" style={{fontSize:10,fontWeight:700,color:'var(--blue-m)',padding:'4px 8px',border:'1px solid rgba(255,255,255,.15)',borderRadius:6,textDecoration:'none',flexShrink:0}}>시방서</a>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* ── 하자 현장 사진 (가로 슬라이드) ── */}
-            {(photos?.causes||[]).filter(s=>s).length>0&&(
-              <div style={{marginBottom:14}}>
-                <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>📸 하자 현장 사진</div>
+            {/* ── 1. 하자 현장 사진 (가로 슬라이드) ── */}
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>📸 현장 사진</div>
+              {(photos?.causes||[]).filter(s=>s).length>0?(
                 <div style={{display:'flex',gap:10,overflowX:'auto',paddingBottom:6,scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch'}}>
                   {(photos.causes||[]).filter(s=>s).map((src,i)=>(
-                    <div key={i} style={{flex:'0 0 70%',scrollSnapAlign:'start',borderRadius:12,overflow:'hidden',border:'1.5px solid var(--border)',background:'var(--bg)',position:'relative',aspectRatio:'16/10',cursor:'pointer'}} onClick={()=>setZoomPhoto({src,alt:`하자사진 ${i+1}`})}>
-                      <img src={src} alt={`하자사진${i+1}`} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+                    <div key={i} style={{flex:'0 0 92%',scrollSnapAlign:'start',borderRadius:12,overflow:'hidden',border:'1.5px solid var(--border)',background:'#000',position:'relative',aspectRatio:'16/10',cursor:'pointer'}} onClick={()=>setZoomPhoto({src,alt:`현장사진 ${i+1}`})}>
+                      <img src={src} alt={`현장사진${i+1}`} style={{width:'100%',height:'100%',objectFit:'contain',display:'block'}}/>
                       <span style={{position:'absolute',bottom:6,left:8,padding:'2px 8px',borderRadius:5,fontSize:10,fontWeight:800,background:'rgba(0,0,0,.6)',color:'#fff'}}>현장 {i+1}</span>
                       <span style={{position:'absolute',top:6,right:8,padding:'2px 8px',borderRadius:5,fontSize:10,fontWeight:700,background:'rgba(0,0,0,.5)',color:'#fff'}}>🔍 확대</span>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-            {(photos?.causes||[]).filter(s=>s).length===0&&(
-              <div style={{marginBottom:14}}>
-                <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>📸 하자 현장 사진</div>
+              ):(
                 <div style={{display:'flex',gap:10,overflowX:'auto',paddingBottom:6}}>
                   {['','',''].map((_,i)=>(
-                    <div key={i} style={{flex:'0 0 45%',borderRadius:12,border:'1.5px dashed var(--border)',background:'var(--bg)',aspectRatio:'16/10',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
+                    <div key={i} style={{flex:'0 0 60%',borderRadius:12,border:'1.5px dashed var(--border)',background:'var(--bg)',aspectRatio:'16/10',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
                       <span style={{fontSize:22,opacity:.2}}>📷</span>
                       <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:600}}>관리자에서 추가</span>
                     </div>
                   ))}
                 </div>
+              )}
+            </div>
+
+            {/* ── 2. GIF / 동영상 미디어 ── */}
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>🎬 시공 과정</div>
+              {(photos?.gif||problem.gifUrl)?(
+                <div style={{borderRadius:12,overflow:'hidden',border:'1.5px solid var(--border)',background:'#000',position:'relative',maxHeight:400}}>
+                  <img src={photos?.gif||problem.gifUrl} alt="시공 과정 GIF" style={{width:'100%',maxHeight:400,objectFit:'contain',display:'block',imageRendering:'auto'}}/>
+                </div>
+              ):(
+                <div style={{borderRadius:12,border:'1.5px dashed var(--border)',background:'var(--bg)',aspectRatio:'16/9',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6}}>
+                  <span style={{fontSize:28,opacity:.2}}>🎬</span>
+                  <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:600}}>관리자에서 GIF/영상 추가</span>
+                </div>
+              )}
+            </div>
+
+            {/* ── 3. 공법 태그 ── */}
+            {problem.tags&&problem.tags.length>0&&(
+              <div style={{marginBottom:16}}>
+                <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                  {problem.tags.map((t,i)=>(
+                    <span key={i} style={{padding:'4px 10px',borderRadius:20,background:'var(--bg)',border:'1px solid var(--border)',fontSize:11,fontWeight:600,color:'var(--text-md)'}}>{t}</span>
+                  ))}
+                </div>
               </div>
             )}
 
-            {/* ── 섹션2: 자료 + QR — 1행 2열 카드 ── */}
+            {/* ── 4. 완공사진 ── */}
+            {photos?.completed&&(
+              <div style={{marginBottom:16}}>
+                <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>✅ 완공사진</div>
+                <div style={{borderRadius:12,overflow:'hidden',border:'1.5px solid var(--border)',position:'relative',aspectRatio:'16/10',background:'#000',cursor:'pointer'}} onClick={()=>setZoomPhoto({src:photos.completed,alt:'완공사진'})}>
+                  <img src={photos.completed} style={{width:'100%',height:'100%',objectFit:'contain',display:'block'}}/>
+                  <span style={{position:'absolute',top:6,left:6,padding:'2px 8px',borderRadius:5,fontSize:10,fontWeight:800,background:'rgba(5,150,105,.85)',color:'#fff'}}>완공사진</span>
+                  <span style={{position:'absolute',top:6,right:6,padding:'2px 8px',borderRadius:5,fontSize:10,fontWeight:700,background:'rgba(0,0,0,.5)',color:'#fff'}}>🔍 확대</span>
+                </div>
+              </div>
+            )}
+
+            {/* ── 5. 자료 바로가기 — 제안서/시방서, 가이드북, 시공사례 ── */}
             <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:10}}>📱 자료 바로가기 · QR 전달</div>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:10}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:16}}>
               {[
-                {label:'제안서/\n시방서',icon:'📄',url:activeMethods[0].specUrl||'https://www.poursolution.net/36',qrTitle:'제안서/시방서'},
-                {label:'가이드북',icon:'📖',url:guide?guide.url:'',qrTitle:'시공 가이드북',empty:!guide},
+                {label:'시방서',icon:'📄',url:problem.specUrl,qrTitle:'시방서'},
+                {label:'가이드북',icon:'📖',url:guide?guide.url:'',qrTitle:'가이드북',empty:!guide},
+                {label:'시공사례',icon:'🏗',url:problem.caseUrl||'',qrTitle:'시공사례',empty:!problem.caseUrl},
               ].map(l=>(
-                <div key={l.label} style={{background:l.empty?'var(--bg)':'var(--card)',border:'1.5px solid var(--border)',borderRadius:14,overflow:'hidden',display:'flex',flexDirection:'column',opacity:l.empty?.4:1}}>
+                <div key={l.label} style={{background:l.empty?'var(--bg)':'var(--card)',border:'1.5px solid var(--border)',borderRadius:12,overflow:'hidden',display:'flex',flexDirection:'column',opacity:l.empty?.4:1}}>
                   {l.empty
-                    ?<div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,padding:'18px 8px 14px'}}>
-                      <span style={{fontSize:30,opacity:.3}}>{l.icon}</span>
-                      <span style={{fontSize:12,fontWeight:700,color:'var(--text-sm)',textAlign:'center'}}>준비 중</span>
+                    ?<div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4,padding:'14px 6px 10px'}}>
+                      <span style={{fontSize:24,opacity:.3}}>{l.icon}</span>
+                      <span style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',textAlign:'center'}}>준비 중</span>
                     </div>
                     :<a href={l.url} target="_blank" rel="noreferrer"
-                      style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,padding:'18px 8px 14px',textDecoration:'none'}}>
-                      <span style={{fontSize:30}}>{l.icon}</span>
-                      <span style={{fontSize:12,fontWeight:700,color:'var(--text)',textAlign:'center',whiteSpace:'pre-line',lineHeight:1.4}}>{l.label}</span>
+                      style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4,padding:'14px 6px 10px',textDecoration:'none'}}>
+                      <span style={{fontSize:24}}>{l.icon}</span>
+                      <span style={{fontSize:11,fontWeight:700,color:'var(--text)',textAlign:'center'}}>{l.label}</span>
                     </a>
                   }
                   {!l.empty&&<button onClick={()=>setQr({url:l.url,title:l.qrTitle})}
-                    style={{width:'100%',padding:'10px 0',border:'none',borderTop:'1px solid var(--border)',background:'var(--accent-l)',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
-                    <span style={{fontSize:16}}>📱</span>
-                    <span style={{fontSize:10,fontWeight:800,color:'var(--accent)'}}>QR 전달</span>
+                    style={{width:'100%',padding:'8px 0',border:'none',borderTop:'1px solid var(--border)',background:'var(--accent-l)',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column',alignItems:'center',gap:2}}>
+                    <span style={{fontSize:14}}>📱</span>
+                    <span style={{fontSize:9,fontWeight:800,color:'var(--accent)'}}>QR</span>
                   </button>}
                 </div>
               ))}
             </div>
+
+            {/* ── 6. 제안서 바로보기 (PDF/링크) ── */}
+            {problem.proposalUrl&&(
+              <div style={{marginBottom:16}}>
+                <a href={problem.proposalUrl} target="_blank" rel="noreferrer" style={{display:'flex',alignItems:'center',gap:10,padding:'14px 16px',background:'var(--navy)',borderRadius:12,textDecoration:'none',border:'1px solid rgba(255,255,255,.1)'}}>
+                  <span style={{fontSize:24}}>📋</span>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:13,fontWeight:800,color:'#fff'}}>제안서 바로보기</div>
+                    <div style={{fontSize:11,color:'rgba(255,255,255,.5)',marginTop:2}}>고객에게 바로 보여주세요</div>
+                  </div>
+                  <span style={{fontSize:11,fontWeight:700,color:'var(--blue-m)'}}>열기 →</span>
+                </a>
+              </div>
+            )}
         </>
       </div>
 
@@ -2126,7 +2087,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                       {problem?.cat&&<span className="note-ctx-tag">{problem.cat}</span>}
                       {problem?.label&&<span className="note-ctx-tag">{problem.label}</span>}
                     </div>
-                    {sol?.methods?.[0]?.name&&<div className="note-ctx-method">→ {activeMethods.map(m=>m.name).join(' · ')}</div>}
+                    {problem?.label&&<div className="note-ctx-method">→ {problem.label}</div>}
                   </div>
                 </div>
 
@@ -3565,7 +3526,7 @@ function PhotoSlot({src,label,onSet,onRemove,wide,aspect}){
   });
   return(
     <div ref={wrapRef} tabIndex={0}
-      style={{position:'relative',width:wide?'100%':100,height:wide?60:75,borderRadius:10,overflow:'hidden',border:'1.5px solid var(--border)',background:'#fff',flexShrink:0,cursor:'pointer',aspectRatio:aspect||'auto',outline:'none'}}
+      style={{position:'relative',width:wide?'100%':120,height:wide?80:90,borderRadius:10,overflow:'hidden',border:'1.5px solid var(--border)',background:'#f3f4f6',flexShrink:0,cursor:'pointer',aspectRatio:aspect||'auto',outline:'none'}}
       onClick={()=>{
         const choice=src?window.confirm('새 사진으로 교체하시겠습니까?\n\n[확인] 파일 선택\n[취소] URL 직접 입력'):null;
         if(choice===true||!src){fileRef.current?.click();}
@@ -3938,68 +3899,49 @@ function AdminScreen({onBack}){
 
           {/* ── 하자 현장 사진 관리 ── */}
           <div style={{background:'var(--card)',borderRadius:12,padding:'16px',border:'1px solid var(--border)',marginBottom:14}}>
-            <div style={{fontSize:14,fontWeight:900,color:'var(--text)',marginBottom:4}}>📸 완공사진 · 하자 현장 사진</div>
+            <div style={{fontSize:14,fontWeight:900,color:'var(--text)',marginBottom:4}}>📸 공법별 사진 · GIF 관리</div>
             <div style={{fontSize:12,color:'var(--text-sm)',marginBottom:6,lineHeight:1.6}}>
-              아래 사진은 <b>공법 분석 화면</b>에 표시됩니다.<br/>
-              · <b>완공사진</b> → 상단에 노출<br/>
-              · <b>현장 하자 사진</b> → 하단 가로 슬라이드로 노출<br/>
+              아래 사진은 <b>공법 상세 화면</b>에 표시됩니다.<br/>
+              · <b>현장 사진</b> → 상단 가로 슬라이드<br/>
+              · <b>GIF</b> → 시공 과정 미디어<br/>
+              · <b>완공사진</b> → 하단에 노출<br/>
               사진 클릭 → 파일 선택 / 이미지 복사 후 붙여넣기(Ctrl+V) 가능
             </div>
 
-            {[
-              {key:'shingle',label:'아스팔트슁글'},
-              {key:'metal',label:'금속기와',methodPhotos:[{key:'metal_waterproof',label:'💧 방수 공법 완공사진'},{key:'metal_coating',label:'✨ 코팅 공법 완공사진'}]},
-              {key:'slab',label:'슬라브 옥상'},
-              {key:'parking',label:'지하주차장'},
-              {key:'exterior',label:'외벽/재도장'},
-              {key:'maintenance',label:'보수보강/토목'},
-            ].map(({key,label,methodPhotos})=>{
-              const data=casePhotos[key]||{causes:['','',''],completed:''};
+            {ALL_PROBLEMS.map(p=>{
+              const key=p.id;
+              const data=casePhotos[key]||{causes:['','',''],completed:'',gif:''};
               return(
                 <div key={key} style={{marginBottom:18,padding:'14px',background:'var(--bg)',borderRadius:12,border:'1px solid var(--border)'}}>
-                  <div style={{fontSize:13,fontWeight:800,color:'var(--text)',marginBottom:10}}>{label}</div>
+                  <div style={{fontSize:13,fontWeight:800,color:'var(--text)',marginBottom:2}}>{p.label}</div>
+                  <div style={{fontSize:10,color:'var(--text-sm)',marginBottom:10}}>{p.cat} · {p.sub}</div>
 
-                  {/* 현장 하자 사진들 */}
-                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>현장 하자 사진</div>
+                  {/* 현장 사진들 */}
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>현장 사진</div>
                   <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}}>
                     {(data.causes||[]).map((url,i)=>(
                       <PhotoSlot key={i} src={url} label={`사진 ${i+1}`}
-                        onSet={(v)=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:['','',''],completed:''};up[key].causes[i]=v;setCasePhotos(up);saveCasePhotos(up);}}
+                        onSet={(v)=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:['','',''],completed:'',gif:''};up[key].causes[i]=v;setCasePhotos(up);saveCasePhotos(up);}}
                         onRemove={()=>{const up=JSON.parse(JSON.stringify(casePhotos));up[key].causes.splice(i,1);setCasePhotos(up);saveCasePhotos(up);}}
                       />
                     ))}
-                    <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:''};up[key].causes.push('');setCasePhotos(up);saveCasePhotos(up);}}
+                    <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:'',gif:''};up[key].causes.push('');setCasePhotos(up);saveCasePhotos(up);}}
                       style={{width:100,height:75,borderRadius:10,border:'2px dashed var(--border)',background:'#fff',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,color:'var(--text-sm)',fontSize:11,fontWeight:700}}>
                       <span style={{fontSize:24}}>+</span>추가
                     </button>
                   </div>
 
-                  {/* 완공사진 — 공법별 분리 or 단일 */}
-                  {methodPhotos?(
-                    <div>
-                      <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:8}}>공법별 완공사진</div>
-                      {methodPhotos.map(mp=>{
-                        const mData=casePhotos[mp.key]||{causes:[],completed:''};
-                        return(
-                          <div key={mp.key} style={{marginBottom:10,padding:'10px',background:'#fff',borderRadius:10,border:'1px solid var(--border)'}}>
-                            <div style={{fontSize:12,fontWeight:700,color:'var(--text)',marginBottom:6}}>{mp.label}</div>
-                            <PhotoSlot src={mData.completed||''} label={mp.label} wide
-                              onSet={(v)=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[mp.key])up[mp.key]={causes:[],completed:''};up[mp.key].completed=v;setCasePhotos(up);saveCasePhotos(up);}}
-                              onRemove={()=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[mp.key])up[mp.key]={causes:[],completed:''};up[mp.key].completed='';setCasePhotos(up);saveCasePhotos(up);}}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ):(
-                    <>
-                      <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>완공사진</div>
-                      <PhotoSlot src={data.completed||''} label="완공사진" wide
-                        onSet={(v)=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:''};up[key].completed=v;setCasePhotos(up);saveCasePhotos(up);}}
-                        onRemove={()=>{const up=JSON.parse(JSON.stringify(casePhotos));up[key].completed='';setCasePhotos(up);saveCasePhotos(up);}}
-                      />
-                    </>
-                  )}
+                  {/* GIF URL */}
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>🎬 GIF URL</div>
+                  <input value={data.gif||''} placeholder="https://... GIF 또는 영상 URL" onChange={e=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:'',gif:''};up[key].gif=e.target.value;setCasePhotos(up);saveCasePhotos(up);}}
+                    style={{width:'100%',padding:'8px 10px',borderRadius:8,border:'1px solid var(--border)',fontSize:12,fontFamily:'inherit',marginBottom:12,boxSizing:'border-box'}}/>
+
+                  {/* 완공사진 */}
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>완공사진</div>
+                  <PhotoSlot src={data.completed||''} label="완공사진" wide
+                    onSet={(v)=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:'',gif:''};up[key].completed=v;setCasePhotos(up);saveCasePhotos(up);}}
+                    onRemove={()=>{const up=JSON.parse(JSON.stringify(casePhotos));up[key].completed='';setCasePhotos(up);saveCasePhotos(up);}}
+                  />
                 </div>
               );
             })}
@@ -4547,16 +4489,17 @@ function App(){
               <button key={ct} className={`tab ${cat===ct?'on':''}`} style={{padding:'5px 13px',fontSize:12}} onClick={()=>setCat(ct)}>{ct}</button>
             ))}
           </div>
-          {/* 3열 칩 그리드 — 한 화면 내 완성 */}
-          <div className="prob-chips">
+          {/* 2열 공법 카드 그리드 */}
+          <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:10,paddingBottom:8}}>
             {filtered.map(p=>(
-              <button key={p.id} className="prob-chip" onClick={()=>{setProblem(p);setScreen('solution');}}>
-                <div className="prob-chip-thumb">
-                  {(probPhotos[p.id]||p.img)?<img src={probPhotos[p.id]||p.img} alt={p.label}/>:<span>{p.icon}</span>}
+              <button key={p.id} style={{display:'flex',flexDirection:'column',background:'var(--card)',border:'1.5px solid var(--border)',borderRadius:12,cursor:'pointer',textAlign:'left',fontFamily:'inherit',overflow:'hidden',transition:'all .13s',padding:0}} onClick={()=>{setProblem(p);setScreen('solution');}}>
+                <div style={{width:'100%',aspectRatio:'4/3',background:'linear-gradient(135deg,var(--blue-l),var(--blue-m))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,position:'relative',flexShrink:0}}>
+                  {(probPhotos[p.id]||p.img)?<img src={probPhotos[p.id]||p.img} alt={p.label} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'contain',background:'#f3f4f6'}}/>:<span>{p.icon}</span>}
                 </div>
-                <div className="prob-chip-body">
-                  <div className="prob-chip-text">{p.label}</div>
-                  <div className="prob-chip-cat">{p.cat}</div>
+                <div style={{padding:'8px 10px 10px'}}>
+                  <div style={{fontSize:10,fontWeight:600,color:'var(--text-sm)'}}>{p.sub}</div>
+                  <div style={{fontSize:12,fontWeight:800,color:'var(--text)',lineHeight:1.3,marginTop:2}}>{p.label}</div>
+                  {p.tags&&<div style={{fontSize:9,color:'var(--text-sm)',marginTop:4,lineHeight:1.5}}>{p.tags.slice(0,2).join(' ')}</div>}
                 </div>
               </button>
             ))}

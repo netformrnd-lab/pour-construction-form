@@ -3797,15 +3797,6 @@ function AdminScreen({onBack}){
     }catch(e){alert('복원 실패');}
   };
 
-  // 영구 삭제
-  const permanentDeleteLead=async(id)=>{
-    if(!window.confirm('영구 삭제하면 복원할 수 없습니다. 계속하시겠어요?'))return;
-    try{
-      await db.collection('leads').doc(id).delete();
-      setLeads(p=>p.filter(l=>l.id!==id));
-    }catch(e){alert('삭제 실패');}
-  };
-
   // 선택 일괄 삭제
   const deleteSelected=async()=>{
     if(!selectedIds.size)return;
@@ -4275,17 +4266,7 @@ function AdminScreen({onBack}){
           {/* 헤더 */}
           <div style={{padding:'10px 14px',background:'#FEF2F2',borderBottom:'1.5px solid #FCA5A5',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
             <span style={{fontSize:13,fontWeight:900,color:'#DC2626'}}>🗑 휴지통 ({trashedLeads.length}건)</span>
-            {trashedLeads.length>0&&(
-              <button onClick={async()=>{
-                if(!window.confirm(`휴지통의 ${trashedLeads.length}건을 모두 영구삭제하시겠어요? 복원할 수 없습니다.`))return;
-                try{
-                  await Promise.all(trashedLeads.map(l=>db.collection('leads').doc(l.id).delete()));
-                  setLeads(p=>p.filter(l=>!l.deletedAt));
-                }catch(e){alert('삭제 실패');}
-              }} style={{padding:'5px 12px',borderRadius:8,border:'1.5px solid #FCA5A5',background:'#fff',color:'#DC2626',fontSize:11,fontWeight:700,cursor:'pointer'}}>
-                전체 영구삭제
-              </button>
-            )}
+
           </div>
           <div style={{flex:1,overflowY:'auto',padding:'12px'}}>
             {trashedLeads.length===0&&<div className="empty">휴지통이 비어있습니다</div>}
@@ -4309,10 +4290,7 @@ function AdminScreen({onBack}){
                   </div>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
                     <span style={{fontSize:10,color:'#DC2626',fontWeight:600}}>🗑 삭제: {l.deletedAt?new Date(l.deletedAt).toLocaleString('ko'):''}</span>
-                    <div style={{display:'flex',gap:6}}>
-                      <button onClick={()=>restoreLead(l.id)} style={{padding:'5px 12px',borderRadius:8,border:'1.5px solid #BBF7D0',background:'#F0FDF4',color:'#059669',fontSize:11,fontWeight:700,cursor:'pointer'}}>↩ 복원</button>
-                      <button onClick={()=>permanentDeleteLead(l.id)} style={{padding:'5px 12px',borderRadius:8,border:'1.5px solid #FCA5A5',background:'#FEF2F2',color:'#DC2626',fontSize:11,fontWeight:700,cursor:'pointer'}}>완전삭제</button>
-                    </div>
+                    <button onClick={()=>restoreLead(l.id)} style={{padding:'5px 12px',borderRadius:8,border:'1.5px solid #BBF7D0',background:'#F0FDF4',color:'#059669',fontSize:11,fontWeight:700,cursor:'pointer'}}>↩ 복원</button>
                   </div>
                 </div>
               ))}

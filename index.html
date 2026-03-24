@@ -2037,48 +2037,52 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               )}
             </div>
 
-            {/* ── 3. 제안서 | 가이드 | QR 하단 바 ── */}
-            <div style={{display:'flex',gap:8,marginBottom:16}}>
-              {/* 제안서 */}
-              {problem.specUrl?(
-                <a href={problem.specUrl} target="_blank" rel="noreferrer"
-                  style={{flex:1,display:'flex',alignItems:'center',gap:10,padding:'12px 14px',background:'var(--navy)',borderRadius:12,textDecoration:'none',border:'1px solid rgba(255,255,255,.1)',minWidth:0}}>
-                  <span style={{fontSize:20}}>📄</span>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:13,fontWeight:800,color:'#fff'}}>제안서</div>
+            {/* ── 3. 제안서|QR  가이드북|QR ── */}
+            <div style={{display:'flex',gap:8,marginBottom:16,paddingBottom:80}}>
+              {/* 제안서 + QR */}
+              <div style={{flex:1,display:'flex',gap:6,minWidth:0}}>
+                {problem.specUrl?(
+                  <a href={problem.specUrl} target="_blank" rel="noreferrer"
+                    style={{flex:1,display:'flex',alignItems:'center',gap:8,padding:'12px 12px',background:'var(--navy)',borderRadius:12,textDecoration:'none',border:'1px solid rgba(255,255,255,.1)',minWidth:0}}>
+                    <span style={{fontSize:18}}>📄</span>
+                    <div style={{flex:1,minWidth:0}}><div style={{fontSize:12,fontWeight:800,color:'#fff'}}>제안서</div></div>
+                    <span style={{fontSize:10,fontWeight:700,color:'var(--blue-m)',flexShrink:0}}>열기→</span>
+                  </a>
+                ):(
+                  <div style={{flex:1,display:'flex',alignItems:'center',gap:8,padding:'12px 12px',background:'var(--bg)',borderRadius:12,border:'1.5px solid var(--border)',opacity:.4}}>
+                    <span style={{fontSize:18}}>📄</span><span style={{fontSize:11,fontWeight:700,color:'var(--text-sm)'}}>준비 중</span>
                   </div>
-                  <span style={{fontSize:10,fontWeight:700,color:'var(--blue-m)',flexShrink:0}}>열기→</span>
-                </a>
-              ):(
-                <div style={{flex:1,display:'flex',alignItems:'center',gap:10,padding:'12px 14px',background:'var(--bg)',borderRadius:12,border:'1.5px solid var(--border)',opacity:.4}}>
-                  <span style={{fontSize:20}}>📄</span>
-                  <span style={{fontSize:12,fontWeight:700,color:'var(--text-sm)'}}>제안서 준비 중</span>
-                </div>
-              )}
-              {/* 가이드북 */}
-              {guide?(
-                <a href={guide.url} target="_blank" rel="noreferrer"
-                  style={{flex:1,display:'flex',alignItems:'center',gap:10,padding:'12px 14px',background:'var(--card)',borderRadius:12,textDecoration:'none',border:'1.5px solid var(--border)',minWidth:0}}>
-                  <span style={{fontSize:20}}>📖</span>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:13,fontWeight:800,color:'var(--text)'}}>가이드북</div>
+                )}
+                {problem.specUrl&&(
+                  <button onClick={()=>setQr({url:problem.specUrl,title:'제안서'})}
+                    style={{width:48,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,padding:'6px 0',borderRadius:10,border:'1.5px solid var(--blue)',background:'var(--blue-l)',cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>
+                    <span style={{fontSize:16}}>📱</span>
+                    <span style={{fontSize:8,fontWeight:800,color:'var(--blue)'}}>QR</span>
+                  </button>
+                )}
+              </div>
+              {/* 가이드북 + QR */}
+              <div style={{flex:1,display:'flex',gap:6,minWidth:0}}>
+                {guide?(
+                  <a href={guide.url} target="_blank" rel="noreferrer"
+                    style={{flex:1,display:'flex',alignItems:'center',gap:8,padding:'12px 12px',background:'var(--card)',borderRadius:12,textDecoration:'none',border:'1.5px solid var(--border)',minWidth:0}}>
+                    <span style={{fontSize:18}}>📖</span>
+                    <div style={{flex:1,minWidth:0}}><div style={{fontSize:12,fontWeight:800,color:'var(--text)'}}>가이드북</div></div>
+                    <span style={{fontSize:10,fontWeight:700,color:'var(--accent)',flexShrink:0}}>열기→</span>
+                  </a>
+                ):(
+                  <div style={{flex:1,display:'flex',alignItems:'center',gap:8,padding:'12px 12px',background:'var(--bg)',borderRadius:12,border:'1.5px solid var(--border)',opacity:.4}}>
+                    <span style={{fontSize:18}}>📖</span><span style={{fontSize:11,fontWeight:700,color:'var(--text-sm)'}}>준비 중</span>
                   </div>
-                  <span style={{fontSize:10,fontWeight:700,color:'var(--accent)',flexShrink:0}}>열기→</span>
-                </a>
-              ):(
-                <div style={{flex:1,display:'flex',alignItems:'center',gap:10,padding:'12px 14px',background:'var(--bg)',borderRadius:12,border:'1.5px solid var(--border)',opacity:.4}}>
-                  <span style={{fontSize:20}}>📖</span>
-                  <span style={{fontSize:12,fontWeight:700,color:'var(--text-sm)'}}>준비 중</span>
-                </div>
-              )}
-              {/* QR */}
-              {problem.specUrl&&(
-                <button onClick={()=>setQr({url:problem.specUrl,title:'제안서'})}
-                  style={{width:56,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,padding:'8px 0',borderRadius:12,border:'1.5px solid var(--accent)',background:'var(--accent-l)',cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>
-                  <span style={{fontSize:18}}>📱</span>
-                  <span style={{fontSize:9,fontWeight:800,color:'var(--accent)'}}>QR</span>
-                </button>
-              )}
+                )}
+                {guide&&(
+                  <button onClick={()=>setQr({url:guide.url,title:'가이드북'})}
+                    style={{width:48,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,padding:'6px 0',borderRadius:10,border:'1.5px solid var(--accent)',background:'var(--accent-l)',cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>
+                    <span style={{fontSize:16}}>📱</span>
+                    <span style={{fontSize:8,fontWeight:800,color:'var(--accent)'}}>QR</span>
+                  </button>
+                )}
+              </div>
             </div>
         </>
       </div>
@@ -2164,7 +2168,10 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                   {/* ── 고객 정보 (분리 섹션) ── */}
                   <div style={{padding:'12px 0 14px',flexShrink:0,borderBottom:'2px solid var(--border)',marginBottom:10}}>
                     <div style={{fontSize:11,fontWeight:800,color:'var(--accent)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>👤 고객 정보</div>
-                    <input className="note-input" style={{marginBottom:6,fontSize:15,padding:'12px 14px'}} placeholder="건물명 또는 업체명" value={ntCompany} onChange={e=>setNtCompany(e.target.value)}/>
+                    <div style={{position:'relative',marginBottom:6}}>
+                      <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px'}} placeholder="건물명 또는 업체명" value={ntCompany} onChange={e=>setNtCompany(e.target.value)}/>
+                      {ntCompany&&<button onClick={()=>setNtCompany('')} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                    </div>
                     <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:8}}>
                       {BUILDING_TYPES.map(b=>(
                         <button key={b.id} onClick={()=>{if(effectiveBuildingId===b.id){setEffectiveBuildingId(null);}else{setEffectiveBuildingId(b.id);setNtPosition('');}}}
@@ -2174,8 +2181,14 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                       ))}
                     </div>
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:6}}>
-                      <input className="note-input" style={{fontSize:15,padding:'12px 14px'}} placeholder="성함 *" value={ntName} onChange={e=>setNtName(e.target.value)}/>
-                      <input className="note-input" style={{fontSize:15,padding:'12px 14px'}} placeholder="연락처 *" value={ntPhone} onChange={e=>setNtPhone(e.target.value)} inputMode="tel"/>
+                      <div style={{position:'relative'}}>
+                        <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="성함 *" value={ntName} onChange={e=>setNtName(e.target.value)}/>
+                        {ntName&&<button onClick={()=>setNtName('')} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                      </div>
+                      <div style={{position:'relative'}}>
+                        <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="연락처 *" value={ntPhone} onChange={e=>setNtPhone(e.target.value)} inputMode="tel"/>
+                        {ntPhone&&<button onClick={()=>setNtPhone('')} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                      </div>
                     </div>
                     <div style={{position:'relative'}}>
                       <button className="note-input" style={{fontSize:14,padding:'10px 14px',textAlign:'left',cursor:'pointer',color:ntPosition?'var(--text)':'var(--text-sm)',width:'100%'}} onClick={()=>setNtShowPosition(!ntShowPosition)}>{ntPosition||'직급 선택 (선택)'}<span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',fontSize:10,color:'var(--text-sm)'}}>▼</span></button>
@@ -3270,7 +3283,10 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
               {/* ── 고객 정보 (분리 섹션) ── */}
               <div style={{padding:'12px 0 14px',flexShrink:0,borderBottom:'2px solid var(--border)',marginBottom:10}}>
                 <div style={{fontSize:11,fontWeight:800,color:'var(--accent)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>👤 고객 정보</div>
-                <input className="note-input" style={{marginBottom:6,fontSize:15,padding:'12px 14px'}} placeholder="건물명 또는 업체명" value={company} onChange={e=>setCompany(e.target.value)}/>
+                <div style={{position:'relative',marginBottom:6}}>
+                  <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px'}} placeholder="건물명 또는 업체명" value={company} onChange={e=>setCompany(e.target.value)}/>
+                  {company&&<button onClick={()=>setCompany('')} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                </div>
                 <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:8}}>
                   {BUILDING_TYPES.map(b=>(
                     <button key={b.id} onClick={()=>{if(effectiveBuildingId===b.id){setEffectiveBuildingId(null);}else{setEffectiveBuildingId(b.id);setPosition('');}}}
@@ -3280,8 +3296,14 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
                   ))}
                 </div>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:6}}>
-                  <input className="note-input" style={{fontSize:15,padding:'12px 14px'}} placeholder="성함 *" value={name} onChange={e=>setName(e.target.value)}/>
-                  <input className="note-input" style={{fontSize:15,padding:'12px 14px'}} placeholder="연락처 *" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
+                  <div style={{position:'relative'}}>
+                    <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="성함 *" value={name} onChange={e=>setName(e.target.value)}/>
+                    {name&&<button onClick={()=>setName('')} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                  </div>
+                  <div style={{position:'relative'}}>
+                    <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="연락처 *" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
+                    {phone&&<button onClick={()=>setPhone('')} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                  </div>
                 </div>
                 <div style={{position:'relative'}}>
                   <button className="note-input" style={{fontSize:14,padding:'10px 14px',textAlign:'left',cursor:'pointer',color:position?'var(--text)':'var(--text-sm)',width:'100%'}} onClick={()=>setShowPosition(!showPosition)}>{position||'직급 선택 (선택)'}<span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',fontSize:10,color:'var(--text-sm)'}}>▼</span></button>

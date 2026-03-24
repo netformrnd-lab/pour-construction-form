@@ -2173,7 +2173,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     <div style={{fontSize:11,fontWeight:800,color:'var(--accent)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>👤 고객 정보</div>
                     <div style={{position:'relative',marginBottom:6}}>
                       <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px'}} placeholder="건물명 또는 업체명" value={ntCompany} onChange={e=>setNtCompany(e.target.value)}/>
-                      {ntCompany&&<button onClick={()=>setNtCompany('')} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                      {ntCompany&&<button onClick={()=>setNtCompany(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
                     </div>
                     <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:8}}>
                       {BUILDING_TYPES.map(b=>(
@@ -2186,11 +2186,11 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:6}}>
                       <div style={{position:'relative'}}>
                         <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="성함 *" value={ntName} onChange={e=>setNtName(e.target.value)}/>
-                        {ntName&&<button onClick={()=>setNtName('')} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                        {ntName&&<button onClick={()=>setNtName(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
                       </div>
                       <div style={{position:'relative'}}>
                         <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="연락처 *" value={ntPhone} onChange={e=>setNtPhone(e.target.value)} inputMode="tel"/>
-                        {ntPhone&&<button onClick={()=>setNtPhone('')} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                        {ntPhone&&<button onClick={()=>setNtPhone(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
                       </div>
                     </div>
                     <div style={{position:'relative'}}>
@@ -3288,7 +3288,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
                 <div style={{fontSize:11,fontWeight:800,color:'var(--accent)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>👤 고객 정보</div>
                 <div style={{position:'relative',marginBottom:6}}>
                   <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px'}} placeholder="건물명 또는 업체명" value={company} onChange={e=>setCompany(e.target.value)}/>
-                  {company&&<button onClick={()=>setCompany('')} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                  {company&&<button onClick={()=>setCompany(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
                 </div>
                 <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:8}}>
                   {BUILDING_TYPES.map(b=>(
@@ -3301,11 +3301,11 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:6}}>
                   <div style={{position:'relative'}}>
                     <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="성함 *" value={name} onChange={e=>setName(e.target.value)}/>
-                    {name&&<button onClick={()=>setName('')} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                    {name&&<button onClick={()=>setName(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
                   </div>
                   <div style={{position:'relative'}}>
                     <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="연락처 *" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
-                    {phone&&<button onClick={()=>setPhone('')} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                    {phone&&<button onClick={()=>setPhone(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
                   </div>
                 </div>
                 <div style={{position:'relative'}}>
@@ -3780,7 +3780,8 @@ function AdminScreen({onBack}){
                   </div>
 
                   {/* 관련 미디어 (복수) */}
-                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>🎬 관련 미디어 (GIF/영상)</div>
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:4}}>🎬 관련 미디어</div>
+                  <div style={{fontSize:10,color:'var(--text-sm)',marginBottom:6,opacity:.7}}>영상/GIF → URL 입력 · 이미지 → 📁 업로드 가능</div>
                   {(data.media||(data.gif?[data.gif]:[])).map((url,mi)=>{
                     const isVideo=url&&(/\.(mp4|webm|mov)(\?|$)/i.test(url)||url.startsWith('data:video/'));
                     return(
@@ -3797,13 +3798,11 @@ function AdminScreen({onBack}){
                           <input value={url||''} placeholder={`URL 직접 입력 ${mi+1}`}
                             onChange={e=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:'',media:[]};const m=up[key].media||(up[key].gif?[up[key].gif]:[]);m[mi]=e.target.value;up[key].media=m;delete up[key].gif;setCasePhotos(up);saveCasePhotos(up);}}
                             style={{flex:1,padding:'8px 10px',borderRadius:8,border:'1px solid var(--border)',fontSize:12,fontFamily:'inherit',boxSizing:'border-box'}}/>
-                          <input type="file" accept="image/*,video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
+                          <input type="file" accept="image/*"
                             id={`mf-${key}-${mi}`} style={{display:'none'}}
                             onChange={e=>{
                               const file=e.target.files[0];if(!file)return;
-                              if(file.size>100*1024*1024){alert('파일이 너무 큽니다 (최대 100MB)');e.target.value='';return;}
-                              const isGif=file.type==='image/gif';
-                              const isVideo=file.type.startsWith('video/');
+                              if(file.size>10*1024*1024){alert('이미지가 너무 큽니다 (최대 10MB)');e.target.value='';return;}
                               const saveMedia=(dataUrl)=>{
                                 const up=JSON.parse(JSON.stringify(casePhotos));
                                 if(!up[key])up[key]={causes:[],completed:'',media:[]};
@@ -3812,28 +3811,23 @@ function AdminScreen({onBack}){
                                 setCasePhotos(up);saveCasePhotos(up);
                               };
                               const reader=new FileReader();
-                              if(isGif||isVideo){
-                                reader.onload=(ev)=>{saveMedia(ev.target.result);};
-                                reader.readAsDataURL(file);
-                              } else {
-                                reader.onload=(ev)=>{
-                                  const img=new Image();
-                                  img.onload=()=>{
-                                    const MAX=1080;
-                                    let w=img.width,h=img.height;
-                                    if(w>MAX||h>MAX){const r=Math.min(MAX/w,MAX/h);w=Math.round(w*r);h=Math.round(h*r);}
-                                    const c=document.createElement('canvas');c.width=w;c.height=h;
-                                    c.getContext('2d').drawImage(img,0,0,w,h);
-                                    saveMedia(c.toDataURL('image/jpeg',0.92));
-                                  };
-                                  img.src=ev.target.result;
+                              reader.onload=(ev)=>{
+                                const img=new Image();
+                                img.onload=()=>{
+                                  const MAX=480;
+                                  let w=img.width,h=img.height;
+                                  if(w>MAX||h>MAX){const r=Math.min(MAX/w,MAX/h);w=Math.round(w*r);h=Math.round(h*r);}
+                                  const c=document.createElement('canvas');c.width=w;c.height=h;
+                                  c.getContext('2d').drawImage(img,0,0,w,h);
+                                  saveMedia(c.toDataURL('image/jpeg',0.7));
                                 };
-                                reader.readAsDataURL(file);
-                              }
+                                img.src=ev.target.result;
+                              };
+                              reader.readAsDataURL(file);
                               e.target.value='';
                             }}/>
                           <button onClick={()=>document.getElementById(`mf-${key}-${mi}`)?.click()}
-                            title="GIF/영상 파일 업로드"
+                            title="이미지 업로드 (영상은 URL 입력)"
                             style={{padding:'0 10px',borderRadius:8,border:'1px solid var(--border)',background:'#f3f4f6',fontSize:16,cursor:'pointer',lineHeight:1,fontFamily:'inherit'}}>📁</button>
                           <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));const m=up[key]?.media||(up[key]?.gif?[up[key].gif]:[]);m.splice(mi,1);up[key].media=m;delete up[key].gif;setCasePhotos(up);saveCasePhotos(up);}}
                             style={{padding:'0 10px',borderRadius:8,border:'1px solid #FCA5A5',background:'#FEF2F2',color:'#DC2626',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>✕</button>

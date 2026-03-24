@@ -1929,9 +1929,19 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       {zoomPhoto&&<PhotoZoomModal src={zoomPhoto.src} alt={zoomPhoto.alt} onClose={()=>setZoomPhoto(null)}/>}
       {mediaViewer!==null&&(()=>{
         const mList=(photos.media||[]).filter(s=>s);
+        const mThumbs=photos.mediaThumbs||[];
         const mSrc=mList[mediaViewer]||'';
         const mParsed=parseVideoUrl(mSrc);
         const mIsVid=!!mParsed;
+        // 좌우 peek 썸네일
+        const prevSrc=mediaViewer>0?mList[mediaViewer-1]:null;
+        const nextSrc=mediaViewer<mList.length-1?mList[mediaViewer+1]:null;
+        const getThumb=(idx,url)=>{
+          if(mThumbs[idx])return mThumbs[idx];
+          const p=parseVideoUrl(url);
+          if(p&&p.type==='youtube'){const m=url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);if(m)return`https://img.youtube.com/vi/${m[1]}/hqdefault.jpg`;}
+          return url;
+        };
         return(
           <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'#000',zIndex:950}}
             onTouchStart={e=>{mvSwipeRef.current=e.touches[0].clientX;}}
@@ -1942,7 +1952,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
             }}
           >
             {/* 상단: 뒤로 + 진행 바 */}
-            <div style={{position:'absolute',top:0,left:0,right:0,padding:'16px 16px 28px',background:'linear-gradient(to bottom,rgba(0,0,0,.75) 0%,transparent 100%)',zIndex:2,display:'flex',alignItems:'center',gap:10}}>
+            <div style={{position:'absolute',top:0,left:0,right:0,padding:'16px 16px 28px',background:'linear-gradient(to bottom,rgba(0,0,0,.75) 0%,transparent 100%)',zIndex:3,display:'flex',alignItems:'center',gap:10}}>
               <button onClick={()=>{setMediaViewer(null);setInlinePlayIdx(null);}}
                 style={{width:38,height:38,borderRadius:'50%',border:'none',background:'rgba(255,255,255,.18)',color:'#fff',fontSize:22,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit',flexShrink:0,lineHeight:1}}>
                 ‹
@@ -1954,6 +1964,26 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 ))}
               </div>
             </div>
+            {/* 좌측 peek 썸네일 */}
+            {prevSrc&&(
+              <div onClick={()=>setMediaViewer(v=>v-1)}
+                style={{position:'absolute',left:0,top:'50%',transform:'translateY(-50%)',width:44,zIndex:2,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                <div style={{width:40,height:60,borderRadius:8,overflow:'hidden',border:'2px solid rgba(255,255,255,.4)',boxShadow:'0 2px 8px rgba(0,0,0,.5)'}}>
+                  <img src={getThumb(mediaViewer-1,prevSrc)} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+                </div>
+                <span style={{fontSize:9,color:'rgba(255,255,255,.6)',fontWeight:700}}>‹</span>
+              </div>
+            )}
+            {/* 우측 peek 썸네일 */}
+            {nextSrc&&(
+              <div onClick={()=>setMediaViewer(v=>v+1)}
+                style={{position:'absolute',right:0,top:'50%',transform:'translateY(-50%)',width:44,zIndex:2,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                <div style={{width:40,height:60,borderRadius:8,overflow:'hidden',border:'2px solid rgba(255,255,255,.4)',boxShadow:'0 2px 8px rgba(0,0,0,.5)'}}>
+                  <img src={getThumb(mediaViewer+1,nextSrc)} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+                </div>
+                <span style={{fontSize:9,color:'rgba(255,255,255,.6)',fontWeight:700}}>›</span>
+              </div>
+            )}
             {/* 미디어 영역 */}
             <div style={{position:'absolute',top:0,left:0,right:0,bottom:0,display:'flex',alignItems:'center',justifyContent:'center'}}
               onClick={()=>{if(mParsed&&mParsed.type==='direct'&&mvVideoRef.current){if(mvVideoRef.current.paused){mvVideoRef.current.play();setMvPlaying(true);}else{mvVideoRef.current.pause();setMvPlaying(false);}}}}
@@ -1979,7 +2009,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 </div>
               )}
             </div>
-            {/* 하단: 카운터 + 스와이프 힌트 */}
+            {/* 하단: 카운터 */}
             <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'24px 16px',background:'linear-gradient(to top,rgba(0,0,0,.55) 0%,transparent 100%)',zIndex:2,display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
               <span style={{fontSize:11,color:'rgba(255,255,255,.55)',fontWeight:600}}>{mList.length>1?'← 스와이프 →':''}</span>
               <div style={{padding:'4px 10px',borderRadius:6,background:'rgba(0,0,0,.5)',color:'#fff',fontSize:12,fontWeight:700}}>{mediaViewer+1} / {mList.length}</div>
@@ -2049,12 +2079,14 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     const parsed=parseVideoUrl(src);
                     const isVid=!!parsed;
                     const isInline=inlinePlayIdx===i;
-                    const thumbUrl=parsed&&parsed.type==='youtube'?`https://img.youtube.com/vi/${src.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/)?.[1]}/hqdefault.jpg`:null;
+                    const thumbSrc=(photos.mediaThumbs||[])[i];
+                    const ytThumb=parsed&&parsed.type==='youtube'?`https://img.youtube.com/vi/${src.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/)?.[1]}/hqdefault.jpg`:null;
+                    const cardThumb=thumbSrc||ytThumb;
                     return(
                       <div key={i}
                         onClick={()=>{
                           if(isVid&&!isInline){setInlinePlayIdx(i);}
-                          else{setInlinePlayIdx(null);setMediaViewer(i);}
+                          else if(!isVid){setMediaViewer(i);}
                         }}
                         style={{flex:'0 0 65%',maxWidth:260,scrollSnapAlign:'start',borderRadius:14,overflow:'hidden',border:'1.5px solid var(--border)',background:'#000',position:'relative',aspectRatio:'9/16',cursor:'pointer'}}>
                         {isVid&&isInline?(
@@ -2064,35 +2096,28 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                           ):(
                             <React.Fragment>
                               <iframe src={parsed.embedUrl} style={{width:'100%',height:'100%',border:'none',pointerEvents:'auto'}}
-                                allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowFullScreen
-                                onClick={e=>e.stopPropagation()}/>
-                              <div onClick={(e)=>{e.stopPropagation();setInlinePlayIdx(null);setMediaViewer(i);}}
-                                style={{position:'absolute',top:8,right:8,width:32,height:32,borderRadius:'50%',background:'rgba(0,0,0,.6)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',zIndex:2}}>
-                                <span style={{fontSize:14,color:'#fff'}}>⛶</span>
-                              </div>
+                                allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowFullScreen/>
                             </React.Fragment>
                           )
                         ):isVid?(
-                          <React.Fragment>
-                            {parsed.type==='direct'?(
-                              <video src={src} style={{width:'100%',height:'100%',objectFit:'cover',display:'block',pointerEvents:'none'}} playsInline muted/>
-                            ):(
-                              <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
-                                {thumbUrl?<img src={thumbUrl} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block',pointerEvents:'none'}}/>:
-                                <div style={{fontSize:48,opacity:.4}}>🎬</div>}
-                              </div>
-                            )}
-                          </React.Fragment>
+                          <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
+                            {cardThumb?<img src={cardThumb} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block',pointerEvents:'none'}}/>:
+                            <div style={{fontSize:48,opacity:.4}}>🎬</div>}
+                          </div>
                         ):(
                           <img src={src} alt={`미디어 ${i+1}`} style={{width:'100%',height:'100%',objectFit:'cover',display:'block',imageRendering:'auto',pointerEvents:'none'}}/>
                         )}
+                        {/* 카운터 */}
                         <div style={{position:'absolute',top:8,left:8,padding:'3px 8px',borderRadius:6,fontSize:10,fontWeight:800,background:'rgba(0,0,0,.55)',color:'#fff',backdropFilter:'blur(4px)',zIndex:1}}>
                           {i+1}/{photos.media.filter(s=>s).length}
                         </div>
+                        {/* 전체화면 버튼 — 항상 표시 */}
+                        <div onClick={(e)=>{e.stopPropagation();setInlinePlayIdx(null);setMediaViewer(i);}}
+                          style={{position:'absolute',top:8,right:8,width:32,height:32,borderRadius:'50%',background:'rgba(0,0,0,.6)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',zIndex:2,backdropFilter:'blur(4px)'}}>
+                          <span style={{fontSize:14,color:'#fff'}}>⛶</span>
+                        </div>
+                        {/* 재생 버튼 오버레이 (미재생 상태) */}
                         {isVid&&!isInline&&<div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',pointerEvents:'none'}}><div style={{width:48,height:48,borderRadius:'50%',background:'rgba(0,0,0,.55)',display:'flex',alignItems:'center',justifyContent:'center'}}><span style={{fontSize:20,color:'#fff',marginLeft:3}}>▶</span></div></div>}
-                        {isInline&&<div style={{position:'absolute',bottom:8,left:0,right:0,textAlign:'center',pointerEvents:'none',zIndex:1}}>
-                          <span style={{fontSize:10,fontWeight:700,color:'#fff',background:'rgba(0,0,0,.5)',padding:'3px 10px',borderRadius:12,backdropFilter:'blur(4px)'}}>탭하여 전체화면</span>
-                        </div>}
                       </div>
                     );
                   })}
@@ -3850,18 +3875,51 @@ function AdminScreen({onBack}){
                   {(data.media||(data.gif?[data.gif]:[])).map((url,mi)=>{
                     const mParsed=parseVideoUrl(url);
                     const isVid=!!mParsed;
+                    const thumbVal=(data.mediaThumbs||[])[mi]||'';
                     return(
-                      <div key={mi} style={{marginBottom:8}}>
+                      <div key={mi} style={{marginBottom:10,padding:8,background:'var(--card)',borderRadius:8,border:'1px solid var(--border)'}}>
+                        {/* 프리뷰 */}
                         {url&&(
-                          <div style={{marginBottom:4,borderRadius:8,overflow:'hidden',border:'1px solid var(--border)',background:'#000',display:'inline-block',width:120,height:90}}>
-                            {isVid
-                              ?(mParsed.type==='direct'
-                                ?<video src={url} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}} muted playsInline/>
-                                :<div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',background:'#1a1a2e',color:'#fff',fontSize:10,fontWeight:700}}>▶ 영상</div>)
-                              :<img src={url} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}} alt={`미디어 ${mi+1}`}/>
-                            }
+                          <div style={{marginBottom:6,display:'flex',gap:6,alignItems:'center'}}>
+                            <div style={{borderRadius:6,overflow:'hidden',border:'1px solid var(--border)',background:'#000',width:100,height:75,flexShrink:0}}>
+                              {isVid
+                                ?(mParsed.type==='direct'
+                                  ?<video src={url} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}} muted playsInline/>
+                                  :thumbVal
+                                    ?<img src={thumbVal} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}} alt="썸네일"/>
+                                    :<div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',background:'#1a1a2e',color:'#fff',fontSize:10,fontWeight:700}}>▶ 영상</div>)
+                                :<img src={url} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}} alt={`미디어 ${mi+1}`}/>
+                              }
+                            </div>
+                            {isVid&&(
+                              <div style={{flex:1,fontSize:10,color:'var(--text-sm)',lineHeight:1.5}}>
+                                <div style={{fontWeight:700,marginBottom:2}}>🖼 썸네일</div>
+                                <input value={thumbVal} placeholder="썸네일 이미지 URL"
+                                  onChange={e=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key].mediaThumbs)up[key].mediaThumbs=[];up[key].mediaThumbs[mi]=e.target.value;setCasePhotos(up);saveCasePhotos(up);}}
+                                  style={{width:'100%',padding:'5px 8px',borderRadius:6,border:'1px solid var(--border)',fontSize:11,fontFamily:'inherit',boxSizing:'border-box'}}/>
+                                <input type="file" accept="image/*" id={`mt-${key}-${mi}`} style={{display:'none'}}
+                                  onChange={e=>{
+                                    const file=e.target.files[0];if(!file)return;
+                                    const reader=new FileReader();
+                                    reader.onload=(ev)=>{
+                                      const img=new Image();
+                                      img.onload=()=>{
+                                        const MAX=320;let w=img.width,h=img.height;
+                                        if(w>MAX||h>MAX){const r=Math.min(MAX/w,MAX/h);w=Math.round(w*r);h=Math.round(h*r);}
+                                        const c=document.createElement('canvas');c.width=w;c.height=h;
+                                        c.getContext('2d').drawImage(img,0,0,w,h);
+                                        const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key].mediaThumbs)up[key].mediaThumbs=[];
+                                        up[key].mediaThumbs[mi]=c.toDataURL('image/jpeg',0.7);setCasePhotos(up);saveCasePhotos(up);
+                                      };img.src=ev.target.result;
+                                    };reader.readAsDataURL(file);e.target.value='';
+                                  }}/>
+                                <button onClick={()=>document.getElementById(`mt-${key}-${mi}`)?.click()}
+                                  style={{marginTop:3,padding:'3px 8px',borderRadius:5,border:'1px solid var(--border)',background:'#f3f4f6',fontSize:10,cursor:'pointer',fontFamily:'inherit'}}>📁 썸네일 업로드</button>
+                              </div>
+                            )}
                           </div>
                         )}
+                        {/* URL 입력 + 버튼들 */}
                         <div style={{display:'flex',gap:6}}>
                           <input value={url||''} placeholder={`YouTube/Drive/mp4 URL ${mi+1}`}
                             onChange={e=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:'',media:[]};const m=up[key].media||(up[key].gif?[up[key].gif]:[]);m[mi]=e.target.value;up[key].media=m;delete up[key].gif;setCasePhotos(up);saveCasePhotos(up);}}
@@ -3897,7 +3955,7 @@ function AdminScreen({onBack}){
                           <button onClick={()=>document.getElementById(`mf-${key}-${mi}`)?.click()}
                             title="이미지 업로드 (영상은 URL 입력)"
                             style={{padding:'0 10px',borderRadius:8,border:'1px solid var(--border)',background:'#f3f4f6',fontSize:16,cursor:'pointer',lineHeight:1,fontFamily:'inherit'}}>📁</button>
-                          <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));const m=up[key]?.media||(up[key]?.gif?[up[key].gif]:[]);m.splice(mi,1);up[key].media=m;delete up[key].gif;setCasePhotos(up);saveCasePhotos(up);}}
+                          <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));const m=up[key]?.media||(up[key]?.gif?[up[key].gif]:[]);m.splice(mi,1);if(up[key].mediaThumbs)up[key].mediaThumbs.splice(mi,1);up[key].media=m;delete up[key].gif;setCasePhotos(up);saveCasePhotos(up);}}
                             style={{padding:'0 10px',borderRadius:8,border:'1px solid #FCA5A5',background:'#FEF2F2',color:'#DC2626',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>✕</button>
                         </div>
                       </div>

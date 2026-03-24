@@ -416,6 +416,7 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
 .note-sheet::-webkit-scrollbar{display:none;}
 .note-sheet-scroll{flex:1;overflow-y:auto;padding:0 16px 16px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;}
 .note-sheet-scroll::-webkit-scrollbar{display:none;}
+.media-scroll::-webkit-scrollbar{display:none;}
 .note-memo{width:100%;padding:14px 16px;border-radius:9px;border:1.5px solid var(--border);font-size:14px;color:var(--text);background:var(--bg);outline:none;font-family:inherit;resize:none;line-height:1.8;transition:border-color .14s;min-height:300px;}
 .note-memo:focus{border-color:var(--purple);background:#fff;}
 .note-sheet-head{padding:12px 16px 0;flex-shrink:0;}
@@ -1933,17 +1934,17 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
         const mSrc=mList[mediaViewer]||'';
         const mParsed=parseVideoUrl(mSrc);
         const mIsVid=!!mParsed;
-        // 좌우 peek 썸네일
-        const prevSrc=mediaViewer>0?mList[mediaViewer-1]:null;
-        const nextSrc=mediaViewer<mList.length-1?mList[mediaViewer+1]:null;
         const getThumb=(idx,url)=>{
           if(mThumbs[idx])return mThumbs[idx];
           const p=parseVideoUrl(url);
           if(p&&p.type==='youtube'){const m=url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);if(m)return`https://img.youtube.com/vi/${m[1]}/hqdefault.jpg`;}
-          return url;
+          if(!p)return url; // 이미지면 원본
+          return null;
         };
+        const prevThumb=mediaViewer>0?getThumb(mediaViewer-1,mList[mediaViewer-1]):null;
+        const nextThumb=mediaViewer<mList.length-1?getThumb(mediaViewer+1,mList[mediaViewer+1]):null;
         return(
-          <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'#000',zIndex:950}}
+          <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'#000',zIndex:950,overflow:'hidden'}}
             onTouchStart={e=>{mvSwipeRef.current=e.touches[0].clientX;}}
             onTouchEnd={e=>{
               const dx=e.changedTouches[0].clientX-(mvSwipeRef.current||0);
@@ -1951,8 +1952,28 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               else if(dx>50&&mediaViewer>0)setMediaViewer(v=>v-1);
             }}
           >
+            {/* 좌측 peek — 이전 미디어 어둡게 */}
+            {prevThumb&&(
+              <div onClick={()=>setMediaViewer(v=>v-1)}
+                style={{position:'absolute',left:0,top:0,bottom:0,width:48,zIndex:2,cursor:'pointer',overflow:'hidden'}}>
+                <img src={prevThumb} alt="" style={{width:120,height:'100%',objectFit:'cover',display:'block',filter:'brightness(.35)',pointerEvents:'none'}}/>
+                <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <span style={{fontSize:18,color:'rgba(255,255,255,.7)',fontWeight:700}}>‹</span>
+                </div>
+              </div>
+            )}
+            {/* 우측 peek — 다음 미디어 어둡게 */}
+            {nextThumb&&(
+              <div onClick={()=>setMediaViewer(v=>v+1)}
+                style={{position:'absolute',right:0,top:0,bottom:0,width:48,zIndex:2,cursor:'pointer',overflow:'hidden'}}>
+                <img src={nextThumb} alt="" style={{width:120,height:'100%',objectFit:'cover',display:'block',filter:'brightness(.35)',pointerEvents:'none',marginLeft:-72}}/>
+                <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <span style={{fontSize:18,color:'rgba(255,255,255,.7)',fontWeight:700}}>›</span>
+                </div>
+              </div>
+            )}
             {/* 상단: 뒤로 + 진행 바 */}
-            <div style={{position:'absolute',top:0,left:0,right:0,padding:'16px 16px 28px',background:'linear-gradient(to bottom,rgba(0,0,0,.75) 0%,transparent 100%)',zIndex:3,display:'flex',alignItems:'center',gap:10}}>
+            <div style={{position:'absolute',top:0,left:0,right:0,padding:'16px 16px 28px',background:'linear-gradient(to bottom,rgba(0,0,0,.75) 0%,transparent 100%)',zIndex:4,display:'flex',alignItems:'center',gap:10}}>
               <button onClick={()=>{setMediaViewer(null);setInlinePlayIdx(null);}}
                 style={{width:38,height:38,borderRadius:'50%',border:'none',background:'rgba(255,255,255,.18)',color:'#fff',fontSize:22,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit',flexShrink:0,lineHeight:1}}>
                 ‹
@@ -1964,28 +1985,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 ))}
               </div>
             </div>
-            {/* 좌측 peek 썸네일 */}
-            {prevSrc&&(
-              <div onClick={()=>setMediaViewer(v=>v-1)}
-                style={{position:'absolute',left:0,top:'50%',transform:'translateY(-50%)',width:44,zIndex:2,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
-                <div style={{width:40,height:60,borderRadius:8,overflow:'hidden',border:'2px solid rgba(255,255,255,.4)',boxShadow:'0 2px 8px rgba(0,0,0,.5)'}}>
-                  <img src={getThumb(mediaViewer-1,prevSrc)} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-                </div>
-                <span style={{fontSize:9,color:'rgba(255,255,255,.6)',fontWeight:700}}>‹</span>
-              </div>
-            )}
-            {/* 우측 peek 썸네일 */}
-            {nextSrc&&(
-              <div onClick={()=>setMediaViewer(v=>v+1)}
-                style={{position:'absolute',right:0,top:'50%',transform:'translateY(-50%)',width:44,zIndex:2,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
-                <div style={{width:40,height:60,borderRadius:8,overflow:'hidden',border:'2px solid rgba(255,255,255,.4)',boxShadow:'0 2px 8px rgba(0,0,0,.5)'}}>
-                  <img src={getThumb(mediaViewer+1,nextSrc)} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-                </div>
-                <span style={{fontSize:9,color:'rgba(255,255,255,.6)',fontWeight:700}}>›</span>
-              </div>
-            )}
-            {/* 미디어 영역 */}
-            <div style={{position:'absolute',top:0,left:0,right:0,bottom:0,display:'flex',alignItems:'center',justifyContent:'center'}}
+            {/* 메인 미디어 */}
+            <div style={{position:'absolute',top:0,left:prevThumb?48:0,right:nextThumb?48:0,bottom:0,display:'flex',alignItems:'center',justifyContent:'center'}}
               onClick={()=>{if(mParsed&&mParsed.type==='direct'&&mvVideoRef.current){if(mvVideoRef.current.paused){mvVideoRef.current.play();setMvPlaying(true);}else{mvVideoRef.current.pause();setMvPlaying(false);}}}}
             >
               {mIsVid?(
@@ -2010,9 +2011,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               )}
             </div>
             {/* 하단: 카운터 */}
-            <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'24px 16px',background:'linear-gradient(to top,rgba(0,0,0,.55) 0%,transparent 100%)',zIndex:2,display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
-              <span style={{fontSize:11,color:'rgba(255,255,255,.55)',fontWeight:600}}>{mList.length>1?'← 스와이프 →':''}</span>
-              <div style={{padding:'4px 10px',borderRadius:6,background:'rgba(0,0,0,.5)',color:'#fff',fontSize:12,fontWeight:700}}>{mediaViewer+1} / {mList.length}</div>
+            <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'24px 16px',background:'linear-gradient(to top,rgba(0,0,0,.55) 0%,transparent 100%)',zIndex:3,display:'flex',justifyContent:'center'}}>
+              <div style={{padding:'4px 12px',borderRadius:8,background:'rgba(0,0,0,.5)',color:'#fff',fontSize:12,fontWeight:700,backdropFilter:'blur(4px)'}}>{mediaViewer+1} / {mList.length}</div>
             </div>
           </div>
         );
@@ -2070,64 +2070,100 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               )}
             </div>
 
-            {/* ── 2. 관련 미디어 (숏츠/릴스 스타일 슬라이드) ── */}
+            {/* ── 2. 관련 미디어 (숏츠 그리드 — 가로 스크롤) ── */}
             <div style={{marginBottom:16}}>
               <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>🎬 관련 미디어</div>
-              {(photos.media||[]).filter(s=>s).length>0?(
-                <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:6,scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch'}}>
-                  {photos.media.filter(s=>s).map((src,i)=>{
-                    const parsed=parseVideoUrl(src);
-                    const isVid=!!parsed;
-                    const isInline=inlinePlayIdx===i;
-                    const thumbSrc=(photos.mediaThumbs||[])[i];
-                    const ytThumb=parsed&&parsed.type==='youtube'?`https://img.youtube.com/vi/${src.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/)?.[1]}/hqdefault.jpg`:null;
-                    const cardThumb=thumbSrc||ytThumb;
-                    return(
-                      <div key={i}
-                        onClick={()=>{
-                          if(isVid&&!isInline){setInlinePlayIdx(i);}
-                          else if(!isVid){setMediaViewer(i);}
-                        }}
-                        style={{flex:'0 0 65%',maxWidth:260,scrollSnapAlign:'start',borderRadius:14,overflow:'hidden',border:'1.5px solid var(--border)',background:'#000',position:'relative',aspectRatio:'9/16',cursor:'pointer'}}>
-                        {isVid&&isInline?(
-                          parsed.type==='direct'?(
-                            <video src={src} style={{width:'100%',height:'100%',objectFit:'contain',display:'block'}} playsInline autoPlay controls loop
-                              onClick={e=>e.stopPropagation()}/>
-                          ):(
-                            <React.Fragment>
-                              <iframe src={parsed.embedUrl} style={{width:'100%',height:'100%',border:'none',pointerEvents:'auto'}}
-                                allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowFullScreen/>
-                            </React.Fragment>
-                          )
-                        ):isVid?(
-                          <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
-                            {cardThumb?<img src={cardThumb} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block',pointerEvents:'none'}}/>:
-                            <div style={{fontSize:48,opacity:.4}}>🎬</div>}
-                          </div>
-                        ):(
-                          <img src={src} alt={`미디어 ${i+1}`} style={{width:'100%',height:'100%',objectFit:'cover',display:'block',imageRendering:'auto',pointerEvents:'none'}}/>
-                        )}
-                        {/* 카운터 */}
-                        <div style={{position:'absolute',top:8,left:8,padding:'3px 8px',borderRadius:6,fontSize:10,fontWeight:800,background:'rgba(0,0,0,.55)',color:'#fff',backdropFilter:'blur(4px)',zIndex:1}}>
-                          {i+1}/{photos.media.filter(s=>s).length}
-                        </div>
-                        {/* 전체화면 버튼 — 항상 표시 */}
-                        <div onClick={(e)=>{e.stopPropagation();setInlinePlayIdx(null);setMediaViewer(i);}}
-                          style={{position:'absolute',top:8,right:8,width:32,height:32,borderRadius:'50%',background:'rgba(0,0,0,.6)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',zIndex:2,backdropFilter:'blur(4px)'}}>
-                          <span style={{fontSize:14,color:'#fff'}}>⛶</span>
-                        </div>
-                        {/* 재생 버튼 오버레이 (미재생 상태) */}
-                        {isVid&&!isInline&&<div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',pointerEvents:'none'}}><div style={{width:48,height:48,borderRadius:'50%',background:'rgba(0,0,0,.55)',display:'flex',alignItems:'center',justifyContent:'center'}}><span style={{fontSize:20,color:'#fff',marginLeft:3}}>▶</span></div></div>}
+              {(()=>{
+                const mediaList=(photos.media||[]).filter(s=>s);
+                if(!mediaList.length) return(
+                  <div style={{display:'flex',gap:6}}>
+                    {[0,1].map(i=>(
+                      <div key={i} style={{flex:1,borderRadius:12,border:'1.5px dashed var(--border)',background:'var(--bg)',aspectRatio:'9/16',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
+                        <span style={{fontSize:22,opacity:.2}}>🎬</span>
+                        <span style={{fontSize:9,color:'var(--text-sm)',fontWeight:600}}>관리자에서 추가</span>
                       </div>
-                    );
-                  })}
-                </div>
-              ):(
-                <div style={{borderRadius:14,border:'1.5px dashed var(--border)',background:'var(--bg)',aspectRatio:'9/16',maxWidth:200,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6}}>
-                  <span style={{fontSize:28,opacity:.2}}>🎬</span>
-                  <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:600}}>관리자에서 추가</span>
-                </div>
-              )}
+                    ))}
+                  </div>
+                );
+                return(
+                  <div style={{position:'relative'}}>
+                    <div style={{display:'flex',gap:6,overflowX:'auto',paddingRight:28,scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch',scrollbarWidth:'none',msOverflowStyle:'none'}}
+                      className="media-scroll">
+                      {mediaList.map((src,i)=>{
+                        const parsed=parseVideoUrl(src);
+                        const isVid=!!parsed;
+                        const isInline=inlinePlayIdx===i;
+                        const thumbSrc=(photos.mediaThumbs||[])[i];
+                        const ytThumb=parsed&&parsed.type==='youtube'?`https://img.youtube.com/vi/${src.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/)?.[1]}/hqdefault.jpg`:null;
+                        const cardThumb=thumbSrc||ytThumb;
+                        return(
+                          <div key={i}
+                            onClick={()=>{
+                              if(isVid&&!isInline){setInlinePlayIdx(i);}
+                              else if(!isVid){setMediaViewer(i);}
+                            }}
+                            style={{flex:'0 0 46%',scrollSnapAlign:'start',borderRadius:12,overflow:'hidden',background:'#111',position:'relative',aspectRatio:'9/16',cursor:'pointer'}}>
+
+                            {/* ── 인라인 재생 중 ── */}
+                            {isVid&&isInline?(
+                              <React.Fragment>
+                                {parsed.type==='direct'?(
+                                  <video src={src} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}} playsInline autoPlay controls loop
+                                    onClick={e=>e.stopPropagation()}/>
+                                ):(
+                                  <iframe src={parsed.embedUrl} style={{width:'100%',height:'100%',border:'none',pointerEvents:'auto'}}
+                                    allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowFullScreen/>
+                                )}
+                              </React.Fragment>
+
+                            /* ── 미재생: 썸네일 ── */
+                            ):(
+                              <React.Fragment>
+                                {cardThumb?(
+                                  <img src={cardThumb} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block',pointerEvents:'none'}}/>
+                                ):!isVid?(
+                                  <img src={src} alt={`미디어 ${i+1}`} style={{width:'100%',height:'100%',objectFit:'cover',display:'block',pointerEvents:'none'}}/>
+                                ):(
+                                  <div style={{width:'100%',height:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'linear-gradient(135deg,#1a1a2e 0%,#16213e 100%)',pointerEvents:'none',gap:6}}>
+                                    <div style={{width:44,height:44,borderRadius:'50%',background:'rgba(255,255,255,.12)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                                      <span style={{fontSize:20,marginLeft:2,color:'#fff'}}>▶</span>
+                                    </div>
+                                    <span style={{fontSize:10,color:'rgba(255,255,255,.5)',fontWeight:600}}>영상 재생</span>
+                                  </div>
+                                )}
+                                {/* 재생 오버레이 */}
+                                {isVid&&cardThumb&&(
+                                  <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',pointerEvents:'none'}}>
+                                    <div style={{width:44,height:44,borderRadius:'50%',background:'rgba(0,0,0,.5)',display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}}>
+                                      <span style={{fontSize:18,color:'#fff',marginLeft:2}}>▶</span>
+                                    </div>
+                                  </div>
+                                )}
+                              </React.Fragment>
+                            )}
+
+                            {/* 카운터 */}
+                            <div style={{position:'absolute',top:6,left:6,padding:'2px 6px',borderRadius:5,fontSize:9,fontWeight:800,background:'rgba(0,0,0,.55)',color:'#fff',backdropFilter:'blur(4px)',zIndex:3}}>
+                              {i+1}/{mediaList.length}
+                            </div>
+                            {/* 전체화면 버튼 */}
+                            <div onClick={(e)=>{e.stopPropagation();setInlinePlayIdx(null);setMediaViewer(i);}}
+                              style={{position:'absolute',top:6,right:6,width:28,height:28,borderRadius:7,background:'rgba(0,0,0,.55)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',zIndex:3,backdropFilter:'blur(4px)'}}>
+                              <span style={{fontSize:12,color:'#fff'}}>⛶</span>
+                            </div>
+                            {/* 하단 그라데이션 — 어두운 fade */}
+                            <div style={{position:'absolute',bottom:0,left:0,right:0,height:'30%',background:'linear-gradient(transparent,rgba(0,0,0,.4))',pointerEvents:'none',borderRadius:'0 0 12px 12px'}}/>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {/* 오른쪽 peek 페이드 */}
+                    {mediaList.length>2&&(
+                      <div style={{position:'absolute',top:0,right:0,bottom:6,width:32,background:'linear-gradient(to right,transparent,rgba(0,0,0,.35))',pointerEvents:'none',borderRadius:'0 12px 12px 0'}}/>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* ── 3. 제안서|QR  가이드북|QR ── */}

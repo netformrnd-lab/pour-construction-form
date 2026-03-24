@@ -244,7 +244,7 @@ input,textarea{font-family:inherit;}
 .qr-modal-url{font-size:11px;color:rgba(255,255,255,.35);text-align:center;max-width:300px;word-break:break-all;margin-top:-8px;}
 
 /* ── MODAL SHEET ── */
-.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:stretch;justify-content:flex-end;backdrop-filter:blur(4px);}
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:stretch;justify-content:flex-end;backdrop-filter:blur(4px);overscroll-behavior:contain;touch-action:none;}
 .sheet{background:#fff;border-radius:22px 22px 0 0;padding:20px 20px 44px;width:100%;max-height:88vh;overflow-y:auto;}
 .sheet::-webkit-scrollbar{display:none;}
 .sheet-handle{width:34px;height:4px;border-radius:2px;background:var(--border);margin:0 auto 18px;}
@@ -414,7 +414,7 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
 /* ── UNIFIED NOTE SHEET ── */
 .note-sheet{background:#fff;width:min(860px,96vw);height:100%;display:flex;flex-direction:column;overflow:hidden;box-shadow:-8px 0 40px rgba(0,0,0,.18);}
 .note-sheet::-webkit-scrollbar{display:none;}
-.note-sheet-scroll{flex:1;overflow-y:auto;padding:0 16px 16px;-webkit-overflow-scrolling:touch;}
+.note-sheet-scroll{flex:1;overflow-y:auto;padding:0 16px 16px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;}
 .note-sheet-scroll::-webkit-scrollbar{display:none;}
 .note-memo{width:100%;padding:14px 16px;border-radius:9px;border:1.5px solid var(--border);font-size:14px;color:var(--text);background:var(--bg);outline:none;font-family:inherit;resize:none;line-height:1.8;transition:border-color .14s;min-height:300px;}
 .note-memo:focus{border-color:var(--purple);background:#fff;}
@@ -508,7 +508,10 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
 .draw-highlight-tool{position:relative;}
 .draw-highlight-tool::after{content:'';position:absolute;bottom:2px;right:2px;width:8px;height:8px;border-radius:50%;border:1.5px solid #fff;}
 .pencil-scroll-zone{width:88px;flex-shrink:0;background:linear-gradient(135deg,#F3F4F6 0%,#E5E7EB 50%,#F3F4F6 100%);border-radius:0 12px 12px 0;border:1.5px solid var(--border);border-left:1px dashed var(--border);display:flex;align-items:center;justify-content:center;touch-action:pan-y;-webkit-user-select:none;user-select:none;position:relative;-webkit-overflow-scrolling:touch;overflow-y:auto;}
-.pencil-scroll-label{writing-mode:vertical-rl;text-orientation:mixed;font-size:11px;font-weight:700;color:var(--text-sm);letter-spacing:3px;opacity:.7;}
+.pencil-scroll-label{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:10px;font-weight:700;color:var(--text-sm);opacity:.6;}
+.pencil-scroll-label .hand{font-size:28px;animation:scrollHand 1.8s ease-in-out infinite;}
+.pencil-scroll-label .txt{writing-mode:vertical-rl;text-orientation:mixed;letter-spacing:2px;font-size:10px;}
+@keyframes scrollHand{0%,100%{transform:translateY(0)}50%{transform:translateY(12px)}}
 .note-head-save{padding:7px 18px;border-radius:10px;border:none;background:var(--purple);color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap;transition:opacity .12s;}
 .note-head-save:disabled{opacity:.5;}
 .note-head-save:active{opacity:.8;}
@@ -2170,7 +2173,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     <div style={{fontSize:11,fontWeight:800,color:'var(--accent)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>👤 고객 정보</div>
                     <div style={{position:'relative',marginBottom:6}}>
                       <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px'}} placeholder="건물명 또는 업체명" value={ntCompany} onChange={e=>setNtCompany(e.target.value)}/>
-                      {ntCompany&&<button onClick={()=>setNtCompany('')} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                      {ntCompany&&<button onClick={()=>setNtCompany(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
                     </div>
                     <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:8}}>
                       {BUILDING_TYPES.map(b=>(
@@ -2183,11 +2186,11 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:6}}>
                       <div style={{position:'relative'}}>
                         <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="성함 *" value={ntName} onChange={e=>setNtName(e.target.value)}/>
-                        {ntName&&<button onClick={()=>setNtName('')} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                        {ntName&&<button onClick={()=>setNtName(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
                       </div>
                       <div style={{position:'relative'}}>
                         <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="연락처 *" value={ntPhone} onChange={e=>setNtPhone(e.target.value)} inputMode="tel"/>
-                        {ntPhone&&<button onClick={()=>setNtPhone('')} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                        {ntPhone&&<button onClick={()=>setNtPhone(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
                       </div>
                     </div>
                     <div style={{position:'relative'}}>
@@ -2211,7 +2214,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                   onTouchStart={e=>{e.currentTarget._lastY=e.touches[0].clientY;}}
                   onTouchMove={e=>{const dy=e.currentTarget._lastY-e.touches[0].clientY;e.currentTarget._lastY=e.touches[0].clientY;const scr=e.currentTarget.previousElementSibling;if(scr)scr.scrollTop+=dy;}}
                 >
-                  <span className="pencil-scroll-label">스크롤</span>
+                  <span className="pencil-scroll-label"><span className="hand">👆</span><span className="txt">스크롤</span></span>
                 </div>
                 </div>{/* flex wrapper 끝 */}
               </>
@@ -3285,7 +3288,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
                 <div style={{fontSize:11,fontWeight:800,color:'var(--accent)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>👤 고객 정보</div>
                 <div style={{position:'relative',marginBottom:6}}>
                   <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px'}} placeholder="건물명 또는 업체명" value={company} onChange={e=>setCompany(e.target.value)}/>
-                  {company&&<button onClick={()=>setCompany('')} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                  {company&&<button onClick={()=>setCompany(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
                 </div>
                 <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:8}}>
                   {BUILDING_TYPES.map(b=>(
@@ -3298,11 +3301,11 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:6}}>
                   <div style={{position:'relative'}}>
                     <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="성함 *" value={name} onChange={e=>setName(e.target.value)}/>
-                    {name&&<button onClick={()=>setName('')} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                    {name&&<button onClick={()=>setName(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
                   </div>
                   <div style={{position:'relative'}}>
                     <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="연락처 *" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
-                    {phone&&<button onClick={()=>setPhone('')} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                    {phone&&<button onClick={()=>setPhone(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
                   </div>
                 </div>
                 <div style={{position:'relative'}}>
@@ -3326,7 +3329,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
               onTouchStart={e=>{e.currentTarget._lastY=e.touches[0].clientY;}}
               onTouchMove={e=>{const dy=e.currentTarget._lastY-e.touches[0].clientY;e.currentTarget._lastY=e.touches[0].clientY;const scr=e.currentTarget.previousElementSibling;if(scr)scr.scrollTop+=dy;}}
             >
-              <span className="pencil-scroll-label">스크롤</span>
+              <span className="pencil-scroll-label"><span className="hand">👆</span><span className="txt">스크롤</span></span>
             </div>
             </div>{/* flex wrapper 끝 */}
           </>
@@ -3777,7 +3780,8 @@ function AdminScreen({onBack}){
                   </div>
 
                   {/* 관련 미디어 (복수) */}
-                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>🎬 관련 미디어 (GIF/영상)</div>
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:4}}>🎬 관련 미디어</div>
+                  <div style={{fontSize:10,color:'var(--text-sm)',marginBottom:6,opacity:.7}}>영상/GIF → URL 입력 · 이미지 → 📁 업로드 가능</div>
                   {(data.media||(data.gif?[data.gif]:[])).map((url,mi)=>{
                     const isVideo=url&&(/\.(mp4|webm|mov)(\?|$)/i.test(url)||url.startsWith('data:video/'));
                     return(
@@ -3794,13 +3798,11 @@ function AdminScreen({onBack}){
                           <input value={url||''} placeholder={`URL 직접 입력 ${mi+1}`}
                             onChange={e=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:'',media:[]};const m=up[key].media||(up[key].gif?[up[key].gif]:[]);m[mi]=e.target.value;up[key].media=m;delete up[key].gif;setCasePhotos(up);saveCasePhotos(up);}}
                             style={{flex:1,padding:'8px 10px',borderRadius:8,border:'1px solid var(--border)',fontSize:12,fontFamily:'inherit',boxSizing:'border-box'}}/>
-                          <input type="file" accept="image/*,video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
+                          <input type="file" accept="image/*"
                             id={`mf-${key}-${mi}`} style={{display:'none'}}
                             onChange={e=>{
                               const file=e.target.files[0];if(!file)return;
-                              if(file.size>100*1024*1024){alert('파일이 너무 큽니다 (최대 100MB)');e.target.value='';return;}
-                              const isGif=file.type==='image/gif';
-                              const isVideo=file.type.startsWith('video/');
+                              if(file.size>10*1024*1024){alert('이미지가 너무 큽니다 (최대 10MB)');e.target.value='';return;}
                               const saveMedia=(dataUrl)=>{
                                 const up=JSON.parse(JSON.stringify(casePhotos));
                                 if(!up[key])up[key]={causes:[],completed:'',media:[]};
@@ -3809,28 +3811,23 @@ function AdminScreen({onBack}){
                                 setCasePhotos(up);saveCasePhotos(up);
                               };
                               const reader=new FileReader();
-                              if(isGif||isVideo){
-                                reader.onload=(ev)=>{saveMedia(ev.target.result);};
-                                reader.readAsDataURL(file);
-                              } else {
-                                reader.onload=(ev)=>{
-                                  const img=new Image();
-                                  img.onload=()=>{
-                                    const MAX=1080;
-                                    let w=img.width,h=img.height;
-                                    if(w>MAX||h>MAX){const r=Math.min(MAX/w,MAX/h);w=Math.round(w*r);h=Math.round(h*r);}
-                                    const c=document.createElement('canvas');c.width=w;c.height=h;
-                                    c.getContext('2d').drawImage(img,0,0,w,h);
-                                    saveMedia(c.toDataURL('image/jpeg',0.92));
-                                  };
-                                  img.src=ev.target.result;
+                              reader.onload=(ev)=>{
+                                const img=new Image();
+                                img.onload=()=>{
+                                  const MAX=480;
+                                  let w=img.width,h=img.height;
+                                  if(w>MAX||h>MAX){const r=Math.min(MAX/w,MAX/h);w=Math.round(w*r);h=Math.round(h*r);}
+                                  const c=document.createElement('canvas');c.width=w;c.height=h;
+                                  c.getContext('2d').drawImage(img,0,0,w,h);
+                                  saveMedia(c.toDataURL('image/jpeg',0.7));
                                 };
-                                reader.readAsDataURL(file);
-                              }
+                                img.src=ev.target.result;
+                              };
+                              reader.readAsDataURL(file);
                               e.target.value='';
                             }}/>
                           <button onClick={()=>document.getElementById(`mf-${key}-${mi}`)?.click()}
-                            title="GIF/영상 파일 업로드"
+                            title="이미지 업로드 (영상은 URL 입력)"
                             style={{padding:'0 10px',borderRadius:8,border:'1px solid var(--border)',background:'#f3f4f6',fontSize:16,cursor:'pointer',lineHeight:1,fontFamily:'inherit'}}>📁</button>
                           <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));const m=up[key]?.media||(up[key]?.gif?[up[key].gif]:[]);m.splice(mi,1);up[key].media=m;delete up[key].gif;setCasePhotos(up);saveCasePhotos(up);}}
                             style={{padding:'0 10px',borderRadius:8,border:'1px solid #FCA5A5',background:'#FEF2F2',color:'#DC2626',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>✕</button>

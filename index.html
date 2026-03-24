@@ -79,6 +79,7 @@ input,textarea{font-family:inherit;}
 .hdr-r{margin-left:auto;display:flex;align-items:center;gap:6px;}
 /* ── 플로팅 액션 버튼 ── */
 .fab-wrap{position:fixed;right:24px;bottom:32px;display:flex;flex-direction:column;gap:12px;z-index:100;}
+body.media-viewer-open .fab-wrap{display:none !important;}
 .fab{width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;transition:transform .13s,box-shadow .13s;font-family:inherit;}
 .fab:active{transform:scale(.91);}
 .fab-new{background:#2563EB;color:#fff;box-shadow:0 4px 18px rgba(37,99,235,.5);}
@@ -1889,6 +1890,11 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [qr,setQr]=useState(null);
   const [zoomPhoto,setZoomPhoto]=useState(null);
   const [mediaViewer,setMediaViewer]=useState(null);
+  useEffect(()=>{
+    if(mediaViewer!==null){document.body.classList.add('media-viewer-open');}
+    else{document.body.classList.remove('media-viewer-open');}
+    return()=>document.body.classList.remove('media-viewer-open');
+  },[mediaViewer]);
   const [mvPlaying,setMvPlaying]=useState(false);
   const [inlinePlayIdx,setInlinePlayIdx]=useState(null);
   const mvVideoRef=React.useRef(null);
@@ -2030,16 +2036,17 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               else if(dx>50&&mediaViewer>0)setMediaViewer(v=>v-1);
             }}
           >
-            {/* 상단: 뒤로 버튼 + 썸네일 스트립 */}
+            {/* 상단: 썸네일 스트립 */}
             <div style={{position:'absolute',top:0,left:0,right:0,padding:'14px 14px 20px',background:'linear-gradient(to bottom,rgba(0,0,0,.8) 0%,rgba(0,0,0,.4) 70%,transparent 100%)',zIndex:4}}>
-              {/* 뒤로 버튼 */}
-              <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
-                <button onClick={()=>{setMediaViewer(null);setInlinePlayIdx(null);}}
-                  style={{width:34,height:34,borderRadius:'50%',border:'none',background:'rgba(255,255,255,.15)',color:'#fff',fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit',flexShrink:0,lineHeight:1}}>
-                  ‹
-                </button>
-                <span style={{fontSize:12,color:'rgba(255,255,255,.6)',fontWeight:600}}>{mediaViewer+1} / {mList.length}</span>
+              {/* 카운터 */}
+              <div style={{display:'flex',alignItems:'center',marginBottom:10,paddingRight:52}}>
+                <span style={{fontSize:12,color:'rgba(255,255,255,.7)',fontWeight:700,background:'rgba(0,0,0,.4)',padding:'3px 10px',borderRadius:20,backdropFilter:'blur(4px)'}}>{mediaViewer+1} / {mList.length}</span>
               </div>
+              {/* 뒤로가기 버튼 — 우상단 고정 */}
+              <button onClick={()=>{setMediaViewer(null);setInlinePlayIdx(null);}}
+                style={{position:'absolute',top:14,right:14,width:44,height:44,borderRadius:12,border:'2px solid rgba(255,255,255,.35)',background:'rgba(0,0,0,.55)',backdropFilter:'blur(10px)',color:'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',zIndex:6,flexShrink:0}}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg>
+              </button>
               {/* 썸네일 스트립 — 현재(진한) + 다음 3개(어두운) */}
               {mList.length>1&&(
                 <div style={{display:'flex',gap:6,paddingLeft:2}}>
@@ -3722,6 +3729,8 @@ function AdminScreen({onBack}){
   const [smsTarget,setSmsTarget]=useState(null);
   const [toast,setToast]=useState(null);
   const [showPinChange,setShowPinChange]=useState(false);
+  const [selectedIds,setSelectedIds]=useState(new Set());
+  const [selectMode,setSelectMode]=useState(false);
 
   const DAYS=['4/16(목)','4/17(금)','4/18(토)'];
   const STATUS_OPTIONS=['신규','연락완료','계약예정','보류','기타'];
@@ -3788,13 +3797,21 @@ function AdminScreen({onBack}){
     }catch(e){alert('복원 실패');}
   };
 
-  // 영구 삭제
-  const permanentDeleteLead=async(id)=>{
-    if(!window.confirm('영구 삭제하면 복원할 수 없습니다. 계속하시겠어요?'))return;
+  // 선택 일괄 삭제
+  const deleteSelected=async()=>{
+    if(!selectedIds.size)return;
+    if(!window.confirm(`선택한 ${selectedIds.size}건을 휴지통으로 이동하시겠어요?`))return;
+    const deletedAt=new Date().toISOString();
     try{
-      await db.collection('leads').doc(id).delete();
-      setLeads(p=>p.filter(l=>l.id!==id));
+      await Promise.all([...selectedIds].map(id=>db.collection('leads').doc(id).update({deletedAt})));
+      setLeads(p=>p.map(l=>selectedIds.has(l.id)?{...l,deletedAt}:l));
+      setSelectedIds(new Set());
+      setSelectMode(false);
     }catch(e){alert('삭제 실패');}
+  };
+  const toggleSelectAll=()=>{
+    if(selectedIds.size===display.length)setSelectedIds(new Set());
+    else setSelectedIds(new Set(display.map(l=>l.id)));
   };
 
   // CSV 다운로드
@@ -3951,9 +3968,23 @@ function AdminScreen({onBack}){
             </div>
           </div>
 
-          {/* 결과 카운트 */}
-          <div style={{padding:'6px 14px',background:'var(--bg)',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:700,color:'var(--text-sm)',flexShrink:0}}>
-            {display.length}건 표시 중 / 전체 {activeLeads.length}건
+          {/* 결과 카운트 + 선택 모드 */}
+          <div style={{padding:'6px 14px',background:'var(--bg)',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:700,color:'var(--text-sm)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            {selectMode?(
+              <span style={{color:'var(--accent)'}}>{selectedIds.size}건 선택됨</span>
+            ):(
+              <span>{display.length}건 표시 중 / 전체 {activeLeads.length}건</span>
+            )}
+            <div style={{display:'flex',gap:6}}>
+              {selectMode&&(
+                <button onClick={toggleSelectAll} style={{padding:'3px 10px',borderRadius:20,border:'1.5px solid var(--border)',background:'#fff',color:'var(--text)',fontSize:11,fontWeight:700,cursor:'pointer'}}>
+                  {selectedIds.size===display.length?'선택해제':'전체선택'}
+                </button>
+              )}
+              <button onClick={()=>{setSelectMode(v=>{if(v){setSelectedIds(new Set());}return!v;});}} style={{padding:'3px 10px',borderRadius:20,border:'1.5px solid var(--accent)',background:selectMode?'var(--accent)':'#fff',color:selectMode?'#fff':'var(--accent)',fontSize:11,fontWeight:700,cursor:'pointer'}}>
+                {selectMode?'취소':'선택'}
+              </button>
+            </div>
           </div>
 
           {/* 리드 목록 */}
@@ -3963,10 +3994,20 @@ function AdminScreen({onBack}){
               const isOpen=expanded===l.id;
               const status=l.status||'신규';
               return(
-                <div key={l.id||i} style={{background:'var(--card)',borderRadius:12,border:`1.5px solid ${isOpen?'var(--accent)':'var(--border)'}`,overflow:'hidden',transition:'border-color .15s'}}>
-                  {/* 카드 헤더 - 탭으로 열고닫기 */}
-                  <div style={{padding:'12px 14px',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}} onClick={()=>setExpanded(isOpen?null:l.id)}>
-                    <span style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',width:20,textAlign:'center'}}>{i+1}</span>
+                <div key={l.id||i} style={{background:'var(--card)',borderRadius:12,border:`1.5px solid ${selectMode&&selectedIds.has(l.id)?'var(--accent)':isOpen?'var(--accent)':'var(--border)'}`,overflow:'hidden',transition:'border-color .15s'}}>
+                  {/* 카드 헤더 - 탭으로 열고닫기 / 선택모드 */}
+                  <div style={{padding:'12px 14px',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}} onClick={()=>{
+                    if(selectMode){
+                      setSelectedIds(prev=>{const n=new Set(prev);n.has(l.id)?n.delete(l.id):n.add(l.id);return n;});
+                    }else{setExpanded(isOpen?null:l.id);}
+                  }}>
+                    {selectMode?(
+                      <div style={{width:20,height:20,borderRadius:5,border:`2px solid ${selectedIds.has(l.id)?'var(--accent)':'#CBD5E1'}`,background:selectedIds.has(l.id)?'var(--accent)':'#fff',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                        {selectedIds.has(l.id)&&<svg width="11" height="11" viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                      </div>
+                    ):(
+                      <span style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',width:20,textAlign:'center'}}>{i+1}</span>
+                    )}
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{display:'flex',alignItems:'center',gap:6}}>
                         <span style={{fontSize:14,fontWeight:900,color:'var(--text)'}}>{l.name||'이름없음'}</span>
@@ -4043,6 +4084,16 @@ function AdminScreen({onBack}){
               );
             })}
           </div>
+
+          {/* 선택 삭제 바 */}
+          {selectMode&&selectedIds.size>0&&(
+            <div style={{padding:'10px 14px',background:'#FEF2F2',borderTop:'1.5px solid #FCA5A5',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+              <span style={{fontSize:13,fontWeight:800,color:'#DC2626'}}>{selectedIds.size}건 선택됨</span>
+              <button onClick={deleteSelected} style={{padding:'8px 20px',borderRadius:10,border:'none',background:'#DC2626',color:'#fff',fontSize:13,fontWeight:800,cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
+                🗑 휴지통으로 이동
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -4211,26 +4262,39 @@ function AdminScreen({onBack}){
 
       {/* ── 휴지통 탭 ── */}
       {!loading&&tab==='trash'&&(
-        <div style={{flex:1,overflowY:'auto',padding:'16px'}}>
-          <div style={{fontSize:14,fontWeight:900,color:'var(--text)',marginBottom:12}}>🗑 휴지통 ({trashedLeads.length}건)</div>
-          {trashedLeads.length===0&&<div className="empty">휴지통이 비어있습니다</div>}
-          <div style={{display:'flex',flexDirection:'column',gap:8}}>
-            {trashedLeads.map((l,i)=>(
-              <div key={l.id||i} style={{background:'var(--card)',borderRadius:12,border:'1px solid var(--border)',padding:'12px 14px'}}>
-                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
-                  <span style={{fontSize:14,fontWeight:900,color:'var(--text)'}}>{l.name||'이름없음'}</span>
-                  <span style={{fontSize:11,color:'var(--text-sm)',fontWeight:600}}>{l.phone}</span>
-                  <span style={{fontSize:11,color:'var(--text-sm)',fontWeight:600,marginLeft:'auto'}}>{l.staff} · {l.building}</span>
-                </div>
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                  <span style={{fontSize:10,color:'#DC2626'}}>삭제: {l.deletedAt?new Date(l.deletedAt).toLocaleString('ko'):''}</span>
-                  <div style={{display:'flex',gap:6}}>
-                    <button onClick={()=>restoreLead(l.id)} style={{padding:'5px 12px',borderRadius:8,border:'1.5px solid #BBF7D0',background:'#F0FDF4',color:'#059669',fontSize:11,fontWeight:700,cursor:'pointer'}}>복원</button>
-                    <button onClick={()=>permanentDeleteLead(l.id)} style={{padding:'5px 12px',borderRadius:8,border:'1.5px solid #FCA5A5',background:'#FEF2F2',color:'#DC2626',fontSize:11,fontWeight:700,cursor:'pointer'}}>영구삭제</button>
+        <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+          {/* 헤더 */}
+          <div style={{padding:'10px 14px',background:'#FEF2F2',borderBottom:'1.5px solid #FCA5A5',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+            <span style={{fontSize:13,fontWeight:900,color:'#DC2626'}}>🗑 휴지통 ({trashedLeads.length}건)</span>
+
+          </div>
+          <div style={{flex:1,overflowY:'auto',padding:'12px'}}>
+            {trashedLeads.length===0&&<div className="empty">휴지통이 비어있습니다</div>}
+            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+              {trashedLeads.map((l,i)=>(
+                <div key={l.id||i} style={{background:'var(--card)',borderRadius:12,border:'1px solid #FCA5A5',padding:'12px 14px'}}>
+                  <div style={{display:'flex',alignItems:'flex-start',gap:8,marginBottom:8}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
+                        <span style={{fontSize:14,fontWeight:900,color:'var(--text)'}}>{l.name||'이름없음'}</span>
+                        <span style={{fontSize:11,color:'var(--text-sm)',fontWeight:600}}>{l.phone}</span>
+                      </div>
+                      <div style={{fontSize:11,color:'var(--text-sm)',fontWeight:600}}>{l.staff} · {l.day} · {l.building}</div>
+                      {l.problems?.length>0&&(
+                        <div style={{display:'flex',flexWrap:'wrap',gap:3,marginTop:4}}>
+                          {l.problems.map(p=><span key={p} style={{fontSize:10,padding:'2px 6px',background:'#FEF3C7',color:'#92400E',borderRadius:20,fontWeight:700}}>{p}</span>)}
+                        </div>
+                      )}
+                    </div>
+                    <span style={{fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:10,background:'#FEF2F2',color:'#DC2626',border:'1px solid #FCA5A5',flexShrink:0}}>{l.status||'신규'}</span>
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                    <span style={{fontSize:10,color:'#DC2626',fontWeight:600}}>🗑 삭제: {l.deletedAt?new Date(l.deletedAt).toLocaleString('ko'):''}</span>
+                    <button onClick={()=>restoreLead(l.id)} style={{padding:'5px 12px',borderRadius:8,border:'1.5px solid #BBF7D0',background:'#F0FDF4',color:'#059669',fontSize:11,fontWeight:700,cursor:'pointer'}}>↩ 복원</button>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       )}

@@ -2078,9 +2078,9 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 if(!mediaList.length) return(
                   <div style={{display:'flex',gap:6}}>
                     {[0,1].map(i=>(
-                      <div key={i} style={{flex:1,borderRadius:12,border:'1.5px dashed var(--border)',background:'var(--bg)',aspectRatio:'9/16',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
-                        <span style={{fontSize:22,opacity:.2}}>🎬</span>
-                        <span style={{fontSize:9,color:'var(--text-sm)',fontWeight:600}}>관리자에서 추가</span>
+                      <div key={i} style={{flex:'0 0 35%',borderRadius:10,border:'1.5px dashed var(--border)',background:'var(--bg)',aspectRatio:'9/16',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
+                        <span style={{fontSize:18,opacity:.2}}>🎬</span>
+                        <span style={{fontSize:8,color:'var(--text-sm)',fontWeight:600}}>관리자에서 추가</span>
                       </div>
                     ))}
                   </div>
@@ -2102,7 +2102,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                               if(isVid&&!isInline){setInlinePlayIdx(i);}
                               else if(!isVid){setMediaViewer(i);}
                             }}
-                            style={{flex:'0 0 46%',scrollSnapAlign:'start',borderRadius:12,overflow:'hidden',background:'#111',position:'relative',aspectRatio:'9/16',cursor:'pointer'}}>
+                            style={{flex:'0 0 35%',scrollSnapAlign:'start',borderRadius:10,overflow:'hidden',background:'#111',position:'relative',aspectRatio:'9/16',cursor:'pointer'}}>
 
                             {/* ── 인라인 재생 중 ── */}
                             {isVid&&isInline?(

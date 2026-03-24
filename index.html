@@ -2112,56 +2112,34 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
         <div className="sol-name">{problem.label}</div>
         {problem.sub&&<div style={{fontSize:12,fontWeight:500,color:"rgba(255,255,255,.55)",marginTop:2}}>{problem.sub}</div>}
-        {/* 제안서 · 가이드북 카드 */}
+        {/* 제안서 · 가이드북 간소 카드 */}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginTop:10}}>
-          {/* ── 제안서 카드 ── */}
-          <div style={{borderRadius:10,overflow:'hidden',border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.08)'}}>
-            <div style={{padding:'8px 10px',background:'rgba(59,130,246,.25)',borderBottom:'1px solid rgba(255,255,255,.1)',display:'flex',alignItems:'center',gap:5}}>
-              <span style={{fontSize:13}}>📄</span>
-              <span style={{fontSize:12,fontWeight:800,color:'#fff',letterSpacing:'.02em'}}>제안서</span>
+          {/* ── 제안서 ── */}
+          {problem.specUrl?(
+            <button onClick={()=>setQr({url:problem.specUrl,title:'📄 제안서'})}
+              style={{borderRadius:10,border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.08)',padding:'10px 0',display:'flex',flexDirection:'column',alignItems:'center',gap:6,cursor:'pointer',fontFamily:'inherit'}}>
+              <span style={{fontSize:11,fontWeight:800,color:'#93bbfc',letterSpacing:'.04em'}}>제안서</span>
+              <span style={{fontSize:28}}>📄</span>
+            </button>
+          ):(
+            <div style={{borderRadius:10,border:'1px solid rgba(255,255,255,.1)',background:'rgba(255,255,255,.04)',padding:'10px 0',display:'flex',flexDirection:'column',alignItems:'center',gap:6,opacity:.4}}>
+              <span style={{fontSize:11,fontWeight:800,color:'rgba(255,255,255,.4)',letterSpacing:'.04em'}}>제안서</span>
+              <span style={{fontSize:28}}>📄</span>
             </div>
-            {problem.specUrl?(
-              <div style={{padding:'8px 10px',display:'flex',flexDirection:'column',gap:6}}>
-                <a href={problem.specUrl} target="_blank" rel="noreferrer"
-                  style={{display:'flex',alignItems:'center',justifyContent:'center',gap:5,padding:'7px 0',background:'rgba(59,130,246,.2)',borderRadius:7,textDecoration:'none',border:'1px solid rgba(59,130,246,.3)'}}>
-                  <span style={{fontSize:11,fontWeight:700,color:'#93bbfc'}}>바로 열기 →</span>
-                </a>
-                <button onClick={()=>setQr({url:problem.specUrl,title:'📄 제안서'})}
-                  style={{display:'flex',alignItems:'center',justifyContent:'center',gap:5,padding:'7px 0',background:'rgba(255,255,255,.06)',borderRadius:7,border:'1px solid rgba(255,255,255,.15)',cursor:'pointer',fontFamily:'inherit'}}>
-                  <span style={{fontSize:12}}>📱</span>
-                  <span style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,.8)'}}>QR 스캔</span>
-                </button>
-              </div>
-            ):(
-              <div style={{padding:'14px 10px',textAlign:'center'}}>
-                <span style={{fontSize:11,fontWeight:600,color:'rgba(255,255,255,.3)'}}>준비 중</span>
-              </div>
-            )}
-          </div>
-          {/* ── 가이드북 카드 ── */}
-          <div style={{borderRadius:10,overflow:'hidden',border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.08)'}}>
-            <div style={{padding:'8px 10px',background:'rgba(245,158,11,.25)',borderBottom:'1px solid rgba(255,255,255,.1)',display:'flex',alignItems:'center',gap:5}}>
-              <span style={{fontSize:13}}>📖</span>
-              <span style={{fontSize:12,fontWeight:800,color:'#fff',letterSpacing:'.02em'}}>시공 가이드</span>
+          )}
+          {/* ── 시공 가이드 ── */}
+          {guide?(
+            <button onClick={()=>setQr({url:guide.url,title:'📖 시공 가이드'})}
+              style={{borderRadius:10,border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.08)',padding:'10px 0',display:'flex',flexDirection:'column',alignItems:'center',gap:6,cursor:'pointer',fontFamily:'inherit'}}>
+              <span style={{fontSize:11,fontWeight:800,color:'#f5c563',letterSpacing:'.04em'}}>시공 가이드</span>
+              <span style={{fontSize:28}}>📖</span>
+            </button>
+          ):(
+            <div style={{borderRadius:10,border:'1px solid rgba(255,255,255,.1)',background:'rgba(255,255,255,.04)',padding:'10px 0',display:'flex',flexDirection:'column',alignItems:'center',gap:6,opacity:.4}}>
+              <span style={{fontSize:11,fontWeight:800,color:'rgba(255,255,255,.4)',letterSpacing:'.04em'}}>시공 가이드</span>
+              <span style={{fontSize:28}}>📖</span>
             </div>
-            {guide?(
-              <div style={{padding:'8px 10px',display:'flex',flexDirection:'column',gap:6}}>
-                <a href={guide.url} target="_blank" rel="noreferrer"
-                  style={{display:'flex',alignItems:'center',justifyContent:'center',gap:5,padding:'7px 0',background:'rgba(245,158,11,.2)',borderRadius:7,textDecoration:'none',border:'1px solid rgba(245,158,11,.3)'}}>
-                  <span style={{fontSize:11,fontWeight:700,color:'#f5c563'}}>바로 열기 →</span>
-                </a>
-                <button onClick={()=>setQr({url:guide.url,title:'📖 시공 가이드'})}
-                  style={{display:'flex',alignItems:'center',justifyContent:'center',gap:5,padding:'7px 0',background:'rgba(255,255,255,.06)',borderRadius:7,border:'1px solid rgba(255,255,255,.15)',cursor:'pointer',fontFamily:'inherit'}}>
-                  <span style={{fontSize:12}}>📱</span>
-                  <span style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,.8)'}}>QR 스캔</span>
-                </button>
-              </div>
-            ):(
-              <div style={{padding:'14px 10px',textAlign:'center'}}>
-                <span style={{fontSize:11,fontWeight:600,color:'rgba(255,255,255,.3)'}}>준비 중</span>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </div>
 

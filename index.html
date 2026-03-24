@@ -2015,9 +2015,10 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
           if(!p)return url;
           return null;
         };
-        // 썸네일 스트립: 현재 + 다음 최대 3개
+        // 썸네일 스트립: 이전 1개 + 현재 + 다음 (최대 4개)
         const stripItems=[];
-        for(let si=mediaViewer;si<Math.min(mediaViewer+4,mList.length);si++){
+        const stripStart=Math.max(0,mediaViewer-1);
+        for(let si=stripStart;si<Math.min(stripStart+4,mList.length);si++){
           stripItems.push({idx:si,thumb:getThumb(si,mList[si]),isCurrent:si===mediaViewer});
         }
         return(
@@ -2062,9 +2063,9 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                       )}
                     </div>
                   ))}
-                  {mediaViewer+4<mList.length&&(
+                  {stripStart+4<mList.length&&(
                     <div style={{width:48,height:64,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                      <span style={{fontSize:11,color:'rgba(255,255,255,.4)',fontWeight:700}}>+{mList.length-mediaViewer-4}</span>
+                      <span style={{fontSize:11,color:'rgba(255,255,255,.4)',fontWeight:700}}>+{mList.length-stripStart-4}</span>
                     </div>
                   )}
                 </div>
@@ -2116,11 +2117,30 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginTop:10}}>
           {/* ── 제안서 ── */}
           {problem.specUrl?(
-            <button onClick={()=>setQr({url:problem.specUrl,title:'📄 제안서'})}
-              style={{borderRadius:10,border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.08)',padding:'10px 0',display:'flex',flexDirection:'column',alignItems:'center',gap:6,cursor:'pointer',fontFamily:'inherit'}}>
-              <span style={{fontSize:11,fontWeight:800,color:'#93bbfc',letterSpacing:'.04em'}}>제안서</span>
-              <span style={{fontSize:28}}>📄</span>
-            </button>
+            <div style={{borderRadius:10,border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.08)',display:'flex',flexDirection:'column',alignItems:'center',overflow:'hidden'}}>
+              <button onClick={()=>window.open(problem.specUrl,'_blank')}
+                style={{width:'100%',background:'none',border:'none',padding:'10px 0 8px',display:'flex',flexDirection:'column',alignItems:'center',gap:5,cursor:'pointer',fontFamily:'inherit'}}>
+                <span style={{fontSize:11,fontWeight:800,color:'#93bbfc',letterSpacing:'.04em'}}>제안서</span>
+                <span style={{fontSize:26}}>📄</span>
+              </button>
+              <div style={{width:'100%',height:'1px',background:'rgba(255,255,255,.1)'}}/>
+              <button onClick={()=>setQr({url:problem.specUrl,title:'📄 제안서'})}
+                style={{width:'100%',background:'none',border:'none',padding:'6px 0',display:'flex',alignItems:'center',justifyContent:'center',gap:4,cursor:'pointer',fontFamily:'inherit'}}>
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="rgba(255,255,255,.55)" style={{flexShrink:0}}>
+                  <rect x="0" y="0" width="5" height="5" fill="none" stroke="rgba(255,255,255,.55)" strokeWidth="1.2"/>
+                  <rect x="1.5" y="1.5" width="2" height="2"/>
+                  <rect x="9" y="0" width="5" height="5" fill="none" stroke="rgba(255,255,255,.55)" strokeWidth="1.2"/>
+                  <rect x="10.5" y="1.5" width="2" height="2"/>
+                  <rect x="0" y="9" width="5" height="5" fill="none" stroke="rgba(255,255,255,.55)" strokeWidth="1.2"/>
+                  <rect x="1.5" y="10.5" width="2" height="2"/>
+                  <rect x="9" y="9" width="2" height="2"/>
+                  <rect x="12" y="9" width="2" height="2"/>
+                  <rect x="9" y="12" width="2" height="2"/>
+                  <rect x="12" y="12" width="2" height="2"/>
+                </svg>
+                <span style={{fontSize:10,color:'rgba(255,255,255,.55)',fontWeight:700}}>QR코드</span>
+              </button>
+            </div>
           ):(
             <div style={{borderRadius:10,border:'1px solid rgba(255,255,255,.1)',background:'rgba(255,255,255,.04)',padding:'10px 0',display:'flex',flexDirection:'column',alignItems:'center',gap:6,opacity:.4}}>
               <span style={{fontSize:11,fontWeight:800,color:'rgba(255,255,255,.4)',letterSpacing:'.04em'}}>제안서</span>
@@ -2129,11 +2149,30 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
           )}
           {/* ── 시공 가이드 ── */}
           {guide?(
-            <button onClick={()=>setQr({url:guide.url,title:'📖 시공 가이드'})}
-              style={{borderRadius:10,border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.08)',padding:'10px 0',display:'flex',flexDirection:'column',alignItems:'center',gap:6,cursor:'pointer',fontFamily:'inherit'}}>
-              <span style={{fontSize:11,fontWeight:800,color:'#f5c563',letterSpacing:'.04em'}}>시공 가이드</span>
-              <span style={{fontSize:28}}>📖</span>
-            </button>
+            <div style={{borderRadius:10,border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.08)',display:'flex',flexDirection:'column',alignItems:'center',overflow:'hidden'}}>
+              <button onClick={()=>window.open(guide.url,'_blank')}
+                style={{width:'100%',background:'none',border:'none',padding:'10px 0 8px',display:'flex',flexDirection:'column',alignItems:'center',gap:5,cursor:'pointer',fontFamily:'inherit'}}>
+                <span style={{fontSize:11,fontWeight:800,color:'#f5c563',letterSpacing:'.04em'}}>시공 가이드</span>
+                <span style={{fontSize:26}}>📖</span>
+              </button>
+              <div style={{width:'100%',height:'1px',background:'rgba(255,255,255,.1)'}}/>
+              <button onClick={()=>setQr({url:guide.url,title:'📖 시공 가이드'})}
+                style={{width:'100%',background:'none',border:'none',padding:'6px 0',display:'flex',alignItems:'center',justifyContent:'center',gap:4,cursor:'pointer',fontFamily:'inherit'}}>
+                <svg width="12" height="12" viewBox="0 0 14 14" fill="rgba(255,255,255,.55)" style={{flexShrink:0}}>
+                  <rect x="0" y="0" width="5" height="5" fill="none" stroke="rgba(255,255,255,.55)" strokeWidth="1.2"/>
+                  <rect x="1.5" y="1.5" width="2" height="2"/>
+                  <rect x="9" y="0" width="5" height="5" fill="none" stroke="rgba(255,255,255,.55)" strokeWidth="1.2"/>
+                  <rect x="10.5" y="1.5" width="2" height="2"/>
+                  <rect x="0" y="9" width="5" height="5" fill="none" stroke="rgba(255,255,255,.55)" strokeWidth="1.2"/>
+                  <rect x="1.5" y="10.5" width="2" height="2"/>
+                  <rect x="9" y="9" width="2" height="2"/>
+                  <rect x="12" y="9" width="2" height="2"/>
+                  <rect x="9" y="12" width="2" height="2"/>
+                  <rect x="12" y="12" width="2" height="2"/>
+                </svg>
+                <span style={{fontSize:10,color:'rgba(255,255,255,.55)',fontWeight:700}}>QR코드</span>
+              </button>
+            </div>
           ):(
             <div style={{borderRadius:10,border:'1px solid rgba(255,255,255,.1)',background:'rgba(255,255,255,.04)',padding:'10px 0',display:'flex',flexDirection:'column',alignItems:'center',gap:6,opacity:.4}}>
               <span style={{fontSize:11,fontWeight:800,color:'rgba(255,255,255,.4)',letterSpacing:'.04em'}}>시공 가이드</span>

@@ -2365,59 +2365,22 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     )}
                   </div>
 
-                  {/* ── CRM 키워드 태그 ── */}
-                  <div style={{marginBottom:10,padding:'8px 0'}}>
-                    <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>🏷️ 키워드 (CRM)</div>
-                    {[
-                      {label:'하자유형',tags:['누수','균열','곰팡이','결로','도장박리','방수불량','철근노출','백화']},
-                      {label:'긴급도',tags:['긴급','일반','장기검토']},
-                      {label:'액션',tags:['견적요청','재방문','시공예정','샘플요청','경쟁사비교','타사견적有']},
-                      {label:'규모',tags:['소규모','중규모','대규모','단지']},
-                    ].map(group=>(
-                      <div key={group.label} style={{marginBottom:6}}>
-                        <div style={{fontSize:9,fontWeight:700,color:'var(--text-sm)',marginBottom:3,opacity:.7}}>{group.label}</div>
-                        <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
-                          {group.tags.map(tag=>{
-                            const sel=ntKeywords.includes(tag);
-                            return(
-                              <button key={tag} onClick={()=>setNtKeywords(v=>sel?v.filter(t=>t!==tag):[...v,tag])}
-                                style={{padding:'4px 10px',borderRadius:14,border:`1.5px solid ${sel?'var(--accent)':'var(--border)'}`,background:sel?'var(--accent)':'#fff',color:sel?'#fff':'var(--text)',fontSize:11,fontWeight:sel?700:500,cursor:'pointer',fontFamily:'inherit',transition:'all .12s'}}>
-                                {tag}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                    {ntKeywords.length>0&&(
-                      <div style={{marginTop:4,fontSize:10,color:'var(--accent)',fontWeight:600}}>
-                        선택: {ntKeywords.join(', ')}
-                      </div>
-                    )}
-                  </div>
-
                   {/* ── 텍스트 메모 (펜슬 Scribble 입력 가능) ── */}
                   <div style={{marginBottom:10}}>
                     <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>📝 텍스트 메모</div>
                     <textarea className="note-input" value={ntMemo} onChange={e=>setNtMemo(e.target.value)}
                       placeholder="✏️ 펜슬로 직접 필기하세요 (Scribble)&#10;상담 내용, 특이사항, 요청사항 등"
-                      style={{fontSize:15,padding:'14px',minHeight:100,resize:'vertical',lineHeight:1.6,fontFamily:'inherit',width:'100%',boxSizing:'border-box'}}/>
-                  </div>
-
-                  {/* ── 펜슬 드로잉 메모 ── */}
-                  <div style={{marginBottom:10}}>
-                    <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>✏️ 손글씨 메모</div>
-                    <DrawCanvas onDataUrl={setNtMemoImgs}/>
+                      style={{fontSize:15,padding:'14px',minHeight:200,resize:'vertical',lineHeight:1.6,fontFamily:'inherit',width:'100%',boxSizing:'border-box'}}/>
                   </div>
 
                 </div>{/* 본문 끝 */}
-                <div className="pencil-scroll-zone" style={{minHeight:'auto',width:120}}
-                  onTouchStart={e=>{e.currentTarget._lastY=e.touches[0].clientY;}}
-                  onTouchMove={e=>{const dy=e.currentTarget._lastY-e.touches[0].clientY;e.currentTarget._lastY=e.touches[0].clientY;const scr=e.currentTarget.previousElementSibling;if(scr)scr.scrollTop+=dy;}}
-                >
-                  <span className="pencil-scroll-label"><span className="hand">👆</span><span className="txt">스크롤</span></span>
-                </div>
                 </div>{/* flex wrapper 끝 */}
+
+                {/* ── 손글씨 메모 (본문 스크롤 영역 밖, 독립 섹션) ── */}
+                <div style={{flexShrink:0,borderTop:'2px solid var(--border)',padding:'10px 0'}}>
+                  <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>✏️ 손글씨 메모</div>
+                  <DrawCanvas onDataUrl={setNtMemoImgs}/>
+                </div>
               </>
             )}
           </div>
@@ -3542,55 +3505,22 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
                 )}
               </div>
 
-              {/* ── CRM 키워드 태그 ── */}
-              <div style={{marginBottom:10,padding:'8px 0'}}>
-                <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>🏷️ 키워드 (CRM)</div>
-                {[
-                  {label:'하자유형',tags:['누수','균열','곰팡이','결로','도장박리','방수불량','철근노출','백화']},
-                  {label:'긴급도',tags:['긴급','일반','장기검토']},
-                  {label:'액션',tags:['견적요청','재방문','시공예정','샘플요청','경쟁사비교','타사견적有']},
-                  {label:'규모',tags:['소규모','중규모','대규모','단지']},
-                ].map(group=>(
-                  <div key={group.label} style={{marginBottom:6}}>
-                    <div style={{fontSize:9,fontWeight:700,color:'var(--text-sm)',marginBottom:3,opacity:.7}}>{group.label}</div>
-                    <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
-                      {group.tags.map(tag=>{
-                        const sel=keywords.includes(tag);
-                        return(
-                          <button key={tag} onClick={()=>setKeywords(v=>sel?v.filter(t=>t!==tag):[...v,tag])}
-                            style={{padding:'4px 10px',borderRadius:14,border:`1.5px solid ${sel?'var(--accent)':'var(--border)'}`,background:sel?'var(--accent)':'#fff',color:sel?'#fff':'var(--text)',fontSize:11,fontWeight:sel?700:500,cursor:'pointer',fontFamily:'inherit',transition:'all .12s'}}>
-                            {tag}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-                {keywords.length>0&&<div style={{marginTop:4,fontSize:10,color:'var(--accent)',fontWeight:600}}>선택: {keywords.join(', ')}</div>}
-              </div>
-
               {/* ── 텍스트 메모 ── */}
               <div style={{marginBottom:10}}>
                 <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>📝 텍스트 메모</div>
                 <textarea className="note-input" value={memo} onChange={e=>setMemo(e.target.value)}
                   placeholder="✏️ 펜슬로 직접 필기하세요 (Scribble)&#10;상담 내용, 특이사항, 요청사항 등"
-                  style={{fontSize:15,padding:'14px',minHeight:100,resize:'vertical',lineHeight:1.6,fontFamily:'inherit',width:'100%',boxSizing:'border-box'}}/>
-              </div>
-
-              {/* ── 손글씨 메모 ── */}
-              <div style={{marginBottom:10}}>
-                <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>✏️ 손글씨 메모</div>
-                <DrawCanvas onDataUrl={setMemoImgs}/>
+                  style={{fontSize:15,padding:'14px',minHeight:200,resize:'vertical',lineHeight:1.6,fontFamily:'inherit',width:'100%',boxSizing:'border-box'}}/>
               </div>
 
             </div>{/* 본문 끝 */}
-            <div className="pencil-scroll-zone" style={{minHeight:'auto',width:120}}
-              onTouchStart={e=>{e.currentTarget._lastY=e.touches[0].clientY;}}
-              onTouchMove={e=>{const dy=e.currentTarget._lastY-e.touches[0].clientY;e.currentTarget._lastY=e.touches[0].clientY;const scr=e.currentTarget.previousElementSibling;if(scr)scr.scrollTop+=dy;}}
-            >
-              <span className="pencil-scroll-label"><span className="hand">👆</span><span className="txt">스크롤</span></span>
-            </div>
             </div>{/* flex wrapper 끝 */}
+
+            {/* ── 손글씨 메모 (본문 스크롤 영역 밖, 독립 섹션) ── */}
+            <div style={{flexShrink:0,borderTop:'2px solid var(--border)',padding:'10px 0'}}>
+              <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>✏️ 손글씨 메모</div>
+              <DrawCanvas onDataUrl={setMemoImgs}/>
+            </div>
           </>
         )}
       </div>

@@ -415,6 +415,7 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
 .note-sheet{background:#fff;width:min(860px,96vw);height:100%;display:flex;flex-direction:column;overflow:hidden;box-shadow:-8px 0 40px rgba(0,0,0,.18);}
 .note-sheet::-webkit-scrollbar{display:none;}
 .note-sheet-scroll{flex:1;overflow-y:auto;padding:0 16px 16px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;}
+.note-sheet-scroll.pen-active{overflow-y:hidden;touch-action:none;}
 .note-sheet-scroll::-webkit-scrollbar{display:none;}
 .media-scroll::-webkit-scrollbar{display:none;}
 .note-memo{width:100%;padding:14px 16px;border-radius:9px;border:1.5px solid var(--border);font-size:14px;color:var(--text);background:var(--bg);outline:none;font-family:inherit;resize:none;line-height:1.8;transition:border-color .14s;min-height:300px;}
@@ -1814,7 +1815,7 @@ function ContactForm({building,problem,done,onSubmit,onBack,onLog,onNewCustomer}
 }
 
 /* ── Solution Screen ── */
-function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNewCustomer,visible,externalNote,onExternalNote}){
+function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNewCustomer,visible,externalNote,onExternalNote,onNoteChange}){
   /* ── 모든 useState 최상단 선언 (React 훅 규칙) ── */
   const [qr,setQr]=useState(null);
   const [zoomPhoto,setZoomPhoto]=useState(null);
@@ -1827,7 +1828,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [contactDone,setContactDone]=useState(false);
   const [memo,setMemo]=useState('');
   const [savedCSData,setSavedCSData]=useState(null);
-  const [showNote,setShowNote]=useState(false);
+  const [showNote,_setShowNote]=useState(false);
+  const setShowNote=(v)=>{const nv=typeof v==='function'?v(showNote):v;_setShowNote(nv);if(onNoteChange)onNoteChange(nv);};
   const [ntName,setNtName]=useState('');
   const [ntCompany,setNtCompany]=useState('');
   const [ntPosition,setNtPosition]=useState('');
@@ -1937,12 +1939,15 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
         const getThumb=(idx,url)=>{
           if(mThumbs[idx])return mThumbs[idx];
           const p=parseVideoUrl(url);
-          if(p&&p.type==='youtube'){const m=url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);if(m)return`https://img.youtube.com/vi/${m[1]}/hqdefault.jpg`;}
-          if(!p)return url; // 이미지면 원본
+          if(p&&p.type==='youtube'){const m2=url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);if(m2)return`https://img.youtube.com/vi/${m2[1]}/hqdefault.jpg`;}
+          if(!p)return url;
           return null;
         };
-        const prevThumb=mediaViewer>0?getThumb(mediaViewer-1,mList[mediaViewer-1]):null;
-        const nextThumb=mediaViewer<mList.length-1?getThumb(mediaViewer+1,mList[mediaViewer+1]):null;
+        // 썸네일 스트립: 현재 + 다음 최대 3개
+        const stripItems=[];
+        for(let si=mediaViewer;si<Math.min(mediaViewer+4,mList.length);si++){
+          stripItems.push({idx:si,thumb:getThumb(si,mList[si]),isCurrent:si===mediaViewer});
+        }
         return(
           <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'#000',zIndex:950,overflow:'hidden'}}
             onTouchStart={e=>{mvSwipeRef.current=e.touches[0].clientX;}}
@@ -1952,41 +1957,49 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               else if(dx>50&&mediaViewer>0)setMediaViewer(v=>v-1);
             }}
           >
-            {/* 좌측 peek — 이전 미디어 어둡게 */}
-            {prevThumb&&(
-              <div onClick={()=>setMediaViewer(v=>v-1)}
-                style={{position:'absolute',left:0,top:0,bottom:0,width:48,zIndex:2,cursor:'pointer',overflow:'hidden'}}>
-                <img src={prevThumb} alt="" style={{width:120,height:'100%',objectFit:'cover',display:'block',filter:'brightness(.35)',pointerEvents:'none'}}/>
-                <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                  <span style={{fontSize:18,color:'rgba(255,255,255,.7)',fontWeight:700}}>‹</span>
+            {/* 상단: 뒤로 버튼 + 썸네일 스트립 */}
+            <div style={{position:'absolute',top:0,left:0,right:0,padding:'14px 14px 20px',background:'linear-gradient(to bottom,rgba(0,0,0,.8) 0%,rgba(0,0,0,.4) 70%,transparent 100%)',zIndex:4}}>
+              {/* 뒤로 버튼 */}
+              <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
+                <button onClick={()=>{setMediaViewer(null);setInlinePlayIdx(null);}}
+                  style={{width:34,height:34,borderRadius:'50%',border:'none',background:'rgba(255,255,255,.15)',color:'#fff',fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit',flexShrink:0,lineHeight:1}}>
+                  ‹
+                </button>
+                <span style={{fontSize:12,color:'rgba(255,255,255,.6)',fontWeight:600}}>{mediaViewer+1} / {mList.length}</span>
+              </div>
+              {/* 썸네일 스트립 — 현재(진한) + 다음 3개(어두운) */}
+              {mList.length>1&&(
+                <div style={{display:'flex',gap:6,paddingLeft:2}}>
+                  {stripItems.map(({idx,thumb,isCurrent})=>(
+                    <div key={idx} onClick={()=>setMediaViewer(idx)}
+                      style={{width:48,height:64,borderRadius:8,overflow:'hidden',cursor:'pointer',position:'relative',
+                        border:isCurrent?'2px solid #fff':'2px solid rgba(255,255,255,.2)',
+                        opacity:isCurrent?1:1,
+                        transition:'all .2s'}}>
+                      {thumb?(
+                        <img src={thumb} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block',
+                          filter:isCurrent?'none':'brightness(.35)',transition:'filter .2s'}}/>
+                      ):(
+                        <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',
+                          background:isCurrent?'#2a2a3e':'#111',transition:'background .2s'}}>
+                          <span style={{fontSize:14,color:isCurrent?'#fff':'rgba(255,255,255,.3)'}}>▶</span>
+                        </div>
+                      )}
+                      {!isCurrent&&(
+                        <div style={{position:'absolute',inset:0,background:'rgba(0,0,0,.3)'}}/>
+                      )}
+                    </div>
+                  ))}
+                  {mediaViewer+4<mList.length&&(
+                    <div style={{width:48,height:64,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                      <span style={{fontSize:11,color:'rgba(255,255,255,.4)',fontWeight:700}}>+{mList.length-mediaViewer-4}</span>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
-            {/* 우측 peek — 다음 미디어 어둡게 */}
-            {nextThumb&&(
-              <div onClick={()=>setMediaViewer(v=>v+1)}
-                style={{position:'absolute',right:0,top:0,bottom:0,width:48,zIndex:2,cursor:'pointer',overflow:'hidden'}}>
-                <img src={nextThumb} alt="" style={{width:120,height:'100%',objectFit:'cover',display:'block',filter:'brightness(.35)',pointerEvents:'none',marginLeft:-72}}/>
-                <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                  <span style={{fontSize:18,color:'rgba(255,255,255,.7)',fontWeight:700}}>›</span>
-                </div>
-              </div>
-            )}
-            {/* 상단: 뒤로 + 진행 바 */}
-            <div style={{position:'absolute',top:0,left:0,right:0,padding:'16px 16px 28px',background:'linear-gradient(to bottom,rgba(0,0,0,.75) 0%,transparent 100%)',zIndex:4,display:'flex',alignItems:'center',gap:10}}>
-              <button onClick={()=>{setMediaViewer(null);setInlinePlayIdx(null);}}
-                style={{width:38,height:38,borderRadius:'50%',border:'none',background:'rgba(255,255,255,.18)',color:'#fff',fontSize:22,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit',flexShrink:0,lineHeight:1}}>
-                ‹
-              </button>
-              <div style={{flex:1,display:'flex',gap:3}}>
-                {mList.map((_,i)=>(
-                  <div key={i} onClick={()=>setMediaViewer(i)}
-                    style={{flex:1,height:3,borderRadius:2,background:i===mediaViewer?'#fff':'rgba(255,255,255,.3)',cursor:'pointer',transition:'background .2s'}}/>
-                ))}
-              </div>
+              )}
             </div>
-            {/* 메인 미디어 */}
-            <div style={{position:'absolute',top:0,left:prevThumb?48:0,right:nextThumb?48:0,bottom:0,display:'flex',alignItems:'center',justifyContent:'center'}}
+            {/* 메인 미디어 — 전체 화면 */}
+            <div style={{position:'absolute',top:0,left:0,right:0,bottom:0,display:'flex',alignItems:'center',justifyContent:'center'}}
               onClick={()=>{if(mParsed&&mParsed.type==='direct'&&mvVideoRef.current){if(mvVideoRef.current.paused){mvVideoRef.current.play();setMvPlaying(true);}else{mvVideoRef.current.pause();setMvPlaying(false);}}}}
             >
               {mIsVid?(
@@ -2010,10 +2023,6 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 </div>
               )}
             </div>
-            {/* 하단: 카운터 */}
-            <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'24px 16px',background:'linear-gradient(to top,rgba(0,0,0,.55) 0%,transparent 100%)',zIndex:3,display:'flex',justifyContent:'center'}}>
-              <div style={{padding:'4px 12px',borderRadius:8,background:'rgba(0,0,0,.5)',color:'#fff',fontSize:12,fontWeight:700,backdropFilter:'blur(4px)'}}>{mediaViewer+1} / {mList.length}</div>
-            </div>
           </div>
         );
       })()}
@@ -2028,9 +2037,50 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
         <div className="hdr-r"><button className="btn-back" onClick={onBack}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg></button></div>
       </div>
       <div className="sol-header">
-        
+
         <div className="sol-name">{problem.label}</div>
         {problem.sub&&<div style={{fontSize:12,fontWeight:500,color:"rgba(255,255,255,.55)",marginTop:2}}>{problem.sub}</div>}
+        {/* 제안서 · 가이드북 바로가기 */}
+        <div style={{display:'flex',gap:6,marginTop:10}}>
+          {problem.specUrl?(
+            <a href={problem.specUrl} target="_blank" rel="noreferrer"
+              style={{flex:1,display:'flex',alignItems:'center',gap:6,padding:'8px 10px',background:'rgba(255,255,255,.12)',borderRadius:8,textDecoration:'none',border:'1px solid rgba(255,255,255,.15)',minWidth:0}}>
+              <span style={{fontSize:14}}>📄</span>
+              <span style={{fontSize:11,fontWeight:700,color:'#fff',flex:1}}>제안서</span>
+              <span style={{fontSize:9,fontWeight:700,color:'var(--blue-m)'}}>열기→</span>
+            </a>
+          ):(
+            <div style={{flex:1,display:'flex',alignItems:'center',gap:6,padding:'8px 10px',background:'rgba(255,255,255,.05)',borderRadius:8,border:'1px solid rgba(255,255,255,.08)',opacity:.5}}>
+              <span style={{fontSize:14}}>📄</span><span style={{fontSize:11,fontWeight:600,color:'rgba(255,255,255,.4)'}}>준비 중</span>
+            </div>
+          )}
+          {problem.specUrl&&(
+            <button onClick={()=>setQr({url:problem.specUrl,title:'제안서'})}
+              style={{width:40,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:1,padding:'4px 0',borderRadius:8,border:'1px solid rgba(255,255,255,.2)',background:'rgba(255,255,255,.08)',cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>
+              <span style={{fontSize:13}}>📱</span>
+              <span style={{fontSize:7,fontWeight:800,color:'rgba(255,255,255,.6)'}}>QR</span>
+            </button>
+          )}
+          {guide?(
+            <a href={guide.url} target="_blank" rel="noreferrer"
+              style={{flex:1,display:'flex',alignItems:'center',gap:6,padding:'8px 10px',background:'rgba(255,255,255,.12)',borderRadius:8,textDecoration:'none',border:'1px solid rgba(255,255,255,.15)',minWidth:0}}>
+              <span style={{fontSize:14}}>📖</span>
+              <span style={{fontSize:11,fontWeight:700,color:'#fff',flex:1}}>가이드북</span>
+              <span style={{fontSize:9,fontWeight:700,color:'var(--gold)'}}>열기→</span>
+            </a>
+          ):(
+            <div style={{flex:1,display:'flex',alignItems:'center',gap:6,padding:'8px 10px',background:'rgba(255,255,255,.05)',borderRadius:8,border:'1px solid rgba(255,255,255,.08)',opacity:.5}}>
+              <span style={{fontSize:14}}>📖</span><span style={{fontSize:11,fontWeight:600,color:'rgba(255,255,255,.4)'}}>준비 중</span>
+            </div>
+          )}
+          {guide&&(
+            <button onClick={()=>setQr({url:guide.url,title:'가이드북'})}
+              style={{width:40,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:1,padding:'4px 0',borderRadius:8,border:'1px solid rgba(255,255,255,.2)',background:'rgba(255,255,255,.08)',cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>
+              <span style={{fontSize:13}}>📱</span>
+              <span style={{fontSize:7,fontWeight:800,color:'rgba(255,255,255,.6)'}}>QR</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 탭 */}
@@ -2146,10 +2196,11 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                             <div style={{position:'absolute',top:6,left:6,padding:'2px 6px',borderRadius:5,fontSize:9,fontWeight:800,background:'rgba(0,0,0,.55)',color:'#fff',backdropFilter:'blur(4px)',zIndex:3}}>
                               {i+1}/{mediaList.length}
                             </div>
-                            {/* 전체화면 버튼 */}
+                            {/* 확대 버튼 */}
                             <div onClick={(e)=>{e.stopPropagation();setInlinePlayIdx(null);setMediaViewer(i);}}
-                              style={{position:'absolute',top:6,right:6,width:28,height:28,borderRadius:7,background:'rgba(0,0,0,.55)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',zIndex:3,backdropFilter:'blur(4px)'}}>
-                              <span style={{fontSize:12,color:'#fff'}}>⛶</span>
+                              style={{position:'absolute',top:6,right:6,padding:'4px 8px',borderRadius:7,background:'rgba(0,0,0,.6)',display:'flex',alignItems:'center',gap:3,cursor:'pointer',zIndex:3,backdropFilter:'blur(4px)'}}>
+                              <span style={{fontSize:11,color:'#fff',lineHeight:1}}>+</span>
+                              <span style={{fontSize:10,color:'#fff',fontWeight:700}}>확대</span>
                             </div>
                             {/* 하단 그라데이션 — 어두운 fade */}
                             <div style={{position:'absolute',bottom:0,left:0,right:0,height:'30%',background:'linear-gradient(transparent,rgba(0,0,0,.4))',pointerEvents:'none',borderRadius:'0 0 12px 12px'}}/>
@@ -2166,53 +2217,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               })()}
             </div>
 
-            {/* ── 3. 제안서|QR  가이드북|QR ── */}
-            <div style={{display:'flex',gap:8,marginBottom:16,paddingBottom:80}}>
-              {/* 제안서 + QR */}
-              <div style={{flex:1,display:'flex',gap:6,minWidth:0}}>
-                {problem.specUrl?(
-                  <a href={problem.specUrl} target="_blank" rel="noreferrer"
-                    style={{flex:1,display:'flex',alignItems:'center',gap:8,padding:'12px 12px',background:'var(--navy)',borderRadius:12,textDecoration:'none',border:'1px solid rgba(255,255,255,.1)',minWidth:0}}>
-                    <span style={{fontSize:18}}>📄</span>
-                    <div style={{flex:1,minWidth:0}}><div style={{fontSize:12,fontWeight:800,color:'#fff'}}>제안서</div></div>
-                    <span style={{fontSize:10,fontWeight:700,color:'var(--blue-m)',flexShrink:0}}>열기→</span>
-                  </a>
-                ):(
-                  <div style={{flex:1,display:'flex',alignItems:'center',gap:8,padding:'12px 12px',background:'var(--bg)',borderRadius:12,border:'1.5px solid var(--border)',opacity:.4}}>
-                    <span style={{fontSize:18}}>📄</span><span style={{fontSize:11,fontWeight:700,color:'var(--text-sm)'}}>준비 중</span>
-                  </div>
-                )}
-                {problem.specUrl&&(
-                  <button onClick={()=>setQr({url:problem.specUrl,title:'제안서'})}
-                    style={{width:48,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,padding:'6px 0',borderRadius:10,border:'1.5px solid var(--blue)',background:'var(--blue-l)',cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>
-                    <span style={{fontSize:16}}>📱</span>
-                    <span style={{fontSize:8,fontWeight:800,color:'var(--blue)'}}>QR</span>
-                  </button>
-                )}
-              </div>
-              {/* 가이드북 + QR */}
-              <div style={{flex:1,display:'flex',gap:6,minWidth:0}}>
-                {guide?(
-                  <a href={guide.url} target="_blank" rel="noreferrer"
-                    style={{flex:1,display:'flex',alignItems:'center',gap:8,padding:'12px 12px',background:'var(--card)',borderRadius:12,textDecoration:'none',border:'1.5px solid var(--border)',minWidth:0}}>
-                    <span style={{fontSize:18}}>📖</span>
-                    <div style={{flex:1,minWidth:0}}><div style={{fontSize:12,fontWeight:800,color:'var(--text)'}}>가이드북</div></div>
-                    <span style={{fontSize:10,fontWeight:700,color:'var(--accent)',flexShrink:0}}>열기→</span>
-                  </a>
-                ):(
-                  <div style={{flex:1,display:'flex',alignItems:'center',gap:8,padding:'12px 12px',background:'var(--bg)',borderRadius:12,border:'1.5px solid var(--border)',opacity:.4}}>
-                    <span style={{fontSize:18}}>📖</span><span style={{fontSize:11,fontWeight:700,color:'var(--text-sm)'}}>준비 중</span>
-                  </div>
-                )}
-                {guide&&(
-                  <button onClick={()=>setQr({url:guide.url,title:'가이드북'})}
-                    style={{width:48,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,padding:'6px 0',borderRadius:10,border:'1.5px solid var(--accent)',background:'var(--accent-l)',cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>
-                    <span style={{fontSize:16}}>📱</span>
-                    <span style={{fontSize:8,fontWeight:800,color:'var(--accent)'}}>QR</span>
-                  </button>
-                )}
-              </div>
-            </div>
+            {/* 하단 여백 */}
+            <div style={{paddingBottom:80}}/>
         </>
       </div>
 
@@ -2292,7 +2298,10 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
                 {/* ── 본문 ── */}
                 <div style={{display:'flex',flex:1,overflow:'hidden'}}>
-                <div className="note-sheet-scroll" style={{flex:1,minWidth:0}}>
+                <div className="note-sheet-scroll" style={{flex:1,minWidth:0}}
+                  onPointerDown={e=>{if(e.pointerType==='pen'){e.currentTarget.classList.add('pen-active');}}}
+                  onPointerUp={e=>{setTimeout(()=>e.currentTarget?.classList?.remove('pen-active'),500);}}
+                  onPointerCancel={e=>{setTimeout(()=>e.currentTarget?.classList?.remove('pen-active'),500);}}>
 
                   {/* ── 고객 정보 (분리 섹션) ── */}
                   <div style={{padding:'12px 0 14px',flexShrink:0,borderBottom:'2px solid var(--border)',marginBottom:10}}>
@@ -3407,7 +3416,10 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
 
             {/* ── 본문 ── */}
             <div style={{display:'flex',flex:1,overflow:'hidden'}}>
-            <div className="note-sheet-scroll" style={{flex:1,minWidth:0}}>
+            <div className="note-sheet-scroll" style={{flex:1,minWidth:0}}
+              onPointerDown={e=>{if(e.pointerType==='pen'){e.currentTarget.classList.add('pen-active');}}}
+              onPointerUp={e=>{setTimeout(()=>e.currentTarget?.classList?.remove('pen-active'),500);}}
+              onPointerCancel={e=>{setTimeout(()=>e.currentTarget?.classList?.remove('pen-active'),500);}}>
 
               {/* ── 고객 정보 (분리 섹션) ── */}
               <div style={{padding:'12px 0 14px',flexShrink:0,borderBottom:'2px solid var(--border)',marginBottom:10}}>
@@ -4385,6 +4397,7 @@ function App(){
   const [cat,setCat]=useState('전체');
   const [todayCount,setTodayCount]=useState(0);
   const [globalNote,setGlobalNote]=useState(false);
+  const [solutionNoteOpen,setSolutionNoteOpen]=useState(false);
   const [confirmNew,setConfirmNew]=useState(false);
   const [probPhotos,setProbPhotos]=useState(()=>loadProblemPhotos());
   const [adminAuth,setAdminAuth]=useState(()=>sessionStorage.getItem('pourAdminAuth')==='true');
@@ -4581,7 +4594,7 @@ function App(){
         building={building} problem={problem}
         staffId={staffId} staffName={staffName} staffDay={staffDay}
         onBack={()=>setScreen('problem')} onNewCustomer={goHome}
-        externalNote={globalNote} onExternalNote={setGlobalNote}
+        externalNote={globalNote} onExternalNote={setGlobalNote} onNoteChange={setSolutionNoteOpen}
       />
 
       {/* LEADS */}
@@ -4607,7 +4620,7 @@ function App(){
       )}
 
       {/* ── 전역 FAB: 홈/어드민/스토어/그로홈/기술연구소 제외 ── */}
-      {screen!=='home'&&screen!=='admin'&&screen!=='store-category'&&screen!=='tech-memo'&&(
+      {screen!=='home'&&screen!=='admin'&&screen!=='store-category'&&screen!=='tech-memo'&&!globalNote&&!solutionNoteOpen&&(
         <div className="fab-wrap">
           <button className="fab fab-new" onClick={()=>setConfirmNew(true)} title="새 상담 시작">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>

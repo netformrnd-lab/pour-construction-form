@@ -1727,7 +1727,6 @@ function CSMemoScreen({building,problem,staffId,staffName,staffDay,onBack,onSave
           <textarea className="minput" style={{borderColor:'var(--purple-m)'}} rows={3} placeholder="고객 반응, 특이사항, 후속 참고사항..." value={csMemo} onChange={e=>setCsMemo(e.target.value)}/>
         </div>
       </div>
-      <ScrollRail scrollRef={memoScrollRef}/>
       </div>
 
       {/* 저장 확인 모달 */}
@@ -1848,6 +1847,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [ntDone,setNtDone]=useState(false);
   const [ntPencilMode,setNtPencilMode]=useState(true);
   const [ntMemoImgs,setNtMemoImgs]=useState([]);
+  const [ntDoodleOpen,setNtDoodleOpen]=useState(false);
   const ntMemoRef=useRef(null);
   useEffect(()=>{if(!ntPencilMode&&ntMemoRef.current){ntMemoRef.current.focus();}},[ntPencilMode]);
   const [ntOpenSec,setNtOpenSec]=useState(new Set([]));
@@ -2381,16 +2381,19 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>📝 텍스트 메모</div>
                     <textarea className="note-input" value={ntMemo} onChange={e=>setNtMemo(e.target.value)}
                       placeholder="✏️ 펜슬로 직접 필기하세요 (Scribble)&#10;상담 내용, 특이사항, 요청사항 등"
-                      style={{fontSize:15,padding:'14px',minHeight:200,resize:'vertical',lineHeight:1.6,fontFamily:'inherit',width:'100%',boxSizing:'border-box'}}/>
+                      style={{fontSize:15,padding:'14px',minHeight:600,resize:'vertical',lineHeight:1.6,fontFamily:'inherit',width:'100%',boxSizing:'border-box'}}/>
                   </div>
 
                 </div>{/* 본문 끝 */}
                 </div>{/* flex wrapper 끝 */}
 
-                {/* ── 손글씨 메모 (본문 스크롤 영역 밖, 독립 섹션) ── */}
-                <div style={{flexShrink:0,borderTop:'2px solid var(--border)',padding:'10px 0'}}>
-                  <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>✏️ 손글씨 메모</div>
-                  <DrawCanvas onDataUrl={setNtMemoImgs}/>
+                {/* ── 낙서장 (접기/펼치기) ── */}
+                <div style={{flexShrink:0,borderTop:'2px solid var(--border)'}}>
+                  <button onClick={()=>setNtDoodleOpen(!ntDoodleOpen)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 4px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
+                    <span style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase'}}>🎨 낙서장</span>
+                    <span style={{fontSize:11,fontWeight:700,color:'var(--blue)',display:'flex',alignItems:'center',gap:4}}>{ntDoodleOpen?'접기 ▲':'펼치기 ▼'}</span>
+                  </button>
+                  {ntDoodleOpen&&<div style={{padding:'0 0 10px'}}><DrawCanvas onDataUrl={setNtMemoImgs}/></div>}
                 </div>
               </>
             )}
@@ -2608,6 +2611,7 @@ function TechMemoSheet({staffId,staffName,staffDay,onBack}){
   const [memo,setMemo]=useState('');
   const [pencilMode,setPencilMode]=useState(true);
   const [memoImgs,setMemoImgs]=useState([]);
+  const [doodleOpen,setDoodleOpen]=useState(false);
   const [saving,setSaving]=useState(false);
   const [done,setDone]=useState(false);
   const accent='#059669';
@@ -2693,10 +2697,13 @@ function TechMemoSheet({staffId,staffName,staffDay,onBack}){
               </div>
             </div>
 
-            {/* 펜슬 메모 */}
-            <div style={{marginBottom:16}}>
-              <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>✏️ 상담 메모</div>
-              <DrawCanvas onDataUrl={setMemoImgs}/>
+            {/* 낙서장 */}
+            <div style={{marginBottom:16,borderTop:'2px solid var(--border)'}}>
+              <button onClick={()=>setDoodleOpen(!doodleOpen)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 4px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
+                <span style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase'}}>🎨 낙서장</span>
+                <span style={{fontSize:11,fontWeight:700,color:'var(--blue)',display:'flex',alignItems:'center',gap:4}}>{doodleOpen?'접기 ▲':'펼치기 ▼'}</span>
+              </button>
+              {doodleOpen&&<DrawCanvas onDataUrl={setMemoImgs}/>}
             </div>
 
             <button className="btn-start" style={{width:'100%',background:accent}} onClick={save} disabled={saving}>
@@ -2881,6 +2888,7 @@ function StoreNoteSheet({staffId,staffName,staffDay,building,problem,onClose}){
   const [memo,setMemo]=useState('');
   const [pencilMode,setPencilMode]=useState(true);
   const [memoImgs,setMemoImgs]=useState([]);
+  const [doodleOpen,setDoodleOpen]=useState(false);
   const [saving,setSaving]=useState(false);
   const [done,setDone]=useState(false);
   const memoRef=useRef(null);
@@ -2946,10 +2954,13 @@ function StoreNoteSheet({staffId,staffName,staffDay,building,problem,onClose}){
                   <input className="note-input" style={{fontSize:13}} placeholder="연락처 *" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
                 </div>
               </div>
-              {/* 펜슬 메모 */}
-              <div style={{marginBottom:10}}>
-                <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>✏️ 상담 메모</div>
-                <DrawCanvas onDataUrl={setMemoImgs}/>
+              {/* 낙서장 */}
+              <div style={{marginBottom:10,borderTop:'2px solid var(--border)'}}>
+                <button onClick={()=>setDoodleOpen(!doodleOpen)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 4px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
+                  <span style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase'}}>🎨 낙서장</span>
+                  <span style={{fontSize:11,fontWeight:700,color:'var(--blue)',display:'flex',alignItems:'center',gap:4}}>{doodleOpen?'접기 ▲':'펼치기 ▼'}</span>
+                </button>
+                {doodleOpen&&<DrawCanvas onDataUrl={setMemoImgs}/>}
               </div>
             </div>
           </>
@@ -2969,6 +2980,7 @@ function StorePartnerSheet({staffId,staffName,staffDay,onClose}){
   const [memo,setMemo]=useState('');
   const [actions,setActions]=useState([]);
   const [pencilMode,setPencilMode]=useState(true);
+  const [doodleOpen,setDoodleOpen]=useState(false);
   const [memoImgs,setMemoImgs]=useState([]);
   const [saving,setSaving]=useState(false);
   const [done,setDone]=useState(false);
@@ -3042,9 +3054,13 @@ function StorePartnerSheet({staffId,staffName,staffDay,onClose}){
               <div style={{marginBottom:10}}>
                 <input className="note-input" style={{fontSize:13}} placeholder="주요 활동 지역 (예: 서울 강남, 경기 남부)" value={region} onChange={e=>setRegion(e.target.value)}/>
               </div>
-              <div style={{marginBottom:10}}>
-                <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>✏️ 상담 메모</div>
-                <DrawCanvas onDataUrl={setMemoImgs}/>
+              {/* 낙서장 */}
+              <div style={{marginBottom:10,borderTop:'2px solid var(--border)'}}>
+                <button onClick={()=>setDoodleOpen(!doodleOpen)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 4px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
+                  <span style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase'}}>🎨 낙서장</span>
+                  <span style={{fontSize:11,fontWeight:700,color:'var(--blue)',display:'flex',alignItems:'center',gap:4}}>{doodleOpen?'접기 ▲':'펼치기 ▼'}</span>
+                </button>
+                {doodleOpen&&<DrawCanvas onDataUrl={setMemoImgs}/>}
               </div>
             </div>
           </>
@@ -3067,6 +3083,7 @@ function StoreOtherSheet({staffId,staffName,staffDay,onClose}){
   const [phone,setPhone]=useState('');
   const [memo,setMemo]=useState('');
   const [pencilMode,setPencilMode]=useState(true);
+  const [doodleOpen,setDoodleOpen]=useState(false);
   const [memoImgs,setMemoImgs]=useState([]);
   const [saving,setSaving]=useState(false);
   const [done,setDone]=useState(false);
@@ -3143,9 +3160,13 @@ function StoreOtherSheet({staffId,staffName,staffDay,onClose}){
                       <input className="note-input" style={{fontSize:13}} placeholder="연락처 *" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
                     </div>
                   </div>
-                  <div style={{marginBottom:12}}>
-                    <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>✏️ 문의 내용</div>
-                    <DrawCanvas onDataUrl={setMemoImgs}/>
+                  {/* 낙서장 */}
+                  <div style={{marginBottom:12,borderTop:'2px solid var(--border)'}}>
+                    <button onClick={()=>setDoodleOpen(!doodleOpen)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 4px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
+                      <span style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase'}}>🎨 낙서장</span>
+                      <span style={{fontSize:11,fontWeight:700,color:'var(--blue)',display:'flex',alignItems:'center',gap:4}}>{doodleOpen?'접기 ▲':'펼치기 ▼'}</span>
+                    </button>
+                    {doodleOpen&&<DrawCanvas onDataUrl={setMemoImgs}/>}
                   </div>
                   <div style={{display:'flex',gap:8}}>
                     <button onClick={()=>setOtherType(null)} style={{flex:1,padding:'12px',borderRadius:10,border:'1px solid var(--border)',background:'transparent',color:'var(--text-md)',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>← 다시 선택</button>
@@ -3236,6 +3257,7 @@ function GrohomeNoteSheet({staffId,staffName,staffDay,grohomeCat,onClose}){
   const [memo,setMemo]=useState('');
   const [pencilMode,setPencilMode]=useState(true);
   const [memoImgs,setMemoImgs]=useState([]);
+  const [doodleOpen,setDoodleOpen]=useState(false);
   const [saving,setSaving]=useState(false);
   const [done,setDone]=useState(false);
   const memoRef=useRef(null);
@@ -3300,10 +3322,13 @@ function GrohomeNoteSheet({staffId,staffName,staffDay,grohomeCat,onClose}){
                   <input className="note-input" style={{fontSize:13}} placeholder="연락처 *" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
                 </div>
               </div>
-              {/* 펜슬 메모 */}
-              <div style={{marginBottom:10}}>
-                <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>✏️ 상담 메모</div>
-                <DrawCanvas onDataUrl={setMemoImgs}/>
+              {/* 낙서장 */}
+              <div style={{marginBottom:10,borderTop:'2px solid var(--border)'}}>
+                <button onClick={()=>setDoodleOpen(!doodleOpen)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 4px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
+                  <span style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase'}}>🎨 낙서장</span>
+                  <span style={{fontSize:11,fontWeight:700,color:'var(--blue)',display:'flex',alignItems:'center',gap:4}}>{doodleOpen?'접기 ▲':'펼치기 ▼'}</span>
+                </button>
+                {doodleOpen&&<DrawCanvas onDataUrl={setMemoImgs}/>}
               </div>
             </div>
           </>
@@ -3331,6 +3356,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
   const [done,setDone]=useState(false);
   const [pencilMode,setPencilMode]=useState(true);
   const [memoImgs,setMemoImgs]=useState([]);
+  const [doodleOpen,setDoodleOpen]=useState(false);
   const memoRef=useRef(null);
   const bizCardOpenRef=useRef(null);
   useEffect(()=>{if(!pencilMode&&memoRef.current){memoRef.current.focus();}},[pencilMode]);
@@ -3521,16 +3547,19 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
                 <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>📝 텍스트 메모</div>
                 <textarea className="note-input" value={memo} onChange={e=>setMemo(e.target.value)}
                   placeholder="✏️ 펜슬로 직접 필기하세요 (Scribble)&#10;상담 내용, 특이사항, 요청사항 등"
-                  style={{fontSize:15,padding:'14px',minHeight:200,resize:'vertical',lineHeight:1.6,fontFamily:'inherit',width:'100%',boxSizing:'border-box'}}/>
+                  style={{fontSize:15,padding:'14px',minHeight:600,resize:'vertical',lineHeight:1.6,fontFamily:'inherit',width:'100%',boxSizing:'border-box'}}/>
               </div>
 
             </div>{/* 본문 끝 */}
             </div>{/* flex wrapper 끝 */}
 
-            {/* ── 손글씨 메모 (본문 스크롤 영역 밖, 독립 섹션) ── */}
-            <div style={{flexShrink:0,borderTop:'2px solid var(--border)',padding:'10px 0'}}>
-              <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>✏️ 손글씨 메모</div>
-              <DrawCanvas onDataUrl={setMemoImgs}/>
+            {/* ── 낙서장 (접기/펼치기) ── */}
+            <div style={{flexShrink:0,borderTop:'2px solid var(--border)'}}>
+              <button onClick={()=>setDoodleOpen(!doodleOpen)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 4px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
+                <span style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase'}}>🎨 낙서장</span>
+                <span style={{fontSize:11,fontWeight:700,color:'var(--blue)',display:'flex',alignItems:'center',gap:4}}>{doodleOpen?'접기 ▲':'펼치기 ▼'}</span>
+              </button>
+              {doodleOpen&&<div style={{padding:'0 0 10px'}}><DrawCanvas onDataUrl={setMemoImgs}/></div>}
             </div>
           </>
         )}

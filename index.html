@@ -531,6 +531,75 @@ window.__penEverDetected=false;
 const markPenActive=()=>{window.__penActive=true;window.__penEverDetected=true;clearTimeout(window.__penTimer);window.__penTimer=setTimeout(()=>{window.__penActive=false;},2000);};
 const isPenActive=()=>window.__penActive;
 
+/* ══ MemoTextarea – 텍스트 메모 (되돌리기 · 전체삭제) ══ */
+function MemoTextarea({value,onChange,placeholder,minHeight=600}){
+  const histRef=useRef([value||'']);
+  const idxRef=useRef(0);
+  const timerRef=useRef(null);
+  const taRef=useRef(null);
+  // push snapshot (debounced 400ms)
+  const push=useCallback((v)=>{
+    clearTimeout(timerRef.current);
+    timerRef.current=setTimeout(()=>{
+      const h=histRef.current;
+      if(h[idxRef.current]===v) return;
+      histRef.current=h.slice(0,idxRef.current+1).concat(v);
+      idxRef.current=histRef.current.length-1;
+    },400);
+  },[]);
+  const handleChange=useCallback((e)=>{
+    const v=e.target.value;
+    onChange(v);
+    push(v);
+  },[onChange,push]);
+  const undo=useCallback(()=>{
+    // flush pending
+    clearTimeout(timerRef.current);
+    const h=histRef.current;
+    if(h[idxRef.current]!==value){
+      histRef.current=h.slice(0,idxRef.current+1).concat(value);
+      idxRef.current=histRef.current.length-1;
+    }
+    if(idxRef.current>0){
+      idxRef.current--;
+      onChange(histRef.current[idxRef.current]);
+    }
+  },[value,onChange]);
+  const redo=useCallback(()=>{
+    clearTimeout(timerRef.current);
+    if(idxRef.current<histRef.current.length-1){
+      idxRef.current++;
+      onChange(histRef.current[idxRef.current]);
+    }
+  },[onChange]);
+  const clearAll=useCallback(()=>{
+    if(!value) return;
+    // push current before clearing
+    const h=histRef.current;
+    if(h[idxRef.current]!==value){
+      histRef.current=h.slice(0,idxRef.current+1).concat(value);
+      idxRef.current=histRef.current.length-1;
+    }
+    histRef.current=histRef.current.slice(0,idxRef.current+1).concat('');
+    idxRef.current=histRef.current.length-1;
+    onChange('');
+  },[value,onChange]);
+  const canUndo=histRef.current.length>1&&idxRef.current>0||value!==histRef.current[idxRef.current];
+  const canRedo=idxRef.current<histRef.current.length-1;
+  const btnBase={padding:'6px 10px',borderRadius:8,border:'1px solid var(--border)',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:3};
+  return React.createElement('div',{style:{position:'relative'}},
+    React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}},
+      React.createElement('div',{style:{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase'}},'📝 텍스트 메모'),
+      React.createElement('div',{style:{display:'flex',gap:4}},
+        React.createElement('button',{onClick:undo,disabled:!canUndo,style:{...btnBase,background:canUndo?'#EEF2FF':'var(--card)',color:canUndo?'#4F46E5':'#bbb',opacity:canUndo?1:.5}},'↩ 되돌리기'),
+        React.createElement('button',{onClick:redo,disabled:!canRedo,style:{...btnBase,background:canRedo?'#EEF2FF':'var(--card)',color:canRedo?'#4F46E5':'#bbb',opacity:canRedo?1:.5}},'↪ 다시'),
+        React.createElement('button',{onClick:clearAll,disabled:!value,style:{...btnBase,background:value?'#FEF2F2':'var(--card)',color:value?'#DC2626':'#bbb',opacity:value?1:.5}},'🗑 전체삭제'),
+      ),
+    ),
+    React.createElement('textarea',{ref:taRef,className:'note-input',value:value,onChange:handleChange,placeholder:placeholder||"✏️ 펜슬로 직접 필기하세요 (Scribble)\n상담 내용, 특이사항, 요청사항 등",style:{fontSize:15,padding:'14px',minHeight:minHeight,resize:'vertical',lineHeight:1.6,fontFamily:'inherit',width:'100%',boxSizing:'border-box'}}),
+  );
+}
+
 /* ══ DrawCanvas Component (Notability-style) ══ */
 const DRAW_COLORS=['#111827','#DC2626','#2563EB','#059669','#D97706','#7C3AED'];
 const HIGHLIGHT_COLORS=['rgba(255,235,59,.35)','rgba(76,175,80,.30)','rgba(33,150,243,.30)','rgba(244,67,54,.30)','rgba(255,152,0,.30)'];
@@ -2378,10 +2447,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
                   {/* ── 텍스트 메모 (펜슬 Scribble 입력 가능) ── */}
                   <div style={{marginBottom:10}}>
-                    <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>📝 텍스트 메모</div>
-                    <textarea className="note-input" value={ntMemo} onChange={e=>setNtMemo(e.target.value)}
-                      placeholder="✏️ 펜슬로 직접 필기하세요 (Scribble)&#10;상담 내용, 특이사항, 요청사항 등"
-                      style={{fontSize:15,padding:'14px',minHeight:600,resize:'vertical',lineHeight:1.6,fontFamily:'inherit',width:'100%',boxSizing:'border-box'}}/>
+                    <MemoTextarea value={ntMemo} onChange={setNtMemo}/>
                   </div>
 
                 </div>{/* 본문 끝 */}
@@ -3544,10 +3610,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
 
               {/* ── 텍스트 메모 ── */}
               <div style={{marginBottom:10}}>
-                <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>📝 텍스트 메모</div>
-                <textarea className="note-input" value={memo} onChange={e=>setMemo(e.target.value)}
-                  placeholder="✏️ 펜슬로 직접 필기하세요 (Scribble)&#10;상담 내용, 특이사항, 요청사항 등"
-                  style={{fontSize:15,padding:'14px',minHeight:600,resize:'vertical',lineHeight:1.6,fontFamily:'inherit',width:'100%',boxSizing:'border-box'}}/>
+                <MemoTextarea value={memo} onChange={setMemo}/>
               </div>
 
             </div>{/* 본문 끝 */}

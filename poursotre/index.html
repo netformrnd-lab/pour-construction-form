@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>POUR스토어 배너 3 — 3,250×2,000mm</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -19,6 +20,15 @@
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:24px;font-family:'Noto Sans KR','Malgun Gothic',sans-serif;-webkit-font-smoothing:antialiased;}
+.W-scaler{transform-origin:top center;}
+@media(max-width:1673px){
+  body{padding:0;}
+  .W-scaler{
+    transform:scale(calc((100vw) / 1625));
+    width:1625px;
+    margin-bottom:calc((1000px * ((100vw) / 1625)) - 1000px);
+  }
+}
 
 /* ══ Canvas ══ */
 .W{width:1625px;height:1000px;background:#fff;display:grid;grid-template-columns:800px 825px;overflow:hidden;position:relative;}
@@ -241,6 +251,7 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
 </style>
 </head>
 <body>
+<div class="W-scaler">
 <div class="W">
 
   <!-- ══ LEFT ══ -->
@@ -469,6 +480,7 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
   </div>
 
   <div class="bottom-bar"></div>
+</div>
 </div>
 </body>
 </html>

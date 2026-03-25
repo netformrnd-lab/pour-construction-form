@@ -1392,12 +1392,50 @@ const DEFAULT_TEMPLATES={
   staffNotify:'[POUR상담] {{datetime}}\n{{name}} {{position}} / {{company}}\n건물: {{buildingType}} / {{phone}}\n하자: {{problem}} / 담당: {{staff}}'
 };
 function loadSolapiConfig(){try{return JSON.parse(localStorage.getItem('solapiConfig')||'{}');}catch{return{};}}
-function saveSolapiConfig(c){localStorage.setItem('solapiConfig',JSON.stringify(c));}
+function saveSolapiConfig(c){
+  localStorage.setItem('solapiConfig',JSON.stringify(c));
+  /* Firestore에도 동기화 → 모든 태블릿 공유 */
+  try{db.collection('app-config').doc('solapi').set(c,{merge:true}).catch(()=>{});}catch(e){}
+}
+/* 앱 시작 시 Firestore에서 솔라피 설정 불러오기 (한 번 설정하면 모든 기기 자동 적용) */
+function syncSolapiConfigFromFirestore(){
+  try{
+    db.collection('app-config').doc('solapi').get().then(doc=>{
+      if(doc.exists){
+        const remote=doc.data();
+        const local=loadSolapiConfig();
+        /* remote에 workerUrl이 있고 local에 없으면 덮어쓰기 */
+        if(remote.workerUrl&&(!local.workerUrl||!local.apiKey)){
+          localStorage.setItem('solapiConfig',JSON.stringify({...local,...remote}));
+        }
+      }
+    }).catch(()=>{});
+  }catch(e){}
+}
+syncSolapiConfigFromFirestore();
 function loadSmsTemplates(){
   try{const t=JSON.parse(localStorage.getItem('smsTemplates')||'{}');return{customerThank:t.customerThank||DEFAULT_TEMPLATES.customerThank,staffNotify:t.staffNotify||DEFAULT_TEMPLATES.staffNotify};}
   catch{return{...DEFAULT_TEMPLATES};}
 }
-function saveSmsTemplates(t){localStorage.setItem('smsTemplates',JSON.stringify(t));}
+function saveSmsTemplates(t){
+  localStorage.setItem('smsTemplates',JSON.stringify(t));
+  try{db.collection('app-config').doc('smsTemplates').set(t,{merge:true}).catch(()=>{});}catch(e){}
+}
+/* 앱 시작 시 SMS 템플릿도 Firestore에서 동기화 */
+function syncSmsTemplatesFromFirestore(){
+  try{
+    db.collection('app-config').doc('smsTemplates').get().then(doc=>{
+      if(doc.exists){
+        const remote=doc.data();
+        const local=loadSmsTemplates();
+        if(remote.customerThank&&local.customerThank===DEFAULT_TEMPLATES.customerThank){
+          localStorage.setItem('smsTemplates',JSON.stringify({...local,...remote}));
+        }
+      }
+    }).catch(()=>{});
+  }catch(e){}
+}
+syncSmsTemplatesFromFirestore();
 function fillTemplate(tpl,data){return tpl.replace(/\{\{(\w+)\}\}/g,(_,k)=>data[k]||'');}
 
 async function sendSMS(to,text){

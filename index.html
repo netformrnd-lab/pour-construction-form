@@ -596,8 +596,8 @@ window.__penEverTimer=null;
 const markPenActive=()=>{window.__penActive=true;window.__penEverDetected=true;clearTimeout(window.__penTimer);window.__penTimer=setTimeout(()=>{window.__penActive=false;},2000);clearTimeout(window.__penEverTimer);window.__penEverTimer=setTimeout(()=>{window.__penEverDetected=false;},10000);};
 const isPenActive=()=>window.__penActive;
 
-/* ══ MemoTextarea – 텍스트 메모 (펜슬 전용: 키보드 차단 + 편의 도구) ══ */
-function MemoTextarea({value,onChange,placeholder,minHeight=600}){
+/* ══ MemoTextarea – 펜슬 메모 (포토샵 스타일 좌측 도구바) ══ */
+function MemoTextarea({value,onChange,placeholder,minHeight=600,onDoodleToggle,doodleOpen}){
   const histRef=useRef([value||'']);
   const idxRef=useRef(0);
   const timerRef=useRef(null);
@@ -616,10 +616,11 @@ function MemoTextarea({value,onChange,placeholder,minHeight=600}){
   },[onChange,push]);
   const insertAt=useCallback((text)=>{
     const ta=taRef.current;
-    const pos=ta?ta.selectionStart:value.length;
-    const nv=value.slice(0,pos)+text+value.slice(pos);
+    const s=ta?ta.selectionStart:value.length;
+    const e2=ta?ta.selectionEnd:value.length;
+    const nv=value.slice(0,s)+text+value.slice(e2);
     push(value);onChange(nv);
-    setTimeout(()=>{if(ta){ta.selectionStart=ta.selectionEnd=pos+text.length;ta.focus();}},0);
+    setTimeout(()=>{if(ta){ta.selectionStart=ta.selectionEnd=s+text.length;ta.focus();}},0);
   },[value,onChange,push]);
   const undo=useCallback(()=>{
     clearTimeout(timerRef.current);
@@ -639,28 +640,46 @@ function MemoTextarea({value,onChange,placeholder,minHeight=600}){
   },[value,onChange]);
   const backspace=useCallback(()=>{
     if(!value)return;
-    const ta=taRef.current;const pos=ta?ta.selectionStart:value.length;
-    if(pos===0)return;
-    const nv=value.slice(0,pos-1)+value.slice(pos);push(value);onChange(nv);
-    setTimeout(()=>{if(ta){ta.selectionStart=ta.selectionEnd=pos-1;}},0);
+    const ta=taRef.current;
+    const s=ta?ta.selectionStart:value.length;
+    const e2=ta?ta.selectionEnd:value.length;
+    let nv,newPos;
+    if(s!==e2){/* 선택 영역 삭제 */nv=value.slice(0,s)+value.slice(e2);newPos=s;}
+    else{if(s===0)return;nv=value.slice(0,s-1)+value.slice(s);newPos=s-1;}
+    push(value);onChange(nv);
+    setTimeout(()=>{if(ta){ta.selectionStart=ta.selectionEnd=newPos;ta.focus();}},0);
   },[value,onChange,push]);
   const canUndo=histRef.current.length>1&&idxRef.current>0||value!==histRef.current[idxRef.current];
   const canRedo=idxRef.current<histRef.current.length-1;
-  const tb={padding:'8px 0',borderRadius:10,border:'1.5px solid var(--border)',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:3,background:'var(--card)',color:'var(--text)'};
-  return React.createElement('div',{style:{position:'relative'}},
-    /* 펜슬 편의 도구 바 — 키보드 대체 */
-    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:5,marginBottom:8}},
-      React.createElement('button',{onClick:()=>insertAt('\n'),style:{...tb,background:'#EEF2FF',color:'#4F46E5'}},'↵ 줄바꿈'),
-      React.createElement('button',{onClick:()=>insertAt(' '),style:{...tb,background:'#F0FDF4',color:'#059669'}},'␣ 공백'),
-      React.createElement('button',{onClick:backspace,disabled:!value,style:{...tb,background:value?'#FFF7ED':'var(--card)',color:value?'#EA580C':'#bbb',opacity:value?1:.5}},'← 지우기'),
-      React.createElement('button',{onClick:undo,disabled:!canUndo,style:{...tb,background:canUndo?'#EEF2FF':'var(--card)',color:canUndo?'#4F46E5':'#bbb',opacity:canUndo?1:.5}},'↩ 되돌리기'),
+  /* 도구바 버튼 스타일 */
+  const tBtn=(icon,label,onClick,color,bg,disabled)=>
+    React.createElement('button',{key:label,onClick,disabled,title:label,
+      style:{width:44,height:44,borderRadius:10,border:'none',background:disabled?'rgba(0,0,0,.03)':bg,color:disabled?'#ccc':color,
+        fontSize:16,fontWeight:700,cursor:disabled?'default':'pointer',fontFamily:'inherit',
+        display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:1,
+        opacity:disabled?.4:1,transition:'all .1s',flexShrink:0}},
+      React.createElement('span',{style:{fontSize:17,lineHeight:1}},icon),
+      React.createElement('span',{style:{fontSize:7,fontWeight:800,letterSpacing:'.02em'}},label)
+    );
+  return React.createElement('div',{style:{display:'flex',gap:0,position:'relative'}},
+    /* 좌측 도구바 — 포토샵 스타일 세로 바 */
+    React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:4,padding:'6px 4px',background:'#f8f9fa',borderRadius:'12px 0 0 12px',border:'1.5px solid var(--border)',borderRight:'none',flexShrink:0}},
+      tBtn('↵','줄바꿈',()=>insertAt('\n'),'#4F46E5','#EEF2FF'),
+      tBtn('␣','공백',()=>insertAt(' '),'#059669','#F0FDF4'),
+      tBtn('←','지우기',backspace,'#EA580C','#FFF7ED',!value),
+      React.createElement('div',{key:'sep1',style:{height:1,background:'var(--border)',margin:'2px 4px'}}),
+      tBtn('↩','되돌리기',undo,'#4F46E5','#EEF2FF',!canUndo),
+      tBtn('↪','다시',redo,'#4F46E5','#EEF2FF',!canRedo),
+      tBtn('⇥','탭',()=>insertAt('  '),'#6B7280','#F3F4F6'),
+      React.createElement('div',{key:'sep2',style:{height:1,background:'var(--border)',margin:'2px 4px'}}),
+      tBtn('🗑','전체삭제',clearAll,'#DC2626','#FEF2F2',!value),
+      onDoodleToggle&&tBtn('🎨',doodleOpen?'닫기':'낙서장',onDoodleToggle,'#7C3AED',doodleOpen?'rgba(124,58,237,.15)':'#F5F3FF'),
     ),
-    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:5,marginBottom:8}},
-      React.createElement('button',{onClick:redo,disabled:!canRedo,style:{...tb,background:canRedo?'#EEF2FF':'var(--card)',color:canRedo?'#4F46E5':'#bbb',opacity:canRedo?1:.5}},'↪ 다시'),
-      React.createElement('button',{onClick:()=>insertAt('  '),style:{...tb}},'⇥ 탭'),
-      React.createElement('button',{onClick:clearAll,disabled:!value,style:{...tb,background:value?'#FEF2F2':'var(--card)',color:value?'#DC2626':'#bbb',opacity:value?1:.5}},'🗑 전체삭제'),
-    ),
-    React.createElement('textarea',{ref:taRef,className:'note-input',value:value,onChange:handleChange,placeholder:placeholder||"✏️ 펜슬로 직접 필기하세요\n상담 내용, 특이사항, 요청사항 등",style:{fontSize:16,padding:'16px',minHeight:minHeight,resize:'vertical',lineHeight:1.7,fontFamily:'inherit',width:'100%',boxSizing:'border-box'}}),
+    /* textarea */
+    React.createElement('textarea',{ref:taRef,className:'note-input',value:value,onChange:handleChange,
+      placeholder:placeholder||"✏️ 펜슬로 직접 필기하세요\n상담 내용, 특이사항, 요청사항 등",
+      style:{fontSize:16,padding:'16px',minHeight:minHeight,resize:'vertical',lineHeight:1.7,fontFamily:'inherit',
+        width:'100%',boxSizing:'border-box',borderRadius:'0 12px 12px 0',flex:1}}),
   );
 }
 
@@ -2565,27 +2584,30 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 {/* ── 고객 정보 (접기/펼치기) ── */}
                 <div style={{flexShrink:0,borderBottom:'1.5px solid var(--border)'}}>
                   {/* 헤더 바 */}
-                  <div style={{display:'flex',alignItems:'center',padding:'10px 16px',cursor:'pointer',background:ntStep==='info'?'#fff':'var(--bg)',transition:'background .15s'}} onClick={()=>setNtStep(ntStep==='info'?'memo':'info')}>
-                    <div style={{flex:1,display:'flex',alignItems:'center',gap:5,flexWrap:'wrap',minWidth:0}}>
-                      <span style={{fontSize:12,fontWeight:800,color:'var(--accent)'}}>👤</span>
+                  <div style={{display:'flex',alignItems:'center',padding:ntStep==='memo'?'12px 16px':'10px 16px',cursor:'pointer',background:ntStep==='info'?'#fff':'var(--bg)',transition:'all .15s',gap:10}} onClick={()=>setNtStep(ntStep==='info'?'memo':'info')}>
+                    <div style={{flex:1,minWidth:0}}>
                       {ntStep==='memo'&&ntName?(
-                        <>
-                          {(()=>{const bt=[{id:'apt',icon:'🏢',l:'아파트'},{id:'gov',icon:'🏛',l:'관공서'},{id:'etc',icon:'🏠',l:'일반건물'}].find(b=>b.id===effectiveBuildingId);return bt?<span style={{fontSize:10,fontWeight:700,color:'var(--navy)',background:'rgba(11,29,58,.08)',padding:'2px 8px',borderRadius:5}}>{bt.icon}{bt.l}</span>:null;})()}
-                          {ntCompany&&<span style={{fontSize:12,fontWeight:700,color:'var(--text)',background:'var(--card)',padding:'2px 8px',borderRadius:5,border:'1px solid var(--border)'}}>{ntCompany}</span>}
-                          <span style={{fontSize:12,fontWeight:800,color:'var(--text)'}}>{ntName}</span>
-                          {ntPhone&&<span style={{fontSize:11,fontWeight:600,color:'var(--blue)'}}>{ntPhone}</span>}
-                          {ntPosition&&<span style={{fontSize:10,color:'var(--text-sm)',background:'var(--bg)',padding:'1px 6px',borderRadius:4}}>{ntPosition}</span>}
-                        </>
+                        <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                          <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                            <span style={{fontSize:16,fontWeight:900,color:'var(--text)'}}>{ntName}</span>
+                            {ntPosition&&<span style={{fontSize:11,fontWeight:600,color:'var(--text-sm)',background:'var(--card)',padding:'2px 8px',borderRadius:5,border:'1px solid var(--border)'}}>{ntPosition}</span>}
+                          </div>
+                          <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                            {(()=>{const bt=[{id:'apt',icon:'🏢',l:'아파트'},{id:'gov',icon:'🏛',l:'관공서'},{id:'etc',icon:'🏠',l:'일반건물'}].find(b=>b.id===effectiveBuildingId);return bt?<span style={{fontSize:11,fontWeight:700,color:'var(--navy)',background:'rgba(11,29,58,.06)',padding:'2px 8px',borderRadius:5}}>{bt.icon} {bt.l}</span>:null;})()}
+                            {ntCompany&&<span style={{fontSize:12,fontWeight:600,color:'var(--text-md)'}}>{ntCompany}</span>}
+                            {ntPhone&&<span style={{fontSize:13,fontWeight:700,color:'var(--blue)'}}>{ntPhone}</span>}
+                          </div>
+                        </div>
                       ):ntStep==='memo'?(
-                        <span style={{fontSize:12,color:'var(--text-sm)',fontStyle:'italic'}}>고객 정보 미입력</span>
+                        <span style={{fontSize:13,color:'var(--text-sm)',fontStyle:'italic'}}>👤 고객 정보 미입력</span>
                       ):(
-                        <span style={{fontSize:12,fontWeight:700,color:'var(--text)'}}>고객 정보 입력</span>
+                        <span style={{fontSize:13,fontWeight:700,color:'var(--text)'}}>👤 고객 정보 입력</span>
                       )}
                     </div>
                     {ntStep==='memo'?(
-                      <div style={{display:'flex',alignItems:'center',gap:4,padding:'4px 10px',borderRadius:8,background:'rgba(37,99,235,.08)',border:'1px solid rgba(37,99,235,.2)',flexShrink:0}}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                        <span style={{fontSize:10,fontWeight:700,color:'#2563EB'}}>수정</span>
+                      <div style={{display:'flex',alignItems:'center',gap:5,padding:'8px 14px',borderRadius:10,background:'#2563EB',flexShrink:0,boxShadow:'0 2px 6px rgba(37,99,235,.25)'}}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        <span style={{fontSize:12,fontWeight:700,color:'#fff'}}>수정</span>
                       </div>
                     ):(
                       <span style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',padding:'3px 8px',borderRadius:6,background:'var(--bg)'}}>접기 ▲</span>
@@ -2694,19 +2716,13 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     onPointerUp={e=>{setTimeout(()=>e.currentTarget?.classList?.remove('pen-active'),800);}}
                     onPointerCancel={e=>{setTimeout(()=>e.currentTarget?.classList?.remove('pen-active'),800);}}>
 
-                    {/* 낙서장 칩 버튼 */}
-                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
-                      <button onClick={()=>setNtDoodleOpen(!ntDoodleOpen)}
-                        style={{padding:'6px 14px',borderRadius:20,border:`1.5px solid ${ntDoodleOpen?'#7C3AED':'var(--border)'}`,background:ntDoodleOpen?'rgba(124,58,237,.08)':'#fff',fontSize:11,fontWeight:700,color:ntDoodleOpen?'#7C3AED':'var(--text-sm)',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:5,transition:'all .15s'}}>
-                        <span style={{fontSize:14}}>🎨</span> 낙서장 {ntDoodleOpen?'닫기':'열기'}
-                      </button>
-                    </div>
                     {ntDoodleOpen&&(
                       <div style={{marginBottom:14,borderRadius:12,border:'1.5px solid rgba(124,58,237,.2)',overflow:'hidden',background:'#FAFAFF'}}>
                         <DrawCanvas onDataUrl={setNtMemoImgs}/>
                       </div>
                     )}
-                    <MemoTextarea value={ntMemo} onChange={setNtMemo}/>
+                    <MemoTextarea value={ntMemo} onChange={setNtMemo}
+                      onDoodleToggle={()=>setNtDoodleOpen(v=>!v)} doodleOpen={ntDoodleOpen}/>
 
                   </div>
                   </div>

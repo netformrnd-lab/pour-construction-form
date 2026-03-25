@@ -2348,9 +2348,9 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                             </div>
                             {/* 확대 버튼 */}
                             <div onClick={(e)=>{e.stopPropagation();setInlinePlayIdx(null);setMediaViewer(i);}}
-                              style={{position:'absolute',top:6,right:6,padding:'4px 8px',borderRadius:7,background:'rgba(0,0,0,.6)',display:'flex',alignItems:'center',gap:3,cursor:'pointer',zIndex:3,backdropFilter:'blur(4px)'}}>
-                              <span style={{fontSize:11,color:'#fff',lineHeight:1}}>+</span>
-                              <span style={{fontSize:10,color:'#fff',fontWeight:700}}>확대</span>
+                              style={{position:'absolute',top:6,right:6,padding:'12px 20px',borderRadius:14,background:'rgba(0,0,0,.65)',display:'flex',alignItems:'center',gap:6,cursor:'pointer',zIndex:3,backdropFilter:'blur(6px)'}}>
+                              <span style={{fontSize:26,color:'#fff',lineHeight:1}}>+</span>
+                              <span style={{fontSize:22,color:'#fff',fontWeight:800}}>확대</span>
                             </div>
                             {/* 하단 그라데이션 — 어두운 fade */}
                             <div style={{position:'absolute',bottom:0,left:0,right:0,height:'30%',background:'linear-gradient(transparent,rgba(0,0,0,.4))',pointerEvents:'none',borderRadius:'0 0 12px 12px'}}/>

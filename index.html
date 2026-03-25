@@ -245,7 +245,7 @@ body.media-viewer-open .fab-wrap{display:none !important;}
 .qr-modal-url{font-size:11px;color:rgba(255,255,255,.35);text-align:center;max-width:300px;word-break:break-all;margin-top:-8px;}
 
 /* ── MODAL SHEET ── */
-.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:stretch;justify-content:flex-end;backdrop-filter:blur(4px);overscroll-behavior:contain;touch-action:none;}
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:stretch;justify-content:flex-end;backdrop-filter:blur(4px);overscroll-behavior:contain;touch-action:auto;}
 .sheet{background:#fff;border-radius:22px 22px 0 0;padding:20px 20px 44px;width:100%;max-height:88vh;overflow-y:auto;}
 .sheet::-webkit-scrollbar{display:none;}
 .sheet-handle{width:34px;height:4px;border-radius:2px;background:var(--border);margin:0 auto 18px;}
@@ -419,6 +419,7 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
 .note-sheet-scroll.pen-active{overflow-y:hidden!important;touch-action:pan-y!important;pointer-events:auto;}
 .note-sheet-scroll.pen-active .draw-canvas-wrap{touch-action:none!important;}
 .note-sheet-scroll input,.note-sheet-scroll textarea,.note-sheet-scroll select,.note-sheet-scroll button{touch-action:auto!important;-webkit-user-select:text!important;user-select:text!important;}
+.note-sheet input,.note-sheet textarea,.note-sheet select{touch-action:auto!important;-webkit-user-select:text!important;user-select:text!important;}
 .note-sheet-scroll::-webkit-scrollbar{display:none;}
 .media-scroll::-webkit-scrollbar{display:none;}
 .note-memo{width:100%;padding:14px 16px;border-radius:9px;border:1.5px solid var(--border);font-size:14px;color:var(--text);background:var(--bg);outline:none;font-family:inherit;resize:none;line-height:1.8;transition:border-color .14s;min-height:300px;}

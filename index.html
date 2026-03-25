@@ -2123,6 +2123,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
 
   return(
+    <>
     <div className={`screen ${visible?'active':''}`} style={{background:'var(--bg)'}}>
       {qr&&<QRModal url={qr.url} title={qr.title} onClose={()=>setQr(null)}/>}
       {zoomPhoto&&<PhotoZoomModal photos={zoomPhoto.photos} index={zoomPhoto.index} onClose={()=>setZoomPhoto(null)}/>}
@@ -2273,41 +2274,45 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
         <div className="sol-name">{problem.label}</div>
         {problem.sub&&<div style={{fontSize:12,fontWeight:500,color:"rgba(255,255,255,.55)",marginTop:2}}>{problem.sub}</div>}
-        {/* 제안서 · 가이드북 가로형 카드 */}
-        <div style={{display:'flex',flexDirection:'column',gap:8,marginTop:10}}>
+        {/* 제안서 · 시공가이드 — 가로 2열 카드 */}
+        <div style={{display:'flex',gap:8,marginTop:10}}>
           {/* ── 제안서 ── */}
-          <div style={{borderRadius:10,border:'1px solid rgba(255,255,255,.15)',background:'rgba(255,255,255,.07)',display:'flex',alignItems:'center',overflow:'hidden'}}>
-            <div style={{flex:1,display:'flex',alignItems:'center',gap:10,padding:'12px 14px'}}>
-              <span style={{fontSize:11,fontWeight:800,color:'#93bbfc',letterSpacing:'.04em'}}>제안서</span>
-              <span style={{fontSize:26}}>📄</span>
-            </div>
+          <div style={{flex:1,borderRadius:10,border:'1px solid rgba(255,255,255,.15)',background:'rgba(255,255,255,.07)',display:'flex',flexDirection:'column',overflow:'hidden'}}>
             {problem.specUrl?(
               <button onClick={()=>setQr({url:problem.specUrl,title:'📄 제안서'})}
-                style={{flexShrink:0,display:'flex',alignItems:'center',gap:6,padding:'10px 14px',background:'rgba(59,130,246,.15)',border:'none',borderLeft:'1px solid rgba(255,255,255,.1)',cursor:'pointer',fontFamily:'inherit',height:'100%'}}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(147,187,252,.9)" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="4" height="4" rx="1"/><line x1="21" y1="14" x2="21" y2="14.01"/><line x1="21" y1="21" x2="21" y2="21.01"/><line x1="14" y1="21" x2="14" y2="21.01"/></svg>
-                <span style={{fontSize:11,fontWeight:700,color:'#93bbfc'}}>QR코드</span>
+                style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,padding:'14px 10px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
+                <span style={{fontSize:28}}>📄</span>
+                <span style={{fontSize:11,fontWeight:800,color:'#93bbfc',letterSpacing:'.04em'}}>제안서</span>
+                <div style={{display:'flex',alignItems:'center',gap:4,marginTop:2}}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(147,187,252,.7)" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="4" height="4" rx="1"/></svg>
+                  <span style={{fontSize:10,fontWeight:600,color:'rgba(147,187,252,.7)'}}>QR코드</span>
+                </div>
               </button>
             ):(
-              <div style={{flexShrink:0,padding:'10px 14px',borderLeft:'1px solid rgba(255,255,255,.06)',opacity:.3,display:'flex',alignItems:'center',gap:6}}>
-                <span style={{fontSize:11,fontWeight:600,color:'rgba(255,255,255,.4)'}}>준비 중</span>
+              <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,padding:'14px 10px',opacity:.35}}>
+                <span style={{fontSize:28}}>📄</span>
+                <span style={{fontSize:11,fontWeight:800,color:'rgba(255,255,255,.5)',letterSpacing:'.04em'}}>제안서</span>
+                <span style={{fontSize:10,fontWeight:600,color:'rgba(255,255,255,.35)'}}>준비 중</span>
               </div>
             )}
           </div>
           {/* ── 시공 가이드 ── */}
-          <div style={{borderRadius:10,border:'1px solid rgba(255,255,255,.15)',background:'rgba(255,255,255,.07)',display:'flex',alignItems:'center',overflow:'hidden'}}>
-            <div style={{flex:1,display:'flex',alignItems:'center',gap:10,padding:'12px 14px'}}>
-              <span style={{fontSize:11,fontWeight:800,color:'#f5c563',letterSpacing:'.04em'}}>시공 가이드</span>
-              <span style={{fontSize:26}}>📖</span>
-            </div>
+          <div style={{flex:1,borderRadius:10,border:'1px solid rgba(255,255,255,.15)',background:'rgba(255,255,255,.07)',display:'flex',flexDirection:'column',overflow:'hidden'}}>
             {guide?(
               <button onClick={()=>setQr({url:guide.url,title:'📖 시공 가이드'})}
-                style={{flexShrink:0,display:'flex',alignItems:'center',gap:6,padding:'10px 14px',background:'rgba(245,158,11,.12)',border:'none',borderLeft:'1px solid rgba(255,255,255,.1)',cursor:'pointer',fontFamily:'inherit',height:'100%'}}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(245,197,99,.9)" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="4" height="4" rx="1"/><line x1="21" y1="14" x2="21" y2="14.01"/><line x1="21" y1="21" x2="21" y2="21.01"/><line x1="14" y1="21" x2="14" y2="21.01"/></svg>
-                <span style={{fontSize:11,fontWeight:700,color:'#f5c563'}}>QR코드</span>
+                style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,padding:'14px 10px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
+                <span style={{fontSize:28}}>📖</span>
+                <span style={{fontSize:11,fontWeight:800,color:'#f5c563',letterSpacing:'.04em'}}>시공 가이드</span>
+                <div style={{display:'flex',alignItems:'center',gap:4,marginTop:2}}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(245,197,99,.7)" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="4" height="4" rx="1"/></svg>
+                  <span style={{fontSize:10,fontWeight:600,color:'rgba(245,197,99,.7)'}}>QR코드</span>
+                </div>
               </button>
             ):(
-              <div style={{flexShrink:0,padding:'10px 14px',borderLeft:'1px solid rgba(255,255,255,.06)',opacity:.3,display:'flex',alignItems:'center',gap:6}}>
-                <span style={{fontSize:11,fontWeight:600,color:'rgba(255,255,255,.4)'}}>준비 중</span>
+              <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,padding:'14px 10px',opacity:.35}}>
+                <span style={{fontSize:28}}>📖</span>
+                <span style={{fontSize:11,fontWeight:800,color:'rgba(255,255,255,.5)',letterSpacing:'.04em'}}>시공 가이드</span>
+                <span style={{fontSize:10,fontWeight:600,color:'rgba(255,255,255,.35)'}}>준비 중</span>
               </div>
             )}
           </div>
@@ -2452,10 +2457,11 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
         </>
       </div>
 
-      {/* ── 통합 영업 노트 시트 ── */}
-      {showNote&&(
-        <div className="sheet-bg" onClick={()=>setShowNote(false)}>
-          <div className="note-sheet" onClick={e=>e.stopPropagation()}>
+    </div>
+    {/* ── 통합 영업 노트 시트 (screen div 밖: 공법선택 등 어디서든 접근 가능) ── */}
+    {showNote&&(
+      <div className="sheet-bg" onClick={()=>setShowNote(false)}>
+        <div className="note-sheet" onClick={e=>e.stopPropagation()}>
 
             {ntDone?(
               <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px 20px 40px'}}>
@@ -2628,8 +2634,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
         </div>
       )}
 
-
-    </div>
+    </>
   );
 }
 

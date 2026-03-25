@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
 <title>넷폼알앤디 · 박람회 상담</title>
 
 <!-- PWA: 홈 화면 추가 시 앱처럼 전체화면 실행 -->
@@ -80,6 +80,7 @@ input,textarea{font-family:inherit;}
 .hdr-r{margin-left:auto;display:flex;align-items:center;gap:6px;}
 /* ── 플로팅 액션 버튼 ── */
 .fab-wrap{position:fixed;right:24px;bottom:32px;display:flex;flex-direction:column;gap:12px;z-index:100;}
+body.media-viewer-open .fab-wrap{display:none !important;}
 .fab{width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;transition:transform .13s,box-shadow .13s;font-family:inherit;}
 .fab:active{transform:scale(.91);}
 .fab-new{background:#2563EB;color:#fff;box-shadow:0 4px 18px rgba(37,99,235,.5);}
@@ -245,7 +246,7 @@ input,textarea{font-family:inherit;}
 .qr-modal-url{font-size:11px;color:rgba(255,255,255,.35);text-align:center;max-width:300px;word-break:break-all;margin-top:-8px;}
 
 /* ── MODAL SHEET ── */
-.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:stretch;justify-content:flex-end;backdrop-filter:blur(4px);overscroll-behavior:contain;touch-action:none;}
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:stretch;justify-content:flex-end;backdrop-filter:blur(4px);overscroll-behavior:contain;touch-action:auto;}
 .sheet{background:#fff;border-radius:22px 22px 0 0;padding:20px 20px 44px;width:100%;max-height:88vh;overflow-y:auto;}
 .sheet::-webkit-scrollbar{display:none;}
 .sheet-handle{width:34px;height:4px;border-radius:2px;background:var(--border);margin:0 auto 18px;}
@@ -416,7 +417,10 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
 .note-sheet{background:#fff;width:min(860px,96vw);height:100%;display:flex;flex-direction:column;overflow:hidden;box-shadow:-8px 0 40px rgba(0,0,0,.18);}
 .note-sheet::-webkit-scrollbar{display:none;}
 .note-sheet-scroll{flex:1;overflow-y:auto;padding:0 16px 16px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;}
-.note-sheet-scroll.pen-active{overflow-y:hidden!important;touch-action:none!important;pointer-events:auto;}
+.note-sheet-scroll.pen-active{overflow-y:hidden!important;touch-action:pan-y!important;pointer-events:auto;}
+.note-sheet-scroll.pen-active .draw-canvas-wrap{touch-action:none!important;}
+.note-sheet-scroll input,.note-sheet-scroll textarea,.note-sheet-scroll select,.note-sheet-scroll button{touch-action:auto!important;-webkit-user-select:text!important;user-select:text!important;}
+.note-sheet input,.note-sheet textarea,.note-sheet select{touch-action:auto!important;-webkit-user-select:text!important;user-select:text!important;}
 .note-sheet-scroll::-webkit-scrollbar{display:none;}
 .media-scroll::-webkit-scrollbar{display:none;}
 .note-memo{width:100%;padding:14px 16px;border-radius:9px;border:1.5px solid var(--border);font-size:14px;color:var(--text);background:var(--bg);outline:none;font-family:inherit;resize:none;line-height:1.8;transition:border-color .14s;min-height:300px;}
@@ -428,7 +432,7 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
 .note-ctx-tag{font-size:11px;font-weight:700;padding:3px 9px;border-radius:5px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.8);}
 .note-ctx-method{font-size:12px;font-weight:700;color:var(--gold);margin-top:4px;}
 .note-row{display:flex;gap:8px;margin-bottom:10px;}
-.note-input{width:100%;padding:14px 12px;border-radius:9px;border:1.5px solid var(--border);font-size:13px;color:var(--text);background:var(--bg);outline:none;font-family:inherit;transition:all .14s;box-sizing:border-box;}
+.note-input{width:100%;padding:14px 12px;border-radius:9px;border:1.5px solid var(--border);font-size:13px;color:var(--text);background:var(--bg);outline:none;font-family:inherit;transition:all .14s;box-sizing:border-box;min-height:48px;}
 .note-input:focus{border-color:var(--blue);background:#fff;}
 .note-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;}
 .note-chip{padding:5px 11px;border-radius:100px;border:1.5px solid var(--border);background:#fff;font-size:12px;font-weight:700;color:var(--text-md);cursor:pointer;font-family:inherit;transition:all .12s;}
@@ -518,6 +522,65 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
 .note-head-save{padding:7px 18px;border-radius:10px;border:none;background:var(--purple);color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;white-space:nowrap;transition:opacity .12s;}
 .note-head-save:disabled{opacity:.5;}
 .note-head-save:active{opacity:.8;}
+
+/* ══ 삼성 태블릿 · 아이패드 최적화 (768px+) ══ */
+@media (min-width:768px){
+  :root{--r:14px;--r-sm:10px;--r-lg:22px;--shadow:0 2px 10px rgba(0,0,0,.08),0 1px 3px rgba(0,0,0,.05);--shadow-lg:0 12px 40px rgba(0,0,0,.14);}
+  .hdr{height:72px;padding:0 28px;gap:16px;}
+  .hdr-logo{font-size:18px;}
+  .content{padding:20px 28px 32px;}
+  .building-grid{grid-template-columns:repeat(3,1fr);gap:18px;}
+  .building-card{padding:22px 20px;}
+  .bc-name{font-size:22px;}
+  .problems-grid{grid-template-columns:repeat(4,1fr);gap:14px;}
+  .prob-chips{grid-template-columns:repeat(4,1fr);gap:10px;}
+  .benefit-grid{grid-template-columns:repeat(3,1fr);gap:12px;}
+  .ba-grid{grid-template-columns:repeat(3,1fr);gap:12px;}
+  .cause-slide{flex:0 0 48%;}
+  .tabs{gap:9px;}
+  .tab{padding:9px 20px;font-size:14px;}
+  .sol-header{padding:14px 28px;}
+  .sol-name{font-size:19px;}
+  .page-h{font-size:26px;}
+  .page-sub{font-size:14px;}
+  .breadcrumb{font-size:12px;}
+  .btn-start{padding:24px 80px;font-size:22px;}
+  .home-inner{padding:60px 60px;}
+  .home-logo{font-size:88px;}
+  .home-tagline{font-size:18px;}
+  .home-expo-card{max-width:560px;padding:24px 48px;}
+  .bottom-bar{padding:16px 28px;}
+  .sheet{max-height:85vh;border-radius:24px 24px 0 0;padding:24px 24px 48px;}
+  .note-sheet{width:min(920px,92vw);}
+  .confirm-box{max-width:420px;padding:32px 28px 24px;}
+  .qr-grid-4{grid-template-columns:repeat(4,1fr);gap:10px;}
+  .confirm-btns{gap:10px;}
+  .fab-wrap{right:32px;bottom:40px;gap:14px;}
+  .fab{width:62px;height:62px;}
+  .fab-icon{font-size:22px;}
+  .fab-label{font-size:10px;}
+  .acc-head{padding:15px 18px;}
+  .form-input,.form-select{font-size:15px;padding:12px 14px;}
+  .form-label{font-size:14px;}
+}
+/* ══ 대형 태블릿 (1024px+ : Galaxy Tab S9+, iPad Pro 12.9) ══ */
+@media (min-width:1024px){
+  .building-grid{grid-template-columns:repeat(4,1fr);gap:20px;}
+  .problems-grid{grid-template-columns:repeat(5,1fr);gap:16px;}
+  .prob-chips{grid-template-columns:repeat(5,1fr);}
+  .benefit-grid{grid-template-columns:repeat(4,1fr);}
+  .ba-grid{grid-template-columns:repeat(4,1fr);}
+  .content{padding:24px 36px 36px;}
+  .hdr{padding:0 36px;}
+  .home-inner{padding:80px 80px;}
+  .cause-slide{flex:0 0 36%;}
+}
+/* ══ 삼성 브라우저 터치 최적화 ══ */
+@media (hover:none) and (pointer:coarse){
+  button:active,.tab:active,.building-card:active,.problem-card:active,.fab:active{transform:scale(.96);transition:transform .08s;}
+  .acc-head{min-height:52px;}
+  input,textarea,select{font-size:16px!important;}
+}
 </style>
 </head>
 <body>
@@ -529,8 +592,77 @@ const {useState,useRef,useEffect,useCallback}=React;
 window.__penActive=false;
 window.__penTimer=null;
 window.__penEverDetected=false;
-const markPenActive=()=>{window.__penActive=true;window.__penEverDetected=true;clearTimeout(window.__penTimer);window.__penTimer=setTimeout(()=>{window.__penActive=false;},2000);};
+window.__penEverTimer=null;
+const markPenActive=()=>{window.__penActive=true;window.__penEverDetected=true;clearTimeout(window.__penTimer);window.__penTimer=setTimeout(()=>{window.__penActive=false;},2000);clearTimeout(window.__penEverTimer);window.__penEverTimer=setTimeout(()=>{window.__penEverDetected=false;},10000);};
 const isPenActive=()=>window.__penActive;
+
+/* ══ MemoTextarea – 텍스트 메모 (펜슬 전용: 키보드 차단 + 편의 도구) ══ */
+function MemoTextarea({value,onChange,placeholder,minHeight=600}){
+  const histRef=useRef([value||'']);
+  const idxRef=useRef(0);
+  const timerRef=useRef(null);
+  const taRef=useRef(null);
+  const push=useCallback((v)=>{
+    clearTimeout(timerRef.current);
+    timerRef.current=setTimeout(()=>{
+      const h=histRef.current;
+      if(h[idxRef.current]===v) return;
+      histRef.current=h.slice(0,idxRef.current+1).concat(v);
+      idxRef.current=histRef.current.length-1;
+    },400);
+  },[]);
+  const handleChange=useCallback((e)=>{
+    const v=e.target.value;onChange(v);push(v);
+  },[onChange,push]);
+  const insertAt=useCallback((text)=>{
+    const ta=taRef.current;
+    const pos=ta?ta.selectionStart:value.length;
+    const nv=value.slice(0,pos)+text+value.slice(pos);
+    push(value);onChange(nv);
+    setTimeout(()=>{if(ta){ta.selectionStart=ta.selectionEnd=pos+text.length;ta.focus();}},0);
+  },[value,onChange,push]);
+  const undo=useCallback(()=>{
+    clearTimeout(timerRef.current);
+    const h=histRef.current;
+    if(h[idxRef.current]!==value){histRef.current=h.slice(0,idxRef.current+1).concat(value);idxRef.current=histRef.current.length-1;}
+    if(idxRef.current>0){idxRef.current--;onChange(histRef.current[idxRef.current]);}
+  },[value,onChange]);
+  const redo=useCallback(()=>{
+    clearTimeout(timerRef.current);
+    if(idxRef.current<histRef.current.length-1){idxRef.current++;onChange(histRef.current[idxRef.current]);}
+  },[onChange]);
+  const clearAll=useCallback(()=>{
+    if(!value)return;
+    const h=histRef.current;
+    if(h[idxRef.current]!==value){histRef.current=h.slice(0,idxRef.current+1).concat(value);idxRef.current=histRef.current.length-1;}
+    histRef.current=histRef.current.slice(0,idxRef.current+1).concat('');idxRef.current=histRef.current.length-1;onChange('');
+  },[value,onChange]);
+  const backspace=useCallback(()=>{
+    if(!value)return;
+    const ta=taRef.current;const pos=ta?ta.selectionStart:value.length;
+    if(pos===0)return;
+    const nv=value.slice(0,pos-1)+value.slice(pos);push(value);onChange(nv);
+    setTimeout(()=>{if(ta){ta.selectionStart=ta.selectionEnd=pos-1;}},0);
+  },[value,onChange,push]);
+  const canUndo=histRef.current.length>1&&idxRef.current>0||value!==histRef.current[idxRef.current];
+  const canRedo=idxRef.current<histRef.current.length-1;
+  const tb={padding:'8px 0',borderRadius:10,border:'1.5px solid var(--border)',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:3,background:'var(--card)',color:'var(--text)'};
+  return React.createElement('div',{style:{position:'relative'}},
+    /* 펜슬 편의 도구 바 — 키보드 대체 */
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:5,marginBottom:8}},
+      React.createElement('button',{onClick:()=>insertAt('\n'),style:{...tb,background:'#EEF2FF',color:'#4F46E5'}},'↵ 줄바꿈'),
+      React.createElement('button',{onClick:()=>insertAt(' '),style:{...tb,background:'#F0FDF4',color:'#059669'}},'␣ 공백'),
+      React.createElement('button',{onClick:backspace,disabled:!value,style:{...tb,background:value?'#FFF7ED':'var(--card)',color:value?'#EA580C':'#bbb',opacity:value?1:.5}},'← 지우기'),
+      React.createElement('button',{onClick:undo,disabled:!canUndo,style:{...tb,background:canUndo?'#EEF2FF':'var(--card)',color:canUndo?'#4F46E5':'#bbb',opacity:canUndo?1:.5}},'↩ 되돌리기'),
+    ),
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:5,marginBottom:8}},
+      React.createElement('button',{onClick:redo,disabled:!canRedo,style:{...tb,background:canRedo?'#EEF2FF':'var(--card)',color:canRedo?'#4F46E5':'#bbb',opacity:canRedo?1:.5}},'↪ 다시'),
+      React.createElement('button',{onClick:()=>insertAt('  '),style:{...tb}},'⇥ 탭'),
+      React.createElement('button',{onClick:clearAll,disabled:!value,style:{...tb,background:value?'#FEF2F2':'var(--card)',color:value?'#DC2626':'#bbb',opacity:value?1:.5}},'🗑 전체삭제'),
+    ),
+    React.createElement('textarea',{ref:taRef,className:'note-input',value:value,onChange:handleChange,inputMode:'none',placeholder:placeholder||"✏️ 펜슬로 직접 필기하세요\n상담 내용, 특이사항, 요청사항 등",style:{fontSize:16,padding:'16px',minHeight:minHeight,resize:'vertical',lineHeight:1.7,fontFamily:'inherit',width:'100%',boxSizing:'border-box'}}),
+  );
+}
 
 /* ══ DrawCanvas Component (Notability-style) ══ */
 const DRAW_COLORS=['#111827','#DC2626','#2563EB','#059669','#D97706','#7C3AED'];
@@ -1421,14 +1553,18 @@ function ScrollRail({scrollRef}){
   );
 }
 
-/* ── Photo Zoom Modal (핀치 줌 + 더블탭 줌) ── */
-function PhotoZoomModal({src,alt,onClose}){
+/* ── Photo Zoom Modal (갤러리 모드: 썸네일 네비게이션 + 핀치 줌) ── */
+function PhotoZoomModal({photos,index:initIndex,src,alt,onClose}){
+  /* 단일/복수 모드 호환 */
+  const list=photos||[{src,alt}];
+  const [idx,setIdx]=useState(initIndex||0);
   const [scale,setScale]=useState(1);
   const [pos,setPos]=useState({x:0,y:0});
   const imgRef=useRef();
   const stateRef=useRef({scale:1,x:0,y:0,startDist:0,startScale:1,panning:false,startX:0,startY:0,startPosX:0,startPosY:0,lastTap:0});
 
   const reset=()=>{setScale(1);setPos({x:0,y:0});stateRef.current.scale=1;stateRef.current.x=0;stateRef.current.y=0;};
+  const goTo=(i)=>{if(i<0||i>=list.length)return;reset();setIdx(i);};
 
   const onTouchStart=(e)=>{
     const s=stateRef.current;
@@ -1453,9 +1589,9 @@ function PhotoZoomModal({src,alt,onClose}){
     }
   };
   const onTouchMove=(e)=>{
-    e.preventDefault();
     const s=stateRef.current;
     if(e.touches.length===2){
+      e.preventDefault();
       const dx=e.touches[0].clientX-e.touches[1].clientX;
       const dy=e.touches[0].clientY-e.touches[1].clientY;
       const dist=Math.sqrt(dx*dx+dy*dy);
@@ -1464,6 +1600,7 @@ function PhotoZoomModal({src,alt,onClose}){
       s.scale=ns;setScale(ns);
       if(ns<=1){s.x=0;s.y=0;setPos({x:0,y:0});}
     }else if(e.touches.length===1&&s.panning){
+      e.preventDefault();
       const dx=e.touches[0].clientX-s.startX;
       const dy=e.touches[0].clientY-s.startY;
       s.x=s.startPosX+dx;s.y=s.startPosY+dy;
@@ -1477,13 +1614,48 @@ function PhotoZoomModal({src,alt,onClose}){
     if(s.scale<=1)reset();
   };
 
+  const cur=list[idx]||{};
+  /* 썸네일 스트립 */
+  const stripStart=Math.max(0,idx-1);
+  const stripItems=[];
+  for(let si=stripStart;si<Math.min(stripStart+4,list.length);si++){
+    stripItems.push({i:si,src:list[si].src,on:si===idx});
+  }
+
   return(
     <div className="photo-zoom-overlay" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
-      <button className="photo-zoom-close" onClick={onClose}>✕</button>
+      {/* 닫기 버튼 — 우상단 고정, 터치 이벤트 전파 차단 */}
+      <button style={{position:'absolute',top:14,right:14,width:44,height:44,borderRadius:12,border:'2px solid rgba(255,255,255,.35)',background:'rgba(0,0,0,.55)',backdropFilter:'blur(10px)',color:'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',zIndex:10,fontSize:22,fontWeight:700}}
+        onTouchEnd={e=>{e.stopPropagation();onClose();}} onClick={onClose}>✕</button>
+      {/* 상단: 카운터 + 썸네일 */}
+      {list.length>1&&(
+        <div style={{position:'absolute',top:0,left:0,right:0,padding:'14px 14px 20px',background:'linear-gradient(to bottom,rgba(0,0,0,.8) 0%,rgba(0,0,0,.4) 70%,transparent 100%)',zIndex:4}}
+          onTouchStart={e=>e.stopPropagation()} onTouchMove={e=>e.stopPropagation()} onTouchEnd={e=>e.stopPropagation()}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',marginBottom:10}}>
+            <span style={{fontSize:12,color:'rgba(255,255,255,.7)',fontWeight:700,background:'rgba(0,0,0,.4)',padding:'3px 10px',borderRadius:20,backdropFilter:'blur(4px)'}}>{idx+1} / {list.length}</span>
+          </div>
+          <div style={{display:'flex',gap:6,justifyContent:'center'}}>
+            {stripItems.map(({i:si,src:ts,on})=>(
+              <div key={si} onClick={()=>goTo(si)}
+                style={{width:48,height:48,borderRadius:8,overflow:'hidden',cursor:'pointer',position:'relative',
+                  border:on?'2px solid #fff':'2px solid rgba(255,255,255,.2)',transition:'all .2s'}}>
+                <img src={ts} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block',
+                  filter:on?'none':'brightness(.35)',transition:'filter .2s'}}/>
+                {!on&&<div style={{position:'absolute',inset:0,background:'rgba(0,0,0,.3)'}}/>}
+              </div>
+            ))}
+            {stripStart+4<list.length&&(
+              <div style={{width:48,height:48,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <span style={{fontSize:11,color:'rgba(255,255,255,.4)',fontWeight:700}}>+{list.length-stripStart-4}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       <div className="photo-zoom-container">
-        <img ref={imgRef} src={src} alt={alt||''} style={{transform:`translate(${pos.x}px,${pos.y}px) scale(${scale})`}} draggable={false}/>
+        <img ref={imgRef} src={cur.src} alt={cur.alt||''} style={{transform:`translate(${pos.x}px,${pos.y}px) scale(${scale})`}} draggable={false}/>
       </div>
-      <div className="photo-zoom-hint">{scale<=1?'더블탭 또는 핀치로 확대':''}</div>
+      <div className="photo-zoom-hint">{scale<=1?(list.length>1?'썸네일 탭으로 이동 · 더블탭으로 확대':'더블탭 또는 핀치로 확대'):''}</div>
     </div>
   );
 }
@@ -1728,7 +1900,6 @@ function CSMemoScreen({building,problem,staffId,staffName,staffDay,onBack,onSave
           <textarea className="minput" style={{borderColor:'var(--purple-m)'}} rows={3} placeholder="고객 반응, 특이사항, 후속 참고사항..." value={csMemo} onChange={e=>setCsMemo(e.target.value)}/>
         </div>
       </div>
-      <ScrollRail scrollRef={memoScrollRef}/>
       </div>
 
       {/* 저장 확인 모달 */}
@@ -1822,10 +1993,20 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [qr,setQr]=useState(null);
   const [zoomPhoto,setZoomPhoto]=useState(null);
   const [mediaViewer,setMediaViewer]=useState(null);
+  useEffect(()=>{
+    if(mediaViewer!==null){document.body.classList.add('media-viewer-open');}
+    else{document.body.classList.remove('media-viewer-open');}
+    /* 줌 리셋 */
+    setMvScale(1);setMvPos({x:0,y:0});
+    const s=mvSwipeRef.current;if(s){s.scale=1;s.posX=0;s.posY=0;}
+    return()=>document.body.classList.remove('media-viewer-open');
+  },[mediaViewer]);
   const [mvPlaying,setMvPlaying]=useState(false);
   const [inlinePlayIdx,setInlinePlayIdx]=useState(null);
   const mvVideoRef=React.useRef(null);
-  const mvSwipeRef=React.useRef(0);
+  const mvSwipeRef=React.useRef({x:0,scale:1,posX:0,posY:0,startDist:0,startScale:1,panning:false,startX:0,startY:0,startPosX:0,startPosY:0,lastTap:0});
+  const [mvScale,setMvScale]=useState(1);
+  const [mvPos,setMvPos]=useState({x:0,y:0});
   const [subScreen,setSubScreen]=useState('main');
   const [contactDone,setContactDone]=useState(false);
   const [memo,setMemo]=useState('');
@@ -1844,13 +2025,16 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [ntDeliveryMedia,setNtDeliveryMedia]=useState([]);
   const [ntMemo,setNtMemo]=useState('');
   const [ntKeywords,setNtKeywords]=useState([]);
+  const [ntBrandTag,setNtBrandTag]=useState('POUR공법'); // 'POUR공법' | 'POUR솔루션' | 'R&D'
   const [ntCustomerFolded,setNtCustomerFolded]=useState(false);
   const [ntSaving,setNtSaving]=useState(false);
   const [ntDone,setNtDone]=useState(false);
   const [ntPencilMode,setNtPencilMode]=useState(true);
   const [ntMemoImgs,setNtMemoImgs]=useState([]);
+  const [ntDoodleOpen,setNtDoodleOpen]=useState(false);
   const ntMemoRef=useRef(null);
   useEffect(()=>{if(!ntPencilMode&&ntMemoRef.current){ntMemoRef.current.focus();}},[ntPencilMode]);
+  const [ntStep,setNtStep]=useState('info'); // 'info' | 'memo'
   const [ntOpenSec,setNtOpenSec]=useState(new Set([]));
   const [ntBizCard,setNtBizCard]=useState({front:null,back:null});
   const ntBizCardOpenRef=useRef(null);
@@ -1893,7 +2077,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       deliveryDocs:ntDeliveryDocs,
       deliveryMedia:ntDeliveryMedia,
       businessCard:ntBizCard,
-      memo:ntMemo,memoImgs:ntMemoImgs,keywords:ntKeywords,status:'신규',source:getUrlSource(),
+      memo:ntMemo,memoImgs:ntMemoImgs,keywords:ntKeywords,brandTag:ntBrandTag,status:'신규',source:getUrlSource(),
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
     // 자동 SMS 발송 (fire-and-forget)
@@ -1915,7 +2099,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
     setNtName('');setNtCompany('');setNtPosition('');
     setNtPhone('');setNtEmail('');setNtContact([]);
     setNtInterests([]);setNtDeliveryDocs([]);setNtDeliveryMedia([]);
-    setNtMemo('');setNtMemoImgs([]);setNtKeywords([]);
+    setNtMemo('');setNtMemoImgs([]);setNtKeywords([]);setNtBrandTag('POUR공법');setNtStep('info');
   };
 
   const logText=[
@@ -1931,9 +2115,10 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
 
   return(
+    <>
     <div className={`screen ${visible?'active':''}`} style={{background:'var(--bg)'}}>
       {qr&&<QRModal url={qr.url} title={qr.title} onClose={()=>setQr(null)}/>}
-      {zoomPhoto&&<PhotoZoomModal src={zoomPhoto.src} alt={zoomPhoto.alt} onClose={()=>setZoomPhoto(null)}/>}
+      {zoomPhoto&&<PhotoZoomModal photos={zoomPhoto.photos} index={zoomPhoto.index} onClose={()=>setZoomPhoto(null)}/>}
       {mediaViewer!==null&&(()=>{
         const mList=(photos.media||[]).filter(s=>s);
         const mThumbs=photos.mediaThumbs||[];
@@ -1947,33 +2132,70 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
           if(!p)return url;
           return null;
         };
-        // 썸네일 스트립: 현재 + 다음 최대 3개
+        // 썸네일 스트립: 이전 1개 + 현재 + 다음 (최대 4개)
         const stripItems=[];
-        for(let si=mediaViewer;si<Math.min(mediaViewer+4,mList.length);si++){
+        const stripStart=Math.max(0,mediaViewer-1);
+        for(let si=stripStart;si<Math.min(stripStart+4,mList.length);si++){
           stripItems.push({idx:si,thumb:getThumb(si,mList[si]),isCurrent:si===mediaViewer});
         }
         return(
-          <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'#000',zIndex:950,overflow:'hidden'}}
-            onTouchStart={e=>{mvSwipeRef.current=e.touches[0].clientX;}}
+          <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'#000',zIndex:950,overflow:'hidden',touchAction:'none'}}
+            onTouchStart={e=>{
+              const s=mvSwipeRef.current;
+              if(e.touches.length===2&&!mIsVid){
+                const dx2=e.touches[0].clientX-e.touches[1].clientX,dy2=e.touches[0].clientY-e.touches[1].clientY;
+                s.startDist=Math.sqrt(dx2*dx2+dy2*dy2);s.startScale=s.scale||1;
+              }else if(e.touches.length===1&&!mIsVid){
+                const now=Date.now();
+                if(now-(s.lastTap||0)<300){
+                  e.preventDefault();
+                  if((s.scale||1)>1.1){s.scale=1;s.posX=0;s.posY=0;setMvScale(1);setMvPos({x:0,y:0});}
+                  else{s.scale=2.5;s.posX=0;s.posY=0;setMvScale(2.5);setMvPos({x:0,y:0});}
+                  s.lastTap=0;return;
+                }
+                s.lastTap=now;
+                if((s.scale||1)>1){s.panning=true;s.startX=e.touches[0].clientX;s.startY2=e.touches[0].clientY;s.startPosX=s.posX||0;s.startPosY=s.posY||0;}
+              }
+            }}
+            onTouchMove={e=>{
+              const s=mvSwipeRef.current;
+              if(e.touches.length===2&&!mIsVid){
+                e.preventDefault();
+                const dx2=e.touches[0].clientX-e.touches[1].clientX,dy2=e.touches[0].clientY-e.touches[1].clientY;
+                const dist=Math.sqrt(dx2*dx2+dy2*dy2);
+                let ns=s.startScale*(dist/s.startDist);ns=Math.max(1,Math.min(5,ns));
+                s.scale=ns;setMvScale(ns);
+                if(ns<=1){s.posX=0;s.posY=0;setMvPos({x:0,y:0});}
+              }else if(e.touches.length===1&&s.panning&&(s.scale||1)>1){
+                e.preventDefault();
+                const dx3=e.touches[0].clientX-s.startX;
+                const dy3=e.touches[0].clientY-s.startY2;
+                s.posX=s.startPosX+dx3;s.posY=s.startPosY+dy3;
+                setMvPos({x:s.posX,y:s.posY});
+              }
+            }}
             onTouchEnd={e=>{
-              const dx=e.changedTouches[0].clientX-(mvSwipeRef.current||0);
-              if(dx<-50&&mediaViewer<mList.length-1)setMediaViewer(v=>v+1);
-              else if(dx>50&&mediaViewer>0)setMediaViewer(v=>v-1);
+              const s=mvSwipeRef.current;
+              if(e.touches.length<2){s.startDist=0;}
+              if(e.touches.length===0){s.panning=false;}
+              if((s.scale||1)<=1){s.scale=1;s.posX=0;s.posY=0;setMvScale(1);setMvPos({x:0,y:0});}
             }}
           >
-            {/* 상단: 뒤로 버튼 + 썸네일 스트립 */}
-            <div style={{position:'absolute',top:0,left:0,right:0,padding:'14px 14px 20px',background:'linear-gradient(to bottom,rgba(0,0,0,.8) 0%,rgba(0,0,0,.4) 70%,transparent 100%)',zIndex:4}}>
-              {/* 뒤로 버튼 */}
-              <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
-                <button onClick={()=>{setMediaViewer(null);setInlinePlayIdx(null);}}
-                  style={{width:34,height:34,borderRadius:'50%',border:'none',background:'rgba(255,255,255,.15)',color:'#fff',fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit',flexShrink:0,lineHeight:1}}>
-                  ‹
-                </button>
-                <span style={{fontSize:12,color:'rgba(255,255,255,.6)',fontWeight:600}}>{mediaViewer+1} / {mList.length}</span>
+            {/* 상단: 썸네일 스트립 */}
+            <div style={{position:'absolute',top:0,left:0,right:0,padding:'14px 14px 20px',background:'linear-gradient(to bottom,rgba(0,0,0,.8) 0%,rgba(0,0,0,.4) 70%,transparent 100%)',zIndex:4}}
+              onTouchStart={e=>e.stopPropagation()} onTouchMove={e=>e.stopPropagation()} onTouchEnd={e=>e.stopPropagation()}>
+              {/* 카운터 */}
+              <div style={{display:'flex',alignItems:'center',justifyContent:'center',marginBottom:10}}>
+                <span style={{fontSize:12,color:'rgba(255,255,255,.7)',fontWeight:700,background:'rgba(0,0,0,.4)',padding:'3px 10px',borderRadius:20,backdropFilter:'blur(4px)'}}>{mediaViewer+1} / {mList.length}</span>
               </div>
-              {/* 썸네일 스트립 — 현재(진한) + 다음 3개(어두운) */}
+              {/* 뒤로가기 버튼 — 우상단 고정 */}
+              <button onTouchEnd={e=>{e.stopPropagation();setMediaViewer(null);setInlinePlayIdx(null);}} onClick={()=>{setMediaViewer(null);setInlinePlayIdx(null);}}
+                style={{position:'absolute',top:14,right:14,width:44,height:44,borderRadius:12,border:'2px solid rgba(255,255,255,.35)',background:'rgba(0,0,0,.55)',backdropFilter:'blur(10px)',color:'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',zIndex:6,flexShrink:0}}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg>
+              </button>
+              {/* 썸네일 스트립 — 중앙 정렬 */}
               {mList.length>1&&(
-                <div style={{display:'flex',gap:6,paddingLeft:2}}>
+                <div style={{display:'flex',gap:6,justifyContent:'center'}}>
                   {stripItems.map(({idx,thumb,isCurrent})=>(
                     <div key={idx} onClick={()=>setMediaViewer(idx)}
                       style={{width:48,height:64,borderRadius:8,overflow:'hidden',cursor:'pointer',position:'relative',
@@ -1994,9 +2216,9 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                       )}
                     </div>
                   ))}
-                  {mediaViewer+4<mList.length&&(
+                  {stripStart+4<mList.length&&(
                     <div style={{width:48,height:64,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                      <span style={{fontSize:11,color:'rgba(255,255,255,.4)',fontWeight:700}}>+{mList.length-mediaViewer-4}</span>
+                      <span style={{fontSize:11,color:'rgba(255,255,255,.4)',fontWeight:700}}>+{mList.length-stripStart-4}</span>
                     </div>
                   )}
                 </div>
@@ -2019,7 +2241,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     allowFullScreen/>
                 )
               ):(
-                <img src={mSrc} alt="미디어" style={{width:'100%',height:'100%',objectFit:'contain',display:'block'}}/>
+                <img src={mSrc} alt="미디어" style={{width:'100%',height:'100%',objectFit:'contain',display:'block',transform:`translate(${mvPos.x}px,${mvPos.y}px) scale(${mvScale})`,transition:mvScale<=1?'transform .15s':'none'}}/>
               )}
               {mParsed&&mParsed.type==='direct'&&!mvPlaying&&(
                 <div style={{position:'absolute',pointerEvents:'none',width:68,height:68,borderRadius:'50%',background:'rgba(0,0,0,.55)',display:'flex',alignItems:'center',justifyContent:'center'}}>
@@ -2044,53 +2266,45 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
         <div className="sol-name">{problem.label}</div>
         {problem.sub&&<div style={{fontSize:12,fontWeight:500,color:"rgba(255,255,255,.55)",marginTop:2}}>{problem.sub}</div>}
-        {/* 제안서 · 가이드북 카드 */}
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginTop:10}}>
-          {/* ── 제안서 카드 ── */}
-          <div style={{borderRadius:10,overflow:'hidden',border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.08)'}}>
-            <div style={{padding:'8px 10px',background:'rgba(59,130,246,.25)',borderBottom:'1px solid rgba(255,255,255,.1)',display:'flex',alignItems:'center',gap:5}}>
-              <span style={{fontSize:13}}>📄</span>
-              <span style={{fontSize:12,fontWeight:800,color:'#fff',letterSpacing:'.02em'}}>제안서</span>
-            </div>
+        {/* 제안서 · 시공가이드 — 가로 2열 카드 */}
+        <div style={{display:'flex',gap:8,marginTop:10}}>
+          {/* ── 제안서 ── */}
+          <div style={{flex:1,borderRadius:10,border:'1px solid rgba(255,255,255,.15)',background:'rgba(255,255,255,.07)',display:'flex',flexDirection:'column',overflow:'hidden'}}>
             {problem.specUrl?(
-              <div style={{padding:'8px 10px',display:'flex',flexDirection:'column',gap:6}}>
-                <a href={problem.specUrl} target="_blank" rel="noreferrer"
-                  style={{display:'flex',alignItems:'center',justifyContent:'center',gap:5,padding:'7px 0',background:'rgba(59,130,246,.2)',borderRadius:7,textDecoration:'none',border:'1px solid rgba(59,130,246,.3)'}}>
-                  <span style={{fontSize:11,fontWeight:700,color:'#93bbfc'}}>바로 열기 →</span>
-                </a>
-                <button onClick={()=>setQr({url:problem.specUrl,title:'📄 제안서'})}
-                  style={{display:'flex',alignItems:'center',justifyContent:'center',gap:5,padding:'7px 0',background:'rgba(255,255,255,.06)',borderRadius:7,border:'1px solid rgba(255,255,255,.15)',cursor:'pointer',fontFamily:'inherit'}}>
-                  <span style={{fontSize:12}}>📱</span>
-                  <span style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,.8)'}}>QR 스캔</span>
-                </button>
-              </div>
+              <button onClick={()=>setQr({url:problem.specUrl,title:'📄 제안서'})}
+                style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,padding:'14px 10px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
+                <span style={{fontSize:28}}>📄</span>
+                <span style={{fontSize:11,fontWeight:800,color:'#93bbfc',letterSpacing:'.04em'}}>제안서</span>
+                <div style={{display:'flex',alignItems:'center',gap:4,marginTop:2}}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(147,187,252,.7)" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="4" height="4" rx="1"/></svg>
+                  <span style={{fontSize:10,fontWeight:600,color:'rgba(147,187,252,.7)'}}>QR코드</span>
+                </div>
+              </button>
             ):(
-              <div style={{padding:'14px 10px',textAlign:'center'}}>
-                <span style={{fontSize:11,fontWeight:600,color:'rgba(255,255,255,.3)'}}>준비 중</span>
+              <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,padding:'14px 10px',opacity:.35}}>
+                <span style={{fontSize:28}}>📄</span>
+                <span style={{fontSize:11,fontWeight:800,color:'rgba(255,255,255,.5)',letterSpacing:'.04em'}}>제안서</span>
+                <span style={{fontSize:10,fontWeight:600,color:'rgba(255,255,255,.35)'}}>준비 중</span>
               </div>
             )}
           </div>
-          {/* ── 가이드북 카드 ── */}
-          <div style={{borderRadius:10,overflow:'hidden',border:'1px solid rgba(255,255,255,.18)',background:'rgba(255,255,255,.08)'}}>
-            <div style={{padding:'8px 10px',background:'rgba(245,158,11,.25)',borderBottom:'1px solid rgba(255,255,255,.1)',display:'flex',alignItems:'center',gap:5}}>
-              <span style={{fontSize:13}}>📖</span>
-              <span style={{fontSize:12,fontWeight:800,color:'#fff',letterSpacing:'.02em'}}>시공 가이드</span>
-            </div>
+          {/* ── 시공 가이드 ── */}
+          <div style={{flex:1,borderRadius:10,border:'1px solid rgba(255,255,255,.15)',background:'rgba(255,255,255,.07)',display:'flex',flexDirection:'column',overflow:'hidden'}}>
             {guide?(
-              <div style={{padding:'8px 10px',display:'flex',flexDirection:'column',gap:6}}>
-                <a href={guide.url} target="_blank" rel="noreferrer"
-                  style={{display:'flex',alignItems:'center',justifyContent:'center',gap:5,padding:'7px 0',background:'rgba(245,158,11,.2)',borderRadius:7,textDecoration:'none',border:'1px solid rgba(245,158,11,.3)'}}>
-                  <span style={{fontSize:11,fontWeight:700,color:'#f5c563'}}>바로 열기 →</span>
-                </a>
-                <button onClick={()=>setQr({url:guide.url,title:'📖 시공 가이드'})}
-                  style={{display:'flex',alignItems:'center',justifyContent:'center',gap:5,padding:'7px 0',background:'rgba(255,255,255,.06)',borderRadius:7,border:'1px solid rgba(255,255,255,.15)',cursor:'pointer',fontFamily:'inherit'}}>
-                  <span style={{fontSize:12}}>📱</span>
-                  <span style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,.8)'}}>QR 스캔</span>
-                </button>
-              </div>
+              <button onClick={()=>setQr({url:guide.url,title:'📖 시공 가이드'})}
+                style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,padding:'14px 10px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
+                <span style={{fontSize:28}}>📖</span>
+                <span style={{fontSize:11,fontWeight:800,color:'#f5c563',letterSpacing:'.04em'}}>시공 가이드</span>
+                <div style={{display:'flex',alignItems:'center',gap:4,marginTop:2}}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(245,197,99,.7)" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="4" height="4" rx="1"/></svg>
+                  <span style={{fontSize:10,fontWeight:600,color:'rgba(245,197,99,.7)'}}>QR코드</span>
+                </div>
+              </button>
             ):(
-              <div style={{padding:'14px 10px',textAlign:'center'}}>
-                <span style={{fontSize:11,fontWeight:600,color:'rgba(255,255,255,.3)'}}>준비 중</span>
+              <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,padding:'14px 10px',opacity:.35}}>
+                <span style={{fontSize:28}}>📖</span>
+                <span style={{fontSize:11,fontWeight:800,color:'rgba(255,255,255,.5)',letterSpacing:'.04em'}}>시공 가이드</span>
+                <span style={{fontSize:10,fontWeight:600,color:'rgba(255,255,255,.35)'}}>준비 중</span>
               </div>
             )}
           </div>
@@ -2114,7 +2328,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               {(photos?.causes||[]).filter(s=>s).length>0?(
                 <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:6,scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch'}}>
                   {(photos.causes||[]).filter(s=>s).map((src,i)=>(
-                    <div key={i} style={{flex:'0 0 80%',maxWidth:320,scrollSnapAlign:'start',borderRadius:14,overflow:'hidden',border:'1.5px solid var(--border)',background:'#000',position:'relative',aspectRatio:'1/1',cursor:'pointer'}} onClick={()=>setZoomPhoto({src,alt:`하자사진 ${i+1}`})}>
+                    <div key={i} style={{flex:'0 0 80%',maxWidth:320,scrollSnapAlign:'start',borderRadius:14,overflow:'hidden',border:'1.5px solid var(--border)',background:'#000',position:'relative',aspectRatio:'1/1',cursor:'pointer'}} onClick={()=>{const causeList=(photos.causes||[]).filter(s=>s);setZoomPhoto({photos:causeList.map((s,j)=>({src:s,alt:`하자사진 ${j+1}`})),index:i});}}>
                       <img src={src} alt={`하자사진${i+1}`} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
                       <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'24px 12px 10px',background:'linear-gradient(transparent,rgba(0,0,0,.6))'}}>
                         <span style={{fontSize:11,fontWeight:800,color:'#fff'}}>{i+1}/{(photos.causes||[]).filter(s=>s).length}</span>
@@ -2212,9 +2426,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                             </div>
                             {/* 확대 버튼 */}
                             <div onClick={(e)=>{e.stopPropagation();setInlinePlayIdx(null);setMediaViewer(i);}}
-                              style={{position:'absolute',top:6,right:6,padding:'4px 8px',borderRadius:7,background:'rgba(0,0,0,.6)',display:'flex',alignItems:'center',gap:3,cursor:'pointer',zIndex:3,backdropFilter:'blur(4px)'}}>
-                              <span style={{fontSize:11,color:'#fff',lineHeight:1}}>+</span>
-                              <span style={{fontSize:10,color:'#fff',fontWeight:700}}>확대</span>
+                              style={{position:'absolute',top:6,right:6,width:40,height:40,borderRadius:12,background:'rgba(0,0,0,.55)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',zIndex:3,backdropFilter:'blur(6px)'}}>
+                              <span style={{fontSize:24,color:'#fff',lineHeight:1,fontWeight:300}}>+</span>
                             </div>
                             {/* 하단 그라데이션 — 어두운 fade */}
                             <div style={{position:'absolute',bottom:0,left:0,right:0,height:'30%',background:'linear-gradient(transparent,rgba(0,0,0,.4))',pointerEvents:'none',borderRadius:'0 0 12px 12px'}}/>
@@ -2236,10 +2449,11 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
         </>
       </div>
 
-      {/* ── 통합 영업 노트 시트 ── */}
-      {showNote&&(
-        <div className="sheet-bg" onClick={()=>setShowNote(false)}>
-          <div className="note-sheet" onClick={e=>e.stopPropagation()}>
+    </div>
+    {/* ── 통합 영업 노트 시트 (screen div 밖: 공법선택 등 어디서든 접근 가능) ── */}
+    {showNote&&(
+      <div className="sheet-bg" onClick={()=>setShowNote(false)}>
+        <div className="note-sheet" onClick={e=>e.stopPropagation()}>
 
             {ntDone?(
               <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px 20px 40px'}}>
@@ -2310,97 +2524,134 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 {/* 명함 촬영 (헤더 버튼용 - 숨김) */}
                 <div style={{position:'absolute',left:'-9999px'}}><BusinessCardCapture onCapture={(side,img)=>setNtBizCard(p=>({...p,[side]:img}))} openRef={ntBizCardOpenRef}/></div>
 
-                {/* ── 본문 ── */}
-                <div style={{display:'flex',flex:1,overflow:'hidden'}}>
-                <div className="note-sheet-scroll" style={{flex:1,minWidth:0,touchAction:'none'}}
-                  ref={el=>{
-                    if(!el)return;
-                    // 2손가락 스크롤만 허용
-                    if(!el._twoFingerBound){
-                      el._twoFingerBound=true;
-                      el.addEventListener('touchstart',ev=>{el._touchCount=ev.touches.length;el._lastY2=ev.touches.length>=2?(ev.touches[0].clientY+ev.touches[1].clientY)/2:0;},{passive:false});
-                      el.addEventListener('touchmove',ev=>{
-                        if(ev.touches.length>=2){
-                          const cy=(ev.touches[0].clientY+ev.touches[1].clientY)/2;
-                          el.scrollTop+=(el._lastY2-cy);el._lastY2=cy;
-                          ev.preventDefault();
-                        }else{/* 1손가락 — 스크롤 차단 (펜/손바닥 보호) */}
-                      },{passive:false});
-                    }
-                  }}
-                  onPointerDown={e=>{if(e.pointerType==='pen'){e.currentTarget.classList.add('pen-active');}}}
-                  onPointerUp={e=>{setTimeout(()=>e.currentTarget?.classList?.remove('pen-active'),1500);}}
-                  onPointerCancel={e=>{setTimeout(()=>e.currentTarget?.classList?.remove('pen-active'),1500);}}>
-
-                  {/* ── 고객 정보 (접기 가능) ── */}
-                  <div style={{padding:'12px 0 14px',flexShrink:0,borderBottom:'2px solid var(--border)',marginBottom:10}}>
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:ntCustomerFolded?0:8,cursor:'pointer'}} onClick={()=>setNtCustomerFolded(v=>!v)}>
-                      <div style={{fontSize:11,fontWeight:800,color:'var(--accent)',letterSpacing:'.07em',textTransform:'uppercase'}}>
-                        👤 고객 정보
-                        {ntCustomerFolded&&ntName&&<span style={{fontSize:10,color:'var(--text)',fontWeight:600,marginLeft:8,textTransform:'none',letterSpacing:0}}>{ntCompany?ntCompany+' · ':''}{ntName}{ntPhone?' · '+ntPhone:''}</span>}
-                      </div>
-                      <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:700,padding:'2px 8px',borderRadius:6,background:'var(--bg)'}}>{ntCustomerFolded?'펼치기 ▼':'접기 ▲'}</span>
+                {/* ── 고객 정보 (접기/펼치기) ── */}
+                <div style={{flexShrink:0,borderBottom:'1.5px solid var(--border)'}}>
+                  {/* 헤더 바 */}
+                  <div style={{display:'flex',alignItems:'center',padding:'10px 16px',cursor:'pointer',background:ntStep==='info'?'#fff':'var(--bg)',transition:'background .15s'}} onClick={()=>setNtStep(ntStep==='info'?'memo':'info')}>
+                    <div style={{flex:1,display:'flex',alignItems:'center',gap:5,flexWrap:'wrap',minWidth:0}}>
+                      <span style={{fontSize:12,fontWeight:800,color:'var(--accent)'}}>👤</span>
+                      {ntStep==='memo'&&ntName?(
+                        <>
+                          {(()=>{const bt=[{id:'apt',icon:'🏢',l:'아파트'},{id:'gov',icon:'🏛',l:'관공서'},{id:'etc',icon:'🏠',l:'일반건물'}].find(b=>b.id===effectiveBuildingId);return bt?<span style={{fontSize:10,fontWeight:700,color:'var(--navy)',background:'rgba(11,29,58,.08)',padding:'2px 8px',borderRadius:5}}>{bt.icon}{bt.l}</span>:null;})()}
+                          {ntCompany&&<span style={{fontSize:12,fontWeight:700,color:'var(--text)',background:'var(--card)',padding:'2px 8px',borderRadius:5,border:'1px solid var(--border)'}}>{ntCompany}</span>}
+                          <span style={{fontSize:12,fontWeight:800,color:'var(--text)'}}>{ntName}</span>
+                          {ntPhone&&<span style={{fontSize:11,fontWeight:600,color:'var(--blue)'}}>{ntPhone}</span>}
+                          {ntPosition&&<span style={{fontSize:10,color:'var(--text-sm)',background:'var(--bg)',padding:'1px 6px',borderRadius:4}}>{ntPosition}</span>}
+                        </>
+                      ):ntStep==='memo'?(
+                        <span style={{fontSize:12,color:'var(--text-sm)',fontStyle:'italic'}}>고객 정보 미입력</span>
+                      ):(
+                        <span style={{fontSize:12,fontWeight:700,color:'var(--text)'}}>고객 정보 입력</span>
+                      )}
                     </div>
-                    {!ntCustomerFolded&&(
-                      <React.Fragment>
-                        <div style={{position:'relative',marginBottom:6}}>
-                          <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px'}} placeholder="✏️ 건물명 또는 업체명" value={ntCompany} onChange={e=>setNtCompany(e.target.value)}/>
-                          {ntCompany&&<button onClick={()=>setNtCompany(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
-                        </div>
-                        <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:8}}>
-                          {BUILDING_TYPES.map(b=>(
-                            <button key={b.id} onClick={()=>{if(effectiveBuildingId===b.id){setEffectiveBuildingId(null);}else{setEffectiveBuildingId(b.id);setNtPosition('');}}}
-                              style={{padding:'6px 12px',borderRadius:20,border:`1.5px solid ${effectiveBuildingId===b.id?'var(--navy)':'var(--border)'}`,background:effectiveBuildingId===b.id?'var(--navy)':'#fff',color:effectiveBuildingId===b.id?'#fff':'var(--text)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',transition:'all .12s'}}>
-                              {b.icon} {b.label}
-                            </button>
-                          ))}
-                        </div>
-                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:6}}>
-                          <div style={{position:'relative'}}>
-                            <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="✏️ 성함 *" value={ntName} onChange={e=>setNtName(e.target.value)}/>
-                            {ntName&&<button onClick={()=>setNtName(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
-                          </div>
-                          <div style={{position:'relative'}}>
-                            <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="✏️ 연락처 *" value={ntPhone} onChange={e=>setNtPhone(e.target.value)} inputMode="tel"/>
-                            {ntPhone&&<button onClick={()=>setNtPhone(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
-                          </div>
-                        </div>
+                    {ntStep==='memo'?(
+                      <div style={{display:'flex',alignItems:'center',gap:4,padding:'4px 10px',borderRadius:8,background:'rgba(37,99,235,.08)',border:'1px solid rgba(37,99,235,.2)',flexShrink:0}}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        <span style={{fontSize:10,fontWeight:700,color:'#2563EB'}}>수정</span>
+                      </div>
+                    ):(
+                      <span style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',padding:'3px 8px',borderRadius:6,background:'var(--bg)'}}>접기 ▲</span>
+                    )}
+                  </div>
+                  {/* 펼친 상태: 입력 폼 */}
+                  {ntStep==='info'&&(
+                    <div style={{padding:'0 16px 14px',display:'flex',flexDirection:'column',gap:8}}>
+
+                      {/* 건물명/업체명 */}
+                      <textarea className="note-input" rows="1" value={ntCompany} onChange={e=>setNtCompany(e.target.value.replace(/\n/g,''))}
+                        style={{fontSize:16,padding:'12px 14px',minHeight:48,resize:'none',lineHeight:1.4,width:'100%',boxSizing:'border-box'}}
+                        placeholder="건물명 또는 업체명"/>
+
+                      {/* 건물 유형 — 3가지 */}
+                      <div style={{display:'flex',gap:6}}>
+                        {[{id:'apt',icon:'🏢',label:'아파트'},{id:'gov',icon:'🏛',label:'관공서'},{id:'etc',icon:'🏠',label:'일반건물'}].map(b=>{
+                          const sel=effectiveBuildingId===b.id;
+                          return <button key={b.id} onClick={()=>{if(sel){setEffectiveBuildingId(null);}else{setEffectiveBuildingId(b.id);setNtPosition('');}}}
+                            style={{flex:1,padding:'8px 4px',borderRadius:10,border:`1.5px solid ${sel?'var(--navy)':'var(--border)'}`,background:sel?'var(--navy)':'#fff',color:sel?'#fff':'var(--text)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',textAlign:'center'}}>
+                            {b.icon} {b.label}
+                          </button>;
+                        })}
+                      </div>
+
+                      {/* 성함 + 연락처 */}
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
+                        <textarea className="note-input" rows="1" value={ntName} onChange={e=>setNtName(e.target.value.replace(/\n/g,''))}
+                          style={{fontSize:16,padding:'12px 14px',minHeight:48,resize:'none',lineHeight:1.4,width:'100%',boxSizing:'border-box'}}
+                          placeholder="성함 *"/>
+                        <textarea className="note-input" rows="1" value={ntPhone} onChange={e=>setNtPhone(e.target.value.replace(/\n/g,''))}
+                          style={{fontSize:16,padding:'12px 14px',minHeight:48,resize:'none',lineHeight:1.4,width:'100%',boxSizing:'border-box'}}
+                          placeholder="연락처 *"/>
+                      </div>
+
+                      {/* 직급 — 아파트/관공서면 표시, 일반건물이면 선택적 */}
+                      {(effectiveBuildingId&&effectiveBuildingId!=='etc'||ntShowPosition||ntPosition)&&(
                         <div style={{position:'relative'}}>
-                          <button className="note-input" style={{fontSize:14,padding:'10px 14px',textAlign:'left',cursor:'pointer',color:ntPosition?'var(--text)':'var(--text-sm)',width:'100%'}} onClick={()=>setNtShowPosition(!ntShowPosition)}>{ntPosition||'직급 선택 (선택)'}<span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',fontSize:10,color:'var(--text-sm)'}}>▼</span></button>
+                          <button className="note-input" style={{fontSize:13,padding:'10px 14px',textAlign:'left',cursor:'pointer',color:ntPosition?'var(--text)':'var(--text-sm)',width:'100%'}} onClick={()=>setNtShowPosition(!ntShowPosition)}>{ntPosition||'직급 선택 (선택)'}<span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',fontSize:10,color:'var(--text-sm)'}}>▼</span></button>
                           {ntShowPosition&&<div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1.5px solid var(--border)',borderRadius:9,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:10,overflow:'hidden',marginTop:2}}>
                             {getPositions(effectiveBuildingId).map(p=>(
                               <button key={p} onClick={()=>{setNtPosition(p);setNtShowPosition(false);}} style={{width:'100%',padding:'10px 14px',border:'none',background:ntPosition===p?'var(--blue-l)':'#fff',color:ntPosition===p?'var(--blue)':'var(--text)',fontSize:13,fontWeight:ntPosition===p?700:500,cursor:'pointer',fontFamily:'inherit',textAlign:'left',borderBottom:'1px solid var(--border-s)'}}>{p}</button>
                             ))}
                           </div>}
                         </div>
-                      </React.Fragment>
-                    )}
-                  </div>
+                      )}
 
-                  {/* ── 텍스트 메모 (펜슬 Scribble 입력 가능) ── */}
-                  <div style={{marginBottom:10}}>
-                    <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>📝 텍스트 메모</div>
-                    <textarea className="note-input" value={ntMemo} onChange={e=>setNtMemo(e.target.value)}
-                      placeholder="✏️ 펜슬로 직접 필기하세요 (Scribble)&#10;상담 내용, 특이사항, 요청사항 등"
-                      style={{fontSize:15,padding:'14px',minHeight:200,resize:'vertical',lineHeight:1.6,fontFamily:'inherit',width:'100%',boxSizing:'border-box'}}/>
-                  </div>
-
-                </div>{/* 본문 끝 */}
-                </div>{/* flex wrapper 끝 */}
-
-                {/* ── 손글씨 메모 (본문 스크롤 영역 밖, 독립 섹션) ── */}
-                <div style={{flexShrink:0,borderTop:'2px solid var(--border)',padding:'10px 0'}}>
-                  <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>✏️ 손글씨 메모</div>
-                  <DrawCanvas onDataUrl={setNtMemoImgs}/>
+                      {/* 메모 작성 / 건너뛰기 */}
+                      <div style={{display:'flex',gap:6,marginTop:2}}>
+                        <button onClick={()=>setNtStep('memo')}
+                          style={{flex:1,padding:'12px',borderRadius:10,border:'none',background:'var(--navy)',color:'#fff',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
+                          📝 메모 작성
+                        </button>
+                        <button onClick={()=>setNtStep('memo')}
+                          style={{padding:'12px 16px',borderRadius:10,border:'1.5px solid var(--border)',background:'#fff',color:'var(--text-sm)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
+                          건너뛰기 ›
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
+
+                {/* ── 본문: 텍스트 메모 + 낙서장 ── */}
+                {ntStep==='memo'&&(
+                  <div style={{display:'flex',flex:1,overflow:'hidden'}}>
+                  <div className="note-sheet-scroll" style={{flex:1,minWidth:0}}
+                    ref={el=>{
+                      if(!el)return;
+                      if(!el._twoFingerBound){
+                        el._twoFingerBound=true;
+                        el.addEventListener('touchstart',ev=>{el._touchCount=ev.touches.length;el._lastY2=ev.touches.length>=2?(ev.touches[0].clientY+ev.touches[1].clientY)/2:0;},{passive:false});
+                        el.addEventListener('touchmove',ev=>{
+                          if(ev.touches.length>=2){const cy=(ev.touches[0].clientY+ev.touches[1].clientY)/2;el.scrollTop+=(el._lastY2-cy);el._lastY2=cy;ev.preventDefault();}
+                        },{passive:false});
+                      }
+                    }}
+                    onPointerDown={e=>{if(e.pointerType==='pen'){markPenActive();const tag=e.target.tagName;if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;e.currentTarget.classList.add('pen-active');}}}
+                    onPointerUp={e=>{setTimeout(()=>e.currentTarget?.classList?.remove('pen-active'),800);}}
+                    onPointerCancel={e=>{setTimeout(()=>e.currentTarget?.classList?.remove('pen-active'),800);}}>
+
+                    {/* 낙서장 칩 버튼 */}
+                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+                      <button onClick={()=>setNtDoodleOpen(!ntDoodleOpen)}
+                        style={{padding:'6px 14px',borderRadius:20,border:`1.5px solid ${ntDoodleOpen?'#7C3AED':'var(--border)'}`,background:ntDoodleOpen?'rgba(124,58,237,.08)':'#fff',fontSize:11,fontWeight:700,color:ntDoodleOpen?'#7C3AED':'var(--text-sm)',cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:5,transition:'all .15s'}}>
+                        <span style={{fontSize:14}}>🎨</span> 낙서장 {ntDoodleOpen?'닫기':'열기'}
+                      </button>
+                    </div>
+                    {ntDoodleOpen&&(
+                      <div style={{marginBottom:14,borderRadius:12,border:'1.5px solid rgba(124,58,237,.2)',overflow:'hidden',background:'#FAFAFF'}}>
+                        <DrawCanvas onDataUrl={setNtMemoImgs}/>
+                      </div>
+                    )}
+                    <MemoTextarea value={ntMemo} onChange={setNtMemo}/>
+
+                  </div>
+                  </div>
+                )}
               </>
             )}
           </div>
         </div>
       )}
 
-
-    </div>
+    </>
   );
 }
 
@@ -2609,6 +2860,7 @@ function TechMemoSheet({staffId,staffName,staffDay,onBack}){
   const [memo,setMemo]=useState('');
   const [pencilMode,setPencilMode]=useState(true);
   const [memoImgs,setMemoImgs]=useState([]);
+  const [doodleOpen,setDoodleOpen]=useState(false);
   const [saving,setSaving]=useState(false);
   const [done,setDone]=useState(false);
   const accent='#059669';
@@ -2694,10 +2946,13 @@ function TechMemoSheet({staffId,staffName,staffDay,onBack}){
               </div>
             </div>
 
-            {/* 펜슬 메모 */}
-            <div style={{marginBottom:16}}>
-              <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>✏️ 상담 메모</div>
-              <DrawCanvas onDataUrl={setMemoImgs}/>
+            {/* 낙서장 */}
+            <div style={{marginBottom:16,borderTop:'2px solid var(--border)'}}>
+              <button onClick={()=>setDoodleOpen(!doodleOpen)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 4px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
+                <span style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase'}}>🎨 낙서장</span>
+                <span style={{fontSize:11,fontWeight:700,color:'var(--blue)',display:'flex',alignItems:'center',gap:4}}>{doodleOpen?'접기 ▲':'펼치기 ▼'}</span>
+              </button>
+              {doodleOpen&&<DrawCanvas onDataUrl={setMemoImgs}/>}
             </div>
 
             <button className="btn-start" style={{width:'100%',background:accent}} onClick={save} disabled={saving}>
@@ -2882,6 +3137,7 @@ function StoreNoteSheet({staffId,staffName,staffDay,building,problem,onClose}){
   const [memo,setMemo]=useState('');
   const [pencilMode,setPencilMode]=useState(true);
   const [memoImgs,setMemoImgs]=useState([]);
+  const [doodleOpen,setDoodleOpen]=useState(false);
   const [saving,setSaving]=useState(false);
   const [done,setDone]=useState(false);
   const memoRef=useRef(null);
@@ -2947,10 +3203,13 @@ function StoreNoteSheet({staffId,staffName,staffDay,building,problem,onClose}){
                   <input className="note-input" style={{fontSize:13}} placeholder="연락처 *" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
                 </div>
               </div>
-              {/* 펜슬 메모 */}
-              <div style={{marginBottom:10}}>
-                <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>✏️ 상담 메모</div>
-                <DrawCanvas onDataUrl={setMemoImgs}/>
+              {/* 낙서장 */}
+              <div style={{marginBottom:10,borderTop:'2px solid var(--border)'}}>
+                <button onClick={()=>setDoodleOpen(!doodleOpen)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 4px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
+                  <span style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase'}}>🎨 낙서장</span>
+                  <span style={{fontSize:11,fontWeight:700,color:'var(--blue)',display:'flex',alignItems:'center',gap:4}}>{doodleOpen?'접기 ▲':'펼치기 ▼'}</span>
+                </button>
+                {doodleOpen&&<DrawCanvas onDataUrl={setMemoImgs}/>}
               </div>
             </div>
           </>
@@ -2970,6 +3229,7 @@ function StorePartnerSheet({staffId,staffName,staffDay,onClose}){
   const [memo,setMemo]=useState('');
   const [actions,setActions]=useState([]);
   const [pencilMode,setPencilMode]=useState(true);
+  const [doodleOpen,setDoodleOpen]=useState(false);
   const [memoImgs,setMemoImgs]=useState([]);
   const [saving,setSaving]=useState(false);
   const [done,setDone]=useState(false);
@@ -3043,9 +3303,13 @@ function StorePartnerSheet({staffId,staffName,staffDay,onClose}){
               <div style={{marginBottom:10}}>
                 <input className="note-input" style={{fontSize:13}} placeholder="주요 활동 지역 (예: 서울 강남, 경기 남부)" value={region} onChange={e=>setRegion(e.target.value)}/>
               </div>
-              <div style={{marginBottom:10}}>
-                <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>✏️ 상담 메모</div>
-                <DrawCanvas onDataUrl={setMemoImgs}/>
+              {/* 낙서장 */}
+              <div style={{marginBottom:10,borderTop:'2px solid var(--border)'}}>
+                <button onClick={()=>setDoodleOpen(!doodleOpen)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 4px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
+                  <span style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase'}}>🎨 낙서장</span>
+                  <span style={{fontSize:11,fontWeight:700,color:'var(--blue)',display:'flex',alignItems:'center',gap:4}}>{doodleOpen?'접기 ▲':'펼치기 ▼'}</span>
+                </button>
+                {doodleOpen&&<DrawCanvas onDataUrl={setMemoImgs}/>}
               </div>
             </div>
           </>
@@ -3068,6 +3332,7 @@ function StoreOtherSheet({staffId,staffName,staffDay,onClose}){
   const [phone,setPhone]=useState('');
   const [memo,setMemo]=useState('');
   const [pencilMode,setPencilMode]=useState(true);
+  const [doodleOpen,setDoodleOpen]=useState(false);
   const [memoImgs,setMemoImgs]=useState([]);
   const [saving,setSaving]=useState(false);
   const [done,setDone]=useState(false);
@@ -3144,9 +3409,13 @@ function StoreOtherSheet({staffId,staffName,staffDay,onClose}){
                       <input className="note-input" style={{fontSize:13}} placeholder="연락처 *" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
                     </div>
                   </div>
-                  <div style={{marginBottom:12}}>
-                    <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>✏️ 문의 내용</div>
-                    <DrawCanvas onDataUrl={setMemoImgs}/>
+                  {/* 낙서장 */}
+                  <div style={{marginBottom:12,borderTop:'2px solid var(--border)'}}>
+                    <button onClick={()=>setDoodleOpen(!doodleOpen)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 4px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
+                      <span style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase'}}>🎨 낙서장</span>
+                      <span style={{fontSize:11,fontWeight:700,color:'var(--blue)',display:'flex',alignItems:'center',gap:4}}>{doodleOpen?'접기 ▲':'펼치기 ▼'}</span>
+                    </button>
+                    {doodleOpen&&<DrawCanvas onDataUrl={setMemoImgs}/>}
                   </div>
                   <div style={{display:'flex',gap:8}}>
                     <button onClick={()=>setOtherType(null)} style={{flex:1,padding:'12px',borderRadius:10,border:'1px solid var(--border)',background:'transparent',color:'var(--text-md)',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>← 다시 선택</button>
@@ -3237,6 +3506,7 @@ function GrohomeNoteSheet({staffId,staffName,staffDay,grohomeCat,onClose}){
   const [memo,setMemo]=useState('');
   const [pencilMode,setPencilMode]=useState(true);
   const [memoImgs,setMemoImgs]=useState([]);
+  const [doodleOpen,setDoodleOpen]=useState(false);
   const [saving,setSaving]=useState(false);
   const [done,setDone]=useState(false);
   const memoRef=useRef(null);
@@ -3301,10 +3571,13 @@ function GrohomeNoteSheet({staffId,staffName,staffDay,grohomeCat,onClose}){
                   <input className="note-input" style={{fontSize:13}} placeholder="연락처 *" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
                 </div>
               </div>
-              {/* 펜슬 메모 */}
-              <div style={{marginBottom:10}}>
-                <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>✏️ 상담 메모</div>
-                <DrawCanvas onDataUrl={setMemoImgs}/>
+              {/* 낙서장 */}
+              <div style={{marginBottom:10,borderTop:'2px solid var(--border)'}}>
+                <button onClick={()=>setDoodleOpen(!doodleOpen)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 4px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
+                  <span style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase'}}>🎨 낙서장</span>
+                  <span style={{fontSize:11,fontWeight:700,color:'var(--blue)',display:'flex',alignItems:'center',gap:4}}>{doodleOpen?'접기 ▲':'펼치기 ▼'}</span>
+                </button>
+                {doodleOpen&&<DrawCanvas onDataUrl={setMemoImgs}/>}
               </div>
             </div>
           </>
@@ -3332,6 +3605,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
   const [done,setDone]=useState(false);
   const [pencilMode,setPencilMode]=useState(true);
   const [memoImgs,setMemoImgs]=useState([]);
+  const [doodleOpen,setDoodleOpen]=useState(false);
   const memoRef=useRef(null);
   const bizCardOpenRef=useRef(null);
   useEffect(()=>{if(!pencilMode&&memoRef.current){memoRef.current.focus();}},[pencilMode]);
@@ -3440,6 +3714,10 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
                   </div>
                 </div>
                 <div style={{display:'flex',alignItems:'center',gap:6}}>
+                  <button onClick={()=>{setPencilMode(v=>!v);document.activeElement?.blur();}}
+                    style={{padding:'5px 10px',borderRadius:8,border:`1.5px solid ${pencilMode?'var(--purple)':'var(--border)'}`,background:pencilMode?'var(--purple-l)':'var(--bg)',fontSize:12,fontWeight:700,color:pencilMode?'var(--purple)':'var(--text)',cursor:'pointer',display:'flex',alignItems:'center',gap:3,transition:'all .15s'}}>
+                    {pencilMode?'✏️ 펜슬':'⌨️ 키보드'}
+                  </button>
                   <button onClick={()=>bizCardOpenRef.current?.()} style={{padding:'5px 10px',borderRadius:8,border:'1.5px solid var(--border)',background:'var(--bg)',fontSize:12,fontWeight:700,color:'var(--text)',cursor:'pointer',display:'flex',alignItems:'center',gap:3}}>📇 명함</button>
                   {phone&&loadSolapiConfig().workerUrl&&(<button onClick={()=>setShowSmsModal(true)} style={{padding:'5px 10px',borderRadius:8,border:'1.5px solid var(--blue)',background:'var(--blue-l)',fontSize:12,fontWeight:700,color:'var(--blue)',cursor:'pointer',display:'flex',alignItems:'center',gap:3}}>💬 문자</button>)}
                   <button className="note-head-save" onPointerDown={e=>{if(e.pointerType==='touch'&&isPenActive()){e.preventDefault();e.stopPropagation();}}} onClick={e=>{if(isPenActive())return;save();}} disabled={saving}>{saving?'저장 중...':'저장하기'}</button>
@@ -3457,9 +3735,54 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
             {/* 명함 촬영 (헤더 버튼용 - 숨김) */}
             <div style={{position:'absolute',left:'-9999px'}}><BusinessCardCapture onCapture={(side,img)=>setBizCard(p=>({...p,[side]:img}))} openRef={bizCardOpenRef}/></div>
 
-            {/* ── 본문 ── */}
+            {/* ── 고객 정보 (스크롤 영역 밖 — 펜슬 Scribble 간섭 없음) ── */}
+            <div style={{padding:'12px 16px 14px',flexShrink:0,borderBottom:'2px solid var(--border)',touchAction:'auto'}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:customerFolded?0:8,cursor:'pointer'}} onClick={()=>setCustomerFolded(v=>!v)}>
+                <div style={{fontSize:11,fontWeight:800,color:'var(--accent)',letterSpacing:'.07em',textTransform:'uppercase'}}>
+                  👤 고객 정보
+                  {customerFolded&&name&&<span style={{fontSize:10,color:'var(--text)',fontWeight:600,marginLeft:8,textTransform:'none',letterSpacing:0}}>{company?company+' · ':''}{name}{phone?' · '+phone:''}</span>}
+                </div>
+                <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:700,padding:'2px 8px',borderRadius:6,background:'var(--bg)'}}>{customerFolded?'펼치기 ▼':'접기 ▲'}</span>
+              </div>
+              {!customerFolded&&(
+                <React.Fragment>
+                  <div style={{position:'relative',marginBottom:6}}>
+                    <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px'}} placeholder="✏️ 건물명 또는 업체명" value={company} onChange={e=>setCompany(e.target.value)}/>
+                    {company&&<button onClick={()=>setCompany(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                  </div>
+                  <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:8}}>
+                    {BUILDING_TYPES.map(b=>(
+                      <button key={b.id} onClick={()=>{if(effectiveBuildingId===b.id){setEffectiveBuildingId(null);}else{setEffectiveBuildingId(b.id);setPosition('');}}}
+                        style={{padding:'6px 12px',borderRadius:20,border:`1.5px solid ${effectiveBuildingId===b.id?'var(--navy)':'var(--border)'}`,background:effectiveBuildingId===b.id?'var(--navy)':'#fff',color:effectiveBuildingId===b.id?'#fff':'var(--text)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',transition:'all .12s'}}>
+                        {b.icon} {b.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:6}}>
+                    <div style={{position:'relative'}}>
+                      <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="✏️ 성함 *" value={name} onChange={e=>setName(e.target.value)}/>
+                      {name&&<button onClick={()=>setName(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                    </div>
+                    <div style={{position:'relative'}}>
+                      <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="✏️ 연락처 *" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
+                      {phone&&<button onClick={()=>setPhone(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                    </div>
+                  </div>
+                  <div style={{position:'relative'}}>
+                    <button className="note-input" style={{fontSize:14,padding:'10px 14px',textAlign:'left',cursor:'pointer',color:position?'var(--text)':'var(--text-sm)',width:'100%'}} onClick={()=>setShowPosition(!showPosition)}>{position||'직급 선택 (선택)'}<span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',fontSize:10,color:'var(--text-sm)'}}>▼</span></button>
+                    {showPosition&&<div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1.5px solid var(--border)',borderRadius:9,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:10,overflow:'hidden',marginTop:2}}>
+                      {getPositions(effectiveBuildingId).map(p=>(
+                        <button key={p} onClick={()=>{setPosition(p);setShowPosition(false);}} style={{width:'100%',padding:'10px 14px',border:'none',background:position===p?'var(--blue-l)':'#fff',color:position===p?'var(--blue)':'var(--text)',fontSize:13,fontWeight:position===p?700:500,cursor:'pointer',fontFamily:'inherit',textAlign:'left',borderBottom:'1px solid var(--border-s)'}}>{p}</button>
+                      ))}
+                    </div>}
+                  </div>
+                </React.Fragment>
+              )}
+            </div>
+
+            {/* ── 본문 (텍스트 메모) ── */}
             <div style={{display:'flex',flex:1,overflow:'hidden'}}>
-            <div className="note-sheet-scroll" style={{flex:1,minWidth:0,touchAction:'none'}}
+            <div className="note-sheet-scroll" style={{flex:1,minWidth:0}}
               ref={el=>{
                 if(!el||el._twoFingerBound)return;
                 el._twoFingerBound=true;
@@ -3468,70 +3791,33 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
                   if(ev.touches.length>=2){const cy=(ev.touches[0].clientY+ev.touches[1].clientY)/2;el.scrollTop+=(el._lastY2-cy);el._lastY2=cy;ev.preventDefault();}
                 },{passive:false});
               }}
-              onPointerDown={e=>{if(e.pointerType==='pen'){e.currentTarget.classList.add('pen-active');}}}
-              onPointerUp={e=>{setTimeout(()=>e.currentTarget?.classList?.remove('pen-active'),1500);}}
-              onPointerCancel={e=>{setTimeout(()=>e.currentTarget?.classList?.remove('pen-active'),1500);}}>
-
-              {/* ── 고객 정보 (접기 가능) ── */}
-              <div style={{padding:'12px 0 14px',flexShrink:0,borderBottom:'2px solid var(--border)',marginBottom:10}}>
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:customerFolded?0:8,cursor:'pointer'}} onClick={()=>setCustomerFolded(v=>!v)}>
-                  <div style={{fontSize:11,fontWeight:800,color:'var(--accent)',letterSpacing:'.07em',textTransform:'uppercase'}}>
-                    👤 고객 정보
-                    {customerFolded&&name&&<span style={{fontSize:10,color:'var(--text)',fontWeight:600,marginLeft:8,textTransform:'none',letterSpacing:0}}>{company?company+' · ':''}{name}{phone?' · '+phone:''}</span>}
-                  </div>
-                  <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:700,padding:'2px 8px',borderRadius:6,background:'var(--bg)'}}>{customerFolded?'펼치기 ▼':'접기 ▲'}</span>
-                </div>
-                {!customerFolded&&(
-                  <React.Fragment>
-                    <div style={{position:'relative',marginBottom:6}}>
-                      <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px'}} placeholder="✏️ 건물명 또는 업체명" value={company} onChange={e=>setCompany(e.target.value)}/>
-                      {company&&<button onClick={()=>setCompany(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
-                    </div>
-                    <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:8}}>
-                      {BUILDING_TYPES.map(b=>(
-                        <button key={b.id} onClick={()=>{if(effectiveBuildingId===b.id){setEffectiveBuildingId(null);}else{setEffectiveBuildingId(b.id);setPosition('');}}}
-                          style={{padding:'6px 12px',borderRadius:20,border:`1.5px solid ${effectiveBuildingId===b.id?'var(--navy)':'var(--border)'}`,background:effectiveBuildingId===b.id?'var(--navy)':'#fff',color:effectiveBuildingId===b.id?'#fff':'var(--text)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',transition:'all .12s'}}>
-                          {b.icon} {b.label}
-                        </button>
-                      ))}
-                    </div>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:6}}>
-                      <div style={{position:'relative'}}>
-                        <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="✏️ 성함 *" value={name} onChange={e=>setName(e.target.value)}/>
-                        {name&&<button onClick={()=>setName(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
-                      </div>
-                      <div style={{position:'relative'}}>
-                        <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="✏️ 연락처 *" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
-                        {phone&&<button onClick={()=>setPhone(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
-                      </div>
-                    </div>
-                    <div style={{position:'relative'}}>
-                      <button className="note-input" style={{fontSize:14,padding:'10px 14px',textAlign:'left',cursor:'pointer',color:position?'var(--text)':'var(--text-sm)',width:'100%'}} onClick={()=>setShowPosition(!showPosition)}>{position||'직급 선택 (선택)'}<span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',fontSize:10,color:'var(--text-sm)'}}>▼</span></button>
-                      {showPosition&&<div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1.5px solid var(--border)',borderRadius:9,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:10,overflow:'hidden',marginTop:2}}>
-                        {getPositions(effectiveBuildingId).map(p=>(
-                          <button key={p} onClick={()=>{setPosition(p);setShowPosition(false);}} style={{width:'100%',padding:'10px 14px',border:'none',background:position===p?'var(--blue-l)':'#fff',color:position===p?'var(--blue)':'var(--text)',fontSize:13,fontWeight:position===p?700:500,cursor:'pointer',fontFamily:'inherit',textAlign:'left',borderBottom:'1px solid var(--border-s)'}}>{p}</button>
-                        ))}
-                      </div>}
-                    </div>
-                  </React.Fragment>
-                )}
-              </div>
+              onPointerDown={e=>{if(e.pointerType==='pen'){markPenActive();if(!pencilMode)setPencilMode(true);const tag=e.target.tagName;if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;e.currentTarget.classList.add('pen-active');}}}
+              onPointerUp={e=>{setTimeout(()=>e.currentTarget?.classList?.remove('pen-active'),800);}}
+              onPointerCancel={e=>{setTimeout(()=>e.currentTarget?.classList?.remove('pen-active'),800);}}>
 
               {/* ── 텍스트 메모 ── */}
               <div style={{marginBottom:10}}>
-                <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>📝 텍스트 메모</div>
-                <textarea className="note-input" value={memo} onChange={e=>setMemo(e.target.value)}
-                  placeholder="✏️ 펜슬로 직접 필기하세요 (Scribble)&#10;상담 내용, 특이사항, 요청사항 등"
-                  style={{fontSize:15,padding:'14px',minHeight:200,resize:'vertical',lineHeight:1.6,fontFamily:'inherit',width:'100%',boxSizing:'border-box'}}/>
+                <MemoTextarea value={memo} onChange={setMemo}/>
               </div>
 
             </div>{/* 본문 끝 */}
             </div>{/* flex wrapper 끝 */}
 
-            {/* ── 손글씨 메모 (본문 스크롤 영역 밖, 독립 섹션) ── */}
-            <div style={{flexShrink:0,borderTop:'2px solid var(--border)',padding:'10px 0'}}>
-              <div style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:6}}>✏️ 손글씨 메모</div>
-              <DrawCanvas onDataUrl={setMemoImgs}/>
+            {/* ── 낙서장 (접기/펼치기) ── 폼과 완전 분리 */}
+            <div style={{flexShrink:0,margin:'0 -16px',borderTop:'6px solid var(--bg)'}}>
+              <div style={{background:'var(--card)',borderTop:'1.5px solid var(--border)',borderBottom:doodleOpen?'1.5px solid var(--border)':'none'}}>
+                <button onClick={()=>setDoodleOpen(!doodleOpen)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <span style={{fontSize:22}}>🎨</span>
+                    <div style={{textAlign:'left'}}>
+                      <div style={{fontSize:12,fontWeight:800,color:'var(--text)',letterSpacing:'.03em'}}>낙서장</div>
+                      <div style={{fontSize:10,color:'var(--text-sm)',fontWeight:500,marginTop:1}}>펜슬로 자유롭게 메모 · 스케치</div>
+                    </div>
+                  </div>
+                  <span style={{fontSize:12,fontWeight:700,color:'var(--blue)',padding:'4px 10px',borderRadius:8,background:doodleOpen?'var(--blue-l)':'var(--bg)'}}>{doodleOpen?'접기 ▲':'펼치기 ▼'}</span>
+                </button>
+                {doodleOpen&&<div style={{padding:'0 8px 12px'}}><DrawCanvas onDataUrl={setMemoImgs}/></div>}
+              </div>
             </div>
           </>
         )}
@@ -3614,6 +3900,8 @@ function AdminScreen({onBack}){
   const [smsTarget,setSmsTarget]=useState(null);
   const [toast,setToast]=useState(null);
   const [showPinChange,setShowPinChange]=useState(false);
+  const [selectedIds,setSelectedIds]=useState(new Set());
+  const [selectMode,setSelectMode]=useState(false);
 
   const DAYS=['4/16(목)','4/17(금)','4/18(토)'];
   const STATUS_OPTIONS=['신규','연락완료','계약예정','보류','기타'];
@@ -3680,13 +3968,21 @@ function AdminScreen({onBack}){
     }catch(e){alert('복원 실패');}
   };
 
-  // 영구 삭제
-  const permanentDeleteLead=async(id)=>{
-    if(!window.confirm('영구 삭제하면 복원할 수 없습니다. 계속하시겠어요?'))return;
+  // 선택 일괄 삭제
+  const deleteSelected=async()=>{
+    if(!selectedIds.size)return;
+    if(!window.confirm(`선택한 ${selectedIds.size}건을 휴지통으로 이동하시겠어요?`))return;
+    const deletedAt=new Date().toISOString();
     try{
-      await db.collection('leads').doc(id).delete();
-      setLeads(p=>p.filter(l=>l.id!==id));
+      await Promise.all([...selectedIds].map(id=>db.collection('leads').doc(id).update({deletedAt})));
+      setLeads(p=>p.map(l=>selectedIds.has(l.id)?{...l,deletedAt}:l));
+      setSelectedIds(new Set());
+      setSelectMode(false);
     }catch(e){alert('삭제 실패');}
+  };
+  const toggleSelectAll=()=>{
+    if(selectedIds.size===display.length)setSelectedIds(new Set());
+    else setSelectedIds(new Set(display.map(l=>l.id)));
   };
 
   // CSV 다운로드
@@ -3843,9 +4139,23 @@ function AdminScreen({onBack}){
             </div>
           </div>
 
-          {/* 결과 카운트 */}
-          <div style={{padding:'6px 14px',background:'var(--bg)',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:700,color:'var(--text-sm)',flexShrink:0}}>
-            {display.length}건 표시 중 / 전체 {activeLeads.length}건
+          {/* 결과 카운트 + 선택 모드 */}
+          <div style={{padding:'6px 14px',background:'var(--bg)',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:700,color:'var(--text-sm)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            {selectMode?(
+              <span style={{color:'var(--accent)'}}>{selectedIds.size}건 선택됨</span>
+            ):(
+              <span>{display.length}건 표시 중 / 전체 {activeLeads.length}건</span>
+            )}
+            <div style={{display:'flex',gap:6}}>
+              {selectMode&&(
+                <button onClick={toggleSelectAll} style={{padding:'3px 10px',borderRadius:20,border:'1.5px solid var(--border)',background:'#fff',color:'var(--text)',fontSize:11,fontWeight:700,cursor:'pointer'}}>
+                  {selectedIds.size===display.length?'선택해제':'전체선택'}
+                </button>
+              )}
+              <button onClick={()=>{setSelectMode(v=>{if(v){setSelectedIds(new Set());}return!v;});}} style={{padding:'3px 10px',borderRadius:20,border:'1.5px solid var(--accent)',background:selectMode?'var(--accent)':'#fff',color:selectMode?'#fff':'var(--accent)',fontSize:11,fontWeight:700,cursor:'pointer'}}>
+                {selectMode?'취소':'선택'}
+              </button>
+            </div>
           </div>
 
           {/* 리드 목록 */}
@@ -3855,10 +4165,20 @@ function AdminScreen({onBack}){
               const isOpen=expanded===l.id;
               const status=l.status||'신규';
               return(
-                <div key={l.id||i} style={{background:'var(--card)',borderRadius:12,border:`1.5px solid ${isOpen?'var(--accent)':'var(--border)'}`,overflow:'hidden',transition:'border-color .15s'}}>
-                  {/* 카드 헤더 - 탭으로 열고닫기 */}
-                  <div style={{padding:'12px 14px',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}} onClick={()=>setExpanded(isOpen?null:l.id)}>
-                    <span style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',width:20,textAlign:'center'}}>{i+1}</span>
+                <div key={l.id||i} style={{background:'var(--card)',borderRadius:12,border:`1.5px solid ${selectMode&&selectedIds.has(l.id)?'var(--accent)':isOpen?'var(--accent)':'var(--border)'}`,overflow:'hidden',transition:'border-color .15s'}}>
+                  {/* 카드 헤더 - 탭으로 열고닫기 / 선택모드 */}
+                  <div style={{padding:'12px 14px',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}} onClick={()=>{
+                    if(selectMode){
+                      setSelectedIds(prev=>{const n=new Set(prev);n.has(l.id)?n.delete(l.id):n.add(l.id);return n;});
+                    }else{setExpanded(isOpen?null:l.id);}
+                  }}>
+                    {selectMode?(
+                      <div style={{width:20,height:20,borderRadius:5,border:`2px solid ${selectedIds.has(l.id)?'var(--accent)':'#CBD5E1'}`,background:selectedIds.has(l.id)?'var(--accent)':'#fff',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                        {selectedIds.has(l.id)&&<svg width="11" height="11" viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                      </div>
+                    ):(
+                      <span style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',width:20,textAlign:'center'}}>{i+1}</span>
+                    )}
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{display:'flex',alignItems:'center',gap:6}}>
                         <span style={{fontSize:14,fontWeight:900,color:'var(--text)'}}>{l.name||'이름없음'}</span>
@@ -3935,6 +4255,16 @@ function AdminScreen({onBack}){
               );
             })}
           </div>
+
+          {/* 선택 삭제 바 */}
+          {selectMode&&selectedIds.size>0&&(
+            <div style={{padding:'10px 14px',background:'#FEF2F2',borderTop:'1.5px solid #FCA5A5',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+              <span style={{fontSize:13,fontWeight:800,color:'#DC2626'}}>{selectedIds.size}건 선택됨</span>
+              <button onClick={deleteSelected} style={{padding:'8px 20px',borderRadius:10,border:'none',background:'#DC2626',color:'#fff',fontSize:13,fontWeight:800,cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
+                🗑 휴지통으로 이동
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -4103,26 +4433,39 @@ function AdminScreen({onBack}){
 
       {/* ── 휴지통 탭 ── */}
       {!loading&&tab==='trash'&&(
-        <div style={{flex:1,overflowY:'auto',padding:'16px'}}>
-          <div style={{fontSize:14,fontWeight:900,color:'var(--text)',marginBottom:12}}>🗑 휴지통 ({trashedLeads.length}건)</div>
-          {trashedLeads.length===0&&<div className="empty">휴지통이 비어있습니다</div>}
-          <div style={{display:'flex',flexDirection:'column',gap:8}}>
-            {trashedLeads.map((l,i)=>(
-              <div key={l.id||i} style={{background:'var(--card)',borderRadius:12,border:'1px solid var(--border)',padding:'12px 14px'}}>
-                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
-                  <span style={{fontSize:14,fontWeight:900,color:'var(--text)'}}>{l.name||'이름없음'}</span>
-                  <span style={{fontSize:11,color:'var(--text-sm)',fontWeight:600}}>{l.phone}</span>
-                  <span style={{fontSize:11,color:'var(--text-sm)',fontWeight:600,marginLeft:'auto'}}>{l.staff} · {l.building}</span>
-                </div>
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                  <span style={{fontSize:10,color:'#DC2626'}}>삭제: {l.deletedAt?new Date(l.deletedAt).toLocaleString('ko'):''}</span>
-                  <div style={{display:'flex',gap:6}}>
-                    <button onClick={()=>restoreLead(l.id)} style={{padding:'5px 12px',borderRadius:8,border:'1.5px solid #BBF7D0',background:'#F0FDF4',color:'#059669',fontSize:11,fontWeight:700,cursor:'pointer'}}>복원</button>
-                    <button onClick={()=>permanentDeleteLead(l.id)} style={{padding:'5px 12px',borderRadius:8,border:'1.5px solid #FCA5A5',background:'#FEF2F2',color:'#DC2626',fontSize:11,fontWeight:700,cursor:'pointer'}}>영구삭제</button>
+        <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+          {/* 헤더 */}
+          <div style={{padding:'10px 14px',background:'#FEF2F2',borderBottom:'1.5px solid #FCA5A5',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+            <span style={{fontSize:13,fontWeight:900,color:'#DC2626'}}>🗑 휴지통 ({trashedLeads.length}건)</span>
+
+          </div>
+          <div style={{flex:1,overflowY:'auto',padding:'12px'}}>
+            {trashedLeads.length===0&&<div className="empty">휴지통이 비어있습니다</div>}
+            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+              {trashedLeads.map((l,i)=>(
+                <div key={l.id||i} style={{background:'var(--card)',borderRadius:12,border:'1px solid #FCA5A5',padding:'12px 14px'}}>
+                  <div style={{display:'flex',alignItems:'flex-start',gap:8,marginBottom:8}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
+                        <span style={{fontSize:14,fontWeight:900,color:'var(--text)'}}>{l.name||'이름없음'}</span>
+                        <span style={{fontSize:11,color:'var(--text-sm)',fontWeight:600}}>{l.phone}</span>
+                      </div>
+                      <div style={{fontSize:11,color:'var(--text-sm)',fontWeight:600}}>{l.staff} · {l.day} · {l.building}</div>
+                      {l.problems?.length>0&&(
+                        <div style={{display:'flex',flexWrap:'wrap',gap:3,marginTop:4}}>
+                          {l.problems.map(p=><span key={p} style={{fontSize:10,padding:'2px 6px',background:'#FEF3C7',color:'#92400E',borderRadius:20,fontWeight:700}}>{p}</span>)}
+                        </div>
+                      )}
+                    </div>
+                    <span style={{fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:10,background:'#FEF2F2',color:'#DC2626',border:'1px solid #FCA5A5',flexShrink:0}}>{l.status||'신규'}</span>
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                    <span style={{fontSize:10,color:'#DC2626',fontWeight:600}}>🗑 삭제: {l.deletedAt?new Date(l.deletedAt).toLocaleString('ko'):''}</span>
+                    <button onClick={()=>restoreLead(l.id)} style={{padding:'5px 12px',borderRadius:8,border:'1.5px solid #BBF7D0',background:'#F0FDF4',color:'#059669',fontSize:11,fontWeight:700,cursor:'pointer'}}>↩ 복원</button>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -4543,34 +4886,24 @@ function App(){
             <div className="home-expo-date">벡스코 &nbsp;|&nbsp; 2026.04.16 (목) ~ 04.18 (토)</div>
           </div>
 
-          {/* 브랜드 선택 CTA */}
-          <div style={{display:'flex',flexDirection:'column',gap:8,width:'100%',maxWidth:360,marginBottom:12}}>
-            <div style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,.4)',letterSpacing:'.08em',textAlign:'center',marginBottom:2}}>상담 유형을 선택하세요</div>
-            {[
-              {id:'construction',label:'POUR공법 · 솔루션',sub:'시공사 · 관리주체 · 전문 상담',icon:'🏗️',bc:'rgba(37,99,235,.7)',bg:'rgba(37,99,235,.12)',sbg:'rgba(37,99,235,.28)'},
-              {id:'store',label:'POUR스토어',sub:'DIY 자재 · 패키지 · 시공 매칭',icon:'🛒',bc:'rgba(234,88,12,.7)',bg:'rgba(234,88,12,.12)',sbg:'rgba(234,88,12,.28)'},
-              {id:'tech',label:'기술연구소',sub:'기술문의 · MOU · R&D 협력',icon:'🔬',bc:'rgba(5,150,105,.7)',bg:'rgba(5,150,105,.08)',sbg:'rgba(5,150,105,.25)'},
-            ].map(b=>{
-              const sel=homeBrand===b.id;
-              return(
-                <button key={b.id} onClick={()=>setHomeBrand(b.id)}
-                  style={{width:'100%',padding:'12px 16px',borderRadius:12,border:`${sel?'2px':'1.5px'} solid ${b.bc}`,background:sel?b.sbg:b.bg,display:'flex',alignItems:'center',gap:12,cursor:'pointer',fontFamily:'inherit',textAlign:'left',transition:'all .15s'}}>
-                  <span style={{fontSize:20,lineHeight:1}}>{b.icon}</span>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:14,fontWeight:800,color:'#fff',marginBottom:1}}>{b.label}</div>
-                    <div style={{fontSize:11,color:'rgba(255,255,255,.5)'}}>{b.sub}</div>
-                  </div>
-                  {sel?<span style={{fontSize:16,color:'#4ade80',fontWeight:900}}>✓</span>:<span style={{color:'rgba(255,255,255,.25)',fontSize:16}}>›</span>}
-                </button>
-              );
-            })}
-            <button onClick={()=>{
-              if(homeBrand==='construction'){setBrand('construction');setScreen('problem');}
-              else if(homeBrand==='store'){setBrand('store');setScreen('store-category');}
-              else if(homeBrand==='tech'){setBrand('tech');setScreen('tech-memo');}
-            }} style={{width:'100%',padding:'14px',borderRadius:12,background:'#1A56DB',border:'none',color:'#fff',fontSize:15,fontWeight:900,cursor:'pointer',fontFamily:'inherit',marginTop:4,display:'flex',alignItems:'center',justifyContent:'center',gap:8,letterSpacing:'.02em'}}>
+          {/* 상담 시작 CTA */}
+          <div style={{display:'flex',flexDirection:'column',gap:10,width:'100%',maxWidth:360,marginBottom:12}}>
+            <button onClick={()=>{setBrand('construction');setScreen('problem');}}
+              style={{width:'100%',padding:'28px 20px',borderRadius:16,background:'linear-gradient(135deg,#1A56DB 0%,#2563EB 50%,#3B82F6 100%)',border:'2px solid rgba(255,255,255,.15)',color:'#fff',fontSize:22,fontWeight:900,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:10,letterSpacing:'.02em',boxShadow:'0 8px 32px rgba(37,99,235,.5)',transition:'transform .12s'}}>
               상담 시작하기 &nbsp;→
             </button>
+            <div style={{display:'flex',gap:8}}>
+              <button onClick={()=>{setBrand('construction');setScreen('problem');}}
+                style={{flex:1,padding:'14px 10px',borderRadius:12,border:'1.5px solid rgba(37,99,235,.5)',background:'rgba(37,99,235,.12)',color:'#fff',fontSize:13,fontWeight:800,cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column',alignItems:'center',gap:4,transition:'all .12s'}}>
+                <span style={{fontSize:18}}>🏗️</span>
+                <span>공법 · 솔루션</span>
+              </button>
+              <button onClick={()=>{setBrand('store');setScreen('store-category');}}
+                style={{flex:1,padding:'14px 10px',borderRadius:12,border:'1.5px solid rgba(234,88,12,.5)',background:'rgba(234,88,12,.12)',color:'#fff',fontSize:13,fontWeight:800,cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column',alignItems:'center',gap:4,transition:'all .12s'}}>
+                <span style={{fontSize:18}}>🛒</span>
+                <span>POUR스토어</span>
+              </button>
+            </div>
           </div>
 
           {/* 리드 + 통계 한 줄 */}

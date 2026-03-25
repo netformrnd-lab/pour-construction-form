@@ -20,13 +20,14 @@
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:24px;font-family:'Noto Sans KR','Malgun Gothic',sans-serif;-webkit-font-smoothing:antialiased;}
-.W-scaler{transform-origin:top center;}
+.W-scaler{transform-origin:top left;}
 @media(max-width:1673px){
-  body{padding:0;}
+  html{overflow-x:hidden;}
+  body{padding:0;justify-content:flex-start;align-items:flex-start;overflow-x:hidden;}
   .W-scaler{
-    transform:scale(calc((100vw) / 1625));
+    transform:scale(calc(100vw / 1625));
     width:1625px;
-    margin-bottom:calc((1000px * ((100vw) / 1625)) - 1000px);
+    margin-bottom:calc(1000px * (100vw / 1625) - 1000px);
   }
 }
 

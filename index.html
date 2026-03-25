@@ -595,7 +595,7 @@ const markPenActive=()=>{window.__penActive=true;window.__penEverDetected=true;c
 const isPenActive=()=>window.__penActive;
 
 /* ══ MemoTextarea – 텍스트 메모 (되돌리기 · 전체삭제) ══ */
-function MemoTextarea({value,onChange,placeholder,minHeight=600,suppressKeyboard=false}){
+function MemoTextarea({value,onChange,placeholder,minHeight=600}){
   const histRef=useRef([value||'']);
   const idxRef=useRef(0);
   const timerRef=useRef(null);
@@ -670,7 +670,7 @@ function MemoTextarea({value,onChange,placeholder,minHeight=600,suppressKeyboard
         React.createElement('button',{onClick:clearAll,disabled:!value,style:{...btnBase,background:value?'#FEF2F2':'var(--card)',color:value?'#DC2626':'#bbb',opacity:value?1:.5}},'🗑 전체삭제'),
       ),
     ),
-    React.createElement('textarea',{ref:taRef,className:'note-input',value:value,onChange:handleChange,placeholder:placeholder||"✏️ 펜슬로 직접 필기하세요 (Scribble)\n상담 내용, 특이사항, 요청사항 등",inputMode:suppressKeyboard?'none':undefined,style:{fontSize:15,padding:'14px',minHeight:minHeight,resize:'vertical',lineHeight:1.6,fontFamily:'inherit',width:'100%',boxSizing:'border-box'}}),
+    React.createElement('textarea',{ref:taRef,className:'note-input',value:value,onChange:handleChange,placeholder:placeholder||"✏️ 펜슬로 직접 필기하세요 (Scribble)\n상담 내용, 특이사항, 요청사항 등",style:{fontSize:15,padding:'14px',minHeight:minHeight,resize:'vertical',lineHeight:1.6,fontFamily:'inherit',width:'100%',boxSizing:'border-box'}}),
   );
 }
 
@@ -2532,7 +2532,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
                 {/* ── 고객 정보 (펜슬 Scribble + 자동 펜/키보드 감지) ── */}
                 <div style={{padding:'12px 16px 14px',flexShrink:0,borderBottom:'2px solid var(--border)',touchAction:'auto'}}
-                  onPointerDown={e=>{if(e.pointerType==='pen'&&!ntPencilMode){setNtPencilMode(true);markPenActive();}else if(e.pointerType==='touch'&&ntPencilMode){const t=e.target.tagName;if(t==='INPUT'||t==='TEXTAREA')setNtPencilMode(false);}}}>
+                  onPointerDown={e=>{if(e.pointerType==='pen'){markPenActive();if(!ntPencilMode)setNtPencilMode(true);}}}>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:ntCustomerFolded?0:8,cursor:'pointer'}} onClick={()=>setNtCustomerFolded(v=>!v)}>
                     <div style={{fontSize:11,fontWeight:800,color:'var(--accent)',letterSpacing:'.07em',textTransform:'uppercase'}}>
                       👤 고객 정보
@@ -2543,7 +2543,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                   {!ntCustomerFolded&&(
                     <React.Fragment>
                       <div style={{position:'relative',marginBottom:6}}>
-                        <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px'}} placeholder="✏️ 건물명 또는 업체명" value={ntCompany} onChange={e=>setNtCompany(e.target.value)} inputMode={ntPencilMode?'none':undefined}/>
+                        <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px'}} placeholder="✏️ 건물명 또는 업체명" value={ntCompany} onChange={e=>setNtCompany(e.target.value)}/>
                         {ntCompany&&<button onClick={()=>setNtCompany(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
                       </div>
                       <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:8}}>
@@ -2556,11 +2556,11 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                       </div>
                       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:6}}>
                         <div style={{position:'relative'}}>
-                          <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="✏️ 성함 *" value={ntName} onChange={e=>setNtName(e.target.value)} inputMode={ntPencilMode?'none':undefined}/>
+                          <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="✏️ 성함 *" value={ntName} onChange={e=>setNtName(e.target.value)}/>
                           {ntName&&<button onClick={()=>setNtName(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
                         </div>
                         <div style={{position:'relative'}}>
-                          <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="✏️ 연락처 *" value={ntPhone} onChange={e=>setNtPhone(e.target.value)} inputMode={ntPencilMode?'none':'tel'}/>
+                          <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="✏️ 연락처 *" value={ntPhone} onChange={e=>setNtPhone(e.target.value)}/>
                           {ntPhone&&<button onClick={()=>setNtPhone(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
                         </div>
                       </div>
@@ -2594,13 +2594,13 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                       },{passive:false});
                     }
                   }}
-                  onPointerDown={e=>{if(e.pointerType==='pen'){markPenActive();if(!ntPencilMode)setNtPencilMode(true);const tag=e.target.tagName;if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;e.currentTarget.classList.add('pen-active');}else if(e.pointerType==='touch'&&ntPencilMode){const t=e.target.tagName;if(t==='INPUT'||t==='TEXTAREA')setNtPencilMode(false);}}}
+                  onPointerDown={e=>{if(e.pointerType==='pen'){markPenActive();if(!ntPencilMode)setNtPencilMode(true);const tag=e.target.tagName;if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;e.currentTarget.classList.add('pen-active');}}}
                   onPointerUp={e=>{setTimeout(()=>e.currentTarget?.classList?.remove('pen-active'),800);}}
                   onPointerCancel={e=>{setTimeout(()=>e.currentTarget?.classList?.remove('pen-active'),800);}}>
 
                   {/* ── 텍스트 메모 (펜슬 Scribble 입력 가능) ── */}
                   <div style={{marginBottom:10}}>
-                    <MemoTextarea value={ntMemo} onChange={setNtMemo} suppressKeyboard={ntPencilMode}/>
+                    <MemoTextarea value={ntMemo} onChange={setNtMemo}/>
                   </div>
 
                 </div>{/* 본문 끝 */}
@@ -3769,13 +3769,13 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
                   if(ev.touches.length>=2){const cy=(ev.touches[0].clientY+ev.touches[1].clientY)/2;el.scrollTop+=(el._lastY2-cy);el._lastY2=cy;ev.preventDefault();}
                 },{passive:false});
               }}
-              onPointerDown={e=>{if(e.pointerType==='pen'){markPenActive();if(!pencilMode)setPencilMode(true);const tag=e.target.tagName;if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;e.currentTarget.classList.add('pen-active');}else if(e.pointerType==='touch'&&pencilMode){const t=e.target.tagName;if(t==='INPUT'||t==='TEXTAREA')setPencilMode(false);}}}
+              onPointerDown={e=>{if(e.pointerType==='pen'){markPenActive();if(!pencilMode)setPencilMode(true);const tag=e.target.tagName;if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;e.currentTarget.classList.add('pen-active');}}}
               onPointerUp={e=>{setTimeout(()=>e.currentTarget?.classList?.remove('pen-active'),800);}}
               onPointerCancel={e=>{setTimeout(()=>e.currentTarget?.classList?.remove('pen-active'),800);}}>
 
               {/* ── 텍스트 메모 ── */}
               <div style={{marginBottom:10}}>
-                <MemoTextarea value={memo} onChange={setMemo} suppressKeyboard={pencilMode}/>
+                <MemoTextarea value={memo} onChange={setMemo}/>
               </div>
 
             </div>{/* 본문 끝 */}

@@ -659,7 +659,7 @@ function MemoTextarea({value,onChange,placeholder,minHeight=600}){
       React.createElement('button',{onClick:()=>insertAt('  '),style:{...tb}},'⇥ 탭'),
       React.createElement('button',{onClick:clearAll,disabled:!value,style:{...tb,background:value?'#FEF2F2':'var(--card)',color:value?'#DC2626':'#bbb',opacity:value?1:.5}},'🗑 전체삭제'),
     ),
-    React.createElement('textarea',{ref:taRef,className:'note-input',value:value,onChange:handleChange,inputMode:'none',placeholder:placeholder||"✏️ 펜슬로 직접 필기하세요\n상담 내용, 특이사항, 요청사항 등",style:{fontSize:16,padding:'16px',minHeight:minHeight,resize:'vertical',lineHeight:1.7,fontFamily:'inherit',width:'100%',boxSizing:'border-box'}}),
+    React.createElement('textarea',{ref:taRef,className:'note-input',value:value,onChange:handleChange,placeholder:placeholder||"✏️ 펜슬로 직접 필기하세요\n상담 내용, 특이사항, 요청사항 등",style:{fontSize:16,padding:'16px',minHeight:minHeight,resize:'vertical',lineHeight:1.7,fontFamily:'inherit',width:'100%',boxSizing:'border-box'}}),
   );
 }
 

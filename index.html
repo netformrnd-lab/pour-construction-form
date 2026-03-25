@@ -2349,9 +2349,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                             </div>
                             {/* 확대 버튼 */}
                             <div onClick={(e)=>{e.stopPropagation();setInlinePlayIdx(null);setMediaViewer(i);}}
-                              style={{position:'absolute',top:6,right:6,padding:'12px 20px',borderRadius:14,background:'rgba(0,0,0,.65)',display:'flex',alignItems:'center',gap:6,cursor:'pointer',zIndex:3,backdropFilter:'blur(6px)'}}>
-                              <span style={{fontSize:26,color:'#fff',lineHeight:1}}>+</span>
-                              <span style={{fontSize:22,color:'#fff',fontWeight:800}}>확대</span>
+                              style={{position:'absolute',top:6,right:6,width:40,height:40,borderRadius:12,background:'rgba(0,0,0,.55)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',zIndex:3,backdropFilter:'blur(6px)'}}>
+                              <span style={{fontSize:24,color:'#fff',lineHeight:1,fontWeight:300}}>+</span>
                             </div>
                             {/* 하단 그라데이션 — 어두운 fade */}
                             <div style={{position:'absolute',bottom:0,left:0,right:0,height:'30%',background:'linear-gradient(transparent,rgba(0,0,0,.4))',pointerEvents:'none',borderRadius:'0 0 12px 12px'}}/>
@@ -2447,7 +2446,52 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 {/* 명함 촬영 (헤더 버튼용 - 숨김) */}
                 <div style={{position:'absolute',left:'-9999px'}}><BusinessCardCapture onCapture={(side,img)=>setNtBizCard(p=>({...p,[side]:img}))} openRef={ntBizCardOpenRef}/></div>
 
-                {/* ── 본문 ── */}
+                {/* ── 고객 정보 (스크롤 영역 밖 — 펜슬 Scribble 간섭 없음) ── */}
+                <div style={{padding:'12px 16px 14px',flexShrink:0,borderBottom:'2px solid var(--border)',touchAction:'auto'}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:ntCustomerFolded?0:8,cursor:'pointer'}} onClick={()=>setNtCustomerFolded(v=>!v)}>
+                    <div style={{fontSize:11,fontWeight:800,color:'var(--accent)',letterSpacing:'.07em',textTransform:'uppercase'}}>
+                      👤 고객 정보
+                      {ntCustomerFolded&&ntName&&<span style={{fontSize:10,color:'var(--text)',fontWeight:600,marginLeft:8,textTransform:'none',letterSpacing:0}}>{ntCompany?ntCompany+' · ':''}{ntName}{ntPhone?' · '+ntPhone:''}</span>}
+                    </div>
+                    <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:700,padding:'2px 8px',borderRadius:6,background:'var(--bg)'}}>{ntCustomerFolded?'펼치기 ▼':'접기 ▲'}</span>
+                  </div>
+                  {!ntCustomerFolded&&(
+                    <React.Fragment>
+                      <div style={{position:'relative',marginBottom:6}}>
+                        <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px'}} placeholder="✏️ 건물명 또는 업체명" value={ntCompany} onChange={e=>setNtCompany(e.target.value)}/>
+                        {ntCompany&&<button onClick={()=>setNtCompany(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                      </div>
+                      <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:8}}>
+                        {BUILDING_TYPES.map(b=>(
+                          <button key={b.id} onClick={()=>{if(effectiveBuildingId===b.id){setEffectiveBuildingId(null);}else{setEffectiveBuildingId(b.id);setNtPosition('');}}}
+                            style={{padding:'6px 12px',borderRadius:20,border:`1.5px solid ${effectiveBuildingId===b.id?'var(--navy)':'var(--border)'}`,background:effectiveBuildingId===b.id?'var(--navy)':'#fff',color:effectiveBuildingId===b.id?'#fff':'var(--text)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',transition:'all .12s'}}>
+                            {b.icon} {b.label}
+                          </button>
+                        ))}
+                      </div>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:6}}>
+                        <div style={{position:'relative'}}>
+                          <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="✏️ 성함 *" value={ntName} onChange={e=>setNtName(e.target.value)}/>
+                          {ntName&&<button onClick={()=>setNtName(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                        </div>
+                        <div style={{position:'relative'}}>
+                          <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="✏️ 연락처 *" value={ntPhone} onChange={e=>setNtPhone(e.target.value)} inputMode="tel"/>
+                          {ntPhone&&<button onClick={()=>setNtPhone(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                        </div>
+                      </div>
+                      <div style={{position:'relative'}}>
+                        <button className="note-input" style={{fontSize:14,padding:'10px 14px',textAlign:'left',cursor:'pointer',color:ntPosition?'var(--text)':'var(--text-sm)',width:'100%'}} onClick={()=>setNtShowPosition(!ntShowPosition)}>{ntPosition||'직급 선택 (선택)'}<span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',fontSize:10,color:'var(--text-sm)'}}>▼</span></button>
+                        {ntShowPosition&&<div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1.5px solid var(--border)',borderRadius:9,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:10,overflow:'hidden',marginTop:2}}>
+                          {getPositions(effectiveBuildingId).map(p=>(
+                            <button key={p} onClick={()=>{setNtPosition(p);setNtShowPosition(false);}} style={{width:'100%',padding:'10px 14px',border:'none',background:ntPosition===p?'var(--blue-l)':'#fff',color:ntPosition===p?'var(--blue)':'var(--text)',fontSize:13,fontWeight:ntPosition===p?700:500,cursor:'pointer',fontFamily:'inherit',textAlign:'left',borderBottom:'1px solid var(--border-s)'}}>{p}</button>
+                          ))}
+                        </div>}
+                      </div>
+                    </React.Fragment>
+                  )}
+                </div>
+
+                {/* ── 본문 (텍스트 메모) ── */}
                 <div style={{display:'flex',flex:1,overflow:'hidden'}}>
                 <div className="note-sheet-scroll" style={{flex:1,minWidth:0}}
                   ref={el=>{
@@ -2468,51 +2512,6 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                   onPointerDown={e=>{if(e.pointerType==='pen'){const tag=e.target.tagName;if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;e.currentTarget.classList.add('pen-active');}}}
                   onPointerUp={e=>{setTimeout(()=>e.currentTarget?.classList?.remove('pen-active'),800);}}
                   onPointerCancel={e=>{setTimeout(()=>e.currentTarget?.classList?.remove('pen-active'),800);}}>
-
-                  {/* ── 고객 정보 (접기 가능) ── */}
-                  <div style={{padding:'12px 0 14px',flexShrink:0,borderBottom:'2px solid var(--border)',marginBottom:10}}>
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:ntCustomerFolded?0:8,cursor:'pointer'}} onClick={()=>setNtCustomerFolded(v=>!v)}>
-                      <div style={{fontSize:11,fontWeight:800,color:'var(--accent)',letterSpacing:'.07em',textTransform:'uppercase'}}>
-                        👤 고객 정보
-                        {ntCustomerFolded&&ntName&&<span style={{fontSize:10,color:'var(--text)',fontWeight:600,marginLeft:8,textTransform:'none',letterSpacing:0}}>{ntCompany?ntCompany+' · ':''}{ntName}{ntPhone?' · '+ntPhone:''}</span>}
-                      </div>
-                      <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:700,padding:'2px 8px',borderRadius:6,background:'var(--bg)'}}>{ntCustomerFolded?'펼치기 ▼':'접기 ▲'}</span>
-                    </div>
-                    {!ntCustomerFolded&&(
-                      <React.Fragment>
-                        <div style={{position:'relative',marginBottom:6}}>
-                          <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px'}} placeholder="✏️ 건물명 또는 업체명" value={ntCompany} onChange={e=>setNtCompany(e.target.value)}/>
-                          {ntCompany&&<button onClick={()=>setNtCompany(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
-                        </div>
-                        <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:8}}>
-                          {BUILDING_TYPES.map(b=>(
-                            <button key={b.id} onClick={()=>{if(effectiveBuildingId===b.id){setEffectiveBuildingId(null);}else{setEffectiveBuildingId(b.id);setNtPosition('');}}}
-                              style={{padding:'6px 12px',borderRadius:20,border:`1.5px solid ${effectiveBuildingId===b.id?'var(--navy)':'var(--border)'}`,background:effectiveBuildingId===b.id?'var(--navy)':'#fff',color:effectiveBuildingId===b.id?'#fff':'var(--text)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',transition:'all .12s'}}>
-                              {b.icon} {b.label}
-                            </button>
-                          ))}
-                        </div>
-                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:6}}>
-                          <div style={{position:'relative'}}>
-                            <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="✏️ 성함 *" value={ntName} onChange={e=>setNtName(e.target.value)}/>
-                            {ntName&&<button onClick={()=>setNtName(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
-                          </div>
-                          <div style={{position:'relative'}}>
-                            <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="✏️ 연락처 *" value={ntPhone} onChange={e=>setNtPhone(e.target.value)} inputMode="tel"/>
-                            {ntPhone&&<button onClick={()=>setNtPhone(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
-                          </div>
-                        </div>
-                        <div style={{position:'relative'}}>
-                          <button className="note-input" style={{fontSize:14,padding:'10px 14px',textAlign:'left',cursor:'pointer',color:ntPosition?'var(--text)':'var(--text-sm)',width:'100%'}} onClick={()=>setNtShowPosition(!ntShowPosition)}>{ntPosition||'직급 선택 (선택)'}<span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',fontSize:10,color:'var(--text-sm)'}}>▼</span></button>
-                          {ntShowPosition&&<div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1.5px solid var(--border)',borderRadius:9,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:10,overflow:'hidden',marginTop:2}}>
-                            {getPositions(effectiveBuildingId).map(p=>(
-                              <button key={p} onClick={()=>{setNtPosition(p);setNtShowPosition(false);}} style={{width:'100%',padding:'10px 14px',border:'none',background:ntPosition===p?'var(--blue-l)':'#fff',color:ntPosition===p?'var(--blue)':'var(--text)',fontSize:13,fontWeight:ntPosition===p?700:500,cursor:'pointer',fontFamily:'inherit',textAlign:'left',borderBottom:'1px solid var(--border-s)'}}>{p}</button>
-                            ))}
-                          </div>}
-                        </div>
-                      </React.Fragment>
-                    )}
-                  </div>
 
                   {/* ── 텍스트 메모 (펜슬 Scribble 입력 가능) ── */}
                   <div style={{marginBottom:10}}>
@@ -3625,7 +3624,52 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
             {/* 명함 촬영 (헤더 버튼용 - 숨김) */}
             <div style={{position:'absolute',left:'-9999px'}}><BusinessCardCapture onCapture={(side,img)=>setBizCard(p=>({...p,[side]:img}))} openRef={bizCardOpenRef}/></div>
 
-            {/* ── 본문 ── */}
+            {/* ── 고객 정보 (스크롤 영역 밖 — 펜슬 Scribble 간섭 없음) ── */}
+            <div style={{padding:'12px 16px 14px',flexShrink:0,borderBottom:'2px solid var(--border)',touchAction:'auto'}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:customerFolded?0:8,cursor:'pointer'}} onClick={()=>setCustomerFolded(v=>!v)}>
+                <div style={{fontSize:11,fontWeight:800,color:'var(--accent)',letterSpacing:'.07em',textTransform:'uppercase'}}>
+                  👤 고객 정보
+                  {customerFolded&&name&&<span style={{fontSize:10,color:'var(--text)',fontWeight:600,marginLeft:8,textTransform:'none',letterSpacing:0}}>{company?company+' · ':''}{name}{phone?' · '+phone:''}</span>}
+                </div>
+                <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:700,padding:'2px 8px',borderRadius:6,background:'var(--bg)'}}>{customerFolded?'펼치기 ▼':'접기 ▲'}</span>
+              </div>
+              {!customerFolded&&(
+                <React.Fragment>
+                  <div style={{position:'relative',marginBottom:6}}>
+                    <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px'}} placeholder="✏️ 건물명 또는 업체명" value={company} onChange={e=>setCompany(e.target.value)}/>
+                    {company&&<button onClick={()=>setCompany(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                  </div>
+                  <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:8}}>
+                    {BUILDING_TYPES.map(b=>(
+                      <button key={b.id} onClick={()=>{if(effectiveBuildingId===b.id){setEffectiveBuildingId(null);}else{setEffectiveBuildingId(b.id);setPosition('');}}}
+                        style={{padding:'6px 12px',borderRadius:20,border:`1.5px solid ${effectiveBuildingId===b.id?'var(--navy)':'var(--border)'}`,background:effectiveBuildingId===b.id?'var(--navy)':'#fff',color:effectiveBuildingId===b.id?'#fff':'var(--text)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',transition:'all .12s'}}>
+                        {b.icon} {b.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:6}}>
+                    <div style={{position:'relative'}}>
+                      <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="✏️ 성함 *" value={name} onChange={e=>setName(e.target.value)}/>
+                      {name&&<button onClick={()=>setName(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                    </div>
+                    <div style={{position:'relative'}}>
+                      <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="✏️ 연락처 *" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
+                      {phone&&<button onClick={()=>setPhone(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                    </div>
+                  </div>
+                  <div style={{position:'relative'}}>
+                    <button className="note-input" style={{fontSize:14,padding:'10px 14px',textAlign:'left',cursor:'pointer',color:position?'var(--text)':'var(--text-sm)',width:'100%'}} onClick={()=>setShowPosition(!showPosition)}>{position||'직급 선택 (선택)'}<span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',fontSize:10,color:'var(--text-sm)'}}>▼</span></button>
+                    {showPosition&&<div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1.5px solid var(--border)',borderRadius:9,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:10,overflow:'hidden',marginTop:2}}>
+                      {getPositions(effectiveBuildingId).map(p=>(
+                        <button key={p} onClick={()=>{setPosition(p);setShowPosition(false);}} style={{width:'100%',padding:'10px 14px',border:'none',background:position===p?'var(--blue-l)':'#fff',color:position===p?'var(--blue)':'var(--text)',fontSize:13,fontWeight:position===p?700:500,cursor:'pointer',fontFamily:'inherit',textAlign:'left',borderBottom:'1px solid var(--border-s)'}}>{p}</button>
+                      ))}
+                    </div>}
+                  </div>
+                </React.Fragment>
+              )}
+            </div>
+
+            {/* ── 본문 (텍스트 메모) ── */}
             <div style={{display:'flex',flex:1,overflow:'hidden'}}>
             <div className="note-sheet-scroll" style={{flex:1,minWidth:0}}
               ref={el=>{
@@ -3639,51 +3683,6 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
               onPointerDown={e=>{if(e.pointerType==='pen'){const tag=e.target.tagName;if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;e.currentTarget.classList.add('pen-active');}}}
               onPointerUp={e=>{setTimeout(()=>e.currentTarget?.classList?.remove('pen-active'),800);}}
               onPointerCancel={e=>{setTimeout(()=>e.currentTarget?.classList?.remove('pen-active'),800);}}>
-
-              {/* ── 고객 정보 (접기 가능) ── */}
-              <div style={{padding:'12px 0 14px',flexShrink:0,borderBottom:'2px solid var(--border)',marginBottom:10}}>
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:customerFolded?0:8,cursor:'pointer'}} onClick={()=>setCustomerFolded(v=>!v)}>
-                  <div style={{fontSize:11,fontWeight:800,color:'var(--accent)',letterSpacing:'.07em',textTransform:'uppercase'}}>
-                    👤 고객 정보
-                    {customerFolded&&name&&<span style={{fontSize:10,color:'var(--text)',fontWeight:600,marginLeft:8,textTransform:'none',letterSpacing:0}}>{company?company+' · ':''}{name}{phone?' · '+phone:''}</span>}
-                  </div>
-                  <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:700,padding:'2px 8px',borderRadius:6,background:'var(--bg)'}}>{customerFolded?'펼치기 ▼':'접기 ▲'}</span>
-                </div>
-                {!customerFolded&&(
-                  <React.Fragment>
-                    <div style={{position:'relative',marginBottom:6}}>
-                      <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px'}} placeholder="✏️ 건물명 또는 업체명" value={company} onChange={e=>setCompany(e.target.value)}/>
-                      {company&&<button onClick={()=>setCompany(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
-                    </div>
-                    <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:8}}>
-                      {BUILDING_TYPES.map(b=>(
-                        <button key={b.id} onClick={()=>{if(effectiveBuildingId===b.id){setEffectiveBuildingId(null);}else{setEffectiveBuildingId(b.id);setPosition('');}}}
-                          style={{padding:'6px 12px',borderRadius:20,border:`1.5px solid ${effectiveBuildingId===b.id?'var(--navy)':'var(--border)'}`,background:effectiveBuildingId===b.id?'var(--navy)':'#fff',color:effectiveBuildingId===b.id?'#fff':'var(--text)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',transition:'all .12s'}}>
-                          {b.icon} {b.label}
-                        </button>
-                      ))}
-                    </div>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:6}}>
-                      <div style={{position:'relative'}}>
-                        <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="✏️ 성함 *" value={name} onChange={e=>setName(e.target.value)}/>
-                        {name&&<button onClick={()=>setName(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
-                      </div>
-                      <div style={{position:'relative'}}>
-                        <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="✏️ 연락처 *" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
-                        {phone&&<button onClick={()=>setPhone(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
-                      </div>
-                    </div>
-                    <div style={{position:'relative'}}>
-                      <button className="note-input" style={{fontSize:14,padding:'10px 14px',textAlign:'left',cursor:'pointer',color:position?'var(--text)':'var(--text-sm)',width:'100%'}} onClick={()=>setShowPosition(!showPosition)}>{position||'직급 선택 (선택)'}<span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',fontSize:10,color:'var(--text-sm)'}}>▼</span></button>
-                      {showPosition&&<div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1.5px solid var(--border)',borderRadius:9,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:10,overflow:'hidden',marginTop:2}}>
-                        {getPositions(effectiveBuildingId).map(p=>(
-                          <button key={p} onClick={()=>{setPosition(p);setShowPosition(false);}} style={{width:'100%',padding:'10px 14px',border:'none',background:position===p?'var(--blue-l)':'#fff',color:position===p?'var(--blue)':'var(--text)',fontSize:13,fontWeight:position===p?700:500,cursor:'pointer',fontFamily:'inherit',textAlign:'left',borderBottom:'1px solid var(--border-s)'}}>{p}</button>
-                        ))}
-                      </div>}
-                    </div>
-                  </React.Fragment>
-                )}
-              </div>
 
               {/* ── 텍스트 메모 ── */}
               <div style={{marginBottom:10}}>

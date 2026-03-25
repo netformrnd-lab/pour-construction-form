@@ -595,13 +595,12 @@ window.__penEverTimer=null;
 const markPenActive=()=>{window.__penActive=true;window.__penEverDetected=true;clearTimeout(window.__penTimer);window.__penTimer=setTimeout(()=>{window.__penActive=false;},2000);clearTimeout(window.__penEverTimer);window.__penEverTimer=setTimeout(()=>{window.__penEverDetected=false;},10000);};
 const isPenActive=()=>window.__penActive;
 
-/* ══ MemoTextarea – 텍스트 메모 (되돌리기 · 전체삭제) ══ */
+/* ══ MemoTextarea – 텍스트 메모 (펜슬 전용: 키보드 차단 + 편의 도구) ══ */
 function MemoTextarea({value,onChange,placeholder,minHeight=600}){
   const histRef=useRef([value||'']);
   const idxRef=useRef(0);
   const timerRef=useRef(null);
   const taRef=useRef(null);
-  // push snapshot (debounced 400ms)
   const push=useCallback((v)=>{
     clearTimeout(timerRef.current);
     timerRef.current=setTimeout(()=>{
@@ -612,65 +611,55 @@ function MemoTextarea({value,onChange,placeholder,minHeight=600}){
     },400);
   },[]);
   const handleChange=useCallback((e)=>{
-    const v=e.target.value;
-    onChange(v);
-    push(v);
+    const v=e.target.value;onChange(v);push(v);
   },[onChange,push]);
+  const insertAt=useCallback((text)=>{
+    const ta=taRef.current;
+    const pos=ta?ta.selectionStart:value.length;
+    const nv=value.slice(0,pos)+text+value.slice(pos);
+    push(value);onChange(nv);
+    setTimeout(()=>{if(ta){ta.selectionStart=ta.selectionEnd=pos+text.length;ta.focus();}},0);
+  },[value,onChange,push]);
   const undo=useCallback(()=>{
-    // flush pending
     clearTimeout(timerRef.current);
     const h=histRef.current;
-    if(h[idxRef.current]!==value){
-      histRef.current=h.slice(0,idxRef.current+1).concat(value);
-      idxRef.current=histRef.current.length-1;
-    }
-    if(idxRef.current>0){
-      idxRef.current--;
-      onChange(histRef.current[idxRef.current]);
-    }
+    if(h[idxRef.current]!==value){histRef.current=h.slice(0,idxRef.current+1).concat(value);idxRef.current=histRef.current.length-1;}
+    if(idxRef.current>0){idxRef.current--;onChange(histRef.current[idxRef.current]);}
   },[value,onChange]);
   const redo=useCallback(()=>{
     clearTimeout(timerRef.current);
-    if(idxRef.current<histRef.current.length-1){
-      idxRef.current++;
-      onChange(histRef.current[idxRef.current]);
-    }
+    if(idxRef.current<histRef.current.length-1){idxRef.current++;onChange(histRef.current[idxRef.current]);}
   },[onChange]);
   const clearAll=useCallback(()=>{
-    if(!value) return;
-    // push current before clearing
+    if(!value)return;
     const h=histRef.current;
-    if(h[idxRef.current]!==value){
-      histRef.current=h.slice(0,idxRef.current+1).concat(value);
-      idxRef.current=histRef.current.length-1;
-    }
-    histRef.current=histRef.current.slice(0,idxRef.current+1).concat('');
-    idxRef.current=histRef.current.length-1;
-    onChange('');
+    if(h[idxRef.current]!==value){histRef.current=h.slice(0,idxRef.current+1).concat(value);idxRef.current=histRef.current.length-1;}
+    histRef.current=histRef.current.slice(0,idxRef.current+1).concat('');idxRef.current=histRef.current.length-1;onChange('');
   },[value,onChange]);
   const backspace=useCallback(()=>{
-    if(!value) return;
-    const ta=taRef.current;
-    const pos=ta?ta.selectionStart:value.length;
-    if(pos===0) return;
-    const nv=value.slice(0,pos-1)+value.slice(pos);
-    push(value);
-    onChange(nv);
+    if(!value)return;
+    const ta=taRef.current;const pos=ta?ta.selectionStart:value.length;
+    if(pos===0)return;
+    const nv=value.slice(0,pos-1)+value.slice(pos);push(value);onChange(nv);
     setTimeout(()=>{if(ta){ta.selectionStart=ta.selectionEnd=pos-1;}},0);
   },[value,onChange,push]);
   const canUndo=histRef.current.length>1&&idxRef.current>0||value!==histRef.current[idxRef.current];
   const canRedo=idxRef.current<histRef.current.length-1;
-  const btnBase={padding:'6px 10px',borderRadius:8,border:'1px solid var(--border)',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:3};
+  const tb={padding:'8px 0',borderRadius:10,border:'1.5px solid var(--border)',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:3,background:'var(--card)',color:'var(--text)'};
   return React.createElement('div',{style:{position:'relative'}},
-    React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'flex-end',marginBottom:6,flexWrap:'wrap',gap:4}},
-      React.createElement('div',{style:{display:'flex',gap:4,flexWrap:'wrap'}},
-        React.createElement('button',{onClick:backspace,disabled:!value,style:{...btnBase,background:value?'#FFF7ED':'var(--card)',color:value?'#EA580C':'#bbb',opacity:value?1:.5,fontSize:13,padding:'6px 12px'}},'← 지우기'),
-        React.createElement('button',{onClick:undo,disabled:!canUndo,style:{...btnBase,background:canUndo?'#EEF2FF':'var(--card)',color:canUndo?'#4F46E5':'#bbb',opacity:canUndo?1:.5}},'↩ 되돌리기'),
-        React.createElement('button',{onClick:redo,disabled:!canRedo,style:{...btnBase,background:canRedo?'#EEF2FF':'var(--card)',color:canRedo?'#4F46E5':'#bbb',opacity:canRedo?1:.5}},'↪ 다시'),
-        React.createElement('button',{onClick:clearAll,disabled:!value,style:{...btnBase,background:value?'#FEF2F2':'var(--card)',color:value?'#DC2626':'#bbb',opacity:value?1:.5}},'🗑 전체삭제'),
-      ),
+    /* 펜슬 편의 도구 바 — 키보드 대체 */
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:5,marginBottom:8}},
+      React.createElement('button',{onClick:()=>insertAt('\n'),style:{...tb,background:'#EEF2FF',color:'#4F46E5'}},'↵ 줄바꿈'),
+      React.createElement('button',{onClick:()=>insertAt(' '),style:{...tb,background:'#F0FDF4',color:'#059669'}},'␣ 공백'),
+      React.createElement('button',{onClick:backspace,disabled:!value,style:{...tb,background:value?'#FFF7ED':'var(--card)',color:value?'#EA580C':'#bbb',opacity:value?1:.5}},'← 지우기'),
+      React.createElement('button',{onClick:undo,disabled:!canUndo,style:{...tb,background:canUndo?'#EEF2FF':'var(--card)',color:canUndo?'#4F46E5':'#bbb',opacity:canUndo?1:.5}},'↩ 되돌리기'),
     ),
-    React.createElement('textarea',{ref:taRef,className:'note-input',value:value,onChange:handleChange,placeholder:placeholder||"✏️ 펜슬로 직접 필기하세요 (Scribble)\n상담 내용, 특이사항, 요청사항 등",style:{fontSize:15,padding:'14px',minHeight:minHeight,resize:'vertical',lineHeight:1.6,fontFamily:'inherit',width:'100%',boxSizing:'border-box'}}),
+    React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:5,marginBottom:8}},
+      React.createElement('button',{onClick:redo,disabled:!canRedo,style:{...tb,background:canRedo?'#EEF2FF':'var(--card)',color:canRedo?'#4F46E5':'#bbb',opacity:canRedo?1:.5}},'↪ 다시'),
+      React.createElement('button',{onClick:()=>insertAt('  '),style:{...tb}},'⇥ 탭'),
+      React.createElement('button',{onClick:clearAll,disabled:!value,style:{...tb,background:value?'#FEF2F2':'var(--card)',color:value?'#DC2626':'#bbb',opacity:value?1:.5}},'🗑 전체삭제'),
+    ),
+    React.createElement('textarea',{ref:taRef,className:'note-input',value:value,onChange:handleChange,inputMode:'none',placeholder:placeholder||"✏️ 펜슬로 직접 필기하세요\n상담 내용, 특이사항, 요청사항 등",style:{fontSize:16,padding:'16px',minHeight:minHeight,resize:'vertical',lineHeight:1.7,fontFamily:'inherit',width:'100%',boxSizing:'border-box'}}),
   );
 }
 
@@ -2622,13 +2611,16 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                   {/* 상단: 고객 정보 요약 (클릭하면 수정) */}
                   <div style={{padding:'10px 16px',flexShrink:0,borderBottom:'1.5px solid var(--border)',cursor:'pointer',background:'var(--bg)'}} onClick={()=>setNtStep('info')}>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                      <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',flex:1,minWidth:0}}>
-                        <span style={{fontSize:10,fontWeight:800,color:'var(--accent)',letterSpacing:'.06em'}}>👤</span>
+                      <div style={{display:'flex',alignItems:'center',gap:5,flexWrap:'wrap',flex:1,minWidth:0}}>
+                        <span style={{fontSize:10,fontWeight:800,color:'var(--accent)'}}>👤</span>
+                        {ntBrandTag&&<span style={{fontSize:10,fontWeight:700,color:ntBrandTag==='POUR공법'?'#2563EB':ntBrandTag==='POUR솔루션'?'#7C3AED':'#059669',background:ntBrandTag==='POUR공법'?'rgba(37,99,235,.12)':ntBrandTag==='POUR솔루션'?'rgba(124,58,237,.1)':'rgba(5,150,105,.1)',padding:'2px 8px',borderRadius:5}}>{ntBrandTag}</span>}
+                        {(()=>{const bt=BUILDING_TYPES.find(b=>b.id===effectiveBuildingId);return bt?<span style={{fontSize:10,fontWeight:600,color:'var(--text-sm)',background:'var(--card)',padding:'2px 8px',borderRadius:5,border:'1px solid var(--border)'}}>{bt.icon} {bt.label}</span>:null;})()}
                         {ntName?(
                           <>
                             {ntCompany&&<span style={{fontSize:12,fontWeight:700,color:'var(--text)',background:'var(--card)',padding:'2px 8px',borderRadius:5,border:'1px solid var(--border)'}}>{ntCompany}</span>}
                             <span style={{fontSize:12,fontWeight:700,color:'var(--text)',background:'var(--card)',padding:'2px 8px',borderRadius:5,border:'1px solid var(--border)'}}>{ntName}</span>
                             {ntPhone&&<span style={{fontSize:11,fontWeight:600,color:'var(--text-md)',background:'var(--card)',padding:'2px 8px',borderRadius:5,border:'1px solid var(--border)'}}>{ntPhone}</span>}
+                            {ntPosition&&<span style={{fontSize:10,fontWeight:600,color:'var(--text-sm)',background:'var(--card)',padding:'2px 8px',borderRadius:5,border:'1px solid var(--border)'}}>{ntPosition}</span>}
                           </>
                         ):(
                           <span style={{fontSize:12,color:'var(--text-sm)'}}>고객 정보 미입력</span>

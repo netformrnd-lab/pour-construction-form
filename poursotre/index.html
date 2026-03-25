@@ -31,7 +31,7 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
 .L-head::after{content:'';position:absolute;bottom:-40px;right:60px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.07);}
 
 .logo-h{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
-.store-logo{height:36px;width:auto;object-fit:contain;}
+.store-logo{height:52px;width:auto;}
 .logo-fallback{display:flex;align-items:center;gap:8px;}
 .lb{display:flex;align-items:flex-end;gap:3px;height:28px;}
 .lb span{display:block;background:rgba(255,255,255,0.95);border-radius:3px;}
@@ -168,8 +168,36 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
   <div class="L">
     <div class="L-head">
       <div class="logo-h">
-        <img class="store-logo" src="" alt="POUR스토어 로고" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-        <div class="logo-fallback" style="display:flex;">
+        <svg class="store-logo" viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg">
+          <!-- 건물 아이콘 -->
+          <g fill="none" stroke="#fff" stroke-width="3.5" stroke-linejoin="round">
+            <!-- 왼쪽 건물 (낮은) -->
+            <path d="M12,68 L12,30 L42,18 L42,68"/>
+            <rect x="18" y="38" width="8" height="10" rx="1" fill="rgba(255,255,255,0.3)"/>
+            <rect x="30" y="38" width="8" height="10" rx="1" fill="rgba(255,255,255,0.3)"/>
+            <!-- 중앙 건물 (가장 높음) -->
+            <rect x="46" y="8" width="22" height="60" rx="1" fill="rgba(255,255,255,0.25)"/>
+            <rect x="51" y="16" width="5" height="6" rx="1" fill="rgba(255,255,255,0.5)"/>
+            <rect x="59" y="16" width="5" height="6" rx="1" fill="rgba(255,255,255,0.5)"/>
+            <rect x="51" y="28" width="5" height="6" rx="1" fill="rgba(255,255,255,0.5)"/>
+            <rect x="59" y="28" width="5" height="6" rx="1" fill="rgba(255,255,255,0.5)"/>
+            <rect x="51" y="40" width="5" height="6" rx="1" fill="rgba(255,255,255,0.5)"/>
+            <rect x="59" y="40" width="5" height="6" rx="1" fill="rgba(255,255,255,0.5)"/>
+            <!-- 중간 건물 -->
+            <rect x="72" y="22" width="18" height="46" rx="1" fill="rgba(255,255,255,0.2)"/>
+            <rect x="77" y="30" width="4" height="5" rx="1" fill="rgba(255,255,255,0.5)"/>
+            <rect x="83" y="30" width="4" height="5" rx="1" fill="rgba(255,255,255,0.5)"/>
+            <rect x="77" y="40" width="4" height="5" rx="1" fill="rgba(255,255,255,0.5)"/>
+            <rect x="83" y="40" width="4" height="5" rx="1" fill="rgba(255,255,255,0.5)"/>
+            <!-- 오른쪽 건물 (지붕 삼각형) -->
+            <path d="M94,68 L94,35 L112,22 L130,35 L130,68"/>
+            <rect x="103" y="42" width="8" height="10" rx="1" fill="rgba(255,255,255,0.3)"/>
+            <rect x="115" y="42" width="8" height="10" rx="1" fill="rgba(255,255,255,0.3)"/>
+          </g>
+          <!-- 텍스트 -->
+          <text x="70" y="90" text-anchor="middle" fill="#fff" font-family="'Noto Sans KR',sans-serif" font-weight="900" font-size="26" letter-spacing="1">POUR<tspan font-size="22" letter-spacing="3">스토어</tspan></text>
+        </svg>
+        <div class="logo-fallback" style="display:none;">
           <div class="lb"><span></span><span></span><span></span><span></span></div>
           <div class="lw"><div class="lt">POUR</div><div class="ls">스토어</div></div>
         </div>

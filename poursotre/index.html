@@ -474,31 +474,64 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
   <div class="bottom-bar"></div>
 </div>
 </div>
+<style>
+#view-toggle{
+  position:fixed;bottom:20px;right:16px;z-index:9999;
+  background:#E8780F;color:#fff;border:none;border-radius:24px;
+  padding:10px 18px;font-size:13px;font-weight:700;
+  box-shadow:0 3px 12px rgba(0,0,0,0.22);cursor:pointer;
+  font-family:'Noto Sans KR','Malgun Gothic',sans-serif;
+  display:none;
+}
+</style>
+<button id="view-toggle">🔍 확대 보기</button>
 <script>
 (function(){
   var CANVAS_W = 1625, CANVAS_H = 1000;
-  function fit(){
+  var isFit = true;
+  var btn = document.getElementById('view-toggle');
+  var scaler = document.querySelector('.W-scaler');
+
+  function applyFit(){
     var vw = window.innerWidth;
-    var scaler = document.querySelector('.W-scaler');
-    if(!scaler) return;
+    var s = vw / CANVAS_W;
+    scaler.style.transform = 'scale('+s+')';
+    scaler.style.transformOrigin = 'top left';
+    scaler.style.width = CANVAS_W + 'px';
+    scaler.style.marginBottom = (CANVAS_H * s - CANVAS_H) + 'px';
+    document.body.style.padding = '0';
+    document.body.style.justifyContent = 'flex-start';
+    document.body.style.alignItems = 'flex-start';
+    document.body.style.overflowX = 'hidden';
+    btn.textContent = '🔍 확대 보기';
+  }
+
+  function applyFull(){
+    scaler.style.transform = '';
+    scaler.style.width = '';
+    scaler.style.marginBottom = '';
+    document.body.style.overflowX = 'auto';
+    btn.textContent = '🗺 전체 보기';
+  }
+
+  function init(){
+    var vw = window.innerWidth;
     if(vw < CANVAS_W){
-      var s = vw / CANVAS_W;
-      scaler.style.transform = 'scale('+s+')';
-      scaler.style.transformOrigin = 'top left';
-      scaler.style.width = CANVAS_W + 'px';
-      scaler.style.marginBottom = (CANVAS_H * s - CANVAS_H) + 'px';
-      document.body.style.padding = '0';
-      document.body.style.justifyContent = 'flex-start';
-      document.body.style.alignItems = 'flex-start';
-      document.body.style.overflowX = 'hidden';
+      btn.style.display = 'block';
+      isFit ? applyFit() : applyFull();
     } else {
-      scaler.style.transform = '';
-      scaler.style.width = '';
-      scaler.style.marginBottom = '';
+      btn.style.display = 'none';
+      applyFull();
     }
   }
-  fit();
-  window.addEventListener('resize', fit);
+
+  btn.addEventListener('click', function(){
+    isFit = !isFit;
+    isFit ? applyFit() : applyFull();
+  });
+
+  init();
+  window.addEventListener('resize', init);
 })();
 </script>
 </body>

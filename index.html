@@ -2035,6 +2035,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [ntDeliveryMedia,setNtDeliveryMedia]=useState([]);
   const [ntMemo,setNtMemo]=useState('');
   const [ntKeywords,setNtKeywords]=useState([]);
+  const [ntBrandTag,setNtBrandTag]=useState('POUR공법'); // 'POUR공법' | 'POUR솔루션' | 'R&D'
   const [ntCustomerFolded,setNtCustomerFolded]=useState(false);
   const [ntSaving,setNtSaving]=useState(false);
   const [ntDone,setNtDone]=useState(false);
@@ -2085,7 +2086,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       deliveryDocs:ntDeliveryDocs,
       deliveryMedia:ntDeliveryMedia,
       businessCard:ntBizCard,
-      memo:ntMemo,memoImgs:ntMemoImgs,keywords:ntKeywords,status:'신규',
+      memo:ntMemo,memoImgs:ntMemoImgs,keywords:ntKeywords,brandTag:ntBrandTag,status:'신규',
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
     // 자동 SMS 발송 (fire-and-forget)
@@ -2107,7 +2108,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
     setNtName('');setNtCompany('');setNtPosition('');
     setNtPhone('');setNtEmail('');setNtContact([]);
     setNtInterests([]);setNtDeliveryDocs([]);setNtDeliveryMedia([]);
-    setNtMemo('');setNtMemoImgs([]);setNtKeywords([]);
+    setNtMemo('');setNtMemoImgs([]);setNtKeywords([]);setNtBrandTag('POUR공법');
   };
 
   const logText=[
@@ -2535,6 +2536,22 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
                 {/* 명함 촬영 (헤더 버튼용 - 숨김) */}
                 <div style={{position:'absolute',left:'-9999px'}}><BusinessCardCapture onCapture={(side,img)=>setNtBizCard(p=>({...p,[side]:img}))} openRef={ntBizCardOpenRef}/></div>
+
+                {/* ── 브랜드 태그 (고객 구분: POUR공법 / POUR솔루션 / R&D) ── */}
+                <div style={{padding:'10px 16px',flexShrink:0,borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:8}}>
+                  <span style={{fontSize:10,fontWeight:800,color:'var(--text-sm)',letterSpacing:'.06em',flexShrink:0}}>브랜드</span>
+                  {[
+                    {id:'POUR공법',color:'#2563EB',bg:'rgba(37,99,235,.12)',sbg:'rgba(37,99,235,.25)'},
+                    {id:'POUR솔루션',color:'#7C3AED',bg:'rgba(124,58,237,.10)',sbg:'rgba(124,58,237,.22)'},
+                    {id:'R&D',color:'#059669',bg:'rgba(5,150,105,.10)',sbg:'rgba(5,150,105,.22)'},
+                  ].map(t=>{
+                    const sel=ntBrandTag===t.id;
+                    return <button key={t.id} onClick={()=>setNtBrandTag(t.id)}
+                      style={{padding:'5px 14px',borderRadius:20,border:`1.5px solid ${sel?t.color:'var(--border)'}`,background:sel?t.sbg:t.bg,fontSize:12,fontWeight:sel?800:600,color:sel?t.color:'var(--text-sm)',cursor:'pointer',fontFamily:'inherit',transition:'all .12s'}}>
+                      {t.id}
+                    </button>;
+                  })}
+                </div>
 
                 {/* ── 고객 정보 (펜슬 Scribble + 자동 펜/키보드 감지) ── */}
                 <div style={{padding:'12px 16px 14px',flexShrink:0,borderBottom:'2px solid var(--border)',touchAction:'auto'}}
@@ -4869,34 +4886,24 @@ function App(){
             <div className="home-expo-date">벡스코 &nbsp;|&nbsp; 2026.04.16 (목) ~ 04.18 (토)</div>
           </div>
 
-          {/* 브랜드 선택 CTA */}
-          <div style={{display:'flex',flexDirection:'column',gap:8,width:'100%',maxWidth:360,marginBottom:12}}>
-            <div style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,.4)',letterSpacing:'.08em',textAlign:'center',marginBottom:2}}>상담 유형을 선택하세요</div>
-            {[
-              {id:'construction',label:'POUR공법 · 솔루션',sub:'시공사 · 관리주체 · 전문 상담',icon:'🏗️',bc:'rgba(37,99,235,.7)',bg:'rgba(37,99,235,.12)',sbg:'rgba(37,99,235,.28)'},
-              {id:'store',label:'POUR스토어',sub:'DIY 자재 · 패키지 · 시공 매칭',icon:'🛒',bc:'rgba(234,88,12,.7)',bg:'rgba(234,88,12,.12)',sbg:'rgba(234,88,12,.28)'},
-              {id:'tech',label:'기술연구소',sub:'기술문의 · MOU · R&D 협력',icon:'🔬',bc:'rgba(5,150,105,.7)',bg:'rgba(5,150,105,.08)',sbg:'rgba(5,150,105,.25)'},
-            ].map(b=>{
-              const sel=homeBrand===b.id;
-              return(
-                <button key={b.id} onClick={()=>setHomeBrand(b.id)}
-                  style={{width:'100%',padding:'12px 16px',borderRadius:12,border:`${sel?'2px':'1.5px'} solid ${b.bc}`,background:sel?b.sbg:b.bg,display:'flex',alignItems:'center',gap:12,cursor:'pointer',fontFamily:'inherit',textAlign:'left',transition:'all .15s'}}>
-                  <span style={{fontSize:20,lineHeight:1}}>{b.icon}</span>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:14,fontWeight:800,color:'#fff',marginBottom:1}}>{b.label}</div>
-                    <div style={{fontSize:11,color:'rgba(255,255,255,.5)'}}>{b.sub}</div>
-                  </div>
-                  {sel?<span style={{fontSize:16,color:'#4ade80',fontWeight:900}}>✓</span>:<span style={{color:'rgba(255,255,255,.25)',fontSize:16}}>›</span>}
-                </button>
-              );
-            })}
-            <button onClick={()=>{
-              if(homeBrand==='construction'){setBrand('construction');setScreen('problem');}
-              else if(homeBrand==='store'){setBrand('store');setScreen('store-category');}
-              else if(homeBrand==='tech'){setBrand('tech');setScreen('tech-memo');}
-            }} style={{width:'100%',padding:'14px',borderRadius:12,background:'#1A56DB',border:'none',color:'#fff',fontSize:15,fontWeight:900,cursor:'pointer',fontFamily:'inherit',marginTop:4,display:'flex',alignItems:'center',justifyContent:'center',gap:8,letterSpacing:'.02em'}}>
+          {/* 상담 시작 CTA */}
+          <div style={{display:'flex',flexDirection:'column',gap:10,width:'100%',maxWidth:360,marginBottom:12}}>
+            <button onClick={()=>{setBrand('construction');setScreen('problem');}}
+              style={{width:'100%',padding:'28px 20px',borderRadius:16,background:'linear-gradient(135deg,#1A56DB 0%,#2563EB 50%,#3B82F6 100%)',border:'2px solid rgba(255,255,255,.15)',color:'#fff',fontSize:22,fontWeight:900,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:10,letterSpacing:'.02em',boxShadow:'0 8px 32px rgba(37,99,235,.5)',transition:'transform .12s'}}>
               상담 시작하기 &nbsp;→
             </button>
+            <div style={{display:'flex',gap:8}}>
+              <button onClick={()=>{setBrand('construction');setScreen('problem');}}
+                style={{flex:1,padding:'14px 10px',borderRadius:12,border:'1.5px solid rgba(37,99,235,.5)',background:'rgba(37,99,235,.12)',color:'#fff',fontSize:13,fontWeight:800,cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column',alignItems:'center',gap:4,transition:'all .12s'}}>
+                <span style={{fontSize:18}}>🏗️</span>
+                <span>공법 · 솔루션</span>
+              </button>
+              <button onClick={()=>{setBrand('store');setScreen('store-category');}}
+                style={{flex:1,padding:'14px 10px',borderRadius:12,border:'1.5px solid rgba(234,88,12,.5)',background:'rgba(234,88,12,.12)',color:'#fff',fontSize:13,fontWeight:800,cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column',alignItems:'center',gap:4,transition:'all .12s'}}>
+                <span style={{fontSize:18}}>🛒</span>
+                <span>POUR스토어</span>
+              </button>
+            </div>
           </div>
 
           {/* 리드 + 통계 한 줄 */}

@@ -31,7 +31,7 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
 .L-head::after{content:'';position:absolute;bottom:-40px;right:60px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.07);}
 
 .logo-h{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
-.store-logo{height:40px;width:auto;}
+.store-logo{height:52px;width:auto;}
 .logo-fallback{display:flex;align-items:center;gap:8px;}
 .lb{display:flex;align-items:flex-end;gap:3px;height:28px;}
 .lb span{display:block;background:rgba(255,255,255,0.95);border-radius:3px;}
@@ -90,10 +90,10 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
 /* 오른쪽 상단 미니 QR 배지 — 왼쪽으로 이동됨 */
 
 /* R 헤더 — B2C 셀프시공 메시지 */
-.R-head{padding:28px var(--px) 10px;display:flex;align-items:flex-start;gap:12px;position:relative;z-index:1;flex-shrink:0;}
-.self-pre{font-size:12.5px;font-weight:700;color:var(--ink2);line-height:1.5;margin-bottom:2px;word-break:keep-all;}
-.self-or{font-size:13px;font-weight:800;color:var(--ink);line-height:1.4;margin-bottom:4px;word-break:keep-all;}
-.self-body{font-size:10.5px;color:var(--muted);line-height:1.7;}
+.R-head{padding:40px var(--px) 10px;display:flex;align-items:flex-start;gap:12px;position:relative;z-index:1;flex-shrink:0;}
+.self-pre{font-size:14px;font-weight:800;color:var(--ink);line-height:1.4;margin-bottom:2px;word-break:keep-all;}
+.self-or{font-size:13px;font-weight:700;color:var(--ink);line-height:1.4;margin-bottom:4px;word-break:keep-all;}
+.self-body{font-size:10.5px;font-weight:400;color:var(--ink2);line-height:1.7;}
 
 /* 셀프시공 지원 카드 */
 .R-body{padding:0 var(--px);display:flex;flex-direction:column;gap:6px;position:relative;z-index:1;flex-shrink:0;}
@@ -115,15 +115,15 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
 .scap{font-size:10.5px;color:var(--ink2);text-align:center;font-weight:600;}
 
 /* ── 섹션 구분선 ── */
-.R-divider{margin:10px var(--px) 0;height:1px;background:var(--border);flex-shrink:0;}
+.R-divider{display:none;}
 
 /* ── 쇼룸 안내 ── */
 .showroom-section{padding:10px var(--px) 0;position:relative;z-index:1;flex-shrink:0;}
 .section-title-row{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
-.section-label{font-size:12.5px;font-weight:700;color:var(--ink2);letter-spacing:-0.3px;line-height:1.5;}
-.section-line{flex:1;height:1px;background:var(--border);}
-.showroom-desc{font-size:10.5px;color:var(--muted);line-height:1.7;margin-bottom:10px;}
-.showroom-desc strong{color:var(--ink2);}
+.section-label{font-size:14px;font-weight:800;color:var(--ink);letter-spacing:-0.3px;line-height:1.4;}
+.section-line{display:none;}
+.showroom-desc{font-size:10.5px;font-weight:400;color:var(--ink2);line-height:1.7;margin-bottom:10px;}
+.showroom-desc strong{color:var(--ink);font-weight:700;}
 .showroom-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
 .sr-card{background:#fff;border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;box-shadow:var(--shadow-sm);}
 .sr-img{aspect-ratio:1.45;background:#FFFFFF;display:flex;align-items:center;justify-content:center;overflow:hidden;}
@@ -160,7 +160,7 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
 .bottom-bar{position:absolute;bottom:0;left:0;right:0;height:5px;background:linear-gradient(90deg,var(--or) 0%,var(--or2) 100%);z-index:10;}
 
 /* ── 섹션별 QR 배지 (오른쪽) ── */
-.section-qr{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);border-radius:var(--r-md);padding:6px 10px 6px 8px;box-shadow:var(--shadow-sm);}
+.section-qr{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);border-radius:var(--r-md);padding:6px 10px 6px 8px;box-shadow:var(--shadow-sm);min-width:120px;}
 .section-qr svg{width:36px;height:36px;flex-shrink:0;}
 .section-qr-text{display:flex;flex-direction:column;gap:1px;}
 .section-qr-t1{font-size:9px;font-weight:800;color:var(--or);line-height:1.3;}
@@ -260,7 +260,7 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
     <div class="R-head">
       <div style="flex:1;">
         <p class="self-pre">누구나 쉽게, 직접 시공할 수 있습니다.</p>
-        <p class="self-or">시공 영상 · 가이드 · 사례까지<br>처음이어도 전문가처럼.</p>
+        <p class="self-or">시공 영상 · 가이드 · 사례까지, 처음이어도 전문가처럼.</p>
         <p class="self-body">POUR스토어는 비전문가도 직접 시공할 수 있도록<br>영상 · 설명서 · 시공사례 · 1:1 상담까지 모두 지원합니다.</p>
       </div>
       <div class="section-qr">

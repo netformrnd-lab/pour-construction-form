@@ -31,6 +31,8 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
 .L-head::after{content:'';position:absolute;bottom:-40px;right:60px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.07);}
 
 .logo-h{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.store-logo{height:36px;width:auto;object-fit:contain;}
+.logo-fallback{display:flex;align-items:center;gap:8px;}
 .lb{display:flex;align-items:flex-end;gap:3px;height:28px;}
 .lb span{display:block;background:rgba(255,255,255,0.95);border-radius:3px;}
 .lb span:nth-child(1){width:6px;height:17px;}
@@ -92,7 +94,7 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
 .qr-badge-t2{font-size:8.5px;color:var(--muted);line-height:1.3;}
 
 /* R 헤더 — B2C 셀프시공 메시지 */
-.R-head{padding:32px var(--px) 16px;position:relative;z-index:1;flex-shrink:0;}
+.R-head{padding:48px var(--px) 16px;position:relative;z-index:1;flex-shrink:0;}
 .self-pre{font-size:12.5px;font-weight:700;color:var(--ink2);line-height:1.5;margin-bottom:4px;word-break:keep-all;padding-right:160px;}
 .self-or{font-size:18px;font-weight:900;color:var(--or);line-height:1.35;margin-bottom:6px;word-break:keep-all;}
 .self-body{font-size:10.5px;color:var(--muted);line-height:1.7;}
@@ -136,7 +138,7 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
 .sr-cap-d{font-size:8.5px;color:var(--muted);line-height:1.45;}
 
 /* ── 파트너 모집 배너 (별도 톤) ── */
-.partner-banner{margin:14px 24px 0;background:rgba(15,31,92,0.82);border-radius:var(--r-lg);padding:16px 24px;position:relative;z-index:1;flex-shrink:0;overflow:hidden;}
+.partner-banner{margin:14px var(--px) 0;background:rgba(15,31,92,0.55);border-radius:var(--r-lg);padding:16px 24px;position:relative;z-index:1;flex-shrink:0;overflow:hidden;}
 .partner-banner::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.06);}
 .partner-banner::after{content:'';position:absolute;bottom:-20px;left:40px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,0.04);}
 .partner-top{display:flex;align-items:flex-start;gap:16px;margin-bottom:12px;position:relative;z-index:1;}
@@ -146,7 +148,7 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
 .partner-title em{font-style:normal;color:var(--or2);}
 .partner-sub{font-size:9.5px;color:rgba(255,255,255,0.55);line-height:1.55;}
 .partner-badge-pill{display:inline-flex;align-items:center;gap:4px;background:var(--or);color:#fff;font-size:9.5px;font-weight:800;padding:5px 12px;border-radius:20px;white-space:nowrap;flex-shrink:0;margin-top:2px;}
-.partner-benefits{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;position:relative;z-index:1;}
+.partner-benefits{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;position:relative;z-index:1;}
 .pb-card{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.10);border-radius:var(--r-sm);padding:10px 10px 8px;text-align:center;}
 .pb-icon{font-size:16px;margin-bottom:4px;}
 .pb-t{font-size:10px;font-weight:800;color:var(--or2);margin-bottom:2px;line-height:1.3;}
@@ -166,8 +168,11 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
   <div class="L">
     <div class="L-head">
       <div class="logo-h">
-        <div class="lb"><span></span><span></span><span></span><span></span></div>
-        <div class="lw"><div class="lt">POUR</div><div class="ls">스토어</div></div>
+        <img class="store-logo" src="" alt="POUR스토어 로고" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <div class="logo-fallback" style="display:flex;">
+          <div class="lb"><span></span><span></span><span></span><span></span></div>
+          <div class="lw"><div class="lt">POUR</div><div class="ls">스토어</div></div>
+        </div>
       </div>
       <div class="badge-row">
         <span class="badge bw">B2C 자재 쇼핑몰</span>
@@ -876,16 +881,20 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
       </div>
       <div class="partner-benefits">
         <div class="pb-card">
-          <div class="pb-t">행정 서류 지원</div>
-          <div class="pb-d">설계도서, 면적 산출서,<br>일위대가, 견적서 등 제공</div>
+          <div class="pb-t">시공매칭 서비스</div>
+          <div class="pb-d">고객과 파트너를<br>직접 연결해 드립니다</div>
         </div>
         <div class="pb-card">
-          <div class="pb-t">기술 자료 제공</div>
-          <div class="pb-d">시방서, MSDS,<br>기술 관련 영상 전부 제공</div>
+          <div class="pb-t">파트너 할인 혜택</div>
+          <div class="pb-d">파트너 전용 자재<br>할인가 제공</div>
         </div>
         <div class="pb-card">
-          <div class="pb-t">무상 기술 교육</div>
+          <div class="pb-t">무상 기술 교육지원</div>
           <div class="pb-d">POUR 아카데미에서<br>무상 기술 교육 수강</div>
+        </div>
+        <div class="pb-card">
+          <div class="pb-t">고객 응대 자료지원</div>
+          <div class="pb-d">시방서, 견적서,<br>기술 영상 등 제공</div>
         </div>
       </div>
     </div>

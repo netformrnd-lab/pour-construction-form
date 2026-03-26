@@ -15,7 +15,7 @@
   --r-sm:8px; --r-md:12px; --r-lg:16px;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:24px;font-family:'Noto Sans KR','Malgun Gothic',sans-serif;-webkit-font-smoothing:antialiased;}
+html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:24px;font-family:'Noto Sans KR','Malgun Gothic',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
 
 .W-scaler{transform-origin:top left;}
 
@@ -132,8 +132,8 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
   var scaler = document.querySelector('.W-scaler');
 
   function applyFit(){
-    var vw = window.innerWidth;
-    var s = vw / CANVAS_W;
+    isFit = true;
+    var s = window.innerWidth / CANVAS_W;
     scaler.style.transform = 'scale('+s+')';
     scaler.style.transformOrigin = 'top left';
     scaler.style.width = CANVAS_W + 'px';
@@ -141,21 +141,32 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
     document.body.style.padding = '0';
     document.body.style.justifyContent = 'flex-start';
     document.body.style.alignItems = 'flex-start';
+    document.documentElement.style.overflowX = 'hidden';
+    document.body.style.overflowX = 'hidden';
+    btn.textContent = '🔍 확대 보기';
   }
   function applyFull(){
+    isFit = false;
     scaler.style.transform = 'none';
     scaler.style.width = '';
     scaler.style.marginBottom = '0';
-    document.body.style.padding = '24px';
-    document.body.style.justifyContent = 'center';
+    document.body.style.padding = '16px';
+    document.body.style.justifyContent = 'flex-start';
     document.body.style.alignItems = 'flex-start';
+    document.documentElement.style.overflowX = 'auto';
+    document.body.style.overflowX = 'auto';
+    btn.textContent = '🔎 전체 보기';
   }
   function init(){
     if(window.innerWidth < CANVAS_W + 60){
-      applyFit();isFit=true;btn.style.display='inline-block';btn.textContent='🔍 원본 보기';
-    }else{applyFull();isFit=false;btn.style.display='none';}
+      applyFit();
+      btn.style.display = 'inline-block';
+    } else {
+      applyFull();
+      btn.style.display = 'none';
+    }
   }
-  btn.addEventListener('click', function(){isFit=!isFit;isFit?applyFit():applyFull();});
+  btn.addEventListener('click', function(){ if(isFit) applyFull(); else applyFit(); });
   init();
   window.addEventListener('resize', init);
 })();

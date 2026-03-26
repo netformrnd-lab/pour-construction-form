@@ -595,9 +595,10 @@ window.__penEverTimer=null;
 const markPenActive=()=>{window.__penActive=true;window.__penEverDetected=true;clearTimeout(window.__penTimer);window.__penTimer=setTimeout(()=>{window.__penActive=false;},2000);clearTimeout(window.__penEverTimer);window.__penEverTimer=setTimeout(()=>{window.__penEverDetected=false;},10000);};
 const isPenActive=()=>window.__penActive;
 
-/* ══ MemoTextarea – 펜슬 메모 (포토샵 스타일 좌측 도구바) ══ */
-function MemoTextarea({value,onChange,placeholder,minHeight=600,onDoodleToggle,doodleOpen}){
+/* ══ MemoTextarea – 펜슬 메모 (가로 도구바 + 낙서장 탭 전환) ══ */
+function MemoTextarea({value,onChange,placeholder,minHeight=600,onDoodleToggle,doodleOpen,doodleContent}){
   const histRef=useRef([value||'']);
+  const [confirmDelete,setConfirmDelete]=useState(false);
   const idxRef=useRef(0);
   const timerRef=useRef(null);
   const taRef=useRef(null);
@@ -633,10 +634,9 @@ function MemoTextarea({value,onChange,placeholder,minHeight=600,onDoodleToggle,d
   },[onChange]);
   const clearAll=useCallback(()=>{
     if(!value)return;
-    if(!window.confirm('전체 삭제하시겠습니까?'))return;
     const h=histRef.current;
     if(h[idxRef.current]!==value){histRef.current=h.slice(0,idxRef.current+1).concat(value);idxRef.current=histRef.current.length-1;}
-    histRef.current=histRef.current.slice(0,idxRef.current+1).concat('');idxRef.current=histRef.current.length-1;onChange('');
+    histRef.current=histRef.current.slice(0,idxRef.current+1).concat('');idxRef.current=histRef.current.length-1;onChange('');setConfirmDelete(false);
   },[value,onChange]);
   const backspace=useCallback(()=>{
     if(!value)return;
@@ -662,19 +662,27 @@ function MemoTextarea({value,onChange,placeholder,minHeight=600,onDoodleToggle,d
       React.createElement('span',{style:{fontSize:10,fontWeight:700}},label)
     );
   return React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:0,position:'relative'}},
-    /* 상단 가로 도구바 — 낙서장,전체삭제 | 다시,되돌리기,지우기 | 공백,줄바꿈 */
-    React.createElement('div',{style:{display:'flex',gap:3,padding:'6px 8px',background:'#f8f9fa',borderRadius:'12px 12px 0 0',border:'1.5px solid var(--border)',borderBottom:'none',flexWrap:'wrap',alignItems:'center'}},
-      onDoodleToggle&&tBtn('🎨',doodleOpen?'닫기':'낙서장',onDoodleToggle,'#7C3AED',doodleOpen?'rgba(124,58,237,.15)':'#F5F3FF'),
-      tBtn('🗑','전체삭제',clearAll,'#DC2626','#FEF2F2',!value),
-      React.createElement('div',{key:'sep1',style:{width:1,height:20,background:'var(--border)',margin:'0 2px'}}),
+    /* 상단 가로 도구바 */
+    React.createElement('div',{style:{display:'flex',gap:3,padding:'7px 10px',background:'#f1f3f5',borderRadius:'12px 12px 0 0',border:'1.5px solid var(--border)',borderBottom:'none',flexWrap:'wrap',alignItems:'center'}},
+      onDoodleToggle&&tBtn('🎨',doodleOpen?'✏️메모':'낙서장',onDoodleToggle,'#7C3AED',doodleOpen?'rgba(124,58,237,.2)':'#F5F3FF'),
+      tBtn('🗑','전체삭제',()=>{if(value)setConfirmDelete(true);},'#DC2626','#FEF2F2',!value),
+      React.createElement('div',{key:'s1',style:{width:2,height:26,background:'#bbb',borderRadius:1,margin:'0 5px'}}),
       tBtn('↪','다시',redo,'#4F46E5','#EEF2FF',!canRedo),
       tBtn('↩','되돌리기',undo,'#4F46E5','#EEF2FF',!canUndo),
       tBtn('←','지우기',backspace,'#EA580C','#FFF7ED',!value),
-      React.createElement('div',{key:'sep2',style:{width:1,height:20,background:'var(--border)',margin:'0 2px'}}),
+      React.createElement('div',{key:'s2',style:{width:2,height:26,background:'#bbb',borderRadius:1,margin:'0 5px'}}),
       tBtn('␣','공백',()=>insertAt(' '),'#059669','#F0FDF4'),
       tBtn('↵','줄바꿈',()=>insertAt('\n'),'#4F46E5','#EEF2FF'),
     ),
-    /* textarea */
+    /* 전체삭제 확인 바 — 도구바 바로 아래 */
+    confirmDelete&&React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',gap:10,padding:'8px 12px',background:'#FEF2F2',borderLeft:'1.5px solid #FECACA',borderRight:'1.5px solid #FECACA'}},
+      React.createElement('span',{style:{fontSize:13,fontWeight:700,color:'#DC2626'}},'전체 삭제할까요?'),
+      React.createElement('button',{onClick:clearAll,style:{padding:'6px 16px',borderRadius:8,border:'none',background:'#DC2626',color:'#fff',fontSize:13,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}},'삭제'),
+      React.createElement('button',{onClick:()=>setConfirmDelete(false),style:{padding:'6px 16px',borderRadius:8,border:'1.5px solid var(--border)',background:'#fff',color:'var(--text-sm)',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}},'취소'),
+    ),
+    /* 낙서장 모드: DrawCanvas를 textarea 자리에 표시 (스크롤 불필요) */
+    doodleOpen&&doodleContent?React.createElement('div',{style:{border:'1.5px solid rgba(124,58,237,.25)',borderTop:'none',borderRadius:'0 0 12px 12px',overflow:'hidden',background:'#FAFAFF',minHeight:minHeight}},doodleContent):
+    /* 텍스트 메모 모드 */
     React.createElement('textarea',{ref:taRef,className:'note-input',value:value,onChange:handleChange,
       placeholder:placeholder||"✏️ 펜슬로 직접 필기하세요\n상담 내용, 특이사항, 요청사항 등",
       style:{fontSize:16,padding:'16px',minHeight:minHeight,resize:'vertical',lineHeight:1.7,fontFamily:'inherit',
@@ -2720,13 +2728,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     onPointerCancel={e=>{setTimeout(()=>e.currentTarget?.classList?.remove('pen-active'),800);}}>
 
                     <MemoTextarea value={ntMemo} onChange={setNtMemo}
-                      onDoodleToggle={()=>setNtDoodleOpen(v=>!v)} doodleOpen={ntDoodleOpen}/>
-
-                    {ntDoodleOpen&&(
-                      <div style={{marginTop:14,borderRadius:12,border:'1.5px solid rgba(124,58,237,.2)',overflow:'hidden',background:'#FAFAFF'}}>
-                        <DrawCanvas onDataUrl={setNtMemoImgs}/>
-                      </div>
-                    )}
+                      onDoodleToggle={()=>setNtDoodleOpen(v=>!v)} doodleOpen={ntDoodleOpen}
+                      doodleContent={React.createElement(DrawCanvas,{onDataUrl:setNtMemoImgs})}/>
 
                   </div>
                   </div>

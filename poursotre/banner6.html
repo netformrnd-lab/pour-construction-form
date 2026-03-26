@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>배너6 — 제품 품목 + 세트상품 (2,250×750mm)</title>
+<title>배너6 — 제품 전체이미지 + R&D 기술력 (2,250×750mm)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
@@ -25,34 +25,41 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
 /* 배경 장식 */
 .W::before{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(232,120,15,0.08) 0%,transparent 70%);pointer-events:none;}
 
-/* ── 왼쪽: 타이틀 + 세트상품 안내 ── */
-.left{flex:0 0 380px;display:flex;flex-direction:column;justify-content:center;gap:14px;position:relative;z-index:1;}
+/* ── 왼쪽: R&D 기술력 ── */
+.left{flex:0 0 400px;display:flex;flex-direction:column;justify-content:center;gap:11px;position:relative;z-index:1;}
 
 .brand-row{display:flex;align-items:center;gap:6px;}
-.brand-logo{height:28px;width:auto;}
-.brand-badge{font-size:8px;font-weight:700;background:var(--navy);color:#fff;border-radius:12px;padding:2px 8px;}
+.brand-logo{height:26px;width:auto;}
+.brand-badge{font-size:7.5px;font-weight:700;background:var(--navy);color:#fff;border-radius:12px;padding:2px 8px;}
 
-.title{font-size:18px;font-weight:900;color:var(--ink);line-height:1.2;letter-spacing:-0.5px;}
+.title{font-size:17px;font-weight:900;color:var(--ink);line-height:1.25;letter-spacing:-0.5px;}
 .title em{font-style:normal;color:var(--or);}
 
-.desc{font-size:9px;color:var(--muted);line-height:1.5;}
+/* 특허 + MOU */
+.rnd-row{display:flex;align-items:flex-start;gap:10px;}
+.patent-chip{background:var(--or);color:#fff;border-radius:10px;padding:8px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;min-width:54px;}
+.patent-num{font-size:22px;font-weight:900;line-height:1;font-family:'Arial Black',sans-serif;}
+.patent-label{font-size:7px;font-weight:700;opacity:0.9;margin-top:2px;white-space:nowrap;}
+.mou-list{display:flex;flex-direction:column;gap:4px;justify-content:center;}
+.mou-item{font-size:7.5px;color:var(--ink2);display:flex;align-items:flex-start;gap:5px;line-height:1.35;}
+.mou-dot{width:4px;height:4px;border-radius:50%;background:var(--or);flex-shrink:0;margin-top:4px;}
 
-/* 세트상품 혜택 배지 */
-.benefits{display:flex;gap:6px;}
-.benefit-tag{display:flex;align-items:center;gap:4px;background:#fff;border:1.5px solid var(--or);border-radius:8px;padding:5px 10px;}
-.benefit-icon{width:18px;height:18px;background:var(--or);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.benefit-icon svg{width:10px;height:10px;fill:#fff;}
-.benefit-text{font-size:8px;font-weight:700;color:var(--ink);line-height:1.2;}
-.benefit-sub{font-size:7px;font-weight:400;color:var(--muted);}
+/* 인증 */
+.cert-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.cert-tag{font-size:7.5px;font-weight:700;border:1.5px solid var(--navy);color:var(--navy);border-radius:6px;padding:3px 9px;}
+.cert-note{font-size:7px;color:var(--muted);}
 
-/* ── 오른쪽: 제품 그리드 ── */
-.right{flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;margin-left:20px;position:relative;z-index:1;}
+/* 연구소 */
+.lab-row{display:flex;align-items:center;gap:5px;}
+.lab-icon{width:14px;height:14px;background:var(--navy);border-radius:3px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.lab-icon svg{width:9px;height:9px;fill:#fff;}
+.lab-text{font-size:7.5px;font-weight:600;color:var(--ink2);}
 
-.prod-card{background:#fff;border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;}
-.prod-img{flex:1;background:#F8F7F5;display:flex;align-items:center;justify-content:center;padding:6px;overflow:hidden;}
-.prod-img img{max-width:100%;max-height:100%;object-fit:contain;}
-.prod-img .placeholder{font-size:7px;color:var(--muted);text-align:center;}
-.prod-label{padding:4px 6px;text-align:center;font-size:7.5px;font-weight:700;color:var(--ink2);background:#fff;border-top:1px solid var(--border);}
+/* ── 오른쪽: 제품 전체이미지 ── */
+.right{flex:1;position:relative;margin-left:20px;z-index:1;display:flex;align-items:stretch;}
+.prod-full-img{width:100%;height:100%;object-fit:cover;object-position:center top;border-radius:var(--r-md);box-shadow:var(--shadow-md);}
+.prod-full-placeholder{width:100%;height:100%;background:linear-gradient(135deg,#f0ede8 0%,#e8e2d9 100%);border-radius:var(--r-md);border:2px dashed rgba(232,120,15,0.3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;}
+.prod-full-placeholder span{font-size:10px;color:var(--muted);text-align:center;line-height:1.5;}
 
 /* 하단 오렌지 라인 */
 .bottom-line{position:absolute;bottom:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--or) 0%,var(--or2) 100%);z-index:10;}
@@ -66,54 +73,46 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
 <div class="W-scaler">
 <div class="W">
 
-  <!-- ── 왼쪽: 타이틀 + 세트상품 ── -->
+  <!-- ── 왼쪽: R&D 기술력 ── -->
   <div class="left">
     <div class="brand-row">
       <img class="brand-logo" src="1.배경x_로고.png" alt="POUR스토어" onerror="this.style.display='none'">
-      <span class="brand-badge">260만+ 세대 검증</span>
+      <span class="brand-badge">자체 기술연구소 운영</span>
     </div>
     <div class="title">
-      검증된 자재를<br>
-      <em>필요한 만큼만</em> 구매하세요
+      기술력이 다른 자재,<br>
+      <em>특허 70여 개</em>로 증명합니다
     </div>
-    <p class="desc">방수 · 보수 · 보강 자재부터 부자재, 안전용품까지<br>세트상품으로 한 번에 구매하실 수 있습니다</p>
-    <div class="benefits">
-      <div class="benefit-tag">
-        <span class="benefit-icon"><svg viewBox="0 0 16 16"><path d="M13.5 2h-11A.5.5 0 0 0 2 2.5v11a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-11a.5.5 0 0 0-.5-.5zM7 11.4L4.1 8.5l1-1L7 9.4l3.9-3.9 1 1L7 11.4z"/></svg></span>
-        <span><span class="benefit-text">무료반품</span><br><span class="benefit-sub">미개봉 한정</span></span>
+
+    <!-- 특허 + MOU -->
+    <div class="rnd-row">
+      <div class="patent-chip">
+        <span class="patent-num">70+</span>
+        <span class="patent-label">특허기술</span>
       </div>
-      <div class="benefit-tag">
-        <span class="benefit-icon"><svg viewBox="0 0 16 16"><path d="M14 8.5H9.7l2.1-2.1-.7-.7L8 8.8 4.9 5.7l-.7.7 2.1 2.1H2v1h4.3L4.2 11.6l.7.7L8 9.2l3.1 3.1.7-.7-2.1-2.1H14v-1z"/></svg></span>
-        <span><span class="benefit-text">퀵발송</span><br><span class="benefit-sub">패키지 구매 시</span></span>
+      <div class="mou-list">
+        <div class="mou-item"><span class="mou-dot"></span>하이퐁 건설협회 MOU</div>
+        <div class="mou-item"><span class="mou-dot"></span>ETRI · 건축 리노베이션 AI 기술 공동 개발 MOU</div>
+        <div class="mou-item"><span class="mou-dot"></span>강남제비스코 MOU</div>
+        <div class="mou-item"><span class="mou-dot"></span>서울과학기술대학교 MOU</div>
       </div>
+    </div>
+
+    <!-- 인증 (내일 업데이트) -->
+    <div class="cert-row">
+      <span class="cert-tag">인증 ①</span>
+      <span class="cert-tag">인증 ②</span>
+      <span class="cert-note">※ 내일 업데이트 예정</span>
     </div>
   </div>
 
-  <!-- ── 오른쪽: 제품 그리드 ── -->
+  <!-- ── 오른쪽: 제품 전체이미지 ── -->
+  <!-- 이미지 준비 후 아래 주석 해제하고 placeholder div 삭제 -->
   <div class="right">
-    <div class="prod-card">
-      <div class="prod-img"><img src="[ 방수, 보수 자재 ].jpg" alt="방수, 보수 자재"></div>
-      <div class="prod-label">방수 · 보수 자재</div>
-    </div>
-    <div class="prod-card">
-      <div class="prod-img"><span class="placeholder">📷 부자재<br>이미지</span></div>
-      <div class="prod-label">부자재</div>
-    </div>
-    <div class="prod-card">
-      <div class="prod-img"><span class="placeholder">📷 안전용품<br>이미지</span></div>
-      <div class="prod-label">안전용품</div>
-    </div>
-    <div class="prod-card">
-      <div class="prod-img"><span class="placeholder">📷 세트상품A<br>이미지</span></div>
-      <div class="prod-label">슬라브 방수 세트</div>
-    </div>
-    <div class="prod-card">
-      <div class="prod-img"><span class="placeholder">📷 세트상품B<br>이미지</span></div>
-      <div class="prod-label">옥상 방수 세트</div>
-    </div>
-    <div class="prod-card">
-      <div class="prod-img"><span class="placeholder">📷 세트상품C<br>이미지</span></div>
-      <div class="prod-label">외벽 보수 세트</div>
+    <!-- <img class="prod-full-img" src="제품전체이미지.jpg" alt="POUR스토어 전 제품 라인업"> -->
+    <div class="prod-full-placeholder">
+      <span style="font-size:24px;">📷</span>
+      <span>제품 전체이미지<br>(AI 제작 중)</span>
     </div>
   </div>
 

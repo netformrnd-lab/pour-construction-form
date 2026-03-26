@@ -494,7 +494,7 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
 }
 </style>
 <button id="view-toggle">🔍 확대 보기</button>
-<button id="save-jpeg" style="position:fixed;top:10px;right:10px;z-index:9999;padding:8px 16px;background:var(--or);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);font-family:inherit;">📷 JPEG 저장</button>
+<button id="save-jpeg" style="position:fixed;top:10px;right:10px;z-index:9999;padding:8px 16px;background:var(--or);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);font-family:inherit;">📷 PNG 저장</button>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
 (function(){
@@ -552,7 +552,7 @@ document.getElementById('save-jpeg').addEventListener('click', function(){
   btn.style.pointerEvents = 'none';
   var target = document.querySelector('.W');
   html2canvas(target, {
-    scale: 2,
+    scale: 4,
     useCORS: true,
     allowTaint: true,
     backgroundColor: '#ffffff',
@@ -560,8 +560,8 @@ document.getElementById('save-jpeg').addEventListener('click', function(){
     height: 1000
   }).then(function(canvas){
     var link = document.createElement('a');
-    link.download = 'POUR스토어_배너_' + new Date().toISOString().slice(0,10) + '.jpg';
-    link.href = canvas.toDataURL('image/jpeg', 0.95);
+    link.download = 'POUR스토어_배너_' + new Date().toISOString().slice(0,10) + '.png';
+    link.href = canvas.toDataURL('image/png');
     link.click();
     btn.textContent = '📷 JPEG 저장';
     btn.style.pointerEvents = 'auto';

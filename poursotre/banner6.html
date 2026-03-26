@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>배너6 — 제품 품목 + 세트상품 (2,250×750mm)</title>
+<title>배너6 — 제품 전체이미지 + 세트상품 소개 (2,250×750mm)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
@@ -45,14 +45,11 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
 .benefit-text{font-size:8px;font-weight:700;color:var(--ink);line-height:1.2;}
 .benefit-sub{font-size:7px;font-weight:400;color:var(--muted);}
 
-/* ── 오른쪽: 제품 그리드 ── */
-.right{flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;margin-left:20px;position:relative;z-index:1;}
-
-.prod-card{background:#fff;border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;}
-.prod-img{flex:1;background:#F8F7F5;display:flex;align-items:center;justify-content:center;padding:6px;overflow:hidden;}
-.prod-img img{max-width:100%;max-height:100%;object-fit:contain;}
-.prod-img .placeholder{font-size:7px;color:var(--muted);text-align:center;}
-.prod-label{padding:4px 6px;text-align:center;font-size:7.5px;font-weight:700;color:var(--ink2);background:#fff;border-top:1px solid var(--border);}
+/* ── 오른쪽: 제품 전체이미지 ── */
+.right{flex:1;position:relative;margin-left:20px;z-index:1;display:flex;align-items:stretch;}
+.prod-full-img{width:100%;height:100%;object-fit:cover;object-position:center top;border-radius:var(--r-md);box-shadow:var(--shadow-md);}
+.prod-full-placeholder{width:100%;height:100%;background:linear-gradient(135deg,#f0ede8 0%,#e8e2d9 100%);border-radius:var(--r-md);border:2px dashed rgba(232,120,15,0.3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;}
+.prod-full-placeholder span{font-size:10px;color:var(--muted);text-align:center;line-height:1.5;}
 
 /* 하단 오렌지 라인 */
 .bottom-line{position:absolute;bottom:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--or) 0%,var(--or2) 100%);z-index:10;}
@@ -89,31 +86,13 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
     </div>
   </div>
 
-  <!-- ── 오른쪽: 제품 그리드 ── -->
+  <!-- ── 오른쪽: 제품 전체이미지 ── -->
+  <!-- 이미지 준비 후 아래 주석 해제하고 placeholder div 삭제 -->
   <div class="right">
-    <div class="prod-card">
-      <div class="prod-img"><img src="[ 방수, 보수 자재 ].jpg" alt="방수, 보수 자재"></div>
-      <div class="prod-label">방수 · 보수 자재</div>
-    </div>
-    <div class="prod-card">
-      <div class="prod-img"><span class="placeholder">📷 부자재<br>이미지</span></div>
-      <div class="prod-label">부자재</div>
-    </div>
-    <div class="prod-card">
-      <div class="prod-img"><span class="placeholder">📷 안전용품<br>이미지</span></div>
-      <div class="prod-label">안전용품</div>
-    </div>
-    <div class="prod-card">
-      <div class="prod-img"><span class="placeholder">📷 세트상품A<br>이미지</span></div>
-      <div class="prod-label">슬라브 방수 세트</div>
-    </div>
-    <div class="prod-card">
-      <div class="prod-img"><span class="placeholder">📷 세트상품B<br>이미지</span></div>
-      <div class="prod-label">옥상 방수 세트</div>
-    </div>
-    <div class="prod-card">
-      <div class="prod-img"><span class="placeholder">📷 세트상품C<br>이미지</span></div>
-      <div class="prod-label">외벽 보수 세트</div>
+    <!-- <img class="prod-full-img" src="제품전체이미지.jpg" alt="POUR스토어 전 제품 라인업"> -->
+    <div class="prod-full-placeholder">
+      <span style="font-size:24px;">📷</span>
+      <span>제품 전체이미지<br>(AI 제작 중)</span>
     </div>
   </div>
 

@@ -25,35 +25,65 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
 /* 배경 장식 */
 .W::before{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(232,120,15,0.08) 0%,transparent 70%);pointer-events:none;}
 
-/* ── 왼쪽: R&D 기술력 ── */
-.left{flex:0 0 400px;display:flex;flex-direction:column;justify-content:center;gap:11px;position:relative;z-index:1;}
+/* ── 왼쪽: R&D 기술력 카드 ── */
+.left{
+  flex:0 0 430px;background:#fff;border-radius:var(--r-md);
+  box-shadow:0 4px 24px rgba(15,31,92,0.10);
+  padding:18px 20px;display:flex;flex-direction:column;gap:10px;
+  position:relative;z-index:1;overflow:hidden;
+}
+.left::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--navy) 0%,var(--or) 100%);
+}
 
-.brand-row{display:flex;align-items:center;gap:6px;}
-.brand-logo{height:26px;width:auto;}
-.brand-badge{font-size:7.5px;font-weight:700;background:var(--navy);color:#fff;border-radius:12px;padding:2px 8px;}
+.brand-row{display:flex;align-items:center;gap:7px;}
+.brand-logo{height:24px;width:auto;}
+.lab-badge{
+  font-size:7px;font-weight:700;
+  background:var(--or-pale);color:var(--or);
+  border:1px solid rgba(232,120,15,0.25);border-radius:10px;padding:2px 8px;
+}
 
-.title{font-size:17px;font-weight:900;color:var(--ink);line-height:1.25;letter-spacing:-0.5px;}
+.title{font-size:15.5px;font-weight:900;color:var(--ink);line-height:1.3;letter-spacing:-0.5px;}
 .title em{font-style:normal;color:var(--or);}
 
-/* 특허 + MOU */
-.rnd-row{display:flex;align-items:flex-start;gap:10px;}
-.patent-chip{background:var(--or);color:#fff;border-radius:10px;padding:8px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;min-width:54px;}
-.patent-num{font-size:22px;font-weight:900;line-height:1;font-family:'Arial Black',sans-serif;}
-.patent-label{font-size:7px;font-weight:700;opacity:0.9;margin-top:2px;white-space:nowrap;}
-.mou-list{display:flex;flex-direction:column;gap:4px;justify-content:center;}
-.mou-item{font-size:7.5px;color:var(--ink2);display:flex;align-items:flex-start;gap:5px;line-height:1.35;}
-.mou-dot{width:4px;height:4px;border-radius:50%;background:var(--or);flex-shrink:0;margin-top:4px;}
+/* 특허 카드 */
+.patent-card{
+  background:linear-gradient(135deg,var(--navy) 0%,#1e2f7a 100%);
+  border-radius:var(--r-sm);padding:10px 14px;
+  display:flex;align-items:center;gap:12px;
+}
+.patent-left{display:flex;flex-direction:column;align-items:flex-start;flex-shrink:0;}
+.patent-num{
+  font-size:32px;font-weight:900;color:var(--or2);line-height:1;
+  font-family:'Arial Black',sans-serif;letter-spacing:-1px;
+}
+.patent-unit{font-size:14px;font-weight:700;color:var(--or2);}
+.patent-desc{font-size:7.5px;color:rgba(255,255,255,0.55);margin-top:2px;letter-spacing:0.3px;}
+.patent-divider{width:1px;height:38px;background:rgba(255,255,255,0.15);flex-shrink:0;}
+.patent-right{flex:1;}
+.patent-sub{font-size:8px;color:rgba(255,255,255,0.8);line-height:1.7;}
+
+/* MOU */
+.mou-section{display:flex;flex-direction:column;gap:5px;}
+.section-label{
+  font-size:7px;font-weight:700;color:var(--muted);
+  letter-spacing:0.8px;text-transform:uppercase;
+  padding-bottom:4px;border-bottom:1px solid var(--border);
+}
+.mou-list{display:flex;flex-direction:column;gap:3px;}
+.mou-item{font-size:7.5px;color:var(--ink2);display:flex;align-items:center;gap:7px;line-height:1.35;}
+.mou-bar{width:2px;height:11px;background:var(--or);border-radius:1px;flex-shrink:0;}
 
 /* 인증 */
-.cert-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-.cert-tag{font-size:7.5px;font-weight:700;border:1.5px solid var(--navy);color:var(--navy);border-radius:6px;padding:3px 9px;}
-.cert-note{font-size:7px;color:var(--muted);}
-
-/* 연구소 */
-.lab-row{display:flex;align-items:center;gap:5px;}
-.lab-icon{width:14px;height:14px;background:var(--navy);border-radius:3px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.lab-icon svg{width:9px;height:9px;fill:#fff;}
-.lab-text{font-size:7.5px;font-weight:600;color:var(--ink2);}
+.cert-row{display:flex;gap:6px;align-items:center;padding-top:2px;border-top:1px solid var(--border);}
+.cert-tag{
+  font-size:7.5px;font-weight:700;
+  border:1.5px solid rgba(15,31,92,0.3);color:var(--navy);
+  border-radius:5px;padding:3px 10px;
+}
+.cert-note{font-size:7px;color:var(--muted);margin-left:2px;}
 
 /* ── 오른쪽: 제품 전체이미지 ── */
 .right{flex:1;position:relative;margin-left:20px;z-index:1;display:flex;align-items:stretch;}
@@ -77,32 +107,39 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
   <div class="left">
     <div class="brand-row">
       <img class="brand-logo" src="1.배경x_로고.png" alt="POUR스토어" onerror="this.style.display='none'">
-      <span class="brand-badge">자체 기술연구소 운영</span>
-    </div>
-    <div class="title">
-      기술력이 다른 자재,<br>
-      <em>특허 70여 개</em>로 증명합니다
+      <span class="lab-badge">자체 기술연구소 운영</span>
     </div>
 
-    <!-- 특허 + MOU -->
-    <div class="rnd-row">
-      <div class="patent-chip">
-        <span class="patent-num">70+</span>
-        <span class="patent-label">특허기술</span>
+    <div class="title">기술력이 다른 자재,<br><em>특허 70여 개</em>로 증명합니다</div>
+
+    <!-- 특허 stat -->
+    <div class="patent-card">
+      <div class="patent-left">
+        <div><span class="patent-num">70</span><span class="patent-unit">여+</span></div>
+        <span class="patent-desc">자체 특허기술</span>
       </div>
+      <div class="patent-divider"></div>
+      <div class="patent-right">
+        <span class="patent-sub">방수 · 보수 · 보강 전 분야<br>독자 기술 자체 개발 보유<br>자체 기술연구소 직접 운영</span>
+      </div>
+    </div>
+
+    <!-- MOU -->
+    <div class="mou-section">
+      <div class="section-label">MOU 체결 기관</div>
       <div class="mou-list">
-        <div class="mou-item"><span class="mou-dot"></span>하이퐁 건설협회 MOU</div>
-        <div class="mou-item"><span class="mou-dot"></span>ETRI · 건축 리노베이션 AI 기술 공동 개발 MOU</div>
-        <div class="mou-item"><span class="mou-dot"></span>강남제비스코 MOU</div>
-        <div class="mou-item"><span class="mou-dot"></span>서울과학기술대학교 MOU</div>
+        <div class="mou-item"><span class="mou-bar"></span>하이퐁 건설협회</div>
+        <div class="mou-item"><span class="mou-bar"></span>ETRI · 건축 리노베이션 AI 기술 공동 개발</div>
+        <div class="mou-item"><span class="mou-bar"></span>강남제비스코</div>
+        <div class="mou-item"><span class="mou-bar"></span>서울과학기술대학교</div>
       </div>
     </div>
 
-    <!-- 인증 (내일 업데이트) -->
+    <!-- 인증 -->
     <div class="cert-row">
       <span class="cert-tag">인증 ①</span>
       <span class="cert-tag">인증 ②</span>
-      <span class="cert-note">※ 내일 업데이트 예정</span>
+      <span class="cert-note">내일 업데이트 예정</span>
     </div>
   </div>
 

@@ -2751,6 +2751,7 @@ function  LeadsScreen({onBack}){
   const [filterStaff,setFilterStaff]=useState('전체');
   const [staffList,setStaffList]=useState([]);
   const [expandedId,setExpandedId]=useState(null);
+  const [detailLead,setDetailLead]=useState(null);
 
   useEffect(()=>{
     db.collection('leads').orderBy('savedAt','desc').get()
@@ -2789,7 +2790,7 @@ function  LeadsScreen({onBack}){
           return(
           <div key={l.id||i} className="lead-card" style={{padding:0,overflow:'hidden'}}>
             {/* 헤더 — 항상 표시 */}
-            <div style={{padding:'12px 14px',cursor:'pointer',display:'flex',alignItems:'center',gap:8}} onClick={()=>setExpandedId(isOpen?null:(l.id||i))}>
+            <div style={{padding:'12px 14px',cursor:'pointer',display:'flex',alignItems:'center',gap:8}} onClick={()=>setDetailLead(l)}>
               <div className="lead-num">{i+1}</div>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{display:'flex',alignItems:'center',gap:6}}>
@@ -2839,6 +2840,102 @@ function  LeadsScreen({onBack}){
           );
         })}
       </div>
+      {/* ── 유입 상세 모달 ── */}
+      {detailLead&&(()=>{
+        const l=detailLead;const hasMemo=l.memo||l.memoImgs?.length>0;
+        const statusColors={'신규':'#2563EB','연락완료':'#059669','계약예정':'#7C3AED','보류':'#9CA3AF','기타':'#D97706'};
+        return(
+          <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:300,display:'flex',alignItems:'center',justifyContent:'center',padding:20,backdropFilter:'blur(4px)'}} onClick={()=>setDetailLead(null)}>
+            <div style={{background:'#fff',borderRadius:16,width:'100%',maxWidth:520,maxHeight:'85vh',overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:'0 20px 60px rgba(0,0,0,.25)'}} onClick={e=>e.stopPropagation()}>
+              {/* 모달 헤더 */}
+              <div style={{padding:'20px 24px 16px',borderBottom:'1.5px solid var(--border)',flexShrink:0}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+                  <div style={{display:'flex',alignItems:'center',gap:10}}>
+                    <span style={{fontSize:22,fontWeight:900,color:'var(--text)'}}>{l.name}</span>
+                    {l.position&&<span style={{fontSize:12,fontWeight:600,color:'var(--text-sm)',background:'var(--bg)',padding:'3px 10px',borderRadius:6}}>{l.position}</span>}
+                  </div>
+                  <button onClick={()=>setDetailLead(null)} style={{width:36,height:36,borderRadius:'50%',border:'1.5px solid var(--border)',background:'var(--bg)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-md)'}}>✕</button>
+                </div>
+                <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                  {l.status&&<span style={{fontSize:11,fontWeight:700,color:'#fff',background:statusColors[l.status]||'#6B7280',padding:'3px 10px',borderRadius:6}}>{l.status}</span>}
+                  {l.brandTag&&<span style={{fontSize:11,fontWeight:700,color:'var(--blue)',background:'rgba(37,99,235,.1)',padding:'3px 10px',borderRadius:6}}>{l.brandTag}</span>}
+                  {l.building&&<span style={{fontSize:11,fontWeight:600,color:'var(--text-sm)',background:'var(--bg)',padding:'3px 10px',borderRadius:6,border:'1px solid var(--border)'}}>{l.building}</span>}
+                </div>
+              </div>
+              {/* 모달 본문 — 스크롤 */}
+              <div style={{flex:1,overflowY:'auto',padding:'16px 24px 24px'}}>
+                {/* 연락처 */}
+                <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:16}}>
+                  {l.phone&&<a href={`tel:${l.phone}`} style={{display:'flex',alignItems:'center',gap:6,padding:'10px 16px',borderRadius:10,background:'var(--bg)',border:'1.5px solid var(--border)',textDecoration:'none',color:'var(--text)',fontSize:14,fontWeight:700}}>📞 {l.phone}</a>}
+                  {l.email&&<a href={`mailto:${l.email}`} style={{display:'flex',alignItems:'center',gap:6,padding:'10px 16px',borderRadius:10,background:'var(--bg)',border:'1.5px solid var(--border)',textDecoration:'none',color:'var(--text)',fontSize:13,fontWeight:600}}>📧 {l.email}</a>}
+                </div>
+                {/* 기본 정보 */}
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:16}}>
+                  {[
+                    {label:'담당자',value:l.staff},
+                    {label:'상담일',value:l.day},
+                    {label:'업체/건물',value:l.company||l.building},
+                    {label:'건물유형',value:l.building},
+                  ].filter(r=>r.value).map(r=>(
+                    <div key={r.label} style={{padding:'10px 12px',borderRadius:8,background:'var(--bg)',border:'1px solid var(--border)'}}>
+                      <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:3}}>{r.label}</div>
+                      <div style={{fontSize:13,fontWeight:600,color:'var(--text)'}}>{r.value}</div>
+                    </div>
+                  ))}
+                </div>
+                {/* 연락 방법 */}
+                {l.contactMethod?.length>0&&(
+                  <div style={{marginBottom:16}}>
+                    <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>연락 방법</div>
+                    <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{l.contactMethod.map(c=><span key={c} style={{padding:'5px 12px',borderRadius:8,background:'var(--bg)',border:'1px solid var(--border)',fontSize:12,fontWeight:600,color:'var(--text)'}}>{c}</span>)}</div>
+                  </div>
+                )}
+                {/* 공법/하자 */}
+                {l.problems?.length>0&&(
+                  <div style={{marginBottom:16}}>
+                    <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>공법 / 하자</div>
+                    <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{l.problems.map(p=><span key={p} style={{padding:'5px 12px',borderRadius:8,background:'rgba(37,99,235,.08)',border:'1px solid rgba(37,99,235,.15)',fontSize:12,fontWeight:700,color:'var(--blue)'}}>{p}</span>)}</div>
+                  </div>
+                )}
+                {/* 액션 태그 */}
+                {l.actions?.length>0&&(
+                  <div style={{marginBottom:16}}>
+                    <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>후속 조치</div>
+                    <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{l.actions.map(a=><span key={a} style={{padding:'5px 12px',borderRadius:8,background:'#FEF3C7',border:'1px solid #FDE68A',fontSize:12,fontWeight:700,color:'#92400E'}}>{a}</span>)}</div>
+                  </div>
+                )}
+                {/* 메모 */}
+                {hasMemo&&(
+                  <div style={{marginBottom:16}}>
+                    <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>메모</div>
+                    <div style={{padding:'14px 16px',borderRadius:10,background:'#FFFBEB',border:'1.5px solid #FDE68A'}}>
+                      {l.memo&&<div style={{fontSize:14,lineHeight:1.7,color:'var(--text)',whiteSpace:'pre-wrap'}}>{l.memo}</div>}
+                      {l.memoImgs?.map((img,pi)=>(
+                        <div key={pi} style={{marginTop:10}}>
+                          {l.memoImgs.length>1&&<div style={{fontSize:10,fontWeight:700,color:'#B45309',marginBottom:4}}>낙서 {pi+1}페이지</div>}
+                          <img src={img} alt="" style={{width:'100%',borderRadius:8,display:'block'}}/>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* 명함 */}
+                {l.businessCard&&(l.businessCard.front||l.businessCard.back)&&(
+                  <div style={{marginBottom:16}}>
+                    <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>명함</div>
+                    <div style={{display:'flex',gap:8}}>
+                      {l.businessCard.front&&<img src={l.businessCard.front} alt="명함 앞" style={{flex:1,borderRadius:8,border:'1px solid var(--border)',maxHeight:200,objectFit:'contain'}}/>}
+                      {l.businessCard.back&&<img src={l.businessCard.back} alt="명함 뒤" style={{flex:1,borderRadius:8,border:'1px solid var(--border)',maxHeight:200,objectFit:'contain'}}/>}
+                    </div>
+                  </div>
+                )}
+                {/* 저장 시간 */}
+                {l.savedAt&&<div style={{fontSize:10,color:'var(--text-sm)',marginTop:8}}>저장: {new Date(l.savedAt).toLocaleString('ko-KR')}</div>}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       <div className="bottom-bar">
         <button className="btn btn-outline btn-lg" onClick={onBack}>홈으로</button>
         <button className="btn btn-navy btn-lg" style={{flex:1}} onClick={()=>{

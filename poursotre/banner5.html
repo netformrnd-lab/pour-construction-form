@@ -18,38 +18,49 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
 /* ══ Canvas: 4500×1500 → 2250×750px (1:2) ══ */
 .W{width:2250px;height:750px;background:var(--navy);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;}
 
-/* 배경 장식 원 */
-.W::before{content:'';position:absolute;top:-120px;right:-120px;width:400px;height:400px;border-radius:50%;background:rgba(255,255,255,0.04);pointer-events:none;}
-.W::after{content:'';position:absolute;bottom:-80px;left:-80px;width:300px;height:300px;border-radius:50%;background:rgba(255,255,255,0.03);pointer-events:none;}
+/* 배경 장식 */
+.W::before{content:'';position:absolute;top:-200px;right:-200px;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(232,120,15,0.12) 0%,transparent 60%);pointer-events:none;}
+.W::after{content:'';position:absolute;bottom:-150px;left:-150px;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(232,120,15,0.06) 0%,transparent 60%);pointer-events:none;}
+.bg-circle-1{position:absolute;top:50%;left:15%;width:300px;height:300px;border-radius:50%;background:rgba(255,255,255,0.02);transform:translateY(-50%);pointer-events:none;}
+.bg-circle-2{position:absolute;top:50%;right:15%;width:250px;height:250px;border-radius:50%;background:rgba(255,255,255,0.02);transform:translateY(-50%);pointer-events:none;}
 
-/* 중앙 콘텐츠 */
-.content{display:flex;flex-direction:column;align-items:center;gap:24px;position:relative;z-index:1;}
+/* 전체 레이아웃 */
+.layout{display:flex;align-items:center;width:100%;height:100%;padding:0 100px;position:relative;z-index:1;}
 
-/* 로고 */
-.logo-area{display:flex;align-items:flex-end;gap:12px;}
-.logo-bars{display:flex;align-items:flex-end;gap:6px;height:70px;}
-.logo-bars span{display:block;background:var(--or);border-radius:4px;}
-.logo-bars span:nth-child(1){width:12px;height:42px;}
-.logo-bars span:nth-child(2){width:12px;height:55px;}
-.logo-bars span:nth-child(3){width:12px;height:70px;}
-.logo-bars span:nth-child(4){width:12px;height:50px;}
-.logo-text{display:flex;flex-direction:column;}
-.logo-text .main{font-size:60px;font-weight:900;color:#fff;letter-spacing:6px;line-height:1;}
-.logo-text .sub{font-size:18px;font-weight:700;color:rgba(255,255,255,0.5);letter-spacing:10px;margin-top:2px;}
+/* ── 왼쪽: 로고 이미지 ── */
+.logo-section{flex:0 0 auto;display:flex;align-items:center;justify-content:center;}
+.logo-img{height:300px;width:auto;}
 
-/* 구분선 */
-.divider{width:120px;height:2px;background:linear-gradient(90deg,transparent,var(--or),transparent);}
+/* ── 구분선 ── */
+.vert-divider{width:2px;height:280px;background:linear-gradient(180deg,transparent,rgba(232,120,15,0.5),transparent);margin:0 60px;flex-shrink:0;}
 
-/* 슬로건 */
-.slogan{text-align:center;}
-.slogan-main{font-size:36px;font-weight:900;color:#fff;letter-spacing:-0.5px;line-height:1.3;}
+/* ── 오른쪽: 슬로건 + 통계 + 배지 ── */
+.text-section{flex:1;display:flex;flex-direction:column;gap:20px;}
+
+.slogan-main{font-size:48px;font-weight:900;color:#fff;line-height:1.15;letter-spacing:-1px;}
 .slogan-main em{font-style:normal;color:var(--or2);}
-.slogan-sub{font-size:16px;font-weight:400;color:rgba(255,255,255,0.55);margin-top:8px;letter-spacing:1px;}
+.slogan-sub{font-size:20px;font-weight:400;color:rgba(255,255,255,0.5);margin-top:4px;letter-spacing:0.5px;}
+
+/* 통계 */
+.stats{display:flex;gap:40px;margin-top:8px;}
+.stat{display:flex;flex-direction:column;}
+.stat-num{font-size:38px;font-weight:900;color:var(--or2);font-family:'Arial Black',sans-serif;line-height:1;}
+.stat-label{font-size:12px;color:rgba(255,255,255,0.45);margin-top:4px;}
+
+/* 배지 */
+.badges{display:flex;gap:10px;margin-top:4px;}
+.badge{font-size:12px;font-weight:700;border-radius:20px;padding:6px 16px;border:1.5px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.7);background:rgba(255,255,255,0.05);}
+.badge-or{background:rgba(232,120,15,0.15);border-color:rgba(232,120,15,0.4);color:var(--or2);}
+
+/* 박람회 정보 */
+.expo-info{position:absolute;bottom:24px;right:100px;display:flex;align-items:center;gap:12px;z-index:1;}
+.expo-text{font-size:11px;color:rgba(255,255,255,0.35);text-align:right;line-height:1.4;}
+.expo-dot{width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,0.2);}
 
 /* 하단 오렌지 라인 */
 .bottom-line{position:absolute;bottom:0;left:0;right:0;height:6px;background:linear-gradient(90deg,var(--or) 0%,var(--or2) 100%);z-index:10;}
 
-/* ── 유틸 버튼 ── */
+/* ── 유틸 ── */
 #save-btn{position:fixed;top:10px;right:10px;z-index:9999;padding:8px 16px;background:var(--or);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);font-family:inherit;}
 #view-toggle{position:fixed;top:10px;left:10px;z-index:9999;padding:6px 12px;background:#fff;border:1px solid #ddd;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;display:none;}
 </style>
@@ -57,19 +68,57 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
 <body>
 <div class="W-scaler">
 <div class="W">
-  <div class="content">
-    <div class="logo-area">
-      <div class="logo-bars"><span></span><span></span><span></span><span></span></div>
-      <div class="logo-text">
-        <div class="main">POUR</div>
+  <div class="bg-circle-1"></div>
+  <div class="bg-circle-2"></div>
+
+  <div class="layout">
+    <!-- 로고 -->
+    <div class="logo-section">
+      <img class="logo-img" src="1.배경x_로고.png" alt="POUR스토어">
+    </div>
+
+    <div class="vert-divider"></div>
+
+    <!-- 슬로건 + 통계 -->
+    <div class="text-section">
+      <div>
+        <div class="slogan-main"><em>건물의 수명</em>을 바꾸는 자재</div>
+        <div class="slogan-sub">한 번 시공해 본 현장은 다시 찾습니다</div>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-num">260만+</span>
+          <span class="stat-label">시공된 건물 세대 수</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num">150만+</span>
+          <span class="stat-label">누적 판매 수</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num">250+</span>
+          <span class="stat-label">협력 파트너 수</span>
+        </div>
+      </div>
+
+      <div class="badges">
+        <span class="badge">B2C 자재 쇼핑몰</span>
+        <span class="badge">B2B 파트너 공급</span>
+        <span class="badge badge-or">260만+ 세대 검증</span>
+        <span class="badge">방수 · 보수 · 보강</span>
       </div>
     </div>
-    <div class="divider"></div>
-    <div class="slogan">
-      <div class="slogan-main"><em>건물의 수명</em>을 바꾸는 자재</div>
-      <div class="slogan-sub">260만 세대가 선택한 검증된 방수 · 보수 솔루션</div>
-    </div>
   </div>
+
+  <!-- 박람회 정보 -->
+  <div class="expo-info">
+    <span class="expo-text">공동주택관리산업박람회</span>
+    <span class="expo-dot"></span>
+    <span class="expo-text">BEXCO 벡스코</span>
+    <span class="expo-dot"></span>
+    <span class="expo-text">2026.04.16 – 18</span>
+  </div>
+
   <div class="bottom-line"></div>
 </div>
 </div>
@@ -83,54 +132,34 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
   var isFit = true;
   var btn = document.getElementById('view-toggle');
   var scaler = document.querySelector('.W-scaler');
-
   function applyFit(){
-    var vw = window.innerWidth;
-    var s = vw / CANVAS_W;
-    scaler.style.transform = 'scale('+s+')';
-    scaler.style.transformOrigin = 'top left';
-    scaler.style.width = CANVAS_W + 'px';
-    scaler.style.marginBottom = (CANVAS_H * s - CANVAS_H) + 'px';
-    document.body.style.padding = '0';
-    document.body.style.justifyContent = 'flex-start';
-    document.body.style.alignItems = 'flex-start';
+    var vw = window.innerWidth; var s = vw / CANVAS_W;
+    scaler.style.transform = 'scale('+s+')'; scaler.style.transformOrigin = 'top left';
+    scaler.style.width = CANVAS_W + 'px'; scaler.style.marginBottom = (CANVAS_H * s - CANVAS_H) + 'px';
+    document.body.style.padding = '0'; document.body.style.justifyContent = 'flex-start';
   }
   function applyFull(){
-    scaler.style.transform = 'none';
-    scaler.style.width = '';
-    scaler.style.marginBottom = '0';
-    document.body.style.padding = '24px';
-    document.body.style.justifyContent = 'center';
-    document.body.style.alignItems = 'flex-start';
+    scaler.style.transform = 'none'; scaler.style.width = ''; scaler.style.marginBottom = '0';
+    document.body.style.padding = '24px'; document.body.style.justifyContent = 'center';
   }
   function init(){
-    if(window.innerWidth < CANVAS_W + 60){
-      applyFit();isFit=true;btn.style.display='inline-block';btn.textContent='🔍 원본 보기';
-    }else{applyFull();isFit=false;btn.style.display='none';}
+    if(window.innerWidth < CANVAS_W + 60){applyFit();isFit=true;btn.style.display='inline-block';}
+    else{applyFull();isFit=false;btn.style.display='none';}
   }
   btn.addEventListener('click', function(){isFit=!isFit;isFit?applyFit():applyFull();});
-  init();
-  window.addEventListener('resize', init);
+  init(); window.addEventListener('resize', init);
 })();
 
 document.getElementById('save-btn').addEventListener('click', function(){
-  var btn = this;
-  btn.textContent = '⏳ 저장 중...';
-  btn.style.pointerEvents = 'none';
+  var b = this; b.textContent = '⏳ 저장 중...'; b.style.pointerEvents = 'none';
   html2canvas(document.querySelector('.W'), {
     scale: 5, useCORS: true, allowTaint: true, backgroundColor: '#0F1F5C', width: 2250, height: 750
-  }).then(function(canvas){
-    var link = document.createElement('a');
-    link.download = '배너5_로고슬로건_' + new Date().toISOString().slice(0,10) + '.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-    btn.textContent = '📷 PNG 저장';
-    btn.style.pointerEvents = 'auto';
-  }).catch(function(err){
-    alert('저장 실패: ' + err.message);
-    btn.textContent = '📷 PNG 저장';
-    btn.style.pointerEvents = 'auto';
-  });
+  }).then(function(c){
+    var a = document.createElement('a');
+    a.download = '배너5_로고슬로건_' + new Date().toISOString().slice(0,10) + '.png';
+    a.href = c.toDataURL('image/png'); a.click();
+    b.textContent = '📷 PNG 저장'; b.style.pointerEvents = 'auto';
+  }).catch(function(e){alert('실패: '+e.message);b.textContent='📷 PNG 저장';b.style.pointerEvents='auto';});
 });
 </script>
 </body>

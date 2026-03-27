@@ -4072,6 +4072,55 @@ function PhotoSlot({src,label,onSet,onRemove,wide,aspect}){
   );
 }
 
+/* ── QR 통계 탭 컴포넌트 ── */
+function QrStatsTab(){
+  const [qrStats,setQrStats]=useState(null);
+  const [qrLoading,setQrLoading]=useState(true);
+  useEffect(()=>{
+    db.collection('qr-stats').orderBy('count','desc').get()
+      .then(s=>{setQrStats(s.docs.map(d=>({id:d.id,...d.data()})));})
+      .catch(()=>setQrStats([]))
+      .finally(()=>setQrLoading(false));
+  },[]);
+  if(qrLoading)return <div style={{textAlign:'center',padding:40,color:'var(--text-sm)'}}>불러오는 중...</div>;
+  if(!qrStats||qrStats.length===0)return(
+    <div style={{textAlign:'center',padding:'40px 20px'}}>
+      <div style={{fontSize:40,marginBottom:10}}>📊</div>
+      <div style={{fontSize:14,fontWeight:700,color:'var(--text)',marginBottom:6}}>아직 QR 통계가 없습니다</div>
+      <div style={{fontSize:12,color:'var(--text-sm)',lineHeight:1.6,marginBottom:20}}>
+        QR코드 스캔 시 Firestore의 <code style={{background:'var(--bg)',padding:'2px 6px',borderRadius:4}}>qr-stats</code> 컬렉션에 자동으로 기록됩니다.
+      </div>
+      <div style={{background:'var(--bg)',borderRadius:10,padding:'14px',textAlign:'left',fontSize:11,color:'var(--text-sm)',lineHeight:1.8}}>
+        <div style={{fontWeight:800,marginBottom:4}}>📌 QR 통계 연동 방법:</div>
+        1. QR코드 URL에 <code style={{background:'var(--card)',padding:'1px 4px',borderRadius:3}}>?src=banner-name</code> 추가<br/>
+        2. 랜딩 페이지에서 <code style={{background:'var(--card)',padding:'1px 4px',borderRadius:3}}>src</code> 파라미터 읽기<br/>
+        3. Firestore <code style={{background:'var(--card)',padding:'1px 4px',borderRadius:3}}>qr-stats/배너명</code> 문서의 count 증가<br/>
+        4. 이 대시보드에서 자동 집계 확인
+      </div>
+    </div>
+  );
+  const maxCount=Math.max(...qrStats.map(q=>q.count||0),1);
+  return(
+    <div style={{display:'flex',flexDirection:'column',gap:8}}>
+      {qrStats.map(q=>(
+        <div key={q.id} style={{background:'var(--card)',borderRadius:10,border:'1px solid var(--border)',padding:'12px 16px',display:'flex',alignItems:'center',gap:12}}>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:13,fontWeight:700,color:'var(--text)',marginBottom:4}}>{q.label||q.id}</div>
+            <div style={{fontSize:11,color:'var(--text-sm)',marginBottom:6,wordBreak:'break-all'}}>{q.url||''}</div>
+            <div style={{height:6,borderRadius:3,background:'var(--bg)',overflow:'hidden'}}>
+              <div style={{height:'100%',width:`${((q.count||0)/maxCount)*100}%`,background:'var(--blue)',borderRadius:3,transition:'width .3s'}}/>
+            </div>
+          </div>
+          <div style={{textAlign:'center',flexShrink:0}}>
+            <div style={{fontSize:22,fontWeight:900,color:'var(--blue)'}}>{q.count||0}</div>
+            <div style={{fontSize:9,fontWeight:700,color:'var(--text-sm)'}}>스캔</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function AdminScreen({onBack}){
   const [leads,setLeads]=useState([]);
   const [loading,setLoading]=useState(true);
@@ -4623,54 +4672,9 @@ function AdminScreen({onBack}){
         <div style={{flex:1,overflowY:'auto',padding:'16px'}}>
           <div style={{fontSize:16,fontWeight:800,color:'var(--text)',marginBottom:16}}>🔲 QR코드 통계 대시보드</div>
           <div style={{fontSize:12,color:'var(--text-sm)',marginBottom:16,lineHeight:1.6}}>
-            배너/카탈로그에 인쇄된 QR코드별 스캔 횟수를 추적합니다.<br/>
-            QR코드 URL에 UTM 파라미터를 추가하면 자동 집계됩니다.
+            배너/카탈로그에 인쇄된 QR코드별 스캔 횟수를 추적합니다.
           </div>
-          {/* QR 링크 목록 + 스캔 카운트 */}
-          {(()=>{
-            const [qrStats,setQrStats]=React.useState(null);
-            const [qrLoading,setQrLoading]=React.useState(true);
-            React.useEffect(()=>{
-              db.collection('qr-stats').orderBy('count','desc').get()
-                .then(s=>{setQrStats(s.docs.map(d=>({id:d.id,...d.data()})));})
-                .catch(()=>setQrStats([]))
-                .finally(()=>setQrLoading(false));
-            },[]);
-            if(qrLoading)return React.createElement('div',{style:{textAlign:'center',padding:40,color:'var(--text-sm)'}},'불러오는 중...');
-            if(!qrStats||qrStats.length===0)return(
-              <div style={{textAlign:'center',padding:'40px 20px'}}>
-                <div style={{fontSize:40,marginBottom:10}}>📊</div>
-                <div style={{fontSize:14,fontWeight:700,color:'var(--text)',marginBottom:6}}>아직 QR 통계가 없습니다</div>
-                <div style={{fontSize:12,color:'var(--text-sm)',lineHeight:1.6,marginBottom:20}}>
-                  QR코드 스캔 시 Firestore의 <code style={{background:'var(--bg)',padding:'2px 6px',borderRadius:4}}>qr-stats</code> 컬렉션에<br/>
-                  자동으로 기록됩니다.
-                </div>
-                <div style={{background:'var(--bg)',borderRadius:10,padding:'14px',textAlign:'left',fontSize:11,color:'var(--text-sm)',lineHeight:1.8}}>
-                  <div style={{fontWeight:800,marginBottom:4}}>📌 QR 통계 연동 방법:</div>
-                  1. QR코드 URL에 <code style={{background:'var(--card)',padding:'1px 4px',borderRadius:3}}>?src=banner-name</code> 추가<br/>
-                  2. 랜딩 페이지에서 <code style={{background:'var(--card)',padding:'1px 4px',borderRadius:3}}>src</code> 파라미터 읽기<br/>
-                  3. Firestore <code style={{background:'var(--card)',padding:'1px 4px',borderRadius:3}}>qr-stats/배너명</code> 문서의 count 증가<br/>
-                  4. 이 대시보드에서 자동 집계 확인
-                </div>
-              </div>
-            );
-            const maxCount=Math.max(...qrStats.map(q=>q.count||0),1);
-            return React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:8}},
-              qrStats.map(q=>React.createElement('div',{key:q.id,style:{background:'var(--card)',borderRadius:10,border:'1px solid var(--border)',padding:'12px 16px',display:'flex',alignItems:'center',gap:12}},
-                React.createElement('div',{style:{flex:1,minWidth:0}},
-                  React.createElement('div',{style:{fontSize:13,fontWeight:700,color:'var(--text)',marginBottom:4}},q.label||q.id),
-                  React.createElement('div',{style:{fontSize:11,color:'var(--text-sm)',marginBottom:6,wordBreak:'break-all'}},q.url||''),
-                  React.createElement('div',{style:{height:6,borderRadius:3,background:'var(--bg)',overflow:'hidden'}},
-                    React.createElement('div',{style:{height:'100%',width:`${((q.count||0)/maxCount)*100}%`,background:'var(--blue)',borderRadius:3,transition:'width .3s'}}),
-                  ),
-                ),
-                React.createElement('div',{style:{textAlign:'center',flexShrink:0}},
-                  React.createElement('div',{style:{fontSize:22,fontWeight:900,color:'var(--blue)'}},q.count||0),
-                  React.createElement('div',{style:{fontSize:9,fontWeight:700,color:'var(--text-sm)'}},'스캔'),
-                ),
-              ))
-            );
-          })()}
+          <QrStatsTab/>
         </div>
       )}
 

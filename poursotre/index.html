@@ -566,23 +566,50 @@ document.getElementById('save-jpeg').addEventListener('click', function(){
   btn.textContent = '⏳ 저장 중...';
   btn.style.pointerEvents = 'none';
   var target = document.querySelector('.W');
-  html2canvas(target, {
-    scale: 5,
-    useCORS: true,
-    allowTaint: true,
-    backgroundColor: '#ffffff',
-    width: 1625,
-    height: 1000
+  var scaler = document.querySelector('.W-scaler');
+  // 원본 크기로 복원 후 캡처
+  var origTransform = scaler.style.transform;
+  var origWidth = scaler.style.width;
+  var origMB = scaler.style.marginBottom;
+  scaler.style.transform = 'none';
+  scaler.style.width = '1625px';
+  scaler.style.marginBottom = '0';
+  // 폰트 로딩 대기
+  document.fonts.ready.then(function(){
+    return html2canvas(target, {
+      scale: 5,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      width: 1625,
+      height: 1000,
+      onclone: function(doc){
+        // 클론된 문서에서 모든 텍스트 요소에 letter-spacing 명시
+        var els = doc.querySelectorAll('*');
+        for(var i=0;i<els.length;i++){
+          var cs = window.getComputedStyle(els[i]);
+          els[i].style.letterSpacing = cs.letterSpacing;
+          els[i].style.wordSpacing = cs.wordSpacing;
+        }
+      }
+    });
   }).then(function(canvas){
+    // 스케일러 복원
+    scaler.style.transform = origTransform;
+    scaler.style.width = origWidth;
+    scaler.style.marginBottom = origMB;
     var link = document.createElement('a');
     link.download = 'POUR스토어_배너_' + new Date().toISOString().slice(0,10) + '.png';
     link.href = canvas.toDataURL('image/png');
     link.click();
-    btn.textContent = '📷 JPEG 저장';
+    btn.textContent = '📷 PNG 저장';
     btn.style.pointerEvents = 'auto';
   }).catch(function(err){
+    scaler.style.transform = origTransform;
+    scaler.style.width = origWidth;
+    scaler.style.marginBottom = origMB;
     alert('저장 실패: ' + err.message);
-    btn.textContent = '📷 JPEG 저장';
+    btn.textContent = '📷 PNG 저장';
     btn.style.pointerEvents = 'auto';
   });
 });

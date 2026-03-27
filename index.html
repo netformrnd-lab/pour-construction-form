@@ -658,7 +658,7 @@ function MemoTextarea({value,onChange,placeholder,minHeight=600,onDoodleToggle,d
       style:{padding:'6px 8px',borderRadius:8,border:'none',background:disabled?'transparent':bg,color:disabled?'#ccc':color,
         fontSize:13,fontWeight:700,cursor:disabled?'default':'pointer',fontFamily:'inherit',
         display:'flex',alignItems:'center',justifyContent:'center',gap:3,
-        opacity:disabled?.35:1,transition:'all .1s',flexShrink:0,whiteSpace:'nowrap'}},
+        opacity:disabled?0.35:1,transition:'all .1s',flexShrink:0,whiteSpace:'nowrap'}},
       React.createElement('span',{style:{fontSize:15,lineHeight:1}},icon),
       React.createElement('span',{style:{fontSize:10,fontWeight:700}},label)
     );
@@ -1557,7 +1557,7 @@ function SmsModal({phone,name,building,problem,staff,company='',position='',buil
           <button style={{flex:1,padding:'13px 0',borderRadius:10,border:'1.5px solid var(--border)',background:'var(--bg)',
             fontSize:14,fontWeight:700,color:'var(--text-md)',cursor:'pointer',fontFamily:'inherit'}} onClick={onClose}>취소</button>
           <button style={{flex:2,padding:'13px 0',borderRadius:10,border:'none',background:'var(--blue)',
-            fontSize:14,fontWeight:800,color:'#fff',cursor:'pointer',fontFamily:'inherit',opacity:sending?.6:1}}
+            fontSize:14,fontWeight:800,color:'#fff',cursor:'pointer',fontFamily:'inherit',opacity:sending?0.6:1}}
             onClick={doSend} disabled={sending}>{sending?'발송 중...':'발송하기'}</button>
         </div>
       </div>
@@ -2553,7 +2553,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                         건너뛰기
                       </button>
                       <button onClick={async()=>{if(!ntPhone)return;setNtSmsSending(true);const r=await sendSMS(ntPhone,ntSmsText);setNtSmsSending(false);if(r.success){setNtQuickSms(false);ntResetAndClose();}else{alert('발송 실패: '+(typeof r.error==='string'?r.error:JSON.stringify(r.error)));}}} disabled={ntSmsSending}
-                        style={{flex:2,padding:'12px 0',borderRadius:10,border:'none',background:'var(--blue)',fontSize:14,fontWeight:800,color:'#fff',cursor:'pointer',fontFamily:'inherit',opacity:ntSmsSending?.6:1}}>
+                        style={{flex:2,padding:'12px 0',borderRadius:10,border:'none',background:'var(--blue)',fontSize:14,fontWeight:800,color:'#fff',cursor:'pointer',fontFamily:'inherit',opacity:ntSmsSending?0.6:1}}>
                         {ntSmsSending?'발송 중...':'발송하기'}
                       </button>
                     </div>
@@ -2578,7 +2578,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                   <div style={{display:'flex',gap:8,marginTop:10}}>
                     <button onClick={()=>ntBizCardOpenRef.current?.()} style={{padding:'12px 20px',borderRadius:12,border:'1.5px solid var(--border)',background:'var(--bg)',fontSize:15,fontWeight:700,color:'var(--text)',cursor:'pointer',display:'flex',alignItems:'center',gap:6,fontFamily:'inherit'}}>📇 명함</button>
                     <button onPointerDown={e=>{if(e.pointerType==='touch'&&isPenActive()){e.preventDefault();e.stopPropagation();}}} onClick={e=>{if(isPenActive())return;saveNote();}} disabled={ntSaving}
-                      style={{flex:1,padding:'12px 20px',borderRadius:12,border:'none',background:'linear-gradient(135deg,#059669,#10B981)',color:'#fff',fontSize:16,fontWeight:900,cursor:'pointer',fontFamily:'inherit',opacity:ntSaving?.6:1,display:'flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 2px 8px rgba(5,150,105,.3)'}}>{ntSaving?'저장 중...':'✅ 상담 마치기'}</button>
+                      style={{flex:1,padding:'12px 20px',borderRadius:12,border:'none',background:'linear-gradient(135deg,#059669,#10B981)',color:'#fff',fontSize:16,fontWeight:900,cursor:'pointer',fontFamily:'inherit',opacity:ntSaving?0.6:1,display:'flex',alignItems:'center',justifyContent:'center',gap:6,boxShadow:'0 2px 8px rgba(5,150,105,.3)'}}>{ntSaving?'저장 중...':'✅ 상담 마치기'}</button>
                   </div>
                   </div>
                   <div className="note-ctx" style={{marginTop:8,marginBottom:0}}>
@@ -3881,7 +3881,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
                     건너뛰기
                   </button>
                   <button onClick={async()=>{if(!phone)return;setSmsSending(true);const r=await sendSMS(phone,smsText);setSmsSending(false);if(r.success){onClose();}else{alert('발송 실패: '+(typeof r.error==='string'?r.error:JSON.stringify(r.error)));}}} disabled={smsSending}
-                    style={{flex:2,padding:'12px 0',borderRadius:10,border:'none',background:'var(--blue)',fontSize:14,fontWeight:800,color:'#fff',cursor:'pointer',fontFamily:'inherit',opacity:smsSending?.6:1}}>
+                    style={{flex:2,padding:'12px 0',borderRadius:10,border:'none',background:'var(--blue)',fontSize:14,fontWeight:800,color:'#fff',cursor:'pointer',fontFamily:'inherit',opacity:smsSending?0.6:1}}>
                     {smsSending?'발송 중...':'발송하기'}
                   </button>
                 </div>
@@ -4852,7 +4852,7 @@ function SmsSettingsTab(){
           <input value={testPhone} onChange={e=>setTestPhone(e.target.value)} placeholder="테스트 번호 (01012345678)"
             style={{flex:1,padding:'10px 12px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:12,color:'var(--text)',background:'var(--bg)',outline:'none',fontFamily:'inherit',boxSizing:'border-box'}} type="tel"/>
           <button onClick={testSend} disabled={testing||!cfg.workerUrl||!cfg.apiKey||!cfg.apiSecret||!cfg.sender}
-            style={{padding:'10px 16px',borderRadius:9,border:'none',background:(cfg.workerUrl&&cfg.apiKey&&cfg.apiSecret&&cfg.sender)?'var(--blue)':'var(--border)',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',opacity:testing?.6:1,whiteSpace:'nowrap'}}>
+            style={{padding:'10px 16px',borderRadius:9,border:'none',background:(cfg.workerUrl&&cfg.apiKey&&cfg.apiSecret&&cfg.sender)?'var(--blue)':'var(--border)',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',opacity:testing?0.6:1,whiteSpace:'nowrap'}}>
             {testing?'발송중...':'테스트 발송'}
           </button>
         </div>
@@ -5016,7 +5016,7 @@ function PinModal({mode,onSuccess,onClose}){
         {mode==='setup'&&<input type="password" inputMode="numeric" value={pinConfirm} onChange={e=>setPinConfirm(e.target.value.replace(/[^0-9]/g,''))} placeholder="비밀번호 확인" style={inputStyle} maxLength={8} onKeyDown={e=>{if(e.key==='Enter')handleSetup();}}/>}
         {error&&<div style={{fontSize:12,color:'#DC2626',fontWeight:700,marginBottom:4}}>{error}</div>}
         {locked&&<div style={{fontSize:11,color:'var(--text-sm)',marginBottom:4}}>{lockTimer}초 후 재시도 가능</div>}
-        <button style={{...btnStyle,opacity:locked?.5:1}} disabled={locked} onClick={mode==='setup'?handleSetup:handleVerify}>{mode==='setup'?'설정 완료':'확인'}</button>
+        <button style={{...btnStyle,opacity:locked?0.5:1}} disabled={locked} onClick={mode==='setup'?handleSetup:handleVerify}>{mode==='setup'?'설정 완료':'확인'}</button>
         <button style={{...btnStyle,background:'transparent',color:'var(--text-sm)',border:'1.5px solid var(--border)',marginTop:6}} onClick={onClose}>취소</button>
       </div>
     </div>

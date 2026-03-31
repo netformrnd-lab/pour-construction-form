@@ -29,6 +29,17 @@ firebase.initializeApp({
 });
 const db = firebase.firestore();
 function getUrlSource(){try{return new URLSearchParams(window.location.search).get('source')||'';}catch(e){return'';}}
+// QR 스캔 카운트 기록 (페이지 로드 시 ?source= 파라미터가 있으면 qr-stats에 기록)
+(function(){
+  try{
+    const src=getUrlSource();
+    if(!src)return;
+    db.collection('qr-stats').doc(src).set(
+      {count:firebase.firestore.FieldValue.increment(1),lastScan:new Date().toISOString()},
+      {merge:true}
+    ).catch(e=>console.warn('qr-stats 기록 실패:',e));
+  }catch(e){console.warn('qr-stats 초기화 실패:',e);}
+})();
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -4077,9 +4088,13 @@ function QrStatsTab(){
   const [qrStats,setQrStats]=useState(null);
   const [qrLoading,setQrLoading]=useState(true);
   useEffect(()=>{
-    db.collection('qr-stats').orderBy('count','desc').get()
-      .then(s=>{setQrStats(s.docs.map(d=>({id:d.id,...d.data()})));})
-      .catch(()=>setQrStats([]))
+    db.collection('qr-stats').get()
+      .then(s=>{
+        const rows=s.docs.map(d=>({id:d.id,...d.data()}));
+        rows.sort((a,b)=>(b.count||0)-(a.count||0));
+        setQrStats(rows);
+      })
+      .catch(e=>{console.warn('qr-stats 로드 실패:',e);setQrStats([]);})
       .finally(()=>setQrLoading(false));
   },[]);
   if(qrLoading)return <div style={{textAlign:'center',padding:40,color:'var(--text-sm)'}}>불러오는 중...</div>;

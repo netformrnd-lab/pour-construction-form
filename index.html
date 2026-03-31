@@ -906,6 +906,10 @@ const saveCasePhotos=p=>{
   try{localStorage.setItem('pourCasePhotos',JSON.stringify(p));}catch(e){alert('저장 공간이 부족합니다. 일부 사진을 삭제해주세요.');}
   try{db.collection('config').doc('casePhotos').set(p).catch(()=>{});}catch(e){}
 };
+// QR 전달 로그 — Firestore qrLogs 컬렉션에 기록
+const logQRTap=(type,url,staffId,staff,day,problemId,problem)=>{
+  try{db.collection('qrLogs').add({at:new Date().toISOString(),day,staffId,staff,type,url,problemId,problem}).catch(()=>{});}catch(e){}
+};
 // 보유니즈 카드 사진 — localStorage + Firestore 동기화
 const loadProblemPhotos=()=>{try{return JSON.parse(localStorage.getItem('pourProblemPhotos')||'{}');}catch{return{};}};
 const saveProblemPhotos=p=>{
@@ -2058,7 +2062,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               )}
               {/* QR 전달 버튼 */}
               {problem.specUrl&&(
-                <button onClick={()=>setQr({url:problem.specUrl,title:'제안서'})}
+                <button onClick={()=>{setQr({url:problem.specUrl,title:'제안서'});logQRTap('제안서',problem.specUrl,staffId,staffName,staffDay,problem.id,problem.label);}}
                   style={{width:64,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4,padding:'10px 0',borderRadius:12,border:'1.5px solid var(--accent)',background:'var(--accent-l)',cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>
                   <span style={{fontSize:20}}>📱</span>
                   <span style={{fontSize:10,fontWeight:800,color:'var(--accent)'}}>QR</span>
@@ -2084,7 +2088,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 </div>
               )}
               {guide&&(
-                <button onClick={()=>setQr({url:guide.url,title:'시공가이드'})}
+                <button onClick={()=>{setQr({url:guide.url,title:'시공가이드'});logQRTap('시공가이드',guide.url,staffId,staffName,staffDay,problem.id,problem.label);}}
                   style={{width:64,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4,padding:'10px 0',borderRadius:12,border:'1.5px solid var(--accent)',background:'var(--accent-l)',cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>
                   <span style={{fontSize:20}}>📱</span>
                   <span style={{fontSize:10,fontWeight:800,color:'var(--accent)'}}>QR</span>
@@ -3386,6 +3390,7 @@ function PhotoSlot({src,label,onSet,onRemove,wide,aspect}){
 
 function AdminScreen({onBack}){
   const [leads,setLeads]=useState([]);
+  const [qrLogs,setQrLogs]=useState([]);
   const [loading,setLoading]=useState(true);
   const [tab,setTab]=useState('stat'); // 'stat' | 'list' | 'photos' | 'sms'
   const [casePhotos,setCasePhotos]=useState(()=>loadCasePhotos());
@@ -3405,10 +3410,13 @@ function AdminScreen({onBack}){
   const STATUS_COLOR={신규:'#2563EB',연락완료:'#059669',계약예정:'#7C3AED',보류:'#9CA3AF',기타:'#D97706'};
 
   useEffect(()=>{
-    db.collection('leads').orderBy('savedAt','desc').get()
-      .then(s=>{setLeads(s.docs.map(d=>({id:d.id,...d.data()})));})
-      .catch(()=>{})
-      .finally(()=>setLoading(false));
+    Promise.all([
+      db.collection('leads').orderBy('savedAt','desc').get(),
+      db.collection('qrLogs').orderBy('at','desc').get(),
+    ]).then(([ls,qs])=>{
+      setLeads(ls.docs.map(d=>({id:d.id,...d.data()})));
+      setQrLogs(qs.docs.map(d=>({id:d.id,...d.data()})));
+    }).catch(()=>{}).finally(()=>setLoading(false));
     syncPhotosFromFirestore(setCasePhotos,setProbPhotos);
   },[]);
 
@@ -3583,6 +3591,54 @@ function AdminScreen({onBack}){
               </div>
             </div>
           )}
+
+          {/* QR 전달 현황 */}
+          {(()=>{
+            const qrByDay=DAYS.map(d=>({day:d,count:qrLogs.filter(q=>q.day===d).length}));
+            const qrSpec=qrLogs.filter(q=>q.type==='제안서').length;
+            const qrGuide=qrLogs.filter(q=>q.type==='시공가이드').length;
+            const qrByStaff=[...new Set(qrLogs.map(q=>q.staff).filter(Boolean))].map(s=>({staff:s,count:qrLogs.filter(q=>q.staff===s).length})).sort((a,b)=>b.count-a.count);
+            const maxQrDay=Math.max(...qrByDay.map(d=>d.count),1);
+            return(
+              <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',marginBottom:10}}>
+                <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:10}}>📱 QR 전달 현황 <span style={{fontWeight:400,color:'#94A3B8',fontSize:10}}>({qrLogs.length}건)</span></div>
+                {/* 날짜별 바 */}
+                {qrByDay.map(({day,count})=>(
+                  <div key={day} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                    <span style={{fontSize:12,fontWeight:700,color:'var(--text)',width:72,flexShrink:0}}>{day}</span>
+                    <div style={{flex:1,height:14,background:'var(--bg)',borderRadius:6,overflow:'hidden'}}>
+                      <div style={{height:'100%',width:`${(count/maxQrDay)*100}%`,background:'#7C3AED',borderRadius:6,minWidth:count>0?4:0}}/>
+                    </div>
+                    <span style={{fontSize:13,fontWeight:900,color:'#7C3AED',width:28,textAlign:'right'}}>{count}</span>
+                  </div>
+                ))}
+                {/* 유형별 + 담당자별 */}
+                <div style={{display:'flex',gap:8,marginTop:10,flexWrap:'wrap'}}>
+                  <div style={{background:'var(--accent-l)',border:'1px solid #BFDBFE',borderRadius:10,padding:'8px 12px',flex:1,minWidth:100}}>
+                    <div style={{fontSize:10,color:'var(--text-sm)',fontWeight:700,marginBottom:2}}>📄 제안서</div>
+                    <div style={{fontSize:20,fontWeight:900,color:'var(--accent)'}}>{qrSpec}</div>
+                  </div>
+                  <div style={{background:'#F5F3FF',border:'1px solid #DDD6FE',borderRadius:10,padding:'8px 12px',flex:1,minWidth:100}}>
+                    <div style={{fontSize:10,color:'#7C3AED',fontWeight:700,marginBottom:2}}>📖 시공가이드</div>
+                    <div style={{fontSize:20,fontWeight:900,color:'#7C3AED'}}>{qrGuide}</div>
+                  </div>
+                </div>
+                {qrByStaff.length>0&&(
+                  <div style={{marginTop:10}}>
+                    <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>담당자별 QR 전달</div>
+                    {qrByStaff.map(({staff,count},i)=>(
+                      <div key={staff} style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
+                        <span style={{fontSize:12,fontWeight:700,color:i===0?'#D97706':'var(--text)',width:16}}>{i+1}</span>
+                        <span style={{fontSize:12,color:'var(--text)',flex:1}}>{staff}</span>
+                        <span style={{fontSize:13,fontWeight:900,color:'#7C3AED'}}>{count}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {qrLogs.length===0&&<div style={{fontSize:12,color:'var(--text-sm)',textAlign:'center',paddingTop:4}}>아직 기록 없음</div>}
+              </div>
+            );
+          })()}
 
           {/* 상태별 */}
           <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)'}}>

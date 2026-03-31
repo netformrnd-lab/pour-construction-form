@@ -28,6 +28,7 @@ firebase.initializeApp({
   appId:"1:881527274265:web:0caad9688e30beb1ea6388"
 });
 const db = firebase.firestore();
+function getUrlSource(){try{return new URLSearchParams(window.location.search).get('source')||'';}catch(e){return'';}}
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -1862,7 +1863,7 @@ function CSMemoScreen({building,problem,staffId,staffName,staffDay,onBack,onSave
       problem:problem?.label||'-',problemCat:problem?.cat||'-',
       problems:csProbs,
       actions:csActions.map(id=>ACTION_TAGS.find(t=>t.id===id)?.label||id),
-      memo:csMemo,status:'신규',
+      memo:csMemo,status:'신규',source:getUrlSource(),
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
     // 자동 SMS 발송 (fire-and-forget)
@@ -2141,7 +2142,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       deliveryDocs:ntDeliveryDocs,
       deliveryMedia:ntDeliveryMedia,
       businessCard:ntBizCard,
-      memo:ntMemo,memoImgs:ntMemoImgs,keywords:ntKeywords,brandTag:ntBrandTag,status:'신규',
+      memo:ntMemo,memoImgs:ntMemoImgs,keywords:ntKeywords,brandTag:ntBrandTag,status:'신규',source:getUrlSource(),
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
     // 자동 SMS 발송 (fire-and-forget)
@@ -3071,7 +3072,7 @@ function TechMemoSheet({staffId,staffName,staffDay,onBack}){
       name,company,phone,
       techType,
       actions:actions.map(id=>techActions.find(t=>t.id===id)?.label||id),
-      memo,memoImgs,status:'신규',
+      memo,memoImgs,status:'신규',source:getUrlSource(),
     };
     try{await db.collection('leads-store').add(data);}catch(e){console.warn(e);}
     const smsCfg=loadSolapiConfig();
@@ -3340,7 +3341,7 @@ function StoreNoteSheet({staffId,staffName,staffDay,building,problem,onClose}){
       brand:'store',building:building?.label||'-',problem:problem?.label||'-',
       name,company,phone,
       actions:actions.map(id=>STORE_ACTION_TAGS.find(t=>t.id===id)?.label||id),
-      memo,memoImgs,status:'신규',
+      memo,memoImgs,status:'신규',source:getUrlSource(),
     };
     try{await db.collection('leads-store').add(data);}catch(e){console.warn(e);}
     const smsCfg=loadSolapiConfig();
@@ -3435,7 +3436,7 @@ function StorePartnerSheet({staffId,staffName,staffDay,onClose}){
       name,company,phone,
       domains,region,
       actions:actions.map(id=>STORE_ACTION_TAGS.find(t=>t.id===id)?.label||id),
-      memo,memoImgs,status:'신규',
+      memo,memoImgs,status:'신규',source:getUrlSource(),
     };
     try{await db.collection('leads-store').add(data);}catch(e){console.warn(e);}
     const smsCfg=loadSolapiConfig();
@@ -3533,7 +3534,7 @@ function StoreOtherSheet({staffId,staffName,staffDay,onClose}){
     const data={
       savedAt:new Date().toISOString(),day:staffDay,staffId,staff:staffName,
       brand:'store',inquiryType:otherType,routingTo:ri?.to||'-',
-      name,company,phone,memo,memoImgs,status:'신규',
+      name,company,phone,memo,memoImgs,status:'신규',source:getUrlSource(),
     };
     try{await db.collection('leads-store').add(data);}catch(e){console.warn(e);}
     setSaving(false);setDone(true);
@@ -3709,7 +3710,7 @@ function GrohomeNoteSheet({staffId,staffName,staffDay,grohomeCat,onClose}){
       brand:'grohome',category:grohomeCat?.label||'-',
       name,phone,
       actions:actions.map(id=>GROHOME_ACTION_TAGS.find(t=>t.id===id)?.label||id),
-      memo,memoImgs,status:'신규',
+      memo,memoImgs,status:'신규',source:getUrlSource(),
     };
     try{await db.collection('leads-grohome').add(data);}catch(e){console.warn(e);}
     const smsCfg=loadSolapiConfig();
@@ -3819,7 +3820,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
       problems:problem?[problem.label]:[],
       interests,deliveryDocs,deliveryMedia,
       businessCard:bizCard,
-      memo,memoImgs,keywords,status:'신규',
+      memo,memoImgs,keywords,status:'신규',source:getUrlSource(),
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
     // 자동 SMS 발송 (fire-and-forget)
@@ -4222,11 +4223,11 @@ function AdminScreen({onBack}){
 
   // CSV 다운로드
   const downloadCSV=()=>{
-    const headers=['번호','이름','전화','이메일','담당자','날짜','건물유형','문제','액션태그','메모','상태','저장시각'];
+    const headers=['번호','이름','전화','이메일','담당자','날짜','건물유형','문제','액션태그','메모','상태','유입경로','저장시각'];
     const rows=display.map((l,i)=>[
       i+1,l.name||'',l.phone||'',l.email||'',l.staff||'',l.day||'',
       l.building||'',l.problems?.join('|')||'',l.actions?.join('|')||'',
-      (l.memo||'').replace(/,/g,'·'),l.status||'신규',l.savedAt||''
+      (l.memo||'').replace(/,/g,'·'),l.status||'신규',l.source||'직접',l.savedAt||''
     ]);
     const csv=[headers,...rows].map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
     const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});

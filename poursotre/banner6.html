@@ -2,230 +2,300 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>배너6 — 제품 전체이미지 + R&D 기술력 (2,250×750mm)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POUR스토어 배너 6 — 2,250×750mm</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
+/* ══ Design System (3번 배너 동일) ══ */
 :root {
   --or:#E8780F; --or2:#F49A3A; --or-pale:rgba(232,120,15,0.08);
   --navy:#0F1F5C; --ink:#111827; --ink2:#374151; --muted:#6B7280;
-  --light:#F9F7F4; --border:rgba(0,0,0,0.08); --white:#FFFFFF;
-  --shadow-sm:0 1px 2px rgba(0,0,0,0.06);
-  --shadow-md:0 2px 8px rgba(0,0,0,0.08);
+  --light:#F9F7F4; --border:rgba(0,0,0,0.09); --white:#FFFFFF;
+  --shadow-sm:0 1px 3px rgba(0,0,0,0.07);
+  --shadow-md:0 2px 10px rgba(0,0,0,0.09);
   --r-sm:8px; --r-md:12px; --r-lg:16px;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:24px;font-family:'Noto Sans KR','Malgun Gothic',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
-
+html,body{
+  background:#CBD5E1;
+  display:flex;justify-content:center;align-items:flex-start;
+  min-height:100vh;padding:24px;
+  font-family:'Noto Sans KR','Malgun Gothic',sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
 .W-scaler{transform-origin:top left;}
 
-/* ══ Canvas: 2250×750 → 1125×375px (1:2) ══ */
-.W{width:1125px;height:375px;background:linear-gradient(160deg,#F9F7F4 0%,#FFF5EA 100%);position:relative;overflow:hidden;display:flex;padding:24px 30px;}
-
-/* 배경 장식 */
-.W::before{content:'';position:absolute;top:-60px;right:-60px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(232,120,15,0.08) 0%,transparent 70%);pointer-events:none;}
-
-/* ── 왼쪽: R&D 기술력 카드 ── */
-.left{
-  flex:0 0 430px;background:#fff;border-radius:var(--r-md);
-  box-shadow:0 4px 24px rgba(15,31,92,0.10);
-  padding:18px 20px;display:flex;flex-direction:column;gap:10px;
-  position:relative;z-index:1;overflow:hidden;
-}
-.left::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:3px;
-  background:linear-gradient(90deg,var(--navy) 0%,var(--or) 100%);
+/* ══ Canvas: 1125×380px (= 2250×760 @2x) ══ */
+.W{
+  width:1125px;
+  background:linear-gradient(160deg,#F9F7F4 0%,#FFF5EA 100%);
+  border-radius:var(--r-lg);
+  overflow:hidden;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  box-shadow:0 4px 24px rgba(0,0,0,0.10);
 }
 
-.brand-row{display:flex;align-items:center;gap:7px;}
-.brand-logo{height:24px;width:auto;}
-.lab-badge{
-  font-size:7px;font-weight:700;
-  background:var(--or-pale);color:var(--or);
-  border:1px solid rgba(232,120,15,0.25);border-radius:10px;padding:2px 8px;
+/* 배경 장식 — 오른쪽 오렌지 glow */
+.W::before{
+  content:'';position:absolute;top:-80px;right:-80px;
+  width:320px;height:320px;border-radius:50%;
+  background:radial-gradient(circle,rgba(232,120,15,0.09) 0%,transparent 68%);
+  pointer-events:none;z-index:0;
+}
+.W::after{
+  content:'';position:absolute;bottom:-60px;left:30%;
+  width:240px;height:240px;border-radius:50%;
+  background:radial-gradient(circle,rgba(232,120,15,0.05) 0%,transparent 70%);
+  pointer-events:none;z-index:0;
 }
 
-.title{font-size:15.5px;font-weight:900;color:var(--ink);line-height:1.3;letter-spacing:-0.5px;}
-.title em{font-style:normal;color:var(--or);}
-
-/* 특허 카드 */
-.patent-card{
-  background:linear-gradient(135deg,var(--navy) 0%,#1e2f7a 100%);
-  border-radius:var(--r-sm);padding:10px 14px;
-  display:flex;align-items:center;gap:12px;
+/* ══ 상단 오렌지 헤더 ══ */
+.top-head{
+  background:linear-gradient(135deg,var(--or) 0%,var(--or2) 100%);
+  padding:14px 48px 13px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:relative;overflow:hidden;flex-shrink:0;z-index:1;
 }
-.patent-left{display:flex;flex-direction:column;align-items:flex-start;flex-shrink:0;}
-.patent-num{
-  font-size:32px;font-weight:900;color:var(--or2);line-height:1;
-  font-family:'Arial Black',sans-serif;letter-spacing:-1px;
+.top-head::before{
+  content:'';position:absolute;top:-50px;right:-50px;
+  width:160px;height:160px;border-radius:50%;
+  background:rgba(255,255,255,0.10);pointer-events:none;
 }
-.patent-unit{font-size:14px;font-weight:700;color:var(--or2);}
-.patent-desc{font-size:7.5px;color:rgba(255,255,255,0.55);margin-top:2px;letter-spacing:0.3px;}
-.patent-divider{width:1px;height:38px;background:rgba(255,255,255,0.15);flex-shrink:0;}
-.patent-right{flex:1;}
-.patent-sub{font-size:8px;color:rgba(255,255,255,0.8);line-height:1.7;}
-
-/* MOU */
-.mou-section{display:flex;flex-direction:column;gap:5px;}
-.section-label{
-  font-size:7px;font-weight:700;color:var(--muted);
-  letter-spacing:0.8px;text-transform:uppercase;
-  padding-bottom:4px;border-bottom:1px solid var(--border);
+.top-head::after{
+  content:'';position:absolute;bottom:-30px;right:160px;
+  width:100px;height:100px;border-radius:50%;
+  background:rgba(255,255,255,0.07);pointer-events:none;
 }
-.mou-list{display:flex;flex-direction:column;gap:3px;}
-.mou-item{font-size:7.5px;color:var(--ink2);display:flex;align-items:center;gap:7px;line-height:1.35;}
-.mou-bar{width:2px;height:11px;background:var(--or);border-radius:1px;flex-shrink:0;}
 
-/* 인증 */
-.cert-row{display:flex;gap:6px;align-items:center;padding-top:2px;border-top:1px solid var(--border);}
-.cert-tag{
-  font-size:7.5px;font-weight:700;
-  border:1.5px solid rgba(15,31,92,0.3);color:var(--navy);
-  border-radius:5px;padding:3px 10px;
+.head-left{display:flex;flex-direction:column;gap:5px;position:relative;z-index:1;}
+.logo-row{display:flex;align-items:center;gap:10px;}
+.store-logo{height:36px;width:auto;}
+
+.badge-row{display:flex;gap:6px;}
+.badge{font-size:8.5px;font-weight:700;border-radius:20px;padding:3px 10px;}
+.bw{background:rgba(255,255,255,0.20);color:#fff;border:1px solid rgba(255,255,255,0.30);}
+.bd{background:var(--navy);color:#fff;}
+
+.head-pre{font-size:11px;font-weight:600;color:rgba(255,255,255,0.85);letter-spacing:-0.1px;}
+.head-title{font-size:20px;font-weight:900;color:#fff;line-height:1.2;letter-spacing:-0.7px;}
+
+/* 오른쪽 stat 4종 */
+.head-stats{
+  display:flex;align-items:center;gap:0;
+  background:rgba(255,255,255,0.14);
+  border:1px solid rgba(255,255,255,0.22);
+  border-radius:var(--r-md);
+  overflow:hidden;
+  position:relative;z-index:1;
+  flex-shrink:0;
 }
-.cert-note{font-size:7px;color:var(--muted);margin-left:2px;}
+.hstat{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:10px 20px;
+  min-width:90px;
+}
+.hstat+.hstat{border-left:1px solid rgba(255,255,255,0.20);}
+.hstat-n{font-size:17px;font-weight:900;color:#fff;font-family:'Arial Black',Arial,sans-serif;line-height:1;}
+.hstat-l{font-size:7.5px;color:rgba(255,255,255,0.78);margin-top:3px;text-align:center;line-height:1.3;}
 
-/* ── 오른쪽: 제품 전체이미지 ── */
-.right{flex:1;position:relative;margin-left:20px;z-index:1;display:flex;align-items:stretch;}
-.prod-full-img{width:100%;height:100%;object-fit:cover;object-position:center top;border-radius:var(--r-md);box-shadow:var(--shadow-md);}
-.prod-full-placeholder{width:100%;height:100%;background:linear-gradient(135deg,#f0ede8 0%,#e8e2d9 100%);border-radius:var(--r-md);border:2px dashed rgba(232,120,15,0.3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;}
-.prod-full-placeholder span{font-size:10px;color:var(--muted);text-align:center;line-height:1.5;}
+/* ══ 본문 — 가로 2열 (MOU + 제품) ══ */
+.body-wrap{
+  flex:1;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:0;
+  padding:18px 40px 20px;
+  position:relative;z-index:1;
+}
 
-/* 하단 오렌지 라인 */
-.bottom-line{position:absolute;bottom:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--or) 0%,var(--or2) 100%);z-index:10;}
+.col-left{
+  display:flex;flex-direction:column;gap:10px;
+  padding-right:24px;
+}
+.col-right{
+  display:flex;flex-direction:column;gap:10px;
+  padding-left:24px;
+}
 
-/* ── 유틸 버튼 ── */
-#save-btn{position:fixed;top:10px;right:10px;z-index:9999;padding:8px 16px;background:var(--or);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);font-family:inherit;}
-#view-toggle{position:fixed;top:10px;left:10px;z-index:9999;padding:6px 12px;background:#fff;border:1px solid #ddd;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;display:none;}
+/* MOU 섹션 레이블 */
+.section-label-row{display:flex;align-items:center;gap:8px;}
+.section-bar{width:3px;height:14px;background:var(--or);border-radius:2px;flex-shrink:0;}
+.section-label-text{font-size:10px;font-weight:800;color:var(--ink);letter-spacing:1.5px;text-transform:uppercase;}
+
+/* MOU 카드 그리드 */
+.mou-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  grid-template-rows:1fr 1fr;
+  gap:8px;
+  flex:1;
+}
+.mou-card{
+  background:#fff;
+  border:1px solid var(--border);
+  border-left:3px solid var(--or);
+  border-radius:0 var(--r-sm) var(--r-sm) 0;
+  padding:14px 15px;
+  display:flex;flex-direction:column;gap:5px;
+  box-shadow:var(--shadow-sm);
+  position:relative;overflow:hidden;
+  justify-content:center;
+}
+.mou-card.etri{border-left-color:var(--navy);}
+.mou-card.etri .mou-benefit{color:var(--navy);}
+.mou-card.seoultech{border-left-color:#2563EB;}
+.mou-card.seoultech .mou-benefit{color:#2563EB;}
+
+.mou-org{font-size:11px;font-weight:800;color:var(--ink);line-height:1.3;}
+.mou-benefit{font-size:10px;font-weight:700;color:var(--or);line-height:1.4;}
+
+/* 제품 사진 플레이스홀더 */
+.prod-area{
+  flex:1;
+  border:1.5px dashed rgba(232,120,15,0.30);
+  border-radius:var(--r-md);
+  background:rgba(255,255,255,0.65);
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+  box-shadow:var(--shadow-sm);
+}
+.prod-area img.prod-photo{
+  width:100%;height:100%;
+  object-fit:cover;
+  border-radius:var(--r-md);
+  display:block;
+}
+.prod-placeholder{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;padding:16px;text-align:center;
+}
+.prod-placeholder-grid{
+  display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;
+  gap:6px;width:110px;height:74px;
+}
+.prod-placeholder-grid span{background:rgba(0,0,0,0.08);border-radius:4px;display:block;}
+.prod-placeholder-text{font-size:11px;font-weight:700;color:var(--ink2);line-height:1.4;}
 </style>
 </head>
 <body>
 <div class="W-scaler">
 <div class="W">
 
-  <!-- ── 왼쪽: R&D 기술력 ── -->
-  <div class="left">
-    <div class="brand-row">
-      <img class="brand-logo" src="1.배경x_로고.png" alt="POUR스토어" onerror="this.style.display='none'">
-      <span class="lab-badge">자체 기술연구소 운영</span>
+  <!-- ══ 상단 오렌지 헤더 ══ -->
+  <div class="top-head">
+    <div class="head-left">
+      <div class="logo-row">
+        <img class="store-logo" src="logo_white.png" alt="POUR스토어"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div style="display:none;align-items:center;gap:5px;">
+          <div style="display:flex;align-items:flex-end;gap:2px;height:20px;">
+            <span style="display:block;width:4px;height:12px;background:rgba(255,255,255,0.95);border-radius:2px;"></span>
+            <span style="display:block;width:4px;height:16px;background:rgba(255,255,255,0.95);border-radius:2px;"></span>
+            <span style="display:block;width:4px;height:20px;background:rgba(255,255,255,0.95);border-radius:2px;"></span>
+            <span style="display:block;width:4px;height:14px;background:rgba(255,255,255,0.95);border-radius:2px;"></span>
+          </div>
+          <span style="font-size:14px;font-weight:900;color:#fff;letter-spacing:1px;">POUR스토어</span>
+        </div>
+      </div>
+      <div class="badge-row">
+        <span class="badge bw">자체 기술연구소 운영</span>
+        <span class="badge bd">국가 등록 특허 70여 개</span>
+      </div>
+      <div class="head-pre">자체 R&amp;D로 탄생한 기술,</div>
+      <div class="head-title">국가 등록 특허 70여 개로 증명합니다</div>
     </div>
 
-    <div class="title">자체 R&D로 탄생한 기술,<br><em>국가 등록 특허 70여 개</em>로 증명합니다</div>
-
-    <!-- 특허 stat -->
-    <div class="patent-card">
-      <div class="patent-left">
-        <div><span class="patent-num">70</span><span class="patent-unit">여+</span></div>
-        <span class="patent-desc">국가 등록 특허</span>
+    <!-- stat 4종 -->
+    <div class="head-stats">
+      <div class="hstat">
+        <span class="hstat-n">70여+</span>
+        <span class="hstat-l">국가 등록 특허</span>
       </div>
-      <div class="patent-divider"></div>
-      <div class="patent-right">
-        <span class="patent-sub">방수 · 코팅 · 보수보강 · 토목 전 분야<br>자체 연구개발 · 원재료~완제품 자체 생산<br>첫 시공 그대로 오랜 시간 성능 유지</span>
+      <div class="hstat">
+        <span class="hstat-n">110여 개</span>
+        <span class="hstat-l">고품질 제품 보유</span>
       </div>
-    </div>
-
-    <!-- MOU -->
-    <div class="mou-section">
-      <div class="section-label">MOU 체결 기관</div>
-      <div class="mou-list">
-        <div class="mou-item"><span class="mou-bar"></span>하이퐁 건설협회</div>
-        <div class="mou-item"><span class="mou-bar"></span>ETRI · 건축 리노베이션 AI 기술 공동 개발</div>
-        <div class="mou-item"><span class="mou-bar"></span>강남제비스코</div>
-        <div class="mou-item"><span class="mou-bar"></span>서울과학기술대학교</div>
+      <div class="hstat">
+        <span class="hstat-n">260만</span>
+        <span class="hstat-l">세대 현장 검증</span>
       </div>
-    </div>
-
-    <!-- 인증 -->
-    <div class="cert-row">
-      <span class="cert-tag">인증 ①</span>
-      <span class="cert-tag">인증 ②</span>
-      <span class="cert-note">내일 업데이트 예정</span>
+      <div class="hstat">
+        <span class="hstat-n">250여 곳</span>
+        <span class="hstat-l">시공 협력사</span>
+      </div>
     </div>
   </div>
 
-  <!-- ── 오른쪽: 제품 전체이미지 ── -->
-  <!-- 이미지 준비 후 아래 주석 해제하고 placeholder div 삭제 -->
-  <div class="right">
-    <!-- <img class="prod-full-img" src="제품전체이미지.jpg" alt="POUR스토어 전 제품 라인업"> -->
-    <div class="prod-full-placeholder">
-      <span style="font-size:24px;">📷</span>
-      <span>제품 전체이미지<br>(AI 제작 중)</span>
+  <!-- ══ 본문 ══ -->
+  <div class="body-wrap">
+
+    <!-- 왼쪽: MOU -->
+    <div class="col-left">
+      <div class="section-label-row">
+        <div class="section-bar"></div>
+        <span class="section-label-text">MOU 체결 기관</span>
+      </div>
+      <div class="mou-grid">
+        <div class="mou-card">
+          <div class="mou-org">베트남 하이퐁 건설협회 (HACC)</div>
+          <div class="mou-benefit">해외 스마트도시 현장 공식 채택</div>
+        </div>
+        <div class="mou-card etri">
+          <div class="mou-org">한국전자통신연구원 (ETRI)</div>
+          <div class="mou-benefit">국내 최초 AI 도료 품질 자동 측정</div>
+        </div>
+        <div class="mou-card">
+          <div class="mou-org">강남제비스코(주)</div>
+          <div class="mou-benefit">대한민국 도료 리더와 기술 결합</div>
+        </div>
+        <div class="mou-card seoultech">
+          <div class="mou-org">서울과학기술대학교 방수기술연구소</div>
+          <div class="mou-benefit">대학 연구소의 학술 성능 검증</div>
+        </div>
+      </div>
     </div>
-  </div>
 
-  <div class="bottom-line"></div>
-</div>
-</div>
+    <!-- 오른쪽: 제품 사진 -->
+    <div class="col-right">
+      <div class="prod-area">
+        <!-- 실제 사진 준비 시 아래 주석 해제 후 src 변경 -->
+        <!-- <img class="prod-photo" src="products_studio.jpg" alt="POUR스토어 전 제품 라인업"> -->
+        <div class="prod-placeholder">
+          <div class="prod-placeholder-grid">
+            <span></span><span></span><span></span><span></span>
+          </div>
+          <div class="prod-placeholder-text">200여 개 제품 스튜디오 사진</div>
+        </div>
+      </div>
+    </div>
 
-<button id="view-toggle">🔍 확대 보기</button>
-<button id="save-btn">📷 PNG 저장</button>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  </div><!-- /body-wrap -->
+
+</div><!-- /W -->
+</div><!-- /W-scaler -->
+
 <script>
 (function(){
-  var CANVAS_W = 1125, CANVAS_H = 375;
-  var isFit = true;
-  var btn = document.getElementById('view-toggle');
+  var CANVAS_W = 1125;
   var scaler = document.querySelector('.W-scaler');
-
   function applyFit(){
-    isFit = true;
-    var s = window.innerWidth / CANVAS_W;
+    var vw = window.innerWidth - 48;
+    var s = Math.min(vw / CANVAS_W, 1);
     scaler.style.transform = 'scale('+s+')';
     scaler.style.transformOrigin = 'top left';
     scaler.style.width = CANVAS_W + 'px';
-    scaler.style.marginBottom = (CANVAS_H * s - CANVAS_H) + 'px';
-    document.body.style.padding = '0';
+    var h = document.querySelector('.W').offsetHeight;
+    scaler.style.marginBottom = (h * s - h) + 'px';
+    document.body.style.padding = '24px';
     document.body.style.justifyContent = 'flex-start';
     document.body.style.alignItems = 'flex-start';
-    document.documentElement.style.overflowX = 'hidden';
-    document.body.style.overflowX = 'hidden';
-    btn.textContent = '🔍 확대 보기';
   }
-  function applyFull(){
-    isFit = false;
-    scaler.style.transform = 'none';
-    scaler.style.width = '';
-    scaler.style.marginBottom = '0';
-    document.body.style.padding = '16px';
-    document.body.style.justifyContent = 'flex-start';
-    document.body.style.alignItems = 'flex-start';
-    document.documentElement.style.overflowX = 'auto';
-    document.body.style.overflowX = 'auto';
-    btn.textContent = '🔎 전체 보기';
-  }
-  function init(){
-    if(window.innerWidth < CANVAS_W + 60){
-      applyFit();
-      btn.style.display = 'inline-block';
-    } else {
-      applyFull();
-      btn.style.display = 'none';
-    }
-  }
-  btn.addEventListener('click', function(){ if(isFit) applyFull(); else applyFit(); });
-  init();
-  window.addEventListener('resize', init);
+  applyFit();
+  window.addEventListener('resize', applyFit);
 })();
-
-document.getElementById('save-btn').addEventListener('click', function(){
-  var btn = this;
-  btn.textContent = '⏳ 저장 중...';
-  btn.style.pointerEvents = 'none';
-  html2canvas(document.querySelector('.W'), {
-    scale: 5, useCORS: true, allowTaint: true, backgroundColor: '#F9F7F4', width: 1125, height: 375
-  }).then(function(canvas){
-    var link = document.createElement('a');
-    link.download = '배너6_제품세트_' + new Date().toISOString().slice(0,10) + '.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-    btn.textContent = '📷 PNG 저장';
-    btn.style.pointerEvents = 'auto';
-  }).catch(function(err){
-    alert('저장 실패: ' + err.message);
-    btn.textContent = '📷 PNG 저장';
-    btn.style.pointerEvents = 'auto';
-  });
-});
 </script>
 </body>
 </html>

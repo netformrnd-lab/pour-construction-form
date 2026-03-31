@@ -581,6 +581,7 @@ html, body {
 
 <button id="view-toggle">🔍 확대 보기</button>
 <button id="save-btn">📷 PNG 저장 (고해상도)</button>
+<button id="svg-btn" style="position:fixed;top:16px;right:16px;z-index:9999;padding:12px 24px;border-radius:10px;border:none;background:#2563EB;color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 4px 12px rgba(37,99,235,.4);">📥 SVG 다운로드</button>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
@@ -655,6 +656,23 @@ document.getElementById('save-btn').addEventListener('click', function(){
     b.textContent = '📷 PNG 저장 (고해상도)';
     b.style.pointerEvents = 'auto';
   });
+});
+// SVG 다운로드
+document.getElementById('svg-btn').addEventListener('click', function(){
+  var el=document.querySelector('.W');
+  if(!el){alert('배너 요소를 찾을 수 없습니다');return;}
+  var w=el.offsetWidth, h=el.offsetHeight;
+  this.textContent='⏳ 변환 중...';this.style.pointerEvents='none';
+  var self=this;
+  html2canvas(el,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#060e2e'}).then(function(canvas){
+    var dataUrl=canvas.toDataURL('image/png');
+    var svg='<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'">\n  <image width="'+w+'" height="'+h+'" xlink:href="'+dataUrl+'"/>\n</svg>';
+    var blob=new Blob([svg],{type:'image/svg+xml'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');a.href=url;a.download='POUR스토어_배너5.svg';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+    self.textContent='📥 SVG 다운로드';self.style.pointerEvents='auto';
+  }).catch(function(e){alert('SVG 생성 실패: '+e.message);self.textContent='📥 SVG 다운로드';self.style.pointerEvents='auto';});
 });
 </script>
 </body>

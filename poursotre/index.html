@@ -510,6 +510,7 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
 </style>
 <button id="view-toggle">🔍 확대 보기</button>
 <button id="save-jpeg" style="position:fixed;top:10px;right:10px;z-index:9999;padding:8px 16px;background:var(--or);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);font-family:inherit;">📷 PNG 저장</button>
+<button id="svg-btn" style="position:fixed;top:10px;right:140px;z-index:9999;padding:8px 16px;background:#2563EB;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(37,99,235,.3);font-family:inherit;">📥 SVG</button>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
 (function(){
@@ -585,6 +586,23 @@ document.getElementById('save-jpeg').addEventListener('click', function(){
     btn.textContent = '📷 JPEG 저장';
     btn.style.pointerEvents = 'auto';
   });
+});
+// SVG 다운로드
+document.getElementById('svg-btn').addEventListener('click', function(){
+  var el=document.querySelector('.W');
+  if(!el){alert('배너 요소를 찾을 수 없습니다');return;}
+  var w=el.offsetWidth, h=el.offsetHeight;
+  this.textContent='⏳ 변환 중...';this.style.pointerEvents='none';
+  var self=this;
+  html2canvas(el,{scale:2,useCORS:true,backgroundColor:'#ffffff'}).then(function(canvas){
+    var dataUrl=canvas.toDataURL('image/png');
+    var svg='<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'">\n  <image width="'+w+'" height="'+h+'" xlink:href="'+dataUrl+'"/>\n</svg>';
+    var blob=new Blob([svg],{type:'image/svg+xml'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');a.href=url;a.download='POUR스토어_배너3.svg';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+    self.textContent='📥 SVG';self.style.pointerEvents='auto';
+  }).catch(function(e){alert('SVG 생성 실패: '+e.message);self.textContent='📥 SVG';self.style.pointerEvents='auto';});
 });
 </script>
 </body>

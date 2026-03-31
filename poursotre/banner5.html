@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>배너5 — 로고+슬로건 (4,500×1,500mm) | POUR스토어</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Montserrat:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --or: #E8780F;
+  --or2: #F49A3A;
+  --or3: #FFB86B;
+  --navy: #0B1848;
+  --navy2: #0F1F5C;
+  --navy3: #162570;
+  --white: #FFFFFF;
+  --glow: rgba(232,120,15,0.35);
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body {
+  background: #1a1a2e;
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+  min-height: 100vh;
+  font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+.W-scaler { transform-origin: top left; display: block; }
+
+/* ══ 캔버스: 4500×1500 → 2250×750px (1:2) ══ */
+.W {
+  width: 2250px;
+  height: 750px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  /* 다층 배경 */
+  background:
+    radial-gradient(ellipse 60% 80% at 80% 50%, rgba(15,31,92,0.95) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 60% at 20% 50%, rgba(11,24,72,0.8) 0%, transparent 60%),
+    linear-gradient(135deg, #060e2e 0%, #0b1848 35%, #0f1f5c 60%, #0a1640 100%);
+}
+
+/* ── 건축물 SVG 배경 실루엣 ── */
+.bg-buildings {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 900px;
+  height: 600px;
+  opacity: 0.04;
+  pointer-events: none;
+}
+
+/* ── 배경 기하학 장식 ── */
+.bg-geo {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+/* 대형 원호 */
+.bg-geo::before {
+  content: '';
+  position: absolute;
+  top: -300px;
+  right: -300px;
+  width: 900px;
+  height: 900px;
+  border-radius: 50%;
+  border: 1px solid rgba(232,120,15,0.08);
+}
+.bg-geo::after {
+  content: '';
+  position: absolute;
+  top: -200px;
+  right: -200px;
+  width: 700px;
+  height: 700px;
+  border-radius: 50%;
+  border: 1px solid rgba(232,120,15,0.05);
+}
+
+/* 오렌지 글로우 오른쪽 상단 */
+.glow-top-right {
+  position: absolute;
+  top: -100px;
+  right: -50px;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(232,120,15,0.18) 0%, transparent 65%);
+  pointer-events: none;
+}
+/* 오렌지 글로우 왼쪽 하단 */
+.glow-bottom-left {
+  position: absolute;
+  bottom: -80px;
+  left: 80px;
+  width: 350px;
+  height: 350px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(232,120,15,0.08) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+/* 대각선 빛줄기 */
+.light-ray {
+  position: absolute;
+  top: 0;
+  right: 250px;
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(180deg, transparent 0%, rgba(232,120,15,0.12) 40%, rgba(232,120,15,0.06) 70%, transparent 100%);
+  transform: rotate(-15deg) scaleX(80);
+  transform-origin: top center;
+  pointer-events: none;
+}
+
+/* 격자 패턴 */
+.grid-pattern {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+}
+
+/* ── 왼쪽 수직 강조 바 ── */
+.left-accent {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  background: linear-gradient(180deg, transparent 0%, var(--or) 30%, var(--or2) 70%, transparent 100%);
+}
+
+/* ── 하단 오렌지 라인 ── */
+.bottom-line {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: linear-gradient(90deg, var(--or) 0%, var(--or2) 50%, var(--or3) 100%);
+  z-index: 20;
+}
+/* 하단 라인 글로우 */
+.bottom-line::after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 0;
+  right: 0;
+  height: 12px;
+  background: linear-gradient(180deg, transparent, rgba(232,120,15,0.25));
+}
+
+/* ── 하단 박람회 정보 바 ── */
+.expo-bar {
+  position: absolute;
+  bottom: 5px;
+  left: 0;
+  right: 0;
+  height: 52px;
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(4px);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 80px;
+  gap: 0;
+  z-index: 15;
+}
+.expo-item {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.expo-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.45);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.expo-value {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.65);
+  letter-spacing: 0.3px;
+}
+.expo-sep {
+  width: 1px;
+  height: 20px;
+  background: rgba(255,255,255,0.12);
+  margin: 0 24px;
+}
+.expo-dot-or {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--or2);
+  flex-shrink: 0;
+}
+
+/* ── 메인 레이아웃 ── */
+.layout {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0 80px 60px 80px;
+  position: relative;
+  z-index: 10;
+  gap: 0;
+}
+
+/* ── 로고 영역 ── */
+.logo-section {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.logo-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* 로고 뒤 글로우 */
+.logo-wrap::before {
+  content: '';
+  position: absolute;
+  inset: -30px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(232,120,15,0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+.logo-img {
+  height: 260px;
+  width: auto;
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 0 20px rgba(232,120,15,0.3));
+}
+
+/* ── 구분선 ── */
+.vert-divider {
+  flex-shrink: 0;
+  width: 1px;
+  height: 340px;
+  margin: 0 70px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(232,120,15,0.15) 15%,
+    rgba(232,120,15,0.6) 40%,
+    rgba(244,154,58,0.8) 50%,
+    rgba(232,120,15,0.6) 60%,
+    rgba(232,120,15,0.15) 85%,
+    transparent 100%
+  );
+  position: relative;
+}
+.vert-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--or2);
+  box-shadow: 0 0 12px var(--or2);
+}
+
+/* ── 텍스트 영역 ── */
+.text-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* 슬로건 */
+.slogan-eyebrow {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--or2);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.slogan-eyebrow::before {
+  content: '';
+  display: inline-block;
+  width: 28px;
+  height: 2px;
+  background: var(--or2);
+}
+
+.slogan-main {
+  font-size: 52px;
+  font-weight: 900;
+  color: #fff;
+  line-height: 1.18;
+  letter-spacing: -1.5px;
+  margin-bottom: 16px;
+}
+.slogan-main em {
+  font-style: normal;
+  color: var(--or2);
+  position: relative;
+}
+/* 강조 텍스트 언더라인 */
+.slogan-main em::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--or), var(--or2));
+  border-radius: 2px;
+  opacity: 0.6;
+}
+
+.slogan-sub {
+  font-size: 18px;
+  font-weight: 400;
+  color: rgba(255,255,255,0.45);
+  letter-spacing: 0.3px;
+  margin-bottom: 32px;
+  padding-left: 2px;
+}
+
+/* ── 통계 영역 ── */
+.stats-wrap {
+  display: flex;
+  gap: 0;
+  margin-bottom: 28px;
+}
+.stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 18px 20px;
+  position: relative;
+  border-left: 1px solid rgba(255,255,255,0.06);
+}
+.stat:first-child {
+  border-left: none;
+  padding-left: 0;
+}
+/* 통계 상단 오렌지 라인 */
+.stat::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--or), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.stat:first-child::before {
+  opacity: 1;
+}
+.stat-label {
+  font-size: 10.5px;
+  font-weight: 400;
+  color: rgba(255,255,255,0.38);
+  letter-spacing: 0.3px;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.stat-num {
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--or2);
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+  font-family: 'Montserrat', 'Arial Black', sans-serif;
+}
+.stat-num span {
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+/* ── 배지 영역 ── */
+.badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.badge {
+  font-size: 11.5px;
+  font-weight: 700;
+  border-radius: 24px;
+  padding: 7px 18px;
+  border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.65);
+  background: rgba(255,255,255,0.04);
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.badge-or {
+  background: rgba(232,120,15,0.18);
+  border-color: rgba(232,120,15,0.5);
+  color: var(--or2);
+  box-shadow: 0 0 12px rgba(232,120,15,0.15);
+}
+
+/* ── 유틸 버튼 ── */
+#save-btn {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 9999;
+  padding: 9px 20px;
+  background: var(--or);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(232,120,15,0.4);
+  font-family: inherit;
+  letter-spacing: 0.3px;
+}
+#save-btn:hover { background: var(--or2); }
+#view-toggle {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 9999;
+  padding: 7px 14px;
+  background: rgba(255,255,255,0.9);
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  font-family: inherit;
+  display: none;
+}
+</style>
+</head>
+<body>
+<div class="W-scaler">
+<div class="W">
+
+  <!-- 배경 레이어들 -->
+  <div class="grid-pattern"></div>
+  <div class="bg-geo"></div>
+  <div class="glow-top-right"></div>
+  <div class="glow-bottom-left"></div>
+  <div class="light-ray"></div>
+
+  <!-- 배경 건축물 실루엣 SVG -->
+  <svg class="bg-buildings" viewBox="0 0 900 600" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMaxYMax meet">
+    <!-- 고층 빌딩들 실루엣 -->
+    <rect x="700" y="80" width="80" height="520" fill="white"/>
+    <rect x="720" y="40" width="40" height="50" fill="white"/>
+    <rect x="580" y="160" width="70" height="440" fill="white"/>
+    <rect x="595" y="130" width="40" height="40" fill="white"/>
+    <rect x="460" y="200" width="90" height="400" fill="white"/>
+    <rect x="475" y="170" width="60" height="40" fill="white"/>
+    <rect x="340" y="250" width="80" height="350" fill="white"/>
+    <rect x="200" y="300" width="100" height="300" fill="white"/>
+    <rect x="50" y="350" width="120" height="250" fill="white"/>
+    <!-- 창문 패턴 -->
+    <rect x="710" y="100" width="12" height="18" fill="#0b1848"/>
+    <rect x="730" y="100" width="12" height="18" fill="#0b1848"/>
+    <rect x="750" y="100" width="12" height="18" fill="#0b1848"/>
+    <rect x="710" y="130" width="12" height="18" fill="#0b1848"/>
+    <rect x="730" y="130" width="12" height="18" fill="#0b1848"/>
+    <rect x="750" y="130" width="12" height="18" fill="#0b1848"/>
+  </svg>
+
+  <!-- 왼쪽 강조 바 -->
+  <div class="left-accent"></div>
+
+  <!-- 메인 콘텐츠 -->
+  <div class="layout">
+
+    <!-- 로고 -->
+    <div class="logo-section">
+      <div class="logo-wrap">
+        <img class="logo-img" src="1.배경x_로고.png" alt="POUR스토어 로고">
+      </div>
+    </div>
+
+    <!-- 구분선 -->
+    <div class="vert-divider"></div>
+
+    <!-- 슬로건 + 통계 + 배지 -->
+    <div class="text-section">
+
+      <div class="slogan-eyebrow">Building Maintenance Solution</div>
+
+      <div class="slogan-main">
+        쉽고 오래가는<br>
+        건축물 <em>유지보수 자재</em>의 모든 것
+      </div>
+      <div class="slogan-sub">한 번 시공해 본 현장은 다시 찾습니다</div>
+
+      <!-- 통계 -->
+      <div class="stats-wrap">
+        <div class="stat">
+          <span class="stat-label">누적 시공 세대 수</span>
+          <span class="stat-num">260만 <span>세대</span></span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">건축물 유지보수 관련 특허 기술</span>
+          <span class="stat-num">70여 <span>개</span></span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">고품질 유지보수 제품 보유 수</span>
+          <span class="stat-num">110여 <span>개+</span></span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">시공 협력사</span>
+          <span class="stat-num">250여 <span>곳</span></span>
+        </div>
+      </div>
+
+      <!-- 배지 -->
+      <div class="badges">
+        <span class="badge">B2C 자재 쇼핑몰</span>
+        <span class="badge">B2B 파트너 공급</span>
+        <span class="badge badge-or">260만+ 세대 검증</span>
+        <span class="badge">방수 · 보수 · 보강</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 박람회 정보 바 -->
+  <div class="expo-bar">
+    <div class="expo-item">
+      <span class="expo-dot-or"></span>
+      <span class="expo-value">공동주택관리산업박람회</span>
+    </div>
+    <div class="expo-sep"></div>
+    <div class="expo-item">
+      <span class="expo-label">Venue</span>
+      <span class="expo-value">BEXCO 벡스코</span>
+    </div>
+    <div class="expo-sep"></div>
+    <div class="expo-item">
+      <span class="expo-label">Date</span>
+      <span class="expo-value">2026.04.16 – 18</span>
+    </div>
+  </div>
+
+  <!-- 하단 오렌지 라인 -->
+  <div class="bottom-line"></div>
+
+</div>
+</div>
+
+<button id="view-toggle">🔍 확대 보기</button>
+<button id="save-btn">📷 PNG 저장 (고해상도)</button>
+<button id="svg-btn" style="position:fixed;top:16px;right:16px;z-index:9999;padding:12px 24px;border-radius:10px;border:none;background:#2563EB;color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 4px 12px rgba(37,99,235,.4);">📥 SVG 다운로드</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+(function(){
+  var CANVAS_W = 2250, CANVAS_H = 750;
+  var isFit = true;
+  var btn = document.getElementById('view-toggle');
+  var scaler = document.querySelector('.W-scaler');
+
+  function applyFit(){
+    isFit = true;
+    var s = window.innerWidth / CANVAS_W;
+    scaler.style.transform = 'scale('+s+')';
+    scaler.style.transformOrigin = 'top left';
+    scaler.style.width = CANVAS_W + 'px';
+    var scaledH = CANVAS_H * s;
+    scaler.style.marginBottom = (scaledH - CANVAS_H) + 'px';
+    document.body.style.padding = '0';
+    document.body.style.margin = '0';
+    document.documentElement.style.overflowX = 'hidden';
+    document.body.style.overflowX = 'hidden';
+    btn.textContent = '🔍 확대 보기';
+  }
+
+  function applyFull(){
+    isFit = false;
+    scaler.style.transform = 'none';
+    scaler.style.width = '';
+    scaler.style.marginBottom = '0';
+    document.body.style.padding = '16px';
+    document.documentElement.style.overflowX = 'auto';
+    document.body.style.overflowX = 'auto';
+    btn.textContent = '🔎 전체 보기';
+  }
+
+  function init(){
+    if(window.innerWidth < CANVAS_W + 60){
+      applyFit();
+      btn.style.display = 'inline-block';
+    } else {
+      applyFull();
+      btn.style.display = 'none';
+    }
+  }
+
+  btn.addEventListener('click', function(){ if(isFit) applyFull(); else applyFit(); });
+  init();
+  window.addEventListener('resize', init);
+})();
+
+document.getElementById('save-btn').addEventListener('click', function(){
+  var b = this;
+  b.textContent = '⏳ 저장 중... (고해상도)';
+  b.style.pointerEvents = 'none';
+  html2canvas(document.querySelector('.W'), {
+    scale: 6,
+    useCORS: true,
+    allowTaint: true,
+    backgroundColor: '#060e2e',
+    width: 2250,
+    height: 750,
+    logging: false
+  }).then(function(c){
+    var a = document.createElement('a');
+    a.download = 'POUR스토어_배너5_로고슬로건_' + new Date().toISOString().slice(0,10) + '.png';
+    a.href = c.toDataURL('image/png');
+    a.click();
+    b.textContent = '📷 PNG 저장 (고해상도)';
+    b.style.pointerEvents = 'auto';
+  }).catch(function(e){
+    alert('저장 실패: ' + e.message);
+    b.textContent = '📷 PNG 저장 (고해상도)';
+    b.style.pointerEvents = 'auto';
+  });
+});
+// SVG 다운로드
+document.getElementById('svg-btn').addEventListener('click', function(){
+  var el=document.querySelector('.W');
+  if(!el){alert('배너 요소를 찾을 수 없습니다');return;}
+  var w=el.offsetWidth, h=el.offsetHeight;
+  this.textContent='⏳ 변환 중...';this.style.pointerEvents='none';
+  var self=this;
+  html2canvas(el,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#060e2e'}).then(function(canvas){
+    var dataUrl=canvas.toDataURL('image/png');
+    var svg='<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'">\n  <image width="'+w+'" height="'+h+'" xlink:href="'+dataUrl+'"/>\n</svg>';
+    var blob=new Blob([svg],{type:'image/svg+xml'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');a.href=url;a.download='POUR스토어_배너5.svg';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+    self.textContent='📥 SVG 다운로드';self.style.pointerEvents='auto';
+  }).catch(function(e){alert('SVG 생성 실패: '+e.message);self.textContent='📥 SVG 다운로드';self.style.pointerEvents='auto';});
+});
+</script>
+</body>
+</html>

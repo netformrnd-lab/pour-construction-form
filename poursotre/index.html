@@ -159,8 +159,7 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
   <div class="L">
     <div class="L-head">
       <div class="logo-h">
-        <div class="lb"><span></span><span></span><span></span><span></span></div>
-        <div class="lw"><div class="lt">POUR</div><div class="ls">스토어</div></div>
+        <img src="흰-로고.png" alt="POUR스토어" style="height:40px;width:auto;">
       </div>
       <div class="badge-row">
         <span class="badge bw">B2C 자재 쇼핑몰</span>
@@ -306,5 +305,41 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
 
   <div class="bottom-bar"></div>
 </div>
+<!-- SVG 다운로드 버튼 -->
+<div style="position:fixed;top:16px;right:16px;z-index:9999;display:flex;gap:8px;">
+  <button onclick="downloadSVG()" style="padding:12px 24px;border-radius:10px;border:none;background:#2563EB;color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 4px 12px rgba(37,99,235,.4);display:flex;align-items:center;gap:6px;">
+    📥 SVG 다운로드
+  </button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+async function downloadSVG(){
+  const el=document.querySelector('.W');
+  if(!el){alert('배너 요소를 찾을 수 없습니다');return;}
+  const w=el.offsetWidth, h=el.offsetHeight;
+
+  // html2canvas로 캡처 후 SVG에 image로 삽입
+  try{
+    const canvas=await html2canvas(el,{scale:2,useCORS:true,backgroundColor:'#ffffff'});
+    const dataUrl=canvas.toDataURL('image/png');
+    const svg=`<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+  <image width="${w}" height="${h}" xlink:href="${dataUrl}"/>
+</svg>`;
+    const blob=new Blob([svg],{type:'image/svg+xml'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download='POUR스토어_배너.svg';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }catch(e){
+    alert('SVG 생성 중 오류: '+e.message);
+  }
+}
+</script>
 </body>
 </html>

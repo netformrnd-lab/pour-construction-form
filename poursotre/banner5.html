@@ -581,7 +581,7 @@ html, body {
 
 <button id="view-toggle">🔍 확대 보기</button>
 <button id="save-btn">📷 PNG 저장 (고해상도)</button>
-<button id="svg-btn" style="position:fixed;top:16px;right:16px;z-index:9999;padding:12px 24px;border-radius:10px;border:none;background:#2563EB;color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 4px 12px rgba(37,99,235,.4);">📥 SVG 다운로드</button>
+<button id="svg-btn" style="position:fixed;top:16px;right:200px;z-index:9999;padding:12px 24px;border-radius:10px;border:none;background:#2563EB;color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 4px 12px rgba(37,99,235,.4);">📥 SVG 다운로드</button>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
@@ -644,7 +644,7 @@ document.getElementById('save-btn').addEventListener('click', function(){
   scaler.style.marginBottom = '0';
   document.fonts.ready.then(function(){
     return html2canvas(target, {
-      scale: 5, useCORS: true, allowTaint: true, backgroundColor: '#0F1F5C', width: 2250, height: 750,
+      scale: 5, useCORS: true, allowTaint: true, backgroundColor: '#060e2e', width: 2250, height: 750,
       onclone: function(doc){
         var els = doc.querySelectorAll('*');
         for(var i=0;i<els.length;i++){

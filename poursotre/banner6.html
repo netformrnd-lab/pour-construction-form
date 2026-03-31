@@ -72,15 +72,15 @@ html,body{
 
 .head-left{display:flex;flex-direction:column;gap:5px;position:relative;z-index:1;}
 .logo-row{display:flex;align-items:center;gap:10px;}
-.store-logo{height:36px;width:auto;}
+.store-logo{height:48px;width:auto;}
 
 .badge-row{display:flex;gap:6px;}
-.badge{font-size:8.5px;font-weight:700;border-radius:20px;padding:3px 10px;}
-.bw{background:rgba(255,255,255,0.20);color:#fff;border:1px solid rgba(255,255,255,0.30);}
-.bd{background:var(--navy);color:#fff;}
+.badge{font-size:8.5px;font-weight:700;border-radius:20px;padding:4px 12px;}
+.bw{background:#fff;color:var(--ink);border:1px solid rgba(0,0,0,0.1);}
+.bd{background:var(--navy);color:#fff;border:1px solid var(--navy);}
 
-.head-pre{font-size:11px;font-weight:600;color:rgba(255,255,255,0.85);letter-spacing:-0.1px;}
-.head-title{font-size:20px;font-weight:900;color:#fff;line-height:1.2;letter-spacing:-0.7px;}
+.head-pre{font-size:12px;font-weight:700;color:var(--navy);letter-spacing:-0.1px;}
+.head-title{font-size:22px;font-weight:900;color:var(--navy);line-height:1.2;letter-spacing:-0.7px;}
 
 /* 오른쪽 stat 4종 */
 .head-stats{
@@ -188,17 +188,7 @@ html,body{
   <div class="top-head">
     <div class="head-left">
       <div class="logo-row">
-        <img class="store-logo" src="logo_white.png" alt="POUR스토어"
-             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-        <div style="display:none;align-items:center;gap:5px;">
-          <div style="display:flex;align-items:flex-end;gap:2px;height:20px;">
-            <span style="display:block;width:4px;height:12px;background:rgba(255,255,255,0.95);border-radius:2px;"></span>
-            <span style="display:block;width:4px;height:16px;background:rgba(255,255,255,0.95);border-radius:2px;"></span>
-            <span style="display:block;width:4px;height:20px;background:rgba(255,255,255,0.95);border-radius:2px;"></span>
-            <span style="display:block;width:4px;height:14px;background:rgba(255,255,255,0.95);border-radius:2px;"></span>
-          </div>
-          <span style="font-size:14px;font-weight:900;color:#fff;letter-spacing:1px;">POUR스토어</span>
-        </div>
+        <img class="store-logo" src="1.배경x_로고.png" alt="POUR스토어">
       </div>
       <div class="badge-row">
         <span class="badge bw">자체 기술연구소 운영</span>

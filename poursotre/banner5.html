@@ -633,46 +633,41 @@ html, body {
 })();
 
 document.getElementById('save-btn').addEventListener('click', function(){
-  var b = this;
-  b.textContent = '⏳ 저장 중... (고해상도)';
-  b.style.pointerEvents = 'none';
-  html2canvas(document.querySelector('.W'), {
-    scale: 6,
-    useCORS: true,
-    allowTaint: true,
-    backgroundColor: '#060e2e',
-    width: 2250,
-    height: 750,
-    logging: false
+  var b = this; b.textContent = '⏳ 저장 중...'; b.style.pointerEvents = 'none';
+  var target = document.querySelector('.W');
+  var scaler = document.querySelector('.W-scaler');
+  var origTransform = scaler.style.transform;
+  var origWidth = scaler.style.width;
+  var origMB = scaler.style.marginBottom;
+  scaler.style.transform = 'none';
+  scaler.style.width = '2250px';
+  scaler.style.marginBottom = '0';
+  document.fonts.ready.then(function(){
+    return html2canvas(target, {
+      scale: 5, useCORS: true, allowTaint: true, backgroundColor: '#0F1F5C', width: 2250, height: 750,
+      onclone: function(doc){
+        var els = doc.querySelectorAll('*');
+        for(var i=0;i<els.length;i++){
+          var cs = window.getComputedStyle(els[i]);
+          els[i].style.letterSpacing = cs.letterSpacing;
+          els[i].style.wordSpacing = cs.wordSpacing;
+        }
+      }
+    });
   }).then(function(c){
+    scaler.style.transform = origTransform;
+    scaler.style.width = origWidth;
+    scaler.style.marginBottom = origMB;
     var a = document.createElement('a');
-    a.download = 'POUR스토어_배너5_로고슬로건_' + new Date().toISOString().slice(0,10) + '.png';
-    a.href = c.toDataURL('image/png');
-    a.click();
-    b.textContent = '📷 PNG 저장 (고해상도)';
-    b.style.pointerEvents = 'auto';
+    a.download = '배너5_로고슬로건_' + new Date().toISOString().slice(0,10) + '.png';
+    a.href = c.toDataURL('image/png'); a.click();
+    b.textContent = '📷 PNG 저장'; b.style.pointerEvents = 'auto';
   }).catch(function(e){
-    alert('저장 실패: ' + e.message);
-    b.textContent = '📷 PNG 저장 (고해상도)';
-    b.style.pointerEvents = 'auto';
+    scaler.style.transform = origTransform;
+    scaler.style.width = origWidth;
+    scaler.style.marginBottom = origMB;
+    alert('실패: '+e.message);b.textContent='📷 PNG 저장';b.style.pointerEvents='auto';
   });
-});
-// SVG 다운로드
-document.getElementById('svg-btn').addEventListener('click', function(){
-  var el=document.querySelector('.W');
-  if(!el){alert('배너 요소를 찾을 수 없습니다');return;}
-  var w=el.offsetWidth, h=el.offsetHeight;
-  this.textContent='⏳ 변환 중...';this.style.pointerEvents='none';
-  var self=this;
-  html2canvas(el,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#060e2e'}).then(function(canvas){
-    var dataUrl=canvas.toDataURL('image/png');
-    var svg='<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'">\n  <image width="'+w+'" height="'+h+'" xlink:href="'+dataUrl+'"/>\n</svg>';
-    var blob=new Blob([svg],{type:'image/svg+xml'});
-    var url=URL.createObjectURL(blob);
-    var a=document.createElement('a');a.href=url;a.download='POUR스토어_배너5.svg';
-    document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
-    self.textContent='📥 SVG 다운로드';self.style.pointerEvents='auto';
-  }).catch(function(e){alert('SVG 생성 실패: '+e.message);self.textContent='📥 SVG 다운로드';self.style.pointerEvents='auto';});
 });
 </script>
 </body>

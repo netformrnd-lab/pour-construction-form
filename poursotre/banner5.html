@@ -180,14 +180,40 @@ html,body{background:#CBD5E1;display:flex;justify-content:center;align-items:fle
 
 document.getElementById('save-btn').addEventListener('click', function(){
   var b = this; b.textContent = '⏳ 저장 중...'; b.style.pointerEvents = 'none';
-  html2canvas(document.querySelector('.W'), {
-    scale: 5, useCORS: true, allowTaint: true, backgroundColor: '#0F1F5C', width: 2250, height: 750
+  var target = document.querySelector('.W');
+  var scaler = document.querySelector('.W-scaler');
+  var origTransform = scaler.style.transform;
+  var origWidth = scaler.style.width;
+  var origMB = scaler.style.marginBottom;
+  scaler.style.transform = 'none';
+  scaler.style.width = '2250px';
+  scaler.style.marginBottom = '0';
+  document.fonts.ready.then(function(){
+    return html2canvas(target, {
+      scale: 5, useCORS: true, allowTaint: true, backgroundColor: '#0F1F5C', width: 2250, height: 750,
+      onclone: function(doc){
+        var els = doc.querySelectorAll('*');
+        for(var i=0;i<els.length;i++){
+          var cs = window.getComputedStyle(els[i]);
+          els[i].style.letterSpacing = cs.letterSpacing;
+          els[i].style.wordSpacing = cs.wordSpacing;
+        }
+      }
+    });
   }).then(function(c){
+    scaler.style.transform = origTransform;
+    scaler.style.width = origWidth;
+    scaler.style.marginBottom = origMB;
     var a = document.createElement('a');
     a.download = '배너5_로고슬로건_' + new Date().toISOString().slice(0,10) + '.png';
     a.href = c.toDataURL('image/png'); a.click();
     b.textContent = '📷 PNG 저장'; b.style.pointerEvents = 'auto';
-  }).catch(function(e){alert('실패: '+e.message);b.textContent='📷 PNG 저장';b.style.pointerEvents='auto';});
+  }).catch(function(e){
+    scaler.style.transform = origTransform;
+    scaler.style.width = origWidth;
+    scaler.style.marginBottom = origMB;
+    alert('실패: '+e.message);b.textContent='📷 PNG 저장';b.style.pointerEvents='auto';
+  });
 });
 </script>
 </body>

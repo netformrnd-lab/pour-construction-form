@@ -307,6 +307,432 @@ function Sidebar({ current, onNavigate, collapsed, onToggle }) {
   );
 }
 
+// ─── 판매채널 정의 ───
+const CHANNELS = [
+  { key: 'sabangnet',    label: '사방넷',      color: '#1A73E8', urlTpl: null },
+  { key: 'imweb',        label: '아임웹(카페24)', color: '#5B2EFF', urlTpl: null },
+  { key: 'auction',      label: '옥션',         color: '#E44D26', urlTpl: id => `https://itempage3.auction.co.kr/DetailView.aspx?ItemNo=${id}` },
+  { key: 'gmarket',      label: 'G마켓',        color: '#00B050', urlTpl: id => `https://item.gmarket.co.kr/Item?goodscode=${id}` },
+  { key: 'elevenst',     label: '11번가',       color: '#FF0050', urlTpl: id => `https://www.11st.co.kr/products/${id}` },
+  { key: 'coupang',      label: '쿠팡',         color: '#E64626', urlTpl: id => `https://www.coupang.com/vp/products/${id}` },
+  { key: 'ohouse',       label: '오늘의집',      color: '#35C5F0', urlTpl: id => `https://ohou.se/productions/${id}` },
+  { key: 'smartstore',   label: '스마트스토어',   color: '#03C75A', urlTpl: id => `https://smartstore.naver.com/pourstore/products/${id}` },
+];
+
+// ─── 상품관리 페이지 ───
+function ProductsPage({ showToast }) {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [editingId, setEditingId] = useState(null); // null=목록, 'new'=신규, docId=수정
+  const [form, setForm] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [expandedChannel, setExpandedChannel] = useState(null); // 채널 상세 펼침
+
+  // Firestore 로드
+  useEffect(() => {
+    (async () => {
+      try {
+        const snap = await db.collection(COLLECTIONS.PRODUCTS).get();
+        const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        console.log(`[products] ${docs.length}건 로드`);
+        docs.sort((a, b) => (b.updatedAt || b.createdAt || '').localeCompare(a.updatedAt || a.createdAt || ''));
+        setProducts(docs);
+      } catch (e) {
+        console.error('[products] 로드 실패:', e);
+        showToast('상품 로드 실패', 'error');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  // 빈 폼 생성
+  const emptyForm = () => ({
+    name: '',
+    category: '',
+    brand: 'store',
+    thumbnail: '',
+    price: '',
+    salePrice: '',
+    options: '',
+    description: '',
+    channels: CHANNELS.reduce((acc, ch) => { acc[ch.key] = ''; return acc; }, {}),
+    isActive: true,
+  });
+
+  // 신규 등록
+  const startNew = () => {
+    setForm(emptyForm());
+    setEditingId('new');
+  };
+
+  // 수정
+  const startEdit = (product) => {
+    setForm({
+      name: product.name || '',
+      category: product.category || '',
+      brand: product.brand || 'store',
+      thumbnail: product.thumbnail || '',
+      price: product.price || '',
+      salePrice: product.salePrice || '',
+      options: product.options || '',
+      description: product.description || '',
+      channels: CHANNELS.reduce((acc, ch) => {
+        acc[ch.key] = product.channels?.[ch.key] || '';
+        return acc;
+      }, {}),
+      isActive: product.isActive !== false,
+    });
+    setEditingId(product.id);
+  };
+
+  // 저장
+  const handleSave = async () => {
+    if (!form.name.trim()) { showToast('상품명을 입력하세요', 'error'); return; }
+    setSaving(true);
+    try {
+      const now = new Date().toISOString();
+      const data = {
+        ...form,
+        price: form.price ? Number(form.price) : 0,
+        salePrice: form.salePrice ? Number(form.salePrice) : 0,
+        updatedAt: now,
+      };
+      if (editingId === 'new') {
+        data.createdAt = now;
+        const ref = await db.collection(COLLECTIONS.PRODUCTS).add(data);
+        console.log(`[products] 신규 저장: ${ref.id}`);
+        setProducts(prev => [{ id: ref.id, ...data }, ...prev]);
+        showToast('상품이 등록되었습니다');
+      } else {
+        await db.collection(COLLECTIONS.PRODUCTS).doc(editingId).update(data);
+        console.log(`[products] 수정 완료: ${editingId}`);
+        setProducts(prev => prev.map(p => p.id === editingId ? { ...p, ...data } : p));
+        showToast('상품이 수정되었습니다');
+      }
+      setEditingId(null);
+      setForm(null);
+    } catch (e) {
+      console.error('[products] 저장 실패:', e);
+      showToast('저장 실패: ' + e.message, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // 삭제
+  const handleDelete = async (id) => {
+    if (!confirm('정말 삭제하시겠습니까?')) return;
+    try {
+      await db.collection(COLLECTIONS.PRODUCTS).doc(id).delete();
+      setProducts(prev => prev.filter(p => p.id !== id));
+      showToast('삭제 완료');
+      if (editingId === id) { setEditingId(null); setForm(null); }
+    } catch (e) {
+      console.error('[products] 삭제 실패:', e);
+      showToast('삭제 실패', 'error');
+    }
+  };
+
+  // 필터
+  const filtered = useMemo(() => {
+    if (!search.trim()) return products;
+    const q = search.toLowerCase();
+    return products.filter(p =>
+      (p.name || '').toLowerCase().includes(q) ||
+      (p.category || '').toLowerCase().includes(q)
+    );
+  }, [products, search]);
+
+  // 채널 연결 수 계산
+  const countChannels = (p) => CHANNELS.filter(ch => p.channels?.[ch.key]).length;
+
+  // ─── 편집 폼 화면 ───
+  if (form && editingId) {
+    const inputStyle = {
+      width: '100%', padding: '10px 12px', fontSize: 13, border: '1px solid var(--border)',
+      borderRadius: 8, outline: 'none', fontFamily: 'inherit',
+    };
+    const labelStyle = { fontSize: 12, fontWeight: 600, color: 'var(--text-md)', marginBottom: 4, display: 'block' };
+
+    return (
+      <div style={{ animation: 'fadeIn .3s ease', maxWidth: 900 }}>
+        {/* 상단 */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <button onClick={() => { setEditingId(null); setForm(null); }}
+            style={{ background: 'none', border: 'none', fontSize: 14, color: 'var(--accent)', cursor: 'pointer', fontWeight: 600 }}>
+            ← 목록으로
+          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {editingId !== 'new' && (
+              <button onClick={() => handleDelete(editingId)}
+                style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, background: '#FEE2E2', color: 'var(--red)', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+                삭제
+              </button>
+            )}
+            <button onClick={handleSave} disabled={saving}
+              style={{ padding: '8px 20px', fontSize: 13, fontWeight: 700, background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
+              {saving ? '저장 중...' : '저장'}
+            </button>
+          </div>
+        </div>
+
+        {/* 기본 정보 */}
+        <div style={{ background: '#fff', borderRadius: 12, padding: 24, boxShadow: 'var(--shadow)', marginBottom: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>기본 정보</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={labelStyle}>상품명 *</label>
+              <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="예: POUR 우레탄 방수 키트" style={inputStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>카테고리</label>
+              <input value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} placeholder="예: 셀프방수킷" style={inputStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>브랜드</label>
+              <select value={form.brand} onChange={e => setForm({ ...form, brand: e.target.value })}
+                style={{ ...inputStyle, cursor: 'pointer' }}>
+                <option value="store">POUR스토어</option>
+                <option value="grohome">그로홈</option>
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>소비자가 (원)</label>
+              <input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="0" style={inputStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>판매가 (원)</label>
+              <input type="number" value={form.salePrice} onChange={e => setForm({ ...form, salePrice: e.target.value })} placeholder="0" style={inputStyle} />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={labelStyle}>옵션 (쉼표 구분)</label>
+              <input value={form.options} onChange={e => setForm({ ...form, options: e.target.value })} placeholder="예: 소형(5kg), 중형(10kg), 대형(20kg)" style={inputStyle} />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={labelStyle}>썸네일 이미지 URL</label>
+              <input value={form.thumbnail} onChange={e => setForm({ ...form, thumbnail: e.target.value })} placeholder="https://..." style={inputStyle} />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={labelStyle}>상품 설명</label>
+              <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3}
+                placeholder="간단한 상품 설명"
+                style={{ ...inputStyle, resize: 'vertical' }} />
+            </div>
+            <div>
+              <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input type="checkbox" checked={form.isActive} onChange={e => setForm({ ...form, isActive: e.target.checked })} />
+                판매 활성
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* 채널별 상품번호 */}
+        <div style={{ background: '#fff', borderRadius: 12, padding: 24, boxShadow: 'var(--shadow)' }}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>판매채널 상품번호</div>
+          <div style={{ fontSize: 12, color: 'var(--text-sm)', marginBottom: 16 }}>
+            각 채널의 상품번호를 입력하면 해당 채널 상품 페이지로 바로 이동할 수 있습니다
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {CHANNELS.map(ch => {
+              const val = form.channels[ch.key] || '';
+              const link = val && ch.urlTpl ? ch.urlTpl(val) : null;
+              return (
+                <div key={ch.key} style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px',
+                  background: val ? 'var(--accent-l)' : 'var(--border-s)', borderRadius: 10,
+                  border: `1px solid ${val ? 'var(--blue-m)' : 'var(--border)'}`,
+                  transition: 'all .15s ease'
+                }}>
+                  <div style={{
+                    width: 8, height: 8, borderRadius: '50%',
+                    background: val ? ch.color : '#D1D5DB', flexShrink: 0
+                  }} />
+                  <div style={{ width: 110, fontSize: 13, fontWeight: 600, color: 'var(--text)', flexShrink: 0 }}>
+                    {ch.label}
+                  </div>
+                  <input
+                    value={val}
+                    onChange={e => setForm({ ...form, channels: { ...form.channels, [ch.key]: e.target.value } })}
+                    placeholder="상품번호 입력"
+                    style={{
+                      flex: 1, padding: '8px 10px', fontSize: 13, border: '1px solid var(--border)',
+                      borderRadius: 6, outline: 'none', fontFamily: 'monospace', background: '#fff'
+                    }}
+                  />
+                  {link && (
+                    <a href={link} target="_blank" rel="noopener"
+                      style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                      링크 →
+                    </a>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── 상품 목록 ───
+  return (
+    <div style={{ animation: 'fadeIn .3s ease' }}>
+      {/* 상단 액션바 */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="상품명 / 카테고리 검색..."
+            style={{
+              padding: '9px 14px', fontSize: 13, border: '1px solid var(--border)',
+              borderRadius: 8, outline: 'none', width: 260
+            }}
+          />
+          <span style={{ fontSize: 12, color: 'var(--text-sm)' }}>총 {filtered.length}건</span>
+        </div>
+        <button onClick={startNew} style={{
+          padding: '9px 18px', fontSize: 13, fontWeight: 700,
+          background: 'var(--accent)', color: '#fff', border: 'none',
+          borderRadius: 8, cursor: 'pointer'
+        }}>
+          + 상품 등록
+        </button>
+      </div>
+
+      {/* 로딩 */}
+      {loading && (
+        <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-sm)' }}>
+          <div style={{ width: 24, height: 24, border: '3px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+          로딩 중...
+        </div>
+      )}
+
+      {/* 빈 상태 */}
+      {!loading && filtered.length === 0 && (
+        <div style={{ textAlign: 'center', padding: 80, color: 'var(--text-sm)' }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>📦</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
+            {search ? '검색 결과가 없습니다' : '등록된 상품이 없습니다'}
+          </div>
+          <div style={{ fontSize: 13 }}>상품을 등록하고 채널별 상품번호를 연결하세요</div>
+        </div>
+      )}
+
+      {/* 상품 카드 리스트 */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {filtered.map(p => {
+          const chCount = countChannels(p);
+          const isExpanded = expandedChannel === p.id;
+          return (
+            <div key={p.id} style={{
+              background: '#fff', borderRadius: 12, boxShadow: 'var(--shadow)',
+              overflow: 'hidden', border: '1px solid var(--border-s)'
+            }}>
+              {/* 메인 행 */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', cursor: 'pointer'
+              }} onClick={() => setExpandedChannel(isExpanded ? null : p.id)}>
+                {/* 썸네일 */}
+                <div style={{
+                  width: 48, height: 48, borderRadius: 8, background: '#F3F4F6',
+                  flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  {p.thumbnail
+                    ? <img src={p.thumbnail} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <span style={{ fontSize: 22 }}>📦</span>
+                  }
+                </div>
+                {/* 상품 정보 */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {p.name}
+                    </span>
+                    {!p.isActive && (
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', background: '#FEE2E2', color: 'var(--red)', borderRadius: 4 }}>
+                        비활성
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-sm)', marginTop: 2 }}>
+                    {p.category || '-'} · {p.salePrice ? Number(p.salePrice).toLocaleString() + '원' : '-'}
+                  </div>
+                </div>
+                {/* 채널 연결 뱃지 */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0
+                }}>
+                  <div style={{
+                    padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                    background: chCount > 0 ? 'var(--green-l)' : '#F3F4F6',
+                    color: chCount > 0 ? 'var(--green)' : 'var(--text-sm)'
+                  }}>
+                    {chCount}/{CHANNELS.length} 채널
+                  </div>
+                  <span style={{ fontSize: 12, color: 'var(--text-sm)', transition: 'transform .2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)' }}>▼</span>
+                </div>
+                {/* 수정 버튼 */}
+                <button onClick={e => { e.stopPropagation(); startEdit(p); }}
+                  style={{
+                    padding: '6px 14px', fontSize: 12, fontWeight: 600,
+                    background: 'var(--accent-l)', color: 'var(--accent)', border: 'none',
+                    borderRadius: 6, cursor: 'pointer', flexShrink: 0
+                  }}>
+                  수정
+                </button>
+              </div>
+
+              {/* 채널 상세 (펼침) */}
+              {isExpanded && (
+                <div style={{
+                  padding: '0 18px 14px', borderTop: '1px solid var(--border-s)',
+                  animation: 'fadeIn .2s ease'
+                }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-sm)', padding: '10px 0 6px' }}>
+                    연결된 판매채널
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 6 }}>
+                    {CHANNELS.map(ch => {
+                      const val = p.channels?.[ch.key];
+                      const link = val && ch.urlTpl ? ch.urlTpl(val) : null;
+                      return (
+                        <div key={ch.key} style={{
+                          display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
+                          borderRadius: 6, fontSize: 12,
+                          background: val ? '#F0FDF4' : '#F9FAFB',
+                          color: val ? 'var(--text)' : 'var(--text-sm)'
+                        }}>
+                          <div style={{ width: 6, height: 6, borderRadius: '50%', background: val ? ch.color : '#D1D5DB' }} />
+                          <span style={{ fontWeight: 600, width: 80, flexShrink: 0 }}>{ch.label}</span>
+                          {val ? (
+                            <>
+                              <span style={{ fontFamily: 'monospace', fontSize: 11 }}>{val}</span>
+                              {link && (
+                                <a href={link} target="_blank" rel="noopener"
+                                  style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
+                                  열기→
+                                </a>
+                              )}
+                            </>
+                          ) : (
+                            <span style={{ fontSize: 11 }}>미연결</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── 페이지 Placeholder ───
 function PagePlaceholder({ title, icon, description }) {
   return (
@@ -348,7 +774,7 @@ function App() {
       case 'dashboard':
         return <PagePlaceholder title="대시보드" icon="📊" description="전체 현황을 한눈에 확인합니다" />;
       case 'products':
-        return <PagePlaceholder title="상품관리" icon="📦" description="POUR스토어 상품 및 멀티채널 관리" />;
+        return <ProductsPage showToast={showToast} />;
       case 'leads-solution':
         return <PagePlaceholder title="POUR솔루션 영업" icon="🏢" description="박람회 리드 + 아웃바운드 영업" />;
       case 'leads-method':

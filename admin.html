@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+<title>넷폼알앤디 · 영업관리센터</title>
+<meta name="theme-color" content="#0D1B2A">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyCBGjGzaTTyIwBs_a8355KfFKaWabJT3ac",
+  authDomain:"pour-exhibition.firebaseapp.com",
+  projectId:"pour-exhibition",
+  storageBucket:"pour-exhibition.firebasestorage.app",
+  messagingSenderId:"881527274265",
+  appId:"1:881527274265:web:0caad9688e30beb1ea6388"
+});
+const db = firebase.firestore();
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0D1B2A; --navy2:#1A2E42;
+  --accent:#2563EB; --accent-s:#1E40AF; --accent-l:#EFF6FF;
+  --blue:#2563EB; --blue-l:#EFF6FF; --blue-m:#BFDBFE;
+  --gold:#D97706; --green:#059669; --green-l:#ECFDF5;
+  --red:#DC2626; --orange:#EA580C;
+  --purple:#6D28D9; --purple-l:#F5F3FF; --purple-m:#EDE9FE;
+  --text:#111827; --text-md:#4B5563; --text-sm:#9CA3AF;
+  --bg:#F9FAFB; --card:#FFFFFF; --border:#E5E7EB; --border-s:#F3F4F6;
+  --r:12px; --r-sm:8px; --r-lg:18px;
+  --shadow:0 1px 6px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.12);
+  --sidebar-w:260px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body,#root{height:100%;overflow:hidden;}
+body{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-thumb{background:#D1D5DB;border-radius:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+// ─── 상수 ───
+const ADMIN_PIN_KEY = 'pourAdminPin';
+const SIDEBAR_COLLAPSED_KEY = 'adminSidebarCollapsed';
+
+const COLLECTIONS = {
+  LEADS: 'leads',
+  LEADS_STORE: 'leads-store',
+  LEADS_GROHOME: 'leads-grohome',
+  LEADS_METHOD: 'leads-method',
+  OUTBOUND_SOLUTION: 'outbound-solution',
+  OUTBOUND_METHOD: 'outbound-method',
+  OUTBOUND_STORE: 'outbound-store',
+  OUTBOUND_GROHOME: 'outbound-grohome',
+  ACTIVITIES: 'activities',
+  PARTNER_INQUIRIES: 'partner-inquiries',
+  DEALER_INQUIRIES: 'dealer-inquiries',
+  SITE_INQUIRIES: 'site-inquiries',
+  SITE_METRICS: 'site-metrics',
+  SITE_RESOURCES: 'site-resources',
+  PARTNER_COMPANIES: 'partner-companies',
+  PRODUCTS: 'products',
+};
+
+const MENU = [
+  { section: '메인' },
+  { key: 'dashboard', label: '대시보드', icon: '📊' },
+  { section: '스토어' },
+  { key: 'products', label: '상품관리', icon: '📦' },
+  { section: '영업' },
+  { key: 'leads-solution', label: 'POUR솔루션', icon: '🏢' },
+  { key: 'leads-method', label: 'POUR공법', icon: '🔧' },
+  { key: 'leads-store', label: 'POUR스토어', icon: '🛒' },
+  { key: 'leads-grohome', label: '그로홈', icon: '🏠' },
+  { section: '사이트' },
+  { key: 'inquiries', label: '문의접수', icon: '📬' },
+  { key: 'metrics', label: '공신력수치', icon: '📊' },
+  { key: 'resources', label: '영업자료', icon: '📎' },
+  { key: 'partners', label: '파트너사', icon: '🏢' },
+  { section: '공통' },
+  { key: 'staff', label: '담당자', icon: '👥' },
+  { key: 'sms', label: 'SMS설정', icon: '💬' },
+  { key: 'settings', label: '설정', icon: '⚙️' },
+];
+
+// ─── PIN 인증 ───
+const hashPin = async (pin) => {
+  const enc = new TextEncoder().encode(pin);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+};
+
+function PinScreen({ onAuth }) {
+  const [pin, setPin] = useState('');
+  const [error, setError] = useState('');
+  const [mode, setMode] = useState('checking'); // checking | setup | verify
+  const [fails, setFails] = useState(0);
+  const [locked, setLocked] = useState(false);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(ADMIN_PIN_KEY);
+    setMode(saved ? 'verify' : 'setup');
+    setTimeout(() => inputRef.current?.focus(), 300);
+  }, []);
+
+  useEffect(() => {
+    if (fails >= 3) {
+      setLocked(true);
+      setError('3회 실패. 30초 후 재시도');
+      const t = setTimeout(() => { setLocked(false); setFails(0); setError(''); }, 30000);
+      return () => clearTimeout(t);
+    }
+  }, [fails]);
+
+  const handleSubmit = async () => {
+    if (locked || pin.length < 4) return;
+    const hashed = await hashPin(pin);
+    if (mode === 'setup') {
+      localStorage.setItem(ADMIN_PIN_KEY, hashed);
+      onAuth();
+    } else {
+      const saved = localStorage.getItem(ADMIN_PIN_KEY);
+      if (hashed === saved) {
+        onAuth();
+      } else {
+        setFails(f => f + 1);
+        setError('PIN이 일치하지 않습니다');
+        setPin('');
+      }
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') handleSubmit();
+  };
+
+  if (mode === 'checking') return null;
+
+  return (
+    <div style={{
+      height:'100vh', display:'flex', alignItems:'center', justifyContent:'center',
+      background:'linear-gradient(135deg, #0D1B2A 0%, #1A2E42 100%)'
+    }}>
+      <div style={{
+        background:'#fff', borderRadius:20, padding:'48px 40px', width:380,
+        boxShadow:'0 20px 60px rgba(0,0,0,.3)', animation:'fadeIn .4s ease',
+        textAlign:'center'
+      }}>
+        <div style={{fontSize:32, fontWeight:900, color:'var(--navy)', marginBottom:4}}>
+          넷폼알앤디
+        </div>
+        <div style={{fontSize:14, color:'var(--text-md)', marginBottom:32}}>
+          영업관리센터
+        </div>
+        <div style={{fontSize:13, fontWeight:600, color:'var(--text-md)', marginBottom:12}}>
+          {mode === 'setup' ? 'PIN 설정 (4자리 이상)' : 'PIN 입력'}
+        </div>
+        <input
+          ref={inputRef}
+          type="password"
+          value={pin}
+          onChange={e => { setPin(e.target.value); setError(''); }}
+          onKeyDown={handleKeyDown}
+          maxLength={8}
+          disabled={locked}
+          placeholder="●●●●"
+          style={{
+            width:'100%', padding:'14px 16px', fontSize:24, textAlign:'center',
+            border:`2px solid ${error ? 'var(--red)' : 'var(--border)'}`,
+            borderRadius:12, outline:'none', letterSpacing:8, fontFamily:'monospace',
+            transition:'border-color .2s',
+            animation: error ? 'shake .4s ease' : 'none'
+          }}
+        />
+        {error && (
+          <div style={{color:'var(--red)', fontSize:12, fontWeight:600, marginTop:8}}>{error}</div>
+        )}
+        <button
+          onClick={handleSubmit}
+          disabled={locked || pin.length < 4}
+          style={{
+            width:'100%', marginTop:20, padding:'14px 0', fontSize:15, fontWeight:700,
+            background: (locked || pin.length < 4) ? '#D1D5DB' : 'var(--accent)',
+            color:'#fff', border:'none', borderRadius:12, cursor:'pointer',
+            transition:'background .2s'
+          }}
+        >
+          {mode === 'setup' ? 'PIN 설정 완료' : '로그인'}
+        </button>
+        <div style={{marginTop:16, fontSize:11, color:'var(--text-sm)'}}>
+          태블릿앱과 동일한 PIN을 사용합니다
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── 토스트 ───
+function Toast({ message, type, onDone }) {
+  useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t); }, []);
+  return (
+    <div style={{
+      position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)', zIndex:9999,
+      padding:'12px 24px', borderRadius:12, fontSize:13, fontWeight:700,
+      background: type === 'success' ? 'var(--green)' : 'var(--red)', color:'#fff',
+      boxShadow:'0 6px 24px rgba(0,0,0,.25)', whiteSpace:'nowrap',
+      animation:'fadeIn .25s ease'
+    }}>
+      {type === 'success' ? '✅' : '❌'} {message}
+    </div>
+  );
+}
+
+// ─── 사이드바 ───
+function Sidebar({ current, onNavigate, collapsed, onToggle }) {
+  return (
+    <div style={{
+      width: collapsed ? 64 : 'var(--sidebar-w)',
+      minWidth: collapsed ? 64 : 260,
+      height:'100vh', background:'var(--navy)', color:'#fff',
+      display:'flex', flexDirection:'column', transition:'width .25s ease, min-width .25s ease',
+      overflow:'hidden', flexShrink:0
+    }}>
+      {/* 헤더 */}
+      <div style={{
+        padding: collapsed ? '20px 12px' : '20px 20px',
+        borderBottom:'1px solid rgba(255,255,255,.08)',
+        display:'flex', alignItems:'center', justifyContent:'space-between'
+      }}>
+        {!collapsed && (
+          <div>
+            <div style={{fontSize:15, fontWeight:800}}>넷폼알앤디</div>
+            <div style={{fontSize:11, color:'rgba(255,255,255,.45)', marginTop:2}}>영업관리센터</div>
+          </div>
+        )}
+        <button onClick={onToggle} style={{
+          background:'none', border:'none', color:'rgba(255,255,255,.5)',
+          cursor:'pointer', fontSize:18, padding:4, flexShrink:0
+        }}>
+          {collapsed ? '▶' : '◀'}
+        </button>
+      </div>
+
+      {/* 메뉴 */}
+      <div style={{flex:1, overflowY:'auto', padding:'8px 0'}}>
+        {MENU.map((item, i) => {
+          if (item.section) {
+            if (collapsed) return <div key={i} style={{height:1, background:'rgba(255,255,255,.06)', margin:'8px 12px'}} />;
+            return (
+              <div key={i} style={{
+                padding:'16px 20px 6px', fontSize:10, fontWeight:700,
+                color:'rgba(255,255,255,.3)', letterSpacing:1, textTransform:'uppercase'
+              }}>
+                {item.section}
+              </div>
+            );
+          }
+          const active = current === item.key;
+          return (
+            <button key={item.key} onClick={() => onNavigate(item.key)} style={{
+              width:'100%', display:'flex', alignItems:'center', gap: collapsed ? 0 : 10,
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              padding: collapsed ? '10px 0' : '10px 20px',
+              background: active ? 'rgba(37,99,235,.2)' : 'transparent',
+              border:'none', color: active ? '#60A5FA' : 'rgba(255,255,255,.6)',
+              fontSize:13, fontWeight: active ? 700 : 500, cursor:'pointer',
+              borderRight: active ? '3px solid #60A5FA' : '3px solid transparent',
+              transition:'all .15s ease'
+            }}>
+              <span style={{fontSize:16}}>{item.icon}</span>
+              {!collapsed && <span>{item.label}</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 하단 바로가기 */}
+      <div style={{
+        padding: collapsed ? '12px 8px' : '12px 20px',
+        borderTop:'1px solid rgba(255,255,255,.08)'
+      }}>
+        <a href="./index.html" target="_blank" style={{
+          display:'flex', alignItems:'center', gap:8, justifyContent: collapsed ? 'center' : 'flex-start',
+          color:'rgba(255,255,255,.4)', textDecoration:'none', fontSize:12
+        }}>
+          <span>📱</span>
+          {!collapsed && <span>태블릿앱 열기</span>}
+        </a>
+      </div>
+    </div>
+  );
+}
+
+// ─── 페이지 Placeholder ───
+function PagePlaceholder({ title, icon, description }) {
+  return (
+    <div style={{
+      display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+      height:'100%', color:'var(--text-sm)', animation:'fadeIn .3s ease'
+    }}>
+      <div style={{fontSize:48, marginBottom:16}}>{icon}</div>
+      <div style={{fontSize:18, fontWeight:700, color:'var(--text)', marginBottom:8}}>{title}</div>
+      <div style={{fontSize:13}}>{description || '준비 중입니다'}</div>
+    </div>
+  );
+}
+
+// ─── 메인 App ───
+function App() {
+  const [authed, setAuthed] = useState(false);
+  const [page, setPage] = useState('dashboard');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true'
+  );
+  const [toast, setToast] = useState(null);
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed(prev => {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(!prev));
+      return !prev;
+    });
+  };
+
+  const showToast = useCallback((msg, type = 'success') => {
+    setToast({ msg, type });
+  }, []);
+
+  if (!authed) return <PinScreen onAuth={() => setAuthed(true)} />;
+
+  const renderPage = () => {
+    switch (page) {
+      case 'dashboard':
+        return <PagePlaceholder title="대시보드" icon="📊" description="전체 현황을 한눈에 확인합니다" />;
+      case 'products':
+        return <PagePlaceholder title="상품관리" icon="📦" description="POUR스토어 상품 및 멀티채널 관리" />;
+      case 'leads-solution':
+        return <PagePlaceholder title="POUR솔루션 영업" icon="🏢" description="박람회 리드 + 아웃바운드 영업" />;
+      case 'leads-method':
+        return <PagePlaceholder title="POUR공법 영업" icon="🔧" description="시공사 리드 + 입찰 관리" />;
+      case 'leads-store':
+        return <PagePlaceholder title="POUR스토어 영업" icon="🛒" description="스토어 리드 관리" />;
+      case 'leads-grohome':
+        return <PagePlaceholder title="그로홈 영업" icon="🏠" description="그로홈 리드 관리" />;
+      case 'inquiries':
+        return <PagePlaceholder title="문의접수" icon="📬" description="사이트 문의 접수 관리" />;
+      case 'metrics':
+        return <PagePlaceholder title="공신력 수치" icon="📊" description="3개 사이트 실시간 반영 수치 관리" />;
+      case 'resources':
+        return <PagePlaceholder title="영업자료" icon="📎" description="시방서, 카탈로그, 인증서 관리" />;
+      case 'partners':
+        return <PagePlaceholder title="파트너사" icon="🏢" description="파트너사 계약 및 등급 관리" />;
+      case 'staff':
+        return <PagePlaceholder title="담당자" icon="👥" description="담당자 목록 관리" />;
+      case 'sms':
+        return <PagePlaceholder title="SMS 설정" icon="💬" description="SMS 발송 및 템플릿 관리" />;
+      case 'settings':
+        return <PagePlaceholder title="설정" icon="⚙️" description="시스템 설정" />;
+      default:
+        return <PagePlaceholder title="페이지 없음" icon="🔍" />;
+    }
+  };
+
+  return (
+    <div style={{display:'flex', height:'100vh', overflow:'hidden'}}>
+      <Sidebar
+        current={page}
+        onNavigate={setPage}
+        collapsed={sidebarCollapsed}
+        onToggle={toggleSidebar}
+      />
+      <div style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden'}}>
+        {/* 헤더 */}
+        <div style={{
+          height:56, padding:'0 24px', display:'flex', alignItems:'center', justifyContent:'space-between',
+          background:'#fff', borderBottom:'1px solid var(--border)', flexShrink:0
+        }}>
+          <div style={{fontSize:15, fontWeight:700, color:'var(--text)'}}>
+            {MENU.find(m => m.key === page)?.icon} {MENU.find(m => m.key === page)?.label || '영업관리센터'}
+          </div>
+          <button onClick={() => { localStorage.removeItem(ADMIN_PIN_KEY); setAuthed(false); }}
+            style={{
+              background:'none', border:'1px solid var(--border)', borderRadius:8,
+              padding:'6px 14px', fontSize:12, color:'var(--text-md)', cursor:'pointer'
+            }}>
+            로그아웃
+          </button>
+        </div>
+        {/* 콘텐츠 */}
+        <div style={{flex:1, overflow:'auto', padding:24, background:'var(--bg)'}}>
+          {renderPage()}
+        </div>
+      </div>
+      {toast && <Toast message={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

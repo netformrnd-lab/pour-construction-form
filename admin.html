@@ -331,6 +331,56 @@ const compressImage = (file, maxW = 860, quality = 0.7) => new Promise((resolve,
   reader.readAsDataURL(file);
 });
 
+// Storage 업로드 → 공개 URL 반환
+const uploadToStorage = async (path, file) => {
+  const ref = storage.ref().child(path);
+  const compressed = await compressImage(file);
+  const blob = await fetch(compressed).then(r => r.blob());
+  await ref.put(blob, { contentType: 'image/jpeg' });
+  const url = await ref.getDownloadURL();
+  console.log(`[storage] 업로드 완료: ${path}`);
+  return url;
+};
+
+// ─── 엑셀 파싱 유틸 ───
+const parseExcel = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      console.log(`[excel] ${rows.length}행 파싱`);
+      resolve(rows);
+    } catch (err) { reject(err); }
+  };
+  reader.onerror = reject;
+  reader.readAsArrayBuffer(file);
+});
+
+// 엑셀 행 → 상품 데이터 변환
+const excelRowToProduct = (row) => {
+  const channels = {};
+  CHANNELS.forEach(ch => {
+    const val = row[ch.label] || row[ch.key] || '';
+    if (val) channels[ch.key] = String(val);
+  });
+  return {
+    name: row['상품명'] || row['name'] || '',
+    category: row['카테고리'] || row['category'] || '',
+    brand: row['브랜드'] || 'store',
+    price: Number(row['소비자가'] || row['price'] || 0),
+    salePrice: Number(row['판매가'] || row['salePrice'] || 0),
+    options: row['옵션'] || row['options'] || '',
+    description: row['설명'] || row['description'] || '',
+    thumbnail: row['썸네일'] || row['thumbnail'] || '',
+    channels,
+    detailImages: [],
+    detailHtml: '',
+    isActive: true,
+  };
+};
+
 // ─── 판매채널 정의 ───
 const CHANNELS = [
   { key: 'sabangnet',    label: '사방넷',      color: '#1A73E8', urlTpl: null },
@@ -382,8 +432,105 @@ function ProductsPage({ showToast }) {
     options: '',
     description: '',
     channels: CHANNELS.reduce((acc, ch) => { acc[ch.key] = ''; return acc; }, {}),
+    detailImages: [],
+    detailHtml: '',
     isActive: true,
   });
+
+  const [uploading, setUploading] = useState(false);
+  const [detailTab, setDetailTab] = useState('images'); // images | html | preview
+  const excelRef = useRef(null);
+  const detailImgRef = useRef(null);
+
+  // 엑셀 일괄 등록
+  const handleExcelUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    try {
+      setUploading(true);
+      const rows = await parseExcel(file);
+      if (rows.length === 0) { showToast('엑셀에 데이터가 없습니다', 'error'); return; }
+      const now = new Date().toISOString();
+      let count = 0;
+      for (const row of rows) {
+        const data = excelRowToProduct(row);
+        if (!data.name) continue;
+        data.createdAt = now;
+        data.updatedAt = now;
+        const ref = await db.collection(COLLECTIONS.PRODUCTS).add(data);
+        setProducts(prev => [{ id: ref.id, ...data }, ...prev]);
+        count++;
+      }
+      console.log(`[excel] ${count}건 등록 완료`);
+      showToast(`${count}건 일괄 등록 완료`);
+    } catch (err) {
+      console.error('[excel] 업로드 실패:', err);
+      showToast('엑셀 처리 실패: ' + err.message, 'error');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // 엑셀 템플릿 다운로드
+  const downloadTemplate = () => {
+    const header = ['상품명', '카테고리', '브랜드', '소비자가', '판매가', '옵션', '설명', '썸네일',
+      ...CHANNELS.map(ch => ch.label)];
+    const sample = ['POUR 우레탄 방수 키트', '셀프방수킷', 'store', '35000', '29800',
+      '소형(5kg), 대형(10kg)', '옥상 셀프 방수용', '',
+      '', '', '', '', '', '', '', ''];
+    const ws = XLSX.utils.aoa_to_sheet([header, sample]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '상품');
+    XLSX.writeFile(wb, '상품등록_템플릿.xlsx');
+  };
+
+  // 상세 이미지 업로드 (Firebase Storage)
+  const handleDetailImageUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    e.target.value = '';
+    setUploading(true);
+    try {
+      const productId = editingId === 'new' ? 'temp_' + Date.now() : editingId;
+      const newImages = [...(form.detailImages || [])];
+      for (let i = 0; i < files.length; i++) {
+        const idx = newImages.length + 1;
+        const path = `product-details/${productId}/detail-${idx}-${Date.now()}.jpg`;
+        const url = await uploadToStorage(path, files[i]);
+        newImages.push({ url, path, order: idx });
+      }
+      setForm({ ...form, detailImages: newImages });
+      showToast(`${files.length}장 업로드 완료`);
+    } catch (err) {
+      console.error('[detail-img] 업로드 실패:', err);
+      showToast('이미지 업로드 실패: ' + err.message, 'error');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // 상세 이미지 삭제
+  const removeDetailImage = (idx) => {
+    setForm({ ...form, detailImages: form.detailImages.filter((_, i) => i !== idx) });
+  };
+
+  // 상세 이미지 → HTML 자동 생성
+  const generateHtmlFromImages = () => {
+    if (!form.detailImages?.length) { showToast('업로드된 이미지가 없습니다', 'error'); return; }
+    const html = form.detailImages
+      .map(img => `<img src="${img.url}" style="width:100%;display:block;" alt="${form.name || '상품 상세'}">`)
+      .join('\n');
+    setForm({ ...form, detailHtml: html });
+    setDetailTab('html');
+    showToast('HTML 코드가 생성되었습니다');
+  };
+
+  // HTML 코드 클립보드 복사
+  const copyHtml = () => {
+    if (!form.detailHtml) { showToast('복사할 코드가 없습니다', 'error'); return; }
+    navigator.clipboard.writeText(form.detailHtml).then(() => showToast('코드가 클립보드에 복사되었습니다'));
+  };
 
   // 신규 등록
   const startNew = () => {
@@ -406,6 +553,8 @@ function ProductsPage({ showToast }) {
         acc[ch.key] = product.channels?.[ch.key] || '';
         return acc;
       }, {}),
+      detailImages: product.detailImages || [],
+      detailHtml: product.detailHtml || '',
       isActive: product.isActive !== false,
     });
     setEditingId(product.id);
@@ -553,6 +702,124 @@ function ProductsPage({ showToast }) {
           </div>
         </div>
 
+        {/* 상세페이지 관리 */}
+        <div style={{ background: '#fff', borderRadius: 12, padding: 24, boxShadow: 'var(--shadow)', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>상세페이지 관리</div>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {['images', 'html', 'preview'].map(t => (
+                <button key={t} onClick={() => setDetailTab(t)} style={{
+                  padding: '4px 12px', fontSize: 11, fontWeight: 600, borderRadius: 6, border: 'none', cursor: 'pointer',
+                  background: detailTab === t ? 'var(--accent)' : 'var(--border-s)',
+                  color: detailTab === t ? '#fff' : 'var(--text-md)'
+                }}>
+                  {{ images: '이미지', html: 'HTML코드', preview: '미리보기' }[t]}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-sm)', marginBottom: 16 }}>
+            이미지 업로드 → HTML 생성 → 각 마켓에 코드 복붙. 이미지 교체 시 전 채널 자동 반영.
+          </div>
+
+          {/* 이미지 탭 */}
+          {detailTab === 'images' && (
+            <div>
+              <input ref={detailImgRef} type="file" accept="image/*" multiple onChange={handleDetailImageUpload} style={{ display: 'none' }} />
+              <button onClick={() => detailImgRef.current?.click()} disabled={uploading}
+                style={{
+                  width: '100%', padding: 20, border: '2px dashed var(--border)', borderRadius: 10,
+                  background: 'var(--border-s)', cursor: 'pointer', textAlign: 'center',
+                  fontSize: 13, color: 'var(--text-md)', marginBottom: 12
+                }}>
+                {uploading ? '업로드 중...' : '+ 상세 이미지 추가 (여러 장 선택 가능)'}
+              </button>
+              {form.detailImages?.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {form.detailImages.map((img, idx) => (
+                    <div key={idx} style={{
+                      display: 'flex', alignItems: 'center', gap: 12, padding: 10,
+                      background: 'var(--border-s)', borderRadius: 8
+                    }}>
+                      <img src={img.url} style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 6 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600 }}>이미지 {idx + 1}</div>
+                        <div style={{ fontSize: 10, color: 'var(--text-sm)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {img.url?.substring(0, 60)}...
+                        </div>
+                      </div>
+                      <button onClick={() => removeDetailImage(idx)}
+                        style={{ padding: '4px 10px', fontSize: 11, background: '#FEE2E2', color: 'var(--red)', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
+                        삭제
+                      </button>
+                    </div>
+                  ))}
+                  <button onClick={generateHtmlFromImages}
+                    style={{
+                      padding: '10px 0', fontSize: 13, fontWeight: 700, background: 'var(--accent)',
+                      color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', marginTop: 4
+                    }}>
+                    HTML 코드 생성
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* HTML 코드 탭 */}
+          {detailTab === 'html' && (
+            <div>
+              <textarea
+                value={form.detailHtml || ''}
+                onChange={e => setForm({ ...form, detailHtml: e.target.value })}
+                rows={12}
+                placeholder={'<div style="text-align:center">\n  <img src="이미지URL" style="width:100%">\n</div>'}
+                style={{
+                  width: '100%', padding: 12, fontSize: 12, fontFamily: 'monospace',
+                  border: '1px solid var(--border)', borderRadius: 8, outline: 'none',
+                  resize: 'vertical', lineHeight: 1.6, background: '#1E1E1E', color: '#D4D4D4'
+                }}
+              />
+              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                <button onClick={copyHtml}
+                  style={{
+                    flex: 1, padding: '10px 0', fontSize: 13, fontWeight: 700,
+                    background: 'var(--accent-l)', color: 'var(--accent)', border: 'none',
+                    borderRadius: 8, cursor: 'pointer'
+                  }}>
+                  코드 복사 (마켓 붙여넣기용)
+                </button>
+                <button onClick={() => setDetailTab('preview')}
+                  style={{
+                    padding: '10px 16px', fontSize: 13, fontWeight: 600,
+                    background: 'var(--border-s)', color: 'var(--text-md)', border: 'none',
+                    borderRadius: 8, cursor: 'pointer'
+                  }}>
+                  미리보기
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 미리보기 탭 */}
+          {detailTab === 'preview' && (
+            <div>
+              {form.detailHtml ? (
+                <div style={{
+                  border: '1px solid var(--border)', borderRadius: 8, padding: 16,
+                  maxWidth: 860, margin: '0 auto', background: '#fff'
+                }}>
+                  <div dangerouslySetInnerHTML={{ __html: form.detailHtml }} />
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-sm)', fontSize: 13 }}>
+                  HTML 코드가 없습니다. 이미지를 업로드하고 HTML을 생성하거나 직접 입력하세요.
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* 채널별 상품번호 */}
         <div style={{ background: '#fff', borderRadius: 12, padding: 24, boxShadow: 'var(--shadow)' }}>
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>판매채널 상품번호</div>
@@ -605,24 +872,41 @@ function ProductsPage({ showToast }) {
   return (
     <div style={{ animation: 'fadeIn .3s ease' }}>
       {/* 상단 액션바 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="상품명 / 카테고리 검색..."
             style={{
               padding: '9px 14px', fontSize: 13, border: '1px solid var(--border)',
-              borderRadius: 8, outline: 'none', width: 260
+              borderRadius: 8, outline: 'none', width: 240
             }}
           />
           <span style={{ fontSize: 12, color: 'var(--text-sm)' }}>총 {filtered.length}건</span>
         </div>
-        <button onClick={startNew} style={{
-          padding: '9px 18px', fontSize: 13, fontWeight: 700,
-          background: 'var(--accent)', color: '#fff', border: 'none',
-          borderRadius: 8, cursor: 'pointer'
-        }}>
-          + 상품 등록
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={downloadTemplate} style={{
+            padding: '9px 14px', fontSize: 12, fontWeight: 600,
+            background: '#fff', color: 'var(--text-md)', border: '1px solid var(--border)',
+            borderRadius: 8, cursor: 'pointer'
+          }}>
+            엑셀 템플릿
+          </button>
+          <input ref={excelRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleExcelUpload} style={{ display: 'none' }} />
+          <button onClick={() => excelRef.current?.click()} disabled={uploading} style={{
+            padding: '9px 14px', fontSize: 12, fontWeight: 600,
+            background: 'var(--green-l)', color: 'var(--green)', border: 'none',
+            borderRadius: 8, cursor: 'pointer', opacity: uploading ? 0.6 : 1
+          }}>
+            {uploading ? '처리 중...' : '엑셀 일괄등록'}
+          </button>
+          <button onClick={startNew} style={{
+            padding: '9px 18px', fontSize: 13, fontWeight: 700,
+            background: 'var(--accent)', color: '#fff', border: 'none',
+            borderRadius: 8, cursor: 'pointer'
+          }}>
+            + 상품 등록
+          </button>
+        </div>
       </div>
 
       {/* 로딩 */}

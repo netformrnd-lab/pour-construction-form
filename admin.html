@@ -10,6 +10,8 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 <script>
 firebase.initializeApp({
   apiKey:"AIzaSyCBGjGzaTTyIwBs_a8355KfFKaWabJT3ac",
@@ -20,6 +22,7 @@ firebase.initializeApp({
   appId:"1:881527274265:web:0caad9688e30beb1ea6388"
 });
 const db = firebase.firestore();
+const storage = firebase.storage();
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>

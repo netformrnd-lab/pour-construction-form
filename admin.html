@@ -733,6 +733,183 @@ function ProductsPage({ showToast }) {
   );
 }
 
+// ─── 대시보드 ───
+function DashboardPage({ onNavigate }) {
+  const [stats, setStats] = useState({ solution: 0, method: 0, store: 0, grohome: 0, products: 0 });
+  const [recentInquiries, setRecentInquiries] = useState([]);
+  const [metrics, setMetrics] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [leadSnap, methodSnap, storeSnap, grohomeSnap, prodSnap, pInqSnap, dInqSnap, metSnap] = await Promise.all([
+          db.collection(COLLECTIONS.LEADS).get(),
+          db.collection(COLLECTIONS.LEADS_METHOD).get(),
+          db.collection(COLLECTIONS.LEADS_STORE).get(),
+          db.collection(COLLECTIONS.LEADS_GROHOME).get(),
+          db.collection(COLLECTIONS.PRODUCTS).get(),
+          db.collection(COLLECTIONS.PARTNER_INQUIRIES).get(),
+          db.collection(COLLECTIONS.DEALER_INQUIRIES).get(),
+          db.collection(COLLECTIONS.SITE_METRICS).doc('current').get(),
+        ]);
+        console.log(`[dashboard] leads:${leadSnap.size} method:${methodSnap.size} store:${storeSnap.size} grohome:${grohomeSnap.size} products:${prodSnap.size}`);
+        setStats({
+          solution: leadSnap.size,
+          method: methodSnap.size,
+          store: storeSnap.size,
+          grohome: grohomeSnap.size,
+          products: prodSnap.size,
+        });
+
+        // 최근 문의 (파트너 + 대리점 합산)
+        const allInq = [
+          ...pInqSnap.docs.map(d => ({ id: d.id, type: '파트너사', ...d.data() })),
+          ...dInqSnap.docs.map(d => ({ id: d.id, type: '대리점', ...d.data() })),
+        ];
+        allInq.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+        setRecentInquiries(allInq.slice(0, 5));
+
+        if (metSnap.exists) setMetrics(metSnap.data());
+      } catch (e) {
+        console.error('[dashboard] 로드 실패:', e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: 80, color: 'var(--text-sm)' }}>
+        <div style={{ width: 24, height: 24, border: '3px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+        대시보드 로딩 중...
+      </div>
+    );
+  }
+
+  const cards = [
+    { label: 'POUR솔루션', value: stats.solution, color: '#2563EB', bg: '#EFF6FF', key: 'leads-solution' },
+    { label: 'POUR공법', value: stats.method, color: '#E8780F', bg: '#FFF7ED', key: 'leads-method' },
+    { label: 'POUR스토어', value: stats.store, color: '#059669', bg: '#ECFDF5', key: 'leads-store' },
+    { label: '그로홈', value: stats.grohome, color: '#6D28D9', bg: '#F5F3FF', key: 'leads-grohome' },
+  ];
+
+  const statusColor = { '신규': '#DC2626', '검토중': '#D97706', '승인': '#059669', '반려': '#9CA3AF', '서류제출': '#7C3AED', '계약완료': '#10B981' };
+
+  return (
+    <div style={{ animation: 'fadeIn .3s ease', maxWidth: 1100 }}>
+      {/* 리드 현황 카드 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 20 }}>
+        {cards.map(c => (
+          <div key={c.label} onClick={() => onNavigate(c.key)}
+            style={{
+              background: '#fff', borderRadius: 12, padding: '20px 18px', boxShadow: 'var(--shadow)',
+              cursor: 'pointer', borderLeft: `4px solid ${c.color}`, transition: 'transform .15s',
+            }}
+            onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+            onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-md)', marginBottom: 8 }}>{c.label}</div>
+            <div style={{ fontSize: 28, fontWeight: 900, color: c.color }}>{c.value}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-sm)', marginTop: 4 }}>전체 리드</div>
+          </div>
+        ))}
+      </div>
+
+      {/* 상품 현황 + 공신력 수치 */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
+        {/* 상품 현황 */}
+        <div onClick={() => onNavigate('products')}
+          style={{
+            background: '#fff', borderRadius: 12, padding: '20px 18px', boxShadow: 'var(--shadow)',
+            cursor: 'pointer', transition: 'transform .15s',
+          }}
+          onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+          onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>상품 현황</div>
+            <span style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600 }}>관리 →</span>
+          </div>
+          <div style={{ fontSize: 32, fontWeight: 900, color: 'var(--accent)' }}>{stats.products}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-sm)', marginTop: 4 }}>등록된 상품</div>
+        </div>
+
+        {/* 공신력 수치 요약 */}
+        <div onClick={() => onNavigate('metrics')}
+          style={{
+            background: '#fff', borderRadius: 12, padding: '20px 18px', boxShadow: 'var(--shadow)',
+            cursor: 'pointer', transition: 'transform .15s',
+          }}
+          onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+          onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>공신력 수치</div>
+            <span style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600 }}>관리 →</span>
+          </div>
+          {metrics ? (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+              {[
+                { label: '시공 세대', val: metrics.totalUnitsLabel || '-' },
+                { label: '특허/인증', val: metrics.patentsLabel || '-' },
+                { label: '파트너사', val: metrics.partnersLabel || '-' },
+              ].map(m => (
+                <div key={m.label}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>{m.val}</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-sm)', marginTop: 2 }}>{m.label}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ fontSize: 13, color: 'var(--text-sm)' }}>수치 미설정</div>
+          )}
+        </div>
+      </div>
+
+      {/* 최근 문의접수 */}
+      <div style={{ background: '#fff', borderRadius: 12, padding: '20px 18px', boxShadow: 'var(--shadow)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>최근 문의접수</div>
+          <span onClick={() => onNavigate('inquiries')}
+            style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600, cursor: 'pointer' }}>
+            전체보기 →
+          </span>
+        </div>
+        {recentInquiries.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 30, color: 'var(--text-sm)', fontSize: 13 }}>
+            접수된 문의가 없습니다
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {recentInquiries.map(inq => (
+              <div key={inq.id} style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px',
+                background: 'var(--bg)', borderRadius: 8, fontSize: 13
+              }}>
+                <span style={{
+                  width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                  background: statusColor[inq.status] || '#9CA3AF'
+                }} />
+                <span style={{ fontWeight: 600, minWidth: 60 }}>{inq.type}</span>
+                <span style={{ flex: 1, color: 'var(--text-md)' }}>{inq.companyName || inq.contactName || '-'}</span>
+                <span style={{
+                  padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
+                  background: (statusColor[inq.status] || '#9CA3AF') + '18',
+                  color: statusColor[inq.status] || '#9CA3AF'
+                }}>
+                  {inq.status || '신규'}
+                </span>
+                <span style={{ fontSize: 11, color: 'var(--text-sm)', minWidth: 60, textAlign: 'right' }}>
+                  {inq.createdAt ? new Date(inq.createdAt).toLocaleDateString('ko') : '-'}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── 페이지 Placeholder ───
 function PagePlaceholder({ title, icon, description }) {
   return (
@@ -772,7 +949,7 @@ function App() {
   const renderPage = () => {
     switch (page) {
       case 'dashboard':
-        return <PagePlaceholder title="대시보드" icon="📊" description="전체 현황을 한눈에 확인합니다" />;
+        return <DashboardPage onNavigate={setPage} />;
       case 'products':
         return <ProductsPage showToast={showToast} />;
       case 'leads-solution':

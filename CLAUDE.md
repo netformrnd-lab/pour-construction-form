@@ -83,8 +83,10 @@ POUR공법: 입찰등록 → 투찰완료 → 낙찰/유찰
 | 순서 | 작업 | 상태 |
 |------|------|------|
 | 1 | CLAUDE.md + prompts/ 서브 프롬프트 | ✅ 완료 |
-| 2 | admin.html 뼈대 (사이드바 + 라우팅 + PIN) | 🔲 대기 |
-| 3 | admin.html 대시보드 + Firestore 연동 | 🔲 대기 |
+| 2 | admin.html 뼈대 (사이드바 + 라우팅 + PIN) | ✅ 완료 |
+| 3 | admin.html 대시보드 + Firestore 연동 | ✅ 완료 |
+| 3-1 | admin.html 상품관리 (8개 채널 상품번호 연동) | ✅ 완료 |
+| 3-2 | admin.html 설정 (PIN 변경) | ✅ 완료 |
 | 4 | admin.html 사이트관리 (문의접수 + 수치 + 파트너사) | 🔲 대기 |
 | 5 | admin.html 영업관리 (4개 브랜드 리드 + 칸반) | 🔲 대기 |
 | 6 | admin.html 공통 (담당자 + SMS + 설정) | 🔲 대기 |
@@ -92,3 +94,66 @@ POUR공법: 입찰등록 → 투찰완료 → 낙찰/유찰
 | 8 | site-method.html (시공사 문의 + 수치) | 🔲 대기 |
 | 9 | site-store.html (대리점 문의 + 수치) | 🔲 대기 |
 | 10 | index.html 연동 (관리센터 바로가기 링크) | 🔲 대기 |
+| 11 | 관리센터 인증 고도화 (이메일 인증) | 🔲 대기 |
+
+---
+
+## 인증 고도화 계획 (PIN → 이메일 인증)
+
+> 현재: localStorage PIN (SHA-256) — 기기별 개별 설정, 보안 취약
+> 목표: 이메일 인증번호(OTP) 방식으로 전환
+
+### 1단계 (현재): PIN 인증
+- localStorage에 SHA-256 해시 저장
+- index.html(태블릿앱)과 동일 키 공유
+- PIN 변경 기능 (설정 메뉴)
+
+### 2단계 (예정): 이메일 인증번호 방식
+```
+[로그인 화면]
+  ① 관리자 이메일 입력 (사전 등록된 이메일만 허용)
+  ② "인증번호 발송" 클릭
+  ③ Cloudflare Worker → 이메일 발송 (6자리 OTP, 5분 유효)
+  ④ 인증번호 입력 → 검증 → 세션 발급
+```
+
+### 기술 구현 방향
+```
+인증 흐름:
+[admin.html] → POST /auth/send-otp → [Cloudflare Worker]
+                                          │
+                                    Firestore에 OTP 저장
+                                    (해시, 만료시각, 시도횟수)
+                                          │
+                                    이메일 발송 (Resend/SendGrid/Solapi)
+                                          │
+[admin.html] → POST /auth/verify-otp → [Cloudflare Worker]
+                                          │
+                                    OTP 검증 → JWT/세션토큰 반환
+                                          │
+[admin.html] → sessionStorage에 토큰 저장 → 인증 완료
+```
+
+### Firestore 스키마 (추가 예정)
+```javascript
+// admin-auth/config (단일 문서)
+{
+  allowedEmails: ["admin@netformrnd.com", "..."],  // 허용 이메일 목록
+  otpExpireMinutes: 5,
+  maxAttempts: 5,
+}
+
+// admin-auth-otp/{email-hash} (OTP 임시 문서)
+{
+  otpHash: "sha256...",        // OTP 해시
+  expiresAt: "ISO",            // 만료 시각
+  attempts: 0,                 // 시도 횟수
+  createdAt: "ISO",
+}
+```
+
+### 주의사항
+- Cloudflare Worker에서 OTP 생성/검증 (클라이언트에서 OTP 생성 금지)
+- OTP는 반드시 해시로 저장 (평문 저장 금지)
+- 5회 실패 시 15분 잠금
+- 기존 PIN 인증은 fallback으로 유지 가능 (오프라인 대비)

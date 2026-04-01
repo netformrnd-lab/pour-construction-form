@@ -310,6 +310,27 @@ function Sidebar({ current, onNavigate, collapsed, onToggle }) {
   );
 }
 
+// ─── 이미지 압축 유틸 ───
+const compressImage = (file, maxW = 860, quality = 0.7) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = reject;
+    img.src = e.target.result;
+  };
+  reader.onerror = reject;
+  reader.readAsDataURL(file);
+});
+
 // ─── 판매채널 정의 ───
 const CHANNELS = [
   { key: 'sabangnet',    label: '사방넷',      color: '#1A73E8', urlTpl: null },

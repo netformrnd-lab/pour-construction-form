@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>상품 상세</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyCBGjGzaTTyIwBs_a8355KfFKaWabJT3ac",
+  authDomain:"pour-exhibition.firebaseapp.com",
+  projectId:"pour-exhibition",
+  storageBucket:"pour-exhibition.firebasestorage.app",
+  messagingSenderId:"881527274265",
+  appId:"1:881527274265:web:0caad9688e30beb1ea6388"
+});
+const db = firebase.firestore();
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Pretendard',-apple-system,sans-serif;background:#fff;color:#111827;}
+.container{max-width:860px;margin:0 auto;padding:0;}
+.container img{max-width:100%;height:auto;display:block;}
+.loading{text-align:center;padding:60px 20px;color:#9CA3AF;font-size:14px;}
+.error{text-align:center;padding:60px 20px;color:#DC2626;font-size:14px;}
+</style>
+</head>
+<body>
+<div id="content" class="container">
+  <div class="loading" id="loading">상세 정보를 불러오는 중...</div>
+</div>
+<script>
+(async () => {
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+  const el = document.getElementById('content');
+  const loadEl = document.getElementById('loading');
+
+  if (!id) {
+    loadEl.className = 'error';
+    loadEl.textContent = '상품 ID가 지정되지 않았습니다.';
+    return;
+  }
+
+  try {
+    const doc = await db.collection('products').doc(id).get();
+    if (!doc.exists) {
+      loadEl.className = 'error';
+      loadEl.textContent = '상품을 찾을 수 없습니다.';
+      return;
+    }
+    const data = doc.data();
+
+    // HTML 코드가 있으면 렌더링
+    if (data.detailHtml) {
+      el.innerHTML = data.detailHtml;
+      return;
+    }
+
+    // 상세 이미지가 있으면 이미지로 렌더링
+    if (data.detailImages && data.detailImages.length > 0) {
+      el.innerHTML = data.detailImages
+        .map(img => '<img src="' + img.url + '" style="width:100%;display:block;" alt="상품 상세">')
+        .join('');
+      return;
+    }
+
+    // 아무것도 없으면
+    loadEl.textContent = '등록된 상세 정보가 없습니다.';
+  } catch (e) {
+    console.error('[product-detail] 로드 실패:', e);
+    loadEl.className = 'error';
+    loadEl.textContent = '로드 실패: ' + e.message;
+  }
+})();
+</script>
+</body>
+</html>

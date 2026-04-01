@@ -10,6 +10,8 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 <script>
 firebase.initializeApp({
   apiKey:"AIzaSyCBGjGzaTTyIwBs_a8355KfFKaWabJT3ac",
@@ -20,6 +22,7 @@ firebase.initializeApp({
   appId:"1:881527274265:web:0caad9688e30beb1ea6388"
 });
 const db = firebase.firestore();
+const storage = firebase.storage();
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -307,6 +310,77 @@ function Sidebar({ current, onNavigate, collapsed, onToggle }) {
   );
 }
 
+// ─── 이미지 압축 유틸 ───
+const compressImage = (file, maxW = 860, quality = 0.7) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = reject;
+    img.src = e.target.result;
+  };
+  reader.onerror = reject;
+  reader.readAsDataURL(file);
+});
+
+// Storage 업로드 → 공개 URL 반환
+const uploadToStorage = async (path, file) => {
+  const ref = storage.ref().child(path);
+  const compressed = await compressImage(file);
+  const blob = await fetch(compressed).then(r => r.blob());
+  await ref.put(blob, { contentType: 'image/jpeg' });
+  const url = await ref.getDownloadURL();
+  console.log(`[storage] 업로드 완료: ${path}`);
+  return url;
+};
+
+// ─── 엑셀 파싱 유틸 ───
+const parseExcel = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      console.log(`[excel] ${rows.length}행 파싱`);
+      resolve(rows);
+    } catch (err) { reject(err); }
+  };
+  reader.onerror = reject;
+  reader.readAsArrayBuffer(file);
+});
+
+// 엑셀 행 → 상품 데이터 변환
+const excelRowToProduct = (row) => {
+  const channels = {};
+  CHANNELS.forEach(ch => {
+    const val = row[ch.label] || row[ch.key] || '';
+    if (val) channels[ch.key] = String(val);
+  });
+  return {
+    name: row['상품명'] || row['name'] || '',
+    category: row['카테고리'] || row['category'] || '',
+    brand: row['브랜드'] || 'store',
+    price: Number(row['소비자가'] || row['price'] || 0),
+    salePrice: Number(row['판매가'] || row['salePrice'] || 0),
+    options: row['옵션'] || row['options'] || '',
+    description: row['설명'] || row['description'] || '',
+    thumbnail: row['썸네일'] || row['thumbnail'] || '',
+    channels,
+    detailImages: [],
+    detailHtml: '',
+    isActive: true,
+  };
+};
+
 // ─── 판매채널 정의 ───
 const CHANNELS = [
   { key: 'sabangnet',    label: '사방넷',      color: '#1A73E8', urlTpl: null },
@@ -358,8 +432,105 @@ function ProductsPage({ showToast }) {
     options: '',
     description: '',
     channels: CHANNELS.reduce((acc, ch) => { acc[ch.key] = ''; return acc; }, {}),
+    detailImages: [],
+    detailHtml: '',
     isActive: true,
   });
+
+  const [uploading, setUploading] = useState(false);
+  const [detailTab, setDetailTab] = useState('images'); // images | html | preview
+  const excelRef = useRef(null);
+  const detailImgRef = useRef(null);
+
+  // 엑셀 일괄 등록
+  const handleExcelUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    try {
+      setUploading(true);
+      const rows = await parseExcel(file);
+      if (rows.length === 0) { showToast('엑셀에 데이터가 없습니다', 'error'); return; }
+      const now = new Date().toISOString();
+      let count = 0;
+      for (const row of rows) {
+        const data = excelRowToProduct(row);
+        if (!data.name) continue;
+        data.createdAt = now;
+        data.updatedAt = now;
+        const ref = await db.collection(COLLECTIONS.PRODUCTS).add(data);
+        setProducts(prev => [{ id: ref.id, ...data }, ...prev]);
+        count++;
+      }
+      console.log(`[excel] ${count}건 등록 완료`);
+      showToast(`${count}건 일괄 등록 완료`);
+    } catch (err) {
+      console.error('[excel] 업로드 실패:', err);
+      showToast('엑셀 처리 실패: ' + err.message, 'error');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // 엑셀 템플릿 다운로드
+  const downloadTemplate = () => {
+    const header = ['상품명', '카테고리', '브랜드', '소비자가', '판매가', '옵션', '설명', '썸네일',
+      ...CHANNELS.map(ch => ch.label)];
+    const sample = ['POUR 우레탄 방수 키트', '셀프방수킷', 'store', '35000', '29800',
+      '소형(5kg), 대형(10kg)', '옥상 셀프 방수용', '',
+      '', '', '', '', '', '', '', ''];
+    const ws = XLSX.utils.aoa_to_sheet([header, sample]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '상품');
+    XLSX.writeFile(wb, '상품등록_템플릿.xlsx');
+  };
+
+  // 상세 이미지 업로드 (Firebase Storage)
+  const handleDetailImageUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    e.target.value = '';
+    setUploading(true);
+    try {
+      const productId = editingId === 'new' ? 'temp_' + Date.now() : editingId;
+      const newImages = [...(form.detailImages || [])];
+      for (let i = 0; i < files.length; i++) {
+        const idx = newImages.length + 1;
+        const path = `product-details/${productId}/detail-${idx}-${Date.now()}.jpg`;
+        const url = await uploadToStorage(path, files[i]);
+        newImages.push({ url, path, order: idx });
+      }
+      setForm({ ...form, detailImages: newImages });
+      showToast(`${files.length}장 업로드 완료`);
+    } catch (err) {
+      console.error('[detail-img] 업로드 실패:', err);
+      showToast('이미지 업로드 실패: ' + err.message, 'error');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // 상세 이미지 삭제
+  const removeDetailImage = (idx) => {
+    setForm({ ...form, detailImages: form.detailImages.filter((_, i) => i !== idx) });
+  };
+
+  // 상세 이미지 → HTML 자동 생성
+  const generateHtmlFromImages = () => {
+    if (!form.detailImages?.length) { showToast('업로드된 이미지가 없습니다', 'error'); return; }
+    const html = form.detailImages
+      .map(img => `<img src="${img.url}" style="width:100%;display:block;" alt="${form.name || '상품 상세'}">`)
+      .join('\n');
+    setForm({ ...form, detailHtml: html });
+    setDetailTab('html');
+    showToast('HTML 코드가 생성되었습니다');
+  };
+
+  // HTML 코드 클립보드 복사
+  const copyHtml = () => {
+    if (!form.detailHtml) { showToast('복사할 코드가 없습니다', 'error'); return; }
+    navigator.clipboard.writeText(form.detailHtml).then(() => showToast('코드가 클립보드에 복사되었습니다'));
+  };
 
   // 신규 등록
   const startNew = () => {
@@ -382,6 +553,8 @@ function ProductsPage({ showToast }) {
         acc[ch.key] = product.channels?.[ch.key] || '';
         return acc;
       }, {}),
+      detailImages: product.detailImages || [],
+      detailHtml: product.detailHtml || '',
       isActive: product.isActive !== false,
     });
     setEditingId(product.id);
@@ -529,6 +702,124 @@ function ProductsPage({ showToast }) {
           </div>
         </div>
 
+        {/* 상세페이지 관리 */}
+        <div style={{ background: '#fff', borderRadius: 12, padding: 24, boxShadow: 'var(--shadow)', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>상세페이지 관리</div>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {['images', 'html', 'preview'].map(t => (
+                <button key={t} onClick={() => setDetailTab(t)} style={{
+                  padding: '4px 12px', fontSize: 11, fontWeight: 600, borderRadius: 6, border: 'none', cursor: 'pointer',
+                  background: detailTab === t ? 'var(--accent)' : 'var(--border-s)',
+                  color: detailTab === t ? '#fff' : 'var(--text-md)'
+                }}>
+                  {{ images: '이미지', html: 'HTML코드', preview: '미리보기' }[t]}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-sm)', marginBottom: 16 }}>
+            이미지 업로드 → HTML 생성 → 각 마켓에 코드 복붙. 이미지 교체 시 전 채널 자동 반영.
+          </div>
+
+          {/* 이미지 탭 */}
+          {detailTab === 'images' && (
+            <div>
+              <input ref={detailImgRef} type="file" accept="image/*" multiple onChange={handleDetailImageUpload} style={{ display: 'none' }} />
+              <button onClick={() => detailImgRef.current?.click()} disabled={uploading}
+                style={{
+                  width: '100%', padding: 20, border: '2px dashed var(--border)', borderRadius: 10,
+                  background: 'var(--border-s)', cursor: 'pointer', textAlign: 'center',
+                  fontSize: 13, color: 'var(--text-md)', marginBottom: 12
+                }}>
+                {uploading ? '업로드 중...' : '+ 상세 이미지 추가 (여러 장 선택 가능)'}
+              </button>
+              {form.detailImages?.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {form.detailImages.map((img, idx) => (
+                    <div key={idx} style={{
+                      display: 'flex', alignItems: 'center', gap: 12, padding: 10,
+                      background: 'var(--border-s)', borderRadius: 8
+                    }}>
+                      <img src={img.url} style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 6 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600 }}>이미지 {idx + 1}</div>
+                        <div style={{ fontSize: 10, color: 'var(--text-sm)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {img.url?.substring(0, 60)}...
+                        </div>
+                      </div>
+                      <button onClick={() => removeDetailImage(idx)}
+                        style={{ padding: '4px 10px', fontSize: 11, background: '#FEE2E2', color: 'var(--red)', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
+                        삭제
+                      </button>
+                    </div>
+                  ))}
+                  <button onClick={generateHtmlFromImages}
+                    style={{
+                      padding: '10px 0', fontSize: 13, fontWeight: 700, background: 'var(--accent)',
+                      color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', marginTop: 4
+                    }}>
+                    HTML 코드 생성
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* HTML 코드 탭 */}
+          {detailTab === 'html' && (
+            <div>
+              <textarea
+                value={form.detailHtml || ''}
+                onChange={e => setForm({ ...form, detailHtml: e.target.value })}
+                rows={12}
+                placeholder={'<div style="text-align:center">\n  <img src="이미지URL" style="width:100%">\n</div>'}
+                style={{
+                  width: '100%', padding: 12, fontSize: 12, fontFamily: 'monospace',
+                  border: '1px solid var(--border)', borderRadius: 8, outline: 'none',
+                  resize: 'vertical', lineHeight: 1.6, background: '#1E1E1E', color: '#D4D4D4'
+                }}
+              />
+              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                <button onClick={copyHtml}
+                  style={{
+                    flex: 1, padding: '10px 0', fontSize: 13, fontWeight: 700,
+                    background: 'var(--accent-l)', color: 'var(--accent)', border: 'none',
+                    borderRadius: 8, cursor: 'pointer'
+                  }}>
+                  코드 복사 (마켓 붙여넣기용)
+                </button>
+                <button onClick={() => setDetailTab('preview')}
+                  style={{
+                    padding: '10px 16px', fontSize: 13, fontWeight: 600,
+                    background: 'var(--border-s)', color: 'var(--text-md)', border: 'none',
+                    borderRadius: 8, cursor: 'pointer'
+                  }}>
+                  미리보기
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 미리보기 탭 */}
+          {detailTab === 'preview' && (
+            <div>
+              {form.detailHtml ? (
+                <div style={{
+                  border: '1px solid var(--border)', borderRadius: 8, padding: 16,
+                  maxWidth: 860, margin: '0 auto', background: '#fff'
+                }}>
+                  <div dangerouslySetInnerHTML={{ __html: form.detailHtml }} />
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-sm)', fontSize: 13 }}>
+                  HTML 코드가 없습니다. 이미지를 업로드하고 HTML을 생성하거나 직접 입력하세요.
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* 채널별 상품번호 */}
         <div style={{ background: '#fff', borderRadius: 12, padding: 24, boxShadow: 'var(--shadow)' }}>
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>판매채널 상품번호</div>
@@ -581,24 +872,41 @@ function ProductsPage({ showToast }) {
   return (
     <div style={{ animation: 'fadeIn .3s ease' }}>
       {/* 상단 액션바 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="상품명 / 카테고리 검색..."
             style={{
               padding: '9px 14px', fontSize: 13, border: '1px solid var(--border)',
-              borderRadius: 8, outline: 'none', width: 260
+              borderRadius: 8, outline: 'none', width: 240
             }}
           />
           <span style={{ fontSize: 12, color: 'var(--text-sm)' }}>총 {filtered.length}건</span>
         </div>
-        <button onClick={startNew} style={{
-          padding: '9px 18px', fontSize: 13, fontWeight: 700,
-          background: 'var(--accent)', color: '#fff', border: 'none',
-          borderRadius: 8, cursor: 'pointer'
-        }}>
-          + 상품 등록
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={downloadTemplate} style={{
+            padding: '9px 14px', fontSize: 12, fontWeight: 600,
+            background: '#fff', color: 'var(--text-md)', border: '1px solid var(--border)',
+            borderRadius: 8, cursor: 'pointer'
+          }}>
+            엑셀 템플릿
+          </button>
+          <input ref={excelRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleExcelUpload} style={{ display: 'none' }} />
+          <button onClick={() => excelRef.current?.click()} disabled={uploading} style={{
+            padding: '9px 14px', fontSize: 12, fontWeight: 600,
+            background: 'var(--green-l)', color: 'var(--green)', border: 'none',
+            borderRadius: 8, cursor: 'pointer', opacity: uploading ? 0.6 : 1
+          }}>
+            {uploading ? '처리 중...' : '엑셀 일괄등록'}
+          </button>
+          <button onClick={startNew} style={{
+            padding: '9px 18px', fontSize: 13, fontWeight: 700,
+            background: 'var(--accent)', color: '#fff', border: 'none',
+            borderRadius: 8, cursor: 'pointer'
+          }}>
+            + 상품 등록
+          </button>
+        </div>
       </div>
 
       {/* 로딩 */}
@@ -733,6 +1041,278 @@ function ProductsPage({ showToast }) {
   );
 }
 
+// ─── 대시보드 ───
+function DashboardPage({ onNavigate }) {
+  const [stats, setStats] = useState({ solution: 0, method: 0, store: 0, grohome: 0, products: 0 });
+  const [recentInquiries, setRecentInquiries] = useState([]);
+  const [metrics, setMetrics] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [leadSnap, methodSnap, storeSnap, grohomeSnap, prodSnap, pInqSnap, dInqSnap, metSnap] = await Promise.all([
+          db.collection(COLLECTIONS.LEADS).get(),
+          db.collection(COLLECTIONS.LEADS_METHOD).get(),
+          db.collection(COLLECTIONS.LEADS_STORE).get(),
+          db.collection(COLLECTIONS.LEADS_GROHOME).get(),
+          db.collection(COLLECTIONS.PRODUCTS).get(),
+          db.collection(COLLECTIONS.PARTNER_INQUIRIES).get(),
+          db.collection(COLLECTIONS.DEALER_INQUIRIES).get(),
+          db.collection(COLLECTIONS.SITE_METRICS).doc('current').get(),
+        ]);
+        console.log(`[dashboard] leads:${leadSnap.size} method:${methodSnap.size} store:${storeSnap.size} grohome:${grohomeSnap.size} products:${prodSnap.size}`);
+        setStats({
+          solution: leadSnap.size,
+          method: methodSnap.size,
+          store: storeSnap.size,
+          grohome: grohomeSnap.size,
+          products: prodSnap.size,
+        });
+
+        // 최근 문의 (파트너 + 대리점 합산)
+        const allInq = [
+          ...pInqSnap.docs.map(d => ({ id: d.id, type: '파트너사', ...d.data() })),
+          ...dInqSnap.docs.map(d => ({ id: d.id, type: '대리점', ...d.data() })),
+        ];
+        allInq.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+        setRecentInquiries(allInq.slice(0, 5));
+
+        if (metSnap.exists) setMetrics(metSnap.data());
+      } catch (e) {
+        console.error('[dashboard] 로드 실패:', e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: 80, color: 'var(--text-sm)' }}>
+        <div style={{ width: 24, height: 24, border: '3px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+        대시보드 로딩 중...
+      </div>
+    );
+  }
+
+  const cards = [
+    { label: 'POUR솔루션', value: stats.solution, color: '#2563EB', bg: '#EFF6FF', key: 'leads-solution' },
+    { label: 'POUR공법', value: stats.method, color: '#E8780F', bg: '#FFF7ED', key: 'leads-method' },
+    { label: 'POUR스토어', value: stats.store, color: '#059669', bg: '#ECFDF5', key: 'leads-store' },
+    { label: '그로홈', value: stats.grohome, color: '#6D28D9', bg: '#F5F3FF', key: 'leads-grohome' },
+  ];
+
+  const statusColor = { '신규': '#DC2626', '검토중': '#D97706', '승인': '#059669', '반려': '#9CA3AF', '서류제출': '#7C3AED', '계약완료': '#10B981' };
+
+  return (
+    <div style={{ animation: 'fadeIn .3s ease', maxWidth: 1100 }}>
+      {/* 리드 현황 카드 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 20 }}>
+        {cards.map(c => (
+          <div key={c.label} onClick={() => onNavigate(c.key)}
+            style={{
+              background: '#fff', borderRadius: 12, padding: '20px 18px', boxShadow: 'var(--shadow)',
+              cursor: 'pointer', borderLeft: `4px solid ${c.color}`, transition: 'transform .15s',
+            }}
+            onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+            onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-md)', marginBottom: 8 }}>{c.label}</div>
+            <div style={{ fontSize: 28, fontWeight: 900, color: c.color }}>{c.value}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-sm)', marginTop: 4 }}>전체 리드</div>
+          </div>
+        ))}
+      </div>
+
+      {/* 상품 현황 + 공신력 수치 */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
+        {/* 상품 현황 */}
+        <div onClick={() => onNavigate('products')}
+          style={{
+            background: '#fff', borderRadius: 12, padding: '20px 18px', boxShadow: 'var(--shadow)',
+            cursor: 'pointer', transition: 'transform .15s',
+          }}
+          onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+          onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>상품 현황</div>
+            <span style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600 }}>관리 →</span>
+          </div>
+          <div style={{ fontSize: 32, fontWeight: 900, color: 'var(--accent)' }}>{stats.products}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-sm)', marginTop: 4 }}>등록된 상품</div>
+        </div>
+
+        {/* 공신력 수치 요약 */}
+        <div onClick={() => onNavigate('metrics')}
+          style={{
+            background: '#fff', borderRadius: 12, padding: '20px 18px', boxShadow: 'var(--shadow)',
+            cursor: 'pointer', transition: 'transform .15s',
+          }}
+          onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+          onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>공신력 수치</div>
+            <span style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600 }}>관리 →</span>
+          </div>
+          {metrics ? (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+              {[
+                { label: '시공 세대', val: metrics.totalUnitsLabel || '-' },
+                { label: '특허/인증', val: metrics.patentsLabel || '-' },
+                { label: '파트너사', val: metrics.partnersLabel || '-' },
+              ].map(m => (
+                <div key={m.label}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>{m.val}</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-sm)', marginTop: 2 }}>{m.label}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ fontSize: 13, color: 'var(--text-sm)' }}>수치 미설정</div>
+          )}
+        </div>
+      </div>
+
+      {/* 최근 문의접수 */}
+      <div style={{ background: '#fff', borderRadius: 12, padding: '20px 18px', boxShadow: 'var(--shadow)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>최근 문의접수</div>
+          <span onClick={() => onNavigate('inquiries')}
+            style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600, cursor: 'pointer' }}>
+            전체보기 →
+          </span>
+        </div>
+        {recentInquiries.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 30, color: 'var(--text-sm)', fontSize: 13 }}>
+            접수된 문의가 없습니다
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {recentInquiries.map(inq => (
+              <div key={inq.id} style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px',
+                background: 'var(--bg)', borderRadius: 8, fontSize: 13
+              }}>
+                <span style={{
+                  width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                  background: statusColor[inq.status] || '#9CA3AF'
+                }} />
+                <span style={{ fontWeight: 600, minWidth: 60 }}>{inq.type}</span>
+                <span style={{ flex: 1, color: 'var(--text-md)' }}>{inq.companyName || inq.contactName || '-'}</span>
+                <span style={{
+                  padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
+                  background: (statusColor[inq.status] || '#9CA3AF') + '18',
+                  color: statusColor[inq.status] || '#9CA3AF'
+                }}>
+                  {inq.status || '신규'}
+                </span>
+                <span style={{ fontSize: 11, color: 'var(--text-sm)', minWidth: 60, textAlign: 'right' }}>
+                  {inq.createdAt ? new Date(inq.createdAt).toLocaleDateString('ko') : '-'}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── 설정 페이지 (PIN 변경) ───
+function SettingsPage({ showToast, onLogout }) {
+  const [currentPin, setCurrentPin] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [changing, setChanging] = useState(false);
+
+  const handleChangePin = async () => {
+    if (newPin.length < 4) { showToast('새 PIN은 4자리 이상 입력하세요', 'error'); return; }
+    if (newPin !== confirmPin) { showToast('새 PIN이 일치하지 않습니다', 'error'); return; }
+
+    setChanging(true);
+    try {
+      const saved = localStorage.getItem(ADMIN_PIN_KEY);
+      if (saved) {
+        const hashed = await hashPin(currentPin);
+        if (hashed !== saved) {
+          showToast('현재 PIN이 일치하지 않습니다', 'error');
+          setChanging(false);
+          return;
+        }
+      }
+      const newHash = await hashPin(newPin);
+      localStorage.setItem(ADMIN_PIN_KEY, newHash);
+      showToast('PIN이 변경되었습니다');
+      setCurrentPin(''); setNewPin(''); setConfirmPin('');
+    } catch (e) {
+      showToast('PIN 변경 실패', 'error');
+    } finally {
+      setChanging(false);
+    }
+  };
+
+  const inputStyle = {
+    width: '100%', padding: '10px 14px', fontSize: 15, textAlign: 'center',
+    border: '1px solid var(--border)', borderRadius: 8, outline: 'none',
+    fontFamily: 'monospace', letterSpacing: 6,
+  };
+  const labelStyle = { fontSize: 12, fontWeight: 600, color: 'var(--text-md)', marginBottom: 6, display: 'block' };
+
+  return (
+    <div style={{ animation: 'fadeIn .3s ease', maxWidth: 480 }}>
+      {/* PIN 변경 */}
+      <div style={{ background: '#fff', borderRadius: 12, padding: 24, boxShadow: 'var(--shadow)', marginBottom: 16 }}>
+        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>PIN 변경</div>
+        <div style={{ fontSize: 12, color: 'var(--text-sm)', marginBottom: 20 }}>
+          태블릿앱과 동일한 PIN을 사용합니다
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div>
+            <label style={labelStyle}>현재 PIN</label>
+            <input type="password" value={currentPin} onChange={e => setCurrentPin(e.target.value)}
+              maxLength={8} placeholder="●●●●" style={inputStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>새 PIN (4자리 이상)</label>
+            <input type="password" value={newPin} onChange={e => setNewPin(e.target.value)}
+              maxLength={8} placeholder="●●●●" style={inputStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>새 PIN 확인</label>
+            <input type="password" value={confirmPin} onChange={e => setConfirmPin(e.target.value)}
+              maxLength={8} placeholder="●●●●" style={inputStyle} />
+          </div>
+          <button onClick={handleChangePin} disabled={changing}
+            style={{
+              padding: '12px 0', fontSize: 14, fontWeight: 700,
+              background: 'var(--accent)', color: '#fff', border: 'none',
+              borderRadius: 8, cursor: 'pointer', opacity: changing ? 0.6 : 1,
+              marginTop: 4
+            }}>
+            {changing ? '변경 중...' : 'PIN 변경'}
+          </button>
+        </div>
+      </div>
+
+      {/* 로그아웃 */}
+      <div style={{ background: '#fff', borderRadius: 12, padding: 24, boxShadow: 'var(--shadow)' }}>
+        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>계정</div>
+        <div style={{ fontSize: 12, color: 'var(--text-sm)', marginBottom: 16 }}>
+          로그아웃 시 PIN을 초기화하고 다시 설정해야 합니다
+        </div>
+        <button onClick={onLogout}
+          style={{
+            padding: '10px 20px', fontSize: 13, fontWeight: 600,
+            background: '#FEE2E2', color: 'var(--red)', border: 'none',
+            borderRadius: 8, cursor: 'pointer'
+          }}>
+          로그아웃 (PIN 초기화)
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── 페이지 Placeholder ───
 function PagePlaceholder({ title, icon, description }) {
   return (
@@ -772,7 +1352,7 @@ function App() {
   const renderPage = () => {
     switch (page) {
       case 'dashboard':
-        return <PagePlaceholder title="대시보드" icon="📊" description="전체 현황을 한눈에 확인합니다" />;
+        return <DashboardPage onNavigate={setPage} />;
       case 'products':
         return <ProductsPage showToast={showToast} />;
       case 'leads-solution':
@@ -796,7 +1376,7 @@ function App() {
       case 'sms':
         return <PagePlaceholder title="SMS 설정" icon="💬" description="SMS 발송 및 템플릿 관리" />;
       case 'settings':
-        return <PagePlaceholder title="설정" icon="⚙️" description="시스템 설정" />;
+        return <SettingsPage showToast={showToast} onLogout={() => { localStorage.removeItem(ADMIN_PIN_KEY); setAuthed(false); }} />;
       default:
         return <PagePlaceholder title="페이지 없음" icon="🔍" />;
     }

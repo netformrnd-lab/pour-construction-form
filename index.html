@@ -829,6 +829,88 @@ function DrawCanvas({onDataUrl}){
     redraw();forceRender(n=>n+1);setTimeout(()=>emitDataUrl(),0);
   };
 
+  /* ── SVG 벡터 다운로드 (일러스트레이터 편집 가능) ── */
+  const downloadSVG=()=>{
+    const c=canvasRef.current;if(!c)return;
+    const dpr=window.devicePixelRatio||1;
+    const w=c.width/dpr;const h=c.height/dpr;
+    // 현재 페이지 저장
+    pages.current[currentPage]={strokes:strokes.current,undoStack:undoStack.current,redoStack:redoStack.current};
+    const allPages=pages.current.filter(pg=>pg.strokes.length>0);
+    if(allPages.length===0){alert('그려진 내용이 없습니다.');return;}
+
+    allPages.forEach((pg,pi)=>{
+      let paths='';
+      // 배경 줄선
+      const spacing=32;
+      for(let y=spacing;y<h;y+=spacing){
+        paths+=`<line x1="0" y1="${y}" x2="${w}" y2="${y}" stroke="#e8ecf0" stroke-width="0.5" />\n`;
+      }
+      // 스트로크를 SVG path로 변환
+      pg.strokes.forEach(s=>{
+        const pts=s.points;if(pts.length<2)return;
+        const opacity=s.opacity||1;
+        const mixMode=s.type==='hl'?'multiply':'normal';
+        // 압력 변화가 크면 세그먼트별, 아니면 단일 path
+        const pressures=pts.map(p=>p.p||1);
+        const avgP=pressures.reduce((a,b)=>a+b,0)/pressures.length;
+        const pVariance=pressures.some(p=>Math.abs(p-avgP)>0.15);
+
+        if(!pVariance){
+          // 균일 압력: 단일 path (편집 용이)
+          let d=`M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+          if(pts.length===2){
+            d+=` L ${pts[1].x.toFixed(2)} ${pts[1].y.toFixed(2)}`;
+          }else{
+            for(let i=1;i<pts.length-1;i++){
+              const cp=pts[i];const next=pts[i+1];
+              const ex=((cp.x+next.x)/2).toFixed(2);
+              const ey=((cp.y+next.y)/2).toFixed(2);
+              d+=` Q ${cp.x.toFixed(2)} ${cp.y.toFixed(2)} ${ex} ${ey}`;
+            }
+            const last=pts[pts.length-1];
+            d+=` L ${last.x.toFixed(2)} ${last.y.toFixed(2)}`;
+          }
+          paths+=`<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${(s.width*avgP).toFixed(2)}" stroke-linecap="round" stroke-linejoin="round" opacity="${opacity}" style="mix-blend-mode:${mixMode}" />\n`;
+        }else{
+          // 가변 압력: 세그먼트별 path (원본 필압 재현)
+          const groupId=`g_${Math.random().toString(36).slice(2,8)}`;
+          paths+=`<g id="${groupId}" opacity="${opacity}" style="mix-blend-mode:${mixMode}">\n`;
+          for(let i=0;i<pts.length-1;i++){
+            const p0=pts[i],p1=pts[i+1];
+            const pressure=(p0.p+p1.p)/2||1;
+            let d;
+            if(i===0){
+              d=`M ${p0.x.toFixed(2)} ${p0.y.toFixed(2)} L ${p1.x.toFixed(2)} ${p1.y.toFixed(2)}`;
+            }else{
+              const prev=pts[i-1];
+              const sx=((prev.x+p0.x)/2).toFixed(2);
+              const sy=((prev.y+p0.y)/2).toFixed(2);
+              const ex=((p0.x+p1.x)/2).toFixed(2);
+              const ey=((p0.y+p1.y)/2).toFixed(2);
+              d=`M ${sx} ${sy} Q ${p0.x.toFixed(2)} ${p0.y.toFixed(2)} ${ex} ${ey}`;
+            }
+            paths+=`  <path d="${d}" fill="none" stroke="${s.color}" stroke-width="${(s.width*pressure).toFixed(2)}" stroke-linecap="round" stroke-linejoin="round" />\n`;
+          }
+          paths+=`</g>\n`;
+        }
+      });
+
+      const svgContent=`<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+<rect width="${w}" height="${h}" fill="white"/>
+${paths}</svg>`;
+
+      const blob=new Blob([svgContent],{type:'image/svg+xml;charset=utf-8'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;
+      a.download=allPages.length>1?`메모_${pi+1}.svg`:'메모.svg';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  };
+
   /* keyboard shortcuts: Ctrl+Z undo, Ctrl+Y/Ctrl+Shift+Z redo */
   useEffect(()=>{
     const handler=(e)=>{
@@ -1007,6 +1089,11 @@ function DrawCanvas({onDataUrl}){
           <button className="draw-tool" onClick={()=>{if(currentPage<totalPages-1)switchPage(currentPage+1);}} style={{opacity:currentPage<totalPages-1?1:.35,padding:'2px 4px'}} title="다음 페이지">▶</button>
           <button className="draw-tool" onClick={addPage} style={{padding:'2px 6px',fontSize:12,fontWeight:800}} title="페이지 추가">+</button>
         </div>
+        <div className="draw-sep"/>
+        <button className="draw-tool" onClick={downloadSVG} title="SVG 벡터 다운로드 (일러스트레이터 편집 가능)" style={{padding:'2px 6px',fontSize:10,fontWeight:800,color:'var(--navy)',whiteSpace:'nowrap'}}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+          {' SVG'}
+        </button>
       </div>
       <div className="draw-canvas-wrap" style={{minHeight:800}}>
         <canvas ref={canvasRef}

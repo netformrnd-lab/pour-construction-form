@@ -629,6 +629,44 @@ document.getElementById('svg-btn').addEventListener('click', function(){
 
   var esc=function(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');};
 
+  // rgb/rgba 색상을 hex로 변환
+  function colorToHex(c){
+    if(!c||c==='transparent'||c==='rgba(0, 0, 0, 0)')return null;
+    if(c.charAt(0)==='#')return c;
+    var m=c.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+    if(m)return '#'+((1<<24)+(+m[1]<<16)+(+m[2]<<8)+(+m[3])).toString(16).slice(1);
+    return c;
+  }
+  function colorOpacity(c){
+    var m=c&&c.match(/rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*([\d.]+)\s*\)/);
+    return m?parseFloat(m[1]):1;
+  }
+
+  // 그라데이션 파싱 (rgb() 안의 쉼표 처리)
+  function parseGradient(bgImg){
+    if(!bgImg||bgImg.indexOf('linear-gradient')===-1)return null;
+    // linear-gradient(135deg, rgb(232,120,15) 0%, rgb(244,154,58) 100%)
+    var inner=bgImg.match(/linear-gradient\((.+)\)/);
+    if(!inner)return null;
+    var raw=inner[1];
+    // 괄호 안의 쉼표를 임시 치환하여 split
+    var depth=0, parts=[], buf='';
+    for(var i=0;i<raw.length;i++){
+      var ch=raw[i];
+      if(ch==='(')depth++;
+      else if(ch===')')depth--;
+      if(ch===','&&depth===0){parts.push(buf.trim());buf='';}
+      else buf+=ch;
+    }
+    if(buf.trim())parts.push(buf.trim());
+    if(parts.length<3)return null;
+    var angle=parseInt(parts[0])||0;
+    // 첫 번째 색상 stop
+    var c1=parts[1].replace(/\s+\d+%\s*$/,'').trim();
+    var c2=parts[parts.length-1].replace(/\s+\d+%\s*$/,'').trim();
+    return {angle:angle,c1:colorToHex(c1)||c1,c2:colorToHex(c2)||c2,
+      o1:colorOpacity(c1),o2:colorOpacity(c2)};
+  }
   // SVG 요소 수집
   var svgParts=[];
   var origin=el.getBoundingClientRect();
@@ -680,7 +718,8 @@ document.getElementById('svg-btn').addEventListener('click', function(){
           lineText=words.slice(r*perRect,(r+1)*perRect).join(' ');
           if(!lineText)continue;
         }
-        svgParts.push('<text x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" font-family="'+esc(fontFamily)+'" font-size="'+fontSize.toFixed(1)+'" font-weight="'+fontWeight+'" fill="'+color+'" text-anchor="'+textAnchor+'"'+(letterSpacing?(' letter-spacing="'+(letterSpacing*scaleX).toFixed(1)+'"'):'')+'>'+esc(lineText)+'</text>');
+        var fillColor=colorToHex(color)||color;
+        svgParts.push('<text x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" font-family="'+esc(fontFamily)+'" font-size="'+fontSize.toFixed(1)+'" font-weight="'+fontWeight+'" fill="'+fillColor+'" text-anchor="'+textAnchor+'"'+(letterSpacing?(' letter-spacing="'+(letterSpacing*scaleX).toFixed(1)+'"'):'')+'>'+esc(lineText)+'</text>');
       }
       return;
     }
@@ -696,35 +735,56 @@ document.getElementById('svg-btn').addEventListener('click', function(){
     var nx=(r2.left-origin.left)*scaleX, ny=(r2.top-origin.top)*scaleY;
     var nw=r2.width*scaleX, nh=r2.height*scaleY;
 
-    // 배경색 처리
-    var bg=cs2.backgroundColor;
-    if(bg&&bg!=='rgba(0, 0, 0, 0)'&&bg!=='transparent'){
-      var radius=parseFloat(cs2.borderRadius)||0;
-      svgParts.push('<rect x="'+nx.toFixed(1)+'" y="'+ny.toFixed(1)+'" width="'+nw.toFixed(1)+'" height="'+nh.toFixed(1)+'" rx="'+(radius*scaleX).toFixed(1)+'" fill="'+bg+'" />');
+    // 배경 그라데이션 처리 (배경색보다 먼저)
+    var bgImg=cs2.backgroundImage;
+    var hasGrad=false;
+    if(bgImg&&bgImg.indexOf('linear-gradient')!==-1){
+      var grad=parseGradient(bgImg);
+      if(grad){
+        hasGrad=true;
+        var gradId='grad_'+Math.random().toString(36).slice(2,8);
+        var rad2=grad.angle*Math.PI/180;
+        var x1g=(50-50*Math.sin(rad2)).toFixed(0), y1g=(50+50*Math.cos(rad2)).toFixed(0);
+        var x2g=(50+50*Math.sin(rad2)).toFixed(0), y2g=(50-50*Math.cos(rad2)).toFixed(0);
+        svgParts.push('<defs><linearGradient id="'+gradId+'" x1="'+x1g+'%" y1="'+y1g+'%" x2="'+x2g+'%" y2="'+y2g+'%"><stop offset="0%" stop-color="'+grad.c1+'"'+(grad.o1<1?' stop-opacity="'+grad.o1+'"':'')+'/><stop offset="100%" stop-color="'+grad.c2+'"'+(grad.o2<1?' stop-opacity="'+grad.o2+'"':'')+'/></linearGradient></defs>');
+        svgParts.push('<rect x="'+nx.toFixed(1)+'" y="'+ny.toFixed(1)+'" width="'+nw.toFixed(1)+'" height="'+nh.toFixed(1)+'" rx="'+(parseFloat(cs2.borderRadius||0)*scaleX).toFixed(1)+'" fill="url(#'+gradId+')" />');
+      }
+    }
+    // radial-gradient (::before/::after 의 원형 장식 등)
+    if(bgImg&&bgImg.indexOf('radial-gradient')!==-1&&!hasGrad){
+      var rmatch=bgImg.match(/radial-gradient\([^,]*,\s*([^,)]+)/);
+      if(rmatch){
+        var rc=colorToHex(rmatch[1].replace(/\s+\d+%/,'').trim());
+        if(rc){
+          svgParts.push('<ellipse cx="'+(nx+nw/2).toFixed(1)+'" cy="'+(ny+nh/2).toFixed(1)+'" rx="'+(nw/2).toFixed(1)+'" ry="'+(nh/2).toFixed(1)+'" fill="'+rc+'" opacity="0.1" />');
+        }
+      }
     }
 
-    // 배경 그라데이션 처리
-    var bgImg=cs2.backgroundImage;
-    if(bgImg&&bgImg.indexOf('linear-gradient')!==-1){
-      var gradId='grad_'+Math.random().toString(36).slice(2,8);
-      // 간단한 2색 그라데이션 파싱
-      var match=bgImg.match(/linear-gradient\(\s*(\d+)deg\s*,\s*([^,]+?)\s+\d+%?\s*,\s*([^)]+?)\s+\d+%?\s*\)/);
-      if(match){
-        var angle=parseInt(match[1]);
-        var c1=match[2].trim(), c2=match[3].trim();
-        var rad=angle*Math.PI/180;
-        var x1=(50-50*Math.sin(rad)).toFixed(0), y1=(50+50*Math.cos(rad)).toFixed(0);
-        var x2=(50+50*Math.sin(rad)).toFixed(0), y2=(50-50*Math.cos(rad)).toFixed(0);
-        svgParts.push('<defs><linearGradient id="'+gradId+'" x1="'+x1+'%" y1="'+y1+'%" x2="'+x2+'%" y2="'+y2+'%"><stop offset="0%" stop-color="'+c1+'"/><stop offset="100%" stop-color="'+c2+'"/></linearGradient></defs>');
-        svgParts.push('<rect x="'+nx.toFixed(1)+'" y="'+ny.toFixed(1)+'" width="'+nw.toFixed(1)+'" height="'+nh.toFixed(1)+'" rx="'+(parseFloat(cs2.borderRadius||0)*scaleX).toFixed(1)+'" fill="url(#'+gradId+')" />');
+    // 배경색 처리 (그라데이션이 없을 때만)
+    if(!hasGrad){
+      var bg=cs2.backgroundColor;
+      var bgHex=colorToHex(bg);
+      var bgOp=colorOpacity(bg);
+      if(bgHex){
+        var radius=parseFloat(cs2.borderRadius)||0;
+        svgParts.push('<rect x="'+nx.toFixed(1)+'" y="'+ny.toFixed(1)+'" width="'+nw.toFixed(1)+'" height="'+nh.toFixed(1)+'" rx="'+(radius*scaleX).toFixed(1)+'" fill="'+bgHex+'"'+(bgOp<1?' opacity="'+bgOp.toFixed(2)+'"':'')+' />');
       }
     }
 
     // 테두리 처리
     var borderW=parseFloat(cs2.borderTopWidth)||0;
     var borderC=cs2.borderTopColor;
-    if(borderW>0&&borderC&&borderC!=='rgba(0, 0, 0, 0)'){
-      svgParts.push('<rect x="'+nx.toFixed(1)+'" y="'+ny.toFixed(1)+'" width="'+nw.toFixed(1)+'" height="'+nh.toFixed(1)+'" rx="'+(parseFloat(cs2.borderRadius||0)*scaleX).toFixed(1)+'" fill="none" stroke="'+borderC+'" stroke-width="'+(borderW*scaleX).toFixed(1)+'" />');
+    var borderHex=colorToHex(borderC);
+    if(borderW>0&&borderHex){
+      svgParts.push('<rect x="'+nx.toFixed(1)+'" y="'+ny.toFixed(1)+'" width="'+nw.toFixed(1)+'" height="'+nh.toFixed(1)+'" rx="'+(parseFloat(cs2.borderRadius||0)*scaleX).toFixed(1)+'" fill="none" stroke="'+borderHex+'" stroke-width="'+(borderW*scaleX).toFixed(1)+'" />');
+    }
+
+    // border-left 강조선 처리 (하이라이트 바 등)
+    var blW=parseFloat(cs2.borderLeftWidth)||0;
+    var blC=colorToHex(cs2.borderLeftColor);
+    if(blW>2&&blC){
+      svgParts.push('<line x1="'+nx.toFixed(1)+'" y1="'+ny.toFixed(1)+'" x2="'+nx.toFixed(1)+'" y2="'+(ny+nh).toFixed(1)+'" stroke="'+blC+'" stroke-width="'+(blW*scaleX).toFixed(1)+'" />');
     }
 
     // 이미지 처리
@@ -747,6 +807,29 @@ document.getElementById('svg-btn').addEventListener('click', function(){
       svgParts.push(tmp.innerHTML);
       return; // SVG 내부는 재귀 불필요
     }
+
+    // ::before / ::after 가상 요소 배경 처리
+    ['::before','::after'].forEach(function(pseudo){
+      var pcs=window.getComputedStyle(node,pseudo);
+      if(pcs.content==='none'||pcs.content==='""'||pcs.content==='normal')return;
+      var pw=parseFloat(pcs.width)||0, ph=parseFloat(pcs.height)||0;
+      if(pw===0||ph===0)return;
+      var ptop=parseFloat(pcs.top)||0, pright=parseFloat(pcs.right)||0;
+      var pleft=parseFloat(pcs.left)||0;
+      // 위치 계산 (absolute 기준)
+      var px=nx+pleft*scaleX, py=ny+ptop*scaleY;
+      if(pcs.right!=='auto'&&pcs.left==='auto')px=nx+nw-pw*scaleX+pright*scaleX;
+      var pbg=pcs.backgroundImage;
+      var pbgc=colorToHex(pcs.backgroundColor);
+      var pradius=parseFloat(pcs.borderRadius)||0;
+      if(pradius>pw/2)pradius=pw/2;
+      if(pbg&&pbg.indexOf('radial-gradient')!==-1){
+        svgParts.push('<ellipse cx="'+(px+pw*scaleX/2).toFixed(1)+'" cy="'+(py+ph*scaleY/2).toFixed(1)+'" rx="'+(pw*scaleX/2).toFixed(1)+'" ry="'+(ph*scaleY/2).toFixed(1)+'" fill="'+(pbgc||'#fff')+'" opacity="0.08" />');
+      }else if(pbgc){
+        var bop=colorOpacity(pcs.backgroundColor);
+        svgParts.push('<rect x="'+px.toFixed(1)+'" y="'+py.toFixed(1)+'" width="'+(pw*scaleX).toFixed(1)+'" height="'+(ph*scaleY).toFixed(1)+'" rx="'+(pradius*scaleX).toFixed(1)+'" fill="'+pbgc+'"'+(bop<1?' opacity="'+bop.toFixed(2)+'"':'')+' />');
+      }
+    });
 
     // 자식 순회
     for(var i=0;i<node.childNodes.length;i++){

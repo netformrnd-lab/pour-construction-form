@@ -2,23 +2,23 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>POUR솔루션 고객 만족도 조사</title>
-<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>POUR솔루션 · 고객 만족도 조사</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
   body {
     background: #f4f5f7;
-    font-family: 'Pretendard', -apple-system, sans-serif;
+    font-family: 'Noto Sans KR', sans-serif;
     color: #1a1e2e;
     min-height: 100vh;
-    -webkit-font-smoothing: antialiased;
   }
 
+  /* ─── Header ─── */
   .header {
-    background: linear-gradient(135deg, #0D1B2A 0%, #1A2E42 100%);
-    padding: 36px 20px 32px;
+    background: linear-gradient(135deg, #1c2b4a 0%, #2c4270 100%);
+    padding: 32px 20px 28px;
     position: relative;
     overflow: hidden;
   }
@@ -31,21 +31,17 @@
     background: rgba(255,255,255,0.1);
   }
 
-  .header-badge {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 700;
-    color: #2563EB;
-    background: rgba(37,99,235,0.15);
-    padding: 4px 10px;
-    border-radius: 20px;
-    margin-bottom: 14px;
-    letter-spacing: 0.02em;
+  .header-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 0.05em;
+    margin-bottom: 10px;
   }
 
   .header h1 {
     font-size: 22px;
-    font-weight: 800;
+    font-weight: 700;
     color: #ffffff;
     letter-spacing: -0.03em;
     line-height: 1.3;
@@ -54,14 +50,25 @@
   .header-desc {
     margin-top: 10px;
     font-size: 13px;
-    color: rgba(255,255,255,0.55);
+    color: rgba(255,255,255,0.6);
     line-height: 1.7;
   }
 
+  .header-deco {
+    position: absolute;
+    right: -10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 180px;
+    height: 135px;
+    pointer-events: none;
+  }
+
+  /* ─── Card ─── */
   .card {
     background: #ffffff;
     margin: 16px 14px;
-    border-radius: 12px;
+    border-radius: 10px;
     border: 1px solid #e4e8ef;
     overflow: hidden;
   }
@@ -76,48 +83,44 @@
     background: #fafbfc;
   }
 
+  /* ─── Field ─── */
   .field {
     padding: 13px 16px;
     border-bottom: 1px solid #edf0f5;
+    transition: background 0.15s;
   }
-  .field:last-child { border-bottom: none; }
+
+  .field:last-child {
+    border-bottom: none;
+  }
 
   .field-label {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
-    color: #6B7280;
-    margin-bottom: 6px;
+    color: #8693aa;
+    margin-bottom: 5px;
     display: flex;
     align-items: center;
     gap: 3px;
   }
 
-  .req { color: #2563EB; }
+  .req { color: #4a6fa5; }
 
   .field input,
   .field textarea,
   .field select {
     width: 100%;
-    border: 1px solid #E5E7EB;
-    border-radius: 8px;
+    border: none;
     outline: none;
-    background: #F9FAFB;
-    font-family: 'Pretendard', sans-serif;
+    background: transparent;
+    font-family: 'Noto Sans KR', sans-serif;
     font-size: 15px;
     font-weight: 500;
     color: #1a1e2e;
-    caret-color: #2563EB;
-    padding: 10px 12px;
+    caret-color: #4a6fa5;
+    padding: 0;
     line-height: 1.5;
     -webkit-appearance: none;
-    transition: border-color .15s;
-  }
-
-  .field input:focus,
-  .field textarea:focus,
-  .field select:focus {
-    border-color: #2563EB;
-    background: #fff;
   }
 
   .field input::placeholder,
@@ -129,9 +132,19 @@
 
   .field textarea {
     resize: none;
-    min-height: 80px;
+    min-height: 72px;
   }
 
+  .field select {
+    cursor: pointer;
+    color: #1a1e2e;
+  }
+
+  .field select option[value=""] {
+    color: #bcc5d4;
+  }
+
+  /* Row split */
   .field-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -140,43 +153,20 @@
 
   .field-row .col {
     padding: 13px 16px;
+    transition: background 0.15s;
   }
 
   .field-row .col:first-child {
     border-right: 1px solid #edf0f5;
   }
 
-  .field-row .col input {
-    width: 100%;
-    border: 1px solid #E5E7EB;
-    border-radius: 8px;
-    outline: none;
-    background: #F9FAFB;
-    font-family: 'Pretendard', sans-serif;
-    font-size: 15px;
-    font-weight: 500;
-    color: #1a1e2e;
-    padding: 10px 12px;
-    -webkit-appearance: none;
-    transition: border-color .15s;
+  /* Focus */
+  .field:focus-within .field-label,
+  .field-row .col:focus-within .field-label {
+    color: #4a6fa5;
   }
 
-  .field-row .col input:focus {
-    border-color: #2563EB;
-    background: #fff;
-  }
-
-  .field-row .col .field-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: #6B7280;
-    margin-bottom: 6px;
-    display: flex;
-    align-items: center;
-    gap: 3px;
-  }
-
-  /* NPS Score */
+  /* ─── NPS Score ─── */
   .nps-section {
     padding: 20px 16px;
   }
@@ -191,7 +181,7 @@
 
   .nps-sub {
     font-size: 12px;
-    color: #9CA3AF;
+    color: #8693aa;
     margin-bottom: 16px;
   }
 
@@ -204,18 +194,20 @@
 
   .nps-btn {
     aspect-ratio: 1;
-    border: 2px solid #E5E7EB;
-    border-radius: 10px;
+    border: 2px solid #dde2ec;
+    border-radius: 8px;
     background: #fff;
-    font-family: 'Pretendard', sans-serif;
+    font-family: 'Noto Sans KR', sans-serif;
     font-size: 15px;
     font-weight: 700;
-    color: #6B7280;
+    color: #8693aa;
     cursor: pointer;
     transition: all .15s;
     display: flex;
     align-items: center;
     justify-content: center;
+    min-width: 0;
+    padding: 0;
   }
 
   .nps-btn:active {
@@ -225,30 +217,30 @@
   .nps-btn.selected {
     color: #fff;
     border-color: transparent;
-    transform: scale(1.05);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transform: scale(1.08);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.18);
   }
 
   .nps-btn.detractor.selected { background: #DC2626; }
   .nps-btn.passive.selected { background: #D97706; }
-  .nps-btn.promoter.selected { background: #059669; }
+  .nps-btn.promoter.selected { background: #1c6b3a; }
 
-  .nps-btn.detractor:not(.selected):hover { border-color: #FCA5A5; background: #FEF2F2; }
-  .nps-btn.passive:not(.selected):hover { border-color: #FCD34D; background: #FFFBEB; }
-  .nps-btn.promoter:not(.selected):hover { border-color: #6EE7B7; background: #ECFDF5; }
+  .nps-btn.detractor:not(.selected):hover { border-color: #f5a5a5; background: #fef5f5; }
+  .nps-btn.passive:not(.selected):hover { border-color: #f5d17a; background: #fefcf3; }
+  .nps-btn.promoter:not(.selected):hover { border-color: #7ad4a5; background: #f0fbf5; }
 
   .nps-labels {
     display: flex;
     justify-content: space-between;
     font-size: 11px;
-    color: #9CA3AF;
+    color: #8693aa;
     padding: 0 2px;
   }
 
   .nps-result-label {
     text-align: center;
-    margin-top: 12px;
-    padding: 6px 14px;
+    margin-top: 14px;
+    padding: 6px 16px;
     border-radius: 20px;
     font-size: 13px;
     font-weight: 600;
@@ -256,11 +248,11 @@
   }
 
   .nps-result-label.show { display: inline-block; }
-  .nps-result-label.detractor { background: #FEF2F2; color: #DC2626; }
-  .nps-result-label.passive { background: #FFFBEB; color: #D97706; }
-  .nps-result-label.promoter { background: #ECFDF5; color: #059669; }
+  .nps-result-label.detractor { background: #fef5f5; color: #DC2626; }
+  .nps-result-label.passive { background: #fefcf3; color: #b8860b; }
+  .nps-result-label.promoter { background: #f0fbf5; color: #1c6b3a; }
 
-  /* Category buttons */
+  /* ─── Category buttons ─── */
   .category-grid {
     display: flex;
     flex-wrap: wrap;
@@ -270,10 +262,10 @@
 
   .cat-btn {
     padding: 8px 14px;
-    border: 1px solid #E5E7EB;
+    border: 1px solid #dde2ec;
     border-radius: 20px;
     background: #fff;
-    font-family: 'Pretendard', sans-serif;
+    font-family: 'Noto Sans KR', sans-serif;
     font-size: 13px;
     font-weight: 500;
     color: #4B5563;
@@ -283,26 +275,26 @@
 
   .cat-btn:active { transform: scale(0.95); }
   .cat-btn.selected {
-    background: #2563EB;
+    background: #1c2b4a;
     color: #fff;
-    border-color: #2563EB;
+    border-color: #1c2b4a;
   }
 
-  /* Submit */
+  /* ─── Submit ─── */
   .btn-wrap {
     padding: 4px 14px 28px;
   }
 
   .btn-submit {
     width: 100%;
-    background: #2563EB;
+    background: #1c2b4a;
     color: #ffffff;
     border: none;
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 16px;
-    font-family: 'Pretendard', sans-serif;
+    font-family: 'Noto Sans KR', sans-serif;
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: -0.01em;
     cursor: pointer;
     display: flex;
@@ -313,8 +305,12 @@
     -webkit-appearance: none;
   }
 
-  .btn-submit:active { background: #1D4ED8; }
-  .btn-submit:disabled { background: #93C5FD; cursor: not-allowed; }
+  .btn-submit:active { background: #253758; }
+  .btn-submit:disabled { background: #7a8faa; cursor: not-allowed; }
+
+  .btn-submit svg {
+    width: 16px; height: 16px;
+  }
 
   .form-note {
     text-align: center;
@@ -324,34 +320,36 @@
     line-height: 1.6;
   }
 
-  /* Toast */
+  /* ─── Toast ─── */
   .toast {
     position: fixed;
     bottom: 24px;
     left: 50%;
     transform: translateX(-50%) translateY(80px);
-    background: #059669;
+    background: #1c2b4a;
     color: #fff;
-    border-radius: 10px;
-    padding: 14px 24px;
-    font-size: 14px;
+    border-radius: 8px;
+    padding: 13px 22px;
+    font-size: 13px;
     font-weight: 600;
     white-space: nowrap;
     z-index: 999;
     display: flex;
     align-items: center;
     gap: 8px;
-    transition: transform 0.35s cubic-bezier(0.34, 1.4, 0.64, 1);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    transition: transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
   }
 
-  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
+  }
 
-  /* Complete screen */
+  /* ─── Complete ─── */
   .complete-screen {
     display: none;
     text-align: center;
-    padding: 60px 20px;
+    padding: 80px 20px;
     animation: fadeUp .4s ease;
   }
 
@@ -365,30 +363,215 @@
   .complete-icon {
     width: 72px;
     height: 72px;
-    background: #ECFDF5;
+    background: linear-gradient(135deg, #1c2b4a 0%, #2c4270 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto 20px;
-    font-size: 36px;
+    font-size: 32px;
+    color: #fff;
   }
 
   .complete-title {
     font-size: 20px;
-    font-weight: 800;
-    color: #111;
+    font-weight: 700;
+    color: #1a1e2e;
     margin-bottom: 10px;
   }
 
   .complete-desc {
     font-size: 14px;
-    color: #6B7280;
+    color: #8693aa;
     line-height: 1.7;
   }
 
   .form-content { display: block; }
   .form-content.hide { display: none; }
+
+  /* ─── Responsive ─── */
+
+  /* 태블릿 (max-width: 768px) */
+  @media (max-width: 768px) {
+    .header {
+      padding: 28px 18px 24px;
+    }
+
+    .header h1 {
+      font-size: 20px;
+    }
+
+    .header-deco {
+      width: 150px;
+      height: 112px;
+      right: -15px;
+    }
+
+    .card {
+      margin: 14px 12px;
+    }
+
+    .nps-grid {
+      gap: 5px;
+    }
+
+    .nps-btn {
+      font-size: 14px;
+      border-radius: 7px;
+    }
+  }
+
+  /* 모바일 소형 (max-width: 400px) */
+  @media (max-width: 400px) {
+    .header {
+      padding: 24px 16px 22px;
+    }
+
+    .header h1 {
+      font-size: 18px;
+    }
+
+    .header-desc {
+      font-size: 12px;
+    }
+
+    .header-deco {
+      width: 120px;
+      height: 90px;
+      right: -20px;
+      opacity: 0.7;
+    }
+
+    .card {
+      margin: 12px 10px;
+      border-radius: 8px;
+    }
+
+    .card-title {
+      padding: 12px 14px 10px;
+      font-size: 12px;
+    }
+
+    .field {
+      padding: 11px 14px;
+    }
+
+    .field-row {
+      grid-template-columns: 1fr;
+    }
+
+    .field-row .col:first-child {
+      border-right: none;
+      border-bottom: 1px solid #edf0f5;
+    }
+
+    .nps-section {
+      padding: 16px 14px;
+    }
+
+    .nps-question {
+      font-size: 14px;
+    }
+
+    .nps-grid {
+      gap: 4px;
+    }
+
+    .nps-btn {
+      font-size: 13px;
+      border-width: 1.5px;
+      border-radius: 6px;
+    }
+
+    .cat-btn {
+      padding: 7px 12px;
+      font-size: 12px;
+    }
+
+    .category-grid {
+      gap: 6px;
+    }
+
+    .field input,
+    .field textarea,
+    .field select {
+      font-size: 14px;
+    }
+
+    .btn-submit {
+      padding: 14px;
+      font-size: 14px;
+    }
+
+    .btn-wrap {
+      padding: 4px 10px 24px;
+    }
+
+    .form-note {
+      font-size: 10px;
+    }
+
+    .toast {
+      font-size: 12px;
+      padding: 11px 18px;
+      bottom: 16px;
+    }
+  }
+
+  /* 모바일 초소형 (max-width: 340px) */
+  @media (max-width: 340px) {
+    .header h1 {
+      font-size: 16px;
+    }
+
+    .header-deco {
+      display: none;
+    }
+
+    .nps-grid {
+      grid-template-columns: repeat(6, 1fr);
+      gap: 5px;
+    }
+
+    .nps-btn {
+      aspect-ratio: auto;
+      padding: 8px 0;
+    }
+  }
+
+  /* 태블릿 가로/데스크톱 (min-width: 600px) */
+  @media (min-width: 600px) {
+    body {
+      display: flex;
+      justify-content: center;
+      padding: 20px 0;
+    }
+
+    .form-content,
+    .complete-screen {
+      max-width: 520px;
+      width: 100%;
+    }
+
+    .card {
+      margin: 16px 0;
+      border-radius: 12px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    }
+
+    .header {
+      border-radius: 12px 12px 0 0;
+      margin-top: 0;
+    }
+
+    .btn-wrap {
+      padding: 4px 0 28px;
+    }
+
+    .form-note {
+      padding: 0 0 12px;
+    }
+  }
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -409,14 +592,78 @@
 <div class="form-content" id="formContent">
 
 <div class="header">
-  <div class="header-badge">2026년 4월 NPS 조사</div>
-  <h1>POUR솔루션<br>고객 만족도 조사</h1>
-  <p class="header-desc">소중한 의견을 들려주세요.<br>더 나은 서비스를 위해 적극 반영하겠습니다.</p>
+  <svg class="header-deco" viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- 건물들 배경 -->
+    <rect x="2" y="104" width="26" height="56" fill="white" opacity="0.07"/>
+    <rect x="6" y="112" width="5" height="5" fill="white" opacity="0.13"/>
+    <rect x="15" y="112" width="5" height="5" fill="white" opacity="0.13"/>
+    <rect x="6" y="122" width="5" height="5" fill="white" opacity="0.13"/>
+    <rect x="15" y="122" width="5" height="5" fill="white" opacity="0.13"/>
+    <rect x="32" y="66" width="36" height="94" fill="white" opacity="0.08"/>
+    <line x1="40" y1="66" x2="40" y2="160" stroke="white" stroke-width="0.5" stroke-opacity="0.14"/>
+    <line x1="50" y1="66" x2="50" y2="160" stroke="white" stroke-width="0.5" stroke-opacity="0.14"/>
+    <line x1="60" y1="66" x2="60" y2="160" stroke="white" stroke-width="0.5" stroke-opacity="0.14"/>
+    <line x1="32" y1="78" x2="68" y2="78" stroke="white" stroke-width="0.5" stroke-opacity="0.14"/>
+    <line x1="32" y1="90" x2="68" y2="90" stroke="white" stroke-width="0.5" stroke-opacity="0.14"/>
+    <line x1="32" y1="102" x2="68" y2="102" stroke="white" stroke-width="0.5" stroke-opacity="0.14"/>
+    <line x1="32" y1="114" x2="68" y2="114" stroke="white" stroke-width="0.5" stroke-opacity="0.14"/>
+    <line x1="32" y1="126" x2="68" y2="126" stroke="white" stroke-width="0.5" stroke-opacity="0.14"/>
+    <line x1="32" y1="138" x2="68" y2="138" stroke="white" stroke-width="0.5" stroke-opacity="0.14"/>
+    <line x1="32" y1="150" x2="68" y2="150" stroke="white" stroke-width="0.5" stroke-opacity="0.14"/>
+    <line x1="50" y1="57" x2="50" y2="66" stroke="white" stroke-width="1.5" stroke-opacity="0.22" stroke-linecap="round"/>
+    <circle cx="50" cy="56" r="2" fill="white" opacity="0.18"/>
+    <rect x="142" y="84" width="28" height="76" fill="white" opacity="0.07"/>
+    <line x1="150" y1="84" x2="150" y2="160" stroke="white" stroke-width="0.5" stroke-opacity="0.12"/>
+    <line x1="162" y1="84" x2="162" y2="160" stroke="white" stroke-width="0.5" stroke-opacity="0.12"/>
+    <line x1="142" y1="96" x2="170" y2="96" stroke="white" stroke-width="0.5" stroke-opacity="0.12"/>
+    <line x1="142" y1="108" x2="170" y2="108" stroke="white" stroke-width="0.5" stroke-opacity="0.12"/>
+    <line x1="142" y1="120" x2="170" y2="120" stroke="white" stroke-width="0.5" stroke-opacity="0.12"/>
+    <line x1="142" y1="132" x2="170" y2="132" stroke="white" stroke-width="0.5" stroke-opacity="0.12"/>
+    <line x1="142" y1="144" x2="170" y2="144" stroke="white" stroke-width="0.5" stroke-opacity="0.12"/>
+    <rect x="174" y="50" width="26" height="110" fill="white" opacity="0.09"/>
+    <line x1="182" y1="50" x2="182" y2="160" stroke="white" stroke-width="0.5" stroke-opacity="0.13"/>
+    <line x1="192" y1="50" x2="192" y2="160" stroke="white" stroke-width="0.5" stroke-opacity="0.13"/>
+    <line x1="174" y1="64" x2="200" y2="64" stroke="white" stroke-width="0.5" stroke-opacity="0.13"/>
+    <line x1="174" y1="78" x2="200" y2="78" stroke="white" stroke-width="0.5" stroke-opacity="0.13"/>
+    <line x1="174" y1="92" x2="200" y2="92" stroke="white" stroke-width="0.5" stroke-opacity="0.13"/>
+    <line x1="174" y1="106" x2="200" y2="106" stroke="white" stroke-width="0.5" stroke-opacity="0.13"/>
+    <line x1="174" y1="120" x2="200" y2="120" stroke="white" stroke-width="0.5" stroke-opacity="0.13"/>
+    <line x1="174" y1="134" x2="200" y2="134" stroke="white" stroke-width="0.5" stroke-opacity="0.13"/>
+    <line x1="174" y1="148" x2="200" y2="148" stroke="white" stroke-width="0.5" stroke-opacity="0.13"/>
+    <line x1="0" y1="103" x2="200" y2="103" stroke="white" stroke-width="0.8" stroke-opacity="0.13"/>
+    <!-- 드론 -->
+    <ellipse cx="108" cy="24" rx="17" ry="5.5" fill="white" opacity="0.18" transform="rotate(-15 108 24)"/>
+    <ellipse cx="158" cy="24" rx="17" ry="5.5" fill="white" opacity="0.18" transform="rotate(15 158 24)"/>
+    <ellipse cx="108" cy="64" rx="17" ry="5.5" fill="white" opacity="0.18" transform="rotate(15 108 64)"/>
+    <ellipse cx="158" cy="64" rx="17" ry="5.5" fill="white" opacity="0.18" transform="rotate(-15 158 64)"/>
+    <line x1="121" y1="36" x2="108" y2="26" stroke="white" stroke-width="2.5" stroke-opacity="0.38" stroke-linecap="round"/>
+    <line x1="145" y1="36" x2="158" y2="26" stroke="white" stroke-width="2.5" stroke-opacity="0.38" stroke-linecap="round"/>
+    <line x1="121" y1="52" x2="108" y2="62" stroke="white" stroke-width="2.5" stroke-opacity="0.38" stroke-linecap="round"/>
+    <line x1="145" y1="52" x2="158" y2="62" stroke="white" stroke-width="2.5" stroke-opacity="0.38" stroke-linecap="round"/>
+    <circle cx="108" cy="24" r="4" fill="white" opacity="0.5"/>
+    <circle cx="158" cy="24" r="4" fill="white" opacity="0.5"/>
+    <circle cx="108" cy="64" r="4" fill="white" opacity="0.5"/>
+    <circle cx="158" cy="64" r="4" fill="white" opacity="0.5"/>
+    <rect x="118" y="33" width="30" height="22" rx="7" fill="white" opacity="0.24"/>
+    <circle cx="133" cy="55" r="7" fill="white" opacity="0.28"/>
+    <circle cx="133" cy="55" r="4" fill="white" opacity="0.45"/>
+    <circle cx="133" cy="55" r="2" fill="white" opacity="0.75"/>
+    <line x1="122" y1="56" x2="119" y2="68" stroke="white" stroke-width="2" stroke-opacity="0.28" stroke-linecap="round"/>
+    <line x1="144" y1="56" x2="147" y2="68" stroke="white" stroke-width="2" stroke-opacity="0.28" stroke-linecap="round"/>
+    <line x1="112" y1="68" x2="126" y2="68" stroke="white" stroke-width="2" stroke-opacity="0.28" stroke-linecap="round"/>
+    <line x1="140" y1="68" x2="154" y2="68" stroke="white" stroke-width="2" stroke-opacity="0.28" stroke-linecap="round"/>
+    <circle cx="124" cy="42" r="2" fill="white" opacity="0.6"/>
+    <circle cx="142" cy="42" r="2" fill="white" opacity="0.6"/>
+  </svg>
+  <div class="header-label">📋 2026년 4월 · 고객 만족도 조사</div>
+  <h1>POUR솔루션 서비스<br>만족도를 알려주세요</h1>
+  <p class="header-desc">소중한 의견을 들려주시면<br>더 나은 서비스로 보답하겠습니다.</p>
 </div>
 
 <!-- 응답자 정보 -->
 <div class="card">
   <div class="card-title">응답자 정보</div>
+
   <div class="field-row">
     <div class="col">
       <div class="field-label">성함 <span class="req">*</span></div>
@@ -427,14 +674,16 @@
       <input type="text" id="company" placeholder="OO아파트 / OO건설" autocomplete="organization">
     </div>
   </div>
+
   <div class="field">
-    <div class="field-label">연락처</div>
-    <input type="tel" id="phone" placeholder="010-0000-0000 (선택)" autocomplete="tel">
+    <div class="field-label">연락처 (선택)</div>
+    <input type="tel" id="phone" placeholder="010-0000-0000" autocomplete="tel">
   </div>
+
   <div class="field">
-    <div class="field-label">직책</div>
+    <div class="field-label">직책 (선택)</div>
     <select id="position">
-      <option value="">선택해주세요 (선택)</option>
+      <option value="">선택해주세요</option>
       <option value="관리소장">관리소장</option>
       <option value="시설팀장">시설팀장</option>
       <option value="시설담당">시설담당</option>
@@ -451,9 +700,7 @@
       POUR솔루션을 주변 동료에게<br>추천할 의향이 있으신가요? <span class="req">*</span>
     </div>
     <div class="nps-sub">0점(전혀 추천하지 않음) ~ 10점(적극 추천)</div>
-    <div class="nps-grid" id="npsGrid">
-      <!-- JS에서 생성 -->
-    </div>
+    <div class="nps-grid" id="npsGrid"></div>
     <div class="nps-labels">
       <span>전혀 아니다</span>
       <span>매우 그렇다</span>
@@ -464,22 +711,19 @@
   </div>
 </div>
 
-<!-- 만족/불만족 요인 -->
+<!-- 만족 요인 -->
 <div class="card">
-  <div class="card-title">어떤 점이 좋았나요? (복수선택)</div>
+  <div class="card-title">어떤 점이 좋았나요? (복수선택 가능)</div>
   <div class="field" style="border-bottom:none">
-    <div class="category-grid" id="goodFactors">
-      <!-- JS에서 생성 -->
-    </div>
+    <div class="category-grid" id="goodFactors"></div>
   </div>
 </div>
 
+<!-- 개선 요인 -->
 <div class="card">
-  <div class="card-title">개선이 필요한 점은? (복수선택)</div>
+  <div class="card-title">개선이 필요한 점은? (복수선택 가능)</div>
   <div class="field" style="border-bottom:none">
-    <div class="category-grid" id="badFactors">
-      <!-- JS에서 생성 -->
-    </div>
+    <div class="category-grid" id="badFactors"></div>
   </div>
 </div>
 
@@ -487,7 +731,8 @@
 <div class="card">
   <div class="card-title">추가 의견</div>
   <div class="field" style="border-bottom:none">
-    <textarea id="feedback" placeholder="서비스 개선을 위한 자유로운 의견을 남겨주세요"></textarea>
+    <div class="field-label">자유롭게 작성해주세요</div>
+    <textarea id="feedback" placeholder="서비스 개선을 위한 의견을 남겨주세요"></textarea>
   </div>
 </div>
 
@@ -495,7 +740,7 @@
 
 <div class="btn-wrap">
   <button class="btn-submit" id="submitBtn" onclick="submitNPS()">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="20 6 9 17 4 12"></polyline>
     </svg>
     설문 제출하기
@@ -514,7 +759,7 @@
   </div>
 </div>
 
-<div class="toast" id="toast">&#10003; 설문이 정상 제출되었습니다</div>
+<div class="toast" id="toast">&#10003; &nbsp;설문이 정상 제출되었습니다</div>
 
 <script>
   // ─── NPS 점수 버튼 생성 ───
@@ -535,13 +780,13 @@
       resultLabel.className = 'nps-result-label show';
       if (i <= 6) {
         resultLabel.classList.add('detractor');
-        resultLabel.textContent = i + '점 선택 (비추천)';
+        resultLabel.textContent = i + '점 선택';
       } else if (i <= 8) {
         resultLabel.classList.add('passive');
-        resultLabel.textContent = i + '점 선택 (중립)';
+        resultLabel.textContent = i + '점 선택';
       } else {
         resultLabel.classList.add('promoter');
-        resultLabel.textContent = i + '점 선택 (추천)';
+        resultLabel.textContent = i + '점 선택';
       }
     };
     npsGrid.appendChild(btn);
@@ -555,7 +800,7 @@
   const selectedBad = new Set();
 
   function renderFactors(container, items, selectedSet) {
-    items.forEach(item => {
+    items.forEach(function(item) {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'cat-btn';
@@ -586,11 +831,17 @@
 
     // 필수값 체크
     if (!name) {
-      document.getElementById('name').focus();
+      const el = document.getElementById('name');
+      el.focus();
+      const wrap = el.closest('.col');
+      if (wrap) { wrap.style.background = '#f0f4fa'; setTimeout(function() { wrap.style.background = ''; }, 900); }
       return;
     }
     if (!company) {
-      document.getElementById('company').focus();
+      const el = document.getElementById('company');
+      el.focus();
+      const wrap = el.closest('.col');
+      if (wrap) { wrap.style.background = '#f0f4fa'; setTimeout(function() { wrap.style.background = ''; }, 900); }
       return;
     }
     if (selectedScore === null) {
@@ -606,47 +857,35 @@
       const category = selectedScore <= 6 ? 'detractor' : selectedScore <= 8 ? 'passive' : 'promoter';
 
       await db.collection('nps-surveys').add({
-        // 캠페인 정보
         campaign: 'NPS_Director_202604',
         surveyType: 'director',
-
-        // 응답자 정보
         name: name,
         company: company,
         phone: phone || '',
         position: position || '',
-
-        // NPS 데이터
         score: selectedScore,
         category: category,
-
-        // 요인
         goodFactors: Array.from(selectedGood),
         badFactors: Array.from(selectedBad),
-
-        // 자유 의견
         feedback: feedback,
-
-        // 메타
         createdAt: new Date().toISOString(),
         source: 'kakao-link',
       });
 
       console.log('[NPS] 설문 제출 완료 - score:', selectedScore, 'category:', category);
 
-      // 완료 화면 표시
       document.getElementById('formContent').classList.add('hide');
       document.getElementById('completeScreen').classList.add('show');
 
       const toast = document.getElementById('toast');
       toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 3000);
+      setTimeout(function() { toast.classList.remove('show'); }, 3000);
 
     } catch(e) {
       alert('제출 중 오류가 발생했습니다. 다시 시도해 주세요.');
       console.error('[NPS] 제출 실패:', e);
       btn.disabled = false;
-      btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> 설문 제출하기';
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><polyline points="20 6 9 17 4 12"></polyline></svg> 설문 제출하기';
     }
   }
 </script>

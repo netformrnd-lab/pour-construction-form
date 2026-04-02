@@ -437,6 +437,47 @@ const excelRowToProduct = (row) => {
 
 // 판매상태 상수
 const SALES_STATUS = ['전체', '판매중', '품절', '숨김'];
+const STATUS_ICON = { '판매중': '🟢', '품절': '🔴', '숨김': '⬜' };
+
+// 상품 태그
+const PRODUCT_TAGS = [
+  { key: 'popular', label: '인기상품', color: '#DC2626', bg: '#FEE2E2' },
+  { key: 'new', label: '신상품', color: '#2563EB', bg: '#EFF6FF' },
+  { key: 'promo', label: '프로모션', color: '#D97706', bg: '#FEF3C7' },
+  { key: 'waterproof', label: '방수', color: '#059669', bg: '#ECFDF5' },
+  { key: 'paint', label: '도장', color: '#7C3AED', bg: '#F5F3FF' },
+  { key: 'repair', label: '보수보강', color: '#EA580C', bg: '#FFF7ED' },
+  { key: 'self', label: '셀프시공', color: '#0891B2', bg: '#ECFEFF' },
+];
+const getTag = (key) => PRODUCT_TAGS.find(t => t.key === key);
+
+// ─── 확인 모달 ───
+function ConfirmModal({ message, onConfirm, onCancel }) {
+  return (
+    <div style={{
+      position:'fixed', inset:0, background:'rgba(0,0,0,.4)', zIndex:9998,
+      display:'flex', alignItems:'center', justifyContent:'center', animation:'fadeIn .2s ease'
+    }} onClick={onCancel}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background:'#fff', borderRadius:16, padding:'32px 28px', width:380,
+        boxShadow:'0 20px 60px rgba(0,0,0,.2)', textAlign:'center'
+      }}>
+        <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', marginBottom:8, lineHeight:1.5 }}>{message}</div>
+        <div style={{ fontSize:13, color:'var(--text-sm)', marginBottom:24 }}>이 작업은 되돌릴 수 없습니다</div>
+        <div style={{ display:'flex', gap:10 }}>
+          <button onClick={onCancel} style={{
+            flex:1, padding:'14px 0', fontSize:15, fontWeight:600, background:'var(--border-s)',
+            color:'var(--text-md)', border:'none', borderRadius:10, cursor:'pointer'
+          }}>취소</button>
+          <button onClick={onConfirm} style={{
+            flex:1, padding:'14px 0', fontSize:15, fontWeight:700, background:'var(--red)',
+            color:'#fff', border:'none', borderRadius:10, cursor:'pointer'
+          }}>확인</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── 판매채널 정의 ───
 const CHANNELS = [
@@ -458,8 +499,11 @@ function ProductsPage({ showToast }) {
   const [editingId, setEditingId] = useState(null); // null=목록, 'new'=신규, docId=수정
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [expandedChannel, setExpandedChannel] = useState(null); // 채널 상세 펼침
+  const [expandedChannel, setExpandedChannel] = useState(null);
   const [statusFilter, setStatusFilter] = useState('전체');
+  const [tagFilter, setTagFilter] = useState(null);
+  const [selected, setSelected] = useState(new Set());
+  const [confirmModal, setConfirmModal] = useState(null);
 
   // Firestore 로드
   useEffect(() => {
@@ -492,6 +536,7 @@ function ProductsPage({ showToast }) {
     channels: CHANNELS.reduce((acc, ch) => { acc[ch.key] = ''; return acc; }, {}),
     detailImages: [],
     detailHtml: '',
+    tags: [],
     isActive: true,
   });
 
@@ -629,9 +674,58 @@ function ProductsPage({ showToast }) {
       }, {}),
       detailImages: product.detailImages || [],
       detailHtml: product.detailHtml || '',
+      tags: product.tags || [],
       isActive: product.isActive !== false,
     });
     setEditingId(product.id);
+  };
+
+  // 빠른 상태 변경 (목록에서 직접)
+  const quickStatusChange = async (productId, newStatus) => {
+    try {
+      await db.collection(COLLECTIONS.PRODUCTS).doc(productId).update({ salesStatus: newStatus, updatedAt: new Date().toISOString() });
+      setProducts(prev => prev.map(p => p.id === productId ? { ...p, salesStatus: newStatus } : p));
+      showToast(`${STATUS_ICON[newStatus]} ${newStatus}(으)로 변경됨`);
+    } catch (e) {
+      console.error('[products] 상태변경 실패:', e);
+      showToast('상태 변경 실패', 'error');
+    }
+  };
+
+  // 벌크 액션
+  const bulkAction = async (action, value) => {
+    if (selected.size === 0) return;
+    const ids = Array.from(selected);
+    try {
+      const batch = db.batch();
+      const now = new Date().toISOString();
+      ids.forEach(id => {
+        const ref = db.collection(COLLECTIONS.PRODUCTS).doc(id);
+        if (action === 'status') batch.update(ref, { salesStatus: value, updatedAt: now });
+        if (action === 'delete') batch.delete(ref);
+      });
+      await batch.commit();
+      if (action === 'delete') {
+        setProducts(prev => prev.filter(p => !selected.has(p.id)));
+      } else {
+        setProducts(prev => prev.map(p => selected.has(p.id) ? { ...p, salesStatus: value } : p));
+      }
+      setSelected(new Set());
+      showToast(`${ids.length}건 처리 완료`);
+    } catch (e) {
+      console.error('[products] 벌크 실패:', e);
+      showToast('처리 실패', 'error');
+    }
+  };
+
+  // 채널 링크 (imwebUrl 지원)
+  const getChannelLink = (product, chKey) => {
+    const val = product.channels?.[chKey];
+    if (!val) return null;
+    const ch = CHANNELS.find(c => c.key === chKey);
+    if (ch?.urlTpl) return ch.urlTpl(val);
+    if (chKey === 'imweb' && product.imwebUrl) return product.imwebUrl;
+    return null;
   };
 
   // 저장
@@ -688,6 +782,9 @@ function ProductsPage({ showToast }) {
     if (statusFilter !== '전체') {
       list = list.filter(p => (p.salesStatus || '판매중') === statusFilter);
     }
+    if (tagFilter) {
+      list = list.filter(p => p.tags?.includes(tagFilter));
+    }
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(p =>
@@ -697,7 +794,7 @@ function ProductsPage({ showToast }) {
       );
     }
     return list;
-  }, [products, search, statusFilter]);
+  }, [products, search, statusFilter, tagFilter]);
 
   // 채널 연결 수 계산
   const countChannels = (p) => CHANNELS.filter(ch => p.channels?.[ch.key]).length;
@@ -774,10 +871,31 @@ function ProductsPage({ showToast }) {
                 placeholder="간단한 상품 설명"
                 style={{ ...inputStyle, resize: 'vertical' }} />
             </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={labelStyle}>태그</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {PRODUCT_TAGS.map(t => {
+                  const active = form.tags?.includes(t.key);
+                  return (
+                    <button key={t.key} onClick={() => {
+                      const tags = form.tags || [];
+                      setForm({ ...form, tags: active ? tags.filter(k => k !== t.key) : [...tags, t.key] });
+                    }} style={{
+                      padding: '8px 16px', fontSize: 14, fontWeight: active ? 700 : 500,
+                      background: active ? t.bg : '#F9FAFB', color: active ? t.color : 'var(--text-sm)',
+                      border: `2px solid ${active ? t.color : 'var(--border)'}`, borderRadius: 20,
+                      cursor: 'pointer', transition: 'all .15s ease'
+                    }}>
+                      {t.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             <div>
               <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input type="checkbox" checked={form.isActive} onChange={e => setForm({ ...form, isActive: e.target.checked })} />
-                판매 활성
+                <input type="checkbox" checked={form.isActive} onChange={e => setForm({ ...form, isActive: e.target.checked })} style={{ width: 18, height: 18 }} />
+                <span style={{ fontSize: 14 }}>판매 활성</span>
               </label>
             </div>
           </div>
@@ -950,25 +1068,78 @@ function ProductsPage({ showToast }) {
   }
 
   // ─── 상품 목록 ───
+  const allSelected = filtered.length > 0 && filtered.every(p => selected.has(p.id));
+  const toggleAll = () => {
+    if (allSelected) setSelected(new Set());
+    else setSelected(new Set(filtered.map(p => p.id)));
+  };
+  const toggleOne = (id) => {
+    const s = new Set(selected);
+    s.has(id) ? s.delete(id) : s.add(id);
+    setSelected(s);
+  };
+
   return (
     <div style={{ animation: 'fadeIn .3s ease' }}>
       {/* 상태 필터 */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
         {SALES_STATUS.map(s => {
           const cnt = s === '전체' ? products.length : products.filter(p => (p.salesStatus || '판매중') === s).length;
+          const icon = STATUS_ICON[s] || '';
           return (
-            <button key={s} onClick={() => setStatusFilter(s)} style={{
-              padding: '6px 14px', fontSize: 12, fontWeight: statusFilter === s ? 700 : 500,
+            <button key={s} onClick={() => { setStatusFilter(s); setSelected(new Set()); }} style={{
+              padding: '10px 20px', fontSize: 14, fontWeight: statusFilter === s ? 700 : 500,
               background: statusFilter === s ? (s === '판매중' ? 'var(--green)' : s === '품절' ? 'var(--red)' : s === '숨김' ? 'var(--text-sm)' : 'var(--accent)') : '#fff',
               color: statusFilter === s ? '#fff' : 'var(--text-md)',
               border: statusFilter === s ? 'none' : '1px solid var(--border)',
-              borderRadius: 20, cursor: 'pointer',
+              borderRadius: 24, cursor: 'pointer', minHeight: 42,
             }}>
-              {s} ({cnt})
+              {icon} {s} ({cnt})
             </button>
           );
         })}
       </div>
+
+      {/* 태그 필터 */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 12, flexWrap: 'wrap' }}>
+        {tagFilter && (
+          <button onClick={() => setTagFilter(null)} style={{
+            padding: '5px 12px', fontSize: 12, fontWeight: 600,
+            background: 'var(--red)', color: '#fff', border: 'none',
+            borderRadius: 16, cursor: 'pointer'
+          }}>✕ 태그 해제</button>
+        )}
+        {PRODUCT_TAGS.map(t => (
+          <button key={t.key} onClick={() => setTagFilter(tagFilter === t.key ? null : t.key)} style={{
+            padding: '5px 14px', fontSize: 12, fontWeight: tagFilter === t.key ? 700 : 500,
+            background: tagFilter === t.key ? t.bg : '#fff',
+            color: tagFilter === t.key ? t.color : 'var(--text-sm)',
+            border: `1px solid ${tagFilter === t.key ? t.color : 'var(--border)'}`,
+            borderRadius: 16, cursor: 'pointer'
+          }}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 벌크 액션바 */}
+      {selected.size > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', marginBottom: 12,
+          background: 'var(--accent-l)', borderRadius: 10, border: '1px solid var(--blue-m)',
+          flexWrap: 'wrap'
+        }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent)' }}>
+            {selected.size}건 선택됨
+          </span>
+          <button onClick={() => bulkAction('status', '판매중')} style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, background: 'var(--green)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>🟢 판매중</button>
+          <button onClick={() => bulkAction('status', '품절')} style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, background: 'var(--red)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>🔴 품절</button>
+          <button onClick={() => bulkAction('status', '숨김')} style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, background: 'var(--text-sm)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>⬜ 숨김</button>
+          <button onClick={() => setConfirmModal({ message: `선택한 ${selected.size}건을 삭제하시겠습니까?`, onConfirm: () => { bulkAction('delete'); setConfirmModal(null); } })}
+            style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, background: '#FEE2E2', color: 'var(--red)', border: 'none', borderRadius: 8, cursor: 'pointer', marginLeft: 'auto' }}>삭제</button>
+          <button onClick={() => setSelected(new Set())} style={{ padding: '8px 12px', fontSize: 13, background: 'none', border: 'none', color: 'var(--text-sm)', cursor: 'pointer' }}>취소</button>
+        </div>
+      )}
 
       {/* 상단 액션바 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
@@ -976,15 +1147,15 @@ function ProductsPage({ showToast }) {
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="상품명 / 아임웹ID 검색..."
             style={{
-              padding: '9px 14px', fontSize: 13, border: '1px solid var(--border)',
-              borderRadius: 8, outline: 'none', width: 240
+              padding: '11px 16px', fontSize: 14, border: '1px solid var(--border)',
+              borderRadius: 8, outline: 'none', width: 260
             }}
           />
-          <span style={{ fontSize: 12, color: 'var(--text-sm)' }}>{filtered.length}건</span>
+          <span style={{ fontSize: 13, color: 'var(--text-sm)', fontWeight: 600 }}>{filtered.length}건</span>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={downloadTemplate} style={{
-            padding: '9px 14px', fontSize: 12, fontWeight: 600,
+            padding: '10px 16px', fontSize: 13, fontWeight: 600,
             background: '#fff', color: 'var(--text-md)', border: '1px solid var(--border)',
             borderRadius: 8, cursor: 'pointer'
           }}>
@@ -992,14 +1163,14 @@ function ProductsPage({ showToast }) {
           </button>
           <input ref={excelRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleExcelUpload} style={{ display: 'none' }} />
           <button onClick={() => excelRef.current?.click()} disabled={uploading} style={{
-            padding: '9px 14px', fontSize: 12, fontWeight: 600,
+            padding: '10px 16px', fontSize: 13, fontWeight: 600,
             background: 'var(--green-l)', color: 'var(--green)', border: 'none',
             borderRadius: 8, cursor: 'pointer', opacity: uploading ? 0.6 : 1
           }}>
             {uploading ? '처리 중...' : '엑셀 일괄등록'}
           </button>
           <button onClick={startNew} style={{
-            padding: '9px 18px', fontSize: 13, fontWeight: 700,
+            padding: '10px 20px', fontSize: 14, fontWeight: 700,
             background: 'var(--accent)', color: '#fff', border: 'none',
             borderRadius: 8, cursor: 'pointer'
           }}>
@@ -1011,19 +1182,27 @@ function ProductsPage({ showToast }) {
       {/* 로딩 */}
       {loading && (
         <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-sm)' }}>
-          <div style={{ width: 24, height: 24, border: '3px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
-          로딩 중...
+          <div style={{ width: 28, height: 28, border: '3px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+          <div style={{ fontSize: 14 }}>상품을 불러오는 중...</div>
         </div>
       )}
 
       {/* 빈 상태 */}
       {!loading && filtered.length === 0 && (
         <div style={{ textAlign: 'center', padding: 80, color: 'var(--text-sm)' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>📦</div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>📦</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>
             {search ? '검색 결과가 없습니다' : '등록된 상품이 없습니다'}
           </div>
-          <div style={{ fontSize: 13 }}>상품을 등록하고 채널별 상품번호를 연결하세요</div>
+          <div style={{ fontSize: 14 }}>상품을 등록하고 채널별 상품번호를 연결하세요</div>
+        </div>
+      )}
+
+      {/* 전체 선택 */}
+      {!loading && filtered.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, paddingLeft: 4 }}>
+          <input type="checkbox" checked={allSelected} onChange={toggleAll} style={{ width: 18, height: 18, cursor: 'pointer' }} />
+          <span style={{ fontSize: 13, color: 'var(--text-sm)' }}>전체 선택</span>
         </div>
       )}
 
@@ -1032,103 +1211,130 @@ function ProductsPage({ showToast }) {
         {filtered.map(p => {
           const chCount = countChannels(p);
           const isExpanded = expandedChannel === p.id;
+          const isChecked = selected.has(p.id);
           return (
             <div key={p.id} style={{
               background: '#fff', borderRadius: 12, boxShadow: 'var(--shadow)',
-              overflow: 'hidden', border: '1px solid var(--border-s)'
+              overflow: 'hidden', border: isChecked ? '2px solid var(--accent)' : '1px solid var(--border-s)',
+              transition: 'border .15s ease'
             }}>
               {/* 메인 행 */}
               <div style={{
-                display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', cursor: 'pointer'
+                display: 'flex', alignItems: 'center', gap: 12, padding: '16px 18px', cursor: 'pointer'
               }} onClick={() => setExpandedChannel(isExpanded ? null : p.id)}>
+                {/* 체크박스 */}
+                <input type="checkbox" checked={isChecked} onChange={e => { e.stopPropagation(); toggleOne(p.id); }}
+                  onClick={e => e.stopPropagation()}
+                  style={{ width: 20, height: 20, cursor: 'pointer', flexShrink: 0 }} />
                 {/* 썸네일 */}
                 <div style={{
-                  width: 48, height: 48, borderRadius: 8, background: '#F3F4F6',
+                  width: 52, height: 52, borderRadius: 8, background: '#F3F4F6',
                   flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center'
                 }}>
                   {p.thumbnail
-                    ? <img src={p.thumbnail} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : <span style={{ fontSize: 22 }}>📦</span>
+                    ? <img src={p.thumbnail} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                    : <span style={{ fontSize: 24 }}>📦</span>
                   }
                 </div>
                 {/* 상품 정보 */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 15, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {p.name}
                     </span>
-                    {p.salesStatus === '품절' && (
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', background: '#FEE2E2', color: 'var(--red)', borderRadius: 4 }}>품절</span>
-                    )}
-                    {p.salesStatus === '숨김' && (
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', background: '#F3F4F6', color: 'var(--text-sm)', borderRadius: 4 }}>숨김</span>
-                    )}
                     {p.imwebId && (
-                      <span style={{ fontSize: 9, fontWeight: 600, padding: '2px 5px', background: '#EDE9FE', color: '#6D28D9', borderRadius: 4 }}>#{p.imwebId}</span>
+                      <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', background: '#EDE9FE', color: '#6D28D9', borderRadius: 4 }}>#{p.imwebId}</span>
                     )}
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-sm)', marginTop: 2 }}>
-                    {p.category || '-'} · {p.salePrice ? Number(p.salePrice).toLocaleString() + '원' : '-'}
+                  <div style={{ fontSize: 13, color: 'var(--text-md)', marginTop: 3 }}>
+                    {p.salePrice ? Number(p.salePrice).toLocaleString() + '원' : '-'}
+                    {p.category ? ` · ${p.category}` : ''}
                   </div>
+                  {/* 태그 */}
+                  {p.tags?.length > 0 && (
+                    <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
+                      {p.tags.map(tk => {
+                        const t = getTag(tk);
+                        return t ? (
+                          <span key={tk} style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', background: t.bg, color: t.color, borderRadius: 10 }}>
+                            {t.label}
+                          </span>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
                 </div>
+                {/* 빠른 상태 변경 */}
+                <select value={p.salesStatus || '판매중'} onChange={e => { e.stopPropagation(); quickStatusChange(p.id, e.target.value); }}
+                  onClick={e => e.stopPropagation()}
+                  style={{
+                    padding: '8px 10px', fontSize: 13, fontWeight: 600, borderRadius: 8, cursor: 'pointer', flexShrink: 0,
+                    border: '1px solid var(--border)', outline: 'none',
+                    background: p.salesStatus === '판매중' ? '#ECFDF5' : p.salesStatus === '품절' ? '#FEE2E2' : '#F3F4F6',
+                    color: p.salesStatus === '판매중' ? 'var(--green)' : p.salesStatus === '품절' ? 'var(--red)' : 'var(--text-sm)',
+                  }}>
+                  <option value="판매중">🟢 판매중</option>
+                  <option value="품절">🔴 품절</option>
+                  <option value="숨김">⬜ 숨김</option>
+                </select>
                 {/* 채널 연결 뱃지 */}
                 <div style={{
-                  display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0
+                  padding: '6px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700, flexShrink: 0,
+                  background: chCount > 0 ? 'var(--green-l)' : '#F3F4F6',
+                  color: chCount > 0 ? 'var(--green)' : 'var(--text-sm)'
                 }}>
-                  <div style={{
-                    padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
-                    background: chCount > 0 ? 'var(--green-l)' : '#F3F4F6',
-                    color: chCount > 0 ? 'var(--green)' : 'var(--text-sm)'
-                  }}>
-                    {chCount}/{CHANNELS.length} 채널
-                  </div>
-                  <span style={{ fontSize: 12, color: 'var(--text-sm)', transition: 'transform .2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)' }}>▼</span>
+                  {chCount > 0 ? `${chCount}개 채널` : '미연결'}
                 </div>
+                <span style={{ fontSize: 14, color: 'var(--text-sm)', transition: 'transform .2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)' }}>▼</span>
                 {/* 수정 버튼 */}
                 <button onClick={e => { e.stopPropagation(); startEdit(p); }}
                   style={{
-                    padding: '6px 14px', fontSize: 12, fontWeight: 600,
-                    background: 'var(--accent-l)', color: 'var(--accent)', border: 'none',
-                    borderRadius: 6, cursor: 'pointer', flexShrink: 0
+                    padding: '10px 20px', fontSize: 14, fontWeight: 700,
+                    background: 'var(--accent)', color: '#fff', border: 'none',
+                    borderRadius: 8, cursor: 'pointer', flexShrink: 0
                   }}>
-                  수정
+                  수정하기
                 </button>
               </div>
 
-              {/* 채널 상세 (펼침) */}
+              {/* 채널 상세 (펼침) — 클릭 시 바로 링크 이동 */}
               {isExpanded && (
                 <div style={{
-                  padding: '0 18px 14px', borderTop: '1px solid var(--border-s)',
+                  padding: '0 18px 16px', borderTop: '1px solid var(--border-s)',
                   animation: 'fadeIn .2s ease'
                 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-sm)', padding: '10px 0 6px' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', padding: '12px 0 8px' }}>
                     연결된 판매채널
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 6 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8 }}>
                     {CHANNELS.map(ch => {
                       const val = p.channels?.[ch.key];
-                      const link = val && ch.urlTpl ? ch.urlTpl(val) : null;
+                      const link = getChannelLink(p, ch.key);
                       return (
-                        <div key={ch.key} style={{
-                          display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
-                          borderRadius: 6, fontSize: 12,
-                          background: val ? '#F0FDF4' : '#F9FAFB',
-                          color: val ? 'var(--text)' : 'var(--text-sm)'
-                        }}>
-                          <div style={{ width: 6, height: 6, borderRadius: '50%', background: val ? ch.color : '#D1D5DB' }} />
-                          <span style={{ fontWeight: 600, width: 80, flexShrink: 0 }}>{ch.label}</span>
+                        <div key={ch.key}
+                          onClick={() => link && window.open(link, '_blank')}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+                            borderRadius: 8, fontSize: 13,
+                            background: val ? '#F0FDF4' : '#F9FAFB',
+                            color: val ? 'var(--text)' : 'var(--text-sm)',
+                            cursor: link ? 'pointer' : 'default',
+                            border: val ? `1px solid ${ch.color}30` : '1px solid var(--border-s)',
+                            transition: 'background .15s'
+                          }}
+                          onMouseOver={e => link && (e.currentTarget.style.background = '#E0F2FE')}
+                          onMouseOut={e => link && (e.currentTarget.style.background = val ? '#F0FDF4' : '#F9FAFB')}>
+                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: val ? ch.color : '#D1D5DB', flexShrink: 0 }} />
+                          <span style={{ fontWeight: 600, minWidth: 90 }}>{ch.label}</span>
                           {val ? (
                             <>
-                              <span style={{ fontFamily: 'monospace', fontSize: 11 }}>{val}</span>
+                              <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{val}</span>
                               {link && (
-                                <a href={link} target="_blank" rel="noopener"
-                                  style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
-                                  열기→
-                                </a>
+                                <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--accent)', fontWeight: 700 }}>열기 →</span>
                               )}
                             </>
                           ) : (
-                            <span style={{ fontSize: 11 }}>미연결</span>
+                            <span style={{ fontSize: 12, color: '#D1D5DB' }}>미연결</span>
                           )}
                         </div>
                       );
@@ -1140,6 +1346,7 @@ function ProductsPage({ showToast }) {
           );
         })}
       </div>
+      {confirmModal && <ConfirmModal message={confirmModal.message} onConfirm={confirmModal.onConfirm} onCancel={() => setConfirmModal(null)} />}
     </div>
   );
 }

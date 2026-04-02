@@ -818,6 +818,45 @@ function ProductsPage({ showToast }) {
     return null;
   };
 
+  // 프록시 등록 상태 토글
+  const toggleProxyRegistered = async (productId, chKey) => {
+    const product = products.find(p => p.id === productId);
+    const registered = product?.proxyRegistered || {};
+    const newVal = !registered[chKey];
+    const updated = { ...registered, [chKey]: newVal };
+    try {
+      await db.collection(COLLECTIONS.PRODUCTS).doc(productId).update({ proxyRegistered: updated, updatedAt: new Date().toISOString() });
+      setProducts(prev => prev.map(p => p.id === productId ? { ...p, proxyRegistered: updated } : p));
+      showToast(newVal ? '프록시 등록 완료 표시' : '미등록으로 변경');
+    } catch (e) {
+      console.error('[proxy] 상태변경 실패:', e);
+      showToast('상태 변경 실패', 'error');
+    }
+  };
+
+  // 수정 후 경과 시간 표시
+  const getTimeSince = (isoStr) => {
+    if (!isoStr) return '';
+    const diff = Date.now() - new Date(isoStr).getTime();
+    const min = Math.floor(diff / 60000);
+    if (min < 1) return '방금 전';
+    if (min < 60) return `${min}분 전`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return `${hr}시간 전`;
+    const day = Math.floor(hr / 24);
+    return `${day}일 전`;
+  };
+
+  // 프록시 반영 상태 계산
+  const getProxyStatus = (product, chKey) => {
+    if (!product.channels?.[chKey]) return 'none'; // 채널 미연결
+    if (!product.proxyRegistered?.[chKey]) return 'unregistered'; // 프록시 미등록
+    if (!product.updatedAt) return 'synced';
+    const diff = Date.now() - new Date(product.updatedAt).getTime();
+    if (diff < 3600000) return 'syncing'; // 1시간 이내 → 반영 중
+    return 'synced'; // 1시간 이후 → 반영 완료
+  };
+
   // 변경이력 state
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyList, setHistoryList] = useState([]);
@@ -1556,41 +1595,63 @@ function ProductsPage({ showToast }) {
                 </button>
               </div>
 
-              {/* 채널 상세 (펼침) — 클릭 시 바로 링크 이동 */}
+              {/* 채널 상세 (펼침) — 프록시 반영 상태 포함 */}
               {isExpanded && (
                 <div style={{
                   padding: '0 18px 16px', borderTop: '1px solid var(--border-s)',
                   animation: 'fadeIn .2s ease'
                 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', padding: '12px 0 8px' }}>
-                    연결된 판매채널
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0 8px' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>판매채널 반영 상태</div>
+                    {p.updatedAt && (
+                      <span style={{ fontSize: 12, color: 'var(--text-sm)' }}>마지막 수정: {getTimeSince(p.updatedAt)}</span>
+                    )}
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 8 }}>
                     {CHANNELS.map(ch => {
                       const val = p.channels?.[ch.key];
                       const link = getChannelLink(p, ch.key);
+                      const status = getProxyStatus(p, ch.key);
+                      const statusUI = {
+                        none: { icon: '⚪', label: '미연결', color: '#D1D5DB', bg: '#F9FAFB' },
+                        unregistered: { icon: '🔴', label: '프록시 미등록', color: 'var(--red)', bg: '#FEF2F2' },
+                        syncing: { icon: '🔵', label: `반영 중 (~${Math.max(1, 60 - Math.floor((Date.now() - new Date(p.updatedAt).getTime()) / 60000))}분 후)`, color: 'var(--accent)', bg: 'var(--accent-l)' },
+                        synced: { icon: '🟢', label: '자동반영 중', color: 'var(--green)', bg: '#ECFDF5' },
+                      }[status];
                       return (
-                        <div key={ch.key}
-                          onClick={() => link && window.open(link, '_blank')}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
-                            borderRadius: 8, fontSize: 13,
-                            background: val ? '#F0FDF4' : '#F9FAFB',
-                            color: val ? 'var(--text)' : 'var(--text-sm)',
-                            cursor: link ? 'pointer' : 'default',
-                            border: val ? `1px solid ${ch.color}30` : '1px solid var(--border-s)',
-                            transition: 'background .15s'
-                          }}
-                          onMouseOver={e => link && (e.currentTarget.style.background = '#E0F2FE')}
-                          onMouseOut={e => link && (e.currentTarget.style.background = val ? '#F0FDF4' : '#F9FAFB')}>
+                        <div key={ch.key} style={{
+                          display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+                          borderRadius: 10, fontSize: 13, background: statusUI.bg,
+                          border: `1px solid ${val ? ch.color + '30' : 'var(--border-s)'}`,
+                        }}>
                           <div style={{ width: 8, height: 8, borderRadius: '50%', background: val ? ch.color : '#D1D5DB', flexShrink: 0 }} />
                           <span style={{ fontWeight: 600, minWidth: 90 }}>{ch.label}</span>
                           {val ? (
                             <>
-                              <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{val}</span>
-                              {link && (
-                                <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--accent)', fontWeight: 700 }}>열기 →</span>
-                              )}
+                              <span style={{ fontFamily: 'monospace', fontSize: 11 }}>{val}</span>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: statusUI.color, whiteSpace: 'nowrap' }}>
+                                {statusUI.icon} {statusUI.label}
+                              </span>
+                              <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
+                                {status === 'unregistered' && (
+                                  <button onClick={e => { e.stopPropagation(); toggleProxyRegistered(p.id, ch.key); }}
+                                    style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, background: 'var(--green)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
+                                    등록 완료
+                                  </button>
+                                )}
+                                {(status === 'syncing' || status === 'synced') && (
+                                  <button onClick={e => { e.stopPropagation(); toggleProxyRegistered(p.id, ch.key); }}
+                                    style={{ padding: '4px 8px', fontSize: 10, fontWeight: 500, background: 'none', color: 'var(--text-sm)', border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer' }}>
+                                    해제
+                                  </button>
+                                )}
+                                {link && (
+                                  <button onClick={e => { e.stopPropagation(); window.open(link, '_blank'); }}
+                                    style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, background: 'var(--accent-l)', color: 'var(--accent)', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
+                                    열기→
+                                  </button>
+                                )}
+                              </div>
                             </>
                           ) : (
                             <span style={{ fontSize: 12, color: '#D1D5DB' }}>미연결</span>

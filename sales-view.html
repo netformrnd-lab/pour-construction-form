@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+<title>넷폼알앤디 · 영업 공유보드</title>
+<meta name="theme-color" content="#0D1B2A">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyCBGjGzaTTyIwBs_a8355KfFKaWabJT3ac",
+  authDomain:"pour-exhibition.firebaseapp.com",
+  projectId:"pour-exhibition",
+  storageBucket:"pour-exhibition.firebasestorage.app",
+  messagingSenderId:"881527274265",
+  appId:"1:881527274265:web:0caad9688e30beb1ea6388"
+});
+const db = firebase.firestore();
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0D1B2A; --navy2:#1A2E42;
+  --accent:#2563EB; --accent-l:#EFF6FF;
+  --blue:#2563EB; --blue-l:#EFF6FF;
+  --gold:#D97706; --green:#059669; --green-l:#ECFDF5;
+  --red:#DC2626; --orange:#EA580C;
+  --purple:#6D28D9; --purple-l:#F5F3FF;
+  --text:#111827; --text-md:#4B5563; --text-sm:#9CA3AF;
+  --bg:#F9FAFB; --card:#FFFFFF; --border:#E5E7EB; --border-s:#F3F4F6;
+  --r:12px; --r-sm:8px;
+  --shadow:0 1px 6px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.04);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body,#root{height:100%;overflow:hidden;}
+body{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-thumb{background:#D1D5DB;border-radius:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, useMemo } = React;
+
+const TABS = [
+  { key: 'exhibition', label: '박람회 리드', icon: '🎪', color: '#2563EB' },
+  { key: 'outbound', label: '아웃바운드', icon: '📞', color: '#E8780F' },
+  { key: 'nps', label: 'NPS 조사', icon: '📋', color: '#059669' },
+];
+
+const STATUS_COLOR = {
+  '신규':'#DC2626','상담중':'#D97706','견적제출':'#2563EB','계약예정':'#7C3AED',
+  '계약완료':'#059669','입찰등록':'#0891B2','투찰완료':'#6366F1','낙찰':'#059669','유찰':'#9CA3AF',
+};
+
+// ─── 로딩 스피너 ───
+function Spinner({ text }) {
+  return (
+    <div style={{ textAlign:'center', padding:80, color:'var(--text-sm)' }}>
+      <div style={{ width:24, height:24, border:'3px solid var(--border)', borderTopColor:'var(--accent)', borderRadius:'50%', animation:'spin 1s linear infinite', margin:'0 auto 12px' }} />
+      {text || '로딩 중...'}
+    </div>
+  );
+}
+
+// ─── 빈 상태 ───
+function EmptyState({ icon, text }) {
+  return (
+    <div style={{ textAlign:'center', padding:60, color:'var(--text-sm)' }}>
+      <div style={{ fontSize:40, marginBottom:12 }}>{icon || '📭'}</div>
+      <div style={{ fontSize:13 }}>{text || '데이터가 없습니다'}</div>
+    </div>
+  );
+}
+
+// ─── 상태 뱃지 ───
+function StatusBadge({ status }) {
+  const c = STATUS_COLOR[status] || '#9CA3AF';
+  return (
+    <span style={{ padding:'3px 10px', borderRadius:6, fontSize:11, fontWeight:600, background:c+'15', color:c, whiteSpace:'nowrap' }}>
+      {status || '신규'}
+    </span>
+  );
+}
+
+// ─── 통계 카드 ───
+function StatCard({ label, value, sub, color, bg }) {
+  return (
+    <div style={{ background:'#fff', borderRadius:12, padding:'16px 14px', boxShadow:'var(--shadow)', borderLeft:`4px solid ${color}` }}>
+      <div style={{ fontSize:11, fontWeight:600, color:'var(--text-md)', marginBottom:6 }}>{label}</div>
+      <div style={{ fontSize:26, fontWeight:900, color }}>{value}</div>
+      {sub && <div style={{ fontSize:10, color:'var(--text-sm)', marginTop:2 }}>{sub}</div>}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════
+// 박람회 리드 탭
+// ══════════════════════════════════════════
+function ExhibitionTab() {
+  const [leads, setLeads] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const snap = await db.collection('leads').get();
+        console.log('[sales-view] 박람회 리드:', snap.size, '건');
+        const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        data.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+        setLeads(data);
+      } catch (e) {
+        console.error('[sales-view] leads 로드 실패:', e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const statuses = useMemo(() => {
+    const s = new Set(leads.map(l => l.status || '신규'));
+    return ['all', ...Array.from(s)];
+  }, [leads]);
+
+  const filtered = useMemo(() => {
+    let list = leads;
+    if (statusFilter !== 'all') list = list.filter(l => (l.status || '신규') === statusFilter);
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(l =>
+        (l.name || '').toLowerCase().includes(q) ||
+        (l.company || '').toLowerCase().includes(q) ||
+        (l.phone || '').includes(q) ||
+        (l.address || '').toLowerCase().includes(q) ||
+        (l.apartmentName || '').toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [leads, statusFilter, search]);
+
+  // 상태별 통계
+  const statusStats = useMemo(() => {
+    const map = {};
+    leads.forEach(l => { const s = l.status || '신규'; map[s] = (map[s] || 0) + 1; });
+    return map;
+  }, [leads]);
+
+  if (loading) return <Spinner text="박람회 리드 로딩 중..." />;
+
+  return (
+    <div style={{ animation:'fadeIn .3s ease' }}>
+      {/* 통계 */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))', gap:10, marginBottom:18 }}>
+        <StatCard label="전체 리드" value={leads.length} color="#2563EB" />
+        {Object.entries(statusStats).slice(0, 5).map(([s, cnt]) => (
+          <StatCard key={s} label={s} value={cnt} color={STATUS_COLOR[s] || '#6B7280'} />
+        ))}
+      </div>
+
+      {/* 검색/필터 */}
+      <div style={{ display:'flex', gap:8, marginBottom:14, flexWrap:'wrap' }}>
+        <input value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="이름, 회사, 연락처, 단지명 검색..."
+          style={{ flex:1, minWidth:200, padding:'9px 14px', borderRadius:8, border:'1px solid var(--border)', fontSize:13, outline:'none', background:'#fff' }} />
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+          style={{ padding:'9px 12px', borderRadius:8, border:'1px solid var(--border)', fontSize:12, fontWeight:600, background:'#fff', cursor:'pointer' }}>
+          {statuses.map(s => <option key={s} value={s}>{s === 'all' ? '전체 상태' : s}</option>)}
+        </select>
+      </div>
+
+      {/* 리드 목록 */}
+      <div style={{ background:'#fff', borderRadius:12, boxShadow:'var(--shadow)', overflow:'hidden' }}>
+        <div style={{ padding:'14px 16px', borderBottom:'1px solid var(--border)', fontSize:13, fontWeight:700, color:'var(--text-md)' }}>
+          검색 결과 {filtered.length}건
+        </div>
+        {filtered.length === 0 ? <EmptyState text="조건에 맞는 리드가 없습니다" /> : (
+          <div style={{ maxHeight:'calc(100vh - 340px)', overflow:'auto' }}>
+            {filtered.map(l => (
+              <div key={l.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px', borderBottom:'1px solid var(--border-s)', fontSize:13 }}>
+                <div style={{ width:8, height:8, borderRadius:'50%', background:STATUS_COLOR[l.status] || '#9CA3AF', flexShrink:0 }} />
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2 }}>
+                    <span style={{ fontWeight:700 }}>{l.name || '-'}</span>
+                    <span style={{ fontSize:11, color:'var(--text-sm)' }}>{l.company || l.apartmentName || ''}</span>
+                  </div>
+                  <div style={{ fontSize:11, color:'var(--text-sm)' }}>
+                    {l.phone || '-'}
+                    {l.address && <span> · {l.address}</span>}
+                  </div>
+                </div>
+                <StatusBadge status={l.status || '신규'} />
+                <span style={{ fontSize:11, color:'var(--text-sm)', minWidth:70, textAlign:'right' }}>
+                  {l.createdAt ? new Date(l.createdAt).toLocaleDateString('ko') : '-'}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════
+// 아웃바운드 탭
+// ══════════════════════════════════════════
+function OutboundTab() {
+  const [data, setData] = useState({ solution: [], method: [], store: [], grohome: [] });
+  const [loading, setLoading] = useState(true);
+  const [subTab, setSubTab] = useState('solution');
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [sol, met, sto, gro] = await Promise.all([
+          db.collection('outbound-solution').get(),
+          db.collection('outbound-method').get(),
+          db.collection('outbound-store').get(),
+          db.collection('outbound-grohome').get(),
+        ]);
+        console.log(`[sales-view] outbound sol:${sol.size} met:${met.size} sto:${sto.size} gro:${gro.size}`);
+        const parse = snap => snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+        setData({ solution: parse(sol), method: parse(met), store: parse(sto), grohome: parse(gro) });
+      } catch (e) {
+        console.error('[sales-view] outbound 로드 실패:', e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const subTabs = [
+    { key: 'solution', label: 'POUR솔루션', color: '#2563EB', count: data.solution.length },
+    { key: 'method', label: 'POUR공법', color: '#E8780F', count: data.method.length },
+    { key: 'store', label: 'POUR스토어', color: '#059669', count: data.store.length },
+    { key: 'grohome', label: '그로홈', color: '#6D28D9', count: data.grohome.length },
+  ];
+
+  const currentList = useMemo(() => {
+    let list = data[subTab] || [];
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(l =>
+        (l.name || '').toLowerCase().includes(q) ||
+        (l.company || l.companyName || '').toLowerCase().includes(q) ||
+        (l.phone || '').includes(q) ||
+        (l.memo || '').toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [data, subTab, search]);
+
+  if (loading) return <Spinner text="아웃바운드 데이터 로딩 중..." />;
+
+  const totalCount = data.solution.length + data.method.length + data.store.length + data.grohome.length;
+
+  return (
+    <div style={{ animation:'fadeIn .3s ease' }}>
+      {/* 통계 */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))', gap:10, marginBottom:18 }}>
+        <StatCard label="전체 아웃바운드" value={totalCount} color="#E8780F" />
+        {subTabs.map(t => (
+          <StatCard key={t.key} label={t.label} value={t.count} color={t.color} />
+        ))}
+      </div>
+
+      {/* 서브탭 */}
+      <div style={{ display:'flex', gap:6, marginBottom:14, flexWrap:'wrap' }}>
+        {subTabs.map(t => (
+          <button key={t.key} onClick={() => setSubTab(t.key)}
+            style={{
+              padding:'8px 16px', borderRadius:8, fontSize:12, fontWeight:600, cursor:'pointer',
+              border: subTab === t.key ? 'none' : '1px solid var(--border)',
+              background: subTab === t.key ? t.color : '#fff',
+              color: subTab === t.key ? '#fff' : 'var(--text-md)',
+              transition: 'all .15s',
+            }}>
+            {t.label} ({t.count})
+          </button>
+        ))}
+      </div>
+
+      {/* 검색 */}
+      <input value={search} onChange={e => setSearch(e.target.value)}
+        placeholder="이름, 회사, 연락처 검색..."
+        style={{ width:'100%', padding:'9px 14px', borderRadius:8, border:'1px solid var(--border)', fontSize:13, outline:'none', background:'#fff', marginBottom:14 }} />
+
+      {/* 리스트 */}
+      <div style={{ background:'#fff', borderRadius:12, boxShadow:'var(--shadow)', overflow:'hidden' }}>
+        <div style={{ padding:'14px 16px', borderBottom:'1px solid var(--border)', fontSize:13, fontWeight:700, color:'var(--text-md)' }}>
+          {subTabs.find(t => t.key === subTab)?.label} {currentList.length}건
+        </div>
+        {currentList.length === 0 ? <EmptyState text="데이터가 없습니다" /> : (
+          <div style={{ maxHeight:'calc(100vh - 380px)', overflow:'auto' }}>
+            {currentList.map(l => (
+              <div key={l.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px', borderBottom:'1px solid var(--border-s)', fontSize:13 }}>
+                <div style={{ width:8, height:8, borderRadius:'50%', background:STATUS_COLOR[l.status] || '#9CA3AF', flexShrink:0 }} />
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2 }}>
+                    <span style={{ fontWeight:700 }}>{l.name || l.contactName || '-'}</span>
+                    <span style={{ fontSize:11, color:'var(--text-sm)' }}>{l.company || l.companyName || ''}</span>
+                  </div>
+                  <div style={{ fontSize:11, color:'var(--text-sm)' }}>
+                    {l.phone || l.contactPhone || '-'}
+                    {l.memo && <span> · {l.memo.slice(0, 40)}{l.memo.length > 40 ? '...' : ''}</span>}
+                  </div>
+                </div>
+                <StatusBadge status={l.status || '신규'} />
+                <span style={{ fontSize:11, color:'var(--text-sm)', minWidth:70, textAlign:'right' }}>
+                  {l.createdAt ? new Date(l.createdAt).toLocaleDateString('ko') : '-'}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════
+// NPS 탭
+// ══════════════════════════════════════════
+function NPSTab() {
+  const [surveys, setSurveys] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('all');
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const snap = await db.collection('nps-surveys').get();
+        console.log('[sales-view] NPS:', snap.size, '건');
+        const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        data.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+        setSurveys(data);
+      } catch (e) {
+        console.error('[sales-view] NPS 로드 실패:', e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const stats = useMemo(() => {
+    const total = surveys.length;
+    if (total === 0) return { nps: 0, promoters: 0, passives: 0, detractors: 0, total: 0, avg: 0, dist: new Array(11).fill(0) };
+    const promoters = surveys.filter(s => s.category === 'promoter').length;
+    const passives = surveys.filter(s => s.category === 'passive').length;
+    const detractors = surveys.filter(s => s.category === 'detractor').length;
+    const nps = Math.round(((promoters - detractors) / total) * 100);
+    const avg = (surveys.reduce((sum, s) => sum + (s.score || 0), 0) / total).toFixed(1);
+    const dist = new Array(11).fill(0);
+    surveys.forEach(s => { if (s.score >= 0 && s.score <= 10) dist[s.score]++; });
+    return { nps, promoters, passives, detractors, total, avg, dist };
+  }, [surveys]);
+
+  const factorStats = useMemo(() => {
+    const good = {}, bad = {};
+    surveys.forEach(s => {
+      (s.goodFactors || []).forEach(f => { good[f] = (good[f] || 0) + 1; });
+      (s.badFactors || []).forEach(f => { bad[f] = (bad[f] || 0) + 1; });
+    });
+    const sortObj = obj => Object.entries(obj).sort((a, b) => b[1] - a[1]);
+    return { good: sortObj(good), bad: sortObj(bad) };
+  }, [surveys]);
+
+  const filtered = useMemo(() => {
+    if (filter === 'all') return surveys;
+    return surveys.filter(s => s.category === filter);
+  }, [surveys, filter]);
+
+  if (loading) return <Spinner text="NPS 데이터 로딩 중..." />;
+
+  const npsColor = stats.nps >= 50 ? '#059669' : stats.nps >= 0 ? '#D97706' : '#DC2626';
+  const maxDist = Math.max(...stats.dist, 1);
+
+  return (
+    <div style={{ animation:'fadeIn .3s ease' }}>
+      {/* NPS 스코어 + 구성비 */}
+      <div style={{ display:'grid', gridTemplateColumns:'200px 1fr', gap:14, marginBottom:18 }}>
+        {/* NPS 점수 */}
+        <div style={{ background:'#fff', borderRadius:12, padding:20, boxShadow:'var(--shadow)', textAlign:'center' }}>
+          <div style={{ fontSize:11, fontWeight:600, color:'var(--text-md)', marginBottom:8 }}>NPS 점수</div>
+          <div style={{ fontSize:48, fontWeight:900, color:npsColor, lineHeight:1 }}>{stats.nps}</div>
+          <div style={{ fontSize:11, color:'var(--text-sm)', marginTop:6 }}>
+            {stats.nps >= 70 ? '매우 우수' : stats.nps >= 50 ? '우수' : stats.nps >= 0 ? '보통' : '개선 필요'}
+          </div>
+          <div style={{ marginTop:12, paddingTop:10, borderTop:'1px solid var(--border)', fontSize:12, color:'var(--text-md)' }}>
+            <div style={{ display:'flex', justifyContent:'space-between' }}><span>평균</span><span style={{ fontWeight:700 }}>{stats.avg}점</span></div>
+            <div style={{ display:'flex', justifyContent:'space-between', marginTop:4 }}><span>응답</span><span style={{ fontWeight:700 }}>{stats.total}건</span></div>
+          </div>
+        </div>
+
+        {/* 구성비 + 분포 */}
+        <div style={{ background:'#fff', borderRadius:12, padding:20, boxShadow:'var(--shadow)' }}>
+          <div style={{ display:'flex', gap:12, marginBottom:16 }}>
+            {[
+              { label:'추천 (9-10)', count:stats.promoters, color:'#059669', bg:'#ECFDF5', pct: stats.total ? Math.round(stats.promoters/stats.total*100) : 0 },
+              { label:'중립 (7-8)', count:stats.passives, color:'#D97706', bg:'#FFFBEB', pct: stats.total ? Math.round(stats.passives/stats.total*100) : 0 },
+              { label:'비추천 (0-6)', count:stats.detractors, color:'#DC2626', bg:'#FEF2F2', pct: stats.total ? Math.round(stats.detractors/stats.total*100) : 0 },
+            ].map(seg => (
+              <div key={seg.label} style={{ flex:1, padding:'10px 12px', borderRadius:10, background:seg.bg }}>
+                <div style={{ fontSize:10, fontWeight:600, color:seg.color }}>{seg.label}</div>
+                <div style={{ fontSize:22, fontWeight:900, color:seg.color }}>{seg.count}<span style={{ fontSize:12, fontWeight:500 }}>명</span></div>
+                <div style={{ fontSize:11, color:seg.color, opacity:.7 }}>{seg.pct}%</div>
+              </div>
+            ))}
+          </div>
+
+          {/* 분포 차트 */}
+          <div style={{ fontSize:11, fontWeight:600, color:'var(--text-md)', marginBottom:8 }}>점수 분포</div>
+          <div style={{ display:'flex', alignItems:'flex-end', gap:4, height:60 }}>
+            {stats.dist.map((count, i) => {
+              const barColor = i <= 6 ? '#FCA5A5' : i <= 8 ? '#FCD34D' : '#6EE7B7';
+              const h = count > 0 ? Math.max((count / maxDist) * 50, 4) : 2;
+              return (
+                <div key={i} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}>
+                  <div style={{ fontSize:9, fontWeight:600, color: count > 0 ? 'var(--text-md)' : 'transparent' }}>{count}</div>
+                  <div style={{ width:'100%', height:h, borderRadius:3, background:barColor }} />
+                  <div style={{ fontSize:9, color:'var(--text-sm)' }}>{i}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* 요인 분석 */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:18 }}>
+        <div style={{ background:'#fff', borderRadius:12, padding:16, boxShadow:'var(--shadow)' }}>
+          <div style={{ fontSize:12, fontWeight:700, color:'#059669', marginBottom:12 }}>만족 요인</div>
+          {factorStats.good.length === 0 ? <div style={{ fontSize:12, color:'var(--text-sm)', textAlign:'center', padding:16 }}>데이터 없음</div> :
+            factorStats.good.slice(0, 5).map(([name, cnt]) => {
+              const pct = stats.total ? Math.round(cnt / stats.total * 100) : 0;
+              return (
+                <div key={name} style={{ display:'flex', alignItems:'center', gap:8, marginBottom:7 }}>
+                  <div style={{ flex:1, fontSize:12, fontWeight:500 }}>{name}</div>
+                  <div style={{ width:80, height:6, background:'#F3F4F6', borderRadius:3, overflow:'hidden' }}>
+                    <div style={{ width:pct+'%', height:'100%', background:'#6EE7B7', borderRadius:3 }} />
+                  </div>
+                  <div style={{ fontSize:10, fontWeight:600, color:'#059669', minWidth:28, textAlign:'right' }}>{cnt}</div>
+                </div>
+              );
+            })}
+        </div>
+        <div style={{ background:'#fff', borderRadius:12, padding:16, boxShadow:'var(--shadow)' }}>
+          <div style={{ fontSize:12, fontWeight:700, color:'#DC2626', marginBottom:12 }}>개선 요인</div>
+          {factorStats.bad.length === 0 ? <div style={{ fontSize:12, color:'var(--text-sm)', textAlign:'center', padding:16 }}>데이터 없음</div> :
+            factorStats.bad.slice(0, 5).map(([name, cnt]) => {
+              const pct = stats.total ? Math.round(cnt / stats.total * 100) : 0;
+              return (
+                <div key={name} style={{ display:'flex', alignItems:'center', gap:8, marginBottom:7 }}>
+                  <div style={{ flex:1, fontSize:12, fontWeight:500 }}>{name}</div>
+                  <div style={{ width:80, height:6, background:'#F3F4F6', borderRadius:3, overflow:'hidden' }}>
+                    <div style={{ width:pct+'%', height:'100%', background:'#FCA5A5', borderRadius:3 }} />
+                  </div>
+                  <div style={{ fontSize:10, fontWeight:600, color:'#DC2626', minWidth:28, textAlign:'right' }}>{cnt}</div>
+                </div>
+              );
+            })}
+        </div>
+      </div>
+
+      {/* 개별 응답 */}
+      <div style={{ background:'#fff', borderRadius:12, boxShadow:'var(--shadow)', overflow:'hidden' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 16px', borderBottom:'1px solid var(--border)' }}>
+          <div style={{ fontSize:13, fontWeight:700 }}>개별 응답 ({filtered.length}건)</div>
+          <div style={{ display:'flex', gap:4 }}>
+            {[
+              { key:'all', label:'전체' },
+              { key:'promoter', label:'추천', color:'#059669' },
+              { key:'passive', label:'중립', color:'#D97706' },
+              { key:'detractor', label:'비추천', color:'#DC2626' },
+            ].map(f => (
+              <button key={f.key} onClick={() => setFilter(f.key)}
+                style={{
+                  padding:'4px 10px', borderRadius:6, fontSize:11, fontWeight:600, cursor:'pointer',
+                  border: filter === f.key ? 'none' : '1px solid var(--border)',
+                  background: filter === f.key ? (f.color || 'var(--accent)') : '#fff',
+                  color: filter === f.key ? '#fff' : 'var(--text-md)',
+                }}>
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {filtered.length === 0 ? <EmptyState text="응답 데이터가 없습니다" /> : (
+          <div style={{ maxHeight:'calc(100vh - 500px)', overflow:'auto', minHeight:200 }}>
+            {filtered.map(s => {
+              const catColor = s.category === 'promoter' ? '#059669' : s.category === 'passive' ? '#D97706' : '#DC2626';
+              const catLabel = s.category === 'promoter' ? '추천' : s.category === 'passive' ? '중립' : '비추천';
+              return (
+                <div key={s.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px', borderBottom:'1px solid var(--border-s)', fontSize:13 }}>
+                  <div style={{
+                    width:34, height:34, borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center',
+                    background:catColor+'15', color:catColor, fontWeight:900, fontSize:15, flexShrink:0
+                  }}>{s.score}</div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                      <span style={{ fontWeight:600 }}>{s.name || '-'}</span>
+                      <span style={{ fontSize:11, color:'var(--text-sm)' }}>{s.company || ''}</span>
+                      {s.position && <span style={{ fontSize:10, color:'var(--text-sm)', background:'var(--border-s)', padding:'1px 5px', borderRadius:4 }}>{s.position}</span>}
+                    </div>
+                    {s.feedback && (
+                      <div style={{ fontSize:11, color:'var(--text-md)', marginTop:3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>"{s.feedback}"</div>
+                    )}
+                  </div>
+                  <span style={{ padding:'3px 10px', borderRadius:6, fontSize:11, fontWeight:600, background:catColor+'15', color:catColor, whiteSpace:'nowrap' }}>{catLabel}</span>
+                  <span style={{ fontSize:11, color:'var(--text-sm)', minWidth:65, textAlign:'right' }}>
+                    {s.createdAt ? new Date(s.createdAt).toLocaleDateString('ko') : '-'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════
+// 메인 App
+// ══════════════════════════════════════════
+function App() {
+  const [tab, setTab] = useState('exhibition');
+  const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleRefresh = () => {
+    setRefreshKey(k => k + 1);
+    setLastRefresh(new Date());
+  };
+
+  const renderTab = () => {
+    switch (tab) {
+      case 'exhibition': return <ExhibitionTab key={refreshKey} />;
+      case 'outbound': return <OutboundTab key={refreshKey} />;
+      case 'nps': return <NPSTab key={refreshKey} />;
+      default: return null;
+    }
+  };
+
+  return (
+    <div style={{ height:'100vh', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      {/* 헤더 */}
+      <div style={{
+        background:'linear-gradient(135deg, #0D1B2A 0%, #1A2E42 100%)',
+        padding:'18px 20px 14px', flexShrink:0
+      }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+          <div>
+            <div style={{ fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.45)', letterSpacing:'.03em' }}>NETFORM R&D</div>
+            <div style={{ fontSize:17, fontWeight:800, color:'#fff', letterSpacing:'-.02em' }}>영업 공유보드</div>
+          </div>
+          <button onClick={handleRefresh}
+            style={{
+              background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.15)',
+              borderRadius:8, padding:'7px 14px', fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.7)',
+              cursor:'pointer', transition:'background .15s'
+            }}>
+            새로고침
+          </button>
+        </div>
+
+        {/* 탭 */}
+        <div style={{ display:'flex', gap:6 }}>
+          {TABS.map(t => (
+            <button key={t.key} onClick={() => setTab(t.key)}
+              style={{
+                flex:1, padding:'10px 0', borderRadius:8, fontSize:13, fontWeight:700,
+                cursor:'pointer', transition:'all .15s', border:'none',
+                background: tab === t.key ? 'rgba(255,255,255,0.15)' : 'transparent',
+                color: tab === t.key ? '#fff' : 'rgba(255,255,255,0.4)',
+                borderBottom: tab === t.key ? `2px solid ${t.color}` : '2px solid transparent',
+              }}>
+              {t.icon} {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 업데이트 시각 */}
+      <div style={{ padding:'8px 20px', fontSize:11, color:'var(--text-sm)', background:'#fff', borderBottom:'1px solid var(--border)', flexShrink:0 }}>
+        마지막 업데이트: {lastRefresh.toLocaleTimeString('ko')}
+      </div>
+
+      {/* 콘텐츠 */}
+      <div style={{ flex:1, overflow:'auto', padding:16, background:'var(--bg)' }}>
+        <div style={{ maxWidth:1100, margin:'0 auto' }}>
+          {renderTab()}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

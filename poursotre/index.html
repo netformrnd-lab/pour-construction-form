@@ -614,22 +614,159 @@ document.getElementById('save-jpeg').addEventListener('click', function(){
     btn.style.pointerEvents = 'auto';
   });
 });
-// SVG 다운로드
+// SVG 벡터 다운로드 — 텍스트는 <text>, 배경은 <rect>, 이미지는 <image>
 document.getElementById('svg-btn').addEventListener('click', function(){
   var el=document.querySelector('.W');
   if(!el){alert('배너 요소를 찾을 수 없습니다');return;}
-  var w=el.offsetWidth, h=el.offsetHeight;
-  this.textContent='⏳ 변환 중...';this.style.pointerEvents='none';
   var self=this;
-  html2canvas(el,{scale:2,useCORS:true,backgroundColor:'#ffffff'}).then(function(canvas){
-    var dataUrl=canvas.toDataURL('image/png');
-    var svg='<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'">\n  <image width="'+w+'" height="'+h+'" xlink:href="'+dataUrl+'"/>\n</svg>';
-    var blob=new Blob([svg],{type:'image/svg+xml'});
+  self.textContent='⏳ 변환 중...';self.style.pointerEvents='none';
+
+  // 인쇄 크기: 3250×2000mm → pt 환산 (1mm=2.8346pt)
+  var printW=3250*2.8346, printH=2000*2.8346;
+  // 화면 픽셀 크기
+  var screenW=el.offsetWidth, screenH=el.offsetHeight;
+  var scaleX=printW/screenW, scaleY=printH/screenH;
+
+  var esc=function(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');};
+
+  // SVG 요소 수집
+  var svgParts=[];
+  var origin=el.getBoundingClientRect();
+
+  // 이미지를 dataURL로 변환
+  function imgToDataUrl(img){
+    try{
+      var c=document.createElement('canvas');
+      c.width=img.naturalWidth||img.width;c.height=img.naturalHeight||img.height;
+      var ctx=c.getContext('2d');ctx.drawImage(img,0,0);
+      return c.toDataURL('image/png');
+    }catch(e){return null;}
+  }
+
+  // DOM 순회
+  function walk(node){
+    if(node.nodeType===3){
+      // 텍스트 노드
+      var text=node.textContent.trim();
+      if(!text)return;
+      var parent=node.parentElement;
+      if(!parent||parent.closest('#svg-btn,#save-jpeg,#view-toggle'))return;
+      var range=document.createRange();
+      range.selectNodeContents(node);
+      var rects=range.getClientRects();
+      var cs=window.getComputedStyle(parent);
+      if(cs.display==='none'||cs.visibility==='hidden'||cs.opacity==='0')return;
+      var fontSize=parseFloat(cs.fontSize)*scaleX;
+      var fontWeight=cs.fontWeight;
+      var fontFamily=cs.fontFamily.replace(/"/g,"'");
+      var color=cs.color;
+      var letterSpacing=parseFloat(cs.letterSpacing)||0;
+      var textAnchor='start';
+      if(cs.textAlign==='center')textAnchor='middle';
+      else if(cs.textAlign==='right')textAnchor='end';
+
+      for(var r=0;r<rects.length;r++){
+        var rect=rects[r];
+        var x=(rect.left-origin.left)*scaleX;
+        var y=(rect.top-origin.top+rect.height*0.78)*scaleY; // baseline approx
+        if(textAnchor==='middle')x+=rect.width*scaleX/2;
+        else if(textAnchor==='end')x+=rect.width*scaleX;
+        // 텍스트 내용 분리 (여러 줄 rect)
+        var lineText=text;
+        if(rects.length>1){
+          // 대략적으로 분할
+          var words=text.split(/\s+/);
+          var perRect=Math.ceil(words.length/rects.length);
+          lineText=words.slice(r*perRect,(r+1)*perRect).join(' ');
+          if(!lineText)continue;
+        }
+        svgParts.push('<text x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" font-family="'+esc(fontFamily)+'" font-size="'+fontSize.toFixed(1)+'" font-weight="'+fontWeight+'" fill="'+color+'" text-anchor="'+textAnchor+'"'+(letterSpacing?(' letter-spacing="'+(letterSpacing*scaleX).toFixed(1)+'"'):'')+'>'+esc(lineText)+'</text>');
+      }
+      return;
+    }
+
+    if(node.nodeType!==1)return;
+    var tag=node.tagName.toLowerCase();
+    if(tag==='script'||tag==='style'||tag==='button')return;
+    if(node.id==='svg-btn'||node.id==='save-jpeg'||node.id==='view-toggle')return;
+
+    var cs2=window.getComputedStyle(node);
+    if(cs2.display==='none'||cs2.visibility==='hidden')return;
+    var r2=node.getBoundingClientRect();
+    var nx=(r2.left-origin.left)*scaleX, ny=(r2.top-origin.top)*scaleY;
+    var nw=r2.width*scaleX, nh=r2.height*scaleY;
+
+    // 배경색 처리
+    var bg=cs2.backgroundColor;
+    if(bg&&bg!=='rgba(0, 0, 0, 0)'&&bg!=='transparent'){
+      var radius=parseFloat(cs2.borderRadius)||0;
+      svgParts.push('<rect x="'+nx.toFixed(1)+'" y="'+ny.toFixed(1)+'" width="'+nw.toFixed(1)+'" height="'+nh.toFixed(1)+'" rx="'+(radius*scaleX).toFixed(1)+'" fill="'+bg+'" />');
+    }
+
+    // 배경 그라데이션 처리
+    var bgImg=cs2.backgroundImage;
+    if(bgImg&&bgImg.indexOf('linear-gradient')!==-1){
+      var gradId='grad_'+Math.random().toString(36).slice(2,8);
+      // 간단한 2색 그라데이션 파싱
+      var match=bgImg.match(/linear-gradient\(\s*(\d+)deg\s*,\s*([^,]+?)\s+\d+%?\s*,\s*([^)]+?)\s+\d+%?\s*\)/);
+      if(match){
+        var angle=parseInt(match[1]);
+        var c1=match[2].trim(), c2=match[3].trim();
+        var rad=angle*Math.PI/180;
+        var x1=(50-50*Math.sin(rad)).toFixed(0), y1=(50+50*Math.cos(rad)).toFixed(0);
+        var x2=(50+50*Math.sin(rad)).toFixed(0), y2=(50-50*Math.cos(rad)).toFixed(0);
+        svgParts.push('<defs><linearGradient id="'+gradId+'" x1="'+x1+'%" y1="'+y1+'%" x2="'+x2+'%" y2="'+y2+'%"><stop offset="0%" stop-color="'+c1+'"/><stop offset="100%" stop-color="'+c2+'"/></linearGradient></defs>');
+        svgParts.push('<rect x="'+nx.toFixed(1)+'" y="'+ny.toFixed(1)+'" width="'+nw.toFixed(1)+'" height="'+nh.toFixed(1)+'" rx="'+(parseFloat(cs2.borderRadius||0)*scaleX).toFixed(1)+'" fill="url(#'+gradId+')" />');
+      }
+    }
+
+    // 테두리 처리
+    var borderW=parseFloat(cs2.borderTopWidth)||0;
+    var borderC=cs2.borderTopColor;
+    if(borderW>0&&borderC&&borderC!=='rgba(0, 0, 0, 0)'){
+      svgParts.push('<rect x="'+nx.toFixed(1)+'" y="'+ny.toFixed(1)+'" width="'+nw.toFixed(1)+'" height="'+nh.toFixed(1)+'" rx="'+(parseFloat(cs2.borderRadius||0)*scaleX).toFixed(1)+'" fill="none" stroke="'+borderC+'" stroke-width="'+(borderW*scaleX).toFixed(1)+'" />');
+    }
+
+    // 이미지 처리
+    if(tag==='img'&&node.src){
+      var dataUrl=imgToDataUrl(node);
+      if(dataUrl){
+        svgParts.push('<image x="'+nx.toFixed(1)+'" y="'+ny.toFixed(1)+'" width="'+nw.toFixed(1)+'" height="'+nh.toFixed(1)+'" href="'+dataUrl+'" preserveAspectRatio="xMidYMid meet" />');
+      }
+    }
+
+    // 인라인 SVG 처리
+    if(tag==='svg'){
+      var svgClone=node.cloneNode(true);
+      svgClone.setAttribute('x',nx.toFixed(1));
+      svgClone.setAttribute('y',ny.toFixed(1));
+      svgClone.setAttribute('width',nw.toFixed(1));
+      svgClone.setAttribute('height',nh.toFixed(1));
+      svgClone.removeAttribute('class');
+      var tmp=document.createElement('div');tmp.appendChild(svgClone);
+      svgParts.push(tmp.innerHTML);
+      return; // SVG 내부는 재귀 불필요
+    }
+
+    // 자식 순회
+    for(var i=0;i<node.childNodes.length;i++){
+      walk(node.childNodes[i]);
+    }
+  }
+
+  // 폰트 로딩 후 실행
+  document.fonts.ready.then(function(){
+    walk(el);
+    var svgContent='<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="'+printW.toFixed(0)+'" height="'+printH.toFixed(0)+'" viewBox="0 0 '+printW.toFixed(0)+' '+printH.toFixed(0)+'">\n<rect width="'+printW.toFixed(0)+'" height="'+printH.toFixed(0)+'" fill="white"/>\n'+svgParts.join('\n')+'\n</svg>';
+    var blob=new Blob([svgContent],{type:'image/svg+xml;charset=utf-8'});
     var url=URL.createObjectURL(blob);
     var a=document.createElement('a');a.href=url;a.download='POUR스토어_배너3.svg';
     document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
     self.textContent='📥 SVG';self.style.pointerEvents='auto';
-  }).catch(function(e){alert('SVG 생성 실패: '+e.message);self.textContent='📥 SVG';self.style.pointerEvents='auto';});
+  }).catch(function(e){
+    alert('SVG 생성 실패: '+e.message);
+    self.textContent='📥 SVG';self.style.pointerEvents='auto';
+  });
 });
 </script>
 </body>

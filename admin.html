@@ -1026,6 +1026,30 @@ function ProductsPage({ showToast }) {
             이미지 업로드 → HTML 생성 → 각 마켓에 코드 복붙. 이미지 교체 시 전 채널 자동 반영.
           </div>
 
+          {/* 마켓용 고정 URL 안내 */}
+          {editingId && editingId !== 'new' && (form.detailImages?.length > 0 || form.detailHtml) && (
+            <div style={{
+              padding: '12px 16px', marginBottom: 14, background: '#ECFDF5', borderRadius: 8,
+              border: '1px solid #A7F3D0', fontSize: 13
+            }}>
+              <div style={{ fontWeight: 700, color: 'var(--green)', marginBottom: 6 }}>마켓용 고정 URL (자동 반영)</div>
+              {form.detailImages?.map((img, idx) => {
+                const proxyUrl = `${window.location.origin}/api/product-img?id=${editingId}&n=${idx}`;
+                return (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <span style={{ fontSize: 12, color: 'var(--text-md)' }}>이미지{idx+1}:</span>
+                    <code style={{ fontSize: 11, background: '#fff', padding: '2px 8px', borderRadius: 4, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{proxyUrl}</code>
+                    <button onClick={() => { navigator.clipboard.writeText(proxyUrl); showToast('URL 복사됨'); }}
+                      style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, background: 'var(--green)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', flexShrink: 0 }}>복사</button>
+                  </div>
+                );
+              })}
+              <div style={{ fontSize: 11, color: 'var(--text-sm)', marginTop: 6 }}>
+                이 URL을 마켓 상세설명에 &lt;img src="..."&gt; 로 등록하면, 이미지 교체 시 자동 반영됩니다 (1시간 캐시)
+              </div>
+            </div>
+          )}
+
           {/* 비주얼편집 탭 */}
           {detailTab === 'visual' && (
             <div>

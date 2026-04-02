@@ -358,8 +358,55 @@ const parseExcel = (file) => new Promise((resolve, reject) => {
   reader.readAsArrayBuffer(file);
 });
 
-// 엑셀 행 → 상품 데이터 변환
-const excelRowToProduct = (row) => {
+// 아임웹 형식 감지
+const isImwebFormat = (row) => row.hasOwnProperty('상품번호') && row.hasOwnProperty('판매상태');
+
+// 아임웹 행 → 상품 데이터 변환
+const imwebRowToProduct = (row) => {
+  const name = String(row['상품명'] || '');
+  // 브랜드 추출: [그로홈], [POUR] 등
+  const brandMatch = name.match(/^\[([^\]]+)\]/);
+  let brand = 'store';
+  if (brandMatch) {
+    const b = brandMatch[1].toLowerCase();
+    if (b.includes('그로홈')) brand = 'grohome';
+  }
+  // 옵션 조합
+  const optNames = String(row['필수옵션명'] || '');
+  const optVals = String(row['필수옵션값'] || '');
+  const optStr = optVals || optNames;
+
+  return {
+    name,
+    category: String(row['카테고리ID'] || ''),
+    brand,
+    price: Number(row['정가'] || row['판매가'] || 0),
+    salePrice: Number(row['판매가'] || 0),
+    options: optStr,
+    description: '',
+    thumbnail: String(row['대표이미지URL'] || ''),
+    detailHtml: String(row['상품상세정보'] || ''),
+    detailImages: [],
+    channels: { imweb: String(row['상품번호'] || '') },
+    isActive: true,
+    // 아임웹 전용 필드
+    imwebId: String(row['상품번호'] || ''),
+    imwebUrl: String(row['상품URL'] || ''),
+    salesStatus: String(row['판매상태'] || '판매중'),
+    displayStatus: String(row['진열상태'] || ''),
+    productStatus: String(row['상품상태'] || ''),
+    origin: String(row['원산지'] || ''),
+    manufacturer: String(row['제조사'] || ''),
+    sku: String(row['재고번호SKU'] || ''),
+    weight: String(row['무게'] || ''),
+    costPrice: Number(row['원가'] || 0),
+    naverShoppingName: String(row['네이버다음쇼핑노출용상품명'] || ''),
+    naverCategoryId: String(row['네이버 쇼핑 카테고리 ID'] || ''),
+  };
+};
+
+// 관리센터 자체 템플릿 행 → 상품 데이터 변환
+const templateRowToProduct = (row) => {
   const channels = {};
   CHANNELS.forEach(ch => {
     const val = row[ch.label] || row[ch.key] || '';
@@ -378,8 +425,18 @@ const excelRowToProduct = (row) => {
     detailImages: [],
     detailHtml: '',
     isActive: true,
+    salesStatus: '판매중',
   };
 };
+
+// 자동 감지하여 변환
+const excelRowToProduct = (row) => {
+  if (isImwebFormat(row)) return imwebRowToProduct(row);
+  return templateRowToProduct(row);
+};
+
+// 판매상태 상수
+const SALES_STATUS = ['전체', '판매중', '품절', '숨김'];
 
 // ─── 판매채널 정의 ───
 const CHANNELS = [
@@ -402,6 +459,7 @@ function ProductsPage({ showToast }) {
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [expandedChannel, setExpandedChannel] = useState(null); // 채널 상세 펼침
+  const [statusFilter, setStatusFilter] = useState('전체');
 
   // Firestore 로드
   useEffect(() => {
@@ -442,7 +500,7 @@ function ProductsPage({ showToast }) {
   const excelRef = useRef(null);
   const detailImgRef = useRef(null);
 
-  // 엑셀 일괄 등록
+  // 엑셀 일괄 등록 (Firestore batch 사용 — 500건씩)
   const handleExcelUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -452,18 +510,34 @@ function ProductsPage({ showToast }) {
       const rows = await parseExcel(file);
       if (rows.length === 0) { showToast('엑셀에 데이터가 없습니다', 'error'); return; }
       const now = new Date().toISOString();
-      let count = 0;
+      const newProducts = [];
+      let batch = db.batch();
+      let batchCount = 0;
+      let total = 0;
+
       for (const row of rows) {
         const data = excelRowToProduct(row);
         if (!data.name) continue;
         data.createdAt = now;
         data.updatedAt = now;
-        const ref = await db.collection(COLLECTIONS.PRODUCTS).add(data);
-        setProducts(prev => [{ id: ref.id, ...data }, ...prev]);
-        count++;
+        const ref = db.collection(COLLECTIONS.PRODUCTS).doc();
+        batch.set(ref, data);
+        newProducts.push({ id: ref.id, ...data });
+        batchCount++;
+        total++;
+
+        if (batchCount >= 450) {
+          await batch.commit();
+          console.log(`[excel] batch commit: ${total}건`);
+          batch = db.batch();
+          batchCount = 0;
+        }
       }
-      console.log(`[excel] ${count}건 등록 완료`);
-      showToast(`${count}건 일괄 등록 완료`);
+      if (batchCount > 0) await batch.commit();
+
+      setProducts(prev => [...newProducts, ...prev]);
+      console.log(`[excel] ${total}건 등록 완료`);
+      showToast(`${total}건 일괄 등록 완료`);
     } catch (err) {
       console.error('[excel] 업로드 실패:', err);
       showToast('엑셀 처리 실패: ' + err.message, 'error');
@@ -610,13 +684,20 @@ function ProductsPage({ showToast }) {
 
   // 필터
   const filtered = useMemo(() => {
-    if (!search.trim()) return products;
-    const q = search.toLowerCase();
-    return products.filter(p =>
-      (p.name || '').toLowerCase().includes(q) ||
-      (p.category || '').toLowerCase().includes(q)
-    );
-  }, [products, search]);
+    let list = products;
+    if (statusFilter !== '전체') {
+      list = list.filter(p => (p.salesStatus || '판매중') === statusFilter);
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(p =>
+        (p.name || '').toLowerCase().includes(q) ||
+        (p.category || '').toLowerCase().includes(q) ||
+        (p.imwebId || '').includes(q)
+      );
+    }
+    return list;
+  }, [products, search, statusFilter]);
 
   // 채널 연결 수 계산
   const countChannels = (p) => CHANNELS.filter(ch => p.channels?.[ch.key]).length;
@@ -871,17 +952,35 @@ function ProductsPage({ showToast }) {
   // ─── 상품 목록 ───
   return (
     <div style={{ animation: 'fadeIn .3s ease' }}>
+      {/* 상태 필터 */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
+        {SALES_STATUS.map(s => {
+          const cnt = s === '전체' ? products.length : products.filter(p => (p.salesStatus || '판매중') === s).length;
+          return (
+            <button key={s} onClick={() => setStatusFilter(s)} style={{
+              padding: '6px 14px', fontSize: 12, fontWeight: statusFilter === s ? 700 : 500,
+              background: statusFilter === s ? (s === '판매중' ? 'var(--green)' : s === '품절' ? 'var(--red)' : s === '숨김' ? 'var(--text-sm)' : 'var(--accent)') : '#fff',
+              color: statusFilter === s ? '#fff' : 'var(--text-md)',
+              border: statusFilter === s ? 'none' : '1px solid var(--border)',
+              borderRadius: 20, cursor: 'pointer',
+            }}>
+              {s} ({cnt})
+            </button>
+          );
+        })}
+      </div>
+
       {/* 상단 액션바 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="상품명 / 카테고리 검색..."
+            placeholder="상품명 / 아임웹ID 검색..."
             style={{
               padding: '9px 14px', fontSize: 13, border: '1px solid var(--border)',
               borderRadius: 8, outline: 'none', width: 240
             }}
           />
-          <span style={{ fontSize: 12, color: 'var(--text-sm)' }}>총 {filtered.length}건</span>
+          <span style={{ fontSize: 12, color: 'var(--text-sm)' }}>{filtered.length}건</span>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={downloadTemplate} style={{
@@ -958,10 +1057,14 @@ function ProductsPage({ showToast }) {
                     <span style={{ fontSize: 14, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {p.name}
                     </span>
-                    {!p.isActive && (
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', background: '#FEE2E2', color: 'var(--red)', borderRadius: 4 }}>
-                        비활성
-                      </span>
+                    {p.salesStatus === '품절' && (
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', background: '#FEE2E2', color: 'var(--red)', borderRadius: 4 }}>품절</span>
+                    )}
+                    {p.salesStatus === '숨김' && (
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', background: '#F3F4F6', color: 'var(--text-sm)', borderRadius: 4 }}>숨김</span>
+                    )}
+                    {p.imwebId && (
+                      <span style={{ fontSize: 9, fontWeight: 600, padding: '2px 5px', background: '#EDE9FE', color: '#6D28D9', borderRadius: 4 }}>#{p.imwebId}</span>
                     )}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-sm)', marginTop: 2 }}>

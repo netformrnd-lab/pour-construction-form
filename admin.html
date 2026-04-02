@@ -541,7 +541,9 @@ function ProductsPage({ showToast }) {
   });
 
   const [uploading, setUploading] = useState(false);
-  const [detailTab, setDetailTab] = useState('images'); // images | html | preview
+  const [detailTab, setDetailTab] = useState('visual'); // visual | images | html | preview
+  const editorRef = useRef(null);
+  const visualImgRef = useRef(null);
   const excelRef = useRef(null);
   const detailImgRef = useRef(null);
 
@@ -651,6 +653,46 @@ function ProductsPage({ showToast }) {
     navigator.clipboard.writeText(form.detailHtml).then(() => showToast('코드가 클립보드에 복사되었습니다'));
   };
 
+  // 비주얼 에디터: 서식 명령
+  const execCmd = (cmd, val) => { document.execCommand(cmd, false, val); editorRef.current?.focus(); };
+
+  // 비주얼 에디터: 이미지 삽입 (Storage 업로드)
+  const insertVisualImage = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    e.target.value = '';
+    setUploading(true);
+    try {
+      const productId = editingId === 'new' ? 'temp_' + Date.now() : editingId;
+      for (const file of files) {
+        const path = `product-details/${productId}/visual-${Date.now()}.jpg`;
+        const url = await uploadToStorage(path, file);
+        execCmd('insertHTML', `<img src="${url}" style="width:100%;display:block;margin:8px 0;" alt="상품 이미지">`);
+      }
+      showToast(`${files.length}장 삽입 완료`);
+    } catch (err) {
+      console.error('[visual-editor] 이미지 삽입 실패:', err);
+      showToast('이미지 삽입 실패', 'error');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // 비주얼 에디터 → HTML 반영하기
+  const applyVisualToHtml = () => {
+    if (!editorRef.current) return;
+    const html = editorRef.current.innerHTML;
+    setForm({ ...form, detailHtml: html });
+    showToast('상세페이지가 반영되었습니다');
+  };
+
+  // HTML → 비주얼 에디터에 로드
+  const loadHtmlToVisual = () => {
+    if (editorRef.current && form.detailHtml) {
+      editorRef.current.innerHTML = form.detailHtml;
+    }
+  };
+
   // 신규 등록
   const startNew = () => {
     setForm(emptyForm());
@@ -728,7 +770,50 @@ function ProductsPage({ showToast }) {
     return null;
   };
 
-  // 저장
+  // 변경이력 state
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyList, setHistoryList] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  // 변경이력 로드 (30일 이내)
+  const loadHistory = async (productId) => {
+    setHistoryLoading(true);
+    try {
+      const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const snap = await db.collection(COLLECTIONS.PRODUCTS).doc(productId).collection('history').get();
+      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .filter(h => h.changedAt >= cutoff)
+        .sort((a, b) => (b.changedAt || '').localeCompare(a.changedAt || ''));
+      console.log(`[history] ${productId}: ${docs.length}건 (30일 이내)`);
+      setHistoryList(docs);
+    } catch (e) {
+      console.error('[history] 로드 실패:', e);
+      showToast('변경이력 로드 실패', 'error');
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  // 히스토리에서 복원
+  const restoreFromHistory = async (snapshot) => {
+    if (!editingId || editingId === 'new') return;
+    try {
+      const { id, changedAt, changedBy, changedFields, ...restoreData } = snapshot;
+      await db.collection(COLLECTIONS.PRODUCTS).doc(editingId).update({
+        ...restoreData.snapshot,
+        updatedAt: new Date().toISOString(),
+      });
+      setProducts(prev => prev.map(p => p.id === editingId ? { ...p, ...restoreData.snapshot } : p));
+      startEdit({ id: editingId, ...restoreData.snapshot });
+      setHistoryOpen(false);
+      showToast('이전 버전으로 복원되었습니다');
+    } catch (e) {
+      console.error('[history] 복원 실패:', e);
+      showToast('복원 실패', 'error');
+    }
+  };
+
+  // 저장 (히스토리 기록 포함)
   const handleSave = async () => {
     if (!form.name.trim()) { showToast('상품명을 입력하세요', 'error'); return; }
     setSaving(true);
@@ -747,6 +832,20 @@ function ProductsPage({ showToast }) {
         setProducts(prev => [{ id: ref.id, ...data }, ...prev]);
         showToast('상품이 등록되었습니다');
       } else {
+        // 저장 전: 이전 데이터를 히스토리에 기록
+        const oldProduct = products.find(p => p.id === editingId);
+        if (oldProduct) {
+          const changedFields = Object.keys(data).filter(k => JSON.stringify(data[k]) !== JSON.stringify(oldProduct[k]));
+          if (changedFields.length > 0) {
+            await db.collection(COLLECTIONS.PRODUCTS).doc(editingId).collection('history').add({
+              snapshot: { ...oldProduct, id: undefined },
+              changedFields,
+              changedAt: now,
+              changedBy: '관리자',
+            });
+            console.log(`[history] 변경 기록: ${changedFields.join(', ')}`);
+          }
+        }
         await db.collection(COLLECTIONS.PRODUCTS).doc(editingId).update(data);
         console.log(`[products] 수정 완료: ${editingId}`);
         setProducts(prev => prev.map(p => p.id === editingId ? { ...p, ...data } : p));
@@ -817,14 +916,20 @@ function ProductsPage({ showToast }) {
           </button>
           <div style={{ display: 'flex', gap: 8 }}>
             {editingId !== 'new' && (
-              <button onClick={() => handleDelete(editingId)}
-                style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, background: '#FEE2E2', color: 'var(--red)', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+              <button onClick={() => { setHistoryOpen(true); loadHistory(editingId); }}
+                style={{ padding: '10px 18px', fontSize: 14, fontWeight: 600, background: '#fff', color: 'var(--text-md)', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer' }}>
+                📋 변경이력
+              </button>
+            )}
+            {editingId !== 'new' && (
+              <button onClick={() => setConfirmModal({ message: '이 상품을 삭제하시겠습니까?', onConfirm: () => { handleDelete(editingId); setConfirmModal(null); } })}
+                style={{ padding: '10px 18px', fontSize: 14, fontWeight: 600, background: '#FEE2E2', color: 'var(--red)', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
                 삭제
               </button>
             )}
             <button onClick={handleSave} disabled={saving}
-              style={{ padding: '8px 20px', fontSize: 13, fontWeight: 700, background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
-              {saving ? '저장 중...' : '저장'}
+              style={{ padding: '10px 24px', fontSize: 15, fontWeight: 700, background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
+              {saving ? '저장 중...' : '💾 저장하기'}
             </button>
           </div>
         </div>
@@ -906,13 +1011,13 @@ function ProductsPage({ showToast }) {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
             <div style={{ fontSize: 14, fontWeight: 700 }}>상세페이지 관리</div>
             <div style={{ display: 'flex', gap: 4 }}>
-              {['images', 'html', 'preview'].map(t => (
-                <button key={t} onClick={() => setDetailTab(t)} style={{
-                  padding: '4px 12px', fontSize: 11, fontWeight: 600, borderRadius: 6, border: 'none', cursor: 'pointer',
+              {['visual', 'images', 'html', 'preview'].map(t => (
+                <button key={t} onClick={() => { setDetailTab(t); if (t === 'visual') setTimeout(loadHtmlToVisual, 100); }} style={{
+                  padding: '6px 14px', fontSize: 13, fontWeight: 600, borderRadius: 8, border: 'none', cursor: 'pointer',
                   background: detailTab === t ? 'var(--accent)' : 'var(--border-s)',
                   color: detailTab === t ? '#fff' : 'var(--text-md)'
                 }}>
-                  {{ images: '이미지', html: 'HTML코드', preview: '미리보기' }[t]}
+                  {{ visual: '비주얼편집', images: '이미지', html: 'HTML코드', preview: '미리보기' }[t]}
                 </button>
               ))}
             </div>
@@ -920,6 +1025,60 @@ function ProductsPage({ showToast }) {
           <div style={{ fontSize: 12, color: 'var(--text-sm)', marginBottom: 16 }}>
             이미지 업로드 → HTML 생성 → 각 마켓에 코드 복붙. 이미지 교체 시 전 채널 자동 반영.
           </div>
+
+          {/* 비주얼편집 탭 */}
+          {detailTab === 'visual' && (
+            <div>
+              {/* 툴바 */}
+              <div style={{
+                display: 'flex', flexWrap: 'wrap', gap: 4, padding: '8px 10px', marginBottom: 8,
+                background: '#F9FAFB', borderRadius: 8, border: '1px solid var(--border)'
+              }}>
+                <button onClick={() => execCmd('bold')} title="굵게" style={{ padding: '6px 12px', fontSize: 14, fontWeight: 900, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>B</button>
+                <button onClick={() => execCmd('italic')} title="기울임" style={{ padding: '6px 12px', fontSize: 14, fontStyle: 'italic', background: '#fff', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>I</button>
+                <button onClick={() => execCmd('underline')} title="밑줄" style={{ padding: '6px 12px', fontSize: 14, textDecoration: 'underline', background: '#fff', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>U</button>
+                <div style={{ width: 1, height: 28, background: 'var(--border)', margin: '0 4px' }} />
+                <button onClick={() => execCmd('fontSize', 3)} title="작게" style={{ padding: '6px 10px', fontSize: 12, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>소</button>
+                <button onClick={() => execCmd('fontSize', 4)} title="보통" style={{ padding: '6px 10px', fontSize: 14, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>중</button>
+                <button onClick={() => execCmd('fontSize', 6)} title="크게" style={{ padding: '6px 10px', fontSize: 18, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>대</button>
+                <div style={{ width: 1, height: 28, background: 'var(--border)', margin: '0 4px' }} />
+                <button onClick={() => execCmd('justifyLeft')} title="왼쪽 정렬" style={{ padding: '6px 10px', fontSize: 14, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>◧</button>
+                <button onClick={() => execCmd('justifyCenter')} title="가운데 정렬" style={{ padding: '6px 10px', fontSize: 14, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>◫</button>
+                <button onClick={() => execCmd('justifyRight')} title="오른쪽 정렬" style={{ padding: '6px 10px', fontSize: 14, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>◨</button>
+                <div style={{ width: 1, height: 28, background: 'var(--border)', margin: '0 4px' }} />
+                <button onClick={() => execCmd('insertHorizontalRule')} title="구분선" style={{ padding: '6px 12px', fontSize: 13, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>━ 구분선</button>
+                <input ref={visualImgRef} type="file" accept="image/*" multiple onChange={insertVisualImage} style={{ display: 'none' }} />
+                <button onClick={() => visualImgRef.current?.click()} disabled={uploading}
+                  style={{ padding: '6px 14px', fontSize: 13, fontWeight: 600, background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', opacity: uploading ? 0.6 : 1 }}>
+                  {uploading ? '업로드중...' : '🖼 이미지 삽입'}
+                </button>
+              </div>
+
+              {/* 에디터 영역 */}
+              <div
+                ref={editorRef}
+                contentEditable
+                style={{
+                  minHeight: 400, padding: 20, border: '2px solid var(--border)',
+                  borderRadius: 10, outline: 'none', fontSize: 15, lineHeight: 1.8,
+                  background: '#fff', overflowY: 'auto', maxHeight: 600,
+                }}
+                onFocus={() => { if (editorRef.current && !editorRef.current.innerHTML.trim()) editorRef.current.innerHTML = '<p>여기에 상세페이지 내용을 입력하세요...</p>'; }}
+              />
+
+              {/* 반영하기 버튼 */}
+              <button onClick={applyVisualToHtml}
+                style={{
+                  width: '100%', marginTop: 12, padding: '16px 0', fontSize: 16, fontWeight: 800,
+                  background: 'var(--green)', color: '#fff', border: 'none', borderRadius: 10, cursor: 'pointer'
+                }}>
+                편집완료 → 반영하기
+              </button>
+              <div style={{ fontSize: 12, color: 'var(--text-sm)', marginTop: 6, textAlign: 'center' }}>
+                반영 후 "HTML코드" 탭에서 코드를 복사하여 마켓에 붙여넣으세요
+              </div>
+            </div>
+          )}
 
           {/* 이미지 탭 */}
           {detailTab === 'images' && (
@@ -1346,6 +1505,53 @@ function ProductsPage({ showToast }) {
           );
         })}
       </div>
+      {/* 변경이력 모달 */}
+      {historyOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 9997,
+          display: 'flex', justifyContent: 'flex-end', animation: 'fadeIn .2s ease'
+        }} onClick={() => setHistoryOpen(false)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            width: 420, maxWidth: '90vw', height: '100vh', background: '#fff',
+            boxShadow: '-10px 0 30px rgba(0,0,0,.15)', overflowY: 'auto', padding: 24
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <div style={{ fontSize: 17, fontWeight: 800 }}>📋 변경이력 (최근 1개월)</div>
+              <button onClick={() => setHistoryOpen(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-sm)' }}>✕</button>
+            </div>
+            {historyLoading && (
+              <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-sm)', fontSize: 14 }}>불러오는 중...</div>
+            )}
+            {!historyLoading && historyList.length === 0 && (
+              <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-sm)', fontSize: 14 }}>변경이력이 없습니다</div>
+            )}
+            {historyList.map(h => (
+              <div key={h.id} style={{
+                padding: 16, marginBottom: 10, background: 'var(--bg)', borderRadius: 10,
+                border: '1px solid var(--border-s)'
+              }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
+                  {h.changedAt ? new Date(h.changedAt).toLocaleString('ko') : '-'}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-md)', marginBottom: 8 }}>
+                  변경: {(h.changedFields || []).map(f => {
+                    const labels = { name: '상품명', salePrice: '판매가', price: '소비자가', salesStatus: '상태', detailHtml: '상세페이지', tags: '태그', options: '옵션', channels: '채널' };
+                    return labels[f] || f;
+                  }).join(', ')}
+                </div>
+                <button onClick={() => restoreFromHistory(h)}
+                  style={{
+                    padding: '8px 16px', fontSize: 13, fontWeight: 700,
+                    background: 'var(--accent-l)', color: 'var(--accent)', border: 'none',
+                    borderRadius: 6, cursor: 'pointer', width: '100%'
+                  }}>
+                  이 버전으로 복원
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {confirmModal && <ConfirmModal message={confirmModal.message} onConfirm={confirmModal.onConfirm} onCancel={() => setConfirmModal(null)} />}
     </div>
   );

@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 24.0.2, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" id="레이어_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px"
+	 y="0px" viewBox="0 0 1125 375" style="enable-background:new 0 0 1125 375;" xml:space="preserve">
+<style type="text/css">
+	.st0{clip-path:url(#SVGID_2_);fill:url(#bg-main_1_);}
+	.st1{clip-path:url(#SVGID_2_);fill:url(#bg-glow-tr_1_);}
+	.st2{clip-path:url(#SVGID_2_);fill:url(#bg-glow-bc_1_);}
+	.st3{clip-path:url(#SVGID_2_);}
+	.st4{clip-path:url(#SVGID_5_);}
+	.st5{fill:#E0E0E0;stroke:#565656;stroke-width:0.5;}
+	.st6{font-family:'NotoSansKR-Bold-KSCpc-EUC-H';}
+	.st7{font-size:7.0947px;}
+	.st8{fill:#121639;}
+	.st9{font-size:20px;}
+	.st10{font-size:30px;}
+	.st11{fill:url(#stats-bg_1_);}
+	.st12{fill:#FFFFFF;stroke:#FFFFFF;stroke-width:0.25;}
+	.st13{fill:#FFFFFF;}
+	.st14{font-family:'NotoSansKR-Black-KSCpc-EUC-H';}
+	.st15{font-size:23.85px;}
+	.st16{enable-background:new    ;}
+	.st17{font-family:'NotoSansKR-Regular-KSCpc-EUC-H';}
+	.st18{font-size:10.5221px;}
+	.st19{fill:#E8780F;}
+	.st20{fill:#111827;}
+	.st21{font-size:10px;}
+	.st22{letter-spacing:1;}
+	.st23{fill:#FFFFFF;stroke:#000000;stroke-opacity:9.000000e-02;}
+	.st24{font-size:13px;}
+	.st25{clip-path:url(#SVGID_2_);fill-opacity:8.000000e-02;}
+	.st26{clip-path:url(#SVGID_2_);enable-background:new    ;}
+	.st27{fill:#374151;}
+	.st28{font-size:11px;}
+</style>
+<title>배너6 — 제품/R&amp;D | POUR스토어</title>
+<g>
+	<defs>
+		<path id="SVGID_1_" d="M0,0h1125c0,0,0,0,0,0v375c0,0,0,0,0,0H0c0,0,0,0,0,0L0,0C0,0,0,0,0,0z"/>
+	</defs>
+	<clipPath id="SVGID_2_">
+		<use xlink:href="#SVGID_1_"  style="overflow:visible;"/>
+	</clipPath>
+	
+		<linearGradient id="bg-main_1_" gradientUnits="userSpaceOnUse" x1="-4040.2583" y1="3015.3208" x2="-4039.6582" y2="3014.3208" gradientTransform="matrix(1125 0 0 -375 4545456 1130712.25)">
+		<stop  offset="0" style="stop-color:#F9F7F4"/>
+		<stop  offset="1" style="stop-color:#FFF5EA"/>
+	</linearGradient>
+	<rect id="bg-main" y="0" class="st0" width="1125" height="375"/>
+	
+		<radialGradient id="bg-glow-tr_1_" cx="1207.9269" cy="455.8767" r="160" gradientTransform="matrix(1 0 0 -1 0 375.2912)" gradientUnits="userSpaceOnUse">
+		<stop  offset="0" style="stop-color:#E8780F;stop-opacity:9.000000e-02"/>
+		<stop  offset="1" style="stop-color:#E8780F;stop-opacity:0"/>
+	</radialGradient>
+	<rect id="bg-glow-tr" x="2.9" y="-0.6" class="st1" width="1125" height="375"/>
+	
+		<radialGradient id="bg-glow-bc_1_" cx="457" cy="60.2913" r="120" gradientTransform="matrix(1 0 0 -1 0 375.2912)" gradientUnits="userSpaceOnUse">
+		<stop  offset="0" style="stop-color:#E8780F;stop-opacity:5.000000e-02"/>
+		<stop  offset="1" style="stop-color:#E8780F;stop-opacity:0"/>
+	</radialGradient>
+	<path id="bg-glow-bc" class="st2" d="M0.5,0h1124.1c0.3,0,0.5,0.2,0.5,0.5v374c0,0.3-0.2,0.5-0.5,0.5H0.5c-0.3,0-0.5-0.2-0.5-0.5
+		V0.5C0,0.2,0.2,0,0.5,0z"/>
+	<g class="st3">
+		<defs>
+			<polygon id="SVGID_3_" points="1,1 2,1 1,2 			"/>
+		</defs>
+		<defs>
+			<polygon id="SVGID_4_" points="-1,-1 -2,-1 -1,-2 			"/>
+		</defs>
+		<clipPath id="SVGID_5_">
+			<use xlink:href="#SVGID_3_"  style="overflow:visible;"/>
+		</clipPath>
+		<clipPath id="SVGID_6_" class="st4">
+			<use xlink:href="#SVGID_4_"  style="overflow:visible;"/>
+		</clipPath>
+	</g>
+	<g class="st3">
+		<path id="badge-white-bg" class="st5" d="M48.8,103.7h73.5c4.1,0,7.5,3.4,7.5,7.5l0,0c0,4.1-3.4,7.5-7.5,7.5H48.8
+			c-4.1,0-7.5-3.4-7.5-7.5l0,0C41.3,107.1,44.6,103.7,48.8,103.7z"/>
+		<text id="badge-white-text" transform="matrix(1 0 0 1 54.5249 113.7482)" class="st6 st7">자체 기술연구소 운영</text>
+		<path id="badge-navy-bg" class="st5" d="M142.3,103.7h86.8c4.1,0,7.5,3.4,7.5,7.5l0,0c0,4.1-3.4,7.5-7.5,7.5h-86.8
+			c-4.1,0-7.5-3.4-7.5-7.5l0,0C134.8,107.1,138.1,103.7,142.3,103.7z"/>
+		<text id="badge-navy-text" transform="matrix(1 0 0 1 152.1587 113.7482)" class="st6 st7">국가 등록 특허 70여 개</text>
+	</g>
+	<g id="head-pre" class="st3">
+		<text transform="matrix(1 0 0 1 39.0488 149.1705)" class="st8 st6 st9">자체 R&amp;D로 탄생한 기술,</text>
+	</g>
+	<g id="head-title" class="st3">
+		<text transform="matrix(1 0 0 1 37.9756 179.8045)" class="st8 st6 st10">국가 등록 특허 70여 개로 증명합니다</text>
+	</g>
+	<g class="st3">
+		<linearGradient id="stats-bg_1_" gradientUnits="userSpaceOnUse" x1="610.6097" y1="59.0313" x2="1140.3658" y2="59.0313">
+			<stop  offset="0" style="stop-color:#E8780F"/>
+			<stop  offset="1" style="stop-color:#F49A3A"/>
+		</linearGradient>
+		<path id="stats-bg" class="st11" d="M628.1,24h494.7c9.7,0,17.5,7.5,17.5,16.8v36.5c0,9.3-7.8,16.8-17.5,16.8H628.1
+			c-9.7,0-17.5-7.5-17.5-16.8V40.8C610.6,31.5,618.5,24,628.1,24z"/>
+		<line id="stats-sep-1" class="st12" x1="736.9" y1="22.6" x2="736.9" y2="94.1"/>
+		<line id="stats-sep-2" class="st12" x1="863.1" y1="22.6" x2="863.1" y2="94.1"/>
+		<line id="stats-sep-3" class="st12" x1="989.4" y1="22.6" x2="989.4" y2="94.1"/>
+		<text id="stat1-num" transform="matrix(1 0 0 1 640.9842 61.5454)" class="st13 st14 st15">70여+</text>
+		<g id="stat1-label" class="st16">
+			<text transform="matrix(1 0 0 1 642.3436 82.6357)" class="st13 st17 st18">국가 등록 특허</text>
+		</g>
+		<text id="stat2-num" transform="matrix(1 0 0 1 753.5467 61.5454)" class="st13 st14 st15">110여 개</text>
+		<g id="stat2-label" class="st16">
+			<text transform="matrix(1 0 0 1 763.7684 82.6357)" class="st13 st17 st18">고품질 제품 보유</text>
+		</g>
+		<text id="stat3-num" transform="matrix(1 0 0 1 893.5145 61.5454)" class="st13 st14 st15">260만</text>
+		<g id="stat3-label" class="st16">
+			<text transform="matrix(1 0 0 1 894.8748 82.6357)" class="st13 st17 st18">세대 현장 검증</text>
+		</g>
+		<text id="stat4-num" transform="matrix(1 0 0 1 1006.077 61.5454)" class="st13 st14 st15">250여 곳</text>
+		<g id="stat4-label" class="st16">
+			<text transform="matrix(1 0 0 1 1027.1571 82.6357)" class="st13 st17 st18">시공 협력사</text>
+		</g>
+	</g>
+	<g class="st3">
+		<path id="section-bar" class="st19" d="M41.5,195.2L41.5,195.2c0.8,0,1.5,0.7,1.5,1.5v11c0,0.8-0.7,1.5-1.5,1.5l0,0
+			c-0.8,0-1.5-0.7-1.5-1.5v-11C40,195.8,40.7,195.2,41.5,195.2z"/>
+		<text id="section-label-text" transform="matrix(1 0 0 1 51 206.1705)" class="st20 st6 st21 st22">MOU 체결 기관</text>
+		<path id="card1-bg" class="st23" d="M40,217.4h237c5.3,0,8,2.2,8,6.7v57.3c0,0-2.7,0-8,0H40V217.4z"/>
+		<rect id="card1-bar" x="40" y="217.4" class="st19" width="3" height="64"/>
+		<text id="card1-org" transform="matrix(1 0 0 1 57 247.585)" class="st20 st6 st24">베트남 하이퐁 건설협회 (HACC)</text>
+		<text id="card1-benefit" transform="matrix(1 0 0 1 57 261.5851)" class="st19 st6 st21">해외 스마트도시 현장 공식 채택</text>
+		<path id="card2-bg" class="st23" d="M293,217.4h237c5.3,0,8,2.2,8,6.7v57.3c0,0-2.7,0-8,0H293V217.4z"/>
+		<rect id="card2-bar" x="293" y="217.4" class="st19" width="3" height="64"/>
+		<text id="card2-org" transform="matrix(1 0 0 1 310 247.585)" class="st20 st6 st24">한국전자통신연구원 (ETRI)</text>
+		<text id="card2-benefit" transform="matrix(1 0 0 1 310 261.5851)" class="st8 st6 st21">국내 최초 AI 도료 품질 자동 측정</text>
+		<path id="card3-bg" class="st23" d="M40,288.1h237c5.3,0,8,2.2,8,6.7V353c0,0-2.7,0-8,0H40V288.1z"/>
+		<rect id="card3-bar" x="40" y="288.1" class="st19" width="3" height="64.8"/>
+		<text id="card3-org" transform="matrix(1 0 0 1 57 318.6339)" class="st20 st6 st24">강남제비스코(주)</text>
+		<text id="card3-benefit" transform="matrix(1 0 0 1 57 332.6339)" class="st19 st6 st21">도료 제조 기술과 260만 시공데이터의 결합</text>
+		<path id="card4-bg" class="st23" d="M293,288.1h237c5.3,0,8,2.2,8,6.7V353c0,0-2.7,0-8,0H293V288.1z"/>
+		<rect id="card4-bar" x="293" y="288.1" class="st19" width="3" height="64.8"/>
+		<text id="card4-org-1" transform="matrix(1 0 0 1 310 318.6339)" class="st20 st6 st24">서울과학기술대학교 (방수기술연구소)</text>
+		<text id="card4-benefit" transform="matrix(1 0 0 1 310 332.3412)" class="st8 st6 st21">대학 연구소의 학술 성능 검증</text>
+	</g>
+	<path id="prod-box-1" class="st25" d="M785,210h44c2.2,0,4,1.8,4,4v26c0,2.2-1.8,4-4,4h-44c-2.2,0-4-1.8-4-4v-26
+		C781,211.8,782.8,210,785,210z"/>
+	<path id="prod-box-2" class="st25" d="M843,210h44c2.2,0,4,1.8,4,4v26c0,2.2-1.8,4-4,4h-44c-2.2,0-4-1.8-4-4v-26
+		C839,211.8,840.8,210,843,210z"/>
+	<g class="st3">
+		
+			<image style="overflow:visible;" width="1085" height="1085" xlink:href="../../../004. POUR스토어/08. 로고/2차_2024/1.배경x_로고.png"  transform="matrix(0.1292 0 0 0.1292 14.8415 6.572883e-02)">
+		</image>
+	</g>
+	<path id="prod-box-3" class="st25" d="M785,250h44c2.2,0,4,1.8,4,4v26c0,2.2-1.8,4-4,4h-44c-2.2,0-4-1.8-4-4v-26
+		C781,251.8,782.8,250,785,250z"/>
+	<path id="prod-box-4" class="st25" d="M843,250h44c2.2,0,4,1.8,4,4v26c0,2.2-1.8,4-4,4h-44c-2.2,0-4-1.8-4-4v-26
+		C839,251.8,840.8,250,843,250z"/>
+	<g id="prod-placeholder-text" class="st26">
+		<text transform="matrix(1 0 0 1 769.688 304.9998)" class="st27 st6 st28">200여 개 제품 스튜디오 사진</text>
+	</g>
+</g>
+<image style="overflow:visible;" width="2400" height="1400" xlink:href="D:\Users\Administrator\Downloads\studio_products (2).png"  transform="matrix(0.1903 0 0 0.1903 670.2335 111.6572)">
+</image>
+</svg>

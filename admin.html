@@ -452,7 +452,55 @@ const PRODUCT_TAGS = [
 const getTag = (key) => PRODUCT_TAGS.find(t => t.key === key);
 
 // ─── 확인 모달 ───
-function ConfirmModal({ message, onConfirm, onCancel }) {
+function ConfirmModal({ message, onConfirm, onCancel, isInfo }) {
+  if (isInfo) {
+    return (
+      <div style={{
+        position:'fixed', inset:0, background:'rgba(0,0,0,.4)', zIndex:9998,
+        display:'flex', alignItems:'center', justifyContent:'center', animation:'fadeIn .2s ease'
+      }} onClick={onConfirm}>
+        <div onClick={e => e.stopPropagation()} style={{
+          background:'#fff', borderRadius:16, padding:'28px 24px', width:520, maxWidth:'92vw',
+          boxShadow:'0 20px 60px rgba(0,0,0,.2)', maxHeight:'85vh', overflowY:'auto'
+        }}>
+          <div style={{ fontSize:17, fontWeight:800, color:'var(--text)', marginBottom:16 }}>{message}</div>
+
+          <div style={{ fontSize:14, lineHeight:2, color:'var(--text-md)' }}>
+            <div style={{ fontWeight:700, color:'var(--accent)', marginBottom:8 }}>자동반영 되는 것 (이미지)</div>
+            <div style={{ background:'#ECFDF5', padding:'12px 16px', borderRadius:10, marginBottom:14 }}>
+              <div>1. 어드민에서 <b>상세 이미지 업로드</b></div>
+              <div>2. 아래 <b>"마켓용 고정 URL"</b>이 자동 생성됨</div>
+              <div>3. 각 마켓 상세설명에 <b>한 번만</b> 등록:</div>
+              <code style={{ display:'block', background:'#fff', padding:'8px 12px', borderRadius:6, fontSize:12, margin:'6px 0', color:'var(--text)' }}>
+                &lt;img src="https://pour-construction-form.pages.dev/api/product-img?id=상품ID&n=0"&gt;
+              </code>
+              <div>4. 어드민에서 이미지 교체 → <b style={{color:'var(--green)'}}>전 채널 자동 반영!</b> (1시간 캐시)</div>
+            </div>
+
+            <div style={{ fontWeight:700, color:'var(--red)', marginBottom:8 }}>자동반영 안 되는 것 (텍스트)</div>
+            <div style={{ background:'#FEF2F2', padding:'12px 16px', borderRadius:10, marginBottom:14 }}>
+              <div>텍스트/HTML 구조 변경 → 각 마켓에 <b>수동 복붙</b> 필요</div>
+              <div style={{ fontSize:12, color:'var(--text-sm)', marginTop:4 }}>대부분의 오픈마켓이 iframe을 차단하므로 텍스트 자동반영은 불가합니다</div>
+            </div>
+
+            <div style={{ fontWeight:700, color:'var(--text)', marginBottom:8 }}>권장 운영 방법</div>
+            <div style={{ background:'var(--accent-l)', padding:'12px 16px', borderRadius:10 }}>
+              <div>상세페이지를 <b>이미지 위주</b>로 구성하세요</div>
+              <div style={{ fontSize:13, marginTop:4 }}>① 포토샵/캔바에서 상세 이미지 제작</div>
+              <div style={{ fontSize:13 }}>② 어드민에서 이미지 업로드</div>
+              <div style={{ fontSize:13 }}>③ 마켓에 프록시 URL 등록 (최초 1회)</div>
+              <div style={{ fontSize:13 }}>④ 이후 이미지만 교체하면 전 채널 자동 반영</div>
+            </div>
+          </div>
+
+          <button onClick={onConfirm} style={{
+            width:'100%', marginTop:20, padding:'14px 0', fontSize:15, fontWeight:700,
+            background:'var(--accent)', color:'#fff', border:'none', borderRadius:10, cursor:'pointer'
+          }}>확인</button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div style={{
       position:'fixed', inset:0, background:'rgba(0,0,0,.4)', zIndex:9998,
@@ -1009,7 +1057,20 @@ function ProductsPage({ showToast }) {
         {/* 상세페이지 관리 */}
         <div style={{ background: '#fff', borderRadius: 12, padding: 24, boxShadow: 'var(--shadow)', marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-            <div style={{ fontSize: 14, fontWeight: 700 }}>상세페이지 관리</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ fontSize: 14, fontWeight: 700 }}>상세페이지 관리</div>
+              <button onClick={() => setConfirmModal({
+                isInfo: true,
+                message: '상세페이지 마켓 연동 안내',
+                onConfirm: () => setConfirmModal(null),
+              })} style={{
+                padding: '4px 10px', fontSize: 12, fontWeight: 600,
+                background: 'var(--accent-l)', color: 'var(--accent)', border: 'none',
+                borderRadius: 6, cursor: 'pointer'
+              }}>
+                참고사항
+              </button>
+            </div>
             <div style={{ display: 'flex', gap: 4 }}>
               {['visual', 'images', 'html', 'preview'].map(t => (
                 <button key={t} onClick={() => { setDetailTab(t); if (t === 'visual') setTimeout(loadHtmlToVisual, 100); }} style={{

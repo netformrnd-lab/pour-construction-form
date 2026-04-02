@@ -885,8 +885,9 @@ function ProductsPage({ showToast }) {
         if (oldProduct) {
           const changedFields = Object.keys(data).filter(k => JSON.stringify(data[k]) !== JSON.stringify(oldProduct[k]));
           if (changedFields.length > 0) {
+            const { id: _skipId, ...snapshotData } = oldProduct;
             await db.collection(COLLECTIONS.PRODUCTS).doc(editingId).collection('history').add({
-              snapshot: { ...oldProduct, id: undefined },
+              snapshot: snapshotData,
               changedFields,
               changedAt: now,
               changedBy: '관리자',

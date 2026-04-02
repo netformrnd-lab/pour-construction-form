@@ -885,7 +885,21 @@ function ProductsPage({ showToast }) {
         if (oldProduct) {
           const changedFields = Object.keys(data).filter(k => JSON.stringify(data[k]) !== JSON.stringify(oldProduct[k]));
           if (changedFields.length > 0) {
-            const { id: _skipId, ...snapshotData } = oldProduct;
+            const { id: _skipId, ...rawSnapshot } = oldProduct;
+            // Firestore는 undefined 값을 허용하지 않으므로 재귀적으로 제거
+            const cleanObj = (obj) => {
+              if (obj === null || obj === undefined) return null;
+              if (Array.isArray(obj)) return obj.map(cleanObj);
+              if (typeof obj === 'object') {
+                const cleaned = {};
+                for (const [k, v] of Object.entries(obj)) {
+                  if (v !== undefined) cleaned[k] = cleanObj(v);
+                }
+                return cleaned;
+              }
+              return obj;
+            };
+            const snapshotData = cleanObj(rawSnapshot);
             await db.collection(COLLECTIONS.PRODUCTS).doc(editingId).collection('history').add({
               snapshot: snapshotData,
               changedFields,

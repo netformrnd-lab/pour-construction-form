@@ -1,31 +1,26 @@
 /**
- * Cloudflare Pages Function — 상품 상세 이미지 프록시
+ * Cloudflare Pages Function — 상품 상세페이지 프록시
  *
- * 고정 URL로 마켓 상세설명에 등록하면, 어드민에서 이미지 교체 시 자동 반영.
+ * 어드민에서 수정 → 이 URL은 항상 최신 내용을 보여줌
  *
  * 사용법:
- *   /api/product-img?id={상품ID}&n={이미지순번}
- *   /api/product-img?id={상품ID}&n=0  → 첫번째 상세이미지
- *   /api/product-img?id={상품ID}       → 전체 상세페이지 HTML 렌더링
+ *   /api/product-img?id={상품ID}         → 전체 상세페이지 HTML (이미지+텍스트)
+ *   /api/product-img?id={상품ID}&n=0     → 상세HTML에서 n번째 이미지만 프록시
+ *   /api/product-img?id={상품ID}&mode=img → detailImages 배열의 이미지 (Storage 업로드분)
  *
- * 원리:
- *   1. Firestore REST API로 상품 데이터 읽기
- *   2. detailImages[n].url 에서 실제 이미지를 fetch
- *   3. 이미지 바이너리를 그대로 응답 (Cache-Control: 1시간)
- *   → 마켓에서는 이 URL을 <img src="...">로 등록
- *   → 어드민에서 이미지 교체 → Firestore 업데이트 → 캐시 만료 후 자동 반영
+ * 캐시: 10분 (s-maxage=600) — 수정 후 최대 10분 내 반영
  */
 
 const FIRESTORE_PROJECT = 'pour-exhibition';
 const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${FIRESTORE_PROJECT}/databases/(default)/documents`;
+const CACHE_SEC = 600; // 10분
 
-const CORS_HEADERS = {
+const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
-// Firestore REST 응답에서 값 추출
 function extractValue(field) {
   if (!field) return null;
   if (field.stringValue !== undefined) return field.stringValue;
@@ -35,97 +30,127 @@ function extractValue(field) {
   if (field.arrayValue) return (field.arrayValue.values || []).map(extractValue);
   if (field.mapValue) {
     const obj = {};
-    for (const [k, v] of Object.entries(field.mapValue.fields || {})) {
-      obj[k] = extractValue(v);
-    }
+    for (const [k, v] of Object.entries(field.mapValue.fields || {})) obj[k] = extractValue(v);
     return obj;
   }
   return null;
+}
+
+// HTML에서 img src 추출
+function extractImgUrls(html) {
+  const urls = [];
+  const re = /<img[^>]+src=["']([^"']+)["']/gi;
+  let m;
+  while ((m = re.exec(html)) !== null) urls.push(m[1]);
+  return urls;
 }
 
 export async function onRequestGet(context) {
   const url = new URL(context.request.url);
   const productId = url.searchParams.get('id');
   const imgIndex = url.searchParams.get('n');
+  const mode = url.searchParams.get('mode'); // 'img' = detailImages 배열 사용
 
   if (!productId) {
-    return new Response('Missing id parameter', { status: 400, headers: CORS_HEADERS });
+    return new Response(JSON.stringify({ error: 'Missing id parameter' }), {
+      status: 400, headers: { ...CORS, 'Content-Type': 'application/json' }
+    });
   }
 
   try {
-    // Firestore REST API로 상품 문서 읽기
-    const docUrl = `${FIRESTORE_BASE}/products/${productId}`;
-    const docRes = await fetch(docUrl);
+    // Firestore에서 상품 읽기
+    const docRes = await fetch(`${FIRESTORE_BASE}/products/${productId}`);
     if (!docRes.ok) {
-      return new Response('Product not found', { status: 404, headers: CORS_HEADERS });
+      const errText = await docRes.text();
+      return new Response(JSON.stringify({ error: 'Product not found', detail: errText }), {
+        status: 404, headers: { ...CORS, 'Content-Type': 'application/json' }
+      });
     }
+
     const docData = await docRes.json();
     const fields = docData.fields || {};
+    const detailHtml = extractValue(fields.detailHtml) || '';
+    const detailImages = extractValue(fields.detailImages) || [];
+    const name = extractValue(fields.name) || '상품 상세';
 
-    // n 파라미터가 있으면 → 특정 이미지 프록시
+    // ── 이미지 프록시 모드 ──
     if (imgIndex !== null && imgIndex !== undefined) {
-      const detailImages = extractValue(fields.detailImages) || [];
       const idx = parseInt(imgIndex, 10);
+      let imageUrl = null;
 
-      if (idx < 0 || idx >= detailImages.length) {
-        return new Response('Image index out of range', { status: 404, headers: CORS_HEADERS });
+      if (mode === 'img') {
+        // detailImages 배열에서 (Storage 업로드된 이미지)
+        imageUrl = detailImages[idx]?.url;
+      } else {
+        // detailHtml에서 img src 추출
+        const imgUrls = extractImgUrls(detailHtml);
+        imageUrl = imgUrls[idx];
       }
 
-      const imageUrl = detailImages[idx]?.url;
       if (!imageUrl) {
-        return new Response('Image URL not found', { status: 404, headers: CORS_HEADERS });
+        return new Response(JSON.stringify({
+          error: 'Image not found',
+          index: idx,
+          availableFromHtml: extractImgUrls(detailHtml).length,
+          availableFromArray: detailImages.length,
+        }), {
+          status: 404, headers: { ...CORS, 'Content-Type': 'application/json' }
+        });
       }
 
-      // 실제 이미지를 fetch해서 프록시
+      // 프로토콜 보정 (//ecimg... → https://ecimg...)
+      if (imageUrl.startsWith('//')) imageUrl = 'https:' + imageUrl;
+
       const imgRes = await fetch(imageUrl);
       if (!imgRes.ok) {
-        return new Response('Failed to fetch image', { status: 502, headers: CORS_HEADERS });
+        return new Response(JSON.stringify({ error: 'Failed to fetch image', url: imageUrl }), {
+          status: 502, headers: { ...CORS, 'Content-Type': 'application/json' }
+        });
       }
 
-      const imgBody = await imgRes.arrayBuffer();
-      const contentType = imgRes.headers.get('content-type') || 'image/jpeg';
-
-      return new Response(imgBody, {
+      return new Response(await imgRes.arrayBuffer(), {
         status: 200,
         headers: {
-          ...CORS_HEADERS,
-          'Content-Type': contentType,
-          'Cache-Control': 'public, max-age=3600, s-maxage=3600', // 1시간 캐시
+          ...CORS,
+          'Content-Type': imgRes.headers.get('content-type') || 'image/jpeg',
+          'Cache-Control': `public, max-age=${CACHE_SEC}, s-maxage=${CACHE_SEC}`,
         },
       });
     }
 
-    // n 파라미터가 없으면 → 전체 상세페이지 HTML 렌더링
-    const detailHtml = extractValue(fields.detailHtml) || '';
-    const name = extractValue(fields.name) || '상품 상세';
+    // ── 전체 상세페이지 HTML 렌더링 모드 ──
+    let bodyHtml = detailHtml;
 
-    if (!detailHtml) {
-      // detailHtml이 없으면 detailImages로 대체
-      const detailImages = extractValue(fields.detailImages) || [];
-      if (detailImages.length === 0) {
-        return new Response('No detail content', { status: 404, headers: CORS_HEADERS });
-      }
-      const imgsHtml = detailImages
+    if (!bodyHtml && detailImages.length > 0) {
+      bodyHtml = detailImages
         .map(img => `<img src="${img?.url || ''}" style="width:100%;display:block;" alt="${name}">`)
         .join('\n');
-      return new Response(renderPage(name, imgsHtml), {
-        status: 200,
-        headers: { ...CORS_HEADERS, 'Content-Type': 'text/html;charset=utf-8', 'Cache-Control': 'public, max-age=3600' },
+    }
+
+    if (!bodyHtml) {
+      return new Response(JSON.stringify({ error: 'No detail content', productId }), {
+        status: 404, headers: { ...CORS, 'Content-Type': 'application/json' }
       });
     }
 
-    return new Response(renderPage(name, detailHtml), {
+    return new Response(renderPage(name, bodyHtml), {
       status: 200,
-      headers: { ...CORS_HEADERS, 'Content-Type': 'text/html;charset=utf-8', 'Cache-Control': 'public, max-age=3600' },
+      headers: {
+        ...CORS,
+        'Content-Type': 'text/html;charset=utf-8',
+        'Cache-Control': `public, max-age=${CACHE_SEC}, s-maxage=${CACHE_SEC}`,
+      },
     });
 
   } catch (e) {
-    return new Response('Internal error: ' + e.message, { status: 500, headers: CORS_HEADERS });
+    return new Response(JSON.stringify({ error: 'Internal error', message: e.message }), {
+      status: 500, headers: { ...CORS, 'Content-Type': 'application/json' }
+    });
   }
 }
 
 export async function onRequestOptions() {
-  return new Response(null, { status: 204, headers: CORS_HEADERS });
+  return new Response(null, { status: 204, headers: CORS });
 }
 
 function renderPage(title, bodyHtml) {

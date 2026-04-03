@@ -954,7 +954,7 @@ function ProductsPage({ showToast }) {
     if (!product.proxyRegistered?.[chKey]) return 'unregistered'; // 프록시 미등록
     if (!product.updatedAt) return 'synced';
     const diff = Date.now() - new Date(product.updatedAt).getTime();
-    if (diff < 3600000) return 'syncing'; // 1시간 이내 → 반영 중
+    if (diff < 600000) return 'syncing'; // 10분 이내 → 반영 중
     return 'synced'; // 1시간 이후 → 반영 완료
   };
 
@@ -1265,28 +1265,55 @@ function ProductsPage({ showToast }) {
           </div>
 
           {/* 마켓용 고정 URL 안내 */}
-          {editingId && editingId !== 'new' && (form.detailImages?.length > 0 || form.detailHtml) && (
-            <div style={{
-              padding: '12px 16px', marginBottom: 14, background: '#ECFDF5', borderRadius: 8,
-              border: '1px solid #A7F3D0', fontSize: 13
-            }}>
-              <div style={{ fontWeight: 700, color: 'var(--green)', marginBottom: 6 }}>마켓용 고정 URL (자동 반영)</div>
-              {form.detailImages?.map((img, idx) => {
-                const proxyUrl = `${window.location.origin}/api/product-img?id=${editingId}&n=${idx}`;
-                return (
-                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <span style={{ fontSize: 12, color: 'var(--text-md)' }}>이미지{idx+1}:</span>
-                    <code style={{ fontSize: 11, background: '#fff', padding: '2px 8px', borderRadius: 4, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{proxyUrl}</code>
-                    <button onClick={() => { navigator.clipboard.writeText(proxyUrl); showToast('URL 복사됨'); }}
-                      style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, background: 'var(--green)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', flexShrink: 0 }}>복사</button>
+          {editingId && editingId !== 'new' && (form.detailImages?.length > 0 || form.detailHtml) && (() => {
+            const baseUrl = `${window.location.origin}/api/product-img?id=${editingId}`;
+            const pageUrl = baseUrl;
+            // detailHtml에서 img 개수 추출
+            const htmlImgCount = (form.detailHtml || '').match(/<img[^>]+src=/gi)?.length || 0;
+            const storageImgCount = form.detailImages?.length || 0;
+            return (
+              <div style={{
+                padding: '14px 18px', marginBottom: 14, background: '#ECFDF5', borderRadius: 10,
+                border: '1px solid #A7F3D0', fontSize: 13
+              }}>
+                <div style={{ fontWeight: 700, color: 'var(--green)', marginBottom: 8, fontSize: 14 }}>마켓용 고정 URL (수정 시 ~10분 내 자동반영)</div>
+
+                {/* 전체 상세페이지 URL */}
+                <div style={{ marginBottom: 10, padding: '8px 12px', background: '#fff', borderRadius: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-md)', marginBottom: 4 }}>전체 상세페이지 (HTML)</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <code style={{ fontSize: 11, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--accent)' }}>{pageUrl}</code>
+                    <button onClick={() => { navigator.clipboard.writeText(pageUrl); showToast('URL 복사됨'); }}
+                      style={{ padding: '5px 12px', fontSize: 12, fontWeight: 600, background: 'var(--green)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', flexShrink: 0 }}>복사</button>
                   </div>
-                );
-              })}
-              <div style={{ fontSize: 11, color: 'var(--text-sm)', marginTop: 6 }}>
-                이 URL을 마켓 상세설명에 &lt;img src="..."&gt; 로 등록하면, 이미지 교체 시 자동 반영됩니다 (1시간 캐시)
+                </div>
+
+                {/* 개별 이미지 프록시 URL */}
+                {htmlImgCount > 0 && (
+                  <div style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-md)', marginBottom: 6 }}>
+                      개별 이미지 프록시 ({htmlImgCount}장)
+                    </div>
+                    {Array.from({ length: Math.min(htmlImgCount, 10) }, (_, idx) => {
+                      const imgUrl = `${baseUrl}&n=${idx}`;
+                      return (
+                        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                          <span style={{ fontSize: 11, color: 'var(--text-sm)', minWidth: 50 }}>이미지{idx + 1}</span>
+                          <code style={{ fontSize: 10, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-md)' }}>{imgUrl}</code>
+                          <button onClick={() => { navigator.clipboard.writeText(`<img src="${imgUrl}" style="width:100%;display:block;">`); showToast('img 태그 복사됨'); }}
+                            style={{ padding: '3px 8px', fontSize: 10, fontWeight: 600, background: 'var(--accent-l)', color: 'var(--accent)', border: 'none', borderRadius: 4, cursor: 'pointer', flexShrink: 0 }}>태그복사</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div style={{ fontSize: 11, color: 'var(--text-sm)', lineHeight: 1.6 }}>
+                  이 URL을 마켓 상세설명에 등록하세요. 어드민에서 수정하면 ~10분 내 자동 반영됩니다.
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* 비주얼편집 탭 */}
           {detailTab === 'visual' && (
@@ -1768,7 +1795,7 @@ function ProductsPage({ showToast }) {
                       const statusUI = {
                         none: { icon: '⚪', label: '미연결', color: '#D1D5DB', bg: '#F9FAFB' },
                         unregistered: { icon: '🔴', label: '프록시 미등록', color: 'var(--red)', bg: '#FEF2F2' },
-                        syncing: { icon: '🔵', label: `반영 중 (~${Math.max(1, 60 - Math.floor((Date.now() - new Date(p.updatedAt).getTime()) / 60000))}분 후)`, color: 'var(--accent)', bg: 'var(--accent-l)' },
+                        syncing: { icon: '🔵', label: `반영 중 (~${Math.max(1, 10 - Math.floor((Date.now() - new Date(p.updatedAt).getTime()) / 60000))}분 후)`, color: 'var(--accent)', bg: 'var(--accent-l)' },
                         synced: { icon: '🟢', label: '자동반영 중', color: 'var(--green)', bg: '#ECFDF5' },
                       }[status];
                       return (

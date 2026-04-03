@@ -1859,6 +1859,8 @@ function CSMemoScreen({building,problem,staffId,staffName,staffDay,onBack,onSave
   const [csMemo,setCsMemo]=useState('');
   const [csPosition,setCsPosition]=useState('');
   const [csShowPosition,setCsShowPosition]=useState(false);
+  const [csDesiredStart,setCsDesiredStart]=useState('');
+  const [csDocDeadline,setCsDocDeadline]=useState('');
   const [saving,setSaving]=useState(false);
   const [saveConfirm,setSaveConfirm]=useState(false);
   const memoScrollRef=useRef(null);
@@ -1874,7 +1876,7 @@ function CSMemoScreen({building,problem,staffId,staffName,staffDay,onBack,onSave
       problem:problem?.label||'-',problemCat:problem?.cat||'-',
       problems:csProbs,
       actions:csActions.map(id=>ACTION_TAGS.find(t=>t.id===id)?.label||id),
-      memo:csMemo,status:'신규',source:getUrlSource(),
+      memo:csMemo,desiredStartDate:csDesiredStart,docDeadline:csDocDeadline,status:'신규',source:getUrlSource(),
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
     // 자동 SMS 발송 (fire-and-forget)
@@ -1974,6 +1976,16 @@ function CSMemoScreen({building,problem,staffId,staffName,staffDay,onBack,onSave
           </div>
           <div style={{fontSize:12,fontWeight:700,color:'var(--purple)',marginBottom:7}}>현장 메모</div>
           <textarea className="minput" style={{borderColor:'var(--purple-m)'}} rows={3} placeholder="고객 반응, 특이사항, 후속 참고사항..." value={csMemo} onChange={e=>setCsMemo(e.target.value)}/>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginTop:14}}>
+            <div>
+              <div style={{fontSize:12,fontWeight:700,color:'var(--purple)',marginBottom:7}}>희망 착공일자</div>
+              <input className="minput" type="date" style={{borderColor:'var(--purple-m)'}} value={csDesiredStart} onChange={e=>setCsDesiredStart(e.target.value)}/>
+            </div>
+            <div>
+              <div style={{fontSize:12,fontWeight:700,color:'var(--purple)',marginBottom:7}}>자료 제출 기한</div>
+              <input className="minput" type="date" style={{borderColor:'var(--purple-m)'}} value={csDocDeadline} onChange={e=>setCsDocDeadline(e.target.value)}/>
+            </div>
+          </div>
         </div>
       </div>
       </div>
@@ -2006,6 +2018,8 @@ function ContactForm({building,problem,done,onSubmit,onBack,onLog,onNewCustomer}
   const [name,setName]=useState('');
   const [phone,setPhone]=useState('');
   const [request,setRequest]=useState('');
+  const [desiredStart,setDesiredStart]=useState('');
+  const [docDeadline,setDocDeadline]=useState('');
   const [loading,setLoading]=useState(false);
 
   if(done) return(
@@ -2030,7 +2044,7 @@ function ContactForm({building,problem,done,onSubmit,onBack,onLog,onNewCustomer}
   const handleSubmit=async()=>{
     if(!name.trim()||!phone.trim()){alert('성함과 연락처를 입력해주세요');return;}
     setLoading(true);
-    await onSubmit({name,phone,request,buildingType:building?.label,problem:problem?.label});
+    await onSubmit({name,phone,request,desiredStartDate:desiredStart,docDeadline,buildingType:building?.label,problem:problem?.label});
     setLoading(false);
   };
 
@@ -2051,7 +2065,11 @@ function ContactForm({building,problem,done,onSubmit,onBack,onLog,onNewCustomer}
           <div className="form-field"><label className="form-label">연락처 <span className="req">*</span></label><input className="form-input" placeholder="010-0000-0000" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/></div>
           <div className="form-field"><label className="form-label">건물유형</label><input className="form-input ro" value={building?.label||''} readOnly/></div>
           <div className="form-field"><label className="form-label">주요 문제</label><input className="form-input ro" value={problem?.label||''} readOnly/></div>
-          <div className="form-field" style={{marginBottom:0}}><label className="form-label">요청사항 (선택)</label><textarea className="form-input" placeholder="방문진단 요청, 제안서 발송 등 원하시는 내용을 자유롭게 입력해 주세요." value={request} onChange={e=>setRequest(e.target.value)} rows={3}/></div>
+          <div className="form-field"><label className="form-label">요청사항 (선택)</label><textarea className="form-input" placeholder="방문진단 요청, 제안서 발송 등 원하시는 내용을 자유롭게 입력해 주세요." value={request} onChange={e=>setRequest(e.target.value)} rows={3}/></div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+            <div className="form-field" style={{marginBottom:0}}><label className="form-label">희망 착공일자 (선택)</label><input className="form-input" type="date" value={desiredStart} onChange={e=>setDesiredStart(e.target.value)}/></div>
+            <div className="form-field" style={{marginBottom:0}}><label className="form-label">자료 제출 기한 (선택)</label><input className="form-input" type="date" value={docDeadline} onChange={e=>setDocDeadline(e.target.value)}/></div>
+          </div>
         </div>
         <p style={{fontSize:11,color:'var(--text-sm)',textAlign:'center'}}>수집된 정보는 박람회 후속 상담 목적으로만 활용됩니다.</p>
       </div>

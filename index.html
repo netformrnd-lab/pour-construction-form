@@ -28,6 +28,24 @@ firebase.initializeApp({
   appId:"1:881527274265:web:0caad9688e30beb1ea6388"
 });
 const db = firebase.firestore();
+
+// ─── Google Sheets 연동 ───
+// Apps Script 배포 URL을 여기에 붙여넣으세요
+const GOOGLE_SHEET_URL = '';
+
+function sendToSheet(data) {
+  if (!GOOGLE_SHEET_URL) return;
+  fetch(GOOGLE_SHEET_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }).then(function() {
+    console.log('[Sheet] 전송 완료');
+  }).catch(function(e) {
+    console.warn('[Sheet] 전송 실패 (무시):', e);
+  });
+}
 function getUrlSource(){try{return new URLSearchParams(window.location.search).get('source')||'';}catch(e){return'';}}
 // QR 스캔 카운트 기록 (페이지 로드 시 ?source= 파라미터가 있으면 qr-stats에 기록)
 (function(){
@@ -1879,6 +1897,7 @@ function CSMemoScreen({building,problem,staffId,staffName,staffDay,onBack,onSave
       memo:csMemo,desiredStartDate:csDesiredStart,docDeadline:csDocDeadline,status:'신규',source:getUrlSource(),
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
+    sendToSheet(Object.assign({_sheetType:'lead'},data));
     // 자동 SMS 발송 (fire-and-forget)
     const smsCfg=loadSolapiConfig();
     if(smsCfg.workerUrl){
@@ -2174,6 +2193,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       memo:ntMemo,memoImgs:ntMemoImgs,keywords:ntKeywords,brandTag:ntBrandTag,status:'신규',source:getUrlSource(),
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
+    sendToSheet(Object.assign({_sheetType:'lead'},data));
     // 자동 SMS 발송 (fire-and-forget)
     const smsCfg=loadSolapiConfig();
     if(smsCfg.workerUrl){
@@ -3852,6 +3872,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
       memo,memoImgs,keywords,status:'신규',source:getUrlSource(),
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
+    sendToSheet(Object.assign({_sheetType:'lead'},data));
     // 자동 SMS 발송 (fire-and-forget)
     const smsCfg=loadSolapiConfig();
     if(smsCfg.workerUrl){

@@ -410,11 +410,107 @@
 
 ---
 
-## §3. 컬렉션명 상수 (코드에서 사용)
+## §3. 신규 컬렉션 (2차 — defect-diagnosis.html + admin.html)
+
+### `defect-sites` — 완공현장 (AI 유사현장 검색 DB)
+
+> 어드민에서 등록. 영업앱에서 하자사진 촬영 시 유사현장 매칭에 사용.
+
+```javascript
+{
+  // 현장 기본 정보
+  siteName: "○○아파트 옥상방수",     // 현장명
+  region: "경기 수원시 영통구",       // 시/구 (지도 표시용)
+  address: "경기 수원시 영통구 ...",  // 상세 주소
+  lat: 37.2636,                     // 위도 (Kakao Maps 마커)
+  lng: 127.0286,                    // 경도
+  year: 2024,                       // 시공 연도
+  brand: "POUR공법",                 // POUR솔루션|POUR공법|POUR스토어|그로홈
+  method: "우레탄방수",               // 적용 공법
+  warrantyYears: 10,                 // 보증 기간 (년)
+
+  // 하자 분류 (Claude Vision 태그 기준)
+  defectType: "누수",                 // 누수|균열|들뜸|백화|박리|기타
+  defectPart: "옥상",                 // 옥상|외벽|지하|발코니|내부|기타
+  defectDetail: "슬래브 균열 동반 누수", // 상세 설명
+  severity: "중",                    // 경|중|심
+
+  // 사진 (Firebase Storage URL)
+  // 파일명 규칙: {연도}_{지역}_{부위}_{하자유형}_{단계}.jpg
+  // 예) 2024_수원_옥상_누수_전.jpg
+  photos: {
+    before: ["https://storage..."],  // 시공 전
+    during: ["https://storage..."],  // 시공 중
+    after:  ["https://storage..."],  // 시공 후
+  },
+  thumbnail: "https://storage...",   // 대표 썸네일 (after 중 1장)
+
+  // AI 검색 태그 (Claude Vision이 생성 or 관리자 수동)
+  tags: ["누수", "옥상", "균열", "우레탄", "슬래브"],
+
+  // 결과 요약
+  resultSummary: "우레탄 방수 전면 재시공, 균열 보수 병행. 10년 무하자 완료.",
+
+  // 메타
+  createdAt: "ISO",
+  updatedAt: "ISO",
+  createdBy: "박과장",
+  deleted: false,
+  deletedAt: null
+}
+```
+
+**파일명 네이밍 규칙 (Manus 자동 분류 기준):**
+```
+{연도}_{지역}_{부위}_{하자유형}_{단계}.jpg
+예시:
+  2024_수원_옥상_누수_전.jpg
+  2024_수원_옥상_누수_중.jpg
+  2024_수원_옥상_누수_후.jpg
+  2023_서울강동_외벽_균열_전.jpg
+```
+
+---
+
+### `sales-docs` — 영업자료 관리 (시방서·제안서·소개서·특허)
+
+> 어드민에서 업로드. 영업앱에서 상담 중 고객에게 즉시 전달.
+
+```javascript
+{
+  brand: "common",               // common|solution|method|store|grohome
+  category: "시방서",             // 시방서|제안서|소개서|특허|인증서|기타
+  title: "우레탄 방수 시방서 v2.1",
+  description: "우레탄 방수 전 공정 시방 기준서",
+
+  // 파일
+  fileUrl: "https://storage...", // Firebase Storage URL
+  fileSize: "2.4MB",
+  fileType: "pdf",               // pdf|pptx|docx|jpg
+
+  // 전달 설정
+  isActive: true,                // 영업앱 노출 여부
+  sendMethod: ["sms", "email"],  // 전달 가능 방법
+
+  // 통계
+  sendCount: 0,                  // 발송 횟수 (자동 증가)
+
+  // 메타
+  createdAt: "ISO",
+  updatedAt: "ISO",
+  uploadedBy: "김대리",
+  deleted: false,
+  deletedAt: null
+}
+```
+
+---
+
+## §4. 컬렉션명 상수 (코드에서 사용)
 
 ```javascript
 const COLLECTIONS = {
-  // 기존 (index.html)
+  // 기존 (index.html — 1차, 건드리지 말 것)
   LEADS: 'leads',
   LEADS_STORE: 'leads-store',
   LEADS_GROHOME: 'leads-grohome',
@@ -425,7 +521,7 @@ const COLLECTIONS = {
   APP_SMS_TEMPLATES: 'app-config',   // doc: 'smsTemplates'
   QR_STATS: 'qr-stats',
 
-  // 신규 (admin.html + site-*.html)
+  // 신규 (admin.html + site-*.html — 1차)
   LEADS_METHOD: 'leads-method',
   OUTBOUND_SOLUTION: 'outbound-solution',
   OUTBOUND_METHOD: 'outbound-method',
@@ -439,12 +535,16 @@ const COLLECTIONS = {
   SITE_RESOURCES: 'site-resources',
   PARTNER_COMPANIES: 'partner-companies',
   MATCHING_REQUESTS: 'matching-requests',
+
+  // 신규 (2차 — AI 하자진단)
+  DEFECT_SITES: 'defect-sites',      // 완공현장 DB (AI 유사현장 검색)
+  SALES_DOCS: 'sales-docs',          // 영업자료 (시방서·제안서·특허 즉시 전달)
 };
 ```
 
 ---
 
-## §4. 상태값 상수
+## §5. 상태값 상수
 
 ```javascript
 // 영업 파이프라인 상태
@@ -477,4 +577,13 @@ const CONTRACT_STATUS = ['대기', '활성', '만료', '해지'];
 
 // 활동 유형
 const ACTIVITY_TYPES = ['전화', '방문', '메일', '문자', '미팅', '기타'];
+
+// 하자 분류 (2차 — AI 하자진단)
+const DEFECT_TYPES = ['누수', '균열', '들뜸', '백화', '박리', '기타'];
+const DEFECT_PARTS = ['옥상', '외벽', '지하', '발코니', '내부', '기타'];
+const DEFECT_SEVERITY = ['경', '중', '심'];
+const PHOTO_STAGES = ['before', 'during', 'after']; // 시공전|시공중|시공후
+
+// 영업자료 카테고리 (2차)
+const SALES_DOC_CATEGORIES = ['시방서', '제안서', '소개서', '특허', '인증서', '기타'];
 ```

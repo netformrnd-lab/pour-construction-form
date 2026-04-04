@@ -1,3 +1,14 @@
 node_modules/
 package.json
 package-lock.json
+
+# 환경 변수 (실제 키 포함 — 절대 커밋 금지)
+.env
+.env.dev
+.env.prod
+.env.local
+.env.*.local
+
+# 백업 임시 파일
+backup/tmp-backup-*/
+

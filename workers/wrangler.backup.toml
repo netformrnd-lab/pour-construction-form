@@ -1,0 +1,19 @@
+# Cloudflare Workers — Firestore 백업 Cron
+# 배포: npx wrangler deploy --config workers/wrangler.backup.toml
+
+name = "pour-backup-cron"
+main = "backup-cron.js"
+compatibility_date = "2024-01-01"
+
+# ── Cron 스케줄 ───────────────────────────────────────────
+# UTC 15:00 = KST 자정 00:00
+[triggers]
+crons = ["0 15 * * *"]
+
+# ── 환경 변수 (평문 — 민감 정보는 wrangler secret으로) ────
+[vars]
+GITHUB_REPO = "netformrnd-lab/pour-construction-form"
+
+# ── 시크릿 등록 CLI 명령 (주석 참고용) ───────────────────
+# npx wrangler secret put GITHUB_TOKEN   --config workers/wrangler.backup.toml
+# npx wrangler secret put WORKER_SECRET  --config workers/wrangler.backup.toml

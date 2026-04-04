@@ -1,0 +1,124 @@
+name: Firestore 자동 백업
+
+on:
+  # 매일 자정 KST (UTC 15:00)
+  schedule:
+    - cron: '0 15 * * *'
+
+  # 수동 실행 (GitHub Actions 탭에서 직접 트리거 가능)
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: '백업 환경'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - development
+
+jobs:
+  # ── 프로덕션 백업 ─────────────────────────────────────────
+  backup-production:
+    name: 프로덕션 Firestore 백업
+    runs-on: ubuntu-latest
+    # 스케줄 실행 시 항상 prod, 수동 실행 시 선택값 따름
+    if: github.event_name == 'schedule' || github.event.inputs.environment == 'production'
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backup/package.json
+
+      - name: 의존성 설치
+        run: npm install
+        working-directory: backup
+
+      - name: Firestore 백업 실행 (프로덕션)
+        env:
+          NODE_ENV: production
+          FIREBASE_PROJECT_ID: ${{ secrets.PROD_FIREBASE_PROJECT_ID }}
+          FIREBASE_CLIENT_EMAIL: ${{ secrets.PROD_FIREBASE_CLIENT_EMAIL }}
+          FIREBASE_PRIVATE_KEY: ${{ secrets.PROD_FIREBASE_PRIVATE_KEY }}
+          GITHUB_TOKEN: ${{ secrets.BACKUP_GITHUB_TOKEN }}
+          GITHUB_REPO: ${{ github.repository }}
+          BACKUP_COLLECTIONS: ${{ vars.BACKUP_COLLECTIONS || 'leads,leads-store,leads-grohome,leads-method,activities,site-resources,partner-companies' }}
+        run: node firestore-backup.js
+        working-directory: backup
+
+      - name: 백업 실패 알림 (Slack — 선택사항)
+        if: failure()
+        run: |
+          echo "백업 실패 — 슬랙 웹훅 연동 시 여기에 curl 명령 추가"
+          # curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+          #   -H 'Content-type: application/json' \
+          #   --data '{"text":"🚨 POUR 프로덕션 Firestore 백업 실패! GitHub Actions 확인 요망"}'
+
+  # ── 개발 환경 백업 ─────────────────────────────────────────
+  backup-development:
+    name: 개발 Firestore 백업
+    runs-on: ubuntu-latest
+    if: github.event.inputs.environment == 'development'
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backup/package.json
+
+      - name: 의존성 설치
+        run: npm install
+        working-directory: backup
+
+      - name: Firestore 백업 실행 (개발)
+        env:
+          NODE_ENV: development
+          FIREBASE_PROJECT_ID: ${{ secrets.DEV_FIREBASE_PROJECT_ID }}
+          FIREBASE_CLIENT_EMAIL: ${{ secrets.DEV_FIREBASE_CLIENT_EMAIL }}
+          FIREBASE_PRIVATE_KEY: ${{ secrets.DEV_FIREBASE_PRIVATE_KEY }}
+          GITHUB_TOKEN: ${{ secrets.BACKUP_GITHUB_TOKEN }}
+          GITHUB_REPO: ${{ github.repository }}
+          BACKUP_COLLECTIONS: ${{ vars.BACKUP_COLLECTIONS || 'leads,leads-store,leads-grohome' }}
+        run: node firestore-backup.js
+        working-directory: backup
+
+  # ── 오래된 백업 정리 (월 1회) ─────────────────────────────
+  cleanup-old-backups:
+    name: 오래된 백업 정리
+    runs-on: ubuntu-latest
+    # 매월 1일 자정에만 실행
+    if: github.event_name == 'schedule'
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+        with:
+          ref: backup/firestore-snapshots
+          fetch-depth: 0
+          token: ${{ secrets.BACKUP_GITHUB_TOKEN }}
+
+      - name: 30일 이상 된 백업 폴더 삭제
+        run: |
+          CUTOFF=$(date -d '30 days ago' +%Y-%m-%dT)
+          echo "기준일: $CUTOFF"
+          # backups/prod/ 하위 타임스탬프 폴더 중 오래된 것 삭제
+          for dir in backups/prod/*/; do
+            dirname=$(basename "$dir")
+            if [[ "$dirname" < "$CUTOFF" && "$dirname" != "latest" ]]; then
+              echo "삭제: $dir"
+              git rm -rf "$dir" 2>/dev/null || true
+            fi
+          done
+          git diff --cached --quiet || git commit -m "cleanup: 30일 초과 백업 정리"
+          git push origin backup/firestore-snapshots || true

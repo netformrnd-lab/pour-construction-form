@@ -694,6 +694,7 @@ function ProductsPage({ showToast }) {
 
   const [uploading, setUploading] = useState(false);
   const [detailTab, setDetailTab] = useState('visual'); // visual | images | html | preview
+  const [slotCount, setSlotCount] = useState(10);
   const editorRef = useRef(null);
   const visualImgRef = useRef(null);
   const excelRef = useRef(null);
@@ -1270,10 +1271,10 @@ function ProductsPage({ showToast }) {
           {/* 마켓용 고정 URL 안내 */}
           {editingId && editingId !== 'new' && (form.detailImages?.length > 0 || form.detailHtml) && (() => {
             const baseUrl = `${window.location.origin}/api/product-img?id=${editingId}`;
-            const pageUrl = baseUrl;
-            // detailHtml에서 img 개수 추출
             const htmlImgCount = (form.detailHtml || '').match(/<img[^>]+src=/gi)?.length || 0;
-            const storageImgCount = form.detailImages?.length || 0;
+            const allSlotCode = Array.from({ length: slotCount }, (_, idx) =>
+              `<img src="${baseUrl}&n=${idx}" style="width:100%;display:block;">`
+            ).join('\n');
             return (
               <div style={{
                 padding: '14px 18px', marginBottom: 14, background: '#ECFDF5', borderRadius: 10,
@@ -1281,38 +1282,59 @@ function ProductsPage({ showToast }) {
               }}>
                 <div style={{ fontWeight: 700, color: 'var(--green)', marginBottom: 8, fontSize: 14 }}>마켓용 고정 URL (수정 시 ~10분 내 자동반영)</div>
 
-                {/* 전체 상세페이지 URL */}
-                <div style={{ marginBottom: 10, padding: '8px 12px', background: '#fff', borderRadius: 8 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-md)', marginBottom: 4 }}>전체 상세페이지 (HTML)</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <code style={{ fontSize: 11, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--accent)' }}>{pageUrl}</code>
-                    <button onClick={() => { navigator.clipboard.writeText(pageUrl); showToast('URL 복사됨'); }}
-                      style={{ padding: '5px 12px', fontSize: 12, fontWeight: 600, background: 'var(--green)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', flexShrink: 0 }}>복사</button>
+                {/* 슬롯 수 선택 */}
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-md)', marginBottom: 6 }}>
+                    슬롯 수 선택
+                    <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-sm)', marginLeft: 6 }}>
+                      (현재 이미지 {htmlImgCount}장 · 여유분 포함 등록 권장)
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {[5, 10, 15, 20].map(n => (
+                      <button key={n} onClick={() => setSlotCount(n)} style={{
+                        padding: '6px 14px', fontSize: 13, fontWeight: 700, borderRadius: 6, cursor: 'pointer', border: 'none',
+                        background: slotCount === n ? 'var(--green)' : 'var(--border-s)',
+                        color: slotCount === n ? '#fff' : 'var(--text-md)',
+                      }}>{n}장</button>
+                    ))}
                   </div>
                 </div>
 
-                {/* 개별 이미지 프록시 URL */}
-                {htmlImgCount > 0 && (
-                  <div style={{ marginBottom: 8 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-md)', marginBottom: 6 }}>
-                      개별 이미지 프록시 ({htmlImgCount}장)
-                    </div>
-                    {Array.from({ length: Math.min(htmlImgCount, 10) }, (_, idx) => {
-                      const imgUrl = `${baseUrl}&n=${idx}`;
-                      return (
-                        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                          <span style={{ fontSize: 11, color: 'var(--text-sm)', minWidth: 50 }}>이미지{idx + 1}</span>
-                          <code style={{ fontSize: 10, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-md)' }}>{imgUrl}</code>
-                          <button onClick={() => { navigator.clipboard.writeText(`<img src="${imgUrl}" style="width:100%;display:block;">`); showToast('img 태그 복사됨'); }}
-                            style={{ padding: '3px 8px', fontSize: 10, fontWeight: 600, background: 'var(--accent-l)', color: 'var(--accent)', border: 'none', borderRadius: 4, cursor: 'pointer', flexShrink: 0 }}>태그복사</button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                {/* 전체 코드 한 번에 복사 */}
+                <button onClick={() => { navigator.clipboard.writeText(allSlotCode); showToast(`${slotCount}슬롯 HTML 코드 복사됨 — 대행업체에 전달하세요`); }}
+                  style={{
+                    width: '100%', padding: '12px 0', fontSize: 14, fontWeight: 800, marginBottom: 12,
+                    background: 'var(--green)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer'
+                  }}>
+                  전체 코드 복사 ({slotCount}슬롯) — 대행업체 전달용
+                </button>
+
+                {/* 슬롯 목록 */}
+                <div style={{ marginBottom: 8 }}>
+                  {Array.from({ length: slotCount }, (_, idx) => {
+                    const imgUrl = `${baseUrl}&n=${idx}`;
+                    const isActive = idx < htmlImgCount;
+                    return (
+                      <div key={idx} style={{
+                        display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3,
+                        opacity: isActive ? 1 : 0.45,
+                      }}>
+                        <span style={{
+                          fontSize: 10, fontWeight: 700, minWidth: 44, padding: '2px 6px', borderRadius: 4, textAlign: 'center',
+                          background: isActive ? '#D1FAE5' : 'var(--border-s)',
+                          color: isActive ? 'var(--green)' : 'var(--text-sm)',
+                        }}>{isActive ? `이미지${idx + 1}` : `슬롯${idx + 1}`}</span>
+                        <code style={{ fontSize: 10, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-md)' }}>{imgUrl}</code>
+                        <button onClick={() => { navigator.clipboard.writeText(`<img src="${imgUrl}" style="width:100%;display:block;">`); showToast('img 태그 복사됨'); }}
+                          style={{ padding: '3px 8px', fontSize: 10, fontWeight: 600, background: 'var(--accent-l)', color: 'var(--accent)', border: 'none', borderRadius: 4, cursor: 'pointer', flexShrink: 0 }}>복사</button>
+                      </div>
+                    );
+                  })}
+                </div>
 
                 <div style={{ fontSize: 11, color: 'var(--text-sm)', lineHeight: 1.6 }}>
-                  이 URL을 마켓 상세설명에 등록하세요. 어드민에서 수정하면 ~10분 내 자동 반영됩니다.
+                  이미지가 있는 슬롯(진하게)은 바로 표시되고, 빈 슬롯(흐리게)은 이후 어드민에서 이미지 추가 시 자동으로 활성화됩니다.
                 </div>
               </div>
             );

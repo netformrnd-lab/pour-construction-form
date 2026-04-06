@@ -6,14 +6,14 @@
  * [설정 방법]
  * 1. Google 스프레드시트를 새로 만든다
  * 2. 시트 2개 생성 (정확한 시트명):
- *    - "박람회리드"  (박람회 고객메모 저장)
- *    - "NPS조사"    (NPS 설문 응답 저장)
+ *    - "2604_백스코_박람회DB"  (박람회 고객메모 저장)
+ *    - "NPS_드론조사"          (NPS 설문 응답 저장)
  * 3. 각 시트 1행에 아래 헤더를 입력 (복사-붙여넣기):
  *
- *    [박람회리드 시트 헤더]
+ *    [2604_백스코_박람회DB 시트 헤더]
  *    저장시각 | 일자 | 담당자 | 성함 | 회사 | 직책 | 전화 | 이메일 | 건물유형 | 문제유형 | 문제상세 | 관심항목 | 메모 | 상태 | 출처
  *
- *    [NPS조사 시트 헤더]
+ *    [NPS_드론조사 시트 헤더]
  *    제출시각 | 캠페인 | 성함 | 소속 | 연락처 | 직책 | NPS점수 | 구분 | 만족요인 | 개선요인 | 추가의견 | 출처
  *
  * 4. 스프레드시트 메뉴 → 확장 프로그램 → Apps Script 열기
@@ -34,8 +34,8 @@ function doPost(e) {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
 
     if (sheet_type === 'lead') {
-      const sheet = ss.getSheetByName('박람회리드');
-      if (!sheet) return error('시트 "박람회리드"를 찾을 수 없습니다');
+      const sheet = ss.getSheetByName('2604_백스코_박람회DB');
+      if (!sheet) return error('시트 "2604_백스코_박람회DB"를 찾을 수 없습니다');
       sheet.appendRow([
         payload.savedAt || new Date().toISOString(),
         payload.day || '',
@@ -55,8 +55,8 @@ function doPost(e) {
       ]);
     }
     else if (sheet_type === 'nps') {
-      const sheet = ss.getSheetByName('NPS조사');
-      if (!sheet) return error('시트 "NPS조사"를 찾을 수 없습니다');
+      const sheet = ss.getSheetByName('NPS_드론조사');
+      if (!sheet) return error('시트 "NPS_드론조사"를 찾을 수 없습니다');
       sheet.appendRow([
         payload.createdAt || new Date().toISOString(),
         payload.campaign || '',

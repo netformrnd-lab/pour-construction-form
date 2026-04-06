@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>POUR | AI 하자진단</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet"/>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyByDdBamhF6yINMm8uE0t7NRN0w865sYNE",
+  authDomain:"pour-app-prod.firebaseapp.com",
+  projectId:"pour-app-prod",
+  storageBucket:"pour-app-prod.firebasestorage.app",
+  messagingSenderId:"258161197518",
+  appId:"1:258161197518:web:e4f99fad335c981e78ab9f"
+});
+const db=firebase.firestore();
+const storage=firebase.storage();
+</script>
+<style>
+:root{--blue:#2563EB;--blue-l:#EFF6FF;--blue-m:#BFDBFE;--orange:#E8780F;--orange-l:#FFF7ED;--green:#059669;--green-l:#ECFDF5;--red:#DC2626;--red-l:#FEF2F2;--purple:#7C3AED;--purple-l:#F5F3FF;--text:#1E293B;--text-md:#64748B;--text-sm:#94A3B8;--bg:#F8FAFC;--card:#FFF;--border:#E2E8F0;--border-s:#F1F5F9;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;-webkit-font-smoothing:antialiased;}
+.app{max-width:900px;margin:0 auto;padding:20px;}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
+.header-left{display:flex;align-items:center;gap:12px;}
+.header-logo{font-size:20px;font-weight:900;color:var(--blue);}
+.header-logo span{color:var(--orange);}
+.header-badge{padding:4px 12px;border-radius:8px;background:var(--orange-l);color:var(--orange);font-size:11px;font-weight:700;}
+
+.section{background:var(--card);border-radius:16px;border:1.5px solid var(--border);padding:24px;margin-bottom:20px;box-shadow:0 2px 12px rgba(0,0,0,.04);}
+.section-title{font-size:16px;font-weight:800;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+
+.upload-zone{border:2px dashed var(--border);border-radius:14px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg);}
+.upload-zone:hover{border-color:var(--blue);background:var(--blue-l);}
+.upload-zone.has-photos{padding:16px;border-style:solid;}
+.upload-icon{font-size:40px;margin-bottom:8px;}
+.upload-text{font-size:14px;font-weight:600;color:var(--text-md);}
+.upload-sub{font-size:12px;color:var(--text-sm);margin-top:4px;}
+
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:12px;}
+.photo-item{position:relative;border-radius:10px;overflow:hidden;aspect-ratio:1;background:var(--bg);}
+.photo-item img{width:100%;height:100%;object-fit:cover;}
+.photo-remove{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;border:none;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+
+.ai-btn{width:100%;padding:16px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit;transition:opacity .2s;display:flex;align-items:center;justify-content:center;gap:10px;}
+.ai-btn:disabled{opacity:.5;cursor:not-allowed;}
+
+.result-card{background:var(--bg);border-radius:12px;padding:16px;margin-bottom:12px;}
+.result-label{font-size:11px;font-weight:700;color:var(--text-sm);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.result-value{font-size:15px;font-weight:700;color:var(--text);}
+.result-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.result-tag{padding:4px 10px;border-radius:8px;background:var(--blue-l);color:var(--blue);font-size:11px;font-weight:600;}
+
+.severity{display:inline-flex;padding:4px 12px;border-radius:8px;font-size:12px;font-weight:800;}
+.severity-high{background:var(--red-l);color:var(--red);}
+.severity-mid{background:var(--orange-l);color:var(--orange);}
+.severity-low{background:var(--green-l);color:var(--green);}
+
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.form-group{margin-bottom:12px;}
+.form-label{font-size:12px;font-weight:700;color:var(--text-md);margin-bottom:6px;display:block;}
+.form-input{width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;color:var(--text);outline:none;font-family:inherit;background:var(--card);}
+.form-input:focus{border-color:var(--blue);}
+textarea.form-input{resize:vertical;min-height:60px;}
+
+.btn{padding:14px 0;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;border:none;text-align:center;transition:all .2s;width:100%;}
+.btn-blue{background:var(--blue);color:#fff;}
+.btn-outline{background:var(--card);border:1.5px solid var(--border);color:var(--text-md);}
+.btn:disabled{opacity:.5;}
+
+.loading-dots{display:inline-flex;gap:4px;}
+.loading-dots span{width:8px;height:8px;border-radius:50%;background:#fff;animation:bounce .6s infinite alternate;}
+.loading-dots span:nth-child(2){animation-delay:.2s;}
+.loading-dots span:nth-child(3){animation-delay:.4s;}
+@keyframes bounce{to{opacity:.3;transform:translateY(-4px);}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.fade-in{animation:fadeIn .3s ease;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useRef}=React;
+
+/* ── 설정 ── */
+const CLAUDE_PROXY_URL=localStorage.getItem('claudeProxyUrl')||'';
+const CLAUDE_WORKER_SECRET=localStorage.getItem('claudeWorkerSecret')||'';
+
+const SYSTEM_PROMPT=`당신은 건축물 하자진단 전문가입니다. 사용자가 보내는 건물 하자 사진을 분석하여 다음 JSON 형식으로 응답하세요:
+
+{
+  "defectType": "하자 유형 (예: 옥상누수, 외벽균열, 도장박리, 바닥손상 등)",
+  "location": "하자 부위 (예: 옥상 방수층, 외벽 조인트, 지하주차장 천장 등)",
+  "severity": "심각도 (상/중/하)",
+  "cause": "추정 원인 (1-2문장)",
+  "recommendation": "보수 방법 추천 (1-2문장)",
+  "tags": ["관련 태그 3-5개"],
+  "pourMethod": "적합한 POUR 공법명 (예: POUR 듀얼강화방수 공법, POUR 에폭시 도장 공법 등, 해당 없으면 null)"
+}
+
+반드시 유효한 JSON만 응답하세요. 설명이나 추가 텍스트 없이 JSON만 반환하세요.`;
+
+function App(){
+  const [photos,setPhotos]=useState([]);
+  const [analyzing,setAnalyzing]=useState(false);
+  const [result,setResult]=useState(null);
+  const [memo,setMemo]=useState('');
+  const [customerName,setCustomerName]=useState('');
+  const [customerPhone,setCustomerPhone]=useState('');
+  const [buildingType,setBuildingType]=useState('');
+  const [address,setAddress]=useState('');
+  const [saving,setSaving]=useState(false);
+  const [saved,setSaved]=useState(false);
+  const [settingsOpen,setSettingsOpen]=useState(false);
+  const [proxyUrl,setProxyUrl]=useState(CLAUDE_PROXY_URL);
+  const [workerSecret,setWorkerSecret]=useState(CLAUDE_WORKER_SECRET);
+  const fileRef=useRef(null);
+
+  const handlePhotos=(e)=>{
+    const files=Array.from(e.target.files);
+    const newPhotos=files.map(f=>({file:f,preview:URL.createObjectURL(f)}));
+    setPhotos(prev=>[...prev,...newPhotos]);
+    setResult(null);
+  };
+
+  const removePhoto=(idx)=>{
+    setPhotos(prev=>prev.filter((_,i)=>i!==idx));
+    setResult(null);
+  };
+
+  const toBase64=(file)=>new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result.split(',')[1]);
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+
+  const analyze=async()=>{
+    if(!photos.length)return;
+    if(!proxyUrl){alert('설정에서 Claude Proxy URL을 입력하세요');setSettingsOpen(true);return;}
+
+    setAnalyzing(true);setResult(null);
+    try{
+      const imageContent=[];
+      for(const p of photos){
+        const b64=await toBase64(p.file);
+        const mediaType=p.file.type||'image/jpeg';
+        imageContent.push({type:'image',source:{type:'base64',media_type:mediaType,data:b64}});
+      }
+      imageContent.push({type:'text',text:'이 건물 하자 사진을 분석해주세요.'});
+
+      const res=await fetch(proxyUrl,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','X-Worker-Secret':workerSecret},
+        body:JSON.stringify({
+          system:SYSTEM_PROMPT,
+          messages:[{role:'user',content:imageContent}],
+          max_tokens:1024,
+        }),
+      });
+
+      const data=await res.json();
+      if(!res.ok)throw new Error(data.error||'API 오류');
+
+      const text=data.content?.[0]?.text||'';
+      // JSON 파싱 (코드블록 내 JSON도 처리)
+      const jsonMatch=text.match(/\{[\s\S]*\}/);
+      if(jsonMatch){
+        const parsed=JSON.parse(jsonMatch[0]);
+        setResult(parsed);
+        console.log('[ai-diagnosis] 분석 완료:',parsed);
+      }else{
+        throw new Error('AI 응답에서 JSON을 찾을 수 없습니다');
+      }
+    }catch(e){
+      console.error('[ai-diagnosis] 분석 실패:',e);
+      alert('분석 실패: '+e.message);
+    }
+    setAnalyzing(false);
+  };
+
+  const saveReport=async()=>{
+    setSaving(true);
+    try{
+      // 사진 업로드
+      const photoUrls=[];
+      for(const p of photos){
+        const path=`defect-diagnosis/${Date.now()}_${p.file.name}`;
+        const ref=storage.ref(path);
+        await ref.put(p.file);
+        const url=await ref.getDownloadURL();
+        photoUrls.push(url);
+      }
+
+      await db.collection('defect-diagnosis').add({
+        createdAt:new Date().toISOString(),
+        photos:photoUrls,
+        aiResult:result,
+        memo,
+        customerName,customerPhone,
+        buildingType,address,
+        source:'defect-diagnosis-tablet',
+      });
+      console.log('[ai-diagnosis] 리포트 저장 완료');
+      setSaved(true);
+    }catch(e){
+      console.error(e);
+      alert('저장 실패: '+e.message);
+    }
+    setSaving(false);
+  };
+
+  const reset=()=>{
+    setPhotos([]);setResult(null);setMemo('');setCustomerName('');setCustomerPhone('');setBuildingType('');setAddress('');setSaved(false);
+  };
+
+  const saveSettings=()=>{
+    localStorage.setItem('claudeProxyUrl',proxyUrl);
+    localStorage.setItem('claudeWorkerSecret',workerSecret);
+    setSettingsOpen(false);
+    alert('설정 저장됨');
+  };
+
+  /* ── 저장 완료 ── */
+  if(saved)return(
+    <div className="app fade-in">
+      <div className="section" style={{textAlign:'center',padding:'60px 20px'}}>
+        <div style={{fontSize:56,marginBottom:16}}>✅</div>
+        <div style={{fontSize:22,fontWeight:800,marginBottom:8}}>진단 리포트 저장 완료</div>
+        <div style={{fontSize:14,color:'var(--text-md)',lineHeight:1.6,marginBottom:24}}>AI 분석 결과와 사진이 저장되었습니다.</div>
+        <button className="btn btn-blue" style={{maxWidth:300,margin:'0 auto'}} onClick={reset}>새 진단 시작</button>
+      </div>
+    </div>
+  );
+
+  return(
+    <div className="app">
+      {/* 헤더 */}
+      <div className="header">
+        <div className="header-left">
+          <div className="header-logo">POUR<span>solution</span></div>
+          <div className="header-badge">AI 하자진단</div>
+        </div>
+        <button onClick={()=>setSettingsOpen(!settingsOpen)} style={{background:'none',border:'none',fontSize:20,cursor:'pointer'}}>⚙️</button>
+      </div>
+
+      {/* 설정 패널 */}
+      {settingsOpen&&(
+        <div className="section fade-in" style={{borderColor:'var(--orange)',background:'var(--orange-l)'}}>
+          <div className="section-title" style={{color:'var(--orange)'}}>⚙️ Claude API 설정</div>
+          <div className="form-group">
+            <label className="form-label">Proxy Worker URL</label>
+            <input className="form-input" placeholder="https://pour-claude-proxy.xxx.workers.dev" value={proxyUrl} onChange={e=>setProxyUrl(e.target.value)}/>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Worker Secret</label>
+            <input className="form-input" type="password" placeholder="시크릿 키" value={workerSecret} onChange={e=>setWorkerSecret(e.target.value)}/>
+          </div>
+          <button className="btn btn-blue" onClick={saveSettings}>설정 저장</button>
+        </div>
+      )}
+
+      {/* 1. 사진 업로드 */}
+      <div className="section">
+        <div className="section-title">📷 하자 사진 촬영/업로드</div>
+        <div className={`upload-zone ${photos.length?'has-photos':''}`} onClick={()=>fileRef.current?.click()}>
+          {photos.length===0&&<>
+            <div className="upload-icon">📸</div>
+            <div className="upload-text">사진을 촬영하거나 업로드하세요</div>
+            <div className="upload-sub">여러 장 선택 가능 · JPG, PNG</div>
+          </>}
+          {photos.length>0&&<div className="upload-sub">+ 사진 추가하기</div>}
+        </div>
+        <input ref={fileRef} type="file" accept="image/*" multiple capture="environment" onChange={handlePhotos} style={{display:'none'}}/>
+
+        {photos.length>0&&(
+          <div className="photo-grid">
+            {photos.map((p,i)=>(
+              <div key={i} className="photo-item">
+                <img src={p.preview}/>
+                <button className="photo-remove" onClick={e=>{e.stopPropagation();removePhoto(i);}}>✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 2. AI 분석 버튼 */}
+      {photos.length>0&&!result&&(
+        <button className="ai-btn fade-in" onClick={analyze} disabled={analyzing}>
+          {analyzing?<><span>🔍 AI 분석 중</span><div className="loading-dots"><span/><span/><span/></div></>
+            :<>🤖 AI 하자 분석 시작</>}
+        </button>
+      )}
+
+      {/* 3. 분석 결과 */}
+      {result&&(
+        <div className="section fade-in">
+          <div className="section-title">🤖 AI 분석 결과</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            <div className="result-card">
+              <div className="result-label">하자 유형</div>
+              <div className="result-value">{result.defectType}</div>
+            </div>
+            <div className="result-card">
+              <div className="result-label">하자 부위</div>
+              <div className="result-value">{result.location}</div>
+            </div>
+            <div className="result-card">
+              <div className="result-label">심각도</div>
+              <span className={`severity severity-${result.severity==='상'?'high':result.severity==='중'?'mid':'low'}`}>{result.severity}</span>
+            </div>
+            <div className="result-card">
+              <div className="result-label">추천 공법</div>
+              <div className="result-value" style={{fontSize:13,color:'var(--blue)'}}>{result.pourMethod||'-'}</div>
+            </div>
+          </div>
+          <div className="result-card" style={{marginTop:12}}>
+            <div className="result-label">추정 원인</div>
+            <div style={{fontSize:13,lineHeight:1.6}}>{result.cause}</div>
+          </div>
+          <div className="result-card">
+            <div className="result-label">보수 추천</div>
+            <div style={{fontSize:13,lineHeight:1.6}}>{result.recommendation}</div>
+          </div>
+          {result.tags?.length>0&&(
+            <div className="result-tags" style={{marginTop:8}}>
+              {result.tags.map((t,i)=><span key={i} className="result-tag">#{t}</span>)}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 4. 고객 정보 + 메모 */}
+      {result&&(
+        <div className="section fade-in">
+          <div className="section-title">📋 진단 리포트</div>
+          <div className="form-row">
+            <div><label className="form-label">고객 성함</label>
+              <input className="form-input" placeholder="홍길동" value={customerName} onChange={e=>setCustomerName(e.target.value)}/></div>
+            <div><label className="form-label">연락처</label>
+              <input className="form-input" placeholder="010-0000-0000" value={customerPhone} onChange={e=>setCustomerPhone(e.target.value)} inputMode="tel"/></div>
+          </div>
+          <div className="form-row">
+            <div><label className="form-label">건물유형</label>
+              <select className="form-input" value={buildingType} onChange={e=>setBuildingType(e.target.value)}>
+                <option value="">선택</option>
+                {['아파트','관공서','주택','빌라/오피스텔','병원','학교'].map(t=><option key={t} value={t}>{t}</option>)}
+              </select></div>
+            <div><label className="form-label">현장 주소</label>
+              <input className="form-input" placeholder="서울시 강남구..." value={address} onChange={e=>setAddress(e.target.value)}/></div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">현장 메모</label>
+            <textarea className="form-input" placeholder="고객 반응, 특이사항, 추가 참고사항..." value={memo} onChange={e=>setMemo(e.target.value)} rows={3}/>
+          </div>
+          <button className="btn btn-blue" onClick={saveReport} disabled={saving}>{saving?'저장 중...':'💾 진단 리포트 저장'}</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

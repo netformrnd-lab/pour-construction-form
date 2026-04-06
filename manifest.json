@@ -1,18 +1,30 @@
 {
   "name": "POUR 박람회 상담",
   "short_name": "POUR상담",
-  "description": "POUR솔루션 박람회 현장 상담 태블릿앱",
+  "description": "넷폼알앤디 · 박람회 현장 상담 태블릿앱",
   "start_url": "/index.html",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#F8FAFC",
-  "theme_color": "#2563EB",
+  "background_color": "#0B1D3A",
+  "theme_color": "#0B1D3A",
   "icons": [
     {
-      "src": "/logo-pour.png",
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

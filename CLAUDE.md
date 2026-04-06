@@ -29,7 +29,7 @@
 
 ### 기술 스택 (변경 금지)
 - **React 18** CDN (unpkg) + **Babel** standalone
-- **Firebase 10.12.0** compat — 프로젝트: `pour-exhibition` (prod) / `pour-exhibition-dev` (dev)
+- **Firebase 10.12.0** compat — 프로젝트: `pour-app-prod` (prod) / `pour-app-dev` (dev, 예정)
 - **Cloudflare Pages** 호스팅 + **Cloudflare Workers** (SMS·Claude API·백업 프록시)
 - **Claude API (Anthropic)** — 하자사진 분석·태그 생성·유사현장 매칭 (2차)
 - **Kakao Maps API** — 완공현장 지도 분포도 (2차)
@@ -90,11 +90,11 @@ POUR공법 입찰:    입찰등록 → 투찰완료 → 낙찰/유찰
 
 ### 환경 분리 (dev/prod)
 ```
-개발:  Firebase 프로젝트 pour-exhibition-dev  ← 2차 개발 시 사용
-운영:  Firebase 프로젝트 pour-exhibition       ← 1차 현행 운영 중 (건드리지 말 것)
+개발:  Firebase 프로젝트 pour-app-dev (예정)  ← 2차 개발 시 사용
+운영:  Firebase 프로젝트 pour-app-prod        ← 1차 현행 운영 중 (건드리지 말 것)
 
-.env.dev  → pour-exhibition-dev 연결 (git 커밋 금지)
-.env.prod → pour-exhibition 연결    (git 커밋 금지)
+.env.dev  → pour-app-dev 연결 (git 커밋 금지)
+.env.prod → pour-app-prod 연결    (git 커밋 금지)
 .env.example → 템플릿 (git 커밋 O)
 ```
 
@@ -140,7 +140,7 @@ Cloudflare Worker (workers/claude-proxy.js)
 
 | 작업 | 상태 |
 |------|------|
-| Firebase dev 프로젝트 생성 (`pour-exhibition-dev`) | 🔲 월요일 |
+| Firebase dev 프로젝트 생성 (`pour-app-dev`) | 🔲 월요일 |
 | Claude API 키 발급 | 🔲 월요일 |
 | Kakao Maps API 키 발급 | 🔲 월요일 |
 | .env.dev / .env.prod 파일 작성 | 🔲 월요일 |
@@ -173,7 +173,7 @@ Cloudflare Worker (workers/claude-proxy.js)
 ### 1. Firebase dev 프로젝트 생성
 ```
 1) console.firebase.google.com → 프로젝트 추가
-2) 프로젝트명: pour-exhibition-dev
+2) 프로젝트명: pour-app-dev
 3) Firestore 활성화 (테스트 모드)
 4) 서비스 계정 → 새 비공개 키 → JSON 다운로드
 5) JSON에서 project_id / client_email / private_key 복사
@@ -183,7 +183,7 @@ Cloudflare Worker (workers/claude-proxy.js)
 ```bash
 cp .env.example .env.dev
 # 아래 값 채우기
-FIREBASE_PROJECT_ID=pour-exhibition-dev
+FIREBASE_PROJECT_ID=pour-app-dev
 FIREBASE_CLIENT_EMAIL=...
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n..."
 GITHUB_TOKEN=ghp_...   # repo write 권한 PAT
@@ -214,10 +214,10 @@ npx wrangler deploy --config wrangler.backup.toml
 ```
 GitHub repo → Settings → Secrets and variables → Actions
 추가 항목:
-  PROD_FIREBASE_PROJECT_ID    = pour-exhibition
+  PROD_FIREBASE_PROJECT_ID    = pour-app-prod
   PROD_FIREBASE_CLIENT_EMAIL  = ...
   PROD_FIREBASE_PRIVATE_KEY   = ...
-  DEV_FIREBASE_PROJECT_ID     = pour-exhibition-dev
+  DEV_FIREBASE_PROJECT_ID     = pour-app-dev
   DEV_FIREBASE_CLIENT_EMAIL   = ...
   DEV_FIREBASE_PRIVATE_KEY    = ...
   BACKUP_GITHUB_TOKEN         = ghp_... (repo write PAT)

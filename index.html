@@ -635,9 +635,53 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
 <body>
 <div id="root">
 <!-- 앱 로딩 스플래시 (React 렌더링 전 표시, 렌더링 후 자동 교체) -->
-<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#0B1D3A;">
-  <img src="/logo-pour.png" alt="POUR" style="width:200px;margin-bottom:20px;opacity:.9;">
-  <div style="color:rgba(255,255,255,.4);font-size:13px;font-weight:600;font-family:Pretendard,sans-serif;letter-spacing:.05em;">박람회 상담 앱 로딩 중...</div>
+<div id="splash" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:linear-gradient(160deg,#0B1D3A 0%,#132D5E 50%,#0B1D3A 100%);overflow:hidden;position:relative;">
+  <style>
+    @keyframes splashPulse{0%,100%{opacity:.15;transform:scale(1);}50%{opacity:.25;transform:scale(1.1);}}
+    @keyframes splashLogoIn{0%{opacity:0;transform:translateY(30px) scale(.85);}100%{opacity:1;transform:translateY(0) scale(1);}}
+    @keyframes splashTextIn{0%{opacity:0;transform:translateY(16px);}100%{opacity:1;transform:translateY(0);}}
+    @keyframes splashBarGrow{0%{width:0;}100%{width:60%;}}
+    @keyframes splashDotPulse{0%,80%,100%{opacity:.3;transform:scale(.8);}40%{opacity:1;transform:scale(1.2);}}
+    @keyframes splashRing{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
+    @keyframes splashGlow{0%,100%{box-shadow:0 0 30px rgba(37,99,235,.1);}50%{box-shadow:0 0 60px rgba(37,99,235,.3);}}
+    #splash .bg-circle{position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,.04);animation:splashPulse 4s ease-in-out infinite;}
+    #splash .logo-wrap{animation:splashLogoIn .8s ease-out both;animation-delay:.2s;}
+    #splash .brand-text{animation:splashTextIn .6s ease-out both;animation-delay:.7s;}
+    #splash .sub-text{animation:splashTextIn .6s ease-out both;animation-delay:1s;}
+    #splash .loading-bar{animation:splashTextIn .5s ease-out both;animation-delay:1.3s;}
+    #splash .bar-inner{animation:splashBarGrow 2s ease-in-out infinite alternate;}
+    #splash .dot{animation:splashDotPulse 1.4s ease-in-out infinite;}
+    #splash .dot:nth-child(2){animation-delay:.2s;}
+    #splash .dot:nth-child(3){animation-delay:.4s;}
+  </style>
+  <!-- 배경 장식 원 -->
+  <div class="bg-circle" style="width:400px;height:400px;top:-100px;right:-100px;animation-delay:0s;"></div>
+  <div class="bg-circle" style="width:300px;height:300px;bottom:-80px;left:-80px;animation-delay:2s;"></div>
+  <div class="bg-circle" style="width:200px;height:200px;top:50%;left:50%;margin-top:-100px;margin-left:-100px;animation-delay:1s;"></div>
+  <!-- 로고 -->
+  <div class="logo-wrap" style="opacity:0;">
+    <div style="width:100px;height:100px;border-radius:24px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);animation:splashGlow 3s ease-in-out infinite;">
+      <img src="/logo-pour.png" alt="POUR" style="width:72px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.3));">
+    </div>
+  </div>
+  <!-- 브랜드명 -->
+  <div class="brand-text" style="opacity:0;margin-top:24px;font-family:Pretendard,sans-serif;font-size:22px;font-weight:900;color:#fff;letter-spacing:-.5px;">
+    Netform R&D
+  </div>
+  <div class="sub-text" style="opacity:0;margin-top:6px;font-family:Pretendard,sans-serif;font-size:12px;font-weight:500;color:rgba(255,255,255,.4);letter-spacing:.1em;">
+    건축물 유지보수 전문
+  </div>
+  <!-- 로딩 인디케이터 -->
+  <div class="loading-bar" style="opacity:0;margin-top:36px;display:flex;flex-direction:column;align-items:center;gap:12px;">
+    <div style="width:120px;height:3px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden;">
+      <div class="bar-inner" style="height:100%;border-radius:2px;background:linear-gradient(90deg,#2563EB,#60A5FA);"></div>
+    </div>
+    <div style="display:flex;gap:6px;">
+      <div class="dot" style="width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.4);"></div>
+      <div class="dot" style="width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.4);"></div>
+      <div class="dot" style="width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.4);"></div>
+    </div>
+  </div>
 </div>
 </div>
 <script type="text/babel">

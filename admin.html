@@ -88,11 +88,14 @@ const MENU = [
   { key: 'dashboard', label: '대시보드', icon: '📊' },
   { section: '스토어' },
   { key: 'products', label: '상품관리', icon: '📦' },
-  { section: '영업' },
-  { key: 'leads-solution', label: 'POUR솔루션', icon: '🏢' },
-  { key: 'leads-method', label: 'POUR공법', icon: '🔧' },
-  { key: 'leads-store', label: 'POUR스토어', icon: '🛒' },
-  { key: 'leads-grohome', label: '그로홈', icon: '🏠' },
+  { section: '인바운드' },
+  { key: 'inbound-solution', label: 'POUR솔루션', icon: '🏢' },
+  { key: 'inbound-method', label: 'POUR공법', icon: '🔧' },
+  { key: 'inbound-store', label: 'POUR스토어', icon: '🛒' },
+  { key: 'inbound-grohome', label: '그로홈', icon: '🏠' },
+  { section: '아웃바운드' },
+  { key: 'outbound-expo', label: '박람회', icon: '🎪' },
+  { key: 'outbound-always', label: '상시영업', icon: '📞', disabled: true },
   { section: '현장관리' },
   { key: 'defect-sites', label: '완공현장', icon: '🏗' },
   { section: '사이트' },
@@ -282,14 +285,15 @@ function Sidebar({ current, onNavigate, collapsed, onToggle }) {
             );
           }
           const active = current === item.key;
+          const isDisabled = item.disabled;
           return (
-            <button key={item.key} onClick={() => onNavigate(item.key)} style={{
+            <button key={item.key} onClick={() => !isDisabled && onNavigate(item.key)} style={{
               width:'100%', display:'flex', alignItems:'center', gap: collapsed ? 0 : 10,
               justifyContent: collapsed ? 'center' : 'flex-start',
               padding: collapsed ? '10px 0' : '10px 20px',
               background: active ? 'rgba(37,99,235,.2)' : 'transparent',
-              border:'none', color: active ? '#60A5FA' : 'rgba(255,255,255,.6)',
-              fontSize:13, fontWeight: active ? 700 : 500, cursor:'pointer',
+              border:'none', color: isDisabled ? 'rgba(255,255,255,.25)' : active ? '#60A5FA' : 'rgba(255,255,255,.6)',
+              fontSize:13, fontWeight: active ? 700 : 500, cursor: isDisabled ? 'not-allowed' : 'pointer',
               borderRight: active ? '3px solid #60A5FA' : '3px solid transparent',
               transition:'all .15s ease'
             }}>
@@ -1996,10 +2000,10 @@ function DashboardPage({ onNavigate }) {
   }
 
   const cards = [
-    { label: 'POUR솔루션', value: stats.solution, color: '#2563EB', bg: '#EFF6FF', key: 'leads-solution' },
-    { label: 'POUR공법', value: stats.method, color: '#E8780F', bg: '#FFF7ED', key: 'leads-method' },
-    { label: 'POUR스토어', value: stats.store, color: '#059669', bg: '#ECFDF5', key: 'leads-store' },
-    { label: '그로홈', value: stats.grohome, color: '#6D28D9', bg: '#F5F3FF', key: 'leads-grohome' },
+    { label: 'POUR솔루션', value: stats.solution, color: '#2563EB', bg: '#EFF6FF', key: 'inbound-solution' },
+    { label: 'POUR공법', value: stats.method, color: '#E8780F', bg: '#FFF7ED', key: 'inbound-method' },
+    { label: 'POUR스토어', value: stats.store, color: '#059669', bg: '#ECFDF5', key: 'inbound-store' },
+    { label: '그로홈', value: stats.grohome, color: '#6D28D9', bg: '#F5F3FF', key: 'inbound-grohome' },
   ];
 
   const statusColor = { '신규': '#DC2626', '검토중': '#D97706', '승인': '#059669', '반려': '#9CA3AF', '서류제출': '#7C3AED', '계약완료': '#10B981' };
@@ -2549,10 +2553,13 @@ function NPSPage({ showToast }) {
 const PIPELINE_STAGES=['신규','상담중','견적제출','계약예정','계약완료'];
 const PIPELINE_COLORS={'신규':'#DC2626','상담중':'#D97706','견적제출':'#2563EB','계약예정':'#7C3AED','계약완료':'#059669'};
 const BRAND_CONFIG={
-  'leads-solution':{collection:'leads',label:'POUR솔루션',color:'#2563EB',bg:'#EFF6FF',icon:'🏢'},
-  'leads-method':{collection:'leads-method',label:'POUR공법',color:'#E8780F',bg:'#FFF7ED',icon:'🔧'},
-  'leads-store':{collection:'leads-store',label:'POUR스토어',color:'#059669',bg:'#ECFDF5',icon:'🛒'},
-  'leads-grohome':{collection:'leads-grohome',label:'그로홈',color:'#6D28D9',bg:'#F5F3FF',icon:'🏠'},
+  /* 인바운드 — 사이트/웹폼에서 유입된 리드 */
+  'inbound-solution':{collection:'leads',label:'POUR솔루션',sublabel:'인바운드',color:'#2563EB',bg:'#EFF6FF',icon:'🏢',filter:lead=>['inbound-form','site-solution','web','online'].includes(lead.source)},
+  'inbound-method':{collection:'leads-method',label:'POUR공법',sublabel:'인바운드',color:'#E8780F',bg:'#FFF7ED',icon:'🔧',filter:lead=>['inbound-form','site-method','web','online'].includes(lead.source)},
+  'inbound-store':{collection:'leads-store',label:'POUR스토어',sublabel:'인바운드',color:'#059669',bg:'#ECFDF5',icon:'🛒',filter:lead=>['inbound-form','site-store','web','online'].includes(lead.source)},
+  'inbound-grohome':{collection:'leads-grohome',label:'그로홈',sublabel:'인바운드',color:'#6D28D9',bg:'#F5F3FF',icon:'🏠',filter:lead=>['inbound-form','site-grohome','web','online'].includes(lead.source)},
+  /* 아웃바운드 — 박람회 현장 상담 리드 */
+  'outbound-expo':{collection:'leads',label:'박람회',sublabel:'아웃바운드',color:'#E8780F',bg:'#FFF7ED',icon:'🎪',filter:lead=>!lead.source||['expo','exhibition','tablet','박람회','qr'].includes(lead.source)},
 };
 
 function LeadsKanbanPage({brandKey,showToast}){
@@ -2567,10 +2574,12 @@ function LeadsKanbanPage({brandKey,showToast}){
     setLoading(true);
     try{
       const snap=await db.collection(brand.collection).get();
-      const arr=[];
+      let arr=[];
       snap.forEach(doc=>arr.push({id:doc.id,...doc.data()}));
+      /* 소스 필터 적용 (인바운드/아웃바운드 구분) */
+      if(brand.filter)arr=arr.filter(brand.filter);
       arr.sort((a,b)=>(b.savedAt||'').localeCompare(a.savedAt||''));
-      console.log(`[leads] ${brand.label}: ${arr.length}건 로드`);
+      console.log(`[leads] ${brand.label}(${brand.sublabel||'전체'}): ${arr.length}건 로드`);
       setLeads(arr);
     }catch(e){console.error('[leads] 로드 실패:',e);}
     setLoading(false);
@@ -2716,7 +2725,7 @@ function LeadsKanbanPage({brandKey,showToast}){
         <div style={{display:'flex',alignItems:'center',gap:10}}>
           <span style={{fontSize:28}}>{brand.icon}</span>
           <div>
-            <div style={{fontSize:20,fontWeight:800}}>{brand.label} 영업</div>
+            <div style={{fontSize:20,fontWeight:800}}>{brand.label} 영업 {brand.sublabel&&<span style={{fontSize:13,fontWeight:600,color:brand.color,background:brand.bg,padding:'3px 10px',borderRadius:6,marginLeft:8}}>{brand.sublabel}</span>}</div>
             <div style={{fontSize:12,color:'var(--text-sm)'}}>총 {leads.length}건 · {PIPELINE_STAGES.map(s=>`${s} ${byStage(s).length}`).join(' · ')}</div>
           </div>
         </div>
@@ -3183,14 +3192,18 @@ function App() {
         return <DashboardPage onNavigate={setPage} />;
       case 'products':
         return <ProductsPage showToast={showToast} />;
-      case 'leads-solution':
-        return <LeadsKanbanPage brandKey="leads-solution" showToast={showToast} />;
-      case 'leads-method':
-        return <LeadsKanbanPage brandKey="leads-method" showToast={showToast} />;
-      case 'leads-store':
-        return <LeadsKanbanPage brandKey="leads-store" showToast={showToast} />;
-      case 'leads-grohome':
-        return <LeadsKanbanPage brandKey="leads-grohome" showToast={showToast} />;
+      case 'inbound-solution':
+        return <LeadsKanbanPage brandKey="inbound-solution" showToast={showToast} />;
+      case 'inbound-method':
+        return <LeadsKanbanPage brandKey="inbound-method" showToast={showToast} />;
+      case 'inbound-store':
+        return <LeadsKanbanPage brandKey="inbound-store" showToast={showToast} />;
+      case 'inbound-grohome':
+        return <LeadsKanbanPage brandKey="inbound-grohome" showToast={showToast} />;
+      case 'outbound-expo':
+        return <LeadsKanbanPage brandKey="outbound-expo" showToast={showToast} />;
+      case 'outbound-always':
+        return <PagePlaceholder title="상시영업" icon="📞" description="추후 개발 예정" />;
       case 'defect-sites':
         return <DefectSitesPage showToast={showToast} />;
       case 'inquiries':

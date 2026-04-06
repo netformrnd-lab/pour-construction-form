@@ -4482,7 +4482,7 @@ function AdminScreen({onBack}){
 
       {/* ── 유입 관리 탭 ── */}
       {!loading&&tab==='list'&&(
-        <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+        <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',minHeight:0}}>
           {/* 검색 + 필터 */}
           <div style={{padding:'10px 14px',background:'#fff',borderBottom:'1px solid var(--border)',flexShrink:0}}>
             <input
@@ -4528,7 +4528,7 @@ function AdminScreen({onBack}){
           </div>
 
           {/* 리드 목록 */}
-          <div style={{flex:1,overflowY:'auto',padding:'10px 12px',display:'flex',flexDirection:'column',gap:8}}>
+          <div style={{flex:1,overflowY:'auto',padding:'10px 12px',display:'flex',flexDirection:'column',gap:8,minHeight:0,WebkitOverflowScrolling:'touch'}}>
             {display.length===0&&<div className="empty">조건에 맞는 상담이 없어요</div>}
             {display.map((l,i)=>{
               const isOpen=expanded===l.id;

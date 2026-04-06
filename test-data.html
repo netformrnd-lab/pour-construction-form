@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>테스트 데이터 삽입</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyByDdBamhF6yINMm8uE0t7NRN0w865sYNE",
+  authDomain:"pour-app-prod.firebaseapp.com",
+  projectId:"pour-app-prod",
+  storageBucket:"pour-app-prod.firebasestorage.app",
+  messagingSenderId:"258161197518",
+  appId:"1:258161197518:web:e4f99fad335c981e78ab9f"
+});
+const db = firebase.firestore();
+
+const TEST_LEADS = [
+  // 박람회 리드 (source 없음 또는 expo)
+  {name:'김건설',phone:'01012345001',email:'kim@apt.co.kr',position:'관리소장',building:'아파트',buildingId:'apt',problem:'POUR 듀얼강화방수 공법',problems:['POUR 듀얼강화방수 공법','POUR 에폭시 도장 공법'],staff:'한준영',staffId:'s1',day:'4/16(목)',memo:'옥상 누수가 심각하다고 함. 작년 방수 공사 했는데 또 누수. 빠른 견적 요청. 만족할 수 있는 공법 원함.',actions:['카탈로그(공법)','제안서'],status:'신규',source:'expo',contactMethod:['전화']},
+  {name:'이방수',phone:'01012345002',email:'lee@gov.go.kr',position:'시설관리팀장',building:'관공서',buildingId:'gov',problem:'POUR 아스팔트싱글 방수 공법',problems:['POUR 아스팔트싱글 방수 공법'],staff:'한준영',staffId:'s1',day:'4/16(목)',memo:'지붕 슁글 탈락 심각. 예산 확보 가능. 긴급 보수 필요하다고 강조. 관심 높음.',actions:['제안서','견적산출'],status:'상담중',source:'expo',contactMethod:['전화','이메일']},
+  {name:'박도장',phone:'01012345003',email:'',position:'행정실장',building:'학교',buildingId:'school',problem:'POUR 균열보수 및 재도장 공법(바인더+플러스)',problems:['POUR 균열보수 및 재도장 공법(바인더+플러스)'],staff:'김영업',staffId:'s2',day:'4/16(목)',memo:'외벽 도장 벗겨짐 문제. 학생 안전 우려. 방학 중 시공 희망.',actions:['카탈로그(공법)'],status:'신규',source:'',contactMethod:['전화']},
+  {name:'최주차',phone:'01012345004',email:'choi@villa.com',position:'건물주',building:'빌라/오피스텔',buildingId:'villa',problem:'POUR 에폭시 도장 공법',problems:['POUR 에폭시 도장 공법','POUR 엠보라이닝 도장 공법'],staff:'김영업',staffId:'s2',day:'4/16(목)',memo:'지하주차장 바닥 에폭시 완전 벗겨짐. 분진 심각. 빠른 시공 원함. 견적 비교 중.',actions:['단가표','견적산출'],status:'견적제출',source:'expo',contactMethod:['전화']},
+  {name:'정아파트',phone:'01012345005',email:'jung@apt.kr',position:'입주자대표',building:'아파트',buildingId:'apt',problem:'POUR PVC 방수 공법',problems:['POUR PVC 방수 공법','POUR 듀얼강화방수 공법'],staff:'한준영',staffId:'s1',day:'4/17(금)',memo:'장기수선 계획에 방수 포함. 비교 견적 3곳 받는 중. 가격보다 품질 중요하다고 함. 매우 긍정적.',actions:['제안서','카탈로그(공법)','인증서/시험성적서'],status:'계약예정',source:'expo',contactMethod:['전화','이메일']},
+  {name:'한병원',phone:'01012345006',email:'han@hospital.co.kr',position:'시설팀장',building:'병원',buildingId:'hospital',problem:'POUR 아크릴 배면차수 방수 공법',problems:['POUR 아크릴 배면차수 방수 공법'],staff:'김영업',staffId:'s2',day:'4/17(금)',memo:'지하 누수 피해 크다. 의료장비 손상 우려. 긴급. 즉시 현장 방문 요청.',actions:['견적산출','제안서'],status:'상담중',source:'',contactMethod:['전화']},
+  {name:'강학교',phone:'01012345007',email:'kang@school.ac.kr',position:'행정담당자',building:'학교',buildingId:'school',problem:'POUR 보도블럭 보수 및 단면 복구',problems:['POUR 보도블럭 보수 및 단면 복구','POUR 아스콘 균열보수 및 단면복구 공법'],staff:'한준영',staffId:'s1',day:'4/17(금)',memo:'운동장 보도블럭 침하, 학생 넘어짐 사고 발생. 안전 문제로 급함.',actions:['카탈로그(공법)'],status:'신규',source:'expo',contactMethod:['전화']},
+  {name:'윤관리',phone:'01012345008',email:'yoon@apt.co.kr',position:'관리소장',building:'아파트',buildingId:'apt',problem:'POUR 우레탄 방수 공법',problems:['POUR 우레탄 방수 공법'],staff:'김영업',staffId:'s2',day:'4/17(금)',memo:'옥상 우레탄 방수 노후. 하자 발생. 이전 업체 불만족. 새로운 공법 관심.',actions:['카탈로그(자재)','제안서'],status:'상담중',source:'expo',contactMethod:['이메일']},
+  {name:'서빌딩',phone:'01012345009',email:'',position:'건물주',building:'빌라/오피스텔',buildingId:'villa',problem:'POUR 금속기와 방수 공법',problems:['POUR 금속기와 방수 공법'],staff:'한준영',staffId:'s1',day:'4/18(토)',memo:'금속기와 누수. 비용 문제로 고민 중. 보류 가능성.',actions:[],status:'신규',source:'',contactMethod:['전화']},
+  {name:'조아파트',phone:'01012345010',email:'jo@lh.or.kr',position:'장기수선담당',building:'아파트',buildingId:'apt',problem:'POUR 듀얼강화방수 공법',problems:['POUR 듀얼강화방수 공법','POUR 탄성강화 보강공법 (바탕면)'],staff:'김영업',staffId:'s2',day:'4/18(토)',memo:'1200세대 대단지. 옥상+외벽 동시 시공 검토. 계약 확정. 매우 만족.',actions:['견적산출','제안서','인증서/시험성적서'],status:'계약완료',source:'expo',contactMethod:['전화','이메일']},
+  {name:'임주택',phone:'01012345011',email:'',position:'',building:'주택',buildingId:'house',problem:'POUR 아스팔트싱글 방수 공법',problems:['POUR 아스팔트싱글 방수 공법'],staff:'한준영',staffId:'s1',day:'4/18(토)',memo:'단독주택 지붕 누수. 개인이라 예산 한정. 견적 요청.',actions:['단가표'],status:'견적제출',source:'',contactMethod:['전화']},
+  {name:'배관공서',phone:'01012345012',email:'bae@city.go.kr',position:'조달팀장',building:'관공서',buildingId:'gov',problem:'POUR MMA 공법',problems:['POUR MMA 공법','POUR 아스콘 씰코팅 공법'],staff:'김영업',staffId:'s2',day:'4/18(토)',memo:'주차장 MMA 도장 관심. 입찰 예정. 시방서 및 인증서 요청. 기대감 높음.',actions:['제안서','인증서/시험성적서','카탈로그(공법)'],status:'상담중',source:'expo',contactMethod:['이메일']},
+  // 인바운드 리드
+  {name:'문인바운드',phone:'01012345013',email:'moon@test.com',position:'',building:'아파트',buildingId:'apt',problem:'옥상·지붕 누수',problems:['옥상·지붕 누수','균열·크랙'],staff:'',staffId:'',day:'',memo:'',actions:[],status:'신규',source:'inbound-form',contactMethod:[]},
+  {name:'신웹폼',phone:'01012345014',email:'shin@test.com',position:'관리소장',building:'아파트',buildingId:'apt',problem:'외벽 누수',problems:['외벽 누수'],staff:'',staffId:'',day:'',memo:'',actions:[],status:'신규',source:'site-solution',contactMethod:[]},
+];
+
+async function insertTestData() {
+  const btn = document.getElementById('btn');
+  btn.disabled = true;
+  btn.textContent = '삽입 중...';
+  const log = document.getElementById('log');
+
+  let count = 0;
+  for (const lead of TEST_LEADS) {
+    const data = {
+      ...lead,
+      savedAt: new Date(2026, 3, lead.day ? parseInt(lead.day.split('/')[1]) : 6, 9 + Math.floor(Math.random()*8), Math.floor(Math.random()*60)).toISOString(),
+    };
+    if (lead.source === 'inbound-form' || lead.source === 'site-solution') {
+      data.desiredStartDate = '2026-06-01';
+      data.docDeadline = '2026-05-15';
+    }
+    try {
+      const ref = await db.collection('leads').add(data);
+      count++;
+      log.innerHTML += `<div>✅ ${count}. ${lead.name} (${lead.status}) → ${ref.id}</div>`;
+    } catch(e) {
+      log.innerHTML += `<div style="color:red">❌ ${lead.name}: ${e.message}</div>`;
+    }
+  }
+
+  btn.textContent = `완료! ${count}건 삽입됨`;
+  btn.style.background = '#059669';
+  log.innerHTML += `<br><div style="font-weight:bold;color:#059669">🎉 총 ${count}건 테스트 데이터 삽입 완료</div>`;
+  log.innerHTML += `<div style="color:#94A3B8;font-size:12px;margin-top:8px">확인 후 삭제하려면 박람회 관리자 > 유입관리에서 선택 삭제하세요</div>`;
+}
+</script>
+<style>
+body{font-family:'Pretendard',sans-serif;background:#F8FAFC;padding:40px;max-width:600px;margin:0 auto;}
+h1{font-size:20px;font-weight:800;margin-bottom:8px;}
+p{font-size:13px;color:#64748B;margin-bottom:20px;line-height:1.5;}
+#btn{width:100%;padding:16px;border-radius:12px;border:none;background:#2563EB;color:#fff;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit;}
+#btn:disabled{opacity:.6;cursor:not-allowed;}
+#log{margin-top:20px;padding:16px;background:#fff;border-radius:12px;border:1px solid #E2E8F0;font-size:12px;line-height:1.8;max-height:400px;overflow-y:auto;}
+</style>
+</head>
+<body>
+<h1>🧪 테스트 데이터 삽입</h1>
+<p>
+  총 14건의 테스트 리드를 Firestore <code>leads</code> 컬렉션에 삽입합니다.<br>
+  - 박람회 리드 12건 (다양한 상태/담당자/건물/하자유형)<br>
+  - 인바운드 리드 2건 (웹폼/사이트 유입)<br>
+  - 상담 메모 포함 (키워드 분석 테스트용)
+</p>
+<button id="btn" onclick="insertTestData()">🚀 테스트 데이터 삽입</button>
+<div id="log"></div>
+</body>
+</html>

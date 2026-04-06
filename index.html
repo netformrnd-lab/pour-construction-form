@@ -10,10 +10,11 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="POUR상담">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#2563EB">
+<meta name="theme-color" content="#0B1D3A">
 <link rel="manifest" href="/manifest.json">
-<link rel="apple-touch-icon" href="/logo-pour.png">
-<link rel="icon" type="image/png" href="/logo-pour.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -632,7 +633,13 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
 </style>
 </head>
 <body>
-<div id="root"></div>
+<div id="root">
+<!-- 앱 로딩 스플래시 (React 렌더링 전 표시, 렌더링 후 자동 교체) -->
+<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#0B1D3A;">
+  <img src="/logo-pour.png" alt="POUR" style="width:200px;margin-bottom:20px;opacity:.9;">
+  <div style="color:rgba(255,255,255,.4);font-size:13px;font-weight:600;font-family:Pretendard,sans-serif;letter-spacing:.05em;">박람회 상담 앱 로딩 중...</div>
+</div>
+</div>
 <script type="text/babel">
 const {useState,useRef,useEffect,useCallback}=React;
 
@@ -1499,7 +1506,21 @@ const BUILDING_LABEL_TO_ID=Object.fromEntries(BUILDING_TYPES.map(b=>[b.label,b.i
 const ADMIN_PIN_KEY='pourAdminPin';
 const hashPin=async(pin)=>{const enc=new TextEncoder().encode(pin);const buf=await crypto.subtle.digest('SHA-256',enc);return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');};
 const loadAdminPin=()=>localStorage.getItem(ADMIN_PIN_KEY);
-const saveAdminPin=hash=>localStorage.setItem(ADMIN_PIN_KEY,hash);
+const saveAdminPin=hash=>{
+  localStorage.setItem(ADMIN_PIN_KEY,hash);
+  try{db.collection('config').doc('adminPin').set({hash}).catch(()=>{});}catch(e){}
+};
+/* Firestore에서 PIN 동기화 — 다른 기기에서도 같은 PIN 사용 */
+const syncAdminPinFromFirestore=async()=>{
+  try{
+    const snap=await db.collection('config').doc('adminPin').get();
+    if(snap.exists&&snap.data().hash){
+      localStorage.setItem(ADMIN_PIN_KEY,snap.data().hash);
+      return snap.data().hash;
+    }
+  }catch(e){}
+  return null;
+};
 
 const loadStaffList=()=>{try{return JSON.parse(localStorage.getItem('pourStaffList')||'[]');}catch{return[];}};
 const saveStaffList=l=>{
@@ -5205,6 +5226,11 @@ function App(){
   const [gridCols,setGridCols]=useState(()=>parseInt(localStorage.getItem('pourGridCols'))||3);
 
   useEffect(()=>{syncPhotosFromFirestore(null,setProbPhotos);},[]);
+
+  /* Firestore에서 PIN 동기화 — 다른 기기에서도 setup 안 뜨게 */
+  useEffect(()=>{
+    if(!loadAdminPin()){syncAdminPinFromFirestore();}
+  },[]);
 
   /* Firestore에서 담당자 목록 동기화 — 다른 기기에서 등록한 담당자도 반영 */
   useEffect(()=>{

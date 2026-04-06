@@ -25,13 +25,13 @@ const IS_PREVIEW = location.hostname !== 'pour-app-prod.pages.dev'
                 && !location.hostname.startsWith('127.');
 
 const FIREBASE_CONFIG = IS_PREVIEW
-  ? { /* ── 2차 개발용 (Preview) ── 나중에 dev 프로젝트 생성 시 교체 ── */
-      apiKey:"AIzaSyByDdBamhF6yINMm8uE0t7NRN0w865sYNE",
-      authDomain:"pour-app-prod.firebaseapp.com",
-      projectId:"pour-app-prod",
-      storageBucket:"pour-app-prod.firebasestorage.app",
-      messagingSenderId:"258161197518",
-      appId:"1:258161197518:web:e4f99fad335c981e78ab9f"
+  ? { /* ── 2차 개발용 (Preview → pour-app-dev) ── */
+      apiKey:"AIzaSyAvxEOMw1ND96VNKfQykGDmzGw_z_NPRds",
+      authDomain:"pour-app-dev.firebaseapp.com",
+      projectId:"pour-app-dev",
+      storageBucket:"pour-app-dev.firebasestorage.app",
+      messagingSenderId:"42873704117",
+      appId:"1:42873704117:web:ca21e80fe8b885904538fc"
     }
   : { /* ── 운영용 (Production) ── */
       apiKey:"AIzaSyByDdBamhF6yINMm8uE0t7NRN0w865sYNE",

@@ -3258,6 +3258,31 @@ function ExpoLeadsPage({showToast,onNavigate}){
             ))}
           </div>
 
+          {/* ── 전환율 카드 ── */}
+          {(()=>{
+            const total=leads.length||1;
+            const consulting=byStatus('상담중').length;
+            const quote=byStatus('견적제출').length;
+            const contract=byStatus('계약완료').length+byStatus('계약예정').length;
+            const convRate=Math.round(contract/total*100);
+            const contactRate=Math.round((leads.filter(l=>l.phone||l.email).length)/total*100);
+            return(
+              <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:20}}>
+                {[{label:'연락처 확보율',value:`${contactRate}%`,sub:`${leads.filter(l=>l.phone||l.email).length}/${leads.length}`,color:'#2563EB'},
+                  {label:'상담 전환율',value:`${Math.round(consulting/total*100)}%`,sub:`신규→상담중`,color:'#D97706'},
+                  {label:'견적 전환율',value:`${Math.round(quote/total*100)}%`,sub:`상담→견적`,color:'#7C3AED'},
+                  {label:'계약 전환율',value:`${convRate}%`,sub:`전체→계약`,color:'#059669'}
+                ].map(c=>(
+                  <div key={c.label} style={{background:'#fff',borderRadius:12,padding:'16px',boxShadow:'0 2px 8px rgba(0,0,0,.04)',textAlign:'center'}}>
+                    <div style={{fontSize:11,fontWeight:600,color:'var(--text-md)',marginBottom:8}}>{c.label}</div>
+                    <div style={{fontSize:28,fontWeight:900,color:c.color}}>{c.value}</div>
+                    <div style={{fontSize:10,color:'var(--text-sm)',marginTop:4}}>{c.sub}</div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:20}}>
             {/* ── 파이프라인 현황 ── */}
             <div style={{background:'#fff',borderRadius:12,padding:20,boxShadow:'0 2px 8px rgba(0,0,0,.04)'}}>
@@ -3296,23 +3321,115 @@ function ExpoLeadsPage({showToast,onNavigate}){
               :buildingRank.map(([name,cnt])=>{const pct=leads.length?Math.round(cnt/leads.length*100):0;return(
                 <div key={name} style={{display:'flex',alignItems:'center',gap:10,padding:'6px 0'}}>
                   <span style={{flex:1,fontSize:13,fontWeight:600}}>{name}</span>
-                  <span style={{fontSize:12,color:'var(--text-sm)'}}>{cnt}건 ({pct}%)</span>
+                  <div style={{width:80,height:5,borderRadius:3,background:'var(--border-s)'}}>
+                    <div style={{height:'100%',borderRadius:3,background:'#2563EB',width:`${pct}%`}}/>
+                  </div>
+                  <span style={{fontSize:12,color:'var(--text-sm)',minWidth:55,textAlign:'right'}}>{cnt}건 ({pct}%)</span>
                 </div>
               );})}
             </div>
 
-            {/* ── 최근 리드 ── */}
-            <div style={{background:'#fff',borderRadius:12,padding:20,boxShadow:'0 2px 8px rgba(0,0,0,.04)'}}>
-              <div style={{fontSize:14,fontWeight:700,marginBottom:14}}>📋 최근 상담 리드</div>
-              {leads.slice(0,6).map(l=>(
-                <div key={l.id} onClick={()=>setSelected(l)} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 4px',borderBottom:'1px solid var(--border-s)',cursor:'pointer',fontSize:13}}>
-                  <span style={{width:8,height:8,borderRadius:'50%',background:PIPELINE_COLORS[l.status||'신규'],flexShrink:0}}/>
-                  <span style={{fontWeight:600,flex:1}}>{l.name||'-'}</span>
-                  <span style={{color:'var(--text-sm)',fontSize:11}}>{l.building||''}</span>
-                  <span style={{color:'var(--text-sm)',fontSize:11}}>{formatDate(l.savedAt)}</span>
+            {/* ── 하자(공법) 유형 분포 ── */}
+            {(()=>{
+              const probMap={};
+              leads.forEach(l=>{
+                const ps=Array.isArray(l.problems)?l.problems:(l.problem?[l.problem]:[]);
+                ps.forEach(p=>{probMap[p]=(probMap[p]||0)+1;});
+              });
+              const probRank=Object.entries(probMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
+              return(
+                <div style={{background:'#fff',borderRadius:12,padding:20,boxShadow:'0 2px 8px rgba(0,0,0,.04)'}}>
+                  <div style={{fontSize:14,fontWeight:700,marginBottom:14}}>⚡ 하자유형 TOP</div>
+                  {probRank.length===0?<div style={{color:'var(--text-sm)',fontSize:13,padding:20,textAlign:'center'}}>데이터 없음</div>
+                  :probRank.map(([name,cnt],i)=>{const pct=leads.length?Math.round(cnt/leads.length*100):0;return(
+                    <div key={name} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 0',fontSize:12}}>
+                      <span style={{fontWeight:700,color:i<3?'var(--orange)':'var(--text-sm)',minWidth:16}}>{i+1}</span>
+                      <span style={{flex:1,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}</span>
+                      <span style={{color:'var(--text-sm)'}}>{cnt}건</span>
+                    </div>
+                  );})}
                 </div>
-              ))}
-            </div>
+              );
+            })()}
+          </div>
+
+          {/* ── 상담 메모 키워드 분석 ── */}
+          {(()=>{
+            const allMemos=leads.map(l=>l.memo||'').filter(m=>m.trim()).join(' ');
+            const stopWords=new Set(['의','가','이','은','는','을','를','에','로','으로','와','과','도','만','까지','부터','에서','한','할','하고','있다','없다','된','들','것','수','등','그','더','좀','잘','안','못','또','및','중','후','때','위','위해','대한','통해','관련','대해']);
+
+            // 단어 추출 (2글자 이상)
+            const words=allMemos.replace(/[^가-힣a-zA-Z0-9\s]/g,' ').split(/\s+/).filter(w=>w.length>=2&&!stopWords.has(w));
+            const wordMap={};words.forEach(w=>{wordMap[w]=(wordMap[w]||0)+1;});
+            const wordRank=Object.entries(wordMap).sort((a,b)=>b[1]-a[1]);
+
+            // 키워드 분류
+            const positiveWords=['만족','좋','감사','관심','긍정','원','필요','희망','기대','요청','원합','빠른','급','추천','의뢰','계약','진행'];
+            const negativeWords=['불만','심각','누수','균열','파손','피해','손상','위험','긴급','문제','하자','고장','노후','침수','탈락','벗겨','부식'];
+            const positiveFound=wordRank.filter(([w])=>positiveWords.some(pw=>w.includes(pw))).slice(0,10);
+            const negativeFound=wordRank.filter(([w])=>negativeWords.some(nw=>w.includes(nw))).slice(0,10);
+            const topKeywords=wordRank.slice(0,15);
+
+            const memoCount=leads.filter(l=>l.memo&&l.memo.trim()).length;
+            const memoRate=leads.length?Math.round(memoCount/leads.length*100):0;
+
+            return(
+              <div style={{background:'#fff',borderRadius:12,padding:20,boxShadow:'0 2px 8px rgba(0,0,0,.04)',marginBottom:20}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
+                  <div style={{fontSize:14,fontWeight:700}}>💬 상담 메모 키워드 분석</div>
+                  <span style={{fontSize:11,color:'var(--text-sm)'}}>메모 작성률: <b style={{color:'var(--orange)'}}>{memoRate}%</b> ({memoCount}/{leads.length})</span>
+                </div>
+
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14}}>
+                  {/* 잦은 키워드 */}
+                  <div>
+                    <div style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:10,display:'flex',alignItems:'center',gap:4}}>🔤 잦은 키워드</div>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+                      {topKeywords.length===0?<span style={{fontSize:12,color:'var(--text-sm)'}}>메모 데이터 없음</span>
+                      :topKeywords.map(([w,cnt])=>(
+                        <span key={w} style={{padding:'4px 10px',borderRadius:8,background:'var(--border-s)',color:'var(--text)',fontSize:11,fontWeight:600}}>{w} <span style={{color:'var(--text-sm)'}}>{cnt}</span></span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 긍정 키워드 */}
+                  <div>
+                    <div style={{fontSize:12,fontWeight:700,color:'#059669',marginBottom:10,display:'flex',alignItems:'center',gap:4}}>😊 긍정 키워드</div>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+                      {positiveFound.length===0?<span style={{fontSize:12,color:'var(--text-sm)'}}>해당 없음</span>
+                      :positiveFound.map(([w,cnt])=>(
+                        <span key={w} style={{padding:'4px 10px',borderRadius:8,background:'#ECFDF5',color:'#059669',fontSize:11,fontWeight:600}}>{w} <span style={{opacity:.6}}>{cnt}</span></span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 부정 키워드 */}
+                  <div>
+                    <div style={{fontSize:12,fontWeight:700,color:'#DC2626',marginBottom:10,display:'flex',alignItems:'center',gap:4}}>😟 부정/하자 키워드</div>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+                      {negativeFound.length===0?<span style={{fontSize:12,color:'var(--text-sm)'}}>해당 없음</span>
+                      :negativeFound.map(([w,cnt])=>(
+                        <span key={w} style={{padding:'4px 10px',borderRadius:8,background:'#FEF2F2',color:'#DC2626',fontSize:11,fontWeight:600}}>{w} <span style={{opacity:.6}}>{cnt}</span></span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ── 최근 리드 ── */}
+          <div style={{background:'#fff',borderRadius:12,padding:20,boxShadow:'0 2px 8px rgba(0,0,0,.04)',marginBottom:20}}>
+            <div style={{fontSize:14,fontWeight:700,marginBottom:14}}>📋 최근 상담 리드</div>
+            {leads.slice(0,8).map(l=>(
+              <div key={l.id} onClick={()=>setSelected(l)} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 4px',borderBottom:'1px solid var(--border-s)',cursor:'pointer',fontSize:13}}>
+                <span style={{width:8,height:8,borderRadius:'50%',background:PIPELINE_COLORS[l.status||'신규'],flexShrink:0}}/>
+                <span style={{fontWeight:600,flex:1}}>{l.name||'-'}</span>
+                <span style={{color:'var(--text-sm)',fontSize:11}}>{l.building||''}</span>
+                <span style={{padding:'2px 8px',borderRadius:4,fontSize:10,fontWeight:700,background:(PIPELINE_COLORS[l.status||'신규'])+'18',color:PIPELINE_COLORS[l.status||'신규']}}>{l.status||'신규'}</span>
+                <span style={{color:'var(--text-sm)',fontSize:11}}>{formatDate(l.savedAt)}</span>
+              </div>
+            ))}
           </div>
         </>
       ):(

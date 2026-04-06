@@ -1,0 +1,7 @@
+name = "pour-claude-proxy"
+main = "claude-proxy.js"
+compatibility_date = "2024-01-01"
+
+# 배포 후 시크릿 등록:
+# npx wrangler secret put CLAUDE_API_KEY --config workers/wrangler.claude-proxy.toml
+# npx wrangler secret put WORKER_SECRET --config workers/wrangler.claude-proxy.toml

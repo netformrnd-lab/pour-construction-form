@@ -79,6 +79,8 @@ const COLLECTIONS = {
   PARTNER_COMPANIES: 'partner-companies',
   PRODUCTS: 'products',
   NPS_SURVEYS: 'nps-surveys',
+  DEFECT_SITES: 'defect-sites',
+  SALES_DOCS: 'sales-docs',
 };
 
 const MENU = [
@@ -91,6 +93,8 @@ const MENU = [
   { key: 'leads-method', label: 'POUR공법', icon: '🔧' },
   { key: 'leads-store', label: 'POUR스토어', icon: '🛒' },
   { key: 'leads-grohome', label: '그로홈', icon: '🏠' },
+  { section: '현장관리' },
+  { key: 'defect-sites', label: '완공현장', icon: '🏗' },
   { section: '사이트' },
   { key: 'inquiries', label: '문의접수', icon: '📬' },
   { key: 'metrics', label: '공신력수치', icon: '📊' },
@@ -2731,6 +2735,413 @@ function LeadsKanbanPage({brandKey,showToast}){
   );
 }
 
+/* ══════════════════════════════════════════════════════════════
+   완공현장 관리 — defect-sites 컬렉션 + Storage 사진 업로드
+   ══════════════════════════════════════════════════════════════ */
+const SITE_CATS=['방수','도장','보수/보강','토목'];
+
+function DefectSitesPage({showToast}){
+  const [sites,setSites]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [editing,setEditing]=useState(null); // null=목록, 'new'=신규, docId=수정
+  const [form,setForm]=useState({name:'',address:'',category:'방수',buildingType:'아파트',area:'',completedAt:'',description:'',beforePhotos:[],afterPhotos:[],tags:[]});
+  const [uploading,setUploading]=useState(false);
+  const [tagInput,setTagInput]=useState('');
+
+  const fetchSites=async()=>{
+    setLoading(true);
+    try{
+      const snap=await db.collection(COLLECTIONS.DEFECT_SITES).get();
+      const arr=[];snap.forEach(doc=>arr.push({id:doc.id,...doc.data()}));
+      arr.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+      console.log(`[defect-sites] ${arr.length}건 로드`);
+      setSites(arr);
+    }catch(e){console.error('[defect-sites] 로드 실패:',e);}
+    setLoading(false);
+  };
+
+  useEffect(()=>{fetchSites();},[]);
+
+  const resetForm=()=>{setForm({name:'',address:'',category:'방수',buildingType:'아파트',area:'',completedAt:'',description:'',beforePhotos:[],afterPhotos:[],tags:[]});setTagInput('');};
+
+  const uploadPhotos=async(files,folder)=>{
+    const urls=[];
+    for(const file of files){
+      const path=`defect-sites/${folder}/${Date.now()}_${file.name}`;
+      const ref=storage.ref(path);
+      await ref.put(file);
+      const url=await ref.getDownloadURL();
+      urls.push(url);
+    }
+    return urls;
+  };
+
+  const handlePhotoSelect=(e,type)=>{
+    const files=Array.from(e.target.files);
+    if(!files.length)return;
+    setForm(prev=>({...prev,[type]:[...prev[type],...files]}));
+  };
+
+  const removePhoto=(type,idx)=>{
+    setForm(prev=>({...prev,[type]:prev[type].filter((_,i)=>i!==idx)}));
+  };
+
+  const addTag=()=>{
+    const t=tagInput.trim();
+    if(t&&!form.tags.includes(t)){setForm(prev=>({...prev,tags:[...prev.tags,t]}));}
+    setTagInput('');
+  };
+
+  const save=async()=>{
+    if(!form.name.trim()||!form.address.trim()){showToast('현장명과 주소를 입력하세요','error');return;}
+    setUploading(true);
+    try{
+      // 사진 업로드 (File 객체만 업로드, 이미 URL인 것은 유지)
+      const beforeUrls=[];const afterUrls=[];
+      for(const p of form.beforePhotos){
+        if(typeof p==='string')beforeUrls.push(p);
+        else{const u=await uploadPhotos([p],'before');beforeUrls.push(...u);}
+      }
+      for(const p of form.afterPhotos){
+        if(typeof p==='string')afterUrls.push(p);
+        else{const u=await uploadPhotos([p],'after');afterUrls.push(...u);}
+      }
+
+      const data={
+        name:form.name,address:form.address,category:form.category,
+        buildingType:form.buildingType,area:form.area,
+        completedAt:form.completedAt,description:form.description,
+        beforePhotos:beforeUrls,afterPhotos:afterUrls,
+        tags:form.tags,updatedAt:new Date().toISOString(),
+      };
+
+      if(editing==='new'){
+        data.createdAt=new Date().toISOString();
+        const ref=await db.collection(COLLECTIONS.DEFECT_SITES).add(data);
+        console.log(`[defect-sites] 신규 저장: ${ref.id}`);
+        showToast('완공현장 등록 완료');
+      }else{
+        await db.collection(COLLECTIONS.DEFECT_SITES).doc(editing).update(data);
+        showToast('수정 완료');
+      }
+      setEditing(null);resetForm();fetchSites();
+    }catch(e){console.error(e);showToast('저장 실패','error');}
+    setUploading(false);
+  };
+
+  const deleteSite=async(id)=>{
+    if(!confirm('정말 삭제하시겠습니까?'))return;
+    try{
+      await db.collection(COLLECTIONS.DEFECT_SITES).doc(id).delete();
+      showToast('삭제 완료');fetchSites();
+    }catch(e){console.error(e);showToast('삭제 실패','error');}
+  };
+
+  const startEdit=(site)=>{
+    setEditing(site.id);
+    setForm({
+      name:site.name||'',address:site.address||'',category:site.category||'방수',
+      buildingType:site.buildingType||'아파트',area:site.area||'',
+      completedAt:site.completedAt||'',description:site.description||'',
+      beforePhotos:site.beforePhotos||[],afterPhotos:site.afterPhotos||[],
+      tags:site.tags||[]
+    });
+  };
+
+  /* ── 사진 미리보기 ── */
+  const PhotoPreview=({photos,type})=>(
+    <div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:8}}>
+      {photos.map((p,i)=>{
+        const src=typeof p==='string'?p:URL.createObjectURL(p);
+        return(
+          <div key={i} style={{position:'relative',width:80,height:80,borderRadius:8,overflow:'hidden',border:'1px solid var(--border)'}}>
+            <img src={src} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+            <button onClick={()=>removePhoto(type,i)} style={{position:'absolute',top:2,right:2,width:20,height:20,borderRadius:'50%',background:'rgba(0,0,0,.6)',color:'#fff',border:'none',fontSize:12,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  /* ── 등록/수정 폼 ── */
+  if(editing!==null)return(
+    <div style={{animation:'fadeIn .3s ease'}}>
+      <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:20}}>
+        <button onClick={()=>{setEditing(null);resetForm();}} style={{background:'none',border:'none',fontSize:20,cursor:'pointer'}}>←</button>
+        <div style={{fontSize:20,fontWeight:800}}>{editing==='new'?'완공현장 등록':'완공현장 수정'}</div>
+      </div>
+      <div style={{background:'#fff',borderRadius:14,border:'1px solid var(--border)',padding:24,maxWidth:600}}>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}}>
+          <div><label style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:6,display:'block'}}>현장명 *</label>
+            <input style={{width:'100%',padding:'10px 14px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:13,fontFamily:'inherit',outline:'none'}} value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="OO아파트 옥상 방수"/></div>
+          <div><label style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:6,display:'block'}}>주소 *</label>
+            <input style={{width:'100%',padding:'10px 14px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:13,fontFamily:'inherit',outline:'none'}} value={form.address} onChange={e=>setForm({...form,address:e.target.value})} placeholder="서울시 강남구..."/></div>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14,marginBottom:14}}>
+          <div><label style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:6,display:'block'}}>공종</label>
+            <select style={{width:'100%',padding:'10px 14px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:13,fontFamily:'inherit',outline:'none',background:'#fff'}} value={form.category} onChange={e=>setForm({...form,category:e.target.value})}>
+              {SITE_CATS.map(c=><option key={c} value={c}>{c}</option>)}
+            </select></div>
+          <div><label style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:6,display:'block'}}>건물유형</label>
+            <select style={{width:'100%',padding:'10px 14px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:13,fontFamily:'inherit',outline:'none',background:'#fff'}} value={form.buildingType} onChange={e=>setForm({...form,buildingType:e.target.value})}>
+              {['아파트','관공서','주택','빌라/오피스텔','병원','학교'].map(t=><option key={t} value={t}>{t}</option>)}
+            </select></div>
+          <div><label style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:6,display:'block'}}>시공면적</label>
+            <input style={{width:'100%',padding:'10px 14px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:13,fontFamily:'inherit',outline:'none'}} value={form.area} onChange={e=>setForm({...form,area:e.target.value})} placeholder="500㎡"/></div>
+        </div>
+        <div style={{marginBottom:14}}>
+          <label style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:6,display:'block'}}>준공일</label>
+          <input type="date" style={{width:'100%',padding:'10px 14px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:13,fontFamily:'inherit',outline:'none',maxWidth:200}} value={form.completedAt} onChange={e=>setForm({...form,completedAt:e.target.value})}/>
+        </div>
+        <div style={{marginBottom:14}}>
+          <label style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:6,display:'block'}}>현장 설명</label>
+          <textarea style={{width:'100%',padding:'10px 14px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:13,fontFamily:'inherit',outline:'none',resize:'vertical',minHeight:60}} value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="시공 내용, 특이사항 등"/>
+        </div>
+
+        {/* 사진 업로드 */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}}>
+          <div>
+            <label style={{fontSize:12,fontWeight:700,color:'#DC2626',marginBottom:6,display:'block'}}>시공 전 사진</label>
+            <input type="file" accept="image/*" multiple onChange={e=>handlePhotoSelect(e,'beforePhotos')} style={{fontSize:12}}/>
+            <PhotoPreview photos={form.beforePhotos} type="beforePhotos"/>
+          </div>
+          <div>
+            <label style={{fontSize:12,fontWeight:700,color:'#059669',marginBottom:6,display:'block'}}>시공 후 사진</label>
+            <input type="file" accept="image/*" multiple onChange={e=>handlePhotoSelect(e,'afterPhotos')} style={{fontSize:12}}/>
+            <PhotoPreview photos={form.afterPhotos} type="afterPhotos"/>
+          </div>
+        </div>
+
+        {/* 태그 */}
+        <div style={{marginBottom:20}}>
+          <label style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:6,display:'block'}}>태그</label>
+          <div style={{display:'flex',gap:8}}>
+            <input style={{flex:1,padding:'8px 12px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:12,fontFamily:'inherit',outline:'none'}} value={tagInput} onChange={e=>setTagInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();addTag();}}} placeholder="#태그 입력 후 Enter"/>
+            <button onClick={addTag} style={{padding:'8px 14px',borderRadius:8,border:'none',background:'var(--blue)',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>추가</button>
+          </div>
+          {form.tags.length>0&&<div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:8}}>
+            {form.tags.map((t,i)=><span key={i} style={{padding:'4px 10px',borderRadius:6,background:'var(--blue-l)',color:'var(--blue)',fontSize:11,fontWeight:600,cursor:'pointer'}} onClick={()=>setForm(prev=>({...prev,tags:prev.tags.filter((_,j)=>j!==i)}))}>{t} ✕</span>)}
+          </div>}
+        </div>
+
+        <div style={{display:'flex',gap:10}}>
+          <button onClick={()=>{setEditing(null);resetForm();}} style={{flex:1,padding:'12px 0',borderRadius:10,border:'1.5px solid var(--border)',background:'#fff',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit',color:'var(--text-md)'}}>취소</button>
+          <button onClick={save} disabled={uploading} style={{flex:2,padding:'12px 0',borderRadius:10,border:'none',background:'var(--blue)',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit',color:'#fff',opacity:uploading?.6:1}}>{uploading?'업로드 중...':'저장'}</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  /* ── 목록 ── */
+  return(
+    <div style={{animation:'fadeIn .3s ease'}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+        <div>
+          <div style={{fontSize:20,fontWeight:800}}>🏗 완공현장 관리</div>
+          <div style={{fontSize:12,color:'var(--text-sm)',marginTop:4}}>총 {sites.length}건</div>
+        </div>
+        <div style={{display:'flex',gap:8}}>
+          <button onClick={fetchSites} style={{padding:'8px 12px',borderRadius:8,border:'1.5px solid var(--border)',background:'#fff',fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>🔄</button>
+          <button onClick={()=>{resetForm();setEditing('new');}} style={{padding:'8px 16px',borderRadius:8,border:'none',background:'var(--blue)',color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>+ 현장 등록</button>
+        </div>
+      </div>
+
+      {loading?<div style={{textAlign:'center',padding:60,color:'var(--text-sm)'}}>로딩 중...</div>
+      :sites.length===0?<div style={{textAlign:'center',padding:60,color:'var(--text-sm)'}}>등록된 완공현장이 없습니다</div>
+      :<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:16}}>
+        {sites.map(s=>(
+          <div key={s.id} style={{background:'#fff',borderRadius:14,border:'1px solid var(--border)',overflow:'hidden',cursor:'pointer',transition:'box-shadow .2s'}} onClick={()=>startEdit(s)}>
+            {(s.afterPhotos?.length>0||s.beforePhotos?.length>0)&&
+              <div style={{height:160,overflow:'hidden',background:'var(--bg)'}}>
+                <img src={(s.afterPhotos||s.beforePhotos)[0]} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+              </div>
+            }
+            <div style={{padding:16}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+                <div style={{fontSize:15,fontWeight:800}}>{s.name}</div>
+                <span style={{padding:'3px 8px',borderRadius:6,background:PIPELINE_COLORS[s.category==='방수'?'견적제출':'상담중']+'18',color:PIPELINE_COLORS[s.category==='방수'?'견적제출':'상담중'],fontSize:11,fontWeight:700,whiteSpace:'nowrap'}}>{s.category}</span>
+              </div>
+              <div style={{fontSize:12,color:'var(--text-md)',marginBottom:4}}>📍 {s.address}</div>
+              {s.area&&<div style={{fontSize:12,color:'var(--text-sm)'}}>📐 {s.area} · {s.buildingType}</div>}
+              {s.completedAt&&<div style={{fontSize:11,color:'var(--text-sm)',marginTop:4}}>🗓 준공: {s.completedAt}</div>}
+              {s.tags?.length>0&&<div style={{display:'flex',flexWrap:'wrap',gap:4,marginTop:8}}>
+                {s.tags.slice(0,3).map((t,i)=><span key={i} style={{padding:'2px 8px',borderRadius:5,background:'var(--blue-l)',color:'var(--blue)',fontSize:10,fontWeight:600}}>{t}</span>)}
+                {s.tags.length>3&&<span style={{fontSize:10,color:'var(--text-sm)'}}>+{s.tags.length-3}</span>}
+              </div>}
+              <div style={{display:'flex',gap:6,marginTop:10}}>
+                <span style={{fontSize:11,color:'var(--text-sm)'}}>📷 전 {s.beforePhotos?.length||0}장</span>
+                <span style={{fontSize:11,color:'var(--text-sm)'}}>📷 후 {s.afterPhotos?.length||0}장</span>
+              </div>
+            </div>
+            <div style={{borderTop:'1px solid var(--border-s)',padding:'8px 16px',display:'flex',justifyContent:'flex-end'}}>
+              <button onClick={e=>{e.stopPropagation();deleteSite(s.id);}} style={{background:'none',border:'none',fontSize:12,color:'#DC2626',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>삭제</button>
+            </div>
+          </div>
+        ))}
+      </div>}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════
+   영업자료 관리 — sales-docs 컬렉션 + Storage 파일 업로드
+   ══════════════════════════════════════════════════════════════ */
+const DOC_TYPES=['시방서','제안서','카탈로그','인증서/시험성적서','특허','회사소개서','단가표','기타'];
+
+function SalesDocsPage({showToast}){
+  const [docs,setDocs]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [showForm,setShowForm]=useState(false);
+  const [form,setForm]=useState({title:'',docType:'시방서',category:'방수',description:'',file:null});
+  const [uploading,setUploading]=useState(false);
+  const [filterType,setFilterType]=useState('전체');
+
+  const fetchDocs=async()=>{
+    setLoading(true);
+    try{
+      const snap=await db.collection(COLLECTIONS.SALES_DOCS).get();
+      const arr=[];snap.forEach(doc=>arr.push({id:doc.id,...doc.data()}));
+      arr.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+      console.log(`[sales-docs] ${arr.length}건 로드`);
+      setDocs(arr);
+    }catch(e){console.error('[sales-docs] 로드 실패:',e);}
+    setLoading(false);
+  };
+
+  useEffect(()=>{fetchDocs();},[]);
+
+  const save=async()=>{
+    if(!form.title.trim()){showToast('제목을 입력하세요','error');return;}
+    if(!form.file&&showForm==='new'){showToast('파일을 선택하세요','error');return;}
+    setUploading(true);
+    try{
+      let fileUrl='',fileName='',fileSize=0;
+      if(form.file){
+        const path=`sales-docs/${Date.now()}_${form.file.name}`;
+        const ref=storage.ref(path);
+        await ref.put(form.file);
+        fileUrl=await ref.getDownloadURL();
+        fileName=form.file.name;
+        fileSize=form.file.size;
+      }
+      const data={
+        title:form.title,docType:form.docType,category:form.category,
+        description:form.description,updatedAt:new Date().toISOString(),
+      };
+      if(fileUrl){data.fileUrl=fileUrl;data.fileName=fileName;data.fileSize=fileSize;}
+
+      if(showForm==='new'){
+        data.createdAt=new Date().toISOString();
+        await db.collection(COLLECTIONS.SALES_DOCS).add(data);
+        showToast('영업자료 등록 완료');
+      }else{
+        await db.collection(COLLECTIONS.SALES_DOCS).doc(showForm).update(data);
+        showToast('수정 완료');
+      }
+      setShowForm(false);setForm({title:'',docType:'시방서',category:'방수',description:'',file:null});fetchDocs();
+    }catch(e){console.error(e);showToast('저장 실패','error');}
+    setUploading(false);
+  };
+
+  const deleteDoc=async(id)=>{
+    if(!confirm('정말 삭제하시겠습니까?'))return;
+    try{
+      await db.collection(COLLECTIONS.SALES_DOCS).doc(id).delete();
+      showToast('삭제 완료');fetchDocs();
+    }catch(e){showToast('삭제 실패','error');}
+  };
+
+  const formatSize=(bytes)=>{if(!bytes)return'-';if(bytes<1024)return bytes+'B';if(bytes<1048576)return(bytes/1024).toFixed(1)+'KB';return(bytes/1048576).toFixed(1)+'MB';};
+
+  const filtered=filterType==='전체'?docs:docs.filter(d=>d.docType===filterType);
+
+  const TYPE_ICONS={'시방서':'📋','제안서':'📄','카탈로그':'📘','인증서/시험성적서':'🏅','특허':'📜','회사소개서':'🏢','단가표':'💲','기타':'📎'};
+
+  /* ── 등록/수정 모달 ── */
+  const FormModal=()=>(
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}} onClick={()=>setShowForm(false)}>
+      <div style={{background:'#fff',borderRadius:16,padding:24,width:'min(440px,90vw)',boxShadow:'0 12px 40px rgba(0,0,0,.2)'}} onClick={e=>e.stopPropagation()}>
+        <div style={{fontSize:18,fontWeight:800,marginBottom:16}}>{showForm==='new'?'영업자료 등록':'영업자료 수정'}</div>
+        <div style={{display:'flex',flexDirection:'column',gap:12}}>
+          <div><label style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:4,display:'block'}}>제목 *</label>
+            <input style={{width:'100%',padding:'10px 14px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:13,fontFamily:'inherit',outline:'none'}} value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="POUR 듀얼강화방수 시방서"/></div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+            <div><label style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:4,display:'block'}}>자료유형</label>
+              <select style={{width:'100%',padding:'10px 14px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:13,fontFamily:'inherit',outline:'none',background:'#fff'}} value={form.docType} onChange={e=>setForm({...form,docType:e.target.value})}>
+                {DOC_TYPES.map(t=><option key={t} value={t}>{t}</option>)}
+              </select></div>
+            <div><label style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:4,display:'block'}}>분류</label>
+              <select style={{width:'100%',padding:'10px 14px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:13,fontFamily:'inherit',outline:'none',background:'#fff'}} value={form.category} onChange={e=>setForm({...form,category:e.target.value})}>
+                {['방수','도장','보수/보강','토목','공통'].map(c=><option key={c} value={c}>{c}</option>)}
+              </select></div>
+          </div>
+          <div><label style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:4,display:'block'}}>설명 (선택)</label>
+            <textarea style={{width:'100%',padding:'10px 14px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:13,fontFamily:'inherit',outline:'none',resize:'vertical',minHeight:50}} value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="자료에 대한 설명"/></div>
+          <div><label style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:4,display:'block'}}>파일{showForm==='new'?' *':' (변경 시 선택)'}</label>
+            <input type="file" onChange={e=>setForm({...form,file:e.target.files[0]||null})} style={{fontSize:12}}/></div>
+        </div>
+        <div style={{display:'flex',gap:10,marginTop:20}}>
+          <button onClick={()=>setShowForm(false)} style={{flex:1,padding:'12px 0',borderRadius:10,border:'1.5px solid var(--border)',background:'#fff',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit',color:'var(--text-md)'}}>취소</button>
+          <button onClick={save} disabled={uploading} style={{flex:2,padding:'12px 0',borderRadius:10,border:'none',background:'var(--blue)',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit',color:'#fff',opacity:uploading?.6:1}}>{uploading?'업로드 중...':'저장'}</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return(
+    <div style={{animation:'fadeIn .3s ease'}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+        <div>
+          <div style={{fontSize:20,fontWeight:800}}>📎 영업자료 관리</div>
+          <div style={{fontSize:12,color:'var(--text-sm)',marginTop:4}}>총 {docs.length}건</div>
+        </div>
+        <div style={{display:'flex',gap:8}}>
+          <button onClick={fetchDocs} style={{padding:'8px 12px',borderRadius:8,border:'1.5px solid var(--border)',background:'#fff',fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>🔄</button>
+          <button onClick={()=>{setForm({title:'',docType:'시방서',category:'방수',description:'',file:null});setShowForm('new');}} style={{padding:'8px 16px',borderRadius:8,border:'none',background:'var(--blue)',color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>+ 자료 등록</button>
+        </div>
+      </div>
+
+      {/* 필터 탭 */}
+      <div style={{display:'flex',gap:6,marginBottom:16,overflowX:'auto',paddingBottom:4}}>
+        {['전체',...DOC_TYPES].map(t=>(
+          <button key={t} onClick={()=>setFilterType(t)} style={{padding:'6px 14px',borderRadius:20,border:`1.5px solid ${filterType===t?'var(--blue)':'var(--border)'}`,background:filterType===t?'var(--blue)':'#fff',color:filterType===t?'#fff':'var(--text-md)',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap'}}>{t}</button>
+        ))}
+      </div>
+
+      {loading?<div style={{textAlign:'center',padding:60,color:'var(--text-sm)'}}>로딩 중...</div>
+      :filtered.length===0?<div style={{textAlign:'center',padding:60,color:'var(--text-sm)'}}>등록된 자료가 없습니다</div>
+      :<div style={{background:'#fff',borderRadius:12,border:'1px solid var(--border)',overflow:'hidden'}}>
+        <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+          <thead><tr style={{background:'var(--bg)'}}>
+            {['','제목','유형','분류','크기','등록일',''].map(h=><th key={h} style={{padding:'10px 14px',textAlign:'left',fontWeight:700,color:'var(--text-md)',fontSize:12,borderBottom:'1px solid var(--border)'}}>{h}</th>)}
+          </tr></thead>
+          <tbody>
+            {filtered.map(d=>(
+              <tr key={d.id} style={{borderBottom:'1px solid var(--border-s)'}}>
+                <td style={{padding:'10px 14px',fontSize:20}}>{TYPE_ICONS[d.docType]||'📎'}</td>
+                <td style={{padding:'10px 14px',fontWeight:600}}>{d.title}</td>
+                <td style={{padding:'10px 14px',color:'var(--text-md)'}}>{d.docType}</td>
+                <td style={{padding:'10px 14px'}}><span style={{padding:'3px 8px',borderRadius:6,background:'var(--blue-l)',color:'var(--blue)',fontSize:11,fontWeight:600}}>{d.category}</span></td>
+                <td style={{padding:'10px 14px',color:'var(--text-sm)',fontSize:12}}>{formatSize(d.fileSize)}</td>
+                <td style={{padding:'10px 14px',color:'var(--text-sm)',fontSize:12}}>{d.createdAt?new Date(d.createdAt).toLocaleDateString('ko'):'-'}</td>
+                <td style={{padding:'10px 14px'}}>
+                  <div style={{display:'flex',gap:6}}>
+                    {d.fileUrl&&<a href={d.fileUrl} target="_blank" rel="noopener" style={{padding:'4px 10px',borderRadius:6,background:'var(--blue)',color:'#fff',fontSize:11,fontWeight:600,textDecoration:'none'}}>다운로드</a>}
+                    <button onClick={()=>{setForm({title:d.title,docType:d.docType,category:d.category,description:d.description||'',file:null});setShowForm(d.id);}} style={{padding:'4px 10px',borderRadius:6,border:'1px solid var(--border)',background:'#fff',fontSize:11,cursor:'pointer',fontFamily:'inherit'}}>수정</button>
+                    <button onClick={()=>deleteDoc(d.id)} style={{padding:'4px 10px',borderRadius:6,border:'1px solid #FEE2E2',background:'#FEF2F2',color:'#DC2626',fontSize:11,cursor:'pointer',fontFamily:'inherit'}}>삭제</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>}
+
+      {showForm&&<FormModal/>}
+    </div>
+  );
+}
+
 function PagePlaceholder({ title, icon, description }) {
   return (
     <div style={{
@@ -2780,12 +3191,14 @@ function App() {
         return <LeadsKanbanPage brandKey="leads-store" showToast={showToast} />;
       case 'leads-grohome':
         return <LeadsKanbanPage brandKey="leads-grohome" showToast={showToast} />;
+      case 'defect-sites':
+        return <DefectSitesPage showToast={showToast} />;
       case 'inquiries':
         return <PagePlaceholder title="문의접수" icon="📬" description="사이트 문의 접수 관리" />;
       case 'metrics':
         return <PagePlaceholder title="공신력 수치" icon="📊" description="3개 사이트 실시간 반영 수치 관리" />;
       case 'resources':
-        return <PagePlaceholder title="영업자료" icon="📎" description="시방서, 카탈로그, 인증서 관리" />;
+        return <SalesDocsPage showToast={showToast} />;
       case 'partners':
         return <PagePlaceholder title="파트너사" icon="🏢" description="파트너사 계약 및 등급 관리" />;
       case 'staff':

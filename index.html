@@ -1499,7 +1499,21 @@ const BUILDING_LABEL_TO_ID=Object.fromEntries(BUILDING_TYPES.map(b=>[b.label,b.i
 const ADMIN_PIN_KEY='pourAdminPin';
 const hashPin=async(pin)=>{const enc=new TextEncoder().encode(pin);const buf=await crypto.subtle.digest('SHA-256',enc);return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');};
 const loadAdminPin=()=>localStorage.getItem(ADMIN_PIN_KEY);
-const saveAdminPin=hash=>localStorage.setItem(ADMIN_PIN_KEY,hash);
+const saveAdminPin=hash=>{
+  localStorage.setItem(ADMIN_PIN_KEY,hash);
+  try{db.collection('config').doc('adminPin').set({hash}).catch(()=>{});}catch(e){}
+};
+/* Firestore에서 PIN 동기화 — 다른 기기에서도 같은 PIN 사용 */
+const syncAdminPinFromFirestore=async()=>{
+  try{
+    const snap=await db.collection('config').doc('adminPin').get();
+    if(snap.exists&&snap.data().hash){
+      localStorage.setItem(ADMIN_PIN_KEY,snap.data().hash);
+      return snap.data().hash;
+    }
+  }catch(e){}
+  return null;
+};
 
 const loadStaffList=()=>{try{return JSON.parse(localStorage.getItem('pourStaffList')||'[]');}catch{return[];}};
 const saveStaffList=l=>{
@@ -5205,6 +5219,11 @@ function App(){
   const [gridCols,setGridCols]=useState(()=>parseInt(localStorage.getItem('pourGridCols'))||3);
 
   useEffect(()=>{syncPhotosFromFirestore(null,setProbPhotos);},[]);
+
+  /* Firestore에서 PIN 동기화 — 다른 기기에서도 setup 안 뜨게 */
+  useEffect(()=>{
+    if(!loadAdminPin()){syncAdminPinFromFirestore();}
+  },[]);
 
   /* Firestore에서 담당자 목록 동기화 — 다른 기기에서 등록한 담당자도 반영 */
   useEffect(()=>{

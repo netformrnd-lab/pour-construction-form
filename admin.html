@@ -88,11 +88,14 @@ const MENU = [
   { key: 'dashboard', label: '대시보드', icon: '📊' },
   { section: '스토어' },
   { key: 'products', label: '상품관리', icon: '📦' },
-  { section: '영업' },
-  { key: 'leads-solution', label: 'POUR솔루션', icon: '🏢' },
-  { key: 'leads-method', label: 'POUR공법', icon: '🔧' },
-  { key: 'leads-store', label: 'POUR스토어', icon: '🛒' },
-  { key: 'leads-grohome', label: '그로홈', icon: '🏠' },
+  { section: '인바운드' },
+  { key: 'inbound-solution', label: 'POUR솔루션', icon: '🏢' },
+  { key: 'inbound-method', label: 'POUR공법', icon: '🔧' },
+  { key: 'inbound-store', label: 'POUR스토어', icon: '🛒' },
+  { key: 'inbound-grohome', label: '그로홈', icon: '🏠' },
+  { section: '아웃바운드' },
+  { key: 'outbound-expo', label: '박람회', icon: '🎪' },
+  { key: 'outbound-always', label: '상시영업', icon: '📞', disabled: true },
   { section: '현장관리' },
   { key: 'defect-sites', label: '완공현장', icon: '🏗' },
   { section: '사이트' },
@@ -282,14 +285,15 @@ function Sidebar({ current, onNavigate, collapsed, onToggle }) {
             );
           }
           const active = current === item.key;
+          const isDisabled = item.disabled;
           return (
-            <button key={item.key} onClick={() => onNavigate(item.key)} style={{
+            <button key={item.key} onClick={() => !isDisabled && onNavigate(item.key)} style={{
               width:'100%', display:'flex', alignItems:'center', gap: collapsed ? 0 : 10,
               justifyContent: collapsed ? 'center' : 'flex-start',
               padding: collapsed ? '10px 0' : '10px 20px',
               background: active ? 'rgba(37,99,235,.2)' : 'transparent',
-              border:'none', color: active ? '#60A5FA' : 'rgba(255,255,255,.6)',
-              fontSize:13, fontWeight: active ? 700 : 500, cursor:'pointer',
+              border:'none', color: isDisabled ? 'rgba(255,255,255,.25)' : active ? '#60A5FA' : 'rgba(255,255,255,.6)',
+              fontSize:13, fontWeight: active ? 700 : 500, cursor: isDisabled ? 'not-allowed' : 'pointer',
               borderRight: active ? '3px solid #60A5FA' : '3px solid transparent',
               transition:'all .15s ease'
             }}>
@@ -1996,10 +2000,10 @@ function DashboardPage({ onNavigate }) {
   }
 
   const cards = [
-    { label: 'POUR솔루션', value: stats.solution, color: '#2563EB', bg: '#EFF6FF', key: 'leads-solution' },
-    { label: 'POUR공법', value: stats.method, color: '#E8780F', bg: '#FFF7ED', key: 'leads-method' },
-    { label: 'POUR스토어', value: stats.store, color: '#059669', bg: '#ECFDF5', key: 'leads-store' },
-    { label: '그로홈', value: stats.grohome, color: '#6D28D9', bg: '#F5F3FF', key: 'leads-grohome' },
+    { label: 'POUR솔루션', value: stats.solution, color: '#2563EB', bg: '#EFF6FF', key: 'inbound-solution' },
+    { label: 'POUR공법', value: stats.method, color: '#E8780F', bg: '#FFF7ED', key: 'inbound-method' },
+    { label: 'POUR스토어', value: stats.store, color: '#059669', bg: '#ECFDF5', key: 'inbound-store' },
+    { label: '그로홈', value: stats.grohome, color: '#6D28D9', bg: '#F5F3FF', key: 'inbound-grohome' },
   ];
 
   const statusColor = { '신규': '#DC2626', '검토중': '#D97706', '승인': '#059669', '반려': '#9CA3AF', '서류제출': '#7C3AED', '계약완료': '#10B981' };
@@ -2549,10 +2553,13 @@ function NPSPage({ showToast }) {
 const PIPELINE_STAGES=['신규','상담중','견적제출','계약예정','계약완료'];
 const PIPELINE_COLORS={'신규':'#DC2626','상담중':'#D97706','견적제출':'#2563EB','계약예정':'#7C3AED','계약완료':'#059669'};
 const BRAND_CONFIG={
-  'leads-solution':{collection:'leads',label:'POUR솔루션',color:'#2563EB',bg:'#EFF6FF',icon:'🏢'},
-  'leads-method':{collection:'leads-method',label:'POUR공법',color:'#E8780F',bg:'#FFF7ED',icon:'🔧'},
-  'leads-store':{collection:'leads-store',label:'POUR스토어',color:'#059669',bg:'#ECFDF5',icon:'🛒'},
-  'leads-grohome':{collection:'leads-grohome',label:'그로홈',color:'#6D28D9',bg:'#F5F3FF',icon:'🏠'},
+  /* 인바운드 — 사이트/웹폼에서 유입된 리드 */
+  'inbound-solution':{collection:'leads',label:'POUR솔루션',sublabel:'인바운드',color:'#2563EB',bg:'#EFF6FF',icon:'🏢',filter:lead=>['inbound-form','site-solution','web','online'].includes(lead.source)},
+  'inbound-method':{collection:'leads-method',label:'POUR공법',sublabel:'인바운드',color:'#E8780F',bg:'#FFF7ED',icon:'🔧',filter:lead=>['inbound-form','site-method','web','online'].includes(lead.source)},
+  'inbound-store':{collection:'leads-store',label:'POUR스토어',sublabel:'인바운드',color:'#059669',bg:'#ECFDF5',icon:'🛒',filter:lead=>['inbound-form','site-store','web','online'].includes(lead.source)},
+  'inbound-grohome':{collection:'leads-grohome',label:'그로홈',sublabel:'인바운드',color:'#6D28D9',bg:'#F5F3FF',icon:'🏠',filter:lead=>['inbound-form','site-grohome','web','online'].includes(lead.source)},
+  /* 아웃바운드 — 박람회 현장 상담 리드 */
+  'outbound-expo':{collection:'leads',label:'박람회',sublabel:'아웃바운드',color:'#E8780F',bg:'#FFF7ED',icon:'🎪',filter:lead=>!lead.source||['expo','exhibition','tablet','박람회','qr'].includes(lead.source)},
 };
 
 function LeadsKanbanPage({brandKey,showToast}){
@@ -2567,10 +2574,12 @@ function LeadsKanbanPage({brandKey,showToast}){
     setLoading(true);
     try{
       const snap=await db.collection(brand.collection).get();
-      const arr=[];
+      let arr=[];
       snap.forEach(doc=>arr.push({id:doc.id,...doc.data()}));
+      /* 소스 필터 적용 (인바운드/아웃바운드 구분) */
+      if(brand.filter)arr=arr.filter(brand.filter);
       arr.sort((a,b)=>(b.savedAt||'').localeCompare(a.savedAt||''));
-      console.log(`[leads] ${brand.label}: ${arr.length}건 로드`);
+      console.log(`[leads] ${brand.label}(${brand.sublabel||'전체'}): ${arr.length}건 로드`);
       setLeads(arr);
     }catch(e){console.error('[leads] 로드 실패:',e);}
     setLoading(false);
@@ -2716,7 +2725,7 @@ function LeadsKanbanPage({brandKey,showToast}){
         <div style={{display:'flex',alignItems:'center',gap:10}}>
           <span style={{fontSize:28}}>{brand.icon}</span>
           <div>
-            <div style={{fontSize:20,fontWeight:800}}>{brand.label} 영업</div>
+            <div style={{fontSize:20,fontWeight:800}}>{brand.label} 영업 {brand.sublabel&&<span style={{fontSize:13,fontWeight:600,color:brand.color,background:brand.bg,padding:'3px 10px',borderRadius:6,marginLeft:8}}>{brand.sublabel}</span>}</div>
             <div style={{fontSize:12,color:'var(--text-sm)'}}>총 {leads.length}건 · {PIPELINE_STAGES.map(s=>`${s} ${byStage(s).length}`).join(' · ')}</div>
           </div>
         </div>
@@ -3142,6 +3151,204 @@ function SalesDocsPage({showToast}){
   );
 }
 
+/* ══════════════════════════════════════════════════════════════
+   박람회 전용 대시보드 + 리드 관리
+   ══════════════════════════════════════════════════════════════ */
+function ExpoLeadsPage({showToast,onNavigate}){
+  const [leads,setLeads]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [view,setView]=useState('dashboard'); // dashboard | kanban
+  const [selected,setSelected]=useState(null);
+  const [search,setSearch]=useState('');
+
+  const fetchLeads=async()=>{
+    setLoading(true);
+    try{
+      const snap=await db.collection('leads').get();
+      let arr=[];
+      snap.forEach(doc=>arr.push({id:doc.id,...doc.data()}));
+      /* 박람회 소스만 필터 (source 없는 기존 데이터는 박람회로 간주) */
+      arr=arr.filter(l=>!l.source||['expo','exhibition','tablet','박람회','qr',''].includes(l.source));
+      arr.sort((a,b)=>(b.savedAt||'').localeCompare(a.savedAt||''));
+      console.log(`[expo] 박람회 리드: ${arr.length}건`);
+      setLeads(arr);
+    }catch(e){console.error(e);}
+    setLoading(false);
+  };
+
+  useEffect(()=>{fetchLeads();},[]);
+
+  const updateStatus=async(id,newStatus)=>{
+    try{
+      await db.collection('leads').doc(id).update({status:newStatus,updatedAt:new Date().toISOString()});
+      setLeads(prev=>prev.map(l=>l.id===id?{...l,status:newStatus}:l));
+      if(selected?.id===id)setSelected(prev=>({...prev,status:newStatus}));
+      showToast(`${newStatus}(으)로 변경됨`);
+    }catch(e){showToast('상태 변경 실패','error');}
+  };
+
+  const deleteLead=async(id)=>{
+    if(!confirm('정말 삭제하시겠습니까?'))return;
+    try{await db.collection('leads').doc(id).delete();setLeads(prev=>prev.filter(l=>l.id!==id));setSelected(null);showToast('삭제 완료');}catch(e){showToast('삭제 실패','error');}
+  };
+
+  const byStatus=(s)=>leads.filter(l=>(l.status||'신규')===s);
+  const filtered=leads.filter(l=>{if(!search.trim())return true;const s=search.toLowerCase();return(l.name||'').toLowerCase().includes(s)||(l.phone||'').includes(s)||(l.building||'').toLowerCase().includes(s);});
+  const formatDate=(d)=>{if(!d)return'-';const dt=new Date(d);return`${dt.getMonth()+1}/${dt.getDate()}`};
+
+  const todayStr=new Date().toISOString().slice(0,10);
+  const todayLeads=leads.filter(l=>l.savedAt&&l.savedAt.startsWith(todayStr));
+  const staffMap={};leads.forEach(l=>{if(l.staff){staffMap[l.staff]=(staffMap[l.staff]||0)+1;}});
+  const staffRank=Object.entries(staffMap).sort((a,b)=>b[1]-a[1]);
+  const buildingMap={};leads.forEach(l=>{if(l.building){buildingMap[l.building]=(buildingMap[l.building]||0)+1;}});
+  const buildingRank=Object.entries(buildingMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+  /* 상세 모달 */
+  const DetailModal=()=>{
+    if(!selected)return null;const l=selected;
+    return(<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}} onClick={()=>setSelected(null)}>
+      <div style={{background:'#fff',borderRadius:16,padding:24,width:'min(440px,90vw)',maxHeight:'80vh',overflowY:'auto',boxShadow:'0 12px 40px rgba(0,0,0,.2)'}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+          <div style={{fontSize:18,fontWeight:800}}>{l.name||'이름없음'}</div>
+          <button onClick={()=>setSelected(null)} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:'var(--text-sm)'}}>✕</button>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:16}}>
+          {[{k:'전화',v:l.phone},{k:'이메일',v:l.email},{k:'건물',v:l.building},{k:'직급',v:l.position},{k:'하자',v:Array.isArray(l.problems)?l.problems.join(', '):l.problem},{k:'접수일',v:l.savedAt?new Date(l.savedAt).toLocaleDateString('ko'):'-'},{k:'담당자',v:l.staff},{k:'출처',v:l.source||'박람회'},{k:'희망착공',v:l.desiredStartDate||'-'},{k:'자료기한',v:l.docDeadline||'-'}].map(({k,v})=>v&&v!=='-'?(<div key={k} style={{padding:'8px 10px',background:'var(--bg)',borderRadius:8}}><div style={{fontSize:11,color:'var(--text-sm)',marginBottom:2}}>{k}</div><div style={{fontSize:13,fontWeight:600}}>{v}</div></div>):null)}
+        </div>
+        {l.memo&&<div style={{padding:10,background:'var(--bg)',borderRadius:8,marginBottom:16}}><div style={{fontSize:11,color:'var(--text-sm)',marginBottom:4}}>메모</div><div style={{fontSize:13,lineHeight:1.5,whiteSpace:'pre-wrap'}}>{l.memo}</div></div>}
+        {l.actions&&l.actions.length>0&&<div style={{marginBottom:16}}><div style={{fontSize:11,color:'var(--text-sm)',marginBottom:6}}>후속 조치</div><div style={{display:'flex',flexWrap:'wrap',gap:4}}>{l.actions.map((a,i)=><span key={i} style={{padding:'4px 8px',borderRadius:6,background:'var(--orange-l)',color:'var(--orange)',fontSize:11,fontWeight:600}}>{a}</span>)}</div></div>}
+        <div style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:8}}>상태 변경</div>
+        <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:16}}>
+          {PIPELINE_STAGES.map(s=>(<button key={s} onClick={()=>updateStatus(l.id,s)} style={{padding:'7px 14px',borderRadius:8,border:`1.5px solid ${(l.status||'신규')===s?PIPELINE_COLORS[s]:'var(--border)'}`,background:(l.status||'신규')===s?PIPELINE_COLORS[s]:'#fff',color:(l.status||'신규')===s?'#fff':'var(--text)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>{s}</button>))}
+        </div>
+        <button onClick={()=>deleteLead(l.id)} style={{width:'100%',padding:'10px 0',borderRadius:8,border:'1.5px solid #FEE2E2',background:'#FEF2F2',color:'#DC2626',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>🗑 삭제</button>
+      </div>
+    </div>);
+  };
+
+  if(loading)return <div style={{textAlign:'center',padding:80,color:'var(--text-sm)'}}>로딩 중...</div>;
+
+  return(
+    <div style={{animation:'fadeIn .3s ease',maxWidth:1100}}>
+      {/* 헤더 */}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20,flexWrap:'wrap',gap:12}}>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          <span style={{fontSize:28}}>🎪</span>
+          <div>
+            <div style={{fontSize:20,fontWeight:800}}>박람회 영업 관리</div>
+            <div style={{fontSize:12,color:'var(--text-sm)'}}>아웃바운드 · 오프라인 대면 상담</div>
+          </div>
+        </div>
+        <div style={{display:'flex',gap:8}}>
+          <button onClick={()=>setView(view==='dashboard'?'kanban':'dashboard')} style={{padding:'8px 14px',borderRadius:8,border:'1.5px solid var(--border)',background:view==='dashboard'?'var(--orange)':'#fff',color:view==='dashboard'?'#fff':'var(--text)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>{view==='dashboard'?'📊 칸반 보기':'📋 대시보드'}</button>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="검색" style={{padding:'8px 14px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:12,width:140,outline:'none',fontFamily:'inherit'}}/>
+          <button onClick={fetchLeads} style={{padding:'8px 12px',borderRadius:8,border:'1.5px solid var(--border)',background:'#fff',fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>🔄</button>
+        </div>
+      </div>
+
+      {view==='dashboard'?(
+        <>
+          {/* ── 통계 카드 ── */}
+          <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:12,marginBottom:20}}>
+            {[{label:'전체',value:leads.length,color:'#1E293B'},{label:'오늘',value:todayLeads.length,color:'#E8780F'},{label:'신규',value:byStatus('신규').length,color:'#DC2626'},{label:'상담중',value:byStatus('상담중').length,color:'#D97706'},{label:'계약완료',value:byStatus('계약완료').length,color:'#059669'}].map(c=>(
+              <div key={c.label} style={{background:'#fff',borderRadius:12,padding:'18px 16px',boxShadow:'0 2px 8px rgba(0,0,0,.04)',borderLeft:`4px solid ${c.color}`}}>
+                <div style={{fontSize:11,fontWeight:600,color:'var(--text-md)',marginBottom:6}}>{c.label}</div>
+                <div style={{fontSize:26,fontWeight:900,color:c.color}}>{c.value}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:20}}>
+            {/* ── 파이프라인 현황 ── */}
+            <div style={{background:'#fff',borderRadius:12,padding:20,boxShadow:'0 2px 8px rgba(0,0,0,.04)'}}>
+              <div style={{fontSize:14,fontWeight:700,marginBottom:14}}>📊 파이프라인 현황</div>
+              {PIPELINE_STAGES.map(s=>{const cnt=byStatus(s).length;const pct=leads.length?Math.round(cnt/leads.length*100):0;return(
+                <div key={s} style={{marginBottom:10}}>
+                  <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:4}}>
+                    <span style={{fontWeight:600}}>{s}</span><span style={{color:'var(--text-sm)'}}>{cnt}건 ({pct}%)</span>
+                  </div>
+                  <div style={{height:6,borderRadius:3,background:'var(--border-s)'}}>
+                    <div style={{height:'100%',borderRadius:3,background:PIPELINE_COLORS[s],width:`${pct}%`,transition:'width .3s'}}/>
+                  </div>
+                </div>
+              );})}
+            </div>
+
+            {/* ── 담당자별 실적 ── */}
+            <div style={{background:'#fff',borderRadius:12,padding:20,boxShadow:'0 2px 8px rgba(0,0,0,.04)'}}>
+              <div style={{fontSize:14,fontWeight:700,marginBottom:14}}>👤 담당자별 실적</div>
+              {staffRank.length===0?<div style={{color:'var(--text-sm)',fontSize:13,padding:20,textAlign:'center'}}>데이터 없음</div>
+              :staffRank.map(([name,cnt],i)=>(
+                <div key={name} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:i<staffRank.length-1?'1px solid var(--border-s)':'none'}}>
+                  <span style={{width:22,height:22,borderRadius:'50%',background:i===0?'var(--orange)':i===1?'#D97706':'var(--border)',color:i<2?'#fff':'var(--text-sm)',fontSize:11,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center'}}>{i+1}</span>
+                  <span style={{flex:1,fontSize:13,fontWeight:600}}>{name}</span>
+                  <span style={{fontSize:14,fontWeight:800,color:'var(--orange)'}}>{cnt}건</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:20}}>
+            {/* ── 건물유형 분포 ── */}
+            <div style={{background:'#fff',borderRadius:12,padding:20,boxShadow:'0 2px 8px rgba(0,0,0,.04)'}}>
+              <div style={{fontSize:14,fontWeight:700,marginBottom:14}}>🏢 건물유형 분포</div>
+              {buildingRank.length===0?<div style={{color:'var(--text-sm)',fontSize:13,padding:20,textAlign:'center'}}>데이터 없음</div>
+              :buildingRank.map(([name,cnt])=>{const pct=leads.length?Math.round(cnt/leads.length*100):0;return(
+                <div key={name} style={{display:'flex',alignItems:'center',gap:10,padding:'6px 0'}}>
+                  <span style={{flex:1,fontSize:13,fontWeight:600}}>{name}</span>
+                  <span style={{fontSize:12,color:'var(--text-sm)'}}>{cnt}건 ({pct}%)</span>
+                </div>
+              );})}
+            </div>
+
+            {/* ── 최근 리드 ── */}
+            <div style={{background:'#fff',borderRadius:12,padding:20,boxShadow:'0 2px 8px rgba(0,0,0,.04)'}}>
+              <div style={{fontSize:14,fontWeight:700,marginBottom:14}}>📋 최근 상담 리드</div>
+              {leads.slice(0,6).map(l=>(
+                <div key={l.id} onClick={()=>setSelected(l)} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 4px',borderBottom:'1px solid var(--border-s)',cursor:'pointer',fontSize:13}}>
+                  <span style={{width:8,height:8,borderRadius:'50%',background:PIPELINE_COLORS[l.status||'신규'],flexShrink:0}}/>
+                  <span style={{fontWeight:600,flex:1}}>{l.name||'-'}</span>
+                  <span style={{color:'var(--text-sm)',fontSize:11}}>{l.building||''}</span>
+                  <span style={{color:'var(--text-sm)',fontSize:11}}>{formatDate(l.savedAt)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      ):(
+        /* ── 칸반 뷰 ── */
+        <div style={{display:'flex',gap:12,overflowX:'auto',paddingBottom:16,minHeight:'calc(100vh - 200px)'}}>
+          {PIPELINE_STAGES.map(stage=>{
+            const items=(search.trim()?filtered:leads).filter(l=>(l.status||'신규')===stage);
+            return(
+              <div key={stage} style={{minWidth:240,maxWidth:280,flex:'0 0 240px',background:'var(--bg)',borderRadius:12,padding:12}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12,padding:'0 4px'}}>
+                  <div style={{width:8,height:8,borderRadius:'50%',background:PIPELINE_COLORS[stage]}}/>
+                  <div style={{fontSize:13,fontWeight:800}}>{stage}</div>
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',background:'var(--border-s)',borderRadius:10,padding:'2px 8px'}}>{items.length}</div>
+                </div>
+                {items.map(l=>(
+                  <div key={l.id} onClick={()=>setSelected(l)} style={{padding:'12px 14px',background:'#fff',borderRadius:10,border:'1px solid var(--border-s)',cursor:'pointer',marginBottom:8,boxShadow:'0 1px 3px rgba(0,0,0,.04)'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+                      <span style={{fontSize:14,fontWeight:700}}>{l.name||'이름없음'}</span>
+                      <span style={{fontSize:10,color:'var(--text-sm)'}}>{formatDate(l.savedAt)}</span>
+                    </div>
+                    {l.building&&<div style={{fontSize:12,color:'var(--text-md)',marginBottom:3}}>🏢 {l.building}</div>}
+                    {l.staff&&<div style={{fontSize:11,color:'var(--orange)',fontWeight:600}}>👤 {l.staff}</div>}
+                  </div>
+                ))}
+                {items.length===0&&<div style={{textAlign:'center',padding:20,fontSize:12,color:'var(--text-sm)'}}>없음</div>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <DetailModal/>
+    </div>
+  );
+}
+
 function PagePlaceholder({ title, icon, description }) {
   return (
     <div style={{
@@ -3183,14 +3390,18 @@ function App() {
         return <DashboardPage onNavigate={setPage} />;
       case 'products':
         return <ProductsPage showToast={showToast} />;
-      case 'leads-solution':
-        return <LeadsKanbanPage brandKey="leads-solution" showToast={showToast} />;
-      case 'leads-method':
-        return <LeadsKanbanPage brandKey="leads-method" showToast={showToast} />;
-      case 'leads-store':
-        return <LeadsKanbanPage brandKey="leads-store" showToast={showToast} />;
-      case 'leads-grohome':
-        return <LeadsKanbanPage brandKey="leads-grohome" showToast={showToast} />;
+      case 'inbound-solution':
+        return <LeadsKanbanPage brandKey="inbound-solution" showToast={showToast} />;
+      case 'inbound-method':
+        return <LeadsKanbanPage brandKey="inbound-method" showToast={showToast} />;
+      case 'inbound-store':
+        return <LeadsKanbanPage brandKey="inbound-store" showToast={showToast} />;
+      case 'inbound-grohome':
+        return <LeadsKanbanPage brandKey="inbound-grohome" showToast={showToast} />;
+      case 'outbound-expo':
+        return <ExpoLeadsPage showToast={showToast} onNavigate={setPage} />;
+      case 'outbound-always':
+        return <PagePlaceholder title="상시영업" icon="📞" description="추후 개발 예정" />;
       case 'defect-sites':
         return <DefectSitesPage showToast={showToast} />;
       case 'inquiries':

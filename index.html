@@ -20,34 +20,26 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script>
 /* ── 환경 자동 감지 (prod / dev) ── */
-const IS_PREVIEW = location.hostname !== 'pour-exhibition-app.pages.dev'
+const IS_PREVIEW = location.hostname !== 'pour-app-prod.pages.dev'
                 && !location.hostname.startsWith('localhost')
                 && !location.hostname.startsWith('127.');
 
 const FIREBASE_CONFIG = IS_PREVIEW
-  ? { /* ── 2차 개발용 (Preview) ── */
-      apiKey:"AIzaSyCBGjGzaTTyIwBs_a8355KfFKaWabJT3ac",
-      authDomain:"pour-exhibition.firebaseapp.com",
-      projectId:"pour-exhibition",
-      storageBucket:"pour-exhibition.firebasestorage.app",
-      messagingSenderId:"881527274265",
-      appId:"1:881527274265:web:0caad9688e30beb1ea6388"
-      /* TODO: pour-exhibition-dev 프로젝트 생성 후 여기 교체
-      apiKey:"DEV_API_KEY",
-      authDomain:"pour-exhibition-dev.firebaseapp.com",
-      projectId:"pour-exhibition-dev",
-      storageBucket:"pour-exhibition-dev.firebasestorage.app",
-      messagingSenderId:"DEV_SENDER_ID",
-      appId:"DEV_APP_ID"
-      */
+  ? { /* ── 2차 개발용 (Preview) ── 나중에 dev 프로젝트 생성 시 교체 ── */
+      apiKey:"AIzaSyByDdBamhF6yINMm8uE0t7NRN0w865sYNE",
+      authDomain:"pour-app-prod.firebaseapp.com",
+      projectId:"pour-app-prod",
+      storageBucket:"pour-app-prod.firebasestorage.app",
+      messagingSenderId:"258161197518",
+      appId:"1:258161197518:web:e4f99fad335c981e78ab9f"
     }
   : { /* ── 운영용 (Production) ── */
-      apiKey:"AIzaSyCBGjGzaTTyIwBs_a8355KfFKaWabJT3ac",
-      authDomain:"pour-exhibition.firebaseapp.com",
-      projectId:"pour-exhibition",
-      storageBucket:"pour-exhibition.firebasestorage.app",
-      messagingSenderId:"881527274265",
-      appId:"1:881527274265:web:0caad9688e30beb1ea6388"
+      apiKey:"AIzaSyByDdBamhF6yINMm8uE0t7NRN0w865sYNE",
+      authDomain:"pour-app-prod.firebaseapp.com",
+      projectId:"pour-app-prod",
+      storageBucket:"pour-app-prod.firebasestorage.app",
+      messagingSenderId:"258161197518",
+      appId:"1:258161197518:web:e4f99fad335c981e78ab9f"
     };
 
 firebase.initializeApp(FIREBASE_CONFIG);
@@ -4918,7 +4910,7 @@ function SmsSettingsTab(){
         </div>
         <div style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:5}}>Worker URL</div>
         <input value={cfg.workerUrl||''} onChange={e=>saveCfg({...cfg,workerUrl:e.target.value})}
-          placeholder="https://pour-exhibition-app.pages.dev"
+          placeholder="https://pour-app-prod.pages.dev"
           style={{width:'100%',padding:'11px 13px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:13,color:'var(--text)',background:'var(--bg)',outline:'none',fontFamily:'inherit',boxSizing:'border-box',marginBottom:10}}/>
         <div style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:5}}>API Key</div>
         <input value={cfg.apiKey||''} onChange={e=>saveCfg({...cfg,apiKey:e.target.value})}

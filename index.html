@@ -4860,7 +4860,7 @@ function AdminScreen({onBack}){
             <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10}}>
               {ALL_PROBLEMS.map(p=>(
                 <div key={p.id} style={{borderRadius:10,border:'1.5px solid var(--border)',overflow:'hidden',background:'#fff'}}>
-                  <PhotoSlot src={probPhotos[p.id]||p.img||''} label={p.label} aspect="4/3" maxSize={600} quality={0.75}
+                  <PhotoSlot src={probPhotos[p.id]||p.img||''} label={p.label} aspect="1/1" maxSize={600} quality={0.75}
                     onSet={(v)=>{const up={...probPhotos,[p.id]:v};setProbPhotos(up);}}
                     onRemove={()=>{const up={...probPhotos};delete up[p.id];setProbPhotos(up);}}
                   />

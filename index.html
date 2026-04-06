@@ -19,14 +19,30 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script>
-firebase.initializeApp({
-  apiKey:"AIzaSyByDdBamhF6yINMm8uE0t7NRN0w865sYNE",
-  authDomain:"pour-app-prod.firebaseapp.com",
-  projectId:"pour-app-prod",
-  storageBucket:"pour-app-prod.firebasestorage.app",
-  messagingSenderId:"258161197518",
-  appId:"1:258161197518:web:e4f99fad335c981e78ab9f"
-});
+/* ── 환경 자동 감지 (prod / dev) ── */
+const IS_PREVIEW = location.hostname !== 'pour-app-prod.pages.dev'
+                && !location.hostname.startsWith('localhost')
+                && !location.hostname.startsWith('127.');
+
+const FIREBASE_CONFIG = IS_PREVIEW
+  ? { /* ── 2차 개발용 (Preview) ── 나중에 dev 프로젝트 생성 시 교체 ── */
+      apiKey:"AIzaSyByDdBamhF6yINMm8uE0t7NRN0w865sYNE",
+      authDomain:"pour-app-prod.firebaseapp.com",
+      projectId:"pour-app-prod",
+      storageBucket:"pour-app-prod.firebasestorage.app",
+      messagingSenderId:"258161197518",
+      appId:"1:258161197518:web:e4f99fad335c981e78ab9f"
+    }
+  : { /* ── 운영용 (Production) ── */
+      apiKey:"AIzaSyByDdBamhF6yINMm8uE0t7NRN0w865sYNE",
+      authDomain:"pour-app-prod.firebaseapp.com",
+      projectId:"pour-app-prod",
+      storageBucket:"pour-app-prod.firebasestorage.app",
+      messagingSenderId:"258161197518",
+      appId:"1:258161197518:web:e4f99fad335c981e78ab9f"
+    };
+
+firebase.initializeApp(FIREBASE_CONFIG);
 const db = firebase.firestore();
 
 // ─── Google Sheets 연동 ───

@@ -1,0 +1,18 @@
+{
+  "name": "POUR 박람회 상담",
+  "short_name": "POUR상담",
+  "description": "POUR솔루션 박람회 현장 상담 태블릿앱",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F8FAFC",
+  "theme_color": "#2563EB",
+  "icons": [
+    {
+      "src": "/logo-pour.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

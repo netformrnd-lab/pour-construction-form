@@ -4667,11 +4667,11 @@ function AdminScreen({onBack}){
                   <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}}>
                     {(data.causes||[]).map((url,i)=>(
                       <PhotoSlot key={i} src={url} label={`사진 ${i+1}`}
-                        onSet={(v)=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:['','',''],completed:'',gif:''};up[key].causes[i]=v;setCasePhotos(up);saveCasePhotos(up);}}
-                        onRemove={()=>{const up=JSON.parse(JSON.stringify(casePhotos));up[key].causes.splice(i,1);setCasePhotos(up);saveCasePhotos(up);}}
+                        onSet={(v)=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:['','',''],completed:'',gif:''};up[key].causes[i]=v;setCasePhotos(up);}}
+                        onRemove={()=>{const up=JSON.parse(JSON.stringify(casePhotos));up[key].causes.splice(i,1);setCasePhotos(up);}}
                       />
                     ))}
-                    <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:'',gif:''};up[key].causes.push('');setCasePhotos(up);saveCasePhotos(up);}}
+                    <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:'',gif:''};up[key].causes.push('');setCasePhotos(up);}}
                       style={{width:100,height:75,borderRadius:10,border:'2px dashed var(--border)',background:'#fff',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,color:'var(--text-sm)',fontSize:11,fontWeight:700}}>
                       <span style={{fontSize:24}}>+</span>추가
                     </button>
@@ -4703,7 +4703,7 @@ function AdminScreen({onBack}){
                               <div style={{flex:1,fontSize:10,color:'var(--text-sm)',lineHeight:1.5}}>
                                 <div style={{fontWeight:700,marginBottom:2}}>🖼 썸네일</div>
                                 <input value={thumbVal} placeholder="썸네일 이미지 URL"
-                                  onChange={e=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key].mediaThumbs)up[key].mediaThumbs=[];up[key].mediaThumbs[mi]=e.target.value;setCasePhotos(up);saveCasePhotos(up);}}
+                                  onChange={e=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key].mediaThumbs)up[key].mediaThumbs=[];up[key].mediaThumbs[mi]=e.target.value;setCasePhotos(up);}}
                                   style={{width:'100%',padding:'5px 8px',borderRadius:6,border:'1px solid var(--border)',fontSize:11,fontFamily:'inherit',boxSizing:'border-box'}}/>
                                 <input type="file" accept="image/*" id={`mt-${key}-${mi}`} style={{display:'none'}}
                                   onChange={e=>{
@@ -4717,7 +4717,7 @@ function AdminScreen({onBack}){
                                         const c=document.createElement('canvas');c.width=w;c.height=h;
                                         c.getContext('2d').drawImage(img,0,0,w,h);
                                         const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key].mediaThumbs)up[key].mediaThumbs=[];
-                                        up[key].mediaThumbs[mi]=c.toDataURL('image/jpeg',0.7);setCasePhotos(up);saveCasePhotos(up);
+                                        up[key].mediaThumbs[mi]=c.toDataURL('image/jpeg',0.7);setCasePhotos(up);
                                       };img.src=ev.target.result;
                                     };reader.readAsDataURL(file);e.target.value='';
                                   }}/>
@@ -4730,7 +4730,7 @@ function AdminScreen({onBack}){
                         {/* URL 입력 + 버튼들 */}
                         <div style={{display:'flex',gap:6}}>
                           <input value={url||''} placeholder={`YouTube/Drive/mp4 URL ${mi+1}`}
-                            onChange={e=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:'',media:[]};const m=up[key].media||(up[key].gif?[up[key].gif]:[]);m[mi]=e.target.value;up[key].media=m;delete up[key].gif;setCasePhotos(up);saveCasePhotos(up);}}
+                            onChange={e=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:'',media:[]};const m=up[key].media||(up[key].gif?[up[key].gif]:[]);m[mi]=e.target.value;up[key].media=m;delete up[key].gif;setCasePhotos(up);}}
                             style={{flex:1,padding:'8px 10px',borderRadius:8,border:'1px solid var(--border)',fontSize:12,fontFamily:'inherit',boxSizing:'border-box'}}/>
                           <input type="file" accept="image/*"
                             id={`mf-${key}-${mi}`} style={{display:'none'}}
@@ -4742,7 +4742,7 @@ function AdminScreen({onBack}){
                                 if(!up[key])up[key]={causes:[],completed:'',media:[]};
                                 const m=up[key].media||(up[key].gif?[up[key].gif]:[]);
                                 m[mi]=dataUrl;up[key].media=m;delete up[key].gif;
-                                setCasePhotos(up);saveCasePhotos(up);
+                                setCasePhotos(up);
                               };
                               const reader=new FileReader();
                               reader.onload=(ev)=>{
@@ -4763,13 +4763,13 @@ function AdminScreen({onBack}){
                           <button onClick={()=>document.getElementById(`mf-${key}-${mi}`)?.click()}
                             title="이미지 업로드 (영상은 URL 입력)"
                             style={{padding:'0 10px',borderRadius:8,border:'1px solid var(--border)',background:'#f3f4f6',fontSize:16,cursor:'pointer',lineHeight:1,fontFamily:'inherit'}}>📁</button>
-                          <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));const m=up[key]?.media||(up[key]?.gif?[up[key].gif]:[]);m.splice(mi,1);if(up[key].mediaThumbs)up[key].mediaThumbs.splice(mi,1);up[key].media=m;delete up[key].gif;setCasePhotos(up);saveCasePhotos(up);}}
+                          <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));const m=up[key]?.media||(up[key]?.gif?[up[key].gif]:[]);m.splice(mi,1);if(up[key].mediaThumbs)up[key].mediaThumbs.splice(mi,1);up[key].media=m;delete up[key].gif;setCasePhotos(up);}}
                             style={{padding:'0 10px',borderRadius:8,border:'1px solid #FCA5A5',background:'#FEF2F2',color:'#DC2626',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>✕</button>
                         </div>
                       </div>
                     );
                   })}
-                  <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:'',media:[]};const m=up[key].media||(up[key].gif?[up[key].gif]:[]);m.push('');up[key].media=m;delete up[key].gif;setCasePhotos(up);saveCasePhotos(up);}}
+                  <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:'',media:[]};const m=up[key].media||(up[key].gif?[up[key].gif]:[]);m.push('');up[key].media=m;delete up[key].gif;setCasePhotos(up);}}
                     style={{padding:'6px 14px',borderRadius:8,border:'1.5px dashed var(--border)',background:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',color:'var(--accent)',marginBottom:12}}>+ 미디어 추가</button>
                 </div>
               );
@@ -4784,8 +4784,8 @@ function AdminScreen({onBack}){
               {ALL_PROBLEMS.map(p=>(
                 <div key={p.id} style={{borderRadius:10,border:'1.5px solid var(--border)',overflow:'hidden',background:'#fff'}}>
                   <PhotoSlot src={probPhotos[p.id]||p.img||''} label={p.label} aspect="4/3"
-                    onSet={(v)=>{const up={...probPhotos,[p.id]:v};setProbPhotos(up);saveProblemPhotos(up);}}
-                    onRemove={()=>{const up={...probPhotos};delete up[p.id];setProbPhotos(up);saveProblemPhotos(up);}}
+                    onSet={(v)=>{const up={...probPhotos,[p.id]:v};setProbPhotos(up);}}
+                    onRemove={()=>{const up={...probPhotos};delete up[p.id];setProbPhotos(up);}}
                   />
                   <div style={{padding:'6px 8px'}}>
                     <div style={{fontSize:11,fontWeight:700,color:'var(--text)',lineHeight:1.3}}>{p.label}</div>
@@ -4794,6 +4794,21 @@ function AdminScreen({onBack}){
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* ── 수정 완료 버튼 (하단 고정) ── */}
+          <div style={{position:'sticky',bottom:0,background:'linear-gradient(transparent,var(--bg) 20%)',padding:'20px 0 10px',zIndex:5}}>
+            <button id="photoSaveBtn" onClick={async()=>{
+              const btn=document.getElementById('photoSaveBtn');btn.disabled=true;btn.textContent='💾 저장 중...';
+              saveCasePhotos(casePhotos);
+              saveProblemPhotos(probPhotos);
+              await new Promise(r=>setTimeout(r,3000));
+              btn.textContent='✅ 저장 완료! 태블릿에서 새로고침하세요';btn.style.background='#059669';
+              setTimeout(()=>{btn.textContent='💾 수정 완료 — 태블릿에 반영';btn.style.background='var(--accent)';btn.disabled=false;},3000);
+            }} style={{width:'100%',padding:'16px',borderRadius:12,border:'none',background:'var(--accent)',color:'#fff',fontSize:16,fontWeight:900,cursor:'pointer',fontFamily:'inherit',boxShadow:'0 4px 16px rgba(37,99,235,.3)',transition:'all .2s'}}>
+              💾 수정 완료 — 태블릿에 반영
+            </button>
+            <div style={{textAlign:'center',fontSize:11,color:'var(--text-sm)',marginTop:8}}>사진 수정 후 이 버튼을 눌러야 태블릿에 반영됩니다</div>
           </div>
         </div>
       )}

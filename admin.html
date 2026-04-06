@@ -2539,6 +2539,198 @@ function NPSPage({ showToast }) {
   );
 }
 
+/* ══════════════════════════════════════════════════════════════
+   영업관리 칸반 보드 — 4개 브랜드 공통 컴포넌트
+   ══════════════════════════════════════════════════════════════ */
+const PIPELINE_STAGES=['신규','상담중','견적제출','계약예정','계약완료'];
+const PIPELINE_COLORS={'신규':'#DC2626','상담중':'#D97706','견적제출':'#2563EB','계약예정':'#7C3AED','계약완료':'#059669'};
+const BRAND_CONFIG={
+  'leads-solution':{collection:'leads',label:'POUR솔루션',color:'#2563EB',bg:'#EFF6FF',icon:'🏢'},
+  'leads-method':{collection:'leads-method',label:'POUR공법',color:'#E8780F',bg:'#FFF7ED',icon:'🔧'},
+  'leads-store':{collection:'leads-store',label:'POUR스토어',color:'#059669',bg:'#ECFDF5',icon:'🛒'},
+  'leads-grohome':{collection:'leads-grohome',label:'그로홈',color:'#6D28D9',bg:'#F5F3FF',icon:'🏠'},
+};
+
+function LeadsKanbanPage({brandKey,showToast}){
+  const brand=BRAND_CONFIG[brandKey];
+  const [leads,setLeads]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [selected,setSelected]=useState(null);
+  const [search,setSearch]=useState('');
+  const [viewMode,setViewMode]=useState('kanban'); // kanban | list
+
+  const fetchLeads=async()=>{
+    setLoading(true);
+    try{
+      const snap=await db.collection(brand.collection).get();
+      const arr=[];
+      snap.forEach(doc=>arr.push({id:doc.id,...doc.data()}));
+      arr.sort((a,b)=>(b.savedAt||'').localeCompare(a.savedAt||''));
+      console.log(`[leads] ${brand.label}: ${arr.length}건 로드`);
+      setLeads(arr);
+    }catch(e){console.error('[leads] 로드 실패:',e);}
+    setLoading(false);
+  };
+
+  useEffect(()=>{fetchLeads();},[brandKey]);
+
+  const updateStatus=async(id,newStatus)=>{
+    try{
+      await db.collection(brand.collection).doc(id).update({status:newStatus,updatedAt:new Date().toISOString()});
+      setLeads(prev=>prev.map(l=>l.id===id?{...l,status:newStatus}:l));
+      if(selected?.id===id)setSelected(prev=>({...prev,status:newStatus}));
+      showToast(`${newStatus}(으)로 변경됨`);
+    }catch(e){console.error(e);showToast('상태 변경 실패','error');}
+  };
+
+  const deleteLead=async(id)=>{
+    if(!confirm('정말 삭제하시겠습니까?'))return;
+    try{
+      await db.collection(brand.collection).doc(id).delete();
+      setLeads(prev=>prev.filter(l=>l.id!==id));
+      setSelected(null);
+      showToast('삭제 완료');
+    }catch(e){console.error(e);showToast('삭제 실패','error');}
+  };
+
+  const filtered=leads.filter(l=>{
+    if(!search.trim())return true;
+    const s=search.toLowerCase();
+    return (l.name||'').toLowerCase().includes(s)||(l.phone||'').includes(s)||(l.building||'').toLowerCase().includes(s)||(l.problem||'').toLowerCase().includes(s);
+  });
+
+  const byStage=(stage)=>filtered.filter(l=>(l.status||'신규')===stage);
+
+  const formatDate=(d)=>{if(!d)return'-';const dt=new Date(d);return `${dt.getMonth()+1}/${dt.getDate()}`};
+
+  /* ── 리드 상세 모달 ── */
+  const DetailModal=()=>{
+    if(!selected)return null;
+    const l=selected;
+    return(
+      <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}} onClick={()=>setSelected(null)}>
+        <div style={{background:'#fff',borderRadius:16,padding:24,width:'min(440px,90vw)',maxHeight:'80vh',overflowY:'auto',boxShadow:'0 12px 40px rgba(0,0,0,.2)'}} onClick={e=>e.stopPropagation()}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+            <div style={{fontSize:18,fontWeight:800}}>{l.name||'이름없음'}</div>
+            <button onClick={()=>setSelected(null)} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:'var(--text-sm)'}}>✕</button>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:16}}>
+            {[{k:'전화',v:l.phone},{k:'이메일',v:l.email},{k:'건물',v:l.building},{k:'직급',v:l.position},{k:'하자',v:Array.isArray(l.problems)?l.problems.join(', '):l.problem},{k:'접수일',v:l.savedAt?new Date(l.savedAt).toLocaleDateString('ko'):'-'},{k:'담당자',v:l.staff},{k:'출처',v:l.source},{k:'희망착공',v:l.desiredStartDate||'-'},{k:'자료기한',v:l.docDeadline||'-'}].map(({k,v})=>v&&v!=='-'?(
+              <div key={k} style={{padding:'8px 10px',background:'var(--bg)',borderRadius:8}}>
+                <div style={{fontSize:11,color:'var(--text-sm)',marginBottom:2}}>{k}</div>
+                <div style={{fontSize:13,fontWeight:600}}>{v}</div>
+              </div>
+            ):null)}
+          </div>
+          {l.memo&&<div style={{padding:10,background:'var(--bg)',borderRadius:8,marginBottom:16}}>
+            <div style={{fontSize:11,color:'var(--text-sm)',marginBottom:4}}>메모</div>
+            <div style={{fontSize:13,lineHeight:1.5,whiteSpace:'pre-wrap'}}>{l.memo}</div>
+          </div>}
+          {l.actions&&l.actions.length>0&&<div style={{marginBottom:16}}>
+            <div style={{fontSize:11,color:'var(--text-sm)',marginBottom:6}}>후속 조치</div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:4}}>{l.actions.map((a,i)=><span key={i} style={{padding:'4px 8px',borderRadius:6,background:brand.bg,color:brand.color,fontSize:11,fontWeight:600}}>{a}</span>)}</div>
+          </div>}
+          <div style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:8}}>상태 변경</div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:16}}>
+            {PIPELINE_STAGES.map(s=>(
+              <button key={s} onClick={()=>updateStatus(l.id,s)} style={{padding:'7px 14px',borderRadius:8,border:`1.5px solid ${(l.status||'신규')===s?PIPELINE_COLORS[s]:'var(--border)'}`,background:(l.status||'신규')===s?PIPELINE_COLORS[s]:'#fff',color:(l.status||'신규')===s?'#fff':'var(--text)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>{s}</button>
+            ))}
+          </div>
+          <button onClick={()=>deleteLead(l.id)} style={{width:'100%',padding:'10px 0',borderRadius:8,border:'1.5px solid #FEE2E2',background:'#FEF2F2',color:'#DC2626',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>🗑 삭제</button>
+        </div>
+      </div>
+    );
+  };
+
+  /* ── 칸반 카드 ── */
+  const LeadCard=({lead})=>(
+    <div onClick={()=>setSelected(lead)} style={{padding:'12px 14px',background:'#fff',borderRadius:10,border:'1px solid var(--border-s)',cursor:'pointer',transition:'all .15s',boxShadow:'0 1px 3px rgba(0,0,0,.04)',marginBottom:8}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+        <div style={{fontSize:14,fontWeight:700,color:'var(--text)'}}>{lead.name||'이름없음'}</div>
+        <div style={{fontSize:10,color:'var(--text-sm)'}}>{formatDate(lead.savedAt)}</div>
+      </div>
+      {lead.building&&<div style={{fontSize:12,color:'var(--text-md)',marginBottom:4}}>🏢 {lead.building}</div>}
+      {(lead.problem||lead.problems)&&<div style={{fontSize:11,color:'var(--text-sm)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>⚡ {Array.isArray(lead.problems)?lead.problems.join(', '):lead.problem}</div>}
+      {lead.staff&&<div style={{fontSize:11,color:brand.color,marginTop:4,fontWeight:600}}>👤 {lead.staff}</div>}
+    </div>
+  );
+
+  /* ── 칸반 뷰 ── */
+  const KanbanView=()=>(
+    <div style={{display:'flex',gap:12,overflowX:'auto',paddingBottom:16,minHeight:'calc(100vh - 200px)'}}>
+      {PIPELINE_STAGES.map(stage=>{
+        const items=byStage(stage);
+        return(
+          <div key={stage} style={{minWidth:240,maxWidth:280,flex:'0 0 240px',background:'var(--bg)',borderRadius:12,padding:12}}>
+            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12,padding:'0 4px'}}>
+              <div style={{width:8,height:8,borderRadius:'50%',background:PIPELINE_COLORS[stage]}}/>
+              <div style={{fontSize:13,fontWeight:800,color:'var(--text)'}}>{stage}</div>
+              <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',background:'var(--border-s)',borderRadius:10,padding:'2px 8px'}}>{items.length}</div>
+            </div>
+            <div style={{minHeight:100}}>
+              {items.map(l=><LeadCard key={l.id} lead={l}/>)}
+              {items.length===0&&<div style={{textAlign:'center',padding:'20px 0',fontSize:12,color:'var(--text-sm)'}}>없음</div>}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  /* ── 리스트 뷰 ── */
+  const ListView=()=>(
+    <div style={{background:'#fff',borderRadius:12,border:'1px solid var(--border)',overflow:'hidden'}}>
+      <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+        <thead>
+          <tr style={{background:'var(--bg)'}}>
+            {['성함','건물','하자','상태','담당자','접수일'].map(h=>(
+              <th key={h} style={{padding:'10px 14px',textAlign:'left',fontWeight:700,color:'var(--text-md)',fontSize:12,borderBottom:'1px solid var(--border)'}}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {filtered.map(l=>(
+            <tr key={l.id} onClick={()=>setSelected(l)} style={{cursor:'pointer',borderBottom:'1px solid var(--border-s)'}}>
+              <td style={{padding:'10px 14px',fontWeight:600}}>{l.name||'-'}</td>
+              <td style={{padding:'10px 14px',color:'var(--text-md)'}}>{l.building||'-'}</td>
+              <td style={{padding:'10px 14px',color:'var(--text-md)',maxWidth:150,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{Array.isArray(l.problems)?l.problems.join(', '):(l.problem||'-')}</td>
+              <td style={{padding:'10px 14px'}}><span style={{padding:'3px 10px',borderRadius:6,background:PIPELINE_COLORS[l.status||'신규']+'18',color:PIPELINE_COLORS[l.status||'신규'],fontSize:11,fontWeight:700}}>{l.status||'신규'}</span></td>
+              <td style={{padding:'10px 14px',color:'var(--text-md)'}}>{l.staff||'-'}</td>
+              <td style={{padding:'10px 14px',color:'var(--text-sm)',fontSize:12}}>{formatDate(l.savedAt)}</td>
+            </tr>
+          ))}
+          {filtered.length===0&&<tr><td colSpan={6} style={{padding:40,textAlign:'center',color:'var(--text-sm)'}}>리드가 없습니다</td></tr>}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  return(
+    <div style={{animation:'fadeIn .3s ease'}}>
+      {/* 헤더 */}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20,flexWrap:'wrap',gap:12}}>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          <span style={{fontSize:28}}>{brand.icon}</span>
+          <div>
+            <div style={{fontSize:20,fontWeight:800}}>{brand.label} 영업</div>
+            <div style={{fontSize:12,color:'var(--text-sm)'}}>총 {leads.length}건 · {PIPELINE_STAGES.map(s=>`${s} ${byStage(s).length}`).join(' · ')}</div>
+          </div>
+        </div>
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="검색 (이름, 전화, 건물)" style={{padding:'8px 14px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:12,width:180,outline:'none',fontFamily:'inherit'}}/>
+          <button onClick={()=>setViewMode(viewMode==='kanban'?'list':'kanban')} style={{padding:'8px 12px',borderRadius:8,border:'1.5px solid var(--border)',background:'#fff',fontSize:12,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>{viewMode==='kanban'?'📋 리스트':'📊 칸반'}</button>
+          <button onClick={fetchLeads} style={{padding:'8px 12px',borderRadius:8,border:'1.5px solid var(--border)',background:'#fff',fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>🔄</button>
+        </div>
+      </div>
+
+      {loading?<div style={{textAlign:'center',padding:60,color:'var(--text-sm)'}}>로딩 중...</div>
+        :viewMode==='kanban'?<KanbanView/>:<ListView/>}
+
+      <DetailModal/>
+    </div>
+  );
+}
+
 function PagePlaceholder({ title, icon, description }) {
   return (
     <div style={{
@@ -2581,13 +2773,13 @@ function App() {
       case 'products':
         return <ProductsPage showToast={showToast} />;
       case 'leads-solution':
-        return <PagePlaceholder title="POUR솔루션 영업" icon="🏢" description="박람회 리드 + 아웃바운드 영업" />;
+        return <LeadsKanbanPage brandKey="leads-solution" showToast={showToast} />;
       case 'leads-method':
-        return <PagePlaceholder title="POUR공법 영업" icon="🔧" description="시공사 리드 + 입찰 관리" />;
+        return <LeadsKanbanPage brandKey="leads-method" showToast={showToast} />;
       case 'leads-store':
-        return <PagePlaceholder title="POUR스토어 영업" icon="🛒" description="스토어 리드 관리" />;
+        return <LeadsKanbanPage brandKey="leads-store" showToast={showToast} />;
       case 'leads-grohome':
-        return <PagePlaceholder title="그로홈 영업" icon="🏠" description="그로홈 리드 관리" />;
+        return <LeadsKanbanPage brandKey="leads-grohome" showToast={showToast} />;
       case 'inquiries':
         return <PagePlaceholder title="문의접수" icon="📬" description="사이트 문의 접수 관리" />;
       case 'metrics':

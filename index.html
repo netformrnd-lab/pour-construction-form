@@ -18,6 +18,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 <script>
 /* ── 환경 자동 감지 (prod / dev) ── */
 const IS_PREVIEW = location.hostname !== 'pour-construction-form.pages.dev'
@@ -1136,13 +1137,73 @@ const DEFAULT_CASE_PHOTOS={};
 const loadCasePhotos=()=>{try{return{...DEFAULT_CASE_PHOTOS,...JSON.parse(localStorage.getItem('pourCasePhotos')||'{}')};}catch{return DEFAULT_CASE_PHOTOS;}};
 const saveCasePhotos=p=>{
   try{localStorage.setItem('pourCasePhotos',JSON.stringify(p));}catch(e){alert('저장 공간이 부족합니다. 일부 사진을 삭제해주세요.');}
-  try{db.collection('config').doc('casePhotos').set(p).catch(()=>{});}catch(e){}
+  /* Firestore에 저장 (base64 → Storage 업로드 후 URL로 교체) */
+  (async()=>{
+    try{
+      const clean=JSON.parse(JSON.stringify(p));
+      /* base64 데이터를 Storage에 업로드하고 URL로 교체 */
+      for(const key of Object.keys(clean)){
+        const item=clean[key];if(!item)continue;
+        /* causes 배열 */
+        if(item.causes){
+          for(let i=0;i<item.causes.length;i++){
+            if(item.causes[i]&&item.causes[i].startsWith('data:')){
+              item.causes[i]=await uploadBase64ToStorage(item.causes[i],`case-photos/${key}/cause_${i}`);
+            }
+          }
+        }
+        /* completed */
+        if(item.completed&&item.completed.startsWith('data:')){
+          item.completed=await uploadBase64ToStorage(item.completed,`case-photos/${key}/completed`);
+        }
+        /* mediaThumbs */
+        if(item.mediaThumbs){
+          for(let i=0;i<item.mediaThumbs.length;i++){
+            if(item.mediaThumbs[i]&&item.mediaThumbs[i].startsWith('data:')){
+              item.mediaThumbs[i]=await uploadBase64ToStorage(item.mediaThumbs[i],`case-photos/${key}/thumb_${i}`);
+            }
+          }
+        }
+      }
+      await db.collection('config').doc('casePhotos').set(clean);
+      /* Storage URL로 교체된 데이터를 localStorage에도 업데이트 */
+      try{localStorage.setItem('pourCasePhotos',JSON.stringify(clean));}catch(e){}
+      console.log('[saveCasePhotos] Firestore 저장 완료');
+    }catch(e){console.error('[saveCasePhotos] Firestore 저장 실패:',e);}
+  })();
 };
+/* base64 → Firebase Storage 업로드 → URL 반환 */
+async function uploadBase64ToStorage(base64,path){
+  try{
+    const res=await fetch(base64);const blob=await res.blob();
+    const ref=firebase.storage().ref(`${path}_${Date.now()}.jpg`);
+    await ref.put(blob);
+    return await ref.getDownloadURL();
+  }catch(e){console.error('[uploadBase64] 실패:',e);return base64;}
+}
 // 보유니즈 카드 사진 — localStorage + Firestore 동기화
 const loadProblemPhotos=()=>{try{return JSON.parse(localStorage.getItem('pourProblemPhotos')||'{}');}catch{return{};}};
 const saveProblemPhotos=p=>{
   try{localStorage.setItem('pourProblemPhotos',JSON.stringify(p));}catch(e){alert('저장 공간이 부족합니다. 일부 사진을 삭제해주세요.');}
-  try{db.collection('config').doc('probPhotos').set(p).catch(()=>{});}catch(e){}
+  (async()=>{
+    try{
+      const clean=JSON.parse(JSON.stringify(p));
+      for(const key of Object.keys(clean)){
+        if(clean[key]&&typeof clean[key]==='string'&&clean[key].startsWith('data:')){
+          clean[key]=await uploadBase64ToStorage(clean[key],`prob-photos/${key}`);
+        }else if(clean[key]&&typeof clean[key]==='object'){
+          for(const k2 of Object.keys(clean[key])){
+            if(clean[key][k2]&&typeof clean[key][k2]==='string'&&clean[key][k2].startsWith('data:')){
+              clean[key][k2]=await uploadBase64ToStorage(clean[key][k2],`prob-photos/${key}/${k2}`);
+            }
+          }
+        }
+      }
+      await db.collection('config').doc('probPhotos').set(clean);
+      try{localStorage.setItem('pourProblemPhotos',JSON.stringify(clean));}catch(e){}
+      console.log('[saveProblemPhotos] Firestore 저장 완료');
+    }catch(e){console.error('[saveProblemPhotos] Firestore 저장 실패:',e);}
+  })();
 };
 // Firestore에서 사진 데이터 동기화 (async)
 const syncPhotosFromFirestore=async(setCasePhotos,setProbPhotos)=>{

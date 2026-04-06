@@ -45,9 +45,6 @@ const FIREBASE_CONFIG = IS_PREVIEW
 firebase.initializeApp(FIREBASE_CONFIG);
 const db = firebase.firestore();
 
-/* ── 환경 표시 (개발 중 확인용) ── */
-if(IS_PREVIEW){console.log('%c🔧 DEV 모드 (Preview)','color:#E8780F;font-size:14px;font-weight:bold');}
-
 // ─── Google Sheets 연동 ───
 // Apps Script 배포 URL을 여기에 붙여넣으세요
 const GOOGLE_SHEET_URL = '';

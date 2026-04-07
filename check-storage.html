@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Storage 파일 URL 확인</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyByDdBamhF6yINMm8uE0t7NRN0w865sYNE",
+  authDomain:"pour-app-prod.firebaseapp.com",
+  projectId:"pour-app-prod",
+  storageBucket:"pour-app-prod.firebasestorage.app",
+  messagingSenderId:"258161197518",
+  appId:"1:258161197518:web:e4f99fad335c981e78ab9f"
+});
+const storage = firebase.storage();
+
+async function listFiles() {
+  const log = document.getElementById('log');
+  log.innerHTML = '조회 중...';
+  const folders = ['Proposal/방수', 'Proposal/도장', 'Proposal/보수보강', 'Proposal/토목'];
+  let output = '';
+
+  for (const folder of folders) {
+    output += `\n<b>📁 ${folder}</b>\n`;
+    try {
+      const ref = storage.ref(folder);
+      const result = await ref.listAll();
+      for (const item of result.items) {
+        const url = await item.getDownloadURL();
+        output += `  ✅ ${item.name}\n     <a href="${url}" target="_blank" style="font-size:11px;word-break:break-all">${url}</a>\n\n`;
+      }
+    } catch(e) {
+      output += `  ❌ 에러: ${e.message}\n`;
+    }
+  }
+  log.innerHTML = output;
+}
+</script>
+<style>
+body{font-family:'Pretendard',monospace;padding:20px;max-width:900px;margin:0 auto;background:#F8FAFC;}
+#log{white-space:pre-wrap;background:#fff;padding:20px;border-radius:12px;border:1px solid #E2E8F0;font-size:12px;line-height:2;max-height:80vh;overflow-y:auto;}
+button{padding:12px 24px;border-radius:10px;border:none;background:#2563EB;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:16px;}
+</style>
+</head>
+<body>
+<h2>🔍 Firebase Storage 파일 URL 확인</h2>
+<button onclick="listFiles()">파일 목록 + 다운로드 URL 조회</button>
+<div id="log">버튼을 클릭하세요</div>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "pour-firestore-backup",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Firestore 백업 및 마이그레이션 도구",
+  "scripts": {
+    "backup:dev": "NODE_ENV=development node -r dotenv/config firestore-backup.js dotenv_config_path=../.env.dev",
+    "backup:prod": "NODE_ENV=production node -r dotenv/config firestore-backup.js dotenv_config_path=../.env.prod",
+    "migrate": "node migrate-to-new-project.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "@octokit/rest": "^20.0.0",
+    "dotenv": "^16.3.1"
+  }
+}

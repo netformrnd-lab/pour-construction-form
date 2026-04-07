@@ -2527,15 +2527,16 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
         {/* 제안서 · 시공가이드 — 가로 2열: 아이콘=페이지이동, QR=별도 */}
         <div style={{display:'flex',gap:8,marginTop:10}}>
           {/* ── 제안서 ── */}
+          {(()=>{const pdfUrl=problem.proposalUrl||problem.specUrl;return(
           <div style={{flex:1,borderRadius:10,border:'1px solid rgba(255,255,255,.15)',background:'rgba(255,255,255,.07)',overflow:'hidden'}}>
-            {problem.specUrl?(
+            {pdfUrl?(
               <div style={{display:'flex',flexDirection:'column'}}>
-                <a href={problem.specUrl} target="_blank" rel="noopener noreferrer"
+                <a href={pdfUrl} target="_blank" rel="noopener noreferrer"
                   style={{display:'flex',alignItems:'center',gap:8,padding:'12px 14px',textDecoration:'none',borderBottom:'1px solid rgba(255,255,255,.08)'}}>
                   <span style={{fontSize:24}}>📄</span>
-                  <div><div style={{fontSize:12,fontWeight:800,color:'#93bbfc'}}>제안서</div><div style={{fontSize:9,color:'rgba(255,255,255,.4)'}}>탭하면 페이지 이동</div></div>
+                  <div><div style={{fontSize:12,fontWeight:800,color:'#93bbfc'}}>제안서</div><div style={{fontSize:9,color:'rgba(255,255,255,.4)'}}>{problem.proposalUrl?'PDF 보기':'탭하면 페이지 이동'}</div></div>
                 </a>
-                <button onClick={()=>setQr({url:problem.specUrl,title:'📄 제안서'})}
+                <button onClick={()=>setQr({url:pdfUrl,title:'📄 제안서'})}
                   style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4,padding:'8px',background:'rgba(59,130,246,.1)',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(147,187,252,.8)" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="4" height="4" rx="1"/></svg>
                   <span style={{fontSize:10,fontWeight:700,color:'#93bbfc'}}>QR</span>
@@ -2547,6 +2548,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               </div>
             )}
           </div>
+          );})()}
           {/* ── 시공 가이드 ── */}
           <div style={{flex:1,borderRadius:10,border:'1px solid rgba(255,255,255,.15)',background:'rgba(255,255,255,.07)',overflow:'hidden'}}>
             {guide?(

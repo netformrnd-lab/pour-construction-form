@@ -3783,9 +3783,11 @@ function SalesDocsPage({showToast}){
 function ExpoLeadsPage({showToast,onNavigate}){
   const [leads,setLeads]=useState([]);
   const [loading,setLoading]=useState(true);
-  const [view,setView]=useState('dashboard'); // dashboard | kanban
+  const [view,setView]=useState('dashboard'); // dashboard | kanban | list
   const [selected,setSelected]=useState(null);
   const [search,setSearch]=useState('');
+  const [bulkSelected,setBulkSelected]=useState(new Set());
+  const [filterStatus,setFilterStatus]=useState('전체');
 
   const fetchLeads=async()=>{
     setLoading(true);
@@ -3794,7 +3796,7 @@ function ExpoLeadsPage({showToast,onNavigate}){
       let arr=[];
       snap.forEach(doc=>arr.push({id:doc.id,...doc.data()}));
       /* 박람회 소스만 필터 (source 없는 기존 데이터는 박람회로 간주) */
-      arr=arr.filter(l=>!l.source||['expo','exhibition','tablet','박람회','qr',''].includes(l.source));
+      arr=arr.filter(l=>(!l.source||['expo','exhibition','tablet','박람회','qr',''].includes(l.source))&&!l.deletedAt);
       arr.sort((a,b)=>(b.savedAt||'').localeCompare(a.savedAt||''));
       console.log(`[expo] 박람회 리드: ${arr.length}건`);
       setLeads(arr);
@@ -3814,8 +3816,30 @@ function ExpoLeadsPage({showToast,onNavigate}){
   };
 
   const deleteLead=async(id)=>{
-    if(!confirm('정말 삭제하시겠습니까?'))return;
-    try{await db.collection('leads').doc(id).delete();setLeads(prev=>prev.filter(l=>l.id!==id));setSelected(null);showToast('삭제 완료');}catch(e){showToast('삭제 실패','error');}
+    if(!confirm('휴지통으로 이동하시겠습니까?'))return;
+    try{
+      const deletedAt=new Date().toISOString();
+      await db.collection('leads').doc(id).update({deletedAt});
+      setLeads(prev=>prev.map(l=>l.id===id?{...l,deletedAt}:l));
+      setSelected(null);showToast('휴지통으로 이동됨');
+    }catch(e){showToast('삭제 실패','error');}
+  };
+  const deleteSelectedLeads=async(ids)=>{
+    if(!ids.size)return;
+    if(!confirm(`선택한 ${ids.size}건을 휴지통으로 이동하시겠습니까?`))return;
+    try{
+      const deletedAt=new Date().toISOString();
+      await Promise.all([...ids].map(id=>db.collection('leads').doc(id).update({deletedAt})));
+      setLeads(prev=>prev.map(l=>ids.has(l.id)?{...l,deletedAt}:l));
+      showToast(`${ids.size}건을 휴지통으로 이동했습니다`);
+    }catch(e){showToast('삭제 실패','error');}
+  };
+  const restoreLead=async(id)=>{
+    try{
+      await db.collection('leads').doc(id).update({deletedAt:firebase.firestore.FieldValue.delete()});
+      setLeads(prev=>prev.map(l=>{if(l.id!==id)return l;const{deletedAt,...rest}=l;return rest;}));
+      showToast('복원 완료');
+    }catch(e){showToast('복원 실패','error');}
   };
 
   const byStatus=(s)=>leads.filter(l=>(l.status||'신규')===s);
@@ -3866,7 +3890,9 @@ function ExpoLeadsPage({showToast,onNavigate}){
           </div>
         </div>
         <div style={{display:'flex',gap:8}}>
-          <button onClick={()=>setView(view==='dashboard'?'kanban':'dashboard')} style={{padding:'8px 14px',borderRadius:8,border:'1.5px solid var(--border)',background:view==='dashboard'?'var(--orange)':'#fff',color:view==='dashboard'?'#fff':'var(--text)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>{view==='dashboard'?'📊 칸반 보기':'📋 대시보드'}</button>
+          {[['dashboard','📊 대시보드'],['kanban','📋 칸반'],['list','📋 전체목록']].map(([v,label])=>(
+            <button key={v} onClick={()=>{setView(v);setBulkSelected(new Set());}} style={{padding:'8px 14px',borderRadius:8,border:'1.5px solid var(--border)',background:view===v?'var(--orange)':'#fff',color:view===v?'#fff':'var(--text)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>{label}</button>
+          ))}
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="검색" style={{padding:'8px 14px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:12,width:140,outline:'none',fontFamily:'inherit'}}/>
           <button onClick={fetchLeads} style={{padding:'8px 12px',borderRadius:8,border:'1.5px solid var(--border)',background:'#fff',fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>🔄</button>
         </div>
@@ -4060,6 +4086,7 @@ function ExpoLeadsPage({showToast,onNavigate}){
         </>
       ):(
         /* ── 칸반 뷰 ── */
+        view==='kanban'?(
         <div style={{display:'flex',gap:12,overflowX:'auto',paddingBottom:16,minHeight:'calc(100vh - 200px)'}}>
           {PIPELINE_STAGES.map(stage=>{
             const items=(search.trim()?filtered:leads).filter(l=>(l.status||'신규')===stage);
@@ -4085,6 +4112,64 @@ function ExpoLeadsPage({showToast,onNavigate}){
             );
           })}
         </div>
+        ):(
+        /* ── 전체 목록 뷰 (일괄 관리) ── */
+        (()=>{
+          const listData=(search.trim()?filtered:leads).filter(l=>filterStatus==='전체'||(l.status||'신규')===filterStatus);
+          const allChecked=listData.length>0&&listData.every(l=>bulkSelected.has(l.id));
+          const toggleAll=()=>{
+            if(allChecked)setBulkSelected(new Set());
+            else setBulkSelected(new Set(listData.map(l=>l.id)));
+          };
+          const toggleOne=(id)=>{
+            setBulkSelected(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);return n;});
+          };
+          return(
+            <div style={{background:'#fff',borderRadius:12,overflow:'hidden',boxShadow:'0 2px 8px rgba(0,0,0,.04)'}}>
+              {/* 필터 + 일괄 액션 바 */}
+              <div style={{padding:'12px 16px',borderBottom:'1px solid var(--border-s)',display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+                <div style={{display:'flex',gap:6}}>
+                  {['전체',...PIPELINE_STAGES].map(s=>(
+                    <button key={s} onClick={()=>setFilterStatus(s)} style={{padding:'4px 10px',borderRadius:20,border:'none',background:filterStatus===s?(PIPELINE_COLORS[s]||'var(--navy)'):'var(--bg)',color:filterStatus===s?'#fff':'var(--text)',fontSize:11,fontWeight:700,cursor:'pointer'}}>{s}</button>
+                  ))}
+                </div>
+                <span style={{fontSize:12,color:'var(--text-sm)',marginLeft:'auto'}}>{listData.length}건</span>
+                {bulkSelected.size>0&&(
+                  <button onClick={()=>deleteSelectedLeads(bulkSelected).then(()=>setBulkSelected(new Set()))}
+                    style={{padding:'6px 16px',borderRadius:8,border:'none',background:'#DC2626',color:'#fff',fontSize:12,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>
+                    🗑 선택 {bulkSelected.size}건 휴지통
+                  </button>
+                )}
+              </div>
+              {/* 테이블 헤더 */}
+              <div style={{display:'grid',gridTemplateColumns:'36px 1fr 90px 80px 90px 80px 90px',gap:0,padding:'8px 14px',background:'var(--bg)',fontSize:11,fontWeight:700,color:'var(--text-sm)',borderBottom:'1px solid var(--border-s)'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <input type="checkbox" checked={allChecked} onChange={toggleAll} style={{width:15,height:15,cursor:'pointer'}}/>
+                </div>
+                <div>이름 / 건물유형</div><div>담당자</div><div>날짜</div><div>상태</div><div>전화</div><div>하자유형</div>
+              </div>
+              {/* 테이블 바디 */}
+              {listData.length===0&&<div style={{padding:40,textAlign:'center',color:'var(--text-sm)',fontSize:13}}>조건에 맞는 리드가 없습니다</div>}
+              {listData.map(l=>(
+                <div key={l.id} style={{display:'grid',gridTemplateColumns:'36px 1fr 90px 80px 90px 80px 90px',gap:0,padding:'10px 14px',borderBottom:'1px solid var(--border-s)',fontSize:12,alignItems:'center',background:bulkSelected.has(l.id)?'#EFF6FF':'#fff',cursor:'default'}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    <input type="checkbox" checked={bulkSelected.has(l.id)} onChange={()=>toggleOne(l.id)} style={{width:15,height:15,cursor:'pointer'}} onClick={e=>e.stopPropagation()}/>
+                  </div>
+                  <div style={{cursor:'pointer'}} onClick={()=>setSelected(l)}>
+                    <div style={{fontWeight:700,color:'var(--text)'}}>{l.name||'이름없음'}</div>
+                    <div style={{fontSize:11,color:'var(--text-sm)',marginTop:1}}>{l.building||'-'}</div>
+                  </div>
+                  <div style={{fontSize:11,color:'var(--text-md)'}}>{l.staff||'-'}</div>
+                  <div style={{fontSize:11,color:'var(--text-sm)'}}>{formatDate(l.savedAt)}</div>
+                  <div><span style={{padding:'3px 8px',borderRadius:8,fontSize:10,fontWeight:700,background:(PIPELINE_COLORS[l.status||'신규'])+'20',color:PIPELINE_COLORS[l.status||'신규']}}>{l.status||'신규'}</span></div>
+                  <div style={{fontSize:11,color:'var(--text-sm)'}}>{l.phone||'-'}</div>
+                  <div style={{fontSize:11,color:'var(--text-sm)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{Array.isArray(l.problems)?l.problems.slice(0,2).join(', '):l.problem||'-'}</div>
+                </div>
+              ))}
+            </div>
+          );
+        })()
+        )
       )}
 
       <DetailModal/>

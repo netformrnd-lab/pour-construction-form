@@ -4524,8 +4524,8 @@ function AdminScreen({onBack}){
   const [smsTarget,setSmsTarget]=useState(null);
   const [toast,setToast]=useState(null);
   const [showPinChange,setShowPinChange]=useState(false);
-  const [selectedIds,setSelectedIds]=useState(new Set());
-  const [selectMode,setSelectMode]=useState(false);
+  const [undoInfo,setUndoInfo]=useState(null);
+  const undoTimer=React.useRef(null);
   const [showSettings,setShowSettings]=useState(false);
   const [settingsUnlocked,setSettingsUnlocked]=useState(false);
   const [settingsPin,setSettingsPin]=useState('');
@@ -4586,12 +4586,28 @@ function AdminScreen({onBack}){
   const byStartMonth=Array.from({length:12},(_,i)=>{const mo=i+1;return{month:mo,label:`${mo}월`,count:activeLeads.filter(l=>l.desiredStartDate&&parseInt(l.desiredStartDate.slice(5,7),10)===mo).length};});
   const maxStartMonth=Math.max(...byStartMonth.map(m=>m.count),1);
 
-  // 상태 변경
-  const changeStatus=async(id,status)=>{
+  // 상태 변경 (undo 5초)
+  const changeStatus=async(id,newStatus)=>{
+    const lead=leads.find(l=>l.id===id);
+    if(!lead||(lead.status||'신규')===newStatus)return;
+    const prevStatus=lead.status||'신규';
     try{
-      await db.collection('leads').doc(id).update({status});
-      setLeads(p=>p.map(l=>l.id===id?{...l,status}:l));
+      await db.collection('leads').doc(id).update({status:newStatus});
+      setLeads(p=>p.map(l=>l.id===id?{...l,status:newStatus}:l));
+      if(undoTimer.current)clearTimeout(undoTimer.current);
+      setUndoInfo({id,name:lead.name,prevStatus,newStatus});
+      undoTimer.current=setTimeout(()=>{setUndoInfo(null);undoTimer.current=null;},5000);
     }catch(e){alert('변경 실패');}
+  };
+  const undoStatus=async()=>{
+    if(!undoInfo)return;
+    if(undoTimer.current){clearTimeout(undoTimer.current);undoTimer.current=null;}
+    const{id,prevStatus}=undoInfo;
+    setUndoInfo(null);
+    try{
+      await db.collection('leads').doc(id).update({status:prevStatus});
+      setLeads(p=>p.map(l=>l.id===id?{...l,status:prevStatus}:l));
+    }catch(e){alert('취소 실패');}
   };
 
   // 삭제 (soft delete)
@@ -4611,23 +4627,6 @@ function AdminScreen({onBack}){
       await db.collection('leads').doc(id).update({deletedAt:firebase.firestore.FieldValue.delete()});
       setLeads(p=>p.map(l=>l.id===id?(()=>{const{deletedAt,...rest}=l;return rest;})():l));
     }catch(e){alert('복원 실패');}
-  };
-
-  // 선택 일괄 삭제
-  const deleteSelected=async()=>{
-    if(!selectedIds.size)return;
-    if(!window.confirm(`선택한 ${selectedIds.size}건을 휴지통으로 이동하시겠어요?`))return;
-    const deletedAt=new Date().toISOString();
-    try{
-      await Promise.all([...selectedIds].map(id=>db.collection('leads').doc(id).update({deletedAt})));
-      setLeads(p=>p.map(l=>selectedIds.has(l.id)?{...l,deletedAt}:l));
-      setSelectedIds(new Set());
-      setSelectMode(false);
-    }catch(e){alert('삭제 실패');}
-  };
-  const toggleSelectAll=()=>{
-    if(selectedIds.size===display.length)setSelectedIds(new Set());
-    else setSelectedIds(new Set(display.map(l=>l.id)));
   };
 
   // CSV 다운로드
@@ -4669,7 +4668,7 @@ function AdminScreen({onBack}){
 
       {/* 탭 */}
       <div style={{display:'flex',background:'var(--navy)',borderBottom:'1px solid rgba(255,255,255,.1)',flexShrink:0,overflowX:'auto'}}>
-        {[['stat','📊 통계'],['list','📋 유입'],['keyword','🔑 키워드'],['staff','👤 담당자'],['qr','🔲 QR'],['trash','🗑']].map(([k,label])=>(
+        {[['stat','📊 통계'],['list','📋 유입'],['keyword','🔑 키워드'],['qr','🔲 QR'],['trash','🗑']].map(([k,label])=>(
           <button key={k} onClick={()=>setTab(k)} style={{flexShrink:0,padding:'11px 10px',background:'none',border:'none',color:tab===k?'#fff':'rgba(255,255,255,.4)',fontSize:12,fontWeight:tab===k?800:600,cursor:'pointer',borderBottom:tab===k?'2px solid #60A5FA':'2px solid transparent',transition:'all .15s'}}>
             {label}
           </button>
@@ -4714,25 +4713,22 @@ function AdminScreen({onBack}){
                 <div style={{fontSize:13,fontWeight:700,color:'var(--text-sm)',marginBottom:16,textAlign:'center'}}>
                   ✅ 인증 완료 — 열 항목을 선택하세요
                 </div>
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
-                  <button onClick={()=>openSettingsTab('photos')} style={{padding:'24px 16px',borderRadius:16,border:'2px solid var(--border)',background:'var(--card)',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column',alignItems:'center',gap:10,transition:'all .15s'}}
-                    onMouseOver={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.background='var(--blue-l)';}}
-                    onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.background='var(--card)';}}>
-                    <span style={{fontSize:36}}>📸</span>
-                    <div>
-                      <div style={{fontSize:14,fontWeight:800,color:'var(--text)'}}>사진 관리</div>
-                      <div style={{fontSize:11,color:'var(--text-sm)',marginTop:3}}>공법별 하자사진 · 미디어</div>
-                    </div>
-                  </button>
-                  <button onClick={()=>openSettingsTab('sms')} style={{padding:'24px 16px',borderRadius:16,border:'2px solid var(--border)',background:'var(--card)',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column',alignItems:'center',gap:10,transition:'all .15s'}}
-                    onMouseOver={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.background='var(--blue-l)';}}
-                    onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.background='var(--card)';}}>
-                    <span style={{fontSize:36}}>💬</span>
-                    <div>
-                      <div style={{fontSize:14,fontWeight:800,color:'var(--text)'}}>문자 설정</div>
-                      <div style={{fontSize:11,color:'var(--text-sm)',marginTop:3}}>자동발송 · 템플릿 관리</div>
-                    </div>
-                  </button>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
+                  {[
+                    {k:'photos',icon:'📸',title:'사진 관리',sub:'공법별 하자사진 · 미디어'},
+                    {k:'sms',icon:'💬',title:'문자 설정',sub:'자동발송 · 템플릿 관리'},
+                    {k:'staff',icon:'👤',title:'담당자 관리',sub:'영업직원 추가 · 편집'},
+                  ].map(({k,icon,title,sub})=>(
+                    <button key={k} onClick={()=>openSettingsTab(k)} style={{padding:'20px 12px',borderRadius:16,border:'2px solid var(--border)',background:'var(--card)',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column',alignItems:'center',gap:8,transition:'all .15s'}}
+                      onMouseOver={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.background='var(--blue-l)';}}
+                      onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.background='var(--card)';}}>
+                      <span style={{fontSize:30}}>{icon}</span>
+                      <div>
+                        <div style={{fontSize:13,fontWeight:800,color:'var(--text)'}}>{title}</div>
+                        <div style={{fontSize:10,color:'var(--text-sm)',marginTop:2}}>{sub}</div>
+                      </div>
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
@@ -4992,23 +4988,9 @@ function AdminScreen({onBack}){
             </div>
           </div>
 
-          {/* 결과 카운트 + 선택 모드 */}
-          <div style={{padding:'6px 14px',background:'var(--bg)',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:700,color:'var(--text-sm)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-            {selectMode?(
-              <span style={{color:'var(--accent)'}}>{selectedIds.size}건 선택됨</span>
-            ):(
-              <span>{display.length}건 표시 중 / 전체 {activeLeads.length}건</span>
-            )}
-            <div style={{display:'flex',gap:6}}>
-              {selectMode&&(
-                <button onClick={toggleSelectAll} style={{padding:'3px 10px',borderRadius:20,border:'1.5px solid var(--border)',background:'#fff',color:'var(--text)',fontSize:11,fontWeight:700,cursor:'pointer'}}>
-                  {selectedIds.size===display.length?'선택해제':'전체선택'}
-                </button>
-              )}
-              <button onClick={()=>{setSelectMode(v=>{if(v){setSelectedIds(new Set());}return!v;});}} style={{padding:'3px 10px',borderRadius:20,border:'1.5px solid var(--accent)',background:selectMode?'var(--accent)':'#fff',color:selectMode?'#fff':'var(--accent)',fontSize:11,fontWeight:700,cursor:'pointer'}}>
-                {selectMode?'취소':'선택'}
-              </button>
-            </div>
+          {/* 결과 카운트 */}
+          <div style={{padding:'6px 14px',background:'var(--bg)',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:700,color:'var(--text-sm)',flexShrink:0}}>
+            {display.length}건 표시 중 / 전체 {activeLeads.length}건
           </div>
 
           {/* 리드 목록 */}
@@ -5018,20 +5000,10 @@ function AdminScreen({onBack}){
               const isOpen=expanded===l.id;
               const status=l.status||'신규';
               return(
-                <div key={l.id||i} style={{background:'var(--card)',borderRadius:12,border:`1.5px solid ${selectMode&&selectedIds.has(l.id)?'var(--accent)':isOpen?'var(--accent)':'var(--border)'}`,overflow:'hidden',transition:'border-color .15s'}}>
-                  {/* 카드 헤더 - 탭으로 열고닫기 / 선택모드 */}
-                  <div style={{padding:'12px 14px',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}} onClick={()=>{
-                    if(selectMode){
-                      setSelectedIds(prev=>{const n=new Set(prev);n.has(l.id)?n.delete(l.id):n.add(l.id);return n;});
-                    }else{setExpanded(isOpen?null:l.id);}
-                  }}>
-                    {selectMode?(
-                      <div style={{width:20,height:20,borderRadius:5,border:`2px solid ${selectedIds.has(l.id)?'var(--accent)':'#CBD5E1'}`,background:selectedIds.has(l.id)?'var(--accent)':'#fff',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                        {selectedIds.has(l.id)&&<svg width="11" height="11" viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                      </div>
-                    ):(
-                      <span style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',width:20,textAlign:'center'}}>{i+1}</span>
-                    )}
+                <div key={l.id||i} style={{background:'var(--card)',borderRadius:12,border:`1.5px solid ${isOpen?'var(--accent)':'var(--border)'}`,overflow:'hidden',transition:'border-color .15s'}}>
+                  {/* 카드 헤더 */}
+                  <div style={{padding:'12px 14px',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}} onClick={()=>setExpanded(isOpen?null:l.id)}>
+                    <span style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',width:20,textAlign:'center'}}>{i+1}</span>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{display:'flex',alignItems:'center',gap:6}}>
                         <span style={{fontSize:14,fontWeight:900,color:'var(--text)'}}>{l.name||'이름없음'}</span>
@@ -5109,21 +5081,20 @@ function AdminScreen({onBack}){
             })}
           </div>
 
-          {/* 선택 삭제 바 */}
-          {selectMode&&selectedIds.size>0&&(
-            <div style={{padding:'10px 14px',background:'#FEF2F2',borderTop:'1.5px solid #FCA5A5',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
-              <span style={{fontSize:13,fontWeight:800,color:'#DC2626'}}>{selectedIds.size}건 선택됨</span>
-              <button onClick={deleteSelected} style={{padding:'8px 20px',borderRadius:10,border:'none',background:'#DC2626',color:'#fff',fontSize:13,fontWeight:800,cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
-                🗑 휴지통으로 이동
-              </button>
-            </div>
-          )}
         </div>
       )}
 
-      {/* ── 담당자 관리 탭 ── */}
+      {/* ── 담당자 관리 탭 (관리자 전용 — ⚙️ 설정에서 진입) ── */}
       {!loading&&tab==='staff'&&(
-        <StaffManageTab/>
+        <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+          <div style={{background:'#1E40AF',padding:'8px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+            <span style={{fontSize:12,fontWeight:700,color:'#fff'}}>🔐 관리자 전용 · 담당자 관리</span>
+            <button onClick={()=>setTab('stat')} style={{background:'rgba(255,255,255,.2)',border:'none',borderRadius:6,padding:'5px 12px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>← 나가기</button>
+          </div>
+          <div style={{flex:1,overflowY:'auto'}}>
+            <StaffManageTab/>
+          </div>
+        </div>
       )}
 
       {/* ── 사진 관리 탭 (관리자 전용 — ⚙️ 설정에서 진입) ── */}
@@ -5410,6 +5381,14 @@ function AdminScreen({onBack}){
           <div style={{flex:1,overflowY:'auto'}}>
             <SmsSettingsTab/>
           </div>
+        </div>
+      )}
+
+      {/* 상태변경 undo 토스트 */}
+      {undoInfo&&(
+        <div style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',background:'#1E293B',color:'#fff',borderRadius:14,padding:'12px 18px',display:'flex',alignItems:'center',gap:14,zIndex:4000,boxShadow:'0 8px 28px rgba(0,0,0,.3)',fontSize:13,fontWeight:600,whiteSpace:'nowrap'}}>
+          <span>✅ <b>{undoInfo.name}</b> → <span style={{color:'#60A5FA'}}>{undoInfo.newStatus}</span></span>
+          <button onClick={undoStatus} style={{background:'rgba(255,255,255,.15)',border:'none',borderRadius:8,padding:'6px 14px',color:'#fff',fontSize:12,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>↩ 취소</button>
         </div>
       )}
 

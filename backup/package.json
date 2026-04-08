@@ -9,8 +9,9 @@
     "migrate": "node migrate-to-new-project.js"
   },
   "dependencies": {
-    "firebase-admin": "^12.0.0",
     "@octokit/rest": "^20.0.0",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "firebase-admin": "^12.0.0",
+    "uuid": "^13.0.0"
   }
 }

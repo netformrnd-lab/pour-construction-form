@@ -4738,8 +4738,33 @@ function AdminScreen({onBack}){
               const data=casePhotos[key]||{causes:['','',''],completed:'',gif:''};
               return(
                 <div key={key} style={{marginBottom:18,padding:'14px',background:'var(--bg)',borderRadius:12,border:'1px solid var(--border)'}}>
-                  <div style={{fontSize:13,fontWeight:800,color:'var(--text)',marginBottom:2}}>{p.label}</div>
-                  <div style={{fontSize:10,color:'var(--text-sm)',marginBottom:10}}>{p.cat} · {p.sub}</div>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:2}}>
+                    <div>
+                      <div style={{fontSize:13,fontWeight:800,color:'var(--text)'}}>{p.label}</div>
+                      <div style={{fontSize:10,color:'var(--text-sm)',marginBottom:10}}>{p.cat} · {p.sub}</div>
+                    </div>
+                    <div style={{position:'relative'}}>
+                      <button onClick={()=>{
+                        /* 사진이 있는 다른 공법 목록 */
+                        const others=ALL_PROBLEMS.filter(op=>op.id!==key&&casePhotos[op.id]?.causes?.some(c=>c));
+                        if(others.length===0){alert('복사할 사진이 있는 다른 공법이 없습니다');return;}
+                        const names=others.map((op,i)=>`${i+1}. ${op.label} (${(casePhotos[op.id]?.causes||[]).filter(c=>c).length}장)`).join('\n');
+                        const choice=prompt(`사진을 복사할 공법 번호를 입력하세요:\n\n${names}`);
+                        if(!choice)return;
+                        const idx=parseInt(choice)-1;
+                        if(isNaN(idx)||idx<0||idx>=others.length){alert('잘못된 번호입니다');return;}
+                        const source=others[idx];
+                        const sourceCauses=(casePhotos[source.id]?.causes||[]).filter(c=>c);
+                        if(sourceCauses.length===0)return;
+                        const mode=confirm(`"${source.label}"의 사진 ${sourceCauses.length}장을\n\n[확인] 기존 사진에 추가\n[취소] 기존 사진을 덮어쓰기`);
+                        const up=JSON.parse(JSON.stringify(casePhotos));
+                        if(!up[key])up[key]={causes:[],completed:'',media:[]};
+                        if(mode){up[key].causes=[...(up[key].causes||[]).filter(c=>c),...sourceCauses];}
+                        else{up[key].causes=[...sourceCauses];}
+                        setCasePhotos(up);
+                      }} style={{padding:'5px 10px',borderRadius:8,border:'1.5px solid var(--border)',background:'#fff',fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit',color:'var(--accent)',whiteSpace:'nowrap'}}>📋 다른 공법에서 복사</button>
+                    </div>
+                  </div>
 
                   {/* 하자 사진들 (드래그로 순서 변경 가능) */}
                   <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>하자 사진 <span style={{fontWeight:400,fontSize:10}}>(길게 눌러 드래그로 순서 변경)</span></div>

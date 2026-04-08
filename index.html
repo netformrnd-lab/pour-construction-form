@@ -1530,6 +1530,7 @@ const INTEREST_CATS=[
   {cat:'건물 유형',items:['아파트','관공서','주택','빌라/오피스텔','병원','학교']},
 ];
 const DELIVERY_DOCS=['견적서','공법 제안서','회사소개서','기술 가이드북','인증서/시험성적서','단가표','카탈로그'];
+const NEXT_ACTIONS=['방문일정 연락','견적서','제안서','시방서','카탈로그(공법)','카탈로그(자재)','샘플(슬라브)','샘플(슁글)','샘플(기와)','샘플(균열보수)','샘플(듀얼시트)'];
 const DELIVERY_MEDIA=['이메일','문자','카카오톡','방문 직접 전달'];
 
 const POSITIONS_BY_BUILDING={
@@ -2280,6 +2281,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [ntInterests,setNtInterests]=useState([]);
   const [ntDeliveryDocs,setNtDeliveryDocs]=useState([]);
   const [ntDeliveryMedia,setNtDeliveryMedia]=useState([]);
+  const [ntDesiredStart,setNtDesiredStart]=useState('');
+  const [ntNextActions,setNtNextActions]=useState([]);
   const [ntMemo,setNtMemo]=useState('');
   const [ntKeywords,setNtKeywords]=useState([]);
   const [ntBrandTag,setNtBrandTag]=useState('POUR공법'); // 'POUR공법' | 'POUR솔루션' | 'R&D'
@@ -2309,6 +2312,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       name:ntName,company:ntCompany,position:ntPosition,phone:ntPhone,email:ntEmail,
       contact:ntContact,interests:ntInterests,deliveryDocs:ntDeliveryDocs,deliveryMedia:ntDeliveryMedia,
       memo:ntMemo,keywords:ntKeywords,brandTag:ntBrandTag,memoImgs:ntMemoImgs,bizCard:ntBizCard,
+      desiredStart:ntDesiredStart,nextActions:ntNextActions,
       savedDraftAt:new Date().toISOString()
     }));}catch(e){}
   };
@@ -2321,6 +2325,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       if(d.memo)setNtMemo(d.memo);if(d.keywords?.length)setNtKeywords(d.keywords);
       if(d.brandTag)setNtBrandTag(d.brandTag);if(d.memoImgs?.length)setNtMemoImgs(d.memoImgs);
       if(d.bizCard)setNtBizCard(d.bizCard);
+      if(d.desiredStart)setNtDesiredStart(d.desiredStart);if(d.nextActions?.length)setNtNextActions(d.nextActions);
     }catch(e){}
   };
   const clearDraft=()=>{try{localStorage.removeItem(MEMO_DRAFT_KEY);}catch(e){}};
@@ -2366,6 +2371,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       interests:ntInterests,
       deliveryDocs:ntDeliveryDocs,
       deliveryMedia:ntDeliveryMedia,
+      desiredStartDate:ntDesiredStart,
+      nextActions:ntNextActions,
       businessCard:ntBizCard,
       memo:ntMemo,memoImgs:ntMemoImgs,keywords:ntKeywords,brandTag:ntBrandTag,status:'신규',source:getUrlSource(),
     };
@@ -2392,6 +2399,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
     setNtPhone('');setNtEmail('');setNtContact([]);
     setNtInterests([]);setNtDeliveryDocs([]);setNtDeliveryMedia([]);
     setNtMemo('');setNtMemoImgs([]);setNtKeywords([]);setNtBrandTag('POUR공법');setNtStep('info');
+    setNtDesiredStart('');setNtNextActions([]);
   };
 
   const logText=[
@@ -2923,6 +2931,27 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                           </div>}
                         </div>
                       )}
+
+                      {/* 착공 희망일자 (선택) */}
+                      <div>
+                        <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:4,letterSpacing:'.04em'}}>착공 희망일자 <span style={{fontWeight:400,color:'var(--text-sm)'}}>(선택)</span></div>
+                        <input type="date" className="note-input" value={ntDesiredStart} onChange={e=>setNtDesiredStart(e.target.value)}
+                          style={{fontSize:14,padding:'12px 14px',width:'100%',boxSizing:'border-box'}}/>
+                      </div>
+
+                      {/* 2차 액션 (후속 조치) */}
+                      <div>
+                        <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:6,letterSpacing:'.04em'}}>📌 2차 액션 <span style={{fontWeight:400}}>(후속 조치 선택)</span></div>
+                        <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                          {NEXT_ACTIONS.map(a=>{
+                            const sel=ntNextActions.includes(a);
+                            return <button key={a} onClick={()=>setNtNextActions(p=>sel?p.filter(x=>x!==a):[...p,a])}
+                              style={{padding:'8px 14px',borderRadius:10,border:`1.5px solid ${sel?'var(--blue)':'var(--border)'}`,background:sel?'var(--blue)':'#fff',color:sel?'#fff':'var(--text)',fontSize:12,fontWeight:sel?700:500,cursor:'pointer',fontFamily:'inherit',transition:'all .15s'}}>
+                              {a}
+                            </button>;
+                          })}
+                        </div>
+                      </div>
 
                       {/* 메모 작성 / 건너뛰기 */}
                       <div style={{display:'flex',gap:6,marginTop:4}}>

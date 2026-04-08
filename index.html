@@ -2369,7 +2369,40 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
   const ntToggleSec=sec=>setNtOpenSec(p=>{const n=new Set(p);n.has(sec)?n.delete(sec):n.add(sec);return n;});
   const ntHasData=()=>!!(ntName||ntCompany||ntPhone||ntEmail||ntMemo||ntInterests.length||ntContact.length||ntBizCard?.front);
-  const ntSafeClose=()=>{if(ntHasData()&&!window.confirm('입력한 내용이 저장되지 않았습니다. 닫으시겠어요?'))return;setShowNote(false);};
+
+  /* ── 메모 임시 저장/복원 (닫아도 내용 유지) ── */
+  const MEMO_DRAFT_KEY='pourMemoDraft';
+  const saveDraft=()=>{
+    try{localStorage.setItem(MEMO_DRAFT_KEY,JSON.stringify({
+      name:ntName,company:ntCompany,position:ntPosition,phone:ntPhone,email:ntEmail,
+      contact:ntContact,interests:ntInterests,deliveryDocs:ntDeliveryDocs,deliveryMedia:ntDeliveryMedia,
+      memo:ntMemo,keywords:ntKeywords,brandTag:ntBrandTag,memoImgs:ntMemoImgs,bizCard:ntBizCard,
+      savedDraftAt:new Date().toISOString()
+    }));}catch(e){}
+  };
+  const loadDraft=()=>{
+    try{const d=JSON.parse(localStorage.getItem(MEMO_DRAFT_KEY)||'null');if(!d)return;
+      if(d.name)setNtName(d.name);if(d.company)setNtCompany(d.company);if(d.position)setNtPosition(d.position);
+      if(d.phone)setNtPhone(d.phone);if(d.email)setNtEmail(d.email);
+      if(d.contact?.length)setNtContact(d.contact);if(d.interests?.length)setNtInterests(d.interests);
+      if(d.deliveryDocs?.length)setNtDeliveryDocs(d.deliveryDocs);if(d.deliveryMedia?.length)setNtDeliveryMedia(d.deliveryMedia);
+      if(d.memo)setNtMemo(d.memo);if(d.keywords?.length)setNtKeywords(d.keywords);
+      if(d.brandTag)setNtBrandTag(d.brandTag);if(d.memoImgs?.length)setNtMemoImgs(d.memoImgs);
+      if(d.bizCard)setNtBizCard(d.bizCard);
+    }catch(e){}
+  };
+  const clearDraft=()=>{try{localStorage.removeItem(MEMO_DRAFT_KEY);}catch(e){}};
+  /* 메모 처음 열 때 초안 복원 */
+  const prevShowNote=useRef(false);
+  useEffect(()=>{
+    if(showNote&&!prevShowNote.current&&!ntHasData()){loadDraft();}
+    prevShowNote.current=showNote;
+  },[showNote]);
+  /* 메모 닫을 때 자동 임시 저장 */
+  const ntSafeClose=()=>{
+    if(ntHasData())saveDraft();
+    setShowNote(false);
+  };
   const [effectiveBuildingId,setEffectiveBuildingId]=useState(building?.id||null);
   const [casePhotos,setCasePhotos]=useState(()=>loadCasePhotos());
   useEffect(()=>{syncPhotosFromFirestore(setCasePhotos,null);},[]);
@@ -2421,6 +2454,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
     setNtSaving(false);setNtDone(true);
   };
   const ntResetAndClose=()=>{
+    clearDraft();
     setShowNote(false);setNtDone(false);setNtQuickSms(false);
     setNtName('');setNtCompany('');setNtPosition('');
     setNtPhone('');setNtEmail('');setNtContact([]);
@@ -2782,7 +2816,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
     </div>
     {/* ── 통합 영업 노트 시트 (screen div 밖: 공법선택 등 어디서든 접근 가능) ── */}
     {showNote&&(
-      <div className="sheet-bg" onClick={()=>setShowNote(false)}>
+      <div className="sheet-bg" onClick={()=>ntSafeClose()}>
         <div className="note-sheet" onClick={e=>e.stopPropagation()}>
 
             {ntDone?(

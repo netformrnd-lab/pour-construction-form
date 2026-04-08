@@ -2515,7 +2515,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 <span style={{fontSize:12,color:'rgba(255,255,255,.7)',fontWeight:700,background:'rgba(0,0,0,.4)',padding:'3px 10px',borderRadius:20,backdropFilter:'blur(4px)'}}>{mediaViewer+1} / {mList.length}</span>
               </div>
               {/* 뒤로가기 버튼 — 우상단 고정 */}
-              <button onTouchEnd={e=>{e.stopPropagation();setMediaViewer(null);setInlinePlayIdx(null);}} onClick={()=>{setMediaViewer(null);setInlinePlayIdx(null);}}
+              <button onTouchEnd={e=>{e.stopPropagation();e.preventDefault();setMediaViewer(null);setInlinePlayIdx(null);}} onClick={e=>{e.stopPropagation();e.preventDefault();setMediaViewer(null);setInlinePlayIdx(null);}}
                 style={{position:'absolute',top:14,right:14,width:44,height:44,borderRadius:12,border:'2px solid rgba(255,255,255,.35)',background:'rgba(0,0,0,.55)',backdropFilter:'blur(10px)',color:'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',zIndex:6,flexShrink:0}}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg>
               </button>
@@ -2754,10 +2754,10 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                             <div style={{position:'absolute',top:6,left:6,padding:'2px 6px',borderRadius:5,fontSize:9,fontWeight:800,background:'rgba(0,0,0,.55)',color:'#fff',backdropFilter:'blur(4px)',zIndex:3}}>
                               {i+1}/{mediaList.length}
                             </div>
-                            {/* 확대 버튼 */}
+                            {/* 전체보기 버튼 */}
                             <div onClick={(e)=>{e.stopPropagation();setInlinePlayIdx(null);setMediaViewer(i);}}
-                              style={{position:'absolute',top:6,right:6,width:40,height:40,borderRadius:12,background:'rgba(0,0,0,.55)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',zIndex:3,backdropFilter:'blur(6px)'}}>
-                              <span style={{fontSize:24,color:'#fff',lineHeight:1,fontWeight:300}}>+</span>
+                              style={{position:'absolute',bottom:0,left:0,right:0,padding:'20px 0 10px',background:'linear-gradient(to top,rgba(0,0,0,.7) 0%,transparent 100%)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',zIndex:3}}>
+                              <span style={{fontSize:11,fontWeight:700,color:'#fff',background:'rgba(255,255,255,.2)',padding:'5px 14px',borderRadius:20,backdropFilter:'blur(6px)',letterSpacing:'.03em'}}>+ 크게 보기</span>
                             </div>
                             {/* 하단 그라데이션 — 어두운 fade */}
                             <div style={{position:'absolute',bottom:0,left:0,right:0,height:'30%',background:'linear-gradient(transparent,rgba(0,0,0,.4))',pointerEvents:'none',borderRadius:'0 0 12px 12px'}}/>

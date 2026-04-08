@@ -56,63 +56,86 @@ const targetBucket = targetApp.storage().bucket();
 const sourceDb = sourceApp.firestore();
 const targetDb = targetApp.firestore();
 
+const { execSync } = require('child_process');
+const fs = require('fs');
+const os = require('os');
+
+// ── curl로 파일 다운로드 (다운로드 토큰 사용) ─────────────────
+function downloadViaCurl(url) {
+  const tmpFile = path.join(os.tmpdir(), `migrate-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  try {
+    execSync(`curl -sL -o "${tmpFile}" "${url}"`, { timeout: 60000 });
+    const content = fs.readFileSync(tmpFile);
+    fs.unlinkSync(tmpFile);
+    if (content.length === 0) throw new Error('파일이 비어있음');
+    return content;
+  } catch (e) {
+    try { fs.unlinkSync(tmpFile); } catch {}
+    throw e;
+  }
+}
+
+// ── 파일 메타데이터에서 다운로드 URL 구성 ────────────────────
+function buildDownloadUrl(bucket, filePath, downloadToken) {
+  const encoded = encodeURIComponent(filePath);
+  return `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encoded}?alt=media&token=${downloadToken}`;
+}
+
 // ── Storage 파일 복사 ─────────────────────────────────────
 async function copyStorageFiles() {
   console.log('\n📦 Storage 파일 목록 조회 중...');
 
   const [files] = await sourceBucket.getFiles();
+  // 폴더(빈 prefix)는 건너뛰기
+  const realFiles = files.filter(f => !f.name.endsWith('/'));
 
-  if (files.length === 0) {
+  if (realFiles.length === 0) {
     console.log('   ⏭  Storage에 파일이 없습니다.');
-    return { copied: 0, failed: 0, urlMap: {} };
+    return { copied: 0, failed: 0 };
   }
 
-  console.log(`   📄 ${files.length}개 파일 발견\n`);
+  console.log(`   📄 ${realFiles.length}개 파일 발견\n`);
 
+  const { v4: uuidv4 } = require('uuid');
   let copied = 0;
   let failed = 0;
-  const urlMap = {}; // old URL -> new URL 매핑
 
-  for (const file of files) {
+  for (const file of realFiles) {
+    const filePath = file.name;
     try {
-      const filePath = file.name;
       console.log(`   복사 중: ${filePath}`);
 
-      // 파일 다운로드
-      const [content] = await file.download();
+      // 파일 메타데이터에서 다운로드 토큰 추출
       const [metadata] = await file.getMetadata();
+      const downloadToken = metadata.metadata?.firebaseStorageDownloadTokens;
+      if (!downloadToken) throw new Error('다운로드 토큰 없음');
+
+      const downloadUrl = buildDownloadUrl(
+        `${SOURCE_PROJECT_ID}.firebasestorage.app`, filePath, downloadToken
+      );
+      const content = downloadViaCurl(downloadUrl);
+      const contentType = metadata.contentType || 'application/octet-stream';
 
       // 대상 버킷에 업로드
       const targetFile = targetBucket.file(filePath);
+      const token = uuidv4();
       await targetFile.save(content, {
-        contentType: metadata.contentType || 'application/octet-stream',
+        contentType: contentType,
         metadata: {
-          metadata: metadata.metadata || {},
+          metadata: { firebaseStorageDownloadTokens: token },
         },
       });
 
-      // 공개 URL 생성 (다운로드 토큰 포함)
-      const { v4: uuidv4 } = require('uuid');
-      const token = uuidv4();
-      await targetFile.setMetadata({
-        metadata: { firebaseStorageDownloadTokens: token },
-      });
-
-      const oldUrl = `https://firebasestorage.googleapis.com/v0/b/${SOURCE_PROJECT_ID}.firebasestorage.app/o/${encodeURIComponent(filePath).replace(/%2F/g, '%2F')}?alt=media`;
-      const newUrl = `https://firebasestorage.googleapis.com/v0/b/${TARGET_PROJECT_ID}.firebasestorage.app/o/${encodeURIComponent(filePath).replace(/%2F/g, '%2F')}?alt=media&token=${token}`;
-
-      urlMap[oldUrl] = newUrl;
-
       copied++;
-      console.log(`   ✅ ${filePath}`);
+      console.log(`   ✅ ${filePath} (${(content.length / 1024).toFixed(0)} KB)`);
     } catch (err) {
       failed++;
-      console.error(`   ❌ ${file.name}: ${err.message}`);
+      console.error(`   ❌ ${filePath}: ${err.message}`);
     }
   }
 
   console.log(`\n   Storage 복사 완료: ${copied}건 성공, ${failed}건 실패`);
-  return { copied, failed, urlMap };
+  return { copied, failed };
 }
 
 // ── Firestore 내 Storage URL 업데이트 ────────────────────
@@ -180,10 +203,10 @@ async function run() {
   console.log('═══════════════════════════════════════════');
 
   // 1. Storage 파일 복사
-  const { copied, failed, urlMap } = await copyStorageFiles();
+  const { copied, failed } = await copyStorageFiles();
 
   // 2. Firestore URL 업데이트
-  await updateFirestoreUrls(urlMap);
+  await updateFirestoreUrls({});
 
   console.log('\n═══════════════════════════════════════════');
   console.log('  완료!');

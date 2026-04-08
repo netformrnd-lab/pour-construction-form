@@ -4741,14 +4741,35 @@ function AdminScreen({onBack}){
                   <div style={{fontSize:13,fontWeight:800,color:'var(--text)',marginBottom:2}}>{p.label}</div>
                   <div style={{fontSize:10,color:'var(--text-sm)',marginBottom:10}}>{p.cat} · {p.sub}</div>
 
-                  {/* 하자 사진들 */}
-                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>하자 사진</div>
+                  {/* 하자 사진들 (드래그로 순서 변경 가능) */}
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>하자 사진 <span style={{fontWeight:400,fontSize:10}}>(길게 눌러 드래그로 순서 변경)</span></div>
                   <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}}>
                     {(data.causes||[]).map((url,i)=>(
-                      <PhotoSlot key={i} src={url} label={`사진 ${i+1}`} maxSize={1200} quality={0.85}
-                        onSet={(v)=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:['','',''],completed:'',gif:''};up[key].causes[i]=v;setCasePhotos(up);}}
-                        onRemove={()=>{const up=JSON.parse(JSON.stringify(casePhotos));up[key].causes.splice(i,1);setCasePhotos(up);}}
-                      />
+                      <div key={key+'_cause_'+i} draggable="true"
+                        onDragStart={e=>{e.dataTransfer.setData('text/plain',JSON.stringify({key,type:'cause',index:i}));e.currentTarget.style.opacity='0.4';}}
+                        onDragEnd={e=>{e.currentTarget.style.opacity='1';}}
+                        onDragOver={e=>{e.preventDefault();e.currentTarget.style.outline='2px solid var(--accent)';}}
+                        onDragLeave={e=>{e.currentTarget.style.outline='none';}}
+                        onDrop={e=>{
+                          e.preventDefault();e.currentTarget.style.outline='none';
+                          try{
+                            const from=JSON.parse(e.dataTransfer.getData('text/plain'));
+                            if(from.key===key&&from.type==='cause'&&from.index!==i){
+                              const up=JSON.parse(JSON.stringify(casePhotos));
+                              const arr=up[key].causes;
+                              const [moved]=arr.splice(from.index,1);
+                              arr.splice(i,0,moved);
+                              setCasePhotos(up);
+                            }
+                          }catch(err){}
+                        }}
+                        style={{cursor:'grab',position:'relative'}}>
+                        <PhotoSlot src={url} label={`사진 ${i+1}`} maxSize={1200} quality={0.85}
+                          onSet={(v)=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:['','',''],completed:'',gif:''};up[key].causes[i]=v;setCasePhotos(up);}}
+                          onRemove={()=>{const up=JSON.parse(JSON.stringify(casePhotos));up[key].causes.splice(i,1);setCasePhotos(up);}}
+                        />
+                        <div style={{position:'absolute',bottom:2,left:2,fontSize:8,fontWeight:700,color:'#fff',background:'rgba(0,0,0,.5)',borderRadius:4,padding:'1px 4px'}}>{i+1}</div>
+                      </div>
                     ))}
                     <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:'',gif:''};up[key].causes.push('');setCasePhotos(up);}}
                       style={{width:100,height:75,borderRadius:10,border:'2px dashed var(--border)',background:'#fff',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,color:'var(--text-sm)',fontSize:11,fontWeight:700}}>

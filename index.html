@@ -1549,6 +1549,33 @@ const BUILDING_LABEL_TO_ID=Object.fromEntries(BUILDING_TYPES.map(b=>[b.label,b.i
 const ADMIN_PIN_KEY='pourAdminPin';
 const hashPin=async(pin)=>{const enc=new TextEncoder().encode(pin);const buf=await crypto.subtle.digest('SHA-256',enc);return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');};
 const loadAdminPin=()=>localStorage.getItem(ADMIN_PIN_KEY);
+
+/* ── 관리자 지역 정규화 (간이) ── */
+const REGION_RULES=[
+  {name:'서울',kw:['서울']},
+  {name:'경기',kw:['경기','수원','성남','안양','부천','광명','평택','안산','고양','의정부','용인','파주','이천','김포','화성','구리','남양주','오산','시흥','군포','의왕','하남','양주','포천','분당','판교','일산']},
+  {name:'인천',kw:['인천','송도']},
+  {name:'강원',kw:['강원','춘천','원주','강릉','동해','속초','삼척']},
+  {name:'충북',kw:['충북','충청북도','청주','충주','제천']},
+  {name:'충남',kw:['충남','충청남도','천안','아산','공주','보령','서산','논산','당진']},
+  {name:'대전',kw:['대전']},
+  {name:'세종',kw:['세종']},
+  {name:'전북',kw:['전북','전라북도','전주','군산','익산','정읍','남원']},
+  {name:'전남',kw:['전남','전라남도','목포','여수','순천','나주','광양']},
+  {name:'광주',kw:['광주']},
+  {name:'경북',kw:['경북','경상북도','포항','경주','김천','안동','구미','영주','영천']},
+  {name:'경남',kw:['경남','경상남도','창원','진주','통영','사천','김해','밀양','거제','양산']},
+  {name:'대구',kw:['대구']},
+  {name:'울산',kw:['울산']},
+  {name:'부산',kw:['부산']},
+  {name:'제주',kw:['제주','서귀포']},
+];
+const normalizeRegionSimple=(raw)=>{
+  if(!raw||!raw.trim())return null;
+  const r=raw.trim();
+  for(const reg of REGION_RULES){if(reg.kw.some(kw=>r.includes(kw)))return reg.name;}
+  return r;
+};
 const saveAdminPin=hash=>{
   localStorage.setItem(ADMIN_PIN_KEY,hash);
   try{db.collection('config').doc('adminPin').set({hash}).catch(()=>{});}catch(e){}
@@ -4499,6 +4526,23 @@ function AdminScreen({onBack}){
   const [showPinChange,setShowPinChange]=useState(false);
   const [selectedIds,setSelectedIds]=useState(new Set());
   const [selectMode,setSelectMode]=useState(false);
+  const [pin2Unlocked,setPin2Unlocked]=useState(false);
+  const [showPin2,setShowPin2]=useState(false);
+  const [pendingTab,setPendingTab]=useState(null);
+  const [pin2Input,setPin2Input]=useState('');
+  const [pin2Error,setPin2Error]=useState('');
+
+  const PROTECTED_TABS=['photos','sms'];
+  const handleTabClick=(k)=>{
+    if(PROTECTED_TABS.includes(k)&&!pin2Unlocked){
+      setPendingTab(k);setPin2Input('');setPin2Error('');setShowPin2(true);
+    }else{setTab(k);}
+  };
+  const verifyPin2=async()=>{
+    const h=await hashPin(pin2Input);
+    if(h===loadAdminPin()){setPin2Unlocked(true);setTab(pendingTab);setShowPin2(false);setPin2Input('');setPin2Error('');}
+    else{setPin2Error('비밀번호가 틀렸습니다');setPin2Input('');}
+  };
 
   const DAYS=['4/16(목)','4/17(금)','4/18(토)'];
   const STATUS_OPTIONS=['신규','연락완료','계약예정','보류','기타'];
@@ -4537,6 +4581,14 @@ function AdminScreen({onBack}){
   const byStatus=STATUS_OPTIONS.map(s=>({status:s,count:activeLeads.filter(l=>(l.status||'신규')===s).length}));
   const maxDay=Math.max(...byDay.map(d=>d.count),1);
   const maxStaff=Math.max(...byStaff.map(s=>s.count),1);
+
+  // 키워드 집계
+  const byPosition=(()=>{const m={};activeLeads.forEach(l=>{if(l.position&&l.position!=='-')m[l.position]=(m[l.position]||0)+1;});return Object.entries(m).sort((a,b)=>b[1]-a[1]);})();
+  const byProblem=(()=>{const m={};activeLeads.forEach(l=>{(l.problems||[]).forEach(p=>{if(p&&p!=='-')m[p]=(m[p]||0)+1;});if(l.problem&&l.problem!=='-'&&!(l.problems||[]).includes(l.problem))m[l.problem]=(m[l.problem]||0)+1;});return Object.entries(m).sort((a,b)=>b[1]-a[1]);})();
+  const byAction=(()=>{const m={};activeLeads.forEach(l=>{(l.actions||[]).forEach(a=>{if(a)m[a]=(m[a]||0)+1;});});return Object.entries(m).sort((a,b)=>b[1]-a[1]);})();
+  const byRegion=(()=>{const m={};activeLeads.forEach(l=>{const r=normalizeRegionSimple(l.region||'');if(r)m[r]=(m[r]||0)+1;});return Object.entries(m).sort((a,b)=>b[1]-a[1]);})();
+  const byStartMonth=Array.from({length:12},(_,i)=>{const mo=i+1;return{month:mo,label:`${mo}월`,count:activeLeads.filter(l=>l.desiredStartDate&&parseInt(l.desiredStartDate.slice(5,7),10)===mo).length};});
+  const maxStartMonth=Math.max(...byStartMonth.map(m=>m.count),1);
 
   // 상태 변경
   const changeStatus=async(id,status)=>{
@@ -4619,13 +4671,37 @@ function AdminScreen({onBack}){
       </div>
 
       {/* 탭 */}
-      <div style={{display:'flex',background:'var(--navy)',borderBottom:'1px solid rgba(255,255,255,.1)',flexShrink:0}}>
-        {[['stat','📊 통계'],['list','📋 유입 관리'],['staff','👤 담당자'],['photos','📸 사진'],['sms','💬 문자'],['qr','🔲 QR'],['trash','🗑']].map(([k,label])=>(
-          <button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:'12px 0',background:'none',border:'none',color:tab===k?'#fff':'rgba(255,255,255,.4)',fontSize:13,fontWeight:tab===k?800:600,cursor:'pointer',borderBottom:tab===k?'2px solid #60A5FA':'2px solid transparent',transition:'all .15s'}}>
+      <div style={{display:'flex',background:'var(--navy)',borderBottom:'1px solid rgba(255,255,255,.1)',flexShrink:0,overflowX:'auto'}}>
+        {[['stat','📊 통계'],['list','📋 유입'],['keyword','🔑 키워드'],['staff','👤 담당자'],['photos','📸 사진'],['sms','💬 문자'],['qr','🔲 QR'],['trash','🗑']].map(([k,label])=>(
+          <button key={k} onClick={()=>handleTabClick(k)} style={{flexShrink:0,padding:'11px 10px',background:'none',border:'none',color:tab===k?'#fff':'rgba(255,255,255,.4)',fontSize:12,fontWeight:tab===k?800:600,cursor:'pointer',borderBottom:tab===k?'2px solid #60A5FA':'2px solid transparent',transition:'all .15s',position:'relative'}}>
             {label}
+            {PROTECTED_TABS.includes(k)&&<span style={{position:'absolute',top:6,right:3,fontSize:8,opacity:.6}}>{pin2Unlocked?'🔓':'🔒'}</span>}
           </button>
         ))}
       </div>
+
+      {/* PIN2 인증 오버레이 */}
+      {showPin2&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.65)',zIndex:3000,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(6px)'}}>
+          <div style={{background:'#fff',borderRadius:16,padding:'28px 24px',width:'min(300px,88vw)',textAlign:'center',boxShadow:'0 12px 40px rgba(0,0,0,.25)'}}>
+            <div style={{fontSize:32,marginBottom:8}}>🔒</div>
+            <div style={{fontSize:16,fontWeight:800,color:'var(--text)',marginBottom:4}}>2차 인증 필요</div>
+            <div style={{fontSize:12,color:'var(--text-sm)',marginBottom:20}}>사진·문자 설정은 관리자 비밀번호를 다시 입력하세요</div>
+            <input
+              type="password" value={pin2Input} onChange={e=>{setPin2Input(e.target.value);setPin2Error('');}}
+              onKeyDown={e=>e.key==='Enter'&&verifyPin2()}
+              placeholder="비밀번호 입력"
+              style={{width:'100%',padding:'12px 14px',border:`1.5px solid ${pin2Error?'#DC2626':'var(--border)'}`,borderRadius:10,fontSize:14,textAlign:'center',marginBottom:pin2Error?6:14,outline:'none',boxSizing:'border-box'}}
+              autoFocus
+            />
+            {pin2Error&&<div style={{fontSize:12,color:'#DC2626',marginBottom:10}}>{pin2Error}</div>}
+            <div style={{display:'flex',gap:8}}>
+              <button onClick={()=>setShowPin2(false)} style={{flex:1,padding:'12px 0',borderRadius:10,border:'1.5px solid var(--border)',background:'var(--bg)',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>취소</button>
+              <button onClick={verifyPin2} style={{flex:2,padding:'12px 0',borderRadius:10,border:'none',background:'var(--navy)',color:'#fff',fontSize:13,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>확인</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {loading&&<div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center'}}><div className="spinner"/></div>}
 
@@ -4661,10 +4737,11 @@ function AdminScreen({onBack}){
           </div>
 
           {/* 담당자별 */}
-          {byStaff.length>0&&(
-            <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',marginBottom:10}}>
-              <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:10}}>👤 담당자별 실적</div>
-              {byStaff.map(({staff,count},i)=>(
+          <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',marginBottom:10}}>
+            <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:10}}>👤 담당자별 실적</div>
+            {byStaff.length===0
+              ?<div style={{fontSize:12,color:'var(--text-sm)',textAlign:'center',padding:'6px 0'}}>0건</div>
+              :byStaff.map(({staff,count},i)=>(
                 <div key={staff} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
                   <span style={{fontSize:12,fontWeight:700,color:i===0?'#D97706':'var(--text)',width:16}}>{i+1}</span>
                   <span style={{fontSize:12,fontWeight:700,color:'var(--text)',flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{staff}</span>
@@ -4673,15 +4750,16 @@ function AdminScreen({onBack}){
                   </div>
                   <span style={{fontSize:13,fontWeight:900,color:'var(--accent)',width:24,textAlign:'right'}}>{count}</span>
                 </div>
-              ))}
-            </div>
-          )}
+              ))
+            }
+          </div>
 
           {/* 건물유형별 */}
-          {byBuilding.length>0&&(
-            <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',marginBottom:10}}>
-              <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:10}}>🏢 건물유형별</div>
-              <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+          <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',marginBottom:10}}>
+            <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:10}}>🏢 건물유형별</div>
+            {byBuilding.length===0
+              ?<div style={{fontSize:12,color:'var(--text-sm)',textAlign:'center',padding:'6px 0'}}>0건</div>
+              :<div style={{display:'flex',flexWrap:'wrap',gap:8}}>
                 {byBuilding.map(({building,count})=>(
                   <div key={building} style={{background:'var(--accent-l)',border:'1px solid #BFDBFE',borderRadius:20,padding:'5px 12px',display:'flex',alignItems:'center',gap:6}}>
                     <span style={{fontSize:12,fontWeight:700,color:'var(--accent)'}}>{building}</span>
@@ -4689,8 +4767,24 @@ function AdminScreen({onBack}){
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            }
+          </div>
+
+          {/* 고객 직급별 */}
+          <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',marginBottom:10}}>
+            <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:10}}>🪪 상담 대상 직급</div>
+            {byPosition.length===0
+              ?<div style={{fontSize:12,color:'var(--text-sm)',textAlign:'center',padding:'6px 0'}}>0건 — CS메모 저장 시 직급 선택 필요</div>
+              :<div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+                {byPosition.map(([pos,cnt],i)=>(
+                  <div key={pos} style={{background:i===0?'#EFF6FF':'var(--bg)',border:`1px solid ${i===0?'#93C5FD':'var(--border)'}`,borderRadius:20,padding:'5px 12px',display:'flex',alignItems:'center',gap:6}}>
+                    <span style={{fontSize:12,fontWeight:700,color:i===0?'#2563EB':'var(--text)'}}>{pos}</span>
+                    <span style={{fontSize:11,fontWeight:900,color:i===0?'#2563EB':'var(--text-md)'}}>{cnt}명</span>
+                  </div>
+                ))}
+              </div>
+            }
+          </div>
 
           {/* 상태별 */}
           <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)'}}>
@@ -4703,6 +4797,131 @@ function AdminScreen({onBack}){
                   <span style={{fontSize:11,fontWeight:900,color:'var(--text-md)'}}>{count}</span>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 키워드 탭 ── */}
+      {!loading&&tab==='keyword'&&(
+        <div style={{flex:1,overflowY:'auto',padding:'14px'}}>
+          {/* 요약 */}
+          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:14}}>
+            {[
+              {label:'문제 키워드',value:byProblem.length+'종',color:'#7C3AED',bg:'#F5F3FF'},
+              {label:'자료 요청',value:byAction.length+'종',color:'#D97706',bg:'#FFFBEB'},
+              {label:'지역 입력',value:byRegion.length+'개',color:'#E8780F',bg:'#FFF7ED'},
+            ].map(c=>(
+              <div key={c.label} style={{background:c.bg,borderRadius:10,padding:'10px 12px',textAlign:'center'}}>
+                <div style={{fontSize:9,fontWeight:700,color:c.color,marginBottom:4}}>{c.label}</div>
+                <div style={{fontSize:18,fontWeight:900,color:c.color}}>{c.value}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* 자주 언급된 문제 키워드 */}
+          <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',marginBottom:10}}>
+            <div style={{fontSize:11,fontWeight:700,color:'#7C3AED',marginBottom:10}}>🔧 자주 언급된 문제 키워드</div>
+            {byProblem.length===0
+              ?<div style={{fontSize:12,color:'var(--text-sm)',textAlign:'center',padding:'6px 0'}}>0건</div>
+              :byProblem.slice(0,10).map(([name,cnt],i)=>{
+                const pct=Math.round(cnt/byProblem[0][1]*100);
+                return(
+                  <div key={name} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                    <span style={{fontSize:11,fontWeight:700,color:i<3?'#7C3AED':'var(--text-sm)',width:16,textAlign:'center'}}>{i+1}</span>
+                    <span style={{flex:1,fontSize:11,fontWeight:500,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}</span>
+                    <div style={{width:70,height:8,background:'var(--bg)',borderRadius:4,overflow:'hidden',flexShrink:0}}>
+                      <div style={{height:'100%',width:pct+'%',background:i<3?'#7C3AED':'#C4B5FD',borderRadius:4}}/>
+                    </div>
+                    <span style={{fontSize:12,fontWeight:900,color:'#7C3AED',width:20,textAlign:'right'}}>{cnt}</span>
+                  </div>
+                );
+              })
+            }
+          </div>
+
+          {/* 고객 직급 */}
+          <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',marginBottom:10}}>
+            <div style={{fontSize:11,fontWeight:700,color:'#0891B2',marginBottom:10}}>🪪 상담 대상 직급</div>
+            {byPosition.length===0
+              ?<div style={{fontSize:12,color:'var(--text-sm)',textAlign:'center',padding:'6px 0'}}>0건</div>
+              :byPosition.map(([pos,cnt],i)=>{
+                const pct=Math.round(cnt/byPosition[0][1]*100);
+                return(
+                  <div key={pos} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                    <span style={{fontSize:11,fontWeight:700,color:i<2?'#0891B2':'var(--text-sm)',width:16,textAlign:'center'}}>{i+1}</span>
+                    <span style={{flex:1,fontSize:11,fontWeight:600}}>{pos}</span>
+                    <div style={{width:70,height:8,background:'var(--bg)',borderRadius:4,overflow:'hidden',flexShrink:0}}>
+                      <div style={{height:'100%',width:pct+'%',background:i<2?'#0891B2':'#A5F3FC',borderRadius:4}}/>
+                    </div>
+                    <span style={{fontSize:12,fontWeight:900,color:'#0891B2',width:20,textAlign:'right'}}>{cnt}</span>
+                  </div>
+                );
+              })
+            }
+          </div>
+
+          {/* 영업 자료 요청 */}
+          <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',marginBottom:10}}>
+            <div style={{fontSize:11,fontWeight:700,color:'#D97706',marginBottom:10}}>📋 영업 자료 요청 현황</div>
+            {byAction.length===0
+              ?<div style={{fontSize:12,color:'var(--text-sm)',textAlign:'center',padding:'6px 0'}}>0건</div>
+              :byAction.map(([action,cnt],i)=>{
+                const pct=Math.round(cnt/byAction[0][1]*100);
+                return(
+                  <div key={action} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                    <span style={{fontSize:11,fontWeight:700,color:i<2?'#D97706':'var(--text-sm)',width:16,textAlign:'center'}}>{i+1}</span>
+                    <span style={{flex:1,fontSize:11,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{action}</span>
+                    <div style={{width:70,height:8,background:'var(--bg)',borderRadius:4,overflow:'hidden',flexShrink:0}}>
+                      <div style={{height:'100%',width:pct+'%',background:i<2?'#D97706':'#FCD34D',borderRadius:4}}/>
+                    </div>
+                    <span style={{fontSize:12,fontWeight:900,color:'#D97706',width:20,textAlign:'right'}}>{cnt}</span>
+                  </div>
+                );
+              })
+            }
+          </div>
+
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
+            {/* 착공 희망월 */}
+            <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)'}}>
+              <div style={{fontSize:11,fontWeight:700,color:'#2563EB',marginBottom:10}}>📅 착공 희망월</div>
+              {activeLeads.filter(l=>l.desiredStartDate).length===0
+                ?<div style={{fontSize:12,color:'var(--text-sm)',textAlign:'center',padding:'6px 0'}}>0건</div>
+                :<div style={{display:'flex',alignItems:'flex-end',gap:2,height:60}}>
+                  {byStartMonth.map(m=>{
+                    const h=m.count>0?Math.max(Math.round(m.count/maxStartMonth*50),4):2;
+                    return(
+                      <div key={m.month} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2}}>
+                        <div style={{fontSize:8,fontWeight:700,color:m.count>0?'#2563EB':'transparent'}}>{m.count}</div>
+                        <div style={{width:'100%',height:h,borderRadius:'2px 2px 0 0',background:m.count===maxStartMonth&&m.count>0?'#2563EB':'#BFDBFE'}}/>
+                        <div style={{fontSize:8,color:'var(--text-sm)'}}>{m.month}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              }
+            </div>
+
+            {/* 현장 지역 */}
+            <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)'}}>
+              <div style={{fontSize:11,fontWeight:700,color:'#E8780F',marginBottom:10}}>📍 현장 지역</div>
+              {byRegion.length===0
+                ?<div style={{fontSize:12,color:'var(--text-sm)',textAlign:'center',padding:'6px 0'}}>0건</div>
+                :byRegion.slice(0,6).map(([region,cnt],i)=>{
+                  const pct=Math.round(cnt/byRegion[0][1]*100);
+                  return(
+                    <div key={region} style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}>
+                      <span style={{fontSize:10,fontWeight:700,color:i<2?'#E8780F':'var(--text-sm)',width:14,textAlign:'center'}}>{i+1}</span>
+                      <span style={{flex:1,fontSize:11,fontWeight:600}}>{region}</span>
+                      <div style={{width:50,height:7,background:'var(--bg)',borderRadius:3,overflow:'hidden'}}>
+                        <div style={{height:'100%',width:pct+'%',background:i<2?'#E8780F':'#FED7AA',borderRadius:3}}/>
+                      </div>
+                      <span style={{fontSize:11,fontWeight:900,color:'#E8780F',width:18,textAlign:'right'}}>{cnt}</span>
+                    </div>
+                  );
+                })
+              }
             </div>
           </div>
         </div>

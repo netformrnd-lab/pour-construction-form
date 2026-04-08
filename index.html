@@ -5445,7 +5445,7 @@ function App(){
             {filtered.map(p=>(
               <button key={p.id} style={{display:'flex',flexDirection:'column',background:'var(--card)',border:'1.5px solid var(--border)',borderRadius:12,cursor:'pointer',textAlign:'left',fontFamily:'inherit',overflow:'hidden',transition:'all .13s',padding:0}} onClick={()=>{setProblem(p);setScreen('solution');}}>
                 <div style={{width:'100%',aspectRatio:'4/3',background:'linear-gradient(135deg,var(--blue-l),var(--blue-m))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,position:'relative',flexShrink:0}}>
-                  {(probPhotos[p.id]||p.img)?<img src={probPhotos[p.id]||p.img} alt={p.label} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'contain',background:'#f3f4f6'}}/>:<span>{p.icon}</span>}
+                  {(probPhotos[p.id]||p.img)?<img src={probPhotos[p.id]||p.img} alt={p.label} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',background:'#f3f4f6'}}/>:<span>{p.icon}</span>}
                 </div>
                 <div style={{padding:'8px 10px 10px'}}>
                   <div style={{fontSize:10,fontWeight:600,color:'var(--text-sm)'}}>{p.sub}</div>

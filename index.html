@@ -2249,6 +2249,7 @@ function ContactForm({building,problem,done,onSubmit,onBack,onLog,onNewCustomer}
 function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNewCustomer,visible,externalNote,onExternalNote,onNoteChange}){
   /* ── 모든 useState 최상단 선언 (React 훅 규칙) ── */
   const [qr,setQr]=useState(null);
+  const [pdfViewer,setPdfViewer]=useState(null);
   const [zoomPhoto,setZoomPhoto]=useState(null);
   const [mediaViewer,setMediaViewer]=useState(null);
   useEffect(()=>{
@@ -2418,6 +2419,22 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
     <>
     <div className={`screen ${visible?'active':''}`} style={{background:'var(--bg)'}}>
       {qr&&<QRModal url={qr.url} title={qr.title} onClose={()=>setQr(null)}/>}
+
+      {/* PDF 뷰어 오버레이 */}
+      {pdfViewer&&(
+        <div style={{position:'fixed',inset:0,zIndex:2000,background:'#000',display:'flex',flexDirection:'column'}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',background:'#1a1a1a',flexShrink:0}}>
+            <button onClick={()=>setPdfViewer(null)} style={{display:'flex',alignItems:'center',gap:8,padding:'10px 20px',borderRadius:10,border:'none',background:'#fff',color:'#000',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>
+              ← 뒤로가기
+            </button>
+            <span style={{fontSize:13,fontWeight:600,color:'rgba(255,255,255,.6)'}}>📄 제안서</span>
+            <a href={pdfViewer} target="_blank" rel="noopener noreferrer" style={{padding:'10px 16px',borderRadius:10,border:'1px solid rgba(255,255,255,.2)',background:'none',color:'#fff',fontSize:12,fontWeight:700,textDecoration:'none'}}>
+              새 탭에서 열기 ↗
+            </a>
+          </div>
+          <iframe src={pdfViewer} style={{flex:1,border:'none',width:'100%'}} title="제안서 PDF"/>
+        </div>
+      )}
       {zoomPhoto&&<PhotoZoomModal photos={zoomPhoto.photos} index={zoomPhoto.index} onClose={()=>setZoomPhoto(null)}/>}
       {mediaViewer!==null&&(()=>{
         const mList=(photos.media||[]).filter(s=>s);
@@ -2573,11 +2590,11 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
           <div style={{flex:1,borderRadius:10,border:'1px solid rgba(255,255,255,.15)',background:'rgba(255,255,255,.07)',overflow:'hidden'}}>
             {pdfUrl?(
               <div style={{display:'flex',flexDirection:'column'}}>
-                <a href={pdfUrl} target="_blank" rel="noopener noreferrer"
-                  style={{display:'flex',alignItems:'center',gap:8,padding:'12px 14px',textDecoration:'none',borderBottom:'1px solid rgba(255,255,255,.08)'}}>
+                <button onClick={()=>setPdfViewer(pdfUrl)}
+                  style={{display:'flex',alignItems:'center',gap:8,padding:'12px 14px',textDecoration:'none',borderBottom:'1px solid rgba(255,255,255,.08)',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
                   <span style={{fontSize:24}}>📄</span>
                   <div><div style={{fontSize:12,fontWeight:800,color:'#93bbfc'}}>제안서</div><div style={{fontSize:9,color:'rgba(255,255,255,.4)'}}>{problem.proposalUrl?'PDF 보기':'탭하면 페이지 이동'}</div></div>
-                </a>
+                </button>
                 <button onClick={()=>setQr({url:pdfUrl,title:'📄 제안서'})}
                   style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4,padding:'8px',background:'rgba(59,130,246,.1)',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(147,187,252,.8)" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="4" height="4" rx="1"/></svg>

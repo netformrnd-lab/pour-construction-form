@@ -2109,7 +2109,7 @@ function KeywordDashboardPage({ showToast }) {
     if (positionStats[0]) {
       const total = positionStats.reduce((s, [, c]) => s + c, 0);
       const pct = total ? Math.round(positionStats[0][1] / total * 100) : 0;
-      list.push({ color: '#0891B2', bg: '#ECFEFF', icon: '👤', title: `의사결정자 1위: ${positionStats[0][0]} (${pct}%)`, body: `상담자 중 ${positionStats[0][0]}이(가) 가장 많음. 직급별 맞춤 제안서를 사전 준비하세요.` });
+      list.push({ color: '#0891B2', bg: '#ECFEFF', icon: '👤', title: `상담 대상 직급 1위: ${positionStats[0][0]} (${pct}%)`, body: `상담 고객 직급 중 ${positionStats[0][0]}이(가) 가장 많음. 직급별 맞춤 제안서를 사전 준비하세요.` });
     }
     if (positiveKeywords[0]) {
       list.push({ color: '#059669', bg: '#ECFDF5', icon: '⭐', title: `핵심 강점: "${positiveKeywords[0][0]}"`, body: `NPS 만족 요인 1위 (${positiveKeywords[0][1]}명). 영업 첫 멘트 & 제안서 첫 페이지에 강조하세요.` });
@@ -2263,11 +2263,11 @@ function KeywordDashboardPage({ showToast }) {
             </div>
           </div>
 
-          {/* 의사결정자 + 영업 자료 요청 */}
+          {/* 상담 대상 직급 + 영업 자료 요청 */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
-              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>의사결정자 직급 분포</div>
-              <div style={{ fontSize: 11, color: 'var(--text-sm)', marginBottom: 14 }}>상담 고객 직급 — 영업 타겟팅 & 제안서 커스터마이징 기준</div>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>상담 대상 직급 분포</div>
+              <div style={{ fontSize: 11, color: 'var(--text-sm)', marginBottom: 14 }}>박람회에서 직접 상담한 고객 직급 — 영업 접근 전략 수립 기준</div>
               {positionStats.length === 0 ? (
                 <div style={{ fontSize: 12, color: 'var(--text-sm)', textAlign: 'center', padding: 20 }}>데이터 없음</div>
               ) : positionStats.map(([pos, cnt], i) => (

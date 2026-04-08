@@ -1945,6 +1945,41 @@ function ProductsPage({ showToast }) {
   );
 }
 
+// ─── 지역 정규화 기본 룰 ───
+const REGION_BASE_MAP = [
+  { name: '서울', kw: ['서울'] },
+  { name: '경기', kw: ['경기','수원','성남','안양','부천','광명','평택','안산','고양','의정부','용인','파주','이천','김포','화성','구리','남양주','오산','시흥','군포','의왕','하남','양주','포천','여주','동두천','연천','가평','양평','분당','판교','일산'] },
+  { name: '인천', kw: ['인천'] },
+  { name: '강원', kw: ['강원','춘천','원주','강릉','동해','태백','속초','삼척','홍천','횡성','영월','평창','정선','철원','화천','양구','인제','고성','양양'] },
+  { name: '충북', kw: ['충북','충청북도','청주','충주','제천','청원','괴산','음성','진천','보은','옥천','영동','증평','단양'] },
+  { name: '충남', kw: ['충남','충청남도','천안','아산','공주','보령','서산','논산','계룡','당진','금산','부여','서천','청양','홍성','예산','태안'] },
+  { name: '대전', kw: ['대전'] },
+  { name: '세종', kw: ['세종'] },
+  { name: '전북', kw: ['전북','전라북도','전주','군산','익산','정읍','남원','김제','완주','진안','무주','장수','임실','순창','고창','부안'] },
+  { name: '전남', kw: ['전남','전라남도','목포','여수','순천','나주','광양','담양','곡성','구례','고흥','보성','화순','장흥','강진','해남','영암','무안','함평','영광','장성','완도','진도','신안'] },
+  { name: '광주', kw: ['광주'] },
+  { name: '경북', kw: ['경북','경상북도','포항','경주','김천','안동','구미','영주','영천','상주','문경','경산','의성','청송','영양','영덕','청도','고령','성주','칠곡','예천','봉화','울진','울릉'] },
+  { name: '경남', kw: ['경남','경상남도','창원','진주','통영','사천','김해','밀양','거제','양산','의령','함안','창녕','고성','남해','하동','산청','함양','거창','합천'] },
+  { name: '대구', kw: ['대구'] },
+  { name: '울산', kw: ['울산'] },
+  { name: '부산', kw: ['부산'] },
+  { name: '제주', kw: ['제주','서귀포'] },
+];
+
+function normalizeRegion(raw, aliases = {}) {
+  if (!raw || !raw.trim()) return null;
+  const r = raw.trim();
+  // 사용자 정의 매핑 먼저 확인 (키워드 포함 여부)
+  for (const [kw, target] of Object.entries(aliases)) {
+    if (r.includes(kw.trim())) return target.trim();
+  }
+  // 기본 룰
+  for (const reg of REGION_BASE_MAP) {
+    if (reg.kw.some(kw => r.includes(kw))) return reg.name;
+  }
+  return r; // 매핑 불가 시 원본 반환
+}
+
 // ─── 키워드 분석 공통 컴포넌트 ───
 function KeywordBar({ name, count, max, color }) {
   const pct = Math.round((count / max) * 100);
@@ -1988,19 +2023,28 @@ function KeywordDashboardPage({ showToast }) {
   const [surveys, setSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('insight'); // insight | problem | positive | negative
+  const [regionAliases, setRegionAliases] = useState({}); // { "역삼": "서울", ... }
+  const [showRegionConfig, setShowRegionConfig] = useState(false);
+  const [aliasText, setAliasText] = useState(''); // 편집용 텍스트
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [leadsSnap, npsSnap] = await Promise.all([
+      const [leadsSnap, npsSnap, aliasDoc] = await Promise.all([
         db.collection(COLLECTIONS.LEADS).get(),
         db.collection(COLLECTIONS.NPS_SURVEYS).get(),
+        db.collection('config').doc('region-mapping').get(),
       ]);
       console.log(`[keywords] leads:${leadsSnap.size} nps:${npsSnap.size}`);
       const leadsData = leadsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       const expoLeads = leadsData.filter(l => !l.source || ['expo','exhibition','tablet','박람회','qr',''].includes(l.source));
       setLeads(expoLeads);
       setSurveys(npsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      if (aliasDoc.exists) {
+        const aliases = aliasDoc.data().aliases || {};
+        setRegionAliases(aliases);
+        setAliasText(Object.entries(aliases).map(([k, v]) => `${k}=${v}`).join('\n'));
+      }
     } catch (e) {
       console.error('[keywords] 로드 실패:', e);
       showToast('데이터 로드 실패', 'error');
@@ -2008,6 +2052,23 @@ function KeywordDashboardPage({ showToast }) {
       setLoading(false);
     }
   }, [showToast]);
+
+  const saveRegionAliases = async () => {
+    try {
+      const aliases = {};
+      aliasText.split('\n').forEach(line => {
+        const [k, v] = line.split('=');
+        if (k && v && k.trim() && v.trim()) aliases[k.trim()] = v.trim();
+      });
+      await db.collection('config').doc('region-mapping').set({ aliases, updatedAt: new Date().toISOString() });
+      setRegionAliases(aliases);
+      showToast('지역 매핑 저장 완료');
+      setShowRegionConfig(false);
+    } catch (e) {
+      console.error(e);
+      showToast('저장 실패', 'error');
+    }
+  };
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -2091,6 +2152,27 @@ function KeywordDashboardPage({ showToast }) {
     surveys.forEach(s => { (s.badFactors || []).forEach(f => { if (f) map[f] = (map[f] || 0) + 1; }); });
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
   }, [surveys]);
+
+  // ── 착공 희망월 분포 (1~12월) ──
+  const startMonthStats = useMemo(() => {
+    const map = {};
+    leads.forEach(l => {
+      if (!l.desiredStartDate) return;
+      const m = parseInt(l.desiredStartDate.slice(5, 7), 10);
+      if (m >= 1 && m <= 12) map[m] = (map[m] || 0) + 1;
+    });
+    return Array.from({ length: 12 }, (_, i) => ({ month: i + 1, label: `${i + 1}월`, count: map[i + 1] || 0 }));
+  }, [leads]);
+
+  // ── 지역 분포 (정규화 적용) ──
+  const regionStats = useMemo(() => {
+    const map = {};
+    leads.forEach(l => {
+      const norm = normalizeRegion(l.region, regionAliases);
+      if (norm) map[norm] = (map[norm] || 0) + 1;
+    });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }, [leads, regionAliases]);
 
   // ── 자동 영업 인사이트 생성 ──
   const insights = useMemo(() => {
@@ -2314,6 +2396,83 @@ function KeywordDashboardPage({ showToast }) {
               </div>
             </div>
           )}
+
+          {/* 착공 희망월 + 지역 분포 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            {/* 착공 희망월 분포 */}
+            <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>착공 희망월 분포</div>
+              <div style={{ fontSize: 11, color: 'var(--text-sm)', marginBottom: 14 }}>
+                희망 착공일자 입력 건수: {leads.filter(l => l.desiredStartDate).length}건 —
+                성수기 파악 및 일정 계획에 활용
+              </div>
+              {leads.filter(l => l.desiredStartDate).length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--text-sm)', textAlign: 'center', padding: 20 }}>데이터 없음</div>
+              ) : (() => {
+                const maxM = Math.max(...startMonthStats.map(m => m.count), 1);
+                return (
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 100 }}>
+                    {startMonthStats.map(m => {
+                      const h = m.count > 0 ? Math.max(Math.round((m.count / maxM) * 80), 4) : 4;
+                      const isTop = m.count === maxM && m.count > 0;
+                      return (
+                        <div key={m.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                          <div style={{ fontSize: 9, fontWeight: 700, color: isTop ? '#2563EB' : m.count > 0 ? 'var(--text-md)' : 'transparent' }}>{m.count}</div>
+                          <div style={{ width: '100%', height: h, borderRadius: '3px 3px 0 0', background: isTop ? '#2563EB' : '#BFDBFE' }} />
+                          <div style={{ fontSize: 9, color: 'var(--text-sm)', fontWeight: isTop ? 700 : 400 }}>{m.label}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* 지역 분포 */}
+            <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>현장 지역 분포</div>
+                <button onClick={() => setShowRegionConfig(v => !v)}
+                  style={{ fontSize: 10, padding: '3px 8px', borderRadius: 6, border: '1px solid var(--border)', background: showRegionConfig ? '#EFF6FF' : '#fff', color: showRegionConfig ? '#2563EB' : 'var(--text-sm)', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  매핑 설정
+                </button>
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-sm)', marginBottom: showRegionConfig ? 10 : 14 }}>
+                입력 건수: {leads.filter(l => l.region).length}건 — 자동 시/도 정규화 적용
+              </div>
+
+              {/* 매핑 설정 패널 */}
+              {showRegionConfig && (
+                <div style={{ marginBottom: 14, padding: 12, background: '#EFF6FF', borderRadius: 8, border: '1px solid #BFDBFE' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#2563EB', marginBottom: 6 }}>지역 매핑 추가 (키=시도, 한 줄에 하나)</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-sm)', marginBottom: 8 }}>예: 역삼=서울 / 판교=경기 / 송도=인천</div>
+                  <textarea
+                    value={aliasText}
+                    onChange={e => setAliasText(e.target.value)}
+                    rows={4}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #BFDBFE', borderRadius: 6, fontSize: 11, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }}
+                    placeholder={'역삼=서울\n판교=경기\n송도=인천'}
+                  />
+                  <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                    <button onClick={saveRegionAliases}
+                      style={{ flex: 1, padding: '7px 0', borderRadius: 6, border: 'none', background: '#2563EB', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      저장
+                    </button>
+                    <button onClick={() => setShowRegionConfig(false)}
+                      style={{ padding: '7px 12px', borderRadius: 6, border: '1px solid var(--border)', background: '#fff', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      닫기
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {regionStats.length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--text-sm)', textAlign: 'center', padding: 20 }}>데이터 없음</div>
+              ) : regionStats.map(([region, cnt], i) => (
+                <RankRow key={region} name={region} count={cnt} rank={i} max={regionStats[0][1]} color="#E8780F" dimColor="#FED7AA" />
+              ))}
+            </div>
+          </div>
 
           {/* 자주 언급된 문제 키워드 TOP 12 (2열) */}
           <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>

@@ -2088,6 +2088,7 @@ function CSMemoScreen({building,problem,staffId,staffName,staffDay,onBack,onSave
   const [csProbs,setCsProbs]=useState(problem?[problem.label]:[]);
   const [csActions,setCsActions]=useState([]);
   const [csMemo,setCsMemo]=useState('');
+  const [csRegion,setCsRegion]=useState('');
   const [csPosition,setCsPosition]=useState('');
   const [csShowPosition,setCsShowPosition]=useState(false);
   const [csDesiredStart,setCsDesiredStart]=useState('');
@@ -2107,7 +2108,8 @@ function CSMemoScreen({building,problem,staffId,staffName,staffDay,onBack,onSave
       problem:problem?.label||'-',problemCat:problem?.cat||'-',
       problems:csProbs,
       actions:csActions.map(id=>ACTION_TAGS.find(t=>t.id===id)?.label||id),
-      memo:csMemo,desiredStartDate:csDesiredStart,docDeadline:csDocDeadline,status:'신규',source:getUrlSource(),
+      memo:csMemo,desiredStartDate:csDesiredStart,docDeadline:csDocDeadline,
+      region:csRegion.trim()||'',status:'신규',source:getUrlSource(),
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
     sendToSheet(Object.assign({_sheetType:'lead'},data));
@@ -2193,6 +2195,7 @@ function CSMemoScreen({building,problem,staffId,staffName,staffDay,onBack,onSave
             </div>
             <input className="minput" placeholder="전화번호" value={csPhone} onChange={e=>setCsPhone(e.target.value)} inputMode="tel"/>
             <input className="minput" placeholder="이메일 (선택)" value={csEmail} onChange={e=>setCsEmail(e.target.value)} inputMode="email"/>
+            <input className="minput" placeholder="현장 지역 (선택, 예: 서울 강남, 경기 수원)" value={csRegion} onChange={e=>setCsRegion(e.target.value)}/>
           </div>
         </div>
 

@@ -11,7 +11,7 @@
  * 3. 각 시트 1행에 아래 헤더를 입력 (복사-붙여넣기):
  *
  *    [2604_백스코_박람회DB 시트 헤더]
- *    저장시각 | 일자 | 담당자 | 성함 | 회사 | 직책 | 전화 | 이메일 | 건물유형 | 문제유형 | 문제상세 | 관심항목 | 메모 | 상태 | 출처
+ *    저장시각 | 일자 | 담당자 | 성함 | 회사 | 직책 | 전화 | 이메일 | 건물유형 | 문제유형 | 문제상세 | 관심항목 | 착공희망일 | 2차액션 | 메모 | 상태 | 출처
  *
  *    [NPS_드론조사 시트 헤더]
  *    제출시각 | 캠페인 | 성함 | 소속 | 연락처 | 직책 | NPS점수 | 구분 | 만족요인 | 개선요인 | 추가의견 | 출처
@@ -49,6 +49,8 @@ function doPost(e) {
         payload.problemCat || '',
         payload.problem || '',
         (payload.interests || []).join(', '),
+        payload.desiredStartDate || '',
+        (payload.nextActions || []).join(', '),
         payload.memo || '',
         payload.status || '신규',
         payload.source || '',

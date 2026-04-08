@@ -105,6 +105,7 @@ const MENU = [
   { key: 'partners', label: '파트너사', icon: '🏢' },
   { section: 'NPS' },
   { key: 'nps', label: 'NPS 대시보드', icon: '📋' },
+  { key: 'keywords', label: '키워드 분석', icon: '🔑' },
   { section: '공통' },
   { key: 'staff', label: '담당자', icon: '👥' },
   { key: 'sms', label: 'SMS설정', icon: '💬' },
@@ -1944,6 +1945,631 @@ function ProductsPage({ showToast }) {
   );
 }
 
+// ─── 지역 정규화 기본 룰 ───
+const REGION_BASE_MAP = [
+  { name: '서울', kw: ['서울'] },
+  { name: '경기', kw: ['경기','수원','성남','안양','부천','광명','평택','안산','고양','의정부','용인','파주','이천','김포','화성','구리','남양주','오산','시흥','군포','의왕','하남','양주','포천','여주','동두천','연천','가평','양평','분당','판교','일산'] },
+  { name: '인천', kw: ['인천'] },
+  { name: '강원', kw: ['강원','춘천','원주','강릉','동해','태백','속초','삼척','홍천','횡성','영월','평창','정선','철원','화천','양구','인제','고성','양양'] },
+  { name: '충북', kw: ['충북','충청북도','청주','충주','제천','청원','괴산','음성','진천','보은','옥천','영동','증평','단양'] },
+  { name: '충남', kw: ['충남','충청남도','천안','아산','공주','보령','서산','논산','계룡','당진','금산','부여','서천','청양','홍성','예산','태안'] },
+  { name: '대전', kw: ['대전'] },
+  { name: '세종', kw: ['세종'] },
+  { name: '전북', kw: ['전북','전라북도','전주','군산','익산','정읍','남원','김제','완주','진안','무주','장수','임실','순창','고창','부안'] },
+  { name: '전남', kw: ['전남','전라남도','목포','여수','순천','나주','광양','담양','곡성','구례','고흥','보성','화순','장흥','강진','해남','영암','무안','함평','영광','장성','완도','진도','신안'] },
+  { name: '광주', kw: ['광주'] },
+  { name: '경북', kw: ['경북','경상북도','포항','경주','김천','안동','구미','영주','영천','상주','문경','경산','의성','청송','영양','영덕','청도','고령','성주','칠곡','예천','봉화','울진','울릉'] },
+  { name: '경남', kw: ['경남','경상남도','창원','진주','통영','사천','김해','밀양','거제','양산','의령','함안','창녕','고성','남해','하동','산청','함양','거창','합천'] },
+  { name: '대구', kw: ['대구'] },
+  { name: '울산', kw: ['울산'] },
+  { name: '부산', kw: ['부산'] },
+  { name: '제주', kw: ['제주','서귀포'] },
+];
+
+function normalizeRegion(raw, aliases = {}) {
+  if (!raw || !raw.trim()) return null;
+  const r = raw.trim();
+  // 사용자 정의 매핑 먼저 확인 (키워드 포함 여부)
+  for (const [kw, target] of Object.entries(aliases)) {
+    if (r.includes(kw.trim())) return target.trim();
+  }
+  // 기본 룰
+  for (const reg of REGION_BASE_MAP) {
+    if (reg.kw.some(kw => r.includes(kw))) return reg.name;
+  }
+  return r; // 매핑 불가 시 원본 반환
+}
+
+// ─── 키워드 분석 공통 컴포넌트 ───
+function KeywordBar({ name, count, max, color }) {
+  const pct = Math.round((count / max) * 100);
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+      <div style={{ flex: 1, fontSize: 12, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+      <div style={{ width: 130, height: 8, background: '#F3F4F6', borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}>
+        <div style={{ width: pct + '%', height: '100%', background: color, borderRadius: 4, transition: 'width .4s' }} />
+      </div>
+      <div style={{ fontSize: 11, fontWeight: 700, color, minWidth: 28, textAlign: 'right', flexShrink: 0 }}>{count}</div>
+    </div>
+  );
+}
+
+function KeywordTagCloud({ keywords, color, bg }) {
+  if (keywords.length === 0) return React.createElement('div', { style: { fontSize: 12, color: 'var(--text-sm)', textAlign: 'center', padding: 24 } }, '데이터 없음');
+  const max = keywords[0][1];
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '4px 0' }}>
+      {keywords.map(([name, cnt]) => {
+        const ratio = cnt / max;
+        const fontSize = Math.round(10 + ratio * 8);
+        return (
+          <span key={name} style={{
+            padding: '4px 10px', borderRadius: 20, background: bg, color,
+            fontSize, fontWeight: ratio > 0.6 ? 700 : 500,
+            opacity: 0.5 + ratio * 0.5, border: `1px solid ${color}30`,
+            display: 'inline-block',
+          }}>
+            {name} <span style={{ fontSize: fontSize - 2 }}>({cnt})</span>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── 키워드 분석 대시보드 ───
+function KeywordDashboardPage({ showToast }) {
+  const [leads, setLeads] = useState([]);
+  const [surveys, setSurveys] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState('insight'); // insight | problem | positive | negative
+  const [regionAliases, setRegionAliases] = useState({}); // { "역삼": "서울", ... }
+  const [showRegionConfig, setShowRegionConfig] = useState(false);
+  const [aliasText, setAliasText] = useState(''); // 편집용 텍스트
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [leadsSnap, npsSnap, aliasDoc] = await Promise.all([
+        db.collection(COLLECTIONS.LEADS).get(),
+        db.collection(COLLECTIONS.NPS_SURVEYS).get(),
+        db.collection('config').doc('region-mapping').get(),
+      ]);
+      console.log(`[keywords] leads:${leadsSnap.size} nps:${npsSnap.size}`);
+      const leadsData = leadsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const expoLeads = leadsData.filter(l => !l.source || ['expo','exhibition','tablet','박람회','qr',''].includes(l.source));
+      setLeads(expoLeads);
+      setSurveys(npsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      if (aliasDoc.exists) {
+        const aliases = aliasDoc.data().aliases || {};
+        setRegionAliases(aliases);
+        setAliasText(Object.entries(aliases).map(([k, v]) => `${k}=${v}`).join('\n'));
+      }
+    } catch (e) {
+      console.error('[keywords] 로드 실패:', e);
+      showToast('데이터 로드 실패', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [showToast]);
+
+  const saveRegionAliases = async () => {
+    try {
+      const aliases = {};
+      aliasText.split('\n').forEach(line => {
+        const [k, v] = line.split('=');
+        if (k && v && k.trim() && v.trim()) aliases[k.trim()] = v.trim();
+      });
+      await db.collection('config').doc('region-mapping').set({ aliases, updatedAt: new Date().toISOString() });
+      setRegionAliases(aliases);
+      showToast('지역 매핑 저장 완료');
+      setShowRegionConfig(false);
+    } catch (e) {
+      console.error(e);
+      showToast('저장 실패', 'error');
+    }
+  };
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  // ── 문제 키워드 집계 ──
+  const problemKeywords = useMemo(() => {
+    const map = {};
+    leads.forEach(l => {
+      (l.problems || []).forEach(p => { if (p && p !== '-') map[p] = (map[p] || 0) + 1; });
+      if (l.problem && l.problem !== '-' && !(l.problems || []).includes(l.problem))
+        map[l.problem] = (map[l.problem] || 0) + 1;
+    });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }, [leads]);
+
+  // ── 문제 카테고리 분포 ──
+  const catStats = useMemo(() => {
+    const map = {};
+    leads.forEach(l => { if (l.problemCat && l.problemCat !== '-') map[l.problemCat] = (map[l.problemCat] || 0) + 1; });
+    const total = Object.values(map).reduce((a, b) => a + b, 0) || 1;
+    const colors = { '방수': '#2563EB', '도장': '#D97706', '보수/보강': '#7C3AED', '토목': '#059669' };
+    return Object.entries(map).sort((a, b) => b[1] - a[1])
+      .map(([cat, cnt]) => ({ cat, cnt, pct: Math.round(cnt / total * 100), color: colors[cat] || '#6B7280' }));
+  }, [leads]);
+
+  // ── 건물 유형별 TOP 3 문제 ──
+  const buildingProblems = useMemo(() => {
+    const bmap = {};
+    const BICONS = { apt: '🏢', gov: '🏛', house: '🏠', villa: '🏬', hospital: '🏥', school: '🏫' };
+    leads.forEach(l => {
+      const bid = l.buildingId;
+      if (!bid || bid === '-') return;
+      if (!bmap[bid]) bmap[bid] = { label: l.building || bid, icon: BICONS[bid] || '🏗', problems: {}, count: 0 };
+      bmap[bid].count++;
+      (l.problems || []).forEach(p => { if (p && p !== '-') bmap[bid].problems[p] = (bmap[bid].problems[p] || 0) + 1; });
+      if (l.problem && l.problem !== '-' && !(l.problems || []).includes(l.problem))
+        bmap[bid].problems[l.problem] = (bmap[bid].problems[l.problem] || 0) + 1;
+    });
+    return Object.entries(bmap)
+      .map(([id, d]) => ({ id, ...d, topProblems: Object.entries(d.problems).sort((a, b) => b[1] - a[1]).slice(0, 3) }))
+      .sort((a, b) => b.count - a.count);
+  }, [leads]);
+
+  // ── 영업 자료 요청 집계 ──
+  const actionStats = useMemo(() => {
+    const map = {};
+    leads.forEach(l => { (l.actions || []).forEach(a => { if (a) map[a] = (map[a] || 0) + 1; }); });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }, [leads]);
+
+  // ── 고객 직급 집계 ──
+  const positionStats = useMemo(() => {
+    const map = {};
+    leads.forEach(l => { if (l.position && l.position !== '-') map[l.position] = (map[l.position] || 0) + 1; });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  }, [leads]);
+
+  // ── 월별 상담 추이 (최근 6개월) ──
+  const monthlyTrend = useMemo(() => {
+    const now = new Date();
+    const months = Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+      return { key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, label: `${d.getMonth() + 1}월`, count: 0 };
+    });
+    leads.forEach(l => {
+      if (!l.savedAt) return;
+      const m = months.find(m => m.key === l.savedAt.slice(0, 7));
+      if (m) m.count++;
+    });
+    return months;
+  }, [leads]);
+
+  // ── 긍정 / 부정 키워드 ──
+  const positiveKeywords = useMemo(() => {
+    const map = {};
+    surveys.forEach(s => { (s.goodFactors || []).forEach(f => { if (f) map[f] = (map[f] || 0) + 1; }); });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }, [surveys]);
+
+  const negativeKeywords = useMemo(() => {
+    const map = {};
+    surveys.forEach(s => { (s.badFactors || []).forEach(f => { if (f) map[f] = (map[f] || 0) + 1; }); });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }, [surveys]);
+
+  // ── 착공 희망월 분포 (1~12월) ──
+  const startMonthStats = useMemo(() => {
+    const map = {};
+    leads.forEach(l => {
+      if (!l.desiredStartDate) return;
+      const m = parseInt(l.desiredStartDate.slice(5, 7), 10);
+      if (m >= 1 && m <= 12) map[m] = (map[m] || 0) + 1;
+    });
+    return Array.from({ length: 12 }, (_, i) => ({ month: i + 1, label: `${i + 1}월`, count: map[i + 1] || 0 }));
+  }, [leads]);
+
+  // ── 지역 분포 (정규화 적용) ──
+  const regionStats = useMemo(() => {
+    const map = {};
+    leads.forEach(l => {
+      const norm = normalizeRegion(l.region, regionAliases);
+      if (norm) map[norm] = (map[norm] || 0) + 1;
+    });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }, [leads, regionAliases]);
+
+  // ── 자동 영업 인사이트 생성 ──
+  const insights = useMemo(() => {
+    const list = [];
+    if (catStats[0]) {
+      const top3 = problemKeywords.slice(0, 3).map(([n]) => n.replace(/^POUR\s+/, '').split(' ')[0]).join(', ');
+      list.push({ color: '#7C3AED', bg: '#F5F3FF', icon: '🎯', title: `핵심 니즈: ${catStats[0].cat} 분야 (${catStats[0].pct}%)`, body: `상담의 ${catStats[0].pct}%가 ${catStats[0].cat} 하자. 자주 언급: ${top3}` });
+    }
+    if (buildingProblems[0]) {
+      const b = buildingProblems[0];
+      list.push({ color: '#2563EB', bg: '#EFF6FF', icon: '🏢', title: `주요 타겟: ${b.label} (${b.count}건)`, body: `방문 1위 건물 유형. 핵심 문제: ${b.topProblems.slice(0, 2).map(([n]) => n.replace(/^POUR\s+/, '').split(' ')[0]).join(', ')}` });
+    }
+    if (actionStats[0]) {
+      list.push({ color: '#D97706', bg: '#FFFBEB', icon: '📋', title: `자료 요청 1위: ${actionStats[0][0]} (${actionStats[0][1]}건)`, body: `상담 후 ${actionStats[0][0]} 요청 최다. 현장 사전 준비 필수 자료로 관리하세요.` });
+    }
+    if (positionStats[0]) {
+      const total = positionStats.reduce((s, [, c]) => s + c, 0);
+      const pct = total ? Math.round(positionStats[0][1] / total * 100) : 0;
+      list.push({ color: '#0891B2', bg: '#ECFEFF', icon: '👤', title: `상담 대상 직급 1위: ${positionStats[0][0]} (${pct}%)`, body: `상담 고객 직급 중 ${positionStats[0][0]}이(가) 가장 많음. 직급별 맞춤 제안서를 사전 준비하세요.` });
+    }
+    if (positiveKeywords[0]) {
+      list.push({ color: '#059669', bg: '#ECFDF5', icon: '⭐', title: `핵심 강점: "${positiveKeywords[0][0]}"`, body: `NPS 만족 요인 1위 (${positiveKeywords[0][1]}명). 영업 첫 멘트 & 제안서 첫 페이지에 강조하세요.` });
+    }
+    if (negativeKeywords[0]) {
+      list.push({ color: '#DC2626', bg: '#FEF2F2', icon: '🔧', title: `개선 집중: "${negativeKeywords[0][0]}"`, body: `NPS 개선 요인 1위 (${negativeKeywords[0][1]}명). 상담 중 선제적 해명으로 고객 불안을 해소하세요.` });
+    }
+    return list;
+  }, [catStats, problemKeywords, buildingProblems, actionStats, positionStats, positiveKeywords, negativeKeywords]);
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: 80, color: 'var(--text-sm)' }}>
+        <div style={{ width: 24, height: 24, border: '3px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+        키워드 분석 중...
+      </div>
+    );
+  }
+
+  const maxProb  = problemKeywords[0]?.[1] || 1;
+  const maxPos   = positiveKeywords[0]?.[1] || 1;
+  const maxNeg   = negativeKeywords[0]?.[1] || 1;
+  const maxMonth = Math.max(...monthlyTrend.map(m => m.count), 1);
+
+  const TABS = [
+    { key: 'insight',  label: '종합 인사이트', color: '#2563EB' },
+    { key: 'problem',  label: '문제 키워드',   color: '#7C3AED' },
+    { key: 'positive', label: '긍정 키워드',   color: '#059669' },
+    { key: 'negative', label: '부정 키워드',   color: '#DC2626' },
+  ];
+
+  // ── 순위 행 공통 컴포넌트 ──
+  const RankRow = ({ name, count, rank, max, color, dimColor }) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+      <div style={{ width: 18, fontSize: 11, fontWeight: 700, color: rank < 3 ? color : 'var(--text-sm)', flexShrink: 0, textAlign: 'center' }}>{rank + 1}</div>
+      <div style={{ flex: 1, fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+      <div style={{ width: 110, height: 8, background: '#F3F4F6', borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}>
+        <div style={{ width: Math.round(count / max * 100) + '%', height: '100%', background: rank < 3 ? color : dimColor, borderRadius: 4 }} />
+      </div>
+      <div style={{ fontSize: 11, fontWeight: 700, color, minWidth: 24, textAlign: 'right' }}>{count}</div>
+    </div>
+  );
+
+  return (
+    <div style={{ animation: 'fadeIn .3s ease', maxWidth: 1200 }}>
+      {/* 헤더 */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>키워드 분석 대시보드</div>
+          <div style={{ fontSize: 12, color: 'var(--text-sm)', marginTop: 4 }}>박람회 상담 · NPS 기반 고객 니즈 & 영업 인사이트</div>
+        </div>
+        <button onClick={loadData}
+          style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)', background: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', color: 'var(--text-md)', fontFamily: 'inherit' }}>
+          새로고침
+        </button>
+      </div>
+
+      {/* 요약 카드 5개 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 20 }}>
+        {[
+          { label: '총 박람회 상담', value: leads.length + '건', color: '#2563EB', bg: '#EFF6FF' },
+          { label: '문제 키워드 종류', value: problemKeywords.length + '개', color: '#7C3AED', bg: '#F5F3FF' },
+          { label: '긍정 키워드', value: positiveKeywords.length + '개', color: '#059669', bg: '#ECFDF5' },
+          { label: '부정 키워드', value: negativeKeywords.length + '개', color: '#DC2626', bg: '#FEF2F2' },
+          { label: 'NPS 응답 수', value: surveys.length + '건', color: '#D97706', bg: '#FFFBEB' },
+        ].map(c => (
+          <div key={c.label} style={{ background: c.bg, borderRadius: 12, padding: '14px 16px' }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: c.color, marginBottom: 6 }}>{c.label}</div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: c.color }}>{c.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* 탭 */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+        {TABS.map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)}
+            style={{ padding: '7px 16px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+              border: tab === t.key ? 'none' : '1px solid var(--border)',
+              background: tab === t.key ? t.color : '#fff',
+              color: tab === t.key ? '#fff' : 'var(--text-md)',
+            }}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ══ 종합 인사이트 탭 ══ */}
+      {tab === 'insight' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+          {/* 영업 액션 인사이트 카드 */}
+          {insights.length > 0 && (
+            <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>영업 액션 인사이트</div>
+              <div style={{ fontSize: 11, color: 'var(--text-sm)', marginBottom: 14 }}>데이터 기반 자동 생성 — 즉시 활용 가능한 영업 포인트</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                {insights.map((ins, i) => (
+                  <div key={i} style={{ background: ins.bg, borderRadius: 10, padding: '14px 16px', borderLeft: `3px solid ${ins.color}` }}>
+                    <div style={{ fontSize: 20, marginBottom: 8 }}>{ins.icon}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: ins.color, marginBottom: 5 }}>{ins.title}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-md)', lineHeight: 1.55 }}>{ins.body}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 카테고리 분포 + 월별 추이 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            {/* 문제 카테고리 */}
+            <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>문제 카테고리 분포</div>
+              <div style={{ fontSize: 11, color: 'var(--text-sm)', marginBottom: 14 }}>하자 유형별 상담 비율 — 주력 영업 분야 파악</div>
+              {catStats.length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--text-sm)', textAlign: 'center', padding: 20 }}>데이터 없음</div>
+              ) : (<>
+                <div style={{ display: 'flex', height: 14, borderRadius: 8, overflow: 'hidden', marginBottom: 16, gap: 1 }}>
+                  {catStats.map(c => <div key={c.cat} style={{ width: c.pct + '%', background: c.color }} title={`${c.cat} ${c.pct}%`} />)}
+                </div>
+                {catStats.map(c => (
+                  <div key={c.cat} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 3, background: c.color, flexShrink: 0 }} />
+                    <div style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{c.cat}</div>
+                    <div style={{ width: 100, height: 8, background: '#F3F4F6', borderRadius: 4, overflow: 'hidden' }}>
+                      <div style={{ width: c.pct + '%', height: '100%', background: c.color, borderRadius: 4 }} />
+                    </div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: c.color, minWidth: 66, textAlign: 'right' }}>{c.cnt}건 ({c.pct}%)</div>
+                  </div>
+                ))}
+              </>)}
+            </div>
+
+            {/* 월별 추이 */}
+            <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>월별 상담 추이</div>
+              <div style={{ fontSize: 11, color: 'var(--text-sm)', marginBottom: 14 }}>최근 6개월 박람회 상담 건수 — 성수기 패턴 파악</div>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 110, padding: '0 4px' }}>
+                {monthlyTrend.map(m => {
+                  const h = m.count > 0 ? Math.max(Math.round((m.count / maxMonth) * 88), 4) : 4;
+                  const isMax = m.count === maxMonth && m.count > 0;
+                  return (
+                    <div key={m.key} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: isMax ? '#2563EB' : m.count > 0 ? 'var(--text-md)' : 'transparent' }}>{m.count}</div>
+                      <div style={{ width: '100%', height: h, borderRadius: '4px 4px 0 0', background: isMax ? '#2563EB' : '#BFDBFE', transition: 'height .4s' }} />
+                      <div style={{ fontSize: 10, color: 'var(--text-sm)', fontWeight: isMax ? 700 : 400 }}>{m.label}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* 상담 대상 직급 + 영업 자료 요청 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>상담 대상 직급 분포</div>
+              <div style={{ fontSize: 11, color: 'var(--text-sm)', marginBottom: 14 }}>박람회에서 직접 상담한 고객 직급 — 영업 접근 전략 수립 기준</div>
+              {positionStats.length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--text-sm)', textAlign: 'center', padding: 20 }}>데이터 없음</div>
+              ) : positionStats.map(([pos, cnt], i) => (
+                <RankRow key={pos} name={pos} count={cnt} rank={i} max={positionStats[0][1]} color="#0891B2" dimColor="#A5F3FC" />
+              ))}
+            </div>
+            <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>영업 자료 요청 현황</div>
+              <div style={{ fontSize: 11, color: 'var(--text-sm)', marginBottom: 14 }}>상담 후 고객 요청 자료 — 박람회 사전 준비 우선순위</div>
+              {actionStats.length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--text-sm)', textAlign: 'center', padding: 20 }}>데이터 없음</div>
+              ) : actionStats.map(([action, cnt], i) => (
+                <RankRow key={action} name={action} count={cnt} rank={i} max={actionStats[0][1]} color="#D97706" dimColor="#FCD34D" />
+              ))}
+            </div>
+          </div>
+
+          {/* 건물 유형별 TOP 3 문제 */}
+          {buildingProblems.length > 0 && (
+            <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>건물 유형별 주요 문제</div>
+              <div style={{ fontSize: 11, color: 'var(--text-sm)', marginBottom: 14 }}>타겟 건물별 핵심 영업 포인트 — 방문 전 맞춤 준비에 활용하세요</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                {buildingProblems.slice(0, 6).map(b => (
+                  <div key={b.id} style={{ background: 'var(--bg)', borderRadius: 10, padding: '14px 16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid var(--border-s)' }}>
+                      <span style={{ fontSize: 20 }}>{b.icon}</span>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700 }}>{b.label}</div>
+                        <div style={{ fontSize: 10, color: 'var(--text-sm)' }}>상담 {b.count}건</div>
+                      </div>
+                    </div>
+                    {b.topProblems.length === 0 ? (
+                      <div style={{ fontSize: 11, color: 'var(--text-sm)' }}>-</div>
+                    ) : b.topProblems.map(([prob, cnt], i) => (
+                      <div key={prob} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: '#7C3AED', width: 14, flexShrink: 0 }}>{i + 1}</div>
+                        <div style={{ flex: 1, fontSize: 11, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prob}</div>
+                        <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-sm)', flexShrink: 0 }}>{cnt}건</div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 착공 희망월 + 지역 분포 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            {/* 착공 희망월 분포 */}
+            <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>착공 희망월 분포</div>
+              <div style={{ fontSize: 11, color: 'var(--text-sm)', marginBottom: 14 }}>
+                희망 착공일자 입력 건수: {leads.filter(l => l.desiredStartDate).length}건 —
+                성수기 파악 및 일정 계획에 활용
+              </div>
+              {leads.filter(l => l.desiredStartDate).length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--text-sm)', textAlign: 'center', padding: 20 }}>데이터 없음</div>
+              ) : (() => {
+                const maxM = Math.max(...startMonthStats.map(m => m.count), 1);
+                return (
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 100 }}>
+                    {startMonthStats.map(m => {
+                      const h = m.count > 0 ? Math.max(Math.round((m.count / maxM) * 80), 4) : 4;
+                      const isTop = m.count === maxM && m.count > 0;
+                      return (
+                        <div key={m.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                          <div style={{ fontSize: 9, fontWeight: 700, color: isTop ? '#2563EB' : m.count > 0 ? 'var(--text-md)' : 'transparent' }}>{m.count}</div>
+                          <div style={{ width: '100%', height: h, borderRadius: '3px 3px 0 0', background: isTop ? '#2563EB' : '#BFDBFE' }} />
+                          <div style={{ fontSize: 9, color: 'var(--text-sm)', fontWeight: isTop ? 700 : 400 }}>{m.label}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* 지역 분포 */}
+            <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>현장 지역 분포</div>
+                <button onClick={() => setShowRegionConfig(v => !v)}
+                  style={{ fontSize: 10, padding: '3px 8px', borderRadius: 6, border: '1px solid var(--border)', background: showRegionConfig ? '#EFF6FF' : '#fff', color: showRegionConfig ? '#2563EB' : 'var(--text-sm)', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  매핑 설정
+                </button>
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-sm)', marginBottom: showRegionConfig ? 10 : 14 }}>
+                입력 건수: {leads.filter(l => l.region).length}건 — 자동 시/도 정규화 적용
+              </div>
+
+              {/* 매핑 설정 패널 */}
+              {showRegionConfig && (
+                <div style={{ marginBottom: 14, padding: 12, background: '#EFF6FF', borderRadius: 8, border: '1px solid #BFDBFE' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#2563EB', marginBottom: 6 }}>지역 매핑 추가 (키=시도, 한 줄에 하나)</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-sm)', marginBottom: 8 }}>예: 역삼=서울 / 판교=경기 / 송도=인천</div>
+                  <textarea
+                    value={aliasText}
+                    onChange={e => setAliasText(e.target.value)}
+                    rows={4}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #BFDBFE', borderRadius: 6, fontSize: 11, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }}
+                    placeholder={'역삼=서울\n판교=경기\n송도=인천'}
+                  />
+                  <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                    <button onClick={saveRegionAliases}
+                      style={{ flex: 1, padding: '7px 0', borderRadius: 6, border: 'none', background: '#2563EB', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      저장
+                    </button>
+                    <button onClick={() => setShowRegionConfig(false)}
+                      style={{ padding: '7px 12px', borderRadius: 6, border: '1px solid var(--border)', background: '#fff', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      닫기
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {regionStats.length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--text-sm)', textAlign: 'center', padding: 20 }}>데이터 없음</div>
+              ) : regionStats.map(([region, cnt], i) => (
+                <RankRow key={region} name={region} count={cnt} rank={i} max={regionStats[0][1]} color="#E8780F" dimColor="#FED7AA" />
+              ))}
+            </div>
+          </div>
+
+          {/* 자주 언급된 문제 키워드 TOP 12 (2열) */}
+          <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>자주 언급된 문제 키워드 TOP 12</div>
+            <div style={{ fontSize: 11, color: 'var(--text-sm)', marginBottom: 14 }}>박람회 상담 고객이 선택한 하자·문제 유형 ({leads.length}건 기준)</div>
+            {problemKeywords.length === 0 ? (
+              <div style={{ fontSize: 12, color: 'var(--text-sm)', textAlign: 'center', padding: 20 }}>데이터 없음</div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 32px' }}>
+                {problemKeywords.slice(0, 12).map(([name, cnt]) => (
+                  <KeywordBar key={name} name={name} count={cnt} max={maxProb} color="#7C3AED" />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 긍정 / 부정 요약 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#059669', marginBottom: 4 }}>긍정 키워드 TOP (NPS 만족 요인)</div>
+              <div style={{ fontSize: 11, color: 'var(--text-sm)', marginBottom: 14 }}>NPS 설문 응답 ({surveys.length}건) — 영업 강조 포인트</div>
+              {positiveKeywords.length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--text-sm)', textAlign: 'center', padding: 20 }}>데이터 없음</div>
+              ) : positiveKeywords.slice(0, 6).map(([name, cnt]) => (
+                <KeywordBar key={name} name={name} count={cnt} max={maxPos} color="#059669" />
+              ))}
+            </div>
+            <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#DC2626', marginBottom: 4 }}>부정 키워드 TOP (NPS 개선 요인)</div>
+              <div style={{ fontSize: 11, color: 'var(--text-sm)', marginBottom: 14 }}>NPS 설문 응답 ({surveys.length}건) — 선제적 대응 필요</div>
+              {negativeKeywords.length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--text-sm)', textAlign: 'center', padding: 20 }}>데이터 없음</div>
+              ) : negativeKeywords.slice(0, 6).map(([name, cnt]) => (
+                <KeywordBar key={name} name={name} count={cnt} max={maxNeg} color="#DC2626" />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══ 문제 키워드 탭 ══ */}
+      {tab === 'problem' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#7C3AED', marginBottom: 16 }}>문제 키워드 전체 순위 ({problemKeywords.length}개)</div>
+            {problemKeywords.length === 0 ? (
+              <div style={{ fontSize: 12, color: 'var(--text-sm)', textAlign: 'center', padding: 20 }}>데이터 없음</div>
+            ) : problemKeywords.map(([name, cnt], i) => (
+              <RankRow key={name} name={name} count={cnt} rank={i} max={maxProb} color="#7C3AED" dimColor="#C4B5FD" />
+            ))}
+          </div>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#7C3AED', marginBottom: 16 }}>태그 클라우드</div>
+            <KeywordTagCloud keywords={problemKeywords} color="#7C3AED" bg="#F5F3FF" />
+          </div>
+        </div>
+      )}
+
+      {/* ══ 긍정 키워드 탭 ══ */}
+      {tab === 'positive' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#059669', marginBottom: 16 }}>긍정 키워드 전체 순위 ({positiveKeywords.length}개)</div>
+            {positiveKeywords.length === 0 ? (
+              <div style={{ fontSize: 12, color: 'var(--text-sm)', textAlign: 'center', padding: 20 }}>데이터 없음</div>
+            ) : positiveKeywords.map(([name, cnt], i) => (
+              <RankRow key={name} name={name} count={cnt} rank={i} max={maxPos} color="#059669" dimColor="#6EE7B7" />
+            ))}
+          </div>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#059669', marginBottom: 16 }}>태그 클라우드</div>
+            <KeywordTagCloud keywords={positiveKeywords} color="#059669" bg="#ECFDF5" />
+          </div>
+        </div>
+      )}
+
+      {/* ══ 부정 키워드 탭 ══ */}
+      {tab === 'negative' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#DC2626', marginBottom: 16 }}>부정 키워드 전체 순위 ({negativeKeywords.length}개)</div>
+            {negativeKeywords.length === 0 ? (
+              <div style={{ fontSize: 12, color: 'var(--text-sm)', textAlign: 'center', padding: 20 }}>데이터 없음</div>
+            ) : negativeKeywords.map(([name, cnt], i) => (
+              <RankRow key={name} name={name} count={cnt} rank={i} max={maxNeg} color="#DC2626" dimColor="#FCA5A5" />
+            ))}
+          </div>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#DC2626', marginBottom: 16 }}>태그 클라우드</div>
+            <KeywordTagCloud keywords={negativeKeywords} color="#DC2626" bg="#FEF2F2" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── 대시보드 ───
 function DashboardPage({ onNavigate }) {
   const [stats, setStats] = useState({ solution: 0, method: 0, store: 0, grohome: 0, products: 0 });
@@ -3533,6 +4159,8 @@ function App() {
         return <PagePlaceholder title="담당자" icon="👥" description="담당자 목록 관리" />;
       case 'nps':
         return <NPSPage showToast={showToast} />;
+      case 'keywords':
+        return <KeywordDashboardPage showToast={showToast} />;
       case 'sms':
         return <PagePlaceholder title="SMS 설정" icon="💬" description="SMS 발송 및 템플릿 관리" />;
       case 'settings':

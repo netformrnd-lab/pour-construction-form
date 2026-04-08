@@ -105,6 +105,7 @@ const MENU = [
   { key: 'partners', label: '파트너사', icon: '🏢' },
   { section: 'NPS' },
   { key: 'nps', label: 'NPS 대시보드', icon: '📋' },
+  { key: 'keywords', label: '키워드 분석', icon: '🔑' },
   { section: '공통' },
   { key: 'staff', label: '담당자', icon: '👥' },
   { key: 'sms', label: 'SMS설정', icon: '💬' },
@@ -1944,6 +1945,283 @@ function ProductsPage({ showToast }) {
   );
 }
 
+// ─── 키워드 분석 공통 컴포넌트 ───
+function KeywordBar({ name, count, max, color }) {
+  const pct = Math.round((count / max) * 100);
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+      <div style={{ flex: 1, fontSize: 12, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+      <div style={{ width: 130, height: 8, background: '#F3F4F6', borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}>
+        <div style={{ width: pct + '%', height: '100%', background: color, borderRadius: 4, transition: 'width .4s' }} />
+      </div>
+      <div style={{ fontSize: 11, fontWeight: 700, color, minWidth: 28, textAlign: 'right', flexShrink: 0 }}>{count}</div>
+    </div>
+  );
+}
+
+function KeywordTagCloud({ keywords, color, bg }) {
+  if (keywords.length === 0) return React.createElement('div', { style: { fontSize: 12, color: 'var(--text-sm)', textAlign: 'center', padding: 24 } }, '데이터 없음');
+  const max = keywords[0][1];
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '4px 0' }}>
+      {keywords.map(([name, cnt]) => {
+        const ratio = cnt / max;
+        const fontSize = Math.round(10 + ratio * 8);
+        return (
+          <span key={name} style={{
+            padding: '4px 10px', borderRadius: 20, background: bg, color,
+            fontSize, fontWeight: ratio > 0.6 ? 700 : 500,
+            opacity: 0.5 + ratio * 0.5, border: `1px solid ${color}30`,
+            display: 'inline-block',
+          }}>
+            {name} <span style={{ fontSize: fontSize - 2 }}>({cnt})</span>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── 키워드 분석 대시보드 ───
+function KeywordDashboardPage({ showToast }) {
+  const [leads, setLeads] = useState([]);
+  const [surveys, setSurveys] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState('all'); // all | problem | positive | negative
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [leadsSnap, npsSnap] = await Promise.all([
+        db.collection(COLLECTIONS.LEADS).get(),
+        db.collection(COLLECTIONS.NPS_SURVEYS).get(),
+      ]);
+      console.log(`[keywords] leads:${leadsSnap.size} nps:${npsSnap.size}`);
+      const leadsData = leadsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const expoLeads = leadsData.filter(l => !l.source || ['expo','exhibition','tablet','박람회','qr',''].includes(l.source));
+      setLeads(expoLeads);
+      setSurveys(npsSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (e) {
+      console.error('[keywords] 로드 실패:', e);
+      showToast('데이터 로드 실패', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [showToast]);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  // 문제 키워드 집계 (leads.problems[] + leads.problem)
+  const problemKeywords = useMemo(() => {
+    const map = {};
+    leads.forEach(l => {
+      (l.problems || []).forEach(p => { if (p && p !== '-') map[p] = (map[p] || 0) + 1; });
+      if (l.problem && l.problem !== '-' && !(l.problems || []).includes(l.problem)) {
+        map[l.problem] = (map[l.problem] || 0) + 1;
+      }
+    });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }, [leads]);
+
+  // 긍정 키워드 (NPS goodFactors)
+  const positiveKeywords = useMemo(() => {
+    const map = {};
+    surveys.forEach(s => { (s.goodFactors || []).forEach(f => { if (f) map[f] = (map[f] || 0) + 1; }); });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }, [surveys]);
+
+  // 부정 키워드 (NPS badFactors)
+  const negativeKeywords = useMemo(() => {
+    const map = {};
+    surveys.forEach(s => { (s.badFactors || []).forEach(f => { if (f) map[f] = (map[f] || 0) + 1; }); });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }, [surveys]);
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: 80, color: 'var(--text-sm)' }}>
+        <div style={{ width: 24, height: 24, border: '3px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+        키워드 분석 중...
+      </div>
+    );
+  }
+
+  const maxProb = problemKeywords[0]?.[1] || 1;
+  const maxPos  = positiveKeywords[0]?.[1] || 1;
+  const maxNeg  = negativeKeywords[0]?.[1] || 1;
+
+  const TABS = [
+    { key: 'all',      label: '전체 보기' },
+    { key: 'problem',  label: '문제 키워드',  color: '#7C3AED' },
+    { key: 'positive', label: '긍정 키워드', color: '#059669' },
+    { key: 'negative', label: '부정 키워드', color: '#DC2626' },
+  ];
+
+  return (
+    <div style={{ animation: 'fadeIn .3s ease', maxWidth: 1200 }}>
+      {/* 헤더 */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>키워드 분석 대시보드</div>
+          <div style={{ fontSize: 12, color: 'var(--text-sm)', marginTop: 4 }}>박람회 상담 문제 키워드 · NPS 긍정/부정 키워드 분석</div>
+        </div>
+        <button onClick={loadData}
+          style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)', background: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', color: 'var(--text-md)' }}>
+          새로고침
+        </button>
+      </div>
+
+      {/* 요약 카드 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+        {[
+          { label: '총 박람회 상담', value: leads.length + '건', color: '#2563EB', bg: '#EFF6FF' },
+          { label: '문제 키워드 종류', value: problemKeywords.length + '개', color: '#7C3AED', bg: '#F5F3FF' },
+          { label: '긍정 키워드 종류', value: positiveKeywords.length + '개', color: '#059669', bg: '#ECFDF5' },
+          { label: '부정 키워드 종류', value: negativeKeywords.length + '개', color: '#DC2626', bg: '#FEF2F2' },
+        ].map(c => (
+          <div key={c.label} style={{ background: c.bg, borderRadius: 12, padding: '16px 20px' }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: c.color, marginBottom: 6 }}>{c.label}</div>
+            <div style={{ fontSize: 26, fontWeight: 900, color: c.color }}>{c.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* 탭 */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+        {TABS.map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)}
+            style={{
+              padding: '7px 16px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              border: tab === t.key ? 'none' : '1px solid var(--border)',
+              background: tab === t.key ? (t.color || 'var(--accent)') : '#fff',
+              color: tab === t.key ? '#fff' : 'var(--text-md)',
+              fontFamily: 'inherit',
+            }}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── 전체 보기 ── */}
+      {tab === 'all' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* 문제 키워드 TOP (2열) */}
+          <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#7C3AED', marginBottom: 4 }}>자주 언급된 문제 키워드 TOP 12</div>
+            <div style={{ fontSize: 11, color: 'var(--text-sm)', marginBottom: 16 }}>박람회 상담 고객이 선택한 하자·문제 유형 ({leads.length}건 기준)</div>
+            {problemKeywords.length === 0 ? (
+              <div style={{ fontSize: 12, color: 'var(--text-sm)', textAlign: 'center', padding: 20 }}>데이터 없음</div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 32px' }}>
+                {problemKeywords.slice(0, 12).map(([name, cnt]) => (
+                  <KeywordBar key={name} name={name} count={cnt} max={maxProb} color="#7C3AED" />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 긍정 / 부정 나란히 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#059669', marginBottom: 4 }}>긍정 키워드 TOP (NPS 만족 요인)</div>
+              <div style={{ fontSize: 11, color: 'var(--text-sm)', marginBottom: 16 }}>NPS 설문 응답 기준 ({surveys.length}건)</div>
+              {positiveKeywords.length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--text-sm)', textAlign: 'center', padding: 20 }}>데이터 없음</div>
+              ) : positiveKeywords.slice(0, 8).map(([name, cnt]) => (
+                <KeywordBar key={name} name={name} count={cnt} max={maxPos} color="#059669" />
+              ))}
+            </div>
+            <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#DC2626', marginBottom: 4 }}>부정 키워드 TOP (NPS 개선 요인)</div>
+              <div style={{ fontSize: 11, color: 'var(--text-sm)', marginBottom: 16 }}>NPS 설문 응답 기준 ({surveys.length}건)</div>
+              {negativeKeywords.length === 0 ? (
+                <div style={{ fontSize: 12, color: 'var(--text-sm)', textAlign: 'center', padding: 20 }}>데이터 없음</div>
+              ) : negativeKeywords.slice(0, 8).map(([name, cnt]) => (
+                <KeywordBar key={name} name={name} count={cnt} max={maxNeg} color="#DC2626" />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 문제 키워드 탭 ── */}
+      {tab === 'problem' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#7C3AED', marginBottom: 16 }}>문제 키워드 전체 순위 ({problemKeywords.length}개)</div>
+            {problemKeywords.length === 0 ? (
+              <div style={{ fontSize: 12, color: 'var(--text-sm)', textAlign: 'center', padding: 20 }}>데이터 없음</div>
+            ) : problemKeywords.map(([name, cnt], i) => (
+              <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <div style={{ width: 18, fontSize: 11, fontWeight: 700, color: i < 3 ? '#7C3AED' : 'var(--text-sm)', flexShrink: 0, textAlign: 'center' }}>{i + 1}</div>
+                <div style={{ flex: 1, fontSize: 12, fontWeight: 500 }}>{name}</div>
+                <div style={{ width: 110, height: 8, background: '#F3F4F6', borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}>
+                  <div style={{ width: Math.round(cnt / maxProb * 100) + '%', height: '100%', background: i < 3 ? '#7C3AED' : '#C4B5FD', borderRadius: 4 }} />
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#7C3AED', minWidth: 24, textAlign: 'right' }}>{cnt}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#7C3AED', marginBottom: 16 }}>태그 클라우드</div>
+            <KeywordTagCloud keywords={problemKeywords} color="#7C3AED" bg="#F5F3FF" />
+          </div>
+        </div>
+      )}
+
+      {/* ── 긍정 키워드 탭 ── */}
+      {tab === 'positive' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#059669', marginBottom: 16 }}>긍정 키워드 전체 순위 ({positiveKeywords.length}개)</div>
+            {positiveKeywords.length === 0 ? (
+              <div style={{ fontSize: 12, color: 'var(--text-sm)', textAlign: 'center', padding: 20 }}>데이터 없음</div>
+            ) : positiveKeywords.map(([name, cnt], i) => (
+              <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <div style={{ width: 18, fontSize: 11, fontWeight: 700, color: i < 3 ? '#059669' : 'var(--text-sm)', flexShrink: 0, textAlign: 'center' }}>{i + 1}</div>
+                <div style={{ flex: 1, fontSize: 12, fontWeight: 500 }}>{name}</div>
+                <div style={{ width: 110, height: 8, background: '#F3F4F6', borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}>
+                  <div style={{ width: Math.round(cnt / maxPos * 100) + '%', height: '100%', background: i < 3 ? '#059669' : '#6EE7B7', borderRadius: 4 }} />
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#059669', minWidth: 24, textAlign: 'right' }}>{cnt}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#059669', marginBottom: 16 }}>태그 클라우드</div>
+            <KeywordTagCloud keywords={positiveKeywords} color="#059669" bg="#ECFDF5" />
+          </div>
+        </div>
+      )}
+
+      {/* ── 부정 키워드 탭 ── */}
+      {tab === 'negative' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#DC2626', marginBottom: 16 }}>부정 키워드 전체 순위 ({negativeKeywords.length}개)</div>
+            {negativeKeywords.length === 0 ? (
+              <div style={{ fontSize: 12, color: 'var(--text-sm)', textAlign: 'center', padding: 20 }}>데이터 없음</div>
+            ) : negativeKeywords.map(([name, cnt], i) => (
+              <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <div style={{ width: 18, fontSize: 11, fontWeight: 700, color: i < 3 ? '#DC2626' : 'var(--text-sm)', flexShrink: 0, textAlign: 'center' }}>{i + 1}</div>
+                <div style={{ flex: 1, fontSize: 12, fontWeight: 500 }}>{name}</div>
+                <div style={{ width: 110, height: 8, background: '#F3F4F6', borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}>
+                  <div style={{ width: Math.round(cnt / maxNeg * 100) + '%', height: '100%', background: i < 3 ? '#DC2626' : '#FCA5A5', borderRadius: 4 }} />
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#DC2626', minWidth: 24, textAlign: 'right' }}>{cnt}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: 'var(--shadow)' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#DC2626', marginBottom: 16 }}>태그 클라우드</div>
+            <KeywordTagCloud keywords={negativeKeywords} color="#DC2626" bg="#FEF2F2" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── 대시보드 ───
 function DashboardPage({ onNavigate }) {
   const [stats, setStats] = useState({ solution: 0, method: 0, store: 0, grohome: 0, products: 0 });
@@ -3533,6 +3811,8 @@ function App() {
         return <PagePlaceholder title="담당자" icon="👥" description="담당자 목록 관리" />;
       case 'nps':
         return <NPSPage showToast={showToast} />;
+      case 'keywords':
+        return <KeywordDashboardPage showToast={showToast} />;
       case 'sms':
         return <PagePlaceholder title="SMS 설정" icon="💬" description="SMS 발송 및 템플릿 관리" />;
       case 'settings':

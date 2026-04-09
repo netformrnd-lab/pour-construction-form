@@ -1549,6 +1549,33 @@ const BUILDING_LABEL_TO_ID=Object.fromEntries(BUILDING_TYPES.map(b=>[b.label,b.i
 const ADMIN_PIN_KEY='pourAdminPin';
 const hashPin=async(pin)=>{const enc=new TextEncoder().encode(pin);const buf=await crypto.subtle.digest('SHA-256',enc);return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');};
 const loadAdminPin=()=>localStorage.getItem(ADMIN_PIN_KEY);
+
+/* ── 관리자 지역 정규화 (간이) ── */
+const REGION_RULES=[
+  {name:'서울',kw:['서울']},
+  {name:'경기',kw:['경기','수원','성남','안양','부천','광명','평택','안산','고양','의정부','용인','파주','이천','김포','화성','구리','남양주','오산','시흥','군포','의왕','하남','양주','포천','분당','판교','일산']},
+  {name:'인천',kw:['인천','송도']},
+  {name:'강원',kw:['강원','춘천','원주','강릉','동해','속초','삼척']},
+  {name:'충북',kw:['충북','충청북도','청주','충주','제천']},
+  {name:'충남',kw:['충남','충청남도','천안','아산','공주','보령','서산','논산','당진']},
+  {name:'대전',kw:['대전']},
+  {name:'세종',kw:['세종']},
+  {name:'전북',kw:['전북','전라북도','전주','군산','익산','정읍','남원']},
+  {name:'전남',kw:['전남','전라남도','목포','여수','순천','나주','광양']},
+  {name:'광주',kw:['광주']},
+  {name:'경북',kw:['경북','경상북도','포항','경주','김천','안동','구미','영주','영천']},
+  {name:'경남',kw:['경남','경상남도','창원','진주','통영','사천','김해','밀양','거제','양산']},
+  {name:'대구',kw:['대구']},
+  {name:'울산',kw:['울산']},
+  {name:'부산',kw:['부산']},
+  {name:'제주',kw:['제주','서귀포']},
+];
+const normalizeRegionSimple=(raw)=>{
+  if(!raw||!raw.trim())return null;
+  const r=raw.trim();
+  for(const reg of REGION_RULES){if(reg.kw.some(kw=>r.includes(kw)))return reg.name;}
+  return r;
+};
 const saveAdminPin=hash=>{
   localStorage.setItem(ADMIN_PIN_KEY,hash);
   try{db.collection('config').doc('adminPin').set({hash}).catch(()=>{});}catch(e){}
@@ -2320,7 +2347,9 @@ function ContactForm({building,problem,done,onSubmit,onBack,onLog,onNewCustomer}
 function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNewCustomer,visible,externalNote,onExternalNote,onNoteChange}){
   /* ── 모든 useState 최상단 선언 (React 훅 규칙) ── */
   const [qr,setQr]=useState(null);
-  const [pdfViewer,setPdfViewer]=useState(null);
+  const [pdfViewer,setPdfViewer]=useState(null); // {url, title, icon, switchTo?}
+  const openDoc=(url,title,icon,switchTo)=>setPdfViewer({url,title,icon,switchTo});
+  const closeDoc=()=>setPdfViewer(null);
   const [zoomPhoto,setZoomPhoto]=useState(null);
   const [mediaViewer,setMediaViewer]=useState(null);
   useEffect(()=>{
@@ -2491,19 +2520,30 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
     <div className={`screen ${visible?'active':''}`} style={{background:'var(--bg)'}}>
       {qr&&<QRModal url={qr.url} title={qr.title} onClose={()=>setQr(null)}/>}
 
-      {/* PDF 뷰어 오버레이 */}
+      {/* 제안서 / 가이드북 뷰어 오버레이 */}
       {pdfViewer&&(
         <div style={{position:'fixed',inset:0,zIndex:2000,background:'#000',display:'flex',flexDirection:'column'}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',background:'#1a1a1a',flexShrink:0}}>
-            <button onClick={()=>setPdfViewer(null)} style={{display:'flex',alignItems:'center',gap:8,padding:'10px 20px',borderRadius:10,border:'none',background:'#fff',color:'#000',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>
+          {/* 상단 바 */}
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 14px',background:'#111827',flexShrink:0,gap:8}}>
+            <button onClick={closeDoc} style={{display:'flex',alignItems:'center',gap:6,padding:'9px 16px',borderRadius:10,border:'none',background:'rgba(255,255,255,.1)',color:'#fff',fontSize:13,fontWeight:800,cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>
               ← 뒤로가기
             </button>
-            <span style={{fontSize:13,fontWeight:600,color:'rgba(255,255,255,.6)'}}>📄 제안서</span>
-            <a href={pdfViewer} target="_blank" rel="noopener noreferrer" style={{padding:'10px 16px',borderRadius:10,border:'1px solid rgba(255,255,255,.2)',background:'none',color:'#fff',fontSize:12,fontWeight:700,textDecoration:'none'}}>
-              새 탭에서 열기 ↗
+            {/* 중앙: 현재 뷰어 타이틀 + 전환 버튼 */}
+            <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+              <span style={{fontSize:13,fontWeight:700,color:'rgba(255,255,255,.75)'}}>{pdfViewer.icon} {pdfViewer.title}</span>
+              {pdfViewer.switchTo&&(
+                <button onClick={()=>setPdfViewer(pdfViewer.switchTo)}
+                  style={{padding:'5px 12px',borderRadius:8,border:'1px solid rgba(255,255,255,.2)',background:'rgba(255,255,255,.08)',color:'rgba(255,255,255,.6)',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>
+                  {pdfViewer.switchTo.icon} {pdfViewer.switchTo.title} →
+                </button>
+              )}
+            </div>
+            <a href={pdfViewer.url} target="_blank" rel="noopener noreferrer"
+              style={{padding:'9px 14px',borderRadius:10,border:'1px solid rgba(255,255,255,.2)',background:'none',color:'rgba(255,255,255,.75)',fontSize:11,fontWeight:700,textDecoration:'none',flexShrink:0,whiteSpace:'nowrap'}}>
+              새 탭 ↗
             </a>
           </div>
-          <iframe src={pdfViewer} style={{flex:1,border:'none',width:'100%'}} title="제안서 PDF"/>
+          <iframe src={pdfViewer.url} style={{flex:1,border:'none',width:'100%'}} title={pdfViewer.title}/>
         </div>
       )}
       {zoomPhoto&&<PhotoZoomModal photos={zoomPhoto.photos} index={zoomPhoto.index} onClose={()=>setZoomPhoto(null)}/>}
@@ -2654,53 +2694,60 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
         <div className="sol-name">{problem.label}</div>
         {problem.sub&&<div style={{fontSize:12,fontWeight:500,color:"rgba(255,255,255,.55)",marginTop:2}}>{problem.sub}</div>}
-        {/* 제안서 · 시공가이드 — 가로 2열: 아이콘=페이지이동, QR=별도 */}
-        <div style={{display:'flex',gap:8,marginTop:10}}>
-          {/* ── 제안서 ── */}
-          {(()=>{const pdfUrl=problem.proposalUrl||problem.specUrl;return(
-          <div style={{flex:1,borderRadius:10,border:'1px solid rgba(255,255,255,.15)',background:'rgba(255,255,255,.07)',overflow:'hidden'}}>
-            {pdfUrl?(
-              <div style={{display:'flex',flexDirection:'column'}}>
-                <button onClick={()=>setPdfViewer(pdfUrl)}
-                  style={{display:'flex',alignItems:'center',gap:8,padding:'12px 14px',textDecoration:'none',borderBottom:'1px solid rgba(255,255,255,.08)',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',textAlign:'left'}}>
-                  <span style={{fontSize:24}}>📄</span>
-                  <div><div style={{fontSize:12,fontWeight:800,color:'#93bbfc'}}>제안서</div><div style={{fontSize:9,color:'rgba(255,255,255,.4)'}}>{problem.proposalUrl?'PDF 보기':'탭하면 페이지 이동'}</div></div>
-                </button>
-                <button onClick={()=>setQr({url:pdfUrl,title:'📄 제안서'})}
-                  style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4,padding:'8px',background:'rgba(59,130,246,.1)',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(147,187,252,.8)" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="4" height="4" rx="1"/></svg>
-                  <span style={{fontSize:10,fontWeight:700,color:'#93bbfc'}}>QR</span>
-                </button>
-              </div>
-            ):(
-              <div style={{display:'flex',alignItems:'center',gap:8,padding:'12px 14px',opacity:.3}}>
-                <span style={{fontSize:24}}>📄</span><span style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,.5)'}}>제안서 준비 중</span>
-              </div>
-            )}
+        {/* 제안서 · 시공가이드 — 가로 2열 */}
+        {(()=>{
+          const pdfUrl=problem.proposalUrl||problem.specUrl;
+          const proposalDoc=pdfUrl?{url:pdfUrl,title:'제안서',icon:'📄'}:null;
+          const guideDoc=guide?{url:guide.url,title:'시공 가이드',icon:'📖'}:null;
+          // cross-switch 설정
+          if(proposalDoc&&guideDoc){proposalDoc.switchTo=guideDoc;guideDoc.switchTo=proposalDoc;}
+          return(
+          <div style={{display:'flex',gap:8,marginTop:10}}>
+            {/* ── 제안서 ── */}
+            <div style={{flex:1,borderRadius:10,border:'1px solid rgba(255,255,255,.15)',background:'rgba(255,255,255,.07)',overflow:'hidden'}}>
+              {proposalDoc?(
+                <div style={{display:'flex',flexDirection:'column'}}>
+                  <button onClick={()=>openDoc(proposalDoc.url,'제안서','📄',proposalDoc.switchTo)}
+                    style={{display:'flex',alignItems:'center',gap:8,padding:'12px 14px',borderBottom:'1px solid rgba(255,255,255,.08)',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',textAlign:'left',width:'100%'}}>
+                    <span style={{fontSize:24}}>📄</span>
+                    <div><div style={{fontSize:12,fontWeight:800,color:'#93bbfc'}}>제안서</div><div style={{fontSize:9,color:'rgba(255,255,255,.4)'}}>앱 안에서 바로 보기</div></div>
+                  </button>
+                  <button onClick={()=>setQr({url:proposalDoc.url,title:'📄 제안서'})}
+                    style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4,padding:'8px',background:'rgba(59,130,246,.1)',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(147,187,252,.8)" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="4" height="4" rx="1"/></svg>
+                    <span style={{fontSize:10,fontWeight:700,color:'#93bbfc'}}>QR로 전달</span>
+                  </button>
+                </div>
+              ):(
+                <div style={{display:'flex',alignItems:'center',gap:8,padding:'12px 14px',opacity:.3}}>
+                  <span style={{fontSize:24}}>📄</span><span style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,.5)'}}>제안서 준비 중</span>
+                </div>
+              )}
+            </div>
+            {/* ── 시공 가이드 ── */}
+            <div style={{flex:1,borderRadius:10,border:'1px solid rgba(255,255,255,.15)',background:'rgba(255,255,255,.07)',overflow:'hidden'}}>
+              {guideDoc?(
+                <div style={{display:'flex',flexDirection:'column'}}>
+                  <button onClick={()=>openDoc(guideDoc.url,'시공 가이드','📖',guideDoc.switchTo)}
+                    style={{display:'flex',alignItems:'center',gap:8,padding:'12px 14px',borderBottom:'1px solid rgba(255,255,255,.08)',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',textAlign:'left',width:'100%'}}>
+                    <span style={{fontSize:24}}>📖</span>
+                    <div><div style={{fontSize:12,fontWeight:800,color:'#f5c563'}}>시공 가이드</div><div style={{fontSize:9,color:'rgba(255,255,255,.4)'}}>앱 안에서 바로 보기</div></div>
+                  </button>
+                  <button onClick={()=>setQr({url:guideDoc.url,title:'📖 시공 가이드'})}
+                    style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4,padding:'8px',background:'rgba(245,158,11,.08)',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(245,197,99,.8)" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="4" height="4" rx="1"/></svg>
+                    <span style={{fontSize:10,fontWeight:700,color:'#f5c563'}}>QR로 전달</span>
+                  </button>
+                </div>
+              ):(
+                <div style={{display:'flex',alignItems:'center',gap:8,padding:'12px 14px',opacity:.3}}>
+                  <span style={{fontSize:24}}>📖</span><span style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,.5)'}}>시공 가이드 준비 중</span>
+                </div>
+              )}
+            </div>
           </div>
-          );})()}
-          {/* ── 시공 가이드 ── */}
-          <div style={{flex:1,borderRadius:10,border:'1px solid rgba(255,255,255,.15)',background:'rgba(255,255,255,.07)',overflow:'hidden'}}>
-            {guide?(
-              <div style={{display:'flex',flexDirection:'column'}}>
-                <a href={guide.url} target="_blank" rel="noopener noreferrer"
-                  style={{display:'flex',alignItems:'center',gap:8,padding:'12px 14px',textDecoration:'none',borderBottom:'1px solid rgba(255,255,255,.08)'}}>
-                  <span style={{fontSize:24}}>📖</span>
-                  <div><div style={{fontSize:12,fontWeight:800,color:'#f5c563'}}>시공 가이드</div><div style={{fontSize:9,color:'rgba(255,255,255,.4)'}}>탭하면 페이지 이동</div></div>
-                </a>
-                <button onClick={()=>setQr({url:guide.url,title:'📖 시공 가이드'})}
-                  style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4,padding:'8px',background:'rgba(245,158,11,.08)',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(245,197,99,.8)" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="4" height="4" rx="1"/></svg>
-                  <span style={{fontSize:10,fontWeight:700,color:'#f5c563'}}>QR</span>
-                </button>
-              </div>
-            ):(
-              <div style={{display:'flex',alignItems:'center',gap:8,padding:'12px 14px',opacity:.3}}>
-                <span style={{fontSize:24}}>📖</span><span style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,.5)'}}>시공 가이드 준비 중</span>
-              </div>
-            )}
-          </div>
-        </div>
+          );
+        })()}
       </div>
 
       {/* 탭 */}
@@ -4497,8 +4544,21 @@ function AdminScreen({onBack}){
   const [smsTarget,setSmsTarget]=useState(null);
   const [toast,setToast]=useState(null);
   const [showPinChange,setShowPinChange]=useState(false);
-  const [selectedIds,setSelectedIds]=useState(new Set());
-  const [selectMode,setSelectMode]=useState(false);
+  const [undoInfo,setUndoInfo]=useState(null);
+  const undoTimer=React.useRef(null);
+  const [showSettings,setShowSettings]=useState(false);
+  const [settingsUnlocked,setSettingsUnlocked]=useState(false);
+  const [settingsPin,setSettingsPin]=useState('');
+  const [settingsPinError,setSettingsPinError]=useState('');
+
+  const openSettings=()=>{setSettingsPin('');setSettingsPinError('');setShowSettings(true);};
+  const closeSettings=()=>{setShowSettings(false);setSettingsUnlocked(false);setSettingsPin('');setSettingsPinError('');};
+  const verifySettingsPin=async()=>{
+    const h=await hashPin(settingsPin);
+    if(h===loadAdminPin()){setSettingsUnlocked(true);setSettingsPin('');setSettingsPinError('');}
+    else{setSettingsPinError('비밀번호가 틀렸습니다');setSettingsPin('');}
+  };
+  const openSettingsTab=(k)=>{setTab(k);closeSettings();};
 
   const DAYS=['4/16(목)','4/17(금)','4/18(토)'];
   const STATUS_OPTIONS=['신규','연락완료','계약예정','보류','기타'];
@@ -4538,12 +4598,36 @@ function AdminScreen({onBack}){
   const maxDay=Math.max(...byDay.map(d=>d.count),1);
   const maxStaff=Math.max(...byStaff.map(s=>s.count),1);
 
-  // 상태 변경
-  const changeStatus=async(id,status)=>{
+  // 키워드 집계
+  const byPosition=(()=>{const m={};activeLeads.forEach(l=>{if(l.position&&l.position!=='-')m[l.position]=(m[l.position]||0)+1;});return Object.entries(m).sort((a,b)=>b[1]-a[1]);})();
+  const byProblem=(()=>{const m={};activeLeads.forEach(l=>{(l.problems||[]).forEach(p=>{if(p&&p!=='-')m[p]=(m[p]||0)+1;});if(l.problem&&l.problem!=='-'&&!(l.problems||[]).includes(l.problem))m[l.problem]=(m[l.problem]||0)+1;});return Object.entries(m).sort((a,b)=>b[1]-a[1]);})();
+  const byAction=(()=>{const m={};activeLeads.forEach(l=>{(l.actions||[]).forEach(a=>{if(a)m[a]=(m[a]||0)+1;});});return Object.entries(m).sort((a,b)=>b[1]-a[1]);})();
+  const byRegion=(()=>{const m={};activeLeads.forEach(l=>{const r=normalizeRegionSimple(l.region||'');if(r)m[r]=(m[r]||0)+1;});return Object.entries(m).sort((a,b)=>b[1]-a[1]);})();
+  const byStartMonth=Array.from({length:12},(_,i)=>{const mo=i+1;return{month:mo,label:`${mo}월`,count:activeLeads.filter(l=>l.desiredStartDate&&parseInt(l.desiredStartDate.slice(5,7),10)===mo).length};});
+  const maxStartMonth=Math.max(...byStartMonth.map(m=>m.count),1);
+
+  // 상태 변경 (undo 5초)
+  const changeStatus=async(id,newStatus)=>{
+    const lead=leads.find(l=>l.id===id);
+    if(!lead||(lead.status||'신규')===newStatus)return;
+    const prevStatus=lead.status||'신규';
     try{
-      await db.collection('leads').doc(id).update({status});
-      setLeads(p=>p.map(l=>l.id===id?{...l,status}:l));
+      await db.collection('leads').doc(id).update({status:newStatus});
+      setLeads(p=>p.map(l=>l.id===id?{...l,status:newStatus}:l));
+      if(undoTimer.current)clearTimeout(undoTimer.current);
+      setUndoInfo({id,name:lead.name,prevStatus,newStatus});
+      undoTimer.current=setTimeout(()=>{setUndoInfo(null);undoTimer.current=null;},5000);
     }catch(e){alert('변경 실패');}
+  };
+  const undoStatus=async()=>{
+    if(!undoInfo)return;
+    if(undoTimer.current){clearTimeout(undoTimer.current);undoTimer.current=null;}
+    const{id,prevStatus}=undoInfo;
+    setUndoInfo(null);
+    try{
+      await db.collection('leads').doc(id).update({status:prevStatus});
+      setLeads(p=>p.map(l=>l.id===id?{...l,status:prevStatus}:l));
+    }catch(e){alert('취소 실패');}
   };
 
   // 삭제 (soft delete)
@@ -4563,23 +4647,6 @@ function AdminScreen({onBack}){
       await db.collection('leads').doc(id).update({deletedAt:firebase.firestore.FieldValue.delete()});
       setLeads(p=>p.map(l=>l.id===id?(()=>{const{deletedAt,...rest}=l;return rest;})():l));
     }catch(e){alert('복원 실패');}
-  };
-
-  // 선택 일괄 삭제
-  const deleteSelected=async()=>{
-    if(!selectedIds.size)return;
-    if(!window.confirm(`선택한 ${selectedIds.size}건을 휴지통으로 이동하시겠어요?`))return;
-    const deletedAt=new Date().toISOString();
-    try{
-      await Promise.all([...selectedIds].map(id=>db.collection('leads').doc(id).update({deletedAt})));
-      setLeads(p=>p.map(l=>selectedIds.has(l.id)?{...l,deletedAt}:l));
-      setSelectedIds(new Set());
-      setSelectMode(false);
-    }catch(e){alert('삭제 실패');}
-  };
-  const toggleSelectAll=()=>{
-    if(selectedIds.size===display.length)setSelectedIds(new Set());
-    else setSelectedIds(new Set(display.map(l=>l.id)));
   };
 
   // CSV 다운로드
@@ -4611,6 +4678,7 @@ function AdminScreen({onBack}){
         </div>
         <div className="hdr-r">
           <button onClick={()=>setShowPinChange(true)} style={{background:'rgba(255,255,255,.12)',border:'none',borderRadius:7,padding:'6px 12px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',marginRight:4}}>🔑 비번</button>
+          <button onClick={openSettings} style={{background:'rgba(255,255,255,.18)',border:'1px solid rgba(255,255,255,.25)',borderRadius:7,padding:'6px 12px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',marginRight:4}}>⚙️ 설정</button>
           <button onClick={downloadCSV} style={{background:'rgba(255,255,255,.12)',border:'none',borderRadius:7,padding:'6px 12px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',marginRight:8}}>CSV ↓</button>
           <button className="btn-back" onClick={onBack}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg>
@@ -4619,13 +4687,74 @@ function AdminScreen({onBack}){
       </div>
 
       {/* 탭 */}
-      <div style={{display:'flex',background:'var(--navy)',borderBottom:'1px solid rgba(255,255,255,.1)',flexShrink:0}}>
-        {[['stat','📊 통계'],['list','📋 유입 관리'],['staff','👤 담당자'],['photos','📸 사진'],['sms','💬 문자'],['qr','🔲 QR'],['trash','🗑']].map(([k,label])=>(
-          <button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:'12px 0',background:'none',border:'none',color:tab===k?'#fff':'rgba(255,255,255,.4)',fontSize:13,fontWeight:tab===k?800:600,cursor:'pointer',borderBottom:tab===k?'2px solid #60A5FA':'2px solid transparent',transition:'all .15s'}}>
+      <div style={{display:'flex',background:'var(--navy)',borderBottom:'1px solid rgba(255,255,255,.1)',flexShrink:0,overflowX:'auto'}}>
+        {[['stat','📊 통계'],['list','📋 유입'],['keyword','🔑 키워드'],['qr','🔲 QR'],['trash','🗑']].map(([k,label])=>(
+          <button key={k} onClick={()=>setTab(k)} style={{flexShrink:0,padding:'11px 10px',background:'none',border:'none',color:tab===k?'#fff':'rgba(255,255,255,.4)',fontSize:12,fontWeight:tab===k?800:600,cursor:'pointer',borderBottom:tab===k?'2px solid #60A5FA':'2px solid transparent',transition:'all .15s'}}>
             {label}
           </button>
         ))}
       </div>
+
+      {/* ⚙️ 설정 패널 (관리자 전용 — PIN 2차 인증 필요) */}
+      {showSettings&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.65)',zIndex:3000,display:'flex',alignItems:'flex-start',justifyContent:'center',backdropFilter:'blur(6px)',overflowY:'auto',padding:'24px 0'}}>
+          <div style={{background:'var(--bg)',borderRadius:20,width:'min(640px,96vw)',boxShadow:'0 20px 60px rgba(0,0,0,.35)',overflow:'hidden',margin:'auto'}}>
+            {/* 설정 헤더 */}
+            <div style={{background:'var(--navy)',padding:'16px 20px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <div>
+                <div style={{fontSize:15,fontWeight:900,color:'#fff'}}>⚙️ 관리자 설정</div>
+                <div style={{fontSize:11,color:'rgba(255,255,255,.5)',marginTop:2}}>사진 관리 · 문자 설정 — 관리자 전용</div>
+              </div>
+              <button onClick={closeSettings} style={{background:'rgba(255,255,255,.15)',border:'none',borderRadius:8,padding:'8px 14px',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>✕ 닫기</button>
+            </div>
+
+            {!settingsUnlocked?(
+              /* PIN 인증 단계 */
+              <div style={{padding:'40px 32px',textAlign:'center'}}>
+                <div style={{fontSize:40,marginBottom:12}}>🔐</div>
+                <div style={{fontSize:17,fontWeight:800,color:'var(--text)',marginBottom:6}}>관리자 비밀번호 확인</div>
+                <div style={{fontSize:13,color:'var(--text-sm)',marginBottom:28,lineHeight:1.6}}>사진·문자 설정은 관리자 전용 영역입니다.<br/>비밀번호를 입력하여 인증하세요.</div>
+                <input
+                  type="password" value={settingsPin} onChange={e=>{setSettingsPin(e.target.value);setSettingsPinError('');}}
+                  onKeyDown={e=>e.key==='Enter'&&verifySettingsPin()}
+                  placeholder="비밀번호 입력"
+                  style={{width:'100%',maxWidth:280,padding:'13px 16px',border:`2px solid ${settingsPinError?'#DC2626':'var(--border)'}`,borderRadius:12,fontSize:16,textAlign:'center',outline:'none',boxSizing:'border-box',display:'block',margin:'0 auto',fontFamily:'inherit'}}
+                  autoFocus
+                />
+                {settingsPinError&&<div style={{fontSize:13,color:'#DC2626',margin:'10px 0 0'}}>{settingsPinError}</div>}
+                <div style={{display:'flex',gap:10,justifyContent:'center',marginTop:20}}>
+                  <button onClick={closeSettings} style={{padding:'12px 24px',borderRadius:12,border:'1.5px solid var(--border)',background:'var(--bg)',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>취소</button>
+                  <button onClick={verifySettingsPin} style={{padding:'12px 28px',borderRadius:12,border:'none',background:'var(--navy)',color:'#fff',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>인증하기</button>
+                </div>
+              </div>
+            ):(
+              /* 인증 후 — 설정 항목 선택 */
+              <div style={{padding:'28px 24px'}}>
+                <div style={{fontSize:13,fontWeight:700,color:'var(--text-sm)',marginBottom:16,textAlign:'center'}}>
+                  ✅ 인증 완료 — 열 항목을 선택하세요
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
+                  {[
+                    {k:'photos',icon:'📸',title:'사진 관리',sub:'공법별 하자사진 · 미디어'},
+                    {k:'sms',icon:'💬',title:'문자 설정',sub:'자동발송 · 템플릿 관리'},
+                    {k:'staff',icon:'👤',title:'담당자 관리',sub:'영업직원 추가 · 편집'},
+                  ].map(({k,icon,title,sub})=>(
+                    <button key={k} onClick={()=>openSettingsTab(k)} style={{padding:'20px 12px',borderRadius:16,border:'2px solid var(--border)',background:'var(--card)',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column',alignItems:'center',gap:8,transition:'all .15s'}}
+                      onMouseOver={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.background='var(--blue-l)';}}
+                      onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.background='var(--card)';}}>
+                      <span style={{fontSize:30}}>{icon}</span>
+                      <div>
+                        <div style={{fontSize:13,fontWeight:800,color:'var(--text)'}}>{title}</div>
+                        <div style={{fontSize:10,color:'var(--text-sm)',marginTop:2}}>{sub}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {loading&&<div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center'}}><div className="spinner"/></div>}
 
@@ -4661,10 +4790,11 @@ function AdminScreen({onBack}){
           </div>
 
           {/* 담당자별 */}
-          {byStaff.length>0&&(
-            <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',marginBottom:10}}>
-              <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:10}}>👤 담당자별 실적</div>
-              {byStaff.map(({staff,count},i)=>(
+          <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',marginBottom:10}}>
+            <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:10}}>👤 담당자별 실적</div>
+            {byStaff.length===0
+              ?<div style={{fontSize:12,color:'var(--text-sm)',textAlign:'center',padding:'6px 0'}}>0건</div>
+              :byStaff.map(({staff,count},i)=>(
                 <div key={staff} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
                   <span style={{fontSize:12,fontWeight:700,color:i===0?'#D97706':'var(--text)',width:16}}>{i+1}</span>
                   <span style={{fontSize:12,fontWeight:700,color:'var(--text)',flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{staff}</span>
@@ -4673,15 +4803,16 @@ function AdminScreen({onBack}){
                   </div>
                   <span style={{fontSize:13,fontWeight:900,color:'var(--accent)',width:24,textAlign:'right'}}>{count}</span>
                 </div>
-              ))}
-            </div>
-          )}
+              ))
+            }
+          </div>
 
           {/* 건물유형별 */}
-          {byBuilding.length>0&&(
-            <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',marginBottom:10}}>
-              <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:10}}>🏢 건물유형별</div>
-              <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+          <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',marginBottom:10}}>
+            <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:10}}>🏢 건물유형별</div>
+            {byBuilding.length===0
+              ?<div style={{fontSize:12,color:'var(--text-sm)',textAlign:'center',padding:'6px 0'}}>0건</div>
+              :<div style={{display:'flex',flexWrap:'wrap',gap:8}}>
                 {byBuilding.map(({building,count})=>(
                   <div key={building} style={{background:'var(--accent-l)',border:'1px solid #BFDBFE',borderRadius:20,padding:'5px 12px',display:'flex',alignItems:'center',gap:6}}>
                     <span style={{fontSize:12,fontWeight:700,color:'var(--accent)'}}>{building}</span>
@@ -4689,8 +4820,24 @@ function AdminScreen({onBack}){
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            }
+          </div>
+
+          {/* 고객 직급별 */}
+          <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',marginBottom:10}}>
+            <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:10}}>🪪 상담 대상 직급</div>
+            {byPosition.length===0
+              ?<div style={{fontSize:12,color:'var(--text-sm)',textAlign:'center',padding:'6px 0'}}>0건 — CS메모 저장 시 직급 선택 필요</div>
+              :<div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+                {byPosition.map(([pos,cnt],i)=>(
+                  <div key={pos} style={{background:i===0?'#EFF6FF':'var(--bg)',border:`1px solid ${i===0?'#93C5FD':'var(--border)'}`,borderRadius:20,padding:'5px 12px',display:'flex',alignItems:'center',gap:6}}>
+                    <span style={{fontSize:12,fontWeight:700,color:i===0?'#2563EB':'var(--text)'}}>{pos}</span>
+                    <span style={{fontSize:11,fontWeight:900,color:i===0?'#2563EB':'var(--text-md)'}}>{cnt}명</span>
+                  </div>
+                ))}
+              </div>
+            }
+          </div>
 
           {/* 상태별 */}
           <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)'}}>
@@ -4703,6 +4850,131 @@ function AdminScreen({onBack}){
                   <span style={{fontSize:11,fontWeight:900,color:'var(--text-md)'}}>{count}</span>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 키워드 탭 ── */}
+      {!loading&&tab==='keyword'&&(
+        <div style={{flex:1,overflowY:'auto',padding:'14px'}}>
+          {/* 요약 */}
+          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:14}}>
+            {[
+              {label:'문제 키워드',value:byProblem.length+'종',color:'#7C3AED',bg:'#F5F3FF'},
+              {label:'자료 요청',value:byAction.length+'종',color:'#D97706',bg:'#FFFBEB'},
+              {label:'지역 입력',value:byRegion.length+'개',color:'#E8780F',bg:'#FFF7ED'},
+            ].map(c=>(
+              <div key={c.label} style={{background:c.bg,borderRadius:10,padding:'10px 12px',textAlign:'center'}}>
+                <div style={{fontSize:9,fontWeight:700,color:c.color,marginBottom:4}}>{c.label}</div>
+                <div style={{fontSize:18,fontWeight:900,color:c.color}}>{c.value}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* 자주 언급된 문제 키워드 */}
+          <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',marginBottom:10}}>
+            <div style={{fontSize:11,fontWeight:700,color:'#7C3AED',marginBottom:10}}>🔧 자주 언급된 문제 키워드</div>
+            {byProblem.length===0
+              ?<div style={{fontSize:12,color:'var(--text-sm)',textAlign:'center',padding:'6px 0'}}>0건</div>
+              :byProblem.slice(0,10).map(([name,cnt],i)=>{
+                const pct=Math.round(cnt/byProblem[0][1]*100);
+                return(
+                  <div key={name} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                    <span style={{fontSize:11,fontWeight:700,color:i<3?'#7C3AED':'var(--text-sm)',width:16,textAlign:'center'}}>{i+1}</span>
+                    <span style={{flex:1,fontSize:11,fontWeight:500,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}</span>
+                    <div style={{width:70,height:8,background:'var(--bg)',borderRadius:4,overflow:'hidden',flexShrink:0}}>
+                      <div style={{height:'100%',width:pct+'%',background:i<3?'#7C3AED':'#C4B5FD',borderRadius:4}}/>
+                    </div>
+                    <span style={{fontSize:12,fontWeight:900,color:'#7C3AED',width:20,textAlign:'right'}}>{cnt}</span>
+                  </div>
+                );
+              })
+            }
+          </div>
+
+          {/* 고객 직급 */}
+          <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',marginBottom:10}}>
+            <div style={{fontSize:11,fontWeight:700,color:'#0891B2',marginBottom:10}}>🪪 상담 대상 직급</div>
+            {byPosition.length===0
+              ?<div style={{fontSize:12,color:'var(--text-sm)',textAlign:'center',padding:'6px 0'}}>0건</div>
+              :byPosition.map(([pos,cnt],i)=>{
+                const pct=Math.round(cnt/byPosition[0][1]*100);
+                return(
+                  <div key={pos} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                    <span style={{fontSize:11,fontWeight:700,color:i<2?'#0891B2':'var(--text-sm)',width:16,textAlign:'center'}}>{i+1}</span>
+                    <span style={{flex:1,fontSize:11,fontWeight:600}}>{pos}</span>
+                    <div style={{width:70,height:8,background:'var(--bg)',borderRadius:4,overflow:'hidden',flexShrink:0}}>
+                      <div style={{height:'100%',width:pct+'%',background:i<2?'#0891B2':'#A5F3FC',borderRadius:4}}/>
+                    </div>
+                    <span style={{fontSize:12,fontWeight:900,color:'#0891B2',width:20,textAlign:'right'}}>{cnt}</span>
+                  </div>
+                );
+              })
+            }
+          </div>
+
+          {/* 영업 자료 요청 */}
+          <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',marginBottom:10}}>
+            <div style={{fontSize:11,fontWeight:700,color:'#D97706',marginBottom:10}}>📋 영업 자료 요청 현황</div>
+            {byAction.length===0
+              ?<div style={{fontSize:12,color:'var(--text-sm)',textAlign:'center',padding:'6px 0'}}>0건</div>
+              :byAction.map(([action,cnt],i)=>{
+                const pct=Math.round(cnt/byAction[0][1]*100);
+                return(
+                  <div key={action} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                    <span style={{fontSize:11,fontWeight:700,color:i<2?'#D97706':'var(--text-sm)',width:16,textAlign:'center'}}>{i+1}</span>
+                    <span style={{flex:1,fontSize:11,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{action}</span>
+                    <div style={{width:70,height:8,background:'var(--bg)',borderRadius:4,overflow:'hidden',flexShrink:0}}>
+                      <div style={{height:'100%',width:pct+'%',background:i<2?'#D97706':'#FCD34D',borderRadius:4}}/>
+                    </div>
+                    <span style={{fontSize:12,fontWeight:900,color:'#D97706',width:20,textAlign:'right'}}>{cnt}</span>
+                  </div>
+                );
+              })
+            }
+          </div>
+
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
+            {/* 착공 희망월 */}
+            <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)'}}>
+              <div style={{fontSize:11,fontWeight:700,color:'#2563EB',marginBottom:10}}>📅 착공 희망월</div>
+              {activeLeads.filter(l=>l.desiredStartDate).length===0
+                ?<div style={{fontSize:12,color:'var(--text-sm)',textAlign:'center',padding:'6px 0'}}>0건</div>
+                :<div style={{display:'flex',alignItems:'flex-end',gap:2,height:60}}>
+                  {byStartMonth.map(m=>{
+                    const h=m.count>0?Math.max(Math.round(m.count/maxStartMonth*50),4):2;
+                    return(
+                      <div key={m.month} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2}}>
+                        <div style={{fontSize:8,fontWeight:700,color:m.count>0?'#2563EB':'transparent'}}>{m.count}</div>
+                        <div style={{width:'100%',height:h,borderRadius:'2px 2px 0 0',background:m.count===maxStartMonth&&m.count>0?'#2563EB':'#BFDBFE'}}/>
+                        <div style={{fontSize:8,color:'var(--text-sm)'}}>{m.month}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              }
+            </div>
+
+            {/* 현장 지역 */}
+            <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)'}}>
+              <div style={{fontSize:11,fontWeight:700,color:'#E8780F',marginBottom:10}}>📍 현장 지역</div>
+              {byRegion.length===0
+                ?<div style={{fontSize:12,color:'var(--text-sm)',textAlign:'center',padding:'6px 0'}}>0건</div>
+                :byRegion.slice(0,6).map(([region,cnt],i)=>{
+                  const pct=Math.round(cnt/byRegion[0][1]*100);
+                  return(
+                    <div key={region} style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}>
+                      <span style={{fontSize:10,fontWeight:700,color:i<2?'#E8780F':'var(--text-sm)',width:14,textAlign:'center'}}>{i+1}</span>
+                      <span style={{flex:1,fontSize:11,fontWeight:600}}>{region}</span>
+                      <div style={{width:50,height:7,background:'var(--bg)',borderRadius:3,overflow:'hidden'}}>
+                        <div style={{height:'100%',width:pct+'%',background:i<2?'#E8780F':'#FED7AA',borderRadius:3}}/>
+                      </div>
+                      <span style={{fontSize:11,fontWeight:900,color:'#E8780F',width:18,textAlign:'right'}}>{cnt}</span>
+                    </div>
+                  );
+                })
+              }
             </div>
           </div>
         </div>
@@ -4736,23 +5008,9 @@ function AdminScreen({onBack}){
             </div>
           </div>
 
-          {/* 결과 카운트 + 선택 모드 */}
-          <div style={{padding:'6px 14px',background:'var(--bg)',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:700,color:'var(--text-sm)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-            {selectMode?(
-              <span style={{color:'var(--accent)'}}>{selectedIds.size}건 선택됨</span>
-            ):(
-              <span>{display.length}건 표시 중 / 전체 {activeLeads.length}건</span>
-            )}
-            <div style={{display:'flex',gap:6}}>
-              {selectMode&&(
-                <button onClick={toggleSelectAll} style={{padding:'3px 10px',borderRadius:20,border:'1.5px solid var(--border)',background:'#fff',color:'var(--text)',fontSize:11,fontWeight:700,cursor:'pointer'}}>
-                  {selectedIds.size===display.length?'선택해제':'전체선택'}
-                </button>
-              )}
-              <button onClick={()=>{setSelectMode(v=>{if(v){setSelectedIds(new Set());}return!v;});}} style={{padding:'3px 10px',borderRadius:20,border:'1.5px solid var(--accent)',background:selectMode?'var(--accent)':'#fff',color:selectMode?'#fff':'var(--accent)',fontSize:11,fontWeight:700,cursor:'pointer'}}>
-                {selectMode?'취소':'선택'}
-              </button>
-            </div>
+          {/* 결과 카운트 */}
+          <div style={{padding:'6px 14px',background:'var(--bg)',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:700,color:'var(--text-sm)',flexShrink:0}}>
+            {display.length}건 표시 중 / 전체 {activeLeads.length}건
           </div>
 
           {/* 리드 목록 */}
@@ -4762,20 +5020,10 @@ function AdminScreen({onBack}){
               const isOpen=expanded===l.id;
               const status=l.status||'신규';
               return(
-                <div key={l.id||i} style={{background:'var(--card)',borderRadius:12,border:`1.5px solid ${selectMode&&selectedIds.has(l.id)?'var(--accent)':isOpen?'var(--accent)':'var(--border)'}`,overflow:'hidden',transition:'border-color .15s'}}>
-                  {/* 카드 헤더 - 탭으로 열고닫기 / 선택모드 */}
-                  <div style={{padding:'12px 14px',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}} onClick={()=>{
-                    if(selectMode){
-                      setSelectedIds(prev=>{const n=new Set(prev);n.has(l.id)?n.delete(l.id):n.add(l.id);return n;});
-                    }else{setExpanded(isOpen?null:l.id);}
-                  }}>
-                    {selectMode?(
-                      <div style={{width:20,height:20,borderRadius:5,border:`2px solid ${selectedIds.has(l.id)?'var(--accent)':'#CBD5E1'}`,background:selectedIds.has(l.id)?'var(--accent)':'#fff',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                        {selectedIds.has(l.id)&&<svg width="11" height="11" viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                      </div>
-                    ):(
-                      <span style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',width:20,textAlign:'center'}}>{i+1}</span>
-                    )}
+                <div key={l.id||i} style={{background:'var(--card)',borderRadius:12,border:`1.5px solid ${isOpen?'var(--accent)':'var(--border)'}`,overflow:'hidden',transition:'border-color .15s'}}>
+                  {/* 카드 헤더 */}
+                  <div style={{padding:'12px 14px',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}} onClick={()=>setExpanded(isOpen?null:l.id)}>
+                    <span style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',width:20,textAlign:'center'}}>{i+1}</span>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{display:'flex',alignItems:'center',gap:6}}>
                         <span style={{fontSize:14,fontWeight:900,color:'var(--text)'}}>{l.name||'이름없음'}</span>
@@ -4853,27 +5101,31 @@ function AdminScreen({onBack}){
             })}
           </div>
 
-          {/* 선택 삭제 바 */}
-          {selectMode&&selectedIds.size>0&&(
-            <div style={{padding:'10px 14px',background:'#FEF2F2',borderTop:'1.5px solid #FCA5A5',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
-              <span style={{fontSize:13,fontWeight:800,color:'#DC2626'}}>{selectedIds.size}건 선택됨</span>
-              <button onClick={deleteSelected} style={{padding:'8px 20px',borderRadius:10,border:'none',background:'#DC2626',color:'#fff',fontSize:13,fontWeight:800,cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
-                🗑 휴지통으로 이동
-              </button>
-            </div>
-          )}
         </div>
       )}
 
-      {/* ── 담당자 관리 탭 ── */}
+      {/* ── 담당자 관리 탭 (관리자 전용 — ⚙️ 설정에서 진입) ── */}
       {!loading&&tab==='staff'&&(
-        <StaffManageTab/>
+        <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+          <div style={{background:'#1E40AF',padding:'8px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+            <span style={{fontSize:12,fontWeight:700,color:'#fff'}}>🔐 관리자 전용 · 담당자 관리</span>
+            <button onClick={()=>setTab('stat')} style={{background:'rgba(255,255,255,.2)',border:'none',borderRadius:6,padding:'5px 12px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>← 나가기</button>
+          </div>
+          <div style={{flex:1,overflowY:'auto'}}>
+            <StaffManageTab/>
+          </div>
+        </div>
       )}
 
-      {/* ── 사진 관리 탭 ── */}
+      {/* ── 사진 관리 탭 (관리자 전용 — ⚙️ 설정에서 진입) ── */}
       {!loading&&tab==='photos'&&(
-        <div style={{flex:1,overflowY:'auto',padding:'16px'}}>
-
+        <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+          {/* 관리자 전용 배너 */}
+          <div style={{background:'#1E40AF',padding:'8px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+            <span style={{fontSize:12,fontWeight:700,color:'#fff'}}>🔐 관리자 전용 · 사진 관리</span>
+            <button onClick={()=>setTab('stat')} style={{background:'rgba(255,255,255,.2)',border:'none',borderRadius:6,padding:'5px 12px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>← 나가기</button>
+          </div>
+          <div style={{flex:1,overflowY:'auto',padding:'16px'}}>
           {/* ── 하자 사진 관리 ── */}
           <div style={{background:'var(--card)',borderRadius:12,padding:'16px',border:'1px solid var(--border)',marginBottom:14}}>
             <div style={{fontSize:14,fontWeight:900,color:'var(--text)',marginBottom:4}}>📸 공법별 사진 · 미디어 관리</div>
@@ -5086,6 +5338,7 @@ function AdminScreen({onBack}){
             </button>
             <div style={{textAlign:'center',fontSize:11,color:'var(--text-sm)',marginTop:8}}>사진 수정 후 이 버튼을 눌러야 태블릿에 반영됩니다</div>
           </div>
+          </div>{/* inner scroll div */}
         </div>
       )}
 
@@ -5138,9 +5391,25 @@ function AdminScreen({onBack}){
         </div>
       )}
 
-      {/* ── 문자 설정 탭 ── */}
+      {/* ── 문자 설정 탭 (관리자 전용 — ⚙️ 설정에서 진입) ── */}
       {!loading&&tab==='sms'&&(
-        <SmsSettingsTab/>
+        <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+          <div style={{background:'#1E40AF',padding:'8px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+            <span style={{fontSize:12,fontWeight:700,color:'#fff'}}>🔐 관리자 전용 · 문자 설정</span>
+            <button onClick={()=>setTab('stat')} style={{background:'rgba(255,255,255,.2)',border:'none',borderRadius:6,padding:'5px 12px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>← 나가기</button>
+          </div>
+          <div style={{flex:1,overflowY:'auto'}}>
+            <SmsSettingsTab/>
+          </div>
+        </div>
+      )}
+
+      {/* 상태변경 undo 토스트 */}
+      {undoInfo&&(
+        <div style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',background:'#1E293B',color:'#fff',borderRadius:14,padding:'12px 18px',display:'flex',alignItems:'center',gap:14,zIndex:4000,boxShadow:'0 8px 28px rgba(0,0,0,.3)',fontSize:13,fontWeight:600,whiteSpace:'nowrap'}}>
+          <span>✅ <b>{undoInfo.name}</b> → <span style={{color:'#60A5FA'}}>{undoInfo.newStatus}</span></span>
+          <button onClick={undoStatus} style={{background:'rgba(255,255,255,.15)',border:'none',borderRadius:8,padding:'6px 14px',color:'#fff',fontSize:12,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>↩ 취소</button>
+        </div>
       )}
 
       {/* SMS 모달 & 토스트 */}

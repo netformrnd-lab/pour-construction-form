@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>POUR - 자료 이동 중...</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
+  authDomain:"pour-app-new.firebaseapp.com",
+  projectId:"pour-app-new",
+  storageBucket:"pour-app-new.firebasestorage.app",
+  messagingSenderId:"411031141847",
+  appId:"1:411031141847:web:e658174fd4b9652cdadf92"
+});
+const db=firebase.firestore();
+
+(async()=>{
+  const id=new URLSearchParams(location.search).get('l');
+  if(!id){document.body.innerHTML='<p>잘못된 링크입니다.</p>';return;}
+  try{
+    const doc=await db.collection('short-links').doc(id).get();
+    if(!doc.exists){document.body.innerHTML='<p>만료되었거나 잘못된 링크입니다.</p>';return;}
+    const data=doc.data();
+    // 클릭 기록
+    await db.collection('short-links').doc(id).update({
+      clicks:firebase.firestore.FieldValue.increment(1),
+      lastClickAt:new Date().toISOString(),
+    });
+    // 리다이렉트
+    location.replace(data.url);
+  }catch(e){
+    document.body.innerHTML='<p>이동 중 오류가 발생했습니다.</p>';
+    console.error(e);
+  }
+})();
+</script>
+<style>
+body{font-family:'Pretendard',sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;background:#F8FAFC;color:#64748B;text-align:center;}
+p{font-size:14px;}
+</style>
+</head>
+<body>
+<div>
+  <div style="font-size:32px;margin-bottom:12px;">📄</div>
+  <p>자료 페이지로 이동 중...</p>
+</div>
+</body>
+</html>

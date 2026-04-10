@@ -67,6 +67,31 @@ function sendToSheet(data) {
   });
 }
 function getUrlSource(){try{return new URLSearchParams(window.location.search).get('source')||'';}catch(e){return'';}}
+
+/* ── 링크 축약 — Firestore short-links 컬렉션 사용 ── */
+async function createShortLink(url, meta){
+  try{
+    const id=Math.random().toString(36).slice(2,8);
+    await db.collection('short-links').doc(id).set({
+      url, clicks:0, createdAt:new Date().toISOString(),
+      label:meta?.label||'', customerName:meta?.customerName||'', staff:meta?.staff||''
+    });
+    const base=location.origin||'https://pour-construction-form.pages.dev';
+    return `${base}/go.html?l=${id}`;
+  }catch(e){console.warn('[shortLink] 생성 실패:',e);return url;}
+}
+async function shortenLinksInText(text, meta){
+  const urlRegex=/(https?:\/\/[^\s]+)/g;
+  const urls=[...text.matchAll(urlRegex)].map(m=>m[0]);
+  let result=text;
+  for(const u of urls){
+    if(u.includes('/go.html?l='))continue; /* 이미 축약된 링크 */
+    const short=await createShortLink(u, meta);
+    result=result.replace(u, short);
+  }
+  return result;
+}
+
 // QR 스캔 카운트 기록 (페이지 로드 시 ?source= 파라미터가 있으면 qr-stats에 기록)
 (function(){
   try{
@@ -3123,7 +3148,11 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                         style={{flex:1,padding:'14px 0',borderRadius:10,border:'1.5px solid var(--border)',background:'var(--bg)',fontSize:13,fontWeight:700,color:'var(--text-md)',cursor:'pointer',fontFamily:'inherit'}}>
                         건너뛰기
                       </button>
-                      <button onClick={async()=>{if(!ntPhone)return;setNtSmsSending(true);const r=await sendSMS(ntPhone,ntSmsText);setNtSmsSending(false);if(r.success){setNtQuickSms(false);ntResetAndClose();}else{alert('발송 실패: '+(typeof r.error==='string'?r.error:JSON.stringify(r.error)));}}} disabled={ntSmsSending}
+                      <button onClick={async()=>{if(!ntPhone)return;setNtSmsSending(true);
+                        /* 링크 축약 후 발송 */
+                        const shortened=await shortenLinksInText(ntSmsText,{customerName:ntName,staff:staffName});
+                        const r=await sendSMS(ntPhone,shortened);
+                        setNtSmsSending(false);if(r.success){setNtQuickSms(false);ntResetAndClose();}else{alert('발송 실패: '+(typeof r.error==='string'?r.error:JSON.stringify(r.error)));}}} disabled={ntSmsSending}
                         style={{flex:2,padding:'14px 0',borderRadius:10,border:'none',background:'var(--blue)',fontSize:15,fontWeight:800,color:'#fff',cursor:'pointer',fontFamily:'inherit',opacity:ntSmsSending?0.6:1}}>
                         {ntSmsSending?'발송 중...':'📩 고객에게 발송하기'}
                       </button>
@@ -5389,6 +5418,39 @@ function AdminScreen({onBack}){
               }
             </div>
           </div>
+
+          {/* 링크 클릭 통계 */}
+          {(()=>{
+            const [linkStats,setLinkStats]=React.useState([]);
+            const [linkLoaded,setLinkLoaded]=React.useState(false);
+            React.useEffect(()=>{
+              if(linkLoaded)return;
+              db.collection('short-links').get().then(snap=>{
+                const arr=[];snap.forEach(doc=>arr.push({id:doc.id,...doc.data()}));
+                arr.sort((a,b)=>(b.clicks||0)-(a.clicks||0));
+                setLinkStats(arr);setLinkLoaded(true);
+              }).catch(()=>setLinkLoaded(true));
+            },[]);
+            if(!linkLoaded||linkStats.length===0)return null;
+            const totalClicks=linkStats.reduce((s,l)=>s+(l.clicks||0),0);
+            return(
+              <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',marginBottom:10}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+                  <div style={{fontSize:11,fontWeight:700,color:'#7C3AED'}}>🔗 전송 링크 클릭 통계</div>
+                  <span style={{fontSize:10,color:'var(--text-sm)'}}>총 {totalClicks}회 클릭 · {linkStats.length}개 링크</span>
+                </div>
+                {linkStats.filter(l=>l.clicks>0).slice(0,8).map((l,i)=>(
+                  <div key={l.id} style={{display:'flex',alignItems:'center',gap:8,marginBottom:5,fontSize:12}}>
+                    <span style={{fontWeight:700,color:'#7C3AED',width:16,textAlign:'center'}}>{i+1}</span>
+                    <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontWeight:600}}>{l.label||l.url?.slice(0,40)}</span>
+                    {l.customerName&&<span style={{fontSize:10,color:'var(--text-sm)'}}>{l.customerName}</span>}
+                    <span style={{fontWeight:900,color:'#7C3AED'}}>{l.clicks}회</span>
+                  </div>
+                ))}
+                {linkStats.filter(l=>l.clicks>0).length===0&&<div style={{fontSize:12,color:'var(--text-sm)',textAlign:'center',padding:10}}>아직 클릭 데이터 없음</div>}
+              </div>
+            );
+          })()}
         </div>
       )}
 

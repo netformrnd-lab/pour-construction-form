@@ -4917,6 +4917,65 @@ function QrStatsTab(){
   );
 }
 
+/* ── 링크 클릭 통계 컴포넌트 ── */
+function LinkClickStats(){
+  const [linkStats,setLinkStats]=useState([]);
+  const [loaded,setLoaded]=useState(false);
+  useEffect(()=>{
+    db.collection('short-links').get().then(snap=>{
+      const arr=[];snap.forEach(doc=>arr.push({id:doc.id,...doc.data()}));
+      arr.sort((a,b)=>(b.clicks||0)-(a.clicks||0));
+      setLinkStats(arr);setLoaded(true);
+    }).catch(()=>setLoaded(true));
+  },[]);
+  if(!loaded||linkStats.length===0)return null;
+  const totalClicks=linkStats.reduce((s,l)=>s+(l.clicks||0),0);
+  return(
+    <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',marginBottom:10}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+        <div style={{fontSize:11,fontWeight:700,color:'#7C3AED'}}>🔗 전송 링크 클릭 통계</div>
+        <span style={{fontSize:10,color:'var(--text-sm)'}}>총 {totalClicks}회 클릭 · {linkStats.length}개 링크</span>
+      </div>
+      {linkStats.filter(l=>l.clicks>0).slice(0,8).map((l,i)=>(
+        <div key={l.id} style={{display:'flex',alignItems:'center',gap:8,marginBottom:5,fontSize:12}}>
+          <span style={{fontWeight:700,color:'#7C3AED',width:16,textAlign:'center'}}>{i+1}</span>
+          <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontWeight:600}}>{l.label||l.url?.slice(0,40)}</span>
+          {l.customerName&&<span style={{fontSize:10,color:'var(--text-sm)'}}>{l.customerName}</span>}
+          <span style={{fontWeight:900,color:'#7C3AED'}}>{l.clicks}회</span>
+        </div>
+      ))}
+      {linkStats.filter(l=>l.clicks>0).length===0&&<div style={{fontSize:12,color:'var(--text-sm)',textAlign:'center',padding:10}}>아직 클릭 데이터 없음</div>}
+    </div>
+  );
+}
+
+/* ── SMS 발송 내역 컴포넌트 ── */
+function SmsLogView({phone}){
+  const [logs,setLogs]=useState(null);
+  useEffect(()=>{
+    const clean=phone.replace(/[^0-9]/g,'');
+    db.collection('sms-logs').get().then(snap=>{
+      const arr=[];snap.forEach(d=>arr.push(d.data()));
+      setLogs(arr.filter(s=>(s.phone||'').replace(/[^0-9]/g,'')===clean).sort((a,b)=>(b.sentAt||'').localeCompare(a.sentAt||'')));
+    }).catch(()=>setLogs([]));
+  },[phone]);
+  if(!logs||logs.length===0)return null;
+  return(
+    <div style={{marginTop:8,padding:'8px 10px',background:'var(--blue-l)',borderRadius:8,border:'1px solid var(--blue-m)'}}>
+      <div style={{fontSize:10,fontWeight:700,color:'var(--blue)',marginBottom:4}}>💬 발송 문자 ({logs.length}건)</div>
+      {logs.map((s,i)=>(
+        <div key={i} style={{fontSize:10,color:'var(--text)',marginBottom:4,padding:'4px 6px',background:'#fff',borderRadius:6,lineHeight:1.4}}>
+          <div style={{display:'flex',justifyContent:'space-between',marginBottom:2}}>
+            <span style={{fontWeight:600,color:'var(--blue)'}}>{s.sentAt?new Date(s.sentAt).toLocaleString('ko'):''}</span>
+            {s.links?.length>0&&<span style={{color:'var(--text-sm)'}}>📎 {s.links.join(', ')}</span>}
+          </div>
+          <div style={{whiteSpace:'pre-wrap',color:'var(--text-md)'}}>{(s.text||'').slice(0,100)}{(s.text||'').length>100?'...':''}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function AdminScreen({onBack}){
   const [leads,setLeads]=useState([]);
   const [loading,setLoading]=useState(true);
@@ -5486,37 +5545,7 @@ function AdminScreen({onBack}){
           </div>
 
           {/* 링크 클릭 통계 */}
-          {(()=>{
-            const [linkStats,setLinkStats]=React.useState([]);
-            const [linkLoaded,setLinkLoaded]=React.useState(false);
-            React.useEffect(()=>{
-              if(linkLoaded)return;
-              db.collection('short-links').get().then(snap=>{
-                const arr=[];snap.forEach(doc=>arr.push({id:doc.id,...doc.data()}));
-                arr.sort((a,b)=>(b.clicks||0)-(a.clicks||0));
-                setLinkStats(arr);setLinkLoaded(true);
-              }).catch(()=>setLinkLoaded(true));
-            },[]);
-            if(!linkLoaded||linkStats.length===0)return null;
-            const totalClicks=linkStats.reduce((s,l)=>s+(l.clicks||0),0);
-            return(
-              <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',marginBottom:10}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
-                  <div style={{fontSize:11,fontWeight:700,color:'#7C3AED'}}>🔗 전송 링크 클릭 통계</div>
-                  <span style={{fontSize:10,color:'var(--text-sm)'}}>총 {totalClicks}회 클릭 · {linkStats.length}개 링크</span>
-                </div>
-                {linkStats.filter(l=>l.clicks>0).slice(0,8).map((l,i)=>(
-                  <div key={l.id} style={{display:'flex',alignItems:'center',gap:8,marginBottom:5,fontSize:12}}>
-                    <span style={{fontWeight:700,color:'#7C3AED',width:16,textAlign:'center'}}>{i+1}</span>
-                    <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontWeight:600}}>{l.label||l.url?.slice(0,40)}</span>
-                    {l.customerName&&<span style={{fontSize:10,color:'var(--text-sm)'}}>{l.customerName}</span>}
-                    <span style={{fontWeight:900,color:'#7C3AED'}}>{l.clicks}회</span>
-                  </div>
-                ))}
-                {linkStats.filter(l=>l.clicks>0).length===0&&<div style={{fontSize:12,color:'var(--text-sm)',textAlign:'center',padding:10}}>아직 클릭 데이터 없음</div>}
-              </div>
-            );
-          })()}
+          <LinkClickStats/>
         </div>
       )}
 
@@ -5631,30 +5660,7 @@ function AdminScreen({onBack}){
 
                       {/* 저장시각 + 삭제 */}
                       {/* 문자 발송 내역 */}
-                      {l.phone&&(()=>{
-                        const [smsLogs,setSmsLogs]=React.useState(null);
-                        React.useEffect(()=>{
-                          db.collection('sms-logs').get().then(snap=>{
-                            const logs=[];snap.forEach(d=>logs.push(d.data()));
-                            setSmsLogs(logs.filter(s=>s.phone===l.phone.replace(/[^0-9]/g,'')||s.phone===l.phone).sort((a,b)=>(b.sentAt||'').localeCompare(a.sentAt||'')));
-                          }).catch(()=>setSmsLogs([]));
-                        },[]);
-                        if(!smsLogs||smsLogs.length===0)return null;
-                        return(
-                          <div style={{marginTop:8,padding:'8px 10px',background:'var(--blue-l)',borderRadius:8,border:'1px solid var(--blue-m)'}}>
-                            <div style={{fontSize:10,fontWeight:700,color:'var(--blue)',marginBottom:4}}>💬 발송 문자 ({smsLogs.length}건)</div>
-                            {smsLogs.map((s,si)=>(
-                              <div key={si} style={{fontSize:10,color:'var(--text)',marginBottom:4,padding:'4px 6px',background:'#fff',borderRadius:6,lineHeight:1.4}}>
-                                <div style={{display:'flex',justifyContent:'space-between',marginBottom:2}}>
-                                  <span style={{fontWeight:600,color:'var(--blue)'}}>{s.sentAt?new Date(s.sentAt).toLocaleString('ko'):''}</span>
-                                  {s.links?.length>0&&<span style={{color:'var(--text-sm)'}}>📎 {s.links.join(', ')}</span>}
-                                </div>
-                                <div style={{whiteSpace:'pre-wrap',color:'var(--text-md)'}}>{(s.text||'').slice(0,100)}{(s.text||'').length>100?'...':''}</div>
-                              </div>
-                            ))}
-                          </div>
-                        );
-                      })()}
+                      {l.phone&&<SmsLogView phone={l.phone}/>}
                       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:6}}>
                         <span style={{fontSize:10,color:'var(--text-sm)'}}>{l.savedAt?new Date(l.savedAt).toLocaleString('ko'):''}</span>
                         <button onClick={()=>deleteLead(l.id)} style={{padding:'5px 12px',borderRadius:8,border:'1.5px solid #FCA5A5',background:'#FEF2F2',color:'#DC2626',fontSize:11,fontWeight:700,cursor:'pointer'}}>🗑 삭제</button>

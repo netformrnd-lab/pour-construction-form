@@ -2738,9 +2738,9 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const logText=[
     `박람회: 공동주택관리산업박람회 (벡스코)`,`상담일시: ${dateStr}`,``,
     `건물유형: ${building?.label||'-'} (${building?.sub||'-'})`,
-    `주요 문제: [${problem.cat}] ${problem.label}`,
-    `추천 공법: ${problem.label}`,
-    `제안서: ${problem.specUrl}`,``,
+    `주요 문제: [${problem?.cat||'-'}] ${problem?.label||'-'}`,
+    `추천 공법: ${problem?.label||'-'}`,
+    `제안서: ${problem?.specUrl||'-'}`,``,
     `다음 액션: □ 방문진단  □ 제안서 전달  □ 회사소개서`,
     `특이사항: ${memo||'(없음)'}`,
   ].join('\n');

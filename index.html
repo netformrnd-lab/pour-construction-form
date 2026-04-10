@@ -2777,6 +2777,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [activePart,setActivePart]=useState('all');
   const [isPhotoExiting,setIsPhotoExiting]=useState(false);
   const photoExitTimer=React.useRef(null);
+  useEffect(()=>()=>{if(photoExitTimer.current)clearTimeout(photoExitTimer.current);},[]);
   const changePhotoFilter=(newDefect,newPart)=>{
     if(photoExitTimer.current)clearTimeout(photoExitTimer.current);
     setIsPhotoExiting(true);

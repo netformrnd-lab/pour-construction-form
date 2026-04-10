@@ -2720,6 +2720,10 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [effectiveBuildingId,setEffectiveBuildingId]=useState(building?.id||null);
   const [casePhotos,setCasePhotos]=useState(()=>loadCasePhotos());
   useEffect(()=>{syncPhotosFromFirestore(setCasePhotos,null);},[]);
+  const [activeDefect,setActiveDefect]=useState('all');
+  /* problem이 바뀌면 필터 리셋 */
+  const prevProblemId=React.useRef(null);
+  if(problem?.id!==prevProblemId.current){prevProblemId.current=problem?.id||null;if(activeDefect!=='all')setActiveDefect('all');}
 
   if(externalNote&&!showNote){setShowNote(true);if(onExternalNote)onExternalNote(false);}
 
@@ -3088,7 +3092,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               }));
               /* 이 공법에 실제 존재하는 하자유형 목록 */
               const existingTypes=[...new Set(photosWithMeta.map(p=>p.defectType).filter(Boolean))];
-              const [activeDefect,setActiveDefect]=React.useState('all');
+              /* activeDefect는 컴포넌트 레벨 state 사용 (훅 규칙 준수) */
               const filtered=activeDefect==='all'?photosWithMeta:photosWithMeta.filter(p=>p.defectType===activeDefect);
               return(
                 <div style={{marginBottom:16}}>

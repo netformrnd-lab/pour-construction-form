@@ -81,6 +81,7 @@ const COLLECTIONS = {
   NPS_SURVEYS: 'nps-surveys',
   DEFECT_SITES: 'defect-sites',
   SALES_DOCS: 'sales-docs',
+  DEFECT_PHOTOS: 'defect-photos',
 };
 
 const MENU = [
@@ -98,6 +99,7 @@ const MENU = [
   { key: 'outbound-always', label: '상시영업', icon: '📞', disabled: true },
   { section: '현장관리' },
   { key: 'defect-sites', label: '완공현장', icon: '🏗' },
+  { key: 'defect-photos', label: '공법분석', icon: '🔍' },
   { section: '사이트' },
   { key: 'inquiries', label: '문의접수', icon: '📬' },
   { key: 'metrics', label: '공신력수치', icon: '📊' },
@@ -3619,6 +3621,322 @@ function DefectSitesPage({showToast}){
 }
 
 /* ══════════════════════════════════════════════════════════════
+   공법분석 — 하자사진 3단계 분류 (대분류:공법 > 중분류:하자유형 > 소분류:사진)
+   Firestore: defect-photos 컬렉션 + 마누스 데이터 연동
+   ══════════════════════════════════════════════════════════════ */
+const DEFAULT_POUR_METHODS=['POUR 아스팔트싱글 방수 공법','POUR 금속기와 방수 공법','POUR 우레탄 방수 공법','POUR 시트 방수 공법','POUR 도막 방수 공법'];
+const DEFAULT_DEFECT_TYPES=['탈락','부식','변형','녹슬음','균열','이음부','들뜸','누수','박리','기타'];
+
+function DefectPhotosPage({showToast}){
+  const [photos,setPhotos]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [selMethod,setSelMethod]=useState('전체');
+  const [selDefect,setSelDefect]=useState('전체');
+  const [showAdd,setShowAdd]=useState(false);
+  const [showImport,setShowImport]=useState(false);
+  const [lightbox,setLightbox]=useState(null);
+  const [uploading,setUploading]=useState(false);
+  const [importing,setImporting]=useState(false);
+  const [importJson,setImportJson]=useState('');
+  const [importUrl,setImportUrl]=useState('');
+  const [form,setForm]=useState({method:DEFAULT_POUR_METHODS[0],defectType:DEFAULT_DEFECT_TYPES[0],label:'',description:'',files:[]});
+  const [editingId,setEditingId]=useState(null);
+
+  const fetchPhotos=async()=>{
+    setLoading(true);
+    try{
+      const snap=await db.collection(COLLECTIONS.DEFECT_PHOTOS).get();
+      const arr=[];snap.forEach(doc=>arr.push({id:doc.id,...doc.data()}));
+      arr.sort((a,b)=>(a.method||'').localeCompare(b.method||'')||(a.defectType||'').localeCompare(b.defectType||'')||(a.label||'').localeCompare(b.label||''));
+      console.log(`[defect-photos] ${arr.length}건 로드`);
+      setPhotos(arr);
+    }catch(e){console.error('[defect-photos] 로드 실패:',e);showToast('데이터 로드 실패','error');}
+    setLoading(false);
+  };
+
+  useEffect(()=>{fetchPhotos();},[]);
+
+  const allMethods=useMemo(()=>{const s=new Set(DEFAULT_POUR_METHODS);photos.forEach(p=>{if(p.method)s.add(p.method);});return [...s];},[photos]);
+  const allDefects=useMemo(()=>{const s=new Set(DEFAULT_DEFECT_TYPES);photos.forEach(p=>{if(p.defectType)s.add(p.defectType);});return [...s];},[photos]);
+  const methodsWithData=useMemo(()=>{const s=new Set();photos.forEach(p=>{if(p.method)s.add(p.method);});return [...s].sort();},[photos]);
+  const defectsForMethod=useMemo(()=>{
+    const sub=selMethod==='전체'?photos:photos.filter(p=>p.method===selMethod);
+    const s=new Set();sub.forEach(p=>{if(p.defectType)s.add(p.defectType);});return [...s].sort();
+  },[photos,selMethod]);
+
+  const filtered=useMemo(()=>photos.filter(p=>{
+    if(selMethod!=='전체'&&p.method!==selMethod)return false;
+    if(selDefect!=='전체'&&p.defectType!==selDefect)return false;
+    return true;
+  }),[photos,selMethod,selDefect]);
+
+  const grouped=useMemo(()=>{
+    const map={};filtered.forEach(p=>{const k=p.defectType||'미분류';if(!map[k])map[k]=[];map[k].push(p);});
+    return Object.entries(map).sort(([a],[b])=>a.localeCompare(b));
+  },[filtered]);
+
+  const stats=useMemo(()=>({
+    total:photos.length,methods:new Set(photos.map(p=>p.method).filter(Boolean)).size,
+    defects:new Set(photos.map(p=>p.defectType).filter(Boolean)).size,
+    manus:photos.filter(p=>p.source==='manus').length,
+  }),[photos]);
+
+  const uploadFile=async(file)=>{
+    const path=`defect-photos/${Date.now()}_${file.name}`;
+    const ref=storage.ref(path);await ref.put(file);return await ref.getDownloadURL();
+  };
+
+  const savePhotos=async()=>{
+    if(!form.method||!form.defectType){showToast('공법과 하자유형을 선택하세요','error');return;}
+    if(!editingId&&!form.files.length){showToast('사진을 선택하세요','error');return;}
+    setUploading(true);
+    try{
+      if(editingId){
+        const data={method:form.method,defectType:form.defectType,label:form.label,description:form.description,updatedAt:new Date().toISOString()};
+        if(form.files.length){data.imageUrl=await uploadFile(form.files[0]);}
+        await db.collection(COLLECTIONS.DEFECT_PHOTOS).doc(editingId).update(data);
+        showToast('수정 완료');
+      }else{
+        const existing=photos.filter(p=>p.method===form.method&&p.defectType===form.defectType).length;
+        for(let i=0;i<form.files.length;i++){
+          const url=await uploadFile(form.files[i]);
+          const label=form.files.length===1&&form.label.trim()?form.label.trim():`${form.defectType}${existing+i+1}`;
+          await db.collection(COLLECTIONS.DEFECT_PHOTOS).add({
+            method:form.method,defectType:form.defectType,label,description:form.description,
+            imageUrl:url,source:'manual',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),
+          });
+        }
+        showToast(`${form.files.length}장 등록 완료`);
+      }
+      closeAddForm();fetchPhotos();
+    }catch(e){console.error(e);showToast('저장 실패','error');}
+    setUploading(false);
+  };
+
+  const deletePhoto=async(id)=>{
+    if(!confirm('삭제하시겠습니까?'))return;
+    try{await db.collection(COLLECTIONS.DEFECT_PHOTOS).doc(id).delete();showToast('삭제 완료');fetchPhotos();}
+    catch(e){console.error(e);showToast('삭제 실패','error');}
+  };
+
+  const startEdit=(p)=>{
+    setEditingId(p.id);setForm({method:p.method,defectType:p.defectType,label:p.label||'',description:p.description||'',files:[]});setShowAdd(true);
+  };
+
+  const closeAddForm=()=>{setShowAdd(false);setEditingId(null);setForm({method:DEFAULT_POUR_METHODS[0],defectType:DEFAULT_DEFECT_TYPES[0],label:'',description:'',files:[]});};
+
+  /* ── 마누스 데이터 연동 ── */
+  const doImport=async()=>{
+    setImporting(true);
+    try{
+      let data=null;
+      if(importUrl.trim()){
+        try{
+          const r=await fetch(importUrl.trim());const html=await r.text();
+          const jm=html.match(/<script[^>]*type\s*=\s*["']application\/json["'][^>]*>([\s\S]*?)<\/script>/);
+          if(jm){try{data=JSON.parse(jm[1]);}catch(e){}}
+          if(!data){const nm=html.match(/__NEXT_DATA__.*?=\s*(\{[\s\S]*?\})\s*;?\s*<\/script>/);if(nm){try{const p=JSON.parse(nm[1]);data=p.props?.pageProps?.data||p;}catch(e){}}}
+          if(!data){const imgs=[...html.matchAll(/<img[^>]+src\s*=\s*["']([^"']+)["'][^>]*(?:alt\s*=\s*["']([^"']*)["'])?/gi)];
+            if(imgs.length)data=imgs.map((m,i)=>({imageUrl:m[1],label:m[2]||`사진${i+1}`,method:'미분류',defectType:'기타'}));}
+        }catch(e){console.warn('URL fetch failed:',e);}
+      }
+      if(!data&&importJson.trim()){
+        try{data=JSON.parse(importJson.trim());}catch(e){showToast('JSON 형식 오류','error');setImporting(false);return;}
+      }
+      if(!data){showToast('데이터를 찾을 수 없습니다','error');setImporting(false);return;}
+      if(!Array.isArray(data))data=[data];
+      let count=0;
+      for(const item of data){
+        const doc={
+          method:item.method||item.공법||'미분류',defectType:item.defectType||item.하자유형||item.category||'기타',
+          label:item.label||item.이름||item.name||item.title||`사진${count+1}`,
+          imageUrl:item.imageUrl||item.url||item.image||item.src||item.사진||'',
+          description:item.description||item.설명||item.desc||'',
+          source:'manus',sourceUrl:importUrl||'',
+          createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),
+        };
+        if(doc.imageUrl){await db.collection(COLLECTIONS.DEFECT_PHOTOS).add(doc);count++;}
+      }
+      showToast(`${count}건 가져오기 완료`);
+      setShowImport(false);setImportUrl('');setImportJson('');fetchPhotos();
+    }catch(e){console.error(e);showToast('가져오기 실패','error');}
+    setImporting(false);
+  };
+
+  const IS={width:'100%',padding:'10px 14px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:13,fontFamily:'inherit',outline:'none'};
+  const LS={fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:6,display:'block'};
+  const tabS=(a)=>({padding:'6px 16px',borderRadius:20,border:'none',background:a?'var(--blue)':'#fff',color:a?'#fff':'var(--text-md)',fontSize:12,fontWeight:a?700:500,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',transition:'all .15s',boxShadow:a?'none':'0 1px 3px rgba(0,0,0,.06)'});
+
+  /* ── 라이트박스 ── */
+  const renderLightbox=()=>{
+    if(!lightbox)return null;
+    const idx=filtered.findIndex(p=>p.id===lightbox.id);
+    const prev=idx>0?filtered[idx-1]:null;
+    const next=idx<filtered.length-1?filtered[idx+1]:null;
+    return(
+      <div onClick={()=>setLightbox(null)} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.85)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
+        <div onClick={e=>e.stopPropagation()} style={{position:'relative',maxWidth:'90vw',maxHeight:'90vh',cursor:'default'}}>
+          <img src={lightbox.imageUrl} style={{maxWidth:'90vw',maxHeight:'80vh',borderRadius:12,objectFit:'contain'}} alt={lightbox.label}/>
+          <div style={{position:'absolute',bottom:-40,left:0,right:0,textAlign:'center',color:'#fff',fontSize:14}}>
+            <b>{lightbox.label}</b> · {lightbox.method} · {lightbox.defectType}
+          </div>
+          {prev&&<button onClick={()=>setLightbox(prev)} style={{position:'absolute',left:-50,top:'50%',transform:'translateY(-50%)',background:'rgba(255,255,255,.2)',border:'none',color:'#fff',fontSize:28,width:40,height:40,borderRadius:'50%',cursor:'pointer'}}>‹</button>}
+          {next&&<button onClick={()=>setLightbox(next)} style={{position:'absolute',right:-50,top:'50%',transform:'translateY(-50%)',background:'rgba(255,255,255,.2)',border:'none',color:'#fff',fontSize:28,width:40,height:40,borderRadius:'50%',cursor:'pointer'}}>›</button>}
+          <button onClick={()=>setLightbox(null)} style={{position:'absolute',top:-16,right:-16,background:'rgba(255,255,255,.2)',border:'none',color:'#fff',fontSize:18,width:36,height:36,borderRadius:'50%',cursor:'pointer'}}>✕</button>
+        </div>
+      </div>
+    );
+  };
+
+  /* ── 사진 카드 ── */
+  const PhotoCard=({p})=>(
+    <div style={{background:'#fff',borderRadius:12,border:'1px solid var(--border)',overflow:'hidden',transition:'box-shadow .2s',cursor:'pointer'}} onClick={()=>setLightbox(p)}>
+      <div style={{height:160,overflow:'hidden',background:'var(--bg)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+        {p.imageUrl?<img src={p.imageUrl} style={{width:'100%',height:'100%',objectFit:'cover'}} alt={p.label}/>
+        :<span style={{color:'var(--text-sm)',fontSize:13}}>이미지 없음</span>}
+      </div>
+      <div style={{padding:'10px 12px'}}>
+        <div style={{fontSize:13,fontWeight:700,marginBottom:4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.label||'무제'}</div>
+        <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+          {p.source==='manus'&&<span style={{padding:'2px 6px',borderRadius:4,background:'#FEF3C7',color:'#92400E',fontSize:10,fontWeight:600}}>마누스</span>}
+          <span style={{padding:'2px 6px',borderRadius:4,background:'var(--blue-l)',color:'var(--blue)',fontSize:10,fontWeight:600}}>{p.defectType}</span>
+        </div>
+      </div>
+      <div style={{borderTop:'1px solid var(--border-s)',padding:'6px 12px',display:'flex',justifyContent:'flex-end',gap:8}} onClick={e=>e.stopPropagation()}>
+        <button onClick={()=>startEdit(p)} style={{background:'none',border:'none',fontSize:11,color:'var(--blue)',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>수정</button>
+        <button onClick={()=>deletePhoto(p.id)} style={{background:'none',border:'none',fontSize:11,color:'#DC2626',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>삭제</button>
+      </div>
+    </div>
+  );
+
+  /* ── 메인 렌더 ── */
+  return(
+    <div style={{animation:'fadeIn .3s ease'}}>
+      {renderLightbox()}
+
+      {/* 등록/수정 모달 */}
+      {showAdd&&<div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.4)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}} onClick={closeAddForm}>
+        <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:16,padding:28,width:480,maxHeight:'80vh',overflow:'auto',boxShadow:'var(--shadow-lg)'}}>
+          <div style={{fontSize:18,fontWeight:800,marginBottom:20}}>{editingId?'사진 수정':'사진 등록'}</div>
+          <div style={{marginBottom:14}}><label style={LS}>대분류 (공법)</label>
+            <select style={{...IS,background:'#fff'}} value={form.method} onChange={e=>setForm({...form,method:e.target.value})}>
+              {allMethods.map(m=><option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+          <div style={{marginBottom:14}}><label style={LS}>중분류 (하자유형)</label>
+            <select style={{...IS,background:'#fff'}} value={form.defectType} onChange={e=>setForm({...form,defectType:e.target.value})}>
+              {allDefects.map(d=><option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
+          <div style={{marginBottom:14}}><label style={LS}>라벨 {!editingId&&form.files.length>1?'(자동생성)':''}</label>
+            <input style={IS} value={form.label} onChange={e=>setForm({...form,label:e.target.value})} placeholder={editingId?'라벨':'비워두면 자동생성 (예: 탈락1, 탈락2...)'} disabled={!editingId&&form.files.length>1}/>
+          </div>
+          <div style={{marginBottom:14}}><label style={LS}>설명 (선택)</label>
+            <textarea style={{...IS,resize:'vertical',minHeight:50}} value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="하자 상세 설명"/>
+          </div>
+          <div style={{marginBottom:20}}>
+            <label style={LS}>{editingId?'사진 변경 (선택)':'사진 업로드 (여러장 선택 가능)'}</label>
+            <input type="file" accept="image/*" multiple={!editingId} onChange={e=>setForm({...form,files:Array.from(e.target.files)})} style={{fontSize:12}}/>
+            {form.files.length>0&&<div style={{fontSize:11,color:'var(--text-sm)',marginTop:4}}>{form.files.length}개 파일 선택됨</div>}
+            {editingId&&!form.files.length&&photos.find(p=>p.id===editingId)?.imageUrl&&<div style={{marginTop:8}}><img src={photos.find(p=>p.id===editingId)?.imageUrl} style={{width:120,height:90,objectFit:'cover',borderRadius:8,border:'1px solid var(--border)'}} alt=""/></div>}
+          </div>
+          <div style={{display:'flex',gap:10}}>
+            <button onClick={closeAddForm} style={{flex:1,padding:'12px 0',borderRadius:10,border:'1.5px solid var(--border)',background:'#fff',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit',color:'var(--text-md)'}}>취소</button>
+            <button onClick={savePhotos} disabled={uploading} style={{flex:2,padding:'12px 0',borderRadius:10,border:'none',background:'var(--blue)',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit',color:'#fff',opacity:uploading?.6:1}}>{uploading?'업로드 중...':editingId?'수정':'등록'}</button>
+          </div>
+        </div>
+      </div>}
+
+      {/* 마누스 연동 모달 */}
+      {showImport&&<div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.4)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}} onClick={()=>setShowImport(false)}>
+        <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:16,padding:28,width:560,maxHeight:'80vh',overflow:'auto',boxShadow:'var(--shadow-lg)'}}>
+          <div style={{fontSize:18,fontWeight:800,marginBottom:8}}>마누스 데이터 연동</div>
+          <div style={{fontSize:12,color:'var(--text-sm)',marginBottom:20}}>마누스 URL에서 자동 가져오기 또는 JSON 데이터를 직접 붙여넣으세요</div>
+          <div style={{marginBottom:14}}><label style={LS}>마누스 URL (선택)</label>
+            <input style={IS} value={importUrl} onChange={e=>setImportUrl(e.target.value)} placeholder="https://hajaviewer-xay3p7o4.manus.space/"/>
+          </div>
+          <div style={{marginBottom:14}}><label style={LS}>JSON 데이터 (직접 입력)</label>
+            <textarea style={{...IS,resize:'vertical',minHeight:140,fontFamily:'monospace',fontSize:11}} value={importJson} onChange={e=>setImportJson(e.target.value)} placeholder={'[\n  {\n    "method": "POUR 아스팔트싱글 방수 공법",\n    "defectType": "탈락",\n    "label": "탈락1",\n    "imageUrl": "https://example.com/photo.jpg",\n    "description": ""\n  }\n]'}/>
+          </div>
+          <div style={{background:'var(--bg)',borderRadius:10,padding:14,marginBottom:20,fontSize:11,color:'var(--text-md)',lineHeight:1.7}}>
+            <b>지원 필드명 (영문/한글 모두 가능):</b><br/>
+            공법: method / 공법<br/>
+            하자유형: defectType / 하자유형 / category<br/>
+            라벨: label / 이름 / name / title<br/>
+            이미지: imageUrl / url / image / src / 사진<br/>
+            설명: description / 설명 / desc
+          </div>
+          <div style={{display:'flex',gap:10}}>
+            <button onClick={()=>setShowImport(false)} style={{flex:1,padding:'12px 0',borderRadius:10,border:'1.5px solid var(--border)',background:'#fff',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit',color:'var(--text-md)'}}>취소</button>
+            <button onClick={doImport} disabled={importing} style={{flex:2,padding:'12px 0',borderRadius:10,border:'none',background:'var(--gold)',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit',color:'#fff',opacity:importing?.6:1}}>{importing?'가져오는 중...':'가져오기'}</button>
+          </div>
+        </div>
+      </div>}
+
+      {/* 헤더 */}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20,flexWrap:'wrap',gap:12}}>
+        <div>
+          <div style={{fontSize:20,fontWeight:800}}>🔍 공법분석 · 하자사진 분류</div>
+          <div style={{fontSize:12,color:'var(--text-sm)',marginTop:4}}>전체 {stats.total}장 · {stats.methods}개 공법 · {stats.defects}개 하자유형{stats.manus>0?` · 마누스 ${stats.manus}건`:''}</div>
+        </div>
+        <div style={{display:'flex',gap:8}}>
+          <button onClick={fetchPhotos} style={{padding:'8px 12px',borderRadius:8,border:'1.5px solid var(--border)',background:'#fff',fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>🔄</button>
+          <button onClick={()=>setShowImport(true)} style={{padding:'8px 16px',borderRadius:8,border:'none',background:'var(--gold)',color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>📥 마누스 연동</button>
+          <button onClick={()=>{closeAddForm();setShowAdd(true);}} style={{padding:'8px 16px',borderRadius:8,border:'none',background:'var(--blue)',color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>+ 사진 등록</button>
+        </div>
+      </div>
+
+      {/* 필터: 대분류 (공법) */}
+      {methodsWithData.length>0&&<div style={{marginBottom:12}}>
+        <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:8}}>대분류 · 공법</div>
+        <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+          <button onClick={()=>{setSelMethod('전체');setSelDefect('전체');}} style={tabS(selMethod==='전체')}>전체</button>
+          {methodsWithData.map(m=><button key={m} onClick={()=>{setSelMethod(m);setSelDefect('전체');}} style={tabS(selMethod===m)}>{m.replace('POUR ','').replace(' 공법','')}</button>)}
+        </div>
+      </div>}
+
+      {/* 필터: 중분류 (하자유형) */}
+      {defectsForMethod.length>0&&<div style={{marginBottom:20}}>
+        <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:8}}>중분류 · 하자유형</div>
+        <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+          <button onClick={()=>setSelDefect('전체')} style={tabS(selDefect==='전체')}>전체 ({(selMethod==='전체'?photos:photos.filter(p=>p.method===selMethod)).length})</button>
+          {defectsForMethod.map(d=>{
+            const cnt=(selMethod==='전체'?photos:photos.filter(p=>p.method===selMethod)).filter(p=>p.defectType===d).length;
+            return <button key={d} onClick={()=>setSelDefect(d)} style={tabS(selDefect===d)}>{d} ({cnt})</button>;
+          })}
+        </div>
+      </div>}
+
+      {/* 콘텐츠 */}
+      {loading?<div style={{textAlign:'center',padding:60,color:'var(--text-sm)'}}>로딩 중...</div>
+      :filtered.length===0?
+        <div style={{textAlign:'center',padding:60,color:'var(--text-sm)'}}>
+          <div style={{fontSize:48,marginBottom:12}}>📷</div>
+          <div style={{fontSize:14,fontWeight:600,marginBottom:8}}>등록된 하자사진이 없습니다</div>
+          <div style={{fontSize:12}}>마누스 연동 또는 직접 등록으로 사진을 추가하세요</div>
+        </div>
+      :selDefect!=='전체'?
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:14}}>
+          {filtered.map(p=><PhotoCard key={p.id} p={p}/>)}
+        </div>
+      :
+        grouped.map(([defectType,items])=>(
+          <div key={defectType} style={{marginBottom:24}}>
+            <div style={{fontSize:15,fontWeight:800,marginBottom:12,display:'flex',alignItems:'center',gap:8}}>
+              <span style={{padding:'3px 10px',borderRadius:6,background:'var(--blue-l)',color:'var(--blue)',fontSize:12,fontWeight:700}}>{defectType}</span>
+              <span style={{fontSize:12,color:'var(--text-sm)'}}>{items.length}장</span>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:14}}>
+              {items.map(p=><PhotoCard key={p.id} p={p}/>)}
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════
    영업자료 관리 — sales-docs 컬렉션 + Storage 파일 업로드
    ══════════════════════════════════════════════════════════════ */
 const DOC_TYPES=['시방서','제안서','카탈로그','인증서/시험성적서','특허','회사소개서','단가표','기타'];
@@ -4232,6 +4550,8 @@ function App() {
         return <PagePlaceholder title="상시영업" icon="📞" description="추후 개발 예정" />;
       case 'defect-sites':
         return <DefectSitesPage showToast={showToast} />;
+      case 'defect-photos':
+        return <DefectPhotosPage showToast={showToast} />;
       case 'inquiries':
         return <PagePlaceholder title="문의접수" icon="📬" description="사이트 문의 접수 관리" />;
       case 'metrics':

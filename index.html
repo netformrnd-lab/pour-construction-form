@@ -3058,8 +3058,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 {!ntQuickSms?(
                   <div style={{display:'flex',flexDirection:'column',gap:10,width:'100%',maxWidth:340}}>
                     {ntPhone&&loadSolapiConfig().workerUrl&&(
-                      <button onClick={()=>{
-                        /* 문자 멘트 자동 생성 — 2차 액션 + 제안서/가이드 포함 */
+                      <button onClick={async()=>{
+                        /* 문자 멘트 자동 생성 — 링크를 미리 축약 */
                         let msg=`${ntName}님, POUR솔루션 상담 감사합니다.`;
                         if(ntNextActions.length>0){
                           const docs=ntNextActions.filter(a=>!a.startsWith('방문'));
@@ -3067,15 +3067,21 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                           if(docs.length>0)msg+=`\n\n요청하신 ${docs.join(', ')} 보내드리겠습니다.`;
                           if(visit)msg+=`\n${visit} 드리겠습니다.`;
                         }else{msg+='\n맞춤 자료를 보내드리겠습니다.';}
-                        /* 제안서/가이드 링크 자동 첨부 */
+                        /* 제안서/가이드 링크 수집 + 즉시 축약 */
+                        const rawLinks=[];
+                        if(problem?.proposalUrl)rawLinks.push({label:'제안서',url:problem.proposalUrl});
+                        if(problem?.specUrl)rawLinks.push({label:'시방서',url:problem.specUrl});
+                        if(problem?.guideId){const g=GUIDES.find(x=>x.id===problem.guideId);if(g)rawLinks.push({label:'시공가이드',url:'https://www.poursolution.net/'+problem.guideId});}
+                        if(problem?.caseUrl)rawLinks.push({label:'시공사례',url:problem.caseUrl});
+                        /* 링크 축약 */
                         const autoLinks=[];
-                        if(problem?.proposalUrl)autoLinks.push({label:'제안서',url:problem.proposalUrl});
-                        if(problem?.specUrl)autoLinks.push({label:'시방서',url:problem.specUrl});
-                        if(problem?.guideId){const g=GUIDES.find(x=>x.id===problem.guideId);if(g)autoLinks.push({label:'시공가이드',url:'https://www.poursolution.net/'+problem.guideId});}
-                        if(problem?.caseUrl)autoLinks.push({label:'시공사례',url:problem.caseUrl});
+                        for(const l of rawLinks){
+                          const short=await createShortLink(l.url,{label:l.label,customerName:ntName,staff:staffName});
+                          autoLinks.push({label:l.label,url:short,origUrl:l.url});
+                        }
                         setNtSmsLinks(autoLinks);setNtSelectedLinks(autoLinks.map((_,i)=>i));
                         if(autoLinks.length>0){msg+='\n\n📎 자료 링크:';}
-                        autoLinks.forEach((l,i)=>{msg+=`\n${l.label}: ${l.url}`;});
+                        autoLinks.forEach(l=>{msg+=`\n${l.label}: ${l.url}`;});
                         msg+=`\n\n문의 1577-6587`;
                         setNtSmsText(msg);setNtQuickSms(true);
                       }}
@@ -3149,9 +3155,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                         건너뛰기
                       </button>
                       <button onClick={async()=>{if(!ntPhone)return;setNtSmsSending(true);
-                        /* 링크 축약 후 발송 */
-                        const shortened=await shortenLinksInText(ntSmsText,{customerName:ntName,staff:staffName});
-                        const r=await sendSMS(ntPhone,shortened);
+                        /* 이미 축약된 링크이므로 그대로 발송 */
+                        const r=await sendSMS(ntPhone,ntSmsText);
                         setNtSmsSending(false);if(r.success){setNtQuickSms(false);ntResetAndClose();}else{alert('발송 실패: '+(typeof r.error==='string'?r.error:JSON.stringify(r.error)));}}} disabled={ntSmsSending}
                         style={{flex:2,padding:'14px 0',borderRadius:10,border:'none',background:'var(--blue)',fontSize:15,fontWeight:800,color:'#fff',cursor:'pointer',fontFamily:'inherit',opacity:ntSmsSending?0.6:1}}>
                         {ntSmsSending?'발송 중...':'📩 고객에게 발송하기'}

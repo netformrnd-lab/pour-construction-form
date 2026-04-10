@@ -3104,16 +3104,34 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                         </div>
                       </div>
 
-                      {/* 직급 — 아파트/관공서면 표시, 일반건물이면 선택적 */}
+                      {/* 직급 — 선택 또는 기타(직접 입력) */}
                       {(effectiveBuildingId&&effectiveBuildingId!=='etc'||ntShowPosition||ntPosition)&&(
                         <div style={{position:'relative'}}>
                           <div style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:6}}>💼 직급</div>
-                          <button className="note-input" style={{fontSize:14,padding:'12px 14px',textAlign:'left',cursor:'pointer',color:ntPosition?'var(--text)':'var(--text-sm)',width:'100%'}} onClick={()=>setNtShowPosition(!ntShowPosition)}>{ntPosition||'선택하세요'}<span style={{position:'absolute',right:14,top:'auto',bottom:14,fontSize:10,color:'var(--text-sm)'}}>▼</span></button>
-                          {ntShowPosition&&<div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1.5px solid var(--border)',borderRadius:9,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:10,overflow:'hidden',marginTop:2,maxHeight:200,overflowY:'auto'}}>
-                            {getPositions(effectiveBuildingId).map(p=>(
-                              <button key={p} onClick={()=>{setNtPosition(p);setNtShowPosition(false);}} style={{width:'100%',padding:'11px 14px',border:'none',background:ntPosition===p?'var(--blue-l)':'#fff',color:ntPosition===p?'var(--blue)':'var(--text)',fontSize:13,fontWeight:ntPosition===p?700:500,cursor:'pointer',fontFamily:'inherit',textAlign:'left',borderBottom:'1px solid var(--border-s)'}}>{p}</button>
-                            ))}
-                          </div>}
+                          {ntShowPosition==='custom'?(
+                            <div style={{display:'flex',gap:6}}>
+                              <div style={{flex:1,position:'relative'}}>
+                                <textarea className="note-input" rows="1" value={ntPosition}
+                                  onFocus={e=>{e.target.dataset.focused=Date.now();}}
+                                  onChange={e=>{const v=e.target.value.replace(/\n/g,'');setNtPosition(v);}}
+                                  style={{fontSize:16,padding:'12px 40px 12px 14px',minHeight:48,resize:'none',lineHeight:1.4,width:'100%',boxSizing:'border-box'}}
+                                  placeholder="펜슬로 직접 입력" autoFocus/>
+                                {ntPosition&&<button onClick={()=>setNtPosition(v=>v.slice(0,-1))}
+                                  style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:32,height:32,borderRadius:'50%',border:'1.5px solid var(--border)',background:'#fff',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)'}}>←</button>}
+                              </div>
+                              <button onClick={()=>setNtShowPosition(false)} style={{padding:'0 14px',borderRadius:10,border:'1.5px solid var(--blue)',background:'var(--blue)',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>확인</button>
+                            </div>
+                          ):(
+                            <>
+                              <button className="note-input" style={{fontSize:14,padding:'12px 14px',textAlign:'left',cursor:'pointer',color:ntPosition?'var(--text)':'var(--text-sm)',width:'100%'}} onClick={()=>setNtShowPosition(ntShowPosition?false:true)}>{ntPosition||'선택하세요'}<span style={{position:'absolute',right:14,top:'auto',bottom:14,fontSize:10,color:'var(--text-sm)'}}>▼</span></button>
+                              {ntShowPosition===true&&<div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1.5px solid var(--border)',borderRadius:9,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:10,overflow:'hidden',marginTop:2,maxHeight:240,overflowY:'auto'}}>
+                                {getPositions(effectiveBuildingId).map(p=>(
+                                  <button key={p} onClick={()=>{setNtPosition(p);setNtShowPosition(false);}} style={{width:'100%',padding:'11px 14px',border:'none',background:ntPosition===p?'var(--blue-l)':'#fff',color:ntPosition===p?'var(--blue)':'var(--text)',fontSize:13,fontWeight:ntPosition===p?700:500,cursor:'pointer',fontFamily:'inherit',textAlign:'left',borderBottom:'1px solid var(--border-s)'}}>{p}</button>
+                                ))}
+                                <button onClick={()=>{setNtPosition('');setNtShowPosition('custom');}} style={{width:'100%',padding:'12px 14px',border:'none',background:'var(--orange-l)',color:'var(--orange)',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit',textAlign:'left',borderTop:'2px solid var(--border)'}}>✏️ 기타 (직접 입력)</button>
+                              </div>}
+                            </>
+                          )}
                         </div>
                       )}
 

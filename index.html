@@ -4409,48 +4409,80 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose,me
             {/* 명함 촬영 (헤더 버튼용 - 숨김) */}
             <div style={{position:'absolute',left:'-9999px'}}><BusinessCardCapture onCapture={(side,img)=>setBizCard(p=>({...p,[side]:img}))} openRef={bizCardOpenRef}/></div>
 
-            {/* ── 고객 정보 (스크롤 영역 밖 — 펜슬 Scribble 간섭 없음) ── */}
+            {/* ── 고객 정보 (SolutionScreen과 동일 스타일) ── */}
             <div style={{padding:'12px 16px 14px',flexShrink:0,borderBottom:'2px solid var(--border)',touchAction:'auto'}}>
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:customerFolded?0:8,cursor:'pointer'}} onClick={()=>setCustomerFolded(v=>!v)}>
-                <div style={{fontSize:11,fontWeight:800,color:'var(--accent)',letterSpacing:'.07em',textTransform:'uppercase'}}>
-                  👤 고객 정보
-                  {customerFolded&&name&&<span style={{fontSize:10,color:'var(--text)',fontWeight:600,marginLeft:8,textTransform:'none',letterSpacing:0}}>{company?company+' · ':''}{name}{phone?' · '+phone:''}</span>}
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:customerFolded?0:10,cursor:'pointer'}} onClick={()=>setCustomerFolded(v=>!v)}>
+                <div style={{fontSize:12,fontWeight:800,color:'var(--accent)'}}>
+                  👤 고객 정보 입력
+                  {customerFolded&&name&&<span style={{fontSize:11,color:'var(--text)',fontWeight:600,marginLeft:8}}>{company?company+' · ':''}{name}{phone?' · '+phone:''}</span>}
                 </div>
-                <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:700,padding:'2px 8px',borderRadius:6,background:'var(--bg)'}}>{customerFolded?'펼치기 ▼':'접기 ▲'}</span>
+                <span style={{fontSize:11,color:'var(--text-sm)',fontWeight:700,padding:'3px 10px',borderRadius:6,background:'var(--bg)'}}>{customerFolded?'펼치기 ▼':'접기 ▲'}</span>
               </div>
               {!customerFolded&&(
-                <React.Fragment>
-                  <div style={{position:'relative',marginBottom:6}}>
-                    <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px'}} placeholder="✏️ 건물명 또는 업체명" value={company} onChange={e=>setCompany(e.target.value)}/>
-                    {company&&<button onClick={()=>setCompany(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                  {/* 건물명/업체명 */}
+                  <div>
+                    <div style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:6}}>🏢 건물명 / 업체명</div>
+                    <div style={{position:'relative'}}>
+                      <textarea className="note-input" rows="1" value={company} onChange={e=>setCompany(e.target.value.replace(/\n/g,''))}
+                        style={{fontSize:18,padding:'14px 44px 14px 14px',minHeight:56,resize:'none',lineHeight:1.4,width:'100%',boxSizing:'border-box'}} placeholder="펜슬로 필기하세요"/>
+                      {company&&<button onClick={()=>setCompany(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:36,height:36,borderRadius:'50%',border:'1.5px solid var(--border)',background:'#fff',cursor:'pointer',fontSize:16,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit',boxShadow:'0 1px 4px rgba(0,0,0,.08)'}}>←</button>}
+                    </div>
                   </div>
-                  <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:8}}>
-                    {BUILDING_TYPES.map(b=>(
+                  {/* 건물 유형 — 3가지 */}
+                  <div style={{display:'flex',gap:6}}>
+                    {[{id:'apt',icon:'🏢',label:'아파트'},{id:'gov',icon:'🏛',label:'관공서'},{id:'etc',icon:'🏠',label:'일반건물'}].map(b=>(
                       <button key={b.id} onClick={()=>{if(effectiveBuildingId===b.id){setEffectiveBuildingId(null);}else{setEffectiveBuildingId(b.id);setPosition('');}}}
-                        style={{padding:'6px 12px',borderRadius:20,border:`1.5px solid ${effectiveBuildingId===b.id?'var(--navy)':'var(--border)'}`,background:effectiveBuildingId===b.id?'var(--navy)':'#fff',color:effectiveBuildingId===b.id?'#fff':'var(--text)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',transition:'all .12s'}}>
+                        style={{flex:1,padding:'10px 4px',borderRadius:10,border:`1.5px solid ${effectiveBuildingId===b.id?'var(--navy)':'var(--border)'}`,background:effectiveBuildingId===b.id?'var(--navy)':'#fff',color:effectiveBuildingId===b.id?'#fff':'var(--text)',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit',textAlign:'center'}}>
                         {b.icon} {b.label}
                       </button>
                     ))}
                   </div>
-                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:6}}>
+                  {/* 성함 */}
+                  <div>
+                    <div style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:6}}>✍️ 성함 <span style={{color:'var(--blue)',fontSize:11}}>*필수</span></div>
                     <div style={{position:'relative'}}>
-                      <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="✏️ 성함 *" value={name} onChange={e=>setName(e.target.value)}/>
-                      {name&&<button onClick={()=>setName(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
-                    </div>
-                    <div style={{position:'relative'}}>
-                      <input className="note-input" style={{fontSize:15,padding:'12px 40px 12px 14px',width:'100%',boxSizing:'border-box'}} placeholder="✏️ 연락처 *" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
-                      {phone&&<button onClick={()=>setPhone(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit'}}>←</button>}
+                      <textarea className="note-input" rows="1" value={name} onChange={e=>setName(e.target.value.replace(/\n/g,''))}
+                        style={{fontSize:18,padding:'14px 44px 14px 14px',minHeight:56,resize:'none',lineHeight:1.4,width:'100%',boxSizing:'border-box'}} placeholder="펜슬로 필기"/>
+                      {name&&<button onClick={()=>setName(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:36,height:36,borderRadius:'50%',border:'1.5px solid var(--border)',background:'#fff',cursor:'pointer',fontSize:16,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit',boxShadow:'0 1px 4px rgba(0,0,0,.08)'}}>←</button>}
                     </div>
                   </div>
-                  <div style={{position:'relative'}}>
-                    <button className="note-input" style={{fontSize:14,padding:'10px 14px',textAlign:'left',cursor:'pointer',color:position?'var(--text)':'var(--text-sm)',width:'100%'}} onClick={()=>setShowPosition(!showPosition)}>{position||'직급 선택 (선택)'}<span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',fontSize:10,color:'var(--text-sm)'}}>▼</span></button>
-                    {showPosition&&<div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1.5px solid var(--border)',borderRadius:9,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:10,overflow:'hidden',marginTop:2}}>
-                      {getPositions(effectiveBuildingId).map(p=>(
-                        <button key={p} onClick={()=>{setPosition(p);setShowPosition(false);}} style={{width:'100%',padding:'10px 14px',border:'none',background:position===p?'var(--blue-l)':'#fff',color:position===p?'var(--blue)':'var(--text)',fontSize:13,fontWeight:position===p?700:500,cursor:'pointer',fontFamily:'inherit',textAlign:'left',borderBottom:'1px solid var(--border-s)'}}>{p}</button>
-                      ))}
-                    </div>}
+                  {/* 연락처 */}
+                  <div>
+                    <div style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:6}}>📞 연락처 <span style={{color:'var(--blue)',fontSize:11}}>*필수</span></div>
+                    <div style={{position:'relative'}}>
+                      <textarea className="note-input" rows="1" value={phone} onChange={e=>setPhone(e.target.value.replace(/\n/g,''))}
+                        style={{fontSize:18,padding:'14px 44px 14px 14px',minHeight:56,resize:'none',lineHeight:1.4,width:'100%',boxSizing:'border-box'}} placeholder="펜슬로 필기"/>
+                      {phone&&<button onClick={()=>setPhone(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:36,height:36,borderRadius:'50%',border:'1.5px solid var(--border)',background:'#fff',cursor:'pointer',fontSize:16,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit',boxShadow:'0 1px 4px rgba(0,0,0,.08)'}}>←</button>}
+                    </div>
                   </div>
-                </React.Fragment>
+                  {/* 직급 — 기타 직접입력 지원 */}
+                  {(effectiveBuildingId||showPosition||position)&&(
+                    <div style={{position:'relative'}}>
+                      <div style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:6}}>💼 직급</div>
+                      {showPosition==='custom'?(
+                        <div style={{display:'flex',gap:6}}>
+                          <div style={{flex:1,position:'relative'}}>
+                            <textarea className="note-input" rows="1" value={position} onChange={e=>setPosition(e.target.value.replace(/\n/g,''))}
+                              style={{fontSize:16,padding:'12px 40px 12px 14px',minHeight:48,resize:'none',lineHeight:1.4,width:'100%',boxSizing:'border-box'}} placeholder="펜슬로 직접 입력" autoFocus/>
+                            {position&&<button onClick={()=>setPosition(v=>v.slice(0,-1))} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:32,height:32,borderRadius:'50%',border:'1.5px solid var(--border)',background:'#fff',cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)'}}>←</button>}
+                          </div>
+                          <button onClick={()=>setShowPosition(false)} style={{padding:'0 14px',borderRadius:10,border:'none',background:'var(--blue)',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>확인</button>
+                        </div>
+                      ):(
+                        <>
+                          <button className="note-input" style={{fontSize:14,padding:'12px 14px',textAlign:'left',cursor:'pointer',color:position?'var(--text)':'var(--text-sm)',width:'100%'}} onClick={()=>setShowPosition(showPosition?false:true)}>{position||'선택하세요'}<span style={{position:'absolute',right:14,top:'auto',bottom:14,fontSize:10,color:'var(--text-sm)'}}>▼</span></button>
+                          {showPosition===true&&<div style={{position:'absolute',top:'100%',left:0,right:0,background:'#fff',border:'1.5px solid var(--border)',borderRadius:9,boxShadow:'0 4px 16px rgba(0,0,0,.12)',zIndex:10,overflow:'hidden',marginTop:2,maxHeight:240,overflowY:'auto'}}>
+                            {getPositions(effectiveBuildingId).map(p=>(
+                              <button key={p} onClick={()=>{setPosition(p);setShowPosition(false);}} style={{width:'100%',padding:'11px 14px',border:'none',background:position===p?'var(--blue-l)':'#fff',color:position===p?'var(--blue)':'var(--text)',fontSize:13,fontWeight:position===p?700:500,cursor:'pointer',fontFamily:'inherit',textAlign:'left',borderBottom:'1px solid var(--border-s)'}}>{p}</button>
+                            ))}
+                            <button onClick={()=>{setPosition('');setShowPosition('custom');}} style={{width:'100%',padding:'12px 14px',border:'none',background:'var(--orange-l)',color:'var(--orange)',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit',textAlign:'left',borderTop:'2px solid var(--border)'}}>✏️ 기타 (직접 입력)</button>
+                          </div>}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 

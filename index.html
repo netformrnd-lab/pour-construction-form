@@ -221,10 +221,12 @@ const AUTOCORRECT_DICT={
 function autoCorrectText(text){
   if(!text)return text;
   let result=text;
-  for(const [typo,correct] of Object.entries(AUTOCORRECT_DICT)){
-    if(typo===correct)continue;
-    const regex=new RegExp(typo,'gi');
-    result=result.replace(regex,correct);
+  /* 긴 키워드부터 먼저 교정 (짧은 키가 긴 단어를 오탐하는 것 방지) */
+  const sorted=Object.entries(AUTOCORRECT_DICT).filter(([k,v])=>k!==v).sort((a,b)=>b[0].length-a[0].length);
+  for(const [typo,correct] of sorted){
+    /* 이미 교정된 결과와 동일하면 건너뛰기 */
+    if(result.includes(correct))continue;
+    result=result.split(typo).join(correct);
   }
   return result;
 }
@@ -873,11 +875,21 @@ function MemoTextarea({value,onChange,placeholder,minHeight=600,onDoodleToggle,d
       idxRef.current=histRef.current.length-1;
     },400);
   },[]);
+  const acTimerRef=useRef(null);
   const handleChange=useCallback((e)=>{
     const v=e.target.value;onChange(v);push(v);
+    /* 입력 일시정지 800ms 후 자동교정 */
+    clearTimeout(acTimerRef.current);
+    acTimerRef.current=setTimeout(()=>{
+      if(typeof autoCorrectText==='function'){
+        const corrected=autoCorrectText(v);
+        if(corrected!==v){onChange(corrected);push(corrected);}
+      }
+    },800);
   },[onChange,push]);
-  /* 포커스 벗어날 때 오타 자동교정 */
+  /* 포커스 벗어날 때도 즉시 교정 */
   const handleBlur=useCallback(()=>{
+    clearTimeout(acTimerRef.current);
     if(typeof autoCorrectText==='function'){
       const corrected=autoCorrectText(value);
       if(corrected!==value){onChange(corrected);push(corrected);}
@@ -3321,6 +3333,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                           <textarea className="note-input" rows="1" value={ntCompany}
                             onFocus={e=>{e.target.dataset.focused=Date.now();}}
                             onChange={e=>{const v=e.target.value.replace(/\n/g,'');const f=parseInt(e.target.dataset.focused||0);if(Date.now()-f<300&&!ntCompany&&v==='.')return;setNtCompany(v);}}
+                            onBlur={()=>{if(typeof autoCorrectText==="function"){const c=autoCorrectText(ntCompany);if(c!==ntCompany)setNtCompany(c);}}}
                             style={{fontSize:18,padding:'14px 44px 14px 14px',minHeight:56,resize:'none',lineHeight:1.4,width:'100%',boxSizing:'border-box'}}
                             placeholder="펜슬로 필기하세요"/>
                           {ntCompany&&<button onClick={()=>setNtCompany(v=>v.slice(0,-1))}
@@ -3346,6 +3359,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                           <textarea className="note-input" rows="1" value={ntName}
                             onFocus={e=>{e.target.dataset.focused=Date.now();}}
                             onChange={e=>{const v=e.target.value.replace(/\n/g,'');const f=parseInt(e.target.dataset.focused||0);if(Date.now()-f<300&&!ntName&&v==='.')return;setNtName(v);}}
+                            onBlur={()=>{if(typeof autoCorrectText==="function"){const c=autoCorrectText(ntName);if(c!==ntName)setNtName(c);}}}
                             style={{fontSize:18,padding:'14px 44px 14px 14px',minHeight:56,resize:'none',lineHeight:1.4,width:'100%',boxSizing:'border-box'}}
                             placeholder="펜슬로 필기"/>
                           {ntName&&<button onClick={()=>setNtName(v=>v.slice(0,-1))}
@@ -3410,6 +3424,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                           <textarea className="note-input" rows="1" value={ntAddress}
                             onFocus={e=>{e.target.dataset.focused=Date.now();}}
                             onChange={e=>{const v=e.target.value.replace(/\n/g,'');setNtAddress(v);}}
+                            onBlur={()=>{if(typeof autoCorrectText==="function"){const c=autoCorrectText(ntAddress);if(c!==ntAddress)setNtAddress(c);}}}
                             style={{fontSize:16,padding:'14px 44px 14px 14px',minHeight:50,resize:'none',lineHeight:1.4,width:'100%',boxSizing:'border-box'}}
                             placeholder="서울시 강남구..."/>
                           {ntAddress&&<button onClick={()=>setNtAddress(v=>v.slice(0,-1))}

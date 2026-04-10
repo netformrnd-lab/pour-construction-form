@@ -2405,6 +2405,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [ntQuickSms,setNtQuickSms]=useState(false);
   const [ntSmsText,setNtSmsText]=useState('');
   const [ntSmsSending,setNtSmsSending]=useState(false);
+  const [ntSmsLinks,setNtSmsLinks]=useState([]);
+  const [ntSelectedLinks,setNtSelectedLinks]=useState([]);
 
   const ntToggleSec=sec=>setNtOpenSec(p=>{const n=new Set(p);n.has(sec)?n.delete(sec):n.add(sec);return n;});
   const ntHasData=()=>!!(ntName||ntCompany||ntPhone||ntEmail||ntMemo||ntInterests.length||ntContact.length||ntBizCard?.front);
@@ -2945,16 +2947,37 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
         <div className="note-sheet" onClick={e=>e.stopPropagation()}>
 
             {ntDone?(
-              <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'32px 20px 40px'}}>
+              <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',padding:'24px 20px 40px',overflowY:'auto'}}>
                 <div style={{fontSize:44,marginBottom:10}}>✅</div>
                 <div style={{fontSize:17,fontWeight:800,color:'var(--text)',marginBottom:4}}>영업 메모 저장됐어요!</div>
-                <div style={{fontSize:13,color:'var(--text-sm)',marginBottom:20}}>{ntName}님 · {staffName} · {staffDay}</div>
+                <div style={{fontSize:13,color:'var(--text-sm)',marginBottom:16}}>{ntName}님 · {staffName} · {staffDay}</div>
+
                 {!ntQuickSms?(
-                  <div style={{display:'flex',flexDirection:'column',gap:10,width:'100%',maxWidth:300}}>
+                  <div style={{display:'flex',flexDirection:'column',gap:10,width:'100%',maxWidth:340}}>
                     {ntPhone&&loadSolapiConfig().workerUrl&&(
-                      <button onClick={()=>{const tpls=loadSmsTemplates();const vars={name:ntName,building:building?.label||'-',problem:problem?.label||'-',staff:staffName,phone:ntPhone,company:ntCompany,position:ntPosition,buildingType:building?.label||'-',datetime:dateStr};setNtSmsText(fillTemplate(tpls.customerThank,vars));setNtQuickSms(true);}}
-                        style={{padding:'14px 20px',borderRadius:12,border:'none',background:'var(--blue)',color:'#fff',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>
-                        💬 바로 문자 보내기
+                      <button onClick={()=>{
+                        /* 문자 멘트 자동 생성 — 2차 액션 + 제안서/가이드 포함 */
+                        let msg=`${ntName}님, POUR솔루션 상담 감사합니다.`;
+                        if(ntNextActions.length>0){
+                          const docs=ntNextActions.filter(a=>!a.startsWith('방문'));
+                          const visit=ntNextActions.find(a=>a.startsWith('방문'));
+                          if(docs.length>0)msg+=`\n\n요청하신 ${docs.join(', ')} 보내드리겠습니다.`;
+                          if(visit)msg+=`\n${visit} 드리겠습니다.`;
+                        }else{msg+='\n맞춤 자료를 보내드리겠습니다.';}
+                        /* 제안서/가이드 링크 자동 첨부 */
+                        const autoLinks=[];
+                        if(problem?.proposalUrl)autoLinks.push({label:'제안서',url:problem.proposalUrl});
+                        if(problem?.specUrl)autoLinks.push({label:'시방서',url:problem.specUrl});
+                        if(problem?.guideId){const g=GUIDES.find(x=>x.id===problem.guideId);if(g)autoLinks.push({label:'시공가이드',url:'https://www.poursolution.net/'+problem.guideId});}
+                        if(problem?.caseUrl)autoLinks.push({label:'시공사례',url:problem.caseUrl});
+                        setNtSmsLinks(autoLinks);setNtSelectedLinks(autoLinks.map((_,i)=>i));
+                        if(autoLinks.length>0){msg+='\n\n📎 자료 링크:';}
+                        autoLinks.forEach((l,i)=>{msg+=`\n${l.label}: ${l.url}`;});
+                        msg+=`\n\n문의 1577-6587`;
+                        setNtSmsText(msg);setNtQuickSms(true);
+                      }}
+                        style={{padding:'16px 20px',borderRadius:12,border:'none',background:'var(--blue)',color:'#fff',fontSize:15,fontWeight:800,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+                        💬 고객에게 발송하기
                       </button>
                     )}
                     <button onClick={ntResetAndClose}
@@ -2963,20 +2986,68 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     </button>
                   </div>
                 ):(
-                  <div style={{width:'100%',maxWidth:360,padding:'0 10px'}}>
-                    <div style={{fontSize:13,fontWeight:700,color:'var(--text)',marginBottom:6}}>수신: <span style={{color:'var(--blue)'}}>{ntPhone}</span> ({ntName})</div>
+                  <div style={{width:'100%',maxWidth:400,padding:'0 10px'}}>
+                    <div style={{fontSize:13,fontWeight:700,color:'var(--text)',marginBottom:10}}>수신: <span style={{color:'var(--blue)'}}>{ntPhone}</span> ({ntName})</div>
+
+                    {/* 자료 링크 선택 */}
+                    {ntSmsLinks.length>0&&(
+                      <div style={{marginBottom:12,padding:'10px 14px',background:'var(--blue-l)',borderRadius:10,border:'1px solid var(--blue-m)'}}>
+                        <div style={{fontSize:11,fontWeight:700,color:'var(--blue)',marginBottom:6}}>📎 첨부할 자료 선택</div>
+                        <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                          {ntSmsLinks.map((l,i)=>{
+                            const sel=ntSelectedLinks.includes(i);
+                            return(
+                              <label key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 8px',borderRadius:8,background:sel?'#fff':'transparent',cursor:'pointer',fontSize:12}}>
+                                <input type="checkbox" checked={sel} onChange={()=>{
+                                  const next=sel?ntSelectedLinks.filter(x=>x!==i):[...ntSelectedLinks,i];
+                                  setNtSelectedLinks(next);
+                                  /* 문자 멘트 재생성 */
+                                  let msg=`${ntName}님, POUR솔루션 상담 감사합니다.`;
+                                  if(ntNextActions.length>0){
+                                    const docs=ntNextActions.filter(a=>!a.startsWith('방문'));
+                                    const visit=ntNextActions.find(a=>a.startsWith('방문'));
+                                    if(docs.length>0)msg+=`\n\n요청하신 ${docs.join(', ')} 보내드리겠습니다.`;
+                                    if(visit)msg+=`\n${visit} 드리겠습니다.`;
+                                  }else{msg+='\n맞춤 자료를 보내드리겠습니다.';}
+                                  const selectedLinks=next.map(idx=>ntSmsLinks[idx]);
+                                  if(selectedLinks.length>0){msg+='\n\n📎 자료 링크:';selectedLinks.forEach(sl=>{msg+=`\n${sl.label}: ${sl.url}`;});}
+                                  msg+=`\n\n문의 1577-6587`;
+                                  setNtSmsText(msg);
+                                }} style={{accentColor:'var(--blue)'}}/>
+                                <span style={{fontWeight:600,color:sel?'var(--blue)':'var(--text-md)'}}>{l.label}</span>
+                                <span style={{flex:1,fontSize:10,color:'var(--text-sm)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{l.url.slice(0,40)}...</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                        <button onClick={()=>{
+                          /* 다른 공법 자료 추가 */
+                          const others=ALL_PROBLEMS.filter(p=>p.proposalUrl||p.specUrl);
+                          const names=others.map((p,i)=>`${i+1}. ${p.label}`).join('\n');
+                          const choice=prompt(`추가할 공법 번호:\n\n${names}`);
+                          if(!choice)return;const idx=parseInt(choice)-1;
+                          if(isNaN(idx)||idx<0||idx>=others.length)return;
+                          const p=others[idx];const newLinks=[...ntSmsLinks];
+                          if(p.proposalUrl)newLinks.push({label:p.label+' 제안서',url:p.proposalUrl});
+                          if(p.specUrl)newLinks.push({label:p.label+' 시방서',url:p.specUrl});
+                          setNtSmsLinks(newLinks);
+                          setNtSelectedLinks([...ntSelectedLinks,...newLinks.slice(ntSmsLinks.length).map((_,i2)=>ntSmsLinks.length+i2)]);
+                        }} style={{marginTop:6,padding:'5px 12px',borderRadius:8,border:'1px dashed var(--blue)',background:'transparent',fontSize:11,fontWeight:700,color:'var(--blue)',cursor:'pointer',fontFamily:'inherit'}}>+ 다른 공법 자료 추가</button>
+                      </div>
+                    )}
+
                     <textarea value={ntSmsText} onChange={e=>setNtSmsText(e.target.value)}
-                      style={{width:'100%',minHeight:120,padding:'14px 16px',borderRadius:10,border:'1.5px solid var(--border)',fontSize:16,lineHeight:1.7,color:'var(--text)',fontFamily:'inherit',resize:'vertical',outline:'none',boxSizing:'border-box'}}
+                      style={{width:'100%',minHeight:140,padding:'14px 16px',borderRadius:10,border:'1.5px solid var(--border)',fontSize:14,lineHeight:1.7,color:'var(--text)',fontFamily:'inherit',resize:'vertical',outline:'none',boxSizing:'border-box'}}
                       placeholder="펜슬로 수정 가능"/>
                     <div style={{fontSize:10,color:'var(--text-sm)',margin:'6px 0 12px'}}>{ntSmsText.length}자 {ntSmsText.length>90?'(LMS)':'(SMS)'}</div>
                     <div style={{display:'flex',gap:10}}>
                       <button onClick={ntResetAndClose}
-                        style={{flex:1,padding:'12px 0',borderRadius:10,border:'1.5px solid var(--border)',background:'var(--bg)',fontSize:13,fontWeight:700,color:'var(--text-md)',cursor:'pointer',fontFamily:'inherit'}}>
+                        style={{flex:1,padding:'14px 0',borderRadius:10,border:'1.5px solid var(--border)',background:'var(--bg)',fontSize:13,fontWeight:700,color:'var(--text-md)',cursor:'pointer',fontFamily:'inherit'}}>
                         건너뛰기
                       </button>
                       <button onClick={async()=>{if(!ntPhone)return;setNtSmsSending(true);const r=await sendSMS(ntPhone,ntSmsText);setNtSmsSending(false);if(r.success){setNtQuickSms(false);ntResetAndClose();}else{alert('발송 실패: '+(typeof r.error==='string'?r.error:JSON.stringify(r.error)));}}} disabled={ntSmsSending}
-                        style={{flex:2,padding:'12px 0',borderRadius:10,border:'none',background:'var(--blue)',fontSize:14,fontWeight:800,color:'#fff',cursor:'pointer',fontFamily:'inherit',opacity:ntSmsSending?0.6:1}}>
-                        {ntSmsSending?'발송 중...':'발송하기'}
+                        style={{flex:2,padding:'14px 0',borderRadius:10,border:'none',background:'var(--blue)',fontSize:15,fontWeight:800,color:'#fff',cursor:'pointer',fontFamily:'inherit',opacity:ntSmsSending?0.6:1}}>
+                        {ntSmsSending?'발송 중...':'📩 고객에게 발송하기'}
                       </button>
                     </div>
                   </div>

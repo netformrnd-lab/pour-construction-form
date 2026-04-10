@@ -82,12 +82,57 @@ textarea.form-input{resize:vertical;min-height:60px;}
 @keyframes bounce{to{opacity:.3;transform:translateY(-4px);}}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 .fade-in{animation:fadeIn .3s ease;}
+
+/* 탭 네비게이션 */
+.tab-nav{display:flex;gap:0;margin-bottom:24px;background:var(--card);border-radius:14px;border:1.5px solid var(--border);overflow:hidden;}
+.tab-btn{flex:1;padding:14px 0;font-size:14px;font-weight:700;border:none;background:none;cursor:pointer;font-family:inherit;color:var(--text-md);transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px;}
+.tab-btn.active{background:var(--blue);color:#fff;}
+
+/* 갤러리 필터 */
+.filter-row{margin-bottom:14px;}
+.filter-label{font-size:11px;font-weight:700;color:var(--text-sm);margin-bottom:8px;}
+.filter-chips{display:flex;gap:6px;flex-wrap:wrap;}
+.filter-chip{padding:6px 14px;border-radius:20px;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;background:#fff;color:var(--text-md);box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.filter-chip.active{background:var(--blue);color:#fff;box-shadow:none;}
+
+/* 갤러리 그리드 */
+.gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
+.gallery-card{background:var(--card);border-radius:12px;border:1px solid var(--border);overflow:hidden;cursor:pointer;transition:box-shadow .2s;}
+.gallery-card:active{box-shadow:0 4px 16px rgba(0,0,0,.12);}
+.gallery-thumb{height:140px;overflow:hidden;background:var(--bg);display:flex;align-items:center;justify-content:center;}
+.gallery-thumb img{width:100%;height:100%;object-fit:cover;}
+.gallery-info{padding:10px 12px;}
+.gallery-label{font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:4px;}
+.gallery-tags{display:flex;gap:4px;flex-wrap:wrap;}
+.gallery-tag{padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;}
+
+/* 그룹 헤더 */
+.group-header{display:flex;align-items:center;gap:8px;margin-bottom:12px;margin-top:20px;}
+.group-header:first-child{margin-top:0;}
+.group-badge{padding:4px 12px;border-radius:8px;background:var(--blue-l);color:var(--blue);font-size:12px;font-weight:700;}
+.group-count{font-size:12px;color:var(--text-sm);}
+
+/* 라이트박스 */
+.lightbox{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.9);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;}
+.lightbox img{max-width:92vw;max-height:75vh;border-radius:12px;object-fit:contain;}
+.lightbox-caption{color:#fff;text-align:center;margin-top:16px;font-size:14px;font-weight:600;}
+.lightbox-sub{color:rgba(255,255,255,.6);font-size:12px;margin-top:4px;}
+.lightbox-close{position:absolute;top:16px;right:16px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.lightbox-nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.lightbox-nav.prev{left:12px;}
+.lightbox-nav.next{right:12px;}
+.lightbox-counter{position:absolute;top:20px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.5);font-size:13px;font-weight:600;}
+
+/* 빈 상태 */
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-sm);}
+.empty-icon{font-size:48px;margin-bottom:12px;}
+.empty-title{font-size:14px;font-weight:600;margin-bottom:6px;color:var(--text-md);}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const {useState,useRef}=React;
+const {useState,useEffect,useMemo,useRef}=React;
 
 /* ── 설정 ── */
 const CLAUDE_PROXY_URL=localStorage.getItem('claudeProxyUrl')||'';
@@ -107,7 +152,146 @@ const SYSTEM_PROMPT=`당신은 건축물 하자진단 전문가입니다. 사용
 
 반드시 유효한 JSON만 응답하세요. 설명이나 추가 텍스트 없이 JSON만 반환하세요.`;
 
+/* ══════════════════════════════════════════════════════════════
+   하자사진 갤러리 — defect-photos 컬렉션 필터링 뷰 (영업용)
+   ══════════════════════════════════════════════════════════════ */
+function DefectGallery(){
+  const [photos,setPhotos]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [selMethod,setSelMethod]=useState('전체');
+  const [selDefect,setSelDefect]=useState('전체');
+  const [lightbox,setLightbox]=useState(null);
+
+  useEffect(()=>{
+    (async()=>{
+      setLoading(true);
+      try{
+        const snap=await db.collection('defect-photos').get();
+        const arr=[];snap.forEach(doc=>arr.push({id:doc.id,...doc.data()}));
+        arr.sort((a,b)=>(a.method||'').localeCompare(b.method||'')||(a.defectType||'').localeCompare(b.defectType||'')||(a.label||'').localeCompare(b.label||''));
+        console.log(`[gallery] ${arr.length}건 로드`);
+        setPhotos(arr);
+      }catch(e){console.error('[gallery] 로드 실패:',e);}
+      setLoading(false);
+    })();
+  },[]);
+
+  const methodsWithData=useMemo(()=>{const s=new Set();photos.forEach(p=>{if(p.method)s.add(p.method);});return [...s].sort();},[photos]);
+  const defectsForMethod=useMemo(()=>{
+    const sub=selMethod==='전체'?photos:photos.filter(p=>p.method===selMethod);
+    const s=new Set();sub.forEach(p=>{if(p.defectType)s.add(p.defectType);});return [...s].sort();
+  },[photos,selMethod]);
+
+  const filtered=useMemo(()=>photos.filter(p=>{
+    if(selMethod!=='전체'&&p.method!==selMethod)return false;
+    if(selDefect!=='전체'&&p.defectType!==selDefect)return false;
+    return true;
+  }),[photos,selMethod,selDefect]);
+
+  const grouped=useMemo(()=>{
+    const map={};filtered.forEach(p=>{const k=p.defectType||'미분류';if(!map[k])map[k]=[];map[k].push(p);});
+    return Object.entries(map).sort(([a],[b])=>a.localeCompare(b));
+  },[filtered]);
+
+  /* 라이트박스 */
+  const lbIdx=lightbox?filtered.findIndex(p=>p.id===lightbox.id):-1;
+  const lbPrev=lbIdx>0?filtered[lbIdx-1]:null;
+  const lbNext=lbIdx<filtered.length-1?filtered[lbIdx+1]:null;
+
+  return(
+    <div className="fade-in">
+      {/* 라이트박스 */}
+      {lightbox&&(
+        <div className="lightbox" onClick={()=>setLightbox(null)}>
+          <div className="lightbox-counter">{lbIdx+1} / {filtered.length}</div>
+          <button className="lightbox-close" onClick={()=>setLightbox(null)}>✕</button>
+          {lbPrev&&<button className="lightbox-nav prev" onClick={e=>{e.stopPropagation();setLightbox(lbPrev);}}>‹</button>}
+          {lbNext&&<button className="lightbox-nav next" onClick={e=>{e.stopPropagation();setLightbox(lbNext);}}>›</button>}
+          <div onClick={e=>e.stopPropagation()}>
+            <img src={lightbox.imageUrl} alt={lightbox.label}/>
+            <div className="lightbox-caption">{lightbox.label}</div>
+            <div className="lightbox-sub">{lightbox.method} · {lightbox.defectType}</div>
+          </div>
+        </div>
+      )}
+
+      {/* 필터: 공법 */}
+      {methodsWithData.length>0&&(
+        <div className="filter-row">
+          <div className="filter-label">공법 선택</div>
+          <div className="filter-chips">
+            <button className={`filter-chip ${selMethod==='전체'?'active':''}`} onClick={()=>{setSelMethod('전체');setSelDefect('전체');}}>전체</button>
+            {methodsWithData.map(m=><button key={m} className={`filter-chip ${selMethod===m?'active':''}`} onClick={()=>{setSelMethod(m);setSelDefect('전체');}}>{m.replace('POUR ','').replace(' 공법','')}</button>)}
+          </div>
+        </div>
+      )}
+
+      {/* 필터: 하자유형 */}
+      {defectsForMethod.length>0&&(
+        <div className="filter-row">
+          <div className="filter-label">하자유형</div>
+          <div className="filter-chips">
+            <button className={`filter-chip ${selDefect==='전체'?'active':''}`} onClick={()=>setSelDefect('전체')}>전체 ({(selMethod==='전체'?photos:photos.filter(p=>p.method===selMethod)).length})</button>
+            {defectsForMethod.map(d=>{
+              const cnt=(selMethod==='전체'?photos:photos.filter(p=>p.method===selMethod)).filter(p=>p.defectType===d).length;
+              return <button key={d} className={`filter-chip ${selDefect===d?'active':''}`} onClick={()=>setSelDefect(d)}>{d} ({cnt})</button>;
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 콘텐츠 */}
+      {loading?(
+        <div className="empty-state"><div className="loading-dots"><span style={{background:'var(--blue)'}}/><span style={{background:'var(--blue)'}}/><span style={{background:'var(--blue)'}}/></div></div>
+      ):filtered.length===0?(
+        <div className="empty-state">
+          <div className="empty-icon">📷</div>
+          <div className="empty-title">등록된 하자사진이 없습니다</div>
+          <div>관리센터에서 사진을 등록하세요</div>
+        </div>
+      ):selDefect!=='전체'?(
+        <div className="gallery-grid">
+          {filtered.map(p=>(
+            <div key={p.id} className="gallery-card" onClick={()=>setLightbox(p)}>
+              <div className="gallery-thumb">{p.imageUrl?<img src={p.imageUrl} alt={p.label}/>:<span style={{color:'var(--text-sm)',fontSize:12}}>이미지 없음</span>}</div>
+              <div className="gallery-info">
+                <div className="gallery-label">{p.label||'무제'}</div>
+                <div className="gallery-tags">
+                  <span className="gallery-tag" style={{background:'var(--blue-l)',color:'var(--blue)'}}>{p.defectType}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ):(
+        grouped.map(([defectType,items])=>(
+          <div key={defectType}>
+            <div className="group-header">
+              <span className="group-badge">{defectType}</span>
+              <span className="group-count">{items.length}장</span>
+            </div>
+            <div className="gallery-grid">
+              {items.map(p=>(
+                <div key={p.id} className="gallery-card" onClick={()=>setLightbox(p)}>
+                  <div className="gallery-thumb">{p.imageUrl?<img src={p.imageUrl} alt={p.label}/>:<span style={{color:'var(--text-sm)',fontSize:12}}>이미지 없음</span>}</div>
+                  <div className="gallery-info">
+                    <div className="gallery-label">{p.label||'무제'}</div>
+                    <div className="gallery-tags">
+                      <span className="gallery-tag" style={{background:'var(--blue-l)',color:'var(--blue)'}}>{p.defectType}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
 function App(){
+  const [tab,setTab]=useState('gallery'); // gallery | diagnosis
   const [photos,setPhotos]=useState([]);
   const [analyzing,setAnalyzing]=useState(false);
   const [result,setResult]=useState(null);
@@ -246,10 +430,22 @@ function App(){
       <div className="header">
         <div className="header-left">
           <div className="header-logo">POUR<span>solution</span></div>
-          <div className="header-badge">AI 하자진단</div>
+          <div className="header-badge">{tab==='gallery'?'하자사진':'AI 하자진단'}</div>
         </div>
         <button onClick={()=>setSettingsOpen(!settingsOpen)} style={{background:'none',border:'none',fontSize:20,cursor:'pointer'}}>⚙️</button>
       </div>
+
+      {/* 탭 네비게이션 */}
+      <div className="tab-nav">
+        <button className={`tab-btn ${tab==='gallery'?'active':''}`} onClick={()=>setTab('gallery')}>📷 하자사진</button>
+        <button className={`tab-btn ${tab==='diagnosis'?'active':''}`} onClick={()=>setTab('diagnosis')}>🤖 AI 진단</button>
+      </div>
+
+      {/* 갤러리 탭 */}
+      {tab==='gallery'&&<DefectGallery/>}
+
+      {/* 진단 탭 */}
+      {tab==='diagnosis'&&<>
 
       {/* 설정 패널 */}
       {settingsOpen&&(
@@ -364,6 +560,8 @@ function App(){
           <button className="btn btn-blue" onClick={saveReport} disabled={saving}>{saving?'저장 중...':'💾 진단 리포트 저장'}</button>
         </div>
       )}
+
+      </>}
     </div>
   );
 }

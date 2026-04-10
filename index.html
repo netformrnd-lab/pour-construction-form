@@ -133,7 +133,7 @@ body.media-viewer-open .fab-wrap{display:none !important;}
 .fab{width:60px;height:60px;border-radius:18px;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;transition:transform .13s,box-shadow .13s;font-family:inherit;}
 .fab:active{transform:scale(.91);}
 .fab-new{background:#2563EB;color:#fff;box-shadow:0 4px 18px rgba(37,99,235,.5);}
-.fab-memo{background:#6D28D9;color:#fff;box-shadow:0 4px 18px rgba(109,40,217,.4);}
+.fab-memo{background:#0B1D3A;color:#fff;box-shadow:0 4px 18px rgba(11,29,58,.5);}
 .fab-icon{font-size:19px;line-height:1;}
 .fab-label{font-size:9px;font-weight:800;letter-spacing:.02em;margin-top:1px;}
 .btn-back{width:40px;height:40px;border-radius:50%;border:none;background:rgba(255,255,255,.1);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .14s;flex-shrink:0;}
@@ -6227,15 +6227,18 @@ function App(){
             </div>
           )}
           <button className="fab fab-memo"
-            onClick={()=>{if(fabMenu){setFabMenu(false);}else{setGlobalNote(true);}}}
-            onContextMenu={e=>{e.preventDefault();setFabMenu(!fabMenu);}}
+            onClick={()=>{
+              /* 롱프레스 직후면 무시 */
+              if(window._fabLongPressed){window._fabLongPressed=false;return;}
+              if(fabMenu){setFabMenu(false);}else{setGlobalNote(true);}
+            }}
+            onContextMenu={e=>{e.preventDefault();setFabMenu(v=>!v);}}
             onTouchStart={e=>{
-              const t=setTimeout(()=>{setFabMenu(!fabMenu);e.target._longPressed=true;},500);
-              e.target._longPressTimer=t;
+              window._fabLongPressed=false;
+              window._fabTimer=setTimeout(()=>{window._fabLongPressed=true;setFabMenu(v=>!v);},500);
             }}
             onTouchEnd={e=>{
-              clearTimeout(e.target._longPressTimer);
-              if(e.target._longPressed){e.target._longPressed=false;e.preventDefault();}
+              clearTimeout(window._fabTimer);
             }}
             title="탭: 메모 / 길게 누르기: 메뉴"
             style={{width:60,height:60,borderRadius:18,position:'relative'}}>

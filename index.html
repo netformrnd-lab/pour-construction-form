@@ -843,6 +843,31 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
 .defect-photo-grid-enter{
   animation:defectFadeSlideIn .28s cubic-bezier(.22,.68,0,1.2) both;
 }
+/* ── 마인드맵 브랜치 ── */
+@keyframes branchLineGrow{
+  from{transform:scaleY(0);opacity:0;}
+  to{transform:scaleY(1);opacity:1;}
+}
+@keyframes branchItemSlide{
+  from{opacity:0;transform:translateX(-14px);}
+  to{opacity:1;transform:translateX(0);}
+}
+/* ── 사진 퇴장 ── */
+@keyframes photoExit{
+  from{opacity:1;transform:translateY(0) scale(1);}
+  to{opacity:0;transform:translateY(-8px) scale(.97);}
+}
+.branch-root{
+  transform-origin:top center;
+  animation:branchLineGrow .2s cubic-bezier(.22,.68,0,1.2) both;
+}
+.branch-item{
+  animation:branchItemSlide .22s cubic-bezier(.22,.68,0,1.2) both;
+}
+.photo-grid-exit .defect-photo-card{
+  animation:photoExit .14s ease-in both!important;
+  pointer-events:none;
+}
 </style>
 </head>
 <body>
@@ -1564,20 +1589,47 @@ const METHOD_CONDITIONS={
   ]},
 };
 
-// ── 하자 유형 상수 (필터 칩 및 어드민 드롭다운 공용) ──
-const DEFECT_TYPES=[
-  {id:'all',label:'전체'},
-  {id:'탈낙',label:'탈낙'},
-  {id:'부식',label:'부식'},
-  {id:'누수',label:'누수'},
-  {id:'균열',label:'균열'},
-  {id:'들뜨',label:'들뜨'},
-  {id:'박리',label:'박리'},
-  {id:'변형',label:'변형'},
-  {id:'녹슬음',label:'녹슬음'},
-  {id:'시공불량',label:'시공불량'},
+/* ══ 대기업 스타일 3단계 분류 체계 ══ */
+const DEFECT_MAJOR=[
+  {id:'누수',label:'누수',icon:'💧'},
+  {id:'균열',label:'균열',icon:'⚡'},
+  {id:'박리/탈낙',label:'박리/탈낙',icon:'🧱'},
+  {id:'부식/녹슬음',label:'부식/녹슬음',icon:'🔩'},
+  {id:'들뜸/변형',label:'들뜸/변형',icon:'📐'},
+  {id:'도장불량',label:'도장불량',icon:'🎨'},
+  {id:'시공불량',label:'시공불량',icon:'🔧'},
+  {id:'기타',label:'기타',icon:'📋'},
+];
+const DEFECT_PART=[
+  {id:'옥상',label:'옥상'},
+  {id:'외벽',label:'외벽'},
+  {id:'지하주차장',label:'지하주차장'},
+  {id:'지붕',label:'지붕'},
+  {id:'발코니',label:'발코니'},
+  {id:'내부',label:'내부'},
+  {id:'바닥',label:'바닥'},
   {id:'기타',label:'기타'},
 ];
+/* ── 하자 태그 로드 / 저장 (Firestore config/defectTags) ── */
+const DEFAULT_DEFECT_TAGS={major:[...DEFECT_MAJOR],part:[...DEFECT_PART]};
+const loadDefectTags=()=>{try{return JSON.parse(localStorage.getItem('pourDefectTags')||'null')||DEFAULT_DEFECT_TAGS;}catch{return DEFAULT_DEFECT_TAGS;}};
+const saveDefectTags=async(tags)=>{
+  try{
+    await db.collection('config').doc('defectTags').set(tags);
+    try{localStorage.setItem('pourDefectTags',JSON.stringify(tags));}catch(e){}
+    console.log('[saveDefectTags] Firestore 저장 완료');
+  }catch(e){console.error('[saveDefectTags] Firestore 저장 실패:',e);throw e;}
+};
+const syncDefectTagsFromFirestore=async(setDefectTags)=>{
+  try{
+    const snap=await db.collection('config').doc('defectTags').get();
+    if(snap.exists){
+      const data=snap.data();
+      try{localStorage.setItem('pourDefectTags',JSON.stringify(data));}catch(e){}
+      if(setDefectTags)setDefectTags(data);
+    }
+  }catch(e){console.error('[syncDefectTags] 로드 실패:',e);}
+};
 
 // ── 원인 카드 데이터 ──
 // keyword: 영업사원 브리핑 키워드, desc: 고객 설명 한 줄
@@ -2719,11 +2771,25 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   },[memoData]);
   const [effectiveBuildingId,setEffectiveBuildingId]=useState(building?.id||null);
   const [casePhotos,setCasePhotos]=useState(()=>loadCasePhotos());
-  useEffect(()=>{syncPhotosFromFirestore(setCasePhotos,null);},[]);
+  const [defectTags,setDefectTags]=useState(()=>loadDefectTags());
+  useEffect(()=>{syncPhotosFromFirestore(setCasePhotos,null);syncDefectTagsFromFirestore(setDefectTags);},[]);
   const [activeDefect,setActiveDefect]=useState('all');
+  const [activePart,setActivePart]=useState('all');
+  const [isPhotoExiting,setIsPhotoExiting]=useState(false);
+  const photoExitTimer=React.useRef(null);
+  useEffect(()=>()=>{if(photoExitTimer.current)clearTimeout(photoExitTimer.current);},[]);
+  const changePhotoFilter=(newDefect,newPart)=>{
+    if(photoExitTimer.current)clearTimeout(photoExitTimer.current);
+    setIsPhotoExiting(true);
+    photoExitTimer.current=setTimeout(()=>{
+      setActiveDefect(newDefect);
+      setActivePart(newPart);
+      setIsPhotoExiting(false);
+    },140);
+  };
   /* problem이 바뀌면 필터 리셋 */
   const prevProblemId=React.useRef(null);
-  if(problem?.id!==prevProblemId.current){prevProblemId.current=problem?.id||null;if(activeDefect!=='all')setActiveDefect('all');}
+  if(problem?.id!==prevProblemId.current){prevProblemId.current=problem?.id||null;if(activeDefect!=='all'){setActiveDefect('all');setActivePart('all');}}
 
   if(externalNote&&!showNote){setShowNote(true);if(onExternalNote)onExternalNote(false);}
 
@@ -3080,47 +3146,112 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
         {/* ── 공법 상세 ── */}
         <>
-            {/* ── 1. 하자 사진 (필터 칩 + 스태거 애니메이션) ── */}
+            {/* ── 1. 하자 사진 (대분류/중분류/소분류 3단계 필터) ── */}
             {(()=>{
               const causeList=(photos?.causes||[]).filter(s=>s);
               const meta=photos?.causeMeta||[];
-              /* 각 사진에 defectType 연결 */
+              /* 각 사진에 3단계 메타데이터 연결 */
               const photosWithMeta=causeList.map((src,i)=>({
                 src,
                 defectType:(meta[i]&&meta[i].defectType)||'',
+                defectPart:(meta[i]&&meta[i].defectPart)||'',
+                defectDetail:(meta[i]&&meta[i].defectDetail)||'',
                 label:(meta[i]&&meta[i].label)||'',
               }));
-              /* 이 공법에 실제 존재하는 하자유형 목록 */
-              const existingTypes=[...new Set(photosWithMeta.map(p=>p.defectType).filter(Boolean))];
-              /* activeDefect는 컴포넌트 레벨 state 사용 (훅 규칙 준수) */
-              const filtered=activeDefect==='all'?photosWithMeta:photosWithMeta.filter(p=>p.defectType===activeDefect);
+              /* 실제 존재하는 대분류(하자유형) 목록 */
+              const existingMajor=[...new Set(photosWithMeta.map(p=>p.defectType).filter(Boolean))];
+              /* 실제 존재하는 중분류(위치) 목록 — 선택된 대분류에 따라 동적 */
+              const photosForMajor=activeDefect==='all'?photosWithMeta:photosWithMeta.filter(p=>p.defectType===activeDefect);
+              const existingParts=[...new Set(photosForMajor.map(p=>p.defectPart).filter(Boolean))];
+              /* 최종 필터링 */
+              let filtered=photosWithMeta;
+              if(activeDefect!=='all')filtered=filtered.filter(p=>p.defectType===activeDefect);
+              if(activePart!=='all')filtered=filtered.filter(p=>p.defectPart===activePart);
+              const chipStyle=(isActive)=>({
+                padding:'5px 13px',borderRadius:20,border:'1.5px solid',
+                borderColor:isActive?'var(--navy)':'var(--border)',
+                background:isActive?'var(--navy)':'var(--card)',
+                color:isActive?'#fff':'var(--text-md)',
+                fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',
+                transition:'all .18s',
+              });
               return(
                 <div style={{marginBottom:16}}>
                   <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>📸 하자 사진</div>
-                  {/* 필터 칩 — 하자유형이 2종 이상일 때만 표시 */}
-                  {existingTypes.length>=2&&(
-                    <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:10}}>
-                      {[{id:'all',label:'전체'},...DEFECT_TYPES.filter(d=>d.id!=='all'&&existingTypes.includes(d.id))].map(dt=>(
-                        <button key={dt.id}
-                          className={`defect-filter-chip${activeDefect===dt.id?' active':''}`}
-                          onClick={()=>setActiveDefect(dt.id)}
-                          style={{
-                            padding:'5px 13px',borderRadius:20,border:'1.5px solid',
-                            borderColor:activeDefect===dt.id?'var(--navy)':'var(--border)',
-                            background:activeDefect===dt.id?'var(--navy)':'var(--card)',
-                            color:activeDefect===dt.id?'#fff':'var(--text-md)',
-                            fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',
-                          }}
-                        >{dt.label}{dt.id!=='all'&&(<span style={{marginLeft:4,opacity:.7,fontSize:10}}>({(photosWithMeta.filter(p=>p.defectType===dt.id)).length})</span>)}</button>
-                      ))}
+                  {/* ── 대분류 필터 (하자 유형) ── */}
+                  {existingMajor.length>=1&&(
+                    <div style={{marginBottom:6}}>
+                      <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:4,opacity:.7}}>하자 유형</div>
+                      <div style={{display:'flex',gap:5,flexWrap:'wrap',marginBottom:4}}>
+                        <button className={`defect-filter-chip${activeDefect==='all'?' active':''}`}
+                          onClick={()=>changePhotoFilter('all','all')}
+                          style={chipStyle(activeDefect==='all')}
+                        >전체 ({photosWithMeta.length})</button>
+                        {(defectTags.major||DEFECT_MAJOR).filter(d=>existingMajor.includes(d.id)).map(dt=>(
+                          <button key={dt.id}
+                            className={`defect-filter-chip${activeDefect===dt.id?' active':''}`}
+                            onClick={()=>changePhotoFilter(dt.id,'all')}
+                            style={chipStyle(activeDefect===dt.id)}
+                          >{dt.icon} {dt.label} ({photosWithMeta.filter(p=>p.defectType===dt.id).length})</button>
+                        ))}
+                      </div>
                     </div>
                   )}
+                  {/* ── 중분류 — 마인드맵 브랜치 ── */}
+                  {existingParts.length>=1&&activeDefect!=='all'&&(
+                    <div className="branch-root"
+                      style={{
+                        marginBottom:10,marginLeft:10,paddingLeft:14,
+                        borderLeft:'2px solid var(--blue)',
+                        boxShadow:'-1px 0 8px rgba(37,99,235,.18)',
+                      }}>
+                      {[
+                        {id:'all',label:'전체',count:photosForMajor.length},
+                        ...(defectTags.part||DEFECT_PART).filter(d=>existingParts.includes(d.id)).map(d=>({
+                          id:d.id,label:d.label,
+                          count:photosForMajor.filter(p=>p.defectPart===d.id).length,
+                        }))
+                      ].map((pt,i)=>{
+                        const isAct=activePart===pt.id;
+                        return(
+                          <div key={pt.id} className="branch-item"
+                            style={{display:'flex',alignItems:'center',marginBottom:5,animationDelay:`${i*55}ms`}}>
+                            <div style={{width:12,height:2,background:isAct?'var(--blue)':'#CBD5E1',flexShrink:0,marginRight:6,transition:'background .15s'}}/>
+                            <button onClick={()=>changePhotoFilter(activeDefect,pt.id)}
+                              style={{
+                                display:'flex',alignItems:'center',gap:5,
+                                padding:'4px 10px',borderRadius:4,
+                                border:`1.5px solid ${isAct?'var(--blue)':'var(--border)'}`,
+                                background:isAct?'var(--navy)':'var(--card)',
+                                color:isAct?'#fff':'var(--text-md)',
+                                fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',
+                                boxShadow:isAct?'0 0 10px rgba(37,99,235,.35)':'none',
+                                letterSpacing:isAct?'.04em':0,
+                                transition:'all .15s',
+                              }}>
+                              <span style={{opacity:.6,fontSize:10,fontWeight:400}}>[</span>
+                              {pt.label}
+                              <span style={{opacity:.6,fontSize:10,fontWeight:400}}>]</span>
+                              <span style={{
+                                padding:'1px 5px',borderRadius:3,
+                                background:isAct?'rgba(255,255,255,.15)':'var(--border-s)',
+                                color:isAct?'rgba(255,255,255,.8)':'var(--text-sm)',
+                                fontSize:10,fontWeight:800,
+                              }}>{pt.count}</span>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {/* ── 사진 그리드 ── */}
                   {causeList.length>0?(
+                    <div className={isPhotoExiting?'photo-grid-exit':''}>
                     <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:6,scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch'}}>
                       {filtered.map((p,i)=>{
                         const origIdx=photosWithMeta.indexOf(p);
                         return(
-                          <div key={activeDefect+'_'+i}
+                          <div key={activeDefect+'_'+activePart+'_'+i}
                             className="defect-photo-card"
                             style={{
                               flex:'0 0 80%',maxWidth:320,scrollSnapAlign:'start',
@@ -3130,29 +3261,32 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                               animationDelay:`${i*60}ms`,
                             }}
                             onClick={()=>{
-                              const allList=photosWithMeta.map(x=>({src:x.src,alt:`하자사진`}));
-                              setZoomPhoto({photos:allList,index:origIdx});
+                              const allList=filtered.map(x=>({src:x.src,alt:'하자사진'}));
+                              setZoomPhoto({photos:allList,index:i});
                             }}
                           >
                             <img src={p.src} alt={`하자사진${origIdx+1}`} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
                             <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'28px 12px 10px',background:'linear-gradient(transparent,rgba(0,0,0,.72))'}}>
                               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                                <span style={{fontSize:11,fontWeight:800,color:'#fff'}}>{origIdx+1}/{causeList.length}</span>
-                                {p.defectType&&(
-                                  <span style={{
-                                    fontSize:10,fontWeight:700,
-                                    background:'rgba(255,255,255,.18)',
-                                    backdropFilter:'blur(6px)',
-                                    color:'#fff',borderRadius:8,
-                                    padding:'2px 8px',letterSpacing:'.03em',
-                                  }}>{p.defectType}{p.label&&` · ${p.label}`}</span>
-                                )}
+                                <span style={{fontSize:11,fontWeight:800,color:'#fff'}}>{i+1}/{filtered.length}</span>
+                                <div style={{display:'flex',gap:4,flexWrap:'wrap',justifyContent:'flex-end'}}>
+                                  {p.defectType&&(
+                                    <span style={{fontSize:9,fontWeight:700,background:'rgba(255,255,255,.18)',backdropFilter:'blur(6px)',color:'#fff',borderRadius:8,padding:'2px 8px',letterSpacing:'.03em'}}>{p.defectType}</span>
+                                  )}
+                                  {p.defectPart&&(
+                                    <span style={{fontSize:9,fontWeight:700,background:'rgba(59,130,246,.35)',backdropFilter:'blur(6px)',color:'#fff',borderRadius:8,padding:'2px 8px',letterSpacing:'.03em'}}>{p.defectPart}</span>
+                                  )}
+                                  {p.defectDetail&&(
+                                    <span style={{fontSize:9,fontWeight:600,background:'rgba(255,255,255,.12)',backdropFilter:'blur(6px)',color:'rgba(255,255,255,.85)',borderRadius:8,padding:'2px 8px'}}>{p.defectDetail}</span>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
                         );
                       })}
                     </div>
+                    </div>{/* /photo-grid-exit wrapper */}
                   ):(
                     <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:6}}>
                       {['','',''].map((_,i)=>(
@@ -5130,6 +5264,8 @@ function AdminScreen({onBack}){
   const [tab,setTab]=useState('stat'); // 'stat' | 'list' | 'photos' | 'sms'
   const [casePhotos,setCasePhotos]=useState(()=>loadCasePhotos());
   const [probPhotos,setProbPhotos]=useState(()=>loadProblemPhotos());
+  const [defectTags,setDefectTags]=useState(()=>loadDefectTags());
+  const [tagSaving,setTagSaving]=useState(false);
   const [search,setSearch]=useState('');
   const [filterDay,setFilterDay]=useState('전체');
   const [filterStaff,setFilterStaff]=useState('전체');
@@ -5166,6 +5302,7 @@ function AdminScreen({onBack}){
       .catch(()=>{})
       .finally(()=>setLoading(false));
     syncPhotosFromFirestore(setCasePhotos,setProbPhotos);
+    syncDefectTagsFromFirestore(setDefectTags);
   },[]);
 
   const staffList=[...new Set(leads.map(l=>l.staff).filter(Boolean))];
@@ -5334,6 +5471,7 @@ function AdminScreen({onBack}){
                     {k:'photos',icon:'📸',title:'사진 관리',sub:'공법별 하자사진 · 미디어'},
                     {k:'sms',icon:'💬',title:'문자 설정',sub:'자동발송 · 템플릿 관리'},
                     {k:'staff',icon:'👤',title:'담당자 관리',sub:'영업직원 추가 · 편집'},
+                    {k:'tags',icon:'🏷',title:'태그 관리',sub:'하자유형 · 하자위치 편집'},
                   ].map(({k,icon,title,sub})=>(
                     <button key={k} onClick={()=>openSettingsTab(k)} style={{padding:'20px 12px',borderRadius:16,border:'2px solid var(--border)',background:'var(--card)',cursor:'pointer',fontFamily:'inherit',display:'flex',flexDirection:'column',alignItems:'center',gap:8,transition:'all .15s'}}
                       onMouseOver={e=>{e.currentTarget.style.borderColor='var(--accent)';e.currentTarget.style.background='var(--blue-l)';}}
@@ -5909,7 +6047,7 @@ function AdminScreen({onBack}){
                               /* causeMeta도 동일하게 순서 변경 */
                               if(up[key].causeMeta&&up[key].causeMeta.length>0){
                                 const mArr=up[key].causeMeta;
-                                while(mArr.length<arr.length)mArr.push({defectType:'',label:''});
+                                while(mArr.length<arr.length)mArr.push({defectType:'',defectPart:'',defectDetail:'',label:''});
                                 const [movedM]=mArr.splice(from.index,1);
                                 mArr.splice(i,0,movedM);
                               }
@@ -5923,24 +6061,57 @@ function AdminScreen({onBack}){
                           onRemove={()=>{const up=JSON.parse(JSON.stringify(casePhotos));up[key].causes.splice(i,1);if(up[key].causeMeta)up[key].causeMeta.splice(i,1);setCasePhotos(up);}}
                         />
 
-                        {/* 하자유형 드롭다운 */}
+                        {/* 대분류: 하자유형 */}
                         <select
                           value={(data.causeMeta&&data.causeMeta[i]&&data.causeMeta[i].defectType)||''}
                           onChange={e=>{
                             const up=JSON.parse(JSON.stringify(casePhotos));
                             if(!up[key])up[key]={causes:[],causeMeta:[]};
                             if(!up[key].causeMeta)up[key].causeMeta=[];
-                            while(up[key].causeMeta.length<=i)up[key].causeMeta.push({defectType:'',label:''});
+                            while(up[key].causeMeta.length<=i)up[key].causeMeta.push({defectType:'',defectPart:'',defectDetail:'',label:''});
                             up[key].causeMeta[i]={...up[key].causeMeta[i],defectType:e.target.value};
                             setCasePhotos(up);
                           }}
                           style={{marginTop:3,width:'100%',padding:'2px 4px',fontSize:10,borderRadius:5,border:'1px solid var(--border)',background:'var(--card)',fontFamily:'inherit',color:'var(--text)',cursor:'pointer'}}
                         >
-                          <option value="">하자유형 선택</option>
-                          {DEFECT_TYPES.filter(d=>d.id!=='all').map(d=>(
+                          <option value="">하자유형</option>
+                          {(defectTags.major||DEFECT_MAJOR).map(d=>(
+                            <option key={d.id} value={d.id}>{d.icon} {d.label}</option>
+                          ))}
+                        </select>
+                        {/* 중분류: 하자위치 */}
+                        <select
+                          value={(data.causeMeta&&data.causeMeta[i]&&data.causeMeta[i].defectPart)||''}
+                          onChange={e=>{
+                            const up=JSON.parse(JSON.stringify(casePhotos));
+                            if(!up[key])up[key]={causes:[],causeMeta:[]};
+                            if(!up[key].causeMeta)up[key].causeMeta=[];
+                            while(up[key].causeMeta.length<=i)up[key].causeMeta.push({defectType:'',defectPart:'',defectDetail:'',label:''});
+                            up[key].causeMeta[i]={...up[key].causeMeta[i],defectPart:e.target.value};
+                            setCasePhotos(up);
+                          }}
+                          style={{marginTop:2,width:'100%',padding:'2px 4px',fontSize:10,borderRadius:5,border:'1px solid var(--border)',background:'var(--card)',fontFamily:'inherit',color:'var(--text)',cursor:'pointer'}}
+                        >
+                          <option value="">하자위치</option>
+                          {(defectTags.part||DEFECT_PART).map(d=>(
                             <option key={d.id} value={d.id}>{d.label}</option>
                           ))}
                         </select>
+                        {/* 소분류: 세부설명 */}
+                        <input
+                          type="text"
+                          placeholder="세부설명"
+                          value={(data.causeMeta&&data.causeMeta[i]&&data.causeMeta[i].defectDetail)||''}
+                          onChange={e=>{
+                            const up=JSON.parse(JSON.stringify(casePhotos));
+                            if(!up[key])up[key]={causes:[],causeMeta:[]};
+                            if(!up[key].causeMeta)up[key].causeMeta=[];
+                            while(up[key].causeMeta.length<=i)up[key].causeMeta.push({defectType:'',defectPart:'',defectDetail:'',label:''});
+                            up[key].causeMeta[i]={...up[key].causeMeta[i],defectDetail:e.target.value};
+                            setCasePhotos(up);
+                          }}
+                          style={{marginTop:2,width:'100%',padding:'2px 4px',fontSize:10,borderRadius:5,border:'1px solid var(--border)',background:'var(--card)',fontFamily:'inherit',color:'var(--text)'}}
+                        />
                       </div>
                     ))}
                     <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:'',gif:''};up[key].causes.push('');setCasePhotos(up);}}
@@ -6148,6 +6319,19 @@ function AdminScreen({onBack}){
         </div>
       )}
 
+      {/* ── 태그 관리 탭 (관리자 전용) ── */}
+      {!loading&&tab==='tags'&&(
+        <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+          <div style={{background:'#1E40AF',padding:'8px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+            <span style={{fontSize:12,fontWeight:700,color:'#fff'}}>🔐 관리자 전용 · 태그 관리</span>
+            <button onClick={()=>setTab('stat')} style={{background:'rgba(255,255,255,.2)',border:'none',borderRadius:6,padding:'5px 12px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>← 나가기</button>
+          </div>
+          <div style={{flex:1,overflowY:'auto',padding:'16px'}}>
+            <TagManagerSection defectTags={defectTags} setDefectTags={setDefectTags} tagSaving={tagSaving} setTagSaving={setTagSaving}/>
+          </div>
+        </div>
+      )}
+
       {/* 상태변경 undo 토스트 */}
       {undoInfo&&(
         <div style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',background:'#1E293B',color:'#fff',borderRadius:14,padding:'12px 18px',display:'flex',alignItems:'center',gap:14,zIndex:4000,boxShadow:'0 8px 28px rgba(0,0,0,.3)',fontSize:13,fontWeight:600,whiteSpace:'nowrap'}}>
@@ -6232,6 +6416,148 @@ function StaffManageTab(){
         ):(
           <button onClick={()=>{setAddMode(true);setEditTarget(null);setInputName('');setInputPhone('');setInputPosition('');}} style={{width:'100%',padding:'12px',borderRadius:12,border:'2px dashed var(--border)',background:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit',color:'var(--accent)'}}>＋ 새 담당자 추가</button>
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ── 태그 관리 섹션 컴포넌트 ── */
+function TagManagerSection({defectTags,setDefectTags,tagSaving,setTagSaving}){
+  /* 편집 state: {type:'major'|'part', idx:number, field:'label'|'icon', value:string} */
+  const [editCell,setEditCell]=useState(null);
+  /* 신규 입력 state */
+  const [newMajorLabel,setNewMajorLabel]=useState('');
+  const [newMajorIcon,setNewMajorIcon]=useState('');
+  const [newPartLabel,setNewPartLabel]=useState('');
+  const [saveMsg,setSaveMsg]=useState(null);
+
+  const handleSave=async()=>{
+    setTagSaving(true);setSaveMsg(null);
+    try{
+      await saveDefectTags(defectTags);
+      setSaveMsg({ok:true,text:'저장 완료! 태블릿에서 새로고침하세요.'});
+    }catch(e){
+      setSaveMsg({ok:false,text:'저장 실패: '+e.message});
+    }finally{setTagSaving(false);}
+  };
+
+  /* 라벨/아이콘 업데이트 */
+  const updateTag=(type,idx,field,val)=>{
+    const next=JSON.parse(JSON.stringify(defectTags));
+    next[type][idx][field]=val;
+    /* id도 label과 동기 (id=label 방식) */
+    if(field==='label')next[type][idx].id=val;
+    setDefectTags(next);
+  };
+  /* 삭제 */
+  const removeTag=(type,idx)=>{
+    const next=JSON.parse(JSON.stringify(defectTags));
+    next[type].splice(idx,1);
+    setDefectTags(next);
+  };
+  /* 추가 */
+  const addMajor=()=>{
+    if(!newMajorLabel.trim())return;
+    const next=JSON.parse(JSON.stringify(defectTags));
+    next.major.push({id:newMajorLabel.trim(),label:newMajorLabel.trim(),icon:newMajorIcon.trim()||'📌'});
+    setDefectTags(next);setNewMajorLabel('');setNewMajorIcon('');
+  };
+  const addPart=()=>{
+    if(!newPartLabel.trim())return;
+    const next=JSON.parse(JSON.stringify(defectTags));
+    next.part.push({id:newPartLabel.trim(),label:newPartLabel.trim()});
+    setDefectTags(next);setNewPartLabel('');
+  };
+
+  const rowStyle={display:'flex',alignItems:'center',gap:8,padding:'8px 10px',borderRadius:8,background:'var(--bg)',marginBottom:6,border:'1px solid var(--border)'};
+  const inputStyle={padding:'4px 8px',borderRadius:6,border:'1.5px solid var(--accent)',fontFamily:'inherit',fontSize:12,background:'#fff',outline:'none'};
+
+  return(
+    <div>
+      <div style={{fontSize:13,color:'var(--text-sm)',marginBottom:16,lineHeight:1.6}}>
+        하자 사진에 붙이는 <b>하자 유형</b>과 <b>하자 위치</b> 태그를 편집합니다.<br/>
+        태그를 수정/삭제해도 <b>이미 저장된 사진의 태그값은 자동 변경되지 않습니다.</b>
+      </div>
+
+      {/* ── 하자 유형 (대분류) ── */}
+      <div style={{background:'var(--card)',borderRadius:12,padding:'16px',border:'1px solid var(--border)',marginBottom:14}}>
+        <div style={{fontSize:13,fontWeight:900,color:'var(--text)',marginBottom:10}}>💧 하자 유형 (대분류)</div>
+        {(defectTags.major||[]).map((d,i)=>(
+          <div key={i} style={rowStyle}>
+            {/* 아이콘 */}
+            {editCell?.type==='major'&&editCell.idx===i&&editCell.field==='icon'?(
+              <input autoFocus value={editCell.value} onChange={e=>setEditCell({...editCell,value:e.target.value})}
+                onBlur={()=>{updateTag('major',i,'icon',editCell.value);setEditCell(null);}}
+                onKeyDown={e=>{if(e.key==='Enter'){updateTag('major',i,'icon',editCell.value);setEditCell(null);}}}
+                style={{...inputStyle,width:48,textAlign:'center'}}/>
+            ):(
+              <span onClick={()=>setEditCell({type:'major',idx:i,field:'icon',value:d.icon||''})}
+                style={{fontSize:18,cursor:'pointer',minWidth:28,textAlign:'center'}} title="클릭하여 아이콘 변경">{d.icon||'📌'}</span>
+            )}
+            {/* 라벨 */}
+            {editCell?.type==='major'&&editCell.idx===i&&editCell.field==='label'?(
+              <input autoFocus value={editCell.value} onChange={e=>setEditCell({...editCell,value:e.target.value})}
+                onBlur={()=>{updateTag('major',i,'label',editCell.value);setEditCell(null);}}
+                onKeyDown={e=>{if(e.key==='Enter'){updateTag('major',i,'label',editCell.value);setEditCell(null);}}}
+                style={{...inputStyle,flex:1}}/>
+            ):(
+              <span onClick={()=>setEditCell({type:'major',idx:i,field:'label',value:d.label})}
+                style={{flex:1,fontSize:13,fontWeight:700,cursor:'pointer',color:'var(--text)'}} title="클릭하여 이름 변경">{d.label}</span>
+            )}
+            <button onClick={()=>removeTag('major',i)}
+              style={{padding:'3px 10px',borderRadius:6,border:'1.5px solid #FCA5A5',background:'#FEF2F2',color:'#DC2626',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>삭제</button>
+          </div>
+        ))}
+        {/* 신규 추가 행 */}
+        <div style={{display:'flex',gap:6,marginTop:8}}>
+          <input value={newMajorIcon} onChange={e=>setNewMajorIcon(e.target.value)} placeholder="🆕"
+            style={{...inputStyle,width:48,textAlign:'center'}}/>
+          <input value={newMajorLabel} onChange={e=>setNewMajorLabel(e.target.value)} placeholder="새 유형 이름"
+            onKeyDown={e=>{if(e.key==='Enter')addMajor();}}
+            style={{...inputStyle,flex:1}}/>
+          <button onClick={addMajor}
+            style={{padding:'5px 14px',borderRadius:8,border:'none',background:'var(--accent)',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>+ 추가</button>
+        </div>
+      </div>
+
+      {/* ── 하자 위치 (중분류) ── */}
+      <div style={{background:'var(--card)',borderRadius:12,padding:'16px',border:'1px solid var(--border)',marginBottom:14}}>
+        <div style={{fontSize:13,fontWeight:900,color:'var(--text)',marginBottom:10}}>📍 하자 위치 (중분류)</div>
+        {(defectTags.part||[]).map((d,i)=>(
+          <div key={i} style={rowStyle}>
+            {editCell?.type==='part'&&editCell.idx===i?(
+              <input autoFocus value={editCell.value} onChange={e=>setEditCell({...editCell,value:e.target.value})}
+                onBlur={()=>{updateTag('part',i,'label',editCell.value);setEditCell(null);}}
+                onKeyDown={e=>{if(e.key==='Enter'){updateTag('part',i,'label',editCell.value);setEditCell(null);}}}
+                style={{...inputStyle,flex:1}}/>
+            ):(
+              <span onClick={()=>setEditCell({type:'part',idx:i,field:'label',value:d.label})}
+                style={{flex:1,fontSize:13,fontWeight:700,cursor:'pointer',color:'var(--text)'}} title="클릭하여 이름 변경">{d.label}</span>
+            )}
+            <button onClick={()=>removeTag('part',i)}
+              style={{padding:'3px 10px',borderRadius:6,border:'1.5px solid #FCA5A5',background:'#FEF2F2',color:'#DC2626',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>삭제</button>
+          </div>
+        ))}
+        {/* 신규 추가 행 */}
+        <div style={{display:'flex',gap:6,marginTop:8}}>
+          <input value={newPartLabel} onChange={e=>setNewPartLabel(e.target.value)} placeholder="새 위치 이름"
+            onKeyDown={e=>{if(e.key==='Enter')addPart();}}
+            style={{...inputStyle,flex:1}}/>
+          <button onClick={addPart}
+            style={{padding:'5px 14px',borderRadius:8,border:'none',background:'var(--accent)',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>+ 추가</button>
+        </div>
+      </div>
+
+      {/* 저장 버튼 */}
+      <div style={{position:'sticky',bottom:0,background:'linear-gradient(transparent,var(--bg) 20%)',padding:'20px 0 10px',zIndex:5}}>
+        {saveMsg&&(
+          <div style={{textAlign:'center',fontSize:12,fontWeight:700,color:saveMsg.ok?'#059669':'#DC2626',marginBottom:8}}>{saveMsg.ok?'✅':'❌'} {saveMsg.text}</div>
+        )}
+        <button onClick={handleSave} disabled={tagSaving}
+          style={{width:'100%',padding:'16px',borderRadius:12,border:'none',background:tagSaving?'#9CA3AF':'var(--accent)',color:'#fff',fontSize:16,fontWeight:900,cursor:tagSaving?'not-allowed':'pointer',fontFamily:'inherit',boxShadow:'0 4px 16px rgba(37,99,235,.3)',transition:'all .2s'}}>
+          {tagSaving?'💾 저장 중...':'💾 수정 완료 — 태블릿에 반영'}
+        </button>
+        <div style={{textAlign:'center',fontSize:11,color:'var(--text-sm)',marginTop:8}}>태그 수정 후 이 버튼을 눌러야 태블릿에 반영됩니다</div>
       </div>
     </div>
   );

@@ -3273,7 +3273,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                       </div>
 
                       {/* 직급 — 선택 또는 기타(직접 입력) */}
-                      {(effectiveBuildingId&&effectiveBuildingId!=='etc'||ntShowPosition||ntPosition)&&(
+                      {(effectiveBuildingId||ntShowPosition||ntPosition)&&(
                         <div style={{position:'relative'}}>
                           <div style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:6}}>💼 직급</div>
                           {ntShowPosition==='custom'?(

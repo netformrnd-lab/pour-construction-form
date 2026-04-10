@@ -4601,6 +4601,7 @@ function AdminScreen({onBack}){
   const [filterStatus,setFilterStatus]=useState('전체');
   const [expanded,setExpanded]=useState(null);
   const [smsTarget,setSmsTarget]=useState(null);
+  const [keywordDetail,setKeywordDetail]=useState(null);
   const [toast,setToast]=useState(null);
   const [showPinChange,setShowPinChange]=useState(false);
   const [undoInfo,setUndoInfo]=useState(null);
@@ -4917,12 +4918,37 @@ function AdminScreen({onBack}){
       {/* ── 키워드 탭 ── */}
       {!loading&&tab==='keyword'&&(
         <div style={{flex:1,overflowY:'auto',padding:'14px'}}>
-          {/* 요약 */}
+          {/* 키워드 상세 모달 */}
+          {keywordDetail&&(
+            <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.6)',zIndex:2000,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}} onClick={()=>setKeywordDetail(null)}>
+              <div style={{background:'#fff',borderRadius:16,padding:20,width:'min(500px,90vw)',maxHeight:'70vh',overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:'0 12px 40px rgba(0,0,0,.25)'}} onClick={e=>e.stopPropagation()}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14,flexShrink:0}}>
+                  <div><div style={{fontSize:16,fontWeight:800}}>{keywordDetail.label}</div><div style={{fontSize:12,color:'var(--text-sm)'}}>{keywordDetail.leads.length}건</div></div>
+                  <button onClick={()=>setKeywordDetail(null)} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:'var(--text-sm)'}}>✕</button>
+                </div>
+                <div style={{overflowY:'auto',flex:1}}>
+                  {keywordDetail.leads.map((l,i)=>(
+                    <div key={l.id||i} style={{padding:'10px 12px',borderBottom:'1px solid var(--border-s)',fontSize:12}}>
+                      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
+                        <span style={{fontWeight:800,fontSize:14}}>{l.name||'이름없음'}</span>
+                        <span style={{color:'var(--text-sm)'}}>{l.phone||''}</span>
+                        <span style={{padding:'2px 8px',borderRadius:6,background:(STATUS_COLOR[l.status||'신규']||'#9CA3AF'),color:'#fff',fontSize:10,fontWeight:700}}>{l.status||'신규'}</span>
+                      </div>
+                      <div style={{color:'var(--text-md)',marginBottom:2}}>🏢 {l.building||'-'} · 👤 {l.staff||'-'} · {l.day||'-'}</div>
+                      {l.memo&&<div style={{color:'var(--text)',background:'var(--bg)',borderRadius:8,padding:'6px 10px',marginTop:4,lineHeight:1.5,fontSize:11,whiteSpace:'pre-wrap'}}>{l.memo.slice(0,200)}{l.memo.length>200?'...':''}</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 요약 카드 */}
           <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:14}}>
             {[
               {label:'문제 키워드',value:byProblem.length+'종',color:'#7C3AED',bg:'#F5F3FF'},
               {label:'자료 요청',value:byAction.length+'종',color:'#D97706',bg:'#FFFBEB'},
-              {label:'지역 입력',value:byRegion.length+'개',color:'#E8780F',bg:'#FFF7ED'},
+              {label:'메모 키워드',value:(()=>{const allM=activeLeads.map(l=>l.memo||'').filter(m=>m.trim()).join(' ');const ws=allM.replace(/[^가-힣a-zA-Z0-9\s]/g,' ').split(/\s+/).filter(w=>w.length>=2);const wm={};ws.forEach(w=>{wm[w]=(wm[w]||0)+1;});return Object.keys(wm).length;})()+'개',color:'#E8780F',bg:'#FFF7ED'},
             ].map(c=>(
               <div key={c.label} style={{background:c.bg,borderRadius:10,padding:'10px 12px',textAlign:'center'}}>
                 <div style={{fontSize:9,fontWeight:700,color:c.color,marginBottom:4}}>{c.label}</div>
@@ -4931,17 +4957,20 @@ function AdminScreen({onBack}){
             ))}
           </div>
 
-          {/* 자주 언급된 문제 키워드 */}
+          {/* 자주 언급된 문제 키워드 — 클릭 시 상세 */}
           <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',marginBottom:10}}>
-            <div style={{fontSize:11,fontWeight:700,color:'#7C3AED',marginBottom:10}}>🔧 자주 언급된 문제 키워드</div>
+            <div style={{fontSize:11,fontWeight:700,color:'#7C3AED',marginBottom:10}}>🔧 자주 언급된 문제 키워드 <span style={{fontWeight:400,fontSize:10,color:'var(--text-sm)'}}>(클릭하면 상담 상세 확인)</span></div>
             {byProblem.length===0
               ?<div style={{fontSize:12,color:'var(--text-sm)',textAlign:'center',padding:'6px 0'}}>0건</div>
               :byProblem.slice(0,10).map(([name,cnt],i)=>{
                 const pct=Math.round(cnt/byProblem[0][1]*100);
                 return(
-                  <div key={name} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                  <div key={name} onClick={()=>{
+                    const matched=activeLeads.filter(l=>{const ps=Array.isArray(l.problems)?l.problems:(l.problem?[l.problem]:[]);return ps.some(p=>p===name);});
+                    setKeywordDetail({label:'🔧 '+name,leads:matched});
+                  }} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,cursor:'pointer',padding:'4px 6px',borderRadius:8,transition:'background .15s'}} onMouseOver={e=>e.currentTarget.style.background='var(--bg)'} onMouseOut={e=>e.currentTarget.style.background='transparent'}>
                     <span style={{fontSize:11,fontWeight:700,color:i<3?'#7C3AED':'var(--text-sm)',width:16,textAlign:'center'}}>{i+1}</span>
-                    <span style={{flex:1,fontSize:11,fontWeight:500,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}</span>
+                    <span style={{flex:1,fontSize:12,fontWeight:600,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{name}</span>
                     <div style={{width:70,height:8,background:'var(--bg)',borderRadius:4,overflow:'hidden',flexShrink:0}}>
                       <div style={{height:'100%',width:pct+'%',background:i<3?'#7C3AED':'#C4B5FD',borderRadius:4}}/>
                     </div>
@@ -4952,17 +4981,81 @@ function AdminScreen({onBack}){
             }
           </div>
 
-          {/* 고객 직급 */}
+          {/* 메모 키워드 분석 — 신규 */}
+          {(()=>{
+            const stopWords=new Set(['의','가','이','은','는','을','를','에','로','으로','와','과','도','만','까지','부터','에서','한','할','하고','있다','없다','된','들','것','수','등','그','더','좀','잘','안','못','또','및','중','후','때','위','위해','대한','통해','관련','대해','합니다','했는데','하다','아주']);
+            const allMemos=activeLeads.map(l=>l.memo||'').filter(m=>m.trim());
+            const allText=allMemos.join(' ');
+            const words=allText.replace(/[^가-힣a-zA-Z0-9\s]/g,' ').split(/\s+/).filter(w=>w.length>=2&&!stopWords.has(w));
+            const wm={};words.forEach(w=>{wm[w]=(wm[w]||0)+1;});
+            const wordRank=Object.entries(wm).sort((a,b)=>b[1]-a[1]);
+
+            const positiveWords=['만족','좋','감사','관심','긍정','원','필요','희망','기대','요청','추천','의뢰','계약','진행','빠른','급'];
+            const negativeWords=['불만','심각','누수','균열','파손','피해','손상','위험','긴급','문제','하자','고장','노후','침수','탈락','벗겨','부식','탈피'];
+            const positiveFound=wordRank.filter(([w])=>positiveWords.some(pw=>w.includes(pw))).slice(0,8);
+            const negativeFound=wordRank.filter(([w])=>negativeWords.some(nw=>w.includes(nw))).slice(0,8);
+            const topKw=wordRank.slice(0,12);
+            const memoRate=activeLeads.length?Math.round(allMemos.length/activeLeads.length*100):0;
+
+            return(
+              <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',marginBottom:10}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+                  <div style={{fontSize:11,fontWeight:700,color:'#E8780F'}}>💬 메모 키워드 분석</div>
+                  <span style={{fontSize:10,color:'var(--text-sm)'}}>메모 작성률 <b style={{color:'#E8780F'}}>{memoRate}%</b> ({allMemos.length}/{activeLeads.length})</span>
+                </div>
+
+                {/* 잦은 키워드 */}
+                <div style={{marginBottom:12}}>
+                  <div style={{fontSize:10,fontWeight:700,color:'var(--text-md)',marginBottom:6}}>🔤 자주 등장하는 키워드</div>
+                  <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+                    {topKw.length===0?<span style={{fontSize:11,color:'var(--text-sm)'}}>메모 없음</span>
+                    :topKw.map(([w,cnt])=>(
+                      <button key={w} onClick={()=>{
+                        const matched=activeLeads.filter(l=>(l.memo||'').includes(w));
+                        setKeywordDetail({label:'🔤 "'+w+'" 언급 상담',leads:matched});
+                      }} style={{padding:'5px 12px',borderRadius:8,background:'var(--bg)',border:'1px solid var(--border)',color:'var(--text)',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:'inherit',transition:'all .15s'}}>
+                        {w} <span style={{color:'var(--text-sm)',fontWeight:800}}>{cnt}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 긍정/부정 */}
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                  <div>
+                    <div style={{fontSize:10,fontWeight:700,color:'#059669',marginBottom:6}}>😊 긍정 키워드</div>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                      {positiveFound.length===0?<span style={{fontSize:10,color:'var(--text-sm)'}}>없음</span>
+                      :positiveFound.map(([w,cnt])=>(
+                        <button key={w} onClick={()=>{const m=activeLeads.filter(l=>(l.memo||'').includes(w));setKeywordDetail({label:'😊 "'+w+'"',leads:m});}} style={{padding:'3px 8px',borderRadius:6,background:'#ECFDF5',border:'none',color:'#059669',fontSize:10,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{w} {cnt}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{fontSize:10,fontWeight:700,color:'#DC2626',marginBottom:6}}>😟 부정/하자 키워드</div>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                      {negativeFound.length===0?<span style={{fontSize:10,color:'var(--text-sm)'}}>없음</span>
+                      :negativeFound.map(([w,cnt])=>(
+                        <button key={w} onClick={()=>{const m=activeLeads.filter(l=>(l.memo||'').includes(w));setKeywordDetail({label:'😟 "'+w+'"',leads:m});}} style={{padding:'3px 8px',borderRadius:6,background:'#FEF2F2',border:'none',color:'#DC2626',fontSize:10,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{w} {cnt}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* 고객 직급 — 클릭 시 상세 */}
           <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',marginBottom:10}}>
-            <div style={{fontSize:11,fontWeight:700,color:'#0891B2',marginBottom:10}}>🪪 상담 대상 직급</div>
+            <div style={{fontSize:11,fontWeight:700,color:'#0891B2',marginBottom:10}}>🪪 상담 대상 직급 <span style={{fontWeight:400,fontSize:10,color:'var(--text-sm)'}}>(클릭하면 상담 확인)</span></div>
             {byPosition.length===0
               ?<div style={{fontSize:12,color:'var(--text-sm)',textAlign:'center',padding:'6px 0'}}>0건</div>
               :byPosition.map(([pos,cnt],i)=>{
                 const pct=Math.round(cnt/byPosition[0][1]*100);
                 return(
-                  <div key={pos} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                  <div key={pos} onClick={()=>{const m=activeLeads.filter(l=>l.position===pos);setKeywordDetail({label:'🪪 '+pos,leads:m});}} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,cursor:'pointer',padding:'4px 6px',borderRadius:8,transition:'background .15s'}} onMouseOver={e=>e.currentTarget.style.background='var(--bg)'} onMouseOut={e=>e.currentTarget.style.background='transparent'}>
                     <span style={{fontSize:11,fontWeight:700,color:i<2?'#0891B2':'var(--text-sm)',width:16,textAlign:'center'}}>{i+1}</span>
-                    <span style={{flex:1,fontSize:11,fontWeight:600}}>{pos}</span>
+                    <span style={{flex:1,fontSize:12,fontWeight:600}}>{pos}</span>
                     <div style={{width:70,height:8,background:'var(--bg)',borderRadius:4,overflow:'hidden',flexShrink:0}}>
                       <div style={{height:'100%',width:pct+'%',background:i<2?'#0891B2':'#A5F3FC',borderRadius:4}}/>
                     </div>
@@ -4973,17 +5066,17 @@ function AdminScreen({onBack}){
             }
           </div>
 
-          {/* 영업 자료 요청 */}
+          {/* 영업 자료 요청 — 클릭 시 상세 */}
           <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',marginBottom:10}}>
-            <div style={{fontSize:11,fontWeight:700,color:'#D97706',marginBottom:10}}>📋 영업 자료 요청 현황</div>
+            <div style={{fontSize:11,fontWeight:700,color:'#D97706',marginBottom:10}}>📋 영업 자료 요청 현황 <span style={{fontWeight:400,fontSize:10,color:'var(--text-sm)'}}>(클릭하면 요청 고객 확인)</span></div>
             {byAction.length===0
               ?<div style={{fontSize:12,color:'var(--text-sm)',textAlign:'center',padding:'6px 0'}}>0건</div>
               :byAction.map(([action,cnt],i)=>{
                 const pct=Math.round(cnt/byAction[0][1]*100);
                 return(
-                  <div key={action} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                  <div key={action} onClick={()=>{const m=activeLeads.filter(l=>(l.actions||[]).includes(action));setKeywordDetail({label:'📋 '+action+' 요청 고객',leads:m});}} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,cursor:'pointer',padding:'4px 6px',borderRadius:8,transition:'background .15s'}} onMouseOver={e=>e.currentTarget.style.background='var(--bg)'} onMouseOut={e=>e.currentTarget.style.background='transparent'}>
                     <span style={{fontSize:11,fontWeight:700,color:i<2?'#D97706':'var(--text-sm)',width:16,textAlign:'center'}}>{i+1}</span>
-                    <span style={{flex:1,fontSize:11,fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{action}</span>
+                    <span style={{flex:1,fontSize:12,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{action}</span>
                     <div style={{width:70,height:8,background:'var(--bg)',borderRadius:4,overflow:'hidden',flexShrink:0}}>
                       <div style={{height:'100%',width:pct+'%',background:i<2?'#D97706':'#FCD34D',borderRadius:4}}/>
                     </div>
@@ -4993,6 +5086,32 @@ function AdminScreen({onBack}){
               })
             }
           </div>
+
+          {/* 2차 액션 분석 — 신규 */}
+          {(()=>{
+            const actionMap={};
+            activeLeads.forEach(l=>{(l.nextActions||[]).forEach(a=>{actionMap[a]=(actionMap[a]||0)+1;});});
+            const actionRank=Object.entries(actionMap).sort((a,b)=>b[1]-a[1]);
+            if(actionRank.length===0)return null;
+            return(
+              <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',marginBottom:10}}>
+                <div style={{fontSize:11,fontWeight:700,color:'#2563EB',marginBottom:10}}>📌 2차 액션 요청 현황</div>
+                {actionRank.map(([action,cnt],i)=>{
+                  const pct=actionRank[0]?Math.round(cnt/actionRank[0][1]*100):0;
+                  return(
+                    <div key={action} onClick={()=>{const m=activeLeads.filter(l=>(l.nextActions||[]).includes(action));setKeywordDetail({label:'📌 '+action,leads:m});}} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,cursor:'pointer',padding:'4px 6px',borderRadius:8,transition:'background .15s'}} onMouseOver={e=>e.currentTarget.style.background='var(--bg)'} onMouseOut={e=>e.currentTarget.style.background='transparent'}>
+                      <span style={{fontSize:11,fontWeight:700,color:'#2563EB',width:16,textAlign:'center'}}>{i+1}</span>
+                      <span style={{flex:1,fontSize:12,fontWeight:600}}>{action}</span>
+                      <div style={{width:70,height:8,background:'var(--bg)',borderRadius:4,overflow:'hidden',flexShrink:0}}>
+                        <div style={{height:'100%',width:pct+'%',background:'#2563EB',borderRadius:4}}/>
+                      </div>
+                      <span style={{fontSize:12,fontWeight:900,color:'#2563EB',width:20,textAlign:'right'}}>{cnt}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
 
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
             {/* 착공 희망월 */}

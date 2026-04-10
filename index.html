@@ -92,6 +92,67 @@ async function shortenLinksInText(text, meta){
   return result;
 }
 
+/* ── 펜슬 필기 오타 자동교정 사전 ── */
+const AUTOCORRECT_DICT={
+  /* 회사/브랜드 */
+  '넷폼':'넷폼알앤디','넷품':'넷폼알앤디','넷포':'넷폼알앤디','네폼':'넷폼알앤디',
+  '포어':'POUR','포어솔루션':'POUR솔루션','포어공법':'POUR공법','포어스토어':'POUR스토어',
+  'pour':'POUR','POUR솔류션':'POUR솔루션','POU솔루션':'POUR솔루션',
+  /* 건물유형 */
+  '아파':'아파트','아팟':'아파트','아퍄':'아파트',
+  '관공':'관공서','관곤':'관공서','관공거':'관공서',
+  '빌라오피':'빌라/오피스텔','오피스텔':'오피스텔','오피스':'오피스텔',
+  /* 직급 */
+  '관리소':'관리소장','관리소잔':'관리소장','관리쇼장':'관리소장',
+  '시설팀':'시설팀장','시설담':'시설담당','시설당당':'시설담당',
+  '입주자대':'입주자대표','입주자데':'입주자대표',
+  '행정실':'행정실장','행정당':'행정담당',
+  '건물쥬':'건물주','건물주':'건물주',
+  /* 공법/하자 */
+  '누수':'누수','누쑤':'누수','늣수':'누수',
+  '균열':'균열','균얼':'균열','그균':'균열',
+  '방수':'방수','방쑤':'방수','밧수':'방수',
+  '도장':'도장','도짱':'도장',
+  '싱글':'싱글','슁글':'슁글','싱귈':'싱글',
+  '아스팔트':'아스팔트','아스팔':'아스팔트','아스콘':'아스콘',
+  '우레탄':'우레탄','우래탄':'우레탄','우레단':'우레탄',
+  '에폭시':'에폭시','에폭':'에폭시','애폭시':'에폭시',
+  '듀얼':'듀얼','듀알':'듀얼',
+  '엠보':'엠보','엔보':'엠보',
+  '보도블럭':'보도블럭','보도블록':'보도블럭',
+  '시방서':'시방서','시방':'시방서',
+  '카탈로그':'카탈로그','카달로그':'카탈로그','카달':'카탈로그',
+  '제안서':'제안서','재안서':'제안서',
+  '견적':'견적','건적':'견적','겨적':'견적',
+  /* 상태/액션 */
+  '긴급':'긴급','긴금':'긴급',
+  '계약':'계약','게약':'계약','겨약':'계약',
+  '착공':'착공','칙공':'착공',
+  '시공':'시공','싀공':'시공',
+  '입찰':'입찰','입잘':'입찰',
+  '낙찰':'낙찰','낙잘':'낙찰',
+  /* 지역 */
+  '서울':'서울','서을':'서울','서율':'서울',
+  '부산':'부산','붓산':'부산',
+  '대구':'대구','대귀':'대구',
+  '인천':'인천','인쳔':'인천',
+  '광주':'광주','관주':'광주',
+  '대전':'대전','대저':'대전',
+  '경기':'경기','겨기':'경기',
+  '강남':'강남','간남':'강남',
+};
+/* 텍스트에서 오타 자동교정 (단어 단위) */
+function autoCorrectText(text){
+  if(!text)return text;
+  let result=text;
+  for(const [typo,correct] of Object.entries(AUTOCORRECT_DICT)){
+    if(typo===correct)continue;
+    const regex=new RegExp(typo,'gi');
+    result=result.replace(regex,correct);
+  }
+  return result;
+}
+
 // QR 스캔 카운트 기록 (페이지 로드 시 ?source= 파라미터가 있으면 qr-stats에 기록)
 (function(){
   try{
@@ -739,6 +800,13 @@ function MemoTextarea({value,onChange,placeholder,minHeight=600,onDoodleToggle,d
   const handleChange=useCallback((e)=>{
     const v=e.target.value;onChange(v);push(v);
   },[onChange,push]);
+  /* 포커스 벗어날 때 오타 자동교정 */
+  const handleBlur=useCallback(()=>{
+    if(typeof autoCorrectText==='function'){
+      const corrected=autoCorrectText(value);
+      if(corrected!==value){onChange(corrected);push(corrected);}
+    }
+  },[value,onChange,push]);
   const insertAt=useCallback((text)=>{
     const ta=taRef.current;
     const s=ta?ta.selectionStart:value.length;
@@ -808,7 +876,7 @@ function MemoTextarea({value,onChange,placeholder,minHeight=600,onDoodleToggle,d
     /* 낙서장 모드: DrawCanvas를 textarea 자리에 표시 (스크롤 불필요) */
     doodleOpen&&doodleContent?React.createElement('div',{style:{border:'1.5px solid rgba(124,58,237,.25)',borderTop:'none',borderRadius:'0 0 12px 12px',overflow:'hidden',background:'#FAFAFF',minHeight:minHeight}},doodleContent):
     /* 텍스트 메모 모드 */
-    React.createElement('textarea',{ref:taRef,className:'note-input',value:value,onChange:handleChange,
+    React.createElement('textarea',{ref:taRef,className:'note-input',autoCorrect:'on',spellCheck:true,value:value,onChange:handleChange,onBlur:handleBlur,
       placeholder:placeholder||"✏️ 펜슬로 직접 필기하세요\n상담 내용, 특이사항, 요청사항 등",
       style:{fontSize:16,padding:'16px',minHeight:minHeight,resize:'vertical',lineHeight:1.7,fontFamily:'inherit',
         width:'100%',boxSizing:'border-box',borderRadius:'0 0 12px 12px',flex:1}}),

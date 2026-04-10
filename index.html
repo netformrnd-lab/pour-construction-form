@@ -2385,6 +2385,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [ntDeliveryDocs,setNtDeliveryDocs]=useState(md.deliveryDocs||[]);
   const [ntDeliveryMedia,setNtDeliveryMedia]=useState(md.deliveryMedia||[]);
   const [ntDesiredStart,setNtDesiredStart]=useState(md.desiredStart||'');
+  const [ntAddress,setNtAddress]=useState(md.address||'');
   const [ntNextActions,setNtNextActions]=useState(md.nextActions||[]);
   const [ntMemo,setNtMemo]=useState(md.memo||'');
   const [ntKeywords,setNtKeywords]=useState([]);
@@ -2429,6 +2430,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       if(d.brandTag)setNtBrandTag(d.brandTag);if(d.memoImgs?.length)setNtMemoImgs(d.memoImgs);
       if(d.bizCard)setNtBizCard(d.bizCard);
       if(d.desiredStart)setNtDesiredStart(d.desiredStart);if(d.nextActions?.length)setNtNextActions(d.nextActions);
+      if(d.address)setNtAddress(d.address);
     }catch(e){}
   };
   const clearDraft=()=>{try{localStorage.removeItem(MEMO_DRAFT_KEY);}catch(e){}};
@@ -2443,7 +2445,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const syncMemoToApp=()=>{
     const patch={name:ntName,company:ntCompany,position:ntPosition,phone:ntPhone,email:ntEmail,
       contact:ntContact,interests:ntInterests,deliveryDocs:ntDeliveryDocs,deliveryMedia:ntDeliveryMedia,
-      desiredStart:ntDesiredStart,nextActions:ntNextActions,memo:ntMemo,keywords:ntKeywords,
+      desiredStart:ntDesiredStart,nextActions:ntNextActions,address:ntAddress,memo:ntMemo,keywords:ntKeywords,
       brandTag:ntBrandTag,memoImgs:ntMemoImgs,bizCard:ntBizCard};
     if(updateMemo)updateMemo(patch);
     saveDraft();
@@ -2466,6 +2468,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
     if(m.nextActions)setNtNextActions(m.nextActions);
     if(m.contact)setNtContact(m.contact);
     if(m.interests)setNtInterests(m.interests);
+    if(m.address!==undefined)setNtAddress(m.address);
   },[memoData]);
   const [effectiveBuildingId,setEffectiveBuildingId]=useState(building?.id||null);
   const [casePhotos,setCasePhotos]=useState(()=>loadCasePhotos());
@@ -2500,6 +2503,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       deliveryMedia:ntDeliveryMedia,
       desiredStartDate:ntDesiredStart,
       nextActions:ntNextActions,
+      address:ntAddress,
       businessCard:ntBizCard,
       memo:ntMemo,memoImgs:ntMemoImgs,keywords:ntKeywords,brandTag:ntBrandTag,status:'신규',source:getUrlSource(),
     };
@@ -2527,7 +2531,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
     setNtPhone('');setNtEmail('');setNtContact([]);
     setNtInterests([]);setNtDeliveryDocs([]);setNtDeliveryMedia([]);
     setNtMemo('');setNtMemoImgs([]);setNtKeywords([]);setNtBrandTag('POUR공법');setNtStep('info');
-    setNtDesiredStart('');setNtNextActions([]);
+    setNtDesiredStart('');setNtNextActions([]);setNtAddress('');
   };
 
   const logText=[
@@ -3113,11 +3117,23 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                         </div>
                       )}
 
-                      {/* 착공 희망일자 (선택) */}
+                      {/* 착공 희망일자 + 현장 주소 (선택) */}
                       <div>
                         <div style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:6}}>🗓 착공 희망일자 <span style={{fontWeight:400,fontSize:11,color:'var(--text-sm)'}}>(선택)</span></div>
                         <input type="date" className="note-input" value={ntDesiredStart} onChange={e=>setNtDesiredStart(e.target.value)}
                           style={{fontSize:14,padding:'12px 14px',width:'100%',boxSizing:'border-box'}}/>
+                      </div>
+                      <div>
+                        <div style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:6}}>📍 현장 주소 <span style={{fontWeight:400,fontSize:11,color:'var(--text-sm)'}}>(선택)</span></div>
+                        <div style={{position:'relative'}}>
+                          <textarea className="note-input" rows="1" value={ntAddress}
+                            onFocus={e=>{e.target.dataset.focused=Date.now();}}
+                            onChange={e=>{const v=e.target.value.replace(/\n/g,'');setNtAddress(v);}}
+                            style={{fontSize:16,padding:'14px 44px 14px 14px',minHeight:50,resize:'none',lineHeight:1.4,width:'100%',boxSizing:'border-box'}}
+                            placeholder="서울시 강남구..."/>
+                          {ntAddress&&<button onClick={()=>setNtAddress(v=>v.slice(0,-1))}
+                            style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:36,height:36,borderRadius:'50%',border:'1.5px solid var(--border)',background:'#fff',cursor:'pointer',fontSize:16,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-sm)',fontFamily:'inherit',boxShadow:'0 1px 4px rgba(0,0,0,.08)'}}>←</button>}
+                        </div>
                       </div>
 
                       {/* 메모 작성 / 건너뛰기 */}

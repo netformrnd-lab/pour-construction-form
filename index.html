@@ -2246,7 +2246,7 @@ function ContactForm({building,problem,done,onSubmit,onBack,onLog,onNewCustomer}
 }
 
 /* ── Solution Screen ── */
-function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNewCustomer,visible,externalNote,onExternalNote,onNoteChange}){
+function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNewCustomer,visible,externalNote,onExternalNote,onNoteChange,memoData,updateMemo,clearMemoData}){
   /* ── 모든 useState 최상단 선언 (React 훅 규칙) ── */
   const [qr,setQr]=useState(null);
   const [pdfViewer,setPdfViewer]=useState(null);
@@ -2272,19 +2272,21 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [savedCSData,setSavedCSData]=useState(null);
   const [showNote,_setShowNote]=useState(false);
   const setShowNote=(v)=>{const nv=typeof v==='function'?v(showNote):v;_setShowNote(nv);if(onNoteChange)onNoteChange(nv);};
-  const [ntName,setNtName]=useState('');
-  const [ntCompany,setNtCompany]=useState('');
-  const [ntPosition,setNtPosition]=useState('');
+  /* ── 메모 데이터: App 레벨 memoData에서 초기값 로드 ── */
+  const md=memoData||{};
+  const [ntName,setNtName]=useState(md.name||'');
+  const [ntCompany,setNtCompany]=useState(md.company||'');
+  const [ntPosition,setNtPosition]=useState(md.position||'');
   const [ntShowPosition,setNtShowPosition]=useState(false);
-  const [ntPhone,setNtPhone]=useState('');
-  const [ntEmail,setNtEmail]=useState('');
-  const [ntContact,setNtContact]=useState([]);
-  const [ntInterests,setNtInterests]=useState([]);
-  const [ntDeliveryDocs,setNtDeliveryDocs]=useState([]);
-  const [ntDeliveryMedia,setNtDeliveryMedia]=useState([]);
-  const [ntDesiredStart,setNtDesiredStart]=useState('');
-  const [ntNextActions,setNtNextActions]=useState([]);
-  const [ntMemo,setNtMemo]=useState('');
+  const [ntPhone,setNtPhone]=useState(md.phone||'');
+  const [ntEmail,setNtEmail]=useState(md.email||'');
+  const [ntContact,setNtContact]=useState(md.contact||[]);
+  const [ntInterests,setNtInterests]=useState(md.interests||[]);
+  const [ntDeliveryDocs,setNtDeliveryDocs]=useState(md.deliveryDocs||[]);
+  const [ntDeliveryMedia,setNtDeliveryMedia]=useState(md.deliveryMedia||[]);
+  const [ntDesiredStart,setNtDesiredStart]=useState(md.desiredStart||'');
+  const [ntNextActions,setNtNextActions]=useState(md.nextActions||[]);
+  const [ntMemo,setNtMemo]=useState(md.memo||'');
   const [ntKeywords,setNtKeywords]=useState([]);
   const [ntBrandTag,setNtBrandTag]=useState('POUR공법'); // 'POUR공법' | 'POUR솔루션' | 'R&D'
   const [ntCustomerFolded,setNtCustomerFolded]=useState(false);
@@ -2337,10 +2339,34 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
     prevShowNote.current=showNote;
   },[showNote]);
   /* 메모 닫을 때 자동 임시 저장 */
+  /* 메모를 닫을 때: App 레벨 + localStorage 양쪽에 동기화 */
+  const syncMemoToApp=()=>{
+    const patch={name:ntName,company:ntCompany,position:ntPosition,phone:ntPhone,email:ntEmail,
+      contact:ntContact,interests:ntInterests,deliveryDocs:ntDeliveryDocs,deliveryMedia:ntDeliveryMedia,
+      desiredStart:ntDesiredStart,nextActions:ntNextActions,memo:ntMemo,keywords:ntKeywords,
+      brandTag:ntBrandTag,memoImgs:ntMemoImgs,bizCard:ntBizCard};
+    if(updateMemo)updateMemo(patch);
+    saveDraft();
+  };
   const ntSafeClose=()=>{
-    if(ntHasData())saveDraft();
+    syncMemoToApp();
     setShowNote(false);
   };
+  /* memoData가 외부에서 변경되면 로컬 state에 반영 */
+  useEffect(()=>{
+    if(!memoData||!Object.keys(memoData).length||showNote)return;
+    const m=memoData;
+    if(m.name!==undefined&&m.name!==ntName)setNtName(m.name);
+    if(m.company!==undefined&&m.company!==ntCompany)setNtCompany(m.company);
+    if(m.position!==undefined&&m.position!==ntPosition)setNtPosition(m.position);
+    if(m.phone!==undefined&&m.phone!==ntPhone)setNtPhone(m.phone);
+    if(m.email!==undefined&&m.email!==ntEmail)setNtEmail(m.email);
+    if(m.memo!==undefined&&m.memo!==ntMemo)setNtMemo(m.memo);
+    if(m.desiredStart!==undefined)setNtDesiredStart(m.desiredStart);
+    if(m.nextActions)setNtNextActions(m.nextActions);
+    if(m.contact)setNtContact(m.contact);
+    if(m.interests)setNtInterests(m.interests);
+  },[memoData]);
   const [effectiveBuildingId,setEffectiveBuildingId]=useState(building?.id||null);
   const [casePhotos,setCasePhotos]=useState(()=>loadCasePhotos());
   useEffect(()=>{syncPhotosFromFirestore(setCasePhotos,null);},[]);
@@ -2395,6 +2421,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   };
   const ntResetAndClose=()=>{
     clearDraft();
+    if(clearMemoData)clearMemoData();
     setShowNote(false);setNtDone(false);setNtQuickSms(false);
     setNtName('');setNtCompany('');setNtPosition('');
     setNtPhone('');setNtEmail('');setNtContact([]);
@@ -4055,18 +4082,19 @@ function GrohomeNoteSheet({staffId,staffName,staffDay,grohomeCat,onClose}){
 }
 
 /* ── Global Note Sheet (솔루션 외 화면) ── */
-function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
-  const [name,setName]=useState('');
-  const [company,setCompany]=useState('');
-  const [position,setPosition]=useState('');
+function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose,memoData,updateMemo,clearMemoData}){
+  const gmd=memoData||{};
+  const [name,setName]=useState(gmd.name||'');
+  const [company,setCompany]=useState(gmd.company||'');
+  const [position,setPosition]=useState(gmd.position||'');
   const [showPosition,setShowPosition]=useState(false);
-  const [phone,setPhone]=useState('');
-  const [contact,setContact]=useState([]);
-  const [interests,setInterests]=useState([]);
-  const [deliveryDocs,setDeliveryDocs]=useState([]);
-  const [deliveryMedia,setDeliveryMedia]=useState([]);
-  const [memo,setMemo]=useState('');
-  const [keywords,setKeywords]=useState([]);
+  const [phone,setPhone]=useState(gmd.phone||'');
+  const [contact,setContact]=useState(gmd.contact||[]);
+  const [interests,setInterests]=useState(gmd.interests||[]);
+  const [deliveryDocs,setDeliveryDocs]=useState(gmd.deliveryDocs||[]);
+  const [deliveryMedia,setDeliveryMedia]=useState(gmd.deliveryMedia||[]);
+  const [memo,setMemo]=useState(gmd.memo||'');
+  const [keywords,setKeywords]=useState(gmd.keywords||[]);
   const [customerFolded,setCustomerFolded]=useState(false);
   const [saving,setSaving]=useState(false);
   const [done,setDone]=useState(false);
@@ -4087,7 +4115,13 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose}){
   const toggle=(arr,set,v)=>set(p=>p.includes(v)?p.filter(x=>x!==v):[...p,v]);
   const toggleSec=sec=>setOpenSec(p=>{const n=new Set(p);n.has(sec)?n.delete(sec):n.add(sec);return n;});
   const hasData=()=>!!(name||company||phone||memo||interests.length||contact.length||bizCard?.front);
-  const safeClose=()=>{if(hasData()&&!window.confirm('입력한 내용이 저장되지 않았습니다. 닫으시겠어요?'))return;onClose();};
+  /* 닫을 때 App 레벨로 동기화 — 데이터 절대 삭제 안 됨 */
+  const safeClose=()=>{
+    if(hasData()&&updateMemo){
+      updateMemo({name,company,position,phone,contact,interests,deliveryDocs,deliveryMedia,memo,keywords});
+    }
+    onClose();
+  };
 
   const save=async()=>{
     if(!name.trim()||!phone.trim()){alert('성함과 전화번호를 입력해주세요');return;}
@@ -5406,6 +5440,14 @@ function App(){
   const [todayCount,setTodayCount]=useState(0);
   const [globalNote,setGlobalNote]=useState(false);
   const [solutionNoteOpen,setSolutionNoteOpen]=useState(false);
+
+  /* ── 통합 메모 데이터 (App 레벨, 어디서든 공유) ── */
+  const MEMO_DRAFT_KEY_GLOBAL='pourMemoDraft';
+  const [memoData,setMemoData]=useState(()=>{
+    try{return JSON.parse(localStorage.getItem(MEMO_DRAFT_KEY_GLOBAL)||'null')||{};}catch{return{};}
+  });
+  const updateMemo=(patch)=>setMemoData(prev=>{const next={...prev,...patch};try{localStorage.setItem(MEMO_DRAFT_KEY_GLOBAL,JSON.stringify(next));}catch(e){}return next;});
+  const clearMemoData=()=>{setMemoData({});try{localStorage.removeItem(MEMO_DRAFT_KEY_GLOBAL);}catch(e){}};
   const [confirmNew,setConfirmNew]=useState(false);
   const [probPhotos,setProbPhotos]=useState(()=>loadProblemPhotos());
   const [adminAuth,setAdminAuth]=useState(()=>sessionStorage.getItem('pourAdminAuth')==='true');
@@ -5598,6 +5640,7 @@ function App(){
         staffId={staffId} staffName={staffName} staffDay={staffDay}
         onBack={()=>setScreen('problem')} onNewCustomer={goHome}
         externalNote={globalNote} onExternalNote={setGlobalNote} onNoteChange={setSolutionNoteOpen}
+        memoData={memoData} updateMemo={updateMemo} clearMemoData={clearMemoData}
       />
 
       {/* LEADS */}
@@ -5657,6 +5700,7 @@ function App(){
           building={building} problem={problem}
           staffId={staffId} staffName={staffName} staffDay={staffDay}
           onClose={()=>setGlobalNote(false)}
+          memoData={memoData} updateMemo={updateMemo} clearMemoData={clearMemoData}
         />
       )}
 

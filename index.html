@@ -794,6 +794,55 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
   .acc-head{min-height:52px;}
   input,textarea,select{font-size:16px!important;}
 }
+
+/* ══ 하자 사진 필터 — 대기업 수준 모션 ══ */
+@keyframes defectFadeSlideIn{
+  from{opacity:0;transform:translateY(10px) scale(.97);}
+  to{opacity:1;transform:translateY(0) scale(1);}
+}
+@keyframes defectFadeSlideOut{
+  from{opacity:1;transform:translateY(0) scale(1);}
+  to{opacity:0;transform:translateY(-6px) scale(.97);}
+}
+@keyframes filterChipPop{
+  0%{transform:scale(1);}
+  40%{transform:scale(1.12);}
+  100%{transform:scale(1);}
+}
+@keyframes filterUnderlineGrow{
+  from{width:0;opacity:0;}
+  to{width:100%;opacity:1;}
+}
+.defect-photo-card{
+  animation:defectFadeSlideIn .32s cubic-bezier(.22,.68,0,1.2) both;
+}
+.defect-filter-chip{
+  position:relative;
+  transition:background .18s,color .18s,box-shadow .18s,transform .12s;
+  overflow:hidden;
+}
+.defect-filter-chip::after{
+  content:'';
+  position:absolute;
+  bottom:0;left:50%;
+  transform:translateX(-50%);
+  height:2px;
+  background:currentColor;
+  border-radius:2px;
+  width:0;
+  opacity:0;
+  transition:width .22s cubic-bezier(.4,0,.2,1),opacity .18s;
+}
+.defect-filter-chip.active::after{
+  width:60%;
+  opacity:.7;
+}
+.defect-filter-chip.active{
+  animation:filterChipPop .22s cubic-bezier(.22,.68,0,1.2);
+}
+.defect-photo-grid-enter{
+  animation:defectFadeSlideIn .28s cubic-bezier(.22,.68,0,1.2) both;
+}
 </style>
 </head>
 <body>
@@ -1514,6 +1563,21 @@ const METHOD_CONDITIONS={
     {id:'mma',icon:'💪',label:'고강도 바닥 필요',desc:'MMA 수지 — 내충격·내화학 마감 권장',idx:[2]},
   ]},
 };
+
+// ── 하자 유형 상수 (필터 칩 및 어드민 드롭다운 공용) ──
+const DEFECT_TYPES=[
+  {id:'all',label:'전체'},
+  {id:'탈낙',label:'탈낙'},
+  {id:'부식',label:'부식'},
+  {id:'누수',label:'누수'},
+  {id:'균열',label:'균열'},
+  {id:'들뜨',label:'들뜨'},
+  {id:'박리',label:'박리'},
+  {id:'변형',label:'변형'},
+  {id:'녹슬음',label:'녹슬음'},
+  {id:'시공불량',label:'시공불량'},
+  {id:'기타',label:'기타'},
+];
 
 // ── 원인 카드 데이터 ──
 // keyword: 영업사원 브리핑 키워드, desc: 고객 설명 한 줄
@@ -3012,31 +3076,93 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
         {/* ── 공법 상세 ── */}
         <>
-            {/* ── 1. 하자 사진 (정사각형 인스타 피드) ── */}
-            <div style={{marginBottom:16}}>
-              <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>📸 하자 사진</div>
-              {(photos?.causes||[]).filter(s=>s).length>0?(
-                <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:6,scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch'}}>
-                  {(photos.causes||[]).filter(s=>s).map((src,i)=>(
-                    <div key={i} style={{flex:'0 0 80%',maxWidth:320,scrollSnapAlign:'start',borderRadius:14,overflow:'hidden',border:'1.5px solid var(--border)',background:'#000',position:'relative',aspectRatio:'1/1',cursor:'pointer'}} onClick={()=>{const causeList=(photos.causes||[]).filter(s=>s);setZoomPhoto({photos:causeList.map((s,j)=>({src:s,alt:`하자사진 ${j+1}`})),index:i});}}>
-                      <img src={src} alt={`하자사진${i+1}`} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-                      <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'24px 12px 10px',background:'linear-gradient(transparent,rgba(0,0,0,.6))'}}>
-                        <span style={{fontSize:11,fontWeight:800,color:'#fff'}}>{i+1}/{(photos.causes||[]).filter(s=>s).length}</span>
-                      </div>
+            {/* ── 1. 하자 사진 (필터 칩 + 스태거 애니메이션) ── */}
+            {(()=>{
+              const causeList=(photos?.causes||[]).filter(s=>s);
+              const meta=photos?.causeMeta||[];
+              /* 각 사진에 defectType 연결 */
+              const photosWithMeta=causeList.map((src,i)=>({
+                src,
+                defectType:(meta[i]&&meta[i].defectType)||'',
+                label:(meta[i]&&meta[i].label)||'',
+              }));
+              /* 이 공법에 실제 존재하는 하자유형 목록 */
+              const existingTypes=[...new Set(photosWithMeta.map(p=>p.defectType).filter(Boolean))];
+              const [activeDefect,setActiveDefect]=React.useState('all');
+              const filtered=activeDefect==='all'?photosWithMeta:photosWithMeta.filter(p=>p.defectType===activeDefect);
+              return(
+                <div style={{marginBottom:16}}>
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>📸 하자 사진</div>
+                  {/* 필터 칩 — 하자유형이 2종 이상일 때만 표시 */}
+                  {existingTypes.length>=2&&(
+                    <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:10}}>
+                      {[{id:'all',label:'전체'},...DEFECT_TYPES.filter(d=>d.id!=='all'&&existingTypes.includes(d.id))].map(dt=>(
+                        <button key={dt.id}
+                          className={`defect-filter-chip${activeDefect===dt.id?' active':''}`}
+                          onClick={()=>setActiveDefect(dt.id)}
+                          style={{
+                            padding:'5px 13px',borderRadius:20,border:'1.5px solid',
+                            borderColor:activeDefect===dt.id?'var(--navy)':'var(--border)',
+                            background:activeDefect===dt.id?'var(--navy)':'var(--card)',
+                            color:activeDefect===dt.id?'#fff':'var(--text-md)',
+                            fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',
+                          }}
+                        >{dt.label}{dt.id!=='all'&&(<span style={{marginLeft:4,opacity:.7,fontSize:10}}>({(photosWithMeta.filter(p=>p.defectType===dt.id)).length})</span>)}</button>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ):(
-                <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:6}}>
-                  {['','',''].map((_,i)=>(
-                    <div key={i} style={{flex:'0 0 45%',maxWidth:160,borderRadius:14,border:'1.5px dashed var(--border)',background:'var(--bg)',aspectRatio:'1/1',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
-                      <span style={{fontSize:22,opacity:.2}}>📷</span>
-                      <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:600}}>관리자에서 추가</span>
+                  )}
+                  {causeList.length>0?(
+                    <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:6,scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch'}}>
+                      {filtered.map((p,i)=>{
+                        const origIdx=photosWithMeta.indexOf(p);
+                        return(
+                          <div key={activeDefect+'_'+i}
+                            className="defect-photo-card"
+                            style={{
+                              flex:'0 0 80%',maxWidth:320,scrollSnapAlign:'start',
+                              borderRadius:14,overflow:'hidden',
+                              border:'1.5px solid var(--border)',background:'#000',
+                              position:'relative',aspectRatio:'1/1',cursor:'pointer',
+                              animationDelay:`${i*60}ms`,
+                            }}
+                            onClick={()=>{
+                              const allList=photosWithMeta.map(x=>({src:x.src,alt:`하자사진`}));
+                              setZoomPhoto({photos:allList,index:origIdx});
+                            }}
+                          >
+                            <img src={p.src} alt={`하자사진${origIdx+1}`} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+                            <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'28px 12px 10px',background:'linear-gradient(transparent,rgba(0,0,0,.72))'}}>
+                              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                                <span style={{fontSize:11,fontWeight:800,color:'#fff'}}>{origIdx+1}/{causeList.length}</span>
+                                {p.defectType&&(
+                                  <span style={{
+                                    fontSize:10,fontWeight:700,
+                                    background:'rgba(255,255,255,.18)',
+                                    backdropFilter:'blur(6px)',
+                                    color:'#fff',borderRadius:8,
+                                    padding:'2px 8px',letterSpacing:'.03em',
+                                  }}>{p.defectType}{p.label&&` · ${p.label}`}</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
+                  ):(
+                    <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:6}}>
+                      {['','',''].map((_,i)=>(
+                        <div key={i} style={{flex:'0 0 45%',maxWidth:160,borderRadius:14,border:'1.5px dashed var(--border)',background:'var(--bg)',aspectRatio:'1/1',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
+                          <span style={{fontSize:22,opacity:.2}}>📷</span>
+                          <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:600}}>관리자에서 추가</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              );
+            })()}
+
 
             {/* ── 2. 관련 미디어 (숏츠 그리드 — 가로 스크롤) ── */}
             <div style={{marginBottom:16}}>
@@ -5776,16 +5902,41 @@ function AdminScreen({onBack}){
                               const arr=up[key].causes;
                               const [moved]=arr.splice(from.index,1);
                               arr.splice(i,0,moved);
+                              /* causeMeta도 동일하게 순서 변경 */
+                              if(up[key].causeMeta&&up[key].causeMeta.length>0){
+                                const mArr=up[key].causeMeta;
+                                while(mArr.length<arr.length)mArr.push({defectType:'',label:''});
+                                const [movedM]=mArr.splice(from.index,1);
+                                mArr.splice(i,0,movedM);
+                              }
                               setCasePhotos(up);
                             }
                           }catch(err){}
                         }}
-                        style={{cursor:'grab',position:'relative'}}>
+                        style={{cursor:'grab',position:'relative',display:'flex',flexDirection:'column',width:100}}>
                         <PhotoSlot src={url} label={`사진 ${i+1}`} maxSize={1200} quality={0.85}
                           onSet={(v)=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:['','',''],completed:'',gif:''};up[key].causes[i]=v;setCasePhotos(up);}}
-                          onRemove={()=>{const up=JSON.parse(JSON.stringify(casePhotos));up[key].causes.splice(i,1);setCasePhotos(up);}}
+                          onRemove={()=>{const up=JSON.parse(JSON.stringify(casePhotos));up[key].causes.splice(i,1);if(up[key].causeMeta)up[key].causeMeta.splice(i,1);setCasePhotos(up);}}
                         />
-                        <div style={{position:'absolute',bottom:2,left:2,fontSize:8,fontWeight:700,color:'#fff',background:'rgba(0,0,0,.5)',borderRadius:4,padding:'1px 4px'}}>{i+1}</div>
+
+                        {/* 하자유형 드롭다운 */}
+                        <select
+                          value={(data.causeMeta&&data.causeMeta[i]&&data.causeMeta[i].defectType)||''}
+                          onChange={e=>{
+                            const up=JSON.parse(JSON.stringify(casePhotos));
+                            if(!up[key])up[key]={causes:[],causeMeta:[]};
+                            if(!up[key].causeMeta)up[key].causeMeta=[];
+                            while(up[key].causeMeta.length<=i)up[key].causeMeta.push({defectType:'',label:''});
+                            up[key].causeMeta[i]={...up[key].causeMeta[i],defectType:e.target.value};
+                            setCasePhotos(up);
+                          }}
+                          style={{marginTop:3,width:'100%',padding:'2px 4px',fontSize:10,borderRadius:5,border:'1px solid var(--border)',background:'var(--card)',fontFamily:'inherit',color:'var(--text)',cursor:'pointer'}}
+                        >
+                          <option value="">하자유형 선택</option>
+                          {DEFECT_TYPES.filter(d=>d.id!=='all').map(d=>(
+                            <option key={d.id} value={d.id}>{d.label}</option>
+                          ))}
+                        </select>
                       </div>
                     ))}
                     <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:'',gif:''};up[key].causes.push('');setCasePhotos(up);}}

@@ -1564,20 +1564,6 @@ const METHOD_CONDITIONS={
   ]},
 };
 
-// ── 하자 유형 상수 (필터 칩 및 어드민 드롭다운 공용) ──
-const DEFECT_TYPES=[
-  {id:'all',label:'전체'},
-  {id:'탈낙',label:'탈낙'},
-  {id:'부식',label:'부식'},
-  {id:'누수',label:'누수'},
-  {id:'균열',label:'균열'},
-  {id:'들뜨',label:'들뜨'},
-  {id:'박리',label:'박리'},
-  {id:'변형',label:'변형'},
-  {id:'녹슬음',label:'녹슬음'},
-  {id:'시공불량',label:'시공불량'},
-  {id:'기타',label:'기타'},
-];
 /* ══ 대기업 스타일 3단계 분류 체계 ══ */
 const DEFECT_MAJOR=[
   {id:'누수',label:'누수',icon:'💧'},
@@ -5969,7 +5955,7 @@ function AdminScreen({onBack}){
                               /* causeMeta도 동일하게 순서 변경 */
                               if(up[key].causeMeta&&up[key].causeMeta.length>0){
                                 const mArr=up[key].causeMeta;
-                                while(mArr.length<arr.length)mArr.push({defectType:'',label:''});
+                                while(mArr.length<arr.length)mArr.push({defectType:'',defectPart:'',defectDetail:'',label:''});
                                 const [movedM]=mArr.splice(from.index,1);
                                 mArr.splice(i,0,movedM);
                               }

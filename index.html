@@ -2317,7 +2317,7 @@ function CSMemoScreen({building,problem,staffId,staffName,staffDay,onBack,onSave
       problems:csProbs,
       actions:csActions.map(id=>ACTION_TAGS.find(t=>t.id===id)?.label||id),
       memo:csMemo,desiredStartDate:csDesiredStart,docDeadline:csDocDeadline,
-      region:csRegion.trim()||'',status:'신규',source:getUrlSource(),
+      region:csRegion.trim()||'',status:'신규',source:getUrlSource(),fieldMode:localStorage.getItem('pourFieldMode')||'expo',
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
     sendToSheet(Object.assign({_sheetType:'lead'},data));
@@ -2691,7 +2691,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       nextActions:ntNextActions,
       address:ntAddress,
       businessCard:ntBizCard,
-      memo:ntMemo,memoImgs:ntMemoImgs,keywords:ntKeywords,brandTag:ntBrandTag,status:'신규',source:getUrlSource(),
+      memo:ntMemo,memoImgs:ntMemoImgs,keywords:ntKeywords,brandTag:ntBrandTag,status:'신규',source:getUrlSource(),fieldMode:localStorage.getItem('pourFieldMode')||'expo',
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
     sendToSheet(Object.assign({_sheetType:'lead'},data));
@@ -3812,7 +3812,7 @@ function TechMemoSheet({staffId,staffName,staffDay,onBack}){
       name,company,phone,
       techType,
       actions:actions.map(id=>techActions.find(t=>t.id===id)?.label||id),
-      memo,memoImgs,status:'신규',source:getUrlSource(),
+      memo,memoImgs,status:'신규',source:getUrlSource(),fieldMode:localStorage.getItem('pourFieldMode')||'expo',
     };
     try{await db.collection('leads-store').add(data);}catch(e){console.warn(e);}
     const smsCfg=loadSolapiConfig();
@@ -4081,7 +4081,7 @@ function StoreNoteSheet({staffId,staffName,staffDay,building,problem,onClose}){
       brand:'store',building:building?.label||'-',problem:problem?.label||'-',
       name,company,phone,
       actions:actions.map(id=>STORE_ACTION_TAGS.find(t=>t.id===id)?.label||id),
-      memo,memoImgs,status:'신규',source:getUrlSource(),
+      memo,memoImgs,status:'신규',source:getUrlSource(),fieldMode:localStorage.getItem('pourFieldMode')||'expo',
     };
     try{await db.collection('leads-store').add(data);}catch(e){console.warn(e);}
     const smsCfg=loadSolapiConfig();
@@ -4176,7 +4176,7 @@ function StorePartnerSheet({staffId,staffName,staffDay,onClose}){
       name,company,phone,
       domains,region,
       actions:actions.map(id=>STORE_ACTION_TAGS.find(t=>t.id===id)?.label||id),
-      memo,memoImgs,status:'신규',source:getUrlSource(),
+      memo,memoImgs,status:'신규',source:getUrlSource(),fieldMode:localStorage.getItem('pourFieldMode')||'expo',
     };
     try{await db.collection('leads-store').add(data);}catch(e){console.warn(e);}
     const smsCfg=loadSolapiConfig();
@@ -4274,7 +4274,7 @@ function StoreOtherSheet({staffId,staffName,staffDay,onClose}){
     const data={
       savedAt:new Date().toISOString(),day:staffDay,staffId,staff:staffName,
       brand:'store',inquiryType:otherType,routingTo:ri?.to||'-',
-      name,company,phone,memo,memoImgs,status:'신규',source:getUrlSource(),
+      name,company,phone,memo,memoImgs,status:'신규',source:getUrlSource(),fieldMode:localStorage.getItem('pourFieldMode')||'expo',
     };
     try{await db.collection('leads-store').add(data);}catch(e){console.warn(e);}
     setSaving(false);setDone(true);
@@ -4450,7 +4450,7 @@ function GrohomeNoteSheet({staffId,staffName,staffDay,grohomeCat,onClose}){
       brand:'grohome',category:grohomeCat?.label||'-',
       name,phone,
       actions:actions.map(id=>GROHOME_ACTION_TAGS.find(t=>t.id===id)?.label||id),
-      memo,memoImgs,status:'신규',source:getUrlSource(),
+      memo,memoImgs,status:'신규',source:getUrlSource(),fieldMode:localStorage.getItem('pourFieldMode')||'expo',
     };
     try{await db.collection('leads-grohome').add(data);}catch(e){console.warn(e);}
     const smsCfg=loadSolapiConfig();
@@ -4586,7 +4586,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose,me
       interests,deliveryDocs,deliveryMedia,
       desiredStartDate:gDesiredStart,nextActions:gNextActions,
       businessCard:bizCard,
-      memo,memoImgs,keywords,status:'신규',source:getUrlSource(),
+      memo,memoImgs,keywords,status:'신규',source:getUrlSource(),fieldMode:localStorage.getItem('pourFieldMode')||'expo',
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
     sendToSheet(Object.assign({_sheetType:'lead'},data));
@@ -6318,6 +6318,7 @@ function App(){
     return loadStaffList().find(s=>s.id===id)?.name||'';
   });
   const [staffDay,setStaffDay]=useState(()=>localStorage.getItem('pourDay')||'4/16(목)');
+  const [fieldMode,setFieldMode]=useState(()=>localStorage.getItem('pourFieldMode')||'expo'); // 'expo' | 'field'
   const [showStaffMgr,setShowStaffMgr]=useState(false);
   const [staffMgrMode,setStaffMgrMode]=useState('setup');
   const [screen,setScreen]=useState('home');
@@ -6420,10 +6421,19 @@ function App(){
             </div>
           </div>
 
-          {/* 박람회 정보 - 간결하게 */}
-          <div className="home-expo-card" style={{marginBottom:24,padding:'14px 28px'}}>
-            <div className="home-expo-name">공동주택관리산업박람회</div>
-            <div className="home-expo-date">벡스코 &nbsp;|&nbsp; 2026.04.16 (목) ~ 04.18 (토)</div>
+          {/* 현장 모드 선택 */}
+          <div style={{marginBottom:24,width:'100%',maxWidth:360}}>
+            <div style={{display:'flex',gap:8}}>
+              {[{id:'expo',label:'박람회',icon:'🎪',sub:'공동주택관리산업박람회\n벡스코 · 4/16~18'},{id:'field',label:'상시 영업',icon:'📞',sub:'방문/전화/현장 상담'}].map(m=>{
+                const sel=fieldMode===m.id;
+                return <button key={m.id} onClick={()=>{setFieldMode(m.id);localStorage.setItem('pourFieldMode',m.id);}}
+                  style={{flex:1,padding:'16px 12px',borderRadius:14,border:`2px solid ${sel?'rgba(255,255,255,.5)':'rgba(255,255,255,.1)'}`,background:sel?'rgba(255,255,255,.12)':'rgba(255,255,255,.04)',color:'#fff',cursor:'pointer',fontFamily:'inherit',textAlign:'center',transition:'all .15s'}}>
+                  <div style={{fontSize:24,marginBottom:6}}>{m.icon}</div>
+                  <div style={{fontSize:14,fontWeight:800}}>{m.label}</div>
+                  <div style={{fontSize:10,color:'rgba(255,255,255,.5)',marginTop:4,whiteSpace:'pre-line',lineHeight:1.4}}>{m.sub}</div>
+                </button>;
+              })}
+            </div>
           </div>
 
           {/* 상담 시작 CTA */}

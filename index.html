@@ -843,6 +843,31 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
 .defect-photo-grid-enter{
   animation:defectFadeSlideIn .28s cubic-bezier(.22,.68,0,1.2) both;
 }
+/* ── 마인드맵 브랜치 ── */
+@keyframes branchLineGrow{
+  from{transform:scaleY(0);opacity:0;}
+  to{transform:scaleY(1);opacity:1;}
+}
+@keyframes branchItemSlide{
+  from{opacity:0;transform:translateX(-14px);}
+  to{opacity:1;transform:translateX(0);}
+}
+/* ── 사진 퇴장 ── */
+@keyframes photoExit{
+  from{opacity:1;transform:translateY(0) scale(1);}
+  to{opacity:0;transform:translateY(-8px) scale(.97);}
+}
+.branch-root{
+  transform-origin:top center;
+  animation:branchLineGrow .2s cubic-bezier(.22,.68,0,1.2) both;
+}
+.branch-item{
+  animation:branchItemSlide .22s cubic-bezier(.22,.68,0,1.2) both;
+}
+.photo-grid-exit .defect-photo-card{
+  animation:photoExit .14s ease-in both!important;
+  pointer-events:none;
+}
 </style>
 </head>
 <body>
@@ -2750,6 +2775,17 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   useEffect(()=>{syncPhotosFromFirestore(setCasePhotos,null);syncDefectTagsFromFirestore(setDefectTags);},[]);
   const [activeDefect,setActiveDefect]=useState('all');
   const [activePart,setActivePart]=useState('all');
+  const [isPhotoExiting,setIsPhotoExiting]=useState(false);
+  const photoExitTimer=React.useRef(null);
+  const changePhotoFilter=(newDefect,newPart)=>{
+    if(photoExitTimer.current)clearTimeout(photoExitTimer.current);
+    setIsPhotoExiting(true);
+    photoExitTimer.current=setTimeout(()=>{
+      setActiveDefect(newDefect);
+      setActivePart(newPart);
+      setIsPhotoExiting(false);
+    },140);
+  };
   /* problem이 바뀌면 필터 리셋 */
   const prevProblemId=React.useRef(null);
   if(problem?.id!==prevProblemId.current){prevProblemId.current=problem?.id||null;if(activeDefect!=='all'){setActiveDefect('all');setActivePart('all');}}
@@ -3147,40 +3183,69 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                       <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:4,opacity:.7}}>하자 유형</div>
                       <div style={{display:'flex',gap:5,flexWrap:'wrap',marginBottom:4}}>
                         <button className={`defect-filter-chip${activeDefect==='all'?' active':''}`}
-                          onClick={()=>{setActiveDefect('all');setActivePart('all');}}
+                          onClick={()=>changePhotoFilter('all','all')}
                           style={chipStyle(activeDefect==='all')}
                         >전체 ({photosWithMeta.length})</button>
                         {(defectTags.major||DEFECT_MAJOR).filter(d=>existingMajor.includes(d.id)).map(dt=>(
                           <button key={dt.id}
                             className={`defect-filter-chip${activeDefect===dt.id?' active':''}`}
-                            onClick={()=>{setActiveDefect(dt.id);setActivePart('all');}}
+                            onClick={()=>changePhotoFilter(dt.id,'all')}
                             style={chipStyle(activeDefect===dt.id)}
                           >{dt.icon} {dt.label} ({photosWithMeta.filter(p=>p.defectType===dt.id).length})</button>
                         ))}
                       </div>
                     </div>
                   )}
-                  {/* ── 중분류 필터 (하자 위치) ── */}
+                  {/* ── 중분류 — 마인드맵 브랜치 ── */}
                   {existingParts.length>=1&&activeDefect!=='all'&&(
-                    <div style={{marginBottom:8}}>
-                      <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:4,opacity:.7}}>하자 위치</div>
-                      <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
-                        <button className={`defect-filter-chip${activePart==='all'?' active':''}`}
-                          onClick={()=>setActivePart('all')}
-                          style={{...chipStyle(activePart==='all'),padding:'4px 11px',fontSize:10}}
-                        >전체 ({photosForMajor.length})</button>
-                        {(defectTags.part||DEFECT_PART).filter(d=>existingParts.includes(d.id)).map(pt=>(
-                          <button key={pt.id}
-                            className={`defect-filter-chip${activePart===pt.id?' active':''}`}
-                            onClick={()=>setActivePart(pt.id)}
-                            style={{...chipStyle(activePart===pt.id),padding:'4px 11px',fontSize:10}}
-                          >{pt.label} ({photosForMajor.filter(p=>p.defectPart===pt.id).length})</button>
-                        ))}
-                      </div>
+                    <div className="branch-root"
+                      style={{
+                        marginBottom:10,marginLeft:10,paddingLeft:14,
+                        borderLeft:'2px solid var(--blue)',
+                        boxShadow:'-1px 0 8px rgba(37,99,235,.18)',
+                      }}>
+                      {[
+                        {id:'all',label:'전체',count:photosForMajor.length},
+                        ...(defectTags.part||DEFECT_PART).filter(d=>existingParts.includes(d.id)).map(d=>({
+                          id:d.id,label:d.label,
+                          count:photosForMajor.filter(p=>p.defectPart===d.id).length,
+                        }))
+                      ].map((pt,i)=>{
+                        const isAct=activePart===pt.id;
+                        return(
+                          <div key={pt.id} className="branch-item"
+                            style={{display:'flex',alignItems:'center',marginBottom:5,animationDelay:`${i*55}ms`}}>
+                            <div style={{width:12,height:2,background:isAct?'var(--blue)':'#CBD5E1',flexShrink:0,marginRight:6,transition:'background .15s'}}/>
+                            <button onClick={()=>changePhotoFilter(activeDefect,pt.id)}
+                              style={{
+                                display:'flex',alignItems:'center',gap:5,
+                                padding:'4px 10px',borderRadius:4,
+                                border:`1.5px solid ${isAct?'var(--blue)':'var(--border)'}`,
+                                background:isAct?'var(--navy)':'var(--card)',
+                                color:isAct?'#fff':'var(--text-md)',
+                                fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',
+                                boxShadow:isAct?'0 0 10px rgba(37,99,235,.35)':'none',
+                                letterSpacing:isAct?'.04em':0,
+                                transition:'all .15s',
+                              }}>
+                              <span style={{opacity:.6,fontSize:10,fontWeight:400}}>[</span>
+                              {pt.label}
+                              <span style={{opacity:.6,fontSize:10,fontWeight:400}}>]</span>
+                              <span style={{
+                                padding:'1px 5px',borderRadius:3,
+                                background:isAct?'rgba(255,255,255,.15)':'var(--border-s)',
+                                color:isAct?'rgba(255,255,255,.8)':'var(--text-sm)',
+                                fontSize:10,fontWeight:800,
+                              }}>{pt.count}</span>
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                   {/* ── 사진 그리드 ── */}
                   {causeList.length>0?(
+                    <div className={isPhotoExiting?'photo-grid-exit':''}>
                     <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:6,scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch'}}>
                       {filtered.map((p,i)=>{
                         const origIdx=photosWithMeta.indexOf(p);
@@ -3220,6 +3285,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                         );
                       })}
                     </div>
+                    </div>{/* /photo-grid-exit wrapper */}
                   ):(
                     <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:6}}>
                       {['','',''].map((_,i)=>(

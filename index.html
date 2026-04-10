@@ -4065,6 +4065,22 @@ function GrohomeNoteSheet({staffId,staffName,staffDay,grohomeCat,onClose}){
                   <input className="note-input" style={{fontSize:13}} placeholder="연락처 *" value={phone} onChange={e=>setPhone(e.target.value)} inputMode="tel"/>
                 </div>
               </div>
+              {/* 착공희망일 + 2차 액션 */}
+              <div style={{padding:'10px 0',borderTop:'1.5px solid var(--border)'}}>
+                <div style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:6}}>🗓 착공 희망일자 <span style={{fontWeight:400,fontSize:11,color:'var(--text-sm)'}}>(선택)</span></div>
+                <input type="date" className="note-input" style={{fontSize:14,padding:'10px 14px',marginBottom:10}} value={gDesiredStart} onChange={e=>setGDesiredStart(e.target.value)}/>
+                <div style={{fontSize:12,fontWeight:700,color:'var(--blue)',marginBottom:6}}>📌 2차 액션</div>
+                <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+                  {NEXT_ACTIONS.map(a=>{
+                    const sel=gNextActions.includes(a);
+                    return <button key={a} onClick={()=>setGNextActions(p=>sel?p.filter(x=>x!==a):[...p,a])}
+                      style={{padding:'7px 12px',borderRadius:8,border:`1.5px solid ${sel?'var(--blue)':'var(--border)'}`,background:sel?'var(--blue)':'#fff',color:sel?'#fff':'var(--text)',fontSize:12,fontWeight:sel?700:500,cursor:'pointer',fontFamily:'inherit',transition:'all .15s'}}>
+                      {a}
+                    </button>;
+                  })}
+                </div>
+                {gNextActions.length>0&&<div style={{marginTop:6,fontSize:10,color:'var(--blue)',fontWeight:600}}>선택됨: {gNextActions.join(', ')}</div>}
+              </div>
               {/* 낙서장 */}
               <div style={{marginBottom:10,borderTop:'2px solid var(--border)'}}>
                 <button onClick={()=>setDoodleOpen(!doodleOpen)} style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 4px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
@@ -4106,6 +4122,8 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose,me
   useEffect(()=>{if(!pencilMode&&memoRef.current){memoRef.current.focus();}},[pencilMode]);
   const [openSec,setOpenSec]=useState(new Set([]));
   const [bizCard,setBizCard]=useState({front:null,back:null});
+  const [gDesiredStart,setGDesiredStart]=useState(gmd.desiredStart||'');
+  const [gNextActions,setGNextActions]=useState(gmd.nextActions||[]);
   const [effectiveBuildingId,setEffectiveBuildingId]=useState(building?.id||null);
   const [quickSms,setQuickSms]=useState(false);
   const [smsText,setSmsText]=useState('');
@@ -4118,7 +4136,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose,me
   /* 닫을 때 App 레벨로 동기화 — 데이터 절대 삭제 안 됨 */
   const safeClose=()=>{
     if(hasData()&&updateMemo){
-      updateMemo({name,company,position,phone,contact,interests,deliveryDocs,deliveryMedia,memo,keywords});
+      updateMemo({name,company,position,phone,contact,interests,deliveryDocs,deliveryMedia,memo,keywords,desiredStart:gDesiredStart,nextActions:gNextActions});
     }
     onClose();
   };
@@ -4133,6 +4151,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose,me
       problem:problem?.label||'-',problemCat:problem?.cat||'-',
       problems:problem?[problem.label]:[],
       interests,deliveryDocs,deliveryMedia,
+      desiredStartDate:gDesiredStart,nextActions:gNextActions,
       businessCard:bizCard,
       memo,memoImgs,keywords,status:'신규',source:getUrlSource(),
     };
@@ -4222,7 +4241,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose,me
                   </button>
                   <button onClick={()=>bizCardOpenRef.current?.()} style={{padding:'5px 10px',borderRadius:8,border:'1.5px solid var(--border)',background:'var(--bg)',fontSize:12,fontWeight:700,color:'var(--text)',cursor:'pointer',display:'flex',alignItems:'center',gap:3}}>📇 명함</button>
                   {phone&&loadSolapiConfig().workerUrl&&(<button onClick={()=>setShowSmsModal(true)} style={{padding:'5px 10px',borderRadius:8,border:'1.5px solid var(--blue)',background:'var(--blue-l)',fontSize:12,fontWeight:700,color:'var(--blue)',cursor:'pointer',display:'flex',alignItems:'center',gap:3}}>💬 문자</button>)}
-                  <button className="note-head-save" onPointerDown={e=>{if(e.pointerType==='touch'&&isPenActive()){e.preventDefault();e.stopPropagation();}}} onClick={e=>{if(isPenActive())return;save();}} disabled={saving}>{saving?'저장 중...':'저장하기'}</button>
+                  <button className="note-head-save" onPointerDown={e=>{if(e.pointerType==='touch'&&isPenActive()){e.preventDefault();e.stopPropagation();}}} onClick={e=>{if(isPenActive())return;save();}} disabled={saving} style={{background:'linear-gradient(135deg,#059669,#10B981)',border:'none',borderRadius:10,padding:'6px 16px',fontSize:13,fontWeight:800,color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>{saving?'저장 중...':'✅ 상담 마치기'}</button>
                   <button onClick={safeClose} style={{width:32,height:32,borderRadius:'50%',border:'none',background:'var(--bg)',color:'var(--text-md)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
                 </div>
               </div>

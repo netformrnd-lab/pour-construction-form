@@ -3290,11 +3290,19 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                         animation:'dotBlink 2.4s ease-in-out infinite'}}/>
                       <span style={{fontSize:12,fontWeight:700,color:'var(--navy)',letterSpacing:'.04em'}}>하자 사진</span>
                     </div>
-                    <span key={photosWithMeta.length} className="df-count-pop"
-                      style={{fontSize:10,color:'var(--accent)',fontWeight:800,
-                        letterSpacing:'.08em',fontVariantNumeric:'tabular-nums'}}>
-                      {String(photosWithMeta.length).padStart(2,'0')}장
-                    </span>
+                    <div style={{display:'flex',alignItems:'center',gap:6}}>
+                      <span key={photosWithMeta.length} className="df-count-pop"
+                        style={{fontSize:10,color:'var(--accent)',fontWeight:800,
+                          letterSpacing:'.06em',fontVariantNumeric:'tabular-nums'}}>
+                        실사례 {photosWithMeta.length}건
+                      </span>
+                      {/* 인증 뱃지 */}
+                      <span style={{fontSize:8,fontWeight:700,color:'var(--green)',
+                        background:'var(--green-l)',borderRadius:4,padding:'1px 5px',
+                        letterSpacing:'.04em'}}>
+                        분류완료
+                      </span>
+                    </div>
                   </div>
 
                   {photosWithMeta.length>0?(
@@ -3326,11 +3334,17 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                                   background:isAct?'rgba(37,99,235,.06)':'transparent',fontSize:20}}>
                                   🏠
                                 </div>
-                                <div style={{padding:'5px 7px',borderTop:'1px solid var(--border-s)'}}>
+                                <div style={{padding:'5px 7px 4px',borderTop:'1px solid var(--border-s)'}}>
                                   <div style={{fontSize:10,fontWeight:800,color:isAct?'var(--accent)':'var(--text-md)',letterSpacing:'.02em'}}>전체</div>
                                   <div style={{fontSize:9,color:'var(--text-sm)',marginTop:1,fontVariantNumeric:'tabular-nums'}}>
-                                    {String(photosWithMeta.length).padStart(2,'0')}
+                                    {String(photosWithMeta.length).padStart(2,'0')}건
                                   </div>
+                                </div>
+                                {/* 비율 바 — 전체=100% */}
+                                <div style={{height:2,background:'var(--border-s)'}}>
+                                  <div style={{height:'100%',width:isAct?'100%':'100%',
+                                    background:isAct?'var(--accent)':'var(--border)',
+                                    transition:'background .3s'}}/>
                                 </div>
                               </div>
                             );
@@ -3369,15 +3383,22 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                                   <div style={{height:60,display:'flex',alignItems:'center',justifyContent:'center',
                                     fontSize:18,color:'var(--border)'}}>◌</div>
                                 )}
-                                <div style={{padding:'5px 7px',borderTop:'1px solid var(--border-s)'}}>
+                                <div style={{padding:'5px 7px 4px',borderTop:'1px solid var(--border-s)'}}>
                                   <div style={{fontSize:9,fontWeight:800,
                                     color:isAct?'var(--accent)':'var(--text-md)',
                                     whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'.01em'}}>
                                     #{type}
                                   </div>
                                   <div style={{fontSize:9,color:'var(--text-sm)',marginTop:1,fontVariantNumeric:'tabular-nums'}}>
-                                    {String(grp.length).padStart(2,'0')}
+                                    {String(grp.length).padStart(2,'0')}건
                                   </div>
+                                </div>
+                                {/* 비율 바 */}
+                                <div style={{height:2,background:'var(--border-s)'}}>
+                                  <div style={{height:'100%',
+                                    width:`${Math.round((grp.length/(photosWithMeta.length||1))*100)}%`,
+                                    background:isAct?'var(--accent)':'var(--blue-m)',
+                                    transition:'width .45s cubic-bezier(.19,1,.22,1),background .3s'}}/>
                                 </div>
                               </div>
                             );
@@ -3396,9 +3417,17 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                               {activeDefect==='all'?'전체':'#'+activeDefect}
                             </span>
                           </div>
-                          <span style={{fontSize:10,color:'var(--text-sm)',fontVariantNumeric:'tabular-nums',fontWeight:600}}>
-                            {String(filtered.length).padStart(2,'0')} / {String(photosWithMeta.length).padStart(2,'0')}
-                          </span>
+                          <div style={{display:'flex',alignItems:'center',gap:6}}>
+                            <span style={{fontSize:10,color:'var(--text-sm)',fontVariantNumeric:'tabular-nums',fontWeight:600}}>
+                              {String(filtered.length).padStart(2,'0')} / {String(photosWithMeta.length).padStart(2,'0')}
+                            </span>
+                            {activeDefect!=='all'&&(
+                              <span style={{fontSize:9,fontWeight:700,color:'var(--accent)',
+                                background:'var(--accent-l)',borderRadius:4,padding:'1px 5px'}}>
+                                {Math.round((filtered.length/(photosWithMeta.length||1))*100)}%
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className={isPhotoExiting?'photo-grid-exit':''}>
                           <div style={{display:'flex',gap:7,overflowX:'auto',paddingBottom:4,

@@ -868,26 +868,41 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
   animation:photoExit .14s ease-in both!important;
   pointer-events:none;
 }
-/* ══ 하자사진 패널 — 프리미엄 모션 ══ */
+/* ══ 하자사진 패널 — 우주공학 모션 ══ */
 @keyframes cardSlideIn{
-  from{opacity:0;transform:translateY(14px) scale(.93);}
+  from{opacity:0;transform:translateY(22px) scale(.88);}
   to{opacity:1;transform:translateY(0) scale(1);}
 }
 @keyframes photoReveal{
-  from{opacity:0;transform:translateX(22px) scale(.97);}
-  to{opacity:1;transform:translateX(0) scale(1);}
+  from{opacity:0;transform:translateX(34px);}
+  to{opacity:1;transform:translateX(0);}
 }
 @keyframes activePulse{
-  0%,100%{box-shadow:0 4px 20px rgba(13,27,42,.18);}
-  50%{box-shadow:0 6px 28px rgba(13,27,42,.28);}
+  0%,100%{box-shadow:0 4px 18px rgba(37,99,235,.14);}
+  50%{box-shadow:0 10px 30px rgba(37,99,235,.28);}
 }
-@keyframes countFade{
-  from{opacity:0;transform:translateY(-4px);}
-  to{opacity:1;transform:translateY(0);}
+@keyframes accentGrow{
+  from{transform:scaleX(0);}
+  to{transform:scaleX(1);}
 }
-.df-card-in{animation:cardSlideIn .28s cubic-bezier(.34,1.56,.64,1) both;}
-.df-photo-in{animation:photoReveal .24s cubic-bezier(.34,1.4,.64,1) both;}
-.df-active-card{animation:activePulse 2.6s ease-in-out infinite;}
+@keyframes kenBurns{
+  from{transform:scale(1.1);}
+  to{transform:scale(1);}
+}
+@keyframes dotBlink{
+  0%,100%{opacity:1;}
+  45%,55%{opacity:.2;}
+}
+@keyframes countPop{
+  0%{opacity:0;transform:scale(.6);}
+  70%{transform:scale(1.18);}
+  100%{opacity:1;transform:scale(1);}
+}
+.df-card-in{animation:cardSlideIn .42s cubic-bezier(.19,1,.22,1) both;}
+.df-photo-in{animation:photoReveal .38s cubic-bezier(.19,1,.22,1) both;}
+.df-active-card{animation:activePulse 3s ease-in-out infinite;}
+.df-img-ken{animation:kenBurns .8s cubic-bezier(.25,.46,.45,.94) both;}
+.df-count-pop{animation:countPop .36s cubic-bezier(.19,1,.22,1) both;}
 </style>
 </head>
 <body>
@@ -3243,27 +3258,53 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               /* 하자유형별 그룹핑 (중분류 카드용) */
               const grouped={};
               existingMajor.forEach(type=>{grouped[type]=photosWithMeta.filter(p=>p.defectType===type);});
+              /* ── 코너 마크 컴포넌트 (우주공학 precision) ── */
+              const Mk=({act})=>{
+                const c=act?'var(--accent)':'var(--border)';
+                const W=7,T=1.5;
+                const s=p=>({position:'absolute',...p,width:W,height:W,pointerEvents:'none'});
+                const b=e=>({position:'absolute',background:c,...e});
+                return(<>
+                  <div style={s({top:5,left:5})}><div style={b({top:0,left:0,width:W,height:T})}/><div style={b({top:0,left:0,width:T,height:W})}/></div>
+                  <div style={s({top:5,right:5})}><div style={b({top:0,right:0,width:W,height:T})}/><div style={b({top:0,right:0,width:T,height:W})}/></div>
+                  <div style={s({bottom:5,left:5})}><div style={b({bottom:0,left:0,width:W,height:T})}/><div style={b({bottom:0,left:0,width:T,height:W})}/></div>
+                  <div style={s({bottom:5,right:5})}><div style={b({bottom:0,right:0,width:W,height:T})}/><div style={b({bottom:0,right:0,width:T,height:W})}/></div>
+                </>);
+              };
+              const hasActive=activeDefect!=='all';
               return(
                 /* ── 하자 사진 섹션 ── */
                 <div style={{marginBottom:16,borderRadius:16,overflow:'hidden',
-                  background:'var(--card)',border:'1px solid var(--border)',
-                  boxShadow:'var(--shadow)'}}>
+                  background:'var(--card)',
+                  border:'1px solid var(--border)',
+                  boxShadow:'var(--shadow)',
+                  position:'relative'}}>
+                  {/* 상단 액센트 바 */}
+                  <div style={{height:2,background:'linear-gradient(90deg,var(--accent),var(--blue-m),transparent)',opacity:.7}}/>
+
                   {/* 섹션 헤더 */}
-                  <div style={{padding:'12px 14px 0',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                    <div style={{display:'flex',alignItems:'center',gap:8}}>
-                      <div style={{width:3,height:16,background:'var(--accent)',borderRadius:2}}/>
-                      <span style={{fontSize:12,fontWeight:700,color:'var(--navy)',letterSpacing:'.04em'}}>📸 하자 사진</span>
+                  <div style={{padding:'10px 14px 0',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:7}}>
+                      {/* 블링킹 상태 점 */}
+                      <div style={{width:6,height:6,borderRadius:'50%',background:'var(--accent)',
+                        animation:'dotBlink 2.4s ease-in-out infinite'}}/>
+                      <span style={{fontSize:12,fontWeight:700,color:'var(--navy)',letterSpacing:'.04em'}}>하자 사진</span>
                     </div>
-                    <span style={{fontSize:11,color:'var(--text-sm)',fontWeight:600}}>{photosWithMeta.length}장</span>
+                    <span key={photosWithMeta.length} className="df-count-pop"
+                      style={{fontSize:10,color:'var(--accent)',fontWeight:800,
+                        letterSpacing:'.08em',fontVariantNumeric:'tabular-nums'}}>
+                      {String(photosWithMeta.length).padStart(2,'0')}장
+                    </span>
                   </div>
 
                   {photosWithMeta.length>0?(
                     <>
-                      {/* ── 중분류 카드 (대표사진+유형명) ── */}
+                      {/* ── 중분류 카드 ── */}
                       <div style={{padding:'10px 14px 0'}}>
                         <div style={{display:'flex',gap:7,overflowX:'auto',paddingBottom:2,
                           scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch',
                           scrollbarWidth:'none',msOverflowStyle:'none'}}>
+
                           {/* 전체 카드 */}
                           {(()=>{
                             const isAct=activeDefect==='all';
@@ -3273,20 +3314,28 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                                 style={{flex:'0 0 82px',scrollSnapAlign:'start',borderRadius:10,overflow:'hidden',cursor:'pointer',
                                   border:`1.5px solid ${isAct?'var(--accent)':'var(--border)'}`,
                                   background:isAct?'var(--accent-l)':'var(--bg)',
-                                  transform:isAct?'scale(1.04) translateY(-2px)':'scale(1)',
-                                  transition:'transform .28s cubic-bezier(.34,1.56,.64,1),border-color .2s,background .2s',
+                                  transform:isAct?'scale(1.06) translateY(-3px)':hasActive?'scale(0.94)':'scale(1)',
+                                  opacity:isAct?1:hasActive?.65:1,
+                                  transition:'transform .38s cubic-bezier(.19,1,.22,1),opacity .28s,border-color .2s,background .2s',
                                   flexShrink:0,position:'relative'}}>
+                                <Mk act={isAct}/>
+                                {isAct&&<div style={{position:'absolute',bottom:0,left:0,right:0,height:2,
+                                  background:'var(--accent)',transformOrigin:'left',
+                                  animation:'accentGrow .38s cubic-bezier(.19,1,.22,1) both'}}/>}
                                 <div style={{height:60,display:'flex',alignItems:'center',justifyContent:'center',
-                                  background:isAct?'rgba(37,99,235,.06)':'transparent',fontSize:22}}>
+                                  background:isAct?'rgba(37,99,235,.06)':'transparent',fontSize:20}}>
                                   🏠
                                 </div>
-                                <div style={{padding:'5px 7px',borderTop:'1px solid var(--border)'}}>
+                                <div style={{padding:'5px 7px',borderTop:'1px solid var(--border-s)'}}>
                                   <div style={{fontSize:10,fontWeight:800,color:isAct?'var(--accent)':'var(--text-md)',letterSpacing:'.02em'}}>전체</div>
-                                  <div style={{fontSize:9,color:'var(--text-sm)',marginTop:1}}>{photosWithMeta.length}장</div>
+                                  <div style={{fontSize:9,color:'var(--text-sm)',marginTop:1,fontVariantNumeric:'tabular-nums'}}>
+                                    {String(photosWithMeta.length).padStart(2,'0')}
+                                  </div>
                                 </div>
                               </div>
                             );
                           })()}
+
                           {/* 하자유형별 카드 */}
                           {existingMajor.map((type,ci)=>{
                             const grp=grouped[type]||[];
@@ -3298,28 +3347,37 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                                 style={{flex:'0 0 82px',scrollSnapAlign:'start',borderRadius:10,overflow:'hidden',cursor:'pointer',
                                   border:`1.5px solid ${isAct?'var(--accent)':'var(--border)'}`,
                                   background:isAct?'var(--accent-l)':'var(--bg)',
-                                  transform:isAct?'scale(1.04) translateY(-2px)':'scale(1)',
-                                  transition:'transform .28s cubic-bezier(.34,1.56,.64,1),border-color .2s,background .2s',
-                                  flexShrink:0,position:'relative',animationDelay:`${ci*45}ms`}}>
+                                  transform:isAct?'scale(1.06) translateY(-3px)':hasActive?'scale(0.94)':'scale(1)',
+                                  opacity:isAct?1:hasActive?.65:1,
+                                  transition:'transform .38s cubic-bezier(.19,1,.22,1),opacity .28s,border-color .2s,background .2s',
+                                  flexShrink:0,position:'relative',animationDelay:`${ci*52}ms`}}>
+                                <Mk act={isAct}/>
+                                {isAct&&<div style={{position:'absolute',bottom:0,left:0,right:0,height:2,
+                                  background:'var(--accent)',transformOrigin:'left',
+                                  animation:'accentGrow .38s cubic-bezier(.19,1,.22,1) both',zIndex:1}}/>}
                                 {rep?(
                                   <div style={{height:60,overflow:'hidden',position:'relative'}}>
-                                    <img src={rep} alt={type} style={{width:'100%',height:'100%',objectFit:'cover',display:'block',
-                                      filter:isAct?'none':'saturate(.9) brightness(.95)',
-                                      transition:'filter .2s'}}/>
+                                    <img src={rep} alt={type}
+                                      className={isAct?'df-img-ken':''}
+                                      style={{width:'100%',height:'100%',objectFit:'cover',display:'block',
+                                        filter:isAct?'saturate(1.1) brightness(1)':'saturate(.75) brightness(.88)',
+                                        transition:'filter .3s'}}/>
                                     {isAct&&<div style={{position:'absolute',inset:0,
-                                      background:'linear-gradient(transparent 50%,rgba(37,99,235,.15))',pointerEvents:'none'}}/>}
+                                      background:'linear-gradient(transparent 40%,rgba(37,99,235,.18))',pointerEvents:'none'}}/>}
                                   </div>
                                 ):(
                                   <div style={{height:60,display:'flex',alignItems:'center',justifyContent:'center',
-                                    fontSize:20,color:'var(--text-sm)'}}>◌</div>
+                                    fontSize:18,color:'var(--border)'}}>◌</div>
                                 )}
-                                <div style={{padding:'5px 7px',borderTop:'1px solid var(--border)'}}>
+                                <div style={{padding:'5px 7px',borderTop:'1px solid var(--border-s)'}}>
                                   <div style={{fontSize:9,fontWeight:800,
                                     color:isAct?'var(--accent)':'var(--text-md)',
-                                    whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+                                    whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'.01em'}}>
                                     #{type}
                                   </div>
-                                  <div style={{fontSize:9,color:'var(--text-sm)',marginTop:1}}>{grp.length}장</div>
+                                  <div style={{fontSize:9,color:'var(--text-sm)',marginTop:1,fontVariantNumeric:'tabular-nums'}}>
+                                    {String(grp.length).padStart(2,'0')}
+                                  </div>
                                 </div>
                               </div>
                             );
@@ -3329,10 +3387,17 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
                       {/* ── 소분류 사진 스트립 ── */}
                       <div style={{borderTop:'1px solid var(--border-s)',padding:'10px 14px 14px',marginTop:8}}>
-                        <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8}}>
-                          <div style={{width:2,height:10,background:'var(--text-sm)',borderRadius:1}}/>
-                          <span style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.04em'}}>
-                            {activeDefect==='all'?`전체 ${photosWithMeta.length}장`:`${activeDefect} · ${filtered.length}장`}
+                        {/* 스트립 레이블 */}
+                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+                          <div style={{display:'flex',alignItems:'center',gap:5}}>
+                            <div style={{width:10,height:1.5,background:'var(--accent)',borderRadius:1}}/>
+                            <div style={{width:4,height:1.5,background:'var(--blue-m)',borderRadius:1}}/>
+                            <span style={{fontSize:10,fontWeight:700,color:'var(--text-md)',letterSpacing:'.06em'}}>
+                              {activeDefect==='all'?'전체':'#'+activeDefect}
+                            </span>
+                          </div>
+                          <span style={{fontSize:10,color:'var(--text-sm)',fontVariantNumeric:'tabular-nums',fontWeight:600}}>
+                            {String(filtered.length).padStart(2,'0')} / {String(photosWithMeta.length).padStart(2,'0')}
                           </span>
                         </div>
                         <div className={isPhotoExiting?'photo-grid-exit':''}>
@@ -3345,9 +3410,9 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                                 style={{flex:'0 0 70%',maxWidth:270,scrollSnapAlign:'start',
                                   borderRadius:10,overflow:'hidden',
                                   border:'1px solid var(--border)',
-                                  background:'var(--bg)',position:'relative',aspectRatio:'4/3',
-                                  cursor:'pointer',animationDelay:`${i*45}ms`,flexShrink:0,
-                                  boxShadow:'var(--shadow)'}}
+                                  background:'#000',position:'relative',aspectRatio:'4/3',
+                                  cursor:'pointer',animationDelay:`${i*55}ms`,flexShrink:0,
+                                  boxShadow:'0 2px 12px rgba(13,27,42,.12)'}}
                                 onClick={()=>{
                                   const allList=filtered.map(x=>({src:x.src,alt:'하자사진'}));
                                   setZoomPhoto({photos:allList,index:i});
@@ -3355,24 +3420,37 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                               >
                                 <img src={p.src} alt={`하자사진${i+1}`}
                                   style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-                                {/* 라벨 오버레이 */}
+                                {/* 상단 인덱스 */}
+                                <div style={{position:'absolute',top:7,right:7,
+                                  background:'rgba(13,27,42,.6)',
+                                  borderRadius:4,padding:'1px 6px',
+                                  fontSize:9,fontWeight:700,color:'rgba(255,255,255,.85)',
+                                  fontVariantNumeric:'tabular-nums',letterSpacing:'.06em'}}>
+                                  {String(i+1).padStart(2,'0')}
+                                </div>
+                                {/* 좌상단 코너 마크 */}
+                                <div style={{position:'absolute',top:6,left:6,width:8,height:8,pointerEvents:'none'}}>
+                                  <div style={{position:'absolute',top:0,left:0,width:8,height:1.5,background:'rgba(255,255,255,.5)'}}/>
+                                  <div style={{position:'absolute',top:0,left:0,width:1.5,height:8,background:'rgba(255,255,255,.5)'}}/>
+                                </div>
+                                {/* 하단 레이블 */}
                                 <div style={{position:'absolute',bottom:0,left:0,right:0,
-                                  padding:'18px 8px 7px',
-                                  background:'linear-gradient(transparent,rgba(13,27,42,.72))'}}>
+                                  padding:'22px 8px 8px',
+                                  background:'linear-gradient(transparent,rgba(13,27,42,.82))'}}>
                                   <div style={{display:'flex',alignItems:'center',gap:4,flexWrap:'wrap'}}>
                                     {p.defectType&&(
                                       <span style={{fontSize:9,fontWeight:700,
-                                        color:'#fff',letterSpacing:'.04em',
-                                        background:'rgba(37,99,235,.75)',
-                                        borderRadius:4,padding:'1px 6px'}}>
+                                        color:'#fff',letterSpacing:'.05em',
+                                        background:'rgba(37,99,235,.8)',
+                                        borderRadius:4,padding:'2px 7px'}}>
                                         #{p.defectType}
                                       </span>
                                     )}
                                     {p.defectPart&&p.defectPart!==p.defectType&&(
                                       <span style={{fontSize:9,fontWeight:600,
-                                        color:'rgba(255,255,255,.8)',letterSpacing:'.03em',
-                                        background:'rgba(255,255,255,.12)',
-                                        borderRadius:4,padding:'1px 5px'}}>
+                                        color:'rgba(255,255,255,.8)',
+                                        background:'rgba(255,255,255,.14)',
+                                        borderRadius:4,padding:'2px 6px'}}>
                                         #{p.defectPart}
                                       </span>
                                     )}
@@ -3386,13 +3464,13 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     </>
                   ):(
                     /* 빈 상태 */
-                    <div style={{padding:'14px',display:'flex',gap:7}}>
+                    <div style={{padding:'14px 14px 16px',display:'flex',gap:7}}>
                       {['','',''].map((_,i)=>(
                         <div key={i} style={{flex:'0 0 82px',borderRadius:10,
                           border:'1.5px dashed var(--border)',
                           aspectRatio:'1/1',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4,
                           background:'var(--bg)'}}>
-                          <span style={{fontSize:20,opacity:.25}}>📷</span>
+                          <span style={{fontSize:20,opacity:.2}}>📷</span>
                           <span style={{fontSize:9,color:'var(--text-sm)',fontWeight:600}}>사진 없음</span>
                         </div>
                       ))}

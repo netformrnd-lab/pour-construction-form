@@ -1434,6 +1434,130 @@ const ALL_PROBLEMS=[
   {id:'ascon_mma',cat:'토목',label:'POUR MMA 공법',sub:'아스콘',icon:'🛣',img:'',tags:['#고강도 MMA 수지','#내충격·내화학성','#조기 개방 가능'],specUrl:'https://www.poursolution.net/197',proposalUrl:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/Proposal%2F%ED%86%A0%EB%AA%A9%2FPOUR%EA%B3%B5%EB%B2%95_%EC%A0%9C%EC%95%88%EC%84%9C(ver08.)_mma%EA%B3%B5%EB%B2%95.pdf?alt=media&token=a4f1cc41-5b6b-44e7-b511-603b873c9f0f',gifUrl:'',guideId:null,caseUrl:'https://www.poursolution.net/portfolio'},
   {id:'block',cat:'토목',label:'POUR 보도블럭 보수 및 단면 복구',sub:'보도블럭',icon:'🧱',img:'',tags:['#기층 보강+블록 재시공','#침하 재발 방지'],specUrl:'https://www.poursolution.net/77',proposalUrl:'',gifUrl:'',guideId:null,caseUrl:'https://www.poursolution.net/portfolio'},
 ];
+/* ── 공법별 차별점 데이터 (KTR/KCL 공인시험 기준) ── */
+const METHOD_STATS={
+  shingle:{
+    cert:'국토부 건설신기술 제1026호 · 특허 POUR HOOKER',
+    stats:[
+      {label:'인장강도',value:'11.4',unit:'N/㎟',note:'타사 대비 10배',src:'KTR'},
+      {label:'찢김저항',value:'최상',unit:'',note:'재료분리 방지',src:'KTR'},
+      {label:'후레싱고정',value:'특허',unit:'',note:'POUR HOOKER',src:'특허'},
+    ],
+  },
+  metal:{
+    cert:'국토부 건설신기술 제1026호 · KTR·KCL 공인시험',
+    stats:[
+      {label:'인장강도',value:'11.4',unit:'N/㎟',note:'타사 대비 10배',src:'KTR'},
+      {label:'일사반사율',value:'91.8',unit:'%',note:'차열·단열',src:'KCL'},
+      {label:'부착강도',value:'0.7',unit:'N/㎟',note:'완전 일체화',src:'KTR'},
+    ],
+  },
+  metal_coat:{
+    cert:'KTR·KCL 공인시험',
+    stats:[
+      {label:'인장강도',value:'5.8',unit:'N/㎟',note:'KS 기준 4배',src:'KTR'},
+      {label:'일사반사율',value:'91.8',unit:'%',note:'차열·단열',src:'KCL'},
+    ],
+  },
+  slab_dual:{
+    cert:'특허 50여 개 · KTR·KCL 공인시험',
+    stats:[
+      {label:'인장강도',value:'5.8',unit:'N/㎟',note:'KS 기준 4배',src:'KTR'},
+      {label:'중성화억제',value:'0.3',unit:'mm',note:'철근 부식 방지',src:'KTR'},
+      {label:'일사반사율',value:'91.8',unit:'%',note:'차열·단열',src:'KCL'},
+      {label:'염화물저항',value:'172',unit:'C',note:'내구성 향상',src:'KTR'},
+    ],
+  },
+  slab_pvc:{
+    cert:'국토부 건설신기술 제1026호',
+    stats:[
+      {label:'신기술',value:'1026',unit:'호',note:'국토부 지정',src:'국토부'},
+      {label:'인장강도',value:'5.8',unit:'N/㎟',note:'KS 기준 4배',src:'KTR'},
+      {label:'결로방지',value:'단열시트',unit:'',note:'내부 습기 차단',src:''},
+    ],
+  },
+  slab_urethane:{
+    cert:'KTR 공인시험',
+    stats:[
+      {label:'하도부착강도',value:'1.4',unit:'N/㎟',note:'KS 기준 2배',src:'KTR'},
+      {label:'신장률',value:'1,103',unit:'%',note:'균열 추종',src:'KTR'},
+      {label:'인열강도',value:'15.7',unit:'N/mm',note:'내구성',src:'KTR'},
+    ],
+  },
+  slab_acrylic:{
+    cert:'KTR 공인시험',
+    stats:[
+      {label:'공법',value:'2액형',unit:'',note:'아크릴계 주입',src:''},
+      {label:'신장률',value:'608',unit:'%',note:'KS 기준 2배',src:'SGS'},
+      {label:'부착강도',value:'1.5',unit:'MPa',note:'배면 완전 차수',src:'SGS'},
+    ],
+  },
+  parking_epoxy:{
+    cert:'KTR 공인시험',
+    stats:[
+      {label:'압축강도',value:'85.9',unit:'N/㎟',note:'중하중 대응',src:'KTR'},
+      {label:'부착강도',value:'2.3',unit:'MPa',note:'박리 방지',src:'KTR'},
+      {label:'내마모성',value:'76',unit:'mg',note:'분진 억제',src:'KTR'},
+    ],
+  },
+  parking_emboss:{
+    cert:'KTR 공인시험 · 써밋비드 특허',
+    stats:[
+      {label:'미끄럼저항',value:'83',unit:'BPN',note:'논슬립',src:''},
+      {label:'내충격',value:'최상',unit:'',note:'반복하중 대응',src:''},
+      {label:'내마모',value:'강화',unit:'',note:'회전구간 대응',src:''},
+    ],
+  },
+  wall_premium:{
+    cert:'KTR·SGS 공인시험',
+    stats:[
+      {label:'신장률',value:'608',unit:'%',note:'KS 기준 2배',src:'SGS'},
+      {label:'인장강도',value:'1.53',unit:'MPa',note:'외벽 균열 추종',src:'SGS'},
+      {label:'중성화억제',value:'0.0',unit:'mm',note:'콘크리트 보호',src:'KTR'},
+    ],
+  },
+  wall_mid:{
+    cert:'KTR 공인시험',
+    stats:[
+      {label:'신장률',value:'519',unit:'%',note:'수성1급 대비 5배',src:'KTR'},
+      {label:'인장강도',value:'1.53',unit:'MPa',note:'외벽 균열 추종',src:'SGS'},
+    ],
+  },
+  wall_economy:{
+    cert:'KTR 공인시험',
+    stats:[
+      {label:'신장률',value:'519',unit:'%',note:'수성1급 대비 5배',src:'KTR'},
+      {label:'부착강도',value:'0.7',unit:'N/㎟',note:'바탕면 밀착',src:'KTR'},
+    ],
+  },
+  crack_surface:{
+    cert:'KTR 공인시험 · 마이크로 스틸 혼입 특허',
+    stats:[
+      {label:'부착강도',value:'1.5',unit:'N/㎟',note:'습윤 조건',src:'KTR'},
+      {label:'인장강도',value:'2.1',unit:'N/㎟',note:'철근 역할',src:'KTR'},
+    ],
+  },
+  crack_section:{
+    cert:'KTR 공인시험 · 마이크로 스틸 혼입 특허',
+    stats:[
+      {label:'부착강도',value:'1.5',unit:'N/㎟',note:'습윤 조건',src:'KTR'},
+      {label:'인장강도',value:'2.1',unit:'N/㎟',note:'철근 역할',src:'KTR'},
+      {label:'내충격',value:'2.3m',unit:'낙하',note:'망치 충격에도 무결',src:'KTR'},
+    ],
+  },
+  crack_sheet:{
+    cert:'KTR 공인시험',
+    stats:[
+      {label:'인장강도',value:'11.4',unit:'N/㎟',note:'타사 대비 10배',src:'KTR'},
+      {label:'신장률',value:'608',unit:'%',note:'KS 기준 2배',src:'KTR'},
+    ],
+  },
+  ascon_repair:{cert:'',stats:[{label:'공법',value:'3단계',unit:'',note:'절삭→보강→재포장',src:''}]},
+  ascon_seal:{cert:'',stats:[{label:'수명연장',value:'2~3배',unit:'',note:'포장 수명',src:''}]},
+  ascon_mma:{cert:'',stats:[{label:'미끄럼저항',value:'83',unit:'BPN',note:'고강도 MMA',src:''},{label:'내화학성',value:'최상',unit:'',note:'조기개방 가능',src:''}]},
+  block:{cert:'',stats:[{label:'기층보강',value:'+재시공',unit:'',note:'침하 재발 방지',src:''}]},
+};
+
 const CATS=['전체','방수','도장','보수/보강','토목'];
 const CAT_LINKS={방수:'https://www.poursolution.net/36',도장:'https://www.poursolution.net/38','보수/보강':'https://www.poursolution.net/37',토목:'https://www.poursolution.net/39'};
 
@@ -3224,6 +3348,69 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
         {/* ── 공법 상세 ── */}
         <>
+            {/* ── 0. 차별점 — 공인 성능 수치 ── */}
+            {(()=>{
+              const ms=METHOD_STATS[problem?.id];
+              if(!ms||!ms.stats?.length)return null;
+              return(
+                <div style={{marginBottom:16,borderRadius:16,overflow:'hidden',
+                  background:'var(--card)',border:'1px solid var(--border)',boxShadow:'var(--shadow)',
+                  position:'relative'}}>
+                  <div style={{height:2,background:'linear-gradient(90deg,var(--gold),rgba(217,119,6,.3),transparent)',opacity:.9}}/>
+                  <div style={{padding:'10px 14px 0',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:7}}>
+                      <div style={{width:6,height:6,borderRadius:'50%',background:'var(--gold)',animation:'dotBlink 2.4s ease-in-out infinite'}}/>
+                      <span style={{fontSize:12,fontWeight:700,color:'var(--navy)',letterSpacing:'.04em'}}>타사 대비 차별점</span>
+                    </div>
+                    {ms.cert&&(
+                      <span style={{fontSize:8,fontWeight:700,color:'var(--gold)',
+                        background:'rgba(217,119,6,.08)',border:'1px solid rgba(217,119,6,.2)',
+                        borderRadius:4,padding:'2px 6px',letterSpacing:'.03em',whiteSpace:'nowrap'}}>
+                        {ms.cert}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{padding:'10px 14px 14px'}}>
+                    <div style={{display:'flex',gap:7,overflowX:'auto',
+                      scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch',
+                      scrollbarWidth:'none',msOverflowStyle:'none'}}>
+                      {ms.stats.map((s,i)=>(
+                        <div key={i} className="df-card-in"
+                          style={{flex:'0 0 auto',minWidth:90,scrollSnapAlign:'start',
+                            borderRadius:10,border:'1px solid var(--border)',
+                            background:'var(--bg)',padding:'10px 12px',
+                            position:'relative',overflow:'hidden',
+                            animationDelay:`${i*60}ms`}}>
+                          {/* 상단 골드 라인 */}
+                          <div style={{position:'absolute',top:0,left:0,right:0,height:2,
+                            background:'var(--gold)',opacity:.35}}/>
+                          {/* src 뱃지 */}
+                          {s.src&&(
+                            <div style={{fontSize:7,fontWeight:800,color:'var(--gold)',
+                              letterSpacing:'.08em',marginBottom:4,opacity:.8}}>{s.src}</div>
+                          )}
+                          {/* 수치 */}
+                          <div style={{display:'flex',alignItems:'baseline',gap:2,marginBottom:2}}>
+                            <span style={{fontSize:18,fontWeight:900,color:'var(--navy)',
+                              letterSpacing:'-.01em',fontVariantNumeric:'tabular-nums',lineHeight:1}}>
+                              {s.value}
+                            </span>
+                            {s.unit&&(
+                              <span style={{fontSize:10,fontWeight:700,color:'var(--text-md)'}}>{s.unit}</span>
+                            )}
+                          </div>
+                          {/* 라벨 */}
+                          <div style={{fontSize:9,fontWeight:700,color:'var(--text-md)',marginBottom:3}}>{s.label}</div>
+                          {/* 노트 */}
+                          <div style={{fontSize:8,color:'var(--text-sm)',fontWeight:500,lineHeight:1.3}}>{s.note}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* ── 1. 하자 사진 (대분류/중분류/소분류 3단계 필터) ── */}
             {(()=>{
               const causeList=(photos?.causes||[]).filter(s=>s);

@@ -2920,6 +2920,26 @@ function ContactForm({building,problem,done,onSubmit,onBack,onLog,onNewCustomer}
 }
 
 /* ── Solution Screen ── */
+/* ── 이미지 리사이즈 (Firestore 저장용 압축) ── */
+function resizeImageFile(file,maxW=900,quality=0.72){
+  return new Promise(resolve=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const scale=Math.min(1,maxW/img.width);
+        const w=Math.round(img.width*scale),h=Math.round(img.height*scale);
+        const c=document.createElement('canvas');
+        c.width=w;c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(c.toDataURL('image/jpeg',quality));
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNewCustomer,visible,externalNote,onExternalNote,onNoteChange,memoData,updateMemo,clearMemoData}){
   /* ── 모든 useState 최상단 선언 (React 훅 규칙) ── */
   const [qr,setQr]=useState(null);
@@ -2989,6 +3009,12 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [photoAddToast,setPhotoAddToast]=useState(false);
   const cameraInputRef=useRef(null);
   const fileInputRef=useRef(null);
+  /* ── 고객 현장사진 분류 (태그 확인 모달) ── */
+  const [ntFieldPhotos,setNtFieldPhotos]=useState([]); // [{id,src,defectType,defectPart,confirmed,analyzing}]
+  const [fieldPhotoModal,setFieldPhotoModal]=useState(null); // {id,src} — 태그 확인 중
+  const [fieldPhotoTag,setFieldPhotoTag]=useState({defectType:'',defectPart:''});
+  /* ── STEP 3 공정 사진 ── */
+  const [selectedProcessStep,setSelectedProcessStep]=useState(null);
 
   const ntToggleSec=sec=>setNtOpenSec(p=>{const n=new Set(p);n.has(sec)?n.delete(sec):n.add(sec);return n;});
   const ntHasData=()=>!!(ntName||ntCompany||ntPhone||ntEmail||ntMemo||ntInterests.length||ntContact.length||ntBizCard?.front);
@@ -3127,7 +3153,9 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       nextActions:ntNextActions,
       address:ntAddress,
       businessCard:ntBizCard,
-      memo:ntMemo,memoImgs:ntMemoImgs,keywords:ntKeywords,brandTag:ntBrandTag,status:'신규',source:getUrlSource(),fieldMode:localStorage.getItem('pourFieldMode')||'expo',
+      memo:ntMemo,memoImgs:ntMemoImgs,keywords:ntKeywords,brandTag:ntBrandTag,
+      fieldPhotos:ntFieldPhotos.filter(p=>p.confirmed).map(({src,defectType,defectPart})=>({src,defectType,defectPart})),
+      status:'신규',source:getUrlSource(),fieldMode:localStorage.getItem('pourFieldMode')||'expo',
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
     sendToSheet(Object.assign({_sheetType:'lead'},data));
@@ -3215,6 +3243,85 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
         </div>
       )}
       {zoomPhoto&&<PhotoZoomModal photos={zoomPhoto.photos} index={zoomPhoto.index} onClose={()=>setZoomPhoto(null)}/>}
+      {/* ── 고객 현장사진 태그 확인 모달 ── */}
+      {fieldPhotoModal&&(()=>{
+        const defectTypeOpts=[...new Set(defectPhotos.map(p=>p.defectType).filter(Boolean))];
+        if(!defectTypeOpts.length)defectTypeOpts.push(...['누수','균열','들뜸','백화','박리','기타']);
+        const defectPartOpts=['옥상','외벽','지하','발코니','내부','기타'];
+        const confirm=()=>{
+          setNtFieldPhotos(prev=>prev.map(p=>p.id===fieldPhotoModal.id
+            ?{...p,defectType:fieldPhotoTag.defectType,defectPart:fieldPhotoTag.defectPart,confirmed:true,analyzing:false}
+            :p));
+          setFieldPhotoModal(null);
+        };
+        return(
+          <div style={{position:'fixed',inset:0,background:'rgba(13,27,42,.82)',zIndex:3000,display:'flex',alignItems:'flex-end',justifyContent:'center'}}
+            onClick={e=>{if(e.target===e.currentTarget){confirm();}}}>
+            <div style={{width:'100%',maxWidth:520,background:'var(--card)',borderRadius:'20px 20px 0 0',padding:'0 0 max(env(safe-area-inset-bottom),16px)',boxShadow:'0 -8px 40px rgba(0,0,0,.3)',animation:'cardSlideIn .32s cubic-bezier(.19,1,.22,1) both'}}>
+              {/* 핸들 */}
+              <div style={{padding:'12px 0 6px',display:'flex',justifyContent:'center'}}>
+                <div style={{width:36,height:4,borderRadius:2,background:'var(--border)'}}/>
+              </div>
+              {/* 헤더 */}
+              <div style={{padding:'0 18px 10px',display:'flex',alignItems:'center',gap:8,borderBottom:'1px solid var(--border-s)'}}>
+                <div style={{width:24,height:24,borderRadius:6,background:'var(--accent-l)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13}}>📋</div>
+                <div>
+                  <div style={{fontSize:13,fontWeight:800,color:'var(--navy)'}}>하자 분류 확인</div>
+                  <div style={{fontSize:10,color:'var(--text-sm)',fontWeight:500}}>고객 건물에서 확인된 문제를 선택해주세요</div>
+                </div>
+              </div>
+              {/* 사진 + 선택 */}
+              <div style={{padding:'14px 18px',display:'flex',gap:14,alignItems:'flex-start'}}>
+                {/* 사진 */}
+                <div style={{flex:'0 0 90px',height:90,borderRadius:10,overflow:'hidden',border:'2px solid var(--border)',flexShrink:0}}>
+                  <img src={fieldPhotoModal.src} alt="현장사진" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                </div>
+                {/* 태그 선택 */}
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:10,fontWeight:700,color:'var(--text-md)',marginBottom:6}}>하자 유형</div>
+                  <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:12}}>
+                    {defectTypeOpts.map(t=>(
+                      <button key={t} onClick={()=>setFieldPhotoTag(p=>({...p,defectType:p.defectType===t?'':t}))}
+                        style={{fontSize:11,fontWeight:700,padding:'4px 10px',borderRadius:20,cursor:'pointer',
+                          border:`1.5px solid ${fieldPhotoTag.defectType===t?'var(--accent)':'var(--border)'}`,
+                          background:fieldPhotoTag.defectType===t?'var(--accent-l)':'transparent',
+                          color:fieldPhotoTag.defectType===t?'var(--accent)':'var(--text-md)',
+                          transition:'all .15s'}}>
+                        #{t}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{fontSize:10,fontWeight:700,color:'var(--text-md)',marginBottom:6}}>위 치</div>
+                  <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+                    {defectPartOpts.map(t=>(
+                      <button key={t} onClick={()=>setFieldPhotoTag(p=>({...p,defectPart:p.defectPart===t?'':t}))}
+                        style={{fontSize:11,fontWeight:700,padding:'4px 10px',borderRadius:20,cursor:'pointer',
+                          border:`1.5px solid ${fieldPhotoTag.defectPart===t?'var(--navy)':'var(--border)'}`,
+                          background:fieldPhotoTag.defectPart===t?'var(--navy)':'transparent',
+                          color:fieldPhotoTag.defectPart===t?'#fff':'var(--text-md)',
+                          transition:'all .15s'}}>
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              {/* 확인 버튼 */}
+              <div style={{padding:'0 18px 4px',display:'flex',gap:8}}>
+                <button onClick={()=>{setNtFieldPhotos(prev=>prev.filter(p=>p.id!==fieldPhotoModal.id));setFieldPhotoModal(null);}}
+                  style={{flex:1,padding:'12px',borderRadius:12,border:'1.5px solid var(--border)',background:'transparent',fontSize:13,fontWeight:700,color:'var(--text-md)',cursor:'pointer'}}>
+                  삭제
+                </button>
+                <button onClick={confirm}
+                  style={{flex:2,padding:'12px',borderRadius:12,border:'none',background:'var(--accent)',fontSize:13,fontWeight:800,color:'#fff',cursor:'pointer',
+                    opacity:fieldPhotoTag.defectType?1:.55}}>
+                  {fieldPhotoTag.defectType?`#${fieldPhotoTag.defectType}${fieldPhotoTag.defectPart?' · '+fieldPhotoTag.defectPart:''} 확인`:'분류 확인'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       {mediaViewer!==null&&(()=>{
         const mList=(photos.media||[]).filter(s=>s);
         const mThumbs=photos.mediaThumbs||[];
@@ -3489,17 +3596,20 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 setPhotoAddToast(true);
                 setTimeout(()=>setPhotoAddToast(false),2600);
               };
-              /* 카메라/파일 → base64 → ntMemoImgs */
+              /* 카메라/파일 → 리사이즈 → ntFieldPhotos + 태그 확인 모달 */
               const handlePhotoFiles=files=>{
-                Array.from(files).forEach(file=>{
+                Array.from(files).forEach(async file=>{
                   if(!file.type.startsWith('image/'))return;
-                  const reader=new FileReader();
-                  reader.onload=e=>{
-                    setNtMemoImgs(prev=>[...prev,e.target.result]);
-                    setPhotoAddToast(true);
-                    setTimeout(()=>setPhotoAddToast(false),2600);
-                  };
-                  reader.readAsDataURL(file);
+                  const id=Date.now()+Math.random();
+                  /* 분석 중 placeholder */
+                  setNtFieldPhotos(prev=>[...prev,{id,src:'',defectType:'',defectPart:'',confirmed:false,analyzing:true}]);
+                  const src=await resizeImageFile(file);
+                  setNtFieldPhotos(prev=>prev.map(p=>p.id===id?{...p,src}:p));
+                  /* 1.5초 "분석" 후 태그 확인 모달 */
+                  setTimeout(()=>{
+                    setFieldPhotoTag({defectType:'',defectPart:''});
+                    setFieldPhotoModal({id,src});
+                  },1500);
                 });
               };
               return(
@@ -3709,39 +3819,65 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                       ))}
                     </div>
                   )}
-                  {/* ── 고객 현장사진 미리보기 ── */}
-                  {ntMemoImgs.filter(img=>img.startsWith('data:image')).length>0&&(
-                    <div style={{borderTop:'1px solid var(--border-s)',padding:'8px 14px 12px'}}>
-                      <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:7}}>
+                  {/* ── 고객 현장사진 / 갤러리 선택 — 통합 미리보기 ── */}
+                  {(ntFieldPhotos.length>0||ntMemoImgs.filter(x=>!x.startsWith('data:')).length>0)&&(
+                    <div style={{borderTop:'1px solid var(--border-s)',padding:'10px 14px 12px'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:8}}>
                         <div style={{width:6,height:6,borderRadius:'50%',background:'var(--green)'}}/>
-                        <span style={{fontSize:10,fontWeight:700,color:'var(--navy)'}}>고객 현장사진</span>
-                        <span style={{fontSize:9,color:'var(--text-sm)'}}>저장됨</span>
+                        <span style={{fontSize:10,fontWeight:700,color:'var(--navy)'}}>현장 기록</span>
+                        {ntFieldPhotos.filter(p=>!p.confirmed).length>0&&(
+                          <span style={{fontSize:9,fontWeight:700,color:'var(--gold)',background:'rgba(217,119,6,.1)',borderRadius:4,padding:'1px 5px'}}>
+                            분류 확인 대기 {ntFieldPhotos.filter(p=>!p.confirmed).length}장
+                          </span>
+                        )}
                       </div>
                       <div style={{display:'flex',gap:6,overflowX:'auto',scrollbarWidth:'none'}}>
-                        {ntMemoImgs.filter(img=>img.startsWith('data:image')).map((img,i)=>(
-                          <div key={i} style={{flex:'0 0 64px',height:64,borderRadius:8,overflow:'hidden',position:'relative',flexShrink:0}}>
-                            <img src={img} alt={`현장사진${i+1}`} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
-                            <button onClick={()=>setNtMemoImgs(prev=>prev.filter(x=>x!==img))}
-                              style={{position:'absolute',top:2,right:2,width:16,height:16,borderRadius:'50%',background:'rgba(0,0,0,.65)',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,color:'#fff',lineHeight:1}}>✕</button>
+                        {/* 고객 현장사진 (ntFieldPhotos) */}
+                        {ntFieldPhotos.map((fp)=>(
+                          <div key={fp.id} style={{flex:'0 0 72px',height:72,borderRadius:9,overflow:'hidden',position:'relative',flexShrink:0,
+                            border:`2px solid ${fp.confirmed?'var(--green)':fp.analyzing?'var(--gold)':'rgba(217,119,6,.5)'}`,
+                            background:'#111',transition:'border-color .25s'}}>
+                            {fp.src?(
+                              <img src={fp.src} alt="현장사진" style={{width:'100%',height:'100%',objectFit:'cover',opacity:fp.confirmed?1:.6}}/>
+                            ):(
+                              <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',background:'#1a1a1a'}}>
+                                <div style={{width:18,height:18,borderRadius:'50%',border:'2px solid rgba(217,119,6,.5)',borderTopColor:'var(--gold)',animation:'spin 1s linear infinite'}}/>
+                              </div>
+                            )}
+                            {/* 분석 중 오버레이 */}
+                            {fp.analyzing&&!fieldPhotoModal&&fp.src&&(
+                              <div style={{position:'absolute',inset:0,background:'rgba(0,0,0,.55)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3}}>
+                                <div style={{width:14,height:14,borderRadius:'50%',border:'2px solid rgba(255,255,255,.3)',borderTopColor:'#fff',animation:'spin 1s linear infinite'}}/>
+                                <span style={{fontSize:7,color:'rgba(255,255,255,.85)',fontWeight:700}}>분석 중</span>
+                              </div>
+                            )}
+                            {/* 확인 대기 배지 */}
+                            {!fp.confirmed&&fp.src&&!fp.analyzing&&(
+                              <button onClick={()=>{setFieldPhotoTag({defectType:fp.defectType||'',defectPart:fp.defectPart||''});setFieldPhotoModal({id:fp.id,src:fp.src});}}
+                                style={{position:'absolute',inset:0,background:'rgba(0,0,0,.55)',border:'none',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2}}>
+                                <span style={{fontSize:11}}>⚠️</span>
+                                <span style={{fontSize:7,color:'#fff',fontWeight:700}}>분류확인</span>
+                              </button>
+                            )}
+                            {/* 확인됨 배지 */}
+                            {fp.confirmed&&(
+                              <div style={{position:'absolute',bottom:0,left:0,right:0,background:'rgba(5,150,105,.85)',padding:'2px 4px',textAlign:'center'}}>
+                                <span style={{fontSize:7,color:'#fff',fontWeight:700}}>✓ {fp.defectType||'분류됨'}</span>
+                              </div>
+                            )}
+                            <button onClick={()=>setNtFieldPhotos(prev=>prev.filter(p=>p.id!==fp.id))}
+                              style={{position:'absolute',top:2,right:2,width:15,height:15,borderRadius:'50%',background:'rgba(0,0,0,.7)',border:'none',cursor:'pointer',fontSize:8,color:'#fff',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
                           </div>
                         ))}
-                      </div>
-                    </div>
-                  )}
-                  {/* ── 갤러리 선택 사진 미리보기 ── */}
-                  {ntMemoImgs.filter(img=>!img.startsWith('data:')).length>0&&(
-                    <div style={{borderTop:'1px solid var(--border-s)',padding:'8px 14px 12px'}}>
-                      <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:7}}>
-                        <div style={{width:6,height:6,borderRadius:'50%',background:'var(--accent)'}}/>
-                        <span style={{fontSize:10,fontWeight:700,color:'var(--navy)'}}>메모에 추가된 사진</span>
-                        <span style={{fontSize:9,color:'var(--text-sm)'}}>({ntMemoImgs.filter(img=>!img.startsWith('data:')).length}장)</span>
-                      </div>
-                      <div style={{display:'flex',gap:6,overflowX:'auto',scrollbarWidth:'none'}}>
+                        {/* 갤러리 선택 사진 */}
                         {ntMemoImgs.filter(img=>!img.startsWith('data:')).map((img,i)=>(
-                          <div key={i} style={{flex:'0 0 64px',height:64,borderRadius:8,overflow:'hidden',position:'relative',flexShrink:0}}>
+                          <div key={'gal_'+i} style={{flex:'0 0 72px',height:72,borderRadius:9,overflow:'hidden',position:'relative',flexShrink:0,border:'2px solid var(--accent)'}}>
                             <img src={img} alt={`선택사진${i+1}`} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                            <div style={{position:'absolute',bottom:0,left:0,right:0,background:'rgba(37,99,235,.85)',padding:'2px 4px',textAlign:'center'}}>
+                              <span style={{fontSize:7,color:'#fff',fontWeight:700}}>참조</span>
+                            </div>
                             <button onClick={()=>setNtMemoImgs(prev=>prev.filter(x=>x!==img))}
-                              style={{position:'absolute',top:2,right:2,width:16,height:16,borderRadius:'50%',background:'rgba(0,0,0,.65)',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,color:'#fff',lineHeight:1}}>✕</button>
+                              style={{position:'absolute',top:2,right:2,width:15,height:15,borderRadius:'50%',background:'rgba(0,0,0,.7)',border:'none',cursor:'pointer',fontSize:8,color:'#fff',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
                           </div>
                         ))}
                       </div>
@@ -3795,31 +3931,56 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                       <div style={{width:6,height:6,borderRadius:'50%',background:'var(--green)',flexShrink:0}}/>
                       <span style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>POUR 해결방안</span>
                     </div>
-                    {/* 공정 단계 */}
+                    {/* 공정 단계 — 탭 클릭 시 사진 표시 */}
                     <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:8,
                       scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch',
-                      scrollbarWidth:'none',msOverflowStyle:'none',marginBottom:10}}>
-                      {mc.process.map((step,i)=>(
-                        <div key={i} style={{flex:'0 0 auto',scrollSnapAlign:'start',
-                          display:'flex',alignItems:'center',gap:0,flexShrink:0}}>
-                          <div style={{
-                            background:i===0?'var(--navy)':'var(--bg)',
-                            border:`1.5px solid ${i===0?'var(--navy)':'var(--border)'}`,
-                            borderRadius:8,padding:'7px 10px',
-                            fontSize:10,fontWeight:700,
-                            color:i===0?'#fff':'var(--text-md)',
-                            whiteSpace:'nowrap',minWidth:60,textAlign:'center'}}>
-                            <div style={{fontSize:8,fontWeight:600,
-                              color:i===0?'rgba(255,255,255,.6)':'var(--text-sm)',
-                              marginBottom:2}}>STEP {i+1}</div>
-                            {step}
+                      scrollbarWidth:'none',msOverflowStyle:'none',marginBottom:8}}>
+                      {mc.process.map((step,i)=>{
+                        const isSel=selectedProcessStep===i;
+                        const hasPhoto=(mc.processPhotos||[])[i];
+                        return(
+                          <div key={i} style={{flex:'0 0 auto',scrollSnapAlign:'start',
+                            display:'flex',alignItems:'center',gap:0,flexShrink:0}}>
+                            <button onClick={()=>setSelectedProcessStep(isSel?null:i)}
+                              style={{background:isSel?'var(--green)':i===0?'var(--navy)':'var(--bg)',
+                                border:`1.5px solid ${isSel?'var(--green)':i===0?'var(--navy)':'var(--border)'}`,
+                                borderRadius:8,padding:'7px 10px',fontSize:10,fontWeight:700,
+                                color:isSel?'#fff':i===0?'#fff':'var(--text-md)',
+                                whiteSpace:'nowrap',minWidth:60,textAlign:'center',cursor:'pointer',
+                                transition:'all .2s',position:'relative'}}>
+                              <div style={{fontSize:8,fontWeight:600,
+                                color:isSel?'rgba(255,255,255,.7)':i===0?'rgba(255,255,255,.6)':'var(--text-sm)',
+                                marginBottom:2}}>STEP {i+1}</div>
+                              {step}
+                              {hasPhoto&&<div style={{position:'absolute',top:3,right:3,width:5,height:5,borderRadius:'50%',background:isSel?'rgba(255,255,255,.7)':'var(--green)'}}/>}
+                            </button>
+                            {i<mc.process.length-1&&(
+                              <div style={{fontSize:10,color:'var(--text-sm)',margin:'0 2px',flexShrink:0}}>›</div>
+                            )}
                           </div>
-                          {i<mc.process.length-1&&(
-                            <div style={{fontSize:10,color:'var(--text-sm)',margin:'0 2px',flexShrink:0}}>›</div>
+                        );
+                      })}
+                    </div>
+                    {/* 선택된 공정 사진 */}
+                    {selectedProcessStep!==null&&(()=>{
+                      const photoUrl=(mc.processPhotos||[])[selectedProcessStep];
+                      const stepName=mc.process[selectedProcessStep];
+                      return(
+                        <div style={{borderRadius:10,overflow:'hidden',marginBottom:10,
+                          border:'1.5px solid var(--green)',background:'var(--green-l)'}}>
+                          {photoUrl?(
+                            <img src={photoUrl} alt={`${stepName} 시공사진`}
+                              style={{width:'100%',aspectRatio:'16/9',objectFit:'cover',display:'block'}}/>
+                          ):(
+                            <div style={{aspectRatio:'16/9',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6}}>
+                              <span style={{fontSize:22,opacity:.3}}>🔧</span>
+                              <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:600}}>STEP {selectedProcessStep+1} — {stepName}</span>
+                              <span style={{fontSize:9,color:'var(--text-sm)'}}>시공 사진 준비 중</span>
+                            </div>
                           )}
                         </div>
-                      ))}
-                    </div>
+                      );
+                    })()}
                     {/* 솔루션 요약 */}
                     {mc.solution&&(
                       <div style={{background:'var(--green-l)',borderRadius:10,padding:'10px 12px',

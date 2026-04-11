@@ -1589,6 +1589,32 @@ const METHOD_CONDITIONS={
   ]},
 };
 
+/* ══ defect-photos 컬렉션 method 필드 alias 매핑
+     어드민 구 공법명 → 태블릿앱 정식 공법명 (1:多 포함)
+     슬라브 방수는 메인공법(듀얼강화방수)으로 우선 연결 ══ */
+const DEFECT_PHOTO_METHOD_ALIASES={
+  /* 박공형 */
+  '아스팔트싱글 방수':             ['POUR 아스팔트싱글 방수 공법'],
+  '금속기와 방수':                 ['POUR 금속기와 방수 공법'],
+  '후레싱 방수':                   ['POUR 금속기와 방수 공법'],
+  /* 슬라브형 — 구 "슬라브 방수" → 메인(듀얼강화) 우선 */
+  '슬라브 방수':                   ['POUR 듀얼강화방수 공법'],
+  '이음부 방수':                   ['POUR 우레탄 방수 공법'],   // 이음부 시트보강 차별화
+  /* 지하 */
+  '지하주차장 방수':               ['POUR 아크릴 배면차수 방수 공법','POUR 에폭시 도장 공법','POUR 엠보라이닝 도장 공법'],
+  /* 도장/보수 */
+  '균열 보수':                     ['POUR 균열보수 및 재도장 공법(바인더+플러스)','POUR 균열보수 및 재도장 공법(플러스+수성)','POUR 균열보수 및 재도장 공법(바인더+수성)'],
+  '기타 방수':                     ['POUR 듀얼강화방수 공법'],
+};
+/* 주어진 problem.label 에 매칭되는 모든 method 문자열 반환 */
+const getMethodAliases=(label)=>{
+  const set=new Set([label]);
+  Object.entries(DEFECT_PHOTO_METHOD_ALIASES).forEach(([alias,targets])=>{
+    if(targets.includes(label))set.add(alias);
+  });
+  return set;
+};
+
 /* ══ 대기업 스타일 3단계 분류 체계 ══ */
 const DEFECT_MAJOR=[
   {id:'누수',label:'누수',icon:'💧'},
@@ -2782,9 +2808,10 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
     (async()=>{
       try{
         const snap=await db.collection('defect-photos').get();
+        const aliases=getMethodAliases(methodLabel);
         const arr=[];
-        snap.forEach(doc=>{const d=doc.data();if(d.method===methodLabel)arr.push({id:doc.id,...d});});
-        console.log(`[defect-photos:${methodLabel}] ${arr.length}건 로드`);
+        snap.forEach(doc=>{const d=doc.data();if(aliases.has(d.method))arr.push({id:doc.id,...d});});
+        console.log(`[defect-photos:${methodLabel}] ${arr.length}건 로드 (aliases:${[...aliases].join(',')})`);
         setDefectPhotos(arr);
       }catch(e){console.error('[defect-photos] 로드 실패:',e);}
     })();

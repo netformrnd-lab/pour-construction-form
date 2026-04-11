@@ -3486,9 +3486,17 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
             })()}
 
 
-            {/* ── 2. 관련 미디어 (숏츠 그리드 — 가로 스크롤) ── */}
-            <div style={{marginBottom:16}}>
-              <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>🎬 관련 미디어</div>
+            {/* ── 2. 시공 영상 ── */}
+            <div style={{marginBottom:16,borderRadius:16,overflow:'hidden',
+              background:'var(--card)',border:'1px solid var(--border)',boxShadow:'var(--shadow)'}}>
+              {/* 상단 액센트 바 */}
+              <div style={{height:2,background:'linear-gradient(90deg,var(--accent),var(--blue-m),transparent)',opacity:.5}}/>
+              {/* 헤더 */}
+              <div style={{padding:'10px 14px 10px',display:'flex',alignItems:'center',gap:7}}>
+                <div style={{width:6,height:6,borderRadius:'50%',background:'var(--accent)',opacity:.7}}/>
+                <span style={{fontSize:12,fontWeight:700,color:'var(--navy)',letterSpacing:'.04em'}}>시공 영상</span>
+              </div>
+              <div style={{padding:'0 14px 14px'}}>
               {(()=>{
                 const mediaList=(photos.media||[]).filter(s=>s);
                 if(!mediaList.length) return(
@@ -3580,6 +3588,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                   </div>
                 );
               })()}
+              </div>
             </div>
 
             {/* 하단 여백 */}

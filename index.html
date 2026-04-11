@@ -3288,10 +3288,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                       {/* 블링킹 상태 점 */}
                       <div style={{width:6,height:6,borderRadius:'50%',background:'var(--accent)',
                         animation:'dotBlink 2.4s ease-in-out infinite'}}/>
-                      <div>
-                        <div style={{fontSize:12,fontWeight:700,color:'var(--navy)',letterSpacing:'.04em'}}>현장 하자사진</div>
-                        <div style={{fontSize:9,color:'var(--text-sm)',marginTop:1,letterSpacing:'.02em'}}>POUR공법 누적 시공 260만 세대</div>
-                      </div>
+                      <span style={{fontSize:12,fontWeight:700,color:'var(--navy)',letterSpacing:'.04em'}}>현장 하자사진</span>
                     </div>
                   </div>
 
@@ -3326,9 +3323,6 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                                 </div>
                                 <div style={{padding:'5px 7px 4px',borderTop:'1px solid var(--border-s)'}}>
                                   <div style={{fontSize:10,fontWeight:800,color:isAct?'var(--accent)':'var(--text-md)',letterSpacing:'.02em'}}>전체</div>
-                                  <div style={{fontSize:9,color:'var(--text-sm)',marginTop:1,fontVariantNumeric:'tabular-nums'}}>
-                                    {String(photosWithMeta.length).padStart(2,'0')}건
-                                  </div>
                                 </div>
                                 {/* 비율 바 — 전체=100% */}
                                 <div style={{height:2,background:'var(--border-s)'}}>
@@ -3379,9 +3373,6 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                                     whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'.01em'}}>
                                     #{type}
                                   </div>
-                                  <div style={{fontSize:9,color:'var(--text-sm)',marginTop:1,fontVariantNumeric:'tabular-nums'}}>
-                                    {String(grp.length).padStart(2,'0')}건
-                                  </div>
                                 </div>
                                 {/* 비율 바 */}
                                 <div style={{height:2,background:'var(--border-s)'}}>
@@ -3407,17 +3398,12 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                               {activeDefect==='all'?'전체':'#'+activeDefect}
                             </span>
                           </div>
-                          <div style={{display:'flex',alignItems:'center',gap:6}}>
-                            <span style={{fontSize:10,color:'var(--text-sm)',fontVariantNumeric:'tabular-nums',fontWeight:600}}>
-                              {String(filtered.length).padStart(2,'0')} / {String(photosWithMeta.length).padStart(2,'0')}
+                          {activeDefect!=='all'&&(
+                            <span style={{fontSize:9,fontWeight:700,color:'var(--accent)',
+                              background:'var(--accent-l)',borderRadius:4,padding:'1px 5px'}}>
+                              {Math.round((filtered.length/(photosWithMeta.length||1))*100)}%
                             </span>
-                            {activeDefect!=='all'&&(
-                              <span style={{fontSize:9,fontWeight:700,color:'var(--accent)',
-                                background:'var(--accent-l)',borderRadius:4,padding:'1px 5px'}}>
-                                {Math.round((filtered.length/(photosWithMeta.length||1))*100)}%
-                              </span>
-                            )}
-                          </div>
+                          )}
                         </div>
                         <div className={isPhotoExiting?'photo-grid-exit':''}>
                           <div style={{display:'flex',gap:7,overflowX:'auto',paddingBottom:4,

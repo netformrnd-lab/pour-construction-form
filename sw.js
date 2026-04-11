@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pour-expo-v1';
+const CACHE_NAME = 'pour-expo-v2';
 const PRECACHE = [
   '/',
   '/index.html',

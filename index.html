@@ -2772,7 +2772,23 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [effectiveBuildingId,setEffectiveBuildingId]=useState(building?.id||null);
   const [casePhotos,setCasePhotos]=useState(()=>loadCasePhotos());
   const [defectTags,setDefectTags]=useState(()=>loadDefectTags());
+  const [defectPhotos,setDefectPhotos]=useState([]);
   useEffect(()=>{syncPhotosFromFirestore(setCasePhotos,null);syncDefectTagsFromFirestore(setDefectTags);},[]);
+  /* defect-photos 컬렉션에서 현재 공법 사진 로드 */
+  useEffect(()=>{
+    if(!problem?.label)return;
+    const methodLabel=problem.label;
+    setDefectPhotos([]);
+    (async()=>{
+      try{
+        const snap=await db.collection('defect-photos').get();
+        const arr=[];
+        snap.forEach(doc=>{const d=doc.data();if(d.method===methodLabel)arr.push({id:doc.id,...d});});
+        console.log(`[defect-photos:${methodLabel}] ${arr.length}건 로드`);
+        setDefectPhotos(arr);
+      }catch(e){console.error('[defect-photos] 로드 실패:',e);}
+    })();
+  },[problem?.label]);
   const [activeDefect,setActiveDefect]=useState('all');
   const [activePart,setActivePart]=useState('all');
   const [isPhotoExiting,setIsPhotoExiting]=useState(false);
@@ -3149,15 +3165,25 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
             {/* ── 1. 하자 사진 (대분류/중분류/소분류 3단계 필터) ── */}
             {(()=>{
               const causeList=(photos?.causes||[]).filter(s=>s);
-              const meta=photos?.causeMeta||[];
-              /* 각 사진에 3단계 메타데이터 연결 */
-              const photosWithMeta=causeList.map((src,i)=>({
-                src,
-                defectType:(meta[i]&&meta[i].defectType)||'',
-                defectPart:(meta[i]&&meta[i].defectPart)||'',
-                defectDetail:(meta[i]&&meta[i].defectDetail)||'',
-                label:(meta[i]&&meta[i].label)||'',
-              }));
+              /* defect-photos 컬렉션 데이터 우선 사용, 없으면 causeMeta fallback */
+              const photosWithMeta=defectPhotos.length>0
+                ?defectPhotos.map(p=>({
+                    src:p.imageUrl||'',
+                    defectType:p.defectType||'',
+                    defectPart:p.defectPart||'',
+                    defectDetail:'',
+                    label:p.label||'',
+                  }))
+                :(()=>{
+                    const meta=photos?.causeMeta||[];
+                    return causeList.map((src,i)=>({
+                      src,
+                      defectType:(meta[i]&&meta[i].defectType)||'',
+                      defectPart:(meta[i]&&meta[i].defectPart)||'',
+                      defectDetail:(meta[i]&&meta[i].defectDetail)||'',
+                      label:(meta[i]&&meta[i].label)||'',
+                    }));
+                  })();
               /* 실제 존재하는 대분류(하자유형) 목록 */
               const existingMajor=[...new Set(photosWithMeta.map(p=>p.defectType).filter(Boolean))];
               /* 실제 존재하는 중분류(위치) 목록 — 선택된 대분류에 따라 동적 */
@@ -3245,7 +3271,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     </div>
                   )}
                   {/* ── 사진 그리드 ── */}
-                  {causeList.length>0?(
+                  {photosWithMeta.length>0?(
                     <div className={isPhotoExiting?'photo-grid-exit':''}>
                     <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:6,scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch'}}>
                       {filtered.map((p,i)=>{

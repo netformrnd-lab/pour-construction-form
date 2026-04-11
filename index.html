@@ -3288,19 +3288,16 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                       {/* 블링킹 상태 점 */}
                       <div style={{width:6,height:6,borderRadius:'50%',background:'var(--accent)',
                         animation:'dotBlink 2.4s ease-in-out infinite'}}/>
-                      <span style={{fontSize:12,fontWeight:700,color:'var(--navy)',letterSpacing:'.04em'}}>하자 사진</span>
+                      <div>
+                        <div style={{fontSize:12,fontWeight:700,color:'var(--navy)',letterSpacing:'.04em'}}>현장 하자사진</div>
+                        <div style={{fontSize:9,color:'var(--text-sm)',marginTop:1,letterSpacing:'.02em'}}>POUR공법 누적 시공 260만 세대</div>
+                      </div>
                     </div>
-                    <div style={{display:'flex',alignItems:'center',gap:6}}>
+                    <div style={{display:'flex',alignItems:'center',gap:5}}>
                       <span key={photosWithMeta.length} className="df-count-pop"
-                        style={{fontSize:10,color:'var(--accent)',fontWeight:800,
-                          letterSpacing:'.06em',fontVariantNumeric:'tabular-nums'}}>
-                        실사례 {photosWithMeta.length}건
-                      </span>
-                      {/* 인증 뱃지 */}
-                      <span style={{fontSize:8,fontWeight:700,color:'var(--green)',
-                        background:'var(--green-l)',borderRadius:4,padding:'1px 5px',
-                        letterSpacing:'.04em'}}>
-                        분류완료
+                        style={{fontSize:10,color:'var(--text-sm)',fontWeight:700,
+                          letterSpacing:'.04em',fontVariantNumeric:'tabular-nums'}}>
+                        {photosWithMeta.length}장 보유
                       </span>
                     </div>
                   </div>

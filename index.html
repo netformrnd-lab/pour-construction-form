@@ -1558,6 +1558,100 @@ const METHOD_STATS={
   block:{cert:'',stats:[{label:'기층보강',value:'+재시공',unit:'',note:'침하 재발 방지',src:''}]},
 };
 
+/* ── 공법별 원인·해결방안·공정 (STEP 2,3 콘텐츠) ── */
+const METHOD_CONTENT={
+  shingle:{
+    cause:'아스팔트슁글은 원래 저층 목조주택용 자재입니다. 고층 아파트 박공지붕에 적용하면 강풍에 자재가 들뜨고, 후레싱 이음부 균열로 누수가 시작됩니다. 문제는 자재가 아니라 지붕을 붙잡는 구조가 약하기 때문입니다.',
+    process:['표면강화함침','POUR슈퍼복합압축시트','방수액 도포','POUR코트재','상도 마감','POUR HOOKER 후레싱 고정'],
+    solution:'슁글 자체를 바탕면과 완전 일체화하고, 특허 POUR HOOKER로 후레싱을 구조적으로 고정합니다. 단순 방수가 아닌 구조적 약점을 제거하는 방식입니다.',
+  },
+  metal:{
+    cause:'금속기와는 맞물림 구조로 고정되는데, 열팽창·수축 반복으로 맞물림이 서서히 풀립니다. 이음부 틈새로 우수가 침투하고, 강판 부식까지 진행되면 기와 추락 위험이 생깁니다.',
+    process:['표면강화함침','POUR슈퍼복합압축시트','방수액 도포','POUR코트재','POUR HOOKER 후레싱 고정'],
+    solution:'금속기와 전체를 방수층과 일체화하고, 후레싱을 구조적으로 고정합니다. 누수 방지와 기와 탈락 방지를 동시에 해결합니다.',
+  },
+  slab_dual:{
+    cause:'콘크리트는 타설 후 수축하면서 미세균열이 생깁니다. 기존 우레탄 방수층은 이 균열을 따라가지 못해 들뜸이 발생하고, 드레인 주변 처리가 불완전하면 그 틈으로 누수가 시작됩니다. 내부 습기가 빠져나오지 못하면 방수층이 부풀어오릅니다.',
+    process:['모체강화함침','듀얼복합시트','POUR페이퍼팬벤트 설치','POUR코트재','슈퍼복합압축시트','배관방수트랩'],
+    solution:'콘크리트 자체를 강화한 후 복합시트로 방수층을 형성하고, 팬벤트로 내부 습기를 무동력 배출합니다. 방수층 들뜸의 근본 원인까지 제거합니다.',
+  },
+  slab_pvc:{
+    cause:'옥상 슬라브는 온도 변화에 따른 신축이 반복되면서 방수층이 파단됩니다. 배수 불량으로 물이 고이면 방수층에 지속적인 수압이 가해져 노후화가 가속됩니다.',
+    process:['결로방지단열시트 시공','PVC 방수층 형성','이음부 열융착','드레인 주변 처리','코트재 마감'],
+    solution:'PVC 소재의 유연성으로 슬라브 신축에 대응하며, 결로방지단열시트로 내부 온도차를 줄입니다. 국토부 건설신기술 제1026호 공법입니다.',
+  },
+  slab_urethane:{
+    cause:'옥상 방수층은 자외선·온도 변화에 지속 노출되어 탄성이 떨어집니다. 코너·이음부·드레인 주변은 응력이 집중되어 균열이 먼저 발생합니다.',
+    process:['모체강화함침','코너·이음부 복합시트 보강','우레탄 하도','우레탄 중도','코트재 상도'],
+    solution:'취약 부위에 복합시트를 먼저 보강한 후 우레탄을 도포합니다. 하도 부착강도 KS 기준 2배, 중도 신장률 1,103%로 균열 추종 성능이 뛰어납니다.',
+  },
+  slab_acrylic:{
+    cause:'지하주차장·수조의 배면 누수는 콘크리트 타설 시 형성된 수로와 균열을 통해 외부 수압에 의해 물이 밀려들어옵니다. 내부에서 막아도 수압이 있으면 다른 곳에서 터집니다.',
+    process:['누수 경로 파악','천공 작업','2액형 아크릴 초고압 주입','주입공 마감','표면 처리'],
+    solution:'초고압으로 2액형 아크릴계 방수재를 주입해 콘크리트 내부에 새 방수층을 형성합니다. 배면에서 직접 막기 때문에 수압에 대항하는 근본 해결이 가능합니다.',
+  },
+  parking_epoxy:{
+    cause:'지하주차장 바닥은 차량 하중, 타이어 마찰, 제설제 화학물질에 반복 노출됩니다. 기존 에폭시가 열화되면 박리·분진이 발생하고, 미끄럼 사고 위험이 높아집니다.',
+    process:['기존 도막 제거·쇼트브라스팅','프라이머 도포','에폭시 중도','에폭시 상도','양생'],
+    solution:'고부착 에폭시로 바탕면과 완전 결합시켜 박리를 방지합니다. 압축강도 85.9 N/㎟, 내마모성 76mg(KTR)으로 중하중 차량에도 내구성이 유지됩니다.',
+  },
+  parking_emboss:{
+    cause:'평탄한 에폭시 바닥은 습기·오일에 미끄럼 위험이 높습니다. 특히 회전구간과 경사로는 타이어 반복하중에 의해 마모가 집중됩니다.',
+    process:['바탕면 처리','프라이머','써밋비드 분산 엠보라이닝 도포','상도 마감'],
+    solution:'써밋비드를 균일 분산하여 엠보 패턴을 형성합니다. 미끄럼저항 83 BPN, 스크래치·반복하중·회전구간에 강력 대응합니다.',
+  },
+  wall_premium:{
+    cause:'외벽 콘크리트는 탄산화(중성화)로 pH가 낮아지면 철근 부식이 시작됩니다. 균열 부위로 우수·오염물이 침투하면 부식이 가속되고 건물 구조 수명이 단축됩니다.',
+    process:['균열 V컷팅','POUR하이퍼티 충전','바인더 도포','POUR플러스 중도','POUR플러스 상도'],
+    solution:'균열을 탄성 충전재로 완전히 메운 후 탄성 바인더+고급 플러스 도료 3중 구성으로 마감합니다. 신장률 608%(KS 2배), 중성화 깊이 0.0mm(KTR).',
+  },
+  wall_mid:{
+    cause:'외벽 균열은 온도·습도 변화에 따른 콘크리트 신축으로 지속 확대됩니다. 단순 도장만으로는 균열이 도막을 뚫고 다시 나타납니다.',
+    process:['균열 V컷팅','충전재 처리','POUR플러스 중도','수성 상도'],
+    solution:'균열 충전 후 플러스 도료로 탄성층을 형성하고 수성 도료로 마감합니다. 내구성과 비용의 균형을 맞춘 중급형 구성입니다.',
+  },
+  wall_economy:{
+    cause:'외벽 균열이 있지만 예산이 제한적인 경우, 핵심 부위만 효율적으로 처리하는 것이 현실적입니다.',
+    process:['균열 V컷팅','탄성 바인더 도포','수성 도료 상도'],
+    solution:'바인더로 균열 추종성을 확보하고 수성 도료로 마감하는 경제형 구성입니다. 예산 제약 현장에서 기본 내구성을 보장합니다.',
+  },
+  crack_surface:{
+    cause:'콘크리트 바탕면 균열은 방치하면 철근까지 노출되고 단면 파손으로 확대됩니다. 마이크로 균열도 수분 침투 경로가 됩니다.',
+    process:['균열 부위 청소','POUR탄성강화파우더 도포','양생'],
+    solution:'마이크로 스틸 보강재가 혼입된 파우더로 균열을 충전합니다. 부착강도 1.5 N/㎟(습윤 조건), 인장강도 2.1 N/㎟. 망치로 때려도 깨지지 않는 강도입니다.',
+  },
+  crack_section:{
+    cause:'철근 노출까지 진행된 단면 파손은 단순 충전으로는 복구가 불가능합니다. 철근 부식이 계속되면 구조 안전성 문제로 이어집니다.',
+    process:['파손 부위 확대 제거','철근 방청 처리','POUR탄성강화파우더 단면복구','양생'],
+    solution:'마이크로 스틸 혼입으로 철근 역할을 대신하며 단면을 완전 복구합니다. 낙하 내충격 2.3m 이상(KTR). 재파손 없이 원래 강도 이상을 회복합니다.',
+  },
+  crack_sheet:{
+    cause:'구조 균열은 폭이 지속 변화하기 때문에 경질 충전재만으로는 반복 파단됩니다. 유연성과 인장강도를 동시에 갖춘 보강재가 필요합니다.',
+    process:['균열면 처리','POUR슈퍼복합압축시트 부착','방수액 도포','마감'],
+    solution:'니들펀칭 복합시트가 균열 변형에 유연하게 대응하면서도 인장강도 11.4 N/㎟(타사 10배)를 유지합니다. 재균열 방지에 가장 효과적인 공법입니다.',
+  },
+  ascon_repair:{
+    cause:'아스콘 포장은 기층 침하, 수분 침투, 차량 하중으로 균열과 포트홀이 생깁니다. 표면만 덧포장하면 기층 문제가 해결되지 않아 반복 파손됩니다.',
+    process:['균열·파손부 절삭 제거','기층 보강 처리','POUR아스콘 재포장','다짐 마감'],
+    solution:'기층부터 보강 후 재포장합니다. 반복 하자의 근본 원인인 기층 약화를 먼저 해결하는 것이 핵심입니다.',
+  },
+  ascon_seal:{
+    cause:'아스콘 표면은 자외선·산화로 바인더가 떨어지면서 골재가 이탈합니다. 수분이 내부로 침투하면 기층까지 손상이 진행됩니다.',
+    process:['표면 청소·건조','씰코팅재 도포','양생'],
+    solution:'씰코팅으로 표면 산화를 방지하고 방수성을 강화합니다. 포장 수명을 2~3배 연장하는 예방적 유지보수입니다.',
+  },
+  ascon_mma:{
+    cause:'고하중·화학물질·빈번한 차량 통행에 노출된 바닥은 일반 에폭시로는 내구성이 부족합니다.',
+    process:['바탕면 처리','MMA 프라이머','MMA 중도','논슬립 집게 시공','상도 마감'],
+    solution:'고강도 MMA 수지로 조기 개방이 가능하고 미끄럼저항 83 BPN을 확보합니다. 내충격·내화학성이 뛰어나 중하중 구간에 적합합니다.',
+  },
+  block:{
+    cause:'보도블록 침하는 대부분 기층 지반 약화가 원인입니다. 블록만 교체하면 기층 문제가 남아 반복 침하가 일어납니다.',
+    process:['블록 철거','기층 보강 다짐','보도블록 재시공','줄눈 처리'],
+    solution:'기층 보강 후 블록을 재시공합니다. 침하 재발을 방지하는 근본 처리 방식입니다.',
+  },
+};
+
 const CATS=['전체','방수','도장','보수/보강','토목'];
 const CAT_LINKS={방수:'https://www.poursolution.net/36',도장:'https://www.poursolution.net/38','보수/보강':'https://www.poursolution.net/37',토목:'https://www.poursolution.net/39'};
 
@@ -3348,7 +3442,80 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
         {/* ── 공법 상세 ── */}
         <>
-            {/* ── 0. 차별점 — 공인 성능 수치 ── */}
+            {/* ── STEP 2. 왜 이 문제가 생기나 — 원인 설명 ── */}
+            {(()=>{
+              const mc=METHOD_CONTENT[problem?.id];
+              if(!mc?.cause)return null;
+              return(
+                <div style={{marginBottom:16,borderRadius:16,background:'var(--card)',
+                  border:'1px solid var(--border)',boxShadow:'var(--shadow)',overflow:'hidden'}}>
+                  <div style={{height:2,background:'linear-gradient(90deg,var(--red),rgba(220,38,38,.2),transparent)',opacity:.7}}/>
+                  <div style={{padding:'12px 14px'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:10}}>
+                      <div style={{width:6,height:6,borderRadius:'50%',background:'var(--red)',flexShrink:0}}/>
+                      <span style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>왜 이 문제가 생기나</span>
+                    </div>
+                    <p style={{fontSize:13,lineHeight:1.7,color:'var(--text)',margin:0,wordBreak:'keep-all'}}>
+                      {mc.cause}
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ── STEP 3. POUR 해결방안 — 공정 + 솔루션 ── */}
+            {(()=>{
+              const mc=METHOD_CONTENT[problem?.id];
+              if(!mc?.process?.length)return null;
+              return(
+                <div style={{marginBottom:16,borderRadius:16,background:'var(--card)',
+                  border:'1px solid var(--border)',boxShadow:'var(--shadow)',overflow:'hidden'}}>
+                  <div style={{height:2,background:'linear-gradient(90deg,var(--green),rgba(5,150,105,.2),transparent)',opacity:.8}}/>
+                  <div style={{padding:'12px 14px'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:10}}>
+                      <div style={{width:6,height:6,borderRadius:'50%',background:'var(--green)',flexShrink:0}}/>
+                      <span style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>POUR 해결방안</span>
+                    </div>
+                    {/* 공정 단계 */}
+                    <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:8,
+                      scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch',
+                      scrollbarWidth:'none',msOverflowStyle:'none',marginBottom:10}}>
+                      {mc.process.map((step,i)=>(
+                        <div key={i} style={{flex:'0 0 auto',scrollSnapAlign:'start',
+                          display:'flex',alignItems:'center',gap:0,flexShrink:0}}>
+                          <div style={{
+                            background:i===0?'var(--navy)':'var(--bg)',
+                            border:`1.5px solid ${i===0?'var(--navy)':'var(--border)'}`,
+                            borderRadius:8,padding:'7px 10px',
+                            fontSize:10,fontWeight:700,
+                            color:i===0?'#fff':'var(--text-md)',
+                            whiteSpace:'nowrap',minWidth:60,textAlign:'center'}}>
+                            <div style={{fontSize:8,fontWeight:600,
+                              color:i===0?'rgba(255,255,255,.6)':'var(--text-sm)',
+                              marginBottom:2}}>STEP {i+1}</div>
+                            {step}
+                          </div>
+                          {i<mc.process.length-1&&(
+                            <div style={{fontSize:10,color:'var(--text-sm)',margin:'0 2px',flexShrink:0}}>›</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    {/* 솔루션 요약 */}
+                    {mc.solution&&(
+                      <div style={{background:'var(--green-l)',borderRadius:10,padding:'10px 12px',
+                        borderLeft:'3px solid var(--green)'}}>
+                        <p style={{fontSize:12,lineHeight:1.6,color:'var(--text)',margin:0,wordBreak:'keep-all'}}>
+                          {mc.solution}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ── STEP 4. 차별점 — 공인 성능 수치 ── */}
             {(()=>{
               const ms=METHOD_STATS[problem?.id];
               if(!ms||!ms.stats?.length)return null;

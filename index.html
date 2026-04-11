@@ -868,6 +868,31 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
   animation:photoExit .14s ease-in both!important;
   pointer-events:none;
 }
+/* ══ TONY STARK HUD — 하자분석 패널 ══ */
+@keyframes hudSweep{
+  0%{transform:translateX(-100%);}100%{transform:translateX(400%);}
+}
+@keyframes hudGlow{
+  0%,100%{box-shadow:0 0 8px rgba(0,212,255,.35),inset 0 0 8px rgba(0,212,255,.07);}
+  50%{box-shadow:0 0 18px rgba(0,212,255,.55),inset 0 0 14px rgba(0,212,255,.12);}
+}
+@keyframes hudCardIn{
+  from{opacity:0;transform:translateY(12px) scale(.95);}
+  to{opacity:1;transform:translateY(0) scale(1);}
+}
+@keyframes hudPhotoIn{
+  from{opacity:0;transform:translateX(16px);}
+  to{opacity:1;transform:translateX(0);}
+}
+@keyframes cornerDraw{
+  from{width:0;height:0;}to{width:10px;height:10px;}
+}
+@keyframes scanPulse{
+  0%,100%{opacity:.18;}50%{opacity:.32;}
+}
+.hud-card-active{animation:hudGlow 2.4s ease-in-out infinite;}
+.hud-card-in{animation:hudCardIn .22s cubic-bezier(.22,.68,0,1.2) both;}
+.hud-photo-in{animation:hudPhotoIn .2s cubic-bezier(.22,.68,0,1.2) both;}
 </style>
 </head>
 <body>
@@ -3223,87 +3248,198 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               /* 하자유형별 그룹핑 (중분류 카드용) */
               const grouped={};
               existingMajor.forEach(type=>{grouped[type]=photosWithMeta.filter(p=>p.defectType===type);});
+              /* ── HUD 스타일 상수 ── */
+              const C='#00D4FF'; /* 사이언 포인트 */
+              const Cm='rgba(0,212,255,';
+              /* 코너 브래킷 컴포넌트 (inline) */
+              const Bracket=({act})=>{
+                const col=act?C:'rgba(0,212,255,0.4)';
+                const s=(pos)=>({position:'absolute',...pos,width:9,height:9,pointerEvents:'none'});
+                const b=(extra)=>({position:'absolute',background:col,...extra});
+                return(<>
+                  <div style={s({top:5,left:5})}><div style={b({top:0,left:0,width:9,height:1.5})}/><div style={b({top:0,left:0,width:1.5,height:9})}/></div>
+                  <div style={s({top:5,right:5})}><div style={b({top:0,right:0,width:9,height:1.5})}/><div style={b({top:0,right:0,width:1.5,height:9})}/></div>
+                  <div style={s({bottom:5,left:5})}><div style={b({bottom:0,left:0,width:9,height:1.5})}/><div style={b({bottom:0,left:0,width:1.5,height:9})}/></div>
+                  <div style={s({bottom:5,right:5})}><div style={b({bottom:0,right:0,width:9,height:1.5})}/><div style={b({bottom:0,right:0,width:1.5,height:9})}/></div>
+                </>);
+              };
               return(
-                <div style={{marginBottom:16}}>
-                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:10}}>📸 하자 사진</div>
-                  {photosWithMeta.length>0?(
-                    <>
-                      {/* ── 2번: 중분류 카드 (하자유형별 대표사진 + 키워드) ── */}
-                      <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:8,scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch',marginBottom:12}}>
-                        {/* 전체 카드 */}
-                        <div onClick={()=>changePhotoFilter('all','all')}
-                          style={{flex:'0 0 100px',scrollSnapAlign:'start',borderRadius:12,overflow:'hidden',cursor:'pointer',
-                            border:activeDefect==='all'?'2px solid var(--navy)':'1.5px solid var(--border)',
-                            background:activeDefect==='all'?'var(--navy)':'var(--card)',
-                            boxShadow:activeDefect==='all'?'0 4px 14px rgba(13,27,42,.25)':'var(--shadow)',
-                            transition:'all .18s',flexShrink:0}}>
-                          <div style={{height:72,background:activeDefect==='all'?'rgba(255,255,255,.08)':'var(--bg)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:26}}>📋</div>
-                          <div style={{padding:'7px 8px'}}>
-                            <div style={{fontSize:11,fontWeight:800,color:activeDefect==='all'?'#fff':'var(--text)',whiteSpace:'nowrap'}}>전체</div>
-                            <div style={{fontSize:10,color:activeDefect==='all'?'rgba(255,255,255,.65)':'var(--text-sm)',marginTop:1}}>{photosWithMeta.length}장</div>
-                          </div>
-                        </div>
-                        {/* 하자유형별 카드 */}
-                        {existingMajor.map(type=>{
-                          const grp=grouped[type]||[];
-                          const rep=grp[0]?.src;
-                          const isAct=activeDefect===type;
-                          return(
-                            <div key={type} onClick={()=>changePhotoFilter(type,'all')}
-                              style={{flex:'0 0 100px',scrollSnapAlign:'start',borderRadius:12,overflow:'hidden',cursor:'pointer',
-                                border:isAct?'2px solid var(--navy)':'1.5px solid var(--border)',
-                                background:isAct?'var(--navy)':'var(--card)',
-                                boxShadow:isAct?'0 4px 14px rgba(13,27,42,.25)':'var(--shadow)',
-                                transition:'all .18s',flexShrink:0}}>
-                              {rep
-                                ?<img src={rep} alt={type} style={{width:'100%',height:72,objectFit:'cover',display:'block'}}/>
-                                :<div style={{height:72,background:isAct?'rgba(255,255,255,.08)':'var(--bg)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22}}>🔍</div>
-                              }
-                              <div style={{padding:'7px 8px'}}>
-                                <div style={{fontSize:11,fontWeight:800,color:isAct?'#fff':'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{type}</div>
-                                <div style={{fontSize:10,color:isAct?'rgba(255,255,255,.65)':'var(--text-sm)',marginTop:1}}>{grp.length}장</div>
-                              </div>
-                            </div>
-                          );
-                        })}
+                /* ── HUD 외부 컨테이너 ── */
+                <div style={{marginBottom:16,borderRadius:16,overflow:'hidden',
+                  background:'linear-gradient(145deg,#080E1C 0%,#0C1528 60%,#080E1C 100%)',
+                  border:`1px solid ${Cm}.12)`,
+                  boxShadow:`0 0 40px ${Cm}.04)`,
+                  position:'relative'}}>
+                  {/* 격자 배경 */}
+                  <div style={{position:'absolute',inset:0,
+                    backgroundImage:`linear-gradient(${Cm}.025) 1px,transparent 1px),linear-gradient(90deg,${Cm}.025) 1px,transparent 1px)`,
+                    backgroundSize:'22px 22px',pointerEvents:'none'}}/>
+                  {/* 상단 스캔 라인 */}
+                  <div style={{position:'absolute',top:0,left:0,right:0,height:1,
+                    background:`linear-gradient(90deg,transparent,${C},transparent)`,
+                    opacity:.4,pointerEvents:'none'}}/>
+
+                  <div style={{position:'relative',padding:'14px 14px 0'}}>
+                    {/* ── HUD 헤더 ── */}
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+                      <div style={{display:'flex',alignItems:'center',gap:8}}>
+                        <div style={{width:2.5,height:14,background:C,boxShadow:`0 0 8px ${C}`,borderRadius:2}}/>
+                        <span style={{fontSize:9,fontWeight:800,color:C,letterSpacing:'.18em',textTransform:'uppercase',fontFamily:'monospace'}}>DEFECT ANALYSIS</span>
+                        {/* 펄스 닷 */}
+                        <div style={{width:5,height:5,borderRadius:'50%',background:C,
+                          boxShadow:`0 0 6px ${C}`,animation:'scanPulse 1.8s ease-in-out infinite'}}/>
                       </div>
-                      {/* ── 3번: 소분류 — 선택된 유형의 낱개 사진 스트립 ── */}
+                      <span style={{fontSize:8,fontWeight:700,color:`${Cm}.45)`,letterSpacing:'.1em',fontFamily:'monospace'}}>
+                        {photosWithMeta.length.toString().padStart(3,'0')} REC
+                      </span>
+                    </div>
+
+                    {photosWithMeta.length>0?(
+                      <>
+                        {/* ── 중분류 카드 ── */}
+                        <div style={{display:'flex',gap:7,overflowX:'auto',paddingBottom:10,
+                          scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch',
+                          marginBottom:0}}>
+                          {/* 전체 카드 */}
+                          {(()=>{
+                            const isAct=activeDefect==='all';
+                            return(
+                              <div onClick={()=>changePhotoFilter('all','all')}
+                                className={isAct?'hud-card-active hud-card-in':'hud-card-in'}
+                                style={{flex:'0 0 86px',scrollSnapAlign:'start',borderRadius:8,overflow:'hidden',cursor:'pointer',
+                                  border:`1px solid ${isAct?C:Cm+'.18)'}`,
+                                  background:isAct?`${Cm}.08)`:`${Cm}.03)`,
+                                  transition:'border-color .2s,background .2s',flexShrink:0,position:'relative'}}>
+                                <Bracket act={isAct}/>
+                                <div style={{height:62,display:'flex',alignItems:'center',justifyContent:'center',
+                                  background:isAct?`${Cm}.05)`:'transparent',fontSize:22}}>
+                                  ◈
+                                </div>
+                                <div style={{padding:'5px 7px',borderTop:`1px solid ${Cm+(isAct?'.2)':'.07)')}`}}>
+                                  <div style={{fontSize:9,fontWeight:800,color:isAct?C:`${Cm}.55)`,letterSpacing:'.06em',fontFamily:'monospace'}}>ALL</div>
+                                  <div style={{fontSize:8,color:`${Cm}.35)`,letterSpacing:'.08em',fontFamily:'monospace',marginTop:1}}>{photosWithMeta.length} PCS</div>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                          {/* 하자유형별 카드 */}
+                          {existingMajor.map((type,ci)=>{
+                            const grp=grouped[type]||[];
+                            const rep=grp[0]?.src;
+                            const isAct=activeDefect===type;
+                            return(
+                              <div key={type} onClick={()=>changePhotoFilter(type,'all')}
+                                className={isAct?'hud-card-active hud-card-in':'hud-card-in'}
+                                style={{flex:'0 0 86px',scrollSnapAlign:'start',borderRadius:8,overflow:'hidden',cursor:'pointer',
+                                  border:`1px solid ${isAct?C:Cm+'.15)'}`,
+                                  background:isAct?`${Cm}.07)`:`${Cm}.02)`,
+                                  transition:'border-color .2s,background .2s',flexShrink:0,
+                                  position:'relative',animationDelay:`${ci*45}ms`}}>
+                                <Bracket act={isAct}/>
+                                {rep?(
+                                  <div style={{height:62,overflow:'hidden',position:'relative'}}>
+                                    <img src={rep} alt={type} style={{width:'100%',height:'100%',objectFit:'cover',display:'block',
+                                      filter:isAct?'saturate(.8) brightness(.85)':'saturate(.55) brightness(.7)'}}/>
+                                    {/* 스캔라인 텍스처 */}
+                                    <div style={{position:'absolute',inset:0,
+                                      backgroundImage:'linear-gradient(transparent 50%,rgba(0,0,0,.18) 50%)',
+                                      backgroundSize:'100% 3px',opacity:.5,pointerEvents:'none'}}/>
+                                    {/* 사이언 오버레이 */}
+                                    {isAct&&<div style={{position:'absolute',inset:0,
+                                      background:`linear-gradient(transparent 60%,${Cm}.15))`,pointerEvents:'none'}}/>}
+                                  </div>
+                                ):(
+                                  <div style={{height:62,display:'flex',alignItems:'center',justifyContent:'center',
+                                    fontSize:20,color:`${Cm}.3)`}}>◌</div>
+                                )}
+                                <div style={{padding:'5px 7px',borderTop:`1px solid ${Cm+(isAct?'.2)':'.07)')}`}}>
+                                  <div style={{fontSize:9,fontWeight:800,
+                                    color:isAct?C:`${Cm}.5)`,letterSpacing:'.03em',
+                                    whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+                                    #{type}
+                                  </div>
+                                  <div style={{fontSize:8,color:`${Cm}.3)`,letterSpacing:'.08em',fontFamily:'monospace',marginTop:1}}>{grp.length} PCS</div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
+                    ):(
+                      <div style={{display:'flex',gap:6,paddingBottom:10}}>
+                        {['','',''].map((_,i)=>(
+                          <div key={i} style={{flex:'0 0 86px',borderRadius:8,
+                            border:`1px dashed ${Cm}.15)`,
+                            aspectRatio:'1/1',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
+                            <span style={{fontSize:20,color:`${Cm}.2)`}}>◌</span>
+                            <span style={{fontSize:9,color:`${Cm}.3)`,fontFamily:'monospace',letterSpacing:'.06em'}}>NO DATA</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── 소분류 사진 스트립 (하단 별도 영역) ── */}
+                  {photosWithMeta.length>0&&(
+                    <div style={{borderTop:`1px solid ${Cm}.1)`,padding:'10px 14px 14px',
+                      background:`linear-gradient(${Cm}.03),transparent)`}}>
+                      {/* 스트립 레이블 */}
+                      <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8}}>
+                        <div style={{width:1.5,height:10,background:`${Cm}.5)`,borderRadius:1}}/>
+                        <span style={{fontSize:8,fontWeight:700,color:`${Cm}.4)`,letterSpacing:'.12em',fontFamily:'monospace'}}>
+                          {activeDefect==='all'?'ALL RECORDS':`${activeDefect.toUpperCase()} · ${filtered.length} SHOTS`}
+                        </span>
+                      </div>
                       <div className={isPhotoExiting?'photo-grid-exit':''}>
-                        <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:6,scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch'}}>
+                        <div style={{display:'flex',gap:7,overflowX:'auto',paddingBottom:4,
+                          scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch'}}>
                           {filtered.map((p,i)=>(
                             <div key={activeDefect+'_'+i}
-                              className="defect-photo-card"
-                              style={{flex:'0 0 72%',maxWidth:280,scrollSnapAlign:'start',borderRadius:12,overflow:'hidden',
-                                border:'1.5px solid var(--border)',background:'#000',
-                                position:'relative',aspectRatio:'1/1',cursor:'pointer',
-                                animationDelay:`${i*55}ms`,flexShrink:0}}
+                              className="defect-photo-card hud-photo-in"
+                              style={{flex:'0 0 70%',maxWidth:270,scrollSnapAlign:'start',
+                                borderRadius:8,overflow:'hidden',border:`1px solid ${Cm}.2)`,
+                                background:'#000',position:'relative',aspectRatio:'4/3',
+                                cursor:'pointer',animationDelay:`${i*45}ms`,flexShrink:0}}
                               onClick={()=>{
                                 const allList=filtered.map(x=>({src:x.src,alt:'하자사진'}));
                                 setZoomPhoto({photos:allList,index:i});
                               }}
                             >
-                              <img src={p.src} alt={`하자사진${i+1}`} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-                              <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'24px 10px 8px',background:'linear-gradient(transparent,rgba(0,0,0,.7))'}}>
+                              <img src={p.src} alt={`하자사진${i+1}`}
+                                style={{width:'100%',height:'100%',objectFit:'cover',display:'block',
+                                  filter:'saturate(.85) brightness(.9)'}}/>
+                              {/* 스캔라인 */}
+                              <div style={{position:'absolute',inset:0,
+                                backgroundImage:'linear-gradient(transparent 50%,rgba(0,0,0,.08) 50%)',
+                                backgroundSize:'100% 3px',opacity:.45,pointerEvents:'none'}}/>
+                              {/* HUD 오버레이 */}
+                              <div style={{position:'absolute',bottom:0,left:0,right:0,
+                                padding:'22px 8px 7px',
+                                background:`linear-gradient(transparent,rgba(8,14,28,.88))`}}>
                                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                                  <span style={{fontSize:10,fontWeight:800,color:'#fff'}}>{i+1}/{filtered.length}</span>
+                                  <span style={{fontSize:9,fontWeight:700,color:`${Cm}.6)`,
+                                    fontFamily:'monospace',letterSpacing:'.06em'}}>
+                                    {String(i+1).padStart(2,'0')}/{String(filtered.length).padStart(2,'0')}
+                                  </span>
                                   {p.defectType&&(
-                                    <span style={{fontSize:9,fontWeight:700,background:'rgba(255,255,255,.2)',backdropFilter:'blur(6px)',color:'#fff',borderRadius:6,padding:'2px 7px'}}>{p.defectType}</span>
+                                    <span style={{fontSize:8,fontWeight:700,
+                                      color:C,letterSpacing:'.05em',fontFamily:'monospace',
+                                      background:`${Cm}.12)`,border:`1px solid ${Cm}.3)`,
+                                      borderRadius:3,padding:'1px 6px'}}>
+                                      #{p.defectType}
+                                    </span>
                                   )}
                                 </div>
                               </div>
+                              {/* 코너 브래킷 (소) */}
+                              <div style={{position:'absolute',top:5,left:5,width:7,height:7,
+                                borderTop:`1.5px solid ${Cm}.4)`,borderLeft:`1.5px solid ${Cm}.4)`}}/>
+                              <div style={{position:'absolute',top:5,right:5,width:7,height:7,
+                                borderTop:`1.5px solid ${Cm}.4)`,borderRight:`1.5px solid ${Cm}.4)`}}/>
                             </div>
                           ))}
                         </div>
                       </div>
-                    </>
-                  ):(
-                    <div style={{display:'flex',gap:8,paddingBottom:6}}>
-                      {['','',''].map((_,i)=>(
-                        <div key={i} style={{flex:'0 0 45%',maxWidth:160,borderRadius:14,border:'1.5px dashed var(--border)',background:'var(--bg)',aspectRatio:'1/1',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
-                          <span style={{fontSize:22,opacity:.2}}>📷</span>
-                          <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:600}}>관리자에서 추가</span>
-                        </div>
-                      ))}
                     </div>
                   )}
                 </div>

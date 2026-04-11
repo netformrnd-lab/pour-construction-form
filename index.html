@@ -3193,128 +3193,84 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               let filtered=photosWithMeta;
               if(activeDefect!=='all')filtered=filtered.filter(p=>p.defectType===activeDefect);
               if(activePart!=='all')filtered=filtered.filter(p=>p.defectPart===activePart);
-              const chipStyle=(isActive)=>({
-                padding:'5px 13px',borderRadius:20,border:'1.5px solid',
-                borderColor:isActive?'var(--navy)':'var(--border)',
-                background:isActive?'var(--navy)':'var(--card)',
-                color:isActive?'#fff':'var(--text-md)',
-                fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',
-                transition:'all .18s',
-              });
+              /* 하자유형별 그룹핑 (중분류 카드용) */
+              const grouped={};
+              existingMajor.forEach(type=>{grouped[type]=photosWithMeta.filter(p=>p.defectType===type);});
               return(
                 <div style={{marginBottom:16}}>
-                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:8}}>📸 하자 사진</div>
-                  {/* ── 대분류 필터 (하자 유형) ── */}
-                  {existingMajor.length>=1&&(
-                    <div style={{marginBottom:6}}>
-                      <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:4,opacity:.7}}>하자 유형</div>
-                      <div style={{display:'flex',gap:5,flexWrap:'wrap',marginBottom:4}}>
-                        <button className={`defect-filter-chip${activeDefect==='all'?' active':''}`}
-                          onClick={()=>changePhotoFilter('all','all')}
-                          style={chipStyle(activeDefect==='all')}
-                        >전체 ({photosWithMeta.length})</button>
-                        {(defectTags.major||DEFECT_MAJOR).filter(d=>existingMajor.includes(d.id)).map(dt=>(
-                          <button key={dt.id}
-                            className={`defect-filter-chip${activeDefect===dt.id?' active':''}`}
-                            onClick={()=>changePhotoFilter(dt.id,'all')}
-                            style={chipStyle(activeDefect===dt.id)}
-                          >{dt.icon} {dt.label} ({photosWithMeta.filter(p=>p.defectType===dt.id).length})</button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {/* ── 중분류 — 마인드맵 브랜치 ── */}
-                  {existingParts.length>=1&&activeDefect!=='all'&&(
-                    <div className="branch-root"
-                      style={{
-                        marginBottom:10,marginLeft:10,paddingLeft:14,
-                        borderLeft:'2px solid var(--blue)',
-                        boxShadow:'-1px 0 8px rgba(37,99,235,.18)',
-                      }}>
-                      {[
-                        {id:'all',label:'전체',count:photosForMajor.length},
-                        ...(defectTags.part||DEFECT_PART).filter(d=>existingParts.includes(d.id)).map(d=>({
-                          id:d.id,label:d.label,
-                          count:photosForMajor.filter(p=>p.defectPart===d.id).length,
-                        }))
-                      ].map((pt,i)=>{
-                        const isAct=activePart===pt.id;
-                        return(
-                          <div key={pt.id} className="branch-item"
-                            style={{display:'flex',alignItems:'center',marginBottom:5,animationDelay:`${i*55}ms`}}>
-                            <div style={{width:12,height:2,background:isAct?'var(--blue)':'#CBD5E1',flexShrink:0,marginRight:6,transition:'background .15s'}}/>
-                            <button onClick={()=>changePhotoFilter(activeDefect,pt.id)}
-                              style={{
-                                display:'flex',alignItems:'center',gap:5,
-                                padding:'4px 10px',borderRadius:4,
-                                border:`1.5px solid ${isAct?'var(--blue)':'var(--border)'}`,
-                                background:isAct?'var(--navy)':'var(--card)',
-                                color:isAct?'#fff':'var(--text-md)',
-                                fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',
-                                boxShadow:isAct?'0 0 10px rgba(37,99,235,.35)':'none',
-                                letterSpacing:isAct?'.04em':0,
-                                transition:'all .15s',
-                              }}>
-                              <span style={{opacity:.6,fontSize:10,fontWeight:400}}>[</span>
-                              {pt.label}
-                              <span style={{opacity:.6,fontSize:10,fontWeight:400}}>]</span>
-                              <span style={{
-                                padding:'1px 5px',borderRadius:3,
-                                background:isAct?'rgba(255,255,255,.15)':'var(--border-s)',
-                                color:isAct?'rgba(255,255,255,.8)':'var(--text-sm)',
-                                fontSize:10,fontWeight:800,
-                              }}>{pt.count}</span>
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                  {/* ── 사진 그리드 ── */}
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.07em',textTransform:'uppercase',marginBottom:10}}>📸 하자 사진</div>
                   {photosWithMeta.length>0?(
-                    <div className={isPhotoExiting?'photo-grid-exit':''}>
-                    <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:6,scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch'}}>
-                      {filtered.map((p,i)=>{
-                        const origIdx=photosWithMeta.indexOf(p);
-                        return(
-                          <div key={activeDefect+'_'+activePart+'_'+i}
-                            className="defect-photo-card"
-                            style={{
-                              flex:'0 0 80%',maxWidth:320,scrollSnapAlign:'start',
-                              borderRadius:14,overflow:'hidden',
-                              border:'1.5px solid var(--border)',background:'#000',
-                              position:'relative',aspectRatio:'1/1',cursor:'pointer',
-                              animationDelay:`${i*60}ms`,
-                            }}
-                            onClick={()=>{
-                              const allList=filtered.map(x=>({src:x.src,alt:'하자사진'}));
-                              setZoomPhoto({photos:allList,index:i});
-                            }}
-                          >
-                            <img src={p.src} alt={`하자사진${origIdx+1}`} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-                            <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'28px 12px 10px',background:'linear-gradient(transparent,rgba(0,0,0,.72))'}}>
-                              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                                <span style={{fontSize:11,fontWeight:800,color:'#fff'}}>{i+1}/{filtered.length}</span>
-                                <div style={{display:'flex',gap:4,flexWrap:'wrap',justifyContent:'flex-end'}}>
+                    <>
+                      {/* ── 2번: 중분류 카드 (하자유형별 대표사진 + 키워드) ── */}
+                      <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:8,scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch',marginBottom:12}}>
+                        {/* 전체 카드 */}
+                        <div onClick={()=>changePhotoFilter('all','all')}
+                          style={{flex:'0 0 100px',scrollSnapAlign:'start',borderRadius:12,overflow:'hidden',cursor:'pointer',
+                            border:activeDefect==='all'?'2px solid var(--navy)':'1.5px solid var(--border)',
+                            background:activeDefect==='all'?'var(--navy)':'var(--card)',
+                            boxShadow:activeDefect==='all'?'0 4px 14px rgba(13,27,42,.25)':'var(--shadow)',
+                            transition:'all .18s',flexShrink:0}}>
+                          <div style={{height:72,background:activeDefect==='all'?'rgba(255,255,255,.08)':'var(--bg)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:26}}>📋</div>
+                          <div style={{padding:'7px 8px'}}>
+                            <div style={{fontSize:11,fontWeight:800,color:activeDefect==='all'?'#fff':'var(--text)',whiteSpace:'nowrap'}}>전체</div>
+                            <div style={{fontSize:10,color:activeDefect==='all'?'rgba(255,255,255,.65)':'var(--text-sm)',marginTop:1}}>{photosWithMeta.length}장</div>
+                          </div>
+                        </div>
+                        {/* 하자유형별 카드 */}
+                        {existingMajor.map(type=>{
+                          const grp=grouped[type]||[];
+                          const rep=grp[0]?.src;
+                          const isAct=activeDefect===type;
+                          return(
+                            <div key={type} onClick={()=>changePhotoFilter(type,'all')}
+                              style={{flex:'0 0 100px',scrollSnapAlign:'start',borderRadius:12,overflow:'hidden',cursor:'pointer',
+                                border:isAct?'2px solid var(--navy)':'1.5px solid var(--border)',
+                                background:isAct?'var(--navy)':'var(--card)',
+                                boxShadow:isAct?'0 4px 14px rgba(13,27,42,.25)':'var(--shadow)',
+                                transition:'all .18s',flexShrink:0}}>
+                              {rep
+                                ?<img src={rep} alt={type} style={{width:'100%',height:72,objectFit:'cover',display:'block'}}/>
+                                :<div style={{height:72,background:isAct?'rgba(255,255,255,.08)':'var(--bg)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22}}>🔍</div>
+                              }
+                              <div style={{padding:'7px 8px'}}>
+                                <div style={{fontSize:11,fontWeight:800,color:isAct?'#fff':'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{type}</div>
+                                <div style={{fontSize:10,color:isAct?'rgba(255,255,255,.65)':'var(--text-sm)',marginTop:1}}>{grp.length}장</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {/* ── 3번: 소분류 — 선택된 유형의 낱개 사진 스트립 ── */}
+                      <div className={isPhotoExiting?'photo-grid-exit':''}>
+                        <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:6,scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch'}}>
+                          {filtered.map((p,i)=>(
+                            <div key={activeDefect+'_'+i}
+                              className="defect-photo-card"
+                              style={{flex:'0 0 72%',maxWidth:280,scrollSnapAlign:'start',borderRadius:12,overflow:'hidden',
+                                border:'1.5px solid var(--border)',background:'#000',
+                                position:'relative',aspectRatio:'1/1',cursor:'pointer',
+                                animationDelay:`${i*55}ms`,flexShrink:0}}
+                              onClick={()=>{
+                                const allList=filtered.map(x=>({src:x.src,alt:'하자사진'}));
+                                setZoomPhoto({photos:allList,index:i});
+                              }}
+                            >
+                              <img src={p.src} alt={`하자사진${i+1}`} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+                              <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'24px 10px 8px',background:'linear-gradient(transparent,rgba(0,0,0,.7))'}}>
+                                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                                  <span style={{fontSize:10,fontWeight:800,color:'#fff'}}>{i+1}/{filtered.length}</span>
                                   {p.defectType&&(
-                                    <span style={{fontSize:9,fontWeight:700,background:'rgba(255,255,255,.18)',backdropFilter:'blur(6px)',color:'#fff',borderRadius:8,padding:'2px 8px',letterSpacing:'.03em'}}>{p.defectType}</span>
-                                  )}
-                                  {p.defectPart&&(
-                                    <span style={{fontSize:9,fontWeight:700,background:'rgba(59,130,246,.35)',backdropFilter:'blur(6px)',color:'#fff',borderRadius:8,padding:'2px 8px',letterSpacing:'.03em'}}>{p.defectPart}</span>
-                                  )}
-                                  {p.defectDetail&&(
-                                    <span style={{fontSize:9,fontWeight:600,background:'rgba(255,255,255,.12)',backdropFilter:'blur(6px)',color:'rgba(255,255,255,.85)',borderRadius:8,padding:'2px 8px'}}>{p.defectDetail}</span>
+                                    <span style={{fontSize:9,fontWeight:700,background:'rgba(255,255,255,.2)',backdropFilter:'blur(6px)',color:'#fff',borderRadius:6,padding:'2px 7px'}}>{p.defectType}</span>
                                   )}
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
                   ):(
-                    <div style={{display:'flex',gap:8,overflowX:'auto',paddingBottom:6}}>
+                    <div style={{display:'flex',gap:8,paddingBottom:6}}>
                       {['','',''].map((_,i)=>(
                         <div key={i} style={{flex:'0 0 45%',maxWidth:160,borderRadius:14,border:'1.5px dashed var(--border)',background:'var(--bg)',aspectRatio:'1/1',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
                           <span style={{fontSize:22,opacity:.2}}>📷</span>

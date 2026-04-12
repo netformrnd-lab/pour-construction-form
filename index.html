@@ -2241,6 +2241,56 @@ function syncSmsTemplatesFromFirestore(){
 syncSmsTemplatesFromFirestore();
 function fillTemplate(tpl,data){return tpl.replace(/\{\{(\w+)\}\}/g,(_,k)=>data[k]||'');}
 
+/* ══ Claude Proxy 설정 ══ */
+function loadClaudeProxyConfig(){try{return JSON.parse(localStorage.getItem('claudeProxyConfig')||'{}');}catch{return{};}}
+function saveClaudeProxyConfig(c){
+  localStorage.setItem('claudeProxyConfig',JSON.stringify(c));
+  try{db.collection('app-config').doc('claudeProxy').set(c,{merge:true}).catch(()=>{});}catch(e){}
+}
+function syncClaudeProxyConfigFromFirestore(){
+  try{
+    db.collection('app-config').doc('claudeProxy').get().then(doc=>{
+      if(doc.exists){
+        const remote=doc.data();
+        const local=loadClaudeProxyConfig();
+        if(remote.workerUrl&&!local.workerUrl){
+          localStorage.setItem('claudeProxyConfig',JSON.stringify({...local,...remote}));
+        }
+      }
+    }).catch(()=>{});
+  }catch(e){}
+}
+syncClaudeProxyConfigFromFirestore();
+
+/* ── Claude Vision 하자 자동 분류 ── */
+async function callClaudeVision(imageDataUrl,defectTypeOpts){
+  const cfg=loadClaudeProxyConfig();
+  if(!cfg.workerUrl||!cfg.workerSecret)return null;
+  const typeList=(defectTypeOpts&&defectTypeOpts.length?defectTypeOpts:['누수','균열','들뜸','백화','박리','기타']).join('|');
+  const prompt=`다음 건물 하자 사진을 분석하여 JSON으로만 응답하세요 (다른 텍스트 없이):
+{"defectType":"${typeList} 중 하나","defectPart":"옥상|외벽|지하|발코니|내부|기타 중 하나","severity":"경|중|심 중 하나","confidence":0.0~1.0,"reason":"분류이유 20자이내"}`;
+  try{
+    const res=await fetch(cfg.workerUrl.replace(/\/$/,''),{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Worker-Secret':cfg.workerSecret},
+      body:JSON.stringify({
+        model:'claude-haiku-4-5-20251001',
+        max_tokens:200,
+        messages:[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:'image/jpeg',data:imageDataUrl.replace(/^data:image\/\w+;base64,/,'')}},
+          {type:'text',text:prompt}
+        ]}]
+      })
+    });
+    if(!res.ok)return null;
+    const json=await res.json();
+    const text=json.content?.[0]?.text||'';
+    const match=text.match(/\{[\s\S]*?\}/);
+    if(!match)return null;
+    return JSON.parse(match[0]);
+  }catch(e){console.warn('[ClaudeVision]',e);return null;}
+}
+
 async function sendSMS(to,text){
   const cfg=loadSolapiConfig();
   if(!cfg.workerUrl)return{success:false,error:'솔라피 Worker URL 미설정'};
@@ -3250,7 +3300,13 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
         const defectPartOpts=['옥상','외벽','지하','발코니','내부','기타'];
         const confirm=()=>{
           setNtFieldPhotos(prev=>prev.map(p=>p.id===fieldPhotoModal.id
-            ?{...p,defectType:fieldPhotoTag.defectType,defectPart:fieldPhotoTag.defectPart,confirmed:true,analyzing:false}
+            ?{...p,
+              defectType:fieldPhotoTag.defectType,
+              defectPart:fieldPhotoTag.defectPart,
+              severity:fieldPhotoTag.severity||'',
+              confidence:fieldPhotoTag.confidence||null,
+              aiReason:fieldPhotoTag.aiReason||'',
+              confirmed:true,analyzing:false}
             :p));
           setFieldPhotoModal(null);
         };
@@ -3265,44 +3321,84 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               {/* 헤더 */}
               <div style={{padding:'0 18px 10px',display:'flex',alignItems:'center',gap:8,borderBottom:'1px solid var(--border-s)'}}>
                 <div style={{width:24,height:24,borderRadius:6,background:'var(--accent-l)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13}}>📋</div>
-                <div>
+                <div style={{flex:1}}>
                   <div style={{fontSize:13,fontWeight:800,color:'var(--navy)'}}>하자 분류 확인</div>
-                  <div style={{fontSize:10,color:'var(--text-sm)',fontWeight:500}}>고객 건물에서 확인된 문제를 선택해주세요</div>
+                  <div style={{fontSize:10,color:'var(--text-sm)',fontWeight:500}}>AI 분석 결과를 확인하고 맞으면 등록하세요</div>
                 </div>
-              </div>
-              {/* 사진 + 선택 */}
-              <div style={{padding:'14px 18px',display:'flex',gap:14,alignItems:'flex-start'}}>
-                {/* 사진 */}
-                <div style={{flex:'0 0 90px',height:90,borderRadius:10,overflow:'hidden',border:'2px solid var(--border)',flexShrink:0}}>
-                  <img src={fieldPhotoModal.src} alt="현장사진" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
-                </div>
-                {/* 태그 선택 */}
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:10,fontWeight:700,color:'var(--text-md)',marginBottom:6}}>하자 유형</div>
-                  <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:12}}>
-                    {defectTypeOpts.map(t=>(
-                      <button key={t} onClick={()=>setFieldPhotoTag(p=>({...p,defectType:p.defectType===t?'':t}))}
-                        style={{fontSize:11,fontWeight:700,padding:'4px 10px',borderRadius:20,cursor:'pointer',
-                          border:`1.5px solid ${fieldPhotoTag.defectType===t?'var(--accent)':'var(--border)'}`,
-                          background:fieldPhotoTag.defectType===t?'var(--accent-l)':'transparent',
-                          color:fieldPhotoTag.defectType===t?'var(--accent)':'var(--text-md)',
-                          transition:'all .15s'}}>
-                        #{t}
-                      </button>
-                    ))}
+                {fieldPhotoTag.confidence!=null&&(
+                  <div style={{textAlign:'center',flexShrink:0}}>
+                    <div style={{fontSize:16,fontWeight:900,color:fieldPhotoTag.confidence>=.8?'var(--green)':fieldPhotoTag.confidence>=.5?'var(--gold)':'var(--red)'}}>
+                      {Math.round(fieldPhotoTag.confidence*100)}%
+                    </div>
+                    <div style={{fontSize:8,color:'var(--text-sm)',fontWeight:600}}>AI신뢰도</div>
                   </div>
-                  <div style={{fontSize:10,fontWeight:700,color:'var(--text-md)',marginBottom:6}}>위 치</div>
-                  <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
-                    {defectPartOpts.map(t=>(
-                      <button key={t} onClick={()=>setFieldPhotoTag(p=>({...p,defectPart:p.defectPart===t?'':t}))}
-                        style={{fontSize:11,fontWeight:700,padding:'4px 10px',borderRadius:20,cursor:'pointer',
-                          border:`1.5px solid ${fieldPhotoTag.defectPart===t?'var(--navy)':'var(--border)'}`,
-                          background:fieldPhotoTag.defectPart===t?'var(--navy)':'transparent',
-                          color:fieldPhotoTag.defectPart===t?'#fff':'var(--text-md)',
-                          transition:'all .15s'}}>
-                        {t}
-                      </button>
-                    ))}
+                )}
+              </div>
+              {/* 사진 + AI결과 + 선택 */}
+              <div style={{padding:'12px 18px 0'}}>
+                {/* AI 분석 결과 배너 */}
+                {fieldPhotoTag.defectType&&fieldPhotoTag.confidence!=null&&(
+                  <div style={{borderRadius:10,padding:'8px 12px',marginBottom:12,
+                    background:fieldPhotoTag.confidence>=.8?'var(--green-l)':'rgba(217,119,6,.08)',
+                    border:`1.5px solid ${fieldPhotoTag.confidence>=.8?'rgba(5,150,105,.3)':'rgba(217,119,6,.3)'}`,
+                    display:'flex',alignItems:'center',gap:10}}>
+                    <span style={{fontSize:16}}>{fieldPhotoTag.confidence>=.8?'🤖':'⚠️'}</span>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:11,fontWeight:800,color:'var(--navy)',marginBottom:2}}>
+                        AI 분석: <span style={{color:'var(--accent)'}}>#</span><span style={{color:'var(--navy)'}}>{fieldPhotoTag.defectType}</span>
+                        {fieldPhotoTag.defectPart&&<><span style={{color:'var(--text-sm)'}}> · </span><span style={{color:'var(--navy)'}}>{fieldPhotoTag.defectPart}</span></>}
+                        {fieldPhotoTag.severity&&<span style={{marginLeft:6,fontSize:9,fontWeight:700,
+                          color:fieldPhotoTag.severity==='심'?'var(--red)':fieldPhotoTag.severity==='중'?'var(--gold)':'var(--green)',
+                          background:fieldPhotoTag.severity==='심'?'rgba(220,38,38,.1)':fieldPhotoTag.severity==='중'?'rgba(217,119,6,.1)':'rgba(5,150,105,.1)',
+                          borderRadius:4,padding:'1px 5px'}}>{fieldPhotoTag.severity}도</span>}
+                      </div>
+                      {fieldPhotoTag.aiReason&&<div style={{fontSize:10,color:'var(--text-sm)'}}>{fieldPhotoTag.aiReason}</div>}
+                      {/* 신뢰도 바 */}
+                      <div style={{height:3,background:'var(--border-s)',borderRadius:2,marginTop:5}}>
+                        <div style={{height:'100%',borderRadius:2,
+                          width:`${Math.round((fieldPhotoTag.confidence||0)*100)}%`,
+                          background:fieldPhotoTag.confidence>=.8?'var(--green)':fieldPhotoTag.confidence>=.5?'var(--gold)':'var(--red)',
+                          transition:'width .5s cubic-bezier(.19,1,.22,1)'}}/>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {/* 사진 + 수정 선택 */}
+                <div style={{display:'flex',gap:14,alignItems:'flex-start',marginBottom:12}}>
+                  <div style={{flex:'0 0 80px',height:80,borderRadius:10,overflow:'hidden',border:'2px solid var(--border)',flexShrink:0}}>
+                    <img src={fieldPhotoModal.src} alt="현장사진" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:10,fontWeight:700,color:'var(--text-md)',marginBottom:5}}>하자 유형 {fieldPhotoTag.confidence!=null&&<span style={{fontWeight:500,color:'var(--text-sm)'}}>— 수정 가능</span>}</div>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:10}}>
+                      {defectTypeOpts.map(t=>{
+                        const isSel=fieldPhotoTag.defectType===t;
+                        const isAi=fieldPhotoTag.confidence!=null&&(ntFieldPhotos.find(p=>p.id===fieldPhotoModal.id)?.defectType===t);
+                        return(
+                          <button key={t} onClick={()=>setFieldPhotoTag(p=>({...p,defectType:p.defectType===t?'':t}))}
+                            style={{fontSize:11,fontWeight:700,padding:'4px 10px',borderRadius:20,cursor:'pointer',
+                              border:`1.5px solid ${isSel?'var(--accent)':'var(--border)'}`,
+                              background:isSel?'var(--accent-l)':'transparent',
+                              color:isSel?'var(--accent)':'var(--text-md)',
+                              transition:'all .15s',position:'relative'}}>
+                            #{t}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div style={{fontSize:10,fontWeight:700,color:'var(--text-md)',marginBottom:5}}>위 치</div>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+                      {defectPartOpts.map(t=>(
+                        <button key={t} onClick={()=>setFieldPhotoTag(p=>({...p,defectPart:p.defectPart===t?'':t}))}
+                          style={{fontSize:11,fontWeight:700,padding:'4px 10px',borderRadius:20,cursor:'pointer',
+                            border:`1.5px solid ${fieldPhotoTag.defectPart===t?'var(--navy)':'var(--border)'}`,
+                            background:fieldPhotoTag.defectPart===t?'var(--navy)':'transparent',
+                            color:fieldPhotoTag.defectPart===t?'#fff':'var(--text-md)',
+                            transition:'all .15s'}}>
+                          {t}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -3313,9 +3409,12 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                   삭제
                 </button>
                 <button onClick={confirm}
-                  style={{flex:2,padding:'12px',borderRadius:12,border:'none',background:'var(--accent)',fontSize:13,fontWeight:800,color:'#fff',cursor:'pointer',
-                    opacity:fieldPhotoTag.defectType?1:.55}}>
-                  {fieldPhotoTag.defectType?`#${fieldPhotoTag.defectType}${fieldPhotoTag.defectPart?' · '+fieldPhotoTag.defectPart:''} 확인`:'분류 확인'}
+                  style={{flex:2,padding:'12px',borderRadius:12,border:'none',
+                    background:fieldPhotoTag.defectType?'var(--accent)':'var(--border)',
+                    fontSize:13,fontWeight:800,color:'#fff',cursor:'pointer',transition:'background .2s'}}>
+                  {fieldPhotoTag.defectType
+                    ?`✓ #${fieldPhotoTag.defectType}${fieldPhotoTag.defectPart?' · '+fieldPhotoTag.defectPart:''} 등록`
+                    :'분류 후 등록'}
                 </button>
               </div>
             </div>
@@ -3596,20 +3695,28 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 setPhotoAddToast(true);
                 setTimeout(()=>setPhotoAddToast(false),2600);
               };
-              /* 카메라/파일 → 리사이즈 → ntFieldPhotos + 태그 확인 모달 */
+              /* 카메라/파일 → 리사이즈 → Claude Vision 자동분류 → 태그 확인 모달 */
+              const defectTypeOpts=[...new Set(defectPhotos.map(p=>p.defectType).filter(Boolean))];
+              if(!defectTypeOpts.length)defectTypeOpts.push(...['누수','균열','들뜸','백화','박리','기타']);
               const handlePhotoFiles=files=>{
                 Array.from(files).forEach(async file=>{
                   if(!file.type.startsWith('image/'))return;
                   const id=Date.now()+Math.random();
-                  /* 분석 중 placeholder */
-                  setNtFieldPhotos(prev=>[...prev,{id,src:'',defectType:'',defectPart:'',confirmed:false,analyzing:true}]);
+                  setNtFieldPhotos(prev=>[...prev,{id,src:'',defectType:'',defectPart:'',severity:'',confidence:null,aiReason:'',confirmed:false,analyzing:true}]);
                   const src=await resizeImageFile(file);
                   setNtFieldPhotos(prev=>prev.map(p=>p.id===id?{...p,src}:p));
-                  /* 1.5초 "분석" 후 태그 확인 모달 */
-                  setTimeout(()=>{
-                    setFieldPhotoTag({defectType:'',defectPart:''});
-                    setFieldPhotoModal({id,src});
-                  },1500);
+                  /* Claude Vision 호출 */
+                  const aiResult=await callClaudeVision(src,defectTypeOpts);
+                  setNtFieldPhotos(prev=>prev.map(p=>p.id===id?{...p,analyzing:false,...(aiResult||{})}:p));
+                  /* 결과와 함께 확인 모달 열기 */
+                  setFieldPhotoTag({
+                    defectType:aiResult?.defectType||'',
+                    defectPart:aiResult?.defectPart||'',
+                    severity:aiResult?.severity||'',
+                    confidence:aiResult?.confidence||null,
+                    aiReason:aiResult?.reason||'',
+                  });
+                  setFieldPhotoModal({id,src});
                 });
               };
               return(
@@ -6237,6 +6344,7 @@ function AdminScreen({onBack}){
                   {[
                     {k:'photos',icon:'📸',title:'사진 관리',sub:'공법별 하자사진 · 미디어'},
                     {k:'sms',icon:'💬',title:'문자 설정',sub:'자동발송 · 템플릿 관리'},
+                    {k:'ai',icon:'🤖',title:'AI 분류 설정',sub:'Claude Vision · 자동태깅'},
                     {k:'staff',icon:'👤',title:'담당자 관리',sub:'영업직원 추가 · 편집'},
                     {k:'tags',icon:'🏷',title:'태그 관리',sub:'하자유형 · 하자위치 편집'},
                   ].map(({k,icon,title,sub})=>(
@@ -7086,6 +7194,19 @@ function AdminScreen({onBack}){
         </div>
       )}
 
+      {/* ── AI 하자분류 설정 탭 (관리자 전용) ── */}
+      {!loading&&tab==='ai'&&(
+        <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+          <div style={{background:'#1E40AF',padding:'8px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+            <span style={{fontSize:12,fontWeight:700,color:'#fff'}}>🤖 AI 하자 자동분류 설정</span>
+            <button onClick={()=>setTab('stat')} style={{background:'rgba(255,255,255,.2)',border:'none',borderRadius:6,padding:'5px 12px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>← 나가기</button>
+          </div>
+          <div style={{flex:1,overflowY:'auto'}}>
+            <ClaudeProxySettingsTab/>
+          </div>
+        </div>
+      )}
+
       {/* ── 태그 관리 탭 (관리자 전용) ── */}
       {!loading&&tab==='tags'&&(
         <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
@@ -7469,6 +7590,74 @@ function SmsSettingsTab(){
           5. <span style={{color:'var(--gold)'}}>npx wrangler secret put SOLAPI_SENDER</span><br/>
           6. <span style={{color:'var(--gold)'}}>npx wrangler deploy</span><br/>
           7. 배포 URL을 위 Worker URL에 입력
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Claude Proxy 설정 탭 컴포넌트 ── */
+function ClaudeProxySettingsTab(){
+  const [cfg,setCfg]=useState(loadClaudeProxyConfig);
+  const [saved,setSaved]=useState('');
+  const [testing,setTesting]=useState(false);
+  const [testResult,setTestResult]=useState('');
+
+  const save=(next)=>{setCfg(next);saveClaudeProxyConfig(next);setSaved('저장됨');setTimeout(()=>setSaved(''),2000);};
+
+  const testVision=async()=>{
+    if(!cfg.workerUrl||!cfg.workerSecret){setTestResult('❌ URL과 Secret을 먼저 저장하세요');return;}
+    setTesting(true);setTestResult('');
+    /* 단색 1×1 테스트 이미지 */
+    const c=document.createElement('canvas');c.width=4;c.height=4;
+    c.getContext('2d').fillRect(0,0,4,4);
+    const testImg=c.toDataURL('image/jpeg',.8);
+    const result=await callClaudeVision(testImg,['누수','균열','기타']);
+    setTesting(false);
+    setTestResult(result?`✅ 연결됨 — AI 응답: ${JSON.stringify(result)}`:'❌ 연결 실패 (URL·Secret 확인)');
+  };
+
+  const inp=(label,key,placeholder,type='text')=>(
+    <div style={{marginBottom:14}}>
+      <div style={{fontSize:11,fontWeight:700,color:'var(--text-md)',marginBottom:5}}>{label}</div>
+      <input type={type} value={cfg[key]||''} placeholder={placeholder}
+        onChange={e=>setCfg(p=>({...p,[key]:e.target.value}))}
+        style={{width:'100%',boxSizing:'border-box',padding:'9px 12px',borderRadius:9,border:'1.5px solid var(--border)',fontSize:12,fontFamily:'inherit',outline:'none'}}/>
+    </div>
+  );
+
+  return(
+    <div style={{padding:'16px 16px 24px'}}>
+      <div style={{marginBottom:16,padding:'10px 12px',borderRadius:10,background:'var(--accent-l)',border:'1px solid var(--blue-m)'}}>
+        <div style={{fontSize:11,fontWeight:700,color:'var(--accent)',marginBottom:3}}>🤖 AI 하자 자동분류</div>
+        <div style={{fontSize:10,color:'var(--text-md)',lineHeight:1.5}}>
+          고객 현장사진 업로드 시 Claude Vision이 하자 유형·위치·심각도를 자동 분류합니다.<br/>
+          Cloudflare Worker URL과 시크릿을 설정하면 즉시 활성화됩니다.
+        </div>
+      </div>
+      {inp('Worker URL','workerUrl','https://pour-claude-proxy.xxx.workers.dev')}
+      {inp('Worker Secret','workerSecret','WORKER_SECRET 값','password')}
+      <div style={{display:'flex',gap:8,marginBottom:16}}>
+        <button onClick={()=>save(cfg)}
+          style={{flex:2,padding:'10px',borderRadius:9,border:'none',background:'var(--accent)',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer'}}>
+          저장{saved&&' — '+saved}
+        </button>
+        <button onClick={testVision} disabled={testing}
+          style={{flex:1,padding:'10px',borderRadius:9,border:'1.5px solid var(--border)',background:'transparent',fontSize:12,fontWeight:700,color:'var(--text-md)',cursor:'pointer'}}>
+          {testing?'테스트 중…':'연결 테스트'}
+        </button>
+      </div>
+      {testResult&&(
+        <div style={{padding:'8px 12px',borderRadius:8,background:'var(--bg)',border:'1px solid var(--border)',fontSize:10,color:'var(--text-md)',wordBreak:'break-all'}}>
+          {testResult}
+        </div>
+      )}
+      <div style={{marginTop:20,padding:'10px 12px',borderRadius:10,background:'var(--bg)',border:'1px solid var(--border-s)'}}>
+        <div style={{fontSize:10,fontWeight:700,color:'var(--text-md)',marginBottom:4}}>배포 명령어</div>
+        <div style={{fontSize:9,color:'var(--text-sm)',fontFamily:'monospace',lineHeight:1.8}}>
+          npx wrangler deploy --config workers/wrangler.claude-proxy.toml<br/>
+          npx wrangler secret put CLAUDE_API_KEY --config workers/wrangler.claude-proxy.toml<br/>
+          npx wrangler secret put WORKER_SECRET --config workers/wrangler.claude-proxy.toml
         </div>
       </div>
     </div>

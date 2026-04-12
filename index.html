@@ -8198,16 +8198,11 @@ function App(){
             </div>
           </div>
 
-          {/* 리드 + 통계 한 줄 */}
-          <div style={{display:'flex',gap:8,width:'100%',maxWidth:360}}>
-            <button className="home-leads-btn" style={{flex:2,margin:0,padding:'12px'}} onClick={()=>setScreen('leads')}>
-              📋 유입 목록
-            </button>
-            <div className="hstat" style={{flex:1,textAlign:'center'}}>
-              <div className="hstat-n">{todayCount}</div>
-              <div className="hstat-l">오늘 상담</div>
-            </div>
-          </div>
+          {/* 매뉴얼 버튼 */}
+          <button onClick={()=>window.open('pour-app-guide.html','_blank')}
+            style={{width:'100%',maxWidth:360,padding:'11px 0',background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.22)',borderRadius:10,color:'rgba(255,255,255,.75)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:6,transition:'all .15s'}}>
+            📖 앱 사용 매뉴얼
+          </button>
 
           {/* 관리 페이지 진입 */}
           <button onClick={()=>{const stored=loadAdminPin();if(!stored){setShowPinModal('setup');}else if(!adminAuth){setShowPinModal('verify');}else{setScreen('admin');}}} style={{width:'100%',maxWidth:360,marginTop:8,padding:'10px 0',background:'rgba(255,255,255,.07)',border:'1px solid rgba(255,255,255,.18)',borderRadius:10,color:'rgba(255,255,255,.6)',fontSize:12,fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>

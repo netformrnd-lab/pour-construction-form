@@ -3123,7 +3123,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [fieldPhotoModal,setFieldPhotoModal]=useState(null); // {id,src} — 태그 확인 중
   const [fieldPhotoTag,setFieldPhotoTag]=useState({defectType:'',defectPart:''});
   /* ── STEP 3 공정 사진 ── */
-  const [selectedProcessStep,setSelectedProcessStep]=useState(null);
+  const [selectedProcessStep,setSelectedProcessStep]=useState(0);
   const [materialModal,setMaterialModal]=useState(null); // {name, desc, mediaUrl, mediaType}
   const [showReport,setShowReport]=useState(false);
   const [reportSaving,setReportSaving]=useState(false);
@@ -3198,9 +3198,10 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [defectTags,setDefectTags]=useState(()=>loadDefectTags());
   const [defectPhotos,setDefectPhotos]=useState([]);
   useEffect(()=>{syncPhotosFromFirestore(setCasePhotos,null);syncDefectTagsFromFirestore(setDefectTags);},[]);
-  /* 현재 공법을 상담 여정에 추가 */
+  /* 현재 공법을 상담 여정에 추가 + 공정 탭 0번으로 리셋 */
   useEffect(()=>{
     if(!problem||!visible)return;
+    setSelectedProcessStep(0);
     const mc=METHOD_CONTENT[problem.id];
     const ms=METHOD_STATS[problem.id];
     const snap={id:problem.id,label:problem.label,cat:problem.cat||'',
@@ -4246,11 +4247,11 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     <p style={{fontSize:13,lineHeight:1.7,color:'var(--text)',margin:0,wordBreak:'keep-all',marginBottom:14}}>
                       {mc.cause}
                     </p>
-                    {/* 시공 영상 — 원인 설명 바로 아래 */}
+                    {/* 공법 영상 — 원인 설명 바로 아래 */}
                     <div>
                       <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:8}}>
                         <div style={{width:5,height:5,borderRadius:'50%',background:'var(--accent)',opacity:.7}}/>
-                        <span style={{fontSize:10,fontWeight:700,color:'var(--navy)',letterSpacing:'.04em'}}>시공 영상</span>
+                        <span style={{fontSize:10,fontWeight:700,color:'var(--navy)',letterSpacing:'.04em'}}>공법 영상</span>
                       </div>
                       {mediaList.length===0?(
                         <div style={{display:'flex',gap:6}}>

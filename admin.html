@@ -3563,7 +3563,7 @@ function DefectSitesPage({showToast}){
 
         <div style={{display:'flex',gap:10}}>
           <button onClick={()=>{setEditing(null);resetForm();}} style={{flex:1,padding:'12px 0',borderRadius:10,border:'1.5px solid var(--border)',background:'#fff',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit',color:'var(--text-md)'}}>취소</button>
-          <button onClick={save} disabled={uploading} style={{flex:2,padding:'12px 0',borderRadius:10,border:'none',background:'var(--blue)',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit',color:'#fff',opacity:uploading?.6:1}}>{uploading?'업로드 중...':'저장'}</button>
+          <button onClick={save} disabled={uploading} style={{flex:2,padding:'12px 0',borderRadius:10,border:'none',background:'var(--blue)',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit',color:'#fff',opacity:uploading?0.6:1}}>{uploading?'업로드 중...':'저장'}</button>
         </div>
       </div>
     </div>
@@ -3882,7 +3882,7 @@ function DefectPhotosPage({showToast}){
           </div>
           <div style={{display:'flex',gap:10}}>
             <button onClick={closeAddForm} style={{flex:1,padding:'12px 0',borderRadius:10,border:'1.5px solid var(--border)',background:'#fff',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit',color:'var(--text-md)'}}>취소</button>
-            <button onClick={savePhotos} disabled={uploading} style={{flex:2,padding:'12px 0',borderRadius:10,border:'none',background:'var(--blue)',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit',color:'#fff',opacity:uploading?.6:1}}>{uploading?'업로드 중...':editingId?'수정':'등록'}</button>
+            <button onClick={savePhotos} disabled={uploading} style={{flex:2,padding:'12px 0',borderRadius:10,border:'none',background:'var(--blue)',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit',color:'#fff',opacity:uploading?0.6:1}}>{uploading?'업로드 중...':editingId?'수정':'등록'}</button>
           </div>
         </div>
       </div>}
@@ -4082,7 +4082,7 @@ function SalesDocsPage({showToast}){
         </div>
         <div style={{display:'flex',gap:10,marginTop:20}}>
           <button onClick={()=>setShowForm(false)} style={{flex:1,padding:'12px 0',borderRadius:10,border:'1.5px solid var(--border)',background:'#fff',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit',color:'var(--text-md)'}}>취소</button>
-          <button onClick={save} disabled={uploading} style={{flex:2,padding:'12px 0',borderRadius:10,border:'none',background:'var(--blue)',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit',color:'#fff',opacity:uploading?.6:1}}>{uploading?'업로드 중...':'저장'}</button>
+          <button onClick={save} disabled={uploading} style={{flex:2,padding:'12px 0',borderRadius:10,border:'none',background:'var(--blue)',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit',color:'#fff',opacity:uploading?0.6:1}}>{uploading?'업로드 중...':'저장'}</button>
         </div>
       </div>
     </div>
@@ -4542,6 +4542,465 @@ function ExpoLeadsPage({showToast,onNavigate}){
   );
 }
 
+/* ══════════════════════════════════════════════════════════════
+   공신력 수치 관리 — site-metrics/current
+   ══════════════════════════════════════════════════════════════ */
+const METRICS_FIELDS=[
+  {key:'totalUnits',labelKey:'totalUnitsLabel',icon:'🏘',name:'시공 세대수',unit:'세대',placeholder:'2600000',labelPlaceholder:'260만 세대'},
+  {key:'patents',labelKey:'patentsLabel',icon:'📜',name:'특허/인증',unit:'개',placeholder:'70',labelPlaceholder:'70여 개'},
+  {key:'partners',labelKey:'partnersLabel',icon:'🤝',name:'파트너사',unit:'곳',placeholder:'250',labelPlaceholder:'250여 곳'},
+  {key:'totalArea',labelKey:'totalAreaLabel',icon:'📐',name:'시공 면적',unit:'㎡',placeholder:'1500000',labelPlaceholder:'150만 ㎡'},
+  {key:'products',labelKey:'productsLabel',icon:'📦',name:'제품 수',unit:'개',placeholder:'110',labelPlaceholder:'110여 개+'},
+  {key:'cooperatives',labelKey:'cooperativesLabel',icon:'🏢',name:'협력사',unit:'곳',placeholder:'250',labelPlaceholder:'250여 곳'},
+];
+
+function MetricsPage({showToast}){
+  const [form,setForm]=useState(null);
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [lastUpdated,setLastUpdated]=useState(null);
+
+  useEffect(()=>{
+    (async()=>{
+      try{
+        const doc=await db.collection(COLLECTIONS.SITE_METRICS).doc('current').get();
+        const data=doc.exists?doc.data():{};
+        const init={};
+        METRICS_FIELDS.forEach(f=>{
+          init[f.key]=data[f.key]!==undefined?String(data[f.key]):'';
+          init[f.labelKey]=data[f.labelKey]||'';
+        });
+        setForm(init);
+        if(data.updatedAt)setLastUpdated(data.updatedAt);
+      }catch(e){console.error('[site-metrics] 로드 실패:',e);showToast('데이터 로드 실패','error');}
+      setLoading(false);
+    })();
+  },[]);
+
+  const save=async()=>{
+    if(!form)return;
+    setSaving(true);
+    try{
+      const data={updatedAt:new Date().toISOString()};
+      METRICS_FIELDS.forEach(f=>{
+        const v=parseInt(form[f.key],10);
+        if(!isNaN(v))data[f.key]=v;
+        data[f.labelKey]=form[f.labelKey]||'';
+      });
+      await db.collection(COLLECTIONS.SITE_METRICS).doc('current').set(data,{merge:true});
+      setLastUpdated(data.updatedAt);
+      showToast('공신력 수치 저장 완료 — 3개 사이트에 즉시 반영됩니다');
+    }catch(e){console.error('[site-metrics] 저장 실패:',e);showToast('저장 실패','error');}
+    setSaving(false);
+  };
+
+  if(loading)return <div style={{textAlign:'center',padding:80,color:'var(--text-sm)'}}>로딩 중...</div>;
+
+  const inputStyle={width:'100%',padding:'10px 14px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:14,fontFamily:'inherit',outline:'none',boxSizing:'border-box'};
+  const labelStyle={fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:5,display:'block'};
+
+  return(
+    <div style={{animation:'fadeIn .3s ease',maxWidth:820}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+        <div>
+          <div style={{fontSize:20,fontWeight:800}}>📊 공신력 수치 관리</div>
+          <div style={{fontSize:12,color:'var(--text-sm)',marginTop:4}}>
+            POUR솔루션 · POUR공법 · POUR스토어 3개 사이트에 실시간 반영됩니다
+          </div>
+          {lastUpdated&&<div style={{fontSize:11,color:'var(--text-sm)',marginTop:2}}>
+            마지막 저장: {new Date(lastUpdated).toLocaleString('ko')}
+          </div>}
+        </div>
+        <button onClick={save} disabled={saving}
+          style={{padding:'10px 24px',borderRadius:10,border:'none',background:'var(--accent)',color:'#fff',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit',opacity:saving?0.6:1}}>
+          {saving?'저장 중...':'💾 저장하기'}
+        </button>
+      </div>
+
+      {/* 안내 배너 */}
+      <div style={{background:'#EFF6FF',border:'1.5px solid #BFDBFE',borderRadius:10,padding:'12px 16px',marginBottom:20,display:'flex',gap:10,alignItems:'flex-start'}}>
+        <span style={{fontSize:18,flexShrink:0}}>ℹ️</span>
+        <div style={{fontSize:13,color:'#1E40AF',lineHeight:1.6}}>
+          <strong>표시 텍스트</strong>는 웹사이트에서 그대로 표시됩니다 (예: "260만 세대").<br/>
+          <strong>실제 값</strong>은 내부 집계·API에 사용됩니다. 표시 텍스트만 변경해도 됩니다.
+        </div>
+      </div>
+
+      {/* 수치 카드 그리드 */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:16}}>
+        {METRICS_FIELDS.map(f=>(
+          <div key={f.key} style={{background:'#fff',borderRadius:12,padding:20,boxShadow:'var(--shadow)',border:'1px solid var(--border)'}}>
+            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:14}}>
+              <span style={{fontSize:24}}>{f.icon}</span>
+              <div style={{fontSize:14,fontWeight:800,color:'var(--text)'}}>{f.name}</div>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+              <div>
+                <label style={labelStyle}>실제 값 ({f.unit})</label>
+                <input type="number" style={inputStyle}
+                  value={form?.[f.key]||''} placeholder={f.placeholder}
+                  onChange={e=>setForm(prev=>({...prev,[f.key]:e.target.value}))}/>
+              </div>
+              <div>
+                <label style={labelStyle}>표시 텍스트</label>
+                <input type="text" style={inputStyle}
+                  value={form?.[f.labelKey]||''} placeholder={f.labelPlaceholder}
+                  onChange={e=>setForm(prev=>({...prev,[f.labelKey]:e.target.value}))}/>
+              </div>
+            </div>
+            {/* 미리보기 */}
+            <div style={{marginTop:10,padding:'8px 12px',background:'var(--bg)',borderRadius:8,display:'flex',alignItems:'center',gap:8}}>
+              <span style={{fontSize:11,color:'var(--text-sm)',fontWeight:600}}>미리보기</span>
+              <span style={{fontSize:18,fontWeight:900,color:'var(--accent)'}}>
+                {form?.[f.labelKey]||form?.[f.key]||'-'}
+              </span>
+              <span style={{fontSize:11,color:'var(--text-sm)'}}>{f.name}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 하단 저장 버튼 */}
+      <div style={{display:'flex',justifyContent:'flex-end',marginTop:20}}>
+        <button onClick={save} disabled={saving}
+          style={{padding:'12px 32px',borderRadius:10,border:'none',background:'var(--accent)',color:'#fff',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit',opacity:saving?0.6:1}}>
+          {saving?'저장 중...':'💾 공신력 수치 저장'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════
+   담당자 관리 — config/staffList
+   ══════════════════════════════════════════════════════════════ */
+function StaffPage({showToast}){
+  const [staffList,setStaffList]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [editIdx,setEditIdx]=useState(null); // null=목록, -1=신규, N=수정
+  const [form,setForm]=useState({name:'',role:'',phone:''});
+
+  const fetchStaff=async()=>{
+    setLoading(true);
+    try{
+      const doc=await db.collection('config').doc('staffList').get();
+      const list=(doc.exists&&doc.data().list)||[];
+      console.log(`[config/staffList] ${list.length}명 로드`);
+      setStaffList(list);
+    }catch(e){console.error('[config/staffList] 로드 실패:',e);showToast('데이터 로드 실패','error');}
+    setLoading(false);
+  };
+
+  useEffect(()=>{fetchStaff();},[]);
+
+  const saveList=async(newList)=>{
+    setSaving(true);
+    try{
+      await db.collection('config').doc('staffList').set({list:newList,updatedAt:new Date().toISOString()});
+      setStaffList(newList);
+      showToast('저장 완료');
+    }catch(e){console.error(e);showToast('저장 실패','error');}
+    setSaving(false);
+  };
+
+  const openNew=()=>{setForm({name:'',role:'',phone:''});setEditIdx(-1);};
+  const openEdit=(i)=>{setForm({...staffList[i]});setEditIdx(i);};
+  const closeForm=()=>setEditIdx(null);
+
+  const saveForm=()=>{
+    if(!form.name.trim()){showToast('이름을 입력하세요','error');return;}
+    const newList=[...staffList];
+    if(editIdx===-1)newList.push({...form,name:form.name.trim(),phone:form.phone.trim()});
+    else newList[editIdx]={...form,name:form.name.trim(),phone:form.phone.trim()};
+    saveList(newList);
+    closeForm();
+  };
+
+  const removeStaff=(i)=>{
+    if(!confirm(`"${staffList[i].name}"을(를) 삭제하시겠습니까?`))return;
+    const newList=staffList.filter((_,idx)=>idx!==i);
+    saveList(newList);
+  };
+
+  const moveUp=(i)=>{if(i===0)return;const l=[...staffList];[l[i-1],l[i]]=[l[i],l[i-1]];saveList(l);};
+  const moveDown=(i)=>{if(i===staffList.length-1)return;const l=[...staffList];[l[i],l[i+1]]=[l[i+1],l[i]];saveList(l);};
+
+  const ROLES=['영업팀장','영업사원','기술지원','현장팀장','CS담당','대표이사','기타'];
+
+  const inputStyle={width:'100%',padding:'10px 14px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:13,fontFamily:'inherit',outline:'none',boxSizing:'border-box'};
+  const labelStyle={fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:5,display:'block'};
+
+  if(loading)return <div style={{textAlign:'center',padding:80,color:'var(--text-sm)'}}>로딩 중...</div>;
+
+  return(
+    <div style={{animation:'fadeIn .3s ease',maxWidth:700}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+        <div>
+          <div style={{fontSize:20,fontWeight:800}}>👥 담당자 관리</div>
+          <div style={{fontSize:12,color:'var(--text-sm)',marginTop:4}}>총 {staffList.length}명 · 태블릿앱 상담 담당자 선택에 반영됩니다</div>
+        </div>
+        <button onClick={openNew} style={{padding:'10px 20px',borderRadius:10,border:'none',background:'var(--accent)',color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
+          + 담당자 추가
+        </button>
+      </div>
+
+      {staffList.length===0?(
+        <div style={{textAlign:'center',padding:60,color:'var(--text-sm)',background:'#fff',borderRadius:12,border:'1px dashed var(--border)'}}>
+          <div style={{fontSize:40,marginBottom:12}}>👤</div>
+          <div style={{fontSize:14,fontWeight:600,marginBottom:4}}>등록된 담당자가 없습니다</div>
+          <div style={{fontSize:12}}>+ 담당자 추가 버튼으로 등록해 주세요</div>
+        </div>
+      ):(
+        <div style={{background:'#fff',borderRadius:12,border:'1px solid var(--border)',overflow:'hidden',boxShadow:'var(--shadow)'}}>
+          <table style={{width:'100%',borderCollapse:'collapse'}}>
+            <thead>
+              <tr style={{background:'var(--bg)'}}>
+                {['순서','이름','직책','연락처',''].map(h=>(
+                  <th key={h} style={{padding:'10px 16px',textAlign:'left',fontSize:12,fontWeight:700,color:'var(--text-md)',borderBottom:'1px solid var(--border)'}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {staffList.map((s,i)=>(
+                <tr key={i} style={{borderBottom:'1px solid var(--border-s)',transition:'background .1s'}}
+                  onMouseOver={e=>e.currentTarget.style.background='var(--bg)'}
+                  onMouseOut={e=>e.currentTarget.style.background='#fff'}>
+                  <td style={{padding:'10px 16px'}}>
+                    <div style={{display:'flex',flexDirection:'column',gap:2}}>
+                      <button onClick={()=>moveUp(i)} disabled={i===0||saving}
+                        style={{background:'none',border:'none',cursor:i===0?'default':'pointer',fontSize:12,opacity:i===0?.3:1,padding:'2px 4px',lineHeight:1}}>▲</button>
+                      <button onClick={()=>moveDown(i)} disabled={i===staffList.length-1||saving}
+                        style={{background:'none',border:'none',cursor:i===staffList.length-1?'default':'pointer',fontSize:12,opacity:i===staffList.length-1?.3:1,padding:'2px 4px',lineHeight:1}}>▼</button>
+                    </div>
+                  </td>
+                  <td style={{padding:'10px 16px',fontWeight:700,fontSize:14}}>{s.name}</td>
+                  <td style={{padding:'10px 16px'}}>
+                    <span style={{padding:'3px 8px',borderRadius:6,background:'var(--accent-l)',color:'var(--accent)',fontSize:12,fontWeight:600}}>{s.role||'—'}</span>
+                  </td>
+                  <td style={{padding:'10px 16px',color:'var(--text-md)',fontSize:13}}>{s.phone||'—'}</td>
+                  <td style={{padding:'10px 16px'}}>
+                    <div style={{display:'flex',gap:6}}>
+                      <button onClick={()=>openEdit(i)} style={{padding:'5px 12px',borderRadius:7,border:'1px solid var(--border)',background:'#fff',fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>수정</button>
+                      <button onClick={()=>removeStaff(i)} style={{padding:'5px 12px',borderRadius:7,border:'1px solid #FEE2E2',background:'#FEF2F2',color:'#DC2626',fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>삭제</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* 등록/수정 모달 */}
+      {editIdx!==null&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}} onClick={closeForm}>
+          <div style={{background:'#fff',borderRadius:16,padding:28,width:'min(400px,90vw)',boxShadow:'0 12px 40px rgba(0,0,0,.2)'}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:18,fontWeight:800,marginBottom:20}}>{editIdx===-1?'담당자 추가':'담당자 수정'}</div>
+            <div style={{display:'flex',flexDirection:'column',gap:14}}>
+              <div>
+                <label style={labelStyle}>이름 *</label>
+                <input style={inputStyle} value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="홍길동" autoFocus/>
+              </div>
+              <div>
+                <label style={labelStyle}>직책</label>
+                <select style={{...inputStyle,background:'#fff'}} value={form.role} onChange={e=>setForm({...form,role:e.target.value})}>
+                  <option value="">선택 안 함</option>
+                  {ROLES.map(r=><option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>연락처</label>
+                <input style={inputStyle} value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} placeholder="010-0000-0000"/>
+              </div>
+            </div>
+            <div style={{display:'flex',gap:10,marginTop:22}}>
+              <button onClick={closeForm} style={{flex:1,padding:'12px 0',borderRadius:10,border:'1.5px solid var(--border)',background:'#fff',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit',color:'var(--text-md)'}}>취소</button>
+              <button onClick={saveForm} disabled={saving} style={{flex:2,padding:'12px 0',borderRadius:10,border:'none',background:'var(--accent)',color:'#fff',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit',opacity:saving?0.6:1}}>
+                {saving?'저장 중...':'저장'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SMS 설정 — app-config/solapi
+   ══════════════════════════════════════════════════════════════ */
+function SmsPage({showToast}){
+  const [form,setForm]=useState({workerUrl:'',apiKey:'',apiSecret:'',sender:''});
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [testing,setTesting]=useState(false);
+  const [testPhone,setTestPhone]=useState('');
+  const [showSecret,setShowSecret]=useState(false);
+  const [templates,setTemplates]=useState({customerThank:'',followUp:''});
+  const [savingTpl,setSavingTpl]=useState(false);
+
+  useEffect(()=>{
+    (async()=>{
+      try{
+        const [cfgDoc,tplDoc]=await Promise.all([
+          db.collection('app-config').doc('solapi').get(),
+          db.collection('app-config').doc('smsTemplates').get(),
+        ]);
+        if(cfgDoc.exists)setForm({
+          workerUrl:cfgDoc.data().workerUrl||'',
+          apiKey:cfgDoc.data().apiKey||'',
+          apiSecret:cfgDoc.data().apiSecret||'',
+          sender:cfgDoc.data().sender||'',
+        });
+        if(tplDoc.exists)setTemplates({
+          customerThank:tplDoc.data().customerThank||'',
+          followUp:tplDoc.data().followUp||'',
+        });
+        console.log('[app-config/solapi] 로드 완료');
+      }catch(e){console.error('[app-config/solapi] 로드 실패:',e);}
+      setLoading(false);
+    })();
+  },[]);
+
+  const save=async()=>{
+    if(!form.workerUrl.trim()){showToast('Worker URL을 입력하세요','error');return;}
+    setSaving(true);
+    try{
+      await db.collection('app-config').doc('solapi').set({
+        ...form,updatedAt:new Date().toISOString()
+      },{merge:true});
+      showToast('SMS 설정 저장 완료');
+    }catch(e){console.error(e);showToast('저장 실패','error');}
+    setSaving(false);
+  };
+
+  const saveTemplates=async()=>{
+    setSavingTpl(true);
+    try{
+      await db.collection('app-config').doc('smsTemplates').set({
+        ...templates,updatedAt:new Date().toISOString()
+      },{merge:true});
+      showToast('템플릿 저장 완료');
+    }catch(e){console.error(e);showToast('저장 실패','error');}
+    setSavingTpl(false);
+  };
+
+  const testSend=async()=>{
+    if(!testPhone.trim()){showToast('테스트 수신번호를 입력하세요','error');return;}
+    if(!form.workerUrl.trim()){showToast('Worker URL을 먼저 저장하세요','error');return;}
+    setTesting(true);
+    try{
+      const res=await fetch(form.workerUrl.replace(/\/$/,'')+'/send-sms',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          to:testPhone.replace(/[^0-9]/g,''),
+          text:'[POUR솔루션] SMS 테스트 메시지입니다.',
+          apiKey:form.apiKey,apiSecret:form.apiSecret,sender:form.sender,
+        }),
+      });
+      const json=await res.json();
+      if(res.ok)showToast('테스트 문자 발송 성공');
+      else showToast('발송 실패: '+(json.error||res.status),'error');
+    }catch(e){showToast('발송 오류: '+e.message,'error');}
+    setTesting(false);
+  };
+
+  const inputStyle={width:'100%',padding:'10px 14px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:13,fontFamily:'inherit',outline:'none',boxSizing:'border-box'};
+  const labelStyle={fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:5,display:'block'};
+  const cardStyle={background:'#fff',borderRadius:12,padding:24,boxShadow:'var(--shadow)',marginBottom:16};
+
+  if(loading)return <div style={{textAlign:'center',padding:80,color:'var(--text-sm)'}}>로딩 중...</div>;
+
+  return(
+    <div style={{animation:'fadeIn .3s ease',maxWidth:600}}>
+      <div style={{fontSize:20,fontWeight:800,marginBottom:20}}>💬 SMS 설정</div>
+
+      {/* Solapi 설정 */}
+      <div style={cardStyle}>
+        <div style={{fontSize:15,fontWeight:700,marginBottom:4}}>Solapi 연동 설정</div>
+        <div style={{fontSize:12,color:'var(--text-sm)',marginBottom:20}}>
+          Cloudflare Worker URL과 Solapi API 키를 입력하세요
+        </div>
+        <div style={{display:'flex',flexDirection:'column',gap:14}}>
+          <div>
+            <label style={labelStyle}>Worker URL *</label>
+            <input style={inputStyle} value={form.workerUrl} onChange={e=>setForm({...form,workerUrl:e.target.value})}
+              placeholder="https://pour-sms-worker.your-account.workers.dev"/>
+          </div>
+          <div>
+            <label style={labelStyle}>발신자 번호</label>
+            <input style={inputStyle} value={form.sender} onChange={e=>setForm({...form,sender:e.target.value})}
+              placeholder="1577-6587"/>
+          </div>
+          <div>
+            <label style={labelStyle}>Solapi API Key</label>
+            <input style={inputStyle} value={form.apiKey} onChange={e=>setForm({...form,apiKey:e.target.value})}
+              placeholder="API Key"/>
+          </div>
+          <div>
+            <label style={labelStyle}>Solapi API Secret</label>
+            <div style={{position:'relative'}}>
+              <input type={showSecret?'text':'password'} style={{...inputStyle,paddingRight:80}}
+                value={form.apiSecret} onChange={e=>setForm({...form,apiSecret:e.target.value})}
+                placeholder="API Secret"/>
+              <button onClick={()=>setShowSecret(v=>!v)}
+                style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',fontSize:11,color:'var(--text-sm)',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>
+                {showSecret?'숨기기':'보기'}
+              </button>
+            </div>
+          </div>
+        </div>
+        <button onClick={save} disabled={saving}
+          style={{width:'100%',marginTop:18,padding:'12px 0',borderRadius:10,border:'none',background:'var(--accent)',color:'#fff',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit',opacity:saving?0.6:1}}>
+          {saving?'저장 중...':'저장'}
+        </button>
+      </div>
+
+      {/* 테스트 발송 */}
+      <div style={cardStyle}>
+        <div style={{fontSize:15,fontWeight:700,marginBottom:4}}>테스트 발송</div>
+        <div style={{fontSize:12,color:'var(--text-sm)',marginBottom:16}}>설정이 올바른지 테스트 문자를 발송합니다</div>
+        <div style={{display:'flex',gap:10}}>
+          <input style={{...inputStyle,flex:1}} value={testPhone} onChange={e=>setTestPhone(e.target.value)}
+            placeholder="010-0000-0000"/>
+          <button onClick={testSend} disabled={testing}
+            style={{padding:'10px 18px',borderRadius:8,border:'none',background:'var(--green)',color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap',opacity:testing?0.6:1}}>
+            {testing?'발송 중...':'테스트 발송'}
+          </button>
+        </div>
+      </div>
+
+      {/* SMS 템플릿 */}
+      <div style={cardStyle}>
+        <div style={{fontSize:15,fontWeight:700,marginBottom:4}}>SMS 템플릿</div>
+        <div style={{fontSize:12,color:'var(--text-sm)',marginBottom:16}}>
+          <code style={{background:'var(--bg)',padding:'2px 5px',borderRadius:4,fontSize:11}}>{'{이름}'}</code> 등 변수는 발송 시 자동 치환됩니다
+        </div>
+        <div style={{display:'flex',flexDirection:'column',gap:14}}>
+          <div>
+            <label style={labelStyle}>상담 감사 문자</label>
+            <textarea style={{...inputStyle,minHeight:80,resize:'vertical',lineHeight:1.6}}
+              value={templates.customerThank} onChange={e=>setTemplates({...templates,customerThank:e.target.value})}
+              placeholder="{이름}님, POUR솔루션 상담 감사합니다. 담당자가 곧 연락드리겠습니다."/>
+          </div>
+          <div>
+            <label style={labelStyle}>후속 연락 문자</label>
+            <textarea style={{...inputStyle,minHeight:80,resize:'vertical',lineHeight:1.6}}
+              value={templates.followUp} onChange={e=>setTemplates({...templates,followUp:e.target.value})}
+              placeholder="{이름}님, POUR솔루션입니다. 지난번 상담 관련하여 연락드립니다."/>
+          </div>
+        </div>
+        <button onClick={saveTemplates} disabled={savingTpl}
+          style={{width:'100%',marginTop:18,padding:'12px 0',borderRadius:10,border:'none',background:'var(--navy)',color:'#fff',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit',opacity:savingTpl?0.6:1}}>
+          {savingTpl?'저장 중...':'템플릿 저장'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function PagePlaceholder({ title, icon, description }) {
   return (
     <div style={{
@@ -4602,19 +5061,19 @@ function App() {
       case 'inquiries':
         return <PagePlaceholder title="문의접수" icon="📬" description="사이트 문의 접수 관리" />;
       case 'metrics':
-        return <PagePlaceholder title="공신력 수치" icon="📊" description="3개 사이트 실시간 반영 수치 관리" />;
+        return <MetricsPage showToast={showToast} />;
       case 'resources':
         return <SalesDocsPage showToast={showToast} />;
       case 'partners':
         return <PagePlaceholder title="파트너사" icon="🏢" description="파트너사 계약 및 등급 관리" />;
       case 'staff':
-        return <PagePlaceholder title="담당자" icon="👥" description="담당자 목록 관리" />;
+        return <StaffPage showToast={showToast} />;
       case 'nps':
         return <NPSPage showToast={showToast} />;
       case 'keywords':
         return <KeywordDashboardPage showToast={showToast} />;
       case 'sms':
-        return <PagePlaceholder title="SMS 설정" icon="💬" description="SMS 발송 및 템플릿 관리" />;
+        return <SmsPage showToast={showToast} />;
       case 'settings':
         return <SettingsPage showToast={showToast} onLogout={() => { localStorage.removeItem(ADMIN_PIN_KEY); setAuthed(false); }} />;
       default:

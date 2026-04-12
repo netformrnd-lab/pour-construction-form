@@ -3128,6 +3128,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [showReport,setShowReport]=useState(false);
   const [reportSaving,setReportSaving]=useState(false);
   const [ntSavedLeadId,setNtSavedLeadId]=useState(null);
+  const [ntErrToast,setNtErrToast]=useState(null); // 저장 실패 에러 토스트
 
   const ntToggleSec=sec=>setNtOpenSec(p=>{const n=new Set(p);n.has(sec)?n.delete(sec):n.add(sec);return n;});
   const ntHasData=()=>!!(ntName||ntCompany||ntPhone||ntEmail||ntMemo||ntInterests.length||ntContact.length||ntBizCard?.front);
@@ -3284,7 +3285,16 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       fieldPhotos:ntFieldPhotos.filter(p=>p.confirmed).map(({src,defectType,defectPart})=>({src,defectType,defectPart})),
       status:'신규',source:getUrlSource(),fieldMode:localStorage.getItem('pourFieldMode')||'expo',
     };
-    try{const docRef=await db.collection('leads').add(data);setNtSavedLeadId(docRef.id);}catch(e){console.warn(e);}
+    try{
+      const docRef=await db.collection('leads').add(data);
+      setNtSavedLeadId(docRef.id);
+      console.log('[leads] 저장 완료:',docRef.id);
+    }catch(e){
+      console.error('[leads] 저장 실패:',e);
+      setNtSaving(false);
+      setNtErrToast('저장 실패: 네트워크를 확인 후 다시 시도해 주세요.');
+      return;
+    }
     sendToSheet(Object.assign({_sheetType:'lead'},data));
     /* 저장 후 바로 문자 작성 화면으로 전환 (자동 발송 안 함 — 버튼으로만 발송) */
     setNtSaving(false);setNtDone(true);
@@ -3357,6 +3367,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
   return(
     <>
+    {/* ── 저장 실패 에러 토스트 ── */}
+    {ntErrToast&&<SmsToast message={ntErrToast} type="error" onDone={()=>setNtErrToast(null)}/>}
     {!noProblem&&<div className={`screen ${visible?'active':''}`} style={{background:'var(--bg)'}}>
       {qr&&<QRModal url={qr.url} title={qr.title} onClose={()=>setQr(null)}/>}
 

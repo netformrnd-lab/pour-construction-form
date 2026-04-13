@@ -1559,7 +1559,28 @@ const METHOD_STATS={
 };
 
 /* ── 공법별 원인·해결방안·공정 (STEP 2,3 콘텐츠) ── */
-const METHOD_CONTENT={
+/* Firestore method-content 컬렉션에서 오버라이드 — 어드민에서 수정 시 반영 */
+let _methodContentOverrides={};
+(async()=>{
+  try{
+    const snap=await db.collection('method-content').get();
+    if(snap.size>0){
+      snap.docs.forEach(d=>{_methodContentOverrides[d.id]={...d.data()};});
+      console.log(`[method-content] ${snap.size}건 오버라이드 로드`);
+    }
+  }catch(e){console.warn('[method-content] 오버라이드 로드 실패, 기본값 사용:',e);}
+})();
+function getMethodContent(id){
+  const ov=_methodContentOverrides[id];
+  const base=_METHOD_CONTENT_DEFAULTS[id];
+  if(!ov)return base;
+  return{...base,...ov,
+    process:ov.process||base?.process,
+    processDescs:ov.processDescs||base?.processDescs,
+    processMaterials:ov.processMaterials||base?.processMaterials,
+  };
+}
+var _METHOD_CONTENT_DEFAULTS={
   shingle:{
     cause:'아스팔트슁글은 원래 저층 목조주택용 자재입니다. 고층 아파트 박공지붕에 적용하면 강풍에 자재가 들뜨고, 후레싱 이음부 균열로 누수가 시작됩니다. 문제는 자재가 아니라 지붕을 붙잡는 구조가 약하기 때문입니다.',
     process:['표면강화함침','POUR슈퍼복합압축시트','방수액 도포','POUR코트재','상도 마감','POUR HOOKER 후레싱 고정'],
@@ -3202,7 +3223,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   useEffect(()=>{
     if(!problem||!visible)return;
     setSelectedProcessStep(0);
-    const mc=METHOD_CONTENT[problem.id];
+    const mc=getMethodContent(problem.id);
     const ms=METHOD_STATS[problem.id];
     const snap={id:problem.id,label:problem.label,cat:problem.cat||'',
       cause:mc?.cause||'',process:mc?.process||[],solution:mc?.solution||'',
@@ -4323,7 +4344,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
             {/* ── STEP 2. 왜 이 문제가 생기나 — 원인 설명 + 시공 영상 ── */}
             {(()=>{
-              const mc=METHOD_CONTENT[problem?.id];
+              const mc=getMethodContent(problem?.id);
               if(!mc?.cause)return null;
               const mediaList=(photos.media||[]).filter(s=>s);
               return(
@@ -4429,7 +4450,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
             {/* ── STEP 3. POUR 해결방안 — 공정 + 솔루션 + 성능 수치 ── */}
             {(()=>{
-              const mc=METHOD_CONTENT[problem?.id];
+              const mc=getMethodContent(problem?.id);
               const ms=METHOD_STATS[problem?.id];
               if(!mc?.process?.length)return null;
               return(
@@ -6510,14 +6531,14 @@ function AdminScreen({onBack}){
     const methods=(l.problems||[]).map(label=>{
       const p=ALL_PROBLEMS.find(x=>x.label===label);
       if(!p)return null;
-      const mc=METHOD_CONTENT[p.id];const ms=METHOD_STATS[p.id];
+      const mc=getMethodContent(p.id);const ms=METHOD_STATS[p.id];
       return{id:p.id,label:p.label,cat:p.cat||'',
         cause:mc?.cause||'',process:mc?.process||[],solution:mc?.solution||'',
         cert:ms?.cert||'',stats:ms?.stats||[]};
     }).filter(Boolean);
     if(!methods.length&&l.problem){
       const p=ALL_PROBLEMS.find(x=>x.label===l.problem);
-      if(p){const mc=METHOD_CONTENT[p.id];const ms=METHOD_STATS[p.id];
+      if(p){const mc=getMethodContent(p.id);const ms=METHOD_STATS[p.id];
         methods.push({id:p.id,label:p.label,cat:p.cat||'',cause:mc?.cause||'',process:mc?.process||[],solution:mc?.solution||'',cert:ms?.cert||'',stats:ms?.stats||[]});}
     }
     const reportData={reportId,name:l.name||'',phone:l.phone||'',building:l.building||'',

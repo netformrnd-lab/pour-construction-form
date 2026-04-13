@@ -1432,6 +1432,64 @@ body {
       <h2 class="step-title">✏️ 버튼으로 고객 정보를<br/>입력하고 상담을 마무리하세요</h2>
       <p class="step-desc">화면 우하단 ✏️ 버튼을 탭하면 메모 시트가 열립니다. 성함·연락처·건물명을 입력하고 다음 액션을 선택한 후 "상담 마치기"를 누릅니다. Firestore에 자동 저장됩니다.</p>
     </div>
+
+    <!-- 고객 DB 추출 방식 박스 -->
+    <div style="background:#fff;border:1.5px solid #E5E7EB;border-radius:14px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.06);">
+      <div style="background:#0B1D3A;padding:12px 16px;display:flex;align-items:center;gap:9px;">
+        <span style="font-size:18px;">🗄️</span>
+        <div>
+          <div style="font-size:13px;font-weight:900;color:#fff;">고객 DB 추출 방식</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:1px;">원칙 · 긴급 대응 · 사후 처리</div>
+        </div>
+      </div>
+      <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+
+        <!-- 원칙 -->
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:11px 13px;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:10px;">
+          <span style="font-size:18px;flex-shrink:0;">✅</span>
+          <div>
+            <div style="font-size:12px;font-weight:800;color:#065F46;margin-bottom:3px;">원칙 — 텍스트 직접 입력</div>
+            <div style="font-size:12px;color:#047857;line-height:1.7;">상담 후 <strong>반드시 앱 메모 폼에 텍스트로 직접 입력</strong>하세요. 텍스트로 저장된 데이터만 Firestore DB에 자동 축적되어 관리자 통계·CRM에 활용됩니다.</div>
+          </div>
+        </div>
+
+        <!-- 긴급 -->
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:11px 13px;background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;">
+          <span style="font-size:18px;flex-shrink:0;">🖼️</span>
+          <div>
+            <div style="font-size:12px;font-weight:800;color:#92400E;margin-bottom:3px;">긴급 시 — 그림판(메모 사진) 사용 허용</div>
+            <div style="font-size:12px;color:#B45309;line-height:1.7;">고객이 바빠 텍스트 입력이 어려운 경우, 명함·메모지를 <strong>그림판(사진 첨부)으로 촬영</strong>하여 임시 저장할 수 있습니다. 단, 이 방식은 DB에 자동 반영되지 않습니다.</div>
+          </div>
+        </div>
+
+        <!-- 사후 처리 -->
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:11px 13px;background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;">
+          <span style="font-size:18px;flex-shrink:0;">⚠️</span>
+          <div>
+            <div style="font-size:12px;font-weight:800;color:#991B1B;margin-bottom:3px;">사후 처리 필수 — 당일 텍스트 전환</div>
+            <div style="font-size:12px;color:#B91C1C;line-height:1.7;">그림판으로 저장한 경우 <strong>당일 업무 종료 전</strong>에 사진을 보고 앱 메모 폼에 텍스트로 재입력하여 DB를 축적하세요. 미처리 시 고객 데이터가 누락됩니다.</div>
+          </div>
+        </div>
+
+        <!-- 흐름 요약 -->
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:10px 13px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;">
+          <div style="font-size:10px;font-weight:700;color:#0B1D3A;background:#E0E7FF;padding:4px 10px;border-radius:20px;">텍스트 입력</div>
+          <span style="font-size:12px;color:#9CA3AF;">→</span>
+          <div style="font-size:10px;font-weight:700;color:#fff;background:#059669;padding:4px 10px;border-radius:20px;">Firestore 자동 저장</div>
+          <span style="font-size:12px;color:#9CA3AF;">→</span>
+          <div style="font-size:10px;font-weight:700;color:#0B1D3A;background:#E0E7FF;padding:4px 10px;border-radius:20px;">DB 축적 완료</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:10px 13px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;">
+          <div style="font-size:10px;font-weight:700;color:#0B1D3A;background:#FEF3C7;padding:4px 10px;border-radius:20px;">그림판 촬영</div>
+          <span style="font-size:12px;color:#9CA3AF;">→</span>
+          <div style="font-size:10px;font-weight:700;color:#92400E;background:#FEE2E2;padding:4px 10px;border-radius:20px;">당일 텍스트 재입력</div>
+          <span style="font-size:12px;color:#9CA3AF;">→</span>
+          <div style="font-size:10px;font-weight:700;color:#0B1D3A;background:#E0E7FF;padding:4px 10px;border-radius:20px;">DB 축적 완료</div>
+        </div>
+
+      </div>
+    </div>
+
     <div class="tips">
       <div class="warn">
         <div class="tip-ic">⚠️</div>

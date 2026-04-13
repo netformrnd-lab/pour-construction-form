@@ -3,343 +3,1302 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
-<title>POUR솔루션 영업 앱 가이드</title>
+<title>POUR솔루션 영업 앱 — 영상 매뉴얼</title>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet"/>
 <style>
+/* ─── 리셋 & 변수 ─── */
 *{margin:0;padding:0;box-sizing:border-box;}
 :root{
   --navy:#0D1B2A;--blue:#2563EB;--blue-l:#EFF6FF;--blue-m:#BFDBFE;
   --green:#059669;--green-l:#ECFDF5;
   --orange:#EA580C;--orange-l:#FFF7ED;
-  --gold:#D97706;--red:#DC2626;
+  --gold:#D97706;--red:#DC2626;--purple:#7C3AED;--purple-l:#F5F3FF;
   --text:#111827;--text-md:#4B5563;--text-sm:#9CA3AF;
-  --bg:#F9FAFB;--card:#fff;--border:#E5E7EB;
-  --shadow:0 1px 6px rgba(0,0,0,.07);
+  --bg:#F1F5F9;--card:#fff;--border:#E5E7EB;
+  --shadow:0 2px 12px rgba(0,0,0,.08);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.15);
 }
-body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;}
-.wrap{max-width:680px;margin:0 auto;padding:0 16px 60px;}
+html{scroll-behavior:smooth;}
+body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;overflow-x:hidden;}
 
-.hero{background:linear-gradient(135deg,#0D1B2A 0%,#1A2E42 60%,#0f2540 100%);padding:40px 24px 32px;text-align:center;color:#fff;}
-.hero-badge{font-size:10px;font-weight:700;letter-spacing:.18em;opacity:.5;margin-bottom:12px;}
-.hero-title{font-size:26px;font-weight:900;line-height:1.25;margin-bottom:10px;}
-.hero-title span{color:#60A5FA;}
-.hero-sub{font-size:12px;opacity:.6;line-height:1.7;}
-.hero-tags{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:16px;}
-.htag{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);}
+/* ─── 헤더 ─── */
+.header{
+  background:linear-gradient(90deg,#0B1D3A 0%,#132D5E 100%);
+  position:sticky;top:0;z-index:200;
+  box-shadow:0 2px 16px rgba(0,0,0,.4);
+}
+.header-inner{max-width:1200px;margin:0 auto;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+.header-brand{display:flex;align-items:center;gap:10px;}
+.header-logo-box{width:30px;height:30px;border-radius:7px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:var(--navy);}
+.header-title{font-size:14px;font-weight:900;color:#fff;letter-spacing:-.01em;}
+.header-title span{color:#60A5FA;}
+.header-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(96,165,250,.15);border:1px solid rgba(96,165,250,.3);color:#93C5FD;white-space:nowrap;}
 
-.sec{margin:28px 0;}
-.sec-hd{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
-.sec-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.sec-title{font-size:15px;font-weight:900;color:var(--navy);}
-.sec-sub{font-size:11px;color:var(--text-sm);}
+/* ─── 진행 표시줄 ─── */
+.progress-bar{
+  background:rgba(11,29,58,.95);backdrop-filter:blur(8px);
+  border-bottom:1px solid rgba(255,255,255,.08);
+  position:sticky;top:54px;z-index:190;
+  overflow-x:auto;scrollbar-width:none;
+}
+.progress-bar::-webkit-scrollbar{display:none;}
+.progress-inner{display:flex;min-width:max-content;padding:0 20px;max-width:1200px;margin:0 auto;}
+.prog-step{
+  display:flex;align-items:center;gap:7px;padding:10px 14px;
+  font-size:11px;font-weight:700;color:rgba(255,255,255,.4);
+  cursor:pointer;white-space:nowrap;transition:all .2s;
+  border-bottom:2px solid transparent;text-decoration:none;
+}
+.prog-step:hover{color:rgba(255,255,255,.75);}
+.prog-step.active{color:#60A5FA;border-bottom-color:#2563EB;}
+.prog-num{
+  width:20px;height:20px;border-radius:50%;
+  background:rgba(255,255,255,.1);
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:900;flex-shrink:0;
+  transition:all .2s;
+}
+.prog-step.active .prog-num{background:#2563EB;color:#fff;}
+.prog-step.done .prog-num{background:#059669;color:#fff;}
+.prog-step.done{color:rgba(255,255,255,.5);}
 
-/* 파이프라인 */
-.pipe{display:flex;flex-direction:column;}
-.pipe-row{display:flex;gap:14px;position:relative;}
-.pipe-row:not(:last-child)::after{content:'';position:absolute;left:19px;top:40px;width:2px;bottom:-6px;background:var(--border);}
-.p-num{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;flex-shrink:0;margin-top:2px;}
-.p-body{padding-bottom:22px;flex:1;}
-.p-ttl{font-size:13px;font-weight:800;color:var(--navy);margin-bottom:3px;}
-.p-desc{font-size:12px;color:var(--text-md);line-height:1.65;}
-.p-chip{display:inline-block;margin-top:5px;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;}
+/* ─── 히어로 ─── */
+.hero{
+  background:linear-gradient(160deg,#0B1D3A 0%,#132D5E 55%,#0f2540 100%);
+  padding:64px 24px 52px;text-align:center;color:#fff;position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 90% 70% at 50% -10%,rgba(37,99,235,.3) 0%,transparent 65%);
+}
+.hero::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:60px;
+  background:linear-gradient(to bottom,transparent,var(--bg));
+}
+.hero-content{position:relative;z-index:1;max-width:720px;margin:0 auto;}
+.hero-eyebrow{font-size:10px;font-weight:700;letter-spacing:.25em;color:#93C5FD;opacity:.75;margin-bottom:18px;text-transform:uppercase;}
+.hero-h1{font-size:clamp(28px,5vw,46px);font-weight:900;line-height:1.18;margin-bottom:18px;}
+.hero-h1 em{color:#60A5FA;font-style:normal;}
+.hero-desc{font-size:14px;color:rgba(255,255,255,.6);line-height:1.85;max-width:540px;margin:0 auto 32px;}
+.hero-tags{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:32px;}
+.htag{font-size:11px;font-weight:700;padding:5px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.72);background:rgba(255,255,255,.05);}
+.hero-stats{display:flex;gap:24px;justify-content:center;}
+.hero-stat{text-align:center;}
+.hero-stat-num{font-size:28px;font-weight:900;color:#60A5FA;}
+.hero-stat-label{font-size:10px;color:rgba(255,255,255,.4);font-weight:600;}
 
-/* 고객경험 그리드 */
-.cx{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.cx-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;box-shadow:var(--shadow);}
-.cx-icon{font-size:20px;margin-bottom:5px;}
-.cx-ttl{font-size:11px;font-weight:800;color:var(--navy);margin-bottom:3px;}
-.cx-desc{font-size:11px;color:var(--text-md);line-height:1.55;}
+/* ─── 메인 ─── */
+.main{max-width:1200px;margin:0 auto;padding:48px 24px 80px;}
 
-/* 기능 그리드 */
-.feat{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.fc{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);}
-.fc-ic{font-size:18px;margin-bottom:5px;}
-.fc-ttl{font-size:11px;font-weight:800;color:var(--navy);margin-bottom:2px;}
-.fc-desc{font-size:11px;color:var(--text-md);line-height:1.5;}
+/* ─── 스텝 섹션 ─── */
+.step-section{
+  display:grid;grid-template-columns:1fr 1fr;gap:48px;
+  align-items:center;margin-bottom:88px;
+  opacity:0;transform:translateY(28px);
+  transition:opacity .65s ease,transform .65s ease;
+}
+.step-section.visible{opacity:1;transform:translateY(0);}
+.step-section.reverse .tablet-wrap{order:2;}
+.step-section.reverse .desc-panel{order:1;}
 
-/* 매뉴얼 */
-.manual{background:var(--card);border-radius:14px;border:1px solid var(--border);overflow:hidden;box-shadow:var(--shadow);}
-.mhd{background:var(--navy);padding:14px 18px;color:#fff;}
-.mhd-ttl{font-size:14px;font-weight:900;margin-bottom:2px;}
-.mhd-sub{font-size:10px;opacity:.55;}
-.mstep{display:flex;gap:12px;padding:14px 18px;border-bottom:1px solid var(--border);}
-.mstep:last-child{border-bottom:none;}
-.mn{width:30px;height:30px;border-radius:8px;background:var(--navy);color:#fff;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.mb{flex:1;}
-.mttl{font-size:12px;font-weight:800;color:var(--navy);margin-bottom:3px;}
-.mdesc{font-size:11px;color:var(--text-md);line-height:1.6;}
-.mtip{font-size:10px;font-weight:700;color:var(--blue);margin-top:4px;padding:3px 8px;background:var(--blue-l);border-radius:5px;display:inline-block;}
-.mwarn{font-size:10px;font-weight:700;color:var(--orange);margin-top:4px;padding:3px 8px;background:var(--orange-l);border-radius:5px;display:inline-block;}
+/* ─── 태블릿 목업 ─── */
+.tablet-wrap{display:flex;justify-content:center;align-items:center;}
+.tablet-outer{
+  width:100%;max-width:440px;
+  background:linear-gradient(145deg,#2c2c2c,#1a1a1a);
+  border-radius:30px;padding:14px 14px 18px;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.07),
+    0 24px 64px rgba(0,0,0,.55),
+    inset 0 1px 0 rgba(255,255,255,.1);
+  position:relative;
+}
+.tablet-outer::before{
+  content:'';position:absolute;top:7px;left:50%;transform:translateX(-50%);
+  width:56px;height:4px;background:rgba(255,255,255,.12);border-radius:2px;
+}
+.tablet-outer::after{
+  content:'';position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
+  width:40px;height:4px;background:rgba(255,255,255,.1);border-radius:2px;
+}
+.tablet-screen{
+  background:#fff;border-radius:20px;overflow:hidden;
+  aspect-ratio:4/3;position:relative;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);
+}
+.screen-content{width:100%;height:100%;overflow:hidden;position:relative;}
 
-/* 데이터흐름 */
-.flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;}
-.fbox{background:var(--card);border:1.5px solid var(--border);border-radius:8px;padding:7px 12px;font-size:11px;font-weight:700;color:var(--navy);text-align:center;}
-.farr{font-size:13px;color:var(--text-sm);}
+/* ─── 앱 시뮬레이션 공통 ─── */
+.app-sim{width:100%;height:100%;font-family:'Pretendard',sans-serif;overflow:hidden;position:relative;}
+
+/* 홈 화면 */
+.sim-home{
+  width:100%;height:100%;
+  background:linear-gradient(160deg,#0B1D3A 0%,#132D5E 100%);
+  display:flex;flex-direction:column;color:#fff;
+}
+.sim-topbar-home{padding:14px 14px 8px;display:flex;align-items:center;justify-content:space-between;}
+.sim-brand{font-size:16px;font-weight:900;letter-spacing:-.01em;}
+.sim-brand span{color:#60A5FA;}
+.sim-badge-sm{font-size:8px;padding:2px 8px;border-radius:10px;background:rgba(96,165,250,.18);border:1px solid rgba(96,165,250,.28);color:#93C5FD;font-weight:700;}
+.sim-body{flex:1;padding:6px 14px 10px;display:flex;flex-direction:column;gap:8px;}
+.sim-card-dark{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px;}
+.sim-label-xs{font-size:8px;opacity:.45;margin-bottom:6px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
+.sim-chips{display:flex;gap:6px;flex-wrap:wrap;}
+.sim-chip{padding:4px 10px;border-radius:20px;font-size:9px;font-weight:700;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.65);cursor:pointer;transition:all .2s;}
+.sim-chip.sel{background:#2563EB;border-color:#2563EB;color:#fff;}
+.sim-row{display:flex;gap:6px;}
+.sim-mode-btn{flex:1;padding:8px 6px;border-radius:8px;font-size:9px;font-weight:700;text-align:center;border:1.5px solid rgba(255,255,255,.14);color:rgba(255,255,255,.55);cursor:pointer;transition:all .2s;}
+.sim-mode-btn.sel{background:#2563EB;border-color:#2563EB;color:#fff;}
+.sim-cta{
+  background:linear-gradient(135deg,#2563EB,#1d4ed8);
+  border-radius:10px;padding:11px;
+  font-size:11px;font-weight:900;color:#fff;text-align:center;
+  box-shadow:0 4px 16px rgba(37,99,235,.45);cursor:pointer;
+}
+.sim-stats{display:flex;gap:6px;}
+.sim-stat-box{flex:1;padding:8px 6px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;text-align:center;}
+.sim-stat-label{font-size:7px;color:rgba(255,255,255,.4);font-weight:700;margin-bottom:2px;}
+.sim-stat-val{font-size:13px;font-weight:900;}
+
+/* 공법 선택 */
+.sim-method-screen{width:100%;height:100%;background:#F9FAFB;display:flex;flex-direction:column;}
+.sim-topbar{background:#fff;border-bottom:1px solid #E5E7EB;padding:8px 10px;display:flex;align-items:center;gap:8px;}
+.sim-back-btn{width:24px;height:24px;border-radius:6px;background:#F3F4F6;display:flex;align-items:center;justify-content:center;font-size:10px;color:#6B7280;cursor:pointer;flex-shrink:0;}
+.sim-topbar-title{font-size:11px;font-weight:800;color:#0D1B2A;}
+.sim-tabs-row{display:flex;background:#fff;border-bottom:1px solid #E5E7EB;overflow-x:auto;scrollbar-width:none;}
+.sim-tabs-row::-webkit-scrollbar{display:none;}
+.sim-tab{padding:7px 10px;font-size:9px;font-weight:700;color:#9CA3AF;border-bottom:2px solid transparent;white-space:nowrap;cursor:pointer;transition:all .15s;}
+.sim-tab.active{color:#2563EB;border-bottom-color:#2563EB;}
+.sim-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:8px;overflow-y:auto;flex:1;}
+.sim-method-card{background:#fff;border:1.5px solid #E5E7EB;border-radius:10px;padding:9px;cursor:pointer;transition:all .15s;}
+.sim-method-card.sel{border-color:#2563EB;background:#EFF6FF;}
+.sim-mc-icon{font-size:18px;margin-bottom:3px;}
+.sim-mc-name{font-size:9px;font-weight:800;color:#0D1B2A;line-height:1.3;margin-bottom:2px;}
+.sim-mc-sub{font-size:7px;color:#9CA3AF;}
+.sim-mc-tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;}
+.sim-mc-tag{font-size:7px;padding:1px 5px;border-radius:8px;background:#EFF6FF;color:#2563EB;font-weight:700;}
+
+/* 솔루션 화면 */
+.sim-sol-screen{width:100%;height:100%;background:#F9FAFB;display:flex;flex-direction:column;}
+.sim-sol-hd{background:#0D1B2A;padding:9px 12px;color:#fff;}
+.sim-sol-title{font-size:10px;font-weight:900;margin-bottom:1px;}
+.sim-sol-sub{font-size:8px;opacity:.45;}
+.sim-step-pills{display:flex;gap:4px;padding:7px 10px;background:#fff;border-bottom:1px solid #E5E7EB;overflow-x:auto;scrollbar-width:none;}
+.sim-step-pills::-webkit-scrollbar{display:none;}
+.sim-pill{display:flex;align-items:center;gap:3px;padding:4px 8px;border-radius:20px;font-size:8px;font-weight:700;white-space:nowrap;background:#F3F4F6;color:#9CA3AF;transition:all .2s;}
+.sim-pill.active{background:#EFF6FF;color:#2563EB;}
+.sim-sol-body{flex:1;overflow-y:auto;padding:9px 10px;}
+
+/* 하자사진 */
+.sim-photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px;}
+.sim-photo{aspect-ratio:1;border-radius:6px;background:linear-gradient(135deg,#e2e8f0,#cbd5e1);display:flex;align-items:center;justify-content:center;font-size:18px;position:relative;overflow:hidden;}
+.sim-photo.add{border:1.5px dashed #CBD5E1;background:#F8FAFC;color:#94A3B8;font-size:20px;}
+.sim-ai-result{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:7px;padding:7px 9px;display:flex;align-items:center;gap:7px;margin-bottom:7px;}
+.sim-ai-icon{font-size:16px;flex-shrink:0;}
+.sim-ai-text{font-size:8px;color:#1d4ed8;font-weight:700;line-height:1.45;}
+
+/* 원인 */
+.sim-cause-card{background:#fff;border:1px solid #E5E7EB;border-radius:8px;padding:8px;margin-bottom:7px;}
+.sim-cause-title{font-size:9px;font-weight:800;color:#0D1B2A;margin-bottom:5px;}
+.sim-cause-desc{font-size:8px;color:#4B5563;line-height:1.55;margin-bottom:6px;}
+.sim-video-thumb{aspect-ratio:16/9;background:linear-gradient(135deg,#0D1B2A,#1A2E42);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;}
+.sim-play{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;transition:all .2s;}
+.sim-play.playing{background:rgba(255,255,255,.3);}
+
+/* 해결방안 */
+.sim-proc-tabs{display:flex;gap:4px;margin-bottom:6px;overflow-x:auto;scrollbar-width:none;}
+.sim-proc-tabs::-webkit-scrollbar{display:none;}
+.sim-proc-tab{padding:4px 9px;border-radius:20px;font-size:8px;font-weight:700;background:#F3F4F6;color:#9CA3AF;white-space:nowrap;cursor:pointer;transition:all .15s;}
+.sim-proc-tab.active{background:#ECFDF5;color:#059669;}
+.sim-proc-card{background:#fff;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden;margin-bottom:7px;}
+.sim-proc-img{aspect-ratio:16/9;background:linear-gradient(135deg,#ECFDF5,#D1FAE5);display:flex;align-items:center;justify-content:center;font-size:32px;}
+.sim-proc-info{padding:7px 9px;}
+.sim-proc-name{font-size:9px;font-weight:800;color:#0D1B2A;margin-bottom:2px;}
+.sim-proc-desc{font-size:8px;color:#4B5563;line-height:1.5;}
+.sim-feat-btns{display:flex;gap:5px;margin-bottom:7px;flex-wrap:wrap;}
+.sim-feat-btn{padding:4px 9px;border-radius:20px;font-size:8px;font-weight:700;cursor:pointer;border:1px solid;transition:all .15s;}
+.sim-ktr{background:#FEF3C7;border:1px solid #FDE68A;border-radius:7px;padding:6px 9px;display:flex;align-items:center;gap:6px;}
+.sim-ktr-text{font-size:8px;color:#92400E;font-weight:700;}
+
+/* 메모 시트 */
+.sim-memo-overlay{position:absolute;inset:0;background:rgba(0,0,0,.45);display:flex;flex-direction:column;justify-content:flex-end;z-index:20;}
+.sim-memo-sheet{background:#fff;border-radius:14px 14px 0 0;padding:12px 14px;max-height:82%;}
+.sim-sheet-handle{width:32px;height:3px;background:#E5E7EB;border-radius:2px;margin:0 auto 10px;}
+.sim-sheet-title{font-size:11px;font-weight:900;color:#0D1B2A;margin-bottom:9px;}
+.sim-field{margin-bottom:6px;}
+.sim-field-label{font-size:8px;font-weight:700;color:#6B7280;margin-bottom:2px;}
+.sim-field-input{width:100%;padding:5px 8px;border:1px solid #E5E7EB;border-radius:6px;font-size:9px;color:#111827;background:#F9FAFB;font-family:'Pretendard',sans-serif;}
+.sim-field-input.focus{border-color:#2563EB;background:#EFF6FF;}
+.sim-action-chips{display:flex;gap:5px;margin-bottom:8px;}
+.sim-action-chip{flex:1;padding:5px 4px;border-radius:6px;font-size:8px;font-weight:700;text-align:center;border:1.5px solid #E5E7EB;color:#4B5563;cursor:pointer;transition:all .15s;}
+.sim-action-chip.sel{border-color:#2563EB;background:#EFF6FF;color:#2563EB;}
+.sim-save-cta{width:100%;padding:9px;background:#2563EB;border-radius:8px;font-size:10px;font-weight:900;color:#fff;text-align:center;cursor:pointer;border:none;font-family:'Pretendard',sans-serif;}
+
+/* 제안서 */
+.sim-report-screen{width:100%;height:100%;background:#F9FAFB;display:flex;flex-direction:column;}
+.sim-report-hd{background:#0D1B2A;padding:10px 12px;color:#fff;text-align:center;}
+.sim-report-title{font-size:10px;font-weight:900;margin-bottom:1px;}
+.sim-report-sub{font-size:8px;opacity:.4;}
+.sim-report-body{flex:1;padding:10px 12px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;}
+.sim-method-list{background:#fff;border:1px solid #E5E7EB;border-radius:9px;padding:9px;}
+.sim-ml-title{font-size:9px;font-weight:800;color:#0D1B2A;margin-bottom:6px;}
+.sim-ml-item{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid #F3F4F6;}
+.sim-ml-item:last-child{border-bottom:none;}
+.sim-ml-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.sim-ml-name{font-size:8px;color:#374151;}
+.sim-qr-card{background:#fff;border:1px solid #E5E7EB;border-radius:9px;padding:10px;text-align:center;}
+.sim-qr-title{font-size:9px;font-weight:800;color:#0D1B2A;margin-bottom:7px;}
+.sim-qr-box{width:72px;height:72px;background:linear-gradient(135deg,#0D1B2A,#1A2E42);border-radius:8px;margin:0 auto 5px;display:flex;align-items:center;justify-content:center;font-size:28px;}
+.sim-qr-hint{font-size:8px;color:#9CA3AF;}
+.sim-sms-cta{padding:8px;background:linear-gradient(135deg,#059669,#047857);border-radius:8px;font-size:9px;font-weight:900;color:#fff;text-align:center;cursor:pointer;}
+.sim-reopen{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:8px;text-align:center;}
+.sim-reopen-title{font-size:8px;font-weight:800;color:#1d4ed8;margin-bottom:2px;}
+.sim-reopen-desc{font-size:8px;color:#3b82f6;}
+
+/* FAB */
+.sim-fab{
+  position:absolute;bottom:10px;right:10px;
+  width:34px;height:34px;border-radius:50%;
+  background:#2563EB;color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;box-shadow:0 4px 12px rgba(37,99,235,.45);
+  cursor:pointer;z-index:10;
+}
+
+/* 모달 */
+.sim-modal-overlay{
+  position:absolute;inset:0;background:rgba(0,0,0,.55);
+  z-index:40;display:flex;align-items:center;justify-content:center;padding:12px;
+}
+.sim-modal{background:#fff;border-radius:12px;padding:12px;width:100%;max-height:80%;overflow-y:auto;}
+.sim-modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.sim-modal-title{font-size:10px;font-weight:900;color:#0D1B2A;}
+.sim-modal-close{font-size:14px;cursor:pointer;color:#9CA3AF;background:none;border:none;font-family:'Pretendard',sans-serif;}
+.sim-feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.sim-feat-item{background:#F9FAFB;border-radius:7px;padding:8px;text-align:center;}
+.sim-feat-item-icon{font-size:20px;margin-bottom:3px;}
+.sim-feat-item-title{font-size:8px;font-weight:800;color:#0D1B2A;margin-bottom:2px;}
+.sim-feat-item-val{font-size:8px;color:#059669;font-weight:700;}
+
+/* 하이라이트 & 커서 */
+.hl{
+  position:absolute;border-radius:8px;
+  border:2px solid #2563EB;
+  box-shadow:0 0 0 3px rgba(37,99,235,.25),0 0 20px rgba(37,99,235,.35);
+  pointer-events:none;z-index:30;
+  transition:all .45s cubic-bezier(.25,.46,.45,.94);
+  opacity:0;
+}
+.hl.show{opacity:1;}
+.cursor{
+  position:absolute;width:18px;height:18px;
+  background:rgba(37,99,235,.85);border-radius:50%;
+  pointer-events:none;z-index:50;
+  box-shadow:0 0 0 4px rgba(37,99,235,.2);
+  transition:left .45s cubic-bezier(.25,.46,.45,.94),top .45s cubic-bezier(.25,.46,.45,.94);
+  transform:translate(-50%,-50%);opacity:0;
+}
+.cursor-ring{
+  position:absolute;width:32px;height:32px;
+  border:2px solid rgba(37,99,235,.45);border-radius:50%;
+  pointer-events:none;z-index:49;
+  transform:translate(-50%,-50%);opacity:0;
+  transition:left .45s cubic-bezier(.25,.46,.45,.94) .05s,top .45s cubic-bezier(.25,.46,.45,.94) .05s;
+}
+
+/* ─── 설명 패널 ─── */
+.desc-panel{display:flex;flex-direction:column;gap:18px;}
+.step-eyebrow{display:flex;align-items:center;gap:8px;margin-bottom:2px;}
+.step-num-badge{
+  width:32px;height:32px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:900;flex-shrink:0;
+}
+.step-label{font-size:11px;font-weight:700;padding:3px 12px;border-radius:20px;}
+.step-title{font-size:clamp(20px,2.8vw,28px);font-weight:900;color:var(--navy);line-height:1.22;margin-bottom:10px;}
+.step-desc{font-size:13px;color:var(--text-md);line-height:1.8;margin-bottom:12px;}
+.tips{display:flex;flex-direction:column;gap:7px;}
+.tip{display:flex;align-items:flex-start;gap:10px;padding:10px 13px;border-radius:10px;font-size:12px;line-height:1.6;}
+.tip-ic{font-size:16px;flex-shrink:0;margin-top:1px;}
+.tip-body{color:var(--text-md);}
+.tip-body strong{color:var(--navy);}
+.warn{display:flex;align-items:flex-start;gap:10px;padding:10px 13px;border-radius:10px;font-size:12px;line-height:1.6;background:#FFF7ED;border:1px solid #FED7AA;}
+.warn-body{color:#92400E;}
+.warn-body strong{color:#78350F;}
+
+/* ─── 구분선 ─── */
+.divider{max-width:1200px;margin:0 auto 64px;display:flex;align-items:center;gap:16px;}
+.divider-line{flex:1;height:1px;background:var(--border);}
+.divider-text{font-size:11px;font-weight:700;color:var(--text-sm);white-space:nowrap;padding:4px 12px;background:var(--card);border:1px solid var(--border);border-radius:20px;}
+
+/* ─── 데이터 흐름 ─── */
+.flow-card{max-width:1200px;margin:0 auto 64px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;box-shadow:var(--shadow);}
+.flow-card-title{font-size:14px;font-weight:900;color:var(--navy);margin-bottom:20px;display:flex;align-items:center;gap:8px;}
+.flow-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:12px;}
+.flow-row:last-child{margin-bottom:0;}
+.flow-node{background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:9px 16px;font-size:12px;font-weight:700;color:var(--navy);text-align:center;}
+.flow-arrow{font-size:16px;color:var(--text-sm);}
+
+/* ─── 핵심 기능 ─── */
+.feat-card{max-width:1200px;margin:0 auto 64px;background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);}
+.feat-header{background:var(--navy);padding:16px 24px;color:#fff;display:flex;align-items:center;gap:10px;}
+.feat-header-icon{font-size:20px;}
+.feat-header-title{font-size:14px;font-weight:900;}
+.feat-header-sub{font-size:11px;opacity:.45;margin-top:2px;}
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;padding:20px 24px;}
+.feat-item{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.feat-item-icon{font-size:22px;margin-bottom:7px;}
+.feat-item-title{font-size:11px;font-weight:800;color:var(--navy);margin-bottom:4px;}
+.feat-item-desc{font-size:11px;color:var(--text-md);line-height:1.55;}
+
+/* ─── 주의사항 ─── */
+.caution{max-width:1200px;margin:0 auto 64px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:14px;padding:20px 24px;}
+.caution-title{font-size:13px;font-weight:800;color:#92400E;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.caution-list{list-style:none;display:flex;flex-direction:column;gap:8px;}
+.caution-item{display:flex;align-items:flex-start;gap:10px;font-size:12px;color:#78350F;line-height:1.65;}
+.caution-item::before{content:'⚠';flex-shrink:0;}
+
+/* ─── 반응형 ─── */
+@media(max-width:860px){
+  .step-section{grid-template-columns:1fr;gap:28px;}
+  .step-section.reverse .tablet-wrap{order:0;}
+  .step-section.reverse .desc-panel{order:0;}
+  .tablet-outer{max-width:340px;}
+  .main{padding:28px 16px 60px;}
+  .hero{padding:44px 16px 36px;}
+  .feat-grid{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:480px){
+  .feat-grid{grid-template-columns:1fr;}
+  .flow-row{flex-direction:column;}
+  .flow-arrow{transform:rotate(90deg);}
+  .hero-stats{gap:16px;}
+}
+
+/* ─── 애니메이션 ─── */
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.25;}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+@keyframes shimmer{0%{background-position:-200% 0;}100%{background-position:200% 0;}}
+.skeleton{
+  background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%);
+  background-size:200% 100%;
+  animation:shimmer 1.5s infinite;
+  border-radius:4px;
+}
 </style>
 </head>
 <body>
 
-<div class="hero">
-  <div class="hero-badge">NETFORM R&amp;D · POUR솔루션</div>
-  <div class="hero-title">영업 앱 완전 가이드<br/><span>파이프라인 · 고객 경험 · 매뉴얼</span></div>
-  <div class="hero-sub">박람회 현장 상담부터 고객 맞춤 제안서 전달까지<br/>POUR솔루션 영업 앱의 전체 흐름을 정리합니다.</div>
-  <div class="hero-tags">
-    <span class="htag">태블릿 상담 앱</span>
-    <span class="htag">AI 하자 분류</span>
-    <span class="htag">고객 맞춤 제안서</span>
-    <span class="htag">QR 즉시 전달</span>
-    <span class="htag">실시간 영업 DB</span>
+<!-- ─── 헤더 ─── -->
+<header class="header">
+  <div class="header-inner">
+    <div class="header-brand">
+      <div class="header-logo-box">P</div>
+      <div class="header-title">POUR솔루션 <span>영업 앱</span></div>
+    </div>
+    <div class="header-badge">영상 매뉴얼 v2.0</div>
   </div>
-</div>
+</header>
 
-<div class="wrap">
+<!-- ─── 진행 표시줄 ─── -->
+<nav class="progress-bar" id="progressBar">
+  <div class="progress-inner">
+    <a href="#step1" class="prog-step active" data-step="1"><div class="prog-num">1</div>앱 실행 &amp; 담당자</a>
+    <a href="#step2" class="prog-step" data-step="2"><div class="prog-num">2</div>공법 선택</a>
+    <a href="#step3" class="prog-step" data-step="3"><div class="prog-num">3</div>하자사진 &amp; AI</a>
+    <a href="#step4" class="prog-step" data-step="4"><div class="prog-num">4</div>원인 설명</a>
+    <a href="#step5" class="prog-step" data-step="5"><div class="prog-num">5</div>POUR 해결방안</a>
+    <a href="#step6" class="prog-step" data-step="6"><div class="prog-num">6</div>메모 &amp; 고객정보</a>
+    <a href="#step7" class="prog-step" data-step="7"><div class="prog-num">7</div>제안서 &amp; QR</a>
+  </div>
+</nav>
 
-<!-- 파이프라인 -->
-<div class="sec">
-  <div class="sec-hd">
-    <div class="sec-dot" style="background:var(--blue);"></div>
+<!-- ─── 히어로 ─── -->
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-eyebrow">NETFORM R&amp;D · POUR솔루션</div>
+    <h1 class="hero-h1">영업 앱 <em>영상 매뉴얼</em><br/>7단계로 완전 정복</h1>
+    <p class="hero-desc">박람회 현장 상담부터 고객 맞춤 제안서 전달까지<br/>태블릿 화면을 직접 보며 따라하는 인터랙티브 가이드</p>
+    <div class="hero-tags">
+      <span class="htag">태블릿 상담 앱</span>
+      <span class="htag">AI 하자 자동 분류</span>
+      <span class="htag">고객 맞춤 제안서</span>
+      <span class="htag">QR 즉시 전달</span>
+      <span class="htag">실시간 영업 DB</span>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="hero-stat-num">7</div><div class="hero-stat-label">단계</div></div>
+      <div class="hero-stat"><div class="hero-stat-num">3</div><div class="hero-stat-label">분 완독</div></div>
+      <div class="hero-stat"><div class="hero-stat-num">6</div><div class="hero-stat-label">핵심 기능</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── 메인 ─── -->
+<main class="main">
+
+<!-- ════════════════════════════════════
+     STEP 1 — 앱 실행 & 담당자 선택
+════════════════════════════════════ -->
+<section class="step-section" id="step1" data-step="1">
+  <div class="tablet-wrap">
+    <div class="tablet-outer">
+      <div class="tablet-screen">
+        <div class="screen-content">
+          <div class="app-sim" id="sim1">
+            <div class="sim-home" style="height:100%;">
+              <div class="sim-topbar-home">
+                <div class="sim-brand">POUR<span>솔루션</span></div>
+                <div class="sim-badge-sm" id="s1-mode-badge">박람회 모드</div>
+              </div>
+              <div class="sim-body">
+                <div class="sim-card-dark">
+                  <div class="sim-label-xs">담당자 선택</div>
+                  <div class="sim-chips">
+                    <div class="sim-chip sel" id="s1-c1">김영업</div>
+                    <div class="sim-chip" id="s1-c2">이상담</div>
+                    <div class="sim-chip" id="s1-c3">박팀장</div>
+                    <div class="sim-chip" id="s1-c4">최대리</div>
+                  </div>
+                </div>
+                <div class="sim-row">
+                  <div class="sim-mode-btn sel" id="s1-m1">🏢 박람회</div>
+                  <div class="sim-mode-btn" id="s1-m2">📞 상시영업</div>
+                </div>
+                <div class="sim-cta" id="s1-start">▶ 상담 시작하기</div>
+                <div class="sim-stats">
+                  <div class="sim-stat-box"><div class="sim-stat-label">오늘 상담</div><div class="sim-stat-val" style="color:#60A5FA;">12</div></div>
+                  <div class="sim-stat-box"><div class="sim-stat-label">제안서</div><div class="sim-stat-val" style="color:#34D399;">8</div></div>
+                  <div class="sim-stat-box"><div class="sim-stat-label">누적</div><div class="sim-stat-val" style="color:#FBBF24;">247</div></div>
+                </div>
+              </div>
+            </div>
+            <!-- 하이라이트 & 커서 -->
+            <div class="hl" id="hl1"></div>
+            <div class="cursor" id="cur1"></div>
+            <div class="cursor-ring" id="ring1"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="desc-panel">
     <div>
-      <div class="sec-title">① 영업사원 상담 파이프라인</div>
-      <div class="sec-sub">앱 실행부터 제안서 전달까지 7단계</div>
+      <div class="step-eyebrow">
+        <div class="step-num-badge" style="background:#2563EB;color:#fff;">1</div>
+        <div class="step-label" style="background:#EFF6FF;color:#2563EB;">앱 실행 &amp; 담당자 선택</div>
+        <span style="font-size:11px;color:var(--text-sm);font-weight:600;">STEP 1 / 7</span>
+      </div>
+      <h2 class="step-title">본인 이름 선택 후<br/>모드를 설정하세요</h2>
+      <p class="step-desc">앱을 열면 담당자 선택 화면이 나타납니다. 본인 이름을 탭한 후 오늘의 영업 모드(박람회 / 상시영업)를 선택합니다. 설정이 완료되면 파란 버튼을 눌러 상담을 시작합니다.</p>
+    </div>
+    <div class="tips">
+      <div class="tip" style="background:#EFF6FF;border:1px solid #BFDBFE;">
+        <div class="tip-ic">💡</div>
+        <div class="tip-body"><strong>처음 사용하는 경우</strong> — 이름이 목록에 없다면 관리자에게 등록을 요청하세요.</div>
+      </div>
+      <div class="tip" style="background:#ECFDF5;border:1px solid #A7F3D0;">
+        <div class="tip-ic">🏢</div>
+        <div class="tip-body"><strong>박람회 모드</strong>는 현장 상담에 최적화되어 있습니다. 상시영업은 방문·전화 상담 시 사용합니다.</div>
+      </div>
+      <div class="tip" style="background:#F5F3FF;border:1px solid #DDD6FE;">
+        <div class="tip-ic">📊</div>
+        <div class="tip-body">홈 화면에서 <strong>오늘 상담 건수·제안서 발송 수·누적 고객 수</strong>를 실시간으로 확인할 수 있습니다.</div>
+      </div>
     </div>
   </div>
-  <div class="pipe">
+</section>
 
-    <div class="pipe-row">
-      <div class="p-num" style="background:var(--blue-l);color:var(--blue);">1</div>
-      <div class="p-body">
-        <div class="p-ttl">앱 실행 &amp; 담당자·모드 선택</div>
-        <div class="p-desc">담당자 이름 선택 후 박람회/상시영업 모드를 설정합니다. 미설정 시 자동으로 선택 화면이 표시됩니다.</div>
+<div class="divider"><div class="divider-line"></div><div class="divider-text">다음 단계</div><div class="divider-line"></div></div>
+
+<!-- ════════════════════════════════════
+     STEP 2 — 공법 선택
+════════════════════════════════════ -->
+<section class="step-section reverse" id="step2" data-step="2">
+  <div class="tablet-wrap">
+    <div class="tablet-outer">
+      <div class="tablet-screen">
+        <div class="screen-content">
+          <div class="app-sim" id="sim2">
+            <div class="sim-method-screen" style="height:100%;">
+              <div class="sim-topbar">
+                <div class="sim-back-btn">←</div>
+                <div class="sim-topbar-title">공법 선택</div>
+              </div>
+              <div class="sim-tabs-row">
+                <div class="sim-tab active" id="s2-t1">전체</div>
+                <div class="sim-tab" id="s2-t2">방수</div>
+                <div class="sim-tab" id="s2-t3">도장</div>
+                <div class="sim-tab" id="s2-t4">보수/보강</div>
+                <div class="sim-tab" id="s2-t5">토목</div>
+              </div>
+              <div class="sim-grid">
+                <div class="sim-method-card sel" id="s2-c1">
+                  <div class="sim-mc-icon">🏠</div>
+                  <div class="sim-mc-name">슬라브형 듀얼강화 방수</div>
+                  <div class="sim-mc-sub">옥상 / 방수</div>
+                  <div class="sim-mc-tags"><span class="sim-mc-tag">#우레탄</span><span class="sim-mc-tag">#KTR</span></div>
+                </div>
+                <div class="sim-method-card" id="s2-c2">
+                  <div class="sim-mc-icon">🏗</div>
+                  <div class="sim-mc-name">금속기와 칼리강판 방수</div>
+                  <div class="sim-mc-sub">지붕 / 방수</div>
+                  <div class="sim-mc-tags"><span class="sim-mc-tag">#금속기와</span></div>
+                </div>
+                <div class="sim-method-card" id="s2-c3">
+                  <div class="sim-mc-icon">🚗</div>
+                  <div class="sim-mc-name">에폭시 도장 공법</div>
+                  <div class="sim-mc-sub">지하주차장 / 도장</div>
+                  <div class="sim-mc-tags"><span class="sim-mc-tag">#에폭시</span></div>
+                </div>
+                <div class="sim-method-card" id="s2-c4">
+                  <div class="sim-mc-icon">⚡</div>
+                  <div class="sim-mc-name">탄성강화 보강공법</div>
+                  <div class="sim-mc-sub">균열보수 / 보수</div>
+                  <div class="sim-mc-tags"><span class="sim-mc-tag">#균열</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="hl" id="hl2"></div>
+            <div class="cursor" id="cur2"></div>
+            <div class="cursor-ring" id="ring2"></div>
+          </div>
+        </div>
       </div>
     </div>
-
-    <div class="pipe-row">
-      <div class="p-num" style="background:#FEF3C7;color:var(--gold);">2</div>
-      <div class="p-body">
-        <div class="p-ttl">공법 선택</div>
-        <div class="p-desc">방수·도장·보수보강·토목 탭으로 필터링 후 고객 문제에 맞는 공법을 선택합니다.</div>
-        <span class="p-chip" style="background:#FEF3C7;color:var(--gold);">💡 2열/3열 그리드 전환 지원</span>
-      </div>
-    </div>
-
-    <div class="pipe-row">
-      <div class="p-num" style="background:#FEE2E2;color:var(--red);">3</div>
-      <div class="p-body">
-        <div class="p-ttl">STEP 1 — 현장 하자사진</div>
-        <div class="p-desc">실제 현장 하자사진을 보여주며 공감을 끌어냅니다. 고객 현장사진을 촬영하면 <strong>AI가 하자 유형·위치·심각도를 자동 분류</strong>합니다. 확인 후 저장.</div>
-        <span class="p-chip" style="background:#FEE2E2;color:var(--red);">📷 촬영 → AI 분류 → 영업사원 확인 → 저장</span>
-      </div>
-    </div>
-
-    <div class="pipe-row">
-      <div class="p-num" style="background:var(--orange-l);color:var(--orange);">4</div>
-      <div class="p-body">
-        <div class="p-ttl">STEP 2 — 왜 이 문제가 생기나</div>
-        <div class="p-desc">원인 설명과 <strong>원인 영상</strong>으로 고객이 문제의 본질을 이해하게 합니다. "단순 노후가 아닌 구조적 원인"이라는 인식 전환이 핵심.</div>
-      </div>
-    </div>
-
-    <div class="pipe-row">
-      <div class="p-num" style="background:var(--green-l);color:var(--green);">5</div>
-      <div class="p-body">
-        <div class="p-ttl">STEP 3 — POUR 해결방안</div>
-        <div class="p-desc">공정 탭을 클릭하면 시공사진·영상이 표시됩니다. 자재 특징 버튼으로 상세 모달을 열어 기술력을 시각적으로 전달합니다. <strong>KTR 공인 성능 수치</strong>로 신뢰를 강화합니다.</div>
-        <span class="p-chip" style="background:var(--green-l);color:var(--green);">🔬 자재 특징 버튼 → 사진/영상/GIF 모달</span>
-      </div>
-    </div>
-
-    <div class="pipe-row">
-      <div class="p-num" style="background:#F5F3FF;color:#6D28D9;">6</div>
-      <div class="p-body">
-        <div class="p-ttl">영업 메모 작성 &amp; 저장</div>
-        <div class="p-desc">메모 버튼(✏️)으로 고객 정보·메모·다음 액션을 입력하고 저장합니다. Firestore에 자동 저장되어 관리자 화면에서 실시간 확인 가능합니다.</div>
-        <span class="p-chip" style="background:#F5F3FF;color:#6D28D9;">✏️ 텍스트 + 사진 + 명함 촬영 지원</span>
-      </div>
-    </div>
-
-    <div class="pipe-row">
-      <div class="p-num" style="background:var(--navy);color:#fff;">7</div>
-      <div class="p-body">
-        <div class="p-ttl">고객 맞춤 제안서 생성 &amp; QR 전달</div>
-        <div class="p-desc">저장 완료 후 <strong>"📋 고객 맞춤 제안서 생성"</strong>을 누르면 상담한 모든 공법이 담긴 제안서가 생성됩니다. QR코드로 고객 폰에 즉시 전달하거나 SMS로 발송합니다.</div>
-        <span class="p-chip" style="background:var(--blue-l);color:var(--blue);">📱 QR 스캔 → 고객이 언제든 다시 열람 가능</span>
-      </div>
-    </div>
-
   </div>
-</div>
-
-<!-- 고객 경험 -->
-<div class="sec">
-  <div class="sec-hd">
-    <div class="sec-dot" style="background:var(--green);"></div>
+  <div class="desc-panel">
     <div>
-      <div class="sec-title">② 고객이 경험하는 흐름</div>
-      <div class="sec-sub">상담 현장에서 고객 관점의 여정</div>
+      <div class="step-eyebrow">
+        <div class="step-num-badge" style="background:#D97706;color:#fff;">2</div>
+        <div class="step-label" style="background:#FEF3C7;color:#D97706;">공법 선택</div>
+        <span style="font-size:11px;color:var(--text-sm);font-weight:600;">STEP 2 / 7</span>
+      </div>
+      <h2 class="step-title">고객 문제에 맞는<br/>공법을 탭하세요</h2>
+      <p class="step-desc">상단 탭(방수·도장·보수보강·토목)으로 카테고리를 필터링한 후 고객의 건물 문제에 맞는 공법 카드를 선택합니다. 2열/3열 그리드 전환도 지원합니다.</p>
+    </div>
+    <div class="tips">
+      <div class="tip" style="background:#FEF3C7;border:1px solid #FDE68A;">
+        <div class="tip-ic">🔍</div>
+        <div class="tip-body"><strong>공법 선택 트리</strong> — 지붕→방수, 외벽→도장, 지하주차장→도장/방수, 도로→토목 탭을 먼저 선택하세요.</div>
+      </div>
+      <div class="tip" style="background:#EFF6FF;border:1px solid #BFDBFE;">
+        <div class="tip-ic">📋</div>
+        <div class="tip-body"><strong>여러 공법 선택 가능</strong> — 상담 중 여러 공법을 보여줘도 하나의 제안서에 모두 포함됩니다.</div>
+      </div>
     </div>
   </div>
-  <div class="cx">
-    <div class="cx-card">
-      <div class="cx-icon">😟</div>
-      <div class="cx-ttl">1. 공감</div>
-      <div class="cx-desc">"맞아요, 우리 건물이랑 똑같네요"<br/>실제 하자사진을 보며 문제 공감.</div>
-    </div>
-    <div class="cx-card">
-      <div class="cx-icon">💡</div>
-      <div class="cx-ttl">2. 이해</div>
-      <div class="cx-desc">"왜 이렇게 됐는지 알겠어요"<br/>원인 영상으로 구조적 원인 이해.</div>
-    </div>
-    <div class="cx-card">
-      <div class="cx-icon">✅</div>
-      <div class="cx-ttl">3. 신뢰</div>
-      <div class="cx-desc">"KTR 공인 수치가 있네요"<br/>타사 대비 구체적 성능 데이터 확인.</div>
-    </div>
-    <div class="cx-card">
-      <div class="cx-icon">📱</div>
-      <div class="cx-ttl">4. 수령</div>
-      <div class="cx-desc">QR 스캔 한 번으로 제안서를 폰에 저장. 내부 결정권자에게 공유 가능.</div>
-    </div>
-    <div class="cx-card" style="grid-column:1/-1;">
-      <div class="cx-icon">🔍</div>
-      <div class="cx-ttl">5. 재열람 — 언제든 다시 확인</div>
-      <div class="cx-desc">POUR솔루션 홈페이지 제안서 조회 페이지에서 성함·연락처를 입력하면 상담 내용이 담긴 제안서를 언제든 다시 확인할 수 있습니다.</div>
-    </div>
-  </div>
-</div>
+</section>
 
-<!-- 핵심 기능 -->
-<div class="sec">
-  <div class="sec-hd">
-    <div class="sec-dot" style="background:var(--orange);"></div>
+<div class="divider"><div class="divider-line"></div><div class="divider-text">다음 단계</div><div class="divider-line"></div></div>
+
+<!-- ════════════════════════════════════
+     STEP 3 — 하자사진 & AI 분류
+════════════════════════════════════ -->
+<section class="step-section" id="step3" data-step="3">
+  <div class="tablet-wrap">
+    <div class="tablet-outer">
+      <div class="tablet-screen">
+        <div class="screen-content">
+          <div class="app-sim" id="sim3">
+            <div class="sim-sol-screen" style="height:100%;">
+              <div class="sim-sol-hd">
+                <div class="sim-sol-title">슬라브형 듀얼강화 방수공법</div>
+                <div class="sim-sol-sub">STEP 1 — 현장 하자사진</div>
+              </div>
+              <div class="sim-step-pills">
+                <div class="sim-pill active">📷 하자사진</div>
+                <div class="sim-pill">💡 원인</div>
+                <div class="sim-pill">✅ 해결방안</div>
+              </div>
+              <div class="sim-sol-body">
+                <div style="font-size:9px;font-weight:800;color:#0D1B2A;margin-bottom:6px;">실제 하자 사례</div>
+                <div class="sim-photo-grid">
+                  <div class="sim-photo">🏚</div>
+                  <div class="sim-photo">💧</div>
+                  <div class="sim-photo">🔩</div>
+                  <div class="sim-photo add" id="s3-add-btn">＋</div>
+                  <div class="sim-photo add" style="opacity:.35;">📎</div>
+                  <div class="sim-photo add" style="opacity:.35;">📷</div>
+                </div>
+                <div class="sim-ai-result" id="s3-ai" style="display:none;">
+                  <div class="sim-ai-icon">🤖</div>
+                  <div class="sim-ai-text">AI 분류 완료<br/><span style="color:#1e40af;">누수 · 옥상 · 심각도 중</span></div>
+                </div>
+                <div style="background:#fff;border:1px solid #E5E7EB;border-radius:8px;padding:8px;">
+                  <div style="font-size:8px;font-weight:800;color:#0D1B2A;margin-bottom:3px;">고객 현장사진 AI 분석</div>
+                  <div style="font-size:8px;color:#9CA3AF;line-height:1.5;">📷 촬영 또는 📎 첨부로 현장사진을 추가하면<br/>AI가 하자 유형·위치·심각도를 자동 분류합니다</div>
+                </div>
+              </div>
+            </div>
+            <div class="hl" id="hl3"></div>
+            <div class="cursor" id="cur3"></div>
+            <div class="cursor-ring" id="ring3"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="desc-panel">
     <div>
-      <div class="sec-title">③ 핵심 기능 6가지</div>
+      <div class="step-eyebrow">
+        <div class="step-num-badge" style="background:#DC2626;color:#fff;">3</div>
+        <div class="step-label" style="background:#FEE2E2;color:#DC2626;">현장 하자사진 &amp; AI 분류</div>
+        <span style="font-size:11px;color:var(--text-sm);font-weight:600;">STEP 3 / 7</span>
+      </div>
+      <h2 class="step-title">실제 하자사진으로<br/>고객 공감을 이끌어내세요</h2>
+      <p class="step-desc">앱에 내장된 실제 하자사진을 보여주며 고객의 공감을 유도합니다. 고객 현장사진을 촬영하면 AI(Claude Vision)가 하자 유형·위치·심각도를 자동으로 분류합니다.</p>
+    </div>
+    <div class="tips">
+      <div class="tip" style="background:#FEE2E2;border:1px solid #FECACA;">
+        <div class="tip-ic">🤖</div>
+        <div class="tip-body"><strong>AI 분류 흐름</strong> — 촬영 → AI 자동 분류 → 영업사원 확인 → 저장. AI가 틀렸다면 직접 수정 후 저장하세요.</div>
+      </div>
+      <div class="tip" style="background:#EFF6FF;border:1px solid #BFDBFE;">
+        <div class="tip-ic">😟</div>
+        <div class="tip-body"><strong>"맞아요, 우리 건물이랑 똑같네요"</strong> — 실제 하자사진을 보며 고객이 문제를 공감하게 합니다.</div>
+      </div>
+      <div class="tip" style="background:#ECFDF5;border:1px solid #A7F3D0;">
+        <div class="tip-ic">📎</div>
+        <div class="tip-body">촬영(📷) 또는 첨부(📎) 두 가지 방식으로 현장사진을 추가할 수 있습니다.</div>
+      </div>
     </div>
   </div>
-  <div class="feat">
-    <div class="fc"><div class="fc-ic">🤖</div><div class="fc-ttl">AI 하자 자동 분류</div><div class="fc-desc">사진 촬영 시 Claude Vision이 유형·위치·심각도를 자동 분류.</div></div>
-    <div class="fc"><div class="fc-ic">🔬</div><div class="fc-ttl">자재 특징 모달</div><div class="fc-desc">공정별 자재의 사진·영상·GIF를 모달로 바로 보여줌.</div></div>
-    <div class="fc"><div class="fc-ic">📋</div><div class="fc-ttl">고객 맞춤 제안서</div><div class="fc-desc">상담한 모든 공법을 담은 제안서를 자동 생성.</div></div>
-    <div class="fc"><div class="fc-ic">📱</div><div class="fc-ttl">QR 즉시 전달</div><div class="fc-desc">제안서 링크를 QR코드로 고객 폰에 즉시 전달.</div></div>
-    <div class="fc"><div class="fc-ic">☁️</div><div class="fc-ttl">실시간 DB 저장</div><div class="fc-desc">모든 상담은 Firebase에 즉시 저장. 관리자 실시간 확인.</div></div>
-    <div class="fc"><div class="fc-ic">📊</div><div class="fc-ttl">어드민 관리센터</div><div class="fc-desc">통계·유입 관리·담당자·AI 설정 등 관리자 전용 기능.</div></div>
-  </div>
-</div>
+</section>
 
-<!-- 데이터 흐름 -->
-<div class="sec">
-  <div class="sec-hd">
-    <div class="sec-dot" style="background:#6D28D9;"></div>
+<div class="divider"><div class="divider-line"></div><div class="divider-text">다음 단계</div><div class="divider-line"></div></div>
+
+<!-- ════════════════════════════════════
+     STEP 4 — 원인 설명
+════════════════════════════════════ -->
+<section class="step-section reverse" id="step4" data-step="4">
+  <div class="tablet-wrap">
+    <div class="tablet-outer">
+      <div class="tablet-screen">
+        <div class="screen-content">
+          <div class="app-sim" id="sim4">
+            <div class="sim-sol-screen" style="height:100%;">
+              <div class="sim-sol-hd">
+                <div class="sim-sol-title">슬라브형 듀얼강화 방수공법</div>
+                <div class="sim-sol-sub">STEP 2 — 왜 이 문제가 생기나</div>
+              </div>
+              <div class="sim-step-pills">
+                <div class="sim-pill">📷 하자사진</div>
+                <div class="sim-pill active">💡 원인</div>
+                <div class="sim-pill">✅ 해결방안</div>
+              </div>
+              <div class="sim-sol-body">
+                <div class="sim-cause-card">
+                  <div class="sim-cause-title">🔍 문제의 구조적 원인</div>
+                  <div class="sim-cause-desc">단순 노후가 아닌 <strong style="color:#DC2626;">구조적 원인</strong>이 있습니다. 콘크리트 수축·팽창 반복으로 방수층이 분리되며 누수가 발생합니다.</div>
+                  <div class="sim-video-thumb" id="s4-video">
+                    <div class="sim-play" id="s4-play">▶</div>
+                  </div>
+                  <div style="font-size:8px;color:#9CA3AF;text-align:center;margin-top:4px;">원인 설명 영상 (탭하여 재생)</div>
+                </div>
+                <div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:7px;padding:8px;">
+                  <div style="font-size:8px;font-weight:800;color:#92400E;margin-bottom:3px;">💡 상담 포인트</div>
+                  <div style="font-size:8px;color:#78350F;line-height:1.5;">"단순 노후가 아닌 구조적 원인"이라는 인식 전환이 핵심입니다.</div>
+                </div>
+              </div>
+            </div>
+            <div class="hl" id="hl4"></div>
+            <div class="cursor" id="cur4"></div>
+            <div class="cursor-ring" id="ring4"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="desc-panel">
     <div>
-      <div class="sec-title">④ 데이터 흐름</div>
+      <div class="step-eyebrow">
+        <div class="step-num-badge" style="background:#EA580C;color:#fff;">4</div>
+        <div class="step-label" style="background:#FFF7ED;color:#EA580C;">원인 설명</div>
+        <span style="font-size:11px;color:var(--text-sm);font-weight:600;">STEP 4 / 7</span>
+      </div>
+      <h2 class="step-title">원인 영상으로<br/>문제의 본질을 이해시키세요</h2>
+      <p class="step-desc">원인 설명과 영상을 통해 고객이 문제의 본질을 이해하게 합니다. "단순 노후가 아닌 구조적 원인"이라는 인식 전환이 핵심입니다.</p>
+    </div>
+    <div class="tips">
+      <div class="tip" style="background:#FFF7ED;border:1px solid #FED7AA;">
+        <div class="tip-ic">🎬</div>
+        <div class="tip-body"><strong>원인 영상</strong>을 고객과 함께 보면서 설명하세요. 시각적 이해가 구매 결정을 앞당깁니다.</div>
+      </div>
+      <div class="tip" style="background:#EFF6FF;border:1px solid #BFDBFE;">
+        <div class="tip-ic">💡</div>
+        <div class="tip-body"><strong>"왜 이렇게 됐는지 알겠어요"</strong> — 고객이 원인을 이해하면 해결방안에 대한 신뢰가 높아집니다.</div>
+      </div>
     </div>
   </div>
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;box-shadow:var(--shadow);">
-    <div class="flow" style="margin-bottom:12px;">
-      <div class="fbox" style="background:#F5F3FF;border-color:#DDD6FE;">📱 태블릿 상담</div>
-      <div class="farr">→</div>
-      <div class="fbox" style="background:var(--orange-l);border-color:#FED7AA;">☁️ Firestore</div>
-      <div class="farr">→</div>
-      <div class="fbox" style="background:var(--blue-l);border-color:var(--blue-m);">💻 관리자센터</div>
-    </div>
-    <div class="flow">
-      <div class="fbox" style="background:var(--green-l);border-color:#A7F3D0;">📋 제안서 생성</div>
-      <div class="farr">→</div>
-      <div class="fbox" style="background:#FEF3C7;border-color:#FDE68A;">📱 고객 QR 수령</div>
-      <div class="farr">→</div>
-      <div class="fbox">🌐 제안서 조회 페이지</div>
-    </div>
-  </div>
-</div>
+</section>
 
-<!-- 매뉴얼 -->
-<div class="sec">
-  <div class="sec-hd">
-    <div class="sec-dot" style="background:var(--navy);"></div>
+<div class="divider"><div class="divider-line"></div><div class="divider-text">다음 단계</div><div class="divider-line"></div></div>
+
+<!-- ════════════════════════════════════
+     STEP 5 — POUR 해결방안
+════════════════════════════════════ -->
+<section class="step-section" id="step5" data-step="5">
+  <div class="tablet-wrap">
+    <div class="tablet-outer">
+      <div class="tablet-screen">
+        <div class="screen-content">
+          <div class="app-sim" id="sim5">
+            <div class="sim-sol-screen" style="height:100%;">
+              <div class="sim-sol-hd">
+                <div class="sim-sol-title">슬라브형 듀얼강화 방수공법</div>
+                <div class="sim-sol-sub">STEP 3 — POUR 해결방안</div>
+              </div>
+              <div class="sim-step-pills">
+                <div class="sim-pill">📷 하자사진</div>
+                <div class="sim-pill">💡 원인</div>
+                <div class="sim-pill active">✅ 해결방안</div>
+              </div>
+              <div class="sim-sol-body">
+                <div class="sim-proc-tabs">
+                  <div class="sim-proc-tab active" id="s5-p1">1공정</div>
+                  <div class="sim-proc-tab" id="s5-p2">2공정</div>
+                  <div class="sim-proc-tab" id="s5-p3">3공정</div>
+                  <div class="sim-proc-tab" id="s5-p4">4공정</div>
+                </div>
+                <div class="sim-proc-card">
+                  <div class="sim-proc-img">🏗</div>
+                  <div class="sim-proc-info">
+                    <div class="sim-proc-name">프라이머 도포</div>
+                    <div class="sim-proc-desc">바탕면 부착력 강화를 위한 프라이머를 균일하게 도포합니다.</div>
+                  </div>
+                </div>
+                <div class="sim-feat-btns">
+                  <button class="sim-feat-btn" id="s5-feat-btn" style="background:#ECFDF5;border-color:#A7F3D0;color:#059669;">🔬 자재 특징</button>
+                  <button class="sim-feat-btn" style="background:#EFF6FF;border-color:#BFDBFE;color:#2563EB;">📊 시공사례</button>
+                </div>
+                <div class="sim-ktr">
+                  <div style="font-size:14px;">🏆</div>
+                  <div class="sim-ktr-text">KTR 공인 성능 수치 — 타사 대비 방수성능 3배 이상</div>
+                </div>
+              </div>
+            </div>
+            <!-- 자재 특징 모달 -->
+            <div class="sim-modal-overlay" id="s5-modal" style="display:none;">
+              <div class="sim-modal">
+                <div class="sim-modal-header">
+                  <div class="sim-modal-title">🔬 자재 특징 상세</div>
+                  <button class="sim-modal-close" id="s5-modal-close">✕</button>
+                </div>
+                <div class="sim-feat-grid">
+                  <div class="sim-feat-item"><div class="sim-feat-item-icon">💧</div><div class="sim-feat-item-title">방수성능</div><div class="sim-feat-item-val">KTR 인증</div></div>
+                  <div class="sim-feat-item"><div class="sim-feat-item-icon">⚡</div><div class="sim-feat-item-title">탄성력</div><div class="sim-feat-item-val">300% 이상</div></div>
+                  <div class="sim-feat-item"><div class="sim-feat-item-icon">🌡</div><div class="sim-feat-item-title">내열성</div><div class="sim-feat-item-val">-20°C ~ 80°C</div></div>
+                  <div class="sim-feat-item"><div class="sim-feat-item-icon">🔬</div><div class="sim-feat-item-title">부착강도</div><div class="sim-feat-item-val">1.5 N/mm²</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="hl" id="hl5"></div>
+            <div class="cursor" id="cur5"></div>
+            <div class="cursor-ring" id="ring5"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="desc-panel">
     <div>
-      <div class="sec-title">⑤ 영업사원 사용 매뉴얼</div>
-      <div class="sec-sub">처음 사용하는 영업사원을 위한 7단계</div>
+      <div class="step-eyebrow">
+        <div class="step-num-badge" style="background:#059669;color:#fff;">5</div>
+        <div class="step-label" style="background:#ECFDF5;color:#059669;">POUR 해결방안</div>
+        <span style="font-size:11px;color:var(--text-sm);font-weight:600;">STEP 5 / 7</span>
+      </div>
+      <h2 class="step-title">공정 탭을 클릭하며<br/>기술력을 시각적으로 전달하세요</h2>
+      <p class="step-desc">공정 탭을 클릭하면 시공사진·영상이 표시됩니다. 자재 특징 버튼으로 상세 모달을 열어 기술력을 시각적으로 전달하고, KTR 공인 성능 수치로 신뢰를 강화합니다.</p>
+    </div>
+    <div class="tips">
+      <div class="tip" style="background:#ECFDF5;border:1px solid #A7F3D0;">
+        <div class="tip-ic">🔬</div>
+        <div class="tip-body"><strong>자재 특징 버튼</strong>을 탭하면 사진·영상·GIF 모달이 열립니다. 고객에게 직접 보여주며 설명하세요.</div>
+      </div>
+      <div class="tip" style="background:#FEF3C7;border:1px solid #FDE68A;">
+        <div class="tip-ic">🏆</div>
+        <div class="tip-body"><strong>KTR 공인 수치</strong>를 보여주면 "데이터가 있네요"라는 반응을 이끌어낼 수 있습니다.</div>
+      </div>
+      <div class="tip" style="background:#EFF6FF;border:1px solid #BFDBFE;">
+        <div class="tip-ic">✅</div>
+        <div class="tip-body"><strong>"KTR 공인 수치가 있네요"</strong> — 타사 대비 구체적 성능 데이터로 신뢰를 형성합니다.</div>
+      </div>
     </div>
   </div>
-  <div class="manual">
-    <div class="mhd">
-      <div class="mhd-ttl">📖 POUR솔루션 앱 — 7단계 매뉴얼</div>
-      <div class="mhd-sub">이 순서대로만 하면 됩니다</div>
-    </div>
+</section>
 
-    <div class="mstep">
-      <div class="mn">1</div>
-      <div class="mb">
-        <div class="mttl">앱 열기 → 담당자 선택</div>
-        <div class="mdesc">본인 이름을 선택합니다. 처음이라면 관리자에게 등록을 요청하세요.</div>
-        <span class="mtip">박람회 / 상시영업 모드 선택 필수</span>
+<div class="divider"><div class="divider-line"></div><div class="divider-text">다음 단계</div><div class="divider-line"></div></div>
+
+<!-- ════════════════════════════════════
+     STEP 6 — 메모 & 고객정보
+════════════════════════════════════ -->
+<section class="step-section reverse" id="step6" data-step="6">
+  <div class="tablet-wrap">
+    <div class="tablet-outer">
+      <div class="tablet-screen">
+        <div class="screen-content">
+          <div class="app-sim" id="sim6" style="position:relative;">
+            <!-- 배경 -->
+            <div class="sim-sol-screen" style="height:100%;filter:blur(1.5px);">
+              <div class="sim-sol-hd"><div class="sim-sol-title">상담 진행 중...</div></div>
+              <div class="sim-sol-body" style="display:flex;align-items:center;justify-content:center;height:100%;">
+                <div style="font-size:11px;color:#9CA3AF;text-align:center;">공법 화면</div>
+              </div>
+            </div>
+            <!-- FAB -->
+            <div class="sim-fab" id="s6-fab">✏️</div>
+            <!-- 메모 시트 -->
+            <div class="sim-memo-overlay" id="s6-sheet">
+              <div class="sim-memo-sheet">
+                <div class="sim-sheet-handle"></div>
+                <div class="sim-sheet-title">✏️ 고객 정보 입력</div>
+                <div class="sim-field">
+                  <div class="sim-field-label">성함 *</div>
+                  <div class="sim-field-input">홍길동</div>
+                </div>
+                <div class="sim-field">
+                  <div class="sim-field-label">연락처 *</div>
+                  <div class="sim-field-input focus" id="s6-phone">010-1234-5678</div>
+                </div>
+                <div class="sim-field">
+                  <div class="sim-field-label">건물명</div>
+                  <div class="sim-field-input">○○아파트 관리사무소</div>
+                </div>
+                <div style="font-size:8px;font-weight:700;color:#6B7280;margin-bottom:4px;">다음 액션</div>
+                <div class="sim-action-chips">
+                  <div class="sim-action-chip sel">방문진단</div>
+                  <div class="sim-action-chip">전화상담</div>
+                  <div class="sim-action-chip">견적요청</div>
+                </div>
+                <button class="sim-save-cta" id="s6-save">상담 마치기 →</button>
+              </div>
+            </div>
+            <div class="hl" id="hl6"></div>
+            <div class="cursor" id="cur6"></div>
+            <div class="cursor-ring" id="ring6"></div>
+          </div>
+        </div>
       </div>
     </div>
-
-    <div class="mstep">
-      <div class="mn">2</div>
-      <div class="mb">
-        <div class="mttl">상담 시작하기 클릭</div>
-        <div class="mdesc">홈 화면의 큰 파란 버튼을 누르면 공법 목록으로 이동합니다.</div>
+  </div>
+  <div class="desc-panel">
+    <div>
+      <div class="step-eyebrow">
+        <div class="step-num-badge" style="background:#7C3AED;color:#fff;">6</div>
+        <div class="step-label" style="background:#F5F3FF;color:#7C3AED;">메모 &amp; 고객정보 입력</div>
+        <span style="font-size:11px;color:var(--text-sm);font-weight:600;">STEP 6 / 7</span>
+      </div>
+      <h2 class="step-title">✏️ 버튼으로 고객 정보를<br/>입력하고 상담을 마무리하세요</h2>
+      <p class="step-desc">화면 우하단 ✏️ 버튼을 탭하면 메모 시트가 열립니다. 성함·연락처·건물명을 입력하고 다음 액션을 선택한 후 "상담 마치기"를 누릅니다. Firestore에 자동 저장됩니다.</p>
+    </div>
+    <div class="tips">
+      <div class="warn">
+        <div class="tip-ic">⚠️</div>
+        <div class="warn-body"><strong>연락처 미입력 시 SMS 발송 불가</strong> — 반드시 연락처를 입력하세요.</div>
+      </div>
+      <div class="tip" style="background:#F5F3FF;border:1px solid #DDD6FE;">
+        <div class="tip-ic">✏️</div>
+        <div class="tip-body"><strong>텍스트 + 사진 + 명함 촬영</strong> 모두 지원합니다. 명함을 촬영하면 자동으로 정보가 입력됩니다.</div>
+      </div>
+      <div class="tip" style="background:#EFF6FF;border:1px solid #BFDBFE;">
+        <div class="tip-ic">☁️</div>
+        <div class="tip-body">저장 즉시 <strong>Firestore에 자동 저장</strong>되어 관리자 화면에서 실시간 확인 가능합니다.</div>
+      </div>
+      <div class="warn">
+        <div class="tip-ic">🚫</div>
+        <div class="warn-body"><strong>견적 금액은 현장에서 절대 제시 금지</strong> — 방문 진단 후 산출합니다.</div>
       </div>
     </div>
+  </div>
+</section>
 
-    <div class="mstep">
-      <div class="mn">3</div>
-      <div class="mb">
-        <div class="mttl">고객 문제에 맞는 공법 선택</div>
-        <div class="mdesc">상단 탭(방수·도장·보수보강·토목)으로 필터링 후 해당 공법을 탭합니다.</div>
+<div class="divider"><div class="divider-line"></div><div class="divider-text">마지막 단계</div><div class="divider-line"></div></div>
+
+<!-- ════════════════════════════════════
+     STEP 7 — 제안서 & QR 전달
+════════════════════════════════════ -->
+<section class="step-section" id="step7" data-step="7">
+  <div class="tablet-wrap">
+    <div class="tablet-outer">
+      <div class="tablet-screen">
+        <div class="screen-content">
+          <div class="app-sim" id="sim7">
+            <div class="sim-report-screen" style="height:100%;">
+              <div class="sim-report-hd">
+                <div class="sim-report-title">📋 고객 맞춤 제안서 생성</div>
+                <div class="sim-report-sub">저장 완료 — 제안서를 생성하세요</div>
+              </div>
+              <div class="sim-report-body">
+                <div class="sim-method-list">
+                  <div class="sim-ml-title">📌 상담한 공법 목록</div>
+                  <div class="sim-ml-item">
+                    <div class="sim-ml-dot" style="background:#2563EB;"></div>
+                    <div class="sim-ml-name">슬라브형 듀얼강화 방수공법</div>
+                  </div>
+                  <div class="sim-ml-item">
+                    <div class="sim-ml-dot" style="background:#059669;"></div>
+                    <div class="sim-ml-name">에폭시 도장 공법</div>
+                  </div>
+                </div>
+                <div class="sim-qr-card" id="s7-qr-card">
+                  <div class="sim-qr-title">📱 QR코드로 즉시 전달</div>
+                  <div class="sim-qr-box" id="s7-qr">📱</div>
+                  <div class="sim-qr-hint">고객이 스캔하면 폰에 즉시 저장됩니다</div>
+                </div>
+                <div class="sim-sms-cta" id="s7-sms">📩 SMS로 발송하기</div>
+                <div class="sim-reopen">
+                  <div class="sim-reopen-title">🔍 고객이 나중에 다시 열람 가능</div>
+                  <div class="sim-reopen-desc">POUR솔루션 홈페이지 → 제안서 조회 → 성함·연락처 입력</div>
+                </div>
+              </div>
+            </div>
+            <div class="hl" id="hl7"></div>
+            <div class="cursor" id="cur7"></div>
+            <div class="cursor-ring" id="ring7"></div>
+          </div>
+        </div>
       </div>
     </div>
-
-    <div class="mstep">
-      <div class="mn">4</div>
-      <div class="mb">
-        <div class="mttl">공법 화면을 스크롤하며 설명</div>
-        <div class="mdesc">하자사진 → 원인 설명 → 원인 영상 → 해결방안(공정 탭 클릭) → 성능 수치 순서로 고객에게 보여줍니다.</div>
+  </div>
+  <div class="desc-panel">
+    <div>
+      <div class="step-eyebrow">
+        <div class="step-num-badge" style="background:#0D1B2A;color:#fff;">7</div>
+        <div class="step-label" style="background:#EFF6FF;color:#2563EB;">제안서 생성 &amp; QR 전달</div>
+        <span style="font-size:11px;color:var(--text-sm);font-weight:600;">STEP 7 / 7</span>
+      </div>
+      <h2 class="step-title">QR코드 한 번으로<br/>제안서를 고객 폰에 전달하세요</h2>
+      <p class="step-desc">저장 완료 후 "📋 고객 맞춤 제안서 생성"을 누르면 상담한 모든 공법이 담긴 제안서가 생성됩니다. QR코드를 고객이 스캔하면 폰에 즉시 저장되며, SMS로도 발송할 수 있습니다.</p>
+    </div>
+    <div class="tips">
+      <div class="tip" style="background:#EFF6FF;border:1px solid #BFDBFE;">
+        <div class="tip-ic">📱</div>
+        <div class="tip-body"><strong>QR 스캔</strong> — 고객이 스캔하면 폰에 저장되어 언제든 다시 열람 가능합니다. 내부 결정권자에게 공유도 쉽습니다.</div>
+      </div>
+      <div class="tip" style="background:#ECFDF5;border:1px solid #A7F3D0;">
+        <div class="tip-ic">📋</div>
+        <div class="tip-body"><strong>여러 공법 상담 시</strong> 모두 하나의 제안서에 자동으로 포함됩니다.</div>
+      </div>
+      <div class="tip" style="background:#F5F3FF;border:1px solid #DDD6FE;">
+        <div class="tip-ic">🔍</div>
+        <div class="tip-body"><strong>재열람</strong> — POUR솔루션 홈페이지 제안서 조회 페이지에서 성함·연락처 입력으로 언제든 다시 확인 가능합니다.</div>
       </div>
     </div>
+  </div>
+</section>
 
-    <div class="mstep">
-      <div class="mn">5</div>
-      <div class="mb">
-        <div class="mttl">고객 현장사진 촬영 (선택)</div>
-        <div class="mdesc">하자사진 섹션에서 📷촬영 또는 📎첨부로 현장사진을 추가합니다. AI가 자동 분류하면 확인 후 저장합니다.</div>
-        <span class="mtip">AI 분류가 틀렸다면 직접 수정 후 저장</span>
-      </div>
-    </div>
-
-    <div class="mstep">
-      <div class="mn">6</div>
-      <div class="mb">
-        <div class="mttl">✏️ 메모 버튼 → 고객정보 입력 → 상담 마치기</div>
-        <div class="mdesc">화면 우하단 ✏️ 버튼 → 성함·연락처·건물명 입력 → 메모 작성 → 다음 액션 선택 → <strong>"상담 마치기"</strong></div>
-        <span class="mwarn">⚠️ 연락처 없으면 SMS 발송 불가</span>
-      </div>
-    </div>
-
-    <div class="mstep">
-      <div class="mn">7</div>
-      <div class="mb">
-        <div class="mttl">📋 제안서 생성 → QR로 전달</div>
-        <div class="mdesc">저장 완료 화면에서 <strong>"📋 고객 맞춤 제안서 생성"</strong>을 누릅니다. QR코드를 고객이 스캔하면 폰에 저장됩니다.</div>
-        <span class="mtip">여러 공법 설명 시 모두 제안서에 포함</span>
-      </div>
-    </div>
-
+<!-- ─── 데이터 흐름 ─── -->
+<div class="divider"><div class="divider-line"></div><div class="divider-text">데이터 흐름</div><div class="divider-line"></div></div>
+<div class="flow-card">
+  <div class="flow-card-title">🔄 데이터 흐름 한눈에 보기</div>
+  <div class="flow-row">
+    <div class="flow-node" style="background:#F5F3FF;border-color:#DDD6FE;">📱 태블릿 상담</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node" style="background:#FFF7ED;border-color:#FED7AA;">☁️ Firestore 저장</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node" style="background:#EFF6FF;border-color:#BFDBFE;">💻 관리자센터</div>
+  </div>
+  <div style="text-align:center;font-size:11px;color:var(--text-sm);margin:8px 0;font-weight:700;">+</div>
+  <div class="flow-row">
+    <div class="flow-node" style="background:#ECFDF5;border-color:#A7F3D0;">📋 제안서 생성</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node" style="background:#FEF3C7;border-color:#FDE68A;">📱 고객 QR 수령</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-node">🌐 제안서 조회 페이지</div>
   </div>
 </div>
 
-<!-- 주의사항 -->
-<div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:12px;padding:16px 18px;">
-  <div style="font-size:12px;font-weight:800;color:#92400E;margin-bottom:8px;">⚠️ 꼭 기억하세요</div>
-  <ul style="font-size:11px;color:#78350F;line-height:2;padding-left:14px;">
-    <li>견적 금액은 절대 현장에서 제시하지 마세요 (방문 진단 후 산출)</li>
-    <li>고객 정보는 앱 메모 폼으로만 수집하세요</li>
-    <li>상담 중 여러 공법을 보여줘도 하나의 제안서에 모두 포함됩니다</li>
-    <li>배터리와 인터넷 연결을 항상 확인하세요</li>
+<!-- ─── 핵심 기능 ─── -->
+<div class="divider"><div class="divider-line"></div><div class="divider-text">핵심 기능</div><div class="divider-line"></div></div>
+<div class="feat-card">
+  <div class="feat-header">
+    <div class="feat-header-icon">⚡</div>
+    <div>
+      <div class="feat-header-title">핵심 기능 6가지</div>
+      <div class="feat-header-sub">영업 효율을 극대화하는 앱의 주요 기능</div>
+    </div>
+  </div>
+  <div class="feat-grid">
+    <div class="feat-item"><div class="feat-item-icon">🤖</div><div class="feat-item-title">AI 하자 자동 분류</div><div class="feat-item-desc">사진 촬영 시 Claude Vision이 유형·위치·심각도를 자동 분류합니다.</div></div>
+    <div class="feat-item"><div class="feat-item-icon">🔬</div><div class="feat-item-title">자재 특징 모달</div><div class="feat-item-desc">공정별 자재의 사진·영상·GIF를 모달로 바로 보여줍니다.</div></div>
+    <div class="feat-item"><div class="feat-item-icon">📋</div><div class="feat-item-title">고객 맞춤 제안서</div><div class="feat-item-desc">상담한 모든 공법을 담은 제안서를 자동 생성합니다.</div></div>
+    <div class="feat-item"><div class="feat-item-icon">📱</div><div class="feat-item-title">QR 즉시 전달</div><div class="feat-item-desc">제안서 링크를 QR코드로 고객 폰에 즉시 전달합니다.</div></div>
+    <div class="feat-item"><div class="feat-item-icon">☁️</div><div class="feat-item-title">실시간 DB 저장</div><div class="feat-item-desc">모든 상담은 Firebase에 즉시 저장. 관리자 실시간 확인 가능.</div></div>
+    <div class="feat-item"><div class="feat-item-icon">📊</div><div class="feat-item-title">어드민 관리센터</div><div class="feat-item-desc">통계·유입 관리·담당자·AI 설정 등 관리자 전용 기능.</div></div>
+  </div>
+</div>
+
+<!-- ─── 주의사항 ─── -->
+<div class="caution">
+  <div class="caution-title">⚠️ 꼭 기억하세요</div>
+  <ul class="caution-list">
+    <li class="caution-item">견적 금액은 절대 현장에서 제시하지 마세요 (방문 진단 후 산출)</li>
+    <li class="caution-item">고객 정보는 앱 메모 폼으로만 수집하세요</li>
+    <li class="caution-item">상담 중 여러 공법을 보여줘도 하나의 제안서에 모두 포함됩니다</li>
+    <li class="caution-item">배터리와 인터넷 연결을 항상 확인하세요</li>
+    <li class="caution-item">연락처 미입력 시 SMS 발송이 불가합니다</li>
   </ul>
 </div>
 
-</div>
+</main>
+
+<script>
+/* ════════════════════════════════════════
+   유틸리티
+════════════════════════════════════════ */
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function setCursor(id, ringId, xPct, yPct) {
+  const el = document.getElementById(id);
+  const ring = document.getElementById(ringId);
+  if (!el || !ring) return;
+  el.style.opacity = '1';
+  ring.style.opacity = '1';
+  el.style.left = xPct + '%';
+  el.style.top = yPct + '%';
+  ring.style.left = xPct + '%';
+  ring.style.top = yPct + '%';
+}
+function hideCursor(id, ringId) {
+  const el = document.getElementById(id);
+  const ring = document.getElementById(ringId);
+  if (el) el.style.opacity = '0';
+  if (ring) ring.style.opacity = '0';
+}
+function showHL(id, top, left, w, h) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.top = top; el.style.left = left;
+  el.style.width = w; el.style.height = h;
+  el.classList.add('show');
+}
+function hideHL(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('show');
+}
+
+/* ════════════════════════════════════════
+   스텝별 애니메이션
+════════════════════════════════════════ */
+
+// STEP 1
+async function anim1() {
+  await sleep(400);
+  showHL('hl1','38px','10px','calc(100% - 20px)','50px');
+  setCursor('cur1','ring1', 30, 30);
+  await sleep(900);
+  // 담당자 변경
+  document.getElementById('s1-c1').classList.remove('sel');
+  document.getElementById('s1-c2').classList.add('sel');
+  await sleep(600);
+  setCursor('cur1','ring1', 50, 30);
+  await sleep(600);
+  // 모드 변경
+  showHL('hl1','92px','10px','calc(100% - 20px)','34px');
+  setCursor('cur1','ring1', 25, 50);
+  await sleep(900);
+  document.getElementById('s1-m1').classList.remove('sel');
+  document.getElementById('s1-m2').classList.add('sel');
+  document.getElementById('s1-mode-badge').textContent = '상시영업 모드';
+  await sleep(600);
+  document.getElementById('s1-m2').classList.remove('sel');
+  document.getElementById('s1-m1').classList.add('sel');
+  document.getElementById('s1-mode-badge').textContent = '박람회 모드';
+  await sleep(400);
+  // 시작 버튼
+  showHL('hl1','134px','10px','calc(100% - 20px)','32px');
+  setCursor('cur1','ring1', 50, 62);
+  await sleep(1200);
+  hideHL('hl1');
+  hideCursor('cur1','ring1');
+}
+
+// STEP 2
+async function anim2() {
+  await sleep(400);
+  // 탭 클릭
+  setCursor('cur2','ring2', 28, 20);
+  showHL('hl2','28px','0','100%','22px');
+  await sleep(800);
+  document.querySelectorAll('#sim2 .sim-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('s2-t2').classList.add('active');
+  await sleep(600);
+  setCursor('cur2','ring2', 72, 20);
+  await sleep(500);
+  document.querySelectorAll('#sim2 .sim-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('s2-t3').classList.add('active');
+  await sleep(500);
+  document.querySelectorAll('#sim2 .sim-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('s2-t1').classList.add('active');
+  await sleep(600);
+  // 카드 선택
+  setCursor('cur2','ring2', 25, 58);
+  showHL('hl2','50px','6px','47%','76px');
+  await sleep(800);
+  document.getElementById('s2-c1').classList.remove('sel');
+  document.getElementById('s2-c3').classList.add('sel');
+  await sleep(600);
+  setCursor('cur2','ring2', 75, 58);
+  showHL('hl2','50px','50%','47%','76px');
+  await sleep(800);
+  document.getElementById('s2-c3').classList.remove('sel');
+  document.getElementById('s2-c1').classList.add('sel');
+  await sleep(600);
+  hideHL('hl2');
+  hideCursor('cur2','ring2');
+}
+
+// STEP 3
+async function anim3() {
+  await sleep(400);
+  // 촬영 버튼 하이라이트
+  setCursor('cur3','ring3', 65, 55);
+  showHL('hl3','50px','50%','46%','44px');
+  await sleep(1200);
+  // AI 결과 표시
+  const ai = document.getElementById('s3-ai');
+  if (ai) { ai.style.display = 'flex'; ai.style.animation = 'fadeIn .4s ease'; }
+  showHL('hl3','104px','6px','calc(100% - 12px)','42px');
+  setCursor('cur3','ring3', 50, 68);
+  await sleep(1500);
+  hideHL('hl3');
+  hideCursor('cur3','ring3');
+}
+
+// STEP 4
+async function anim4() {
+  await sleep(400);
+  setCursor('cur4','ring4', 50, 56);
+  showHL('hl4','78px','8px','calc(100% - 16px)','68px');
+  await sleep(1000);
+  const play = document.getElementById('s4-play');
+  const video = document.getElementById('s4-video');
+  if (play) { play.textContent = '⏸'; play.classList.add('playing'); }
+  if (video) video.style.background = 'linear-gradient(135deg,#1e3a5f,#0D1B2A)';
+  await sleep(1800);
+  if (play) { play.textContent = '▶'; play.classList.remove('playing'); }
+  if (video) video.style.background = 'linear-gradient(135deg,#0D1B2A,#1A2E42)';
+  hideHL('hl4');
+  hideCursor('cur4','ring4');
+}
+
+// STEP 5
+async function anim5() {
+  await sleep(400);
+  // 공정 탭
+  setCursor('cur5','ring5', 22, 36);
+  showHL('hl5','50px','6px','80%','18px');
+  await sleep(800);
+  document.querySelectorAll('#sim5 .sim-proc-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('s5-p2').classList.add('active');
+  await sleep(500);
+  document.querySelectorAll('#sim5 .sim-proc-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('s5-p3').classList.add('active');
+  await sleep(500);
+  document.querySelectorAll('#sim5 .sim-proc-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('s5-p1').classList.add('active');
+  await sleep(600);
+  // 자재 특징 버튼
+  setCursor('cur5','ring5', 20, 74);
+  showHL('hl5','116px','6px','44%','20px');
+  await sleep(900);
+  document.getElementById('s5-modal').style.display = 'flex';
+  await sleep(2000);
+  document.getElementById('s5-modal').style.display = 'none';
+  hideHL('hl5');
+  hideCursor('cur5','ring5');
+}
+
+// STEP 6
+async function anim6() {
+  await sleep(400);
+  // FAB 하이라이트
+  showHL('hl6','calc(100% - 56px)','calc(100% - 56px)','44px','44px');
+  setCursor('cur6','ring6', 88, 88);
+  await sleep(1200);
+  // 연락처 포커스
+  showHL('hl6','48%','6px','calc(100% - 12px)','26px');
+  setCursor('cur6','ring6', 50, 60);
+  document.getElementById('s6-phone').classList.add('focus');
+  await sleep(1200);
+  // 저장 버튼
+  showHL('hl6','82%','6px','calc(100% - 12px)','28px');
+  setCursor('cur6','ring6', 50, 87);
+  await sleep(1200);
+  hideHL('hl6');
+  hideCursor('cur6','ring6');
+}
+
+// STEP 7
+async function anim7() {
+  await sleep(400);
+  // 공법 목록
+  showHL('hl7','8px','6px','calc(100% - 12px)','72px');
+  setCursor('cur7','ring7', 50, 22);
+  await sleep(1200);
+  // QR 카드
+  showHL('hl7','88px','6px','calc(100% - 12px)','88px');
+  setCursor('cur7','ring7', 50, 55);
+  await sleep(1000);
+  // QR 이미지 로드
+  const qr = document.getElementById('s7-qr');
+  if (qr) {
+    qr.innerHTML = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=72x72&data=https://pour-construction-form.pages.dev&color=ffffff&bgcolor=0D1B2A" style="width:60px;height:60px;border-radius:4px;" onerror="this.parentNode.innerHTML=\'📱\'" />';
+  }
+  await sleep(1200);
+  // SMS 버튼
+  showHL('hl7','182px','6px','calc(100% - 12px)','26px');
+  setCursor('cur7','ring7', 50, 78);
+  await sleep(1200);
+  hideHL('hl7');
+  hideCursor('cur7','ring7');
+}
+
+/* ════════════════════════════════════════
+   인터섹션 옵저버
+════════════════════════════════════════ */
+const animMap = { step1:anim1, step2:anim2, step3:anim3, step4:anim4, step5:anim5, step6:anim6, step7:anim7 };
+const triggered = {};
+
+const visObserver = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      const step = e.target.dataset.step;
+      document.querySelectorAll('.prog-step').forEach(p => {
+        p.classList.toggle('active', p.dataset.step === step);
+      });
+      if (!triggered[e.target.id] && animMap[e.target.id]) {
+        triggered[e.target.id] = true;
+        animMap[e.target.id]();
+      }
+    }
+  });
+}, { threshold: 0.4 });
+
+document.querySelectorAll('.step-section').forEach(s => visObserver.observe(s));
+
+/* ════════════════════════════════════════
+   인터랙티브 이벤트
+════════════════════════════════════════ */
+// 자재 특징 모달
+document.getElementById('s5-feat-btn').addEventListener('click', () => {
+  document.getElementById('s5-modal').style.display = 'flex';
+});
+document.getElementById('s5-modal-close').addEventListener('click', () => {
+  document.getElementById('s5-modal').style.display = 'none';
+});
+
+// 진행 표시줄 클릭
+document.querySelectorAll('.prog-step').forEach(link => {
+  link.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.querySelector(link.getAttribute('href'));
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+});
+</script>
 </body>
 </html>

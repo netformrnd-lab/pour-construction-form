@@ -1835,6 +1835,22 @@ const saveCasePhotos=p=>{
             }
           }
         }
+        /* processSteps */
+        if(item.processSteps){
+          for(let i=0;i<item.processSteps.length;i++){
+            if(item.processSteps[i]&&item.processSteps[i].url&&item.processSteps[i].url.startsWith('data:')){
+              item.processSteps[i].url=await uploadBase64ToStorage(item.processSteps[i].url,`case-photos/${key}/process_${i}`);
+            }
+          }
+        }
+        /* processMatsMedia */
+        if(item.processMatsMedia){
+          for(const mk of Object.keys(item.processMatsMedia)){
+            if(item.processMatsMedia[mk]&&item.processMatsMedia[mk].url&&item.processMatsMedia[mk].url.startsWith('data:')){
+              item.processMatsMedia[mk].url=await uploadBase64ToStorage(item.processMatsMedia[mk].url,`case-photos/${key}/mat_${mk}`);
+            }
+          }
+        }
       }
       await db.collection('config').doc('casePhotos').set(clean);
       /* Storage URL로 교체된 데이터를 localStorage에 저장 (URL만 저장되므로 용량 절약) */
@@ -3177,6 +3193,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   /* ── STEP 3 공정 사진 ── */
   const [selectedProcessStep,setSelectedProcessStep]=useState(0);
   const [materialModal,setMaterialModal]=useState(null); // {name, desc, mediaUrl, mediaType}
+  const [photoCardTab,setPhotoCardTab]=useState({}); // {[methodId]: 'defect'|'media'|'process'}
   const [showReport,setShowReport]=useState(false);
   const [reportExtraLinks,setReportExtraLinks]=useState([]);
   const [reportSmsSent,setReportSmsSent]=useState(false);
@@ -4363,7 +4380,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     <div style={{display:'flex',flexDirection:'column',gap:0}}>
                       {mc.process.map((step,i)=>{
                         const isSel=selectedProcessStep===i;
-                        const hasPhoto=(mc.processPhotos||[])[i];
+                        const _cpSteps=(casePhotos[m.id]||{}).processSteps||[];
+                        const hasPhoto=(_cpSteps[i]&&_cpSteps[i].url)||((mc.processPhotos||[])[i]);
                         const stepDesc=(mc.processDescs||[])[i];
                         const stepMat=(mc.processMaterials||[])[i];
                         const isLast=i===mc.process.length-1;
@@ -4405,7 +4423,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                               </button>
                               {/* 펼쳐진 상태 */}
                               {isSel&&(()=>{
-                                const photoUrl=(mc.processPhotos||[])[i];
+                                const _cpSteps2=(casePhotos[m.id]||{}).processSteps||[];
+                                const photoUrl=(_cpSteps2[i]&&_cpSteps2[i].url)||((mc.processPhotos||[])[i]);
                                 return(
                                   <div style={{marginBottom:4,animation:'fadeIn .2s ease'}}>
                                     {/* 공정 사진 */}
@@ -4441,7 +4460,12 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                                       return(
                                         <div style={{display:'flex',flexDirection:'column',gap:6}}>
                                           {mats.map((mat,mi)=>(
-                                            <button key={mi} onClick={()=>setMaterialModal(mat)}
+                                            <button key={mi} onClick={()=>{
+                                              const _cpm=(casePhotos[m.id]||{}).processMatsMedia||{};
+                                              const _mk=`${i}_${mi}`;
+                                              const _mUrl=(_cpm[_mk]&&_cpm[_mk].url)||mat.mediaUrl||'';
+                                              setMaterialModal({...mat,mediaUrl:_mUrl});
+                                            }}
                                               style={{display:'flex',alignItems:'center',justifyContent:'space-between',
                                                 background:'linear-gradient(135deg,var(--blue-l),rgba(59,130,246,.08))',
                                                 border:'1.5px solid var(--blue-m)',
@@ -6895,6 +6919,7 @@ function AdminScreen({onBack}){
   const [probPhotos,setProbPhotos]=useState(()=>loadProblemPhotos());
   const [defectTags,setDefectTags]=useState(()=>loadDefectTags());
   const [tagSaving,setTagSaving]=useState(false);
+  const [photoCardTab,setPhotoCardTab]=useState({}); // {[methodId]: 'defect'|'media'|'process'}
   const [search,setSearch]=useState('');
   const [filterDay,setFilterDay]=useState('전체');
   const [filterStaff,setFilterStaff]=useState('전체');
@@ -7683,35 +7708,73 @@ function AdminScreen({onBack}){
               const data=casePhotos[key]||{causes:['','',''],completed:'',gif:''};
               return(
                 <div key={key} style={{marginBottom:18,padding:'14px',background:'var(--bg)',borderRadius:12,border:'1px solid var(--border)'}}>
-                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:2}}>
+                  {/* ── 카드 헤더 ── */}
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
                     <div>
                       <div style={{fontSize:13,fontWeight:800,color:'var(--text)'}}>{p.label}</div>
-                      <div style={{fontSize:10,color:'var(--text-sm)',marginBottom:10}}>{p.cat} · {p.sub}</div>
+                      <div style={{fontSize:10,color:'var(--text-sm)'}}>{p.cat} · {p.sub}</div>
                     </div>
-                    <div style={{position:'relative'}}>
-                      <button onClick={()=>{
-                        /* 사진이 있는 다른 공법 목록 */
-                        const others=ALL_PROBLEMS.filter(op=>op.id!==key&&casePhotos[op.id]?.causes?.some(c=>c));
-                        if(others.length===0){alert('복사할 사진이 있는 다른 공법이 없습니다');return;}
-                        const names=others.map((op,i)=>`${i+1}. ${op.label} (${(casePhotos[op.id]?.causes||[]).filter(c=>c).length}장)`).join('\n');
-                        const choice=prompt(`사진을 복사할 공법 번호를 입력하세요:\n\n${names}`);
-                        if(!choice)return;
-                        const idx=parseInt(choice)-1;
-                        if(isNaN(idx)||idx<0||idx>=others.length){alert('잘못된 번호입니다');return;}
-                        const source=others[idx];
-                        const sourceCauses=(casePhotos[source.id]?.causes||[]).filter(c=>c);
-                        if(sourceCauses.length===0)return;
-                        const mode=confirm(`"${source.label}"의 사진 ${sourceCauses.length}장을\n\n[확인] 기존 사진에 추가\n[취소] 기존 사진을 덮어쓰기`);
-                        const up=JSON.parse(JSON.stringify(casePhotos));
-                        if(!up[key])up[key]={causes:[],completed:'',media:[]};
-                        if(mode){up[key].causes=[...(up[key].causes||[]).filter(c=>c),...sourceCauses];}
-                        else{up[key].causes=[...sourceCauses];}
-                        setCasePhotos(up);
-                      }} style={{padding:'5px 10px',borderRadius:8,border:'1.5px solid var(--border)',background:'#fff',fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit',color:'var(--accent)',whiteSpace:'nowrap'}}>📋 다른 공법에서 복사</button>
-                    </div>
+                    <button onClick={()=>{
+                      const others=ALL_PROBLEMS.filter(op=>op.id!==key&&casePhotos[op.id]?.causes?.some(c=>c));
+                      if(others.length===0){alert('복사할 사진이 있는 다른 공법이 없습니다');return;}
+                      const names=others.map((op,i)=>`${i+1}. ${op.label} (${(casePhotos[op.id]?.causes||[]).filter(c=>c).length}장)`).join('\n');
+                      const choice=prompt(`사진을 복사할 공법 번호를 입력하세요:\n\n${names}`);
+                      if(!choice)return;
+                      const idx=parseInt(choice)-1;
+                      if(isNaN(idx)||idx<0||idx>=others.length){alert('잘못된 번호입니다');return;}
+                      const source=others[idx];
+                      const sourceCauses=(casePhotos[source.id]?.causes||[]).filter(c=>c);
+                      if(sourceCauses.length===0)return;
+                      const mode=confirm(`"${source.label}"의 사진 ${sourceCauses.length}장을\n\n[확인] 기존 사진에 추가\n[취소] 기존 사진을 덮어쓰기`);
+                      const up=JSON.parse(JSON.stringify(casePhotos));
+                      if(!up[key])up[key]={causes:[],completed:'',media:[]};
+                      if(mode){up[key].causes=[...(up[key].causes||[]).filter(c=>c),...sourceCauses];}
+                      else{up[key].causes=[...sourceCauses];}
+                      setCasePhotos(up);
+                    }} style={{padding:'5px 10px',borderRadius:8,border:'1.5px solid var(--border)',background:'#fff',fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit',color:'var(--accent)',whiteSpace:'nowrap'}}>📋 복사</button>
                   </div>
 
-                  {/* 하자 사진들 (드래그로 순서 변경 가능) */}
+                  {/* ── 3탭 네비게이션 ── */}
+                  {(()=>{
+                    const curTab=photoCardTab[key]||'defect';
+                    const mc=METHOD_CONTENT[key];
+                    const defectCount=(data.causes||[]).filter(c=>c).length;
+                    const mediaCount=(data.media||(data.gif?[data.gif]:[])).filter(c=>c).length;
+                    const processCount=(mc?.process||[]).length;
+                    const tabStyle=(active)=>({
+                      flex:1,padding:'7px 4px',border:'none',borderBottom:`2.5px solid ${active?'var(--accent)':'transparent'}`,
+                      background:'transparent',cursor:'pointer',fontFamily:'inherit',
+                      fontSize:11,fontWeight:active?800:600,
+                      color:active?'var(--accent)':'var(--text-sm)',transition:'all .15s',
+                    });
+                    const badgeStyle=(n,color)=>({
+                      display:'inline-flex',alignItems:'center',justifyContent:'center',
+                      minWidth:16,height:16,borderRadius:8,
+                      background:n>0?color:'var(--border)',
+                      color:n>0?'#fff':'var(--text-sm)',
+                      fontSize:9,fontWeight:800,marginLeft:3,padding:'0 4px',
+                    });
+                    return(
+                      <div>
+                        {/* 탭 바 */}
+                        <div style={{display:'flex',borderBottom:'1px solid var(--border)',marginBottom:12,background:'var(--card)',borderRadius:'8px 8px 0 0',overflow:'hidden'}}>
+                          <button style={tabStyle(curTab==='defect')} onClick={()=>setPhotoCardTab(t=>({...t,[key]:'defect'}))}>
+                            📸 하자사진<span style={badgeStyle(defectCount,'#EF4444')}>{defectCount}</span>
+                          </button>
+                          <button style={tabStyle(curTab==='media')} onClick={()=>setPhotoCardTab(t=>({...t,[key]:'media'}))}>
+                            🎬 관련미디어<span style={badgeStyle(mediaCount,'#8B5CF6')}>{mediaCount}</span>
+                          </button>
+                          <button style={tabStyle(curTab==='process')} onClick={()=>setPhotoCardTab(t=>({...t,[key]:'process'}))}>
+                            🔧 시공공정<span style={badgeStyle(processCount,'#059669')}>{processCount}</span>
+                          </button>
+                        </div>
+
+                        {/* ── 탭 1: 하자 사진 ── */}
+                        {curTab==='defect'&&(
+                          <div>
+                            <div style={{fontSize:11,color:'var(--text-sm)',marginBottom:8,lineHeight:1.5}}>
+                              공법 상세 화면 <b>상단 슬라이드</b>에 표시됩니다. 길게 눌러 드래그로 순서 변경 가능.
+                            </div>
                   <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>하자 사진 <span style={{fontWeight:400,fontSize:10}}>(길게 눌러 드래그로 순서 변경)</span></div>
                   <div style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}}>
                     {(data.causes||[]).map((url,i)=>(
@@ -7804,10 +7867,15 @@ function AdminScreen({onBack}){
                       <span style={{fontSize:24}}>+</span>추가
                     </button>
                   </div>
+                          </div>
+                        )}
 
-                  {/* 관련 미디어 (복수) */}
-                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:4}}>🎬 관련 미디어</div>
-                  <div style={{fontSize:10,color:'var(--text-sm)',marginBottom:6,opacity:.7}}>영상/GIF → URL 입력 · 이미지 → 📁 업로드 가능</div>
+                        {/* ── 탭 2: 관련 미디어 ── */}
+                        {curTab==='media'&&(
+                          <div>
+                            <div style={{fontSize:11,color:'var(--text-sm)',marginBottom:8,lineHeight:1.5}}>
+                              공법 상세 화면 <b>관련미디어 슬라이드</b>에 표시됩니다. GIF/영상/비교사진 복수 등록 가능.
+                            </div>
                   {(data.media||(data.gif?[data.gif]:[])).map((url,mi)=>{
                     const mParsed=parseVideoUrl(url);
                     const isVid=!!mParsed;
@@ -7897,8 +7965,155 @@ function AdminScreen({onBack}){
                       </div>
                     );
                   })}
-                  <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:'',media:[]};const m=up[key].media||(up[key].gif?[up[key].gif]:[]);m.push('');up[key].media=m;delete up[key].gif;setCasePhotos(up);}}
-                    style={{padding:'6px 14px',borderRadius:8,border:'1.5px dashed var(--border)',background:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',color:'var(--accent)',marginBottom:12}}>+ 미디어 추가</button>
+                          <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:'',media:[]};const m=up[key].media||(up[key].gif?[up[key].gif]:[]);m.push('');up[key].media=m;delete up[key].gif;setCasePhotos(up);}}
+                            style={{padding:'6px 14px',borderRadius:8,border:'1.5px dashed var(--border)',background:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',color:'var(--accent)',marginBottom:4}}>+ 미디어 추가</button>
+                          </div>
+                        )}
+
+                        {/* ── 탭 3: 시공공정 · 핵심자재 ── */}
+                        {curTab==='process'&&(()=>{
+                          const mc2=METHOD_CONTENT[key];
+                          if(!mc2||!mc2.process||mc2.process.length===0){
+                            return <div style={{padding:'20px',textAlign:'center',color:'var(--text-sm)',fontSize:12}}>이 공법의 시공공정 데이터가 없습니다.</div>;
+                          }
+                          return(
+                            <div>
+                              <div style={{fontSize:11,color:'var(--text-sm)',marginBottom:10,lineHeight:1.5}}>
+                                각 공정 단계별 <b>시공 사진/영상</b>과 <b>핵심자재 사진/영상</b>을 등록합니다.<br/>
+                                등록된 미디어는 공법 상세 화면 <b>시공공정 타임라인</b>에 표시됩니다.
+                              </div>
+                              {mc2.process.map((step,si)=>{
+                                const mats2=(mc2.processMaterials||[])[si];
+                                const matArr=mats2?(Array.isArray(mats2)?mats2:[mats2]).filter(Boolean):[];
+                                /* casePhotos에서 processSteps 데이터 읽기 */
+                                const stepData=(data.processSteps||[])[si]||{};
+                                const matData=(data.processMatsMedia||[])[si]||{};
+                                return(
+                                  <div key={si} style={{marginBottom:12,padding:'10px 12px',background:'var(--card)',borderRadius:10,border:'1px solid var(--border)'}}>
+                                    {/* 공정 단계 헤더 */}
+                                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+                                      <div style={{width:24,height:24,borderRadius:'50%',background:'var(--navy)',color:'#fff',
+                                        display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,flexShrink:0}}>
+                                        {si+1}
+                                      </div>
+                                      <div style={{fontSize:12,fontWeight:800,color:'var(--navy)',flex:1}}>{step}</div>
+                                      {stepData.url&&<span style={{fontSize:9,color:'var(--green)',fontWeight:700,background:'rgba(5,150,105,.1)',padding:'2px 6px',borderRadius:4}}>✓ 등록됨</span>}
+                                    </div>
+                                    {/* 공정 사진/영상 */}
+                                    <div style={{marginBottom:matArr.length>0?8:0}}>
+                                      <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:4}}>📷 공정 사진/영상 URL</div>
+                                      <div style={{display:'flex',gap:6}}>
+                                        <input
+                                          value={stepData.url||''}
+                                          placeholder="이미지 URL 또는 YouTube/영상 URL"
+                                          onChange={e=>{
+                                            const up=JSON.parse(JSON.stringify(casePhotos));
+                                            if(!up[key])up[key]={};
+                                            if(!up[key].processSteps)up[key].processSteps=[];
+                                            while(up[key].processSteps.length<=si)up[key].processSteps.push({});
+                                            up[key].processSteps[si]={...up[key].processSteps[si],url:e.target.value};
+                                            setCasePhotos(up);
+                                          }}
+                                          style={{flex:1,padding:'7px 10px',borderRadius:8,border:'1px solid var(--border)',fontSize:11,fontFamily:'inherit',boxSizing:'border-box'}}
+                                        />
+                                        <input type="file" accept="image/*" id={`ps-${key}-${si}`} style={{display:'none'}}
+                                          onChange={e=>{
+                                            const file=e.target.files[0];if(!file)return;
+                                            const reader=new FileReader();
+                                            reader.onload=(ev)=>{
+                                              const img=new Image();
+                                              img.onload=()=>{
+                                                const MAX=800;let w=img.width,h=img.height;
+                                                if(w>MAX||h>MAX){const r=Math.min(MAX/w,MAX/h);w=Math.round(w*r);h=Math.round(h*r);}
+                                                const c=document.createElement('canvas');c.width=w;c.height=h;
+                                                c.getContext('2d').drawImage(img,0,0,w,h);
+                                                const up=JSON.parse(JSON.stringify(casePhotos));
+                                                if(!up[key])up[key]={};
+                                                if(!up[key].processSteps)up[key].processSteps=[];
+                                                while(up[key].processSteps.length<=si)up[key].processSteps.push({});
+                                                up[key].processSteps[si]={...up[key].processSteps[si],url:c.toDataURL('image/jpeg',0.82)};
+                                                setCasePhotos(up);
+                                              };img.src=ev.target.result;
+                                            };reader.readAsDataURL(file);e.target.value='';
+                                          }}/>
+                                        <button onClick={()=>document.getElementById(`ps-${key}-${si}`)?.click()}
+                                          title="이미지 파일 업로드"
+                                          style={{padding:'0 10px',borderRadius:8,border:'1px solid var(--border)',background:'#f3f4f6',fontSize:16,cursor:'pointer',lineHeight:1,fontFamily:'inherit'}}>📁</button>
+                                        {stepData.url&&(
+                                          <button onClick={()=>{
+                                            const up=JSON.parse(JSON.stringify(casePhotos));
+                                            if(up[key]?.processSteps?.[si])up[key].processSteps[si].url='';
+                                            setCasePhotos(up);
+                                          }} style={{padding:'0 10px',borderRadius:8,border:'1px solid #FCA5A5',background:'#FEF2F2',color:'#DC2626',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>✕</button>
+                                        )}
+                                      </div>
+                                      {/* 미리보기 */}
+                                      {stepData.url&&!stepData.url.includes('youtube')&&!stepData.url.includes('youtu.be')&&(
+                                        <img src={stepData.url} alt={`${step} 공정`}
+                                          style={{marginTop:6,width:'100%',maxHeight:120,objectFit:'cover',borderRadius:6,border:'1px solid var(--border)'}}/>
+                                      )}
+                                    </div>
+                                    {/* 핵심자재 미디어 */}
+                                    {matArr.length>0&&matArr.map((mat,mi)=>{
+                                      const matKey=`${si}_${mi}`;
+                                      const mmd=(data.processMatsMedia||{})[matKey]||{};
+                                      return(
+                                        <div key={mi} style={{marginTop:8,padding:'8px 10px',background:'rgba(59,130,246,.05)',borderRadius:8,border:'1px solid rgba(59,130,246,.15)'}}>
+                                          <div style={{fontSize:10,fontWeight:800,color:'var(--accent)',marginBottom:4}}>
+                                            🔬 핵심자재: {mat.name}
+                                            {mmd.url&&<span style={{fontSize:9,color:'var(--green)',fontWeight:700,background:'rgba(5,150,105,.1)',padding:'1px 5px',borderRadius:3,marginLeft:4}}>✓ 등록됨</span>}
+                                          </div>
+                                          <div style={{display:'flex',gap:6}}>
+                                            <input
+                                              value={mmd.url||mat.mediaUrl||''}
+                                              placeholder="자재 사진/영상 URL"
+                                              onChange={e=>{
+                                                const up=JSON.parse(JSON.stringify(casePhotos));
+                                                if(!up[key])up[key]={};
+                                                if(!up[key].processMatsMedia)up[key].processMatsMedia={};
+                                                up[key].processMatsMedia[matKey]={...up[key].processMatsMedia[matKey],url:e.target.value};
+                                                setCasePhotos(up);
+                                              }}
+                                              style={{flex:1,padding:'6px 8px',borderRadius:7,border:'1px solid rgba(59,130,246,.2)',fontSize:10,fontFamily:'inherit',boxSizing:'border-box'}}
+                                            />
+                                            <input type="file" accept="image/*" id={`pm-${key}-${si}-${mi}`} style={{display:'none'}}
+                                              onChange={e=>{
+                                                const file=e.target.files[0];if(!file)return;
+                                                const reader=new FileReader();
+                                                reader.onload=(ev)=>{
+                                                  const img=new Image();
+                                                  img.onload=()=>{
+                                                    const MAX=600;let w=img.width,h=img.height;
+                                                    if(w>MAX||h>MAX){const r=Math.min(MAX/w,MAX/h);w=Math.round(w*r);h=Math.round(h*r);}
+                                                    const c=document.createElement('canvas');c.width=w;c.height=h;
+                                                    c.getContext('2d').drawImage(img,0,0,w,h);
+                                                    const up=JSON.parse(JSON.stringify(casePhotos));
+                                                    if(!up[key])up[key]={};
+                                                    if(!up[key].processMatsMedia)up[key].processMatsMedia={};
+                                                    up[key].processMatsMedia[matKey]={...up[key].processMatsMedia[matKey],url:c.toDataURL('image/jpeg',0.82)};
+                                                    setCasePhotos(up);
+                                                  };img.src=ev.target.result;
+                                                };reader.readAsDataURL(file);e.target.value='';
+                                              }}/>
+                                            <button onClick={()=>document.getElementById(`pm-${key}-${si}-${mi}`)?.click()}
+                                              style={{padding:'0 8px',borderRadius:7,border:'1px solid var(--border)',background:'#f3f4f6',fontSize:14,cursor:'pointer',lineHeight:1,fontFamily:'inherit'}}>📁</button>
+                                          </div>
+                                          {(mmd.url||mat.mediaUrl)&&!(mmd.url||mat.mediaUrl).includes('youtube')&&!(mmd.url||mat.mediaUrl).includes('youtu.be')&&(
+                                            <img src={mmd.url||mat.mediaUrl} alt={mat.name}
+                                              style={{marginTop:5,width:'100%',maxHeight:90,objectFit:'cover',borderRadius:5,border:'1px solid rgba(59,130,246,.15)'}}/>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })}

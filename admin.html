@@ -97,6 +97,8 @@ const MENU = [
   { section: '아웃바운드' },
   { key: 'outbound-expo', label: '박람회', icon: '🎪' },
   { key: 'outbound-always', label: '상시영업', icon: '📞', disabled: true },
+  { section: '콘텐츠' },
+  { key: 'content-editor', label: '콘텐츠 편집기', icon: '✏️' },
   { section: '현장관리' },
   { key: 'defect-sites', label: '완공현장', icon: '🏗' },
   { key: 'defect-photos', label: '공법분석', icon: '🔍' },
@@ -4305,6 +4307,830 @@ function DefectPhotosPage({showToast}){
 /* ══════════════════════════════════════════════════════════════
    영업자료 관리 — sales-docs 컬렉션 + Storage 파일 업로드
    ══════════════════════════════════════════════════════════════ */
+
+// ─── 콘텐츠 편집기 ───
+const POUR_METHODS_FOR_EDITOR = [
+  {id:'shingle', label:'아스팔트 슁글 방수', category:'지붕'},
+  {id:'metal', label:'금속기와 방수', category:'지붕'},
+  {id:'metal_coat', label:'금속기와/칼라강판 코팅', category:'지붕'},
+  {id:'slab_dual', label:'듀얼강화방수 (슬라브)', category:'방수'},
+  {id:'slab_pvc', label:'PVC 방수 (슬라브)', category:'방수'},
+  {id:'slab_urethane', label:'우레탄 방수 (슬라브)', category:'방수'},
+  {id:'slab_acrylic', label:'아크릴 배면차수', category:'방수'},
+  {id:'parking_epoxy', label:'에폭시 바닥 (주차장)', category:'바닥'},
+  {id:'parking_emboss', label:'엠보라이닝 도장 (주차장)', category:'바닥'},
+  {id:'wall_premium', label:'균열보수+재도장 (프리미엄)', category:'외벽'},
+  {id:'wall_mid', label:'균열보수+재도장 (중급)', category:'외벽'},
+  {id:'wall_economy', label:'균열보수+재도장 (경제형)', category:'외벽'},
+  {id:'crack_surface', label:'탄성강화 바탕면 보강', category:'보수'},
+  {id:'crack_section', label:'탄성강화 단면복구', category:'보수'},
+  {id:'crack_sheet', label:'복합시트 균열보수', category:'보수'},
+  {id:'ascon_repair', label:'아스콘 도로 보수', category:'토목'},
+  {id:'ascon_seal', label:'아스콘 씰코팅', category:'토목'},
+  {id:'ascon_mma', label:'MMA 고강도 논슬립', category:'토목'},
+];
+
+// Firebase에 콘텐츠 저장/로드
+const CONTENT_COLLECTION = 'method_content_overrides';
+
+function ContentEditorPage({ showToast }) {
+  const [selectedMethod, setSelectedMethod] = useState(POUR_METHODS_FOR_EDITOR[0].id);
+  const [activeTab, setActiveTab] = useState('process'); // process | materials | cause | solution
+  const [content, setContent] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
+  const [uploadingIdx, setUploadingIdx] = useState(null);
+
+  const methodInfo = POUR_METHODS_FOR_EDITOR.find(m => m.id === selectedMethod);
+
+  // Firestore에서 콘텐츠 로드
+  useEffect(() => {
+    loadContent(selectedMethod);
+  }, [selectedMethod]);
+
+  const loadContent = async (methodId) => {
+    setLoading(true);
+    try {
+      const ref = window.db ? window.db.collection(CONTENT_COLLECTION).doc(methodId) : null;
+      if (ref) {
+        const snap = await ref.get();
+        if (snap.exists) {
+          setContent(snap.data());
+        } else {
+          setContent({ processPhotos: [], processMaterials: [], cause: '', solution: '', processDescs: [] });
+        }
+      } else {
+        setContent({ processPhotos: [], processMaterials: [], cause: '', solution: '', processDescs: [] });
+      }
+    } catch(e) {
+      setContent({ processPhotos: [], processMaterials: [], cause: '', solution: '', processDescs: [] });
+    }
+    setLoading(false);
+  };
+
+  const saveContent = async () => {
+    setSaving(true);
+    try {
+      const ref = window.db ? window.db.collection(CONTENT_COLLECTION).doc(selectedMethod) : null;
+      if (ref) {
+        await ref.set(content, { merge: true });
+        showToast('저장 완료!', 'success');
+      } else {
+        // localStorage 폴백
+        localStorage.setItem(`content_${selectedMethod}`, JSON.stringify(content));
+        showToast('로컬 저장 완료 (Firebase 미연결)', 'info');
+      }
+    } catch(e) {
+      showToast('저장 실패: ' + e.message, 'error');
+    }
+    setSaving(false);
+  };
+
+  const handleImageUpload = async (file, type, idx) => {
+    setUploadingIdx(`${type}_${idx}`);
+    try {
+      const compressed = await compressImage(file, 1200, 0.85);
+      if (type === 'process') {
+        const newPhotos = [...(content.processPhotos || [])];
+        newPhotos[idx] = compressed;
+        setContent(prev => ({ ...prev, processPhotos: newPhotos }));
+      } else if (type === 'material') {
+        const newMats = [...(content.processMaterials || [])];
+        if (!newMats[idx]) newMats[idx] = {};
+        newMats[idx] = { ...newMats[idx], mediaUrl: compressed, mediaType: 'image' };
+        setContent(prev => ({ ...prev, processMaterials: newMats }));
+      }
+      showToast('이미지 업로드 완료', 'success');
+    } catch(e) {
+      showToast('업로드 실패', 'error');
+    }
+    setUploadingIdx(null);
+  };
+
+  const updateProcessPhoto = (idx, val) => {
+    const arr = [...(content.processPhotos || [])];
+    arr[idx] = val;
+    setContent(prev => ({ ...prev, processPhotos: arr }));
+  };
+
+  const updateProcessDesc = (idx, val) => {
+    const arr = [...(content.processDescs || [])];
+    arr[idx] = val;
+    setContent(prev => ({ ...prev, processDescs: arr }));
+  };
+
+  const updateMaterial = (idx, field, val) => {
+    const arr = [...(content.processMaterials || [])];
+    if (!arr[idx]) arr[idx] = {};
+    arr[idx] = { ...arr[idx], [field]: val };
+    setContent(prev => ({ ...prev, processMaterials: arr }));
+  };
+
+  const setYoutube = (idx, url, type) => {
+    // YouTube URL을 embed URL로 변환
+    let embedUrl = url;
+    const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (ytMatch) embedUrl = `https://www.youtube.com/embed/${ytMatch[1]}`;
+    if (type === 'process') {
+      const arr = [...(content.processPhotos || [])];
+      arr[idx] = { type: 'youtube', url: embedUrl, original: url };
+      setContent(prev => ({ ...prev, processPhotos: arr }));
+    } else {
+      updateMaterial(idx, 'mediaUrl', embedUrl);
+      updateMaterial(idx, 'mediaType', 'youtube');
+    }
+  };
+
+  if (loading) return (
+    <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:400}}>
+      <div style={{fontSize:14,color:'var(--text-md)'}}>로딩 중...</div>
+    </div>
+  );
+
+  // 공법 선택 사이드바 + 편집 영역 레이아웃
+  return (
+    <div style={{display:'flex',gap:0,height:'calc(100vh - 104px)',overflow:'hidden'}}>
+      {/* 왼쪽: 공법 목록 */}
+      <div style={{
+        width:200, flexShrink:0, borderRight:'1px solid var(--border)',
+        overflowY:'auto', background:'#fff'
+      }}>
+        {['지붕','방수','바닥','외벽','보수','토목'].map(cat => {
+          const methods = POUR_METHODS_FOR_EDITOR.filter(m => m.category === cat);
+          return (
+            <div key={cat}>
+              <div style={{
+                padding:'8px 12px 4px', fontSize:10, fontWeight:700,
+                color:'rgba(0,0,0,.35)', letterSpacing:1, textTransform:'uppercase',
+                background:'#f8f9fa', borderBottom:'1px solid var(--border)'
+              }}>{cat}</div>
+              {methods.map(m => (
+                <button key={m.id} onClick={() => setSelectedMethod(m.id)} style={{
+                  width:'100%', textAlign:'left', padding:'9px 14px',
+                  background: selectedMethod === m.id ? '#EFF6FF' : 'transparent',
+                  border:'none', borderLeft: selectedMethod === m.id ? '3px solid #2563EB' : '3px solid transparent',
+                  color: selectedMethod === m.id ? '#1D4ED8' : 'var(--text)',
+                  fontSize:12, fontWeight: selectedMethod === m.id ? 700 : 400,
+                  cursor:'pointer', lineHeight:1.4
+                }}>
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 오른쪽: 편집 영역 */}
+      <div style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden'}}>
+        {/* 상단 탭 + 저장 버튼 */}
+        <div style={{
+          display:'flex', alignItems:'center', justifyContent:'space-between',
+          padding:'12px 20px', borderBottom:'1px solid var(--border)', background:'#fff', flexShrink:0
+        }}>
+          <div style={{display:'flex', gap:4}}>
+            {[
+              {key:'process', label:'공정 사진/설명'},
+              {key:'materials', label:'자재 모달'},
+              {key:'cause', label:'원인 설명'},
+              {key:'solution', label:'해결방안'},
+            ].map(t => (
+              <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
+                padding:'6px 14px', borderRadius:6, border:'none', fontSize:12, fontWeight:600,
+                background: activeTab === t.key ? '#2563EB' : '#F1F5F9',
+                color: activeTab === t.key ? '#fff' : 'var(--text-md)', cursor:'pointer'
+              }}>{t.label}</button>
+            ))}
+          </div>
+          <div style={{display:'flex', gap:8, alignItems:'center'}}>
+            <button onClick={() => setPreviewMode(!previewMode)} style={{
+              padding:'6px 14px', borderRadius:6, border:'1px solid var(--border)',
+              fontSize:12, background: previewMode ? '#0F172A' : '#fff',
+              color: previewMode ? '#fff' : 'var(--text)', cursor:'pointer'
+            }}>
+              {previewMode ? '📝 편집' : '👁 미리보기'}
+            </button>
+            <button onClick={saveContent} disabled={saving} style={{
+              padding:'6px 18px', borderRadius:6, border:'none',
+              background: saving ? '#94A3B8' : '#16A34A', color:'#fff',
+              fontSize:12, fontWeight:700, cursor: saving ? 'not-allowed' : 'pointer'
+            }}>
+              {saving ? '저장 중...' : '💾 저장'}
+            </button>
+          </div>
+        </div>
+
+        {/* 편집 본문 */}
+        <div style={{flex:1, overflow:'auto', display: previewMode ? 'none' : 'block'}}>
+          <div style={{padding:20}}>
+            <div style={{
+              marginBottom:16, padding:'10px 16px', background:'#EFF6FF',
+              borderRadius:8, borderLeft:'4px solid #2563EB'
+            }}>
+              <span style={{fontSize:13, fontWeight:700, color:'#1D4ED8'}}>
+                ✏️ {methodInfo?.label} — {activeTab === 'process' ? '공정 사진/설명' : activeTab === 'materials' ? '자재 모달 콘텐츠' : activeTab === 'cause' ? '원인 설명' : '해결방안'} 편집
+              </span>
+            </div>
+
+            {/* 공정 사진/설명 탭 */}
+            {activeTab === 'process' && content && (
+              <ProcessPhotoEditor
+                content={content}
+                methodId={selectedMethod}
+                onUpdatePhoto={updateProcessPhoto}
+                onUpdateDesc={updateProcessDesc}
+                onImageUpload={handleImageUpload}
+                onYoutube={(idx, url) => setYoutube(idx, url, 'process')}
+                uploadingIdx={uploadingIdx}
+              />
+            )}
+
+            {/* 자재 모달 탭 */}
+            {activeTab === 'materials' && content && (
+              <MaterialEditor
+                content={content}
+                methodId={selectedMethod}
+                onUpdate={updateMaterial}
+                onImageUpload={handleImageUpload}
+                onYoutube={(idx, url) => setYoutube(idx, url, 'material')}
+                uploadingIdx={uploadingIdx}
+              />
+            )}
+
+            {/* 원인 설명 탭 */}
+            {activeTab === 'cause' && (
+              <div>
+                <label style={{display:'block', fontSize:12, fontWeight:600, color:'var(--text-md)', marginBottom:6}}>
+                  왜 이 문제가 생기나 (원인 설명)
+                </label>
+                <textarea
+                  value={content?.cause || ''}
+                  onChange={e => setContent(prev => ({ ...prev, cause: e.target.value }))}
+                  rows={8}
+                  style={{
+                    width:'100%', padding:'10px 14px', borderRadius:8,
+                    border:'1px solid var(--border)', fontSize:13, lineHeight:1.7,
+                    resize:'vertical', fontFamily:'inherit', boxSizing:'border-box'
+                  }}
+                  placeholder="원인 설명 텍스트를 입력하세요..."
+                />
+                <div style={{marginTop:16}}>
+                  <label style={{display:'block', fontSize:12, fontWeight:600, color:'var(--text-md)', marginBottom:6}}>
+                    원인 영상 (YouTube URL)
+                  </label>
+                  <input
+                    type="text"
+                    value={content?.causeVideoUrl || ''}
+                    onChange={e => setContent(prev => ({ ...prev, causeVideoUrl: e.target.value }))}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    style={{
+                      width:'100%', padding:'8px 12px', borderRadius:8,
+                      border:'1px solid var(--border)', fontSize:13, boxSizing:'border-box'
+                    }}
+                  />
+                  {content?.causeVideoUrl && (
+                    <div style={{marginTop:8, borderRadius:8, overflow:'hidden', aspectRatio:'16/9', maxWidth:480}}>
+                      <iframe
+                        src={content.causeVideoUrl.includes('embed') ? content.causeVideoUrl : `https://www.youtube.com/embed/${content.causeVideoUrl.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)?.[1]}`}
+                        style={{width:'100%', height:'100%', border:'none'}}
+                        allowFullScreen
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* 해결방안 탭 */}
+            {activeTab === 'solution' && (
+              <div>
+                <label style={{display:'block', fontSize:12, fontWeight:600, color:'var(--text-md)', marginBottom:6}}>
+                  POUR 해결방안 설명
+                </label>
+                <textarea
+                  value={content?.solution || ''}
+                  onChange={e => setContent(prev => ({ ...prev, solution: e.target.value }))}
+                  rows={8}
+                  style={{
+                    width:'100%', padding:'10px 14px', borderRadius:8,
+                    border:'1px solid var(--border)', fontSize:13, lineHeight:1.7,
+                    resize:'vertical', fontFamily:'inherit', boxSizing:'border-box'
+                  }}
+                  placeholder="해결방안 텍스트를 입력하세요..."
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 미리보기 모드 */}
+        {previewMode && (
+          <div style={{flex:1, overflow:'auto', background:'#0F172A', padding:20}}>
+            <div style={{
+              maxWidth:768, margin:'0 auto', background:'#1E293B',
+              borderRadius:16, overflow:'hidden', minHeight:600
+            }}>
+              <div style={{
+                padding:'16px 20px', background:'#0F172A',
+                borderBottom:'1px solid rgba(255,255,255,.1)',
+                display:'flex', alignItems:'center', gap:12
+              }}>
+                <div style={{width:8, height:8, borderRadius:'50%', background:'#EF4444'}} />
+                <div style={{width:8, height:8, borderRadius:'50%', background:'#F59E0B'}} />
+                <div style={{width:8, height:8, borderRadius:'50%', background:'#10B981'}} />
+                <span style={{fontSize:12, color:'rgba(255,255,255,.4)', marginLeft:8}}>
+                  태블릿 앱 미리보기 — {methodInfo?.label}
+                </span>
+              </div>
+              <div style={{padding:20}}>
+                {/* 공정 미리보기 */}
+                {activeTab === 'process' && (
+                  <ProcessPreview content={content} methodId={selectedMethod} />
+                )}
+                {/* 원인 미리보기 */}
+                {activeTab === 'cause' && (
+                  <div>
+                    <div style={{
+                      fontSize:11, fontWeight:700, color:'#EF4444',
+                      marginBottom:8, display:'flex', alignItems:'center', gap:6
+                    }}>
+                      <span style={{width:6, height:6, borderRadius:'50%', background:'#EF4444', display:'inline-block'}} />
+                      왜 이 문제가 생기나
+                    </div>
+                    <p style={{fontSize:13, color:'rgba(255,255,255,.8)', lineHeight:1.8, margin:0}}>
+                      {content?.cause || '(원인 설명 없음)'}
+                    </p>
+                  </div>
+                )}
+                {activeTab === 'solution' && (
+                  <div>
+                    <div style={{
+                      fontSize:11, fontWeight:700, color:'#F59E0B',
+                      marginBottom:8, display:'flex', alignItems:'center', gap:6
+                    }}>
+                      <span style={{width:6, height:6, borderRadius:'50%', background:'#F59E0B', display:'inline-block'}} />
+                      POUR 해결방안
+                    </div>
+                    <p style={{fontSize:13, color:'rgba(255,255,255,.8)', lineHeight:1.8, margin:0}}>
+                      {content?.solution || '(해결방안 없음)'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// 공정 사진 편집 서브컴포넌트
+function ProcessPhotoEditor({ content, methodId, onUpdatePhoto, onUpdateDesc, onImageUpload, onYoutube, uploadingIdx }) {
+  const [youtubeInputIdx, setYoutubeInputIdx] = useState(null);
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+
+  // METHOD_CONTENT에서 공정 단계 이름 가져오기 (index.html 데이터 참조 불가하므로 하드코딩)
+  const processNames = {
+    shingle: ['표면강화함침','POUR슈퍼복합압축시트','방수액 도포','POUR코트재','상도 마감','POUR HOOKER 후레싱 고정'],
+    metal: ['표면강화함침','POUR슈퍼복합압축시트','방수액 도포','POUR코트재','POUR HOOKER 후레싱 고정'],
+    metal_coat: ['표면 세정 및 녹 제거','프라이머 도포','중도 코팅','상도 마감'],
+    slab_dual: ['모체강화함침 + 듀얼복합시트 전개','슈퍼복합압축시트 보강','듀얼복합시트 보강완료','코트재Ⅱ 도포 (중도)','상도코트재 도포','작업완료'],
+    slab_pvc: ['결로방지단열시트 시공','PVC 방수층 형성','이음부 열융착','드레인 주변 처리','코트재 마감'],
+    slab_urethane: ['모체강화함침','코너·이음부 복합시트 보강','우레탄 하도','우레탄 중도','코트재 상도'],
+    slab_acrylic: ['누수 경로 파악','천공 작업','2액형 아크릴 초고압 주입','주입공 마감','표면 처리'],
+    parking_epoxy: ['기존 도막 제거·쇼트브라스팅','프라이머 도포','에폭시 중도','에폭시 상도','양생'],
+    parking_emboss: ['바탕면 처리','프라이머','써밋비드 분산 엠보라이닝 도포','상도 마감'],
+    wall_premium: ['균열 V컷팅','POUR하이퍼티 충전','바인더 도포','POUR플러스 중도','POUR플러스 상도'],
+    wall_mid: ['균열 V컷팅','충전재 처리','POUR플러스 중도','수성 상도'],
+    wall_economy: ['균열 V컷팅','탄성 바인더 도포','수성 도료 상도'],
+    crack_surface: ['균열 부위 청소','POUR탄성강화파우더 도포','양생'],
+    crack_section: ['파손 부위 확대 제거','철근 방청 처리','POUR탄성강화파우더 단면복구','양생'],
+    crack_sheet: ['균열면 처리','POUR슈퍼복합압축시트 부착','방수액 도포','마감'],
+    ascon_repair: ['균열·파손부 절삭 제거','기층 보강 처리','POUR아스콘 재포장','다짐 마감'],
+    ascon_seal: ['표면 청소·건조','씰코팅재 도포','양생'],
+    ascon_mma: ['바탕면 처리','MMA 프라이머','MMA 중도','논슬립 집게 시공','상도 마감'],
+  };
+
+  const steps = processNames[methodId] || [];
+
+  return (
+    <div style={{display:'flex', flexDirection:'column', gap:16}}>
+      {steps.map((stepName, idx) => {
+        const photo = (content.processPhotos || [])[idx];
+        const desc = (content.processDescs || [])[idx] || '';
+        const isUploading = uploadingIdx === `process_${idx}`;
+        const isYoutubeObj = photo && typeof photo === 'object' && photo.type === 'youtube';
+        const photoUrl = isYoutubeObj ? photo.url : (typeof photo === 'string' ? photo : null);
+
+        return (
+          <div key={idx} style={{
+            background:'#fff', borderRadius:12, border:'1px solid var(--border)',
+            overflow:'hidden'
+          }}>
+            {/* 헤더 */}
+            <div style={{
+              padding:'10px 16px', background:'#F8FAFC',
+              borderBottom:'1px solid var(--border)',
+              display:'flex', alignItems:'center', gap:10
+            }}>
+              <div style={{
+                width:28, height:28, borderRadius:'50%',
+                background:'#2563EB', color:'#fff',
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontSize:12, fontWeight:700, flexShrink:0
+              }}>{idx + 1}</div>
+              <span style={{fontSize:13, fontWeight:700, color:'var(--text)'}}>{stepName}</span>
+            </div>
+
+            <div style={{padding:16, display:'flex', gap:16}}>
+              {/* 사진 영역 */}
+              <div style={{width:200, flexShrink:0}}>
+                <div style={{
+                  width:'100%', aspectRatio:'4/3', borderRadius:8,
+                  background:'#F1F5F9', border:'2px dashed #CBD5E1',
+                  display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+                  overflow:'hidden', position:'relative'
+                }}>
+                  {isUploading ? (
+                    <div style={{fontSize:12, color:'var(--text-md)'}}>업로드 중...</div>
+                  ) : isYoutubeObj ? (
+                    <iframe src={photoUrl} style={{width:'100%', height:'100%', border:'none'}} allowFullScreen />
+                  ) : photoUrl ? (
+                    <img src={photoUrl} style={{width:'100%', height:'100%', objectFit:'cover'}} alt={stepName} />
+                  ) : (
+                    <div style={{textAlign:'center', padding:12}}>
+                      <div style={{fontSize:24, marginBottom:4}}>📷</div>
+                      <div style={{fontSize:11, color:'var(--text-md)'}}>사진 없음</div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 업로드 버튼들 */}
+                <div style={{display:'flex', gap:4, marginTop:8}}>
+                  <label style={{
+                    flex:1, padding:'5px 0', textAlign:'center', borderRadius:6,
+                    background:'#EFF6FF', color:'#2563EB', fontSize:11, fontWeight:600,
+                    cursor:'pointer', border:'1px solid #BFDBFE'
+                  }}>
+                    📁 사진
+                    <input type="file" accept="image/*" style={{display:'none'}}
+                      onChange={e => e.target.files[0] && onImageUpload(e.target.files[0], 'process', idx)}
+                    />
+                  </label>
+                  <button onClick={() => { setYoutubeInputIdx(idx); setYoutubeUrl(''); }} style={{
+                    flex:1, padding:'5px 0', borderRadius:6,
+                    background:'#FEF3C7', color:'#D97706', fontSize:11, fontWeight:600,
+                    cursor:'pointer', border:'1px solid #FDE68A'
+                  }}>▶ 유튜브</button>
+                  {photoUrl && (
+                    <button onClick={() => onUpdatePhoto(idx, null)} style={{
+                      padding:'5px 8px', borderRadius:6,
+                      background:'#FEE2E2', color:'#DC2626', fontSize:11,
+                      cursor:'pointer', border:'1px solid #FECACA'
+                    }}>✕</button>
+                  )}
+                </div>
+
+                {/* URL 직접 입력 */}
+                <input
+                  type="text"
+                  value={typeof photo === 'string' ? photo : ''}
+                  onChange={e => onUpdatePhoto(idx, e.target.value)}
+                  placeholder="이미지 URL 직접 입력..."
+                  style={{
+                    width:'100%', marginTop:6, padding:'5px 8px', borderRadius:6,
+                    border:'1px solid var(--border)', fontSize:11, boxSizing:'border-box'
+                  }}
+                />
+
+                {/* YouTube URL 입력 모달 */}
+                {youtubeInputIdx === idx && (
+                  <div style={{
+                    marginTop:6, padding:10, background:'#FFFBEB',
+                    borderRadius:8, border:'1px solid #FDE68A'
+                  }}>
+                    <div style={{fontSize:11, fontWeight:600, color:'#D97706', marginBottom:6}}>YouTube URL 입력</div>
+                    <input
+                      type="text"
+                      value={youtubeUrl}
+                      onChange={e => setYoutubeUrl(e.target.value)}
+                      placeholder="https://youtu.be/..."
+                      style={{
+                        width:'100%', padding:'5px 8px', borderRadius:6,
+                        border:'1px solid #FDE68A', fontSize:11, boxSizing:'border-box', marginBottom:6
+                      }}
+                    />
+                    <div style={{display:'flex', gap:4}}>
+                      <button onClick={() => { onYoutube(idx, youtubeUrl); setYoutubeInputIdx(null); }} style={{
+                        flex:1, padding:'4px 0', borderRadius:6, border:'none',
+                        background:'#D97706', color:'#fff', fontSize:11, cursor:'pointer'
+                      }}>적용</button>
+                      <button onClick={() => setYoutubeInputIdx(null)} style={{
+                        flex:1, padding:'4px 0', borderRadius:6, border:'none',
+                        background:'#E5E7EB', color:'var(--text)', fontSize:11, cursor:'pointer'
+                      }}>취소</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 설명 텍스트 */}
+              <div style={{flex:1}}>
+                <label style={{display:'block', fontSize:11, fontWeight:600, color:'var(--text-md)', marginBottom:6}}>
+                  공정 설명
+                </label>
+                <textarea
+                  value={desc}
+                  onChange={e => onUpdateDesc(idx, e.target.value)}
+                  rows={5}
+                  style={{
+                    width:'100%', padding:'8px 12px', borderRadius:8,
+                    border:'1px solid var(--border)', fontSize:12, lineHeight:1.7,
+                    resize:'vertical', fontFamily:'inherit', boxSizing:'border-box'
+                  }}
+                  placeholder={`${stepName} 공정 설명을 입력하세요...`}
+                />
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// 자재 모달 편집 서브컴포넌트
+function MaterialEditor({ content, methodId, onUpdate, onImageUpload, onYoutube, uploadingIdx }) {
+  const [youtubeInputIdx, setYoutubeInputIdx] = useState(null);
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+
+  const materials = content.processMaterials || [];
+  const filledMats = materials.filter(m => m && m.name);
+
+  if (filledMats.length === 0) {
+    return (
+      <div style={{
+        padding:40, textAlign:'center', color:'var(--text-md)',
+        background:'#F8FAFC', borderRadius:12, border:'1px dashed var(--border)'
+      }}>
+        <div style={{fontSize:32, marginBottom:8}}>📦</div>
+        <div style={{fontSize:13}}>이 공법에 등록된 자재가 없습니다.</div>
+        <div style={{fontSize:11, marginTop:4, color:'rgba(0,0,0,.3)'}}>index.html의 processMaterials 배열에 자재를 먼저 추가하세요.</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{display:'flex', flexDirection:'column', gap:16}}>
+      {materials.map((mat, idx) => {
+        if (!mat || !mat.name) return null;
+        const isUploading = uploadingIdx === `material_${idx}`;
+        const isYoutube = mat.mediaType === 'youtube';
+
+        return (
+          <div key={idx} style={{
+            background:'#fff', borderRadius:12, border:'1px solid var(--border)', overflow:'hidden'
+          }}>
+            <div style={{
+              padding:'10px 16px', background:'#F8FAFC',
+              borderBottom:'1px solid var(--border)',
+              display:'flex', alignItems:'center', gap:10
+            }}>
+              <span style={{
+                padding:'2px 10px', borderRadius:20, background:'#2563EB',
+                color:'#fff', fontSize:11, fontWeight:700
+              }}>자재</span>
+              <span style={{fontSize:13, fontWeight:700, color:'var(--text)'}}>{mat.name}</span>
+            </div>
+
+            <div style={{padding:16, display:'flex', gap:16}}>
+              {/* 미디어 영역 */}
+              <div style={{width:200, flexShrink:0}}>
+                <div style={{
+                  width:'100%', aspectRatio:'4/3', borderRadius:8,
+                  background:'#F1F5F9', border:'2px dashed #CBD5E1',
+                  display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+                  overflow:'hidden'
+                }}>
+                  {isUploading ? (
+                    <div style={{fontSize:12, color:'var(--text-md)'}}>업로드 중...</div>
+                  ) : isYoutube && mat.mediaUrl ? (
+                    <iframe src={mat.mediaUrl} style={{width:'100%', height:'100%', border:'none'}} allowFullScreen />
+                  ) : mat.mediaUrl ? (
+                    <img src={mat.mediaUrl} style={{width:'100%', height:'100%', objectFit:'cover'}} alt={mat.name} />
+                  ) : (
+                    <div style={{textAlign:'center', padding:12}}>
+                      <div style={{fontSize:24, marginBottom:4}}>📦</div>
+                      <div style={{fontSize:11, color:'var(--text-md)'}}>미디어 없음</div>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{display:'flex', gap:4, marginTop:8}}>
+                  <label style={{
+                    flex:1, padding:'5px 0', textAlign:'center', borderRadius:6,
+                    background:'#EFF6FF', color:'#2563EB', fontSize:11, fontWeight:600,
+                    cursor:'pointer', border:'1px solid #BFDBFE'
+                  }}>
+                    📁 사진
+                    <input type="file" accept="image/*" style={{display:'none'}}
+                      onChange={e => e.target.files[0] && onImageUpload(e.target.files[0], 'material', idx)}
+                    />
+                  </label>
+                  <button onClick={() => { setYoutubeInputIdx(idx); setYoutubeUrl(''); }} style={{
+                    flex:1, padding:'5px 0', borderRadius:6,
+                    background:'#FEF3C7', color:'#D97706', fontSize:11, fontWeight:600,
+                    cursor:'pointer', border:'1px solid #FDE68A'
+                  }}>▶ 유튜브</button>
+                  {mat.mediaUrl && (
+                    <button onClick={() => { onUpdate(idx, 'mediaUrl', ''); onUpdate(idx, 'mediaType', 'image'); }} style={{
+                      padding:'5px 8px', borderRadius:6,
+                      background:'#FEE2E2', color:'#DC2626', fontSize:11,
+                      cursor:'pointer', border:'1px solid #FECACA'
+                    }}>✕</button>
+                  )}
+                </div>
+
+                <input
+                  type="text"
+                  value={mat.mediaUrl || ''}
+                  onChange={e => onUpdate(idx, 'mediaUrl', e.target.value)}
+                  placeholder="이미지/영상 URL..."
+                  style={{
+                    width:'100%', marginTop:6, padding:'5px 8px', borderRadius:6,
+                    border:'1px solid var(--border)', fontSize:11, boxSizing:'border-box'
+                  }}
+                />
+
+                {youtubeInputIdx === idx && (
+                  <div style={{
+                    marginTop:6, padding:10, background:'#FFFBEB',
+                    borderRadius:8, border:'1px solid #FDE68A'
+                  }}>
+                    <div style={{fontSize:11, fontWeight:600, color:'#D97706', marginBottom:6}}>YouTube URL</div>
+                    <input
+                      type="text"
+                      value={youtubeUrl}
+                      onChange={e => setYoutubeUrl(e.target.value)}
+                      placeholder="https://youtu.be/..."
+                      style={{
+                        width:'100%', padding:'5px 8px', borderRadius:6,
+                        border:'1px solid #FDE68A', fontSize:11, boxSizing:'border-box', marginBottom:6
+                      }}
+                    />
+                    <div style={{display:'flex', gap:4}}>
+                      <button onClick={() => { onYoutube(idx, youtubeUrl); setYoutubeInputIdx(null); }} style={{
+                        flex:1, padding:'4px 0', borderRadius:6, border:'none',
+                        background:'#D97706', color:'#fff', fontSize:11, cursor:'pointer'
+                      }}>적용</button>
+                      <button onClick={() => setYoutubeInputIdx(null)} style={{
+                        flex:1, padding:'4px 0', borderRadius:6, border:'none',
+                        background:'#E5E7EB', color:'var(--text)', fontSize:11, cursor:'pointer'
+                      }}>취소</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 자재 설명 */}
+              <div style={{flex:1}}>
+                <label style={{display:'block', fontSize:11, fontWeight:600, color:'var(--text-md)', marginBottom:6}}>
+                  자재 설명 (모달에 표시)
+                </label>
+                <textarea
+                  value={mat.desc || ''}
+                  onChange={e => onUpdate(idx, 'desc', e.target.value)}
+                  rows={5}
+                  style={{
+                    width:'100%', padding:'8px 12px', borderRadius:8,
+                    border:'1px solid var(--border)', fontSize:12, lineHeight:1.7,
+                    resize:'vertical', fontFamily:'inherit', boxSizing:'border-box'
+                  }}
+                  placeholder={`${mat.name} 자재 설명을 입력하세요...`}
+                />
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// 공정 미리보기 (앱 UI와 동일)
+function ProcessPreview({ content, methodId }) {
+  const [activeStep, setActiveStep] = useState(0);
+  const processNames = {
+    shingle: ['표면강화함침','POUR슈퍼복합압축시트','방수액 도포','POUR코트재','상도 마감','POUR HOOKER 후레싱 고정'],
+    metal: ['표면강화함침','POUR슈퍼복합압축시트','방수액 도포','POUR코트재','POUR HOOKER 후레싱 고정'],
+    metal_coat: ['표면 세정 및 녹 제거','프라이머 도포','중도 코팅','상도 마감'],
+    slab_dual: ['모체강화함침 + 듀얼복합시트 전개','슈퍼복합압축시트 보강','듀얼복합시트 보강완료','코트재Ⅱ 도포 (중도)','상도코트재 도포','작업완료'],
+    slab_pvc: ['결로방지단열시트 시공','PVC 방수층 형성','이음부 열융착','드레인 주변 처리','코트재 마감'],
+    slab_urethane: ['모체강화함침','코너·이음부 복합시트 보강','우레탄 하도','우레탄 중도','코트재 상도'],
+    slab_acrylic: ['누수 경로 파악','천공 작업','2액형 아크릴 초고압 주입','주입공 마감','표면 처리'],
+    parking_epoxy: ['기존 도막 제거·쇼트브라스팅','프라이머 도포','에폭시 중도','에폭시 상도','양생'],
+    parking_emboss: ['바탕면 처리','프라이머','써밋비드 분산 엠보라이닝 도포','상도 마감'],
+    wall_premium: ['균열 V컷팅','POUR하이퍼티 충전','바인더 도포','POUR플러스 중도','POUR플러스 상도'],
+    wall_mid: ['균열 V컷팅','충전재 처리','POUR플러스 중도','수성 상도'],
+    wall_economy: ['균열 V컷팅','탄성 바인더 도포','수성 도료 상도'],
+    crack_surface: ['균열 부위 청소','POUR탄성강화파우더 도포','양생'],
+    crack_section: ['파손 부위 확대 제거','철근 방청 처리','POUR탄성강화파우더 단면복구','양생'],
+    crack_sheet: ['균열면 처리','POUR슈퍼복합압축시트 부착','방수액 도포','마감'],
+    ascon_repair: ['균열·파손부 절삭 제거','기층 보강 처리','POUR아스콘 재포장','다짐 마감'],
+    ascon_seal: ['표면 청소·건조','씰코팅재 도포','양생'],
+    ascon_mma: ['바탕면 처리','MMA 프라이머','MMA 중도','논슬립 집게 시공','상도 마감'],
+  };
+  const steps = processNames[methodId] || [];
+  const photos = content?.processPhotos || [];
+  const descs = content?.processDescs || [];
+  const mats = content?.processMaterials || [];
+
+  return (
+    <div>
+      <div style={{fontSize:11, fontWeight:700, color:'#F59E0B', marginBottom:12}}>
+        STEP 3. POUR 해결방안 — 공정 미리보기
+      </div>
+      {/* 타임라인 */}
+      <div style={{display:'flex', flexDirection:'column', gap:0}}>
+        {steps.map((step, idx) => {
+          const photo = photos[idx];
+          const desc = descs[idx];
+          const mat = mats[idx];
+          const isActive = activeStep === idx;
+          const photoUrl = photo && typeof photo === 'object' ? photo.url : photo;
+
+          return (
+            <div key={idx} style={{display:'flex', gap:12, marginBottom:8}}>
+              {/* 타임라인 라인 */}
+              <div style={{display:'flex', flexDirection:'column', alignItems:'center', width:32, flexShrink:0}}>
+                <div
+                  onClick={() => setActiveStep(isActive ? -1 : idx)}
+                  style={{
+                    width:28, height:28, borderRadius:'50%', cursor:'pointer',
+                    background: isActive ? '#F59E0B' : '#334155',
+                    color: isActive ? '#000' : 'rgba(255,255,255,.6)',
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    fontSize:12, fontWeight:700, flexShrink:0, transition:'all .2s'
+                  }}>{idx + 1}</div>
+                {idx < steps.length - 1 && (
+                  <div style={{width:2, flex:1, minHeight:8, background:'rgba(255,255,255,.1)', margin:'2px 0'}} />
+                )}
+              </div>
+
+              {/* 내용 */}
+              <div style={{flex:1, paddingBottom:8}}>
+                <div
+                  onClick={() => setActiveStep(isActive ? -1 : idx)}
+                  style={{
+                    fontSize:12, fontWeight:700,
+                    color: isActive ? '#F59E0B' : 'rgba(255,255,255,.8)',
+                    cursor:'pointer', marginBottom: isActive ? 8 : 0
+                  }}>{step}</div>
+
+                {isActive && (
+                  <div style={{
+                    background:'rgba(255,255,255,.05)', borderRadius:8,
+                    padding:12, border:'1px solid rgba(255,255,255,.1)'
+                  }}>
+                    {photoUrl ? (
+                      typeof photo === 'object' && photo.type === 'youtube' ? (
+                        <div style={{aspectRatio:'16/9', borderRadius:6, overflow:'hidden', marginBottom:8}}>
+                          <iframe src={photoUrl} style={{width:'100%', height:'100%', border:'none'}} allowFullScreen />
+                        </div>
+                      ) : (
+                        <img src={photoUrl} style={{
+                          width:'100%', aspectRatio:'16/9', objectFit:'cover',
+                          borderRadius:6, marginBottom:8
+                        }} alt={step} />
+                      )
+                    ) : (
+                      <div style={{
+                        width:'100%', aspectRatio:'16/9', background:'rgba(255,255,255,.05)',
+                        borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center',
+                        marginBottom:8, color:'rgba(255,255,255,.3)', fontSize:12
+                      }}>사진 없음</div>
+                    )}
+                    {desc && <p style={{fontSize:11, color:'rgba(255,255,255,.6)', margin:0, lineHeight:1.7}}>{desc}</p>}
+                    {mat && mat.name && (
+                      <div style={{
+                        marginTop:8, padding:'6px 10px', background:'rgba(37,99,235,.2)',
+                        borderRadius:6, fontSize:11, color:'#93C5FD', fontWeight:600
+                      }}>📦 {mat.name}</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+
 const DOC_TYPES=['시방서','제안서','카탈로그','인증서/시험성적서','특허','회사소개서','단가표','기타'];
 
 function SalesDocsPage({showToast}){
@@ -5373,6 +6199,8 @@ function App() {
         return <ExpoLeadsPage showToast={showToast} onNavigate={setPage} />;
       case 'outbound-always':
         return <PagePlaceholder title="상시영업" icon="📞" description="추후 개발 예정" />;
+      case 'content-editor':
+        return <ContentEditorPage showToast={showToast} />;
       case 'defect-sites':
         return <DefectSitesPage showToast={showToast} />;
       case 'defect-photos':

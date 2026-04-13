@@ -2,419 +2,891 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>POUR솔루션 영업 앱 — 영상 매뉴얼</title>
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet"/>
 <style>
-/* ─── 리셋 & 변수 ─── */
-*{margin:0;padding:0;box-sizing:border-box;}
-:root{
-  --navy:#0D1B2A;--blue:#2563EB;--blue-l:#EFF6FF;--blue-m:#BFDBFE;
-  --green:#059669;--green-l:#ECFDF5;
-  --orange:#EA580C;--orange-l:#FFF7ED;
-  --gold:#D97706;--red:#DC2626;--purple:#7C3AED;--purple-l:#F5F3FF;
-  --text:#111827;--text-md:#4B5563;--text-sm:#9CA3AF;
-  --bg:#F1F5F9;--card:#fff;--border:#E5E7EB;
-  --shadow:0 2px 12px rgba(0,0,0,.08);
-  --shadow-lg:0 8px 32px rgba(0,0,0,.15);
+/* ── 리셋 & 변수 ── */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --navy: #0B1D3A;
+  --navy2: #132D5E;
+  --blue: #2563EB;
+  --blue-l: #EFF6FF;
+  --blue-m: #BFDBFE;
+  --green: #059669;
+  --green-l: #ECFDF5;
+  --orange: #EA580C;
+  --gold: #D97706;
+  --red: #DC2626;
+  --purple: #7C3AED;
+  --text: #111827;
+  --text-md: #4B5563;
+  --text-sm: #9CA3AF;
+  --bg: #F0F4F8;
+  --card: #fff;
+  --border: #E5E7EB;
+  --radius: 14px;
+  --shadow: 0 2px 12px rgba(0,0,0,.07);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,.14);
 }
-html{scroll-behavior:smooth;}
-body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;overflow-x:hidden;}
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Pretendard', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
 
-/* ─── 헤더 ─── */
-.header{
-  background:linear-gradient(90deg,#0B1D3A 0%,#132D5E 100%);
-  position:sticky;top:0;z-index:200;
-  box-shadow:0 2px 16px rgba(0,0,0,.4);
+/* ── 헤더 ── */
+.header {
+  background: linear-gradient(90deg, #0A1929 0%, #0F2547 100%);
+  position: sticky; top: 0; z-index: 300;
+  box-shadow: 0 2px 20px rgba(0,0,0,.4);
 }
-.header-inner{max-width:1200px;margin:0 auto;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
-.header-brand{display:flex;align-items:center;gap:10px;}
-.header-logo-box{width:30px;height:30px;border-radius:7px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:var(--navy);}
-.header-title{font-size:14px;font-weight:900;color:#fff;letter-spacing:-.01em;}
-.header-title span{color:#60A5FA;}
-.header-badge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(96,165,250,.15);border:1px solid rgba(96,165,250,.3);color:#93C5FD;white-space:nowrap;}
+.header-inner {
+  max-width: 1160px; margin: 0 auto;
+  padding: 13px 28px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.header-brand { display: flex; align-items: center; gap: 10px; }
+.header-logo {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: #fff; display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 900; color: var(--navy); flex-shrink: 0;
+}
+.header-name { font-size: 15px; font-weight: 800; color: #fff; }
+.header-name span { color: #60A5FA; }
+.header-pill {
+  font-size: 10px; font-weight: 700;
+  padding: 4px 12px; border-radius: 20px;
+  background: rgba(96,165,250,.12);
+  border: 1px solid rgba(96,165,250,.25);
+  color: #93C5FD;
+}
 
-/* ─── 진행 표시줄 ─── */
-.progress-bar{
-  background:rgba(11,29,58,.95);backdrop-filter:blur(8px);
-  border-bottom:1px solid rgba(255,255,255,.08);
-  position:sticky;top:54px;z-index:190;
-  overflow-x:auto;scrollbar-width:none;
+/* ── 진행 바 ── */
+.prog-bar {
+  background: rgba(10,25,41,.96);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  position: sticky; top: 58px; z-index: 200;
+  overflow-x: auto; scrollbar-width: none;
 }
-.progress-bar::-webkit-scrollbar{display:none;}
-.progress-inner{display:flex;min-width:max-content;padding:0 20px;max-width:1200px;margin:0 auto;}
-.prog-step{
-  display:flex;align-items:center;gap:7px;padding:10px 14px;
-  font-size:11px;font-weight:700;color:rgba(255,255,255,.4);
-  cursor:pointer;white-space:nowrap;transition:all .2s;
-  border-bottom:2px solid transparent;text-decoration:none;
+.prog-bar::-webkit-scrollbar { display: none; }
+.prog-inner {
+  display: flex; min-width: max-content;
+  max-width: 1160px; margin: 0 auto; padding: 0 24px;
 }
-.prog-step:hover{color:rgba(255,255,255,.75);}
-.prog-step.active{color:#60A5FA;border-bottom-color:#2563EB;}
-.prog-num{
-  width:20px;height:20px;border-radius:50%;
-  background:rgba(255,255,255,.1);
-  display:flex;align-items:center;justify-content:center;
-  font-size:9px;font-weight:900;flex-shrink:0;
-  transition:all .2s;
+.prog-item {
+  display: flex; align-items: center; gap: 7px;
+  padding: 11px 16px;
+  font-size: 11px; font-weight: 700;
+  color: rgba(255,255,255,.35);
+  border-bottom: 2px solid transparent;
+  cursor: pointer; white-space: nowrap;
+  text-decoration: none; transition: all .2s;
 }
-.prog-step.active .prog-num{background:#2563EB;color:#fff;}
-.prog-step.done .prog-num{background:#059669;color:#fff;}
-.prog-step.done{color:rgba(255,255,255,.5);}
+.prog-item:hover { color: rgba(255,255,255,.7); }
+.prog-item.active { color: #60A5FA; border-bottom-color: #2563EB; }
+.prog-item.done { color: rgba(255,255,255,.45); }
+.prog-num {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: rgba(255,255,255,.1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 900; flex-shrink: 0;
+  transition: all .2s;
+}
+.prog-item.active .prog-num { background: #2563EB; color: #fff; }
+.prog-item.done .prog-num { background: #059669; color: #fff; }
 
-/* ─── 히어로 ─── */
-.hero{
-  background:linear-gradient(160deg,#0B1D3A 0%,#132D5E 55%,#0f2540 100%);
-  padding:64px 24px 52px;text-align:center;color:#fff;position:relative;overflow:hidden;
+/* ── 히어로 ── */
+.hero {
+  background: linear-gradient(155deg, #08172E 0%, #0F2547 50%, #091E3A 100%);
+  padding: 72px 28px 56px;
+  text-align: center; color: #fff;
+  position: relative; overflow: hidden;
 }
-.hero::before{
-  content:'';position:absolute;inset:0;
-  background:radial-gradient(ellipse 90% 70% at 50% -10%,rgba(37,99,235,.3) 0%,transparent 65%);
+.hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% -5%, rgba(37,99,235,.28) 0%, transparent 65%);
 }
-.hero::after{
-  content:'';position:absolute;bottom:0;left:0;right:0;height:60px;
-  background:linear-gradient(to bottom,transparent,var(--bg));
+.hero::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 64px;
+  background: linear-gradient(to bottom, transparent, var(--bg));
 }
-.hero-content{position:relative;z-index:1;max-width:720px;margin:0 auto;}
-.hero-eyebrow{font-size:10px;font-weight:700;letter-spacing:.25em;color:#93C5FD;opacity:.75;margin-bottom:18px;text-transform:uppercase;}
-.hero-h1{font-size:clamp(28px,5vw,46px);font-weight:900;line-height:1.18;margin-bottom:18px;}
-.hero-h1 em{color:#60A5FA;font-style:normal;}
-.hero-desc{font-size:14px;color:rgba(255,255,255,.6);line-height:1.85;max-width:540px;margin:0 auto 32px;}
-.hero-tags{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:32px;}
-.htag{font-size:11px;font-weight:700;padding:5px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.72);background:rgba(255,255,255,.05);}
-.hero-stats{display:flex;gap:24px;justify-content:center;}
-.hero-stat{text-align:center;}
-.hero-stat-num{font-size:28px;font-weight:900;color:#60A5FA;}
-.hero-stat-label{font-size:10px;color:rgba(255,255,255,.4);font-weight:600;}
+.hero-content { position: relative; z-index: 1; max-width: 700px; margin: 0 auto; }
+.hero-eyebrow {
+  font-size: 10px; font-weight: 700; letter-spacing: .22em;
+  color: #93C5FD; opacity: .7; margin-bottom: 20px;
+  text-transform: uppercase;
+}
+.hero-h1 {
+  font-size: clamp(30px, 5vw, 50px);
+  font-weight: 900; line-height: 1.16;
+  margin-bottom: 20px;
+}
+.hero-h1 em { color: #60A5FA; font-style: normal; }
+.hero-desc {
+  font-size: 14px; color: rgba(255,255,255,.55);
+  line-height: 1.9; max-width: 520px; margin: 0 auto 32px;
+}
+.hero-tags {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  justify-content: center; margin-bottom: 36px;
+}
+.htag {
+  font-size: 11px; font-weight: 700;
+  padding: 5px 14px; border-radius: 20px;
+  border: 1px solid rgba(255,255,255,.15);
+  color: rgba(255,255,255,.65);
+  background: rgba(255,255,255,.05);
+}
+.hero-stats { display: flex; gap: 32px; justify-content: center; }
+.hero-stat-num { font-size: 32px; font-weight: 900; color: #60A5FA; line-height: 1; }
+.hero-stat-label { font-size: 10px; color: rgba(255,255,255,.38); font-weight: 600; margin-top: 4px; }
 
-/* ─── 메인 ─── */
-.main{max-width:1200px;margin:0 auto;padding:48px 24px 80px;}
+/* ── 메인 컨테이너 ── */
+.main { max-width: 1160px; margin: 0 auto; padding: 56px 28px 100px; }
 
-/* ─── 스텝 섹션 ─── */
-.step-section{
-  display:grid;grid-template-columns:1fr 1fr;gap:48px;
-  align-items:center;margin-bottom:88px;
-  opacity:0;transform:translateY(28px);
-  transition:opacity .65s ease,transform .65s ease;
+/* ── 스텝 섹션 ── */
+.step-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 56px;
+  align-items: center;
+  margin-bottom: 96px;
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity .7s ease, transform .7s ease;
 }
-.step-section.visible{opacity:1;transform:translateY(0);}
-.step-section.reverse .tablet-wrap{order:2;}
-.step-section.reverse .desc-panel{order:1;}
+.step-section.visible { opacity: 1; transform: translateY(0); }
+.step-section.reverse .tablet-col { order: 2; }
+.step-section.reverse .desc-col { order: 1; }
 
-/* ─── 태블릿 목업 ─── */
-.tablet-wrap{display:flex;justify-content:center;align-items:center;}
-.tablet-outer{
-  width:100%;max-width:440px;
-  background:linear-gradient(145deg,#2c2c2c,#1a1a1a);
-  border-radius:30px;padding:14px 14px 18px;
+/* ── 태블릿 목업 ── */
+.tablet-col { display: flex; justify-content: center; }
+.tablet-frame {
+  width: 100%; max-width: 420px;
+  background: linear-gradient(150deg, #2a2a2a, #1a1a1a);
+  border-radius: 28px;
+  padding: 16px 14px 20px;
   box-shadow:
-    0 0 0 1px rgba(255,255,255,.07),
-    0 24px 64px rgba(0,0,0,.55),
+    0 0 0 1px rgba(255,255,255,.06),
+    0 28px 72px rgba(0,0,0,.6),
     inset 0 1px 0 rgba(255,255,255,.1);
-  position:relative;
+  position: relative;
 }
-.tablet-outer::before{
-  content:'';position:absolute;top:7px;left:50%;transform:translateX(-50%);
-  width:56px;height:4px;background:rgba(255,255,255,.12);border-radius:2px;
+.tablet-frame::before {
+  content: '';
+  position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+  width: 52px; height: 4px;
+  background: rgba(255,255,255,.1); border-radius: 2px;
 }
-.tablet-outer::after{
-  content:'';position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
-  width:40px;height:4px;background:rgba(255,255,255,.1);border-radius:2px;
+.tablet-frame::after {
+  content: '';
+  position: absolute; bottom: 9px; left: 50%; transform: translateX(-50%);
+  width: 38px; height: 4px;
+  background: rgba(255,255,255,.09); border-radius: 2px;
 }
-.tablet-screen{
-  background:#fff;border-radius:20px;overflow:hidden;
-  aspect-ratio:4/3;position:relative;
-  box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);
+.tablet-screen {
+  background: #fff;
+  border-radius: 18px;
+  overflow: hidden;
+  aspect-ratio: 4/3;
+  position: relative;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.1);
 }
-.screen-content{width:100%;height:100%;overflow:hidden;position:relative;}
+.sim { width: 100%; height: 100%; overflow: hidden; position: relative; font-family: 'Pretendard', sans-serif; }
 
-/* ─── 앱 시뮬레이션 공통 ─── */
-.app-sim{width:100%;height:100%;font-family:'Pretendard',sans-serif;overflow:hidden;position:relative;}
-
-/* 홈 화면 */
-.sim-home{
-  width:100%;height:100%;
-  background:linear-gradient(160deg,#0B1D3A 0%,#132D5E 100%);
-  display:flex;flex-direction:column;color:#fff;
+/* ── 실제 앱 재현: 메인 홈 화면 ── */
+.app-home {
+  width: 100%; height: 100%;
+  background: linear-gradient(160deg, #0B1D3A 0%, #0F2547 60%, #0B1D3A 100%);
+  display: flex; flex-direction: column;
+  position: relative; overflow: hidden;
 }
-.sim-topbar-home{padding:14px 14px 8px;display:flex;align-items:center;justify-content:space-between;}
-.sim-brand{font-size:16px;font-weight:900;letter-spacing:-.01em;}
-.sim-brand span{color:#60A5FA;}
-.sim-badge-sm{font-size:8px;padding:2px 8px;border-radius:10px;background:rgba(96,165,250,.18);border:1px solid rgba(96,165,250,.28);color:#93C5FD;font-weight:700;}
-.sim-body{flex:1;padding:6px 14px 10px;display:flex;flex-direction:column;gap:8px;}
-.sim-card-dark{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px;}
-.sim-label-xs{font-size:8px;opacity:.45;margin-bottom:6px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
-.sim-chips{display:flex;gap:6px;flex-wrap:wrap;}
-.sim-chip{padding:4px 10px;border-radius:20px;font-size:9px;font-weight:700;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.65);cursor:pointer;transition:all .2s;}
-.sim-chip.sel{background:#2563EB;border-color:#2563EB;color:#fff;}
-.sim-row{display:flex;gap:6px;}
-.sim-mode-btn{flex:1;padding:8px 6px;border-radius:8px;font-size:9px;font-weight:700;text-align:center;border:1.5px solid rgba(255,255,255,.14);color:rgba(255,255,255,.55);cursor:pointer;transition:all .2s;}
-.sim-mode-btn.sel{background:#2563EB;border-color:#2563EB;color:#fff;}
-.sim-cta{
-  background:linear-gradient(135deg,#2563EB,#1d4ed8);
-  border-radius:10px;padding:11px;
-  font-size:11px;font-weight:900;color:#fff;text-align:center;
-  box-shadow:0 4px 16px rgba(37,99,235,.45);cursor:pointer;
+/* 배경 원형 장식 */
+.app-home::before {
+  content: '';
+  position: absolute; top: -40%; right: -20%;
+  width: 70%; height: 70%;
+  background: radial-gradient(circle, rgba(37,99,235,.18) 0%, transparent 65%);
+  border-radius: 50%;
 }
-.sim-stats{display:flex;gap:6px;}
-.sim-stat-box{flex:1;padding:8px 6px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;text-align:center;}
-.sim-stat-label{font-size:7px;color:rgba(255,255,255,.4);font-weight:700;margin-bottom:2px;}
-.sim-stat-val{font-size:13px;font-weight:900;}
-
-/* 공법 선택 */
-.sim-method-screen{width:100%;height:100%;background:#F9FAFB;display:flex;flex-direction:column;}
-.sim-topbar{background:#fff;border-bottom:1px solid #E5E7EB;padding:8px 10px;display:flex;align-items:center;gap:8px;}
-.sim-back-btn{width:24px;height:24px;border-radius:6px;background:#F3F4F6;display:flex;align-items:center;justify-content:center;font-size:10px;color:#6B7280;cursor:pointer;flex-shrink:0;}
-.sim-topbar-title{font-size:11px;font-weight:800;color:#0D1B2A;}
-.sim-tabs-row{display:flex;background:#fff;border-bottom:1px solid #E5E7EB;overflow-x:auto;scrollbar-width:none;}
-.sim-tabs-row::-webkit-scrollbar{display:none;}
-.sim-tab{padding:7px 10px;font-size:9px;font-weight:700;color:#9CA3AF;border-bottom:2px solid transparent;white-space:nowrap;cursor:pointer;transition:all .15s;}
-.sim-tab.active{color:#2563EB;border-bottom-color:#2563EB;}
-.sim-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:8px;overflow-y:auto;flex:1;}
-.sim-method-card{background:#fff;border:1.5px solid #E5E7EB;border-radius:10px;padding:9px;cursor:pointer;transition:all .15s;}
-.sim-method-card.sel{border-color:#2563EB;background:#EFF6FF;}
-.sim-mc-icon{font-size:18px;margin-bottom:3px;}
-.sim-mc-name{font-size:9px;font-weight:800;color:#0D1B2A;line-height:1.3;margin-bottom:2px;}
-.sim-mc-sub{font-size:7px;color:#9CA3AF;}
-.sim-mc-tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;}
-.sim-mc-tag{font-size:7px;padding:1px 5px;border-radius:8px;background:#EFF6FF;color:#2563EB;font-weight:700;}
-
-/* 솔루션 화면 */
-.sim-sol-screen{width:100%;height:100%;background:#F9FAFB;display:flex;flex-direction:column;}
-.sim-sol-hd{background:#0D1B2A;padding:9px 12px;color:#fff;}
-.sim-sol-title{font-size:10px;font-weight:900;margin-bottom:1px;}
-.sim-sol-sub{font-size:8px;opacity:.45;}
-.sim-step-pills{display:flex;gap:4px;padding:7px 10px;background:#fff;border-bottom:1px solid #E5E7EB;overflow-x:auto;scrollbar-width:none;}
-.sim-step-pills::-webkit-scrollbar{display:none;}
-.sim-pill{display:flex;align-items:center;gap:3px;padding:4px 8px;border-radius:20px;font-size:8px;font-weight:700;white-space:nowrap;background:#F3F4F6;color:#9CA3AF;transition:all .2s;}
-.sim-pill.active{background:#EFF6FF;color:#2563EB;}
-.sim-sol-body{flex:1;overflow-y:auto;padding:9px 10px;}
-
-/* 하자사진 */
-.sim-photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px;}
-.sim-photo{aspect-ratio:1;border-radius:6px;background:linear-gradient(135deg,#e2e8f0,#cbd5e1);display:flex;align-items:center;justify-content:center;font-size:18px;position:relative;overflow:hidden;}
-.sim-photo.add{border:1.5px dashed #CBD5E1;background:#F8FAFC;color:#94A3B8;font-size:20px;}
-.sim-ai-result{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:7px;padding:7px 9px;display:flex;align-items:center;gap:7px;margin-bottom:7px;}
-.sim-ai-icon{font-size:16px;flex-shrink:0;}
-.sim-ai-text{font-size:8px;color:#1d4ed8;font-weight:700;line-height:1.45;}
-
-/* 원인 */
-.sim-cause-card{background:#fff;border:1px solid #E5E7EB;border-radius:8px;padding:8px;margin-bottom:7px;}
-.sim-cause-title{font-size:9px;font-weight:800;color:#0D1B2A;margin-bottom:5px;}
-.sim-cause-desc{font-size:8px;color:#4B5563;line-height:1.55;margin-bottom:6px;}
-.sim-video-thumb{aspect-ratio:16/9;background:linear-gradient(135deg,#0D1B2A,#1A2E42);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;}
-.sim-play{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;transition:all .2s;}
-.sim-play.playing{background:rgba(255,255,255,.3);}
-
-/* 해결방안 */
-.sim-proc-tabs{display:flex;gap:4px;margin-bottom:6px;overflow-x:auto;scrollbar-width:none;}
-.sim-proc-tabs::-webkit-scrollbar{display:none;}
-.sim-proc-tab{padding:4px 9px;border-radius:20px;font-size:8px;font-weight:700;background:#F3F4F6;color:#9CA3AF;white-space:nowrap;cursor:pointer;transition:all .15s;}
-.sim-proc-tab.active{background:#ECFDF5;color:#059669;}
-.sim-proc-card{background:#fff;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden;margin-bottom:7px;}
-.sim-proc-img{aspect-ratio:16/9;background:linear-gradient(135deg,#ECFDF5,#D1FAE5);display:flex;align-items:center;justify-content:center;font-size:32px;}
-.sim-proc-info{padding:7px 9px;}
-.sim-proc-name{font-size:9px;font-weight:800;color:#0D1B2A;margin-bottom:2px;}
-.sim-proc-desc{font-size:8px;color:#4B5563;line-height:1.5;}
-.sim-feat-btns{display:flex;gap:5px;margin-bottom:7px;flex-wrap:wrap;}
-.sim-feat-btn{padding:4px 9px;border-radius:20px;font-size:8px;font-weight:700;cursor:pointer;border:1px solid;transition:all .15s;}
-.sim-ktr{background:#FEF3C7;border:1px solid #FDE68A;border-radius:7px;padding:6px 9px;display:flex;align-items:center;gap:6px;}
-.sim-ktr-text{font-size:8px;color:#92400E;font-weight:700;}
-
-/* 메모 시트 */
-.sim-memo-overlay{position:absolute;inset:0;background:rgba(0,0,0,.45);display:flex;flex-direction:column;justify-content:flex-end;z-index:20;}
-.sim-memo-sheet{background:#fff;border-radius:14px 14px 0 0;padding:12px 14px;max-height:82%;}
-.sim-sheet-handle{width:32px;height:3px;background:#E5E7EB;border-radius:2px;margin:0 auto 10px;}
-.sim-sheet-title{font-size:11px;font-weight:900;color:#0D1B2A;margin-bottom:9px;}
-.sim-field{margin-bottom:6px;}
-.sim-field-label{font-size:8px;font-weight:700;color:#6B7280;margin-bottom:2px;}
-.sim-field-input{width:100%;padding:5px 8px;border:1px solid #E5E7EB;border-radius:6px;font-size:9px;color:#111827;background:#F9FAFB;font-family:'Pretendard',sans-serif;}
-.sim-field-input.focus{border-color:#2563EB;background:#EFF6FF;}
-.sim-action-chips{display:flex;gap:5px;margin-bottom:8px;}
-.sim-action-chip{flex:1;padding:5px 4px;border-radius:6px;font-size:8px;font-weight:700;text-align:center;border:1.5px solid #E5E7EB;color:#4B5563;cursor:pointer;transition:all .15s;}
-.sim-action-chip.sel{border-color:#2563EB;background:#EFF6FF;color:#2563EB;}
-.sim-save-cta{width:100%;padding:9px;background:#2563EB;border-radius:8px;font-size:10px;font-weight:900;color:#fff;text-align:center;cursor:pointer;border:none;font-family:'Pretendard',sans-serif;}
-
-/* 제안서 */
-.sim-report-screen{width:100%;height:100%;background:#F9FAFB;display:flex;flex-direction:column;}
-.sim-report-hd{background:#0D1B2A;padding:10px 12px;color:#fff;text-align:center;}
-.sim-report-title{font-size:10px;font-weight:900;margin-bottom:1px;}
-.sim-report-sub{font-size:8px;opacity:.4;}
-.sim-report-body{flex:1;padding:10px 12px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;}
-.sim-method-list{background:#fff;border:1px solid #E5E7EB;border-radius:9px;padding:9px;}
-.sim-ml-title{font-size:9px;font-weight:800;color:#0D1B2A;margin-bottom:6px;}
-.sim-ml-item{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid #F3F4F6;}
-.sim-ml-item:last-child{border-bottom:none;}
-.sim-ml-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
-.sim-ml-name{font-size:8px;color:#374151;}
-.sim-qr-card{background:#fff;border:1px solid #E5E7EB;border-radius:9px;padding:10px;text-align:center;}
-.sim-qr-title{font-size:9px;font-weight:800;color:#0D1B2A;margin-bottom:7px;}
-.sim-qr-box{width:72px;height:72px;background:linear-gradient(135deg,#0D1B2A,#1A2E42);border-radius:8px;margin:0 auto 5px;display:flex;align-items:center;justify-content:center;font-size:28px;}
-.sim-qr-hint{font-size:8px;color:#9CA3AF;}
-.sim-sms-cta{padding:8px;background:linear-gradient(135deg,#059669,#047857);border-radius:8px;font-size:9px;font-weight:900;color:#fff;text-align:center;cursor:pointer;}
-.sim-reopen{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:8px;text-align:center;}
-.sim-reopen-title{font-size:8px;font-weight:800;color:#1d4ed8;margin-bottom:2px;}
-.sim-reopen-desc{font-size:8px;color:#3b82f6;}
-
-/* FAB */
-.sim-fab{
-  position:absolute;bottom:10px;right:10px;
-  width:34px;height:34px;border-radius:50%;
-  background:#2563EB;color:#fff;
-  display:flex;align-items:center;justify-content:center;
-  font-size:15px;box-shadow:0 4px 12px rgba(37,99,235,.45);
-  cursor:pointer;z-index:10;
+.app-home::after {
+  content: '';
+  position: absolute; bottom: -30%; left: -15%;
+  width: 55%; height: 55%;
+  background: radial-gradient(circle, rgba(14,165,233,.12) 0%, transparent 65%);
+  border-radius: 50%;
+}
+.app-topbar {
+  background: rgba(255,255,255,.06);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  padding: 7px 12px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: relative; z-index: 2;
+}
+.app-topbar-left { display: flex; align-items: center; gap: 6px; }
+.app-staff-badge {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: #2563EB;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 900; color: #fff;
+}
+.app-staff-name { font-size: 9px; font-weight: 700; color: rgba(255,255,255,.75); }
+.app-date-badge {
+  font-size: 8px; font-weight: 700;
+  padding: 2px 7px; border-radius: 10px;
+  background: rgba(255,255,255,.1);
+  color: rgba(255,255,255,.55);
+}
+.app-nav-tabs {
+  display: flex; gap: 4px;
+  padding: 7px 12px 0;
+  position: relative; z-index: 2;
+}
+.app-nav-tab {
+  font-size: 8px; font-weight: 700;
+  padding: 4px 9px; border-radius: 20px;
+  color: rgba(255,255,255,.45);
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  cursor: pointer; transition: all .15s;
+}
+.app-nav-tab.active {
+  background: rgba(37,99,235,.35);
+  border-color: rgba(37,99,235,.5);
+  color: #93C5FD;
+}
+.app-home-body {
+  flex: 1; padding: 10px 12px 10px;
+  display: flex; flex-direction: column; gap: 7px;
+  position: relative; z-index: 2;
+  overflow: hidden;
+}
+.app-logo-area {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 4px 0 6px;
+}
+.app-logo-text {
+  font-size: 13px; font-weight: 900; color: #fff;
+  letter-spacing: -.01em;
+}
+.app-logo-sub { font-size: 7px; color: rgba(255,255,255,.35); margin-top: 1px; }
+.app-mode-row { display: flex; gap: 6px; }
+.app-mode-card {
+  flex: 1; padding: 8px 8px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.05);
+  cursor: pointer; transition: all .15s;
+  text-align: center;
+}
+.app-mode-card.active {
+  border-color: #2563EB;
+  background: rgba(37,99,235,.2);
+}
+.app-mode-icon { font-size: 14px; margin-bottom: 2px; }
+.app-mode-name { font-size: 9px; font-weight: 800; color: #fff; }
+.app-mode-desc { font-size: 7px; color: rgba(255,255,255,.4); line-height: 1.3; margin-top: 1px; }
+.app-cta {
+  background: linear-gradient(135deg, #2563EB, #1d4ed8);
+  border-radius: 10px; padding: 11px 12px;
+  font-size: 12px; font-weight: 900; color: #fff;
+  text-align: center; cursor: pointer;
+  box-shadow: 0 4px 18px rgba(37,99,235,.45);
+  letter-spacing: -.01em;
+}
+.app-sub-row { display: flex; gap: 6px; }
+.app-sub-btn {
+  flex: 1; padding: 7px 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.05);
+  font-size: 8px; font-weight: 700;
+  color: rgba(255,255,255,.55);
+  text-align: center; cursor: pointer;
+}
+.app-sub-btn.highlight {
+  background: rgba(255,255,255,.08);
+  color: rgba(255,255,255,.7);
 }
 
-/* 모달 */
-.sim-modal-overlay{
-  position:absolute;inset:0;background:rgba(0,0,0,.55);
-  z-index:40;display:flex;align-items:center;justify-content:center;padding:12px;
+/* ── 공법 선택 화면 ── */
+.app-method {
+  width: 100%; height: 100%;
+  background: #F9FAFB;
+  display: flex; flex-direction: column;
 }
-.sim-modal{background:#fff;border-radius:12px;padding:12px;width:100%;max-height:80%;overflow-y:auto;}
-.sim-modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
-.sim-modal-title{font-size:10px;font-weight:900;color:#0D1B2A;}
-.sim-modal-close{font-size:14px;cursor:pointer;color:#9CA3AF;background:none;border:none;font-family:'Pretendard',sans-serif;}
-.sim-feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
-.sim-feat-item{background:#F9FAFB;border-radius:7px;padding:8px;text-align:center;}
-.sim-feat-item-icon{font-size:20px;margin-bottom:3px;}
-.sim-feat-item-title{font-size:8px;font-weight:800;color:#0D1B2A;margin-bottom:2px;}
-.sim-feat-item-val{font-size:8px;color:#059669;font-weight:700;}
-
-/* 하이라이트 & 커서 */
-.hl{
-  position:absolute;border-radius:8px;
-  border:2px solid #2563EB;
-  box-shadow:0 0 0 3px rgba(37,99,235,.25),0 0 20px rgba(37,99,235,.35);
-  pointer-events:none;z-index:30;
-  transition:all .45s cubic-bezier(.25,.46,.45,.94);
-  opacity:0;
+.app-method-topbar {
+  background: #0B1D3A;
+  padding: 8px 12px;
+  display: flex; align-items: center; gap: 8px;
 }
-.hl.show{opacity:1;}
-.cursor{
-  position:absolute;width:18px;height:18px;
-  background:rgba(37,99,235,.85);border-radius:50%;
-  pointer-events:none;z-index:50;
-  box-shadow:0 0 0 4px rgba(37,99,235,.2);
-  transition:left .45s cubic-bezier(.25,.46,.45,.94),top .45s cubic-bezier(.25,.46,.45,.94);
-  transform:translate(-50%,-50%);opacity:0;
+.app-method-topbar-back {
+  width: 22px; height: 22px; border-radius: 6px;
+  background: rgba(255,255,255,.12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; color: rgba(255,255,255,.7);
 }
-.cursor-ring{
-  position:absolute;width:32px;height:32px;
-  border:2px solid rgba(37,99,235,.45);border-radius:50%;
-  pointer-events:none;z-index:49;
-  transform:translate(-50%,-50%);opacity:0;
-  transition:left .45s cubic-bezier(.25,.46,.45,.94) .05s,top .45s cubic-bezier(.25,.46,.45,.94) .05s;
+.app-method-topbar-title { font-size: 10px; font-weight: 800; color: #fff; }
+.app-filter-tabs {
+  display: flex; background: #fff;
+  border-bottom: 1px solid #E5E7EB;
+  overflow-x: auto; scrollbar-width: none;
 }
-
-/* ─── 설명 패널 ─── */
-.desc-panel{display:flex;flex-direction:column;gap:18px;}
-.step-eyebrow{display:flex;align-items:center;gap:8px;margin-bottom:2px;}
-.step-num-badge{
-  width:32px;height:32px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:14px;font-weight:900;flex-shrink:0;
+.app-filter-tabs::-webkit-scrollbar { display: none; }
+.app-filter-tab {
+  padding: 7px 11px;
+  font-size: 9px; font-weight: 700;
+  color: #9CA3AF; white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  cursor: pointer; transition: all .15s;
 }
-.step-label{font-size:11px;font-weight:700;padding:3px 12px;border-radius:20px;}
-.step-title{font-size:clamp(20px,2.8vw,28px);font-weight:900;color:var(--navy);line-height:1.22;margin-bottom:10px;}
-.step-desc{font-size:13px;color:var(--text-md);line-height:1.8;margin-bottom:12px;}
-.tips{display:flex;flex-direction:column;gap:7px;}
-.tip{display:flex;align-items:flex-start;gap:10px;padding:10px 13px;border-radius:10px;font-size:12px;line-height:1.6;}
-.tip-ic{font-size:16px;flex-shrink:0;margin-top:1px;}
-.tip-body{color:var(--text-md);}
-.tip-body strong{color:var(--navy);}
-.warn{display:flex;align-items:flex-start;gap:10px;padding:10px 13px;border-radius:10px;font-size:12px;line-height:1.6;background:#FFF7ED;border:1px solid #FED7AA;}
-.warn-body{color:#92400E;}
-.warn-body strong{color:#78350F;}
-
-/* ─── 구분선 ─── */
-.divider{max-width:1200px;margin:0 auto 64px;display:flex;align-items:center;gap:16px;}
-.divider-line{flex:1;height:1px;background:var(--border);}
-.divider-text{font-size:11px;font-weight:700;color:var(--text-sm);white-space:nowrap;padding:4px 12px;background:var(--card);border:1px solid var(--border);border-radius:20px;}
-
-/* ─── 데이터 흐름 ─── */
-.flow-card{max-width:1200px;margin:0 auto 64px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;box-shadow:var(--shadow);}
-.flow-card-title{font-size:14px;font-weight:900;color:var(--navy);margin-bottom:20px;display:flex;align-items:center;gap:8px;}
-.flow-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:12px;}
-.flow-row:last-child{margin-bottom:0;}
-.flow-node{background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:9px 16px;font-size:12px;font-weight:700;color:var(--navy);text-align:center;}
-.flow-arrow{font-size:16px;color:var(--text-sm);}
-
-/* ─── 핵심 기능 ─── */
-.feat-card{max-width:1200px;margin:0 auto 64px;background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow);}
-.feat-header{background:var(--navy);padding:16px 24px;color:#fff;display:flex;align-items:center;gap:10px;}
-.feat-header-icon{font-size:20px;}
-.feat-header-title{font-size:14px;font-weight:900;}
-.feat-header-sub{font-size:11px;opacity:.45;margin-top:2px;}
-.feat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;padding:20px 24px;}
-.feat-item{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;}
-.feat-item-icon{font-size:22px;margin-bottom:7px;}
-.feat-item-title{font-size:11px;font-weight:800;color:var(--navy);margin-bottom:4px;}
-.feat-item-desc{font-size:11px;color:var(--text-md);line-height:1.55;}
-
-/* ─── 주의사항 ─── */
-.caution{max-width:1200px;margin:0 auto 64px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:14px;padding:20px 24px;}
-.caution-title{font-size:13px;font-weight:800;color:#92400E;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
-.caution-list{list-style:none;display:flex;flex-direction:column;gap:8px;}
-.caution-item{display:flex;align-items:flex-start;gap:10px;font-size:12px;color:#78350F;line-height:1.65;}
-.caution-item::before{content:'⚠';flex-shrink:0;}
-
-/* ─── 반응형 ─── */
-@media(max-width:860px){
-  .step-section{grid-template-columns:1fr;gap:28px;}
-  .step-section.reverse .tablet-wrap{order:0;}
-  .step-section.reverse .desc-panel{order:0;}
-  .tablet-outer{max-width:340px;}
-  .main{padding:28px 16px 60px;}
-  .hero{padding:44px 16px 36px;}
-  .feat-grid{grid-template-columns:1fr 1fr;}
+.app-filter-tab.active { color: #2563EB; border-bottom-color: #2563EB; }
+.app-method-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 0; flex: 1; overflow: hidden;
 }
-@media(max-width:480px){
-  .feat-grid{grid-template-columns:1fr;}
-  .flow-row{flex-direction:column;}
-  .flow-arrow{transform:rotate(90deg);}
-  .hero-stats{gap:16px;}
+.app-method-card {
+  position: relative; overflow: hidden;
+  cursor: pointer; border: 1px solid #E5E7EB;
+}
+.app-method-card-img {
+  width: 100%; aspect-ratio: 1;
+  object-fit: cover;
+  background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+}
+/* 실제 앱처럼 사진 배경 */
+.app-method-card-img.img-roof { background: linear-gradient(135deg, #B45309, #92400E); }
+.app-method-card-img.img-metal { background: linear-gradient(135deg, #1E40AF, #1d4ed8); }
+.app-method-card-img.img-flat { background: linear-gradient(135deg, #065F46, #047857); }
+.app-method-card-img.img-pvc { background: linear-gradient(135deg, #1d4ed8, #2563EB); }
+.app-method-card-img.img-urethane { background: linear-gradient(135deg, #059669, #10b981); }
+.app-method-card-img.img-parking { background: linear-gradient(135deg, #374151, #1F2937); }
+.app-method-card-overlay {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: linear-gradient(to top, rgba(0,0,0,.75) 0%, transparent 100%);
+  padding: 14px 6px 5px;
+}
+.app-method-card-cat { font-size: 6px; color: rgba(255,255,255,.6); font-weight: 700; }
+.app-method-card-name { font-size: 8px; font-weight: 800; color: #fff; line-height: 1.3; }
+.app-method-card.selected::after {
+  content: '✓';
+  position: absolute; top: 4px; right: 4px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #2563EB; color: #fff;
+  font-size: 8px; font-weight: 900;
+  display: flex; align-items: center; justify-content: center;
+}
+.app-method-memo-fab {
+  position: absolute; bottom: 8px; right: 8px;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: #2563EB; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; box-shadow: 0 3px 10px rgba(37,99,235,.5);
+  z-index: 10;
 }
 
-/* ─── 애니메이션 ─── */
-@keyframes blink{0%,100%{opacity:1;}50%{opacity:.25;}}
-@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
-@keyframes shimmer{0%{background-position:-200% 0;}100%{background-position:200% 0;}}
-.skeleton{
-  background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%);
-  background-size:200% 100%;
-  animation:shimmer 1.5s infinite;
-  border-radius:4px;
+/* ── 솔루션 상세 화면 ── */
+.app-solution {
+  width: 100%; height: 100%;
+  background: #F9FAFB;
+  display: flex; flex-direction: column;
+  overflow: hidden;
 }
+.app-sol-header {
+  background: #0B1D3A;
+  padding: 8px 12px 7px;
+  flex-shrink: 0;
+}
+.app-sol-header-title { font-size: 11px; font-weight: 900; color: #fff; margin-bottom: 1px; }
+.app-sol-header-sub { font-size: 7px; color: rgba(255,255,255,.4); }
+.app-sol-qr-row {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 0; background: #fff;
+  border-bottom: 1px solid #E5E7EB;
+  flex-shrink: 0;
+}
+.app-sol-qr-btn {
+  padding: 6px 8px;
+  display: flex; align-items: center; gap: 5px;
+  border-right: 1px solid #E5E7EB;
+  cursor: pointer;
+}
+.app-sol-qr-btn:last-child { border-right: none; }
+.app-sol-qr-icon { font-size: 12px; flex-shrink: 0; }
+.app-sol-qr-label { font-size: 7px; font-weight: 700; color: #374151; }
+.app-sol-qr-sub { font-size: 6px; color: #9CA3AF; }
+.app-sol-qr-link { font-size: 6px; color: #2563EB; font-weight: 700; }
+.app-sol-section-bar {
+  background: #fff; border-bottom: 1px solid #E5E7EB;
+  padding: 5px 10px;
+  display: flex; align-items: center; gap: 6px;
+  flex-shrink: 0;
+}
+.app-sol-section-dot { width: 6px; height: 6px; border-radius: 50%; background: #DC2626; flex-shrink: 0; }
+.app-sol-section-title { font-size: 9px; font-weight: 800; color: #0D1B2A; }
+.app-sol-section-hint { font-size: 7px; color: #9CA3AF; margin-left: auto; }
+.app-sol-photo-area { padding: 7px 10px; flex-shrink: 0; }
+.app-sol-photo-row {
+  display: flex; gap: 5px; overflow-x: auto; scrollbar-width: none;
+  margin-bottom: 6px;
+}
+.app-sol-photo-row::-webkit-scrollbar { display: none; }
+.app-sol-photo-thumb {
+  width: 52px; height: 52px; border-radius: 7px;
+  flex-shrink: 0; overflow: hidden;
+  position: relative;
+}
+.app-sol-photo-thumb img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.app-sol-photo-thumb-num {
+  position: absolute; top: 2px; right: 2px;
+  background: rgba(0,0,0,.55); color: #fff;
+  font-size: 6px; font-weight: 700;
+  padding: 1px 3px; border-radius: 3px;
+}
+.app-sol-photo-add {
+  width: 52px; height: 52px; border-radius: 7px;
+  border: 1.5px dashed #CBD5E1;
+  background: #F8FAFC;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; color: #94A3B8;
+  flex-shrink: 0;
+}
+.app-sol-cause {
+  background: #fff; border-top: 1px solid #E5E7EB;
+  padding: 7px 10px; flex-shrink: 0;
+}
+.app-sol-cause-title {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 9px; font-weight: 800; color: #0D1B2A; margin-bottom: 4px;
+}
+.app-sol-cause-dot { width: 5px; height: 5px; border-radius: 50%; background: #DC2626; }
+.app-sol-cause-text { font-size: 8px; color: #4B5563; line-height: 1.55; }
+.app-sol-video-area { padding: 6px 10px; flex-shrink: 0; }
+.app-sol-video-label { font-size: 8px; font-weight: 700; color: #0D1B2A; margin-bottom: 4px; }
+.app-sol-video-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.app-sol-video-thumb {
+  aspect-ratio: 16/9;
+  border-radius: 7px;
+  background: linear-gradient(135deg, #1E293B, #0F172A);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; position: relative; overflow: hidden;
+}
+.app-sol-video-play {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: rgba(255,255,255,.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: #fff;
+}
+
+/* ── 해결방안 화면 ── */
+.app-solution-steps {
+  width: 100%; height: 100%;
+  background: #F9FAFB;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.app-steps-header {
+  background: #0B1D3A;
+  padding: 8px 12px 7px; flex-shrink: 0;
+}
+.app-steps-header-title { font-size: 11px; font-weight: 900; color: #fff; margin-bottom: 1px; }
+.app-steps-header-sub { font-size: 7px; color: rgba(255,255,255,.4); }
+.app-steps-scroll {
+  display: flex; gap: 0;
+  background: #fff; border-bottom: 1px solid #E5E7EB;
+  overflow-x: auto; scrollbar-width: none; flex-shrink: 0;
+}
+.app-steps-scroll::-webkit-scrollbar { display: none; }
+.app-step-pill {
+  padding: 7px 10px;
+  font-size: 8px; font-weight: 700;
+  color: #9CA3AF; white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  cursor: pointer; transition: all .15s;
+}
+.app-step-pill.active { color: #059669; border-bottom-color: #059669; }
+.app-step-body { flex: 1; overflow-y: auto; padding: 8px 10px; }
+.app-step-card {
+  background: #fff; border: 1px solid #E5E7EB;
+  border-radius: 10px; overflow: hidden; margin-bottom: 7px;
+}
+.app-step-card-img {
+  aspect-ratio: 16/9;
+  background: linear-gradient(135deg, #ECFDF5, #D1FAE5);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+}
+.app-step-card-body { padding: 7px 9px; }
+.app-step-card-title { font-size: 9px; font-weight: 800; color: #0D1B2A; margin-bottom: 2px; }
+.app-step-card-desc { font-size: 8px; color: #4B5563; line-height: 1.5; }
+.app-feat-row { display: flex; gap: 5px; margin-bottom: 7px; flex-wrap: wrap; }
+.app-feat-btn {
+  padding: 4px 9px; border-radius: 20px;
+  font-size: 8px; font-weight: 700;
+  cursor: pointer; border: 1px solid; transition: all .15s;
+}
+.app-ktr-bar {
+  background: #FEF3C7; border: 1px solid #FDE68A;
+  border-radius: 8px; padding: 7px 9px;
+  display: flex; align-items: center; gap: 6px;
+}
+.app-ktr-text { font-size: 8px; color: #92400E; font-weight: 700; }
+
+/* ── 메모 시트 ── */
+.app-memo-bg {
+  width: 100%; height: 100%;
+  background: #F9FAFB;
+  display: flex; flex-direction: column;
+  position: relative;
+}
+.app-memo-blur-bg {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  filter: blur(2px); opacity: .4;
+  font-size: 11px; color: #9CA3AF;
+}
+.app-memo-fab {
+  position: absolute; bottom: 10px; right: 10px;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: #2563EB; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; box-shadow: 0 4px 14px rgba(37,99,235,.5);
+  z-index: 10;
+}
+.app-memo-overlay {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,.45);
+  display: flex; flex-direction: column; justify-content: flex-end;
+  z-index: 20;
+}
+.app-memo-sheet {
+  background: #fff; border-radius: 14px 14px 0 0;
+  padding: 10px 12px 12px;
+}
+.app-memo-handle {
+  width: 30px; height: 3px; background: #E5E7EB;
+  border-radius: 2px; margin: 0 auto 9px;
+}
+.app-memo-title { font-size: 11px; font-weight: 900; color: #0D1B2A; margin-bottom: 9px; }
+.app-field { margin-bottom: 6px; }
+.app-field-label { font-size: 8px; font-weight: 700; color: #6B7280; margin-bottom: 2px; }
+.app-field-input {
+  width: 100%; padding: 5px 8px;
+  border: 1px solid #E5E7EB; border-radius: 6px;
+  font-size: 9px; color: #111827; background: #F9FAFB;
+  font-family: 'Pretendard', sans-serif;
+}
+.app-field-input.focused { border-color: #2563EB; background: #EFF6FF; }
+.app-action-row { display: flex; gap: 5px; margin-bottom: 8px; }
+.app-action-chip {
+  flex: 1; padding: 5px 4px; border-radius: 6px;
+  font-size: 8px; font-weight: 700; text-align: center;
+  border: 1.5px solid #E5E7EB; color: #4B5563;
+  cursor: pointer; transition: all .15s;
+}
+.app-action-chip.sel { border-color: #2563EB; background: #EFF6FF; color: #2563EB; }
+.app-save-btn {
+  width: 100%; padding: 9px; border: none;
+  background: #2563EB; border-radius: 8px;
+  font-size: 10px; font-weight: 900; color: #fff;
+  text-align: center; cursor: pointer;
+  font-family: 'Pretendard', sans-serif;
+}
+
+/* ── 제안서 화면 ── */
+.app-report {
+  width: 100%; height: 100%;
+  background: #F9FAFB;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.app-report-header {
+  background: #0B1D3A;
+  padding: 10px 12px; text-align: center; flex-shrink: 0;
+}
+.app-report-title { font-size: 11px; font-weight: 900; color: #fff; margin-bottom: 1px; }
+.app-report-sub { font-size: 7px; color: rgba(255,255,255,.4); }
+.app-report-body {
+  flex: 1; overflow-y: auto;
+  padding: 10px 12px; display: flex; flex-direction: column; gap: 8px;
+}
+.app-report-list {
+  background: #fff; border: 1px solid #E5E7EB;
+  border-radius: 9px; padding: 9px;
+}
+.app-report-list-title { font-size: 9px; font-weight: 800; color: #0D1B2A; margin-bottom: 6px; }
+.app-report-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 3px 0; border-bottom: 1px solid #F3F4F6;
+}
+.app-report-item:last-child { border-bottom: none; }
+.app-report-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.app-report-name { font-size: 8px; color: #374151; }
+.app-qr-card {
+  background: #fff; border: 1px solid #E5E7EB;
+  border-radius: 9px; padding: 10px; text-align: center;
+}
+.app-qr-title { font-size: 9px; font-weight: 800; color: #0D1B2A; margin-bottom: 7px; }
+.app-qr-box {
+  width: 68px; height: 68px;
+  background: linear-gradient(135deg, #0B1D3A, #1A2E42);
+  border-radius: 8px; margin: 0 auto 5px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px;
+}
+.app-qr-hint { font-size: 8px; color: #9CA3AF; }
+.app-sms-btn {
+  padding: 8px; background: linear-gradient(135deg, #059669, #047857);
+  border-radius: 8px; font-size: 9px; font-weight: 900;
+  color: #fff; text-align: center; cursor: pointer;
+}
+.app-reopen {
+  background: #EFF6FF; border: 1px solid #BFDBFE;
+  border-radius: 8px; padding: 8px; text-align: center;
+}
+.app-reopen-title { font-size: 8px; font-weight: 800; color: #1d4ed8; margin-bottom: 2px; }
+.app-reopen-desc { font-size: 7px; color: #3b82f6; }
+
+/* ── 하이라이트 & 커서 ── */
+.hl {
+  position: absolute; border-radius: 8px;
+  border: 2px solid #2563EB;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.22), 0 0 20px rgba(37,99,235,.3);
+  pointer-events: none; z-index: 50;
+  transition: all .45s cubic-bezier(.25,.46,.45,.94);
+  opacity: 0;
+}
+.hl.show { opacity: 1; }
+.cursor {
+  position: absolute;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: rgba(37,99,235,.9);
+  pointer-events: none; z-index: 60;
+  box-shadow: 0 0 0 4px rgba(37,99,235,.18);
+  transform: translate(-50%, -50%);
+  transition: left .45s cubic-bezier(.25,.46,.45,.94), top .45s cubic-bezier(.25,.46,.45,.94);
+  opacity: 0;
+}
+.cursor-ring {
+  position: absolute;
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 2px solid rgba(37,99,235,.4);
+  pointer-events: none; z-index: 59;
+  transform: translate(-50%, -50%);
+  transition: left .45s cubic-bezier(.25,.46,.45,.94) .05s, top .45s cubic-bezier(.25,.46,.45,.94) .05s;
+  opacity: 0;
+}
+
+/* ── 모달 ── */
+.app-modal-overlay {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 70; display: flex; align-items: center; justify-content: center;
+  padding: 12px;
+}
+.app-modal {
+  background: #fff; border-radius: 12px;
+  padding: 12px; width: 100%;
+}
+.app-modal-hd {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 9px;
+}
+.app-modal-title { font-size: 10px; font-weight: 900; color: #0D1B2A; }
+.app-modal-close {
+  font-size: 14px; cursor: pointer; color: #9CA3AF;
+  background: none; border: none; font-family: 'Pretendard', sans-serif;
+}
+.app-modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.app-modal-item {
+  background: #F9FAFB; border-radius: 8px;
+  padding: 8px; text-align: center;
+}
+.app-modal-item-icon { font-size: 18px; margin-bottom: 3px; }
+.app-modal-item-title { font-size: 8px; font-weight: 800; color: #0D1B2A; margin-bottom: 2px; }
+.app-modal-item-val { font-size: 8px; color: #059669; font-weight: 700; }
+
+/* ── 설명 패널 ── */
+.desc-col { display: flex; flex-direction: column; gap: 20px; }
+.step-badge-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 4px;
+}
+.step-num {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 900; flex-shrink: 0;
+}
+.step-tag {
+  font-size: 11px; font-weight: 700;
+  padding: 4px 13px; border-radius: 20px;
+}
+.step-counter { font-size: 11px; color: var(--text-sm); font-weight: 600; }
+.step-title {
+  font-size: clamp(21px, 2.6vw, 28px);
+  font-weight: 900; color: var(--navy);
+  line-height: 1.22; margin-bottom: 12px;
+}
+.step-desc {
+  font-size: 13px; color: var(--text-md);
+  line-height: 1.85; margin-bottom: 14px;
+}
+.tips { display: flex; flex-direction: column; gap: 8px; }
+.tip {
+  display: flex; align-items: flex-start; gap: 11px;
+  padding: 11px 14px; border-radius: 10px;
+  font-size: 12px; line-height: 1.65;
+}
+.tip-ic { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.tip-body { color: var(--text-md); }
+.tip-body strong { color: var(--navy); }
+.warn {
+  display: flex; align-items: flex-start; gap: 11px;
+  padding: 11px 14px; border-radius: 10px;
+  font-size: 12px; line-height: 1.65;
+  background: #FFF7ED; border: 1px solid #FED7AA;
+}
+.warn-body { color: #92400E; }
+.warn-body strong { color: #78350F; }
+
+/* ── 구분선 ── */
+.divider {
+  max-width: 1160px; margin: 0 auto 72px;
+  display: flex; align-items: center; gap: 16px;
+}
+.divider-line { flex: 1; height: 1px; background: var(--border); }
+.divider-text {
+  font-size: 11px; font-weight: 700; color: var(--text-sm);
+  white-space: nowrap; padding: 4px 14px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 20px;
+}
+
+/* ── 데이터 흐름 ── */
+.flow-card {
+  max-width: 1160px; margin: 0 auto 72px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 16px; padding: 28px 32px;
+  box-shadow: var(--shadow);
+}
+.flow-card-title {
+  font-size: 15px; font-weight: 900; color: var(--navy);
+  margin-bottom: 22px; display: flex; align-items: center; gap: 9px;
+}
+.flow-row {
+  display: flex; align-items: center; gap: 10px;
+  flex-wrap: wrap; justify-content: center; margin-bottom: 14px;
+}
+.flow-row:last-child { margin-bottom: 0; }
+.flow-node {
+  background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: 10px; padding: 10px 18px;
+  font-size: 12px; font-weight: 700; color: var(--navy);
+  text-align: center;
+}
+.flow-arrow { font-size: 16px; color: var(--text-sm); }
+
+/* ── 핵심 기능 ── */
+.feat-card {
+  max-width: 1160px; margin: 0 auto 72px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 16px; overflow: hidden; box-shadow: var(--shadow);
+}
+.feat-header {
+  background: var(--navy); padding: 18px 28px;
+  color: #fff; display: flex; align-items: center; gap: 12px;
+}
+.feat-header-icon { font-size: 22px; }
+.feat-header-title { font-size: 15px; font-weight: 900; }
+.feat-header-sub { font-size: 11px; opacity: .4; margin-top: 2px; }
+.feat-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px; padding: 24px 28px;
+}
+.feat-item {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px;
+}
+.feat-item-icon { font-size: 24px; margin-bottom: 8px; }
+.feat-item-title { font-size: 12px; font-weight: 800; color: var(--navy); margin-bottom: 5px; }
+.feat-item-desc { font-size: 11px; color: var(--text-md); line-height: 1.6; }
+
+/* ── 주의사항 ── */
+.caution {
+  max-width: 1160px; margin: 0 auto 72px;
+  background: #FFFBEB; border: 1px solid #FDE68A;
+  border-radius: 14px; padding: 22px 28px;
+}
+.caution-title {
+  font-size: 14px; font-weight: 800; color: #92400E;
+  margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+}
+.caution-list { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+.caution-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: 13px; color: #78350F; line-height: 1.65;
+}
+.caution-item::before { content: '⚠'; flex-shrink: 0; }
+
+/* ── 반응형 ── */
+@media (max-width: 860px) {
+  .step-section { grid-template-columns: 1fr; gap: 28px; }
+  .step-section.reverse .tablet-col { order: 0; }
+  .step-section.reverse .desc-col { order: 0; }
+  .tablet-frame { max-width: 320px; }
+  .main { padding: 32px 18px 64px; }
+  .hero { padding: 48px 18px 40px; }
+  .feat-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 480px) {
+  .feat-grid { grid-template-columns: 1fr; }
+  .flow-row { flex-direction: column; }
+  .flow-arrow { transform: rotate(90deg); }
+}
+
+/* ── 애니메이션 ── */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse { 0%, 100% { transform: translate(-50%,-50%) scale(1); } 50% { transform: translate(-50%,-50%) scale(1.15); } }
 </style>
 </head>
 <body>
 
-<!-- ─── 헤더 ─── -->
+<!-- 헤더 -->
 <header class="header">
   <div class="header-inner">
     <div class="header-brand">
-      <div class="header-logo-box">P</div>
-      <div class="header-title">POUR솔루션 <span>영업 앱</span></div>
+      <div class="header-logo">P</div>
+      <div class="header-name">POUR솔루션 <span>영업 앱</span></div>
     </div>
-    <div class="header-badge">영상 매뉴얼 v2.0</div>
+    <div class="header-pill">영상 매뉴얼 v2.0</div>
   </div>
 </header>
 
-<!-- ─── 진행 표시줄 ─── -->
-<nav class="progress-bar" id="progressBar">
-  <div class="progress-inner">
-    <a href="#step1" class="prog-step active" data-step="1"><div class="prog-num">1</div>앱 실행 &amp; 담당자</a>
-    <a href="#step2" class="prog-step" data-step="2"><div class="prog-num">2</div>공법 선택</a>
-    <a href="#step3" class="prog-step" data-step="3"><div class="prog-num">3</div>하자사진 &amp; AI</a>
-    <a href="#step4" class="prog-step" data-step="4"><div class="prog-num">4</div>원인 설명</a>
-    <a href="#step5" class="prog-step" data-step="5"><div class="prog-num">5</div>POUR 해결방안</a>
-    <a href="#step6" class="prog-step" data-step="6"><div class="prog-num">6</div>메모 &amp; 고객정보</a>
-    <a href="#step7" class="prog-step" data-step="7"><div class="prog-num">7</div>제안서 &amp; QR</a>
+<!-- 진행 바 -->
+<nav class="prog-bar" id="progBar">
+  <div class="prog-inner">
+    <a href="#s1" class="prog-item active" data-step="1"><div class="prog-num">1</div>앱 실행 &amp; 담당자</a>
+    <a href="#s2" class="prog-item" data-step="2"><div class="prog-num">2</div>공법 선택</a>
+    <a href="#s3" class="prog-item" data-step="3"><div class="prog-num">3</div>하자사진 &amp; AI</a>
+    <a href="#s4" class="prog-item" data-step="4"><div class="prog-num">4</div>원인 설명</a>
+    <a href="#s5" class="prog-item" data-step="5"><div class="prog-num">5</div>POUR 해결방안</a>
+    <a href="#s6" class="prog-item" data-step="6"><div class="prog-num">6</div>메모 &amp; 고객정보</a>
+    <a href="#s7" class="prog-item" data-step="7"><div class="prog-num">7</div>제안서 &amp; QR</a>
   </div>
 </nav>
 
-<!-- ─── 히어로 ─── -->
+<!-- 히어로 -->
 <section class="hero">
   <div class="hero-content">
     <div class="hero-eyebrow">NETFORM R&amp;D · POUR솔루션</div>
@@ -435,63 +907,72 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
   </div>
 </section>
 
-<!-- ─── 메인 ─── -->
 <main class="main">
 
-<!-- ════════════════════════════════════
-     STEP 1 — 앱 실행 & 담당자 선택
-════════════════════════════════════ -->
-<section class="step-section" id="step1" data-step="1">
-  <div class="tablet-wrap">
-    <div class="tablet-outer">
+<!-- ══════════════════════════════════
+  STEP 1 — 앱 실행 & 담당자 선택
+══════════════════════════════════ -->
+<section class="step-section" id="s1" data-step="1">
+  <div class="tablet-col">
+    <div class="tablet-frame">
       <div class="tablet-screen">
-        <div class="screen-content">
-          <div class="app-sim" id="sim1">
-            <div class="sim-home" style="height:100%;">
-              <div class="sim-topbar-home">
-                <div class="sim-brand">POUR<span>솔루션</span></div>
-                <div class="sim-badge-sm" id="s1-mode-badge">박람회 모드</div>
-              </div>
-              <div class="sim-body">
-                <div class="sim-card-dark">
-                  <div class="sim-label-xs">담당자 선택</div>
-                  <div class="sim-chips">
-                    <div class="sim-chip sel" id="s1-c1">김영업</div>
-                    <div class="sim-chip" id="s1-c2">이상담</div>
-                    <div class="sim-chip" id="s1-c3">박팀장</div>
-                    <div class="sim-chip" id="s1-c4">최대리</div>
-                  </div>
-                </div>
-                <div class="sim-row">
-                  <div class="sim-mode-btn sel" id="s1-m1">🏢 박람회</div>
-                  <div class="sim-mode-btn" id="s1-m2">📞 상시영업</div>
-                </div>
-                <div class="sim-cta" id="s1-start">▶ 상담 시작하기</div>
-                <div class="sim-stats">
-                  <div class="sim-stat-box"><div class="sim-stat-label">오늘 상담</div><div class="sim-stat-val" style="color:#60A5FA;">12</div></div>
-                  <div class="sim-stat-box"><div class="sim-stat-label">제안서</div><div class="sim-stat-val" style="color:#34D399;">8</div></div>
-                  <div class="sim-stat-box"><div class="sim-stat-label">누적</div><div class="sim-stat-val" style="color:#FBBF24;">247</div></div>
-                </div>
+        <div class="sim" id="sim1">
+          <!-- 실제 앱 메인 화면 재현 -->
+          <div class="app-home">
+            <div class="app-topbar">
+              <div class="app-topbar-left">
+                <div class="app-staff-badge" id="s1-badge">한</div>
+                <div class="app-staff-name" id="s1-name">한준엽</div>
+                <div class="app-date-badge">4/16(목)</div>
               </div>
             </div>
-            <!-- 하이라이트 & 커서 -->
-            <div class="hl" id="hl1"></div>
-            <div class="cursor" id="cur1"></div>
-            <div class="cursor-ring" id="ring1"></div>
+            <div class="app-nav-tabs">
+              <div class="app-nav-tab active">POUR공법</div>
+              <div class="app-nav-tab">POUR솔루션</div>
+              <div class="app-nav-tab">POUR스토어</div>
+              <div class="app-nav-tab">그로홈</div>
+            </div>
+            <div class="app-home-body">
+              <div class="app-logo-area">
+                <div class="app-logo-text">Netform R&amp;D</div>
+                <div class="app-logo-sub">POUR솔루션 영업 앱</div>
+              </div>
+              <div class="app-mode-row">
+                <div class="app-mode-card active" id="s1-mode1">
+                  <div class="app-mode-icon">🎪</div>
+                  <div class="app-mode-name">박람회</div>
+                  <div class="app-mode-desc">공동주택관리산업박람회<br/>벡스코 · 4/16~18</div>
+                </div>
+                <div class="app-mode-card" id="s1-mode2">
+                  <div class="app-mode-icon" style="opacity:.4;">📞</div>
+                  <div class="app-mode-name" style="opacity:.5;">상시 영업</div>
+                  <div class="app-mode-desc" style="opacity:.4;">방문/전화/현장 상담</div>
+                </div>
+              </div>
+              <div class="app-cta" id="s1-cta">상담 시작하기 →</div>
+              <div class="app-sub-row">
+                <div class="app-sub-btn">🏗️ 공법 · 솔루션</div>
+                <div class="app-sub-btn highlight">🛒 POUR스토어</div>
+              </div>
+              <div class="app-sub-btn" style="text-align:center;">📖 앱 사용 매뉴얼</div>
+            </div>
           </div>
+          <div class="hl" id="hl1"></div>
+          <div class="cursor" id="cur1"></div>
+          <div class="cursor-ring" id="ring1"></div>
         </div>
       </div>
     </div>
   </div>
-  <div class="desc-panel">
+  <div class="desc-col">
     <div>
-      <div class="step-eyebrow">
-        <div class="step-num-badge" style="background:#2563EB;color:#fff;">1</div>
-        <div class="step-label" style="background:#EFF6FF;color:#2563EB;">앱 실행 &amp; 담당자 선택</div>
-        <span style="font-size:11px;color:var(--text-sm);font-weight:600;">STEP 1 / 7</span>
+      <div class="step-badge-row">
+        <div class="step-num" style="background:#2563EB;color:#fff;">1</div>
+        <div class="step-tag" style="background:#EFF6FF;color:#2563EB;">앱 실행 &amp; 담당자 선택</div>
+        <span class="step-counter">STEP 1 / 7</span>
       </div>
-      <h2 class="step-title">본인 이름 선택 후<br/>모드를 설정하세요</h2>
-      <p class="step-desc">앱을 열면 담당자 선택 화면이 나타납니다. 본인 이름을 탭한 후 오늘의 영업 모드(박람회 / 상시영업)를 선택합니다. 설정이 완료되면 파란 버튼을 눌러 상담을 시작합니다.</p>
+      <h2 class="step-title">담당자 설정 후<br/>모드를 선택하세요</h2>
+      <p class="step-desc">앱을 열면 담당자 설정 화면이 나타납니다. 본인 이름을 선택하고 날짜를 확인한 뒤 오늘의 영업 모드(박람회 / 상시영업)를 선택합니다. 파란 버튼을 눌러 상담을 시작합니다.</p>
     </div>
     <div class="tips">
       <div class="tip" style="background:#EFF6FF;border:1px solid #BFDBFE;">
@@ -499,12 +980,12 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
         <div class="tip-body"><strong>처음 사용하는 경우</strong> — 이름이 목록에 없다면 관리자에게 등록을 요청하세요.</div>
       </div>
       <div class="tip" style="background:#ECFDF5;border:1px solid #A7F3D0;">
-        <div class="tip-ic">🏢</div>
+        <div class="tip-ic">🎪</div>
         <div class="tip-body"><strong>박람회 모드</strong>는 현장 상담에 최적화되어 있습니다. 상시영업은 방문·전화 상담 시 사용합니다.</div>
       </div>
       <div class="tip" style="background:#F5F3FF;border:1px solid #DDD6FE;">
-        <div class="tip-ic">📊</div>
-        <div class="tip-body">홈 화면에서 <strong>오늘 상담 건수·제안서 발송 수·누적 고객 수</strong>를 실시간으로 확인할 수 있습니다.</div>
+        <div class="tip-ic">📖</div>
+        <div class="tip-body">홈 화면 하단 <strong>"앱 사용 매뉴얼"</strong> 버튼에서 이 가이드를 언제든 다시 볼 수 있습니다.</div>
       </div>
     </div>
   </div>
@@ -512,71 +993,90 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 
 <div class="divider"><div class="divider-line"></div><div class="divider-text">다음 단계</div><div class="divider-line"></div></div>
 
-<!-- ════════════════════════════════════
-     STEP 2 — 공법 선택
-════════════════════════════════════ -->
-<section class="step-section reverse" id="step2" data-step="2">
-  <div class="tablet-wrap">
-    <div class="tablet-outer">
+<!-- ══════════════════════════════════
+  STEP 2 — 공법 선택
+══════════════════════════════════ -->
+<section class="step-section reverse" id="s2" data-step="2">
+  <div class="tablet-col">
+    <div class="tablet-frame">
       <div class="tablet-screen">
-        <div class="screen-content">
-          <div class="app-sim" id="sim2">
-            <div class="sim-method-screen" style="height:100%;">
-              <div class="sim-topbar">
-                <div class="sim-back-btn">←</div>
-                <div class="sim-topbar-title">공법 선택</div>
-              </div>
-              <div class="sim-tabs-row">
-                <div class="sim-tab active" id="s2-t1">전체</div>
-                <div class="sim-tab" id="s2-t2">방수</div>
-                <div class="sim-tab" id="s2-t3">도장</div>
-                <div class="sim-tab" id="s2-t4">보수/보강</div>
-                <div class="sim-tab" id="s2-t5">토목</div>
-              </div>
-              <div class="sim-grid">
-                <div class="sim-method-card sel" id="s2-c1">
-                  <div class="sim-mc-icon">🏠</div>
-                  <div class="sim-mc-name">슬라브형 듀얼강화 방수</div>
-                  <div class="sim-mc-sub">옥상 / 방수</div>
-                  <div class="sim-mc-tags"><span class="sim-mc-tag">#우레탄</span><span class="sim-mc-tag">#KTR</span></div>
-                </div>
-                <div class="sim-method-card" id="s2-c2">
-                  <div class="sim-mc-icon">🏗</div>
-                  <div class="sim-mc-name">금속기와 칼리강판 방수</div>
-                  <div class="sim-mc-sub">지붕 / 방수</div>
-                  <div class="sim-mc-tags"><span class="sim-mc-tag">#금속기와</span></div>
-                </div>
-                <div class="sim-method-card" id="s2-c3">
-                  <div class="sim-mc-icon">🚗</div>
-                  <div class="sim-mc-name">에폭시 도장 공법</div>
-                  <div class="sim-mc-sub">지하주차장 / 도장</div>
-                  <div class="sim-mc-tags"><span class="sim-mc-tag">#에폭시</span></div>
-                </div>
-                <div class="sim-method-card" id="s2-c4">
-                  <div class="sim-mc-icon">⚡</div>
-                  <div class="sim-mc-name">탄성강화 보강공법</div>
-                  <div class="sim-mc-sub">균열보수 / 보수</div>
-                  <div class="sim-mc-tags"><span class="sim-mc-tag">#균열</span></div>
-                </div>
-              </div>
+        <div class="sim" id="sim2">
+          <div class="app-method">
+            <div class="app-method-topbar">
+              <div class="app-method-topbar-back">←</div>
+              <div class="app-method-topbar-title">공법 선택</div>
             </div>
-            <div class="hl" id="hl2"></div>
-            <div class="cursor" id="cur2"></div>
-            <div class="cursor-ring" id="ring2"></div>
+            <div class="app-filter-tabs">
+              <div class="app-filter-tab active" id="s2-t1">전체</div>
+              <div class="app-filter-tab" id="s2-t2">방수</div>
+              <div class="app-filter-tab" id="s2-t3">도장</div>
+              <div class="app-filter-tab" id="s2-t4">보수/보강</div>
+              <div class="app-filter-tab" id="s2-t5">토목</div>
+            </div>
+            <div class="app-method-grid" style="position:relative;">
+              <!-- 6개 카드 -->
+              <div class="app-method-card selected" id="s2-c1">
+                <div class="app-method-card-img img-roof"><span style="color:rgba(255,255,255,.3);font-size:11px;">경사/박공형</span></div>
+                <div class="app-method-card-overlay">
+                  <div class="app-method-card-cat">경사/박공형</div>
+                  <div class="app-method-card-name">POUR 아스팔트싱글 방수</div>
+                </div>
+              </div>
+              <div class="app-method-card" id="s2-c2">
+                <div class="app-method-card-img img-metal"><span style="color:rgba(255,255,255,.3);font-size:11px;">경사/박공형</span></div>
+                <div class="app-method-card-overlay">
+                  <div class="app-method-card-cat">경사/박공형</div>
+                  <div class="app-method-card-name">POUR 금속기와 방수</div>
+                </div>
+              </div>
+              <div class="app-method-card" id="s2-c3">
+                <div class="app-method-card-img img-flat"><span style="color:rgba(255,255,255,.3);font-size:11px;">슬라브/평형</span></div>
+                <div class="app-method-card-overlay">
+                  <div class="app-method-card-cat">슬라브/평형</div>
+                  <div class="app-method-card-name">POUR 듀얼강화방수</div>
+                </div>
+              </div>
+              <div class="app-method-card" id="s2-c4">
+                <div class="app-method-card-img img-pvc"><span style="color:rgba(255,255,255,.3);font-size:11px;">슬라브/평형</span></div>
+                <div class="app-method-card-overlay">
+                  <div class="app-method-card-cat">슬라브/평형</div>
+                  <div class="app-method-card-name">POUR PVC 방수</div>
+                </div>
+              </div>
+              <div class="app-method-card" id="s2-c5">
+                <div class="app-method-card-img img-urethane"><span style="color:rgba(255,255,255,.3);font-size:11px;">슬라브/평형</span></div>
+                <div class="app-method-card-overlay">
+                  <div class="app-method-card-cat">슬라브/평형</div>
+                  <div class="app-method-card-name">POUR 우레탄 방수</div>
+                </div>
+              </div>
+              <div class="app-method-card" id="s2-c6">
+                <div class="app-method-card-img img-parking"><span style="color:rgba(255,255,255,.3);font-size:11px;">지하주차장</span></div>
+                <div class="app-method-card-overlay">
+                  <div class="app-method-card-cat">지하주차장</div>
+                  <div class="app-method-card-name">POUR 에폭시 도장</div>
+                </div>
+              </div>
+              <!-- 메모 FAB -->
+              <div class="app-method-memo-fab">✏️</div>
+            </div>
           </div>
+          <div class="hl" id="hl2"></div>
+          <div class="cursor" id="cur2"></div>
+          <div class="cursor-ring" id="ring2"></div>
         </div>
       </div>
     </div>
   </div>
-  <div class="desc-panel">
+  <div class="desc-col">
     <div>
-      <div class="step-eyebrow">
-        <div class="step-num-badge" style="background:#D97706;color:#fff;">2</div>
-        <div class="step-label" style="background:#FEF3C7;color:#D97706;">공법 선택</div>
-        <span style="font-size:11px;color:var(--text-sm);font-weight:600;">STEP 2 / 7</span>
+      <div class="step-badge-row">
+        <div class="step-num" style="background:#D97706;color:#fff;">2</div>
+        <div class="step-tag" style="background:#FEF3C7;color:#D97706;">공법 선택</div>
+        <span class="step-counter">STEP 2 / 7</span>
       </div>
-      <h2 class="step-title">고객 문제에 맞는<br/>공법을 탭하세요</h2>
-      <p class="step-desc">상단 탭(방수·도장·보수보강·토목)으로 카테고리를 필터링한 후 고객의 건물 문제에 맞는 공법 카드를 선택합니다. 2열/3열 그리드 전환도 지원합니다.</p>
+      <h2 class="step-title">고객 건물 문제에 맞는<br/>공법 카드를 탭하세요</h2>
+      <p class="step-desc">상단 탭(방수·도장·보수보강·토목)으로 카테고리를 필터링한 후 고객의 건물 문제에 맞는 공법 카드를 선택합니다. 실제 시공 사진이 카드에 표시됩니다.</p>
     </div>
     <div class="tips">
       <div class="tip" style="background:#FEF3C7;border:1px solid #FDE68A;">
@@ -587,65 +1087,108 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
         <div class="tip-ic">📋</div>
         <div class="tip-body"><strong>여러 공법 선택 가능</strong> — 상담 중 여러 공법을 보여줘도 하나의 제안서에 모두 포함됩니다.</div>
       </div>
+      <div class="tip" style="background:#ECFDF5;border:1px solid #A7F3D0;">
+        <div class="tip-ic">✓</div>
+        <div class="tip-body">선택된 카드에는 <strong>파란 체크 표시</strong>가 나타납니다. 다시 탭하면 선택 해제됩니다.</div>
+      </div>
     </div>
   </div>
 </section>
 
 <div class="divider"><div class="divider-line"></div><div class="divider-text">다음 단계</div><div class="divider-line"></div></div>
 
-<!-- ════════════════════════════════════
-     STEP 3 — 하자사진 & AI 분류
-════════════════════════════════════ -->
-<section class="step-section" id="step3" data-step="3">
-  <div class="tablet-wrap">
-    <div class="tablet-outer">
+<!-- ══════════════════════════════════
+  STEP 3 — 하자사진 & AI 분류
+══════════════════════════════════ -->
+<section class="step-section" id="s3" data-step="3">
+  <div class="tablet-col">
+    <div class="tablet-frame">
       <div class="tablet-screen">
-        <div class="screen-content">
-          <div class="app-sim" id="sim3">
-            <div class="sim-sol-screen" style="height:100%;">
-              <div class="sim-sol-hd">
-                <div class="sim-sol-title">슬라브형 듀얼강화 방수공법</div>
-                <div class="sim-sol-sub">STEP 1 — 현장 하자사진</div>
-              </div>
-              <div class="sim-step-pills">
-                <div class="sim-pill active">📷 하자사진</div>
-                <div class="sim-pill">💡 원인</div>
-                <div class="sim-pill">✅ 해결방안</div>
-              </div>
-              <div class="sim-sol-body">
-                <div style="font-size:9px;font-weight:800;color:#0D1B2A;margin-bottom:6px;">실제 하자 사례</div>
-                <div class="sim-photo-grid">
-                  <div class="sim-photo">🏚</div>
-                  <div class="sim-photo">💧</div>
-                  <div class="sim-photo">🔩</div>
-                  <div class="sim-photo add" id="s3-add-btn">＋</div>
-                  <div class="sim-photo add" style="opacity:.35;">📎</div>
-                  <div class="sim-photo add" style="opacity:.35;">📷</div>
+        <div class="sim" id="sim3">
+          <div class="app-solution">
+            <div class="app-sol-header">
+              <div class="app-sol-header-title">POUR 듀얼강화방수 공법</div>
+              <div class="app-sol-header-sub">슬라브/평형</div>
+            </div>
+            <!-- 제안서/시공가이드 QR 버튼 (실제 앱 구조) -->
+            <div class="app-sol-qr-row">
+              <div class="app-sol-qr-btn">
+                <div class="app-sol-qr-icon">📄</div>
+                <div>
+                  <div class="app-sol-qr-label">제안서</div>
+                  <div class="app-sol-qr-sub">앱 안에서 바로 보기</div>
+                  <div class="app-sol-qr-link">QR로 전달</div>
                 </div>
-                <div class="sim-ai-result" id="s3-ai" style="display:none;">
-                  <div class="sim-ai-icon">🤖</div>
-                  <div class="sim-ai-text">AI 분류 완료<br/><span style="color:#1e40af;">누수 · 옥상 · 심각도 중</span></div>
-                </div>
-                <div style="background:#fff;border:1px solid #E5E7EB;border-radius:8px;padding:8px;">
-                  <div style="font-size:8px;font-weight:800;color:#0D1B2A;margin-bottom:3px;">고객 현장사진 AI 분석</div>
-                  <div style="font-size:8px;color:#9CA3AF;line-height:1.5;">📷 촬영 또는 📎 첨부로 현장사진을 추가하면<br/>AI가 하자 유형·위치·심각도를 자동 분류합니다</div>
+              </div>
+              <div class="app-sol-qr-btn">
+                <div class="app-sol-qr-icon">📖</div>
+                <div>
+                  <div class="app-sol-qr-label">시공 가이드</div>
+                  <div class="app-sol-qr-sub">앱 안에서 바로 보기</div>
+                  <div class="app-sol-qr-link">QR로 전달</div>
                 </div>
               </div>
             </div>
-            <div class="hl" id="hl3"></div>
-            <div class="cursor" id="cur3"></div>
-            <div class="cursor-ring" id="ring3"></div>
+            <!-- 현장 하자사진 섹션 -->
+            <div class="app-sol-section-bar">
+              <div class="app-sol-section-dot"></div>
+              <div class="app-sol-section-title">현장 하자사진</div>
+              <div class="app-sol-section-hint">어떤 문제 있으신가요?</div>
+              <div style="display:flex;gap:4px;margin-left:4px;">
+                <div style="font-size:7px;padding:2px 5px;border-radius:4px;background:#F3F4F6;color:#6B7280;font-weight:700;">📷 촬영</div>
+                <div style="font-size:7px;padding:2px 5px;border-radius:4px;background:#F3F4F6;color:#6B7280;font-weight:700;">📎 첨부</div>
+                <div style="font-size:7px;padding:2px 5px;border-radius:4px;background:#F3F4F6;color:#6B7280;font-weight:700;">선택</div>
+              </div>
+            </div>
+            <div class="app-sol-photo-area">
+              <!-- 카테고리 아이콘 -->
+              <div style="display:flex;gap:5px;margin-bottom:6px;overflow-x:auto;scrollbar-width:none;">
+                <div style="width:42px;height:42px;border-radius:8px;border:2px solid #2563EB;background:#EFF6FF;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">
+                  <div style="font-size:14px;">🏠</div>
+                  <div style="font-size:6px;font-weight:700;color:#2563EB;">전체</div>
+                </div>
+              </div>
+              <!-- 하자 사진 가로 스크롤 -->
+              <div style="font-size:8px;font-weight:700;color:#0D1B2A;margin-bottom:5px;">— 전체</div>
+              <div class="app-sol-photo-row">
+                <div class="app-sol-photo-thumb">
+                  <div style="width:100%;height:100%;background:linear-gradient(135deg,#6B7280,#4B5563);display:flex;align-items:center;justify-content:center;font-size:16px;">🏚</div>
+                  <div class="app-sol-photo-thumb-num">01</div>
+                </div>
+                <div class="app-sol-photo-thumb">
+                  <div style="width:100%;height:100%;background:linear-gradient(135deg,#1E40AF,#2563EB);display:flex;align-items:center;justify-content:center;font-size:16px;">💧</div>
+                  <div class="app-sol-photo-thumb-num">02</div>
+                </div>
+                <div class="app-sol-photo-thumb">
+                  <div style="width:100%;height:100%;background:linear-gradient(135deg,#92400E,#B45309);display:flex;align-items:center;justify-content:center;font-size:16px;">🔩</div>
+                  <div class="app-sol-photo-thumb-num">03</div>
+                </div>
+                <div class="app-sol-photo-thumb">
+                  <div style="width:100%;height:100%;background:linear-gradient(135deg,#1E3A5F,#0F2547);display:flex;align-items:center;justify-content:center;font-size:16px;">🌧</div>
+                  <div class="app-sol-photo-thumb-num">04</div>
+                </div>
+                <div class="app-sol-photo-add" id="s3-add">＋</div>
+              </div>
+              <!-- AI 결과 -->
+              <div id="s3-ai" style="display:none;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:7px;padding:6px 8px;display:none;align-items:center;gap:6px;margin-top:5px;">
+                <div style="font-size:14px;">🤖</div>
+                <div style="font-size:8px;color:#1d4ed8;font-weight:700;line-height:1.45;">AI 분류 완료 — 누수 · 옥상 · 심각도 중</div>
+              </div>
+            </div>
           </div>
+          <div class="hl" id="hl3"></div>
+          <div class="cursor" id="cur3"></div>
+          <div class="cursor-ring" id="ring3"></div>
         </div>
       </div>
     </div>
   </div>
-  <div class="desc-panel">
+  <div class="desc-col">
     <div>
-      <div class="step-eyebrow">
-        <div class="step-num-badge" style="background:#DC2626;color:#fff;">3</div>
-        <div class="step-label" style="background:#FEE2E2;color:#DC2626;">현장 하자사진 &amp; AI 분류</div>
-        <span style="font-size:11px;color:var(--text-sm);font-weight:600;">STEP 3 / 7</span>
+      <div class="step-badge-row">
+        <div class="step-num" style="background:#DC2626;color:#fff;">3</div>
+        <div class="step-tag" style="background:#FEE2E2;color:#DC2626;">현장 하자사진 &amp; AI 분류</div>
+        <span class="step-counter">STEP 3 / 7</span>
       </div>
       <h2 class="step-title">실제 하자사진으로<br/>고객 공감을 이끌어내세요</h2>
       <p class="step-desc">앱에 내장된 실제 하자사진을 보여주며 고객의 공감을 유도합니다. 고객 현장사진을 촬영하면 AI(Claude Vision)가 하자 유형·위치·심각도를 자동으로 분류합니다.</p>
@@ -660,8 +1203,8 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
         <div class="tip-body"><strong>"맞아요, 우리 건물이랑 똑같네요"</strong> — 실제 하자사진을 보며 고객이 문제를 공감하게 합니다.</div>
       </div>
       <div class="tip" style="background:#ECFDF5;border:1px solid #A7F3D0;">
-        <div class="tip-ic">📎</div>
-        <div class="tip-body">촬영(📷) 또는 첨부(📎) 두 가지 방식으로 현장사진을 추가할 수 있습니다.</div>
+        <div class="tip-ic">📄</div>
+        <div class="tip-body">상단 <strong>제안서 / 시공 가이드 버튼</strong>으로 QR코드를 즉시 고객에게 전달할 수 있습니다.</div>
       </div>
     </div>
   </div>
@@ -669,57 +1212,65 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 
 <div class="divider"><div class="divider-line"></div><div class="divider-text">다음 단계</div><div class="divider-line"></div></div>
 
-<!-- ════════════════════════════════════
-     STEP 4 — 원인 설명
-════════════════════════════════════ -->
-<section class="step-section reverse" id="step4" data-step="4">
-  <div class="tablet-wrap">
-    <div class="tablet-outer">
+<!-- ══════════════════════════════════
+  STEP 4 — 원인 설명
+══════════════════════════════════ -->
+<section class="step-section reverse" id="s4" data-step="4">
+  <div class="tablet-col">
+    <div class="tablet-frame">
       <div class="tablet-screen">
-        <div class="screen-content">
-          <div class="app-sim" id="sim4">
-            <div class="sim-sol-screen" style="height:100%;">
-              <div class="sim-sol-hd">
-                <div class="sim-sol-title">슬라브형 듀얼강화 방수공법</div>
-                <div class="sim-sol-sub">STEP 2 — 왜 이 문제가 생기나</div>
+        <div class="sim" id="sim4">
+          <div class="app-solution">
+            <div class="app-sol-header">
+              <div class="app-sol-header-title">POUR 듀얼강화방수 공법</div>
+              <div class="app-sol-header-sub">슬라브/평형</div>
+            </div>
+            <div class="app-sol-qr-row">
+              <div class="app-sol-qr-btn">
+                <div class="app-sol-qr-icon">📄</div>
+                <div><div class="app-sol-qr-label">제안서</div><div class="app-sol-qr-link">QR로 전달</div></div>
               </div>
-              <div class="sim-step-pills">
-                <div class="sim-pill">📷 하자사진</div>
-                <div class="sim-pill active">💡 원인</div>
-                <div class="sim-pill">✅ 해결방안</div>
+              <div class="app-sol-qr-btn">
+                <div class="app-sol-qr-icon">📖</div>
+                <div><div class="app-sol-qr-label">시공 가이드</div><div class="app-sol-qr-link">QR로 전달</div></div>
               </div>
-              <div class="sim-sol-body">
-                <div class="sim-cause-card">
-                  <div class="sim-cause-title">🔍 문제의 구조적 원인</div>
-                  <div class="sim-cause-desc">단순 노후가 아닌 <strong style="color:#DC2626;">구조적 원인</strong>이 있습니다. 콘크리트 수축·팽창 반복으로 방수층이 분리되며 누수가 발생합니다.</div>
-                  <div class="sim-video-thumb" id="s4-video">
-                    <div class="sim-play" id="s4-play">▶</div>
+            </div>
+            <!-- 원인 섹션 -->
+            <div class="app-sol-cause" style="flex:1;overflow-y:auto;">
+              <div class="app-sol-cause-title">
+                <div class="app-sol-cause-dot"></div>
+                왜 이 문제가 생기나
+              </div>
+              <div class="app-sol-cause-text">콘크리트는 타설 후 수축하면서 미세균열이 생깁니다. 기존 우레탄 방수층은 이 균열을 따라가지 못해 들뜸이 발생하고, 드레인 주변 처리가 불완전하면 그 틈으로 누수가 시작됩니다. 내부 습기가 빠져나오지 못하면 방수층이 부풀어오릅니다.</div>
+              <div class="app-sol-video-area" style="padding:8px 0 0;">
+                <div class="app-sol-video-label">• 원인 영상</div>
+                <div class="app-sol-video-grid">
+                  <div class="app-sol-video-thumb" id="s4-vid1">
+                    <div class="app-sol-video-play" id="s4-play1">▶</div>
                   </div>
-                  <div style="font-size:8px;color:#9CA3AF;text-align:center;margin-top:4px;">원인 설명 영상 (탭하여 재생)</div>
-                </div>
-                <div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:7px;padding:8px;">
-                  <div style="font-size:8px;font-weight:800;color:#92400E;margin-bottom:3px;">💡 상담 포인트</div>
-                  <div style="font-size:8px;color:#78350F;line-height:1.5;">"단순 노후가 아닌 구조적 원인"이라는 인식 전환이 핵심입니다.</div>
+                  <div class="app-sol-video-thumb" style="opacity:.5;">
+                    <div class="app-sol-video-play">▶</div>
+                  </div>
                 </div>
               </div>
             </div>
-            <div class="hl" id="hl4"></div>
-            <div class="cursor" id="cur4"></div>
-            <div class="cursor-ring" id="ring4"></div>
           </div>
+          <div class="hl" id="hl4"></div>
+          <div class="cursor" id="cur4"></div>
+          <div class="cursor-ring" id="ring4"></div>
         </div>
       </div>
     </div>
   </div>
-  <div class="desc-panel">
+  <div class="desc-col">
     <div>
-      <div class="step-eyebrow">
-        <div class="step-num-badge" style="background:#EA580C;color:#fff;">4</div>
-        <div class="step-label" style="background:#FFF7ED;color:#EA580C;">원인 설명</div>
-        <span style="font-size:11px;color:var(--text-sm);font-weight:600;">STEP 4 / 7</span>
+      <div class="step-badge-row">
+        <div class="step-num" style="background:#EA580C;color:#fff;">4</div>
+        <div class="step-tag" style="background:#FFF7ED;color:#EA580C;">원인 설명</div>
+        <span class="step-counter">STEP 4 / 7</span>
       </div>
       <h2 class="step-title">원인 영상으로<br/>문제의 본질을 이해시키세요</h2>
-      <p class="step-desc">원인 설명과 영상을 통해 고객이 문제의 본질을 이해하게 합니다. "단순 노후가 아닌 구조적 원인"이라는 인식 전환이 핵심입니다.</p>
+      <p class="step-desc">원인 설명 텍스트와 영상을 통해 고객이 문제의 본질을 이해하게 합니다. "단순 노후가 아닌 구조적 원인"이라는 인식 전환이 핵심입니다.</p>
     </div>
     <div class="tips">
       <div class="tip" style="background:#FFF7ED;border:1px solid #FED7AA;">
@@ -736,78 +1287,73 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 
 <div class="divider"><div class="divider-line"></div><div class="divider-text">다음 단계</div><div class="divider-line"></div></div>
 
-<!-- ════════════════════════════════════
-     STEP 5 — POUR 해결방안
-════════════════════════════════════ -->
-<section class="step-section" id="step5" data-step="5">
-  <div class="tablet-wrap">
-    <div class="tablet-outer">
+<!-- ══════════════════════════════════
+  STEP 5 — POUR 해결방안
+══════════════════════════════════ -->
+<section class="step-section" id="s5" data-step="5">
+  <div class="tablet-col">
+    <div class="tablet-frame">
       <div class="tablet-screen">
-        <div class="screen-content">
-          <div class="app-sim" id="sim5">
-            <div class="sim-sol-screen" style="height:100%;">
-              <div class="sim-sol-hd">
-                <div class="sim-sol-title">슬라브형 듀얼강화 방수공법</div>
-                <div class="sim-sol-sub">STEP 3 — POUR 해결방안</div>
+        <div class="sim" id="sim5">
+          <div class="app-solution-steps">
+            <div class="app-steps-header">
+              <div class="app-steps-header-title">POUR 듀얼강화방수 공법</div>
+              <div class="app-steps-header-sub">방수 · POUR 듀얼강화방수 공법</div>
+            </div>
+            <div class="app-steps-scroll">
+              <div class="app-step-pill active" id="s5-p1">STEP 1 모체강화함침+듀얼복합시트</div>
+              <div class="app-step-pill" id="s5-p2">STEP 2 슈퍼복합압축시트 보강</div>
+              <div class="app-step-pill" id="s5-p3">STEP 3 듀얼복합시트 보강완료</div>
+              <div class="app-step-pill" id="s5-p4">STEP 4 코트재Ⅱ 도포</div>
+              <div class="app-step-pill" id="s5-p5">STEP 5 상도코트재 도포</div>
+              <div class="app-step-pill" id="s5-p6">STEP 6 작업완료</div>
+            </div>
+            <div class="app-step-body">
+              <div class="app-step-card">
+                <div class="app-step-card-img" id="s5-img">🏗</div>
+                <div class="app-step-card-body">
+                  <div class="app-step-card-title" id="s5-title">STEP 1 — 모체강화함침 + 듀얼복합시트 전개</div>
+                  <div class="app-step-card-desc" id="s5-desc">바탕면 부착력 강화를 위한 모체강화함침재를 도포하고 듀얼복합시트를 전개합니다.</div>
+                </div>
               </div>
-              <div class="sim-step-pills">
-                <div class="sim-pill">📷 하자사진</div>
-                <div class="sim-pill">💡 원인</div>
-                <div class="sim-pill active">✅ 해결방안</div>
+              <div class="app-feat-row">
+                <button class="app-feat-btn" id="s5-feat-btn" style="background:#ECFDF5;border-color:#A7F3D0;color:#059669;">🔬 POUR모체강화함침</button>
+                <button class="app-feat-btn" style="background:#EFF6FF;border-color:#BFDBFE;color:#2563EB;">🔬 POUR듀얼복합시트</button>
               </div>
-              <div class="sim-sol-body">
-                <div class="sim-proc-tabs">
-                  <div class="sim-proc-tab active" id="s5-p1">1공정</div>
-                  <div class="sim-proc-tab" id="s5-p2">2공정</div>
-                  <div class="sim-proc-tab" id="s5-p3">3공정</div>
-                  <div class="sim-proc-tab" id="s5-p4">4공정</div>
-                </div>
-                <div class="sim-proc-card">
-                  <div class="sim-proc-img">🏗</div>
-                  <div class="sim-proc-info">
-                    <div class="sim-proc-name">프라이머 도포</div>
-                    <div class="sim-proc-desc">바탕면 부착력 강화를 위한 프라이머를 균일하게 도포합니다.</div>
-                  </div>
-                </div>
-                <div class="sim-feat-btns">
-                  <button class="sim-feat-btn" id="s5-feat-btn" style="background:#ECFDF5;border-color:#A7F3D0;color:#059669;">🔬 자재 특징</button>
-                  <button class="sim-feat-btn" style="background:#EFF6FF;border-color:#BFDBFE;color:#2563EB;">📊 시공사례</button>
-                </div>
-                <div class="sim-ktr">
-                  <div style="font-size:14px;">🏆</div>
-                  <div class="sim-ktr-text">KTR 공인 성능 수치 — 타사 대비 방수성능 3배 이상</div>
-                </div>
+              <div class="app-ktr-bar">
+                <div style="font-size:14px;">🏆</div>
+                <div class="app-ktr-text">KTR 공인 성능 수치 — 타사 대비 방수성능 3배 이상</div>
               </div>
             </div>
-            <!-- 자재 특징 모달 -->
-            <div class="sim-modal-overlay" id="s5-modal" style="display:none;">
-              <div class="sim-modal">
-                <div class="sim-modal-header">
-                  <div class="sim-modal-title">🔬 자재 특징 상세</div>
-                  <button class="sim-modal-close" id="s5-modal-close">✕</button>
-                </div>
-                <div class="sim-feat-grid">
-                  <div class="sim-feat-item"><div class="sim-feat-item-icon">💧</div><div class="sim-feat-item-title">방수성능</div><div class="sim-feat-item-val">KTR 인증</div></div>
-                  <div class="sim-feat-item"><div class="sim-feat-item-icon">⚡</div><div class="sim-feat-item-title">탄성력</div><div class="sim-feat-item-val">300% 이상</div></div>
-                  <div class="sim-feat-item"><div class="sim-feat-item-icon">🌡</div><div class="sim-feat-item-title">내열성</div><div class="sim-feat-item-val">-20°C ~ 80°C</div></div>
-                  <div class="sim-feat-item"><div class="sim-feat-item-icon">🔬</div><div class="sim-feat-item-title">부착강도</div><div class="sim-feat-item-val">1.5 N/mm²</div></div>
-                </div>
-              </div>
-            </div>
-            <div class="hl" id="hl5"></div>
-            <div class="cursor" id="cur5"></div>
-            <div class="cursor-ring" id="ring5"></div>
           </div>
+          <!-- 자재 특징 모달 -->
+          <div class="app-modal-overlay" id="s5-modal" style="display:none;">
+            <div class="app-modal">
+              <div class="app-modal-hd">
+                <div class="app-modal-title">🔬 POUR모체강화함침 상세</div>
+                <button class="app-modal-close" id="s5-modal-close">✕</button>
+              </div>
+              <div class="app-modal-grid">
+                <div class="app-modal-item"><div class="app-modal-item-icon">💧</div><div class="app-modal-item-title">방수성능</div><div class="app-modal-item-val">KTR 인증</div></div>
+                <div class="app-modal-item"><div class="app-modal-item-icon">⚡</div><div class="app-modal-item-title">탄성력</div><div class="app-modal-item-val">300% 이상</div></div>
+                <div class="app-modal-item"><div class="app-modal-item-icon">🌡</div><div class="app-modal-item-title">내열성</div><div class="app-modal-item-val">-20°C ~ 80°C</div></div>
+                <div class="app-modal-item"><div class="app-modal-item-icon">🔬</div><div class="app-modal-item-title">부착강도</div><div class="app-modal-item-val">1.5 N/mm²</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="hl" id="hl5"></div>
+          <div class="cursor" id="cur5"></div>
+          <div class="cursor-ring" id="ring5"></div>
         </div>
       </div>
     </div>
   </div>
-  <div class="desc-panel">
+  <div class="desc-col">
     <div>
-      <div class="step-eyebrow">
-        <div class="step-num-badge" style="background:#059669;color:#fff;">5</div>
-        <div class="step-label" style="background:#ECFDF5;color:#059669;">POUR 해결방안</div>
-        <span style="font-size:11px;color:var(--text-sm);font-weight:600;">STEP 5 / 7</span>
+      <div class="step-badge-row">
+        <div class="step-num" style="background:#059669;color:#fff;">5</div>
+        <div class="step-tag" style="background:#ECFDF5;color:#059669;">POUR 해결방안</div>
+        <span class="step-counter">STEP 5 / 7</span>
       </div>
       <h2 class="step-title">공정 탭을 클릭하며<br/>기술력을 시각적으로 전달하세요</h2>
       <p class="step-desc">공정 탭을 클릭하면 시공사진·영상이 표시됩니다. 자재 특징 버튼으로 상세 모달을 열어 기술력을 시각적으로 전달하고, KTR 공인 성능 수치로 신뢰를 강화합니다.</p>
@@ -815,7 +1361,7 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
     <div class="tips">
       <div class="tip" style="background:#ECFDF5;border:1px solid #A7F3D0;">
         <div class="tip-ic">🔬</div>
-        <div class="tip-body"><strong>자재 특징 버튼</strong>을 탭하면 사진·영상·GIF 모달이 열립니다. 고객에게 직접 보여주며 설명하세요.</div>
+        <div class="tip-body"><strong>자재 특징 버튼</strong>을 탭하면 성능 데이터 모달이 열립니다. 고객에게 직접 보여주며 설명하세요.</div>
       </div>
       <div class="tip" style="background:#FEF3C7;border:1px solid #FDE68A;">
         <div class="tip-ic">🏆</div>
@@ -823,7 +1369,7 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
       </div>
       <div class="tip" style="background:#EFF6FF;border:1px solid #BFDBFE;">
         <div class="tip-ic">✅</div>
-        <div class="tip-body"><strong>"KTR 공인 수치가 있네요"</strong> — 타사 대비 구체적 성능 데이터로 신뢰를 형성합니다.</div>
+        <div class="tip-body">STEP 1~6 탭을 순서대로 클릭하며 <strong>전체 시공 공정</strong>을 고객에게 설명하세요.</div>
       </div>
     </div>
   </div>
@@ -831,64 +1377,57 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 
 <div class="divider"><div class="divider-line"></div><div class="divider-text">다음 단계</div><div class="divider-line"></div></div>
 
-<!-- ════════════════════════════════════
-     STEP 6 — 메모 & 고객정보
-════════════════════════════════════ -->
-<section class="step-section reverse" id="step6" data-step="6">
-  <div class="tablet-wrap">
-    <div class="tablet-outer">
+<!-- ══════════════════════════════════
+  STEP 6 — 메모 & 고객정보
+══════════════════════════════════ -->
+<section class="step-section reverse" id="s6" data-step="6">
+  <div class="tablet-col">
+    <div class="tablet-frame">
       <div class="tablet-screen">
-        <div class="screen-content">
-          <div class="app-sim" id="sim6" style="position:relative;">
-            <!-- 배경 -->
-            <div class="sim-sol-screen" style="height:100%;filter:blur(1.5px);">
-              <div class="sim-sol-hd"><div class="sim-sol-title">상담 진행 중...</div></div>
-              <div class="sim-sol-body" style="display:flex;align-items:center;justify-content:center;height:100%;">
-                <div style="font-size:11px;color:#9CA3AF;text-align:center;">공법 화면</div>
-              </div>
-            </div>
-            <!-- FAB -->
-            <div class="sim-fab" id="s6-fab">✏️</div>
+        <div class="sim" id="sim6">
+          <div class="app-memo-bg">
+            <div class="app-memo-blur-bg">공법 화면 진행 중...</div>
+            <div class="app-memo-fab" id="s6-fab">✏️</div>
             <!-- 메모 시트 -->
-            <div class="sim-memo-overlay" id="s6-sheet">
-              <div class="sim-memo-sheet">
-                <div class="sim-sheet-handle"></div>
-                <div class="sim-sheet-title">✏️ 고객 정보 입력</div>
-                <div class="sim-field">
-                  <div class="sim-field-label">성함 *</div>
-                  <div class="sim-field-input">홍길동</div>
+            <div class="app-memo-overlay" id="s6-sheet">
+              <div class="app-memo-sheet">
+                <div class="app-memo-handle"></div>
+                <div class="app-memo-title">✏️ 고객 정보 입력</div>
+                <div class="app-field">
+                  <div class="app-field-label">성함 *</div>
+                  <div class="app-field-input">홍길동</div>
                 </div>
-                <div class="sim-field">
-                  <div class="sim-field-label">연락처 *</div>
-                  <div class="sim-field-input focus" id="s6-phone">010-1234-5678</div>
+                <div class="app-field">
+                  <div class="app-field-label">연락처 *</div>
+                  <div class="app-field-input focused" id="s6-phone">010-1234-5678</div>
                 </div>
-                <div class="sim-field">
-                  <div class="sim-field-label">건물명</div>
-                  <div class="sim-field-input">○○아파트 관리사무소</div>
+                <div class="app-field">
+                  <div class="app-field-label">건물명</div>
+                  <div class="app-field-input">○○아파트 관리사무소</div>
                 </div>
                 <div style="font-size:8px;font-weight:700;color:#6B7280;margin-bottom:4px;">다음 액션</div>
-                <div class="sim-action-chips">
-                  <div class="sim-action-chip sel">방문진단</div>
-                  <div class="sim-action-chip">전화상담</div>
-                  <div class="sim-action-chip">견적요청</div>
+                <div class="app-action-row">
+                  <div class="app-action-chip sel">방문진단</div>
+                  <div class="app-action-chip">전화상담</div>
+                  <div class="app-action-chip">견적요청</div>
                 </div>
-                <button class="sim-save-cta" id="s6-save">상담 마치기 →</button>
+                <button class="app-save-btn" id="s6-save">상담 마치기 →</button>
               </div>
             </div>
-            <div class="hl" id="hl6"></div>
-            <div class="cursor" id="cur6"></div>
-            <div class="cursor-ring" id="ring6"></div>
           </div>
+          <div class="hl" id="hl6"></div>
+          <div class="cursor" id="cur6"></div>
+          <div class="cursor-ring" id="ring6"></div>
         </div>
       </div>
     </div>
   </div>
-  <div class="desc-panel">
+  <div class="desc-col">
     <div>
-      <div class="step-eyebrow">
-        <div class="step-num-badge" style="background:#7C3AED;color:#fff;">6</div>
-        <div class="step-label" style="background:#F5F3FF;color:#7C3AED;">메모 &amp; 고객정보 입력</div>
-        <span style="font-size:11px;color:var(--text-sm);font-weight:600;">STEP 6 / 7</span>
+      <div class="step-badge-row">
+        <div class="step-num" style="background:#7C3AED;color:#fff;">6</div>
+        <div class="step-tag" style="background:#F5F3FF;color:#7C3AED;">메모 &amp; 고객정보 입력</div>
+        <span class="step-counter">STEP 6 / 7</span>
       </div>
       <h2 class="step-title">✏️ 버튼으로 고객 정보를<br/>입력하고 상담을 마무리하세요</h2>
       <p class="step-desc">화면 우하단 ✏️ 버튼을 탭하면 메모 시트가 열립니다. 성함·연락처·건물명을 입력하고 다음 액션을 선택한 후 "상담 마치기"를 누릅니다. Firestore에 자동 저장됩니다.</p>
@@ -916,58 +1455,56 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 
 <div class="divider"><div class="divider-line"></div><div class="divider-text">마지막 단계</div><div class="divider-line"></div></div>
 
-<!-- ════════════════════════════════════
-     STEP 7 — 제안서 & QR 전달
-════════════════════════════════════ -->
-<section class="step-section" id="step7" data-step="7">
-  <div class="tablet-wrap">
-    <div class="tablet-outer">
+<!-- ══════════════════════════════════
+  STEP 7 — 제안서 & QR 전달
+══════════════════════════════════ -->
+<section class="step-section" id="s7" data-step="7">
+  <div class="tablet-col">
+    <div class="tablet-frame">
       <div class="tablet-screen">
-        <div class="screen-content">
-          <div class="app-sim" id="sim7">
-            <div class="sim-report-screen" style="height:100%;">
-              <div class="sim-report-hd">
-                <div class="sim-report-title">📋 고객 맞춤 제안서 생성</div>
-                <div class="sim-report-sub">저장 완료 — 제안서를 생성하세요</div>
+        <div class="sim" id="sim7">
+          <div class="app-report">
+            <div class="app-report-header">
+              <div class="app-report-title">📋 고객 맞춤 제안서 생성</div>
+              <div class="app-report-sub">저장 완료 — 제안서를 생성하세요</div>
+            </div>
+            <div class="app-report-body">
+              <div class="app-report-list">
+                <div class="app-report-list-title">📌 상담한 공법 목록</div>
+                <div class="app-report-item">
+                  <div class="app-report-dot" style="background:#2563EB;"></div>
+                  <div class="app-report-name">POUR 듀얼강화방수 공법</div>
+                </div>
+                <div class="app-report-item">
+                  <div class="app-report-dot" style="background:#059669;"></div>
+                  <div class="app-report-name">POUR 에폭시 도장 공법</div>
+                </div>
               </div>
-              <div class="sim-report-body">
-                <div class="sim-method-list">
-                  <div class="sim-ml-title">📌 상담한 공법 목록</div>
-                  <div class="sim-ml-item">
-                    <div class="sim-ml-dot" style="background:#2563EB;"></div>
-                    <div class="sim-ml-name">슬라브형 듀얼강화 방수공법</div>
-                  </div>
-                  <div class="sim-ml-item">
-                    <div class="sim-ml-dot" style="background:#059669;"></div>
-                    <div class="sim-ml-name">에폭시 도장 공법</div>
-                  </div>
-                </div>
-                <div class="sim-qr-card" id="s7-qr-card">
-                  <div class="sim-qr-title">📱 QR코드로 즉시 전달</div>
-                  <div class="sim-qr-box" id="s7-qr">📱</div>
-                  <div class="sim-qr-hint">고객이 스캔하면 폰에 즉시 저장됩니다</div>
-                </div>
-                <div class="sim-sms-cta" id="s7-sms">📩 SMS로 발송하기</div>
-                <div class="sim-reopen">
-                  <div class="sim-reopen-title">🔍 고객이 나중에 다시 열람 가능</div>
-                  <div class="sim-reopen-desc">POUR솔루션 홈페이지 → 제안서 조회 → 성함·연락처 입력</div>
-                </div>
+              <div class="app-qr-card" id="s7-qr-card">
+                <div class="app-qr-title">📱 QR코드로 즉시 전달</div>
+                <div class="app-qr-box" id="s7-qr">📱</div>
+                <div class="app-qr-hint">고객이 스캔하면 폰에 즉시 저장됩니다</div>
+              </div>
+              <div class="app-sms-btn" id="s7-sms">📩 SMS로 발송하기</div>
+              <div class="app-reopen">
+                <div class="app-reopen-title">🔍 고객이 나중에 다시 열람 가능</div>
+                <div class="app-reopen-desc">POUR솔루션 홈페이지 → 제안서 조회 → 성함·연락처 입력</div>
               </div>
             </div>
-            <div class="hl" id="hl7"></div>
-            <div class="cursor" id="cur7"></div>
-            <div class="cursor-ring" id="ring7"></div>
           </div>
+          <div class="hl" id="hl7"></div>
+          <div class="cursor" id="cur7"></div>
+          <div class="cursor-ring" id="ring7"></div>
         </div>
       </div>
     </div>
   </div>
-  <div class="desc-panel">
+  <div class="desc-col">
     <div>
-      <div class="step-eyebrow">
-        <div class="step-num-badge" style="background:#0D1B2A;color:#fff;">7</div>
-        <div class="step-label" style="background:#EFF6FF;color:#2563EB;">제안서 생성 &amp; QR 전달</div>
-        <span style="font-size:11px;color:var(--text-sm);font-weight:600;">STEP 7 / 7</span>
+      <div class="step-badge-row">
+        <div class="step-num" style="background:#0B1D3A;color:#fff;">7</div>
+        <div class="step-tag" style="background:#EFF6FF;color:#2563EB;">제안서 생성 &amp; QR 전달</div>
+        <span class="step-counter">STEP 7 / 7</span>
       </div>
       <h2 class="step-title">QR코드 한 번으로<br/>제안서를 고객 폰에 전달하세요</h2>
       <p class="step-desc">저장 완료 후 "📋 고객 맞춤 제안서 생성"을 누르면 상담한 모든 공법이 담긴 제안서가 생성됩니다. QR코드를 고객이 스캔하면 폰에 즉시 저장되며, SMS로도 발송할 수 있습니다.</p>
@@ -989,7 +1526,7 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
   </div>
 </section>
 
-<!-- ─── 데이터 흐름 ─── -->
+<!-- 데이터 흐름 -->
 <div class="divider"><div class="divider-line"></div><div class="divider-text">데이터 흐름</div><div class="divider-line"></div></div>
 <div class="flow-card">
   <div class="flow-card-title">🔄 데이터 흐름 한눈에 보기</div>
@@ -1000,7 +1537,7 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
     <div class="flow-arrow">→</div>
     <div class="flow-node" style="background:#EFF6FF;border-color:#BFDBFE;">💻 관리자센터</div>
   </div>
-  <div style="text-align:center;font-size:11px;color:var(--text-sm);margin:8px 0;font-weight:700;">+</div>
+  <div style="text-align:center;font-size:11px;color:var(--text-sm);margin:10px 0;font-weight:700;">+</div>
   <div class="flow-row">
     <div class="flow-node" style="background:#ECFDF5;border-color:#A7F3D0;">📋 제안서 생성</div>
     <div class="flow-arrow">→</div>
@@ -1010,7 +1547,7 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
   </div>
 </div>
 
-<!-- ─── 핵심 기능 ─── -->
+<!-- 핵심 기능 -->
 <div class="divider"><div class="divider-line"></div><div class="divider-text">핵심 기능</div><div class="divider-line"></div></div>
 <div class="feat-card">
   <div class="feat-header">
@@ -1022,7 +1559,7 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
   </div>
   <div class="feat-grid">
     <div class="feat-item"><div class="feat-item-icon">🤖</div><div class="feat-item-title">AI 하자 자동 분류</div><div class="feat-item-desc">사진 촬영 시 Claude Vision이 유형·위치·심각도를 자동 분류합니다.</div></div>
-    <div class="feat-item"><div class="feat-item-icon">🔬</div><div class="feat-item-title">자재 특징 모달</div><div class="feat-item-desc">공정별 자재의 사진·영상·GIF를 모달로 바로 보여줍니다.</div></div>
+    <div class="feat-item"><div class="feat-item-icon">🔬</div><div class="feat-item-title">자재 특징 모달</div><div class="feat-item-desc">공정별 자재의 성능 데이터를 모달로 바로 보여줍니다.</div></div>
     <div class="feat-item"><div class="feat-item-icon">📋</div><div class="feat-item-title">고객 맞춤 제안서</div><div class="feat-item-desc">상담한 모든 공법을 담은 제안서를 자동 생성합니다.</div></div>
     <div class="feat-item"><div class="feat-item-icon">📱</div><div class="feat-item-title">QR 즉시 전달</div><div class="feat-item-desc">제안서 링크를 QR코드로 고객 폰에 즉시 전달합니다.</div></div>
     <div class="feat-item"><div class="feat-item-icon">☁️</div><div class="feat-item-title">실시간 DB 저장</div><div class="feat-item-desc">모든 상담은 Firebase에 즉시 저장. 관리자 실시간 확인 가능.</div></div>
@@ -1030,7 +1567,7 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
   </div>
 </div>
 
-<!-- ─── 주의사항 ─── -->
+<!-- 주의사항 -->
 <div class="caution">
   <div class="caution-title">⚠️ 꼭 기억하세요</div>
   <ul class="caution-list">
@@ -1045,33 +1582,26 @@ body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--text);
 </main>
 
 <script>
-/* ════════════════════════════════════════
-   유틸리티
-════════════════════════════════════════ */
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-function setCursor(id, ringId, xPct, yPct) {
-  const el = document.getElementById(id);
-  const ring = document.getElementById(ringId);
-  if (!el || !ring) return;
-  el.style.opacity = '1';
-  ring.style.opacity = '1';
-  el.style.left = xPct + '%';
-  el.style.top = yPct + '%';
-  ring.style.left = xPct + '%';
-  ring.style.top = yPct + '%';
+function moveCursor(cId, rId, xPct, yPct) {
+  const c = document.getElementById(cId);
+  const r = document.getElementById(rId);
+  if (!c || !r) return;
+  c.style.opacity = '1'; r.style.opacity = '1';
+  c.style.left = xPct + '%'; c.style.top = yPct + '%';
+  r.style.left = xPct + '%'; r.style.top = yPct + '%';
 }
-function hideCursor(id, ringId) {
-  const el = document.getElementById(id);
-  const ring = document.getElementById(ringId);
-  if (el) el.style.opacity = '0';
-  if (ring) ring.style.opacity = '0';
+function hideCursor(cId, rId) {
+  const c = document.getElementById(cId);
+  const r = document.getElementById(rId);
+  if (c) c.style.opacity = '0';
+  if (r) r.style.opacity = '0';
 }
-function showHL(id, top, left, w, h) {
+function showHL(id, t, l, w, h) {
   const el = document.getElementById(id);
   if (!el) return;
-  el.style.top = top; el.style.left = left;
-  el.style.width = w; el.style.height = h;
+  el.style.top = t; el.style.left = l; el.style.width = w; el.style.height = h;
   el.classList.add('show');
 }
 function hideHL(id) {
@@ -1079,130 +1609,128 @@ function hideHL(id) {
   if (el) el.classList.remove('show');
 }
 
-/* ════════════════════════════════════════
-   스텝별 애니메이션
-════════════════════════════════════════ */
-
-// STEP 1
+// STEP 1 애니메이션
 async function anim1() {
-  await sleep(400);
-  showHL('hl1','38px','10px','calc(100% - 20px)','50px');
-  setCursor('cur1','ring1', 30, 30);
+  await sleep(300);
+  // 모드 카드 하이라이트
+  showHL('hl1', '52%', '8px', 'calc(100% - 16px)', '28%');
+  moveCursor('cur1','ring1', 30, 62);
   await sleep(900);
-  // 담당자 변경
-  document.getElementById('s1-c1').classList.remove('sel');
-  document.getElementById('s1-c2').classList.add('sel');
-  await sleep(600);
-  setCursor('cur1','ring1', 50, 30);
-  await sleep(600);
-  // 모드 변경
-  showHL('hl1','92px','10px','calc(100% - 20px)','34px');
-  setCursor('cur1','ring1', 25, 50);
-  await sleep(900);
-  document.getElementById('s1-m1').classList.remove('sel');
-  document.getElementById('s1-m2').classList.add('sel');
-  document.getElementById('s1-mode-badge').textContent = '상시영업 모드';
-  await sleep(600);
-  document.getElementById('s1-m2').classList.remove('sel');
-  document.getElementById('s1-m1').classList.add('sel');
-  document.getElementById('s1-mode-badge').textContent = '박람회 모드';
-  await sleep(400);
-  // 시작 버튼
-  showHL('hl1','134px','10px','calc(100% - 20px)','32px');
-  setCursor('cur1','ring1', 50, 62);
+  // 상시영업 탭
+  document.getElementById('s1-mode1').classList.remove('active');
+  document.getElementById('s1-mode2').classList.add('active');
+  await sleep(700);
+  document.getElementById('s1-mode2').classList.remove('active');
+  document.getElementById('s1-mode1').classList.add('active');
+  await sleep(500);
+  // 상담 시작하기 버튼
+  showHL('hl1', '72%', '8px', 'calc(100% - 16px)', '14%');
+  moveCursor('cur1','ring1', 50, 78);
   await sleep(1200);
   hideHL('hl1');
   hideCursor('cur1','ring1');
 }
 
-// STEP 2
+// STEP 2 애니메이션
 async function anim2() {
-  await sleep(400);
-  // 탭 클릭
-  setCursor('cur2','ring2', 28, 20);
-  showHL('hl2','28px','0','100%','22px');
-  await sleep(800);
-  document.querySelectorAll('#sim2 .sim-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('s2-t2').classList.add('active');
-  await sleep(600);
-  setCursor('cur2','ring2', 72, 20);
-  await sleep(500);
-  document.querySelectorAll('#sim2 .sim-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('s2-t3').classList.add('active');
-  await sleep(500);
-  document.querySelectorAll('#sim2 .sim-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('s2-t1').classList.add('active');
-  await sleep(600);
+  await sleep(300);
+  // 탭 필터
+  showHL('hl2', '18px', '0', '100%', '22px');
+  moveCursor('cur2','ring2', 22, 22);
+  await sleep(700);
+  ['s2-t1','s2-t2','s2-t3','s2-t4','s2-t1'].forEach((id, i) => {
+    setTimeout(() => {
+      document.querySelectorAll('#sim2 .app-filter-tab').forEach(t => t.classList.remove('active'));
+      const el = document.getElementById(id);
+      if (el) el.classList.add('active');
+    }, i * 400);
+  });
+  await sleep(2200);
   // 카드 선택
-  setCursor('cur2','ring2', 25, 58);
-  showHL('hl2','50px','6px','47%','76px');
+  showHL('hl2', '42px', '66%', '33%', '33%');
+  moveCursor('cur2','ring2', 82, 58);
   await sleep(800);
-  document.getElementById('s2-c1').classList.remove('sel');
-  document.getElementById('s2-c3').classList.add('sel');
-  await sleep(600);
-  setCursor('cur2','ring2', 75, 58);
-  showHL('hl2','50px','50%','47%','76px');
-  await sleep(800);
-  document.getElementById('s2-c3').classList.remove('sel');
-  document.getElementById('s2-c1').classList.add('sel');
-  await sleep(600);
+  document.getElementById('s2-c1').classList.remove('selected');
+  document.getElementById('s2-c3').classList.add('selected');
+  await sleep(700);
+  showHL('hl2', '42px', '0', '33%', '33%');
+  moveCursor('cur2','ring2', 17, 58);
+  await sleep(700);
+  document.getElementById('s2-c3').classList.remove('selected');
+  document.getElementById('s2-c1').classList.add('selected');
+  await sleep(500);
   hideHL('hl2');
   hideCursor('cur2','ring2');
 }
 
-// STEP 3
+// STEP 3 애니메이션
 async function anim3() {
-  await sleep(400);
+  await sleep(300);
   // 촬영 버튼 하이라이트
-  setCursor('cur3','ring3', 65, 55);
-  showHL('hl3','50px','50%','46%','44px');
+  moveCursor('cur3','ring3', 72, 32);
+  showHL('hl3', '26px', '60%', '36%', '14px');
   await sleep(1200);
   // AI 결과 표시
   const ai = document.getElementById('s3-ai');
-  if (ai) { ai.style.display = 'flex'; ai.style.animation = 'fadeIn .4s ease'; }
-  showHL('hl3','104px','6px','calc(100% - 12px)','42px');
-  setCursor('cur3','ring3', 50, 68);
+  if (ai) { ai.style.display = 'flex'; }
+  showHL('hl3', '76%', '6px', 'calc(100% - 12px)', '18%');
+  moveCursor('cur3','ring3', 50, 83);
   await sleep(1500);
+  if (ai) { ai.style.display = 'none'; }
   hideHL('hl3');
   hideCursor('cur3','ring3');
 }
 
-// STEP 4
+// STEP 4 애니메이션
 async function anim4() {
-  await sleep(400);
-  setCursor('cur4','ring4', 50, 56);
-  showHL('hl4','78px','8px','calc(100% - 16px)','68px');
-  await sleep(1000);
-  const play = document.getElementById('s4-play');
-  const video = document.getElementById('s4-video');
-  if (play) { play.textContent = '⏸'; play.classList.add('playing'); }
-  if (video) video.style.background = 'linear-gradient(135deg,#1e3a5f,#0D1B2A)';
+  await sleep(300);
+  moveCursor('cur4','ring4', 25, 72);
+  showHL('hl4', '62%', '6px', 'calc(100% - 12px)', '32%');
+  await sleep(900);
+  const play = document.getElementById('s4-play1');
+  const vid = document.getElementById('s4-vid1');
+  if (play) play.textContent = '⏸';
+  if (vid) vid.style.background = 'linear-gradient(135deg,#1e3a5f,#0D1B2A)';
   await sleep(1800);
-  if (play) { play.textContent = '▶'; play.classList.remove('playing'); }
-  if (video) video.style.background = 'linear-gradient(135deg,#0D1B2A,#1A2E42)';
+  if (play) play.textContent = '▶';
+  if (vid) vid.style.background = 'linear-gradient(135deg,#1E293B,#0F172A)';
   hideHL('hl4');
   hideCursor('cur4','ring4');
 }
 
-// STEP 5
+// STEP 5 애니메이션
+const stepData = [
+  { title:'STEP 1 — 모체강화함침 + 듀얼복합시트', desc:'바탕면 부착력 강화를 위한 모체강화함침재를 도포하고 듀얼복합시트를 전개합니다.', img:'🏗' },
+  { title:'STEP 2 — 슈퍼복합압축시트 보강', desc:'슈퍼복합압축시트를 전개하여 방수층을 강화합니다.', img:'🔧' },
+  { title:'STEP 3 — 듀얼복합시트 보강완료', desc:'듀얼복합시트 보강이 완료된 상태입니다.', img:'✅' },
+  { title:'STEP 4 — 코트재Ⅱ 도포 (중도)', desc:'중도 코트재를 균일하게 도포합니다.', img:'🎨' },
+  { title:'STEP 5 — 상도코트재 도포', desc:'마감 상도코트재를 도포하여 내구성을 강화합니다.', img:'✨' },
+  { title:'STEP 6 — 작업완료', desc:'모든 공정이 완료되었습니다. 완벽한 방수층이 형성되었습니다.', img:'🏆' },
+];
 async function anim5() {
-  await sleep(400);
-  // 공정 탭
-  setCursor('cur5','ring5', 22, 36);
-  showHL('hl5','50px','6px','80%','18px');
-  await sleep(800);
-  document.querySelectorAll('#sim5 .sim-proc-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('s5-p2').classList.add('active');
-  await sleep(500);
-  document.querySelectorAll('#sim5 .sim-proc-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('s5-p3').classList.add('active');
-  await sleep(500);
-  document.querySelectorAll('#sim5 .sim-proc-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('s5-p1').classList.add('active');
-  await sleep(600);
+  await sleep(300);
+  const pills = document.querySelectorAll('#sim5 .app-step-pill');
+  for (let i = 0; i < stepData.length; i++) {
+    pills.forEach(p => p.classList.remove('active'));
+    pills[i].classList.add('active');
+    const t = document.getElementById('s5-title');
+    const d = document.getElementById('s5-desc');
+    const img = document.getElementById('s5-img');
+    if (t) t.textContent = stepData[i].title;
+    if (d) d.textContent = stepData[i].desc;
+    if (img) img.textContent = stepData[i].img;
+    moveCursor('cur5','ring5', 8 + i * 15, 22);
+    if (i === 0) showHL('hl5', '32px', '0', '100%', '18px');
+    await sleep(600);
+  }
   // 자재 특징 버튼
-  setCursor('cur5','ring5', 20, 74);
-  showHL('hl5','116px','6px','44%','20px');
+  pills.forEach(p => p.classList.remove('active'));
+  pills[0].classList.add('active');
+  if (document.getElementById('s5-title')) document.getElementById('s5-title').textContent = stepData[0].title;
+  if (document.getElementById('s5-desc')) document.getElementById('s5-desc').textContent = stepData[0].desc;
+  if (document.getElementById('s5-img')) document.getElementById('s5-img').textContent = stepData[0].img;
+  showHL('hl5', '72%', '6px', '55%', '16px');
+  moveCursor('cur5','ring5', 22, 78);
   await sleep(900);
   document.getElementById('s5-modal').style.display = 'flex';
   await sleep(2000);
@@ -1211,78 +1739,65 @@ async function anim5() {
   hideCursor('cur5','ring5');
 }
 
-// STEP 6
+// STEP 6 애니메이션
 async function anim6() {
-  await sleep(400);
-  // FAB 하이라이트
-  showHL('hl6','calc(100% - 56px)','calc(100% - 56px)','44px','44px');
-  setCursor('cur6','ring6', 88, 88);
+  await sleep(300);
+  showHL('hl6', 'calc(100% - 50px)', 'calc(100% - 50px)', '40px', '40px');
+  moveCursor('cur6','ring6', 88, 88);
   await sleep(1200);
-  // 연락처 포커스
-  showHL('hl6','48%','6px','calc(100% - 12px)','26px');
-  setCursor('cur6','ring6', 50, 60);
-  document.getElementById('s6-phone').classList.add('focus');
-  await sleep(1200);
-  // 저장 버튼
-  showHL('hl6','82%','6px','calc(100% - 12px)','28px');
-  setCursor('cur6','ring6', 50, 87);
+  showHL('hl6', '46%', '6px', 'calc(100% - 12px)', '22px');
+  moveCursor('cur6','ring6', 50, 57);
+  await sleep(1000);
+  showHL('hl6', '82%', '6px', 'calc(100% - 12px)', '24px');
+  moveCursor('cur6','ring6', 50, 87);
   await sleep(1200);
   hideHL('hl6');
   hideCursor('cur6','ring6');
 }
 
-// STEP 7
+// STEP 7 애니메이션
 async function anim7() {
-  await sleep(400);
-  // 공법 목록
-  showHL('hl7','8px','6px','calc(100% - 12px)','72px');
-  setCursor('cur7','ring7', 50, 22);
+  await sleep(300);
+  showHL('hl7', '8px', '6px', 'calc(100% - 12px)', '68px');
+  moveCursor('cur7','ring7', 50, 20);
   await sleep(1200);
-  // QR 카드
-  showHL('hl7','88px','6px','calc(100% - 12px)','88px');
-  setCursor('cur7','ring7', 50, 55);
+  showHL('hl7', '84px', '6px', 'calc(100% - 12px)', '84px');
+  moveCursor('cur7','ring7', 50, 52);
   await sleep(1000);
-  // QR 이미지 로드
   const qr = document.getElementById('s7-qr');
   if (qr) {
-    qr.innerHTML = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=72x72&data=https://pour-construction-form.pages.dev&color=ffffff&bgcolor=0D1B2A" style="width:60px;height:60px;border-radius:4px;" onerror="this.parentNode.innerHTML=\'📱\'" />';
+    qr.innerHTML = '<img src="https://api.qrserver.com/v1/create-qr-code/?size=68x68&data=https://pour-construction-form.pages.dev&color=ffffff&bgcolor=0B1D3A" style="width:56px;height:56px;border-radius:4px;" onerror="this.parentNode.innerHTML=\'📱\'" />';
   }
   await sleep(1200);
-  // SMS 버튼
-  showHL('hl7','182px','6px','calc(100% - 12px)','26px');
-  setCursor('cur7','ring7', 50, 78);
+  showHL('hl7', '178px', '6px', 'calc(100% - 12px)', '24px');
+  moveCursor('cur7','ring7', 50, 77);
   await sleep(1200);
   hideHL('hl7');
   hideCursor('cur7','ring7');
 }
 
-/* ════════════════════════════════════════
-   인터섹션 옵저버
-════════════════════════════════════════ */
-const animMap = { step1:anim1, step2:anim2, step3:anim3, step4:anim4, step5:anim5, step6:anim6, step7:anim7 };
+// 인터섹션 옵저버
+const animFns = { s1: anim1, s2: anim2, s3: anim3, s4: anim4, s5: anim5, s6: anim6, s7: anim7 };
 const triggered = {};
 
-const visObserver = new IntersectionObserver(entries => {
+const observer = new IntersectionObserver(entries => {
   entries.forEach(e => {
     if (e.isIntersecting) {
       e.target.classList.add('visible');
       const step = e.target.dataset.step;
-      document.querySelectorAll('.prog-step').forEach(p => {
+      document.querySelectorAll('.prog-item').forEach(p => {
         p.classList.toggle('active', p.dataset.step === step);
       });
-      if (!triggered[e.target.id] && animMap[e.target.id]) {
+      if (!triggered[e.target.id] && animFns[e.target.id]) {
         triggered[e.target.id] = true;
-        animMap[e.target.id]();
+        animFns[e.target.id]();
       }
     }
   });
-}, { threshold: 0.4 });
+}, { threshold: 0.35 });
 
-document.querySelectorAll('.step-section').forEach(s => visObserver.observe(s));
+document.querySelectorAll('.step-section').forEach(s => observer.observe(s));
 
-/* ════════════════════════════════════════
-   인터랙티브 이벤트
-════════════════════════════════════════ */
 // 자재 특징 모달
 document.getElementById('s5-feat-btn').addEventListener('click', () => {
   document.getElementById('s5-modal').style.display = 'flex';
@@ -1291,8 +1806,8 @@ document.getElementById('s5-modal-close').addEventListener('click', () => {
   document.getElementById('s5-modal').style.display = 'none';
 });
 
-// 진행 표시줄 클릭
-document.querySelectorAll('.prog-step').forEach(link => {
+// 진행 바 클릭
+document.querySelectorAll('.prog-item').forEach(link => {
   link.addEventListener('click', e => {
     e.preventDefault();
     const target = document.querySelector(link.getAttribute('href'));

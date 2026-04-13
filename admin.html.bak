@@ -3619,9 +3619,10 @@ function DefectSitesPage({showToast}){
     </div>
   );
 }
+
 /* ══════════════════════════════════════════════════════════════
    공법분석 — 하자사진 3단계 분류 (대분류:공법 > 중분류:하자유형 > 소분류:사진)
-   Firestore: defect-photos 컬렉션 + AI 자동분류 + 템플릿 관리
+   Firestore: defect-photos 컬렉션 + 마누스 데이터 연동
    ══════════════════════════════════════════════════════════════ */
 /* 태블릿앱 problem.label 과 완전 일치 (순서: 박공형 → 슬라브형 → 도장 → 보수/보강) */
 const DEFAULT_POUR_METHODS=[
@@ -3649,20 +3650,6 @@ const DEFAULT_POUR_METHODS=[
 ];
 const DEFAULT_DEFECT_TYPES=['탈락','부식','변형','녹슬음','균열','이음부','들뜸','누수','박리','기타'];
 
-/* ── 기본 하자 템플릿 (AI 분류 기준) ── */
-const DEFAULT_DEFECT_TEMPLATES=[
-  {type:'탈락',keywords:'탈락,떨어짐,박락,조각,파편,기와탈락,슁글탈락',desc:'방수재·도료·기와 등이 바탕면에서 분리되어 떨어진 상태'},
-  {type:'누수',keywords:'누수,물,젖음,물자국,얼룩,침수,스며듦,결로',desc:'물이 구조체를 통과하거나 표면에 스며드는 상태'},
-  {type:'균열',keywords:'균열,크랙,갈라짐,거북등,세로균열,가로균열,실금',desc:'구조체나 마감재에 금이 가거나 갈라진 상태'},
-  {type:'들뜸',keywords:'들뜸,부풀음,기포,부풀기,이격,분리,박리',desc:'방수층·도막이 바탕면에서 들떠 있는 상태'},
-  {type:'박리',keywords:'박리,벗겨짐,페인트벗겨짐,도막박리,표면박리',desc:'표면 마감재가 벗겨지거나 분리되는 상태'},
-  {type:'부식',keywords:'부식,녹,산화,철근노출,철근부식,녹슬음',desc:'금속 부재나 철근이 산화·부식된 상태'},
-  {type:'이음부',keywords:'이음부,조인트,실링,코킹,줄눈,접합부,틈새',desc:'구조물 이음부·조인트에서 발생한 하자'},
-  {type:'변형',keywords:'변형,처짐,뒤틀림,침하,굴곡,파손',desc:'구조체나 마감재가 변형·침하된 상태'},
-  {type:'녹슬음',keywords:'녹슬음,녹,산화,부식흔적,철분',desc:'금속 표면에 녹이 발생한 상태'},
-  {type:'기타',keywords:'기타,오염,이물질,곰팡이,백화,얼룩',desc:'위 분류에 해당하지 않는 기타 하자'},
-];
-
 function DefectPhotosPage({showToast}){
   const [photos,setPhotos]=useState([]);
   const [loading,setLoading]=useState(true);
@@ -3670,8 +3657,6 @@ function DefectPhotosPage({showToast}){
   const [selDefect,setSelDefect]=useState('전체');
   const [showAdd,setShowAdd]=useState(false);
   const [showImport,setShowImport]=useState(false);
-  const [showAiBulk,setShowAiBulk]=useState(false);
-  const [showTemplates,setShowTemplates]=useState(false);
   const [lightbox,setLightbox]=useState(null);
   const [uploading,setUploading]=useState(false);
   const [importing,setImporting]=useState(false);
@@ -3679,18 +3664,6 @@ function DefectPhotosPage({showToast}){
   const [importUrl,setImportUrl]=useState('');
   const [form,setForm]=useState({method:DEFAULT_POUR_METHODS[0],defectType:DEFAULT_DEFECT_TYPES[0],label:'',description:'',files:[]});
   const [editingId,setEditingId]=useState(null);
-  /* AI 대량 업로드 상태 */
-  const [aiBulkFiles,setAiBulkFiles]=useState([]);
-  const [aiBulkMethod,setAiBulkMethod]=useState(DEFAULT_POUR_METHODS[0]);
-  const [aiBulkResults,setAiBulkResults]=useState([]);
-  const [aiProcessing,setAiProcessing]=useState(false);
-  const [aiProgress,setAiProgress]=useState(0);
-  const [aiApiKey,setAiApiKey]=useState(()=>localStorage.getItem('openai_api_key')||'');
-  /* 템플릿 관리 상태 */
-  const [templates,setTemplates]=useState([]);
-  const [templateLoading,setTemplateLoading]=useState(false);
-  const [editingTemplate,setEditingTemplate]=useState(null);
-  const [templateForm,setTemplateForm]=useState({type:'',keywords:'',desc:''});
 
   const fetchPhotos=async()=>{
     setLoading(true);
@@ -3704,57 +3677,7 @@ function DefectPhotosPage({showToast}){
     setLoading(false);
   };
 
-  /* ── 하자 템플릿 로드 ── */
-  const fetchTemplates=async()=>{
-    setTemplateLoading(true);
-    try{
-      const snap=await db.collection('defect-templates').get();
-      if(snap.empty){
-        setTemplates(DEFAULT_DEFECT_TEMPLATES);
-      }else{
-        const arr=[];snap.forEach(doc=>arr.push({id:doc.id,...doc.data()}));
-        arr.sort((a,b)=>(a.type||'').localeCompare(b.type||''));
-        setTemplates(arr);
-      }
-    }catch(e){setTemplates(DEFAULT_DEFECT_TEMPLATES);}
-    setTemplateLoading(false);
-  };
-
-  const saveTemplate=async()=>{
-    if(!templateForm.type.trim()){showToast('하자유형명을 입력하세요','error');return;}
-    try{
-      const data={type:templateForm.type.trim(),keywords:templateForm.keywords.trim(),desc:templateForm.desc.trim(),updatedAt:new Date().toISOString()};
-      if(editingTemplate&&editingTemplate.id){
-        await db.collection('defect-templates').doc(editingTemplate.id).update(data);
-      }else{
-        await db.collection('defect-templates').add({...data,createdAt:new Date().toISOString()});
-      }
-      showToast('템플릿 저장 완료');
-      setEditingTemplate(null);setTemplateForm({type:'',keywords:'',desc:''});
-      fetchTemplates();
-    }catch(e){showToast('저장 실패','error');}
-  };
-
-  const deleteTemplate=async(id)=>{
-    if(!confirm('삭제하시겠습니까?'))return;
-    try{await db.collection('defect-templates').doc(id).delete();showToast('삭제 완료');fetchTemplates();}
-    catch(e){showToast('삭제 실패','error');}
-  };
-
-  const resetTemplates=async()=>{
-    if(!confirm('기본 템플릿으로 초기화하시겠습니까? 기존 템플릿이 모두 삭제됩니다.'))return;
-    try{
-      const snap=await db.collection('defect-templates').get();
-      const batch=db.batch();snap.forEach(doc=>batch.delete(doc.ref));
-      await batch.commit();
-      for(const t of DEFAULT_DEFECT_TEMPLATES){
-        await db.collection('defect-templates').add({...t,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
-      }
-      showToast('기본 템플릿으로 초기화 완료');fetchTemplates();
-    }catch(e){showToast('초기화 실패','error');}
-  };
-
-  useEffect(()=>{fetchPhotos();fetchTemplates();},[]);
+  useEffect(()=>{fetchPhotos();},[]);
 
   const allMethods=useMemo(()=>{const s=new Set(DEFAULT_POUR_METHODS);photos.forEach(p=>{if(p.method)s.add(p.method);});return [...s];},[photos]);
   const allDefects=useMemo(()=>{const s=new Set(DEFAULT_DEFECT_TYPES);photos.forEach(p=>{if(p.defectType)s.add(p.defectType);});return [...s];},[photos]);
@@ -3779,7 +3702,6 @@ function DefectPhotosPage({showToast}){
     total:photos.length,methods:new Set(photos.map(p=>p.method).filter(Boolean)).size,
     defects:new Set(photos.map(p=>p.defectType).filter(Boolean)).size,
     manus:photos.filter(p=>p.source==='manus').length,
-    ai:photos.filter(p=>p.source==='ai').length,
   }),[photos]);
 
   /* 구 공법명 → 신 공법명 일괄 재태깅 */
@@ -3842,89 +3764,6 @@ function DefectPhotosPage({showToast}){
   };
 
   const closeAddForm=()=>{setShowAdd(false);setEditingId(null);setForm({method:DEFAULT_POUR_METHODS[0],defectType:DEFAULT_DEFECT_TYPES[0],label:'',description:'',files:[]});};
-
-  /* ── AI 대량 자동 분류 ── */
-  const fileToBase64=(file)=>new Promise((resolve,reject)=>{
-    const reader=new FileReader();
-    reader.onload=()=>resolve(reader.result.split(',')[1]);
-    reader.onerror=reject;
-    reader.readAsDataURL(file);
-  });
-
-  const classifyImageWithAI=async(file,method,templateList)=>{
-    const base64=await fileToBase64(file);
-    const defectList=templateList.map(t=>`- ${t.type}: ${t.desc} (키워드: ${t.keywords})`).join('\n');
-    const methodContext=`현재 공법: ${method}`;
-    const prompt=`당신은 건축물 하자 사진을 분류하는 전문가입니다.\n${methodContext}\n\n아래 하자유형 중 이 사진에 가장 적합한 유형 하나를 선택하세요:\n${defectList}\n\n반드시 JSON 형식으로만 답하세요:\n{"defectType":"선택한하자유형","confidence":0~100,"description":"한줄설명"}`;
-    const key=aiApiKey.trim();
-    if(!key)throw new Error('OpenAI API Key가 없습니다');
-    const resp=await fetch('https://api.openai.com/v1/chat/completions',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},
-      body:JSON.stringify({
-        model:'gpt-4o-mini',
-        messages:[{role:'user',content:[
-          {type:'text',text:prompt},
-          {type:'image_url',image_url:{url:`data:image/jpeg;base64,${base64}`,detail:'low'}}
-        ]}],
-        max_tokens:200,
-        response_format:{type:'json_object'}
-      })
-    });
-    if(!resp.ok){const e=await resp.json();throw new Error(e.error?.message||'API 오류');}
-    const data=await resp.json();
-    return JSON.parse(data.choices[0].message.content);
-  };
-
-  const runAiBulkClassify=async()=>{
-    if(!aiBulkFiles.length){showToast('사진을 선택하세요','error');return;}
-    if(!aiApiKey.trim()){showToast('OpenAI API Key를 입력하세요','error');return;}
-    localStorage.setItem('openai_api_key',aiApiKey.trim());
-    setAiProcessing(true);setAiProgress(0);
-    const activeTemplates=templates.length?templates:DEFAULT_DEFECT_TEMPLATES;
-    const results=[];
-    for(let i=0;i<aiBulkFiles.length;i++){
-      const file=aiBulkFiles[i];
-      try{
-        const result=await classifyImageWithAI(file,aiBulkMethod,activeTemplates);
-        results.push({file,method:aiBulkMethod,defectType:result.defectType||'기타',confidence:result.confidence||0,description:result.description||'',status:'ready',previewUrl:URL.createObjectURL(file)});
-      }catch(e){
-        results.push({file,method:aiBulkMethod,defectType:'기타',confidence:0,description:'분류 실패: '+e.message,status:'error',previewUrl:URL.createObjectURL(file)});
-      }
-      setAiProgress(Math.round((i+1)/aiBulkFiles.length*100));
-    }
-    setAiBulkResults(results);
-    setAiProcessing(false);
-    showToast(`${results.length}장 AI 분류 완료`,'success');
-  };
-
-  const saveAiBulkResults=async()=>{
-    const toSave=aiBulkResults.filter(r=>r.status!=='saved');
-    if(!toSave.length){showToast('저장할 항목이 없습니다','error');return;}
-    setUploading(true);
-    let saved=0;
-    const updated=[...aiBulkResults];
-    for(let i=0;i<updated.length;i++){
-      const r=updated[i];
-      if(r.status==='saved')continue;
-      try{
-        const url=await uploadFile(r.file);
-        const existing=photos.filter(p=>p.method===r.method&&p.defectType===r.defectType).length;
-        await db.collection(COLLECTIONS.DEFECT_PHOTOS).add({
-          method:r.method,defectType:r.defectType,
-          label:`${r.defectType}${existing+saved+1}`,
-          description:r.description,imageUrl:url,
-          source:'ai',aiConfidence:r.confidence,
-          createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),
-        });
-        updated[i]={...r,status:'saved'};saved++;
-      }catch(e){updated[i]={...r,status:'error',description:'저장 실패: '+e.message};}
-    }
-    setAiBulkResults(updated);
-    setUploading(false);
-    showToast(`${saved}장 저장 완료`,'success');
-    fetchPhotos();
-  };
 
   /* ── 마누스 데이터 연동 ── */
   const doImport=async()=>{
@@ -4000,7 +3839,6 @@ function DefectPhotosPage({showToast}){
         <div style={{fontSize:13,fontWeight:700,marginBottom:4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.label||'무제'}</div>
         <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
           {p.source==='manus'&&<span style={{padding:'2px 6px',borderRadius:4,background:'#FEF3C7',color:'#92400E',fontSize:10,fontWeight:600}}>마누스</span>}
-          {p.source==='ai'&&<span style={{padding:'2px 6px',borderRadius:4,background:'#EDE9FE',color:'#6D28D9',fontSize:10,fontWeight:600}}>AI분류{p.aiConfidence?` ${p.aiConfidence}%`:''}</span>}
           <span style={{padding:'2px 6px',borderRadius:4,background:'var(--blue-l)',color:'var(--blue)',fontSize:10,fontWeight:600}}>{p.defectType}</span>
         </div>
       </div>
@@ -4075,175 +3913,21 @@ function DefectPhotosPage({showToast}){
         </div>
       </div>}
 
-      {/* ── AI 대량 자동 분류 모달 ── */}
-      {showAiBulk&&<div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.55)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}} onClick={()=>{if(!aiProcessing&&!uploading)setShowAiBulk(false);}}>
-        <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:20,padding:28,width:'min(680px,95vw)',maxHeight:'88vh',overflow:'auto',boxShadow:'0 20px 60px rgba(0,0,0,.25)'}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
-            <div>
-              <div style={{fontSize:18,fontWeight:800}}>🤖 AI 대량 자동 분류</div>
-              <div style={{fontSize:12,color:'var(--text-sm)',marginTop:4}}>사진을 업로드하면 AI가 하자유형을 자동으로 판별합니다</div>
-            </div>
-            {!aiProcessing&&!uploading&&<button onClick={()=>setShowAiBulk(false)} style={{background:'none',border:'none',fontSize:22,cursor:'pointer',color:'var(--text-sm)'}}>✕</button>}
-          </div>
-
-          {/* API Key 입력 */}
-          <div style={{background:'#F0F9FF',borderRadius:10,padding:14,marginBottom:16,border:'1px solid #BAE6FD'}}>
-            <label style={{fontSize:12,fontWeight:700,color:'#0369A1',marginBottom:6,display:'block'}}>🔑 OpenAI API Key</label>
-            <input type="password" style={{...IS,border:'1.5px solid #BAE6FD',background:'#fff'}} value={aiApiKey} onChange={e=>setAiApiKey(e.target.value)} placeholder="sk-..."/>
-            <div style={{fontSize:11,color:'#0369A1',marginTop:4}}>입력한 키는 이 기기에만 저장됩니다 (localStorage)</div>
-          </div>
-
-          {/* 공법 선택 */}
-          <div style={{marginBottom:14}}>
-            <label style={LS}>공법 선택 (모든 사진에 동일 적용)</label>
-            <select style={{...IS,background:'#fff'}} value={aiBulkMethod} onChange={e=>setAiBulkMethod(e.target.value)}>
-              {DEFAULT_POUR_METHODS.map(m=><option key={m} value={m}>{m}</option>)}
-            </select>
-          </div>
-
-          {/* 파일 선택 */}
-          <div style={{marginBottom:16}}>
-            <label style={LS}>사진 선택 (여러 장 가능)</label>
-            <input type="file" accept="image/*" multiple onChange={e=>{setAiBulkFiles(Array.from(e.target.files));setAiBulkResults([]);}} style={{fontSize:12}}/>
-            {aiBulkFiles.length>0&&<div style={{fontSize:12,color:'var(--text-sm)',marginTop:6,fontWeight:600}}>{aiBulkFiles.length}장 선택됨</div>}
-          </div>
-
-          {/* 진행 상태 */}
-          {aiProcessing&&(
-            <div style={{marginBottom:16}}>
-              <div style={{display:'flex',justifyContent:'space-between',marginBottom:6,fontSize:12,fontWeight:600}}>
-                <span>AI 분류 중...</span><span>{aiProgress}%</span>
-              </div>
-              <div style={{height:8,borderRadius:4,background:'#E5E7EB',overflow:'hidden'}}>
-                <div style={{height:'100%',borderRadius:4,background:'linear-gradient(90deg,#6D28D9,#2563EB)',width:`${aiProgress}%`,transition:'width .3s'}}/>
-              </div>
-            </div>
-          )}
-
-          {/* 분류 결과 미리보기 */}
-          {aiBulkResults.length>0&&(
-            <div style={{marginBottom:16}}>
-              <div style={{fontSize:13,fontWeight:700,marginBottom:10,color:'var(--text)'}}>분류 결과 ({aiBulkResults.length}장) — 수정 후 저장하세요</div>
-              <div style={{display:'flex',flexDirection:'column',gap:8,maxHeight:320,overflow:'auto'}}>
-                {aiBulkResults.map((r,i)=>(
-                  <div key={i} style={{display:'flex',gap:10,alignItems:'center',padding:'10px 12px',borderRadius:10,border:`1.5px solid ${r.status==='saved'?'#10B981':r.status==='error'?'#EF4444':'#E5E7EB'}`,background:r.status==='saved'?'#F0FDF4':r.status==='error'?'#FEF2F2':'#fff'}}>
-                    <img src={r.previewUrl} style={{width:56,height:56,objectFit:'cover',borderRadius:8,flexShrink:0}} alt=""/>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:11,color:'var(--text-sm)',marginBottom:4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.file.name}</div>
-                      <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
-                        <select value={r.defectType} onChange={e=>{const u=[...aiBulkResults];u[i]={...u[i],defectType:e.target.value};setAiBulkResults(u);}}
-                          style={{padding:'4px 8px',borderRadius:6,border:'1.5px solid var(--border)',fontSize:12,fontFamily:'inherit',background:'#fff',outline:'none'}} disabled={r.status==='saved'}>
-                          {DEFAULT_DEFECT_TYPES.map(d=><option key={d} value={d}>{d}</option>)}
-                        </select>
-                        {r.confidence>0&&<span style={{fontSize:10,padding:'2px 6px',borderRadius:4,background:'#EDE9FE',color:'#6D28D9',fontWeight:600}}>신뢰도 {r.confidence}%</span>}
-                        {r.status==='saved'&&<span style={{fontSize:10,padding:'2px 6px',borderRadius:4,background:'#D1FAE5',color:'#065F46',fontWeight:600}}>✓ 저장됨</span>}
-                        {r.status==='error'&&<span style={{fontSize:10,color:'#DC2626',fontWeight:600}}>오류</span>}
-                      </div>
-                      {r.description&&<div style={{fontSize:11,color:'var(--text-sm)',marginTop:4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.description}</div>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 버튼 영역 */}
-          <div style={{display:'flex',gap:10,marginTop:4}}>
-            {!aiProcessing&&!uploading&&<button onClick={()=>setShowAiBulk(false)} style={{flex:1,padding:'12px 0',borderRadius:10,border:'1.5px solid var(--border)',background:'#fff',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit',color:'var(--text-md)'}}>닫기</button>}
-            {!aiBulkResults.length?
-              <button onClick={runAiBulkClassify} disabled={aiProcessing||!aiBulkFiles.length} style={{flex:2,padding:'12px 0',borderRadius:10,border:'none',background:'linear-gradient(135deg,#6D28D9,#2563EB)',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit',color:'#fff',opacity:(aiProcessing||!aiBulkFiles.length)?0.6:1}}>
-                {aiProcessing?`분류 중... ${aiProgress}%`:'🤖 AI 자동 분류 시작'}
-              </button>
-            :
-              <button onClick={saveAiBulkResults} disabled={uploading||aiBulkResults.every(r=>r.status==='saved')} style={{flex:2,padding:'12px 0',borderRadius:10,border:'none',background:'var(--green)',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit',color:'#fff',opacity:uploading?0.6:1}}>
-                {uploading?'저장 중...':'💾 전체 저장'}
-              </button>
-            }
-          </div>
-        </div>
-      </div>}
-
-      {/* ── 하자 템플릿 관리 모달 ── */}
-      {showTemplates&&<div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.55)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}} onClick={()=>setShowTemplates(false)}>
-        <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:20,padding:28,width:'min(640px,95vw)',maxHeight:'88vh',overflow:'auto',boxShadow:'0 20px 60px rgba(0,0,0,.25)'}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
-            <div>
-              <div style={{fontSize:18,fontWeight:800}}>📋 하자 분류 템플릿 관리</div>
-              <div style={{fontSize:12,color:'var(--text-sm)',marginTop:4}}>AI가 사진을 분류할 때 사용하는 기준을 설정합니다</div>
-            </div>
-            <div style={{display:'flex',gap:8}}>
-              <button onClick={resetTemplates} style={{padding:'7px 12px',borderRadius:8,border:'1.5px solid #FCA5A5',background:'#FEF2F2',color:'#DC2626',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>초기화</button>
-              <button onClick={()=>setShowTemplates(false)} style={{background:'none',border:'none',fontSize:22,cursor:'pointer',color:'var(--text-sm)'}}>✕</button>
-            </div>
-          </div>
-
-          {/* 템플릿 추가/수정 폼 */}
-          <div style={{background:'#F8FAFC',borderRadius:12,padding:16,marginBottom:20,border:'1.5px solid var(--border)'}}>
-            <div style={{fontSize:13,fontWeight:700,marginBottom:12,color:'var(--text)'}}>
-              {editingTemplate?'템플릿 수정':'새 하자유형 추가'}
-            </div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
-              <div>
-                <label style={LS}>하자유형명 *</label>
-                <input style={IS} value={templateForm.type} onChange={e=>setTemplateForm({...templateForm,type:e.target.value})} placeholder="예: 누수"/>
-              </div>
-              <div>
-                <label style={LS}>키워드 (쉼표 구분)</label>
-                <input style={IS} value={templateForm.keywords} onChange={e=>setTemplateForm({...templateForm,keywords:e.target.value})} placeholder="예: 누수,물,젖음,얼룩"/>
-              </div>
-            </div>
-            <div style={{marginBottom:12}}>
-              <label style={LS}>분류 기준 설명 (AI 판단 기준)</label>
-              <textarea style={{...IS,resize:'vertical',minHeight:50}} value={templateForm.desc} onChange={e=>setTemplateForm({...templateForm,desc:e.target.value})} placeholder="예: 물이 구조체를 통과하거나 표면에 스며드는 상태"/>
-            </div>
-            <div style={{display:'flex',gap:8}}>
-              {editingTemplate&&<button onClick={()=>{setEditingTemplate(null);setTemplateForm({type:'',keywords:'',desc:''}); }} style={{padding:'8px 16px',borderRadius:8,border:'1.5px solid var(--border)',background:'#fff',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>취소</button>}
-              <button onClick={saveTemplate} style={{padding:'8px 20px',borderRadius:8,border:'none',background:'var(--blue)',color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>{editingTemplate?'수정 저장':'추가'}</button>
-            </div>
-          </div>
-
-          {/* 템플릿 목록 */}
-          {templateLoading?<div style={{textAlign:'center',padding:30,color:'var(--text-sm)'}}>로딩 중...</div>:
-          <div style={{display:'flex',flexDirection:'column',gap:8}}>
-            {templates.map((t,i)=>(
-              <div key={t.id||i} style={{padding:'12px 16px',borderRadius:10,border:'1.5px solid var(--border)',background:'#fff',display:'flex',gap:12,alignItems:'flex-start'}}>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
-                    <span style={{fontSize:13,fontWeight:700,color:'var(--text)'}}>{t.type}</span>
-                    {t.keywords&&<span style={{fontSize:10,color:'var(--text-sm)',background:'var(--bg)',padding:'2px 6px',borderRadius:4}}>{t.keywords.split(',').slice(0,3).join(', ')}{t.keywords.split(',').length>3?'...':''}</span>}
-                  </div>
-                  {t.desc&&<div style={{fontSize:11,color:'var(--text-sm)',lineHeight:1.5}}>{t.desc}</div>}
-                </div>
-                <div style={{display:'flex',gap:6,flexShrink:0}}>
-                  <button onClick={()=>{setEditingTemplate(t);setTemplateForm({type:t.type,keywords:t.keywords||'',desc:t.desc||''});}} style={{background:'none',border:'none',fontSize:11,color:'var(--blue)',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>수정</button>
-                  {t.id&&<button onClick={()=>deleteTemplate(t.id)} style={{background:'none',border:'none',fontSize:11,color:'#DC2626',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>삭제</button>}
-                </div>
-              </div>
-            ))}
-          </div>}
-        </div>
-      </div>}
-
       {/* 헤더 */}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20,flexWrap:'wrap',gap:12}}>
         <div>
           <div style={{fontSize:20,fontWeight:800}}>🔍 공법분석 · 하자사진 분류</div>
-          <div style={{fontSize:12,color:'var(--text-sm)',marginTop:4}}>
-            전체 {stats.total}장 · {stats.methods}개 공법 · {stats.defects}개 하자유형
-            {stats.manus>0?` · 마누스 ${stats.manus}건`:''}
-            {stats.ai>0?` · AI분류 ${stats.ai}건`:''}
-          </div>
+          <div style={{fontSize:12,color:'var(--text-sm)',marginTop:4}}>전체 {stats.total}장 · {stats.methods}개 공법 · {stats.defects}개 하자유형{stats.manus>0?` · 마누스 ${stats.manus}건`:''}</div>
         </div>
-        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+        <div style={{display:'flex',gap:8}}>
           <button onClick={fetchPhotos} style={{padding:'8px 12px',borderRadius:8,border:'1.5px solid var(--border)',background:'#fff',fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>🔄</button>
+          {/* 구 공법명 일괄 재태깅 버튼 */}
           {photos.some(p=>p.method==='슬라브 방수')&&(
             <button onClick={()=>bulkRetag('슬라브 방수','POUR 듀얼강화방수 공법')} disabled={retagging}
               style={{padding:'8px 14px',borderRadius:8,border:'none',background:'#7C3AED',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',opacity:retagging?.6:1}}>
               {retagging?'재태깅 중...':'🔁 슬라브방수→듀얼강화방수'}
             </button>
           )}
-          <button onClick={()=>setShowTemplates(true)} style={{padding:'8px 16px',borderRadius:8,border:'1.5px solid #E9D5FF',background:'#F5F3FF',color:'#7C3AED',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>📋 분류 템플릿</button>
-          <button onClick={()=>{setAiBulkFiles([]);setAiBulkResults([]);setAiProgress(0);setShowAiBulk(true);}} style={{padding:'8px 16px',borderRadius:8,border:'none',background:'linear-gradient(135deg,#6D28D9,#2563EB)',color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>🤖 AI 자동분류</button>
           <button onClick={()=>setShowImport(true)} style={{padding:'8px 16px',borderRadius:8,border:'none',background:'var(--gold)',color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>📥 마누스 연동</button>
           <button onClick={()=>{closeAddForm();setShowAdd(true);}} style={{padding:'8px 16px',borderRadius:8,border:'none',background:'var(--blue)',color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>+ 사진 등록</button>
         </div>
@@ -4276,10 +3960,7 @@ function DefectPhotosPage({showToast}){
         <div style={{textAlign:'center',padding:60,color:'var(--text-sm)'}}>
           <div style={{fontSize:48,marginBottom:12}}>📷</div>
           <div style={{fontSize:14,fontWeight:600,marginBottom:8}}>등록된 하자사진이 없습니다</div>
-          <div style={{fontSize:12}}>AI 자동분류, 마누스 연동 또는 직접 등록으로 사진을 추가하세요</div>
-          <div style={{display:'flex',gap:10,justifyContent:'center',marginTop:16}}>
-            <button onClick={()=>{setAiBulkFiles([]);setAiBulkResults([]);setAiProgress(0);setShowAiBulk(true);}} style={{padding:'10px 20px',borderRadius:10,border:'none',background:'linear-gradient(135deg,#6D28D9,#2563EB)',color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>🤖 AI 자동분류로 시작</button>
-          </div>
+          <div style={{fontSize:12}}>마누스 연동 또는 직접 등록으로 사진을 추가하세요</div>
         </div>
       :selDefect!=='전체'?
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:14}}>

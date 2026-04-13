@@ -1576,10 +1576,10 @@ const METHOD_CONTENT={
   },
   slab_dual:{
     cause:'콘크리트는 타설 후 수축하면서 미세균열이 생깁니다. 기존 우레탄 방수층은 이 균열을 따라가지 못해 들뜸이 발생하고, 드레인 주변 처리가 불완전하면 그 틈으로 누수가 시작됩니다. 내부 습기가 빠져나오지 못하면 방수층이 부풀어오릅니다.',
-    process:['모체강화함침','듀얼복합시트','POUR페이퍼팬벤트 설치','POUR코트재','슈퍼복합압축시트','배관방수트랩'],
-    processDescs:['노후 콘크리트에 모체강화함침재를 침투시켜 슬라브 자체를 강화합니다.','듀얼복합시트로 1차 방수층을 형성합니다.','무동력 페이퍼팬벤트를 설치하여 콘크리트 내부 습기를 외부로 배출합니다.','코트재로 2차 방수층 + 차열층을 형성합니다.','슈퍼복합압축시트로 취약 부위를 추가 보강합니다.','드레인 주변에 배관방수트랩을 설치하여 누수 경로를 완전 차단합니다.'],
-    processMaterials:[{name:'POUR모체강화함침',desc:'노후 콘크리트에 침투하여 강도를 회복시키고 콘크리트 생애주기를 연장합니다.',mediaUrl:'',mediaType:'image'},null,{name:'POUR페이퍼팬벤트',desc:'전기 없이 콘크리트 내부 수증기를 자동 배출합니다. 방수층 들뜸의 근본 원인인 내부 습기를 제거.',mediaUrl:'',mediaType:'image'},{name:'POUR코트재',desc:'인장강도 5.8 N/㎟(KS 4배), 일사반사율 91.8%. 방수 + 차열 + 중성화 방지 3중 기능.',mediaUrl:'',mediaType:'image'},{name:'POUR슈퍼복합압축시트',desc:'인장강도 11.4 N/㎟ (타사 10배). 균열 취약 부위 보강에 최적.',mediaUrl:'',mediaType:'image'},null],
-    solution:'콘크리트 자체를 강화한 후 복합시트로 방수층을 형성하고, 팬벤트로 내부 습기를 무동력 배출합니다. 방수층 들뜸의 근본 원인까지 제거합니다.',
+    process:['모체강화함침 + 듀얼복합시트 전개','슈퍼복합압축시트 보강','듀얼복합시트 보강완료','코트재Ⅱ 도포 (중도)','상도코트재 도포','작업완료'],
+    processDescs:['POUR 모체강화함침액을 도포하여 노후 콘크리트를 강화하고, 동시에 POUR 듀얼복합시트를 전개하여 1차 방수층을 형성합니다.','코너, 벤츄레이터, 기타 구조물, 이음부 등 취약 부위에 POUR슈퍼복합압축시트를 부착하여 반영구 보강합니다.','POUR 듀얼복합시트 접합부 보강 및 벽체 이음부, 곡각 지점 보강작업을 완료합니다.','POUR코트재Ⅱ를 중도 1차 도포합니다. 프라이머 기능을 겸하며 철근 부식 방지와 방청이 가능합니다.','POUR 상도코트재를 도포하여 내구성과 차열 성능을 강화합니다.','하도, 중도, 상도만으로 완벽한 방수층을 형성하는 복합공법 시공이 완료됩니다.'],
+    processMaterials:[[{name:'POUR모체강화함침',badge:'POUR공법 핵심②',desc:'POUR강화재Ⅰ + POUR코트재Ⅰ을 통해 건축물의 수명연장 및 부식방지',mediaUrl:'',mediaType:'image',features:[{title:'강화된 바탕면 위로 견고한 복합시트 방수층 형성',desc:'기존 약화된 바탕면을 강화 시킨 후 견고한 방수층을 형성하기 때문에 바탕면에 따른 방수층 손상피해 차단'},{title:'어떠한 바탕면에도 견고한 방수층을 형성하기 위한 기초',desc:'강화재 + 방수재를 혼합하여 바탕면을 강화시키고 견고한 방수층을 형성하는 작업'}]},{name:'POUR듀얼복합시트',badge:'POUR공법 핵심③',desc:'물고임 현상 자체에 대응하는 3중 구조 복합시트',mediaUrl:'',mediaType:'image',features:[{title:'3중 구조 복합시트',desc:'3중의 시트가 각기 다른 기능을 갖추고 있어 시트 자체만으로도 통기, 방수, 내후성 우수'},{title:'물고임 자체에 대응',desc:'하판, 상판 사이에 Pe계열 고분자계 시트가 수분 침투를 방지하여 물고임 현상에 대응'},{title:'별도의 바탕정리 생략 가능',desc:'평슬라브 옥상의 단점인 물고임을 대응하기 때문에 별도의 구배(기울기) 조정 생략 가능'}]}],[{name:'POUR슈퍼복합압축시트',badge:'POUR공법 핵심⑤',desc:'니들 펀칭을 이용해 공간을 형성하여 도막 방수재와 시트 간의 응결력으로 재료분리 현상 방지',mediaUrl:'',mediaType:'image',features:[{title:'우수한 인장강도 — 11.4 N/㎟ (타사 10배)',desc:'니들 펀칭 공정을 거친 시트는 섬유 간의 결속력이 높아 일반 압착시트에 비해 강한 인장강도 발현'},{title:'찢김, 재료분리 현상 저하',desc:'섬유 간의 결속력이 높기 때문에 찢김에도 강하고 도료와 결합되었을 때 재료분리 현상 저하'},{title:'뛰어난 약액 흡수력',desc:'섬유 속 공간이 형성되어 도료를 도포했을 시 뛰어난 흡수력 보유. 3cm 섬유시트를 0.3T로 100배 압축, 양면코팅 처리'}]}],null,[{name:'POUR코트재',badge:'POUR공법 핵심④',desc:'철재, 목재, 콘크리트 등 다양한 곳에 적용 가능한 다목적 도료',mediaUrl:'',mediaType:'image',features:[{title:'철근 부식 방지',desc:'콘크리트 내부로 물과 염분이 들어오는 것을 줄여 철근이 녹슬지 않도록 구조물 보호'},{title:'콘크리트 중성화 방지 — 깊이 0.3mm',desc:'외부 공기와 유해성분의 침투를 줄여 콘크리트 성능 저하를 예방'},{title:'차열 성능 — 일사반사율 91.8%',desc:'햇빛을 반사하여 표면 온도 상승을 줄이고 열 축적을 낮춰 쾌적한 환경 유지'},{title:'인장강도 5.8 N/㎟ (KS 기준 4배)',desc:'KS 기준 대비 4배 높은 강도 수준, 부착강도 0.7 N/㎟'}]}],null,null],
+    solution:'바탕면 강화 작업 이후 POUR코트재와 POUR듀얼복합시트를 활용한 반영구 복합방수 구조층을 형성합니다. 하도, 중도, 상도만으로 완벽한 방수층을 형성하는 복합공법입니다.',
   },
   slab_pvc:{
     cause:'옥상 슬라브는 온도 변화에 따른 신축이 반복되면서 방수층이 파단됩니다. 배수 불량으로 물이 고이면 방수층에 지속적인 수압이 가해져 노후화가 가속됩니다.',
@@ -3495,8 +3495,14 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
             <div style={{padding:'14px 16px 12px',display:'flex',alignItems:'center',justifyContent:'space-between',
               borderBottom:'1px solid var(--border)',flexShrink:0}}>
               <div>
+                {materialModal.badge&&(
+                  <div style={{fontSize:9,fontWeight:800,color:'var(--accent)',background:'var(--blue-l)',
+                    border:'1px solid var(--blue-m)',borderRadius:4,padding:'2px 7px',display:'inline-block',marginBottom:4}}>
+                    {materialModal.badge}
+                  </div>
+                )}
                 <div style={{fontSize:14,fontWeight:800,color:'var(--navy)'}}>{materialModal.name}</div>
-                <div style={{fontSize:10,color:'var(--text-sm)',marginTop:2}}>자재 특징 상세</div>
+                <div style={{fontSize:10,color:'var(--text-sm)',marginTop:2}}>POUR공법 핵심 자재</div>
               </div>
               <button onClick={()=>setMaterialModal(null)}
                 style={{width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',
@@ -3508,14 +3514,38 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 <ProcessMedia src={materialModal.mediaUrl} alt={materialModal.name} style={{}}/>
               </div>
             )}
-            {/* 설명 */}
-            {materialModal.desc&&(
-              <div style={{padding:'14px 16px 20px',overflowY:'auto'}}>
-                <p style={{fontSize:13,lineHeight:1.7,color:'var(--text)',margin:0,wordBreak:'keep-all'}}>
-                  {materialModal.desc}
-                </p>
-              </div>
-            )}
+            {/* 콘텐츠 영역 */}
+            <div style={{padding:'14px 16px 20px',overflowY:'auto',flex:1}}>
+              {/* 핵심 설명 */}
+              {materialModal.desc&&(
+                <div style={{background:'var(--green-l)',borderRadius:10,padding:'10px 12px',
+                  borderLeft:'3px solid var(--green)',marginBottom:materialModal.features?.length?12:0}}>
+                  <p style={{fontSize:13,lineHeight:1.7,color:'var(--text)',margin:0,wordBreak:'keep-all',fontWeight:600}}>
+                    {materialModal.desc}
+                  </p>
+                </div>
+              )}
+              {/* 특장점 리스트 */}
+              {materialModal.features?.length>0&&(
+                <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                  {materialModal.features.map((f,fi)=>(
+                    <div key={fi} style={{borderRadius:10,border:'1px solid var(--border)',
+                      background:'var(--bg)',padding:'10px 12px',position:'relative',overflow:'hidden'}}>
+                      <div style={{position:'absolute',top:0,left:0,width:3,height:'100%',
+                        background:fi===0?'var(--accent)':fi===1?'var(--green)':fi===2?'var(--gold)':'var(--purple)',borderRadius:'0 2px 2px 0'}}/>
+                      <div style={{paddingLeft:6}}>
+                        <div style={{fontSize:12,fontWeight:800,color:'var(--navy)',marginBottom:3,lineHeight:1.4}}>
+                          {f.title}
+                        </div>
+                        <div style={{fontSize:11,lineHeight:1.6,color:'var(--text-md)',wordBreak:'keep-all'}}>
+                          {f.desc}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -4408,16 +4438,23 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                               {stepDesc}
                             </p>
                           )}
-                          {/* 자재 특징 보기 버튼 */}
-                          {stepMat&&(
-                            <button onClick={()=>setMaterialModal(stepMat)}
-                              style={{marginTop:8,display:'flex',alignItems:'center',gap:6,
-                                background:'var(--blue-l)',border:'1.5px solid var(--blue-m)',
-                                borderRadius:8,padding:'7px 12px',cursor:'pointer',fontFamily:'inherit',
-                                fontSize:12,fontWeight:700,color:'var(--accent)'}}>
-                              🔬 {stepMat.name} — 자재 특징 보기
-                            </button>
-                          )}
+                          {/* 자재 특징 보기 버튼 — 배열/단일 모두 지원 */}
+                          {stepMat&&(()=>{
+                            const mats=Array.isArray(stepMat)?stepMat:[stepMat];
+                            return(
+                              <div style={{display:'flex',flexDirection:'column',gap:6,marginTop:8}}>
+                                {mats.map((mat,mi)=>(
+                                  <button key={mi} onClick={()=>setMaterialModal(mat)}
+                                    style={{display:'flex',alignItems:'center',gap:6,
+                                      background:'var(--blue-l)',border:'1.5px solid var(--blue-m)',
+                                      borderRadius:8,padding:'7px 12px',cursor:'pointer',fontFamily:'inherit',
+                                      fontSize:12,fontWeight:700,color:'var(--accent)',textAlign:'left'}}>
+                                    🔬 {mat.name} {mat.badge?<span style={{fontSize:9,fontWeight:600,color:'var(--accent)',opacity:.7,marginLeft:2}}>({mat.badge})</span>:null}
+                                  </button>
+                                ))}
+                              </div>
+                            );
+                          })()}
                         </div>
                       );
                     })()}

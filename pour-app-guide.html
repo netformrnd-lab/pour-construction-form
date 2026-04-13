@@ -661,25 +661,8 @@ body {
 
 /* ── 하이라이트 & 커서 ── */
 .hl { display: none !important; }
-.cursor {
-  position: absolute;
-  width: 16px; height: 16px; border-radius: 50%;
-  background: rgba(37,99,235,.9);
-  pointer-events: none; z-index: 60;
-  box-shadow: 0 0 0 4px rgba(37,99,235,.18);
-  transform: translate(-50%, -50%);
-  transition: left .45s cubic-bezier(.25,.46,.45,.94), top .45s cubic-bezier(.25,.46,.45,.94);
-  opacity: 0;
-}
-.cursor-ring {
-  position: absolute;
-  width: 30px; height: 30px; border-radius: 50%;
-  border: 2px solid rgba(37,99,235,.4);
-  pointer-events: none; z-index: 59;
-  transform: translate(-50%, -50%);
-  transition: left .45s cubic-bezier(.25,.46,.45,.94) .05s, top .45s cubic-bezier(.25,.46,.45,.94) .05s;
-  opacity: 0;
-}
+.cursor { display: none !important; }
+.cursor-ring { display: none !important; }
 
 /* ── 모달 ── */
 .app-modal-overlay {
@@ -1634,20 +1617,8 @@ body {
 <script>
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-function moveCursor(cId, rId, xPct, yPct) {
-  const c = document.getElementById(cId);
-  const r = document.getElementById(rId);
-  if (!c || !r) return;
-  c.style.opacity = '1'; r.style.opacity = '1';
-  c.style.left = xPct + '%'; c.style.top = yPct + '%';
-  r.style.left = xPct + '%'; r.style.top = yPct + '%';
-}
-function hideCursor(cId, rId) {
-  const c = document.getElementById(cId);
-  const r = document.getElementById(rId);
-  if (c) c.style.opacity = '0';
-  if (r) r.style.opacity = '0';
-}
+function moveCursor(cId, rId, xPct, yPct) { /* 커서 비활성화 */ }
+function hideCursor(cId, rId) { /* 커서 비활성화 */ }
 function showHL(id, t, l, w, h) { /* 하이라이트 박스 비활성화 */ }
 function hideHL(id) { /* 하이라이트 박스 비활성화 */ }
 

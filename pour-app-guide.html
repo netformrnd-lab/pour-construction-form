@@ -660,15 +660,7 @@ body {
 .app-reopen-desc { font-size: 7px; color: #3b82f6; }
 
 /* ── 하이라이트 & 커서 ── */
-.hl {
-  position: absolute; border-radius: 8px;
-  border: 2px solid #2563EB;
-  box-shadow: 0 0 0 3px rgba(37,99,235,.22), 0 0 20px rgba(37,99,235,.3);
-  pointer-events: none; z-index: 50;
-  transition: all .45s cubic-bezier(.25,.46,.45,.94);
-  opacity: 0;
-}
-.hl.show { opacity: 1; }
+.hl { display: none !important; }
 .cursor {
   position: absolute;
   width: 16px; height: 16px; border-radius: 50%;
@@ -1656,16 +1648,8 @@ function hideCursor(cId, rId) {
   if (c) c.style.opacity = '0';
   if (r) r.style.opacity = '0';
 }
-function showHL(id, t, l, w, h) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.style.top = t; el.style.left = l; el.style.width = w; el.style.height = h;
-  el.classList.add('show');
-}
-function hideHL(id) {
-  const el = document.getElementById(id);
-  if (el) el.classList.remove('show');
-}
+function showHL(id, t, l, w, h) { /* 하이라이트 박스 비활성화 */ }
+function hideHL(id) { /* 하이라이트 박스 비활성화 */ }
 
 // STEP 1 애니메이션
 async function anim1() {

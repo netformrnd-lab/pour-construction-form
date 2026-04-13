@@ -5218,29 +5218,29 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     )}
 
                     {/* ── 원인 ── */}
-                    {m.cause&&(
+                    {mc.cause&&(
                       <div style={{marginBottom:12,padding:'10px 12px',background:'#FFF5F5',borderRadius:10,border:'1px solid #FECACA'}}>
                         <div style={{fontSize:9,fontWeight:800,color:'var(--red)',marginBottom:4,display:'flex',alignItems:'center',gap:5,letterSpacing:'.05em'}}>
                           <div style={{width:3,height:12,borderRadius:2,background:'var(--red)'}}/>
                           발생 원인
                         </div>
-                        <p style={{fontSize:11,lineHeight:1.65,color:'#7F1D1D',margin:0,wordBreak:'keep-all'}}>{m.cause}</p>
+                        <p style={{fontSize:11,lineHeight:1.65,color:'#7F1D1D',margin:0,wordBreak:'keep-all'}}>{mc.cause}</p>
                       </div>
                     )}
 
                     {/* ── 시공 공정 — 화살표 플로우 ── */}
-                    {m.process?.length>0&&(
+                    {mc.process?.length>0&&(
                       <div style={{marginBottom:12}}>
                         <div style={{fontSize:9,fontWeight:800,color:'var(--green)',marginBottom:8,display:'flex',alignItems:'center',gap:5,letterSpacing:'.05em'}}>
                           <div style={{width:3,height:12,borderRadius:2,background:'var(--green)'}}/>
                           시공 공정
                         </div>
                         <div style={{display:'flex',alignItems:'flex-start',gap:0,overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none',paddingBottom:4}}>
-                          {m.process.map((step,si)=>{
+                          {mc.process.map((step,si)=>{
                             const stepDesc=(mc.processDescs||[])[si];
                             const rawMat=(mc.processMaterials||[])[si];
                             const mats=rawMat?Array.isArray(rawMat)?rawMat:[rawMat]:[];
-                            const isLast=si===m.process.length-1;
+                            const isLast=si===mc.process.length-1;
                             return(
                               <React.Fragment key={si}>
                                 <div style={{flex:'0 0 auto',display:'flex',flexDirection:'column',alignItems:'center',minWidth:72,maxWidth:90}}>
@@ -5266,9 +5266,9 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                             );
                           })}
                         </div>
-                        {m.process.some((_,si)=>{const r=(mc.processMaterials||[])[si];return r&&(Array.isArray(r)?r:[r]).some(x=>x&&x.desc);})&&(
+                        {mc.process.some((_,si)=>{const r=(mc.processMaterials||[])[si];return r&&(Array.isArray(r)?r:[r]).some(x=>x&&x.desc);})&&(
                           <div style={{marginTop:8,display:'flex',flexDirection:'column',gap:4}}>
-                            {m.process.map((_,si)=>{
+                            {mc.process.map((_,si)=>{
                               const rawMat=(mc.processMaterials||[])[si];
                               const mats=rawMat?Array.isArray(rawMat)?rawMat:[rawMat]:[];
                               return mats.filter(mat=>mat&&mat.desc).map((mat,mti)=>(
@@ -5284,10 +5284,10 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     )}
 
                     {/* ── POUR 해결방안 ── */}
-                    {m.solution&&(
-                      <div style={{marginBottom:m.stats?.length?12:0,background:'var(--green-l)',borderRadius:10,padding:'10px 12px',borderLeft:'3px solid var(--green)'}}>
+                    {mc.solution&&(
+                      <div style={{marginBottom:mc.stats?.length?12:0,background:'var(--green-l)',borderRadius:10,padding:'10px 12px',borderLeft:'3px solid var(--green)'}}>
                         <div style={{fontSize:9,fontWeight:800,color:'var(--green)',marginBottom:4,letterSpacing:'.05em'}}>POUR 해결방안</div>
-                        <p style={{fontSize:11,lineHeight:1.65,color:'#064E3B',margin:0,wordBreak:'keep-all'}}>{m.solution}</p>
+                        <p style={{fontSize:11,lineHeight:1.65,color:'#064E3B',margin:0,wordBreak:'keep-all'}}>{mc.solution}</p>
                       </div>
                     )}
 
@@ -5308,15 +5308,15 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     )}
 
                     {/* ── 공인 성능 수치 — 2열 그리드 ── */}
-                    {m.stats?.length>0&&(
+                    {mc.stats?.length>0&&(
                       <div style={{marginTop:12}}>
                         <div style={{fontSize:9,fontWeight:800,color:'var(--gold)',marginBottom:6,display:'flex',alignItems:'center',gap:5,letterSpacing:'.05em'}}>
                           <div style={{width:3,height:12,borderRadius:2,background:'var(--gold)'}}/>
                           공인 성능 수치
-                          {m.cert&&<span style={{fontSize:8,fontWeight:600,color:'var(--text-sm)',marginLeft:2}}>— {m.cert}</span>}
+                          {mc.cert&&<span style={{fontSize:8,fontWeight:600,color:'var(--text-sm)',marginLeft:2}}>— {mc.cert}</span>}
                         </div>
                         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
-                          {m.stats.map((s,si)=>(
+                          {mc.stats.map((s,si)=>(
                             <div key={si} style={{borderRadius:10,border:'1px solid rgba(217,119,6,.2)',background:'linear-gradient(135deg,rgba(217,119,6,.06) 0%,rgba(254,243,199,.5) 100%)',padding:'10px 10px 8px',textAlign:'center'}}>
                               {s.src&&<div style={{fontSize:7,color:'var(--gold)',fontWeight:800,marginBottom:2,letterSpacing:'.04em'}}>{s.src}</div>}
                               <div style={{fontSize:20,fontWeight:900,color:'var(--navy)',lineHeight:1}}>{s.value}<span style={{fontSize:10,fontWeight:700,color:'#92400E',marginLeft:1}}>{s.unit}</span></div>

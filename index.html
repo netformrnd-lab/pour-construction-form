@@ -4528,7 +4528,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                                     <div style={{borderRadius:10,overflow:'hidden',
                                       border:'1.5px solid var(--green)',background:'var(--green-l)',marginBottom:8}}>
                                       {photoUrl?(
-                                        <div style={{aspectRatio:'747/420',position:'relative',maxWidth:747}}>
+                                        <div style={{aspectRatio:'747/420',position:'relative'}}>
                                           <ProcessMedia src={photoUrl} alt={`${step} 시공`} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectPosition:(mc.processPhotoPositions||[])[i]||'center center'}}/>
                                         </div>
                                       ):(

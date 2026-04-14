@@ -4538,6 +4538,8 @@ function ContentEditorPage({ showToast }) {
   const [openSections, setOpenSections] = useState({s1:true, s2:true, s3:true});
   /* ── POUR공법 핵심 모달 ── */
   const [keyModal, setKeyModal] = useState(null);
+  /* ── 사진 위치 조정 모달 ── */
+  const [cropModal, setCropModal] = useState(null); // {stepIdx, photoUrl}
 
   const methodInfo = POUR_METHODS_FOR_EDITOR.find(m => m.id === selectedMethod);
 
@@ -5263,25 +5265,16 @@ function ContentEditorPage({ showToast }) {
                                   }} style={{flex:1,padding:'4px 0',borderRadius:6,background:'#FEF3C7',color:'#D97706',fontSize:10,fontWeight:600,cursor:'pointer',border:'1px solid #FDE68A'}}>▶ 유튜브</button>
                                   {photoUrl&&<button onClick={()=>updateProcessPhoto(si,null)} style={{padding:'4px 8px',borderRadius:6,background:'#FEE2E2',color:'#DC2626',fontSize:10,cursor:'pointer',border:'1px solid #FECACA'}}>✕</button>}
                                 </div>
-                                {/* 사진 노출 위치 설정 */}
+                                {/* 사진 노출 위치 조정 */}
                                 {photoUrl&&!isYoutubeObj&&(
-                                  <select value={(content?.processPhotoPositions||[])[si]||'center center'}
-                                    onChange={e=>{
-                                      const arr=[...(content?.processPhotoPositions||[])];
-                                      arr[si]=e.target.value;
-                                      setContent(prev=>({...prev,processPhotoPositions:arr}));
-                                    }}
-                                    style={{width:'100%',marginTop:4,padding:'4px 6px',borderRadius:6,border:'1px solid var(--border)',fontSize:10,fontFamily:'inherit',background:'#fff',color:'var(--text-md)'}}>
-                                    <option value="center center">중앙</option>
-                                    <option value="center top">상단</option>
-                                    <option value="center bottom">하단</option>
-                                    <option value="left center">좌측</option>
-                                    <option value="right center">우측</option>
-                                    <option value="left top">좌상단</option>
-                                    <option value="right top">우상단</option>
-                                    <option value="left bottom">좌하단</option>
-                                    <option value="right bottom">우하단</option>
-                                  </select>
+                                  <button onClick={()=>setCropModal({stepIdx:si,photoUrl})}
+                                    style={{width:'100%',marginTop:4,padding:'5px 0',borderRadius:6,border:'1px solid #BBF7D0',
+                                      background:'var(--green-l)',color:'var(--green)',fontSize:10,fontWeight:600,cursor:'pointer',
+                                      display:'flex',alignItems:'center',justifyContent:'center',gap:4}}>
+                                    ✂️ 노출 영역 조정
+                                    {(content?.processPhotoPositions||[])[si] && (content?.processPhotoPositions||[])[si]!=='50% 50%' &&
+                                      <span style={{width:5,height:5,borderRadius:'50%',background:'var(--green)'}}/>}
+                                  </button>
                                 )}
                                 <input type="file" accept="image/*" id={`adm_proc_file_${selectedMethod}_${si}`} style={{display:'none'}}
                                   onChange={e=>{
@@ -5585,6 +5578,139 @@ function ContentEditorPage({ showToast }) {
                   padding:'8px 20px',borderRadius:8,border:'1px solid var(--border)',
                   background:'#fff',color:'var(--text-md)',fontSize:12,fontWeight:600,cursor:'pointer'
                 }}>닫기</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ═══════════════════════════════════════════
+          사진 노출 영역 조정 모달 (드래그 방식)
+      ═══════════════════════════════════════════ */}
+      {cropModal && (()=>{
+        const pos=(content?.processPhotoPositions||[])[cropModal.stepIdx]||'50% 50%';
+        const [posX,posY]=pos.split(' ').map(v=>parseFloat(v)||50);
+        const frameRef=React.createRef();
+        const dragState={dragging:false,startX:0,startY:0,startPosX:posX,startPosY:posY};
+
+        const updatePos=(px,py)=>{
+          const x=Math.max(0,Math.min(100,px));
+          const y=Math.max(0,Math.min(100,py));
+          const arr=[...(content?.processPhotoPositions||[])];
+          arr[cropModal.stepIdx]=`${Math.round(x)}% ${Math.round(y)}%`;
+          setContent(prev=>({...prev,processPhotoPositions:arr}));
+        };
+
+        const onMouseDown=(e)=>{
+          e.preventDefault();
+          const frame=frameRef.current;
+          if(!frame)return;
+          const rect=frame.getBoundingClientRect();
+          dragState.dragging=true;
+          dragState.startX=e.clientX;
+          dragState.startY=e.clientY;
+          const curPos=(content?.processPhotoPositions||[])[cropModal.stepIdx]||'50% 50%';
+          const [cx,cy]=curPos.split(' ').map(v=>parseFloat(v)||50);
+          dragState.startPosX=cx;
+          dragState.startPosY=cy;
+
+          const onMove=(ev)=>{
+            if(!dragState.dragging)return;
+            const dx=ev.clientX-dragState.startX;
+            const dy=ev.clientY-dragState.startY;
+            const sensitivity=0.15;
+            updatePos(dragState.startPosX-dx*sensitivity, dragState.startPosY-dy*sensitivity);
+          };
+          const onUp=()=>{
+            dragState.dragging=false;
+            document.removeEventListener('mousemove',onMove);
+            document.removeEventListener('mouseup',onUp);
+          };
+          document.addEventListener('mousemove',onMove);
+          document.addEventListener('mouseup',onUp);
+        };
+
+        const curPos=(content?.processPhotoPositions||[])[cropModal.stepIdx]||'50% 50%';
+
+        return(
+          <div style={{position:'fixed',inset:0,zIndex:10000,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,.6)'}}
+            onClick={e=>{if(e.target===e.currentTarget)setCropModal(null);}}>
+            <div style={{width:700,maxHeight:'90vh',background:'#fff',borderRadius:16,
+              boxShadow:'0 20px 60px rgba(0,0,0,.3)',overflow:'hidden',display:'flex',flexDirection:'column'}}>
+              {/* 헤더 */}
+              <div style={{padding:'14px 20px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:10,background:'linear-gradient(135deg,#F0FDF4,rgba(5,150,105,.06))'}}>
+                <span style={{fontSize:18}}>✂️</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:14,fontWeight:800,color:'var(--navy)'}}>사진 노출 영역 조정</div>
+                  <div style={{fontSize:11,color:'var(--text-sm)',marginTop:2}}>사진을 드래그하여 보여줄 영역을 선택하세요</div>
+                </div>
+                <button onClick={()=>setCropModal(null)} style={{
+                  width:32,height:32,borderRadius:8,border:'none',background:'#F1F5F9',
+                  fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-md)'
+                }}>✕</button>
+              </div>
+
+              {/* 미리보기 영역 */}
+              <div style={{padding:20,overflow:'auto',flex:1}}>
+                {/* 프레임 (747:420 비율) */}
+                <div style={{marginBottom:16}}>
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-md)',marginBottom:8}}>고객 화면 미리보기 (드래그하여 위치 조정)</div>
+                  <div ref={frameRef}
+                    onMouseDown={onMouseDown}
+                    style={{
+                      width:'100%',aspectRatio:'747/420',borderRadius:12,overflow:'hidden',
+                      border:'3px dashed var(--green)',background:'#000',position:'relative',cursor:'grab',
+                      userSelect:'none'
+                    }}>
+                    <img src={cropModal.photoUrl} style={{
+                      width:'100%',height:'100%',objectFit:'cover',
+                      objectPosition:curPos,
+                      pointerEvents:'none',display:'block'
+                    }} alt="crop preview"/>
+                    {/* 오버레이 가이드 */}
+                    <div style={{position:'absolute',inset:0,pointerEvents:'none',
+                      background:'linear-gradient(rgba(5,150,105,.08),transparent,rgba(5,150,105,.08))'}}>
+                      {/* 중앙 십자선 */}
+                      <div style={{position:'absolute',top:'50%',left:0,right:0,height:1,background:'rgba(255,255,255,.3)'}}/>
+                      <div style={{position:'absolute',left:'50%',top:0,bottom:0,width:1,background:'rgba(255,255,255,.3)'}}/>
+                    </div>
+                    {/* 위치 표시 */}
+                    <div style={{position:'absolute',bottom:8,right:8,padding:'4px 10px',borderRadius:6,
+                      background:'rgba(0,0,0,.6)',backdropFilter:'blur(4px)',
+                      fontSize:10,fontWeight:700,color:'#fff'}}>
+                      {curPos}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 빠른 위치 프리셋 */}
+                <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                  {[
+                    {label:'좌상',val:'0% 0%'},{label:'상단',val:'50% 0%'},{label:'우상',val:'100% 0%'},
+                    {label:'좌측',val:'0% 50%'},{label:'중앙',val:'50% 50%'},{label:'우측',val:'100% 50%'},
+                    {label:'좌하',val:'0% 100%'},{label:'하단',val:'50% 100%'},{label:'우하',val:'100% 100%'},
+                  ].map(p=>(
+                    <button key={p.val} onClick={()=>updatePos(parseFloat(p.val),parseFloat(p.val.split(' ')[1]))}
+                      style={{
+                        padding:'6px 14px',borderRadius:8,fontSize:11,fontWeight:600,cursor:'pointer',
+                        border:curPos===p.val?'2px solid var(--green)':'1px solid var(--border)',
+                        background:curPos===p.val?'var(--green-l)':'#fff',
+                        color:curPos===p.val?'var(--green)':'var(--text-md)'
+                      }}>{p.label}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 하단 */}
+              <div style={{padding:'12px 20px',borderTop:'1px solid var(--border)',display:'flex',justifyContent:'flex-end',gap:8,background:'#F8FAFC'}}>
+                <button onClick={()=>{updatePos(50,50);}} style={{
+                  padding:'8px 16px',borderRadius:8,border:'1px solid var(--border)',
+                  background:'#fff',color:'var(--text-md)',fontSize:12,fontWeight:600,cursor:'pointer'
+                }}>초기화</button>
+                <button onClick={()=>setCropModal(null)} style={{
+                  padding:'8px 20px',borderRadius:8,border:'none',
+                  background:'var(--green)',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer'
+                }}>완료</button>
               </div>
             </div>
           </div>

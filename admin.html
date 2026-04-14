@@ -4637,7 +4637,7 @@ function ContentEditorPage({ showToast }) {
     setLoading(true);
     const defaultContent = {
       processPhotos: [], processMaterials: [], processDescs: [], processPhotoPositions: [],
-      processKeys: [], processStepNames: [],
+      processKeys: [], processStepNames: [], proposalSlides: [],
       cause: DEFAULT_CAUSE_TEXTS[methodId] || '', solution: ''
     };
     try {
@@ -5240,6 +5240,79 @@ function ContentEditorPage({ showToast }) {
             </button>
             {openSections.s3 && (
               <div style={{padding:16}}>
+
+                {/* ── 제안서 슬라이드 ── */}
+                <div style={{marginBottom:24}}>
+                  <div style={{fontSize:12,fontWeight:800,color:'var(--purple)',marginBottom:12,display:'flex',alignItems:'center',gap:6,letterSpacing:'.03em'}}>
+                    <div style={{width:3,height:16,borderRadius:2,background:'var(--purple)'}}/>
+                    📄 제안서 슬라이드
+                    <span style={{fontSize:10,fontWeight:500,color:'var(--text-sm)',marginLeft:4}}>
+                      ({(content?.proposalSlides||[]).length}장)
+                    </span>
+                  </div>
+
+                  {/* 업로드 버튼 */}
+                  <div style={{display:'flex',gap:6,marginBottom:10}}>
+                    <label style={{padding:'6px 14px',borderRadius:8,background:'var(--purple-l)',color:'var(--purple)',fontSize:11,fontWeight:700,cursor:'pointer',border:'1px solid var(--purple-m)',display:'flex',alignItems:'center',gap:4}}>
+                      📁 사진 추가 (다중선택)
+                      <input type="file" accept="image/*" multiple style={{display:'none'}} onChange={async(e)=>{
+                        const files=Array.from(e.target.files||[]);
+                        if(!files.length)return;
+                        const newSlides=[...(content?.proposalSlides||[])];
+                        for(const f of files){
+                          const b64=await compressImageFile(f,1600,0.88);
+                          newSlides.push(b64);
+                        }
+                        setContent(prev=>({...prev,proposalSlides:newSlides}));
+                        showToast(`${files.length}장 슬라이드 추가 완료`,'success');
+                      }}/>
+                    </label>
+                    <button onClick={async()=>{
+                      const file=await pasteImageFromClipboard();
+                      if(file){
+                        const b64=await compressImageFile(file,1600,0.88);
+                        setContent(prev=>({...prev,proposalSlides:[...(prev.proposalSlides||[]),b64]}));
+                        showToast('클립보드 슬라이드 추가 완료','success');
+                      }else{showToast('클립보드에 이미지가 없습니다','error');}
+                    }} style={{padding:'6px 14px',borderRadius:8,background:'var(--purple-l)',color:'var(--purple)',fontSize:11,fontWeight:700,cursor:'pointer',border:'1px solid var(--purple-m)'}}>📋 붙여넣기</button>
+                  </div>
+
+                  {/* 슬라이드 썸네일 그리드 */}
+                  {(content?.proposalSlides||[]).length>0 && (
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:10}}>
+                      {(content.proposalSlides).map((slide,si)=>(
+                        <div key={si} style={{position:'relative',borderRadius:10,overflow:'hidden',border:'2px solid var(--purple-m)',background:'#F5F3FF'}}>
+                          <img src={slide} style={{width:'100%',aspectRatio:'16/9',objectFit:'cover',display:'block'}} alt={`슬라이드 ${si+1}`}/>
+                          <div style={{position:'absolute',top:4,left:6,background:'rgba(109,40,217,.85)',color:'#fff',fontSize:10,fontWeight:700,padding:'2px 7px',borderRadius:6}}>
+                            {si+1}
+                          </div>
+                          <div style={{position:'absolute',top:4,right:4,display:'flex',gap:3}}>
+                            {si>0&&<button onClick={()=>{
+                              const arr=[...(content.proposalSlides)];
+                              [arr[si-1],arr[si]]=[arr[si],arr[si-1]];
+                              setContent(prev=>({...prev,proposalSlides:arr}));
+                            }} style={{width:22,height:22,borderRadius:6,border:'none',background:'rgba(0,0,0,.5)',color:'#fff',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>◀</button>}
+                            {si<(content.proposalSlides).length-1&&<button onClick={()=>{
+                              const arr=[...(content.proposalSlides)];
+                              [arr[si],arr[si+1]]=[arr[si+1],arr[si]];
+                              setContent(prev=>({...prev,proposalSlides:arr}));
+                            }} style={{width:22,height:22,borderRadius:6,border:'none',background:'rgba(0,0,0,.5)',color:'#fff',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>▶</button>}
+                            <button onClick={()=>{
+                              const arr=[...(content.proposalSlides)];
+                              arr.splice(si,1);
+                              setContent(prev=>({...prev,proposalSlides:arr}));
+                            }} style={{width:22,height:22,borderRadius:6,border:'none',background:'rgba(220,38,38,.8)',color:'#fff',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {(content?.proposalSlides||[]).length===0 && (
+                    <div style={{padding:'20px 16px',borderRadius:10,border:'2px dashed var(--purple-m)',background:'var(--purple-l)',textAlign:'center'}}>
+                      <span style={{fontSize:11,color:'var(--purple)',fontWeight:600}}>제안서 PDF 슬라이드를 캡처하여 추가하세요</span>
+                    </div>
+                  )}
+                </div>
 
                 {/* ── 3-1: 공정순서 ── */}
                 <div style={{marginBottom:24}}>

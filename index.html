@@ -4117,14 +4117,14 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
             {(()=>{
               const causeList=(photos?.causes||[]).filter(s=>s);
               const photosWithMeta=defectPhotos.length>0
-                ?defectPhotos.map(p=>({src:p.imageUrl||'',defectType:p.defectType||'',defectPart:p.defectPart||'',defectDetail:'',label:p.label||''}))
-                :(()=>{const meta=photos?.causeMeta||[];return causeList.map((src,i)=>({src,defectType:(meta[i]&&meta[i].defectType)||'',defectPart:(meta[i]&&meta[i].defectPart)||'',defectDetail:(meta[i]&&meta[i].defectDetail)||'',label:(meta[i]&&meta[i].label)||''}));})();
-              const existingMajor=[...new Set(photosWithMeta.map(p=>p.defectType).filter(Boolean))];
+                ?defectPhotos.map(p=>({src:p.imageUrl||'',defectType:p.defectType||'',defectTypes:p.defectTypes||[p.defectType].filter(Boolean),defectPart:p.defectPart||'',defectTags:p.defectTags||[p.defectPart].filter(Boolean),defectDetail:'',label:p.label||''}))
+                :(()=>{const meta=photos?.causeMeta||[];return causeList.map((src,i)=>{const m=meta[i]||{};const dts=Array.isArray(m.defectTypes)&&m.defectTypes.length>0?m.defectTypes:(m.defectType?[m.defectType]:[]);const dtags=Array.isArray(m.defectTags)&&m.defectTags.length>0?m.defectTags:(m.defectPart?[m.defectPart]:[]);return{src,defectType:dts[0]||'',defectTypes:dts,defectPart:dtags[0]||'',defectTags:dtags,defectDetail:m.defectDetail||'',label:m.label||''};});})();
+              const existingMajor=[...new Set(photosWithMeta.flatMap(p=>p.defectTypes||[p.defectType]).filter(Boolean))];
               let filtered=photosWithMeta;
-              if(activeDefect!=='all')filtered=filtered.filter(p=>p.defectType===activeDefect);
-              if(activePart!=='all')filtered=filtered.filter(p=>p.defectPart===activePart);
+              if(activeDefect!=='all')filtered=filtered.filter(p=>(p.defectTypes||[p.defectType]).includes(activeDefect));
+              if(activePart!=='all')filtered=filtered.filter(p=>(p.defectTags||[p.defectPart]).includes(activePart));
               const grouped={};
-              existingMajor.forEach(type=>{grouped[type]=photosWithMeta.filter(p=>p.defectType===type);});
+              existingMajor.forEach(type=>{grouped[type]=photosWithMeta.filter(p=>(p.defectTypes||[p.defectType]).includes(type));});
               const Mk=({act})=>{
                 const c=act?'var(--accent)':'var(--border)';
                 const W=7,T=1.5;
@@ -4296,6 +4296,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                                 )}
                                 <div style={{padding:'5px 7px 4px',borderTop:'1px solid var(--border-s)'}}>
                                   <div style={{fontSize:9,fontWeight:800,color:isAct?'var(--accent)':'var(--text-md)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'.01em'}}>#{type}</div>
+                                  <div style={{fontSize:8,color:isAct?'rgba(37,99,235,.7)':'var(--text-sm)',marginTop:1}}>{grp.length}장</div>
                                 </div>
                                 <div style={{height:2,background:'var(--border-s)'}}>
                                   <div style={{height:'100%',width:`${Math.round((grp.length/(photosWithMeta.length||1))*100)}%`,background:isAct?'var(--accent)':'var(--blue-m)',transition:'width .45s cubic-bezier(.19,1,.22,1),background .3s'}}/>
@@ -4361,11 +4362,11 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                                     <div style={{position:'absolute',top:0,left:0,width:8,height:1.5,background:'rgba(255,255,255,.5)'}}/>
                                     <div style={{position:'absolute',top:0,left:0,width:1.5,height:8,background:'rgba(255,255,255,.5)'}}/>
                                   </div>
-                                  {/* 하단 레이블 */}
+                                  {/* 하단 레이블 — 대분류+중분류 해시태그 */}
                                   <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'22px 8px 8px',background:'linear-gradient(transparent,rgba(13,27,42,.82))'}}>
-                                    <div style={{display:'flex',alignItems:'center',gap:4,flexWrap:'wrap'}}>
-                                      {p.defectType&&(<span style={{fontSize:9,fontWeight:700,color:'#fff',letterSpacing:'.05em',background:'rgba(37,99,235,.8)',borderRadius:4,padding:'2px 7px'}}>#{p.defectType}</span>)}
-                                      {p.defectPart&&p.defectPart!==p.defectType&&(<span style={{fontSize:9,fontWeight:600,color:'rgba(255,255,255,.8)',background:'rgba(255,255,255,.14)',borderRadius:4,padding:'2px 6px'}}>#{p.defectPart}</span>)}
+                                    <div style={{display:'flex',alignItems:'center',gap:3,flexWrap:'wrap'}}>
+                                      {(p.defectTypes&&p.defectTypes.length>0?p.defectTypes:[p.defectType].filter(Boolean)).map((t,ti)=>(<span key={'dt'+ti} style={{fontSize:9,fontWeight:700,color:'#fff',letterSpacing:'.05em',background:'rgba(37,99,235,.8)',borderRadius:4,padding:'2px 6px'}}>#{t}</span>))}
+                                      {(p.defectTags&&p.defectTags.length>0?p.defectTags:[p.defectPart].filter(Boolean)).map((t,ti)=>(<span key={'tag'+ti} style={{fontSize:9,fontWeight:600,color:'rgba(255,255,255,.9)',background:'rgba(124,58,237,.7)',borderRadius:4,padding:'2px 6px'}}>#{t}</span>))}
                                     </div>
                                   </div>
                                 </div>
@@ -8033,24 +8034,60 @@ function AdminScreen({onBack}){
                                     onSet={(v)=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:'',gif:''};while(up[key].causes.length<=i)up[key].causes.push('');up[key].causes[i]=v;setCasePhotos(up);}}
                                     onRemove={()=>{const up=JSON.parse(JSON.stringify(casePhotos));up[key].causes.splice(i,1);if(up[key].causeMeta)up[key].causeMeta.splice(i,1);setCasePhotos(up);}}
                                   />
-                                  {/* 하자유형/위치 메타 */}
+                                  {/* 하자 대분류/중분류 다중 선택 */}
                                   {(()=>{
                                     const meta=(data.causeMeta||[])[i]||{};
+                                    const selTypes=Array.isArray(meta.defectTypes)?meta.defectTypes:(meta.defectType?[meta.defectType]:[]);
+                                    const selTags=Array.isArray(meta.defectTags)?meta.defectTags:(meta.defectPart?[meta.defectPart]:[]);
+                                    const toggleType=(t)=>{
+                                      const up=JSON.parse(JSON.stringify(casePhotos));
+                                      if(!up[key].causeMeta)up[key].causeMeta=[];
+                                      while(up[key].causeMeta.length<=i)up[key].causeMeta.push({});
+                                      const cur=Array.isArray(up[key].causeMeta[i].defectTypes)?up[key].causeMeta[i].defectTypes:(up[key].causeMeta[i].defectType?[up[key].causeMeta[i].defectType]:[]);
+                                      up[key].causeMeta[i].defectTypes=cur.includes(t)?cur.filter(x=>x!==t):[...cur,t];
+                                      up[key].causeMeta[i].defectType=up[key].causeMeta[i].defectTypes[0]||'';
+                                      setCasePhotos(up);
+                                    };
+                                    const toggleTag=(t)=>{
+                                      const up=JSON.parse(JSON.stringify(casePhotos));
+                                      if(!up[key].causeMeta)up[key].causeMeta=[];
+                                      while(up[key].causeMeta.length<=i)up[key].causeMeta.push({});
+                                      const cur=Array.isArray(up[key].causeMeta[i].defectTags)?up[key].causeMeta[i].defectTags:(up[key].causeMeta[i].defectPart?[up[key].causeMeta[i].defectPart]:[]);
+                                      up[key].causeMeta[i].defectTags=cur.includes(t)?cur.filter(x=>x!==t):[...cur,t];
+                                      up[key].causeMeta[i].defectPart=up[key].causeMeta[i].defectTags[0]||'';
+                                      setCasePhotos(up);
+                                    };
                                     return(
-                                      <div style={{marginTop:3,display:'flex',flexDirection:'column',gap:2}}>
-                                        <select value={meta.defectType||''} onChange={e=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key].causeMeta)up[key].causeMeta=[];while(up[key].causeMeta.length<=i)up[key].causeMeta.push({});up[key].causeMeta[i]={...up[key].causeMeta[i],defectType:e.target.value};setCasePhotos(up);}}
-                                          style={{width:100,padding:'2px 4px',borderRadius:5,border:'1px solid var(--border)',fontSize:10,fontFamily:'inherit',background:'#fff'}}>
-                                          <option value=''>하자유형</option>
-                                          {['균열','누수','도장불량','방수불량','변형','부식','시공불량','오염','이음부','탈락'].map(t=><option key={t} value={t}>{t}</option>)}
-                                        </select>
-                                        <select value={meta.defectPart||''} onChange={e=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key].causeMeta)up[key].causeMeta=[];while(up[key].causeMeta.length<=i)up[key].causeMeta.push({});up[key].causeMeta[i]={...up[key].causeMeta[i],defectPart:e.target.value};setCasePhotos(up);}}
-                                          style={{width:100,padding:'2px 4px',borderRadius:5,border:'1px solid var(--border)',fontSize:10,fontFamily:'inherit',background:'#fff'}}>
-                                          <option value=''>하자위치</option>
-                                          {['옥상','외벽','지하','발코니','계단','주차장','복도','기타'].map(t=><option key={t} value={t}>{t}</option>)}
-                                        </select>
-                                        <input value={meta.defectDetail||''} placeholder='세부설명'
-                                          onChange={e=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key].causeMeta)up[key].causeMeta=[];while(up[key].causeMeta.length<=i)up[key].causeMeta.push({});up[key].causeMeta[i]={...up[key].causeMeta[i],defectDetail:e.target.value};setCasePhotos(up);}}
-                                          style={{width:100,padding:'2px 4px',borderRadius:5,border:'1px solid var(--border)',fontSize:10,fontFamily:'inherit',boxSizing:'border-box'}}/>
+                                      <div style={{marginTop:4,width:100}}>
+                                        {/* 대분류 */}
+                                        <div style={{fontSize:8,fontWeight:700,color:'var(--text-sm)',marginBottom:2,letterSpacing:'.04em'}}>대분류</div>
+                                        <div style={{display:'flex',flexWrap:'wrap',gap:2,marginBottom:4}}>
+                                          {['균열','누수','도장불량','방수불량','변형','부식','시공불량','오염','이음부','탈락'].map(t=>{
+                                            const on=selTypes.includes(t);
+                                            return(<button key={t} onClick={()=>toggleType(t)}
+                                              style={{fontSize:8,padding:'2px 5px',borderRadius:4,border:`1px solid ${on?'var(--accent)':'var(--border)'}`,
+                                                background:on?'var(--accent-l)':'#fff',color:on?'var(--accent)':'var(--text-sm)',
+                                                cursor:'pointer',fontWeight:on?700:500,lineHeight:1.4,fontFamily:'inherit'}}>{t}</button>);
+                                          })}
+                                        </div>
+                                        {/* 중분류 (해시태그) */}
+                                        <div style={{fontSize:8,fontWeight:700,color:'var(--text-sm)',marginBottom:2,letterSpacing:'.04em'}}>중분류 #태그</div>
+                                        <div style={{display:'flex',flexWrap:'wrap',gap:2,marginBottom:4}}>
+                                          {['옥상','외벽','지하','발코니','계단','주차장','복도','기타'].map(t=>{
+                                            const on=selTags.includes(t);
+                                            return(<button key={t} onClick={()=>toggleTag(t)}
+                                              style={{fontSize:8,padding:'2px 5px',borderRadius:4,border:`1px solid ${on?'#7C3AED':'var(--border)'}`,
+                                                background:on?'#EDE9FE':'#fff',color:on?'#7C3AED':'var(--text-sm)',
+                                                cursor:'pointer',fontWeight:on?700:500,lineHeight:1.4,fontFamily:'inherit'}}>#{t}</button>);
+                                          })}
+                                        </div>
+                                        {/* 선택된 태그 미리보기 */}
+                                        {(selTypes.length>0||selTags.length>0)&&(
+                                          <div style={{display:'flex',flexWrap:'wrap',gap:2}}>
+                                            {selTypes.map(t=>(<span key={t} style={{fontSize:7,padding:'1px 4px',borderRadius:3,background:'var(--accent)',color:'#fff',fontWeight:700}}>#{t}</span>))}
+                                            {selTags.map(t=>(<span key={t} style={{fontSize:7,padding:'1px 4px',borderRadius:3,background:'#7C3AED',color:'#fff',fontWeight:600}}>#{t}</span>))}
+                                          </div>
+                                        )}
                                       </div>
                                     );
                                   })()}

@@ -3198,8 +3198,25 @@ function LeadsKanbanPage({brandKey,showToast}){
   const [leads,setLeads]=useState([]);
   const [loading,setLoading]=useState(true);
   const [selected,setSelected]=useState(null);
-  const [search,setSearch]=useState('');
   const [viewMode,setViewMode]=useState('kanban'); // kanban | list
+
+  /* ── 필터 상태 ── */
+  const [search,setSearch]=useState('');
+  const [filterDateFrom,setFilterDateFrom]=useState('');
+  const [filterDateTo,setFilterDateTo]=useState('');
+  const [filterStaff,setFilterStaff]=useState('전체');
+  const [filterStatus,setFilterStatus]=useState('전체');
+  const [filterBuilding,setFilterBuilding]=useState('전체');
+
+  /* ── 담당자 목록 (config/staffList) ── */
+  const [staffOptions,setStaffOptions]=useState([]);
+  useEffect(()=>{
+    db.collection('config').doc('staffList').get().then(doc=>{
+      if(doc.exists)setStaffOptions((doc.data().list||[]).map(s=>s.name));
+    }).catch(()=>{});
+  },[]);
+
+  const BUILDING_TYPES=['전체','아파트','관공서','일반건물','건설사'];
 
   const fetchLeads=async()=>{
     setLoading(true);
@@ -3207,12 +3224,11 @@ function LeadsKanbanPage({brandKey,showToast}){
       const snap=await db.collection(brand.collection).get();
       let arr=[];
       snap.forEach(doc=>arr.push({id:doc.id,...doc.data()}));
-      /* 소스 필터 적용 (인바운드/아웃바운드 구분) */
       if(brand.filter)arr=arr.filter(brand.filter);
       arr.sort((a,b)=>(b.savedAt||'').localeCompare(a.savedAt||''));
       console.log(`[leads] ${brand.label}(${brand.sublabel||'전체'}): ${arr.length}건 로드`);
       setLeads(arr);
-    }catch(e){console.error('[leads] 로드 실패:',e);}
+    }catch(e){console.error('[leads] 로드 실패:',e);showToast('데이터 로드 실패','error');}
     setLoading(false);
   };
 
@@ -3237,15 +3253,64 @@ function LeadsKanbanPage({brandKey,showToast}){
     }catch(e){console.error(e);showToast('삭제 실패','error');}
   };
 
+  /* ── 필터 적용 ── */
   const filtered=leads.filter(l=>{
-    if(!search.trim())return true;
-    const s=search.toLowerCase();
-    return (l.name||'').toLowerCase().includes(s)||(l.phone||'').includes(s)||(l.building||'').toLowerCase().includes(s)||(l.problem||'').toLowerCase().includes(s);
+    if(search.trim()){
+      const s=search.toLowerCase();
+      const hit=(l.name||'').toLowerCase().includes(s)||(l.phone||'').includes(s)
+        ||(l.building||'').toLowerCase().includes(s)||(l.problem||'').toLowerCase().includes(s)
+        ||(l.email||'').toLowerCase().includes(s);
+      if(!hit)return false;
+    }
+    if(filterDateFrom){
+      const from=filterDateFrom+'T00:00:00';
+      if((l.savedAt||'')<from)return false;
+    }
+    if(filterDateTo){
+      const to=filterDateTo+'T23:59:59';
+      if((l.savedAt||'')>to)return false;
+    }
+    if(filterStaff!=='전체'&&(l.staff||'')!==filterStaff)return false;
+    if(filterStatus!=='전체'&&(l.status||'신규')!==filterStatus)return false;
+    if(filterBuilding!=='전체'){
+      const b=(l.building||l.buildingType||'');
+      if(!b.includes(filterBuilding))return false;
+    }
+    return true;
   });
 
   const byStage=(stage)=>filtered.filter(l=>(l.status||'신규')===stage);
+  const hasFilter=search||filterDateFrom||filterDateTo||filterStaff!=='전체'||filterStatus!=='전체'||filterBuilding!=='전체';
+
+  const resetFilters=()=>{
+    setSearch('');setFilterDateFrom('');setFilterDateTo('');
+    setFilterStaff('전체');setFilterStatus('전체');setFilterBuilding('전체');
+  };
 
   const formatDate=(d)=>{if(!d)return'-';const dt=new Date(d);return `${dt.getMonth()+1}/${dt.getDate()}`};
+  const formatDateFull=(d)=>{if(!d)return'-';return new Date(d).toLocaleDateString('ko');};
+
+  /* ── CSV 다운로드 ── */
+  const downloadCsv=()=>{
+    if(!filtered.length){showToast('다운로드할 데이터가 없습니다','error');return;}
+    const headers=['성함','연락처','이메일','건물/현장','하자유형','상태','담당자','접수일','메모','다음액션'];
+    const rows=filtered.map(l=>[
+      l.name||'',l.phone||'',l.email||'',l.building||'',
+      Array.isArray(l.problems)?l.problems.join('|'):(l.problem||''),
+      l.status||'신규',l.staff||'',
+      l.savedAt?new Date(l.savedAt).toLocaleDateString('ko'):'',
+      (l.memo||'').replace(/\n/g,' '),
+      Array.isArray(l.actions)?l.actions.join('|'):(l.nextAction||''),
+    ].map(v=>`"${String(v).replace(/"/g,'""')}"`));
+    const csv='\uFEFF'+[headers.map(h=>`"${h}"`).join(','),...rows.map(r=>r.join(','))].join('\r\n');
+    const today=new Date().toISOString().slice(0,10).replace(/-/g,'');
+    const fname=`${brand.label}_고객DB_${today}.csv`;
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=fname;a.click();
+    URL.revokeObjectURL(url);
+    showToast(`${filtered.length}건 CSV 다운로드 완료`);
+  };
 
   /* ── 리드 상세 모달 ── */
   const DetailModal=()=>{
@@ -3293,6 +3358,7 @@ function LeadsKanbanPage({brandKey,showToast}){
         <div style={{fontSize:14,fontWeight:700,color:'var(--text)'}}>{lead.name||'이름없음'}</div>
         <div style={{fontSize:10,color:'var(--text-sm)'}}>{formatDate(lead.savedAt)}</div>
       </div>
+      {lead.phone&&<div style={{fontSize:11,color:'var(--text-md)',marginBottom:2}}>📞 {lead.phone}</div>}
       {lead.building&&<div style={{fontSize:12,color:'var(--text-md)',marginBottom:4}}>🏢 {lead.building}</div>}
       {(lead.problem||lead.problems)&&<div style={{fontSize:11,color:'var(--text-sm)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>⚡ {Array.isArray(lead.problems)?lead.problems.join(', '):lead.problem}</div>}
       {lead.staff&&<div style={{fontSize:11,color:brand.color,marginTop:4,fontWeight:600}}>👤 {lead.staff}</div>}
@@ -3301,7 +3367,7 @@ function LeadsKanbanPage({brandKey,showToast}){
 
   /* ── 칸반 뷰 ── */
   const KanbanView=()=>(
-    <div style={{display:'flex',gap:12,overflowX:'auto',paddingBottom:16,minHeight:'calc(100vh - 200px)'}}>
+    <div style={{display:'flex',gap:12,overflowX:'auto',paddingBottom:16,minHeight:'calc(100vh - 280px)'}}>
       {PIPELINE_STAGES.map(stage=>{
         const items=byStage(stage);
         return(
@@ -3321,50 +3387,113 @@ function LeadsKanbanPage({brandKey,showToast}){
     </div>
   );
 
-  /* ── 리스트 뷰 ── */
+  /* ── 리스트 뷰 (컬럼 강화) ── */
   const ListView=()=>(
-    <div style={{background:'#fff',borderRadius:12,border:'1px solid var(--border)',overflow:'hidden'}}>
-      <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+    <div style={{background:'#fff',borderRadius:12,border:'1px solid var(--border)',overflow:'auto'}}>
+      <table style={{width:'100%',borderCollapse:'collapse',fontSize:13,minWidth:800}}>
         <thead>
           <tr style={{background:'var(--bg)'}}>
-            {['성함','건물','하자','상태','담당자','접수일'].map(h=>(
-              <th key={h} style={{padding:'10px 14px',textAlign:'left',fontWeight:700,color:'var(--text-md)',fontSize:12,borderBottom:'1px solid var(--border)'}}>{h}</th>
+            {['성함','연락처','건물','하자','상태','담당자','접수일'].map(h=>(
+              <th key={h} style={{padding:'10px 14px',textAlign:'left',fontWeight:700,color:'var(--text-md)',fontSize:12,borderBottom:'1px solid var(--border)',whiteSpace:'nowrap'}}>{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {filtered.map(l=>(
-            <tr key={l.id} onClick={()=>setSelected(l)} style={{cursor:'pointer',borderBottom:'1px solid var(--border-s)'}}>
-              <td style={{padding:'10px 14px',fontWeight:600}}>{l.name||'-'}</td>
-              <td style={{padding:'10px 14px',color:'var(--text-md)'}}>{l.building||'-'}</td>
+            <tr key={l.id} onClick={()=>setSelected(l)}
+              style={{cursor:'pointer',borderBottom:'1px solid var(--border-s)'}}
+              onMouseOver={e=>e.currentTarget.style.background='var(--bg)'}
+              onMouseOut={e=>e.currentTarget.style.background='#fff'}>
+              <td style={{padding:'10px 14px',fontWeight:700}}>{l.name||'-'}</td>
+              <td style={{padding:'10px 14px',color:'var(--text-md)',fontSize:12,whiteSpace:'nowrap'}}>{l.phone||'-'}</td>
+              <td style={{padding:'10px 14px',color:'var(--text-md)',maxWidth:130,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{l.building||'-'}</td>
               <td style={{padding:'10px 14px',color:'var(--text-md)',maxWidth:150,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{Array.isArray(l.problems)?l.problems.join(', '):(l.problem||'-')}</td>
-              <td style={{padding:'10px 14px'}}><span style={{padding:'3px 10px',borderRadius:6,background:PIPELINE_COLORS[l.status||'신규']+'18',color:PIPELINE_COLORS[l.status||'신규'],fontSize:11,fontWeight:700}}>{l.status||'신규'}</span></td>
-              <td style={{padding:'10px 14px',color:'var(--text-md)'}}>{l.staff||'-'}</td>
-              <td style={{padding:'10px 14px',color:'var(--text-sm)',fontSize:12}}>{formatDate(l.savedAt)}</td>
+              <td style={{padding:'10px 14px',whiteSpace:'nowrap'}}><span style={{padding:'3px 10px',borderRadius:6,background:PIPELINE_COLORS[l.status||'신규']+'18',color:PIPELINE_COLORS[l.status||'신규'],fontSize:11,fontWeight:700}}>{l.status||'신규'}</span></td>
+              <td style={{padding:'10px 14px',color:'var(--text-md)',whiteSpace:'nowrap'}}>{l.staff||'-'}</td>
+              <td style={{padding:'10px 14px',color:'var(--text-sm)',fontSize:12,whiteSpace:'nowrap'}}>{formatDateFull(l.savedAt)}</td>
             </tr>
           ))}
-          {filtered.length===0&&<tr><td colSpan={6} style={{padding:40,textAlign:'center',color:'var(--text-sm)'}}>리드가 없습니다</td></tr>}
+          {filtered.length===0&&<tr><td colSpan={7} style={{padding:40,textAlign:'center',color:'var(--text-sm)'}}>조건에 맞는 리드가 없습니다</td></tr>}
         </tbody>
       </table>
     </div>
   );
 
+  const selStyle={padding:'7px 12px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:12,fontFamily:'inherit',outline:'none',background:'#fff',cursor:'pointer'};
+  const dateStyle={padding:'7px 10px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:12,fontFamily:'inherit',outline:'none'};
+
   return(
     <div style={{animation:'fadeIn .3s ease'}}>
-      {/* 헤더 */}
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20,flexWrap:'wrap',gap:12}}>
+      {/* ── 헤더 ── */}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14,flexWrap:'wrap',gap:10}}>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
           <span style={{fontSize:28}}>{brand.icon}</span>
           <div>
             <div style={{fontSize:20,fontWeight:800}}>{brand.label} 영업 {brand.sublabel&&<span style={{fontSize:13,fontWeight:600,color:brand.color,background:brand.bg,padding:'3px 10px',borderRadius:6,marginLeft:8}}>{brand.sublabel}</span>}</div>
-            <div style={{fontSize:12,color:'var(--text-sm)'}}>총 {leads.length}건 · {PIPELINE_STAGES.map(s=>`${s} ${byStage(s).length}`).join(' · ')}</div>
+            <div style={{fontSize:12,color:'var(--text-sm)'}}>전체 {leads.length}건 {hasFilter&&<span style={{color:brand.color,fontWeight:700}}>· 필터 {filtered.length}건</span>} · {PIPELINE_STAGES.map(s=>`${s} ${byStage(s).length}`).join(' · ')}</div>
           </div>
         </div>
-        <div style={{display:'flex',gap:8,alignItems:'center'}}>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="검색 (이름, 전화, 건물)" style={{padding:'8px 14px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:12,width:180,outline:'none',fontFamily:'inherit'}}/>
-          <button onClick={()=>setViewMode(viewMode==='kanban'?'list':'kanban')} style={{padding:'8px 12px',borderRadius:8,border:'1.5px solid var(--border)',background:'#fff',fontSize:12,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>{viewMode==='kanban'?'📋 리스트':'📊 칸반'}</button>
+        <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+          <button onClick={downloadCsv}
+            style={{padding:'8px 14px',borderRadius:8,border:'1.5px solid var(--green)',background:'var(--green-l)',color:'var(--green)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap'}}>
+            📥 엑셀 다운로드
+          </button>
+          <button onClick={()=>setViewMode(viewMode==='kanban'?'list':'kanban')}
+            style={{padding:'8px 12px',borderRadius:8,border:'1.5px solid var(--border)',background:'#fff',fontSize:12,cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>
+            {viewMode==='kanban'?'📋 리스트':'📊 칸반'}
+          </button>
           <button onClick={fetchLeads} style={{padding:'8px 12px',borderRadius:8,border:'1.5px solid var(--border)',background:'#fff',fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>🔄</button>
         </div>
+      </div>
+
+      {/* ── 필터 바 ── */}
+      <div style={{background:'#fff',borderRadius:10,border:'1px solid var(--border)',padding:'12px 16px',marginBottom:14,display:'flex',flexWrap:'wrap',gap:10,alignItems:'flex-end'}}>
+        {/* 검색어 */}
+        <div style={{display:'flex',flexDirection:'column',gap:4}}>
+          <label style={{fontSize:11,fontWeight:700,color:'var(--text-sm)'}}>검색</label>
+          <input value={search} onChange={e=>setSearch(e.target.value)}
+            placeholder="이름·전화·건물명·이메일"
+            style={{...dateStyle,width:160}}/>
+        </div>
+        {/* 날짜 범위 */}
+        <div style={{display:'flex',flexDirection:'column',gap:4}}>
+          <label style={{fontSize:11,fontWeight:700,color:'var(--text-sm)'}}>접수일 (from)</label>
+          <input type="date" value={filterDateFrom} onChange={e=>setFilterDateFrom(e.target.value)} style={dateStyle}/>
+        </div>
+        <div style={{display:'flex',flexDirection:'column',gap:4}}>
+          <label style={{fontSize:11,fontWeight:700,color:'var(--text-sm)'}}>접수일 (to)</label>
+          <input type="date" value={filterDateTo} onChange={e=>setFilterDateTo(e.target.value)} style={dateStyle}/>
+        </div>
+        {/* 담당자 */}
+        <div style={{display:'flex',flexDirection:'column',gap:4}}>
+          <label style={{fontSize:11,fontWeight:700,color:'var(--text-sm)'}}>담당자</label>
+          <select value={filterStaff} onChange={e=>setFilterStaff(e.target.value)} style={selStyle}>
+            <option value="전체">전체</option>
+            {staffOptions.map(s=><option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+        {/* 상태 */}
+        <div style={{display:'flex',flexDirection:'column',gap:4}}>
+          <label style={{fontSize:11,fontWeight:700,color:'var(--text-sm)'}}>상태</label>
+          <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)} style={selStyle}>
+            <option value="전체">전체</option>
+            {PIPELINE_STAGES.map(s=><option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+        {/* 건물유형 */}
+        <div style={{display:'flex',flexDirection:'column',gap:4}}>
+          <label style={{fontSize:11,fontWeight:700,color:'var(--text-sm)'}}>건물유형</label>
+          <select value={filterBuilding} onChange={e=>setFilterBuilding(e.target.value)} style={selStyle}>
+            {BUILDING_TYPES.map(b=><option key={b} value={b}>{b}</option>)}
+          </select>
+        </div>
+        {/* 초기화 */}
+        {hasFilter&&(
+          <button onClick={resetFilters}
+            style={{padding:'7px 14px',borderRadius:8,border:'1.5px solid #FEE2E2',background:'#FEF2F2',color:'#DC2626',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',alignSelf:'flex-end'}}>
+            ✕ 필터 초기화
+          </button>
+        )}
       </div>
 
       {loading?<div style={{textAlign:'center',padding:60,color:'var(--text-sm)'}}>로딩 중...</div>

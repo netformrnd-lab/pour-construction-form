@@ -4651,6 +4651,27 @@ function ContentEditorPage({ showToast }) {
             data.cause = DEFAULT_CAUSE_TEXTS[methodId];
           }
         }
+        // step-photos 서브컬렉션 로드 (공정 사진 + 자재 사진)
+        try {
+          const stepSnap = await ref.collection('step-photos').get();
+          if (stepSnap.size > 0) {
+            console.log(`[step-photos] ${methodId}: ${stepSnap.size}건 로드`);
+            stepSnap.docs.forEach(d => {
+              const idx = parseInt(d.id);
+              const pData = d.data();
+              if (pData.processPhoto) {
+                if (!data.processPhotos) data.processPhotos = [];
+                data.processPhotos[idx] = pData.processPhoto;
+              }
+              if (pData.matPhotos?.length || pData.matMediaUrl) {
+                if (!data.processMaterials) data.processMaterials = [];
+                if (!data.processMaterials[idx]) data.processMaterials[idx] = {};
+                data.processMaterials[idx].photos = pData.matPhotos || [];
+                data.processMaterials[idx].mediaUrl = pData.matMediaUrl || '';
+              }
+            });
+          }
+        } catch(e2) { console.warn('[step-photos] 로드 실패:', e2); }
         // proposalSlides 별도 로드
         try {
           const slideSnap = await db.collection('proposal-slides').doc(methodId).get();
@@ -4673,18 +4694,38 @@ function ContentEditorPage({ showToast }) {
     try {
       const ref = db ? db.collection(CONTENT_COLLECTION).doc(selectedMethod) : null;
       if (ref) {
-        // proposalSlides는 별도 컬렉션에 저장 (문서 1MB 제한 방지)
-        const {proposalSlides, ...contentWithoutSlides} = content;
-        await ref.set(contentWithoutSlides, { merge: true });
-        // 슬라이드 별도 저장
-        if (proposalSlides && proposalSlides.length > 0) {
-          const slideRef = db.collection('proposal-slides').doc(selectedMethod);
-          await slideRef.set({ slides: proposalSlides, updatedAt: new Date().toISOString() });
-        } else {
-          // 슬라이드 비었으면 문서 삭제 대신 빈 배열로
-          const slideRef = db.collection('proposal-slides').doc(selectedMethod);
-          await slideRef.set({ slides: [], updatedAt: new Date().toISOString() });
+        // 1. 텍스트 전용 콘텐츠 분리 (사진 데이터 제거)
+        const {proposalSlides, processPhotos, processMaterials, ...textContent} = content;
+        // processMaterials에서 사진만 제거, 텍스트(name/desc/badge) 유지
+        textContent.processMaterials = (processMaterials||[]).map(m => {
+          if (!m) return null;
+          const {photos, mediaUrl, ...rest} = m;
+          return rest;
+        });
+        textContent.processPhotos = []; // 메인 문서에서 제거 (서브컬렉션으로 이동)
+        await ref.set(textContent, { merge: true });
+
+        // 2. 공정 사진 → 서브컬렉션 step-photos (스텝별 개별 문서, 1MB 초과 방지)
+        const photosCol = ref.collection('step-photos');
+        for (let i = 0; i < Math.max((processPhotos||[]).length, (processMaterials||[]).length); i++) {
+          const photo = (processPhotos||[])[i];
+          const mat = (processMaterials||[])[i];
+          const docData = {
+            processPhoto: photo || null,
+            matPhotos: mat?.photos || [],
+            matMediaUrl: mat?.mediaUrl || '',
+          };
+          // 데이터가 있을 때만 저장
+          if (photo || (mat?.photos?.length) || mat?.mediaUrl) {
+            await photosCol.doc(String(i)).set(docData);
+          }
         }
+
+        // 3. 제안서 슬라이드 → 별도 컬렉션
+        await db.collection('proposal-slides').doc(selectedMethod).set({
+          slides: proposalSlides || [], updatedAt: new Date().toISOString()
+        });
+
         showToast('저장 완료!', 'success');
       } else {
         localStorage.setItem(`content_${selectedMethod}`, JSON.stringify(content));

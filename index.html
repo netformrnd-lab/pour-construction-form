@@ -1603,6 +1603,29 @@ let _proposalSlidesMap={};
     if(snap.size>0){
       snap.docs.forEach(d=>{_methodContentOverrides[d.id]={...d.data()};});
       console.log(`[method-content] ${snap.size}건 오버라이드 로드`);
+      // 각 메서드의 step-photos 서브컬렉션 로드
+      for(const methodId of Object.keys(_methodContentOverrides)){
+        try{
+          const stepSnap=await db.collection('method-content').doc(methodId).collection('step-photos').get();
+          if(stepSnap.size>0){
+            const ov=_methodContentOverrides[methodId];
+            stepSnap.docs.forEach(d=>{
+              const idx=parseInt(d.id);const pData=d.data();
+              if(pData.processPhoto){
+                if(!ov.processPhotos)ov.processPhotos=[];
+                ov.processPhotos[idx]=pData.processPhoto;
+              }
+              if(pData.matPhotos?.length||pData.matMediaUrl){
+                if(!ov.processMaterials)ov.processMaterials=[];
+                if(!ov.processMaterials[idx])ov.processMaterials[idx]={};
+                ov.processMaterials[idx].photos=pData.matPhotos||[];
+                ov.processMaterials[idx].mediaUrl=pData.matMediaUrl||'';
+              }
+            });
+            console.log(`[step-photos] ${methodId}: ${stepSnap.size}건`);
+          }
+        }catch(e2){console.warn(`[step-photos] ${methodId} 실패:`,e2);}
+      }
     }
   }catch(e){console.warn('[method-content] 오버라이드 로드 실패, 기본값 사용:',e);}
   try{

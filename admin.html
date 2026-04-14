@@ -4512,6 +4512,10 @@ function ContentEditorPage({ showToast }) {
   const [probPhotos, setProbPhotos] = useState({});
   const [probPhotosLoaded, setProbPhotosLoaded] = useState(false);
   const [probPhotosSaving, setProbPhotosSaving] = useState(false);
+  /* ── 접기/펼치기 ── */
+  const [openSections, setOpenSections] = useState({s1:true, s2:true, s3:true});
+  /* ── POUR공법 핵심 모달 ── */
+  const [keyModal, setKeyModal] = useState(null);
 
   const methodInfo = POUR_METHODS_FOR_EDITOR.find(m => m.id === selectedMethod);
 
@@ -4683,7 +4687,7 @@ function ContentEditorPage({ showToast }) {
     }
   };
 
-  if (loading) return (
+  if (loading || !content) return (
     <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:400}}>
       <div style={{fontSize:14,color:'var(--text-md)'}}>로딩 중...</div>
     </div>
@@ -4862,12 +4866,7 @@ function ContentEditorPage({ showToast }) {
     setCasePhotosSaving(false);
   };
 
-  /* ── 접기/펼치기 ── */
-  const [openSections, setOpenSections] = useState({s1:true, s2:true, s3:true});
   const toggleSec = (k) => setOpenSections(p => ({...p, [k]:!p[k]}));
-
-  /* ── POUR공법 핵심 모달 ── */
-  const [keyModal, setKeyModal] = useState(null); // {stepIdx, stepName}
   const getProcessKey = (idx) => (content?.processKeys||[])[idx] || {photo:'',desc:''};
   const updateProcessKey = (idx, field, val) => {
     const arr = [...(content?.processKeys||[])];

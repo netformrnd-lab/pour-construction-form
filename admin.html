@@ -4703,7 +4703,44 @@ function ContentEditorPage({ showToast }) {
     ascon_seal: ['표면 청소·건조','씰코팅재 도포','양생'],
     ascon_mma: ['바탕면 처리','MMA 프라이머','MMA 중도','논슬립 집게 시공','상도 마감'],
   };
-  const steps = processNames[selectedMethod] || [];
+  /* steps: content.processStepNames가 있으면 사용, 없으면 기본값 */
+  const defaultSteps = processNames[selectedMethod] || [];
+  const steps = (content?.processStepNames && content.processStepNames.length > 0) ? content.processStepNames : defaultSteps;
+
+  const initCustomSteps = () => {
+    if (!content?.processStepNames || content.processStepNames.length === 0) {
+      setContent(prev => ({...prev, processStepNames: [...defaultSteps]}));
+    }
+  };
+  const updateStepName = (idx, val) => {
+    initCustomSteps();
+    setContent(prev => {
+      const arr = [...(prev.processStepNames || [...defaultSteps])];
+      arr[idx] = val;
+      return {...prev, processStepNames: arr};
+    });
+  };
+  const addStep = () => {
+    initCustomSteps();
+    setContent(prev => {
+      const arr = [...(prev.processStepNames || [...defaultSteps])];
+      arr.push('새 공정 ' + (arr.length + 1));
+      return {...prev, processStepNames: arr};
+    });
+  };
+  const removeStep = (idx) => {
+    setContent(prev => {
+      const names = [...(prev.processStepNames || [...defaultSteps])];
+      const photos = [...(prev.processPhotos || [])];
+      const descs = [...(prev.processDescs || [])];
+      const keys = [...(prev.processKeys || [])];
+      names.splice(idx, 1);
+      photos.splice(idx, 1);
+      descs.splice(idx, 1);
+      keys.splice(idx, 1);
+      return {...prev, processStepNames: names, processPhotos: photos, processDescs: descs, processKeys: keys};
+    });
+  };
 
   /* ── 하자사진 관련 함수 ── */
   const methodData = casePhotos[selectedMethod] || { causes: [], completed: '', media: [] };
@@ -4766,6 +4803,16 @@ function ContentEditorPage({ showToast }) {
   /* ── 접기/펼치기 ── */
   const [openSections, setOpenSections] = useState({s1:true, s2:true, s3:true});
   const toggleSec = (k) => setOpenSections(p => ({...p, [k]:!p[k]}));
+
+  /* ── POUR공법 핵심 모달 ── */
+  const [keyModal, setKeyModal] = useState(null); // {stepIdx, stepName}
+  const getProcessKey = (idx) => (content?.processKeys||[])[idx] || {photo:'',desc:''};
+  const updateProcessKey = (idx, field, val) => {
+    const arr = [...(content?.processKeys||[])];
+    if(!arr[idx]) arr[idx] = {photo:'',desc:''};
+    arr[idx] = {...arr[idx], [field]: val};
+    setContent(prev => ({...prev, processKeys: arr}));
+  };
 
   // 공법 선택 사이드바 + 편집 영역 레이아웃
   return (
@@ -4832,62 +4879,34 @@ function ContentEditorPage({ showToast }) {
           <div style={{maxWidth:900, margin:'0 auto', display:'flex', flexDirection:'column', gap:20}}>
 
           {/* ═══════════════════════════════════════════
-              섹션 1: 현장 하자사진
+              섹션 1: 현장 하자사진 (공법분석 메뉴에서 관리)
           ═══════════════════════════════════════════ */}
           <div style={{borderRadius:14,border:'1px solid var(--border)',overflow:'hidden',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,.04)'}}>
-            <button onClick={()=>toggleSec('s1')} style={{
-              width:'100%',textAlign:'left',padding:'14px 18px',background:'linear-gradient(90deg,rgba(220,38,38,.06),transparent)',
-              borderBottom:openSections.s1?'1px solid var(--border)':'none',border:'none',cursor:'pointer',
-              display:'flex',alignItems:'center',gap:8,fontFamily:'inherit'
+            <div style={{
+              padding:'14px 18px',background:'linear-gradient(90deg,rgba(220,38,38,.06),transparent)',
+              display:'flex',alignItems:'center',gap:8
             }}>
               <div style={{width:8,height:8,borderRadius:'50%',background:'var(--red)',flexShrink:0}}/>
               <span style={{fontSize:14,fontWeight:800,color:'var(--navy)',flex:1}}>1. 현장 하자사진</span>
-              <span style={{fontSize:11,color:'var(--text-sm)',marginRight:8}}>{causes.filter(c=>c).length}장 등록</span>
               <span style={{fontSize:11,color:'var(--text-sm)',background:'#FEF3C7',padding:'2px 8px',borderRadius:4,fontWeight:600}}>AI 자동분류 적용예정</span>
-              <span style={{fontSize:14,color:'var(--text-sm)',transition:'transform .2s',transform:openSections.s1?'rotate(180deg)':'rotate(0)'}}>{'\u25B2'}</span>
-            </button>
-            {openSections.s1 && (
-              <div style={{padding:16}}>
-                <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
-                  {[...causes,''].map((url,i)=>{
-                    if(i>causes.length) return null;
-                    return(
-                      <div key={i} style={{position:'relative'}}>
-                        <div style={{
-                          width:110,height:110,borderRadius:10,border:'2px dashed var(--border)',
-                          background:url?'transparent':'#f9fafb',overflow:'hidden',cursor:'pointer'
-                        }} onClick={()=>document.getElementById(`adm_cause_${selectedMethod}_${i}`)?.click()}>
-                          {url?(
-                            <img src={url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt={`하자${i+1}`}/>
-                          ):(
-                            <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:4}}>
-                              <div style={{fontSize:24,color:'var(--text-sm)'}}>+</div>
-                              <div style={{fontSize:10,color:'var(--text-sm)'}}>사진 추가</div>
-                            </div>
-                          )}
-                        </div>
-                        {url&&(
-                          <button onClick={()=>updateCaseData(selectedMethod,d=>{d.causes.splice(i,1);})} style={{
-                            position:'absolute',top:-6,right:-6,width:20,height:20,borderRadius:'50%',
-                            background:'#DC2626',color:'#fff',border:'none',fontSize:11,cursor:'pointer',
-                            display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700
-                          }}>✕</button>
-                        )}
-                        <input type="file" accept="image/*" id={`adm_cause_${selectedMethod}_${i}`} style={{display:'none'}}
-                          onChange={e=>handleCauseUpload(e.target.files[0],i)}/>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div style={{fontSize:11,color:'var(--text-sm)',marginTop:10}}>사진 클릭 → 파일 업로드 · 마지막 + 버튼으로 추가</div>
+            </div>
+            <div style={{padding:'16px 18px',display:'flex',alignItems:'center',gap:12,background:'#F8FAFC',borderTop:'1px solid var(--border)'}}>
+              <span style={{fontSize:24}}>📷</span>
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:'var(--text-md)'}}>하자사진은 <span style={{color:'var(--accent)',fontWeight:800}}>공법분석</span> 메뉴에서 AI 자동분류로 관리됩니다.</div>
+                <div style={{fontSize:11,color:'var(--text-sm)',marginTop:2}}>사이드바 "공법분석" 탭에서 사진 등록 및 분류를 진행하세요.</div>
               </div>
-            )}
+            </div>
           </div>
 
           {/* ═══════════════════════════════════════════
               섹션 2: 왜 이 문제가 생기나 (원인 영상)
-              — 고객 제안서와 동일한 스타일
+              — casePhotos[methodId].media 에서 로드
           ═══════════════════════════════════════════ */}
+          {(()=>{
+            const mediaList=(methodData.media||[]).filter(s=>s);
+            const mediaThumbs=methodData.mediaThumbs||[];
+            return(
           <div style={{borderRadius:14,border:'1px solid var(--border)',overflow:'hidden',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,.04)'}}>
             <button onClick={()=>toggleSec('s2')} style={{
               width:'100%',textAlign:'left',padding:'14px 18px',background:'linear-gradient(90deg,rgba(220,38,38,.04),transparent)',
@@ -4896,12 +4915,12 @@ function ContentEditorPage({ showToast }) {
             }}>
               <div style={{width:8,height:8,borderRadius:'50%',background:'var(--red)',flexShrink:0}}/>
               <span style={{fontSize:14,fontWeight:800,color:'var(--navy)',flex:1}}>2. 왜 이 문제가 생기나</span>
-              {content?.causeVideoUrl && <span style={{fontSize:11,color:'var(--green)',fontWeight:700}}>영상 등록됨</span>}
+              {mediaList.length>0 && <span style={{fontSize:11,color:'var(--green)',fontWeight:700}}>{mediaList.length}개 영상 등록됨</span>}
               <span style={{fontSize:14,color:'var(--text-sm)',transition:'transform .2s',transform:openSections.s2?'rotate(180deg)':'rotate(0)'}}>{'\u25B2'}</span>
             </button>
             {openSections.s2 && (
               <div style={{padding:16}}>
-                {/* 고객뷰 미리보기 스타일 — 원인 설명 카드 */}
+                {/* 발생 원인 설명 */}
                 <div style={{marginBottom:16,padding:'12px 14px',background:'#FFF5F5',borderRadius:12,border:'1px solid #FECACA'}}>
                   <div style={{fontSize:10,fontWeight:800,color:'var(--red)',marginBottom:6,display:'flex',alignItems:'center',gap:5,letterSpacing:'.05em'}}>
                     <div style={{width:3,height:14,borderRadius:2,background:'var(--red)'}}/>
@@ -4921,85 +4940,124 @@ function ContentEditorPage({ showToast }) {
                   />
                 </div>
 
-                {/* 원인 영상 — YouTube 링크 + 썸네일 */}
+                {/* 원인 영상 목록 — casePhotos[methodId].media 배열 */}
                 <div style={{padding:'14px',background:'#FAFAFA',borderRadius:12,border:'1px solid var(--border)'}}>
-                  <div style={{fontSize:10,fontWeight:800,color:'var(--red)',marginBottom:10,display:'flex',alignItems:'center',gap:5,letterSpacing:'.05em'}}>
-                    <div style={{width:3,height:14,borderRadius:2,background:'var(--red)'}}/>
-                    원인 영상
+                  <div style={{fontSize:10,fontWeight:800,color:'var(--red)',marginBottom:10,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:5,letterSpacing:'.05em'}}>
+                      <div style={{width:3,height:14,borderRadius:2,background:'var(--red)'}}/>
+                      원인 영상
+                    </div>
+                    <button onClick={()=>{
+                      updateCaseData(selectedMethod,d=>{
+                        if(!d.media) d.media=[];
+                        d.media.push('');
+                      });
+                    }} style={{padding:'4px 12px',borderRadius:6,border:'1px solid #FECACA',background:'#FEF2F2',color:'#DC2626',fontSize:11,fontWeight:600,cursor:'pointer'}}>+ 영상 추가</button>
                   </div>
-                  <div style={{display:'flex',gap:14,alignItems:'flex-start'}}>
-                    {/* 영상 썸네일 미리보기 */}
-                    <div style={{width:240,flexShrink:0}}>
-                      {content?.causeVideoUrl ? (
-                        <div style={{position:'relative',borderRadius:10,overflow:'hidden',border:'2px solid var(--red)',aspectRatio:'16/9',background:'#000'}}>
-                          {content.causeVideoThumb ? (
-                            <img src={content.causeVideoThumb} style={{width:'100%',height:'100%',objectFit:'cover'}} alt="썸네일"/>
-                          ) : getYtThumb(content.causeVideoUrl) ? (
-                            <img src={getYtThumb(content.causeVideoUrl)} style={{width:'100%',height:'100%',objectFit:'cover'}} alt="썸네일"/>
-                          ) : (
-                            <iframe src={toEmbedUrl(content.causeVideoUrl)} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/>
-                          )}
-                          {/* 재생 버튼 오버레이 */}
-                          {(content.causeVideoThumb||getYtThumb(content.causeVideoUrl))&&(
-                            <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,.25)',cursor:'pointer'}}
-                              onClick={()=>window.open(content.causeVideoUrl,'_blank')}>
-                              <div style={{width:48,height:48,borderRadius:'50%',background:'rgba(220,38,38,.9)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                                <span style={{fontSize:18,color:'#fff',marginLeft:3}}>{'\u25B6'}</span>
+
+                  {/* 등록된 영상 없을 때 */}
+                  {(methodData.media||[]).length===0 && (
+                    <div style={{padding:20,textAlign:'center',color:'var(--text-sm)',border:'2px dashed #FECACA',borderRadius:10,background:'#FFF5F5'}}>
+                      <span style={{fontSize:28,opacity:.4,display:'block',marginBottom:6}}>{'\u25B6'}</span>
+                      <span style={{fontSize:12}}>등록된 원인 영상이 없습니다. "영상 추가" 버튼을 눌러주세요.</span>
+                    </div>
+                  )}
+
+                  {/* 영상 카드 목록 */}
+                  <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                    {(methodData.media||[]).map((url,mi)=>{
+                      const thumb=mediaThumbs[mi]||'';
+                      const ytThumb=url?getYtThumb(url):'';
+                      return(
+                        <div key={mi} style={{display:'flex',gap:14,alignItems:'flex-start',padding:10,background:'#fff',borderRadius:10,border:'1px solid var(--border)'}}>
+                          {/* 썸네일 미리보기 */}
+                          <div style={{width:200,flexShrink:0}}>
+                            {url ? (
+                              <div style={{position:'relative',borderRadius:10,overflow:'hidden',border:'2px solid var(--red)',aspectRatio:'16/9',background:'#000'}}>
+                                {thumb ? (
+                                  <img src={thumb} style={{width:'100%',height:'100%',objectFit:'cover'}} alt="썸네일"/>
+                                ) : ytThumb ? (
+                                  <img src={ytThumb} style={{width:'100%',height:'100%',objectFit:'cover'}} alt="썸네일"/>
+                                ) : (
+                                  <iframe src={toEmbedUrl(url)} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/>
+                                )}
+                                {(thumb||ytThumb)&&(
+                                  <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,.25)',cursor:'pointer'}}
+                                    onClick={()=>window.open(url,'_blank')}>
+                                    <div style={{width:40,height:40,borderRadius:'50%',background:'rgba(220,38,38,.9)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                                      <span style={{fontSize:16,color:'#fff',marginLeft:2}}>{'\u25B6'}</span>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div style={{aspectRatio:'16/9',borderRadius:10,border:'2px dashed #FECACA',background:'#FFF5F5',
+                                display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
+                                <span style={{fontSize:24,opacity:.4}}>{'\u25B6'}</span>
+                                <span style={{fontSize:10,color:'var(--text-sm)'}}>URL을 입력하세요</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* 입력 필드 */}
+                          <div style={{flex:1,display:'flex',flexDirection:'column',gap:8}}>
+                            <div style={{fontSize:11,fontWeight:700,color:'var(--text-md)'}}>영상 {mi+1}</div>
+                            <input type="text" value={url||''}
+                              onChange={e=>{
+                                updateCaseData(selectedMethod,d=>{
+                                  if(!d.media) d.media=[];
+                                  d.media[mi]=e.target.value;
+                                });
+                              }}
+                              placeholder="https://www.youtube.com/watch?v=... 또는 https://youtu.be/..."
+                              style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid var(--border)',fontSize:12,boxSizing:'border-box',fontFamily:'inherit'}}
+                            />
+                            <div>
+                              <label style={{fontSize:11,fontWeight:600,color:'var(--text-sm)'}}>커스텀 썸네일 (선택)</label>
+                              <div style={{display:'flex',gap:6,marginTop:4}}>
+                                <input type="text" value={thumb}
+                                  onChange={e=>{
+                                    updateCaseData(selectedMethod,d=>{
+                                      if(!d.mediaThumbs) d.mediaThumbs=[];
+                                      d.mediaThumbs[mi]=e.target.value;
+                                    });
+                                  }}
+                                  placeholder="썸네일 URL (비워두면 자동)"
+                                  style={{flex:1,padding:'7px 10px',borderRadius:6,border:'1px solid var(--border)',fontSize:11,boxSizing:'border-box',fontFamily:'inherit'}}
+                                />
+                                <label style={{padding:'7px 12px',borderRadius:6,background:'#EFF6FF',color:'var(--accent)',fontSize:11,fontWeight:600,cursor:'pointer',border:'1px solid var(--blue-m)',whiteSpace:'nowrap'}}>
+                                  업로드
+                                  <input type="file" accept="image/*" style={{display:'none'}} onChange={async(e)=>{
+                                    if(!e.target.files[0])return;
+                                    const b64=await compressImageFile(e.target.files[0],480,0.75);
+                                    updateCaseData(selectedMethod,d=>{
+                                      if(!d.mediaThumbs) d.mediaThumbs=[];
+                                      d.mediaThumbs[mi]=b64;
+                                    });
+                                  }}/>
+                                </label>
                               </div>
                             </div>
-                          )}
+                            <button onClick={()=>{
+                              updateCaseData(selectedMethod,d=>{
+                                if(d.media) d.media.splice(mi,1);
+                                if(d.mediaThumbs) d.mediaThumbs.splice(mi,1);
+                              });
+                            }} style={{
+                              alignSelf:'flex-start',padding:'5px 12px',borderRadius:6,border:'1px solid #FECACA',
+                              background:'#FEF2F2',color:'#DC2626',fontSize:10,fontWeight:600,cursor:'pointer'
+                            }}>삭제</button>
+                          </div>
                         </div>
-                      ) : (
-                        <div style={{aspectRatio:'16/9',borderRadius:10,border:'2px dashed #FECACA',background:'#FFF5F5',
-                          display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6}}>
-                          <span style={{fontSize:28,opacity:.4}}>{'\u25B6'}</span>
-                          <span style={{fontSize:11,color:'var(--text-sm)'}}>영상 URL을 입력하세요</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* 입력 필드 */}
-                    <div style={{flex:1,display:'flex',flexDirection:'column',gap:10}}>
-                      <div>
-                        <label style={{display:'block',fontSize:11,fontWeight:700,color:'var(--text-md)',marginBottom:4}}>YouTube URL</label>
-                        <input type="text" value={content?.causeVideoUrl||''}
-                          onChange={e=>setContent(prev=>({...prev,causeVideoUrl:e.target.value}))}
-                          placeholder="https://www.youtube.com/watch?v=... 또는 https://youtu.be/..."
-                          style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid var(--border)',fontSize:12,boxSizing:'border-box',fontFamily:'inherit'}}
-                        />
-                      </div>
-                      <div>
-                        <label style={{display:'block',fontSize:11,fontWeight:700,color:'var(--text-md)',marginBottom:4}}>
-                          썸네일 이미지 <span style={{fontWeight:400,color:'var(--text-sm)'}}>(비워두면 자동 생성)</span>
-                        </label>
-                        <div style={{display:'flex',gap:6}}>
-                          <input type="text" value={content?.causeVideoThumb||''}
-                            onChange={e=>setContent(prev=>({...prev,causeVideoThumb:e.target.value}))}
-                            placeholder="커스텀 썸네일 URL (선택)"
-                            style={{flex:1,padding:'9px 12px',borderRadius:8,border:'1px solid var(--border)',fontSize:12,boxSizing:'border-box',fontFamily:'inherit'}}
-                          />
-                          <label style={{padding:'9px 14px',borderRadius:8,background:'#EFF6FF',color:'var(--accent)',fontSize:12,fontWeight:600,cursor:'pointer',border:'1px solid var(--blue-m)',whiteSpace:'nowrap'}}>
-                            📁 업로드
-                            <input type="file" accept="image/*" style={{display:'none'}} onChange={async(e)=>{
-                              if(!e.target.files[0])return;
-                              const b64=await compressImageFile(e.target.files[0],480,0.75);
-                              setContent(prev=>({...prev,causeVideoThumb:b64}));
-                            }}/>
-                          </label>
-                        </div>
-                      </div>
-                      {content?.causeVideoUrl && (
-                        <button onClick={()=>setContent(prev=>({...prev,causeVideoUrl:'',causeVideoThumb:''}))} style={{
-                          alignSelf:'flex-start',padding:'6px 14px',borderRadius:8,border:'1px solid #FECACA',
-                          background:'#FEF2F2',color:'#DC2626',fontSize:11,fontWeight:600,cursor:'pointer'
-                        }}>영상 제거</button>
-                      )}
-                    </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
             )}
           </div>
+            );
+          })()}
 
           {/* ═══════════════════════════════════════════
               섹션 3: POUR 해결방안 — 시공 공정
@@ -5052,7 +5110,24 @@ function ContentEditorPage({ showToast }) {
 
                           {/* 오른쪽 콘텐츠 */}
                           <div style={{flex:1,paddingLeft:12,paddingBottom:isLast?0:16}}>
-                            <div style={{fontSize:13,fontWeight:700,color:'var(--navy)',marginBottom:8,lineHeight:1.3}}>{step}</div>
+                            <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8}}>
+                              <input type="text" value={step}
+                                onChange={e=>updateStepName(si,e.target.value)}
+                                style={{flex:1,fontSize:13,fontWeight:700,color:'var(--navy)',lineHeight:1.3,
+                                  padding:'4px 8px',borderRadius:6,border:'1px solid transparent',background:'transparent',
+                                  fontFamily:'inherit',boxSizing:'border-box',outline:'none',
+                                  transition:'border-color .2s,background .2s'
+                                }}
+                                onFocus={e=>{e.target.style.borderColor='var(--green)';e.target.style.background='#F0FDF4';}}
+                                onBlur={e=>{e.target.style.borderColor='transparent';e.target.style.background='transparent';}}
+                              />
+                              {steps.length>1&&(
+                                <button onClick={()=>{if(confirm(`"${step}" 공정을 삭제할까요?`))removeStep(si);}} style={{
+                                  width:22,height:22,borderRadius:6,border:'1px solid #FECACA',background:'#FEF2F2',
+                                  color:'#DC2626',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0
+                                }}>✕</button>
+                              )}
+                            </div>
 
                             <div style={{display:'flex',gap:14,alignItems:'flex-start'}}>
                               {/* 공정 사진 */}
@@ -5128,12 +5203,43 @@ function ContentEditorPage({ showToast }) {
                                 <input type="text" value={typeof photo==='string'?photo:''} onChange={e=>updateProcessPhoto(si,e.target.value)}
                                   placeholder="이미지 URL 직접 입력..." style={{width:'100%',marginTop:6,padding:'6px 10px',borderRadius:6,border:'1px solid var(--border)',fontSize:11,boxSizing:'border-box',fontFamily:'inherit'}}/>
                               </div>
+
+                              {/* POUR공법 핵심 버튼 */}
+                              <div style={{flex:1}}>
+                                {(()=>{
+                                  const pk=getProcessKey(si);
+                                  const hasKey=!!(pk.photo||pk.desc);
+                                  return(
+                                    <button onClick={()=>setKeyModal({stepIdx:si,stepName:step})} style={{
+                                      display:'flex',alignItems:'center',gap:6,padding:'7px 14px',borderRadius:8,
+                                      border:hasKey?'1px solid var(--blue-m)':'1px dashed var(--border)',
+                                      background:hasKey?'var(--blue-l)':'#F8FAFC',
+                                      color:hasKey?'var(--accent)':'var(--text-sm)',
+                                      fontSize:11,fontWeight:hasKey?700:500,cursor:'pointer',whiteSpace:'nowrap'
+                                    }}>
+                                      <span style={{fontSize:14}}>🔬</span>
+                                      POUR공법 핵심
+                                      {hasKey && <span style={{width:6,height:6,borderRadius:'50%',background:'var(--green)'}}/>}
+                                    </button>
+                                  );
+                                })()}
+                              </div>
                             </div>
                           </div>
                         </div>
                       );
                     })}
                   </div>
+
+                  {/* 공정 추가 버튼 */}
+                  <button onClick={addStep} style={{
+                    width:'100%',marginTop:12,padding:'10px 0',borderRadius:10,
+                    border:'2px dashed #BBF7D0',background:'var(--green-l)',
+                    color:'var(--green)',fontSize:12,fontWeight:700,cursor:'pointer',
+                    display:'flex',alignItems:'center',justifyContent:'center',gap:6
+                  }}>
+                    <span style={{fontSize:16}}>+</span> 공정 추가
+                  </button>
                 </div>
 
                 {/* ── 3-2: POUR공법 핵심 자재 ── */}
@@ -5234,6 +5340,101 @@ function ContentEditorPage({ showToast }) {
           </div>{/* maxWidth container */}
         </div>{/* scroll area */}
       </div>{/* right panel */}
+
+      {/* ═══════════════════════════════════════════
+          POUR공법 핵심 모달
+      ═══════════════════════════════════════════ */}
+      {keyModal && (()=>{
+        const pk=getProcessKey(keyModal.stepIdx);
+        return(
+          <div style={{position:'fixed',inset:0,zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,.45)'}}
+            onClick={e=>{if(e.target===e.currentTarget)setKeyModal(null);}}>
+            <div style={{
+              width:560,maxHeight:'85vh',background:'#fff',borderRadius:16,
+              boxShadow:'0 20px 60px rgba(0,0,0,.25)',overflow:'hidden',display:'flex',flexDirection:'column'
+            }}>
+              {/* 모달 헤더 */}
+              <div style={{padding:'16px 20px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:10,background:'linear-gradient(135deg,var(--blue-l),rgba(59,130,246,.06))'}}>
+                <span style={{fontSize:18}}>🔬</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:14,fontWeight:800,color:'var(--navy)'}}>POUR공법 핵심</div>
+                  <div style={{fontSize:11,color:'var(--text-sm)',marginTop:2}}>공정 {keyModal.stepIdx+1}. {keyModal.stepName}</div>
+                </div>
+                <button onClick={()=>setKeyModal(null)} style={{
+                  width:32,height:32,borderRadius:8,border:'none',background:'#F1F5F9',
+                  fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-md)'
+                }}>✕</button>
+              </div>
+
+              {/* 모달 본문 */}
+              <div style={{padding:20,overflow:'auto',flex:1}}>
+                {/* 사진 영역 */}
+                <div style={{marginBottom:16}}>
+                  <label style={{display:'block',fontSize:12,fontWeight:700,color:'var(--navy)',marginBottom:8}}>자재/기술 사진</label>
+                  <div style={{display:'flex',gap:14,alignItems:'flex-start'}}>
+                    <div style={{width:200,flexShrink:0}}>
+                      <div style={{
+                        width:'100%',aspectRatio:'4/3',borderRadius:10,overflow:'hidden',
+                        border:pk.photo?'2px solid var(--accent)':'2px dashed var(--blue-m)',
+                        background:pk.photo?'transparent':'var(--blue-l)',cursor:'pointer'
+                      }} onClick={()=>document.getElementById('keyModalFileInput')?.click()}>
+                        {pk.photo?(
+                          <img src={pk.photo} style={{width:'100%',height:'100%',objectFit:'cover'}} alt="핵심자재"/>
+                        ):(
+                          <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:6}}>
+                            <span style={{fontSize:28,opacity:.4}}>📷</span>
+                            <span style={{fontSize:11,color:'var(--accent)',fontWeight:600}}>사진 추가</span>
+                          </div>
+                        )}
+                      </div>
+                      <input type="file" accept="image/*" id="keyModalFileInput" style={{display:'none'}} onChange={async(e)=>{
+                        if(!e.target.files[0])return;
+                        const b64=await compressImageFile(e.target.files[0],800,0.85);
+                        updateProcessKey(keyModal.stepIdx,'photo',b64);
+                      }}/>
+                      <div style={{display:'flex',gap:4,marginTop:6}}>
+                        {pk.photo&&<button onClick={()=>updateProcessKey(keyModal.stepIdx,'photo','')} style={{
+                          flex:1,padding:'5px 0',borderRadius:6,background:'#FEE2E2',color:'#DC2626',fontSize:10,fontWeight:600,cursor:'pointer',border:'1px solid #FECACA',textAlign:'center'
+                        }}>사진 삭제</button>}
+                      </div>
+                    </div>
+                    <div style={{flex:1}}>
+                      <input type="text" value={pk.photo||''} onChange={e=>updateProcessKey(keyModal.stepIdx,'photo',e.target.value)}
+                        placeholder="이미지 URL 직접 입력..."
+                        style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid var(--border)',fontSize:12,boxSizing:'border-box',fontFamily:'inherit'}}/>
+                      <div style={{fontSize:10,color:'var(--text-sm)',marginTop:4}}>파일 업로드 또는 URL 직접 입력</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 설명 영역 */}
+                <div>
+                  <label style={{display:'block',fontSize:12,fontWeight:700,color:'var(--navy)',marginBottom:8}}>자재/기술 특장점 설명</label>
+                  <textarea
+                    value={pk.desc||''}
+                    onChange={e=>updateProcessKey(keyModal.stepIdx,'desc',e.target.value)}
+                    rows={6}
+                    style={{
+                      width:'100%',padding:'12px 14px',borderRadius:10,
+                      border:'1px solid var(--border)',fontSize:13,lineHeight:1.8,
+                      resize:'vertical',fontFamily:'inherit',boxSizing:'border-box'
+                    }}
+                    placeholder="이 공정에서 사용되는 POUR 핵심 자재/기술의 특장점을 설명하세요...&#10;&#10;예: POUR슈퍼복합압축시트는 니들펀칭 공정으로 섬유 내 공간을 형성하여 도막 방수재와 시트 간 강력한 응결력을 발현합니다. 타사 대비 인장강도 10배(11.4 N/mm²)."
+                  />
+                </div>
+              </div>
+
+              {/* 모달 하단 */}
+              <div style={{padding:'12px 20px',borderTop:'1px solid var(--border)',display:'flex',justifyContent:'flex-end',gap:8,background:'#F8FAFC'}}>
+                <button onClick={()=>setKeyModal(null)} style={{
+                  padding:'8px 20px',borderRadius:8,border:'1px solid var(--border)',
+                  background:'#fff',color:'var(--text-md)',fontSize:12,fontWeight:600,cursor:'pointer'
+                }}>닫기</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

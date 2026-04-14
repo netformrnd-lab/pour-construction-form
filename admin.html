@@ -4486,6 +4486,17 @@ const POUR_METHODS_FOR_EDITOR = [
 // Firebase에 콘텐츠 저장/로드
 const CONTENT_COLLECTION = 'method-content';
 
+/* base64 → Firebase Storage 업로드 → URL 반환 */
+async function uploadBase64ToStorage(base64, path) {
+  try {
+    const res = await fetch(base64);
+    const blob = await res.blob();
+    const ref = firebase.storage().ref(`${path}_${Date.now()}.jpg`);
+    await ref.put(blob);
+    return await ref.getDownloadURL();
+  } catch(e) { console.error('[uploadBase64] 실패:', e); return base64; }
+}
+
 function ContentEditorPage({ showToast }) {
   const [selectedMethod, setSelectedMethod] = useState(POUR_METHODS_FOR_EDITOR[0].id);
   const [activeTab, setActiveTab] = useState('process'); // process | materials | cause | solution | case_photos | prob_photos
@@ -4782,15 +4793,70 @@ function ContentEditorPage({ showToast }) {
     setSaving(true);
     setCasePhotosSaving(true);
     try {
-      /* method_content_overrides 저장 */
+      /* base64 이미지 → Firebase Storage URL 변환 */
+      const clean = JSON.parse(JSON.stringify(content));
+
+      /* processPhotos base64 변환 */
+      if (clean.processPhotos) {
+        for (let i = 0; i < clean.processPhotos.length; i++) {
+          const p = clean.processPhotos[i];
+          if (typeof p === 'string' && p.startsWith('data:')) {
+            clean.processPhotos[i] = await uploadBase64ToStorage(p, `method-content/${selectedMethod}/process_${i}`);
+          }
+        }
+      }
+
+      /* processKeys 사진 base64 변환 */
+      if (clean.processKeys) {
+        for (let i = 0; i < clean.processKeys.length; i++) {
+          if (clean.processKeys[i]?.photo && clean.processKeys[i].photo.startsWith('data:')) {
+            clean.processKeys[i].photo = await uploadBase64ToStorage(clean.processKeys[i].photo, `method-content/${selectedMethod}/key_${i}`);
+          }
+        }
+      }
+
+      /* processMaterials 사진 base64 변환 */
+      if (clean.processMaterials) {
+        for (let i = 0; i < clean.processMaterials.length; i++) {
+          if (clean.processMaterials[i]?.mediaUrl && clean.processMaterials[i].mediaUrl.startsWith('data:')) {
+            clean.processMaterials[i].mediaUrl = await uploadBase64ToStorage(clean.processMaterials[i].mediaUrl, `method-content/${selectedMethod}/mat_${i}`);
+          }
+        }
+      }
+
+      /* method-content 저장 */
       const ref = window.db ? window.db.collection(CONTENT_COLLECTION).doc(selectedMethod) : null;
       if (ref) {
-        await ref.set(content, { merge: true });
+        await ref.set(clean, { merge: true });
       }
-      /* config/casePhotos 저장 */
-      await db.collection('config').doc('casePhotos').set(casePhotos, { merge: true });
+      /* 저장 성공 시 로컬 state도 URL로 갱신 */
+      setContent(clean);
+
+      /* config/casePhotos 저장 (base64 → URL 변환) */
+      const cleanCase = JSON.parse(JSON.stringify(casePhotos));
+      for (const key of Object.keys(cleanCase)) {
+        const item = cleanCase[key]; if (!item) continue;
+        if (item.causes) {
+          for (let i = 0; i < item.causes.length; i++) {
+            if (item.causes[i] && item.causes[i].startsWith('data:')) {
+              item.causes[i] = await uploadBase64ToStorage(item.causes[i], `case-photos/${key}/cause_${i}`);
+            }
+          }
+        }
+        if (item.mediaThumbs) {
+          for (let i = 0; i < item.mediaThumbs.length; i++) {
+            if (item.mediaThumbs[i] && item.mediaThumbs[i].startsWith('data:')) {
+              item.mediaThumbs[i] = await uploadBase64ToStorage(item.mediaThumbs[i], `case-photos/${key}/thumb_${i}`);
+            }
+          }
+        }
+      }
+      await db.collection('config').doc('casePhotos').set(cleanCase, { merge: true });
+      setCasePhotos(cleanCase);
+
       showToast('전체 저장 완료!', 'success');
     } catch(e) {
+      console.error('[handleSaveAll] 저장 실패:', e);
       showToast('저장 실패: ' + e.message, 'error');
     }
     setSaving(false);

@@ -4686,11 +4686,25 @@ function ContentEditorPage({ showToast }) {
             console.log(`[process-guide] ${methodId}: ${data.processGuideImages.length}장 로드`);
           }
         } catch(e2) { console.warn('[process-guide] 로드 실패:', e2); }
-        // proposalSlides 별도 로드
+        // proposalSlides 서브컬렉션 로드
         try {
-          const slideSnap = await db.collection('proposal-slides').doc(methodId).get();
-          if (slideSnap.exists) {
-            data.proposalSlides = slideSnap.data().slides || [];
+          const slideSnap = await ref.collection('proposal-slides').get();
+          if (slideSnap.size > 0) {
+            const slideArr = [];
+            slideSnap.docs.forEach(d => {
+              if (d.id === '_meta') return;
+              const idx = parseInt(d.id);
+              if (!isNaN(idx)) slideArr[idx] = d.data().image;
+            });
+            data.proposalSlides = slideArr.filter(Boolean);
+            console.log(`[proposal-slides] ${methodId}: ${data.proposalSlides.length}장 로드`);
+          }
+          // fallback: 이전 단일문서 방식
+          if (!data.proposalSlides || data.proposalSlides.length === 0) {
+            const oldSnap = await db.collection('proposal-slides').doc(methodId).get();
+            if (oldSnap.exists && (oldSnap.data().slides||[]).length > 0) {
+              data.proposalSlides = oldSnap.data().slides;
+            }
           }
         } catch(e2) { console.warn('[proposal-slides] 로드 실패:', e2); }
         setContent(data);
@@ -4735,10 +4749,17 @@ function ContentEditorPage({ showToast }) {
           }
         }
 
-        // 3. 제안서 슬라이드 → 별도 컬렉션
-        await db.collection('proposal-slides').doc(selectedMethod).set({
-          slides: proposalSlides || [], updatedAt: new Date().toISOString()
-        });
+        // 3. 제안서 슬라이드 → 서브컬렉션 (슬라이드별 개별 문서, 1MB 초과 방지)
+        const slides = proposalSlides || [];
+        if (slides.length > 0) {
+          const slideCol = ref.collection('proposal-slides');
+          for (let i = 0; i < slides.length; i++) {
+            await slideCol.doc(String(i)).set({ image: slides[i] });
+          }
+          await slideCol.doc('_meta').set({ count: slides.length, updatedAt: new Date().toISOString() });
+          // 이전 단일문서 방식 정리
+          try { await db.collection('proposal-slides').doc(selectedMethod).set({ slides: [], migratedAt: new Date().toISOString() }); } catch(e3){}
+        }
 
         // 4. 시공공정 이미지 가이드 → 서브컬렉션 (스텝별 개별 문서)
         if (processGuideImages && processGuideImages.length > 0) {

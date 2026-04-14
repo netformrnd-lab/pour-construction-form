@@ -1626,27 +1626,41 @@ let _proposalSlidesMap={};
           }
         }catch(e2){console.warn(`[step-photos] ${methodId} 실패:`,e2);}
         // process-guide 서브컬렉션 (이미지 가이드 모드)
-        if(ov.processMode==='images'){
+        const ovG=_methodContentOverrides[methodId];
+        if(ovG&&ovG.processMode==='images'){
           try{
             const guideSnap=await db.collection('method-content').doc(methodId).collection('process-guide').get();
             if(guideSnap.size>0){
               const imgs=[];
               guideSnap.docs.forEach(d=>{if(d.id==='_meta')return;imgs[parseInt(d.id)]=d.data().image;});
-              ov.processGuideImages=imgs.filter(Boolean);
-              console.log(`[process-guide] ${methodId}: ${ov.processGuideImages.length}장`);
+              ovG.processGuideImages=imgs.filter(Boolean);
+              console.log(`[process-guide] ${methodId}: ${ovG.processGuideImages.length}장`);
             }
           }catch(e2){console.warn(`[process-guide] ${methodId} 실패:`,e2);}
         }
+        // proposal-slides 서브컬렉션 로드
+        try{
+          const psSnap=await db.collection('method-content').doc(methodId).collection('proposal-slides').get();
+          if(psSnap.size>0){
+            const sarr=[];
+            psSnap.docs.forEach(d=>{if(d.id==='_meta')return;const idx=parseInt(d.id);if(!isNaN(idx))sarr[idx]=d.data().image;});
+            const filtered=sarr.filter(Boolean);
+            if(filtered.length>0){_proposalSlidesMap[methodId]=filtered;console.log(`[proposal-slides] ${methodId}: ${filtered.length}장`);}
+          }
+        }catch(e2){console.warn(`[proposal-slides] ${methodId} 실패:`,e2);}
       }
     }
   }catch(e){console.warn('[method-content] 오버라이드 로드 실패, 기본값 사용:',e);}
+  // fallback: 이전 단일문서 방식 proposal-slides
   try{
     const snap2=await db.collection('proposal-slides').get();
     if(snap2.size>0){
-      snap2.docs.forEach(d=>{_proposalSlidesMap[d.id]=d.data().slides||[];});
-      console.log(`[proposal-slides] ${snap2.size}건 로드`);
+      snap2.docs.forEach(d=>{
+        const sl=d.data().slides||[];
+        if(sl.length>0&&!_proposalSlidesMap[d.id]){_proposalSlidesMap[d.id]=sl;}
+      });
     }
-  }catch(e){console.warn('[proposal-slides] 로드 실패:',e);}
+  }catch(e){console.warn('[proposal-slides fallback] 로드 실패:',e);}
 })();
 function getMethodContent(id){
   const ov=_methodContentOverrides[id];

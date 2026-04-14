@@ -3852,6 +3852,8 @@ function DefectPhotosPage({showToast}){
   const [editingTemplate,setEditingTemplate]=useState(null);
   const [templateForm,setTemplateForm]=useState({tags:[],methods:[],desc:'',referenceImage:null,referenceImageUrl:''});
   const [templateTagInput,setTemplateTagInput]=useState('');
+  /* 구 공법명 → 신 공법명 일괄 재태깅 */
+  const [retagging,setRetagging]=useState(false);
 
   const fetchPhotos=async()=>{
     setLoading(true);
@@ -3968,8 +3970,6 @@ function DefectPhotosPage({showToast}){
     ai:photos.filter(p=>p.source==='ai').length,
   }),[photos]);
 
-  /* 구 공법명 → 신 공법명 일괄 재태깅 */
-  const [retagging,setRetagging]=useState(false);
   const bulkRetag=async(fromMethod,toMethod)=>{
     const targets=photos.filter(p=>p.method===fromMethod);
     if(!targets.length){showToast(`"${fromMethod}" 사진 없음`,'error');return;}

@@ -4380,7 +4380,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     <div style={{display:'flex',flexDirection:'column',gap:0}}>
                       {mc.process.map((step,i)=>{
                         const isSel=selectedProcessStep===i;
-                        const _cpSteps=(casePhotos[m.id]||{}).processSteps||[];
+                        const _cpSteps=(casePhotos[problem.id]||{}).processSteps||[];
                         const hasPhoto=(_cpSteps[i]&&_cpSteps[i].url)||((mc.processPhotos||[])[i]);
                         const stepDesc=(mc.processDescs||[])[i];
                         const stepMat=(mc.processMaterials||[])[i];
@@ -4423,7 +4423,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                               </button>
                               {/* 펼쳐진 상태 */}
                               {isSel&&(()=>{
-                                const _cpSteps2=(casePhotos[m.id]||{}).processSteps||[];
+                                const _cpSteps2=(casePhotos[problem.id]||{}).processSteps||[];
                                 const photoUrl=(_cpSteps2[i]&&_cpSteps2[i].url)||((mc.processPhotos||[])[i]);
                                 return(
                                   <div style={{marginBottom:4,animation:'fadeIn .2s ease'}}>
@@ -4461,7 +4461,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                                         <div style={{display:'flex',flexDirection:'column',gap:6}}>
                                           {mats.map((mat,mi)=>(
                                             <button key={mi} onClick={()=>{
-                                              const _cpm=(casePhotos[m.id]||{}).processMatsMedia||{};
+                                              const _cpm=(casePhotos[problem.id]||{}).processMatsMedia||{};
                                               const _mk=`${i}_${mi}`;
                                               const _mUrl=(_cpm[_mk]&&_cpm[_mk].url)||mat.mediaUrl||'';
                                               setMaterialModal({...mat,mediaUrl:_mUrl});

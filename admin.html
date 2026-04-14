@@ -4669,6 +4669,11 @@ function ContentEditorPage({ showToast }) {
                 data.processMaterials[idx].photos = pData.matPhotos || [];
                 data.processMaterials[idx].mediaUrl = pData.matMediaUrl || '';
               }
+              if (pData.keyPhoto) {
+                if (!data.processKeys) data.processKeys = [];
+                if (!data.processKeys[idx]) data.processKeys[idx] = {};
+                data.processKeys[idx].photo = pData.keyPhoto;
+              }
             });
           }
         } catch(e2) { console.warn('[step-photos] 로드 실패:', e2); }
@@ -4722,7 +4727,7 @@ function ContentEditorPage({ showToast }) {
     try {
       const ref = db ? db.collection(CONTENT_COLLECTION).doc(selectedMethod) : null;
       if (ref) {
-        // 1. 텍스트 전용 콘텐츠 분리 (사진 데이터 제거)
+        // 1. 텍스트 전용 콘텐츠 분리 (모든 base64 사진 데이터 제거)
         const {proposalSlides, processPhotos, processMaterials, processGuideImages, ...textContent} = content;
         // processMaterials에서 사진만 제거, 텍스트(name/desc/badge) 유지
         textContent.processMaterials = (processMaterials||[]).map(m => {
@@ -4731,20 +4736,32 @@ function ContentEditorPage({ showToast }) {
           return rest;
         });
         textContent.processPhotos = []; // 메인 문서에서 제거 (서브컬렉션으로 이동)
+        // processKeys에서 photo base64 제거 (desc만 유지)
+        if (textContent.processKeys) {
+          textContent.processKeys = textContent.processKeys.map(k => {
+            if (!k) return null;
+            const {photo, ...rest} = k;
+            return rest;
+          });
+        }
         await ref.set(textContent); // merge 없이 완전 교체 (기존 대용량 데이터 제거)
 
         // 2. 공정 사진 → 서브컬렉션 step-photos (스텝별 개별 문서, 1MB 초과 방지)
+        const processKeys = content.processKeys || [];
         const photosCol = ref.collection('step-photos');
-        for (let i = 0; i < Math.max((processPhotos||[]).length, (processMaterials||[]).length); i++) {
+        const maxLen = Math.max((processPhotos||[]).length, (processMaterials||[]).length, processKeys.length);
+        for (let i = 0; i < maxLen; i++) {
           const photo = (processPhotos||[])[i];
           const mat = (processMaterials||[])[i];
+          const keyPhoto = processKeys[i]?.photo || null;
           const docData = {
             processPhoto: photo || null,
             matPhotos: mat?.photos || [],
             matMediaUrl: mat?.mediaUrl || '',
+            keyPhoto: keyPhoto,
           };
           // 데이터가 있을 때만 저장
-          if (photo || (mat?.photos?.length) || mat?.mediaUrl) {
+          if (photo || (mat?.photos?.length) || mat?.mediaUrl || keyPhoto) {
             await photosCol.doc(String(i)).set(docData);
           }
         }

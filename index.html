@@ -1621,6 +1621,11 @@ let _proposalSlidesMap={};
                 ov.processMaterials[idx].photos=pData.matPhotos||[];
                 ov.processMaterials[idx].mediaUrl=pData.matMediaUrl||'';
               }
+              if(pData.keyPhoto){
+                if(!ov.processKeys)ov.processKeys=[];
+                if(!ov.processKeys[idx])ov.processKeys[idx]={};
+                ov.processKeys[idx].photo=pData.keyPhoto;
+              }
             });
             console.log(`[step-photos] ${methodId}: ${stepSnap.size}건`);
           }

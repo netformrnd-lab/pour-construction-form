@@ -1625,6 +1625,18 @@ let _proposalSlidesMap={};
             console.log(`[step-photos] ${methodId}: ${stepSnap.size}건`);
           }
         }catch(e2){console.warn(`[step-photos] ${methodId} 실패:`,e2);}
+        // process-guide 서브컬렉션 (이미지 가이드 모드)
+        if(ov.processMode==='images'){
+          try{
+            const guideSnap=await db.collection('method-content').doc(methodId).collection('process-guide').get();
+            if(guideSnap.size>0){
+              const imgs=[];
+              guideSnap.docs.forEach(d=>{if(d.id==='_meta')return;imgs[parseInt(d.id)]=d.data().image;});
+              ov.processGuideImages=imgs.filter(Boolean);
+              console.log(`[process-guide] ${methodId}: ${ov.processGuideImages.length}장`);
+            }
+          }catch(e2){console.warn(`[process-guide] ${methodId} 실패:`,e2);}
+        }
       }
     }
   }catch(e){console.warn('[method-content] 오버라이드 로드 실패, 기본값 사용:',e);}
@@ -1648,6 +1660,8 @@ function getMethodContent(id){
     processKeys:ov.processKeys||base?.processKeys||[],
     processPhotoPositions:ov.processPhotoPositions||base?.processPhotoPositions||[],
     proposalSlides:_proposalSlidesMap[id]||ov.proposalSlides||base?.proposalSlides||[],
+    processMode:ov.processMode||base?.processMode||'steps',
+    processGuideImages:ov.processGuideImages||base?.processGuideImages||[],
   };
 }
 var _METHOD_CONTENT_DEFAULTS={
@@ -4559,7 +4573,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
             {(()=>{
               const mc=getMethodContent(problem?.id);
               const ms=METHOD_STATS[problem?.id];
-              if(!mc?.process?.length)return null;
+              if(!mc?.process?.length&&!(mc?.processGuideImages||[]).length)return null;
               return(
                 <div style={{marginBottom:16,borderRadius:16,background:'var(--card)',
                   border:'1px solid var(--border)',boxShadow:'var(--shadow)',overflow:'hidden'}}>
@@ -4570,7 +4584,15 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                       <span style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>POUR 시공공정</span>
                     </div>
 
-                    {/* ── 세로 타임라인 공정 ── */}
+                    {/* ── 이미지 가이드 모드 ── */}
+                    {mc.processMode==='images'&&(mc.processGuideImages||[]).length>0&&(
+                      <div style={{marginBottom:12}}>
+                        <ProposalSlideViewer slides={mc.processGuideImages} size="normal"/>
+                      </div>
+                    )}
+
+                    {/* ── 세로 타임라인 공정 (스텝 모드) ── */}
+                    {(mc.processMode||'steps')==='steps'&&(
                     <div style={{display:'flex',flexDirection:'column',gap:0}}>
                       {mc.process.map((step,i)=>{
                         const isSel=selectedProcessStep===i;
@@ -4708,6 +4730,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                         );
                       })}
                     </div>
+                    )}
                     {/* 솔루션 요약 */}
                     {mc.solution&&(
                       <div style={{background:'var(--green-l)',borderRadius:10,padding:'10px 12px',

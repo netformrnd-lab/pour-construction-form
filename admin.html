@@ -4672,6 +4672,20 @@ function ContentEditorPage({ showToast }) {
             });
           }
         } catch(e2) { console.warn('[step-photos] 로드 실패:', e2); }
+        // process-guide 서브컬렉션 로드 (이미지 가이드 모드)
+        try {
+          const guideSnap = await ref.collection('process-guide').get();
+          if (guideSnap.size > 0) {
+            const guideImages = [];
+            guideSnap.docs.forEach(d => {
+              if (d.id === '_meta') return;
+              const idx = parseInt(d.id);
+              guideImages[idx] = d.data().image;
+            });
+            data.processGuideImages = guideImages.filter(Boolean);
+            console.log(`[process-guide] ${methodId}: ${data.processGuideImages.length}장 로드`);
+          }
+        } catch(e2) { console.warn('[process-guide] 로드 실패:', e2); }
         // proposalSlides 별도 로드
         try {
           const slideSnap = await db.collection('proposal-slides').doc(methodId).get();
@@ -4695,7 +4709,7 @@ function ContentEditorPage({ showToast }) {
       const ref = db ? db.collection(CONTENT_COLLECTION).doc(selectedMethod) : null;
       if (ref) {
         // 1. 텍스트 전용 콘텐츠 분리 (사진 데이터 제거)
-        const {proposalSlides, processPhotos, processMaterials, ...textContent} = content;
+        const {proposalSlides, processPhotos, processMaterials, processGuideImages, ...textContent} = content;
         // processMaterials에서 사진만 제거, 텍스트(name/desc/badge) 유지
         textContent.processMaterials = (processMaterials||[]).map(m => {
           if (!m) return null;
@@ -4725,6 +4739,16 @@ function ContentEditorPage({ showToast }) {
         await db.collection('proposal-slides').doc(selectedMethod).set({
           slides: proposalSlides || [], updatedAt: new Date().toISOString()
         });
+
+        // 4. 시공공정 이미지 가이드 → 서브컬렉션 (스텝별 개별 문서)
+        if (processGuideImages && processGuideImages.length > 0) {
+          const guideCol = ref.collection('process-guide');
+          for (let i = 0; i < processGuideImages.length; i++) {
+            await guideCol.doc(String(i)).set({ image: processGuideImages[i] });
+          }
+          // 삭제된 인덱스 정리 (기존 개수보다 줄었을 때)
+          await guideCol.doc('_meta').set({ count: processGuideImages.length });
+        }
 
         showToast('저장 완료!', 'success');
       } else {
@@ -5390,7 +5414,92 @@ function ContentEditorPage({ showToast }) {
             {openSections.s4 && (
               <div style={{padding:16}}>
 
-                {/* ── 4-1: 공정순서 ── */}
+                {/* ── 모드 선택: 공정 스텝 vs 이미지 가이드 ── */}
+                <div style={{display:'flex',gap:0,marginBottom:16,borderRadius:10,overflow:'hidden',border:'1px solid var(--border)'}}>
+                  <button onClick={()=>setContent(prev=>({...prev,processMode:'steps'}))} style={{
+                    flex:1,padding:'10px 0',border:'none',cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:700,
+                    background:(content?.processMode||'steps')==='steps'?'var(--green)':'#fff',
+                    color:(content?.processMode||'steps')==='steps'?'#fff':'var(--text-md)',
+                    transition:'all .2s'
+                  }}>📋 공정 스텝 방식</button>
+                  <button onClick={()=>setContent(prev=>({...prev,processMode:'images'}))} style={{
+                    flex:1,padding:'10px 0',border:'none',borderLeft:'1px solid var(--border)',cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:700,
+                    background:content?.processMode==='images'?'var(--green)':'#fff',
+                    color:content?.processMode==='images'?'#fff':'var(--text-md)',
+                    transition:'all .2s'
+                  }}>🖼️ 이미지 가이드 방식</button>
+                </div>
+
+                {/* ── 이미지 가이드 모드 ── */}
+                {content?.processMode==='images' && (
+                  <div style={{marginBottom:24}}>
+                    <div style={{fontSize:12,fontWeight:800,color:'var(--green)',marginBottom:12,display:'flex',alignItems:'center',gap:6,letterSpacing:'.03em'}}>
+                      <div style={{width:3,height:16,borderRadius:2,background:'var(--green)'}}/>
+                      시공공정 이미지 가이드
+                      <span style={{fontSize:10,fontWeight:500,color:'var(--text-sm)',marginLeft:4}}>
+                        ({(content?.processGuideImages||[]).length}장)
+                      </span>
+                    </div>
+                    <div style={{display:'flex',gap:6,marginBottom:10}}>
+                      <label style={{padding:'6px 14px',borderRadius:8,background:'var(--green-l)',color:'var(--green)',fontSize:11,fontWeight:700,cursor:'pointer',border:'1px solid #BBF7D0',display:'flex',alignItems:'center',gap:4}}>
+                        📁 사진 추가 (다중선택)
+                        <input type="file" accept="image/*" multiple style={{display:'none'}} onChange={async(e)=>{
+                          const files=Array.from(e.target.files||[]);
+                          if(!files.length)return;
+                          const newImgs=[...(content?.processGuideImages||[])];
+                          for(const f of files){
+                            const b64=await compressImageFile(f,1600,0.88);
+                            newImgs.push(b64);
+                          }
+                          setContent(prev=>({...prev,processGuideImages:newImgs}));
+                          showToast(`${files.length}장 추가 완료`,'success');
+                        }}/>
+                      </label>
+                      <button onClick={async()=>{
+                        const file=await pasteImageFromClipboard();
+                        if(file){
+                          const b64=await compressImageFile(file,1600,0.88);
+                          setContent(prev=>({...prev,processGuideImages:[...(prev.processGuideImages||[]),b64]}));
+                          showToast('클립보드 이미지 추가 완료','success');
+                        }else{showToast('클립보드에 이미지가 없습니다','error');}
+                      }} style={{padding:'6px 14px',borderRadius:8,background:'var(--green-l)',color:'var(--green)',fontSize:11,fontWeight:700,cursor:'pointer',border:'1px solid #BBF7D0'}}>📋 붙여넣기</button>
+                    </div>
+                    {(content?.processGuideImages||[]).length>0 ? (
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:10}}>
+                        {(content.processGuideImages).map((img,gi)=>(
+                          <div key={gi} style={{position:'relative',borderRadius:10,overflow:'hidden',border:'2px solid #BBF7D0',background:'var(--green-l)'}}>
+                            <img src={img} style={{width:'100%',aspectRatio:'16/9',objectFit:'cover',display:'block'}} alt={`공정 ${gi+1}`}/>
+                            <div style={{position:'absolute',top:4,left:6,background:'rgba(5,150,105,.85)',color:'#fff',fontSize:10,fontWeight:700,padding:'2px 7px',borderRadius:6}}>{gi+1}</div>
+                            <div style={{position:'absolute',top:4,right:4,display:'flex',gap:3}}>
+                              {gi>0&&<button onClick={()=>{
+                                const arr=[...(content.processGuideImages)];
+                                [arr[gi-1],arr[gi]]=[arr[gi],arr[gi-1]];
+                                setContent(prev=>({...prev,processGuideImages:arr}));
+                              }} style={{width:22,height:22,borderRadius:6,border:'none',background:'rgba(0,0,0,.5)',color:'#fff',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>◀</button>}
+                              {gi<(content.processGuideImages).length-1&&<button onClick={()=>{
+                                const arr=[...(content.processGuideImages)];
+                                [arr[gi],arr[gi+1]]=[arr[gi+1],arr[gi]];
+                                setContent(prev=>({...prev,processGuideImages:arr}));
+                              }} style={{width:22,height:22,borderRadius:6,border:'none',background:'rgba(0,0,0,.5)',color:'#fff',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>▶</button>}
+                              <button onClick={()=>{
+                                const arr=[...(content.processGuideImages)];
+                                arr.splice(gi,1);
+                                setContent(prev=>({...prev,processGuideImages:arr}));
+                              }} style={{width:22,height:22,borderRadius:6,border:'none',background:'rgba(220,38,38,.8)',color:'#fff',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{padding:'24px 16px',borderRadius:10,border:'2px dashed #BBF7D0',background:'var(--green-l)',textAlign:'center'}}>
+                        <span style={{fontSize:11,color:'var(--green)',fontWeight:600}}>시공공정 이미지를 추가하세요 (PDF 캡처 또는 사진)</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* ── 4-1: 공정순서 (스텝 모드일 때만) ── */}
+                {(content?.processMode||'steps')==='steps' && (
                 <div style={{marginBottom:24}}>
                   <div style={{fontSize:12,fontWeight:800,color:'var(--green)',marginBottom:12,display:'flex',alignItems:'center',gap:6,letterSpacing:'.03em'}}>
                     <div style={{width:3,height:16,borderRadius:2,background:'var(--green)'}}/>
@@ -5682,6 +5791,7 @@ function ContentEditorPage({ showToast }) {
                     <span style={{fontSize:16}}>+</span> 공정 추가
                   </button>
                 </div>
+                )}
 
                 {/* ── 4-2: 해결방안 요약 ── */}
                 <div style={{marginTop:24}}>

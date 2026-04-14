@@ -8059,28 +8059,60 @@ function AdminScreen({onBack}){
                                     };
                                     return(
                                       <div style={{marginTop:4,width:100}}>
-                                        {/* 대분류 */}
+                                        {/* 대분류 — 동적 목록 */}
                                         <div style={{fontSize:8,fontWeight:700,color:'var(--text-sm)',marginBottom:2,letterSpacing:'.04em'}}>대분류</div>
                                         <div style={{display:'flex',flexWrap:'wrap',gap:2,marginBottom:4}}>
-                                          {['균열','누수','도장불량','방수불량','변형','부식','시공불량','오염','이음부','탈락'].map(t=>{
-                                            const on=selTypes.includes(t);
-                                            return(<button key={t} onClick={()=>toggleType(t)}
+                                          {(defectTags?.major||[{id:'균열'},{id:'누수'},{id:'도장불량'},{id:'방수불량'},{id:'변형'},{id:'부식'},{id:'시공불량'},{id:'오염'},{id:'이음부'},{id:'탈락'}]).map(t=>{
+                                            const tid=t.id||t;
+                                            const on=selTypes.includes(tid);
+                                            return(<button key={tid} onClick={()=>toggleType(tid)}
                                               style={{fontSize:8,padding:'2px 5px',borderRadius:4,border:`1px solid ${on?'var(--accent)':'var(--border)'}`,
                                                 background:on?'var(--accent-l)':'#fff',color:on?'var(--accent)':'var(--text-sm)',
-                                                cursor:'pointer',fontWeight:on?700:500,lineHeight:1.4,fontFamily:'inherit'}}>{t}</button>);
+                                                cursor:'pointer',fontWeight:on?700:500,lineHeight:1.4,fontFamily:'inherit'}}>{tid}</button>);
                                           })}
                                         </div>
-                                        {/* 중분류 (해시태그) */}
-                                        <div style={{fontSize:8,fontWeight:700,color:'var(--text-sm)',marginBottom:2,letterSpacing:'.04em'}}>중분류 #태그</div>
-                                        <div style={{display:'flex',flexWrap:'wrap',gap:2,marginBottom:4}}>
-                                          {['옥상','외벽','지하','발코니','계단','주차장','복도','기타'].map(t=>{
-                                            const on=selTags.includes(t);
-                                            return(<button key={t} onClick={()=>toggleTag(t)}
+                                        {/* 중분류 (해시태그) — 동적 목록 + 인라인 추가 */}
+                                        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:2}}>
+                                          <div style={{fontSize:8,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.04em'}}>중분류 #태그</div>
+                                        </div>
+                                        <div style={{display:'flex',flexWrap:'wrap',gap:2,marginBottom:3}}>
+                                          {(defectTags?.part||[{id:'옥상'},{id:'외벽'},{id:'지하'},{id:'발코니'},{id:'계단'},{id:'주차장'},{id:'복도'},{id:'기타'}]).map(t=>{
+                                            const tid=t.id||t;
+                                            const on=selTags.includes(tid);
+                                            return(<button key={tid} onClick={()=>toggleTag(tid)}
                                               style={{fontSize:8,padding:'2px 5px',borderRadius:4,border:`1px solid ${on?'#7C3AED':'var(--border)'}`,
                                                 background:on?'#EDE9FE':'#fff',color:on?'#7C3AED':'var(--text-sm)',
-                                                cursor:'pointer',fontWeight:on?700:500,lineHeight:1.4,fontFamily:'inherit'}}>#{t}</button>);
+                                                cursor:'pointer',fontWeight:on?700:500,lineHeight:1.4,fontFamily:'inherit'}}>#{tid}</button>);
                                           })}
                                         </div>
+                                        {/* 새 중분류 추가 인풋 */}
+                                        {(()=>{
+                                          const [newTagInput,setNewTagInput]=React.useState('');
+                                          const addNewTag=async()=>{
+                                            const v=newTagInput.trim().replace(/^#/,'');
+                                            if(!v)return;
+                                            const exists=(defectTags?.part||[]).some(t=>(t.id||t)===v);
+                                            if(!exists){
+                                              const next={...defectTags,part:[...(defectTags?.part||[]),{id:v,label:v}]};
+                                              setDefectTags(next);
+                                              try{await saveDefectTags(next);}catch(e){}
+                                            }
+                                            toggleTag(v);
+                                            setNewTagInput('');
+                                          };
+                                          return(
+                                            <div style={{display:'flex',gap:2,alignItems:'center',marginBottom:4}}>
+                                              <input value={newTagInput} onChange={e=>setNewTagInput(e.target.value)}
+                                                onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();addNewTag();}}}
+                                                placeholder='+ 새 태그 입력'
+                                                style={{flex:1,fontSize:8,padding:'2px 5px',borderRadius:4,border:'1px dashed #7C3AED',
+                                                  outline:'none',fontFamily:'inherit',color:'#7C3AED',background:'#FAF5FF'}}/>
+                                              <button onClick={addNewTag}
+                                                style={{fontSize:8,padding:'2px 6px',borderRadius:4,border:'1px solid #7C3AED',
+                                                  background:'#7C3AED',color:'#fff',cursor:'pointer',fontWeight:700,fontFamily:'inherit',lineHeight:1.4}}>추가</button>
+                                            </div>
+                                          );
+                                        })()}
                                         {/* 선택된 태그 미리보기 */}
                                         {(selTypes.length>0||selTags.length>0)&&(
                                           <div style={{display:'flex',flexWrap:'wrap',gap:2}}>

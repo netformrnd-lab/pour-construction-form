@@ -4367,7 +4367,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                       <div style={{width:6,height:6,borderRadius:'50%',background:'var(--red)',flexShrink:0}}/>
                       <span style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>왜 이 문제가 생기나</span>
                     </div>
-                    <p style={{fontSize:13,lineHeight:1.7,color:'var(--text)',margin:0,wordBreak:'keep-all',marginBottom:14}}>
+                    <p style={{fontSize:13,lineHeight:1.7,color:'var(--text)',margin:0,wordBreak:'keep-all',marginBottom:14,whiteSpace:'pre-line'}}>
                       {mc.cause}
                     </p>
                     {/* 원인 영상 — 원인 설명 바로 아래 */}
@@ -5321,7 +5321,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                           <div style={{width:3,height:12,borderRadius:2,background:'var(--red)'}}/>
                           발생 원인
                         </div>
-                        <p style={{fontSize:11,lineHeight:1.65,color:'#7F1D1D',margin:0,wordBreak:'keep-all'}}>{mc.cause}</p>
+                        <p style={{fontSize:11,lineHeight:1.65,color:'#7F1D1D',margin:0,wordBreak:'keep-all',whiteSpace:'pre-line'}}>{mc.cause}</p>
                       </div>
                     )}
 

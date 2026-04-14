@@ -5365,7 +5365,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
               {/* 문자 전송 패널 */}
               {reportSmsOpen&&(()=>{
-                const proposalLine='';
+                const proposalLine=sessionReportId?`\n\n📋 맞춤 제안서: ${qrTarget}`:'';
                 const extraLine=reportExtraLinks.length>0?`\n\n📎 자료 링크:\n${reportExtraLinks.map(l=>`${l.label}: ${l.url}`).join('\n')}`:''
                 const [smsText,setSmsText]=React.useState(`${ntName||'고객'}님, POUR솔루션 상담 감사합니다.${proposalLine}${extraLine}\n\n문의 1577-6587`);
                 return(
@@ -5410,7 +5410,50 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 );
               })()}
 
+              {/* 구분선 */}
+              <div style={{height:'1.5px',background:'linear-gradient(90deg,#E2E8F0 0%,#CBD5E1 50%,#E2E8F0 100%)',margin:'0 14px'}}/>
 
+              {/* 부가 자료물 링크 */}
+              <div style={{padding:'10px 14px 12px',background:'#fff'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:reportExtraLinks.length>0?8:0}}>
+                  <div style={{display:'flex',alignItems:'center',gap:6}}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+                    <span style={{fontSize:11,fontWeight:700,color:'#475569'}}>부가 자료물 링크</span>
+                    {reportExtraLinks.length>0&&<span style={{fontSize:10,fontWeight:700,color:'var(--accent)',background:'#DBEAFE',borderRadius:10,padding:'1px 7px'}}>{reportExtraLinks.length}</span>}
+                  </div>
+                  <button onClick={()=>{
+                    const label=prompt('자료 이름 (예: 제안서, 시방서, 카탈로그)');
+                    if(!label||!label.trim())return;
+                    const url=prompt('링크 URL');
+                    if(!url||!url.trim())return;
+                    setReportExtraLinks(prev=>[...prev,{label:label.trim(),url:url.trim()}]);
+                  }} style={{display:'flex',alignItems:'center',gap:4,padding:'5px 10px',borderRadius:8,
+                    border:'1px dashed var(--accent)',background:'transparent',color:'var(--accent)',
+                    fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    링크 추가
+                  </button>
+                </div>
+                {reportExtraLinks.length>0&&(
+                  <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                    {reportExtraLinks.map((l,i)=>(
+                      <div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',
+                        background:'#F1F5F9',borderRadius:8,border:'1px solid #E2E8F0'}}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+                        <span style={{fontSize:11,fontWeight:700,color:'var(--navy)',flex:'0 0 auto',maxWidth:90,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{l.label}</span>
+                        <span style={{fontSize:10,color:'#64748B',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{l.url}</span>
+                        <button onClick={()=>setReportExtraLinks(prev=>prev.filter((_,j)=>j!==i))}
+                          style={{width:20,height:20,borderRadius:'50%',border:'none',background:'#E2E8F0',
+                            color:'#94A3B8',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',
+                            justifyContent:'center',flexShrink:0,lineHeight:1}}>✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {reportExtraLinks.length===0&&(
+                  <div style={{fontSize:10,color:'#94A3B8',marginTop:2}}>제안서 외 추가 자료 링크를 첨부할 수 있습니다</div>
+                )}
+              </div>
 
               {/* 문자 발송 완료 토스트 */}
               {reportSmsSent&&(
@@ -5480,14 +5523,13 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               )}
             </div>
 
-            {/* ── 공법 분석 페이지 (태블릿 화면 그대로) ── */}
+            {/* ── 공법 카드 목록 ── */}
             <div style={{padding:'16px 14px 0'}}>
               {sessionMethods.length===0&&(
                 <div style={{textAlign:'center',padding:'40px 0',color:'var(--text-sm)',fontSize:13}}>상담된 공법이 없습니다.</div>
               )}
               {sessionMethods.map((m,mi)=>{
                 const mc=getMethodContent(m.id)||{};
-                const ms=METHOD_STATS[m.id];
                 const mPhotos=reportDefectPhotos[m.id]||[];
                 const mCasePhotos=casePhotos[m.id]||{};
                 const caseCauses=(mCasePhotos.causes||[]).filter(s=>s);
@@ -5495,278 +5537,189 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 const caseMedia=mCasePhotos.media||(mCasePhotos.gif?[mCasePhotos.gif]:[]);
                 const cs=getCatStyle(m.cat);
                 return(
-                <div key={m.id} style={{marginBottom:20,borderRadius:16,border:`1.5px solid ${cs.border}`,overflow:'hidden',background:'#fff',boxShadow:'0 2px 12px rgba(0,0,0,.06)'}}>
-                  {/* 공법 헤더 */}
-                  <div style={{padding:'14px 16px',background:'linear-gradient(135deg,var(--navy) 0%,#1a3050 100%)',display:'flex',alignItems:'center',gap:8,position:'relative',overflow:'hidden'}}>
+                <div key={m.id} style={{marginBottom:16,borderRadius:16,border:`1.5px solid ${cs.border}`,overflow:'hidden',background:'#fff',boxShadow:'0 2px 12px rgba(0,0,0,.06)'}}>
+                  {/* 공법 헤더 — 카테고리 컬러 */}
+                  <div style={{padding:'12px 14px',background:'linear-gradient(135deg,var(--navy) 0%,#1a3050 100%)',display:'flex',alignItems:'center',gap:8,position:'relative',overflow:'hidden'}}>
                     <div style={{position:'absolute',right:-10,top:-10,width:60,height:60,borderRadius:'50%',background:`${cs.accent}22`,pointerEvents:'none'}}/>
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'center',width:30,height:30,borderRadius:8,background:cs.bg,flexShrink:0}}>
-                      <span style={{fontSize:12,fontWeight:900,color:cs.color}}>{String(mi+1).padStart(2,'0')}</span>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'center',width:28,height:28,borderRadius:8,background:cs.bg,flexShrink:0}}>
+                      <span style={{fontSize:11,fontWeight:900,color:cs.color}}>{String(mi+1).padStart(2,'0')}</span>
                     </div>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:15,fontWeight:800,color:'#fff',lineHeight:1.2}}>{m.label}</div>
+                      <div style={{fontSize:14,fontWeight:800,color:'#fff',lineHeight:1.2}}>{m.label}</div>
                     </div>
                     {m.cat&&(
                       <span style={{fontSize:9,fontWeight:800,color:cs.color,background:cs.bg,border:`1px solid ${cs.border}`,borderRadius:6,padding:'3px 8px',flexShrink:0}}>{m.cat}</span>
                     )}
                   </div>
 
-                  {/* ── STEP 1. 현장 하자사진 ── */}
-                  {mPhotos.length>0&&(
-                    <div style={{margin:'14px 14px 0',borderRadius:14,background:'var(--card)',border:'1px solid var(--border)',boxShadow:'var(--shadow)',overflow:'hidden'}}>
-                      <div style={{height:2,background:`linear-gradient(90deg,var(--accent),rgba(37,99,235,.2),transparent)`,opacity:.7}}/>
-                      <div style={{padding:'12px 14px'}}>
-                        <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:10}}>
-                          <div style={{width:6,height:6,borderRadius:'50%',background:'var(--accent)',flexShrink:0}}/>
-                          <span style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>현장 하자사진</span>
-                          <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:600}}>{mPhotos.length}건</span>
+                  <div style={{padding:'12px 14px'}}>
+                    {/* ── 현장 하자사진 ── */}
+                    {mPhotos.length>0&&(
+                      <div style={{marginBottom:12}}>
+                        <div style={{fontSize:9,fontWeight:800,color:'var(--accent)',marginBottom:6,display:'flex',alignItems:'center',gap:5,letterSpacing:'.05em'}}>
+                          <div style={{width:3,height:12,borderRadius:2,background:'var(--accent)'}}/>
+                          현장 하자사진
                         </div>
-                        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:5,borderRadius:10,overflow:'hidden'}}>
-                          {mPhotos.slice(0,9).map((p,pi)=>(
-                            <div key={pi} style={{aspectRatio:'1',position:'relative',background:'var(--bg)',overflow:'hidden',borderRadius:8}}>
+                        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:4,borderRadius:10,overflow:'hidden'}}>
+                          {mPhotos.slice(0,6).map((p,pi)=>(
+                            <div key={pi} style={{aspectRatio:'1',position:'relative',background:'var(--bg)',overflow:'hidden',borderRadius:6}}>
                               <img src={p.imageUrl} alt={p.label||''} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}
                                 onError={e=>{e.target.style.display='none';}}/>
-                              {p.defectType&&<span style={{position:'absolute',bottom:3,left:3,fontSize:8,fontWeight:700,
-                                background:'rgba(0,0,0,.65)',color:'#fff',padding:'2px 6px',borderRadius:4}}>{p.defectType}</span>}
+                              {p.defectType&&<span style={{position:'absolute',bottom:2,left:2,fontSize:7,fontWeight:700,
+                                background:'rgba(0,0,0,.65)',color:'#fff',padding:'1px 4px',borderRadius:3}}>{p.defectType}</span>}
                             </div>
                           ))}
                         </div>
-                        {mPhotos.length>9&&<div style={{fontSize:10,color:'var(--text-sm)',textAlign:'center',marginTop:4}}>외 {mPhotos.length-9}건</div>}
+                        {mPhotos.length>6&&<div style={{fontSize:9,color:'var(--text-sm)',textAlign:'center',marginTop:3}}>외 {mPhotos.length-6}건</div>}
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* ── STEP 2. 왜 이 문제가 생기나 (원인 + 원인 영상) ── */}
-                  {(mc.cause||caseMedia.length>0)&&(
-                    <div style={{margin:'14px 14px 0',borderRadius:14,background:'var(--card)',border:'1px solid var(--border)',boxShadow:'var(--shadow)',overflow:'hidden'}}>
-                      <div style={{height:2,background:'linear-gradient(90deg,var(--red),rgba(220,38,38,.2),transparent)',opacity:.7}}/>
-                      <div style={{padding:'12px 14px'}}>
-                        <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:10}}>
-                          <div style={{width:6,height:6,borderRadius:'50%',background:'var(--red)',flexShrink:0}}/>
-                          <span style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>왜 이 문제가 생기나</span>
+                    {/* ── 시공 전 사진 ── */}
+                    {caseCauses.length>0&&(
+                      <div style={{marginBottom:12}}>
+                        <div style={{fontSize:9,fontWeight:800,color:'var(--red)',marginBottom:6,display:'flex',alignItems:'center',gap:5,letterSpacing:'.05em'}}>
+                          <div style={{width:3,height:12,borderRadius:2,background:'var(--red)'}}/>
+                          시공 전 현장
                         </div>
-                        {mc.cause&&(
-                          <p style={{fontSize:13,lineHeight:1.7,color:'var(--text)',margin:'0 0 12px',wordBreak:'keep-all',whiteSpace:'pre-line'}}>{mc.cause}</p>
-                        )}
-                        {/* 원인 영상 썸네일 */}
-                        {caseMedia.length>0&&(
-                          <div>
-                            <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:8}}>
-                              <div style={{width:5,height:5,borderRadius:'50%',background:'var(--accent)',opacity:.7}}/>
-                              <span style={{fontSize:10,fontWeight:700,color:'var(--navy)',letterSpacing:'.04em'}}>원인 영상</span>
+                        <div style={{display:'flex',gap:4,overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none'}}>
+                          {caseCauses.map((src,ci)=>(
+                            <div key={ci} style={{flex:'0 0 auto',width:100,height:75,borderRadius:6,overflow:'hidden',border:'1px solid var(--border)'}}>
+                              <img src={src} alt={`시공 전 ${ci+1}`} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}
+                                onError={e=>{e.target.style.display='none';}}/>
                             </div>
-                            <div style={{display:'flex',gap:6,overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none'}}>
-                              {caseMedia.map((src,ci)=>{
-                                const parsed=parseVideoUrl(src);
-                                const ytThumb=parsed&&parsed.type==='youtube'?`https://img.youtube.com/vi/${src.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/)?.[1]}/hqdefault.jpg`:null;
-                                return(
-                                  <div key={ci} style={{flex:'0 0 35%',borderRadius:10,overflow:'hidden',background:'#111',position:'relative',aspectRatio:'9/16'}}>
-                                    {parsed?(ytThumb?(
-                                      <img src={ytThumb} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-                                    ):(
-                                      <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',background:'linear-gradient(135deg,#1a1a2e,#16213e)'}}>
-                                        <span style={{fontSize:28,color:'rgba(255,255,255,.3)'}}>&#9654;</span>
-                                      </div>
-                                    )):(
-                                      <img src={src} alt={`영상 ${ci+1}`} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-                                    )}
-                                    {parsed&&ytThumb&&(
-                                      <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',pointerEvents:'none'}}>
-                                        <div style={{width:40,height:40,borderRadius:'50%',background:'rgba(0,0,0,.5)',display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}}>
-                                          <span style={{fontSize:16,color:'#fff',marginLeft:2}}>&#9654;</span>
-                                        </div>
-                                      </div>
-                                    )}
-                                    <div style={{position:'absolute',top:5,left:5,padding:'2px 6px',borderRadius:4,fontSize:8,fontWeight:800,background:'rgba(0,0,0,.55)',color:'#fff'}}>{ci+1}/{caseMedia.length}</div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ── 원인 ── */}
+                    {mc.cause&&(
+                      <div style={{marginBottom:12,padding:'10px 12px',background:'#FFF5F5',borderRadius:10,border:'1px solid #FECACA'}}>
+                        <div style={{fontSize:9,fontWeight:800,color:'var(--red)',marginBottom:4,display:'flex',alignItems:'center',gap:5,letterSpacing:'.05em'}}>
+                          <div style={{width:3,height:12,borderRadius:2,background:'var(--red)'}}/>
+                          발생 원인
+                        </div>
+                        <p style={{fontSize:11,lineHeight:1.65,color:'#7F1D1D',margin:0,wordBreak:'keep-all',whiteSpace:'pre-line'}}>{mc.cause}</p>
+                      </div>
+                    )}
+
+                    {/* ── 제안서 슬라이드 ── */}
+                    {(mc.proposalSlides||[]).length>0&&(
+                      <div style={{marginBottom:12}}>
+                        <div style={{fontSize:9,fontWeight:800,color:'#6D28D9',marginBottom:6,display:'flex',alignItems:'center',gap:5,letterSpacing:'.05em'}}>
+                          <div style={{width:3,height:12,borderRadius:2,background:'#6D28D9'}}/>
+                          제안서 상세
+                        </div>
+                        <ProposalSlideViewer slides={mc.proposalSlides} size="small"/>
+                      </div>
+                    )}
+
+                    {/* ── 시공 공정 — 화살표 플로우 ── */}
+                    {mc.process?.length>0&&(
+                      <div style={{marginBottom:12}}>
+                        <div style={{fontSize:9,fontWeight:800,color:'var(--green)',marginBottom:8,display:'flex',alignItems:'center',gap:5,letterSpacing:'.05em'}}>
+                          <div style={{width:3,height:12,borderRadius:2,background:'var(--green)'}}/>
+                          시공 공정
+                        </div>
+                        <div style={{display:'flex',alignItems:'flex-start',gap:0,overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none',paddingBottom:4}}>
+                          {mc.process.map((step,si)=>{
+                            const stepDesc=(mc.processDescs||[])[si];
+                            const rawMat=(mc.processMaterials||[])[si];
+                            const mats=rawMat?Array.isArray(rawMat)?rawMat:[rawMat]:[];
+                            const isLast=si===mc.process.length-1;
+                            return(
+                              <React.Fragment key={si}>
+                                <div style={{flex:'0 0 auto',display:'flex',flexDirection:'column',alignItems:'center',minWidth:72,maxWidth:90}}>
+                                  <div style={{width:36,height:36,borderRadius:'50%',background:si===0?'var(--green)':'var(--green-l)',border:'2px solid var(--green)',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:4,flexShrink:0}}>
+                                    <span style={{fontSize:12,fontWeight:900,color:si===0?'#fff':'var(--green)'}}>{si+1}</span>
                                   </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-                        {/* 시공 전 현장 사진 */}
-                        {caseCauses.length>0&&(
-                          <div style={{marginTop:12}}>
-                            <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:6}}>
-                              <div style={{width:5,height:5,borderRadius:'50%',background:'var(--red)',opacity:.7}}/>
-                              <span style={{fontSize:10,fontWeight:700,color:'var(--navy)'}}>시공 전 현장</span>
-                            </div>
-                            <div style={{display:'flex',gap:5,overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none'}}>
-                              {caseCauses.map((src,ci)=>(
-                                <div key={ci} style={{flex:'0 0 auto',width:110,height:82,borderRadius:8,overflow:'hidden',border:'1px solid var(--border)'}}>
-                                  <img src={src} alt={`시공 전 ${ci+1}`} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}
-                                    onError={e=>{e.target.style.display='none';}}/>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* ── STEP 3. POUR 해결방안 (제안서 슬라이드) ── */}
-                  {(mc.proposalSlides||[]).length>0&&(
-                    <div style={{margin:'14px 14px 0',borderRadius:14,background:'var(--card)',border:'1px solid var(--border)',boxShadow:'var(--shadow)',overflow:'hidden'}}>
-                      <div style={{height:2,background:'linear-gradient(90deg,#6D28D9,rgba(109,40,217,.2),transparent)',opacity:.8}}/>
-                      <div style={{padding:'12px 14px'}}>
-                        <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:12}}>
-                          <div style={{width:6,height:6,borderRadius:'50%',background:'#6D28D9',flexShrink:0}}/>
-                          <span style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>POUR 해결방안</span>
-                        </div>
-                        <ProposalSlideViewer slides={mc.proposalSlides} size="normal"/>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* ── STEP 4. POUR 시공공정 (세로 타임라인 + 자재) ── */}
-                  {(mc.process?.length>0||(mc.processGuideImages||[]).length>0)&&(
-                    <div style={{margin:'14px 14px 0',borderRadius:14,background:'var(--card)',border:'1px solid var(--border)',boxShadow:'var(--shadow)',overflow:'hidden'}}>
-                      <div style={{height:2,background:'linear-gradient(90deg,var(--green),rgba(5,150,105,.2),transparent)',opacity:.8}}/>
-                      <div style={{padding:'12px 14px'}}>
-                        <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:12}}>
-                          <div style={{width:6,height:6,borderRadius:'50%',background:'var(--green)',flexShrink:0}}/>
-                          <span style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>POUR 시공공정</span>
-                        </div>
-                        {/* 이미지 가이드 모드 */}
-                        {mc.processMode==='images'&&(mc.processGuideImages||[]).length>0&&(
-                          <div style={{marginBottom:12}}>
-                            <ProposalSlideViewer slides={mc.processGuideImages} size="normal"/>
-                          </div>
-                        )}
-                        {/* 세로 타임라인 공정 */}
-                        {(mc.processMode||'steps')==='steps'&&mc.process?.length>0&&(
-                          <div style={{display:'flex',flexDirection:'column',gap:0}}>
-                            {mc.process.map((step,i)=>{
-                              const stepPhotoUrl=((casePhotos[m.id]||{}).processSteps||[])[i]?.url||((mc.processPhotos||[])[i]);
-                              const stepDesc=(mc.processDescs||[])[i];
-                              const stepMat=(mc.processMaterials||[])[i];
-                              const mats=stepMat?Array.isArray(stepMat)?stepMat:[stepMat]:[];
-                              const isLast=i===mc.process.length-1;
-                              return(
-                                <div key={i} style={{display:'flex',gap:0,position:'relative'}}>
-                                  <div style={{display:'flex',flexDirection:'column',alignItems:'center',width:32,flexShrink:0}}>
-                                    <div style={{width:28,height:28,borderRadius:'50%',border:'none',
-                                      background:i===0?'var(--green)':'var(--navy)',
-                                      color:'#fff',fontSize:11,fontWeight:800,flexShrink:0,
-                                      display:'flex',alignItems:'center',justifyContent:'center',
-                                      position:'relative',zIndex:1}}>
-                                      {i+1}
+                                  <div style={{fontSize:9,fontWeight:700,color:'var(--text)',textAlign:'center',lineHeight:1.3,wordBreak:'keep-all'}}>{step}</div>
+                                  {stepDesc&&<div style={{fontSize:8,color:'var(--text-sm)',textAlign:'center',lineHeight:1.3,marginTop:2,wordBreak:'keep-all'}}>{stepDesc}</div>}
+                                  {mats.length>0&&mats.map((mat,mti)=>mat&&(
+                                    <div key={mti} style={{marginTop:4,padding:'3px 6px',background:'var(--blue-l)',borderRadius:4,border:'1px solid var(--blue-m)',width:'100%'}}>
+                                      <div style={{fontSize:7,fontWeight:800,color:'var(--accent)',textAlign:'center'}}>{mat.name}</div>
                                     </div>
-                                    {!isLast&&<div style={{width:2,flex:1,minHeight:8,background:'var(--border)',opacity:.5,margin:'2px 0'}}/>}
-                                  </div>
-                                  <div style={{flex:1,paddingLeft:8,paddingBottom:isLast?0:10}}>
-                                    <div style={{fontSize:12,fontWeight:700,color:'var(--navy)',lineHeight:1.3,marginBottom:2}}>{step}</div>
-                                    {stepDesc&&<div style={{fontSize:10,color:'var(--text-sm)',lineHeight:1.4,marginBottom:4,wordBreak:'keep-all'}}>{stepDesc}</div>}
-                                    {stepPhotoUrl&&(
-                                      <div style={{borderRadius:8,overflow:'hidden',border:'1.5px solid var(--green)',background:'var(--green-l)',marginBottom:6,aspectRatio:'747/420',position:'relative'}}>
-                                        <ProcessMedia src={stepPhotoUrl} alt={`${step} 시공`} style={{position:'absolute',inset:0,width:'100%',height:'100%',objectPosition:(mc.processPhotoPositions||[])[i]||'center center'}}/>
-                                      </div>
-                                    )}
-                                    {mats.length>0&&mats.map((mat,mti)=>mat&&(
-                                      <div key={mti} style={{marginBottom:4,padding:'8px 10px',
-                                        background:'linear-gradient(135deg,#1E3A5F,#1A2E42)',borderRadius:10}}>
-                                        <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
-                                          <span style={{fontSize:8,fontWeight:800,color:'#60A5FA',letterSpacing:'.06em'}}>POUR핵심</span>
-                                          {mat.badge&&<span style={{fontSize:7,fontWeight:700,color:'#93C5FD',background:'rgba(96,165,250,.15)',borderRadius:3,padding:'1px 5px'}}>{mat.badge}</span>}
-                                        </div>
-                                        <div style={{fontSize:11,fontWeight:800,color:'#fff',lineHeight:1.3}}>{mat.name}</div>
-                                        {mat.desc&&<div style={{fontSize:9,color:'rgba(255,255,255,.55)',marginTop:2,lineHeight:1.4,wordBreak:'keep-all'}}>{mat.desc}</div>}
-                                      </div>
-                                    ))}
-                                  </div>
+                                  ))}
                                 </div>
-                              );
+                                {!isLast&&(
+                                  <div style={{flex:'0 0 auto',display:'flex',alignItems:'center',padding:'0 2px',marginTop:8}}>
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                      <path d="M3 8h10M9 4l4 4-4 4" stroke="var(--green)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                  </div>
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
+                        </div>
+                        {mc.process.some((_,si)=>{const r=(mc.processMaterials||[])[si];return r&&(Array.isArray(r)?r:[r]).some(x=>x&&x.desc);})&&(
+                          <div style={{marginTop:8,display:'flex',flexDirection:'column',gap:4}}>
+                            {mc.process.map((_,si)=>{
+                              const rawMat=(mc.processMaterials||[])[si];
+                              const mats=rawMat?Array.isArray(rawMat)?rawMat:[rawMat]:[];
+                              return mats.filter(mat=>mat&&mat.desc).map((mat,mti)=>(
+                                <div key={`${si}-${mti}`} style={{padding:'7px 10px',background:'var(--blue-l)',borderRadius:8,border:'1px solid var(--blue-m)'}}>
+                                  <div style={{fontSize:9,fontWeight:800,color:'var(--accent)',marginBottom:2}}>🔬 {mat.name}{mat.badge&&<span style={{fontSize:8,opacity:.7,marginLeft:4}}>({mat.badge})</span>}</div>
+                                  <p style={{fontSize:9,lineHeight:1.45,color:'var(--text-md)',margin:0,wordBreak:'keep-all'}}>{mat.desc}</p>
+                                </div>
+                              ));
                             })}
                           </div>
                         )}
-                        {/* 솔루션 요약 */}
-                        {mc.solution&&(
-                          <div style={{background:'var(--green-l)',borderRadius:10,padding:'10px 12px',borderLeft:'3px solid var(--green)',marginTop:12}}>
-                            <p style={{fontSize:12,lineHeight:1.6,color:'var(--text)',margin:0,wordBreak:'keep-all'}}>{mc.solution}</p>
-                          </div>
-                        )}
-                        {/* 공인 성능 수치 */}
-                        {ms&&ms.stats?.length>0&&(
-                          <div style={{marginTop:12}}>
-                            <div style={{height:1,background:'linear-gradient(90deg,rgba(217,119,6,.3),transparent)',marginBottom:10}}/>
-                            <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:8}}>
-                              <div style={{width:5,height:5,borderRadius:'50%',background:'var(--gold)'}}/>
-                              <span style={{fontSize:10,fontWeight:700,color:'var(--gold)',letterSpacing:'.03em'}}>📊 공인 성능 수치</span>
-                              {ms.cert&&<span style={{fontSize:8,fontWeight:700,color:'var(--gold)',background:'rgba(217,119,6,.08)',border:'1px solid rgba(217,119,6,.2)',borderRadius:4,padding:'2px 6px'}}>{ms.cert}</span>}
-                            </div>
-                            <div style={{display:'flex',gap:6,overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none',paddingBottom:2}}>
-                              {ms.stats.map((s,si)=>(
-                                <div key={si} style={{flex:'0 0 auto',minWidth:90,borderRadius:10,border:'1px solid rgba(217,119,6,.15)',background:'rgba(217,119,6,.04)',padding:'10px 12px',position:'relative',overflow:'hidden'}}>
-                                  <div style={{position:'absolute',top:0,left:0,right:0,height:2,background:'var(--gold)',opacity:.35}}/>
-                                  {s.src&&<div style={{fontSize:7,fontWeight:800,color:'var(--gold)',letterSpacing:'.08em',marginBottom:3,opacity:.8}}>{s.src}</div>}
-                                  <div style={{display:'flex',alignItems:'baseline',gap:2,marginBottom:2}}>
-                                    <span style={{fontSize:18,fontWeight:900,color:'var(--navy)',lineHeight:1}}>{s.value}</span>
-                                    {s.unit&&<span style={{fontSize:10,fontWeight:700,color:'var(--text-md)'}}>{s.unit}</span>}
-                                  </div>
-                                  <div style={{fontSize:9,fontWeight:700,color:'var(--text-md)',marginBottom:3}}>{s.label}</div>
-                                  {s.note&&<div style={{fontSize:8,color:'var(--text-sm)',fontWeight:500,lineHeight:1.3}}>{s.note}</div>}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* ── 추가 방안 (extraSolutions) ── */}
-                  {(mc.extraSolutions||[]).map((es,esIdx)=>(
-                    <React.Fragment key={`es-${esIdx}`}>
-                      {(es.proposalSlides||[]).length>0&&(
-                        <div style={{margin:'14px 14px 0',borderRadius:14,background:'var(--card)',border:'1px solid var(--border)',boxShadow:'var(--shadow)',overflow:'hidden'}}>
-                          <div style={{height:2,background:'linear-gradient(90deg,#F59E0B,rgba(245,158,11,.2),transparent)',opacity:.8}}/>
-                          <div style={{padding:'12px 14px'}}>
-                            <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:12}}>
-                              <div style={{width:6,height:6,borderRadius:'50%',background:'#F59E0B',flexShrink:0}}/>
-                              <span style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>{es.name||`방안 ${esIdx+2}`} — 해결방안</span>
-                            </div>
-                            <ProposalSlideViewer slides={es.proposalSlides} size="normal"/>
+                    {/* ── POUR 해결방안 ── */}
+                    {mc.solution&&(
+                      <div style={{marginBottom:mc.stats?.length?12:0,background:'var(--green-l)',borderRadius:10,padding:'10px 12px',borderLeft:'3px solid var(--green)'}}>
+                        <div style={{fontSize:9,fontWeight:800,color:'var(--green)',marginBottom:4,letterSpacing:'.05em'}}>POUR 해결방안</div>
+                        <p style={{fontSize:11,lineHeight:1.65,color:'#064E3B',margin:0,wordBreak:'keep-all'}}>{mc.solution}</p>
+                      </div>
+                    )}
+
+                    {/* ── 시공 완료 사진 (완공사진만 표시, 미디어 제외) ── */}
+                    {caseCompleted&&(
+                      <div style={{marginTop:12}}>
+                        <div style={{fontSize:9,fontWeight:800,color:'var(--green)',marginBottom:6,display:'flex',alignItems:'center',gap:5,letterSpacing:'.05em'}}>
+                          <div style={{width:3,height:12,borderRadius:2,background:'var(--green)'}}/>
+                          시공 완료
+                        </div>
+                        <div style={{display:'flex',gap:4,overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none'}}>
+                          <div style={{flex:'0 0 auto',width:130,height:96,borderRadius:8,overflow:'hidden',border:'2px solid var(--green)'}}>
+                            <img src={caseCompleted} alt="시공 완료" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}
+                              onError={e=>{e.target.style.display='none';}}/>
                           </div>
                         </div>
-                      )}
-                      {(es.processGuideImages||[]).length>0&&(
-                        <div style={{margin:'14px 14px 0',borderRadius:14,background:'var(--card)',border:'1px solid var(--border)',boxShadow:'var(--shadow)',overflow:'hidden'}}>
-                          <div style={{height:2,background:'linear-gradient(90deg,#059669,rgba(5,150,105,.2),transparent)',opacity:.8}}/>
-                          <div style={{padding:'12px 14px'}}>
-                            <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:12}}>
-                              <div style={{width:6,height:6,borderRadius:'50%',background:'#059669',flexShrink:0}}/>
-                              <span style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>{es.name||`방안 ${esIdx+2}`} — 시공공정</span>
+                      </div>
+                    )}
+
+                    {/* ── 공인 성능 수치 — 2열 그리드 ── */}
+                    {mc.stats?.length>0&&(
+                      <div style={{marginTop:12}}>
+                        <div style={{fontSize:9,fontWeight:800,color:'var(--gold)',marginBottom:6,display:'flex',alignItems:'center',gap:5,letterSpacing:'.05em'}}>
+                          <div style={{width:3,height:12,borderRadius:2,background:'var(--gold)'}}/>
+                          공인 성능 수치
+                          {mc.cert&&<span style={{fontSize:8,fontWeight:600,color:'var(--text-sm)',marginLeft:2}}>— {mc.cert}</span>}
+                        </div>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
+                          {mc.stats.map((s,si)=>(
+                            <div key={si} style={{borderRadius:10,border:'1px solid rgba(217,119,6,.2)',background:'linear-gradient(135deg,rgba(217,119,6,.06) 0%,rgba(254,243,199,.5) 100%)',padding:'10px 10px 8px',textAlign:'center'}}>
+                              {s.src&&<div style={{fontSize:7,color:'var(--gold)',fontWeight:800,marginBottom:2,letterSpacing:'.04em'}}>{s.src}</div>}
+                              <div style={{fontSize:20,fontWeight:900,color:'var(--navy)',lineHeight:1}}>{s.value}<span style={{fontSize:10,fontWeight:700,color:'#92400E',marginLeft:1}}>{s.unit}</span></div>
+                              <div style={{fontSize:9,fontWeight:700,color:'#78350F',marginTop:3}}>{s.label}</div>
+                              {s.note&&<div style={{fontSize:7,color:'var(--text-sm)',marginTop:2,lineHeight:1.3}}>{s.note}</div>}
                             </div>
-                            <ProposalSlideViewer slides={es.processGuideImages} size="normal"/>
-                          </div>
-                        </div>
-                      )}
-                    </React.Fragment>
-                  ))}
-
-                  {/* ── 시공 완료 사진 ── */}
-                  {caseCompleted&&(
-                    <div style={{margin:'14px 14px 0'}}>
-                      <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:6}}>
-                        <div style={{width:5,height:5,borderRadius:'50%',background:'var(--green)'}}/>
-                        <span style={{fontSize:10,fontWeight:700,color:'var(--green)'}}>시공 완료</span>
-                      </div>
-                      <div style={{display:'flex',gap:5,overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none'}}>
-                        <div style={{flex:'0 0 auto',width:140,height:105,borderRadius:10,overflow:'hidden',border:'2px solid var(--green)'}}>
-                          <img src={caseCompleted} alt="시공 완료" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}
-                            onError={e=>{e.target.style.display='none';}}/>
+                          ))}
                         </div>
                       </div>
-                    </div>
-                  )}
-
-                  <div style={{height:14}}/>
+                    )}
+                  </div>
                 </div>
                 );
               })}
             </div>
 
-            {/* ── 하단 CTA: 담당자 연락처 카드 ── */}
+            {/* ── 하단 CTA: 담당자 연락처 카드 + QR ── */}
             <div style={{margin:'16px 14px 28px',display:'flex',flexDirection:'column',gap:12}}>
 
               {/* 담당자 카드 */}
@@ -5793,7 +5746,30 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 </div>
               </div>
 
-
+              {/* QR 코드 카드 */}
+              <div style={{borderRadius:16,border:'1.5px solid var(--border)',padding:'16px',background:'#fff',textAlign:'center'}}>
+                <div style={{fontSize:13,fontWeight:800,color:'var(--navy)',marginBottom:4}}>나중에 다시 보기</div>
+                <div style={{fontSize:11,color:'var(--text-sm)',marginBottom:14,lineHeight:1.6}}>
+                  QR코드를 스캔하시면 언제든지<br/>이 제안서를 다시 확인하실 수 있습니다.
+                </div>
+                {sessionReportId?(
+                  <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8}}>
+                    <div id="report-qr-container" style={{display:'inline-block',padding:10,background:'#fff',borderRadius:12,border:'2px solid var(--border)',boxShadow:'0 2px 8px rgba(0,0,0,.06)'}}>
+                      <div ref={el=>{
+                        if(el&&el.childElementCount===0&&window.QRCode){
+                          try{new window.QRCode(el,{text:qrTarget,width:148,height:148,colorDark:'#0D1B2A',colorLight:'#ffffff',correctLevel:window.QRCode.CorrectLevel.M});}catch(e){}
+                        }
+                      }}/>
+                    </div>
+                    <div style={{fontSize:9,color:'var(--text-sm)',wordBreak:'break-all',maxWidth:260,lineHeight:1.4}}>{qrTarget}</div>
+                  </div>
+                ):(
+                  <div style={{padding:'20px 0',color:'var(--text-sm)',fontSize:12}}>
+                    <div style={{fontSize:20,marginBottom:6}}>⏳</div>
+                    제안서 저장 후 QR코드가 생성됩니다.
+                  </div>
+                )}
+              </div>
 
             </div>
           </div>

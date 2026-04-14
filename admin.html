@@ -5022,12 +5022,62 @@ function ContentEditorPage({ showToast }) {
         }
       }
 
-      /* method-content 저장 */
+      /* method-content 저장 (서브컬렉션 분리 — 1MB 초과 방지) */
       const ref = db ? db.collection(CONTENT_COLLECTION).doc(selectedMethod) : null;
       if (ref) {
-        await ref.set(clean, { merge: true });
+        // 사진 데이터 분리
+        const {proposalSlides, processPhotos, processMaterials, processGuideImages, ...textOnly} = clean;
+        // processMaterials에서 사진 제거 (텍스트만)
+        textOnly.processMaterials = (processMaterials||[]).map(m => {
+          if (!m) return null;
+          const {photos, mediaUrl, ...rest} = m;
+          return rest;
+        });
+        textOnly.processPhotos = [];
+        // processKeys에서 photo 제거
+        if (textOnly.processKeys) {
+          textOnly.processKeys = textOnly.processKeys.map(k => {
+            if (!k) return null;
+            const {photo, ...rest} = k;
+            return rest;
+          });
+        }
+        await ref.set(textOnly); // merge 없이 완전 교체
+
+        // step-photos 서브컬렉션 (공정사진 + 자재사진 + 핵심기술사진)
+        const pKeys = clean.processKeys || [];
+        const photosCol = ref.collection('step-photos');
+        const maxLen = Math.max((processPhotos||[]).length, (processMaterials||[]).length, pKeys.length);
+        for (let i = 0; i < maxLen; i++) {
+          const ph = (processPhotos||[])[i];
+          const mat = (processMaterials||[])[i];
+          const kp = pKeys[i]?.photo || null;
+          const docData = { processPhoto: ph||null, matPhotos: mat?.photos||[], matMediaUrl: mat?.mediaUrl||'', keyPhoto: kp };
+          if (ph || mat?.photos?.length || mat?.mediaUrl || kp) {
+            await photosCol.doc(String(i)).set(docData);
+          }
+        }
+
+        // proposal-slides 서브컬렉션
+        const slides = proposalSlides || [];
+        if (slides.length > 0) {
+          const slideCol = ref.collection('proposal-slides');
+          for (let i = 0; i < slides.length; i++) {
+            await slideCol.doc(String(i)).set({ image: slides[i] });
+          }
+          await slideCol.doc('_meta').set({ count: slides.length, updatedAt: new Date().toISOString() });
+        }
+
+        // process-guide 서브컬렉션 (이미지 가이드 모드)
+        if (processGuideImages && processGuideImages.length > 0) {
+          const guideCol = ref.collection('process-guide');
+          for (let i = 0; i < processGuideImages.length; i++) {
+            await guideCol.doc(String(i)).set({ image: processGuideImages[i] });
+          }
+          await guideCol.doc('_meta').set({ count: processGuideImages.length });
+        }
       }
-      /* 저장 성공 시 로컬 state도 URL로 갱신 */
+      /* 저장 성공 시 로컬 state도 갱신 */
       setContent(clean);
 
       /* config/casePhotos 저장 (base64 → URL 변환) */

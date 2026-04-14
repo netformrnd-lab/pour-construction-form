@@ -3781,18 +3781,22 @@ const DEFAULT_POUR_METHODS=[
 const DEFAULT_DEFECT_TYPES=['탈락','부식','변형','녹슬음','균열','이음부','들뜸','누수','박리','기타'];
 
 /* ── 기본 하자 템플릿 (AI 분류 기준) ── */
+/* 신규 구조: tags(해시태그 배열), methods(적용 공법 배열), referenceImageUrl(기준사진), desc */
 const DEFAULT_DEFECT_TEMPLATES=[
-  {type:'탈락',keywords:'탈락,떨어짐,박락,조각,파편,기와탈락,슁글탈락',desc:'방수재·도료·기와 등이 바탕면에서 분리되어 떨어진 상태'},
-  {type:'누수',keywords:'누수,물,젖음,물자국,얼룩,침수,스며듦,결로',desc:'물이 구조체를 통과하거나 표면에 스며드는 상태'},
-  {type:'균열',keywords:'균열,크랙,갈라짐,거북등,세로균열,가로균열,실금',desc:'구조체나 마감재에 금이 가거나 갈라진 상태'},
-  {type:'들뜸',keywords:'들뜸,부풀음,기포,부풀기,이격,분리,박리',desc:'방수층·도막이 바탕면에서 들떠 있는 상태'},
-  {type:'박리',keywords:'박리,벗겨짐,페인트벗겨짐,도막박리,표면박리',desc:'표면 마감재가 벗겨지거나 분리되는 상태'},
-  {type:'부식',keywords:'부식,녹,산화,철근노출,철근부식,녹슬음',desc:'금속 부재나 철근이 산화·부식된 상태'},
-  {type:'이음부',keywords:'이음부,조인트,실링,코킹,줄눈,접합부,틈새',desc:'구조물 이음부·조인트에서 발생한 하자'},
-  {type:'변형',keywords:'변형,처짐,뒤틀림,침하,굴곡,파손',desc:'구조체나 마감재가 변형·침하된 상태'},
-  {type:'녹슬음',keywords:'녹슬음,녹,산화,부식흔적,철분',desc:'금속 표면에 녹이 발생한 상태'},
-  {type:'기타',keywords:'기타,오염,이물질,곰팡이,백화,얼룩',desc:'위 분류에 해당하지 않는 기타 하자'},
+  {tags:['탈락','기와탈락','슁글탈락'],methods:['POUR 아스팔트싱글 방수 공법','POUR 금속기와 방수 공법'],referenceImageUrl:'',desc:'방수재·도료·기와 등이 바탕면에서 분리되어 떨어진 상태'},
+  {tags:['누수','물자국','스며듦'],methods:['POUR 듀얼강화방수 공법','POUR 우레탄 방수 공법','POUR PVC 방수 공법','POUR 아크릴 배면차수 방수 공법'],referenceImageUrl:'',desc:'물이 구조체를 통과하거나 표면에 스며드는 상태'},
+  {tags:['균열','크랙','갈라짐'],methods:['POUR 균열보수 및 재도장 공법(바인더+플러스)','POUR 균열보수 및 재도장 공법(플러스+수성)','POUR 균열보수 및 재도장 공법(바인더+수성)','POUR 복합시트 균열보수 공법'],referenceImageUrl:'',desc:'구조체나 마감재에 금이 가거나 갈라진 상태'},
+  {tags:['들뜸','부풀음','기포'],methods:['POUR 듀얼강화방수 공법','POUR 우레탄 방수 공법'],referenceImageUrl:'',desc:'방수층·도막이 바탕면에서 들떠 있는 상태'},
+  {tags:['박리','벗겨짐','도막박리'],methods:['POUR 에폭시 도장 공법','POUR 엠보라이닝 도장 공법'],referenceImageUrl:'',desc:'표면 마감재가 벗겨지거나 분리되는 상태'},
+  {tags:['부식','녹','철근노출'],methods:['POUR 탄성강화 보강공법 (바탕면)','POUR 탄성강화 보강공법 (단면복구)'],referenceImageUrl:'',desc:'금속 부재나 철근이 산화·부식된 상태'},
+  {tags:['이음부균열','조인트','실링'],methods:['POUR 아스팔트싱글 방수 공법','POUR 금속기와 방수 공법','POUR 금속기와/칼라강판 코팅 공법','POUR 듀얼강화방수 공법'],referenceImageUrl:'',desc:'구조물 이음부·조인트에서 발생한 하자'},
+  {tags:['변형','처짐','침하'],methods:['POUR 탄성강화 보강공법 (바탕면)','POUR 탄성강화 보강공법 (단면복구)'],referenceImageUrl:'',desc:'구조체나 마감재가 변형·침하된 상태'},
+  {tags:['녹슬음','산화','부식흔적'],methods:['POUR 금속기와/칼라강판 코팅 공법','POUR 금속기와 방수 공법'],referenceImageUrl:'',desc:'금속 표면에 녹이 발생한 상태'},
+  {tags:['기타','오염','백화'],methods:[],referenceImageUrl:'',desc:'위 분류에 해당하지 않는 기타 하자'},
 ];
+/* 하위 호환: 기존 type 필드 → 첫 번째 tag로 매핑 */
+const templateDisplayName=(t)=>(t.tags&&t.tags.length>0?t.tags[0]:t.type||'미분류');
+const templateAllTags=(t)=>(t.tags&&t.tags.length>0?t.tags:(t.type?[t.type]:[]));
 
 /* ── 공법콘텐츠 관리용 상수 ── */
 const MC_METHOD_LIST=[
@@ -3844,7 +3848,8 @@ function DefectPhotosPage({showToast}){
   const [templates,setTemplates]=useState([]);
   const [templateLoading,setTemplateLoading]=useState(false);
   const [editingTemplate,setEditingTemplate]=useState(null);
-  const [templateForm,setTemplateForm]=useState({type:'',keywords:'',desc:''});
+  const [templateForm,setTemplateForm]=useState({tags:[],methods:[],desc:'',referenceImage:null,referenceImageUrl:''});
+  const [templateTagInput,setTemplateTagInput]=useState('');
 
   const fetchPhotos=async()=>{
     setLoading(true);
@@ -3866,27 +3871,52 @@ function DefectPhotosPage({showToast}){
       if(snap.empty){
         setTemplates(DEFAULT_DEFECT_TEMPLATES);
       }else{
-        const arr=[];snap.forEach(doc=>arr.push({id:doc.id,...doc.data()}));
-        arr.sort((a,b)=>(a.type||'').localeCompare(b.type||''));
+        const arr=[];snap.forEach(doc=>{
+          const d={id:doc.id,...doc.data()};
+          /* 하위 호환: 기존 type/keywords → 신규 tags/methods */
+          if(!d.tags&&d.type){d.tags=[d.type,...(d.keywords||'').split(',').map(s=>s.trim()).filter(Boolean)];}
+          if(!d.methods)d.methods=[];
+          if(!d.referenceImageUrl)d.referenceImageUrl='';
+          arr.push(d);
+        });
+        arr.sort((a,b)=>templateDisplayName(a).localeCompare(templateDisplayName(b)));
         setTemplates(arr);
       }
     }catch(e){setTemplates(DEFAULT_DEFECT_TEMPLATES);}
     setTemplateLoading(false);
   };
 
+  const uploadTemplateImage=async(file)=>{
+    const path=`defect-templates/${Date.now()}_${file.name}`;
+    const ref=storage.ref(path);await ref.put(file);return await ref.getDownloadURL();
+  };
+
   const saveTemplate=async()=>{
-    if(!templateForm.type.trim()){showToast('하자유형명을 입력하세요','error');return;}
+    if(!templateForm.tags||templateForm.tags.length===0){showToast('해시태그를 1개 이상 입력하세요','error');return;}
     try{
-      const data={type:templateForm.type.trim(),keywords:templateForm.keywords.trim(),desc:templateForm.desc.trim(),updatedAt:new Date().toISOString()};
+      let refImgUrl=templateForm.referenceImageUrl||'';
+      if(templateForm.referenceImage){
+        refImgUrl=await uploadTemplateImage(templateForm.referenceImage);
+      }
+      const data={
+        tags:templateForm.tags,
+        methods:templateForm.methods||[],
+        desc:templateForm.desc.trim(),
+        referenceImageUrl:refImgUrl,
+        /* 하위호환: type은 첫번째 태그로 */
+        type:templateForm.tags[0]||'',
+        keywords:templateForm.tags.join(','),
+        updatedAt:new Date().toISOString()
+      };
       if(editingTemplate&&editingTemplate.id){
         await db.collection('defect-templates').doc(editingTemplate.id).update(data);
       }else{
         await db.collection('defect-templates').add({...data,createdAt:new Date().toISOString()});
       }
       showToast('템플릿 저장 완료');
-      setEditingTemplate(null);setTemplateForm({type:'',keywords:'',desc:''});
+      setEditingTemplate(null);setTemplateForm({tags:[],methods:[],desc:'',referenceImage:null,referenceImageUrl:''});setTemplateTagInput('');
       fetchTemplates();
-    }catch(e){showToast('저장 실패','error');}
+    }catch(e){console.error(e);showToast('저장 실패','error');}
   };
 
   const deleteTemplate=async(id)=>{
@@ -3902,7 +3932,7 @@ function DefectPhotosPage({showToast}){
       const batch=db.batch();snap.forEach(doc=>batch.delete(doc.ref));
       await batch.commit();
       for(const t of DEFAULT_DEFECT_TEMPLATES){
-        await db.collection('defect-templates').add({...t,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+        await db.collection('defect-templates').add({...t,type:t.tags[0]||'',keywords:t.tags.join(','),createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
       }
       showToast('기본 템플릿으로 초기화 완료');fetchTemplates();
     }catch(e){showToast('초기화 실패','error');}
@@ -3992,7 +4022,15 @@ function DefectPhotosPage({showToast}){
   };
 
   const startEdit=(p)=>{
-    setEditingId(p.id);setForm({method:p.method,defectTypes:Array.isArray(p.defectTypes)&&p.defectTypes.length>0?p.defectTypes:(p.defectType?[p.defectType]:[DEFAULT_DEFECT_TYPES[0]]),label:p.label||'',description:p.description||'',files:[]});setShowAdd(true);
+    const pTypes=Array.isArray(p.defectTypes)&&p.defectTypes.length>0?p.defectTypes:(p.defectType?[p.defectType]:[DEFAULT_DEFECT_TYPES[0]]);
+    /* 템플릿 연동: 해당 하자유형에 매칭되는 템플릿 찾기 */
+    const matchedTpl=(templates.length?templates:DEFAULT_DEFECT_TEMPLATES).find(t=>{
+      const tTags=templateAllTags(t);
+      return pTypes.some(dt=>tTags.includes(dt));
+    });
+    /* 템플릿의 적용공법이 있으면 자동 매핑 (수동 변경 가능) */
+    const method=p.method||(matchedTpl?.methods?.[0])||DEFAULT_POUR_METHODS[0];
+    setEditingId(p.id);setForm({method,defectTypes:pTypes,label:p.label||'',description:p.description||'',files:[],matchedTemplate:matchedTpl||null});setShowAdd(true);
   };
 
   const closeAddForm=()=>{setShowAdd(false);setEditingId(null);setForm({method:DEFAULT_POUR_METHODS[0],defectTypes:[DEFAULT_DEFECT_TYPES[0]],label:'',description:'',files:[]});};
@@ -4007,9 +4045,28 @@ function DefectPhotosPage({showToast}){
 
   const classifyImageWithAI=async(file,method,templateList)=>{
     const base64=await fileToBase64(file);
-    const defectList=templateList.map(t=>`- ${t.type}: ${t.desc} (키워드: ${t.keywords})`).join('\n');
+    /* 신규 템플릿 구조: tags + methods + referenceImageUrl + desc */
+    const defectList=templateList.map(t=>{
+      const name=templateDisplayName(t);
+      const allTags=templateAllTags(t).map(tag=>'#'+tag).join(' ');
+      const methods=(t.methods||[]).length>0?` [적용공법: ${t.methods.join(', ')}]`:'';
+      const refImg=t.referenceImageUrl?` (기준사진 있음)`:'';
+      return `- ${name}: ${t.desc||''} ${allTags}${methods}${refImg}`;
+    }).join('\n');
     const methodContext=`현재 공법: ${method}`;
-    const prompt=`당신은 건축물 하자 사진을 분류하는 전문가입니다.\n${methodContext}\n\n아래 하자유형 중 이 사진에 가장 적합한 유형 하나를 선택하세요:\n${defectList}\n\n반드시 JSON 형식으로만 답하세요:\n{"defectType":"선택한하자유형","confidence":0~100,"description":"한줄설명"}`;
+    const prompt=`당신은 건축물 하자 사진을 분류하는 전문가입니다.\n${methodContext}\n\n아래 하자유형(해시태그) 중 이 사진에 가장 적합한 유형 하나를 선택하세요:\n${defectList}\n\n반드시 JSON 형식으로만 답하세요:\n{"defectType":"선택한하자유형(첫번째태그)","matchedTags":["매칭된태그들"],"confidence":0~100,"description":"한줄설명"}`;
+
+    /* 기준사진이 있는 템플릿들의 이미지를 함께 전송 */
+    const content=[{type:'text',text:prompt}];
+    /* 업로드된 사진 */
+    content.push({type:'image_url',image_url:{url:`data:image/jpeg;base64,${base64}`,detail:'low'}});
+    /* 기준사진들 (있는 경우 URL로 전송) */
+    const refTemplates=templateList.filter(t=>t.referenceImageUrl);
+    for(const rt of refTemplates.slice(0,5)){
+      content.push({type:'text',text:`[기준사진: ${templateDisplayName(rt)}]`});
+      content.push({type:'image_url',image_url:{url:rt.referenceImageUrl,detail:'low'}});
+    }
+
     const key=aiApiKey.trim();
     if(!key)throw new Error('OpenAI API Key가 없습니다');
     const resp=await fetch('https://api.openai.com/v1/chat/completions',{
@@ -4017,11 +4074,8 @@ function DefectPhotosPage({showToast}){
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},
       body:JSON.stringify({
         model:'gpt-4o-mini',
-        messages:[{role:'user',content:[
-          {type:'text',text:prompt},
-          {type:'image_url',image_url:{url:`data:image/jpeg;base64,${base64}`,detail:'low'}}
-        ]}],
-        max_tokens:200,
+        messages:[{role:'user',content}],
+        max_tokens:300,
         response_format:{type:'json_object'}
       })
     });
@@ -4041,7 +4095,7 @@ function DefectPhotosPage({showToast}){
       const file=aiBulkFiles[i];
       try{
         const result=await classifyImageWithAI(file,aiBulkMethod,activeTemplates);
-        results.push({file,method:aiBulkMethod,defectType:result.defectType||'기타',confidence:result.confidence||0,description:result.description||'',status:'ready',previewUrl:URL.createObjectURL(file)});
+        results.push({file,method:aiBulkMethod,defectType:result.defectType||'기타',matchedTags:result.matchedTags||[result.defectType||'기타'],confidence:result.confidence||0,description:result.description||'',status:'ready',previewUrl:URL.createObjectURL(file)});
       }catch(e){
         results.push({file,method:aiBulkMethod,defectType:'기타',confidence:0,description:'분류 실패: '+e.message,status:'error',previewUrl:URL.createObjectURL(file)});
       }
@@ -4064,8 +4118,13 @@ function DefectPhotosPage({showToast}){
       try{
         const url=await uploadFile(r.file);
         const existing=photos.filter(p=>p.method===r.method&&p.defectType===r.defectType).length;
+        /* AI 분류 결과에서 매칭된 템플릿 찾기 → 적용공법 자동 매핑 */
+        const matchedTemplate=activeTemplates.find(t=>templateDisplayName(t)===r.defectType);
+        const autoMethods=matchedTemplate?.methods||[];
         await db.collection(COLLECTIONS.DEFECT_PHOTOS).add({
           method:r.method,defectType:r.defectType,
+          defectTypes:r.matchedTags||[r.defectType],
+          matchedMethods:autoMethods,
           label:`${r.defectType}${existing+saved+1}`,
           description:r.description,imageUrl:url,
           source:'ai',aiConfidence:r.confidence,
@@ -4146,7 +4205,7 @@ function DefectPhotosPage({showToast}){
   /* ── 사진 카드 ── */
   const PhotoCard=({p})=>(
     <div style={{background:'#fff',borderRadius:12,border:'1px solid var(--border)',overflow:'hidden',transition:'box-shadow .2s',cursor:'pointer'}} onClick={()=>setLightbox(p)}>
-      <div style={{height:160,overflow:'hidden',background:'var(--bg)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <div style={{height:200,overflow:'hidden',background:'var(--bg)',display:'flex',alignItems:'center',justifyContent:'center'}}>
         {p.imageUrl?<img src={p.imageUrl} style={{width:'100%',height:'100%',objectFit:'cover'}} alt={p.label}/>
         :<span style={{color:'var(--text-sm)',fontSize:13}}>이미지 없음</span>}
       </div>
@@ -4174,6 +4233,27 @@ function DefectPhotosPage({showToast}){
       {showAdd&&<div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.4)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}} onClick={closeAddForm}>
         <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:16,padding:28,width:480,maxHeight:'80vh',overflow:'auto',boxShadow:'var(--shadow-lg)'}}>
           <div style={{fontSize:18,fontWeight:800,marginBottom:20}}>{editingId?'사진 수정':'사진 등록'}</div>
+          {/* 템플릿 연동 정보 */}
+          {form.matchedTemplate&&(
+            <div style={{marginBottom:14,padding:'10px 14px',borderRadius:10,background:'#F5F3FF',border:'1.5px solid #E9D5FF'}}>
+              <div style={{fontSize:11,fontWeight:700,color:'#7C3AED',marginBottom:6}}>📝 매칭된 템플릿</div>
+              <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                {form.matchedTemplate.referenceImageUrl&&(
+                  <img src={form.matchedTemplate.referenceImageUrl} style={{width:40,height:40,borderRadius:6,objectFit:'cover',border:'1px solid #E9D5FF'}} alt=""/>
+                )}
+                <div>
+                  <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+                    {templateAllTags(form.matchedTemplate).map((tag,i)=>(
+                      <span key={i} style={{fontSize:10,fontWeight:700,color:'#7C3AED',background:'#EDE9FE',padding:'2px 6px',borderRadius:10}}>#{tag}</span>
+                    ))}
+                  </div>
+                  {(form.matchedTemplate.methods||[]).length>0&&(
+                    <div style={{fontSize:10,color:'var(--text-sm)',marginTop:3}}>적용공법: {form.matchedTemplate.methods.map(m=>m.replace('POUR ','').replace(' 공법','')).join(', ')}</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
           <div style={{marginBottom:14}}><label style={LS}>대분류 (공법)</label>
             <select style={{...IS,background:'#fff'}} value={form.method} onChange={e=>setForm({...form,method:e.target.value})}>
               {allMethods.map(m=><option key={m} value={m}>{m}</option>)}
@@ -4353,13 +4433,13 @@ function DefectPhotosPage({showToast}){
         </div>
       </div>}
 
-      {/* ── 하자 템플릿 관리 모달 ── */}
+      {/* ── 하자 템플릿 관리 모달 (신규: 해시태그 + 복수공법 + 기준사진) ── */}
       {showTemplates&&<div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.55)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}} onClick={()=>setShowTemplates(false)}>
-        <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:20,padding:28,width:'min(640px,95vw)',maxHeight:'88vh',overflow:'auto',boxShadow:'0 20px 60px rgba(0,0,0,.25)'}}>
+        <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:20,padding:28,width:'min(720px,95vw)',maxHeight:'88vh',overflow:'auto',boxShadow:'0 20px 60px rgba(0,0,0,.25)'}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
             <div>
               <div style={{fontSize:18,fontWeight:800}}>📋 하자 분류 템플릿 관리</div>
-              <div style={{fontSize:12,color:'var(--text-sm)',marginTop:4}}>AI가 사진을 분류할 때 사용하는 기준을 설정합니다</div>
+              <div style={{fontSize:12,color:'var(--text-sm)',marginTop:4}}>해시태그 + 적용공법 + 기준사진으로 AI 분류 기준을 설정합니다</div>
             </div>
             <div style={{display:'flex',gap:8}}>
               <button onClick={resetTemplates} style={{padding:'7px 12px',borderRadius:8,border:'1.5px solid #FCA5A5',background:'#FEF2F2',color:'#DC2626',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>초기화</button>
@@ -4372,22 +4452,69 @@ function DefectPhotosPage({showToast}){
             <div style={{fontSize:13,fontWeight:700,marginBottom:12,color:'var(--text)'}}>
               {editingTemplate?'템플릿 수정':'새 하자유형 추가'}
             </div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:10}}>
-              <div>
-                <label style={LS}>하자유형명 *</label>
-                <input style={IS} value={templateForm.type} onChange={e=>setTemplateForm({...templateForm,type:e.target.value})} placeholder="예: 누수"/>
-              </div>
-              <div>
-                <label style={LS}>키워드 (쉼표 구분)</label>
-                <input style={IS} value={templateForm.keywords} onChange={e=>setTemplateForm({...templateForm,keywords:e.target.value})} placeholder="예: 누수,물,젖음,얼룩"/>
-              </div>
-            </div>
+
+            {/* 해시태그 입력 */}
             <div style={{marginBottom:12}}>
-              <label style={LS}>분류 기준 설명 (AI 판단 기준)</label>
-              <textarea style={{...IS,resize:'vertical',minHeight:50}} value={templateForm.desc} onChange={e=>setTemplateForm({...templateForm,desc:e.target.value})} placeholder="예: 물이 구조체를 통과하거나 표면에 스며드는 상태"/>
+              <label style={LS}>해시태그 (중분류) *</label>
+              <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:6}}>
+                {(templateForm.tags||[]).map((tag,idx)=>(
+                  <span key={idx} style={{display:'inline-flex',alignItems:'center',gap:4,padding:'4px 10px',borderRadius:20,background:'#EDE9FE',color:'#7C3AED',fontSize:12,fontWeight:700}}>
+                    #{tag}
+                    <button type="button" onClick={()=>setTemplateForm({...templateForm,tags:templateForm.tags.filter((_,i)=>i!==idx)})} style={{background:'none',border:'none',color:'#7C3AED',fontSize:14,cursor:'pointer',padding:0,lineHeight:1}}>×</button>
+                  </span>
+                ))}
+              </div>
+              <div style={{display:'flex',gap:6}}>
+                <input style={{...IS,flex:1}} value={templateTagInput} onChange={e=>setTemplateTagInput(e.target.value)}
+                  onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();const v=templateTagInput.trim().replace(/^#/,'');if(v&&!(templateForm.tags||[]).includes(v)){setTemplateForm({...templateForm,tags:[...(templateForm.tags||[]),v]});}setTemplateTagInput('');}}}
+                  placeholder="태그 입력 후 Enter (예: 이음부균열)"/>
+                <button type="button" onClick={()=>{const v=templateTagInput.trim().replace(/^#/,'');if(v&&!(templateForm.tags||[]).includes(v)){setTemplateForm({...templateForm,tags:[...(templateForm.tags||[]),v]});}setTemplateTagInput('');}}
+                  style={{padding:'8px 14px',borderRadius:8,border:'none',background:'#7C3AED',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap'}}>추가</button>
+              </div>
+              {(templateForm.tags||[]).length===0&&<div style={{fontSize:11,color:'#ef4444',marginTop:4}}>해시태그를 1개 이상 입력하세요</div>}
             </div>
+
+            {/* 적용 공법 (대분류) 복수 선택 */}
+            <div style={{marginBottom:12}}>
+              <label style={LS}>적용 공법 (대분류) — 복수 선택 가능</label>
+              <div style={{display:'flex',flexWrap:'wrap',gap:5,maxHeight:120,overflow:'auto'}}>
+                {DEFAULT_POUR_METHODS.map(m=>{
+                  const on=(templateForm.methods||[]).includes(m);
+                  return(<button key={m} type="button" onClick={()=>{
+                    const cur=templateForm.methods||[];
+                    setTemplateForm({...templateForm,methods:on?cur.filter(x=>x!==m):[...cur,m]});
+                  }} style={{fontSize:11,padding:'4px 10px',borderRadius:20,border:`1.5px solid ${on?'var(--blue)':'var(--border)'}`,
+                    background:on?'var(--blue-l)':'#fff',color:on?'var(--blue)':'var(--text-md)',
+                    cursor:'pointer',fontWeight:on?700:500,fontFamily:'inherit',transition:'all .15s'}}>{m.replace('POUR ','').replace(' 공법','')}</button>);
+                })}
+              </div>
+              {(templateForm.methods||[]).length>0&&<div style={{fontSize:11,color:'var(--blue)',marginTop:4,fontWeight:600}}>{(templateForm.methods||[]).length}개 공법 선택됨</div>}
+            </div>
+
+            {/* 기준 사진 */}
+            <div style={{marginBottom:12}}>
+              <label style={LS}>기준 사진 (AI 비교용)</label>
+              <div style={{display:'flex',gap:12,alignItems:'center'}}>
+                {(templateForm.referenceImageUrl||templateForm.referenceImage)&&(
+                  <div style={{width:80,height:80,borderRadius:10,overflow:'hidden',border:'2px solid #7C3AED',flexShrink:0}}>
+                    <img src={templateForm.referenceImage?URL.createObjectURL(templateForm.referenceImage):templateForm.referenceImageUrl} style={{width:'100%',height:'100%',objectFit:'cover'}} alt="기준사진"/>
+                  </div>
+                )}
+                <div style={{flex:1}}>
+                  <input type="file" accept="image/*" onChange={e=>{if(e.target.files[0])setTemplateForm({...templateForm,referenceImage:e.target.files[0]});}} style={{fontSize:12}}/>
+                  <div style={{fontSize:11,color:'var(--text-sm)',marginTop:4}}>이 사진을 기준으로 AI가 유사 사진을 판단합니다</div>
+                </div>
+              </div>
+            </div>
+
+            {/* 설명 */}
+            <div style={{marginBottom:12}}>
+              <label style={LS}>분류 기준 설명</label>
+              <textarea style={{...IS,resize:'vertical',minHeight:50}} value={templateForm.desc||''} onChange={e=>setTemplateForm({...templateForm,desc:e.target.value})} placeholder="예: 경사형 지붕재의 벤취레터 이음부에서 발생하는 균열"/>
+            </div>
+
             <div style={{display:'flex',gap:8}}>
-              {editingTemplate&&<button onClick={()=>{setEditingTemplate(null);setTemplateForm({type:'',keywords:'',desc:''}); }} style={{padding:'8px 16px',borderRadius:8,border:'1.5px solid var(--border)',background:'#fff',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>취소</button>}
+              {editingTemplate&&<button onClick={()=>{setEditingTemplate(null);setTemplateForm({tags:[],methods:[],desc:'',referenceImage:null,referenceImageUrl:''});setTemplateTagInput('');}} style={{padding:'8px 16px',borderRadius:8,border:'1.5px solid var(--border)',background:'#fff',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>취소</button>}
               <button onClick={saveTemplate} style={{padding:'8px 20px',borderRadius:8,border:'none',background:'var(--blue)',color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>{editingTemplate?'수정 저장':'추가'}</button>
             </div>
           </div>
@@ -4397,15 +4524,27 @@ function DefectPhotosPage({showToast}){
           <div style={{display:'flex',flexDirection:'column',gap:8}}>
             {templates.map((t,i)=>(
               <div key={t.id||i} style={{padding:'12px 16px',borderRadius:10,border:'1.5px solid var(--border)',background:'#fff',display:'flex',gap:12,alignItems:'flex-start'}}>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
-                    <span style={{fontSize:13,fontWeight:700,color:'var(--text)'}}>{t.type}</span>
-                    {t.keywords&&<span style={{fontSize:10,color:'var(--text-sm)',background:'var(--bg)',padding:'2px 6px',borderRadius:4}}>{t.keywords.split(',').slice(0,3).join(', ')}{t.keywords.split(',').length>3?'...':''}</span>}
+                {/* 기준사진 썸네일 */}
+                {t.referenceImageUrl?(
+                  <div style={{width:56,height:56,borderRadius:8,overflow:'hidden',border:'1.5px solid #E9D5FF',flexShrink:0}}>
+                    <img src={t.referenceImageUrl} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=""/>
                   </div>
+                ):(
+                  <div style={{width:56,height:56,borderRadius:8,background:'#F5F3FF',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,border:'1.5px dashed #E9D5FF'}}>
+                    <span style={{fontSize:20}}>📷</span>
+                  </div>
+                )}
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:4,flexWrap:'wrap'}}>
+                    {templateAllTags(t).map((tag,ti)=>(
+                      <span key={ti} style={{padding:'2px 8px',borderRadius:12,background:'#EDE9FE',color:'#7C3AED',fontSize:11,fontWeight:700}}>#{tag}</span>
+                    ))}
+                  </div>
+                  {(t.methods||[]).length>0&&<div style={{fontSize:10,color:'var(--text-sm)',marginBottom:2}}>공법: {t.methods.map(m=>m.replace('POUR ','').replace(' 공법','')).join(', ')}</div>}
                   {t.desc&&<div style={{fontSize:11,color:'var(--text-sm)',lineHeight:1.5}}>{t.desc}</div>}
                 </div>
                 <div style={{display:'flex',gap:6,flexShrink:0}}>
-                  <button onClick={()=>{setEditingTemplate(t);setTemplateForm({type:t.type,keywords:t.keywords||'',desc:t.desc||''});}} style={{background:'none',border:'none',fontSize:11,color:'var(--blue)',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>수정</button>
+                  <button onClick={()=>{setEditingTemplate(t);setTemplateForm({tags:templateAllTags(t),methods:t.methods||[],desc:t.desc||'',referenceImage:null,referenceImageUrl:t.referenceImageUrl||''});setTemplateTagInput('');}} style={{background:'none',border:'none',fontSize:11,color:'var(--blue)',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>수정</button>
                   {t.id&&<button onClick={()=>deleteTemplate(t.id)} style={{background:'none',border:'none',fontSize:11,color:'#DC2626',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>삭제</button>}
                 </div>
               </div>
@@ -4480,7 +4619,6 @@ function DefectPhotosPage({showToast}){
           <div key={defectType} style={{marginBottom:24}}>
             <div style={{fontSize:15,fontWeight:800,marginBottom:12,display:'flex',alignItems:'center',gap:8}}>
               <span style={{padding:'3px 10px',borderRadius:6,background:'var(--blue-l)',color:'var(--blue)',fontSize:12,fontWeight:700}}>{defectType}</span>
-              <span style={{fontSize:12,color:'var(--text-sm)'}}>{items.length}장</span>
             </div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:14}}>
               {items.map(p=><PhotoCard key={p.id} p={p}/>)}

@@ -3413,7 +3413,18 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [casePhotos,setCasePhotos]=useState(()=>loadCasePhotos());
   const [defectTags,setDefectTags]=useState(()=>loadDefectTags());
   const [defectPhotos,setDefectPhotos]=useState([]);
+  const [defectTemplates,setDefectTemplates]=useState([]);
   useEffect(()=>{syncPhotosFromFirestore(setCasePhotos,null);syncDefectTagsFromFirestore(setDefectTags);},[]);
+  /* defect-templates 컨렉션 로드 (대표사진 연동용) */
+  useEffect(()=>{
+    (async()=>{
+      try{
+        const snap=await db.collection('defect-templates').get();
+        const arr=[];snap.forEach(doc=>{const d={id:doc.id,...doc.data()};if(!d.tags&&d.type)d.tags=[d.type];arr.push(d);});
+        setDefectTemplates(arr);
+      }catch(e){console.error('[defect-templates] 로드 실패:',e);}
+    })();
+  },[]);
   /* 현재 공법을 상담 여정에 추가 + 공정 탭 0번으로 리셋 */
   useEffect(()=>{
     if(!problem||!visible)return;
@@ -4264,7 +4275,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                             return(
                               <div onClick={()=>changePhotoFilter('all','all')}
                                 className={isAct?'df-card-in df-active-card':'df-card-in'}
-                                style={{flex:'0 0 82px',scrollSnapAlign:'start',borderRadius:10,overflow:'hidden',cursor:'pointer',
+                                style={{flex:'0 0 90px',scrollSnapAlign:'start',borderRadius:10,overflow:'hidden',cursor:'pointer',
                                   border:`1.5px solid ${isAct?'var(--accent)':'var(--border)'}`,
                                   background:isAct?'var(--accent-l)':'var(--bg)',
                                   transform:isAct?'scale(1.06) translateY(-3px)':hasActive?'scale(0.94)':'scale(1)',
@@ -4273,7 +4284,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                                   flexShrink:0,position:'relative'}}>
                                 <Mk act={isAct}/>
                                 {isAct&&<div style={{position:'absolute',bottom:0,left:0,right:0,height:2,background:'var(--accent)',transformOrigin:'left',animation:'accentGrow .38s cubic-bezier(.19,1,.22,1) both'}}/>}
-                                <div style={{height:60,display:'flex',alignItems:'center',justifyContent:'center',background:isAct?'rgba(37,99,235,.06)':'transparent',fontSize:20}}>🏠</div>
+                                <div style={{height:80,display:'flex',alignItems:'center',justifyContent:'center',background:isAct?'rgba(37,99,235,.06)':'transparent',fontSize:22}}>🏠</div>
                                 <div style={{padding:'5px 7px 4px',borderTop:'1px solid var(--border-s)'}}>
                                   <div style={{fontSize:10,fontWeight:800,color:isAct?'var(--accent)':'var(--text-md)',letterSpacing:'.02em'}}>전체</div>
                                 </div>
@@ -4285,12 +4296,14 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                           })()}
                           {existingMajor.map((type,ci)=>{
                             const grp=grouped[type]||[];
-                            const rep=grp[0]?.src;
+                            /* 템플릿 대표사진 우선, 없으면 첫 사진 fallback */
+                            const tpl=(defectTemplates||[]).find(t=>(t.tags||[t.type]).includes(type));
+                            const rep=(tpl&&tpl.referenceImageUrl)||grp[0]?.src;
                             const isAct=activeDefect===type;
                             return(
                               <div key={type} onClick={()=>changePhotoFilter(type,'all')}
                                 className={isAct?'df-card-in df-active-card':'df-card-in'}
-                                style={{flex:'0 0 82px',scrollSnapAlign:'start',borderRadius:10,overflow:'hidden',cursor:'pointer',
+                                style={{flex:'0 0 90px',scrollSnapAlign:'start',borderRadius:10,overflow:'hidden',cursor:'pointer',
                                   border:`1.5px solid ${isAct?'var(--accent)':'var(--border)'}`,
                                   background:isAct?'var(--accent-l)':'var(--bg)',
                                   transform:isAct?'scale(1.06) translateY(-3px)':hasActive?'scale(0.94)':'scale(1)',
@@ -4300,18 +4313,17 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                                 <Mk act={isAct}/>
                                 {isAct&&<div style={{position:'absolute',bottom:0,left:0,right:0,height:2,background:'var(--accent)',transformOrigin:'left',animation:'accentGrow .38s cubic-bezier(.19,1,.22,1) both',zIndex:1}}/>}
                                 {rep?(
-                                  <div style={{height:60,overflow:'hidden',position:'relative'}}>
+                                  <div style={{height:80,overflow:'hidden',position:'relative'}}>
                                     <img src={rep} alt={type} className={isAct?'df-img-ken':''}
                                       style={{width:'100%',height:'100%',objectFit:'cover',display:'block',
                                         filter:isAct?'saturate(1.1) brightness(1)':'saturate(.75) brightness(.88)',transition:'filter .3s'}}/>
                                     {isAct&&<div style={{position:'absolute',inset:0,background:'linear-gradient(transparent 40%,rgba(37,99,235,.18))',pointerEvents:'none'}}/>}
                                   </div>
                                 ):(
-                                  <div style={{height:60,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,color:'var(--border)'}}>◌</div>
+                                  <div style={{height:80,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,color:'var(--border)'}}>◌</div>
                                 )}
                                 <div style={{padding:'5px 7px 4px',borderTop:'1px solid var(--border-s)'}}>
-                                  <div style={{fontSize:9,fontWeight:800,color:isAct?'var(--accent)':'var(--text-md)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'.01em'}}>#{type}</div>
-                                  <div style={{fontSize:8,color:isAct?'rgba(37,99,235,.7)':'var(--text-sm)',marginTop:1}}>{grp.length}장</div>
+                                  <div style={{fontSize:10,fontWeight:800,color:isAct?'var(--accent)':'var(--text-md)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'.01em'}}>#{type}</div>
                                 </div>
                                 <div style={{height:2,background:'var(--border-s)'}}>
                                   <div style={{height:'100%',width:`${Math.round((grp.length/(photosWithMeta.length||1))*100)}%`,background:isAct?'var(--accent)':'var(--blue-m)',transition:'width .45s cubic-bezier(.19,1,.22,1),background .3s'}}/>

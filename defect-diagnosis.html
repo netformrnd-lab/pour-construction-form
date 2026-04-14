@@ -99,7 +99,7 @@ textarea.form-input{resize:vertical;min-height:60px;}
 .gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
 .gallery-card{background:var(--card);border-radius:12px;border:1px solid var(--border);overflow:hidden;cursor:pointer;transition:box-shadow .2s;}
 .gallery-card:active{box-shadow:0 4px 16px rgba(0,0,0,.12);}
-.gallery-thumb{height:140px;overflow:hidden;background:var(--bg);display:flex;align-items:center;justify-content:center;}
+.gallery-thumb{height:180px;overflow:hidden;background:var(--bg);display:flex;align-items:center;justify-content:center;}
 .gallery-thumb img{width:100%;height:100%;object-fit:cover;}
 .gallery-info{padding:10px 12px;}
 .gallery-label{font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:4px;}
@@ -268,7 +268,6 @@ function DefectGallery(){
           <div key={defectType}>
             <div className="group-header">
               <span className="group-badge">{defectType}</span>
-              <span className="group-count">{items.length}장</span>
             </div>
             <div className="gallery-grid">
               {items.map(p=>(

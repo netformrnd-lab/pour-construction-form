@@ -1973,18 +1973,30 @@ const detectMediaType=(url)=>{
 // 공정사진/자재 미디어 렌더링 컴포넌트
 function ProposalSlideViewer({slides,size}){
   const [idx,setIdx]=React.useState(0);
+  const touchRef=React.useRef(null);
   const sz=size||'normal';
   const btnW=sz==='small'?24:32;const btnFs=sz==='small'?14:16;
   const pageFs=sz==='small'?9:10;const pagePad=sz==='small'?'2px 8px':'3px 10px';
   const radius=sz==='small'?10:12;const gap=sz==='small'?4:6;
+  const handleTouchStart=(e)=>{touchRef.current=e.touches[0].clientX;};
+  const handleTouchEnd=(e)=>{
+    if(touchRef.current===null)return;
+    const diff=touchRef.current-e.changedTouches[0].clientX;
+    if(Math.abs(diff)>40){
+      if(diff>0&&idx<slides.length-1)setIdx(idx+1);
+      if(diff<0&&idx>0)setIdx(idx-1);
+    }
+    touchRef.current=null;
+  };
   return(
-    <div style={{position:'relative',borderRadius:radius,overflow:'hidden',background:'#F5F3FF',border:'1.5px solid #EDE9FE'}}>
-      <img src={slides[idx]} style={{width:'100%',display:'block'}} alt={`제안서 ${idx+1}/${slides.length}`}/>
+    <div style={{position:'relative',borderRadius:radius,overflow:'hidden',background:'#F5F3FF',border:'1.5px solid #EDE9FE'}}
+      onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+      <img src={slides[idx]} style={{width:'100%',display:'block',userSelect:'none',WebkitUserDrag:'none'}} alt={`제안서 ${idx+1}/${slides.length}`}/>
       {slides.length>1&&(
         <>
           {idx>0&&<button onClick={()=>setIdx(idx-1)} style={{position:'absolute',left:gap,top:'50%',transform:'translateY(-50%)',width:btnW,height:btnW,borderRadius:'50%',border:'none',background:'rgba(0,0,0,.45)',color:'#fff',fontSize:btnFs,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>‹</button>}
           {idx<slides.length-1&&<button onClick={()=>setIdx(idx+1)} style={{position:'absolute',right:gap,top:'50%',transform:'translateY(-50%)',width:btnW,height:btnW,borderRadius:'50%',border:'none',background:'rgba(0,0,0,.45)',color:'#fff',fontSize:btnFs,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>›</button>}
-          <div style={{position:'absolute',bottom:gap+2,left:'50%',transform:'translateX(-50%)',background:'rgba(0,0,0,.55)',color:'#fff',fontSize:pageFs,fontWeight:700,padding:pagePad,borderRadius:10}}>{idx+1} / {slides.length}</div>
+          <div style={{position:'absolute',top:gap+2,right:gap+2,background:'rgba(0,0,0,.55)',color:'#fff',fontSize:pageFs,fontWeight:700,padding:pagePad,borderRadius:10}}>{idx+1} / {slides.length}</div>
         </>
       )}
     </div>
@@ -3395,7 +3407,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [fieldPhotoModal,setFieldPhotoModal]=useState(null); // {id,src} — 태그 확인 중
   const [fieldPhotoTag,setFieldPhotoTag]=useState({defectType:'',defectPart:''});
   /* ── STEP 3 공정 사진 ── */
-  const [selectedProcessStep,setSelectedProcessStep]=useState(new Set([0]));
+  const [openProcessSteps,setOpenProcessSteps]=useState([0]);
   const [materialModal,setMaterialModal]=useState(null); // {name, desc, mediaUrl, mediaType}
   const [photoCardTab,setPhotoCardTab]=useState({}); // {[methodId]: 'defect'|'media'|'process'}
   const [showReport,setShowReport]=useState(false);
@@ -3514,7 +3526,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
     if(mc&&mc.processMaterials){
       mc.processMaterials.forEach((mat,idx)=>{if(mat)defaultOpen.add(idx);});
     }
-    setSelectedProcessStep(defaultOpen);
+    setOpenProcessSteps([...defaultOpen]);
     const ms=METHOD_STATS[problem.id];
     const snap={id:problem.id,label:problem.label,cat:problem.cat||'',
       cause:mc?.cause||'',process:mc?.process||[],solution:mc?.solution||'',
@@ -4753,7 +4765,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     {(mc.processMode||'steps')==='steps'&&(
                     <div style={{display:'flex',flexDirection:'column',gap:0}}>
                       {mc.process.map((step,i)=>{
-                        const isSel=selectedProcessStep.has(i);
+                        const isSel=openProcessSteps.includes(i);
                         const _cpSteps=(casePhotos[problem.id]||{}).processSteps||[];
                         const hasPhoto=(_cpSteps[i]&&_cpSteps[i].url)||((mc.processPhotos||[])[i]);
                         const stepDesc=(mc.processDescs||[])[i];
@@ -4763,7 +4775,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                           <div key={i} style={{display:'flex',gap:0,position:'relative'}}>
                             {/* 왼쪽 타임라인 */}
                             <div style={{display:'flex',flexDirection:'column',alignItems:'center',width:32,flexShrink:0}}>
-                              <button onClick={()=>setSelectedProcessStep(p=>{const n=new Set(p);n.has(i)?n.delete(i):n.add(i);return n;})}
+                              <button onClick={()=>setOpenProcessSteps(p=>p.includes(i)?p.filter(x=>x!==i):[...p,i])}
                                 style={{width:28,height:28,borderRadius:'50%',border:'none',cursor:'pointer',
                                   background:isSel?'var(--green)':'var(--navy)',
                                   color:'#fff',fontSize:11,fontWeight:800,flexShrink:0,
@@ -4776,7 +4788,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                             </div>
                             {/* 오른쪽 콘텐츠 */}
                             <div style={{flex:1,paddingLeft:8,paddingBottom:isLast?0:10}}>
-                              <button onClick={()=>setSelectedProcessStep(p=>{const n=new Set(p);n.has(i)?n.delete(i):n.add(i);return n;})}
+                              <button onClick={()=>setOpenProcessSteps(p=>p.includes(i)?p.filter(x=>x!==i):[...p,i])}
                                 style={{width:'100%',textAlign:'left',background:isSel?'rgba(5,150,105,.06)':'transparent',
                                   border:`1.5px solid ${isSel?'var(--green)':'transparent'}`,
                                   borderRadius:10,padding:'8px 10px',cursor:'pointer',fontFamily:'inherit',

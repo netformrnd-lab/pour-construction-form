@@ -1653,6 +1653,20 @@ let _proposalSlidesMap={};
             if(filtered.length>0){_proposalSlidesMap[methodId]=filtered;console.log(`[proposal-slides] ${methodId}: ${filtered.length}장`);}
           }
         }catch(e2){console.warn(`[proposal-slides] ${methodId} 실패:`,e2);}
+        // extraSolutions 서브컬렉션 로드
+        const ovES=_methodContentOverrides[methodId];
+        if(ovES&&ovES.extraSolutions&&ovES.extraSolutions.length>0){
+          for(let idx=0;idx<ovES.extraSolutions.length;idx++){
+            try{
+              const esSSnap=await db.collection('method-content').doc(methodId).collection(`extra-slides-${idx}`).get();
+              if(esSSnap.size>0){const arr=[];esSSnap.docs.forEach(d=>{if(d.id==='_meta')return;const i=parseInt(d.id);if(!isNaN(i))arr[i]=d.data().image;});ovES.extraSolutions[idx].proposalSlides=arr.filter(Boolean);}
+            }catch(e3){}
+            try{
+              const esGSnap=await db.collection('method-content').doc(methodId).collection(`extra-guide-${idx}`).get();
+              if(esGSnap.size>0){const arr=[];esGSnap.docs.forEach(d=>{if(d.id==='_meta')return;const i=parseInt(d.id);if(!isNaN(i))arr[i]=d.data().image;});ovES.extraSolutions[idx].processGuideImages=arr.filter(Boolean);}
+            }catch(e3){}
+          }
+        }
       }
     }
   }catch(e){console.warn('[method-content] 오버라이드 로드 실패, 기본값 사용:',e);}
@@ -1681,6 +1695,7 @@ function getMethodContent(id){
     proposalSlides:_proposalSlidesMap[id]||ov.proposalSlides||base?.proposalSlides||[],
     processMode:ov.processMode||base?.processMode||'steps',
     processGuideImages:ov.processGuideImages||base?.processGuideImages||[],
+    extraSolutions:ov.extraSolutions||[],
   };
 }
 var _METHOD_CONTENT_DEFAULTS={
@@ -4815,6 +4830,41 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
             })()}
 
 
+
+            {/* ── 추가 방안 (extraSolutions) ── */}
+            {(()=>{
+              const mc=getMethodContent(problem?.id);
+              return(mc.extraSolutions||[]).map((es,esIdx)=>(
+                <React.Fragment key={`es-${esIdx}`}>
+                  {(es.proposalSlides||[]).length>0&&(
+                    <div style={{marginBottom:16,borderRadius:16,background:'var(--card)',
+                      border:'1px solid var(--border)',boxShadow:'var(--shadow)',overflow:'hidden'}}>
+                      <div style={{height:2,background:'linear-gradient(90deg,#F59E0B,rgba(245,158,11,.2),transparent)',opacity:.8}}/>
+                      <div style={{padding:'12px 14px'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:12}}>
+                          <div style={{width:6,height:6,borderRadius:'50%',background:'#F59E0B',flexShrink:0}}/>
+                          <span style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>{es.name||`방안 ${esIdx+2}`} — 해결방안</span>
+                        </div>
+                        <ProposalSlideViewer slides={es.proposalSlides} size="normal"/>
+                      </div>
+                    </div>
+                  )}
+                  {(es.processGuideImages||[]).length>0&&(
+                    <div style={{marginBottom:16,borderRadius:16,background:'var(--card)',
+                      border:'1px solid var(--border)',boxShadow:'var(--shadow)',overflow:'hidden'}}>
+                      <div style={{height:2,background:'linear-gradient(90deg,#059669,rgba(5,150,105,.2),transparent)',opacity:.8}}/>
+                      <div style={{padding:'12px 14px'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:12}}>
+                          <div style={{width:6,height:6,borderRadius:'50%',background:'#059669',flexShrink:0}}/>
+                          <span style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>{es.name||`방안 ${esIdx+2}`} — 시공공정</span>
+                        </div>
+                        <ProposalSlideViewer slides={es.processGuideImages} size="normal"/>
+                      </div>
+                    </div>
+                  )}
+                </React.Fragment>
+              ));
+            })()}
 
             {/* 하단 여백 */}
             <div style={{paddingBottom:80}}/>

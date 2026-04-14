@@ -4712,6 +4712,28 @@ function ContentEditorPage({ showToast }) {
             }
           }
         } catch(e2) { console.warn('[proposal-slides] 로드 실패:', e2); }
+        // 추가 방안 (extraSolutions) 서브컬렉션 로드
+        if (data.extraSolutions && data.extraSolutions.length > 0) {
+          for (let idx = 0; idx < data.extraSolutions.length; idx++) {
+            try {
+              const esSlideSnap = await ref.collection(`extra-slides-${idx}`).get();
+              if (esSlideSnap.size > 0) {
+                const arr = [];
+                esSlideSnap.docs.forEach(d => { if (d.id === '_meta') return; const i = parseInt(d.id); if (!isNaN(i)) arr[i] = d.data().image; });
+                data.extraSolutions[idx].proposalSlides = arr.filter(Boolean);
+              }
+            } catch(e3) {}
+            try {
+              const esGuideSnap = await ref.collection(`extra-guide-${idx}`).get();
+              if (esGuideSnap.size > 0) {
+                const arr = [];
+                esGuideSnap.docs.forEach(d => { if (d.id === '_meta') return; const i = parseInt(d.id); if (!isNaN(i)) arr[i] = d.data().image; });
+                data.extraSolutions[idx].processGuideImages = arr.filter(Boolean);
+              }
+            } catch(e3) {}
+          }
+          console.log(`[extraSolutions] ${methodId}: ${data.extraSolutions.length}개 방안 로드`);
+        }
         setContent(data);
       } else {
         setContent(defaultContent);
@@ -5045,6 +5067,10 @@ function ContentEditorPage({ showToast }) {
             return { desc: k.desc || '' };
           }),
           processMode: clean.processMode || 'steps',
+          extraSolutions: (clean.extraSolutions || []).map((s, idx) => ({
+            name: s.name || `방안 ${idx + 2}`,
+            processMode: s.processMode || 'images',
+          })),
           updatedAt: new Date().toISOString(),
         };
         console.log('[saveContent] textOnly size:', JSON.stringify(textOnly).length, 'bytes');
@@ -5084,6 +5110,27 @@ function ContentEditorPage({ showToast }) {
             await guideCol.doc(String(i)).set({ image: cGuideImages[i] });
           }
           await guideCol.doc('_meta').set({ count: cGuideImages.length });
+        }
+
+        // 추가 방안 (extraSolutions) 서브컬렉션 저장
+        for (let idx = 0; idx < (clean.extraSolutions || []).length; idx++) {
+          const es = clean.extraSolutions[idx];
+          const esSlides = es.proposalSlides || [];
+          if (esSlides.length > 0) {
+            const esSlideCol = ref.collection(`extra-slides-${idx}`);
+            for (let i = 0; i < esSlides.length; i++) {
+              await esSlideCol.doc(String(i)).set({ image: esSlides[i] });
+            }
+            await esSlideCol.doc('_meta').set({ count: esSlides.length, updatedAt: new Date().toISOString() });
+          }
+          const esGuide = es.processGuideImages || [];
+          if (esGuide.length > 0) {
+            const esGuideCol = ref.collection(`extra-guide-${idx}`);
+            for (let i = 0; i < esGuide.length; i++) {
+              await esGuideCol.doc(String(i)).set({ image: esGuide[i] });
+            }
+            await esGuideCol.doc('_meta').set({ count: esGuide.length });
+          }
         }
       }
       /* 저장 성공 시 로컬 state도 갱신 */
@@ -5914,6 +5961,90 @@ function ContentEditorPage({ showToast }) {
               </div>
             )}
           </div>
+
+          {/* ══════ 추가 방안 ══════ */}
+          {(content?.extraSolutions||[]).map((es, esIdx) => (
+            <div key={`es-${esIdx}`} style={{marginTop:24,background:'#FFFBEB',border:'2px solid #FDE68A',borderRadius:16,padding:'20px 18px'}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:16}}>
+                <span style={{fontSize:16}}>🔶</span>
+                <input
+                  value={es.name||`방안 ${esIdx+2}`}
+                  onChange={e=>{const arr=[...(content.extraSolutions||[])];arr[esIdx]={...arr[esIdx],name:e.target.value};setContent(prev=>({...prev,extraSolutions:arr}));}}
+                  style={{fontSize:15,fontWeight:800,color:'#92400E',background:'transparent',border:'none',borderBottom:'2px solid #FDE68A',outline:'none',flex:1,padding:'4px 0'}}
+                />
+                <button onClick={()=>{const arr=[...(content.extraSolutions||[])];arr.splice(esIdx,1);setContent(prev=>({...prev,extraSolutions:arr}));}}
+                  style={{padding:'4px 12px',borderRadius:8,border:'1px solid #FCA5A5',background:'#FEF2F2',color:'#DC2626',fontSize:11,fontWeight:700,cursor:'pointer'}}>삭제</button>
+              </div>
+
+              {/* 해결방안 슬라이드 */}
+              <div style={{marginBottom:16}}>
+                <div style={{fontSize:12,fontWeight:700,color:'#92400E',marginBottom:8}}>📋 해결방안 (제안서 슬라이드)</div>
+                <div style={{display:'flex',gap:6,marginBottom:8}}>
+                  <label style={{padding:'6px 14px',borderRadius:8,border:'1px solid #FDE68A',background:'#FEF3C7',fontSize:11,fontWeight:600,cursor:'pointer'}}>
+                    📷 사진 추가
+                    <input type="file" accept="image/*" multiple hidden onChange={async(e)=>{
+                      const files=Array.from(e.target.files);const arr=[...(content.extraSolutions||[])];const slides=[...(arr[esIdx].proposalSlides||[])];
+                      for(const f of files){const c=await compressImage(f,1600,0.88);slides.push(c);}
+                      arr[esIdx]={...arr[esIdx],proposalSlides:slides};setContent(prev=>({...prev,extraSolutions:arr}));
+                    }}/>
+                  </label>
+                </div>
+                {(es.proposalSlides||[]).length > 0 && (
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))',gap:8}}>
+                    {(es.proposalSlides||[]).map((sl,si)=>(
+                      <div key={si} style={{position:'relative',borderRadius:8,overflow:'hidden',border:'1px solid #FDE68A'}}>
+                        <img src={sl} style={{width:'100%',aspectRatio:'4/3',objectFit:'cover'}}/>
+                        <div style={{position:'absolute',top:4,left:4,background:'#F59E0B',color:'#fff',borderRadius:6,padding:'1px 6px',fontSize:10,fontWeight:700}}>{si+1}</div>
+                        <button onClick={()=>{const arr=[...(content.extraSolutions||[])];const slides=[...(arr[esIdx].proposalSlides||[])];slides.splice(si,1);arr[esIdx]={...arr[esIdx],proposalSlides:slides};setContent(prev=>({...prev,extraSolutions:arr}));}}
+                          style={{position:'absolute',top:4,right:4,background:'#DC2626',color:'#fff',border:'none',borderRadius:'50%',width:20,height:20,fontSize:12,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 시공공정 이미지 가이드 */}
+              <div>
+                <div style={{fontSize:12,fontWeight:700,color:'#92400E',marginBottom:8}}>🔧 시공공정 (이미지 가이드)</div>
+                <div style={{display:'flex',gap:6,marginBottom:8}}>
+                  <label style={{padding:'6px 14px',borderRadius:8,border:'1px solid #FDE68A',background:'#FEF3C7',fontSize:11,fontWeight:600,cursor:'pointer'}}>
+                    📷 사진 추가
+                    <input type="file" accept="image/*" multiple hidden onChange={async(e)=>{
+                      const files=Array.from(e.target.files);const arr=[...(content.extraSolutions||[])];const imgs=[...(arr[esIdx].processGuideImages||[])];
+                      for(const f of files){const c=await compressImage(f,1600,0.88);imgs.push(c);}
+                      arr[esIdx]={...arr[esIdx],processGuideImages:imgs};setContent(prev=>({...prev,extraSolutions:arr}));
+                    }}/>
+                  </label>
+                </div>
+                {(es.processGuideImages||[]).length > 0 && (
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))',gap:8}}>
+                    {(es.processGuideImages||[]).map((gi,gIdx)=>(
+                      <div key={gIdx} style={{position:'relative',borderRadius:8,overflow:'hidden',border:'1px solid #FDE68A'}}>
+                        <img src={gi} style={{width:'100%',aspectRatio:'4/3',objectFit:'cover'}}/>
+                        <div style={{position:'absolute',top:4,left:4,background:'#059669',color:'#fff',borderRadius:6,padding:'1px 6px',fontSize:10,fontWeight:700}}>{gIdx+1}</div>
+                        <button onClick={()=>{const arr=[...(content.extraSolutions||[])];const imgs=[...(arr[esIdx].processGuideImages||[])];imgs.splice(gIdx,1);arr[esIdx]={...arr[esIdx],processGuideImages:imgs};setContent(prev=>({...prev,extraSolutions:arr}));}}
+                          style={{position:'absolute',top:4,right:4,background:'#DC2626',color:'#fff',border:'none',borderRadius:'50%',width:20,height:20,fontSize:12,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {/* 방안 추가 버튼 */}
+          <button onClick={()=>{
+            const arr=[...(content?.extraSolutions||[])];
+            arr.push({name:`방안 ${arr.length+2}`,processMode:'images',proposalSlides:[],processGuideImages:[]});
+            setContent(prev=>({...prev,extraSolutions:arr}));
+          }} style={{
+            width:'100%',marginTop:16,padding:'14px 0',borderRadius:12,
+            border:'2px dashed #FDE68A',background:'#FFFBEB',
+            color:'#B45309',fontSize:13,fontWeight:700,cursor:'pointer',
+            display:'flex',alignItems:'center',justifyContent:'center',gap:8
+          }}>
+            <span style={{fontSize:18}}>+</span> 방안 추가 (해결방안 + 시공공정)
+          </button>
 
           </div>{/* maxWidth container */}
         </div>{/* scroll area */}

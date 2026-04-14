@@ -3586,6 +3586,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       desiredStartDate:ntDesiredStart,
       nextActions:ntNextActions,
       address:ntAddress,
+      region:normalizeRegionSimple(ntAddress)||'',
       businessCard:ntBizCard,
       memo:ntMemo,memoImgs:ntMemoImgs,keywords:ntKeywords,brandTag:ntBrandTag,
       fieldPhotos:ntFieldPhotos.filter(p=>p.confirmed).map(({src,defectType,defectPart})=>({src,defectType,defectPart})),
@@ -7015,6 +7016,7 @@ function GlobalNoteSheet({building,problem,staffId,staffName,staffDay,onClose,me
       desiredStartDate:gDesiredStart,nextActions:gNextActions,
       businessCard:bizCard,
       memo,memoImgs,keywords,status:'신규',source:getUrlSource(),fieldMode:localStorage.getItem('pourFieldMode')||'expo',
+      region:'',
     };
     try{await db.collection('leads').add(data);}catch(e){console.warn(e);}
     sendToSheet(Object.assign({_sheetType:'lead'},data));
@@ -7526,7 +7528,7 @@ function AdminScreen({onBack}){
   const byPosition=(()=>{const m={};activeLeads.forEach(l=>{if(l.position&&l.position!=='-')m[l.position]=(m[l.position]||0)+1;});return Object.entries(m).sort((a,b)=>b[1]-a[1]);})();
   const byProblem=(()=>{const m={};activeLeads.forEach(l=>{(l.problems||[]).forEach(p=>{if(p&&p!=='-')m[p]=(m[p]||0)+1;});if(l.problem&&l.problem!=='-'&&!(l.problems||[]).includes(l.problem))m[l.problem]=(m[l.problem]||0)+1;});return Object.entries(m).sort((a,b)=>b[1]-a[1]);})();
   const byAction=(()=>{const m={};activeLeads.forEach(l=>{(l.actions||[]).forEach(a=>{if(a)m[a]=(m[a]||0)+1;});});return Object.entries(m).sort((a,b)=>b[1]-a[1]);})();
-  const byRegion=(()=>{const m={};activeLeads.forEach(l=>{const r=normalizeRegionSimple(l.region||'');if(r)m[r]=(m[r]||0)+1;});return Object.entries(m).sort((a,b)=>b[1]-a[1]);})();
+  const byRegion=(()=>{const m={};activeLeads.forEach(l=>{const r=normalizeRegionSimple(l.region||'')||normalizeRegionSimple(l.address||'');if(r)m[r]=(m[r]||0)+1;});return Object.entries(m).sort((a,b)=>b[1]-a[1]);})();
   const byStartMonth=Array.from({length:12},(_,i)=>{const mo=i+1;return{month:mo,label:`${mo}월`,count:activeLeads.filter(l=>l.desiredStartDate&&parseInt(l.desiredStartDate.slice(5,7),10)===mo).length};});
   const maxStartMonth=Math.max(...byStartMonth.map(m=>m.count),1);
 

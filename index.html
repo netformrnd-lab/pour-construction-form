@@ -1812,6 +1812,26 @@ const detectMediaType=(url)=>{
   return'image';
 };
 // 공정사진/자재 미디어 렌더링 컴포넌트
+function ProposalSlideViewer({slides,size}){
+  const [idx,setIdx]=React.useState(0);
+  const sz=size||'normal';
+  const btnW=sz==='small'?24:32;const btnFs=sz==='small'?14:16;
+  const pageFs=sz==='small'?9:10;const pagePad=sz==='small'?'2px 8px':'3px 10px';
+  const radius=sz==='small'?10:12;const gap=sz==='small'?4:6;
+  return(
+    <div style={{position:'relative',borderRadius:radius,overflow:'hidden',background:'#F5F3FF',border:'1.5px solid #EDE9FE'}}>
+      <img src={slides[idx]} style={{width:'100%',display:'block'}} alt={`제안서 ${idx+1}/${slides.length}`}/>
+      {slides.length>1&&(
+        <>
+          {idx>0&&<button onClick={()=>setIdx(idx-1)} style={{position:'absolute',left:gap,top:'50%',transform:'translateY(-50%)',width:btnW,height:btnW,borderRadius:'50%',border:'none',background:'rgba(0,0,0,.45)',color:'#fff',fontSize:btnFs,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>‹</button>}
+          {idx<slides.length-1&&<button onClick={()=>setIdx(idx+1)} style={{position:'absolute',right:gap,top:'50%',transform:'translateY(-50%)',width:btnW,height:btnW,borderRadius:'50%',border:'none',background:'rgba(0,0,0,.45)',color:'#fff',fontSize:btnFs,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>›</button>}
+          <div style={{position:'absolute',bottom:gap+2,left:'50%',transform:'translateX(-50%)',background:'rgba(0,0,0,.55)',color:'#fff',fontSize:pageFs,fontWeight:700,padding:pagePad,borderRadius:10}}>{idx+1} / {slides.length}</div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function ProcessMedia({src,alt,style}){
   const type=detectMediaType(src);
   const parsed=type==='video'?parseVideoUrl(src):null;
@@ -4500,26 +4520,11 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                       <span style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>POUR 해결방안 — 시공 공정</span>
                     </div>
                     {/* ── 제안서 슬라이드 카루셀 ── */}
-                    {(mc.proposalSlides||[]).length>0&&(()=>{
-                      const slides=mc.proposalSlides;
-                      const [slideIdx,setSlideIdx]=React.useState(0);
-                      return(
-                        <div style={{marginBottom:14}}>
-                          <div style={{position:'relative',borderRadius:12,overflow:'hidden',background:'#F5F3FF',border:'1.5px solid #EDE9FE'}}>
-                            <img src={slides[slideIdx]} style={{width:'100%',display:'block'}} alt={`제안서 ${slideIdx+1}/${slides.length}`}/>
-                            {slides.length>1&&(
-                              <>
-                                {slideIdx>0&&<button onClick={()=>setSlideIdx(slideIdx-1)} style={{position:'absolute',left:6,top:'50%',transform:'translateY(-50%)',width:32,height:32,borderRadius:'50%',border:'none',background:'rgba(0,0,0,.45)',color:'#fff',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>‹</button>}
-                                {slideIdx<slides.length-1&&<button onClick={()=>setSlideIdx(slideIdx+1)} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',width:32,height:32,borderRadius:'50%',border:'none',background:'rgba(0,0,0,.45)',color:'#fff',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>›</button>}
-                                <div style={{position:'absolute',bottom:8,left:'50%',transform:'translateX(-50%)',background:'rgba(0,0,0,.55)',color:'#fff',fontSize:10,fontWeight:700,padding:'3px 10px',borderRadius:10}}>
-                                  {slideIdx+1} / {slides.length}
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })()}
+                    {(mc.proposalSlides||[]).length>0&&(
+                      <div style={{marginBottom:14}}>
+                        <ProposalSlideViewer slides={mc.proposalSlides} size="normal"/>
+                      </div>
+                    )}
 
                     {/* ── 세로 타임라인 공정 ── */}
                     <div style={{display:'flex',flexDirection:'column',gap:0}}>
@@ -5306,7 +5311,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 <div style={{textAlign:'center',padding:'40px 0',color:'var(--text-sm)',fontSize:13}}>상담된 공법이 없습니다.</div>
               )}
               {sessionMethods.map((m,mi)=>{
-                const mc=METHOD_CONTENT[m.id]||{};
+                const mc=getMethodContent(m.id)||{};
                 const mPhotos=reportDefectPhotos[m.id]||[];
                 const mCasePhotos=casePhotos[m.id]||{};
                 const caseCauses=(mCasePhotos.causes||[]).filter(s=>s);
@@ -5381,28 +5386,15 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     )}
 
                     {/* ── 제안서 슬라이드 ── */}
-                    {(mc.proposalSlides||[]).length>0&&(()=>{
-                      const slides=mc.proposalSlides;
-                      const [psIdx,setPsIdx]=React.useState(0);
-                      return(
-                        <div style={{marginBottom:12}}>
-                          <div style={{fontSize:9,fontWeight:800,color:'#6D28D9',marginBottom:6,display:'flex',alignItems:'center',gap:5,letterSpacing:'.05em'}}>
-                            <div style={{width:3,height:12,borderRadius:2,background:'#6D28D9'}}/>
-                            제안서 상세
-                          </div>
-                          <div style={{position:'relative',borderRadius:10,overflow:'hidden',border:'1.5px solid #EDE9FE',background:'#F5F3FF'}}>
-                            <img src={slides[psIdx]} style={{width:'100%',display:'block'}} alt={`슬라이드 ${psIdx+1}`}/>
-                            {slides.length>1&&(
-                              <>
-                                {psIdx>0&&<button onClick={()=>setPsIdx(psIdx-1)} style={{position:'absolute',left:4,top:'50%',transform:'translateY(-50%)',width:24,height:24,borderRadius:'50%',border:'none',background:'rgba(0,0,0,.45)',color:'#fff',fontSize:14,cursor:'pointer'}}>‹</button>}
-                                {psIdx<slides.length-1&&<button onClick={()=>setPsIdx(psIdx+1)} style={{position:'absolute',right:4,top:'50%',transform:'translateY(-50%)',width:24,height:24,borderRadius:'50%',border:'none',background:'rgba(0,0,0,.45)',color:'#fff',fontSize:14,cursor:'pointer'}}>›</button>}
-                                <div style={{position:'absolute',bottom:6,left:'50%',transform:'translateX(-50%)',background:'rgba(0,0,0,.55)',color:'#fff',fontSize:9,fontWeight:700,padding:'2px 8px',borderRadius:8}}>{psIdx+1}/{slides.length}</div>
-                              </>
-                            )}
-                          </div>
+                    {(mc.proposalSlides||[]).length>0&&(
+                      <div style={{marginBottom:12}}>
+                        <div style={{fontSize:9,fontWeight:800,color:'#6D28D9',marginBottom:6,display:'flex',alignItems:'center',gap:5,letterSpacing:'.05em'}}>
+                          <div style={{width:3,height:12,borderRadius:2,background:'#6D28D9'}}/>
+                          제안서 상세
                         </div>
-                      );
-                    })()}
+                        <ProposalSlideViewer slides={mc.proposalSlides} size="small"/>
+                      </div>
+                    )}
 
                     {/* ── 시공 공정 — 화살표 플로우 ── */}
                     {mc.process?.length>0&&(
@@ -7904,7 +7896,7 @@ function AdminScreen({onBack}){
                   </div>
 
                   {(()=>{
-                    const mc=METHOD_CONTENT[key];
+                    const mc=getMethodContent(key)||{};
                     const mediaList=(data.media||[]).filter(s=>s);
                     const processSteps=(data.processSteps||[]);
                     const matsMedia=(data.processMatsMedia||{});

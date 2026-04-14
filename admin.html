@@ -102,6 +102,7 @@ const MENU = [
   { section: '현장관리' },
   { key: 'defect-sites', label: '완공현장', icon: '🏗' },
   { key: 'defect-photos', label: '공법분석', icon: '🔍' },
+  { key: 'method-content', label: '공법콘텐츠', icon: '✏️' },
   { section: '사이트' },
   { key: 'inquiries', label: '문의접수', icon: '📬' },
   { key: 'metrics', label: '공신력수치', icon: '📊' },
@@ -3665,6 +3666,29 @@ const DEFAULT_DEFECT_TEMPLATES=[
   {type:'기타',keywords:'기타,오염,이물질,곰팡이,백화,얼룩',desc:'위 분류에 해당하지 않는 기타 하자'},
 ];
 
+/* ── 공법콘텐츠 관리용 상수 ── */
+const MC_METHOD_LIST=[
+  {id:'shingle',cat:'방수',label:'POUR 아스팔트싱글 방수 공법',icon:'🏠'},
+  {id:'metal',cat:'방수',label:'POUR 금속기와 방수 공법',icon:'🏠'},
+  {id:'slab_dual',cat:'방수',label:'POUR 듀얼강화방수 공법',icon:'💧'},
+  {id:'slab_pvc',cat:'방수',label:'POUR PVC 방수 공법',icon:'💧'},
+  {id:'slab_urethane',cat:'방수',label:'POUR 우레탄 방수 공법',icon:'💧'},
+  {id:'slab_acrylic',cat:'방수',label:'POUR 아크릴 배면차수 공법',icon:'🚗'},
+  {id:'parking_epoxy',cat:'도장',label:'POUR 에폭시 도장 공법',icon:'🚗'},
+  {id:'parking_emboss',cat:'도장',label:'POUR 엠보라이닝 도장 공법',icon:'🚗'},
+  {id:'wall_premium',cat:'도장',label:'POUR 균열보수 재도장(고급형)',icon:'🏠'},
+  {id:'wall_mid',cat:'도장',label:'POUR 균열보수 재도장(중급형)',icon:'🏠'},
+  {id:'wall_economy',cat:'도장',label:'POUR 균열보수 재도장(경제형)',icon:'🏠'},
+  {id:'crack_surface',cat:'보수/보강',label:'POUR 탄성강화 보강(바탕면)',icon:'⚡'},
+  {id:'crack_section',cat:'보수/보강',label:'POUR 탄성강화 보강(단면복구)',icon:'⚡'},
+  {id:'crack_sheet',cat:'보수/보강',label:'POUR 복합시트 균열보수 공법',icon:'⚡'},
+  {id:'ascon_repair',cat:'토목',label:'POUR 아스콘 균열보수 공법',icon:'🛣'},
+  {id:'ascon_seal',cat:'토목',label:'POUR 아스콘 씰코팅 공법',icon:'🛣'},
+  {id:'ascon_mma',cat:'토목',label:'POUR MMA 공법',icon:'🛣'},
+  {id:'block',cat:'토목',label:'POUR 보도블럭 보수',icon:'🧱'},
+];
+const MC_CATS=['전체','방수','도장','보수/보강','토목'];
+
 function DefectPhotosPage({showToast}){
   const [photos,setPhotos]=useState([]);
   const [loading,setLoading]=useState(true);
@@ -6951,6 +6975,8 @@ function App() {
         return <DefectSitesPage showToast={showToast} />;
       case 'defect-photos':
         return <DefectPhotosPage showToast={showToast} />;
+      case 'method-content':
+        return <MethodContentPage showToast={showToast} />;
       case 'inquiries':
         return <PagePlaceholder title="문의접수" icon="📬" description="사이트 문의 접수 관리" />;
       case 'metrics':

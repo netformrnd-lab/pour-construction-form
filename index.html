@@ -1594,7 +1594,28 @@ const METHOD_STATS={
 };
 
 /* ── 공법별 원인·해결방안·공정 (STEP 2,3 콘텐츠) ── */
-const METHOD_CONTENT={
+/* Firestore method-content 컬렉션에서 오버라이드 — 어드민에서 수정 시 반영 */
+let _methodContentOverrides={};
+(async()=>{
+  try{
+    const snap=await db.collection('method-content').get();
+    if(snap.size>0){
+      snap.docs.forEach(d=>{_methodContentOverrides[d.id]={...d.data()};});
+      console.log(`[method-content] ${snap.size}건 오버라이드 로드`);
+    }
+  }catch(e){console.warn('[method-content] 오버라이드 로드 실패, 기본값 사용:',e);}
+})();
+function getMethodContent(id){
+  const ov=_methodContentOverrides[id];
+  const base=_METHOD_CONTENT_DEFAULTS[id];
+  if(!ov)return base;
+  return{...base,...ov,
+    process:ov.process||base?.process,
+    processDescs:ov.processDescs||base?.processDescs,
+    processMaterials:ov.processMaterials||base?.processMaterials,
+  };
+}
+var _METHOD_CONTENT_DEFAULTS={
   shingle:{
     cause:'아스팔트슁글은 원래 저층 목조주택용 자재입니다. 고층 아파트 박공지붕에 적용하면 강풍에 자재가 들뜨고, 후레싱 이음부 균열로 누수가 시작됩니다. 문제는 자재가 아니라 지붕을 붙잡는 구조가 약하기 때문입니다.',
     process:['표면강화함침','POUR슈퍼복합압축시트','방수액 도포','POUR코트재','상도 마감','POUR HOOKER 후레싱 고정'],
@@ -1616,7 +1637,7 @@ const METHOD_CONTENT={
     process:['모체강화함침 + 듀얼복합시트 전개','슈퍼복합압축시트 보강','듀얼복합시트 보강완료','코트재Ⅱ 도포 (중도)','상도코트재 도포','작업완료'],
     processPhotos:["Proposal/images/slab_dual/step01_page001_img001_3707x2476.jpeg", "Proposal/images/slab_dual/step02_page002_img003_326x280.png", "Proposal/images/slab_dual/step03_page003_img002_568x239.png", "Proposal/images/slab_dual/step04_page003_img011_568x239.png", "Proposal/images/slab_dual/step05_page003_img015_639x267.jpeg", "Proposal/images/slab_dual/step06_page004_img001_428x260.jpeg"],
     processDescs:['POUR 모체강화함침액을 도포하여 노후 콘크리트를 강화하고, 동시에 POUR 듀얼복합시트를 전개하여 1차 방수층을 형성합니다.','코너, 벤츄레이터, 기타 구조물, 이음부 등 취약 부위에 POUR슈퍼복합압축시트를 부착하여 반영구 보강합니다.','POUR 듀얼복합시트 접합부 보강 및 벽체 이음부, 곡각 지점 보강작업을 완료합니다.','POUR코트재Ⅱ를 중도 1차 도포합니다. 프라이머 기능을 겸하며 철근 부식 방지와 방청이 가능합니다.','POUR 상도코트재를 도포하여 내구성과 차열 성능을 강화합니다.','하도, 중도, 상도만으로 완벽한 방수층을 형성하는 복합공법 시공이 완료됩니다.'],
-    processMaterials:[[{name:'POUR모체강화함침',badge:'POUR공법 핵심②',desc:'POUR강화재Ⅰ + POUR코트재Ⅰ을 통해 건축물의 수명연장 및 부식방지',mediaUrl:'',mediaType:'image',features:[{title:'강화된 바탕면 위로 견고한 복합시트 방수층 형성',desc:'기존 약화된 바탕면을 강화 시킨 후 견고한 방수층을 형성하기 때문에 바탕면에 따른 방수층 손상피해 차단'},{title:'어떠한 바탕면에도 견고한 방수층을 형성하기 위한 기초',desc:'강화재 + 방수재를 혼합하여 바탕면을 강화시키고 견고한 방수층을 형성하는 작업'}]},{name:'POUR듀얼복합시트',badge:'POUR공법 핵심③',desc:'물고임 현상 자체에 대응하는 3중 구조 복합시트',mediaUrl:'',mediaType:'image',features:[{title:'3중 구조 복합시트',desc:'3중의 시트가 각기 다른 기능을 갖추고 있어 시트 자체만으로도 통기, 방수, 내후성 우수'},{title:'물고임 자체에 대응',desc:'하판, 상판 사이에 Pe계열 고분자계 시트가 수분 침투를 방지하여 물고임 현상에 대응'},{title:'별도의 바탕정리 생략 가능',desc:'평슬라브 옥상의 단점인 물고임을 대응하기 때문에 별도의 구배(기울기) 조정 생략 가능'}]}],[{name:'POUR슈퍼복합압축시트',badge:'POUR공법 핵심⑤',desc:'니들 펀칭을 이용해 공간을 형성하여 도막 방수재와 시트 간의 응결력으로 재료분리 현상 방지',mediaUrl:'',mediaType:'image',features:[{title:'우수한 인장강도 — 11.4 N/㎟ (타사 10배)',desc:'니들 펀칭 공정을 거친 시트는 섬유 간의 결속력이 높아 일반 압착시트에 비해 강한 인장강도 발현'},{title:'찢김, 재료분리 현상 저하',desc:'섬유 간의 결속력이 높기 때문에 찢김에도 강하고 도료와 결합되었을 때 재료분리 현상 저하'},{title:'뛰어난 약액 흡수력',desc:'섬유 속 공간이 형성되어 도료를 도포했을 시 뛰어난 흡수력 보유. 3cm 섬유시트를 0.3T로 100배 압축, 양면코팅 처리'}]}],null,[{name:'POUR코트재',badge:'POUR공법 핵심④',desc:'철재, 목재, 콘크리트 등 다양한 곳에 적용 가능한 다목적 도료',mediaUrl:'',mediaType:'image',features:[{title:'철근 부식 방지',desc:'콘크리트 내부로 물과 염분이 들어오는 것을 줄여 철근이 녹슬지 않도록 구조물 보호'},{title:'콘크리트 중성화 방지 — 깊이 0.3mm',desc:'외부 공기와 유해성분의 침투를 줄여 콘크리트 성능 저하를 예방'},{title:'차열 성능 — 일사반사율 91.8%',desc:'햇빛을 반사하여 표면 온도 상승을 줄이고 열 축적을 낮춰 쾌적한 환경 유지'},{title:'인장강도 5.8 N/㎟ (KS 기준 4배)',desc:'KS 기준 대비 4배 높은 강도 수준, 부착강도 0.7 N/㎟'}]}],null,null],
+    processMaterials:[[{name:'POUR모체강화함침',badge:'POUR공법 핵심②',desc:'POUR강화재Ⅰ + POUR코트재Ⅰ을 통해 건축물의 수명연장 및 부식방지',media:[{type:'image',url:'',label:'제품 — POUR강화재Ⅰ'},{type:'image',url:'',label:'시공 전 — 노후/손상된 바탕면'},{type:'image',url:'',label:'시공 중 — 모체강화함침액 도포'},{type:'image',url:'',label:'시공 후 — 모체강화함침 완료'}],features:[{title:'강화된 바탕면 위로 견고한 복합시트 방수층 형성',desc:'기존 약화된 바탕면을 강화 시킨 후 견고한 방수층을 형성하기 때문에 바탕면에 따른 방수층 손상피해 차단'},{title:'어떠한 바탕면에도 견고한 방수층을 형성하기 위한 기초',desc:'강화재 + 방수재를 혼합하여 바탕면을 강화시키고 견고한 방수층을 형성하는 작업'}]},{name:'POUR듀얼복합시트',badge:'POUR공법 핵심③',desc:'물고임 현상 자체에 대응하는 3중 구조 복합시트',media:[{type:'image',url:'',label:'제품 — POUR듀얼복합시트'},{type:'image',url:'',label:'3중 구조 단면도'},{type:'image',url:'',label:'물고임 대응 테스트 (3개월 경과)'},{type:'video',url:'',label:'시공 영상'}],features:[{title:'3중 구조 복합시트',desc:'3중의 시트가 각기 다른 기능을 갖추고 있어 시트 자체만으로도 통기, 방수, 내후성 우수'},{title:'물고임 자체에 대응',desc:'하판, 상판 사이에 Pe계열 고분자계 시트가 수분 침투를 방지하여 물고임 현상에 대응'},{title:'별도의 바탕정리 생략 가능',desc:'평슬라브 옥상의 단점인 물고임을 대응하기 때문에 별도의 구배(기울기) 조정 생략 가능'}]}],[{name:'POUR슈퍼복합압축시트',badge:'POUR공법 핵심⑤',desc:'니들 펀칭을 이용해 공간을 형성하여 도막 방수재와 시트 간의 응결력으로 재료분리 현상 방지',media:[{type:'image',url:'',label:'제품 — POUR슈퍼복합압축시트'},{type:'image',url:'',label:'니들펀칭 공정 비교 (타사 vs POUR)'},{type:'image',url:'',label:'약액 흡수력 테스트'},{type:'image',url:'',label:'이음부 보강 시공'},{type:'video',url:'',label:'니들펀칭 공정 영상'}],features:[{title:'우수한 인장강도 — 11.4 N/㎟ (타사 10배)',desc:'니들 펀칭 공정을 거친 시트는 섬유 간의 결속력이 높아 일반 압착시트에 비해 강한 인장강도 발현'},{title:'찢김, 재료분리 현상 저하',desc:'섬유 간의 결속력이 높기 때문에 찢김에도 강하고 도료와 결합되었을 때 재료분리 현상 저하'},{title:'뛰어난 약액 흡수력',desc:'섬유 속 공간이 형성되어 도료를 도포했을 시 뛰어난 흡수력 보유. 3cm 섬유시트를 0.3T로 100배 압축, 양면코팅 처리'}]}],null,[{name:'POUR코트재',badge:'POUR공법 핵심④',desc:'철재, 목재, 콘크리트 등 다양한 곳에 적용 가능한 다목적 도료',media:[{type:'image',url:'',label:'제품 — POUR코트재Ⅱ'},{type:'image',url:'',label:'시공 — 중도 도포'},{type:'image',url:'',label:'시험성적서 (KTR/KCL)'},{type:'video',url:'',label:'코트재 시공 영상'}],features:[{title:'철근 부식 방지',desc:'콘크리트 내부로 물과 염분이 들어오는 것을 줄여 철근이 녹슬지 않도록 구조물 보호'},{title:'콘크리트 중성화 방지 — 깊이 0.3mm',desc:'외부 공기와 유해성분의 침투를 줄여 콘크리트 성능 저하를 예방'},{title:'차열 성능 — 일사반사율 91.8%',desc:'햇빛을 반사하여 표면 온도 상승을 줄이고 열 축적을 낮춰 쾌적한 환경 유지'},{title:'인장강도 5.8 N/㎟ (KS 기준 4배)',desc:'KS 기준 대비 4배 높은 강도 수준, 부착강도 0.7 N/㎟'}]}],null,null],
     solution:'바탕면 강화 작업 이후 POUR코트재와 POUR듀얼복합시트를 활용한 반영구 복합방수 구조층을 형성합니다. 하도, 중도, 상도만으로 완벽한 방수층을 형성하는 복합공법입니다.',
   },
   slab_pvc:{
@@ -3293,7 +3314,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   useEffect(()=>{
     if(!problem||!visible)return;
     setSelectedProcessStep(0);
-    const mc=METHOD_CONTENT[problem.id];
+    const mc=getMethodContent(problem.id);
     const ms=METHOD_STATS[problem.id];
     const snap={id:problem.id,label:problem.label,cat:problem.cat||'',
       cause:mc?.cause||'',process:mc?.process||[],solution:mc?.solution||'',
@@ -3504,12 +3525,73 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 style={{width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',
                   fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
             </div>
-            {/* 미디어 */}
-            {materialModal.mediaUrl&&(
-              <div style={{width:'100%',aspectRatio:'16/9',background:'#111',flexShrink:0,overflow:'hidden'}}>
-                <ProcessMedia src={materialModal.mediaUrl} alt={materialModal.name} style={{}}/>
-              </div>
-            )}
+            {/* 미디어 갤러리 — media 배열 또는 단일 mediaUrl 지원 */}
+            {(()=>{
+              const mediaItems=(materialModal.media||[]).filter(m=>m.url);
+              const legacyUrl=materialModal.mediaUrl;
+              if(mediaItems.length>0){
+                return(
+                  <div style={{flexShrink:0}}>
+                    <div style={{display:'flex',gap:0,overflowX:'auto',scrollSnapType:'x mandatory',
+                      WebkitOverflowScrolling:'touch',scrollbarWidth:'none',msOverflowStyle:'none'}}>
+                      {mediaItems.map((m,mi)=>(
+                        <div key={mi} style={{flex:'0 0 100%',scrollSnapAlign:'start',position:'relative'}}>
+                          <div style={{aspectRatio:'16/9',background:'#111',overflow:'hidden'}}>
+                            {m.type==='video'?(
+                              <video src={m.url} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain'}}/>
+                            ):(
+                              <ProcessMedia src={m.url} alt={m.label||materialModal.name} style={{}}/>
+                            )}
+                          </div>
+                          {m.label&&(
+                            <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'6px 10px',
+                              background:'linear-gradient(transparent,rgba(0,0,0,.7))',
+                              fontSize:10,fontWeight:700,color:'#fff',textAlign:'center'}}>
+                              {m.label}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    {mediaItems.length>1&&(
+                      <div style={{display:'flex',justifyContent:'center',gap:4,padding:'6px 0'}}>
+                        {mediaItems.map((_,di)=>(
+                          <div key={di} style={{width:6,height:6,borderRadius:'50%',
+                            background:di===0?'var(--accent)':'var(--border)'}}/>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              }else if(legacyUrl){
+                return(
+                  <div style={{width:'100%',aspectRatio:'16/9',background:'#111',flexShrink:0,overflow:'hidden'}}>
+                    <ProcessMedia src={legacyUrl} alt={materialModal.name} style={{}}/>
+                  </div>
+                );
+              }else{
+                /* media 슬롯이 있지만 url이 아직 비어있을 때 — 준비중 표시 */
+                const slots=(materialModal.media||[]);
+                if(slots.length>0){
+                  return(
+                    <div style={{flexShrink:0,padding:'10px 16px 6px'}}>
+                      <div style={{display:'flex',gap:6,overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none'}}>
+                        {slots.map((s,si)=>(
+                          <div key={si} style={{flex:'0 0 auto',minWidth:100,background:'var(--bg)',
+                            border:'1.5px dashed var(--border)',borderRadius:8,padding:'10px 8px',
+                            display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                            <span style={{fontSize:16,opacity:.3}}>{s.type==='video'?'🎬':'📷'}</span>
+                            <span style={{fontSize:9,color:'var(--text-sm)',fontWeight:600,textAlign:'center',
+                              wordBreak:'keep-all',lineHeight:1.3}}>{s.label||'준비중'}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              }
+            })()}
             {/* 콘텐츠 영역 */}
             <div style={{padding:'14px 16px 20px',overflowY:'auto',flex:1}}>
               {/* 핵심 설명 */}
@@ -4258,7 +4340,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
             {/* ── STEP 2. 왜 이 문제가 생기나 — 원인 설명 + 시공 영상 ── */}
             {(()=>{
-              const mc=METHOD_CONTENT[problem?.id];
+              const mc=getMethodContent(problem?.id);
               if(!mc?.cause)return null;
               const mediaList=(photos.media||[]).filter(s=>s);
               return(
@@ -4364,7 +4446,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
             {/* ── STEP 3. POUR 해결방안 — 공정 + 솔루션 + 성능 수치 ── */}
             {(()=>{
-              const mc=METHOD_CONTENT[problem?.id];
+              const mc=getMethodContent(problem?.id);
               const ms=METHOD_STATS[problem?.id];
               if(!mc?.process?.length)return null;
               return(
@@ -6937,14 +7019,14 @@ function AdminScreen({onBack}){
     const methods=(l.problems||[]).map(label=>{
       const p=ALL_PROBLEMS.find(x=>x.label===label);
       if(!p)return null;
-      const mc=METHOD_CONTENT[p.id];const ms=METHOD_STATS[p.id];
+      const mc=getMethodContent(p.id);const ms=METHOD_STATS[p.id];
       return{id:p.id,label:p.label,cat:p.cat||'',
         cause:mc?.cause||'',process:mc?.process||[],solution:mc?.solution||'',
         cert:ms?.cert||'',stats:ms?.stats||[]};
     }).filter(Boolean);
     if(!methods.length&&l.problem){
       const p=ALL_PROBLEMS.find(x=>x.label===l.problem);
-      if(p){const mc=METHOD_CONTENT[p.id];const ms=METHOD_STATS[p.id];
+      if(p){const mc=getMethodContent(p.id);const ms=METHOD_STATS[p.id];
         methods.push({id:p.id,label:p.label,cat:p.cat||'',cause:mc?.cause||'',process:mc?.process||[],solution:mc?.solution||'',cert:ms?.cert||'',stats:ms?.stats||[]});}
     }
     const reportData={reportId,name:l.name||'',phone:l.phone||'',building:l.building||'',

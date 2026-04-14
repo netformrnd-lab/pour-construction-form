@@ -4535,7 +4535,7 @@ function ContentEditorPage({ showToast }) {
   const [probPhotosLoaded, setProbPhotosLoaded] = useState(false);
   const [probPhotosSaving, setProbPhotosSaving] = useState(false);
   /* ── 접기/펼치기 ── */
-  const [openSections, setOpenSections] = useState({s1:true, s2:true, s3:true});
+  const [openSections, setOpenSections] = useState({s1:true, s2:true, s3:true, s4:true});
   /* ── POUR공법 핵심 모달 ── */
   const [keyModal, setKeyModal] = useState(null);
   /* ── 사진 위치 조정 모달 ── */
@@ -5240,17 +5240,17 @@ function ContentEditorPage({ showToast }) {
           })()}
 
           {/* ═══════════════════════════════════════════
-              섹션 3: POUR 해결방안 — 시공 공정
-              — 고객 제안서와 동일한 스타일
+              섹션 3: POUR 해결방안 (제안서 슬라이드)
           ═══════════════════════════════════════════ */}
           <div style={{borderRadius:14,border:'1px solid var(--border)',overflow:'hidden',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,.04)'}}>
             <button onClick={()=>toggleSec('s3')} style={{
-              width:'100%',textAlign:'left',padding:'14px 18px',background:'linear-gradient(90deg,rgba(5,150,105,.06),transparent)',
+              width:'100%',textAlign:'left',padding:'14px 18px',background:'linear-gradient(90deg,rgba(109,40,217,.06),transparent)',
               borderBottom:openSections.s3?'1px solid var(--border)':'none',border:'none',cursor:'pointer',
               display:'flex',alignItems:'center',gap:8,fontFamily:'inherit'
             }}>
-              <div style={{width:8,height:8,borderRadius:'50%',background:'var(--green)',flexShrink:0}}/>
-              <span style={{fontSize:14,fontWeight:800,color:'var(--navy)',flex:1}}>3. POUR 해결방안 — 시공 공정</span>
+              <div style={{width:8,height:8,borderRadius:'50%',background:'var(--purple)',flexShrink:0}}/>
+              <span style={{fontSize:14,fontWeight:800,color:'var(--navy)',flex:1}}>3. POUR 해결방안</span>
+              <span style={{fontSize:10,color:'var(--text-sm)',marginLeft:4}}>({(content?.proposalSlides||[]).length}장)</span>
               <span style={{fontSize:14,color:'var(--text-sm)',transition:'transform .2s',transform:openSections.s3?'rotate(180deg)':'rotate(0)'}}>{'\u25B2'}</span>
             </button>
             {openSections.s3 && (
@@ -5329,11 +5329,31 @@ function ContentEditorPage({ showToast }) {
                   )}
                 </div>
 
-                {/* ── 3-1: 공정순서 ── */}
+              </div>
+            )}
+          </div>
+
+          {/* ═══════════════════════════════════════════
+              섹션 4: POUR 시공공정
+          ═══════════════════════════════════════════ */}
+          <div style={{borderRadius:14,border:'1px solid var(--border)',overflow:'hidden',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,.04)'}}>
+            <button onClick={()=>toggleSec('s4')} style={{
+              width:'100%',textAlign:'left',padding:'14px 18px',background:'linear-gradient(90deg,rgba(5,150,105,.06),transparent)',
+              borderBottom:openSections.s4?'1px solid var(--border)':'none',border:'none',cursor:'pointer',
+              display:'flex',alignItems:'center',gap:8,fontFamily:'inherit'
+            }}>
+              <div style={{width:8,height:8,borderRadius:'50%',background:'var(--green)',flexShrink:0}}/>
+              <span style={{fontSize:14,fontWeight:800,color:'var(--navy)',flex:1}}>4. POUR 시공공정</span>
+              <span style={{fontSize:14,color:'var(--text-sm)',transition:'transform .2s',transform:openSections.s4?'rotate(180deg)':'rotate(0)'}}>{'\u25B2'}</span>
+            </button>
+            {openSections.s4 && (
+              <div style={{padding:16}}>
+
+                {/* ── 4-1: 공정순서 ── */}
                 <div style={{marginBottom:24}}>
                   <div style={{fontSize:12,fontWeight:800,color:'var(--green)',marginBottom:12,display:'flex',alignItems:'center',gap:6,letterSpacing:'.03em'}}>
                     <div style={{width:3,height:16,borderRadius:2,background:'var(--green)'}}/>
-                    3-1. 공정순서
+                    4-1. 공정순서
                   </div>
 
                   {/* 타임라인 플로우 — 고객뷰 동일 스타일 */}
@@ -5622,11 +5642,11 @@ function ContentEditorPage({ showToast }) {
                   </button>
                 </div>
 
-                {/* ── 3-2: 해결방안 요약 ── */}
+                {/* ── 4-2: 해결방안 요약 ── */}
                 <div style={{marginTop:24}}>
                   <div style={{fontSize:12,fontWeight:800,color:'var(--green)',marginBottom:8,display:'flex',alignItems:'center',gap:6,letterSpacing:'.03em'}}>
                     <div style={{width:3,height:16,borderRadius:2,background:'var(--green)'}}/>
-                    3-2. 해결방안 요약
+                    4-2. 해결방안 요약
                   </div>
                   <div style={{padding:'12px 14px',background:'#F0FDF4',borderRadius:12,border:'1px solid #BBF7D0'}}>
                     <textarea

@@ -4529,6 +4529,91 @@ function ContentEditorPage({ showToast }) {
     </div>
   );
 
+  /* ── 공법별 공정 단계 이름 (index.html METHOD_CONTENT 동기) ── */
+  const processNames = {
+    shingle: ['표면강화함침','POUR슈퍼복합압축시트','방수액 도포','POUR코트재','상도 마감','POUR HOOKER 후레싱 고정'],
+    metal: ['표면강화함침','POUR슈퍼복합압축시트','방수액 도포','POUR코트재','POUR HOOKER 후레싱 고정'],
+    metal_coat: ['표면 세정 및 녹 제거','프라이머 도포','중도 코팅','상도 마감'],
+    slab_dual: ['모체강화함침 + 듀얼복합시트 전개','슈퍼복합압축시트 보강','듀얼복합시트 보강완료','코트재Ⅱ 도포 (중도)','상도코트재 도포','작업완료'],
+    slab_pvc: ['결로방지단열시트 시공','PVC 방수층 형성','이음부 열융착','드레인 주변 처리','코트재 마감'],
+    slab_urethane: ['모체강화함침','코너·이음부 복합시트 보강','우레탄 하도','우레탄 중도','코트재 상도'],
+    slab_acrylic: ['누수 경로 파악','천공 작업','2액형 아크릴 초고압 주입','주입공 마감','표면 처리'],
+    parking_epoxy: ['기존 도막 제거·쇼트브라스팅','프라이머 도포','에폭시 중도','에폭시 상도','양생'],
+    parking_emboss: ['바탕면 처리','프라이머','써밋비드 분산 엠보라이닝 도포','상도 마감'],
+    wall_premium: ['균열 V컷팅','POUR하이퍼티 충전','바인더 도포','POUR플러스 중도','POUR플러스 상도'],
+    wall_mid: ['균열 V컷팅','충전재 처리','POUR플러스 중도','수성 상도'],
+    wall_economy: ['균열 V컷팅','탄성 바인더 도포','수성 도료 상도'],
+    crack_surface: ['균열 부위 청소','POUR탄성강화파우더 도포','양생'],
+    crack_section: ['파손 부위 확대 제거','철근 방청 처리','POUR탄성강화파우더 단면복구','양생'],
+    crack_sheet: ['균열면 처리','POUR슈퍼복합압축시트 부착','방수액 도포','마감'],
+    ascon_repair: ['균열·파손부 절삭 제거','기층 보강 처리','POUR아스콘 재포장','다짐 마감'],
+    ascon_seal: ['표면 청소·건조','씰코팅재 도포','양생'],
+    ascon_mma: ['바탕면 처리','MMA 프라이머','MMA 중도','논슬립 집게 시공','상도 마감'],
+  };
+  const steps = processNames[selectedMethod] || [];
+
+  /* ── 하자사진 관련 함수 ── */
+  const methodData = casePhotos[selectedMethod] || { causes: [], completed: '', media: [] };
+  const causes = methodData.causes || [];
+
+  const updateCaseData = (key, updater) => {
+    setCasePhotos(prev => {
+      const next = JSON.parse(JSON.stringify(prev));
+      if (!next[key]) next[key] = { causes: [], completed: '', media: [] };
+      updater(next[key]);
+      return next;
+    });
+  };
+
+  const handleCauseUpload = async (file, idx) => {
+    if (!file) return;
+    try {
+      const b64 = await compressImageFile(file, 480, 0.75);
+      updateCaseData(selectedMethod, d => {
+        if (!d.causes) d.causes = [];
+        d.causes[idx] = b64;
+      });
+      showToast('하자사진 업로드 완료', 'success');
+    } catch(e) { showToast('업로드 실패', 'error'); }
+  };
+
+  /* ── YouTube URL → embed 변환 ── */
+  const toEmbedUrl = (url) => {
+    if (!url) return '';
+    const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
+    if (url.includes('/embed/')) return url;
+    return url;
+  };
+  const getYtThumb = (url) => {
+    const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|\/embed\/)([a-zA-Z0-9_-]{11})/);
+    return ytMatch ? `https://img.youtube.com/vi/${ytMatch[1]}/mqdefault.jpg` : '';
+  };
+
+  /* ── 통합 저장 (content + casePhotos 동시) ── */
+  const handleSaveAll = async () => {
+    setSaving(true);
+    setCasePhotosSaving(true);
+    try {
+      /* method_content_overrides 저장 */
+      const ref = window.db ? window.db.collection(CONTENT_COLLECTION).doc(selectedMethod) : null;
+      if (ref) {
+        await ref.set(content, { merge: true });
+      }
+      /* config/casePhotos 저장 */
+      await db.collection('config').doc('casePhotos').set(casePhotos, { merge: true });
+      showToast('전체 저장 완료!', 'success');
+    } catch(e) {
+      showToast('저장 실패: ' + e.message, 'error');
+    }
+    setSaving(false);
+    setCasePhotosSaving(false);
+  };
+
+  /* ── 접기/펼치기 ── */
+  const [openSections, setOpenSections] = useState({s1:true, s2:true, s3:true});
+  const toggleSec = (k) => setOpenSections(p => ({...p, [k]:!p[k]}));
+
   // 공법 선택 사이드바 + 편집 영역 레이아웃
   return (
     <div style={{display:'flex',gap:0,height:'calc(100vh - 104px)',overflow:'hidden'}}>
@@ -4546,273 +4631,456 @@ function ContentEditorPage({ showToast }) {
                 color:'rgba(0,0,0,.35)', letterSpacing:1, textTransform:'uppercase',
                 background:'#f8f9fa', borderBottom:'1px solid var(--border)'
               }}>{cat}</div>
-              {methods.map(m => (
+              {methods.map(m => {
+                const hasData = !!(casePhotos[m.id]?.causes?.some(c=>c) || content?.causeVideoUrl || (content?.processPhotos||[]).some(p=>p));
+                return (
                 <button key={m.id} onClick={() => setSelectedMethod(m.id)} style={{
                   width:'100%', textAlign:'left', padding:'9px 14px',
                   background: selectedMethod === m.id ? '#EFF6FF' : 'transparent',
                   border:'none', borderLeft: selectedMethod === m.id ? '3px solid #2563EB' : '3px solid transparent',
                   color: selectedMethod === m.id ? '#1D4ED8' : 'var(--text)',
                   fontSize:12, fontWeight: selectedMethod === m.id ? 700 : 400,
-                  cursor:'pointer', lineHeight:1.4
+                  cursor:'pointer', lineHeight:1.4, display:'flex', alignItems:'center', gap:6
                 }}>
+                  {hasData && <span style={{width:6,height:6,borderRadius:'50%',background:'#10B981',flexShrink:0}}/>}
+                  {!hasData && <span style={{width:6,height:6,borderRadius:'50%',background:'#E5E7EB',flexShrink:0}}/>}
                   {m.label}
                 </button>
-              ))}
+                );
+              })}
             </div>
           );
         })}
       </div>
 
-      {/* 오른쪽: 편집 영역 */}
+      {/* 오른쪽: 3섹션 통합 편집 영역 */}
       <div style={{flex:1, display:'flex', flexDirection:'column', overflow:'hidden'}}>
-        {/* 상단 탭 + 저장 버튼 */}
+        {/* 상단 헤더 + 저장 */}
         <div style={{
           display:'flex', alignItems:'center', justifyContent:'space-between',
           padding:'12px 20px', borderBottom:'1px solid var(--border)', background:'#fff', flexShrink:0
         }}>
-          <div style={{display:'flex', gap:4, flexWrap:'wrap'}}>
-            {[
-              {key:'process', label:'공정 사진/설명'},
-              {key:'materials', label:'자재 모달'},
-              {key:'cause', label:'원인 설명'},
-              {key:'solution', label:'해결방안'},
-              {key:'case_photos', label:'📸 하자사진/미디어'},
-              {key:'prob_photos', label:'🏗 공법 카드 사진'},
-            ].map(t => (
-              <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
-                padding:'6px 14px', borderRadius:6, border:'none', fontSize:12, fontWeight:600,
-                background: activeTab === t.key ? '#2563EB' : '#F1F5F9',
-                color: activeTab === t.key ? '#fff' : 'var(--text-md)', cursor:'pointer'
-              }}>{t.label}</button>
-            ))}
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <span style={{fontSize:15,fontWeight:800,color:'var(--navy)'}}>{methodInfo?.label}</span>
+            <span style={{fontSize:11,color:'var(--text-sm)',background:'#F1F5F9',padding:'3px 10px',borderRadius:20,fontWeight:600}}>{methodInfo?.category}</span>
           </div>
-          <div style={{display:'flex', gap:8, alignItems:'center'}}>
-            {(activeTab !== 'case_photos' && activeTab !== 'prob_photos') && (
-              <button onClick={() => setPreviewMode(!previewMode)} style={{
-                padding:'6px 14px', borderRadius:6, border:'1px solid var(--border)',
-                fontSize:12, background: previewMode ? '#0F172A' : '#fff',
-                color: previewMode ? '#fff' : 'var(--text)', cursor:'pointer'
-              }}>
-                {previewMode ? '📝 편집' : '👁 미리보기'}
-              </button>
-            )}
-            {(activeTab !== 'case_photos' && activeTab !== 'prob_photos') && (
-              <button onClick={saveContent} disabled={saving} style={{
-                padding:'6px 18px', borderRadius:6, border:'none',
-                background: saving ? '#94A3B8' : '#16A34A', color:'#fff',
-                fontSize:12, fontWeight:700, cursor: saving ? 'not-allowed' : 'pointer'
-              }}>
-                {saving ? '저장 중...' : '💾 저장'}
-              </button>
-            )}
-            {activeTab === 'case_photos' && (
-              <button onClick={saveCasePhotosToFirestore} disabled={casePhotosSaving} style={{
-                padding:'6px 18px', borderRadius:6, border:'none',
-                background: casePhotosSaving ? '#94A3B8' : '#DC2626', color:'#fff',
-                fontSize:12, fontWeight:700, cursor: casePhotosSaving ? 'not-allowed' : 'pointer'
-              }}>
-                {casePhotosSaving ? '저장 중...' : '💾 하자사진 저장'}
-              </button>
-            )}
-            {activeTab === 'prob_photos' && (
-              <button onClick={saveProbPhotosToFirestore} disabled={probPhotosSaving} style={{
-                padding:'6px 18px', borderRadius:6, border:'none',
-                background: probPhotosSaving ? '#94A3B8' : '#7C3AED', color:'#fff',
-                fontSize:12, fontWeight:700, cursor: probPhotosSaving ? 'not-allowed' : 'pointer'
-              }}>
-                {probPhotosSaving ? '저장 중...' : '💾 카드사진 저장'}
-              </button>
-            )}
-          </div>
+          <button onClick={handleSaveAll} disabled={saving||casePhotosSaving} style={{
+            padding:'8px 24px', borderRadius:8, border:'none',
+            background: (saving||casePhotosSaving) ? '#94A3B8' : '#16A34A', color:'#fff',
+            fontSize:13, fontWeight:700, cursor: (saving||casePhotosSaving) ? 'not-allowed' : 'pointer',
+            boxShadow:'0 2px 8px rgba(22,163,74,.3)'
+          }}>
+            {(saving||casePhotosSaving) ? '저장 중...' : '💾 전체 저장'}
+          </button>
         </div>
 
-        {/* 편집 본문 */}
-        <div style={{flex:1, overflow:'auto', display: previewMode ? 'none' : 'block'}}>
-          <div style={{padding:20}}>
-            {(activeTab !== 'case_photos' && activeTab !== 'prob_photos') && (
-            <div style={{
-              marginBottom:16, padding:'10px 16px', background:'#EFF6FF',
-              borderRadius:8, borderLeft:'4px solid #2563EB'
+        {/* 편집 본문 — 3섹션 스크롤 */}
+        <div style={{flex:1, overflow:'auto', padding:20, background:'#F8FAFC'}}>
+          <div style={{maxWidth:900, margin:'0 auto', display:'flex', flexDirection:'column', gap:20}}>
+
+          {/* ═══════════════════════════════════════════
+              섹션 1: 현장 하자사진
+          ═══════════════════════════════════════════ */}
+          <div style={{borderRadius:14,border:'1px solid var(--border)',overflow:'hidden',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,.04)'}}>
+            <button onClick={()=>toggleSec('s1')} style={{
+              width:'100%',textAlign:'left',padding:'14px 18px',background:'linear-gradient(90deg,rgba(220,38,38,.06),transparent)',
+              borderBottom:openSections.s1?'1px solid var(--border)':'none',border:'none',cursor:'pointer',
+              display:'flex',alignItems:'center',gap:8,fontFamily:'inherit'
             }}>
-              <span style={{fontSize:13, fontWeight:700, color:'#1D4ED8'}}>
-                ✏️ {methodInfo?.label} — {activeTab === 'process' ? '공정 사진/설명' : activeTab === 'materials' ? '자재 모달 콘텐츠' : activeTab === 'cause' ? '원인 설명' : '해결방안'} 편집
-              </span>
-            </div>
+              <div style={{width:8,height:8,borderRadius:'50%',background:'var(--red)',flexShrink:0}}/>
+              <span style={{fontSize:14,fontWeight:800,color:'var(--navy)',flex:1}}>1. 현장 하자사진</span>
+              <span style={{fontSize:11,color:'var(--text-sm)',marginRight:8}}>{causes.filter(c=>c).length}장 등록</span>
+              <span style={{fontSize:11,color:'var(--text-sm)',background:'#FEF3C7',padding:'2px 8px',borderRadius:4,fontWeight:600}}>AI 자동분류 적용예정</span>
+              <span style={{fontSize:14,color:'var(--text-sm)',transition:'transform .2s',transform:openSections.s1?'rotate(180deg)':'rotate(0)'}}>{'\u25B2'}</span>
+            </button>
+            {openSections.s1 && (
+              <div style={{padding:16}}>
+                <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+                  {[...causes,''].map((url,i)=>{
+                    if(i>causes.length) return null;
+                    return(
+                      <div key={i} style={{position:'relative'}}>
+                        <div style={{
+                          width:110,height:110,borderRadius:10,border:'2px dashed var(--border)',
+                          background:url?'transparent':'#f9fafb',overflow:'hidden',cursor:'pointer'
+                        }} onClick={()=>document.getElementById(`adm_cause_${selectedMethod}_${i}`)?.click()}>
+                          {url?(
+                            <img src={url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt={`하자${i+1}`}/>
+                          ):(
+                            <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:4}}>
+                              <div style={{fontSize:24,color:'var(--text-sm)'}}>+</div>
+                              <div style={{fontSize:10,color:'var(--text-sm)'}}>사진 추가</div>
+                            </div>
+                          )}
+                        </div>
+                        {url&&(
+                          <button onClick={()=>updateCaseData(selectedMethod,d=>{d.causes.splice(i,1);})} style={{
+                            position:'absolute',top:-6,right:-6,width:20,height:20,borderRadius:'50%',
+                            background:'#DC2626',color:'#fff',border:'none',fontSize:11,cursor:'pointer',
+                            display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700
+                          }}>✕</button>
+                        )}
+                        <input type="file" accept="image/*" id={`adm_cause_${selectedMethod}_${i}`} style={{display:'none'}}
+                          onChange={e=>handleCauseUpload(e.target.files[0],i)}/>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{fontSize:11,color:'var(--text-sm)',marginTop:10}}>사진 클릭 → 파일 업로드 · 마지막 + 버튼으로 추가</div>
+              </div>
             )}
+          </div>
 
-            {/* 공정 사진/설명 탭 */}
-            {activeTab === 'process' && content && (
-              <ProcessPhotoEditor
-                content={content}
-                methodId={selectedMethod}
-                onUpdatePhoto={updateProcessPhoto}
-                onUpdateDesc={updateProcessDesc}
-                onImageUpload={handleImageUpload}
-                onYoutube={(idx, url) => setYoutube(idx, url, 'process')}
-                uploadingIdx={uploadingIdx}
-              />
-            )}
-
-            {/* 자재 모달 탭 */}
-            {activeTab === 'materials' && content && (
-              <MaterialEditor
-                content={content}
-                methodId={selectedMethod}
-                onUpdate={updateMaterial}
-                onImageUpload={handleImageUpload}
-                onYoutube={(idx, url) => setYoutube(idx, url, 'material')}
-                uploadingIdx={uploadingIdx}
-              />
-            )}
-
-            {/* 원인 설명 탭 */}
-            {activeTab === 'cause' && (
-              <div>
-                <label style={{display:'block', fontSize:12, fontWeight:600, color:'var(--text-md)', marginBottom:6}}>
-                  왜 이 문제가 생기나 (원인 설명)
-                </label>
-                <textarea
-                  value={content?.cause || ''}
-                  onChange={e => setContent(prev => ({ ...prev, cause: e.target.value }))}
-                  rows={8}
-                  style={{
-                    width:'100%', padding:'10px 14px', borderRadius:8,
-                    border:'1px solid var(--border)', fontSize:13, lineHeight:1.7,
-                    resize:'vertical', fontFamily:'inherit', boxSizing:'border-box'
-                  }}
-                  placeholder="원인 설명 텍스트를 입력하세요..."
-                />
-                <div style={{marginTop:16}}>
-                  <label style={{display:'block', fontSize:12, fontWeight:600, color:'var(--text-md)', marginBottom:6}}>
-                    원인 영상 (YouTube URL)
-                  </label>
-                  <input
-                    type="text"
-                    value={content?.causeVideoUrl || ''}
-                    onChange={e => setContent(prev => ({ ...prev, causeVideoUrl: e.target.value }))}
-                    placeholder="https://www.youtube.com/watch?v=..."
+          {/* ═══════════════════════════════════════════
+              섹션 2: 왜 이 문제가 생기나 (원인 영상)
+              — 고객 제안서와 동일한 스타일
+          ═══════════════════════════════════════════ */}
+          <div style={{borderRadius:14,border:'1px solid var(--border)',overflow:'hidden',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,.04)'}}>
+            <button onClick={()=>toggleSec('s2')} style={{
+              width:'100%',textAlign:'left',padding:'14px 18px',background:'linear-gradient(90deg,rgba(220,38,38,.04),transparent)',
+              borderBottom:openSections.s2?'1px solid var(--border)':'none',border:'none',cursor:'pointer',
+              display:'flex',alignItems:'center',gap:8,fontFamily:'inherit'
+            }}>
+              <div style={{width:8,height:8,borderRadius:'50%',background:'var(--red)',flexShrink:0}}/>
+              <span style={{fontSize:14,fontWeight:800,color:'var(--navy)',flex:1}}>2. 왜 이 문제가 생기나</span>
+              {content?.causeVideoUrl && <span style={{fontSize:11,color:'var(--green)',fontWeight:700}}>영상 등록됨</span>}
+              <span style={{fontSize:14,color:'var(--text-sm)',transition:'transform .2s',transform:openSections.s2?'rotate(180deg)':'rotate(0)'}}>{'\u25B2'}</span>
+            </button>
+            {openSections.s2 && (
+              <div style={{padding:16}}>
+                {/* 고객뷰 미리보기 스타일 — 원인 설명 카드 */}
+                <div style={{marginBottom:16,padding:'12px 14px',background:'#FFF5F5',borderRadius:12,border:'1px solid #FECACA'}}>
+                  <div style={{fontSize:10,fontWeight:800,color:'var(--red)',marginBottom:6,display:'flex',alignItems:'center',gap:5,letterSpacing:'.05em'}}>
+                    <div style={{width:3,height:14,borderRadius:2,background:'var(--red)'}}/>
+                    발생 원인
+                  </div>
+                  <textarea
+                    value={content?.cause||''}
+                    onChange={e=>setContent(prev=>({...prev,cause:e.target.value}))}
+                    rows={3}
                     style={{
-                      width:'100%', padding:'8px 12px', borderRadius:8,
-                      border:'1px solid var(--border)', fontSize:13, boxSizing:'border-box'
+                      width:'100%',padding:'8px 12px',borderRadius:8,
+                      border:'1px solid #FECACA',fontSize:12,lineHeight:1.7,
+                      resize:'vertical',fontFamily:'inherit',boxSizing:'border-box',
+                      background:'#FFF5F5',color:'#7F1D1D'
                     }}
+                    placeholder="이 문제가 발생하는 원인을 설명하세요..."
                   />
-                  {content?.causeVideoUrl && (
-                    <div style={{marginTop:8, borderRadius:8, overflow:'hidden', aspectRatio:'16/9', maxWidth:480}}>
-                      <iframe
-                        src={content.causeVideoUrl.includes('embed') ? content.causeVideoUrl : `https://www.youtube.com/embed/${content.causeVideoUrl.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/)?.[1]}`}
-                        style={{width:'100%', height:'100%', border:'none'}}
-                        allowFullScreen
-                      />
+                </div>
+
+                {/* 원인 영상 — YouTube 링크 + 썸네일 */}
+                <div style={{padding:'14px',background:'#FAFAFA',borderRadius:12,border:'1px solid var(--border)'}}>
+                  <div style={{fontSize:10,fontWeight:800,color:'var(--red)',marginBottom:10,display:'flex',alignItems:'center',gap:5,letterSpacing:'.05em'}}>
+                    <div style={{width:3,height:14,borderRadius:2,background:'var(--red)'}}/>
+                    원인 영상
+                  </div>
+                  <div style={{display:'flex',gap:14,alignItems:'flex-start'}}>
+                    {/* 영상 썸네일 미리보기 */}
+                    <div style={{width:240,flexShrink:0}}>
+                      {content?.causeVideoUrl ? (
+                        <div style={{position:'relative',borderRadius:10,overflow:'hidden',border:'2px solid var(--red)',aspectRatio:'16/9',background:'#000'}}>
+                          {content.causeVideoThumb ? (
+                            <img src={content.causeVideoThumb} style={{width:'100%',height:'100%',objectFit:'cover'}} alt="썸네일"/>
+                          ) : getYtThumb(content.causeVideoUrl) ? (
+                            <img src={getYtThumb(content.causeVideoUrl)} style={{width:'100%',height:'100%',objectFit:'cover'}} alt="썸네일"/>
+                          ) : (
+                            <iframe src={toEmbedUrl(content.causeVideoUrl)} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/>
+                          )}
+                          {/* 재생 버튼 오버레이 */}
+                          {(content.causeVideoThumb||getYtThumb(content.causeVideoUrl))&&(
+                            <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,.25)',cursor:'pointer'}}
+                              onClick={()=>window.open(content.causeVideoUrl,'_blank')}>
+                              <div style={{width:48,height:48,borderRadius:'50%',background:'rgba(220,38,38,.9)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                                <span style={{fontSize:18,color:'#fff',marginLeft:3}}>{'\u25B6'}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div style={{aspectRatio:'16/9',borderRadius:10,border:'2px dashed #FECACA',background:'#FFF5F5',
+                          display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6}}>
+                          <span style={{fontSize:28,opacity:.4}}>{'\u25B6'}</span>
+                          <span style={{fontSize:11,color:'var(--text-sm)'}}>영상 URL을 입력하세요</span>
+                        </div>
+                      )}
                     </div>
-                  )}
+
+                    {/* 입력 필드 */}
+                    <div style={{flex:1,display:'flex',flexDirection:'column',gap:10}}>
+                      <div>
+                        <label style={{display:'block',fontSize:11,fontWeight:700,color:'var(--text-md)',marginBottom:4}}>YouTube URL</label>
+                        <input type="text" value={content?.causeVideoUrl||''}
+                          onChange={e=>setContent(prev=>({...prev,causeVideoUrl:e.target.value}))}
+                          placeholder="https://www.youtube.com/watch?v=... 또는 https://youtu.be/..."
+                          style={{width:'100%',padding:'9px 12px',borderRadius:8,border:'1px solid var(--border)',fontSize:12,boxSizing:'border-box',fontFamily:'inherit'}}
+                        />
+                      </div>
+                      <div>
+                        <label style={{display:'block',fontSize:11,fontWeight:700,color:'var(--text-md)',marginBottom:4}}>
+                          썸네일 이미지 <span style={{fontWeight:400,color:'var(--text-sm)'}}>(비워두면 자동 생성)</span>
+                        </label>
+                        <div style={{display:'flex',gap:6}}>
+                          <input type="text" value={content?.causeVideoThumb||''}
+                            onChange={e=>setContent(prev=>({...prev,causeVideoThumb:e.target.value}))}
+                            placeholder="커스텀 썸네일 URL (선택)"
+                            style={{flex:1,padding:'9px 12px',borderRadius:8,border:'1px solid var(--border)',fontSize:12,boxSizing:'border-box',fontFamily:'inherit'}}
+                          />
+                          <label style={{padding:'9px 14px',borderRadius:8,background:'#EFF6FF',color:'var(--accent)',fontSize:12,fontWeight:600,cursor:'pointer',border:'1px solid var(--blue-m)',whiteSpace:'nowrap'}}>
+                            📁 업로드
+                            <input type="file" accept="image/*" style={{display:'none'}} onChange={async(e)=>{
+                              if(!e.target.files[0])return;
+                              const b64=await compressImageFile(e.target.files[0],480,0.75);
+                              setContent(prev=>({...prev,causeVideoThumb:b64}));
+                            }}/>
+                          </label>
+                        </div>
+                      </div>
+                      {content?.causeVideoUrl && (
+                        <button onClick={()=>setContent(prev=>({...prev,causeVideoUrl:'',causeVideoThumb:''}))} style={{
+                          alignSelf:'flex-start',padding:'6px 14px',borderRadius:8,border:'1px solid #FECACA',
+                          background:'#FEF2F2',color:'#DC2626',fontSize:11,fontWeight:600,cursor:'pointer'
+                        }}>영상 제거</button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
-
-            {/* 해결방안 탭 */}
-            {activeTab === 'solution' && (
-              <div>
-                <label style={{display:'block', fontSize:12, fontWeight:600, color:'var(--text-md)', marginBottom:6}}>
-                  POUR 해결방안 설명
-                </label>
-                <textarea
-                  value={content?.solution || ''}
-                  onChange={e => setContent(prev => ({ ...prev, solution: e.target.value }))}
-                  rows={8}
-                  style={{
-                    width:'100%', padding:'10px 14px', borderRadius:8,
-                    border:'1px solid var(--border)', fontSize:13, lineHeight:1.7,
-                    resize:'vertical', fontFamily:'inherit', boxSizing:'border-box'
-                  }}
-                  placeholder="해결방안 텍스트를 입력하세요..."
-                />
-              </div>
-            )}
-
-            {/* 하자사진/미디어 탭 */}
-            {activeTab === 'case_photos' && (
-              <CasePhotosEditor
-                casePhotos={casePhotos}
-                setCasePhotos={setCasePhotos}
-                loaded={casePhotosLoaded}
-                onReload={loadCasePhotosFromFirestore}
-                compressImageFile={compressImageFile}
-                showToast={showToast}
-              />
-            )}
-
-            {/* 공법 카드 사진 탭 */}
-            {activeTab === 'prob_photos' && (
-              <ProbPhotosEditor
-                probPhotos={probPhotos}
-                setProbPhotos={setProbPhotos}
-                loaded={probPhotosLoaded}
-                onReload={loadProbPhotosFromFirestore}
-                compressImageFile={compressImageFile}
-                showToast={showToast}
-              />
-            )}
           </div>
-        </div>
 
-        {/* 미리보기 모드 */}
-        {previewMode && (
-          <div style={{flex:1, overflow:'auto', background:'#0F172A', padding:20}}>
-            <div style={{
-              maxWidth:768, margin:'0 auto', background:'#1E293B',
-              borderRadius:16, overflow:'hidden', minHeight:600
+          {/* ═══════════════════════════════════════════
+              섹션 3: POUR 해결방안 — 시공 공정
+              — 고객 제안서와 동일한 스타일
+          ═══════════════════════════════════════════ */}
+          <div style={{borderRadius:14,border:'1px solid var(--border)',overflow:'hidden',background:'#fff',boxShadow:'0 1px 4px rgba(0,0,0,.04)'}}>
+            <button onClick={()=>toggleSec('s3')} style={{
+              width:'100%',textAlign:'left',padding:'14px 18px',background:'linear-gradient(90deg,rgba(5,150,105,.06),transparent)',
+              borderBottom:openSections.s3?'1px solid var(--border)':'none',border:'none',cursor:'pointer',
+              display:'flex',alignItems:'center',gap:8,fontFamily:'inherit'
             }}>
-              <div style={{
-                padding:'16px 20px', background:'#0F172A',
-                borderBottom:'1px solid rgba(255,255,255,.1)',
-                display:'flex', alignItems:'center', gap:12
-              }}>
-                <div style={{width:8, height:8, borderRadius:'50%', background:'#EF4444'}} />
-                <div style={{width:8, height:8, borderRadius:'50%', background:'#F59E0B'}} />
-                <div style={{width:8, height:8, borderRadius:'50%', background:'#10B981'}} />
-                <span style={{fontSize:12, color:'rgba(255,255,255,.4)', marginLeft:8}}>
-                  태블릿 앱 미리보기 — {methodInfo?.label}
-                </span>
-              </div>
-              <div style={{padding:20}}>
-                {/* 공정 미리보기 */}
-                {activeTab === 'process' && (
-                  <ProcessPreview content={content} methodId={selectedMethod} />
-                )}
-                {/* 원인 미리보기 */}
-                {activeTab === 'cause' && (
-                  <div>
-                    <div style={{
-                      fontSize:11, fontWeight:700, color:'#EF4444',
-                      marginBottom:8, display:'flex', alignItems:'center', gap:6
-                    }}>
-                      <span style={{width:6, height:6, borderRadius:'50%', background:'#EF4444', display:'inline-block'}} />
-                      왜 이 문제가 생기나
-                    </div>
-                    <p style={{fontSize:13, color:'rgba(255,255,255,.8)', lineHeight:1.8, margin:0}}>
-                      {content?.cause || '(원인 설명 없음)'}
-                    </p>
+              <div style={{width:8,height:8,borderRadius:'50%',background:'var(--green)',flexShrink:0}}/>
+              <span style={{fontSize:14,fontWeight:800,color:'var(--navy)',flex:1}}>3. POUR 해결방안 — 시공 공정</span>
+              <span style={{fontSize:14,color:'var(--text-sm)',transition:'transform .2s',transform:openSections.s3?'rotate(180deg)':'rotate(0)'}}>{'\u25B2'}</span>
+            </button>
+            {openSections.s3 && (
+              <div style={{padding:16}}>
+
+                {/* ── 3-1: 공정순서 ── */}
+                <div style={{marginBottom:24}}>
+                  <div style={{fontSize:12,fontWeight:800,color:'var(--green)',marginBottom:12,display:'flex',alignItems:'center',gap:6,letterSpacing:'.03em'}}>
+                    <div style={{width:3,height:16,borderRadius:2,background:'var(--green)'}}/>
+                    3-1. 공정순서
                   </div>
-                )}
-                {activeTab === 'solution' && (
-                  <div>
-                    <div style={{
-                      fontSize:11, fontWeight:700, color:'#F59E0B',
-                      marginBottom:8, display:'flex', alignItems:'center', gap:6
-                    }}>
-                      <span style={{width:6, height:6, borderRadius:'50%', background:'#F59E0B', display:'inline-block'}} />
-                      POUR 해결방안
-                    </div>
-                    <p style={{fontSize:13, color:'rgba(255,255,255,.8)', lineHeight:1.8, margin:0}}>
-                      {content?.solution || '(해결방안 없음)'}
-                    </p>
+
+                  {/* 타임라인 플로우 — 고객뷰 동일 스타일 */}
+                  <div style={{display:'flex',flexDirection:'column',gap:0}}>
+                    {steps.map((step,si)=>{
+                      const photo=(content?.processPhotos||[])[si];
+                      const desc=(content?.processDescs||[])[si]||'';
+                      const isYoutubeObj=photo&&typeof photo==='object'&&photo.type==='youtube';
+                      const photoUrl=isYoutubeObj?photo.url:(typeof photo==='string'?photo:null);
+                      const isLast=si===steps.length-1;
+
+                      return(
+                        <div key={si} style={{display:'flex',gap:0,position:'relative'}}>
+                          {/* 왼쪽 타임라인 */}
+                          <div style={{display:'flex',flexDirection:'column',alignItems:'center',width:36,flexShrink:0}}>
+                            <div style={{
+                              width:32,height:32,borderRadius:'50%',
+                              background:si===0?'var(--green)':'var(--green-l)',
+                              border:'2px solid var(--green)',
+                              display:'flex',alignItems:'center',justifyContent:'center',
+                              flexShrink:0,zIndex:1
+                            }}>
+                              <span style={{fontSize:13,fontWeight:900,color:si===0?'#fff':'var(--green)'}}>{si+1}</span>
+                            </div>
+                            {!isLast&&<div style={{width:2,flex:1,minHeight:12,background:'var(--green)',opacity:.2,margin:'2px 0'}}/>}
+                          </div>
+
+                          {/* 오른쪽 콘텐츠 */}
+                          <div style={{flex:1,paddingLeft:12,paddingBottom:isLast?0:16}}>
+                            <div style={{fontSize:13,fontWeight:700,color:'var(--navy)',marginBottom:8,lineHeight:1.3}}>{step}</div>
+
+                            <div style={{display:'flex',gap:14,alignItems:'flex-start'}}>
+                              {/* 공정 사진 */}
+                              <div style={{width:200,flexShrink:0}}>
+                                <div style={{
+                                  width:'100%',aspectRatio:'16/9',borderRadius:10,overflow:'hidden',
+                                  border:photoUrl?'2px solid var(--green)':'2px dashed #BBF7D0',
+                                  background:photoUrl?'#000':'var(--green-l)',position:'relative',cursor:'pointer'
+                                }} onClick={()=>document.getElementById(`adm_proc_file_${selectedMethod}_${si}`)?.click()}>
+                                  {isYoutubeObj&&photoUrl?(
+                                    <iframe src={photoUrl} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/>
+                                  ):photoUrl?(
+                                    <img src={photoUrl} style={{width:'100%',height:'100%',objectFit:'cover'}} alt={step}/>
+                                  ):(
+                                    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:4}}>
+                                      <span style={{fontSize:20,opacity:.4}}>📷</span>
+                                      <span style={{fontSize:10,color:'var(--green)',fontWeight:600}}>사진 추가</span>
+                                    </div>
+                                  )}
+                                </div>
+                                <div style={{display:'flex',gap:4,marginTop:6}}>
+                                  <label style={{flex:1,padding:'4px 0',textAlign:'center',borderRadius:6,background:'var(--green-l)',color:'var(--green)',fontSize:10,fontWeight:600,cursor:'pointer',border:'1px solid #BBF7D0'}}>
+                                    📁 사진
+                                    <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{
+                                      if(!e.target.files[0])return;
+                                      const reader=new FileReader();
+                                      reader.onload=ev=>{
+                                        const img2=new Image();img2.onload=()=>{
+                                          let w=img2.width,h=img2.height;const mx=1200;
+                                          if(w>mx||h>mx){const r=Math.min(mx/w,mx/h);w=Math.round(w*r);h=Math.round(h*r);}
+                                          const c=document.createElement('canvas');c.width=w;c.height=h;
+                                          c.getContext('2d').drawImage(img2,0,0,w,h);
+                                          updateProcessPhoto(si,c.toDataURL('image/jpeg',0.85));
+                                        };img2.src=ev.target.result;
+                                      };reader.readAsDataURL(e.target.files[0]);
+                                    }}/>
+                                  </label>
+                                  <button onClick={()=>{
+                                    const url2=prompt('YouTube URL 입력:');
+                                    if(url2){setYoutube(si,url2,'process');}
+                                  }} style={{flex:1,padding:'4px 0',borderRadius:6,background:'#FEF3C7',color:'#D97706',fontSize:10,fontWeight:600,cursor:'pointer',border:'1px solid #FDE68A'}}>▶ 유튜브</button>
+                                  {photoUrl&&<button onClick={()=>updateProcessPhoto(si,null)} style={{padding:'4px 8px',borderRadius:6,background:'#FEE2E2',color:'#DC2626',fontSize:10,cursor:'pointer',border:'1px solid #FECACA'}}>✕</button>}
+                                </div>
+                                <input type="file" accept="image/*" id={`adm_proc_file_${selectedMethod}_${si}`} style={{display:'none'}}
+                                  onChange={e=>{
+                                    if(!e.target.files[0])return;
+                                    const reader=new FileReader();
+                                    reader.onload=ev=>{
+                                      const img2=new Image();img2.onload=()=>{
+                                        let w=img2.width,h=img2.height;const mx=1200;
+                                        if(w>mx||h>mx){const r=Math.min(mx/w,mx/h);w=Math.round(w*r);h=Math.round(h*r);}
+                                        const c=document.createElement('canvas');c.width=w;c.height=h;
+                                        c.getContext('2d').drawImage(img2,0,0,w,h);
+                                        updateProcessPhoto(si,c.toDataURL('image/jpeg',0.85));
+                                      };img2.src=ev.target.result;
+                                    };reader.readAsDataURL(e.target.files[0]);
+                                  }}/>
+                              </div>
+
+                              {/* 공정 설명 */}
+                              <div style={{flex:1}}>
+                                <textarea
+                                  value={desc}
+                                  onChange={e=>updateProcessDesc(si,e.target.value)}
+                                  rows={3}
+                                  style={{
+                                    width:'100%',padding:'8px 12px',borderRadius:8,
+                                    border:'1px solid var(--border)',fontSize:12,lineHeight:1.7,
+                                    resize:'vertical',fontFamily:'inherit',boxSizing:'border-box'
+                                  }}
+                                  placeholder={`${step} 공정 설명...`}
+                                />
+                                <input type="text" value={typeof photo==='string'?photo:''} onChange={e=>updateProcessPhoto(si,e.target.value)}
+                                  placeholder="이미지 URL 직접 입력..." style={{width:'100%',marginTop:6,padding:'6px 10px',borderRadius:6,border:'1px solid var(--border)',fontSize:11,boxSizing:'border-box',fontFamily:'inherit'}}/>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
+                </div>
+
+                {/* ── 3-2: POUR공법 핵심 자재 ── */}
+                {(()=>{
+                  const materials=content?.processMaterials||[];
+                  const filledMats=materials.filter(m=>m&&m.name);
+                  if(filledMats.length===0) return(
+                    <div style={{padding:24,textAlign:'center',color:'var(--text-sm)',background:'#F8FAFC',borderRadius:10,border:'1px dashed var(--border)'}}>
+                      <div style={{fontSize:24,marginBottom:6}}>📦</div>
+                      <div style={{fontSize:12}}>등록된 핵심 자재가 없습니다</div>
+                    </div>
+                  );
+                  return(
+                    <div>
+                      <div style={{fontSize:12,fontWeight:800,color:'var(--accent)',marginBottom:12,display:'flex',alignItems:'center',gap:6,letterSpacing:'.03em'}}>
+                        <div style={{width:3,height:16,borderRadius:2,background:'var(--accent)'}}/>
+                        3-2. POUR공법 핵심 자재
+                      </div>
+                      <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                        {materials.map((mat,idx)=>{
+                          if(!mat||!mat.name)return null;
+                          const isYoutube2=mat.mediaType==='youtube';
+                          return(
+                            <div key={idx} style={{
+                              borderRadius:12,border:'1px solid var(--blue-m)',overflow:'hidden',
+                              background:'linear-gradient(135deg,var(--blue-l),rgba(59,130,246,.04))'
+                            }}>
+                              {/* 자재 헤더 — 고객뷰 스타일 */}
+                              <div style={{padding:'10px 14px',borderBottom:'1px solid var(--blue-m)',display:'flex',alignItems:'center',gap:8}}>
+                                <span style={{fontSize:11,fontWeight:900,color:'var(--accent)'}}>🔬</span>
+                                <span style={{fontSize:13,fontWeight:800,color:'var(--navy)'}}>{mat.name}</span>
+                                {mat.badge&&<span style={{fontSize:9,fontWeight:700,color:'var(--accent)',background:'rgba(59,130,246,.12)',border:'1px solid rgba(59,130,246,.2)',borderRadius:4,padding:'2px 6px'}}>{mat.badge}</span>}
+                              </div>
+                              <div style={{padding:14,display:'flex',gap:14,alignItems:'flex-start'}}>
+                                {/* 자재 사진 */}
+                                <div style={{width:180,flexShrink:0}}>
+                                  <div style={{
+                                    width:'100%',aspectRatio:'4/3',borderRadius:8,overflow:'hidden',
+                                    border:mat.mediaUrl?'2px solid var(--blue-m)':'2px dashed var(--blue-m)',
+                                    background:mat.mediaUrl?'#000':'var(--blue-l)',cursor:'pointer'
+                                  }} onClick={()=>document.getElementById(`adm_mat_file_${selectedMethod}_${idx}`)?.click()}>
+                                    {isYoutube2&&mat.mediaUrl?(
+                                      <iframe src={mat.mediaUrl} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/>
+                                    ):mat.mediaUrl?(
+                                      <img src={mat.mediaUrl} style={{width:'100%',height:'100%',objectFit:'cover'}} alt={mat.name}/>
+                                    ):(
+                                      <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:4}}>
+                                        <span style={{fontSize:20,opacity:.4}}>📦</span>
+                                        <span style={{fontSize:10,color:'var(--accent)',fontWeight:600}}>사진 추가</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div style={{display:'flex',gap:4,marginTop:6}}>
+                                    <label style={{flex:1,padding:'4px 0',textAlign:'center',borderRadius:6,background:'var(--blue-l)',color:'var(--accent)',fontSize:10,fontWeight:600,cursor:'pointer',border:'1px solid var(--blue-m)'}}>
+                                      📁 사진
+                                      <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{
+                                        if(e.target.files[0]) handleImageUpload(e.target.files[0],'material',idx);
+                                      }}/>
+                                    </label>
+                                    <button onClick={()=>{
+                                      const url3=prompt('YouTube URL 입력:');
+                                      if(url3){setYoutube(idx,url3,'material');}
+                                    }} style={{flex:1,padding:'4px 0',borderRadius:6,background:'#FEF3C7',color:'#D97706',fontSize:10,fontWeight:600,cursor:'pointer',border:'1px solid #FDE68A'}}>▶ 유튜브</button>
+                                    {mat.mediaUrl&&<button onClick={()=>{updateMaterial(idx,'mediaUrl','');updateMaterial(idx,'mediaType','image');}} style={{padding:'4px 8px',borderRadius:6,background:'#FEE2E2',color:'#DC2626',fontSize:10,cursor:'pointer',border:'1px solid #FECACA'}}>✕</button>}
+                                  </div>
+                                  <input type="file" accept="image/*" id={`adm_mat_file_${selectedMethod}_${idx}`} style={{display:'none'}}
+                                    onChange={e=>{if(e.target.files[0]) handleImageUpload(e.target.files[0],'material',idx);}}/>
+                                  <input type="text" value={mat.mediaUrl||''} onChange={e=>updateMaterial(idx,'mediaUrl',e.target.value)}
+                                    placeholder="이미지/영상 URL..." style={{width:'100%',marginTop:6,padding:'5px 8px',borderRadius:6,border:'1px solid var(--border)',fontSize:10,boxSizing:'border-box',fontFamily:'inherit'}}/>
+                                </div>
+
+                                {/* 자재 설명 */}
+                                <div style={{flex:1}}>
+                                  <textarea
+                                    value={mat.desc||''}
+                                    onChange={e=>updateMaterial(idx,'desc',e.target.value)}
+                                    rows={4}
+                                    style={{
+                                      width:'100%',padding:'8px 12px',borderRadius:8,
+                                      border:'1px solid var(--border)',fontSize:12,lineHeight:1.7,
+                                      resize:'vertical',fontFamily:'inherit',boxSizing:'border-box'
+                                    }}
+                                    placeholder={`${mat.name} 자재 설명...`}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
-            </div>
+            )}
           </div>
-        )}
-      </div>
+
+          </div>{/* maxWidth container */}
+        </div>{/* scroll area */}
+      </div>{/* right panel */}
     </div>
   );
 }

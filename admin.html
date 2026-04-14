@@ -5304,96 +5304,139 @@ function ContentEditorPage({ showToast }) {
                 </div>
 
                 {/* ── 3-2: POUR공법 핵심 자재 ── */}
-                {(()=>{
-                  const materials=content?.processMaterials||[];
-                  const filledMats=materials.filter(m=>m&&m.name);
-                  if(filledMats.length===0) return(
+                {/* ── 3-2: POUR공법 핵심 자재 ── */}
+                <div style={{marginTop:8}}>
+                  <div style={{fontSize:12,fontWeight:800,color:'var(--accent)',marginBottom:12,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:6,letterSpacing:'.03em'}}>
+                      <div style={{width:3,height:16,borderRadius:2,background:'var(--accent)'}}/>
+                      3-2. POUR공법 핵심 자재
+                    </div>
+                    <button onClick={()=>{
+                      const arr=[...(content?.processMaterials||[])];
+                      arr.push({name:'새 자재',desc:'',badge:'',mediaUrl:'',mediaType:'image'});
+                      setContent(prev=>({...prev,processMaterials:arr}));
+                    }} style={{padding:'4px 12px',borderRadius:6,border:'1px solid var(--blue-m)',background:'var(--blue-l)',color:'var(--accent)',fontSize:11,fontWeight:600,cursor:'pointer'}}>+ 자재 추가</button>
+                  </div>
+                  {(content?.processMaterials||[]).length===0 && (
                     <div style={{padding:24,textAlign:'center',color:'var(--text-sm)',background:'#F8FAFC',borderRadius:10,border:'1px dashed var(--border)'}}>
                       <div style={{fontSize:24,marginBottom:6}}>📦</div>
-                      <div style={{fontSize:12}}>등록된 핵심 자재가 없습니다</div>
+                      <div style={{fontSize:12}}>등록된 핵심 자재가 없습니다. "자재 추가" 버튼을 눌러주세요.</div>
                     </div>
-                  );
-                  return(
-                    <div>
-                      <div style={{fontSize:12,fontWeight:800,color:'var(--accent)',marginBottom:12,display:'flex',alignItems:'center',gap:6,letterSpacing:'.03em'}}>
-                        <div style={{width:3,height:16,borderRadius:2,background:'var(--accent)'}}/>
-                        3-2. POUR공법 핵심 자재
-                      </div>
-                      <div style={{display:'flex',flexDirection:'column',gap:14}}>
-                        {materials.map((mat,idx)=>{
-                          if(!mat||!mat.name)return null;
-                          const isYoutube2=mat.mediaType==='youtube';
-                          return(
-                            <div key={idx} style={{
-                              borderRadius:12,border:'1px solid var(--blue-m)',overflow:'hidden',
-                              background:'linear-gradient(135deg,var(--blue-l),rgba(59,130,246,.04))'
-                            }}>
-                              {/* 자재 헤더 — 고객뷰 스타일 */}
-                              <div style={{padding:'10px 14px',borderBottom:'1px solid var(--blue-m)',display:'flex',alignItems:'center',gap:8}}>
-                                <span style={{fontSize:11,fontWeight:900,color:'var(--accent)'}}>🔬</span>
-                                <span style={{fontSize:13,fontWeight:800,color:'var(--navy)'}}>{mat.name}</span>
-                                {mat.badge&&<span style={{fontSize:9,fontWeight:700,color:'var(--accent)',background:'rgba(59,130,246,.12)',border:'1px solid rgba(59,130,246,.2)',borderRadius:4,padding:'2px 6px'}}>{mat.badge}</span>}
-                              </div>
-                              <div style={{padding:14,display:'flex',gap:14,alignItems:'flex-start'}}>
-                                {/* 자재 사진 */}
-                                <div style={{width:180,flexShrink:0}}>
-                                  <div style={{
-                                    width:'100%',aspectRatio:'4/3',borderRadius:8,overflow:'hidden',
-                                    border:mat.mediaUrl?'2px solid var(--blue-m)':'2px dashed var(--blue-m)',
-                                    background:mat.mediaUrl?'#000':'var(--blue-l)',cursor:'pointer'
-                                  }} onClick={()=>document.getElementById(`adm_mat_file_${selectedMethod}_${idx}`)?.click()}>
-                                    {isYoutube2&&mat.mediaUrl?(
-                                      <iframe src={mat.mediaUrl} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/>
-                                    ):mat.mediaUrl?(
-                                      <img src={mat.mediaUrl} style={{width:'100%',height:'100%',objectFit:'cover'}} alt={mat.name}/>
-                                    ):(
-                                      <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:4}}>
-                                        <span style={{fontSize:20,opacity:.4}}>📦</span>
-                                        <span style={{fontSize:10,color:'var(--accent)',fontWeight:600}}>사진 추가</span>
-                                      </div>
-                                    )}
+                  )}
+                  <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                    {(content?.processMaterials||[]).map((mat,idx)=>{
+                      if(!mat)return null;
+                      const isYoutube2=mat.mediaType==='youtube';
+                      return(
+                        <div key={idx} style={{
+                          borderRadius:12,border:'1px solid var(--blue-m)',overflow:'hidden',
+                          background:'linear-gradient(135deg,var(--blue-l),rgba(59,130,246,.04))'
+                        }}>
+                          {/* 자재 헤더 — 이름+뱃지 편집 가능 */}
+                          <div style={{padding:'10px 14px',borderBottom:'1px solid var(--blue-m)',display:'flex',alignItems:'center',gap:8}}>
+                            <span style={{fontSize:11,fontWeight:900,color:'var(--accent)'}}>🔬</span>
+                            <input type="text" value={mat.name||''} onChange={e=>updateMaterial(idx,'name',e.target.value)}
+                              placeholder="자재명..."
+                              style={{flex:1,fontSize:13,fontWeight:800,color:'var(--navy)',border:'1px solid transparent',background:'transparent',
+                                padding:'2px 6px',borderRadius:6,fontFamily:'inherit',outline:'none',boxSizing:'border-box',
+                                transition:'border-color .2s,background .2s'}}
+                              onFocus={e=>{e.target.style.borderColor='var(--accent)';e.target.style.background='#fff';}}
+                              onBlur={e=>{e.target.style.borderColor='transparent';e.target.style.background='transparent';}}
+                            />
+                            <input type="text" value={mat.badge||''} onChange={e=>updateMaterial(idx,'badge',e.target.value)}
+                              placeholder="뱃지 (예: KTR 인증)"
+                              style={{width:140,fontSize:9,fontWeight:700,color:'var(--accent)',background:'rgba(59,130,246,.08)',
+                                border:'1px solid rgba(59,130,246,.2)',borderRadius:4,padding:'3px 8px',fontFamily:'inherit',outline:'none',boxSizing:'border-box'}}
+                            />
+                            <button onClick={()=>{
+                              if(confirm(`"${mat.name||'자재'}" 삭제?`)){
+                                const arr=[...(content?.processMaterials||[])];
+                                arr.splice(idx,1);
+                                setContent(prev=>({...prev,processMaterials:arr}));
+                              }
+                            }} style={{width:22,height:22,borderRadius:6,border:'1px solid #FECACA',background:'#FEF2F2',
+                              color:'#DC2626',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>✕</button>
+                          </div>
+                          <div style={{padding:14,display:'flex',gap:14,alignItems:'flex-start'}}>
+                            {/* 자재 사진 */}
+                            <div style={{width:180,flexShrink:0}}>
+                              <div style={{
+                                width:'100%',aspectRatio:'4/3',borderRadius:8,overflow:'hidden',
+                                border:mat.mediaUrl?'2px solid var(--blue-m)':'2px dashed var(--blue-m)',
+                                background:mat.mediaUrl?'#000':'var(--blue-l)',cursor:'pointer'
+                              }} onClick={()=>document.getElementById(`adm_mat_file_${selectedMethod}_${idx}`)?.click()}>
+                                {isYoutube2&&mat.mediaUrl?(
+                                  <iframe src={mat.mediaUrl} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/>
+                                ):mat.mediaUrl?(
+                                  <img src={mat.mediaUrl} style={{width:'100%',height:'100%',objectFit:'cover'}} alt={mat.name}/>
+                                ):(
+                                  <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:4}}>
+                                    <span style={{fontSize:20,opacity:.4}}>📦</span>
+                                    <span style={{fontSize:10,color:'var(--accent)',fontWeight:600}}>사진 추가</span>
                                   </div>
-                                  <div style={{display:'flex',gap:4,marginTop:6}}>
-                                    <label style={{flex:1,padding:'4px 0',textAlign:'center',borderRadius:6,background:'var(--blue-l)',color:'var(--accent)',fontSize:10,fontWeight:600,cursor:'pointer',border:'1px solid var(--blue-m)'}}>
-                                      📁 사진
-                                      <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{
-                                        if(e.target.files[0]) handleImageUpload(e.target.files[0],'material',idx);
-                                      }}/>
-                                    </label>
-                                    <button onClick={()=>{
-                                      const url3=prompt('YouTube URL 입력:');
-                                      if(url3){setYoutube(idx,url3,'material');}
-                                    }} style={{flex:1,padding:'4px 0',borderRadius:6,background:'#FEF3C7',color:'#D97706',fontSize:10,fontWeight:600,cursor:'pointer',border:'1px solid #FDE68A'}}>▶ 유튜브</button>
-                                    {mat.mediaUrl&&<button onClick={()=>{updateMaterial(idx,'mediaUrl','');updateMaterial(idx,'mediaType','image');}} style={{padding:'4px 8px',borderRadius:6,background:'#FEE2E2',color:'#DC2626',fontSize:10,cursor:'pointer',border:'1px solid #FECACA'}}>✕</button>}
-                                  </div>
-                                  <input type="file" accept="image/*" id={`adm_mat_file_${selectedMethod}_${idx}`} style={{display:'none'}}
-                                    onChange={e=>{if(e.target.files[0]) handleImageUpload(e.target.files[0],'material',idx);}}/>
-                                  <input type="text" value={mat.mediaUrl||''} onChange={e=>updateMaterial(idx,'mediaUrl',e.target.value)}
-                                    placeholder="이미지/영상 URL..." style={{width:'100%',marginTop:6,padding:'5px 8px',borderRadius:6,border:'1px solid var(--border)',fontSize:10,boxSizing:'border-box',fontFamily:'inherit'}}/>
-                                </div>
-
-                                {/* 자재 설명 */}
-                                <div style={{flex:1}}>
-                                  <textarea
-                                    value={mat.desc||''}
-                                    onChange={e=>updateMaterial(idx,'desc',e.target.value)}
-                                    rows={4}
-                                    style={{
-                                      width:'100%',padding:'8px 12px',borderRadius:8,
-                                      border:'1px solid var(--border)',fontSize:12,lineHeight:1.7,
-                                      resize:'vertical',fontFamily:'inherit',boxSizing:'border-box'
-                                    }}
-                                    placeholder={`${mat.name} 자재 설명...`}
-                                  />
-                                </div>
+                                )}
                               </div>
+                              <div style={{display:'flex',gap:4,marginTop:6}}>
+                                <label style={{flex:1,padding:'4px 0',textAlign:'center',borderRadius:6,background:'var(--blue-l)',color:'var(--accent)',fontSize:10,fontWeight:600,cursor:'pointer',border:'1px solid var(--blue-m)'}}>
+                                  📁 사진
+                                  <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{
+                                    if(e.target.files[0]) handleImageUpload(e.target.files[0],'material',idx);
+                                  }}/>
+                                </label>
+                                <button onClick={()=>{
+                                  const url3=prompt('YouTube URL 입력:');
+                                  if(url3){setYoutube(idx,url3,'material');}
+                                }} style={{flex:1,padding:'4px 0',borderRadius:6,background:'#FEF3C7',color:'#D97706',fontSize:10,fontWeight:600,cursor:'pointer',border:'1px solid #FDE68A'}}>▶ 유튜브</button>
+                                {mat.mediaUrl&&<button onClick={()=>{updateMaterial(idx,'mediaUrl','');updateMaterial(idx,'mediaType','image');}} style={{padding:'4px 8px',borderRadius:6,background:'#FEE2E2',color:'#DC2626',fontSize:10,cursor:'pointer',border:'1px solid #FECACA'}}>✕</button>}
+                              </div>
+                              <input type="file" accept="image/*" id={`adm_mat_file_${selectedMethod}_${idx}`} style={{display:'none'}}
+                                onChange={e=>{if(e.target.files[0]) handleImageUpload(e.target.files[0],'material',idx);}}/>
+                              <input type="text" value={mat.mediaUrl||''} onChange={e=>updateMaterial(idx,'mediaUrl',e.target.value)}
+                                placeholder="이미지/영상 URL..." style={{width:'100%',marginTop:6,padding:'5px 8px',borderRadius:6,border:'1px solid var(--border)',fontSize:10,boxSizing:'border-box',fontFamily:'inherit'}}/>
                             </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })()}
+
+                            {/* 자재 설명 */}
+                            <div style={{flex:1}}>
+                              <textarea
+                                value={mat.desc||''}
+                                onChange={e=>updateMaterial(idx,'desc',e.target.value)}
+                                rows={4}
+                                style={{
+                                  width:'100%',padding:'8px 12px',borderRadius:8,
+                                  border:'1px solid var(--border)',fontSize:12,lineHeight:1.7,
+                                  resize:'vertical',fontFamily:'inherit',boxSizing:'border-box'
+                                }}
+                                placeholder={`${mat.name||'자재'} 설명...`}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* ── 3-3: 해결방안 요약 ── */}
+                <div style={{marginTop:24}}>
+                  <div style={{fontSize:12,fontWeight:800,color:'var(--green)',marginBottom:8,display:'flex',alignItems:'center',gap:6,letterSpacing:'.03em'}}>
+                    <div style={{width:3,height:16,borderRadius:2,background:'var(--green)'}}/>
+                    3-3. 해결방안 요약
+                  </div>
+                  <div style={{padding:'12px 14px',background:'#F0FDF4',borderRadius:12,border:'1px solid #BBF7D0'}}>
+                    <textarea
+                      value={content?.solution||''}
+                      onChange={e=>setContent(prev=>({...prev,solution:e.target.value}))}
+                      rows={3}
+                      style={{
+                        width:'100%',padding:'8px 12px',borderRadius:8,
+                        border:'1px solid #BBF7D0',fontSize:12,lineHeight:1.7,
+                        resize:'vertical',fontFamily:'inherit',boxSizing:'border-box',
+                        background:'#F0FDF4',color:'#166534'
+                      }}
+                      placeholder="이 공법의 해결방안을 요약하세요... (고객 화면 하단 초록 박스에 표시됩니다)"
+                    />
+                  </div>
+                </div>
               </div>
             )}
           </div>

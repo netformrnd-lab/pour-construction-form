@@ -3395,7 +3395,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [fieldPhotoModal,setFieldPhotoModal]=useState(null); // {id,src} — 태그 확인 중
   const [fieldPhotoTag,setFieldPhotoTag]=useState({defectType:'',defectPart:''});
   /* ── STEP 3 공정 사진 ── */
-  const [selectedProcessStep,setSelectedProcessStep]=useState(0);
+  const [selectedProcessStep,setSelectedProcessStep]=useState(new Set([0]));
   const [materialModal,setMaterialModal]=useState(null); // {name, desc, mediaUrl, mediaType}
   const [photoCardTab,setPhotoCardTab]=useState({}); // {[methodId]: 'defect'|'media'|'process'}
   const [showReport,setShowReport]=useState(false);
@@ -3508,8 +3508,13 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   /* 현재 공법을 상담 여정에 추가 + 공정 탭 0번으로 리셋 */
   useEffect(()=>{
     if(!problem||!visible)return;
-    setSelectedProcessStep(0);
     const mc=getMethodContent(problem.id);
+    /* POUR핵심 자재가 있는 스텝 + 첫 스텝 기본 펼침 */
+    const defaultOpen=new Set([0]);
+    if(mc&&mc.processMaterials){
+      mc.processMaterials.forEach((mat,idx)=>{if(mat)defaultOpen.add(idx);});
+    }
+    setSelectedProcessStep(defaultOpen);
     const ms=METHOD_STATS[problem.id];
     const snap={id:problem.id,label:problem.label,cat:problem.cat||'',
       cause:mc?.cause||'',process:mc?.process||[],solution:mc?.solution||'',
@@ -4573,7 +4578,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               );
             })()}
 
-            {/* ── STEP 2. 왜 이 문제가 생기나 — 원인 설명 + 시공 영상 ── */}
+            {/* ── STEP 2. 문제 발생 원인 — 원인 설명 + 시공 영상 ── */}
             {(()=>{
               const mc=getMethodContent(problem?.id);
               const mediaList=(photos.media||[]).filter(s=>s);
@@ -4585,95 +4590,119 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                   <div style={{padding:'12px 14px'}}>
                     <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:10}}>
                       <div style={{width:6,height:6,borderRadius:'50%',background:'var(--red)',flexShrink:0}}/>
-                      <span style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>왜 이 문제가 생기나</span>
+                      <span style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>문제 발생 원인</span>
                     </div>
                     <p style={{fontSize:13,lineHeight:1.7,color:'var(--text)',margin:0,wordBreak:'keep-all',marginBottom:14,whiteSpace:'pre-line'}}>
                       {mc.cause}
                     </p>
-                    {/* 원인 영상 — 원인 설명 바로 아래 */}
-                    <div>
-                      <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:8}}>
-                        <div style={{width:5,height:5,borderRadius:'50%',background:'var(--accent)',opacity:.7}}/>
-                        <span style={{fontSize:10,fontWeight:700,color:'var(--navy)',letterSpacing:'.04em'}}>원인 영상</span>
-                      </div>
-                      {mediaList.length===0?(
-                        <div style={{display:'flex',gap:6}}>
-                          {[0,1].map(i=>(
-                            <div key={i} style={{flex:'0 0 35%',borderRadius:10,border:'1.5px dashed var(--border)',background:'var(--bg)',aspectRatio:'9/16',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
-                              <span style={{fontSize:18,opacity:.2}}>🎬</span>
-                              <span style={{fontSize:8,color:'var(--text-sm)',fontWeight:600}}>관리자에서 추가</span>
-                            </div>
-                          ))}
-                        </div>
-                      ):(
-                        <div style={{position:'relative'}}>
-                          <div style={{display:'flex',gap:6,overflowX:'auto',paddingRight:28,scrollSnapType:'x mandatory',WebkitOverflowScrolling:'touch',scrollbarWidth:'none',msOverflowStyle:'none'}}
-                            className="media-scroll">
-                            {mediaList.map((src,i)=>{
-                              const parsed=parseVideoUrl(src);
-                              const isVid=!!parsed;
-                              const isInline=inlinePlayIdx===i;
-                              const thumbSrc=(photos.mediaThumbs||[])[i];
-                              const ytThumb=parsed&&parsed.type==='youtube'?`https://img.youtube.com/vi/${src.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/)?.[1]}/hqdefault.jpg`:null;
-                              const cardThumb=thumbSrc||ytThumb;
-                              return(
-                                <div key={i}
-                                  onClick={()=>{
-                                    if(isVid&&!isInline){setInlinePlayIdx(i);}
-                                    else if(!isVid){setMediaViewer(i);}
-                                  }}
-                                  style={{flex:'0 0 35%',scrollSnapAlign:'start',borderRadius:10,overflow:'hidden',background:'#111',position:'relative',aspectRatio:'9/16',cursor:'pointer'}}>
-                                  {isVid&&isInline?(
-                                    <React.Fragment>
-                                      {parsed.type==='direct'?(
-                                        <video src={src} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}} playsInline autoPlay controls loop
-                                          onClick={e=>e.stopPropagation()}/>
-                                      ):(
-                                        <iframe src={parsed.embedUrl} style={{width:'100%',height:'100%',border:'none',pointerEvents:'auto'}}
-                                          allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowFullScreen/>
-                                      )}
-                                    </React.Fragment>
-                                  ):(
-                                    <React.Fragment>
-                                      {cardThumb?(
-                                        <img src={cardThumb} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block',pointerEvents:'none'}}/>
-                                      ):!isVid?(
-                                        <img src={src} alt={`미디어 ${i+1}`} style={{width:'100%',height:'100%',objectFit:'cover',display:'block',pointerEvents:'none'}}/>
-                                      ):(
-                                        <div style={{width:'100%',height:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'linear-gradient(135deg,#1a1a2e 0%,#16213e 100%)',pointerEvents:'none',gap:6}}>
-                                          <div style={{width:44,height:44,borderRadius:'50%',background:'rgba(255,255,255,.12)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                                            <span style={{fontSize:20,marginLeft:2,color:'#fff'}}>▶</span>
-                                          </div>
-                                          <span style={{fontSize:10,color:'rgba(255,255,255,.5)',fontWeight:600}}>영상 재생</span>
-                                        </div>
-                                      )}
-                                      {isVid&&cardThumb&&(
-                                        <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',pointerEvents:'none'}}>
-                                          <div style={{width:44,height:44,borderRadius:'50%',background:'rgba(0,0,0,.5)',display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}}>
-                                            <span style={{fontSize:18,color:'#fff',marginLeft:2}}>▶</span>
-                                          </div>
-                                        </div>
-                                      )}
-                                    </React.Fragment>
-                                  )}
-                                  <div style={{position:'absolute',top:6,left:6,padding:'2px 6px',borderRadius:5,fontSize:9,fontWeight:800,background:'rgba(0,0,0,.55)',color:'#fff',backdropFilter:'blur(4px)',zIndex:3}}>
-                                    {i+1}/{mediaList.length}
-                                  </div>
-                                  <div onClick={(e)=>{e.stopPropagation();setInlinePlayIdx(null);setMediaViewer(i);}}
-                                    style={{position:'absolute',bottom:0,left:0,right:0,padding:'20px 0 10px',background:'linear-gradient(to top,rgba(0,0,0,.7) 0%,transparent 100%)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',zIndex:3}}>
-                                    <span style={{fontSize:15,fontWeight:800,color:'#fff',background:'rgba(255,255,255,.25)',padding:'10px 28px',borderRadius:24,backdropFilter:'blur(6px)',letterSpacing:'.03em',boxShadow:'0 2px 12px rgba(0,0,0,.3)'}}>🔍 크게 보기</span>
-                                  </div>
-                                  <div style={{position:'absolute',bottom:0,left:0,right:0,height:'30%',background:'linear-gradient(transparent,rgba(0,0,0,.4))',pointerEvents:'none',borderRadius:'0 0 12px 12px'}}/>
-                                </div>
-                              );
-                            })}
+                    {/* 관련 사진/영상 — 사진 위, 영상 아래 분리 표시 */}
+                    {(()=>{
+                      const photoItems=mediaList.filter(src=>!parseVideoUrl(src));
+                      const videoItems=mediaList.filter(src=>!!parseVideoUrl(src));
+                      if(mediaList.length===0) return(
+                        <div>
+                          <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:8}}>
+                            <div style={{width:5,height:5,borderRadius:'50%',background:'var(--accent)',opacity:.7}}/>
+                            <span style={{fontSize:10,fontWeight:700,color:'var(--navy)',letterSpacing:'.04em'}}>관련 사진/영상</span>
                           </div>
-                          {mediaList.length>2&&(
-                            <div style={{position:'absolute',top:0,right:0,bottom:6,width:32,background:'linear-gradient(to right,transparent,rgba(0,0,0,.35))',pointerEvents:'none',borderRadius:'0 12px 12px 0'}}/>
+                          <div style={{display:'flex',gap:6}}>
+                            {[0,1].map(i=>(
+                              <div key={i} style={{flex:'0 0 35%',borderRadius:10,border:'1.5px dashed var(--border)',background:'var(--bg)',aspectRatio:'9/16',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:4}}>
+                                <span style={{fontSize:18,opacity:.2}}>🎬</span>
+                                <span style={{fontSize:8,color:'var(--text-sm)',fontWeight:600}}>관리자에서 추가</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                      return(
+                        <div>
+                          <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:8}}>
+                            <div style={{width:5,height:5,borderRadius:'50%',background:'var(--accent)',opacity:.7}}/>
+                            <span style={{fontSize:10,fontWeight:700,color:'var(--navy)',letterSpacing:'.04em'}}>관련 사진/영상</span>
+                          </div>
+                          {/* 사진 영역 */}
+                          {photoItems.length>0&&(
+                            <div style={{marginBottom:videoItems.length>0?12:0}}>
+                              <div style={{fontSize:9,fontWeight:700,color:'var(--text-sm)',marginBottom:6,letterSpacing:'.04em'}}>📷 사진</div>
+                              <div style={{display:'flex',gap:6,overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none'}} className="media-scroll">
+                                {photoItems.map((src,i)=>(
+                                  <div key={`p${i}`} onClick={()=>setMediaViewer(mediaList.indexOf(src))}
+                                    style={{flex:'0 0 35%',scrollSnapAlign:'start',borderRadius:10,overflow:'hidden',background:'#111',position:'relative',aspectRatio:'9/16',cursor:'pointer'}}>
+                                    <img src={src} alt={`사진 ${i+1}`} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+                                    <div style={{position:'absolute',top:6,left:6,padding:'2px 6px',borderRadius:5,fontSize:9,fontWeight:800,background:'rgba(0,0,0,.55)',color:'#fff',backdropFilter:'blur(4px)',zIndex:3}}>
+                                      {i+1}/{photoItems.length}
+                                    </div>
+                                    <div onClick={(e)=>{e.stopPropagation();setMediaViewer(mediaList.indexOf(src));}}
+                                      style={{position:'absolute',bottom:0,left:0,right:0,padding:'20px 0 10px',background:'linear-gradient(to top,rgba(0,0,0,.7) 0%,transparent 100%)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',zIndex:3}}>
+                                      <span style={{fontSize:15,fontWeight:800,color:'#fff',background:'rgba(255,255,255,.25)',padding:'10px 28px',borderRadius:24,backdropFilter:'blur(6px)',letterSpacing:'.03em',boxShadow:'0 2px 12px rgba(0,0,0,.3)'}}>🔍 크게 보기</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {/* 영상 영역 */}
+                          {videoItems.length>0&&(
+                            <div>
+                              <div style={{fontSize:9,fontWeight:700,color:'var(--text-sm)',marginBottom:6,letterSpacing:'.04em'}}>🎬 영상</div>
+                              <div style={{display:'flex',gap:6,overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none'}} className="media-scroll">
+                                {videoItems.map((src,vi)=>{
+                                  const parsed=parseVideoUrl(src);
+                                  const globalIdx=mediaList.indexOf(src);
+                                  const isInline=inlinePlayIdx===globalIdx;
+                                  const thumbSrc=(photos.mediaThumbs||[])[globalIdx];
+                                  const ytThumb=parsed&&parsed.type==='youtube'?`https://img.youtube.com/vi/${src.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/)?.[1]}/hqdefault.jpg`:null;
+                                  const cardThumb=thumbSrc||ytThumb;
+                                  return(
+                                    <div key={`v${vi}`}
+                                      onClick={()=>{if(!isInline)setInlinePlayIdx(globalIdx);}}
+                                      style={{flex:'0 0 35%',scrollSnapAlign:'start',borderRadius:10,overflow:'hidden',background:'#111',position:'relative',aspectRatio:'9/16',cursor:'pointer'}}>
+                                      {isInline?(
+                                        <React.Fragment>
+                                          {parsed.type==='direct'?(
+                                            <video src={src} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}} playsInline autoPlay controls loop onClick={e=>e.stopPropagation()}/>
+                                          ):(
+                                            <iframe src={parsed.embedUrl} style={{width:'100%',height:'100%',border:'none',pointerEvents:'auto'}} allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowFullScreen/>
+                                          )}
+                                        </React.Fragment>
+                                      ):(
+                                        <React.Fragment>
+                                          {cardThumb?(
+                                            <img src={cardThumb} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block',pointerEvents:'none'}}/>
+                                          ):(
+                                            <div style={{width:'100%',height:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'linear-gradient(135deg,#1a1a2e 0%,#16213e 100%)',pointerEvents:'none',gap:6}}>
+                                              <div style={{width:44,height:44,borderRadius:'50%',background:'rgba(255,255,255,.12)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                                                <span style={{fontSize:20,marginLeft:2,color:'#fff'}}>▶</span>
+                                              </div>
+                                              <span style={{fontSize:10,color:'rgba(255,255,255,.5)',fontWeight:600}}>영상 재생</span>
+                                            </div>
+                                          )}
+                                          {cardThumb&&(
+                                            <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',pointerEvents:'none'}}>
+                                              <div style={{width:44,height:44,borderRadius:'50%',background:'rgba(0,0,0,.5)',display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}}>
+                                                <span style={{fontSize:18,color:'#fff',marginLeft:2}}>▶</span>
+                                              </div>
+                                            </div>
+                                          )}
+                                        </React.Fragment>
+                                      )}
+                                      <div style={{position:'absolute',top:6,left:6,padding:'2px 6px',borderRadius:5,fontSize:9,fontWeight:800,background:'rgba(0,0,0,.55)',color:'#fff',backdropFilter:'blur(4px)',zIndex:3}}>
+                                        {vi+1}/{videoItems.length}
+                                      </div>
+                                      <div onClick={(e)=>{e.stopPropagation();setInlinePlayIdx(null);setMediaViewer(globalIdx);}}
+                                        style={{position:'absolute',bottom:0,left:0,right:0,padding:'20px 0 10px',background:'linear-gradient(to top,rgba(0,0,0,.7) 0%,transparent 100%)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',zIndex:3}}>
+                                        <span style={{fontSize:15,fontWeight:800,color:'#fff',background:'rgba(255,255,255,.25)',padding:'10px 28px',borderRadius:24,backdropFilter:'blur(6px)',letterSpacing:'.03em',boxShadow:'0 2px 12px rgba(0,0,0,.3)'}}>🔍 크게 보기</span>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
                           )}
                         </div>
-                      )}
-                    </div>
+                      );
+                    })()}
                   </div>
                 </div>
               );
@@ -4724,7 +4753,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     {(mc.processMode||'steps')==='steps'&&(
                     <div style={{display:'flex',flexDirection:'column',gap:0}}>
                       {mc.process.map((step,i)=>{
-                        const isSel=selectedProcessStep===i;
+                        const isSel=selectedProcessStep.has(i);
                         const _cpSteps=(casePhotos[problem.id]||{}).processSteps||[];
                         const hasPhoto=(_cpSteps[i]&&_cpSteps[i].url)||((mc.processPhotos||[])[i]);
                         const stepDesc=(mc.processDescs||[])[i];
@@ -4734,7 +4763,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                           <div key={i} style={{display:'flex',gap:0,position:'relative'}}>
                             {/* 왼쪽 타임라인 */}
                             <div style={{display:'flex',flexDirection:'column',alignItems:'center',width:32,flexShrink:0}}>
-                              <button onClick={()=>setSelectedProcessStep(isSel?null:i)}
+                              <button onClick={()=>setSelectedProcessStep(p=>{const n=new Set(p);n.has(i)?n.delete(i):n.add(i);return n;})}
                                 style={{width:28,height:28,borderRadius:'50%',border:'none',cursor:'pointer',
                                   background:isSel?'var(--green)':'var(--navy)',
                                   color:'#fff',fontSize:11,fontWeight:800,flexShrink:0,
@@ -4747,7 +4776,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                             </div>
                             {/* 오른쪽 콘텐츠 */}
                             <div style={{flex:1,paddingLeft:8,paddingBottom:isLast?0:10}}>
-                              <button onClick={()=>setSelectedProcessStep(isSel?null:i)}
+                              <button onClick={()=>setSelectedProcessStep(p=>{const n=new Set(p);n.has(i)?n.delete(i):n.add(i);return n;})}
                                 style={{width:'100%',textAlign:'left',background:isSel?'rgba(5,150,105,.06)':'transparent',
                                   border:`1.5px solid ${isSel?'var(--green)':'transparent'}`,
                                   borderRadius:10,padding:'8px 10px',cursor:'pointer',fontFamily:'inherit',
@@ -5548,71 +5577,77 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     </div>
                   )}
 
-                  {/* ── STEP 2. 왜 이 문제가 생기나 (원인 + 원인 영상) ── */}
+                  {/* ── STEP 2. 문제 발생 원인 (원인 + 관련 사진/영상) ── */}
                   {(mc.cause||caseMedia.length>0)&&(
                     <div style={{margin:'14px 14px 0',borderRadius:14,background:'var(--card)',border:'1px solid var(--border)',boxShadow:'var(--shadow)',overflow:'hidden'}}>
                       <div style={{height:2,background:'linear-gradient(90deg,var(--red),rgba(220,38,38,.2),transparent)',opacity:.7}}/>
                       <div style={{padding:'12px 14px'}}>
                         <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:10}}>
                           <div style={{width:6,height:6,borderRadius:'50%',background:'var(--red)',flexShrink:0}}/>
-                          <span style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>왜 이 문제가 생기나</span>
+                          <span style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>문제 발생 원인</span>
                         </div>
                         {mc.cause&&(
                           <p style={{fontSize:13,lineHeight:1.7,color:'var(--text)',margin:'0 0 12px',wordBreak:'keep-all',whiteSpace:'pre-line'}}>{mc.cause}</p>
                         )}
-                        {/* 원인 영상 썸네일 */}
-                        {caseMedia.length>0&&(
-                          <div>
-                            <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:8}}>
-                              <div style={{width:5,height:5,borderRadius:'50%',background:'var(--accent)',opacity:.7}}/>
-                              <span style={{fontSize:10,fontWeight:700,color:'var(--navy)',letterSpacing:'.04em'}}>원인 영상</span>
-                            </div>
-                            <div style={{display:'flex',gap:6,overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none'}}>
-                              {caseMedia.map((src,ci)=>{
-                                const parsed=parseVideoUrl(src);
-                                const ytThumb=parsed&&parsed.type==='youtube'?`https://img.youtube.com/vi/${src.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/)?.[1]}/hqdefault.jpg`:null;
-                                return(
-                                  <div key={ci} style={{flex:'0 0 35%',borderRadius:10,overflow:'hidden',background:'#111',position:'relative',aspectRatio:'9/16'}}>
-                                    {parsed?(ytThumb?(
-                                      <img src={ytThumb} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-                                    ):(
-                                      <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',background:'linear-gradient(135deg,#1a1a2e,#16213e)'}}>
-                                        <span style={{fontSize:28,color:'rgba(255,255,255,.3)'}}>&#9654;</span>
+                        {/* 관련 사진/영상 — 사진 위, 영상 아래 분리 표시 */}
+                        {caseMedia.length>0&&(()=>{
+                          const cPhotoItems=caseMedia.filter(src=>!parseVideoUrl(src));
+                          const cVideoItems=caseMedia.filter(src=>!!parseVideoUrl(src));
+                          return(
+                            <div>
+                              <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:8}}>
+                                <div style={{width:5,height:5,borderRadius:'50%',background:'var(--accent)',opacity:.7}}/>
+                                <span style={{fontSize:10,fontWeight:700,color:'var(--navy)',letterSpacing:'.04em'}}>관련 사진/영상</span>
+                              </div>
+                              {/* 사진 */}
+                              {cPhotoItems.length>0&&(
+                                <div style={{marginBottom:cVideoItems.length>0?10:0}}>
+                                  <div style={{fontSize:9,fontWeight:700,color:'var(--text-sm)',marginBottom:5,letterSpacing:'.04em'}}>📷 사진</div>
+                                  <div style={{display:'flex',gap:6,overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none'}}>
+                                    {cPhotoItems.map((src,ci)=>(
+                                      <div key={`cp${ci}`} style={{flex:'0 0 35%',borderRadius:10,overflow:'hidden',background:'#111',position:'relative',aspectRatio:'9/16'}}>
+                                        <img src={src} alt={`사진 ${ci+1}`} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+                                        <div style={{position:'absolute',top:5,left:5,padding:'2px 6px',borderRadius:4,fontSize:8,fontWeight:800,background:'rgba(0,0,0,.55)',color:'#fff'}}>{ci+1}/{cPhotoItems.length}</div>
                                       </div>
-                                    )):(
-                                      <img src={src} alt={`영상 ${ci+1}`} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-                                    )}
-                                    {parsed&&ytThumb&&(
-                                      <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',pointerEvents:'none'}}>
-                                        <div style={{width:40,height:40,borderRadius:'50%',background:'rgba(0,0,0,.5)',display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}}>
-                                          <span style={{fontSize:16,color:'#fff',marginLeft:2}}>&#9654;</span>
-                                        </div>
-                                      </div>
-                                    )}
-                                    <div style={{position:'absolute',top:5,left:5,padding:'2px 6px',borderRadius:4,fontSize:8,fontWeight:800,background:'rgba(0,0,0,.55)',color:'#fff'}}>{ci+1}/{caseMedia.length}</div>
+                                    ))}
                                   </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-                        {/* 시공 전 현장 사진 */}
-                        {caseCauses.length>0&&(
-                          <div style={{marginTop:12}}>
-                            <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:6}}>
-                              <div style={{width:5,height:5,borderRadius:'50%',background:'var(--red)',opacity:.7}}/>
-                              <span style={{fontSize:10,fontWeight:700,color:'var(--navy)'}}>시공 전 현장</span>
-                            </div>
-                            <div style={{display:'flex',gap:5,overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none'}}>
-                              {caseCauses.map((src,ci)=>(
-                                <div key={ci} style={{flex:'0 0 auto',width:110,height:82,borderRadius:8,overflow:'hidden',border:'1px solid var(--border)'}}>
-                                  <img src={src} alt={`시공 전 ${ci+1}`} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}
-                                    onError={e=>{e.target.style.display='none';}}/>
                                 </div>
-                              ))}
+                              )}
+                              {/* 영상 */}
+                              {cVideoItems.length>0&&(
+                                <div>
+                                  <div style={{fontSize:9,fontWeight:700,color:'var(--text-sm)',marginBottom:5,letterSpacing:'.04em'}}>🎬 영상</div>
+                                  <div style={{display:'flex',gap:6,overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none'}}>
+                                    {cVideoItems.map((src,vi)=>{
+                                      const parsed=parseVideoUrl(src);
+                                      const ytThumb=parsed&&parsed.type==='youtube'?`https://img.youtube.com/vi/${src.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/)?.[1]}/hqdefault.jpg`:null;
+                                      return(
+                                        <div key={`cv${vi}`} style={{flex:'0 0 35%',borderRadius:10,overflow:'hidden',background:'#111',position:'relative',aspectRatio:'9/16'}}>
+                                          {ytThumb?(
+                                            <img src={ytThumb} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+                                          ):(
+                                            <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center',background:'linear-gradient(135deg,#1a1a2e,#16213e)'}}>
+                                              <span style={{fontSize:28,color:'rgba(255,255,255,.3)'}}>&#9654;</span>
+                                            </div>
+                                          )}
+                                          {ytThumb&&(
+                                            <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',pointerEvents:'none'}}>
+                                              <div style={{width:40,height:40,borderRadius:'50%',background:'rgba(0,0,0,.5)',display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}}>
+                                                <span style={{fontSize:16,color:'#fff',marginLeft:2}}>&#9654;</span>
+                                              </div>
+                                            </div>
+                                          )}
+                                          <div style={{position:'absolute',top:5,left:5,padding:'2px 6px',borderRadius:4,fontSize:8,fontWeight:800,background:'rgba(0,0,0,.55)',color:'#fff'}}>{vi+1}/{cVideoItems.length}</div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        )}
+                          );
+                        })()}
+                        {/* 시공 전 현장 사진 — 위에 현장하자사진으로 이미 표시되므로 숨김 */}
                       </div>
                     </div>
                   )}
@@ -8481,12 +8516,12 @@ function AdminScreen({onBack}){
                         </div>
 
                         {/* ══════════════════════════════════════════
-                            섹션 2: 왜 이 문제가 생기나 — 원인 영상
+                            섹션 2: 문제 발생 원인 — 관련 사진/영상
                         ══════════════════════════════════════════ */}
                         <div style={{borderRadius:12,border:'1px solid var(--border)',overflow:'hidden',background:'var(--card)'}}>
                           <div style={{padding:'10px 12px',background:'linear-gradient(90deg,rgba(220,38,38,.06),transparent)',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:6}}>
                             <div style={{width:6,height:6,borderRadius:'50%',background:'var(--red)',flexShrink:0}}/>
-                            <span style={{fontSize:12,fontWeight:800,color:'var(--navy)'}}>2. 왜 이 문제가 생기나 — 원인 영상</span>
+                            <span style={{fontSize:12,fontWeight:800,color:'var(--navy)'}}>2. 문제 발생 원인 — 관련 사진/영상</span>
                           </div>
                           <div style={{padding:'12px'}}>
                             <div style={{fontSize:10,color:'var(--text-sm)',marginBottom:10}}>

@@ -6026,9 +6026,13 @@ function BusinessCardCapture({onCapture,openRef}){
   const [backImg,setBackImg]=useState(null);
   const [camOpen,setCamOpen]=useState(false);
   const [camSide,setCamSide]=useState('front'); // 'front' or 'back'
+  const [askBack,setAskBack]=useState(false); // 뒷면 촬영 확인 모달
+  const [toast,setToast]=useState(null); // 완료 토스트
   const videoRef=useRef(null);
   const streamRef=useRef(null);
   const canvasRef=useRef(null);
+
+  const showToast=(msg)=>{setToast(msg);setTimeout(()=>setToast(null),2200);};
 
   const openCam=(side)=>{
     setCamSide(side);setCamOpen(true);
@@ -6053,9 +6057,13 @@ function BusinessCardCapture({onCapture,openRef}){
     if(camSide==='front'){setFrontImg(dataUrl);if(onCapture)onCapture('front',dataUrl);}
     else{setBackImg(dataUrl);if(onCapture)onCapture('back',dataUrl);}
     closeCam();
-    // 앞면 촬영 직후 뒷면 안내
+    // 앞면 촬영 직후 뒷면 촬영 여부 확인 모달
     if(camSide==='front'&&!backImg){
-      setTimeout(()=>{if(confirm('뒷면도 촬영하시겠어요?'))openCam('back');},400);
+      setTimeout(()=>setAskBack(true),400);
+    }
+    // 뒷면 촬영 완료 시 토스트
+    if(camSide==='back'){
+      setTimeout(()=>showToast('명함 앞뒷면이 모두 저장되었습니다'),300);
     }
   };
   const removeFront=()=>{setFrontImg(null);if(onCapture)onCapture('front',null);};
@@ -6103,6 +6111,28 @@ function BusinessCardCapture({onCapture,openRef}){
           <div className="bc-cam-footer">
             <button className="bc-cam-shutter" onClick={capture}/>
           </div>
+        </div>
+      )}
+
+      {/* 뒷면 촬영 여부 확인 모달 */}
+      {askBack&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.55)',zIndex:10000,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}} onClick={()=>{setAskBack(false);showToast('명함 앞면이 저장되었습니다');}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:'#fff',borderRadius:20,padding:'28px 24px',width:'min(340px,85vw)',textAlign:'center',boxShadow:'0 20px 60px rgba(0,0,0,.3)'}}>
+            <div style={{fontSize:40,marginBottom:12}}>✅</div>
+            <div style={{fontSize:17,fontWeight:800,color:'#111827',marginBottom:6}}>앞면 촬영 완료!</div>
+            <div style={{fontSize:13,color:'#6B7280',marginBottom:24,lineHeight:1.5}}>뒷면도 촬영하시겠어요?<br/><span style={{fontSize:11,color:'#9CA3AF'}}>뒷면은 선택사항입니다</span></div>
+            <div style={{display:'flex',gap:10}}>
+              <button onClick={()=>{setAskBack(false);showToast('명함 앞면이 저장되었습니다');}} style={{flex:1,padding:'14px 0',borderRadius:12,border:'1.5px solid #E5E7EB',background:'#fff',fontSize:14,fontWeight:700,color:'#374151',cursor:'pointer',fontFamily:'inherit'}}>앞면만 저장</button>
+              <button onClick={()=>{setAskBack(false);openCam('back');}} style={{flex:1,padding:'14px 0',borderRadius:12,border:'none',background:'#2563EB',fontSize:14,fontWeight:700,color:'#fff',cursor:'pointer',fontFamily:'inherit'}}>뒷면도 촬영</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 완료 토스트 */}
+      {toast&&(
+        <div style={{position:'fixed',bottom:100,left:'50%',transform:'translateX(-50%)',zIndex:10001,background:'#059669',color:'#fff',padding:'12px 24px',borderRadius:12,fontSize:13,fontWeight:700,boxShadow:'0 8px 24px rgba(5,150,105,.35)',whiteSpace:'nowrap',animation:'fadeInUp .3s ease'}}>
+          ✅ {toast}
         </div>
       )}
     </>

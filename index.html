@@ -1596,6 +1596,7 @@ const METHOD_STATS={
 /* ── 공법별 원인·해결방안·공정 (STEP 2,3 콘텐츠) ── */
 /* Firestore method-content 컬렉션에서 오버라이드 — 어드민에서 수정 시 반영 */
 let _methodContentOverrides={};
+let _proposalSlidesMap={};
 (async()=>{
   try{
     const snap=await db.collection('method-content').get();
@@ -1604,6 +1605,13 @@ let _methodContentOverrides={};
       console.log(`[method-content] ${snap.size}건 오버라이드 로드`);
     }
   }catch(e){console.warn('[method-content] 오버라이드 로드 실패, 기본값 사용:',e);}
+  try{
+    const snap2=await db.collection('proposal-slides').get();
+    if(snap2.size>0){
+      snap2.docs.forEach(d=>{_proposalSlidesMap[d.id]=d.data().slides||[];});
+      console.log(`[proposal-slides] ${snap2.size}건 로드`);
+    }
+  }catch(e){console.warn('[proposal-slides] 로드 실패:',e);}
 })();
 function getMethodContent(id){
   const ov=_methodContentOverrides[id];
@@ -1616,7 +1624,7 @@ function getMethodContent(id){
     processMaterials:ov.processMaterials||base?.processMaterials,
     processKeys:ov.processKeys||base?.processKeys||[],
     processPhotoPositions:ov.processPhotoPositions||base?.processPhotoPositions||[],
-    proposalSlides:ov.proposalSlides||base?.proposalSlides||[],
+    proposalSlides:_proposalSlidesMap[id]||ov.proposalSlides||base?.proposalSlides||[],
   };
 }
 var _METHOD_CONTENT_DEFAULTS={

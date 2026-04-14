@@ -4644,16 +4644,21 @@ function ContentEditorPage({ showToast }) {
       const ref = db ? db.collection(CONTENT_COLLECTION).doc(methodId) : null;
       if (ref) {
         const snap = await ref.get();
+        let data = defaultContent;
         if (snap.exists) {
-          const data = snap.data();
-          // cause가 비어있으면 기본값 사용
+          data = {...defaultContent, ...snap.data()};
           if (!data.cause && DEFAULT_CAUSE_TEXTS[methodId]) {
             data.cause = DEFAULT_CAUSE_TEXTS[methodId];
           }
-          setContent({...defaultContent, ...data});
-        } else {
-          setContent(defaultContent);
         }
+        // proposalSlides 별도 로드
+        try {
+          const slideSnap = await db.collection('proposal-slides').doc(methodId).get();
+          if (slideSnap.exists) {
+            data.proposalSlides = slideSnap.data().slides || [];
+          }
+        } catch(e2) { console.warn('[proposal-slides] 로드 실패:', e2); }
+        setContent(data);
       } else {
         setContent(defaultContent);
       }
@@ -4668,10 +4673,20 @@ function ContentEditorPage({ showToast }) {
     try {
       const ref = db ? db.collection(CONTENT_COLLECTION).doc(selectedMethod) : null;
       if (ref) {
-        await ref.set(content, { merge: true });
+        // proposalSlides는 별도 컬렉션에 저장 (문서 1MB 제한 방지)
+        const {proposalSlides, ...contentWithoutSlides} = content;
+        await ref.set(contentWithoutSlides, { merge: true });
+        // 슬라이드 별도 저장
+        if (proposalSlides && proposalSlides.length > 0) {
+          const slideRef = db.collection('proposal-slides').doc(selectedMethod);
+          await slideRef.set({ slides: proposalSlides, updatedAt: new Date().toISOString() });
+        } else {
+          // 슬라이드 비었으면 문서 삭제 대신 빈 배열로
+          const slideRef = db.collection('proposal-slides').doc(selectedMethod);
+          await slideRef.set({ slides: [], updatedAt: new Date().toISOString() });
+        }
         showToast('저장 완료!', 'success');
       } else {
-        // localStorage 폴백
         localStorage.setItem(`content_${selectedMethod}`, JSON.stringify(content));
         showToast('로컬 저장 완료 (Firebase 미연결)', 'info');
       }

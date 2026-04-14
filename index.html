@@ -6002,6 +6002,72 @@ function  LeadsScreen({onBack}){
                     </div>
                   </div>
                 )}
+                {/* 추가 정보 — 저장되어 있지만 기존에 미표시였던 필드들 */}
+                {(l.address||l.desiredStartDate||l.nextActions?.length>0||l.interests?.length>0||l.deliveryDocs?.length>0||l.keywords?.length>0||l.source||l.fieldPhotos?.length>0)&&(
+                  <div style={{marginBottom:16,padding:'14px 16px',borderRadius:10,background:'var(--bg)',border:'1px solid var(--border)',display:'flex',flexDirection:'column',gap:10}}>
+                    <div style={{fontSize:11,fontWeight:800,color:'var(--text)'}}>추가 정보</div>
+                    {l.address&&(
+                      <div>
+                        <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:3}}>주소</div>
+                        <div style={{fontSize:13,fontWeight:600,color:'var(--text)'}}>{l.address}</div>
+                      </div>
+                    )}
+                    {l.desiredStartDate&&(
+                      <div>
+                        <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:3}}>희망 착공일</div>
+                        <div style={{fontSize:13,fontWeight:600,color:'var(--text)'}}>{l.desiredStartDate}</div>
+                      </div>
+                    )}
+                    {l.interests?.length>0&&(
+                      <div>
+                        <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:4}}>관심 항목</div>
+                        <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{l.interests.map(v=><span key={v} style={{padding:'4px 10px',borderRadius:8,background:'#DBEAFE',border:'1px solid #BFDBFE',fontSize:12,fontWeight:600,color:'#1D4ED8'}}>{v}</span>)}</div>
+                      </div>
+                    )}
+                    {l.nextActions?.length>0&&(
+                      <div>
+                        <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:4}}>후속 조치</div>
+                        <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{l.nextActions.map(v=><span key={v} style={{padding:'4px 10px',borderRadius:8,background:'#FEF3C7',border:'1px solid #FDE68A',fontSize:12,fontWeight:700,color:'#92400E'}}>{v}</span>)}</div>
+                      </div>
+                    )}
+                    {l.deliveryDocs?.length>0&&(
+                      <div>
+                        <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:4}}>발송 자료</div>
+                        <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{l.deliveryDocs.map(v=><span key={v} style={{padding:'4px 10px',borderRadius:8,background:'#F0FDF4',border:'1px solid #BBF7D0',fontSize:12,fontWeight:600,color:'#059669'}}>{v}</span>)}</div>
+                      </div>
+                    )}
+                    {l.keywords?.length>0&&(
+                      <div>
+                        <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:4}}>키워드</div>
+                        <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{l.keywords.map(v=><span key={v} style={{padding:'4px 10px',borderRadius:8,background:'#EDE9FE',border:'1px solid #DDD6FE',fontSize:12,fontWeight:600,color:'#5B21B6'}}>{v}</span>)}</div>
+                      </div>
+                    )}
+                    {l.source&&(
+                      <div>
+                        <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:3}}>유입 경로</div>
+                        <div style={{fontSize:13,fontWeight:600,color:'var(--text)'}}>{l.source}</div>
+                      </div>
+                    )}
+                    {l.fieldPhotos?.length>0&&(
+                      <div>
+                        <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:4}}>현장 사진</div>
+                        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6}}>
+                          {l.fieldPhotos.map((p,pi)=>(
+                            <div key={pi} style={{position:'relative'}}>
+                              <img src={p.src} alt={`현장${pi+1}`} style={{width:'100%',height:80,objectFit:'cover',borderRadius:6,border:'1px solid var(--border)'}}/>
+                              {(p.defectType||p.defectPart)&&(
+                                <div style={{position:'absolute',bottom:2,left:2,right:2,display:'flex',gap:2,flexWrap:'wrap'}}>
+                                  {p.defectType&&<span style={{fontSize:8,padding:'1px 4px',borderRadius:4,background:'rgba(239,68,68,0.85)',color:'#fff',fontWeight:700}}>{p.defectType}</span>}
+                                  {p.defectPart&&<span style={{fontSize:8,padding:'1px 4px',borderRadius:4,background:'rgba(59,130,246,0.85)',color:'#fff',fontWeight:700}}>{p.defectPart}</span>}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {/* 저장 시간 */}
                 {l.savedAt&&<div style={{fontSize:10,color:'var(--text-sm)',marginTop:8}}>저장: {new Date(l.savedAt).toLocaleString('ko-KR')}</div>}
               </div>
@@ -8055,6 +8121,87 @@ function AdminScreen({onBack}){
                               <img src={img} alt={`펜슬 메모 ${pi+1}p`} style={{width:'100%',borderRadius:6,display:'block'}}/>
                             </div>
                           ))}
+                        </div>
+                      )}
+
+                      {/* 명함 */}
+                      {l.businessCard&&(l.businessCard.front||l.businessCard.back)&&(
+                        <div>
+                          <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:4}}>명함</div>
+                          <div style={{display:'flex',gap:6}}>
+                            {l.businessCard.front&&<img src={l.businessCard.front} alt="명함 앞" style={{flex:1,borderRadius:8,border:'1px solid var(--border)',maxHeight:160,objectFit:'contain'}}/>}
+                            {l.businessCard.back&&<img src={l.businessCard.back} alt="명함 뒤" style={{flex:1,borderRadius:8,border:'1px solid var(--border)',maxHeight:160,objectFit:'contain'}}/>}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 추가 정보 — 저장되어 있지만 기존에 미표시였던 필드들 */}
+                      {(l.address||l.desiredStartDate||l.nextActions?.length>0||l.interests?.length>0||l.deliveryDocs?.length>0||l.keywords?.length>0||l.source||l.fieldPhotos?.length>0)&&(
+                        <div style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 12px',display:'flex',flexDirection:'column',gap:8}}>
+                          <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)'}}>추가 정보</div>
+                          {l.address&&(
+                            <div style={{display:'flex',gap:6,alignItems:'flex-start'}}>
+                              <span style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',minWidth:60,flexShrink:0}}>주소</span>
+                              <span style={{fontSize:12,fontWeight:600,color:'var(--text)'}}>{l.address}</span>
+                            </div>
+                          )}
+                          {l.desiredStartDate&&(
+                            <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                              <span style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',minWidth:60,flexShrink:0}}>희망 착공</span>
+                              <span style={{fontSize:12,fontWeight:600,color:'var(--text)'}}>{l.desiredStartDate}</span>
+                            </div>
+                          )}
+                          {l.interests?.length>0&&(
+                            <div style={{display:'flex',gap:6,alignItems:'flex-start'}}>
+                              <span style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',minWidth:60,flexShrink:0}}>관심항목</span>
+                              <div style={{display:'flex',flexWrap:'wrap',gap:4}}>{l.interests.map(v=><span key={v} style={{fontSize:10,padding:'2px 8px',borderRadius:12,background:'#DBEAFE',color:'#1D4ED8',fontWeight:700}}>{v}</span>)}</div>
+                            </div>
+                          )}
+                          {l.nextActions?.length>0&&(
+                            <div style={{display:'flex',gap:6,alignItems:'flex-start'}}>
+                              <span style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',minWidth:60,flexShrink:0}}>후속조치</span>
+                              <div style={{display:'flex',flexWrap:'wrap',gap:4}}>{l.nextActions.map(v=><span key={v} style={{fontSize:10,padding:'2px 8px',borderRadius:12,background:'#FEF3C7',color:'#92400E',fontWeight:700}}>{v}</span>)}</div>
+                            </div>
+                          )}
+                          {l.deliveryDocs?.length>0&&(
+                            <div style={{display:'flex',gap:6,alignItems:'flex-start'}}>
+                              <span style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',minWidth:60,flexShrink:0}}>발송자료</span>
+                              <div style={{display:'flex',flexWrap:'wrap',gap:4}}>{l.deliveryDocs.map(v=><span key={v} style={{fontSize:10,padding:'2px 8px',borderRadius:12,background:'#F0FDF4',color:'#059669',fontWeight:700}}>{v}</span>)}</div>
+                            </div>
+                          )}
+                          {l.keywords?.length>0&&(
+                            <div style={{display:'flex',gap:6,alignItems:'flex-start'}}>
+                              <span style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',minWidth:60,flexShrink:0}}>키워드</span>
+                              <div style={{display:'flex',flexWrap:'wrap',gap:4}}>{l.keywords.map(v=><span key={v} style={{fontSize:10,padding:'2px 8px',borderRadius:12,background:'#EDE9FE',color:'#5B21B6',fontWeight:700}}>{v}</span>)}</div>
+                            </div>
+                          )}
+                          {l.source&&(
+                            <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                              <span style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',minWidth:60,flexShrink:0}}>유입경로</span>
+                              <span style={{fontSize:12,fontWeight:600,color:'var(--text)'}}>{l.source}</span>
+                            </div>
+                          )}
+                          {l.fieldPhotos?.length>0&&(
+                            <div>
+                              <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:4}}>
+                                <span style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',minWidth:60,flexShrink:0}}>현장사진</span>
+                                <span style={{fontSize:9,color:'var(--text-sm)'}}>{l.fieldPhotos.length}장</span>
+                              </div>
+                              <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:4}}>
+                                {l.fieldPhotos.map((p,pi)=>(
+                                  <div key={pi} style={{position:'relative'}}>
+                                    <img src={p.src} alt={`현장${pi+1}`} style={{width:'100%',height:60,objectFit:'cover',borderRadius:4,border:'1px solid var(--border)'}}/>
+                                    {(p.defectType||p.defectPart)&&(
+                                      <div style={{position:'absolute',bottom:1,left:1,right:1,display:'flex',gap:1,flexWrap:'wrap'}}>
+                                        {p.defectType&&<span style={{fontSize:7,padding:'0px 3px',borderRadius:3,background:'rgba(239,68,68,0.85)',color:'#fff',fontWeight:700}}>{p.defectType}</span>}
+                                        {p.defectPart&&<span style={{fontSize:7,padding:'0px 3px',borderRadius:3,background:'rgba(59,130,246,0.85)',color:'#fff',fontWeight:700}}>{p.defectPart}</span>}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
 

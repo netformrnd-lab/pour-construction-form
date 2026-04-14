@@ -4543,7 +4543,7 @@ function ContentEditorPage({ showToast }) {
 
   const methodInfo = POUR_METHODS_FOR_EDITOR.find(m => m.id === selectedMethod);
 
-  // Firestore에서 콘텐츠 로드
+  // Firestore에서 콘텐츠 로드 (모든 useState 선언 이후에 배치)
   useEffect(() => {
     loadContent(selectedMethod);
   }, [selectedMethod]);
@@ -4703,7 +4703,7 @@ function ContentEditorPage({ showToast }) {
           return rest;
         });
         textContent.processPhotos = []; // 메인 문서에서 제거 (서브컬렉션으로 이동)
-        await ref.set(textContent, { merge: true });
+        await ref.set(textContent); // merge 없이 완전 교체 (기존 대용량 데이터 제거)
 
         // 2. 공정 사진 → 서브컬렉션 step-photos (스텝별 개별 문서, 1MB 초과 방지)
         const photosCol = ref.collection('step-photos');

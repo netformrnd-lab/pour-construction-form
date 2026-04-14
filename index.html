@@ -3634,7 +3634,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
         }else{msg+='\n맞춤 자료를 보내드리겠습니다.';}
         const pName=problem?.label||'';
         const rawLinks=[];
-        if(problem?.proposalUrl)rawLinks.push({label:pName+' 제안서',url:problem.proposalUrl});
+        // 맞춤제안서는 2차 개발 예정으로 제외 — 시방서/가이드/사례만 발송
+        // if(problem?.proposalUrl)rawLinks.push({label:pName+' 제안서',url:problem.proposalUrl});
         if(problem?.specUrl)rawLinks.push({label:pName+' 시방서',url:problem.specUrl});
         if(problem?.guideId)rawLinks.push({label:pName+' 시공가이드',url:'https://www.poursolution.net/'+problem.guideId});
         if(problem?.caseUrl)rawLinks.push({label:pName+' 시공사례',url:problem.caseUrl});
@@ -5018,8 +5019,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 <div style={{fontSize:17,fontWeight:800,color:'var(--text)',marginBottom:4}}>영업 메모 저장됐어요!</div>
                 <div style={{fontSize:13,color:'var(--text-sm)',marginBottom:16}}>{ntName}님 · {staffName} · {staffDay}</div>
 
-                {/* 제안서 생성 버튼 */}
-                {sessionMethods.length>0&&(
+                {/* 제안서 생성 버튼 — 2차 개발 예정: 현재 숨김 */}
+                {false&&sessionMethods.length>0&&(
                   <div style={{width:'100%',maxWidth:400,marginBottom:12}}>
                     {sessionReportId?(
                       <div style={{background:'var(--green-l)',border:'1px solid var(--green)',borderRadius:10,padding:'10px 14px',textAlign:'center'}}>
@@ -5102,7 +5103,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                           if(!choice)return;const idx=parseInt(choice)-1;
                           if(isNaN(idx)||idx<0||idx>=others.length)return;
                           const p=others[idx];const newLinks=[...ntSmsLinks];
-                          if(p.proposalUrl)newLinks.push({label:p.label+' 제안서',url:p.proposalUrl});
+                          // 맞춤제안서 2차 개발 예정으로 제외
+                          // if(p.proposalUrl)newLinks.push({label:p.label+' 제안서',url:p.proposalUrl});
                           if(p.specUrl)newLinks.push({label:p.label+' 시방서',url:p.specUrl});
                           setNtSmsLinks(newLinks);
                           setNtSelectedLinks([...ntSelectedLinks,...newLinks.slice(ntSmsLinks.length).map((_,i2)=>ntSmsLinks.length+i2)]);

@@ -857,7 +857,7 @@ body {
     <a href="#s4" class="prog-item" data-step="4"><div class="prog-num">4</div>원인 설명</a>
     <a href="#s5" class="prog-item" data-step="5"><div class="prog-num">5</div>POUR 해결방안</a>
     <a href="#s6" class="prog-item" data-step="6"><div class="prog-num">6</div>메모 &amp; 고객정보</a>
-    <a href="#s7" class="prog-item" data-step="7"><div class="prog-num">7</div>제안서 &amp; QR</a>
+    <a href="#s7" class="prog-item" data-step="7"><div class="prog-num">7</div>제안서 &amp; QR <span style="font-size:9px;opacity:.7;">(예정)</span></a>
   </div>
 </nav>
 
@@ -866,11 +866,11 @@ body {
   <div class="hero-content">
     <div class="hero-eyebrow">NETFORM R&amp;D · POUR솔루션</div>
     <h1 class="hero-h1">영업 앱 <em>영상 매뉴얼</em><br/>7단계로 완전 정복</h1>
-    <p class="hero-desc">박람회 현장 상담부터 고객 맞춤 제안서 전달까지<br/>태블릿 화면을 직접 보며 따라하는 인터랙티브 가이드</p>
+    <p class="hero-desc">박람회 현장 상담부터 고객 정보 저장 및 자료 발송까지<br/>태블릿 화면을 직접 보며 따라하는 인터랙티브 가이드</p>
     <div class="hero-tags">
       <span class="htag">태블릿 상담 앱</span>
       <span class="htag">AI 하자 자동 분류</span>
-      <span class="htag">고객 맞춤 제안서</span>
+      <!-- <span class="htag">고객 맞춤 제안서</span> 2차 개발 예정 -->
       <span class="htag">QR 즉시 전달</span>
       <span class="htag">실시간 영업 DB</span>
     </div>
@@ -1489,9 +1489,17 @@ body {
 <div class="divider"><div class="divider-line"></div><div class="divider-text">마지막 단계</div><div class="divider-line"></div></div>
 
 <!-- ══════════════════════════════════
-  STEP 7 — 제안서 & QR 전달
+  STEP 7 — 제안서 & QR 전달 (추후 활성화 예정)
 ══════════════════════════════════ -->
-<section class="step-section" id="s7" data-step="7">
+<section class="step-section" id="s7" data-step="7" style="position:relative;">
+  <!-- 추후 활성화 예정 배너 -->
+  <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,0.82);z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:inherit;pointer-events:none;">
+    <div style="background:#FFF7ED;border:2px solid #FED7AA;border-radius:16px;padding:24px 32px;text-align:center;max-width:340px;box-shadow:0 4px 20px rgba(0,0,0,.1);">
+      <div style="font-size:32px;margin-bottom:8px;">🚧</div>
+      <div style="font-size:16px;font-weight:800;color:#92400E;margin-bottom:6px;">추후 활성화 예정</div>
+      <div style="font-size:13px;color:#B45309;line-height:1.6;">고객 맞춤 제안서 기능은<br/>2차 개발에서 활성화될 예정입니다.<br/><span style="font-size:11px;color:#D97706;font-weight:600;">현재는 예시 화면만 확인 가능합니다.</span></div>
+    </div>
+  </div>
   <div class="tablet-col">
     <div class="tablet-frame">
       <div class="tablet-screen">
@@ -1540,7 +1548,7 @@ body {
         <span class="step-counter">STEP 7 / 7</span>
       </div>
       <h2 class="step-title">QR코드 한 번으로<br/>제안서를 고객 폰에 전달하세요</h2>
-      <p class="step-desc">저장 완료 후 "📋 고객 맞춤 제안서 생성"을 누르면 상담한 모든 공법이 담긴 제안서가 생성됩니다. QR코드를 고객이 스캔하면 폰에 즉시 저장되며, SMS로도 발송할 수 있습니다.</p>
+      <p class="step-desc"><strong style="color:#92400E;">⚠️ 이 기능은 2차 개발에서 활성화 예정입니다.</strong> 현재는 예시 화면만 확인 가능합니다. 저장 완료 후에는 문자 발송 화면에서 시방서·시공가이드·사례 링크를 고객에게 발송하세요.</p>
     </div>
     <div class="tips">
       <div class="tip" style="background:#EFF6FF;border:1px solid #BFDBFE;">
@@ -1572,11 +1580,11 @@ body {
   </div>
   <div style="text-align:center;font-size:11px;color:var(--text-sm);margin:10px 0;font-weight:700;">+</div>
   <div class="flow-row">
-    <div class="flow-node" style="background:#ECFDF5;border-color:#A7F3D0;">📋 제안서 생성</div>
+    <div class="flow-node" style="background:#FEF3C7;border-color:#FDE68A;opacity:0.7;">📋 제안서 생성 <span style="font-size:9px;">(예정)</span></div>
     <div class="flow-arrow">→</div>
-    <div class="flow-node" style="background:#FEF3C7;border-color:#FDE68A;">📱 고객 QR 수령</div>
+    <div class="flow-node" style="background:#FEF3C7;border-color:#FDE68A;opacity:0.7;">📱 고객 QR 수령 <span style="font-size:9px;">(예정)</span></div>
     <div class="flow-arrow">→</div>
-    <div class="flow-node">🌐 제안서 조회 페이지</div>
+    <div class="flow-node" style="opacity:0.7;">🌐 제안서 조회 페이지 <span style="font-size:9px;">(예정)</span></div>
   </div>
 </div>
 
@@ -1586,15 +1594,15 @@ body {
   <div class="feat-header">
     <div class="feat-header-icon">⚡</div>
     <div>
-      <div class="feat-header-title">핵심 기능 6가지</div>
+      <div class="feat-header-title">핵심 기능 6가지 <span style="font-size:11px;font-weight:500;color:#9CA3AF;">(2가지 추후 활성화)</span></div>
       <div class="feat-header-sub">영업 효율을 극대화하는 앱의 주요 기능</div>
     </div>
   </div>
   <div class="feat-grid">
     <div class="feat-item"><div class="feat-item-icon">🤖</div><div class="feat-item-title">AI 하자 자동 분류</div><div class="feat-item-desc">사진 촬영 시 Claude Vision이 유형·위치·심각도를 자동 분류합니다.</div></div>
     <div class="feat-item"><div class="feat-item-icon">🔬</div><div class="feat-item-title">자재 특징 모달</div><div class="feat-item-desc">공정별 자재의 성능 데이터를 모달로 바로 보여줍니다.</div></div>
-    <div class="feat-item"><div class="feat-item-icon">📋</div><div class="feat-item-title">고객 맞춤 제안서</div><div class="feat-item-desc">상담한 모든 공법을 담은 제안서를 자동 생성합니다.</div></div>
-    <div class="feat-item"><div class="feat-item-icon">📱</div><div class="feat-item-title">QR 즉시 전달</div><div class="feat-item-desc">제안서 링크를 QR코드로 고객 폰에 즉시 전달합니다.</div></div>
+    <div class="feat-item" style="opacity:0.65;position:relative;"><div class="feat-item-icon">📋</div><div class="feat-item-title">고객 맞춤 제안서 <span style="font-size:9px;background:#FEF3C7;color:#92400E;padding:2px 6px;border-radius:4px;font-weight:700;vertical-align:middle;">2차 예정</span></div><div class="feat-item-desc">상담한 모든 공법을 담은 제안서를 자동 생성합니다. (추후 활성화)</div></div>
+    <div class="feat-item" style="opacity:0.65;"><div class="feat-item-icon">📱</div><div class="feat-item-title">QR 즉시 전달 <span style="font-size:9px;background:#FEF3C7;color:#92400E;padding:2px 6px;border-radius:4px;font-weight:700;vertical-align:middle;">2차 예정</span></div><div class="feat-item-desc">제안서 링크를 QR코드로 고객 폰에 즉시 전달합니다. (추후 활성화)</div></div>
     <div class="feat-item"><div class="feat-item-icon">☁️</div><div class="feat-item-title">실시간 DB 저장</div><div class="feat-item-desc">모든 상담은 Firebase에 즉시 저장. 관리자 실시간 확인 가능.</div></div>
     <div class="feat-item"><div class="feat-item-icon">📊</div><div class="feat-item-title">어드민 관리센터</div><div class="feat-item-desc">통계·유입 관리·담당자·AI 설정 등 관리자 전용 기능.</div></div>
   </div>
@@ -1606,7 +1614,7 @@ body {
   <ul class="caution-list">
     <li class="caution-item">견적 금액은 절대 현장에서 제시하지 마세요 (방문 진단 후 산출)</li>
     <li class="caution-item">고객 정보는 앱 메모 폼으로만 수집하세요</li>
-    <li class="caution-item">상담 중 여러 공법을 보여줘도 하나의 제안서에 모두 포함됩니다</li>
+    <li class="caution-item">고객 맞춤 제안서 기능은 2차 개발 예정입니다 — 현재는 시방서/시공가이드/사례 자료를 문자로 발송하세요</li>
     <li class="caution-item">배터리와 인터넷 연결을 항상 확인하세요</li>
     <li class="caution-item">연락처 미입력 시 SMS 발송이 불가합니다</li>
   </ul>

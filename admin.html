@@ -4594,7 +4594,7 @@ function ContentEditorPage({ showToast }) {
   const loadContent = async (methodId) => {
     setLoading(true);
     try {
-      const ref = window.db ? window.db.collection(CONTENT_COLLECTION).doc(methodId) : null;
+      const ref = db ? db.collection(CONTENT_COLLECTION).doc(methodId) : null;
       if (ref) {
         const snap = await ref.get();
         if (snap.exists) {
@@ -4614,7 +4614,7 @@ function ContentEditorPage({ showToast }) {
   const saveContent = async () => {
     setSaving(true);
     try {
-      const ref = window.db ? window.db.collection(CONTENT_COLLECTION).doc(selectedMethod) : null;
+      const ref = db ? db.collection(CONTENT_COLLECTION).doc(selectedMethod) : null;
       if (ref) {
         await ref.set(content, { merge: true });
         showToast('저장 완료!', 'success');
@@ -4825,7 +4825,7 @@ function ContentEditorPage({ showToast }) {
       }
 
       /* method-content 저장 */
-      const ref = window.db ? window.db.collection(CONTENT_COLLECTION).doc(selectedMethod) : null;
+      const ref = db ? db.collection(CONTENT_COLLECTION).doc(selectedMethod) : null;
       if (ref) {
         await ref.set(clean, { merge: true });
       }

@@ -3411,6 +3411,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [materialModal,setMaterialModal]=useState(null); // {name, desc, mediaUrl, mediaType}
   const [photoCardTab,setPhotoCardTab]=useState({}); // {[methodId]: 'defect'|'media'|'process'}
   const [showReport,setShowReport]=useState(false);
+  const [reportPreviewMode,setReportPreviewMode]=useState(false); // true: 미리보기 전용 (저장 없이 열기)
   const [reportExtraLinks,setReportExtraLinks]=useState([]);
   const [reportSmsSent,setReportSmsSent]=useState(false);
   const [reportSmsSending,setReportSmsSending]=useState(false);
@@ -5053,6 +5054,19 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     )}
                   </div>
                 )}
+                {/* 맞춤제안서 미리보기 버튼 (2차 개발 예정 — 현재는 미리보기만 가능) */}
+                {sessionMethods.length>0&&(
+                  <div style={{width:'100%',maxWidth:400,marginBottom:12}}>
+                    <button onClick={()=>{setReportPreviewMode(true);setShowReport(true);}}
+                      style={{width:'100%',padding:'11px 16px',borderRadius:10,border:'1.5px dashed #6D28D9',
+                        background:'var(--purple-l)',color:'#6D28D9',fontSize:13,fontWeight:700,
+                        cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
+                      👁 맞춤제안서 미리보기
+                      <span style={{fontSize:10,opacity:.7,fontWeight:600}}>· {sessionMethods.length}개 공법 포함</span>
+                    </button>
+                    <div style={{fontSize:10,color:'var(--text-sm)',textAlign:'center',marginTop:4}}>고객이 받게 될 화면을 미리 확인 (발송 없음)</div>
+                  </div>
+                )}
                 {!ntQuickSms?(
                   <div style={{textAlign:'center',padding:20}}>
                     {ntPhone&&loadSolapiConfig().workerUrl
@@ -5398,13 +5412,26 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
           <div style={{flex:1,background:'#F8FAFC',overflowY:'auto',display:'flex',flexDirection:'column'}}>
 
 
+            {/* ── 미리보기 모드 안내 배너 ── */}
+            {reportPreviewMode&&(
+              <div style={{background:'linear-gradient(135deg,#6D28D9,#7C3AED)',padding:'10px 16px',display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
+                <span style={{fontSize:16}}>👁</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:12,fontWeight:800,color:'#fff'}}>미리보기 모드 — 고객이 받게 될 화면입니다</div>
+                  <div style={{fontSize:10,color:'rgba(255,255,255,.75)'}}>실제 발송은 하지 않습니다 · {sessionMethods.length}개 공법 포함</div>
+                </div>
+              </div>
+            )}
             {/* ── 문자 전송 액션 바 + 부가 자료물 (최상단 고정) ── */}
             <div style={{background:'#fff',borderBottom:'1.5px solid #E2E8F0',flexShrink:0,position:'sticky',top:0,zIndex:20}}>
               {/* 상단 버튼 행 */}
               <div style={{padding:'10px 14px',display:'flex',alignItems:'center',gap:8}}>
                 <img src="/logo-pour.png" alt="POUR" style={{height:20,opacity:.65,marginRight:4}}/>
-                <span style={{fontSize:11,fontWeight:700,color:'#94A3B8',letterSpacing:'.05em',flex:1}}>맞춤 제안서</span>
-                {ntPhone&&loadSolapiConfig().workerUrl?(
+                <span style={{fontSize:11,fontWeight:700,color:'#94A3B8',letterSpacing:'.05em',flex:1}}>
+                  맞춤 제안서
+                  {reportPreviewMode&&<span style={{marginLeft:6,fontSize:9,fontWeight:800,color:'#6D28D9',background:'#EDE9FE',padding:'2px 7px',borderRadius:4,letterSpacing:'.03em'}}>미리보기</span>}
+                </span>
+                {!reportPreviewMode&&ntPhone&&loadSolapiConfig().workerUrl?(
                   <button onClick={()=>setReportSmsOpen(v=>!v)}
                     style={{display:'flex',alignItems:'center',gap:6,padding:'8px 14px',borderRadius:10,
                       border:'none',background:reportSmsOpen?'#1D4ED8':'var(--accent)',color:'#fff',
@@ -5413,9 +5440,9 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     {reportSmsOpen?'닫기':'문자 전송'}
                   </button>
                 ):(
-                  <span style={{fontSize:10,color:'#94A3B8',fontWeight:600}}>문자 미설정</span>
+                  !reportPreviewMode&&<span style={{fontSize:10,color:'#94A3B8',fontWeight:600}}>문자 미설정</span>
                 )}
-                <button onClick={()=>setShowReport(false)}
+                <button onClick={()=>{setShowReport(false);setReportPreviewMode(false);}}
                   style={{width:30,height:30,borderRadius:'50%',border:'1px solid #E2E8F0',background:'#F8FAFC',color:'#64748B',fontSize:15,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1,flexShrink:0}}>✕</button>
               </div>
 

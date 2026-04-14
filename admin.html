@@ -4727,24 +4727,27 @@ function ContentEditorPage({ showToast }) {
     try {
       const ref = db ? db.collection(CONTENT_COLLECTION).doc(selectedMethod) : null;
       if (ref) {
-        // 1. 텍스트 전용 콘텐츠 분리 (모든 base64 사진 데이터 제거)
-        const {proposalSlides, processPhotos, processMaterials, processGuideImages, ...textContent} = content;
-        // processMaterials에서 사진만 제거, 텍스트(name/desc/badge) 유지
-        textContent.processMaterials = (processMaterials||[]).map(m => {
-          if (!m) return null;
-          const {photos, mediaUrl, ...rest} = m;
-          return rest;
-        });
-        textContent.processPhotos = []; // 메인 문서에서 제거 (서브컬렉션으로 이동)
-        // processKeys에서 photo base64 제거 (desc만 유지)
-        if (textContent.processKeys) {
-          textContent.processKeys = textContent.processKeys.map(k => {
+        // 1. 화이트리스트 — 텍스트만 메인 문서에 저장 (base64 절대 불포함)
+        const {proposalSlides, processPhotos, processMaterials, processGuideImages} = content;
+        const textContent = {
+          cause: content.cause || '',
+          solution: content.solution || '',
+          processDescs: (content.processDescs || []).map(d => typeof d === 'string' ? d : ''),
+          processStepNames: (content.processStepNames || []).filter(s => typeof s === 'string'),
+          processPhotoPositions: content.processPhotoPositions || [],
+          processPhotos: [],
+          processMaterials: (processMaterials || []).map(m => {
+            if (!m) return null;
+            return { name: m.name || '', desc: m.desc || '', badge: m.badge || '', mediaType: m.mediaType || '' };
+          }),
+          processKeys: (content.processKeys || []).map(k => {
             if (!k) return null;
-            const {photo, ...rest} = k;
-            return rest;
-          });
-        }
-        await ref.set(textContent); // merge 없이 완전 교체 (기존 대용량 데이터 제거)
+            return { desc: k.desc || '' };
+          }),
+          processMode: content.processMode || 'steps',
+          updatedAt: new Date().toISOString(),
+        };
+        await ref.set(textContent); // merge 없이 완전 교체
 
         // 2. 공정 사진 → 서브컬렉션 step-photos (스텝별 개별 문서, 1MB 초과 방지)
         const processKeys = content.processKeys || [];
@@ -5022,26 +5025,29 @@ function ContentEditorPage({ showToast }) {
         }
       }
 
-      /* method-content 저장 (서브컬렉션 분리 — 1MB 초과 방지) */
+      /* method-content 저장 (화이트리스트 — 텍스트만 메인 문서, 나머지 서브컬렉션) */
       const ref = db ? db.collection(CONTENT_COLLECTION).doc(selectedMethod) : null;
       if (ref) {
-        // 사진 데이터 분리
-        const {proposalSlides, processPhotos, processMaterials, processGuideImages, ...textOnly} = clean;
-        // processMaterials에서 사진 제거 (텍스트만)
-        textOnly.processMaterials = (processMaterials||[]).map(m => {
-          if (!m) return null;
-          const {photos, mediaUrl, ...rest} = m;
-          return rest;
-        });
-        textOnly.processPhotos = [];
-        // processKeys에서 photo 제거
-        if (textOnly.processKeys) {
-          textOnly.processKeys = textOnly.processKeys.map(k => {
+        // 메인 문서에는 텍스트 필드만 화이트리스트로 저장 (base64 절대 포함 안됨)
+        const textOnly = {
+          cause: clean.cause || '',
+          solution: clean.solution || '',
+          processDescs: (clean.processDescs || []).map(d => typeof d === 'string' ? d : ''),
+          processStepNames: (clean.processStepNames || []).filter(s => typeof s === 'string'),
+          processPhotoPositions: clean.processPhotoPositions || [],
+          processPhotos: [], // 서브컬렉션으로 이동
+          processMaterials: (clean.processMaterials || []).map(m => {
+            if (!m) return null;
+            return { name: m.name || '', desc: m.desc || '', badge: m.badge || '', mediaType: m.mediaType || '' };
+          }),
+          processKeys: (clean.processKeys || []).map(k => {
             if (!k) return null;
-            const {photo, ...rest} = k;
-            return rest;
-          });
-        }
+            return { desc: k.desc || '' };
+          }),
+          processMode: clean.processMode || 'steps',
+          updatedAt: new Date().toISOString(),
+        };
+        console.log('[saveContent] textOnly size:', JSON.stringify(textOnly).length, 'bytes');
         await ref.set(textOnly); // merge 없이 완전 교체
 
         // step-photos 서브컬렉션 (공정사진 + 자재사진 + 핵심기술사진)

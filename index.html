@@ -4355,8 +4355,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
             {/* ── STEP 2. 왜 이 문제가 생기나 — 원인 설명 + 시공 영상 ── */}
             {(()=>{
               const mc=getMethodContent(problem?.id);
-              if(!mc?.cause)return null;
               const mediaList=(photos.media||[]).filter(s=>s);
+              if(!mc?.cause && mediaList.length===0)return null;
               return(
                 <div style={{marginBottom:16,borderRadius:16,background:'var(--card)',
                   border:'1px solid var(--border)',boxShadow:'var(--shadow)',overflow:'hidden'}}>

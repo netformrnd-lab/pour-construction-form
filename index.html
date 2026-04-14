@@ -1610,9 +1610,11 @@ function getMethodContent(id){
   const base=_METHOD_CONTENT_DEFAULTS[id];
   if(!ov)return base;
   return{...base,...ov,
-    process:ov.process||base?.process,
+    process:ov.processStepNames||ov.process||base?.process,
+    processPhotos:ov.processPhotos||base?.processPhotos,
     processDescs:ov.processDescs||base?.processDescs,
     processMaterials:ov.processMaterials||base?.processMaterials,
+    processKeys:ov.processKeys||base?.processKeys||[],
   };
 }
 var _METHOD_CONTENT_DEFAULTS={

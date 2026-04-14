@@ -858,9 +858,21 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
 /* ══ 가로모드 하자사진 카드 최적화 ══ */
 @media (orientation:landscape){
   .defect-photo-card{flex:0 0 45%!important;max-width:320px!important;}
+  /* 노트 시트 가로모드 */
+  .note-sheet{width:min(960px,70vw);}
+  .sheet{max-height:92vh;}
+  /* 메모 스크롤 가로모드 */
+  .memo-scroll{padding:16px 24px 80px;}
+  /* 아코디언 콘텐츠 내부 2열 레이아웃 */
+  .acc-body-inner-landscape{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  /* 솔루션 헤더 컴팩트 */
+  .sol-header{padding:8px 24px 6px;}
+  .sol-name{font-size:17px;}
 }
 @media (orientation:landscape) and (min-width:1024px){
   .defect-photo-card{flex:0 0 35%!important;max-width:360px!important;}
+  .note-sheet{width:min(1000px,60vw);}
+  .memo-scroll{padding:16px 32px 80px;}
 }
 
 /* ══ 하자 사진 필터 — 대기업 수준 모션 ══ */
@@ -1478,7 +1490,7 @@ const BUILDING_TYPES=[
 ];
 
 // img: 문제 선택 칩에 보여줄 사진 URL (비워두면 이모지, 채우면 사진)
-const ALL_PROBLEMS=[
+let ALL_PROBLEMS=[
   // ── 방수 ──
   {id:'shingle',cat:'방수',label:'POUR 아스팔트싱글 방수 공법',sub:'경사/박공형',icon:'🏠',img:'',tags:['#아스팔트슁글','#후레싱 탈락방지','#반영구적 방수층 형성','#일체화'],specUrl:'https://www.poursolution.net/128',proposalUrl:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/Proposal%2F%EB%B0%A9%EC%88%98%2FPOUR%EA%B3%B5%EB%B2%95_%EC%A0%9C%EC%95%88%EC%84%9C(ver08.)_%EC%95%84%EC%8A%A4%ED%8C%94%ED%8A%B8_%EC%8A%81%EA%B8%80_%EB%B0%A9%EC%88%98%EA%B3%B5%EC%82%AC.pdf?alt=media&token=21b3a984-cc41-411e-bd35-0cd4ebaeed6e',gifUrl:'',guideId:'g1',caseUrl:'https://www.poursolution.net/110'},
   {id:'metal',cat:'방수',label:'POUR 금속기와 방수 공법',sub:'경사/박공형',icon:'🏠',img:'',tags:['#금속기와 및 후레싱 탈락방지','#금음, 단차에도 완벽 방수층 형성'],specUrl:'https://www.poursolution.net/130',proposalUrl:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/Proposal%2F%EB%B0%A9%EC%88%98%2FPOUR%EA%B3%B5%EB%B2%95_%EC%A0%9C%EC%95%88%EC%84%9C(ver08.)_%EA%B8%88%EC%86%8D%EA%B8%B0%EC%99%80.%EC%B9%BC%EB%9D%BC%EA%B0%95%ED%8C%90_%EB%B0%A9%EC%88%98%EA%B3%B5%EC%82%AC.pdf?alt=media&token=d66ce37f-2a4d-4501-988e-88a037f2ac4f',gifUrl:'',guideId:'g2',caseUrl:'https://www.poursolution.net/127'},
@@ -1917,7 +1929,7 @@ const CAT_LINKS={방수:'https://www.poursolution.net/36',도장:'https://www.po
 
 // (건물 유형별 필터 제거 — 전체 문제 표시)
 
-const GUIDES=[
+let GUIDES=[
   {id:'g1',title:'아스팔트슁글 가이드북',url:'https://featpaper.com/v/K1lvPVMp'},
   {id:'g2',title:'금속기와 가이드북',url:'https://featpaper.com/v/dyFLt0he'},
   {id:'g3',title:'슬라브 듀얼강화방수 가이드북',url:'https://featpaper.com/v/dF4rEVxl'},
@@ -9329,6 +9341,34 @@ function App(){
   const [fabMenu,setFabMenu]=useState(false);
 
   useEffect(()=>{syncPhotosFromFirestore(null,setProbPhotos);},[]);
+
+  /* Firestore method-links에서 링크 로드 → ALL_PROBLEMS / GUIDES 오버라이드 */
+  useEffect(()=>{
+    (async()=>{
+      try{
+        const snap=await db.collection('method-links').get();
+        if(snap.empty)return;
+        const linkMap={};
+        snap.docs.forEach(d=>{linkMap[d.id]=d.data();});
+        // ALL_PROBLEMS 오버라이드
+        ALL_PROBLEMS=ALL_PROBLEMS.map(p=>{
+          const lk=linkMap[p.id];
+          if(!lk)return p;
+          const updated={...p};
+          if(lk.specUrl)updated.specUrl=lk.specUrl;
+          if(lk.proposalUrl)updated.proposalUrl=lk.proposalUrl;
+          if(lk.caseUrl)updated.caseUrl=lk.caseUrl;
+          // guideUrl → GUIDES 배열도 업데이트
+          if(lk.guideUrl&&p.guideId){
+            const g=GUIDES.find(g=>g.id===p.guideId);
+            if(g)g.url=lk.guideUrl;
+          }
+          return updated;
+        });
+        console.log('[method-links] Firestore 링크 오버라이드 완료',Object.keys(linkMap).length,'건');
+      }catch(e){console.warn('[method-links] 로드 실패, 기본값 사용',e);}
+    })();
+  },[]);
 
   /* Firestore에서 PIN 동기화 — 다른 기기에서도 setup 안 뜨게 */
   useEffect(()=>{

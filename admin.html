@@ -102,7 +102,6 @@ const MENU = [
   { section: '현장관리' },
   { key: 'defect-sites', label: '완공현장', icon: '🏗' },
   { key: 'defect-photos', label: '공법분석', icon: '🔍' },
-  { key: 'method-content', label: '공법콘텐츠', icon: '✏️' },
   { section: '사이트' },
   { key: 'inquiries', label: '문의접수', icon: '📬' },
   { key: 'metrics', label: '공신력수치', icon: '📊' },
@@ -7369,7 +7368,7 @@ function App() {
       case 'defect-photos':
         return <DefectPhotosPage showToast={showToast} />;
       case 'method-content':
-        return <MethodContentPage showToast={showToast} />;
+        return <ContentEditorPage showToast={showToast} />;
       case 'inquiries':
         return <PagePlaceholder title="문의접수" icon="📬" description="사이트 문의 접수 관리" />;
       case 'metrics':

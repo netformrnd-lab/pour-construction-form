@@ -3541,9 +3541,10 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 style={{width:30,height:30,borderRadius:'50%',border:'none',background:'var(--bg)',
                   fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
             </div>
-            {/* 미디어 갤러리 — media 배열 또는 단일 mediaUrl 지원 */}
+            {/* 미디어 갤러리 — media 배열, photos 배열, 또는 단일 mediaUrl 지원 */}
             {(()=>{
               const mediaItems=(materialModal.media||[]).filter(m=>m.url);
+              const photosArr=(materialModal.photos||[]).filter(Boolean);
               const legacyUrl=materialModal.mediaUrl;
               if(mediaItems.length>0){
                 return(
@@ -3572,6 +3573,29 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     {mediaItems.length>1&&(
                       <div style={{display:'flex',justifyContent:'center',gap:4,padding:'6px 0'}}>
                         {mediaItems.map((_,di)=>(
+                          <div key={di} style={{width:6,height:6,borderRadius:'50%',
+                            background:di===0?'var(--accent)':'var(--border)'}}/>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              }else if(photosArr.length>0){
+                return(
+                  <div style={{flexShrink:0}}>
+                    <div style={{display:'flex',gap:0,overflowX:'auto',scrollSnapType:'x mandatory',
+                      WebkitOverflowScrolling:'touch',scrollbarWidth:'none',msOverflowStyle:'none'}}>
+                      {photosArr.map((p,pi)=>(
+                        <div key={pi} style={{flex:'0 0 100%',scrollSnapAlign:'start'}}>
+                          <div style={{aspectRatio:'16/9',background:'#111',overflow:'hidden'}}>
+                            <ProcessMedia src={p} alt={`${materialModal.name} ${pi+1}`} style={{}}/>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {photosArr.length>1&&(
+                      <div style={{display:'flex',justifyContent:'center',gap:4,padding:'6px 0'}}>
+                        {photosArr.map((_,di)=>(
                           <div key={di} style={{width:6,height:6,borderRadius:'50%',
                             background:di===0?'var(--accent)':'var(--border)'}}/>
                         ))}

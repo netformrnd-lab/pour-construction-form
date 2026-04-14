@@ -4601,8 +4601,23 @@ function ContentEditorPage({ showToast }) {
     setProbPhotosSaving(false);
   };
 
+  // 클립보드 붙여넣기 → File 변환
+  const pasteImageFromClipboard = async () => {
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        const imageType = item.types.find(t => t.startsWith('image/'));
+        if (imageType) {
+          const blob = await item.getType(imageType);
+          return new File([blob], `paste_${Date.now()}.png`, { type: imageType });
+        }
+      }
+    } catch(e) { /* fallback: onPaste event */ }
+    return null;
+  };
+
   // 이미지 파일 업로드 후 base64 반환 (압축)
-  const compressImageFile = (file, maxW = 480, quality = 0.75) => new Promise((resolve) => {
+  const compressImageFile = (file, maxW = 1200, quality = 0.85) => new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = (ev) => {
       const img = new Image();
@@ -4675,9 +4690,16 @@ function ContentEditorPage({ showToast }) {
         newPhotos[idx] = compressed;
         setContent(prev => ({ ...prev, processPhotos: newPhotos }));
       } else if (type === 'material') {
+        // 다중 사진: photos 배열에 추가
         const newMats = [...(content.processMaterials || [])];
         if (!newMats[idx]) newMats[idx] = {};
-        newMats[idx] = { ...newMats[idx], mediaUrl: compressed, mediaType: 'image' };
+        const existing = newMats[idx].photos || [];
+        // 기존 mediaUrl이 있고 photos가 비어있으면 마이그레이션
+        if (!existing.length && newMats[idx].mediaUrl) {
+          existing.push(newMats[idx].mediaUrl);
+        }
+        existing.push(compressed);
+        newMats[idx] = { ...newMats[idx], photos: existing, mediaUrl: compressed, mediaType: 'image' };
         setContent(prev => ({ ...prev, processMaterials: newMats }));
       }
       showToast('이미지 업로드 완료', 'success');
@@ -4685,6 +4707,27 @@ function ContentEditorPage({ showToast }) {
       showToast('업로드 실패', 'error');
     }
     setUploadingIdx(null);
+  };
+
+  // 자재 사진 삭제 (개별)
+  const removeMaterialPhoto = (stepIdx, photoIdx) => {
+    const newMats = [...(content.processMaterials || [])];
+    if (!newMats[stepIdx]) return;
+    const photos = [...(newMats[stepIdx].photos || [])];
+    photos.splice(photoIdx, 1);
+    newMats[stepIdx] = { ...newMats[stepIdx], photos, mediaUrl: photos[0] || '', mediaType: photos.length ? 'image' : 'image' };
+    setContent(prev => ({ ...prev, processMaterials: newMats }));
+  };
+
+  // 클립보드에서 자재 사진 붙여넣기
+  const pasteMatPhoto = async (stepIdx) => {
+    const file = await pasteImageFromClipboard();
+    if (file) {
+      await handleImageUpload(file, 'material', stepIdx);
+      showToast('클립보드 사진 붙여넣기 완료', 'success');
+    } else {
+      showToast('클립보드에 이미지가 없습니다', 'error');
+    }
   };
 
   const updateProcessPhoto = (idx, val) => {
@@ -5377,45 +5420,70 @@ function ContentEditorPage({ showToast }) {
                                         }} style={{width:18,height:18,borderRadius:4,border:'1px solid #FECACA',background:'#FEF2F2',
                                           color:'#DC2626',fontSize:9,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>✕</button>
                                       </div>
-                                      <div style={{padding:'8px 10px',display:'flex',gap:10,alignItems:'flex-start'}}>
-                                        {/* 자재 사진 (소형) */}
-                                        <div style={{width:100,flexShrink:0}}>
-                                          <div style={{width:'100%',aspectRatio:'4/3',borderRadius:6,overflow:'hidden',
-                                            border:mat.mediaUrl?'1.5px solid var(--blue-m)':'1.5px dashed var(--blue-m)',
-                                            background:mat.mediaUrl?'#000':'var(--blue-l)',cursor:'pointer'
-                                          }} onClick={()=>document.getElementById(`adm_mat_file_${selectedMethod}_${si}`)?.click()}>
-                                            {isYoutube2&&mat.mediaUrl?(
-                                              <iframe src={mat.mediaUrl} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/>
-                                            ):mat.mediaUrl?(
-                                              <img src={mat.mediaUrl} style={{width:'100%',height:'100%',objectFit:'cover'}} alt={mat.name}/>
-                                            ):(
-                                              <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:2}}>
-                                                <span style={{fontSize:14,opacity:.4}}>📷</span>
-                                                <span style={{fontSize:8,color:'var(--accent)',fontWeight:600}}>사진</span>
-                                              </div>
-                                            )}
-                                          </div>
-                                          <div style={{display:'flex',gap:3,marginTop:4}}>
-                                            <label style={{flex:1,padding:'2px 0',textAlign:'center',borderRadius:4,background:'var(--blue-l)',color:'var(--accent)',fontSize:8,fontWeight:600,cursor:'pointer',border:'1px solid var(--blue-m)'}}>
-                                              📁
-                                              <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{
-                                                if(e.target.files[0]) handleImageUpload(e.target.files[0],'material',si);
-                                              }}/>
-                                            </label>
-                                            <button onClick={()=>{const u=prompt('YouTube URL:');if(u)setYoutube(si,u,'material');}}
-                                              style={{flex:1,padding:'2px 0',borderRadius:4,background:'#FEF3C7',color:'#D97706',fontSize:8,fontWeight:600,cursor:'pointer',border:'1px solid #FDE68A'}}>▶</button>
-                                            {mat.mediaUrl&&<button onClick={()=>{updateMaterial(si,'mediaUrl','');updateMaterial(si,'mediaType','image');}}
-                                              style={{padding:'2px 4px',borderRadius:4,background:'#FEE2E2',color:'#DC2626',fontSize:8,cursor:'pointer',border:'1px solid #FECACA'}}>✕</button>}
-                                          </div>
-                                          <input type="file" accept="image/*" id={`adm_mat_file_${selectedMethod}_${si}`} style={{display:'none'}}
-                                            onChange={e=>{if(e.target.files[0]) handleImageUpload(e.target.files[0],'material',si);}}/>
-                                        </div>
+                                      <div style={{padding:'8px 10px'}}>
                                         {/* 자재 설명 */}
                                         <textarea value={mat.desc||''} onChange={e=>updateMaterial(si,'desc',e.target.value)}
-                                          rows={3} placeholder={`${mat.name||'자재'} 설명...`}
-                                          style={{flex:1,padding:'6px 10px',borderRadius:6,border:'1px solid var(--border)',
-                                            fontSize:11,lineHeight:1.6,resize:'vertical',fontFamily:'inherit',boxSizing:'border-box'}}
+                                          rows={2} placeholder={`${mat.name||'자재'} 설명...`}
+                                          style={{width:'100%',padding:'6px 10px',borderRadius:6,border:'1px solid var(--border)',
+                                            fontSize:11,lineHeight:1.6,resize:'vertical',fontFamily:'inherit',boxSizing:'border-box',marginBottom:8}}
                                         />
+                                        {/* 자재 사진 (다중) */}
+                                        {(()=>{
+                                          const photos = mat.photos || (mat.mediaUrl ? [mat.mediaUrl] : []);
+                                          return (
+                                            <div>
+                                              <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
+                                                <span style={{fontSize:10,fontWeight:700,color:'var(--text-md)'}}>사진 ({photos.length}장)</span>
+                                                <label style={{padding:'3px 8px',borderRadius:5,background:'var(--blue-l)',color:'var(--accent)',fontSize:9,fontWeight:600,cursor:'pointer',border:'1px solid var(--blue-m)'}}>
+                                                  📁 파일
+                                                  <input type="file" accept="image/*" multiple style={{display:'none'}} onChange={async(e)=>{
+                                                    const files = Array.from(e.target.files||[]);
+                                                    for(const f of files) await handleImageUpload(f,'material',si);
+                                                  }}/>
+                                                </label>
+                                                <button onClick={()=>pasteMatPhoto(si)}
+                                                  style={{padding:'3px 8px',borderRadius:5,background:'#F0FDF4',color:'#059669',fontSize:9,fontWeight:600,cursor:'pointer',border:'1px solid #BBF7D0'}}>
+                                                  📋 붙여넣기
+                                                </button>
+                                              </div>
+                                              {photos.length > 0 ? (
+                                                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(90px,1fr))',gap:6}}>
+                                                  {photos.map((p,pi)=>(
+                                                    <div key={pi} style={{position:'relative',aspectRatio:'4/3',borderRadius:6,overflow:'hidden',border:'1.5px solid var(--blue-m)',background:'#000'}}>
+                                                      <img src={p} style={{width:'100%',height:'100%',objectFit:'cover'}} alt={`사진${pi+1}`}/>
+                                                      <button onClick={()=>removeMaterialPhoto(si,pi)}
+                                                        style={{position:'absolute',top:3,right:3,width:18,height:18,borderRadius:'50%',background:'rgba(0,0,0,.6)',
+                                                          color:'#fff',fontSize:10,cursor:'pointer',border:'none',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              ) : (
+                                                <div tabIndex={0} onPaste={async(e)=>{
+                                                  const items = e.clipboardData?.items;
+                                                  if(!items)return;
+                                                  for(const item of items){
+                                                    if(item.type.startsWith('image/')){
+                                                      e.preventDefault();
+                                                      const file=item.getAsFile();
+                                                      if(file) await handleImageUpload(file,'material',si);
+                                                      return;
+                                                    }
+                                                  }
+                                                }} style={{padding:'16px',borderRadius:6,border:'1.5px dashed var(--blue-m)',background:'var(--blue-l)',
+                                                  textAlign:'center',cursor:'pointer',outline:'none'}}
+                                                  onClick={()=>document.querySelector(`#adm_mat_multi_${selectedMethod}_${si}`)?.click()}>
+                                                  <div style={{fontSize:20,opacity:.3,marginBottom:4}}>📷</div>
+                                                  <div style={{fontSize:10,color:'var(--accent)',fontWeight:600}}>클릭하여 파일 선택 또는 Ctrl+V로 붙여넣기</div>
+                                                </div>
+                                              )}
+                                              <input type="file" accept="image/*" multiple id={`adm_mat_multi_${selectedMethod}_${si}`} style={{display:'none'}}
+                                                onChange={async(e)=>{
+                                                  const files=Array.from(e.target.files||[]);
+                                                  for(const f of files) await handleImageUpload(f,'material',si);
+                                                }}/>
+                                            </div>
+                                          );
+                                        })()}
                                       </div>
                                     </div>
                                   );

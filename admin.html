@@ -4510,15 +4510,12 @@ function ContentEditorPage({ showToast }) {
     loadContent(selectedMethod);
   }, [selectedMethod]);
 
-  // 하자사진 탭 진입 시 로드
+  // casePhotos 최초 로드 (페이지 진입 시)
   useEffect(() => {
-    if (activeTab === 'case_photos' && !casePhotosLoaded) {
+    if (!casePhotosLoaded) {
       loadCasePhotosFromFirestore();
     }
-    if (activeTab === 'prob_photos' && !probPhotosLoaded) {
-      loadProbPhotosFromFirestore();
-    }
-  }, [activeTab]);
+  }, []);
 
   const loadCasePhotosFromFirestore = async () => {
     try {

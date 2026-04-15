@@ -7956,11 +7956,16 @@ function AdminScreen({onBack}){
   const [modalMemoSaving,setModalMemoSaving]=useState(false);
   const [modalCompletedActions,setModalCompletedActions]=useState([]);
   const [modalSmsLogs,setModalSmsLogs]=useState(null);
+  const [editMode,setEditMode]=useState(false);
+  const [editData,setEditData]=useState({});
+  const [editSaving,setEditSaving]=useState(false);
+  const [hasBackup,setHasBackup]=useState(false);
   useEffect(()=>{
     if(expanded&&typeof expanded==='object'){
       setModalMemoText(expanded.memoText||'');
       setModalCompletedActions(expanded.completedActions||[]);
       setModalMemoSaving(false);
+      setEditMode(false);setEditData({});setEditSaving(false);
       if(expanded.phone){
         const clean=expanded.phone.replace(/[^0-9]/g,'');
         db.collection('sms-logs').get().then(snap=>{
@@ -7968,8 +7973,64 @@ function AdminScreen({onBack}){
           setModalSmsLogs(arr.filter(s=>(s.phone||'').replace(/[^0-9]/g,'')===clean).sort((a,b)=>(b.sentAt||'').localeCompare(a.sentAt||'')));
         }).catch(()=>setModalSmsLogs([]));
       }else{setModalSmsLogs([]);}
-    }else{setModalSmsLogs(null);}
+      if(expanded.id){
+        db.collection('leads-backups').where('leadId','==',expanded.id).get().then(snap=>{
+          setHasBackup(snap.size>0);
+          console.log('[leads-backups]',expanded.id,'백업',snap.size,'건');
+        }).catch(e=>{console.warn('[leads-backups] 확인 실패:',e);setHasBackup(false);});
+      }else{setHasBackup(false);}
+    }else{setModalSmsLogs(null);setEditMode(false);}
   },[expanded]);
+  // ── 편집 모드 함수 ──
+  const startEdit=()=>{
+    const l=expanded;if(!l)return;
+    setEditData({name:l.name||'',phone:l.phone||'',email:l.email||'',company:l.company||'',position:l.position||'',address:l.address||'',building:l.building||'',memo:l.memo||'',status:l.status||'신규',nextActions:[...(l.nextActions||[])],memoText:l.memoText||''});
+    setEditMode(true);
+  };
+  const saveEdit=async()=>{
+    if(!expanded?.id||editSaving)return;
+    setEditSaving(true);
+    try{
+      const{id,...originalData}=expanded;
+      await db.collection('leads-backups').add({leadId:id,originalData,backedUpAt:new Date().toISOString(),backupReason:'edit'});
+      console.log('[leads-backups] 원본 백업 완료:',id);
+      const updates={};
+      ['name','phone','email','company','position','address','building','memo','status','nextActions','memoText'].forEach(f=>{
+        if(JSON.stringify(expanded[f]||'')!==JSON.stringify(editData[f]||''))updates[f]=editData[f];
+      });
+      if(!Object.keys(updates).length){setEditMode(false);setEditSaving(false);setToast({msg:'변경사항 없음',type:'success'});setTimeout(()=>setToast(null),2000);return;}
+      updates.lastEditedAt=new Date().toISOString();
+      await db.collection('leads').doc(id).update(updates);
+      console.log('[leads] 수정 완료:',id,Object.keys(updates));
+      const updated={...expanded,...updates};
+      setLeads(p=>p.map(l=>l.id===id?updated:l));setExpanded(updated);setModalMemoText(updated.memoText||'');
+      setEditMode(false);setHasBackup(true);
+      setToast({msg:'수정 완료 (원본 백업됨)',type:'success'});setTimeout(()=>setToast(null),2500);
+    }catch(e){console.error('[leads] 수정 실패:',e);setToast({msg:'수정 실패',type:'error'});setTimeout(()=>setToast(null),3000);}
+    setEditSaving(false);
+  };
+  const restoreFromBackup=async()=>{
+    if(!expanded?.id)return;
+    if(!window.confirm('최초 원본 데이터로 복원하시겠습니까?\n현재 수정사항은 모두 사라집니다.'))return;
+    try{
+      const snap=await db.collection('leads-backups').where('leadId','==',expanded.id).get();
+      const backups=snap.docs.map(d=>({id:d.id,...d.data()}));
+      console.log('[leads-backups] 복원 후보:',backups.length,'건');
+      if(!backups.length){setToast({msg:'백업 없음',type:'error'});setTimeout(()=>setToast(null),2000);return;}
+      backups.sort((a,b)=>(a.backedUpAt||'').localeCompare(b.backedUpAt||''));
+      const first=backups[0];
+      const restoreData={...first.originalData};
+      restoreData.restoredAt=new Date().toISOString();
+      restoreData.lastEditedAt=firebase.firestore.FieldValue.delete();
+      await db.collection('leads').doc(expanded.id).update(restoreData);
+      console.log('[leads] 원본 복원 완료:',expanded.id);
+      const restored={id:expanded.id,...first.originalData,restoredAt:restoreData.restoredAt};
+      delete restored.lastEditedAt;
+      setLeads(p=>p.map(l=>l.id===expanded.id?restored:l));setExpanded(restored);setModalMemoText(restored.memoText||'');
+      setEditMode(false);setToast({msg:'원본으로 복원 완료',type:'success'});setTimeout(()=>setToast(null),2500);
+    }catch(e){console.error('[leads] 복원 실패:',e);setToast({msg:'복원 실패',type:'error'});setTimeout(()=>setToast(null),3000);}
+  };
+
   const generateAdminReport=async(l)=>{
     setAdminReport({leadId:l.id,status:'saving',reportId:null});
     const reportId=(()=>{const c='ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';return Array.from({length:8},()=>c[Math.floor(Math.random()*c.length)]).join('');})();
@@ -8637,10 +8698,22 @@ function AdminScreen({onBack}){
                   <div style={{padding:'20px 24px 16px',borderBottom:'1.5px solid var(--border)',flexShrink:0}}>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
                       <div style={{display:'flex',alignItems:'center',gap:10}}>
-                        <span style={{fontSize:22,fontWeight:900,color:'var(--text)'}}>{l.name||'이름없음'}</span>
-                        <span style={{fontSize:10,fontWeight:800,padding:'3px 8px',borderRadius:12,background:STATUS_COLOR[status]||'#9CA3AF',color:'#fff'}}>{status}</span>
+                        <span style={{fontSize:22,fontWeight:900,color:'var(--text)'}}>{editMode?'편집 중':(l.name||'이름없음')}</span>
+                        {!editMode&&<span style={{fontSize:10,fontWeight:800,padding:'3px 8px',borderRadius:12,background:STATUS_COLOR[status]||'#9CA3AF',color:'#fff'}}>{status}</span>}
                       </div>
-                      <button onClick={()=>setExpanded(null)} style={{width:36,height:36,borderRadius:'50%',border:'1.5px solid var(--border)',background:'var(--bg)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-md)'}}>✕</button>
+                      <div style={{display:'flex',alignItems:'center',gap:6}}>
+                        {editMode?(
+                          <React.Fragment>
+                            <button onClick={()=>setEditMode(false)} style={{padding:'6px 14px',borderRadius:8,border:'1.5px solid var(--border)',background:'var(--bg)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',color:'var(--text-md)'}}>취소</button>
+                            <button onClick={saveEdit} disabled={editSaving} style={{padding:'6px 14px',borderRadius:8,border:'none',background:'#059669',color:'#fff',fontSize:12,fontWeight:800,cursor:'pointer',fontFamily:'inherit',opacity:editSaving?.6:1}}>{editSaving?'저장 중...':'수정 완료'}</button>
+                          </React.Fragment>
+                        ):(
+                          <React.Fragment>
+                            <button onClick={startEdit} style={{padding:'6px 14px',borderRadius:8,border:'1.5px solid var(--accent)',background:'var(--blue-l)',color:'var(--accent)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>✏️ 편집</button>
+                            <button onClick={()=>setExpanded(null)} style={{width:36,height:36,borderRadius:'50%',border:'1.5px solid var(--border)',background:'var(--bg)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-md)'}}>✕</button>
+                          </React.Fragment>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -8648,38 +8721,93 @@ function AdminScreen({onBack}){
                   <div style={{flex:1,overflowY:'auto',padding:'16px 24px',display:'flex',flexDirection:'column',gap:16}}>
 
                     {/* 1. 고객정보 */}
-                    <div>
-                      <div style={{fontSize:12,fontWeight:800,color:'var(--text)',marginBottom:8}}>고객정보</div>
-                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px 16px',fontSize:12}}>
-                        <div><span style={{color:'var(--text-sm)',fontWeight:600}}>이름</span> <span style={{fontWeight:700}}>{l.name||'-'}</span></div>
-                        <div><span style={{color:'var(--text-sm)',fontWeight:600}}>전화</span> <span style={{fontWeight:700}}>{l.phone||'-'}</span></div>
-                        <div><span style={{color:'var(--text-sm)',fontWeight:600}}>소속</span> <span style={{fontWeight:700}}>{l.company||'-'}</span></div>
-                        <div><span style={{color:'var(--text-sm)',fontWeight:600}}>건물</span> <span style={{fontWeight:700}}>{l.building||'-'}</span></div>
-                        <div><span style={{color:'var(--text-sm)',fontWeight:600}}>직위</span> <span style={{fontWeight:700}}>{l.position||'-'}</span></div>
-                        <div><span style={{color:'var(--text-sm)',fontWeight:600}}>일자</span> <span style={{fontWeight:700}}>{l.day||'-'}</span></div>
-                        <div><span style={{color:'var(--text-sm)',fontWeight:600}}>담당</span> <span style={{fontWeight:700}}>{l.staff||'-'}</span></div>
-                        <div><span style={{color:'var(--text-sm)',fontWeight:600}}>이메일</span> <span style={{fontWeight:700}}>{l.email||'-'}</span></div>
-                        {l.address&&<div style={{gridColumn:'1/3'}}><span style={{color:'var(--text-sm)',fontWeight:600}}>주소</span> <span style={{fontWeight:700}}>{l.address}</span></div>}
-                      </div>
-                      <div style={{fontSize:10,color:'var(--text-sm)',marginTop:6}}>{l.savedAt?new Date(l.savedAt).toLocaleString('ko'):''}</div>
-                    </div>
-
-                    {/* 2. 2차액션 — 체크 가능 */}
-                    {l.nextActions?.length>0&&(
+                    {editMode?(
                       <div>
-                        <div style={{fontSize:12,fontWeight:800,color:'var(--text)',marginBottom:8}}>2차 액션</div>
-                        <div style={{display:'flex',flexDirection:'column',gap:4}}>
-                          {l.nextActions.map(action=>{
-                            const done=modalCompletedActions.includes(action);
+                        <div style={{fontSize:12,fontWeight:800,color:'var(--text)',marginBottom:8}}>고객정보 수정</div>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,fontSize:12}}>
+                          {[{k:'name',lb:'이름'},{k:'phone',lb:'전화'},{k:'company',lb:'소속'},{k:'position',lb:'직위'},{k:'email',lb:'이메일'}].map(({k,lb})=>(
+                            <div key={k}>
+                              <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:3}}>{lb}</div>
+                              <input value={editData[k]||''} onChange={e=>setEditData(p=>({...p,[k]:e.target.value}))} style={{width:'100%',padding:'8px 10px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:13,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}}/>
+                            </div>
+                          ))}
+                          <div>
+                            <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:3}}>건물유형</div>
+                            <select value={editData.building||''} onChange={e=>setEditData(p=>({...p,building:e.target.value}))} style={{width:'100%',padding:'8px 10px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:13,fontFamily:'inherit',background:'#fff',outline:'none',boxSizing:'border-box'}}>
+                              <option value="">선택안함</option>
+                              <option value="아파트">아파트</option>
+                              <option value="관공서">관공서</option>
+                              <option value="일반건물">일반건물</option>
+                            </select>
+                          </div>
+                          <div>
+                            <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:3}}>상태</div>
+                            <select value={editData.status||'신규'} onChange={e=>setEditData(p=>({...p,status:e.target.value}))} style={{width:'100%',padding:'8px 10px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:13,fontFamily:'inherit',background:'#fff',outline:'none',boxSizing:'border-box'}}>
+                              {STATUS_OPTIONS.map(s=><option key={s} value={s}>{s}</option>)}
+                            </select>
+                          </div>
+                          <div style={{gridColumn:'1/3'}}>
+                            <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:3}}>주소</div>
+                            <input value={editData.address||''} onChange={e=>setEditData(p=>({...p,address:e.target.value}))} style={{width:'100%',padding:'8px 10px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:13,fontFamily:'inherit',outline:'none',boxSizing:'border-box'}} placeholder="주소 입력"/>
+                          </div>
+                          <div style={{gridColumn:'1/3'}}>
+                            <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:3}}>메모</div>
+                            <textarea value={editData.memo||''} onChange={e=>setEditData(p=>({...p,memo:e.target.value}))} style={{width:'100%',minHeight:60,padding:'8px 10px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:13,fontFamily:'inherit',resize:'vertical',outline:'none',boxSizing:'border-box',lineHeight:1.6}} placeholder="메모 입력..."/>
+                          </div>
+                        </div>
+                        <div style={{fontSize:10,color:'var(--text-sm)',marginTop:6}}>일자: {l.day||'-'} · 담당: {l.staff||'-'} · 저장: {l.savedAt?new Date(l.savedAt).toLocaleString('ko'):''}</div>
+                      </div>
+                    ):(
+                      <div>
+                        <div style={{fontSize:12,fontWeight:800,color:'var(--text)',marginBottom:8}}>고객정보</div>
+                        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px 16px',fontSize:12}}>
+                          <div><span style={{color:'var(--text-sm)',fontWeight:600}}>이름</span> <span style={{fontWeight:700}}>{l.name||'-'}</span></div>
+                          <div><span style={{color:'var(--text-sm)',fontWeight:600}}>전화</span> <span style={{fontWeight:700}}>{l.phone||'-'}</span></div>
+                          <div><span style={{color:'var(--text-sm)',fontWeight:600}}>소속</span> <span style={{fontWeight:700}}>{l.company||'-'}</span></div>
+                          <div><span style={{color:'var(--text-sm)',fontWeight:600}}>건물</span> <span style={{fontWeight:700}}>{l.building||'-'}</span></div>
+                          <div><span style={{color:'var(--text-sm)',fontWeight:600}}>직위</span> <span style={{fontWeight:700}}>{l.position||'-'}</span></div>
+                          <div><span style={{color:'var(--text-sm)',fontWeight:600}}>일자</span> <span style={{fontWeight:700}}>{l.day||'-'}</span></div>
+                          <div><span style={{color:'var(--text-sm)',fontWeight:600}}>담당</span> <span style={{fontWeight:700}}>{l.staff||'-'}</span></div>
+                          <div><span style={{color:'var(--text-sm)',fontWeight:600}}>이메일</span> <span style={{fontWeight:700}}>{l.email||'-'}</span></div>
+                          {l.address&&<div style={{gridColumn:'1/3'}}><span style={{color:'var(--text-sm)',fontWeight:600}}>주소</span> <span style={{fontWeight:700}}>{l.address}</span></div>}
+                        </div>
+                        <div style={{fontSize:10,color:'var(--text-sm)',marginTop:6}}>{l.savedAt?new Date(l.savedAt).toLocaleString('ko'):''}</div>
+                      </div>
+                    )}
+
+                    {/* 2. 2차액션 — 편집/체크 가능 */}
+                    {editMode?(
+                      <div>
+                        <div style={{fontSize:12,fontWeight:800,color:'var(--text)',marginBottom:8}}>2차 액션 (선택/해제)</div>
+                        <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                          {NEXT_ACTIONS.map(action=>{
+                            const sel=(editData.nextActions||[]).includes(action);
                             return(
-                              <label key={action} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 10px',background:done?'#F0FDF4':'var(--bg)',border:`1px solid ${done?'#BBF7D0':'var(--border)'}`,borderRadius:8,cursor:'pointer',fontSize:12,fontWeight:600}}>
-                                <input type="checkbox" checked={done} onChange={()=>toggleAction(action)} style={{accentColor:'#059669',width:16,height:16}}/>
-                                <span style={{textDecoration:done?'line-through':'none',color:done?'#059669':'var(--text)'}}>{action}</span>
-                              </label>
+                              <button key={action} onClick={()=>setEditData(p=>({...p,nextActions:sel?p.nextActions.filter(a=>a!==action):[...(p.nextActions||[]),action]}))}
+                                style={{padding:'6px 12px',borderRadius:8,border:'1.5px solid '+(sel?'#2563EB':'var(--border)'),background:sel?'#EFF6FF':'var(--bg)',fontSize:11,fontWeight:sel?700:600,color:sel?'#2563EB':'var(--text-md)',cursor:'pointer',fontFamily:'inherit',transition:'all .15s'}}>
+                                {sel?'✓ ':''}{action}
+                              </button>
                             );
                           })}
                         </div>
                       </div>
+                    ):(
+                      l.nextActions?.length>0&&(
+                        <div>
+                          <div style={{fontSize:12,fontWeight:800,color:'var(--text)',marginBottom:8}}>2차 액션</div>
+                          <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                            {l.nextActions.map(action=>{
+                              const done=modalCompletedActions.includes(action);
+                              return(
+                                <label key={action} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 10px',background:done?'#F0FDF4':'var(--bg)',border:'1px solid '+(done?'#BBF7D0':'var(--border)'),borderRadius:8,cursor:'pointer',fontSize:12,fontWeight:600}}>
+                                  <input type="checkbox" checked={done} onChange={()=>toggleAction(action)} style={{accentColor:'#059669',width:16,height:16}}/>
+                                  <span style={{textDecoration:done?'line-through':'none',color:done?'#059669':'var(--text)'}}>{action}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )
                     )}
 
                     {/* 3. 명함촬영 */}
@@ -8743,6 +8871,16 @@ function AdminScreen({onBack}){
                             </div>
                           </div>
                         </div>
+                      )}
+                    </div>
+
+                    {/* 6. 수정 이력 및 원본 복원 */}
+                    <div style={{padding:'12px 14px',borderRadius:10,background:'#F8FAFC',border:'1px solid var(--border)'}}>
+                      {l.lastEditedAt&&<div style={{fontSize:11,color:'#D97706',fontWeight:700,marginBottom:4}}>✏️ 최종 수정: {new Date(l.lastEditedAt).toLocaleString('ko')}</div>}
+                      {l.restoredAt&&<div style={{fontSize:11,color:'#059669',fontWeight:700,marginBottom:4}}>🔄 복원됨: {new Date(l.restoredAt).toLocaleString('ko')}</div>}
+                      {!l.lastEditedAt&&!l.restoredAt&&<div style={{fontSize:11,color:'var(--text-sm)',fontWeight:600}}>수정 이력 없음</div>}
+                      {hasBackup&&!editMode&&(
+                        <button onClick={restoreFromBackup} style={{marginTop:6,padding:'6px 14px',borderRadius:8,border:'1.5px solid #DC2626',background:'#FEF2F2',color:'#DC2626',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>🔄 원본 복원</button>
                       )}
                     </div>
 

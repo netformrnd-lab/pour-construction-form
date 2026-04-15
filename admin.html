@@ -4346,11 +4346,11 @@ function DefectPhotosPage({showToast}){
                   cursor:'pointer',fontWeight:on?700:500,fontFamily:'inherit',transition:'all .15s'}}>#{lbl}</button>);
               })}
             </div>
-            {(form.defectTypes||[]).filter(d=>isTagMain(d)).length===0&&<div style={{fontSize:11,color:'#ef4444',marginTop:-4,marginBottom:6}}>메인 태그를 1개 이상 선택하세요</div>}
+            {(form.defectTypes||[]).filter(d=>mainDefects.includes(d)).length===0&&<div style={{fontSize:11,color:'#ef4444',marginTop:-4,marginBottom:6}}>메인 태그를 1개 이상 선택하세요</div>}
             <label style={LS}>서브 태그 <span style={{fontWeight:400,color:'#D97706',fontSize:10}}>— 사진 설명용 · 필터 미해당 · 직접 입력</span></label>
             {/* 선택된 서브 태그 표시 */}
             <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:6}}>
-              {(form.defectTypes||[]).filter(d=>!isTagMain(d)).map(d=>{
+              {(form.defectTypes||[]).filter(d=>!mainDefects.includes(d)).map(d=>{
                 const lbl=getTagLabel(d);
                 return(<button key={`sub-${d}`} type="button" onClick={()=>{
                   const cur=form.defectTypes||[];

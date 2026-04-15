@@ -6203,13 +6203,45 @@ function ContentEditorPage({ showToast }) {
                                 };img.src=ev.target.result;
                               };reader.readAsDataURL(file);e.target.value='';
                             }}/>
-                          <button onClick={()=>document.getElementById(`intro-img-${selectedMethod}`)?.click()}
-                            style={{padding:'8px 14px',borderRadius:8,border:'1px solid #60A5FA',background:'#EFF6FF',
-                              color:'#2563EB',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
-                            📁 사진 선택
-                          </button>
+                          <div style={{display:'flex',gap:6}}>
+                            <button onClick={()=>document.getElementById(`intro-img-${selectedMethod}`)?.click()}
+                              style={{flex:1,padding:'8px 14px',borderRadius:8,border:'1px solid #60A5FA',background:'#EFF6FF',
+                                color:'#2563EB',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
+                              📁 사진 선택
+                            </button>
+                            <button onClick={async()=>{
+                              try{
+                                const items=await navigator.clipboard.read();
+                                for(const item of items){
+                                  const imgType=item.types.find(t=>t.startsWith('image/'));
+                                  if(imgType){
+                                    const blob=await item.getType(imgType);
+                                    const reader=new FileReader();
+                                    reader.onload=(ev)=>{
+                                      const img=new Image();
+                                      img.onload=()=>{
+                                        const MAX=1200;let w=img.width,h=img.height;
+                                        if(w>MAX||h>MAX){const r=Math.min(MAX/w,MAX/h);w=Math.round(w*r);h=Math.round(h*r);}
+                                        const c=document.createElement('canvas');c.width=w;c.height=h;
+                                        c.getContext('2d').drawImage(img,0,0,w,h);
+                                        const up=JSON.parse(JSON.stringify(casePhotos));
+                                        if(!up[selectedMethod])up[selectedMethod]={};
+                                        up[selectedMethod].methodIntroImage=c.toDataURL('image/jpeg',0.85);
+                                        setCasePhotos(up);
+                                      };img.src=ev.target.result;
+                                    };reader.readAsDataURL(blob);
+                                    break;
+                                  }
+                                }
+                              }catch(e){console.error('클립보드 읽기 실패:',e);showToast('클립보드에 이미지가 없습니다','error');}
+                            }}
+                              style={{flex:1,padding:'8px 14px',borderRadius:8,border:'1px solid #60A5FA',background:'#DBEAFE',
+                                color:'#1D4ED8',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
+                              📋 붙여넣기
+                            </button>
+                          </div>
                           <div style={{fontSize:9,color:'var(--text-sm)',lineHeight:1.4}}>
-                            고객 화면에서 시공공정 바로 위에 공법 소개 이미지가 표시됩니다.
+                            고객 화면에서 시공공정 바로 위에 공법 소개 이미지가 표시됩니다. (캡처 후 붙여넣기 가능)
                           </div>
                         </div>
                       </div>

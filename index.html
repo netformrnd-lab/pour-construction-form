@@ -20,8 +20,7 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
@@ -8052,6 +8051,7 @@ function AdminScreen({onBack}){
   const [filterStaff,setFilterStaff]=useState('전체');
   const [filterBuilding,setFilterBuilding]=useState('전체');
   const [filterStatus,setFilterStatus]=useState('전체');
+  const [filterMemo,setFilterMemo]=useState('전체'); // '전체'|'완료'|'미작성'
   const [expanded,setExpanded]=useState(null);
   const [smsTarget,setSmsTarget]=useState(null);
   const [keywordDetail,setKeywordDetail]=useState(null);
@@ -8207,6 +8207,8 @@ function AdminScreen({onBack}){
     if(filterStaff!=='전체'&&l.staff!==filterStaff)return false;
     if(filterBuilding!=='전체'&&l.building!==filterBuilding)return false;
     if(filterStatus!=='전체'&&(l.status||'신규')!==filterStatus)return false;
+    if(filterMemo==='완료'&&!l.memoText)return false;
+    if(filterMemo==='미작성'&&l.memoText)return false;
     if(search){
       const q=search.toLowerCase();
       if(!(l.name||'').toLowerCase().includes(q)&&!(l.phone||'').includes(q)&&!(l.memo||'').toLowerCase().includes(q))return false;
@@ -8319,118 +8321,79 @@ function AdminScreen({onBack}){
   const downloadExcelAll=()=>downloadExcel(activeLeads,'전체');
   const downloadExcelFiltered=()=>downloadExcel(display,'필터');
 
-  /* ── PDF 생성 (고객 1명 — 고객정보 + 낙서장 + 명함 + 현장사진) ── */
-  const generateLeadPdf=(lead)=>{
-    if(!window.jspdf){alert('PDF 라이브러리 로딩 중입니다. 잠시 후 다시 시도하세요.');return null;}
-    const{jsPDF}=window.jspdf;
-    const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-    const W=210,H=297,M=15;let y=M;
-    const addPage=()=>{doc.addPage();y=M;};
-    const checkY=(need)=>{if(y+need>H-M)addPage();};
-    /* 한글 폰트 대신 기본 폰트 사용 — 한글은 유니코드로 */
-    doc.setFont('helvetica');
-    /* 헤더 */
-    doc.setFillColor(13,27,42);doc.rect(0,0,W,28,'F');
-    doc.setTextColor(255,255,255);doc.setFontSize(14);
-    doc.text('POUR Solution',M,12);
-    doc.setFontSize(9);doc.text('Customer Report',M,18);
-    doc.text(new Date().toLocaleDateString('ko'),W-M,12,{align:'right'});
-    doc.text((lead.staff||'-')+' / '+(lead.day||'-'),W-M,18,{align:'right'});
-    y=36;
-    /* 고객 정보 테이블 */
-    doc.setTextColor(0,0,0);doc.setFontSize(11);doc.setFont('helvetica','bold');
-    doc.text('Customer Info',M,y);y+=7;
-    doc.setFont('helvetica','normal');doc.setFontSize(9);
-    const info=[
-      ['Name',lead.name||'-'],['Phone',lead.phone||'-'],['Email',lead.email||'-'],
-      ['Company',lead.company||'-'],['Position',lead.position||'-'],
-      ['Building',lead.building||'-'],['Address',lead.address||'-'],['Region',lead.region||'-'],
-      ['Status',lead.status||'New'],['Method',(lead.problems||[]).join(', ')||lead.problem||'-'],
-      ['Category',lead.problemCat||'-'],['Brand',lead.brandTag||'-'],
-      ['Start Date',lead.desiredStartDate||'-'],
-      ['2nd Action',(lead.nextActions||[]).join(', ')||'-'],
-      ['Source',lead.source||'-'],
-    ];
-    info.forEach(([k,v])=>{
-      checkY(6);
-      doc.setFillColor(245,247,250);doc.rect(M,y-3.5,38,6,'F');
-      doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text(k,M+2,y);
-      doc.setFont('helvetica','normal');doc.setFontSize(9);
-      const lines=doc.splitTextToSize(String(v),W-M-M-42);
-      doc.text(lines,M+42,y);y+=Math.max(6,lines.length*4.5);
-    });
-    /* 메모 */
-    if(lead.memo){
-      y+=4;checkY(20);
-      doc.setFont('helvetica','bold');doc.setFontSize(11);
-      doc.text('Memo',M,y);y+=6;
-      doc.setFont('helvetica','normal');doc.setFontSize(8);
-      doc.setDrawColor(200);doc.setFillColor(252,252,252);
-      const mLines=doc.splitTextToSize(lead.memo,W-M*2-4);
-      const mH=Math.min(mLines.length*3.8+8,H-M-y);
-      doc.roundedRect(M,y-3,W-M*2,mH,2,2,'FD');
-      doc.text(mLines.slice(0,Math.floor((mH-4)/3.8)),M+3,y+2);
-      y+=mH+4;
-    }
-    /* 이미지 추가 헬퍼 */
-    const addImg=(dataUrl,label,maxW,maxH)=>{
-      if(!dataUrl)return;
-      try{
-        const fmt=dataUrl.startsWith('data:image/png')?'PNG':'JPEG';
-        /* 이미지 크기 계산 */
-        const img=new Image();img.src=dataUrl;
-        let iw=maxW,ih=maxH;
-        if(img.naturalWidth&&img.naturalHeight){
-          const ratio=Math.min(maxW/img.naturalWidth,maxH/img.naturalHeight);
-          iw=img.naturalWidth*ratio;ih=img.naturalHeight*ratio;
-        }
-        checkY(ih+12);
-        doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(100);
-        doc.text(label,M,y);y+=5;doc.setTextColor(0);
-        doc.addImage(dataUrl,fmt,M,y,iw,ih);y+=ih+6;
-      }catch(e){console.warn('[PDF] 이미지 추가 실패:',label,e);}
-    };
-    /* 명함 */
+  /* ── HTML 리포트 생성 (고객 1명 — 고객정보 + 명함 + 낙서장 + 현장사진) ── */
+  const generateLeadHtml=(lead)=>{
+    const e=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const biz=lead.businessCard||lead.bizCard;
+    const info=[
+      ['이름',lead.name],['전화',lead.phone],['이메일',lead.email],
+      ['소속/업체',lead.company],['직위',lead.position],
+      ['건물유형',lead.building],['주소',lead.address],['지역',lead.region],
+      ['상태',lead.status||'신규'],['공법',(lead.problems||[]).join(', ')||lead.problem],
+      ['카테고리',lead.problemCat],['브랜드태그',lead.brandTag],
+      ['희망착공일',lead.desiredStartDate],
+      ['2차액션',(lead.nextActions||[]).join(', ')],
+      ['유입경로',lead.source],['담당자',lead.staff],['상담일',lead.day],
+    ];
+    let html=`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>POUR 고객리포트 — ${e(lead.name||'')}</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#f9fafb;color:#111;line-height:1.6;padding:20px;max-width:800px;margin:0 auto}
+.hdr{background:#0D1B2A;color:#fff;padding:16px 24px;border-radius:12px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center}
+.hdr h1{font-size:18px;font-weight:900}.hdr .sub{font-size:12px;opacity:.7}
+table{width:100%;border-collapse:collapse;margin-bottom:16px}
+th{background:#f1f5f9;text-align:left;padding:8px 12px;font-size:13px;font-weight:700;color:#374151;width:120px;border:1px solid #e5e7eb}
+td{padding:8px 12px;font-size:14px;border:1px solid #e5e7eb}
+.section{background:#fff;border-radius:12px;padding:16px 20px;margin-bottom:16px;border:1px solid #e5e7eb}
+.section h2{font-size:15px;font-weight:800;color:#2563EB;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #DBEAFE}
+.memo{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px 16px;font-size:13px;white-space:pre-wrap;line-height:1.8}
+.img-grid{display:flex;flex-wrap:wrap;gap:12px}.img-box{flex:1;min-width:200px;max-width:100%}
+.img-box img{width:100%;border-radius:8px;border:1px solid #e5e7eb}
+.img-label{font-size:11px;font-weight:700;color:#6B7280;margin-bottom:4px}
+@media print{body{padding:0}.hdr{border-radius:0;page-break-after:avoid}.section{page-break-inside:avoid}}
+</style></head><body>
+<div class="hdr"><div><h1>POUR Solution</h1><div class="sub">고객 리포트</div></div><div style="text-align:right"><div style="font-size:14px;font-weight:700">${e(lead.name||'')}</div><div class="sub">${new Date().toLocaleDateString('ko')} · ${e(lead.staff||'')} · ${e(lead.day||'')}</div></div></div>`;
+    html+=`<div class="section"><h2>👤 고객정보</h2><table>`;
+    info.forEach(([k,v])=>{if(v&&v!=='-')html+=`<tr><th>${e(k)}</th><td>${e(v)}</td></tr>`;});
+    html+=`</table></div>`;
+    if(lead.memo)html+=`<div class="section"><h2>📝 메모</h2><div class="memo">${e(lead.memo)}</div></div>`;
+    if(lead.memoText)html+=`<div class="section"><h2>⌨️ 텍스트 메모</h2><div class="memo">${e(lead.memoText)}</div></div>`;
     if(biz?.front||biz?.back){
-      addPage();
-      doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text('Business Card',M,y);y+=8;
-      if(biz.front)addImg(biz.front,'Front',W-M*2,80);
-      if(biz.back)addImg(biz.back,'Back',W-M*2,80);
+      html+=`<div class="section"><h2>📇 명함</h2><div class="img-grid">`;
+      if(biz.front)html+=`<div class="img-box"><div class="img-label">앞면</div><img src="${biz.front}"/></div>`;
+      if(biz.back)html+=`<div class="img-box"><div class="img-label">뒷면</div><img src="${biz.back}"/></div>`;
+      html+=`</div></div>`;
     }
-    /* 낙서장 */
     if(lead.memoImgs?.length>0){
-      addPage();
-      doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text('Doodle Notes ('+lead.memoImgs.length+'p)',M,y);y+=8;
-      lead.memoImgs.forEach((img,i)=>{
-        addImg(img,'Page '+(i+1),W-M*2,H-M*2-20);
-      });
+      html+=`<div class="section"><h2>🎨 낙서장 (${lead.memoImgs.length}페이지)</h2><div class="img-grid" style="flex-direction:column">`;
+      lead.memoImgs.forEach((img,i)=>{html+=`<div class="img-box"><div class="img-label">${i+1}페이지</div><img src="${img}"/></div>`;});
+      html+=`</div></div>`;
     }
-    /* 현장사진 */
     if(lead.fieldPhotos?.length>0){
-      addPage();
-      doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text('Field Photos ('+lead.fieldPhotos.length+')',M,y);y+=8;
+      html+=`<div class="section"><h2>📸 현장사진 (${lead.fieldPhotos.length}장)</h2><div class="img-grid">`;
       lead.fieldPhotos.forEach((p,i)=>{
         const lbl='#'+(i+1)+(p.defectType?' '+p.defectType:'')+(p.defectPart?' / '+p.defectPart:'');
-        addImg(p.src||p,lbl,(W-M*2)/2-2,70);
+        html+=`<div class="img-box" style="max-width:48%"><div class="img-label">${e(lbl)}</div><img src="${p.src||p}"/></div>`;
       });
+      html+=`</div></div>`;
     }
-    return doc;
+    html+=`</body></html>`;
+    return html;
   };
-  /* 개별 PDF 다운로드 */
-  const downloadLeadPdf=(lead)=>{
-    const doc=generateLeadPdf(lead);
-    if(doc)doc.save(`POUR_${lead.name||'customer'}_${lead.phone||''}.pdf`);
+  /* 개별 리포트 다운로드 */
+  const downloadLeadHtml=(lead)=>{
+    const html=generateLeadHtml(lead);
+    const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download=`POUR_${lead.name||'고객'}_${(lead.phone||'').replace(/[^0-9]/g,'')}.html`;
+    a.click();URL.revokeObjectURL(a.href);
   };
-  /* 전체 ZIP 다운로드 (엑셀 + 이미지 있는 고객 PDF) */
+  /* 전체 ZIP 다운로드 (엑셀 + HTML 리포트) */
   const [zipDownloading,setZipDownloading]=useState(false);
   const downloadAllZip=async()=>{
     if(!window.JSZip){alert('ZIP 라이브러리 로딩 중입니다. 잠시 후 다시 시도하세요.');return;}
-    if(!window.jspdf){alert('PDF 라이브러리 로딩 중입니다. 잠시 후 다시 시도하세요.');return;}
     setZipDownloading(true);
     try{
       const zip=new JSZip();
-      /* 엑셀 추가 */
       if(window.XLSX){
         const rows=activeLeads.map((l,i)=>({
           '번호':i+1,'이름':l.name||'','전화':l.phone||'','소속':l.company||'',
@@ -8441,27 +8404,20 @@ function AdminScreen({onBack}){
         }));
         const ws=XLSX.utils.json_to_sheet(rows);const wb=XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb,ws,'고객DB');
-        const xlBuf=XLSX.write(wb,{type:'array',bookType:'xlsx'});
-        zip.file('POUR_고객DB.xlsx',xlBuf);
+        zip.file('POUR_고객DB.xlsx',XLSX.write(wb,{type:'array',bookType:'xlsx'}));
       }
-      /* 이미지 있는 고객 PDF 추가 */
       const withImages=activeLeads.filter(l=>(l.memoImgs?.length>0)||(l.businessCard?.front)||(l.fieldPhotos?.length>0));
       for(const lead of withImages){
         try{
-          const doc=generateLeadPdf(lead);
-          if(doc){
-            const pdfBlob=doc.output('arraybuffer');
-            const safeName=(lead.name||'unknown').replace(/[^\uAC00-\uD7A3a-zA-Z0-9]/g,'_');
-            zip.file(`PDF/${safeName}_${(lead.phone||'').replace(/[^0-9]/g,'')}.pdf`,pdfBlob);
-          }
-        }catch(e){console.warn('[ZIP] PDF 생성 실패:',lead.name,e);}
+          const html=generateLeadHtml(lead);
+          const safeName=(lead.name||'고객').replace(/[^\uAC00-\uD7A3a-zA-Z0-9]/g,'_');
+          zip.file(`리포트/${safeName}_${(lead.phone||'').replace(/[^0-9]/g,'')}.html`,html);
+        }catch(e){console.warn('[ZIP] HTML 생성 실패:',lead.name,e);}
       }
       const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
-      const now=new Date();
-      const ts=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+      const ts=new Date().toISOString().slice(0,10).replace(/-/g,'');
       const a=document.createElement('a');a.href=URL.createObjectURL(blob);
       a.download=`POUR_전체_${ts}.zip`;a.click();URL.revokeObjectURL(a.href);
-      console.log(`[ZIP] 다운로드 완료: 엑셀 + PDF ${withImages.length}건`);
     }catch(e){console.error('[ZIP] 생성 실패:',e);alert('ZIP 생성 중 오류가 발생했습니다.');}
     finally{setZipDownloading(false);}
   };
@@ -8483,38 +8439,34 @@ function AdminScreen({onBack}){
   const dlSelectAll=()=>setDlSelected(new Set(dlFiltered.map(l=>l.id)));
   const dlSelectNone=()=>setDlSelected(new Set());
   const dlDownExcel=()=>{downloadExcel(dlSelectedLeads,'선택_'+dlSelectedLeads.length+'건');setDlModal(false);};
-  const dlDownPdfZip=async()=>{
-    if(!window.JSZip||!window.jspdf){alert('라이브러리 로딩 중입니다.');return;}
+  const dlDownHtmlZip=async()=>{
+    if(!window.JSZip){alert('ZIP 라이브러리 로딩 중입니다.');return;}
     setZipDownloading(true);
     try{
       const zip=new JSZip();
       const targets=dlSelectedLeads.filter(l=>(l.memoImgs?.length>0)||(l.businessCard?.front)||(l.fieldPhotos?.length>0));
       for(const lead of targets){
-        try{const doc=generateLeadPdf(lead);
-          if(doc){zip.file(`${(lead.name||'unknown').replace(/[^\uAC00-\uD7A3a-zA-Z0-9]/g,'_')}_${(lead.phone||'').replace(/[^0-9]/g,'')}.pdf`,doc.output('arraybuffer'));}
-        }catch(e){console.warn('[PDF]',lead.name,e);}
+        try{zip.file(`${(lead.name||'고객').replace(/[^\uAC00-\uD7A3a-zA-Z0-9]/g,'_')}_${(lead.phone||'').replace(/[^0-9]/g,'')}.html`,generateLeadHtml(lead));}
+        catch(e){console.warn('[HTML]',lead.name,e);}
       }
       if(Object.keys(zip.files).length===0){alert('이미지가 있는 고객이 없습니다.');setZipDownloading(false);return;}
       const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});
-      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`POUR_PDF_${targets.length}건.zip`;a.click();URL.revokeObjectURL(a.href);
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`POUR_리포트_${targets.length}건.zip`;a.click();URL.revokeObjectURL(a.href);
     }catch(e){alert('ZIP 생성 실패');console.error(e);}
     finally{setZipDownloading(false);setDlModal(false);}
   };
   const dlDownAllZip=async()=>{
-    if(!window.JSZip||!window.jspdf||!window.XLSX){alert('라이브러리 로딩 중입니다.');return;}
+    if(!window.JSZip||!window.XLSX){alert('라이브러리 로딩 중입니다.');return;}
     setZipDownloading(true);
     try{
       const zip=new JSZip();
-      /* 엑셀 */
       const rows=dlSelectedLeads.map((l,i)=>({'번호':i+1,'이름':l.name||'','전화':l.phone||'','소속':l.company||'','건물':l.building||'','상태':l.status||'신규','담당자':l.staff||'','상담일':l.day||'','공법':(l.problems||[]).join(',')||l.problem||'','메모':l.memo||'','2차액션':(l.nextActions||[]).join(','),'명함':l.businessCard?.front?'O':'','낙서장':(l.memoImgs||[]).length+'p','현장사진':(l.fieldPhotos||[]).length+'장'}));
       const ws=XLSX.utils.json_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'고객DB');
       zip.file('POUR_고객DB.xlsx',XLSX.write(wb,{type:'array',bookType:'xlsx'}));
-      /* PDF */
       const targets=dlSelectedLeads.filter(l=>(l.memoImgs?.length>0)||(l.businessCard?.front)||(l.fieldPhotos?.length>0));
       for(const lead of targets){
-        try{const doc=generateLeadPdf(lead);
-          if(doc)zip.file(`PDF/${(lead.name||'unknown').replace(/[^\uAC00-\uD7A3a-zA-Z0-9]/g,'_')}_${(lead.phone||'').replace(/[^0-9]/g,'')}.pdf`,doc.output('arraybuffer'));
-        }catch(e){console.warn('[PDF]',lead.name,e);}
+        try{zip.file(`리포트/${(lead.name||'고객').replace(/[^\uAC00-\uD7A3a-zA-Z0-9]/g,'_')}_${(lead.phone||'').replace(/[^0-9]/g,'')}.html`,generateLeadHtml(lead));}
+        catch(e){console.warn('[HTML]',lead.name,e);}
       }
       const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});
       const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`POUR_전체_${dlSelectedLeads.length}건.zip`;a.click();URL.revokeObjectURL(a.href);
@@ -8522,21 +8474,39 @@ function AdminScreen({onBack}){
     finally{setZipDownloading(false);setDlModal(false);}
   };
 
-  // 1시간마다 자동 엑셀 다운로드 (ref로 최신 데이터 참조)
+  // 5초마다 자동 새로고침 (Firestore에서 최신 데이터)
   const latestLeadsRef=React.useRef(activeLeads);
   latestLeadsRef.current=activeLeads;
+  const autoRefreshRef=useRef(null);
+  useEffect(()=>{
+    autoRefreshRef.current=setInterval(()=>{
+      db.collection('leads').get().then(s=>{
+        const all=s.docs.map(d=>({id:d.id,...d.data()}));
+        all.sort((a,b)=>(b.savedAt||'').localeCompare(a.savedAt||''));
+        setLeads(all);
+      }).catch(()=>{});
+    },5000);
+    return()=>clearInterval(autoRefreshRef.current);
+  },[]);
+
+  // 30분마다 자동 엑셀 백업 + 다운로드 이력 관리
+  const [backupHistory,setBackupHistory]=useState([]);
+  const lastBackupCountRef=useRef(0);
   useEffect(()=>{
     const timer=setInterval(()=>{
       const data=latestLeadsRef.current;
-      if(data.length>0){
-        console.log('[자동백업] 1시간 엑셀 자동 다운로드 실행:',data.length,'건');
+      if(data.length>0&&data.length!==lastBackupCountRef.current){
+        lastBackupCountRef.current=data.length;
+        console.log('[자동백업] 30분 엑셀 자동 다운로드:',data.length,'건');
         try{
           downloadExcel(data,'자동백업');
-          setToast({msg:'자동 엑셀 백업 완료 ('+data.length+'건)',type:'success'});
+          const ts=new Date().toLocaleString('ko');
+          setBackupHistory(prev=>[{time:ts,count:data.length,type:'엑셀'},...prev].slice(0,20));
+          setToast({msg:'자동 백업 완료 ('+data.length+'건)',type:'success'});
           setTimeout(()=>setToast(null),3000);
         }catch(e){console.error('[자동백업] 실패:',e);}
       }
-    },60*60*1000);
+    },30*60*1000);
     return()=>clearInterval(timer);
   },[]);
 
@@ -9025,6 +8995,11 @@ function AdminScreen({onBack}){
               {['전체',...STATUS_OPTIONS].map(s=>(
                 <button key={'st'+s} onClick={()=>setFilterStatus(s)} style={{flexShrink:0,padding:'5px 10px',borderRadius:20,border:'none',background:filterStatus===s?STATUS_COLOR[s]||'var(--navy)':'var(--bg)',color:filterStatus===s?'#fff':'var(--text)',fontSize:11,fontWeight:700,cursor:'pointer'}}>{s}</button>
               ))}
+              <div style={{width:1,background:'var(--border)',flexShrink:0,margin:'0 2px'}}/>
+              {/* 메모 필터 */}
+              {[{k:'전체',label:'전체',c:'var(--navy)'},{k:'미작성',label:'메모미작성',c:'#DC2626'},{k:'완료',label:'메모완료',c:'#059669'}].map(({k,label,c})=>(
+                <button key={'m'+k} onClick={()=>setFilterMemo(k)} style={{flexShrink:0,padding:'5px 10px',borderRadius:20,border:'none',background:filterMemo===k?c:'var(--bg)',color:filterMemo===k?'#fff':'var(--text)',fontSize:11,fontWeight:700,cursor:'pointer'}}>{label}</button>
+              ))}
             </div>
           </div>
 
@@ -9033,7 +9008,7 @@ function AdminScreen({onBack}){
             <span>{display.length}건 표시 중 / 전체 {activeLeads.length}건</span>
             <div style={{display:'flex',gap:4}}>
               <button onClick={refreshLeads} disabled={refreshing} style={{padding:'3px 10px',borderRadius:6,border:'1px solid var(--border)',background:'var(--bg)',color:'var(--text-md)',fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>{refreshing?'⏳':'🔄'}</button>
-              <button onClick={openDlModal} style={{padding:'3px 12px',borderRadius:6,border:'1px solid var(--accent)',background:'var(--blue-l)',color:'var(--accent)',fontSize:10,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>📥 다운로드 (엑셀·PDF)</button>
+              <button onClick={openDlModal} style={{padding:'3px 12px',borderRadius:6,border:'1px solid var(--accent)',background:'var(--blue-l)',color:'var(--accent)',fontSize:10,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}}>📥 다운로드</button>
             </div>
           </div>
 
@@ -9050,6 +9025,8 @@ function AdminScreen({onBack}){
                       <div style={{display:'flex',alignItems:'center',gap:6}}>
                         <span style={{fontSize:14,fontWeight:900,color:'var(--text)'}}>{l.name||'이름없음'}</span>
                         <span style={{fontSize:11,color:'var(--text-sm)',fontWeight:600}}>{l.phone}</span>
+                        {l.memoText?<span style={{fontSize:9,fontWeight:700,padding:'1px 6px',borderRadius:4,background:'#ECFDF5',color:'#059669',border:'1px solid #A7F3D0'}}>메모완료</span>
+                          :<span style={{fontSize:9,fontWeight:700,padding:'1px 6px',borderRadius:4,background:'#FEF2F2',color:'#DC2626',border:'1px solid #FECACA'}}>메모미작성</span>}
                       </div>
                       <div style={{fontSize:11,color:'var(--text-sm)',fontWeight:600,marginTop:2}}>
                         {l.staff} · {l.day} · {l.building}
@@ -9104,7 +9081,7 @@ function AdminScreen({onBack}){
                         ):(
                           <React.Fragment>
                             <button onClick={()=>deleteLead(l.id)} style={{padding:'6px 10px',borderRadius:8,border:'1.5px solid #FCA5A5',background:'#FEF2F2',color:'#DC2626',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>🗑</button>
-                            {(l.memoImgs?.length>0||l.businessCard?.front||l.fieldPhotos?.length>0)&&<button onClick={()=>downloadLeadPdf(l)} style={{padding:'6px 14px',borderRadius:8,border:'1.5px solid #7C3AED',background:'#F5F3FF',color:'#7C3AED',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>📄 PDF</button>}
+                            {(l.memoImgs?.length>0||l.businessCard?.front||l.fieldPhotos?.length>0)&&<button onClick={()=>downloadLeadHtml(l)} style={{padding:'6px 14px',borderRadius:8,border:'1.5px solid #7C3AED',background:'#F5F3FF',color:'#7C3AED',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>📄 리포트</button>}
                             <button onClick={startEdit} style={{padding:'6px 14px',borderRadius:8,border:'1.5px solid var(--accent)',background:'var(--blue-l)',color:'var(--accent)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>✏️ 편집</button>
                             <button onClick={()=>setExpanded(null)} style={{width:36,height:36,borderRadius:'50%',border:'1.5px solid var(--border)',background:'var(--bg)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-md)'}}>✕</button>
                           </React.Fragment>
@@ -10350,19 +10327,31 @@ function AdminScreen({onBack}){
                   <span>📥 엑셀 다운로드</span>
                   <span style={{fontSize:11,fontWeight:600,opacity:.85}}>고객정보 표 · {dlSelectedLeads.length}건</span>
                 </button>
-                {/* PDF */}
-                <button onClick={dlDownPdfZip} disabled={dlSelectedLeads.length===0||zipDownloading}
+                {/* 리포트 HTML */}
+                <button onClick={dlDownHtmlZip} disabled={dlSelectedLeads.length===0||zipDownloading}
                   style={{width:'100%',padding:'14px 16px',borderRadius:12,border:'none',background:dlSelectedLeads.length>0?'#7C3AED':'#E5E7EB',color:dlSelectedLeads.length>0?'#fff':'#9CA3AF',fontSize:14,fontWeight:800,cursor:dlSelectedLeads.length>0?'pointer':'not-allowed',fontFamily:'inherit',textAlign:'left',display:'flex',alignItems:'center',justifyContent:'space-between',opacity:zipDownloading?.5:1}}>
-                  <span>{zipDownloading?'⏳ PDF 생성중...':'📄 PDF 다운로드'}</span>
-                  <span style={{fontSize:11,fontWeight:600,opacity:.85}}>명함+낙서장+사진 · ZIP</span>
+                  <span>{zipDownloading?'⏳ 생성중...':'📄 리포트 다운로드'}</span>
+                  <span style={{fontSize:11,fontWeight:600,opacity:.85}}>고객정보+명함+낙서장+사진</span>
                 </button>
                 {/* 전체 ZIP */}
                 <button onClick={dlDownAllZip} disabled={dlSelectedLeads.length===0||zipDownloading}
                   style={{width:'100%',padding:'14px 16px',borderRadius:12,border:'none',background:dlSelectedLeads.length>0?'var(--navy)':'#E5E7EB',color:dlSelectedLeads.length>0?'#fff':'#9CA3AF',fontSize:14,fontWeight:800,cursor:dlSelectedLeads.length>0?'pointer':'not-allowed',fontFamily:'inherit',textAlign:'left',display:'flex',alignItems:'center',justifyContent:'space-between',opacity:zipDownloading?.5:1}}>
-                  <span>{zipDownloading?'⏳ 생성중...':'📦 전체 ZIP (엑셀+PDF)'}</span>
+                  <span>{zipDownloading?'⏳ 생성중...':'📦 전체 ZIP (엑셀+리포트)'}</span>
                   <span style={{fontSize:11,fontWeight:600,opacity:.85}}>한번에 모두 · ZIP</span>
                 </button>
               </div>
+              {/* 다운로드 이력 */}
+              {backupHistory.length>0&&(
+                <div style={{marginTop:12,padding:'10px 14px',background:'#fff',borderRadius:10,border:'1px solid var(--border)'}}>
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>📋 자동 백업 이력</div>
+                  {backupHistory.slice(0,5).map((h,i)=>(
+                    <div key={i} style={{fontSize:10,color:'var(--text-md)',padding:'3px 0',borderBottom:i<4?'1px solid var(--border-s)':'none',display:'flex',justifyContent:'space-between'}}>
+                      <span>{h.type} · {h.count}건</span>
+                      <span style={{color:'var(--text-sm)'}}>{h.time}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

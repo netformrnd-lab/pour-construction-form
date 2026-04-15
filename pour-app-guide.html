@@ -1183,97 +1183,66 @@ body {
       </div>
 
     <!-- ── AI 유사 사례 매칭 개발 예정 카드 ── -->
-    <div style="margin-top:20px;border-radius:16px;overflow:hidden;border:2px dashed #7C3AED;background:linear-gradient(135deg,#F5F3FF 0%,#EDE9FE 100%);">
-      <!-- 헤더 배너 -->
-      <div style="background:linear-gradient(135deg,#6D28D9,#7C3AED);padding:12px 16px;display:flex;align-items:center;gap:10px;">
-        <div style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;">🔮</div>
-        <div style="flex:1;">
-          <div style="font-size:13px;font-weight:800;color:#fff;line-height:1.2;">AI 유사 사례 매칭</div>
-          <div style="font-size:10px;color:rgba(255,255,255,.75);margin-top:2px;">고객 사진 → 유사 하자 사례 + 공사완료 사진 자동 제시</div>
-        </div>
-        <div style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:3px 8px;font-size:9px;font-weight:800;color:#fff;white-space:nowrap;">2차 개발 예정</div>
+    <div style="margin-top:20px;border-radius:14px;overflow:hidden;border:1.5px solid #D1D5DB;background:#F9FAFB;opacity:0.85;">
+      <!-- 헤더 -->
+      <div style="background:#F3F4F6;border-bottom:1px solid #E5E7EB;padding:10px 14px;display:flex;align-items:center;gap:8px;">
+        <span style="font-size:13px;">🔍</span>
+        <span style="font-size:12px;font-weight:700;color:#374151;flex:1;">AI 유사 사례 매칭</span>
+        <span style="font-size:9px;font-weight:700;color:#6B7280;background:#E5E7EB;padding:2px 7px;border-radius:4px;">개발 예정</span>
       </div>
-      <!-- 기능 설명 -->
-      <div style="padding:14px 16px;">
-        <p style="font-size:12px;color:#4C1D95;line-height:1.7;margin:0 0 14px;font-weight:500;">
-          고객이 직접 찍은 현장 사진을 앱에 첨부하면, AI가 POUR 시공 사례 DB에서 <strong>가장 유사한 하자 유형</strong>을 찾아 <strong>시공 전 → 시공 후 완료 사진</strong>을 나란히 보여줍니다. 고객이 "우리 건물도 이렇게 될 수 있어요"를 눈으로 직접 확인하게 됩니다.
+      <!-- 본문 -->
+      <div style="padding:12px 14px;">
+        <p style="font-size:11px;color:#6B7280;line-height:1.65;margin:0 0 12px;">
+          고객 현장 사진을 첨부하면 AI가 유사 시공 사례를 복수로 검색해 <strong style="color:#374151;">시공 전·후 사진</strong>을 함께 보여줍니다.
         </p>
-        <!-- 플로우 다이어그램 -->
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;">
-          <div style="flex-shrink:0;text-align:center;">
-            <div style="width:52px;height:52px;border-radius:12px;background:#fff;border:1.5px solid #C4B5FD;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 4px;">📸</div>
-            <div style="font-size:8px;font-weight:700;color:#6D28D9;white-space:nowrap;">고객 사진<br/>첨부</div>
+        <!-- 다중 사례 목업 -->
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
+          <!-- 사례 1 -->
+          <div style="background:#fff;border:1px solid #E5E7EB;border-radius:10px;padding:8px 10px;">
+            <div style="font-size:8px;font-weight:700;color:#9CA3AF;margin-bottom:6px;">사례 01 · 유사도 94%</div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <div style="flex:1;aspect-ratio:4/3;border-radius:6px;background:#E5E7EB;display:flex;align-items:center;justify-content:center;">
+                <span style="font-size:16px;opacity:.5;">📷</span>
+              </div>
+              <div style="font-size:11px;color:#9CA3AF;flex-shrink:0;">→</div>
+              <div style="flex:1;aspect-ratio:4/3;border-radius:6px;background:#E5E7EB;display:flex;align-items:center;justify-content:center;">
+                <span style="font-size:16px;opacity:.5;">✅</span>
+              </div>
+            </div>
+            <div style="margin-top:5px;font-size:8px;color:#9CA3AF;">옥상 슬라브 누수 · PVC 방수</div>
           </div>
-          <div style="flex-shrink:0;font-size:14px;color:#A78BFA;">→</div>
-          <div style="flex-shrink:0;text-align:center;">
-            <div style="width:52px;height:52px;border-radius:12px;background:#fff;border:1.5px solid #C4B5FD;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 4px;">🤖</div>
-            <div style="font-size:8px;font-weight:700;color:#6D28D9;white-space:nowrap;">AI 분석<br/>유형 파악</div>
+          <!-- 사례 2 -->
+          <div style="background:#fff;border:1px solid #E5E7EB;border-radius:10px;padding:8px 10px;">
+            <div style="font-size:8px;font-weight:700;color:#9CA3AF;margin-bottom:6px;">사례 02 · 유사도 87%</div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <div style="flex:1;aspect-ratio:4/3;border-radius:6px;background:#E5E7EB;display:flex;align-items:center;justify-content:center;">
+                <span style="font-size:16px;opacity:.5;">📷</span>
+              </div>
+              <div style="font-size:11px;color:#9CA3AF;flex-shrink:0;">→</div>
+              <div style="flex:1;aspect-ratio:4/3;border-radius:6px;background:#E5E7EB;display:flex;align-items:center;justify-content:center;">
+                <span style="font-size:16px;opacity:.5;">✅</span>
+              </div>
+            </div>
+            <div style="margin-top:5px;font-size:8px;color:#9CA3AF;">외벽 균열 · 균열보수 재도장</div>
           </div>
-          <div style="flex-shrink:0;font-size:14px;color:#A78BFA;">→</div>
-          <div style="flex-shrink:0;text-align:center;">
-            <div style="width:52px;height:52px;border-radius:12px;background:#fff;border:1.5px solid #C4B5FD;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 4px;">🔍</div>
-            <div style="font-size:8px;font-weight:700;color:#6D28D9;white-space:nowrap;">유사 사례<br/>DB 검색</div>
-          </div>
-          <div style="flex-shrink:0;font-size:14px;color:#A78BFA;">→</div>
-          <div style="flex-shrink:0;text-align:center;">
-            <div style="width:52px;height:52px;border-radius:12px;background:#fff;border:1.5px solid #A78BFA;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 4px;">✅</div>
-            <div style="font-size:8px;font-weight:700;color:#6D28D9;white-space:nowrap;">시공완료<br/>사진 제시</div>
+          <!-- 사례 3 (흐림) -->
+          <div style="background:#fff;border:1px solid #E5E7EB;border-radius:10px;padding:8px 10px;opacity:.5;">
+            <div style="font-size:8px;font-weight:700;color:#9CA3AF;margin-bottom:6px;">사례 03 · 유사도 81%</div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <div style="flex:1;aspect-ratio:4/3;border-radius:6px;background:#E5E7EB;display:flex;align-items:center;justify-content:center;">
+                <span style="font-size:16px;opacity:.5;">📷</span>
+              </div>
+              <div style="font-size:11px;color:#9CA3AF;flex-shrink:0;">→</div>
+              <div style="flex:1;aspect-ratio:4/3;border-radius:6px;background:#E5E7EB;display:flex;align-items:center;justify-content:center;">
+                <span style="font-size:16px;opacity:.5;">✅</span>
+              </div>
+            </div>
+            <div style="margin-top:5px;font-size:8px;color:#9CA3AF;">아스콘 포트홀 · MMA 보수</div>
           </div>
         </div>
-        <!-- 결과 카드 목업 -->
-        <div style="background:#fff;border-radius:12px;border:1px solid #DDD6FE;padding:10px 12px;margin-bottom:12px;">
-          <div style="font-size:9px;font-weight:800;color:#7C3AED;margin-bottom:8px;display:flex;align-items:center;gap:4px;">
-            <span>🔮</span> AI 매칭 결과 예시
-          </div>
-          <div style="display:flex;gap:8px;align-items:stretch;">
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:8px;font-weight:700;color:#6B7280;margin-bottom:4px;text-align:center;">고객 현장 사진</div>
-              <div style="aspect-ratio:1;border-radius:8px;background:linear-gradient(135deg,#374151,#1F2937);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;">
-                <span style="font-size:20px;">🏚</span>
-                <span style="font-size:7px;color:rgba(255,255,255,.6);">옥상 균열·누수</span>
-              </div>
-            </div>
-            <div style="display:flex;align-items:center;flex-shrink:0;">
-              <div style="text-align:center;">
-                <div style="font-size:18px;color:#7C3AED;">→</div>
-                <div style="font-size:7px;color:#A78BFA;font-weight:700;">유사도<br/>94%</div>
-              </div>
-            </div>
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:8px;font-weight:700;color:#DC2626;margin-bottom:4px;text-align:center;">유사 사례 Before</div>
-              <div style="aspect-ratio:1;border-radius:8px;background:linear-gradient(135deg,#7F1D1D,#991B1B);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;">
-                <span style="font-size:20px;">💧</span>
-                <span style="font-size:7px;color:rgba(255,255,255,.6);">옥상 누수 균열</span>
-              </div>
-            </div>
-            <div style="display:flex;align-items:center;flex-shrink:0;">
-              <div style="font-size:18px;color:#059669;">→</div>
-            </div>
-            <div style="flex:1;min-width:0;">
-              <div style="font-size:8px;font-weight:700;color:#059669;margin-bottom:4px;text-align:center;">시공완료 After</div>
-              <div style="aspect-ratio:1;border-radius:8px;background:linear-gradient(135deg,#064E3B,#065F46);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;">
-                <span style="font-size:20px;">✨</span>
-                <span style="font-size:7px;color:rgba(255,255,255,.6);">PVC 방수 완료</span>
-              </div>
-            </div>
-          </div>
-          <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;">
-            <span style="font-size:8px;padding:2px 7px;border-radius:4px;background:#FEE2E2;color:#DC2626;font-weight:700;">누수</span>
-            <span style="font-size:8px;padding:2px 7px;border-radius:4px;background:#DBEAFE;color:#1D4ED8;font-weight:700;">옥상 슬라브</span>
-            <span style="font-size:8px;padding:2px 7px;border-radius:4px;background:#FEF3C7;color:#92400E;font-weight:700;">심각도 중</span>
-            <span style="font-size:8px;padding:2px 7px;border-radius:4px;background:#D1FAE5;color:#065F46;font-weight:700;">PVC 방수 권장</span>
-          </div>
-        </div>
-        <!-- 기대 효과 -->
-        <div style="display:flex;flex-direction:column;gap:6px;">
-          <div style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:#F5F3FF;border-radius:8px;border:1px solid #DDD6FE;">
-            <span style="font-size:14px;flex-shrink:0;">💬</span>
-            <div style="font-size:11px;color:#4C1D95;line-height:1.5;font-weight:500;"><strong>"고객님 건물과 94% 유사한 사례입니다"</strong> — 숫자로 신뢰도를 높이고 시공 후 모습을 직접 보여줍니다.</div>
-          </div>
-          <div style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;background:#ECFDF5;border-radius:8px;border:1px solid #A7F3D0;">
-            <span style="font-size:14px;flex-shrink:0;">📊</span>
-            <div style="font-size:11px;color:#065F46;line-height:1.5;font-weight:500;">시공 전·후 비교 사진으로 <strong>계약 전환율 향상</strong> — 고객이 결과를 눈으로 보고 결정합니다.</div>
-          </div>
+        <!-- 한 줄 설명 -->
+        <div style="font-size:10px;color:#9CA3AF;line-height:1.5;border-top:1px solid #E5E7EB;padding-top:10px;">
+          고객이 사진을 보며 직접 비교 · 선택할 수 있어 설명 시간이 줄어듭니다.
         </div>
       </div>
     </div>

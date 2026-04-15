@@ -2046,6 +2046,22 @@ const saveCasePhotos=p=>{
             }
           }
         }
+        /* causeSection2 — 해당 자재 하자유형 사진 */
+        if(item.causeSection2){
+          for(let i=0;i<item.causeSection2.length;i++){
+            if(item.causeSection2[i]&&item.causeSection2[i].startsWith('data:')){
+              item.causeSection2[i]=await uploadBase64ToStorage(item.causeSection2[i],`case-photos/${key}/cause_s2_${i}`);
+            }
+          }
+        }
+        /* causeSection3 — 기존 처리방식 사진 */
+        if(item.causeSection3){
+          for(let i=0;i<item.causeSection3.length;i++){
+            if(item.causeSection3[i]&&item.causeSection3[i].startsWith('data:')){
+              item.causeSection3[i]=await uploadBase64ToStorage(item.causeSection3[i],`case-photos/${key}/cause_s3_${i}`);
+            }
+          }
+        }
         /* processOverviewImage */
         if(item.processOverviewImage&&item.processOverviewImage.startsWith('data:')){
           item.processOverviewImage=await uploadBase64ToStorage(item.processOverviewImage,`case-photos/${key}/process_overview`);
@@ -2236,9 +2252,19 @@ const DEFAULT_DEFECT_TAGS={major:[...DEFECT_MAJOR],part:[...DEFECT_PART]};
 const loadDefectTags=()=>{try{return JSON.parse(localStorage.getItem('pourDefectTags')||'null')||DEFAULT_DEFECT_TAGS;}catch{return DEFAULT_DEFECT_TAGS;}};
 const saveDefectTags=async(tags)=>{
   try{
-    await db.collection('config').doc('defectTags').set(tags);
-    try{localStorage.setItem('pourDefectTags',JSON.stringify(tags));}catch(e){}
+    const clean=JSON.parse(JSON.stringify(tags));
+    /* 대표사진 base64 → Storage 업로드 */
+    for(const arr of [clean.major||[],clean.part||[]]){
+      for(let i=0;i<arr.length;i++){
+        if(arr[i].photo&&arr[i].photo.startsWith('data:')){
+          arr[i].photo=await uploadBase64ToStorage(arr[i].photo,`defect-tags/${arr[i].id||i}`);
+        }
+      }
+    }
+    await db.collection('config').doc('defectTags').set(clean);
+    try{localStorage.setItem('pourDefectTags',JSON.stringify(clean));}catch(e){}
     console.log('[saveDefectTags] Firestore 저장 완료');
+    return clean;
   }catch(e){console.error('[saveDefectTags] Firestore 저장 실패:',e);throw e;}
 };
 const syncDefectTagsFromFirestore=async(setDefectTags)=>{
@@ -3689,7 +3715,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
           setNtSmsLinks(autoLinks);setNtSelectedLinks(autoLinks.map((_,i)=>i));
           if(autoLinks.length>0){msg+='\n\n📎 자료 링크:';autoLinks.forEach(l=>{msg+=`\n${l.label}: ${l.url}`;});}
         }
-        if(ntNextActions.length>0){msg+='\n\n📌 후속 안내:\n'+ntNextActions.map(a=>'· '+a).join('\n');}
+        /* 2차액션은 상단 멘트에만 표시, 하단 후속안내 제거 */
         msg+=`\n\n문의 1577-6587`;
         setNtSmsText(msg);setNtQuickSms(true);
       })();
@@ -4440,9 +4466,10 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                           })()}
                           {existingMajor.map((type,ci)=>{
                             const grp=grouped[type]||[];
-                            /* 템플릿 대표사진 우선, 없으면 첫 사진 fallback */
+                            /* 태그 대표사진 우선 → 템플릿 → 첫 사진 fallback */
+                            const tagObj=(defectTags?.major||[]).find(t=>(t.id||t)===type);
                             const tpl=(defectTemplates||[]).find(t=>(t.tags||[t.type]).includes(type));
-                            const rep=(tpl&&tpl.referenceImageUrl)||grp[0]?.src;
+                            const rep=(tagObj&&tagObj.photo)||(tpl&&tpl.referenceImageUrl)||grp[0]?.src;
                             const isAct=activeDefect===type;
                             return(
                               <div key={type} onClick={()=>changePhotoFilter(type,'all')}
@@ -4477,16 +4504,58 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                           })}
                         </div>
                       </div>
+                      {/* ── 중분류 필터 (대분류 선택 시) ── */}
+                      {(()=>{
+                        const existingParts=[...new Set(
+                          (activeDefect==='all'?photosWithMeta:photosWithMeta.filter(p=>(p.defectTypes||[p.defectType]).includes(activeDefect)))
+                            .flatMap(p=>p.defectTags||[p.defectPart]).filter(Boolean)
+                        )];
+                        if(existingParts.length<=1)return null;
+                        return(
+                          <div style={{padding:'8px 14px 0'}}>
+                            <div style={{display:'flex',gap:6,overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none',paddingBottom:2}}>
+                              <div onClick={()=>changePhotoFilter(activeDefect,'all')}
+                                style={{flex:'0 0 auto',display:'flex',alignItems:'center',gap:5,
+                                  padding:'4px 10px',borderRadius:8,cursor:'pointer',
+                                  border:`1.5px solid ${activePart==='all'?'#7C3AED':'var(--border)'}`,
+                                  background:activePart==='all'?'#F5F3FF':'var(--bg)',
+                                  transition:'all .2s'}}>
+                                <span style={{fontSize:10,fontWeight:700,color:activePart==='all'?'#7C3AED':'var(--text-sm)'}}>전체</span>
+                              </div>
+                              {existingParts.map(part=>{
+                                const partObj=(defectTags?.part||[]).find(t=>(t.id||t)===part);
+                                const partPhoto=partObj?.photo||'';
+                                const isAct=activePart===part;
+                                return(
+                                  <div key={part} onClick={()=>changePhotoFilter(activeDefect,part)}
+                                    style={{flex:'0 0 auto',display:'flex',alignItems:'center',gap:5,
+                                      padding:partPhoto?'3px 10px 3px 3px':'4px 10px',borderRadius:8,cursor:'pointer',
+                                      border:`1.5px solid ${isAct?'#7C3AED':'var(--border)'}`,
+                                      background:isAct?'#F5F3FF':'var(--bg)',
+                                      transition:'all .2s'}}>
+                                    {partPhoto&&(
+                                      <div style={{width:24,height:24,borderRadius:5,overflow:'hidden',flexShrink:0}}>
+                                        <img src={partPhoto} alt={part} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+                                      </div>
+                                    )}
+                                    <span style={{fontSize:10,fontWeight:700,color:isAct?'#7C3AED':'var(--text-sm)',whiteSpace:'nowrap'}}>#{part}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })()}
                       {/* ── 소분류 사진 스트립 ── */}
                       <div style={{borderTop:'1px solid var(--border-s)',padding:'10px 14px 14px',marginTop:8}}>
                         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
                           <div style={{display:'flex',alignItems:'center',gap:5}}>
-                            <div style={{width:10,height:1.5,background:'var(--accent)',borderRadius:1}}/>
-                            <div style={{width:4,height:1.5,background:'var(--blue-m)',borderRadius:1}}/>
-                            <span style={{fontSize:10,fontWeight:700,color:'var(--text-md)',letterSpacing:'.06em'}}>{activeDefect==='all'?'전체':'#'+activeDefect}</span>
+                            <div style={{width:10,height:1.5,background:activePart!=='all'?'#7C3AED':'var(--accent)',borderRadius:1}}/>
+                            <div style={{width:4,height:1.5,background:activePart!=='all'?'#EDE9FE':'var(--blue-m)',borderRadius:1}}/>
+                            <span style={{fontSize:10,fontWeight:700,color:'var(--text-md)',letterSpacing:'.06em'}}>{activePart!=='all'?'#'+activePart:activeDefect==='all'?'전체':'#'+activeDefect}</span>
                           </div>
-                          {activeDefect!=='all'&&(
-                            <span style={{fontSize:9,fontWeight:700,color:'var(--accent)',background:'var(--accent-l)',borderRadius:4,padding:'1px 5px'}}>
+                          {(activeDefect!=='all'||activePart!=='all')&&(
+                            <span style={{fontSize:9,fontWeight:700,color:activePart!=='all'?'#7C3AED':'var(--accent)',background:activePart!=='all'?'#F5F3FF':'var(--accent-l)',borderRadius:4,padding:'1px 5px'}}>
                               {Math.round((filtered.length/(photosWithMeta.length||1))*100)}%
                             </span>
                           )}
@@ -4745,6 +4814,43 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                               </div>
                             </div>
                           )}
+                        </div>
+                      );
+                    })()}
+                    {/* ── 섹션 2: 해당 자재 하자유형 (명칭 어드민 설정) ── */}
+                    {(()=>{
+                      const s2Photos=(photos.causeSection2||[]).filter(s=>s);
+                      if(s2Photos.length===0)return null;
+                      const s2Label=photos.causeSection2Label||'해당 자재 하자유형';
+                      return(
+                        <div style={{marginTop:14}}>
+                          <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:8}}>
+                            <div style={{width:5,height:5,borderRadius:'50%',background:'var(--gold)',opacity:.8}}/>
+                            <span style={{fontSize:10,fontWeight:700,color:'var(--navy)',letterSpacing:'.04em'}}>🔍 {s2Label}</span>
+                          </div>
+                          <div style={{marginLeft:-14,marginRight:-14}}>
+                            <div style={{fontSize:9,fontWeight:700,color:'var(--text-sm)',marginBottom:6,letterSpacing:'.04em',paddingLeft:14}}>📷 사진 ({s2Photos.length}장)</div>
+                            <ProposalSlideViewer slides={s2Photos} size="normal"
+                              onSlideClick={(i)=>setZoomPhoto({photos:s2Photos.map(s=>({src:s,alt:'하자유형'})),index:i})}/>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    {/* ── 섹션 3: 하자발생에 따른 기존 처리방식 ── */}
+                    {(()=>{
+                      const s3Photos=(photos.causeSection3||[]).filter(s=>s);
+                      if(s3Photos.length===0)return null;
+                      return(
+                        <div style={{marginTop:14}}>
+                          <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:8}}>
+                            <div style={{width:5,height:5,borderRadius:'50%',background:'#7C3AED',opacity:.8}}/>
+                            <span style={{fontSize:10,fontWeight:700,color:'var(--navy)',letterSpacing:'.04em'}}>🔧 하자발생에 따른 기존 처리방식</span>
+                          </div>
+                          <div style={{marginLeft:-14,marginRight:-14}}>
+                            <div style={{fontSize:9,fontWeight:700,color:'var(--text-sm)',marginBottom:6,letterSpacing:'.04em',paddingLeft:14}}>📷 사진 ({s3Photos.length}장)</div>
+                            <ProposalSlideViewer slides={s3Photos} size="normal"
+                              onSlideClick={(i)=>setZoomPhoto({photos:s3Photos.map(s=>({src:s,alt:'기존 처리방식'})),index:i})}/>
+                          </div>
                         </div>
                       );
                     })()}
@@ -5118,7 +5224,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                                   }else{msg+='\n맞춤 자료를 보내드리겠습니다.';}
                                   const selectedLinks=next.map(idx=>ntSmsLinks[idx]);
                                   if(selectedLinks.length>0){msg+='\n\n📎 자료 링크:';selectedLinks.forEach(sl=>{msg+=`\n${sl.label}: ${sl.url}`;});}
-                                  if(ntNextActions.length>0){msg+='\n\n📌 후속 안내:\n'+ntNextActions.map(a=>'· '+a).join('\n');}
+                                  /* 2차액션은 상단 멘트에만 표시, 하단 후속안내 제거 */
                                   msg+=`\n\n문의 1577-6587`;
                                   setNtSmsText(msg);
                                 }} style={{accentColor:'var(--blue)'}}/>
@@ -8452,6 +8558,92 @@ function AdminScreen({onBack}){
             <button onClick={()=>setTab('stat')} style={{background:'rgba(255,255,255,.2)',border:'none',borderRadius:6,padding:'5px 12px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>← 나가기</button>
           </div>
           <div style={{flex:1,overflowY:'auto',padding:'16px'}}>
+
+          {/* ── 태그 대표사진 관리 ── */}
+          <div style={{background:'var(--card)',borderRadius:12,padding:'16px',border:'1.5px solid var(--purple)',marginBottom:14}}>
+            <div style={{fontSize:14,fontWeight:900,color:'var(--navy)',marginBottom:2}}>🏷️ 태그 대표사진 설정</div>
+            <div style={{fontSize:11,color:'var(--text-sm)',marginBottom:12,lineHeight:1.5}}>
+              고객 화면의 <b>현장 하자사진 필터</b>에 표시될 대표사진을 설정합니다.<br/>
+              사진 클릭 → 파일 선택 / 이미지 복사 후 붙여넣기(Ctrl+V) / 드래그앤드롭 가능
+            </div>
+            {/* 대분류 대표사진 */}
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:11,fontWeight:800,color:'var(--accent)',marginBottom:8,display:'flex',alignItems:'center',gap:5}}>
+                <div style={{width:10,height:3,borderRadius:2,background:'var(--accent)'}}/>
+                대분류 대표사진
+              </div>
+              <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+                {(defectTags?.major||[]).map((tag,ti)=>{
+                  const tagId=tag.id||tag;
+                  const tagLabel=tag.label||tagId;
+                  const tagPhoto=tag.photo||'';
+                  return(
+                    <div key={'major_rep_'+ti} style={{width:100,textAlign:'center'}}>
+                      <PhotoSlot
+                        src={tagPhoto}
+                        label={tagLabel}
+                        onSet={async(url)=>{
+                          const next=JSON.parse(JSON.stringify(defectTags||DEFAULT_DEFECT_TAGS));
+                          if(!next.major[ti])return;
+                          next.major[ti].photo=url;
+                          setDefectTags(next);
+                          try{const saved=await saveDefectTags(next);setDefectTags(saved);}catch(e){console.error(e);}
+                        }}
+                        onRemove={async()=>{
+                          const next=JSON.parse(JSON.stringify(defectTags||DEFAULT_DEFECT_TAGS));
+                          if(!next.major[ti])return;
+                          delete next.major[ti].photo;
+                          setDefectTags(next);
+                          try{await saveDefectTags(next);}catch(e){console.error(e);}
+                        }}
+                        aspect="1/1" maxSize={600} quality={0.8}
+                      />
+                      <div style={{fontSize:10,fontWeight:700,color:'var(--accent)',marginTop:4}}>#{tagLabel}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            {/* 중분류 대표사진 */}
+            <div>
+              <div style={{fontSize:11,fontWeight:800,color:'#7C3AED',marginBottom:8,display:'flex',alignItems:'center',gap:5}}>
+                <div style={{width:10,height:3,borderRadius:2,background:'#7C3AED'}}/>
+                중분류 대표사진
+              </div>
+              <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+                {(defectTags?.part||[]).map((tag,ti)=>{
+                  const tagId=tag.id||tag;
+                  const tagLabel=tag.label||tagId;
+                  const tagPhoto=tag.photo||'';
+                  return(
+                    <div key={'part_rep_'+ti} style={{width:100,textAlign:'center'}}>
+                      <PhotoSlot
+                        src={tagPhoto}
+                        label={tagLabel}
+                        onSet={async(url)=>{
+                          const next=JSON.parse(JSON.stringify(defectTags||DEFAULT_DEFECT_TAGS));
+                          if(!next.part[ti])return;
+                          next.part[ti].photo=url;
+                          setDefectTags(next);
+                          try{const saved=await saveDefectTags(next);setDefectTags(saved);}catch(e){console.error(e);}
+                        }}
+                        onRemove={async()=>{
+                          const next=JSON.parse(JSON.stringify(defectTags||DEFAULT_DEFECT_TAGS));
+                          if(!next.part[ti])return;
+                          delete next.part[ti].photo;
+                          setDefectTags(next);
+                          try{await saveDefectTags(next);}catch(e){console.error(e);}
+                        }}
+                        aspect="1/1" maxSize={600} quality={0.8}
+                      />
+                      <div style={{fontSize:10,fontWeight:700,color:'#7C3AED',marginTop:4}}>#{tagLabel}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
           {/* ── 하자 사진 관리 ── */}
           <div style={{background:'var(--card)',borderRadius:12,padding:'16px',border:'1px solid var(--border)',marginBottom:14}}>
             <div style={{fontSize:14,fontWeight:900,color:'var(--text)',marginBottom:4}}>📸 공법별 사진 · 미디어 관리</div>
@@ -8782,6 +8974,62 @@ function AdminScreen({onBack}){
                               })}
                               <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[],completed:'',media:[]};const m=up[key].media||(up[key].gif?[up[key].gif]:[]);m.push('');up[key].media=m;delete up[key].gif;setCasePhotos(up);}}
                                 style={{padding:'8px 14px',borderRadius:8,border:'1.5px dashed var(--border)',background:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',color:'var(--accent)'}}>+ 영상/이미지 추가</button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* ══════════════════════════════════════════
+                            섹션 2-B: 해당 자재 하자유형
+                        ══════════════════════════════════════════ */}
+                        <div style={{borderRadius:12,border:'1px solid var(--border)',overflow:'hidden',background:'var(--card)'}}>
+                          <div style={{padding:'10px 12px',background:'linear-gradient(90deg,rgba(217,119,6,.08),transparent)',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:6}}>
+                            <div style={{width:6,height:6,borderRadius:'50%',background:'var(--gold)',flexShrink:0}}/>
+                            <span style={{fontSize:12,fontWeight:800,color:'var(--navy)'}}>2-B. </span>
+                            <input value={data.causeSection2Label||'해당 자재 하자유형'} placeholder="섹션 명칭 입력"
+                              onChange={e=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[]};up[key].causeSection2Label=e.target.value;setCasePhotos(up);}}
+                              style={{fontSize:12,fontWeight:800,color:'var(--navy)',border:'none',background:'transparent',outline:'none',flex:1,fontFamily:'inherit',padding:0}}/>
+                            <span style={{fontSize:9,color:'var(--gold)',fontWeight:600,flexShrink:0}}>명칭 수정가능</span>
+                          </div>
+                          <div style={{padding:'12px'}}>
+                            <div style={{fontSize:10,color:'var(--text-sm)',marginBottom:8}}>사진 여러장 첨부 가능 · 고객 화면에 슬라이드로 표시</div>
+                            <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                              {(data.causeSection2||[]).map((url,i)=>(
+                                <div key={key+'_s2_'+i} style={{position:'relative'}}>
+                                  <PhotoSlot src={url||''} label={`사진${i+1}`} aspect="1/1" maxSize={800} quality={0.85}
+                                    onSet={(v)=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[]};if(!up[key].causeSection2)up[key].causeSection2=[];while(up[key].causeSection2.length<=i)up[key].causeSection2.push('');up[key].causeSection2[i]=v;setCasePhotos(up);}}
+                                    onRemove={()=>{const up=JSON.parse(JSON.stringify(casePhotos));up[key].causeSection2.splice(i,1);setCasePhotos(up);}}/>
+                                </div>
+                              ))}
+                              <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[]};if(!up[key].causeSection2)up[key].causeSection2=[];up[key].causeSection2.push('');setCasePhotos(up);}}
+                                style={{width:100,height:75,borderRadius:10,border:'2px dashed var(--border)',background:'#fff',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,color:'var(--text-sm)',fontSize:11,fontWeight:700}}>
+                                <span style={{fontSize:24}}>+</span>추가
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* ══════════════════════════════════════════
+                            섹션 2-C: 하자발생에 따른 기존 처리방식
+                        ══════════════════════════════════════════ */}
+                        <div style={{borderRadius:12,border:'1px solid var(--border)',overflow:'hidden',background:'var(--card)'}}>
+                          <div style={{padding:'10px 12px',background:'linear-gradient(90deg,rgba(124,58,237,.08),transparent)',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:6}}>
+                            <div style={{width:6,height:6,borderRadius:'50%',background:'#7C3AED',flexShrink:0}}/>
+                            <span style={{fontSize:12,fontWeight:800,color:'var(--navy)'}}>2-C. 하자발생에 따른 기존 처리방식</span>
+                          </div>
+                          <div style={{padding:'12px'}}>
+                            <div style={{fontSize:10,color:'var(--text-sm)',marginBottom:8}}>사진 여러장 첨부 가능 · 고객 화면에 슬라이드로 표시</div>
+                            <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                              {(data.causeSection3||[]).map((url,i)=>(
+                                <div key={key+'_s3_'+i} style={{position:'relative'}}>
+                                  <PhotoSlot src={url||''} label={`사진${i+1}`} aspect="1/1" maxSize={800} quality={0.85}
+                                    onSet={(v)=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[]};if(!up[key].causeSection3)up[key].causeSection3=[];while(up[key].causeSection3.length<=i)up[key].causeSection3.push('');up[key].causeSection3[i]=v;setCasePhotos(up);}}
+                                    onRemove={()=>{const up=JSON.parse(JSON.stringify(casePhotos));up[key].causeSection3.splice(i,1);setCasePhotos(up);}}/>
+                                </div>
+                              ))}
+                              <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={causes:[]};if(!up[key].causeSection3)up[key].causeSection3=[];up[key].causeSection3.push('');setCasePhotos(up);}}
+                                style={{width:100,height:75,borderRadius:10,border:'2px dashed var(--border)',background:'#fff',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,color:'var(--text-sm)',fontSize:11,fontWeight:700}}>
+                                <span style={{fontSize:24}}>+</span>추가
+                              </button>
                             </div>
                           </div>
                         </div>

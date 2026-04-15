@@ -20,7 +20,8 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-<script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
@@ -3594,9 +3595,6 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
     saveDraft();
   };
   const ntSafeClose=()=>{
-    if(ntHasData()&&!ntDone){
-      if(!window.confirm('저장하지 않은 메모가 있습니다. 닫으시겠어요?\n(임시저장은 됩니다)'))return;
-    }
     syncMemoToApp();
     setShowNote(false);
   };
@@ -3706,11 +3704,9 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
   const toggleNt=(arr,set,v)=>set(p=>p.includes(v)?p.filter(x=>x!==v):[...p,v]);
 
-  const ntSavingRef=useRef(false);
   const saveNote=async()=>{
-    if(ntSavingRef.current)return;
     if(!ntName.trim()||!ntPhone.trim()){alert('성함과 전화번호를 입력해주세요');return;}
-    ntSavingRef.current=true;setNtSaving(true);
+    setNtSaving(true);
     const data={
       savedAt:new Date().toISOString(),day:staffDay,staffId,staff:staffName,
       name:ntName,company:ntCompany,position:ntPosition,
@@ -3737,13 +3733,13 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       console.log('[leads] 저장 완료:',docRef.id);
     }catch(e){
       console.error('[leads] 저장 실패:',e);
-      ntSavingRef.current=false;setNtSaving(false);
+      setNtSaving(false);
       setNtErrToast('저장 실패: 네트워크를 확인 후 다시 시도해 주세요.');
       return;
     }
     sendToSheet(Object.assign({_sheetType:'lead'},data));
     /* 저장 후 바로 문자 작성 화면으로 전환 (자동 발송 안 함 — 버튼으로만 발송) */
-    ntSavingRef.current=false;setNtSaving(false);setNtDone(true);setNtSmsPhone(ntPhone);setNtSmsPhoneConfirmed(false);setNtSmsError(null);
+    setNtSaving(false);setNtDone(true);setNtSmsPhone(ntPhone);setNtSmsPhoneConfirmed(false);setNtSmsError(null);
     /* 문자 작성 화면 자동 준비 — 항상 텍스트 생성, 링크는 phone+config 있을 때만 */
     {
       (async()=>{
@@ -5593,10 +5589,10 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                             staff:staffName,staffId,sentAt:new Date().toISOString(),
                             building:building?.label||'-',problem:problem?.label||'-',
                             links:ntSmsLinks.filter((_,i)=>ntSelectedLinks.includes(i)).map(l=>l.label),
-                          });}catch(ex){console.warn('[sms-log]',ex);setNtErrToast('문자 발송은 성공했으나 기록 저장에 실패했습니다');setTimeout(()=>setNtErrToast(null),4000);}
+                          });}catch(ex){console.warn('[sms-log]',ex);}
                           /* 수정된 번호를 leads에도 반영 */
                           if(sendPhone!==ntPhone&&ntSavedLeadId){
-                            try{await db.collection('leads').doc(ntSavedLeadId).update({phone:sendPhone});}catch(ex){console.warn('[leads] 번호 업데이트 실패:',ex);setNtErrToast('번호 수정 저장 실패 — 관리자에서 수동 수정 필요');setTimeout(()=>setNtErrToast(null),4000);}
+                            try{await db.collection('leads').doc(ntSavedLeadId).update({phone:sendPhone});}catch(ex){console.warn('[leads] 번호 업데이트 실패:',ex);}
                           }
                           setNtSmsSending(false);setNtQuickSms(false);ntResetAndClose();
                         }else{
@@ -8323,80 +8319,114 @@ function AdminScreen({onBack}){
   const downloadExcelAll=()=>downloadExcel(activeLeads,'전체');
   const downloadExcelFiltered=()=>downloadExcel(display,'필터');
 
-  /* ── HTML 리포트 생성 (고객 1명 — 고객정보 + 명함 + 낙서장 + 현장사진) ── */
-  const generateLeadHtml=(lead)=>{
-    const e=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    const biz=lead.businessCard||lead.bizCard;
+  /* ── PDF 생성 (고객 1명 — 고객정보 + 낙서장 + 명함 + 현장사진) ── */
+  const generateLeadPdf=(lead)=>{
+    if(!window.jspdf){alert('PDF 라이브러리 로딩 중입니다. 잠시 후 다시 시도하세요.');return null;}
+    const{jsPDF}=window.jspdf;
+    const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const W=210,H=297,M=15;let y=M;
+    const addPage=()=>{doc.addPage();y=M;};
+    const checkY=(need)=>{if(y+need>H-M)addPage();};
+    /* 한글 폰트 대신 기본 폰트 사용 — 한글은 유니코드로 */
+    doc.setFont('helvetica');
+    /* 헤더 */
+    doc.setFillColor(13,27,42);doc.rect(0,0,W,28,'F');
+    doc.setTextColor(255,255,255);doc.setFontSize(14);
+    doc.text('POUR Solution',M,12);
+    doc.setFontSize(9);doc.text('Customer Report',M,18);
+    doc.text(new Date().toLocaleDateString('ko'),W-M,12,{align:'right'});
+    doc.text((lead.staff||'-')+' / '+(lead.day||'-'),W-M,18,{align:'right'});
+    y=36;
+    /* 고객 정보 테이블 */
+    doc.setTextColor(0,0,0);doc.setFontSize(11);doc.setFont('helvetica','bold');
+    doc.text('Customer Info',M,y);y+=7;
+    doc.setFont('helvetica','normal');doc.setFontSize(9);
     const info=[
-      ['이름',lead.name],['전화',lead.phone],['이메일',lead.email],
-      ['소속/업체',lead.company],['직위',lead.position],
-      ['건물유형',lead.building],['주소',lead.address],['지역',lead.region],
-      ['상태',lead.status||'신규'],['공법',(lead.problems||[]).join(', ')||lead.problem],
-      ['카테고리',lead.problemCat],['브랜드태그',lead.brandTag],
-      ['희망착공일',lead.desiredStartDate],
-      ['2차액션',(lead.nextActions||[]).join(', ')],
-      ['유입경로',lead.source],['담당자',lead.staff],['상담일',lead.day],
+      ['Name',lead.name||'-'],['Phone',lead.phone||'-'],['Email',lead.email||'-'],
+      ['Company',lead.company||'-'],['Position',lead.position||'-'],
+      ['Building',lead.building||'-'],['Address',lead.address||'-'],['Region',lead.region||'-'],
+      ['Status',lead.status||'New'],['Method',(lead.problems||[]).join(', ')||lead.problem||'-'],
+      ['Category',lead.problemCat||'-'],['Brand',lead.brandTag||'-'],
+      ['Start Date',lead.desiredStartDate||'-'],
+      ['2nd Action',(lead.nextActions||[]).join(', ')||'-'],
+      ['Source',lead.source||'-'],
     ];
-    let html=`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>POUR 고객리포트 — ${e(lead.name||'')}</title>
-<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#f9fafb;color:#111;line-height:1.6;padding:20px}
-.hdr{background:#0D1B2A;color:#fff;padding:16px 24px;border-radius:12px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center}
-.hdr h1{font-size:18px;font-weight:900}.hdr .sub{font-size:12px;opacity:.7}
-table{width:100%;border-collapse:collapse;margin-bottom:16px}
-th{background:#f1f5f9;text-align:left;padding:8px 12px;font-size:13px;font-weight:700;color:#374151;width:120px;border:1px solid #e5e7eb}
-td{padding:8px 12px;font-size:14px;border:1px solid #e5e7eb}
-.section{background:#fff;border-radius:12px;padding:16px 20px;margin-bottom:16px;border:1px solid #e5e7eb}
-.section h2{font-size:15px;font-weight:800;color:#2563EB;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid #DBEAFE}
-.memo{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px 16px;font-size:13px;white-space:pre-wrap;line-height:1.8}
-.img-grid{display:flex;flex-wrap:wrap;gap:12px}.img-box{flex:1;min-width:200px;max-width:100%}
-.img-box img{width:100%;border-radius:8px;border:1px solid #e5e7eb}
-.img-label{font-size:11px;font-weight:700;color:#6B7280;margin-bottom:4px}
-@media print{body{padding:0}.hdr{border-radius:0}}
-</style></head><body>
-<div class="hdr"><div><h1>POUR Solution</h1><div class="sub">고객 리포트</div></div><div style="text-align:right"><div style="font-size:13px;font-weight:700">${e(lead.name||'')}</div><div class="sub">${new Date().toLocaleDateString('ko')} · ${e(lead.staff||'')} · ${e(lead.day||'')}</div></div></div>`;
-    /* 고객정보 테이블 */
-    html+=`<div class="section"><h2>👤 고객정보</h2><table>`;
-    info.forEach(([k,v])=>{if(v&&v!=='-')html+=`<tr><th>${e(k)}</th><td>${e(v)}</td></tr>`;});
-    html+=`</table></div>`;
+    info.forEach(([k,v])=>{
+      checkY(6);
+      doc.setFillColor(245,247,250);doc.rect(M,y-3.5,38,6,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text(k,M+2,y);
+      doc.setFont('helvetica','normal');doc.setFontSize(9);
+      const lines=doc.splitTextToSize(String(v),W-M-M-42);
+      doc.text(lines,M+42,y);y+=Math.max(6,lines.length*4.5);
+    });
     /* 메모 */
-    if(lead.memo)html+=`<div class="section"><h2>📝 메모</h2><div class="memo">${e(lead.memo)}</div></div>`;
+    if(lead.memo){
+      y+=4;checkY(20);
+      doc.setFont('helvetica','bold');doc.setFontSize(11);
+      doc.text('Memo',M,y);y+=6;
+      doc.setFont('helvetica','normal');doc.setFontSize(8);
+      doc.setDrawColor(200);doc.setFillColor(252,252,252);
+      const mLines=doc.splitTextToSize(lead.memo,W-M*2-4);
+      const mH=Math.min(mLines.length*3.8+8,H-M-y);
+      doc.roundedRect(M,y-3,W-M*2,mH,2,2,'FD');
+      doc.text(mLines.slice(0,Math.floor((mH-4)/3.8)),M+3,y+2);
+      y+=mH+4;
+    }
+    /* 이미지 추가 헬퍼 */
+    const addImg=(dataUrl,label,maxW,maxH)=>{
+      if(!dataUrl)return;
+      try{
+        const fmt=dataUrl.startsWith('data:image/png')?'PNG':'JPEG';
+        /* 이미지 크기 계산 */
+        const img=new Image();img.src=dataUrl;
+        let iw=maxW,ih=maxH;
+        if(img.naturalWidth&&img.naturalHeight){
+          const ratio=Math.min(maxW/img.naturalWidth,maxH/img.naturalHeight);
+          iw=img.naturalWidth*ratio;ih=img.naturalHeight*ratio;
+        }
+        checkY(ih+12);
+        doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(100);
+        doc.text(label,M,y);y+=5;doc.setTextColor(0);
+        doc.addImage(dataUrl,fmt,M,y,iw,ih);y+=ih+6;
+      }catch(e){console.warn('[PDF] 이미지 추가 실패:',label,e);}
+    };
     /* 명함 */
+    const biz=lead.businessCard||lead.bizCard;
     if(biz?.front||biz?.back){
-      html+=`<div class="section"><h2>📇 명함</h2><div class="img-grid">`;
-      if(biz.front)html+=`<div class="img-box"><div class="img-label">앞면</div><img src="${biz.front}"/></div>`;
-      if(biz.back)html+=`<div class="img-box"><div class="img-label">뒷면</div><img src="${biz.back}"/></div>`;
-      html+=`</div></div>`;
+      addPage();
+      doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text('Business Card',M,y);y+=8;
+      if(biz.front)addImg(biz.front,'Front',W-M*2,80);
+      if(biz.back)addImg(biz.back,'Back',W-M*2,80);
     }
     /* 낙서장 */
     if(lead.memoImgs?.length>0){
-      html+=`<div class="section"><h2>🎨 낙서장 (${lead.memoImgs.length}페이지)</h2><div class="img-grid" style="flex-direction:column">`;
-      lead.memoImgs.forEach((img,i)=>{html+=`<div class="img-box"><div class="img-label">${i+1}페이지</div><img src="${img}"/></div>`;});
-      html+=`</div></div>`;
+      addPage();
+      doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text('Doodle Notes ('+lead.memoImgs.length+'p)',M,y);y+=8;
+      lead.memoImgs.forEach((img,i)=>{
+        addImg(img,'Page '+(i+1),W-M*2,H-M*2-20);
+      });
     }
     /* 현장사진 */
     if(lead.fieldPhotos?.length>0){
-      html+=`<div class="section"><h2>📸 현장사진 (${lead.fieldPhotos.length}장)</h2><div class="img-grid">`;
+      addPage();
+      doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text('Field Photos ('+lead.fieldPhotos.length+')',M,y);y+=8;
       lead.fieldPhotos.forEach((p,i)=>{
         const lbl='#'+(i+1)+(p.defectType?' '+p.defectType:'')+(p.defectPart?' / '+p.defectPart:'');
-        html+=`<div class="img-box" style="max-width:48%"><div class="img-label">${e(lbl)}</div><img src="${p.src||p}"/></div>`;
+        addImg(p.src||p,lbl,(W-M*2)/2-2,70);
       });
-      html+=`</div></div>`;
     }
-    html+=`</body></html>`;
-    return html;
+    return doc;
   };
-  /* 개별 HTML 다운로드 */
-  const downloadLeadHtml=(lead)=>{
-    const html=generateLeadHtml(lead);
-    const blob=new Blob([html],{type:'text/html;charset=utf-8'});
-    const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-    a.download=`POUR_${lead.name||'고객'}_${(lead.phone||'').replace(/[^0-9]/g,'')}.html`;
-    a.click();URL.revokeObjectURL(a.href);
+  /* 개별 PDF 다운로드 */
+  const downloadLeadPdf=(lead)=>{
+    const doc=generateLeadPdf(lead);
+    if(doc)doc.save(`POUR_${lead.name||'customer'}_${lead.phone||''}.pdf`);
   };
-  /* 전체 ZIP 다운로드 (엑셀 + 이미지 있는 고객 HTML) */
+  /* 전체 ZIP 다운로드 (엑셀 + 이미지 있는 고객 PDF) */
   const [zipDownloading,setZipDownloading]=useState(false);
   const downloadAllZip=async()=>{
     if(!window.JSZip){alert('ZIP 라이브러리 로딩 중입니다. 잠시 후 다시 시도하세요.');return;}
+    if(!window.jspdf){alert('PDF 라이브러리 로딩 중입니다. 잠시 후 다시 시도하세요.');return;}
     setZipDownloading(true);
     try{
       const zip=new JSZip();
@@ -8411,23 +8441,27 @@ td{padding:8px 12px;font-size:14px;border:1px solid #e5e7eb}
         }));
         const ws=XLSX.utils.json_to_sheet(rows);const wb=XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb,ws,'고객DB');
-        zip.file('POUR_고객DB.xlsx',XLSX.write(wb,{type:'array',bookType:'xlsx'}));
+        const xlBuf=XLSX.write(wb,{type:'array',bookType:'xlsx'});
+        zip.file('POUR_고객DB.xlsx',xlBuf);
       }
-      /* 이미지 있는 고객 HTML 추가 */
+      /* 이미지 있는 고객 PDF 추가 */
       const withImages=activeLeads.filter(l=>(l.memoImgs?.length>0)||(l.businessCard?.front)||(l.fieldPhotos?.length>0));
       for(const lead of withImages){
         try{
-          const html=generateLeadHtml(lead);
-          const safeName=(lead.name||'고객').replace(/[^\uAC00-\uD7A3a-zA-Z0-9]/g,'_');
-          zip.file(`리포트/${safeName}_${(lead.phone||'').replace(/[^0-9]/g,'')}.html`,html);
-        }catch(e){console.warn('[ZIP] HTML 생성 실패:',lead.name,e);}
+          const doc=generateLeadPdf(lead);
+          if(doc){
+            const pdfBlob=doc.output('arraybuffer');
+            const safeName=(lead.name||'unknown').replace(/[^\uAC00-\uD7A3a-zA-Z0-9]/g,'_');
+            zip.file(`PDF/${safeName}_${(lead.phone||'').replace(/[^0-9]/g,'')}.pdf`,pdfBlob);
+          }
+        }catch(e){console.warn('[ZIP] PDF 생성 실패:',lead.name,e);}
       }
       const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
       const now=new Date();
       const ts=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
       const a=document.createElement('a');a.href=URL.createObjectURL(blob);
       a.download=`POUR_전체_${ts}.zip`;a.click();URL.revokeObjectURL(a.href);
-      console.log(`[ZIP] 다운로드 완료: 엑셀 + HTML ${withImages.length}건`);
+      console.log(`[ZIP] 다운로드 완료: 엑셀 + PDF ${withImages.length}건`);
     }catch(e){console.error('[ZIP] 생성 실패:',e);alert('ZIP 생성 중 오류가 발생했습니다.');}
     finally{setZipDownloading(false);}
   };
@@ -8449,27 +8483,25 @@ td{padding:8px 12px;font-size:14px;border:1px solid #e5e7eb}
   const dlSelectAll=()=>setDlSelected(new Set(dlFiltered.map(l=>l.id)));
   const dlSelectNone=()=>setDlSelected(new Set());
   const dlDownExcel=()=>{downloadExcel(dlSelectedLeads,'선택_'+dlSelectedLeads.length+'건');setDlModal(false);};
-  const dlDownHtmlZip=async()=>{
-    if(!window.JSZip){alert('ZIP 라이브러리 로딩 중입니다. 잠시 후 다시 시도하세요.');return;}
+  const dlDownPdfZip=async()=>{
+    if(!window.JSZip||!window.jspdf){alert('라이브러리 로딩 중입니다.');return;}
     setZipDownloading(true);
     try{
       const zip=new JSZip();
       const targets=dlSelectedLeads.filter(l=>(l.memoImgs?.length>0)||(l.businessCard?.front)||(l.fieldPhotos?.length>0));
       for(const lead of targets){
-        try{
-          const html=generateLeadHtml(lead);
-          zip.file(`${(lead.name||'고객').replace(/[^\uAC00-\uD7A3a-zA-Z0-9]/g,'_')}_${(lead.phone||'').replace(/[^0-9]/g,'')}.html`,html);
-        }catch(e){console.warn('[HTML]',lead.name,e);}
+        try{const doc=generateLeadPdf(lead);
+          if(doc){zip.file(`${(lead.name||'unknown').replace(/[^\uAC00-\uD7A3a-zA-Z0-9]/g,'_')}_${(lead.phone||'').replace(/[^0-9]/g,'')}.pdf`,doc.output('arraybuffer'));}
+        }catch(e){console.warn('[PDF]',lead.name,e);}
       }
       if(Object.keys(zip.files).length===0){alert('이미지가 있는 고객이 없습니다.');setZipDownloading(false);return;}
       const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});
-      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`POUR_리포트_${targets.length}건.zip`;a.click();URL.revokeObjectURL(a.href);
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`POUR_PDF_${targets.length}건.zip`;a.click();URL.revokeObjectURL(a.href);
     }catch(e){alert('ZIP 생성 실패');console.error(e);}
     finally{setZipDownloading(false);setDlModal(false);}
   };
   const dlDownAllZip=async()=>{
-    if(!window.JSZip){alert('ZIP 라이브러리 로딩 중입니다. 잠시 후 다시 시도하세요.');return;}
-    if(!window.XLSX){alert('엑셀 라이브러리 로딩 중입니다.');return;}
+    if(!window.JSZip||!window.jspdf||!window.XLSX){alert('라이브러리 로딩 중입니다.');return;}
     setZipDownloading(true);
     try{
       const zip=new JSZip();
@@ -8477,13 +8509,12 @@ td{padding:8px 12px;font-size:14px;border:1px solid #e5e7eb}
       const rows=dlSelectedLeads.map((l,i)=>({'번호':i+1,'이름':l.name||'','전화':l.phone||'','소속':l.company||'','건물':l.building||'','상태':l.status||'신규','담당자':l.staff||'','상담일':l.day||'','공법':(l.problems||[]).join(',')||l.problem||'','메모':l.memo||'','2차액션':(l.nextActions||[]).join(','),'명함':l.businessCard?.front?'O':'','낙서장':(l.memoImgs||[]).length+'p','현장사진':(l.fieldPhotos||[]).length+'장'}));
       const ws=XLSX.utils.json_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'고객DB');
       zip.file('POUR_고객DB.xlsx',XLSX.write(wb,{type:'array',bookType:'xlsx'}));
-      /* HTML 리포트 */
+      /* PDF */
       const targets=dlSelectedLeads.filter(l=>(l.memoImgs?.length>0)||(l.businessCard?.front)||(l.fieldPhotos?.length>0));
       for(const lead of targets){
-        try{
-          const html=generateLeadHtml(lead);
-          zip.file(`리포트/${(lead.name||'고객').replace(/[^\uAC00-\uD7A3a-zA-Z0-9]/g,'_')}_${(lead.phone||'').replace(/[^0-9]/g,'')}.html`,html);
-        }catch(e){console.warn('[HTML]',lead.name,e);}
+        try{const doc=generateLeadPdf(lead);
+          if(doc)zip.file(`PDF/${(lead.name||'unknown').replace(/[^\uAC00-\uD7A3a-zA-Z0-9]/g,'_')}_${(lead.phone||'').replace(/[^0-9]/g,'')}.pdf`,doc.output('arraybuffer'));
+        }catch(e){console.warn('[PDF]',lead.name,e);}
       }
       const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});
       const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`POUR_전체_${dlSelectedLeads.length}건.zip`;a.click();URL.revokeObjectURL(a.href);
@@ -9073,7 +9104,7 @@ td{padding:8px 12px;font-size:14px;border:1px solid #e5e7eb}
                         ):(
                           <React.Fragment>
                             <button onClick={()=>deleteLead(l.id)} style={{padding:'6px 10px',borderRadius:8,border:'1.5px solid #FCA5A5',background:'#FEF2F2',color:'#DC2626',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>🗑</button>
-                            {(l.memoImgs?.length>0||l.businessCard?.front||l.fieldPhotos?.length>0)&&<button onClick={()=>downloadLeadHtml(l)} style={{padding:'6px 14px',borderRadius:8,border:'1.5px solid #7C3AED',background:'#F5F3FF',color:'#7C3AED',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>📄 리포트</button>}
+                            {(l.memoImgs?.length>0||l.businessCard?.front||l.fieldPhotos?.length>0)&&<button onClick={()=>downloadLeadPdf(l)} style={{padding:'6px 14px',borderRadius:8,border:'1.5px solid #7C3AED',background:'#F5F3FF',color:'#7C3AED',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>📄 PDF</button>}
                             <button onClick={startEdit} style={{padding:'6px 14px',borderRadius:8,border:'1.5px solid var(--accent)',background:'var(--blue-l)',color:'var(--accent)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>✏️ 편집</button>
                             <button onClick={()=>setExpanded(null)} style={{width:36,height:36,borderRadius:'50%',border:'1.5px solid var(--border)',background:'var(--bg)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-md)'}}>✕</button>
                           </React.Fragment>
@@ -10319,11 +10350,11 @@ td{padding:8px 12px;font-size:14px;border:1px solid #e5e7eb}
                   <span>📥 엑셀 다운로드</span>
                   <span style={{fontSize:11,fontWeight:600,opacity:.85}}>고객정보 표 · {dlSelectedLeads.length}건</span>
                 </button>
-                {/* 리포트 HTML */}
-                <button onClick={dlDownHtmlZip} disabled={dlSelectedLeads.length===0||zipDownloading}
+                {/* PDF */}
+                <button onClick={dlDownPdfZip} disabled={dlSelectedLeads.length===0||zipDownloading}
                   style={{width:'100%',padding:'14px 16px',borderRadius:12,border:'none',background:dlSelectedLeads.length>0?'#7C3AED':'#E5E7EB',color:dlSelectedLeads.length>0?'#fff':'#9CA3AF',fontSize:14,fontWeight:800,cursor:dlSelectedLeads.length>0?'pointer':'not-allowed',fontFamily:'inherit',textAlign:'left',display:'flex',alignItems:'center',justifyContent:'space-between',opacity:zipDownloading?.5:1}}>
-                  <span>{zipDownloading?'⏳ 생성중...':'📄 리포트 다운로드'}</span>
-                  <span style={{fontSize:11,fontWeight:600,opacity:.85}}>고객정보+명함+낙서장+사진</span>
+                  <span>{zipDownloading?'⏳ PDF 생성중...':'📄 PDF 다운로드'}</span>
+                  <span style={{fontSize:11,fontWeight:600,opacity:.85}}>명함+낙서장+사진 · ZIP</span>
                 </button>
                 {/* 전체 ZIP */}
                 <button onClick={dlDownAllZip} disabled={dlSelectedLeads.length===0||zipDownloading}
@@ -10950,7 +10981,7 @@ function App(){
 
   const [sessionMethods,setSessionMethods]=useState([]); // 현재 고객 상담 여정
   const [sessionReportId,setSessionReportId]=useState(null); // 생성된 제안서 ID
-  const goHome=()=>{clearMemoData();setScreen('home');setBuilding(null);setProblem(null);setCat('전체');setBrand(null);setGrohomeCat(null);setSessionMethods([]);setSessionReportId(null);loadCount();};
+  const goHome=()=>{setScreen('home');setBuilding(null);setProblem(null);setCat('전체');setBrand(null);setGrohomeCat(null);setSessionMethods([]);setSessionReportId(null);loadCount();};
   // 건물유형에 맞는 문제만 필터 → 추가로 카테고리 탭 필터
   const buildingProblems=ALL_PROBLEMS;
   const filtered=cat==='전체'?buildingProblems:buildingProblems.filter(p=>p.cat===cat);

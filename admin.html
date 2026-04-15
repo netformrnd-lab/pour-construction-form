@@ -5518,11 +5518,38 @@ function ContentEditorPage({ showToast }) {
                     </div>
                   )}
 
-                  {/* 영상 카드 목록 */}
+                  {/* 사진/영상 카드 목록 */}
                   <div style={{display:'flex',flexDirection:'column',gap:12}}>
                     {(methodData.media||[]).map((url,mi)=>{
                       const thumb=mediaThumbs[mi]||'';
-                      const ytThumb=url?getYtThumb(url):'';
+                      const isPhoto=url&&(url.startsWith('data:image')||/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i.test(url));
+                      const ytThumb=(!isPhoto&&url)?getYtThumb(url):'';
+
+                      /* ── 사진 카드 ── */
+                      if(isPhoto) return(
+                        <div key={mi} style={{display:'flex',gap:14,alignItems:'flex-start',padding:10,background:'#fff',borderRadius:10,border:'1px solid #BBF7D0'}}>
+                          <div style={{width:200,flexShrink:0}}>
+                            <div style={{borderRadius:10,overflow:'hidden',border:'2px solid #059669',aspectRatio:'16/9',background:'#F0FDF4'}}>
+                              <img src={url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt={`사진 ${mi+1}`}/>
+                            </div>
+                          </div>
+                          <div style={{flex:1,display:'flex',flexDirection:'column',gap:8}}>
+                            <div style={{fontSize:11,fontWeight:700,color:'#059669'}}>📷 사진 {mi+1}</div>
+                            <div style={{fontSize:11,color:'var(--text-sm)'}}>붙여넣기 또는 파일 업로드로 추가된 사진</div>
+                            <button onClick={()=>{
+                              updateCaseData(selectedMethod,d=>{
+                                if(d.media) d.media.splice(mi,1);
+                                if(d.mediaThumbs) d.mediaThumbs.splice(mi,1);
+                              });
+                            }} style={{
+                              alignSelf:'flex-start',padding:'5px 12px',borderRadius:6,border:'1px solid #FECACA',
+                              background:'#FEF2F2',color:'#DC2626',fontSize:10,fontWeight:600,cursor:'pointer'
+                            }}>삭제</button>
+                          </div>
+                        </div>
+                      );
+
+                      /* ── 영상 카드 ── */
                       return(
                         <div key={mi} style={{display:'flex',gap:14,alignItems:'flex-start',padding:10,background:'#fff',borderRadius:10,border:'1px solid var(--border)'}}>
                           {/* 썸네일 미리보기 */}
@@ -5556,7 +5583,7 @@ function ContentEditorPage({ showToast }) {
 
                           {/* 입력 필드 */}
                           <div style={{flex:1,display:'flex',flexDirection:'column',gap:8}}>
-                            <div style={{fontSize:11,fontWeight:700,color:'var(--text-md)'}}>영상 {mi+1}</div>
+                            <div style={{fontSize:11,fontWeight:700,color:'var(--text-md)'}}>🎬 영상 {mi+1}</div>
                             <input type="text" value={url||''}
                               onChange={e=>{
                                 updateCaseData(selectedMethod,d=>{
@@ -5580,6 +5607,17 @@ function ContentEditorPage({ showToast }) {
                                   placeholder="썸네일 URL (비워두면 자동)"
                                   style={{flex:1,padding:'7px 10px',borderRadius:6,border:'1px solid var(--border)',fontSize:11,boxSizing:'border-box',fontFamily:'inherit'}}
                                 />
+                                <button onClick={async()=>{
+                                  const file=await pasteImageFromClipboard();
+                                  if(file){
+                                    const b64=await compressImageFile(file,480,0.75);
+                                    updateCaseData(selectedMethod,d=>{
+                                      if(!d.mediaThumbs) d.mediaThumbs=[];
+                                      d.mediaThumbs[mi]=b64;
+                                    });
+                                    showToast('썸네일 붙여넣기 완료','success');
+                                  }else{showToast('클립보드에 이미지가 없습니다','error');}
+                                }} style={{padding:'7px 12px',borderRadius:6,background:'#FEF3C7',color:'#92400E',fontSize:11,fontWeight:600,cursor:'pointer',border:'1px solid #FDE68A',whiteSpace:'nowrap'}}>📋 붙여넣기</button>
                                 <label style={{padding:'7px 12px',borderRadius:6,background:'#EFF6FF',color:'var(--accent)',fontSize:11,fontWeight:600,cursor:'pointer',border:'1px solid var(--blue-m)',whiteSpace:'nowrap'}}>
                                   업로드
                                   <input type="file" accept="image/*" style={{display:'none'}} onChange={async(e)=>{

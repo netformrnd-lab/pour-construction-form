@@ -2559,7 +2559,7 @@ const getColor=id=>STAFF_COLORS[(id||'').length%STAFF_COLORS.length];
 
 /* ── SMS 유틸 ── */
 const DEFAULT_TEMPLATES={
-  customerThank:'{{name}}님, POUR솔루션 상담 감사합니다. 맞춤 자료를 보내드리겠습니다. 문의 1577-6587',
+  customerThank:'{{name}}님, POUR솔루션 상담 감사합니다. 맞춤 자료를 보내드리겠습니다. 문의 1600-6404',
   staffNotify:'[POUR상담] {{datetime}}\n{{name}} {{position}} / {{company}}\n건물: {{buildingType}} / {{phone}}\n하자: {{problem}} / 담당: {{staff}}'
 };
 function loadSolapiConfig(){try{return JSON.parse(localStorage.getItem('solapiConfig')||'{}');}catch{return{};}}
@@ -3710,7 +3710,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
           const rawLinks=[];
           if(problem?.proposalUrl)rawLinks.push({label:pName+' 제안서',url:problem.proposalUrl});
           if(problem?.specUrl)rawLinks.push({label:pName+' 시방서',url:problem.specUrl});
-          if(problem?.guideId)rawLinks.push({label:pName+' 시공가이드',url:'https://www.poursolution.net/'+problem.guideId});
+          if(problem?.guideId){const _g=GUIDES.find(g=>g.id===problem.guideId);if(_g)rawLinks.push({label:pName+' 시공가이드',url:_g.url});}
           if(problem?.caseUrl)rawLinks.push({label:pName+' 시공사례',url:problem.caseUrl});
           const autoLinks=[];
           for(const l of rawLinks){
@@ -3721,7 +3721,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
           if(autoLinks.length>0){msg+='\n\n📎 자료 링크:';autoLinks.forEach(l=>{msg+=`\n${l.label}: ${l.url}`;});}
         }
         /* 2차액션은 상단 멘트에만 표시, 하단 후속안내 제거 */
-        msg+=`\n\n문의 1577-6587`;
+        msg+=`\n\n문의 ${(loadSmsTemplates().customerThank.match(/문의\s*([\d-]+)/)||[])[1]||'1600-6404'}`;
         setNtSmsText(msg);setNtQuickSms(true);
       })();
     }
@@ -5297,7 +5297,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                               }else{msg+='\n맞춤 자료를 보내드리겠습니다.';}
                               const selLinks=ntSelectedLinks.map(idx=>ntSmsLinks[idx]).filter(Boolean);
                               if(selLinks.length>0){msg+='\n\n📎 자료 링크:';selLinks.forEach(sl=>{msg+=`\n${sl.label}: ${sl.url}`;});}
-                              msg+=`\n\n문의 1577-6587`;
+                              msg+=`\n\n문의 ${(loadSmsTemplates().customerThank.match(/문의\s*([\d-]+)/)||[])[1]||'1600-6404'}`;
                               setNtSmsText(msg);
                             }
                             /* Firestore leads 업데이트 */
@@ -5356,7 +5356,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                                 }else{msg+='\n맞춤 자료를 보내드리겠습니다.';}
                                 const selectedLinks=nextSel.map(idx=>ntSmsLinks[idx]).filter(Boolean);
                                 if(selectedLinks.length>0){msg+='\n\n📎 자료 링크:';selectedLinks.forEach(sl=>{msg+=`\n${sl.label}: ${sl.url}`;});}
-                                msg+=`\n\n문의 1577-6587`;
+                                msg+=`\n\n문의 ${(loadSmsTemplates().customerThank.match(/문의\s*([\d-]+)/)||[])[1]||'1600-6404'}`;
                                 setNtSmsText(msg);
                               }} style={{accentColor:'var(--blue)'}}/>
                               <span style={{fontWeight:600,color:sel?'var(--blue)':'var(--text-md)',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{l.label}</span>
@@ -5378,7 +5378,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                           if(p.specUrl)linkTypes.push({suffix:'시방서',url:p.specUrl});
                           if(p.proposalUrl)linkTypes.push({suffix:'제안서',url:p.proposalUrl});
                           if(p.caseUrl)linkTypes.push({suffix:'시공사례',url:p.caseUrl});
-                          if(p.guideId)linkTypes.push({suffix:'시공가이드',url:'https://www.poursolution.net/'+p.guideId});
+                          if(p.guideId){const _g=GUIDES.find(g=>g.id===p.guideId);if(_g)linkTypes.push({suffix:'시공가이드',url:_g.url});}
                           if(linkTypes.length===0)return null;
                           return(
                             <div key={p.id||p.label} style={{borderBottom:'1px solid var(--border-s)',padding:'6px 12px'}}>
@@ -5410,7 +5410,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                                       }else{msg+='\n맞춤 자료를 보내드리겠습니다.';}
                                       const selLinks=nextSel.map(idx=>newLinks[idx]).filter(Boolean);
                                       if(selLinks.length>0){msg+='\n\n📎 자료 링크:';selLinks.forEach(sl=>{msg+=`\n${sl.label}: ${sl.url}`;});}
-                                      msg+=`\n\n문의 1577-6587`;
+                                      msg+=`\n\n문의 ${(loadSmsTemplates().customerThank.match(/문의\s*([\d-]+)/)||[])[1]||'1600-6404'}`;
                                       setNtSmsText(msg);
                                     }} style={{padding:'3px 8px',borderRadius:6,border:`1px solid ${alreadyAdded?'var(--border)':'var(--blue)'}`,
                                       background:alreadyAdded?'var(--bg)':'var(--blue-l)',color:alreadyAdded?'var(--text-sm)':'var(--blue)',
@@ -5762,7 +5762,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       const reportBaseUrl='https://pour-construction-form.pages.dev/report-lookup.html';
       const qrTarget=sessionReportId?`${reportBaseUrl}?id=${sessionReportId}`:`${reportBaseUrl}?name=${encodeURIComponent(ntName||'')}&phone=${encodeURIComponent(ntPhone||'')}`;
       const staffInfo=loadStaffList().find(s=>s.id===staffId)||{};
-      const staffPhone=staffInfo.phone||'15776587';
+      const staffPhone=staffInfo.phone||'16006404';
       const staffDisplayPhone=staffPhone.replace(/(\d{3})(\d{3,4})(\d{4})/,'$1-$2-$3');
       const catColorMap={'방수':{bg:'#DBEAFE',color:'#1D4ED8',border:'#BFDBFE',accent:'#2563EB'},'도장':{bg:'#FEF9C3',color:'#92400E',border:'#FDE68A',accent:'#D97706'},'보수보강':{bg:'#D1FAE5',color:'#065F46',border:'#A7F3D0',accent:'#059669'},'토목':{bg:'#FFE4E6',color:'#9F1239',border:'#FECDD3',accent:'#E11D48'}};
       const getCatStyle=cat=>catColorMap[cat]||{bg:'#F3F4F6',color:'#374151',border:'#E5E7EB',accent:'#6B7280'};
@@ -5809,7 +5809,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               {reportSmsOpen&&(()=>{
                 const proposalLine='';
                 const extraLine=reportExtraLinks.length>0?`\n\n📎 자료 링크:\n${reportExtraLinks.map(l=>`${l.label}: ${l.url}`).join('\n')}`:''
-                const [smsText,setSmsText]=React.useState(`${ntName||'고객'}님, POUR솔루션 상담 감사합니다.${proposalLine}${extraLine}\n\n문의 1577-6587`);
+                const [smsText,setSmsText]=React.useState(`${ntName||'고객'}님, POUR솔루션 상담 감사합니다.${proposalLine}${extraLine}\n\n문의 ${(loadSmsTemplates().customerThank.match(/문의\s*([\d-]+)/)||[])[1]||'1600-6404'}`);
                 return(
                   <div style={{borderTop:'1px solid #E2E8F0',padding:'12px 14px 14px',background:'#F8FAFC'}}>
                     <div style={{fontSize:11,fontWeight:700,color:'var(--navy)',marginBottom:8}}>
@@ -6299,7 +6299,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 <div style={{marginTop:12,paddingTop:10,borderTop:'1px solid rgba(255,255,255,.08)',display:'flex',alignItems:'center',gap:6}}>
                   <div style={{width:6,height:6,borderRadius:'50%',background:'#34D399'}}/>
                   <span style={{fontSize:10,color:'rgba(255,255,255,.6)'}}>대표번호</span>
-                  <span style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,.85)',marginLeft:2}}>1577-6587</span>
+                  <span style={{fontSize:11,fontWeight:700,color:'rgba(255,255,255,.85)',marginLeft:2}}>1600-6404</span>
                 </div>
               </div>
 

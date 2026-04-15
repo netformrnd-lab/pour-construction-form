@@ -3574,9 +3574,10 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [defectPhotos,setDefectPhotos]=useState([]);
   const [defectTemplates,setDefectTemplates]=useState([]);
   const [defectTypesMeta,setDefectTypesMeta]=useState([]);
+  const [photoOrders,setPhotoOrders]=useState({});
   useEffect(()=>{syncPhotosFromFirestore(setCasePhotos,null);syncDefectTagsFromFirestore(setDefectTags);
-    /* 중분류 태그 메타 (메인/서브, 라벨, 대표) 로드 */
-    (async()=>{try{const s=await db.collection('config').doc('defectTypesMeta').get();if(s.exists)setDefectTypesMeta(s.data().tags||[]);}catch(e){}})();
+    /* 중분류 태그 메타 (메인/서브, 라벨, 대표, 순서) 로드 */
+    (async()=>{try{const s=await db.collection('config').doc('defectTypesMeta').get();if(s.exists){const d=s.data();setDefectTypesMeta(d.tags||[]);setPhotoOrders(d.photoOrders||{});}}catch(e){}})();
   },[]);
   /* defect-templates 컨렉션 로드 (대표사진 연동용) */
   useEffect(()=>{
@@ -4327,12 +4328,16 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               const existingMajor=allExistingMajor.filter(t=>dtmIsMain(t));
               /* 대표(featured) 태그가 있으면 그것만 표시, 없으면 전체 메인 */
               const hasFeatured=existingMajor.some(t=>dtmFeatured(t));
-              const displayMajor=hasFeatured?existingMajor.filter(t=>dtmFeatured(t)):existingMajor;
+              const displayMajorUnsorted=hasFeatured?existingMajor.filter(t=>dtmFeatured(t)):existingMajor;
+              const displayMajor=[...displayMajorUnsorted].sort((a,b)=>{const ai=defectTypesMeta.findIndex(t=>t.id===a);const bi=defectTypesMeta.findIndex(t=>t.id===b);if(ai<0&&bi<0)return 0;if(ai<0)return 1;if(bi<0)return -1;return ai-bi;});
               let filtered=photosWithMeta;
               if(activeDefect!=='all')filtered=filtered.filter(p=>(p.defectTypes||[p.defectType]).includes(activeDefect));
               if(activePart!=='all')filtered=filtered.filter(p=>(p.defectTags||[p.defectPart]).includes(activePart));
+              /* photoOrders 순서 적용 */
+              const applyPhotoOrder=(arr,tagId)=>{const order=photoOrders[tagId]||[];if(!order.length)return arr;return [...arr].sort((a,b)=>{const ai=order.indexOf(a.id||a.src);const bi=order.indexOf(b.id||b.src);if(ai<0&&bi<0)return 0;if(ai<0)return 1;if(bi<0)return -1;return ai-bi;});};
+              if(activeDefect!=='all')filtered=applyPhotoOrder(filtered,activeDefect);
               const grouped={};
-              existingMajor.forEach(type=>{grouped[type]=photosWithMeta.filter(p=>(p.defectTypes||[p.defectType]).includes(type));});
+              existingMajor.forEach(type=>{grouped[type]=applyPhotoOrder(photosWithMeta.filter(p=>(p.defectTypes||[p.defectType]).includes(type)),type);});
               const Mk=({act})=>{
                 const c=act?'var(--accent)':'var(--border)';
                 const W=7,T=1.5;

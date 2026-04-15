@@ -3857,20 +3857,34 @@ function DefectPhotosPage({showToast}){
   /* 새 태그 입력 (모달 내부에서 조건부 렌더링 → 훅은 반드시 최상위) */
   const [newTag,setNewTag]=useState('');
   const [customTags,setCustomTags]=useState([]);
-  /* 중분류 태그 메타 (메인/서브, 라벨, 대표) — Firestore config/defectTypesMeta */
+  /* 중분류 태그 메타 (메인/서브, 라벨, 대표, 순서) — Firestore config/defectTypesMeta */
   const [defectTypesMeta,setDefectTypesMeta]=useState([]);
+  const [photoOrders,setPhotoOrders]=useState({});
   const fetchDefectTypesMeta=async()=>{
     try{
       const snap=await db.collection('config').doc('defectTypesMeta').get();
-      if(snap.exists){setDefectTypesMeta(snap.data().tags||[]);console.log('[defectTypesMeta] 로드',snap.data().tags?.length,'건');}
+      if(snap.exists){
+        const data=snap.data();
+        setDefectTypesMeta(data.tags||[]);
+        setPhotoOrders(data.photoOrders||{});
+        console.log('[defectTypesMeta] 로드',data.tags?.length,'건, photoOrders',Object.keys(data.photoOrders||{}).length,'태그');
+      }
     }catch(e){console.error('[defectTypesMeta] 로드 실패:',e);}
   };
   const saveDefectTypesMeta=async(tags)=>{
     try{
-      await db.collection('config').doc('defectTypesMeta').set({tags,updatedAt:new Date().toISOString()});
+      await db.collection('config').doc('defectTypesMeta').set({tags,updatedAt:new Date().toISOString()},{merge:true});
       setDefectTypesMeta(tags);
       console.log('[defectTypesMeta] 저장 완료',tags.length,'건');
     }catch(e){console.error('[defectTypesMeta] 저장 실패:',e);}
+  };
+  const savePhotoOrders=async(tagId,orderedIds)=>{
+    const next={...photoOrders,[tagId]:orderedIds};
+    try{
+      await db.collection('config').doc('defectTypesMeta').set({photoOrders:next,updatedAt:new Date().toISOString()},{merge:true});
+      setPhotoOrders(next);
+      console.log('[photoOrders] 저장 완료',tagId,orderedIds.length,'장');
+    }catch(e){console.error('[photoOrders] 저장 실패:',e);}
   };
   /* helper: 태그 ID로 메타 조회 */
   const getTagMeta=(id)=>defectTypesMeta.find(t=>t.id===id)||null;
@@ -3883,6 +3897,15 @@ function DefectPhotosPage({showToast}){
     if(idx>=0){existing[idx]={...existing[idx],...updates};}
     else{existing.push({id,label:id,role:'main',featured:false,...updates});}
     return existing;
+  };
+  /* 태그 순서 이동 */
+  const moveTagMeta=async(id,dir)=>{
+    const tags=[...defectTypesMeta];
+    const idx=tags.findIndex(t=>t.id===id);
+    if(idx<0)return;const ni=idx+dir;
+    if(ni<0||ni>=tags.length)return;
+    [tags[idx],tags[ni]]=[tags[ni],tags[idx]];
+    await saveDefectTypesMeta(tags);
   };
 
   const fetchPhotos=async()=>{
@@ -3979,7 +4002,10 @@ function DefectPhotosPage({showToast}){
   const allMethods=useMemo(()=>{const s=new Set(DEFAULT_POUR_METHODS);photos.forEach(p=>{photoMethods(p).forEach(m=>s.add(m));});return [...s];},[photos]);
   const allDefects=useMemo(()=>{const s=new Set(DEFAULT_DEFECT_TYPES);photos.forEach(p=>{if(p.defectType)s.add(p.defectType);if(Array.isArray(p.defectTypes))p.defectTypes.forEach(t=>s.add(t));});customTags.forEach(t=>s.add(t));defectTypesMeta.forEach(t=>s.add(t.id));return [...s];},[photos,customTags,defectTypesMeta]);
   /* 메인 태그만 (필터용) */
-  const mainDefects=useMemo(()=>allDefects.filter(d=>isTagMain(d)),[allDefects,defectTypesMeta]);
+  const mainDefects=useMemo(()=>{
+    const mains=allDefects.filter(d=>isTagMain(d));
+    return mains.sort((a,b)=>{const ai=defectTypesMeta.findIndex(t=>t.id===a);const bi=defectTypesMeta.findIndex(t=>t.id===b);if(ai<0&&bi<0)return a.localeCompare(b);if(ai<0)return 1;if(bi<0)return 1;return ai-bi;});
+  },[allDefects,defectTypesMeta]);
   const subDefects=useMemo(()=>allDefects.filter(d=>!isTagMain(d)),[allDefects,defectTypesMeta]);
   const methodsWithData=useMemo(()=>{const s=new Set();photos.forEach(p=>{photoMethods(p).forEach(m=>s.add(m));});return [...s].sort();},[photos]);
   const defectsForMethod=useMemo(()=>{
@@ -3993,10 +4019,25 @@ function DefectPhotosPage({showToast}){
     return true;
   }),[photos,selMethod,selDefect]);
 
+  /* 사진 순서 적용 */
+  const sortedFiltered=useMemo(()=>{
+    if(selDefect==='전체')return filtered;
+    const order=photoOrders[selDefect]||[];
+    if(!order.length)return filtered;
+    return [...filtered].sort((a,b)=>{const ai=order.indexOf(a.id);const bi=order.indexOf(b.id);if(ai<0&&bi<0)return 0;if(ai<0)return 1;if(bi<0)return -1;return ai-bi;});
+  },[filtered,selDefect,photoOrders]);
+  const movePhoto=async(photoId,dir)=>{
+    const curOrder=(photoOrders[selDefect]||[]).length>0?[...photoOrders[selDefect]]:sortedFiltered.map(p=>p.id);
+    const idx=curOrder.indexOf(photoId);if(idx<0)return;
+    const ni=idx+dir;if(ni<0||ni>=curOrder.length)return;
+    [curOrder[idx],curOrder[ni]]=[curOrder[ni],curOrder[idx]];
+    await savePhotoOrders(selDefect,curOrder);
+  };
+
   const grouped=useMemo(()=>{
     const map={};filtered.forEach(p=>{const k=p.defectType||'미분류';if(!map[k])map[k]=[];map[k].push(p);});
-    return Object.entries(map).sort(([a],[b])=>a.localeCompare(b));
-  },[filtered]);
+    return Object.entries(map).sort(([a],[b])=>{const ai=defectTypesMeta.findIndex(t=>t.id===a);const bi=defectTypesMeta.findIndex(t=>t.id===b);if(ai<0&&bi<0)return a.localeCompare(b);if(ai<0)return 1;if(bi<0)return 1;return ai-bi;});
+  },[filtered,defectTypesMeta]);
 
   const stats=useMemo(()=>({
     total:photos.length,methods:new Set(photos.flatMap(p=>photoMethods(p))).size,
@@ -4708,6 +4749,26 @@ function DefectPhotosPage({showToast}){
               );
             })}
           </div>
+          {/* ── 고객 필터 카드 순서 ── */}
+          <div style={{marginTop:14,paddingTop:12,borderTop:'1px dashed #E9D5FF'}}>
+            <div style={{fontSize:11,fontWeight:800,color:'#7C3AED',marginBottom:8}}>📊 고객 필터 카드 순서 (드래그 불가 · ▲▼ 사용)</div>
+            <div style={{display:'flex',flexDirection:'column',gap:4}}>
+              {mainDefects.filter(d=>isTagFeatured(d)).length>0
+                ?mainDefects.filter(d=>isTagFeatured(d)).map((d,i,arr)=>{
+                  const meta=getTagMeta(d);const lbl=meta?.label||d;const repPhoto=meta?.photo||'';
+                  return(
+                    <div key={'ord_'+d} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 10px',borderRadius:8,background:'#FFFBEB',border:'1px solid #FDE68A'}}>
+                      <span style={{fontSize:12,fontWeight:800,color:'#D97706',width:20,textAlign:'center'}}>{i+1}</span>
+                      {repPhoto&&<div style={{width:28,height:28,borderRadius:4,overflow:'hidden',flexShrink:0,border:'1px solid var(--border)'}}><img src={repPhoto} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}} alt=""/></div>}
+                      <span style={{fontSize:12,fontWeight:700,color:'#92400E',flex:1}}>#{lbl}</span>
+                      <button disabled={i===0} onClick={()=>moveTagMeta(d,-1)} style={{fontSize:11,padding:'2px 6px',borderRadius:4,border:'1px solid #E9D5FF',background:i===0?'#F9FAFB':'#fff',color:i===0?'#ccc':'#7C3AED',cursor:i===0?'default':'pointer',fontWeight:700,fontFamily:'inherit'}}>▲</button>
+                      <button disabled={i===arr.length-1} onClick={()=>moveTagMeta(d,1)} style={{fontSize:11,padding:'2px 6px',borderRadius:4,border:'1px solid #E9D5FF',background:i===arr.length-1?'#F9FAFB':'#fff',color:i===arr.length-1?'#ccc':'#7C3AED',cursor:i===arr.length-1?'default':'pointer',fontWeight:700,fontFamily:'inherit'}}>▼</button>
+                    </div>);
+                })
+                :<div style={{fontSize:10,color:'var(--text-sm)',padding:8}}>⭐ 대표 설정된 태그가 없습니다. 태그에 ⭐ featured를 설정하면 고객 화면에 표시됩니다.</div>
+              }
+            </div>
+          </div>
         </div>
       </details>
 
@@ -4756,8 +4817,28 @@ function DefectPhotosPage({showToast}){
           </div>
         </div>
       :selDefect!=='전체'?
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:14}}>
-          {filtered.map(p=><PhotoCard key={p.id} p={p}/>)}
+        <div>
+          <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:12}}>
+            <span style={{fontSize:12,fontWeight:700,color:'var(--text-md)'}}>📷 {getTagLabel(selDefect)} — {sortedFiltered.length}장</span>
+            <span style={{fontSize:10,color:'var(--text-sm)'}}>◀▶ 버튼으로 순서 변경</span>
+            <button onClick={async()=>{
+              const ids=sortedFiltered.map(p=>p.id);
+              await savePhotoOrders(selDefect,ids);
+              showToast('현재 순서가 저장되었습니다');
+            }} style={{marginLeft:'auto',fontSize:11,padding:'4px 12px',borderRadius:6,border:'1.5px solid #059669',background:'#ECFDF5',color:'#059669',fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>💾 순서 저장</button>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:14}}>
+            {sortedFiltered.map((p,idx)=>(
+              <div key={p.id} style={{position:'relative'}}>
+                <div style={{position:'absolute',top:6,left:6,zIndex:2,background:'rgba(0,0,0,.7)',color:'#fff',fontSize:11,fontWeight:800,width:24,height:24,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center'}}>{idx+1}</div>
+                <div style={{position:'absolute',top:6,right:6,zIndex:2,display:'flex',gap:3}}>
+                  <button disabled={idx===0} onClick={(e)=>{e.stopPropagation();movePhoto(p.id,-1);}} style={{width:26,height:26,borderRadius:'50%',border:'none',background:idx===0?'rgba(0,0,0,.3)':'rgba(37,99,235,.85)',color:'#fff',fontSize:13,fontWeight:800,cursor:idx===0?'default':'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center'}}>◀</button>
+                  <button disabled={idx===sortedFiltered.length-1} onClick={(e)=>{e.stopPropagation();movePhoto(p.id,1);}} style={{width:26,height:26,borderRadius:'50%',border:'none',background:idx===sortedFiltered.length-1?'rgba(0,0,0,.3)':'rgba(37,99,235,.85)',color:'#fff',fontSize:13,fontWeight:800,cursor:idx===sortedFiltered.length-1?'default':'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center'}}>▶</button>
+                </div>
+                <PhotoCard p={p}/>
+              </div>
+            ))}
+          </div>
         </div>
       :
         grouped.map(([defectType,items])=>(

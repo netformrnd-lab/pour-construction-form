@@ -1168,7 +1168,7 @@ function MemoTextarea({value,onChange,placeholder,minHeight=600,onDoodleToggle,d
 /* ══ DrawCanvas Component (Notability-style) ══ */
 const DRAW_COLORS=['#111827','#DC2626','#2563EB','#059669','#D97706','#7C3AED'];
 const HIGHLIGHT_COLORS=['rgba(255,235,59,.35)','rgba(76,175,80,.30)','rgba(33,150,243,.30)','rgba(244,67,54,.30)','rgba(255,152,0,.30)'];
-function DrawCanvas({onDataUrl}){
+function DrawCanvas({onDataUrl,savedPages,onPagesChange}){
   const canvasRef=useRef(null);
   const [tool,setTool]=useState('pen'); // 'pen'|'highlighter'|'eraser'
   const [color,setColor]=useState('#111827');
@@ -1177,11 +1177,13 @@ function DrawCanvas({onDataUrl}){
   const drawing=useRef(false);
   const penDetected=useRef(false);
   const [,forceRender]=useState(0);
+  const restoredRef=useRef(false);
 
   /* multi-page support */
-  const pages=useRef([{strokes:[],undoStack:[],redoStack:[]}]);
+  const initPages=savedPages&&savedPages.length>0?JSON.parse(JSON.stringify(savedPages)):[{strokes:[],undoStack:[],redoStack:[]}];
+  const pages=useRef(initPages);
   const [currentPage,setCurrentPage]=useState(0);
-  const [totalPages,setTotalPages]=useState(1);
+  const [totalPages,setTotalPages]=useState(initPages.length);
 
   /* stroke-based storage: {points:[{x,y,p}], color, width, type:'pen'|'hl', opacity} */
   const strokes=useRef(pages.current[0].strokes);
@@ -1277,19 +1279,19 @@ function DrawCanvas({onDataUrl}){
     if(undoStack.current.length===0)return;
     redoStack.current.push(JSON.parse(JSON.stringify(strokes.current)));
     strokes.current=undoStack.current.pop();
-    redraw();forceRender(n=>n+1);setTimeout(()=>emitDataUrl(),0);
+    redraw();forceRender(n=>n+1);setTimeout(()=>{emitDataUrl();emitPagesChange();},0);
   };
   const redo=()=>{
     if(redoStack.current.length===0)return;
     undoStack.current.push(JSON.parse(JSON.stringify(strokes.current)));
     strokes.current=redoStack.current.pop();
-    redraw();forceRender(n=>n+1);setTimeout(()=>emitDataUrl(),0);
+    redraw();forceRender(n=>n+1);setTimeout(()=>{emitDataUrl();emitPagesChange();},0);
   };
   const clearAll=()=>{
     if(strokes.current.length===0)return;
     if(!window.confirm('그린 내용을 모두 지우시겠어요?'))return;
     pushUndo();strokes.current=[];currentStroke.current=null;
-    redraw();forceRender(n=>n+1);setTimeout(()=>emitDataUrl(),0);
+    redraw();forceRender(n=>n+1);setTimeout(()=>{emitDataUrl();emitPagesChange();},0);
   };
 
   /* keyboard shortcuts: Ctrl+Z undo, Ctrl+Y/Ctrl+Shift+Z redo */
@@ -1405,6 +1407,18 @@ function DrawCanvas({onDataUrl}){
       });
     onDataUrl(imgs);
   };
+  const emitPagesChange=()=>{
+    if(!onPagesChange)return;
+    pages.current[currentPage]={strokes:strokes.current,undoStack:undoStack.current,redoStack:redoStack.current};
+    try{onPagesChange(JSON.parse(JSON.stringify(pages.current)));}catch(e){}
+  };
+  /* 복원된 strokes가 있으면 최초 마운트 시 redraw + emit */
+  useEffect(()=>{
+    if(restoredRef.current)return;restoredRef.current=true;
+    if(initPages.length>0&&initPages.some(p=>p.strokes.length>0)){
+      setTimeout(()=>{redraw();emitDataUrl();},100);
+    }
+  },[]);
   const end=(e)=>{
     if(!drawing.current)return;
     drawing.current=false;
@@ -1415,9 +1429,9 @@ function DrawCanvas({onDataUrl}){
         forceRender(n=>n+1);
       }
       currentStroke.current=null;
-      redraw();emitDataUrl();
+      redraw();emitDataUrl();emitPagesChange();
     }else if(tool==='eraser'){
-      emitDataUrl();
+      emitDataUrl();emitPagesChange();
     }
   };
 
@@ -3449,6 +3463,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [ntDone,setNtDone]=useState(false);
   const [ntPencilMode,setNtPencilMode]=useState(true);
   const [ntMemoImgs,setNtMemoImgs]=useState([]);
+  const [ntDoodlePages,setNtDoodlePages]=useState(()=>{try{return JSON.parse(localStorage.getItem('pourMemoDraftDoodle')||'null');}catch{return null;}}); // DrawCanvas stroke data for persistence
   const [ntDoodleOpen,setNtDoodleOpen]=useState(true);
   const ntMemoRef=useRef(null);
   useEffect(()=>{if(!ntPencilMode&&ntMemoRef.current){ntMemoRef.current.focus();}},[ntPencilMode]);
@@ -3460,6 +3475,9 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [ntQuickSms,setNtQuickSms]=useState(false);
   const [ntSmsText,setNtSmsText]=useState('');
   const [ntSmsSending,setNtSmsSending]=useState(false);
+  const [ntSmsError,setNtSmsError]=useState(null); // SMS 발송 실패 에러 메시지
+  const [ntSmsPhone,setNtSmsPhone]=useState(''); // SMS 발송용 전화번호 (수정 가능)
+  const [ntSmsPhoneConfirmed,setNtSmsPhoneConfirmed]=useState(false); // 번호 확인 체크
   const [ntSmsLinks,setNtSmsLinks]=useState([]);
   const [ntSelectedLinks,setNtSelectedLinks]=useState([]);
   const [ntShowMethodPicker,setNtShowMethodPicker]=useState(false);
@@ -3518,7 +3536,10 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       memo:ntMemo,keywords:ntKeywords,brandTag:ntBrandTag,memoImgs:ntMemoImgs,bizCard:ntBizCard,
       desiredStart:ntDesiredStart,nextActions:ntNextActions,
       savedDraftAt:new Date().toISOString()
-    }));}catch(e){}
+    }));
+    /* 낙서장 stroke 데이터는 별도 키에 저장 (크기가 클 수 있음) */
+    if(ntDoodlePages)localStorage.setItem('pourMemoDraftDoodle',JSON.stringify(ntDoodlePages));
+    }catch(e){}
   };
   const loadDraft=()=>{
     try{const d=JSON.parse(localStorage.getItem(MEMO_DRAFT_KEY)||'null');if(!d)return;
@@ -3531,15 +3552,33 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       if(d.bizCard)setNtBizCard(d.bizCard);
       if(d.desiredStart)setNtDesiredStart(d.desiredStart);if(d.nextActions?.length)setNtNextActions(d.nextActions);
       if(d.address)setNtAddress(d.address);
+      /* 낙서장 stroke 데이터 복원 */
+      try{const dp=JSON.parse(localStorage.getItem('pourMemoDraftDoodle')||'null');if(dp&&dp.length)setNtDoodlePages(dp);}catch(ex){}
     }catch(e){}
   };
-  const clearDraft=()=>{try{localStorage.removeItem(MEMO_DRAFT_KEY);}catch(e){}};
+  const clearDraft=()=>{try{localStorage.removeItem(MEMO_DRAFT_KEY);localStorage.removeItem('pourMemoDraftDoodle');}catch(e){}};
   /* 메모 처음 열 때 초안 복원 */
   const prevShowNote=useRef(false);
   useEffect(()=>{
     if(showNote&&!prevShowNote.current&&!ntHasData()){loadDraft();}
     prevShowNote.current=showNote;
   },[showNote]);
+  /* 낙서장 데이터 변경 시 즉시 localStorage에 백업 (앱 크래시 대비) */
+  useEffect(()=>{
+    if(ntDoodlePages&&ntDoodlePages.length>0){
+      try{localStorage.setItem('pourMemoDraftDoodle',JSON.stringify(ntDoodlePages));}catch(e){}
+    }
+  },[ntDoodlePages]);
+  /* memoImgs 변경 시에도 즉시 draft 갱신 (데이터 유실 방지) */
+  useEffect(()=>{
+    if(ntMemoImgs&&ntMemoImgs.length>0){
+      try{
+        const d=JSON.parse(localStorage.getItem(MEMO_DRAFT_KEY)||'{}');
+        d.memoImgs=ntMemoImgs;
+        localStorage.setItem(MEMO_DRAFT_KEY,JSON.stringify(d));
+      }catch(e){}
+    }
+  },[ntMemoImgs]);
   /* 메모 닫을 때 자동 임시 저장 */
   /* 메모를 닫을 때: App 레벨 + localStorage 양쪽에 동기화 */
   const syncMemoToApp=()=>{
@@ -3695,7 +3734,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
     }
     sendToSheet(Object.assign({_sheetType:'lead'},data));
     /* 저장 후 바로 문자 작성 화면으로 전환 (자동 발송 안 함 — 버튼으로만 발송) */
-    setNtSaving(false);setNtDone(true);
+    setNtSaving(false);setNtDone(true);setNtSmsPhone(ntPhone);setNtSmsPhoneConfirmed(false);setNtSmsError(null);
     /* 문자 작성 화면 자동 준비 — 항상 텍스트 생성, 링크는 phone+config 있을 때만 */
     {
       (async()=>{
@@ -3747,11 +3786,11 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const ntResetAndClose=()=>{
     clearDraft();
     if(clearMemoData)clearMemoData();
-    setShowNote(false);setNtDone(false);setNtQuickSms(false);
+    setShowNote(false);setNtDone(false);setNtQuickSms(false);setNtSmsError(null);setNtSmsPhone('');setNtSmsPhoneConfirmed(false);
     setNtName('');setNtCompany('');setNtPosition('');
     setNtPhone('');setNtEmail('');setNtContact([]);
     setNtInterests([]);setNtDeliveryDocs([]);setNtDeliveryMedia([]);
-    setNtMemo('');setNtMemoImgs([]);setNtKeywords([]);setNtBrandTag('POUR공법');setNtStep('info');
+    setNtMemo('');setNtMemoImgs([]);setNtDoodlePages(null);setNtKeywords([]);setNtBrandTag('POUR공법');setNtStep('info');
     setNtDesiredStart('');setNtNextActions([]);setNtAddress('');
   };
 
@@ -5465,7 +5504,34 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                 )}
                 {/* 문자 발송 섹션 — 항상 표시 */}
                   <div style={{width:'100%',maxWidth:400,padding:'0 10px'}}>
-                    <div style={{fontSize:13,fontWeight:700,color:'var(--text)',marginBottom:10}}>수신: {ntPhone?<span style={{color:'var(--blue)'}}>{ntPhone}</span>:<span style={{color:'var(--red)'}}>전화번호 없음</span>} ({ntName})</div>
+                    {/* 수신 번호 확인 + 수정 */}
+                    <div style={{marginBottom:10,padding:'10px 14px',background:ntSmsPhoneConfirmed?'#ECFDF5':'#FFF7ED',borderRadius:12,border:`1.5px solid ${ntSmsPhoneConfirmed?'#059669':'#F59E0B'}`}}>
+                      <div style={{fontSize:12,fontWeight:800,color:ntSmsPhoneConfirmed?'#059669':'#B45309',marginBottom:8}}>
+                        {ntSmsPhoneConfirmed?'✅ 번호 확인 완료':'⚠️ 수신 번호를 확인해주세요'}
+                      </div>
+                      <div style={{display:'flex',alignItems:'center',gap:8}}>
+                        <input value={ntSmsPhone} onChange={e=>{setNtSmsPhone(e.target.value);setNtSmsPhoneConfirmed(false);setNtSmsError(null);}}
+                          inputMode="tel" placeholder="010-0000-0000"
+                          style={{flex:1,padding:'10px 14px',borderRadius:10,border:'1.5px solid var(--border)',fontSize:16,fontWeight:700,fontFamily:'inherit',outline:'none',boxSizing:'border-box',
+                            background:'#fff',color:'var(--text)'}}/>
+                        <label style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer',flexShrink:0,padding:'8px 12px',borderRadius:10,
+                          background:ntSmsPhoneConfirmed?'#059669':'#fff',border:`1.5px solid ${ntSmsPhoneConfirmed?'#059669':'var(--border)'}`,transition:'all .15s'}}>
+                          <input type="checkbox" checked={ntSmsPhoneConfirmed} onChange={e=>setNtSmsPhoneConfirmed(e.target.checked)}
+                            style={{accentColor:'#059669',width:18,height:18}}/>
+                          <span style={{fontSize:12,fontWeight:700,color:ntSmsPhoneConfirmed?'#fff':'var(--text-md)',whiteSpace:'nowrap'}}>확인</span>
+                        </label>
+                      </div>
+                      <div style={{fontSize:10,color:'var(--text-sm)',marginTop:4}}>({ntName}) · 번호가 다르면 수정 후 확인 체크하세요</div>
+                    </div>
+
+                    {/* SMS 에러 표시 */}
+                    {ntSmsError&&(
+                      <div style={{marginBottom:10,padding:'10px 14px',background:'#FEF2F2',borderRadius:10,border:'1px solid #FECACA'}}>
+                        <div style={{fontSize:12,fontWeight:700,color:'#DC2626',marginBottom:4}}>❌ 발송 실패</div>
+                        <div style={{fontSize:11,color:'#B91C1C',lineHeight:1.5}}>{ntSmsError}</div>
+                        <div style={{fontSize:10,color:'#DC2626',marginTop:4,opacity:.7}}>번호를 확인하고 다시 시도해주세요</div>
+                      </div>
+                    )}
 
                     {/* 자료 링크 선택은 명함 아래로 이동됨 */}
 
@@ -5488,21 +5554,34 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                         style={{flex:1,padding:'14px 0',borderRadius:10,border:'1.5px solid var(--border)',background:'var(--bg)',fontSize:13,fontWeight:700,color:'var(--text-md)',cursor:'pointer',fontFamily:'inherit'}}>
                         건너뛰기
                       </button>
-                      <button onClick={async()=>{if(!ntPhone)return;setNtSmsSending(true);
-                        const r=await sendSMS(ntPhone,ntSmsText);
+                      <button onClick={async()=>{
+                        const sendPhone=ntSmsPhone||ntPhone;
+                        if(!sendPhone){setNtSmsError('전화번호가 없습니다. 번호를 입력해주세요.');return;}
+                        setNtSmsSending(true);setNtSmsError(null);
+                        const r=await sendSMS(sendPhone,ntSmsText);
                         if(r.success){
                           /* 문자 내역을 Firestore에 저장 */
                           try{await db.collection('sms-logs').add({
-                            phone:ntPhone,name:ntName,text:ntSmsText,
+                            phone:sendPhone,name:ntName,text:ntSmsText,
                             staff:staffName,staffId,sentAt:new Date().toISOString(),
                             building:building?.label||'-',problem:problem?.label||'-',
                             links:ntSmsLinks.filter((_,i)=>ntSelectedLinks.includes(i)).map(l=>l.label),
                           });}catch(ex){console.warn('[sms-log]',ex);}
+                          /* 수정된 번호를 leads에도 반영 */
+                          if(sendPhone!==ntPhone&&ntSavedLeadId){
+                            try{await db.collection('leads').doc(ntSavedLeadId).update({phone:sendPhone});}catch(ex){console.warn('[leads] 번호 업데이트 실패:',ex);}
+                          }
                           setNtSmsSending(false);setNtQuickSms(false);ntResetAndClose();
-                        }else{setNtSmsSending(false);alert('발송 실패: '+(typeof r.error==='string'?r.error:JSON.stringify(r.error)));}
-                      }} disabled={ntSmsSending||!ntPhone}
-                        style={{flex:2,padding:'14px 0',borderRadius:10,border:'none',background:ntPhone?'var(--blue)':'#ccc',fontSize:15,fontWeight:800,color:'#fff',cursor:ntPhone?'pointer':'not-allowed',fontFamily:'inherit',opacity:ntSmsSending?0.6:1}}>
-                        {!ntPhone?'전화번호 없음':ntSmsSending?'발송 중...':'📩 고객에게 발송하기'}
+                        }else{
+                          setNtSmsSending(false);
+                          setNtSmsError(typeof r.error==='string'?r.error:JSON.stringify(r.error));
+                          setNtSmsPhoneConfirmed(false);
+                        }
+                      }} disabled={ntSmsSending||!(ntSmsPhone||ntPhone)}
+                        style={{flex:2,padding:'14px 0',borderRadius:10,border:'none',
+                          background:(ntSmsPhone||ntPhone)?(ntSmsError?'#DC2626':'var(--blue)'):'#ccc',
+                          fontSize:15,fontWeight:800,color:'#fff',cursor:(ntSmsPhone||ntPhone)?'pointer':'not-allowed',fontFamily:'inherit',opacity:ntSmsSending?0.6:1}}>
+                        {!(ntSmsPhone||ntPhone)?'전화번호 없음':ntSmsSending?'발송 중...':(ntSmsError?'🔄 다시 발송하기':'📩 고객에게 발송하기')}
                       </button>
                     </div>
                   </div>
@@ -5747,7 +5826,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
                     <MemoTextarea value={ntMemo} onChange={setNtMemo}
                       onDoodleToggle={()=>setNtDoodleOpen(v=>!v)} doodleOpen={ntDoodleOpen}
-                      doodleContent={React.createElement(DrawCanvas,{onDataUrl:setNtMemoImgs})}/>
+                      doodleContent={React.createElement(DrawCanvas,{onDataUrl:setNtMemoImgs,savedPages:ntDoodlePages,onPagesChange:setNtDoodlePages})}/>
 
                   </div>
                   </div>

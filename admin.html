@@ -5578,6 +5578,20 @@ function ContentEditorPage({ showToast }) {
             }
           }
         }
+        if (item.defectTypePhotos) {
+          for (let i = 0; i < item.defectTypePhotos.length; i++) {
+            if (item.defectTypePhotos[i] && item.defectTypePhotos[i].startsWith('data:')) {
+              item.defectTypePhotos[i] = await uploadBase64ToStorage(item.defectTypePhotos[i], `case-photos/${key}/defectType_${i}`);
+            }
+          }
+        }
+        if (item.existingFixPhotos) {
+          for (let i = 0; i < item.existingFixPhotos.length; i++) {
+            if (item.existingFixPhotos[i] && item.existingFixPhotos[i].startsWith('data:')) {
+              item.existingFixPhotos[i] = await uploadBase64ToStorage(item.existingFixPhotos[i], `case-photos/${key}/existingFix_${i}`);
+            }
+          }
+        }
       }
       await db.collection('config').doc('casePhotos').set(cleanCase, { merge: true });
       setCasePhotos(cleanCase);
@@ -5904,6 +5918,123 @@ function ContentEditorPage({ showToast }) {
                     })}
                   </div>
                 </div>
+
+                {/* ── 2-2. 해당 자재 하자유형 (사진 다수 첨부) ── */}
+                <div style={{padding:'14px',background:'#FAFAFA',borderRadius:12,border:'1px solid var(--border)',marginTop:14}}>
+                  <div style={{fontSize:10,fontWeight:800,color:'#D97706',marginBottom:10,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:5,flex:1}}>
+                      <div style={{width:3,height:14,borderRadius:2,background:'#D97706'}}/>
+                      <input value={methodData.defectTypeTitle||'해당 자재 하자유형'} onChange={e=>{
+                        updateCaseData(selectedMethod,d=>{d.defectTypeTitle=e.target.value;});
+                      }} style={{fontSize:10,fontWeight:800,color:'#D97706',border:'none',borderBottom:'1px dashed #D97706',background:'transparent',outline:'none',fontFamily:'inherit',padding:'1px 4px',flex:1}}/>
+                    </div>
+                    <div style={{display:'flex',gap:6}}>
+                      <label style={{padding:'4px 12px',borderRadius:6,border:'1px solid #FDE68A',background:'#FFFBEB',color:'#92400E',fontSize:11,fontWeight:600,cursor:'pointer'}}>
+                        📁 사진 추가
+                        <input type="file" accept="image/*" multiple style={{display:'none'}} onChange={async(e)=>{
+                          const files=Array.from(e.target.files||[]);
+                          for(const f of files){
+                            const b64=await compressImageFile(f, 1200, 0.85);
+                            updateCaseData(selectedMethod,d=>{
+                              if(!d.defectTypePhotos) d.defectTypePhotos=[];
+                              d.defectTypePhotos.push(b64);
+                            });
+                          }
+                          if(files.length) showToast(`${files.length}장 사진 추가 완료`,'success');
+                        }}/>
+                      </label>
+                      <button onClick={async()=>{
+                        const file=await pasteImageFromClipboard();
+                        if(file){
+                          const b64=await compressImageFile(file, 1200, 0.85);
+                          updateCaseData(selectedMethod,d=>{
+                            if(!d.defectTypePhotos) d.defectTypePhotos=[];
+                            d.defectTypePhotos.push(b64);
+                          });
+                          showToast('클립보드 사진 추가 완료','success');
+                        }else{showToast('클립보드에 이미지가 없습니다','error');}
+                      }} style={{padding:'4px 12px',borderRadius:6,border:'1px solid #FDE68A',background:'#FFFBEB',color:'#92400E',fontSize:11,fontWeight:600,cursor:'pointer'}}>📋 붙여넣기</button>
+                    </div>
+                  </div>
+                  {(methodData.defectTypePhotos||[]).length===0&&(
+                    <div style={{padding:16,textAlign:'center',color:'var(--text-sm)',border:'2px dashed #FDE68A',borderRadius:10,background:'#FFFBEB'}}>
+                      <span style={{fontSize:24,opacity:.4,display:'block',marginBottom:4}}>📷</span>
+                      <span style={{fontSize:11}}>자재 하자유형 사진을 추가하세요</span>
+                    </div>
+                  )}
+                  <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+                    {(methodData.defectTypePhotos||[]).map((url,pi)=>(
+                      <div key={'dt'+pi} style={{position:'relative',width:160}}>
+                        <div style={{borderRadius:10,overflow:'hidden',border:'2px solid #D97706',aspectRatio:'16/9',background:'#FFFBEB'}}>
+                          <img src={url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt={`하자유형 ${pi+1}`}/>
+                        </div>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:4}}>
+                          <span style={{fontSize:10,fontWeight:700,color:'#D97706'}}>사진 {pi+1}</span>
+                          <button onClick={()=>{updateCaseData(selectedMethod,d=>{if(d.defectTypePhotos)d.defectTypePhotos.splice(pi,1);});}}
+                            style={{fontSize:9,padding:'2px 8px',borderRadius:4,border:'1px solid #FECACA',background:'#FEF2F2',color:'#DC2626',cursor:'pointer',fontWeight:600}}>삭제</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ── 2-3. 하자발생에 따른 기존 처리방식 (사진 다수 첨부) ── */}
+                <div style={{padding:'14px',background:'#FAFAFA',borderRadius:12,border:'1px solid var(--border)',marginTop:14}}>
+                  <div style={{fontSize:10,fontWeight:800,color:'#6D28D9',marginBottom:10,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:5}}>
+                      <div style={{width:3,height:14,borderRadius:2,background:'#6D28D9'}}/>
+                      <span>하자발생에 따른 기존 처리방식</span>
+                    </div>
+                    <div style={{display:'flex',gap:6}}>
+                      <label style={{padding:'4px 12px',borderRadius:6,border:'1px solid #E9D5FF',background:'#F5F3FF',color:'#6D28D9',fontSize:11,fontWeight:600,cursor:'pointer'}}>
+                        📁 사진 추가
+                        <input type="file" accept="image/*" multiple style={{display:'none'}} onChange={async(e)=>{
+                          const files=Array.from(e.target.files||[]);
+                          for(const f of files){
+                            const b64=await compressImageFile(f, 1200, 0.85);
+                            updateCaseData(selectedMethod,d=>{
+                              if(!d.existingFixPhotos) d.existingFixPhotos=[];
+                              d.existingFixPhotos.push(b64);
+                            });
+                          }
+                          if(files.length) showToast(`${files.length}장 사진 추가 완료`,'success');
+                        }}/>
+                      </label>
+                      <button onClick={async()=>{
+                        const file=await pasteImageFromClipboard();
+                        if(file){
+                          const b64=await compressImageFile(file, 1200, 0.85);
+                          updateCaseData(selectedMethod,d=>{
+                            if(!d.existingFixPhotos) d.existingFixPhotos=[];
+                            d.existingFixPhotos.push(b64);
+                          });
+                          showToast('클립보드 사진 추가 완료','success');
+                        }else{showToast('클립보드에 이미지가 없습니다','error');}
+                      }} style={{padding:'4px 12px',borderRadius:6,border:'1px solid #E9D5FF',background:'#F5F3FF',color:'#6D28D9',fontSize:11,fontWeight:600,cursor:'pointer'}}>📋 붙여넣기</button>
+                    </div>
+                  </div>
+                  {(methodData.existingFixPhotos||[]).length===0&&(
+                    <div style={{padding:16,textAlign:'center',color:'var(--text-sm)',border:'2px dashed #E9D5FF',borderRadius:10,background:'#F5F3FF'}}>
+                      <span style={{fontSize:24,opacity:.4,display:'block',marginBottom:4}}>📷</span>
+                      <span style={{fontSize:11}}>기존 처리방식 사진을 추가하세요</span>
+                    </div>
+                  )}
+                  <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+                    {(methodData.existingFixPhotos||[]).map((url,pi)=>(
+                      <div key={'ef'+pi} style={{position:'relative',width:160}}>
+                        <div style={{borderRadius:10,overflow:'hidden',border:'2px solid #6D28D9',aspectRatio:'16/9',background:'#F5F3FF'}}>
+                          <img src={url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt={`기존처리 ${pi+1}`}/>
+                        </div>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:4}}>
+                          <span style={{fontSize:10,fontWeight:700,color:'#6D28D9'}}>사진 {pi+1}</span>
+                          <button onClick={()=>{updateCaseData(selectedMethod,d=>{if(d.existingFixPhotos)d.existingFixPhotos.splice(pi,1);});}}
+                            style={{fontSize:9,padding:'2px 8px',borderRadius:4,border:'1px solid #FECACA',background:'#FEF2F2',color:'#DC2626',cursor:'pointer',fontWeight:600}}>삭제</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
               </div>
             )}
           </div>

@@ -1971,7 +1971,7 @@ const detectMediaType=(url)=>{
   return'image';
 };
 // 공정사진/자재 미디어 렌더링 컴포넌트
-function ProposalSlideViewer({slides,size}){
+function ProposalSlideViewer({slides,size,onSlideClick,theme}){
   const [idx,setIdx]=React.useState(0);
   const touchRef=React.useRef(null);
   const sz=size||'normal';
@@ -1989,9 +1989,11 @@ function ProposalSlideViewer({slides,size}){
     touchRef.current=null;
   };
   return(
-    <div style={{position:'relative',borderRadius:radius,overflow:'hidden',background:'#F5F3FF',border:'1.5px solid #EDE9FE'}}
+    <div style={{position:'relative',borderRadius:radius,overflow:'hidden',background:theme==='cause'?'#111':'#F5F3FF',border:`1.5px solid ${theme==='cause'?'var(--border)':'#EDE9FE'}`}}
       onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-      <img src={slides[idx]} style={{width:'100%',display:'block',userSelect:'none',WebkitUserDrag:'none'}} alt={`제안서 ${idx+1}/${slides.length}`}/>
+      <img src={slides[idx]} onClick={onSlideClick?()=>onSlideClick(idx):undefined}
+        style={{width:'100%',display:'block',userSelect:'none',WebkitUserDrag:'none',cursor:onSlideClick?'pointer':'default',
+          ...(theme==='cause'?{maxHeight:280,objectFit:'contain',background:'#111'}:{})}} alt={`사진 ${idx+1}/${slides.length}`}/>
       {slides.length>1&&(
         <>
           {idx>0&&<button onClick={()=>setIdx(idx-1)} style={{position:'absolute',left:gap,top:'50%',transform:'translateY(-50%)',width:btnW,height:btnW,borderRadius:'50%',border:'none',background:'rgba(0,0,0,.45)',color:'#fff',fontSize:btnFs,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>‹</button>}
@@ -2795,6 +2797,7 @@ function PhotoZoomModal({photos,index:initIndex,src,alt,onClose}){
   const [pos,setPos]=useState({x:0,y:0});
   const [swipeX,setSwipeX]=useState(0); /* 스와이프 오프셋 */
   const [transitioning,setTransitioning]=useState(false);
+  const [activeFilter,setActiveFilter]=useState('all');
   const imgRef=useRef();
   const stateRef=useRef({
     scale:1,x:0,y:0,
@@ -2805,14 +2808,24 @@ function PhotoZoomModal({photos,index:initIndex,src,alt,onClose}){
     touchStartTime:0,pinching:false
   });
 
+  /* 필터링 — 하자유형/부위 태그 */
+  const allFilterTags=React.useMemo(()=>{
+    const s=new Set();
+    list.forEach(p=>{(p.defectTypes||[]).forEach(t=>s.add(t));(p.defectTags||[]).forEach(t=>s.add(t));});
+    return [...s].filter(Boolean);
+  },[list]);
+  const fList=activeFilter==='all'?list:list.filter(p=>(p.defectTypes||[]).includes(activeFilter)||(p.defectTags||[]).includes(activeFilter));
+  const changeFilter=(tag)=>{setActiveFilter(tag);setScale(1);setPos({x:0,y:0});setSwipeX(0);
+    const s=stateRef.current;s.scale=1;s.x=0;s.y=0;s.swipeDeltaX=0;setIdx(0);};
+
   const reset=()=>{setScale(1);setPos({x:0,y:0});setSwipeX(0);
     const s=stateRef.current;s.scale=1;s.x=0;s.y=0;s.swipeDeltaX=0;};
-  const goTo=(i)=>{if(i<0||i>=list.length)return;reset();setIdx(i);};
+  const goTo=(i)=>{if(i<0||i>=fList.length)return;reset();setIdx(i);};
 
   /* 스와이프로 사진 전환 (애니메이션) */
   const swipeNavigate=(dir)=>{
     const nextIdx=idx+dir;
-    if(nextIdx<0||nextIdx>=list.length){
+    if(nextIdx<0||nextIdx>=fList.length){
       /* 끝이면 바운스 */
       setSwipeX(0);return;
     }
@@ -2916,31 +2929,59 @@ function PhotoZoomModal({photos,index:initIndex,src,alt,onClose}){
     }
   };
 
-  const cur=list[idx]||{};
+  const cur=fList[idx]||{};
 
   return(
     <div className="photo-zoom-overlay" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
       {/* 닫기 버튼 */}
       <button style={{position:'absolute',top:14,right:14,width:44,height:44,borderRadius:12,border:'2px solid rgba(255,255,255,.35)',background:'rgba(0,0,0,.55)',backdropFilter:'blur(10px)',color:'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',zIndex:10,fontSize:22,fontWeight:700}}
         onTouchEnd={e=>{e.stopPropagation();e.preventDefault();onClose();}} onClick={e=>{e.stopPropagation();e.preventDefault();onClose();}}>✕</button>
-      {/* 상단: 카운터 + 썸네일 (2배 크기) */}
-      {list.length>1&&(
-        <div style={{position:'absolute',top:0,left:0,right:0,padding:'14px 14px 20px',background:'linear-gradient(to bottom,rgba(0,0,0,.8) 0%,rgba(0,0,0,.4) 70%,transparent 100%)',zIndex:4}}
+      {/* 상단: 필터 + 카운터 + 썸네일 */}
+      {fList.length>0&&(
+        <div style={{position:'absolute',top:0,left:0,right:0,padding:'14px 14px 20px',background:'linear-gradient(to bottom,rgba(0,0,0,.85) 0%,rgba(0,0,0,.5) 75%,transparent 100%)',zIndex:4}}
           onTouchStart={e=>e.stopPropagation()} onTouchMove={e=>e.stopPropagation()} onTouchEnd={e=>e.stopPropagation()}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'center',marginBottom:10}}>
-            <span style={{fontSize:13,color:'rgba(255,255,255,.7)',fontWeight:700,background:'rgba(0,0,0,.4)',padding:'4px 12px',borderRadius:20,backdropFilter:'blur(4px)'}}>{idx+1} / {list.length}</span>
-          </div>
-          <div style={{display:'flex',gap:8,justifyContent:'center',overflowX:'auto',padding:'0 8px'}}>
-            {list.map((item,si)=>(
-              <div key={si} onClick={()=>goTo(si)}
-                style={{width:80,height:80,flexShrink:0,borderRadius:10,overflow:'hidden',cursor:'pointer',position:'relative',
-                  border:si===idx?'3px solid #fff':'3px solid rgba(255,255,255,.15)',transition:'all .2s',
-                  boxShadow:si===idx?'0 0 12px rgba(255,255,255,.3)':'none'}}>
-                <img src={item.src} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block',
-                  filter:si===idx?'none':'brightness(.4)',transition:'filter .2s'}}/>
+          {/* 필터 버튼 */}
+          {allFilterTags.length>0&&(
+            <div style={{display:'flex',gap:6,justifyContent:'center',flexWrap:'wrap',marginBottom:10,padding:'0 4px'}}>
+              <button onClick={()=>changeFilter('all')}
+                style={{fontSize:11,fontWeight:700,padding:'5px 14px',borderRadius:20,border:'none',cursor:'pointer',
+                  background:activeFilter==='all'?'rgba(255,255,255,.92)':'rgba(255,255,255,.12)',
+                  color:activeFilter==='all'?'#111':'rgba(255,255,255,.7)',
+                  backdropFilter:'blur(6px)',transition:'all .2s'}}>
+                전체 ({list.length})
+              </button>
+              {allFilterTags.map(tag=>{
+                const cnt=list.filter(p=>(p.defectTypes||[]).includes(tag)||(p.defectTags||[]).includes(tag)).length;
+                return(
+                  <button key={tag} onClick={()=>changeFilter(tag)}
+                    style={{fontSize:11,fontWeight:700,padding:'5px 14px',borderRadius:20,border:'none',cursor:'pointer',
+                      background:activeFilter===tag?'rgba(255,255,255,.92)':'rgba(255,255,255,.12)',
+                      color:activeFilter===tag?'#111':'rgba(255,255,255,.7)',
+                      backdropFilter:'blur(6px)',transition:'all .2s'}}>
+                    #{tag} ({cnt})
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {fList.length>1&&(
+            <>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'center',marginBottom:10}}>
+                <span style={{fontSize:13,color:'rgba(255,255,255,.7)',fontWeight:700,background:'rgba(0,0,0,.4)',padding:'4px 12px',borderRadius:20,backdropFilter:'blur(4px)'}}>{idx+1} / {fList.length}</span>
               </div>
-            ))}
-          </div>
+              <div style={{display:'flex',gap:8,justifyContent:'center',overflowX:'auto',padding:'0 8px'}}>
+                {fList.map((item,si)=>(
+                  <div key={si} onClick={()=>goTo(si)}
+                    style={{width:80,height:80,flexShrink:0,borderRadius:10,overflow:'hidden',cursor:'pointer',position:'relative',
+                      border:si===idx?'3px solid #fff':'3px solid rgba(255,255,255,.15)',transition:'all .2s',
+                      boxShadow:si===idx?'0 0 12px rgba(255,255,255,.3)':'none'}}>
+                    <img src={item.src} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block',
+                      filter:si===idx?'none':'brightness(.4)',transition:'filter .2s'}}/>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
       {/* 메인 이미지 (스와이프 오프셋 적용) */}
@@ -2948,17 +2989,17 @@ function PhotoZoomModal({photos,index:initIndex,src,alt,onClose}){
         <img ref={imgRef} src={cur.src} alt={cur.alt||''} style={{transform:`translate(${pos.x}px,${pos.y}px) scale(${scale})`,transition:transitioning?'none':'transform .12s ease'}} draggable={false}/>
       </div>
       {/* 좌우 화살표 힌트 */}
-      {scale<=1.05&&list.length>1&&(
+      {scale<=1.05&&fList.length>1&&(
         <>
           {idx>0&&<div style={{position:'absolute',left:8,top:'50%',transform:'translateY(-50%)',width:36,height:36,borderRadius:'50%',background:'rgba(255,255,255,.1)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:5,pointerEvents:'none'}}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.5)" strokeWidth="2.5"><path d="M15 18l-6-6 6-6"/></svg>
           </div>}
-          {idx<list.length-1&&<div style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',width:36,height:36,borderRadius:'50%',background:'rgba(255,255,255,.1)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:5,pointerEvents:'none'}}>
+          {idx<fList.length-1&&<div style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',width:36,height:36,borderRadius:'50%',background:'rgba(255,255,255,.1)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:5,pointerEvents:'none'}}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.5)" strokeWidth="2.5"><path d="M9 18l6-6-6-6"/></svg>
           </div>}
         </>
       )}
-      <div className="photo-zoom-hint">{scale<=1.05?(list.length>1?'좌우 스와이프로 이동 · 더블탭으로 확대':'더블탭 또는 핀치로 확대'):''}</div>
+      <div className="photo-zoom-hint">{scale<=1.05?(fList.length>1?'좌우 스와이프로 이동 · 더블탭으로 확대':'더블탭 또는 핀치로 확대'):''}</div>
     </div>
   );
 }
@@ -4466,7 +4507,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                                     transition:'border-color .2s,box-shadow .2s'}}
                                   onClick={()=>{
                                     if(photoSelectMode){toggleSelect(p.src);}
-                                    else{const allList=filtered.map(x=>({src:x.src,alt:'하자사진'}));setZoomPhoto({photos:allList,index:i});}
+                                    else{const allList=filtered.map(x=>({src:x.src,alt:'하자사진',defectTypes:x.defectTypes||[x.defectType].filter(Boolean),defectTags:x.defectTags||[x.defectPart].filter(Boolean)}));setZoomPhoto({photos:allList,index:i});}
                                   }}>
                                   <img src={p.src} alt={`하자사진${i+1}`}
                                     style={{width:'100%',height:'100%',objectFit:'cover',display:'block',
@@ -4635,25 +4676,12 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                             <div style={{width:5,height:5,borderRadius:'50%',background:'var(--accent)',opacity:.7}}/>
                             <span style={{fontSize:10,fontWeight:700,color:'var(--navy)',letterSpacing:'.04em'}}>관련 사진/영상</span>
                           </div>
-                          {/* 사진 영역 */}
+                          {/* 사진 영역 — POUR해결방안 스타일 슬라이드 */}
                           {photoItems.length>0&&(
                             <div style={{marginBottom:videoItems.length>0?12:0}}>
-                              <div style={{fontSize:9,fontWeight:700,color:'var(--text-sm)',marginBottom:6,letterSpacing:'.04em'}}>📷 사진</div>
-                              <div style={{display:'flex',gap:6,overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none'}} className="media-scroll">
-                                {photoItems.map((src,i)=>(
-                                  <div key={`p${i}`} onClick={()=>setMediaViewer(mediaList.indexOf(src))}
-                                    style={{flex:'0 0 35%',scrollSnapAlign:'start',borderRadius:10,overflow:'hidden',background:'#111',position:'relative',aspectRatio:'9/16',cursor:'pointer'}}>
-                                    <img src={src} alt={`사진 ${i+1}`} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-                                    <div style={{position:'absolute',top:6,left:6,padding:'2px 6px',borderRadius:5,fontSize:9,fontWeight:800,background:'rgba(0,0,0,.55)',color:'#fff',backdropFilter:'blur(4px)',zIndex:3}}>
-                                      {i+1}/{photoItems.length}
-                                    </div>
-                                    <div onClick={(e)=>{e.stopPropagation();setMediaViewer(mediaList.indexOf(src));}}
-                                      style={{position:'absolute',bottom:0,left:0,right:0,padding:'20px 0 10px',background:'linear-gradient(to top,rgba(0,0,0,.7) 0%,transparent 100%)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',zIndex:3}}>
-                                      <span style={{fontSize:15,fontWeight:800,color:'#fff',background:'rgba(255,255,255,.25)',padding:'10px 28px',borderRadius:24,backdropFilter:'blur(6px)',letterSpacing:'.03em',boxShadow:'0 2px 12px rgba(0,0,0,.3)'}}>🔍 크게 보기</span>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
+                              <div style={{fontSize:9,fontWeight:700,color:'var(--text-sm)',marginBottom:6,letterSpacing:'.04em'}}>📷 원인 사진 ({photoItems.length}장)</div>
+                              <ProposalSlideViewer slides={photoItems} size="normal" theme="cause"
+                                onSlideClick={(i)=>setMediaViewer(mediaList.indexOf(photoItems[i]))}/>
                             </div>
                           )}
                           {/* 영상 영역 */}
@@ -5640,18 +5668,11 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                                 <div style={{width:5,height:5,borderRadius:'50%',background:'var(--accent)',opacity:.7}}/>
                                 <span style={{fontSize:10,fontWeight:700,color:'var(--navy)',letterSpacing:'.04em'}}>관련 사진/영상</span>
                               </div>
-                              {/* 사진 */}
+                              {/* 사진 — POUR해결방안 스타일 슬라이드 */}
                               {cPhotoItems.length>0&&(
                                 <div style={{marginBottom:cVideoItems.length>0?10:0}}>
-                                  <div style={{fontSize:9,fontWeight:700,color:'var(--text-sm)',marginBottom:5,letterSpacing:'.04em'}}>📷 사진</div>
-                                  <div style={{display:'flex',gap:6,overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none'}}>
-                                    {cPhotoItems.map((src,ci)=>(
-                                      <div key={`cp${ci}`} style={{flex:'0 0 35%',borderRadius:10,overflow:'hidden',background:'#111',position:'relative',aspectRatio:'9/16'}}>
-                                        <img src={src} alt={`사진 ${ci+1}`} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
-                                        <div style={{position:'absolute',top:5,left:5,padding:'2px 6px',borderRadius:4,fontSize:8,fontWeight:800,background:'rgba(0,0,0,.55)',color:'#fff'}}>{ci+1}/{cPhotoItems.length}</div>
-                                      </div>
-                                    ))}
-                                  </div>
+                                  <div style={{fontSize:9,fontWeight:700,color:'var(--text-sm)',marginBottom:5,letterSpacing:'.04em'}}>📷 원인 사진 ({cPhotoItems.length}장)</div>
+                                  <ProposalSlideViewer slides={cPhotoItems} size="normal" theme="cause"/>
                                 </div>
                               )}
                               {/* 영상 */}

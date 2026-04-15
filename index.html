@@ -1979,22 +1979,11 @@ function ProposalSlideViewer({slides,size,onSlideClick,theme}){
   const [idx,setIdx]=React.useState(0);
   const touchRef=React.useRef(null);
   const sz=size||'normal';
-  const btnW=sz==='small'?24:32;const btnFs=sz==='small'?14:16;
+  const btnW=sz==='small'?Math.round(24*1.7):Math.round(32*1.7);const btnFs=sz==='small'?Math.round(14*1.7):Math.round(16*1.7);
   const pageFs=sz==='small'?9:10;const pagePad=sz==='small'?'2px 8px':'3px 10px';
   const radius=sz==='small'?10:12;const gap=sz==='small'?4:6;
-  const handleTouchStart=(e)=>{touchRef.current=e.touches[0].clientX;};
-  const handleTouchEnd=(e)=>{
-    if(touchRef.current===null)return;
-    const diff=touchRef.current-e.changedTouches[0].clientX;
-    if(Math.abs(diff)>40){
-      if(diff>0&&idx<slides.length-1)setIdx(idx+1);
-      if(diff<0&&idx>0)setIdx(idx-1);
-    }
-    touchRef.current=null;
-  };
   return(
-    <div style={{position:'relative',borderRadius:radius,overflow:'hidden',background:'#F5F3FF',border:'1.5px solid #EDE9FE'}}
-      onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+    <div style={{position:'relative',borderRadius:radius,overflow:'hidden',background:'#F5F3FF',border:'1.5px solid #EDE9FE'}}>
       <img src={slides[idx]} onClick={onSlideClick?()=>onSlideClick(idx):undefined}
         style={{width:'100%',display:'block',userSelect:'none',WebkitUserDrag:'none',cursor:onSlideClick?'pointer':'default'}} alt={`사진 ${idx+1}/${slides.length}`}/>
 
@@ -3700,6 +3689,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
           setNtSmsLinks(autoLinks);setNtSelectedLinks(autoLinks.map((_,i)=>i));
           if(autoLinks.length>0){msg+='\n\n📎 자료 링크:';autoLinks.forEach(l=>{msg+=`\n${l.label}: ${l.url}`;});}
         }
+        if(ntNextActions.length>0){msg+='\n\n📌 후속 안내:\n'+ntNextActions.map(a=>'· '+a).join('\n');}
         msg+=`\n\n문의 1577-6587`;
         setNtSmsText(msg);setNtQuickSms(true);
       })();
@@ -5128,6 +5118,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                                   }else{msg+='\n맞춤 자료를 보내드리겠습니다.';}
                                   const selectedLinks=next.map(idx=>ntSmsLinks[idx]);
                                   if(selectedLinks.length>0){msg+='\n\n📎 자료 링크:';selectedLinks.forEach(sl=>{msg+=`\n${sl.label}: ${sl.url}`;});}
+                                  if(ntNextActions.length>0){msg+='\n\n📌 후속 안내:\n'+ntNextActions.map(a=>'· '+a).join('\n');}
                                   msg+=`\n\n문의 1577-6587`;
                                   setNtSmsText(msg);
                                 }} style={{accentColor:'var(--blue)'}}/>
@@ -5142,38 +5133,75 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                           {ntShowMethodPicker?'▲ 닫기':'+ 다른 공법 자료 추가'}
                         </button>
                         {ntShowMethodPicker&&(
-                          <div style={{marginTop:6,maxHeight:200,overflowY:'auto',border:'1px solid var(--border)',borderRadius:10,background:'#fff'}}>
-                            {ALL_PROBLEMS.filter(p=>p.specUrl).map(p=>{
-                              const alreadyAdded=ntSmsLinks.some(l=>l.label===p.label+' 시방서');
+                          <div style={{marginTop:6,maxHeight:300,overflowY:'auto',border:'1px solid var(--border)',borderRadius:10,background:'#fff'}}>
+                            {ALL_PROBLEMS.map(p=>{
+                              /* 공법별 사용 가능한 모든 링크 수집 */
+                              const linkTypes=[];
+                              if(p.specUrl)linkTypes.push({suffix:'시방서',url:p.specUrl});
+                              if(p.proposalUrl)linkTypes.push({suffix:'제안서',url:p.proposalUrl});
+                              if(p.caseUrl)linkTypes.push({suffix:'시공사례',url:p.caseUrl});
+                              if(p.guideId)linkTypes.push({suffix:'시공가이드',url:'https://www.poursolution.net/'+p.guideId});
+                              if(linkTypes.length===0)return null;
                               return(
-                                <label key={p.id||p.label} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 12px',borderBottom:'1px solid var(--border-s)',cursor:alreadyAdded?'default':'pointer',opacity:alreadyAdded?.5:1,fontSize:12}}>
-                                  <input type="checkbox" checked={alreadyAdded} disabled={alreadyAdded} onChange={async()=>{
-                                    if(alreadyAdded)return;
-                                    const short=await createShortLink(p.specUrl,{label:p.label+' 시방서',customerName:ntName,staff:staffName});
-                                    const newLink={label:p.label+' 시방서',url:short,origUrl:p.specUrl};
-                                    const newLinks=[...ntSmsLinks,newLink];
-                                    setNtSmsLinks(newLinks);
-                                    setNtSelectedLinks(prev=>[...prev,newLinks.length-1]);
-                                    /* 문자 재생성 */
-                                    let msg=`${ntName}님, POUR솔루션 상담 감사합니다.`;
-                                    if(ntNextActions.length>0){
-                                      const docs=ntNextActions.filter(a=>!a.startsWith('방문'));
-                                      const visit=ntNextActions.find(a=>a.startsWith('방문'));
-                                      if(docs.length>0)msg+=`\n\n요청하신 ${docs.join(', ')} 보내드리겠습니다.`;
-                                      if(visit)msg+=`\n${visit} 드리겠습니다.`;
-                                    }else{msg+='\n맞춤 자료를 보내드리겠습니다.';}
-                                    const selLinks=[...ntSelectedLinks,newLinks.length-1].map(idx=>newLinks[idx]).filter(Boolean);
-                                    if(selLinks.length>0){msg+='\n\n📎 자료 링크:';selLinks.forEach(sl=>{msg+=`\n${sl.label}: ${sl.url}`;});}
-                                    msg+=`\n\n문의 1577-6587`;
-                                    setNtSmsText(msg);
-                                  }} style={{accentColor:'var(--blue)'}}/>
-                                  <span style={{fontWeight:600,color:alreadyAdded?'var(--text-sm)':'var(--text)'}}>{p.label}</span>
-                                  {p.cat&&<span style={{fontSize:10,color:'var(--text-sm)',marginLeft:'auto'}}>{p.cat}</span>}
-                                </label>
+                                <div key={p.id||p.label} style={{borderBottom:'1px solid var(--border-s)',padding:'6px 12px'}}>
+                                  <div style={{fontSize:12,fontWeight:700,color:'var(--text)',marginBottom:4,display:'flex',alignItems:'center',gap:6}}>
+                                    {p.label}
+                                    {p.cat&&<span style={{fontSize:9,color:'var(--text-sm)',fontWeight:500}}>{p.cat}</span>}
+                                  </div>
+                                  <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                                    {linkTypes.map(lt=>{
+                                      const fullLabel=p.label+' '+lt.suffix;
+                                      const alreadyAdded=ntSmsLinks.some(l=>l.label===fullLabel);
+                                      return(
+                                        <button key={lt.suffix} disabled={alreadyAdded} onClick={async()=>{
+                                          if(alreadyAdded)return;
+                                          const short=await createShortLink(lt.url,{label:fullLabel,customerName:ntName,staff:staffName});
+                                          const newLink={label:fullLabel,url:short,origUrl:lt.url};
+                                          const newLinks=[...ntSmsLinks,newLink];
+                                          setNtSmsLinks(newLinks);
+                                          setNtSelectedLinks(prev=>[...prev,newLinks.length-1]);
+                                          /* 문자 재생성 */
+                                          let msg=`${ntName}님, POUR솔루션 상담 감사합니다.`;
+                                          if(ntNextActions.length>0){
+                                            const docs=ntNextActions.filter(a=>!a.startsWith('방문'));
+                                            const visit=ntNextActions.find(a=>a.startsWith('방문'));
+                                            if(docs.length>0)msg+=`\n\n요청하신 ${docs.join(', ')} 보내드리겠습니다.`;
+                                            if(visit)msg+=`\n${visit} 드리겠습니다.`;
+                                          }else{msg+='\n맞춤 자료를 보내드리겠습니다.';}
+                                          const actionsText=ntNextActions.length>0?'\n\n📌 2차액션: '+ntNextActions.join(', '):'';
+                                          const selLinks=[...ntSelectedLinks,newLinks.length-1].map(idx=>newLinks[idx]).filter(Boolean);
+                                          if(selLinks.length>0){msg+='\n\n📎 자료 링크:';selLinks.forEach(sl=>{msg+=`\n${sl.label}: ${sl.url}`;});}
+                                          msg+=actionsText;
+                                          msg+=`\n\n문의 1577-6587`;
+                                          setNtSmsText(msg);
+                                        }} style={{padding:'4px 10px',borderRadius:6,border:`1px solid ${alreadyAdded?'var(--border)':'var(--blue)'}`,
+                                          background:alreadyAdded?'var(--bg)':'var(--blue-l)',color:alreadyAdded?'var(--text-sm)':'var(--blue)',
+                                          fontSize:10,fontWeight:600,cursor:alreadyAdded?'default':'pointer',fontFamily:'inherit',opacity:alreadyAdded?.5:1}}>
+                                          {alreadyAdded?'✓ ':''}{lt.suffix}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
                               );
-                            })}
+                            }).filter(Boolean)}
                           </div>
                         )}
+                      </div>
+                    )}
+
+                    {/* 2차액션 표시 */}
+                    {ntNextActions.length>0&&(
+                      <div style={{marginBottom:10,padding:'10px 14px',background:'#FFF7ED',borderRadius:10,border:'1px solid #FED7AA'}}>
+                        <div style={{fontSize:11,fontWeight:700,color:'#C2410C',marginBottom:6}}>📌 2차액션 ({ntNextActions.length}건)</div>
+                        <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                          {ntNextActions.map(a=>(
+                            <span key={a} style={{padding:'4px 10px',borderRadius:6,background:'#FFEDD5',border:'1px solid #FDBA74',fontSize:11,fontWeight:600,color:'#9A3412'}}>
+                              {a}
+                            </span>
+                          ))}
+                        </div>
+                        <div style={{marginTop:6,fontSize:9,color:'#C2410C',opacity:.7}}>↑ 문자 본문에 자동 포함됩니다</div>
                       </div>
                     )}
 
@@ -5182,10 +5210,10 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                       <div style={{background:'#333',color:'#fff',padding:'6px 14px',fontSize:11,fontWeight:700,display:'flex',alignItems:'center',gap:6}}>
                         <span>📱</span> 고객 수신 미리보기
                       </div>
-                      <div style={{padding:'16px 12px',minHeight:420}}>
+                      <div style={{padding:'16px 12px'}}>
                         <div style={{background:'#e9e9eb',borderRadius:'16px 16px 16px 4px',padding:'12px 14px',maxWidth:'90%'}}>
                           <textarea value={ntSmsText} onChange={e=>setNtSmsText(e.target.value)}
-                            style={{width:'100%',minHeight:380,padding:0,border:'none',background:'transparent',fontSize:14,lineHeight:1.7,color:'#111',fontFamily:'inherit',resize:'vertical',outline:'none',boxSizing:'border-box'}}
+                            style={{width:'100%',minHeight:600,padding:0,border:'none',background:'transparent',fontSize:14,lineHeight:1.7,color:'#111',fontFamily:'inherit',resize:'vertical',outline:'none',boxSizing:'border-box'}}
                             placeholder="펜슬로 수정 가능"/>
                         </div>
                       </div>

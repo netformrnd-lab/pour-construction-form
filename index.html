@@ -874,6 +874,14 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
   .memo-scroll{padding:16px 24px 80px;}
   /* 아코디언 콘텐츠 내부 2열 레이아웃 */
   .acc-body-inner-landscape{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  /* 시공공정 카드 — 가로모드 최적화 */
+  .process-card{overflow:visible!important;}
+  .process-card-body{padding:10px 14px!important;}
+  /* 시공공정 사진 — 가로모드에서 높이 제한 */
+  .process-step div[style*="aspect-ratio"]{aspect-ratio:auto!important;max-height:240px!important;overflow:hidden!important;}
+  .process-step div[style*="aspect-ratio"] img,.process-step div[style*="aspect-ratio"] video{position:relative!important;width:100%!important;height:auto!important;max-height:240px!important;object-fit:cover!important;}
+  /* POUR핵심 자재 버튼 — 가로모드에서 컴팩트 */
+  .pour-mat-btn{padding:8px 10px!important;}
   /* 솔루션 헤더 컴팩트 (가로모드 추가 최적화 — 상위 블록에서 이미 처리) */
 
 }
@@ -1997,11 +2005,10 @@ function ProposalSlideViewer({slides,size,onSlideClick,theme}){
     touchRef.current=null;
   };
   return(
-    <div style={{position:'relative',borderRadius:radius,overflow:'hidden',background:theme==='cause'?'#111':'#F5F3FF',border:`1.5px solid ${theme==='cause'?'var(--border)':'#EDE9FE'}`}}
+    <div style={{position:'relative',borderRadius:radius,overflow:'hidden',background:'#F5F3FF',border:'1.5px solid #EDE9FE'}}
       onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       <img src={slides[idx]} onClick={onSlideClick?()=>onSlideClick(idx):undefined}
-        style={{width:'100%',display:'block',userSelect:'none',WebkitUserDrag:'none',cursor:onSlideClick?'pointer':'default',
-          ...(theme==='cause'?{maxHeight:280,objectFit:'contain',background:'#111'}:{})}} alt={`사진 ${idx+1}/${slides.length}`}/>
+        style={{width:'100%',display:'block',userSelect:'none',WebkitUserDrag:'none',cursor:onSlideClick?'pointer':'default'}} alt={`사진 ${idx+1}/${slides.length}`}/>
 
       {slides.length>1&&(
         <>
@@ -4689,9 +4696,9 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                           </div>
                           {/* 사진 영역 — POUR해결방안 스타일 슬라이드 */}
                           {photoItems.length>0&&(
-                            <div style={{marginBottom:videoItems.length>0?12:0}}>
-                              <div style={{fontSize:9,fontWeight:700,color:'var(--text-sm)',marginBottom:6,letterSpacing:'.04em'}}>📷 원인 사진 ({photoItems.length}장)</div>
-                              <ProposalSlideViewer slides={photoItems} size="normal" theme="cause"
+                            <div style={{marginBottom:videoItems.length>0?12:0,marginLeft:-14,marginRight:-14}}>
+                              <div style={{fontSize:9,fontWeight:700,color:'var(--text-sm)',marginBottom:6,letterSpacing:'.04em',paddingLeft:14}}>📷 원인 사진 ({photoItems.length}장)</div>
+                              <ProposalSlideViewer slides={photoItems} size="normal"
                                 onSlideClick={(i)=>setMediaViewer(mediaList.indexOf(photoItems[i]))}/>
 
                             </div>
@@ -4787,10 +4794,10 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               const ms=METHOD_STATS[problem?.id];
               if(!mc?.process?.length&&!(mc?.processGuideImages||[]).length)return null;
               return(
-                <div style={{marginBottom:16,borderRadius:16,background:'var(--card)',
+                <div className="process-card" style={{marginBottom:16,borderRadius:16,background:'var(--card)',
                   border:'1px solid var(--border)',boxShadow:'var(--shadow)',overflow:'hidden'}}>
                   <div style={{height:2,background:'linear-gradient(90deg,var(--green),rgba(5,150,105,.2),transparent)',opacity:.8}}/>
-                  <div style={{padding:'12px 14px'}}>
+                  <div className="process-card-body" style={{padding:'12px 14px'}}>
                     <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:12}}>
                       <div style={{width:6,height:6,borderRadius:'50%',background:'var(--green)',flexShrink:0}}/>
                       <span style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>POUR 시공공정</span>
@@ -4805,7 +4812,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
                     {/* ── 세로 타임라인 공정 (스텝 모드) ── */}
                     {(mc.processMode||'steps')==='steps'&&(
-                    <div style={{display:'flex',flexDirection:'column',gap:0}}>
+                    <div className="process-timeline" style={{display:'flex',flexDirection:'column',gap:0}}>
                       {mc.process.map((step,i)=>{
                         const isSel=openProcessSteps.includes(i);
                         const _cpSteps=(casePhotos[problem.id]||{}).processSteps||[];
@@ -4814,7 +4821,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                         const stepMat=(mc.processMaterials||[])[i];
                         const isLast=i===mc.process.length-1;
                         return(
-                          <div key={i} style={{display:'flex',gap:0,position:'relative'}}>
+                          <div key={i} className="process-step" style={{display:'flex',gap:0,position:'relative'}}>
                             {/* 왼쪽 타임라인 */}
                             <div style={{display:'flex',flexDirection:'column',alignItems:'center',width:32,flexShrink:0}}>
                               <button onClick={()=>setOpenProcessSteps(p=>p.includes(i)?p.filter(x=>x!==i):[...p,i])}
@@ -4888,7 +4895,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                                       return(
                                         <div style={{display:'flex',flexDirection:'column',gap:6}}>
                                           {mats.map((mat,mi)=>(
-                                            <button key={mi} onClick={()=>{
+                                            <button key={mi} className="pour-mat-btn" onClick={()=>{
                                               const _cpm=(casePhotos[problem.id]||{}).processMatsMedia||{};
                                               const _mk=`${i}_${mi}`;
                                               const _mUrl=(_cpm[_mk]&&_cpm[_mk].url)||mat.mediaUrl||'';
@@ -5701,9 +5708,9 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                               </div>
                               {/* 사진 — POUR해결방안 스타일 슬라이드 */}
                               {cPhotoItems.length>0&&(
-                                <div style={{marginBottom:cVideoItems.length>0?10:0}}>
-                                  <div style={{fontSize:9,fontWeight:700,color:'var(--text-sm)',marginBottom:5,letterSpacing:'.04em'}}>📷 원인 사진 ({cPhotoItems.length}장)</div>
-                                  <ProposalSlideViewer slides={cPhotoItems} size="normal" theme="cause"/>
+                                <div style={{marginBottom:cVideoItems.length>0?10:0,marginLeft:-14,marginRight:-14}}>
+                                  <div style={{fontSize:9,fontWeight:700,color:'var(--text-sm)',marginBottom:5,letterSpacing:'.04em',paddingLeft:14}}>📷 원인 사진 ({cPhotoItems.length}장)</div>
+                                  <ProposalSlideViewer slides={cPhotoItems} size="normal"/>
                                 </div>
                               )}
                               {/* 영상 */}
@@ -5762,9 +5769,9 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
 
                   {/* ── STEP 4. POUR 시공공정 (세로 타임라인 + 자재) ── */}
                   {(mc.process?.length>0||(mc.processGuideImages||[]).length>0)&&(
-                    <div style={{margin:'14px 14px 0',borderRadius:14,background:'var(--card)',border:'1px solid var(--border)',boxShadow:'var(--shadow)',overflow:'hidden'}}>
+                    <div className="process-card" style={{margin:'14px 14px 0',borderRadius:14,background:'var(--card)',border:'1px solid var(--border)',boxShadow:'var(--shadow)',overflow:'hidden'}}>
                       <div style={{height:2,background:'linear-gradient(90deg,var(--green),rgba(5,150,105,.2),transparent)',opacity:.8}}/>
-                      <div style={{padding:'12px 14px'}}>
+                      <div className="process-card-body" style={{padding:'12px 14px'}}>
                         <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:12}}>
                           <div style={{width:6,height:6,borderRadius:'50%',background:'var(--green)',flexShrink:0}}/>
                           <span style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>POUR 시공공정</span>
@@ -5777,7 +5784,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                         )}
                         {/* 세로 타임라인 공정 */}
                         {(mc.processMode||'steps')==='steps'&&mc.process?.length>0&&(
-                          <div style={{display:'flex',flexDirection:'column',gap:0}}>
+                          <div className="process-timeline" style={{display:'flex',flexDirection:'column',gap:0}}>
                             {mc.process.map((step,i)=>{
                               const stepPhotoUrl=((casePhotos[m.id]||{}).processSteps||[])[i]?.url||((mc.processPhotos||[])[i]);
                               const stepDesc=(mc.processDescs||[])[i];

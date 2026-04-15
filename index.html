@@ -2057,6 +2057,10 @@ const saveCasePhotos=p=>{
             }
           }
         }
+        /* processOverviewImage */
+        if(item.processOverviewImage&&item.processOverviewImage.startsWith('data:')){
+          item.processOverviewImage=await uploadBase64ToStorage(item.processOverviewImage,`case-photos/${key}/process_overview`);
+        }
         /* processSteps */
         if(item.processSteps){
           for(let i=0;i<item.processSteps.length;i++){
@@ -4800,6 +4804,13 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                       </div>
                     )}
 
+                    {/* ── 공정 전체 설명 이미지 (overview) ── */}
+                    {(mc.processMode||'steps')==='steps'&&(casePhotos[problem?.id]||{}).processOverviewImage&&(
+                      <div style={{marginBottom:12,borderRadius:10,overflow:'hidden',border:'1px solid var(--border)'}}>
+                        <img src={(casePhotos[problem?.id]||{}).processOverviewImage} style={{width:'100%',display:'block'}} alt="공정 전체 설명"/>
+                      </div>
+                    )}
+
                     {/* ── 세로 타임라인 공정 (스텝 모드) ── */}
                     {(mc.processMode||'steps')==='steps'&&(
                     <div className="process-timeline" style={{display:'flex',flexDirection:'column',gap:0}}>
@@ -5771,6 +5782,12 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                         {mc.processMode==='images'&&(mc.processGuideImages||[]).length>0&&(
                           <div style={{marginBottom:12}}>
                             <ProposalSlideViewer slides={mc.processGuideImages} size="normal"/>
+                          </div>
+                        )}
+                        {/* 공정 전체 설명 이미지 (overview) */}
+                        {(mc.processMode||'steps')==='steps'&&(casePhotos[m.id]||{}).processOverviewImage&&(
+                          <div style={{marginBottom:12,borderRadius:10,overflow:'hidden',border:'1px solid var(--border)'}}>
+                            <img src={(casePhotos[m.id]||{}).processOverviewImage} style={{width:'100%',display:'block'}} alt="공정 전체 설명"/>
                           </div>
                         )}
                         {/* 세로 타임라인 공정 */}
@@ -7378,6 +7395,7 @@ function PhotoSlot({src,label,onSet,onRemove,wide,aspect,maxSize,quality}){
   const fileRef=useRef(null);
   const wrapRef=useRef(null);
   const [resizeInfo,setResizeInfo]=useState(null);
+  const [dragOver,setDragOver]=useState(false);
   const handleFile=(file)=>{
     if(!file||!file.type.startsWith('image/'))return;
     const reader=new FileReader();
@@ -7414,7 +7432,11 @@ function PhotoSlot({src,label,onSet,onRemove,wide,aspect,maxSize,quality}){
   });
   return(
     <div ref={wrapRef} tabIndex={0}
-      style={{position:'relative',width:wide?'100%':120,height:wide?80:90,borderRadius:10,overflow:'hidden',border:'1.5px solid var(--border)',background:'#f3f4f6',flexShrink:0,cursor:'pointer',aspectRatio:aspect||'auto',outline:'none'}}
+      onDragOver={(e)=>{e.preventDefault();e.stopPropagation();setDragOver(true);}}
+      onDragEnter={(e)=>{e.preventDefault();e.stopPropagation();setDragOver(true);}}
+      onDragLeave={(e)=>{e.preventDefault();e.stopPropagation();setDragOver(false);}}
+      onDrop={(e)=>{e.preventDefault();e.stopPropagation();setDragOver(false);const f=e.dataTransfer?.files;if(f&&f[0])handleFile(f[0]);}}
+      style={{position:'relative',width:wide?'100%':120,height:wide?80:90,borderRadius:10,overflow:'hidden',border:dragOver?'2px dashed var(--accent)':'1.5px solid var(--border)',background:dragOver?'var(--accent-l)':'#f3f4f6',flexShrink:0,cursor:'pointer',aspectRatio:aspect||'auto',outline:'none',transition:'border .15s, background .15s'}}
       onClick={()=>{
         const choice=src?window.confirm('새 사진으로 교체하시겠습니까?\n\n[확인] 파일 선택\n[취소] URL 직접 입력'):null;
         if(choice===true||!src){fileRef.current?.click();}
@@ -8532,6 +8554,20 @@ function AdminScreen({onBack}){
                                                 cursor:'pointer',fontWeight:on?700:500,lineHeight:1.4,fontFamily:'inherit'}}>{tid}</button>);
                                           })}
                                         </div>
+                                        {/* 새 대분류 추가 버튼 */}
+                                        <button onClick={async()=>{
+                                          const v=prompt('새 대분류 태그 입력:');
+                                          if(!v||!v.trim())return;
+                                          const tag=v.trim();
+                                          const exists=(defectTags?.major||[]).some(t=>(t.id||t)===tag);
+                                          if(!exists){
+                                            const next={...defectTags,major:[...(defectTags?.major||[]),{id:tag,label:tag}]};
+                                            setDefectTags(next);
+                                            try{await saveDefectTags(next);}catch(e){}
+                                          }
+                                          toggleType(tag);
+                                        }} style={{fontSize:8,padding:'2px 5px',borderRadius:4,border:'1px dashed var(--accent)',
+                                          background:'var(--accent-l)',color:'var(--accent)',cursor:'pointer',fontWeight:700,fontFamily:'inherit',lineHeight:1.4,marginBottom:4}}>+ 새 대분류</button>
                                         {/* 중분류 (해시태그) — 동적 목록 + 인라인 추가 */}
                                         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:2}}>
                                           <div style={{fontSize:8,fontWeight:700,color:'var(--text-sm)',letterSpacing:'.04em'}}>중분류 #태그</div>
@@ -8546,34 +8582,20 @@ function AdminScreen({onBack}){
                                                 cursor:'pointer',fontWeight:on?700:500,lineHeight:1.4,fontFamily:'inherit'}}>#{tid}</button>);
                                           })}
                                         </div>
-                                        {/* 새 중분류 추가 인풋 */}
-                                        {(()=>{
-                                          const [newTagInput,setNewTagInput]=React.useState('');
-                                          const addNewTag=async()=>{
-                                            const v=newTagInput.trim().replace(/^#/,'');
-                                            if(!v)return;
-                                            const exists=(defectTags?.part||[]).some(t=>(t.id||t)===v);
-                                            if(!exists){
-                                              const next={...defectTags,part:[...(defectTags?.part||[]),{id:v,label:v}]};
-                                              setDefectTags(next);
-                                              try{await saveDefectTags(next);}catch(e){}
-                                            }
-                                            toggleTag(v);
-                                            setNewTagInput('');
-                                          };
-                                          return(
-                                            <div style={{display:'flex',gap:2,alignItems:'center',marginBottom:4}}>
-                                              <input value={newTagInput} onChange={e=>setNewTagInput(e.target.value)}
-                                                onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();addNewTag();}}}
-                                                placeholder='+ 새 태그 입력'
-                                                style={{flex:1,fontSize:8,padding:'2px 5px',borderRadius:4,border:'1px dashed #7C3AED',
-                                                  outline:'none',fontFamily:'inherit',color:'#7C3AED',background:'#FAF5FF'}}/>
-                                              <button onClick={addNewTag}
-                                                style={{fontSize:8,padding:'2px 6px',borderRadius:4,border:'1px solid #7C3AED',
-                                                  background:'#7C3AED',color:'#fff',cursor:'pointer',fontWeight:700,fontFamily:'inherit',lineHeight:1.4}}>추가</button>
-                                            </div>
-                                          );
-                                        })()}
+                                        {/* 새 중분류 추가 버튼 */}
+                                        <button onClick={async()=>{
+                                          const v=prompt('새 중분류 #태그 입력:');
+                                          if(!v||!v.trim())return;
+                                          const tag=v.trim().replace(/^#/,'');
+                                          const exists=(defectTags?.part||[]).some(t=>(t.id||t)===tag);
+                                          if(!exists){
+                                            const next={...defectTags,part:[...(defectTags?.part||[]),{id:tag,label:tag}]};
+                                            setDefectTags(next);
+                                            try{await saveDefectTags(next);}catch(e){}
+                                          }
+                                          toggleTag(tag);
+                                        }} style={{fontSize:8,padding:'2px 5px',borderRadius:4,border:'1px dashed #7C3AED',
+                                          background:'#FAF5FF',color:'#7C3AED',cursor:'pointer',fontWeight:700,fontFamily:'inherit',lineHeight:1.4,marginBottom:4}}>+ 새 #태그</button>
                                         {/* 선택된 태그 미리보기 */}
                                         {(selTypes.length>0||selTags.length>0)&&(
                                           <div style={{display:'flex',flexWrap:'wrap',gap:2}}>
@@ -8747,6 +8769,53 @@ function AdminScreen({onBack}){
                             </div>
                             <div style={{padding:'12px'}}>
                               <div style={{fontSize:10,color:'var(--text-sm)',marginBottom:12}}>각 공정 단계별 시공 사진/영상을 등록합니다. 고객 화면에 동일하게 표시됩니다.</div>
+                              {/* 공정 전체 설명 이미지 (overview) */}
+                              <div style={{marginBottom:14,padding:10,borderRadius:10,border:'1.5px dashed var(--green)',background:'var(--green-l)'}}>
+                                <div style={{fontSize:11,fontWeight:700,color:'var(--green)',marginBottom:6}}>📋 공정 전체 설명 이미지 (공정순서 전 1장)</div>
+                                <div style={{fontSize:9,color:'var(--text-sm)',marginBottom:8}}>공정 단계 소개 전에 전체 공정을 요약하는 이미지를 1장 등록할 수 있습니다.</div>
+                                {(()=>{
+                                  const ovImg=(casePhotos[key]||{}).processOverviewImage||'';
+                                  return(
+                                    <div>
+                                      {ovImg&&(
+                                        <div style={{borderRadius:8,overflow:'hidden',border:'1.5px solid var(--green)',marginBottom:8,position:'relative'}}>
+                                          <img src={ovImg} style={{width:'100%',display:'block',maxHeight:300,objectFit:'contain',background:'#f9fafb'}} alt="공정 전체 설명"/>
+                                          <button onClick={()=>{const up=JSON.parse(JSON.stringify(casePhotos));if(up[key])up[key].processOverviewImage='';setCasePhotos(up);}}
+                                            style={{position:'absolute',top:6,right:6,width:24,height:24,borderRadius:'50%',border:'none',background:'rgba(0,0,0,.6)',color:'#fff',fontSize:12,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+                                        </div>
+                                      )}
+                                      <div style={{display:'flex',gap:6}}
+                                        onDragOver={(e)=>{e.preventDefault();e.currentTarget.style.background='#D1FAE5';e.currentTarget.style.borderRadius='8px';}}
+                                        onDragLeave={(e)=>{e.preventDefault();e.currentTarget.style.background='';}}
+                                        onDrop={(e)=>{e.preventDefault();e.currentTarget.style.background='';
+                                          const f=e.dataTransfer?.files?.[0];if(!f||!f.type.startsWith('image/'))return;
+                                          const reader=new FileReader();
+                                          reader.onload=(ev)=>{const img=new Image();img.onload=()=>{const MAX=1200;let w=img.width,h=img.height;
+                                            if(w>MAX||h>MAX){const r=Math.min(MAX/w,MAX/h);w=Math.round(w*r);h=Math.round(h*r);}
+                                            const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
+                                            const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={};up[key].processOverviewImage=c.toDataURL('image/jpeg',0.85);setCasePhotos(up);
+                                          };img.src=ev.target.result;};reader.readAsDataURL(f);
+                                        }}>
+                                        <input value={ovImg.startsWith('data:')?'':ovImg} placeholder="이미지 URL 또는 파일을 끌어서 놓기"
+                                          onChange={e=>{const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={};up[key].processOverviewImage=e.target.value;setCasePhotos(up);}}
+                                          style={{flex:1,padding:'7px 10px',borderRadius:8,border:'1px solid var(--border)',fontSize:11,fontFamily:'inherit',boxSizing:'border-box'}}/>
+                                        <input type="file" accept="image/*" id={`pov-${key}`} style={{display:'none'}}
+                                          onChange={e=>{
+                                            const file=e.target.files[0];if(!file)return;
+                                            const reader=new FileReader();
+                                            reader.onload=(ev)=>{const img=new Image();img.onload=()=>{const MAX=1200;let w=img.width,h=img.height;
+                                              if(w>MAX||h>MAX){const r=Math.min(MAX/w,MAX/h);w=Math.round(w*r);h=Math.round(h*r);}
+                                              const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
+                                              const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={};up[key].processOverviewImage=c.toDataURL('image/jpeg',0.85);setCasePhotos(up);
+                                            };img.src=ev.target.result;};reader.readAsDataURL(file);e.target.value='';
+                                          }}/>
+                                        <button onClick={()=>document.getElementById(`pov-${key}`)?.click()}
+                                          style={{padding:'0 10px',borderRadius:8,border:'1px solid var(--border)',background:'#f3f4f6',fontSize:16,cursor:'pointer',lineHeight:1,fontFamily:'inherit'}}>📁</button>
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+                              </div>
                               {/* 고객용 타임라인 UI 동일 */}
                               <div style={{display:'flex',flexDirection:'column',gap:0}}>
                                 {mc.process.map((step,si)=>{
@@ -8769,8 +8838,21 @@ function AdminScreen({onBack}){
                                         </div>
                                         {!isLast&&<div style={{width:2,flex:1,minHeight:8,background:'var(--border)',opacity:.5,margin:'2px 0'}}/>}
                                       </div>
-                                      {/* 콘텐츠 우측 */}
-                                      <div style={{flex:1,paddingLeft:8,paddingBottom:isLast?0:14}}>
+                                      {/* 콘텐츠 우측 — 드래그앤드롭 지원 */}
+                                      <div style={{flex:1,paddingLeft:8,paddingBottom:isLast?0:14}}
+                                        onDragOver={(e)=>{e.preventDefault();e.stopPropagation();e.currentTarget.style.background='var(--green-l)';e.currentTarget.style.borderRadius='8px';}}
+                                        onDragLeave={(e)=>{e.preventDefault();e.stopPropagation();e.currentTarget.style.background='';}}
+                                        onDrop={(e)=>{e.preventDefault();e.stopPropagation();e.currentTarget.style.background='';
+                                          const f=e.dataTransfer?.files?.[0];if(!f||!f.type.startsWith('image/'))return;
+                                          const reader=new FileReader();
+                                          reader.onload=(ev)=>{const img=new Image();img.onload=()=>{const MAX=900;let w=img.width,h=img.height;
+                                            if(w>MAX||h>MAX){const r=Math.min(MAX/w,MAX/h);w=Math.round(w*r);h=Math.round(h*r);}
+                                            const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
+                                            const up=JSON.parse(JSON.stringify(casePhotos));if(!up[key])up[key]={};if(!up[key].processSteps)up[key].processSteps=[];
+                                            while(up[key].processSteps.length<=si)up[key].processSteps.push({});
+                                            up[key].processSteps[si]={...up[key].processSteps[si],url:c.toDataURL('image/jpeg',0.85)};setCasePhotos(up);
+                                          };img.src=ev.target.result;};reader.readAsDataURL(f);
+                                        }}>
                                         <div style={{fontSize:12,fontWeight:700,color:'var(--navy)',marginBottom:4,paddingTop:5}}>{step}</div>
                                         {stepDesc&&<div style={{fontSize:10,color:'var(--text-sm)',marginBottom:6,lineHeight:1.4}}>{stepDesc}</div>}
                                         {/* 미리보기 */}
@@ -8786,6 +8868,7 @@ function AdminScreen({onBack}){
                                             )}
                                           </div>
                                         )}
+                                        {!stepData.url&&<div style={{fontSize:9,color:'var(--text-sm)',opacity:.6,marginBottom:4}}>📁 이미지를 끌어서 놓거나 아래에서 선택하세요</div>}
                                         {/* URL 입력 */}
                                         <div style={{display:'flex',gap:6}}>
                                           <input value={stepData.url||''} placeholder="시공 사진 URL 또는 YouTube URL"

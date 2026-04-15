@@ -4894,9 +4894,9 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     })()}
                     {/* ── 섹션 2: 해당 자재 하자유형 (명칭 어드민 설정) ── */}
                     {(()=>{
-                      const s2Photos=(photos.causeSection2||[]).filter(s=>s);
+                      const s2Photos=[...(photos.causeSection2||[]),...(photos.defectTypePhotos||[])].filter(s=>s);
                       if(s2Photos.length===0)return null;
-                      const s2Label=photos.causeSection2Label||'해당 자재 하자유형';
+                      const s2Label=photos.causeSection2Label||photos.defectTypeTitle||'해당 자재 하자유형';
                       return(
                         <div style={{marginTop:14}}>
                           <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:8}}>
@@ -4913,7 +4913,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     })()}
                     {/* ── 섹션 3: 하자발생에 따른 기존 처리방식 ── */}
                     {(()=>{
-                      const s3Photos=(photos.causeSection3||[]).filter(s=>s);
+                      const s3Photos=[...(photos.causeSection3||[]),...(photos.existingFixPhotos||[])].filter(s=>s);
                       if(s3Photos.length===0)return null;
                       return(
                         <div style={{marginTop:14}}>
@@ -6030,6 +6030,43 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                                 </div>
                               )}
 
+                            </div>
+                          );
+                        })()}
+                        {/* ── 섹션 2-2: 해당 자재 하자유형 ── */}
+                        {(()=>{
+                          const s2P=[...(mCasePhotos.causeSection2||[]),...(mCasePhotos.defectTypePhotos||[])].filter(s=>s);
+                          if(!s2P.length)return null;
+                          const s2L=mCasePhotos.causeSection2Label||mCasePhotos.defectTypeTitle||'해당 자재 하자유형';
+                          return(
+                            <div style={{marginTop:14}}>
+                              <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:8}}>
+                                <div style={{width:5,height:5,borderRadius:'50%',background:'var(--gold)',opacity:.8}}/>
+                                <span style={{fontSize:10,fontWeight:700,color:'var(--navy)',letterSpacing:'.04em'}}>🔍 {s2L}</span>
+                              </div>
+                              <div style={{marginLeft:-14,marginRight:-14}}>
+                                <div style={{fontSize:9,fontWeight:700,color:'var(--text-sm)',marginBottom:6,letterSpacing:'.04em',paddingLeft:14}}>📷 사진 ({s2P.length}장)</div>
+                                <ProposalSlideViewer slides={s2P} size="normal"
+                                  onSlideClick={(i)=>setZoomPhoto({photos:s2P.map(s=>({src:s,alt:'하자유형'})),index:i})}/>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                        {/* ── 섹션 2-3: 하자발생에 따른 기존 처리방식 ── */}
+                        {(()=>{
+                          const s3P=[...(mCasePhotos.causeSection3||[]),...(mCasePhotos.existingFixPhotos||[])].filter(s=>s);
+                          if(!s3P.length)return null;
+                          return(
+                            <div style={{marginTop:14}}>
+                              <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:8}}>
+                                <div style={{width:5,height:5,borderRadius:'50%',background:'#7C3AED',opacity:.8}}/>
+                                <span style={{fontSize:10,fontWeight:700,color:'var(--navy)',letterSpacing:'.04em'}}>🔧 하자발생에 따른 기존 처리방식</span>
+                              </div>
+                              <div style={{marginLeft:-14,marginRight:-14}}>
+                                <div style={{fontSize:9,fontWeight:700,color:'var(--text-sm)',marginBottom:6,letterSpacing:'.04em',paddingLeft:14}}>📷 사진 ({s3P.length}장)</div>
+                                <ProposalSlideViewer slides={s3P} size="normal"
+                                  onSlideClick={(i)=>setZoomPhoto({photos:s3P.map(s=>({src:s,alt:'기존 처리방식'})),index:i})}/>
+                              </div>
                             </div>
                           );
                         })()}

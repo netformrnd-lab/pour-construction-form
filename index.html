@@ -3821,27 +3821,34 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       {/* 제안서 / 가이드북 뷰어 오버레이 */}
       {pdfViewer&&(
         <div style={{position:'fixed',inset:0,zIndex:2000,background:'#000',display:'flex',flexDirection:'column'}}>
-          {/* 상단 바 */}
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 14px',background:'#111827',flexShrink:0,gap:8}}>
-            <button onClick={closeDoc} style={{display:'flex',alignItems:'center',gap:6,padding:'9px 16px',borderRadius:10,border:'none',background:'rgba(255,255,255,.1)',color:'#fff',fontSize:13,fontWeight:800,cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>
-              ← 뒤로가기
+          {/* 상단 고정 바 */}
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 14px',background:'#111827',flexShrink:0,gap:8,zIndex:10,boxShadow:'0 2px 12px rgba(0,0,0,.5)'}}>
+            <button onClick={closeDoc} style={{display:'flex',alignItems:'center',gap:5,padding:'8px 14px',borderRadius:10,border:'none',background:'rgba(255,255,255,.1)',color:'#fff',fontSize:12,fontWeight:800,cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>
+              ← 뒤로
             </button>
-            {/* 중앙: 현재 뷰어 타이틀 + 전환 버튼 */}
-            <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
-              <span style={{fontSize:13,fontWeight:700,color:'rgba(255,255,255,.75)'}}>{pdfViewer.icon} {pdfViewer.title}</span>
+            <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:6,overflow:'hidden'}}>
+              <span style={{fontSize:12,fontWeight:700,color:'rgba(255,255,255,.75)',whiteSpace:'nowrap'}}>{pdfViewer.icon} {pdfViewer.title}</span>
               {pdfViewer.switchTo&&(
-                <button onClick={()=>setPdfViewer(pdfViewer.switchTo)}
-                  style={{padding:'5px 12px',borderRadius:8,border:'1px solid rgba(255,255,255,.2)',background:'rgba(255,255,255,.08)',color:'rgba(255,255,255,.6)',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>
+                <button onClick={()=>setPdfViewer({...pdfViewer.switchTo,switchTo:{...pdfViewer,switchTo:pdfViewer.switchTo}})}
+                  style={{padding:'5px 12px',borderRadius:8,border:'1px solid rgba(255,255,255,.25)',background:'rgba(255,255,255,.1)',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',flexShrink:0}}>
                   {pdfViewer.switchTo.icon} {pdfViewer.switchTo.title} →
                 </button>
               )}
             </div>
             <a href={pdfViewer.url} target="_blank" rel="noopener noreferrer"
-              style={{padding:'9px 14px',borderRadius:10,border:'1px solid rgba(255,255,255,.2)',background:'none',color:'rgba(255,255,255,.75)',fontSize:11,fontWeight:700,textDecoration:'none',flexShrink:0,whiteSpace:'nowrap'}}>
+              style={{padding:'8px 14px',borderRadius:10,border:'1px solid rgba(255,255,255,.25)',background:'rgba(255,255,255,.08)',color:'#fff',fontSize:11,fontWeight:700,textDecoration:'none',flexShrink:0,whiteSpace:'nowrap'}}>
               새 탭 ↗
             </a>
           </div>
-          <iframe src={pdfViewer.url} style={{flex:1,border:'none',width:'100%'}} title={pdfViewer.title}/>
+          {/* 콘텐츠: iframe */}
+          <div style={{flex:1,position:'relative',overflow:'hidden'}}>
+            <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:12,color:'rgba(255,255,255,.4)'}}>
+              <div style={{fontSize:24,animation:'spin 1s linear infinite'}}>⏳</div>
+              <div style={{fontSize:12,fontWeight:600}}>페이지 로딩 중...</div>
+            </div>
+            <iframe src={pdfViewer.url} style={{position:'relative',zIndex:1,width:'100%',height:'100%',border:'none',background:'#fff'}}
+              title={pdfViewer.title} allow="fullscreen" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"/>
+          </div>
         </div>
       )}
       {zoomPhoto&&<PhotoZoomModal photos={zoomPhoto.photos} index={zoomPhoto.index} onClose={()=>setZoomPhoto(null)}/>}
@@ -8443,6 +8450,62 @@ function AdminScreen({onBack}){
     finally{setZipDownloading(false);}
   };
 
+  /* ── 다운로드 모달 (선택/필터 다운로드) ── */
+  const [dlModal,setDlModal]=useState(false);
+  const [dlSelected,setDlSelected]=useState(new Set());
+  const [dlFilter,setDlFilter]=useState({day:'전체',staff:'전체',status:'전체',hasImage:false});
+  const openDlModal=()=>{setDlModal(true);setDlSelected(new Set(display.map(l=>l.id)));setDlFilter({day:filterDay,staff:filterStaff,status:filterStatus,hasImage:false});};
+  const dlFiltered=activeLeads.filter(l=>{
+    if(dlFilter.day!=='전체'&&l.day!==dlFilter.day)return false;
+    if(dlFilter.staff!=='전체'&&l.staff!==dlFilter.staff)return false;
+    if(dlFilter.status!=='전체'&&(l.status||'신규')!==dlFilter.status)return false;
+    if(dlFilter.hasImage&&!(l.memoImgs?.length>0||l.businessCard?.front||l.fieldPhotos?.length>0))return false;
+    return true;
+  });
+  const dlSelectedLeads=dlFiltered.filter(l=>dlSelected.has(l.id));
+  const dlToggle=(id)=>setDlSelected(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);return n;});
+  const dlSelectAll=()=>setDlSelected(new Set(dlFiltered.map(l=>l.id)));
+  const dlSelectNone=()=>setDlSelected(new Set());
+  const dlDownExcel=()=>{downloadExcel(dlSelectedLeads,'선택_'+dlSelectedLeads.length+'건');setDlModal(false);};
+  const dlDownPdfZip=async()=>{
+    if(!window.JSZip||!window.jspdf){alert('라이브러리 로딩 중입니다.');return;}
+    setZipDownloading(true);
+    try{
+      const zip=new JSZip();
+      const targets=dlSelectedLeads.filter(l=>(l.memoImgs?.length>0)||(l.businessCard?.front)||(l.fieldPhotos?.length>0));
+      for(const lead of targets){
+        try{const doc=generateLeadPdf(lead);
+          if(doc){zip.file(`${(lead.name||'unknown').replace(/[^\uAC00-\uD7A3a-zA-Z0-9]/g,'_')}_${(lead.phone||'').replace(/[^0-9]/g,'')}.pdf`,doc.output('arraybuffer'));}
+        }catch(e){console.warn('[PDF]',lead.name,e);}
+      }
+      if(Object.keys(zip.files).length===0){alert('이미지가 있는 고객이 없습니다.');setZipDownloading(false);return;}
+      const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`POUR_PDF_${targets.length}건.zip`;a.click();URL.revokeObjectURL(a.href);
+    }catch(e){alert('ZIP 생성 실패');console.error(e);}
+    finally{setZipDownloading(false);setDlModal(false);}
+  };
+  const dlDownAllZip=async()=>{
+    if(!window.JSZip||!window.jspdf||!window.XLSX){alert('라이브러리 로딩 중입니다.');return;}
+    setZipDownloading(true);
+    try{
+      const zip=new JSZip();
+      /* 엑셀 */
+      const rows=dlSelectedLeads.map((l,i)=>({'번호':i+1,'이름':l.name||'','전화':l.phone||'','소속':l.company||'','건물':l.building||'','상태':l.status||'신규','담당자':l.staff||'','상담일':l.day||'','공법':(l.problems||[]).join(',')||l.problem||'','메모':l.memo||'','2차액션':(l.nextActions||[]).join(','),'명함':l.businessCard?.front?'O':'','낙서장':(l.memoImgs||[]).length+'p','현장사진':(l.fieldPhotos||[]).length+'장'}));
+      const ws=XLSX.utils.json_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'고객DB');
+      zip.file('POUR_고객DB.xlsx',XLSX.write(wb,{type:'array',bookType:'xlsx'}));
+      /* PDF */
+      const targets=dlSelectedLeads.filter(l=>(l.memoImgs?.length>0)||(l.businessCard?.front)||(l.fieldPhotos?.length>0));
+      for(const lead of targets){
+        try{const doc=generateLeadPdf(lead);
+          if(doc)zip.file(`PDF/${(lead.name||'unknown').replace(/[^\uAC00-\uD7A3a-zA-Z0-9]/g,'_')}_${(lead.phone||'').replace(/[^0-9]/g,'')}.pdf`,doc.output('arraybuffer'));
+        }catch(e){console.warn('[PDF]',lead.name,e);}
+      }
+      const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`POUR_전체_${dlSelectedLeads.length}건.zip`;a.click();URL.revokeObjectURL(a.href);
+    }catch(e){alert('ZIP 생성 실패');console.error(e);}
+    finally{setZipDownloading(false);setDlModal(false);}
+  };
+
   // 1시간마다 자동 엑셀 다운로드 (ref로 최신 데이터 참조)
   const latestLeadsRef=React.useRef(activeLeads);
   latestLeadsRef.current=activeLeads;
@@ -8475,8 +8538,7 @@ function AdminScreen({onBack}){
         <div className="hdr-r">
           <button onClick={()=>setShowPinChange(true)} style={{background:'rgba(255,255,255,.12)',border:'none',borderRadius:7,padding:'6px 12px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',marginRight:4}}>🔑 비번</button>
           <button onClick={openSettings} style={{background:'rgba(255,255,255,.18)',border:'1px solid rgba(255,255,255,.25)',borderRadius:7,padding:'6px 12px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',marginRight:4}}>⚙️ 설정</button>
-          <button onClick={downloadExcelAll} style={{background:'rgba(255,255,255,.12)',border:'none',borderRadius:7,padding:'6px 12px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',marginRight:4}}>📥 엑셀</button>
-          <button onClick={downloadAllZip} disabled={zipDownloading} style={{background:zipDownloading?'rgba(255,255,255,.06)':'rgba(124,58,237,.4)',border:'1px solid rgba(124,58,237,.5)',borderRadius:7,padding:'6px 12px',color:'#fff',fontSize:11,fontWeight:700,cursor:zipDownloading?'wait':'pointer',marginRight:4,opacity:zipDownloading?.5:1}}>{zipDownloading?'⏳ 생성중...':'📦 전체ZIP'}</button>
+          <button onClick={openDlModal} style={{background:'rgba(255,255,255,.12)',border:'none',borderRadius:7,padding:'6px 12px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',marginRight:4}}>📥 다운로드</button>
           <button className="btn-back" onClick={onBack}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg>
           </button>
@@ -10186,6 +10248,82 @@ function AdminScreen({onBack}){
         onClose={()=>setSmsTarget(null)} onToast={(msg,type)=>setToast({msg,type})}/>}
       {toast&&<SmsToast message={toast.msg} type={toast.type} onDone={()=>setToast(null)}/>}
       {showPinChange&&<PinChangeModal onClose={()=>setShowPinChange(false)} onDone={()=>{setShowPinChange(false);setToast({type:'success',msg:'비밀번호가 변경되었습니다'});setTimeout(()=>setToast(null),2500);}}/>}
+
+      {/* ── 다운로드 모달 ── */}
+      {dlModal&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.6)',zIndex:2000,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)'}} onClick={()=>setDlModal(false)}>
+          <div style={{background:'#fff',borderRadius:16,width:'min(520px,95vw)',maxHeight:'85vh',overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:'0 12px 40px rgba(0,0,0,.25)'}} onClick={e=>e.stopPropagation()}>
+            {/* 헤더 */}
+            <div style={{padding:'16px 20px',borderBottom:'1.5px solid var(--border)',flexShrink:0}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+                <div style={{fontSize:16,fontWeight:900}}>📥 다운로드</div>
+                <button onClick={()=>setDlModal(false)} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:'var(--text-sm)'}}>✕</button>
+              </div>
+              {/* 필터 */}
+              <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:8}}>
+                {['전체',...DAYS].map(d=><button key={d} onClick={()=>setDlFilter(p=>({...p,day:d}))} style={{padding:'4px 10px',borderRadius:6,border:`1px solid ${dlFilter.day===d?'var(--navy)':'var(--border)'}`,background:dlFilter.day===d?'var(--navy)':'#fff',color:dlFilter.day===d?'#fff':'var(--text)',fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>{d}</button>)}
+              </div>
+              <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:8}}>
+                {['전체',...staffList].map(s=><button key={s} onClick={()=>setDlFilter(p=>({...p,staff:s}))} style={{padding:'4px 10px',borderRadius:6,border:`1px solid ${dlFilter.staff===s?'var(--accent)':'var(--border)'}`,background:dlFilter.staff===s?'var(--blue-l)':'#fff',color:dlFilter.staff===s?'var(--accent)':'var(--text)',fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>{s}</button>)}
+              </div>
+              <div style={{display:'flex',gap:4,flexWrap:'wrap',alignItems:'center'}}>
+                {['전체',...STATUS_OPTIONS].map(s=><button key={s} onClick={()=>setDlFilter(p=>({...p,status:s}))} style={{padding:'4px 8px',borderRadius:6,border:`1px solid ${dlFilter.status===s?(STATUS_COLOR[s]||'var(--border)'):'var(--border)'}`,background:dlFilter.status===s?'#f8f8ff':'#fff',color:dlFilter.status===s?(STATUS_COLOR[s]||'var(--text)'):'var(--text-sm)',fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>{s}</button>)}
+                <label style={{display:'flex',alignItems:'center',gap:4,marginLeft:8,cursor:'pointer'}}>
+                  <input type="checkbox" checked={dlFilter.hasImage} onChange={e=>setDlFilter(p=>({...p,hasImage:e.target.checked}))} style={{accentColor:'#7C3AED'}}/>
+                  <span style={{fontSize:10,fontWeight:700,color:'#7C3AED'}}>이미지 있는 고객만</span>
+                </label>
+              </div>
+            </div>
+            {/* 선택 바 */}
+            <div style={{padding:'8px 20px',background:'var(--bg)',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
+              <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                <button onClick={dlSelectAll} style={{padding:'4px 10px',borderRadius:6,border:'1px solid var(--accent)',background:'var(--blue-l)',color:'var(--accent)',fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>전체선택</button>
+                <button onClick={dlSelectNone} style={{padding:'4px 10px',borderRadius:6,border:'1px solid var(--border)',background:'#fff',color:'var(--text-sm)',fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>선택해제</button>
+              </div>
+              <span style={{fontSize:11,fontWeight:700,color:'var(--accent)'}}>{dlSelectedLeads.length}건 선택 / {dlFiltered.length}건</span>
+            </div>
+            {/* 목록 */}
+            <div style={{flex:1,overflowY:'auto',minHeight:0}}>
+              {dlFiltered.map(l=>{
+                const sel=dlSelected.has(l.id);
+                const hasImg=(l.memoImgs?.length>0)||(l.businessCard?.front)||(l.fieldPhotos?.length>0);
+                return(
+                  <div key={l.id} onClick={()=>dlToggle(l.id)} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 20px',borderBottom:'1px solid var(--border-s)',cursor:'pointer',background:sel?'#EFF6FF':'#fff',transition:'background .1s'}}>
+                    <input type="checkbox" checked={sel} readOnly style={{accentColor:'var(--accent)',width:16,height:16,flexShrink:0}}/>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:'flex',alignItems:'center',gap:6}}>
+                        <span style={{fontSize:13,fontWeight:800}}>{l.name||'이름없음'}</span>
+                        <span style={{fontSize:11,color:'var(--text-sm)'}}>{l.phone||''}</span>
+                        <span style={{fontSize:9,padding:'1px 6px',borderRadius:4,background:STATUS_COLOR[l.status||'신규']||'#9CA3AF',color:'#fff',fontWeight:700}}>{l.status||'신규'}</span>
+                      </div>
+                      <div style={{fontSize:10,color:'var(--text-md)'}}>
+                        {l.staff||'-'} · {l.day||'-'} · {l.building||'-'}
+                        {hasImg&&<span style={{marginLeft:6,color:'#7C3AED',fontWeight:700}}>{l.memoImgs?.length>0?'🎨'+l.memoImgs.length:''}{l.businessCard?.front?' 📇':''}{l.fieldPhotos?.length>0?' 📸'+l.fieldPhotos.length:''}</span>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {dlFiltered.length===0&&<div style={{padding:30,textAlign:'center',color:'var(--text-sm)',fontSize:13}}>필터 조건에 맞는 고객이 없습니다</div>}
+            </div>
+            {/* 하단 다운로드 버튼 */}
+            <div style={{padding:'14px 20px',borderTop:'1.5px solid var(--border)',flexShrink:0,display:'flex',gap:8,background:'var(--bg)'}}>
+              <button onClick={dlDownExcel} disabled={dlSelectedLeads.length===0}
+                style={{flex:1,padding:'12px 0',borderRadius:10,border:'none',background:dlSelectedLeads.length>0?'#059669':'#ccc',color:'#fff',fontSize:13,fontWeight:800,cursor:dlSelectedLeads.length>0?'pointer':'not-allowed',fontFamily:'inherit'}}>
+                📥 엑셀 ({dlSelectedLeads.length}건)
+              </button>
+              <button onClick={dlDownPdfZip} disabled={dlSelectedLeads.length===0||zipDownloading}
+                style={{flex:1,padding:'12px 0',borderRadius:10,border:'none',background:dlSelectedLeads.length>0?'#7C3AED':'#ccc',color:'#fff',fontSize:13,fontWeight:800,cursor:dlSelectedLeads.length>0?'pointer':'not-allowed',fontFamily:'inherit',opacity:zipDownloading?.5:1}}>
+                {zipDownloading?'⏳ 생성중...':'📄 PDF ZIP'}
+              </button>
+              <button onClick={dlDownAllZip} disabled={dlSelectedLeads.length===0||zipDownloading}
+                style={{flex:1,padding:'12px 0',borderRadius:10,border:'none',background:dlSelectedLeads.length>0?'var(--navy)':'#ccc',color:'#fff',fontSize:13,fontWeight:800,cursor:dlSelectedLeads.length>0?'pointer':'not-allowed',fontFamily:'inherit',opacity:zipDownloading?.5:1}}>
+                {zipDownloading?'⏳ 생성중...':'📦 전체ZIP'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

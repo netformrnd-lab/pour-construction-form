@@ -8980,26 +8980,31 @@ td{padding:8px 12px;font-size:14px;border:1px solid #e5e7eb}
               placeholder="이름·전화·메모 검색…"
               style={{width:'100%',padding:'9px 14px',border:'1.5px solid var(--border)',borderRadius:10,fontSize:13,fontWeight:600,outline:'none',boxSizing:'border-box',marginBottom:8}}
             />
-            <div style={{display:'flex',gap:6,overflowX:'auto',paddingBottom:2}}>
-              {/* 날짜 */}
-              {['전체',...DAYS].map(d=>(
-                <button key={d} onClick={()=>setFilterDay(d)} style={{flexShrink:0,padding:'5px 10px',borderRadius:20,border:'none',background:filterDay===d?'var(--navy)':'var(--bg)',color:filterDay===d?'#fff':'var(--text)',fontSize:11,fontWeight:700,cursor:'pointer'}}>{d}</button>
-              ))}
-              <div style={{width:1,background:'var(--border)',flexShrink:0,margin:'0 2px'}}/>
-              {/* 담당자 */}
-              {staffList.length>0&&['전체',...staffList].map(s=>(
-                <button key={'s'+s} onClick={()=>setFilterStaff(s)} style={{flexShrink:0,padding:'5px 10px',borderRadius:20,border:'none',background:filterStaff===s?'#7C3AED':'var(--bg)',color:filterStaff===s?'#fff':'var(--text)',fontSize:11,fontWeight:700,cursor:'pointer'}}>{s}</button>
-              ))}
-              <div style={{width:1,background:'var(--border)',flexShrink:0,margin:'0 2px'}}/>
-              {/* 상태 */}
-              {['전체',...STATUS_OPTIONS].map(s=>(
-                <button key={'st'+s} onClick={()=>setFilterStatus(s)} style={{flexShrink:0,padding:'5px 10px',borderRadius:20,border:'none',background:filterStatus===s?STATUS_COLOR[s]||'var(--navy)':'var(--bg)',color:filterStatus===s?'#fff':'var(--text)',fontSize:11,fontWeight:700,cursor:'pointer'}}>{s}</button>
-              ))}
-              <div style={{width:1,background:'var(--border)',flexShrink:0,margin:'0 2px'}}/>
+            {/* 1행: 메모 + 상태 필터 */}
+            <div style={{display:'flex',gap:5,overflowX:'auto',paddingBottom:4}}>
               {/* 메모 필터 */}
-              {[{k:'전체',label:'전체',c:'var(--navy)'},{k:'미작성',label:'메모미작성',c:'#DC2626'},{k:'완료',label:'메모완료',c:'#059669'}].map(({k,label,c})=>(
-                <button key={'m'+k} onClick={()=>setFilterMemo(k)} style={{flexShrink:0,padding:'5px 10px',borderRadius:20,border:'none',background:filterMemo===k?c:'var(--bg)',color:filterMemo===k?'#fff':'var(--text)',fontSize:11,fontWeight:700,cursor:'pointer'}}>{label}</button>
+              {[{k:'미작성',label:'메모미작성',c:'#DC2626'},{k:'완료',label:'메모완료',c:'#059669'}].map(({k,label,c})=>(
+                <button key={'m'+k} onClick={()=>setFilterMemo(prev=>prev===k?'전체':k)} style={{flexShrink:0,padding:'5px 10px',borderRadius:20,border:filterMemo===k?'none':`1.5px solid ${c}40`,background:filterMemo===k?c:'#fff',color:filterMemo===k?'#fff':c,fontSize:11,fontWeight:700,cursor:'pointer'}}>{label}</button>
               ))}
+              <div style={{width:1,background:'var(--border)',flexShrink:0,margin:'0 2px'}}/>
+              {/* 상태 필터 */}
+              {STATUS_OPTIONS.map(s=>(
+                <button key={'st'+s} onClick={()=>setFilterStatus(prev=>prev===s?'전체':s)} style={{flexShrink:0,padding:'5px 10px',borderRadius:20,border:filterStatus===s?'none':`1.5px solid ${STATUS_COLOR[s]||'var(--border)'}40`,background:filterStatus===s?STATUS_COLOR[s]||'var(--navy)':'#fff',color:filterStatus===s?'#fff':STATUS_COLOR[s]||'var(--text)',fontSize:11,fontWeight:700,cursor:'pointer'}}>{s}</button>
+              ))}
+            </div>
+            {/* 2행: 날짜 + 담당자 필터 */}
+            <div style={{display:'flex',gap:5,overflowX:'auto',paddingBottom:2,marginTop:4}}>
+              <span style={{fontSize:10,fontWeight:600,color:'var(--text-sm)',flexShrink:0,display:'flex',alignItems:'center',marginRight:2}}>날짜</span>
+              {['전체',...DAYS].map(d=>(
+                <button key={d} onClick={()=>setFilterDay(d)} style={{flexShrink:0,padding:'4px 9px',borderRadius:16,border:'none',background:filterDay===d?'var(--navy)':'var(--bg)',color:filterDay===d?'#fff':'var(--text)',fontSize:10,fontWeight:700,cursor:'pointer'}}>{d==='전체'?'전체':d.replace(/.*\//,'').replace(/\(.*\)/,'')}</button>
+              ))}
+              {staffList.length>0&&<>
+                <div style={{width:1,background:'var(--border)',flexShrink:0,margin:'0 2px'}}/>
+                <span style={{fontSize:10,fontWeight:600,color:'var(--text-sm)',flexShrink:0,display:'flex',alignItems:'center',marginRight:2}}>담당</span>
+                {['전체',...staffList].map(s=>(
+                  <button key={'s'+s} onClick={()=>setFilterStaff(s)} style={{flexShrink:0,padding:'4px 9px',borderRadius:16,border:'none',background:filterStaff===s?'#7C3AED':'var(--bg)',color:filterStaff===s?'#fff':'var(--text)',fontSize:10,fontWeight:700,cursor:'pointer'}}>{s}</button>
+                ))}
+              </>}
             </div>
           </div>
 

@@ -4952,10 +4952,12 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               );
             })()}
 
-            {/* ── 공법 소개 사진 (시공공정 위) ── */}
+            {/* ── 공법 소개 사진 (시공공정 위, 복수 이미지 지원) ── */}
             {(()=>{
-              const introImg=(casePhotos[problem?.id]||{}).methodIntroImage;
-              if(!introImg)return null;
+              const cp=(casePhotos[problem?.id]||{});
+              const introImgs=cp.methodIntroImages||(cp.methodIntroImage?[cp.methodIntroImage]:[]);
+              const filtered=introImgs.filter(s=>s);
+              if(filtered.length===0)return null;
               return(
                 <div style={{marginBottom:16,borderRadius:16,overflow:'hidden',
                   border:'1px solid var(--border)',boxShadow:'var(--shadow)',background:'var(--card)'}}>
@@ -4965,9 +4967,13 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                       <div style={{width:6,height:6,borderRadius:'50%',background:'var(--accent)',flexShrink:0}}/>
                       <span style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>POUR공법 소개</span>
                     </div>
-                    <div style={{borderRadius:10,overflow:'hidden',border:'1px solid var(--border)'}}>
-                      <img src={introImg} style={{width:'100%',display:'block'}} alt="공법 소개"/>
-                    </div>
+                    {filtered.length===1?(
+                      <div style={{borderRadius:10,overflow:'hidden',border:'1px solid var(--border)'}}>
+                        <img src={filtered[0]} style={{width:'100%',display:'block'}} alt="공법 소개"/>
+                      </div>
+                    ):(
+                      <ProposalSlideViewer slides={filtered} size="normal"/>
+                    )}
                   </div>
                 </div>
               );
@@ -6072,6 +6078,31 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                       </div>
                     </div>
                   )}
+
+                  {/* ── 공법 소개 사진 (시공공정 위, 가로모드) ── */}
+                  {(()=>{
+                    const introImgs=mCasePhotos.methodIntroImages||(mCasePhotos.methodIntroImage?[mCasePhotos.methodIntroImage]:[]);
+                    const filtered=introImgs.filter(s=>s);
+                    if(filtered.length===0)return null;
+                    return(
+                      <div style={{margin:'14px 14px 0',borderRadius:14,background:'var(--card)',border:'1px solid var(--border)',boxShadow:'var(--shadow)',overflow:'hidden'}}>
+                        <div style={{height:2,background:'linear-gradient(90deg,var(--accent),rgba(37,99,235,.2),transparent)',opacity:.8}}/>
+                        <div style={{padding:'12px 14px 10px'}}>
+                          <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:10}}>
+                            <div style={{width:6,height:6,borderRadius:'50%',background:'var(--accent)',flexShrink:0}}/>
+                            <span style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>POUR공법 소개</span>
+                          </div>
+                          {filtered.length===1?(
+                            <div style={{borderRadius:10,overflow:'hidden',border:'1px solid var(--border)'}}>
+                              <img src={filtered[0]} style={{width:'100%',display:'block'}} alt="공법 소개"/>
+                            </div>
+                          ):(
+                            <ProposalSlideViewer slides={filtered} size="normal"/>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* ── STEP 4. POUR 시공공정 (세로 타임라인 + 자재) ── */}
                   {(mc.process?.length>0||(mc.processGuideImages||[]).length>0)&&(

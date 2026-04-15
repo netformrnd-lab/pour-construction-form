@@ -5286,6 +5286,24 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                           <button key={a} onClick={()=>{
                             const next=on?ntNextActions.filter(x=>x!==a):[...ntNextActions,a];
                             setNtNextActions(next);
+                            /* 2차액션 변경 시 멘트 자동 재생성 */
+                            {
+                              let msg=`${ntName||'고객'}님, POUR솔루션 상담 감사합니다.`;
+                              if(next.length>0){
+                                const docs=next.filter(x=>!x.startsWith('방문'));
+                                const visit=next.find(x=>x.startsWith('방문'));
+                                if(docs.length>0)msg+=`\n\n요청하신 ${docs.join(', ')} 보내드리겠습니다.`;
+                                if(visit)msg+=`\n${visit} 드리겠습니다.`;
+                              }else{msg+='\n맞춤 자료를 보내드리겠습니다.';}
+                              const selLinks=ntSelectedLinks.map(idx=>ntSmsLinks[idx]).filter(Boolean);
+                              if(selLinks.length>0){msg+='\n\n📎 자료 링크:';selLinks.forEach(sl=>{msg+=`\n${sl.label}: ${sl.url}`;});}
+                              msg+=`\n\n문의 1577-6587`;
+                              setNtSmsText(msg);
+                            }
+                            /* Firestore leads 업데이트 */
+                            if(ntSavedLeadId){
+                              db.collection('leads').doc(ntSavedLeadId).update({nextActions:next}).catch(e=>console.warn('[leads] nextActions 업데이트 실패:',e));
+                            }
                           }} style={{padding:'4px 10px',borderRadius:6,fontSize:11,fontWeight:on?700:500,cursor:'pointer',fontFamily:'inherit',
                             border:`1px solid ${on?'#EA580C':'#FED7AA'}`,background:on?'#FFEDD5':'#fff',color:on?'#9A3412':'#C2410C',
                             transition:'all .15s'}}>
@@ -5314,6 +5332,98 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                       </div>
                     ):(
                       <div style={{fontSize:10,color:'var(--text-sm)',opacity:.6}}>촬영된 명함 없음</div>
+                    )}
+                  </div>
+                  {/* 공법 자료 링크 체크 — 명함 아래 배치 */}
+                  <div style={{padding:'10px 14px',background:'var(--blue-l)',borderRadius:10,border:'1px solid var(--blue-m)',marginBottom:8}}>
+                    <div style={{fontSize:11,fontWeight:700,color:'var(--blue)',marginBottom:6}}>📎 고객에게 전달할 공법 자료</div>
+                    {ntSmsLinks.length>0?(
+                      <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                        {ntSmsLinks.map((l,i)=>{
+                          const sel=ntSelectedLinks.includes(i);
+                          return(
+                            <label key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'5px 8px',borderRadius:8,background:sel?'#fff':'transparent',cursor:'pointer',fontSize:11}}>
+                              <input type="checkbox" checked={sel} onChange={()=>{
+                                const nextSel=sel?ntSelectedLinks.filter(x=>x!==i):[...ntSelectedLinks,i];
+                                setNtSelectedLinks(nextSel);
+                                /* 링크 선택 변경 시 멘트 자동 재생성 */
+                                let msg=`${ntName||'고객'}님, POUR솔루션 상담 감사합니다.`;
+                                if(ntNextActions.length>0){
+                                  const docs=ntNextActions.filter(a=>!a.startsWith('방문'));
+                                  const visit=ntNextActions.find(a=>a.startsWith('방문'));
+                                  if(docs.length>0)msg+=`\n\n요청하신 ${docs.join(', ')} 보내드리겠습니다.`;
+                                  if(visit)msg+=`\n${visit} 드리겠습니다.`;
+                                }else{msg+='\n맞춤 자료를 보내드리겠습니다.';}
+                                const selectedLinks=nextSel.map(idx=>ntSmsLinks[idx]).filter(Boolean);
+                                if(selectedLinks.length>0){msg+='\n\n📎 자료 링크:';selectedLinks.forEach(sl=>{msg+=`\n${sl.label}: ${sl.url}`;});}
+                                msg+=`\n\n문의 1577-6587`;
+                                setNtSmsText(msg);
+                              }} style={{accentColor:'var(--blue)'}}/>
+                              <span style={{fontWeight:600,color:sel?'var(--blue)':'var(--text-md)',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{l.label}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    ):(
+                      <div style={{fontSize:10,color:'var(--text-sm)',opacity:.6}}>상담 공법에 등록된 자료 링크가 없습니다</div>
+                    )}
+                    <button onClick={()=>setNtShowMethodPicker(v=>!v)}
+                      style={{marginTop:6,padding:'5px 12px',borderRadius:8,border:`1px ${ntShowMethodPicker?'solid':'dashed'} var(--blue)`,background:ntShowMethodPicker?'var(--blue-l)':'transparent',fontSize:11,fontWeight:700,color:'var(--blue)',cursor:'pointer',fontFamily:'inherit'}}>
+                      {ntShowMethodPicker?'▲ 닫기':'+ 다른 공법 자료 추가'}
+                    </button>
+                    {ntShowMethodPicker&&(
+                      <div style={{marginTop:6,maxHeight:250,overflowY:'auto',border:'1px solid var(--border)',borderRadius:10,background:'#fff'}}>
+                        {ALL_PROBLEMS.map(p=>{
+                          const linkTypes=[];
+                          if(p.specUrl)linkTypes.push({suffix:'시방서',url:p.specUrl});
+                          if(p.proposalUrl)linkTypes.push({suffix:'제안서',url:p.proposalUrl});
+                          if(p.caseUrl)linkTypes.push({suffix:'시공사례',url:p.caseUrl});
+                          if(p.guideId)linkTypes.push({suffix:'시공가이드',url:'https://www.poursolution.net/'+p.guideId});
+                          if(linkTypes.length===0)return null;
+                          return(
+                            <div key={p.id||p.label} style={{borderBottom:'1px solid var(--border-s)',padding:'6px 12px'}}>
+                              <div style={{fontSize:11,fontWeight:700,color:'var(--text)',marginBottom:3,display:'flex',alignItems:'center',gap:6}}>
+                                {p.label}
+                                {p.cat&&<span style={{fontSize:9,color:'var(--text-sm)',fontWeight:500}}>{p.cat}</span>}
+                              </div>
+                              <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                                {linkTypes.map(lt=>{
+                                  const fullLabel=p.label+' '+lt.suffix;
+                                  const alreadyAdded=ntSmsLinks.some(l=>l.label===fullLabel);
+                                  return(
+                                    <button key={lt.suffix} disabled={alreadyAdded} onClick={async()=>{
+                                      if(alreadyAdded)return;
+                                      const short=await createShortLink(lt.url,{label:fullLabel,customerName:ntName,staff:staffName});
+                                      const newLink={label:fullLabel,url:short,origUrl:lt.url};
+                                      const newLinks=[...ntSmsLinks,newLink];
+                                      setNtSmsLinks(newLinks);
+                                      const newSelIdx=newLinks.length-1;
+                                      const nextSel=[...ntSelectedLinks,newSelIdx];
+                                      setNtSelectedLinks(nextSel);
+                                      /* 문자 재생성 */
+                                      let msg=`${ntName||'고객'}님, POUR솔루션 상담 감사합니다.`;
+                                      if(ntNextActions.length>0){
+                                        const docs=ntNextActions.filter(a=>!a.startsWith('방문'));
+                                        const visit=ntNextActions.find(a=>a.startsWith('방문'));
+                                        if(docs.length>0)msg+=`\n\n요청하신 ${docs.join(', ')} 보내드리겠습니다.`;
+                                        if(visit)msg+=`\n${visit} 드리겠습니다.`;
+                                      }else{msg+='\n맞춤 자료를 보내드리겠습니다.';}
+                                      const selLinks=nextSel.map(idx=>newLinks[idx]).filter(Boolean);
+                                      if(selLinks.length>0){msg+='\n\n📎 자료 링크:';selLinks.forEach(sl=>{msg+=`\n${sl.label}: ${sl.url}`;});}
+                                      msg+=`\n\n문의 1577-6587`;
+                                      setNtSmsText(msg);
+                                    }} style={{padding:'3px 8px',borderRadius:6,border:`1px solid ${alreadyAdded?'var(--border)':'var(--blue)'}`,
+                                      background:alreadyAdded?'var(--bg)':'var(--blue-l)',color:alreadyAdded?'var(--text-sm)':'var(--blue)',
+                                      fontSize:10,fontWeight:600,cursor:alreadyAdded?'default':'pointer',fontFamily:'inherit',opacity:alreadyAdded?.5:1}}>
+                                      {alreadyAdded?'✓ ':''}{lt.suffix}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        }).filter(Boolean)}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -5356,99 +5466,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                   <div style={{width:'100%',maxWidth:400,padding:'0 10px'}}>
                     <div style={{fontSize:13,fontWeight:700,color:'var(--text)',marginBottom:10}}>수신: {ntPhone?<span style={{color:'var(--blue)'}}>{ntPhone}</span>:<span style={{color:'var(--red)'}}>전화번호 없음</span>} ({ntName})</div>
 
-                    {/* 자료 링크 선택 */}
-                    {ntSmsLinks.length>0&&(
-                      <div style={{marginBottom:12,padding:'10px 14px',background:'var(--blue-l)',borderRadius:10,border:'1px solid var(--blue-m)'}}>
-                        <div style={{fontSize:11,fontWeight:700,color:'var(--blue)',marginBottom:6}}>📎 첨부할 자료 선택</div>
-                        <div style={{display:'flex',flexDirection:'column',gap:4}}>
-                          {ntSmsLinks.map((l,i)=>{
-                            const sel=ntSelectedLinks.includes(i);
-                            return(
-                              <label key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'6px 8px',borderRadius:8,background:sel?'#fff':'transparent',cursor:'pointer',fontSize:12}}>
-                                <input type="checkbox" checked={sel} onChange={()=>{
-                                  const next=sel?ntSelectedLinks.filter(x=>x!==i):[...ntSelectedLinks,i];
-                                  setNtSelectedLinks(next);
-                                  /* 문자 멘트 재생성 */
-                                  let msg=`${ntName}님, POUR솔루션 상담 감사합니다.`;
-                                  if(ntNextActions.length>0){
-                                    const docs=ntNextActions.filter(a=>!a.startsWith('방문'));
-                                    const visit=ntNextActions.find(a=>a.startsWith('방문'));
-                                    if(docs.length>0)msg+=`\n\n요청하신 ${docs.join(', ')} 보내드리겠습니다.`;
-                                    if(visit)msg+=`\n${visit} 드리겠습니다.`;
-                                  }else{msg+='\n맞춤 자료를 보내드리겠습니다.';}
-                                  const selectedLinks=next.map(idx=>ntSmsLinks[idx]);
-                                  if(selectedLinks.length>0){msg+='\n\n📎 자료 링크:';selectedLinks.forEach(sl=>{msg+=`\n${sl.label}: ${sl.url}`;});}
-                                  /* 2차액션은 상단 멘트에만 표시, 하단 후속안내 제거 */
-                                  msg+=`\n\n문의 1577-6587`;
-                                  setNtSmsText(msg);
-                                }} style={{accentColor:'var(--blue)'}}/>
-                                <span style={{fontWeight:600,color:sel?'var(--blue)':'var(--text-md)'}}>{l.label}</span>
-                                <span style={{flex:1,fontSize:10,color:'var(--text-sm)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{l.url.slice(0,40)}...</span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                        <button onClick={()=>setNtShowMethodPicker(v=>!v)}
-                          style={{marginTop:6,padding:'5px 12px',borderRadius:8,border:`1px ${ntShowMethodPicker?'solid':'dashed'} var(--blue)`,background:ntShowMethodPicker?'var(--blue-l)':'transparent',fontSize:11,fontWeight:700,color:'var(--blue)',cursor:'pointer',fontFamily:'inherit'}}>
-                          {ntShowMethodPicker?'▲ 닫기':'+ 다른 공법 자료 추가'}
-                        </button>
-                        {ntShowMethodPicker&&(
-                          <div style={{marginTop:6,maxHeight:300,overflowY:'auto',border:'1px solid var(--border)',borderRadius:10,background:'#fff'}}>
-                            {ALL_PROBLEMS.map(p=>{
-                              /* 공법별 사용 가능한 모든 링크 수집 */
-                              const linkTypes=[];
-                              if(p.specUrl)linkTypes.push({suffix:'시방서',url:p.specUrl});
-                              if(p.proposalUrl)linkTypes.push({suffix:'제안서',url:p.proposalUrl});
-                              if(p.caseUrl)linkTypes.push({suffix:'시공사례',url:p.caseUrl});
-                              if(p.guideId)linkTypes.push({suffix:'시공가이드',url:'https://www.poursolution.net/'+p.guideId});
-                              if(linkTypes.length===0)return null;
-                              return(
-                                <div key={p.id||p.label} style={{borderBottom:'1px solid var(--border-s)',padding:'6px 12px'}}>
-                                  <div style={{fontSize:12,fontWeight:700,color:'var(--text)',marginBottom:4,display:'flex',alignItems:'center',gap:6}}>
-                                    {p.label}
-                                    {p.cat&&<span style={{fontSize:9,color:'var(--text-sm)',fontWeight:500}}>{p.cat}</span>}
-                                  </div>
-                                  <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
-                                    {linkTypes.map(lt=>{
-                                      const fullLabel=p.label+' '+lt.suffix;
-                                      const alreadyAdded=ntSmsLinks.some(l=>l.label===fullLabel);
-                                      return(
-                                        <button key={lt.suffix} disabled={alreadyAdded} onClick={async()=>{
-                                          if(alreadyAdded)return;
-                                          const short=await createShortLink(lt.url,{label:fullLabel,customerName:ntName,staff:staffName});
-                                          const newLink={label:fullLabel,url:short,origUrl:lt.url};
-                                          const newLinks=[...ntSmsLinks,newLink];
-                                          setNtSmsLinks(newLinks);
-                                          setNtSelectedLinks(prev=>[...prev,newLinks.length-1]);
-                                          /* 문자 재생성 */
-                                          let msg=`${ntName}님, POUR솔루션 상담 감사합니다.`;
-                                          if(ntNextActions.length>0){
-                                            const docs=ntNextActions.filter(a=>!a.startsWith('방문'));
-                                            const visit=ntNextActions.find(a=>a.startsWith('방문'));
-                                            if(docs.length>0)msg+=`\n\n요청하신 ${docs.join(', ')} 보내드리겠습니다.`;
-                                            if(visit)msg+=`\n${visit} 드리겠습니다.`;
-                                          }else{msg+='\n맞춤 자료를 보내드리겠습니다.';}
-                                          const actionsText=ntNextActions.length>0?'\n\n📌 2차액션: '+ntNextActions.join(', '):'';
-                                          const selLinks=[...ntSelectedLinks,newLinks.length-1].map(idx=>newLinks[idx]).filter(Boolean);
-                                          if(selLinks.length>0){msg+='\n\n📎 자료 링크:';selLinks.forEach(sl=>{msg+=`\n${sl.label}: ${sl.url}`;});}
-                                          msg+=actionsText;
-                                          msg+=`\n\n문의 1577-6587`;
-                                          setNtSmsText(msg);
-                                        }} style={{padding:'4px 10px',borderRadius:6,border:`1px solid ${alreadyAdded?'var(--border)':'var(--blue)'}`,
-                                          background:alreadyAdded?'var(--bg)':'var(--blue-l)',color:alreadyAdded?'var(--text-sm)':'var(--blue)',
-                                          fontSize:10,fontWeight:600,cursor:alreadyAdded?'default':'pointer',fontFamily:'inherit',opacity:alreadyAdded?.5:1}}>
-                                          {alreadyAdded?'✓ ':''}{lt.suffix}
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              );
-                            }).filter(Boolean)}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    {/* 자료 링크 선택은 명함 아래로 이동됨 */}
 
                     {/* 폰 미리보기 스타일 SMS 편집 */}
                     <div style={{border:'2px solid #333',borderRadius:20,overflow:'hidden',background:'#f2f2f7',marginBottom:6}}>

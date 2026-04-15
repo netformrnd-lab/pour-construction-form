@@ -3840,14 +3840,25 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               새 탭 ↗
             </a>
           </div>
-          {/* 콘텐츠: iframe */}
-          <div style={{flex:1,position:'relative',overflow:'hidden'}}>
-            <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:12,color:'rgba(255,255,255,.4)'}}>
-              <div style={{fontSize:24,animation:'spin 1s linear infinite'}}>⏳</div>
-              <div style={{fontSize:12,fontWeight:600}}>페이지 로딩 중...</div>
+          {/* 콘텐츠: 안내 + iframe */}
+          <div style={{flex:1,position:'relative',overflow:'hidden',background:'#E5E7EB'}}>
+            {/* 중앙 안내 — iframe이 차단되면 이게 보임 */}
+            <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:16,zIndex:0}}>
+              <div style={{fontSize:48,marginBottom:4}}>{pdfViewer.icon||'📄'}</div>
+              <div style={{fontSize:16,fontWeight:800,color:'var(--text)'}}>{pdfViewer.title}</div>
+              <div style={{fontSize:12,color:'var(--text-sm)',textAlign:'center',lineHeight:1.6}}>아래 버튼으로 전체 내용을 확인하세요</div>
+              <a href={pdfViewer.url} target="_blank" rel="noopener noreferrer"
+                style={{display:'inline-flex',alignItems:'center',gap:8,padding:'16px 40px',borderRadius:14,border:'none',
+                  background:'linear-gradient(135deg,#2563EB,#7C3AED)',color:'#fff',fontSize:16,fontWeight:900,
+                  textDecoration:'none',boxShadow:'0 6px 24px rgba(37,99,235,.35)',cursor:'pointer'}}>
+                📄 {pdfViewer.title} 열기 ↗
+              </a>
+              <div style={{fontSize:10,color:'var(--text-sm)',marginTop:4}}>고객에게도 동일한 화면이 보여집니다</div>
             </div>
+            {/* iframe 시도 — 사이트가 허용하면 위를 덮음 */}
             <iframe src={pdfViewer.url} style={{position:'relative',zIndex:1,width:'100%',height:'100%',border:'none',background:'#fff'}}
-              title={pdfViewer.title} allow="fullscreen" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"/>
+              title={pdfViewer.title} allow="fullscreen" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+              onLoad={e=>{try{e.target.style.opacity='1';}catch(ex){}}} onError={e=>{e.target.style.display='none';}}/>
           </div>
         </div>
       )}
@@ -8750,7 +8761,7 @@ function AdminScreen({onBack}){
           {/* 요약 카드 */}
           <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:14}}>
             {[
-              {label:'문제 키워드',value:byProblem.length+'종',color:'#7C3AED',bg:'#F5F3FF'},
+              {label:'상담 공법',value:byProblem.length+'종',color:'#7C3AED',bg:'#F5F3FF'},
               {label:'자료 요청',value:byAction.length+'종',color:'#D97706',bg:'#FFFBEB'},
               {label:'메모 키워드',value:(()=>{const allM=activeLeads.map(l=>l.memo||'').filter(m=>m.trim()).join(' ');const ws=allM.replace(/[^가-힣a-zA-Z0-9\s]/g,' ').split(/\s+/).filter(w=>w.length>=2);const wm={};ws.forEach(w=>{wm[w]=(wm[w]||0)+1;});return Object.keys(wm).length;})()+'개',color:'#E8780F',bg:'#FFF7ED'},
             ].map(c=>(
@@ -8763,7 +8774,7 @@ function AdminScreen({onBack}){
 
           {/* 자주 언급된 문제 키워드 — 클릭 시 상세 */}
           <div style={{background:'var(--card)',borderRadius:12,padding:'14px 16px',border:'1px solid var(--border)',marginBottom:10}}>
-            <div style={{fontSize:11,fontWeight:700,color:'#7C3AED',marginBottom:10}}>🔧 자주 언급된 문제 키워드 <span style={{fontWeight:400,fontSize:10,color:'var(--text-sm)'}}>(클릭하면 상담 상세 확인)</span></div>
+            <div style={{fontSize:11,fontWeight:700,color:'#7C3AED',marginBottom:10}}>🔧 공법별 상담 문의량 <span style={{fontWeight:400,fontSize:10,color:'var(--text-sm)'}}>(클릭하면 상담 상세 확인)</span></div>
             {byProblem.length===0
               ?<div style={{fontSize:12,color:'var(--text-sm)',textAlign:'center',padding:'6px 0'}}>0건</div>
               :byProblem.slice(0,10).map(([name,cnt],i)=>{
@@ -9072,6 +9083,7 @@ function AdminScreen({onBack}){
                           </React.Fragment>
                         ):(
                           <React.Fragment>
+                            <button onClick={()=>deleteLead(l.id)} style={{padding:'6px 10px',borderRadius:8,border:'1.5px solid #FCA5A5',background:'#FEF2F2',color:'#DC2626',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>🗑</button>
                             {(l.memoImgs?.length>0||l.businessCard?.front||l.fieldPhotos?.length>0)&&<button onClick={()=>downloadLeadPdf(l)} style={{padding:'6px 14px',borderRadius:8,border:'1.5px solid #7C3AED',background:'#F5F3FF',color:'#7C3AED',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>📄 PDF</button>}
                             <button onClick={startEdit} style={{padding:'6px 14px',borderRadius:8,border:'1.5px solid var(--accent)',background:'var(--blue-l)',color:'var(--accent)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>✏️ 편집</button>
                             <button onClick={()=>setExpanded(null)} style={{width:36,height:36,borderRadius:'50%',border:'1.5px solid var(--border)',background:'var(--bg)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-md)'}}>✕</button>

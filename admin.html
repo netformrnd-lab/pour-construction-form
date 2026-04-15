@@ -3857,6 +3857,33 @@ function DefectPhotosPage({showToast}){
   /* 새 태그 입력 (모달 내부에서 조건부 렌더링 → 훅은 반드시 최상위) */
   const [newTag,setNewTag]=useState('');
   const [customTags,setCustomTags]=useState([]);
+  /* 중분류 태그 메타 (메인/서브, 라벨, 대표) — Firestore config/defectTypesMeta */
+  const [defectTypesMeta,setDefectTypesMeta]=useState([]);
+  const fetchDefectTypesMeta=async()=>{
+    try{
+      const snap=await db.collection('config').doc('defectTypesMeta').get();
+      if(snap.exists){setDefectTypesMeta(snap.data().tags||[]);console.log('[defectTypesMeta] 로드',snap.data().tags?.length,'건');}
+    }catch(e){console.error('[defectTypesMeta] 로드 실패:',e);}
+  };
+  const saveDefectTypesMeta=async(tags)=>{
+    try{
+      await db.collection('config').doc('defectTypesMeta').set({tags,updatedAt:new Date().toISOString()});
+      setDefectTypesMeta(tags);
+      console.log('[defectTypesMeta] 저장 완료',tags.length,'건');
+    }catch(e){console.error('[defectTypesMeta] 저장 실패:',e);}
+  };
+  /* helper: 태그 ID로 메타 조회 */
+  const getTagMeta=(id)=>defectTypesMeta.find(t=>t.id===id)||null;
+  const getTagLabel=(id)=>{const m=getTagMeta(id);return m?.label||id;};
+  const isTagMain=(id)=>{const m=getTagMeta(id);return !m||m.role!=='sub';};/* 기본값=main */
+  const isTagFeatured=(id)=>{const m=getTagMeta(id);return !!m?.featured;};
+  const updateTagMeta=(id,updates)=>{
+    const existing=[...defectTypesMeta];
+    const idx=existing.findIndex(t=>t.id===id);
+    if(idx>=0){existing[idx]={...existing[idx],...updates};}
+    else{existing.push({id,label:id,role:'main',featured:false,...updates});}
+    return existing;
+  };
 
   const fetchPhotos=async()=>{
     setLoading(true);
@@ -3945,12 +3972,15 @@ function DefectPhotosPage({showToast}){
     }catch(e){showToast('초기화 실패','error');}
   };
 
-  useEffect(()=>{fetchPhotos();fetchTemplates();},[]);
+  useEffect(()=>{fetchPhotos();fetchTemplates();fetchDefectTypesMeta();},[]);
 
   /* helper: 사진의 공법 목록 (methods 배열 우선, fallback method 단일값) */
   const photoMethods=(p)=>Array.isArray(p.methods)&&p.methods.length>0?p.methods:(p.method?[p.method]:[]);
   const allMethods=useMemo(()=>{const s=new Set(DEFAULT_POUR_METHODS);photos.forEach(p=>{photoMethods(p).forEach(m=>s.add(m));});return [...s];},[photos]);
-  const allDefects=useMemo(()=>{const s=new Set(DEFAULT_DEFECT_TYPES);photos.forEach(p=>{if(p.defectType)s.add(p.defectType);if(Array.isArray(p.defectTypes))p.defectTypes.forEach(t=>s.add(t));});customTags.forEach(t=>s.add(t));return [...s];},[photos,customTags]);
+  const allDefects=useMemo(()=>{const s=new Set(DEFAULT_DEFECT_TYPES);photos.forEach(p=>{if(p.defectType)s.add(p.defectType);if(Array.isArray(p.defectTypes))p.defectTypes.forEach(t=>s.add(t));});customTags.forEach(t=>s.add(t));defectTypesMeta.forEach(t=>s.add(t.id));return [...s];},[photos,customTags,defectTypesMeta]);
+  /* 메인 태그만 (필터용) */
+  const mainDefects=useMemo(()=>allDefects.filter(d=>isTagMain(d)),[allDefects,defectTypesMeta]);
+  const subDefects=useMemo(()=>allDefects.filter(d=>!isTagMain(d)),[allDefects,defectTypesMeta]);
   const methodsWithData=useMemo(()=>{const s=new Set();photos.forEach(p=>{photoMethods(p).forEach(m=>s.add(m));});return [...s].sort();},[photos]);
   const defectsForMethod=useMemo(()=>{
     const sub=selMethod==='전체'?photos:photos.filter(p=>photoMethods(p).includes(selMethod));
@@ -4200,7 +4230,7 @@ function DefectPhotosPage({showToast}){
         <div onClick={e=>e.stopPropagation()} style={{position:'relative',maxWidth:'90vw',maxHeight:'90vh',cursor:'default'}}>
           <img src={lightbox.imageUrl} style={{maxWidth:'90vw',maxHeight:'80vh',borderRadius:12,objectFit:'contain'}} alt={lightbox.defectType}/>
           <div style={{position:'absolute',bottom:-40,left:0,right:0,textAlign:'center',color:'#fff',fontSize:14}}>
-            {(Array.isArray(lightbox.defectTypes)&&lightbox.defectTypes.length>0?lightbox.defectTypes:[lightbox.defectType].filter(Boolean)).map((t,i)=><span key={i} style={{background:'rgba(255,255,255,.2)',padding:'2px 10px',borderRadius:12,marginRight:6,fontSize:12}}>#{t}</span>)} <span style={{opacity:.7}}>· {(Array.isArray(lightbox.methods)&&lightbox.methods.length>0?lightbox.methods:[lightbox.method].filter(Boolean)).map(m=>m?.replace('POUR ','').replace(' 공법','')).join(', ')}</span>
+            {(Array.isArray(lightbox.defectTypes)&&lightbox.defectTypes.length>0?lightbox.defectTypes:[lightbox.defectType].filter(Boolean)).map((t,i)=><span key={i} style={{background:isTagMain(t)?'rgba(255,255,255,.2)':'rgba(255,255,255,.1)',padding:'2px 10px',borderRadius:12,marginRight:6,fontSize:12}}>#{getTagLabel(t)}</span>)} <span style={{opacity:.7}}>· {(Array.isArray(lightbox.methods)&&lightbox.methods.length>0?lightbox.methods:[lightbox.method].filter(Boolean)).map(m=>m?.replace('POUR ','').replace(' 공법','')).join(', ')}</span>
           </div>
           {prev&&<button onClick={()=>setLightbox(prev)} style={{position:'absolute',left:-50,top:'50%',transform:'translateY(-50%)',background:'rgba(255,255,255,.2)',border:'none',color:'#fff',fontSize:28,width:40,height:40,borderRadius:'50%',cursor:'pointer'}}>‹</button>}
           {next&&<button onClick={()=>setLightbox(next)} style={{position:'absolute',right:-50,top:'50%',transform:'translateY(-50%)',background:'rgba(255,255,255,.2)',border:'none',color:'#fff',fontSize:28,width:40,height:40,borderRadius:'50%',cursor:'pointer'}}>›</button>}
@@ -4222,7 +4252,7 @@ function DefectPhotosPage({showToast}){
       </div>
       <div style={{padding:'10px 12px'}}>
         <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:4}}>
-          {tags.map((t,i)=><span key={i} style={{padding:'2px 8px',borderRadius:10,background:'var(--blue-l)',color:'var(--blue)',fontSize:10,fontWeight:700}}>#{t}</span>)}
+          {tags.map((t,i)=>{const isSub=!isTagMain(t);return <span key={i} style={{padding:'2px 8px',borderRadius:10,background:isSub?'#F3F4F6':'var(--blue-l)',color:isSub?'#6B7280':'var(--blue)',fontSize:10,fontWeight:700}}>#{getTagLabel(t)}</span>;})}
         </div>
         {pMethods.length>0&&<div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:4}}>
           {pMethods.map((m,i)=><span key={i} style={{padding:'2px 6px',borderRadius:10,background:'#F0FDF4',color:'#059669',fontSize:9,fontWeight:600}}>{m.replace('POUR ','').replace(' 공법','')}</span>)}
@@ -4285,18 +4315,37 @@ function DefectPhotosPage({showToast}){
             {(form.methods||[]).length===0&&<div style={{fontSize:11,color:'#ef4444',marginTop:4}}>공법을 1개 이상 선택하세요</div>}
           </div>
           <div style={{marginBottom:14}}>
-            <label style={LS}>중분류 (하자유형) <span style={{fontWeight:400,color:'var(--text-sm)',fontSize:10}}>— 복수 선택 가능</span></label>
+            <label style={LS}>중분류 (하자유형) <span style={{fontWeight:400,color:'var(--text-sm)',fontSize:10}}>— 복수 선택 가능 · 메인=필터용, 서브=표시만</span></label>
+            {/* 메인 태그 */}
+            <div style={{fontSize:10,fontWeight:700,color:'#7C3AED',marginBottom:3}}>메인 태그</div>
             <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:6}}>
-              {allDefects.map(d=>{
+              {mainDefects.map(d=>{
                 const on=(form.defectTypes||[]).includes(d);
+                const lbl=getTagLabel(d);
                 return(<button key={d} type="button" onClick={()=>{
                   const cur=form.defectTypes||[];
                   setForm({...form,defectTypes:on?cur.filter(x=>x!==d):[...cur,d]});
                 }} style={{fontSize:12,padding:'4px 10px',borderRadius:20,border:`1.5px solid ${on?'#7C3AED':'var(--border)'}`,
                   background:on?'#EDE9FE':'#fff',color:on?'#7C3AED':'var(--text-md)',
-                  cursor:'pointer',fontWeight:on?700:500,fontFamily:'inherit',transition:'all .15s'}}>#{d}</button>);
+                  cursor:'pointer',fontWeight:on?700:500,fontFamily:'inherit',transition:'all .15s'}}>#{lbl}</button>);
               })}
             </div>
+            {/* 서브 태그 */}
+            {subDefects.length>0&&(<>
+              <div style={{fontSize:10,fontWeight:700,color:'#9CA3AF',marginBottom:3}}>서브 태그 <span style={{fontWeight:400,fontSize:9}}>(필터 미해당)</span></div>
+              <div style={{display:'flex',flexWrap:'wrap',gap:5,marginBottom:6}}>
+                {subDefects.map(d=>{
+                  const on=(form.defectTypes||[]).includes(d);
+                  const lbl=getTagLabel(d);
+                  return(<button key={d} type="button" onClick={()=>{
+                    const cur=form.defectTypes||[];
+                    setForm({...form,defectTypes:on?cur.filter(x=>x!==d):[...cur,d]});
+                  }} style={{fontSize:12,padding:'4px 10px',borderRadius:20,border:`1.5px solid ${on?'#6B7280':'var(--border)'}`,
+                    background:on?'#F3F4F6':'#fff',color:on?'#374151':'var(--text-sm)',
+                    cursor:'pointer',fontWeight:on?700:500,fontFamily:'inherit',transition:'all .15s'}}>#{lbl}</button>);
+                })}
+              </div>
+            </>)}
             {/* 새 중분류 추가 */}
             <div style={{display:'flex',gap:6,alignItems:'center'}}>
               <input value={newTag} onChange={e=>setNewTag(e.target.value)}
@@ -4311,7 +4360,7 @@ function DefectPhotosPage({showToast}){
             {/* form에 있지만 allDefects에 없는 새 태그도 표시 */}
             {(form.defectTypes||[]).filter(d=>!allDefects.includes(d)).map(d=>(
               <button key={`new-${d}`} type="button" onClick={()=>{const cur=form.defectTypes||[];setForm({...form,defectTypes:cur.filter(x=>x!==d)});}}
-                style={{fontSize:12,padding:'4px 10px',borderRadius:20,border:'1.5px solid #7C3AED',background:'#EDE9FE',color:'#7C3AED',cursor:'pointer',fontWeight:700,fontFamily:'inherit',transition:'all .15s'}}>#{d} ✕</button>
+                style={{fontSize:12,padding:'4px 10px',borderRadius:20,border:'1.5px solid #7C3AED',background:'#EDE9FE',color:'#7C3AED',cursor:'pointer',fontWeight:700,fontFamily:'inherit',transition:'all .15s'}}>#{getTagLabel(d)} ✕</button>
             ))}
             {(form.defectTypes||[]).length===0&&<div style={{fontSize:11,color:'#ef4444',marginTop:4}}>하자유형을 1개 이상 선택하세요</div>}
           </div>
@@ -4590,6 +4639,52 @@ function DefectPhotosPage({showToast}){
         </div>
       </div>
 
+      {/* 🏷️ 중분류 태그 관리 (접이식) */}
+      <details style={{marginBottom:16,background:'#FAF5FF',borderRadius:12,border:'1.5px solid #E9D5FF',overflow:'hidden'}}>
+        <summary style={{padding:'10px 16px',cursor:'pointer',fontSize:13,fontWeight:800,color:'#7C3AED',listStyle:'none',display:'flex',alignItems:'center',gap:6,userSelect:'none'}}>
+          <span style={{fontSize:10,transition:'transform .2s'}}>▶</span> 🏷️ 중분류 태그 관리 (메인/서브 · 라벨 편집 · 대표 설정)
+        </summary>
+        <div style={{padding:'0 16px 14px'}}>
+          <div style={{fontSize:10,color:'var(--text-sm)',marginBottom:10,lineHeight:1.6}}>
+            <b style={{color:'#7C3AED'}}>메인</b>: 필터로 사용 · <b style={{color:'#9CA3AF'}}>서브</b>: 사진에만 표시 (필터 미해당) · <b style={{color:'#D97706'}}>⭐ 대표</b>: 고객 태블릿 우선 노출
+          </div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+            {allDefects.map(d=>{
+              const meta=getTagMeta(d);
+              const lbl=meta?.label||d;
+              const role=meta?.role||'main';
+              const featured=!!meta?.featured;
+              const isMain=role==='main';
+              return(
+                <div key={'tm_'+d} style={{display:'flex',alignItems:'center',gap:4,padding:'4px 8px',borderRadius:8,
+                  border:`1.5px solid ${isMain?(featured?'#D97706':'#7C3AED'):'var(--border)'}`,
+                  background:isMain?(featured?'#FFFBEB':'#FAF5FF'):'#F9FAFB'}}>
+                  {/* 역할 토글 */}
+                  <button onClick={async()=>{const next=updateTagMeta(d,{role:isMain?'sub':'main',featured:false});await saveDefectTypesMeta(next);}}
+                    style={{fontSize:9,padding:'2px 5px',borderRadius:4,border:'none',background:isMain?'#7C3AED':'#9CA3AF',color:'#fff',cursor:'pointer',fontWeight:700,fontFamily:'inherit'}}>
+                    {isMain?'메인':'서브'}
+                  </button>
+                  {/* 대표 토글 (메인만) */}
+                  {isMain&&(
+                    <button onClick={async()=>{const next=updateTagMeta(d,{featured:!featured});await saveDefectTypesMeta(next);}}
+                      style={{fontSize:10,padding:'1px 3px',borderRadius:3,border:'none',background:featured?'#D97706':'var(--border)',
+                        color:featured?'#fff':'var(--text-sm)',cursor:'pointer',fontFamily:'inherit',lineHeight:1}}>⭐</button>
+                  )}
+                  {/* 편집 가능 라벨 */}
+                  <input defaultValue={lbl} key={'tl_'+d+'_'+lbl}
+                    onBlur={async(e)=>{const v=e.target.value.trim();if(!v||v===lbl)return;const next=updateTagMeta(d,{label:v});await saveDefectTypesMeta(next);}}
+                    onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
+                    style={{width:Math.max(40,lbl.length*12+10),fontSize:11,fontWeight:700,color:isMain?'#7C3AED':'#6B7280',
+                      border:'none',borderBottom:'1px dashed var(--border)',background:'transparent',outline:'none',fontFamily:'inherit',padding:'1px 2px'}}
+                  />
+                  {d!==lbl&&<span style={{fontSize:8,color:'var(--text-sm)',opacity:.5}}>({d})</span>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </details>
+
       {/* 필터: 대분류 (공법) */}
       {methodsWithData.length>0&&<div style={{marginBottom:12}}>
         <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:8}}>대분류 · 공법</div>
@@ -4599,16 +4694,28 @@ function DefectPhotosPage({showToast}){
         </div>
       </div>}
 
-      {/* 필터: 중분류 (하자유형) */}
+      {/* 필터: 중분류 (하자유형) — 메인태그만 필터, 라벨 표시 */}
       {defectsForMethod.length>0&&<div style={{marginBottom:20}}>
         <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',marginBottom:8}}>중분류 · 하자유형</div>
         <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
           <button onClick={()=>setSelDefect('전체')} style={tabS(selDefect==='전체')}>전체 ({(selMethod==='전체'?photos:photos.filter(p=>photoMethods(p).includes(selMethod))).length})</button>
-          {defectsForMethod.map(d=>{
+          {defectsForMethod.filter(d=>isTagMain(d)).map(d=>{
             const cnt=(selMethod==='전체'?photos:photos.filter(p=>photoMethods(p).includes(selMethod))).filter(p=>p.defectType===d).length;
-            return <button key={d} onClick={()=>setSelDefect(d)} style={tabS(selDefect===d)}>{d} ({cnt})</button>;
+            const featured=isTagFeatured(d);
+            return <button key={d} onClick={()=>setSelDefect(d)} style={{...tabS(selDefect===d),borderColor:featured&&selDefect!==d?'#D97706':undefined}}>{featured?'⭐ ':''}{getTagLabel(d)} ({cnt})</button>;
           })}
         </div>
+        {defectsForMethod.filter(d=>!isTagMain(d)).length>0&&(
+          <div style={{marginTop:6}}>
+            <div style={{fontSize:10,color:'var(--text-sm)',marginBottom:4}}>서브 태그</div>
+            <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+              {defectsForMethod.filter(d=>!isTagMain(d)).map(d=>{
+                const cnt=(selMethod==='전체'?photos:photos.filter(p=>photoMethods(p).includes(selMethod))).filter(p=>p.defectType===d).length;
+                return <button key={d} onClick={()=>setSelDefect(d)} style={{...tabS(selDefect===d),opacity:.7}}>{getTagLabel(d)} ({cnt})</button>;
+              })}
+            </div>
+          </div>
+        )}
       </div>}
 
       {/* 콘텐츠 */}
@@ -4630,7 +4737,7 @@ function DefectPhotosPage({showToast}){
         grouped.map(([defectType,items])=>(
           <div key={defectType} style={{marginBottom:24}}>
             <div style={{fontSize:15,fontWeight:800,marginBottom:12,display:'flex',alignItems:'center',gap:8}}>
-              <span style={{padding:'3px 10px',borderRadius:6,background:'var(--blue-l)',color:'var(--blue)',fontSize:12,fontWeight:700}}>{defectType}</span>
+              <span style={{padding:'3px 10px',borderRadius:6,background:isTagMain(defectType)?'var(--blue-l)':'#F3F4F6',color:isTagMain(defectType)?'var(--blue)':'#6B7280',fontSize:12,fontWeight:700}}>{getTagLabel(defectType)}{!isTagMain(defectType)?' (서브)':''}</span>
             </div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:14}}>
               {items.map(p=><PhotoCard key={p.id} p={p}/>)}

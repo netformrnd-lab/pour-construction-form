@@ -4359,7 +4359,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
             {/* ── STEP 1. 현장 하자사진 — "이런 문제 있으신가요?" ── */}
             {(()=>{
               const causeList=(photos?.causes||[]).filter(s=>s);
-              const photosWithMeta=defectPhotos.length>0
+              const isNewPhotoSystem=(problem?.id==='shingle'||problem?.id==='metal');
+              const photosWithMeta=isNewPhotoSystem&&defectPhotos.length>0
                 ?defectPhotos.map(p=>({src:p.imageUrl||'',defectType:p.defectType||'',defectTypes:p.defectTypes||[p.defectType].filter(Boolean),defectPart:p.defectPart||'',defectTags:p.defectTags||[p.defectPart].filter(Boolean),defectDetail:'',label:p.label||''}))
                 :(()=>{const meta=photos?.causeMeta||[];return causeList.map((src,i)=>{const m=meta[i]||{};const dts=Array.isArray(m.defectTypes)&&m.defectTypes.length>0?m.defectTypes:(m.defectType?[m.defectType]:[]);const dtags=Array.isArray(m.defectTags)&&m.defectTags.length>0?m.defectTags:(m.defectPart?[m.defectPart]:[]);return{src,defectType:dts[0]||'',defectTypes:dts,defectPart:dtags[0]||'',defectTags:dtags,defectDetail:m.defectDetail||'',label:m.label||''};});})();
               const allExistingMajor=[...new Set(photosWithMeta.flatMap(p=>p.defectTypes||[p.defectType]).filter(Boolean))];
@@ -5912,7 +5913,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               {sessionMethods.map((m,mi)=>{
                 const mc=getMethodContent(m.id)||{};
                 const ms=METHOD_STATS[m.id];
-                const mPhotos=reportDefectPhotos[m.id]||[];
+                const isNewPhotoMethod=(m.id==='shingle'||m.id==='metal');
+                const mPhotos=isNewPhotoMethod?(reportDefectPhotos[m.id]||[]):[];
                 const mCasePhotos=casePhotos[m.id]||{};
                 const caseCauses=(mCasePhotos.causes||[]).filter(s=>s);
                 const caseCompleted=mCasePhotos.completed||'';
@@ -5935,7 +5937,8 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                   </div>
 
                   {/* ── STEP 1. 현장 하자사진 ── */}
-                  {mPhotos.length>0&&(
+                  {/* 싱글/기와: 새 시스템(defect-photos), 나머지: 기존 casePhotos */}
+                  {mPhotos.length>0?(
                     <div style={{margin:'14px 14px 0',borderRadius:14,background:'var(--card)',border:'1px solid var(--border)',boxShadow:'var(--shadow)',overflow:'hidden'}}>
                       <div style={{height:2,background:`linear-gradient(90deg,var(--accent),rgba(37,99,235,.2),transparent)`,opacity:.7}}/>
                       <div style={{padding:'12px 14px'}}>
@@ -5957,7 +5960,27 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                         {mPhotos.length>9&&<div style={{fontSize:10,color:'var(--text-sm)',textAlign:'center',marginTop:4}}>외 {mPhotos.length-9}건</div>}
                       </div>
                     </div>
-                  )}
+                  ):caseCauses.length>0?(
+                    <div style={{margin:'14px 14px 0',borderRadius:14,background:'var(--card)',border:'1px solid var(--border)',boxShadow:'var(--shadow)',overflow:'hidden'}}>
+                      <div style={{height:2,background:`linear-gradient(90deg,var(--accent),rgba(37,99,235,.2),transparent)`,opacity:.7}}/>
+                      <div style={{padding:'12px 14px'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:10}}>
+                          <div style={{width:6,height:6,borderRadius:'50%',background:'var(--accent)',flexShrink:0}}/>
+                          <span style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>현장 하자사진</span>
+                          <span style={{fontSize:10,color:'var(--text-sm)',fontWeight:600}}>{caseCauses.length}건</span>
+                        </div>
+                        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:5,borderRadius:10,overflow:'hidden'}}>
+                          {caseCauses.slice(0,9).map((src,pi)=>(
+                            <div key={pi} style={{aspectRatio:'1',position:'relative',background:'var(--bg)',overflow:'hidden',borderRadius:8}}>
+                              <img src={src} alt="" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}
+                                onError={e=>{e.target.style.display='none';}}/>
+                            </div>
+                          ))}
+                        </div>
+                        {caseCauses.length>9&&<div style={{fontSize:10,color:'var(--text-sm)',textAlign:'center',marginTop:4}}>외 {caseCauses.length-9}건</div>}
+                      </div>
+                    </div>
+                  ):null}
 
                   {/* ── STEP 2. 문제 발생 원인 (원인 + 관련 사진/영상) ── */}
                   {(mc.cause||caseMedia.length>0)&&(

@@ -1265,7 +1265,7 @@ function DrawCanvas({onDataUrl,savedPages,onPagesChange}){
 
   const resize=useCallback(()=>{
     const c=canvasRef.current;if(!c)return;
-    const wrap=c.parentElement;const dpr=window.devicePixelRatio||1;
+    const wrap=c.parentElement;if(!wrap)return;const dpr=window.devicePixelRatio||1;
     c.width=wrap.clientWidth*dpr;c.height=Math.max(wrap.clientHeight,800)*dpr;
     c.style.width=wrap.clientWidth+'px';c.style.height=Math.max(wrap.clientHeight,800)+'px';
     const ctx=getCtx();ctx.scale(dpr,dpr);
@@ -1320,7 +1320,8 @@ function DrawCanvas({onDataUrl,savedPages,onPagesChange}){
   };
 
   const getPos=(e)=>{
-    const c=canvasRef.current;const r=c.getBoundingClientRect();
+    const c=canvasRef.current;if(!c)return{x:0,y:0,p:0.5};
+    const r=c.getBoundingClientRect();
     const pressure=e.pressure||0.5;
     return{x:e.clientX-r.left,y:e.clientY-r.top,p:Math.max(0.2,Math.min(1.5,pressure*1.5))};
   };
@@ -1410,7 +1411,7 @@ function DrawCanvas({onDataUrl,savedPages,onPagesChange}){
   const emitPagesChange=()=>{
     if(!onPagesChange)return;
     pages.current[currentPage]={strokes:strokes.current,undoStack:undoStack.current,redoStack:redoStack.current};
-    try{onPagesChange(JSON.parse(JSON.stringify(pages.current)));}catch(e){}
+    try{onPagesChange(JSON.parse(JSON.stringify(pages.current)));}catch(e){console.warn('[DrawCanvas] pages 동기화 실패:',e);}
   };
   /* 복원된 strokes가 있으면 최초 마운트 시 redraw + emit */
   useEffect(()=>{
@@ -3463,7 +3464,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [ntDone,setNtDone]=useState(false);
   const [ntPencilMode,setNtPencilMode]=useState(true);
   const [ntMemoImgs,setNtMemoImgs]=useState([]);
-  const [ntDoodlePages,setNtDoodlePages]=useState(()=>{try{return JSON.parse(localStorage.getItem('pourMemoDraftDoodle')||'null');}catch{return null;}}); // DrawCanvas stroke data for persistence
+  const [ntDoodlePages,setNtDoodlePages]=useState(()=>{try{const d=JSON.parse(localStorage.getItem('pourMemoDraftDoodle')||'null');return Array.isArray(d)?d:null;}catch{return null;}}); // DrawCanvas stroke data for persistence
   const [ntDoodleOpen,setNtDoodleOpen]=useState(true);
   const ntMemoRef=useRef(null);
   useEffect(()=>{if(!ntPencilMode&&ntMemoRef.current){ntMemoRef.current.focus();}},[ntPencilMode]);
@@ -3539,7 +3540,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
     }));
     /* 낙서장 stroke 데이터는 별도 키에 저장 (크기가 클 수 있음) */
     if(ntDoodlePages)localStorage.setItem('pourMemoDraftDoodle',JSON.stringify(ntDoodlePages));
-    }catch(e){}
+    }catch(e){console.warn('[saveDraft] 임시저장 실패:',e);}
   };
   const loadDraft=()=>{
     try{const d=JSON.parse(localStorage.getItem(MEMO_DRAFT_KEY)||'null');if(!d)return;
@@ -3553,10 +3554,10 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
       if(d.desiredStart)setNtDesiredStart(d.desiredStart);if(d.nextActions?.length)setNtNextActions(d.nextActions);
       if(d.address)setNtAddress(d.address);
       /* 낙서장 stroke 데이터 복원 */
-      try{const dp=JSON.parse(localStorage.getItem('pourMemoDraftDoodle')||'null');if(dp&&dp.length)setNtDoodlePages(dp);}catch(ex){}
+      try{const dp=JSON.parse(localStorage.getItem('pourMemoDraftDoodle')||'null');if(Array.isArray(dp)&&dp.length)setNtDoodlePages(dp);}catch(ex){console.warn('[loadDraft] doodle 복원 실패:',ex);}
     }catch(e){}
   };
-  const clearDraft=()=>{try{localStorage.removeItem(MEMO_DRAFT_KEY);localStorage.removeItem('pourMemoDraftDoodle');}catch(e){}};
+  const clearDraft=()=>{try{localStorage.removeItem(MEMO_DRAFT_KEY);localStorage.removeItem('pourMemoDraftDoodle');}catch(e){console.warn('[clearDraft]',e);}};
   /* 메모 처음 열 때 초안 복원 */
   const prevShowNote=useRef(false);
   useEffect(()=>{
@@ -3565,19 +3566,21 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   },[showNote]);
   /* 낙서장 데이터 변경 시 즉시 localStorage에 백업 (앱 크래시 대비) */
   useEffect(()=>{
-    if(ntDoodlePages&&ntDoodlePages.length>0){
-      try{localStorage.setItem('pourMemoDraftDoodle',JSON.stringify(ntDoodlePages));}catch(e){}
-    }
+    try{
+      if(ntDoodlePages&&ntDoodlePages.length>0){
+        localStorage.setItem('pourMemoDraftDoodle',JSON.stringify(ntDoodlePages));
+      }else{
+        localStorage.removeItem('pourMemoDraftDoodle');
+      }
+    }catch(e){console.warn('[doodle-backup] 저장 실패:',e);}
   },[ntDoodlePages]);
   /* memoImgs 변경 시에도 즉시 draft 갱신 (데이터 유실 방지) */
   useEffect(()=>{
-    if(ntMemoImgs&&ntMemoImgs.length>0){
-      try{
-        const d=JSON.parse(localStorage.getItem(MEMO_DRAFT_KEY)||'{}');
-        d.memoImgs=ntMemoImgs;
-        localStorage.setItem(MEMO_DRAFT_KEY,JSON.stringify(d));
-      }catch(e){}
-    }
+    try{
+      const d=JSON.parse(localStorage.getItem(MEMO_DRAFT_KEY)||'{}');
+      d.memoImgs=ntMemoImgs||[];
+      localStorage.setItem(MEMO_DRAFT_KEY,JSON.stringify(d));
+    }catch(e){console.warn('[memoImgs-backup] 저장 실패:',e);}
   },[ntMemoImgs]);
   /* 메모 닫을 때 자동 임시 저장 */
   /* 메모를 닫을 때: App 레벨 + localStorage 양쪽에 동기화 */
@@ -5575,7 +5578,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                         }else{
                           setNtSmsSending(false);
                           setNtSmsError(typeof r.error==='string'?r.error:JSON.stringify(r.error));
-                          setNtSmsPhoneConfirmed(false);
+                          /* 번호 확인은 유지 — 재시도 시 다시 체크 안 해도 됨 */
                         }
                       }} disabled={ntSmsSending||!(ntSmsPhone||ntPhone)}
                         style={{flex:2,padding:'14px 0',borderRadius:10,border:'none',
@@ -8413,7 +8416,7 @@ function AdminScreen({onBack}){
               ))}
             </div>
             {[
-              {label:'총 상담', value:leads.length, icon:'👥', color:'#2563EB'},
+              {label:'총 상담', value:activeLeads.length, icon:'👥', color:'#2563EB'},
               {label:'오늘 신규', value:byStatus.find(s=>s.status==='신규')?.count||0, icon:'🆕', color:'#059669'},
               {label:'연락완료', value:byStatus.find(s=>s.status==='연락완료')?.count||0, icon:'✅', color:'#7C3AED'},
               {label:'계약예정', value:byStatus.find(s=>s.status==='계약예정')?.count||0, icon:'🤝', color:'#D97706'},

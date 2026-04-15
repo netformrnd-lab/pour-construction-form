@@ -4478,10 +4478,11 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                           })()}
                           {displayMajor.map((type,ci)=>{
                             const grp=grouped[type]||[];
-                            /* 태그 대표사진 우선 → 템플릿 → 첫 사진 fallback */
+                            /* 대표사진 우선순위: defectTypesMeta → defectTags.major → 템플릿 → 첫 사진 */
+                            const dtmObj=defectTypesMeta.find(t=>t.id===type);
                             const tagObj=(defectTags?.major||[]).find(t=>(t.id||t)===type);
                             const tpl=(defectTemplates||[]).find(t=>(t.tags||[t.type]).includes(type));
-                            const rep=(tagObj&&tagObj.photo)||(tpl&&tpl.referenceImageUrl)||grp[0]?.src;
+                            const rep=(dtmObj&&dtmObj.photo)||(tagObj&&tagObj.photo)||(tpl&&tpl.referenceImageUrl)||grp[0]?.src;
                             const typeLabel=dtmLabel(type);
                             const isAct=activeDefect===type;
                             return(

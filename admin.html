@@ -6744,6 +6744,9 @@ function ContentEditorPage({ showToast }) {
                       arr[esIdx]={...arr[esIdx],proposalSlides:slides};setContent(prev=>({...prev,extraSolutions:arr}));
                     }}/>
                   </label>
+                  <button onClick={async()=>{
+                    try{const clip=await navigator.clipboard.read();for(const item of clip){const imgType=item.types.find(t=>t.startsWith('image/'));if(imgType){const blob=await item.getType(imgType);const c=await compressImage(blob,1600,0.88);const arr=[...(content.extraSolutions||[])];const slides=[...(arr[esIdx].proposalSlides||[])];slides.push(c);arr[esIdx]={...arr[esIdx],proposalSlides:slides};setContent(prev=>({...prev,extraSolutions:arr}));return;}}alert('클립보드에 이미지가 없습니다');}catch(err){alert('붙여넣기 실패: '+err.message);}
+                  }} style={{padding:'6px 14px',borderRadius:8,border:'1px solid #DDD6FE',background:'var(--purple-l)',color:'var(--purple)',fontSize:11,fontWeight:600,cursor:'pointer'}}>📋 붙여넣기</button>
                 </div>
                 {(es.proposalSlides||[]).length > 0 && (
                   <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))',gap:8}}>
@@ -6771,6 +6774,9 @@ function ContentEditorPage({ showToast }) {
                       arr[esIdx]={...arr[esIdx],processGuideImages:imgs};setContent(prev=>({...prev,extraSolutions:arr}));
                     }}/>
                   </label>
+                  <button onClick={async()=>{
+                    try{const clip=await navigator.clipboard.read();for(const item of clip){const imgType=item.types.find(t=>t.startsWith('image/'));if(imgType){const blob=await item.getType(imgType);const c=await compressImage(blob,1600,0.88);const arr=[...(content.extraSolutions||[])];const imgs=[...(arr[esIdx].processGuideImages||[])];imgs.push(c);arr[esIdx]={...arr[esIdx],processGuideImages:imgs};setContent(prev=>({...prev,extraSolutions:arr}));return;}}alert('클립보드에 이미지가 없습니다');}catch(err){alert('붙여넣기 실패: '+err.message);}
+                  }} style={{padding:'6px 14px',borderRadius:8,border:'1px solid #DDD6FE',background:'var(--purple-l)',color:'var(--purple)',fontSize:11,fontWeight:600,cursor:'pointer'}}>📋 붙여넣기</button>
                 </div>
                 {(es.processGuideImages||[]).length > 0 && (
                   <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))',gap:8}}>

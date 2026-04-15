@@ -8511,7 +8511,7 @@ function AdminScreen({onBack}){
                   {byStartMonth.map(m=>{
                     const h=m.count>0?Math.max(Math.round(m.count/maxStartMonth*50),4):2;
                     return(
-                      <div key={m.month} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2}}>
+                      <div key={m.month} onClick={()=>{if(m.count>0){const matched=activeLeads.filter(l=>l.desiredStartDate&&parseInt(l.desiredStartDate.slice(5,7),10)===m.month);setKeywordDetail({label:'📅 착공희망 '+m.month+'월',leads:matched});}}} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2,cursor:m.count>0?'pointer':'default',borderRadius:4,transition:'background .15s'}} onMouseOver={e=>{if(m.count>0)e.currentTarget.style.background='var(--bg)';}} onMouseOut={e=>e.currentTarget.style.background='transparent'}>
                         <div style={{fontSize:8,fontWeight:700,color:m.count>0?'#2563EB':'transparent'}}>{m.count}</div>
                         <div style={{width:'100%',height:h,borderRadius:'2px 2px 0 0',background:m.count===maxStartMonth&&m.count>0?'#2563EB':'#BFDBFE'}}/>
                         <div style={{fontSize:8,color:'var(--text-sm)'}}>{m.month}</div>
@@ -8530,7 +8530,7 @@ function AdminScreen({onBack}){
                 :byRegion.slice(0,6).map(([region,cnt],i)=>{
                   const pct=Math.round(cnt/byRegion[0][1]*100);
                   return(
-                    <div key={region} style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}>
+                    <div key={region} onClick={()=>{const matched=activeLeads.filter(l=>{const r=normalizeRegionSimple(l.region||'')||normalizeRegionSimple(l.address||'');return r===region;});setKeywordDetail({label:'📍 '+region+' 지역',leads:matched});}} style={{display:'flex',alignItems:'center',gap:6,marginBottom:5,cursor:'pointer',padding:'4px 6px',borderRadius:8,transition:'background .15s'}} onMouseOver={e=>e.currentTarget.style.background='var(--bg)'} onMouseOut={e=>e.currentTarget.style.background='transparent'}>
                       <span style={{fontSize:10,fontWeight:700,color:i<2?'#E8780F':'var(--text-sm)',width:14,textAlign:'center'}}>{i+1}</span>
                       <span style={{flex:1,fontSize:11,fontWeight:600}}>{region}</span>
                       <div style={{width:50,height:7,background:'var(--bg)',borderRadius:3,overflow:'hidden'}}>

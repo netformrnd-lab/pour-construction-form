@@ -55,7 +55,31 @@ body{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg);colo
 <div id="root"></div>
 
 <script type="text/babel">
-const { useState, useEffect, useRef, useCallback, useMemo } = React;
+const { useState, useEffect, useRef, useCallback, useMemo, Component } = React;
+
+// ─── ErrorBoundary (크래시 방지) ───
+class ErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(error) { return { hasError: true, error }; }
+  componentDidCatch(error, info) { console.error('[ErrorBoundary]', error, info); }
+  render() {
+    if (this.state.hasError) {
+      return React.createElement('div', {
+        style: { padding: 40, textAlign: 'center', color: '#DC2626' }
+      },
+        React.createElement('div', { style: { fontSize: 48, marginBottom: 16 } }, '\u26A0\uFE0F'),
+        React.createElement('div', { style: { fontSize: 16, fontWeight: 700, marginBottom: 8 } }, '\uD398\uC774\uC9C0 \uB85C\uB4DC \uC911 \uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4'),
+        React.createElement('div', { style: { fontSize: 13, color: '#6B7280', marginBottom: 16 } },
+          String(this.state.error?.message || '')),
+        React.createElement('button', {
+          onClick: () => this.setState({ hasError: false, error: null }),
+          style: { padding: '10px 24px', borderRadius: 8, border: 'none', background: '#2563EB', color: '#fff', fontWeight: 600, cursor: 'pointer' }
+        }, '\uB2E4\uC2DC \uC2DC\uB3C4')
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // ─── 상수 ───
 const ADMIN_PIN_KEY = 'pourAdminPin';
@@ -328,7 +352,7 @@ function Sidebar({ current, onNavigate, collapsed, onToggle }) {
   );
 }
 
-// ─── 이미지 압축 유틸 ───
+// ─── 이미지 압축 유틸 (메모리 누수 방지) ───
 const compressImage = (file, maxW = 860, quality = 0.7) => new Promise((resolve, reject) => {
   const reader = new FileReader();
   reader.onload = (e) => {
@@ -340,20 +364,25 @@ const compressImage = (file, maxW = 860, quality = 0.7) => new Promise((resolve,
       canvas.width = w; canvas.height = h;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL('image/jpeg', quality));
+      const dataUrl = canvas.toDataURL('image/jpeg', quality);
+      // 메모리 해제: canvas, img, reader 정리
+      canvas.width = 0; canvas.height = 0;
+      img.src = '';
+      resolve(dataUrl);
     };
-    img.onerror = reject;
+    img.onerror = (err) => { img.src = ''; reject(err); };
     img.src = e.target.result;
   };
   reader.onerror = reject;
   reader.readAsDataURL(file);
 });
 
-// Storage 업로드 → 공개 URL 반환
+// Storage 업로드 → 공개 URL 반환 (메모리 해제 포함)
 const uploadToStorage = async (path, file) => {
   const ref = storage.ref().child(path);
   const compressed = await compressImage(file);
-  const blob = await fetch(compressed).then(r => r.blob());
+  const res = await fetch(compressed);
+  const blob = await res.blob();
   await ref.put(blob, { contentType: 'image/jpeg' });
   const url = await ref.getDownloadURL();
   console.log(`[storage] 업로드 완료: ${path}`);
@@ -2057,7 +2086,7 @@ function KeywordDashboardPage({ showToast }) {
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, []); // showToast는 useCallback([])로 안정적 — 의존성 제거로 리렌더 방지
 
   const saveRegionAliases = async () => {
     try {
@@ -2076,7 +2105,7 @@ function KeywordDashboardPage({ showToast }) {
     }
   };
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { loadData(); }, []);
 
   // ── 문제 키워드 집계 ──
   const problemKeywords = useMemo(() => {
@@ -2584,28 +2613,31 @@ function DashboardPage({ onNavigate }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       try {
-        const [leadSnap, methodSnap, storeSnap, grohomeSnap, prodSnap, pInqSnap, dInqSnap, metSnap] = await Promise.all([
-          db.collection(COLLECTIONS.LEADS).get(),
-          db.collection(COLLECTIONS.LEADS_METHOD).get(),
-          db.collection(COLLECTIONS.LEADS_STORE).get(),
-          db.collection(COLLECTIONS.LEADS_GROHOME).get(),
-          db.collection(COLLECTIONS.PRODUCTS).get(),
-          db.collection(COLLECTIONS.PARTNER_INQUIRIES).get(),
-          db.collection(COLLECTIONS.DEALER_INQUIRIES).get(),
-          db.collection(COLLECTIONS.SITE_METRICS).doc('current').get(),
+        // 1차: 핵심 카운트 쿼리 (가벼운 것 먼저)
+        const safeGet = (col) => db.collection(col).get().catch(e => { console.warn(`[dashboard] ${col} 실패:`, e); return { size: 0, docs: [] }; });
+        const [leadSnap, methodSnap, storeSnap, grohomeSnap] = await Promise.all([
+          safeGet(COLLECTIONS.LEADS),
+          safeGet(COLLECTIONS.LEADS_METHOD),
+          safeGet(COLLECTIONS.LEADS_STORE),
+          safeGet(COLLECTIONS.LEADS_GROHOME),
         ]);
-        console.log(`[dashboard] leads:${leadSnap.size} method:${methodSnap.size} store:${storeSnap.size} grohome:${grohomeSnap.size} products:${prodSnap.size}`);
-        setStats({
-          solution: leadSnap.size,
-          method: methodSnap.size,
-          store: storeSnap.size,
-          grohome: grohomeSnap.size,
-          products: prodSnap.size,
-        });
+        if (cancelled) return;
+        console.log(`[dashboard] leads:${leadSnap.size} method:${methodSnap.size} store:${storeSnap.size} grohome:${grohomeSnap.size}`);
+        setStats(prev => ({ ...prev, solution: leadSnap.size, method: methodSnap.size, store: storeSnap.size, grohome: grohomeSnap.size }));
 
-        // 최근 문의 (파트너 + 대리점 합산)
+        // 2차: 추가 데이터
+        const [prodSnap, pInqSnap, dInqSnap, metSnap] = await Promise.all([
+          safeGet(COLLECTIONS.PRODUCTS),
+          safeGet(COLLECTIONS.PARTNER_INQUIRIES),
+          safeGet(COLLECTIONS.DEALER_INQUIRIES),
+          db.collection(COLLECTIONS.SITE_METRICS).doc('current').get().catch(() => ({ exists: false })),
+        ]);
+        if (cancelled) return;
+        setStats(prev => ({ ...prev, products: prodSnap.size }));
+
         const allInq = [
           ...pInqSnap.docs.map(d => ({ id: d.id, type: '파트너사', ...d.data() })),
           ...dInqSnap.docs.map(d => ({ id: d.id, type: '대리점', ...d.data() })),
@@ -2617,9 +2649,10 @@ function DashboardPage({ onNavigate }) {
       } catch (e) {
         console.error('[dashboard] 로드 실패:', e);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
+    return () => { cancelled = true; };
   }, []);
 
   if (loading) {
@@ -2870,9 +2903,9 @@ function NPSPage({ showToast }) {
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, []); // showToast는 useCallback([])로 안정적
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { loadData(); }, []);
 
   const campaigns = useMemo(() => {
     const set = new Set(surveys.map(s => s.campaign || '미지정'));
@@ -3366,11 +3399,13 @@ function LeadsKanbanPage({brandKey,showToast}){
     </div>
   );
 
-  /* ── 칸반 뷰 ── */
-  const KanbanView=()=>(
+  /* ── 칸반 뷰 (스테이지별 최대 50건 표시) ── */
+  const MAX_KANBAN_PER_STAGE = 50;
+  const kanbanView = useMemo(()=>(
     <div style={{display:'flex',gap:12,overflowX:'auto',paddingBottom:16,minHeight:'calc(100vh - 280px)'}}>
       {PIPELINE_STAGES.map(stage=>{
         const items=byStage(stage);
+        const shown=items.slice(0,MAX_KANBAN_PER_STAGE);
         return(
           <div key={stage} style={{minWidth:240,maxWidth:280,flex:'0 0 240px',background:'var(--bg)',borderRadius:12,padding:12}}>
             <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12,padding:'0 4px'}}>
@@ -3379,17 +3414,20 @@ function LeadsKanbanPage({brandKey,showToast}){
               <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',background:'var(--border-s)',borderRadius:10,padding:'2px 8px'}}>{items.length}</div>
             </div>
             <div style={{minHeight:100}}>
-              {items.map(l=><LeadCard key={l.id} lead={l}/>)}
+              {shown.map(l=><LeadCard key={l.id} lead={l}/>)}
+              {items.length>MAX_KANBAN_PER_STAGE&&<div style={{textAlign:'center',padding:'8px 0',fontSize:11,color:'var(--text-sm)'}}>외 {items.length-MAX_KANBAN_PER_STAGE}건 더...</div>}
               {items.length===0&&<div style={{textAlign:'center',padding:'20px 0',fontSize:12,color:'var(--text-sm)'}}>없음</div>}
             </div>
           </div>
         );
       })}
     </div>
-  );
+  ),[filtered, selected]);
 
-  /* ── 리스트 뷰 (컬럼 강화) ── */
-  const ListView=()=>(
+  /* ── 리스트 뷰 (최대 100건 표시 + 더보기) ── */
+  const [listLimit,setListLimit]=useState(100);
+  const listShown=filtered.slice(0,listLimit);
+  const listView = useMemo(()=>(
     <div style={{background:'#fff',borderRadius:12,border:'1px solid var(--border)',overflow:'auto'}}>
       <table style={{width:'100%',borderCollapse:'collapse',fontSize:13,minWidth:800}}>
         <thead>
@@ -3400,7 +3438,7 @@ function LeadsKanbanPage({brandKey,showToast}){
           </tr>
         </thead>
         <tbody>
-          {filtered.map(l=>(
+          {listShown.map(l=>(
             <tr key={l.id} onClick={()=>setSelected(l)}
               style={{cursor:'pointer',borderBottom:'1px solid var(--border-s)'}}
               onMouseOver={e=>e.currentTarget.style.background='var(--bg)'}
@@ -3417,8 +3455,15 @@ function LeadsKanbanPage({brandKey,showToast}){
           {filtered.length===0&&<tr><td colSpan={7} style={{padding:40,textAlign:'center',color:'var(--text-sm)'}}>조건에 맞는 리드가 없습니다</td></tr>}
         </tbody>
       </table>
+      {filtered.length>listLimit&&(
+        <div style={{textAlign:'center',padding:'12px 0',borderTop:'1px solid var(--border-s)'}}>
+          <button onClick={()=>setListLimit(prev=>prev+100)} style={{padding:'8px 24px',border:'1px solid var(--border)',borderRadius:8,background:'#fff',fontSize:12,fontWeight:600,cursor:'pointer',color:'var(--text-md)'}}>
+            더보기 ({filtered.length-listLimit}건 남음)
+          </button>
+        </div>
+      )}
     </div>
-  );
+  ),[listShown, filtered.length, listLimit, selected]);
 
   const selStyle={padding:'7px 12px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:12,fontFamily:'inherit',outline:'none',background:'#fff',cursor:'pointer'};
   const dateStyle={padding:'7px 10px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:12,fontFamily:'inherit',outline:'none'};
@@ -3498,7 +3543,7 @@ function LeadsKanbanPage({brandKey,showToast}){
       </div>
 
       {loading?<div style={{textAlign:'center',padding:60,color:'var(--text-sm)'}}>로딩 중...</div>
-        :viewMode==='kanban'?<KanbanView/>:<ListView/>}
+        :viewMode==='kanban'?kanbanView:listView}
 
       <DetailModal/>
     </div>
@@ -5115,7 +5160,9 @@ function ContentEditorPage({ showToast }) {
         if (w > maxW || h > maxW) { const r = Math.min(maxW/w, maxW/h); w = Math.round(w*r); h = Math.round(h*r); }
         const c = document.createElement('canvas'); c.width = w; c.height = h;
         c.getContext('2d').drawImage(img, 0, 0, w, h);
-        resolve(c.toDataURL('image/jpeg', quality));
+        const dataUrl = c.toDataURL('image/jpeg', quality);
+        c.width = 0; c.height = 0; img.src = ''; // 메모리 해제
+        resolve(dataUrl);
       };
       img.src = ev.target.result;
     };
@@ -6409,7 +6456,9 @@ function ContentEditorPage({ showToast }) {
                           if(w>MAX||h>MAX){const r=Math.min(MAX/w,MAX/h);w=Math.round(w*r);h=Math.round(h*r);}
                           const c=document.createElement('canvas');c.width=w;c.height=h;
                           c.getContext('2d').drawImage(img,0,0,w,h);
-                          addImg(c.toDataURL('image/jpeg',0.85));
+                          const dataUrl=c.toDataURL('image/jpeg',0.85);
+                          c.width=0;c.height=0;img.src='';
+                          addImg(dataUrl);
                         };img.src=ev.target.result;
                       };reader.readAsDataURL(file);
                     };
@@ -6629,7 +6678,9 @@ function ContentEditorPage({ showToast }) {
                                         if(w>mx||h>mx){const r=Math.min(mx/w,mx/h);w=Math.round(w*r);h=Math.round(h*r);}
                                         const c=document.createElement('canvas');c.width=w;c.height=h;
                                         c.getContext('2d').drawImage(im,0,0,w,h);
-                                        updateProcessPhoto(si,c.toDataURL('image/jpeg',0.85));
+                                        const dataUrl=c.toDataURL('image/jpeg',0.85);
+                                        c.width=0;c.height=0;im.src='';
+                                        updateProcessPhoto(si,dataUrl);
                                       };im.src=ev.target.result;
                                     };rd.readAsDataURL(file);
                                   };
@@ -6671,7 +6722,9 @@ function ContentEditorPage({ showToast }) {
                                           if(w>mx||h>mx){const r=Math.min(mx/w,mx/h);w=Math.round(w*r);h=Math.round(h*r);}
                                           const c=document.createElement('canvas');c.width=w;c.height=h;
                                           c.getContext('2d').drawImage(img2,0,0,w,h);
-                                          updateProcessPhoto(si,c.toDataURL('image/jpeg',0.85));
+                                          const dataUrl=c.toDataURL('image/jpeg',0.85);
+                                          c.width=0;c.height=0;img2.src='';
+                                          updateProcessPhoto(si,dataUrl);
                                         };img2.src=ev.target.result;
                                       };reader.readAsDataURL(e.target.files[0]);
                                     }}/>
@@ -6690,7 +6743,9 @@ function ContentEditorPage({ showToast }) {
                                               if(w>mx||h>mx){const r=Math.min(mx/w,mx/h);w=Math.round(w*r);h=Math.round(h*r);}
                                               const c=document.createElement('canvas');c.width=w;c.height=h;
                                               c.getContext('2d').drawImage(img3,0,0,w,h);
-                                              updateProcessPhoto(si,c.toDataURL('image/jpeg',0.85));
+                                              const dataUrl=c.toDataURL('image/jpeg',0.85);
+                                              c.width=0;c.height=0;img3.src='';
+                                              updateProcessPhoto(si,dataUrl);
                                             };img3.src=ev2.target.result;
                                           };rd2.readAsDataURL(blob);
                                           return;
@@ -6726,7 +6781,9 @@ function ContentEditorPage({ showToast }) {
                                         if(w>mx||h>mx){const r=Math.min(mx/w,mx/h);w=Math.round(w*r);h=Math.round(h*r);}
                                         const c=document.createElement('canvas');c.width=w;c.height=h;
                                         c.getContext('2d').drawImage(img2,0,0,w,h);
-                                        updateProcessPhoto(si,c.toDataURL('image/jpeg',0.85));
+                                        const dataUrl=c.toDataURL('image/jpeg',0.85);
+                                        c.width=0;c.height=0;img2.src='';
+                                        updateProcessPhoto(si,dataUrl);
                                       };img2.src=ev.target.result;
                                     };reader.readAsDataURL(e.target.files[0]);
                                   }}/>
@@ -8515,6 +8572,7 @@ function ExpoLeadsPage({showToast,onNavigate}){
         <div style={{display:'flex',gap:12,overflowX:'auto',paddingBottom:16,minHeight:'calc(100vh - 200px)'}}>
           {PIPELINE_STAGES.map(stage=>{
             const items=(search.trim()?filtered:leads).filter(l=>(l.status||'신규')===stage);
+            const shown=items.slice(0,50);
             return(
               <div key={stage} style={{minWidth:240,maxWidth:280,flex:'0 0 240px',background:'var(--bg)',borderRadius:12,padding:12}}>
                 <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12,padding:'0 4px'}}>
@@ -8522,7 +8580,7 @@ function ExpoLeadsPage({showToast,onNavigate}){
                   <div style={{fontSize:13,fontWeight:800}}>{stage}</div>
                   <div style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',background:'var(--border-s)',borderRadius:10,padding:'2px 8px'}}>{items.length}</div>
                 </div>
-                {items.map(l=>(
+                {shown.map(l=>(
                   <div key={l.id} onClick={()=>setSelected(l)} style={{padding:'12px 14px',background:'#fff',borderRadius:10,border:'1px solid var(--border-s)',cursor:'pointer',marginBottom:8,boxShadow:'0 1px 3px rgba(0,0,0,.04)'}}>
                     <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
                       <span style={{fontSize:14,fontWeight:700}}>{l.name||'이름없음'}</span>
@@ -8532,6 +8590,7 @@ function ExpoLeadsPage({showToast,onNavigate}){
                     {l.staff&&<div style={{fontSize:11,color:'var(--orange)',fontWeight:600}}>👤 {l.staff}</div>}
                   </div>
                 ))}
+                {items.length>50&&<div style={{textAlign:'center',padding:'8px 0',fontSize:11,color:'var(--text-sm)'}}>외 {items.length-50}건 더...</div>}
                 {items.length===0&&<div style={{textAlign:'center',padding:20,fontSize:12,color:'var(--text-sm)'}}>없음</div>}
               </div>
             );
@@ -8573,9 +8632,9 @@ function ExpoLeadsPage({showToast,onNavigate}){
                 </div>
                 <div>이름 / 건물유형</div><div>담당자</div><div>날짜</div><div>상태</div><div>전화</div><div>하자유형</div>
               </div>
-              {/* 테이블 바디 */}
+              {/* 테이블 바디 (최대 200건 표시) */}
               {listData.length===0&&<div style={{padding:40,textAlign:'center',color:'var(--text-sm)',fontSize:13}}>조건에 맞는 리드가 없습니다</div>}
-              {listData.map(l=>(
+              {listData.slice(0,200).map(l=>(
                 <div key={l.id} style={{display:'grid',gridTemplateColumns:'36px 1fr 90px 80px 90px 80px 90px',gap:0,padding:'10px 14px',borderBottom:'1px solid var(--border-s)',fontSize:12,alignItems:'center',background:bulkSelected.has(l.id)?'#EFF6FF':'#fff',cursor:'default'}}>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'center'}}>
                     <input type="checkbox" checked={bulkSelected.has(l.id)} onChange={()=>toggleOne(l.id)} style={{width:15,height:15,cursor:'pointer'}} onClick={e=>e.stopPropagation()}/>
@@ -8591,6 +8650,7 @@ function ExpoLeadsPage({showToast,onNavigate}){
                   <div style={{fontSize:11,color:'var(--text-sm)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{Array.isArray(l.problems)?l.problems.slice(0,2).join(', '):l.problem||'-'}</div>
                 </div>
               ))}
+              {listData.length>200&&<div style={{padding:'12px 0',textAlign:'center',fontSize:12,color:'var(--text-sm)',borderTop:'1px solid var(--border-s)'}}>전체 {listData.length}건 중 200건 표시</div>}
             </div>
           );
         })()
@@ -9376,7 +9436,7 @@ function App() {
         </div>
         {/* 콘텐츠 */}
         <div style={{flex:1, overflow:'auto', padding:24, background:'var(--bg)'}}>
-          {renderPage()}
+          <ErrorBoundary key={page}>{renderPage()}</ErrorBoundary>
         </div>
       </div>
       {toast && <Toast message={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
@@ -9384,7 +9444,7 @@ function App() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+ReactDOM.createRoot(document.getElementById('root')).render(<ErrorBoundary><App /></ErrorBoundary>);
 </script>
 </body>
 </html>

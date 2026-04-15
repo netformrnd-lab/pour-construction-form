@@ -19,6 +19,7 @@
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
@@ -8156,21 +8157,69 @@ function AdminScreen({onBack}){
     }catch(e){alert('복원 실패');}
   };
 
-  // CSV 다운로드
-  const downloadCSV=()=>{
-    const headers=['번호','이름','전화','이메일','담당자','날짜','건물유형','문제','액션태그','메모','상태','유입경로','저장시각'];
-    const rows=display.map((l,i)=>[
-      i+1,l.name||'',l.phone||'',l.email||'',l.staff||'',l.day||'',
-      l.building||'',l.problems?.join('|')||'',l.actions?.join('|')||'',
-      (l.memo||'').replace(/,/g,'·'),l.status||'신규',l.source||'직접',l.savedAt||''
-    ]);
-    const csv=[headers,...rows].map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
-    const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(blob);
-    a.download=`POUR박람회_유입_${new Date().toLocaleDateString('ko')}.csv`;
-    a.click();
+  // 엑셀(XLSX) 다운로드 — 고객DB 전체 필드
+  const downloadExcel=(data,label)=>{
+    if(!window.XLSX){alert('엑셀 라이브러리 로딩 중입니다. 잠시 후 다시 시도하세요.');return;}
+    const rows=data.map((l,i)=>({
+      '번호':i+1,
+      '이름':l.name||'','전화':l.phone||'','이메일':l.email||'',
+      '소속/업체':l.company||'','직위':l.position||'','건물유형':l.building||'',
+      '주소':l.address||'','지역':l.region||'',
+      '상태':l.status||'신규','담당자':l.staff||'','상담일':l.day||'',
+      '연락방법':(l.contactMethod||[]).join(', '),
+      '공법/하자':(l.problems||[]).join(', ')||(l.problem||''),
+      '하자카테고리':l.problemCat||'','공법':l.method||'',
+      '후속조치(액션태그)':(l.actions||[]).join(', '),
+      '2차액션':(l.nextActions||[]).join(', '),
+      '완료액션':(l.completedActions||[]).join(', '),
+      '관심항목':(l.interests||[]).join(', '),
+      '발송자료':(l.deliveryDocs||[]).join(', '),
+      '발송매체':(l.deliveryMedia||[]).join(', '),
+      '키워드':(l.keywords||[]).join(', '),
+      '희망착공일':l.desiredStartDate||'',
+      '메모':l.memo||'','텍스트메모':l.memoText||'',
+      '브랜드태그':l.brandTag||'','유입경로':l.source||'',
+      '명함앞':l.businessCard?.front?'있음':'','명함뒤':l.businessCard?.back?'있음':'',
+      '낙서장':(l.memoImgs||[]).length>0?l.memoImgs.length+'장':'',
+      '현장사진':(l.fieldPhotos||[]).length>0?l.fieldPhotos.length+'장':'',
+      '저장시각':l.savedAt?new Date(l.savedAt).toLocaleString('ko'):'',
+      '최종수정':l.lastEditedAt?new Date(l.lastEditedAt).toLocaleString('ko'):'',
+      '복원일시':l.restoredAt?new Date(l.restoredAt).toLocaleString('ko'):'',
+    }));
+    const ws=XLSX.utils.json_to_sheet(rows);
+    // 열 너비 자동 설정
+    const colWidths=Object.keys(rows[0]||{}).map(k=>{
+      const max=Math.max(k.length,...rows.map(r=>String(r[k]||'').length));
+      return{wch:Math.min(Math.max(max+2,8),40)};
+    });
+    ws['!cols']=colWidths;
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'고객DB');
+    const now=new Date();
+    const ts=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+    XLSX.writeFile(wb,`POUR박람회_${label}_${ts}.xlsx`);
+    console.log(`[엑셀] ${label} ${rows.length}건 다운로드 완료`);
   };
+  const downloadExcelAll=()=>downloadExcel(activeLeads,'전체');
+  const downloadExcelFiltered=()=>downloadExcel(display,'필터');
+
+  // 1시간마다 자동 엑셀 다운로드 (ref로 최신 데이터 참조)
+  const latestLeadsRef=React.useRef(activeLeads);
+  latestLeadsRef.current=activeLeads;
+  useEffect(()=>{
+    const timer=setInterval(()=>{
+      const data=latestLeadsRef.current;
+      if(data.length>0){
+        console.log('[자동백업] 1시간 엑셀 자동 다운로드 실행:',data.length,'건');
+        try{
+          downloadExcel(data,'자동백업');
+          setToast({msg:'자동 엑셀 백업 완료 ('+data.length+'건)',type:'success'});
+          setTimeout(()=>setToast(null),3000);
+        }catch(e){console.error('[자동백업] 실패:',e);}
+      }
+    },60*60*1000);
+    return()=>clearInterval(timer);
+  },[]);
 
   return(
     <div className="screen active" style={{background:'var(--bg)',display:'flex',flexDirection:'column',height:'100vh'}}>
@@ -8186,7 +8235,7 @@ function AdminScreen({onBack}){
         <div className="hdr-r">
           <button onClick={()=>setShowPinChange(true)} style={{background:'rgba(255,255,255,.12)',border:'none',borderRadius:7,padding:'6px 12px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',marginRight:4}}>🔑 비번</button>
           <button onClick={openSettings} style={{background:'rgba(255,255,255,.18)',border:'1px solid rgba(255,255,255,.25)',borderRadius:7,padding:'6px 12px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',marginRight:4}}>⚙️ 설정</button>
-          <button onClick={downloadCSV} style={{background:'rgba(255,255,255,.12)',border:'none',borderRadius:7,padding:'6px 12px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',marginRight:8}}>CSV ↓</button>
+          <button onClick={downloadExcelAll} style={{background:'rgba(255,255,255,.12)',border:'none',borderRadius:7,padding:'6px 12px',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',marginRight:4}}>📥 전체</button>
           <button className="btn-back" onClick={onBack}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 5l-7 7 7 7"/></svg>
           </button>
@@ -8638,9 +8687,13 @@ function AdminScreen({onBack}){
             </div>
           </div>
 
-          {/* 결과 카운트 */}
-          <div style={{padding:'6px 14px',background:'var(--bg)',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:700,color:'var(--text-sm)',flexShrink:0}}>
-            {display.length}건 표시 중 / 전체 {activeLeads.length}건
+          {/* 결과 카운트 + 엑셀 다운로드 */}
+          <div style={{padding:'6px 14px',background:'var(--bg)',borderBottom:'1px solid var(--border)',fontSize:11,fontWeight:700,color:'var(--text-sm)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            <span>{display.length}건 표시 중 / 전체 {activeLeads.length}건</span>
+            <div style={{display:'flex',gap:4}}>
+              {display.length!==activeLeads.length&&<button onClick={downloadExcelFiltered} style={{padding:'3px 10px',borderRadius:6,border:'1px solid #059669',background:'#ECFDF5',color:'#059669',fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>📥 필터 {display.length}건</button>}
+              <button onClick={downloadExcelAll} style={{padding:'3px 10px',borderRadius:6,border:'1px solid var(--accent)',background:'var(--blue-l)',color:'var(--accent)',fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>📥 전체 {activeLeads.length}건</button>
+            </div>
           </div>
 
           {/* 리드 목록 — 카드 클릭 시 모달 */}

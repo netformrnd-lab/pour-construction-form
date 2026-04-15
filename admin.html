@@ -3837,7 +3837,7 @@ function DefectPhotosPage({showToast}){
   const [importing,setImporting]=useState(false);
   const [importJson,setImportJson]=useState('');
   const [importUrl,setImportUrl]=useState('');
-  const [form,setForm]=useState({method:DEFAULT_POUR_METHODS[0],defectTypes:[DEFAULT_DEFECT_TYPES[0]],label:'',description:'',files:[]});
+  const [form,setForm]=useState({method:DEFAULT_POUR_METHODS[0],defectTypes:[DEFAULT_DEFECT_TYPES[0]],description:'',files:[]});
   const [editingId,setEditingId]=useState(null);
   /* AI 대량 업로드 상태 */
   const [aiBulkFiles,setAiBulkFiles]=useState([]);
@@ -3998,17 +3998,15 @@ function DefectPhotosPage({showToast}){
     setUploading(true);
     try{
       if(editingId){
-        const data={method:form.method,defectType:form.defectTypes[0]||'',defectTypes:form.defectTypes,label:form.label,description:form.description,updatedAt:new Date().toISOString()};
+        const data={method:form.method,defectType:form.defectTypes[0]||'',defectTypes:form.defectTypes,description:form.description,updatedAt:new Date().toISOString()};
         if(form.files.length){data.imageUrl=await uploadFile(form.files[0]);}
         await db.collection(COLLECTIONS.DEFECT_PHOTOS).doc(editingId).update(data);
         showToast('수정 완료');
       }else{
-        const existing=photos.filter(p=>p.method===form.method&&(p.defectType===form.defectTypes[0]||(Array.isArray(p.defectTypes)&&p.defectTypes.some(d=>form.defectTypes.includes(d))))).length;
         for(let i=0;i<form.files.length;i++){
           const url=await uploadFile(form.files[i]);
-          const label=form.files.length===1&&form.label.trim()?form.label.trim():`${form.defectTypes[0]||'기타'}${existing+i+1}`;
           await db.collection(COLLECTIONS.DEFECT_PHOTOS).add({
-            method:form.method,defectType:form.defectTypes[0]||'',defectTypes:form.defectTypes,label,description:form.description,
+            method:form.method,defectType:form.defectTypes[0]||'',defectTypes:form.defectTypes,description:form.description,
             imageUrl:url,source:'manual',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),
           });
         }
@@ -4034,10 +4032,10 @@ function DefectPhotosPage({showToast}){
     });
     /* 템플릿의 적용공법이 있으면 자동 매핑 (수동 변경 가능) */
     const method=p.method||(matchedTpl?.methods?.[0])||DEFAULT_POUR_METHODS[0];
-    setEditingId(p.id);setForm({method,defectTypes:pTypes,label:p.label||'',description:p.description||'',files:[],matchedTemplate:matchedTpl||null});setShowAdd(true);
+    setEditingId(p.id);setForm({method,defectTypes:pTypes,description:p.description||'',files:[],matchedTemplate:matchedTpl||null});setShowAdd(true);
   };
 
-  const closeAddForm=()=>{setShowAdd(false);setEditingId(null);setForm({method:DEFAULT_POUR_METHODS[0],defectTypes:[DEFAULT_DEFECT_TYPES[0]],label:'',description:'',files:[]});setNewTag('');};
+  const closeAddForm=()=>{setShowAdd(false);setEditingId(null);setForm({method:DEFAULT_POUR_METHODS[0],defectTypes:[DEFAULT_DEFECT_TYPES[0]],description:'',files:[]});setNewTag('');};
 
   /* ── AI 대량 자동 분류 ── */
   const fileToBase64=(file)=>new Promise((resolve,reject)=>{
@@ -4194,9 +4192,9 @@ function DefectPhotosPage({showToast}){
     return(
       <div onClick={()=>setLightbox(null)} style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.85)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
         <div onClick={e=>e.stopPropagation()} style={{position:'relative',maxWidth:'90vw',maxHeight:'90vh',cursor:'default'}}>
-          <img src={lightbox.imageUrl} style={{maxWidth:'90vw',maxHeight:'80vh',borderRadius:12,objectFit:'contain'}} alt={lightbox.label}/>
+          <img src={lightbox.imageUrl} style={{maxWidth:'90vw',maxHeight:'80vh',borderRadius:12,objectFit:'contain'}} alt={lightbox.defectType}/>
           <div style={{position:'absolute',bottom:-40,left:0,right:0,textAlign:'center',color:'#fff',fontSize:14}}>
-            <b>{lightbox.label}</b> · {lightbox.method} · {lightbox.defectType}
+            {(Array.isArray(lightbox.defectTypes)&&lightbox.defectTypes.length>0?lightbox.defectTypes:[lightbox.defectType].filter(Boolean)).map((t,i)=><span key={i} style={{background:'rgba(255,255,255,.2)',padding:'2px 10px',borderRadius:12,marginRight:6,fontSize:12}}>#{t}</span>)} <span style={{opacity:.7}}>· {lightbox.method?.replace('POUR ','').replace(' 공법','')}</span>
           </div>
           {prev&&<button onClick={()=>setLightbox(prev)} style={{position:'absolute',left:-50,top:'50%',transform:'translateY(-50%)',background:'rgba(255,255,255,.2)',border:'none',color:'#fff',fontSize:28,width:40,height:40,borderRadius:'50%',cursor:'pointer'}}>‹</button>}
           {next&&<button onClick={()=>setLightbox(next)} style={{position:'absolute',right:-50,top:'50%',transform:'translateY(-50%)',background:'rgba(255,255,255,.2)',border:'none',color:'#fff',fontSize:28,width:40,height:40,borderRadius:'50%',cursor:'pointer'}}>›</button>}
@@ -4207,18 +4205,21 @@ function DefectPhotosPage({showToast}){
   };
 
   /* ── 사진 카드 ── */
-  const PhotoCard=({p})=>(
+  const PhotoCard=({p})=>{
+    const tags=Array.isArray(p.defectTypes)&&p.defectTypes.length>0?p.defectTypes:(p.defectType?[p.defectType]:[]);
+    return(
     <div style={{background:'#fff',borderRadius:12,border:'1px solid var(--border)',overflow:'hidden',transition:'box-shadow .2s',cursor:'pointer'}} onClick={()=>setLightbox(p)}>
       <div style={{height:200,overflow:'hidden',background:'var(--bg)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-        {p.imageUrl?<img src={p.imageUrl} style={{width:'100%',height:'100%',objectFit:'cover'}} alt={p.label}/>
+        {p.imageUrl?<img src={p.imageUrl} style={{width:'100%',height:'100%',objectFit:'cover'}} alt={tags.join(', ')}/>
         :<span style={{color:'var(--text-sm)',fontSize:13}}>이미지 없음</span>}
       </div>
       <div style={{padding:'10px 12px'}}>
-        <div style={{fontSize:13,fontWeight:700,marginBottom:4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.label||'무제'}</div>
+        <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:4}}>
+          {tags.map((t,i)=><span key={i} style={{padding:'2px 8px',borderRadius:10,background:'var(--blue-l)',color:'var(--blue)',fontSize:10,fontWeight:700}}>#{t}</span>)}
+        </div>
         <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
           {p.source==='manus'&&<span style={{padding:'2px 6px',borderRadius:4,background:'#FEF3C7',color:'#92400E',fontSize:10,fontWeight:600}}>마누스</span>}
           {p.source==='ai'&&<span style={{padding:'2px 6px',borderRadius:4,background:'#EDE9FE',color:'#6D28D9',fontSize:10,fontWeight:600}}>AI분류{p.aiConfidence?` ${p.aiConfidence}%`:''}</span>}
-          <span style={{padding:'2px 6px',borderRadius:4,background:'var(--blue-l)',color:'var(--blue)',fontSize:10,fontWeight:600}}>{p.defectType}</span>
         </div>
       </div>
       <div style={{borderTop:'1px solid var(--border-s)',padding:'6px 12px',display:'flex',justifyContent:'flex-end',gap:8}} onClick={e=>e.stopPropagation()}>
@@ -4226,7 +4227,7 @@ function DefectPhotosPage({showToast}){
         <button onClick={()=>deletePhoto(p.id)} style={{background:'none',border:'none',fontSize:11,color:'#DC2626',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>삭제</button>
       </div>
     </div>
-  );
+  );};
 
   /* ── 메인 렌더 ── */
   return(
@@ -4287,10 +4288,12 @@ function DefectPhotosPage({showToast}){
                 style={{fontSize:12,padding:'5px 12px',borderRadius:8,border:'none',
                   background:'#7C3AED',color:'#fff',cursor:'pointer',fontWeight:700,fontFamily:'inherit'}}>추가</button>
             </div>
+            {/* form에 있지만 allDefects에 없는 새 태그도 표시 */}
+            {(form.defectTypes||[]).filter(d=>!allDefects.includes(d)).map(d=>(
+              <button key={`new-${d}`} type="button" onClick={()=>{const cur=form.defectTypes||[];setForm({...form,defectTypes:cur.filter(x=>x!==d)});}}
+                style={{fontSize:12,padding:'4px 10px',borderRadius:20,border:'1.5px solid #7C3AED',background:'#EDE9FE',color:'#7C3AED',cursor:'pointer',fontWeight:700,fontFamily:'inherit',transition:'all .15s'}}>#{d} ✕</button>
+            ))}
             {(form.defectTypes||[]).length===0&&<div style={{fontSize:11,color:'#ef4444',marginTop:4}}>하자유형을 1개 이상 선택하세요</div>}
-          </div>
-          <div style={{marginBottom:14}}><label style={LS}>라벨 {!editingId&&form.files.length>1?'(자동생성)':''}</label>
-            <input style={IS} value={form.label} onChange={e=>setForm({...form,label:e.target.value})} placeholder={editingId?'라벨':'비워두면 자동생성 (예: 탈락1, 탈락2...)'} disabled={!editingId&&form.files.length>1}/>
           </div>
           <div style={{marginBottom:14}}><label style={LS}>설명 (선택)</label>
             <textarea style={{...IS,resize:'vertical',minHeight:50}} value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="하자 상세 설명"/>

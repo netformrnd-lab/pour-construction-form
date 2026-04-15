@@ -8183,9 +8183,14 @@ function AdminScreen({onBack}){
   const STATUS_COLOR={신규:'#2563EB',연락완료:'#059669',계약예정:'#7C3AED',보류:'#9CA3AF',기타:'#D97706'};
 
   useEffect(()=>{
-    db.collection('leads').orderBy('savedAt','desc').get()
-      .then(s=>{setLeads(s.docs.map(d=>({id:d.id,...d.data()})));})
-      .catch(()=>{})
+    db.collection('leads').get()
+      .then(s=>{
+        const all=s.docs.map(d=>({id:d.id,...d.data()}));
+        all.sort((a,b)=>(b.savedAt||'').localeCompare(a.savedAt||''));
+        console.log(`[leads] ${all.length}건 로드`);
+        setLeads(all);
+      })
+      .catch(e=>{console.error('[leads] 로드 실패:',e);})
       .finally(()=>setLoading(false));
     syncPhotosFromFirestore(setCasePhotos,setProbPhotos);
     syncDefectTagsFromFirestore(setDefectTags);

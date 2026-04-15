@@ -1148,17 +1148,9 @@ function MemoTextarea({value,onChange,placeholder,minHeight=600,onDoodleToggle,d
       React.createElement('span',{style:{fontSize:10,fontWeight:700}},label)
     );
   return React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:0,position:'relative'}},
-    /* 상단 가로 도구바 */
+    /* 상단 가로 도구바 — 낙서장 전용 (텍스트 편집 버튼 제거) */
     React.createElement('div',{style:{display:'flex',gap:3,padding:'7px 10px',background:'#f1f3f5',borderRadius:'12px 12px 0 0',border:'1.5px solid var(--border)',borderBottom:'none',flexWrap:'wrap',alignItems:'center'}},
-      onDoodleToggle&&tBtn('🎨',doodleOpen?'✏️메모':'낙서장',onDoodleToggle,'#7C3AED',doodleOpen?'rgba(124,58,237,.2)':'#F5F3FF'),
       tBtn('🗑','전체삭제',()=>{if(value)setConfirmDelete(true);},'#DC2626','#FEF2F2',!value),
-      React.createElement('div',{key:'s1',style:{width:2,height:26,background:'#bbb',borderRadius:1,margin:'0 5px'}}),
-      tBtn('↪','다시',redo,'#4F46E5','#EEF2FF',!canRedo),
-      tBtn('↩','되돌리기',undo,'#4F46E5','#EEF2FF',!canUndo),
-      tBtn('←','지우기',backspace,'#EA580C','#FFF7ED',!value),
-      React.createElement('div',{key:'s2',style:{width:2,height:26,background:'#bbb',borderRadius:1,margin:'0 5px'}}),
-      tBtn('␣','공백',()=>insertAt(' '),'#059669','#F0FDF4'),
-      tBtn('↵','줄바꿈',()=>insertAt('\n'),'#4F46E5','#EEF2FF'),
     ),
     /* 전체삭제 확인 바 — 도구바 바로 아래 */
     confirmDelete&&React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',gap:10,padding:'8px 12px',background:'#FEF2F2',borderLeft:'1.5px solid #FECACA',borderRight:'1.5px solid #FECACA'}},
@@ -1166,13 +1158,9 @@ function MemoTextarea({value,onChange,placeholder,minHeight=600,onDoodleToggle,d
       React.createElement('button',{onClick:clearAll,style:{padding:'6px 16px',borderRadius:8,border:'none',background:'#DC2626',color:'#fff',fontSize:13,fontWeight:800,cursor:'pointer',fontFamily:'inherit'}},'삭제'),
       React.createElement('button',{onClick:()=>setConfirmDelete(false),style:{padding:'6px 16px',borderRadius:8,border:'1.5px solid var(--border)',background:'#fff',color:'var(--text-sm)',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}},'취소'),
     ),
-    /* 낙서장 모드: DrawCanvas를 textarea 자리에 표시 (스크롤 불필요) */
-    doodleOpen&&doodleContent?React.createElement('div',{style:{border:'1.5px solid rgba(124,58,237,.25)',borderTop:'none',borderRadius:'0 0 12px 12px',overflow:'hidden',background:'#FAFAFF',minHeight:minHeight}},doodleContent):
-    /* 텍스트 메모 모드 */
-    React.createElement('textarea',{ref:taRef,className:'note-input',autoCorrect:'on',spellCheck:true,value:value,onChange:handleChange,onBlur:handleBlur,
-      placeholder:placeholder||"✏️ 펜슬로 직접 필기하세요\n상담 내용, 특이사항, 요청사항 등",
-      style:{fontSize:16,padding:'16px',minHeight:minHeight,resize:'vertical',lineHeight:1.7,fontFamily:'inherit',
-        width:'100%',boxSizing:'border-box',borderRadius:'0 0 12px 12px',flex:1}}),
+    /* 낙서장 모드만 표시 (텍스트 모드 제거) */
+    doodleContent?React.createElement('div',{style:{border:'1.5px solid rgba(124,58,237,.25)',borderTop:'none',borderRadius:'0 0 12px 12px',overflow:'hidden',background:'#FAFAFF',minHeight:minHeight}},doodleContent):
+    React.createElement('div',{style:{border:'1.5px solid var(--border)',borderTop:'none',borderRadius:'0 0 12px 12px',padding:24,textAlign:'center',color:'var(--text-sm)',fontSize:13,minHeight:minHeight}}, '낙서장 로딩 중...'),
   );
 }
 
@@ -3441,7 +3429,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
   const [ntDone,setNtDone]=useState(false);
   const [ntPencilMode,setNtPencilMode]=useState(true);
   const [ntMemoImgs,setNtMemoImgs]=useState([]);
-  const [ntDoodleOpen,setNtDoodleOpen]=useState(false);
+  const [ntDoodleOpen,setNtDoodleOpen]=useState(true);
   const ntMemoRef=useRef(null);
   useEffect(()=>{if(!ntPencilMode&&ntMemoRef.current){ntMemoRef.current.focus();}},[ntPencilMode]);
   const [ntStep,setNtStep]=useState('info'); // 'info' | 'memo'
@@ -3682,30 +3670,32 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
     sendToSheet(Object.assign({_sheetType:'lead'},data));
     /* 저장 후 바로 문자 작성 화면으로 전환 (자동 발송 안 함 — 버튼으로만 발송) */
     setNtSaving(false);setNtDone(true);
-    /* 문자 작성 화면 자동 준비 */
-    if(ntPhone&&loadSolapiConfig().workerUrl){
+    /* 문자 작성 화면 자동 준비 — 항상 텍스트 생성, 링크는 phone+config 있을 때만 */
+    {
       (async()=>{
-        let msg=`${ntName}님, POUR솔루션 상담 감사합니다.`;
+        let msg=`${ntName||'고객'}님, POUR솔루션 상담 감사합니다.`;
         if(ntNextActions.length>0){
           const docs=ntNextActions.filter(a=>!a.startsWith('방문'));
           const visit=ntNextActions.find(a=>a.startsWith('방문'));
           if(docs.length>0)msg+=`\n\n요청하신 ${docs.join(', ')} 보내드리겠습니다.`;
           if(visit)msg+=`\n${visit} 드리겠습니다.`;
         }else{msg+='\n맞춤 자료를 보내드리겠습니다.';}
-        const pName=problem?.label||'';
-        const rawLinks=[];
-        // 맞춤제안서는 2차 개발 예정으로 제외 — 시방서/가이드/사례만 발송
-        // if(problem?.proposalUrl)rawLinks.push({label:pName+' 제안서',url:problem.proposalUrl});
-        if(problem?.specUrl)rawLinks.push({label:pName+' 시방서',url:problem.specUrl});
-        if(problem?.guideId)rawLinks.push({label:pName+' 시공가이드',url:'https://www.poursolution.net/'+problem.guideId});
-        if(problem?.caseUrl)rawLinks.push({label:pName+' 시공사례',url:problem.caseUrl});
-        const autoLinks=[];
-        for(const l of rawLinks){
-          const short=await createShortLink(l.url,{label:l.label,customerName:ntName,staff:staffName});
-          autoLinks.push({label:l.label,url:short,origUrl:l.url});
+        if(ntPhone&&loadSolapiConfig().workerUrl){
+          const pName=problem?.label||'';
+          const rawLinks=[];
+          // 맞춤제안서는 2차 개발 예정으로 제외 — 시방서/가이드/사례만 발송
+          // if(problem?.proposalUrl)rawLinks.push({label:pName+' 제안서',url:problem.proposalUrl});
+          if(problem?.specUrl)rawLinks.push({label:pName+' 시방서',url:problem.specUrl});
+          if(problem?.guideId)rawLinks.push({label:pName+' 시공가이드',url:'https://www.poursolution.net/'+problem.guideId});
+          if(problem?.caseUrl)rawLinks.push({label:pName+' 시공사례',url:problem.caseUrl});
+          const autoLinks=[];
+          for(const l of rawLinks){
+            const short=await createShortLink(l.url,{label:l.label,customerName:ntName,staff:staffName});
+            autoLinks.push({label:l.label,url:short,origUrl:l.url});
+          }
+          setNtSmsLinks(autoLinks);setNtSelectedLinks(autoLinks.map((_,i)=>i));
+          if(autoLinks.length>0){msg+='\n\n📎 자료 링크:';autoLinks.forEach(l=>{msg+=`\n${l.label}: ${l.url}`;});}
         }
-        setNtSmsLinks(autoLinks);setNtSelectedLinks(autoLinks.map((_,i)=>i));
-        if(autoLinks.length>0){msg+='\n\n📎 자료 링크:';autoLinks.forEach(l=>{msg+=`\n${l.label}: ${l.url}`;});}
         msg+=`\n\n문의 1577-6587`;
         setNtSmsText(msg);setNtQuickSms(true);
       })();
@@ -5101,17 +5091,9 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                     )}
                   </div>
                 )}
-                {/* 맞춤제안서 미리보기 — 2차 개발 예정으로 숨김 */}
-                {!ntQuickSms?(
-                  <div style={{textAlign:'center',padding:20}}>
-                    {ntPhone&&loadSolapiConfig().workerUrl
-                      ?<div style={{fontSize:13,color:'var(--text-sm)'}}>📩 문자 발송 준비 중...</div>
-                      :<button onClick={ntResetAndClose} style={{padding:'14px 30px',borderRadius:12,border:'1.5px solid var(--border)',background:'#fff',color:'var(--text-md)',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>닫기</button>
-                    }
-                  </div>
-                ):(
+                {/* 문자 발송 섹션 — 항상 표시 */}
                   <div style={{width:'100%',maxWidth:400,padding:'0 10px'}}>
-                    <div style={{fontSize:13,fontWeight:700,color:'var(--text)',marginBottom:10}}>수신: <span style={{color:'var(--blue)'}}>{ntPhone}</span> ({ntName})</div>
+                    <div style={{fontSize:13,fontWeight:700,color:'var(--text)',marginBottom:10}}>수신: {ntPhone?<span style={{color:'var(--blue)'}}>{ntPhone}</span>:<span style={{color:'var(--red)'}}>전화번호 없음</span>} ({ntName})</div>
 
                     {/* 자료 링크 선택 */}
                     {ntSmsLinks.length>0&&(
@@ -5184,9 +5166,19 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                       </div>
                     )}
 
-                    <textarea value={ntSmsText} onChange={e=>setNtSmsText(e.target.value)}
-                      style={{width:'100%',minHeight:140,padding:'14px 16px',borderRadius:10,border:'1.5px solid var(--border)',fontSize:14,lineHeight:1.7,color:'var(--text)',fontFamily:'inherit',resize:'vertical',outline:'none',boxSizing:'border-box'}}
-                      placeholder="펜슬로 수정 가능"/>
+                    {/* 폰 미리보기 스타일 SMS 편집 */}
+                    <div style={{border:'2px solid #333',borderRadius:20,overflow:'hidden',background:'#f2f2f7',marginBottom:6}}>
+                      <div style={{background:'#333',color:'#fff',padding:'6px 14px',fontSize:11,fontWeight:700,display:'flex',alignItems:'center',gap:6}}>
+                        <span>📱</span> 고객 수신 미리보기
+                      </div>
+                      <div style={{padding:'16px 12px',minHeight:420}}>
+                        <div style={{background:'#e9e9eb',borderRadius:'16px 16px 16px 4px',padding:'12px 14px',maxWidth:'90%'}}>
+                          <textarea value={ntSmsText} onChange={e=>setNtSmsText(e.target.value)}
+                            style={{width:'100%',minHeight:380,padding:0,border:'none',background:'transparent',fontSize:14,lineHeight:1.7,color:'#111',fontFamily:'inherit',resize:'vertical',outline:'none',boxSizing:'border-box'}}
+                            placeholder="펜슬로 수정 가능"/>
+                        </div>
+                      </div>
+                    </div>
                     <div style={{fontSize:10,color:'var(--text-sm)',margin:'6px 0 12px'}}>{ntSmsText.length}자 {ntSmsText.length>90?'(LMS)':'(SMS)'}</div>
                     <div style={{display:'flex',gap:10}}>
                       <button onClick={ntResetAndClose}
@@ -5205,13 +5197,12 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                           });}catch(ex){console.warn('[sms-log]',ex);}
                           setNtSmsSending(false);setNtQuickSms(false);ntResetAndClose();
                         }else{setNtSmsSending(false);alert('발송 실패: '+(typeof r.error==='string'?r.error:JSON.stringify(r.error)));}
-                      }} disabled={ntSmsSending}
-                        style={{flex:2,padding:'14px 0',borderRadius:10,border:'none',background:'var(--blue)',fontSize:15,fontWeight:800,color:'#fff',cursor:'pointer',fontFamily:'inherit',opacity:ntSmsSending?0.6:1}}>
-                        {ntSmsSending?'발송 중...':'📩 고객에게 발송하기'}
+                      }} disabled={ntSmsSending||!ntPhone}
+                        style={{flex:2,padding:'14px 0',borderRadius:10,border:'none',background:ntPhone?'var(--blue)':'#ccc',fontSize:15,fontWeight:800,color:'#fff',cursor:ntPhone?'pointer':'not-allowed',fontFamily:'inherit',opacity:ntSmsSending?0.6:1}}>
+                        {!ntPhone?'전화번호 없음':ntSmsSending?'발송 중...':'📩 고객에게 발송하기'}
                       </button>
                     </div>
                   </div>
-                )}
               </div>
             ):(
               <>
@@ -7586,6 +7577,24 @@ function AdminScreen({onBack}){
   const [settingsPin,setSettingsPin]=useState('');
   const [settingsPinError,setSettingsPinError]=useState('');
   const [adminReport,setAdminReport]=useState(null); // {leadId, status:'saving'|'done'|'error', reportId}
+  const [modalMemoText,setModalMemoText]=useState('');
+  const [modalMemoSaving,setModalMemoSaving]=useState(false);
+  const [modalCompletedActions,setModalCompletedActions]=useState([]);
+  const [modalSmsLogs,setModalSmsLogs]=useState(null);
+  useEffect(()=>{
+    if(expanded&&typeof expanded==='object'){
+      setModalMemoText(expanded.memoText||'');
+      setModalCompletedActions(expanded.completedActions||[]);
+      setModalMemoSaving(false);
+      if(expanded.phone){
+        const clean=expanded.phone.replace(/[^0-9]/g,'');
+        db.collection('sms-logs').get().then(snap=>{
+          const arr=[];snap.forEach(d=>arr.push(d.data()));
+          setModalSmsLogs(arr.filter(s=>(s.phone||'').replace(/[^0-9]/g,'')===clean).sort((a,b)=>(b.sentAt||'').localeCompare(a.sentAt||'')));
+        }).catch(()=>setModalSmsLogs([]));
+      }else{setModalSmsLogs([]);}
+    }else{setModalSmsLogs(null);}
+  },[expanded]);
   const generateAdminReport=async(l)=>{
     setAdminReport({leadId:l.id,status:'saving',reportId:null});
     const reportId=(()=>{const c='ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';return Array.from({length:8},()=>c[Math.floor(Math.random()*c.length)]).join('');})();
@@ -7699,7 +7708,7 @@ function AdminScreen({onBack}){
       const deletedAt=new Date().toISOString();
       await db.collection('leads').doc(id).update({deletedAt});
       setLeads(p=>p.map(l=>l.id===id?{...l,deletedAt}:l));
-      if(expanded===id)setExpanded(null);
+      if(expanded&&expanded.id===id)setExpanded(null);
     }catch(e){alert('삭제 실패');}
   };
 
@@ -8198,16 +8207,14 @@ function AdminScreen({onBack}){
             {display.length}건 표시 중 / 전체 {activeLeads.length}건
           </div>
 
-          {/* 리드 목록 */}
+          {/* 리드 목록 — 카드 클릭 시 모달 */}
           <div style={{flex:1,overflowY:'auto',padding:'10px 12px',display:'flex',flexDirection:'column',gap:8,minHeight:0,WebkitOverflowScrolling:'touch'}}>
             {display.length===0&&<div className="empty">조건에 맞는 상담이 없어요</div>}
             {display.map((l,i)=>{
-              const isOpen=expanded===l.id;
               const status=l.status||'신규';
               return(
-                <div key={l.id||i} style={{background:'var(--card)',borderRadius:12,border:`1.5px solid ${isOpen?'var(--accent)':'var(--border)'}`,overflow:'hidden',transition:'border-color .15s'}}>
-                  {/* 카드 헤더 */}
-                  <div style={{padding:'12px 14px',display:'flex',alignItems:'center',gap:8,cursor:'pointer'}} onClick={()=>setExpanded(isOpen?null:l.id)}>
+                <div key={l.id||i} style={{background:'var(--card)',borderRadius:12,border:'1.5px solid var(--border)',overflow:'hidden',cursor:'pointer',transition:'border-color .15s',flexShrink:0}} onClick={()=>setExpanded(l)}>
+                  <div style={{padding:'12px 14px',display:'flex',alignItems:'center',gap:8}}>
                     <span style={{fontSize:11,fontWeight:700,color:'var(--text-sm)',width:20,textAlign:'center'}}>{i+1}</span>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{display:'flex',alignItems:'center',gap:6}}>
@@ -8219,184 +8226,156 @@ function AdminScreen({onBack}){
                       </div>
                     </div>
                     <span style={{fontSize:10,fontWeight:800,padding:'3px 8px',borderRadius:12,background:STATUS_COLOR[status]||'#9CA3AF',color:'#fff',flexShrink:0}}>{status}</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-sm)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,transform:isOpen?'rotate(180deg)':'rotate(0deg)',transition:'transform .2s'}}><path d="M6 9l6 6 6-6"/></svg>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* ── 유입 상세 모달 ── */}
+          {expanded&&typeof expanded==='object'&&(()=>{
+            const l=expanded;
+            const status=l.status||'신규';
+            const saveMemoText=async()=>{
+              if(!l.id)return;
+              setModalMemoSaving(true);
+              try{await db.collection('leads').doc(l.id).update({memoText:modalMemoText});
+                setToast({msg:'텍스트 메모 저장됨',type:'success'});setTimeout(()=>setToast(null),2000);
+                const idx=leads.findIndex(x=>x.id===l.id);
+                if(idx>=0){const c=[...leads];c[idx]={...c[idx],memoText:modalMemoText};setLeads(c);}
+              }catch(e){console.error('[memoText] 저장 실패:',e);setToast({msg:'저장 실패',type:'error'});setTimeout(()=>setToast(null),2000);}
+              setModalMemoSaving(false);
+            };
+            const toggleAction=async(action)=>{
+              const next=modalCompletedActions.includes(action)?modalCompletedActions.filter(a=>a!==action):[...modalCompletedActions,action];
+              setModalCompletedActions(next);
+              if(l.id){try{await db.collection('leads').doc(l.id).update({completedActions:next});
+                const idx=leads.findIndex(x=>x.id===l.id);
+                if(idx>=0){const c=[...leads];c[idx]={...c[idx],completedActions:next};setLeads(c);}
+              }catch(e){console.error('[completedActions] 저장 실패:',e);}}
+            };
+            const latestSms=modalSmsLogs&&modalSmsLogs.length>0?modalSmsLogs[0]:null;
+            return(
+              <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:300,display:'flex',alignItems:'center',justifyContent:'center',padding:20,backdropFilter:'blur(4px)'}} onClick={()=>setExpanded(null)}>
+                <div style={{background:'#fff',borderRadius:16,width:'100%',maxWidth:520,maxHeight:'85vh',overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:'0 20px 60px rgba(0,0,0,.25)'}} onClick={e=>e.stopPropagation()}>
+                  {/* 모달 헤더 */}
+                  <div style={{padding:'20px 24px 16px',borderBottom:'1.5px solid var(--border)',flexShrink:0}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+                      <div style={{display:'flex',alignItems:'center',gap:10}}>
+                        <span style={{fontSize:22,fontWeight:900,color:'var(--text)'}}>{l.name||'이름없음'}</span>
+                        <span style={{fontSize:10,fontWeight:800,padding:'3px 8px',borderRadius:12,background:STATUS_COLOR[status]||'#9CA3AF',color:'#fff'}}>{status}</span>
+                      </div>
+                      <button onClick={()=>setExpanded(null)} style={{width:36,height:36,borderRadius:'50%',border:'1.5px solid var(--border)',background:'var(--bg)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-md)'}}>✕</button>
+                    </div>
                   </div>
 
-                  {/* 펼쳐진 상세 */}
-                  {isOpen&&(
-                    <div style={{borderTop:'1px solid var(--border)',padding:'12px 14px',display:'flex',flexDirection:'column',gap:10}}>
-                      {/* 연락처 */}
-                      <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                        {l.phone&&<a href={`tel:${l.phone}`} style={{flex:1,minWidth:80,textAlign:'center',padding:'8px',background:'var(--accent-l)',border:'1px solid #BFDBFE',borderRadius:8,color:'var(--accent)',fontSize:12,fontWeight:700,textDecoration:'none'}}>📞 전화</a>}
-                        {l.phone&&<button onClick={()=>setSmsTarget({phone:l.phone,name:l.name,building:l.building,problem:l.problem,staff:l.staff})} style={{flex:1,minWidth:80,textAlign:'center',padding:'8px',background:'var(--purple-l)',border:'1px solid var(--purple-m)',borderRadius:8,color:'var(--purple)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>💬 솔라피</button>}
-                        {l.email&&<a href={`mailto:${l.email}`} style={{flex:1,minWidth:80,textAlign:'center',padding:'8px',background:'#F0FDF4',border:'1px solid #BBF7D0',borderRadius:8,color:'#059669',fontSize:12,fontWeight:700,textDecoration:'none'}}>📧 메일</a>}
-                      </div>
+                  {/* 모달 바디 — 스크롤 */}
+                  <div style={{flex:1,overflowY:'auto',padding:'16px 24px',display:'flex',flexDirection:'column',gap:16}}>
 
-                      {/* 상담 내용 */}
-                      {l.problems?.length>0&&(
-                        <div>
-                          <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:4}}>문제유형</div>
-                          <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
-                            {l.problems.map(p=><span key={p} style={{fontSize:11,padding:'3px 8px',background:'#FEF3C7',color:'#92400E',borderRadius:20,fontWeight:700}}>{p}</span>)}
-                          </div>
+                    {/* 1. 고객정보 */}
+                    <div>
+                      <div style={{fontSize:12,fontWeight:800,color:'var(--text)',marginBottom:8}}>고객정보</div>
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px 16px',fontSize:12}}>
+                        <div><span style={{color:'var(--text-sm)',fontWeight:600}}>이름</span> <span style={{fontWeight:700}}>{l.name||'-'}</span></div>
+                        <div><span style={{color:'var(--text-sm)',fontWeight:600}}>전화</span> <span style={{fontWeight:700}}>{l.phone||'-'}</span></div>
+                        <div><span style={{color:'var(--text-sm)',fontWeight:600}}>소속</span> <span style={{fontWeight:700}}>{l.company||'-'}</span></div>
+                        <div><span style={{color:'var(--text-sm)',fontWeight:600}}>건물</span> <span style={{fontWeight:700}}>{l.building||'-'}</span></div>
+                        <div><span style={{color:'var(--text-sm)',fontWeight:600}}>직위</span> <span style={{fontWeight:700}}>{l.position||'-'}</span></div>
+                        <div><span style={{color:'var(--text-sm)',fontWeight:600}}>일자</span> <span style={{fontWeight:700}}>{l.day||'-'}</span></div>
+                        <div><span style={{color:'var(--text-sm)',fontWeight:600}}>담당</span> <span style={{fontWeight:700}}>{l.staff||'-'}</span></div>
+                        <div><span style={{color:'var(--text-sm)',fontWeight:600}}>이메일</span> <span style={{fontWeight:700}}>{l.email||'-'}</span></div>
+                        {l.address&&<div style={{gridColumn:'1/3'}}><span style={{color:'var(--text-sm)',fontWeight:600}}>주소</span> <span style={{fontWeight:700}}>{l.address}</span></div>}
+                      </div>
+                      <div style={{fontSize:10,color:'var(--text-sm)',marginTop:6}}>{l.savedAt?new Date(l.savedAt).toLocaleString('ko'):''}</div>
+                    </div>
+
+                    {/* 2. 2차액션 — 체크 가능 */}
+                    {l.nextActions?.length>0&&(
+                      <div>
+                        <div style={{fontSize:12,fontWeight:800,color:'var(--text)',marginBottom:8}}>2차 액션</div>
+                        <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                          {l.nextActions.map(action=>{
+                            const done=modalCompletedActions.includes(action);
+                            return(
+                              <label key={action} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 10px',background:done?'#F0FDF4':'var(--bg)',border:`1px solid ${done?'#BBF7D0':'var(--border)'}`,borderRadius:8,cursor:'pointer',fontSize:12,fontWeight:600}}>
+                                <input type="checkbox" checked={done} onChange={()=>toggleAction(action)} style={{accentColor:'#059669',width:16,height:16}}/>
+                                <span style={{textDecoration:done?'line-through':'none',color:done?'#059669':'var(--text)'}}>{action}</span>
+                              </label>
+                            );
+                          })}
                         </div>
-                      )}
-                      {l.actions?.length>0&&(
-                        <div>
-                          <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:4}}>액션태그</div>
-                          <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
-                            {l.actions.map(a=><span key={a} style={{fontSize:11,padding:'3px 8px',background:'#EDE9FE',color:'#5B21B6',borderRadius:20,fontWeight:700}}>{a}</span>)}
-                          </div>
+                      </div>
+                    )}
+
+                    {/* 3. 명함촬영 */}
+                    {l.businessCard&&(l.businessCard.front||l.businessCard.back)&&(
+                      <div>
+                        <div style={{fontSize:12,fontWeight:800,color:'var(--text)',marginBottom:8}}>명함촬영</div>
+                        <div style={{display:'flex',gap:6}}>
+                          {l.businessCard.front&&<img src={l.businessCard.front} alt="명함 앞" style={{flex:1,borderRadius:8,border:'1px solid var(--border)',maxHeight:180,objectFit:'contain'}}/>}
+                          {l.businessCard.back&&<img src={l.businessCard.back} alt="명함 뒤" style={{flex:1,borderRadius:8,border:'1px solid var(--border)',maxHeight:180,objectFit:'contain'}}/>}
                         </div>
-                      )}
-                      {(l.memo||l.memoImgs?.length>0)&&(
+                      </div>
+                    )}
+
+                    {/* 4. 낙서장 */}
+                    {l.memoImgs?.length>0&&(
+                      <div>
+                        <div style={{fontSize:12,fontWeight:800,color:'var(--text)',marginBottom:8}}>낙서장</div>
                         <div style={{background:'#FFFBEB',border:'1px solid #FDE68A',borderRadius:8,padding:'8px 10px'}}>
-                          <div style={{fontSize:10,fontWeight:700,color:'#92400E',marginBottom:4}}>메모</div>
-                          {l.memo&&<div style={{fontSize:12,color:'#78350F',lineHeight:1.5,marginBottom:l.memoImgs?.length>0?6:0}}>{l.memo}</div>}
-                          {l.memoImgs?.map((img,pi)=>(
+                          {l.memoImgs.map((img,pi)=>(
                             <div key={pi} style={{marginBottom:pi<l.memoImgs.length-1?6:0}}>
                               {l.memoImgs.length>1&&<div style={{fontSize:9,fontWeight:700,color:'#B45309',marginBottom:2}}>{pi+1}페이지</div>}
                               <img src={img} alt={`펜슬 메모 ${pi+1}p`} style={{width:'100%',borderRadius:6,display:'block'}}/>
                             </div>
                           ))}
                         </div>
-                      )}
-
-                      {/* 명함 */}
-                      {l.businessCard&&(l.businessCard.front||l.businessCard.back)&&(
-                        <div>
-                          <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:4}}>명함</div>
-                          <div style={{display:'flex',gap:6}}>
-                            {l.businessCard.front&&<img src={l.businessCard.front} alt="명함 앞" style={{flex:1,borderRadius:8,border:'1px solid var(--border)',maxHeight:160,objectFit:'contain'}}/>}
-                            {l.businessCard.back&&<img src={l.businessCard.back} alt="명함 뒤" style={{flex:1,borderRadius:8,border:'1px solid var(--border)',maxHeight:160,objectFit:'contain'}}/>}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* 추가 정보 — 저장되어 있지만 기존에 미표시였던 필드들 */}
-                      {(l.address||l.desiredStartDate||l.nextActions?.length>0||l.interests?.length>0||l.deliveryDocs?.length>0||l.keywords?.length>0||l.source||l.fieldPhotos?.length>0)&&(
-                        <div style={{background:'var(--bg)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 12px',display:'flex',flexDirection:'column',gap:8}}>
-                          <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)'}}>추가 정보</div>
-                          {l.address&&(
-                            <div style={{display:'flex',gap:6,alignItems:'flex-start'}}>
-                              <span style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',minWidth:60,flexShrink:0}}>주소</span>
-                              <span style={{fontSize:12,fontWeight:600,color:'var(--text)'}}>{l.address}</span>
-                            </div>
-                          )}
-                          {l.desiredStartDate&&(
-                            <div style={{display:'flex',gap:6,alignItems:'center'}}>
-                              <span style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',minWidth:60,flexShrink:0}}>희망 착공</span>
-                              <span style={{fontSize:12,fontWeight:600,color:'var(--text)'}}>{l.desiredStartDate}</span>
-                            </div>
-                          )}
-                          {l.interests?.length>0&&(
-                            <div style={{display:'flex',gap:6,alignItems:'flex-start'}}>
-                              <span style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',minWidth:60,flexShrink:0}}>관심항목</span>
-                              <div style={{display:'flex',flexWrap:'wrap',gap:4}}>{l.interests.map(v=><span key={v} style={{fontSize:10,padding:'2px 8px',borderRadius:12,background:'#DBEAFE',color:'#1D4ED8',fontWeight:700}}>{v}</span>)}</div>
-                            </div>
-                          )}
-                          {l.nextActions?.length>0&&(
-                            <div style={{display:'flex',gap:6,alignItems:'flex-start'}}>
-                              <span style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',minWidth:60,flexShrink:0}}>후속조치</span>
-                              <div style={{display:'flex',flexWrap:'wrap',gap:4}}>{l.nextActions.map(v=><span key={v} style={{fontSize:10,padding:'2px 8px',borderRadius:12,background:'#FEF3C7',color:'#92400E',fontWeight:700}}>{v}</span>)}</div>
-                            </div>
-                          )}
-                          {l.deliveryDocs?.length>0&&(
-                            <div style={{display:'flex',gap:6,alignItems:'flex-start'}}>
-                              <span style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',minWidth:60,flexShrink:0}}>발송자료</span>
-                              <div style={{display:'flex',flexWrap:'wrap',gap:4}}>{l.deliveryDocs.map(v=><span key={v} style={{fontSize:10,padding:'2px 8px',borderRadius:12,background:'#F0FDF4',color:'#059669',fontWeight:700}}>{v}</span>)}</div>
-                            </div>
-                          )}
-                          {l.keywords?.length>0&&(
-                            <div style={{display:'flex',gap:6,alignItems:'flex-start'}}>
-                              <span style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',minWidth:60,flexShrink:0}}>키워드</span>
-                              <div style={{display:'flex',flexWrap:'wrap',gap:4}}>{l.keywords.map(v=><span key={v} style={{fontSize:10,padding:'2px 8px',borderRadius:12,background:'#EDE9FE',color:'#5B21B6',fontWeight:700}}>{v}</span>)}</div>
-                            </div>
-                          )}
-                          {l.source&&(
-                            <div style={{display:'flex',gap:6,alignItems:'center'}}>
-                              <span style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',minWidth:60,flexShrink:0}}>유입경로</span>
-                              <span style={{fontSize:12,fontWeight:600,color:'var(--text)'}}>{l.source}</span>
-                            </div>
-                          )}
-                          {l.fieldPhotos?.length>0&&(
-                            <div>
-                              <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:4}}>
-                                <span style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',minWidth:60,flexShrink:0}}>현장사진</span>
-                                <span style={{fontSize:9,color:'var(--text-sm)'}}>{l.fieldPhotos.length}장</span>
-                              </div>
-                              <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:4}}>
-                                {l.fieldPhotos.map((p,pi)=>(
-                                  <div key={pi} style={{position:'relative'}}>
-                                    <img src={p.src} alt={`현장${pi+1}`} style={{width:'100%',height:60,objectFit:'cover',borderRadius:4,border:'1px solid var(--border)'}}/>
-                                    {(p.defectType||p.defectPart)&&(
-                                      <div style={{position:'absolute',bottom:1,left:1,right:1,display:'flex',gap:1,flexWrap:'wrap'}}>
-                                        {p.defectType&&<span style={{fontSize:7,padding:'0px 3px',borderRadius:3,background:'rgba(239,68,68,0.85)',color:'#fff',fontWeight:700}}>{p.defectType}</span>}
-                                        {p.defectPart&&<span style={{fontSize:7,padding:'0px 3px',borderRadius:3,background:'rgba(59,130,246,0.85)',color:'#fff',fontWeight:700}}>{p.defectPart}</span>}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* 상태 변경 */}
-                      <div>
-                        <div style={{fontSize:10,fontWeight:700,color:'var(--text-sm)',marginBottom:6}}>상태 변경</div>
-                        <div style={{display:'flex',gap:5,flexWrap:'wrap'}}>
-                          {STATUS_OPTIONS.map(s=>(
-                            <button key={s} onClick={()=>changeStatus(l.id,s)} style={{padding:'5px 10px',borderRadius:20,border:`1.5px solid ${STATUS_COLOR[s]||'#9CA3AF'}`,background:status===s?STATUS_COLOR[s]||'#9CA3AF':'#fff',color:status===s?'#fff':STATUS_COLOR[s]||'#9CA3AF',fontSize:11,fontWeight:700,cursor:'pointer'}}>
-                              {s}
-                            </button>
-                          ))}
-                        </div>
                       </div>
+                    )}
 
-                      {/* 제안서 생성 */}
-                      {(()=>{
-                        const ar=adminReport?.leadId===l.id?adminReport:null;
-                        return(
-                          <div>
-                            {ar?.status==='done'?(
-                              <div style={{background:'var(--green-l)',border:'1px solid var(--green)',borderRadius:8,padding:'8px 12px',display:'flex',alignItems:'center',gap:8}}>
-                                <span style={{fontSize:11,fontWeight:700,color:'var(--green)'}}>✅ 제안서 생성 완료</span>
-                                <a href={`https://pour-construction-form.pages.dev/report-lookup.html?id=${ar.reportId}`} target="_blank" rel="noreferrer"
-                                  style={{fontSize:10,color:'var(--accent)',fontWeight:700,textDecoration:'none',marginLeft:'auto'}}>🔗 보기</a>
-                                <button onClick={()=>{
-                                  if(navigator.clipboard){navigator.clipboard.writeText(`https://pour-construction-form.pages.dev/report-lookup.html?id=${ar.reportId}`);}
-                                  setToast({msg:'링크 복사됨',type:'success'});setTimeout(()=>setToast(null),2000);
-                                }} style={{fontSize:9,padding:'3px 8px',borderRadius:6,border:'1px solid var(--accent)',background:'#fff',color:'var(--accent)',fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>복사</button>
-                              </div>
-                            ):ar?.status==='saving'?(
-                              <div style={{fontSize:11,color:'var(--text-sm)',padding:'6px 0'}}>⏳ 제안서 생성 중...</div>
-                            ):ar?.status==='error'?(
-                              <div style={{fontSize:11,color:'var(--red)',padding:'6px 0'}}>⚠️ 오류 발생. 다시 시도해 주세요.</div>
-                            ):(
-                              <button onClick={()=>generateAdminReport(l)}
-                                style={{width:'100%',padding:'8px 12px',borderRadius:8,border:'1.5px solid var(--navy)',
-                                  background:'var(--navy)',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>
-                                📋 고객 맞춤 제안서 생성
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })()}
-                      {/* 저장시각 + 삭제 */}
-                      {/* 문자 발송 내역 */}
-                      {l.phone&&<SmsLogView phone={l.phone}/>}
-                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:6}}>
-                        <span style={{fontSize:10,color:'var(--text-sm)'}}>{l.savedAt?new Date(l.savedAt).toLocaleString('ko'):''}</span>
-                        <button onClick={()=>deleteLead(l.id)} style={{padding:'5px 12px',borderRadius:8,border:'1.5px solid #FCA5A5',background:'#FEF2F2',color:'#DC2626',fontSize:11,fontWeight:700,cursor:'pointer'}}>🗑 삭제</button>
+                    {/* 텍스트 메모 (그림판 보고 입력) */}
+                    <div>
+                      <div style={{fontSize:12,fontWeight:800,color:'var(--text)',marginBottom:8}}>📝 텍스트 메모 (그림판 보고 입력)</div>
+                      <textarea value={modalMemoText} onChange={e=>setModalMemoText(e.target.value)}
+                        style={{width:'100%',minHeight:100,padding:'10px 12px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:13,lineHeight:1.6,fontFamily:'inherit',resize:'vertical',outline:'none',boxSizing:'border-box'}}
+                        placeholder="낙서장의 그림을 보고 텍스트로 정리하세요..."/>
+                      <div style={{display:'flex',justifyContent:'flex-end',marginTop:6}}>
+                        <button onClick={saveMemoText} disabled={modalMemoSaving}
+                          style={{padding:'6px 16px',borderRadius:8,border:'none',background:'var(--accent)',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',opacity:modalMemoSaving?0.6:1}}>
+                          {modalMemoSaving?'저장 중...':'저장'}
+                        </button>
                       </div>
                     </div>
-                  )}
+
+                    {/* 5. 문자발송 내역 — 최근 1건, 폰 버블 스타일 */}
+                    <div>
+                      <div style={{fontSize:12,fontWeight:800,color:'var(--text)',marginBottom:8}}>문자발송 내역</div>
+                      {modalSmsLogs===null?(
+                        <div style={{fontSize:12,color:'var(--text-sm)'}}>로딩 중...</div>
+                      ):!latestSms?(
+                        <div style={{fontSize:12,color:'var(--text-sm)',padding:'10px 0'}}>발송 내역 없음</div>
+                      ):(
+                        <div style={{border:'2px solid #333',borderRadius:20,overflow:'hidden',background:'#f2f2f7'}}>
+                          <div style={{background:'#333',color:'#fff',padding:'6px 14px',fontSize:11,fontWeight:700,display:'flex',alignItems:'center',gap:6}}>
+                            <span>📱</span> 고객이 받은 문자
+                          </div>
+                          <div style={{padding:'16px 12px'}}>
+                            <div style={{background:'#e9e9eb',borderRadius:'16px 16px 16px 4px',padding:'12px 14px',maxWidth:'90%'}}>
+                              <div style={{fontSize:13,lineHeight:1.6,color:'#111',whiteSpace:'pre-wrap'}}>{latestSms.text}</div>
+                            </div>
+                            <div style={{fontSize:10,color:'var(--text-sm)',marginTop:6,paddingLeft:4}}>
+                              {latestSms.sentAt?new Date(latestSms.sentAt).toLocaleString('ko'):''} · {latestSms.staff||''}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                  </div>
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })()}
 
         </div>
       )}

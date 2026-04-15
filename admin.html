@@ -4940,8 +4940,63 @@ function ContentEditorPage({ showToast }) {
   const [keyModal, setKeyModal] = useState(null);
   /* ── 사진 위치 조정 모달 ── */
   const [cropModal, setCropModal] = useState(null); // {stepIdx, photoUrl}
+  /* ── 템플릿 불러오기 모달 ── */
+  const [templateModal, setTemplateModal] = useState(false);
+  const [templateLoading, setTemplateLoading] = useState(false);
 
   const methodInfo = POUR_METHODS_FOR_EDITOR.find(m => m.id === selectedMethod);
+
+  /* ── 다른 공법 콘텐츠 불러오기 (템플릿) ── */
+  const applyTemplate = async (sourceMethodId) => {
+    if (!confirm(`"${POUR_METHODS_FOR_EDITOR.find(m=>m.id===sourceMethodId)?.label}" 콘텐츠를 현재 공법에 복사합니다.\n\n⚠️ 현재 입력된 내용이 덮어씌워집니다. 계속하시겠습니까?`)) return;
+    setTemplateLoading(true);
+    try {
+      const ref = db.collection(CONTENT_COLLECTION).doc(sourceMethodId);
+      const snap = await ref.get();
+      if (!snap.exists) { alert('해당 공법에 저장된 콘텐츠가 없습니다.'); setTemplateLoading(false); return; }
+      const srcData = {...snap.data()};
+      // 서브컬렉션 로드: step-photos
+      try {
+        const stepSnap = await ref.collection('step-photos').get();
+        if (stepSnap.size > 0) {
+          stepSnap.docs.forEach(d => {
+            const idx = parseInt(d.id); const pData = d.data();
+            if (pData.processPhoto) { if (!srcData.processPhotos) srcData.processPhotos = []; srcData.processPhotos[idx] = pData.processPhoto; }
+            if (pData.matPhotos?.length || pData.matMediaUrl) { if (!srcData.processMaterials) srcData.processMaterials = []; if (!srcData.processMaterials[idx]) srcData.processMaterials[idx] = {}; srcData.processMaterials[idx].photos = pData.matPhotos || []; srcData.processMaterials[idx].mediaUrl = pData.matMediaUrl || ''; }
+            if (pData.keyPhoto) { if (!srcData.processKeys) srcData.processKeys = []; if (!srcData.processKeys[idx]) srcData.processKeys[idx] = {}; srcData.processKeys[idx].photo = pData.keyPhoto; }
+          });
+        }
+      } catch(e2) {}
+      // 서브컬렉션 로드: process-guide
+      try {
+        const guideSnap = await ref.collection('process-guide').get();
+        if (guideSnap.size > 0) { const arr = []; guideSnap.docs.forEach(d => { if (d.id==='_meta') return; arr[parseInt(d.id)] = d.data().image; }); srcData.processGuideImages = arr.filter(Boolean); }
+      } catch(e2) {}
+      // 서브컬렉션 로드: proposal-slides
+      try {
+        const slideSnap = await ref.collection('proposal-slides').get();
+        if (slideSnap.size > 0) { const arr = []; slideSnap.docs.forEach(d => { if (d.id==='_meta') return; const i=parseInt(d.id); if(!isNaN(i)) arr[i]=d.data().image; }); srcData.proposalSlides = arr.filter(Boolean); }
+      } catch(e2) {}
+      // 서브컬렉션 로드: extraSolutions
+      if (srcData.extraSolutions?.length > 0) {
+        for (let idx = 0; idx < srcData.extraSolutions.length; idx++) {
+          try { const esS = await ref.collection(`extra-slides-${idx}`).get(); if(esS.size>0){const a=[];esS.docs.forEach(d=>{if(d.id==='_meta')return;const i=parseInt(d.id);if(!isNaN(i))a[i]=d.data().image;});srcData.extraSolutions[idx].proposalSlides=a.filter(Boolean);} } catch(e3){}
+          try { const esG = await ref.collection(`extra-guide-${idx}`).get(); if(esG.size>0){const a=[];esG.docs.forEach(d=>{if(d.id==='_meta')return;const i=parseInt(d.id);if(!isNaN(i))a[i]=d.data().image;});srcData.extraSolutions[idx].processGuideImages=a.filter(Boolean);} } catch(e3){}
+        }
+      }
+      // cause는 현재 공법에 맞는 기본값으로 교체 (원본 공법의 cause를 그대로 가져오지 않음)
+      if (DEFAULT_CAUSE_TEXTS[selectedMethod]) {
+        srcData.cause = DEFAULT_CAUSE_TEXTS[selectedMethod];
+      }
+      setContent(srcData);
+      setTemplateModal(false);
+      showToast('템플릿 불러오기 완료! 내용을 수정 후 저장하세요.', 'success');
+    } catch(e) {
+      console.error('[template] 불러오기 실패:', e);
+      alert('불러오기 실패: ' + e.message);
+    }
+    setTemplateLoading(false);
+  };
 
   // Firestore에서 콘텐츠 로드 (모든 useState 선언 이후에 배치)
   useEffect(() => {
@@ -5675,6 +5730,14 @@ function ContentEditorPage({ showToast }) {
             <span style={{fontSize:15,fontWeight:800,color:'var(--navy)'}}>{methodInfo?.label}</span>
             <span style={{fontSize:11,color:'var(--text-sm)',background:'#F1F5F9',padding:'3px 10px',borderRadius:20,fontWeight:600}}>{methodInfo?.category}</span>
           </div>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+          <button onClick={()=>setTemplateModal(true)} style={{
+            padding:'8px 16px', borderRadius:8, border:'1px solid #FDE68A',
+            background:'#FFFBEB', color:'#B45309',
+            fontSize:12, fontWeight:700, cursor:'pointer'
+          }}>
+            📥 다른 공법에서 불러오기
+          </button>
           <button onClick={handleSaveAll} disabled={saving||casePhotosSaving} style={{
             padding:'8px 24px', borderRadius:8, border:'none',
             background: (saving||casePhotosSaving) ? '#94A3B8' : '#16A34A', color:'#fff',
@@ -5683,7 +5746,54 @@ function ContentEditorPage({ showToast }) {
           }}>
             {(saving||casePhotosSaving) ? '저장 중...' : '💾 전체 저장'}
           </button>
+          </div>
         </div>
+
+        {/* ── 템플릿 불러오기 모달 ── */}
+        {templateModal && (
+          <div style={{position:'fixed',top:0,left:0,right:0,bottom:0,background:'rgba(0,0,0,.5)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center'}}
+            onClick={()=>setTemplateModal(false)}>
+            <div style={{background:'#fff',borderRadius:16,width:480,maxHeight:'80vh',overflow:'auto',boxShadow:'0 20px 60px rgba(0,0,0,.3)'}}
+              onClick={e=>e.stopPropagation()}>
+              <div style={{padding:'20px 24px 16px',borderBottom:'1px solid var(--border)'}}>
+                <div style={{fontSize:16,fontWeight:800,color:'var(--navy)',marginBottom:4}}>📥 다른 공법에서 불러오기</div>
+                <div style={{fontSize:11,color:'var(--text-sm)',lineHeight:1.5}}>
+                  선택한 공법의 콘텐츠(공정순서, 사진, 자재, 해결방안 등)를 현재 공법에 복사합니다.<br/>
+                  불러온 후 자재 등 다른 부분만 수정하면 됩니다.
+                </div>
+              </div>
+              <div style={{padding:'8px 12px'}}>
+                {Object.entries(POUR_METHODS_FOR_EDITOR.reduce((acc,m)=>{(acc[m.category]=acc[m.category]||[]).push(m);return acc;},{})).map(([cat,methods])=>(
+                  <div key={cat}>
+                    <div style={{padding:'10px 12px 4px',fontSize:10,fontWeight:700,color:'var(--text-sm)',letterSpacing:1}}>{cat}</div>
+                    {methods.map(m=>(
+                      <button key={m.id} disabled={m.id===selectedMethod||templateLoading}
+                        onClick={()=>applyTemplate(m.id)}
+                        style={{
+                          width:'100%',textAlign:'left',padding:'10px 14px',border:'none',
+                          background:m.id===selectedMethod?'#F1F5F9':'transparent',
+                          color:m.id===selectedMethod?'var(--text-sm)':'var(--navy)',
+                          fontSize:12,fontWeight:m.id===selectedMethod?500:600,cursor:m.id===selectedMethod?'default':'pointer',
+                          borderRadius:8,display:'flex',alignItems:'center',gap:8,
+                          opacity:m.id===selectedMethod?0.4:1,fontFamily:'inherit'
+                        }}
+                        onMouseEnter={e=>{if(m.id!==selectedMethod)e.currentTarget.style.background='#FEF3C7';}}
+                        onMouseLeave={e=>{e.currentTarget.style.background=m.id===selectedMethod?'#F1F5F9':'transparent';}}
+                      >
+                        <span style={{fontSize:13}}>{m.id===selectedMethod?'📌':'📄'}</span>
+                        <span>{m.label}</span>
+                        {m.id===selectedMethod&&<span style={{fontSize:10,color:'var(--text-sm)',marginLeft:'auto'}}>(현재 공법)</span>}
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </div>
+              <div style={{padding:'12px 24px 20px',borderTop:'1px solid var(--border)',textAlign:'right'}}>
+                <button onClick={()=>setTemplateModal(false)} style={{padding:'8px 20px',borderRadius:8,border:'1px solid var(--border)',background:'#fff',color:'var(--text-md)',fontSize:12,fontWeight:600,cursor:'pointer'}}>닫기</button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 편집 본문 — 3섹션 스크롤 */}
         <div style={{flex:1, overflow:'auto', padding:20, background:'#F8FAFC'}}>

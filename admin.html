@@ -5548,11 +5548,20 @@ function ContentEditorPage({ showToast }) {
         console.log('[saveContent] textOnly size:', JSON.stringify(textOnly).length, 'bytes');
         await ref.set(textOnly); // merge 없이 완전 교체
 
+        /* 서브컬렉션 기존 문서 전체 삭제 헬퍼 */
+        const clearSubcollection = async (colRef) => {
+          const snap = await colRef.get();
+          const batch = db.batch();
+          snap.docs.forEach(d => batch.delete(d.ref));
+          if (snap.size > 0) await batch.commit();
+        };
+
         // step-photos 서브컬렉션 (공정사진 + 자재사진 + 핵심기술사진)
         const cProcessPhotos = clean.processPhotos || [];
         const cProcessMaterials = clean.processMaterials || [];
         const cProcessKeys = clean.processKeys || [];
         const photosCol = ref.collection('step-photos');
+        await clearSubcollection(photosCol);
         const maxLen = Math.max(cProcessPhotos.length, cProcessMaterials.length, cProcessKeys.length);
         for (let i = 0; i < maxLen; i++) {
           const ph = cProcessPhotos[i];
@@ -5566,8 +5575,9 @@ function ContentEditorPage({ showToast }) {
 
         // proposal-slides 서브컬렉션
         const cSlides = clean.proposalSlides || [];
+        const slideCol = ref.collection('proposal-slides');
+        await clearSubcollection(slideCol);
         if (cSlides.length > 0) {
-          const slideCol = ref.collection('proposal-slides');
           for (let i = 0; i < cSlides.length; i++) {
             await slideCol.doc(String(i)).set({ image: cSlides[i] });
           }
@@ -5576,8 +5586,9 @@ function ContentEditorPage({ showToast }) {
 
         // process-guide 서브컬렉션 (이미지 가이드 모드)
         const cGuideImages = clean.processGuideImages || [];
+        const guideCol = ref.collection('process-guide');
+        await clearSubcollection(guideCol);
         if (cGuideImages.length > 0) {
-          const guideCol = ref.collection('process-guide');
           for (let i = 0; i < cGuideImages.length; i++) {
             await guideCol.doc(String(i)).set({ image: cGuideImages[i] });
           }
@@ -5588,16 +5599,18 @@ function ContentEditorPage({ showToast }) {
         for (let idx = 0; idx < (clean.extraSolutions || []).length; idx++) {
           const es = clean.extraSolutions[idx];
           const esSlides = es.proposalSlides || [];
+          const esSlideCol = ref.collection(`extra-slides-${idx}`);
+          await clearSubcollection(esSlideCol);
           if (esSlides.length > 0) {
-            const esSlideCol = ref.collection(`extra-slides-${idx}`);
             for (let i = 0; i < esSlides.length; i++) {
               await esSlideCol.doc(String(i)).set({ image: esSlides[i] });
             }
             await esSlideCol.doc('_meta').set({ count: esSlides.length, updatedAt: new Date().toISOString() });
           }
           const esGuide = es.processGuideImages || [];
+          const esGuideCol = ref.collection(`extra-guide-${idx}`);
+          await clearSubcollection(esGuideCol);
           if (esGuide.length > 0) {
-            const esGuideCol = ref.collection(`extra-guide-${idx}`);
             for (let i = 0; i < esGuide.length; i++) {
               await esGuideCol.doc(String(i)).set({ image: esGuide[i] });
             }

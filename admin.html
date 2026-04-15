@@ -5365,11 +5365,28 @@ function ContentEditorPage({ showToast }) {
       const photos = [...(prev.processPhotos || [])];
       const descs = [...(prev.processDescs || [])];
       const keys = [...(prev.processKeys || [])];
+      const mats = [...(prev.processMaterials || [])];
       names.splice(idx, 1);
       photos.splice(idx, 1);
       descs.splice(idx, 1);
       keys.splice(idx, 1);
-      return {...prev, processStepNames: names, processPhotos: photos, processDescs: descs, processKeys: keys};
+      mats.splice(idx, 1);
+      return {...prev, processStepNames: names, processPhotos: photos, processDescs: descs, processKeys: keys, processMaterials: mats};
+    });
+  };
+  /* 공정 순서 이동 (▲▼) */
+  const moveStep = (idx, dir) => {
+    const ni = idx + dir;
+    setContent(prev => {
+      const names = [...(prev.processStepNames || [...defaultSteps])];
+      const photos = [...(prev.processPhotos || [])];
+      const descs = [...(prev.processDescs || [])];
+      const keys = [...(prev.processKeys || [])];
+      const mats = [...(prev.processMaterials || [])];
+      if (ni < 0 || ni >= names.length) return prev;
+      const swap = (arr, a, b) => { if (arr[a] !== undefined || arr[b] !== undefined) { const tmp = arr[a]; arr[a] = arr[b]; arr[b] = tmp; } };
+      swap(names, idx, ni); swap(photos, idx, ni); swap(descs, idx, ni); swap(keys, idx, ni); swap(mats, idx, ni);
+      return {...prev, processStepNames: names, processPhotos: photos, processDescs: descs, processKeys: keys, processMaterials: mats};
     });
   };
 
@@ -5551,6 +5568,13 @@ function ContentEditorPage({ showToast }) {
           for (let i = 0; i < item.mediaThumbs.length; i++) {
             if (item.mediaThumbs[i] && item.mediaThumbs[i].startsWith('data:')) {
               item.mediaThumbs[i] = await uploadBase64ToStorage(item.mediaThumbs[i], `case-photos/${key}/thumb_${i}`);
+            }
+          }
+        }
+        if (item.media) {
+          for (let i = 0; i < item.media.length; i++) {
+            if (item.media[i] && item.media[i].startsWith('data:')) {
+              item.media[i] = await uploadBase64ToStorage(item.media[i], `case-photos/${key}/media_${i}`);
             }
           }
         }
@@ -6126,6 +6150,16 @@ function ContentEditorPage({ showToast }) {
                                 onFocus={e=>{e.target.style.borderColor='var(--green)';e.target.style.background='#F0FDF4';}}
                                 onBlur={e=>{e.target.style.borderColor='transparent';e.target.style.background='transparent';}}
                               />
+                              <button disabled={si===0} onClick={()=>moveStep(si,-1)} style={{
+                                width:22,height:22,borderRadius:6,border:'1px solid #BBF7D0',background:si===0?'#F9FAFB':'#F0FDF4',
+                                color:si===0?'#ccc':'var(--green)',fontSize:11,fontWeight:800,cursor:si===0?'default':'pointer',
+                                display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontFamily:'inherit'
+                              }}>▲</button>
+                              <button disabled={isLast} onClick={()=>moveStep(si,1)} style={{
+                                width:22,height:22,borderRadius:6,border:'1px solid #BBF7D0',background:isLast?'#F9FAFB':'#F0FDF4',
+                                color:isLast?'#ccc':'var(--green)',fontSize:11,fontWeight:800,cursor:isLast?'default':'pointer',
+                                display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontFamily:'inherit'
+                              }}>▼</button>
                               {steps.length>1&&(
                                 <button onClick={()=>{if(confirm(`"${step}" 공정을 삭제할까요?`))removeStep(si);}} style={{
                                   width:22,height:22,borderRadius:6,border:'1px solid #FECACA',background:'#FEF2F2',

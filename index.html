@@ -798,15 +798,24 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
 /* ══ 가로모드 반응형 ══ */
 @media (orientation:landscape){
   /* 헤더 컴팩트 */
-  .hdr{height:48px;padding:0 20px;gap:10px;}
+  .hdr{height:40px;padding:0 20px;gap:10px;}
   .hdr-logo{font-size:14px;}
   .hdr-sub{font-size:10px;}
-  .btn-back{width:34px;height:34px;}
+  .hdr-brand img{height:24px!important;}
+  .btn-back{width:30px;height:30px;}
   /* 콘텐츠 영역 패딩 최적화 */
   .content{padding:10px 20px 16px;}
-  /* 솔루션 헤더 컴팩트 */
-  .sol-header{padding:10px 20px 8px;}
-  .sol-name{font-size:18px;}
+  /* 솔루션 헤더 — 가로모드 1줄 컴팩트 */
+  .sol-header{padding:6px 20px;display:flex;align-items:center;gap:12px;}
+  .sol-header>div:first-child{display:none!important;} /* hide sub text */
+  .sol-name{font-size:15px;white-space:nowrap;}
+  .sol-doc-row{margin-top:0!important;flex:1;justify-content:flex-end;gap:6px!important;}
+  .sol-doc-card{flex:0 0 auto!important;border-radius:8px!important;}
+  .sol-doc-inner{flex-direction:row!important;align-items:center!important;}
+  .sol-doc-inner>button:first-child{padding:6px 10px!important;border-bottom:none!important;border-right:1px solid rgba(255,255,255,.08)!important;}
+  .sol-doc-inner>button:first-child span:first-child{font-size:16px!important;}
+  .sol-qr-btn{padding:6px 8px!important;}
+  .sol-doc-sub{display:none!important;}
   /* 홈 화면 */
   .home-inner{min-height:100vh;padding:20px 60px;}
   .home-logo{font-size:56px;}
@@ -865,9 +874,7 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
   .memo-scroll{padding:16px 24px 80px;}
   /* 아코디언 콘텐츠 내부 2열 레이아웃 */
   .acc-body-inner-landscape{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-  /* 솔루션 헤더 컴팩트 */
-  .sol-header{padding:8px 24px 6px;}
-  .sol-name{font-size:17px;}
+  /* 솔루션 헤더 컴팩트 (가로모드 추가 최적화 — 상위 블록에서 이미 처리) */
 }
 @media (orientation:landscape) and (min-width:1024px){
   .defect-photo-card{flex:0 0 35%!important;max-width:360px!important;}
@@ -4223,20 +4230,20 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
           // cross-switch 설정
           if(proposalDoc&&guideDoc){proposalDoc.switchTo=guideDoc;guideDoc.switchTo=proposalDoc;}
           return(
-          <div style={{display:'flex',gap:8,marginTop:10}}>
+          <div className="sol-doc-row" style={{display:'flex',gap:8,marginTop:10}}>
             {/* ── 제안서 ── */}
-            <div style={{flex:1,borderRadius:10,border:'1px solid rgba(255,255,255,.15)',background:'rgba(255,255,255,.07)',overflow:'hidden'}}>
+            <div className="sol-doc-card" style={{flex:1,borderRadius:10,border:'1px solid rgba(255,255,255,.15)',background:'rgba(255,255,255,.07)',overflow:'hidden'}}>
               {proposalDoc?(
-                <div style={{display:'flex',flexDirection:'column'}}>
+                <div className="sol-doc-inner" style={{display:'flex',flexDirection:'column'}}>
                   <button onClick={()=>openDoc(proposalDoc.url,'제안서','📄',proposalDoc.switchTo)}
                     style={{display:'flex',alignItems:'center',gap:8,padding:'12px 14px',borderBottom:'1px solid rgba(255,255,255,.08)',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',textAlign:'left',width:'100%'}}>
                     <span style={{fontSize:24}}>📄</span>
-                    <div><div style={{fontSize:12,fontWeight:800,color:'#93bbfc'}}>제안서</div><div style={{fontSize:9,color:'rgba(255,255,255,.4)'}}>앱 안에서 바로 보기</div></div>
+                    <div><div style={{fontSize:12,fontWeight:800,color:'#93bbfc'}}>제안서</div><div className="sol-doc-sub" style={{fontSize:9,color:'rgba(255,255,255,.4)'}}>앱 안에서 바로 보기</div></div>
                   </button>
-                  <button onClick={()=>setQr({url:proposalDoc.url,title:'📄 제안서'})}
+                  <button className="sol-qr-btn" onClick={()=>setQr({url:proposalDoc.url,title:'📄 제안서'})}
                     style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4,padding:'8px',background:'rgba(59,130,246,.1)',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(147,187,252,.8)" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="4" height="4" rx="1"/></svg>
-                    <span style={{fontSize:10,fontWeight:700,color:'#93bbfc'}}>QR로 전달</span>
+                    <span style={{fontSize:10,fontWeight:700,color:'#93bbfc'}}>QR</span>
                   </button>
                 </div>
               ):(
@@ -4246,18 +4253,18 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
               )}
             </div>
             {/* ── 시공 가이드 ── */}
-            <div style={{flex:1,borderRadius:10,border:'1px solid rgba(255,255,255,.15)',background:'rgba(255,255,255,.07)',overflow:'hidden'}}>
+            <div className="sol-doc-card" style={{flex:1,borderRadius:10,border:'1px solid rgba(255,255,255,.15)',background:'rgba(255,255,255,.07)',overflow:'hidden'}}>
               {guideDoc?(
-                <div style={{display:'flex',flexDirection:'column'}}>
+                <div className="sol-doc-inner" style={{display:'flex',flexDirection:'column'}}>
                   <button onClick={()=>openDoc(guideDoc.url,'시공 가이드','📖',guideDoc.switchTo)}
                     style={{display:'flex',alignItems:'center',gap:8,padding:'12px 14px',borderBottom:'1px solid rgba(255,255,255,.08)',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',textAlign:'left',width:'100%'}}>
                     <span style={{fontSize:24}}>📖</span>
-                    <div><div style={{fontSize:12,fontWeight:800,color:'#f5c563'}}>시공 가이드</div><div style={{fontSize:9,color:'rgba(255,255,255,.4)'}}>앱 안에서 바로 보기</div></div>
+                    <div><div style={{fontSize:12,fontWeight:800,color:'#f5c563'}}>시공 가이드</div><div className="sol-doc-sub" style={{fontSize:9,color:'rgba(255,255,255,.4)'}}>앱 안에서 바로 보기</div></div>
                   </button>
-                  <button onClick={()=>setQr({url:guideDoc.url,title:'📖 시공 가이드'})}
+                  <button className="sol-qr-btn" onClick={()=>setQr({url:guideDoc.url,title:'📖 시공 가이드'})}
                     style={{display:'flex',alignItems:'center',justifyContent:'center',gap:4,padding:'8px',background:'rgba(245,158,11,.08)',border:'none',cursor:'pointer',fontFamily:'inherit'}}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(245,197,99,.8)" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="4" height="4" rx="1"/></svg>
-                    <span style={{fontSize:10,fontWeight:700,color:'#f5c563'}}>QR로 전달</span>
+                    <span style={{fontSize:10,fontWeight:700,color:'#f5c563'}}>QR</span>
                   </button>
                 </div>
               ):(

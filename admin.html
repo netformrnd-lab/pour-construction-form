@@ -3856,6 +3856,7 @@ function DefectPhotosPage({showToast}){
   const [retagging,setRetagging]=useState(false);
   /* 새 태그 입력 (모달 내부에서 조건부 렌더링 → 훅은 반드시 최상위) */
   const [newTag,setNewTag]=useState('');
+  const [customTags,setCustomTags]=useState([]);
 
   const fetchPhotos=async()=>{
     setLoading(true);
@@ -3949,7 +3950,7 @@ function DefectPhotosPage({showToast}){
   /* helper: 사진의 공법 목록 (methods 배열 우선, fallback method 단일값) */
   const photoMethods=(p)=>Array.isArray(p.methods)&&p.methods.length>0?p.methods:(p.method?[p.method]:[]);
   const allMethods=useMemo(()=>{const s=new Set(DEFAULT_POUR_METHODS);photos.forEach(p=>{photoMethods(p).forEach(m=>s.add(m));});return [...s];},[photos]);
-  const allDefects=useMemo(()=>{const s=new Set(DEFAULT_DEFECT_TYPES);photos.forEach(p=>{if(p.defectType)s.add(p.defectType);});return [...s];},[photos]);
+  const allDefects=useMemo(()=>{const s=new Set(DEFAULT_DEFECT_TYPES);photos.forEach(p=>{if(p.defectType)s.add(p.defectType);if(Array.isArray(p.defectTypes))p.defectTypes.forEach(t=>s.add(t));});customTags.forEach(t=>s.add(t));return [...s];},[photos,customTags]);
   const methodsWithData=useMemo(()=>{const s=new Set();photos.forEach(p=>{photoMethods(p).forEach(m=>s.add(m));});return [...s].sort();},[photos]);
   const defectsForMethod=useMemo(()=>{
     const sub=selMethod==='전체'?photos:photos.filter(p=>photoMethods(p).includes(selMethod));
@@ -4299,11 +4300,11 @@ function DefectPhotosPage({showToast}){
             {/* 새 중분류 추가 */}
             <div style={{display:'flex',gap:6,alignItems:'center'}}>
               <input value={newTag} onChange={e=>setNewTag(e.target.value)}
-                onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();const v=newTag.trim().replace(/^#/,'');if(!v)return;const cur=form.defectTypes||[];if(!cur.includes(v))setForm({...form,defectTypes:[...cur,v]});setNewTag('');}}}
+                onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();const v=newTag.trim().replace(/^#/,'');if(!v)return;const cur=form.defectTypes||[];if(!cur.includes(v))setForm({...form,defectTypes:[...cur,v]});if(!customTags.includes(v))setCustomTags(prev=>[...prev,v]);setNewTag('');}}}
                 placeholder="+ 새 태그 직접 입력"
                 style={{flex:1,fontSize:12,padding:'5px 10px',borderRadius:8,border:'1.5px dashed #7C3AED',
                   outline:'none',fontFamily:'inherit',color:'#7C3AED',background:'#FAF5FF'}}/>
-              <button type="button" onClick={()=>{const v=newTag.trim().replace(/^#/,'');if(!v)return;const cur=form.defectTypes||[];if(!cur.includes(v))setForm({...form,defectTypes:[...cur,v]});setNewTag('');}}
+              <button type="button" onClick={()=>{const v=newTag.trim().replace(/^#/,'');if(!v)return;const cur=form.defectTypes||[];if(!cur.includes(v))setForm({...form,defectTypes:[...cur,v]});if(!customTags.includes(v))setCustomTags(prev=>[...prev,v]);setNewTag('');}}
                 style={{fontSize:12,padding:'5px 12px',borderRadius:8,border:'none',
                   background:'#7C3AED',color:'#fff',cursor:'pointer',fontWeight:700,fontFamily:'inherit'}}>추가</button>
             </div>

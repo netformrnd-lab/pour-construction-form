@@ -875,6 +875,7 @@ textarea.form-input{resize:none;min-height:88px;line-height:1.6;}
   /* 아코디언 콘텐츠 내부 2열 레이아웃 */
   .acc-body-inner-landscape{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
   /* 솔루션 헤더 컴팩트 (가로모드 추가 최적화 — 상위 블록에서 이미 처리) */
+
 }
 @media (orientation:landscape) and (min-width:1024px){
   .defect-photo-card{flex:0 0 35%!important;max-width:360px!important;}
@@ -2001,6 +2002,7 @@ function ProposalSlideViewer({slides,size,onSlideClick,theme}){
       <img src={slides[idx]} onClick={onSlideClick?()=>onSlideClick(idx):undefined}
         style={{width:'100%',display:'block',userSelect:'none',WebkitUserDrag:'none',cursor:onSlideClick?'pointer':'default',
           ...(theme==='cause'?{maxHeight:280,objectFit:'contain',background:'#111'}:{})}} alt={`사진 ${idx+1}/${slides.length}`}/>
+
       {slides.length>1&&(
         <>
           {idx>0&&<button onClick={()=>setIdx(idx-1)} style={{position:'absolute',left:gap,top:'50%',transform:'translateY(-50%)',width:btnW,height:btnW,borderRadius:'50%',border:'none',background:'rgba(0,0,0,.45)',color:'#fff',fontSize:btnFs,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>‹</button>}
@@ -4690,6 +4692,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                               <div style={{fontSize:9,fontWeight:700,color:'var(--text-sm)',marginBottom:6,letterSpacing:'.04em'}}>📷 원인 사진 ({photoItems.length}장)</div>
                               <ProposalSlideViewer slides={photoItems} size="normal" theme="cause"
                                 onSlideClick={(i)=>setMediaViewer(mediaList.indexOf(photoItems[i]))}/>
+
                             </div>
                           )}
                           {/* 영상 영역 */}
@@ -5720,6 +5723,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                                   </div>
                                 </div>
                               )}
+
                             </div>
                           );
                         })()}

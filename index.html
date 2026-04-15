@@ -3708,8 +3708,7 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
         if(ntPhone&&loadSolapiConfig().workerUrl){
           const pName=problem?.label||'';
           const rawLinks=[];
-          // 맞춤제안서는 2차 개발 예정으로 제외 — 시방서/가이드/사례만 발송
-          // if(problem?.proposalUrl)rawLinks.push({label:pName+' 제안서',url:problem.proposalUrl});
+          if(problem?.proposalUrl)rawLinks.push({label:pName+' 제안서',url:problem.proposalUrl});
           if(problem?.specUrl)rawLinks.push({label:pName+' 시방서',url:problem.specUrl});
           if(problem?.guideId)rawLinks.push({label:pName+' 시공가이드',url:'https://www.poursolution.net/'+problem.guideId});
           if(problem?.caseUrl)rawLinks.push({label:pName+' 시공사례',url:problem.caseUrl});
@@ -5442,21 +5441,6 @@ function SolutionScreen({building,problem,staffId,staffName,staffDay,onBack,onNe
                             }).filter(Boolean)}
                           </div>
                         )}
-                      </div>
-                    )}
-
-                    {/* 2차액션 표시 */}
-                    {ntNextActions.length>0&&(
-                      <div style={{marginBottom:10,padding:'10px 14px',background:'#FFF7ED',borderRadius:10,border:'1px solid #FED7AA'}}>
-                        <div style={{fontSize:11,fontWeight:700,color:'#C2410C',marginBottom:6}}>📌 2차액션 ({ntNextActions.length}건)</div>
-                        <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
-                          {ntNextActions.map(a=>(
-                            <span key={a} style={{padding:'4px 10px',borderRadius:6,background:'#FFEDD5',border:'1px solid #FDBA74',fontSize:11,fontWeight:600,color:'#9A3412'}}>
-                              {a}
-                            </span>
-                          ))}
-                        </div>
-                        <div style={{marginTop:6,fontSize:9,color:'#C2410C',opacity:.7}}>↑ 문자 본문에 자동 포함됩니다</div>
                       </div>
                     )}
 

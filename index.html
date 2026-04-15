@@ -7969,14 +7969,23 @@ function LinkClickStats(){
         <div style={{fontSize:11,fontWeight:700,color:'#7C3AED'}}>🔗 전송 링크 클릭 통계</div>
         <span style={{fontSize:10,color:'var(--text-sm)'}}>총 {totalClicks}회 클릭 · {linkStats.length}개 링크</span>
       </div>
-      {linkStats.filter(l=>l.clicks>0).slice(0,8).map((l,i)=>(
-        <div key={l.id} style={{display:'flex',alignItems:'center',gap:8,marginBottom:5,fontSize:12}}>
-          <span style={{fontWeight:700,color:'#7C3AED',width:16,textAlign:'center'}}>{i+1}</span>
-          <span style={{flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontWeight:600}}>{l.label||l.url?.slice(0,40)}</span>
-          {l.customerName&&<span style={{fontSize:10,color:'var(--text-sm)'}}>{l.customerName}</span>}
-          <span style={{fontWeight:900,color:'#7C3AED'}}>{l.clicks}회</span>
+      {linkStats.filter(l=>l.clicks>0).slice(0,10).map((l,i)=>{
+        const fullLabel=l.label||'';
+        const parts=fullLabel.match(/^(.+?)\s+(시방서|제안서|시공가이드|시공사례)$/);
+        const methodName=parts?parts[1]:'';
+        const docType=parts?parts[2]:fullLabel;
+        return(
+        <div key={l.id} style={{display:'flex',alignItems:'center',gap:6,marginBottom:6,fontSize:12,padding:'4px 6px',borderRadius:8,background:i<3?'#F5F3FF':'transparent'}}>
+          <span style={{fontWeight:700,color:i<3?'#7C3AED':'var(--text-sm)',width:16,textAlign:'center',flexShrink:0}}>{i+1}</span>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontWeight:700,color:'var(--text)',fontSize:12,lineHeight:1.3}}>{docType}</div>
+            {methodName&&<div style={{fontSize:10,color:'var(--text-md)',lineHeight:1.2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{methodName}</div>}
+          </div>
+          {l.staff&&<span style={{fontSize:9,color:'var(--text-sm)',flexShrink:0}}>{l.staff}</span>}
+          <span style={{fontWeight:900,color:'#7C3AED',flexShrink:0}}>{l.clicks}회</span>
         </div>
-      ))}
+        );
+      })}
       {linkStats.filter(l=>l.clicks>0).length===0&&<div style={{fontSize:12,color:'var(--text-sm)',textAlign:'center',padding:10}}>아직 클릭 데이터 없음</div>}
     </div>
   );

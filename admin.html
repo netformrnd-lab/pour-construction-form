@@ -3294,13 +3294,14 @@ function LeadsKanbanPage({brandKey,showToast}){
   /* ── CSV 다운로드 ── */
   const downloadCsv=()=>{
     if(!filtered.length){showToast('다운로드할 데이터가 없습니다','error');return;}
-    const headers=['성함','연락처','이메일','건물/현장','하자유형','상태','담당자','접수일','메모','다음액션'];
+    const headers=['성함','연락처','이메일','건물/현장','하자유형','상태','담당자','접수일','메모','비고','다음액션'];
     const rows=filtered.map(l=>[
       l.name||'',l.phone||'',l.email||'',l.building||'',
       Array.isArray(l.problems)?l.problems.join('|'):(l.problem||''),
       l.status||'신규',l.staff||'',
       l.savedAt?new Date(l.savedAt).toLocaleDateString('ko'):'',
       (l.memo||'').replace(/\n/g,' '),
+      (l.remark||'').replace(/\n/g,' '),
       Array.isArray(l.actions)?l.actions.join('|'):(l.nextAction||''),
     ].map(v=>`"${String(v).replace(/"/g,'""')}"`));
     const csv='\uFEFF'+[headers.map(h=>`"${h}"`).join(','),...rows.map(r=>r.join(','))].join('\r\n');
@@ -3335,6 +3336,10 @@ function LeadsKanbanPage({brandKey,showToast}){
           {l.memo&&<div style={{padding:10,background:'var(--bg)',borderRadius:8,marginBottom:16}}>
             <div style={{fontSize:11,color:'var(--text-sm)',marginBottom:4}}>메모</div>
             <div style={{fontSize:13,lineHeight:1.5,whiteSpace:'pre-wrap'}}>{l.memo}</div>
+          </div>}
+          {l.remark&&<div style={{padding:10,background:'#FFFBEB',borderRadius:8,marginBottom:16,border:'1px solid #FDE68A'}}>
+            <div style={{fontSize:11,color:'#92400E',marginBottom:4}}>비고</div>
+            <div style={{fontSize:13,lineHeight:1.5,whiteSpace:'pre-wrap',color:'#78350F'}}>{l.remark}</div>
           </div>}
           {l.actions&&l.actions.length>0&&<div style={{marginBottom:16}}>
             <div style={{fontSize:11,color:'var(--text-sm)',marginBottom:6}}>후속 조치</div>
@@ -8291,6 +8296,7 @@ function ExpoLeadsPage({showToast,onNavigate}){
           {[{k:'전화',v:l.phone},{k:'이메일',v:l.email},{k:'건물',v:l.building},{k:'직급',v:l.position},{k:'하자',v:Array.isArray(l.problems)?l.problems.join(', '):l.problem},{k:'접수일',v:l.savedAt?new Date(l.savedAt).toLocaleDateString('ko'):'-'},{k:'담당자',v:l.staff},{k:'출처',v:l.source||'박람회'},{k:'희망착공',v:l.desiredStartDate||'-'},{k:'자료기한',v:l.docDeadline||'-'}].map(({k,v})=>v&&v!=='-'?(<div key={k} style={{padding:'8px 10px',background:'var(--bg)',borderRadius:8}}><div style={{fontSize:11,color:'var(--text-sm)',marginBottom:2}}>{k}</div><div style={{fontSize:13,fontWeight:600}}>{v}</div></div>):null)}
         </div>
         {l.memo&&<div style={{padding:10,background:'var(--bg)',borderRadius:8,marginBottom:16}}><div style={{fontSize:11,color:'var(--text-sm)',marginBottom:4}}>메모</div><div style={{fontSize:13,lineHeight:1.5,whiteSpace:'pre-wrap'}}>{l.memo}</div></div>}
+        {l.remark&&<div style={{padding:10,background:'#FFFBEB',borderRadius:8,marginBottom:16,border:'1px solid #FDE68A'}}><div style={{fontSize:11,color:'#92400E',marginBottom:4}}>비고</div><div style={{fontSize:13,lineHeight:1.5,whiteSpace:'pre-wrap',color:'#78350F'}}>{l.remark}</div></div>}
         {l.actions&&l.actions.length>0&&<div style={{marginBottom:16}}><div style={{fontSize:11,color:'var(--text-sm)',marginBottom:6}}>후속 조치</div><div style={{display:'flex',flexWrap:'wrap',gap:4}}>{l.actions.map((a,i)=><span key={i} style={{padding:'4px 8px',borderRadius:6,background:'var(--orange-l)',color:'var(--orange)',fontSize:11,fontWeight:600}}>{a}</span>)}</div></div>}
         <div style={{fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:8}}>상태 변경</div>
         <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:16}}>

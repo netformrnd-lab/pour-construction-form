@@ -1,0 +1,5 @@
+# pourstore-renewal 폴더는 직접 서빙 (SPA 라우터 제외)
+/pourstore-renewal/* /pourstore-renewal/:splat 200
+
+# 나머지 경로는 루트 index.html로
+/* /index.html 200

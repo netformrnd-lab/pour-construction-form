@@ -83,6 +83,8 @@ const COLLECTIONS = {
   SALES_DOCS: 'sales-docs',
   DEFECT_PHOTOS: 'defect-photos',
   METHOD_LINKS: 'method-links',
+  POURSTORE_PAGES: 'pourstore-pages',
+  POURSTORE_SECTIONS: 'pourstore-sections',
 };
 
 const MENU = [
@@ -104,6 +106,7 @@ const MENU = [
   { key: 'defect-sites', label: '완공현장', icon: '🏗' },
   { key: 'defect-photos', label: '공법분석', icon: '🔍' },
   { section: '사이트' },
+  { key: 'pourstore-site', label: 'POUR스토어', icon: '🌐' },
   { key: 'inquiries', label: '문의접수', icon: '📬' },
   { key: 'metrics', label: '공신력수치', icon: '📊' },
   { key: 'resources', label: '영업자료', icon: '📎' },
@@ -9269,6 +9272,420 @@ function SmsPage({showToast}){
   );
 }
 
+/* ══════════════════════════════════════════════════════════════
+   POUR스토어 사이트 — 페이지/섹션 관리
+   pourstore-pages · pourstore-sections (소프트삭제: deletedAt)
+   ══════════════════════════════════════════════════════════════ */
+const POURSTORE_DEFAULT_PAGES = [
+  { slug:'index',        title:'메인',       icon:'🏠', description:'실적·갤러리·협력사 등 섹션 조합 랜딩', status:'active', order:1 },
+  { slug:'about',        title:'회사 소개',  icon:'ℹ️', description:'브랜드 스토리·R&D 자산 소개',          status:'tbd',    order:2 },
+  { slug:'products',     title:'제품 소개',  icon:'📦', description:'카테고리·패키지·시공가이드',           status:'tbd',    order:3 },
+  { slug:'construction', title:'시공 사례',  icon:'🏗', description:'건물 유형별·공법별 사례 갤러리',       status:'tbd',    order:4 },
+  { slug:'contact',      title:'문의',       icon:'📨', description:'문의 폼 (Firestore 연동)',            status:'tbd',    order:5 },
+];
+const POURSTORE_DEFAULT_SECTIONS = [
+  { pageSlug:'index', key:'section-stats',    title:'실적 수치',         type:'stats',    status:'active', order:1, description:'누적 시공 세대수·특허 수 등 핵심 지표' },
+  { pageSlug:'index', key:'section-gallery',  title:'시공 현장 갤러리',  type:'gallery',  status:'active', order:2, description:'대표 시공 현장 이미지 슬라이더' },
+  { pageSlug:'index', key:'section-partners', title:'협력사 마키',       type:'marquee',  status:'active', order:3, description:'협력사 로고 무한 스크롤' },
+];
+const POURSTORE_STATUS = {
+  active: { bg:'#ECFDF5', fg:'#059669', label:'활성' },
+  draft:  { bg:'#FEF3C7', fg:'#92400E', label:'초안' },
+  tbd:    { bg:'#F3F4F6', fg:'#6B7280', label:'미정' },
+};
+const POURSTORE_SECTION_TYPES = ['stats','gallery','marquee','hero','cta','feature','content','form','custom'];
+const POURSTORE_PREVIEW_BASE = '/pourstore-renewal';
+
+function PourstoreStatusPill({ status }){
+  const s = POURSTORE_STATUS[status] || POURSTORE_STATUS.tbd;
+  return <span style={{display:'inline-block',padding:'3px 9px',borderRadius:6,fontSize:11,fontWeight:700,background:s.bg,color:s.fg}}>{s.label}</span>;
+}
+
+function PourstoreSitePage({ showToast }){
+  const [tab, setTab] = useState('pages');
+  const [pages, setPages] = useState([]);
+  const [sections, setSections] = useState([]);
+  const [selectedSlug, setSelectedSlug] = useState('index');
+  const [loading, setLoading] = useState(true);
+  const [editingPage, setEditingPage] = useState(null);
+  const [editingSection, setEditingSection] = useState(null);
+  const [confirmAction, setConfirmAction] = useState(null);
+
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [pSnap, sSnap] = await Promise.all([
+        db.collection(COLLECTIONS.POURSTORE_PAGES).get(),
+        db.collection(COLLECTIONS.POURSTORE_SECTIONS).get(),
+      ]);
+      let pDocs = pSnap.docs.map(d => ({ id:d.id, ...d.data() })).filter(d => !d.deletedAt);
+      let sDocs = sSnap.docs.map(d => ({ id:d.id, ...d.data() })).filter(d => !d.deletedAt);
+      console.log(`[pourstore-pages] ${pDocs.length}건, [pourstore-sections] ${sDocs.length}건`);
+
+      // 첫 진입 시 기본 데이터 시드
+      if (pDocs.length === 0) {
+        const now = new Date().toISOString();
+        const batch = db.batch();
+        for (const p of POURSTORE_DEFAULT_PAGES) {
+          batch.set(db.collection(COLLECTIONS.POURSTORE_PAGES).doc(), { ...p, createdAt:now, updatedAt:now });
+        }
+        for (const s of POURSTORE_DEFAULT_SECTIONS) {
+          batch.set(db.collection(COLLECTIONS.POURSTORE_SECTIONS).doc(), { ...s, createdAt:now, updatedAt:now });
+        }
+        await batch.commit();
+        const [p2, s2] = await Promise.all([
+          db.collection(COLLECTIONS.POURSTORE_PAGES).get(),
+          db.collection(COLLECTIONS.POURSTORE_SECTIONS).get(),
+        ]);
+        pDocs = p2.docs.map(d => ({ id:d.id, ...d.data() })).filter(d => !d.deletedAt);
+        sDocs = s2.docs.map(d => ({ id:d.id, ...d.data() })).filter(d => !d.deletedAt);
+        showToast('기본 페이지/섹션 시드 완료');
+      }
+      pDocs.sort((a,b) => (a.order||0) - (b.order||0));
+      sDocs.sort((a,b) => (a.order||0) - (b.order||0));
+      setPages(pDocs);
+      setSections(sDocs);
+    } catch (e) {
+      console.error('[pourstore-site] 로드 실패:', e);
+      showToast('데이터 로드 실패', 'error');
+    }
+    setLoading(false);
+  }, [showToast]);
+
+  useEffect(() => { loadAll(); }, [loadAll]);
+
+  const savePage = async (data) => {
+    try {
+      const now = new Date().toISOString();
+      const { id, ...rest } = data;
+      const payload = {
+        slug: rest.slug?.trim() || '',
+        title: rest.title?.trim() || '',
+        icon: rest.icon || '📄',
+        description: rest.description || '',
+        status: rest.status || 'tbd',
+        order: parseInt(rest.order, 10) || 0,
+        updatedAt: now,
+      };
+      if (!payload.slug || !payload.title) { showToast('슬러그·제목은 필수', 'error'); return; }
+      if (id) {
+        await db.collection(COLLECTIONS.POURSTORE_PAGES).doc(id).update(payload);
+      } else {
+        await db.collection(COLLECTIONS.POURSTORE_PAGES).add({ ...payload, createdAt: now });
+      }
+      setEditingPage(null);
+      showToast('페이지 저장 완료');
+      loadAll();
+    } catch (e) { console.error(e); showToast('저장 실패', 'error'); }
+  };
+
+  const deletePage = async (id) => {
+    try {
+      await db.collection(COLLECTIONS.POURSTORE_PAGES).doc(id).update({ deletedAt: new Date().toISOString() });
+      showToast('페이지 삭제 완료');
+      setConfirmAction(null);
+      loadAll();
+    } catch (e) { console.error(e); showToast('삭제 실패', 'error'); }
+  };
+
+  const saveSection = async (data) => {
+    try {
+      const now = new Date().toISOString();
+      const { id, ...rest } = data;
+      const payload = {
+        pageSlug: rest.pageSlug || selectedSlug,
+        key: rest.key?.trim() || '',
+        title: rest.title?.trim() || '',
+        type: rest.type || 'custom',
+        status: rest.status || 'tbd',
+        order: parseInt(rest.order, 10) || 0,
+        description: rest.description || '',
+        updatedAt: now,
+      };
+      if (!payload.key || !payload.title) { showToast('키·제목은 필수', 'error'); return; }
+      if (id) {
+        await db.collection(COLLECTIONS.POURSTORE_SECTIONS).doc(id).update(payload);
+      } else {
+        await db.collection(COLLECTIONS.POURSTORE_SECTIONS).add({ ...payload, createdAt: now });
+      }
+      setEditingSection(null);
+      showToast('섹션 저장 완료');
+      loadAll();
+    } catch (e) { console.error(e); showToast('저장 실패', 'error'); }
+  };
+
+  const deleteSection = async (id) => {
+    try {
+      await db.collection(COLLECTIONS.POURSTORE_SECTIONS).doc(id).update({ deletedAt: new Date().toISOString() });
+      showToast('섹션 삭제 완료');
+      setConfirmAction(null);
+      loadAll();
+    } catch (e) { console.error(e); showToast('삭제 실패', 'error'); }
+  };
+
+  const reorderSection = async (id, dir) => {
+    const list = sections.filter(s => s.pageSlug === selectedSlug).sort((a,b) => (a.order||0)-(b.order||0));
+    const idx = list.findIndex(s => s.id === id);
+    const swap = dir === 'up' ? idx - 1 : idx + 1;
+    if (idx < 0 || swap < 0 || swap >= list.length) return;
+    try {
+      const a = list[idx], b = list[swap];
+      const now = new Date().toISOString();
+      const batch = db.batch();
+      batch.update(db.collection(COLLECTIONS.POURSTORE_SECTIONS).doc(a.id), { order: b.order, updatedAt: now });
+      batch.update(db.collection(COLLECTIONS.POURSTORE_SECTIONS).doc(b.id), { order: a.order, updatedAt: now });
+      await batch.commit();
+      loadAll();
+    } catch (e) { console.error(e); showToast('순서 변경 실패', 'error'); }
+  };
+
+  if (loading) return <div style={{textAlign:'center', padding:80, color:'var(--text-sm)'}}>로딩 중...</div>;
+
+  const sectionsOfSelected = sections.filter(s => s.pageSlug === selectedSlug).sort((a,b) => (a.order||0)-(b.order||0));
+  const selectedPage = pages.find(p => p.slug === selectedSlug);
+
+  return (
+    <div style={{animation:'fadeIn .3s ease', maxWidth:1100}}>
+      {/* 헤더 */}
+      <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20, flexWrap:'wrap', gap:12}}>
+        <div>
+          <div style={{fontSize:20, fontWeight:800}}>🌐 POUR스토어 사이트</div>
+          <div style={{fontSize:12, color:'var(--text-sm)', marginTop:4}}>
+            자사몰 리뉴얼 페이지·섹션 관리 · pourstore-pages / pourstore-sections
+          </div>
+        </div>
+        <div style={{display:'flex', gap:8}}>
+          <a href={`${POURSTORE_PREVIEW_BASE}/preview.html`} target="_blank" rel="noopener"
+            style={{padding:'10px 16px', borderRadius:10, border:'1px solid var(--border)', background:'#fff', color:'var(--text)', fontSize:13, fontWeight:700, cursor:'pointer', textDecoration:'none'}}>
+            👁 시안 미리보기 인덱스
+          </a>
+          <a href={`${POURSTORE_PREVIEW_BASE}/index.html`} target="_blank" rel="noopener"
+            style={{padding:'10px 16px', borderRadius:10, border:'none', background:'var(--accent)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', textDecoration:'none'}}>
+            🚀 메인 시안 열기
+          </a>
+        </div>
+      </div>
+
+      {/* 탭 */}
+      <div style={{display:'flex', gap:6, marginBottom:18, borderBottom:'1px solid var(--border)'}}>
+        {[
+          { k:'pages', label:`📄 페이지 (${pages.length})` },
+          { k:'sections', label:`🧩 섹션 (${sections.length})` },
+        ].map(t => (
+          <button key={t.k} onClick={() => setTab(t.k)}
+            style={{
+              padding:'10px 16px', border:'none', background:'transparent',
+              fontSize:13, fontWeight:700, cursor:'pointer', color: tab===t.k?'var(--accent)':'var(--text-md)',
+              borderBottom: tab===t.k ? '2px solid var(--accent)' : '2px solid transparent',
+              marginBottom:-1
+            }}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 페이지 탭 */}
+      {tab === 'pages' && (
+        <div>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14}}>
+            <div style={{fontSize:13, color:'var(--text-md)'}}>리뉴얼 페이지 목록입니다. 카드의 <b>편집</b>으로 메타 정보를 수정하고, <b>섹션</b>으로 해당 페이지의 섹션 관리에 진입합니다.</div>
+            <button onClick={() => setEditingPage({ slug:'', title:'', icon:'📄', description:'', status:'tbd', order: pages.length+1 })}
+              style={{padding:'9px 14px', borderRadius:10, border:'none', background:'var(--accent)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer'}}>
+              + 페이지 추가
+            </button>
+          </div>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:14}}>
+            {pages.map(p => {
+              const sCount = sections.filter(s => s.pageSlug === p.slug).length;
+              return (
+                <div key={p.id} style={{background:'#fff', border:'1px solid var(--border)', borderRadius:14, padding:18, boxShadow:'var(--shadow)', display:'flex', flexDirection:'column', gap:10}}>
+                  <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+                    <div style={{display:'flex', alignItems:'center', gap:8}}>
+                      <span style={{fontSize:22}}>{p.icon || '📄'}</span>
+                      <div>
+                        <div style={{fontSize:15, fontWeight:800, color:'var(--text)'}}>{p.title}</div>
+                        <div style={{fontSize:11, color:'var(--text-sm)', fontFamily:'ui-monospace,SFMono-Regular,Consolas,monospace'}}>/{p.slug}.html</div>
+                      </div>
+                    </div>
+                    <PourstoreStatusPill status={p.status}/>
+                  </div>
+                  <div style={{fontSize:12, color:'var(--text-md)', lineHeight:1.5, minHeight:36}}>{p.description || '—'}</div>
+                  <div style={{fontSize:11, color:'var(--text-sm)', display:'flex', alignItems:'center', gap:6}}>
+                    <span>🧩 섹션 {sCount}</span>
+                    <span>·</span>
+                    <span>order: {p.order ?? '-'}</span>
+                  </div>
+                  <div style={{display:'flex', gap:6, marginTop:'auto', flexWrap:'wrap'}}>
+                    <a href={`${POURSTORE_PREVIEW_BASE}/${p.slug}.html`} target="_blank" rel="noopener"
+                      style={{flex:1, minWidth:80, textAlign:'center', padding:'8px 10px', borderRadius:8, fontSize:12, fontWeight:700, background:'var(--bg)', color:'var(--text)', textDecoration:'none', border:'1px solid var(--border)'}}>
+                      👁 보기
+                    </a>
+                    <button onClick={() => { setSelectedSlug(p.slug); setTab('sections'); }}
+                      style={{flex:1, minWidth:80, padding:'8px 10px', borderRadius:8, border:'1px solid var(--border)', background:'#fff', fontSize:12, fontWeight:700, cursor:'pointer'}}>
+                      🧩 섹션
+                    </button>
+                    <button onClick={() => setEditingPage(p)}
+                      style={{flex:1, minWidth:80, padding:'8px 10px', borderRadius:8, border:'none', background:'var(--navy)', color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer'}}>
+                      ✏️ 편집
+                    </button>
+                    <button onClick={() => setConfirmAction({ type:'page', id:p.id, label:p.title })}
+                      style={{padding:'8px 10px', borderRadius:8, border:'1px solid var(--border)', background:'#fff', color:'var(--red)', fontSize:12, fontWeight:700, cursor:'pointer'}}>
+                      🗑
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 섹션 탭 */}
+      {tab === 'sections' && (
+        <div>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14, gap:12, flexWrap:'wrap'}}>
+            <div style={{display:'flex', alignItems:'center', gap:10}}>
+              <span style={{fontSize:13, color:'var(--text-md)', fontWeight:600}}>페이지 선택</span>
+              <select value={selectedSlug} onChange={e => setSelectedSlug(e.target.value)}
+                style={{padding:'8px 12px', borderRadius:8, border:'1.5px solid var(--border)', fontSize:13, fontFamily:'inherit', background:'#fff'}}>
+                {pages.map(p => <option key={p.id} value={p.slug}>{p.icon} {p.title} (/{p.slug})</option>)}
+              </select>
+              {selectedPage && <PourstoreStatusPill status={selectedPage.status}/>}
+            </div>
+            <button onClick={() => setEditingSection({ pageSlug:selectedSlug, key:'', title:'', type:'custom', status:'tbd', order: sectionsOfSelected.length+1, description:'' })}
+              style={{padding:'9px 14px', borderRadius:10, border:'none', background:'var(--accent)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer'}}>
+              + 섹션 추가
+            </button>
+          </div>
+
+          {sectionsOfSelected.length === 0 ? (
+            <div style={{padding:48, textAlign:'center', background:'#fff', border:'1px dashed var(--border)', borderRadius:12, color:'var(--text-sm)'}}>
+              <div style={{fontSize:32, marginBottom:8}}>🧩</div>
+              <div style={{fontSize:14, fontWeight:700, color:'var(--text)', marginBottom:4}}>등록된 섹션이 없습니다</div>
+              <div style={{fontSize:12}}>+ 섹션 추가 버튼으로 첫 섹션을 등록해보세요.</div>
+            </div>
+          ) : (
+            <div style={{background:'#fff', border:'1px solid var(--border)', borderRadius:12, overflow:'hidden'}}>
+              <div style={{display:'grid', gridTemplateColumns:'60px 1fr 140px 100px 100px 160px', padding:'12px 16px', background:'var(--bg)', fontSize:11, fontWeight:700, color:'var(--text-md)', borderBottom:'1px solid var(--border)'}}>
+                <div>순서</div><div>제목 / 키</div><div>타입</div><div>상태</div><div>order</div><div style={{textAlign:'right'}}>관리</div>
+              </div>
+              {sectionsOfSelected.map((s, i) => (
+                <div key={s.id} style={{display:'grid', gridTemplateColumns:'60px 1fr 140px 100px 100px 160px', padding:'14px 16px', alignItems:'center', borderBottom:'1px solid var(--border-s)', fontSize:13}}>
+                  <div style={{display:'flex', flexDirection:'column', gap:2}}>
+                    <button onClick={() => reorderSection(s.id, 'up')} disabled={i===0}
+                      style={{padding:'2px 6px', fontSize:10, border:'1px solid var(--border)', background:'#fff', borderRadius:4, cursor: i===0?'not-allowed':'pointer', opacity: i===0?0.4:1}}>▲</button>
+                    <button onClick={() => reorderSection(s.id, 'down')} disabled={i===sectionsOfSelected.length-1}
+                      style={{padding:'2px 6px', fontSize:10, border:'1px solid var(--border)', background:'#fff', borderRadius:4, cursor: i===sectionsOfSelected.length-1?'not-allowed':'pointer', opacity: i===sectionsOfSelected.length-1?0.4:1}}>▼</button>
+                  </div>
+                  <div>
+                    <div style={{fontWeight:700, color:'var(--text)'}}>{s.title}</div>
+                    <div style={{fontSize:11, color:'var(--text-sm)', fontFamily:'ui-monospace,SFMono-Regular,Consolas,monospace', marginTop:2}}>{s.key}</div>
+                    {s.description && <div style={{fontSize:11, color:'var(--text-sm)', marginTop:4, lineHeight:1.4}}>{s.description}</div>}
+                  </div>
+                  <div><span style={{display:'inline-block', padding:'2px 8px', borderRadius:5, fontSize:11, fontWeight:700, background:'#EFF6FF', color:'#1E40AF'}}>{s.type}</span></div>
+                  <div><PourstoreStatusPill status={s.status}/></div>
+                  <div style={{fontSize:12, color:'var(--text-md)', fontWeight:600}}>{s.order ?? '-'}</div>
+                  <div style={{display:'flex', gap:6, justifyContent:'flex-end'}}>
+                    <button onClick={() => setEditingSection(s)}
+                      style={{padding:'6px 10px', borderRadius:6, border:'1px solid var(--border)', background:'#fff', fontSize:11, fontWeight:700, cursor:'pointer'}}>
+                      편집
+                    </button>
+                    <button onClick={() => setConfirmAction({ type:'section', id:s.id, label:s.title })}
+                      style={{padding:'6px 10px', borderRadius:6, border:'1px solid var(--border)', background:'#fff', color:'var(--red)', fontSize:11, fontWeight:700, cursor:'pointer'}}>
+                      삭제
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 페이지 편집 모달 */}
+      {editingPage && (
+        <PourstoreEditModal
+          title={editingPage.id ? '페이지 편집' : '페이지 추가'}
+          fields={[
+            { key:'slug', label:'슬러그(필수)', placeholder:'예: about', mono:true, required:true, disabled: !!editingPage.id },
+            { key:'title', label:'제목(필수)', placeholder:'예: 회사 소개', required:true },
+            { key:'icon', label:'아이콘(이모지)', placeholder:'예: ℹ️' },
+            { key:'description', label:'설명', textarea:true, placeholder:'페이지 목적·핵심 콘텐츠' },
+            { key:'status', label:'상태', select: Object.keys(POURSTORE_STATUS) },
+            { key:'order', label:'정렬 순서', type:'number' },
+          ]}
+          initial={editingPage}
+          onClose={() => setEditingPage(null)}
+          onSave={savePage}
+        />
+      )}
+
+      {/* 섹션 편집 모달 */}
+      {editingSection && (
+        <PourstoreEditModal
+          title={editingSection.id ? '섹션 편집' : '섹션 추가'}
+          fields={[
+            { key:'key', label:'키(필수)', placeholder:'예: section-stats', mono:true, required:true },
+            { key:'title', label:'제목(필수)', placeholder:'예: 실적 수치', required:true },
+            { key:'type', label:'타입', select: POURSTORE_SECTION_TYPES },
+            { key:'description', label:'설명', textarea:true, placeholder:'섹션 콘텐츠 요약' },
+            { key:'status', label:'상태', select: Object.keys(POURSTORE_STATUS) },
+            { key:'order', label:'정렬 순서', type:'number' },
+          ]}
+          initial={editingSection}
+          onClose={() => setEditingSection(null)}
+          onSave={saveSection}
+        />
+      )}
+
+      {/* 삭제 확인 */}
+      {confirmAction && (
+        <ConfirmModal
+          message={`"${confirmAction.label}" ${confirmAction.type==='page'?'페이지':'섹션'}을(를) 삭제할까요?\n(소프트 삭제 — 복구 가능)`}
+          onConfirm={() => confirmAction.type==='page' ? deletePage(confirmAction.id) : deleteSection(confirmAction.id)}
+          onCancel={() => setConfirmAction(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function PourstoreEditModal({ title, fields, initial, onClose, onSave }){
+  const [form, setForm] = useState(() => ({ ...initial }));
+  const update = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
+  const inputStyle = { width:'100%', padding:'10px 12px', borderRadius:8, border:'1.5px solid var(--border)', fontSize:13, fontFamily:'inherit', outline:'none', boxSizing:'border-box' };
+  const labelStyle = { fontSize:11, fontWeight:700, color:'var(--text-md)', marginBottom:5, display:'block' };
+  return (
+    <div onClick={onClose} style={{position:'fixed', inset:0, background:'rgba(0,0,0,.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:20}}>
+      <div onClick={e => e.stopPropagation()} style={{background:'#fff', borderRadius:16, padding:24, width:'100%', maxWidth:480, maxHeight:'90vh', overflow:'auto', boxShadow:'var(--shadow-lg)'}}>
+        <div style={{fontSize:16, fontWeight:800, marginBottom:16}}>{title}</div>
+        <div style={{display:'flex', flexDirection:'column', gap:12}}>
+          {fields.map(f => (
+            <div key={f.key}>
+              <label style={labelStyle}>{f.label}</label>
+              {f.select ? (
+                <select value={form[f.key] ?? ''} onChange={e => update(f.key, e.target.value)} style={inputStyle}>
+                  {f.select.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+              ) : f.textarea ? (
+                <textarea value={form[f.key] ?? ''} onChange={e => update(f.key, e.target.value)} placeholder={f.placeholder} rows={3}
+                  style={{...inputStyle, fontFamily: f.mono ? 'ui-monospace,SFMono-Regular,Consolas,monospace' : 'inherit', resize:'vertical'}}/>
+              ) : (
+                <input type={f.type || 'text'} value={form[f.key] ?? ''} onChange={e => update(f.key, e.target.value)} placeholder={f.placeholder} disabled={f.disabled}
+                  style={{...inputStyle, fontFamily: f.mono ? 'ui-monospace,SFMono-Regular,Consolas,monospace' : 'inherit', opacity: f.disabled ? 0.6 : 1}}/>
+              )}
+            </div>
+          ))}
+        </div>
+        <div style={{display:'flex', gap:8, marginTop:20, justifyContent:'flex-end'}}>
+          <button onClick={onClose} style={{padding:'10px 18px', borderRadius:8, border:'1px solid var(--border)', background:'#fff', fontSize:13, fontWeight:700, cursor:'pointer'}}>취소</button>
+          <button onClick={() => onSave(form)} style={{padding:'10px 18px', borderRadius:8, border:'none', background:'var(--accent)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer'}}>저장</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PagePlaceholder({ title, icon, description }) {
   return (
     <div style={{
@@ -9330,6 +9747,8 @@ function App() {
         return <DefectPhotosPage showToast={showToast} />;
       case 'method-content':
         return <ContentEditorPage showToast={showToast} />;
+      case 'pourstore-site':
+        return <PourstoreSitePage showToast={showToast} />;
       case 'inquiries':
         return <PagePlaceholder title="문의접수" icon="📬" description="사이트 문의 접수 관리" />;
       case 'metrics':

@@ -70,6 +70,52 @@
       mkSec('카카오톡 채널', '', ''),
       mkSec('FAQ', '', ''),
     ]},
+    { id: 'partners', name: '파트너사 소개·신청', file: 'partners.html', sections: [
+      mkSec('히어로 + 신청 CTA', '', ''),
+      mkSec('파트너사 혜택', '', ''),
+      mkSec('자격 요건', '', ''),
+      mkSec('진행 절차', '', '신청 → 검토 → 승인 → 서류 → 계약'),
+      mkSec('주요 파트너사 로고', '', ''),
+      mkSec('파트너사 신청 폼', '', ''),
+      mkSec('자주 묻는 질문', '', ''),
+    ]},
+    { id: 'dealers', name: '대리점·공급 문의', file: 'dealers.html', sections: [
+      mkSec('히어로', '', ''),
+      mkSec('대리점 혜택·마진 구조', '', ''),
+      mkSec('자격 요건', '', ''),
+      mkSec('공급 가능 카테고리', '', ''),
+      mkSec('진행 절차', '', ''),
+      mkSec('대리점 신청 폼', '', ''),
+      mkSec('자주 묻는 질문', '', ''),
+    ]},
+    { id: 'matching', name: '시공 연결 신청', file: 'matching.html', sections: [
+      mkSec('히어로 + 진행 단계 미리보기', '', ''),
+      mkSec('시공 가능 공법', '', ''),
+      mkSec('신청 폼 (지역·건물유형·문제·예산)', '', ''),
+      mkSec('매칭 절차', '', '신청 → AI 매칭 → 추천 파트너 → 선택 → 시공'),
+      mkSec('전국 시공 네트워크', '', ''),
+      mkSec('최근 시공 사례', '', ''),
+      mkSec('고객 후기', '', ''),
+    ]},
+    { id: 'showroom', name: '전시장·쇼룸', file: 'showroom.html', sections: [
+      mkSec('히어로', '', ''),
+      mkSec('쇼룸 위치·약도', '', ''),
+      mkSec('운영 시간', '', ''),
+      mkSec('쇼룸 둘러보기 (갤러리)', '', ''),
+      mkSec('전시 제품', '', ''),
+      mkSec('방문 예약 폼', '', ''),
+      mkSec('찾아오시는 길', '', ''),
+    ]},
+    { id: 'magazine', name: '스토어 매거진', file: 'magazine.html', sections: [
+      mkSec('히어로 + 검색', '', '시공설명서·영상·포스팅 통합 콘텐츠 허브'),
+      mkSec('콘텐츠 카테고리 탭', '', '시공방법 / 케이스스터디 / 제품 가이드 / 트렌드'),
+      mkSec('에디터 PICK', '', ''),
+      mkSec('이번 주 인기 시공 영상', '', ''),
+      mkSec('시공 설명서 모음', '', ''),
+      mkSec('자사몰 포스팅 카드 그리드', '', '오늘의집 스타일 — 사진 + 텍스트 카드'),
+      mkSec('관련 상품 추천 (콘텐츠 → 상품 연결)', '', ''),
+      mkSec('카테고리별 더보기', '', ''),
+    ]},
   ]);
 
   function genId() { return 'id-' + Math.random().toString(36).slice(2, 10); }
@@ -104,7 +150,11 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (parsed && Array.isArray(parsed.pages)) return migrate(parsed);
+        if (parsed && Array.isArray(parsed.pages)) {
+          const m = migrate(parsed);
+          addMissingDefaultPages(m); // 신규 기본 페이지 자동 추가
+          return m;
+        }
       }
       // v1 → v2 자동 이관
       const v1raw = localStorage.getItem(STORAGE_KEY_V1);
@@ -112,7 +162,6 @@
         const v1 = JSON.parse(v1raw);
         if (v1 && Array.isArray(v1.pages)) {
           const migrated = migrate(v1);
-          // 비어있는 페이지는 기본 시드 보충
           mergeDefaultSeeds(migrated);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
           return migrated;
@@ -123,6 +172,16 @@
       console.error('[builder] loadState 실패:', e);
       return freshState();
     }
+  }
+  function addMissingDefaultPages(s) {
+    // 사용자가 명시적으로 삭제한 페이지는 다시 추가하지 않음 (deletedDefaults 추적)
+    s.deletedDefaults = s.deletedDefaults || [];
+    const defaults = DEFAULT_PAGES();
+    defaults.forEach(dp => {
+      const exists = s.pages.some(p => p.id === dp.id);
+      const wasDeleted = s.deletedDefaults.indexOf(dp.id) !== -1;
+      if (!exists && !wasDeleted) s.pages.push(dp);
+    });
   }
   function freshState() {
     return { pages: DEFAULT_PAGES(), history: {}, activePageId: 'main' };
@@ -538,6 +597,8 @@
     if (!confirm(`'${page.name}' 페이지를 삭제할까요? 섹션과 이력이 모두 사라집니다.`)) return;
     page.sections.forEach(s => { delete state.history[histKey(page.id, s.id)]; });
     state.pages = state.pages.filter(p => p.id !== page.id);
+    state.deletedDefaults = state.deletedDefaults || [];
+    if (state.deletedDefaults.indexOf(page.id) === -1) state.deletedDefaults.push(page.id);
     state.activePageId = state.pages[0].id;
     saveState();
     renderAll();

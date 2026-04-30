@@ -44,7 +44,23 @@
             <li><b>이력 보관</b> — 모든 버전 영구 보관, 자동 삭제 없음. 1년 경과 항목은 상단 알림에서 직접 선택해 정리 (직전 버전은 항상 보호)</li>
           </ol>
         </div>
-        <div class="howto-card sync-info">
+        <details class="howto-card future-card">
+          <summary>
+            <span class="future-title">🔧 추후 적용 가능 기능</span>
+            <span class="future-hint">필요 시 요청 → 활성화</span>
+          </summary>
+          <ul class="future-list">
+            <li><b>카페24용 인라인 CSS 자동 변환</b> — Tailwind/외부 폰트 등 외부 의존성을 인라인 스타일로 변환해 카페24에 바로 붙여넣어도 동일하게 보이도록</li>
+            <li><b>이미지 직접 업로드</b> — 섹션 편집 중 이미지를 Firebase Storage에 업로드하고 URL 자동 삽입</li>
+            <li><b>버전 비교(diff)</b> — 두 버전 사이 변경된 줄/속성을 색상으로 시각화</li>
+            <li><b>사용자·권한 분리</b> — 누가 언제 무엇을 수정/컨펌했는지 사용자별 기록, 페이지·섹션 단위 잠금</li>
+            <li><b>코멘트/리뷰 워크플로우</b> — 섹션별 검토 코멘트, 다중 컨펌 단계, 멘션 알림</li>
+            <li><b>실 사이트 자동 반영</b> — 컨펌된 섹션만 묶어 카페24 API/Webhook으로 자동 게시</li>
+            <li><b>휴지통(soft delete)</b> — 섹션·페이지 삭제 시 즉시 영구 삭제 대신 30일 휴지통 유예</li>
+            <li><b>변경 알림</b> — 동기화 시 SMS/이메일로 변경 내용 요약 발송</li>
+          </ul>
+        </details>
+        <div class="howto-card sync-info howto-full">
           <div class="howto-title">데이터 저장 안내</div>
           <ul class="howto-notes">
             <li><b>Firebase에 자동 저장됩니다</b> <span class="muted">(프로젝트: pour-exhibition · 컬렉션: pourstore-renewal-builder)</span>.</li>

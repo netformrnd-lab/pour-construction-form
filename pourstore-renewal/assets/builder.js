@@ -447,6 +447,7 @@
           <div class="meta">${escapeHtml(s.note || '메모 없음')}</div>
         </div>
         <div class="controls">
+          ${hasHtml ? '<button class="btn btn-sm btn-outline" data-act="copy" title="HTML 코드 복사">HTML 복사</button>' : ''}
           <button class="btn btn-sm btn-ghost" data-act="preview">미리보기</button>
           <button class="btn btn-sm btn-outline" data-act="history">이력</button>
           <button class="btn btn-sm btn-primary" data-act="edit">편집</button>
@@ -454,6 +455,8 @@
         </div>
       `;
       card.querySelector('[data-act=confirm]').addEventListener('click', e => { e.stopPropagation(); toggleConfirm(s.id); });
+      const copyBtn = card.querySelector('[data-act=copy]');
+      if (copyBtn) copyBtn.addEventListener('click', () => copyHtmlToClipboard(s.html));
       card.querySelector('[data-act=preview]').addEventListener('click', () => previewSection(s.id));
       card.querySelector('[data-act=history]').addEventListener('click', () => openHistory(s.id));
       card.querySelector('[data-act=edit]').addEventListener('click', () => openEditor(s.id));

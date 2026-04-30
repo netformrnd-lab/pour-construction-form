@@ -5,6 +5,23 @@
   const STORAGE_KEY_V1 = 'pourstore-renewal-builder-v1';
   const HISTORY_LIMIT = 50;
 
+  const FIREBASE_CONFIG = {
+    apiKey: 'AIzaSyCBGjGzaTTyIwBs_a8355KfFKaWabJT3ac',
+    authDomain: 'pour-exhibition.firebaseapp.com',
+    projectId: 'pour-exhibition',
+    storageBucket: 'pour-exhibition.firebasestorage.app',
+    messagingSenderId: '881527274265',
+    appId: '1:881527274265:web:0caad9688e30beb1ea6388',
+  };
+  const FIRESTORE_COLLECTION = 'pourstore-renewal-builder';
+  const FIRESTORE_DOC = 'state';
+  const SAVE_DEBOUNCE_MS = 600;
+
+  let db = null;
+  let firebaseReady = false;
+  let saveTimer = null;
+  let initialSnapshotConsumed = false;
+
   const SEED_STATS_HTML =
     '<iframe src="./pour-store-cafe24.html"\n' +
     '        title="실적 + 시공 갤러리 + 협력사 (기존 시안)"\n' +
@@ -137,12 +154,112 @@
     });
   }
   function saveState() {
+    // 1) localStorage 즉시 (오프라인 복구용)
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (e) {
-      console.error('[builder] saveState 실패:', e);
-      toast('저장 실패: ' + e.message, 'error');
+      console.error('[builder] localStorage 저장 실패:', e);
     }
+    // 2) Firestore 디바운스 푸시
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(pushToFirestore, SAVE_DEBOUNCE_MS);
+    setSync('syncing', '저장 대기...');
+  }
+
+  function setSync(kind, text) {
+    const pill = document.getElementById('syncPill');
+    const txt = document.getElementById('syncText');
+    if (!pill || !txt) return;
+    pill.className = 'sync-pill ' + (kind || '');
+    txt.textContent = text || '';
+  }
+
+  function newWriteToken() {
+    return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+  }
+
+  function initFirebase() {
+    if (typeof firebase === 'undefined') {
+      setSync('offline', 'Firebase SDK 로드 실패');
+      return;
+    }
+    try {
+      if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+      db = firebase.firestore();
+      firebaseReady = true;
+      setSync('syncing', '서버 연결 중...');
+      db.collection(FIRESTORE_COLLECTION).doc(FIRESTORE_DOC)
+        .onSnapshot({ includeMetadataChanges: false }, onRemoteSnapshot, onRemoteError);
+    } catch (e) {
+      console.error('[firebase] 초기화 실패:', e);
+      setSync('error', 'Firebase 초기화 실패');
+    }
+  }
+
+  function onRemoteSnapshot(snap) {
+    if (!snap.exists) {
+      // 서버에 데이터 없음 → 현재 로컬 상태로 시드
+      console.log('[firestore] 문서 없음 → 로컬 상태로 시드');
+      initialSnapshotConsumed = true;
+      pushToFirestore(true);
+      return;
+    }
+    const data = snap.data() || {};
+    if (!data.state) { initialSnapshotConsumed = true; pushToFirestore(true); return; }
+    // 자기 자신이 쓴 echo는 무시
+    if (data.lastWrite && data.lastWrite === state.lastWrite) {
+      setSync('synced', '동기화됨 ' + fmtTime(new Date()));
+      initialSnapshotConsumed = true;
+      return;
+    }
+    try {
+      const remote = JSON.parse(data.state);
+      if (!remote || !Array.isArray(remote.pages)) throw new Error('형식 오류');
+      const previousActive = state.activePageId;
+      state = migrate(remote);
+      if (previousActive && state.pages.some(p => p.id === previousActive)) {
+        state.activePageId = previousActive;
+      }
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) {}
+      renderAll();
+      setSync('synced', initialSnapshotConsumed ? ('실시간 반영 ' + fmtTime(new Date())) : ('서버에서 불러옴 ' + fmtTime(new Date())));
+      initialSnapshotConsumed = true;
+    } catch (e) {
+      console.error('[firestore] 원격 상태 적용 실패:', e);
+      setSync('error', '원격 데이터 형식 오류');
+    }
+  }
+
+  function onRemoteError(err) {
+    console.error('[firestore] onSnapshot 오류:', err);
+    setSync('error', '동기화 오류 — ' + (err.code || err.message || ''));
+  }
+
+  function pushToFirestore(silent) {
+    if (!firebaseReady || !db) { setSync('offline', '오프라인 — 로컬에만 저장됨'); return; }
+    state.lastWrite = newWriteToken();
+    if (!silent) setSync('syncing', '저장 중...');
+    const payload = {
+      state: JSON.stringify(state),
+      lastWrite: state.lastWrite,
+      updatedAt: new Date().toISOString(),
+    };
+    db.collection(FIRESTORE_COLLECTION).doc(FIRESTORE_DOC)
+      .set(payload, { merge: false })
+      .then(() => {
+        setSync('synced', '저장됨 ' + fmtTime(new Date()));
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) {}
+      })
+      .catch(e => {
+        console.error('[firestore] 저장 실패:', e);
+        setSync('error', '서버 저장 실패: ' + (e.code || e.message || ''));
+        toast('서버 저장 실패: ' + (e.code || e.message || ''), 'error');
+      });
+  }
+
+  function fmtTime(d) {
+    const pad = n => String(n).padStart(2, '0');
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   }
 
   function getActivePage() {
@@ -642,6 +759,13 @@
       if (e.key === 'Escape') document.querySelectorAll('.modal-mask.open').forEach(m => m.classList.remove('open'));
     });
 
+    window.addEventListener('online', () => {
+      setSync('syncing', '재연결 중...');
+      pushToFirestore();
+    });
+    window.addEventListener('offline', () => setSync('offline', '오프라인 — 연결되면 자동 동기화'));
+
     renderAll();
+    initFirebase();
   });
 })();

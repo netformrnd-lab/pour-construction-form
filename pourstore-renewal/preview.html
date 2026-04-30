@@ -3,29 +3,86 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>POUR스토어 리뉴얼 — 시안 빌더</title>
-  <meta name="description" content="POUR스토어 자사몰 리뉴얼 페이지·섹션 빌더. 섹션 HTML 등록, 드래그 정렬, 수정 이력, 시안 미리보기." />
+  <title>POUR스토어 자사몰 리뉴얼 — 페이지 관리</title>
+  <meta name="description" content="POUR스토어 자사몰 리뉴얼 페이지 관리. 섹션 HTML 등록, 드래그 정렬, 컨펌 체크, 변경 사유 기반 버전 이력." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Bebas+Neue&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./assets/builder.css" />
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
   <div class="topbar">
     <div class="brand">
       <div class="logo">P</div>
-      <span>POUR스토어 리뉴얼 — 시안 빌더</span>
+      <span>POUR스토어 자사몰 리뉴얼 — 페이지 관리</span>
     </div>
-    <div class="meta">v1.0 · localStorage 저장</div>
+    <div class="meta">
+      <span id="syncPill" class="sync-pill"><span class="dot"></span><span id="syncText">연결 중...</span></span>
+      <span>v1.1</span>
+    </div>
   </div>
 
   <section class="hero">
     <div class="hero-inner">
-      <span class="kicker">PAGE & SECTION BUILDER</span>
-      <h1>페이지별 <strong>섹션 등록 · 순서 드래그 · 수정 이력</strong></h1>
-      <p>왼쪽에서 페이지를 선택하고, 오른쪽에서 섹션을 추가/편집하세요. 섹션 카드 왼쪽 ⋮⋮ 그립으로 드래그해 순서를 바꿀 수 있고, 편집 시 이전 버전이 자동으로 이력에 보관됩니다. 모든 데이터는 이 브라우저의 localStorage에 저장됩니다.</p>
+      <span class="kicker">POUR스토어 자사몰 리뉴얼</span>
+      <h1>페이지 관리</h1>
+      <p>페이지를 선택해 섹션을 등록·정렬하고, 변경 사유와 함께 버전 이력을 남기세요.</p>
+
+      <div class="howto">
+        <div class="howto-card">
+          <div class="howto-title">사용 방법</div>
+          <ol class="howto-steps">
+            <li><b>페이지 선택</b> — 왼쪽 사이드바에서 작업할 페이지를 클릭</li>
+            <li><b>섹션 추가/편집</b> — <kbd>+ 섹션 추가</kbd> 또는 카드의 <kbd>편집</kbd>으로 HTML 입력</li>
+            <li><b>변경 사유 작성</b> — 편집 저장 시 <span class="dot-red"></span> <b>변경 사유 필수</b> (이력에 기록)</li>
+            <li><b>순서 변경</b> — 카드 좌측 <kbd>⋮⋮</kbd> 그립을 잡고 드래그</li>
+            <li><b>컨펌 체크</b> — 카드 좌측 <kbd>✓</kbd> 체크박스로 컨펌 완료 표시 (이력에 자동 기록)</li>
+            <li><b>이력 확인/복원</b> — <kbd>이력</kbd> 버튼에서 이전 버전 미리보기·복원, 변경 사유 수정</li>
+            <li><b>전체 시안 보기</b> — <kbd>전체 시안 바로보기</kbd>로 현재 페이지의 모든 섹션을 합쳐 새 창에 표시</li>
+            <li><b>이력 보관</b> — 모든 버전 영구 보관, 자동 삭제 없음. 1년 경과 항목은 상단 알림에서 직접 선택해 정리 (직전 버전은 항상 보호)</li>
+          </ol>
+        </div>
+        <details class="howto-card future-card">
+          <summary>
+            <span class="future-title">🔧 추후 적용 가능 기능</span>
+            <span class="future-hint">필요 시 요청 → 활성화</span>
+          </summary>
+          <ul class="future-list">
+            <li><b>카페24용 인라인 CSS 자동 변환</b> — Tailwind/외부 폰트 등 외부 의존성을 인라인 스타일로 변환해 카페24에 바로 붙여넣어도 동일하게 보이도록</li>
+            <li><b>이미지 직접 업로드</b> — 섹션 편집 중 이미지를 Firebase Storage에 업로드하고 URL 자동 삽입</li>
+            <li><b>버전 비교(diff)</b> — 두 버전 사이 변경된 줄/속성을 색상으로 시각화</li>
+            <li><b>사용자·권한 분리</b> — 누가 언제 무엇을 수정/컨펌했는지 사용자별 기록, 페이지·섹션 단위 잠금</li>
+            <li><b>코멘트/리뷰 워크플로우</b> — 섹션별 검토 코멘트, 다중 컨펌 단계, 멘션 알림</li>
+            <li><b>실 사이트 자동 반영</b> — 컨펌된 섹션만 묶어 카페24 API/Webhook으로 자동 게시</li>
+            <li><b>휴지통(soft delete)</b> — 섹션·페이지 삭제 시 즉시 영구 삭제 대신 30일 휴지통 유예</li>
+            <li><b>변경 알림</b> — 동기화 시 SMS/이메일로 변경 내용 요약 발송</li>
+          </ul>
+        </details>
+        <div class="howto-card sync-info howto-full">
+          <div class="howto-title">데이터 저장 안내</div>
+          <ul class="howto-notes">
+            <li><b>Firebase에 자동 저장됩니다</b> <span class="muted">(프로젝트: pour-exhibition · 컬렉션: pourstore-renewal-builder)</span>.</li>
+            <li>모든 변경(편집·드래그·컨펌·이력 사유)은 <b>저장 직후 서버에 업로드</b>되고, 다른 PC·브라우저에서 열면 자동으로 같은 화면이 나타납니다.</li>
+            <li>오프라인 상태에서도 작업할 수 있고, 다시 연결되면 변경 내용이 자동으로 동기화됩니다 <span class="muted">(브라우저에 임시 저장)</span>.</li>
+            <li>상단 우측 표시등으로 동기화 상태를 확인하세요 — <span class="dot-green"></span> 동기화됨 · <span class="dot-amber"></span> 저장 중 · <span class="dot-red"></span> 오프라인/오류.</li>
+          </ul>
+        </div>
+      </div>
     </div>
   </section>
+
+  <div id="retentionBanner" class="retention-banner" style="display:none;">
+    <div class="rb-msg">
+      📦 <b>1년 이상 보관된 이력</b>이 <span id="retentionCount">0</span>건 있습니다.
+      자동 삭제는 하지 않습니다 — 정리하실 항목만 직접 선택해 삭제하세요.
+    </div>
+    <div class="rb-actions">
+      <button id="rbOpen" class="btn btn-sm btn-primary">정리하러 가기</button>
+      <button id="rbHide" class="btn btn-sm btn-ghost">이번 세션 숨기기</button>
+    </div>
+  </div>
 
   <div class="layout">
     <aside class="sidebar">
@@ -59,7 +116,7 @@
         <div class="actions">
           <button id="btnAddSection" class="btn btn-green">+ 섹션 추가</button>
           <button id="btnFullPreview" class="btn btn-primary">전체 시안 바로보기</button>
-          <button id="btnOpenLive" class="btn btn-outline" title="페이지 파일이 존재하면 열림">실 파일 열기</button>
+          <button id="btnCopyFullHtml" class="btn btn-outline" title="현재 페이지의 모든 섹션 HTML을 클립보드로 복사 (카페24 붙여넣기용)">전체 HTML 복사</button>
         </div>
       </div>
 
@@ -87,6 +144,8 @@
                 <input id="edNote" type="text" placeholder="작업 메모 (선택)" />
               </div>
             </div>
+            <label for="edReason">변경 사유 <span class="req">*</span> <span style="color:var(--muted); font-weight:500; font-size:10px;">— 변경이 있을 때 필수</span></label>
+            <input id="edReason" type="text" placeholder="예: 배너 카피 수정 / 컨펌 반영 / 이미지 교체" />
             <label for="edHtml">HTML 코드</label>
             <textarea id="edHtml" spellcheck="false" placeholder="<section>...</section>"></textarea>
           </div>
@@ -119,8 +178,34 @@
         <div id="hsList" class="history-list"></div>
       </div>
       <div class="modal-foot">
-        <span style="font-size:12px; color:var(--muted);">최대 30개 버전까지 보관됩니다.</span>
+        <span style="font-size:12px; color:var(--muted);">모든 버전 영구 보관 · 자동 삭제 없음 (1년 경과 항목은 상단 알림으로 정리 가능)</span>
         <button class="btn btn-ghost" onclick="document.getElementById('historyModal').classList.remove('open')">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1년 경과 이력 정리 모달 -->
+  <div id="retentionModal" class="modal-mask">
+    <div class="modal" style="max-width: 880px;">
+      <div class="modal-head">
+        <h3>1년 이상 보관된 이력 정리</h3>
+        <button id="rmClose" class="close" aria-label="닫기">×</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:12px; color:var(--ink2); background: #FFFBEB; border:1px solid #FCE7B6; padding:10px 12px; border-radius:8px; margin-bottom:12px;">
+          ⚠ 체크한 항목만 영구 삭제됩니다. 삭제된 데이터는 <b>복구할 수 없습니다.</b><br/>
+          기본은 <b>모두 미선택</b> 상태입니다 — 신중히 검토 후 선택하세요.
+        </div>
+        <div id="rmList" class="retention-list"></div>
+      </div>
+      <div class="modal-foot">
+        <label style="font-size:12px; display:flex; align-items:center; gap:6px; cursor:pointer;">
+          <input type="checkbox" id="rmSelectAll" /> 전체 선택
+        </label>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-ghost" onclick="document.getElementById('retentionModal').classList.remove('open')">닫기</button>
+          <button id="rmDelete" class="btn btn-danger">선택 항목 영구 삭제</button>
+        </div>
       </div>
     </div>
   </div>

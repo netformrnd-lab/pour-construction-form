@@ -803,17 +803,34 @@
     w.document.close();
     if (title) try { w.document.title = title; } catch (_) {}
   }
+  function buildFullPageHtml(page) {
+    return page.sections.map((s, i) => {
+      const html = (s.html || '').trim();
+      if (!html) return `<!-- [${i+1}] ${s.name} (EMPTY) -->`;
+      return `<!-- [${i+1}] ${s.name} -->\n<section data-section="${escapeHtml(s.name)}">\n${s.html}\n</section>`;
+    }).join('\n\n');
+  }
+
   function previewFullPage() {
     const page = getActivePage();
-    const body = page.sections.map((s, i) =>
-      `<!-- [${i+1}] ${escapeHtml(s.name)} -->\n<section data-section="${escapeHtml(s.name)}" style="display:block;">\n${s.html || ''}\n</section>`
-    ).join('\n\n');
+    const body = buildFullPageHtml(page);
     const w = window.open('', '_blank');
     if (!w) { toast('팝업이 차단되었습니다.', 'error'); return; }
     w.document.open();
     w.document.write(wrapPreview(body));
     w.document.close();
     try { w.document.title = `${page.name} 시안`; } catch (_) {}
+  }
+
+  function copyFullPageHtml() {
+    const page = getActivePage();
+    const filled = page.sections.filter(s => (s.html || '').trim());
+    if (filled.length === 0) {
+      toast('이 페이지에 입력된 섹션 HTML이 없습니다.', 'error');
+      return;
+    }
+    const html = buildFullPageHtml(page);
+    copyHtmlToClipboard(html);
   }
 
   // -------- modal helpers --------
@@ -870,10 +887,7 @@
     document.getElementById('btnDeletePage').addEventListener('click', deletePage);
     document.getElementById('btnAddSection').addEventListener('click', addSection);
     document.getElementById('btnFullPreview').addEventListener('click', previewFullPage);
-    document.getElementById('btnOpenLive').addEventListener('click', () => {
-      const page = getActivePage();
-      window.open('./' + page.file, '_blank');
-    });
+    document.getElementById('btnCopyFullHtml').addEventListener('click', copyFullPageHtml);
     document.getElementById('btnExport').addEventListener('click', exportJson);
     document.getElementById('btnReset').addEventListener('click', resetAll);
     document.getElementById('importFile').addEventListener('change', e => {

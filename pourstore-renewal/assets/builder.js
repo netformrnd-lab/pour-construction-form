@@ -670,6 +670,7 @@
             <span class="preview-text">${escapeHtml(previewText) || '(빈 HTML)'}</span>
           </div>
           <div class="actions">
+            <button class="btn btn-sm btn-outline" data-act="copy" title="HTML 코드 복사">HTML 복사</button>
             <button class="btn btn-sm btn-ghost" data-act="view">미리보기</button>
             <button class="btn btn-sm btn-primary" data-act="restore">복원</button>
           </div>
@@ -679,6 +680,7 @@
           <div class="reason-text ${v.reason ? '' : 'empty'}" data-act="edit-reason" title="클릭하여 수정">${v.reason ? escapeHtml(v.reason) : '(사유 없음 — 클릭하여 추가)'}</div>
         </div>
       `;
+      row.querySelector('[data-act=copy]').addEventListener('click', () => copyHtmlToClipboard(v.html));
       row.querySelector('[data-act=view]').addEventListener('click', () => previewHtml(v.html, v.name));
       row.querySelector('[data-act=restore]').addEventListener('click', () => restoreVersion(idx));
       row.querySelector('[data-act=edit-reason]').addEventListener('click', () => startEditReason(row, idx));
@@ -763,6 +765,33 @@
     if (!sec) return;
     previewHtml(sec.html, `${page.name} · ${sec.name}`);
   }
+  function copyHtmlToClipboard(html) {
+    const text = html || '';
+    if (!text) { toast('복사할 HTML이 비어있습니다.', 'info'); return; }
+    const fallback = () => {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        toast(ok ? `HTML 복사됨 (${text.length.toLocaleString()}자)` : '복사 실패', ok ? 'success' : 'error');
+      } catch (e) {
+        toast('복사 실패: ' + e.message, 'error');
+      }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text)
+        .then(() => toast(`HTML 복사됨 (${text.length.toLocaleString()}자)`, 'success'))
+        .catch(fallback);
+    } else {
+      fallback();
+    }
+  }
+
   function previewHtml(html, title) {
     const w = window.open('', '_blank');
     if (!w) { toast('팝업이 차단되었습니다.', 'error'); return; }

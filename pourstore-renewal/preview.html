@@ -3,207 +3,132 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>POUR스토어 리뉴얼 — 시안 미리보기</title>
-  <meta name="description" content="POUR스토어 자사몰 리뉴얼 페이지별 시안 미리보기 인덱스" />
+  <title>POUR스토어 리뉴얼 — 시안 빌더</title>
+  <meta name="description" content="POUR스토어 자사몰 리뉴얼 페이지·섹션 빌더. 섹션 HTML 등록, 드래그 정렬, 수정 이력, 시안 미리보기." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Bebas+Neue&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      --green: #03C75A; --green-d: #029B47;
-      --navy: #0F1F5C; --navy-d: #0A1742;
-      --ink: #111827; --ink2: #374151; --muted: #6B7280;
-      --light: #F9F7F4; --bg: #F5F6F8; --card: #FFFFFF; --border: #E5E7EB;
-      --r: 14px; --r-lg: 20px;
-      --shadow: 0 1px 3px rgba(15,31,92,.06), 0 4px 16px rgba(15,31,92,.05);
-      --shadow-hover: 0 8px 28px rgba(15,31,92,.14);
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif; color: var(--ink); background: var(--bg); -webkit-font-smoothing: antialiased; }
-    a { color: inherit; text-decoration: none; }
-
-    .topbar {
-      background: var(--navy); color: #fff; padding: 14px 28px;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .topbar .brand { display: flex; align-items: center; gap: 10px; font-weight: 900; letter-spacing: .3px; }
-    .topbar .brand .logo { width: 28px; height: 28px; border-radius: 8px; background: var(--green); display: grid; place-items: center; color: var(--navy); font-family: 'Bebas Neue', sans-serif; font-size: 18px; }
-    .topbar .meta { font-size: 12px; color: rgba(255,255,255,.7); }
-
-    .hero {
-      padding: 56px 28px 36px;
-      background: linear-gradient(180deg, #fff 0%, var(--bg) 100%);
-      border-bottom: 1px solid var(--border);
-    }
-    .hero-inner { max-width: 1120px; margin: 0 auto; }
-    .hero .kicker {
-      display: inline-block; font-size: 12px; font-weight: 700; color: var(--green-d);
-      background: rgba(3,199,90,.1); padding: 6px 12px; border-radius: 999px; margin-bottom: 14px;
-    }
-    .hero h1 { font-size: 32px; font-weight: 900; color: var(--navy); letter-spacing: -.5px; line-height: 1.25; }
-    .hero h1 strong { color: var(--green-d); }
-    .hero p { margin-top: 12px; font-size: 15px; color: var(--ink2); line-height: 1.65; max-width: 720px; }
-
-    main { max-width: 1120px; margin: 0 auto; padding: 36px 28px 80px; }
-
-    .section-title {
-      display: flex; align-items: baseline; justify-content: space-between;
-      margin: 8px 0 18px;
-    }
-    .section-title h2 { font-size: 16px; font-weight: 900; color: var(--navy); letter-spacing: .2px; }
-    .section-title .hint { font-size: 12px; color: var(--muted); }
-
-    .grid {
-      display: grid; gap: 16px;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    }
-
-    .card {
-      background: var(--card); border: 1px solid var(--border); border-radius: var(--r-lg);
-      padding: 22px; box-shadow: var(--shadow);
-      display: flex; flex-direction: column; gap: 14px;
-      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
-    }
-    .card.active:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); border-color: rgba(3,199,90,.4); }
-    .card.tbd { opacity: .72; background: repeating-linear-gradient(135deg, #fff 0 12px, #FBFBFB 12px 24px); }
-
-    .card .badge {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-size: 11px; font-weight: 700; color: var(--navy);
-      background: var(--light); padding: 5px 10px; border-radius: 999px; align-self: flex-start;
-      font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px;
-    }
-    .card.main .badge { background: var(--green); color: #fff; }
-
-    .card h3 { font-size: 18px; font-weight: 900; color: var(--ink); }
-    .card .file { font-size: 12px; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
-    .card p.desc { font-size: 13px; color: var(--ink2); line-height: 1.6; }
-
-    .card ul.sections {
-      list-style: none; padding: 12px; margin-top: 4px;
-      background: var(--light); border-radius: 10px;
-      display: flex; flex-direction: column; gap: 6px;
-    }
-    .card ul.sections li {
-      font-size: 12px; color: var(--ink2);
-      display: flex; align-items: center; gap: 8px;
-    }
-    .card ul.sections li::before {
-      content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--green); flex-shrink: 0;
-    }
-    .card ul.sections li code {
-      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-      font-size: 11px; color: var(--navy); background: #fff; padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border);
-    }
-
-    .card .actions { margin-top: auto; display: flex; gap: 8px; flex-wrap: wrap; }
-    .btn {
-      flex: 1; min-width: 120px;
-      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-      padding: 11px 14px; border-radius: 10px;
-      font-size: 13px; font-weight: 700; cursor: pointer; border: none;
-      transition: background .15s ease, transform .1s ease;
-    }
-    .btn-primary { background: var(--navy); color: #fff; }
-    .btn-primary:hover { background: var(--navy-d); }
-    .btn-disabled {
-      background: #EEF0F3; color: var(--muted); cursor: not-allowed; pointer-events: none;
-    }
-    .btn:active { transform: scale(.98); }
-
-    .status {
-      font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px;
-    }
-    .status.ready { background: rgba(3,199,90,.12); color: var(--green-d); }
-    .status.tbd   { background: #EEF0F3; color: var(--muted); }
-
-    .row-head { display: flex; align-items: center; gap: 10px; }
-
-    .note {
-      margin-top: 18px; padding: 14px 16px; border-radius: 12px;
-      background: #FFFBEB; border: 1px solid #FCE7B6; color: #7C5A12;
-      font-size: 13px; line-height: 1.6;
-    }
-    .note b { color: #5A4209; }
-
-    footer {
-      padding: 24px 28px; text-align: center; font-size: 12px; color: var(--muted);
-      border-top: 1px solid var(--border); background: #fff;
-    }
-
-    @media (max-width: 640px) {
-      .hero { padding: 40px 20px 28px; }
-      .hero h1 { font-size: 24px; }
-      main { padding: 28px 20px 60px; }
-    }
-  </style>
+  <link rel="stylesheet" href="./assets/builder.css" />
 </head>
 <body>
   <div class="topbar">
     <div class="brand">
       <div class="logo">P</div>
-      <span>POUR스토어 리뉴얼</span>
+      <span>POUR스토어 리뉴얼 — 시안 빌더</span>
     </div>
-    <div class="meta">시안 미리보기 인덱스 · v0.1</div>
+    <div class="meta">v1.0 · localStorage 저장</div>
   </div>
 
   <section class="hero">
     <div class="hero-inner">
-      <span class="kicker">DESIGN PREVIEW</span>
-      <h1>POUR스토어 자사몰 리뉴얼 — <strong>페이지별 시안 바로보기</strong></h1>
-      <p>현재 메인 페이지 시안만 업로드되어 있습니다. 나머지 페이지(회사 소개·제품·시공 사례·문의)는 구조 미정으로 추후 확정 시 본 인덱스에 추가됩니다.</p>
+      <span class="kicker">PAGE & SECTION BUILDER</span>
+      <h1>페이지별 <strong>섹션 등록 · 순서 드래그 · 수정 이력</strong></h1>
+      <p>왼쪽에서 페이지를 선택하고, 오른쪽에서 섹션을 추가/편집하세요. 섹션 카드 왼쪽 ⋮⋮ 그립으로 드래그해 순서를 바꿀 수 있고, 편집 시 이전 버전이 자동으로 이력에 보관됩니다. 모든 데이터는 이 브라우저의 localStorage에 저장됩니다.</p>
     </div>
   </section>
 
-  <main>
-    <div class="section-title">
-      <h2>📄 페이지 시안</h2>
-      <span class="hint">활성 1 · 미정 N</span>
-    </div>
-
-    <div class="grid">
-      <!-- index.html (메인) -->
-      <article class="card main active">
-        <div class="row-head">
-          <span class="badge">MAIN</span>
-          <span class="status ready">시안 업로드 완료</span>
+  <div class="layout">
+    <aside class="sidebar">
+      <h3>페이지</h3>
+      <div id="pageList" class="page-list"></div>
+      <div style="display:flex; flex-direction:column; gap:6px; margin-top:12px;">
+        <button id="btnAddPage" class="btn btn-green btn-block">+ 페이지 추가</button>
+        <div style="display:flex; gap:6px;">
+          <button id="btnRenamePage" class="btn btn-outline btn-sm" style="flex:1;">이름·파일</button>
+          <button id="btnDeletePage" class="btn btn-danger btn-sm" style="flex:1;">삭제</button>
         </div>
-        <h3>메인 페이지</h3>
-        <div class="file">/pourstore-renewal/index.html</div>
-        <p class="desc">실적 수치 · 시공 갤러리 · 협력사 마키 등 여러 섹션을 조합한 랜딩 페이지.</p>
-        <ul class="sections">
-          <li><code>section-stats</code> 실적 수치 섹션</li>
-          <li><code>section-gallery</code> 시공 현장 갤러리</li>
-          <li><code>section-partners</code> 협력사 마키</li>
-          <li>+ 추가 섹션 예정</li>
-        </ul>
+      </div>
+
+      <h3 style="margin-top:18px;">데이터</h3>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <button id="btnExport" class="btn btn-outline btn-sm btn-block">JSON 내보내기</button>
+        <label class="btn btn-outline btn-sm btn-block" style="cursor:pointer;">
+          JSON 가져오기
+          <input id="importFile" type="file" accept="application/json,.json" hidden />
+        </label>
+        <button id="btnReset" class="btn btn-ghost btn-sm btn-block">초기 상태로 리셋</button>
+      </div>
+    </aside>
+
+    <main>
+      <div class="content-head">
+        <div>
+          <h2 id="pageTitle">메인 페이지</h2>
+          <span id="pageFile" class="file-tag">/index.html</span>
+        </div>
         <div class="actions">
-          <a class="btn btn-primary" href="./index.html" target="_blank" rel="noopener">시안 바로 보기 →</a>
+          <button id="btnAddSection" class="btn btn-green">+ 섹션 추가</button>
+          <button id="btnFullPreview" class="btn btn-primary">전체 시안 바로보기</button>
+          <button id="btnOpenLive" class="btn btn-outline" title="페이지 파일이 존재하면 열림">실 파일 열기</button>
         </div>
-      </article>
+      </div>
 
-      <!-- 미정 카드 -->
-      <article class="card tbd">
-        <div class="row-head">
-          <span class="badge">TBD</span>
-          <span class="status tbd">미정</span>
+      <div id="sectionList" class="section-list"></div>
+    </main>
+  </div>
+
+  <!-- 편집 모달 -->
+  <div id="editorModal" class="modal-mask">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="edTitle">섹션 편집</h3>
+        <button id="edClose" class="close" aria-label="닫기">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="editor-grid">
+          <div class="editor-col">
+            <div class="field-row">
+              <div>
+                <label for="edName">섹션 이름</label>
+                <input id="edName" type="text" placeholder="예: 메인 배너" />
+              </div>
+              <div>
+                <label for="edNote">메모</label>
+                <input id="edNote" type="text" placeholder="작업 메모 (선택)" />
+              </div>
+            </div>
+            <label for="edHtml">HTML 코드</label>
+            <textarea id="edHtml" spellcheck="false" placeholder="<section>...</section>"></textarea>
+          </div>
+          <div class="editor-col">
+            <label>실시간 미리보기</label>
+            <div class="preview-frame">
+              <iframe id="edPreview" title="미리보기" sandbox="allow-same-origin allow-scripts allow-popups allow-forms"></iframe>
+            </div>
+          </div>
         </div>
-        <h3>나머지 페이지</h3>
-        <div class="file">about · products · construction · contact</div>
-        <p class="desc">상세 구조와 콘텐츠는 미정입니다. 페이지 명세 확정 후 본 인덱스에 카드로 추가될 예정입니다.</p>
-        <div class="actions">
-          <span class="btn btn-disabled">대기 중</span>
+      </div>
+      <div class="modal-foot">
+        <button id="edRefresh" class="btn btn-outline btn-sm">미리보기 새로고침</button>
+        <div style="display:flex; gap:8px;">
+          <button id="edCancel" class="btn btn-ghost">취소</button>
+          <button id="edSave" class="btn btn-primary">저장 (이전 버전은 이력에 보관)</button>
         </div>
-      </article>
+      </div>
     </div>
+  </div>
 
-    <div class="note">
-      <b>📝 메모.</b> 본 인덱스는 시안 검수용입니다. 페이지 구조가 확정되는 대로 카드를 활성화하고 각 페이지의 핵심 섹션을 함께 표기합니다.
+  <!-- 이력 모달 -->
+  <div id="historyModal" class="modal-mask">
+    <div class="modal" style="max-width: 760px;">
+      <div class="modal-head">
+        <h3 id="hsTitle">수정 이력</h3>
+        <button id="hsClose" class="close" aria-label="닫기">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="hsList" class="history-list"></div>
+      </div>
+      <div class="modal-foot">
+        <span style="font-size:12px; color:var(--muted);">최대 30개 버전까지 보관됩니다.</span>
+        <button class="btn btn-ghost" onclick="document.getElementById('historyModal').classList.remove('open')">닫기</button>
+      </div>
     </div>
-  </main>
+  </div>
 
-  <footer>
-    넷폼알앤디 · POUR스토어 리뉴얼 시안 미리보기
-  </footer>
+  <div id="toast" class="toast"></div>
+
+  <footer>넷폼알앤디 · POUR스토어 리뉴얼 시안 빌더</footer>
+
+  <script src="./assets/builder.js"></script>
 </body>
 </html>

@@ -3,7 +3,7 @@
 
   const STORAGE_KEY = 'pourstore-renewal-builder-v2';
   const STORAGE_KEY_V1 = 'pourstore-renewal-builder-v1';
-  const HISTORY_LIMIT = 50;
+  const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 
   const FIREBASE_CONFIG = {
     apiKey: 'AIzaSyCBGjGzaTTyIwBs_a8355KfFKaWabJT3ac',
@@ -262,6 +262,109 @@
     return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
   }
 
+  // -------- 1년 경과 이력 수동 정리 --------
+  // 규칙: 각 섹션의 idx 0(=가장 최근 이력 = 직전 버전)은 절대 삭제 후보에 포함하지 않는다.
+  function findOldHistoryEntries() {
+    const cutoff = Date.now() - ONE_YEAR_MS;
+    const items = [];
+    Object.keys(state.history || {}).forEach(k => {
+      const list = state.history[k] || [];
+      // idx 0 = 직전 버전, 삭제 불가 → 1부터 시작
+      for (let i = 1; i < list.length; i++) {
+        const v = list[i];
+        if (!v || !v.savedAt) continue;
+        const t = new Date(v.savedAt).getTime();
+        if (isFinite(t) && t < cutoff) items.push({ key: k, idx: i, version: v });
+      }
+    });
+    return items;
+  }
+
+  function describeKey(k) {
+    const [pageId, secId] = k.split(':');
+    const page = state.pages.find(p => p.id === pageId);
+    const sec = page && page.sections.find(s => s.id === secId);
+    return {
+      pageName: page ? page.name : '(삭제된 페이지)',
+      secName: sec ? sec.name : '(삭제된 섹션)',
+    };
+  }
+
+  function checkOldHistoryAndNotify() {
+    const banner = document.getElementById('retentionBanner');
+    if (!banner) return;
+    if (sessionStorage.getItem('retentionDismissed') === '1') { banner.style.display = 'none'; return; }
+    const old = findOldHistoryEntries();
+    if (old.length === 0) { banner.style.display = 'none'; return; }
+    document.getElementById('retentionCount').textContent = old.length;
+    banner.style.display = 'flex';
+  }
+
+  function openRetention() {
+    const old = findOldHistoryEntries();
+    const wrap = document.getElementById('rmList');
+    wrap.innerHTML = '';
+    if (old.length === 0) {
+      wrap.innerHTML = '<div class="empty-history">1년 이상 보관된 이력이 없습니다. 모두 안전 보관 중입니다.</div>';
+      openModal('retentionModal');
+      return;
+    }
+    const grouped = {};
+    old.forEach(it => {
+      if (!grouped[it.key]) grouped[it.key] = [];
+      grouped[it.key].push(it);
+    });
+    Object.keys(grouped).forEach(k => {
+      const desc = describeKey(k);
+      const items = grouped[k];
+      const block = document.createElement('div');
+      block.className = 'retention-group';
+      const head = document.createElement('div');
+      head.className = 'rg-head';
+      head.innerHTML = `<span>${escapeHtml(desc.pageName)} · ${escapeHtml(desc.secName)}</span><span class="rg-count">${items.length}건</span>`;
+      block.appendChild(head);
+      items.forEach(it => {
+        const v = it.version;
+        const row = document.createElement('label');
+        row.className = 'rg-item';
+        row.innerHTML = `
+          <input type="checkbox" data-key="${escapeHtml(it.key)}" data-idx="${it.idx}" />
+          <span class="rg-when">${fmtDate(v.savedAt)}</span>
+          <span class="rg-reason ${v.reason ? '' : 'empty'}">${escapeHtml(v.reason || '(사유 없음)')}</span>
+        `;
+        block.appendChild(row);
+      });
+      wrap.appendChild(block);
+    });
+    document.getElementById('rmSelectAll').checked = false;
+    openModal('retentionModal');
+  }
+
+  function deleteSelectedRetention() {
+    const checks = document.querySelectorAll('#rmList input[type=checkbox]:checked');
+    if (checks.length === 0) { toast('삭제할 항목을 선택하세요.', 'error'); return; }
+    if (!confirm(`${checks.length}개 이력을 영구 삭제할까요? 복구할 수 없습니다.\n\n참고: 각 섹션의 직전 버전은 자동 보호되어 목록에 포함되지 않습니다.`)) return;
+    const byKey = {};
+    checks.forEach(c => {
+      const key = c.dataset.key;
+      const idx = parseInt(c.dataset.idx, 10);
+      if (idx === 0) return; // 안전장치: 직전 버전 보호
+      (byKey[key] = byKey[key] || []).push(idx);
+    });
+    let removed = 0;
+    Object.keys(byKey).forEach(k => {
+      const idxs = byKey[k].sort((a, b) => b - a);
+      const list = state.history[k];
+      if (!list) return;
+      idxs.forEach(i => { if (i > 0 && i < list.length) { list.splice(i, 1); removed++; } });
+      if (list.length === 0) delete state.history[k];
+    });
+    saveState();
+    closeModal('retentionModal');
+    checkOldHistoryAndNotify();
+    toast(`${removed}건 영구 삭제됨`, 'info');
+  }
+
   function getActivePage() {
     return state.pages.find(p => p.id === state.activePageId) || state.pages[0];
   }
@@ -274,7 +377,7 @@
     const k = histKey(pageId, secId);
     const list = state.history[k] || [];
     list.unshift(snapshot);
-    if (list.length > HISTORY_LIMIT) list.length = HISTORY_LIMIT;
+    // 자동 삭제 없음 — 모든 버전 영구 보관 (1년 경과 시 수동 정리 알림만 띄움)
     state.history[k] = list;
   }
 
@@ -282,6 +385,7 @@
   function renderAll() {
     renderPages();
     renderSections();
+    checkOldHistoryAndNotify();
   }
 
   function renderPages() {
@@ -751,6 +855,17 @@
     document.getElementById('edClose').addEventListener('click', () => closeModal('editorModal'));
     document.getElementById('edCancel').addEventListener('click', () => closeModal('editorModal'));
     document.getElementById('hsClose').addEventListener('click', () => closeModal('historyModal'));
+
+    document.getElementById('rbOpen').addEventListener('click', openRetention);
+    document.getElementById('rbHide').addEventListener('click', () => {
+      sessionStorage.setItem('retentionDismissed', '1');
+      document.getElementById('retentionBanner').style.display = 'none';
+    });
+    document.getElementById('rmClose').addEventListener('click', () => closeModal('retentionModal'));
+    document.getElementById('rmDelete').addEventListener('click', deleteSelectedRetention);
+    document.getElementById('rmSelectAll').addEventListener('change', e => {
+      document.querySelectorAll('#rmList input[type=checkbox]').forEach(c => { c.checked = e.target.checked; });
+    });
 
     document.querySelectorAll('.modal-mask').forEach(mask => {
       mask.addEventListener('click', e => { if (e.target === mask) mask.classList.remove('open'); });

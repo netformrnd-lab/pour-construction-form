@@ -41,6 +41,7 @@
             <li><b>컨펌 체크</b> — 카드 좌측 <kbd>✓</kbd> 체크박스로 컨펌 완료 표시 (이력에 자동 기록)</li>
             <li><b>이력 확인/복원</b> — <kbd>이력</kbd> 버튼에서 이전 버전 미리보기·복원, 변경 사유 수정</li>
             <li><b>전체 시안 보기</b> — <kbd>전체 시안 바로보기</kbd>로 현재 페이지의 모든 섹션을 합쳐 새 창에 표시</li>
+            <li><b>이력 보관</b> — 모든 버전 영구 보관, 자동 삭제 없음. 1년 경과 항목은 상단 알림에서 직접 선택해 정리 (직전 버전은 항상 보호)</li>
           </ol>
         </div>
         <div class="howto-card sync-info">
@@ -55,6 +56,17 @@
       </div>
     </div>
   </section>
+
+  <div id="retentionBanner" class="retention-banner" style="display:none;">
+    <div class="rb-msg">
+      📦 <b>1년 이상 보관된 이력</b>이 <span id="retentionCount">0</span>건 있습니다.
+      자동 삭제는 하지 않습니다 — 정리하실 항목만 직접 선택해 삭제하세요.
+    </div>
+    <div class="rb-actions">
+      <button id="rbOpen" class="btn btn-sm btn-primary">정리하러 가기</button>
+      <button id="rbHide" class="btn btn-sm btn-ghost">이번 세션 숨기기</button>
+    </div>
+  </div>
 
   <div class="layout">
     <aside class="sidebar">
@@ -150,8 +162,34 @@
         <div id="hsList" class="history-list"></div>
       </div>
       <div class="modal-foot">
-        <span style="font-size:12px; color:var(--muted);">최대 30개 버전까지 보관됩니다.</span>
+        <span style="font-size:12px; color:var(--muted);">모든 버전 영구 보관 · 자동 삭제 없음 (1년 경과 항목은 상단 알림으로 정리 가능)</span>
         <button class="btn btn-ghost" onclick="document.getElementById('historyModal').classList.remove('open')">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1년 경과 이력 정리 모달 -->
+  <div id="retentionModal" class="modal-mask">
+    <div class="modal" style="max-width: 880px;">
+      <div class="modal-head">
+        <h3>1년 이상 보관된 이력 정리</h3>
+        <button id="rmClose" class="close" aria-label="닫기">×</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:12px; color:var(--ink2); background: #FFFBEB; border:1px solid #FCE7B6; padding:10px 12px; border-radius:8px; margin-bottom:12px;">
+          ⚠ 체크한 항목만 영구 삭제됩니다. 삭제된 데이터는 <b>복구할 수 없습니다.</b><br/>
+          기본은 <b>모두 미선택</b> 상태입니다 — 신중히 검토 후 선택하세요.
+        </div>
+        <div id="rmList" class="retention-list"></div>
+      </div>
+      <div class="modal-foot">
+        <label style="font-size:12px; display:flex; align-items:center; gap:6px; cursor:pointer;">
+          <input type="checkbox" id="rmSelectAll" /> 전체 선택
+        </label>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-ghost" onclick="document.getElementById('retentionModal').classList.remove('open')">닫기</button>
+          <button id="rmDelete" class="btn btn-danger">선택 항목 영구 삭제</button>
+        </div>
       </div>
     </div>
   </div>

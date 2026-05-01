@@ -38,7 +38,7 @@
             <li><b>섹션 추가/편집</b> — <kbd>+ 섹션 추가</kbd> 또는 카드의 <kbd>편집</kbd>으로 HTML 입력</li>
             <li><b>변경 사유 작성</b> — 편집 저장 시 <span class="dot-red"></span> <b>변경 사유 필수</b> (이력에 기록)</li>
             <li><b>순서 변경</b> — 카드 좌측 <kbd>⋮⋮</kbd> 그립을 잡고 드래그</li>
-            <li><b>컨펌 워크플로우</b> — 카드 좌측 상태 칩 클릭 → <kbd>✋ 컨펌요청</kbd>(실행자) → <kbd>✅ 승인</kbd> 또는 <kbd>↻ 재수정</kbd>(관리자). 재수정 피드백은 피그마에 작성. 모든 전환은 이력에 자동 기록</li>
+            <li><b>컨펌 워크플로우</b> — 카드 좌측 상태 칩 클릭 → <kbd>✋ 컨펌 요청</kbd>(실행자) → <kbd>✅ 승인 완료</kbd> 또는 <kbd>↻ 재수정 요청</kbd>(관리자). 재수정 피드백은 피그마에 작성. 모든 전환은 이력에 자동 기록</li>
             <li><b>이력 확인/복원</b> — <kbd>이력</kbd> 버튼에서 이전 버전 미리보기·복원, 변경 사유 수정</li>
             <li><b>전체 시안 보기</b> — <kbd>전체 시안 바로보기</kbd>로 현재 페이지의 모든 섹션을 합쳐 새 창에 표시</li>
             <li><b>이력 보관</b> — 모든 버전 영구 보관, 자동 삭제 없음. 1년 경과 항목은 상단 알림에서 직접 선택해 정리 (직전 버전은 항상 보호)</li>
@@ -179,7 +179,7 @@
       </div>
       <div class="modal-foot">
         <span style="font-size:12px; color:var(--muted);">모든 버전 영구 보관 · 자동 삭제 없음 (1년 경과 항목은 상단 알림으로 정리 가능)</span>
-        <button class="btn btn-ghost" onclick="document.getElementById('historyModal').classList.remove('open')">닫기</button>
+        <button id="hsCloseFoot" class="btn btn-ghost">닫기</button>
       </div>
     </div>
   </div>
@@ -203,7 +203,7 @@
           <input type="checkbox" id="rmSelectAll" /> 전체 선택
         </label>
         <div style="display:flex; gap:8px;">
-          <button class="btn btn-ghost" onclick="document.getElementById('retentionModal').classList.remove('open')">닫기</button>
+          <button id="rmCloseFoot" class="btn btn-ghost">닫기</button>
           <button id="rmDelete" class="btn btn-danger">선택 항목 영구 삭제</button>
         </div>
       </div>
@@ -212,7 +212,7 @@
 
   <div id="toast" class="toast"></div>
 
-  <footer>넷폼알앤디 · POUR스토어 리뉴얼 시안 빌더</footer>
+  <footer>넷폼알앤디 · POUR스토어 자사몰 리뉴얼 — 페이지 관리</footer>
 
   <script src="./assets/builder.js"></script>
 </body>

@@ -474,7 +474,10 @@
         <span class="count">${p.sections.length}</span>
       `;
       item.addEventListener('click', () => {
-        state.activePageId = p.id; saveState(); renderAll();
+        state.activePageId = p.id;
+        // 페이지 전환은 본인 브라우저에만 적용 — Firestore 동기화 대상 아님
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) {}
+        renderAll();
       });
       list.appendChild(item);
     });
@@ -570,6 +573,7 @@
     card.addEventListener('dragstart', e => {
       dragSrcId = card.dataset.sectionId;
       card.classList.add('dragging');
+      closeStatusMenus();
       e.dataTransfer.effectAllowed = 'move';
       try { e.dataTransfer.setData('text/plain', dragSrcId); } catch (_) {}
     });
@@ -889,10 +893,19 @@
   }
 
   // -------- preview --------
+  function previewBaseHref() {
+    // 미리보기 문서 안의 상대 경로(예: ./pour-store-cafe24.html)가
+    // 부모 페이지(/pourstore-renewal/preview.html) 기준으로 해석되도록
+    // <base href>를 부모 디렉터리 URL로 고정한다.
+    const href = window.location.href.replace(/[^/]*$/, '');
+    return href;
+  }
   function wrapPreview(bodyHtml) {
+    const baseHref = previewBaseHref();
     return [
       '<!doctype html><html lang="ko"><head><meta charset="UTF-8"/>',
       '<meta name="viewport" content="width=device-width, initial-scale=1"/>',
+      `<base href="${baseHref}"/>`,
       '<title>섹션 미리보기</title>',
       '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Bebas+Neue&display=swap" rel="stylesheet"/>',
       '<style>html,body{margin:0;font-family:\'Noto Sans KR\',sans-serif;background:#fff;color:#111827;}</style>',
@@ -1003,7 +1016,9 @@
         const obj = JSON.parse(reader.result);
         if (!obj || !Array.isArray(obj.pages)) throw new Error('형식 오류');
         if (!confirm('현재 빌더 데이터를 가져온 파일로 덮어쓸까요?')) return;
-        state = Object.assign({ history: {}, activePageId: obj.pages[0].id }, obj);
+        const merged = Object.assign({ history: {}, activePageId: obj.pages[0].id }, obj);
+        state = migrate(merged);
+        addMissingDefaultPages(state);
         saveState(); renderAll();
         toast('가져오기 완료', 'success');
       } catch (e) {
@@ -1040,6 +1055,10 @@
     document.getElementById('edClose').addEventListener('click', () => closeModal('editorModal'));
     document.getElementById('edCancel').addEventListener('click', () => closeModal('editorModal'));
     document.getElementById('hsClose').addEventListener('click', () => closeModal('historyModal'));
+    const hsCloseFoot = document.getElementById('hsCloseFoot');
+    if (hsCloseFoot) hsCloseFoot.addEventListener('click', () => closeModal('historyModal'));
+    const rmCloseFoot = document.getElementById('rmCloseFoot');
+    if (rmCloseFoot) rmCloseFoot.addEventListener('click', () => closeModal('retentionModal'));
 
     document.getElementById('rbOpen').addEventListener('click', openRetention);
     document.getElementById('rbHide').addEventListener('click', () => {

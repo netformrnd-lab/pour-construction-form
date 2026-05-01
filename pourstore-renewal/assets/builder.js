@@ -30,167 +30,222 @@
 
   const SEED_AI_RECOMMEND_HTML = `
 <style>
-.ai-rec * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Noto Sans KR', sans-serif; }
-.ai-rec { max-width: 1200px; margin: 0 auto; padding: 60px 20px; background: #fff; }
-.ai-rec-head { text-align: center; margin-bottom: 28px; }
-.ai-rec-head .kicker { display: inline-block; padding: 5px 12px; background: #FEF3C7; color: #92400E; font-size: 11px; font-weight: 800; border-radius: 999px; letter-spacing: 1px; }
-.ai-rec-head h2 { font-size: 30px; font-weight: 900; color: #0F1F5C; margin: 12px 0 8px; }
-.ai-rec-head h2 .accent { color: #03C75A; }
-.ai-rec-head p { font-size: 14px; color: #6B7280; }
-.ai-rec-filter { background: #F9FAFB; border-radius: 16px; padding: 18px; margin-bottom: 24px; }
-.filter-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
-.filter-row:last-child { margin-bottom: 0; }
-.filter-row .label { font-size: 12px; font-weight: 700; color: #0F1F5C; min-width: 60px; }
-.filter-row .options { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
-.filter-btn { padding: 7px 13px; border: 1.5px solid #E5E7EB; background: #fff; border-radius: 999px; font-size: 12.5px; font-weight: 600; color: #4B5563; cursor: pointer; transition: all .15s; }
-.filter-btn:hover { border-color: #03C75A; color: #03C75A; }
-.filter-btn.active { background: #03C75A; border-color: #03C75A; color: #fff; }
-.ai-chat { background: #fff; border: 1px solid #E5E7EB; border-radius: 16px; padding: 18px; margin-bottom: 28px; box-shadow: 0 1px 4px rgba(0,0,0,.04); }
-.ai-chat-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
-.ai-chat-head .dot { width: 8px; height: 8px; border-radius: 50%; background: #03C75A; box-shadow: 0 0 0 4px rgba(3,199,90,.2); }
-.ai-chat-head .name { font-size: 13px; font-weight: 800; color: #0F1F5C; }
-.ai-chat-head .status { font-size: 11px; color: #03C75A; font-weight: 700; margin-left: auto; }
-.bot-msg { background: #F3F4F6; padding: 12px 14px; border-radius: 12px; font-size: 13px; line-height: 1.7; color: #111827; max-width: 520px; margin-bottom: 12px; }
-.bot-msg b { color: #0F1F5C; }
-.quick-replies { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
-.quick-replies .qr { padding: 8px 13px; background: #fff; border: 1.5px solid #03C75A; color: #03C75A; border-radius: 999px; font-size: 12px; font-weight: 700; cursor: pointer; }
-.quick-replies .qr:hover { background: #03C75A; color: #fff; }
-.chat-input-row { display: flex; gap: 8px; padding-top: 10px; border-top: 1px solid #E5E7EB; }
-.chat-input-row input { flex: 1; padding: 10px 13px; border: 1px solid #E5E7EB; border-radius: 10px; font-size: 13px; outline: none; }
-.chat-input-row button { padding: 10px 20px; background: #0F1F5C; color: #fff; border: 0; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; }
-.result-row { margin-bottom: 32px; }
-.result-row h3 { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 900; color: #0F1F5C; margin-bottom: 14px; padding-left: 4px; flex-wrap: wrap; }
-.result-row h3 .badge { font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 999px; color: #fff; letter-spacing: .5px; }
-.result-row h3 .badge.full { background: #DC2626; }
-.result-row h3 .badge.partial { background: #D97706; }
-.result-row h3 .badge.simple { background: #6B7280; }
-.result-row h3 .desc { font-size: 13px; font-weight: 600; color: #4B5563; }
-.result-row h3 .count { font-size: 11px; color: #9CA3AF; font-weight: 600; margin-left: auto; }
-.product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
-.product-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; transition: transform .15s, box-shadow .15s, border-color .15s; cursor: pointer; }
-.product-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(15,31,92,.12); border-color: #03C75A; }
-.product-card .pc-img { aspect-ratio: 1 / 1; background: #F3F4F6 center/cover no-repeat; position: relative; }
-.product-card .pc-img .pc-tag { position: absolute; top: 8px; left: 8px; padding: 3px 8px; background: #DC2626; color: #fff; font-size: 10px; font-weight: 800; border-radius: 4px; }
-.product-card .pc-body { padding: 11px 12px 13px; }
-.product-card .pc-cat { font-size: 10px; font-weight: 700; color: #03C75A; letter-spacing: .5px; text-transform: uppercase; }
-.product-card .pc-name { font-size: 13px; font-weight: 700; color: #111827; margin: 4px 0 8px; line-height: 1.4; }
-.product-card .pc-price { font-size: 14px; font-weight: 900; color: #0F1F5C; }
-.empty-result { text-align: center; padding: 40px 20px; color: #9CA3AF; font-size: 13px; background: #F9FAFB; border-radius: 12px; }
-@media (max-width: 640px) {
-  .ai-rec { padding: 40px 14px; }
-  .ai-rec-head h2 { font-size: 22px; }
-  .filter-row { flex-direction: column; align-items: flex-start; }
-  .filter-row .label { margin-bottom: 4px; }
-  .product-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-}
+.pour-ai-core, .pour-ai-core * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Noto Sans KR', sans-serif; }
+.pour-ai-core { --jg:#03C75A; --jg-glow:rgba(3,199,90,.45); --jc:#00E5FF; --jbg1:#050B2A; --jbg2:#0F1F5C; --jt:#E2E8F0; --jtd:#94A3B8; --jb:rgba(148,163,184,.15); --jba:rgba(3,199,90,.5); --jm:'JetBrains Mono','Consolas','Roboto Mono',monospace; }
+.pour-ai-core { position:relative; background: radial-gradient(ellipse at top, rgba(3,199,90,.08) 0%, transparent 50%), radial-gradient(ellipse at bottom, rgba(0,229,255,.05) 0%, transparent 50%), linear-gradient(180deg,#050B2A 0%,#0A1542 50%,#050B2A 100%); color:var(--jt); padding:80px 24px 100px; overflow:hidden; }
+.pour-ai-core::before { content:''; position:absolute; inset:0; background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px); background-size:50px 50px; pointer-events:none; -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%); mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%); }
+.pour-ai-core::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg,transparent 0%,rgba(3,199,90,.04) 50%,transparent 100%); pointer-events:none; animation:scan 6s linear infinite; }
+@keyframes scan { 0%{transform:translateY(-100%);} 100%{transform:translateY(100%);} }
+.pai-inner { max-width:1240px; margin:0 auto; position:relative; z-index:1; }
+.pai-hero { text-align:center; margin-bottom:48px; position:relative; }
+.pai-core { width:130px; height:130px; margin:0 auto 24px; position:relative; display:grid; place-items:center; }
+.pai-core .ring { position:absolute; inset:0; border:1px solid var(--jg); border-radius:50%; animation:spin 12s linear infinite; }
+.pai-core .ring::before, .pai-core .ring::after { content:''; position:absolute; width:8px; height:8px; background:var(--jg); border-radius:50%; box-shadow:0 0 12px var(--jg-glow); }
+.pai-core .ring::before { top:-4px; left:50%; transform:translateX(-50%); }
+.pai-core .ring::after { bottom:-4px; left:50%; transform:translateX(-50%); }
+.pai-core .ring2 { position:absolute; inset:12px; border:1px dashed rgba(0,229,255,.4); border-radius:50%; animation:spin 8s linear infinite reverse; }
+.pai-core .center { width:60px; height:60px; background:linear-gradient(135deg,var(--jg) 0%,#029B47 100%); border-radius:50%; display:grid; place-items:center; font-family:'Bebas Neue',sans-serif; font-size:28px; color:#fff; font-weight:900; letter-spacing:1px; box-shadow:0 0 20px var(--jg-glow), 0 0 40px var(--jg-glow), inset 0 0 20px rgba(255,255,255,.2); position:relative; z-index:2; }
+.pai-core .pulse { position:absolute; inset:24px; border:2px solid var(--jg); border-radius:50%; animation:pulse-out 2s ease-out infinite; opacity:0; }
+@keyframes spin { to { transform:rotate(360deg); } }
+@keyframes pulse-out { 0%{opacity:.6; transform:scale(.8);} 100%{opacity:0; transform:scale(1.6);} }
+.pai-kicker { display:inline-flex; align-items:center; gap:8px; padding:6px 16px; background:rgba(3,199,90,.1); border:1px solid rgba(3,199,90,.3); border-radius:999px; font-family:var(--jm); font-size:11px; font-weight:700; color:var(--jg); letter-spacing:2px; margin-bottom:18px; }
+.pai-kicker .live-dot { width:6px; height:6px; background:var(--jg); border-radius:50%; box-shadow:0 0 8px var(--jg); animation:blink 1.2s ease-in-out infinite; }
+@keyframes blink { 50%{opacity:.3;} }
+.pai-hero h2 { font-size:36px; font-weight:900; margin:0 0 12px; letter-spacing:-.5px; color:#fff; line-height:1.25; }
+.pai-hero h2 .accent { background:linear-gradient(135deg,var(--jg) 0%,var(--jc) 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.pai-hero p { font-size:13px; color:var(--jtd); font-family:var(--jm); letter-spacing:.5px; margin:0; }
+.pai-status { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px,1fr)); gap:12px; margin-bottom:36px; max-width:880px; margin-left:auto; margin-right:auto; }
+.pai-stat { background:rgba(15,31,92,.4); border:1px solid var(--jb); border-radius:10px; padding:14px 16px; position:relative; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
+.pai-stat::before, .pai-stat::after { content:''; position:absolute; width:10px; height:10px; border-color:var(--jg); border-style:solid; }
+.pai-stat::before { top:-1px; left:-1px; border-width:1px 0 0 1px; }
+.pai-stat::after { bottom:-1px; right:-1px; border-width:0 1px 1px 0; }
+.pai-stat .lbl { font-family:var(--jm); font-size:10px; color:var(--jtd); letter-spacing:1.5px; margin-bottom:6px; }
+.pai-stat .val { font-family:'Bebas Neue',sans-serif; font-size:24px; color:#fff; letter-spacing:1px; display:flex; align-items:baseline; gap:4px; }
+.pai-stat .val .unit { font-size:11px; color:var(--jg); font-family:var(--jm); letter-spacing:0; }
+.pai-stat .val .pulse-text { display:inline-flex; align-items:center; gap:5px; font-size:13px; color:var(--jg); font-family:'Noto Sans KR'; font-weight:800; }
+.pai-stat .val .pulse-text::before { content:''; width:6px; height:6px; background:var(--jg); border-radius:50%; box-shadow:0 0 8px var(--jg); animation:blink 1.4s ease-in-out infinite; }
+.pai-panel { background:rgba(15,31,92,.45); border:1px solid var(--jb); border-radius:14px; padding:22px; margin-bottom:22px; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); position:relative; }
+.pai-panel-head { display:flex; align-items:center; gap:10px; margin-bottom:16px; padding-bottom:12px; border-bottom:1px dashed var(--jb); }
+.pai-panel-head .icn { width:28px; height:28px; border:1px solid var(--jg); border-radius:6px; display:grid; place-items:center; color:var(--jg); font-size:13px; }
+.pai-panel-head .ttl { font-size:13px; font-weight:800; color:#fff; letter-spacing:.5px; }
+.pai-panel-head .seq { margin-left:auto; font-family:var(--jm); font-size:10px; color:var(--jtd); letter-spacing:1.5px; }
+.pai-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+.pai-row:last-child { margin-bottom:0; }
+.pai-row .lbl { font-family:var(--jm); font-size:10px; color:var(--jtd); letter-spacing:1.5px; min-width:78px; }
+.pai-row .opts { display:flex; gap:6px; flex-wrap:wrap; flex:1; }
+.pai-btn { padding:7px 13px; background:transparent; border:1px solid var(--jb); border-radius:999px; color:var(--jtd); font-size:12px; font-weight:600; cursor:pointer; transition:all .2s; font-family:'Noto Sans KR'; }
+.pai-btn:hover { border-color:var(--jg); color:var(--jg); background:rgba(3,199,90,.05); }
+.pai-btn.active { background:var(--jg); border-color:var(--jg); color:var(--jbg1); box-shadow:0 0 16px var(--jg-glow); }
+.pai-chat { background:rgba(15,31,92,.45); border:1px solid var(--jba); border-radius:14px; padding:22px; margin-bottom:36px; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); position:relative; box-shadow:0 0 40px rgba(3,199,90,.08); }
+.pai-chat-head { display:flex; align-items:center; gap:10px; padding-bottom:14px; margin-bottom:14px; border-bottom:1px dashed var(--jb); }
+.pai-chat-head .av { position:relative; width:32px; height:32px; background:linear-gradient(135deg,var(--jg),#029B47); border-radius:50%; display:grid; place-items:center; color:#fff; font-family:'Bebas Neue',sans-serif; font-size:14px; box-shadow:0 0 12px var(--jg-glow); }
+.pai-chat-head .av::after { content:''; position:absolute; width:8px; height:8px; background:var(--jg); border:2px solid var(--jbg1); border-radius:50%; bottom:-2px; right:-2px; animation:blink 1.5s ease-in-out infinite; }
+.pai-chat-head .name { font-size:13px; font-weight:800; color:#fff; }
+.pai-chat-head .name .sub { display:block; font-family:var(--jm); font-size:10px; color:var(--jg); font-weight:600; letter-spacing:1.5px; margin-top:2px; }
+.pai-chat-head .badge-online { margin-left:auto; padding:4px 10px; background:rgba(3,199,90,.15); border:1px solid rgba(3,199,90,.3); border-radius:4px; font-family:var(--jm); font-size:10px; color:var(--jg); font-weight:700; letter-spacing:1.5px; display:inline-flex; align-items:center; gap:5px; }
+.pai-chat-head .badge-online::before { content:''; width:5px; height:5px; background:var(--jg); border-radius:50%; box-shadow:0 0 6px var(--jg); animation:blink 1.2s infinite; }
+.pai-msg { background:rgba(3,199,90,.06); border-left:2px solid var(--jg); padding:14px 16px; border-radius:4px; font-size:13.5px; line-height:1.85; color:#E2E8F0; margin-bottom:14px; position:relative; }
+.pai-msg::before { content:'> '; font-family:var(--jm); color:var(--jg); font-weight:800; }
+.pai-msg b { color:var(--jg); font-weight:800; }
+.pai-msg .step { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; border:1px solid var(--jg); border-radius:4px; color:var(--jg); font-family:var(--jm); font-size:10px; font-weight:700; margin-right:6px; vertical-align:middle; }
+.pai-quick { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+.pai-quick .qbtn { padding:8px 14px; background:rgba(3,199,90,.06); border:1px solid rgba(3,199,90,.3); border-radius:6px; color:var(--jg); font-size:12px; font-weight:700; cursor:pointer; transition:all .18s; font-family:'Noto Sans KR'; }
+.pai-quick .qbtn:hover { background:var(--jg); color:var(--jbg1); box-shadow:0 0 12px var(--jg-glow); }
+.pai-input-row { display:flex; gap:8px; padding-top:12px; border-top:1px dashed var(--jb); align-items:center; }
+.pai-input-row .prompt { font-family:var(--jm); color:var(--jg); font-size:14px; font-weight:800; padding-left:4px; }
+.pai-input-row input { flex:1; padding:11px 14px; background:rgba(0,0,0,.3); border:1px solid var(--jb); border-radius:6px; color:#fff; font-size:13px; outline:none; font-family:'Noto Sans KR'; transition:border-color .15s, box-shadow .15s; }
+.pai-input-row input::placeholder { color:var(--jtd); }
+.pai-input-row input:focus { border-color:var(--jg); box-shadow:0 0 0 3px rgba(3,199,90,.12); }
+.pai-input-row .send-btn { padding:11px 20px; background:linear-gradient(135deg,var(--jg) 0%,#029B47 100%); border:0; border-radius:6px; color:#fff; font-size:13px; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px; letter-spacing:.5px; box-shadow:0 4px 12px rgba(3,199,90,.3); transition:transform .1s; }
+.pai-input-row .send-btn:hover { transform:translateY(-1px); }
+.pai-result-row { margin-bottom:36px; }
+.pai-result-head { display:flex; align-items:center; gap:12px; margin-bottom:18px; padding:12px 16px; background:rgba(15,31,92,.4); border-left:3px solid var(--jg); border-radius:0 8px 8px 0; flex-wrap:wrap; }
+.pai-result-head .seq { font-family:var(--jm); font-size:10px; color:var(--jg); letter-spacing:1.5px; }
+.pai-result-head .name { font-size:17px; font-weight:900; color:#fff; letter-spacing:-.3px; }
+.pai-result-head .desc { font-size:12.5px; color:var(--jtd); }
+.pai-result-head .count { margin-left:auto; padding:4px 10px; background:rgba(3,199,90,.12); border:1px solid rgba(3,199,90,.3); border-radius:4px; font-family:var(--jm); font-size:10px; color:var(--jg); font-weight:700; letter-spacing:1px; }
+.pai-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:14px; }
+.pai-card { background:rgba(15,31,92,.4); border:1px solid var(--jb); border-radius:10px; overflow:hidden; cursor:pointer; transition:transform .2s, border-color .2s, box-shadow .2s; position:relative; backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+.pai-card::before, .pai-card::after { content:''; position:absolute; width:10px; height:10px; border:1px solid var(--jg); opacity:0; transition:opacity .2s; pointer-events:none; }
+.pai-card::before { top:6px; left:6px; border-right:0; border-bottom:0; }
+.pai-card::after { bottom:6px; right:6px; border-left:0; border-top:0; }
+.pai-card:hover { transform:translateY(-4px); border-color:var(--jg); box-shadow:0 12px 30px rgba(3,199,90,.18); }
+.pai-card:hover::before, .pai-card:hover::after { opacity:1; }
+.pai-card .pc-img { aspect-ratio:1/1; background:#0A1542 center/cover no-repeat; position:relative; overflow:hidden; }
+.pai-card .pc-img::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg, transparent 60%, rgba(5,11,42,.85) 100%); }
+.pai-card .pc-img .pc-tag { position:absolute; top:8px; left:8px; padding:3px 8px; background:var(--jg); color:var(--jbg1); font-family:var(--jm); font-size:10px; font-weight:800; border-radius:3px; letter-spacing:1px; z-index:2; }
+.pai-card .pc-img .pc-id { position:absolute; top:8px; right:8px; padding:2px 6px; background:rgba(0,0,0,.5); font-family:var(--jm); font-size:9px; color:var(--jg); letter-spacing:1px; z-index:2; border-radius:3px; }
+.pai-card .pc-body { padding:13px 14px 15px; position:relative; }
+.pai-card .pc-cat { font-family:var(--jm); font-size:10px; color:var(--jg); letter-spacing:1.5px; margin-bottom:6px; }
+.pai-card .pc-name { font-size:13.5px; font-weight:700; color:#fff; margin-bottom:10px; line-height:1.4; }
+.pai-card .pc-price { font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--jg); letter-spacing:.5px; text-shadow:0 0 10px rgba(3,199,90,.3); }
+.pai-card .pc-price .won { font-size:13px; color:var(--jtd); margin-left:2px; }
+.pai-empty { text-align:center; padding:60px 20px; background:rgba(15,31,92,.3); border:1px dashed var(--jb); border-radius:12px; color:var(--jtd); font-family:var(--jm); font-size:12px; letter-spacing:1px; }
+@media (max-width:720px) { .pour-ai-core{padding:60px 16px 80px;} .pai-hero h2{font-size:24px;} .pai-row{flex-direction:column; align-items:flex-start;} .pai-row .lbl{margin-bottom:4px;} .pai-grid{grid-template-columns:repeat(2,1fr); gap:10px;} .pai-card .pc-name{font-size:12.5px;} .pai-card .pc-price{font-size:18px;} }
 </style>
-<section class="ai-rec">
-  <div class="ai-rec-head">
-    <span class="kicker">AI 맞춤 상품 추천</span>
-    <h2>딱 맞는 자재, <span class="accent">AI가 골라드립니다</span></h2>
-    <p>시공 부위·건물 유형·현재 상태만 알려주시면 패키지로 정리해드려요</p>
-  </div>
-  <div class="ai-rec-filter">
-    <div class="filter-row">
-      <span class="label">시공 부위</span>
-      <div class="options" data-filter="cat">
-        <button class="filter-btn active" data-val="">전체</button>
-        <button class="filter-btn" data-val="슬라브">슬라브</button>
-        <button class="filter-btn" data-val="쉬글">쉬글</button>
-        <button class="filter-btn" data-val="기와">기와</button>
-        <button class="filter-btn" data-val="균열">균열</button>
-        <button class="filter-btn" data-val="재도장">재도장</button>
-        <button class="filter-btn" data-val="칼라강판/징크">칼라강판/징크</button>
-        <button class="filter-btn" data-val="배수로/베란다">배수로/베란다</button>
-        <button class="filter-btn" data-val="지하주차장">지하주차장</button>
-        <button class="filter-btn" data-val="이음부">이음부</button>
+<section class="pour-ai-core">
+  <div class="pai-inner">
+    <div class="pai-hero">
+      <div class="pai-core">
+        <div class="ring"></div>
+        <div class="ring2"></div>
+        <div class="pulse"></div>
+        <div class="center">P</div>
+      </div>
+      <span class="pai-kicker"><span class="live-dot"></span>POUR · DATA-DRIVEN · RECOMMENDATION</span>
+      <h2><span class="accent">260만 세대 시공 데이터</span> 기반,<br/>POUR스토어가 추천하는 맞춤 자재</h2>
+      <p>// 시공 부위 · 건물 유형 · 면적 입력 → 누적 시공 패턴 분석 → 패키지 산출</p>
+    </div>
+    <div class="pai-status">
+      <div class="pai-stat"><div class="lbl">CONSTRUCTION DATA</div><div class="val">2,600,000<span class="unit">세대</span></div></div>
+      <div class="pai-stat"><div class="lbl">PARTNER NETWORK</div><div class="val">250<span class="unit">+ 전문 시공사</span></div></div>
+      <div class="pai-stat"><div class="lbl">PRODUCT POOL</div><div class="val">110<span class="unit">+ 자재</span></div></div>
+      <div class="pai-stat"><div class="lbl">SYSTEM STATUS</div><div class="val"><span class="pulse-text">정상 가동 중</span></div></div>
+    </div>
+    <div class="pai-panel">
+      <div class="pai-panel-head"><div class="icn">⌬</div><div class="ttl">시공 변수 입력 / Input Parameters</div><div class="seq">[ STEP · 01 ]</div></div>
+      <div class="pai-row">
+        <span class="lbl">SURFACE</span>
+        <div class="opts" data-filter="cat">
+          <button class="pai-btn active" data-val="">전체</button>
+          <button class="pai-btn" data-val="슬라브">슬라브</button>
+          <button class="pai-btn" data-val="쉬글">쉬글</button>
+          <button class="pai-btn" data-val="기와">기와</button>
+          <button class="pai-btn" data-val="균열">균열</button>
+          <button class="pai-btn" data-val="재도장">재도장</button>
+          <button class="pai-btn" data-val="칼라강판/징크">칼라강판/징크</button>
+          <button class="pai-btn" data-val="배수로/베란다">배수로/베란다</button>
+          <button class="pai-btn" data-val="지하주차장">지하주차장</button>
+          <button class="pai-btn" data-val="이음부">이음부</button>
+        </div>
+      </div>
+      <div class="pai-row">
+        <span class="lbl">BUILDING</span>
+        <div class="opts" data-filter="type">
+          <button class="pai-btn active" data-val="">전체</button>
+          <button class="pai-btn" data-val="아파트">아파트</button>
+          <button class="pai-btn" data-val="일반저층">일반 저층</button>
+        </div>
       </div>
     </div>
-    <div class="filter-row">
-      <span class="label">건물 유형</span>
-      <div class="options" data-filter="type">
-        <button class="filter-btn active" data-val="">전체</button>
-        <button class="filter-btn" data-val="아파트">아파트</button>
-        <button class="filter-btn" data-val="일반저층">일반 저층</button>
+    <div class="pai-chat">
+      <div class="pai-chat-head">
+        <div class="av">P</div>
+        <div class="name">POUR스토어 자재 추천 시스템<span class="sub">DATA · 2.6M HOUSEHOLDS · 250 PARTNERS</span></div>
+        <span class="badge-online">ONLINE</span>
+      </div>
+      <div class="pai-msg">
+        <b>260만 세대 시공 데이터</b>를 기반으로 <b>POUR스토어</b>가 맞춤 자재를 추천해드립니다.<br/>
+        아래 4가지를 알려주시면 누적 시공 패턴에 맞는 패키지를 즉시 산출합니다.<br/>
+        <span class="step">01</span> 시공 부위 (슬라브 옥상 / 아스팔트 쉬글 / 외벽 등)<br/>
+        <span class="step">02</span> 건물 유형 (아파트 / 단독주택 / 상가)<br/>
+        <span class="step">03</span> 면적 (평 또는 ㎡)<br/>
+        <span class="step">04</span> 현재 상태 (누수 여부 · 기존 방수 상태)
+      </div>
+      <div class="pai-quick">
+        <button class="qbtn">▸ 제품 구매</button>
+        <button class="qbtn">▸ 패키지 구매</button>
+        <button class="qbtn">▸ 하자 상담</button>
+        <button class="qbtn">▸ 시공 상담</button>
+        <button class="qbtn">▸ 작업 도구</button>
+      </div>
+      <div class="pai-input-row">
+        <span class="prompt">$_</span>
+        <input type="text" placeholder="명령을 입력하세요. 예: 옥상 슬라브 30평 누수 보수" />
+        <button class="send-btn">▶ 분석 시작</button>
       </div>
     </div>
+    <div class="pai-results" id="pai-results"></div>
   </div>
-  <div class="ai-chat">
-    <div class="ai-chat-head">
-      <span class="dot"></span>
-      <span class="name">POUR AI 어시스턴트</span>
-      <span class="status">● 온라인</span>
-    </div>
-    <div class="bot-msg">
-      안녕하세요! 어떤 시공이 필요하신가요? <br/>
-      <b>1.</b> 시공 부위 (슬라브 옥상, 아스팔트 쉬글, 외벽 등) <br/>
-      <b>2.</b> 건물 유형 (아파트, 단독주택, 상가 등) <br/>
-      <b>3.</b> 면적 (평 또는 ㎡) <br/>
-      <b>4.</b> 현재 상태 (누수 여부, 기존 방수 상태 등)
-    </div>
-    <div class="quick-replies">
-      <button class="qr">제품 구매</button>
-      <button class="qr">패키지 구매</button>
-      <button class="qr">하자 상담</button>
-      <button class="qr">시공 상담</button>
-      <button class="qr">작업 도구</button>
-    </div>
-    <div class="chat-input-row">
-      <input type="text" placeholder="자유롭게 상황을 알려주세요. AI가 분석해 추천해드립니다" />
-      <button>전송</button>
-    </div>
-  </div>
-  <div id="ai-rec-results"></div>
 </section>
 <script>
 (function(){
-  const PRODUCTS = [
-    { cat:'슬라브', type:'아파트', tier:'full', name:'슬라브 옥상 풀패키지', price:'980,000원', tag:'BEST', img:'https://placehold.co/300x300/0F1F5C/fff?text=슬라브+풀' },
-    { cat:'쉬글', type:'아파트', tier:'full', name:'아스팔트 쉬글 풀패키지', price:'850,000원', img:'https://placehold.co/300x300/B91C1C/fff?text=쉬글+풀' },
-    { cat:'기와', type:'아파트', tier:'full', name:'금속기와 풀패키지', price:'1,200,000원', tag:'NEW', img:'https://placehold.co/300x300/059669/fff?text=기와+풀' },
-    { cat:'균열', type:'아파트', tier:'full', name:'균열 보수 풀패키지', price:'320,000원', img:'https://placehold.co/300x300/D97706/fff?text=균열+풀' },
-    { cat:'재도장', type:'아파트', tier:'full', name:'재도장 풀패키지', price:'680,000원', img:'https://placehold.co/300x300/6D28D9/fff?text=재도장' },
-    { cat:'균열', type:'아파트', tier:'partial', name:'코트재 + 크랙시트', price:'180,000원', img:'https://placehold.co/300x300/F59E0B/fff?text=부분보수' },
-    { cat:'슬라브', type:'아파트', tier:'partial', name:'슬라브 부분 보수', price:'220,000원', img:'https://placehold.co/300x300/F59E0B/fff?text=부분보수' },
-    { cat:'재도장', type:'아파트', tier:'simple', name:'POUR 탑코트재만', price:'120,000원', img:'https://placehold.co/300x300/9CA3AF/fff?text=탑코트재' },
-    { cat:'재도장', type:'아파트', tier:'simple', name:'POUR 코트재만', price:'98,000원', img:'https://placehold.co/300x300/9CA3AF/fff?text=코트재' },
-    { cat:'쉬글', type:'일반저층', tier:'full', name:'단독주택 쉬글 풀패키지', price:'650,000원', img:'https://placehold.co/300x300/0F1F5C/fff?text=저층+쉬글' },
-    { cat:'기와', type:'일반저층', tier:'full', name:'단독주택 기와 풀패키지', price:'820,000원', img:'https://placehold.co/300x300/B91C1C/fff?text=저층+기와' },
-    { cat:'슬라브', type:'일반저층', tier:'full', name:'단독주택 슬라브 풀패키지', price:'590,000원', img:'https://placehold.co/300x300/059669/fff?text=저층+슬라브' },
+  var PRODUCTS = [
+    { id:'PR-001', cat:'슬라브', type:'아파트', tier:'full', name:'슬라브 옥상 풀패키지', price:'980,000', tag:'BEST', img:'https://placehold.co/300x300/0F1F5C/03C75A?text=SLAB' },
+    { id:'PR-002', cat:'쉬글', type:'아파트', tier:'full', name:'아스팔트 쉬글 풀패키지', price:'850,000', img:'https://placehold.co/300x300/0F1F5C/03C75A?text=SHINGLE' },
+    { id:'PR-003', cat:'기와', type:'아파트', tier:'full', name:'금속기와 풀패키지', price:'1,200,000', tag:'NEW', img:'https://placehold.co/300x300/0F1F5C/03C75A?text=METAL' },
+    { id:'PR-004', cat:'균열', type:'아파트', tier:'full', name:'균열 보수 풀패키지', price:'320,000', img:'https://placehold.co/300x300/0F1F5C/03C75A?text=CRACK' },
+    { id:'PR-005', cat:'재도장', type:'아파트', tier:'full', name:'재도장 풀패키지', price:'680,000', img:'https://placehold.co/300x300/0F1F5C/03C75A?text=REPAINT' },
+    { id:'PR-006', cat:'균열', type:'아파트', tier:'partial', name:'코트재 + 크랙시트', price:'180,000', img:'https://placehold.co/300x300/0F1F5C/F59E0B?text=PARTIAL' },
+    { id:'PR-007', cat:'슬라브', type:'아파트', tier:'partial', name:'슬라브 부분 보수', price:'220,000', img:'https://placehold.co/300x300/0F1F5C/F59E0B?text=SLAB+P' },
+    { id:'PR-008', cat:'재도장', type:'아파트', tier:'simple', name:'POUR 탑코트재만', price:'120,000', img:'https://placehold.co/300x300/0F1F5C/94A3B8?text=TOPCOAT' },
+    { id:'PR-009', cat:'재도장', type:'아파트', tier:'simple', name:'POUR 코트재만', price:'98,000', img:'https://placehold.co/300x300/0F1F5C/94A3B8?text=COATING' },
+    { id:'PR-010', cat:'쉬글', type:'일반저층', tier:'full', name:'단독주택 쉬글 풀패키지', price:'650,000', img:'https://placehold.co/300x300/0F1F5C/03C75A?text=HOUSE+SH' },
+    { id:'PR-011', cat:'기와', type:'일반저층', tier:'full', name:'단독주택 기와 풀패키지', price:'820,000', img:'https://placehold.co/300x300/0F1F5C/03C75A?text=HOUSE+TILE' },
+    { id:'PR-012', cat:'슬라브', type:'일반저층', tier:'full', name:'단독주택 슬라브 풀패키지', price:'590,000', img:'https://placehold.co/300x300/0F1F5C/03C75A?text=HOUSE+SLAB' }
   ];
-  const TIERS = [
-    { key:'full',    name:'풀패키지',   cls:'full',    desc:'완전 시공 풀세트' },
-    { key:'partial', name:'부분 패키지', cls:'partial', desc:'필요 부위만 부분 보수' },
-    { key:'simple',  name:'단순 코팅',   cls:'simple',  desc:'코팅재 단품 구매' },
+  var TIERS = [
+    { key:'full', name:'풀패키지', seq:'TIER-A', desc:'완전 시공 풀세트' },
+    { key:'partial', name:'부분 패키지', seq:'TIER-B', desc:'필요 부위 부분 보수' },
+    { key:'simple', name:'단순 코팅', seq:'TIER-C', desc:'코팅재 단품' }
   ];
-  const filter = { cat:'', type:'' };
-  const root = document.querySelector('.ai-rec');
-  const results = root.querySelector('#ai-rec-results');
+  var filter = { cat:'', type:'' };
+  var root = document.querySelector('.pour-ai-core');
+  var out = root.querySelector('#pai-results');
   function render() {
-    results.innerHTML = '';
-    const matched = PRODUCTS.filter(p =>
-      (!filter.cat || p.cat === filter.cat) &&
-      (!filter.type || p.type === filter.type)
-    );
-    if (matched.length === 0) {
-      results.innerHTML = '<div class="empty-result">선택한 조건에 맞는 상품이 없습니다.</div>';
-      return;
-    }
-    TIERS.forEach(tier => {
-      const items = matched.filter(p => p.tier === tier.key);
+    out.innerHTML = '';
+    var matched = PRODUCTS.filter(function(p){ return (!filter.cat || p.cat === filter.cat) && (!filter.type || p.type === filter.type); });
+    if (matched.length === 0) { out.innerHTML = '<div class="pai-empty">// NO MATCHING ASSETS — 조건을 변경해 보세요</div>'; return; }
+    TIERS.forEach(function(tier){
+      var items = matched.filter(function(p){ return p.tier === tier.key; });
       if (items.length === 0) return;
-      const row = document.createElement('div');
-      row.className = 'result-row';
-      row.innerHTML = '<h3><span class="badge ' + tier.cls + '">' + tier.name + '</span><span class="desc">' + tier.desc + '</span><span class="count">' + items.length + '개 상품</span></h3><div class="product-grid">' + items.map(function(p){ return '<article class="product-card"><div class="pc-img" style="background-image:url(\\'' + p.img + '\\')">' + (p.tag ? '<span class="pc-tag">' + p.tag + '</span>' : '') + '</div><div class="pc-body"><div class="pc-cat">' + p.cat + ' · ' + p.type + '</div><div class="pc-name">' + p.name + '</div><div class="pc-price">' + p.price + '</div></div></article>'; }).join('') + '</div>';
-      results.appendChild(row);
+      var row = document.createElement('div');
+      row.className = 'pai-result-row';
+      var html = '<div class="pai-result-head"><span class="seq">' + tier.seq + '</span><span class="name">' + tier.name + '</span><span class="desc">· ' + tier.desc + '</span><span class="count">' + items.length + ' EA</span></div><div class="pai-grid">';
+      items.forEach(function(p){
+        html += '<article class="pai-card"><div class="pc-img" style="background-image:url(\\''  + p.img + '\\')">' + (p.tag ? '<span class="pc-tag">' + p.tag + '</span>' : '') + '<span class="pc-id">' + p.id + '</span></div><div class="pc-body"><div class="pc-cat">' + p.cat + ' · ' + p.type + '</div><div class="pc-name">' + p.name + '</div><div class="pc-price">' + p.price + '<span class="won">원</span></div></div></article>';
+      });
+      html += '</div>';
+      row.innerHTML = html;
+      out.appendChild(row);
     });
   }
-  root.querySelectorAll('.options').forEach(function(group){
-    const key = group.dataset.filter;
+  root.querySelectorAll('.opts').forEach(function(group){
+    var key = group.dataset.filter;
     group.addEventListener('click', function(e){
-      const btn = e.target.closest('.filter-btn');
+      var btn = e.target.closest('.pai-btn');
       if (!btn) return;
-      group.querySelectorAll('.filter-btn').forEach(function(b){ b.classList.remove('active'); });
+      group.querySelectorAll('.pai-btn').forEach(function(b){ b.classList.remove('active'); });
       btn.classList.add('active');
       filter[key] = btn.dataset.val;
       render();
@@ -205,7 +260,7 @@
     { id: 'main', name: '메인 페이지', file: 'index.html', sections: [
       mkSec('메인 배너', '', '슬라이드 배너 — 균열·방수·코팅 자재 세트 등 메인 비주얼'),
       mkSec('카테고리 항목 버튼', '', '제품구매·패키지구매·시공상담·시공가이드·쇼룸·부자재·체험교육·파트너사·고객센터 (8~9개 아이콘)'),
-      mkSec('AI 맞춤 자재추천', SEED_AI_RECOMMEND_HTML, '챗봇 + 시공부위·건물유형 필터 → 풀패키지/부분/단순 코팅 추천 (초안 v1)'),
+      mkSec('AI 맞춤 자재추천', SEED_AI_RECOMMEND_HTML, '260만 세대 시공 데이터 기반 POUR스토어 추천 시스템 — JARVIS HUD 스타일 (v2 초안)', 'wip'),
       mkSec('인기 추천 상품', '', '베스트셀러 5종 카드'),
       mkSec('신상품 (안전용품·부자재)', '', 'NEW ARRIVALS — 이달의 안전용품·부자재 등 서브 자재 전시'),
       mkSec('서브카테고리 상품', '', '제비스코 라인 + 인테리어 (DREAM COAT + GROHOME)'),
@@ -307,8 +362,9 @@
     };
   }
   const STATUS_META = {
-    requested: { label: '컨펌 요청', icon: '✋', color: '#D97706', bg: '#FEF3C7', border: '#FCD34D' },
-    approved:  { label: '승인 완료', icon: '✅', color: '#047857', bg: '#D1FAE5', border: '#6EE7B7' },
+    wip:       { label: '작업중',     icon: '⚙', color: '#1E40AF', bg: '#DBEAFE', border: '#93C5FD' },
+    requested: { label: '컨펌 요청',   icon: '✋', color: '#D97706', bg: '#FEF3C7', border: '#FCD34D' },
+    approved:  { label: '승인 완료',   icon: '✅', color: '#047857', bg: '#D1FAE5', border: '#6EE7B7' },
     revision:  { label: '재수정 요청', icon: '↻', color: '#B91C1C', bg: '#FEE2E2', border: '#FCA5A5' },
   };
   function statusLabel(s) { return s && STATUS_META[s] ? STATUS_META[s].label : '초안'; }
@@ -692,6 +748,7 @@
             <span class="pill-caret">▾</span>
           </button>
           <div class="status-menu" role="menu">
+            <button class="sm-item sm-wip"      data-status="wip"       type="button"><span class="sm-icon">⚙</span> 작업중 <span class="sm-hint">실행자</span></button>
             <button class="sm-item sm-request"  data-status="requested" type="button"><span class="sm-icon">✋</span> 컨펌 요청 <span class="sm-hint">실행자</span></button>
             <button class="sm-item sm-approve"  data-status="approved"  type="button"><span class="sm-icon">✅</span> 승인 완료 <span class="sm-hint">관리자</span></button>
             <button class="sm-item sm-revision" data-status="revision"  type="button"><span class="sm-icon">↻</span> 재수정 요청 <span class="sm-hint">관리자 · 피그마 피드백</span></button>
@@ -857,7 +914,12 @@
     const fromLabel = statusLabel(sec.status);
     const toLabel = statusLabel(newStatus);
     let reason, kind, toastMsg, toastType;
-    if (newStatus === 'requested') {
+    if (newStatus === 'wip') {
+      reason = `작업중 표시 (이전: ${fromLabel})`;
+      kind = 'wip';
+      toastMsg = '작업중으로 표시됨';
+      toastType = 'info';
+    } else if (newStatus === 'requested') {
       reason = `컨펌 요청 (이전: ${fromLabel})`;
       kind = 'request';
       toastMsg = '컨펌 요청으로 표시됨';
@@ -975,6 +1037,7 @@
       row.style.alignItems = 'stretch';
       const previewText = (v.html || '').replace(/\s+/g, ' ').slice(0, 120);
       const kindLabel =
+        v.kind === 'wip'          ? '⚙ 작업중' :
         v.kind === 'request'      ? '✋ 컨펌요청' :
         v.kind === 'approve'      ? '✅ 승인' :
         v.kind === 'revision'     ? '↻ 재수정요청' :

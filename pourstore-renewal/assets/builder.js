@@ -1181,7 +1181,42 @@
     a.href = url; a.download = `pourstore-renewal-builder-${Date.now()}.json`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 500);
-    toast('JSON 내보내기 완료', 'success');
+    toast('JSON 다운로드 완료', 'success');
+  }
+  function shareJson() {
+    const data = JSON.stringify(state, null, 2);
+    const filename = `pourstore-renewal-builder-${new Date().toISOString().slice(0,10)}.json`;
+    // 1) iOS/Android: Web Share API로 파일 공유 (카톡·메일 선택 가능)
+    try {
+      const file = new File([data], filename, { type: 'application/json' });
+      if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
+        navigator.share({
+          files: [file],
+          title: 'POUR스토어 빌더 백업',
+          text: 'POUR스토어 자사몰 리뉴얼 — 페이지 관리 데이터 백업',
+        })
+          .then(() => toast('공유 완료', 'success'))
+          .catch(err => {
+            if (err && err.name === 'AbortError') return; // 사용자가 취소한 경우 무시
+            console.error('[share] 실패:', err);
+            // 파일 공유 실패 시 텍스트 복사로 폴백
+            copyJsonToClipboard(data);
+          });
+        return;
+      }
+    } catch (e) { console.warn('[share] 파일 객체 생성 실패:', e); }
+    // 2) 클립보드 복사로 폴백 (PC 브라우저, 일부 안드로이드)
+    copyJsonToClipboard(data);
+  }
+  function copyJsonToClipboard(data) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(data)
+        .then(() => toast('JSON이 클립보드에 복사됐어요. 카톡에 붙여넣으세요. (' + data.length.toLocaleString() + '자)', 'success'))
+        .catch(() => { exportJson(); toast('클립보드 실패 → 다운로드로 대체', 'info'); });
+    } else {
+      exportJson();
+      toast('이 환경에선 공유 미지원 → 다운로드로 대체', 'info');
+    }
   }
   function importJson(file) {
     const reader = new FileReader();
@@ -1217,6 +1252,8 @@
     document.getElementById('btnFullPreview').addEventListener('click', previewFullPage);
     document.getElementById('btnCopyFullHtml').addEventListener('click', copyFullPageHtml);
     document.getElementById('btnExport').addEventListener('click', exportJson);
+    const btnShare = document.getElementById('btnShare');
+    if (btnShare) btnShare.addEventListener('click', shareJson);
     document.getElementById('btnReset').addEventListener('click', resetAll);
     document.getElementById('importFile').addEventListener('change', e => {
       const f = e.target.files && e.target.files[0];

@@ -40,7 +40,7 @@
       mkSec('서비스 소개', '', '대리점·파트너사·전시장 안내 카드 3종'),
       mkSec('자사몰 내 포스팅', '', '시공방법·노하우·하자해결 콘텐츠 카드 그리드'),
       mkSec('동영상 가이드', '', '시공방법 영상 + POUR솔루션 영상 통합'),
-      mkSec('section-stats', SEED_STATS_HTML, '실적 수치 + 시공 갤러리 + 협력사 (기존 cafe24 시안 임베드)'),
+      mkSec('POUR스토어 실적관', SEED_STATS_HTML, '실적 수치 + 시공 갤러리 + 협력사 (기존 cafe24 시안 임베드)'),
     ]},
     { id: 'about', name: '브랜드스토리 소개', file: 'about.html', sections: [
       mkSec('히어로 비주얼', '', ''),

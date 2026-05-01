@@ -31,19 +31,21 @@
       <p>페이지를 선택해 섹션을 등록·정렬하고, 변경 사유와 함께 버전 이력을 남기세요.</p>
 
       <div class="howto">
-        <div class="howto-card">
-          <div class="howto-title">사용 방법</div>
+        <details class="howto-card">
+          <summary>
+            <div class="howto-title">사용 방법</div>
+          </summary>
           <ol class="howto-steps">
             <li><b>페이지 선택</b> — 왼쪽 사이드바에서 작업할 페이지를 클릭</li>
             <li><b>섹션 추가/편집</b> — <kbd>+ 섹션 추가</kbd> 또는 카드의 <kbd>편집</kbd>으로 HTML 입력</li>
             <li><b>변경 사유 작성</b> — 편집 저장 시 <span class="dot-red"></span> <b>변경 사유 필수</b> (이력에 기록)</li>
             <li><b>순서 변경</b> — 카드 좌측 <kbd>⋮⋮</kbd> 그립을 잡고 드래그</li>
-            <li><b>컨펌 워크플로우</b> — 카드 좌측 상태 칩 클릭 → <kbd>✋ 컨펌 요청</kbd>(실행자) → <kbd>✅ 승인 완료</kbd> 또는 <kbd>↻ 재수정 요청</kbd>(관리자). 재수정 피드백은 피그마에 작성. 모든 전환은 이력에 자동 기록</li>
+            <li><b>컨펌 워크플로우</b> — 카드 좌측 상태 칩 클릭 → <kbd>⚙ 작업중</kbd>·<kbd>✋ 컨펌 요청</kbd>(실행자) → <kbd>✅ 승인 완료</kbd> 또는 <kbd>↻ 재수정 요청</kbd>(관리자). 재수정 피드백은 피그마에 작성. 모든 전환은 이력에 자동 기록</li>
             <li><b>이력 확인/복원</b> — <kbd>이력</kbd> 버튼에서 이전 버전 미리보기·복원, 변경 사유 수정</li>
             <li><b>전체 시안 보기</b> — <kbd>전체 시안 바로보기</kbd>로 현재 페이지의 모든 섹션을 합쳐 새 창에 표시</li>
             <li><b>이력 보관</b> — 모든 버전 영구 보관, 자동 삭제 없음. 1년 경과 항목은 상단 알림에서 직접 선택해 정리 (직전 버전은 항상 보호)</li>
           </ol>
-        </div>
+        </details>
         <details class="howto-card future-card">
           <summary>
             <span class="future-title">🔧 추후 적용 가능 기능</span>
@@ -60,15 +62,17 @@
             <li><b>변경 알림</b> — 동기화 시 SMS/이메일로 변경 내용 요약 발송</li>
           </ul>
         </details>
-        <div class="howto-card sync-info howto-full">
-          <div class="howto-title">데이터 저장 안내</div>
+        <details class="howto-card sync-info howto-full">
+          <summary>
+            <div class="howto-title">데이터 저장 안내</div>
+          </summary>
           <ul class="howto-notes">
             <li><b>Firebase에 자동 저장됩니다</b> <span class="muted">(프로젝트: pour-exhibition · 컬렉션: pourstore-renewal-builder)</span>.</li>
             <li>모든 변경(편집·드래그·컨펌·이력 사유)은 <b>저장 직후 서버에 업로드</b>되고, 다른 PC·브라우저에서 열면 자동으로 같은 화면이 나타납니다.</li>
             <li>오프라인 상태에서도 작업할 수 있고, 다시 연결되면 변경 내용이 자동으로 동기화됩니다 <span class="muted">(브라우저에 임시 저장)</span>.</li>
             <li>상단 우측 표시등으로 동기화 상태를 확인하세요 — <span class="dot-green"></span> 동기화됨 · <span class="dot-amber"></span> 저장 중 · <span class="dot-red"></span> 오프라인/오류.</li>
           </ul>
-        </div>
+        </details>
       </div>
     </div>
   </section>

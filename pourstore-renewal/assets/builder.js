@@ -125,10 +125,19 @@
       name,
       html: html || '',
       note: note || '',
+      status: null,         // null(초안) | 'requested' | 'approved' | 'revision'
+      statusAt: null,
+      // 하위 호환용
       confirmed: false,
       confirmedAt: null,
     };
   }
+  const STATUS_META = {
+    requested: { label: '컨펌 요청', icon: '✋', color: '#D97706', bg: '#FEF3C7', border: '#FCD34D' },
+    approved:  { label: '승인 완료', icon: '✅', color: '#047857', bg: '#D1FAE5', border: '#6EE7B7' },
+    revision:  { label: '재수정 요청', icon: '↻', color: '#B91C1C', bg: '#FEE2E2', border: '#FCA5A5' },
+  };
+  function statusLabel(s) { return s && STATUS_META[s] ? STATUS_META[s].label : '초안'; }
   function nowIso() { return new Date().toISOString(); }
   function fmtDate(iso) {
     if (!iso) return '';
@@ -195,6 +204,11 @@
         if (typeof sec.confirmed !== 'boolean') sec.confirmed = false;
         if (sec.confirmedAt === undefined) sec.confirmedAt = null;
         if (sec.note === undefined) sec.note = '';
+        // 컨펌 워크플로우 — 기존 confirmed 플래그를 status로 승격
+        if (sec.status === undefined) {
+          sec.status = sec.confirmed ? 'approved' : null;
+          sec.statusAt = sec.confirmedAt || null;
+        }
       });
     });
     Object.keys(s.history).forEach(k => {
@@ -484,26 +498,38 @@
 
     page.sections.forEach((s, idx) => {
       const card = document.createElement('div');
-      card.className = 'section-card' + (s.confirmed ? ' confirmed' : '');
+      const cardStatus = s.status || 'draft';
+      card.className = 'section-card status-' + cardStatus;
       card.draggable = true;
       card.dataset.sectionId = s.id;
       const hasHtml = s.html && s.html.trim().length > 0;
       const histLen = (state.history[histKey(page.id, s.id)] || []).length;
-      const confirmTitle = s.confirmed
-        ? `컨펌 완료 (${fmtDate(s.confirmedAt)}) — 클릭하면 해제`
-        : '컨펌 완료로 표시';
+      const meta = STATUS_META[s.status];
+      const pillText = meta ? `${meta.icon} ${meta.label}` : '◌ 초안';
+      const statusTitle = s.statusAt ? `${statusLabel(s.status)} (${fmtDate(s.statusAt)})` : '상태: 초안';
       card.innerHTML = `
         <div class="grip" title="드래그해서 순서 변경">⋮⋮</div>
-        <button class="confirm-toggle ${s.confirmed ? 'on' : ''}" data-act="confirm" title="${escapeHtml(confirmTitle)}" aria-label="컨펌 토글"></button>
+        <div class="status-control">
+          <button class="status-pill status-${cardStatus}" data-act="status-toggle" title="${escapeHtml(statusTitle)} — 클릭하여 상태 변경" type="button">
+            <span class="pill-text">${escapeHtml(pillText)}</span>
+            <span class="pill-caret">▾</span>
+          </button>
+          <div class="status-menu" role="menu">
+            <button class="sm-item sm-request"  data-status="requested" type="button"><span class="sm-icon">✋</span> 컨펌 요청 <span class="sm-hint">실행자</span></button>
+            <button class="sm-item sm-approve"  data-status="approved"  type="button"><span class="sm-icon">✅</span> 승인 완료 <span class="sm-hint">관리자</span></button>
+            <button class="sm-item sm-revision" data-status="revision"  type="button"><span class="sm-icon">↻</span> 재수정 요청 <span class="sm-hint">관리자 · 피그마 피드백</span></button>
+            <div class="sm-sep"></div>
+            <button class="sm-item sm-reset"    data-status=""          type="button"><span class="sm-icon">⊘</span> 초안으로 되돌리기</button>
+          </div>
+        </div>
         <div class="order">${idx + 1}</div>
         <div class="info">
           <div class="name">
             <span>${escapeHtml(s.name)}</span>
             <span class="badge ${hasHtml ? 'ready' : 'empty'}">${hasHtml ? 'READY' : 'EMPTY'}</span>
-            ${s.confirmed ? '<span class="badge confirmed">✓ 컨펌</span>' : ''}
             ${histLen ? `<span class="badge">v${histLen}</span>` : ''}
           </div>
-          <div class="meta">${escapeHtml(s.note || '메모 없음')}</div>
+          <div class="meta">${escapeHtml(s.note || '메모 없음')}${s.statusAt ? ` · ${statusLabel(s.status)} ${fmtDate(s.statusAt)}` : ''}</div>
         </div>
         <div class="controls">
           ${hasHtml ? '<button class="btn btn-sm btn-outline" data-act="copy" title="HTML 코드 복사">HTML 복사</button>' : ''}
@@ -513,7 +539,20 @@
           <button class="btn btn-sm btn-danger" data-act="delete" title="삭제">×</button>
         </div>
       `;
-      card.querySelector('[data-act=confirm]').addEventListener('click', e => { e.stopPropagation(); toggleConfirm(s.id); });
+      const pill = card.querySelector('[data-act=status-toggle]');
+      const menu = card.querySelector('.status-menu');
+      pill.addEventListener('click', e => {
+        e.stopPropagation();
+        const wasOpen = menu.classList.contains('open');
+        closeStatusMenus();
+        if (!wasOpen) menu.classList.add('open');
+      });
+      menu.querySelectorAll('[data-status]').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          setSectionStatus(s.id, btn.dataset.status || null);
+        });
+      });
       const copyBtn = card.querySelector('[data-act=copy]');
       if (copyBtn) copyBtn.addEventListener('click', () => copyHtmlToClipboard(s.html));
       card.querySelector('[data-act=preview]').addEventListener('click', () => previewSection(s.id));
@@ -629,22 +668,54 @@
     renderSections();
     toast('섹션 삭제됨', 'info');
   }
-  function toggleConfirm(secId) {
+  function setSectionStatus(secId, newStatus) {
     const page = getActivePage();
     const sec = getSection(page.id, secId);
     if (!sec) return;
-    const next = !sec.confirmed;
+    if ((sec.status || null) === (newStatus || null)) {
+      closeStatusMenus();
+      return;
+    }
+    const fromLabel = statusLabel(sec.status);
+    const toLabel = statusLabel(newStatus);
+    let reason, kind, toastMsg, toastType;
+    if (newStatus === 'requested') {
+      reason = `컨펌 요청 (이전: ${fromLabel})`;
+      kind = 'request';
+      toastMsg = '컨펌 요청으로 표시됨';
+      toastType = 'info';
+    } else if (newStatus === 'approved') {
+      reason = `승인 완료 (이전: ${fromLabel})`;
+      kind = 'approve';
+      toastMsg = '승인 완료로 표시됨';
+      toastType = 'success';
+    } else if (newStatus === 'revision') {
+      reason = `재수정 요청 — 피드백은 피그마 참조 (이전: ${fromLabel})`;
+      kind = 'revision';
+      toastMsg = '재수정 요청으로 표시됨';
+      toastType = 'error';
+    } else {
+      reason = `상태 초기화 (이전: ${fromLabel})`;
+      kind = 'reset-status';
+      toastMsg = '초안 상태로 되돌림';
+      toastType = 'info';
+    }
     pushHistory(page.id, sec.id, {
       name: sec.name, html: sec.html, note: sec.note,
-      reason: next ? '컨펌 완료 체크' : '컨펌 해제',
-      kind: next ? 'confirm' : 'unconfirm',
-      savedAt: nowIso(),
+      reason, kind, savedAt: nowIso(),
     });
-    sec.confirmed = next;
-    sec.confirmedAt = next ? nowIso() : null;
+    sec.status = newStatus || null;
+    sec.statusAt = newStatus ? nowIso() : null;
+    // 하위 호환 필드도 업데이트
+    sec.confirmed = (newStatus === 'approved');
+    sec.confirmedAt = sec.confirmed ? sec.statusAt : null;
     saveState();
+    closeStatusMenus();
     renderSections();
-    toast(next ? '컨펌 완료로 표시됨' : '컨펌 해제됨', next ? 'success' : 'info');
+    toast(`[${sec.name}] → ${toLabel} · ${toastMsg}`, toastType);
+  }
+  function closeStatusMenus() {
+    document.querySelectorAll('.status-menu.open').forEach(m => m.classList.remove('open'));
   }
 
   // -------- editor modal --------
@@ -725,7 +796,14 @@
       row.style.flexDirection = 'column';
       row.style.alignItems = 'stretch';
       const previewText = (v.html || '').replace(/\s+/g, ' ').slice(0, 120);
-      const kindLabel = v.kind === 'confirm' ? '✓ 컨펌' : v.kind === 'unconfirm' ? '↺ 컨펌해제' : v.kind === 'restore' ? '⟲ 복원' : '✎ 편집';
+      const kindLabel =
+        v.kind === 'request'      ? '✋ 컨펌요청' :
+        v.kind === 'approve'      ? '✅ 승인' :
+        v.kind === 'revision'     ? '↻ 재수정요청' :
+        v.kind === 'reset-status' ? '⊘ 초안화' :
+        v.kind === 'confirm'      ? '✓ 컨펌(legacy)' :
+        v.kind === 'unconfirm'    ? '↺ 컨펌해제(legacy)' :
+        v.kind === 'restore'      ? '⟲ 복원' : '✎ 편집';
       row.innerHTML = `
         <div style="display:flex; align-items:center; gap:12px;">
           <div class="when" style="flex:1;">
@@ -978,8 +1056,12 @@
       mask.addEventListener('click', e => { if (e.target === mask) mask.classList.remove('open'); });
     });
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape') document.querySelectorAll('.modal-mask.open').forEach(m => m.classList.remove('open'));
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-mask.open').forEach(m => m.classList.remove('open'));
+        closeStatusMenus();
+      }
     });
+    document.addEventListener('click', () => closeStatusMenus());
 
     window.addEventListener('online', () => {
       setSync('syncing', '재연결 중...');

@@ -62,6 +62,17 @@ details.future-card .future-list li { position: relative; padding-left: 16px; fo
 details.future-card .future-list li::before { content: '+'; position: absolute; left: 2px; top: 0; color: #0284C7; font-weight: 900; }
 details.future-card .future-list li b { color: #082F49; font-weight: 800; }
 .howto-card .howto-title { font-size: 12px; font-weight: 800; color: var(--navy); letter-spacing: .5px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+
+/* 접이식 사용 방법 / 데이터 저장 안내 카드 */
+details.howto-card { padding: 14px 16px; }
+details.howto-card[open] { padding-bottom: 16px; }
+details.howto-card > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+details.howto-card > summary::-webkit-details-marker { display: none; }
+details.howto-card > summary::after { content: '⌄'; font-size: 16px; color: var(--muted); transition: transform .2s; line-height: 1; flex-shrink: 0; }
+details.howto-card[open] > summary::after { transform: rotate(180deg); }
+details.howto-card > summary .howto-title { margin-bottom: 0; }
+details.howto-card[open] > summary { margin-bottom: 12px; }
+details.howto-card.sync-info > summary::after { color: var(--green-d); }
 .howto-card.warn .howto-title { color: #92400E; }
 .howto-card .howto-title::before { content: ''; width: 14px; height: 14px; border-radius: 4px; background: var(--green); display: inline-block; }
 .howto-card.warn .howto-title::before { background: #F59E0B; }

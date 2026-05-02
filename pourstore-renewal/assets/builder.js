@@ -2924,6 +2924,313 @@ show('entry');
   </section>`;
 
 
+  const SEED_SH_HERO_HTML = `<style>
+  .psh1 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .psh1 { background:linear-gradient(180deg,#FFFBF5 0%,#FFF7ED 100%); padding:88px 18px 64px; position:relative; overflow:hidden; }
+  .psh1::before { content:''; position:absolute; top:-100px; right:-80px; width:420px; height:420px; background:radial-gradient(circle, rgba(249,115,22,.14) 0%, transparent 60%); border-radius:50%; }
+  .psh1-inner { max-width:1100px; margin:0 auto; text-align:center; position:relative; z-index:1; }
+  .psh1-tag { display:inline-flex; gap:6px; padding:6px 14px; background:#fff; border:1px solid #FED7AA; color:#EA580C; border-radius:999px; font-size:11.5px; font-weight:800; letter-spacing:.8px; margin-bottom:20px; box-shadow:0 4px 12px rgba(249,115,22,.1); }
+  .psh1 h1 { font-size:46px; font-weight:900; color:#0F1F5C; line-height:1.2; margin-bottom:18px; letter-spacing:-1.4px; }
+  .psh1 h1 .accent { color:#F97316; }
+  .psh1-desc { font-size:16px; color:#4B5563; line-height:1.75; max-width:640px; margin:0 auto 32px; }
+  .psh1-cta { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .psh1-cta .primary { padding:14px 28px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border:none; border-radius:14px; font-size:14px; font-weight:900; cursor:pointer; text-decoration:none; box-shadow:0 8px 24px rgba(249,115,22,.3); transition:all .25s; }
+  .psh1-cta .primary:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(249,115,22,.45); }
+  .psh1-cta .ghost { padding:14px 24px; background:#fff; color:#0F1F5C; border:1px solid #E5E7EB; border-radius:14px; font-size:14px; font-weight:800; text-decoration:none; }
+  @media (max-width:640px) { .psh1 h1 { font-size:30px; } }
+  </style>
+  <section class="psh1">
+    <div class="psh1-inner">
+      <span class="psh1-tag">🏢 SHOWROOM EXPERIENCE</span>
+      <h1>POUR스토어 쇼룸에서<br/><span class="accent">자재를 직접 체험하세요</span></h1>
+      <p class="psh1-desc">110+ 제품을 직접 보고 만져볼 수 있는 평택 본사 쇼룸. 전문 상담사가 1:1로 시공·자재 상담을 도와드립니다 — 무료 방문 예약.</p>
+      <div class="psh1-cta">
+        <a class="primary" href="#booking-form">방문 예약 →</a>
+        <a class="ghost" href="#location">찾아오시는 길</a>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_SH_LOCATION_HTML = `<style>
+  .psh2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .psh2 { background:#fff; padding:80px 18px; }
+  .psh2-inner { max-width:1200px; margin:0 auto; }
+  .psh2-head { text-align:center; margin-bottom:36px; }
+  .psh2-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .psh2-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .psh2-grid { display:grid; grid-template-columns:1.4fr 1fr; gap:24px; }
+  .psh2-map { aspect-ratio:5/4; background-image:url('https://placehold.co/800x640/0F1F5C/fff?text=PYEONGTAEK+MAP'); background-size:cover; background-position:center; border-radius:24px; position:relative; overflow:hidden; box-shadow:0 18px 48px rgba(15,31,92,.12); }
+  .psh2-map .pin { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:48px; filter:drop-shadow(0 8px 16px rgba(0,0,0,.3)); }
+  .psh2-map .overlay { position:absolute; bottom:18px; left:18px; right:18px; padding:18px 20px; background:rgba(255,255,255,.96); border-radius:14px; backdrop-filter:blur(8px); box-shadow:0 8px 24px rgba(0,0,0,.15); }
+  .psh2-map .overlay .name { font-size:14px; font-weight:900; color:#0F1F5C; margin-bottom:4px; letter-spacing:-.3px; }
+  .psh2-map .overlay .addr { font-size:12px; color:#6B7280; font-weight:700; }
+  .psh2-info { background:linear-gradient(135deg,#FFF7ED,#FFEDD5); border:1px solid #FED7AA; border-radius:24px; padding:32px 28px; }
+  .psh2-info .label { font-size:11px; font-weight:800; color:#EA580C; letter-spacing:1px; margin-bottom:6px; }
+  .psh2-info h3 { font-size:22px; font-weight:900; color:#0F1F5C; letter-spacing:-.3px; margin-bottom:18px; }
+  .psh2-row { display:flex; align-items:flex-start; gap:14px; padding:14px 0; border-bottom:1px solid rgba(249,115,22,.15); }
+  .psh2-row:last-child { border-bottom:none; }
+  .psh2-row .icon { width:36px; height:36px; border-radius:10px; background:#fff; display:grid; place-items:center; font-size:16px; flex-shrink:0; box-shadow:0 4px 10px rgba(249,115,22,.1); }
+  .psh2-row .ttl { font-size:11px; font-weight:800; color:#9CA3AF; letter-spacing:.5px; margin-bottom:3px; }
+  .psh2-row .v { font-size:14px; font-weight:800; color:#0F1F5C; line-height:1.5; letter-spacing:-.3px; }
+  @media (max-width:880px) { .psh2-grid { grid-template-columns:1fr; } .psh2-head h2 { font-size:24px; } }
+  </style>
+  <section class="psh2" id="location">
+    <div class="psh2-inner">
+      <div class="psh2-head">
+        <div class="kicker">📍 LOCATION</div>
+        <h2>쇼룸 위치·약도</h2>
+      </div>
+      <div class="psh2-grid">
+        <div class="psh2-map">
+          <div class="pin">📍</div>
+          <div class="overlay">
+            <div class="name">POUR스토어 쇼룸 · 평택 본사 1층</div>
+            <div class="addr">경기도 평택시 ○○로 ○○ (○○동)</div>
+          </div>
+        </div>
+        <div class="psh2-info">
+          <div class="label">HOW TO COME</div>
+          <h3>오시는 길 안내</h3>
+          <div class="psh2-row"><div class="icon">🚗</div><div><div class="ttl">자가용</div><div class="v">평택 IC 진입 후 ○○로 직진<br/>현장 무료 주차장 30대 이용 가능</div></div></div>
+          <div class="psh2-row"><div class="icon">🚆</div><div><div class="ttl">대중교통</div><div class="v">1호선 평택역 도보 12분<br/>또는 평택역에서 ○○번 버스 5분</div></div></div>
+          <div class="psh2-row"><div class="icon">🛣️</div><div><div class="ttl">서울 출발</div><div class="v">경부고속도로 1시간 10분<br/>판교 출발 50분</div></div></div>
+          <div class="psh2-row"><div class="icon">📞</div><div><div class="ttl">길 문의</div><div class="v">1577-0000 (평일 09-18시)</div></div></div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_SH_HOURS_HTML = `<style>
+  .psh3 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .psh3 { background:#FFFBF5; padding:64px 18px; }
+  .psh3-inner { max-width:1100px; margin:0 auto; }
+  .psh3-head { text-align:center; margin-bottom:32px; }
+  .psh3-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .psh3-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .psh3-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px; }
+  .psh3-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; padding:24px 22px; text-align:center; transition:all .25s; }
+  .psh3-card:hover { transform:translateY(-3px); box-shadow:0 16px 36px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .psh3-card.closed { background:#F9FAFB; border-color:#E5E7EB; }
+  .psh3-card.closed .day, .psh3-card.closed .hours { color:#9CA3AF; }
+  .psh3-card .day { font-size:13px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:10px; }
+  .psh3-card .hours { font-family:'Bebas Neue',sans-serif; font-size:24px; font-weight:900; color:#0F1F5C; letter-spacing:.5px; line-height:1.2; margin-bottom:6px; }
+  .psh3-card .note { font-size:11.5px; color:#6B7280; font-weight:700; }
+  .psh3-notice { margin-top:24px; padding:18px 22px; background:#fff; border:1px solid #FED7AA; border-radius:14px; }
+  .psh3-notice .label { font-size:11px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
+  .psh3-notice .text { font-size:13px; color:#4B5563; line-height:1.7; }
+  .psh3-notice b { color:#0F1F5C; font-weight:800; }
+  @media (max-width:640px) { .psh3-head h2 { font-size:22px; } }
+  </style>
+  <section class="psh3">
+    <div class="psh3-inner">
+      <div class="psh3-head">
+        <div class="kicker">⏰ OPENING HOURS</div>
+        <h2>쇼룸 운영 시간</h2>
+      </div>
+      <div class="psh3-grid">
+        <div class="psh3-card"><div class="day">월-금 (평일)</div><div class="hours">09:00 - 18:00</div><div class="note">상시 운영 · 점심 12:30-13:30 휴무</div></div>
+        <div class="psh3-card"><div class="day">토요일</div><div class="hours">10:00 - 16:00</div><div class="note">예약 방문만 운영 · 점심 무휴</div></div>
+        <div class="psh3-card closed"><div class="day">일요일</div><div class="hours">CLOSED</div><div class="note">휴무</div></div>
+        <div class="psh3-card closed"><div class="day">법정 공휴일</div><div class="hours">CLOSED</div><div class="note">전일 사전 안내</div></div>
+      </div>
+      <div class="psh3-notice">
+        <div class="label">💡 방문 안내</div>
+        <div class="text"><b>예약 방문이 우선 응대</b>됩니다. 워크인 방문도 가능하지만 상담사 일정에 따라 대기시간이 발생할 수 있어요. 여유로운 상담을 원하시면 본 페이지 하단 <b>방문 예약 폼</b>을 이용해 주세요.</div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_SH_TOUR_HTML = `<style>
+  .psh4 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .psh4 { background:#fff; padding:80px 18px; }
+  .psh4-inner { max-width:1200px; margin:0 auto; }
+  .psh4-head { text-align:center; margin-bottom:36px; }
+  .psh4-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .psh4-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
+  .psh4-head p { font-size:14px; color:#6B7280; }
+  .psh4-feature { aspect-ratio:21/9; background-image:url('https://placehold.co/1200x515/0F1F5C/fff?text=SHOWROOM+MAIN'); background-size:cover; background-position:center; border-radius:24px; position:relative; overflow:hidden; margin-bottom:14px; cursor:pointer; }
+  .psh4-feature::after { content:''; position:absolute; inset:0; background:linear-gradient(0deg, rgba(15,31,92,.85) 0%, rgba(15,31,92,.2) 50%, transparent 100%); }
+  .psh4-feature .label { position:absolute; bottom:24px; left:24px; right:24px; color:#fff; z-index:1; }
+  .psh4-feature .label .badge { display:inline-block; padding:5px 11px; background:#F97316; font-size:10.5px; font-weight:900; letter-spacing:.5px; border-radius:5px; margin-bottom:10px; }
+  .psh4-feature .label .name { font-size:22px; font-weight:900; line-height:1.3; letter-spacing:-.5px; }
+  .psh4-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px; }
+  .psh4-thumb { aspect-ratio:4/3; background-size:cover; background-position:center; border-radius:14px; position:relative; overflow:hidden; cursor:pointer; transition:transform .3s; }
+  .psh4-thumb:hover { transform:translateY(-3px); }
+  .psh4-thumb::after { content:''; position:absolute; inset:0; background:linear-gradient(0deg, rgba(15,31,92,.7) 0%, transparent 60%); }
+  .psh4-thumb .ttl { position:absolute; bottom:12px; left:14px; right:14px; color:#fff; font-size:13px; font-weight:800; z-index:1; letter-spacing:-.3px; }
+  @media (max-width:640px) { .psh4-head h2 { font-size:24px; } .psh4-feature .label .name { font-size:16px; } }
+  </style>
+  <section class="psh4">
+    <div class="psh4-inner">
+      <div class="psh4-head">
+        <div class="kicker">SHOWROOM TOUR</div>
+        <h2>쇼룸 둘러보기</h2>
+        <p>실제 시공된 모습을 그대로 재현 — 자재가 어떻게 보이고 만져지는지 직접 확인하세요</p>
+      </div>
+      <div class="psh4-feature">
+        <div class="label">
+          <span class="badge">⭐ MAIN HALL</span>
+          <div class="name">110+ 제품이 전시된 메인 쇼룸</div>
+        </div>
+      </div>
+      <div class="psh4-grid">
+        <div class="psh4-thumb" style="background-image:url('https://placehold.co/400x300/F97316/fff?text=ROOFTOP')"><div class="ttl">옥상 시공 모형 존</div></div>
+        <div class="psh4-thumb" style="background-image:url('https://placehold.co/400x300/EA580C/fff?text=WALL')"><div class="ttl">외벽 도장 색상 샘플</div></div>
+        <div class="psh4-thumb" style="background-image:url('https://placehold.co/400x300/059669/fff?text=PARKING')"><div class="ttl">지하주차장 바닥 시공 비교</div></div>
+        <div class="psh4-thumb" style="background-image:url('https://placehold.co/400x300/FB923C/fff?text=PRODUCT')"><div class="ttl">제품 라인업 진열</div></div>
+        <div class="psh4-thumb" style="background-image:url('https://placehold.co/400x300/0F1F5C/fff?text=CONSULT')"><div class="ttl">1:1 상담 라운지</div></div>
+        <div class="psh4-thumb" style="background-image:url('https://placehold.co/400x300/F97316/fff?text=LAB')"><div class="ttl">R&D 랩 투명 관람</div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_SH_DISPLAY_HTML = `<style>
+  .psh5 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .psh5 { background:#FFFBF5; padding:80px 18px; }
+  .psh5-inner { max-width:1200px; margin:0 auto; }
+  .psh5-head { text-align:center; margin-bottom:36px; }
+  .psh5-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .psh5-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
+  .psh5-head p { font-size:14px; color:#6B7280; }
+  .psh5-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px; }
+  .psh5-card { background:#fff; border:1px solid #F3F4F6; border-radius:16px; overflow:hidden; transition:all .25s; }
+  .psh5-card:hover { transform:translateY(-3px); box-shadow:0 16px 36px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .psh5-thumb { aspect-ratio:1/1; background-size:cover; background-position:center; position:relative; }
+  .psh5-thumb .badge { position:absolute; top:10px; left:10px; padding:4px 9px; background:rgba(249,115,22,.92); color:#fff; font-size:10px; font-weight:900; border-radius:5px; letter-spacing:.3px; }
+  .psh5-info { padding:14px; }
+  .psh5-info .cat { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:5px; }
+  .psh5-info .name { font-size:13.5px; font-weight:800; color:#0F1F5C; margin-bottom:8px; line-height:1.4; letter-spacing:-.3px; }
+  .psh5-info .points { font-size:11.5px; color:#6B7280; line-height:1.55; }
+  @media (max-width:640px) { .psh5-head h2 { font-size:24px; } }
+  </style>
+  <section class="psh5">
+    <div class="psh5-inner">
+      <div class="psh5-head">
+        <div class="kicker">FEATURED DISPLAYS</div>
+        <h2>전시 제품 하이라이트</h2>
+        <p>쇼룸에서 직접 만져볼 수 있는 핵심 자재 — 시공 후 표면 질감·색상·강도까지</p>
+      </div>
+      <div class="psh5-grid">
+        <div class="psh5-card"><div class="psh5-thumb" style="background-image:url('https://placehold.co/400x400/F97316/fff?text=COAT')"><div class="badge">FEATURE</div></div><div class="psh5-info"><div class="cat">방수재</div><div class="name">POUR 코트재 (5kg/20kg)</div><div class="points">시공 전·후 단면 비교 · 색상 6종 샘플</div></div></div>
+        <div class="psh5-card"><div class="psh5-thumb" style="background-image:url('https://placehold.co/400x400/EA580C/fff?text=SHEET')"></div><div class="psh5-info"><div class="cat">방수재 · 시트</div><div class="name">슈퍼복합압축시트</div><div class="points">니들펀칭 단면 · 인장 파괴 시연</div></div></div>
+        <div class="psh5-card"><div class="psh5-thumb" style="background-image:url('https://placehold.co/400x400/0F1F5C/fff?text=HYPER+T')"></div><div class="psh5-info"><div class="cat">균열 보수</div><div class="name">POUR 하이퍼티 고탄성 퍼티</div><div class="points">600% 신율 시연 + 균열 보수 모형</div></div></div>
+        <div class="psh5-card"><div class="psh5-thumb" style="background-image:url('https://placehold.co/400x400/059669/fff?text=POWDER')"></div><div class="psh5-info"><div class="cat">강도 시연</div><div class="name">탄성강화 파우더</div><div class="points">망치 타격 시연 · 단면 복구 모형</div></div></div>
+        <div class="psh5-card"><div class="psh5-thumb" style="background-image:url('https://placehold.co/400x400/FB923C/fff?text=HOOKER')"></div><div class="psh5-info"><div class="cat">특허 부품</div><div class="name">POUR HOOKER (특허)</div><div class="points">후레싱 보강 시공 모형</div></div></div>
+        <div class="psh5-card"><div class="psh5-thumb" style="background-image:url('https://placehold.co/400x400/F97316/fff?text=EPOXY')"></div><div class="psh5-info"><div class="cat">바닥 마감</div><div class="name">에폭시·엠보라이닝 도료</div><div class="points">실제 바닥 시공 — 미끄럼 시연</div></div></div>
+        <div class="psh5-card"><div class="psh5-thumb" style="background-image:url('https://placehold.co/400x400/EA580C/fff?text=PAINT')"></div><div class="psh5-info"><div class="cat">외벽 도장</div><div class="name">바인더 · 플러스 색상 샘플</div><div class="points">28색 컬러 칩 · 시공 후 발색 비교</div></div></div>
+        <div class="psh5-card"><div class="psh5-thumb" style="background-image:url('https://placehold.co/400x400/059669/fff?text=VENT')"></div><div class="psh5-info"><div class="cat">결로 방지</div><div class="name">페이퍼팬벤트 무동력 환기구</div><div class="points">실제 작동 모형 — 통풍 원리 체험</div></div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_SH_BOOK_HTML = `<style>
+  .psh6 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .psh6 { background:#fff; padding:80px 18px; }
+  .psh6-inner { max-width:980px; margin:0 auto; }
+  .psh6-head { text-align:center; margin-bottom:32px; }
+  .psh6-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .psh6-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .psh6-head p { font-size:14px; color:#6B7280; }
+  .psh6-card { background:#fff; border:1px solid #F3F4F6; border-radius:24px; padding:36px 32px; box-shadow:0 12px 36px rgba(15,31,92,.06); }
+  .psh6-section { margin-bottom:24px; }
+  .psh6-section .stitle { font-size:13px; font-weight:900; color:#0F1F5C; margin-bottom:14px; padding-bottom:10px; border-bottom:2px solid #FFEDD5; letter-spacing:-.3px; }
+  .psh6-row { margin-bottom:14px; }
+  .psh6-row.split { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .psh6-row label { display:block; font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
+  .psh6-row input, .psh6-row select, .psh6-row textarea { width:100%; padding:12px 14px; background:#FFFBF5; border:1px solid #F3F4F6; border-radius:10px; font-size:14px; font-family:inherit; color:#0F1F5C; transition:all .2s; }
+  .psh6-row textarea { min-height:80px; resize:vertical; }
+  .psh6-row input:focus, .psh6-row select:focus, .psh6-row textarea:focus { outline:none; border-color:#FED7AA; background:#fff; box-shadow:0 0 0 3px rgba(249,115,22,.08); }
+  .psh6-purpose { display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:8px; }
+  .psh6-purpose-item { padding:14px 12px; background:#FFFBF5; border:1.5px solid #F3F4F6; border-radius:10px; text-align:center; cursor:pointer; transition:all .2s; }
+  .psh6-purpose-item:hover { border-color:#FED7AA; }
+  .psh6-purpose-item.active { background:#FFF7ED; border-color:#F97316; }
+  .psh6-purpose-item .icon { font-size:22px; margin-bottom:4px; }
+  .psh6-purpose-item .label { font-size:12px; font-weight:800; color:#0F1F5C; letter-spacing:-.3px; }
+  .psh6-purpose-item.active .label { color:#EA580C; }
+  .psh6-agree { display:flex; align-items:center; gap:8px; margin-bottom:18px; padding:14px; background:#FFFBF5; border-radius:10px; font-size:12.5px; color:#4B5563; }
+  .psh6-agree input { width:16px; height:16px; accent-color:#F97316; }
+  .psh6-submit { width:100%; padding:16px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:900; cursor:pointer; box-shadow:0 8px 24px rgba(249,115,22,.3); transition:all .25s; }
+  .psh6-submit:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(249,115,22,.45); }
+  @media (max-width:640px) { .psh6-card { padding:24px 18px; } .psh6-row.split { grid-template-columns:1fr; } .psh6-head h2 { font-size:24px; } }
+  </style>
+  <section class="psh6" id="booking-form">
+    <div class="psh6-inner">
+      <div class="psh6-head">
+        <div class="kicker">VISIT BOOKING</div>
+        <h2>쇼룸 방문 예약</h2>
+        <p>예약자 우선 응대 — 충분한 상담 시간 확보를 위해 사전 예약을 권장드립니다</p>
+      </div>
+      <form class="psh6-card">
+        <div class="psh6-section">
+          <div class="stitle">📅 1. 방문 일정</div>
+          <div class="psh6-row split">
+            <div><label>희망 날짜</label><input type="date"/></div>
+            <div><label>희망 시간</label><select><option>10:00</option><option>11:00</option><option>14:00</option><option>15:00</option><option>16:00</option><option>17:00</option></select></div>
+          </div>
+        </div>
+        <div class="psh6-section">
+          <div class="stitle">🎯 2. 방문 목적 (복수 선택)</div>
+          <div class="psh6-purpose">
+            <div class="psh6-purpose-item active"><div class="icon">🔍</div><div class="label">제품 체험</div></div>
+            <div class="psh6-purpose-item"><div class="icon">💬</div><div class="label">시공 상담</div></div>
+            <div class="psh6-purpose-item"><div class="icon">💰</div><div class="label">견적 문의</div></div>
+            <div class="psh6-purpose-item"><div class="icon">🤝</div><div class="label">파트너 미팅</div></div>
+            <div class="psh6-purpose-item"><div class="icon">🎓</div><div class="label">교육 참관</div></div>
+            <div class="psh6-purpose-item"><div class="icon">📋</div><div class="label">기타</div></div>
+          </div>
+        </div>
+        <div class="psh6-section">
+          <div class="stitle">👥 3. 방문 정보</div>
+          <div class="psh6-row split">
+            <div><label>성함</label><input type="text" placeholder="홍길동"/></div>
+            <div><label>방문 인원</label><select><option>1명</option><option>2-3명</option><option>4-6명</option><option>7명 이상</option></select></div>
+          </div>
+          <div class="psh6-row split">
+            <div><label>연락처</label><input type="text" placeholder="010-0000-0000"/></div>
+            <div><label>소속 (선택)</label><input type="text" placeholder="○○관리사무소"/></div>
+          </div>
+          <div class="psh6-row"><label>관심 자재·시공 (선택)</label><textarea placeholder="미리 알려주시면 해당 자재·사례를 준비해 드립니다"></textarea></div>
+        </div>
+        <div class="psh6-agree"><input type="checkbox" id="ag5"/><label for="ag5">개인정보 수집·이용에 동의합니다</label></div>
+        <button type="submit" class="psh6-submit">방문 예약 신청</button>
+      </form>
+    </div>
+  </section>`;
+
+  const SEED_SH_DIRECT_HTML = `<style>
+  .psh7 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .psh7 { background:#FFFBF5; padding:64px 18px; }
+  .psh7-inner { max-width:1100px; margin:0 auto; }
+  .psh7-head { text-align:center; margin-bottom:32px; }
+  .psh7-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .psh7-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .psh7-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:14px; }
+  .psh7-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; padding:24px 22px; transition:all .25s; }
+  .psh7-card:hover { transform:translateY(-3px); box-shadow:0 16px 36px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .psh7-card .icon { width:48px; height:48px; border-radius:12px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:24px; margin-bottom:14px; }
+  .psh7-card .name { font-size:15px; font-weight:900; color:#0F1F5C; margin-bottom:6px; letter-spacing:-.3px; }
+  .psh7-card .desc { font-size:12.5px; color:#6B7280; line-height:1.65; margin-bottom:12px; min-height:38px; }
+  .psh7-card .v { font-size:13.5px; font-weight:800; color:#EA580C; letter-spacing:-.3px; }
+  @media (max-width:640px) { .psh7-head h2 { font-size:22px; } }
+  </style>
+  <section class="psh7">
+    <div class="psh7-inner">
+      <div class="psh7-head">
+        <div class="kicker">DETAILED DIRECTIONS</div>
+        <h2>찾아오시는 길 상세</h2>
+      </div>
+      <div class="psh7-grid">
+        <div class="psh7-card"><div class="icon">🚗</div><div class="name">자가용 이용</div><div class="desc">평택 IC → ○○로 직진 5분 — 본사 무료 주차장 30대 보유</div><div class="v">서울 1시간 10분 / 부산 4시간</div></div>
+        <div class="psh7-card"><div class="icon">🚆</div><div class="name">기차·KTX</div><div class="desc">1호선·KTX 평택역 → ○○번 버스 5분 또는 도보 12분</div><div class="v">평택역 도보 12분</div></div>
+        <div class="psh7-card"><div class="icon">🚌</div><div class="name">시외버스</div><div class="desc">평택 시외버스터미널 → 택시 8분 / 시내버스 ○○번</div><div class="v">택시 8분</div></div>
+        <div class="psh7-card"><div class="icon">🛬</div><div class="name">인천공항에서</div><div class="desc">공항버스 6300번 평택역 직행 → 도보·택시</div><div class="v">버스 1시간 30분</div></div>
+        <div class="psh7-card"><div class="icon">🅿️</div><div class="name">주차 정보</div><div class="desc">본사 부지 내 무료 주차장 30대 — 대형차·대중교통 단체 별도 협의</div><div class="v">상시 30대 무료</div></div>
+        <div class="psh7-card"><div class="icon">📞</div><div class="name">길 안내 문의</div><div class="desc">방문 당일 길 헷갈리시면 언제든 전화주세요. 평일 09-18시 응대</div><div class="v">1577-0000</div></div>
+      </div>
+    </div>
+  </section>`;
+
+
   const DEFAULT_PAGES = () => ([
     { id: 'main', name: '메인 페이지', file: 'index.html', sections: [
       mkSec('메인 배너', SEED_BANNER_HTML, '라이트 크림 + 오렌지 그라디언트 — 가벼운 톤 (v3)', 'wip'),
@@ -2994,13 +3301,13 @@ show('entry');
       mkSec('고객 후기', SEED_MT_REVIEW_HTML, '평균 매칭 만족도 4.8 + 3개 후기 (파트너 매칭 정보 포함)', 'wip'),
     ]},
     { id: 'showroom', name: '전시장·쇼룸', file: 'showroom.html', sections: [
-      mkSec('히어로', '', ''),
-      mkSec('쇼룸 위치·약도', '', ''),
-      mkSec('운영 시간', '', ''),
-      mkSec('쇼룸 둘러보기 (갤러리)', '', ''),
-      mkSec('전시 제품', '', ''),
-      mkSec('방문 예약 폼', '', ''),
-      mkSec('찾아오시는 길', '', ''),
+      mkSec('히어로', SEED_SH_HERO_HTML, '라이트 크림 + 110+ 제품 체험 강조 + 예약 CTA', 'wip'),
+      mkSec('쇼룸 위치·약도', SEED_SH_LOCATION_HTML, '평택 본사 지도 + 자가용/대중교통/거리 정보', 'wip'),
+      mkSec('운영 시간', SEED_SH_HOURS_HTML, '평일/토요일 운영 + 일요일/공휴일 CLOSED + 예약 안내', 'wip'),
+      mkSec('쇼룸 둘러보기 (갤러리)', SEED_SH_TOUR_HTML, '메인홀 피처 + 6개 존 (옥상모형/외벽/주차장/제품/상담/R&D)', 'wip'),
+      mkSec('전시 제품', SEED_SH_DISPLAY_HTML, '8개 핵심 자재 — 시연·체험 포인트 표기', 'wip'),
+      mkSec('방문 예약 폼', SEED_SH_BOOK_HTML, '일정/목적 6종 칩/방문정보 풀폼', 'wip'),
+      mkSec('찾아오시는 길', SEED_SH_DIRECT_HTML, '6개 교통수단 카드 (자가용/기차/버스/공항/주차/문의)', 'wip'),
     ]},
     { id: 'magazine', name: '스토어 매거진', file: 'magazine.html', sections: [
       mkSec('히어로 + 검색', '', '시공설명서·영상·포스팅 통합 콘텐츠 허브'),

@@ -3231,6 +3231,337 @@ show('entry');
   </section>`;
 
 
+  const SEED_MG_HERO_HTML = `<style>
+  .pmg1 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmg1 { background:linear-gradient(180deg,#FFFBF5 0%,#FFF7ED 100%); padding:80px 18px 56px; position:relative; overflow:hidden; }
+  .pmg1::before { content:''; position:absolute; top:-100px; right:-80px; width:380px; height:380px; background:radial-gradient(circle, rgba(249,115,22,.12) 0%, transparent 60%); border-radius:50%; }
+  .pmg1-inner { max-width:1100px; margin:0 auto; text-align:center; position:relative; z-index:1; }
+  .pmg1-tag { display:inline-flex; gap:6px; padding:6px 14px; background:#fff; border:1px solid #FED7AA; color:#EA580C; border-radius:999px; font-size:11.5px; font-weight:800; letter-spacing:.8px; margin-bottom:18px; box-shadow:0 4px 12px rgba(249,115,22,.1); }
+  .pmg1 h1 { font-size:44px; font-weight:900; color:#0F1F5C; line-height:1.2; margin-bottom:16px; letter-spacing:-1.4px; }
+  .pmg1 h1 .accent { color:#F97316; }
+  .pmg1-desc { font-size:15.5px; color:#4B5563; line-height:1.75; max-width:600px; margin:0 auto 32px; }
+  .pmg1-search { max-width:600px; margin:0 auto; position:relative; }
+  .pmg1-search input { width:100%; padding:18px 24px 18px 56px; background:#fff; border:1px solid #F3F4F6; border-radius:18px; font-size:15px; font-family:inherit; color:#0F1F5C; transition:all .2s; box-shadow:0 8px 24px rgba(15,31,92,.08); }
+  .pmg1-search input:focus { outline:none; border-color:#FED7AA; box-shadow:0 8px 24px rgba(249,115,22,.18); }
+  .pmg1-search .icon { position:absolute; top:50%; left:22px; transform:translateY(-50%); font-size:20px; }
+  .pmg1-tags { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:18px; }
+  .pmg1-tags .tag { padding:6px 14px; background:rgba(255,255,255,.8); border:1px solid #FED7AA; color:#EA580C; font-size:12px; font-weight:800; border-radius:999px; cursor:pointer; transition:all .2s; }
+  .pmg1-tags .tag:hover { background:#fff; }
+  @media (max-width:640px) { .pmg1 h1 { font-size:28px; } }
+  </style>
+  <section class="pmg1">
+    <div class="pmg1-inner">
+      <span class="pmg1-tag">📖 STORE MAGAZINE</span>
+      <h1>시공·자재·트렌드<br/><span class="accent">콘텐츠 허브</span></h1>
+      <p class="pmg1-desc">시공 설명서·영상 가이드·케이스 스터디·트렌드 — POUR가 직접 만드는 모든 콘텐츠를 한곳에서.</p>
+      <div class="pmg1-search">
+        <span class="icon">🔍</span>
+        <input type="text" placeholder="키워드로 검색해 보세요 — 예: 옥상 누수, 외벽 도장, 셀프시공"/>
+      </div>
+      <div class="pmg1-tags">
+        <span class="tag">#옥상누수</span>
+        <span class="tag">#외벽도장</span>
+        <span class="tag">#균열보수</span>
+        <span class="tag">#셀프시공</span>
+        <span class="tag">#하이퍼티</span>
+        <span class="tag">#아파트관리</span>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_MG_TABS_HTML = `<style>
+  .pmg2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmg2 { background:#fff; padding:32px 18px; border-bottom:1px solid #F3F4F6; }
+  .pmg2-inner { max-width:1200px; margin:0 auto; }
+  .pmg2-tabs { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+  .pmg2-tab { padding:11px 22px; background:#fff; border:1.5px solid #F3F4F6; border-radius:999px; font-size:13.5px; font-weight:700; color:#6B7280; cursor:pointer; transition:all .2s; display:inline-flex; align-items:center; gap:7px; }
+  .pmg2-tab:hover { border-color:#FED7AA; color:#EA580C; }
+  .pmg2-tab.active { background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border-color:transparent; box-shadow:0 6px 16px rgba(249,115,22,.3); }
+  .pmg2-tab .icon { font-size:15px; }
+  .pmg2-tab .count { font-size:11px; padding:2px 7px; background:#FFF7ED; color:#EA580C; border-radius:6px; font-weight:800; }
+  .pmg2-tab.active .count { background:rgba(255,255,255,.25); color:#fff; }
+  @media (max-width:640px) { .pmg2-tabs { gap:6px; } .pmg2-tab { padding:9px 14px; font-size:12.5px; } }
+  </style>
+  <section class="pmg2">
+    <div class="pmg2-inner">
+      <div class="pmg2-tabs">
+        <button class="pmg2-tab active"><span class="icon">📌</span>전체<span class="count">328</span></button>
+        <button class="pmg2-tab"><span class="icon">🔧</span>시공방법<span class="count">86</span></button>
+        <button class="pmg2-tab"><span class="icon">📊</span>케이스 스터디<span class="count">62</span></button>
+        <button class="pmg2-tab"><span class="icon">📦</span>제품 가이드<span class="count">48</span></button>
+        <button class="pmg2-tab"><span class="icon">▶</span>영상 가이드<span class="count">72</span></button>
+        <button class="pmg2-tab"><span class="icon">📈</span>트렌드</button>
+        <button class="pmg2-tab"><span class="icon">🛠️</span>셀프시공</button>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_MG_PICK_HTML = `<style>
+  .pmg3 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmg3 { background:#fff; padding:64px 18px; }
+  .pmg3-inner { max-width:1200px; margin:0 auto; }
+  .pmg3-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+  .pmg3-head .left .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:6px; }
+  .pmg3-head .left h2 { font-size:28px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .pmg3-head .more { font-size:13px; font-weight:700; color:#EA580C; text-decoration:none; padding:8px 14px; border:1px solid #FED7AA; border-radius:999px; background:#fff; }
+  .pmg3-grid { display:grid; grid-template-columns:1.4fr 1fr; gap:18px; }
+  .pmg3-feature { position:relative; aspect-ratio:16/11; border-radius:20px; overflow:hidden; background-size:cover; background-position:center; cursor:pointer; transition:transform .3s; }
+  .pmg3-feature:hover { transform:translateY(-3px); }
+  .pmg3-feature::after { content:''; position:absolute; inset:0; background:linear-gradient(0deg, rgba(15,31,92,.92) 0%, rgba(15,31,92,.3) 50%, transparent 100%); }
+  .pmg3-feature .info { position:absolute; bottom:24px; left:24px; right:24px; color:#fff; z-index:1; }
+  .pmg3-feature .badge { display:inline-block; padding:4px 11px; background:#F97316; font-size:10.5px; font-weight:900; letter-spacing:.5px; border-radius:5px; margin-bottom:12px; }
+  .pmg3-feature .title { font-size:24px; font-weight:900; line-height:1.3; margin-bottom:8px; letter-spacing:-.5px; }
+  .pmg3-feature .meta { font-size:12.5px; opacity:.9; font-weight:700; }
+  .pmg3-list { display:flex; flex-direction:column; gap:12px; }
+  .pmg3-mini { display:grid; grid-template-columns:120px 1fr; gap:14px; padding:14px; background:#FFFBF5; border:1px solid #F3F4F6; border-radius:14px; transition:all .25s; cursor:pointer; }
+  .pmg3-mini:hover { transform:translateX(3px); background:#fff; box-shadow:0 8px 20px rgba(15,31,92,.06); border-color:#FED7AA; }
+  .pmg3-mini .thumb { aspect-ratio:1/1; border-radius:10px; background-size:cover; background-position:center; }
+  .pmg3-mini .text { display:flex; flex-direction:column; justify-content:center; min-width:0; }
+  .pmg3-mini .cat { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:4px; }
+  .pmg3-mini .title { font-size:13.5px; font-weight:800; color:#0F1F5C; line-height:1.4; margin-bottom:6px; letter-spacing:-.3px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .pmg3-mini .meta { font-size:11px; color:#9CA3AF; font-weight:700; }
+  @media (max-width:880px) { .pmg3-grid { grid-template-columns:1fr; } .pmg3-feature .title { font-size:18px; } }
+  </style>
+  <section class="pmg3">
+    <div class="pmg3-inner">
+      <div class="pmg3-head">
+        <div class="left">
+          <div class="kicker">⭐ EDITOR'S PICK</div>
+          <h2>에디터가 추천하는 콘텐츠</h2>
+        </div>
+        <a class="more" href="#">전체 보기 →</a>
+      </div>
+      <div class="pmg3-grid">
+        <div class="pmg3-feature" style="background-image:url('https://placehold.co/800x550/0F1F5C/fff?text=COVER+STORY')">
+          <div class="info">
+            <span class="badge">COVER STORY</span>
+            <div class="title">2026년 봄, 옥상 누수 안 잡는 5가지 실수</div>
+            <div class="meta">시공방법 · 8분 읽기 · 조회 12K · 4월 28일</div>
+          </div>
+        </div>
+        <div class="pmg3-list">
+          <div class="pmg3-mini"><div class="thumb" style="background-image:url('https://placehold.co/200x200/F97316/fff?text=GUIDE1')"></div><div class="text"><div class="cat">제품 가이드</div><div class="title">POUR 코트재 vs 우레탄 — 어느 게 맞을까?</div><div class="meta">5분 읽기 · 조회 8.2K</div></div></div>
+          <div class="pmg3-mini"><div class="thumb" style="background-image:url('https://placehold.co/200x200/EA580C/fff?text=CASE')"></div><div class="text"><div class="cat">케이스 스터디</div><div class="title">강남 래미안 옥상 시공 풀스토리 — 6개월 추적</div><div class="meta">12분 읽기 · 조회 6.5K</div></div></div>
+          <div class="pmg3-mini"><div class="thumb" style="background-image:url('https://placehold.co/200x200/059669/fff?text=DIY')"></div><div class="text"><div class="cat">셀프시공</div><div class="title">베란다 누수 — 주말에 혼자 잡는 방법</div><div class="meta">7분 읽기 · 조회 9.8K</div></div></div>
+          <div class="pmg3-mini"><div class="thumb" style="background-image:url('https://placehold.co/200x200/FB923C/fff?text=TREND')"></div><div class="text"><div class="cat">트렌드</div><div class="title">2026 외벽 도장 컬러 트렌드 — 차분한 누드톤</div><div class="meta">4분 읽기 · 조회 5.4K</div></div></div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_MG_VIDEO_HTML = `<style>
+  .pmg4 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmg4 { background:#FFFBF5; padding:64px 18px; }
+  .pmg4-inner { max-width:1200px; margin:0 auto; }
+  .pmg4-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+  .pmg4-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:6px; }
+  .pmg4-head h2 { font-size:28px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .pmg4-head .more { font-size:13px; font-weight:700; color:#EA580C; text-decoration:none; padding:8px 14px; border:1px solid #FED7AA; border-radius:999px; background:#fff; }
+  .pmg4-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px; }
+  .pmg4-card { background:#fff; border:1px solid #F3F4F6; border-radius:16px; overflow:hidden; transition:all .3s; cursor:pointer; }
+  .pmg4-card:hover { transform:translateY(-3px); box-shadow:0 16px 36px rgba(15,31,92,.1); border-color:#FED7AA; }
+  .pmg4-thumb { aspect-ratio:16/10; background-size:cover; background-position:center; position:relative; }
+  .pmg4-thumb::before { content:''; position:absolute; inset:0; background:linear-gradient(0deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,.1) 50%, transparent 100%); transition:opacity .25s; opacity:.5; }
+  .pmg4-card:hover .pmg4-thumb::before { opacity:.7; }
+  .pmg4-thumb .play { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:52px; height:52px; border-radius:50%; background:rgba(255,255,255,.95); display:grid; place-items:center; transition:transform .3s; }
+  .pmg4-card:hover .pmg4-thumb .play { transform:translate(-50%,-50%) scale(1.12); }
+  .pmg4-thumb .play svg { width:20px; height:20px; fill:#EA580C; margin-left:3px; }
+  .pmg4-thumb .dur { position:absolute; bottom:8px; right:8px; padding:3px 8px; background:rgba(0,0,0,.78); color:#fff; font-size:10.5px; font-weight:800; border-radius:5px; letter-spacing:.3px; }
+  .pmg4-thumb .rank { position:absolute; top:8px; left:8px; padding:4px 9px; background:rgba(249,115,22,.92); color:#fff; font-size:10.5px; font-weight:900; border-radius:5px; }
+  .pmg4-info { padding:14px; }
+  .pmg4-info .cat { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.3px; margin-bottom:6px; }
+  .pmg4-info .title { font-size:13.5px; font-weight:800; color:#0F1F5C; line-height:1.4; margin-bottom:8px; letter-spacing:-.3px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:38px; }
+  .pmg4-info .meta { font-size:11px; color:#9CA3AF; font-weight:700; }
+  @media (max-width:640px) { .pmg4-head h2 { font-size:22px; } }
+  </style>
+  <section class="pmg4">
+    <div class="pmg4-inner">
+      <div class="pmg4-head">
+        <div>
+          <div class="kicker">▶ TRENDING VIDEOS</div>
+          <h2>이번 주 인기 시공 영상</h2>
+        </div>
+        <a class="more" href="https://www.pourstore.net/videos">전체 영상 →</a>
+      </div>
+      <div class="pmg4-grid">
+        <div class="pmg4-card"><div class="pmg4-thumb" style="background-image:url('https://placehold.co/400x250/0F1F5C/fff?text=ROOFTOP')"><div class="rank">#1</div><div class="play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div><div class="dur">14:28</div></div><div class="pmg4-info"><div class="cat">옥상 시공</div><div class="title">POUR 코트재 — 옥상 슬라브 시공 풀가이드</div><div class="meta">조회 28K · 3일 전</div></div></div>
+        <div class="pmg4-card"><div class="pmg4-thumb" style="background-image:url('https://placehold.co/400x250/F97316/fff?text=DIY')"><div class="rank">#2</div><div class="play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div><div class="dur">8:42</div></div><div class="pmg4-info"><div class="cat">셀프시공</div><div class="title">베란다 누수 — 혼자서 잡는 5단계</div><div class="meta">조회 22K · 5일 전</div></div></div>
+        <div class="pmg4-card"><div class="pmg4-thumb" style="background-image:url('https://placehold.co/400x250/EA580C/fff?text=CRACK')"><div class="rank">#3</div><div class="play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div><div class="dur">11:15</div></div><div class="pmg4-info"><div class="cat">균열 보수</div><div class="title">하이퍼티로 외벽 균열 보수 — 5분 정리</div><div class="meta">조회 18K · 1주 전</div></div></div>
+        <div class="pmg4-card"><div class="pmg4-thumb" style="background-image:url('https://placehold.co/400x250/059669/fff?text=COMPARE')"><div class="rank">#4</div><div class="play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div><div class="dur">7:32</div></div><div class="pmg4-info"><div class="cat">제품 비교</div><div class="title">우레탄 vs PVC vs 코트재 — 뭐가 달라요?</div><div class="meta">조회 14K · 2주 전</div></div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_MG_GUIDE_HTML = `<style>
+  .pmg5 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmg5 { background:#fff; padding:64px 18px; }
+  .pmg5-inner { max-width:1200px; margin:0 auto; }
+  .pmg5-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+  .pmg5-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:6px; }
+  .pmg5-head h2 { font-size:28px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .pmg5-head .more { font-size:13px; font-weight:700; color:#EA580C; text-decoration:none; padding:8px 14px; border:1px solid #FED7AA; border-radius:999px; background:#fff; }
+  .pmg5-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:14px; }
+  .pmg5-card { background:#fff; border:1px solid #F3F4F6; border-radius:16px; padding:24px 22px; transition:all .25s; }
+  .pmg5-card:hover { transform:translateY(-3px); box-shadow:0 16px 36px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .pmg5-card .icon { width:44px; height:44px; border-radius:11px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:22px; margin-bottom:14px; }
+  .pmg5-card .name { font-size:15px; font-weight:900; color:#0F1F5C; margin-bottom:6px; letter-spacing:-.3px; }
+  .pmg5-card .desc { font-size:12.5px; color:#6B7280; line-height:1.6; margin-bottom:12px; min-height:38px; }
+  .pmg5-card .meta { display:flex; align-items:center; gap:8px; padding-top:12px; border-top:1px solid #F3F4F6; font-size:11px; color:#9CA3AF; font-weight:700; }
+  .pmg5-card .meta .dot { width:3px; height:3px; border-radius:50%; background:#D1D5DB; }
+  .pmg5-card .pdf { display:inline-block; padding:3px 8px; background:#FEE2E2; color:#DC2626; font-size:10px; font-weight:800; border-radius:4px; }
+  @media (max-width:640px) { .pmg5-head h2 { font-size:22px; } }
+  </style>
+  <section class="pmg5">
+    <div class="pmg5-inner">
+      <div class="pmg5-head">
+        <div>
+          <div class="kicker">📋 SPEC SHEETS</div>
+          <h2>시공 설명서 모음</h2>
+        </div>
+        <a class="more" href="https://www.pourstore.net/spec">전체 시방서 →</a>
+      </div>
+      <div class="pmg5-grid">
+        <div class="pmg5-card"><div class="icon">💧</div><div class="name">슬라브 듀얼강화방수 시방서</div><div class="desc">옥상 슬라브 누수 + 콘크리트 중성화 — 6가지 핵심 방안 일체 시공</div><div class="meta"><span class="pdf">PDF</span><span>2.4 MB</span><span class="dot"></span><span>다운로드 1,245</span></div></div>
+        <div class="pmg5-card"><div class="icon">🏠</div><div class="name">아스팔트슁글 방수 시방서</div><div class="desc">건설신기술 1026호 — 박공지붕 누수·강풍 탈락 동시 해결</div><div class="meta"><span class="pdf">PDF</span><span>1.8 MB</span><span class="dot"></span><span>다운로드 982</span></div></div>
+        <div class="pmg5-card"><div class="icon">🎨</div><div class="name">외벽 균열보수·재도장 시방서</div><div class="desc">고급(바인더+플러스)/중급/경제형 — 예산별 선택 가능</div><div class="meta"><span class="pdf">PDF</span><span>3.1 MB</span><span class="dot"></span><span>다운로드 1,438</span></div></div>
+        <div class="pmg5-card"><div class="icon">🚗</div><div class="name">에폭시·엠보라이닝 시방서</div><div class="desc">지하주차장 바닥 — MMA 논슬립(83 BPN) 포함</div><div class="meta"><span class="pdf">PDF</span><span>2.7 MB</span><span class="dot"></span><span>다운로드 765</span></div></div>
+        <div class="pmg5-card"><div class="icon">🌊</div><div class="name">아크릴 배면차수 시방서</div><div class="desc">지하·수조 누수 — 초고압 주입 새 방수층 형성</div><div class="meta"><span class="pdf">PDF</span><span>1.5 MB</span><span class="dot"></span><span>다운로드 532</span></div></div>
+        <div class="pmg5-card"><div class="icon">🛣️</div><div class="name">아스콘 도로포장 시방서</div><div class="desc">POUR아스콘 — 포트홀·균열 보수 + 씰코팅</div><div class="meta"><span class="pdf">PDF</span><span>2.0 MB</span><span class="dot"></span><span>다운로드 412</span></div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_MG_POSTING_HTML = `<style>
+  .pmg6 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmg6 { background:#FFFBF5; padding:80px 18px; }
+  .pmg6-inner { max-width:1200px; margin:0 auto; }
+  .pmg6-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:12px; }
+  .pmg6-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:6px; }
+  .pmg6-head h2 { font-size:28px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .pmg6-head .more { font-size:13px; font-weight:700; color:#EA580C; text-decoration:none; padding:8px 14px; border:1px solid #FED7AA; border-radius:999px; background:#fff; }
+  .pmg6-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px; }
+  .pmg6-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; overflow:hidden; transition:all .3s; cursor:pointer; }
+  .pmg6-card:hover { transform:translateY(-4px); box-shadow:0 18px 40px rgba(15,31,92,.1); border-color:#FED7AA; }
+  .pmg6-thumb { aspect-ratio:5/4; background-size:cover; background-position:center; }
+  .pmg6-info { padding:18px; }
+  .pmg6-info .cat { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:8px; }
+  .pmg6-info .title { font-size:15.5px; font-weight:900; color:#0F1F5C; margin-bottom:8px; line-height:1.4; letter-spacing:-.3px; }
+  .pmg6-info .desc { font-size:12.5px; color:#6B7280; line-height:1.65; margin-bottom:14px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:40px; }
+  .pmg6-info .author { display:flex; align-items:center; gap:10px; padding-top:14px; border-top:1px solid #F3F4F6; }
+  .pmg6-info .avatar { width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:12px; font-weight:900; color:#EA580C; }
+  .pmg6-info .author-info .name { font-size:11.5px; font-weight:800; color:#0F1F5C; }
+  .pmg6-info .author-info .meta { font-size:10.5px; color:#9CA3AF; font-weight:700; margin-top:1px; }
+  @media (max-width:640px) { .pmg6-head h2 { font-size:22px; } }
+  </style>
+  <section class="pmg6">
+    <div class="pmg6-inner">
+      <div class="pmg6-head">
+        <div>
+          <div class="kicker">✏️ STORE POSTING</div>
+          <h2>자사몰 포스팅 — 오늘의집 스타일</h2>
+        </div>
+        <a class="more" href="#">전체 포스팅 →</a>
+      </div>
+      <div class="pmg6-grid">
+        <div class="pmg6-card"><div class="pmg6-thumb" style="background-image:url('https://placehold.co/500x400/F97316/fff?text=POST1')"></div><div class="pmg6-info"><div class="cat">시공방법 · 옥상</div><div class="title">10년된 아파트 옥상, 한 번에 깨끗하게</div><div class="desc">매년 누수로 골치였던 분들 보세요. 코트재 한 통이면 끝나는 옥상 방수 노하우 전체 공개합니다.</div><div class="author"><div class="avatar">박</div><div class="author-info"><div class="name">에디터 박○○</div><div class="meta">5분 읽기 · 좋아요 248</div></div></div></div></div>
+        <div class="pmg6-card"><div class="pmg6-thumb" style="background-image:url('https://placehold.co/500x400/EA580C/fff?text=POST2')"></div><div class="pmg6-info"><div class="cat">셀프시공 · 베란다</div><div class="title">베란다 곰팡이 — 주말에 끝내는 셀프 솔루션</div><div class="desc">매년 봄·가을 곰팡이로 스트레스라면 — 5만원으로 끝내는 셀프 시공 가이드.</div><div class="author"><div class="avatar">김</div><div class="author-info"><div class="name">에디터 김○○</div><div class="meta">7분 읽기 · 좋아요 192</div></div></div></div></div>
+        <div class="pmg6-card"><div class="pmg6-thumb" style="background-image:url('https://placehold.co/500x400/0F1F5C/fff?text=POST3')"></div><div class="pmg6-info"><div class="cat">제품 비교</div><div class="title">방수재 비교 — 우레탄 vs PVC vs 코트재</div><div class="desc">"어떤 걸 사야 하지?" 망설이는 분들을 위한 — 상황별 추천 자재 정리.</div><div class="author"><div class="avatar">이</div><div class="author-info"><div class="name">에디터 이○○</div><div class="meta">8분 읽기 · 좋아요 156</div></div></div></div></div>
+        <div class="pmg6-card"><div class="pmg6-thumb" style="background-image:url('https://placehold.co/500x400/059669/fff?text=POST4')"></div><div class="pmg6-info"><div class="cat">트렌드 · 외벽</div><div class="title">2026 외벽 컬러 트렌드 — 차분한 누드톤</div><div class="desc">올해 인기 외벽 컬러 6선. 입주민 만족도 높은 단지들이 선택한 색상은?</div><div class="author"><div class="avatar">최</div><div class="author-info"><div class="name">에디터 최○○</div><div class="meta">4분 읽기 · 좋아요 134</div></div></div></div></div>
+        <div class="pmg6-card"><div class="pmg6-thumb" style="background-image:url('https://placehold.co/500x400/FB923C/fff?text=POST5')"></div><div class="pmg6-info"><div class="cat">케이스 스터디</div><div class="title">강남 래미안 옥상 — 6개월 추적기</div><div class="desc">시공 직후부터 6개월 후까지 — 실제 단지에서 어떤 변화가 있었는지 기록.</div><div class="author"><div class="avatar">정</div><div class="author-info"><div class="name">에디터 정○○</div><div class="meta">12분 읽기 · 좋아요 287</div></div></div></div></div>
+        <div class="pmg6-card"><div class="pmg6-thumb" style="background-image:url('https://placehold.co/500x400/F97316/fff?text=POST6')"></div><div class="pmg6-info"><div class="cat">관리자 노하우</div><div class="title">관리소장이 알려주는 — 장기수선충당금 활용법</div><div class="desc">방수·도장 공사 시 충당금을 효율적으로 쓰는 5가지 노하우.</div><div class="author"><div class="avatar">조</div><div class="author-info"><div class="name">에디터 조○○</div><div class="meta">9분 읽기 · 좋아요 218</div></div></div></div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_MG_RELATED_HTML = `<style>
+  .pmg7 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmg7 { background:#fff; padding:64px 18px; }
+  .pmg7-inner { max-width:1200px; margin:0 auto; }
+  .pmg7-head { text-align:center; margin-bottom:32px; }
+  .pmg7-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pmg7-head h2 { font-size:28px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
+  .pmg7-head p { font-size:14px; color:#6B7280; }
+  .pmg7-banner { background:linear-gradient(135deg,#FFF7ED,#FFEDD5); border:1px solid #FED7AA; border-radius:20px; padding:24px 28px; margin-bottom:24px; display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+  .pmg7-banner .icon { width:48px; height:48px; border-radius:12px; background:#fff; display:grid; place-items:center; font-size:24px; flex-shrink:0; box-shadow:0 4px 12px rgba(249,115,22,.15); }
+  .pmg7-banner .text { flex:1; min-width:200px; }
+  .pmg7-banner .title { font-size:14.5px; font-weight:900; color:#0F1F5C; margin-bottom:3px; letter-spacing:-.3px; }
+  .pmg7-banner .desc { font-size:12.5px; color:#6B7280; line-height:1.55; }
+  .pmg7-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; }
+  .pmg7-product { background:#fff; border:1px solid #F3F4F6; border-radius:14px; overflow:hidden; transition:all .25s; cursor:pointer; }
+  .pmg7-product:hover { transform:translateY(-3px); box-shadow:0 14px 32px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .pmg7-product .thumb { aspect-ratio:1/1; background-size:cover; background-position:center; }
+  .pmg7-product .info { padding:12px; }
+  .pmg7-product .name { font-size:13px; font-weight:800; color:#0F1F5C; margin-bottom:6px; line-height:1.4; letter-spacing:-.3px; }
+  .pmg7-product .price { display:flex; align-items:center; gap:6px; }
+  .pmg7-product .now { font-size:14px; font-weight:900; color:#0F1F5C; }
+  .pmg7-product .sale { font-size:11px; font-weight:800; color:#DC2626; }
+  @media (max-width:640px) { .pmg7-head h2 { font-size:22px; } }
+  </style>
+  <section class="pmg7">
+    <div class="pmg7-inner">
+      <div class="pmg7-head">
+        <div class="kicker">RELATED PRODUCTS</div>
+        <h2>이 콘텐츠와 관련된 상품</h2>
+        <p>읽으신 콘텐츠에서 다룬 자재를 바로 구매할 수 있어요</p>
+      </div>
+      <div class="pmg7-banner">
+        <div class="icon">📖</div>
+        <div class="text">
+          <div class="title">"10년된 아파트 옥상, 한 번에 깨끗하게" 콘텐츠 관련</div>
+          <div class="desc">옥상 슬라브 방수에 사용된 핵심 자재 4종을 묶었습니다</div>
+        </div>
+      </div>
+      <div class="pmg7-grid">
+        <div class="pmg7-product"><div class="thumb" style="background-image:url('https://placehold.co/300x300/F97316/fff?text=COAT')"></div><div class="info"><div class="name">POUR 코트재 5kg</div><div class="price"><span class="sale">15%</span><span class="now">68,000원</span></div></div></div>
+        <div class="pmg7-product"><div class="thumb" style="background-image:url('https://placehold.co/300x300/EA580C/fff?text=SHEET')"></div><div class="info"><div class="name">슈퍼복합압축시트</div><div class="price"><span class="sale">8%</span><span class="now">128,000원</span></div></div></div>
+        <div class="pmg7-product"><div class="thumb" style="background-image:url('https://placehold.co/300x300/0F1F5C/fff?text=VENT')"></div><div class="info"><div class="name">페이퍼팬벤트</div><div class="price"><span class="now">38,000원</span></div></div></div>
+        <div class="pmg7-product"><div class="thumb" style="background-image:url('https://placehold.co/300x300/059669/fff?text=TRAP')"></div><div class="info"><div class="name">옥상배관 방수트랩</div><div class="price"><span class="now">56,000원</span></div></div></div>
+        <div class="pmg7-product"><div class="thumb" style="background-image:url('https://placehold.co/300x300/FB923C/fff?text=PACKAGE')"></div><div class="info"><div class="name">옥상 풀세트 패키지</div><div class="price"><span class="sale">22%</span><span class="now">240,000원</span></div></div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_MG_MORE_HTML = `<style>
+  .pmg8 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmg8 { background:#FFFBF5; padding:80px 18px; }
+  .pmg8-inner { max-width:1100px; margin:0 auto; }
+  .pmg8-head { text-align:center; margin-bottom:36px; }
+  .pmg8-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pmg8-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
+  .pmg8-head p { font-size:14px; color:#6B7280; }
+  .pmg8-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px; }
+  .pmg8-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; padding:24px 22px; transition:all .25s; cursor:pointer; text-decoration:none; display:block; }
+  .pmg8-card:hover { transform:translateY(-4px); box-shadow:0 18px 40px rgba(15,31,92,.1); border-color:#FED7AA; }
+  .pmg8-card .icon { width:48px; height:48px; border-radius:12px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:24px; margin-bottom:14px; transition:transform .3s; }
+  .pmg8-card:hover .icon { transform:rotate(-8deg) scale(1.05); }
+  .pmg8-card .name { font-size:15px; font-weight:900; color:#0F1F5C; margin-bottom:6px; letter-spacing:-.3px; }
+  .pmg8-card .count { font-size:11.5px; font-weight:800; color:#EA580C; margin-bottom:10px; letter-spacing:.3px; }
+  .pmg8-card .desc { font-size:12px; color:#6B7280; line-height:1.65; margin-bottom:14px; }
+  .pmg8-card .arrow { font-size:12px; font-weight:800; color:#0F1F5C; transition:transform .25s; }
+  .pmg8-card:hover .arrow { transform:translateX(4px); color:#EA580C; }
+  @media (max-width:640px) { .pmg8-head h2 { font-size:24px; } }
+  </style>
+  <section class="pmg8">
+    <div class="pmg8-inner">
+      <div class="pmg8-head">
+        <div class="kicker">EXPLORE MORE</div>
+        <h2>카테고리별 더보기</h2>
+        <p>관심 분야의 콘텐츠만 모아서 보세요</p>
+      </div>
+      <div class="pmg8-grid">
+        <a class="pmg8-card" href="#"><div class="icon">🔧</div><div class="name">시공 방법</div><div class="count">86개 콘텐츠</div><div class="desc">단계별 시공 가이드 — 옥상·외벽·균열 등</div><div class="arrow">전체 보기 →</div></a>
+        <a class="pmg8-card" href="#"><div class="icon">📊</div><div class="name">케이스 스터디</div><div class="count">62개 콘텐츠</div><div class="desc">실제 단지의 시공 전후 추적 기록</div><div class="arrow">전체 보기 →</div></a>
+        <a class="pmg8-card" href="#"><div class="icon">📦</div><div class="name">제품 가이드</div><div class="count">48개 콘텐츠</div><div class="desc">자재별 사용법·비교·선택 가이드</div><div class="arrow">전체 보기 →</div></a>
+        <a class="pmg8-card" href="#"><div class="icon">🛠️</div><div class="name">셀프시공</div><div class="count">36개 콘텐츠</div><div class="desc">초보자도 할 수 있는 셀프 시공법</div><div class="arrow">전체 보기 →</div></a>
+        <a class="pmg8-card" href="#"><div class="icon">📈</div><div class="name">트렌드</div><div class="count">24개 콘텐츠</div><div class="desc">2026 컬러·디자인·시장 동향</div><div class="arrow">전체 보기 →</div></a>
+        <a class="pmg8-card" href="#"><div class="icon">💼</div><div class="name">관리자 노하우</div><div class="count">28개 콘텐츠</div><div class="desc">관리소장·시설팀을 위한 실무 팁</div><div class="arrow">전체 보기 →</div></a>
+        <a class="pmg8-card" href="#"><div class="icon">▶</div><div class="name">영상 가이드</div><div class="count">72개 영상</div><div class="desc">짧고 명확한 시공 시연 영상</div><div class="arrow">전체 보기 →</div></a>
+        <a class="pmg8-card" href="#"><div class="icon">🎓</div><div class="name">기술·R&D</div><div class="count">18개 콘텐츠</div><div class="desc">POUR R&D 비하인드 — 신기술 개발기</div><div class="arrow">전체 보기 →</div></a>
+      </div>
+    </div>
+  </section>`;
+
+
   const DEFAULT_PAGES = () => ([
     { id: 'main', name: '메인 페이지', file: 'index.html', sections: [
       mkSec('메인 배너', SEED_BANNER_HTML, '라이트 크림 + 오렌지 그라디언트 — 가벼운 톤 (v3)', 'wip'),
@@ -3310,14 +3641,14 @@ show('entry');
       mkSec('찾아오시는 길', SEED_SH_DIRECT_HTML, '6개 교통수단 카드 (자가용/기차/버스/공항/주차/문의)', 'wip'),
     ]},
     { id: 'magazine', name: '스토어 매거진', file: 'magazine.html', sections: [
-      mkSec('히어로 + 검색', '', '시공설명서·영상·포스팅 통합 콘텐츠 허브'),
-      mkSec('콘텐츠 카테고리 탭', '', '시공방법 / 케이스스터디 / 제품 가이드 / 트렌드'),
-      mkSec('에디터 PICK', '', ''),
-      mkSec('이번 주 인기 시공 영상', '', ''),
-      mkSec('시공 설명서 모음', '', ''),
-      mkSec('자사몰 포스팅 카드 그리드', '', '오늘의집 스타일 — 사진 + 텍스트 카드'),
-      mkSec('관련 상품 추천 (콘텐츠 → 상품 연결)', '', ''),
-      mkSec('카테고리별 더보기', '', ''),
+      mkSec('히어로 + 검색', SEED_MG_HERO_HTML, '검색바 + 인기 태그 칩 (옥상누수/외벽도장/균열보수/셀프시공/하이퍼티/아파트관리)', 'wip'),
+      mkSec('콘텐츠 카테고리 탭', SEED_MG_TABS_HTML, '7개 탭 — 전체/시공방법/케이스/제품/영상/트렌드/셀프시공 + 카운트', 'wip'),
+      mkSec('에디터 PICK', SEED_MG_PICK_HTML, 'Cover Story 1 + 미니 4 (시공/케이스/셀프/트렌드)', 'wip'),
+      mkSec('이번 주 인기 시공 영상', SEED_MG_VIDEO_HTML, '4개 영상 카드 — #1~#4 랭크 + 조회수·시간', 'wip'),
+      mkSec('시공 설명서 모음', SEED_MG_GUIDE_HTML, '6개 시방서 PDF 카드 — 다운로드 수 표기', 'wip'),
+      mkSec('자사몰 포스팅 카드 그리드', SEED_MG_POSTING_HTML, '6개 포스팅 — 오늘의집 스타일 (에디터·읽기시간·좋아요)', 'wip'),
+      mkSec('관련 상품 추천 (콘텐츠 → 상품 연결)', SEED_MG_RELATED_HTML, '컨텐츠 연관 5개 상품 — 콘텐츠 배너 + 상품 카드', 'wip'),
+      mkSec('카테고리별 더보기', SEED_MG_MORE_HTML, '8개 카테고리 카드 — 시공/케이스/제품/셀프/트렌드/관리자/영상/R&D', 'wip'),
     ]},
   ]);
 

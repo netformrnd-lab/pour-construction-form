@@ -778,6 +778,7 @@ show('entry');
 
   // -------- rendering --------
   function renderAll() {
+    if (checkShareLinkMode()) return; // 공유 링크 모드면 빌더 UI 렌더 안함
     renderPages();
     renderSections();
     checkOldHistoryAndNotify();
@@ -859,6 +860,7 @@ show('entry');
         </div>
         <div class="controls">
           ${hasHtml ? '<button class="btn btn-sm btn-outline" data-act="copy" title="HTML 코드 복사">HTML 복사</button>' : ''}
+          ${hasHtml ? '<button class="btn btn-sm btn-outline" data-act="link" title="이 섹션만 보여주는 공유 링크 복사">🔗 링크</button>' : ''}
           <button class="btn btn-sm btn-ghost" data-act="preview">미리보기</button>
           <button class="btn btn-sm btn-outline" data-act="history">이력</button>
           <button class="btn btn-sm btn-primary" data-act="edit">편집</button>
@@ -881,6 +883,8 @@ show('entry');
       });
       const copyBtn = card.querySelector('[data-act=copy]');
       if (copyBtn) copyBtn.addEventListener('click', () => copyHtmlToClipboard(s.html));
+      const linkBtn = card.querySelector('[data-act=link]');
+      if (linkBtn) linkBtn.addEventListener('click', () => copySectionLink(page.id, s.id));
       card.querySelector('[data-act=preview]').addEventListener('click', () => previewSection(s.id));
       card.querySelector('[data-act=history]').addEventListener('click', () => openHistory(s.id));
       card.querySelector('[data-act=edit]').addEventListener('click', () => openEditor(s.id));
@@ -1249,6 +1253,65 @@ show('entry');
     if (!sec) return;
     previewHtml(sec.html, `${page.name} · ${sec.name}`);
   }
+  function copyTextToClipboard(text, successMsg) {
+    if (!text) return;
+    const fallback = () => {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        toast(ok ? (successMsg || '복사됨') : '복사 실패', ok ? 'success' : 'error');
+      } catch (e) { toast('복사 실패: ' + e.message, 'error'); }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text)
+        .then(() => toast(successMsg || '복사됨', 'success'))
+        .catch(fallback);
+    } else { fallback(); }
+  }
+  function copySectionLink(pageId, secId) {
+    const url = location.origin + location.pathname + '#share=' + encodeURIComponent(pageId) + ':' + encodeURIComponent(secId);
+    copyTextToClipboard(url, '🔗 섹션 공유 링크가 복사됐어요 — 받는 분이 열면 이 섹션만 보입니다');
+  }
+  function copyPageLink(pageId) {
+    const url = location.origin + location.pathname + '#sharepage=' + encodeURIComponent(pageId);
+    copyTextToClipboard(url, '🔗 페이지 공유 링크가 복사됐어요');
+  }
+  function checkShareLinkMode() {
+    var sm = location.hash.match(/^#share=([^:&]+):([^:&]+)/);
+    if (sm) {
+      var sec = getSection(decodeURIComponent(sm[1]), decodeURIComponent(sm[2]));
+      if (!sec) return false;
+      writeShareDoc(sec.html || '', sec.name);
+      return true;
+    }
+    var pm = location.hash.match(/^#sharepage=([^&]+)/);
+    if (pm) {
+      var pid = decodeURIComponent(pm[1]);
+      var page = state.pages.find(function(p){ return p.id === pid; });
+      if (!page) return false;
+      var body = page.sections.map(function(s, i){
+        var html = (s.html || '').trim();
+        if (!html) return '<!-- [' + (i+1) + '] ' + s.name + ' (EMPTY) -->';
+        return '<!-- [' + (i+1) + '] ' + s.name + ' -->\n<section data-section="' + escapeHtml(s.name) + '">\n' + s.html + '\n</section>';
+      }).join('\n\n');
+      writeShareDoc(body, page.name);
+      return true;
+    }
+    return false;
+  }
+  function writeShareDoc(html, title) {
+    document.open();
+    document.write(wrapPreview(html));
+    document.close();
+    if (title) try { document.title = title + ' · POUR스토어'; } catch (_) {}
+  }
+
   function copyHtmlToClipboard(html) {
     const text = html || '';
     if (!text) { toast('복사할 HTML이 비어있습니다.', 'info'); return; }
@@ -1406,6 +1469,8 @@ show('entry');
     document.getElementById('btnAddSection').addEventListener('click', addSection);
     document.getElementById('btnFullPreview').addEventListener('click', previewFullPage);
     document.getElementById('btnCopyFullHtml').addEventListener('click', copyFullPageHtml);
+    var btnPL = document.getElementById('btnCopyPageLink');
+    if (btnPL) btnPL.addEventListener('click', function(){ copyPageLink(getActivePage().id); });
     document.getElementById('btnExport').addEventListener('click', exportJson);
     const btnShare = document.getElementById('btnShare');
     if (btnShare) btnShare.addEventListener('click', shareJson);

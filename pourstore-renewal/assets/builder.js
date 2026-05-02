@@ -1898,6 +1898,358 @@ show('entry');
   </section>`;
 
 
+  const SEED_PT_HERO_HTML = `<style>
+  .ppt1 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .ppt1 { background:linear-gradient(180deg,#FFFBF5 0%,#FFF7ED 100%); padding:88px 18px 64px; position:relative; overflow:hidden; }
+  .ppt1::before { content:''; position:absolute; top:-100px; right:-80px; width:420px; height:420px; background:radial-gradient(circle, rgba(249,115,22,.14) 0%, transparent 60%); border-radius:50%; }
+  .ppt1::after { content:''; position:absolute; bottom:-60px; left:-60px; width:260px; height:260px; background:radial-gradient(circle, rgba(15,31,92,.06) 0%, transparent 60%); border-radius:50%; }
+  .ppt1-inner { max-width:1100px; margin:0 auto; text-align:center; position:relative; z-index:1; }
+  .ppt1-tag { display:inline-flex; gap:6px; padding:6px 14px; background:#fff; border:1px solid #FED7AA; color:#EA580C; border-radius:999px; font-size:11.5px; font-weight:800; letter-spacing:.8px; margin-bottom:20px; box-shadow:0 4px 12px rgba(249,115,22,.1); }
+  .ppt1 h1 { font-size:46px; font-weight:900; color:#0F1F5C; line-height:1.2; margin-bottom:18px; letter-spacing:-1.4px; }
+  .ppt1 h1 .accent { color:#F97316; }
+  .ppt1-desc { font-size:16px; color:#4B5563; line-height:1.75; max-width:640px; margin:0 auto 32px; }
+  .ppt1-cta { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:36px; }
+  .ppt1-cta .primary { padding:14px 28px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border:none; border-radius:14px; font-size:14px; font-weight:900; cursor:pointer; text-decoration:none; box-shadow:0 8px 24px rgba(249,115,22,.3); transition:all .25s; display:inline-flex; align-items:center; gap:6px; }
+  .ppt1-cta .primary:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(249,115,22,.45); }
+  .ppt1-cta .ghost { padding:14px 24px; background:#fff; color:#0F1F5C; border:1px solid #E5E7EB; border-radius:14px; font-size:14px; font-weight:800; text-decoration:none; transition:all .25s; }
+  .ppt1-cta .ghost:hover { border-color:#FED7AA; color:#EA580C; }
+  .ppt1-stats { display:flex; gap:24px; justify-content:center; flex-wrap:wrap; padding-top:16px; }
+  .ppt1-stat { text-align:center; }
+  .ppt1-stat .v { font-family:'Bebas Neue',sans-serif; font-size:32px; font-weight:900; color:#F97316; line-height:1; letter-spacing:.5px; }
+  .ppt1-stat .l { font-size:11.5px; color:#6B7280; margin-top:4px; font-weight:700; }
+  @media (max-width:640px) { .ppt1 h1 { font-size:30px; } }
+  </style>
+  <section class="ppt1">
+    <div class="ppt1-inner">
+      <span class="ppt1-tag">🤝 PARTNER WITH POUR</span>
+      <h1>POUR스토어와 함께하는<br/><span class="accent">파트너 시공사 모집</span></h1>
+      <p class="ppt1-desc">전국 250+ 파트너사 네트워크에 합류하세요. 검증된 자재 · 안정적 일감 · R&D 기술 지원으로 함께 성장합니다.</p>
+      <div class="ppt1-cta">
+        <a class="primary" href="#apply-form">파트너 신청하기 →</a>
+        <a class="ghost" href="#benefits">혜택 자세히 보기</a>
+      </div>
+      <div class="ppt1-stats">
+        <div class="ppt1-stat"><div class="v">250+</div><div class="l">전국 파트너사</div></div>
+        <div class="ppt1-stat"><div class="v">12,000+</div><div class="l">연간 시공 건수</div></div>
+        <div class="ppt1-stat"><div class="v">94%</div><div class="l">재계약 비율</div></div>
+        <div class="ppt1-stat"><div class="v">17</div><div class="l">광역시·도 커버리지</div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_PT_BENEFIT_HTML = `<style>
+  .ppt2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .ppt2 { background:#fff; padding:80px 18px; }
+  .ppt2-inner { max-width:1200px; margin:0 auto; }
+  .ppt2-head { text-align:center; margin-bottom:36px; }
+  .ppt2-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .ppt2-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
+  .ppt2-head p { font-size:14px; color:#6B7280; }
+  .ppt2-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px; }
+  .ppt2-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; padding:28px 24px; transition:all .25s; }
+  .ppt2-card:hover { transform:translateY(-4px); box-shadow:0 18px 40px rgba(15,31,92,.1); border-color:#FED7AA; }
+  .ppt2-card .icon { width:54px; height:54px; border-radius:14px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:26px; margin-bottom:16px; }
+  .ppt2-card .name { font-size:16px; font-weight:900; color:#0F1F5C; margin-bottom:8px; letter-spacing:-.3px; }
+  .ppt2-card .desc { font-size:13px; color:#6B7280; line-height:1.7; margin-bottom:14px; }
+  .ppt2-card .point { display:inline-block; padding:4px 10px; background:#FFFBF5; border:1px solid #FED7AA; color:#EA580C; font-size:11px; font-weight:800; border-radius:6px; }
+  @media (max-width:640px) { .ppt2-head h2 { font-size:24px; } }
+  </style>
+  <section class="ppt2" id="benefits">
+    <div class="ppt2-inner">
+      <div class="ppt2-head">
+        <div class="kicker">PARTNER BENEFITS</div>
+        <h2>POUR 파트너만의 혜택</h2>
+        <p>단순 자재 공급사가 아닌 — 함께 성장하는 기술 파트너입니다</p>
+      </div>
+      <div class="ppt2-grid">
+        <div class="ppt2-card"><div class="icon">📦</div><div class="name">자재 직공급</div><div class="desc">중간 유통 없이 본사 직공급 — 시중가 대비 평균 22% 절감</div><span class="point">최대 30% 할인</span></div>
+        <div class="ppt2-card"><div class="icon">🎯</div><div class="name">안정적 일감 배정</div><div class="desc">시공 매칭 시스템으로 지역·전문분야에 맞는 일감 정기 배정</div><span class="point">월 평균 3.2건</span></div>
+        <div class="ppt2-card"><div class="icon">🎓</div><div class="name">기술 교육·자격증</div><div class="desc">신공법·신제품 출시 시 무료 교육 + POUR 시공 자격증 발급</div><span class="point">연 4회 정기 교육</span></div>
+        <div class="ppt2-card"><div class="icon">💼</div><div class="name">마케팅 지원</div><div class="desc">파트너사 페이지 노출 + 시공 사례 자동 등록 + SNS 광고 지원</div><span class="point">월 광고비 100만원</span></div>
+        <div class="ppt2-card"><div class="icon">🛡️</div><div class="name">하자 책임 분담</div><div class="desc">자재 결함 하자는 본사가 100% 책임 — 시공자 부담 ZERO</div><span class="point">자재 보증 5-10년</span></div>
+        <div class="ppt2-card"><div class="icon">💰</div><div class="name">결제 안전망</div><div class="desc">대규모 발주처 일감도 본사 선결제 — 미수금 리스크 없이 시공만 집중</div><span class="point">7일 내 정산</span></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_PT_REQ_HTML = `<style>
+  .ppt3 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .ppt3 { background:#FFFBF5; padding:80px 18px; }
+  .ppt3-inner { max-width:980px; margin:0 auto; }
+  .ppt3-head { text-align:center; margin-bottom:32px; }
+  .ppt3-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .ppt3-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .ppt3-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .ppt3-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; padding:28px 26px; }
+  .ppt3-card.must { border-left:4px solid #F97316; }
+  .ppt3-card.plus { border-left:4px solid #059669; }
+  .ppt3-card .label { display:inline-block; padding:4px 10px; background:#FFFBF5; border:1px solid #FED7AA; color:#EA580C; font-size:10.5px; font-weight:800; border-radius:6px; margin-bottom:14px; letter-spacing:.5px; }
+  .ppt3-card.plus .label { background:#ECFDF5; border-color:#A7F3D0; color:#059669; }
+  .ppt3-card h3 { font-size:18px; font-weight:900; color:#0F1F5C; margin-bottom:18px; letter-spacing:-.3px; }
+  .ppt3-list { display:flex; flex-direction:column; gap:12px; }
+  .ppt3-item { display:flex; gap:12px; padding:12px; background:#FFFBF5; border-radius:10px; }
+  .ppt3-card.plus .ppt3-item { background:#ECFDF5; }
+  .ppt3-item .check { width:22px; height:22px; border-radius:50%; background:#F97316; color:#fff; font-size:13px; font-weight:900; display:grid; place-items:center; flex-shrink:0; }
+  .ppt3-card.plus .ppt3-item .check { background:#059669; }
+  .ppt3-item .text { flex:1; }
+  .ppt3-item .text .ttl { font-size:13px; font-weight:800; color:#0F1F5C; margin-bottom:3px; letter-spacing:-.3px; }
+  .ppt3-item .text .desc { font-size:12px; color:#6B7280; line-height:1.55; }
+  @media (max-width:720px) { .ppt3-grid { grid-template-columns:1fr; } .ppt3-head h2 { font-size:24px; } }
+  </style>
+  <section class="ppt3">
+    <div class="ppt3-inner">
+      <div class="ppt3-head">
+        <div class="kicker">REQUIREMENTS</div>
+        <h2>파트너 자격 요건</h2>
+      </div>
+      <div class="ppt3-grid">
+        <div class="ppt3-card must">
+          <span class="label">✓ 필수 요건</span>
+          <h3>최소 자격</h3>
+          <div class="ppt3-list">
+            <div class="ppt3-item"><div class="check">✓</div><div class="text"><div class="ttl">사업자등록증</div><div class="desc">건설·인테리어·도장·방수 관련 업태</div></div></div>
+            <div class="ppt3-item"><div class="check">✓</div><div class="text"><div class="ttl">시공 경력 3년 이상</div><div class="desc">방수·도장·균열보수 중 1개 이상 분야</div></div></div>
+            <div class="ppt3-item"><div class="check">✓</div><div class="text"><div class="ttl">시공 사례 5건 이상</div><div class="desc">최근 3년 내 시공 사진·도면 제출</div></div></div>
+            <div class="ppt3-item"><div class="check">✓</div><div class="text"><div class="ttl">산재보험 가입</div><div class="desc">근로자 안전 보장 필수</div></div></div>
+          </div>
+        </div>
+        <div class="ppt3-card plus">
+          <span class="label">+ 우대 사항</span>
+          <h3>가점 요건</h3>
+          <div class="ppt3-list">
+            <div class="ppt3-item"><div class="check">+</div><div class="text"><div class="ttl">기술자격증 보유</div><div class="desc">건축·도장·방수 기능사·산업기사·기사</div></div></div>
+            <div class="ppt3-item"><div class="check">+</div><div class="text"><div class="ttl">전문건설업 면허</div><div class="desc">미장·방수·습식 면허 보유 시 우대</div></div></div>
+            <div class="ppt3-item"><div class="check">+</div><div class="text"><div class="ttl">관공서·공동주택 실적</div><div class="desc">아파트·관공서 시공 경험 보유</div></div></div>
+            <div class="ppt3-item"><div class="check">+</div><div class="text"><div class="ttl">친환경·안전 인증</div><div class="desc">ISO 등 품질·환경 시스템 인증</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_PT_FLOW_HTML = `<style>
+  .ppt4 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .ppt4 { background:#fff; padding:80px 18px; }
+  .ppt4-inner { max-width:1100px; margin:0 auto; }
+  .ppt4-head { text-align:center; margin-bottom:40px; }
+  .ppt4-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .ppt4-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
+  .ppt4-head p { font-size:14px; color:#6B7280; }
+  .ppt4-flow { display:grid; grid-template-columns:repeat(5, 1fr); gap:8px; position:relative; }
+  .ppt4-flow::before { content:''; position:absolute; top:38px; left:10%; right:10%; height:2px; background:linear-gradient(90deg, #FED7AA, #F97316, #FED7AA); z-index:0; }
+  .ppt4-step { position:relative; z-index:1; text-align:center; }
+  .ppt4-step .num { width:76px; height:76px; margin:0 auto 14px; border-radius:50%; background:#fff; border:3px solid #F97316; display:grid; place-items:center; font-family:'Bebas Neue',sans-serif; font-size:24px; font-weight:900; color:#F97316; box-shadow:0 8px 20px rgba(249,115,22,.15); letter-spacing:.5px; }
+  .ppt4-step .name { font-size:14px; font-weight:900; color:#0F1F5C; margin-bottom:6px; letter-spacing:-.3px; }
+  .ppt4-step .desc { font-size:11.5px; color:#6B7280; line-height:1.55; }
+  .ppt4-step .duration { display:inline-block; margin-top:8px; padding:3px 8px; background:#FFFBF5; border:1px solid #FED7AA; color:#EA580C; font-size:10.5px; font-weight:800; border-radius:5px; }
+  @media (max-width:880px) { .ppt4-flow { grid-template-columns:1fr; gap:24px; } .ppt4-flow::before { display:none; } .ppt4-head h2 { font-size:24px; } }
+  </style>
+  <section class="ppt4">
+    <div class="ppt4-inner">
+      <div class="ppt4-head">
+        <div class="kicker">PROCESS</div>
+        <h2>파트너 신청 진행 절차</h2>
+        <p>신청부터 계약까지 평균 영업일 기준 14일</p>
+      </div>
+      <div class="ppt4-flow">
+        <div class="ppt4-step"><div class="num">01</div><div class="name">신청서 제출</div><div class="desc">온라인 폼 작성<br/>+ 사업자등록증</div><div class="duration">즉시</div></div>
+        <div class="ppt4-step"><div class="num">02</div><div class="name">서류 검토</div><div class="desc">실적·경력 확인<br/>+ 결격 사유 검증</div><div class="duration">3-5일</div></div>
+        <div class="ppt4-step"><div class="num">03</div><div class="name">실사 방문</div><div class="desc">사무실·창고 실사<br/>+ 대표 면담</div><div class="duration">5-7일</div></div>
+        <div class="ppt4-step"><div class="num">04</div><div class="name">계약 체결</div><div class="desc">파트너 계약서<br/>+ 등급 확정 (A/B/C)</div><div class="duration">7-10일</div></div>
+        <div class="ppt4-step"><div class="num">05</div><div class="name">시공 시작</div><div class="desc">교육 이수 후<br/>+ 첫 일감 배정</div><div class="duration">10-14일</div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_PT_LOGOS_HTML = `<style>
+  .ppt5 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .ppt5 { background:#FFFBF5; padding:64px 18px; }
+  .ppt5-inner { max-width:1200px; margin:0 auto; }
+  .ppt5-head { text-align:center; margin-bottom:32px; }
+  .ppt5-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .ppt5-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
+  .ppt5-head p { font-size:13.5px; color:#6B7280; }
+  .ppt5-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:12px; }
+  .ppt5-logo { aspect-ratio:5/3; background:#fff; border:1px solid #F3F4F6; border-radius:14px; display:grid; place-items:center; padding:18px; transition:all .25s; }
+  .ppt5-logo:hover { transform:translateY(-2px); box-shadow:0 12px 28px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .ppt5-logo .name { font-size:13.5px; font-weight:900; color:#0F1F5C; letter-spacing:-.3px; text-align:center; line-height:1.4; }
+  .ppt5-logo .name .sub { display:block; font-size:10.5px; color:#9CA3AF; font-weight:700; margin-top:2px; letter-spacing:.3px; }
+  .ppt5-more { text-align:center; margin-top:24px; }
+  .ppt5-more a { font-size:13px; font-weight:800; color:#EA580C; text-decoration:none; padding:10px 22px; border:1px solid #FED7AA; border-radius:999px; background:#fff; transition:all .25s; }
+  .ppt5-more a:hover { background:#FFF7ED; }
+  @media (max-width:640px) { .ppt5-head h2 { font-size:22px; } }
+  </style>
+  <section class="ppt5">
+    <div class="ppt5-inner">
+      <div class="ppt5-head">
+        <div class="kicker">OUR PARTNERS</div>
+        <h2>POUR와 함께하는 파트너사</h2>
+        <p>전국 250+ 시공사 — 지역별 대표 파트너 일부 소개</p>
+      </div>
+      <div class="ppt5-grid">
+        <div class="ppt5-logo"><div class="name">SH건설<span class="sub">서울 · 강남</span></div></div>
+        <div class="ppt5-logo"><div class="name">한울방수<span class="sub">경기 · 수원</span></div></div>
+        <div class="ppt5-logo"><div class="name">대성도장<span class="sub">인천 · 송도</span></div></div>
+        <div class="ppt5-logo"><div class="name">부산테크<span class="sub">부산 · 해운대</span></div></div>
+        <div class="ppt5-logo"><div class="name">남광시공<span class="sub">대구 · 수성</span></div></div>
+        <div class="ppt5-logo"><div class="name">광주리노<span class="sub">광주 · 서구</span></div></div>
+        <div class="ppt5-logo"><div class="name">대전건축<span class="sub">대전 · 유성</span></div></div>
+        <div class="ppt5-logo"><div class="name">울산E&C<span class="sub">울산 · 남구</span></div></div>
+        <div class="ppt5-logo"><div class="name">강원종합<span class="sub">강원 · 춘천</span></div></div>
+        <div class="ppt5-logo"><div class="name">충청기술<span class="sub">충북 · 청주</span></div></div>
+        <div class="ppt5-logo"><div class="name">호남파트너<span class="sub">전남 · 여수</span></div></div>
+        <div class="ppt5-logo"><div class="name">제주방수<span class="sub">제주 · 제주시</span></div></div>
+      </div>
+      <div class="ppt5-more"><a href="#">전체 250+ 파트너사 보기 →</a></div>
+    </div>
+  </section>`;
+
+  const SEED_PT_FORM_HTML = `<style>
+  .ppt6 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .ppt6 { background:#fff; padding:80px 18px; }
+  .ppt6-inner { max-width:980px; margin:0 auto; }
+  .ppt6-head { text-align:center; margin-bottom:32px; }
+  .ppt6-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .ppt6-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .ppt6-head p { font-size:14px; color:#6B7280; }
+  .ppt6-card { background:#fff; border:1px solid #F3F4F6; border-radius:24px; padding:36px 32px; box-shadow:0 12px 36px rgba(15,31,92,.06); }
+  .ppt6-section { margin-bottom:24px; }
+  .ppt6-section .stitle { font-size:13px; font-weight:900; color:#0F1F5C; margin-bottom:14px; padding-bottom:10px; border-bottom:2px solid #FFEDD5; letter-spacing:-.3px; }
+  .ppt6-row { margin-bottom:14px; }
+  .ppt6-row.split { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .ppt6-row label { display:block; font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
+  .ppt6-row input, .ppt6-row select, .ppt6-row textarea { width:100%; padding:12px 14px; background:#FFFBF5; border:1px solid #F3F4F6; border-radius:10px; font-size:14px; font-family:inherit; color:#0F1F5C; transition:all .2s; }
+  .ppt6-row textarea { min-height:96px; resize:vertical; }
+  .ppt6-row input:focus, .ppt6-row select:focus, .ppt6-row textarea:focus { outline:none; border-color:#FED7AA; background:#fff; box-shadow:0 0 0 3px rgba(249,115,22,.08); }
+  .ppt6-checks { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:8px; }
+  .ppt6-check { padding:10px 14px; background:#FFFBF5; border:1px solid #F3F4F6; border-radius:10px; font-size:12.5px; font-weight:700; color:#6B7280; cursor:pointer; transition:all .2s; text-align:center; }
+  .ppt6-check:hover { border-color:#FED7AA; }
+  .ppt6-check.active { background:#FFF7ED; border-color:#F97316; color:#EA580C; font-weight:800; }
+  .ppt6-upload { padding:20px; background:#FFFBF5; border:2px dashed #FED7AA; border-radius:12px; text-align:center; }
+  .ppt6-upload .icon { font-size:24px; margin-bottom:6px; }
+  .ppt6-upload .text { font-size:13px; color:#6B7280; font-weight:700; }
+  .ppt6-upload .hint { font-size:11px; color:#9CA3AF; margin-top:4px; }
+  .ppt6-agree { display:flex; align-items:center; gap:8px; margin-bottom:18px; padding:14px; background:#FFFBF5; border-radius:10px; font-size:12.5px; color:#4B5563; }
+  .ppt6-agree input { width:16px; height:16px; accent-color:#F97316; }
+  .ppt6-submit { width:100%; padding:16px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:900; cursor:pointer; box-shadow:0 8px 24px rgba(249,115,22,.3); transition:all .25s; }
+  .ppt6-submit:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(249,115,22,.45); }
+  @media (max-width:640px) { .ppt6-card { padding:24px 18px; } .ppt6-row.split { grid-template-columns:1fr; } .ppt6-head h2 { font-size:24px; } }
+  </style>
+  <section class="ppt6" id="apply-form">
+    <div class="ppt6-inner">
+      <div class="ppt6-head">
+        <div class="kicker">APPLICATION</div>
+        <h2>파트너사 신청서</h2>
+        <p>아래 정보를 입력해 주시면 검토 후 영업일 기준 5-7일 내 연락드립니다</p>
+      </div>
+      <form class="ppt6-card">
+        <div class="ppt6-section">
+          <div class="stitle">📋 회사 정보</div>
+          <div class="ppt6-row split">
+            <div><label>회사명</label><input type="text" placeholder="㈜한울방수"/></div>
+            <div><label>사업자등록번호</label><input type="text" placeholder="000-00-00000"/></div>
+          </div>
+          <div class="ppt6-row split">
+            <div><label>대표자명</label><input type="text" placeholder="홍길동"/></div>
+            <div><label>설립연도</label><input type="text" placeholder="2015"/></div>
+          </div>
+          <div class="ppt6-row"><label>사업장 주소</label><input type="text" placeholder="경기도 ○○시 ○○로 ○○"/></div>
+        </div>
+        <div class="ppt6-section">
+          <div class="stitle">👤 담당자 정보</div>
+          <div class="ppt6-row split">
+            <div><label>담당자명</label><input type="text" placeholder="홍길동"/></div>
+            <div><label>연락처</label><input type="text" placeholder="010-0000-0000"/></div>
+          </div>
+          <div class="ppt6-row"><label>이메일</label><input type="email" placeholder="example@email.com"/></div>
+        </div>
+        <div class="ppt6-section">
+          <div class="stitle">🔧 시공 가능 분야 (복수 선택)</div>
+          <div class="ppt6-checks">
+            <div class="ppt6-check active">방수</div>
+            <div class="ppt6-check active">도장</div>
+            <div class="ppt6-check">균열 보수</div>
+            <div class="ppt6-check">코팅·단열</div>
+            <div class="ppt6-check">에폭시·바닥</div>
+            <div class="ppt6-check">아스콘·토목</div>
+            <div class="ppt6-check">기타</div>
+          </div>
+        </div>
+        <div class="ppt6-section">
+          <div class="stitle">📊 시공 실적</div>
+          <div class="ppt6-row split">
+            <div><label>시공 경력</label><select><option>3년 미만</option><option>3-5년</option><option>5-10년</option><option>10년 이상</option></select></div>
+            <div><label>연 시공 건수</label><select><option>10건 미만</option><option>10-30건</option><option>30-100건</option><option>100건 이상</option></select></div>
+          </div>
+          <div class="ppt6-row"><label>주요 실적 (간단 기재)</label><textarea placeholder="최근 3년 주요 시공 단지·관공서·발주처 등"></textarea></div>
+        </div>
+        <div class="ppt6-section">
+          <div class="stitle">📎 첨부 서류</div>
+          <div class="ppt6-upload"><div class="icon">📎</div><div class="text">사업자등록증 · 시공 실적표 · 면허증 등</div><div class="hint">PDF, JPG, PNG (최대 20MB)</div></div>
+        </div>
+        <div class="ppt6-agree"><input type="checkbox" id="ag2"/><label for="ag2">개인정보·기업정보 수집·이용에 동의합니다</label></div>
+        <button type="submit" class="ppt6-submit">파트너 신청하기</button>
+      </form>
+    </div>
+  </section>`;
+
+  const SEED_PT_FAQ_HTML = `<style>
+  .ppt7 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .ppt7 { background:#FFFBF5; padding:80px 18px; }
+  .ppt7-inner { max-width:880px; margin:0 auto; }
+  .ppt7-head { text-align:center; margin-bottom:32px; }
+  .ppt7-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .ppt7-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .ppt7-list { display:flex; flex-direction:column; gap:12px; }
+  .ppt7-item { background:#fff; border:1px solid #F3F4F6; border-radius:14px; overflow:hidden; transition:all .2s; }
+  .ppt7-item:hover { border-color:#FED7AA; }
+  .ppt7-item.open { border-color:#F97316; box-shadow:0 8px 24px rgba(249,115,22,.1); }
+  .ppt7-q { display:flex; align-items:center; gap:14px; padding:18px 22px; cursor:pointer; }
+  .ppt7-q .num { width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-family:'Bebas Neue',sans-serif; font-size:14px; font-weight:900; color:#EA580C; flex-shrink:0; }
+  .ppt7-q .text { flex:1; font-size:14.5px; font-weight:800; color:#0F1F5C; letter-spacing:-.3px; }
+  .ppt7-q .arrow { color:#9CA3AF; font-size:14px; transition:transform .2s; }
+  .ppt7-item.open .ppt7-q .arrow { transform:rotate(180deg); color:#EA580C; }
+  .ppt7-a { padding:0 22px 20px 68px; font-size:13.5px; color:#4B5563; line-height:1.75; display:none; }
+  .ppt7-item.open .ppt7-a { display:block; }
+  .ppt7-a b { color:#0F1F5C; font-weight:800; }
+  @media (max-width:640px) { .ppt7-head h2 { font-size:24px; } .ppt7-a { padding-left:22px; } }
+  </style>
+  <section class="ppt7">
+    <div class="ppt7-inner">
+      <div class="ppt7-head">
+        <div class="kicker">FAQ</div>
+        <h2>파트너 신청 자주 묻는 질문</h2>
+      </div>
+      <div class="ppt7-list">
+        <div class="ppt7-item open">
+          <div class="ppt7-q"><div class="num">Q1</div><div class="text">계약금이나 가입비가 있나요?</div><div class="arrow">▼</div></div>
+          <div class="ppt7-a">아니요. <b>가입비·계약금·보증금 없음</b>. 자재 구매가만 본사 직공급가로 정산되며, 시공 일감은 본사가 무상 배정합니다.</div>
+        </div>
+        <div class="ppt7-item">
+          <div class="ppt7-q"><div class="num">Q2</div><div class="text">파트너 등급(A/B/C)은 어떻게 정해지나요?</div><div class="arrow">▼</div></div>
+          <div class="ppt7-a">시공 경력·면허·실적·고객 만족도를 종합 평가하여 <b>A/B/C 3등급</b>으로 분류됩니다. 등급별로 일감 우선순위·할인율·교육 혜택이 차등 적용되며, 매년 1회 재평가합니다.</div>
+        </div>
+        <div class="ppt7-item">
+          <div class="ppt7-q"><div class="num">Q3</div><div class="text">전속 계약인가요? 다른 자재사도 사용 가능한가요?</div><div class="arrow">▼</div></div>
+          <div class="ppt7-a">전속 계약이 아닙니다. <b>POUR 자재는 POUR 일감에만 의무 적용</b>되며, 다른 발주처 일감에서는 자유롭게 다른 자재를 사용 가능합니다.</div>
+        </div>
+        <div class="ppt7-item">
+          <div class="ppt7-q"><div class="num">Q4</div><div class="text">월 일감은 얼마나 배정되나요?</div><div class="arrow">▼</div></div>
+          <div class="ppt7-a">지역·등급·전문분야에 따라 다르지만 <b>평균 월 3.2건</b>이 배정됩니다. 성수기(3-10월)에는 더 많이, 비수기(11-2월)에는 다소 적게 배정될 수 있습니다.</div>
+        </div>
+        <div class="ppt7-item">
+          <div class="ppt7-q"><div class="num">Q5</div><div class="text">시공 후 정산은 언제 받나요?</div><div class="arrow">▼</div></div>
+          <div class="ppt7-a"><b>시공 완료 검수 후 7일 내 정산</b>됩니다. 발주처 결제와 무관하게 본사가 선결제하므로 미수금 리스크가 없습니다.</div>
+        </div>
+        <div class="ppt7-item">
+          <div class="ppt7-q"><div class="num">Q6</div><div class="text">교육은 의무인가요? 비용은요?</div><div class="arrow">▼</div></div>
+          <div class="ppt7-a">신규 가입 후 <b>POUR 시공 자격 교육(1일)</b> 이수가 의무이며, <b>전액 무료</b>입니다. 이후 신공법·신제품 출시 시 정기 교육은 선택 참여이며 모두 무료입니다.</div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+
   const DEFAULT_PAGES = () => ([
     { id: 'main', name: '메인 페이지', file: 'index.html', sections: [
       mkSec('메인 배너', SEED_BANNER_HTML, '라이트 크림 + 오렌지 그라디언트 — 가벼운 톤 (v3)', 'wip'),
@@ -1941,13 +2293,13 @@ show('entry');
       mkSec('FAQ', SEED_CT_FAQ_HTML, '6개 아코디언 (셀프시공/견적/지역/하자보증/파트너/B2B 단가)', 'wip'),
     ]},
     { id: 'partners', name: '파트너사 소개·신청', file: 'partners.html', sections: [
-      mkSec('히어로 + 신청 CTA', '', ''),
-      mkSec('파트너사 혜택', '', ''),
-      mkSec('자격 요건', '', ''),
-      mkSec('진행 절차', '', '신청 → 검토 → 승인 → 서류 → 계약'),
-      mkSec('주요 파트너사 로고', '', ''),
-      mkSec('파트너사 신청 폼', '', ''),
-      mkSec('자주 묻는 질문', '', ''),
+      mkSec('히어로 + 신청 CTA', SEED_PT_HERO_HTML, '라이트 크림 + 4개 파트너 수치 (250+/12,000+/94%/17 광역)', 'wip'),
+      mkSec('파트너사 혜택', SEED_PT_BENEFIT_HTML, '6개 혜택 카드 (자재 직공급/일감 배정/교육/마케팅/하자분담/결제 안전)', 'wip'),
+      mkSec('자격 요건', SEED_PT_REQ_HTML, '필수(오렌지 보더) + 우대(그린 보더) 2-column', 'wip'),
+      mkSec('진행 절차', SEED_PT_FLOW_HTML, '5단계 플로우 — 신청→검토→실사→계약→시공 (14일)', 'wip'),
+      mkSec('주요 파트너사 로고', SEED_PT_LOGOS_HTML, '12개 파트너사 카드 + 지역 표기', 'wip'),
+      mkSec('파트너사 신청 폼', SEED_PT_FORM_HTML, '회사정보/담당자/시공분야/실적/첨부서류 풀폼', 'wip'),
+      mkSec('자주 묻는 질문', SEED_PT_FAQ_HTML, '6개 아코디언 (가입비/등급/전속/일감/정산/교육)', 'wip'),
     ]},
     { id: 'dealers', name: '대리점·공급 문의', file: 'dealers.html', sections: [
       mkSec('히어로', '', ''),

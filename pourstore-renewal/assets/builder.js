@@ -31,241 +31,173 @@
   const SEED_AI_RECOMMEND_HTML = `
 <style>
 .par * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Noto Sans KR', sans-serif; }
-.par { --jg:#03C75A; --jg-glow:rgba(3,199,90,.45); --jc:#00E5FF; --jbg1:#050B2A; --jbg2:#0F1F5C; --jt:#E2E8F0; --jtd:#94A3B8; --jb:rgba(148,163,184,.15); --jba:rgba(3,199,90,.5); --jr:#F87171; --jm:'JetBrains Mono','Consolas','Roboto Mono',monospace; }
-.par { position:relative; background: radial-gradient(ellipse at top, rgba(3,199,90,.08) 0%, transparent 50%), radial-gradient(ellipse at bottom, rgba(0,229,255,.05) 0%, transparent 50%), linear-gradient(180deg,#050B2A 0%,#0A1542 50%,#050B2A 100%); color:var(--jt); padding:56px 18px 80px; overflow:hidden; }
-.par::before { content:''; position:absolute; inset:0; background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px); background-size:50px 50px; pointer-events:none; -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%); mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%); }
+.par { --po:#F97316; --po-d:#EA580C; --po-l:#FFEDD5; --po-glow:rgba(249,115,22,.35); --pn:#0F1F5C; --bg:#FFFBF5; --card:#FFFFFF; --txt:#1F2937; --txt-d:#6B7280; --bd:#E5E7EB; --bd-h:#FED7AA; }
+.par { position:relative; background:linear-gradient(180deg,#FFFBF5 0%,#FFF7ED 50%,#FFFBF5 100%); color:var(--txt); padding:56px 18px 80px; overflow:hidden; }
+.par::before { content:''; position:absolute; inset:0; background-image: radial-gradient(circle at 20% 10%,rgba(249,115,22,.06) 0%,transparent 40%),radial-gradient(circle at 80% 90%,rgba(15,31,92,.04) 0%,transparent 40%); pointer-events:none; }
 .par-inner { max-width:1080px; margin:0 auto; position:relative; z-index:1; }
 .par-hero { text-align:center; margin-bottom:24px; }
-.par-core { width:80px; height:80px; margin:0 auto 14px; position:relative; display:grid; place-items:center; }
-.par-core .ring { position:absolute; inset:0; border:1px solid var(--jg); border-radius:50%; animation:par-spin 12s linear infinite; }
-.par-core .ring::before, .par-core .ring::after { content:''; position:absolute; width:6px; height:6px; background:var(--jg); border-radius:50%; box-shadow:0 0 10px var(--jg-glow); }
-.par-core .ring::before { top:-3px; left:50%; transform:translateX(-50%); }
-.par-core .ring::after { bottom:-3px; left:50%; transform:translateX(-50%); }
-.par-core .ring2 { position:absolute; inset:8px; border:1px dashed rgba(0,229,255,.4); border-radius:50%; animation:par-spin 8s linear infinite reverse; }
-.par-core .center { width:38px; height:38px; background:linear-gradient(135deg,var(--jg) 0%,#029B47 100%); border-radius:50%; display:grid; place-items:center; font-family:'Bebas Neue',sans-serif; font-size:18px; color:#fff; font-weight:900; box-shadow:0 0 16px var(--jg-glow); position:relative; z-index:2; }
+.par-core { width:84px; height:84px; margin:0 auto 14px; position:relative; display:grid; place-items:center; }
+.par-core .ring { position:absolute; inset:0; border:2px solid var(--po); border-radius:50%; animation:par-spin 14s linear infinite; opacity:.4; }
+.par-core .ring2 { position:absolute; inset:8px; border:1px dashed var(--po-d); border-radius:50%; animation:par-spin 9s linear infinite reverse; opacity:.5; }
+.par-core .center { width:60px; height:60px; background:linear-gradient(135deg,var(--po),var(--po-d)); border-radius:50%; display:grid; place-items:center; font-size:32px; box-shadow:0 8px 22px var(--po-glow); position:relative; z-index:2; }
 @keyframes par-spin { to { transform:rotate(360deg); } }
-.par-kicker { display:inline-flex; align-items:center; gap:8px; padding:5px 14px; background:rgba(3,199,90,.1); border:1px solid rgba(3,199,90,.3); border-radius:999px; font-family:var(--jm); font-size:10px; font-weight:700; color:var(--jg); letter-spacing:1.5px; margin-bottom:14px; }
-.par-kicker .ld { width:5px; height:5px; background:var(--jg); border-radius:50%; box-shadow:0 0 6px var(--jg); animation:par-blink 1.2s ease-in-out infinite; }
+.par-kicker { display:inline-flex; align-items:center; gap:8px; padding:6px 16px; background:var(--po-l); border:1px solid var(--bd-h); border-radius:999px; font-size:11px; font-weight:800; color:var(--po-d); margin-bottom:14px; }
+.par-kicker .ld { width:6px; height:6px; background:var(--po); border-radius:50%; box-shadow:0 0 6px var(--po); animation:par-blink 1.4s ease-in-out infinite; }
 @keyframes par-blink { 50%{opacity:.3;} }
-.par-hero h2 { font-size:26px; font-weight:900; margin:0 0 8px; letter-spacing:-.5px; color:#fff; line-height:1.3; }
-.par-hero h2 .accent { background:linear-gradient(135deg,var(--jg) 0%,var(--jc) 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
-.par-hero p { font-size:12.5px; color:var(--jtd); font-family:var(--jm); }
-
-.par-stepper { display:flex; gap:4px; justify-content:center; margin-bottom:24px; flex-wrap:wrap; align-items:center; }
-.par-stepper .stp { display:inline-flex; align-items:center; gap:6px; padding:7px 11px; border:1px solid var(--jb); border-radius:999px; font-size:11px; font-weight:700; color:var(--jtd); background:rgba(15,31,92,.4); transition:all .25s; }
-.par-stepper .stp .num { font-family:var(--jm); font-size:9px; padding:2px 6px; background:rgba(148,163,184,.15); border-radius:4px; }
-.par-stepper .stp.active { color:#fff; border-color:var(--jg); background:rgba(3,199,90,.12); box-shadow:0 0 14px rgba(3,199,90,.2); }
-.par-stepper .stp.active .num { background:var(--jg); color:var(--jbg1); }
-.par-stepper .stp.done { color:var(--jg); border-color:rgba(3,199,90,.4); }
-.par-stepper .ar { color:var(--jtd); font-size:11px; }
-
+.par-hero h2 { font-size:26px; font-weight:900; margin:0 0 8px; letter-spacing:-.5px; color:var(--pn); line-height:1.35; }
+.par-hero h2 .accent { color:var(--po); }
+.par-hero p { font-size:13px; color:var(--txt-d); line-height:1.55; }
+.par-stepper { display:flex; gap:5px; justify-content:center; margin-bottom:24px; flex-wrap:wrap; align-items:center; }
+.par-stepper .stp { display:inline-flex; align-items:center; gap:7px; padding:8px 13px; border:1px solid var(--bd); border-radius:999px; font-size:12px; font-weight:700; color:var(--txt-d); background:#fff; transition:all .25s; }
+.par-stepper .stp .num { font-size:10px; padding:2px 7px; background:#F3F4F6; border-radius:5px; }
+.par-stepper .stp.active { color:#fff; border-color:var(--po); background:var(--po); box-shadow:0 4px 14px var(--po-glow); }
+.par-stepper .stp.active .num { background:rgba(255,255,255,.25); color:#fff; }
+.par-stepper .stp.done { color:var(--po-d); border-color:var(--bd-h); background:var(--po-l); }
+.par-stepper .stp.done .num { background:#fff; color:var(--po-d); }
+.par-stepper .ar { color:var(--txt-d); font-size:11px; }
 .par-screen { display:none; }
 .par-screen.active { display:block; animation:par-fade .3s ease; }
 @keyframes par-fade { from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
-
-/* === 공통 카드 === */
-.par-block { background:rgba(15,31,92,.45); border:1px solid var(--jb); border-radius:12px; padding:20px; backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); margin-bottom:14px; position:relative; }
-.par-block::before, .par-block::after { content:''; position:absolute; width:12px; height:12px; border-color:var(--jg); border-style:solid; }
-.par-block::before { top:-1px; left:-1px; border-width:1px 0 0 1px; }
-.par-block::after { bottom:-1px; right:-1px; border-width:0 1px 1px 0; }
-.par-block-h { display:flex; align-items:center; gap:10px; margin-bottom:14px; padding-bottom:10px; border-bottom:1px dashed var(--jb); }
-.par-block-h .seq { font-family:var(--jm); font-size:9px; color:var(--jg); letter-spacing:1.5px; padding:3px 8px; border:1px solid rgba(3,199,90,.3); border-radius:4px; }
-.par-block-h .ttl { font-size:13px; font-weight:800; color:#fff; }
-
-.par-h { font-size:15px; font-weight:800; color:#fff; margin-bottom:6px; text-align:center; }
-.par-sub { font-size:12.5px; color:var(--jtd); margin-bottom:18px; text-align:center; font-family:var(--jm); }
-
-/* === 진입 화면 (직접 vs 사진) === */
+.par-block { background:var(--card); border:1px solid var(--bd); border-radius:16px; padding:22px; margin-bottom:14px; box-shadow:0 2px 8px rgba(0,0,0,.04); }
+.par-block-h { display:flex; align-items:center; gap:10px; margin-bottom:14px; padding-bottom:10px; border-bottom:1px dashed var(--bd); }
+.par-block-h .seq { font-size:11px; color:var(--po-d); font-weight:800; padding:4px 10px; background:var(--po-l); border-radius:5px; }
+.par-block-h .ttl { font-size:13.5px; font-weight:800; color:var(--pn); }
+.par-h { font-size:17px; font-weight:800; color:var(--pn); margin-bottom:6px; text-align:center; line-height:1.4; }
+.par-sub { font-size:13px; color:var(--txt-d); margin-bottom:18px; text-align:center; line-height:1.6; }
 .par-entry { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-.par-entry-card { padding:32px 22px; background:rgba(15,31,92,.45); border:1px solid var(--jb); border-radius:14px; cursor:pointer; transition:all .25s; text-align:center; position:relative; backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
-.par-entry-card::before, .par-entry-card::after { content:''; position:absolute; width:14px; height:14px; border:1px solid var(--jg); opacity:0; transition:opacity .25s; }
-.par-entry-card::before { top:8px; left:8px; border-right:0; border-bottom:0; }
-.par-entry-card::after { bottom:8px; right:8px; border-left:0; border-top:0; }
-.par-entry-card:hover { border-color:var(--jg); transform:translateY(-4px); box-shadow:0 12px 28px rgba(3,199,90,.2); }
-.par-entry-card:hover::before, .par-entry-card:hover::after { opacity:1; }
-.par-entry-card .ic { font-size:42px; margin-bottom:10px; display:block; }
-.par-entry-card .t { font-size:15px; font-weight:800; color:#fff; margin-bottom:5px; }
-.par-entry-card .d { font-size:12px; color:var(--jtd); line-height:1.55; }
-.par-entry-card .b { display:inline-block; margin-top:14px; padding:5px 11px; font-family:var(--jm); font-size:10px; font-weight:800; color:var(--jg); border:1px solid var(--jg); border-radius:4px; letter-spacing:1px; }
-.par-entry-card.recommend { border-color:var(--jba); background:linear-gradient(135deg, rgba(3,199,90,.08), rgba(0,229,255,.04)); }
-.par-entry-card.recommend .b { background:var(--jg); color:var(--jbg1); }
-
-/* === 사진 업로드 === */
-.par-upload { border:2px dashed rgba(3,199,90,.35); border-radius:14px; padding:36px 22px; text-align:center; background:rgba(0,0,0,.2); transition:all .2s; cursor:pointer; margin-bottom:14px; }
-.par-upload:hover, .par-upload.drag { border-color:var(--jg); background:rgba(3,199,90,.06); }
-.par-upload .ic { font-size:42px; margin-bottom:10px; display:block; }
-.par-upload .t { font-size:14px; font-weight:800; color:#fff; margin-bottom:4px; }
-.par-upload .d { font-size:12px; color:var(--jtd); }
+.par-entry-card { padding:32px 22px; background:var(--card); border:2px solid var(--bd); border-radius:16px; cursor:pointer; transition:all .25s; text-align:center; }
+.par-entry-card:hover { border-color:var(--po); transform:translateY(-4px); box-shadow:0 12px 28px rgba(249,115,22,.18); }
+.par-entry-card .ic { font-size:44px; margin-bottom:10px; display:block; }
+.par-entry-card .t { font-size:16px; font-weight:800; color:var(--pn); margin-bottom:5px; }
+.par-entry-card .d { font-size:12.5px; color:var(--txt-d); line-height:1.6; }
+.par-entry-card .b { display:inline-block; margin-top:14px; padding:5px 12px; background:#F3F4F6; color:var(--txt-d); font-size:11px; font-weight:800; border-radius:6px; }
+.par-entry-card.recommend { border-color:var(--po); background:linear-gradient(135deg,#FFF7ED,#FFEDD5); }
+.par-entry-card.recommend .b { background:var(--po); color:#fff; box-shadow:0 4px 10px var(--po-glow); }
+.par-upload { border:2px dashed var(--bd-h); border-radius:14px; padding:36px 22px; text-align:center; background:var(--po-l); transition:all .2s; cursor:pointer; margin-bottom:14px; }
+.par-upload:hover, .par-upload.drag { border-color:var(--po); background:#FFE4C4; }
+.par-upload .ic { font-size:44px; margin-bottom:10px; display:block; }
+.par-upload .t { font-size:14.5px; font-weight:800; color:var(--pn); margin-bottom:4px; }
+.par-upload .d { font-size:12.5px; color:var(--txt-d); }
 .par-upload-actions { display:flex; gap:10px; justify-content:center; margin-top:14px; flex-wrap:wrap; }
-.par-upload-actions .btn { padding:10px 18px; background:rgba(3,199,90,.12); border:1px solid rgba(3,199,90,.4); border-radius:8px; color:var(--jg); font-size:12.5px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
-.par-upload-actions .btn:hover { background:var(--jg); color:var(--jbg1); }
-
+.par-upload-actions .btn { padding:10px 18px; background:#fff; border:1.5px solid var(--po); border-radius:10px; color:var(--po-d); font-size:12.5px; font-weight:800; cursor:pointer; }
+.par-upload-actions .btn:hover { background:var(--po); color:#fff; }
 .par-thumbs { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:10px; margin-bottom:14px; }
-.par-thumb { position:relative; aspect-ratio:1/1; border-radius:8px; overflow:hidden; border:1px solid var(--jb); background:#0A1542; }
+.par-thumb { position:relative; aspect-ratio:1/1; border-radius:10px; overflow:hidden; border:1px solid var(--bd); background:#F3F4F6; }
 .par-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
-.par-thumb .num { position:absolute; top:6px; left:6px; padding:2px 6px; background:rgba(0,0,0,.7); color:var(--jg); font-family:var(--jm); font-size:10px; font-weight:800; border-radius:3px; }
-.par-thumb .rm { position:absolute; top:4px; right:4px; width:22px; height:22px; background:rgba(220,38,38,.85); color:#fff; border:0; border-radius:50%; cursor:pointer; font-size:11px; font-weight:900; display:grid; place-items:center; }
-.par-thumb .rm:hover { background:#DC2626; }
-.par-thumb-add { aspect-ratio:1/1; border:1.5px dashed var(--jb); border-radius:8px; background:rgba(0,0,0,.15); cursor:pointer; display:grid; place-items:center; color:var(--jtd); font-size:24px; transition:all .15s; }
-.par-thumb-add:hover { border-color:var(--jg); color:var(--jg); background:rgba(3,199,90,.05); }
-.par-thumb-info { font-size:11px; color:var(--jtd); text-align:center; font-family:var(--jm); margin-bottom:14px; }
-
-/* === 분석 중 === */
+.par-thumb .num { position:absolute; top:6px; left:6px; padding:2px 7px; background:var(--po); color:#fff; font-size:10px; font-weight:800; border-radius:4px; }
+.par-thumb .rm { position:absolute; top:5px; right:5px; width:24px; height:24px; background:rgba(220,38,38,.95); color:#fff; border:0; border-radius:50%; cursor:pointer; font-size:13px; font-weight:900; }
+.par-thumb-add { aspect-ratio:1/1; border:2px dashed var(--bd); border-radius:10px; background:#fff; cursor:pointer; display:grid; place-items:center; color:var(--txt-d); font-size:28px; }
+.par-thumb-add:hover { border-color:var(--po); color:var(--po); background:var(--po-l); }
+.par-thumb-info { font-size:12px; color:var(--txt-d); text-align:center; margin-bottom:14px; }
 .par-analyzing { text-align:center; padding:60px 20px; }
-.par-spinner { width:60px; height:60px; border:3px solid rgba(3,199,90,.15); border-top-color:var(--jg); border-radius:50%; animation:par-spin 1s linear infinite; margin:0 auto 22px; }
-.par-analyzing .t { font-size:18px; color:#fff; font-weight:800; margin-bottom:10px; }
-.par-analyzing .l { display:block; font-size:12px; color:var(--jtd); font-family:var(--jm); margin:5px 0; }
-.par-analyzing .l.ok { color:var(--jg); }
-.par-analyzing .l.cur { color:var(--jc); }
-
-/* === 분석 결과 === */
-.par-result { padding:20px; }
-.par-conf { display:flex; align-items:center; justify-content:space-between; padding:11px 14px; background:rgba(3,199,90,.08); border:1px solid rgba(3,199,90,.3); border-radius:8px; margin-bottom:14px; }
-.par-conf .lbl { font-family:var(--jm); font-size:11px; color:var(--jg); letter-spacing:1.2px; }
-.par-conf .val { font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--jg); }
-
-.par-detect { display:grid; gap:10px; margin-bottom:14px; }
-.par-detect .row { display:flex; align-items:center; gap:10px; padding:11px 14px; background:rgba(0,0,0,.25); border-radius:8px; }
-.par-detect .row .lbl { font-family:var(--jm); font-size:10px; color:var(--jtd); letter-spacing:1.2px; min-width:70px; }
-.par-detect .row .val { flex:1; font-size:14px; color:#fff; font-weight:700; }
-.par-detect .row .badge { padding:3px 8px; background:rgba(0,229,255,.1); color:var(--jc); font-family:var(--jm); font-size:10px; font-weight:700; border-radius:3px; }
-
-/* === 단계별 카드 (직접 선택) === */
+.par-spinner { width:64px; height:64px; border:4px solid var(--po-l); border-top-color:var(--po); border-radius:50%; animation:par-spin 1s linear infinite; margin:0 auto 22px; }
+.par-analyzing .t { font-size:18px; color:var(--pn); font-weight:800; margin-bottom:14px; }
+.par-analyzing .l { display:block; font-size:13px; color:var(--txt-d); margin:6px 0; }
+.par-analyzing .l.ok { color:var(--po-d); font-weight:700; }
+.par-analyzing .l.cur { color:var(--po); font-weight:700; }
+.par-conf { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:linear-gradient(135deg,#FFF7ED,#FFEDD5); border:1px solid var(--bd-h); border-radius:10px; margin-bottom:14px; }
+.par-conf .lbl { font-size:12px; font-weight:800; color:var(--po-d); }
+.par-conf .val { font-size:24px; font-weight:900; color:var(--po-d); }
+.par-conf .val .pct { font-size:14px; }
+.par-detect { display:grid; gap:9px; margin-bottom:14px; }
+.par-detect .row { display:flex; align-items:center; gap:10px; padding:12px 14px; background:#F9FAFB; border:1px solid var(--bd); border-radius:10px; }
+.par-detect .row .lbl { font-size:11px; color:var(--txt-d); font-weight:700; min-width:78px; }
+.par-detect .row .val { flex:1; font-size:14px; color:var(--pn); font-weight:800; }
+.par-detect .row .badge { padding:3px 9px; background:var(--po-l); color:var(--po-d); font-size:10px; font-weight:800; border-radius:5px; }
 .par-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; margin-bottom:14px; }
-.par-card { padding:18px 16px; background:rgba(15,31,92,.45); border:1px solid var(--jb); border-radius:10px; cursor:pointer; transition:all .2s; text-align:left; position:relative; backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
-.par-card:hover { border-color:var(--jg); background:rgba(3,199,90,.06); transform:translateY(-2px); box-shadow:0 8px 18px rgba(3,199,90,.12); }
-.par-card.selected { border-color:var(--jg); background:rgba(3,199,90,.1); box-shadow:0 0 0 2px rgba(3,199,90,.3); }
-.par-card .ic { font-size:24px; margin-bottom:8px; display:block; }
-.par-card .ttl { font-size:13px; font-weight:800; color:#fff; margin-bottom:3px; }
-.par-card .desc { font-size:11.5px; color:var(--jtd); line-height:1.5; }
-
-/* === 증상 다중선택 === */
+.par-card { padding:18px 16px; background:var(--card); border:2px solid var(--bd); border-radius:12px; cursor:pointer; transition:all .2s; text-align:left; }
+.par-card:hover { border-color:var(--po); background:#FFFBF5; transform:translateY(-2px); box-shadow:0 8px 18px rgba(249,115,22,.12); }
+.par-card .ic { font-size:28px; margin-bottom:8px; display:block; }
+.par-card .ttl { font-size:13.5px; font-weight:800; color:var(--pn); margin-bottom:3px; }
+.par-card .desc { font-size:11.5px; color:var(--txt-d); line-height:1.5; }
 .par-symptoms { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
-.par-sym { padding:7px 13px; background:transparent; border:1px solid var(--jb); border-radius:999px; color:var(--jtd); font-size:12px; font-weight:600; cursor:pointer; transition:all .15s; }
-.par-sym:hover { border-color:var(--jg); color:var(--jg); }
-.par-sym.on { background:var(--jg); border-color:var(--jg); color:var(--jbg1); box-shadow:0 0 12px var(--jg-glow); }
-
-.par-free { width:100%; padding:12px 14px; background:rgba(0,0,0,.3); border:1px solid var(--jb); border-radius:8px; color:#fff; font-size:13px; outline:none; resize:vertical; min-height:80px; font-family:'Noto Sans KR'; line-height:1.6; }
-.par-free::placeholder { color:var(--jtd); }
-.par-free:focus { border-color:var(--jg); box-shadow:0 0 0 3px rgba(3,199,90,.12); }
-
-/* === 액션 버튼 === */
+.par-sym { padding:8px 14px; background:#fff; border:1.5px solid var(--bd); border-radius:999px; color:var(--txt); font-size:13px; font-weight:600; cursor:pointer; }
+.par-sym:hover { border-color:var(--po); color:var(--po-d); }
+.par-sym.on { background:var(--po); border-color:var(--po); color:#fff; box-shadow:0 4px 10px var(--po-glow); }
+.par-free { width:100%; padding:13px 15px; background:#fff; border:1.5px solid var(--bd); border-radius:10px; color:var(--txt); font-size:13.5px; outline:none; resize:vertical; min-height:84px; line-height:1.65; }
+.par-free::placeholder { color:var(--txt-d); }
+.par-free:focus { border-color:var(--po); box-shadow:0 0 0 3px var(--po-l); }
 .par-cta-row { display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; align-items:center; }
-.par-cta { padding:13px 22px; background:linear-gradient(135deg,var(--jg) 0%,#029B47 100%); border:0; border-radius:10px; color:#fff; font-size:13.5px; font-weight:800; cursor:pointer; box-shadow:0 6px 16px rgba(3,199,90,.35); display:inline-flex; align-items:center; gap:8px; transition:transform .1s; }
+.par-cta { padding:14px 24px; background:linear-gradient(135deg,var(--po),var(--po-d)); border:0; border-radius:12px; color:#fff; font-size:14px; font-weight:800; cursor:pointer; box-shadow:0 6px 18px var(--po-glow); display:inline-flex; align-items:center; gap:8px; }
 .par-cta:hover { transform:translateY(-1px); }
 .par-cta:disabled { opacity:.4; cursor:not-allowed; transform:none; box-shadow:none; }
-.par-cta-ghost { padding:13px 22px; background:transparent; border:1px solid var(--jb); border-radius:10px; color:var(--jtd); font-size:12.5px; font-weight:700; cursor:pointer; transition:all .15s; }
-.par-cta-ghost:hover { color:var(--jg); border-color:var(--jg); }
-.par-back { display:inline-flex; align-items:center; gap:5px; padding:6px 11px; background:transparent; border:1px solid var(--jb); border-radius:6px; color:var(--jtd); font-size:11px; font-weight:700; cursor:pointer; margin-bottom:14px; font-family:var(--jm); letter-spacing:1px; transition:all .15s; }
-.par-back:hover { border-color:var(--jg); color:var(--jg); }
-
-/* === 진단 / 솔루션 === */
-.par-diag-h { font-size:18px; font-weight:900; color:#fff; margin-bottom:14px; line-height:1.45; }
-.par-diag-h .accent { color:var(--jg); }
+.par-cta-ghost { padding:14px 22px; background:#fff; border:1.5px solid var(--bd); border-radius:12px; color:var(--txt-d); font-size:13px; font-weight:700; cursor:pointer; }
+.par-cta-ghost:hover { color:var(--po-d); border-color:var(--po); }
+.par-back { display:inline-flex; align-items:center; gap:5px; padding:7px 13px; background:#fff; border:1px solid var(--bd); border-radius:8px; color:var(--txt-d); font-size:12px; font-weight:700; cursor:pointer; margin-bottom:14px; }
+.par-back:hover { border-color:var(--po); color:var(--po-d); }
+.par-diag-h { font-size:19px; font-weight:900; color:var(--pn); margin-bottom:14px; line-height:1.45; }
+.par-diag-h .accent { color:var(--po-d); }
 .par-points { list-style:none; padding:0; margin:0 0 14px; counter-reset:par-cnt; }
-.par-points li { position:relative; padding:10px 12px 10px 38px; font-size:13.5px; line-height:1.65; color:#E2E8F0; border-bottom:1px dashed var(--jb); }
+.par-points li { position:relative; padding:11px 12px 11px 42px; font-size:13.5px; line-height:1.7; color:var(--txt); border-bottom:1px solid var(--bd); }
 .par-points li:last-child { border-bottom:0; }
-.par-points li::before { content:counter(par-cnt, decimal-leading-zero); counter-increment:par-cnt; position:absolute; left:8px; top:11px; font-family:var(--jm); font-size:9px; color:var(--jg); border:1px solid var(--jg); border-radius:3px; padding:2px 5px; font-weight:800; letter-spacing:1px; }
-.par-points li b { color:var(--jg); font-weight:800; }
-
-.par-method { background:linear-gradient(135deg, rgba(3,199,90,.1), rgba(0,229,255,.05)); border:1px solid var(--jba); border-radius:12px; padding:22px; margin-bottom:14px; position:relative; box-shadow:0 0 28px rgba(3,199,90,.1); }
-.par-method::before, .par-method::after { content:''; position:absolute; width:14px; height:14px; border-color:var(--jg); border-style:solid; }
-.par-method::before { top:-1px; left:-1px; border-width:1.5px 0 0 1.5px; }
-.par-method::after { bottom:-1px; right:-1px; border-width:0 1.5px 1.5px 0; }
-.par-method .code { font-family:var(--jm); font-size:10px; color:var(--jc); letter-spacing:1.5px; margin-bottom:5px; }
-.par-method h3 { font-size:22px; font-weight:900; color:#fff; margin:0 0 9px; line-height:1.3; }
-.par-method .summ { font-size:13.5px; line-height:1.65; color:var(--jt); margin-bottom:14px; }
+.par-points li::before { content:counter(par-cnt,decimal-leading-zero); counter-increment:par-cnt; position:absolute; left:8px; top:11px; font-size:10px; color:#fff; background:var(--po); border-radius:5px; padding:3px 7px; font-weight:800; }
+.par-points li b { color:var(--po-d); font-weight:800; }
+.par-method { background:linear-gradient(135deg,#FFF7ED,#FFFFFF); border:2px solid var(--bd-h); border-radius:14px; padding:24px; margin-bottom:14px; box-shadow:0 4px 16px rgba(249,115,22,.08); }
+.par-method .code { font-size:11px; color:var(--po-d); font-weight:800; margin-bottom:6px; padding:3px 10px; background:#fff; border-radius:5px; display:inline-block; border:1px solid var(--bd-h); }
+.par-method h3 { font-size:23px; font-weight:900; color:var(--pn); margin:0 0 10px; line-height:1.3; }
+.par-method .summ { font-size:14px; line-height:1.7; color:var(--txt); margin-bottom:16px; }
 .par-method .principles { display:grid; gap:8px; }
-.par-method .principles .pr { padding:10px 13px; background:rgba(0,0,0,.25); border-radius:7px; font-size:12.5px; line-height:1.5; color:#E2E8F0; display:flex; align-items:flex-start; gap:9px; }
-.par-method .principles .pr .dot { flex-shrink:0; width:6px; height:6px; background:var(--jg); border-radius:50%; box-shadow:0 0 5px var(--jg); margin-top:6px; }
-
-.par-evidence { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:9px; margin-top:14px; }
-.par-ev { background:rgba(0,0,0,.3); border:1px solid var(--jb); border-radius:7px; padding:10px 12px; }
-.par-ev .lbl { font-family:var(--jm); font-size:9px; color:var(--jtd); letter-spacing:1.5px; margin-bottom:3px; }
-.par-ev .val { font-family:'Bebas Neue',sans-serif; font-size:18px; color:var(--jg); line-height:1.1; }
-.par-ev .val .unit { font-size:10px; color:var(--jtd); font-family:var(--jm); margin-left:2px; }
-.par-ev .src { font-size:9px; color:var(--jtd); margin-top:3px; font-family:var(--jm); }
-
-.par-products-h { font-size:13px; font-weight:800; color:#fff; margin:18px 0 12px; padding-left:4px; display:flex; align-items:center; gap:8px; }
-.par-products-h::before { content:''; width:4px; height:14px; background:var(--jg); border-radius:2px; }
-.par-products { display:grid; grid-template-columns:repeat(auto-fill, minmax(170px,1fr)); gap:11px; margin-bottom:14px; }
-.par-pcard { background:rgba(15,31,92,.4); border:1px solid var(--jb); border-radius:10px; overflow:hidden; cursor:pointer; transition:all .2s; text-decoration:none; color:inherit; display:block; }
-.par-pcard:hover { border-color:var(--jg); transform:translateY(-3px); box-shadow:0 10px 22px rgba(3,199,90,.15); }
-.par-pcard .img { aspect-ratio:1/1; background:#0A1542 center/cover no-repeat; position:relative; }
-.par-pcard .img::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg, transparent 60%, rgba(5,11,42,.85) 100%); }
-.par-pcard .role { position:absolute; top:8px; left:8px; padding:3px 7px; background:var(--jg); color:var(--jbg1); font-family:var(--jm); font-size:9px; font-weight:800; border-radius:3px; letter-spacing:1px; z-index:2; }
-.par-pcard .ext { position:absolute; bottom:8px; right:8px; padding:2px 6px; background:rgba(0,0,0,.6); color:var(--jc); font-family:var(--jm); font-size:9px; font-weight:700; border-radius:3px; letter-spacing:1px; z-index:2; }
+.par-method .principles .pr { padding:11px 13px; background:#fff; border:1px solid var(--bd); border-radius:9px; font-size:13px; line-height:1.55; color:var(--txt); display:flex; align-items:flex-start; gap:9px; }
+.par-method .principles .pr .dot { flex-shrink:0; width:8px; height:8px; background:var(--po); border-radius:50%; margin-top:5px; }
+.par-evidence { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:9px; margin-top:16px; }
+.par-ev { background:#fff; border:1px solid var(--bd); border-radius:9px; padding:11px 13px; }
+.par-ev .lbl { font-size:10px; color:var(--txt-d); font-weight:700; margin-bottom:4px; }
+.par-ev .val { font-size:20px; color:var(--po-d); font-weight:900; line-height:1.1; }
+.par-ev .val .unit { font-size:11px; color:var(--txt-d); margin-left:2px; font-weight:600; }
+.par-ev .src { font-size:10px; color:var(--txt-d); margin-top:3px; font-weight:600; }
+.par-products-h { font-size:14px; font-weight:800; color:var(--pn); margin:18px 0 12px; padding-left:4px; display:flex; align-items:center; gap:8px; }
+.par-products-h::before { content:''; width:5px; height:16px; background:var(--po); border-radius:3px; }
+.par-products { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:11px; margin-bottom:14px; }
+.par-pcard { background:#fff; border:1px solid var(--bd); border-radius:12px; overflow:hidden; cursor:pointer; transition:all .2s; text-decoration:none; color:inherit; display:block; }
+.par-pcard:hover { border-color:var(--po); transform:translateY(-3px); box-shadow:0 10px 22px rgba(249,115,22,.15); }
+.par-pcard .img { aspect-ratio:1/1; background:#F3F4F6 center/cover no-repeat; position:relative; }
+.par-pcard .role { position:absolute; top:8px; left:8px; padding:3px 8px; background:var(--po); color:#fff; font-size:10px; font-weight:800; border-radius:4px; }
+.par-pcard .ext { position:absolute; bottom:8px; right:8px; padding:3px 7px; background:rgba(15,31,92,.85); color:#fff; font-size:10px; font-weight:800; border-radius:4px; }
 .par-pcard .body { padding:11px 13px 13px; }
-.par-pcard .name { font-size:12.5px; font-weight:700; color:#fff; line-height:1.4; margin-bottom:5px; }
-.par-pcard .price { font-family:'Bebas Neue',sans-serif; font-size:18px; color:var(--jg); }
-.par-pcard .price .won { font-size:11px; color:var(--jtd); margin-left:2px; }
-
+.par-pcard .name { font-size:13px; font-weight:700; color:var(--pn); line-height:1.4; margin-bottom:5px; }
+.par-pcard .price { font-size:18px; color:var(--po-d); font-weight:900; }
+.par-pcard .price .won { font-size:12px; color:var(--txt-d); margin-left:2px; font-weight:600; }
 .par-final-cta { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:18px; }
-.par-final-cta .big { padding:16px 18px; background:linear-gradient(135deg,var(--jg) 0%,#029B47 100%); border:0; border-radius:10px; color:#fff; font-size:13.5px; font-weight:800; cursor:pointer; text-align:center; box-shadow:0 6px 16px rgba(3,199,90,.35); text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
-.par-final-cta .alt { padding:16px 18px; background:rgba(0,229,255,.08); border:1px solid rgba(0,229,255,.4); border-radius:10px; color:var(--jc); font-size:13.5px; font-weight:800; cursor:pointer; text-align:center; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
-.par-final-cta .alt:hover { background:rgba(0,229,255,.18); }
-
-.par-storage-note { padding:11px 14px; background:rgba(0,229,255,.05); border-left:3px solid var(--jc); border-radius:0 6px 6px 0; font-size:11.5px; color:var(--jtd); margin-top:14px; line-height:1.6; }
-
-@media (max-width:720px) {
-  .par { padding:40px 12px 60px; }
-  .par-hero h2 { font-size:21px; }
-  .par-stepper .stp { font-size:10px; padding:6px 9px; }
-  .par-stepper .ar { display:none; }
-  .par-entry { grid-template-columns:1fr; }
-  .par-final-cta { grid-template-columns:1fr; }
-  .par-products { grid-template-columns:repeat(2,1fr); }
-  .par-method h3 { font-size:18px; }
-}
+.par-final-cta .big { padding:18px; background:linear-gradient(135deg,var(--po),var(--po-d)); border:0; border-radius:12px; color:#fff; font-size:14px; font-weight:800; text-align:center; box-shadow:0 6px 18px var(--po-glow); text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+.par-final-cta .alt { padding:18px; background:#fff; border:2px solid var(--pn); border-radius:12px; color:var(--pn); font-size:14px; font-weight:800; text-align:center; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+.par-final-cta .alt:hover { background:var(--pn); color:#fff; }
+.par-storage-note { padding:12px 14px; background:var(--po-l); border-left:3px solid var(--po); border-radius:0 8px 8px 0; font-size:12px; color:var(--txt); margin-top:14px; line-height:1.6; }
+.par-storage-note b { color:var(--po-d); }
+@media (max-width:720px) { .par{padding:40px 12px 60px;} .par-hero h2{font-size:21px;} .par-stepper .stp{font-size:11px; padding:7px 10px;} .par-stepper .ar{display:none;} .par-entry{grid-template-columns:1fr;} .par-final-cta{grid-template-columns:1fr;} .par-products{grid-template-columns:repeat(2,1fr);} .par-method h3{font-size:19px;} }
 </style>
 <section class="par">
   <div class="par-inner">
     <div class="par-hero">
-      <div class="par-core"><div class="ring"></div><div class="ring2"></div><div class="center">P</div></div>
-      <span class="par-kicker"><span class="ld"></span>POUR · DIAGNOSTIC · ENGINE</span>
-      <h2>건물의 고민, <span class="accent">본질부터 진단</span>합니다</h2>
-      <p>// 260만 세대 시공 데이터 + 250+ 파트너사 실전 경험</p>
+      <div class="par-core"><div class="ring"></div><div class="ring2"></div><div class="center">🧭</div></div>
+      <span class="par-kicker"><span class="ld"></span>POUR 길잡이 · 건물 유지보수 안내</span>
+      <h2>어디가 아프세요? <span class="accent">길잡이가 안내해드릴게요</span></h2>
+      <p>260만 세대가 검증한 진단 — 사진 한 장이면 끝나요</p>
     </div>
-
     <div class="par-stepper">
-      <div class="stp" data-stp="1"><span class="num">01</span> 시작</div>
+      <div class="stp" data-stp="1"><span class="num">01</span> 어디가?</div>
       <span class="ar">▸</span>
-      <div class="stp" data-stp="2"><span class="num">02</span> 입력·분석</div>
+      <div class="stp" data-stp="2"><span class="num">02</span> 어떤 증상?</div>
       <span class="ar">▸</span>
-      <div class="stp" data-stp="3"><span class="num">03</span> 진단</div>
+      <div class="stp" data-stp="3"><span class="num">03</span> 길잡이 진단</div>
       <span class="ar">▸</span>
-      <div class="stp" data-stp="4"><span class="num">04</span> 솔루션</div>
+      <div class="stp" data-stp="4"><span class="num">04</span> 추천 자재</div>
     </div>
-
-    <!-- ===== SCREEN 1: 진입 ===== -->
     <div class="par-screen" data-screen="entry">
-      <div class="par-h">어떻게 시작하실까요?</div>
-      <div class="par-sub">// 직접 선택 또는 사진 첨부 — 두 방식 모두 같은 진단을 받을 수 있어요</div>
+      <div class="par-h">어떻게 도와드릴까요?</div>
+      <div class="par-sub">직접 알려주거나, 사진 한 장 보여주시면 길잡이가 살펴봐드릴게요</div>
       <div class="par-entry">
-        <div class="par-entry-card" data-go="manual1">
-          <span class="ic">📋</span>
-          <div class="t">직접 선택</div>
-          <div class="d">건물 유형·문제 부위·증상을<br/>3단계로 빠르게 선택</div>
-          <span class="b">3 STEPS</span>
-        </div>
-        <div class="par-entry-card recommend" data-go="photo">
-          <span class="ic">📷</span>
-          <div class="t">사진으로 진단 (AI)</div>
-          <div class="d">사진 1~5장 업로드<br/>AI가 부위·증상 자동 식별</div>
-          <span class="b">RECOMMEND</span>
-        </div>
+        <div class="par-entry-card" data-go="manual1"><span class="ic">📋</span><div class="t">직접 알려주기</div><div class="d">건물·부위·증상을<br/>3단계로 천천히 선택</div><span class="b">차근차근 3단계</span></div>
+        <div class="par-entry-card recommend" data-go="photo"><span class="ic">📷</span><div class="t">사진 한 장이면 끝</div><div class="d">길잡이가 보고<br/>부위·증상을 자동 진단</div><span class="b">⭐ 추천</span></div>
       </div>
     </div>
-
-    <!-- ===== SCREEN 2: 사진 업로드 ===== -->
     <div class="par-screen" data-screen="photo">
       <button class="par-back" data-back="entry">◂ 처음으로</button>
       <div class="par-block">
-        <div class="par-block-h"><span class="seq">[ STEP 02 · PHOTO ]</span><span class="ttl">사진 업로드</span></div>
+        <div class="par-block-h"><span class="seq">사진 첨부</span><span class="ttl">하자 사진을 보여주세요</span></div>
         <div class="par-upload" id="par-upload-zone">
           <span class="ic">📷</span>
-          <div class="t">사진을 끌어다 놓거나 선택하세요</div>
-          <div class="d">최대 5장 · JPG/PNG · 1장당 10MB 이하</div>
+          <div class="t">사진을 끌어다 놓거나 선택해 주세요</div>
+          <div class="d">최대 5장 · JPG·PNG · 1장당 10MB 이하</div>
           <div class="par-upload-actions">
             <button class="btn" id="par-pick-gallery">🖼 갤러리에서 선택</button>
             <button class="btn" id="par-pick-camera">📸 사진 촬영</button>
@@ -276,100 +208,77 @@
         <div class="par-thumbs" id="par-thumbs"></div>
         <div class="par-thumb-info" id="par-thumb-info" style="display:none;"></div>
         <div class="par-cta-row">
-          <button class="par-cta" id="par-analyze-btn" disabled>AI 분석 시작 →</button>
+          <button class="par-cta" id="par-analyze-btn" disabled>길잡이에게 보여주기 →</button>
           <button class="par-cta-ghost" data-back="entry">취소</button>
         </div>
-        <div class="par-storage-note">
-          🔒 업로드된 사진은 <b>POUR스토어 서버에 보관</b>되며, 분석 정확도 향상 목적으로만 사용됩니다.
-          현재는 데모 단계 — 실제 서버 업로드는 다음 주 배포 후 시작됩니다.
-        </div>
+        <div class="par-storage-note">🔒 보내주신 사진은 <b>POUR스토어 서버에 안전하게 보관</b>되며, 진단 정확도를 높이는 데에만 사용됩니다.</div>
       </div>
     </div>
-
-    <!-- ===== SCREEN 3: 분석 중 ===== -->
     <div class="par-screen" data-screen="analyzing">
       <div class="par-analyzing">
         <div class="par-spinner"></div>
-        <div class="t">POUR AI가 사진을 분석하고 있어요</div>
-        <span class="l ok" id="ana-l1">✓ 사진 업로드 완료</span>
-        <span class="l cur" id="ana-l2">→ 건물 유형 식별 중...</span>
-        <span class="l" id="ana-l3" style="display:none;">→ 문제 부위 식별 중...</span>
-        <span class="l" id="ana-l4" style="display:none;">→ 증상 패턴 매칭 중...</span>
-        <span class="l" id="ana-l5" style="display:none;">→ 시공 데이터 조회 중...</span>
+        <div class="t">길잡이가 살펴보는 중이에요</div>
+        <span class="l ok" id="ana-l1">✓ 사진 잘 받았어요</span>
+        <span class="l cur" id="ana-l2">→ 어떤 건물인지 확인 중...</span>
+        <span class="l" id="ana-l3" style="display:none;">→ 어디가 문제인지 보는 중...</span>
+        <span class="l" id="ana-l4" style="display:none;">→ 증상을 살펴보는 중...</span>
+        <span class="l" id="ana-l5" style="display:none;">→ 비슷한 시공 사례 찾는 중...</span>
       </div>
     </div>
-
-    <!-- ===== SCREEN 4: 분석 결과 확인 ===== -->
     <div class="par-screen" data-screen="photo-result">
       <button class="par-back" data-back="photo">◂ 사진 다시 올리기</button>
       <div class="par-block">
-        <div class="par-block-h"><span class="seq">[ STEP 02 · RESULT ]</span><span class="ttl">AI 분석 결과</span></div>
-        <div class="par-conf">
-          <span class="lbl">▸ 분석 정확도</span>
-          <span class="val" id="par-conf-val">— %</span>
-        </div>
+        <div class="par-block-h"><span class="seq">살펴본 결과</span><span class="ttl">길잡이가 본 결과예요</span></div>
+        <div class="par-conf"><span class="lbl">▸ 정확도</span><span class="val"><span id="par-conf-val">—</span><span class="pct"> %</span></span></div>
         <div class="par-detect">
-          <div class="row"><span class="lbl">BUILDING</span><span class="val" id="par-d-bld">—</span><span class="badge" id="par-d-bld-tag">감지됨</span></div>
-          <div class="row"><span class="lbl">SURFACE</span><span class="val" id="par-d-sur">—</span><span class="badge" id="par-d-sur-tag">감지됨</span></div>
-          <div class="row"><span class="lbl">SYMPTOMS</span><span class="val" id="par-d-sym">—</span><span class="badge" id="par-d-sym-tag">감지됨</span></div>
+          <div class="row"><span class="lbl">어떤 건물</span><span class="val" id="par-d-bld">—</span><span class="badge">확인됨</span></div>
+          <div class="row"><span class="lbl">어디가 문제</span><span class="val" id="par-d-sur">—</span><span class="badge">확인됨</span></div>
+          <div class="row"><span class="lbl">어떤 증상</span><span class="val" id="par-d-sym">—</span><span class="badge">확인됨</span></div>
         </div>
         <div class="par-cta-row">
-          <button class="par-cta" id="par-confirm-go">맞아요 → 진단 보기</button>
-          <button class="par-cta-ghost" data-back="manual1">✏ 직접 선택으로 수정</button>
+          <button class="par-cta" id="par-confirm-go">맞아요, 진단 보기 →</button>
+          <button class="par-cta-ghost" data-back="manual1">✏ 다시 알려줄게요</button>
         </div>
       </div>
     </div>
-
-    <!-- ===== SCREEN M1: 직접 선택 - 건물 유형 ===== -->
     <div class="par-screen" data-screen="manual1">
       <button class="par-back" data-back="entry">◂ 처음으로</button>
       <div class="par-block">
-        <div class="par-block-h"><span class="seq">[ STEP 02 · 1/3 ]</span><span class="ttl">건물 유형</span></div>
-        <div class="par-h" style="text-align:left; margin-bottom:14px;">어떤 건물이세요?</div>
+        <div class="par-block-h"><span class="seq">1 / 3</span><span class="ttl">어떤 건물이세요?</span></div>
         <div class="par-cards" id="par-bld-cards"></div>
       </div>
     </div>
-
-    <!-- ===== SCREEN M2: 직접 선택 - 부위 ===== -->
     <div class="par-screen" data-screen="manual2">
-      <button class="par-back" data-back="manual1">◂ 건물 유형 다시</button>
+      <button class="par-back" data-back="manual1">◂ 건물 다시</button>
       <div class="par-block">
-        <div class="par-block-h"><span class="seq">[ STEP 02 · 2/3 ]</span><span class="ttl">문제 부위</span></div>
-        <div class="par-h" style="text-align:left; margin-bottom:14px;">어디가 문제인가요?</div>
+        <div class="par-block-h"><span class="seq">2 / 3</span><span class="ttl">어디가 문제인가요?</span></div>
         <div class="par-cards" id="par-sur-cards"></div>
       </div>
     </div>
-
-    <!-- ===== SCREEN M3: 직접 선택 - 증상 + 메모 ===== -->
     <div class="par-screen" data-screen="manual3">
       <button class="par-back" data-back="manual2">◂ 부위 다시</button>
       <div class="par-block">
-        <div class="par-block-h"><span class="seq">[ STEP 02 · 3/3 ]</span><span class="ttl">증상</span></div>
-        <div class="par-h" style="text-align:left; margin-bottom:6px;">어떤 증상이 있나요?</div>
-        <div class="par-sub" style="text-align:left; margin-bottom:14px;">// 해당하는 항목을 모두 선택해 주세요 (다중 가능)</div>
+        <div class="par-block-h"><span class="seq">3 / 3</span><span class="ttl">어떤 증상이 있나요?</span></div>
+        <div class="par-sub" style="text-align:left; margin-bottom:14px;">해당하는 항목을 모두 골라주세요 (여러 개 선택 가능)</div>
         <div class="par-symptoms" id="par-sym-list"></div>
-        <div class="par-h" style="text-align:left; margin-bottom:6px; margin-top:18px;">자유 메모 <span style="font-weight:500; font-size:11px; color:var(--jtd);">(선택)</span></div>
+        <div class="par-h" style="text-align:left; margin-bottom:6px; margin-top:18px; font-size:14px;">하실 말씀 있으세요? <span style="font-weight:500; font-size:11.5px; color:var(--txt-d);">(선택)</span></div>
         <textarea class="par-free" id="par-free-memo" placeholder="예: 작년 여름부터 증상 시작, 베란다 쪽이 특히 심해요"></textarea>
         <div class="par-cta-row">
-          <button class="par-cta" id="par-go-diag">진단 보기 →</button>
+          <button class="par-cta" id="par-go-diag">길잡이 진단 보기 →</button>
         </div>
       </div>
     </div>
-
-    <!-- ===== SCREEN: 진단 결과 ===== -->
     <div class="par-screen" data-screen="diagnosis">
       <button class="par-back" id="par-back-diag">◂ 입력 다시</button>
       <div class="par-block">
-        <div class="par-block-h"><span class="seq">[ STEP 03 · 진단 ]</span><span class="ttl">POUR가 분석한 본질</span></div>
+        <div class="par-block-h"><span class="seq">길잡이 진단</span><span class="ttl">왜 이런 일이 생긴 걸까요?</span></div>
         <div class="par-diag-h" id="par-diag-h"></div>
         <ol class="par-points" id="par-diag-points"></ol>
       </div>
       <div class="par-cta-row">
-        <button class="par-cta" id="par-go-sol">맞춤 솔루션 보기 →</button>
+        <button class="par-cta" id="par-go-sol">이렇게 해결하세요 →</button>
       </div>
     </div>
-
-    <!-- ===== SCREEN: 솔루션 + 자사몰 상품 ===== -->
     <div class="par-screen" data-screen="solution">
       <button class="par-back" data-back="diagnosis">◂ 진단으로</button>
       <div class="par-method">
@@ -382,549 +291,59 @@
       <div id="par-sol-products-wrap"></div>
       <div class="par-final-cta">
         <a class="big" id="par-buy-package" href="#" target="_blank" rel="noopener">🛒 패키지 한 번에 구매하기</a>
-        <a class="alt" id="par-consult" href="#" target="_blank" rel="noopener">💬 시공 의뢰 / 상담 신청</a>
+        <a class="alt" id="par-consult" href="#" target="_blank" rel="noopener">💬 시공 의뢰·상담</a>
       </div>
       <div class="par-cta-row" style="margin-top:18px;">
-        <button class="par-cta-ghost" id="par-restart">↻ 다른 고민 분석하기</button>
+        <button class="par-cta-ghost" id="par-restart">↻ 다른 고민 물어보기</button>
       </div>
     </div>
   </div>
 </section>
 <script>
 (function(){
-  // ==================== 데이터 ====================
-  var BLDS = [
-    { id:'apt',   ic:'🏢', name:'아파트 (고층)',     desc:'8층 이상 공동주택, 빌라' },
-    { id:'low',   ic:'🏠', name:'단독·저층 주택',    desc:'단독, 다가구, 빌라 (3층 이하)' },
-    { id:'comm',  ic:'🏬', name:'상가·오피스텔',     desc:'근린상가, 오피스, 학원' },
-    { id:'fact',  ic:'🏭', name:'공장·창고',         desc:'공장 지붕, 창고, 물류센터' },
-    { id:'gov',   ic:'🏛', name:'관공서·학교',       desc:'관공서, 학교, 공공시설' },
-  ];
-  var SURFS = [
-    { id:'roof',     ic:'🏠', name:'옥상·지붕',         desc:'슬라브, 슁글, 기와, 칼라강판' },
-    { id:'wall',     ic:'🧱', name:'외벽',              desc:'균열, 도장, 백화' },
-    { id:'parking',  ic:'🅿️', name:'지하 주차장',       desc:'바닥, 벽체, 천장' },
-    { id:'balcony',  ic:'🏡', name:'발코니·베란다',     desc:'바닥, 벽, 배수' },
-    { id:'drain',    ic:'💧', name:'배수구·배관',       desc:'옥상 드레인, 빗물받이' },
-    { id:'road',     ic:'🛣️', name:'단지내 도로·아스콘', desc:'주차장, 도로 균열·포트홀' },
-    { id:'underg',   ic:'🕳️', name:'지하실·수조',       desc:'배면 누수, 곰팡이' },
-    { id:'etc',      ic:'📐', name:'기타',              desc:'분류가 어려운 경우' },
-  ];
-  var SYMPS = ['누수','균열','박리','부식','강풍 탈락','마모','미끄럼','곰팡이','백화','단차'];
-
-  var PROFILES = [
-    {
-      keys:{ surf:['drain'] },
-      qText:'배수구 쪽에서 물이 새서 누수가 발생합니다.',
-      diagH:'배수구 부식 — <span class="accent">물 접촉 누적</span>이 핵심 원인입니다',
-      diagPoints:[
-        '배수구는 비·눈·결로 등 <b>물 접촉이 가장 활발한</b> 지점입니다.',
-        '장시간 물에 노출되면 콘크리트·금속이 부식되며 <b>주변 방수층이 약해집니다</b>.',
-        '배수가 원활하지 않으면 정체수가 쌓여 <b>슬라브 균열을 가속</b>시킵니다.',
-        '결국 배수구 주변 → 슬라브 균열 → 천장 누수로 진행됩니다.',
-      ],
-      sol:{
-        code:'METHOD-149 · 옥상배관방수트랩',
-        name:'옥상배관방수트랩 공법',
-        summary:'배수구를 일체화 방수트랩으로 교체해 부식·누수를 원천 차단합니다. 배수 효율은 그대로 유지하면서 이음부 봉합으로 정체수와 부식을 동시에 해결합니다.',
-        principles:[
-          '배수구 주변 콘크리트와 트랩을 일체화 시공',
-          '특수 방수재로 이음부 완전 봉합',
-          '배수 효율 유지 + 부식 방지 동시 달성',
-          '시공 후 정기 점검 가이드 제공',
-        ],
-        evidence:[
-          { lbl:'시방서', val:'No.149', src:'POUR솔루션' },
-          { lbl:'시공 사례', val:'700+', unit:'단지', src:'전국' },
-        ],
-        products:[
-          { role:'CORE',   name:'POUR 방수트랩 일체형',   price:'180,000', img:'https://placehold.co/300x300/0F1F5C/03C75A?text=DRAIN', url:'https://www.pourstore.net/product/drain-trap' },
-          { role:'BOND',   name:'POUR하이퍼티 (608% 신장)', price:'68,000',  img:'https://placehold.co/300x300/0F1F5C/03C75A?text=HYPER', url:'https://www.pourstore.net/product/hyper-t' },
-          { role:'FINISH', name:'POUR코트재 마감',        price:'95,000',  img:'https://placehold.co/300x300/0F1F5C/03C75A?text=COAT',  url:'https://www.pourstore.net/product/coat' },
-        ],
-        packageUrl:'https://www.pourstore.net/category/drain-package',
-        consultUrl:'https://www.poursolution.net/163',
-      },
-    },
-    {
-      keys:{ bld:['apt'], surf:['roof'], symp:['강풍 탈락'] },
-      qText:'고층 아파트 지붕 슁글이 자꾸 떨어져요.',
-      diagH:'슁글의 본래 용도 — <span class="accent">미국 저층 목조주택</span>용 마감재입니다',
-      diagPoints:[
-        '아스팔트 슁글은 <b>미관 향상 목적</b>의 목조 지붕 마감재입니다.',
-        '국내 고층 아파트(8층 이상)에 시공 시 <b>강풍에 쉽게 탈락</b>합니다.',
-        '풍속 30m/s 이상에서 탈락 시작 → 추락·후속 누수가 동반 발생합니다.',
-        '단순 재부착이 아닌 <b>일체화 방식</b>이 필요합니다.',
-      ],
-      sol:{
-        code:'METHOD-128 · 복합시트방수공법',
-        name:'아스팔트슁글 복합시트방수',
-        summary:'시트와 도료로 슁글·슬라브를 완전 일체화시켜 탈락을 차단하고 방수층을 동시에 확보합니다. POUR HOOKER로 후레싱까지 견고히 고정합니다.',
-        principles:[
-          '슁글 위에 POUR슈퍼복합압축시트 부착 (니들펀칭 공정)',
-          '도료로 시트 ↔ 슁글 ↔ 슬라브 완전 일체화',
-          'POUR HOOKER 특허 후레싱 고정으로 강풍 대응',
-          '6차 방수 공정 — 표면강화함침부터 상도까지',
-        ],
-        evidence:[
-          { lbl:'인장강도', val:'11.4', unit:'N/mm²', src:'KTR · 타사 10배' },
-          { lbl:'시방서', val:'No.128', src:'POUR솔루션' },
-        ],
-        products:[
-          { role:'CORE',   name:'POUR슈퍼복합압축시트', price:'450,000', img:'https://placehold.co/300x300/0F1F5C/03C75A?text=SHEET',  url:'https://www.pourstore.net/product/composite-sheet' },
-          { role:'BOND',   name:'POUR코트재 (KS 4배)',  price:'280,000', img:'https://placehold.co/300x300/0F1F5C/03C75A?text=COAT',   url:'https://www.pourstore.net/product/coat' },
-          { role:'FIX',    name:'POUR HOOKER (특허)',   price:'120,000', img:'https://placehold.co/300x300/0F1F5C/03C75A?text=HOOKER', url:'https://www.pourstore.net/product/hooker' },
-        ],
-        packageUrl:'https://www.pourstore.net/category/shingle-package',
-        consultUrl:'https://www.poursolution.net/163',
-      },
-    },
-    {
-      keys:{ surf:['roof'] },
-      qText:'옥상 슬라브에서 물이 새고 콘크리트에 잔금이 많아요.',
-      diagH:'슬라브 노후화 — <span class="accent">콘크리트 중성화</span>가 진행 중입니다',
-      diagPoints:[
-        '시간이 지나면 콘크리트가 <b>이산화탄소와 반응해 알칼리성을 잃습니다</b>.',
-        '내부 철근이 부식되며 <b>균열·박리</b>가 가속됩니다.',
-        '단순 표면 도장만으로는 1~2년 내 재발합니다.',
-        '바탕면 강화 + 듀얼 방수 + 환기 처리가 함께 필요합니다.',
-      ],
-      sol:{
-        code:'METHOD-132 · 슬라브 듀얼강화방수',
-        name:'슬라브 듀얼강화방수공법',
-        summary:'모체강화부터 듀얼복합시트, 페이퍼팬벤트 환기, 코트재 마감까지 6가지 핵심 처리를 한 번에 진행합니다. KTR 공인 인장강도 5.8N/mm²의 코트재로 마감합니다.',
-        principles:[
-          'POUR모체강화함침 — 노후 콘크리트 강화',
-          '듀얼복합시트 + 슈퍼복합압축시트 이중 방수',
-          'POUR페이퍼팬벤트로 내부 습기 무동력 배출',
-          'POUR코트재 마감 — 일사반사율 91.8%',
-        ],
-        evidence:[
-          { lbl:'인장강도', val:'5.8', unit:'N/mm²', src:'KTR · KS 4배' },
-          { lbl:'중성화', val:'0.3', unit:'mm', src:'KTR' },
-        ],
-        products:[
-          { role:'BASE', name:'POUR모체강화함침',  price:'180,000', img:'https://placehold.co/300x300/0F1F5C/03C75A?text=BASE', url:'https://www.pourstore.net/product/base' },
-          { role:'CORE', name:'듀얼복합시트',      price:'520,000', img:'https://placehold.co/300x300/0F1F5C/03C75A?text=DUAL', url:'https://www.pourstore.net/product/dual-sheet' },
-          { role:'VENT', name:'POUR페이퍼팬벤트',  price:'95,000',  img:'https://placehold.co/300x300/0F1F5C/03C75A?text=VENT', url:'https://www.pourstore.net/product/vent' },
-        ],
-        packageUrl:'https://www.pourstore.net/category/slab-package',
-        consultUrl:'https://www.poursolution.net/163',
-      },
-    },
-    {
-      keys:{ surf:['wall'] },
-      qText:'외벽에 균열이 생겨 도색을 다시 해야 할 것 같습니다.',
-      diagH:'외벽 균열 — <span class="accent">단순 도색은 1~2년 후 재발</span>합니다',
-      diagPoints:[
-        '온도 변화로 콘크리트가 <b>수축·팽창을 반복</b>하며 미세 균열이 생깁니다.',
-        '미세 균열 → 빗물 침투 → 철근 부식 → 도장 박리로 진행됩니다.',
-        '단순 재도장은 균열을 가리기만 할 뿐 곧 재발합니다.',
-        '균열 보수 + 탄성 도료 + 차열 처리가 함께 필요합니다.',
-      ],
-      sol:{
-        code:'METHOD-139 · 바인더+플러스 (고급형)',
-        name:'균열보수 + 재도장 (바인더+플러스)',
-        summary:'POUR하이퍼티로 균열을 봉합한 후 플러스 코트로 탄성·차열을 동시에 강화합니다. 신장률 519%로 수성 1급 대비 5배 내구성을 확보합니다.',
-        principles:[
-          'POUR하이퍼티 — 600%급 초고신율로 미세 균열 봉합',
-          '플러스 코트로 탄성·차열·중성화 방지 통합',
-          '중성화 깊이 0.0mm — 콘크리트 수명 연장',
-        ],
-        evidence:[
-          { lbl:'신장률', val:'519', unit:'%', src:'KTR · 5배' },
-          { lbl:'중성화', val:'0.0', unit:'mm', src:'KTR' },
-        ],
-        products:[
-          { role:'CORE', name:'POUR하이퍼티 (608%)',  price:'180,000', img:'https://placehold.co/300x300/0F1F5C/03C75A?text=HYPER',  url:'https://www.pourstore.net/product/hyper-t' },
-          { role:'COAT', name:'POUR 플러스 코트',     price:'320,000', img:'https://placehold.co/300x300/0F1F5C/03C75A?text=PLUS',   url:'https://www.pourstore.net/product/plus' },
-          { role:'BIND', name:'POUR 바인더',          price:'180,000', img:'https://placehold.co/300x300/0F1F5C/03C75A?text=BINDER', url:'https://www.pourstore.net/product/binder' },
-        ],
-        packageUrl:'https://www.pourstore.net/category/wall-package',
-        consultUrl:'https://www.poursolution.net/163',
-      },
-    },
-    {
-      keys:{ surf:['parking'] },
-      qText:'지하주차장 바닥이 갈라지고 페인트가 벗겨져요.',
-      diagH:'에폭시 도장 노후화 — <span class="accent">반복 하중·결로</span>가 원인입니다',
-      diagPoints:[
-        '차량 반복 하중·회전 마찰로 도장면이 마모됩니다.',
-        '결로·습기 침투로 바탕면이 박리됩니다.',
-        '소음·미세분진 발생 + 미관 저하가 동반됩니다.',
-        '<b>마모 저항 + 미끄럼 방지</b> 도장이 필요합니다.',
-      ],
-      sol:{
-        code:'METHOD-125 · 에폭시 도장공법',
-        name:'에폭시 + 엠보라이닝 도장',
-        summary:'압축강도 85.9N/mm² 고강도 에폭시 본도장 + 엠보라이닝으로 미끄럼 저항·반복 하중을 동시에 대응합니다.',
-        principles:[
-          '바탕면 면처리 + 프라이머 (KTR 부착강도 2.3MPa)',
-          '에폭시 본도장 — 압축강도 85.9N/mm²',
-          '엠보라이닝 — 써밋비드로 미끄럼 저항 강화',
-          '내마모성 76mg — 반복 차량 하중 대응',
-        ],
-        evidence:[
-          { lbl:'압축강도', val:'85.9', unit:'N/mm²', src:'KTR' },
-          { lbl:'부착강도', val:'2.3', unit:'MPa', src:'KTR' },
-          { lbl:'내마모성', val:'76', unit:'mg', src:'KTR' },
-        ],
-        products:[
-          { role:'PRIME', name:'POUR 에폭시 프라이머', price:'140,000', img:'https://placehold.co/300x300/0F1F5C/03C75A?text=PRIMER', url:'https://www.pourstore.net/product/epoxy-primer' },
-          { role:'CORE',  name:'POUR 에폭시 본도장',   price:'380,000', img:'https://placehold.co/300x300/0F1F5C/03C75A?text=EPOXY',  url:'https://www.pourstore.net/product/epoxy' },
-          { role:'TOP',   name:'엠보라이닝 코트',       price:'220,000', img:'https://placehold.co/300x300/0F1F5C/03C75A?text=EMBO',   url:'https://www.pourstore.net/product/embo' },
-        ],
-        packageUrl:'https://www.pourstore.net/category/parking-package',
-        consultUrl:'https://www.poursolution.net/168',
-      },
-    },
-    {
-      keys:{ surf:['underg'] },
-      qText:'지하실 벽에서 물이 스며 나오고 곰팡이가 생깁니다.',
-      diagH:'지하 배면 누수 — <span class="accent">표면 처리만으로는 막을 수 없습니다</span>',
-      diagPoints:[
-        '지하는 토압 + 지하수가 콘크리트 <b>뒷면에서 밀려옵니다</b>.',
-        '내부 표면 도장은 곧 부풀어 오르고 떨어집니다.',
-        '아크릴계 방수재를 <b>초고압 주입</b>해 콘크리트 뒷면에 새 방수층을 형성해야 합니다.',
-        '국토교통부 지정 건설신기술로 검증된 공법입니다.',
-      ],
-      sol:{
-        code:'METHOD-137 · 아크릴배면차수공법',
-        name:'아크릴배면차수공법',
-        summary:'2액형 아크릴계 방수재를 초고압으로 콘크리트 배면에 주입해 새 방수층을 형성합니다.',
-        principles:[
-          '구조물 외부에서 직접 닿지 않아도 가능',
-          '초고압 주입으로 균열·공극까지 충진',
-          '국토교통부 건설신기술 1026호 (PVC 결합)',
-          '지하주차장·수조·정수장 적용 가능',
-        ],
-        evidence:[
-          { lbl:'건설신기술', val:'1026', unit:'호', src:'국토교통부' },
-        ],
-        products:[
-          { role:'CORE',  name:'2액형 아크릴 방수재', price:'380,000', img:'https://placehold.co/300x300/0F1F5C/03C75A?text=ACRYLIC', url:'https://www.pourstore.net/product/acrylic' },
-          { role:'EQUIP', name:'초고압 주입 시공',     price:'견적',     img:'https://placehold.co/300x300/0F1F5C/03C75A?text=PUMP',    url:'https://www.poursolution.net/137' },
-        ],
-        packageUrl:'https://www.pourstore.net/category/underground-package',
-        consultUrl:'https://www.poursolution.net/168',
-      },
-    },
-    {
-      keys:{ surf:['road'] },
-      qText:'단지 내 도로 아스팔트가 갈라지고 구멍이 생겼어요.',
-      diagH:'아스팔트 노후화 — <span class="accent">층간 결합 불량</span>이 원인입니다',
-      diagPoints:[
-        '시간이 지나면 아스팔트는 <b>유연성을 잃고 균열</b>이 생깁니다.',
-        '균열로 빗물이 침투해 <b>포트홀</b>로 발전합니다.',
-        '단순 패치 시공은 6개월 내 재발합니다.',
-        '<b>POUR아스콘 + 균열보수</b> 통합 시공이 필요합니다.',
-      ],
-      sol:{
-        code:'METHOD-167 · POUR아스팔트도로포장',
-        name:'POUR아스콘 도로포장공법',
-        summary:'아스팔트 균열 보수와 도로포장을 통합 처리합니다. 층간 결합 강화로 포트홀 재발을 방지합니다.',
-        principles:[
-          '균열 부위 절단 후 클리닝',
-          'POUR 아스콘 채움재로 균열 봉합',
-          '신규 아스팔트 포장 — 층간 결합 강화',
-          '주차장·단지내 도로 적용 가능',
-        ],
-        evidence:[
-          { lbl:'시방서', val:'No.167', src:'POUR솔루션' },
-        ],
-        products:[
-          { role:'PATCH', name:'POUR 아스팔트균열보수재', price:'120,000', img:'https://placehold.co/300x300/0F1F5C/03C75A?text=PATCH',   url:'https://www.pourstore.net/product/asphalt-patch' },
-          { role:'CORE',  name:'POUR 아스콘',             price:'견적',     img:'https://placehold.co/300x300/0F1F5C/03C75A?text=ASCON',  url:'https://www.poursolution.net/167' },
-        ],
-        packageUrl:'https://www.pourstore.net/category/road-package',
-        consultUrl:'https://www.poursolution.net/163',
-      },
-    },
-    {
-      // 기본 fallback
-      keys:{},
-      qText:'건물에 노후 문제가 있습니다. 진단을 받아보고 싶어요.',
-      diagH:'노후 콘크리트 — <span class="accent">중성화·균열</span>이 진행 중입니다',
-      diagPoints:[
-        '대부분의 건물 노후 문제는 <b>콘크리트 중성화</b>에서 시작됩니다.',
-        '중성화 → 미세 균열 → 빗물 침투 → 철근 부식 순으로 진행됩니다.',
-        '표면 처리만으로는 근본 해결이 어렵고 재발합니다.',
-        '<b>모체 강화 + 균열 보수 + 마감 보호</b> 3단계가 함께 필요합니다.',
-      ],
-      sol:{
-        code:'POUR 종합진단 패키지',
-        name:'맞춤 진단 + 패키지 추천',
-        summary:'정확한 진단을 위해 전문가가 현장을 방문해 분석하고 맞춤 패키지를 제안드립니다.',
-        principles:[
-          '현장 방문 진단 (무료)',
-          '시공 데이터 기반 맞춤 패키지 산출',
-          '700+ 단지 시공 사례 참고',
-          '시공 후 사후 관리 가이드 제공',
-        ],
-        evidence:[
-          { lbl:'누적 시공', val:'2.6M', unit:'세대', src:'전국' },
-          { lbl:'특허·인증', val:'70+', unit:'건', src:'KTR/KCL' },
-        ],
-        products:[
-          { role:'CORE', name:'POUR하이퍼티',  price:'180,000', img:'https://placehold.co/300x300/0F1F5C/03C75A?text=HYPER', url:'https://www.pourstore.net/product/hyper-t' },
-          { role:'COAT', name:'POUR코트재',     price:'95,000',  img:'https://placehold.co/300x300/0F1F5C/03C75A?text=COAT',  url:'https://www.pourstore.net/product/coat' },
-        ],
-        packageUrl:'https://www.pourstore.net/category/general',
-        consultUrl:'https://www.poursolution.net/163',
-      },
-    },
-  ];
-
-  // ==================== 상태 ====================
-  var state = { screen:'entry', photos:[], detected:null, choice:{ bld:null, surf:null, syms:[], memo:'' } };
-  var root = document.querySelector('.par');
-
-  function show(name) {
-    state.screen = name;
-    root.querySelectorAll('.par-screen').forEach(function(s){
-      s.classList.toggle('active', s.dataset.screen === name);
-    });
-    var stepIdx = ({ entry:1, photo:2, analyzing:2, 'photo-result':2, manual1:2, manual2:2, manual3:2, diagnosis:3, solution:4 })[name] || 1;
-    root.querySelectorAll('.par-stepper .stp').forEach(function(el, i){
-      el.classList.remove('active', 'done');
-      if (i + 1 < stepIdx) el.classList.add('done');
-      else if (i + 1 === stepIdx) el.classList.add('active');
-    });
-    try { window.scrollTo({ top: root.offsetTop - 20, behavior:'smooth' }); } catch(e){}
-  }
-
-  // ==================== 진입 카드 ====================
-  root.querySelectorAll('[data-go]').forEach(function(el){
-    el.addEventListener('click', function(){ show(el.dataset.go); });
-  });
-  root.querySelectorAll('[data-back]').forEach(function(el){
-    el.addEventListener('click', function(){ show(el.dataset.back); });
-  });
-
-  // ==================== 사진 업로드 ====================
-  var uploadZone = root.querySelector('#par-upload-zone');
-  var galleryInput = root.querySelector('#par-file-gallery');
-  var cameraInput = root.querySelector('#par-file-camera');
-  var thumbsEl = root.querySelector('#par-thumbs');
-  var thumbInfo = root.querySelector('#par-thumb-info');
-  var analyzeBtn = root.querySelector('#par-analyze-btn');
-
-  root.querySelector('#par-pick-gallery').addEventListener('click', function(e){ e.stopPropagation(); galleryInput.click(); });
-  root.querySelector('#par-pick-camera').addEventListener('click', function(e){ e.stopPropagation(); cameraInput.click(); });
-  uploadZone.addEventListener('click', function(e){
-    if (e.target.closest('button')) return;
-    galleryInput.click();
-  });
-  galleryInput.addEventListener('change', function(e){ addPhotos(e.target.files); e.target.value = ''; });
-  cameraInput.addEventListener('change', function(e){ addPhotos(e.target.files); e.target.value = ''; });
-
-  ['dragenter','dragover'].forEach(function(ev){
-    uploadZone.addEventListener(ev, function(e){ e.preventDefault(); uploadZone.classList.add('drag'); });
-  });
-  ['dragleave','drop'].forEach(function(ev){
-    uploadZone.addEventListener(ev, function(e){ e.preventDefault(); uploadZone.classList.remove('drag'); });
-  });
-  uploadZone.addEventListener('drop', function(e){ if (e.dataTransfer.files) addPhotos(e.dataTransfer.files); });
-
-  function addPhotos(files) {
-    var arr = Array.from(files);
-    arr.forEach(function(f){
-      if (state.photos.length >= 5) return;
-      if (!/^image\\//.test(f.type)) return;
-      if (f.size > 10 * 1024 * 1024) return;
-      var url = URL.createObjectURL(f);
-      state.photos.push({ name: f.name, size: f.size, url: url });
-    });
-    renderThumbs();
-  }
-  function renderThumbs() {
-    thumbsEl.innerHTML = '';
-    state.photos.forEach(function(p, i){
-      var t = document.createElement('div');
-      t.className = 'par-thumb';
-      t.innerHTML = '<img src="' + p.url + '" alt=""/><span class="num">' + String(i + 1).padStart(2, '0') + '</span><button class="rm" data-i="' + i + '">×</button>';
-      thumbsEl.appendChild(t);
-    });
-    if (state.photos.length < 5) {
-      var add = document.createElement('div');
-      add.className = 'par-thumb-add';
-      add.textContent = '+';
-      add.addEventListener('click', function(){ galleryInput.click(); });
-      thumbsEl.appendChild(add);
-    }
-    thumbsEl.querySelectorAll('.rm').forEach(function(btn){
-      btn.addEventListener('click', function(e){
-        e.stopPropagation();
-        var i = parseInt(btn.dataset.i, 10);
-        URL.revokeObjectURL(state.photos[i].url);
-        state.photos.splice(i, 1);
-        renderThumbs();
-      });
-    });
-    thumbInfo.style.display = state.photos.length ? 'block' : 'none';
-    thumbInfo.textContent = '// 업로드된 사진 ' + state.photos.length + ' / 5';
-    analyzeBtn.disabled = state.photos.length === 0;
-  }
-
-  // ==================== 분석 (모킹) ====================
-  analyzeBtn.addEventListener('click', function(){
-    show('analyzing');
-    var ls = ['ana-l1','ana-l2','ana-l3','ana-l4','ana-l5'];
-    var i = 1;
-    function step() {
-      if (i >= ls.length) { finishAnalysis(); return; }
-      var prev = root.querySelector('#' + ls[i - 1]);
-      if (prev) { prev.classList.remove('cur'); prev.classList.add('ok'); prev.innerHTML = prev.innerHTML.replace('→', '✓'); }
-      var cur = root.querySelector('#' + ls[i]);
-      if (cur) { cur.style.display = 'block'; cur.classList.add('cur'); }
-      i++;
-      setTimeout(step, 700);
-    }
-    setTimeout(step, 700);
-  });
-
-  function finishAnalysis() {
-    // 모킹: 사진 수 + 시간 기반으로 결정적 매핑
-    var idx = state.photos.length % PROFILES.length;
-    var profile = PROFILES[idx];
-    var bld = (profile.keys.bld && BLDS.find(function(b){ return b.id === profile.keys.bld[0]; })) || BLDS[Math.floor(Math.random() * BLDS.length)];
-    var sur = (profile.keys.surf && SURFS.find(function(s){ return s.id === profile.keys.surf[0]; })) || SURFS[Math.floor(Math.random() * SURFS.length)];
-    var syms = (profile.keys.symp || ['누수', '균열']).slice(0, 2);
-    var conf = 82 + Math.floor(Math.random() * 12);
-    state.detected = { bld: bld, sur: sur, syms: syms, conf: conf, profile: profile };
-    root.querySelector('#par-conf-val').textContent = conf + ' %';
-    root.querySelector('#par-d-bld').textContent = bld.ic + ' ' + bld.name;
-    root.querySelector('#par-d-sur').textContent = sur.ic + ' ' + sur.name;
-    root.querySelector('#par-d-sym').textContent = syms.join(', ');
-    show('photo-result');
-  }
-
-  root.querySelector('#par-confirm-go').addEventListener('click', function(){
-    var d = state.detected;
-    if (!d) return;
-    state.choice = { bld: d.bld.id, surf: d.sur.id, syms: d.syms, memo: '' };
-    runDiagnosis(d.profile);
-  });
-
-  // ==================== 직접 선택 카드 ====================
-  function renderCards(target, items, onPick) {
-    var el = root.querySelector(target);
-    el.innerHTML = '';
-    items.forEach(function(it){
-      var c = document.createElement('button');
-      c.className = 'par-card';
-      c.innerHTML = '<span class="ic">' + it.ic + '</span><div class="ttl">' + it.name + '</div><div class="desc">' + it.desc + '</div>';
-      c.addEventListener('click', function(){ onPick(it); });
-      el.appendChild(c);
-    });
-  }
-  renderCards('#par-bld-cards', BLDS, function(b){ state.choice.bld = b.id; show('manual2'); });
-  renderCards('#par-sur-cards', SURFS, function(s){ state.choice.surf = s.id; show('manual3'); });
-
-  // 증상 칩
-  var symList = root.querySelector('#par-sym-list');
-  SYMPS.forEach(function(s){
-    var b = document.createElement('button');
-    b.className = 'par-sym';
-    b.textContent = s;
-    b.addEventListener('click', function(){
-      b.classList.toggle('on');
-      var i = state.choice.syms.indexOf(s);
-      if (i >= 0) state.choice.syms.splice(i, 1);
-      else state.choice.syms.push(s);
-    });
-    symList.appendChild(b);
-  });
-
-  root.querySelector('#par-go-diag').addEventListener('click', function(){
-    state.choice.memo = (root.querySelector('#par-free-memo').value || '').trim();
-    var profile = matchProfile(state.choice);
-    runDiagnosis(profile);
-  });
-
-  function matchProfile(c) {
-    // 부위 우선 매칭
-    for (var i = 0; i < PROFILES.length; i++) {
-      var p = PROFILES[i];
-      if (!p.keys || !p.keys.surf) continue;
-      if (p.keys.surf.indexOf(c.surf) === -1) continue;
-      // 건물 키 있으면 일치 여부 확인 (없으면 통과)
-      if (p.keys.bld && p.keys.bld.indexOf(c.bld) === -1) continue;
-      // 증상 키 있으면 일부 일치 확인
-      if (p.keys.symp && c.syms && !p.keys.symp.some(function(k){ return c.syms.indexOf(k) !== -1; })) continue;
-      return p;
-    }
-    return PROFILES[PROFILES.length - 1]; // fallback
-  }
-
-  // ==================== 진단·솔루션 렌더 ====================
-  function runDiagnosis(profile) {
-    state.profile = profile;
-    var bld = BLDS.find(function(b){ return b.id === state.choice.bld; }) || { name: '' };
-    var sur = SURFS.find(function(s){ return s.id === state.choice.surf; }) || { name: '' };
-    root.querySelector('#par-diag-h').innerHTML = profile.diagH;
-    var ol = root.querySelector('#par-diag-points');
-    ol.innerHTML = '';
-    profile.diagPoints.forEach(function(pt){
-      var li = document.createElement('li');
-      li.innerHTML = pt;
-      ol.appendChild(li);
-    });
-    show('diagnosis');
-  }
-
-  root.querySelector('#par-go-sol').addEventListener('click', function(){
-    var s = (state.profile || PROFILES[0]).sol;
-    root.querySelector('#par-sol-code').textContent = s.code;
-    root.querySelector('#par-sol-name').textContent = s.name;
-    root.querySelector('#par-sol-summary').textContent = s.summary;
-    var pr = root.querySelector('#par-sol-principles');
-    pr.innerHTML = '';
-    s.principles.forEach(function(t){
-      var d = document.createElement('div');
-      d.className = 'pr';
-      d.innerHTML = '<span class="dot"></span><span>' + t + '</span>';
-      pr.appendChild(d);
-    });
-    var ev = root.querySelector('#par-sol-evidence');
-    ev.innerHTML = '';
-    s.evidence.forEach(function(e){
-      var b = document.createElement('div');
-      b.className = 'par-ev';
-      b.innerHTML = '<div class="lbl">' + e.lbl + '</div><div class="val">' + e.val + (e.unit ? '<span class="unit">' + e.unit + '</span>' : '') + '</div>' + (e.src ? '<div class="src">— ' + e.src + '</div>' : '');
-      ev.appendChild(b);
-    });
-    var pwrap = root.querySelector('#par-sol-products-wrap');
-    pwrap.innerHTML = '<div class="par-products-h">추천 자재 패키지 (' + s.products.length + '종) — 카드 클릭 → 자사몰</div><div class="par-products" id="par-sol-products"></div>';
-    var pgrid = pwrap.querySelector('#par-sol-products');
-    s.products.forEach(function(pd){
-      var a = document.createElement('a');
-      a.className = 'par-pcard';
-      a.href = pd.url;
-      a.target = '_blank';
-      a.rel = 'noopener';
-      a.innerHTML = '<div class="img" style="background-image:url(\\'' + pd.img + '\\')"><span class="role">' + pd.role + '</span><span class="ext">↗ STORE</span></div><div class="body"><div class="name">' + pd.name + '</div><div class="price">' + pd.price + '<span class="won">원</span></div></div>';
-      pgrid.appendChild(a);
-    });
-    root.querySelector('#par-buy-package').setAttribute('href', s.packageUrl || 'https://www.pourstore.net');
-    root.querySelector('#par-consult').setAttribute('href', s.consultUrl || 'https://www.poursolution.net/163');
-    show('solution');
-  });
-
-  root.querySelector('#par-back-diag').addEventListener('click', function(){
-    show(state.photos.length ? 'photo-result' : 'manual3');
-  });
-  root.querySelector('#par-restart').addEventListener('click', function(){
-    state.photos.forEach(function(p){ try{ URL.revokeObjectURL(p.url); }catch(e){} });
-    state = { screen:'entry', photos:[], detected:null, choice:{ bld:null, surf:null, syms:[], memo:'' } };
-    renderThumbs();
-    root.querySelectorAll('.par-sym.on').forEach(function(b){ b.classList.remove('on'); });
-    var memo = root.querySelector('#par-free-memo'); if (memo) memo.value = '';
-    show('entry');
-  });
-
-  // 초기화
-  show('entry');
+var BLDS=[{id:'apt',ic:'🏢',name:'아파트 (고층)',desc:'8층 이상 공동주택, 고층 빌라'},{id:'low',ic:'🏠',name:'단독·저층 주택',desc:'단독, 다가구, 저층 빌라'},{id:'comm',ic:'🏬',name:'상가·오피스텔',desc:'근린상가, 오피스, 학원'},{id:'fact',ic:'🏭',name:'공장·창고',desc:'공장 지붕, 창고, 물류센터'},{id:'gov',ic:'🏛',name:'관공서·학교',desc:'관공서, 학교, 공공시설'}];
+var SURFS=[{id:'roof',ic:'🏠',name:'옥상·지붕',desc:'슬라브, 슁글, 기와, 칼라강판'},{id:'wall',ic:'🧱',name:'외벽',desc:'균열, 도장, 백화'},{id:'parking',ic:'🅿️',name:'지하 주차장',desc:'바닥, 벽체, 천장'},{id:'balcony',ic:'🏡',name:'발코니·베란다',desc:'바닥, 벽, 배수'},{id:'drain',ic:'💧',name:'배수구·배관',desc:'옥상 드레인, 빗물받이'},{id:'road',ic:'🛣️',name:'단지내 도로',desc:'주차장, 도로 균열·포트홀'},{id:'underg',ic:'🕳️',name:'지하실·수조',desc:'배면 누수, 곰팡이'},{id:'etc',ic:'📐',name:'기타',desc:'분류가 어려운 경우'}];
+var SYMPS=['누수','균열','박리','부식','강풍 탈락','마모','미끄럼','곰팡이','백화','단차'];
+var PROFILES=[
+{keys:{surf:['drain']},qText:'배수구 쪽에서 물이 새서 누수가 생겼어요.',diagH:'배수구 부식 — <span class="accent">물이 자주 닿아서</span> 생긴 문제예요',diagPoints:['배수구는 비·눈·결로 등 <b>물이 가장 자주 닿는</b> 곳이에요.','오랫동안 물에 노출되면 콘크리트와 금속이 <b>녹슬고 약해집니다</b>.','배수가 막히면 고인 물이 <b>슬라브 균열을 더 빨리 만들어요</b>.','결국 배수구 → 슬라브 균열 → 천장 누수까지 진행돼요.'],sol:{code:'METHOD-149',name:'옥상배관방수트랩 공법',summary:'배수구를 일체화 방수트랩으로 바꿔서 부식과 누수를 한 번에 해결합니다.',principles:['배수구 주변 콘크리트와 트랩을 한 덩어리로 시공','특수 방수재로 이음부를 완전히 막음','배수 효율은 그대로, 부식만 차단','시공 후 정기 점검 가이드 함께 제공'],evidence:[{lbl:'시방서',val:'No.149',src:'POUR솔루션'},{lbl:'시공 사례',val:'700+',unit:'단지',src:'전국'}],products:[{role:'CORE',name:'POUR 방수트랩 일체형',price:'180,000',img:'https://placehold.co/300x300/F97316/fff?text=DRAIN',url:'https://www.pourstore.net/product/drain-trap'},{role:'BOND',name:'POUR하이퍼티 (608% 신장)',price:'68,000',img:'https://placehold.co/300x300/F97316/fff?text=HYPER',url:'https://www.pourstore.net/product/hyper-t'},{role:'FINISH',name:'POUR코트재 마감',price:'95,000',img:'https://placehold.co/300x300/F97316/fff?text=COAT',url:'https://www.pourstore.net/product/coat'}],packageUrl:'https://www.pourstore.net/category/drain-package',consultUrl:'https://www.poursolution.net/163'}},
+{keys:{bld:['apt'],surf:['roof'],symp:['강풍 탈락']},qText:'고층 아파트 지붕 슁글이 자꾸 떨어져요.',diagH:'슁글의 본래 용도 — <span class="accent">미국 저층 목조주택</span>용이었어요',diagPoints:['아스팔트 슁글은 원래 <b>미국 저층 목조주택의 미관용</b> 마감재예요.','국내 고층 아파트에 쓰면 <b>강풍에 쉽게 떨어져요</b>.','풍속 30m/s 이상이면 떨어지기 시작 → 추락·누수 위험이 같이 와요.','단순 재부착이 아니라 <b>건물과 한 덩어리로 만드는 방식</b>이 필요해요.'],sol:{code:'METHOD-128',name:'복합시트방수공법',summary:'시트와 도료로 슁글·슬라브를 완전히 일체화시켜 떨어지는 것을 막고 방수까지 같이 해결합니다.',principles:['슁글 위에 POUR슈퍼복합압축시트 부착','도료로 시트·슁글·슬라브를 한 덩어리로','POUR HOOKER 특허로 후레싱 단단히 고정','6단계 방수 공정'],evidence:[{lbl:'인장강도',val:'11.4',unit:'N/mm²',src:'KTR · 타사 10배'},{lbl:'시방서',val:'No.128',src:'POUR솔루션'}],products:[{role:'CORE',name:'POUR슈퍼복합압축시트',price:'450,000',img:'https://placehold.co/300x300/F97316/fff?text=SHEET',url:'https://www.pourstore.net/product/composite-sheet'},{role:'BOND',name:'POUR코트재',price:'280,000',img:'https://placehold.co/300x300/F97316/fff?text=COAT',url:'https://www.pourstore.net/product/coat'},{role:'FIX',name:'POUR HOOKER',price:'120,000',img:'https://placehold.co/300x300/F97316/fff?text=HOOKER',url:'https://www.pourstore.net/product/hooker'}],packageUrl:'https://www.pourstore.net/category/shingle-package',consultUrl:'https://www.poursolution.net/163'}},
+{keys:{surf:['roof']},qText:'옥상 슬라브에서 물이 새고 콘크리트에 잔금이 많아요.',diagH:'슬라브 노후화 — <span class="accent">콘크리트가 늙어가는 중</span>이에요',diagPoints:['시간이 지나면 콘크리트가 <b>공기와 반응해 약해져요</b>.','안에 있는 철근이 녹슬며 <b>균열·박리</b>가 빨라집니다.','단순 도장만으로는 1~2년 안에 다시 똑같이 됩니다.','<b>바탕면 강화 + 듀얼 방수 + 환기 처리</b>가 함께 필요해요.'],sol:{code:'METHOD-132',name:'슬라브 듀얼강화방수공법',summary:'바탕면 강화부터 듀얼복합시트, 페이퍼팬벤트 환기, 코트재 마감까지 6가지를 한 번에 처리합니다.',principles:['POUR모체강화함침 — 늙은 콘크리트 강화','듀얼복합시트 + 슈퍼복합압축시트 이중 방수','POUR페이퍼팬벤트로 내부 습기 자연 배출','POUR코트재 마감 — 일사반사율 91.8%'],evidence:[{lbl:'인장강도',val:'5.8',unit:'N/mm²',src:'KTR · KS 4배'},{lbl:'중성화',val:'0.3',unit:'mm',src:'KTR'}],products:[{role:'BASE',name:'POUR모체강화함침',price:'180,000',img:'https://placehold.co/300x300/F97316/fff?text=BASE',url:'https://www.pourstore.net/product/base'},{role:'CORE',name:'듀얼복합시트',price:'520,000',img:'https://placehold.co/300x300/F97316/fff?text=DUAL',url:'https://www.pourstore.net/product/dual-sheet'},{role:'VENT',name:'POUR페이퍼팬벤트',price:'95,000',img:'https://placehold.co/300x300/F97316/fff?text=VENT',url:'https://www.pourstore.net/product/vent'}],packageUrl:'https://www.pourstore.net/category/slab-package',consultUrl:'https://www.poursolution.net/163'}},
+{keys:{surf:['wall']},qText:'외벽에 균열이 생겨 도색을 다시 해야 할 것 같아요.',diagH:'외벽 균열 — <span class="accent">단순 도색은 1~2년이면 또 갈라져요</span>',diagPoints:['온도 차이로 콘크리트가 <b>늘어났다 줄었다</b>를 반복하며 미세 균열이 생겨요.','미세 균열로 빗물이 들어가면 → 철근이 녹슬고 → 도장이 떨어집니다.','단순 재도색은 표면만 가리는 거라 곧 다시 갈라져요.','균열 보수 + 탄성 도료 + 차열 처리가 함께 필요해요.'],sol:{code:'METHOD-139',name:'바인더+플러스 (고급형) 재도장',summary:'POUR하이퍼티로 균열을 봉합한 후 플러스 코트로 탄성·차열을 강화합니다.',principles:['POUR하이퍼티 — 600% 늘어나는 퍼티','플러스 코트로 탄성·차열·중성화 방지','중성화 깊이 0.0mm','아파트·관공서 대형 현장 권장'],evidence:[{lbl:'신장률',val:'519',unit:'%',src:'KTR · 5배'},{lbl:'중성화',val:'0.0',unit:'mm',src:'KTR'}],products:[{role:'CORE',name:'POUR하이퍼티 (608%)',price:'180,000',img:'https://placehold.co/300x300/F97316/fff?text=HYPER',url:'https://www.pourstore.net/product/hyper-t'},{role:'COAT',name:'POUR 플러스 코트',price:'320,000',img:'https://placehold.co/300x300/F97316/fff?text=PLUS',url:'https://www.pourstore.net/product/plus'},{role:'BIND',name:'POUR 바인더',price:'180,000',img:'https://placehold.co/300x300/F97316/fff?text=BINDER',url:'https://www.pourstore.net/product/binder'}],packageUrl:'https://www.pourstore.net/category/wall-package',consultUrl:'https://www.poursolution.net/163'}},
+{keys:{surf:['parking']},qText:'지하주차장 바닥이 갈라지고 페인트가 벗겨져요.',diagH:'에폭시 도장 노후 — <span class="accent">차량 하중과 결로</span>가 원인이에요',diagPoints:['차량이 반복해 다니며 도장면이 <b>마모돼요</b>.','결로·습기가 들어가면 바탕면이 <b>박리</b>됩니다.','소음·미세분진이 발생하고 미관도 나빠져요.','<b>마모에 강하고 미끄럽지 않은</b> 도장이 필요해요.'],sol:{code:'METHOD-125',name:'에폭시 + 엠보라이닝 도장',summary:'압축강도 85.9N/mm²의 고강도 에폭시 + 엠보라이닝.',principles:['바탕면 면처리 + 프라이머','에폭시 본도장 — 압축강도 85.9N/mm²','엠보라이닝 — 미끄럼 방지','내마모성 76mg'],evidence:[{lbl:'압축강도',val:'85.9',unit:'N/mm²',src:'KTR'},{lbl:'부착강도',val:'2.3',unit:'MPa',src:'KTR'},{lbl:'내마모',val:'76',unit:'mg',src:'KTR'}],products:[{role:'PRIME',name:'POUR 에폭시 프라이머',price:'140,000',img:'https://placehold.co/300x300/F97316/fff?text=PRIMER',url:'https://www.pourstore.net/product/epoxy-primer'},{role:'CORE',name:'POUR 에폭시 본도장',price:'380,000',img:'https://placehold.co/300x300/F97316/fff?text=EPOXY',url:'https://www.pourstore.net/product/epoxy'},{role:'TOP',name:'엠보라이닝 코트',price:'220,000',img:'https://placehold.co/300x300/F97316/fff?text=EMBO',url:'https://www.pourstore.net/product/embo'}],packageUrl:'https://www.pourstore.net/category/parking-package',consultUrl:'https://www.poursolution.net/168'}},
+{keys:{surf:['underg']},qText:'지하실 벽에서 물이 스며 나오고 곰팡이가 생겨요.',diagH:'지하 배면 누수 — <span class="accent">표면 처리만으로는 못 막아요</span>',diagPoints:['지하는 흙과 지하수가 콘크리트 <b>뒷면에서 밀려옵니다</b>.','내부 표면 도장은 곧 부풀어 떨어집니다.','아크릴 방수재를 <b>초고압으로 주입</b>해 새 방수층을 만들어야 해요.','국토교통부 지정 건설신기술로 검증된 방법이에요.'],sol:{code:'METHOD-137',name:'아크릴배면차수공법',summary:'2액형 아크릴 방수재를 초고압으로 콘크리트 배면에 주입해 새 방수층을 만듭니다.',principles:['구조물 외부에서 직접 닿지 않아도 가능','초고압 주입으로 균열·공극까지 채움','국토교통부 건설신기술 1026호','지하주차장·수조·정수장 적용'],evidence:[{lbl:'건설신기술',val:'1026',unit:'호',src:'국토교통부'}],products:[{role:'CORE',name:'2액형 아크릴 방수재',price:'380,000',img:'https://placehold.co/300x300/F97316/fff?text=ACRYLIC',url:'https://www.pourstore.net/product/acrylic'},{role:'EQUIP',name:'초고압 주입 시공',price:'견적',img:'https://placehold.co/300x300/F97316/fff?text=PUMP',url:'https://www.poursolution.net/137'}],packageUrl:'https://www.pourstore.net/category/underground-package',consultUrl:'https://www.poursolution.net/168'}},
+{keys:{surf:['road']},qText:'단지 내 도로 아스팔트가 갈라지고 구멍이 생겼어요.',diagH:'아스팔트 노후 — <span class="accent">층 사이가 분리</span>되었어요',diagPoints:['시간이 지나면 아스팔트는 <b>유연성을 잃고 갈라져요</b>.','균열로 빗물이 들어가면 <b>포트홀</b>로 발전합니다.','단순 메우기는 6개월 안에 똑같이 됩니다.','<b>POUR아스콘 + 균열보수</b> 통합 시공이 필요해요.'],sol:{code:'METHOD-167',name:'POUR아스콘 도로포장공법',summary:'아스팔트 균열 보수와 도로포장을 한 번에 처리합니다.',principles:['균열 부위 절단 후 청소','POUR 아스콘 채움재로 균열 봉합','신규 아스팔트 포장','단지내 도로·주차장 적용'],evidence:[{lbl:'시방서',val:'No.167',src:'POUR솔루션'}],products:[{role:'PATCH',name:'POUR 아스팔트균열보수재',price:'120,000',img:'https://placehold.co/300x300/F97316/fff?text=PATCH',url:'https://www.pourstore.net/product/asphalt-patch'},{role:'CORE',name:'POUR 아스콘',price:'견적',img:'https://placehold.co/300x300/F97316/fff?text=ASCON',url:'https://www.poursolution.net/167'}],packageUrl:'https://www.pourstore.net/category/road-package',consultUrl:'https://www.poursolution.net/163'}},
+{keys:{},qText:'건물에 노후 문제가 있어요. 진단을 받아보고 싶어요.',diagH:'노후 콘크리트 — <span class="accent">중성화·균열</span>이 진행 중이에요',diagPoints:['대부분의 건물 노후 문제는 <b>콘크리트 중성화</b>에서 시작돼요.','중성화 → 미세 균열 → 빗물 침투 → 철근 부식.','표면 처리만으로는 근본 해결이 어려워요.','<b>모체 강화 + 균열 보수 + 마감 보호</b> 3단계가 필요해요.'],sol:{code:'POUR 종합진단',name:'맞춤 진단 + 패키지 추천',summary:'전문가가 직접 방문해서 분석하고 맞춤 패키지를 제안드려요.',principles:['현장 방문 진단 (무료)','시공 데이터 기반 맞춤 패키지','700+ 단지 시공 사례 참고','시공 후 사후 관리 가이드'],evidence:[{lbl:'누적 시공',val:'2.6M',unit:'세대',src:'전국'},{lbl:'특허·인증',val:'70+',unit:'건',src:'KTR/KCL'}],products:[{role:'CORE',name:'POUR하이퍼티',price:'180,000',img:'https://placehold.co/300x300/F97316/fff?text=HYPER',url:'https://www.pourstore.net/product/hyper-t'},{role:'COAT',name:'POUR코트재',price:'95,000',img:'https://placehold.co/300x300/F97316/fff?text=COAT',url:'https://www.pourstore.net/product/coat'}],packageUrl:'https://www.pourstore.net/category/general',consultUrl:'https://www.poursolution.net/163'}}
+];
+var state={screen:'entry',photos:[],detected:null,choice:{bld:null,surf:null,syms:[],memo:''}};
+var root=document.querySelector('.par');
+function show(name){state.screen=name;root.querySelectorAll('.par-screen').forEach(function(s){s.classList.toggle('active',s.dataset.screen===name);});var stepIdx=({entry:1,photo:2,analyzing:2,'photo-result':2,manual1:2,manual2:2,manual3:2,diagnosis:3,solution:4})[name]||1;root.querySelectorAll('.par-stepper .stp').forEach(function(el,i){el.classList.remove('active','done');if(i+1<stepIdx)el.classList.add('done');else if(i+1===stepIdx)el.classList.add('active');});try{window.scrollTo({top:root.offsetTop-20,behavior:'smooth'});}catch(e){}}
+root.querySelectorAll('[data-go]').forEach(function(el){el.addEventListener('click',function(){show(el.dataset.go);});});
+root.querySelectorAll('[data-back]').forEach(function(el){el.addEventListener('click',function(){show(el.dataset.back);});});
+var uploadZone=root.querySelector('#par-upload-zone'),galleryInput=root.querySelector('#par-file-gallery'),cameraInput=root.querySelector('#par-file-camera'),thumbsEl=root.querySelector('#par-thumbs'),thumbInfo=root.querySelector('#par-thumb-info'),analyzeBtn=root.querySelector('#par-analyze-btn');
+root.querySelector('#par-pick-gallery').addEventListener('click',function(e){e.stopPropagation();galleryInput.click();});
+root.querySelector('#par-pick-camera').addEventListener('click',function(e){e.stopPropagation();cameraInput.click();});
+uploadZone.addEventListener('click',function(e){if(e.target.closest('button'))return;galleryInput.click();});
+galleryInput.addEventListener('change',function(e){addPhotos(e.target.files);e.target.value='';});
+cameraInput.addEventListener('change',function(e){addPhotos(e.target.files);e.target.value='';});
+['dragenter','dragover'].forEach(function(ev){uploadZone.addEventListener(ev,function(e){e.preventDefault();uploadZone.classList.add('drag');});});
+['dragleave','drop'].forEach(function(ev){uploadZone.addEventListener(ev,function(e){e.preventDefault();uploadZone.classList.remove('drag');});});
+uploadZone.addEventListener('drop',function(e){if(e.dataTransfer.files)addPhotos(e.dataTransfer.files);});
+function addPhotos(files){Array.from(files).forEach(function(f){if(state.photos.length>=5)return;if(!/^image\\//.test(f.type))return;if(f.size>10*1024*1024)return;state.photos.push({name:f.name,size:f.size,url:URL.createObjectURL(f)});});renderThumbs();}
+function renderThumbs(){thumbsEl.innerHTML='';state.photos.forEach(function(p,i){var t=document.createElement('div');t.className='par-thumb';t.innerHTML='<img src="'+p.url+'" alt=""/><span class="num">0'+(i+1)+'</span><button class="rm" data-i="'+i+'">×</button>';thumbsEl.appendChild(t);});if(state.photos.length<5){var add=document.createElement('div');add.className='par-thumb-add';add.textContent='+';add.addEventListener('click',function(){galleryInput.click();});thumbsEl.appendChild(add);}thumbsEl.querySelectorAll('.rm').forEach(function(btn){btn.addEventListener('click',function(e){e.stopPropagation();var i=parseInt(btn.dataset.i,10);URL.revokeObjectURL(state.photos[i].url);state.photos.splice(i,1);renderThumbs();});});thumbInfo.style.display=state.photos.length?'block':'none';thumbInfo.textContent='올린 사진 '+state.photos.length+' / 5';analyzeBtn.disabled=state.photos.length===0;}
+analyzeBtn.addEventListener('click',function(){show('analyzing');var ls=['ana-l1','ana-l2','ana-l3','ana-l4','ana-l5'];var i=1;function step(){if(i>=ls.length){finishAnalysis();return;}var prev=root.querySelector('#'+ls[i-1]);if(prev){prev.classList.remove('cur');prev.classList.add('ok');prev.innerHTML=prev.innerHTML.replace('→','✓');}var cur=root.querySelector('#'+ls[i]);if(cur){cur.style.display='block';cur.classList.add('cur');}i++;setTimeout(step,750);}setTimeout(step,750);});
+function finishAnalysis(){var idx=state.photos.length%PROFILES.length;var profile=PROFILES[idx];var bld=(profile.keys.bld&&BLDS.find(function(b){return b.id===profile.keys.bld[0];}))||BLDS[Math.floor(Math.random()*BLDS.length)];var sur=(profile.keys.surf&&SURFS.find(function(s){return s.id===profile.keys.surf[0];}))||SURFS[Math.floor(Math.random()*SURFS.length)];var syms=(profile.keys.symp||['누수','균열']).slice(0,2);var conf=82+Math.floor(Math.random()*12);state.detected={bld:bld,sur:sur,syms:syms,conf:conf,profile:profile};root.querySelector('#par-conf-val').textContent=conf;root.querySelector('#par-d-bld').textContent=bld.ic+' '+bld.name;root.querySelector('#par-d-sur').textContent=sur.ic+' '+sur.name;root.querySelector('#par-d-sym').textContent=syms.join(', ');show('photo-result');}
+root.querySelector('#par-confirm-go').addEventListener('click',function(){var d=state.detected;if(!d)return;state.choice={bld:d.bld.id,surf:d.sur.id,syms:d.syms,memo:''};runDiagnosis(d.profile);});
+function renderCards(target,items,onPick){var el=root.querySelector(target);el.innerHTML='';items.forEach(function(it){var c=document.createElement('button');c.className='par-card';c.innerHTML='<span class="ic">'+it.ic+'</span><div class="ttl">'+it.name+'</div><div class="desc">'+it.desc+'</div>';c.addEventListener('click',function(){onPick(it);});el.appendChild(c);});}
+renderCards('#par-bld-cards',BLDS,function(b){state.choice.bld=b.id;show('manual2');});
+renderCards('#par-sur-cards',SURFS,function(s){state.choice.surf=s.id;show('manual3');});
+var symList=root.querySelector('#par-sym-list');SYMPS.forEach(function(s){var b=document.createElement('button');b.className='par-sym';b.textContent=s;b.addEventListener('click',function(){b.classList.toggle('on');var i=state.choice.syms.indexOf(s);if(i>=0)state.choice.syms.splice(i,1);else state.choice.syms.push(s);});symList.appendChild(b);});
+root.querySelector('#par-go-diag').addEventListener('click',function(){state.choice.memo=(root.querySelector('#par-free-memo').value||'').trim();runDiagnosis(matchProfile(state.choice));});
+function matchProfile(c){for(var i=0;i<PROFILES.length;i++){var p=PROFILES[i];if(!p.keys||!p.keys.surf)continue;if(p.keys.surf.indexOf(c.surf)===-1)continue;if(p.keys.bld&&p.keys.bld.indexOf(c.bld)===-1)continue;if(p.keys.symp&&c.syms&&!p.keys.symp.some(function(k){return c.syms.indexOf(k)!==-1;}))continue;return p;}return PROFILES[PROFILES.length-1];}
+function runDiagnosis(profile){state.profile=profile;root.querySelector('#par-diag-h').innerHTML=profile.diagH;var ol=root.querySelector('#par-diag-points');ol.innerHTML='';profile.diagPoints.forEach(function(pt){var li=document.createElement('li');li.innerHTML=pt;ol.appendChild(li);});show('diagnosis');}
+root.querySelector('#par-go-sol').addEventListener('click',function(){var s=(state.profile||PROFILES[0]).sol;root.querySelector('#par-sol-code').textContent=s.code;root.querySelector('#par-sol-name').textContent=s.name;root.querySelector('#par-sol-summary').textContent=s.summary;var pr=root.querySelector('#par-sol-principles');pr.innerHTML='';s.principles.forEach(function(t){var d=document.createElement('div');d.className='pr';d.innerHTML='<span class="dot"></span><span>'+t+'</span>';pr.appendChild(d);});var ev=root.querySelector('#par-sol-evidence');ev.innerHTML='';s.evidence.forEach(function(e){var b=document.createElement('div');b.className='par-ev';b.innerHTML='<div class="lbl">'+e.lbl+'</div><div class="val">'+e.val+(e.unit?'<span class="unit">'+e.unit+'</span>':'')+'</div>'+(e.src?'<div class="src">— '+e.src+'</div>':'');ev.appendChild(b);});var pwrap=root.querySelector('#par-sol-products-wrap');pwrap.innerHTML='<div class="par-products-h">필요한 자재 ('+s.products.length+'종) — 카드 클릭하면 자사몰로 이동</div><div class="par-products" id="par-sol-products"></div>';var pgrid=pwrap.querySelector('#par-sol-products');s.products.forEach(function(pd){var a=document.createElement('a');a.className='par-pcard';a.href=pd.url;a.target='_blank';a.rel='noopener';a.innerHTML='<div class="img" style="background-image:url(\\''+pd.img+'\\')"><span class="role">'+pd.role+'</span><span class="ext">↗ STORE</span></div><div class="body"><div class="name">'+pd.name+'</div><div class="price">'+pd.price+'<span class="won">원</span></div></div>';pgrid.appendChild(a);});root.querySelector('#par-buy-package').setAttribute('href',s.packageUrl||'https://www.pourstore.net');root.querySelector('#par-consult').setAttribute('href',s.consultUrl||'https://www.poursolution.net/163');show('solution');});
+root.querySelector('#par-back-diag').addEventListener('click',function(){show(state.photos.length?'photo-result':'manual3');});
+root.querySelector('#par-restart').addEventListener('click',function(){state.photos.forEach(function(p){try{URL.revokeObjectURL(p.url);}catch(e){}});state={screen:'entry',photos:[],detected:null,choice:{bld:null,surf:null,syms:[],memo:''}};renderThumbs();root.querySelectorAll('.par-sym.on').forEach(function(b){b.classList.remove('on');});var memo=root.querySelector('#par-free-memo');if(memo)memo.value='';show('entry');});
+show('entry');
 })();
 </script>
 `;
@@ -933,7 +352,7 @@
     { id: 'main', name: '메인 페이지', file: 'index.html', sections: [
       mkSec('메인 배너', '', '슬라이드 배너 — 균열·방수·코팅 자재 세트 등 메인 비주얼'),
       mkSec('카테고리 항목 버튼', '', '제품구매·패키지구매·시공상담·시공가이드·쇼룸·부자재·체험교육·파트너사·고객센터 (8~9개 아이콘)'),
-      mkSec('AI 맞춤 자재추천', SEED_AI_RECOMMEND_HTML, '260만 세대 시공 데이터 기반 POUR스토어 추천 시스템 — JARVIS HUD 스타일 (v2 초안)', 'wip'),
+      mkSec('AI 맞춤 자재추천', SEED_AI_RECOMMEND_HTML, 'POUR 길잡이 — 라이트 오렌지 톤, 사진 진단 + 5단계 흐름 + 카페24 연결 (v2)', 'wip'),
       mkSec('인기 추천 상품', '', '베스트셀러 5종 카드'),
       mkSec('신상품 (안전용품·부자재)', '', 'NEW ARRIVALS — 이달의 안전용품·부자재 등 서브 자재 전시'),
       mkSec('서브카테고리 상품', '', '제비스코 라인 + 인테리어 (DREAM COAT + GROHOME)'),

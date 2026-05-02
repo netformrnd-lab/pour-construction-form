@@ -1240,7 +1240,11 @@ show('entry');
   .ppr1-card .icon { width:54px; height:54px; margin:0 auto 12px; border-radius:14px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:26px; transition:transform .3s; }
   .ppr1-card:hover .icon { transform:rotate(-8deg) scale(1.05); }
   .ppr1-card .name { font-size:14px; font-weight:900; color:#0F1F5C; margin-bottom:5px; letter-spacing:-.3px; }
-  .ppr1-card .count { font-size:11px; color:#EA580C; font-weight:800; letter-spacing:.3px; }
+  .ppr1-card .count { font-size:11px; color:#EA580C; font-weight:800; letter-spacing:.3px; margin-bottom:8px; }
+  .ppr1-card .self { display:inline-block; padding:3px 8px; font-size:10px; font-weight:800; border-radius:5px; letter-spacing:-.2px; }
+  .ppr1-card .self.ok { background:#ECFDF5; border:1px solid #A7F3D0; color:#059669; }
+  .ppr1-card .self.warn { background:#FEF3C7; border:1px solid #FCD34D; color:#B45309; }
+  .ppr1-card .self.pro { background:#FEE2E2; border:1px solid #FCA5A5; color:#DC2626; }
   .ppr1-card .hot { position:absolute; top:8px; right:8px; padding:2px 7px; background:#DC2626; color:#fff; font-size:9.5px; font-weight:900; border-radius:4px; letter-spacing:.3px; }
   @media (max-width:640px) { .ppr1-head h2 { font-size:24px; } }
   </style>
@@ -1256,16 +1260,21 @@ show('entry');
         <button>아파트 라인 (고층)</button>
         <button>일반 저층 (주택·상가)</button>
       </div>
+      <div style="display:flex;justify-content:center;gap:14px;margin-bottom:18px;flex-wrap:wrap;font-size:11.5px;color:#6B7280;font-weight:700;">
+        <span><span style="display:inline-block;width:10px;height:10px;background:#10B981;border-radius:50%;margin-right:5px;vertical-align:-1px;"></span>셀프 OK · 평지·난간 있음</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#F59E0B;border-radius:50%;margin-right:5px;vertical-align:-1px;"></span>저층만 셀프 가능</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#DC2626;border-radius:50%;margin-right:5px;vertical-align:-1px;"></span>시공연결 권장 · 경사 지붕·로프 작업</span>
+      </div>
       <div class="ppr1-nav">
-        <a class="ppr1-card" href="#area-slab"><div class="icon">🟦</div><div class="name">슬라브</div><div class="count">패키지 6종</div><span class="hot">HOT</span></a>
-        <a class="ppr1-card" href="#area-shingle"><div class="icon">🏠</div><div class="name">아스팔트 슁글</div><div class="count">패키지 4종</div></a>
-        <a class="ppr1-card" href="#area-tile"><div class="icon">🧱</div><div class="name">금속 기와</div><div class="count">패키지 4종</div></a>
-        <a class="ppr1-card" href="#area-crack"><div class="icon">⚡</div><div class="name">균열 보수</div><div class="count">패키지 3종</div></a>
-        <a class="ppr1-card" href="#area-paint"><div class="icon">🎨</div><div class="name">재도장 (외벽)</div><div class="count">패키지 5종</div><span class="hot">HOT</span></a>
-        <a class="ppr1-card" href="#area-color"><div class="icon">🔩</div><div class="name">칼라강판·징크</div><div class="count">패키지 3종</div></a>
-        <a class="ppr1-card" href="#area-drain"><div class="icon">🌊</div><div class="name">배수로·베란다</div><div class="count">패키지 4종</div></a>
-        <a class="ppr1-card" href="#area-parking"><div class="icon">🚗</div><div class="name">지하주차장</div><div class="count">패키지 3종</div></a>
-        <a class="ppr1-card" href="#area-joint"><div class="icon">🔗</div><div class="name">이음부·실링</div><div class="count">패키지 2종</div></a>
+        <a class="ppr1-card" href="#area-slab"><div class="icon">🟦</div><div class="name">슬라브</div><div class="count">패키지 6종</div><span class="self ok">✅ 셀프 OK</span><span class="hot">HOT</span></a>
+        <a class="ppr1-card" href="#area-shingle"><div class="icon">🏠</div><div class="name">아스팔트 슁글</div><div class="count">패키지 4종</div><span class="self pro">👷 시공연결</span></a>
+        <a class="ppr1-card" href="#area-tile"><div class="icon">🧱</div><div class="name">금속 기와</div><div class="count">패키지 4종</div><span class="self pro">👷 시공연결</span></a>
+        <a class="ppr1-card" href="#area-crack"><div class="icon">⚡</div><div class="name">균열 보수</div><div class="count">패키지 3종</div><span class="self warn">⚠️ 저층만 셀프</span></a>
+        <a class="ppr1-card" href="#area-paint"><div class="icon">🎨</div><div class="name">재도장 (외벽)</div><div class="count">패키지 5종</div><span class="self pro">👷 시공연결</span><span class="hot">HOT</span></a>
+        <a class="ppr1-card" href="#area-color"><div class="icon">🔩</div><div class="name">칼라강판·징크</div><div class="count">패키지 3종</div><span class="self pro">👷 시공연결</span></a>
+        <a class="ppr1-card" href="#area-drain"><div class="icon">🌊</div><div class="name">배수로·베란다</div><div class="count">패키지 4종</div><span class="self ok">✅ 셀프 OK</span></a>
+        <a class="ppr1-card" href="#area-parking"><div class="icon">🚗</div><div class="name">지하주차장</div><div class="count">패키지 3종</div><span class="self ok">✅ 셀프 OK</span></a>
+        <a class="ppr1-card" href="#area-joint"><div class="icon">🔗</div><div class="name">이음부·실링</div><div class="count">패키지 2종</div><span class="self ok">✅ 셀프 OK</span></a>
       </div>
     </div>
   </section>`;

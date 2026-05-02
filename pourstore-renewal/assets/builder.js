@@ -1697,6 +1697,207 @@ show('entry');
   </section>`;
 
 
+  const SEED_CT_FORM_HTML = `<style>
+  .pct1 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pct1 { background:linear-gradient(180deg,#FFFBF5 0%,#fff 100%); padding:80px 18px; }
+  .pct1-inner { max-width:980px; margin:0 auto; }
+  .pct1-head { text-align:center; margin-bottom:32px; }
+  .pct1-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pct1-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .pct1-head p { font-size:14px; color:#6B7280; }
+  .pct1-card { background:#fff; border:1px solid #F3F4F6; border-radius:24px; padding:36px 32px; box-shadow:0 12px 36px rgba(15,31,92,.06); }
+  .pct1-types { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:8px; margin-bottom:24px; }
+  .pct1-type { padding:14px 12px; background:#FFFBF5; border:1.5px solid #F3F4F6; border-radius:12px; text-align:center; cursor:pointer; transition:all .2s; }
+  .pct1-type:hover { border-color:#FED7AA; }
+  .pct1-type.active { background:linear-gradient(135deg,#FFF7ED,#FFEDD5); border-color:#F97316; }
+  .pct1-type .icon { font-size:22px; margin-bottom:4px; }
+  .pct1-type .label { font-size:12.5px; font-weight:800; color:#0F1F5C; letter-spacing:-.3px; }
+  .pct1-type.active .label { color:#EA580C; }
+  .pct1-row { margin-bottom:16px; }
+  .pct1-row.split { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .pct1-row label { display:block; font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
+  .pct1-row input, .pct1-row textarea, .pct1-row select { width:100%; padding:12px 14px; background:#FFFBF5; border:1px solid #F3F4F6; border-radius:10px; font-size:14px; font-family:inherit; color:#0F1F5C; transition:all .2s; }
+  .pct1-row textarea { min-height:120px; resize:vertical; }
+  .pct1-row input:focus, .pct1-row textarea:focus, .pct1-row select:focus { outline:none; border-color:#FED7AA; background:#fff; box-shadow:0 0 0 3px rgba(249,115,22,.08); }
+  .pct1-agree { display:flex; align-items:center; gap:8px; margin-bottom:18px; padding:14px; background:#FFFBF5; border-radius:10px; font-size:12.5px; color:#4B5563; }
+  .pct1-agree input { width:16px; height:16px; accent-color:#F97316; }
+  .pct1-agree a { color:#EA580C; font-weight:800; text-decoration:none; }
+  .pct1-submit { width:100%; padding:16px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:900; cursor:pointer; box-shadow:0 8px 24px rgba(249,115,22,.3); transition:all .25s; }
+  .pct1-submit:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(249,115,22,.45); }
+  @media (max-width:640px) { .pct1-card { padding:24px 18px; } .pct1-row.split { grid-template-columns:1fr; } .pct1-head h2 { font-size:24px; } }
+  </style>
+  <section class="pct1">
+    <div class="pct1-inner">
+      <div class="pct1-head">
+        <div class="kicker">CONTACT US</div>
+        <h2>POUR스토어에 문의하기</h2>
+        <p>제품·시공·파트너십 — 어떤 문의든 24시간 내 답변드립니다</p>
+      </div>
+      <form class="pct1-card">
+        <div class="pct1-types">
+          <div class="pct1-type active"><div class="icon">📦</div><div class="label">제품 문의</div></div>
+          <div class="pct1-type"><div class="icon">🔧</div><div class="label">시공 문의</div></div>
+          <div class="pct1-type"><div class="icon">🛠️</div><div class="label">셀프시공</div></div>
+          <div class="pct1-type"><div class="icon">💬</div><div class="label">기타</div></div>
+        </div>
+        <div class="pct1-row split">
+          <div><label>성함</label><input type="text" placeholder="홍길동"/></div>
+          <div><label>연락처</label><input type="text" placeholder="010-0000-0000"/></div>
+        </div>
+        <div class="pct1-row"><label>이메일</label><input type="email" placeholder="example@email.com"/></div>
+        <div class="pct1-row split">
+          <div><label>건물 유형</label><select><option>선택해 주세요</option><option>아파트</option><option>관공서</option><option>일반건물</option><option>주택</option><option>기타</option></select></div>
+          <div><label>지역</label><select><option>선택해 주세요</option><option>서울</option><option>경기</option><option>인천</option><option>부산</option><option>기타</option></select></div>
+        </div>
+        <div class="pct1-row"><label>문의 내용</label><textarea placeholder="문제 부위·증상·시급도 등을 자유롭게 적어주세요"></textarea></div>
+        <div class="pct1-agree"><input type="checkbox" id="ag"/><label for="ag">개인정보 수집·이용에 동의합니다 <a href="#">(자세히)</a></label></div>
+        <button type="submit" class="pct1-submit">문의 보내기</button>
+      </form>
+    </div>
+  </section>`;
+
+  const SEED_CT_STORE_HTML = `<style>
+  .pct2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pct2 { background:#fff; padding:64px 18px; }
+  .pct2-inner { max-width:1100px; margin:0 auto; }
+  .pct2-head { text-align:center; margin-bottom:32px; }
+  .pct2-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pct2-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .pct2-grid { display:grid; grid-template-columns:1.2fr 1fr; gap:20px; }
+  .pct2-info { background:linear-gradient(135deg,#FFF7ED,#FFEDD5); border:1px solid #FED7AA; border-radius:20px; padding:32px 28px; }
+  .pct2-info .label { font-size:11px; font-weight:800; color:#EA580C; letter-spacing:1px; margin-bottom:6px; }
+  .pct2-info h3 { font-size:22px; font-weight:900; color:#0F1F5C; letter-spacing:-.5px; margin-bottom:18px; }
+  .pct2-row { display:flex; align-items:flex-start; gap:14px; padding:14px 0; border-bottom:1px solid rgba(249,115,22,.15); }
+  .pct2-row:last-child { border-bottom:none; }
+  .pct2-row .icon { width:36px; height:36px; border-radius:10px; background:#fff; display:grid; place-items:center; font-size:16px; flex-shrink:0; box-shadow:0 4px 10px rgba(249,115,22,.1); }
+  .pct2-row .text { flex:1; }
+  .pct2-row .ttl { font-size:11px; font-weight:800; color:#9CA3AF; letter-spacing:.5px; margin-bottom:3px; }
+  .pct2-row .v { font-size:14px; font-weight:800; color:#0F1F5C; line-height:1.5; letter-spacing:-.3px; }
+  .pct2-row .v.big { font-family:'Bebas Neue',sans-serif; font-size:20px; color:#F97316; letter-spacing:.5px; }
+  .pct2-map { aspect-ratio:1/1; border-radius:20px; background-image:url('https://placehold.co/600x600/0F1F5C/fff?text=MAP+VIEW'); background-size:cover; background-position:center; position:relative; overflow:hidden; }
+  .pct2-map .overlay { position:absolute; bottom:18px; left:18px; right:18px; padding:14px 16px; background:rgba(255,255,255,.96); border-radius:14px; backdrop-filter:blur(8px); box-shadow:0 8px 24px rgba(0,0,0,.15); }
+  .pct2-map .overlay .ttl { font-size:11px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:3px; }
+  .pct2-map .overlay .v { font-size:13px; font-weight:800; color:#0F1F5C; }
+  .pct2-map .pin { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:38px; filter:drop-shadow(0 6px 12px rgba(0,0,0,.3)); }
+  @media (max-width:880px) { .pct2-grid { grid-template-columns:1fr; } .pct2-head h2 { font-size:22px; } }
+  </style>
+  <section class="pct2">
+    <div class="pct2-inner">
+      <div class="pct2-head">
+        <div class="kicker">📍 STORE INFO</div>
+        <h2>본사·매장 정보</h2>
+      </div>
+      <div class="pct2-grid">
+        <div class="pct2-info">
+          <div class="label">HEAD OFFICE</div>
+          <h3>POUR스토어 본사 · 평택</h3>
+          <div class="pct2-row"><div class="icon">📞</div><div class="text"><div class="ttl">대표 전화</div><div class="v big">1577-0000</div></div></div>
+          <div class="pct2-row"><div class="icon">⏰</div><div class="text"><div class="ttl">운영 시간</div><div class="v">평일 09:00 - 18:00<br/>점심 12:30 - 13:30 · 주말·공휴일 휴무</div></div></div>
+          <div class="pct2-row"><div class="icon">📧</div><div class="text"><div class="ttl">이메일</div><div class="v">contact@pourstore.net</div></div></div>
+          <div class="pct2-row"><div class="icon">📍</div><div class="text"><div class="ttl">본사 주소</div><div class="v">경기도 평택시 ○○로 ○○ (○○동)<br/>POUR스토어 R&D 센터 1층</div></div></div>
+        </div>
+        <div class="pct2-map"><div class="pin">📍</div><div class="overlay"><div class="ttl">SHOWROOM</div><div class="v">평택 본사 1층 쇼룸 · 도보 5분 내 주차장</div></div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_CT_KAKAO_HTML = `<style>
+  .pct3 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pct3 { background:#FFFBF5; padding:64px 18px; }
+  .pct3-inner { max-width:980px; margin:0 auto; }
+  .pct3-card { background:linear-gradient(135deg,#FEE500 0%,#FFD600 100%); border-radius:24px; padding:40px 36px; display:grid; grid-template-columns:1fr auto; gap:28px; align-items:center; box-shadow:0 18px 48px rgba(254,229,0,.3); position:relative; overflow:hidden; }
+  .pct3-card::before { content:''; position:absolute; top:-60px; right:-60px; width:240px; height:240px; background:radial-gradient(circle, rgba(255,255,255,.4) 0%, transparent 60%); border-radius:50%; }
+  .pct3-content { position:relative; z-index:1; }
+  .pct3-content .label { display:inline-block; padding:5px 12px; background:#0F1F5C; color:#FEE500; font-size:11px; font-weight:900; border-radius:6px; letter-spacing:.5px; margin-bottom:14px; }
+  .pct3-content h2 { font-size:26px; font-weight:900; color:#0F1F5C; line-height:1.3; margin-bottom:10px; letter-spacing:-.6px; }
+  .pct3-content p { font-size:14px; color:#3A2A00; line-height:1.65; margin-bottom:8px; opacity:.85; }
+  .pct3-content .stats { display:flex; gap:18px; margin-top:18px; flex-wrap:wrap; }
+  .pct3-content .stat { font-size:12px; color:#3A2A00; font-weight:800; }
+  .pct3-content .stat b { color:#0F1F5C; font-size:14px; }
+  .pct3-cta { position:relative; z-index:1; display:flex; flex-direction:column; gap:10px; align-items:flex-end; }
+  .pct3-btn { padding:14px 28px; background:#0F1F5C; color:#FEE500; border:none; border-radius:14px; font-size:14px; font-weight:900; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:8px; transition:all .25s; box-shadow:0 8px 20px rgba(15,31,92,.25); white-space:nowrap; }
+  .pct3-btn:hover { transform:translateY(-2px); box-shadow:0 12px 28px rgba(15,31,92,.4); }
+  .pct3-btn .icon { font-size:18px; }
+  .pct3-id { font-size:11px; color:#3A2A00; font-weight:800; opacity:.7; }
+  @media (max-width:640px) { .pct3-card { grid-template-columns:1fr; padding:28px 24px; } .pct3-content h2 { font-size:20px; } .pct3-cta { align-items:stretch; } }
+  </style>
+  <section class="pct3">
+    <div class="pct3-inner">
+      <div class="pct3-card">
+        <div class="pct3-content">
+          <span class="label">💬 KAKAO TALK</span>
+          <h2>카카오톡으로<br/>지금 바로 상담받으세요</h2>
+          <p>전화·이메일이 어려우시면 카카오톡 채널로 편하게 문의주세요. 평일 09-18시 실시간 응답.</p>
+          <div class="stats">
+            <div class="stat">평균 응답 <b>3분 이내</b></div>
+            <div class="stat">누적 채널 친구 <b>4,800+</b></div>
+          </div>
+        </div>
+        <div class="pct3-cta">
+          <a class="pct3-btn" href="https://pf.kakao.com/_pourstore"><span class="icon">💬</span>채널 추가하고 상담</a>
+          <div class="pct3-id">@POUR스토어</div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_CT_FAQ_HTML = `<style>
+  .pct4 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pct4 { background:#fff; padding:80px 18px; }
+  .pct4-inner { max-width:880px; margin:0 auto; }
+  .pct4-head { text-align:center; margin-bottom:32px; }
+  .pct4-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pct4-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .pct4-list { display:flex; flex-direction:column; gap:12px; }
+  .pct4-item { background:#fff; border:1px solid #F3F4F6; border-radius:14px; overflow:hidden; transition:all .2s; }
+  .pct4-item:hover { border-color:#FED7AA; }
+  .pct4-item.open { border-color:#F97316; box-shadow:0 8px 24px rgba(249,115,22,.1); }
+  .pct4-q { display:flex; align-items:center; gap:14px; padding:18px 22px; cursor:pointer; }
+  .pct4-q .num { width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-family:'Bebas Neue',sans-serif; font-size:14px; font-weight:900; color:#EA580C; flex-shrink:0; letter-spacing:.5px; }
+  .pct4-q .text { flex:1; font-size:14.5px; font-weight:800; color:#0F1F5C; letter-spacing:-.3px; }
+  .pct4-q .arrow { color:#9CA3AF; font-size:14px; transition:transform .2s; }
+  .pct4-item.open .pct4-q .arrow { transform:rotate(180deg); color:#EA580C; }
+  .pct4-a { padding:0 22px 20px 68px; font-size:13.5px; color:#4B5563; line-height:1.75; display:none; }
+  .pct4-item.open .pct4-a { display:block; }
+  .pct4-a b { color:#0F1F5C; font-weight:800; }
+  @media (max-width:640px) { .pct4-head h2 { font-size:24px; } .pct4-a { padding-left:22px; } }
+  </style>
+  <section class="pct4">
+    <div class="pct4-inner">
+      <div class="pct4-head">
+        <div class="kicker">FAQ</div>
+        <h2>자주 묻는 질문</h2>
+      </div>
+      <div class="pct4-list">
+        <div class="pct4-item open">
+          <div class="pct4-q"><div class="num">Q1</div><div class="text">제품만 구매해서 셀프 시공이 가능한가요?</div><div class="arrow">▼</div></div>
+          <div class="pct4-a">네, 가능합니다. POUR스토어는 <b>일반 사용자도 시공 가능한 제품 + 영상 가이드</b>를 제공합니다. 다만 고층 옥상·지하 등 위험 부위는 <b>전문 시공 매칭</b>을 권장합니다.</div>
+        </div>
+        <div class="pct4-item">
+          <div class="pct4-q"><div class="num">Q2</div><div class="text">시공 견적은 어떻게 받을 수 있나요?</div><div class="arrow">▼</div></div>
+          <div class="pct4-a">사이트 상단 <b>시공 연결 신청</b> 또는 본 페이지 폼에서 신청하시면, 가까운 파트너사가 <b>현장 방문 무료 진단</b> 후 견적서를 제공합니다. 일반적으로 신청 후 2-3일 내 연락드립니다.</div>
+        </div>
+        <div class="pct4-item">
+          <div class="pct4-q"><div class="num">Q3</div><div class="text">전국 어디든 시공이 가능한가요?</div><div class="arrow">▼</div></div>
+          <div class="pct4-a">네. <b>전국 250+ 전문 파트너사 네트워크</b>를 통해 17개 광역시·도 모두 시공 가능합니다. 도서산간 지역도 별도 협의로 진행됩니다.</div>
+        </div>
+        <div class="pct4-item">
+          <div class="pct4-q"><div class="num">Q4</div><div class="text">시공 후 하자 보증은 얼마나 되나요?</div><div class="arrow">▼</div></div>
+          <div class="pct4-a">공법별로 다르지만 일반적으로 <b>방수 5-10년 / 도장 3-7년</b> 보증을 시방서 기준으로 제공합니다. 정확한 기간은 시방서·계약서를 통해 명시됩니다.</div>
+        </div>
+        <div class="pct4-item">
+          <div class="pct4-q"><div class="num">Q5</div><div class="text">파트너사·대리점 신청은 어디서 하나요?</div><div class="arrow">▼</div></div>
+          <div class="pct4-a">상단 메뉴의 <b>파트너사 소개·신청</b> 또는 <b>대리점·공급 문의</b> 페이지에서 신청서를 작성해 주세요. 검토 후 영업일 기준 5-7일 내 회신드립니다.</div>
+        </div>
+        <div class="pct4-item">
+          <div class="pct4-q"><div class="num">Q6</div><div class="text">대량 구매·B2B 단가 협의가 가능한가요?</div><div class="arrow">▼</div></div>
+          <div class="pct4-a">네, 가능합니다. <b>관리사무소·시공사·관공서 발주</b>의 경우 별도 단가표를 제공합니다. 본 페이지 문의 폼에서 <b>제품 문의</b> 선택 후 신청해 주세요.</div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+
   const DEFAULT_PAGES = () => ([
     { id: 'main', name: '메인 페이지', file: 'index.html', sections: [
       mkSec('메인 배너', SEED_BANNER_HTML, '라이트 크림 + 오렌지 그라디언트 — 가벼운 톤 (v3)', 'wip'),
@@ -1734,10 +1935,10 @@ show('entry');
       mkSec('고객 후기', SEED_CS_REVIEW_HTML, '평균 만족도 4.9 + 6개 후기 카드 (관리소장·시설팀·입주자대표 등)', 'wip'),
     ]},
     { id: 'contact', name: '문의', file: 'contact.html', sections: [
-      mkSec('문의 폼', '', ''),
-      mkSec('매장 정보', '', ''),
-      mkSec('카카오톡 채널', '', ''),
-      mkSec('FAQ', '', ''),
+      mkSec('문의 폼', SEED_CT_FORM_HTML, '4종 문의유형 칩 + 성함·연락처·이메일·건물유형·지역·내용 + 동의', 'wip'),
+      mkSec('매장 정보', SEED_CT_STORE_HTML, '본사 정보 카드 (전화/시간/이메일/주소) + 평택 지도 미니뷰', 'wip'),
+      mkSec('카카오톡 채널', SEED_CT_KAKAO_HTML, '카카오 옐로우 풀카드 — 응답 3분 + 채널 친구 4,800+', 'wip'),
+      mkSec('FAQ', SEED_CT_FAQ_HTML, '6개 아코디언 (셀프시공/견적/지역/하자보증/파트너/B2B 단가)', 'wip'),
     ]},
     { id: 'partners', name: '파트너사 소개·신청', file: 'partners.html', sections: [
       mkSec('히어로 + 신청 CTA', '', ''),

@@ -491,18 +491,413 @@ show('entry');
 </script>
 `;
 
+  // 9개 섹션 HTML — builder.js에 SEED_AI_RECOMMEND_HTML 다음에 삽입
+
+  const SEED_BANNER_HTML = `<style>
+  .psb * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .psb { background:#FFFBF5; }
+  .psb-slide { position:relative; min-height:480px; background:linear-gradient(135deg,#FFEDD5 0%,#FFE4C4 100%) center/cover no-repeat; display:flex; align-items:center; padding:60px 24px; overflow:hidden; }
+  .psb-slide::after { content:''; position:absolute; right:-80px; bottom:-80px; width:400px; height:400px; background:url('https://placehold.co/400x400/F97316/fff?text=POUR+%EC%BD%94%ED%8A%B8%EC%9E%AC') center/contain no-repeat; opacity:.85; }
+  .psb-content { position:relative; z-index:1; max-width:1080px; margin:0 auto; width:100%; }
+  .psb-tag { display:inline-block; padding:5px 12px; background:#fff; border:1px solid #FED7AA; color:#EA580C; border-radius:999px; font-size:11px; font-weight:800; letter-spacing:.5px; margin-bottom:14px; }
+  .psb h1 { font-size:38px; font-weight:900; color:#0F1F5C; line-height:1.25; margin-bottom:16px; letter-spacing:-.5px; }
+  .psb h1 .accent { color:#F97316; }
+  .psb p { font-size:14.5px; color:#374151; line-height:1.7; margin-bottom:26px; max-width:380px; }
+  .psb-cta { display:flex; gap:10px; flex-wrap:wrap; }
+  .psb-cta a { padding:13px 24px; border-radius:10px; font-size:14px; font-weight:800; text-decoration:none; transition:transform .12s; display:inline-flex; align-items:center; gap:6px; }
+  .psb-cta .primary { background:#F97316; color:#fff; box-shadow:0 6px 18px rgba(249,115,22,.3); }
+  .psb-cta .primary:hover { transform:translateY(-2px); }
+  .psb-cta .ghost { background:#fff; color:#0F1F5C; border:1.5px solid #0F1F5C; }
+  .psb-dots { display:flex; gap:8px; justify-content:center; padding:18px 0; background:#fff; }
+  .psb-dots span { width:8px; height:8px; border-radius:50%; background:#D1D5DB; transition:all .2s; }
+  .psb-dots span.on { background:#F97316; width:24px; border-radius:4px; }
+  @media (max-width:640px) { .psb-slide { min-height:380px; padding:48px 18px; } .psb-slide::after { width:240px; height:240px; right:-40px; bottom:-40px; } .psb h1 { font-size:26px; } .psb p { font-size:13px; } .psb-cta a { padding:12px 18px; font-size:13px; } }
+  </style>
+  <section class="psb">
+    <div class="psb-slide">
+      <div class="psb-content">
+        <span class="psb-tag">⭐ 베스트셀러 · 올인원 패키지</span>
+        <h1>균열·방수·코팅<br/><span class="accent">혼자서도 할 수 있는</span> 자재 세트</h1>
+        <p>한 박스 안에 시공 순서대로 모든 자재가 담겨있어요.<br/>POUR스토어 코트재 PRG-100 시리즈 — 누구나 바로 시작 가능.</p>
+        <div class="psb-cta">
+          <a class="primary" href="https://www.pourstore.net/category/all-in-one">올인원 패키지 보기 →</a>
+          <a class="ghost" href="https://www.pourstore.net/guide">시공 가이드</a>
+        </div>
+      </div>
+    </div>
+    <div class="psb-dots"><span class="on"></span><span></span><span></span></div>
+  </section>`;
+
+  const SEED_CATEGORY_HTML = `<style>
+  .psc * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .psc { background:#fff; padding:32px 16px 24px; }
+  .psc-grid { max-width:1080px; margin:0 auto; display:grid; grid-template-columns:repeat(9, 1fr); gap:10px; }
+  .psc-item { display:flex; flex-direction:column; align-items:center; gap:8px; padding:8px 4px; cursor:pointer; transition:transform .15s; text-decoration:none; color:inherit; }
+  .psc-item:hover { transform:translateY(-3px); }
+  .psc-item .icon { width:56px; height:56px; border-radius:14px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:26px; box-shadow:0 3px 10px rgba(249,115,22,.12); }
+  .psc-item .label { font-size:12px; font-weight:700; color:#0F1F5C; text-align:center; line-height:1.35; word-break:keep-all; }
+  @media (max-width:720px) { .psc-grid { grid-template-columns:repeat(5, 1fr); } }
+  @media (max-width:480px) { .psc-grid { grid-template-columns:repeat(4, 1fr); } .psc-item .icon { width:48px; height:48px; font-size:22px; } .psc-item .label { font-size:11px; } }
+  </style>
+  <section class="psc">
+    <div class="psc-grid">
+      <a class="psc-item" href="https://www.pourstore.net/category/products"><div class="icon">🛒</div><div class="label">제품 구매</div></a>
+      <a class="psc-item" href="https://www.pourstore.net/category/packages"><div class="icon">📦</div><div class="label">패키지 구매</div></a>
+      <a class="psc-item" href="https://www.pourstore.net/consult"><div class="icon">📞</div><div class="label">시공 상담</div></a>
+      <a class="psc-item" href="https://www.pourstore.net/guide"><div class="icon">📋</div><div class="label">시공 가이드</div></a>
+      <a class="psc-item" href="https://www.pourstore.net/showroom"><div class="icon">🏠</div><div class="label">쇼룸</div></a>
+      <a class="psc-item" href="https://www.pourstore.net/category/safety"><div class="icon">🦺</div><div class="label">부자재<br/>안전용품</div></a>
+      <a class="psc-item" href="https://www.pourstore.net/training"><div class="icon">🎓</div><div class="label">체험·교육<br/>신청</div></a>
+      <a class="psc-item" href="https://www.pourstore.net/partners"><div class="icon">🤝</div><div class="label">파트너사<br/>협약</div></a>
+      <a class="psc-item" href="https://www.pourstore.net/cs"><div class="icon">💬</div><div class="label">고객센터</div></a>
+    </div>
+  </section>`;
+
+  const SEED_POPULAR_HTML = `<style>
+  .psp * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .psp { background:#fff; padding:48px 18px; }
+  .psp-inner { max-width:1080px; margin:0 auto; }
+  .psp-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+  .psp-head h2 { font-size:22px; font-weight:900; color:#0F1F5C; letter-spacing:-.3px; }
+  .psp-head .more { font-size:13px; font-weight:700; color:#F97316; text-decoration:none; }
+  .psp-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:14px; }
+  .psp-card { background:#fff; border:1px solid #E5E7EB; border-radius:14px; overflow:hidden; cursor:pointer; transition:all .2s; text-decoration:none; color:inherit; display:block; }
+  .psp-card:hover { border-color:#F97316; transform:translateY(-3px); box-shadow:0 12px 28px rgba(249,115,22,.15); }
+  .psp-card .img { aspect-ratio:1/1; background:#F3F4F6 center/cover no-repeat; position:relative; }
+  .psp-card .img::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg, transparent 60%, rgba(0,0,0,.02) 100%); }
+  .psp-card .badge { position:absolute; top:10px; left:10px; padding:3px 8px; background:#F97316; color:#fff; font-size:10px; font-weight:800; border-radius:5px; letter-spacing:.5px; z-index:2; }
+  .psp-card .body { padding:14px 14px 16px; }
+  .psp-card .name { font-size:14px; font-weight:800; color:#0F1F5C; line-height:1.4; margin-bottom:6px; }
+  .psp-card .desc { font-size:12px; color:#6B7280; line-height:1.5; min-height:36px; }
+  @media (max-width:640px) { .psp-grid { grid-template-columns:repeat(2, 1fr); gap:10px; } .psp-card .body { padding:12px; } }
+  </style>
+  <section class="psp">
+    <div class="psp-inner">
+      <div class="psp-head">
+        <h2>인기 추천 상품</h2>
+        <a class="more" href="https://www.pourstore.net/category/best">전체보기 →</a>
+      </div>
+      <div class="psp-grid">
+        <a class="psp-card" href="https://www.pourstore.net/product/seed-paint">
+          <div class="img" style="background-image:url('https://placehold.co/400x400/F97316/fff?text=PAINT+PLUS')"><span class="badge">BEST</span></div>
+          <div class="body"><div class="name">POUR 씨릿 페인트 플러스</div><div class="desc">균열에 따라 늘어나고 오므라드는 고기능성 인테리어&외벽 페인트</div></div>
+        </a>
+        <a class="psp-card" href="https://www.pourstore.net/product/coat">
+          <div class="img" style="background-image:url('https://placehold.co/400x400/0F1F5C/fff?text=POUR+COAT')"><span class="badge">BEST</span></div>
+          <div class="body"><div class="name">POUR 코트재</div><div class="desc">방수와 단열·차열·중성화 방지를 한 번에 — KS 4배 인장강도</div></div>
+        </a>
+        <a class="psp-card" href="https://www.pourstore.net/product/hyper-t">
+          <div class="img" style="background-image:url('https://placehold.co/400x400/EA580C/fff?text=HYPER+T')"><span class="badge">신장 608%</span></div>
+          <div class="body"><div class="name">POUR 하이퍼티</div><div class="desc">600% 늘어나는 초고신율 탄성 퍼티 — 미세 균열 봉합</div></div>
+        </a>
+        <a class="psp-card" href="https://www.pourstore.net/product/crack-pack">
+          <div class="img" style="background-image:url('https://placehold.co/400x400/F97316/fff?text=CRACK+SET')"><span class="badge">SET</span></div>
+          <div class="body"><div class="name">POUR 균열보수 세트</div><div class="desc">하이퍼티+크랙시트 — 외벽·내벽 균열 한 번에 해결</div></div>
+        </a>
+        <a class="psp-card" href="https://www.pourstore.net/product/grohome-tools">
+          <div class="img" style="background-image:url('https://placehold.co/400x400/059669/fff?text=GROHOME+TOOLS')"><span class="badge">PRO</span></div>
+          <div class="body"><div class="name">GROHOME TOOLS PRO</div><div class="desc">프리미엄 작업 도구 — 손에 잘 잡히는 그립과 균일한 작업감</div></div>
+        </a>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_NEW_ARRIVALS_HTML = `<style>
+  .psn * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .psn { background:#FFFBF5; padding:48px 18px; }
+  .psn-inner { max-width:1080px; margin:0 auto; }
+  .psn-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:10px; }
+  .psn-head .left { flex:1; }
+  .psn-head .kicker { font-size:11px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:5px; }
+  .psn-head h2 { font-size:22px; font-weight:900; color:#0F1F5C; letter-spacing:-.3px; }
+  .psn-tabs { display:flex; gap:6px; flex-wrap:wrap; }
+  .psn-tab { padding:7px 14px; background:#fff; border:1.5px solid #E5E7EB; border-radius:999px; font-size:12px; font-weight:700; color:#6B7280; cursor:pointer; }
+  .psn-tab.on { background:#0F1F5C; border-color:#0F1F5C; color:#fff; }
+  .psn-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:14px; }
+  .psn-card { background:#fff; border:1px solid #E5E7EB; border-radius:14px; overflow:hidden; cursor:pointer; transition:all .2s; text-decoration:none; color:inherit; display:block; position:relative; }
+  .psn-card:hover { transform:translateY(-3px); box-shadow:0 12px 24px rgba(0,0,0,.08); }
+  .psn-card .img { aspect-ratio:1/1; background:#F3F4F6 center/cover no-repeat; }
+  .psn-card .new { position:absolute; top:10px; right:10px; padding:3px 8px; background:#F97316; color:#fff; font-size:10px; font-weight:800; border-radius:5px; }
+  .psn-card .body { padding:12px 14px 14px; }
+  .psn-card .name { font-size:13px; font-weight:700; color:#0F1F5C; line-height:1.4; margin-bottom:6px; min-height:36px; }
+  .psn-card .price { font-size:16px; font-weight:900; color:#0F1F5C; }
+  .psn-card .price .won { font-size:12px; color:#6B7280; margin-left:1px; font-weight:600; }
+  @media (max-width:640px) { .psn-grid { grid-template-columns:repeat(2, 1fr); gap:10px; } }
+  </style>
+  <section class="psn">
+    <div class="psn-inner">
+      <div class="psn-head">
+        <div class="left">
+          <div class="kicker">NEW ARRIVALS</div>
+          <h2>시선집중! 이달의 신상품</h2>
+        </div>
+        <div class="psn-tabs">
+          <button class="psn-tab on">안전용품</button>
+          <button class="psn-tab">부자재</button>
+          <button class="psn-tab">작업 도구</button>
+          <button class="psn-tab">청소·정리</button>
+        </div>
+      </div>
+      <div class="psn-grid">
+        <a class="psn-card" href="https://www.pourstore.net/product/safety-rope">
+          <div class="img" style="background-image:url('https://placehold.co/400x400/FCD34D/000?text=SAFETY+ROPE')"></div>
+          <span class="new">NEW</span>
+          <div class="body"><div class="name">PE 산업 안전 띄움 로프 / 작업용 안전선</div><div class="price">55,000<span class="won">원</span></div></div>
+        </a>
+        <a class="psn-card" href="https://www.pourstore.net/product/helmet">
+          <div class="img" style="background-image:url('https://placehold.co/400x400/E5E7EB/000?text=HELMET')"></div>
+          <span class="new">NEW</span>
+          <div class="body"><div class="name">고급 경량 안전모 / 사계절 건설 현장</div><div class="price">5,500<span class="won">원</span></div></div>
+        </a>
+        <a class="psn-card" href="https://www.pourstore.net/product/gloves">
+          <div class="img" style="background-image:url('https://placehold.co/400x400/F97316/fff?text=GLOVES')"></div>
+          <span class="new">NEW</span>
+          <div class="body"><div class="name">양면 라텍스 코팅 작업 장갑 10족</div><div class="price">3,900<span class="won">원</span></div></div>
+        </a>
+        <a class="psn-card" href="https://www.pourstore.net/product/safety-vest">
+          <div class="img" style="background-image:url('https://placehold.co/400x400/84CC16/fff?text=VEST')"></div>
+          <span class="new">NEW</span>
+          <div class="body"><div class="name">통기성 안전 조끼 / 형광 야간 인식</div><div class="price">5,000<span class="won">원</span></div></div>
+        </a>
+        <a class="psn-card" href="https://www.pourstore.net/product/cone">
+          <div class="img" style="background-image:url('https://placehold.co/400x400/EA580C/fff?text=CONE')"></div>
+          <span class="new">NEW</span>
+          <div class="body"><div class="name">안전 휀스 / 현장 안전 표지 콘 (3500g)</div><div class="price">42,000<span class="won">원</span></div></div>
+        </a>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_SUBCATEGORY_HTML = `<style>
+  .pss * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pss { background:#fff; padding:48px 18px; }
+  .pss-inner { max-width:1080px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .pss-card { border-radius:18px; overflow:hidden; padding:36px 28px; min-height:280px; position:relative; cursor:pointer; transition:transform .2s; text-decoration:none; color:inherit; display:block; }
+  .pss-card:hover { transform:translateY(-4px); }
+  .pss-card.dream { background:linear-gradient(135deg,#A7F3D0,#6EE7B7); }
+  .pss-card.gro { background:linear-gradient(135deg,#FED7AA,#FDBA74); }
+  .pss-card .label { display:inline-block; padding:5px 12px; background:#fff; border-radius:999px; font-size:11px; font-weight:800; color:#065F46; margin-bottom:14px; }
+  .pss-card.gro .label { color:#9A3412; }
+  .pss-card h3 { font-size:24px; font-weight:900; color:#064E3B; margin-bottom:8px; line-height:1.3; }
+  .pss-card.gro h3 { color:#7C2D12; }
+  .pss-card p { font-size:13px; color:#065F46; line-height:1.7; margin-bottom:18px; max-width:280px; }
+  .pss-card.gro p { color:#9A3412; }
+  .pss-card .preview { display:flex; gap:8px; margin-top:auto; flex-wrap:wrap; }
+  .pss-card .preview .item { width:64px; height:80px; background:#fff center/contain no-repeat; border-radius:8px; padding:5px; }
+  .pss-card .more { display:inline-block; margin-top:14px; padding:8px 14px; background:rgba(255,255,255,.5); color:#064E3B; font-size:12px; font-weight:800; border-radius:999px; backdrop-filter:blur(4px); }
+  .pss-card.gro .more { color:#7C2D12; }
+  @media (max-width:720px) { .pss-inner { grid-template-columns:1fr; } .pss-card { padding:28px 24px; min-height:auto; } .pss-card h3 { font-size:20px; } }
+  </style>
+  <section class="pss">
+    <div class="pss-inner">
+      <a class="pss-card dream" href="https://www.pourstore.net/category/dreamcoat">
+        <span class="label">제비스코 라인</span>
+        <h3>DREAM COAT</h3>
+        <p>한국 1위 페인트 제비스코의 친환경 인테리어 라인 — 실내·외 모두 안전하게.</p>
+        <div class="preview">
+          <div class="item" style="background-image:url('https://placehold.co/120x150/059669/fff?text=DREAM+1')"></div>
+          <div class="item" style="background-image:url('https://placehold.co/120x150/047857/fff?text=DREAM+2')"></div>
+          <div class="item" style="background-image:url('https://placehold.co/120x150/065F46/fff?text=DREAM+3')"></div>
+        </div>
+        <div class="more">제품 보기 →</div>
+      </a>
+      <a class="pss-card gro" href="https://grohome.co.kr">
+        <span class="label">+ 인테리어</span>
+        <h3>GROHOME</h3>
+        <p>POUR 기술 기반 홈 리페어 브랜드 — 누구나 스스로 고칠 수 있도록, 전문가 기술을 일상에 맞춰 재설계합니다.</p>
+        <div class="preview">
+          <div class="item" style="background-image:url('https://placehold.co/120x150/F97316/fff?text=GRO+1')"></div>
+          <div class="item" style="background-image:url('https://placehold.co/120x150/EA580C/fff?text=GRO+2')"></div>
+          <div class="item" style="background-image:url('https://placehold.co/120x150/C2410C/fff?text=GRO+3')"></div>
+        </div>
+        <div class="more">제품 보기 →</div>
+      </a>
+    </div>
+  </section>`;
+
+  const SEED_YOUTUBE_HTML = `<style>
+  .psy * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .psy { background:#FFFBF5; padding:48px 18px; }
+  .psy-inner { max-width:1080px; margin:0 auto; }
+  .psy-head { margin-bottom:18px; display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+  .psy-head h2 { font-size:22px; font-weight:900; color:#0F1F5C; letter-spacing:-.3px; }
+  .psy-head h2 .yt { color:#FF0000; font-size:14px; vertical-align:middle; margin-left:4px; }
+  .psy-head p { font-size:12.5px; color:#6B7280; margin-top:4px; }
+  .psy-head .more { font-size:13px; font-weight:700; color:#F97316; text-decoration:none; }
+  .psy-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:12px; }
+  .psy-card { aspect-ratio:9/16; border-radius:14px; overflow:hidden; cursor:pointer; position:relative; transition:transform .2s; text-decoration:none; color:inherit; display:block; }
+  .psy-card:hover { transform:translateY(-3px); }
+  .psy-card .img { position:absolute; inset:0; background:#000 center/cover no-repeat; }
+  .psy-card .img::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg, rgba(0,0,0,.1) 0%, transparent 40%, rgba(0,0,0,.7) 100%); }
+  .psy-card .play { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:52px; height:52px; background:rgba(255,0,0,.9); border-radius:50%; display:grid; place-items:center; box-shadow:0 6px 18px rgba(0,0,0,.4); }
+  .psy-card .play::after { content:''; border:0 solid transparent; border-left:14px solid #fff; border-top:9px solid transparent; border-bottom:9px solid transparent; margin-left:3px; }
+  .psy-card .title { position:absolute; bottom:10px; left:10px; right:10px; color:#fff; font-size:12px; font-weight:700; line-height:1.4; z-index:1; text-shadow:0 1px 2px rgba(0,0,0,.6); }
+  @media (max-width:480px) { .psy-grid { grid-template-columns:repeat(2, 1fr); gap:10px; } }
+  </style>
+  <section class="psy">
+    <div class="psy-inner">
+      <div class="psy-head">
+        <div>
+          <h2>유튜브 숏츠 연결 <span class="yt">▶ Shorts</span></h2>
+          <p>구구단 외우는 것처럼 간단한 시공법</p>
+        </div>
+        <a class="more" href="https://www.youtube.com/@POURsolution" target="_blank" rel="noopener">전체 채널 →</a>
+      </div>
+      <div class="psy-grid">
+        <a class="psy-card" href="https://youtu.be/short1" target="_blank" rel="noopener"><div class="img" style="background-image:url('https://placehold.co/300x533/0F1F5C/fff?text=DRAIN+VIDEO')"></div><div class="play"></div><div class="title">옥상 배수구 누수 1분 보수법</div></a>
+        <a class="psy-card" href="https://youtu.be/short2" target="_blank" rel="noopener"><div class="img" style="background-image:url('https://placehold.co/300x533/EA580C/fff?text=ROOF+VIDEO')"></div><div class="play"></div><div class="title">무더운 방수보수는 빌라나 유지보수?</div></a>
+        <a class="psy-card" href="https://youtu.be/short3" target="_blank" rel="noopener"><div class="img" style="background-image:url('https://placehold.co/300x533/F97316/fff?text=SHINGLE')"></div><div class="play"></div><div class="title">슁글 지붕에 방수페인트 칠하면 좋을까?</div></a>
+        <a class="psy-card" href="https://youtu.be/short4" target="_blank" rel="noopener"><div class="img" style="background-image:url('https://placehold.co/300x533/059669/fff?text=CRACK')"></div><div class="play"></div><div class="title">콘크리트 내부 균열 봉합하여 새 시공 1.4 가격으로!</div></a>
+        <a class="psy-card" href="https://youtu.be/short5" target="_blank" rel="noopener"><div class="img" style="background-image:url('https://placehold.co/300x533/9333EA/fff?text=COATING')"></div><div class="play"></div><div class="title">옥상 방수는 코트재로 (포어코트재)</div></a>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_SERVICE_HTML = `<style>
+  .psv * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .psv { background:#fff; padding:48px 18px; }
+  .psv-inner { max-width:1080px; margin:0 auto; }
+  .psv-head { text-align:center; margin-bottom:24px; }
+  .psv-head h2 { font-size:22px; font-weight:900; color:#0F1F5C; letter-spacing:-.3px; margin-bottom:6px; }
+  .psv-head p { font-size:13px; color:#6B7280; }
+  .psv-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:14px; }
+  .psv-card { padding:28px 24px; border-radius:18px; cursor:pointer; transition:transform .2s; text-decoration:none; color:inherit; display:block; position:relative; overflow:hidden; min-height:200px; }
+  .psv-card:hover { transform:translateY(-4px); box-shadow:0 14px 32px rgba(0,0,0,.1); }
+  .psv-card.shop { background:linear-gradient(135deg,#FED7AA,#FB923C); color:#7C2D12; }
+  .psv-card.partner { background:linear-gradient(135deg,#BFDBFE,#60A5FA); color:#1E3A8A; }
+  .psv-card.show { background:linear-gradient(135deg,#FECACA,#F87171); color:#7F1D1D; }
+  .psv-card .label { display:inline-block; padding:5px 12px; background:rgba(255,255,255,.5); border-radius:999px; font-size:10.5px; font-weight:800; margin-bottom:12px; backdrop-filter:blur(4px); }
+  .psv-card h3 { font-size:18px; font-weight:900; line-height:1.4; margin-bottom:8px; }
+  .psv-card p { font-size:13px; line-height:1.65; margin-bottom:16px; opacity:.85; }
+  .psv-card .arr { display:inline-flex; align-items:center; gap:6px; padding:8px 14px; background:rgba(255,255,255,.85); border-radius:999px; font-size:12.5px; font-weight:800; color:inherit; }
+  @media (max-width:640px) { .psv-card { padding:24px 22px; min-height:auto; } }
+  </style>
+  <section class="psv">
+    <div class="psv-inner">
+      <div class="psv-head">
+        <h2>서비스 소개</h2>
+        <p>대리점·파트너사·전시장 — 어떤 채널로 만나실래요?</p>
+      </div>
+      <div class="psv-grid">
+        <a class="psv-card shop" href="https://www.poursolution.net/169">
+          <span class="label">대리점</span>
+          <h3>건축물 유지보수, 이제는 직접 보고 만지고 채택해 선택하세요</h3>
+          <p>잘못된 시공, 비가지 견적, 불안한 시공 자재, 여기서 끝.</p>
+          <span class="arr">바로 상담받고 채택해 알기 →</span>
+        </a>
+        <a class="psv-card partner" href="https://www.poursolution.net/170">
+          <span class="label">파트너사</span>
+          <h3>POUR스토어와 함께 건축물 유지보수 업계를 이끌 파트너사를 모집합니다</h3>
+          <p>전국 250+ 시공 파트너사와 함께 성장하는 채널.</p>
+          <span class="arr">파트너 신청 →</span>
+        </a>
+        <a class="psv-card show" href="https://www.pourstore.net/showroom">
+          <span class="label">전시장</span>
+          <h3>POUR 쇼룸에서 직접 보고 만져보세요</h3>
+          <p>모든 자재를 직접 체험할 수 있는 전국 쇼룸 안내.</p>
+          <span class="arr">쇼룸 방문 예약 →</span>
+        </a>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_POSTING_HTML = `<style>
+  .psg * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .psg { background:#FFFBF5; padding:48px 18px; }
+  .psg-inner { max-width:1080px; margin:0 auto; }
+  .psg-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:10px; }
+  .psg-head h2 { font-size:22px; font-weight:900; color:#0F1F5C; letter-spacing:-.3px; }
+  .psg-head p { font-size:12.5px; color:#6B7280; margin-top:4px; }
+  .psg-head .more { font-size:13px; font-weight:700; color:#F97316; text-decoration:none; }
+  .psg-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:14px; }
+  .psg-card { background:#fff; border:1px solid #E5E7EB; border-radius:14px; overflow:hidden; cursor:pointer; transition:all .2s; text-decoration:none; color:inherit; display:block; }
+  .psg-card:hover { transform:translateY(-3px); box-shadow:0 12px 26px rgba(0,0,0,.08); border-color:#F97316; }
+  .psg-card .img { aspect-ratio:4/3; background:#F3F4F6 center/cover no-repeat; position:relative; }
+  .psg-card .tag { position:absolute; top:10px; left:10px; padding:4px 10px; background:rgba(15,31,92,.85); color:#fff; font-size:10.5px; font-weight:800; border-radius:6px; }
+  .psg-card .body { padding:14px 16px 16px; }
+  .psg-card .title { font-size:14px; font-weight:800; color:#0F1F5C; line-height:1.45; margin-bottom:8px; }
+  .psg-card .desc { font-size:12px; color:#6B7280; line-height:1.55; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  @media (max-width:640px) { .psg-grid { grid-template-columns:1fr 1fr; gap:10px; } }
+  </style>
+  <section class="psg">
+    <div class="psg-inner">
+      <div class="psg-head">
+        <div>
+          <h2>자사몰 내 포스팅</h2>
+          <p>시공방법·노하우·하자 해결 사례</p>
+        </div>
+        <a class="more" href="https://www.pourstore.net/posts">전체보기 →</a>
+      </div>
+      <div class="psg-grid">
+        <a class="psg-card" href="https://www.pourstore.net/posts/know-how">
+          <div class="img" style="background-image:url('https://placehold.co/600x450/8B4513/fff?text=NOHOW')"><span class="tag">노하우</span></div>
+          <div class="body"><div class="title">노하우 대방출 — 금속기와 하자 대응 방법</div><div class="desc">금속기와 지붕 소재로 많이 사용하는 금속기와의 하자 발생 시 할 수 있는 대응 방법.</div></div>
+        </a>
+        <a class="psg-card" href="https://www.pourstore.net/posts/silicone">
+          <div class="img" style="background-image:url('https://placehold.co/600x450/D1D5DB/000?text=SILICONE')"><span class="tag">실리콘</span></div>
+          <div class="body"><div class="title">해도해도 끝이 없는 균열부 실리콘 보수</div><div class="desc">건물 외벽 균열보수 실리콘이 최선일까? 하이퍼티의 600% 신축이 답입니다.</div></div>
+        </a>
+        <a class="psg-card" href="https://www.pourstore.net/posts/leak-fix">
+          <div class="img" style="background-image:url('https://placehold.co/600x450/059669/fff?text=LEAK+FIX')"><span class="tag">셀프시공</span></div>
+          <div class="body"><div class="title">크랙&누수 걱정 이걸로 끝 — 빌라 옥상 셀프 방수</div><div class="desc">평택 셀프 옥상방수 사례 — 옥상에 균열이 있고 누수가 발생할 것을 대비해 매년 보던 일.</div></div>
+        </a>
+        <a class="psg-card" href="https://www.pourstore.net/posts/shingle-coat">
+          <div class="img" style="background-image:url('https://placehold.co/600x450/B91C1C/fff?text=SHINGLE')"><span class="tag">슁글</span></div>
+          <div class="body"><div class="title">아스팔트 슁글 지붕 도막방수 잘 버틸까?</div><div class="desc">슁글은 경사형(약공)지붕인데 액체방수로 방수층을 만들기엔 아래로 흘러 균일한 방수막이 형성되기 어려워요.</div></div>
+        </a>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_VIDEO_GUIDE_HTML = `<style>
+  .psg2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .psg2 { background:#fff; padding:48px 18px; }
+  .psg2-inner { max-width:1080px; margin:0 auto; }
+  .psg2-head { text-align:center; margin-bottom:20px; }
+  .psg2-head h2 { font-size:22px; font-weight:900; color:#0F1F5C; letter-spacing:-.3px; margin-bottom:6px; }
+  .psg2-head p { font-size:12.5px; color:#6B7280; }
+  .psg2-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:12px; }
+  .psg2-card { aspect-ratio:16/9; border-radius:12px; overflow:hidden; cursor:pointer; position:relative; transition:transform .2s; text-decoration:none; color:inherit; display:block; }
+  .psg2-card:hover { transform:translateY(-2px); }
+  .psg2-card .img { position:absolute; inset:0; background:#000 center/cover no-repeat; }
+  .psg2-card .img::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg, transparent 50%, rgba(0,0,0,.8) 100%); }
+  .psg2-card .play { position:absolute; top:8px; right:8px; width:30px; height:30px; background:rgba(255,255,255,.95); border-radius:50%; display:grid; place-items:center; }
+  .psg2-card .play::after { content:''; border:0 solid transparent; border-left:9px solid #0F1F5C; border-top:6px solid transparent; border-bottom:6px solid transparent; margin-left:3px; }
+  .psg2-card .title { position:absolute; bottom:10px; left:10px; right:10px; color:#fff; font-size:12.5px; font-weight:700; line-height:1.4; z-index:1; }
+  .psg2-card .sub { position:absolute; top:8px; left:8px; padding:3px 8px; background:rgba(0,0,0,.65); color:#fff; font-size:10px; font-weight:700; border-radius:4px; }
+  .psg2-link { margin-top:18px; padding:14px 18px; background:linear-gradient(135deg,#F97316,#EA580C); border-radius:12px; color:#fff; text-align:center; text-decoration:none; font-size:13px; font-weight:800; display:block; box-shadow:0 6px 16px rgba(249,115,22,.3); }
+  @media (max-width:640px) { .psg2-grid { grid-template-columns:1fr 1fr; gap:10px; } }
+  </style>
+  <section class="psg2">
+    <div class="psg2-inner">
+      <div class="psg2-head">
+        <h2>동영상 가이드</h2>
+        <p>시공방법 영상 + POUR솔루션 영상 통합 모음</p>
+      </div>
+      <div class="psg2-grid">
+        <a class="psg2-card" href="https://youtu.be/6n03aozxZ3U" target="_blank" rel="noopener"><div class="img" style="background-image:url('https://placehold.co/640x360/0F1F5C/fff?text=GUIDE+1')"></div><span class="sub">시공가이드</span><div class="play"></div><div class="title">옥상 슬라브 방수 단계별 진행</div></a>
+        <a class="psg2-card" href="https://youtu.be/short2" target="_blank" rel="noopener"><div class="img" style="background-image:url('https://placehold.co/640x360/EA580C/fff?text=GUIDE+2')"></div><span class="sub">POUR AI 도움</span><div class="play"></div><div class="title">POUR AI 도움 정밀체전 시스템</div></a>
+        <a class="psg2-card" href="https://youtu.be/short3" target="_blank" rel="noopener"><div class="img" style="background-image:url('https://placehold.co/640x360/F97316/fff?text=GUIDE+3')"></div><span class="sub">시공현장</span><div class="play"></div><div class="title">자방 신축 정밀자공 푸드프트정 시공현장</div></a>
+        <a class="psg2-card" href="https://youtu.be/short4" target="_blank" rel="noopener"><div class="img" style="background-image:url('https://placehold.co/640x360/059669/fff?text=GUIDE+4')"></div><span class="sub">아파트 사례</span><div class="play"></div><div class="title">구안주 아파트 단지 \\'유니크하우\\'</div></a>
+        <a class="psg2-card" href="https://youtu.be/short5" target="_blank" rel="noopener"><div class="img" style="background-image:url('https://placehold.co/640x360/9333EA/fff?text=GUIDE+5')"></div><span class="sub">슁글 시공</span><div class="play"></div><div class="title">아스팔트 슁글 지붕 도막방수 결과 영상</div></a>
+      </div>
+      <a class="psg2-link" href="https://www.youtube.com/@POURsolution" target="_blank" rel="noopener">📺 POUR솔루션 채널 전체 영상 보기 →</a>
+    </div>
+  </section>`;
+
+
   const DEFAULT_PAGES = () => ([
     { id: 'main', name: '메인 페이지', file: 'index.html', sections: [
-      mkSec('메인 배너', '', '슬라이드 배너 — 균열·방수·코팅 자재 세트 등 메인 비주얼'),
-      mkSec('카테고리 항목 버튼', '', '제품구매·패키지구매·시공상담·시공가이드·쇼룸·부자재·체험교육·파트너사·고객센터 (8~9개 아이콘)'),
+      mkSec('메인 배너', SEED_BANNER_HTML, '슬라이드 배너 — 균열·방수·코팅 자재 세트 (v1)', 'wip'),
+      mkSec('카테고리 항목 버튼', SEED_CATEGORY_HTML, '9개 아이콘 — 제품·패키지·상담·가이드·쇼룸·부자재·교육·파트너·고객센터 (v1)', 'wip'),
       mkSec('AI 맞춤 자재추천', SEED_AI_RECOMMEND_HTML, 'POUR 길잡이 — 자동완성 카테고리 그룹화(지붕·외벽·지하), 카드 컴팩트 (v9)', 'wip'),
-      mkSec('인기 추천 상품', '', '베스트셀러 5종 카드'),
-      mkSec('신상품 (안전용품·부자재)', '', 'NEW ARRIVALS — 이달의 안전용품·부자재 등 서브 자재 전시'),
-      mkSec('서브카테고리 상품', '', '제비스코 라인 + 인테리어 (DREAM COAT + GROHOME)'),
-      mkSec('유튜브 숏츠 연결', '', '시공/제품 숏츠 5종'),
-      mkSec('서비스 소개', '', '대리점·파트너사·전시장 안내 카드 3종'),
-      mkSec('자사몰 내 포스팅', '', '시공방법·노하우·하자해결 콘텐츠 카드 그리드'),
-      mkSec('동영상 가이드', '', '시공방법 영상 + POUR솔루션 영상 통합'),
+      mkSec('인기 추천 상품', SEED_POPULAR_HTML, '베스트셀러 5종 — 씨릿 페인트·코트재·하이퍼티·균열보수세트·GROHOME TOOLS (v1)', 'wip'),
+      mkSec('신상품 (안전용품·부자재)', SEED_NEW_ARRIVALS_HTML, 'NEW ARRIVALS — 안전용품·부자재 5종 + 카테고리 탭 (v1)', 'wip'),
+      mkSec('서브카테고리 상품', SEED_SUBCATEGORY_HTML, '제비스코 DREAM COAT + GROHOME 인테리어 2-블록 카드 (v1)', 'wip'),
+      mkSec('유튜브 숏츠 연결', SEED_YOUTUBE_HTML, 'YouTube Shorts 5종 카드 — 9:16 비율 (v1)', 'wip'),
+      mkSec('서비스 소개', SEED_SERVICE_HTML, '대리점·파트너사·전시장 3-카드 (v1)', 'wip'),
+      mkSec('자사몰 내 포스팅', SEED_POSTING_HTML, '시공방법·노하우·하자해결 4-카드 그리드 (v1)', 'wip'),
+      mkSec('동영상 가이드', SEED_VIDEO_GUIDE_HTML, '시공가이드 영상 5종 + POUR솔루션 채널 링크 (v1)', 'wip'),
       mkSec('POUR스토어 실적관', SEED_STATS_HTML, '실적 수치 + 시공 갤러리 + 협력사 (기존 cafe24 시안 임베드)', 'requested'),
     ]},
     { id: 'about', name: '브랜드스토리 소개', file: 'about.html', sections: [

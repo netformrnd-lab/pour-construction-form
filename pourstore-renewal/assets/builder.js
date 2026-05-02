@@ -1270,6 +1270,117 @@ show('entry');
     </div>
   </section>`;
 
+  const SEED_PR_TIER_HTML = `<style>
+  .pprt * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pprt { background:#fff; padding:80px 18px; }
+  .pprt-inner { max-width:1200px; margin:0 auto; }
+  .pprt-head { text-align:center; margin-bottom:36px; }
+  .pprt-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pprt-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .pprt-head p { font-size:14px; color:#6B7280; max-width:580px; margin:0 auto; line-height:1.65; }
+  .pprt-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:24px; }
+  .pprt-card { background:#fff; border:1.5px solid #F3F4F6; border-radius:20px; padding:28px 24px; transition:all .25s; position:relative; }
+  .pprt-card:hover { transform:translateY(-3px); box-shadow:0 18px 40px rgba(15,31,92,.08); }
+  .pprt-card.full { background:linear-gradient(135deg,#FFF7ED,#FFEDD5); border-color:#F97316; box-shadow:0 14px 36px rgba(249,115,22,.15); transform:scale(1.02); }
+  .pprt-card.full::before { content:'⭐ 강력추천'; position:absolute; top:-12px; left:50%; transform:translateX(-50%); padding:6px 14px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; font-size:11px; font-weight:900; border-radius:6px; letter-spacing:.5px; box-shadow:0 4px 12px rgba(249,115,22,.4); }
+  .pprt-card .head { display:flex; align-items:center; gap:12px; margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid rgba(249,115,22,.15); }
+  .pprt-card .icon { width:48px; height:48px; border-radius:12px; background:#fff; display:grid; place-items:center; font-size:24px; flex-shrink:0; box-shadow:0 4px 10px rgba(249,115,22,.12); }
+  .pprt-card.full .icon { background:linear-gradient(135deg,#F97316,#EA580C); }
+  .pprt-card .label { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.8px; margin-bottom:3px; }
+  .pprt-card .name { font-size:18px; font-weight:900; color:#0F1F5C; letter-spacing:-.4px; }
+  .pprt-card .desc { font-size:13px; color:#4B5563; line-height:1.7; margin-bottom:14px; min-height:60px; }
+  .pprt-card .desc b { color:#0F1F5C; font-weight:800; }
+  .pprt-card .compose { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:14px; }
+  .pprt-card .item { padding:4px 10px; background:#fff; border:1px solid #FED7AA; color:#EA580C; font-size:10.5px; font-weight:800; border-radius:6px; letter-spacing:-.2px; }
+  .pprt-card .item.muted { background:#F9FAFB; border-color:#E5E7EB; color:#9CA3AF; }
+  .pprt-card .price { font-size:11.5px; color:#6B7280; font-weight:700; margin-bottom:14px; padding-top:14px; border-top:1px solid rgba(249,115,22,.12); display:flex; justify-content:space-between; align-items:center; }
+  .pprt-card .price b { font-family:'Bebas Neue',sans-serif; font-size:18px; color:#F97316; letter-spacing:.5px; margin-right:4px; }
+  .pprt-card .scope { font-size:11px; padding:4px 9px; background:#FFFBF5; border:1px solid #FED7AA; color:#EA580C; font-weight:800; border-radius:6px; letter-spacing:.3px; }
+  .pprt-self { padding:12px 14px; background:#FFFBF5; border:1px dashed #FED7AA; border-radius:10px; display:flex; align-items:center; gap:10px; }
+  .pprt-card.full .pprt-self { background:rgba(255,255,255,.7); border-color:#F97316; border-style:solid; }
+  .pprt-self .self-icon { width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:15px; flex-shrink:0; }
+  .pprt-card.full .pprt-self .self-icon { background:#fff; }
+  .pprt-self .self-text { flex:1; min-width:0; }
+  .pprt-self .self-label { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:2px; }
+  .pprt-self .self-meta { display:flex; gap:8px; font-size:11px; color:#0F1F5C; font-weight:700; flex-wrap:wrap; }
+  .pprt-self .self-meta span { display:inline-flex; align-items:center; gap:3px; }
+  .pprt-info { padding:18px 22px; background:linear-gradient(135deg,#FFF7ED,#FFEDD5); border:1px solid #FED7AA; border-radius:14px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .pprt-info .ico { font-size:24px; flex-shrink:0; }
+  .pprt-info .text { flex:1; font-size:13px; color:#4B5563; line-height:1.7; min-width:240px; }
+  .pprt-info .text b { color:#EA580C; font-weight:900; }
+  .pprt-info .text .brand { color:#0F1F5C; font-weight:900; }
+  @media (max-width:880px) { .pprt-grid { grid-template-columns:1fr; } .pprt-card.full { transform:none; } .pprt-head h2 { font-size:24px; } }
+  </style>
+  <section class="pprt">
+    <div class="pprt-inner">
+      <div class="pprt-head">
+        <div class="kicker">PACKAGE TIERS</div>
+        <h2>패키지 등급 — 어디까지 시공하나요?</h2>
+        <p>POUR스토어 패키지는 <b style="color:#0F1F5C">시공 범위에 따라 3단계</b>로 구성됩니다. 어려운 문제는 풀패키지로 본질부터, 단순 보수는 코팅만으로도 OK.</p>
+      </div>
+      <div class="pprt-grid">
+        <div class="pprt-card">
+          <div class="head"><div class="icon">🎨</div><div><div class="label">TIER 1 · BASIC</div><div class="name">단순 코팅</div></div></div>
+          <div class="desc">노후 표면 보호·재도장 같은 <b>표면 차원의 보수</b>. 빠르고 저비용 — 본질적 손상이 없을 때 권장.</div>
+          <div class="compose">
+            <span class="item">코트재</span>
+            <span class="item muted">+ 시트</span>
+            <span class="item muted">+ 보강</span>
+          </div>
+          <div class="price"><span><b>50</b>만원~</span><span class="scope">표면만</span></div>
+          <div class="pprt-self">
+            <div class="self-icon">🎬</div>
+            <div class="self-text">
+              <div class="self-label">SELF GUIDE</div>
+              <div class="self-meta"><span>▶ 영상</span><span>📄 설명서</span><span>✓ 셀프 가능</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="pprt-card full">
+          <div class="head"><div class="icon" style="color:#fff;">🛡️</div><div><div class="label">TIER 3 · COMPLETE</div><div class="name">풀패키지</div></div></div>
+          <div class="desc"><b>본질 문제까지 일괄 해결</b> — 누수·균열·결로 동시 대응. R&D 자재의 시너지로 재하자율 최소화.</div>
+          <div class="compose">
+            <span class="item">코트재</span>
+            <span class="item">시트</span>
+            <span class="item">하이퍼티</span>
+            <span class="item">벤트</span>
+            <span class="item">트랩</span>
+          </div>
+          <div class="price"><span><b>240</b>만원~</span><span class="scope">전체 부위</span></div>
+          <div class="pprt-self">
+            <div class="self-icon">🎬</div>
+            <div class="self-text">
+              <div class="self-label">SELF GUIDE · 풀세트</div>
+              <div class="self-meta"><span>▶ 영상 5편</span><span>📄 시방서 PDF</span><span>📞 전화 코칭</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="pprt-card">
+          <div class="head"><div class="icon">🔧</div><div><div class="label">TIER 2 · PARTIAL</div><div class="name">부분 패키지</div></div></div>
+          <div class="desc">균열·누수 등 <b>특정 부위의 본질 보수</b>. 코팅만으로 부족하지만 풀시공까진 과한 경우.</div>
+          <div class="compose">
+            <span class="item">코트재</span>
+            <span class="item">하이퍼티</span>
+            <span class="item">시트</span>
+            <span class="item muted">+ 벤트</span>
+          </div>
+          <div class="price"><span><b>120</b>만원~</span><span class="scope">부분 시공</span></div>
+          <div class="pprt-self">
+            <div class="self-icon">🎬</div>
+            <div class="self-text">
+              <div class="self-label">SELF GUIDE</div>
+              <div class="self-meta"><span>▶ 영상 3편</span><span>📄 설명서</span><span>✓ 셀프 가능</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pprt-info">
+        <div class="ico">📺</div>
+        <div class="text">모든 패키지에는 <b>시공 영상·설명서·전화 코칭</b>이 함께 제공됩니다. R&D 시너지 조합 자재라 전문가 시공만큼의 결과를 만들 수 있어요. 직접 시공이 어려우시면 <b>시공 연결 신청</b>으로 가까운 파트너사를 매칭해 드립니다.</div>
+      </div>
+    </div>
+  </section>`;
+
   const SEED_PR_BEST_HTML = `<style>
   .ppr2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
   .ppr2 { background:#fff; padding:72px 18px; }
@@ -3598,6 +3709,7 @@ show('entry');
     ]},
     { id: 'products', name: '제품 소개', file: 'products.html', sections: [
       mkSec('부위별 패키지 네비', SEED_PR_NAV_HTML, '9개 부위 카드 (슬라브/슁글/기와/균열/재도장/칼라강판/배수로/주차장/이음부) + 라인 토글(아파트/저층) + HOT 배지', 'wip'),
+      mkSec('패키지 등급 가이드', SEED_PR_TIER_HTML, '풀패키지(강력추천) / 부분 패키지 / 단순 코팅 3티어 — 각 카드에 시공 영상·설명서·코칭 표시', 'wip'),
       mkSec('베스트 상품', SEED_PR_BEST_HTML, '랭크 뱃지 + 별점·리뷰수 + 할인율 — 매거진 카드 톤', 'wip'),
       mkSec('신제품', SEED_PR_NEW_HTML, '입고일 표시 + NEW 배지 + 할인 가격 표기', 'wip'),
       mkSec('카테고리별 제품 그리드', SEED_PR_GRID_HTML, '탭 필터 + 카테고리별 그룹(방수/도장/균열) — 각 5개 제품 진열', 'wip'),

@@ -1505,36 +1505,102 @@ show('entry');
   .ppr3-inner { max-width:1200px; margin:0 auto; }
   .ppr3-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:14px; }
   .ppr3-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
-  .ppr3-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .ppr3-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:6px; }
+  .ppr3-head p { font-size:13.5px; color:#6B7280; }
   .ppr3-head .more { font-size:13px; font-weight:700; color:#EA580C; text-decoration:none; padding:8px 14px; border:1px solid #FED7AA; border-radius:999px; transition:all .25s; background:#fff; }
   .ppr3-head .more:hover { background:#FFF7ED; }
-  .ppr3-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; }
-  .ppr3-card { background:#fff; border:1px solid #F3F4F6; border-radius:16px; overflow:hidden; transition:all .3s; text-decoration:none; position:relative; }
+  .ppr3-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:16px; }
+  .ppr3-card { background:#fff; border:1.5px solid #F3F4F6; border-radius:18px; overflow:hidden; transition:all .3s; text-decoration:none; position:relative; display:flex; flex-direction:column; }
   .ppr3-card:hover { transform:translateY(-3px); box-shadow:0 16px 36px rgba(15,31,92,.08); border-color:#FED7AA; }
   .ppr3-thumb { aspect-ratio:5/4; background-size:cover; background-position:center; position:relative; }
-  .ppr3-thumb .new { position:absolute; top:10px; left:10px; padding:4px 9px; background:#0F1F5C; color:#fff; font-size:10px; font-weight:900; border-radius:5px; letter-spacing:.5px; }
-  .ppr3-info { padding:14px; }
+  .ppr3-thumb::after { content:''; position:absolute; inset:0; background:linear-gradient(0deg, rgba(15,31,92,.5) 0%, transparent 50%); }
+  .ppr3-thumb .new { position:absolute; top:10px; left:10px; padding:4px 10px; background:#0F1F5C; color:#fff; font-size:10px; font-weight:900; border-radius:5px; letter-spacing:.5px; z-index:1; }
+  .ppr3-thumb .tier { position:absolute; top:10px; right:10px; padding:4px 10px; background:rgba(255,255,255,.94); color:#0F1F5C; font-size:10px; font-weight:900; border-radius:5px; letter-spacing:.4px; z-index:1; backdrop-filter:blur(4px); }
+  .ppr3-thumb .tier.full { background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; }
+  .ppr3-thumb .compose { position:absolute; bottom:10px; left:10px; right:10px; display:flex; flex-wrap:wrap; gap:4px; z-index:1; }
+  .ppr3-thumb .compose span { padding:3px 7px; background:rgba(255,255,255,.92); color:#0F1F5C; font-size:10px; font-weight:800; border-radius:5px; letter-spacing:-.2px; }
+  .ppr3-info { padding:14px 16px; flex:1; display:flex; flex-direction:column; }
   .ppr3-info .date { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.3px; margin-bottom:6px; }
-  .ppr3-info .name { font-size:13.5px; font-weight:800; color:#0F1F5C; margin-bottom:8px; line-height:1.4; letter-spacing:-.3px; }
-  .ppr3-info .price { display:flex; align-items:center; gap:6px; }
-  .ppr3-info .now { font-size:15px; font-weight:900; color:#0F1F5C; }
+  .ppr3-info .area { font-size:10.5px; font-weight:800; color:#9CA3AF; letter-spacing:.5px; margin-bottom:4px; }
+  .ppr3-info .name { font-size:14.5px; font-weight:900; color:#0F1F5C; margin-bottom:6px; line-height:1.4; letter-spacing:-.3px; }
+  .ppr3-info .desc { font-size:11.5px; color:#6B7280; line-height:1.55; margin-bottom:10px; }
+  .ppr3-info .price { display:flex; align-items:baseline; gap:6px; margin-bottom:12px; }
+  .ppr3-info .now { font-size:16px; font-weight:900; color:#0F1F5C; }
   .ppr3-info .original { font-size:11px; color:#9CA3AF; text-decoration:line-through; font-weight:600; }
+  .ppr3-info .footer { display:flex; gap:6px; flex-wrap:wrap; padding-top:10px; border-top:1px solid #F3F4F6; margin-top:auto; }
+  .ppr3-info .self { padding:3px 8px; font-size:10px; font-weight:800; border-radius:5px; }
+  .ppr3-info .self.ok { background:#ECFDF5; border:1px solid #A7F3D0; color:#059669; }
+  .ppr3-info .self.pro { background:#FEE2E2; border:1px solid #FCA5A5; color:#DC2626; }
+  .ppr3-info .media { display:inline-flex; align-items:center; gap:4px; font-size:10px; color:#EA580C; font-weight:800; padding:3px 8px; background:#FFFBF5; border:1px solid #FED7AA; border-radius:5px; }
   @media (max-width:640px) { .ppr3-head h2 { font-size:22px; } }
   </style>
   <section class="ppr3">
     <div class="ppr3-inner">
       <div class="ppr3-head">
         <div>
-          <div class="kicker">🆕 NEW ARRIVAL</div>
-          <h2>이번 주 신상품</h2>
+          <div class="kicker">🆕 NEW PACKAGE</div>
+          <h2>이번 주 신규 패키지</h2>
+          <p>새롭게 출시된 R&D 시너지 조합 — 한정 할인가 제공</p>
         </div>
-        <a class="more" href="https://www.pourstore.net/new">전체 보기 →</a>
+        <a class="more" href="https://www.pourstore.net/new">전체 신규 →</a>
       </div>
       <div class="ppr3-grid">
-        <a class="ppr3-card" href="#"><div class="ppr3-thumb" style="background-image:url('https://placehold.co/400x320/F97316/fff?text=NEW+VENT')"><div class="new">NEW</div></div><div class="ppr3-info"><div class="date">2026.04.30 입고</div><div class="name">페이퍼팬벤트 무동력 환기구</div><div class="price"><span class="now">38,000원</span><span class="original">42,000원</span></div></div></a>
-        <a class="ppr3-card" href="#"><div class="ppr3-thumb" style="background-image:url('https://placehold.co/400x320/EA580C/fff?text=NEW+SAFE')"><div class="new">NEW</div></div><div class="ppr3-info"><div class="date">2026.04.28 입고</div><div class="name">고소작업 안전벨트 풀세트</div><div class="price"><span class="now">89,000원</span><span class="original">110,000원</span></div></div></a>
-        <a class="ppr3-card" href="#"><div class="ppr3-thumb" style="background-image:url('https://placehold.co/400x320/0F1F5C/fff?text=NEW+ROLLER')"><div class="new">NEW</div></div><div class="ppr3-info"><div class="date">2026.04.25 입고</div><div class="name">코트재 전용 롤러 (12인치)</div><div class="price"><span class="now">12,000원</span><span class="original">15,000원</span></div></div></a>
-        <a class="ppr3-card" href="#"><div class="ppr3-thumb" style="background-image:url('https://placehold.co/400x320/059669/fff?text=NEW+TRAP')"><div class="new">NEW</div></div><div class="ppr3-info"><div class="date">2026.04.22 입고</div><div class="name">옥상배관 방수트랩 키트</div><div class="price"><span class="now">56,000원</span><span class="original">65,000원</span></div></div></a>
+        <a class="ppr3-card" href="#">
+          <div class="ppr3-thumb" style="background-image:url('https://placehold.co/500x400/F97316/fff?text=NEW+JOINT')">
+            <div class="new">NEW</div><div class="tier full">⭐ 풀패키지</div>
+            <div class="compose"><span>코트재</span><span>HOOKER</span><span>하이퍼티</span><span>실링재</span></div>
+          </div>
+          <div class="ppr3-info">
+            <div class="date">2026.04.30 출시</div>
+            <div class="area">이음부·실링 · 풀패키지</div>
+            <div class="name">이음부 누수 풀세트 (창틀+벽체)</div>
+            <div class="desc">창틀·벽체 이음부 누수 일괄 해결 — 신규</div>
+            <div class="price"><span class="now">98,000원</span><span class="original">128,000원</span></div>
+            <div class="footer"><span class="self ok">✅ 셀프 OK</span><span class="media">▶ 영상 4편</span><span class="media">📄 PDF</span></div>
+          </div>
+        </a>
+        <a class="ppr3-card" href="#">
+          <div class="ppr3-thumb" style="background-image:url('https://placehold.co/500x400/EA580C/fff?text=NEW+CRACK')">
+            <div class="new">NEW</div><div class="tier">부분 패키지</div>
+            <div class="compose"><span>하이퍼티</span><span>파우더</span><span>HOOKER</span></div>
+          </div>
+          <div class="ppr3-info">
+            <div class="date">2026.04.28 출시</div>
+            <div class="area">균열 보수 · 부분</div>
+            <div class="name">저층 외벽 균열 셀프 보수 키트</div>
+            <div class="desc">2-3층 주택 외벽 균열 — 사다리 작업 가능</div>
+            <div class="price"><span class="now">86,000원</span><span class="original">110,000원</span></div>
+            <div class="footer"><span class="self ok">✅ 저층 셀프</span><span class="media">▶ 영상 3편</span><span class="media">📄 PDF</span></div>
+          </div>
+        </a>
+        <a class="ppr3-card" href="#">
+          <div class="ppr3-thumb" style="background-image:url('https://placehold.co/500x400/0F1F5C/fff?text=NEW+ROOF')">
+            <div class="new">NEW</div><div class="tier full">⭐ 풀패키지</div>
+            <div class="compose"><span>코트재</span><span>슁글재</span><span>HOOKER</span><span>실링</span></div>
+          </div>
+          <div class="ppr3-info">
+            <div class="date">2026.04.25 출시</div>
+            <div class="area">아스팔트 슁글 · 풀패키지</div>
+            <div class="name">박공지붕 슁글 누수 풀세트 (1026호)</div>
+            <div class="desc">건설신기술 1026호 적용 — 강풍·누수 동시</div>
+            <div class="price"><span class="now">186,000원</span><span class="original">240,000원</span></div>
+            <div class="footer"><span class="self pro">👷 시공연결</span><span class="media">▶ 영상 5편</span><span class="media">📄 PDF</span></div>
+          </div>
+        </a>
+        <a class="ppr3-card" href="#">
+          <div class="ppr3-thumb" style="background-image:url('https://placehold.co/500x400/059669/fff?text=NEW+VENT')">
+            <div class="new">NEW</div><div class="tier">부분 패키지</div>
+            <div class="compose"><span>벤트</span><span>코트재</span><span>트랩</span></div>
+          </div>
+          <div class="ppr3-info">
+            <div class="date">2026.04.22 출시</div>
+            <div class="area">슬라브 (결로 방지) · 부분</div>
+            <div class="name">옥상 결로·들뜸 방지 키트</div>
+            <div class="desc">페이퍼팬벤트 + 배관 트랩 신규 조합</div>
+            <div class="price"><span class="now">62,000원</span><span class="original">82,000원</span></div>
+            <div class="footer"><span class="self ok">✅ 셀프 OK</span><span class="media">▶ 영상 3편</span><span class="media">📄 PDF</span></div>
+          </div>
+        </a>
       </div>
     </div>
   </section>`;
@@ -3786,7 +3852,7 @@ show('entry');
       mkSec('부위별 패키지 네비', SEED_PR_NAV_HTML, '9개 부위 카드 (슬라브/슁글/기와/균열/재도장/칼라강판/배수로/주차장/이음부) + 라인 토글(아파트/저층) + HOT 배지', 'wip'),
       mkSec('패키지 등급 가이드', SEED_PR_TIER_HTML, '풀패키지(강력추천) / 부분 패키지 / 단순 코팅 3티어 — 각 카드에 시공 영상·설명서·코칭 표시', 'wip'),
       mkSec('베스트 패키지', SEED_PR_BEST_HTML, '4종 풀/부분 패키지 — 랭크·티어 배지 + 자재 조합 표시 + 셀프/시공연결 + 영상·PDF 인디케이터', 'wip'),
-      mkSec('신제품', SEED_PR_NEW_HTML, '입고일 표시 + NEW 배지 + 할인 가격 표기', 'wip'),
+      mkSec('신규 패키지', SEED_PR_NEW_HTML, '4종 신규 패키지 — 이음부 풀/저층 균열/슁글 1026호 풀/결로방지 — 한정 할인 + 셀프·시공연결 + 영상·PDF', 'wip'),
       mkSec('카테고리별 제품 그리드', SEED_PR_GRID_HTML, '탭 필터 + 카테고리별 그룹(방수/도장/균열) — 각 5개 제품 진열', 'wip'),
       mkSec('시공 가이드 영상', SEED_PR_GUIDE_HTML, '피처 영상 1 + 미니 카드 4 — 매거진 레이아웃 (메인 동영상 가이드와 통일)', 'wip'),
     ]},

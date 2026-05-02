@@ -58,10 +58,11 @@
 .par-suggest { position:absolute; top:calc(100% + 6px); left:0; right:0; background:#fff; border:1px solid var(--bd); border-radius:14px; box-shadow:0 12px 36px rgba(15,31,92,.18); z-index:50; overflow:hidden; max-height:60vh; overflow-y:auto; display:none; text-align:left; }
 .par-suggest.open { display:block; }
 .par-suggest .sg-head { padding:10px 14px 4px; font-size:11px; font-weight:800; color:var(--txt-d); letter-spacing:.5px; }
-.par-suggest .item { display:flex; gap:12px; padding:11px 14px; cursor:pointer; border-top:1px solid var(--bd); transition:background .12s; align-items:center; }
-.par-suggest .item:first-of-type { border-top:0; }
+.par-suggest .sg-cat { padding:7px 14px; font-size:11px; font-weight:800; color:var(--po-d); background:var(--po-l); border-top:1px solid var(--bd); display:flex; align-items:center; gap:7px; letter-spacing:.3px; }
+.par-suggest .sg-cat .sg-cnt { background:#fff; color:var(--po-d); padding:1px 7px; border-radius:999px; font-size:10px; font-weight:800; }
+.par-suggest .item { display:flex; gap:10px; padding:8px 14px; cursor:pointer; border-top:1px solid var(--bd); transition:background .12s; align-items:center; }
 .par-suggest .item:hover { background:var(--po-l); }
-.par-suggest .item .img { width:54px; height:54px; border-radius:8px; flex-shrink:0; background:#F3F4F6 center/cover no-repeat; }
+.par-suggest .item .img { width:42px; height:42px; border-radius:7px; flex-shrink:0; background:#F3F4F6 center/cover no-repeat; }
 .par-suggest .item .info { flex:1; min-width:0; }
 .par-suggest .item .title { font-size:13px; font-weight:800; color:var(--pn); margin-bottom:3px; }
 .par-suggest .item .title b { color:var(--po-d); }
@@ -414,17 +415,17 @@ var PROFILES=[
 ];
 var KEYWORDS={drain:['배수','드레인','하수구','빗물받이','배수구','누수','새요','물샘'],'roof-slab':['옥상','슬라브','평지붕','콘크리트','잔금','누수','균열','새요'],'roof-shingle':['옥상','지붕','슁글','쉬글','아스팔트','경사','목조','떨어','탈락','누수'],'roof-metal':['옥상','지붕','금속기와','기와','맞물림','부식','누수'],'roof-color-steel':['옥상','지붕','칼라강판','강판','징크','징크판넬','판넬','색바램','녹','부식','누수'],wall:['외벽','벽','균열','크랙','도색','도장','백화','재도장','누수'],window:['창틀','창호','창문','샷시','새시','실리콘','후레싱','창','이음부','누수','곰팡이','결로'],parking:['주차','지하주차','바닥','에폭시','박리','누수'],underg:['지하실','지하','곰팡이','배면','수조','스며','누수'],road:['도로','아스팔트','포트홀','단지','구멍','갈라'],balcony:['발코니','베란다','누수','곰팡이']};
 var SUGGESTIONS=[
-{profIdx:0,title:'옥상 배수구 누수',desc:'배수구 부식·정체수 → 천장 누수',kw:['옥상','배수','드레인','하수','빗물','빗물받이','배수구','물샘','새요','누수'],img:'https://placehold.co/120x120/F97316/fff?text=DRAIN'},
-{profIdx:2,title:'옥상 슬라브 누수',desc:'콘크리트 평지붕 — 중성화·균열',kw:['옥상','슬라브','평지붕','콘크리트','잔금','누수','크랙','균열','갈라'],img:'https://placehold.co/120x120/F97316/fff?text=SLAB'},
-{profIdx:1,title:'아스팔트 슁글 지붕',desc:'경사형 지붕 — 강풍 탈락·누수',kw:['옥상','지붕','슁글','쉬글','아스팔트','경사','떨어','탈락','강풍','날아','목조','누수'],img:'https://placehold.co/120x120/EA580C/fff?text=SHINGLE'},
-{profIdx:3,title:'금속기와 지붕',desc:'경사형 금속기와 — 맞물림 풀림·누수',kw:['옥상','지붕','금속기와','기와','맞물림','부식','떨어','누수'],img:'https://placehold.co/120x120/EA580C/fff?text=METAL+TILE'},
-{profIdx:4,title:'칼라강판·징크판넬',desc:'금속 외장 — 색상 열화·녹·부식·누수',kw:['옥상','지붕','외장','칼라강판','강판','징크','징크판넬','판넬','색바램','녹','부식','코팅','누수'],img:'https://placehold.co/120x120/EA580C/fff?text=COLOR+STEEL'},
-{profIdx:5,title:'외벽 균열·재도장',desc:'미세 균열·도장 박리·백화·누수',kw:['외벽','벽','균열','크랙','도색','도장','백화','재도장','박리','누수'],img:'https://placehold.co/120x120/F97316/fff?text=WALL'},
-{profIdx:6,title:'창틀·창호 누수',desc:'실리콘 노후·후레싱 틈·결로',kw:['창틀','창호','창문','샷시','새시','실리콘','후레싱','창','이음부','누수','곰팡이','결로'],img:'https://placehold.co/120x120/F97316/fff?text=WINDOW'},
-{profIdx:7,title:'지하주차장 바닥',desc:'에폭시 노후·차량 마모·누수',kw:['주차','지하주차','바닥','에폭시','박리','마모','벗겨','누수'],img:'https://placehold.co/120x120/F97316/fff?text=PARKING'},
-{profIdx:8,title:'지하실·수조 누수',desc:'배면 침투수·곰팡이',kw:['지하','지하실','곰팡이','배면','수조','스며','곰팽이','누수'],img:'https://placehold.co/120x120/EA580C/fff?text=BASEMENT'},
-{profIdx:9,title:'단지 도로·아스팔트',desc:'균열·포트홀·층간 분리',kw:['도로','아스팔트','포트홀','단지','구멍','갈라'],img:'https://placehold.co/120x120/F97316/fff?text=ROAD'},
-{profIdx:10,title:'그 외 종합 진단',desc:'전문가 방문·맞춤 패키지',kw:[],img:'https://placehold.co/120x120/9CA3AF/fff?text=GENERAL'}
+{profIdx:0,cat:'🏠 지붕·옥상',title:'옥상 배수구 누수',desc:'배수구 부식·정체수',kw:['옥상','배수','드레인','하수','빗물','빗물받이','배수구','물샘','새요','누수'],img:'https://placehold.co/120x120/F97316/fff?text=DRAIN'},
+{profIdx:2,cat:'🏠 지붕·옥상',title:'옥상 슬라브 누수',desc:'콘크리트 평지붕',kw:['옥상','슬라브','평지붕','콘크리트','잔금','누수','크랙','균열','갈라'],img:'https://placehold.co/120x120/F97316/fff?text=SLAB'},
+{profIdx:1,cat:'🏠 지붕·옥상',title:'아스팔트 슁글 지붕',desc:'경사형 — 강풍 탈락',kw:['옥상','지붕','슁글','쉬글','아스팔트','경사','떨어','탈락','강풍','날아','목조','누수'],img:'https://placehold.co/120x120/EA580C/fff?text=SHINGLE'},
+{profIdx:3,cat:'🏠 지붕·옥상',title:'금속기와 지붕',desc:'경사형 — 맞물림 풀림',kw:['옥상','지붕','금속기와','기와','맞물림','부식','떨어','누수'],img:'https://placehold.co/120x120/EA580C/fff?text=METAL+TILE'},
+{profIdx:4,cat:'🏠 지붕·옥상',title:'칼라강판·징크판넬',desc:'금속 외장 — 색상 열화·녹',kw:['옥상','지붕','외장','칼라강판','강판','징크','징크판넬','판넬','색바램','녹','부식','코팅','누수'],img:'https://placehold.co/120x120/EA580C/fff?text=COLOR+STEEL'},
+{profIdx:5,cat:'🧱 외벽·창호',title:'외벽 균열·재도장',desc:'미세 균열·박리·백화',kw:['외벽','벽','균열','크랙','도색','도장','백화','재도장','박리','누수'],img:'https://placehold.co/120x120/F97316/fff?text=WALL'},
+{profIdx:6,cat:'🧱 외벽·창호',title:'창틀·창호 누수',desc:'실리콘 노후·후레싱',kw:['창틀','창호','창문','샷시','새시','실리콘','후레싱','창','이음부','누수','곰팡이','결로'],img:'https://placehold.co/120x120/F97316/fff?text=WINDOW'},
+{profIdx:7,cat:'🅿 지하·주차장',title:'지하주차장 바닥',desc:'에폭시 노후·마모',kw:['주차','지하주차','바닥','에폭시','박리','마모','벗겨','누수'],img:'https://placehold.co/120x120/F97316/fff?text=PARKING'},
+{profIdx:8,cat:'🅿 지하·주차장',title:'지하실·수조 누수',desc:'배면 침투수·곰팡이',kw:['지하','지하실','곰팡이','배면','수조','스며','곰팽이','누수'],img:'https://placehold.co/120x120/EA580C/fff?text=BASEMENT'},
+{profIdx:9,cat:'🛣 외부·도로',title:'단지 도로·아스팔트',desc:'균열·포트홀',kw:['도로','아스팔트','포트홀','단지','구멍','갈라'],img:'https://placehold.co/120x120/F97316/fff?text=ROAD'},
+{profIdx:10,cat:'📐 그 외',title:'종합 진단',desc:'전문가 방문·맞춤 패키지',kw:[],img:'https://placehold.co/120x120/9CA3AF/fff?text=GENERAL'}
 ];
 function getSuggestions(q){q=(q||'').trim().toLowerCase();if(!q)return [];var hit=[];SUGGESTIONS.forEach(function(s){var titleHit=s.title.toLowerCase().indexOf(q)!==-1;var kwHit=s.kw.some(function(k){return k.indexOf(q)!==-1||q.indexOf(k)!==-1;});if(titleHit||kwHit)hit.push(s);});return hit.slice(0,8);}
 function highlightTerm(text,q){if(!q||!text)return text;var i=text.toLowerCase().indexOf(q.toLowerCase());if(i<0)return text;return text.slice(0,i)+'<b>'+text.slice(i,i+q.length)+'</b>'+text.slice(i+q.length);}
@@ -442,7 +443,7 @@ root.querySelectorAll('[data-back]').forEach(function(el){el.addEventListener('c
 /* ---- 채팅 입력 ---- */
 var chatText=root.querySelector('#par-chat-text'),chatSend=root.querySelector('#par-chat-send'),chatAttach=root.querySelector('#par-chat-attach'),triggerFile=root.querySelector('#par-trigger-file');
 var suggestEl=root.querySelector('#par-suggest');
-function renderSuggest(){var q=chatText.value.trim();if(!q){closeSuggest();return;}var items=getSuggestions(q);if(!items.length){suggestEl.innerHTML='<div class="empty">관련된 고민이 없어요. 그래도 보내시면 길잡이가 직접 안내해드릴게요.</div>';suggestEl.classList.add('open');return;}suggestEl.innerHTML='<div class="sg-head">▸ 관련 하자 ('+items.length+'건)</div>'+items.map(function(s){return '<div class="item" data-prof="'+s.profIdx+'"><div class="img" style="background-image:url(\\''+s.img+'\\')"></div><div class="info"><div class="title">'+highlightTerm(s.title,q)+'</div><div class="desc">'+s.desc+'</div></div><span class="arr">→</span></div>';}).join('');suggestEl.querySelectorAll('.item').forEach(function(it){it.addEventListener('mousedown',function(e){e.preventDefault();var idx=parseInt(it.dataset.prof,10);var profile=PROFILES[idx];if(!profile)return;state.profile=profile;state.choice.memo=chatText.value.trim();runDiagnosis(profile);openModal();closeSuggest();chatText.value='';chatSend.disabled=true;});});suggestEl.classList.add('open');}
+function renderSuggest(){var q=chatText.value.trim();if(!q){closeSuggest();return;}var items=getSuggestions(q);if(!items.length){suggestEl.innerHTML='<div class="empty">관련된 고민이 없어요. 그래도 보내시면 길잡이가 직접 안내해드릴게요.</div>';suggestEl.classList.add('open');return;}var groups={},order=[];items.forEach(function(s){var c=s.cat||'📐 그 외';if(!groups[c]){groups[c]=[];order.push(c);}groups[c].push(s);});var html='<div class="sg-head">▸ 관련 하자 ('+items.length+'건) — 본인 건물 유형 선택</div>';order.forEach(function(c){var grp=groups[c];html+='<div class="sg-cat">'+c+' <span class="sg-cnt">'+grp.length+'</span></div>';grp.forEach(function(s){html+='<div class="item" data-prof="'+s.profIdx+'"><div class="img" style="background-image:url(\\''+s.img+'\\')"></div><div class="info"><div class="title">'+highlightTerm(s.title,q)+'</div><div class="desc">'+s.desc+'</div></div><span class="arr">→</span></div>';});});suggestEl.innerHTML=html;suggestEl.querySelectorAll('.item').forEach(function(it){it.addEventListener('mousedown',function(e){e.preventDefault();var idx=parseInt(it.dataset.prof,10);var profile=PROFILES[idx];if(!profile)return;state.profile=profile;state.choice.memo=chatText.value.trim();runDiagnosis(profile);openModal();closeSuggest();chatText.value='';chatSend.disabled=true;});});suggestEl.classList.add('open');}
 function closeSuggest(){suggestEl.classList.remove('open');}
 chatText.addEventListener('input',function(){chatSend.disabled=!chatText.value.trim();renderSuggest();});
 chatText.addEventListener('focus',function(){if(chatText.value.trim())renderSuggest();});
@@ -494,7 +495,7 @@ show('entry');
     { id: 'main', name: '메인 페이지', file: 'index.html', sections: [
       mkSec('메인 배너', '', '슬라이드 배너 — 균열·방수·코팅 자재 세트 등 메인 비주얼'),
       mkSec('카테고리 항목 버튼', '', '제품구매·패키지구매·시공상담·시공가이드·쇼룸·부자재·체험교육·파트너사·고객센터 (8~9개 아이콘)'),
-      mkSec('AI 맞춤 자재추천', SEED_AI_RECOMMEND_HTML, 'POUR 길잡이 — 창틀 추가, 누수 키워드 모든 카드 확장 (12부위·11프로파일) (v8)', 'wip'),
+      mkSec('AI 맞춤 자재추천', SEED_AI_RECOMMEND_HTML, 'POUR 길잡이 — 자동완성 카테고리 그룹화(지붕·외벽·지하), 카드 컴팩트 (v9)', 'wip'),
       mkSec('인기 추천 상품', '', '베스트셀러 5종 카드'),
       mkSec('신상품 (안전용품·부자재)', '', 'NEW ARRIVALS — 이달의 안전용품·부자재 등 서브 자재 전시'),
       mkSec('서브카테고리 상품', '', '제비스코 라인 + 인테리어 (DREAM COAT + GROHOME)'),

@@ -2580,6 +2580,350 @@ show('entry');
   </section>`;
 
 
+  const SEED_MT_HERO_HTML = `<style>
+  .pmt1 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmt1 { background:linear-gradient(180deg,#FFFBF5 0%,#FFF7ED 100%); padding:88px 18px 56px; position:relative; overflow:hidden; }
+  .pmt1::before { content:''; position:absolute; top:-100px; right:-80px; width:420px; height:420px; background:radial-gradient(circle, rgba(249,115,22,.14) 0%, transparent 60%); border-radius:50%; }
+  .pmt1-inner { max-width:1200px; margin:0 auto; position:relative; z-index:1; }
+  .pmt1-top { text-align:center; margin-bottom:36px; }
+  .pmt1-tag { display:inline-flex; gap:6px; padding:6px 14px; background:#fff; border:1px solid #FED7AA; color:#EA580C; border-radius:999px; font-size:11.5px; font-weight:800; letter-spacing:.8px; margin-bottom:18px; box-shadow:0 4px 12px rgba(249,115,22,.1); }
+  .pmt1 h1 { font-size:46px; font-weight:900; color:#0F1F5C; line-height:1.2; margin-bottom:16px; letter-spacing:-1.4px; }
+  .pmt1 h1 .accent { color:#F97316; }
+  .pmt1-desc { font-size:16px; color:#4B5563; line-height:1.75; max-width:620px; margin:0 auto 32px; }
+  .pmt1-cta { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .pmt1-cta .primary { padding:14px 32px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border:none; border-radius:14px; font-size:14px; font-weight:900; cursor:pointer; text-decoration:none; box-shadow:0 8px 24px rgba(249,115,22,.3); transition:all .25s; }
+  .pmt1-cta .primary:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(249,115,22,.45); }
+  .pmt1-preview { background:#fff; border-radius:24px; padding:32px 28px; box-shadow:0 18px 48px rgba(15,31,92,.08); border:1px solid #F3F4F6; }
+  .pmt1-preview .label { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:14px; text-align:center; }
+  .pmt1-flow { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+  .pmt1-step { text-align:center; }
+  .pmt1-step .icon { width:44px; height:44px; margin:0 auto 8px; border-radius:50%; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:20px; }
+  .pmt1-step .name { font-size:12px; font-weight:800; color:#0F1F5C; }
+  .pmt1-step .time { font-size:10px; color:#9CA3AF; font-weight:700; margin-top:2px; }
+  @media (max-width:880px) { .pmt1 h1 { font-size:30px; } .pmt1-flow { grid-template-columns:repeat(2,1fr); gap:14px; } }
+  </style>
+  <section class="pmt1">
+    <div class="pmt1-inner">
+      <div class="pmt1-top">
+        <span class="pmt1-tag">🤝 SMART MATCHING</span>
+        <h1>최적의 시공사,<br/><span class="accent">3분이면 매칭됩니다</span></h1>
+        <p class="pmt1-desc">지역·건물·문제·예산만 입력하면 — POUR가 검증한 250+ 파트너사 중 가장 가까운 우수 시공사 3곳을 추천드립니다.</p>
+        <div class="pmt1-cta">
+          <a class="primary" href="#match-form">시공 연결 신청 →</a>
+        </div>
+      </div>
+      <div class="pmt1-preview">
+        <div class="label">📍 매칭 절차 미리보기</div>
+        <div class="pmt1-flow">
+          <div class="pmt1-step"><div class="icon">📝</div><div class="name">신청</div><div class="time">3분</div></div>
+          <div class="pmt1-step"><div class="icon">🤖</div><div class="name">AI 매칭</div><div class="time">즉시</div></div>
+          <div class="pmt1-step"><div class="icon">📞</div><div class="name">파트너 추천</div><div class="time">1-2일</div></div>
+          <div class="pmt1-step"><div class="icon">🔍</div><div class="name">현장 진단</div><div class="time">3-5일</div></div>
+          <div class="pmt1-step"><div class="icon">🏗️</div><div class="name">시공 시작</div><div class="time">7-14일</div></div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_MT_METHOD_HTML = `<style>
+  .pmt2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmt2 { background:#fff; padding:80px 18px; }
+  .pmt2-inner { max-width:1200px; margin:0 auto; }
+  .pmt2-head { text-align:center; margin-bottom:36px; }
+  .pmt2-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pmt2-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
+  .pmt2-head p { font-size:14px; color:#6B7280; }
+  .pmt2-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px; }
+  .pmt2-card { background:#fff; border:1px solid #F3F4F6; border-radius:16px; padding:22px 20px; transition:all .25s; cursor:pointer; }
+  .pmt2-card:hover { transform:translateY(-3px); box-shadow:0 16px 36px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .pmt2-card .icon { width:48px; height:48px; border-radius:12px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:24px; margin-bottom:12px; }
+  .pmt2-card .name { font-size:14.5px; font-weight:900; color:#0F1F5C; margin-bottom:6px; letter-spacing:-.3px; }
+  .pmt2-card .desc { font-size:12px; color:#6B7280; line-height:1.6; margin-bottom:10px; min-height:38px; }
+  .pmt2-card .meta { display:flex; align-items:center; gap:8px; font-size:11px; font-weight:800; color:#EA580C; }
+  .pmt2-card .meta .dot { width:4px; height:4px; border-radius:50%; background:#FED7AA; }
+  @media (max-width:640px) { .pmt2-head h2 { font-size:24px; } }
+  </style>
+  <section class="pmt2">
+    <div class="pmt2-inner">
+      <div class="pmt2-head">
+        <div class="kicker">SUPPORTED METHODS</div>
+        <h2>시공 가능한 공법</h2>
+        <p>방수·도장·균열·토목 — 어떤 문제든 검증된 공법으로 매칭됩니다</p>
+      </div>
+      <div class="pmt2-grid">
+        <div class="pmt2-card"><div class="icon">💧</div><div class="name">슬라브 듀얼강화방수</div><div class="desc">옥상 슬라브 누수 + 콘크리트 중성화</div><div class="meta">182건 사례<span class="dot"></span>5-10년 보증</div></div>
+        <div class="pmt2-card"><div class="icon">🏠</div><div class="name">아스팔트슁글 방수</div><div class="desc">박공지붕 누수·강풍 탈락 방지 (1026호)</div><div class="meta">96건 사례<span class="dot"></span>10년 보증</div></div>
+        <div class="pmt2-card"><div class="icon">🔩</div><div class="name">금속기와 방수</div><div class="desc">맞물림 풀림·강판 부식 + HOOKER 보강</div><div class="meta">78건 사례<span class="dot"></span>7년 보증</div></div>
+        <div class="pmt2-card"><div class="icon">🎨</div><div class="name">외벽 균열 보수·재도장</div><div class="desc">고급/중급/경제 — 예산별 3단계 차등</div><div class="meta">152건 사례<span class="dot"></span>3-7년 보증</div></div>
+        <div class="pmt2-card"><div class="icon">🚗</div><div class="name">에폭시·엠보라이닝</div><div class="desc">지하주차장 바닥 + MMA 논슬립 시공</div><div class="meta">68건 사례<span class="dot"></span>5년 보증</div></div>
+        <div class="pmt2-card"><div class="icon">🌊</div><div class="name">아크릴 배면차수</div><div class="desc">지하·수조 누수 — 초고압 주입</div><div class="meta">42건 사례<span class="dot"></span>10년 보증</div></div>
+        <div class="pmt2-card"><div class="icon">🛣️</div><div class="name">아스콘 도로 포장</div><div class="desc">포트홀·균열 보수 + 씰코팅</div><div class="meta">36건 사례<span class="dot"></span>3년 보증</div></div>
+        <div class="pmt2-card"><div class="icon">🛡️</div><div class="name">보수·보강 (단면)</div><div class="desc">박락·철근 노출 — 탄성강화 파우더</div><div class="meta">46건 사례<span class="dot"></span>5년 보증</div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_MT_FORM_HTML = `<style>
+  .pmt3 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmt3 { background:#FFFBF5; padding:80px 18px; }
+  .pmt3-inner { max-width:980px; margin:0 auto; }
+  .pmt3-head { text-align:center; margin-bottom:32px; }
+  .pmt3-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pmt3-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .pmt3-head p { font-size:14px; color:#6B7280; }
+  .pmt3-card { background:#fff; border:1px solid #F3F4F6; border-radius:24px; padding:36px 32px; box-shadow:0 12px 36px rgba(15,31,92,.06); }
+  .pmt3-section { margin-bottom:24px; }
+  .pmt3-section .stitle { font-size:13px; font-weight:900; color:#0F1F5C; margin-bottom:14px; padding-bottom:10px; border-bottom:2px solid #FFEDD5; letter-spacing:-.3px; }
+  .pmt3-row { margin-bottom:14px; }
+  .pmt3-row.split { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .pmt3-row label { display:block; font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
+  .pmt3-row input, .pmt3-row select, .pmt3-row textarea { width:100%; padding:12px 14px; background:#FFFBF5; border:1px solid #F3F4F6; border-radius:10px; font-size:14px; font-family:inherit; color:#0F1F5C; transition:all .2s; }
+  .pmt3-row textarea { min-height:96px; resize:vertical; }
+  .pmt3-row input:focus, .pmt3-row select:focus, .pmt3-row textarea:focus { outline:none; border-color:#FED7AA; background:#fff; box-shadow:0 0 0 3px rgba(249,115,22,.08); }
+  .pmt3-chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .pmt3-chip { padding:8px 14px; background:#FFFBF5; border:1px solid #F3F4F6; border-radius:999px; font-size:12.5px; font-weight:700; color:#6B7280; cursor:pointer; transition:all .2s; }
+  .pmt3-chip:hover { border-color:#FED7AA; }
+  .pmt3-chip.active { background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border-color:transparent; box-shadow:0 4px 12px rgba(249,115,22,.25); }
+  .pmt3-budget { display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:8px; }
+  .pmt3-budget-item { padding:14px 12px; background:#FFFBF5; border:1px solid #F3F4F6; border-radius:10px; text-align:center; cursor:pointer; transition:all .2s; }
+  .pmt3-budget-item:hover { border-color:#FED7AA; }
+  .pmt3-budget-item.active { background:#FFF7ED; border-color:#F97316; }
+  .pmt3-budget-item .v { font-family:'Bebas Neue',sans-serif; font-size:18px; font-weight:900; color:#F97316; letter-spacing:.5px; }
+  .pmt3-budget-item .l { font-size:11px; color:#6B7280; font-weight:700; margin-top:2px; }
+  .pmt3-agree { display:flex; align-items:center; gap:8px; margin-bottom:18px; padding:14px; background:#FFFBF5; border-radius:10px; font-size:12.5px; color:#4B5563; }
+  .pmt3-agree input { width:16px; height:16px; accent-color:#F97316; }
+  .pmt3-submit { width:100%; padding:16px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:900; cursor:pointer; box-shadow:0 8px 24px rgba(249,115,22,.3); transition:all .25s; }
+  .pmt3-submit:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(249,115,22,.45); }
+  @media (max-width:640px) { .pmt3-card { padding:24px 18px; } .pmt3-row.split { grid-template-columns:1fr; } .pmt3-head h2 { font-size:24px; } }
+  </style>
+  <section class="pmt3" id="match-form">
+    <div class="pmt3-inner">
+      <div class="pmt3-head">
+        <div class="kicker">REQUEST FORM</div>
+        <h2>시공 연결 신청서</h2>
+        <p>아래 정보 입력 후 영업일 기준 1-2일 내 추천 파트너사가 연락드립니다</p>
+      </div>
+      <form class="pmt3-card">
+        <div class="pmt3-section">
+          <div class="stitle">📍 1. 지역·건물 유형</div>
+          <div class="pmt3-row split">
+            <div><label>지역</label><select><option>선택</option><option>서울</option><option>경기</option><option>인천</option><option>부산</option><option>대구</option><option>광주</option><option>대전</option><option>기타</option></select></div>
+            <div><label>건물 유형</label><select><option>선택</option><option>아파트</option><option>관공서</option><option>학교·병원</option><option>상가·오피스</option><option>공장·창고</option><option>주택</option></select></div>
+          </div>
+        </div>
+        <div class="pmt3-section">
+          <div class="stitle">🔧 2. 문제·필요한 공법 (복수 선택)</div>
+          <div class="pmt3-chips">
+            <button type="button" class="pmt3-chip active">옥상 누수</button>
+            <button type="button" class="pmt3-chip">외벽 균열</button>
+            <button type="button" class="pmt3-chip">지하 누수</button>
+            <button type="button" class="pmt3-chip">지하주차장</button>
+            <button type="button" class="pmt3-chip">슁글 지붕</button>
+            <button type="button" class="pmt3-chip">금속기와</button>
+            <button type="button" class="pmt3-chip">결로·곰팡이</button>
+            <button type="button" class="pmt3-chip">아스콘·도로</button>
+            <button type="button" class="pmt3-chip">기타</button>
+          </div>
+        </div>
+        <div class="pmt3-section">
+          <div class="stitle">💰 3. 예상 예산 범위</div>
+          <div class="pmt3-budget">
+            <div class="pmt3-budget-item"><div class="v">~500</div><div class="l">만원</div></div>
+            <div class="pmt3-budget-item active"><div class="v">500-2K</div><div class="l">만원</div></div>
+            <div class="pmt3-budget-item"><div class="v">2K-5K</div><div class="l">만원</div></div>
+            <div class="pmt3-budget-item"><div class="v">5K-1억</div><div class="l">원</div></div>
+            <div class="pmt3-budget-item"><div class="v">1억+</div><div class="l">원</div></div>
+          </div>
+        </div>
+        <div class="pmt3-section">
+          <div class="stitle">📝 4. 상세 내용</div>
+          <div class="pmt3-row"><label>문제 상황·시급도</label><textarea placeholder="누수 위치, 발생 시기, 진행 정도, 희망 시공 일정 등"></textarea></div>
+        </div>
+        <div class="pmt3-section">
+          <div class="stitle">📞 5. 연락처</div>
+          <div class="pmt3-row split">
+            <div><label>성함</label><input type="text" placeholder="홍길동"/></div>
+            <div><label>연락처</label><input type="text" placeholder="010-0000-0000"/></div>
+          </div>
+          <div class="pmt3-row"><label>주소 (현장 위치)</label><input type="text" placeholder="○○도 ○○시 ○○로"/></div>
+        </div>
+        <div class="pmt3-agree"><input type="checkbox" id="ag4"/><label for="ag4">개인정보 수집·이용 및 추천 파트너사 정보 공유에 동의합니다</label></div>
+        <button type="submit" class="pmt3-submit">시공 연결 신청하기</button>
+      </form>
+    </div>
+  </section>`;
+
+  const SEED_MT_FLOW_HTML = `<style>
+  .pmt4 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmt4 { background:#fff; padding:80px 18px; }
+  .pmt4-inner { max-width:1100px; margin:0 auto; }
+  .pmt4-head { text-align:center; margin-bottom:40px; }
+  .pmt4-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pmt4-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .pmt4-head p { font-size:14px; color:#6B7280; max-width:560px; margin:0 auto; }
+  .pmt4-list { display:flex; flex-direction:column; gap:12px; max-width:780px; margin:0 auto; }
+  .pmt4-step { display:grid; grid-template-columns:auto 1fr auto; gap:18px; align-items:center; padding:22px 24px; background:#FFFBF5; border:1px solid #F3F4F6; border-radius:18px; transition:all .25s; }
+  .pmt4-step:hover { border-color:#FED7AA; background:#fff; box-shadow:0 12px 28px rgba(15,31,92,.06); }
+  .pmt4-step .num { width:54px; height:54px; border-radius:14px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; font-family:'Bebas Neue',sans-serif; font-size:22px; font-weight:900; display:grid; place-items:center; flex-shrink:0; box-shadow:0 6px 16px rgba(249,115,22,.3); letter-spacing:.5px; }
+  .pmt4-step .text { flex:1; min-width:0; }
+  .pmt4-step .name { font-size:16px; font-weight:900; color:#0F1F5C; margin-bottom:4px; letter-spacing:-.3px; }
+  .pmt4-step .desc { font-size:13px; color:#6B7280; line-height:1.6; }
+  .pmt4-step .duration { padding:6px 12px; background:#fff; border:1px solid #FED7AA; color:#EA580C; font-size:11.5px; font-weight:800; border-radius:8px; white-space:nowrap; }
+  @media (max-width:640px) { .pmt4-step { grid-template-columns:auto 1fr; } .pmt4-step .duration { grid-column:1/-1; justify-self:start; } .pmt4-head h2 { font-size:24px; } }
+  </style>
+  <section class="pmt4">
+    <div class="pmt4-inner">
+      <div class="pmt4-head">
+        <div class="kicker">FULL PROCESS</div>
+        <h2>매칭 절차 자세히 보기</h2>
+        <p>신청부터 시공 완료까지 — 단계별로 무엇이 진행되는지 명확하게</p>
+      </div>
+      <div class="pmt4-list">
+        <div class="pmt4-step"><div class="num">01</div><div class="text"><div class="name">온라인 신청서 작성</div><div class="desc">지역·건물·문제·예산 입력 (3분 소요) — 사진 첨부 시 매칭 정확도 ↑</div></div><div class="duration">즉시</div></div>
+        <div class="pmt4-step"><div class="num">02</div><div class="text"><div class="name">AI 매칭 + 본사 검토</div><div class="desc">지역·전문분야·이전 시공 만족도 기반 — 추천 파트너 3곳 자동 산출</div></div><div class="duration">접수 후 1시간</div></div>
+        <div class="pmt4-step"><div class="num">03</div><div class="text"><div class="name">추천 파트너 안내</div><div class="desc">SMS·이메일로 추천 파트너 3곳 정보 발송 — 회사 소개·실적·평점 포함</div></div><div class="duration">1-2일</div></div>
+        <div class="pmt4-step"><div class="num">04</div><div class="text"><div class="name">현장 무료 진단</div><div class="desc">선택한 파트너사가 현장 방문 — 진단·사진 촬영·견적서 작성 (무료)</div></div><div class="duration">3-5일</div></div>
+        <div class="pmt4-step"><div class="num">05</div><div class="text"><div class="name">견적 비교·선택</div><div class="desc">3곳 견적 비교 — 가격·일정·시공 범위 검토 후 선택. 무리한 선택 강요 없음</div></div><div class="duration">5-10일</div></div>
+        <div class="pmt4-step"><div class="num">06</div><div class="text"><div class="name">계약·시공 시작</div><div class="desc">계약 체결 + 일정 확정 — POUR 자재 직공급으로 시공 진행</div></div><div class="duration">7-14일</div></div>
+        <div class="pmt4-step"><div class="num">07</div><div class="text"><div class="name">시공 완료·하자 보증</div><div class="desc">시공 검수 + 보증서 발급 — 5-10년 본사 하자 보증 (자재 결함 100% 책임)</div></div><div class="duration">완공 후</div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_MT_NETWORK_HTML = `<style>
+  .pmt5 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmt5 { background:#FFFBF5; padding:72px 18px; }
+  .pmt5-inner { max-width:1200px; margin:0 auto; }
+  .pmt5-head { text-align:center; margin-bottom:32px; }
+  .pmt5-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pmt5-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
+  .pmt5-head p { font-size:14px; color:#6B7280; }
+  .pmt5-grid { display:grid; grid-template-columns:1.3fr 1fr; gap:20px; align-items:center; }
+  .pmt5-map { aspect-ratio:1/1; background-image:url('https://placehold.co/600x600/0F1F5C/fff?text=KOREA+MAP'); background-size:cover; background-position:center; border-radius:24px; position:relative; overflow:hidden; box-shadow:0 18px 48px rgba(15,31,92,.15); }
+  .pmt5-map .pin { position:absolute; padding:6px 12px; background:#fff; border-radius:20px; font-size:11px; font-weight:900; color:#0F1F5C; box-shadow:0 4px 12px rgba(0,0,0,.2); display:flex; align-items:center; gap:6px; }
+  .pmt5-map .pin .dot { width:8px; height:8px; border-radius:50%; background:#F97316; box-shadow:0 0 0 4px rgba(249,115,22,.3); animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { box-shadow:0 0 0 4px rgba(249,115,22,.3); } 50% { box-shadow:0 0 0 8px rgba(249,115,22,.1); } }
+  .pmt5-map .pin.p1 { top:20%; left:30%; }
+  .pmt5-map .pin.p2 { top:35%; left:50%; }
+  .pmt5-map .pin.p3 { top:55%; left:35%; }
+  .pmt5-map .pin.p4 { top:70%; left:55%; }
+  .pmt5-map .pin.p5 { top:80%; left:75%; }
+  .pmt5-content .label { font-size:11px; font-weight:800; color:#EA580C; letter-spacing:1px; margin-bottom:8px; }
+  .pmt5-content h3 { font-size:24px; font-weight:900; color:#0F1F5C; line-height:1.3; margin-bottom:14px; letter-spacing:-.5px; }
+  .pmt5-content p { font-size:14px; color:#4B5563; line-height:1.75; margin-bottom:20px; }
+  .pmt5-stats { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+  .pmt5-stat { background:#fff; border:1px solid #F3F4F6; border-radius:14px; padding:18px 16px; }
+  .pmt5-stat .v { font-family:'Bebas Neue',sans-serif; font-size:26px; font-weight:900; color:#F97316; line-height:1; letter-spacing:.5px; }
+  .pmt5-stat .l { font-size:11.5px; color:#6B7280; margin-top:6px; font-weight:700; }
+  @media (max-width:880px) { .pmt5-grid { grid-template-columns:1fr; } .pmt5-head h2 { font-size:24px; } }
+  </style>
+  <section class="pmt5">
+    <div class="pmt5-inner">
+      <div class="pmt5-head">
+        <div class="kicker">NATIONWIDE NETWORK</div>
+        <h2>전국 시공 네트워크</h2>
+        <p>17개 광역시·도 모두 1-2일 내 방문 가능</p>
+      </div>
+      <div class="pmt5-grid">
+        <div class="pmt5-map">
+          <div class="pin p1"><span class="dot"></span>서울 38곳</div>
+          <div class="pin p2"><span class="dot"></span>경기 52곳</div>
+          <div class="pin p3"><span class="dot"></span>대전 18곳</div>
+          <div class="pin p4"><span class="dot"></span>부산 32곳</div>
+          <div class="pin p5"><span class="dot"></span>제주 8곳</div>
+        </div>
+        <div class="pmt5-content">
+          <div class="label">17 REGIONS · 250+ PARTNERS</div>
+          <h3>가장 가까운 우수 파트너가<br/>방문드립니다</h3>
+          <p>POUR스토어는 전국 250+ 검증 파트너사 네트워크를 보유하고 있습니다. 신청자 위치를 기반으로 가장 가까운 우수 시공사를 자동 매칭합니다.</p>
+          <div class="pmt5-stats">
+            <div class="pmt5-stat"><div class="v">250+</div><div class="l">검증된 파트너사</div></div>
+            <div class="pmt5-stat"><div class="v">17</div><div class="l">광역시·도 커버리지</div></div>
+            <div class="pmt5-stat"><div class="v">1-2일</div><div class="l">현장 방문 소요</div></div>
+            <div class="pmt5-stat"><div class="v">98.5%</div><div class="l">고객 만족도</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_MT_RECENT_HTML = `<style>
+  .pmt6 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmt6 { background:#fff; padding:80px 18px; }
+  .pmt6-inner { max-width:1200px; margin:0 auto; }
+  .pmt6-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:14px; }
+  .pmt6-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pmt6-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .pmt6-head .more { font-size:13px; font-weight:700; color:#EA580C; text-decoration:none; padding:8px 14px; border:1px solid #FED7AA; border-radius:999px; background:#fff; transition:all .25s; }
+  .pmt6-head .more:hover { background:#FFF7ED; }
+  .pmt6-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:18px; }
+  .pmt6-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; overflow:hidden; transition:all .3s; text-decoration:none; }
+  .pmt6-card:hover { transform:translateY(-4px); box-shadow:0 20px 48px rgba(15,31,92,.1); border-color:#FED7AA; }
+  .pmt6-thumb { aspect-ratio:4/3; background-size:cover; background-position:center; position:relative; }
+  .pmt6-thumb .badge { position:absolute; top:10px; left:10px; padding:4px 9px; background:rgba(249,115,22,.92); color:#fff; font-size:10px; font-weight:900; border-radius:5px; letter-spacing:.3px; }
+  .pmt6-info { padding:16px; }
+  .pmt6-info .region { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
+  .pmt6-info .name { font-size:14.5px; font-weight:900; color:#0F1F5C; margin-bottom:8px; line-height:1.4; letter-spacing:-.3px; }
+  .pmt6-info .meta { display:flex; align-items:center; gap:8px; font-size:11.5px; color:#6B7280; padding-top:10px; border-top:1px solid #F3F4F6; font-weight:700; }
+  .pmt6-info .meta .dot { width:3px; height:3px; border-radius:50%; background:#D1D5DB; }
+  @media (max-width:640px) { .pmt6-head h2 { font-size:22px; } }
+  </style>
+  <section class="pmt6">
+    <div class="pmt6-inner">
+      <div class="pmt6-head">
+        <div>
+          <div class="kicker">RECENT WORK</div>
+          <h2>최근 매칭으로 진행된 시공</h2>
+        </div>
+        <a class="more" href="https://www.pourstore.net/construction">전체 사례 →</a>
+      </div>
+      <div class="pmt6-grid">
+        <a class="pmt6-card" href="#"><div class="pmt6-thumb" style="background-image:url('https://placehold.co/600x450/F97316/fff?text=SLAB')"><div class="badge">매칭 시공</div></div><div class="pmt6-info"><div class="region">📍 서울 강남구</div><div class="name">래미안 옥상 슬라브 방수 (2,400세대)</div><div class="meta"><span>SH건설</span><span class="dot"></span><span>2025.10 완공</span></div></div></a>
+        <a class="pmt6-card" href="#"><div class="pmt6-thumb" style="background-image:url('https://placehold.co/600x450/EA580C/fff?text=SHINGLE')"><div class="badge">매칭 시공</div></div><div class="pmt6-info"><div class="region">📍 부산 해운대구</div><div class="name">해운대 푸르지오 슁글 방수</div><div class="meta"><span>부산테크</span><span class="dot"></span><span>2025.08 완공</span></div></div></a>
+        <a class="pmt6-card" href="#"><div class="pmt6-thumb" style="background-image:url('https://placehold.co/600x450/0F1F5C/fff?text=PAINT')"><div class="badge">매칭 시공</div></div><div class="pmt6-info"><div class="region">📍 경기 수원시</div><div class="name">수원시청 외벽 균열 보수·재도장</div><div class="meta"><span>한울방수</span><span class="dot"></span><span>2025.09 완공</span></div></div></a>
+        <a class="pmt6-card" href="#"><div class="pmt6-thumb" style="background-image:url('https://placehold.co/600x450/059669/fff?text=PARKING')"><div class="badge">매칭 시공</div></div><div class="pmt6-info"><div class="region">📍 인천 송도</div><div class="name">송도 컨벤시아 지하주차장 에폭시</div><div class="meta"><span>대성도장</span><span class="dot"></span><span>2025.07 완공</span></div></div></a>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_MT_REVIEW_HTML = `<style>
+  .pmt7 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmt7 { background:#FFFBF5; padding:80px 18px; }
+  .pmt7-inner { max-width:1200px; margin:0 auto; }
+  .pmt7-head { text-align:center; margin-bottom:36px; }
+  .pmt7-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pmt7-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .pmt7-head .score { display:inline-flex; align-items:center; gap:8px; padding:8px 16px; background:#fff; border:1px solid #FED7AA; border-radius:999px; font-size:13px; font-weight:800; color:#EA580C; }
+  .pmt7-head .score b { font-family:'Bebas Neue',sans-serif; font-size:18px; }
+  .pmt7-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:18px; }
+  .pmt7-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; padding:24px 22px; position:relative; transition:all .25s; }
+  .pmt7-card:hover { transform:translateY(-3px); box-shadow:0 16px 36px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .pmt7-card .stars { font-size:13px; color:#F59E0B; margin-bottom:10px; letter-spacing:1px; }
+  .pmt7-card .text { font-size:13.5px; color:#374151; line-height:1.7; margin-bottom:18px; }
+  .pmt7-card .text b { color:#0F1F5C; font-weight:800; }
+  .pmt7-card .partner { display:inline-flex; align-items:center; gap:6px; padding:5px 11px; background:#FFFBF5; border:1px solid #FED7AA; color:#EA580C; font-size:11px; font-weight:800; border-radius:6px; margin-bottom:14px; }
+  .pmt7-card .author { display:flex; align-items:center; gap:10px; padding-top:14px; border-top:1px solid #F3F4F6; }
+  .pmt7-card .avatar { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:13px; font-weight:900; color:#EA580C; }
+  .pmt7-card .info .name { font-size:12.5px; font-weight:800; color:#0F1F5C; }
+  .pmt7-card .info .role { font-size:11px; color:#9CA3AF; font-weight:700; margin-top:2px; }
+  @media (max-width:640px) { .pmt7-head h2 { font-size:24px; } }
+  </style>
+  <section class="pmt7">
+    <div class="pmt7-inner">
+      <div class="pmt7-head">
+        <div class="kicker">CUSTOMER REVIEWS</div>
+        <h2>매칭 서비스 이용 후기</h2>
+        <div class="score">⭐ 매칭 만족도 <b>4.8</b> / 5.0 · 누적 후기 280+</div>
+      </div>
+      <div class="pmt7-grid">
+        <div class="pmt7-card"><div class="stars">★★★★★</div><span class="partner">🤝 SH건설 매칭</span><div class="text">3곳 견적 비교가 가능해서 좋았어요. 가격만이 아니라 일정·시공 범위까지 한눈에 볼 수 있어서 결정이 편했습니다. 시공 결과도 만족스럽습니다.</div><div class="author"><div class="avatar">김</div><div class="info"><div class="name">김○○ 관리소장</div><div class="role">서울 강남 · 1,200세대</div></div></div></div>
+        <div class="pmt7-card"><div class="stars">★★★★★</div><span class="partner">🤝 한울방수 매칭</span><div class="text">관공서 발주라 절차가 복잡한데, 본사가 사전에 모든 서류를 챙겨주셔서 결재 올리기 편했어요. 매칭 파트너사도 책임감 있게 시공해주셨습니다.</div><div class="author"><div class="avatar">박</div><div class="info"><div class="name">박○○ 시설팀장</div><div class="role">경기 수원 · 시청사</div></div></div></div>
+        <div class="pmt7-card"><div class="stars">★★★★★</div><span class="partner">🤝 부산테크 매칭</span><div class="text">슁글 지붕은 까다로워서 다른 곳에선 거절당했는데, POUR 매칭으로 신기술 시공 가능한 파트너 찾았습니다. 강풍에도 끄떡없네요.</div><div class="author"><div class="avatar">이</div><div class="info"><div class="name">이○○ 입주자대표</div><div class="role">부산 해운대 · 23층</div></div></div></div>
+      </div>
+    </div>
+  </section>`;
+
+
   const DEFAULT_PAGES = () => ([
     { id: 'main', name: '메인 페이지', file: 'index.html', sections: [
       mkSec('메인 배너', SEED_BANNER_HTML, '라이트 크림 + 오렌지 그라디언트 — 가벼운 톤 (v3)', 'wip'),
@@ -2641,13 +2985,13 @@ show('entry');
       mkSec('자주 묻는 질문', SEED_DL_FAQ_HTML, '6개 아코디언 (전속/재고/페인트/정산/해지/광고)', 'wip'),
     ]},
     { id: 'matching', name: '시공 연결 신청', file: 'matching.html', sections: [
-      mkSec('히어로 + 진행 단계 미리보기', '', ''),
-      mkSec('시공 가능 공법', '', ''),
-      mkSec('신청 폼 (지역·건물유형·문제·예산)', '', ''),
-      mkSec('매칭 절차', '', '신청 → AI 매칭 → 추천 파트너 → 선택 → 시공'),
-      mkSec('전국 시공 네트워크', '', ''),
-      mkSec('최근 시공 사례', '', ''),
-      mkSec('고객 후기', '', ''),
+      mkSec('히어로 + 진행 단계 미리보기', SEED_MT_HERO_HTML, '라이트 크림 + 5단계 플로우 미리보기 (3분→즉시→1-2일→3-5일→7-14일)', 'wip'),
+      mkSec('시공 가능 공법', SEED_MT_METHOD_HTML, '8개 공법 카드 — 사례 수 + 보증 기간 표기', 'wip'),
+      mkSec('신청 폼 (지역·건물유형·문제·예산)', SEED_MT_FORM_HTML, '5단계 폼 — 지역/건물/문제 칩(9개)/예산(5단계)/연락처', 'wip'),
+      mkSec('매칭 절차', SEED_MT_FLOW_HTML, '7단계 상세 절차 — 신청→AI매칭→추천→진단→비교→계약→완공', 'wip'),
+      mkSec('전국 시공 네트워크', SEED_MT_NETWORK_HTML, '한국 지도 + 지역별 핀 (서울 38/경기 52/대전 18/부산 32/제주 8) + 4개 수치', 'wip'),
+      mkSec('최근 시공 사례', SEED_MT_RECENT_HTML, '최근 매칭 시공 4건 — 파트너사명·지역·완공일 표기', 'wip'),
+      mkSec('고객 후기', SEED_MT_REVIEW_HTML, '평균 매칭 만족도 4.8 + 3개 후기 (파트너 매칭 정보 포함)', 'wip'),
     ]},
     { id: 'showroom', name: '전시장·쇼룸', file: 'showroom.html', sections: [
       mkSec('히어로', '', ''),

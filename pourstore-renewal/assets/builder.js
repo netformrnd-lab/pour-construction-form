@@ -1763,16 +1763,18 @@ show('entry');
   .ppr5 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
   .ppr5 { background:#FFFBF5; padding:72px 18px; }
   .ppr5-inner { max-width:1200px; margin:0 auto; }
-  .ppr5-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:14px; }
+  .ppr5-head { text-align:center; margin-bottom:28px; }
   .ppr5-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
-  .ppr5-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:6px; }
-  .ppr5-head p { font-size:13.5px; color:#6B7280; }
-  .ppr5-head .more { font-size:13px; font-weight:700; color:#EA580C; text-decoration:none; padding:8px 14px; border:1px solid #FED7AA; border-radius:999px; background:#fff; transition:all .25s; }
-  .ppr5-head .more:hover { background:#FFF7ED; }
-  .ppr5-grid { display:grid; grid-template-columns:1.4fr 1fr; gap:18px; }
+  .ppr5-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .ppr5-head p { font-size:14px; color:#6B7280; max-width:580px; margin:0 auto; }
+  .ppr5-tabs { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:28px; }
+  .ppr5-tab { padding:10px 20px; background:#fff; border:1.5px solid #F3F4F6; border-radius:999px; font-size:13px; font-weight:700; color:#6B7280; cursor:pointer; transition:all .2s; display:inline-flex; align-items:center; gap:6px; }
+  .ppr5-tab:hover { border-color:#FED7AA; color:#EA580C; }
+  .ppr5-tab.active { background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border-color:transparent; box-shadow:0 6px 16px rgba(249,115,22,.3); }
+  .ppr5-grid { display:grid; grid-template-columns:1.4fr 1fr; gap:18px; margin-bottom:32px; }
   .ppr5-feature { position:relative; aspect-ratio:16/10; border-radius:18px; overflow:hidden; background-size:cover; background-position:center; text-decoration:none; transition:transform .3s; }
   .ppr5-feature:hover { transform:translateY(-3px); }
-  .ppr5-feature::after { content:''; position:absolute; inset:0; background:linear-gradient(0deg, rgba(15,31,92,.85) 0%, rgba(15,31,92,.2) 50%, transparent 100%); }
+  .ppr5-feature::after { content:''; position:absolute; inset:0; background:linear-gradient(0deg, rgba(15,31,92,.88) 0%, rgba(15,31,92,.2) 50%, transparent 100%); }
   .ppr5-feature .play { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:72px; height:72px; border-radius:50%; background:rgba(255,255,255,.95); display:grid; place-items:center; box-shadow:0 12px 32px rgba(0,0,0,.3); z-index:1; transition:transform .3s; }
   .ppr5-feature:hover .play { transform:translate(-50%,-50%) scale(1.1); }
   .ppr5-feature .play svg { width:28px; height:28px; fill:#EA580C; margin-left:4px; }
@@ -1789,33 +1791,79 @@ show('entry');
   .ppr5-mini .sub { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:4px; }
   .ppr5-mini .title { font-size:13px; font-weight:800; color:#0F1F5C; line-height:1.4; margin-bottom:4px; letter-spacing:-.3px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
   .ppr5-mini .meta { font-size:10.5px; color:#9CA3AF; font-weight:700; }
-  @media (max-width:880px) { .ppr5-grid { grid-template-columns:1fr; } .ppr5-head h2 { font-size:22px; } }
+  .ppr5-divider { height:1px; background:linear-gradient(90deg, transparent, #FED7AA, transparent); margin:32px 0 24px; }
+  .ppr5-docs-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:12px; }
+  .ppr5-docs-head .left .label { font-size:11px; font-weight:800; color:#EA580C; letter-spacing:1px; margin-bottom:4px; }
+  .ppr5-docs-head .left h3 { font-size:22px; font-weight:900; color:#0F1F5C; letter-spacing:-.4px; }
+  .ppr5-docs-head .more { font-size:13px; font-weight:700; color:#EA580C; text-decoration:none; padding:8px 14px; border:1px solid #FED7AA; border-radius:999px; background:#fff; }
+  .ppr5-docs { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:12px; }
+  .ppr5-doc { display:flex; gap:14px; align-items:center; padding:16px 18px; background:#fff; border:1px solid #F3F4F6; border-radius:14px; text-decoration:none; transition:all .25s; }
+  .ppr5-doc:hover { transform:translateY(-2px); border-color:#FED7AA; box-shadow:0 12px 28px rgba(15,31,92,.06); }
+  .ppr5-doc .pdf-icon { width:42px; height:48px; background:linear-gradient(135deg,#FEE2E2,#FECACA); border-radius:6px; display:grid; place-items:center; font-size:11px; font-weight:900; color:#DC2626; flex-shrink:0; letter-spacing:.3px; }
+  .ppr5-doc .info { flex:1; min-width:0; }
+  .ppr5-doc .area { font-size:10px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:3px; }
+  .ppr5-doc .name { font-size:13px; font-weight:800; color:#0F1F5C; margin-bottom:4px; line-height:1.35; letter-spacing:-.3px; }
+  .ppr5-doc .meta { font-size:10.5px; color:#9CA3AF; font-weight:700; }
+  .ppr5-coach { margin-top:20px; padding:18px 22px; background:linear-gradient(135deg,#FFF7ED,#FFEDD5); border:1px solid #FED7AA; border-radius:14px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .ppr5-coach .ico { font-size:26px; flex-shrink:0; }
+  .ppr5-coach .text { flex:1; font-size:13px; color:#4B5563; line-height:1.65; min-width:240px; }
+  .ppr5-coach .text b { color:#0F1F5C; font-weight:900; }
+  .ppr5-coach .btn { padding:10px 18px; background:#fff; border:1.5px solid #F97316; color:#EA580C; font-size:13px; font-weight:900; border-radius:10px; text-decoration:none; transition:all .2s; }
+  .ppr5-coach .btn:hover { background:#F97316; color:#fff; }
+  @media (max-width:880px) { .ppr5-grid { grid-template-columns:1fr; } .ppr5-head h2 { font-size:24px; } }
   </style>
   <section class="ppr5">
     <div class="ppr5-inner">
       <div class="ppr5-head">
-        <div>
-          <div class="kicker">▶ HOW TO USE</div>
-          <h2>제품별 시공 가이드 영상</h2>
-          <p>구매 전·후 — 영상으로 미리 보고 안심하고 시공하세요</p>
-        </div>
-        <a class="more" href="https://www.pourstore.net/guide">전체 영상 →</a>
+        <div class="kicker">▶ HOW TO INSTALL</div>
+        <h2>패키지별 시공 영상·설명서</h2>
+        <p>모든 패키지에 영상 가이드와 PDF 설명서가 포함됩니다 — 셀프 시공도, 발주 검토도 OK</p>
       </div>
+      <div class="ppr5-tabs">
+        <button class="ppr5-tab active">▶ 영상 가이드</button>
+        <button class="ppr5-tab">📄 PDF 설명서</button>
+        <button class="ppr5-tab">📞 전화 코칭</button>
+      </div>
+
       <div class="ppr5-grid">
-        <a class="ppr5-feature" href="#" style="background-image:url('https://placehold.co/800x500/0F1F5C/fff?text=POUR+COAT+GUIDE')">
+        <a class="ppr5-feature" href="#" style="background-image:url('https://placehold.co/800x500/0F1F5C/fff?text=SLAB+FULL+GUIDE')">
           <div class="play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
           <div class="info">
-            <span class="badge">⭐ FEATURED</span>
-            <div class="title">POUR 코트재 — 옥상 슬라브 시공 풀가이드</div>
-            <div class="meta">14:28 · 조회 28K · 가이드 PICK</div>
+            <span class="badge">⭐ FEATURED · 풀패키지</span>
+            <div class="title">옥상 슬라브 풀패키지 — 시공 풀가이드 (5편)</div>
+            <div class="meta">총 56분 · 조회 28K · 셀프 시공 PICK</div>
           </div>
         </a>
         <div class="ppr5-list">
-          <a class="ppr5-mini" href="#"><div class="thumb" style="background-image:url('https://placehold.co/200x125/F97316/fff?text=HYPER+T')"><div class="dur">8:42</div></div><div class="text"><div class="sub">균열 보수</div><div class="title">하이퍼티로 외벽 균열 보수 — 5분 정리</div><div class="meta">조회 12K</div></div></a>
-          <a class="ppr5-mini" href="#"><div class="thumb" style="background-image:url('https://placehold.co/200x125/EA580C/fff?text=POWDER')"><div class="dur">11:15</div></div><div class="text"><div class="sub">단면 복구</div><div class="title">탄성강화 파우더 — 박락 단면 복구 시공법</div><div class="meta">조회 9.2K</div></div></a>
-          <a class="ppr5-mini" href="#"><div class="thumb" style="background-image:url('https://placehold.co/200x125/059669/fff?text=HOOKER')"><div class="dur">6:08</div></div><div class="text"><div class="sub">후레싱 보강</div><div class="title">POUR HOOKER 시공 — 손상 마감면 대응</div><div class="meta">조회 7.8K</div></div></a>
-          <a class="ppr5-mini" href="#"><div class="thumb" style="background-image:url('https://placehold.co/200x125/FB923C/fff?text=VENT')"><div class="dur">5:30</div></div><div class="text"><div class="sub">결로 방지</div><div class="title">페이퍼팬벤트 설치 — 무동력 환기로 들뜸 예방</div><div class="meta">조회 6.4K</div></div></a>
+          <a class="ppr5-mini" href="#"><div class="thumb" style="background-image:url('https://placehold.co/200x125/F97316/fff?text=BERANDA')"><div class="dur">22:18</div></div><div class="text"><div class="sub">베란다 풀패키지</div><div class="title">베란다 누수·곰팡이 풀시공 (3편 묶음)</div><div class="meta">조회 18K · ✅ 셀프</div></div></a>
+          <a class="ppr5-mini" href="#"><div class="thumb" style="background-image:url('https://placehold.co/200x125/EA580C/fff?text=PARKING')"><div class="dur">28:45</div></div><div class="text"><div class="sub">지하주차장 풀패키지</div><div class="title">지하주차장 바닥 보수 풀가이드 (4편)</div><div class="meta">조회 12K · ✅ 셀프</div></div></a>
+          <a class="ppr5-mini" href="#"><div class="thumb" style="background-image:url('https://placehold.co/200x125/059669/fff?text=JOINT')"><div class="dur">19:30</div></div><div class="text"><div class="sub">이음부 풀패키지</div><div class="title">창틀·벽체 이음부 누수 시공 (4편)</div><div class="meta">조회 9.8K · ✅ 셀프</div></div></a>
+          <a class="ppr5-mini" href="#"><div class="thumb" style="background-image:url('https://placehold.co/200x125/FB923C/fff?text=CRACK')"><div class="dur">15:12</div></div><div class="text"><div class="sub">저층 외벽 균열</div><div class="title">사다리로 가능한 저층 외벽 균열 보수 (3편)</div><div class="meta">조회 8.2K · ⚠️ 저층</div></div></a>
         </div>
+      </div>
+
+      <div class="ppr5-divider"></div>
+
+      <div class="ppr5-docs-head">
+        <div class="left">
+          <div class="label">📄 PDF SPEC SHEETS</div>
+          <h3>패키지별 시공 설명서 (PDF)</h3>
+        </div>
+        <a class="more" href="https://www.pourstore.net/spec">전체 시방서 →</a>
+      </div>
+      <div class="ppr5-docs">
+        <a class="ppr5-doc" href="#"><div class="pdf-icon">PDF</div><div class="info"><div class="area">슬라브 풀패키지</div><div class="name">옥상 슬라브 듀얼강화방수 시방서</div><div class="meta">2.4 MB · 다운로드 1,245</div></div></a>
+        <a class="ppr5-doc" href="#"><div class="pdf-icon">PDF</div><div class="info"><div class="area">외벽 재도장 풀패키지</div><div class="name">외벽 균열보수·재도장 시방서 (3등급)</div><div class="meta">3.1 MB · 다운로드 1,438</div></div></a>
+        <a class="ppr5-doc" href="#"><div class="pdf-icon">PDF</div><div class="info"><div class="area">슁글 풀패키지</div><div class="name">박공지붕 슁글 방수공법 시방서 (1026호)</div><div class="meta">1.8 MB · 다운로드 982</div></div></a>
+        <a class="ppr5-doc" href="#"><div class="pdf-icon">PDF</div><div class="info"><div class="area">베란다 풀패키지</div><div class="name">베란다 누수·곰팡이 시공 가이드</div><div class="meta">1.2 MB · 다운로드 856</div></div></a>
+        <a class="ppr5-doc" href="#"><div class="pdf-icon">PDF</div><div class="info"><div class="area">지하주차장 풀패키지</div><div class="name">에폭시·엠보라이닝 시방서 + MMA 옵션</div><div class="meta">2.7 MB · 다운로드 765</div></div></a>
+        <a class="ppr5-doc" href="#"><div class="pdf-icon">PDF</div><div class="info"><div class="area">이음부 부분 패키지</div><div class="name">창틀·벽체 이음부 실링·누수 보수 가이드</div><div class="meta">1.0 MB · 다운로드 612</div></div></a>
+      </div>
+
+      <div class="ppr5-coach">
+        <div class="ico">📞</div>
+        <div class="text"><b>전화 1:1 코칭 — 풀패키지 구매 시 무료</b><br>시공 중 막히는 부분이 생기면 평일 09-18시 언제든 전화. 위험한 부위라면 시공 연결 매칭으로 안내해 드려요.</div>
+        <a class="btn" href="tel:1577-0000">1577-0000 →</a>
       </div>
     </div>
   </section>`;
@@ -3933,7 +3981,7 @@ show('entry');
       mkSec('베스트 패키지', SEED_PR_BEST_HTML, '4종 풀/부분 패키지 — 랭크·티어 배지 + 자재 조합 표시 + 셀프/시공연결 + 영상·PDF 인디케이터', 'wip'),
       mkSec('신규 패키지', SEED_PR_NEW_HTML, '4종 신규 패키지 — 이음부 풀/저층 균열/슁글 1026호 풀/결로방지 — 한정 할인 + 셀프·시공연결 + 영상·PDF', 'wip'),
       mkSec('전체 패키지 매트릭스', SEED_PR_GRID_HTML, '시안 매트릭스 그대로 — 라인(아파트/저층) × 부위 4그룹 × 등급 3티어, 부위별 셀프/시공연결 표시', 'wip'),
-      mkSec('시공 가이드 영상', SEED_PR_GUIDE_HTML, '피처 영상 1 + 미니 카드 4 — 매거진 레이아웃 (메인 동영상 가이드와 통일)', 'wip'),
+      mkSec('시공 가이드 (영상·설명서·코칭)', SEED_PR_GUIDE_HTML, '영상/PDF/코칭 3탭 — 피처 영상(슬라브 풀세트) + 미니 4 + PDF 시방서 6 + 전화 코칭 안내', 'wip'),
     ]},
     { id: 'construction', name: '시공 사례', file: 'construction.html', sections: [
       mkSec('사례 인트로', SEED_CS_INTRO_HTML, '라이트 크림 + 4개 핵심 수치 (700+/260만/150만㎡/17개 광역시도)', 'wip'),

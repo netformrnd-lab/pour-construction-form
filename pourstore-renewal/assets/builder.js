@@ -50,10 +50,24 @@
 .par-trigger p { font-size:13px; color:var(--txt-d); line-height:1.55; margin-bottom:22px; }
 
 /* 채팅 입력바 */
-.par-chat-input { display:flex; align-items:center; gap:6px; padding:6px 8px 6px 14px; background:#fff; border:2px solid var(--bd); border-radius:16px; box-shadow:0 4px 18px rgba(15,31,92,.08); transition:border-color .2s, box-shadow .2s; margin-bottom:16px; }
+.par-chat-wrap { position:relative; margin-bottom:16px; }
+.par-chat-input { display:flex; align-items:center; gap:6px; padding:6px 8px 6px 14px; background:#fff; border:2px solid var(--bd); border-radius:16px; box-shadow:0 4px 18px rgba(15,31,92,.08); transition:border-color .2s, box-shadow .2s; }
 .par-chat-input:focus-within { border-color:var(--po); box-shadow:0 4px 22px rgba(249,115,22,.18); }
 .par-chat-input .par-chat-attach { width:42px; height:42px; flex-shrink:0; display:grid; place-items:center; background:transparent; border:0; cursor:pointer; font-size:22px; color:var(--po-d); border-radius:10px; transition:background .15s; }
 .par-chat-input .par-chat-attach:hover { background:var(--po-l); }
+.par-suggest { position:absolute; top:calc(100% + 6px); left:0; right:0; background:#fff; border:1px solid var(--bd); border-radius:14px; box-shadow:0 12px 36px rgba(15,31,92,.18); z-index:50; overflow:hidden; max-height:60vh; overflow-y:auto; display:none; text-align:left; }
+.par-suggest.open { display:block; }
+.par-suggest .sg-head { padding:10px 14px 4px; font-size:11px; font-weight:800; color:var(--txt-d); letter-spacing:.5px; }
+.par-suggest .item { display:flex; gap:12px; padding:11px 14px; cursor:pointer; border-top:1px solid var(--bd); transition:background .12s; align-items:center; }
+.par-suggest .item:first-of-type { border-top:0; }
+.par-suggest .item:hover { background:var(--po-l); }
+.par-suggest .item .img { width:54px; height:54px; border-radius:8px; flex-shrink:0; background:#F3F4F6 center/cover no-repeat; }
+.par-suggest .item .info { flex:1; min-width:0; }
+.par-suggest .item .title { font-size:13px; font-weight:800; color:var(--pn); margin-bottom:3px; }
+.par-suggest .item .title b { color:var(--po-d); }
+.par-suggest .item .desc { font-size:11.5px; color:var(--txt-d); line-height:1.45; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+.par-suggest .item .arr { color:var(--po); font-size:18px; flex-shrink:0; }
+.par-suggest .empty { padding:18px; text-align:center; font-size:12.5px; color:var(--txt-d); }
 .par-chat-input input { flex:1; padding:12px 6px; border:0; outline:0; font-size:14.5px; color:var(--txt); background:transparent; min-width:0; }
 .par-chat-input input::placeholder { color:var(--txt-d); }
 .par-chat-input .par-chat-send { width:42px; height:42px; flex-shrink:0; background:linear-gradient(135deg,var(--po),var(--po-d)); border:0; border-radius:12px; cursor:pointer; color:#fff; font-size:20px; font-weight:900; box-shadow:0 4px 12px var(--po-glow); transition:transform .1s; display:grid; place-items:center; }
@@ -214,10 +228,13 @@
       <h2>건물 어디가 아프세요? <span class="accent">길잡이가 답해드려요</span></h2>
       <p>사진 한 장 또는 한 줄이면 충분해요</p>
 
-      <div class="par-chat-input">
-        <button class="par-chat-attach" id="par-chat-attach" title="사진 첨부 또는 촬영">📷</button>
-        <input type="text" id="par-chat-text" placeholder="예: 옥상에서 물이 새요" />
-        <button class="par-chat-send" id="par-chat-send" disabled aria-label="보내기">→</button>
+      <div class="par-chat-wrap">
+        <div class="par-chat-input">
+          <button class="par-chat-attach" id="par-chat-attach" title="사진 첨부 또는 촬영">📷</button>
+          <input type="text" id="par-chat-text" placeholder="예: 옥상에서 물이 새요" autocomplete="off" />
+          <button class="par-chat-send" id="par-chat-send" disabled aria-label="보내기">→</button>
+        </div>
+        <div class="par-suggest" id="par-suggest"></div>
       </div>
 
       <div class="par-chips">
@@ -393,6 +410,18 @@ var PROFILES=[
 {keys:{},qText:'건물에 노후 문제가 있어요. 진단을 받아보고 싶어요.',diagH:'노후 콘크리트 — <span class="accent">중성화·균열</span>이 진행 중이에요',diagPoints:['대부분의 건물 노후 문제는 <b>콘크리트 중성화</b>에서 시작돼요.','중성화 → 미세 균열 → 빗물 침투 → 철근 부식.','표면 처리만으로는 근본 해결이 어려워요.','<b>모체 강화 + 균열 보수 + 마감 보호</b> 3단계가 필요해요.'],sol:{code:'POUR 종합진단',name:'맞춤 진단 + 패키지 추천',summary:'전문가가 직접 방문해서 분석하고 맞춤 패키지를 제안드려요.',principles:['현장 방문 진단 (무료)','시공 데이터 기반 맞춤 패키지','700+ 단지 시공 사례 참고','시공 후 사후 관리 가이드'],evidence:[{lbl:'누적 시공',val:'2.6M',unit:'세대',src:'전국'},{lbl:'특허·인증',val:'70+',unit:'건',src:'KTR/KCL'}],products:[{role:'CORE',name:'POUR하이퍼티',price:'180,000',img:'https://placehold.co/300x300/F97316/fff?text=HYPER',url:'https://www.pourstore.net/product/hyper-t'},{role:'COAT',name:'POUR코트재',price:'95,000',img:'https://placehold.co/300x300/F97316/fff?text=COAT',url:'https://www.pourstore.net/product/coat'}],packageUrl:'https://www.pourstore.net/category/general',consultUrl:'https://www.poursolution.net/163'}}
 ];
 var KEYWORDS={drain:['배수','드레인','하수구','빗물받이'],roof:['옥상','지붕','슬라브','쉬글','슁글','기와','칼라강판','징크'],wall:['외벽','벽','균열','크랙','도색','도장','백화'],parking:['주차','지하주차','바닥','에폭시'],underg:['지하실','지하','곰팡이','배면','수조'],road:['도로','아스팔트','포트홀','단지'],balcony:['발코니','베란다']};
+var SUGGESTIONS=[
+{profIdx:0,title:'옥상 배수구 누수',desc:'배수구 부식·정체수·천장 누수',kw:['옥상','배수','드레인','하수','빗물','누수','물샘','새요'],img:'https://placehold.co/120x120/F97316/fff?text=배수구'},
+{profIdx:1,title:'아파트 슁글 떨어짐',desc:'고층 강풍 탈락·추락 위험',kw:['슁글','지붕','탈락','강풍','떨어','날아','아파트'],img:'https://placehold.co/120x120/EA580C/fff?text=슁글'},
+{profIdx:2,title:'옥상 슬라브 누수',desc:'콘크리트 중성화·균열',kw:['옥상','슬라브','누수','콘크리트','균열','잔금','갈라'],img:'https://placehold.co/120x120/F97316/fff?text=슬라브'},
+{profIdx:3,title:'외벽 균열·재도장',desc:'미세 균열·도장 박리·백화',kw:['외벽','벽','균열','크랙','도색','도장','백화','재도장','박리'],img:'https://placehold.co/120x120/EA580C/fff?text=외벽'},
+{profIdx:4,title:'지하주차장 박리',desc:'에폭시 노후·차량 마모',kw:['주차','지하주차','바닥','에폭시','박리','마모','벗겨'],img:'https://placehold.co/120x120/F97316/fff?text=주차장'},
+{profIdx:5,title:'지하실 곰팡이·누수',desc:'배면 침투수·표면 박리',kw:['지하','지하실','곰팡이','배면','수조','스며','곰팽이'],img:'https://placehold.co/120x120/EA580C/fff?text=지하'},
+{profIdx:6,title:'단지 도로·아스팔트',desc:'균열·포트홀·층간 분리',kw:['도로','아스팔트','포트홀','단지','구멍','갈라'],img:'https://placehold.co/120x120/F97316/fff?text=도로'},
+{profIdx:7,title:'그 외 종합 진단',desc:'전문가 방문·맞춤 패키지',kw:[],img:'https://placehold.co/120x120/9CA3AF/fff?text=종합'}
+];
+function getSuggestions(q){q=(q||'').trim().toLowerCase();if(!q)return [];var hit=[];SUGGESTIONS.forEach(function(s){var titleHit=s.title.toLowerCase().indexOf(q)!==-1;var kwHit=s.kw.some(function(k){return k.indexOf(q)!==-1||q.indexOf(k)!==-1;});if(titleHit||kwHit)hit.push(s);});return hit.slice(0,5);}
+function highlightTerm(text,q){if(!q||!text)return text;var i=text.toLowerCase().indexOf(q.toLowerCase());if(i<0)return text;return text.slice(0,i)+'<b>'+text.slice(i,i+q.length)+'</b>'+text.slice(i+q.length);}
 var state={screen:'entry',photos:[],detected:null,choice:{bld:null,surf:null,syms:[],memo:''}};
 var root=document.querySelector('.par');
 var modalMask=root.querySelector('#par-modal-mask'),modal=root.querySelector('#par-modal');
@@ -406,8 +435,13 @@ root.querySelectorAll('[data-back]').forEach(function(el){el.addEventListener('c
 
 /* ---- 채팅 입력 ---- */
 var chatText=root.querySelector('#par-chat-text'),chatSend=root.querySelector('#par-chat-send'),chatAttach=root.querySelector('#par-chat-attach'),triggerFile=root.querySelector('#par-trigger-file');
-chatText.addEventListener('input',function(){chatSend.disabled=!chatText.value.trim();});
-chatText.addEventListener('keydown',function(e){if(e.key==='Enter'&&!chatSend.disabled){handleChatSend();}});
+var suggestEl=root.querySelector('#par-suggest');
+function renderSuggest(){var q=chatText.value.trim();if(!q){closeSuggest();return;}var items=getSuggestions(q);if(!items.length){suggestEl.innerHTML='<div class="empty">관련된 고민이 없어요. 그래도 보내시면 길잡이가 직접 안내해드릴게요.</div>';suggestEl.classList.add('open');return;}suggestEl.innerHTML='<div class="sg-head">▸ 관련 하자 ('+items.length+'건)</div>'+items.map(function(s){return '<div class="item" data-prof="'+s.profIdx+'"><div class="img" style="background-image:url(\\''+s.img+'\\')"></div><div class="info"><div class="title">'+highlightTerm(s.title,q)+'</div><div class="desc">'+s.desc+'</div></div><span class="arr">→</span></div>';}).join('');suggestEl.querySelectorAll('.item').forEach(function(it){it.addEventListener('mousedown',function(e){e.preventDefault();var idx=parseInt(it.dataset.prof,10);var profile=PROFILES[idx];if(!profile)return;state.profile=profile;state.choice.memo=chatText.value.trim();runDiagnosis(profile);openModal();closeSuggest();chatText.value='';chatSend.disabled=true;});});suggestEl.classList.add('open');}
+function closeSuggest(){suggestEl.classList.remove('open');}
+chatText.addEventListener('input',function(){chatSend.disabled=!chatText.value.trim();renderSuggest();});
+chatText.addEventListener('focus',function(){if(chatText.value.trim())renderSuggest();});
+chatText.addEventListener('blur',function(){setTimeout(closeSuggest,200);});
+chatText.addEventListener('keydown',function(e){if(e.key==='Enter'&&!chatSend.disabled){handleChatSend();closeSuggest();}else if(e.key==='Escape'){closeSuggest();}});
 chatSend.addEventListener('click',handleChatSend);
 function handleChatSend(){var t=chatText.value.trim();if(!t)return;var profile=matchByKeywords(t);if(profile){state.profile=profile;state.choice.memo=t;runDiagnosis(profile);openModal();}else{state.choice.memo=t;openModal();show('manual1');}chatText.value='';chatSend.disabled=true;}
 function matchByKeywords(text){for(var i=0;i<PROFILES.length;i++){var p=PROFILES[i];if(!p.keys||!p.keys.surf)continue;var surfId=p.keys.surf[0];var kws=KEYWORDS[surfId]||[];for(var j=0;j<kws.length;j++){if(text.indexOf(kws[j])!==-1)return p;}}return null;}
@@ -454,7 +488,7 @@ show('entry');
     { id: 'main', name: '메인 페이지', file: 'index.html', sections: [
       mkSec('메인 배너', '', '슬라이드 배너 — 균열·방수·코팅 자재 세트 등 메인 비주얼'),
       mkSec('카테고리 항목 버튼', '', '제품구매·패키지구매·시공상담·시공가이드·쇼룸·부자재·체험교육·파트너사·고객센터 (8~9개 아이콘)'),
-      mkSec('AI 맞춤 자재추천', SEED_AI_RECOMMEND_HTML, 'POUR 길잡이 — 메인 채팅 입력 + 사진 첨부 + 빠른 칩으로 즉시 진입, 모달로 진단 (v4)', 'wip'),
+      mkSec('AI 맞춤 자재추천', SEED_AI_RECOMMEND_HTML, 'POUR 길잡이 — 채팅 입력 시 연관 하자 카드 자동 추천(네이버 검색식), 클릭 즉시 진단 (v5)', 'wip'),
       mkSec('인기 추천 상품', '', '베스트셀러 5종 카드'),
       mkSec('신상품 (안전용품·부자재)', '', 'NEW ARRIVALS — 이달의 안전용품·부자재 등 서브 자재 전시'),
       mkSec('서브카테고리 상품', '', '제비스코 라인 + 인테리어 (DREAM COAT + GROHOME)'),

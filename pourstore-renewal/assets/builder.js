@@ -2250,6 +2250,336 @@ show('entry');
   </section>`;
 
 
+  const SEED_DL_HERO_HTML = `<style>
+  .pdl1 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pdl1 { background:linear-gradient(180deg,#FFFBF5 0%,#FFF7ED 100%); padding:88px 18px 64px; position:relative; overflow:hidden; }
+  .pdl1::before { content:''; position:absolute; top:-100px; right:-100px; width:440px; height:440px; background:radial-gradient(circle, rgba(249,115,22,.14) 0%, transparent 60%); border-radius:50%; }
+  .pdl1-inner { max-width:1100px; margin:0 auto; text-align:center; position:relative; z-index:1; }
+  .pdl1-tag { display:inline-flex; gap:6px; padding:6px 14px; background:#fff; border:1px solid #FED7AA; color:#EA580C; border-radius:999px; font-size:11.5px; font-weight:800; letter-spacing:.8px; margin-bottom:20px; box-shadow:0 4px 12px rgba(249,115,22,.1); }
+  .pdl1 h1 { font-size:46px; font-weight:900; color:#0F1F5C; line-height:1.2; margin-bottom:18px; letter-spacing:-1.4px; }
+  .pdl1 h1 .accent { color:#F97316; }
+  .pdl1-desc { font-size:16px; color:#4B5563; line-height:1.75; max-width:640px; margin:0 auto 32px; }
+  .pdl1-cta { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:36px; }
+  .pdl1-cta .primary { padding:14px 28px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border:none; border-radius:14px; font-size:14px; font-weight:900; cursor:pointer; text-decoration:none; box-shadow:0 8px 24px rgba(249,115,22,.3); transition:all .25s; }
+  .pdl1-cta .primary:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(249,115,22,.45); }
+  .pdl1-cta .ghost { padding:14px 24px; background:#fff; color:#0F1F5C; border:1px solid #E5E7EB; border-radius:14px; font-size:14px; font-weight:800; text-decoration:none; }
+  .pdl1-stats { display:flex; gap:24px; justify-content:center; flex-wrap:wrap; padding-top:16px; }
+  .pdl1-stat { text-align:center; }
+  .pdl1-stat .v { font-family:'Bebas Neue',sans-serif; font-size:32px; font-weight:900; color:#F97316; line-height:1; letter-spacing:.5px; }
+  .pdl1-stat .l { font-size:11.5px; color:#6B7280; margin-top:4px; font-weight:700; }
+  @media (max-width:640px) { .pdl1 h1 { font-size:30px; } }
+  </style>
+  <section class="pdl1">
+    <div class="pdl1-inner">
+      <span class="pdl1-tag">🏪 BECOME A DEALER</span>
+      <h1>POUR스토어<br/><span class="accent">대리점·유통 파트너 모집</span></h1>
+      <p class="pdl1-desc">검증된 R&D 자재를 지역 거점에서 유통하세요. 전국 17개 광역에 우수 대리점을 모집합니다 — 안정 마진·전속 영업권 보장.</p>
+      <div class="pdl1-cta">
+        <a class="primary" href="#dealer-form">대리점 신청 →</a>
+        <a class="ghost" href="#margin">마진 구조 보기</a>
+      </div>
+      <div class="pdl1-stats">
+        <div class="pdl1-stat"><div class="v">42</div><div class="l">전국 대리점</div></div>
+        <div class="pdl1-stat"><div class="v">평균 28%</div><div class="l">유통 마진</div></div>
+        <div class="pdl1-stat"><div class="v">98%</div><div class="l">재계약률</div></div>
+        <div class="pdl1-stat"><div class="v">12개</div><div class="l">신규 모집 권역</div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_DL_MARGIN_HTML = `<style>
+  .pdl2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pdl2 { background:#fff; padding:80px 18px; }
+  .pdl2-inner { max-width:1100px; margin:0 auto; }
+  .pdl2-head { text-align:center; margin-bottom:36px; }
+  .pdl2-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pdl2-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .pdl2-head p { font-size:14px; color:#6B7280; }
+  .pdl2-tiers { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:32px; }
+  .pdl2-tier { background:#fff; border:1px solid #F3F4F6; border-radius:18px; padding:28px 24px; transition:all .25s; }
+  .pdl2-tier.gold { background:linear-gradient(135deg,#FFF7ED,#FFEDD5); border-color:#F97316; box-shadow:0 18px 40px rgba(249,115,22,.12); transform:scale(1.02); position:relative; }
+  .pdl2-tier.gold::before { content:'⭐ 추천'; position:absolute; top:-12px; left:50%; transform:translateX(-50%); padding:5px 12px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; font-size:10.5px; font-weight:900; border-radius:6px; letter-spacing:.5px; }
+  .pdl2-tier .name { font-size:13px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
+  .pdl2-tier .pct { font-family:'Bebas Neue',sans-serif; font-size:48px; font-weight:900; color:#F97316; line-height:1; letter-spacing:.5px; margin-bottom:6px; }
+  .pdl2-tier .pct .unit { font-family:'Noto Sans KR',sans-serif; font-size:18px; font-weight:800; color:#0F1F5C; }
+  .pdl2-tier .desc { font-size:12px; color:#6B7280; margin-bottom:18px; line-height:1.6; }
+  .pdl2-tier ul { list-style:none; padding:0; margin:0; }
+  .pdl2-tier li { font-size:12.5px; color:#4B5563; padding:6px 0; padding-left:18px; position:relative; line-height:1.55; }
+  .pdl2-tier li::before { content:'✓'; position:absolute; left:0; color:#F97316; font-weight:900; }
+  .pdl2-note { padding:18px 22px; background:#FFFBF5; border:1px solid #FED7AA; border-radius:14px; }
+  .pdl2-note .label { font-size:11px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
+  .pdl2-note .text { font-size:13px; color:#4B5563; line-height:1.7; }
+  .pdl2-note b { color:#0F1F5C; font-weight:800; }
+  @media (max-width:880px) { .pdl2-tiers { grid-template-columns:1fr; } .pdl2-tier.gold { transform:none; } .pdl2-head h2 { font-size:24px; } }
+  </style>
+  <section class="pdl2" id="margin">
+    <div class="pdl2-inner">
+      <div class="pdl2-head">
+        <div class="kicker">MARGIN STRUCTURE</div>
+        <h2>대리점 마진 구조</h2>
+        <p>월 매출 기준 자동 차등 — 키울수록 더 큰 마진을 가져갑니다</p>
+      </div>
+      <div class="pdl2-tiers">
+        <div class="pdl2-tier"><div class="name">SILVER</div><div class="pct">22<span class="unit">%</span></div><div class="desc">월 매출 1천만원 이하 — 신규 대리점 진입 단계</div><ul><li>자재 본사 직공급가</li><li>판매보조금 월 50만원</li><li>제품 카탈로그 무상 제공</li><li>교육 무료 (분기 1회)</li></ul></div>
+        <div class="pdl2-tier gold"><div class="name">GOLD</div><div class="pct">28<span class="unit">%</span></div><div class="desc">월 매출 1천-3천만원 — 가장 많은 대리점 구간</div><ul><li>실버 혜택 + 추가 마진 6%</li><li>판매보조금 월 100만원</li><li>전속 영업권 (지역 단독)</li><li>지역 광고 50% 분담</li><li>전시 샘플 무상 보충</li></ul></div>
+        <div class="pdl2-tier"><div class="name">PLATINUM</div><div class="pct">35<span class="unit">%</span></div><div class="desc">월 매출 3천만원 이상 — 우수 대리점 대상</div><ul><li>골드 혜택 + 추가 마진 7%</li><li>판매보조금 월 200만원</li><li>지역 광고 100% 본사 부담</li><li>신제품 우선 공급</li><li>해외 연수 (연 1회)</li></ul></div>
+      </div>
+      <div class="pdl2-note">
+        <div class="label">💡 추가 인센티브</div>
+        <div class="text">월 매출 목표 달성 시 <b>추가 3% 보너스</b>, 신규 시공사 영입 시 <b>건당 30만원 인센티브</b>, 연간 우수 대리점 선정 시 <b>해외 연수·포상</b> 별도 제공.</div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_DL_REQ_HTML = `<style>
+  .pdl3 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pdl3 { background:#FFFBF5; padding:80px 18px; }
+  .pdl3-inner { max-width:980px; margin:0 auto; }
+  .pdl3-head { text-align:center; margin-bottom:32px; }
+  .pdl3-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pdl3-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .pdl3-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .pdl3-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; padding:28px 26px; }
+  .pdl3-card.must { border-left:4px solid #F97316; }
+  .pdl3-card.plus { border-left:4px solid #059669; }
+  .pdl3-card .label { display:inline-block; padding:4px 10px; background:#FFFBF5; border:1px solid #FED7AA; color:#EA580C; font-size:10.5px; font-weight:800; border-radius:6px; margin-bottom:14px; letter-spacing:.5px; }
+  .pdl3-card.plus .label { background:#ECFDF5; border-color:#A7F3D0; color:#059669; }
+  .pdl3-card h3 { font-size:18px; font-weight:900; color:#0F1F5C; margin-bottom:18px; letter-spacing:-.3px; }
+  .pdl3-list { display:flex; flex-direction:column; gap:12px; }
+  .pdl3-item { display:flex; gap:12px; padding:12px; background:#FFFBF5; border-radius:10px; }
+  .pdl3-card.plus .pdl3-item { background:#ECFDF5; }
+  .pdl3-item .check { width:22px; height:22px; border-radius:50%; background:#F97316; color:#fff; font-size:13px; font-weight:900; display:grid; place-items:center; flex-shrink:0; }
+  .pdl3-card.plus .pdl3-item .check { background:#059669; }
+  .pdl3-item .text .ttl { font-size:13px; font-weight:800; color:#0F1F5C; margin-bottom:3px; }
+  .pdl3-item .text .desc { font-size:12px; color:#6B7280; line-height:1.55; }
+  @media (max-width:720px) { .pdl3-grid { grid-template-columns:1fr; } .pdl3-head h2 { font-size:24px; } }
+  </style>
+  <section class="pdl3">
+    <div class="pdl3-inner">
+      <div class="pdl3-head">
+        <div class="kicker">REQUIREMENTS</div>
+        <h2>대리점 자격 요건</h2>
+      </div>
+      <div class="pdl3-grid">
+        <div class="pdl3-card must">
+          <span class="label">✓ 필수 요건</span>
+          <h3>최소 자격</h3>
+          <div class="pdl3-list">
+            <div class="pdl3-item"><div class="check">✓</div><div class="text"><div class="ttl">사업자등록증</div><div class="desc">건축자재·도소매·유통 관련 업태</div></div></div>
+            <div class="pdl3-item"><div class="check">✓</div><div class="text"><div class="ttl">매장·창고 33㎡ 이상</div><div class="desc">샘플 진열 + 재고 보관 공간</div></div></div>
+            <div class="pdl3-item"><div class="check">✓</div><div class="text"><div class="ttl">초기 재고 매입 (1천만원)</div><div class="desc">기본 SKU 셋업 — 판매 후 정산</div></div></div>
+            <div class="pdl3-item"><div class="check">✓</div><div class="text"><div class="ttl">상시 직원 1인 이상</div><div class="desc">고객 응대·상품 안내 가능자</div></div></div>
+          </div>
+        </div>
+        <div class="pdl3-card plus">
+          <span class="label">+ 우대 사항</span>
+          <h3>가점 요건</h3>
+          <div class="pdl3-list">
+            <div class="pdl3-item"><div class="check">+</div><div class="text"><div class="ttl">건설자재 유통 경력</div><div class="desc">방수·도장·페인트 도소매 5년 이상</div></div></div>
+            <div class="pdl3-item"><div class="check">+</div><div class="text"><div class="ttl">지역 시공사 네트워크</div><div class="desc">해당 권역 시공사 거래처 보유</div></div></div>
+            <div class="pdl3-item"><div class="check">+</div><div class="text"><div class="ttl">매장 가시성·접근성</div><div class="desc">대로변·산업단지 인근·주차 가능</div></div></div>
+            <div class="pdl3-item"><div class="check">+</div><div class="text"><div class="ttl">자체 운반 차량 보유</div><div class="desc">현장 직배송 가능 시 가점</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_DL_CAT_HTML = `<style>
+  .pdl4 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pdl4 { background:#fff; padding:80px 18px; }
+  .pdl4-inner { max-width:1200px; margin:0 auto; }
+  .pdl4-head { text-align:center; margin-bottom:36px; }
+  .pdl4-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pdl4-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
+  .pdl4-head p { font-size:14px; color:#6B7280; }
+  .pdl4-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px; }
+  .pdl4-card { background:#fff; border:1px solid #F3F4F6; border-radius:16px; padding:24px 22px; transition:all .25s; }
+  .pdl4-card:hover { transform:translateY(-3px); box-shadow:0 16px 36px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .pdl4-card .icon { width:48px; height:48px; border-radius:12px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:24px; margin-bottom:14px; }
+  .pdl4-card .name { font-size:15.5px; font-weight:900; color:#0F1F5C; margin-bottom:6px; letter-spacing:-.3px; }
+  .pdl4-card .count { font-size:11px; font-weight:800; color:#EA580C; margin-bottom:10px; }
+  .pdl4-card .items { display:flex; flex-wrap:wrap; gap:5px; }
+  .pdl4-card .item { padding:3px 9px; background:#FFFBF5; border:1px solid #F3F4F6; color:#4B5563; font-size:10.5px; font-weight:700; border-radius:5px; }
+  @media (max-width:640px) { .pdl4-head h2 { font-size:24px; } }
+  </style>
+  <section class="pdl4">
+    <div class="pdl4-inner">
+      <div class="pdl4-head">
+        <div class="kicker">SUPPLY CATEGORIES</div>
+        <h2>공급 가능 카테고리</h2>
+        <p>전 카테고리 110+ SKU — 대리점은 전 라인업 자유 취급 가능</p>
+      </div>
+      <div class="pdl4-grid">
+        <div class="pdl4-card"><div class="icon">💧</div><div class="name">방수재</div><div class="count">28종</div><div class="items"><span class="item">코트재</span><span class="item">시트</span><span class="item">PVC</span><span class="item">우레탄</span><span class="item">아크릴차수</span></div></div>
+        <div class="pdl4-card"><div class="icon">🎨</div><div class="name">도장재</div><div class="count">22종</div><div class="items"><span class="item">바인더</span><span class="item">플러스</span><span class="item">에폭시</span><span class="item">엠보라이닝</span><span class="item">금속코팅</span></div></div>
+        <div class="pdl4-card"><div class="icon">🔧</div><div class="name">균열 보수재</div><div class="count">18종</div><div class="items"><span class="item">하이퍼티</span><span class="item">파우더</span><span class="item">HOOKER</span><span class="item">균열 젤</span></div></div>
+        <div class="pdl4-card"><div class="icon">🛡️</div><div class="name">코팅·단열</div><div class="count">15종</div><div class="items"><span class="item">차열 코팅</span><span class="item">단열재</span><span class="item">함침재</span></div></div>
+        <div class="pdl4-card"><div class="icon">🛠️</div><div class="name">시공 도구</div><div class="count">14종</div><div class="items"><span class="item">롤러</span><span class="item">붓</span><span class="item">스프레이</span><span class="item">교반기</span></div></div>
+        <div class="pdl4-card"><div class="icon">🦺</div><div class="name">안전용품</div><div class="count">12종</div><div class="items"><span class="item">안전벨트</span><span class="item">고소장비</span><span class="item">보호구</span></div></div>
+        <div class="pdl4-card"><div class="icon">📦</div><div class="name">부자재</div><div class="count">9종</div><div class="items"><span class="item">벤트</span><span class="item">트랩</span><span class="item">테이프</span><span class="item">접착제</span></div></div>
+        <div class="pdl4-card"><div class="icon">🎁</div><div class="name">패키지 상품</div><div class="count">7종</div><div class="items"><span class="item">옥상 풀세트</span><span class="item">외벽 패키지</span><span class="item">셀프 키트</span></div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_DL_FLOW_HTML = `<style>
+  .pdl5 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pdl5 { background:#FFFBF5; padding:80px 18px; }
+  .pdl5-inner { max-width:1100px; margin:0 auto; }
+  .pdl5-head { text-align:center; margin-bottom:40px; }
+  .pdl5-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pdl5-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
+  .pdl5-head p { font-size:14px; color:#6B7280; }
+  .pdl5-flow { display:grid; grid-template-columns:repeat(5, 1fr); gap:8px; position:relative; }
+  .pdl5-flow::before { content:''; position:absolute; top:38px; left:10%; right:10%; height:2px; background:linear-gradient(90deg, #FED7AA, #F97316, #FED7AA); z-index:0; }
+  .pdl5-step { position:relative; z-index:1; text-align:center; }
+  .pdl5-step .num { width:76px; height:76px; margin:0 auto 14px; border-radius:50%; background:#fff; border:3px solid #F97316; display:grid; place-items:center; font-family:'Bebas Neue',sans-serif; font-size:24px; font-weight:900; color:#F97316; box-shadow:0 8px 20px rgba(249,115,22,.15); letter-spacing:.5px; }
+  .pdl5-step .name { font-size:14px; font-weight:900; color:#0F1F5C; margin-bottom:6px; letter-spacing:-.3px; }
+  .pdl5-step .desc { font-size:11.5px; color:#6B7280; line-height:1.55; }
+  .pdl5-step .duration { display:inline-block; margin-top:8px; padding:3px 8px; background:#fff; border:1px solid #FED7AA; color:#EA580C; font-size:10.5px; font-weight:800; border-radius:5px; }
+  @media (max-width:880px) { .pdl5-flow { grid-template-columns:1fr; gap:24px; } .pdl5-flow::before { display:none; } .pdl5-head h2 { font-size:24px; } }
+  </style>
+  <section class="pdl5">
+    <div class="pdl5-inner">
+      <div class="pdl5-head">
+        <div class="kicker">PROCESS</div>
+        <h2>대리점 개설 진행 절차</h2>
+        <p>신청부터 오픈까지 평균 영업일 기준 21일</p>
+      </div>
+      <div class="pdl5-flow">
+        <div class="pdl5-step"><div class="num">01</div><div class="name">신청·서류</div><div class="desc">신청서 + 사업자<br/>+ 매장 사진</div><div class="duration">즉시</div></div>
+        <div class="pdl5-step"><div class="num">02</div><div class="name">권역 검토</div><div class="desc">기존 대리점과<br/>중복 여부 확인</div><div class="duration">3-5일</div></div>
+        <div class="pdl5-step"><div class="num">03</div><div class="name">실사 방문</div><div class="desc">매장·창고 실사<br/>+ 대표 면담</div><div class="duration">5-7일</div></div>
+        <div class="pdl5-step"><div class="num">04</div><div class="name">계약·재고</div><div class="desc">대리점 계약<br/>+ 초도 재고 입고</div><div class="duration">10-14일</div></div>
+        <div class="pdl5-step"><div class="num">05</div><div class="name">오픈·교육</div><div class="desc">매장 셋업 + 교육<br/>+ 첫 매출 시작</div><div class="duration">14-21일</div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_DL_FORM_HTML = `<style>
+  .pdl6 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pdl6 { background:#fff; padding:80px 18px; }
+  .pdl6-inner { max-width:980px; margin:0 auto; }
+  .pdl6-head { text-align:center; margin-bottom:32px; }
+  .pdl6-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pdl6-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .pdl6-head p { font-size:14px; color:#6B7280; }
+  .pdl6-card { background:#fff; border:1px solid #F3F4F6; border-radius:24px; padding:36px 32px; box-shadow:0 12px 36px rgba(15,31,92,.06); }
+  .pdl6-section { margin-bottom:24px; }
+  .pdl6-section .stitle { font-size:13px; font-weight:900; color:#0F1F5C; margin-bottom:14px; padding-bottom:10px; border-bottom:2px solid #FFEDD5; letter-spacing:-.3px; }
+  .pdl6-row { margin-bottom:14px; }
+  .pdl6-row.split { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .pdl6-row label { display:block; font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
+  .pdl6-row input, .pdl6-row select, .pdl6-row textarea { width:100%; padding:12px 14px; background:#FFFBF5; border:1px solid #F3F4F6; border-radius:10px; font-size:14px; font-family:inherit; color:#0F1F5C; transition:all .2s; }
+  .pdl6-row textarea { min-height:96px; resize:vertical; }
+  .pdl6-row input:focus, .pdl6-row select:focus, .pdl6-row textarea:focus { outline:none; border-color:#FED7AA; background:#fff; box-shadow:0 0 0 3px rgba(249,115,22,.08); }
+  .pdl6-agree { display:flex; align-items:center; gap:8px; margin-bottom:18px; padding:14px; background:#FFFBF5; border-radius:10px; font-size:12.5px; color:#4B5563; }
+  .pdl6-agree input { width:16px; height:16px; accent-color:#F97316; }
+  .pdl6-submit { width:100%; padding:16px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:900; cursor:pointer; box-shadow:0 8px 24px rgba(249,115,22,.3); transition:all .25s; }
+  .pdl6-submit:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(249,115,22,.45); }
+  @media (max-width:640px) { .pdl6-card { padding:24px 18px; } .pdl6-row.split { grid-template-columns:1fr; } .pdl6-head h2 { font-size:24px; } }
+  </style>
+  <section class="pdl6" id="dealer-form">
+    <div class="pdl6-inner">
+      <div class="pdl6-head">
+        <div class="kicker">APPLICATION</div>
+        <h2>대리점 신청서</h2>
+        <p>아래 정보 제출 후 영업일 기준 5-7일 내 회신드립니다</p>
+      </div>
+      <form class="pdl6-card">
+        <div class="pdl6-section">
+          <div class="stitle">📋 신청자 정보</div>
+          <div class="pdl6-row split">
+            <div><label>회사/상호명</label><input type="text" placeholder="○○건축자재"/></div>
+            <div><label>사업자등록번호</label><input type="text" placeholder="000-00-00000"/></div>
+          </div>
+          <div class="pdl6-row split">
+            <div><label>대표자명</label><input type="text" placeholder="홍길동"/></div>
+            <div><label>연락처</label><input type="text" placeholder="010-0000-0000"/></div>
+          </div>
+          <div class="pdl6-row"><label>이메일</label><input type="email" placeholder="example@email.com"/></div>
+        </div>
+        <div class="pdl6-section">
+          <div class="stitle">🏪 매장·재고 정보</div>
+          <div class="pdl6-row"><label>매장 주소</label><input type="text" placeholder="○○도 ○○시 ○○로"/></div>
+          <div class="pdl6-row split">
+            <div><label>매장 규모</label><select><option>33-66㎡</option><option>66-99㎡</option><option>99-165㎡</option><option>165㎡ 이상</option></select></div>
+            <div><label>창고 규모</label><select><option>창고 없음</option><option>33㎡ 미만</option><option>33-66㎡</option><option>66㎡ 이상</option></select></div>
+          </div>
+          <div class="pdl6-row"><label>희망 권역</label><input type="text" placeholder="예: 경기 남부 / 부산 해운대 일대"/></div>
+        </div>
+        <div class="pdl6-section">
+          <div class="stitle">📊 사업 정보</div>
+          <div class="pdl6-row split">
+            <div><label>건설자재 유통 경력</label><select><option>없음</option><option>3년 미만</option><option>3-5년</option><option>5-10년</option><option>10년 이상</option></select></div>
+            <div><label>예상 월 매출 목표</label><select><option>1천만원 미만</option><option>1천-3천만원</option><option>3천-5천만원</option><option>5천만원 이상</option></select></div>
+          </div>
+          <div class="pdl6-row"><label>주요 거래처·실적 (간단 기재)</label><textarea placeholder="기존 거래처·취급 자재·시공사 네트워크 등"></textarea></div>
+        </div>
+        <div class="pdl6-agree"><input type="checkbox" id="ag3"/><label for="ag3">개인정보·기업정보 수집·이용에 동의합니다</label></div>
+        <button type="submit" class="pdl6-submit">대리점 신청하기</button>
+      </form>
+    </div>
+  </section>`;
+
+  const SEED_DL_FAQ_HTML = `<style>
+  .pdl7 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pdl7 { background:#FFFBF5; padding:80px 18px; }
+  .pdl7-inner { max-width:880px; margin:0 auto; }
+  .pdl7-head { text-align:center; margin-bottom:32px; }
+  .pdl7-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pdl7-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .pdl7-list { display:flex; flex-direction:column; gap:12px; }
+  .pdl7-item { background:#fff; border:1px solid #F3F4F6; border-radius:14px; overflow:hidden; transition:all .2s; }
+  .pdl7-item:hover { border-color:#FED7AA; }
+  .pdl7-item.open { border-color:#F97316; box-shadow:0 8px 24px rgba(249,115,22,.1); }
+  .pdl7-q { display:flex; align-items:center; gap:14px; padding:18px 22px; cursor:pointer; }
+  .pdl7-q .num { width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-family:'Bebas Neue',sans-serif; font-size:14px; font-weight:900; color:#EA580C; flex-shrink:0; }
+  .pdl7-q .text { flex:1; font-size:14.5px; font-weight:800; color:#0F1F5C; letter-spacing:-.3px; }
+  .pdl7-q .arrow { color:#9CA3AF; font-size:14px; transition:transform .2s; }
+  .pdl7-item.open .pdl7-q .arrow { transform:rotate(180deg); color:#EA580C; }
+  .pdl7-a { padding:0 22px 20px 68px; font-size:13.5px; color:#4B5563; line-height:1.75; display:none; }
+  .pdl7-item.open .pdl7-a { display:block; }
+  .pdl7-a b { color:#0F1F5C; font-weight:800; }
+  @media (max-width:640px) { .pdl7-head h2 { font-size:24px; } .pdl7-a { padding-left:22px; } }
+  </style>
+  <section class="pdl7">
+    <div class="pdl7-inner">
+      <div class="pdl7-head">
+        <div class="kicker">FAQ</div>
+        <h2>대리점 개설 자주 묻는 질문</h2>
+      </div>
+      <div class="pdl7-list">
+        <div class="pdl7-item open">
+          <div class="pdl7-q"><div class="num">Q1</div><div class="text">전속 영업권은 어떻게 보장되나요?</div><div class="arrow">▼</div></div>
+          <div class="pdl7-a">GOLD 등급부터 <b>지역 단독 영업권</b>이 부여됩니다. 권역은 시·군·구 단위로 설정되며 동일 권역 내 신규 대리점은 받지 않습니다. 다만 공정 경쟁을 위해 매년 매출 목표 미달 시 권역 조정이 있을 수 있습니다.</div>
+        </div>
+        <div class="pdl7-item">
+          <div class="pdl7-q"><div class="num">Q2</div><div class="text">초기 재고 매입은 의무인가요?</div><div class="arrow">▼</div></div>
+          <div class="pdl7-a">네, <b>초기 재고 1천만원 매입이 필수</b>입니다. 다만 판매되지 않은 재고는 <b>1년 내 100% 환불·교환 가능</b>합니다.</div>
+        </div>
+        <div class="pdl7-item">
+          <div class="pdl7-q"><div class="num">Q3</div><div class="text">기존 페인트 가게도 대리점 신청 가능한가요?</div><div class="arrow">▼</div></div>
+          <div class="pdl7-a">가능합니다. 오히려 <b>기존 건설자재 유통 경험은 가점 요인</b>입니다. 다만 경쟁 자재 브랜드와 동시 취급은 협의가 필요합니다 (POUR 매대 분리 진열 등).</div>
+        </div>
+        <div class="pdl7-item">
+          <div class="pdl7-q"><div class="num">Q4</div><div class="text">결제·정산은 어떻게 이루어지나요?</div><div class="arrow">▼</div></div>
+          <div class="pdl7-a">대리점은 <b>본사로부터 직공급가에 매입 후 자체 마진을 붙여 판매</b>합니다. 매입대금은 <b>월 1회 정산</b>되며, 신용도에 따라 외상 한도가 부여됩니다 (초기 한도 500만원).</div>
+        </div>
+        <div class="pdl7-item">
+          <div class="pdl7-q"><div class="num">Q5</div><div class="text">대리점 폐업·해지는 자유로운가요?</div><div class="arrow">▼</div></div>
+          <div class="pdl7-a">네. <b>3개월 사전 통지 후 자유롭게 해지</b> 가능합니다. 잔여 재고는 본사가 70% 가격으로 매입 환수합니다. 부당한 일방 해지는 본사도 하지 않습니다.</div>
+        </div>
+        <div class="pdl7-item">
+          <div class="pdl7-q"><div class="num">Q6</div><div class="text">광고·홍보는 본사가 지원하나요?</div><div class="arrow">▼</div></div>
+          <div class="pdl7-a">SILVER는 카탈로그·POP 무상 제공, GOLD는 <b>지역 광고비 50% 분담</b>, PLATINUM은 <b>100% 본사 부담</b>입니다. 온라인 광고도 등급별 차등 지원합니다.</div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+
   const DEFAULT_PAGES = () => ([
     { id: 'main', name: '메인 페이지', file: 'index.html', sections: [
       mkSec('메인 배너', SEED_BANNER_HTML, '라이트 크림 + 오렌지 그라디언트 — 가벼운 톤 (v3)', 'wip'),
@@ -2302,13 +2632,13 @@ show('entry');
       mkSec('자주 묻는 질문', SEED_PT_FAQ_HTML, '6개 아코디언 (가입비/등급/전속/일감/정산/교육)', 'wip'),
     ]},
     { id: 'dealers', name: '대리점·공급 문의', file: 'dealers.html', sections: [
-      mkSec('히어로', '', ''),
-      mkSec('대리점 혜택·마진 구조', '', ''),
-      mkSec('자격 요건', '', ''),
-      mkSec('공급 가능 카테고리', '', ''),
-      mkSec('진행 절차', '', ''),
-      mkSec('대리점 신청 폼', '', ''),
-      mkSec('자주 묻는 질문', '', ''),
+      mkSec('히어로', SEED_DL_HERO_HTML, '라이트 크림 + 4개 수치 (42 대리점/평균 28%/98% 재계약/12 신규권역)', 'wip'),
+      mkSec('대리점 혜택·마진 구조', SEED_DL_MARGIN_HTML, 'Silver 22% / Gold 28% (추천) / Platinum 35% 3-tier', 'wip'),
+      mkSec('자격 요건', SEED_DL_REQ_HTML, '필수 + 우대 2-column (매장 33㎡ / 초도 1천만원)', 'wip'),
+      mkSec('공급 가능 카테고리', SEED_DL_CAT_HTML, '8개 카테고리 카드 — 110+ SKU 라인업', 'wip'),
+      mkSec('진행 절차', SEED_DL_FLOW_HTML, '5단계 (신청→권역→실사→계약→오픈, 21일)', 'wip'),
+      mkSec('대리점 신청 폼', SEED_DL_FORM_HTML, '신청자/매장재고/사업정보 풀폼', 'wip'),
+      mkSec('자주 묻는 질문', SEED_DL_FAQ_HTML, '6개 아코디언 (전속/재고/페인트/정산/해지/광고)', 'wip'),
     ]},
     { id: 'matching', name: '시공 연결 신청', file: 'matching.html', sections: [
       mkSec('히어로 + 진행 단계 미리보기', '', ''),

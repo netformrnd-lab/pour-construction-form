@@ -1478,6 +1478,225 @@ show('entry');
   </section>`;
 
 
+  const SEED_CS_INTRO_HTML = `<style>
+  .pcs1 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pcs1 { background:linear-gradient(180deg,#FFFBF5 0%,#FFF7ED 100%); padding:80px 18px 56px; position:relative; overflow:hidden; }
+  .pcs1::before { content:''; position:absolute; top:-100px; right:-80px; width:380px; height:380px; background:radial-gradient(circle, rgba(249,115,22,.12) 0%, transparent 60%); border-radius:50%; }
+  .pcs1-inner { max-width:1100px; margin:0 auto; text-align:center; position:relative; z-index:1; }
+  .pcs1-tag { display:inline-flex; gap:6px; padding:6px 14px; background:#fff; border:1px solid #FED7AA; color:#EA580C; border-radius:999px; font-size:11.5px; font-weight:800; letter-spacing:.8px; margin-bottom:18px; box-shadow:0 4px 12px rgba(249,115,22,.1); }
+  .pcs1 h1 { font-size:42px; font-weight:900; color:#0F1F5C; line-height:1.2; margin-bottom:16px; letter-spacing:-1.2px; }
+  .pcs1 h1 .accent { color:#F97316; }
+  .pcs1-desc { font-size:15.5px; color:#4B5563; line-height:1.75; max-width:600px; margin:0 auto 36px; }
+  .pcs1-stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:12px; max-width:780px; margin:0 auto; }
+  .pcs1-stat { background:#fff; border-radius:16px; padding:20px 16px; border:1px solid #F3F4F6; box-shadow:0 6px 18px rgba(15,31,92,.05); }
+  .pcs1-stat .v { font-family:'Bebas Neue',sans-serif; font-size:32px; font-weight:900; color:#F97316; line-height:1; letter-spacing:.5px; }
+  .pcs1-stat .l { font-size:11.5px; color:#6B7280; margin-top:6px; font-weight:700; letter-spacing:.3px; }
+  @media (max-width:640px) { .pcs1 h1 { font-size:28px; } .pcs1-desc { font-size:14px; } }
+  </style>
+  <section class="pcs1">
+    <div class="pcs1-inner">
+      <span class="pcs1-tag">📍 PROJECT CASES</span>
+      <h1>전국 700+ 단지에서<br/><span class="accent">검증된 시공 사례</span></h1>
+      <p class="pcs1-desc">아파트 · 관공서 · 일반건물 · 산업시설 — 다양한 환경에서 입증된 POUR 자재의 실적을 확인하세요.</p>
+      <div class="pcs1-stats">
+        <div class="pcs1-stat"><div class="v">700+</div><div class="l">시공 단지</div></div>
+        <div class="pcs1-stat"><div class="v">2,600,000+</div><div class="l">시공 세대수</div></div>
+        <div class="pcs1-stat"><div class="v">1,500,000㎡</div><div class="l">누적 시공 면적</div></div>
+        <div class="pcs1-stat"><div class="v">17개</div><div class="l">전국 광역시·도</div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_CS_FILTER_HTML = `<style>
+  .pcs2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pcs2 { background:#fff; padding:48px 18px 24px; }
+  .pcs2-inner { max-width:1200px; margin:0 auto; }
+  .pcs2-row { margin-bottom:18px; }
+  .pcs2-row:last-child { margin-bottom:0; }
+  .pcs2-label { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1px; margin-bottom:10px; }
+  .pcs2-chips { display:flex; gap:8px; flex-wrap:wrap; }
+  .pcs2-chip { padding:8px 16px; background:#FFFBF5; border:1px solid #F3F4F6; border-radius:999px; font-size:13px; font-weight:700; color:#6B7280; cursor:pointer; transition:all .2s; }
+  .pcs2-chip:hover { border-color:#FED7AA; color:#EA580C; background:#FFF7ED; }
+  .pcs2-chip.active { background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border-color:transparent; box-shadow:0 6px 16px rgba(249,115,22,.3); }
+  .pcs2-search { display:flex; gap:8px; margin-top:18px; }
+  .pcs2-search input { flex:1; padding:12px 16px; border:1px solid #F3F4F6; border-radius:12px; font-size:13.5px; font-family:inherit; background:#FFFBF5; transition:all .2s; }
+  .pcs2-search input:focus { outline:none; border-color:#FED7AA; background:#fff; box-shadow:0 0 0 3px rgba(249,115,22,.08); }
+  .pcs2-search button { padding:12px 24px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border:none; border-radius:12px; font-size:13.5px; font-weight:800; cursor:pointer; transition:all .2s; }
+  .pcs2-search button:hover { transform:translateY(-1px); box-shadow:0 8px 20px rgba(249,115,22,.35); }
+  </style>
+  <section class="pcs2">
+    <div class="pcs2-inner">
+      <div class="pcs2-row">
+        <div class="pcs2-label">📍 지역별 필터</div>
+        <div class="pcs2-chips">
+          <button class="pcs2-chip active">전체</button>
+          <button class="pcs2-chip">서울</button>
+          <button class="pcs2-chip">경기</button>
+          <button class="pcs2-chip">인천</button>
+          <button class="pcs2-chip">부산</button>
+          <button class="pcs2-chip">대구</button>
+          <button class="pcs2-chip">광주</button>
+          <button class="pcs2-chip">대전</button>
+          <button class="pcs2-chip">울산</button>
+          <button class="pcs2-chip">세종</button>
+          <button class="pcs2-chip">강원</button>
+          <button class="pcs2-chip">충청</button>
+          <button class="pcs2-chip">전라</button>
+          <button class="pcs2-chip">경상</button>
+          <button class="pcs2-chip">제주</button>
+        </div>
+      </div>
+      <div class="pcs2-row">
+        <div class="pcs2-label">🏢 건물 유형</div>
+        <div class="pcs2-chips">
+          <button class="pcs2-chip active">전체</button>
+          <button class="pcs2-chip">아파트</button>
+          <button class="pcs2-chip">관공서</button>
+          <button class="pcs2-chip">학교·병원</button>
+          <button class="pcs2-chip">상가·오피스</button>
+          <button class="pcs2-chip">공장·창고</button>
+          <button class="pcs2-chip">주택</button>
+        </div>
+      </div>
+      <div class="pcs2-search">
+        <input type="text" placeholder="단지명·주소·공법으로 검색해 보세요"/>
+        <button>검색</button>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_CS_GALLERY_HTML = `<style>
+  .pcs3 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pcs3 { background:#fff; padding:32px 18px 80px; }
+  .pcs3-inner { max-width:1200px; margin:0 auto; }
+  .pcs3-meta { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px; }
+  .pcs3-meta .count { font-size:13px; color:#6B7280; font-weight:700; }
+  .pcs3-meta .count b { color:#0F1F5C; }
+  .pcs3-sort { display:flex; gap:6px; }
+  .pcs3-sort button { padding:6px 12px; background:#FFFBF5; border:1px solid #F3F4F6; border-radius:8px; font-size:12px; font-weight:700; color:#6B7280; cursor:pointer; }
+  .pcs3-sort button.active { background:#0F1F5C; color:#fff; border-color:transparent; }
+  .pcs3-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:18px; }
+  .pcs3-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; overflow:hidden; transition:all .3s; text-decoration:none; }
+  .pcs3-card:hover { transform:translateY(-4px); box-shadow:0 22px 48px rgba(15,31,92,.1); border-color:#FED7AA; }
+  .pcs3-thumb { aspect-ratio:4/3; background-size:cover; background-position:center; position:relative; }
+  .pcs3-thumb .badge { position:absolute; top:12px; left:12px; padding:5px 10px; background:rgba(15,31,92,.85); color:#fff; font-size:10.5px; font-weight:800; border-radius:6px; backdrop-filter:blur(4px); letter-spacing:.5px; }
+  .pcs3-thumb .badge.completed { background:rgba(249,115,22,.92); }
+  .pcs3-info { padding:18px; }
+  .pcs3-info .region { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
+  .pcs3-info .name { font-size:16px; font-weight:900; color:#0F1F5C; margin-bottom:8px; line-height:1.4; letter-spacing:-.3px; }
+  .pcs3-info .desc { font-size:12.5px; color:#6B7280; line-height:1.6; margin-bottom:12px; min-height:40px; }
+  .pcs3-info .tags { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:12px; }
+  .pcs3-info .tag { padding:3px 9px; background:#FFFBF5; border:1px solid #FED7AA; color:#EA580C; font-size:10.5px; font-weight:800; border-radius:5px; }
+  .pcs3-info .meta { display:flex; align-items:center; justify-content:space-between; font-size:11.5px; color:#9CA3AF; font-weight:700; padding-top:12px; border-top:1px solid #F3F4F6; }
+  @media (max-width:640px) { .pcs3-info .name { font-size:15px; } }
+  </style>
+  <section class="pcs3">
+    <div class="pcs3-inner">
+      <div class="pcs3-meta">
+        <div class="count">총 <b>700개</b> 사례 · 표시중 <b>1-12</b></div>
+        <div class="pcs3-sort">
+          <button class="active">최신순</button>
+          <button>규모순</button>
+          <button>인기순</button>
+        </div>
+      </div>
+      <div class="pcs3-grid">
+        <a class="pcs3-card" href="#"><div class="pcs3-thumb" style="background-image:url('https://placehold.co/600x450/F97316/fff?text=APT+ROOF')"><div class="badge completed">시공 완료</div></div><div class="pcs3-info"><div class="region">📍 서울 강남구</div><div class="name">래미안 강남 옥상 슬라브 방수</div><div class="desc">2,400세대 대단지 — 슬라브 듀얼강화방수공법 + 페이퍼팬벤트 시공</div><div class="tags"><span class="tag">슬라브 방수</span><span class="tag">듀얼강화</span></div><div class="meta"><span>2025.10 완공</span><span>♡ 248</span></div></div></a>
+        <a class="pcs3-card" href="#"><div class="pcs3-thumb" style="background-image:url('https://placehold.co/600x450/EA580C/fff?text=PUBLIC')"><div class="badge completed">시공 완료</div></div><div class="pcs3-info"><div class="region">📍 경기 수원시</div><div class="name">수원시청 외벽 균열 보수·재도장</div><div class="desc">관공서 외벽 — 바인더+플러스 고급형 + 하이퍼티 균열 보수</div><div class="tags"><span class="tag">외벽 도장</span><span class="tag">균열 보수</span></div><div class="meta"><span>2025.09 완공</span><span>♡ 192</span></div></div></a>
+        <a class="pcs3-card" href="#"><div class="pcs3-thumb" style="background-image:url('https://placehold.co/600x450/0F1F5C/fff?text=SHINGLE')"><div class="badge completed">시공 완료</div></div><div class="pcs3-info"><div class="region">📍 부산 해운대구</div><div class="name">해운대 푸르지오 슁글 방수</div><div class="desc">고층 아파트 박공지붕 — 아스팔트슁글 방수공법 (1026호 신기술)</div><div class="tags"><span class="tag">슁글 방수</span><span class="tag">신기술 1026호</span></div><div class="meta"><span>2025.08 완공</span><span>♡ 287</span></div></div></a>
+        <a class="pcs3-card" href="#"><div class="pcs3-thumb" style="background-image:url('https://placehold.co/600x450/059669/fff?text=PARKING')"><div class="badge completed">시공 완료</div></div><div class="pcs3-info"><div class="region">📍 인천 송도</div><div class="name">송도 컨벤시아 지하주차장 에폭시</div><div class="desc">대형 컨벤션센터 지하주차장 — 에폭시 + 엠보라이닝 도장</div><div class="tags"><span class="tag">에폭시</span><span class="tag">엠보라이닝</span></div><div class="meta"><span>2025.07 완공</span><span>♡ 156</span></div></div></a>
+        <a class="pcs3-card" href="#"><div class="pcs3-thumb" style="background-image:url('https://placehold.co/600x450/FB923C/fff?text=METAL')"><div class="badge completed">시공 완료</div></div><div class="pcs3-info"><div class="region">📍 대구 수성구</div><div class="name">수성구 SK 금속기와 누수 보수</div><div class="desc">금속기와 지붕 누수 + 후레싱 풀림 — 금속기와 방수 + HOOKER 보강</div><div class="tags"><span class="tag">금속기와 방수</span><span class="tag">HOOKER</span></div><div class="meta"><span>2025.06 완공</span><span>♡ 134</span></div></div></a>
+        <a class="pcs3-card" href="#"><div class="pcs3-thumb" style="background-image:url('https://placehold.co/600x450/F97316/fff?text=BASEMENT')"><div class="badge completed">시공 완료</div></div><div class="pcs3-info"><div class="region">📍 광주 서구</div><div class="name">상무지구 오피스 지하 누수 차단</div><div class="desc">지하 1-3F 누수 — 아크릴배면차수공법 (초고압 주입)</div><div class="tags"><span class="tag">배면차수</span><span class="tag">지하 방수</span></div><div class="meta"><span>2025.05 완공</span><span>♡ 98</span></div></div></a>
+        <a class="pcs3-card" href="#"><div class="pcs3-thumb" style="background-image:url('https://placehold.co/600x450/EA580C/fff?text=SCHOOL')"><div class="badge completed">시공 완료</div></div><div class="pcs3-info"><div class="region">📍 대전 유성구</div><div class="name">대전 유성중 옥상 누수 보수</div><div class="desc">학교 옥상 슬라브 누수 — 우레탄 방수 + 옥상배관 트랩</div><div class="tags"><span class="tag">우레탄</span><span class="tag">배관 트랩</span></div><div class="meta"><span>2025.04 완공</span><span>♡ 112</span></div></div></a>
+        <a class="pcs3-card" href="#"><div class="pcs3-thumb" style="background-image:url('https://placehold.co/600x450/0F1F5C/fff?text=ROAD')"><div class="badge completed">시공 완료</div></div><div class="pcs3-info"><div class="region">📍 강원 춘천시</div><div class="name">춘천 IC 진입로 아스콘 보수</div><div class="desc">국도 포트홀 다발 구간 — POUR아스콘 + 씰코팅 + 균열 보수</div><div class="tags"><span class="tag">아스콘</span><span class="tag">씰코팅</span></div><div class="meta"><span>2025.03 완공</span><span>♡ 76</span></div></div></a>
+        <a class="pcs3-card" href="#"><div class="pcs3-thumb" style="background-image:url('https://placehold.co/600x450/059669/fff?text=HOSPITAL')"><div class="badge completed">시공 완료</div></div><div class="pcs3-info"><div class="region">📍 충북 청주시</div><div class="name">청주 대학병원 별관 외벽</div><div class="desc">병원 외벽 균열 + 백화 — 플러스+수성 중급형 (예산 효율)</div><div class="tags"><span class="tag">외벽 도장</span><span class="tag">중급형</span></div><div class="meta"><span>2025.02 완공</span><span>♡ 88</span></div></div></a>
+        <a class="pcs3-card" href="#"><div class="pcs3-thumb" style="background-image:url('https://placehold.co/600x450/FB923C/fff?text=FACTORY')"><div class="badge completed">시공 완료</div></div><div class="pcs3-info"><div class="region">📍 전남 여수시</div><div class="name">여수 산단 공장 옥상 방수</div><div class="desc">대형 공장 옥상 — 슬라브 듀얼강화 + 결로 방지 페이퍼팬벤트</div><div class="tags"><span class="tag">슬라브 방수</span><span class="tag">결로 방지</span></div><div class="meta"><span>2025.01 완공</span><span>♡ 64</span></div></div></a>
+        <a class="pcs3-card" href="#"><div class="pcs3-thumb" style="background-image:url('https://placehold.co/600x450/F97316/fff?text=APT2')"><div class="badge completed">시공 완료</div></div><div class="pcs3-info"><div class="region">📍 경남 창원시</div><div class="name">창원 사파동 자이 외벽 재도장</div><div class="desc">15년차 아파트 — 바인더+수성 경제형 (전체 단지 일괄)</div><div class="tags"><span class="tag">외벽 재도장</span><span class="tag">경제형</span></div><div class="meta"><span>2024.12 완공</span><span>♡ 142</span></div></div></a>
+        <a class="pcs3-card" href="#"><div class="pcs3-thumb" style="background-image:url('https://placehold.co/600x450/EA580C/fff?text=JEJU')"><div class="badge completed">시공 완료</div></div><div class="pcs3-info"><div class="region">📍 제주 제주시</div><div class="name">제주공항 인근 호텔 옥상</div><div class="desc">강풍·염해 환경 — 슬라브 듀얼강화 + 차열 코트재 (KCL 91.8%)</div><div class="tags"><span class="tag">차열</span><span class="tag">염해 대응</span></div><div class="meta"><span>2024.11 완공</span><span>♡ 178</span></div></div></a>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_CS_BYMETHOD_HTML = `<style>
+  .pcs4 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pcs4 { background:#FFFBF5; padding:80px 18px; }
+  .pcs4-inner { max-width:1200px; margin:0 auto; }
+  .pcs4-head { text-align:center; margin-bottom:36px; }
+  .pcs4-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pcs4-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
+  .pcs4-head p { font-size:14px; color:#6B7280; max-width:560px; margin:0 auto; }
+  .pcs4-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px; }
+  .pcs4-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; padding:24px 22px; transition:all .25s; text-decoration:none; display:block; }
+  .pcs4-card:hover { transform:translateY(-4px); box-shadow:0 18px 40px rgba(15,31,92,.1); border-color:#FED7AA; }
+  .pcs4-card .icon { width:52px; height:52px; border-radius:14px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:26px; margin-bottom:14px; }
+  .pcs4-card .name { font-size:16px; font-weight:900; color:#0F1F5C; margin-bottom:6px; letter-spacing:-.3px; }
+  .pcs4-card .count { font-size:11.5px; font-weight:800; color:#EA580C; margin-bottom:10px; letter-spacing:.3px; }
+  .pcs4-card .desc { font-size:12.5px; color:#6B7280; line-height:1.65; margin-bottom:14px; }
+  .pcs4-card .arrow { font-size:12px; font-weight:800; color:#0F1F5C; transition:transform .25s; }
+  .pcs4-card:hover .arrow { transform:translateX(4px); color:#EA580C; }
+  @media (max-width:640px) { .pcs4-head h2 { font-size:24px; } }
+  </style>
+  <section class="pcs4">
+    <div class="pcs4-inner">
+      <div class="pcs4-head">
+        <div class="kicker">BY METHOD</div>
+        <h2>공법별 시공 사례</h2>
+        <p>관심 있는 공법을 선택하면 해당 사례만 모아볼 수 있어요</p>
+      </div>
+      <div class="pcs4-grid">
+        <a class="pcs4-card" href="#"><div class="icon">💧</div><div class="name">슬라브 듀얼강화방수</div><div class="count">182건 사례</div><div class="desc">옥상 슬라브 누수 + 콘크리트 중성화 → 6가지 핵심 방안 일체 시공</div><div class="arrow">사례 보기 →</div></a>
+        <a class="pcs4-card" href="#"><div class="icon">🏠</div><div class="name">아스팔트슁글 방수</div><div class="count">96건 사례</div><div class="desc">건설신기술 1026호 — 박공지붕 누수·강풍 탈락 동시 해결</div><div class="arrow">사례 보기 →</div></a>
+        <a class="pcs4-card" href="#"><div class="icon">🔩</div><div class="name">금속기와 방수</div><div class="count">78건 사례</div><div class="desc">맞물림 풀림·강판 부식 — POUR HOOKER 후레싱 보강 동반</div><div class="arrow">사례 보기 →</div></a>
+        <a class="pcs4-card" href="#"><div class="icon">🎨</div><div class="name">외벽 균열 보수·재도장</div><div class="count">152건 사례</div><div class="desc">고급/중급/경제형 — 예산에 따라 3단계 차등 적용</div><div class="arrow">사례 보기 →</div></a>
+        <a class="pcs4-card" href="#"><div class="icon">🚗</div><div class="name">에폭시·엠보라이닝</div><div class="count">68건 사례</div><div class="desc">지하주차장 바닥 — 미끄럼 저항 83 BPN MMA 공법 포함</div><div class="arrow">사례 보기 →</div></a>
+        <a class="pcs4-card" href="#"><div class="icon">🌊</div><div class="name">아크릴 배면차수</div><div class="count">42건 사례</div><div class="desc">지하·수조 누수 — 탄성 아크릴 초고압 주입으로 새 방수층</div><div class="arrow">사례 보기 →</div></a>
+        <a class="pcs4-card" href="#"><div class="icon">🛣️</div><div class="name">아스콘 도로 포장</div><div class="count">36건 사례</div><div class="desc">포트홀·균열 보수 + 씰코팅 — 도로 생애주기 연장</div><div class="arrow">사례 보기 →</div></a>
+        <a class="pcs4-card" href="#"><div class="icon">🛡️</div><div class="name">보수·보강 (단면 복구)</div><div class="count">46건 사례</div><div class="desc">박락·철근 노출 — 탄성강화 파우더로 단면 복구</div><div class="arrow">사례 보기 →</div></a>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_CS_REVIEW_HTML = `<style>
+  .pcs5 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pcs5 { background:#fff; padding:80px 18px; }
+  .pcs5-inner { max-width:1200px; margin:0 auto; }
+  .pcs5-head { text-align:center; margin-bottom:36px; }
+  .pcs5-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pcs5-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .pcs5-head .score { display:inline-flex; align-items:center; gap:8px; padding:8px 16px; background:#FFFBF5; border:1px solid #FED7AA; border-radius:999px; font-size:13px; font-weight:800; color:#EA580C; }
+  .pcs5-head .score b { font-family:'Bebas Neue',sans-serif; font-size:18px; }
+  .pcs5-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:18px; }
+  .pcs5-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; padding:24px 22px; position:relative; transition:all .25s; }
+  .pcs5-card:hover { transform:translateY(-4px); box-shadow:0 18px 40px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .pcs5-card::before { content:'"'; position:absolute; top:8px; right:18px; font-family:Georgia,serif; font-size:64px; color:#FED7AA; line-height:1; opacity:.6; }
+  .pcs5-card .stars { font-size:13px; color:#F59E0B; margin-bottom:10px; letter-spacing:1px; }
+  .pcs5-card .text { font-size:13.5px; color:#374151; line-height:1.7; margin-bottom:18px; min-height:84px; }
+  .pcs5-card .author { display:flex; align-items:center; gap:10px; padding-top:14px; border-top:1px solid #F3F4F6; }
+  .pcs5-card .avatar { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:14px; font-weight:900; color:#EA580C; }
+  .pcs5-card .info { flex:1; min-width:0; }
+  .pcs5-card .name { font-size:13px; font-weight:800; color:#0F1F5C; margin-bottom:2px; }
+  .pcs5-card .role { font-size:11px; color:#9CA3AF; font-weight:700; }
+  @media (max-width:640px) { .pcs5-head h2 { font-size:24px; } }
+  </style>
+  <section class="pcs5">
+    <div class="pcs5-inner">
+      <div class="pcs5-head">
+        <div class="kicker">CUSTOMER VOICE</div>
+        <h2>실제 시공 후기</h2>
+        <div class="score">⭐ 평균 만족도 <b>4.9</b> / 5.0 · 누적 후기 320+</div>
+      </div>
+      <div class="pcs5-grid">
+        <div class="pcs5-card"><div class="stars">★★★★★</div><div class="text">10년 묵은 옥상 누수가 한 번에 잡혔습니다. 작업자분들도 친절하시고, 시공 후 1년 지났는데 아직도 깨끗합니다. 이번엔 외벽도 맡기려고요.</div><div class="author"><div class="avatar">김</div><div class="info"><div class="name">김○○ 관리소장</div><div class="role">서울 강남 · 아파트 1,200세대</div></div></div></div>
+        <div class="pcs5-card"><div class="stars">★★★★★</div><div class="text">관공서 발주 첫 경험이었는데, 시방서·견적·일정 안내가 명확해서 결재 올리기 편했어요. 시공 결과도 KTR 시험 수치 그대로 검증됐습니다.</div><div class="author"><div class="avatar">박</div><div class="info"><div class="name">박○○ 시설팀장</div><div class="role">경기 수원 · 시청사</div></div></div></div>
+        <div class="pcs5-card"><div class="stars">★★★★★</div><div class="text">슁글 지붕 누수가 워낙 까다로워서 다른 곳에서 거절당했는데, POUR가 1026호 신기술로 해결해주셨어요. 강풍에도 끄떡없습니다.</div><div class="author"><div class="avatar">이</div><div class="info"><div class="name">이○○ 입주자대표</div><div class="role">부산 해운대 · 23층 아파트</div></div></div></div>
+        <div class="pcs5-card"><div class="stars">★★★★★</div><div class="text">병원 운영 멈출 수 없어서 야간·주말 시공 요청드렸는데 일정 100% 맞춰주셨습니다. 환자분들 동선 배려도 좋았어요.</div><div class="author"><div class="avatar">최</div><div class="info"><div class="name">최○○ 시설책임자</div><div class="role">충북 청주 · 종합병원</div></div></div></div>
+        <div class="pcs5-card"><div class="stars">★★★★★</div><div class="text">지하주차장 바닥이 자꾸 까지고 미끄러워서 입주민 항의 많았는데, 엠보라이닝 시공 후 항의가 0건. 데이터로 보여드릴 수 있어 좋네요.</div><div class="author"><div class="avatar">정</div><div class="info"><div class="name">정○○ 관리소장</div><div class="role">인천 송도 · 오피스텔</div></div></div></div>
+        <div class="pcs5-card"><div class="stars">★★★★★</div><div class="text">공장 옥상 결로로 매년 골치였는데 페이퍼팬벤트 추가하니 완전 해결. 추가 시공도 다 POUR로 가려고 합니다.</div><div class="author"><div class="avatar">조</div><div class="info"><div class="name">조○○ 공장장</div><div class="role">전남 여수 · 산업단지</div></div></div></div>
+      </div>
+    </div>
+  </section>`;
+
+
   const DEFAULT_PAGES = () => ([
     { id: 'main', name: '메인 페이지', file: 'index.html', sections: [
       mkSec('메인 배너', SEED_BANNER_HTML, '라이트 크림 + 오렌지 그라디언트 — 가벼운 톤 (v3)', 'wip'),
@@ -1508,11 +1727,11 @@ show('entry');
       mkSec('시공 가이드 영상', SEED_PR_GUIDE_HTML, '피처 영상 1 + 미니 카드 4 — 매거진 레이아웃 (메인 동영상 가이드와 통일)', 'wip'),
     ]},
     { id: 'construction', name: '시공 사례', file: 'construction.html', sections: [
-      mkSec('사례 인트로', '', ''),
-      mkSec('지역별 필터', '', ''),
-      mkSec('사례 갤러리', '', ''),
-      mkSec('공법별 사례', '', ''),
-      mkSec('고객 후기', '', ''),
+      mkSec('사례 인트로', SEED_CS_INTRO_HTML, '라이트 크림 + 4개 핵심 수치 (700+/260만/150만㎡/17개 광역시도)', 'wip'),
+      mkSec('지역별 필터', SEED_CS_FILTER_HTML, '지역 칩 + 건물유형 칩 + 검색바 (15개 광역 + 6개 유형)', 'wip'),
+      mkSec('사례 갤러리', SEED_CS_GALLERY_HTML, '12개 카드 — 지역·공법 태그 + 좋아요·완공일 표기', 'wip'),
+      mkSec('공법별 사례', SEED_CS_BYMETHOD_HTML, '8개 공법 카드 — 슬라브/슁글/금속기와/외벽/에폭시/배면차수/아스콘/단면복구', 'wip'),
+      mkSec('고객 후기', SEED_CS_REVIEW_HTML, '평균 만족도 4.9 + 6개 후기 카드 (관리소장·시설팀·입주자대표 등)', 'wip'),
     ]},
     { id: 'contact', name: '문의', file: 'contact.html', sections: [
       mkSec('문의 폼', '', ''),

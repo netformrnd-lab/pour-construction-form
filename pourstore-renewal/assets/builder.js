@@ -33,30 +33,47 @@
 .par * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Noto Sans KR', sans-serif; }
 .par { --po:#F97316; --po-d:#EA580C; --po-l:#FFEDD5; --po-glow:rgba(249,115,22,.35); --pn:#0F1F5C; --bg:#FFFBF5; --card:#FFFFFF; --txt:#1F2937; --txt-d:#6B7280; --bd:#E5E7EB; --bd-h:#FED7AA; }
 
-/* ============ 메인 트리거 (깔끔) ============ */
-.par-trigger { position:relative; max-width:1080px; margin:0 auto; padding:64px 22px; background:linear-gradient(180deg,#FFFBF5 0%,#FFF7ED 50%,#FFFBF5 100%); border-radius:24px; overflow:hidden; }
+/* ====== 메인 트리거: 채팅 스타일 ====== */
+.par-trigger { position:relative; max-width:1080px; margin:0 auto; padding:48px 22px; background:linear-gradient(180deg,#FFFBF5 0%,#FFF7ED 50%,#FFFBF5 100%); border-radius:24px; overflow:hidden; }
 .par-trigger::before { content:''; position:absolute; inset:0; background-image: radial-gradient(circle at 20% 10%,rgba(249,115,22,.06) 0%,transparent 40%),radial-gradient(circle at 80% 90%,rgba(15,31,92,.04) 0%,transparent 40%); pointer-events:none; }
-.par-trigger-inner { position:relative; z-index:1; text-align:center; }
-.par-core { width:96px; height:96px; margin:0 auto 18px; position:relative; display:grid; place-items:center; }
-.par-core .ring { position:absolute; inset:0; border:2px solid var(--po); border-radius:50%; animation:par-spin 14s linear infinite; opacity:.4; }
-.par-core .ring2 { position:absolute; inset:10px; border:1px dashed var(--po-d); border-radius:50%; animation:par-spin 9s linear infinite reverse; opacity:.5; }
-.par-core .center { width:68px; height:68px; background:linear-gradient(135deg,var(--po),var(--po-d)); border-radius:50%; display:grid; place-items:center; font-size:36px; box-shadow:0 8px 22px var(--po-glow); position:relative; z-index:2; }
+.par-trigger-inner { position:relative; z-index:1; text-align:center; max-width:640px; margin:0 auto; }
+.par-core-mini { width:64px; height:64px; margin:0 auto 14px; position:relative; display:grid; place-items:center; }
+.par-core-mini .ring { position:absolute; inset:0; border:2px solid var(--po); border-radius:50%; animation:par-spin 14s linear infinite; opacity:.4; }
+.par-core-mini .ring2 { position:absolute; inset:6px; border:1px dashed var(--po-d); border-radius:50%; animation:par-spin 9s linear infinite reverse; opacity:.5; }
+.par-core-mini .center { width:46px; height:46px; background:linear-gradient(135deg,var(--po),var(--po-d)); border-radius:50%; display:grid; place-items:center; font-size:24px; box-shadow:0 6px 16px var(--po-glow); position:relative; z-index:2; }
 @keyframes par-spin { to { transform:rotate(360deg); } }
-.par-trigger-kicker { display:inline-flex; align-items:center; gap:8px; padding:6px 16px; background:var(--po-l); border:1px solid var(--bd-h); border-radius:999px; font-size:11px; font-weight:800; color:var(--po-d); margin-bottom:14px; }
+.par-trigger-kicker { display:inline-flex; align-items:center; gap:8px; padding:5px 14px; background:var(--po-l); border:1px solid var(--bd-h); border-radius:999px; font-size:11px; font-weight:800; color:var(--po-d); margin-bottom:12px; }
 .par-trigger-kicker .ld { width:6px; height:6px; background:var(--po); border-radius:50%; box-shadow:0 0 6px var(--po); animation:par-blink 1.4s ease-in-out infinite; }
 @keyframes par-blink { 50%{opacity:.3;} }
-.par-trigger h2 { font-size:30px; font-weight:900; margin:0 0 10px; letter-spacing:-.5px; color:var(--pn); line-height:1.3; }
+.par-trigger h2 { font-size:24px; font-weight:900; margin:0 0 6px; letter-spacing:-.5px; color:var(--pn); line-height:1.35; }
 .par-trigger h2 .accent { color:var(--po); }
-.par-trigger p { font-size:14px; color:var(--txt-d); line-height:1.6; margin-bottom:24px; }
-.par-trigger-btn { padding:18px 38px; background:linear-gradient(135deg,var(--po),var(--po-d)); border:0; border-radius:14px; color:#fff; font-size:16px; font-weight:800; cursor:pointer; box-shadow:0 8px 22px var(--po-glow); display:inline-flex; align-items:center; gap:10px; transition:transform .15s; }
-.par-trigger-btn:hover { transform:translateY(-2px); }
-.par-trigger-btn:active { transform:translateY(0); }
-.par-trust { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:22px; }
-.par-trust .item { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; background:#fff; border:1px solid var(--bd); border-radius:999px; font-size:12px; font-weight:700; color:var(--pn); box-shadow:0 1px 3px rgba(0,0,0,.04); }
-.par-trust .item .v { color:var(--po-d); font-weight:900; }
-@media (max-width:640px) { .par-trigger { padding:48px 18px; border-radius:18px; } .par-trigger h2 { font-size:23px; } .par-trigger-btn { padding:16px 28px; font-size:15px; width:100%; justify-content:center; } }
+.par-trigger p { font-size:13px; color:var(--txt-d); line-height:1.55; margin-bottom:22px; }
 
-/* ============ 모달 (하단 슬라이드업) ============ */
+/* 채팅 입력바 */
+.par-chat-input { display:flex; align-items:center; gap:6px; padding:6px 8px 6px 14px; background:#fff; border:2px solid var(--bd); border-radius:16px; box-shadow:0 4px 18px rgba(15,31,92,.08); transition:border-color .2s, box-shadow .2s; margin-bottom:16px; }
+.par-chat-input:focus-within { border-color:var(--po); box-shadow:0 4px 22px rgba(249,115,22,.18); }
+.par-chat-input .par-chat-attach { width:42px; height:42px; flex-shrink:0; display:grid; place-items:center; background:transparent; border:0; cursor:pointer; font-size:22px; color:var(--po-d); border-radius:10px; transition:background .15s; }
+.par-chat-input .par-chat-attach:hover { background:var(--po-l); }
+.par-chat-input input { flex:1; padding:12px 6px; border:0; outline:0; font-size:14.5px; color:var(--txt); background:transparent; min-width:0; }
+.par-chat-input input::placeholder { color:var(--txt-d); }
+.par-chat-input .par-chat-send { width:42px; height:42px; flex-shrink:0; background:linear-gradient(135deg,var(--po),var(--po-d)); border:0; border-radius:12px; cursor:pointer; color:#fff; font-size:20px; font-weight:900; box-shadow:0 4px 12px var(--po-glow); transition:transform .1s; display:grid; place-items:center; }
+.par-chat-input .par-chat-send:hover { transform:translateY(-1px); }
+.par-chat-input .par-chat-send:disabled { opacity:.4; cursor:not-allowed; transform:none; box-shadow:none; }
+
+/* 빠른 질문 칩 */
+.par-chips { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin-bottom:18px; align-items:center; }
+.par-chips .lbl { font-size:11px; color:var(--txt-d); font-weight:700; margin-right:4px; }
+.par-chip { padding:7px 13px; background:#fff; border:1.5px solid var(--bd); border-radius:999px; color:var(--pn); font-size:12.5px; font-weight:600; cursor:pointer; transition:all .15s; }
+.par-chip:hover { border-color:var(--po); background:var(--po-l); color:var(--po-d); }
+.par-chip.more { color:var(--po-d); border-color:var(--bd-h); background:var(--po-l); }
+
+.par-trust { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+.par-trust .item { display:inline-flex; align-items:center; gap:5px; padding:5px 11px; background:#fff; border:1px solid var(--bd); border-radius:999px; font-size:11.5px; font-weight:700; color:var(--pn); }
+.par-trust .item .v { color:var(--po-d); font-weight:900; }
+
+@media (max-width:640px) { .par-trigger { padding:36px 16px; border-radius:18px; } .par-trigger h2 { font-size:21px; } .par-chat-input input { font-size:14px; } }
+
+/* ====== 모달 ====== */
 .par-modal-mask { position:fixed; inset:0; background:rgba(15,31,92,.55); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); z-index:9999; opacity:0; pointer-events:none; transition:opacity .25s ease; }
 .par-modal-mask.open { opacity:1; pointer-events:auto; }
 .par-modal { position:fixed; left:0; right:0; bottom:0; max-height:92vh; background:#FFFBF5; border-radius:24px 24px 0 0; box-shadow:0 -8px 40px rgba(15,31,92,.25); z-index:10000; transform:translateY(100%); transition:transform .35s cubic-bezier(.4,0,.2,1); display:flex; flex-direction:column; }
@@ -70,7 +87,6 @@
 .par-modal-head .close:hover { background:#E5E7EB; }
 .par-modal-body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:18px 18px 30px; background:linear-gradient(180deg,#FFFBF5 0%,#FFF7ED 30%,#FFFBF5 100%); }
 
-/* ============ 모달 안 콘텐츠 ============ */
 .par-stepper { display:flex; gap:5px; justify-content:center; margin-bottom:24px; flex-wrap:wrap; align-items:center; }
 .par-stepper .stp { display:inline-flex; align-items:center; gap:7px; padding:8px 13px; border:1px solid var(--bd); border-radius:999px; font-size:12px; font-weight:700; color:var(--txt-d); background:#fff; transition:all .25s; }
 .par-stepper .stp .num { font-size:10px; padding:2px 7px; background:#F3F4F6; border-radius:5px; }
@@ -190,24 +206,40 @@
 @media (max-width:720px) { .par-stepper .stp{font-size:11px; padding:7px 10px;} .par-stepper .ar{display:none;} .par-entry{grid-template-columns:1fr;} .par-final-cta{grid-template-columns:1fr;} .par-products{grid-template-columns:repeat(2,1fr);} .par-method h3{font-size:19px;} .par-modal{max-height:96vh;} }
 </style>
 
-<!-- 메인 트리거 -->
 <section class="par">
   <div class="par-trigger">
     <div class="par-trigger-inner">
-      <div class="par-core"><div class="ring"></div><div class="ring2"></div><div class="center">🧭</div></div>
+      <div class="par-core-mini"><div class="ring"></div><div class="ring2"></div><div class="center">🧭</div></div>
       <span class="par-trigger-kicker"><span class="ld"></span>POUR 길잡이 · AI 건물 진단</span>
-      <h2>건물 어디가 아프세요?<br/><span class="accent">길잡이가 진단해드릴게요</span></h2>
-      <p>사진 한 장만 보여주시면 부위·증상부터 해결책·자재까지<br/>1분 안에 안내해드려요</p>
-      <button class="par-trigger-btn" id="par-open-modal">🧭 길잡이 시작하기</button>
+      <h2>건물 어디가 아프세요? <span class="accent">길잡이가 답해드려요</span></h2>
+      <p>사진 한 장 또는 한 줄이면 충분해요</p>
+
+      <div class="par-chat-input">
+        <button class="par-chat-attach" id="par-chat-attach" title="사진 첨부 또는 촬영">📷</button>
+        <input type="text" id="par-chat-text" placeholder="예: 옥상에서 물이 새요" />
+        <button class="par-chat-send" id="par-chat-send" disabled aria-label="보내기">→</button>
+      </div>
+
+      <div class="par-chips">
+        <span class="lbl">자주 묻는 고민</span>
+        <button class="par-chip" data-prof="0">옥상 배수구 누수</button>
+        <button class="par-chip" data-prof="1">슁글 떨어짐</button>
+        <button class="par-chip" data-prof="3">외벽 균열</button>
+        <button class="par-chip" data-prof="4">주차장 박리</button>
+        <button class="par-chip" data-prof="5">지하 곰팡이</button>
+        <button class="par-chip more" id="par-chip-more">더보기 ▸</button>
+      </div>
+
       <div class="par-trust">
         <span class="item"><span class="v">260만</span> 세대 검증</span>
         <span class="item"><span class="v">250+</span> 파트너사</span>
         <span class="item"><span class="v">70+</span> 특허·인증</span>
       </div>
+
+      <input type="file" id="par-trigger-file" accept="image/*" multiple hidden />
     </div>
   </div>
 
-  <!-- 모달 -->
   <div class="par-modal-mask" id="par-modal-mask">
     <div class="par-modal" id="par-modal">
       <div class="par-modal-handle"></div>
@@ -360,17 +392,35 @@ var PROFILES=[
 {keys:{surf:['road']},qText:'단지 내 도로 아스팔트가 갈라지고 구멍이 생겼어요.',diagH:'아스팔트 노후 — <span class="accent">층 사이가 분리</span>되었어요',diagPoints:['시간이 지나면 아스팔트는 <b>유연성을 잃고 갈라져요</b>.','균열로 빗물이 들어가면 <b>포트홀</b>로 발전합니다.','단순 메우기는 6개월 안에 똑같이 됩니다.','<b>POUR아스콘 + 균열보수</b> 통합 시공이 필요해요.'],sol:{code:'METHOD-167',name:'POUR아스콘 도로포장공법',summary:'아스팔트 균열 보수와 도로포장을 한 번에 처리합니다.',principles:['균열 부위 절단 후 청소','POUR 아스콘 채움재로 균열 봉합','신규 아스팔트 포장','단지내 도로·주차장 적용'],evidence:[{lbl:'시방서',val:'No.167',src:'POUR솔루션'}],products:[{role:'PATCH',name:'POUR 아스팔트균열보수재',price:'120,000',img:'https://placehold.co/300x300/F97316/fff?text=PATCH',url:'https://www.pourstore.net/product/asphalt-patch'},{role:'CORE',name:'POUR 아스콘',price:'견적',img:'https://placehold.co/300x300/F97316/fff?text=ASCON',url:'https://www.poursolution.net/167'}],packageUrl:'https://www.pourstore.net/category/road-package',consultUrl:'https://www.poursolution.net/163'}},
 {keys:{},qText:'건물에 노후 문제가 있어요. 진단을 받아보고 싶어요.',diagH:'노후 콘크리트 — <span class="accent">중성화·균열</span>이 진행 중이에요',diagPoints:['대부분의 건물 노후 문제는 <b>콘크리트 중성화</b>에서 시작돼요.','중성화 → 미세 균열 → 빗물 침투 → 철근 부식.','표면 처리만으로는 근본 해결이 어려워요.','<b>모체 강화 + 균열 보수 + 마감 보호</b> 3단계가 필요해요.'],sol:{code:'POUR 종합진단',name:'맞춤 진단 + 패키지 추천',summary:'전문가가 직접 방문해서 분석하고 맞춤 패키지를 제안드려요.',principles:['현장 방문 진단 (무료)','시공 데이터 기반 맞춤 패키지','700+ 단지 시공 사례 참고','시공 후 사후 관리 가이드'],evidence:[{lbl:'누적 시공',val:'2.6M',unit:'세대',src:'전국'},{lbl:'특허·인증',val:'70+',unit:'건',src:'KTR/KCL'}],products:[{role:'CORE',name:'POUR하이퍼티',price:'180,000',img:'https://placehold.co/300x300/F97316/fff?text=HYPER',url:'https://www.pourstore.net/product/hyper-t'},{role:'COAT',name:'POUR코트재',price:'95,000',img:'https://placehold.co/300x300/F97316/fff?text=COAT',url:'https://www.pourstore.net/product/coat'}],packageUrl:'https://www.pourstore.net/category/general',consultUrl:'https://www.poursolution.net/163'}}
 ];
+var KEYWORDS={drain:['배수','드레인','하수구','빗물받이'],roof:['옥상','지붕','슬라브','쉬글','슁글','기와','칼라강판','징크'],wall:['외벽','벽','균열','크랙','도색','도장','백화'],parking:['주차','지하주차','바닥','에폭시'],underg:['지하실','지하','곰팡이','배면','수조'],road:['도로','아스팔트','포트홀','단지'],balcony:['발코니','베란다']};
 var state={screen:'entry',photos:[],detected:null,choice:{bld:null,surf:null,syms:[],memo:''}};
 var root=document.querySelector('.par');
 var modalMask=root.querySelector('#par-modal-mask'),modal=root.querySelector('#par-modal');
 function openModal(){modalMask.classList.add('open');setTimeout(function(){modal.classList.add('open');},10);document.body.style.overflow='hidden';}
 function closeModal(){modal.classList.remove('open');setTimeout(function(){modalMask.classList.remove('open');document.body.style.overflow='';},300);}
-root.querySelector('#par-open-modal').addEventListener('click',openModal);
 root.querySelector('#par-close-modal').addEventListener('click',closeModal);
 modalMask.addEventListener('click',function(e){if(e.target===modalMask)closeModal();});
 function show(name){state.screen=name;root.querySelectorAll('.par-screen').forEach(function(s){s.classList.toggle('active',s.dataset.screen===name);});var stepIdx=({entry:1,photo:2,analyzing:2,'photo-result':2,manual1:2,manual2:2,manual3:2,diagnosis:3,solution:4})[name]||1;root.querySelectorAll('.par-stepper .stp').forEach(function(el,i){el.classList.remove('active','done');if(i+1<stepIdx)el.classList.add('done');else if(i+1===stepIdx)el.classList.add('active');});var body=root.querySelector('.par-modal-body');if(body)body.scrollTop=0;}
 root.querySelectorAll('[data-go]').forEach(function(el){el.addEventListener('click',function(){show(el.dataset.go);});});
 root.querySelectorAll('[data-back]').forEach(function(el){el.addEventListener('click',function(){show(el.dataset.back);});});
+
+/* ---- 채팅 입력 ---- */
+var chatText=root.querySelector('#par-chat-text'),chatSend=root.querySelector('#par-chat-send'),chatAttach=root.querySelector('#par-chat-attach'),triggerFile=root.querySelector('#par-trigger-file');
+chatText.addEventListener('input',function(){chatSend.disabled=!chatText.value.trim();});
+chatText.addEventListener('keydown',function(e){if(e.key==='Enter'&&!chatSend.disabled){handleChatSend();}});
+chatSend.addEventListener('click',handleChatSend);
+function handleChatSend(){var t=chatText.value.trim();if(!t)return;var profile=matchByKeywords(t);if(profile){state.profile=profile;state.choice.memo=t;runDiagnosis(profile);openModal();}else{state.choice.memo=t;openModal();show('manual1');}chatText.value='';chatSend.disabled=true;}
+function matchByKeywords(text){for(var i=0;i<PROFILES.length;i++){var p=PROFILES[i];if(!p.keys||!p.keys.surf)continue;var surfId=p.keys.surf[0];var kws=KEYWORDS[surfId]||[];for(var j=0;j<kws.length;j++){if(text.indexOf(kws[j])!==-1)return p;}}return null;}
+
+/* 빠른 칩 */
+root.querySelectorAll('.par-chip[data-prof]').forEach(function(c){c.addEventListener('click',function(){var idx=parseInt(c.dataset.prof,10);var p=PROFILES[idx];if(!p)return;state.profile=p;state.choice.memo=c.textContent.trim();runDiagnosis(p);openModal();});});
+root.querySelector('#par-chip-more').addEventListener('click',function(){openModal();show('entry');});
+
+/* 사진 첨부 (트리거에서) */
+chatAttach.addEventListener('click',function(){triggerFile.click();});
+triggerFile.addEventListener('change',function(e){var files=e.target.files;if(files&&files.length){addPhotos(files);openModal();show('photo');}e.target.value='';});
+
+/* ---- 모달 안 사진 업로드 ---- */
 var uploadZone=root.querySelector('#par-upload-zone'),galleryInput=root.querySelector('#par-file-gallery'),cameraInput=root.querySelector('#par-file-camera'),thumbsEl=root.querySelector('#par-thumbs'),thumbInfo=root.querySelector('#par-thumb-info'),analyzeBtn=root.querySelector('#par-analyze-btn');
 root.querySelector('#par-pick-gallery').addEventListener('click',function(e){e.stopPropagation();galleryInput.click();});
 root.querySelector('#par-pick-camera').addEventListener('click',function(e){e.stopPropagation();cameraInput.click();});
@@ -389,7 +439,7 @@ function renderCards(target,items,onPick){var el=root.querySelector(target);el.i
 renderCards('#par-bld-cards',BLDS,function(b){state.choice.bld=b.id;show('manual2');});
 renderCards('#par-sur-cards',SURFS,function(s){state.choice.surf=s.id;show('manual3');});
 var symList=root.querySelector('#par-sym-list');SYMPS.forEach(function(s){var b=document.createElement('button');b.className='par-sym';b.textContent=s;b.addEventListener('click',function(){b.classList.toggle('on');var i=state.choice.syms.indexOf(s);if(i>=0)state.choice.syms.splice(i,1);else state.choice.syms.push(s);});symList.appendChild(b);});
-root.querySelector('#par-go-diag').addEventListener('click',function(){state.choice.memo=(root.querySelector('#par-free-memo').value||'').trim();runDiagnosis(matchProfile(state.choice));});
+root.querySelector('#par-go-diag').addEventListener('click',function(){state.choice.memo=(root.querySelector('#par-free-memo').value||'').trim()||state.choice.memo;runDiagnosis(matchProfile(state.choice));});
 function matchProfile(c){for(var i=0;i<PROFILES.length;i++){var p=PROFILES[i];if(!p.keys||!p.keys.surf)continue;if(p.keys.surf.indexOf(c.surf)===-1)continue;if(p.keys.bld&&p.keys.bld.indexOf(c.bld)===-1)continue;if(p.keys.symp&&c.syms&&!p.keys.symp.some(function(k){return c.syms.indexOf(k)!==-1;}))continue;return p;}return PROFILES[PROFILES.length-1];}
 function runDiagnosis(profile){state.profile=profile;root.querySelector('#par-diag-h').innerHTML=profile.diagH;var ol=root.querySelector('#par-diag-points');ol.innerHTML='';profile.diagPoints.forEach(function(pt){var li=document.createElement('li');li.innerHTML=pt;ol.appendChild(li);});show('diagnosis');}
 root.querySelector('#par-go-sol').addEventListener('click',function(){var s=(state.profile||PROFILES[0]).sol;root.querySelector('#par-sol-code').textContent=s.code;root.querySelector('#par-sol-name').textContent=s.name;root.querySelector('#par-sol-summary').textContent=s.summary;var pr=root.querySelector('#par-sol-principles');pr.innerHTML='';s.principles.forEach(function(t){var d=document.createElement('div');d.className='pr';d.innerHTML='<span class="dot"></span><span>'+t+'</span>';pr.appendChild(d);});var ev=root.querySelector('#par-sol-evidence');ev.innerHTML='';s.evidence.forEach(function(e){var b=document.createElement('div');b.className='par-ev';b.innerHTML='<div class="lbl">'+e.lbl+'</div><div class="val">'+e.val+(e.unit?'<span class="unit">'+e.unit+'</span>':'')+'</div>'+(e.src?'<div class="src">— '+e.src+'</div>':'');ev.appendChild(b);});var pwrap=root.querySelector('#par-sol-products-wrap');pwrap.innerHTML='<div class="par-products-h">필요한 자재 ('+s.products.length+'종) — 카드 클릭하면 자사몰로 이동</div><div class="par-products" id="par-sol-products"></div>';var pgrid=pwrap.querySelector('#par-sol-products');s.products.forEach(function(pd){var a=document.createElement('a');a.className='par-pcard';a.href=pd.url;a.target='_blank';a.rel='noopener';a.innerHTML='<div class="img" style="background-image:url(\\''+pd.img+'\\')"><span class="role">'+pd.role+'</span><span class="ext">↗ STORE</span></div><div class="body"><div class="name">'+pd.name+'</div><div class="price">'+pd.price+'<span class="won">원</span></div></div>';pgrid.appendChild(a);});root.querySelector('#par-buy-package').setAttribute('href',s.packageUrl||'https://www.pourstore.net');root.querySelector('#par-consult').setAttribute('href',s.consultUrl||'https://www.poursolution.net/163');show('solution');});
@@ -404,7 +454,7 @@ show('entry');
     { id: 'main', name: '메인 페이지', file: 'index.html', sections: [
       mkSec('메인 배너', '', '슬라이드 배너 — 균열·방수·코팅 자재 세트 등 메인 비주얼'),
       mkSec('카테고리 항목 버튼', '', '제품구매·패키지구매·시공상담·시공가이드·쇼룸·부자재·체험교육·파트너사·고객센터 (8~9개 아이콘)'),
-      mkSec('AI 맞춤 자재추천', SEED_AI_RECOMMEND_HTML, 'POUR 길잡이 — 메인은 깔끔한 트리거, 클릭 시 하단 슬라이드업 모달로 5단계 진단 (v3)', 'wip'),
+      mkSec('AI 맞춤 자재추천', SEED_AI_RECOMMEND_HTML, 'POUR 길잡이 — 메인 채팅 입력 + 사진 첨부 + 빠른 칩으로 즉시 진입, 모달로 진단 (v4)', 'wip'),
       mkSec('인기 추천 상품', '', '베스트셀러 5종 카드'),
       mkSec('신상품 (안전용품·부자재)', '', 'NEW ARRIVALS — 이달의 안전용품·부자재 등 서브 자재 전시'),
       mkSec('서브카테고리 상품', '', '제비스코 라인 + 인테리어 (DREAM COAT + GROHOME)'),

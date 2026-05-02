@@ -1253,25 +1253,28 @@ show('entry');
       <div class="ppr1-head">
         <div class="kicker">📦 PACKAGE BY AREA</div>
         <h2>부위별 패키지 — 한 번에 끝내세요</h2>
-        <p>POUR스토어는 R&D로 검증된 자재를 <b style="color:#0F1F5C">시너지 조합</b>으로 패키지화 — 어떤 부위든 한 번 구매로 완전 시공이 가능합니다</p>
+        <p>R&D <b style="color:#0F1F5C">시너지 조합 패키지</b>로 어떤 부위든 한 번 구매로 완전 시공 — <b>시공업자·셀프 보수 모두</b> 자유 구매 가능합니다</p>
       </div>
       <div class="ppr1-line">
         <button class="active">🏢 전체</button>
         <button>아파트 라인 (고층)</button>
         <button>일반 저층 (주택·상가)</button>
       </div>
-      <div style="display:flex;justify-content:center;gap:14px;margin-bottom:18px;flex-wrap:wrap;font-size:11.5px;color:#6B7280;font-weight:700;">
-        <span><span style="display:inline-block;width:10px;height:10px;background:#10B981;border-radius:50%;margin-right:5px;vertical-align:-1px;"></span>셀프 OK · 평지·난간 있음</span>
-        <span><span style="display:inline-block;width:10px;height:10px;background:#F59E0B;border-radius:50%;margin-right:5px;vertical-align:-1px;"></span>저층만 셀프 가능</span>
-        <span><span style="display:inline-block;width:10px;height:10px;background:#DC2626;border-radius:50%;margin-right:5px;vertical-align:-1px;"></span>시공연결 권장 · 경사 지붕·로프 작업</span>
+      <div style="display:flex;justify-content:center;gap:14px;margin-bottom:14px;flex-wrap:wrap;font-size:11.5px;color:#6B7280;font-weight:700;">
+        <span><span style="display:inline-block;width:10px;height:10px;background:#10B981;border-radius:50%;margin-right:5px;vertical-align:-1px;"></span>셀프 가능 · 평지·난간 있음</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#F59E0B;border-radius:50%;margin-right:5px;vertical-align:-1px;"></span>저층 셀프 / 고층 전문</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#DC2626;border-radius:50%;margin-right:5px;vertical-align:-1px;"></span>전문 시공용 · 경사 지붕·로프 작업</span>
+      </div>
+      <div style="text-align:center;margin-bottom:22px;font-size:12px;color:#6B7280;line-height:1.65;">
+        시공업자라면 <b style="color:#0F1F5C">모든 부위 자유 구매 OK</b> · 일반 고객은 셀프 시공 난이도 안내, 어려우시면 <a href="#" style="color:#EA580C;font-weight:800;text-decoration:none;">시공 매칭</a>으로 파트너사 연결
       </div>
       <div class="ppr1-nav">
         <a class="ppr1-card" href="#area-slab"><div class="icon">🟦</div><div class="name">슬라브</div><div class="count">패키지 6종</div><span class="self ok">✅ 셀프 OK</span><span class="hot">HOT</span></a>
-        <a class="ppr1-card" href="#area-shingle"><div class="icon">🏠</div><div class="name">아스팔트 슁글</div><div class="count">패키지 4종</div><span class="self pro">👷 시공연결</span></a>
-        <a class="ppr1-card" href="#area-tile"><div class="icon">🧱</div><div class="name">금속 기와</div><div class="count">패키지 4종</div><span class="self pro">👷 시공연결</span></a>
+        <a class="ppr1-card" href="#area-shingle"><div class="icon">🏠</div><div class="name">아스팔트 슁글</div><div class="count">패키지 4종</div><span class="self pro">🔧 전문 시공용</span></a>
+        <a class="ppr1-card" href="#area-tile"><div class="icon">🧱</div><div class="name">금속 기와</div><div class="count">패키지 4종</div><span class="self pro">🔧 전문 시공용</span></a>
         <a class="ppr1-card" href="#area-crack"><div class="icon">⚡</div><div class="name">균열 보수</div><div class="count">패키지 3종</div><span class="self warn">⚠️ 저층만 셀프</span></a>
-        <a class="ppr1-card" href="#area-paint"><div class="icon">🎨</div><div class="name">재도장 (외벽)</div><div class="count">패키지 5종</div><span class="self pro">👷 시공연결</span><span class="hot">HOT</span></a>
-        <a class="ppr1-card" href="#area-color"><div class="icon">🔩</div><div class="name">칼라강판·징크</div><div class="count">패키지 3종</div><span class="self pro">👷 시공연결</span></a>
+        <a class="ppr1-card" href="#area-paint"><div class="icon">🎨</div><div class="name">재도장 (외벽)</div><div class="count">패키지 5종</div><span class="self pro">🔧 전문 시공용</span><span class="hot">HOT</span></a>
+        <a class="ppr1-card" href="#area-color"><div class="icon">🔩</div><div class="name">칼라강판·징크</div><div class="count">패키지 3종</div><span class="self pro">🔧 전문 시공용</span></a>
         <a class="ppr1-card" href="#area-drain"><div class="icon">🌊</div><div class="name">배수로·베란다</div><div class="count">패키지 4종</div><span class="self ok">✅ 셀프 OK</span></a>
         <a class="ppr1-card" href="#area-parking"><div class="icon">🚗</div><div class="name">지하주차장</div><div class="count">패키지 3종</div><span class="self ok">✅ 셀프 OK</span></a>
         <a class="ppr1-card" href="#area-joint"><div class="icon">🔗</div><div class="name">이음부·실링</div><div class="count">패키지 2종</div><span class="self ok">✅ 셀프 OK</span></a>
@@ -1340,7 +1343,7 @@ show('entry');
           <div class="pprt-self">
             <div class="self-icon">🎬</div>
             <div class="self-text">
-              <div class="self-label">SELF GUIDE</div>
+              <div class="self-label">포함 가이드</div>
               <div class="self-meta"><span>▶ 영상</span><span>📄 설명서</span><span>✓ 셀프 가능</span></div>
             </div>
           </div>
@@ -1359,7 +1362,7 @@ show('entry');
           <div class="pprt-self">
             <div class="self-icon">🎬</div>
             <div class="self-text">
-              <div class="self-label">SELF GUIDE · 풀세트</div>
+              <div class="self-label">포함 가이드 · 풀세트</div>
               <div class="self-meta"><span>▶ 영상 5편</span><span>📄 시방서 PDF</span><span>📞 전화 코칭</span></div>
             </div>
           </div>
@@ -1377,7 +1380,7 @@ show('entry');
           <div class="pprt-self">
             <div class="self-icon">🎬</div>
             <div class="self-text">
-              <div class="self-label">SELF GUIDE</div>
+              <div class="self-label">포함 가이드</div>
               <div class="self-meta"><span>▶ 영상 3편</span><span>📄 설명서</span><span>✓ 셀프 가능</span></div>
             </div>
           </div>
@@ -1385,7 +1388,7 @@ show('entry');
       </div>
       <div class="pprt-info">
         <div class="ico">📺</div>
-        <div class="text">모든 패키지에는 <b>시공 영상·설명서·전화 코칭</b>이 함께 제공됩니다. R&D 시너지 조합 자재라 전문가 시공만큼의 결과를 만들 수 있어요. 직접 시공이 어려우시면 <b>시공 연결 신청</b>으로 가까운 파트너사를 매칭해 드립니다.</div>
+        <div class="text">모든 패키지에는 <b>시공 영상·설명서·전화 코칭</b>이 포함됩니다. <b>시공업자에게는 빠른 시방 레퍼런스</b>, 셀프 시공자에게는 단계별 가이드. 셀프가 어려운 부위는 <b>시공 매칭</b>으로 파트너사 연결도 가능합니다.</div>
       </div>
     </div>
   </section>`;
@@ -1464,7 +1467,7 @@ show('entry');
             <div class="desc">균열 보수부터 마감 도장까지 일괄 — 고급형</div>
             <div class="price"><span class="sale">15%</span><span class="now">320,000원~</span></div>
             <div class="meta"><span class="star">★</span><span>4.8</span><span>·</span><span>리뷰 287</span></div>
-            <div class="footer"><span class="self pro">👷 시공연결</span><span class="media video">▶ 영상 4편</span><span class="media">📄 PDF</span></div>
+            <div class="footer"><span class="self pro">🔧 전문 시공용</span><span class="media video">▶ 영상 4편</span><span class="media">📄 PDF</span></div>
           </div>
         </a>
         <a class="ppr2-card" href="#">
@@ -1584,7 +1587,7 @@ show('entry');
             <div class="name">박공지붕 슁글 누수 풀세트 (1026호)</div>
             <div class="desc">건설신기술 1026호 적용 — 강풍·누수 동시</div>
             <div class="price"><span class="now">186,000원</span><span class="original">240,000원</span></div>
-            <div class="footer"><span class="self pro">👷 시공연결</span><span class="media">▶ 영상 5편</span><span class="media">📄 PDF</span></div>
+            <div class="footer"><span class="self pro">🔧 전문 시공용</span><span class="media">▶ 영상 5편</span><span class="media">📄 PDF</span></div>
           </div>
         </a>
         <a class="ppr3-card" href="#">
@@ -1682,7 +1685,7 @@ show('entry');
       </div>
 
       <div class="ppr4-section">
-        <div class="group-head"><div class="badge">🏠</div><h3>아스팔트 슁글 / 금속 기와 (경사 지붕)</h3><span class="self pro">👷 시공연결</span></div>
+        <div class="group-head"><div class="badge">🏠</div><h3>아스팔트 슁글 / 금속 기와 (경사 지붕)</h3><span class="self pro">🔧 전문 시공용</span></div>
         <div class="ppr4-row">
           <div class="ppr4-tier full"><div class="name">⭐ 풀패키지</div><div class="scope">전체 부위</div></div>
           <div class="ppr4-items">

@@ -1002,6 +1002,226 @@ show('entry');
 </section>`;
 
 
+  const SEED_AB_HERO_HTML = `<style>
+  .pab1 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pab1 { background:linear-gradient(180deg,#FFFBF5 0%,#FFF7ED 100%); padding:96px 18px 72px; position:relative; overflow:hidden; }
+  .pab1::before { content:''; position:absolute; top:-120px; right:-120px; width:520px; height:520px; background:radial-gradient(circle, rgba(249,115,22,.14) 0%, transparent 60%); border-radius:50%; pointer-events:none; }
+  .pab1::after { content:''; position:absolute; bottom:-100px; left:-60px; width:340px; height:340px; background:radial-gradient(circle, rgba(15,31,92,.06) 0%, transparent 60%); border-radius:50%; pointer-events:none; }
+  .pab1-inner { max-width:1100px; margin:0 auto; text-align:center; position:relative; z-index:1; }
+  .pab1-tag { display:inline-flex; align-items:center; gap:8px; padding:6px 14px; background:#fff; border:1px solid #FED7AA; color:#EA580C; border-radius:999px; font-size:11.5px; font-weight:800; letter-spacing:.8px; margin-bottom:22px; box-shadow:0 4px 12px rgba(249,115,22,.1); }
+  .pab1 h1 { font-size:48px; font-weight:900; color:#0F1F5C; line-height:1.2; margin-bottom:20px; letter-spacing:-1.4px; }
+  .pab1 h1 .accent { color:#F97316; }
+  .pab1-desc { font-size:16px; color:#4B5563; line-height:1.75; max-width:640px; margin:0 auto 40px; }
+  .pab1-stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:14px; max-width:880px; margin:0 auto; }
+  .pab1-stat { background:#fff; border-radius:18px; padding:24px 20px; border:1px solid #F3F4F6; box-shadow:0 6px 20px rgba(15,31,92,.06); transition:transform .25s; }
+  .pab1-stat:hover { transform:translateY(-4px); }
+  .pab1-stat .v { font-family:'Bebas Neue',sans-serif; font-size:36px; font-weight:900; color:#F97316; letter-spacing:.5px; line-height:1; }
+  .pab1-stat .l { font-size:12px; color:#6B7280; margin-top:8px; font-weight:700; letter-spacing:.3px; }
+  @media (max-width:640px) { .pab1 { padding:64px 18px 48px; } .pab1 h1 { font-size:30px; } .pab1-desc { font-size:14px; } .pab1-stat .v { font-size:28px; } }
+  </style>
+  <section class="pab1">
+    <div class="pab1-inner">
+      <span class="pab1-tag">⭐ POUR스토어 브랜드 스토리</span>
+      <h1>건축물 유지보수,<br/><span class="accent">기술과 친근함의 균형</span>으로</h1>
+      <p class="pab1-desc">POUR스토어는 R&D 기반 건축 자재 브랜드입니다.<br/>전문 시공자에게는 검증된 자재, 일반 사용자에게는 친근한 안내를 — 그 사이의 다리가 되겠습니다.</p>
+      <div class="pab1-stats">
+        <div class="pab1-stat"><div class="v">2,600,000+</div><div class="l">검증된 시공 세대</div></div>
+        <div class="pab1-stat"><div class="v">250+</div><div class="l">전문 파트너사</div></div>
+        <div class="pab1-stat"><div class="v">70+</div><div class="l">특허·인증</div></div>
+        <div class="pab1-stat"><div class="v">110+</div><div class="l">제품 라인업</div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_AB_ABOUT_HTML = `<style>
+  .pab2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pab2 { background:#fff; padding:80px 18px; }
+  .pab2-inner { max-width:1100px; margin:0 auto; display:grid; grid-template-columns:1fr 1.1fr; gap:48px; align-items:center; }
+  .pab2-img { aspect-ratio:4/5; background:linear-gradient(135deg,#FED7AA,#FB923C); border-radius:24px; position:relative; overflow:hidden; box-shadow:0 18px 48px rgba(249,115,22,.18); }
+  .pab2-img::before { content:'POUR'; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-8deg); font-family:'Bebas Neue',sans-serif; font-size:140px; font-weight:900; color:rgba(255,255,255,.22); letter-spacing:8px; }
+  .pab2-img .label { position:absolute; bottom:24px; left:24px; padding:8px 14px; background:#fff; border-radius:8px; font-size:11.5px; font-weight:800; color:#0F1F5C; box-shadow:0 6px 18px rgba(0,0,0,.12); }
+  .pab2-content .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:10px; }
+  .pab2-content h2 { font-size:32px; font-weight:900; color:#0F1F5C; line-height:1.25; margin-bottom:18px; letter-spacing:-1px; }
+  .pab2-content p { font-size:14.5px; color:#4B5563; line-height:1.85; margin-bottom:14px; }
+  .pab2-content p b { color:#0F1F5C; font-weight:800; }
+  .pab2-info { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-top:24px; padding-top:24px; border-top:1px solid #F3F4F6; }
+  .pab2-info .item { font-size:13px; }
+  .pab2-info .item .l { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:1px; margin-bottom:4px; }
+  .pab2-info .item .v { color:#0F1F5C; font-weight:700; line-height:1.5; }
+  @media (max-width:880px) { .pab2-inner { grid-template-columns:1fr; gap:32px; } .pab2-img { max-width:380px; margin:0 auto; aspect-ratio:1/1; } .pab2-img::before { font-size:90px; } .pab2-content h2 { font-size:24px; } }
+  </style>
+  <section class="pab2">
+    <div class="pab2-inner">
+      <div class="pab2-img"><span class="label">📍 본사 · 경기 평택</span></div>
+      <div class="pab2-content">
+        <div class="kicker">ABOUT US</div>
+        <h2>건축의 기본기를<br/>다시 쓰는 회사</h2>
+        <p>POUR스토어는 <b>방수·도장·균열 보수</b> 자재를 R&D부터 직접 만드는 회사입니다. 단순 유통사가 아닌 <b>제조·기술·시공 노하우</b>를 한 손에 갖춘 통합 브랜드.</p>
+        <p>고층 아파트에 적합하지 않은 자재가 시공되어 후일 더 큰 문제가 되는 것을 막기 위해, <b>국내 환경에 맞춘 자재</b>를 직접 개발하기 시작했습니다.</p>
+        <div class="pab2-info">
+          <div class="item"><div class="l">설립</div><div class="v">2018년</div></div>
+          <div class="item"><div class="l">본사</div><div class="v">경기 평택</div></div>
+          <div class="item"><div class="l">사업영역</div><div class="v">자재 R&D · 제조 · 유통</div></div>
+          <div class="item"><div class="l">미션</div><div class="v">건축 유지보수의 표준화</div></div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_AB_RD_HTML = `<style>
+  .pab3 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pab3 { background:#FFFBF5; padding:80px 18px; }
+  .pab3-inner { max-width:1200px; margin:0 auto; }
+  .pab3-head { text-align:center; margin-bottom:36px; }
+  .pab3-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pab3-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .pab3-head p { font-size:14px; color:#6B7280; max-width:560px; margin:0 auto; }
+  .pab3-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:14px; }
+  .pab3-card { background:#fff; border-radius:18px; padding:24px 22px; border:1px solid #F3F4F6; transition:all .25s; }
+  .pab3-card:hover { transform:translateY(-4px); box-shadow:0 18px 40px rgba(15,31,92,.1); border-color:#FED7AA; }
+  .pab3-card .icon { width:48px; height:48px; border-radius:12px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:24px; margin-bottom:14px; }
+  .pab3-card .name { font-size:15.5px; font-weight:800; color:#0F1F5C; margin-bottom:8px; letter-spacing:-.3px; }
+  .pab3-card .desc { font-size:12.5px; color:#6B7280; line-height:1.65; margin-bottom:12px; }
+  .pab3-card .spec { display:inline-block; padding:4px 10px; background:#FFFBF5; border:1px solid #FED7AA; color:#EA580C; font-size:10.5px; font-weight:800; border-radius:6px; letter-spacing:.3px; }
+  @media (max-width:640px) { .pab3-head h2 { font-size:24px; } }
+  </style>
+  <section class="pab3">
+    <div class="pab3-inner">
+      <div class="pab3-head">
+        <div class="kicker">CORE TECHNOLOGY · R&D</div>
+        <h2>POUR가 직접 만든 핵심 기술</h2>
+        <p>강남제비스코·서울과학기술대 연구진과 공동 개발한 R&D 기반 자재들</p>
+      </div>
+      <div class="pab3-grid">
+        <div class="pab3-card"><div class="icon">🧵</div><div class="name">슈퍼복합압축시트</div><div class="desc">니들펀칭 공정으로 섬유 내 공간을 형성, 도막 방수재와 시트 간 강력한 응결력 발현.</div><span class="spec">인장강도 11.4 N/mm² · 타사 10배</span></div>
+        <div class="pab3-card"><div class="icon">🛡️</div><div class="name">POUR 코트재</div><div class="desc">방수·단열·차열·중성화 방지를 한 자재로. KTR/KCL 공인시험으로 검증된 통합 코팅재.</div><span class="spec">KTR 인장강도 5.8 N/mm² · KS 4배</span></div>
+        <div class="pab3-card"><div class="icon">🪝</div><div class="name">POUR HOOKER (특허)</div><div class="desc">손상된 미장 마감면에도 시공 가능. 후레싱 탈락 방지 + 일체화를 동시에.</div><span class="spec">국내 특허 등록 · 저비용 고효율</span></div>
+        <div class="pab3-card"><div class="icon">💪</div><div class="name">탄성강화 파우더</div><div class="desc">마이크로 스틸 보강재 혼입 — 망치로 때려도 깨지지 않는 강도.</div><span class="spec">부착강도 1.5 N/mm² · 습윤 조건</span></div>
+        <div class="pab3-card"><div class="icon">🌊</div><div class="name">POUR 하이퍼티</div><div class="desc">600%급 초고신율 고탄성 퍼티. 미세 균열·구조 변형에 유연 대응.</div><span class="spec">SGS 신장률 608% · KS 2배</span></div>
+        <div class="pab3-card"><div class="icon">💨</div><div class="name">페이퍼팬벤트</div><div class="desc">콘크리트 내부 습기를 무동력으로 외부 배출 — 결로·들뜸 방지.</div><span class="spec">슬라브 듀얼강화방수 핵심 부품</span></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_AB_CERT_HTML = `<style>
+  .pab4 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pab4 { background:#fff; padding:80px 18px; }
+  .pab4-inner { max-width:1100px; margin:0 auto; }
+  .pab4-head { text-align:center; margin-bottom:32px; }
+  .pab4-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pab4-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
+  .pab4-head p { font-size:14px; color:#6B7280; }
+  .pab4-feature { background:linear-gradient(135deg,#FFF7ED,#FFEDD5); border-radius:24px; padding:36px 32px; margin-bottom:24px; border:1px solid #FED7AA; display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
+  .pab4-feature .badge { width:80px; height:80px; border-radius:50%; background:linear-gradient(135deg,#F97316,#EA580C); display:grid; place-items:center; flex-shrink:0; box-shadow:0 8px 20px rgba(249,115,22,.3); }
+  .pab4-feature .badge svg { width:42px; height:42px; fill:#fff; }
+  .pab4-feature .content { flex:1; min-width:240px; }
+  .pab4-feature .label { font-size:11px; font-weight:800; color:#EA580C; letter-spacing:1px; margin-bottom:5px; }
+  .pab4-feature h3 { font-size:22px; font-weight:900; color:#0F1F5C; margin-bottom:6px; letter-spacing:-.5px; }
+  .pab4-feature p { font-size:13px; color:#4B5563; line-height:1.65; }
+  .pab4-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px; }
+  .pab4-cert { background:#fff; border:1px solid #F3F4F6; border-radius:14px; padding:20px 18px; text-align:center; transition:all .25s; }
+  .pab4-cert:hover { transform:translateY(-3px); box-shadow:0 12px 28px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .pab4-cert .seal { width:54px; height:54px; margin:0 auto 12px; border-radius:50%; background:linear-gradient(135deg,#FFFBF5,#FFEDD5); border:2px solid #FED7AA; display:grid; place-items:center; font-family:'Bebas Neue',sans-serif; font-size:13px; color:#EA580C; font-weight:900; letter-spacing:.5px; }
+  .pab4-cert .name { font-size:13px; font-weight:800; color:#0F1F5C; margin-bottom:4px; }
+  .pab4-cert .org { font-size:11px; color:#6B7280; }
+  @media (max-width:640px) { .pab4-head h2 { font-size:24px; } .pab4-feature { padding:24px; } .pab4-feature h3 { font-size:18px; } }
+  </style>
+  <section class="pab4">
+    <div class="pab4-inner">
+      <div class="pab4-head">
+        <div class="kicker">CERTIFICATIONS · PATENTS</div>
+        <h2>인증·특허로 검증된 기술력</h2>
+        <p>국토교통부·KTR·KCL·SGS — 공인기관에서 인정받은 자재만 사용합니다</p>
+      </div>
+      <div class="pab4-feature">
+        <div class="badge"><svg viewBox="0 0 24 24"><path d="M12 2 4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3z"/></svg></div>
+        <div class="content">
+          <div class="label">국토교통부 지정</div>
+          <h3>건설신기술 1026호</h3>
+          <p>국내 최초 박공지붕 PVC 결합 방수공법 — 정부에서 검증한 신기술 공식 등록</p>
+        </div>
+      </div>
+      <div class="pab4-grid">
+        <div class="pab4-cert"><div class="seal">KTR</div><div class="name">한국화학융합시험연구원</div><div class="org">인장강도 · 부착강도</div></div>
+        <div class="pab4-cert"><div class="seal">KCL</div><div class="name">한국건설생활환경시험연구원</div><div class="org">일사반사율 · 차열성</div></div>
+        <div class="pab4-cert"><div class="seal">SGS</div><div class="name">SGS Korea</div><div class="org">신장률 · 내구성</div></div>
+        <div class="pab4-cert"><div class="seal">건축<br/>성능원</div><div class="name">한국건축성능원</div><div class="org">방수성능 검증</div></div>
+        <div class="pab4-cert"><div class="seal">70+</div><div class="name">자체 보유 특허</div><div class="org">유지보수 관련 기술</div></div>
+        <div class="pab4-cert"><div class="seal">ISO</div><div class="name">ISO 9001 / 14001</div><div class="org">품질·환경 경영</div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_AB_HISTORY_HTML = `<style>
+  .pab5 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pab5 { background:#FFFBF5; padding:80px 18px; }
+  .pab5-inner { max-width:880px; margin:0 auto; }
+  .pab5-head { text-align:center; margin-bottom:48px; }
+  .pab5-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pab5-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .pab5-timeline { position:relative; padding-left:40px; }
+  .pab5-timeline::before { content:''; position:absolute; left:14px; top:8px; bottom:8px; width:2px; background:linear-gradient(180deg,#FED7AA,#F97316,#FED7AA); }
+  .pab5-item { position:relative; margin-bottom:32px; }
+  .pab5-item::before { content:''; position:absolute; left:-32px; top:6px; width:14px; height:14px; border-radius:50%; background:#fff; border:3px solid #F97316; box-shadow:0 0 0 4px #FFEDD5; }
+  .pab5-item .yr { font-family:'Bebas Neue',sans-serif; font-size:24px; font-weight:900; color:#F97316; letter-spacing:.5px; line-height:1; margin-bottom:6px; }
+  .pab5-item h3 { font-size:16px; font-weight:800; color:#0F1F5C; margin-bottom:6px; letter-spacing:-.3px; }
+  .pab5-item p { font-size:13.5px; color:#4B5563; line-height:1.65; }
+  .pab5-item .tags { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+  .pab5-item .tag { padding:3px 9px; background:#fff; border:1px solid #FED7AA; color:#EA580C; font-size:10.5px; font-weight:800; border-radius:5px; }
+  @media (max-width:640px) { .pab5-head h2 { font-size:24px; } .pab5-timeline { padding-left:32px; } .pab5-item::before { left:-26px; } }
+  </style>
+  <section class="pab5">
+    <div class="pab5-inner">
+      <div class="pab5-head">
+        <div class="kicker">OUR JOURNEY</div>
+        <h2>POUR스토어의 발자취</h2>
+      </div>
+      <div class="pab5-timeline">
+        <div class="pab5-item"><div class="yr">2025</div><h3>POUR스토어 자사몰 리뉴얼</h3><p>고객 직접 진단·구매·시공 매칭까지 한 곳에서 — AI 길잡이 시스템 도입</p><div class="tags"><span class="tag">AI 진단</span><span class="tag">자사몰 리뉴얼</span></div></div>
+        <div class="pab5-item"><div class="yr">2024</div><h3>250+ 파트너사 네트워크 완성</h3><p>전국 시공 파트너사 250여 곳과 협력 체제 구축</p><div class="tags"><span class="tag">파트너 네트워크</span><span class="tag">전국 커버리지</span></div></div>
+        <div class="pab5-item"><div class="yr">2023</div><h3>건설신기술 1026호 등록</h3><p>국토교통부 지정 — 국내 최초 박공지붕 PVC 결합 방수공법</p><div class="tags"><span class="tag">건설신기술</span><span class="tag">국토교통부</span></div></div>
+        <div class="pab5-item"><div class="yr">2022</div><h3>누적 시공 200만 세대 돌파</h3><p>전국 아파트·관공서·일반건물 — 검증된 시공 사례 누적</p><div class="tags"><span class="tag">200만 세대</span></div></div>
+        <div class="pab5-item"><div class="yr">2020</div><h3>특허 50종 돌파 · R&D 센터 확장</h3><p>강남제비스코·서울과학기술대 공동 연구 본격화</p><div class="tags"><span class="tag">R&D 확장</span><span class="tag">특허 50+</span></div></div>
+        <div class="pab5-item"><div class="yr">2018</div><h3>POUR스토어 설립</h3><p>건축물 유지보수 자재 R&D 전문 기업으로 출발</p><div class="tags"><span class="tag">법인 설립</span></div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_AB_CTA_HTML = `<style>
+  .pab6 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pab6 { background:#fff; padding:80px 18px; }
+  .pab6-inner { max-width:1100px; margin:0 auto; background:linear-gradient(135deg,#0F1F5C 0%,#1E3A8A 100%); border-radius:32px; padding:60px 40px; position:relative; overflow:hidden; }
+  .pab6-inner::before { content:''; position:absolute; top:-80px; right:-80px; width:320px; height:320px; background:radial-gradient(circle, rgba(249,115,22,.4) 0%, transparent 60%); border-radius:50%; }
+  .pab6-inner::after { content:''; position:absolute; bottom:-60px; left:-60px; width:240px; height:240px; background:radial-gradient(circle, rgba(255,255,255,.08) 0%, transparent 60%); border-radius:50%; }
+  .pab6-content { position:relative; z-index:1; text-align:center; color:#fff; max-width:680px; margin:0 auto; }
+  .pab6-tag { display:inline-flex; align-items:center; gap:8px; padding:6px 14px; background:rgba(249,115,22,.2); border:1px solid rgba(249,115,22,.4); color:#FED7AA; border-radius:999px; font-size:11.5px; font-weight:800; letter-spacing:.8px; margin-bottom:20px; }
+  .pab6 h2 { font-size:32px; font-weight:900; color:#fff; line-height:1.3; margin-bottom:16px; letter-spacing:-1px; }
+  .pab6 h2 .accent { color:#FB923C; }
+  .pab6-desc { font-size:15px; color:rgba(255,255,255,.75); line-height:1.7; margin-bottom:32px; }
+  .pab6-cta { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .pab6-cta a { padding:14px 26px; border-radius:14px; font-size:14px; font-weight:800; text-decoration:none; transition:all .25s; display:inline-flex; align-items:center; gap:6px; }
+  .pab6-cta .primary { background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; box-shadow:0 8px 24px rgba(249,115,22,.4); }
+  .pab6-cta .primary:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(249,115,22,.55); }
+  .pab6-cta .ghost { background:rgba(255,255,255,.1); color:#fff; border:1px solid rgba(255,255,255,.2); backdrop-filter:blur(8px); }
+  .pab6-cta .ghost:hover { background:rgba(255,255,255,.18); }
+  @media (max-width:640px) { .pab6-inner { padding:40px 24px; border-radius:24px; } .pab6 h2 { font-size:23px; } .pab6-cta a { width:100%; justify-content:center; } }
+  </style>
+  <section class="pab6">
+    <div class="pab6-inner">
+      <div class="pab6-content">
+        <span class="pab6-tag">⭐ POUR스토어와 함께</span>
+        <h2>건축물 유지보수의 표준,<br/><span class="accent">POUR스토어가 함께합니다</span></h2>
+        <p class="pab6-desc">시공 의뢰부터 파트너 신청·쇼룸 방문까지 — 어떤 방향이든 첫 걸음을 도와드릴게요.</p>
+        <div class="pab6-cta">
+          <a class="primary" href="https://www.pourstore.net/consult">시공 상담 신청 →</a>
+          <a class="ghost" href="https://www.pourstore.net/partners">파트너 신청</a>
+          <a class="ghost" href="https://www.pourstore.net/showroom">쇼룸 방문 예약</a>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+
   const DEFAULT_PAGES = () => ([
     { id: 'main', name: '메인 페이지', file: 'index.html', sections: [
       mkSec('메인 배너', SEED_BANNER_HTML, '라이트 크림 + 오렌지 그라디언트 — 가벼운 톤 (v3)', 'wip'),
@@ -1017,12 +1237,12 @@ show('entry');
       mkSec('POUR스토어 실적관', SEED_STATS_HTML, '실적 수치 + 시공 갤러리 + 협력사 (기존 cafe24 시안 임베드)', 'requested'),
     ]},
     { id: 'about', name: '브랜드스토리 소개', file: 'about.html', sections: [
-      mkSec('히어로 비주얼', '', ''),
-      mkSec('회사 소개', '', ''),
-      mkSec('핵심 기술 / R&D', '', ''),
-      mkSec('인증·특허', '', ''),
-      mkSec('연혁', '', ''),
-      mkSec('하단 CTA', '', ''),
+      mkSec('히어로 비주얼', SEED_AB_HERO_HTML, '라이트 크림 + 오렌지 + 4개 핵심 수치 (260만/250+/70+/110+)', 'wip'),
+      mkSec('회사 소개', SEED_AB_ABOUT_HTML, '2-column 이미지+텍스트 — 설립 정보 인포 그리드 포함', 'wip'),
+      mkSec('핵심 기술 / R&D', SEED_AB_RD_HTML, '6개 기술 카드 — 슈퍼복합압축시트·코트재·HOOKER·탄성강화·하이퍼티·페이퍼팬벤트', 'wip'),
+      mkSec('인증·특허', SEED_AB_CERT_HTML, '건설신기술 1026호 피처 카드 + KTR/KCL/SGS/건축성능원/특허/ISO 6종', 'wip'),
+      mkSec('연혁', SEED_AB_HISTORY_HTML, '타임라인 2018→2025 — 설립부터 자사몰 리뉴얼까지 6개 이정표', 'wip'),
+      mkSec('하단 CTA', SEED_AB_CTA_HTML, '네이비 그라디언트 + 시공 상담/파트너/쇼룸 3개 버튼', 'wip'),
     ]},
     { id: 'products', name: '제품 소개', file: 'products.html', sections: [
       mkSec('카테고리 네비', '', ''),

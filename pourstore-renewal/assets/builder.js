@@ -1226,34 +1226,46 @@ show('entry');
   .ppr1 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
   .ppr1 { background:linear-gradient(180deg,#FFFBF5 0%,#fff 100%); padding:64px 18px 32px; }
   .ppr1-inner { max-width:1200px; margin:0 auto; }
-  .ppr1-head { text-align:center; margin-bottom:32px; }
+  .ppr1-head { text-align:center; margin-bottom:28px; }
   .ppr1-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
   .ppr1-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
-  .ppr1-head p { font-size:14px; color:#6B7280; max-width:520px; margin:0 auto; }
+  .ppr1-head p { font-size:14px; color:#6B7280; max-width:580px; margin:0 auto; }
+  .ppr1-line { display:flex; gap:8px; justify-content:center; margin-bottom:24px; flex-wrap:wrap; }
+  .ppr1-line button { padding:9px 20px; background:#fff; border:1.5px solid #F3F4F6; border-radius:999px; font-size:13px; font-weight:700; color:#6B7280; cursor:pointer; transition:all .2s; display:inline-flex; align-items:center; gap:6px; }
+  .ppr1-line button:hover { border-color:#FED7AA; color:#EA580C; }
+  .ppr1-line button.active { background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border-color:transparent; box-shadow:0 6px 16px rgba(249,115,22,.3); }
   .ppr1-nav { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; }
-  .ppr1-card { background:#fff; border:1px solid #F3F4F6; border-radius:16px; padding:22px 16px; text-align:center; transition:all .3s; cursor:pointer; text-decoration:none; }
+  .ppr1-card { background:#fff; border:1px solid #F3F4F6; border-radius:16px; padding:22px 16px; text-align:center; transition:all .3s; cursor:pointer; text-decoration:none; position:relative; overflow:hidden; }
   .ppr1-card:hover { transform:translateY(-4px); box-shadow:0 18px 40px rgba(15,31,92,.1); border-color:#FED7AA; }
-  .ppr1-card .icon { width:52px; height:52px; margin:0 auto 12px; border-radius:14px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:26px; transition:transform .3s; }
+  .ppr1-card .icon { width:54px; height:54px; margin:0 auto 12px; border-radius:14px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:26px; transition:transform .3s; }
   .ppr1-card:hover .icon { transform:rotate(-8deg) scale(1.05); }
-  .ppr1-card .name { font-size:14px; font-weight:800; color:#0F1F5C; margin-bottom:4px; letter-spacing:-.3px; }
-  .ppr1-card .count { font-size:11px; color:#9CA3AF; font-weight:700; }
+  .ppr1-card .name { font-size:14px; font-weight:900; color:#0F1F5C; margin-bottom:5px; letter-spacing:-.3px; }
+  .ppr1-card .count { font-size:11px; color:#EA580C; font-weight:800; letter-spacing:.3px; }
+  .ppr1-card .hot { position:absolute; top:8px; right:8px; padding:2px 7px; background:#DC2626; color:#fff; font-size:9.5px; font-weight:900; border-radius:4px; letter-spacing:.3px; }
   @media (max-width:640px) { .ppr1-head h2 { font-size:24px; } }
   </style>
   <section class="ppr1">
     <div class="ppr1-inner">
       <div class="ppr1-head">
-        <div class="kicker">PRODUCT CATEGORIES</div>
-        <h2>POUR스토어 전체 카테고리</h2>
-        <p>방수·도장·균열보수부터 안전용품·부자재까지 — 검증된 110+ 제품 라인업</p>
+        <div class="kicker">📦 PACKAGE BY AREA</div>
+        <h2>부위별 패키지 — 한 번에 끝내세요</h2>
+        <p>POUR스토어는 R&D로 검증된 자재를 <b style="color:#0F1F5C">시너지 조합</b>으로 패키지화 — 어떤 부위든 한 번 구매로 완전 시공이 가능합니다</p>
+      </div>
+      <div class="ppr1-line">
+        <button class="active">🏢 전체</button>
+        <button>아파트 라인 (고층)</button>
+        <button>일반 저층 (주택·상가)</button>
       </div>
       <div class="ppr1-nav">
-        <a class="ppr1-card" href="#cat-waterproof"><div class="icon">💧</div><div class="name">방수재</div><div class="count">28개 제품</div></a>
-        <a class="ppr1-card" href="#cat-paint"><div class="icon">🎨</div><div class="name">도장재</div><div class="count">22개 제품</div></a>
-        <a class="ppr1-card" href="#cat-crack"><div class="icon">🔧</div><div class="name">균열 보수</div><div class="count">18개 제품</div></a>
-        <a class="ppr1-card" href="#cat-coating"><div class="icon">🛡️</div><div class="name">코팅·단열</div><div class="count">15개 제품</div></a>
-        <a class="ppr1-card" href="#cat-tool"><div class="icon">🛠️</div><div class="name">시공 도구</div><div class="count">14개 제품</div></a>
-        <a class="ppr1-card" href="#cat-safe"><div class="icon">🦺</div><div class="name">안전용품</div><div class="count">12개 제품</div></a>
-        <a class="ppr1-card" href="#cat-sub"><div class="icon">📦</div><div class="name">부자재</div><div class="count">9개 제품</div></a>
+        <a class="ppr1-card" href="#area-slab"><div class="icon">🟦</div><div class="name">슬라브</div><div class="count">패키지 6종</div><span class="hot">HOT</span></a>
+        <a class="ppr1-card" href="#area-shingle"><div class="icon">🏠</div><div class="name">아스팔트 슁글</div><div class="count">패키지 4종</div></a>
+        <a class="ppr1-card" href="#area-tile"><div class="icon">🧱</div><div class="name">금속 기와</div><div class="count">패키지 4종</div></a>
+        <a class="ppr1-card" href="#area-crack"><div class="icon">⚡</div><div class="name">균열 보수</div><div class="count">패키지 3종</div></a>
+        <a class="ppr1-card" href="#area-paint"><div class="icon">🎨</div><div class="name">재도장 (외벽)</div><div class="count">패키지 5종</div><span class="hot">HOT</span></a>
+        <a class="ppr1-card" href="#area-color"><div class="icon">🔩</div><div class="name">칼라강판·징크</div><div class="count">패키지 3종</div></a>
+        <a class="ppr1-card" href="#area-drain"><div class="icon">🌊</div><div class="name">배수로·베란다</div><div class="count">패키지 4종</div></a>
+        <a class="ppr1-card" href="#area-parking"><div class="icon">🚗</div><div class="name">지하주차장</div><div class="count">패키지 3종</div></a>
+        <a class="ppr1-card" href="#area-joint"><div class="icon">🔗</div><div class="name">이음부·실링</div><div class="count">패키지 2종</div></a>
       </div>
     </div>
   </section>`;
@@ -3585,7 +3597,7 @@ show('entry');
       mkSec('하단 CTA', SEED_AB_CTA_HTML, '네이비 그라디언트 + 시공 상담/파트너/쇼룸 3개 버튼', 'wip'),
     ]},
     { id: 'products', name: '제품 소개', file: 'products.html', sections: [
-      mkSec('카테고리 네비', SEED_PR_NAV_HTML, '7개 카테고리 — SVG 아이콘 + 호버 회전 + 제품 수 (방수/도장/균열/코팅/도구/안전/부자재)', 'wip'),
+      mkSec('부위별 패키지 네비', SEED_PR_NAV_HTML, '9개 부위 카드 (슬라브/슁글/기와/균열/재도장/칼라강판/배수로/주차장/이음부) + 라인 토글(아파트/저층) + HOT 배지', 'wip'),
       mkSec('베스트 상품', SEED_PR_BEST_HTML, '랭크 뱃지 + 별점·리뷰수 + 할인율 — 매거진 카드 톤', 'wip'),
       mkSec('신제품', SEED_PR_NEW_HTML, '입고일 표시 + NEW 배지 + 할인 가격 표기', 'wip'),
       mkSec('카테고리별 제품 그리드', SEED_PR_GRID_HTML, '탭 필터 + 카테고리별 그룹(방수/도장/균열) — 각 5개 제품 진열', 'wip'),

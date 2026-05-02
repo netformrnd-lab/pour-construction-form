@@ -1222,6 +1222,262 @@ show('entry');
   </section>`;
 
 
+  const SEED_PR_NAV_HTML = `<style>
+  .ppr1 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .ppr1 { background:linear-gradient(180deg,#FFFBF5 0%,#fff 100%); padding:64px 18px 32px; }
+  .ppr1-inner { max-width:1200px; margin:0 auto; }
+  .ppr1-head { text-align:center; margin-bottom:32px; }
+  .ppr1-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .ppr1-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .ppr1-head p { font-size:14px; color:#6B7280; max-width:520px; margin:0 auto; }
+  .ppr1-nav { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; }
+  .ppr1-card { background:#fff; border:1px solid #F3F4F6; border-radius:16px; padding:22px 16px; text-align:center; transition:all .3s; cursor:pointer; text-decoration:none; }
+  .ppr1-card:hover { transform:translateY(-4px); box-shadow:0 18px 40px rgba(15,31,92,.1); border-color:#FED7AA; }
+  .ppr1-card .icon { width:52px; height:52px; margin:0 auto 12px; border-radius:14px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:26px; transition:transform .3s; }
+  .ppr1-card:hover .icon { transform:rotate(-8deg) scale(1.05); }
+  .ppr1-card .name { font-size:14px; font-weight:800; color:#0F1F5C; margin-bottom:4px; letter-spacing:-.3px; }
+  .ppr1-card .count { font-size:11px; color:#9CA3AF; font-weight:700; }
+  @media (max-width:640px) { .ppr1-head h2 { font-size:24px; } }
+  </style>
+  <section class="ppr1">
+    <div class="ppr1-inner">
+      <div class="ppr1-head">
+        <div class="kicker">PRODUCT CATEGORIES</div>
+        <h2>POUR스토어 전체 카테고리</h2>
+        <p>방수·도장·균열보수부터 안전용품·부자재까지 — 검증된 110+ 제품 라인업</p>
+      </div>
+      <div class="ppr1-nav">
+        <a class="ppr1-card" href="#cat-waterproof"><div class="icon">💧</div><div class="name">방수재</div><div class="count">28개 제품</div></a>
+        <a class="ppr1-card" href="#cat-paint"><div class="icon">🎨</div><div class="name">도장재</div><div class="count">22개 제품</div></a>
+        <a class="ppr1-card" href="#cat-crack"><div class="icon">🔧</div><div class="name">균열 보수</div><div class="count">18개 제품</div></a>
+        <a class="ppr1-card" href="#cat-coating"><div class="icon">🛡️</div><div class="name">코팅·단열</div><div class="count">15개 제품</div></a>
+        <a class="ppr1-card" href="#cat-tool"><div class="icon">🛠️</div><div class="name">시공 도구</div><div class="count">14개 제품</div></a>
+        <a class="ppr1-card" href="#cat-safe"><div class="icon">🦺</div><div class="name">안전용품</div><div class="count">12개 제품</div></a>
+        <a class="ppr1-card" href="#cat-sub"><div class="icon">📦</div><div class="name">부자재</div><div class="count">9개 제품</div></a>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_PR_BEST_HTML = `<style>
+  .ppr2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .ppr2 { background:#fff; padding:72px 18px; }
+  .ppr2-inner { max-width:1200px; margin:0 auto; }
+  .ppr2-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:14px; }
+  .ppr2-head .left { flex:1; min-width:240px; }
+  .ppr2-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .ppr2-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .ppr2-head .more { font-size:13px; font-weight:700; color:#EA580C; text-decoration:none; padding:8px 14px; border:1px solid #FED7AA; border-radius:999px; transition:all .25s; }
+  .ppr2-head .more:hover { background:#FFF7ED; }
+  .ppr2-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:18px; }
+  .ppr2-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; overflow:hidden; transition:all .3s; text-decoration:none; }
+  .ppr2-card:hover { transform:translateY(-4px); box-shadow:0 20px 48px rgba(15,31,92,.1); border-color:#FED7AA; }
+  .ppr2-thumb { aspect-ratio:1/1; background-size:cover; background-position:center; position:relative; }
+  .ppr2-thumb .rank { position:absolute; top:12px; left:12px; width:28px; height:28px; border-radius:8px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; font-family:'Bebas Neue',sans-serif; font-size:15px; font-weight:900; display:grid; place-items:center; box-shadow:0 4px 12px rgba(249,115,22,.4); letter-spacing:.5px; }
+  .ppr2-info { padding:16px; }
+  .ppr2-info .cat { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
+  .ppr2-info .name { font-size:14px; font-weight:800; color:#0F1F5C; margin-bottom:8px; line-height:1.4; letter-spacing:-.3px; min-height:36px; }
+  .ppr2-info .price { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .ppr2-info .sale { font-size:11px; font-weight:800; color:#DC2626; }
+  .ppr2-info .now { font-size:17px; font-weight:900; color:#0F1F5C; letter-spacing:-.3px; }
+  .ppr2-info .meta { display:flex; align-items:center; gap:6px; font-size:11px; color:#9CA3AF; font-weight:700; }
+  .ppr2-info .star { color:#F59E0B; }
+  @media (max-width:640px) { .ppr2-head h2 { font-size:22px; } }
+  </style>
+  <section class="ppr2">
+    <div class="ppr2-inner">
+      <div class="ppr2-head">
+        <div class="left">
+          <div class="kicker">⭐ BEST SELLERS</div>
+          <h2>이 달의 베스트 상품</h2>
+        </div>
+        <a class="more" href="https://www.pourstore.net/best">전체 보기 →</a>
+      </div>
+      <div class="ppr2-grid">
+        <a class="ppr2-card" href="#"><div class="ppr2-thumb" style="background-image:url('https://placehold.co/400x400/F97316/fff?text=POUR+COAT')"><div class="rank">1</div></div><div class="ppr2-info"><div class="cat">방수재 · 코팅</div><div class="name">POUR 코트재 (5kg)</div><div class="price"><span class="sale">15%</span><span class="now">68,000원</span></div><div class="meta"><span class="star">★</span><span>4.9</span><span>·</span><span>리뷰 412</span></div></div></a>
+        <a class="ppr2-card" href="#"><div class="ppr2-thumb" style="background-image:url('https://placehold.co/400x400/EA580C/fff?text=HYPER+T')"><div class="rank">2</div></div><div class="ppr2-info"><div class="cat">균열 보수</div><div class="name">POUR 하이퍼티 고탄성 퍼티</div><div class="price"><span class="sale">10%</span><span class="now">42,000원</span></div><div class="meta"><span class="star">★</span><span>4.8</span><span>·</span><span>리뷰 287</span></div></div></a>
+        <a class="ppr2-card" href="#"><div class="ppr2-thumb" style="background-image:url('https://placehold.co/400x400/0F1F5C/fff?text=NEEDLE+PUNCH')"><div class="rank">3</div></div><div class="ppr2-info"><div class="cat">방수재 · 시트</div><div class="name">슈퍼복합압축시트 (1m×10m)</div><div class="price"><span class="sale">8%</span><span class="now">128,000원</span></div><div class="meta"><span class="star">★</span><span>4.9</span><span>·</span><span>리뷰 196</span></div></div></a>
+        <a class="ppr2-card" href="#"><div class="ppr2-thumb" style="background-image:url('https://placehold.co/400x400/059669/fff?text=POWDER')"><div class="rank">4</div></div><div class="ppr2-info"><div class="cat">균열 보수</div><div class="name">탄성강화 파우더 (20kg)</div><div class="price"><span class="sale">12%</span><span class="now">52,000원</span></div><div class="meta"><span class="star">★</span><span>4.7</span><span>·</span><span>리뷰 158</span></div></div></a>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_PR_NEW_HTML = `<style>
+  .ppr3 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .ppr3 { background:#FFFBF5; padding:72px 18px; }
+  .ppr3-inner { max-width:1200px; margin:0 auto; }
+  .ppr3-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:14px; }
+  .ppr3-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .ppr3-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .ppr3-head .more { font-size:13px; font-weight:700; color:#EA580C; text-decoration:none; padding:8px 14px; border:1px solid #FED7AA; border-radius:999px; transition:all .25s; background:#fff; }
+  .ppr3-head .more:hover { background:#FFF7ED; }
+  .ppr3-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; }
+  .ppr3-card { background:#fff; border:1px solid #F3F4F6; border-radius:16px; overflow:hidden; transition:all .3s; text-decoration:none; position:relative; }
+  .ppr3-card:hover { transform:translateY(-3px); box-shadow:0 16px 36px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .ppr3-thumb { aspect-ratio:5/4; background-size:cover; background-position:center; position:relative; }
+  .ppr3-thumb .new { position:absolute; top:10px; left:10px; padding:4px 9px; background:#0F1F5C; color:#fff; font-size:10px; font-weight:900; border-radius:5px; letter-spacing:.5px; }
+  .ppr3-info { padding:14px; }
+  .ppr3-info .date { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.3px; margin-bottom:6px; }
+  .ppr3-info .name { font-size:13.5px; font-weight:800; color:#0F1F5C; margin-bottom:8px; line-height:1.4; letter-spacing:-.3px; }
+  .ppr3-info .price { display:flex; align-items:center; gap:6px; }
+  .ppr3-info .now { font-size:15px; font-weight:900; color:#0F1F5C; }
+  .ppr3-info .original { font-size:11px; color:#9CA3AF; text-decoration:line-through; font-weight:600; }
+  @media (max-width:640px) { .ppr3-head h2 { font-size:22px; } }
+  </style>
+  <section class="ppr3">
+    <div class="ppr3-inner">
+      <div class="ppr3-head">
+        <div>
+          <div class="kicker">🆕 NEW ARRIVAL</div>
+          <h2>이번 주 신상품</h2>
+        </div>
+        <a class="more" href="https://www.pourstore.net/new">전체 보기 →</a>
+      </div>
+      <div class="ppr3-grid">
+        <a class="ppr3-card" href="#"><div class="ppr3-thumb" style="background-image:url('https://placehold.co/400x320/F97316/fff?text=NEW+VENT')"><div class="new">NEW</div></div><div class="ppr3-info"><div class="date">2026.04.30 입고</div><div class="name">페이퍼팬벤트 무동력 환기구</div><div class="price"><span class="now">38,000원</span><span class="original">42,000원</span></div></div></a>
+        <a class="ppr3-card" href="#"><div class="ppr3-thumb" style="background-image:url('https://placehold.co/400x320/EA580C/fff?text=NEW+SAFE')"><div class="new">NEW</div></div><div class="ppr3-info"><div class="date">2026.04.28 입고</div><div class="name">고소작업 안전벨트 풀세트</div><div class="price"><span class="now">89,000원</span><span class="original">110,000원</span></div></div></a>
+        <a class="ppr3-card" href="#"><div class="ppr3-thumb" style="background-image:url('https://placehold.co/400x320/0F1F5C/fff?text=NEW+ROLLER')"><div class="new">NEW</div></div><div class="ppr3-info"><div class="date">2026.04.25 입고</div><div class="name">코트재 전용 롤러 (12인치)</div><div class="price"><span class="now">12,000원</span><span class="original">15,000원</span></div></div></a>
+        <a class="ppr3-card" href="#"><div class="ppr3-thumb" style="background-image:url('https://placehold.co/400x320/059669/fff?text=NEW+TRAP')"><div class="new">NEW</div></div><div class="ppr3-info"><div class="date">2026.04.22 입고</div><div class="name">옥상배관 방수트랩 키트</div><div class="price"><span class="now">56,000원</span><span class="original">65,000원</span></div></div></a>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_PR_GRID_HTML = `<style>
+  .ppr4 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .ppr4 { background:#fff; padding:72px 18px; }
+  .ppr4-inner { max-width:1200px; margin:0 auto; }
+  .ppr4-head { text-align:center; margin-bottom:32px; }
+  .ppr4-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .ppr4-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .ppr4-head p { font-size:14px; color:#6B7280; }
+  .ppr4-tabs { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:28px; }
+  .ppr4-tab { padding:9px 18px; background:#fff; border:1px solid #F3F4F6; border-radius:999px; font-size:13px; font-weight:700; color:#6B7280; cursor:pointer; transition:all .2s; }
+  .ppr4-tab:hover { border-color:#FED7AA; color:#EA580C; }
+  .ppr4-tab.active { background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border-color:transparent; box-shadow:0 6px 16px rgba(249,115,22,.3); }
+  .ppr4-section { margin-bottom:48px; }
+  .ppr4-section:last-child { margin-bottom:0; }
+  .ppr4-section .group-head { display:flex; align-items:center; gap:10px; margin-bottom:18px; padding-bottom:14px; border-bottom:2px solid #FFEDD5; }
+  .ppr4-section .group-head .badge { width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:16px; }
+  .ppr4-section .group-head h3 { font-size:18px; font-weight:900; color:#0F1F5C; letter-spacing:-.3px; }
+  .ppr4-section .group-head .cnt { font-size:11.5px; font-weight:800; color:#EA580C; padding:3px 8px; background:#FFF7ED; border-radius:6px; }
+  .ppr4-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; }
+  .ppr4-item { background:#fff; border:1px solid #F3F4F6; border-radius:14px; overflow:hidden; transition:all .25s; text-decoration:none; }
+  .ppr4-item:hover { transform:translateY(-3px); box-shadow:0 14px 32px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .ppr4-item .thumb { aspect-ratio:1/1; background-size:cover; background-position:center; }
+  .ppr4-item .info { padding:12px; }
+  .ppr4-item .name { font-size:13px; font-weight:800; color:#0F1F5C; margin-bottom:6px; line-height:1.4; letter-spacing:-.3px; }
+  .ppr4-item .price { font-size:14px; font-weight:900; color:#0F1F5C; }
+  @media (max-width:640px) { .ppr4-head h2 { font-size:24px; } }
+  </style>
+  <section class="ppr4">
+    <div class="ppr4-inner">
+      <div class="ppr4-head">
+        <div class="kicker">FULL CATALOG</div>
+        <h2>카테고리별 제품 둘러보기</h2>
+        <p>R&D 검증 자재만 — 카테고리별로 정리된 110+ 라인업</p>
+      </div>
+      <div class="ppr4-tabs">
+        <button class="ppr4-tab active">전체</button>
+        <button class="ppr4-tab">방수재</button>
+        <button class="ppr4-tab">도장재</button>
+        <button class="ppr4-tab">균열보수</button>
+        <button class="ppr4-tab">코팅·단열</button>
+        <button class="ppr4-tab">시공도구</button>
+      </div>
+      <div class="ppr4-section">
+        <div class="group-head"><div class="badge">💧</div><h3>방수재</h3><span class="cnt">28종</span></div>
+        <div class="ppr4-grid">
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/F97316/fff?text=COAT+5KG')"></div><div class="info"><div class="name">POUR 코트재 5kg</div><div class="price">68,000원</div></div></a>
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/EA580C/fff?text=COAT+20KG')"></div><div class="info"><div class="name">POUR 코트재 20kg</div><div class="price">240,000원</div></div></a>
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/0F1F5C/fff?text=SHEET')"></div><div class="info"><div class="name">슈퍼복합압축시트</div><div class="price">128,000원</div></div></a>
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/059669/fff?text=PVC')"></div><div class="info"><div class="name">PVC 방수재 (4L)</div><div class="price">52,000원</div></div></a>
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/FB923C/fff?text=URETHANE')"></div><div class="info"><div class="name">우레탄 방수재 (10kg)</div><div class="price">98,000원</div></div></a>
+        </div>
+      </div>
+      <div class="ppr4-section">
+        <div class="group-head"><div class="badge">🎨</div><h3>도장재</h3><span class="cnt">22종</span></div>
+        <div class="ppr4-grid">
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/EA580C/fff?text=BINDER')"></div><div class="info"><div class="name">POUR 바인더 (15L)</div><div class="price">85,000원</div></div></a>
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/F97316/fff?text=PLUS')"></div><div class="info"><div class="name">POUR 플러스 외부용</div><div class="price">112,000원</div></div></a>
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/0F1F5C/fff?text=EPOXY')"></div><div class="info"><div class="name">에폭시 도료 (5kg)</div><div class="price">76,000원</div></div></a>
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/059669/fff?text=EMBO')"></div><div class="info"><div class="name">엠보라이닝 도료</div><div class="price">94,000원</div></div></a>
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/FB923C/fff?text=METAL')"></div><div class="info"><div class="name">금속기와 코팅재</div><div class="price">68,000원</div></div></a>
+        </div>
+      </div>
+      <div class="ppr4-section">
+        <div class="group-head"><div class="badge">🔧</div><h3>균열 보수</h3><span class="cnt">18종</span></div>
+        <div class="ppr4-grid">
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/F97316/fff?text=HYPER+T')"></div><div class="info"><div class="name">POUR 하이퍼티 (4kg)</div><div class="price">42,000원</div></div></a>
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/EA580C/fff?text=POWDER')"></div><div class="info"><div class="name">탄성강화 파우더 (20kg)</div><div class="price">52,000원</div></div></a>
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/0F1F5C/fff?text=HOOKER')"></div><div class="info"><div class="name">POUR HOOKER (50개)</div><div class="price">88,000원</div></div></a>
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/059669/fff?text=ACRYLIC')"></div><div class="info"><div class="name">아크릴배면차수재</div><div class="price">128,000원</div></div></a>
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/FB923C/fff?text=CRACK+GEL')"></div><div class="info"><div class="name">균열 보수 젤 (1kg)</div><div class="price">28,000원</div></div></a>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_PR_GUIDE_HTML = `<style>
+  .ppr5 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .ppr5 { background:#FFFBF5; padding:72px 18px; }
+  .ppr5-inner { max-width:1200px; margin:0 auto; }
+  .ppr5-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:14px; }
+  .ppr5-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .ppr5-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:6px; }
+  .ppr5-head p { font-size:13.5px; color:#6B7280; }
+  .ppr5-head .more { font-size:13px; font-weight:700; color:#EA580C; text-decoration:none; padding:8px 14px; border:1px solid #FED7AA; border-radius:999px; background:#fff; transition:all .25s; }
+  .ppr5-head .more:hover { background:#FFF7ED; }
+  .ppr5-grid { display:grid; grid-template-columns:1.4fr 1fr; gap:18px; }
+  .ppr5-feature { position:relative; aspect-ratio:16/10; border-radius:18px; overflow:hidden; background-size:cover; background-position:center; text-decoration:none; transition:transform .3s; }
+  .ppr5-feature:hover { transform:translateY(-3px); }
+  .ppr5-feature::after { content:''; position:absolute; inset:0; background:linear-gradient(0deg, rgba(15,31,92,.85) 0%, rgba(15,31,92,.2) 50%, transparent 100%); }
+  .ppr5-feature .play { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:72px; height:72px; border-radius:50%; background:rgba(255,255,255,.95); display:grid; place-items:center; box-shadow:0 12px 32px rgba(0,0,0,.3); z-index:1; transition:transform .3s; }
+  .ppr5-feature:hover .play { transform:translate(-50%,-50%) scale(1.1); }
+  .ppr5-feature .play svg { width:28px; height:28px; fill:#EA580C; margin-left:4px; }
+  .ppr5-feature .info { position:absolute; bottom:24px; left:24px; right:24px; z-index:1; color:#fff; }
+  .ppr5-feature .badge { display:inline-block; padding:4px 10px; background:#F97316; font-size:10.5px; font-weight:900; letter-spacing:.5px; border-radius:5px; margin-bottom:10px; }
+  .ppr5-feature .title { font-size:20px; font-weight:900; line-height:1.3; margin-bottom:8px; letter-spacing:-.5px; }
+  .ppr5-feature .meta { font-size:12px; opacity:.9; font-weight:700; }
+  .ppr5-list { display:flex; flex-direction:column; gap:12px; }
+  .ppr5-mini { display:flex; gap:12px; padding:12px; background:#fff; border:1px solid #F3F4F6; border-radius:14px; transition:all .25s; text-decoration:none; }
+  .ppr5-mini:hover { transform:translateX(3px); box-shadow:0 10px 24px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .ppr5-mini .thumb { width:120px; aspect-ratio:16/10; flex-shrink:0; border-radius:10px; background-size:cover; background-position:center; position:relative; }
+  .ppr5-mini .thumb .dur { position:absolute; bottom:5px; right:5px; padding:2px 6px; background:rgba(0,0,0,.7); color:#fff; font-size:10px; font-weight:800; border-radius:4px; letter-spacing:.3px; }
+  .ppr5-mini .text { flex:1; min-width:0; display:flex; flex-direction:column; justify-content:center; }
+  .ppr5-mini .sub { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:4px; }
+  .ppr5-mini .title { font-size:13px; font-weight:800; color:#0F1F5C; line-height:1.4; margin-bottom:4px; letter-spacing:-.3px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .ppr5-mini .meta { font-size:10.5px; color:#9CA3AF; font-weight:700; }
+  @media (max-width:880px) { .ppr5-grid { grid-template-columns:1fr; } .ppr5-head h2 { font-size:22px; } }
+  </style>
+  <section class="ppr5">
+    <div class="ppr5-inner">
+      <div class="ppr5-head">
+        <div>
+          <div class="kicker">▶ HOW TO USE</div>
+          <h2>제품별 시공 가이드 영상</h2>
+          <p>구매 전·후 — 영상으로 미리 보고 안심하고 시공하세요</p>
+        </div>
+        <a class="more" href="https://www.pourstore.net/guide">전체 영상 →</a>
+      </div>
+      <div class="ppr5-grid">
+        <a class="ppr5-feature" href="#" style="background-image:url('https://placehold.co/800x500/0F1F5C/fff?text=POUR+COAT+GUIDE')">
+          <div class="play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+          <div class="info">
+            <span class="badge">⭐ FEATURED</span>
+            <div class="title">POUR 코트재 — 옥상 슬라브 시공 풀가이드</div>
+            <div class="meta">14:28 · 조회 28K · 가이드 PICK</div>
+          </div>
+        </a>
+        <div class="ppr5-list">
+          <a class="ppr5-mini" href="#"><div class="thumb" style="background-image:url('https://placehold.co/200x125/F97316/fff?text=HYPER+T')"><div class="dur">8:42</div></div><div class="text"><div class="sub">균열 보수</div><div class="title">하이퍼티로 외벽 균열 보수 — 5분 정리</div><div class="meta">조회 12K</div></div></a>
+          <a class="ppr5-mini" href="#"><div class="thumb" style="background-image:url('https://placehold.co/200x125/EA580C/fff?text=POWDER')"><div class="dur">11:15</div></div><div class="text"><div class="sub">단면 복구</div><div class="title">탄성강화 파우더 — 박락 단면 복구 시공법</div><div class="meta">조회 9.2K</div></div></a>
+          <a class="ppr5-mini" href="#"><div class="thumb" style="background-image:url('https://placehold.co/200x125/059669/fff?text=HOOKER')"><div class="dur">6:08</div></div><div class="text"><div class="sub">후레싱 보강</div><div class="title">POUR HOOKER 시공 — 손상 마감면 대응</div><div class="meta">조회 7.8K</div></div></a>
+          <a class="ppr5-mini" href="#"><div class="thumb" style="background-image:url('https://placehold.co/200x125/FB923C/fff?text=VENT')"><div class="dur">5:30</div></div><div class="text"><div class="sub">결로 방지</div><div class="title">페이퍼팬벤트 설치 — 무동력 환기로 들뜸 예방</div><div class="meta">조회 6.4K</div></div></a>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+
   const DEFAULT_PAGES = () => ([
     { id: 'main', name: '메인 페이지', file: 'index.html', sections: [
       mkSec('메인 배너', SEED_BANNER_HTML, '라이트 크림 + 오렌지 그라디언트 — 가벼운 톤 (v3)', 'wip'),
@@ -1245,11 +1501,11 @@ show('entry');
       mkSec('하단 CTA', SEED_AB_CTA_HTML, '네이비 그라디언트 + 시공 상담/파트너/쇼룸 3개 버튼', 'wip'),
     ]},
     { id: 'products', name: '제품 소개', file: 'products.html', sections: [
-      mkSec('카테고리 네비', '', ''),
-      mkSec('베스트 상품', '', ''),
-      mkSec('신제품', '', ''),
-      mkSec('카테고리별 제품 그리드', '', ''),
-      mkSec('시공 가이드 영상', '', ''),
+      mkSec('카테고리 네비', SEED_PR_NAV_HTML, '7개 카테고리 — SVG 아이콘 + 호버 회전 + 제품 수 (방수/도장/균열/코팅/도구/안전/부자재)', 'wip'),
+      mkSec('베스트 상품', SEED_PR_BEST_HTML, '랭크 뱃지 + 별점·리뷰수 + 할인율 — 매거진 카드 톤', 'wip'),
+      mkSec('신제품', SEED_PR_NEW_HTML, '입고일 표시 + NEW 배지 + 할인 가격 표기', 'wip'),
+      mkSec('카테고리별 제품 그리드', SEED_PR_GRID_HTML, '탭 필터 + 카테고리별 그룹(방수/도장/균열) — 각 5개 제품 진열', 'wip'),
+      mkSec('시공 가이드 영상', SEED_PR_GUIDE_HTML, '피처 영상 1 + 미니 카드 4 — 매거진 레이아웃 (메인 동영상 가이드와 통일)', 'wip'),
     ]},
     { id: 'construction', name: '시공 사례', file: 'construction.html', sections: [
       mkSec('사례 인트로', '', ''),

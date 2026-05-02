@@ -32,21 +32,45 @@
 <style>
 .par * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Noto Sans KR', sans-serif; }
 .par { --po:#F97316; --po-d:#EA580C; --po-l:#FFEDD5; --po-glow:rgba(249,115,22,.35); --pn:#0F1F5C; --bg:#FFFBF5; --card:#FFFFFF; --txt:#1F2937; --txt-d:#6B7280; --bd:#E5E7EB; --bd-h:#FED7AA; }
-.par { position:relative; background:linear-gradient(180deg,#FFFBF5 0%,#FFF7ED 50%,#FFFBF5 100%); color:var(--txt); padding:56px 18px 80px; overflow:hidden; }
-.par::before { content:''; position:absolute; inset:0; background-image: radial-gradient(circle at 20% 10%,rgba(249,115,22,.06) 0%,transparent 40%),radial-gradient(circle at 80% 90%,rgba(15,31,92,.04) 0%,transparent 40%); pointer-events:none; }
-.par-inner { max-width:1080px; margin:0 auto; position:relative; z-index:1; }
-.par-hero { text-align:center; margin-bottom:24px; }
-.par-core { width:84px; height:84px; margin:0 auto 14px; position:relative; display:grid; place-items:center; }
+
+/* ============ 메인 트리거 (깔끔) ============ */
+.par-trigger { position:relative; max-width:1080px; margin:0 auto; padding:64px 22px; background:linear-gradient(180deg,#FFFBF5 0%,#FFF7ED 50%,#FFFBF5 100%); border-radius:24px; overflow:hidden; }
+.par-trigger::before { content:''; position:absolute; inset:0; background-image: radial-gradient(circle at 20% 10%,rgba(249,115,22,.06) 0%,transparent 40%),radial-gradient(circle at 80% 90%,rgba(15,31,92,.04) 0%,transparent 40%); pointer-events:none; }
+.par-trigger-inner { position:relative; z-index:1; text-align:center; }
+.par-core { width:96px; height:96px; margin:0 auto 18px; position:relative; display:grid; place-items:center; }
 .par-core .ring { position:absolute; inset:0; border:2px solid var(--po); border-radius:50%; animation:par-spin 14s linear infinite; opacity:.4; }
-.par-core .ring2 { position:absolute; inset:8px; border:1px dashed var(--po-d); border-radius:50%; animation:par-spin 9s linear infinite reverse; opacity:.5; }
-.par-core .center { width:60px; height:60px; background:linear-gradient(135deg,var(--po),var(--po-d)); border-radius:50%; display:grid; place-items:center; font-size:32px; box-shadow:0 8px 22px var(--po-glow); position:relative; z-index:2; }
+.par-core .ring2 { position:absolute; inset:10px; border:1px dashed var(--po-d); border-radius:50%; animation:par-spin 9s linear infinite reverse; opacity:.5; }
+.par-core .center { width:68px; height:68px; background:linear-gradient(135deg,var(--po),var(--po-d)); border-radius:50%; display:grid; place-items:center; font-size:36px; box-shadow:0 8px 22px var(--po-glow); position:relative; z-index:2; }
 @keyframes par-spin { to { transform:rotate(360deg); } }
-.par-kicker { display:inline-flex; align-items:center; gap:8px; padding:6px 16px; background:var(--po-l); border:1px solid var(--bd-h); border-radius:999px; font-size:11px; font-weight:800; color:var(--po-d); margin-bottom:14px; }
-.par-kicker .ld { width:6px; height:6px; background:var(--po); border-radius:50%; box-shadow:0 0 6px var(--po); animation:par-blink 1.4s ease-in-out infinite; }
+.par-trigger-kicker { display:inline-flex; align-items:center; gap:8px; padding:6px 16px; background:var(--po-l); border:1px solid var(--bd-h); border-radius:999px; font-size:11px; font-weight:800; color:var(--po-d); margin-bottom:14px; }
+.par-trigger-kicker .ld { width:6px; height:6px; background:var(--po); border-radius:50%; box-shadow:0 0 6px var(--po); animation:par-blink 1.4s ease-in-out infinite; }
 @keyframes par-blink { 50%{opacity:.3;} }
-.par-hero h2 { font-size:26px; font-weight:900; margin:0 0 8px; letter-spacing:-.5px; color:var(--pn); line-height:1.35; }
-.par-hero h2 .accent { color:var(--po); }
-.par-hero p { font-size:13px; color:var(--txt-d); line-height:1.55; }
+.par-trigger h2 { font-size:30px; font-weight:900; margin:0 0 10px; letter-spacing:-.5px; color:var(--pn); line-height:1.3; }
+.par-trigger h2 .accent { color:var(--po); }
+.par-trigger p { font-size:14px; color:var(--txt-d); line-height:1.6; margin-bottom:24px; }
+.par-trigger-btn { padding:18px 38px; background:linear-gradient(135deg,var(--po),var(--po-d)); border:0; border-radius:14px; color:#fff; font-size:16px; font-weight:800; cursor:pointer; box-shadow:0 8px 22px var(--po-glow); display:inline-flex; align-items:center; gap:10px; transition:transform .15s; }
+.par-trigger-btn:hover { transform:translateY(-2px); }
+.par-trigger-btn:active { transform:translateY(0); }
+.par-trust { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:22px; }
+.par-trust .item { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; background:#fff; border:1px solid var(--bd); border-radius:999px; font-size:12px; font-weight:700; color:var(--pn); box-shadow:0 1px 3px rgba(0,0,0,.04); }
+.par-trust .item .v { color:var(--po-d); font-weight:900; }
+@media (max-width:640px) { .par-trigger { padding:48px 18px; border-radius:18px; } .par-trigger h2 { font-size:23px; } .par-trigger-btn { padding:16px 28px; font-size:15px; width:100%; justify-content:center; } }
+
+/* ============ 모달 (하단 슬라이드업) ============ */
+.par-modal-mask { position:fixed; inset:0; background:rgba(15,31,92,.55); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); z-index:9999; opacity:0; pointer-events:none; transition:opacity .25s ease; }
+.par-modal-mask.open { opacity:1; pointer-events:auto; }
+.par-modal { position:fixed; left:0; right:0; bottom:0; max-height:92vh; background:#FFFBF5; border-radius:24px 24px 0 0; box-shadow:0 -8px 40px rgba(15,31,92,.25); z-index:10000; transform:translateY(100%); transition:transform .35s cubic-bezier(.4,0,.2,1); display:flex; flex-direction:column; }
+.par-modal.open { transform:translateY(0); }
+.par-modal-handle { width:48px; height:5px; background:#D1D5DB; border-radius:3px; margin:10px auto 0; flex-shrink:0; }
+.par-modal-head { padding:14px 20px; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--bd); flex-shrink:0; background:#fff; }
+.par-modal-head .av { width:32px; height:32px; background:linear-gradient(135deg,var(--po),var(--po-d)); border-radius:50%; display:grid; place-items:center; font-size:16px; flex-shrink:0; }
+.par-modal-head .ttl { font-size:15px; font-weight:800; color:var(--pn); flex:1; }
+.par-modal-head .ttl .sub { display:block; font-size:11px; font-weight:600; color:var(--txt-d); margin-top:2px; }
+.par-modal-head .close { width:34px; height:34px; background:#F3F4F6; border:0; border-radius:50%; cursor:pointer; font-size:16px; color:var(--txt-d); display:grid; place-items:center; flex-shrink:0; }
+.par-modal-head .close:hover { background:#E5E7EB; }
+.par-modal-body { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:18px 18px 30px; background:linear-gradient(180deg,#FFFBF5 0%,#FFF7ED 30%,#FFFBF5 100%); }
+
+/* ============ 모달 안 콘텐츠 ============ */
 .par-stepper { display:flex; gap:5px; justify-content:center; margin-bottom:24px; flex-wrap:wrap; align-items:center; }
 .par-stepper .stp { display:inline-flex; align-items:center; gap:7px; padding:8px 13px; border:1px solid var(--bd); border-radius:999px; font-size:12px; font-weight:700; color:var(--txt-d); background:#fff; transition:all .25s; }
 .par-stepper .stp .num { font-size:10px; padding:2px 7px; background:#F3F4F6; border-radius:5px; }
@@ -163,138 +187,160 @@
 .par-final-cta .alt:hover { background:var(--pn); color:#fff; }
 .par-storage-note { padding:12px 14px; background:var(--po-l); border-left:3px solid var(--po); border-radius:0 8px 8px 0; font-size:12px; color:var(--txt); margin-top:14px; line-height:1.6; }
 .par-storage-note b { color:var(--po-d); }
-@media (max-width:720px) { .par{padding:40px 12px 60px;} .par-hero h2{font-size:21px;} .par-stepper .stp{font-size:11px; padding:7px 10px;} .par-stepper .ar{display:none;} .par-entry{grid-template-columns:1fr;} .par-final-cta{grid-template-columns:1fr;} .par-products{grid-template-columns:repeat(2,1fr);} .par-method h3{font-size:19px;} }
+@media (max-width:720px) { .par-stepper .stp{font-size:11px; padding:7px 10px;} .par-stepper .ar{display:none;} .par-entry{grid-template-columns:1fr;} .par-final-cta{grid-template-columns:1fr;} .par-products{grid-template-columns:repeat(2,1fr);} .par-method h3{font-size:19px;} .par-modal{max-height:96vh;} }
 </style>
+
+<!-- 메인 트리거 -->
 <section class="par">
-  <div class="par-inner">
-    <div class="par-hero">
+  <div class="par-trigger">
+    <div class="par-trigger-inner">
       <div class="par-core"><div class="ring"></div><div class="ring2"></div><div class="center">🧭</div></div>
-      <span class="par-kicker"><span class="ld"></span>POUR 길잡이 · 건물 유지보수 안내</span>
-      <h2>어디가 아프세요? <span class="accent">길잡이가 안내해드릴게요</span></h2>
-      <p>260만 세대가 검증한 진단 — 사진 한 장이면 끝나요</p>
-    </div>
-    <div class="par-stepper">
-      <div class="stp" data-stp="1"><span class="num">01</span> 어디가?</div>
-      <span class="ar">▸</span>
-      <div class="stp" data-stp="2"><span class="num">02</span> 어떤 증상?</div>
-      <span class="ar">▸</span>
-      <div class="stp" data-stp="3"><span class="num">03</span> 길잡이 진단</div>
-      <span class="ar">▸</span>
-      <div class="stp" data-stp="4"><span class="num">04</span> 추천 자재</div>
-    </div>
-    <div class="par-screen" data-screen="entry">
-      <div class="par-h">어떻게 도와드릴까요?</div>
-      <div class="par-sub">직접 알려주거나, 사진 한 장 보여주시면 길잡이가 살펴봐드릴게요</div>
-      <div class="par-entry">
-        <div class="par-entry-card" data-go="manual1"><span class="ic">📋</span><div class="t">직접 알려주기</div><div class="d">건물·부위·증상을<br/>3단계로 천천히 선택</div><span class="b">차근차근 3단계</span></div>
-        <div class="par-entry-card recommend" data-go="photo"><span class="ic">📷</span><div class="t">사진 한 장이면 끝</div><div class="d">길잡이가 보고<br/>부위·증상을 자동 진단</div><span class="b">⭐ 추천</span></div>
+      <span class="par-trigger-kicker"><span class="ld"></span>POUR 길잡이 · AI 건물 진단</span>
+      <h2>건물 어디가 아프세요?<br/><span class="accent">길잡이가 진단해드릴게요</span></h2>
+      <p>사진 한 장만 보여주시면 부위·증상부터 해결책·자재까지<br/>1분 안에 안내해드려요</p>
+      <button class="par-trigger-btn" id="par-open-modal">🧭 길잡이 시작하기</button>
+      <div class="par-trust">
+        <span class="item"><span class="v">260만</span> 세대 검증</span>
+        <span class="item"><span class="v">250+</span> 파트너사</span>
+        <span class="item"><span class="v">70+</span> 특허·인증</span>
       </div>
     </div>
-    <div class="par-screen" data-screen="photo">
-      <button class="par-back" data-back="entry">◂ 처음으로</button>
-      <div class="par-block">
-        <div class="par-block-h"><span class="seq">사진 첨부</span><span class="ttl">하자 사진을 보여주세요</span></div>
-        <div class="par-upload" id="par-upload-zone">
-          <span class="ic">📷</span>
-          <div class="t">사진을 끌어다 놓거나 선택해 주세요</div>
-          <div class="d">최대 5장 · JPG·PNG · 1장당 10MB 이하</div>
-          <div class="par-upload-actions">
-            <button class="btn" id="par-pick-gallery">🖼 갤러리에서 선택</button>
-            <button class="btn" id="par-pick-camera">📸 사진 촬영</button>
+  </div>
+
+  <!-- 모달 -->
+  <div class="par-modal-mask" id="par-modal-mask">
+    <div class="par-modal" id="par-modal">
+      <div class="par-modal-handle"></div>
+      <div class="par-modal-head">
+        <div class="av">🧭</div>
+        <div class="ttl">POUR 길잡이<span class="sub">AI 건물 진단</span></div>
+        <button class="close" id="par-close-modal" aria-label="닫기">✕</button>
+      </div>
+      <div class="par-modal-body">
+        <div class="par-stepper">
+          <div class="stp" data-stp="1"><span class="num">01</span> 어디가?</div>
+          <span class="ar">▸</span>
+          <div class="stp" data-stp="2"><span class="num">02</span> 어떤 증상?</div>
+          <span class="ar">▸</span>
+          <div class="stp" data-stp="3"><span class="num">03</span> 길잡이 진단</div>
+          <span class="ar">▸</span>
+          <div class="stp" data-stp="4"><span class="num">04</span> 추천 자재</div>
+        </div>
+        <div class="par-screen" data-screen="entry">
+          <div class="par-h">어떻게 도와드릴까요?</div>
+          <div class="par-sub">직접 알려주거나, 사진 한 장 보여주시면 길잡이가 살펴봐드릴게요</div>
+          <div class="par-entry">
+            <div class="par-entry-card" data-go="manual1"><span class="ic">📋</span><div class="t">직접 알려주기</div><div class="d">건물·부위·증상을<br/>3단계로 천천히 선택</div><span class="b">차근차근 3단계</span></div>
+            <div class="par-entry-card recommend" data-go="photo"><span class="ic">📷</span><div class="t">사진 한 장이면 끝</div><div class="d">길잡이가 보고<br/>부위·증상을 자동 진단</div><span class="b">⭐ 추천</span></div>
           </div>
-          <input type="file" id="par-file-gallery" accept="image/*" multiple hidden />
-          <input type="file" id="par-file-camera" accept="image/*" capture="environment" hidden />
         </div>
-        <div class="par-thumbs" id="par-thumbs"></div>
-        <div class="par-thumb-info" id="par-thumb-info" style="display:none;"></div>
-        <div class="par-cta-row">
-          <button class="par-cta" id="par-analyze-btn" disabled>길잡이에게 보여주기 →</button>
-          <button class="par-cta-ghost" data-back="entry">취소</button>
+        <div class="par-screen" data-screen="photo">
+          <button class="par-back" data-back="entry">◂ 처음으로</button>
+          <div class="par-block">
+            <div class="par-block-h"><span class="seq">사진 첨부</span><span class="ttl">하자 사진을 보여주세요</span></div>
+            <div class="par-upload" id="par-upload-zone">
+              <span class="ic">📷</span>
+              <div class="t">사진을 끌어다 놓거나 선택해 주세요</div>
+              <div class="d">최대 5장 · JPG·PNG · 1장당 10MB 이하</div>
+              <div class="par-upload-actions">
+                <button class="btn" id="par-pick-gallery">🖼 갤러리에서 선택</button>
+                <button class="btn" id="par-pick-camera">📸 사진 촬영</button>
+              </div>
+              <input type="file" id="par-file-gallery" accept="image/*" multiple hidden />
+              <input type="file" id="par-file-camera" accept="image/*" capture="environment" hidden />
+            </div>
+            <div class="par-thumbs" id="par-thumbs"></div>
+            <div class="par-thumb-info" id="par-thumb-info" style="display:none;"></div>
+            <div class="par-cta-row">
+              <button class="par-cta" id="par-analyze-btn" disabled>길잡이에게 보여주기 →</button>
+              <button class="par-cta-ghost" data-back="entry">취소</button>
+            </div>
+            <div class="par-storage-note">🔒 보내주신 사진은 <b>POUR스토어 서버에 안전하게 보관</b>되며, 진단 정확도를 높이는 데에만 사용됩니다.</div>
+          </div>
         </div>
-        <div class="par-storage-note">🔒 보내주신 사진은 <b>POUR스토어 서버에 안전하게 보관</b>되며, 진단 정확도를 높이는 데에만 사용됩니다.</div>
-      </div>
-    </div>
-    <div class="par-screen" data-screen="analyzing">
-      <div class="par-analyzing">
-        <div class="par-spinner"></div>
-        <div class="t">길잡이가 살펴보는 중이에요</div>
-        <span class="l ok" id="ana-l1">✓ 사진 잘 받았어요</span>
-        <span class="l cur" id="ana-l2">→ 어떤 건물인지 확인 중...</span>
-        <span class="l" id="ana-l3" style="display:none;">→ 어디가 문제인지 보는 중...</span>
-        <span class="l" id="ana-l4" style="display:none;">→ 증상을 살펴보는 중...</span>
-        <span class="l" id="ana-l5" style="display:none;">→ 비슷한 시공 사례 찾는 중...</span>
-      </div>
-    </div>
-    <div class="par-screen" data-screen="photo-result">
-      <button class="par-back" data-back="photo">◂ 사진 다시 올리기</button>
-      <div class="par-block">
-        <div class="par-block-h"><span class="seq">살펴본 결과</span><span class="ttl">길잡이가 본 결과예요</span></div>
-        <div class="par-conf"><span class="lbl">▸ 정확도</span><span class="val"><span id="par-conf-val">—</span><span class="pct"> %</span></span></div>
-        <div class="par-detect">
-          <div class="row"><span class="lbl">어떤 건물</span><span class="val" id="par-d-bld">—</span><span class="badge">확인됨</span></div>
-          <div class="row"><span class="lbl">어디가 문제</span><span class="val" id="par-d-sur">—</span><span class="badge">확인됨</span></div>
-          <div class="row"><span class="lbl">어떤 증상</span><span class="val" id="par-d-sym">—</span><span class="badge">확인됨</span></div>
+        <div class="par-screen" data-screen="analyzing">
+          <div class="par-analyzing">
+            <div class="par-spinner"></div>
+            <div class="t">길잡이가 살펴보는 중이에요</div>
+            <span class="l ok" id="ana-l1">✓ 사진 잘 받았어요</span>
+            <span class="l cur" id="ana-l2">→ 어떤 건물인지 확인 중...</span>
+            <span class="l" id="ana-l3" style="display:none;">→ 어디가 문제인지 보는 중...</span>
+            <span class="l" id="ana-l4" style="display:none;">→ 증상을 살펴보는 중...</span>
+            <span class="l" id="ana-l5" style="display:none;">→ 비슷한 시공 사례 찾는 중...</span>
+          </div>
         </div>
-        <div class="par-cta-row">
-          <button class="par-cta" id="par-confirm-go">맞아요, 진단 보기 →</button>
-          <button class="par-cta-ghost" data-back="manual1">✏ 다시 알려줄게요</button>
+        <div class="par-screen" data-screen="photo-result">
+          <button class="par-back" data-back="photo">◂ 사진 다시 올리기</button>
+          <div class="par-block">
+            <div class="par-block-h"><span class="seq">살펴본 결과</span><span class="ttl">길잡이가 본 결과예요</span></div>
+            <div class="par-conf"><span class="lbl">▸ 정확도</span><span class="val"><span id="par-conf-val">—</span><span class="pct"> %</span></span></div>
+            <div class="par-detect">
+              <div class="row"><span class="lbl">어떤 건물</span><span class="val" id="par-d-bld">—</span><span class="badge">확인됨</span></div>
+              <div class="row"><span class="lbl">어디가 문제</span><span class="val" id="par-d-sur">—</span><span class="badge">확인됨</span></div>
+              <div class="row"><span class="lbl">어떤 증상</span><span class="val" id="par-d-sym">—</span><span class="badge">확인됨</span></div>
+            </div>
+            <div class="par-cta-row">
+              <button class="par-cta" id="par-confirm-go">맞아요, 진단 보기 →</button>
+              <button class="par-cta-ghost" data-back="manual1">✏ 다시 알려줄게요</button>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-    <div class="par-screen" data-screen="manual1">
-      <button class="par-back" data-back="entry">◂ 처음으로</button>
-      <div class="par-block">
-        <div class="par-block-h"><span class="seq">1 / 3</span><span class="ttl">어떤 건물이세요?</span></div>
-        <div class="par-cards" id="par-bld-cards"></div>
-      </div>
-    </div>
-    <div class="par-screen" data-screen="manual2">
-      <button class="par-back" data-back="manual1">◂ 건물 다시</button>
-      <div class="par-block">
-        <div class="par-block-h"><span class="seq">2 / 3</span><span class="ttl">어디가 문제인가요?</span></div>
-        <div class="par-cards" id="par-sur-cards"></div>
-      </div>
-    </div>
-    <div class="par-screen" data-screen="manual3">
-      <button class="par-back" data-back="manual2">◂ 부위 다시</button>
-      <div class="par-block">
-        <div class="par-block-h"><span class="seq">3 / 3</span><span class="ttl">어떤 증상이 있나요?</span></div>
-        <div class="par-sub" style="text-align:left; margin-bottom:14px;">해당하는 항목을 모두 골라주세요 (여러 개 선택 가능)</div>
-        <div class="par-symptoms" id="par-sym-list"></div>
-        <div class="par-h" style="text-align:left; margin-bottom:6px; margin-top:18px; font-size:14px;">하실 말씀 있으세요? <span style="font-weight:500; font-size:11.5px; color:var(--txt-d);">(선택)</span></div>
-        <textarea class="par-free" id="par-free-memo" placeholder="예: 작년 여름부터 증상 시작, 베란다 쪽이 특히 심해요"></textarea>
-        <div class="par-cta-row">
-          <button class="par-cta" id="par-go-diag">길잡이 진단 보기 →</button>
+        <div class="par-screen" data-screen="manual1">
+          <button class="par-back" data-back="entry">◂ 처음으로</button>
+          <div class="par-block">
+            <div class="par-block-h"><span class="seq">1 / 3</span><span class="ttl">어떤 건물이세요?</span></div>
+            <div class="par-cards" id="par-bld-cards"></div>
+          </div>
         </div>
-      </div>
-    </div>
-    <div class="par-screen" data-screen="diagnosis">
-      <button class="par-back" id="par-back-diag">◂ 입력 다시</button>
-      <div class="par-block">
-        <div class="par-block-h"><span class="seq">길잡이 진단</span><span class="ttl">왜 이런 일이 생긴 걸까요?</span></div>
-        <div class="par-diag-h" id="par-diag-h"></div>
-        <ol class="par-points" id="par-diag-points"></ol>
-      </div>
-      <div class="par-cta-row">
-        <button class="par-cta" id="par-go-sol">이렇게 해결하세요 →</button>
-      </div>
-    </div>
-    <div class="par-screen" data-screen="solution">
-      <button class="par-back" data-back="diagnosis">◂ 진단으로</button>
-      <div class="par-method">
-        <div class="code" id="par-sol-code"></div>
-        <h3 id="par-sol-name"></h3>
-        <div class="summ" id="par-sol-summary"></div>
-        <div class="principles" id="par-sol-principles"></div>
-        <div class="par-evidence" id="par-sol-evidence"></div>
-      </div>
-      <div id="par-sol-products-wrap"></div>
-      <div class="par-final-cta">
-        <a class="big" id="par-buy-package" href="#" target="_blank" rel="noopener">🛒 패키지 한 번에 구매하기</a>
-        <a class="alt" id="par-consult" href="#" target="_blank" rel="noopener">💬 시공 의뢰·상담</a>
-      </div>
-      <div class="par-cta-row" style="margin-top:18px;">
-        <button class="par-cta-ghost" id="par-restart">↻ 다른 고민 물어보기</button>
+        <div class="par-screen" data-screen="manual2">
+          <button class="par-back" data-back="manual1">◂ 건물 다시</button>
+          <div class="par-block">
+            <div class="par-block-h"><span class="seq">2 / 3</span><span class="ttl">어디가 문제인가요?</span></div>
+            <div class="par-cards" id="par-sur-cards"></div>
+          </div>
+        </div>
+        <div class="par-screen" data-screen="manual3">
+          <button class="par-back" data-back="manual2">◂ 부위 다시</button>
+          <div class="par-block">
+            <div class="par-block-h"><span class="seq">3 / 3</span><span class="ttl">어떤 증상이 있나요?</span></div>
+            <div class="par-sub" style="text-align:left; margin-bottom:14px;">해당하는 항목을 모두 골라주세요 (여러 개 선택 가능)</div>
+            <div class="par-symptoms" id="par-sym-list"></div>
+            <div class="par-h" style="text-align:left; margin-bottom:6px; margin-top:18px; font-size:14px;">하실 말씀 있으세요? <span style="font-weight:500; font-size:11.5px; color:var(--txt-d);">(선택)</span></div>
+            <textarea class="par-free" id="par-free-memo" placeholder="예: 작년 여름부터 증상 시작, 베란다 쪽이 특히 심해요"></textarea>
+            <div class="par-cta-row">
+              <button class="par-cta" id="par-go-diag">길잡이 진단 보기 →</button>
+            </div>
+          </div>
+        </div>
+        <div class="par-screen" data-screen="diagnosis">
+          <button class="par-back" id="par-back-diag">◂ 입력 다시</button>
+          <div class="par-block">
+            <div class="par-block-h"><span class="seq">길잡이 진단</span><span class="ttl">왜 이런 일이 생긴 걸까요?</span></div>
+            <div class="par-diag-h" id="par-diag-h"></div>
+            <ol class="par-points" id="par-diag-points"></ol>
+          </div>
+          <div class="par-cta-row">
+            <button class="par-cta" id="par-go-sol">이렇게 해결하세요 →</button>
+          </div>
+        </div>
+        <div class="par-screen" data-screen="solution">
+          <button class="par-back" data-back="diagnosis">◂ 진단으로</button>
+          <div class="par-method">
+            <div class="code" id="par-sol-code"></div>
+            <h3 id="par-sol-name"></h3>
+            <div class="summ" id="par-sol-summary"></div>
+            <div class="principles" id="par-sol-principles"></div>
+            <div class="par-evidence" id="par-sol-evidence"></div>
+          </div>
+          <div id="par-sol-products-wrap"></div>
+          <div class="par-final-cta">
+            <a class="big" id="par-buy-package" href="#" target="_blank" rel="noopener">🛒 패키지 한 번에 구매하기</a>
+            <a class="alt" id="par-consult" href="#" target="_blank" rel="noopener">💬 시공 의뢰·상담</a>
+          </div>
+          <div class="par-cta-row" style="margin-top:18px;">
+            <button class="par-cta-ghost" id="par-restart">↻ 다른 고민 물어보기</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -305,10 +351,10 @@ var BLDS=[{id:'apt',ic:'🏢',name:'아파트 (고층)',desc:'8층 이상 공동
 var SURFS=[{id:'roof',ic:'🏠',name:'옥상·지붕',desc:'슬라브, 슁글, 기와, 칼라강판'},{id:'wall',ic:'🧱',name:'외벽',desc:'균열, 도장, 백화'},{id:'parking',ic:'🅿️',name:'지하 주차장',desc:'바닥, 벽체, 천장'},{id:'balcony',ic:'🏡',name:'발코니·베란다',desc:'바닥, 벽, 배수'},{id:'drain',ic:'💧',name:'배수구·배관',desc:'옥상 드레인, 빗물받이'},{id:'road',ic:'🛣️',name:'단지내 도로',desc:'주차장, 도로 균열·포트홀'},{id:'underg',ic:'🕳️',name:'지하실·수조',desc:'배면 누수, 곰팡이'},{id:'etc',ic:'📐',name:'기타',desc:'분류가 어려운 경우'}];
 var SYMPS=['누수','균열','박리','부식','강풍 탈락','마모','미끄럼','곰팡이','백화','단차'];
 var PROFILES=[
-{keys:{surf:['drain']},qText:'배수구 쪽에서 물이 새서 누수가 생겼어요.',diagH:'배수구 부식 — <span class="accent">물이 자주 닿아서</span> 생긴 문제예요',diagPoints:['배수구는 비·눈·결로 등 <b>물이 가장 자주 닿는</b> 곳이에요.','오랫동안 물에 노출되면 콘크리트와 금속이 <b>녹슬고 약해집니다</b>.','배수가 막히면 고인 물이 <b>슬라브 균열을 더 빨리 만들어요</b>.','결국 배수구 → 슬라브 균열 → 천장 누수까지 진행돼요.'],sol:{code:'METHOD-149',name:'옥상배관방수트랩 공법',summary:'배수구를 일체화 방수트랩으로 바꿔서 부식과 누수를 한 번에 해결합니다.',principles:['배수구 주변 콘크리트와 트랩을 한 덩어리로 시공','특수 방수재로 이음부를 완전히 막음','배수 효율은 그대로, 부식만 차단','시공 후 정기 점검 가이드 함께 제공'],evidence:[{lbl:'시방서',val:'No.149',src:'POUR솔루션'},{lbl:'시공 사례',val:'700+',unit:'단지',src:'전국'}],products:[{role:'CORE',name:'POUR 방수트랩 일체형',price:'180,000',img:'https://placehold.co/300x300/F97316/fff?text=DRAIN',url:'https://www.pourstore.net/product/drain-trap'},{role:'BOND',name:'POUR하이퍼티 (608% 신장)',price:'68,000',img:'https://placehold.co/300x300/F97316/fff?text=HYPER',url:'https://www.pourstore.net/product/hyper-t'},{role:'FINISH',name:'POUR코트재 마감',price:'95,000',img:'https://placehold.co/300x300/F97316/fff?text=COAT',url:'https://www.pourstore.net/product/coat'}],packageUrl:'https://www.pourstore.net/category/drain-package',consultUrl:'https://www.poursolution.net/163'}},
+{keys:{surf:['drain']},qText:'배수구 쪽에서 물이 새서 누수가 생겼어요.',diagH:'배수구 부식 — <span class="accent">물이 자주 닿아서</span> 생긴 문제예요',diagPoints:['배수구는 비·눈·결로 등 <b>물이 가장 자주 닿는</b> 곳이에요.','오랫동안 물에 노출되면 콘크리트와 금속이 <b>녹슬고 약해집니다</b>.','배수가 막히면 고인 물이 <b>슬라브 균열을 더 빨리 만들어요</b>.','결국 배수구 → 슬라브 균열 → 천장 누수까지 진행돼요.'],sol:{code:'METHOD-149',name:'옥상배관방수트랩 공법',summary:'배수구를 일체화 방수트랩으로 바꿔서 부식과 누수를 한 번에 해결합니다.',principles:['배수구 주변 콘크리트와 트랩을 한 덩어리로 시공','특수 방수재로 이음부를 완전히 막음','배수 효율은 그대로, 부식만 차단','시공 후 정기 점검 가이드 함께 제공'],evidence:[{lbl:'시방서',val:'No.149',src:'POUR솔루션'},{lbl:'시공 사례',val:'700+',unit:'단지',src:'전국'}],products:[{role:'CORE',name:'POUR 방수트랩 일체형',price:'180,000',img:'https://placehold.co/300x300/F97316/fff?text=DRAIN',url:'https://www.pourstore.net/product/drain-trap'},{role:'BOND',name:'POUR하이퍼티',price:'68,000',img:'https://placehold.co/300x300/F97316/fff?text=HYPER',url:'https://www.pourstore.net/product/hyper-t'},{role:'FINISH',name:'POUR코트재 마감',price:'95,000',img:'https://placehold.co/300x300/F97316/fff?text=COAT',url:'https://www.pourstore.net/product/coat'}],packageUrl:'https://www.pourstore.net/category/drain-package',consultUrl:'https://www.poursolution.net/163'}},
 {keys:{bld:['apt'],surf:['roof'],symp:['강풍 탈락']},qText:'고층 아파트 지붕 슁글이 자꾸 떨어져요.',diagH:'슁글의 본래 용도 — <span class="accent">미국 저층 목조주택</span>용이었어요',diagPoints:['아스팔트 슁글은 원래 <b>미국 저층 목조주택의 미관용</b> 마감재예요.','국내 고층 아파트에 쓰면 <b>강풍에 쉽게 떨어져요</b>.','풍속 30m/s 이상이면 떨어지기 시작 → 추락·누수 위험이 같이 와요.','단순 재부착이 아니라 <b>건물과 한 덩어리로 만드는 방식</b>이 필요해요.'],sol:{code:'METHOD-128',name:'복합시트방수공법',summary:'시트와 도료로 슁글·슬라브를 완전히 일체화시켜 떨어지는 것을 막고 방수까지 같이 해결합니다.',principles:['슁글 위에 POUR슈퍼복합압축시트 부착','도료로 시트·슁글·슬라브를 한 덩어리로','POUR HOOKER 특허로 후레싱 단단히 고정','6단계 방수 공정'],evidence:[{lbl:'인장강도',val:'11.4',unit:'N/mm²',src:'KTR · 타사 10배'},{lbl:'시방서',val:'No.128',src:'POUR솔루션'}],products:[{role:'CORE',name:'POUR슈퍼복합압축시트',price:'450,000',img:'https://placehold.co/300x300/F97316/fff?text=SHEET',url:'https://www.pourstore.net/product/composite-sheet'},{role:'BOND',name:'POUR코트재',price:'280,000',img:'https://placehold.co/300x300/F97316/fff?text=COAT',url:'https://www.pourstore.net/product/coat'},{role:'FIX',name:'POUR HOOKER',price:'120,000',img:'https://placehold.co/300x300/F97316/fff?text=HOOKER',url:'https://www.pourstore.net/product/hooker'}],packageUrl:'https://www.pourstore.net/category/shingle-package',consultUrl:'https://www.poursolution.net/163'}},
 {keys:{surf:['roof']},qText:'옥상 슬라브에서 물이 새고 콘크리트에 잔금이 많아요.',diagH:'슬라브 노후화 — <span class="accent">콘크리트가 늙어가는 중</span>이에요',diagPoints:['시간이 지나면 콘크리트가 <b>공기와 반응해 약해져요</b>.','안에 있는 철근이 녹슬며 <b>균열·박리</b>가 빨라집니다.','단순 도장만으로는 1~2년 안에 다시 똑같이 됩니다.','<b>바탕면 강화 + 듀얼 방수 + 환기 처리</b>가 함께 필요해요.'],sol:{code:'METHOD-132',name:'슬라브 듀얼강화방수공법',summary:'바탕면 강화부터 듀얼복합시트, 페이퍼팬벤트 환기, 코트재 마감까지 6가지를 한 번에 처리합니다.',principles:['POUR모체강화함침 — 늙은 콘크리트 강화','듀얼복합시트 + 슈퍼복합압축시트 이중 방수','POUR페이퍼팬벤트로 내부 습기 자연 배출','POUR코트재 마감 — 일사반사율 91.8%'],evidence:[{lbl:'인장강도',val:'5.8',unit:'N/mm²',src:'KTR · KS 4배'},{lbl:'중성화',val:'0.3',unit:'mm',src:'KTR'}],products:[{role:'BASE',name:'POUR모체강화함침',price:'180,000',img:'https://placehold.co/300x300/F97316/fff?text=BASE',url:'https://www.pourstore.net/product/base'},{role:'CORE',name:'듀얼복합시트',price:'520,000',img:'https://placehold.co/300x300/F97316/fff?text=DUAL',url:'https://www.pourstore.net/product/dual-sheet'},{role:'VENT',name:'POUR페이퍼팬벤트',price:'95,000',img:'https://placehold.co/300x300/F97316/fff?text=VENT',url:'https://www.pourstore.net/product/vent'}],packageUrl:'https://www.pourstore.net/category/slab-package',consultUrl:'https://www.poursolution.net/163'}},
-{keys:{surf:['wall']},qText:'외벽에 균열이 생겨 도색을 다시 해야 할 것 같아요.',diagH:'외벽 균열 — <span class="accent">단순 도색은 1~2년이면 또 갈라져요</span>',diagPoints:['온도 차이로 콘크리트가 <b>늘어났다 줄었다</b>를 반복하며 미세 균열이 생겨요.','미세 균열로 빗물이 들어가면 → 철근이 녹슬고 → 도장이 떨어집니다.','단순 재도색은 표면만 가리는 거라 곧 다시 갈라져요.','균열 보수 + 탄성 도료 + 차열 처리가 함께 필요해요.'],sol:{code:'METHOD-139',name:'바인더+플러스 (고급형) 재도장',summary:'POUR하이퍼티로 균열을 봉합한 후 플러스 코트로 탄성·차열을 강화합니다.',principles:['POUR하이퍼티 — 600% 늘어나는 퍼티','플러스 코트로 탄성·차열·중성화 방지','중성화 깊이 0.0mm','아파트·관공서 대형 현장 권장'],evidence:[{lbl:'신장률',val:'519',unit:'%',src:'KTR · 5배'},{lbl:'중성화',val:'0.0',unit:'mm',src:'KTR'}],products:[{role:'CORE',name:'POUR하이퍼티 (608%)',price:'180,000',img:'https://placehold.co/300x300/F97316/fff?text=HYPER',url:'https://www.pourstore.net/product/hyper-t'},{role:'COAT',name:'POUR 플러스 코트',price:'320,000',img:'https://placehold.co/300x300/F97316/fff?text=PLUS',url:'https://www.pourstore.net/product/plus'},{role:'BIND',name:'POUR 바인더',price:'180,000',img:'https://placehold.co/300x300/F97316/fff?text=BINDER',url:'https://www.pourstore.net/product/binder'}],packageUrl:'https://www.pourstore.net/category/wall-package',consultUrl:'https://www.poursolution.net/163'}},
+{keys:{surf:['wall']},qText:'외벽에 균열이 생겨 도색을 다시 해야 할 것 같아요.',diagH:'외벽 균열 — <span class="accent">단순 도색은 1~2년이면 또 갈라져요</span>',diagPoints:['온도 차이로 콘크리트가 <b>늘어났다 줄었다</b>를 반복하며 미세 균열이 생겨요.','미세 균열로 빗물이 들어가면 → 철근이 녹슬고 → 도장이 떨어집니다.','단순 재도색은 표면만 가리는 거라 곧 다시 갈라져요.','균열 보수 + 탄성 도료 + 차열 처리가 함께 필요해요.'],sol:{code:'METHOD-139',name:'바인더+플러스 (고급형) 재도장',summary:'POUR하이퍼티로 균열을 봉합한 후 플러스 코트로 탄성·차열을 강화합니다.',principles:['POUR하이퍼티 — 600% 늘어나는 퍼티','플러스 코트로 탄성·차열·중성화 방지','중성화 깊이 0.0mm','아파트·관공서 대형 현장 권장'],evidence:[{lbl:'신장률',val:'519',unit:'%',src:'KTR · 5배'},{lbl:'중성화',val:'0.0',unit:'mm',src:'KTR'}],products:[{role:'CORE',name:'POUR하이퍼티',price:'180,000',img:'https://placehold.co/300x300/F97316/fff?text=HYPER',url:'https://www.pourstore.net/product/hyper-t'},{role:'COAT',name:'POUR 플러스 코트',price:'320,000',img:'https://placehold.co/300x300/F97316/fff?text=PLUS',url:'https://www.pourstore.net/product/plus'},{role:'BIND',name:'POUR 바인더',price:'180,000',img:'https://placehold.co/300x300/F97316/fff?text=BINDER',url:'https://www.pourstore.net/product/binder'}],packageUrl:'https://www.pourstore.net/category/wall-package',consultUrl:'https://www.poursolution.net/163'}},
 {keys:{surf:['parking']},qText:'지하주차장 바닥이 갈라지고 페인트가 벗겨져요.',diagH:'에폭시 도장 노후 — <span class="accent">차량 하중과 결로</span>가 원인이에요',diagPoints:['차량이 반복해 다니며 도장면이 <b>마모돼요</b>.','결로·습기가 들어가면 바탕면이 <b>박리</b>됩니다.','소음·미세분진이 발생하고 미관도 나빠져요.','<b>마모에 강하고 미끄럽지 않은</b> 도장이 필요해요.'],sol:{code:'METHOD-125',name:'에폭시 + 엠보라이닝 도장',summary:'압축강도 85.9N/mm²의 고강도 에폭시 + 엠보라이닝.',principles:['바탕면 면처리 + 프라이머','에폭시 본도장 — 압축강도 85.9N/mm²','엠보라이닝 — 미끄럼 방지','내마모성 76mg'],evidence:[{lbl:'압축강도',val:'85.9',unit:'N/mm²',src:'KTR'},{lbl:'부착강도',val:'2.3',unit:'MPa',src:'KTR'},{lbl:'내마모',val:'76',unit:'mg',src:'KTR'}],products:[{role:'PRIME',name:'POUR 에폭시 프라이머',price:'140,000',img:'https://placehold.co/300x300/F97316/fff?text=PRIMER',url:'https://www.pourstore.net/product/epoxy-primer'},{role:'CORE',name:'POUR 에폭시 본도장',price:'380,000',img:'https://placehold.co/300x300/F97316/fff?text=EPOXY',url:'https://www.pourstore.net/product/epoxy'},{role:'TOP',name:'엠보라이닝 코트',price:'220,000',img:'https://placehold.co/300x300/F97316/fff?text=EMBO',url:'https://www.pourstore.net/product/embo'}],packageUrl:'https://www.pourstore.net/category/parking-package',consultUrl:'https://www.poursolution.net/168'}},
 {keys:{surf:['underg']},qText:'지하실 벽에서 물이 스며 나오고 곰팡이가 생겨요.',diagH:'지하 배면 누수 — <span class="accent">표면 처리만으로는 못 막아요</span>',diagPoints:['지하는 흙과 지하수가 콘크리트 <b>뒷면에서 밀려옵니다</b>.','내부 표면 도장은 곧 부풀어 떨어집니다.','아크릴 방수재를 <b>초고압으로 주입</b>해 새 방수층을 만들어야 해요.','국토교통부 지정 건설신기술로 검증된 방법이에요.'],sol:{code:'METHOD-137',name:'아크릴배면차수공법',summary:'2액형 아크릴 방수재를 초고압으로 콘크리트 배면에 주입해 새 방수층을 만듭니다.',principles:['구조물 외부에서 직접 닿지 않아도 가능','초고압 주입으로 균열·공극까지 채움','국토교통부 건설신기술 1026호','지하주차장·수조·정수장 적용'],evidence:[{lbl:'건설신기술',val:'1026',unit:'호',src:'국토교통부'}],products:[{role:'CORE',name:'2액형 아크릴 방수재',price:'380,000',img:'https://placehold.co/300x300/F97316/fff?text=ACRYLIC',url:'https://www.pourstore.net/product/acrylic'},{role:'EQUIP',name:'초고압 주입 시공',price:'견적',img:'https://placehold.co/300x300/F97316/fff?text=PUMP',url:'https://www.poursolution.net/137'}],packageUrl:'https://www.pourstore.net/category/underground-package',consultUrl:'https://www.poursolution.net/168'}},
 {keys:{surf:['road']},qText:'단지 내 도로 아스팔트가 갈라지고 구멍이 생겼어요.',diagH:'아스팔트 노후 — <span class="accent">층 사이가 분리</span>되었어요',diagPoints:['시간이 지나면 아스팔트는 <b>유연성을 잃고 갈라져요</b>.','균열로 빗물이 들어가면 <b>포트홀</b>로 발전합니다.','단순 메우기는 6개월 안에 똑같이 됩니다.','<b>POUR아스콘 + 균열보수</b> 통합 시공이 필요해요.'],sol:{code:'METHOD-167',name:'POUR아스콘 도로포장공법',summary:'아스팔트 균열 보수와 도로포장을 한 번에 처리합니다.',principles:['균열 부위 절단 후 청소','POUR 아스콘 채움재로 균열 봉합','신규 아스팔트 포장','단지내 도로·주차장 적용'],evidence:[{lbl:'시방서',val:'No.167',src:'POUR솔루션'}],products:[{role:'PATCH',name:'POUR 아스팔트균열보수재',price:'120,000',img:'https://placehold.co/300x300/F97316/fff?text=PATCH',url:'https://www.pourstore.net/product/asphalt-patch'},{role:'CORE',name:'POUR 아스콘',price:'견적',img:'https://placehold.co/300x300/F97316/fff?text=ASCON',url:'https://www.poursolution.net/167'}],packageUrl:'https://www.pourstore.net/category/road-package',consultUrl:'https://www.poursolution.net/163'}},
@@ -316,7 +362,13 @@ var PROFILES=[
 ];
 var state={screen:'entry',photos:[],detected:null,choice:{bld:null,surf:null,syms:[],memo:''}};
 var root=document.querySelector('.par');
-function show(name){state.screen=name;root.querySelectorAll('.par-screen').forEach(function(s){s.classList.toggle('active',s.dataset.screen===name);});var stepIdx=({entry:1,photo:2,analyzing:2,'photo-result':2,manual1:2,manual2:2,manual3:2,diagnosis:3,solution:4})[name]||1;root.querySelectorAll('.par-stepper .stp').forEach(function(el,i){el.classList.remove('active','done');if(i+1<stepIdx)el.classList.add('done');else if(i+1===stepIdx)el.classList.add('active');});try{window.scrollTo({top:root.offsetTop-20,behavior:'smooth'});}catch(e){}}
+var modalMask=root.querySelector('#par-modal-mask'),modal=root.querySelector('#par-modal');
+function openModal(){modalMask.classList.add('open');setTimeout(function(){modal.classList.add('open');},10);document.body.style.overflow='hidden';}
+function closeModal(){modal.classList.remove('open');setTimeout(function(){modalMask.classList.remove('open');document.body.style.overflow='';},300);}
+root.querySelector('#par-open-modal').addEventListener('click',openModal);
+root.querySelector('#par-close-modal').addEventListener('click',closeModal);
+modalMask.addEventListener('click',function(e){if(e.target===modalMask)closeModal();});
+function show(name){state.screen=name;root.querySelectorAll('.par-screen').forEach(function(s){s.classList.toggle('active',s.dataset.screen===name);});var stepIdx=({entry:1,photo:2,analyzing:2,'photo-result':2,manual1:2,manual2:2,manual3:2,diagnosis:3,solution:4})[name]||1;root.querySelectorAll('.par-stepper .stp').forEach(function(el,i){el.classList.remove('active','done');if(i+1<stepIdx)el.classList.add('done');else if(i+1===stepIdx)el.classList.add('active');});var body=root.querySelector('.par-modal-body');if(body)body.scrollTop=0;}
 root.querySelectorAll('[data-go]').forEach(function(el){el.addEventListener('click',function(){show(el.dataset.go);});});
 root.querySelectorAll('[data-back]').forEach(function(el){el.addEventListener('click',function(){show(el.dataset.back);});});
 var uploadZone=root.querySelector('#par-upload-zone'),galleryInput=root.querySelector('#par-file-gallery'),cameraInput=root.querySelector('#par-file-camera'),thumbsEl=root.querySelector('#par-thumbs'),thumbInfo=root.querySelector('#par-thumb-info'),analyzeBtn=root.querySelector('#par-analyze-btn');
@@ -352,7 +404,7 @@ show('entry');
     { id: 'main', name: '메인 페이지', file: 'index.html', sections: [
       mkSec('메인 배너', '', '슬라이드 배너 — 균열·방수·코팅 자재 세트 등 메인 비주얼'),
       mkSec('카테고리 항목 버튼', '', '제품구매·패키지구매·시공상담·시공가이드·쇼룸·부자재·체험교육·파트너사·고객센터 (8~9개 아이콘)'),
-      mkSec('AI 맞춤 자재추천', SEED_AI_RECOMMEND_HTML, 'POUR 길잡이 — 라이트 오렌지 톤, 사진 진단 + 5단계 흐름 + 카페24 연결 (v2)', 'wip'),
+      mkSec('AI 맞춤 자재추천', SEED_AI_RECOMMEND_HTML, 'POUR 길잡이 — 메인은 깔끔한 트리거, 클릭 시 하단 슬라이드업 모달로 5단계 진단 (v3)', 'wip'),
       mkSec('인기 추천 상품', '', '베스트셀러 5종 카드'),
       mkSec('신상품 (안전용품·부자재)', '', 'NEW ARRIVALS — 이달의 안전용품·부자재 등 서브 자재 전시'),
       mkSec('서브카테고리 상품', '', '제비스코 라인 + 인테리어 (DREAM COAT + GROHOME)'),

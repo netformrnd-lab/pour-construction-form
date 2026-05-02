@@ -1397,38 +1397,104 @@ show('entry');
   .ppr2-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:14px; }
   .ppr2-head .left { flex:1; min-width:240px; }
   .ppr2-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
-  .ppr2-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .ppr2-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:6px; }
+  .ppr2-head p { font-size:13.5px; color:#6B7280; }
   .ppr2-head .more { font-size:13px; font-weight:700; color:#EA580C; text-decoration:none; padding:8px 14px; border:1px solid #FED7AA; border-radius:999px; transition:all .25s; }
   .ppr2-head .more:hover { background:#FFF7ED; }
-  .ppr2-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:18px; }
-  .ppr2-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; overflow:hidden; transition:all .3s; text-decoration:none; }
-  .ppr2-card:hover { transform:translateY(-4px); box-shadow:0 20px 48px rgba(15,31,92,.1); border-color:#FED7AA; }
-  .ppr2-thumb { aspect-ratio:1/1; background-size:cover; background-position:center; position:relative; }
-  .ppr2-thumb .rank { position:absolute; top:12px; left:12px; width:28px; height:28px; border-radius:8px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; font-family:'Bebas Neue',sans-serif; font-size:15px; font-weight:900; display:grid; place-items:center; box-shadow:0 4px 12px rgba(249,115,22,.4); letter-spacing:.5px; }
-  .ppr2-info { padding:16px; }
-  .ppr2-info .cat { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
-  .ppr2-info .name { font-size:14px; font-weight:800; color:#0F1F5C; margin-bottom:8px; line-height:1.4; letter-spacing:-.3px; min-height:36px; }
-  .ppr2-info .price { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .ppr2-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:18px; }
+  .ppr2-card { background:#fff; border:1.5px solid #F3F4F6; border-radius:20px; overflow:hidden; transition:all .3s; text-decoration:none; display:flex; flex-direction:column; }
+  .ppr2-card:hover { transform:translateY(-4px); box-shadow:0 22px 48px rgba(15,31,92,.1); border-color:#FED7AA; }
+  .ppr2-thumb { aspect-ratio:5/4; background-size:cover; background-position:center; position:relative; }
+  .ppr2-thumb::after { content:''; position:absolute; inset:0; background:linear-gradient(0deg, rgba(15,31,92,.55) 0%, transparent 50%); }
+  .ppr2-thumb .rank { position:absolute; top:12px; left:12px; width:32px; height:32px; border-radius:9px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; font-family:'Bebas Neue',sans-serif; font-size:17px; font-weight:900; display:grid; place-items:center; box-shadow:0 4px 14px rgba(249,115,22,.45); letter-spacing:.5px; z-index:1; }
+  .ppr2-thumb .tier { position:absolute; top:12px; right:12px; padding:5px 11px; background:rgba(15,31,92,.92); color:#fff; font-size:10.5px; font-weight:900; border-radius:6px; letter-spacing:.4px; backdrop-filter:blur(4px); z-index:1; }
+  .ppr2-thumb .tier.full { background:linear-gradient(135deg,#F97316,#EA580C); }
+  .ppr2-thumb .compose { position:absolute; bottom:10px; left:12px; right:12px; display:flex; flex-wrap:wrap; gap:4px; z-index:1; }
+  .ppr2-thumb .compose span { padding:3px 8px; background:rgba(255,255,255,.92); color:#0F1F5C; font-size:10px; font-weight:800; border-radius:5px; letter-spacing:-.2px; backdrop-filter:blur(4px); }
+  .ppr2-info { padding:16px 18px; flex:1; display:flex; flex-direction:column; }
+  .ppr2-info .area { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
+  .ppr2-info .name { font-size:15px; font-weight:900; color:#0F1F5C; margin-bottom:6px; line-height:1.35; letter-spacing:-.3px; }
+  .ppr2-info .desc { font-size:11.5px; color:#6B7280; line-height:1.55; margin-bottom:12px; min-height:34px; }
+  .ppr2-info .price { display:flex; align-items:baseline; gap:8px; margin-bottom:12px; }
   .ppr2-info .sale { font-size:11px; font-weight:800; color:#DC2626; }
-  .ppr2-info .now { font-size:17px; font-weight:900; color:#0F1F5C; letter-spacing:-.3px; }
-  .ppr2-info .meta { display:flex; align-items:center; gap:6px; font-size:11px; color:#9CA3AF; font-weight:700; }
+  .ppr2-info .now { font-size:18px; font-weight:900; color:#0F1F5C; letter-spacing:-.3px; }
+  .ppr2-info .meta { display:flex; align-items:center; gap:6px; font-size:11px; color:#9CA3AF; font-weight:700; margin-bottom:12px; }
   .ppr2-info .star { color:#F59E0B; }
+  .ppr2-info .footer { display:flex; gap:6px; align-items:center; padding-top:12px; border-top:1px solid #F3F4F6; flex-wrap:wrap; }
+  .ppr2-info .self { padding:4px 9px; font-size:10px; font-weight:800; border-radius:5px; }
+  .ppr2-info .self.ok { background:#ECFDF5; border:1px solid #A7F3D0; color:#059669; }
+  .ppr2-info .self.pro { background:#FEE2E2; border:1px solid #FCA5A5; color:#DC2626; }
+  .ppr2-info .media { display:inline-flex; align-items:center; gap:5px; font-size:10.5px; color:#6B7280; font-weight:700; padding:4px 9px; background:#FFFBF5; border:1px solid #FED7AA; border-radius:5px; }
+  .ppr2-info .media.video { color:#EA580C; }
   @media (max-width:640px) { .ppr2-head h2 { font-size:22px; } }
   </style>
   <section class="ppr2">
     <div class="ppr2-inner">
       <div class="ppr2-head">
         <div class="left">
-          <div class="kicker">⭐ BEST SELLERS</div>
-          <h2>이 달의 베스트 상품</h2>
+          <div class="kicker">⭐ BEST PACKAGES</div>
+          <h2>이 달의 베스트 패키지</h2>
+          <p>가장 많이 선택된 R&D 시너지 조합 패키지 — 시공 영상·설명서 포함</p>
         </div>
-        <a class="more" href="https://www.pourstore.net/best">전체 보기 →</a>
+        <a class="more" href="https://www.pourstore.net/best">전체 패키지 →</a>
       </div>
       <div class="ppr2-grid">
-        <a class="ppr2-card" href="#"><div class="ppr2-thumb" style="background-image:url('https://placehold.co/400x400/F97316/fff?text=POUR+COAT')"><div class="rank">1</div></div><div class="ppr2-info"><div class="cat">방수재 · 코팅</div><div class="name">POUR 코트재 (5kg)</div><div class="price"><span class="sale">15%</span><span class="now">68,000원</span></div><div class="meta"><span class="star">★</span><span>4.9</span><span>·</span><span>리뷰 412</span></div></div></a>
-        <a class="ppr2-card" href="#"><div class="ppr2-thumb" style="background-image:url('https://placehold.co/400x400/EA580C/fff?text=HYPER+T')"><div class="rank">2</div></div><div class="ppr2-info"><div class="cat">균열 보수</div><div class="name">POUR 하이퍼티 고탄성 퍼티</div><div class="price"><span class="sale">10%</span><span class="now">42,000원</span></div><div class="meta"><span class="star">★</span><span>4.8</span><span>·</span><span>리뷰 287</span></div></div></a>
-        <a class="ppr2-card" href="#"><div class="ppr2-thumb" style="background-image:url('https://placehold.co/400x400/0F1F5C/fff?text=NEEDLE+PUNCH')"><div class="rank">3</div></div><div class="ppr2-info"><div class="cat">방수재 · 시트</div><div class="name">슈퍼복합압축시트 (1m×10m)</div><div class="price"><span class="sale">8%</span><span class="now">128,000원</span></div><div class="meta"><span class="star">★</span><span>4.9</span><span>·</span><span>리뷰 196</span></div></div></a>
-        <a class="ppr2-card" href="#"><div class="ppr2-thumb" style="background-image:url('https://placehold.co/400x400/059669/fff?text=POWDER')"><div class="rank">4</div></div><div class="ppr2-info"><div class="cat">균열 보수</div><div class="name">탄성강화 파우더 (20kg)</div><div class="price"><span class="sale">12%</span><span class="now">52,000원</span></div><div class="meta"><span class="star">★</span><span>4.7</span><span>·</span><span>리뷰 158</span></div></div></a>
+        <a class="ppr2-card" href="#">
+          <div class="ppr2-thumb" style="background-image:url('https://placehold.co/500x400/F97316/fff?text=SLAB+FULL')">
+            <div class="rank">1</div><div class="tier full">⭐ 풀패키지</div>
+            <div class="compose"><span>코트재</span><span>시트</span><span>벤트</span><span>트랩</span><span>하이퍼티</span></div>
+          </div>
+          <div class="ppr2-info">
+            <div class="area">슬라브 · 풀패키지</div>
+            <div class="name">옥상 슬라브 풀세트 — 듀얼강화방수</div>
+            <div class="desc">누수·중성화·결로 동시 해결 — 약 50평형 기준</div>
+            <div class="price"><span class="sale">22%</span><span class="now">240,000원~</span></div>
+            <div class="meta"><span class="star">★</span><span>4.9</span><span>·</span><span>리뷰 412</span></div>
+            <div class="footer"><span class="self ok">✅ 셀프 OK</span><span class="media video">▶ 영상 5편</span><span class="media">📄 PDF</span></div>
+          </div>
+        </a>
+        <a class="ppr2-card" href="#">
+          <div class="ppr2-thumb" style="background-image:url('https://placehold.co/500x400/EA580C/fff?text=PAINT+FULL')">
+            <div class="rank">2</div><div class="tier full">⭐ 풀패키지</div>
+            <div class="compose"><span>바인더</span><span>플러스</span><span>하이퍼티</span><span>HOOKER</span></div>
+          </div>
+          <div class="ppr2-info">
+            <div class="area">외벽 재도장 · 풀패키지</div>
+            <div class="name">외벽 균열 보수 + 재도장 풀세트</div>
+            <div class="desc">균열 보수부터 마감 도장까지 일괄 — 고급형</div>
+            <div class="price"><span class="sale">15%</span><span class="now">320,000원~</span></div>
+            <div class="meta"><span class="star">★</span><span>4.8</span><span>·</span><span>리뷰 287</span></div>
+            <div class="footer"><span class="self pro">👷 시공연결</span><span class="media video">▶ 영상 4편</span><span class="media">📄 PDF</span></div>
+          </div>
+        </a>
+        <a class="ppr2-card" href="#">
+          <div class="ppr2-thumb" style="background-image:url('https://placehold.co/500x400/0F1F5C/fff?text=BERANDA')">
+            <div class="rank">3</div><div class="tier">부분 패키지</div>
+            <div class="compose"><span>코트재</span><span>시트</span><span>하이퍼티</span></div>
+          </div>
+          <div class="ppr2-info">
+            <div class="area">베란다·배수로 · 부분</div>
+            <div class="name">베란다 누수 · 곰팡이 셀프 키트</div>
+            <div class="desc">베란다 + 배수로 보수 — 셀프 입문자 추천</div>
+            <div class="price"><span class="sale">10%</span><span class="now">128,000원~</span></div>
+            <div class="meta"><span class="star">★</span><span>4.9</span><span>·</span><span>리뷰 196</span></div>
+            <div class="footer"><span class="self ok">✅ 셀프 OK</span><span class="media video">▶ 영상 3편</span><span class="media">📄 PDF</span></div>
+          </div>
+        </a>
+        <a class="ppr2-card" href="#">
+          <div class="ppr2-thumb" style="background-image:url('https://placehold.co/500x400/059669/fff?text=PARKING')">
+            <div class="rank">4</div><div class="tier">부분 패키지</div>
+            <div class="compose"><span>에폭시</span><span>엠보라이닝</span><span>코트재</span></div>
+          </div>
+          <div class="ppr2-info">
+            <div class="area">지하주차장 · 부분</div>
+            <div class="name">지하주차장 바닥 보수 키트</div>
+            <div class="desc">에폭시 박락·미끄럼 — 약 30평 단위</div>
+            <div class="price"><span class="sale">12%</span><span class="now">156,000원~</span></div>
+            <div class="meta"><span class="star">★</span><span>4.7</span><span>·</span><span>리뷰 158</span></div>
+            <div class="footer"><span class="self ok">✅ 셀프 OK</span><span class="media video">▶ 영상 4편</span><span class="media">📄 PDF</span></div>
+          </div>
+        </a>
       </div>
     </div>
   </section>`;
@@ -3719,7 +3785,7 @@ show('entry');
     { id: 'products', name: '제품 소개', file: 'products.html', sections: [
       mkSec('부위별 패키지 네비', SEED_PR_NAV_HTML, '9개 부위 카드 (슬라브/슁글/기와/균열/재도장/칼라강판/배수로/주차장/이음부) + 라인 토글(아파트/저층) + HOT 배지', 'wip'),
       mkSec('패키지 등급 가이드', SEED_PR_TIER_HTML, '풀패키지(강력추천) / 부분 패키지 / 단순 코팅 3티어 — 각 카드에 시공 영상·설명서·코칭 표시', 'wip'),
-      mkSec('베스트 상품', SEED_PR_BEST_HTML, '랭크 뱃지 + 별점·리뷰수 + 할인율 — 매거진 카드 톤', 'wip'),
+      mkSec('베스트 패키지', SEED_PR_BEST_HTML, '4종 풀/부분 패키지 — 랭크·티어 배지 + 자재 조합 표시 + 셀프/시공연결 + 영상·PDF 인디케이터', 'wip'),
       mkSec('신제품', SEED_PR_NEW_HTML, '입고일 표시 + NEW 배지 + 할인 가격 표기', 'wip'),
       mkSec('카테고리별 제품 그리드', SEED_PR_GRID_HTML, '탭 필터 + 카테고리별 그룹(방수/도장/균열) — 각 5개 제품 진열', 'wip'),
       mkSec('시공 가이드 영상', SEED_PR_GUIDE_HTML, '피처 영상 1 + 미니 카드 4 — 매거진 레이아웃 (메인 동영상 가이드와 통일)', 'wip'),

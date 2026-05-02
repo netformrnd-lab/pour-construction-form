@@ -1002,6 +1002,2566 @@ show('entry');
 </section>`;
 
 
+  const SEED_AB_HERO_HTML = `<style>
+  .pab1 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pab1 { background:linear-gradient(180deg,#FFFBF5 0%,#FFF7ED 100%); padding:96px 18px 72px; position:relative; overflow:hidden; }
+  .pab1::before { content:''; position:absolute; top:-120px; right:-120px; width:520px; height:520px; background:radial-gradient(circle, rgba(249,115,22,.14) 0%, transparent 60%); border-radius:50%; pointer-events:none; }
+  .pab1::after { content:''; position:absolute; bottom:-100px; left:-60px; width:340px; height:340px; background:radial-gradient(circle, rgba(15,31,92,.06) 0%, transparent 60%); border-radius:50%; pointer-events:none; }
+  .pab1-inner { max-width:1100px; margin:0 auto; text-align:center; position:relative; z-index:1; }
+  .pab1-tag { display:inline-flex; align-items:center; gap:8px; padding:6px 14px; background:#fff; border:1px solid #FED7AA; color:#EA580C; border-radius:999px; font-size:11.5px; font-weight:800; letter-spacing:.8px; margin-bottom:22px; box-shadow:0 4px 12px rgba(249,115,22,.1); }
+  .pab1 h1 { font-size:48px; font-weight:900; color:#0F1F5C; line-height:1.2; margin-bottom:20px; letter-spacing:-1.4px; }
+  .pab1 h1 .accent { color:#F97316; }
+  .pab1-desc { font-size:16px; color:#4B5563; line-height:1.75; max-width:640px; margin:0 auto 40px; }
+  .pab1-stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:14px; max-width:880px; margin:0 auto; }
+  .pab1-stat { background:#fff; border-radius:18px; padding:24px 20px; border:1px solid #F3F4F6; box-shadow:0 6px 20px rgba(15,31,92,.06); transition:transform .25s; }
+  .pab1-stat:hover { transform:translateY(-4px); }
+  .pab1-stat .v { font-family:'Bebas Neue',sans-serif; font-size:36px; font-weight:900; color:#F97316; letter-spacing:.5px; line-height:1; }
+  .pab1-stat .l { font-size:12px; color:#6B7280; margin-top:8px; font-weight:700; letter-spacing:.3px; }
+  @media (max-width:640px) { .pab1 { padding:64px 18px 48px; } .pab1 h1 { font-size:30px; } .pab1-desc { font-size:14px; } .pab1-stat .v { font-size:28px; } }
+  </style>
+  <section class="pab1">
+    <div class="pab1-inner">
+      <span class="pab1-tag">⭐ POUR스토어 브랜드 스토리</span>
+      <h1>건축물 유지보수,<br/><span class="accent">기술과 친근함의 균형</span>으로</h1>
+      <p class="pab1-desc">POUR스토어는 R&D 기반 건축 자재 브랜드입니다.<br/>전문 시공자에게는 검증된 자재, 일반 사용자에게는 친근한 안내를 — 그 사이의 다리가 되겠습니다.</p>
+      <div class="pab1-stats">
+        <div class="pab1-stat"><div class="v">2,600,000+</div><div class="l">검증된 시공 세대</div></div>
+        <div class="pab1-stat"><div class="v">250+</div><div class="l">전문 파트너사</div></div>
+        <div class="pab1-stat"><div class="v">70+</div><div class="l">특허·인증</div></div>
+        <div class="pab1-stat"><div class="v">110+</div><div class="l">제품 라인업</div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_AB_ABOUT_HTML = `<style>
+  .pab2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pab2 { background:#fff; padding:80px 18px; }
+  .pab2-inner { max-width:1100px; margin:0 auto; display:grid; grid-template-columns:1fr 1.1fr; gap:48px; align-items:center; }
+  .pab2-img { aspect-ratio:4/5; background:linear-gradient(135deg,#FED7AA,#FB923C); border-radius:24px; position:relative; overflow:hidden; box-shadow:0 18px 48px rgba(249,115,22,.18); }
+  .pab2-img::before { content:'POUR'; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-8deg); font-family:'Bebas Neue',sans-serif; font-size:140px; font-weight:900; color:rgba(255,255,255,.22); letter-spacing:8px; }
+  .pab2-img .label { position:absolute; bottom:24px; left:24px; padding:8px 14px; background:#fff; border-radius:8px; font-size:11.5px; font-weight:800; color:#0F1F5C; box-shadow:0 6px 18px rgba(0,0,0,.12); }
+  .pab2-content .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:10px; }
+  .pab2-content h2 { font-size:32px; font-weight:900; color:#0F1F5C; line-height:1.25; margin-bottom:18px; letter-spacing:-1px; }
+  .pab2-content p { font-size:14.5px; color:#4B5563; line-height:1.85; margin-bottom:14px; }
+  .pab2-content p b { color:#0F1F5C; font-weight:800; }
+  .pab2-info { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-top:24px; padding-top:24px; border-top:1px solid #F3F4F6; }
+  .pab2-info .item { font-size:13px; }
+  .pab2-info .item .l { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:1px; margin-bottom:4px; }
+  .pab2-info .item .v { color:#0F1F5C; font-weight:700; line-height:1.5; }
+  @media (max-width:880px) { .pab2-inner { grid-template-columns:1fr; gap:32px; } .pab2-img { max-width:380px; margin:0 auto; aspect-ratio:1/1; } .pab2-img::before { font-size:90px; } .pab2-content h2 { font-size:24px; } }
+  </style>
+  <section class="pab2">
+    <div class="pab2-inner">
+      <div class="pab2-img"><span class="label">📍 본사 · 경기 평택</span></div>
+      <div class="pab2-content">
+        <div class="kicker">ABOUT US</div>
+        <h2>건축의 기본기를<br/>다시 쓰는 회사</h2>
+        <p>POUR스토어는 <b>방수·도장·균열 보수</b> 자재를 R&D부터 직접 만드는 회사입니다. 단순 유통사가 아닌 <b>제조·기술·시공 노하우</b>를 한 손에 갖춘 통합 브랜드.</p>
+        <p>고층 아파트에 적합하지 않은 자재가 시공되어 후일 더 큰 문제가 되는 것을 막기 위해, <b>국내 환경에 맞춘 자재</b>를 직접 개발하기 시작했습니다.</p>
+        <div class="pab2-info">
+          <div class="item"><div class="l">설립</div><div class="v">2018년</div></div>
+          <div class="item"><div class="l">본사</div><div class="v">경기 평택</div></div>
+          <div class="item"><div class="l">사업영역</div><div class="v">자재 R&D · 제조 · 유통</div></div>
+          <div class="item"><div class="l">미션</div><div class="v">건축 유지보수의 표준화</div></div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_AB_RD_HTML = `<style>
+  .pab3 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pab3 { background:#FFFBF5; padding:80px 18px; }
+  .pab3-inner { max-width:1200px; margin:0 auto; }
+  .pab3-head { text-align:center; margin-bottom:36px; }
+  .pab3-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pab3-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .pab3-head p { font-size:14px; color:#6B7280; max-width:560px; margin:0 auto; }
+  .pab3-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:14px; }
+  .pab3-card { background:#fff; border-radius:18px; padding:24px 22px; border:1px solid #F3F4F6; transition:all .25s; }
+  .pab3-card:hover { transform:translateY(-4px); box-shadow:0 18px 40px rgba(15,31,92,.1); border-color:#FED7AA; }
+  .pab3-card .icon { width:48px; height:48px; border-radius:12px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:24px; margin-bottom:14px; }
+  .pab3-card .name { font-size:15.5px; font-weight:800; color:#0F1F5C; margin-bottom:8px; letter-spacing:-.3px; }
+  .pab3-card .desc { font-size:12.5px; color:#6B7280; line-height:1.65; margin-bottom:12px; }
+  .pab3-card .spec { display:inline-block; padding:4px 10px; background:#FFFBF5; border:1px solid #FED7AA; color:#EA580C; font-size:10.5px; font-weight:800; border-radius:6px; letter-spacing:.3px; }
+  @media (max-width:640px) { .pab3-head h2 { font-size:24px; } }
+  </style>
+  <section class="pab3">
+    <div class="pab3-inner">
+      <div class="pab3-head">
+        <div class="kicker">CORE TECHNOLOGY · R&D</div>
+        <h2>POUR가 직접 만든 핵심 기술</h2>
+        <p>강남제비스코·서울과학기술대 연구진과 공동 개발한 R&D 기반 자재들</p>
+      </div>
+      <div class="pab3-grid">
+        <div class="pab3-card"><div class="icon">🧵</div><div class="name">슈퍼복합압축시트</div><div class="desc">니들펀칭 공정으로 섬유 내 공간을 형성, 도막 방수재와 시트 간 강력한 응결력 발현.</div><span class="spec">인장강도 11.4 N/mm² · 타사 10배</span></div>
+        <div class="pab3-card"><div class="icon">🛡️</div><div class="name">POUR 코트재</div><div class="desc">방수·단열·차열·중성화 방지를 한 자재로. KTR/KCL 공인시험으로 검증된 통합 코팅재.</div><span class="spec">KTR 인장강도 5.8 N/mm² · KS 4배</span></div>
+        <div class="pab3-card"><div class="icon">🪝</div><div class="name">POUR HOOKER (특허)</div><div class="desc">손상된 미장 마감면에도 시공 가능. 후레싱 탈락 방지 + 일체화를 동시에.</div><span class="spec">국내 특허 등록 · 저비용 고효율</span></div>
+        <div class="pab3-card"><div class="icon">💪</div><div class="name">탄성강화 파우더</div><div class="desc">마이크로 스틸 보강재 혼입 — 망치로 때려도 깨지지 않는 강도.</div><span class="spec">부착강도 1.5 N/mm² · 습윤 조건</span></div>
+        <div class="pab3-card"><div class="icon">🌊</div><div class="name">POUR 하이퍼티</div><div class="desc">600%급 초고신율 고탄성 퍼티. 미세 균열·구조 변형에 유연 대응.</div><span class="spec">SGS 신장률 608% · KS 2배</span></div>
+        <div class="pab3-card"><div class="icon">💨</div><div class="name">페이퍼팬벤트</div><div class="desc">콘크리트 내부 습기를 무동력으로 외부 배출 — 결로·들뜸 방지.</div><span class="spec">슬라브 듀얼강화방수 핵심 부품</span></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_AB_CERT_HTML = `<style>
+  .pab4 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pab4 { background:#fff; padding:80px 18px; }
+  .pab4-inner { max-width:1100px; margin:0 auto; }
+  .pab4-head { text-align:center; margin-bottom:32px; }
+  .pab4-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pab4-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
+  .pab4-head p { font-size:14px; color:#6B7280; }
+  .pab4-feature { background:linear-gradient(135deg,#FFF7ED,#FFEDD5); border-radius:24px; padding:36px 32px; margin-bottom:24px; border:1px solid #FED7AA; display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
+  .pab4-feature .badge { width:80px; height:80px; border-radius:50%; background:linear-gradient(135deg,#F97316,#EA580C); display:grid; place-items:center; flex-shrink:0; box-shadow:0 8px 20px rgba(249,115,22,.3); }
+  .pab4-feature .badge svg { width:42px; height:42px; fill:#fff; }
+  .pab4-feature .content { flex:1; min-width:240px; }
+  .pab4-feature .label { font-size:11px; font-weight:800; color:#EA580C; letter-spacing:1px; margin-bottom:5px; }
+  .pab4-feature h3 { font-size:22px; font-weight:900; color:#0F1F5C; margin-bottom:6px; letter-spacing:-.5px; }
+  .pab4-feature p { font-size:13px; color:#4B5563; line-height:1.65; }
+  .pab4-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px; }
+  .pab4-cert { background:#fff; border:1px solid #F3F4F6; border-radius:14px; padding:20px 18px; text-align:center; transition:all .25s; }
+  .pab4-cert:hover { transform:translateY(-3px); box-shadow:0 12px 28px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .pab4-cert .seal { width:54px; height:54px; margin:0 auto 12px; border-radius:50%; background:linear-gradient(135deg,#FFFBF5,#FFEDD5); border:2px solid #FED7AA; display:grid; place-items:center; font-family:'Bebas Neue',sans-serif; font-size:13px; color:#EA580C; font-weight:900; letter-spacing:.5px; }
+  .pab4-cert .name { font-size:13px; font-weight:800; color:#0F1F5C; margin-bottom:4px; }
+  .pab4-cert .org { font-size:11px; color:#6B7280; }
+  @media (max-width:640px) { .pab4-head h2 { font-size:24px; } .pab4-feature { padding:24px; } .pab4-feature h3 { font-size:18px; } }
+  </style>
+  <section class="pab4">
+    <div class="pab4-inner">
+      <div class="pab4-head">
+        <div class="kicker">CERTIFICATIONS · PATENTS</div>
+        <h2>인증·특허로 검증된 기술력</h2>
+        <p>국토교통부·KTR·KCL·SGS — 공인기관에서 인정받은 자재만 사용합니다</p>
+      </div>
+      <div class="pab4-feature">
+        <div class="badge"><svg viewBox="0 0 24 24"><path d="M12 2 4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3z"/></svg></div>
+        <div class="content">
+          <div class="label">국토교통부 지정</div>
+          <h3>건설신기술 1026호</h3>
+          <p>국내 최초 박공지붕 PVC 결합 방수공법 — 정부에서 검증한 신기술 공식 등록</p>
+        </div>
+      </div>
+      <div class="pab4-grid">
+        <div class="pab4-cert"><div class="seal">KTR</div><div class="name">한국화학융합시험연구원</div><div class="org">인장강도 · 부착강도</div></div>
+        <div class="pab4-cert"><div class="seal">KCL</div><div class="name">한국건설생활환경시험연구원</div><div class="org">일사반사율 · 차열성</div></div>
+        <div class="pab4-cert"><div class="seal">SGS</div><div class="name">SGS Korea</div><div class="org">신장률 · 내구성</div></div>
+        <div class="pab4-cert"><div class="seal">건축<br/>성능원</div><div class="name">한국건축성능원</div><div class="org">방수성능 검증</div></div>
+        <div class="pab4-cert"><div class="seal">70+</div><div class="name">자체 보유 특허</div><div class="org">유지보수 관련 기술</div></div>
+        <div class="pab4-cert"><div class="seal">ISO</div><div class="name">ISO 9001 / 14001</div><div class="org">품질·환경 경영</div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_AB_HISTORY_HTML = `<style>
+  .pab5 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pab5 { background:#FFFBF5; padding:80px 18px; }
+  .pab5-inner { max-width:880px; margin:0 auto; }
+  .pab5-head { text-align:center; margin-bottom:48px; }
+  .pab5-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pab5-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .pab5-timeline { position:relative; padding-left:40px; }
+  .pab5-timeline::before { content:''; position:absolute; left:14px; top:8px; bottom:8px; width:2px; background:linear-gradient(180deg,#FED7AA,#F97316,#FED7AA); }
+  .pab5-item { position:relative; margin-bottom:32px; }
+  .pab5-item::before { content:''; position:absolute; left:-32px; top:6px; width:14px; height:14px; border-radius:50%; background:#fff; border:3px solid #F97316; box-shadow:0 0 0 4px #FFEDD5; }
+  .pab5-item .yr { font-family:'Bebas Neue',sans-serif; font-size:24px; font-weight:900; color:#F97316; letter-spacing:.5px; line-height:1; margin-bottom:6px; }
+  .pab5-item h3 { font-size:16px; font-weight:800; color:#0F1F5C; margin-bottom:6px; letter-spacing:-.3px; }
+  .pab5-item p { font-size:13.5px; color:#4B5563; line-height:1.65; }
+  .pab5-item .tags { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+  .pab5-item .tag { padding:3px 9px; background:#fff; border:1px solid #FED7AA; color:#EA580C; font-size:10.5px; font-weight:800; border-radius:5px; }
+  @media (max-width:640px) { .pab5-head h2 { font-size:24px; } .pab5-timeline { padding-left:32px; } .pab5-item::before { left:-26px; } }
+  </style>
+  <section class="pab5">
+    <div class="pab5-inner">
+      <div class="pab5-head">
+        <div class="kicker">OUR JOURNEY</div>
+        <h2>POUR스토어의 발자취</h2>
+      </div>
+      <div class="pab5-timeline">
+        <div class="pab5-item"><div class="yr">2025</div><h3>POUR스토어 자사몰 리뉴얼</h3><p>고객 직접 진단·구매·시공 매칭까지 한 곳에서 — AI 길잡이 시스템 도입</p><div class="tags"><span class="tag">AI 진단</span><span class="tag">자사몰 리뉴얼</span></div></div>
+        <div class="pab5-item"><div class="yr">2024</div><h3>250+ 파트너사 네트워크 완성</h3><p>전국 시공 파트너사 250여 곳과 협력 체제 구축</p><div class="tags"><span class="tag">파트너 네트워크</span><span class="tag">전국 커버리지</span></div></div>
+        <div class="pab5-item"><div class="yr">2023</div><h3>건설신기술 1026호 등록</h3><p>국토교통부 지정 — 국내 최초 박공지붕 PVC 결합 방수공법</p><div class="tags"><span class="tag">건설신기술</span><span class="tag">국토교통부</span></div></div>
+        <div class="pab5-item"><div class="yr">2022</div><h3>누적 시공 200만 세대 돌파</h3><p>전국 아파트·관공서·일반건물 — 검증된 시공 사례 누적</p><div class="tags"><span class="tag">200만 세대</span></div></div>
+        <div class="pab5-item"><div class="yr">2020</div><h3>특허 50종 돌파 · R&D 센터 확장</h3><p>강남제비스코·서울과학기술대 공동 연구 본격화</p><div class="tags"><span class="tag">R&D 확장</span><span class="tag">특허 50+</span></div></div>
+        <div class="pab5-item"><div class="yr">2018</div><h3>POUR스토어 설립</h3><p>건축물 유지보수 자재 R&D 전문 기업으로 출발</p><div class="tags"><span class="tag">법인 설립</span></div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_AB_CTA_HTML = `<style>
+  .pab6 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pab6 { background:#fff; padding:80px 18px; }
+  .pab6-inner { max-width:1100px; margin:0 auto; background:linear-gradient(135deg,#0F1F5C 0%,#1E3A8A 100%); border-radius:32px; padding:60px 40px; position:relative; overflow:hidden; }
+  .pab6-inner::before { content:''; position:absolute; top:-80px; right:-80px; width:320px; height:320px; background:radial-gradient(circle, rgba(249,115,22,.4) 0%, transparent 60%); border-radius:50%; }
+  .pab6-inner::after { content:''; position:absolute; bottom:-60px; left:-60px; width:240px; height:240px; background:radial-gradient(circle, rgba(255,255,255,.08) 0%, transparent 60%); border-radius:50%; }
+  .pab6-content { position:relative; z-index:1; text-align:center; color:#fff; max-width:680px; margin:0 auto; }
+  .pab6-tag { display:inline-flex; align-items:center; gap:8px; padding:6px 14px; background:rgba(249,115,22,.2); border:1px solid rgba(249,115,22,.4); color:#FED7AA; border-radius:999px; font-size:11.5px; font-weight:800; letter-spacing:.8px; margin-bottom:20px; }
+  .pab6 h2 { font-size:32px; font-weight:900; color:#fff; line-height:1.3; margin-bottom:16px; letter-spacing:-1px; }
+  .pab6 h2 .accent { color:#FB923C; }
+  .pab6-desc { font-size:15px; color:rgba(255,255,255,.75); line-height:1.7; margin-bottom:32px; }
+  .pab6-cta { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .pab6-cta a { padding:14px 26px; border-radius:14px; font-size:14px; font-weight:800; text-decoration:none; transition:all .25s; display:inline-flex; align-items:center; gap:6px; }
+  .pab6-cta .primary { background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; box-shadow:0 8px 24px rgba(249,115,22,.4); }
+  .pab6-cta .primary:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(249,115,22,.55); }
+  .pab6-cta .ghost { background:rgba(255,255,255,.1); color:#fff; border:1px solid rgba(255,255,255,.2); backdrop-filter:blur(8px); }
+  .pab6-cta .ghost:hover { background:rgba(255,255,255,.18); }
+  @media (max-width:640px) { .pab6-inner { padding:40px 24px; border-radius:24px; } .pab6 h2 { font-size:23px; } .pab6-cta a { width:100%; justify-content:center; } }
+  </style>
+  <section class="pab6">
+    <div class="pab6-inner">
+      <div class="pab6-content">
+        <span class="pab6-tag">⭐ POUR스토어와 함께</span>
+        <h2>건축물 유지보수의 표준,<br/><span class="accent">POUR스토어가 함께합니다</span></h2>
+        <p class="pab6-desc">시공 의뢰부터 파트너 신청·쇼룸 방문까지 — 어떤 방향이든 첫 걸음을 도와드릴게요.</p>
+        <div class="pab6-cta">
+          <a class="primary" href="https://www.pourstore.net/consult">시공 상담 신청 →</a>
+          <a class="ghost" href="https://www.pourstore.net/partners">파트너 신청</a>
+          <a class="ghost" href="https://www.pourstore.net/showroom">쇼룸 방문 예약</a>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+
+  const SEED_PR_NAV_HTML = `<style>
+  .ppr1 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .ppr1 { background:linear-gradient(180deg,#FFFBF5 0%,#fff 100%); padding:64px 18px 32px; }
+  .ppr1-inner { max-width:1200px; margin:0 auto; }
+  .ppr1-head { text-align:center; margin-bottom:32px; }
+  .ppr1-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .ppr1-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .ppr1-head p { font-size:14px; color:#6B7280; max-width:520px; margin:0 auto; }
+  .ppr1-nav { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; }
+  .ppr1-card { background:#fff; border:1px solid #F3F4F6; border-radius:16px; padding:22px 16px; text-align:center; transition:all .3s; cursor:pointer; text-decoration:none; }
+  .ppr1-card:hover { transform:translateY(-4px); box-shadow:0 18px 40px rgba(15,31,92,.1); border-color:#FED7AA; }
+  .ppr1-card .icon { width:52px; height:52px; margin:0 auto 12px; border-radius:14px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:26px; transition:transform .3s; }
+  .ppr1-card:hover .icon { transform:rotate(-8deg) scale(1.05); }
+  .ppr1-card .name { font-size:14px; font-weight:800; color:#0F1F5C; margin-bottom:4px; letter-spacing:-.3px; }
+  .ppr1-card .count { font-size:11px; color:#9CA3AF; font-weight:700; }
+  @media (max-width:640px) { .ppr1-head h2 { font-size:24px; } }
+  </style>
+  <section class="ppr1">
+    <div class="ppr1-inner">
+      <div class="ppr1-head">
+        <div class="kicker">PRODUCT CATEGORIES</div>
+        <h2>POUR스토어 전체 카테고리</h2>
+        <p>방수·도장·균열보수부터 안전용품·부자재까지 — 검증된 110+ 제품 라인업</p>
+      </div>
+      <div class="ppr1-nav">
+        <a class="ppr1-card" href="#cat-waterproof"><div class="icon">💧</div><div class="name">방수재</div><div class="count">28개 제품</div></a>
+        <a class="ppr1-card" href="#cat-paint"><div class="icon">🎨</div><div class="name">도장재</div><div class="count">22개 제품</div></a>
+        <a class="ppr1-card" href="#cat-crack"><div class="icon">🔧</div><div class="name">균열 보수</div><div class="count">18개 제품</div></a>
+        <a class="ppr1-card" href="#cat-coating"><div class="icon">🛡️</div><div class="name">코팅·단열</div><div class="count">15개 제품</div></a>
+        <a class="ppr1-card" href="#cat-tool"><div class="icon">🛠️</div><div class="name">시공 도구</div><div class="count">14개 제품</div></a>
+        <a class="ppr1-card" href="#cat-safe"><div class="icon">🦺</div><div class="name">안전용품</div><div class="count">12개 제품</div></a>
+        <a class="ppr1-card" href="#cat-sub"><div class="icon">📦</div><div class="name">부자재</div><div class="count">9개 제품</div></a>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_PR_BEST_HTML = `<style>
+  .ppr2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .ppr2 { background:#fff; padding:72px 18px; }
+  .ppr2-inner { max-width:1200px; margin:0 auto; }
+  .ppr2-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:14px; }
+  .ppr2-head .left { flex:1; min-width:240px; }
+  .ppr2-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .ppr2-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .ppr2-head .more { font-size:13px; font-weight:700; color:#EA580C; text-decoration:none; padding:8px 14px; border:1px solid #FED7AA; border-radius:999px; transition:all .25s; }
+  .ppr2-head .more:hover { background:#FFF7ED; }
+  .ppr2-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:18px; }
+  .ppr2-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; overflow:hidden; transition:all .3s; text-decoration:none; }
+  .ppr2-card:hover { transform:translateY(-4px); box-shadow:0 20px 48px rgba(15,31,92,.1); border-color:#FED7AA; }
+  .ppr2-thumb { aspect-ratio:1/1; background-size:cover; background-position:center; position:relative; }
+  .ppr2-thumb .rank { position:absolute; top:12px; left:12px; width:28px; height:28px; border-radius:8px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; font-family:'Bebas Neue',sans-serif; font-size:15px; font-weight:900; display:grid; place-items:center; box-shadow:0 4px 12px rgba(249,115,22,.4); letter-spacing:.5px; }
+  .ppr2-info { padding:16px; }
+  .ppr2-info .cat { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
+  .ppr2-info .name { font-size:14px; font-weight:800; color:#0F1F5C; margin-bottom:8px; line-height:1.4; letter-spacing:-.3px; min-height:36px; }
+  .ppr2-info .price { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .ppr2-info .sale { font-size:11px; font-weight:800; color:#DC2626; }
+  .ppr2-info .now { font-size:17px; font-weight:900; color:#0F1F5C; letter-spacing:-.3px; }
+  .ppr2-info .meta { display:flex; align-items:center; gap:6px; font-size:11px; color:#9CA3AF; font-weight:700; }
+  .ppr2-info .star { color:#F59E0B; }
+  @media (max-width:640px) { .ppr2-head h2 { font-size:22px; } }
+  </style>
+  <section class="ppr2">
+    <div class="ppr2-inner">
+      <div class="ppr2-head">
+        <div class="left">
+          <div class="kicker">⭐ BEST SELLERS</div>
+          <h2>이 달의 베스트 상품</h2>
+        </div>
+        <a class="more" href="https://www.pourstore.net/best">전체 보기 →</a>
+      </div>
+      <div class="ppr2-grid">
+        <a class="ppr2-card" href="#"><div class="ppr2-thumb" style="background-image:url('https://placehold.co/400x400/F97316/fff?text=POUR+COAT')"><div class="rank">1</div></div><div class="ppr2-info"><div class="cat">방수재 · 코팅</div><div class="name">POUR 코트재 (5kg)</div><div class="price"><span class="sale">15%</span><span class="now">68,000원</span></div><div class="meta"><span class="star">★</span><span>4.9</span><span>·</span><span>리뷰 412</span></div></div></a>
+        <a class="ppr2-card" href="#"><div class="ppr2-thumb" style="background-image:url('https://placehold.co/400x400/EA580C/fff?text=HYPER+T')"><div class="rank">2</div></div><div class="ppr2-info"><div class="cat">균열 보수</div><div class="name">POUR 하이퍼티 고탄성 퍼티</div><div class="price"><span class="sale">10%</span><span class="now">42,000원</span></div><div class="meta"><span class="star">★</span><span>4.8</span><span>·</span><span>리뷰 287</span></div></div></a>
+        <a class="ppr2-card" href="#"><div class="ppr2-thumb" style="background-image:url('https://placehold.co/400x400/0F1F5C/fff?text=NEEDLE+PUNCH')"><div class="rank">3</div></div><div class="ppr2-info"><div class="cat">방수재 · 시트</div><div class="name">슈퍼복합압축시트 (1m×10m)</div><div class="price"><span class="sale">8%</span><span class="now">128,000원</span></div><div class="meta"><span class="star">★</span><span>4.9</span><span>·</span><span>리뷰 196</span></div></div></a>
+        <a class="ppr2-card" href="#"><div class="ppr2-thumb" style="background-image:url('https://placehold.co/400x400/059669/fff?text=POWDER')"><div class="rank">4</div></div><div class="ppr2-info"><div class="cat">균열 보수</div><div class="name">탄성강화 파우더 (20kg)</div><div class="price"><span class="sale">12%</span><span class="now">52,000원</span></div><div class="meta"><span class="star">★</span><span>4.7</span><span>·</span><span>리뷰 158</span></div></div></a>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_PR_NEW_HTML = `<style>
+  .ppr3 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .ppr3 { background:#FFFBF5; padding:72px 18px; }
+  .ppr3-inner { max-width:1200px; margin:0 auto; }
+  .ppr3-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:14px; }
+  .ppr3-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .ppr3-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .ppr3-head .more { font-size:13px; font-weight:700; color:#EA580C; text-decoration:none; padding:8px 14px; border:1px solid #FED7AA; border-radius:999px; transition:all .25s; background:#fff; }
+  .ppr3-head .more:hover { background:#FFF7ED; }
+  .ppr3-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; }
+  .ppr3-card { background:#fff; border:1px solid #F3F4F6; border-radius:16px; overflow:hidden; transition:all .3s; text-decoration:none; position:relative; }
+  .ppr3-card:hover { transform:translateY(-3px); box-shadow:0 16px 36px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .ppr3-thumb { aspect-ratio:5/4; background-size:cover; background-position:center; position:relative; }
+  .ppr3-thumb .new { position:absolute; top:10px; left:10px; padding:4px 9px; background:#0F1F5C; color:#fff; font-size:10px; font-weight:900; border-radius:5px; letter-spacing:.5px; }
+  .ppr3-info { padding:14px; }
+  .ppr3-info .date { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.3px; margin-bottom:6px; }
+  .ppr3-info .name { font-size:13.5px; font-weight:800; color:#0F1F5C; margin-bottom:8px; line-height:1.4; letter-spacing:-.3px; }
+  .ppr3-info .price { display:flex; align-items:center; gap:6px; }
+  .ppr3-info .now { font-size:15px; font-weight:900; color:#0F1F5C; }
+  .ppr3-info .original { font-size:11px; color:#9CA3AF; text-decoration:line-through; font-weight:600; }
+  @media (max-width:640px) { .ppr3-head h2 { font-size:22px; } }
+  </style>
+  <section class="ppr3">
+    <div class="ppr3-inner">
+      <div class="ppr3-head">
+        <div>
+          <div class="kicker">🆕 NEW ARRIVAL</div>
+          <h2>이번 주 신상품</h2>
+        </div>
+        <a class="more" href="https://www.pourstore.net/new">전체 보기 →</a>
+      </div>
+      <div class="ppr3-grid">
+        <a class="ppr3-card" href="#"><div class="ppr3-thumb" style="background-image:url('https://placehold.co/400x320/F97316/fff?text=NEW+VENT')"><div class="new">NEW</div></div><div class="ppr3-info"><div class="date">2026.04.30 입고</div><div class="name">페이퍼팬벤트 무동력 환기구</div><div class="price"><span class="now">38,000원</span><span class="original">42,000원</span></div></div></a>
+        <a class="ppr3-card" href="#"><div class="ppr3-thumb" style="background-image:url('https://placehold.co/400x320/EA580C/fff?text=NEW+SAFE')"><div class="new">NEW</div></div><div class="ppr3-info"><div class="date">2026.04.28 입고</div><div class="name">고소작업 안전벨트 풀세트</div><div class="price"><span class="now">89,000원</span><span class="original">110,000원</span></div></div></a>
+        <a class="ppr3-card" href="#"><div class="ppr3-thumb" style="background-image:url('https://placehold.co/400x320/0F1F5C/fff?text=NEW+ROLLER')"><div class="new">NEW</div></div><div class="ppr3-info"><div class="date">2026.04.25 입고</div><div class="name">코트재 전용 롤러 (12인치)</div><div class="price"><span class="now">12,000원</span><span class="original">15,000원</span></div></div></a>
+        <a class="ppr3-card" href="#"><div class="ppr3-thumb" style="background-image:url('https://placehold.co/400x320/059669/fff?text=NEW+TRAP')"><div class="new">NEW</div></div><div class="ppr3-info"><div class="date">2026.04.22 입고</div><div class="name">옥상배관 방수트랩 키트</div><div class="price"><span class="now">56,000원</span><span class="original">65,000원</span></div></div></a>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_PR_GRID_HTML = `<style>
+  .ppr4 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .ppr4 { background:#fff; padding:72px 18px; }
+  .ppr4-inner { max-width:1200px; margin:0 auto; }
+  .ppr4-head { text-align:center; margin-bottom:32px; }
+  .ppr4-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .ppr4-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .ppr4-head p { font-size:14px; color:#6B7280; }
+  .ppr4-tabs { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:28px; }
+  .ppr4-tab { padding:9px 18px; background:#fff; border:1px solid #F3F4F6; border-radius:999px; font-size:13px; font-weight:700; color:#6B7280; cursor:pointer; transition:all .2s; }
+  .ppr4-tab:hover { border-color:#FED7AA; color:#EA580C; }
+  .ppr4-tab.active { background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border-color:transparent; box-shadow:0 6px 16px rgba(249,115,22,.3); }
+  .ppr4-section { margin-bottom:48px; }
+  .ppr4-section:last-child { margin-bottom:0; }
+  .ppr4-section .group-head { display:flex; align-items:center; gap:10px; margin-bottom:18px; padding-bottom:14px; border-bottom:2px solid #FFEDD5; }
+  .ppr4-section .group-head .badge { width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:16px; }
+  .ppr4-section .group-head h3 { font-size:18px; font-weight:900; color:#0F1F5C; letter-spacing:-.3px; }
+  .ppr4-section .group-head .cnt { font-size:11.5px; font-weight:800; color:#EA580C; padding:3px 8px; background:#FFF7ED; border-radius:6px; }
+  .ppr4-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; }
+  .ppr4-item { background:#fff; border:1px solid #F3F4F6; border-radius:14px; overflow:hidden; transition:all .25s; text-decoration:none; }
+  .ppr4-item:hover { transform:translateY(-3px); box-shadow:0 14px 32px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .ppr4-item .thumb { aspect-ratio:1/1; background-size:cover; background-position:center; }
+  .ppr4-item .info { padding:12px; }
+  .ppr4-item .name { font-size:13px; font-weight:800; color:#0F1F5C; margin-bottom:6px; line-height:1.4; letter-spacing:-.3px; }
+  .ppr4-item .price { font-size:14px; font-weight:900; color:#0F1F5C; }
+  @media (max-width:640px) { .ppr4-head h2 { font-size:24px; } }
+  </style>
+  <section class="ppr4">
+    <div class="ppr4-inner">
+      <div class="ppr4-head">
+        <div class="kicker">FULL CATALOG</div>
+        <h2>카테고리별 제품 둘러보기</h2>
+        <p>R&D 검증 자재만 — 카테고리별로 정리된 110+ 라인업</p>
+      </div>
+      <div class="ppr4-tabs">
+        <button class="ppr4-tab active">전체</button>
+        <button class="ppr4-tab">방수재</button>
+        <button class="ppr4-tab">도장재</button>
+        <button class="ppr4-tab">균열보수</button>
+        <button class="ppr4-tab">코팅·단열</button>
+        <button class="ppr4-tab">시공도구</button>
+      </div>
+      <div class="ppr4-section">
+        <div class="group-head"><div class="badge">💧</div><h3>방수재</h3><span class="cnt">28종</span></div>
+        <div class="ppr4-grid">
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/F97316/fff?text=COAT+5KG')"></div><div class="info"><div class="name">POUR 코트재 5kg</div><div class="price">68,000원</div></div></a>
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/EA580C/fff?text=COAT+20KG')"></div><div class="info"><div class="name">POUR 코트재 20kg</div><div class="price">240,000원</div></div></a>
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/0F1F5C/fff?text=SHEET')"></div><div class="info"><div class="name">슈퍼복합압축시트</div><div class="price">128,000원</div></div></a>
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/059669/fff?text=PVC')"></div><div class="info"><div class="name">PVC 방수재 (4L)</div><div class="price">52,000원</div></div></a>
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/FB923C/fff?text=URETHANE')"></div><div class="info"><div class="name">우레탄 방수재 (10kg)</div><div class="price">98,000원</div></div></a>
+        </div>
+      </div>
+      <div class="ppr4-section">
+        <div class="group-head"><div class="badge">🎨</div><h3>도장재</h3><span class="cnt">22종</span></div>
+        <div class="ppr4-grid">
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/EA580C/fff?text=BINDER')"></div><div class="info"><div class="name">POUR 바인더 (15L)</div><div class="price">85,000원</div></div></a>
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/F97316/fff?text=PLUS')"></div><div class="info"><div class="name">POUR 플러스 외부용</div><div class="price">112,000원</div></div></a>
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/0F1F5C/fff?text=EPOXY')"></div><div class="info"><div class="name">에폭시 도료 (5kg)</div><div class="price">76,000원</div></div></a>
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/059669/fff?text=EMBO')"></div><div class="info"><div class="name">엠보라이닝 도료</div><div class="price">94,000원</div></div></a>
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/FB923C/fff?text=METAL')"></div><div class="info"><div class="name">금속기와 코팅재</div><div class="price">68,000원</div></div></a>
+        </div>
+      </div>
+      <div class="ppr4-section">
+        <div class="group-head"><div class="badge">🔧</div><h3>균열 보수</h3><span class="cnt">18종</span></div>
+        <div class="ppr4-grid">
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/F97316/fff?text=HYPER+T')"></div><div class="info"><div class="name">POUR 하이퍼티 (4kg)</div><div class="price">42,000원</div></div></a>
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/EA580C/fff?text=POWDER')"></div><div class="info"><div class="name">탄성강화 파우더 (20kg)</div><div class="price">52,000원</div></div></a>
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/0F1F5C/fff?text=HOOKER')"></div><div class="info"><div class="name">POUR HOOKER (50개)</div><div class="price">88,000원</div></div></a>
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/059669/fff?text=ACRYLIC')"></div><div class="info"><div class="name">아크릴배면차수재</div><div class="price">128,000원</div></div></a>
+          <a class="ppr4-item" href="#"><div class="thumb" style="background-image:url('https://placehold.co/300x300/FB923C/fff?text=CRACK+GEL')"></div><div class="info"><div class="name">균열 보수 젤 (1kg)</div><div class="price">28,000원</div></div></a>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_PR_GUIDE_HTML = `<style>
+  .ppr5 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .ppr5 { background:#FFFBF5; padding:72px 18px; }
+  .ppr5-inner { max-width:1200px; margin:0 auto; }
+  .ppr5-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:14px; }
+  .ppr5-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .ppr5-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:6px; }
+  .ppr5-head p { font-size:13.5px; color:#6B7280; }
+  .ppr5-head .more { font-size:13px; font-weight:700; color:#EA580C; text-decoration:none; padding:8px 14px; border:1px solid #FED7AA; border-radius:999px; background:#fff; transition:all .25s; }
+  .ppr5-head .more:hover { background:#FFF7ED; }
+  .ppr5-grid { display:grid; grid-template-columns:1.4fr 1fr; gap:18px; }
+  .ppr5-feature { position:relative; aspect-ratio:16/10; border-radius:18px; overflow:hidden; background-size:cover; background-position:center; text-decoration:none; transition:transform .3s; }
+  .ppr5-feature:hover { transform:translateY(-3px); }
+  .ppr5-feature::after { content:''; position:absolute; inset:0; background:linear-gradient(0deg, rgba(15,31,92,.85) 0%, rgba(15,31,92,.2) 50%, transparent 100%); }
+  .ppr5-feature .play { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:72px; height:72px; border-radius:50%; background:rgba(255,255,255,.95); display:grid; place-items:center; box-shadow:0 12px 32px rgba(0,0,0,.3); z-index:1; transition:transform .3s; }
+  .ppr5-feature:hover .play { transform:translate(-50%,-50%) scale(1.1); }
+  .ppr5-feature .play svg { width:28px; height:28px; fill:#EA580C; margin-left:4px; }
+  .ppr5-feature .info { position:absolute; bottom:24px; left:24px; right:24px; z-index:1; color:#fff; }
+  .ppr5-feature .badge { display:inline-block; padding:4px 10px; background:#F97316; font-size:10.5px; font-weight:900; letter-spacing:.5px; border-radius:5px; margin-bottom:10px; }
+  .ppr5-feature .title { font-size:20px; font-weight:900; line-height:1.3; margin-bottom:8px; letter-spacing:-.5px; }
+  .ppr5-feature .meta { font-size:12px; opacity:.9; font-weight:700; }
+  .ppr5-list { display:flex; flex-direction:column; gap:12px; }
+  .ppr5-mini { display:flex; gap:12px; padding:12px; background:#fff; border:1px solid #F3F4F6; border-radius:14px; transition:all .25s; text-decoration:none; }
+  .ppr5-mini:hover { transform:translateX(3px); box-shadow:0 10px 24px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .ppr5-mini .thumb { width:120px; aspect-ratio:16/10; flex-shrink:0; border-radius:10px; background-size:cover; background-position:center; position:relative; }
+  .ppr5-mini .thumb .dur { position:absolute; bottom:5px; right:5px; padding:2px 6px; background:rgba(0,0,0,.7); color:#fff; font-size:10px; font-weight:800; border-radius:4px; letter-spacing:.3px; }
+  .ppr5-mini .text { flex:1; min-width:0; display:flex; flex-direction:column; justify-content:center; }
+  .ppr5-mini .sub { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:4px; }
+  .ppr5-mini .title { font-size:13px; font-weight:800; color:#0F1F5C; line-height:1.4; margin-bottom:4px; letter-spacing:-.3px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .ppr5-mini .meta { font-size:10.5px; color:#9CA3AF; font-weight:700; }
+  @media (max-width:880px) { .ppr5-grid { grid-template-columns:1fr; } .ppr5-head h2 { font-size:22px; } }
+  </style>
+  <section class="ppr5">
+    <div class="ppr5-inner">
+      <div class="ppr5-head">
+        <div>
+          <div class="kicker">▶ HOW TO USE</div>
+          <h2>제품별 시공 가이드 영상</h2>
+          <p>구매 전·후 — 영상으로 미리 보고 안심하고 시공하세요</p>
+        </div>
+        <a class="more" href="https://www.pourstore.net/guide">전체 영상 →</a>
+      </div>
+      <div class="ppr5-grid">
+        <a class="ppr5-feature" href="#" style="background-image:url('https://placehold.co/800x500/0F1F5C/fff?text=POUR+COAT+GUIDE')">
+          <div class="play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+          <div class="info">
+            <span class="badge">⭐ FEATURED</span>
+            <div class="title">POUR 코트재 — 옥상 슬라브 시공 풀가이드</div>
+            <div class="meta">14:28 · 조회 28K · 가이드 PICK</div>
+          </div>
+        </a>
+        <div class="ppr5-list">
+          <a class="ppr5-mini" href="#"><div class="thumb" style="background-image:url('https://placehold.co/200x125/F97316/fff?text=HYPER+T')"><div class="dur">8:42</div></div><div class="text"><div class="sub">균열 보수</div><div class="title">하이퍼티로 외벽 균열 보수 — 5분 정리</div><div class="meta">조회 12K</div></div></a>
+          <a class="ppr5-mini" href="#"><div class="thumb" style="background-image:url('https://placehold.co/200x125/EA580C/fff?text=POWDER')"><div class="dur">11:15</div></div><div class="text"><div class="sub">단면 복구</div><div class="title">탄성강화 파우더 — 박락 단면 복구 시공법</div><div class="meta">조회 9.2K</div></div></a>
+          <a class="ppr5-mini" href="#"><div class="thumb" style="background-image:url('https://placehold.co/200x125/059669/fff?text=HOOKER')"><div class="dur">6:08</div></div><div class="text"><div class="sub">후레싱 보강</div><div class="title">POUR HOOKER 시공 — 손상 마감면 대응</div><div class="meta">조회 7.8K</div></div></a>
+          <a class="ppr5-mini" href="#"><div class="thumb" style="background-image:url('https://placehold.co/200x125/FB923C/fff?text=VENT')"><div class="dur">5:30</div></div><div class="text"><div class="sub">결로 방지</div><div class="title">페이퍼팬벤트 설치 — 무동력 환기로 들뜸 예방</div><div class="meta">조회 6.4K</div></div></a>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+
+  const SEED_CS_INTRO_HTML = `<style>
+  .pcs1 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pcs1 { background:linear-gradient(180deg,#FFFBF5 0%,#FFF7ED 100%); padding:80px 18px 56px; position:relative; overflow:hidden; }
+  .pcs1::before { content:''; position:absolute; top:-100px; right:-80px; width:380px; height:380px; background:radial-gradient(circle, rgba(249,115,22,.12) 0%, transparent 60%); border-radius:50%; }
+  .pcs1-inner { max-width:1100px; margin:0 auto; text-align:center; position:relative; z-index:1; }
+  .pcs1-tag { display:inline-flex; gap:6px; padding:6px 14px; background:#fff; border:1px solid #FED7AA; color:#EA580C; border-radius:999px; font-size:11.5px; font-weight:800; letter-spacing:.8px; margin-bottom:18px; box-shadow:0 4px 12px rgba(249,115,22,.1); }
+  .pcs1 h1 { font-size:42px; font-weight:900; color:#0F1F5C; line-height:1.2; margin-bottom:16px; letter-spacing:-1.2px; }
+  .pcs1 h1 .accent { color:#F97316; }
+  .pcs1-desc { font-size:15.5px; color:#4B5563; line-height:1.75; max-width:600px; margin:0 auto 36px; }
+  .pcs1-stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:12px; max-width:780px; margin:0 auto; }
+  .pcs1-stat { background:#fff; border-radius:16px; padding:20px 16px; border:1px solid #F3F4F6; box-shadow:0 6px 18px rgba(15,31,92,.05); }
+  .pcs1-stat .v { font-family:'Bebas Neue',sans-serif; font-size:32px; font-weight:900; color:#F97316; line-height:1; letter-spacing:.5px; }
+  .pcs1-stat .l { font-size:11.5px; color:#6B7280; margin-top:6px; font-weight:700; letter-spacing:.3px; }
+  @media (max-width:640px) { .pcs1 h1 { font-size:28px; } .pcs1-desc { font-size:14px; } }
+  </style>
+  <section class="pcs1">
+    <div class="pcs1-inner">
+      <span class="pcs1-tag">📍 PROJECT CASES</span>
+      <h1>전국 700+ 단지에서<br/><span class="accent">검증된 시공 사례</span></h1>
+      <p class="pcs1-desc">아파트 · 관공서 · 일반건물 · 산업시설 — 다양한 환경에서 입증된 POUR 자재의 실적을 확인하세요.</p>
+      <div class="pcs1-stats">
+        <div class="pcs1-stat"><div class="v">700+</div><div class="l">시공 단지</div></div>
+        <div class="pcs1-stat"><div class="v">2,600,000+</div><div class="l">시공 세대수</div></div>
+        <div class="pcs1-stat"><div class="v">1,500,000㎡</div><div class="l">누적 시공 면적</div></div>
+        <div class="pcs1-stat"><div class="v">17개</div><div class="l">전국 광역시·도</div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_CS_FILTER_HTML = `<style>
+  .pcs2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pcs2 { background:#fff; padding:48px 18px 24px; }
+  .pcs2-inner { max-width:1200px; margin:0 auto; }
+  .pcs2-row { margin-bottom:18px; }
+  .pcs2-row:last-child { margin-bottom:0; }
+  .pcs2-label { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1px; margin-bottom:10px; }
+  .pcs2-chips { display:flex; gap:8px; flex-wrap:wrap; }
+  .pcs2-chip { padding:8px 16px; background:#FFFBF5; border:1px solid #F3F4F6; border-radius:999px; font-size:13px; font-weight:700; color:#6B7280; cursor:pointer; transition:all .2s; }
+  .pcs2-chip:hover { border-color:#FED7AA; color:#EA580C; background:#FFF7ED; }
+  .pcs2-chip.active { background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border-color:transparent; box-shadow:0 6px 16px rgba(249,115,22,.3); }
+  .pcs2-search { display:flex; gap:8px; margin-top:18px; }
+  .pcs2-search input { flex:1; padding:12px 16px; border:1px solid #F3F4F6; border-radius:12px; font-size:13.5px; font-family:inherit; background:#FFFBF5; transition:all .2s; }
+  .pcs2-search input:focus { outline:none; border-color:#FED7AA; background:#fff; box-shadow:0 0 0 3px rgba(249,115,22,.08); }
+  .pcs2-search button { padding:12px 24px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border:none; border-radius:12px; font-size:13.5px; font-weight:800; cursor:pointer; transition:all .2s; }
+  .pcs2-search button:hover { transform:translateY(-1px); box-shadow:0 8px 20px rgba(249,115,22,.35); }
+  </style>
+  <section class="pcs2">
+    <div class="pcs2-inner">
+      <div class="pcs2-row">
+        <div class="pcs2-label">📍 지역별 필터</div>
+        <div class="pcs2-chips">
+          <button class="pcs2-chip active">전체</button>
+          <button class="pcs2-chip">서울</button>
+          <button class="pcs2-chip">경기</button>
+          <button class="pcs2-chip">인천</button>
+          <button class="pcs2-chip">부산</button>
+          <button class="pcs2-chip">대구</button>
+          <button class="pcs2-chip">광주</button>
+          <button class="pcs2-chip">대전</button>
+          <button class="pcs2-chip">울산</button>
+          <button class="pcs2-chip">세종</button>
+          <button class="pcs2-chip">강원</button>
+          <button class="pcs2-chip">충청</button>
+          <button class="pcs2-chip">전라</button>
+          <button class="pcs2-chip">경상</button>
+          <button class="pcs2-chip">제주</button>
+        </div>
+      </div>
+      <div class="pcs2-row">
+        <div class="pcs2-label">🏢 건물 유형</div>
+        <div class="pcs2-chips">
+          <button class="pcs2-chip active">전체</button>
+          <button class="pcs2-chip">아파트</button>
+          <button class="pcs2-chip">관공서</button>
+          <button class="pcs2-chip">학교·병원</button>
+          <button class="pcs2-chip">상가·오피스</button>
+          <button class="pcs2-chip">공장·창고</button>
+          <button class="pcs2-chip">주택</button>
+        </div>
+      </div>
+      <div class="pcs2-search">
+        <input type="text" placeholder="단지명·주소·공법으로 검색해 보세요"/>
+        <button>검색</button>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_CS_GALLERY_HTML = `<style>
+  .pcs3 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pcs3 { background:#fff; padding:32px 18px 80px; }
+  .pcs3-inner { max-width:1200px; margin:0 auto; }
+  .pcs3-meta { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px; }
+  .pcs3-meta .count { font-size:13px; color:#6B7280; font-weight:700; }
+  .pcs3-meta .count b { color:#0F1F5C; }
+  .pcs3-sort { display:flex; gap:6px; }
+  .pcs3-sort button { padding:6px 12px; background:#FFFBF5; border:1px solid #F3F4F6; border-radius:8px; font-size:12px; font-weight:700; color:#6B7280; cursor:pointer; }
+  .pcs3-sort button.active { background:#0F1F5C; color:#fff; border-color:transparent; }
+  .pcs3-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:18px; }
+  .pcs3-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; overflow:hidden; transition:all .3s; text-decoration:none; }
+  .pcs3-card:hover { transform:translateY(-4px); box-shadow:0 22px 48px rgba(15,31,92,.1); border-color:#FED7AA; }
+  .pcs3-thumb { aspect-ratio:4/3; background-size:cover; background-position:center; position:relative; }
+  .pcs3-thumb .badge { position:absolute; top:12px; left:12px; padding:5px 10px; background:rgba(15,31,92,.85); color:#fff; font-size:10.5px; font-weight:800; border-radius:6px; backdrop-filter:blur(4px); letter-spacing:.5px; }
+  .pcs3-thumb .badge.completed { background:rgba(249,115,22,.92); }
+  .pcs3-info { padding:18px; }
+  .pcs3-info .region { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
+  .pcs3-info .name { font-size:16px; font-weight:900; color:#0F1F5C; margin-bottom:8px; line-height:1.4; letter-spacing:-.3px; }
+  .pcs3-info .desc { font-size:12.5px; color:#6B7280; line-height:1.6; margin-bottom:12px; min-height:40px; }
+  .pcs3-info .tags { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:12px; }
+  .pcs3-info .tag { padding:3px 9px; background:#FFFBF5; border:1px solid #FED7AA; color:#EA580C; font-size:10.5px; font-weight:800; border-radius:5px; }
+  .pcs3-info .meta { display:flex; align-items:center; justify-content:space-between; font-size:11.5px; color:#9CA3AF; font-weight:700; padding-top:12px; border-top:1px solid #F3F4F6; }
+  @media (max-width:640px) { .pcs3-info .name { font-size:15px; } }
+  </style>
+  <section class="pcs3">
+    <div class="pcs3-inner">
+      <div class="pcs3-meta">
+        <div class="count">총 <b>700개</b> 사례 · 표시중 <b>1-12</b></div>
+        <div class="pcs3-sort">
+          <button class="active">최신순</button>
+          <button>규모순</button>
+          <button>인기순</button>
+        </div>
+      </div>
+      <div class="pcs3-grid">
+        <a class="pcs3-card" href="#"><div class="pcs3-thumb" style="background-image:url('https://placehold.co/600x450/F97316/fff?text=APT+ROOF')"><div class="badge completed">시공 완료</div></div><div class="pcs3-info"><div class="region">📍 서울 강남구</div><div class="name">래미안 강남 옥상 슬라브 방수</div><div class="desc">2,400세대 대단지 — 슬라브 듀얼강화방수공법 + 페이퍼팬벤트 시공</div><div class="tags"><span class="tag">슬라브 방수</span><span class="tag">듀얼강화</span></div><div class="meta"><span>2025.10 완공</span><span>♡ 248</span></div></div></a>
+        <a class="pcs3-card" href="#"><div class="pcs3-thumb" style="background-image:url('https://placehold.co/600x450/EA580C/fff?text=PUBLIC')"><div class="badge completed">시공 완료</div></div><div class="pcs3-info"><div class="region">📍 경기 수원시</div><div class="name">수원시청 외벽 균열 보수·재도장</div><div class="desc">관공서 외벽 — 바인더+플러스 고급형 + 하이퍼티 균열 보수</div><div class="tags"><span class="tag">외벽 도장</span><span class="tag">균열 보수</span></div><div class="meta"><span>2025.09 완공</span><span>♡ 192</span></div></div></a>
+        <a class="pcs3-card" href="#"><div class="pcs3-thumb" style="background-image:url('https://placehold.co/600x450/0F1F5C/fff?text=SHINGLE')"><div class="badge completed">시공 완료</div></div><div class="pcs3-info"><div class="region">📍 부산 해운대구</div><div class="name">해운대 푸르지오 슁글 방수</div><div class="desc">고층 아파트 박공지붕 — 아스팔트슁글 방수공법 (1026호 신기술)</div><div class="tags"><span class="tag">슁글 방수</span><span class="tag">신기술 1026호</span></div><div class="meta"><span>2025.08 완공</span><span>♡ 287</span></div></div></a>
+        <a class="pcs3-card" href="#"><div class="pcs3-thumb" style="background-image:url('https://placehold.co/600x450/059669/fff?text=PARKING')"><div class="badge completed">시공 완료</div></div><div class="pcs3-info"><div class="region">📍 인천 송도</div><div class="name">송도 컨벤시아 지하주차장 에폭시</div><div class="desc">대형 컨벤션센터 지하주차장 — 에폭시 + 엠보라이닝 도장</div><div class="tags"><span class="tag">에폭시</span><span class="tag">엠보라이닝</span></div><div class="meta"><span>2025.07 완공</span><span>♡ 156</span></div></div></a>
+        <a class="pcs3-card" href="#"><div class="pcs3-thumb" style="background-image:url('https://placehold.co/600x450/FB923C/fff?text=METAL')"><div class="badge completed">시공 완료</div></div><div class="pcs3-info"><div class="region">📍 대구 수성구</div><div class="name">수성구 SK 금속기와 누수 보수</div><div class="desc">금속기와 지붕 누수 + 후레싱 풀림 — 금속기와 방수 + HOOKER 보강</div><div class="tags"><span class="tag">금속기와 방수</span><span class="tag">HOOKER</span></div><div class="meta"><span>2025.06 완공</span><span>♡ 134</span></div></div></a>
+        <a class="pcs3-card" href="#"><div class="pcs3-thumb" style="background-image:url('https://placehold.co/600x450/F97316/fff?text=BASEMENT')"><div class="badge completed">시공 완료</div></div><div class="pcs3-info"><div class="region">📍 광주 서구</div><div class="name">상무지구 오피스 지하 누수 차단</div><div class="desc">지하 1-3F 누수 — 아크릴배면차수공법 (초고압 주입)</div><div class="tags"><span class="tag">배면차수</span><span class="tag">지하 방수</span></div><div class="meta"><span>2025.05 완공</span><span>♡ 98</span></div></div></a>
+        <a class="pcs3-card" href="#"><div class="pcs3-thumb" style="background-image:url('https://placehold.co/600x450/EA580C/fff?text=SCHOOL')"><div class="badge completed">시공 완료</div></div><div class="pcs3-info"><div class="region">📍 대전 유성구</div><div class="name">대전 유성중 옥상 누수 보수</div><div class="desc">학교 옥상 슬라브 누수 — 우레탄 방수 + 옥상배관 트랩</div><div class="tags"><span class="tag">우레탄</span><span class="tag">배관 트랩</span></div><div class="meta"><span>2025.04 완공</span><span>♡ 112</span></div></div></a>
+        <a class="pcs3-card" href="#"><div class="pcs3-thumb" style="background-image:url('https://placehold.co/600x450/0F1F5C/fff?text=ROAD')"><div class="badge completed">시공 완료</div></div><div class="pcs3-info"><div class="region">📍 강원 춘천시</div><div class="name">춘천 IC 진입로 아스콘 보수</div><div class="desc">국도 포트홀 다발 구간 — POUR아스콘 + 씰코팅 + 균열 보수</div><div class="tags"><span class="tag">아스콘</span><span class="tag">씰코팅</span></div><div class="meta"><span>2025.03 완공</span><span>♡ 76</span></div></div></a>
+        <a class="pcs3-card" href="#"><div class="pcs3-thumb" style="background-image:url('https://placehold.co/600x450/059669/fff?text=HOSPITAL')"><div class="badge completed">시공 완료</div></div><div class="pcs3-info"><div class="region">📍 충북 청주시</div><div class="name">청주 대학병원 별관 외벽</div><div class="desc">병원 외벽 균열 + 백화 — 플러스+수성 중급형 (예산 효율)</div><div class="tags"><span class="tag">외벽 도장</span><span class="tag">중급형</span></div><div class="meta"><span>2025.02 완공</span><span>♡ 88</span></div></div></a>
+        <a class="pcs3-card" href="#"><div class="pcs3-thumb" style="background-image:url('https://placehold.co/600x450/FB923C/fff?text=FACTORY')"><div class="badge completed">시공 완료</div></div><div class="pcs3-info"><div class="region">📍 전남 여수시</div><div class="name">여수 산단 공장 옥상 방수</div><div class="desc">대형 공장 옥상 — 슬라브 듀얼강화 + 결로 방지 페이퍼팬벤트</div><div class="tags"><span class="tag">슬라브 방수</span><span class="tag">결로 방지</span></div><div class="meta"><span>2025.01 완공</span><span>♡ 64</span></div></div></a>
+        <a class="pcs3-card" href="#"><div class="pcs3-thumb" style="background-image:url('https://placehold.co/600x450/F97316/fff?text=APT2')"><div class="badge completed">시공 완료</div></div><div class="pcs3-info"><div class="region">📍 경남 창원시</div><div class="name">창원 사파동 자이 외벽 재도장</div><div class="desc">15년차 아파트 — 바인더+수성 경제형 (전체 단지 일괄)</div><div class="tags"><span class="tag">외벽 재도장</span><span class="tag">경제형</span></div><div class="meta"><span>2024.12 완공</span><span>♡ 142</span></div></div></a>
+        <a class="pcs3-card" href="#"><div class="pcs3-thumb" style="background-image:url('https://placehold.co/600x450/EA580C/fff?text=JEJU')"><div class="badge completed">시공 완료</div></div><div class="pcs3-info"><div class="region">📍 제주 제주시</div><div class="name">제주공항 인근 호텔 옥상</div><div class="desc">강풍·염해 환경 — 슬라브 듀얼강화 + 차열 코트재 (KCL 91.8%)</div><div class="tags"><span class="tag">차열</span><span class="tag">염해 대응</span></div><div class="meta"><span>2024.11 완공</span><span>♡ 178</span></div></div></a>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_CS_BYMETHOD_HTML = `<style>
+  .pcs4 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pcs4 { background:#FFFBF5; padding:80px 18px; }
+  .pcs4-inner { max-width:1200px; margin:0 auto; }
+  .pcs4-head { text-align:center; margin-bottom:36px; }
+  .pcs4-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pcs4-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
+  .pcs4-head p { font-size:14px; color:#6B7280; max-width:560px; margin:0 auto; }
+  .pcs4-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px; }
+  .pcs4-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; padding:24px 22px; transition:all .25s; text-decoration:none; display:block; }
+  .pcs4-card:hover { transform:translateY(-4px); box-shadow:0 18px 40px rgba(15,31,92,.1); border-color:#FED7AA; }
+  .pcs4-card .icon { width:52px; height:52px; border-radius:14px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:26px; margin-bottom:14px; }
+  .pcs4-card .name { font-size:16px; font-weight:900; color:#0F1F5C; margin-bottom:6px; letter-spacing:-.3px; }
+  .pcs4-card .count { font-size:11.5px; font-weight:800; color:#EA580C; margin-bottom:10px; letter-spacing:.3px; }
+  .pcs4-card .desc { font-size:12.5px; color:#6B7280; line-height:1.65; margin-bottom:14px; }
+  .pcs4-card .arrow { font-size:12px; font-weight:800; color:#0F1F5C; transition:transform .25s; }
+  .pcs4-card:hover .arrow { transform:translateX(4px); color:#EA580C; }
+  @media (max-width:640px) { .pcs4-head h2 { font-size:24px; } }
+  </style>
+  <section class="pcs4">
+    <div class="pcs4-inner">
+      <div class="pcs4-head">
+        <div class="kicker">BY METHOD</div>
+        <h2>공법별 시공 사례</h2>
+        <p>관심 있는 공법을 선택하면 해당 사례만 모아볼 수 있어요</p>
+      </div>
+      <div class="pcs4-grid">
+        <a class="pcs4-card" href="#"><div class="icon">💧</div><div class="name">슬라브 듀얼강화방수</div><div class="count">182건 사례</div><div class="desc">옥상 슬라브 누수 + 콘크리트 중성화 → 6가지 핵심 방안 일체 시공</div><div class="arrow">사례 보기 →</div></a>
+        <a class="pcs4-card" href="#"><div class="icon">🏠</div><div class="name">아스팔트슁글 방수</div><div class="count">96건 사례</div><div class="desc">건설신기술 1026호 — 박공지붕 누수·강풍 탈락 동시 해결</div><div class="arrow">사례 보기 →</div></a>
+        <a class="pcs4-card" href="#"><div class="icon">🔩</div><div class="name">금속기와 방수</div><div class="count">78건 사례</div><div class="desc">맞물림 풀림·강판 부식 — POUR HOOKER 후레싱 보강 동반</div><div class="arrow">사례 보기 →</div></a>
+        <a class="pcs4-card" href="#"><div class="icon">🎨</div><div class="name">외벽 균열 보수·재도장</div><div class="count">152건 사례</div><div class="desc">고급/중급/경제형 — 예산에 따라 3단계 차등 적용</div><div class="arrow">사례 보기 →</div></a>
+        <a class="pcs4-card" href="#"><div class="icon">🚗</div><div class="name">에폭시·엠보라이닝</div><div class="count">68건 사례</div><div class="desc">지하주차장 바닥 — 미끄럼 저항 83 BPN MMA 공법 포함</div><div class="arrow">사례 보기 →</div></a>
+        <a class="pcs4-card" href="#"><div class="icon">🌊</div><div class="name">아크릴 배면차수</div><div class="count">42건 사례</div><div class="desc">지하·수조 누수 — 탄성 아크릴 초고압 주입으로 새 방수층</div><div class="arrow">사례 보기 →</div></a>
+        <a class="pcs4-card" href="#"><div class="icon">🛣️</div><div class="name">아스콘 도로 포장</div><div class="count">36건 사례</div><div class="desc">포트홀·균열 보수 + 씰코팅 — 도로 생애주기 연장</div><div class="arrow">사례 보기 →</div></a>
+        <a class="pcs4-card" href="#"><div class="icon">🛡️</div><div class="name">보수·보강 (단면 복구)</div><div class="count">46건 사례</div><div class="desc">박락·철근 노출 — 탄성강화 파우더로 단면 복구</div><div class="arrow">사례 보기 →</div></a>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_CS_REVIEW_HTML = `<style>
+  .pcs5 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pcs5 { background:#fff; padding:80px 18px; }
+  .pcs5-inner { max-width:1200px; margin:0 auto; }
+  .pcs5-head { text-align:center; margin-bottom:36px; }
+  .pcs5-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pcs5-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .pcs5-head .score { display:inline-flex; align-items:center; gap:8px; padding:8px 16px; background:#FFFBF5; border:1px solid #FED7AA; border-radius:999px; font-size:13px; font-weight:800; color:#EA580C; }
+  .pcs5-head .score b { font-family:'Bebas Neue',sans-serif; font-size:18px; }
+  .pcs5-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:18px; }
+  .pcs5-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; padding:24px 22px; position:relative; transition:all .25s; }
+  .pcs5-card:hover { transform:translateY(-4px); box-shadow:0 18px 40px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .pcs5-card::before { content:'"'; position:absolute; top:8px; right:18px; font-family:Georgia,serif; font-size:64px; color:#FED7AA; line-height:1; opacity:.6; }
+  .pcs5-card .stars { font-size:13px; color:#F59E0B; margin-bottom:10px; letter-spacing:1px; }
+  .pcs5-card .text { font-size:13.5px; color:#374151; line-height:1.7; margin-bottom:18px; min-height:84px; }
+  .pcs5-card .author { display:flex; align-items:center; gap:10px; padding-top:14px; border-top:1px solid #F3F4F6; }
+  .pcs5-card .avatar { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:14px; font-weight:900; color:#EA580C; }
+  .pcs5-card .info { flex:1; min-width:0; }
+  .pcs5-card .name { font-size:13px; font-weight:800; color:#0F1F5C; margin-bottom:2px; }
+  .pcs5-card .role { font-size:11px; color:#9CA3AF; font-weight:700; }
+  @media (max-width:640px) { .pcs5-head h2 { font-size:24px; } }
+  </style>
+  <section class="pcs5">
+    <div class="pcs5-inner">
+      <div class="pcs5-head">
+        <div class="kicker">CUSTOMER VOICE</div>
+        <h2>실제 시공 후기</h2>
+        <div class="score">⭐ 평균 만족도 <b>4.9</b> / 5.0 · 누적 후기 320+</div>
+      </div>
+      <div class="pcs5-grid">
+        <div class="pcs5-card"><div class="stars">★★★★★</div><div class="text">10년 묵은 옥상 누수가 한 번에 잡혔습니다. 작업자분들도 친절하시고, 시공 후 1년 지났는데 아직도 깨끗합니다. 이번엔 외벽도 맡기려고요.</div><div class="author"><div class="avatar">김</div><div class="info"><div class="name">김○○ 관리소장</div><div class="role">서울 강남 · 아파트 1,200세대</div></div></div></div>
+        <div class="pcs5-card"><div class="stars">★★★★★</div><div class="text">관공서 발주 첫 경험이었는데, 시방서·견적·일정 안내가 명확해서 결재 올리기 편했어요. 시공 결과도 KTR 시험 수치 그대로 검증됐습니다.</div><div class="author"><div class="avatar">박</div><div class="info"><div class="name">박○○ 시설팀장</div><div class="role">경기 수원 · 시청사</div></div></div></div>
+        <div class="pcs5-card"><div class="stars">★★★★★</div><div class="text">슁글 지붕 누수가 워낙 까다로워서 다른 곳에서 거절당했는데, POUR가 1026호 신기술로 해결해주셨어요. 강풍에도 끄떡없습니다.</div><div class="author"><div class="avatar">이</div><div class="info"><div class="name">이○○ 입주자대표</div><div class="role">부산 해운대 · 23층 아파트</div></div></div></div>
+        <div class="pcs5-card"><div class="stars">★★★★★</div><div class="text">병원 운영 멈출 수 없어서 야간·주말 시공 요청드렸는데 일정 100% 맞춰주셨습니다. 환자분들 동선 배려도 좋았어요.</div><div class="author"><div class="avatar">최</div><div class="info"><div class="name">최○○ 시설책임자</div><div class="role">충북 청주 · 종합병원</div></div></div></div>
+        <div class="pcs5-card"><div class="stars">★★★★★</div><div class="text">지하주차장 바닥이 자꾸 까지고 미끄러워서 입주민 항의 많았는데, 엠보라이닝 시공 후 항의가 0건. 데이터로 보여드릴 수 있어 좋네요.</div><div class="author"><div class="avatar">정</div><div class="info"><div class="name">정○○ 관리소장</div><div class="role">인천 송도 · 오피스텔</div></div></div></div>
+        <div class="pcs5-card"><div class="stars">★★★★★</div><div class="text">공장 옥상 결로로 매년 골치였는데 페이퍼팬벤트 추가하니 완전 해결. 추가 시공도 다 POUR로 가려고 합니다.</div><div class="author"><div class="avatar">조</div><div class="info"><div class="name">조○○ 공장장</div><div class="role">전남 여수 · 산업단지</div></div></div></div>
+      </div>
+    </div>
+  </section>`;
+
+
+  const SEED_CT_FORM_HTML = `<style>
+  .pct1 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pct1 { background:linear-gradient(180deg,#FFFBF5 0%,#fff 100%); padding:80px 18px; }
+  .pct1-inner { max-width:980px; margin:0 auto; }
+  .pct1-head { text-align:center; margin-bottom:32px; }
+  .pct1-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pct1-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .pct1-head p { font-size:14px; color:#6B7280; }
+  .pct1-card { background:#fff; border:1px solid #F3F4F6; border-radius:24px; padding:36px 32px; box-shadow:0 12px 36px rgba(15,31,92,.06); }
+  .pct1-types { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:8px; margin-bottom:24px; }
+  .pct1-type { padding:14px 12px; background:#FFFBF5; border:1.5px solid #F3F4F6; border-radius:12px; text-align:center; cursor:pointer; transition:all .2s; }
+  .pct1-type:hover { border-color:#FED7AA; }
+  .pct1-type.active { background:linear-gradient(135deg,#FFF7ED,#FFEDD5); border-color:#F97316; }
+  .pct1-type .icon { font-size:22px; margin-bottom:4px; }
+  .pct1-type .label { font-size:12.5px; font-weight:800; color:#0F1F5C; letter-spacing:-.3px; }
+  .pct1-type.active .label { color:#EA580C; }
+  .pct1-row { margin-bottom:16px; }
+  .pct1-row.split { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .pct1-row label { display:block; font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
+  .pct1-row input, .pct1-row textarea, .pct1-row select { width:100%; padding:12px 14px; background:#FFFBF5; border:1px solid #F3F4F6; border-radius:10px; font-size:14px; font-family:inherit; color:#0F1F5C; transition:all .2s; }
+  .pct1-row textarea { min-height:120px; resize:vertical; }
+  .pct1-row input:focus, .pct1-row textarea:focus, .pct1-row select:focus { outline:none; border-color:#FED7AA; background:#fff; box-shadow:0 0 0 3px rgba(249,115,22,.08); }
+  .pct1-agree { display:flex; align-items:center; gap:8px; margin-bottom:18px; padding:14px; background:#FFFBF5; border-radius:10px; font-size:12.5px; color:#4B5563; }
+  .pct1-agree input { width:16px; height:16px; accent-color:#F97316; }
+  .pct1-agree a { color:#EA580C; font-weight:800; text-decoration:none; }
+  .pct1-submit { width:100%; padding:16px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:900; cursor:pointer; box-shadow:0 8px 24px rgba(249,115,22,.3); transition:all .25s; }
+  .pct1-submit:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(249,115,22,.45); }
+  @media (max-width:640px) { .pct1-card { padding:24px 18px; } .pct1-row.split { grid-template-columns:1fr; } .pct1-head h2 { font-size:24px; } }
+  </style>
+  <section class="pct1">
+    <div class="pct1-inner">
+      <div class="pct1-head">
+        <div class="kicker">CONTACT US</div>
+        <h2>POUR스토어에 문의하기</h2>
+        <p>제품·시공·파트너십 — 어떤 문의든 24시간 내 답변드립니다</p>
+      </div>
+      <form class="pct1-card">
+        <div class="pct1-types">
+          <div class="pct1-type active"><div class="icon">📦</div><div class="label">제품 문의</div></div>
+          <div class="pct1-type"><div class="icon">🔧</div><div class="label">시공 문의</div></div>
+          <div class="pct1-type"><div class="icon">🛠️</div><div class="label">셀프시공</div></div>
+          <div class="pct1-type"><div class="icon">💬</div><div class="label">기타</div></div>
+        </div>
+        <div class="pct1-row split">
+          <div><label>성함</label><input type="text" placeholder="홍길동"/></div>
+          <div><label>연락처</label><input type="text" placeholder="010-0000-0000"/></div>
+        </div>
+        <div class="pct1-row"><label>이메일</label><input type="email" placeholder="example@email.com"/></div>
+        <div class="pct1-row split">
+          <div><label>건물 유형</label><select><option>선택해 주세요</option><option>아파트</option><option>관공서</option><option>일반건물</option><option>주택</option><option>기타</option></select></div>
+          <div><label>지역</label><select><option>선택해 주세요</option><option>서울</option><option>경기</option><option>인천</option><option>부산</option><option>기타</option></select></div>
+        </div>
+        <div class="pct1-row"><label>문의 내용</label><textarea placeholder="문제 부위·증상·시급도 등을 자유롭게 적어주세요"></textarea></div>
+        <div class="pct1-agree"><input type="checkbox" id="ag"/><label for="ag">개인정보 수집·이용에 동의합니다 <a href="#">(자세히)</a></label></div>
+        <button type="submit" class="pct1-submit">문의 보내기</button>
+      </form>
+    </div>
+  </section>`;
+
+  const SEED_CT_STORE_HTML = `<style>
+  .pct2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pct2 { background:#fff; padding:64px 18px; }
+  .pct2-inner { max-width:1100px; margin:0 auto; }
+  .pct2-head { text-align:center; margin-bottom:32px; }
+  .pct2-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pct2-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .pct2-grid { display:grid; grid-template-columns:1.2fr 1fr; gap:20px; }
+  .pct2-info { background:linear-gradient(135deg,#FFF7ED,#FFEDD5); border:1px solid #FED7AA; border-radius:20px; padding:32px 28px; }
+  .pct2-info .label { font-size:11px; font-weight:800; color:#EA580C; letter-spacing:1px; margin-bottom:6px; }
+  .pct2-info h3 { font-size:22px; font-weight:900; color:#0F1F5C; letter-spacing:-.5px; margin-bottom:18px; }
+  .pct2-row { display:flex; align-items:flex-start; gap:14px; padding:14px 0; border-bottom:1px solid rgba(249,115,22,.15); }
+  .pct2-row:last-child { border-bottom:none; }
+  .pct2-row .icon { width:36px; height:36px; border-radius:10px; background:#fff; display:grid; place-items:center; font-size:16px; flex-shrink:0; box-shadow:0 4px 10px rgba(249,115,22,.1); }
+  .pct2-row .text { flex:1; }
+  .pct2-row .ttl { font-size:11px; font-weight:800; color:#9CA3AF; letter-spacing:.5px; margin-bottom:3px; }
+  .pct2-row .v { font-size:14px; font-weight:800; color:#0F1F5C; line-height:1.5; letter-spacing:-.3px; }
+  .pct2-row .v.big { font-family:'Bebas Neue',sans-serif; font-size:20px; color:#F97316; letter-spacing:.5px; }
+  .pct2-map { aspect-ratio:1/1; border-radius:20px; background-image:url('https://placehold.co/600x600/0F1F5C/fff?text=MAP+VIEW'); background-size:cover; background-position:center; position:relative; overflow:hidden; }
+  .pct2-map .overlay { position:absolute; bottom:18px; left:18px; right:18px; padding:14px 16px; background:rgba(255,255,255,.96); border-radius:14px; backdrop-filter:blur(8px); box-shadow:0 8px 24px rgba(0,0,0,.15); }
+  .pct2-map .overlay .ttl { font-size:11px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:3px; }
+  .pct2-map .overlay .v { font-size:13px; font-weight:800; color:#0F1F5C; }
+  .pct2-map .pin { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:38px; filter:drop-shadow(0 6px 12px rgba(0,0,0,.3)); }
+  @media (max-width:880px) { .pct2-grid { grid-template-columns:1fr; } .pct2-head h2 { font-size:22px; } }
+  </style>
+  <section class="pct2">
+    <div class="pct2-inner">
+      <div class="pct2-head">
+        <div class="kicker">📍 STORE INFO</div>
+        <h2>본사·매장 정보</h2>
+      </div>
+      <div class="pct2-grid">
+        <div class="pct2-info">
+          <div class="label">HEAD OFFICE</div>
+          <h3>POUR스토어 본사 · 평택</h3>
+          <div class="pct2-row"><div class="icon">📞</div><div class="text"><div class="ttl">대표 전화</div><div class="v big">1577-0000</div></div></div>
+          <div class="pct2-row"><div class="icon">⏰</div><div class="text"><div class="ttl">운영 시간</div><div class="v">평일 09:00 - 18:00<br/>점심 12:30 - 13:30 · 주말·공휴일 휴무</div></div></div>
+          <div class="pct2-row"><div class="icon">📧</div><div class="text"><div class="ttl">이메일</div><div class="v">contact@pourstore.net</div></div></div>
+          <div class="pct2-row"><div class="icon">📍</div><div class="text"><div class="ttl">본사 주소</div><div class="v">경기도 평택시 ○○로 ○○ (○○동)<br/>POUR스토어 R&D 센터 1층</div></div></div>
+        </div>
+        <div class="pct2-map"><div class="pin">📍</div><div class="overlay"><div class="ttl">SHOWROOM</div><div class="v">평택 본사 1층 쇼룸 · 도보 5분 내 주차장</div></div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_CT_KAKAO_HTML = `<style>
+  .pct3 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pct3 { background:#FFFBF5; padding:64px 18px; }
+  .pct3-inner { max-width:980px; margin:0 auto; }
+  .pct3-card { background:linear-gradient(135deg,#FEE500 0%,#FFD600 100%); border-radius:24px; padding:40px 36px; display:grid; grid-template-columns:1fr auto; gap:28px; align-items:center; box-shadow:0 18px 48px rgba(254,229,0,.3); position:relative; overflow:hidden; }
+  .pct3-card::before { content:''; position:absolute; top:-60px; right:-60px; width:240px; height:240px; background:radial-gradient(circle, rgba(255,255,255,.4) 0%, transparent 60%); border-radius:50%; }
+  .pct3-content { position:relative; z-index:1; }
+  .pct3-content .label { display:inline-block; padding:5px 12px; background:#0F1F5C; color:#FEE500; font-size:11px; font-weight:900; border-radius:6px; letter-spacing:.5px; margin-bottom:14px; }
+  .pct3-content h2 { font-size:26px; font-weight:900; color:#0F1F5C; line-height:1.3; margin-bottom:10px; letter-spacing:-.6px; }
+  .pct3-content p { font-size:14px; color:#3A2A00; line-height:1.65; margin-bottom:8px; opacity:.85; }
+  .pct3-content .stats { display:flex; gap:18px; margin-top:18px; flex-wrap:wrap; }
+  .pct3-content .stat { font-size:12px; color:#3A2A00; font-weight:800; }
+  .pct3-content .stat b { color:#0F1F5C; font-size:14px; }
+  .pct3-cta { position:relative; z-index:1; display:flex; flex-direction:column; gap:10px; align-items:flex-end; }
+  .pct3-btn { padding:14px 28px; background:#0F1F5C; color:#FEE500; border:none; border-radius:14px; font-size:14px; font-weight:900; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:8px; transition:all .25s; box-shadow:0 8px 20px rgba(15,31,92,.25); white-space:nowrap; }
+  .pct3-btn:hover { transform:translateY(-2px); box-shadow:0 12px 28px rgba(15,31,92,.4); }
+  .pct3-btn .icon { font-size:18px; }
+  .pct3-id { font-size:11px; color:#3A2A00; font-weight:800; opacity:.7; }
+  @media (max-width:640px) { .pct3-card { grid-template-columns:1fr; padding:28px 24px; } .pct3-content h2 { font-size:20px; } .pct3-cta { align-items:stretch; } }
+  </style>
+  <section class="pct3">
+    <div class="pct3-inner">
+      <div class="pct3-card">
+        <div class="pct3-content">
+          <span class="label">💬 KAKAO TALK</span>
+          <h2>카카오톡으로<br/>지금 바로 상담받으세요</h2>
+          <p>전화·이메일이 어려우시면 카카오톡 채널로 편하게 문의주세요. 평일 09-18시 실시간 응답.</p>
+          <div class="stats">
+            <div class="stat">평균 응답 <b>3분 이내</b></div>
+            <div class="stat">누적 채널 친구 <b>4,800+</b></div>
+          </div>
+        </div>
+        <div class="pct3-cta">
+          <a class="pct3-btn" href="https://pf.kakao.com/_pourstore"><span class="icon">💬</span>채널 추가하고 상담</a>
+          <div class="pct3-id">@POUR스토어</div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_CT_FAQ_HTML = `<style>
+  .pct4 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pct4 { background:#fff; padding:80px 18px; }
+  .pct4-inner { max-width:880px; margin:0 auto; }
+  .pct4-head { text-align:center; margin-bottom:32px; }
+  .pct4-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pct4-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .pct4-list { display:flex; flex-direction:column; gap:12px; }
+  .pct4-item { background:#fff; border:1px solid #F3F4F6; border-radius:14px; overflow:hidden; transition:all .2s; }
+  .pct4-item:hover { border-color:#FED7AA; }
+  .pct4-item.open { border-color:#F97316; box-shadow:0 8px 24px rgba(249,115,22,.1); }
+  .pct4-q { display:flex; align-items:center; gap:14px; padding:18px 22px; cursor:pointer; }
+  .pct4-q .num { width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-family:'Bebas Neue',sans-serif; font-size:14px; font-weight:900; color:#EA580C; flex-shrink:0; letter-spacing:.5px; }
+  .pct4-q .text { flex:1; font-size:14.5px; font-weight:800; color:#0F1F5C; letter-spacing:-.3px; }
+  .pct4-q .arrow { color:#9CA3AF; font-size:14px; transition:transform .2s; }
+  .pct4-item.open .pct4-q .arrow { transform:rotate(180deg); color:#EA580C; }
+  .pct4-a { padding:0 22px 20px 68px; font-size:13.5px; color:#4B5563; line-height:1.75; display:none; }
+  .pct4-item.open .pct4-a { display:block; }
+  .pct4-a b { color:#0F1F5C; font-weight:800; }
+  @media (max-width:640px) { .pct4-head h2 { font-size:24px; } .pct4-a { padding-left:22px; } }
+  </style>
+  <section class="pct4">
+    <div class="pct4-inner">
+      <div class="pct4-head">
+        <div class="kicker">FAQ</div>
+        <h2>자주 묻는 질문</h2>
+      </div>
+      <div class="pct4-list">
+        <div class="pct4-item open">
+          <div class="pct4-q"><div class="num">Q1</div><div class="text">제품만 구매해서 셀프 시공이 가능한가요?</div><div class="arrow">▼</div></div>
+          <div class="pct4-a">네, 가능합니다. POUR스토어는 <b>일반 사용자도 시공 가능한 제품 + 영상 가이드</b>를 제공합니다. 다만 고층 옥상·지하 등 위험 부위는 <b>전문 시공 매칭</b>을 권장합니다.</div>
+        </div>
+        <div class="pct4-item">
+          <div class="pct4-q"><div class="num">Q2</div><div class="text">시공 견적은 어떻게 받을 수 있나요?</div><div class="arrow">▼</div></div>
+          <div class="pct4-a">사이트 상단 <b>시공 연결 신청</b> 또는 본 페이지 폼에서 신청하시면, 가까운 파트너사가 <b>현장 방문 무료 진단</b> 후 견적서를 제공합니다. 일반적으로 신청 후 2-3일 내 연락드립니다.</div>
+        </div>
+        <div class="pct4-item">
+          <div class="pct4-q"><div class="num">Q3</div><div class="text">전국 어디든 시공이 가능한가요?</div><div class="arrow">▼</div></div>
+          <div class="pct4-a">네. <b>전국 250+ 전문 파트너사 네트워크</b>를 통해 17개 광역시·도 모두 시공 가능합니다. 도서산간 지역도 별도 협의로 진행됩니다.</div>
+        </div>
+        <div class="pct4-item">
+          <div class="pct4-q"><div class="num">Q4</div><div class="text">시공 후 하자 보증은 얼마나 되나요?</div><div class="arrow">▼</div></div>
+          <div class="pct4-a">공법별로 다르지만 일반적으로 <b>방수 5-10년 / 도장 3-7년</b> 보증을 시방서 기준으로 제공합니다. 정확한 기간은 시방서·계약서를 통해 명시됩니다.</div>
+        </div>
+        <div class="pct4-item">
+          <div class="pct4-q"><div class="num">Q5</div><div class="text">파트너사·대리점 신청은 어디서 하나요?</div><div class="arrow">▼</div></div>
+          <div class="pct4-a">상단 메뉴의 <b>파트너사 소개·신청</b> 또는 <b>대리점·공급 문의</b> 페이지에서 신청서를 작성해 주세요. 검토 후 영업일 기준 5-7일 내 회신드립니다.</div>
+        </div>
+        <div class="pct4-item">
+          <div class="pct4-q"><div class="num">Q6</div><div class="text">대량 구매·B2B 단가 협의가 가능한가요?</div><div class="arrow">▼</div></div>
+          <div class="pct4-a">네, 가능합니다. <b>관리사무소·시공사·관공서 발주</b>의 경우 별도 단가표를 제공합니다. 본 페이지 문의 폼에서 <b>제품 문의</b> 선택 후 신청해 주세요.</div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+
+  const SEED_PT_HERO_HTML = `<style>
+  .ppt1 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .ppt1 { background:linear-gradient(180deg,#FFFBF5 0%,#FFF7ED 100%); padding:88px 18px 64px; position:relative; overflow:hidden; }
+  .ppt1::before { content:''; position:absolute; top:-100px; right:-80px; width:420px; height:420px; background:radial-gradient(circle, rgba(249,115,22,.14) 0%, transparent 60%); border-radius:50%; }
+  .ppt1::after { content:''; position:absolute; bottom:-60px; left:-60px; width:260px; height:260px; background:radial-gradient(circle, rgba(15,31,92,.06) 0%, transparent 60%); border-radius:50%; }
+  .ppt1-inner { max-width:1100px; margin:0 auto; text-align:center; position:relative; z-index:1; }
+  .ppt1-tag { display:inline-flex; gap:6px; padding:6px 14px; background:#fff; border:1px solid #FED7AA; color:#EA580C; border-radius:999px; font-size:11.5px; font-weight:800; letter-spacing:.8px; margin-bottom:20px; box-shadow:0 4px 12px rgba(249,115,22,.1); }
+  .ppt1 h1 { font-size:46px; font-weight:900; color:#0F1F5C; line-height:1.2; margin-bottom:18px; letter-spacing:-1.4px; }
+  .ppt1 h1 .accent { color:#F97316; }
+  .ppt1-desc { font-size:16px; color:#4B5563; line-height:1.75; max-width:640px; margin:0 auto 32px; }
+  .ppt1-cta { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:36px; }
+  .ppt1-cta .primary { padding:14px 28px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border:none; border-radius:14px; font-size:14px; font-weight:900; cursor:pointer; text-decoration:none; box-shadow:0 8px 24px rgba(249,115,22,.3); transition:all .25s; display:inline-flex; align-items:center; gap:6px; }
+  .ppt1-cta .primary:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(249,115,22,.45); }
+  .ppt1-cta .ghost { padding:14px 24px; background:#fff; color:#0F1F5C; border:1px solid #E5E7EB; border-radius:14px; font-size:14px; font-weight:800; text-decoration:none; transition:all .25s; }
+  .ppt1-cta .ghost:hover { border-color:#FED7AA; color:#EA580C; }
+  .ppt1-stats { display:flex; gap:24px; justify-content:center; flex-wrap:wrap; padding-top:16px; }
+  .ppt1-stat { text-align:center; }
+  .ppt1-stat .v { font-family:'Bebas Neue',sans-serif; font-size:32px; font-weight:900; color:#F97316; line-height:1; letter-spacing:.5px; }
+  .ppt1-stat .l { font-size:11.5px; color:#6B7280; margin-top:4px; font-weight:700; }
+  @media (max-width:640px) { .ppt1 h1 { font-size:30px; } }
+  </style>
+  <section class="ppt1">
+    <div class="ppt1-inner">
+      <span class="ppt1-tag">🤝 PARTNER WITH POUR</span>
+      <h1>POUR스토어와 함께하는<br/><span class="accent">파트너 시공사 모집</span></h1>
+      <p class="ppt1-desc">전국 250+ 파트너사 네트워크에 합류하세요. 검증된 자재 · 안정적 일감 · R&D 기술 지원으로 함께 성장합니다.</p>
+      <div class="ppt1-cta">
+        <a class="primary" href="#apply-form">파트너 신청하기 →</a>
+        <a class="ghost" href="#benefits">혜택 자세히 보기</a>
+      </div>
+      <div class="ppt1-stats">
+        <div class="ppt1-stat"><div class="v">250+</div><div class="l">전국 파트너사</div></div>
+        <div class="ppt1-stat"><div class="v">12,000+</div><div class="l">연간 시공 건수</div></div>
+        <div class="ppt1-stat"><div class="v">94%</div><div class="l">재계약 비율</div></div>
+        <div class="ppt1-stat"><div class="v">17</div><div class="l">광역시·도 커버리지</div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_PT_BENEFIT_HTML = `<style>
+  .ppt2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .ppt2 { background:#fff; padding:80px 18px; }
+  .ppt2-inner { max-width:1200px; margin:0 auto; }
+  .ppt2-head { text-align:center; margin-bottom:36px; }
+  .ppt2-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .ppt2-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
+  .ppt2-head p { font-size:14px; color:#6B7280; }
+  .ppt2-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px; }
+  .ppt2-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; padding:28px 24px; transition:all .25s; }
+  .ppt2-card:hover { transform:translateY(-4px); box-shadow:0 18px 40px rgba(15,31,92,.1); border-color:#FED7AA; }
+  .ppt2-card .icon { width:54px; height:54px; border-radius:14px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:26px; margin-bottom:16px; }
+  .ppt2-card .name { font-size:16px; font-weight:900; color:#0F1F5C; margin-bottom:8px; letter-spacing:-.3px; }
+  .ppt2-card .desc { font-size:13px; color:#6B7280; line-height:1.7; margin-bottom:14px; }
+  .ppt2-card .point { display:inline-block; padding:4px 10px; background:#FFFBF5; border:1px solid #FED7AA; color:#EA580C; font-size:11px; font-weight:800; border-radius:6px; }
+  @media (max-width:640px) { .ppt2-head h2 { font-size:24px; } }
+  </style>
+  <section class="ppt2" id="benefits">
+    <div class="ppt2-inner">
+      <div class="ppt2-head">
+        <div class="kicker">PARTNER BENEFITS</div>
+        <h2>POUR 파트너만의 혜택</h2>
+        <p>단순 자재 공급사가 아닌 — 함께 성장하는 기술 파트너입니다</p>
+      </div>
+      <div class="ppt2-grid">
+        <div class="ppt2-card"><div class="icon">📦</div><div class="name">자재 직공급</div><div class="desc">중간 유통 없이 본사 직공급 — 시중가 대비 평균 22% 절감</div><span class="point">최대 30% 할인</span></div>
+        <div class="ppt2-card"><div class="icon">🎯</div><div class="name">안정적 일감 배정</div><div class="desc">시공 매칭 시스템으로 지역·전문분야에 맞는 일감 정기 배정</div><span class="point">월 평균 3.2건</span></div>
+        <div class="ppt2-card"><div class="icon">🎓</div><div class="name">기술 교육·자격증</div><div class="desc">신공법·신제품 출시 시 무료 교육 + POUR 시공 자격증 발급</div><span class="point">연 4회 정기 교육</span></div>
+        <div class="ppt2-card"><div class="icon">💼</div><div class="name">마케팅 지원</div><div class="desc">파트너사 페이지 노출 + 시공 사례 자동 등록 + SNS 광고 지원</div><span class="point">월 광고비 100만원</span></div>
+        <div class="ppt2-card"><div class="icon">🛡️</div><div class="name">하자 책임 분담</div><div class="desc">자재 결함 하자는 본사가 100% 책임 — 시공자 부담 ZERO</div><span class="point">자재 보증 5-10년</span></div>
+        <div class="ppt2-card"><div class="icon">💰</div><div class="name">결제 안전망</div><div class="desc">대규모 발주처 일감도 본사 선결제 — 미수금 리스크 없이 시공만 집중</div><span class="point">7일 내 정산</span></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_PT_REQ_HTML = `<style>
+  .ppt3 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .ppt3 { background:#FFFBF5; padding:80px 18px; }
+  .ppt3-inner { max-width:980px; margin:0 auto; }
+  .ppt3-head { text-align:center; margin-bottom:32px; }
+  .ppt3-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .ppt3-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .ppt3-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .ppt3-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; padding:28px 26px; }
+  .ppt3-card.must { border-left:4px solid #F97316; }
+  .ppt3-card.plus { border-left:4px solid #059669; }
+  .ppt3-card .label { display:inline-block; padding:4px 10px; background:#FFFBF5; border:1px solid #FED7AA; color:#EA580C; font-size:10.5px; font-weight:800; border-radius:6px; margin-bottom:14px; letter-spacing:.5px; }
+  .ppt3-card.plus .label { background:#ECFDF5; border-color:#A7F3D0; color:#059669; }
+  .ppt3-card h3 { font-size:18px; font-weight:900; color:#0F1F5C; margin-bottom:18px; letter-spacing:-.3px; }
+  .ppt3-list { display:flex; flex-direction:column; gap:12px; }
+  .ppt3-item { display:flex; gap:12px; padding:12px; background:#FFFBF5; border-radius:10px; }
+  .ppt3-card.plus .ppt3-item { background:#ECFDF5; }
+  .ppt3-item .check { width:22px; height:22px; border-radius:50%; background:#F97316; color:#fff; font-size:13px; font-weight:900; display:grid; place-items:center; flex-shrink:0; }
+  .ppt3-card.plus .ppt3-item .check { background:#059669; }
+  .ppt3-item .text { flex:1; }
+  .ppt3-item .text .ttl { font-size:13px; font-weight:800; color:#0F1F5C; margin-bottom:3px; letter-spacing:-.3px; }
+  .ppt3-item .text .desc { font-size:12px; color:#6B7280; line-height:1.55; }
+  @media (max-width:720px) { .ppt3-grid { grid-template-columns:1fr; } .ppt3-head h2 { font-size:24px; } }
+  </style>
+  <section class="ppt3">
+    <div class="ppt3-inner">
+      <div class="ppt3-head">
+        <div class="kicker">REQUIREMENTS</div>
+        <h2>파트너 자격 요건</h2>
+      </div>
+      <div class="ppt3-grid">
+        <div class="ppt3-card must">
+          <span class="label">✓ 필수 요건</span>
+          <h3>최소 자격</h3>
+          <div class="ppt3-list">
+            <div class="ppt3-item"><div class="check">✓</div><div class="text"><div class="ttl">사업자등록증</div><div class="desc">건설·인테리어·도장·방수 관련 업태</div></div></div>
+            <div class="ppt3-item"><div class="check">✓</div><div class="text"><div class="ttl">시공 경력 3년 이상</div><div class="desc">방수·도장·균열보수 중 1개 이상 분야</div></div></div>
+            <div class="ppt3-item"><div class="check">✓</div><div class="text"><div class="ttl">시공 사례 5건 이상</div><div class="desc">최근 3년 내 시공 사진·도면 제출</div></div></div>
+            <div class="ppt3-item"><div class="check">✓</div><div class="text"><div class="ttl">산재보험 가입</div><div class="desc">근로자 안전 보장 필수</div></div></div>
+          </div>
+        </div>
+        <div class="ppt3-card plus">
+          <span class="label">+ 우대 사항</span>
+          <h3>가점 요건</h3>
+          <div class="ppt3-list">
+            <div class="ppt3-item"><div class="check">+</div><div class="text"><div class="ttl">기술자격증 보유</div><div class="desc">건축·도장·방수 기능사·산업기사·기사</div></div></div>
+            <div class="ppt3-item"><div class="check">+</div><div class="text"><div class="ttl">전문건설업 면허</div><div class="desc">미장·방수·습식 면허 보유 시 우대</div></div></div>
+            <div class="ppt3-item"><div class="check">+</div><div class="text"><div class="ttl">관공서·공동주택 실적</div><div class="desc">아파트·관공서 시공 경험 보유</div></div></div>
+            <div class="ppt3-item"><div class="check">+</div><div class="text"><div class="ttl">친환경·안전 인증</div><div class="desc">ISO 등 품질·환경 시스템 인증</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_PT_FLOW_HTML = `<style>
+  .ppt4 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .ppt4 { background:#fff; padding:80px 18px; }
+  .ppt4-inner { max-width:1100px; margin:0 auto; }
+  .ppt4-head { text-align:center; margin-bottom:40px; }
+  .ppt4-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .ppt4-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
+  .ppt4-head p { font-size:14px; color:#6B7280; }
+  .ppt4-flow { display:grid; grid-template-columns:repeat(5, 1fr); gap:8px; position:relative; }
+  .ppt4-flow::before { content:''; position:absolute; top:38px; left:10%; right:10%; height:2px; background:linear-gradient(90deg, #FED7AA, #F97316, #FED7AA); z-index:0; }
+  .ppt4-step { position:relative; z-index:1; text-align:center; }
+  .ppt4-step .num { width:76px; height:76px; margin:0 auto 14px; border-radius:50%; background:#fff; border:3px solid #F97316; display:grid; place-items:center; font-family:'Bebas Neue',sans-serif; font-size:24px; font-weight:900; color:#F97316; box-shadow:0 8px 20px rgba(249,115,22,.15); letter-spacing:.5px; }
+  .ppt4-step .name { font-size:14px; font-weight:900; color:#0F1F5C; margin-bottom:6px; letter-spacing:-.3px; }
+  .ppt4-step .desc { font-size:11.5px; color:#6B7280; line-height:1.55; }
+  .ppt4-step .duration { display:inline-block; margin-top:8px; padding:3px 8px; background:#FFFBF5; border:1px solid #FED7AA; color:#EA580C; font-size:10.5px; font-weight:800; border-radius:5px; }
+  @media (max-width:880px) { .ppt4-flow { grid-template-columns:1fr; gap:24px; } .ppt4-flow::before { display:none; } .ppt4-head h2 { font-size:24px; } }
+  </style>
+  <section class="ppt4">
+    <div class="ppt4-inner">
+      <div class="ppt4-head">
+        <div class="kicker">PROCESS</div>
+        <h2>파트너 신청 진행 절차</h2>
+        <p>신청부터 계약까지 평균 영업일 기준 14일</p>
+      </div>
+      <div class="ppt4-flow">
+        <div class="ppt4-step"><div class="num">01</div><div class="name">신청서 제출</div><div class="desc">온라인 폼 작성<br/>+ 사업자등록증</div><div class="duration">즉시</div></div>
+        <div class="ppt4-step"><div class="num">02</div><div class="name">서류 검토</div><div class="desc">실적·경력 확인<br/>+ 결격 사유 검증</div><div class="duration">3-5일</div></div>
+        <div class="ppt4-step"><div class="num">03</div><div class="name">실사 방문</div><div class="desc">사무실·창고 실사<br/>+ 대표 면담</div><div class="duration">5-7일</div></div>
+        <div class="ppt4-step"><div class="num">04</div><div class="name">계약 체결</div><div class="desc">파트너 계약서<br/>+ 등급 확정 (A/B/C)</div><div class="duration">7-10일</div></div>
+        <div class="ppt4-step"><div class="num">05</div><div class="name">시공 시작</div><div class="desc">교육 이수 후<br/>+ 첫 일감 배정</div><div class="duration">10-14일</div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_PT_LOGOS_HTML = `<style>
+  .ppt5 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .ppt5 { background:#FFFBF5; padding:64px 18px; }
+  .ppt5-inner { max-width:1200px; margin:0 auto; }
+  .ppt5-head { text-align:center; margin-bottom:32px; }
+  .ppt5-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .ppt5-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
+  .ppt5-head p { font-size:13.5px; color:#6B7280; }
+  .ppt5-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:12px; }
+  .ppt5-logo { aspect-ratio:5/3; background:#fff; border:1px solid #F3F4F6; border-radius:14px; display:grid; place-items:center; padding:18px; transition:all .25s; }
+  .ppt5-logo:hover { transform:translateY(-2px); box-shadow:0 12px 28px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .ppt5-logo .name { font-size:13.5px; font-weight:900; color:#0F1F5C; letter-spacing:-.3px; text-align:center; line-height:1.4; }
+  .ppt5-logo .name .sub { display:block; font-size:10.5px; color:#9CA3AF; font-weight:700; margin-top:2px; letter-spacing:.3px; }
+  .ppt5-more { text-align:center; margin-top:24px; }
+  .ppt5-more a { font-size:13px; font-weight:800; color:#EA580C; text-decoration:none; padding:10px 22px; border:1px solid #FED7AA; border-radius:999px; background:#fff; transition:all .25s; }
+  .ppt5-more a:hover { background:#FFF7ED; }
+  @media (max-width:640px) { .ppt5-head h2 { font-size:22px; } }
+  </style>
+  <section class="ppt5">
+    <div class="ppt5-inner">
+      <div class="ppt5-head">
+        <div class="kicker">OUR PARTNERS</div>
+        <h2>POUR와 함께하는 파트너사</h2>
+        <p>전국 250+ 시공사 — 지역별 대표 파트너 일부 소개</p>
+      </div>
+      <div class="ppt5-grid">
+        <div class="ppt5-logo"><div class="name">SH건설<span class="sub">서울 · 강남</span></div></div>
+        <div class="ppt5-logo"><div class="name">한울방수<span class="sub">경기 · 수원</span></div></div>
+        <div class="ppt5-logo"><div class="name">대성도장<span class="sub">인천 · 송도</span></div></div>
+        <div class="ppt5-logo"><div class="name">부산테크<span class="sub">부산 · 해운대</span></div></div>
+        <div class="ppt5-logo"><div class="name">남광시공<span class="sub">대구 · 수성</span></div></div>
+        <div class="ppt5-logo"><div class="name">광주리노<span class="sub">광주 · 서구</span></div></div>
+        <div class="ppt5-logo"><div class="name">대전건축<span class="sub">대전 · 유성</span></div></div>
+        <div class="ppt5-logo"><div class="name">울산E&C<span class="sub">울산 · 남구</span></div></div>
+        <div class="ppt5-logo"><div class="name">강원종합<span class="sub">강원 · 춘천</span></div></div>
+        <div class="ppt5-logo"><div class="name">충청기술<span class="sub">충북 · 청주</span></div></div>
+        <div class="ppt5-logo"><div class="name">호남파트너<span class="sub">전남 · 여수</span></div></div>
+        <div class="ppt5-logo"><div class="name">제주방수<span class="sub">제주 · 제주시</span></div></div>
+      </div>
+      <div class="ppt5-more"><a href="#">전체 250+ 파트너사 보기 →</a></div>
+    </div>
+  </section>`;
+
+  const SEED_PT_FORM_HTML = `<style>
+  .ppt6 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .ppt6 { background:#fff; padding:80px 18px; }
+  .ppt6-inner { max-width:980px; margin:0 auto; }
+  .ppt6-head { text-align:center; margin-bottom:32px; }
+  .ppt6-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .ppt6-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .ppt6-head p { font-size:14px; color:#6B7280; }
+  .ppt6-card { background:#fff; border:1px solid #F3F4F6; border-radius:24px; padding:36px 32px; box-shadow:0 12px 36px rgba(15,31,92,.06); }
+  .ppt6-section { margin-bottom:24px; }
+  .ppt6-section .stitle { font-size:13px; font-weight:900; color:#0F1F5C; margin-bottom:14px; padding-bottom:10px; border-bottom:2px solid #FFEDD5; letter-spacing:-.3px; }
+  .ppt6-row { margin-bottom:14px; }
+  .ppt6-row.split { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .ppt6-row label { display:block; font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
+  .ppt6-row input, .ppt6-row select, .ppt6-row textarea { width:100%; padding:12px 14px; background:#FFFBF5; border:1px solid #F3F4F6; border-radius:10px; font-size:14px; font-family:inherit; color:#0F1F5C; transition:all .2s; }
+  .ppt6-row textarea { min-height:96px; resize:vertical; }
+  .ppt6-row input:focus, .ppt6-row select:focus, .ppt6-row textarea:focus { outline:none; border-color:#FED7AA; background:#fff; box-shadow:0 0 0 3px rgba(249,115,22,.08); }
+  .ppt6-checks { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:8px; }
+  .ppt6-check { padding:10px 14px; background:#FFFBF5; border:1px solid #F3F4F6; border-radius:10px; font-size:12.5px; font-weight:700; color:#6B7280; cursor:pointer; transition:all .2s; text-align:center; }
+  .ppt6-check:hover { border-color:#FED7AA; }
+  .ppt6-check.active { background:#FFF7ED; border-color:#F97316; color:#EA580C; font-weight:800; }
+  .ppt6-upload { padding:20px; background:#FFFBF5; border:2px dashed #FED7AA; border-radius:12px; text-align:center; }
+  .ppt6-upload .icon { font-size:24px; margin-bottom:6px; }
+  .ppt6-upload .text { font-size:13px; color:#6B7280; font-weight:700; }
+  .ppt6-upload .hint { font-size:11px; color:#9CA3AF; margin-top:4px; }
+  .ppt6-agree { display:flex; align-items:center; gap:8px; margin-bottom:18px; padding:14px; background:#FFFBF5; border-radius:10px; font-size:12.5px; color:#4B5563; }
+  .ppt6-agree input { width:16px; height:16px; accent-color:#F97316; }
+  .ppt6-submit { width:100%; padding:16px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:900; cursor:pointer; box-shadow:0 8px 24px rgba(249,115,22,.3); transition:all .25s; }
+  .ppt6-submit:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(249,115,22,.45); }
+  @media (max-width:640px) { .ppt6-card { padding:24px 18px; } .ppt6-row.split { grid-template-columns:1fr; } .ppt6-head h2 { font-size:24px; } }
+  </style>
+  <section class="ppt6" id="apply-form">
+    <div class="ppt6-inner">
+      <div class="ppt6-head">
+        <div class="kicker">APPLICATION</div>
+        <h2>파트너사 신청서</h2>
+        <p>아래 정보를 입력해 주시면 검토 후 영업일 기준 5-7일 내 연락드립니다</p>
+      </div>
+      <form class="ppt6-card">
+        <div class="ppt6-section">
+          <div class="stitle">📋 회사 정보</div>
+          <div class="ppt6-row split">
+            <div><label>회사명</label><input type="text" placeholder="㈜한울방수"/></div>
+            <div><label>사업자등록번호</label><input type="text" placeholder="000-00-00000"/></div>
+          </div>
+          <div class="ppt6-row split">
+            <div><label>대표자명</label><input type="text" placeholder="홍길동"/></div>
+            <div><label>설립연도</label><input type="text" placeholder="2015"/></div>
+          </div>
+          <div class="ppt6-row"><label>사업장 주소</label><input type="text" placeholder="경기도 ○○시 ○○로 ○○"/></div>
+        </div>
+        <div class="ppt6-section">
+          <div class="stitle">👤 담당자 정보</div>
+          <div class="ppt6-row split">
+            <div><label>담당자명</label><input type="text" placeholder="홍길동"/></div>
+            <div><label>연락처</label><input type="text" placeholder="010-0000-0000"/></div>
+          </div>
+          <div class="ppt6-row"><label>이메일</label><input type="email" placeholder="example@email.com"/></div>
+        </div>
+        <div class="ppt6-section">
+          <div class="stitle">🔧 시공 가능 분야 (복수 선택)</div>
+          <div class="ppt6-checks">
+            <div class="ppt6-check active">방수</div>
+            <div class="ppt6-check active">도장</div>
+            <div class="ppt6-check">균열 보수</div>
+            <div class="ppt6-check">코팅·단열</div>
+            <div class="ppt6-check">에폭시·바닥</div>
+            <div class="ppt6-check">아스콘·토목</div>
+            <div class="ppt6-check">기타</div>
+          </div>
+        </div>
+        <div class="ppt6-section">
+          <div class="stitle">📊 시공 실적</div>
+          <div class="ppt6-row split">
+            <div><label>시공 경력</label><select><option>3년 미만</option><option>3-5년</option><option>5-10년</option><option>10년 이상</option></select></div>
+            <div><label>연 시공 건수</label><select><option>10건 미만</option><option>10-30건</option><option>30-100건</option><option>100건 이상</option></select></div>
+          </div>
+          <div class="ppt6-row"><label>주요 실적 (간단 기재)</label><textarea placeholder="최근 3년 주요 시공 단지·관공서·발주처 등"></textarea></div>
+        </div>
+        <div class="ppt6-section">
+          <div class="stitle">📎 첨부 서류</div>
+          <div class="ppt6-upload"><div class="icon">📎</div><div class="text">사업자등록증 · 시공 실적표 · 면허증 등</div><div class="hint">PDF, JPG, PNG (최대 20MB)</div></div>
+        </div>
+        <div class="ppt6-agree"><input type="checkbox" id="ag2"/><label for="ag2">개인정보·기업정보 수집·이용에 동의합니다</label></div>
+        <button type="submit" class="ppt6-submit">파트너 신청하기</button>
+      </form>
+    </div>
+  </section>`;
+
+  const SEED_PT_FAQ_HTML = `<style>
+  .ppt7 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .ppt7 { background:#FFFBF5; padding:80px 18px; }
+  .ppt7-inner { max-width:880px; margin:0 auto; }
+  .ppt7-head { text-align:center; margin-bottom:32px; }
+  .ppt7-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .ppt7-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .ppt7-list { display:flex; flex-direction:column; gap:12px; }
+  .ppt7-item { background:#fff; border:1px solid #F3F4F6; border-radius:14px; overflow:hidden; transition:all .2s; }
+  .ppt7-item:hover { border-color:#FED7AA; }
+  .ppt7-item.open { border-color:#F97316; box-shadow:0 8px 24px rgba(249,115,22,.1); }
+  .ppt7-q { display:flex; align-items:center; gap:14px; padding:18px 22px; cursor:pointer; }
+  .ppt7-q .num { width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-family:'Bebas Neue',sans-serif; font-size:14px; font-weight:900; color:#EA580C; flex-shrink:0; }
+  .ppt7-q .text { flex:1; font-size:14.5px; font-weight:800; color:#0F1F5C; letter-spacing:-.3px; }
+  .ppt7-q .arrow { color:#9CA3AF; font-size:14px; transition:transform .2s; }
+  .ppt7-item.open .ppt7-q .arrow { transform:rotate(180deg); color:#EA580C; }
+  .ppt7-a { padding:0 22px 20px 68px; font-size:13.5px; color:#4B5563; line-height:1.75; display:none; }
+  .ppt7-item.open .ppt7-a { display:block; }
+  .ppt7-a b { color:#0F1F5C; font-weight:800; }
+  @media (max-width:640px) { .ppt7-head h2 { font-size:24px; } .ppt7-a { padding-left:22px; } }
+  </style>
+  <section class="ppt7">
+    <div class="ppt7-inner">
+      <div class="ppt7-head">
+        <div class="kicker">FAQ</div>
+        <h2>파트너 신청 자주 묻는 질문</h2>
+      </div>
+      <div class="ppt7-list">
+        <div class="ppt7-item open">
+          <div class="ppt7-q"><div class="num">Q1</div><div class="text">계약금이나 가입비가 있나요?</div><div class="arrow">▼</div></div>
+          <div class="ppt7-a">아니요. <b>가입비·계약금·보증금 없음</b>. 자재 구매가만 본사 직공급가로 정산되며, 시공 일감은 본사가 무상 배정합니다.</div>
+        </div>
+        <div class="ppt7-item">
+          <div class="ppt7-q"><div class="num">Q2</div><div class="text">파트너 등급(A/B/C)은 어떻게 정해지나요?</div><div class="arrow">▼</div></div>
+          <div class="ppt7-a">시공 경력·면허·실적·고객 만족도를 종합 평가하여 <b>A/B/C 3등급</b>으로 분류됩니다. 등급별로 일감 우선순위·할인율·교육 혜택이 차등 적용되며, 매년 1회 재평가합니다.</div>
+        </div>
+        <div class="ppt7-item">
+          <div class="ppt7-q"><div class="num">Q3</div><div class="text">전속 계약인가요? 다른 자재사도 사용 가능한가요?</div><div class="arrow">▼</div></div>
+          <div class="ppt7-a">전속 계약이 아닙니다. <b>POUR 자재는 POUR 일감에만 의무 적용</b>되며, 다른 발주처 일감에서는 자유롭게 다른 자재를 사용 가능합니다.</div>
+        </div>
+        <div class="ppt7-item">
+          <div class="ppt7-q"><div class="num">Q4</div><div class="text">월 일감은 얼마나 배정되나요?</div><div class="arrow">▼</div></div>
+          <div class="ppt7-a">지역·등급·전문분야에 따라 다르지만 <b>평균 월 3.2건</b>이 배정됩니다. 성수기(3-10월)에는 더 많이, 비수기(11-2월)에는 다소 적게 배정될 수 있습니다.</div>
+        </div>
+        <div class="ppt7-item">
+          <div class="ppt7-q"><div class="num">Q5</div><div class="text">시공 후 정산은 언제 받나요?</div><div class="arrow">▼</div></div>
+          <div class="ppt7-a"><b>시공 완료 검수 후 7일 내 정산</b>됩니다. 발주처 결제와 무관하게 본사가 선결제하므로 미수금 리스크가 없습니다.</div>
+        </div>
+        <div class="ppt7-item">
+          <div class="ppt7-q"><div class="num">Q6</div><div class="text">교육은 의무인가요? 비용은요?</div><div class="arrow">▼</div></div>
+          <div class="ppt7-a">신규 가입 후 <b>POUR 시공 자격 교육(1일)</b> 이수가 의무이며, <b>전액 무료</b>입니다. 이후 신공법·신제품 출시 시 정기 교육은 선택 참여이며 모두 무료입니다.</div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+
+  const SEED_DL_HERO_HTML = `<style>
+  .pdl1 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pdl1 { background:linear-gradient(180deg,#FFFBF5 0%,#FFF7ED 100%); padding:88px 18px 64px; position:relative; overflow:hidden; }
+  .pdl1::before { content:''; position:absolute; top:-100px; right:-100px; width:440px; height:440px; background:radial-gradient(circle, rgba(249,115,22,.14) 0%, transparent 60%); border-radius:50%; }
+  .pdl1-inner { max-width:1100px; margin:0 auto; text-align:center; position:relative; z-index:1; }
+  .pdl1-tag { display:inline-flex; gap:6px; padding:6px 14px; background:#fff; border:1px solid #FED7AA; color:#EA580C; border-radius:999px; font-size:11.5px; font-weight:800; letter-spacing:.8px; margin-bottom:20px; box-shadow:0 4px 12px rgba(249,115,22,.1); }
+  .pdl1 h1 { font-size:46px; font-weight:900; color:#0F1F5C; line-height:1.2; margin-bottom:18px; letter-spacing:-1.4px; }
+  .pdl1 h1 .accent { color:#F97316; }
+  .pdl1-desc { font-size:16px; color:#4B5563; line-height:1.75; max-width:640px; margin:0 auto 32px; }
+  .pdl1-cta { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:36px; }
+  .pdl1-cta .primary { padding:14px 28px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border:none; border-radius:14px; font-size:14px; font-weight:900; cursor:pointer; text-decoration:none; box-shadow:0 8px 24px rgba(249,115,22,.3); transition:all .25s; }
+  .pdl1-cta .primary:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(249,115,22,.45); }
+  .pdl1-cta .ghost { padding:14px 24px; background:#fff; color:#0F1F5C; border:1px solid #E5E7EB; border-radius:14px; font-size:14px; font-weight:800; text-decoration:none; }
+  .pdl1-stats { display:flex; gap:24px; justify-content:center; flex-wrap:wrap; padding-top:16px; }
+  .pdl1-stat { text-align:center; }
+  .pdl1-stat .v { font-family:'Bebas Neue',sans-serif; font-size:32px; font-weight:900; color:#F97316; line-height:1; letter-spacing:.5px; }
+  .pdl1-stat .l { font-size:11.5px; color:#6B7280; margin-top:4px; font-weight:700; }
+  @media (max-width:640px) { .pdl1 h1 { font-size:30px; } }
+  </style>
+  <section class="pdl1">
+    <div class="pdl1-inner">
+      <span class="pdl1-tag">🏪 BECOME A DEALER</span>
+      <h1>POUR스토어<br/><span class="accent">대리점·유통 파트너 모집</span></h1>
+      <p class="pdl1-desc">검증된 R&D 자재를 지역 거점에서 유통하세요. 전국 17개 광역에 우수 대리점을 모집합니다 — 안정 마진·전속 영업권 보장.</p>
+      <div class="pdl1-cta">
+        <a class="primary" href="#dealer-form">대리점 신청 →</a>
+        <a class="ghost" href="#margin">마진 구조 보기</a>
+      </div>
+      <div class="pdl1-stats">
+        <div class="pdl1-stat"><div class="v">42</div><div class="l">전국 대리점</div></div>
+        <div class="pdl1-stat"><div class="v">평균 28%</div><div class="l">유통 마진</div></div>
+        <div class="pdl1-stat"><div class="v">98%</div><div class="l">재계약률</div></div>
+        <div class="pdl1-stat"><div class="v">12개</div><div class="l">신규 모집 권역</div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_DL_MARGIN_HTML = `<style>
+  .pdl2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pdl2 { background:#fff; padding:80px 18px; }
+  .pdl2-inner { max-width:1100px; margin:0 auto; }
+  .pdl2-head { text-align:center; margin-bottom:36px; }
+  .pdl2-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pdl2-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .pdl2-head p { font-size:14px; color:#6B7280; }
+  .pdl2-tiers { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:32px; }
+  .pdl2-tier { background:#fff; border:1px solid #F3F4F6; border-radius:18px; padding:28px 24px; transition:all .25s; }
+  .pdl2-tier.gold { background:linear-gradient(135deg,#FFF7ED,#FFEDD5); border-color:#F97316; box-shadow:0 18px 40px rgba(249,115,22,.12); transform:scale(1.02); position:relative; }
+  .pdl2-tier.gold::before { content:'⭐ 추천'; position:absolute; top:-12px; left:50%; transform:translateX(-50%); padding:5px 12px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; font-size:10.5px; font-weight:900; border-radius:6px; letter-spacing:.5px; }
+  .pdl2-tier .name { font-size:13px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
+  .pdl2-tier .pct { font-family:'Bebas Neue',sans-serif; font-size:48px; font-weight:900; color:#F97316; line-height:1; letter-spacing:.5px; margin-bottom:6px; }
+  .pdl2-tier .pct .unit { font-family:'Noto Sans KR',sans-serif; font-size:18px; font-weight:800; color:#0F1F5C; }
+  .pdl2-tier .desc { font-size:12px; color:#6B7280; margin-bottom:18px; line-height:1.6; }
+  .pdl2-tier ul { list-style:none; padding:0; margin:0; }
+  .pdl2-tier li { font-size:12.5px; color:#4B5563; padding:6px 0; padding-left:18px; position:relative; line-height:1.55; }
+  .pdl2-tier li::before { content:'✓'; position:absolute; left:0; color:#F97316; font-weight:900; }
+  .pdl2-note { padding:18px 22px; background:#FFFBF5; border:1px solid #FED7AA; border-radius:14px; }
+  .pdl2-note .label { font-size:11px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
+  .pdl2-note .text { font-size:13px; color:#4B5563; line-height:1.7; }
+  .pdl2-note b { color:#0F1F5C; font-weight:800; }
+  @media (max-width:880px) { .pdl2-tiers { grid-template-columns:1fr; } .pdl2-tier.gold { transform:none; } .pdl2-head h2 { font-size:24px; } }
+  </style>
+  <section class="pdl2" id="margin">
+    <div class="pdl2-inner">
+      <div class="pdl2-head">
+        <div class="kicker">MARGIN STRUCTURE</div>
+        <h2>대리점 마진 구조</h2>
+        <p>월 매출 기준 자동 차등 — 키울수록 더 큰 마진을 가져갑니다</p>
+      </div>
+      <div class="pdl2-tiers">
+        <div class="pdl2-tier"><div class="name">SILVER</div><div class="pct">22<span class="unit">%</span></div><div class="desc">월 매출 1천만원 이하 — 신규 대리점 진입 단계</div><ul><li>자재 본사 직공급가</li><li>판매보조금 월 50만원</li><li>제품 카탈로그 무상 제공</li><li>교육 무료 (분기 1회)</li></ul></div>
+        <div class="pdl2-tier gold"><div class="name">GOLD</div><div class="pct">28<span class="unit">%</span></div><div class="desc">월 매출 1천-3천만원 — 가장 많은 대리점 구간</div><ul><li>실버 혜택 + 추가 마진 6%</li><li>판매보조금 월 100만원</li><li>전속 영업권 (지역 단독)</li><li>지역 광고 50% 분담</li><li>전시 샘플 무상 보충</li></ul></div>
+        <div class="pdl2-tier"><div class="name">PLATINUM</div><div class="pct">35<span class="unit">%</span></div><div class="desc">월 매출 3천만원 이상 — 우수 대리점 대상</div><ul><li>골드 혜택 + 추가 마진 7%</li><li>판매보조금 월 200만원</li><li>지역 광고 100% 본사 부담</li><li>신제품 우선 공급</li><li>해외 연수 (연 1회)</li></ul></div>
+      </div>
+      <div class="pdl2-note">
+        <div class="label">💡 추가 인센티브</div>
+        <div class="text">월 매출 목표 달성 시 <b>추가 3% 보너스</b>, 신규 시공사 영입 시 <b>건당 30만원 인센티브</b>, 연간 우수 대리점 선정 시 <b>해외 연수·포상</b> 별도 제공.</div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_DL_REQ_HTML = `<style>
+  .pdl3 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pdl3 { background:#FFFBF5; padding:80px 18px; }
+  .pdl3-inner { max-width:980px; margin:0 auto; }
+  .pdl3-head { text-align:center; margin-bottom:32px; }
+  .pdl3-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pdl3-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .pdl3-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .pdl3-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; padding:28px 26px; }
+  .pdl3-card.must { border-left:4px solid #F97316; }
+  .pdl3-card.plus { border-left:4px solid #059669; }
+  .pdl3-card .label { display:inline-block; padding:4px 10px; background:#FFFBF5; border:1px solid #FED7AA; color:#EA580C; font-size:10.5px; font-weight:800; border-radius:6px; margin-bottom:14px; letter-spacing:.5px; }
+  .pdl3-card.plus .label { background:#ECFDF5; border-color:#A7F3D0; color:#059669; }
+  .pdl3-card h3 { font-size:18px; font-weight:900; color:#0F1F5C; margin-bottom:18px; letter-spacing:-.3px; }
+  .pdl3-list { display:flex; flex-direction:column; gap:12px; }
+  .pdl3-item { display:flex; gap:12px; padding:12px; background:#FFFBF5; border-radius:10px; }
+  .pdl3-card.plus .pdl3-item { background:#ECFDF5; }
+  .pdl3-item .check { width:22px; height:22px; border-radius:50%; background:#F97316; color:#fff; font-size:13px; font-weight:900; display:grid; place-items:center; flex-shrink:0; }
+  .pdl3-card.plus .pdl3-item .check { background:#059669; }
+  .pdl3-item .text .ttl { font-size:13px; font-weight:800; color:#0F1F5C; margin-bottom:3px; }
+  .pdl3-item .text .desc { font-size:12px; color:#6B7280; line-height:1.55; }
+  @media (max-width:720px) { .pdl3-grid { grid-template-columns:1fr; } .pdl3-head h2 { font-size:24px; } }
+  </style>
+  <section class="pdl3">
+    <div class="pdl3-inner">
+      <div class="pdl3-head">
+        <div class="kicker">REQUIREMENTS</div>
+        <h2>대리점 자격 요건</h2>
+      </div>
+      <div class="pdl3-grid">
+        <div class="pdl3-card must">
+          <span class="label">✓ 필수 요건</span>
+          <h3>최소 자격</h3>
+          <div class="pdl3-list">
+            <div class="pdl3-item"><div class="check">✓</div><div class="text"><div class="ttl">사업자등록증</div><div class="desc">건축자재·도소매·유통 관련 업태</div></div></div>
+            <div class="pdl3-item"><div class="check">✓</div><div class="text"><div class="ttl">매장·창고 33㎡ 이상</div><div class="desc">샘플 진열 + 재고 보관 공간</div></div></div>
+            <div class="pdl3-item"><div class="check">✓</div><div class="text"><div class="ttl">초기 재고 매입 (1천만원)</div><div class="desc">기본 SKU 셋업 — 판매 후 정산</div></div></div>
+            <div class="pdl3-item"><div class="check">✓</div><div class="text"><div class="ttl">상시 직원 1인 이상</div><div class="desc">고객 응대·상품 안내 가능자</div></div></div>
+          </div>
+        </div>
+        <div class="pdl3-card plus">
+          <span class="label">+ 우대 사항</span>
+          <h3>가점 요건</h3>
+          <div class="pdl3-list">
+            <div class="pdl3-item"><div class="check">+</div><div class="text"><div class="ttl">건설자재 유통 경력</div><div class="desc">방수·도장·페인트 도소매 5년 이상</div></div></div>
+            <div class="pdl3-item"><div class="check">+</div><div class="text"><div class="ttl">지역 시공사 네트워크</div><div class="desc">해당 권역 시공사 거래처 보유</div></div></div>
+            <div class="pdl3-item"><div class="check">+</div><div class="text"><div class="ttl">매장 가시성·접근성</div><div class="desc">대로변·산업단지 인근·주차 가능</div></div></div>
+            <div class="pdl3-item"><div class="check">+</div><div class="text"><div class="ttl">자체 운반 차량 보유</div><div class="desc">현장 직배송 가능 시 가점</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_DL_CAT_HTML = `<style>
+  .pdl4 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pdl4 { background:#fff; padding:80px 18px; }
+  .pdl4-inner { max-width:1200px; margin:0 auto; }
+  .pdl4-head { text-align:center; margin-bottom:36px; }
+  .pdl4-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pdl4-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
+  .pdl4-head p { font-size:14px; color:#6B7280; }
+  .pdl4-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px; }
+  .pdl4-card { background:#fff; border:1px solid #F3F4F6; border-radius:16px; padding:24px 22px; transition:all .25s; }
+  .pdl4-card:hover { transform:translateY(-3px); box-shadow:0 16px 36px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .pdl4-card .icon { width:48px; height:48px; border-radius:12px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:24px; margin-bottom:14px; }
+  .pdl4-card .name { font-size:15.5px; font-weight:900; color:#0F1F5C; margin-bottom:6px; letter-spacing:-.3px; }
+  .pdl4-card .count { font-size:11px; font-weight:800; color:#EA580C; margin-bottom:10px; }
+  .pdl4-card .items { display:flex; flex-wrap:wrap; gap:5px; }
+  .pdl4-card .item { padding:3px 9px; background:#FFFBF5; border:1px solid #F3F4F6; color:#4B5563; font-size:10.5px; font-weight:700; border-radius:5px; }
+  @media (max-width:640px) { .pdl4-head h2 { font-size:24px; } }
+  </style>
+  <section class="pdl4">
+    <div class="pdl4-inner">
+      <div class="pdl4-head">
+        <div class="kicker">SUPPLY CATEGORIES</div>
+        <h2>공급 가능 카테고리</h2>
+        <p>전 카테고리 110+ SKU — 대리점은 전 라인업 자유 취급 가능</p>
+      </div>
+      <div class="pdl4-grid">
+        <div class="pdl4-card"><div class="icon">💧</div><div class="name">방수재</div><div class="count">28종</div><div class="items"><span class="item">코트재</span><span class="item">시트</span><span class="item">PVC</span><span class="item">우레탄</span><span class="item">아크릴차수</span></div></div>
+        <div class="pdl4-card"><div class="icon">🎨</div><div class="name">도장재</div><div class="count">22종</div><div class="items"><span class="item">바인더</span><span class="item">플러스</span><span class="item">에폭시</span><span class="item">엠보라이닝</span><span class="item">금속코팅</span></div></div>
+        <div class="pdl4-card"><div class="icon">🔧</div><div class="name">균열 보수재</div><div class="count">18종</div><div class="items"><span class="item">하이퍼티</span><span class="item">파우더</span><span class="item">HOOKER</span><span class="item">균열 젤</span></div></div>
+        <div class="pdl4-card"><div class="icon">🛡️</div><div class="name">코팅·단열</div><div class="count">15종</div><div class="items"><span class="item">차열 코팅</span><span class="item">단열재</span><span class="item">함침재</span></div></div>
+        <div class="pdl4-card"><div class="icon">🛠️</div><div class="name">시공 도구</div><div class="count">14종</div><div class="items"><span class="item">롤러</span><span class="item">붓</span><span class="item">스프레이</span><span class="item">교반기</span></div></div>
+        <div class="pdl4-card"><div class="icon">🦺</div><div class="name">안전용품</div><div class="count">12종</div><div class="items"><span class="item">안전벨트</span><span class="item">고소장비</span><span class="item">보호구</span></div></div>
+        <div class="pdl4-card"><div class="icon">📦</div><div class="name">부자재</div><div class="count">9종</div><div class="items"><span class="item">벤트</span><span class="item">트랩</span><span class="item">테이프</span><span class="item">접착제</span></div></div>
+        <div class="pdl4-card"><div class="icon">🎁</div><div class="name">패키지 상품</div><div class="count">7종</div><div class="items"><span class="item">옥상 풀세트</span><span class="item">외벽 패키지</span><span class="item">셀프 키트</span></div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_DL_FLOW_HTML = `<style>
+  .pdl5 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pdl5 { background:#FFFBF5; padding:80px 18px; }
+  .pdl5-inner { max-width:1100px; margin:0 auto; }
+  .pdl5-head { text-align:center; margin-bottom:40px; }
+  .pdl5-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pdl5-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
+  .pdl5-head p { font-size:14px; color:#6B7280; }
+  .pdl5-flow { display:grid; grid-template-columns:repeat(5, 1fr); gap:8px; position:relative; }
+  .pdl5-flow::before { content:''; position:absolute; top:38px; left:10%; right:10%; height:2px; background:linear-gradient(90deg, #FED7AA, #F97316, #FED7AA); z-index:0; }
+  .pdl5-step { position:relative; z-index:1; text-align:center; }
+  .pdl5-step .num { width:76px; height:76px; margin:0 auto 14px; border-radius:50%; background:#fff; border:3px solid #F97316; display:grid; place-items:center; font-family:'Bebas Neue',sans-serif; font-size:24px; font-weight:900; color:#F97316; box-shadow:0 8px 20px rgba(249,115,22,.15); letter-spacing:.5px; }
+  .pdl5-step .name { font-size:14px; font-weight:900; color:#0F1F5C; margin-bottom:6px; letter-spacing:-.3px; }
+  .pdl5-step .desc { font-size:11.5px; color:#6B7280; line-height:1.55; }
+  .pdl5-step .duration { display:inline-block; margin-top:8px; padding:3px 8px; background:#fff; border:1px solid #FED7AA; color:#EA580C; font-size:10.5px; font-weight:800; border-radius:5px; }
+  @media (max-width:880px) { .pdl5-flow { grid-template-columns:1fr; gap:24px; } .pdl5-flow::before { display:none; } .pdl5-head h2 { font-size:24px; } }
+  </style>
+  <section class="pdl5">
+    <div class="pdl5-inner">
+      <div class="pdl5-head">
+        <div class="kicker">PROCESS</div>
+        <h2>대리점 개설 진행 절차</h2>
+        <p>신청부터 오픈까지 평균 영업일 기준 21일</p>
+      </div>
+      <div class="pdl5-flow">
+        <div class="pdl5-step"><div class="num">01</div><div class="name">신청·서류</div><div class="desc">신청서 + 사업자<br/>+ 매장 사진</div><div class="duration">즉시</div></div>
+        <div class="pdl5-step"><div class="num">02</div><div class="name">권역 검토</div><div class="desc">기존 대리점과<br/>중복 여부 확인</div><div class="duration">3-5일</div></div>
+        <div class="pdl5-step"><div class="num">03</div><div class="name">실사 방문</div><div class="desc">매장·창고 실사<br/>+ 대표 면담</div><div class="duration">5-7일</div></div>
+        <div class="pdl5-step"><div class="num">04</div><div class="name">계약·재고</div><div class="desc">대리점 계약<br/>+ 초도 재고 입고</div><div class="duration">10-14일</div></div>
+        <div class="pdl5-step"><div class="num">05</div><div class="name">오픈·교육</div><div class="desc">매장 셋업 + 교육<br/>+ 첫 매출 시작</div><div class="duration">14-21일</div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_DL_FORM_HTML = `<style>
+  .pdl6 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pdl6 { background:#fff; padding:80px 18px; }
+  .pdl6-inner { max-width:980px; margin:0 auto; }
+  .pdl6-head { text-align:center; margin-bottom:32px; }
+  .pdl6-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pdl6-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .pdl6-head p { font-size:14px; color:#6B7280; }
+  .pdl6-card { background:#fff; border:1px solid #F3F4F6; border-radius:24px; padding:36px 32px; box-shadow:0 12px 36px rgba(15,31,92,.06); }
+  .pdl6-section { margin-bottom:24px; }
+  .pdl6-section .stitle { font-size:13px; font-weight:900; color:#0F1F5C; margin-bottom:14px; padding-bottom:10px; border-bottom:2px solid #FFEDD5; letter-spacing:-.3px; }
+  .pdl6-row { margin-bottom:14px; }
+  .pdl6-row.split { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .pdl6-row label { display:block; font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
+  .pdl6-row input, .pdl6-row select, .pdl6-row textarea { width:100%; padding:12px 14px; background:#FFFBF5; border:1px solid #F3F4F6; border-radius:10px; font-size:14px; font-family:inherit; color:#0F1F5C; transition:all .2s; }
+  .pdl6-row textarea { min-height:96px; resize:vertical; }
+  .pdl6-row input:focus, .pdl6-row select:focus, .pdl6-row textarea:focus { outline:none; border-color:#FED7AA; background:#fff; box-shadow:0 0 0 3px rgba(249,115,22,.08); }
+  .pdl6-agree { display:flex; align-items:center; gap:8px; margin-bottom:18px; padding:14px; background:#FFFBF5; border-radius:10px; font-size:12.5px; color:#4B5563; }
+  .pdl6-agree input { width:16px; height:16px; accent-color:#F97316; }
+  .pdl6-submit { width:100%; padding:16px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:900; cursor:pointer; box-shadow:0 8px 24px rgba(249,115,22,.3); transition:all .25s; }
+  .pdl6-submit:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(249,115,22,.45); }
+  @media (max-width:640px) { .pdl6-card { padding:24px 18px; } .pdl6-row.split { grid-template-columns:1fr; } .pdl6-head h2 { font-size:24px; } }
+  </style>
+  <section class="pdl6" id="dealer-form">
+    <div class="pdl6-inner">
+      <div class="pdl6-head">
+        <div class="kicker">APPLICATION</div>
+        <h2>대리점 신청서</h2>
+        <p>아래 정보 제출 후 영업일 기준 5-7일 내 회신드립니다</p>
+      </div>
+      <form class="pdl6-card">
+        <div class="pdl6-section">
+          <div class="stitle">📋 신청자 정보</div>
+          <div class="pdl6-row split">
+            <div><label>회사/상호명</label><input type="text" placeholder="○○건축자재"/></div>
+            <div><label>사업자등록번호</label><input type="text" placeholder="000-00-00000"/></div>
+          </div>
+          <div class="pdl6-row split">
+            <div><label>대표자명</label><input type="text" placeholder="홍길동"/></div>
+            <div><label>연락처</label><input type="text" placeholder="010-0000-0000"/></div>
+          </div>
+          <div class="pdl6-row"><label>이메일</label><input type="email" placeholder="example@email.com"/></div>
+        </div>
+        <div class="pdl6-section">
+          <div class="stitle">🏪 매장·재고 정보</div>
+          <div class="pdl6-row"><label>매장 주소</label><input type="text" placeholder="○○도 ○○시 ○○로"/></div>
+          <div class="pdl6-row split">
+            <div><label>매장 규모</label><select><option>33-66㎡</option><option>66-99㎡</option><option>99-165㎡</option><option>165㎡ 이상</option></select></div>
+            <div><label>창고 규모</label><select><option>창고 없음</option><option>33㎡ 미만</option><option>33-66㎡</option><option>66㎡ 이상</option></select></div>
+          </div>
+          <div class="pdl6-row"><label>희망 권역</label><input type="text" placeholder="예: 경기 남부 / 부산 해운대 일대"/></div>
+        </div>
+        <div class="pdl6-section">
+          <div class="stitle">📊 사업 정보</div>
+          <div class="pdl6-row split">
+            <div><label>건설자재 유통 경력</label><select><option>없음</option><option>3년 미만</option><option>3-5년</option><option>5-10년</option><option>10년 이상</option></select></div>
+            <div><label>예상 월 매출 목표</label><select><option>1천만원 미만</option><option>1천-3천만원</option><option>3천-5천만원</option><option>5천만원 이상</option></select></div>
+          </div>
+          <div class="pdl6-row"><label>주요 거래처·실적 (간단 기재)</label><textarea placeholder="기존 거래처·취급 자재·시공사 네트워크 등"></textarea></div>
+        </div>
+        <div class="pdl6-agree"><input type="checkbox" id="ag3"/><label for="ag3">개인정보·기업정보 수집·이용에 동의합니다</label></div>
+        <button type="submit" class="pdl6-submit">대리점 신청하기</button>
+      </form>
+    </div>
+  </section>`;
+
+  const SEED_DL_FAQ_HTML = `<style>
+  .pdl7 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pdl7 { background:#FFFBF5; padding:80px 18px; }
+  .pdl7-inner { max-width:880px; margin:0 auto; }
+  .pdl7-head { text-align:center; margin-bottom:32px; }
+  .pdl7-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pdl7-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .pdl7-list { display:flex; flex-direction:column; gap:12px; }
+  .pdl7-item { background:#fff; border:1px solid #F3F4F6; border-radius:14px; overflow:hidden; transition:all .2s; }
+  .pdl7-item:hover { border-color:#FED7AA; }
+  .pdl7-item.open { border-color:#F97316; box-shadow:0 8px 24px rgba(249,115,22,.1); }
+  .pdl7-q { display:flex; align-items:center; gap:14px; padding:18px 22px; cursor:pointer; }
+  .pdl7-q .num { width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-family:'Bebas Neue',sans-serif; font-size:14px; font-weight:900; color:#EA580C; flex-shrink:0; }
+  .pdl7-q .text { flex:1; font-size:14.5px; font-weight:800; color:#0F1F5C; letter-spacing:-.3px; }
+  .pdl7-q .arrow { color:#9CA3AF; font-size:14px; transition:transform .2s; }
+  .pdl7-item.open .pdl7-q .arrow { transform:rotate(180deg); color:#EA580C; }
+  .pdl7-a { padding:0 22px 20px 68px; font-size:13.5px; color:#4B5563; line-height:1.75; display:none; }
+  .pdl7-item.open .pdl7-a { display:block; }
+  .pdl7-a b { color:#0F1F5C; font-weight:800; }
+  @media (max-width:640px) { .pdl7-head h2 { font-size:24px; } .pdl7-a { padding-left:22px; } }
+  </style>
+  <section class="pdl7">
+    <div class="pdl7-inner">
+      <div class="pdl7-head">
+        <div class="kicker">FAQ</div>
+        <h2>대리점 개설 자주 묻는 질문</h2>
+      </div>
+      <div class="pdl7-list">
+        <div class="pdl7-item open">
+          <div class="pdl7-q"><div class="num">Q1</div><div class="text">전속 영업권은 어떻게 보장되나요?</div><div class="arrow">▼</div></div>
+          <div class="pdl7-a">GOLD 등급부터 <b>지역 단독 영업권</b>이 부여됩니다. 권역은 시·군·구 단위로 설정되며 동일 권역 내 신규 대리점은 받지 않습니다. 다만 공정 경쟁을 위해 매년 매출 목표 미달 시 권역 조정이 있을 수 있습니다.</div>
+        </div>
+        <div class="pdl7-item">
+          <div class="pdl7-q"><div class="num">Q2</div><div class="text">초기 재고 매입은 의무인가요?</div><div class="arrow">▼</div></div>
+          <div class="pdl7-a">네, <b>초기 재고 1천만원 매입이 필수</b>입니다. 다만 판매되지 않은 재고는 <b>1년 내 100% 환불·교환 가능</b>합니다.</div>
+        </div>
+        <div class="pdl7-item">
+          <div class="pdl7-q"><div class="num">Q3</div><div class="text">기존 페인트 가게도 대리점 신청 가능한가요?</div><div class="arrow">▼</div></div>
+          <div class="pdl7-a">가능합니다. 오히려 <b>기존 건설자재 유통 경험은 가점 요인</b>입니다. 다만 경쟁 자재 브랜드와 동시 취급은 협의가 필요합니다 (POUR 매대 분리 진열 등).</div>
+        </div>
+        <div class="pdl7-item">
+          <div class="pdl7-q"><div class="num">Q4</div><div class="text">결제·정산은 어떻게 이루어지나요?</div><div class="arrow">▼</div></div>
+          <div class="pdl7-a">대리점은 <b>본사로부터 직공급가에 매입 후 자체 마진을 붙여 판매</b>합니다. 매입대금은 <b>월 1회 정산</b>되며, 신용도에 따라 외상 한도가 부여됩니다 (초기 한도 500만원).</div>
+        </div>
+        <div class="pdl7-item">
+          <div class="pdl7-q"><div class="num">Q5</div><div class="text">대리점 폐업·해지는 자유로운가요?</div><div class="arrow">▼</div></div>
+          <div class="pdl7-a">네. <b>3개월 사전 통지 후 자유롭게 해지</b> 가능합니다. 잔여 재고는 본사가 70% 가격으로 매입 환수합니다. 부당한 일방 해지는 본사도 하지 않습니다.</div>
+        </div>
+        <div class="pdl7-item">
+          <div class="pdl7-q"><div class="num">Q6</div><div class="text">광고·홍보는 본사가 지원하나요?</div><div class="arrow">▼</div></div>
+          <div class="pdl7-a">SILVER는 카탈로그·POP 무상 제공, GOLD는 <b>지역 광고비 50% 분담</b>, PLATINUM은 <b>100% 본사 부담</b>입니다. 온라인 광고도 등급별 차등 지원합니다.</div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+
+  const SEED_MT_HERO_HTML = `<style>
+  .pmt1 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmt1 { background:linear-gradient(180deg,#FFFBF5 0%,#FFF7ED 100%); padding:88px 18px 56px; position:relative; overflow:hidden; }
+  .pmt1::before { content:''; position:absolute; top:-100px; right:-80px; width:420px; height:420px; background:radial-gradient(circle, rgba(249,115,22,.14) 0%, transparent 60%); border-radius:50%; }
+  .pmt1-inner { max-width:1200px; margin:0 auto; position:relative; z-index:1; }
+  .pmt1-top { text-align:center; margin-bottom:36px; }
+  .pmt1-tag { display:inline-flex; gap:6px; padding:6px 14px; background:#fff; border:1px solid #FED7AA; color:#EA580C; border-radius:999px; font-size:11.5px; font-weight:800; letter-spacing:.8px; margin-bottom:18px; box-shadow:0 4px 12px rgba(249,115,22,.1); }
+  .pmt1 h1 { font-size:46px; font-weight:900; color:#0F1F5C; line-height:1.2; margin-bottom:16px; letter-spacing:-1.4px; }
+  .pmt1 h1 .accent { color:#F97316; }
+  .pmt1-desc { font-size:16px; color:#4B5563; line-height:1.75; max-width:620px; margin:0 auto 32px; }
+  .pmt1-cta { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .pmt1-cta .primary { padding:14px 32px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border:none; border-radius:14px; font-size:14px; font-weight:900; cursor:pointer; text-decoration:none; box-shadow:0 8px 24px rgba(249,115,22,.3); transition:all .25s; }
+  .pmt1-cta .primary:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(249,115,22,.45); }
+  .pmt1-preview { background:#fff; border-radius:24px; padding:32px 28px; box-shadow:0 18px 48px rgba(15,31,92,.08); border:1px solid #F3F4F6; }
+  .pmt1-preview .label { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:14px; text-align:center; }
+  .pmt1-flow { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+  .pmt1-step { text-align:center; }
+  .pmt1-step .icon { width:44px; height:44px; margin:0 auto 8px; border-radius:50%; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:20px; }
+  .pmt1-step .name { font-size:12px; font-weight:800; color:#0F1F5C; }
+  .pmt1-step .time { font-size:10px; color:#9CA3AF; font-weight:700; margin-top:2px; }
+  @media (max-width:880px) { .pmt1 h1 { font-size:30px; } .pmt1-flow { grid-template-columns:repeat(2,1fr); gap:14px; } }
+  </style>
+  <section class="pmt1">
+    <div class="pmt1-inner">
+      <div class="pmt1-top">
+        <span class="pmt1-tag">🤝 SMART MATCHING</span>
+        <h1>최적의 시공사,<br/><span class="accent">3분이면 매칭됩니다</span></h1>
+        <p class="pmt1-desc">지역·건물·문제·예산만 입력하면 — POUR가 검증한 250+ 파트너사 중 가장 가까운 우수 시공사 3곳을 추천드립니다.</p>
+        <div class="pmt1-cta">
+          <a class="primary" href="#match-form">시공 연결 신청 →</a>
+        </div>
+      </div>
+      <div class="pmt1-preview">
+        <div class="label">📍 매칭 절차 미리보기</div>
+        <div class="pmt1-flow">
+          <div class="pmt1-step"><div class="icon">📝</div><div class="name">신청</div><div class="time">3분</div></div>
+          <div class="pmt1-step"><div class="icon">🤖</div><div class="name">AI 매칭</div><div class="time">즉시</div></div>
+          <div class="pmt1-step"><div class="icon">📞</div><div class="name">파트너 추천</div><div class="time">1-2일</div></div>
+          <div class="pmt1-step"><div class="icon">🔍</div><div class="name">현장 진단</div><div class="time">3-5일</div></div>
+          <div class="pmt1-step"><div class="icon">🏗️</div><div class="name">시공 시작</div><div class="time">7-14일</div></div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_MT_METHOD_HTML = `<style>
+  .pmt2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmt2 { background:#fff; padding:80px 18px; }
+  .pmt2-inner { max-width:1200px; margin:0 auto; }
+  .pmt2-head { text-align:center; margin-bottom:36px; }
+  .pmt2-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pmt2-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
+  .pmt2-head p { font-size:14px; color:#6B7280; }
+  .pmt2-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px; }
+  .pmt2-card { background:#fff; border:1px solid #F3F4F6; border-radius:16px; padding:22px 20px; transition:all .25s; cursor:pointer; }
+  .pmt2-card:hover { transform:translateY(-3px); box-shadow:0 16px 36px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .pmt2-card .icon { width:48px; height:48px; border-radius:12px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:24px; margin-bottom:12px; }
+  .pmt2-card .name { font-size:14.5px; font-weight:900; color:#0F1F5C; margin-bottom:6px; letter-spacing:-.3px; }
+  .pmt2-card .desc { font-size:12px; color:#6B7280; line-height:1.6; margin-bottom:10px; min-height:38px; }
+  .pmt2-card .meta { display:flex; align-items:center; gap:8px; font-size:11px; font-weight:800; color:#EA580C; }
+  .pmt2-card .meta .dot { width:4px; height:4px; border-radius:50%; background:#FED7AA; }
+  @media (max-width:640px) { .pmt2-head h2 { font-size:24px; } }
+  </style>
+  <section class="pmt2">
+    <div class="pmt2-inner">
+      <div class="pmt2-head">
+        <div class="kicker">SUPPORTED METHODS</div>
+        <h2>시공 가능한 공법</h2>
+        <p>방수·도장·균열·토목 — 어떤 문제든 검증된 공법으로 매칭됩니다</p>
+      </div>
+      <div class="pmt2-grid">
+        <div class="pmt2-card"><div class="icon">💧</div><div class="name">슬라브 듀얼강화방수</div><div class="desc">옥상 슬라브 누수 + 콘크리트 중성화</div><div class="meta">182건 사례<span class="dot"></span>5-10년 보증</div></div>
+        <div class="pmt2-card"><div class="icon">🏠</div><div class="name">아스팔트슁글 방수</div><div class="desc">박공지붕 누수·강풍 탈락 방지 (1026호)</div><div class="meta">96건 사례<span class="dot"></span>10년 보증</div></div>
+        <div class="pmt2-card"><div class="icon">🔩</div><div class="name">금속기와 방수</div><div class="desc">맞물림 풀림·강판 부식 + HOOKER 보강</div><div class="meta">78건 사례<span class="dot"></span>7년 보증</div></div>
+        <div class="pmt2-card"><div class="icon">🎨</div><div class="name">외벽 균열 보수·재도장</div><div class="desc">고급/중급/경제 — 예산별 3단계 차등</div><div class="meta">152건 사례<span class="dot"></span>3-7년 보증</div></div>
+        <div class="pmt2-card"><div class="icon">🚗</div><div class="name">에폭시·엠보라이닝</div><div class="desc">지하주차장 바닥 + MMA 논슬립 시공</div><div class="meta">68건 사례<span class="dot"></span>5년 보증</div></div>
+        <div class="pmt2-card"><div class="icon">🌊</div><div class="name">아크릴 배면차수</div><div class="desc">지하·수조 누수 — 초고압 주입</div><div class="meta">42건 사례<span class="dot"></span>10년 보증</div></div>
+        <div class="pmt2-card"><div class="icon">🛣️</div><div class="name">아스콘 도로 포장</div><div class="desc">포트홀·균열 보수 + 씰코팅</div><div class="meta">36건 사례<span class="dot"></span>3년 보증</div></div>
+        <div class="pmt2-card"><div class="icon">🛡️</div><div class="name">보수·보강 (단면)</div><div class="desc">박락·철근 노출 — 탄성강화 파우더</div><div class="meta">46건 사례<span class="dot"></span>5년 보증</div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_MT_FORM_HTML = `<style>
+  .pmt3 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmt3 { background:#FFFBF5; padding:80px 18px; }
+  .pmt3-inner { max-width:980px; margin:0 auto; }
+  .pmt3-head { text-align:center; margin-bottom:32px; }
+  .pmt3-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pmt3-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .pmt3-head p { font-size:14px; color:#6B7280; }
+  .pmt3-card { background:#fff; border:1px solid #F3F4F6; border-radius:24px; padding:36px 32px; box-shadow:0 12px 36px rgba(15,31,92,.06); }
+  .pmt3-section { margin-bottom:24px; }
+  .pmt3-section .stitle { font-size:13px; font-weight:900; color:#0F1F5C; margin-bottom:14px; padding-bottom:10px; border-bottom:2px solid #FFEDD5; letter-spacing:-.3px; }
+  .pmt3-row { margin-bottom:14px; }
+  .pmt3-row.split { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .pmt3-row label { display:block; font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
+  .pmt3-row input, .pmt3-row select, .pmt3-row textarea { width:100%; padding:12px 14px; background:#FFFBF5; border:1px solid #F3F4F6; border-radius:10px; font-size:14px; font-family:inherit; color:#0F1F5C; transition:all .2s; }
+  .pmt3-row textarea { min-height:96px; resize:vertical; }
+  .pmt3-row input:focus, .pmt3-row select:focus, .pmt3-row textarea:focus { outline:none; border-color:#FED7AA; background:#fff; box-shadow:0 0 0 3px rgba(249,115,22,.08); }
+  .pmt3-chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .pmt3-chip { padding:8px 14px; background:#FFFBF5; border:1px solid #F3F4F6; border-radius:999px; font-size:12.5px; font-weight:700; color:#6B7280; cursor:pointer; transition:all .2s; }
+  .pmt3-chip:hover { border-color:#FED7AA; }
+  .pmt3-chip.active { background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border-color:transparent; box-shadow:0 4px 12px rgba(249,115,22,.25); }
+  .pmt3-budget { display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:8px; }
+  .pmt3-budget-item { padding:14px 12px; background:#FFFBF5; border:1px solid #F3F4F6; border-radius:10px; text-align:center; cursor:pointer; transition:all .2s; }
+  .pmt3-budget-item:hover { border-color:#FED7AA; }
+  .pmt3-budget-item.active { background:#FFF7ED; border-color:#F97316; }
+  .pmt3-budget-item .v { font-family:'Bebas Neue',sans-serif; font-size:18px; font-weight:900; color:#F97316; letter-spacing:.5px; }
+  .pmt3-budget-item .l { font-size:11px; color:#6B7280; font-weight:700; margin-top:2px; }
+  .pmt3-agree { display:flex; align-items:center; gap:8px; margin-bottom:18px; padding:14px; background:#FFFBF5; border-radius:10px; font-size:12.5px; color:#4B5563; }
+  .pmt3-agree input { width:16px; height:16px; accent-color:#F97316; }
+  .pmt3-submit { width:100%; padding:16px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:900; cursor:pointer; box-shadow:0 8px 24px rgba(249,115,22,.3); transition:all .25s; }
+  .pmt3-submit:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(249,115,22,.45); }
+  @media (max-width:640px) { .pmt3-card { padding:24px 18px; } .pmt3-row.split { grid-template-columns:1fr; } .pmt3-head h2 { font-size:24px; } }
+  </style>
+  <section class="pmt3" id="match-form">
+    <div class="pmt3-inner">
+      <div class="pmt3-head">
+        <div class="kicker">REQUEST FORM</div>
+        <h2>시공 연결 신청서</h2>
+        <p>아래 정보 입력 후 영업일 기준 1-2일 내 추천 파트너사가 연락드립니다</p>
+      </div>
+      <form class="pmt3-card">
+        <div class="pmt3-section">
+          <div class="stitle">📍 1. 지역·건물 유형</div>
+          <div class="pmt3-row split">
+            <div><label>지역</label><select><option>선택</option><option>서울</option><option>경기</option><option>인천</option><option>부산</option><option>대구</option><option>광주</option><option>대전</option><option>기타</option></select></div>
+            <div><label>건물 유형</label><select><option>선택</option><option>아파트</option><option>관공서</option><option>학교·병원</option><option>상가·오피스</option><option>공장·창고</option><option>주택</option></select></div>
+          </div>
+        </div>
+        <div class="pmt3-section">
+          <div class="stitle">🔧 2. 문제·필요한 공법 (복수 선택)</div>
+          <div class="pmt3-chips">
+            <button type="button" class="pmt3-chip active">옥상 누수</button>
+            <button type="button" class="pmt3-chip">외벽 균열</button>
+            <button type="button" class="pmt3-chip">지하 누수</button>
+            <button type="button" class="pmt3-chip">지하주차장</button>
+            <button type="button" class="pmt3-chip">슁글 지붕</button>
+            <button type="button" class="pmt3-chip">금속기와</button>
+            <button type="button" class="pmt3-chip">결로·곰팡이</button>
+            <button type="button" class="pmt3-chip">아스콘·도로</button>
+            <button type="button" class="pmt3-chip">기타</button>
+          </div>
+        </div>
+        <div class="pmt3-section">
+          <div class="stitle">💰 3. 예상 예산 범위</div>
+          <div class="pmt3-budget">
+            <div class="pmt3-budget-item"><div class="v">~500</div><div class="l">만원</div></div>
+            <div class="pmt3-budget-item active"><div class="v">500-2K</div><div class="l">만원</div></div>
+            <div class="pmt3-budget-item"><div class="v">2K-5K</div><div class="l">만원</div></div>
+            <div class="pmt3-budget-item"><div class="v">5K-1억</div><div class="l">원</div></div>
+            <div class="pmt3-budget-item"><div class="v">1억+</div><div class="l">원</div></div>
+          </div>
+        </div>
+        <div class="pmt3-section">
+          <div class="stitle">📝 4. 상세 내용</div>
+          <div class="pmt3-row"><label>문제 상황·시급도</label><textarea placeholder="누수 위치, 발생 시기, 진행 정도, 희망 시공 일정 등"></textarea></div>
+        </div>
+        <div class="pmt3-section">
+          <div class="stitle">📞 5. 연락처</div>
+          <div class="pmt3-row split">
+            <div><label>성함</label><input type="text" placeholder="홍길동"/></div>
+            <div><label>연락처</label><input type="text" placeholder="010-0000-0000"/></div>
+          </div>
+          <div class="pmt3-row"><label>주소 (현장 위치)</label><input type="text" placeholder="○○도 ○○시 ○○로"/></div>
+        </div>
+        <div class="pmt3-agree"><input type="checkbox" id="ag4"/><label for="ag4">개인정보 수집·이용 및 추천 파트너사 정보 공유에 동의합니다</label></div>
+        <button type="submit" class="pmt3-submit">시공 연결 신청하기</button>
+      </form>
+    </div>
+  </section>`;
+
+  const SEED_MT_FLOW_HTML = `<style>
+  .pmt4 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmt4 { background:#fff; padding:80px 18px; }
+  .pmt4-inner { max-width:1100px; margin:0 auto; }
+  .pmt4-head { text-align:center; margin-bottom:40px; }
+  .pmt4-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pmt4-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .pmt4-head p { font-size:14px; color:#6B7280; max-width:560px; margin:0 auto; }
+  .pmt4-list { display:flex; flex-direction:column; gap:12px; max-width:780px; margin:0 auto; }
+  .pmt4-step { display:grid; grid-template-columns:auto 1fr auto; gap:18px; align-items:center; padding:22px 24px; background:#FFFBF5; border:1px solid #F3F4F6; border-radius:18px; transition:all .25s; }
+  .pmt4-step:hover { border-color:#FED7AA; background:#fff; box-shadow:0 12px 28px rgba(15,31,92,.06); }
+  .pmt4-step .num { width:54px; height:54px; border-radius:14px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; font-family:'Bebas Neue',sans-serif; font-size:22px; font-weight:900; display:grid; place-items:center; flex-shrink:0; box-shadow:0 6px 16px rgba(249,115,22,.3); letter-spacing:.5px; }
+  .pmt4-step .text { flex:1; min-width:0; }
+  .pmt4-step .name { font-size:16px; font-weight:900; color:#0F1F5C; margin-bottom:4px; letter-spacing:-.3px; }
+  .pmt4-step .desc { font-size:13px; color:#6B7280; line-height:1.6; }
+  .pmt4-step .duration { padding:6px 12px; background:#fff; border:1px solid #FED7AA; color:#EA580C; font-size:11.5px; font-weight:800; border-radius:8px; white-space:nowrap; }
+  @media (max-width:640px) { .pmt4-step { grid-template-columns:auto 1fr; } .pmt4-step .duration { grid-column:1/-1; justify-self:start; } .pmt4-head h2 { font-size:24px; } }
+  </style>
+  <section class="pmt4">
+    <div class="pmt4-inner">
+      <div class="pmt4-head">
+        <div class="kicker">FULL PROCESS</div>
+        <h2>매칭 절차 자세히 보기</h2>
+        <p>신청부터 시공 완료까지 — 단계별로 무엇이 진행되는지 명확하게</p>
+      </div>
+      <div class="pmt4-list">
+        <div class="pmt4-step"><div class="num">01</div><div class="text"><div class="name">온라인 신청서 작성</div><div class="desc">지역·건물·문제·예산 입력 (3분 소요) — 사진 첨부 시 매칭 정확도 ↑</div></div><div class="duration">즉시</div></div>
+        <div class="pmt4-step"><div class="num">02</div><div class="text"><div class="name">AI 매칭 + 본사 검토</div><div class="desc">지역·전문분야·이전 시공 만족도 기반 — 추천 파트너 3곳 자동 산출</div></div><div class="duration">접수 후 1시간</div></div>
+        <div class="pmt4-step"><div class="num">03</div><div class="text"><div class="name">추천 파트너 안내</div><div class="desc">SMS·이메일로 추천 파트너 3곳 정보 발송 — 회사 소개·실적·평점 포함</div></div><div class="duration">1-2일</div></div>
+        <div class="pmt4-step"><div class="num">04</div><div class="text"><div class="name">현장 무료 진단</div><div class="desc">선택한 파트너사가 현장 방문 — 진단·사진 촬영·견적서 작성 (무료)</div></div><div class="duration">3-5일</div></div>
+        <div class="pmt4-step"><div class="num">05</div><div class="text"><div class="name">견적 비교·선택</div><div class="desc">3곳 견적 비교 — 가격·일정·시공 범위 검토 후 선택. 무리한 선택 강요 없음</div></div><div class="duration">5-10일</div></div>
+        <div class="pmt4-step"><div class="num">06</div><div class="text"><div class="name">계약·시공 시작</div><div class="desc">계약 체결 + 일정 확정 — POUR 자재 직공급으로 시공 진행</div></div><div class="duration">7-14일</div></div>
+        <div class="pmt4-step"><div class="num">07</div><div class="text"><div class="name">시공 완료·하자 보증</div><div class="desc">시공 검수 + 보증서 발급 — 5-10년 본사 하자 보증 (자재 결함 100% 책임)</div></div><div class="duration">완공 후</div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_MT_NETWORK_HTML = `<style>
+  .pmt5 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmt5 { background:#FFFBF5; padding:72px 18px; }
+  .pmt5-inner { max-width:1200px; margin:0 auto; }
+  .pmt5-head { text-align:center; margin-bottom:32px; }
+  .pmt5-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pmt5-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
+  .pmt5-head p { font-size:14px; color:#6B7280; }
+  .pmt5-grid { display:grid; grid-template-columns:1.3fr 1fr; gap:20px; align-items:center; }
+  .pmt5-map { aspect-ratio:1/1; background-image:url('https://placehold.co/600x600/0F1F5C/fff?text=KOREA+MAP'); background-size:cover; background-position:center; border-radius:24px; position:relative; overflow:hidden; box-shadow:0 18px 48px rgba(15,31,92,.15); }
+  .pmt5-map .pin { position:absolute; padding:6px 12px; background:#fff; border-radius:20px; font-size:11px; font-weight:900; color:#0F1F5C; box-shadow:0 4px 12px rgba(0,0,0,.2); display:flex; align-items:center; gap:6px; }
+  .pmt5-map .pin .dot { width:8px; height:8px; border-radius:50%; background:#F97316; box-shadow:0 0 0 4px rgba(249,115,22,.3); animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { box-shadow:0 0 0 4px rgba(249,115,22,.3); } 50% { box-shadow:0 0 0 8px rgba(249,115,22,.1); } }
+  .pmt5-map .pin.p1 { top:20%; left:30%; }
+  .pmt5-map .pin.p2 { top:35%; left:50%; }
+  .pmt5-map .pin.p3 { top:55%; left:35%; }
+  .pmt5-map .pin.p4 { top:70%; left:55%; }
+  .pmt5-map .pin.p5 { top:80%; left:75%; }
+  .pmt5-content .label { font-size:11px; font-weight:800; color:#EA580C; letter-spacing:1px; margin-bottom:8px; }
+  .pmt5-content h3 { font-size:24px; font-weight:900; color:#0F1F5C; line-height:1.3; margin-bottom:14px; letter-spacing:-.5px; }
+  .pmt5-content p { font-size:14px; color:#4B5563; line-height:1.75; margin-bottom:20px; }
+  .pmt5-stats { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+  .pmt5-stat { background:#fff; border:1px solid #F3F4F6; border-radius:14px; padding:18px 16px; }
+  .pmt5-stat .v { font-family:'Bebas Neue',sans-serif; font-size:26px; font-weight:900; color:#F97316; line-height:1; letter-spacing:.5px; }
+  .pmt5-stat .l { font-size:11.5px; color:#6B7280; margin-top:6px; font-weight:700; }
+  @media (max-width:880px) { .pmt5-grid { grid-template-columns:1fr; } .pmt5-head h2 { font-size:24px; } }
+  </style>
+  <section class="pmt5">
+    <div class="pmt5-inner">
+      <div class="pmt5-head">
+        <div class="kicker">NATIONWIDE NETWORK</div>
+        <h2>전국 시공 네트워크</h2>
+        <p>17개 광역시·도 모두 1-2일 내 방문 가능</p>
+      </div>
+      <div class="pmt5-grid">
+        <div class="pmt5-map">
+          <div class="pin p1"><span class="dot"></span>서울 38곳</div>
+          <div class="pin p2"><span class="dot"></span>경기 52곳</div>
+          <div class="pin p3"><span class="dot"></span>대전 18곳</div>
+          <div class="pin p4"><span class="dot"></span>부산 32곳</div>
+          <div class="pin p5"><span class="dot"></span>제주 8곳</div>
+        </div>
+        <div class="pmt5-content">
+          <div class="label">17 REGIONS · 250+ PARTNERS</div>
+          <h3>가장 가까운 우수 파트너가<br/>방문드립니다</h3>
+          <p>POUR스토어는 전국 250+ 검증 파트너사 네트워크를 보유하고 있습니다. 신청자 위치를 기반으로 가장 가까운 우수 시공사를 자동 매칭합니다.</p>
+          <div class="pmt5-stats">
+            <div class="pmt5-stat"><div class="v">250+</div><div class="l">검증된 파트너사</div></div>
+            <div class="pmt5-stat"><div class="v">17</div><div class="l">광역시·도 커버리지</div></div>
+            <div class="pmt5-stat"><div class="v">1-2일</div><div class="l">현장 방문 소요</div></div>
+            <div class="pmt5-stat"><div class="v">98.5%</div><div class="l">고객 만족도</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_MT_RECENT_HTML = `<style>
+  .pmt6 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmt6 { background:#fff; padding:80px 18px; }
+  .pmt6-inner { max-width:1200px; margin:0 auto; }
+  .pmt6-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:14px; }
+  .pmt6-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pmt6-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .pmt6-head .more { font-size:13px; font-weight:700; color:#EA580C; text-decoration:none; padding:8px 14px; border:1px solid #FED7AA; border-radius:999px; background:#fff; transition:all .25s; }
+  .pmt6-head .more:hover { background:#FFF7ED; }
+  .pmt6-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:18px; }
+  .pmt6-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; overflow:hidden; transition:all .3s; text-decoration:none; }
+  .pmt6-card:hover { transform:translateY(-4px); box-shadow:0 20px 48px rgba(15,31,92,.1); border-color:#FED7AA; }
+  .pmt6-thumb { aspect-ratio:4/3; background-size:cover; background-position:center; position:relative; }
+  .pmt6-thumb .badge { position:absolute; top:10px; left:10px; padding:4px 9px; background:rgba(249,115,22,.92); color:#fff; font-size:10px; font-weight:900; border-radius:5px; letter-spacing:.3px; }
+  .pmt6-info { padding:16px; }
+  .pmt6-info .region { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
+  .pmt6-info .name { font-size:14.5px; font-weight:900; color:#0F1F5C; margin-bottom:8px; line-height:1.4; letter-spacing:-.3px; }
+  .pmt6-info .meta { display:flex; align-items:center; gap:8px; font-size:11.5px; color:#6B7280; padding-top:10px; border-top:1px solid #F3F4F6; font-weight:700; }
+  .pmt6-info .meta .dot { width:3px; height:3px; border-radius:50%; background:#D1D5DB; }
+  @media (max-width:640px) { .pmt6-head h2 { font-size:22px; } }
+  </style>
+  <section class="pmt6">
+    <div class="pmt6-inner">
+      <div class="pmt6-head">
+        <div>
+          <div class="kicker">RECENT WORK</div>
+          <h2>최근 매칭으로 진행된 시공</h2>
+        </div>
+        <a class="more" href="https://www.pourstore.net/construction">전체 사례 →</a>
+      </div>
+      <div class="pmt6-grid">
+        <a class="pmt6-card" href="#"><div class="pmt6-thumb" style="background-image:url('https://placehold.co/600x450/F97316/fff?text=SLAB')"><div class="badge">매칭 시공</div></div><div class="pmt6-info"><div class="region">📍 서울 강남구</div><div class="name">래미안 옥상 슬라브 방수 (2,400세대)</div><div class="meta"><span>SH건설</span><span class="dot"></span><span>2025.10 완공</span></div></div></a>
+        <a class="pmt6-card" href="#"><div class="pmt6-thumb" style="background-image:url('https://placehold.co/600x450/EA580C/fff?text=SHINGLE')"><div class="badge">매칭 시공</div></div><div class="pmt6-info"><div class="region">📍 부산 해운대구</div><div class="name">해운대 푸르지오 슁글 방수</div><div class="meta"><span>부산테크</span><span class="dot"></span><span>2025.08 완공</span></div></div></a>
+        <a class="pmt6-card" href="#"><div class="pmt6-thumb" style="background-image:url('https://placehold.co/600x450/0F1F5C/fff?text=PAINT')"><div class="badge">매칭 시공</div></div><div class="pmt6-info"><div class="region">📍 경기 수원시</div><div class="name">수원시청 외벽 균열 보수·재도장</div><div class="meta"><span>한울방수</span><span class="dot"></span><span>2025.09 완공</span></div></div></a>
+        <a class="pmt6-card" href="#"><div class="pmt6-thumb" style="background-image:url('https://placehold.co/600x450/059669/fff?text=PARKING')"><div class="badge">매칭 시공</div></div><div class="pmt6-info"><div class="region">📍 인천 송도</div><div class="name">송도 컨벤시아 지하주차장 에폭시</div><div class="meta"><span>대성도장</span><span class="dot"></span><span>2025.07 완공</span></div></div></a>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_MT_REVIEW_HTML = `<style>
+  .pmt7 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmt7 { background:#FFFBF5; padding:80px 18px; }
+  .pmt7-inner { max-width:1200px; margin:0 auto; }
+  .pmt7-head { text-align:center; margin-bottom:36px; }
+  .pmt7-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pmt7-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .pmt7-head .score { display:inline-flex; align-items:center; gap:8px; padding:8px 16px; background:#fff; border:1px solid #FED7AA; border-radius:999px; font-size:13px; font-weight:800; color:#EA580C; }
+  .pmt7-head .score b { font-family:'Bebas Neue',sans-serif; font-size:18px; }
+  .pmt7-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:18px; }
+  .pmt7-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; padding:24px 22px; position:relative; transition:all .25s; }
+  .pmt7-card:hover { transform:translateY(-3px); box-shadow:0 16px 36px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .pmt7-card .stars { font-size:13px; color:#F59E0B; margin-bottom:10px; letter-spacing:1px; }
+  .pmt7-card .text { font-size:13.5px; color:#374151; line-height:1.7; margin-bottom:18px; }
+  .pmt7-card .text b { color:#0F1F5C; font-weight:800; }
+  .pmt7-card .partner { display:inline-flex; align-items:center; gap:6px; padding:5px 11px; background:#FFFBF5; border:1px solid #FED7AA; color:#EA580C; font-size:11px; font-weight:800; border-radius:6px; margin-bottom:14px; }
+  .pmt7-card .author { display:flex; align-items:center; gap:10px; padding-top:14px; border-top:1px solid #F3F4F6; }
+  .pmt7-card .avatar { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:13px; font-weight:900; color:#EA580C; }
+  .pmt7-card .info .name { font-size:12.5px; font-weight:800; color:#0F1F5C; }
+  .pmt7-card .info .role { font-size:11px; color:#9CA3AF; font-weight:700; margin-top:2px; }
+  @media (max-width:640px) { .pmt7-head h2 { font-size:24px; } }
+  </style>
+  <section class="pmt7">
+    <div class="pmt7-inner">
+      <div class="pmt7-head">
+        <div class="kicker">CUSTOMER REVIEWS</div>
+        <h2>매칭 서비스 이용 후기</h2>
+        <div class="score">⭐ 매칭 만족도 <b>4.8</b> / 5.0 · 누적 후기 280+</div>
+      </div>
+      <div class="pmt7-grid">
+        <div class="pmt7-card"><div class="stars">★★★★★</div><span class="partner">🤝 SH건설 매칭</span><div class="text">3곳 견적 비교가 가능해서 좋았어요. 가격만이 아니라 일정·시공 범위까지 한눈에 볼 수 있어서 결정이 편했습니다. 시공 결과도 만족스럽습니다.</div><div class="author"><div class="avatar">김</div><div class="info"><div class="name">김○○ 관리소장</div><div class="role">서울 강남 · 1,200세대</div></div></div></div>
+        <div class="pmt7-card"><div class="stars">★★★★★</div><span class="partner">🤝 한울방수 매칭</span><div class="text">관공서 발주라 절차가 복잡한데, 본사가 사전에 모든 서류를 챙겨주셔서 결재 올리기 편했어요. 매칭 파트너사도 책임감 있게 시공해주셨습니다.</div><div class="author"><div class="avatar">박</div><div class="info"><div class="name">박○○ 시설팀장</div><div class="role">경기 수원 · 시청사</div></div></div></div>
+        <div class="pmt7-card"><div class="stars">★★★★★</div><span class="partner">🤝 부산테크 매칭</span><div class="text">슁글 지붕은 까다로워서 다른 곳에선 거절당했는데, POUR 매칭으로 신기술 시공 가능한 파트너 찾았습니다. 강풍에도 끄떡없네요.</div><div class="author"><div class="avatar">이</div><div class="info"><div class="name">이○○ 입주자대표</div><div class="role">부산 해운대 · 23층</div></div></div></div>
+      </div>
+    </div>
+  </section>`;
+
+
+  const SEED_SH_HERO_HTML = `<style>
+  .psh1 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .psh1 { background:linear-gradient(180deg,#FFFBF5 0%,#FFF7ED 100%); padding:88px 18px 64px; position:relative; overflow:hidden; }
+  .psh1::before { content:''; position:absolute; top:-100px; right:-80px; width:420px; height:420px; background:radial-gradient(circle, rgba(249,115,22,.14) 0%, transparent 60%); border-radius:50%; }
+  .psh1-inner { max-width:1100px; margin:0 auto; text-align:center; position:relative; z-index:1; }
+  .psh1-tag { display:inline-flex; gap:6px; padding:6px 14px; background:#fff; border:1px solid #FED7AA; color:#EA580C; border-radius:999px; font-size:11.5px; font-weight:800; letter-spacing:.8px; margin-bottom:20px; box-shadow:0 4px 12px rgba(249,115,22,.1); }
+  .psh1 h1 { font-size:46px; font-weight:900; color:#0F1F5C; line-height:1.2; margin-bottom:18px; letter-spacing:-1.4px; }
+  .psh1 h1 .accent { color:#F97316; }
+  .psh1-desc { font-size:16px; color:#4B5563; line-height:1.75; max-width:640px; margin:0 auto 32px; }
+  .psh1-cta { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .psh1-cta .primary { padding:14px 28px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border:none; border-radius:14px; font-size:14px; font-weight:900; cursor:pointer; text-decoration:none; box-shadow:0 8px 24px rgba(249,115,22,.3); transition:all .25s; }
+  .psh1-cta .primary:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(249,115,22,.45); }
+  .psh1-cta .ghost { padding:14px 24px; background:#fff; color:#0F1F5C; border:1px solid #E5E7EB; border-radius:14px; font-size:14px; font-weight:800; text-decoration:none; }
+  @media (max-width:640px) { .psh1 h1 { font-size:30px; } }
+  </style>
+  <section class="psh1">
+    <div class="psh1-inner">
+      <span class="psh1-tag">🏢 SHOWROOM EXPERIENCE</span>
+      <h1>POUR스토어 쇼룸에서<br/><span class="accent">자재를 직접 체험하세요</span></h1>
+      <p class="psh1-desc">110+ 제품을 직접 보고 만져볼 수 있는 평택 본사 쇼룸. 전문 상담사가 1:1로 시공·자재 상담을 도와드립니다 — 무료 방문 예약.</p>
+      <div class="psh1-cta">
+        <a class="primary" href="#booking-form">방문 예약 →</a>
+        <a class="ghost" href="#location">찾아오시는 길</a>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_SH_LOCATION_HTML = `<style>
+  .psh2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .psh2 { background:#fff; padding:80px 18px; }
+  .psh2-inner { max-width:1200px; margin:0 auto; }
+  .psh2-head { text-align:center; margin-bottom:36px; }
+  .psh2-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .psh2-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .psh2-grid { display:grid; grid-template-columns:1.4fr 1fr; gap:24px; }
+  .psh2-map { aspect-ratio:5/4; background-image:url('https://placehold.co/800x640/0F1F5C/fff?text=PYEONGTAEK+MAP'); background-size:cover; background-position:center; border-radius:24px; position:relative; overflow:hidden; box-shadow:0 18px 48px rgba(15,31,92,.12); }
+  .psh2-map .pin { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:48px; filter:drop-shadow(0 8px 16px rgba(0,0,0,.3)); }
+  .psh2-map .overlay { position:absolute; bottom:18px; left:18px; right:18px; padding:18px 20px; background:rgba(255,255,255,.96); border-radius:14px; backdrop-filter:blur(8px); box-shadow:0 8px 24px rgba(0,0,0,.15); }
+  .psh2-map .overlay .name { font-size:14px; font-weight:900; color:#0F1F5C; margin-bottom:4px; letter-spacing:-.3px; }
+  .psh2-map .overlay .addr { font-size:12px; color:#6B7280; font-weight:700; }
+  .psh2-info { background:linear-gradient(135deg,#FFF7ED,#FFEDD5); border:1px solid #FED7AA; border-radius:24px; padding:32px 28px; }
+  .psh2-info .label { font-size:11px; font-weight:800; color:#EA580C; letter-spacing:1px; margin-bottom:6px; }
+  .psh2-info h3 { font-size:22px; font-weight:900; color:#0F1F5C; letter-spacing:-.3px; margin-bottom:18px; }
+  .psh2-row { display:flex; align-items:flex-start; gap:14px; padding:14px 0; border-bottom:1px solid rgba(249,115,22,.15); }
+  .psh2-row:last-child { border-bottom:none; }
+  .psh2-row .icon { width:36px; height:36px; border-radius:10px; background:#fff; display:grid; place-items:center; font-size:16px; flex-shrink:0; box-shadow:0 4px 10px rgba(249,115,22,.1); }
+  .psh2-row .ttl { font-size:11px; font-weight:800; color:#9CA3AF; letter-spacing:.5px; margin-bottom:3px; }
+  .psh2-row .v { font-size:14px; font-weight:800; color:#0F1F5C; line-height:1.5; letter-spacing:-.3px; }
+  @media (max-width:880px) { .psh2-grid { grid-template-columns:1fr; } .psh2-head h2 { font-size:24px; } }
+  </style>
+  <section class="psh2" id="location">
+    <div class="psh2-inner">
+      <div class="psh2-head">
+        <div class="kicker">📍 LOCATION</div>
+        <h2>쇼룸 위치·약도</h2>
+      </div>
+      <div class="psh2-grid">
+        <div class="psh2-map">
+          <div class="pin">📍</div>
+          <div class="overlay">
+            <div class="name">POUR스토어 쇼룸 · 평택 본사 1층</div>
+            <div class="addr">경기도 평택시 ○○로 ○○ (○○동)</div>
+          </div>
+        </div>
+        <div class="psh2-info">
+          <div class="label">HOW TO COME</div>
+          <h3>오시는 길 안내</h3>
+          <div class="psh2-row"><div class="icon">🚗</div><div><div class="ttl">자가용</div><div class="v">평택 IC 진입 후 ○○로 직진<br/>현장 무료 주차장 30대 이용 가능</div></div></div>
+          <div class="psh2-row"><div class="icon">🚆</div><div><div class="ttl">대중교통</div><div class="v">1호선 평택역 도보 12분<br/>또는 평택역에서 ○○번 버스 5분</div></div></div>
+          <div class="psh2-row"><div class="icon">🛣️</div><div><div class="ttl">서울 출발</div><div class="v">경부고속도로 1시간 10분<br/>판교 출발 50분</div></div></div>
+          <div class="psh2-row"><div class="icon">📞</div><div><div class="ttl">길 문의</div><div class="v">1577-0000 (평일 09-18시)</div></div></div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_SH_HOURS_HTML = `<style>
+  .psh3 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .psh3 { background:#FFFBF5; padding:64px 18px; }
+  .psh3-inner { max-width:1100px; margin:0 auto; }
+  .psh3-head { text-align:center; margin-bottom:32px; }
+  .psh3-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .psh3-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .psh3-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px; }
+  .psh3-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; padding:24px 22px; text-align:center; transition:all .25s; }
+  .psh3-card:hover { transform:translateY(-3px); box-shadow:0 16px 36px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .psh3-card.closed { background:#F9FAFB; border-color:#E5E7EB; }
+  .psh3-card.closed .day, .psh3-card.closed .hours { color:#9CA3AF; }
+  .psh3-card .day { font-size:13px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:10px; }
+  .psh3-card .hours { font-family:'Bebas Neue',sans-serif; font-size:24px; font-weight:900; color:#0F1F5C; letter-spacing:.5px; line-height:1.2; margin-bottom:6px; }
+  .psh3-card .note { font-size:11.5px; color:#6B7280; font-weight:700; }
+  .psh3-notice { margin-top:24px; padding:18px 22px; background:#fff; border:1px solid #FED7AA; border-radius:14px; }
+  .psh3-notice .label { font-size:11px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
+  .psh3-notice .text { font-size:13px; color:#4B5563; line-height:1.7; }
+  .psh3-notice b { color:#0F1F5C; font-weight:800; }
+  @media (max-width:640px) { .psh3-head h2 { font-size:22px; } }
+  </style>
+  <section class="psh3">
+    <div class="psh3-inner">
+      <div class="psh3-head">
+        <div class="kicker">⏰ OPENING HOURS</div>
+        <h2>쇼룸 운영 시간</h2>
+      </div>
+      <div class="psh3-grid">
+        <div class="psh3-card"><div class="day">월-금 (평일)</div><div class="hours">09:00 - 18:00</div><div class="note">상시 운영 · 점심 12:30-13:30 휴무</div></div>
+        <div class="psh3-card"><div class="day">토요일</div><div class="hours">10:00 - 16:00</div><div class="note">예약 방문만 운영 · 점심 무휴</div></div>
+        <div class="psh3-card closed"><div class="day">일요일</div><div class="hours">CLOSED</div><div class="note">휴무</div></div>
+        <div class="psh3-card closed"><div class="day">법정 공휴일</div><div class="hours">CLOSED</div><div class="note">전일 사전 안내</div></div>
+      </div>
+      <div class="psh3-notice">
+        <div class="label">💡 방문 안내</div>
+        <div class="text"><b>예약 방문이 우선 응대</b>됩니다. 워크인 방문도 가능하지만 상담사 일정에 따라 대기시간이 발생할 수 있어요. 여유로운 상담을 원하시면 본 페이지 하단 <b>방문 예약 폼</b>을 이용해 주세요.</div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_SH_TOUR_HTML = `<style>
+  .psh4 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .psh4 { background:#fff; padding:80px 18px; }
+  .psh4-inner { max-width:1200px; margin:0 auto; }
+  .psh4-head { text-align:center; margin-bottom:36px; }
+  .psh4-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .psh4-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
+  .psh4-head p { font-size:14px; color:#6B7280; }
+  .psh4-feature { aspect-ratio:21/9; background-image:url('https://placehold.co/1200x515/0F1F5C/fff?text=SHOWROOM+MAIN'); background-size:cover; background-position:center; border-radius:24px; position:relative; overflow:hidden; margin-bottom:14px; cursor:pointer; }
+  .psh4-feature::after { content:''; position:absolute; inset:0; background:linear-gradient(0deg, rgba(15,31,92,.85) 0%, rgba(15,31,92,.2) 50%, transparent 100%); }
+  .psh4-feature .label { position:absolute; bottom:24px; left:24px; right:24px; color:#fff; z-index:1; }
+  .psh4-feature .label .badge { display:inline-block; padding:5px 11px; background:#F97316; font-size:10.5px; font-weight:900; letter-spacing:.5px; border-radius:5px; margin-bottom:10px; }
+  .psh4-feature .label .name { font-size:22px; font-weight:900; line-height:1.3; letter-spacing:-.5px; }
+  .psh4-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:12px; }
+  .psh4-thumb { aspect-ratio:4/3; background-size:cover; background-position:center; border-radius:14px; position:relative; overflow:hidden; cursor:pointer; transition:transform .3s; }
+  .psh4-thumb:hover { transform:translateY(-3px); }
+  .psh4-thumb::after { content:''; position:absolute; inset:0; background:linear-gradient(0deg, rgba(15,31,92,.7) 0%, transparent 60%); }
+  .psh4-thumb .ttl { position:absolute; bottom:12px; left:14px; right:14px; color:#fff; font-size:13px; font-weight:800; z-index:1; letter-spacing:-.3px; }
+  @media (max-width:640px) { .psh4-head h2 { font-size:24px; } .psh4-feature .label .name { font-size:16px; } }
+  </style>
+  <section class="psh4">
+    <div class="psh4-inner">
+      <div class="psh4-head">
+        <div class="kicker">SHOWROOM TOUR</div>
+        <h2>쇼룸 둘러보기</h2>
+        <p>실제 시공된 모습을 그대로 재현 — 자재가 어떻게 보이고 만져지는지 직접 확인하세요</p>
+      </div>
+      <div class="psh4-feature">
+        <div class="label">
+          <span class="badge">⭐ MAIN HALL</span>
+          <div class="name">110+ 제품이 전시된 메인 쇼룸</div>
+        </div>
+      </div>
+      <div class="psh4-grid">
+        <div class="psh4-thumb" style="background-image:url('https://placehold.co/400x300/F97316/fff?text=ROOFTOP')"><div class="ttl">옥상 시공 모형 존</div></div>
+        <div class="psh4-thumb" style="background-image:url('https://placehold.co/400x300/EA580C/fff?text=WALL')"><div class="ttl">외벽 도장 색상 샘플</div></div>
+        <div class="psh4-thumb" style="background-image:url('https://placehold.co/400x300/059669/fff?text=PARKING')"><div class="ttl">지하주차장 바닥 시공 비교</div></div>
+        <div class="psh4-thumb" style="background-image:url('https://placehold.co/400x300/FB923C/fff?text=PRODUCT')"><div class="ttl">제품 라인업 진열</div></div>
+        <div class="psh4-thumb" style="background-image:url('https://placehold.co/400x300/0F1F5C/fff?text=CONSULT')"><div class="ttl">1:1 상담 라운지</div></div>
+        <div class="psh4-thumb" style="background-image:url('https://placehold.co/400x300/F97316/fff?text=LAB')"><div class="ttl">R&D 랩 투명 관람</div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_SH_DISPLAY_HTML = `<style>
+  .psh5 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .psh5 { background:#FFFBF5; padding:80px 18px; }
+  .psh5-inner { max-width:1200px; margin:0 auto; }
+  .psh5-head { text-align:center; margin-bottom:36px; }
+  .psh5-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .psh5-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
+  .psh5-head p { font-size:14px; color:#6B7280; }
+  .psh5-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px; }
+  .psh5-card { background:#fff; border:1px solid #F3F4F6; border-radius:16px; overflow:hidden; transition:all .25s; }
+  .psh5-card:hover { transform:translateY(-3px); box-shadow:0 16px 36px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .psh5-thumb { aspect-ratio:1/1; background-size:cover; background-position:center; position:relative; }
+  .psh5-thumb .badge { position:absolute; top:10px; left:10px; padding:4px 9px; background:rgba(249,115,22,.92); color:#fff; font-size:10px; font-weight:900; border-radius:5px; letter-spacing:.3px; }
+  .psh5-info { padding:14px; }
+  .psh5-info .cat { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:5px; }
+  .psh5-info .name { font-size:13.5px; font-weight:800; color:#0F1F5C; margin-bottom:8px; line-height:1.4; letter-spacing:-.3px; }
+  .psh5-info .points { font-size:11.5px; color:#6B7280; line-height:1.55; }
+  @media (max-width:640px) { .psh5-head h2 { font-size:24px; } }
+  </style>
+  <section class="psh5">
+    <div class="psh5-inner">
+      <div class="psh5-head">
+        <div class="kicker">FEATURED DISPLAYS</div>
+        <h2>전시 제품 하이라이트</h2>
+        <p>쇼룸에서 직접 만져볼 수 있는 핵심 자재 — 시공 후 표면 질감·색상·강도까지</p>
+      </div>
+      <div class="psh5-grid">
+        <div class="psh5-card"><div class="psh5-thumb" style="background-image:url('https://placehold.co/400x400/F97316/fff?text=COAT')"><div class="badge">FEATURE</div></div><div class="psh5-info"><div class="cat">방수재</div><div class="name">POUR 코트재 (5kg/20kg)</div><div class="points">시공 전·후 단면 비교 · 색상 6종 샘플</div></div></div>
+        <div class="psh5-card"><div class="psh5-thumb" style="background-image:url('https://placehold.co/400x400/EA580C/fff?text=SHEET')"></div><div class="psh5-info"><div class="cat">방수재 · 시트</div><div class="name">슈퍼복합압축시트</div><div class="points">니들펀칭 단면 · 인장 파괴 시연</div></div></div>
+        <div class="psh5-card"><div class="psh5-thumb" style="background-image:url('https://placehold.co/400x400/0F1F5C/fff?text=HYPER+T')"></div><div class="psh5-info"><div class="cat">균열 보수</div><div class="name">POUR 하이퍼티 고탄성 퍼티</div><div class="points">600% 신율 시연 + 균열 보수 모형</div></div></div>
+        <div class="psh5-card"><div class="psh5-thumb" style="background-image:url('https://placehold.co/400x400/059669/fff?text=POWDER')"></div><div class="psh5-info"><div class="cat">강도 시연</div><div class="name">탄성강화 파우더</div><div class="points">망치 타격 시연 · 단면 복구 모형</div></div></div>
+        <div class="psh5-card"><div class="psh5-thumb" style="background-image:url('https://placehold.co/400x400/FB923C/fff?text=HOOKER')"></div><div class="psh5-info"><div class="cat">특허 부품</div><div class="name">POUR HOOKER (특허)</div><div class="points">후레싱 보강 시공 모형</div></div></div>
+        <div class="psh5-card"><div class="psh5-thumb" style="background-image:url('https://placehold.co/400x400/F97316/fff?text=EPOXY')"></div><div class="psh5-info"><div class="cat">바닥 마감</div><div class="name">에폭시·엠보라이닝 도료</div><div class="points">실제 바닥 시공 — 미끄럼 시연</div></div></div>
+        <div class="psh5-card"><div class="psh5-thumb" style="background-image:url('https://placehold.co/400x400/EA580C/fff?text=PAINT')"></div><div class="psh5-info"><div class="cat">외벽 도장</div><div class="name">바인더 · 플러스 색상 샘플</div><div class="points">28색 컬러 칩 · 시공 후 발색 비교</div></div></div>
+        <div class="psh5-card"><div class="psh5-thumb" style="background-image:url('https://placehold.co/400x400/059669/fff?text=VENT')"></div><div class="psh5-info"><div class="cat">결로 방지</div><div class="name">페이퍼팬벤트 무동력 환기구</div><div class="points">실제 작동 모형 — 통풍 원리 체험</div></div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_SH_BOOK_HTML = `<style>
+  .psh6 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .psh6 { background:#fff; padding:80px 18px; }
+  .psh6-inner { max-width:980px; margin:0 auto; }
+  .psh6-head { text-align:center; margin-bottom:32px; }
+  .psh6-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .psh6-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:10px; }
+  .psh6-head p { font-size:14px; color:#6B7280; }
+  .psh6-card { background:#fff; border:1px solid #F3F4F6; border-radius:24px; padding:36px 32px; box-shadow:0 12px 36px rgba(15,31,92,.06); }
+  .psh6-section { margin-bottom:24px; }
+  .psh6-section .stitle { font-size:13px; font-weight:900; color:#0F1F5C; margin-bottom:14px; padding-bottom:10px; border-bottom:2px solid #FFEDD5; letter-spacing:-.3px; }
+  .psh6-row { margin-bottom:14px; }
+  .psh6-row.split { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .psh6-row label { display:block; font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
+  .psh6-row input, .psh6-row select, .psh6-row textarea { width:100%; padding:12px 14px; background:#FFFBF5; border:1px solid #F3F4F6; border-radius:10px; font-size:14px; font-family:inherit; color:#0F1F5C; transition:all .2s; }
+  .psh6-row textarea { min-height:80px; resize:vertical; }
+  .psh6-row input:focus, .psh6-row select:focus, .psh6-row textarea:focus { outline:none; border-color:#FED7AA; background:#fff; box-shadow:0 0 0 3px rgba(249,115,22,.08); }
+  .psh6-purpose { display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:8px; }
+  .psh6-purpose-item { padding:14px 12px; background:#FFFBF5; border:1.5px solid #F3F4F6; border-radius:10px; text-align:center; cursor:pointer; transition:all .2s; }
+  .psh6-purpose-item:hover { border-color:#FED7AA; }
+  .psh6-purpose-item.active { background:#FFF7ED; border-color:#F97316; }
+  .psh6-purpose-item .icon { font-size:22px; margin-bottom:4px; }
+  .psh6-purpose-item .label { font-size:12px; font-weight:800; color:#0F1F5C; letter-spacing:-.3px; }
+  .psh6-purpose-item.active .label { color:#EA580C; }
+  .psh6-agree { display:flex; align-items:center; gap:8px; margin-bottom:18px; padding:14px; background:#FFFBF5; border-radius:10px; font-size:12.5px; color:#4B5563; }
+  .psh6-agree input { width:16px; height:16px; accent-color:#F97316; }
+  .psh6-submit { width:100%; padding:16px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:900; cursor:pointer; box-shadow:0 8px 24px rgba(249,115,22,.3); transition:all .25s; }
+  .psh6-submit:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(249,115,22,.45); }
+  @media (max-width:640px) { .psh6-card { padding:24px 18px; } .psh6-row.split { grid-template-columns:1fr; } .psh6-head h2 { font-size:24px; } }
+  </style>
+  <section class="psh6" id="booking-form">
+    <div class="psh6-inner">
+      <div class="psh6-head">
+        <div class="kicker">VISIT BOOKING</div>
+        <h2>쇼룸 방문 예약</h2>
+        <p>예약자 우선 응대 — 충분한 상담 시간 확보를 위해 사전 예약을 권장드립니다</p>
+      </div>
+      <form class="psh6-card">
+        <div class="psh6-section">
+          <div class="stitle">📅 1. 방문 일정</div>
+          <div class="psh6-row split">
+            <div><label>희망 날짜</label><input type="date"/></div>
+            <div><label>희망 시간</label><select><option>10:00</option><option>11:00</option><option>14:00</option><option>15:00</option><option>16:00</option><option>17:00</option></select></div>
+          </div>
+        </div>
+        <div class="psh6-section">
+          <div class="stitle">🎯 2. 방문 목적 (복수 선택)</div>
+          <div class="psh6-purpose">
+            <div class="psh6-purpose-item active"><div class="icon">🔍</div><div class="label">제품 체험</div></div>
+            <div class="psh6-purpose-item"><div class="icon">💬</div><div class="label">시공 상담</div></div>
+            <div class="psh6-purpose-item"><div class="icon">💰</div><div class="label">견적 문의</div></div>
+            <div class="psh6-purpose-item"><div class="icon">🤝</div><div class="label">파트너 미팅</div></div>
+            <div class="psh6-purpose-item"><div class="icon">🎓</div><div class="label">교육 참관</div></div>
+            <div class="psh6-purpose-item"><div class="icon">📋</div><div class="label">기타</div></div>
+          </div>
+        </div>
+        <div class="psh6-section">
+          <div class="stitle">👥 3. 방문 정보</div>
+          <div class="psh6-row split">
+            <div><label>성함</label><input type="text" placeholder="홍길동"/></div>
+            <div><label>방문 인원</label><select><option>1명</option><option>2-3명</option><option>4-6명</option><option>7명 이상</option></select></div>
+          </div>
+          <div class="psh6-row split">
+            <div><label>연락처</label><input type="text" placeholder="010-0000-0000"/></div>
+            <div><label>소속 (선택)</label><input type="text" placeholder="○○관리사무소"/></div>
+          </div>
+          <div class="psh6-row"><label>관심 자재·시공 (선택)</label><textarea placeholder="미리 알려주시면 해당 자재·사례를 준비해 드립니다"></textarea></div>
+        </div>
+        <div class="psh6-agree"><input type="checkbox" id="ag5"/><label for="ag5">개인정보 수집·이용에 동의합니다</label></div>
+        <button type="submit" class="psh6-submit">방문 예약 신청</button>
+      </form>
+    </div>
+  </section>`;
+
+  const SEED_SH_DIRECT_HTML = `<style>
+  .psh7 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .psh7 { background:#FFFBF5; padding:64px 18px; }
+  .psh7-inner { max-width:1100px; margin:0 auto; }
+  .psh7-head { text-align:center; margin-bottom:32px; }
+  .psh7-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .psh7-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .psh7-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:14px; }
+  .psh7-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; padding:24px 22px; transition:all .25s; }
+  .psh7-card:hover { transform:translateY(-3px); box-shadow:0 16px 36px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .psh7-card .icon { width:48px; height:48px; border-radius:12px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:24px; margin-bottom:14px; }
+  .psh7-card .name { font-size:15px; font-weight:900; color:#0F1F5C; margin-bottom:6px; letter-spacing:-.3px; }
+  .psh7-card .desc { font-size:12.5px; color:#6B7280; line-height:1.65; margin-bottom:12px; min-height:38px; }
+  .psh7-card .v { font-size:13.5px; font-weight:800; color:#EA580C; letter-spacing:-.3px; }
+  @media (max-width:640px) { .psh7-head h2 { font-size:22px; } }
+  </style>
+  <section class="psh7">
+    <div class="psh7-inner">
+      <div class="psh7-head">
+        <div class="kicker">DETAILED DIRECTIONS</div>
+        <h2>찾아오시는 길 상세</h2>
+      </div>
+      <div class="psh7-grid">
+        <div class="psh7-card"><div class="icon">🚗</div><div class="name">자가용 이용</div><div class="desc">평택 IC → ○○로 직진 5분 — 본사 무료 주차장 30대 보유</div><div class="v">서울 1시간 10분 / 부산 4시간</div></div>
+        <div class="psh7-card"><div class="icon">🚆</div><div class="name">기차·KTX</div><div class="desc">1호선·KTX 평택역 → ○○번 버스 5분 또는 도보 12분</div><div class="v">평택역 도보 12분</div></div>
+        <div class="psh7-card"><div class="icon">🚌</div><div class="name">시외버스</div><div class="desc">평택 시외버스터미널 → 택시 8분 / 시내버스 ○○번</div><div class="v">택시 8분</div></div>
+        <div class="psh7-card"><div class="icon">🛬</div><div class="name">인천공항에서</div><div class="desc">공항버스 6300번 평택역 직행 → 도보·택시</div><div class="v">버스 1시간 30분</div></div>
+        <div class="psh7-card"><div class="icon">🅿️</div><div class="name">주차 정보</div><div class="desc">본사 부지 내 무료 주차장 30대 — 대형차·대중교통 단체 별도 협의</div><div class="v">상시 30대 무료</div></div>
+        <div class="psh7-card"><div class="icon">📞</div><div class="name">길 안내 문의</div><div class="desc">방문 당일 길 헷갈리시면 언제든 전화주세요. 평일 09-18시 응대</div><div class="v">1577-0000</div></div>
+      </div>
+    </div>
+  </section>`;
+
+
+  const SEED_MG_HERO_HTML = `<style>
+  .pmg1 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmg1 { background:linear-gradient(180deg,#FFFBF5 0%,#FFF7ED 100%); padding:80px 18px 56px; position:relative; overflow:hidden; }
+  .pmg1::before { content:''; position:absolute; top:-100px; right:-80px; width:380px; height:380px; background:radial-gradient(circle, rgba(249,115,22,.12) 0%, transparent 60%); border-radius:50%; }
+  .pmg1-inner { max-width:1100px; margin:0 auto; text-align:center; position:relative; z-index:1; }
+  .pmg1-tag { display:inline-flex; gap:6px; padding:6px 14px; background:#fff; border:1px solid #FED7AA; color:#EA580C; border-radius:999px; font-size:11.5px; font-weight:800; letter-spacing:.8px; margin-bottom:18px; box-shadow:0 4px 12px rgba(249,115,22,.1); }
+  .pmg1 h1 { font-size:44px; font-weight:900; color:#0F1F5C; line-height:1.2; margin-bottom:16px; letter-spacing:-1.4px; }
+  .pmg1 h1 .accent { color:#F97316; }
+  .pmg1-desc { font-size:15.5px; color:#4B5563; line-height:1.75; max-width:600px; margin:0 auto 32px; }
+  .pmg1-search { max-width:600px; margin:0 auto; position:relative; }
+  .pmg1-search input { width:100%; padding:18px 24px 18px 56px; background:#fff; border:1px solid #F3F4F6; border-radius:18px; font-size:15px; font-family:inherit; color:#0F1F5C; transition:all .2s; box-shadow:0 8px 24px rgba(15,31,92,.08); }
+  .pmg1-search input:focus { outline:none; border-color:#FED7AA; box-shadow:0 8px 24px rgba(249,115,22,.18); }
+  .pmg1-search .icon { position:absolute; top:50%; left:22px; transform:translateY(-50%); font-size:20px; }
+  .pmg1-tags { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:18px; }
+  .pmg1-tags .tag { padding:6px 14px; background:rgba(255,255,255,.8); border:1px solid #FED7AA; color:#EA580C; font-size:12px; font-weight:800; border-radius:999px; cursor:pointer; transition:all .2s; }
+  .pmg1-tags .tag:hover { background:#fff; }
+  @media (max-width:640px) { .pmg1 h1 { font-size:28px; } }
+  </style>
+  <section class="pmg1">
+    <div class="pmg1-inner">
+      <span class="pmg1-tag">📖 STORE MAGAZINE</span>
+      <h1>시공·자재·트렌드<br/><span class="accent">콘텐츠 허브</span></h1>
+      <p class="pmg1-desc">시공 설명서·영상 가이드·케이스 스터디·트렌드 — POUR가 직접 만드는 모든 콘텐츠를 한곳에서.</p>
+      <div class="pmg1-search">
+        <span class="icon">🔍</span>
+        <input type="text" placeholder="키워드로 검색해 보세요 — 예: 옥상 누수, 외벽 도장, 셀프시공"/>
+      </div>
+      <div class="pmg1-tags">
+        <span class="tag">#옥상누수</span>
+        <span class="tag">#외벽도장</span>
+        <span class="tag">#균열보수</span>
+        <span class="tag">#셀프시공</span>
+        <span class="tag">#하이퍼티</span>
+        <span class="tag">#아파트관리</span>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_MG_TABS_HTML = `<style>
+  .pmg2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmg2 { background:#fff; padding:32px 18px; border-bottom:1px solid #F3F4F6; }
+  .pmg2-inner { max-width:1200px; margin:0 auto; }
+  .pmg2-tabs { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+  .pmg2-tab { padding:11px 22px; background:#fff; border:1.5px solid #F3F4F6; border-radius:999px; font-size:13.5px; font-weight:700; color:#6B7280; cursor:pointer; transition:all .2s; display:inline-flex; align-items:center; gap:7px; }
+  .pmg2-tab:hover { border-color:#FED7AA; color:#EA580C; }
+  .pmg2-tab.active { background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border-color:transparent; box-shadow:0 6px 16px rgba(249,115,22,.3); }
+  .pmg2-tab .icon { font-size:15px; }
+  .pmg2-tab .count { font-size:11px; padding:2px 7px; background:#FFF7ED; color:#EA580C; border-radius:6px; font-weight:800; }
+  .pmg2-tab.active .count { background:rgba(255,255,255,.25); color:#fff; }
+  @media (max-width:640px) { .pmg2-tabs { gap:6px; } .pmg2-tab { padding:9px 14px; font-size:12.5px; } }
+  </style>
+  <section class="pmg2">
+    <div class="pmg2-inner">
+      <div class="pmg2-tabs">
+        <button class="pmg2-tab active"><span class="icon">📌</span>전체<span class="count">328</span></button>
+        <button class="pmg2-tab"><span class="icon">🔧</span>시공방법<span class="count">86</span></button>
+        <button class="pmg2-tab"><span class="icon">📊</span>케이스 스터디<span class="count">62</span></button>
+        <button class="pmg2-tab"><span class="icon">📦</span>제품 가이드<span class="count">48</span></button>
+        <button class="pmg2-tab"><span class="icon">▶</span>영상 가이드<span class="count">72</span></button>
+        <button class="pmg2-tab"><span class="icon">📈</span>트렌드</button>
+        <button class="pmg2-tab"><span class="icon">🛠️</span>셀프시공</button>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_MG_PICK_HTML = `<style>
+  .pmg3 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmg3 { background:#fff; padding:64px 18px; }
+  .pmg3-inner { max-width:1200px; margin:0 auto; }
+  .pmg3-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+  .pmg3-head .left .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:6px; }
+  .pmg3-head .left h2 { font-size:28px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .pmg3-head .more { font-size:13px; font-weight:700; color:#EA580C; text-decoration:none; padding:8px 14px; border:1px solid #FED7AA; border-radius:999px; background:#fff; }
+  .pmg3-grid { display:grid; grid-template-columns:1.4fr 1fr; gap:18px; }
+  .pmg3-feature { position:relative; aspect-ratio:16/11; border-radius:20px; overflow:hidden; background-size:cover; background-position:center; cursor:pointer; transition:transform .3s; }
+  .pmg3-feature:hover { transform:translateY(-3px); }
+  .pmg3-feature::after { content:''; position:absolute; inset:0; background:linear-gradient(0deg, rgba(15,31,92,.92) 0%, rgba(15,31,92,.3) 50%, transparent 100%); }
+  .pmg3-feature .info { position:absolute; bottom:24px; left:24px; right:24px; color:#fff; z-index:1; }
+  .pmg3-feature .badge { display:inline-block; padding:4px 11px; background:#F97316; font-size:10.5px; font-weight:900; letter-spacing:.5px; border-radius:5px; margin-bottom:12px; }
+  .pmg3-feature .title { font-size:24px; font-weight:900; line-height:1.3; margin-bottom:8px; letter-spacing:-.5px; }
+  .pmg3-feature .meta { font-size:12.5px; opacity:.9; font-weight:700; }
+  .pmg3-list { display:flex; flex-direction:column; gap:12px; }
+  .pmg3-mini { display:grid; grid-template-columns:120px 1fr; gap:14px; padding:14px; background:#FFFBF5; border:1px solid #F3F4F6; border-radius:14px; transition:all .25s; cursor:pointer; }
+  .pmg3-mini:hover { transform:translateX(3px); background:#fff; box-shadow:0 8px 20px rgba(15,31,92,.06); border-color:#FED7AA; }
+  .pmg3-mini .thumb { aspect-ratio:1/1; border-radius:10px; background-size:cover; background-position:center; }
+  .pmg3-mini .text { display:flex; flex-direction:column; justify-content:center; min-width:0; }
+  .pmg3-mini .cat { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:4px; }
+  .pmg3-mini .title { font-size:13.5px; font-weight:800; color:#0F1F5C; line-height:1.4; margin-bottom:6px; letter-spacing:-.3px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .pmg3-mini .meta { font-size:11px; color:#9CA3AF; font-weight:700; }
+  @media (max-width:880px) { .pmg3-grid { grid-template-columns:1fr; } .pmg3-feature .title { font-size:18px; } }
+  </style>
+  <section class="pmg3">
+    <div class="pmg3-inner">
+      <div class="pmg3-head">
+        <div class="left">
+          <div class="kicker">⭐ EDITOR'S PICK</div>
+          <h2>에디터가 추천하는 콘텐츠</h2>
+        </div>
+        <a class="more" href="#">전체 보기 →</a>
+      </div>
+      <div class="pmg3-grid">
+        <div class="pmg3-feature" style="background-image:url('https://placehold.co/800x550/0F1F5C/fff?text=COVER+STORY')">
+          <div class="info">
+            <span class="badge">COVER STORY</span>
+            <div class="title">2026년 봄, 옥상 누수 안 잡는 5가지 실수</div>
+            <div class="meta">시공방법 · 8분 읽기 · 조회 12K · 4월 28일</div>
+          </div>
+        </div>
+        <div class="pmg3-list">
+          <div class="pmg3-mini"><div class="thumb" style="background-image:url('https://placehold.co/200x200/F97316/fff?text=GUIDE1')"></div><div class="text"><div class="cat">제품 가이드</div><div class="title">POUR 코트재 vs 우레탄 — 어느 게 맞을까?</div><div class="meta">5분 읽기 · 조회 8.2K</div></div></div>
+          <div class="pmg3-mini"><div class="thumb" style="background-image:url('https://placehold.co/200x200/EA580C/fff?text=CASE')"></div><div class="text"><div class="cat">케이스 스터디</div><div class="title">강남 래미안 옥상 시공 풀스토리 — 6개월 추적</div><div class="meta">12분 읽기 · 조회 6.5K</div></div></div>
+          <div class="pmg3-mini"><div class="thumb" style="background-image:url('https://placehold.co/200x200/059669/fff?text=DIY')"></div><div class="text"><div class="cat">셀프시공</div><div class="title">베란다 누수 — 주말에 혼자 잡는 방법</div><div class="meta">7분 읽기 · 조회 9.8K</div></div></div>
+          <div class="pmg3-mini"><div class="thumb" style="background-image:url('https://placehold.co/200x200/FB923C/fff?text=TREND')"></div><div class="text"><div class="cat">트렌드</div><div class="title">2026 외벽 도장 컬러 트렌드 — 차분한 누드톤</div><div class="meta">4분 읽기 · 조회 5.4K</div></div></div>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_MG_VIDEO_HTML = `<style>
+  .pmg4 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmg4 { background:#FFFBF5; padding:64px 18px; }
+  .pmg4-inner { max-width:1200px; margin:0 auto; }
+  .pmg4-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+  .pmg4-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:6px; }
+  .pmg4-head h2 { font-size:28px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .pmg4-head .more { font-size:13px; font-weight:700; color:#EA580C; text-decoration:none; padding:8px 14px; border:1px solid #FED7AA; border-radius:999px; background:#fff; }
+  .pmg4-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px; }
+  .pmg4-card { background:#fff; border:1px solid #F3F4F6; border-radius:16px; overflow:hidden; transition:all .3s; cursor:pointer; }
+  .pmg4-card:hover { transform:translateY(-3px); box-shadow:0 16px 36px rgba(15,31,92,.1); border-color:#FED7AA; }
+  .pmg4-thumb { aspect-ratio:16/10; background-size:cover; background-position:center; position:relative; }
+  .pmg4-thumb::before { content:''; position:absolute; inset:0; background:linear-gradient(0deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,.1) 50%, transparent 100%); transition:opacity .25s; opacity:.5; }
+  .pmg4-card:hover .pmg4-thumb::before { opacity:.7; }
+  .pmg4-thumb .play { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:52px; height:52px; border-radius:50%; background:rgba(255,255,255,.95); display:grid; place-items:center; transition:transform .3s; }
+  .pmg4-card:hover .pmg4-thumb .play { transform:translate(-50%,-50%) scale(1.12); }
+  .pmg4-thumb .play svg { width:20px; height:20px; fill:#EA580C; margin-left:3px; }
+  .pmg4-thumb .dur { position:absolute; bottom:8px; right:8px; padding:3px 8px; background:rgba(0,0,0,.78); color:#fff; font-size:10.5px; font-weight:800; border-radius:5px; letter-spacing:.3px; }
+  .pmg4-thumb .rank { position:absolute; top:8px; left:8px; padding:4px 9px; background:rgba(249,115,22,.92); color:#fff; font-size:10.5px; font-weight:900; border-radius:5px; }
+  .pmg4-info { padding:14px; }
+  .pmg4-info .cat { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.3px; margin-bottom:6px; }
+  .pmg4-info .title { font-size:13.5px; font-weight:800; color:#0F1F5C; line-height:1.4; margin-bottom:8px; letter-spacing:-.3px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:38px; }
+  .pmg4-info .meta { font-size:11px; color:#9CA3AF; font-weight:700; }
+  @media (max-width:640px) { .pmg4-head h2 { font-size:22px; } }
+  </style>
+  <section class="pmg4">
+    <div class="pmg4-inner">
+      <div class="pmg4-head">
+        <div>
+          <div class="kicker">▶ TRENDING VIDEOS</div>
+          <h2>이번 주 인기 시공 영상</h2>
+        </div>
+        <a class="more" href="https://www.pourstore.net/videos">전체 영상 →</a>
+      </div>
+      <div class="pmg4-grid">
+        <div class="pmg4-card"><div class="pmg4-thumb" style="background-image:url('https://placehold.co/400x250/0F1F5C/fff?text=ROOFTOP')"><div class="rank">#1</div><div class="play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div><div class="dur">14:28</div></div><div class="pmg4-info"><div class="cat">옥상 시공</div><div class="title">POUR 코트재 — 옥상 슬라브 시공 풀가이드</div><div class="meta">조회 28K · 3일 전</div></div></div>
+        <div class="pmg4-card"><div class="pmg4-thumb" style="background-image:url('https://placehold.co/400x250/F97316/fff?text=DIY')"><div class="rank">#2</div><div class="play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div><div class="dur">8:42</div></div><div class="pmg4-info"><div class="cat">셀프시공</div><div class="title">베란다 누수 — 혼자서 잡는 5단계</div><div class="meta">조회 22K · 5일 전</div></div></div>
+        <div class="pmg4-card"><div class="pmg4-thumb" style="background-image:url('https://placehold.co/400x250/EA580C/fff?text=CRACK')"><div class="rank">#3</div><div class="play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div><div class="dur">11:15</div></div><div class="pmg4-info"><div class="cat">균열 보수</div><div class="title">하이퍼티로 외벽 균열 보수 — 5분 정리</div><div class="meta">조회 18K · 1주 전</div></div></div>
+        <div class="pmg4-card"><div class="pmg4-thumb" style="background-image:url('https://placehold.co/400x250/059669/fff?text=COMPARE')"><div class="rank">#4</div><div class="play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div><div class="dur">7:32</div></div><div class="pmg4-info"><div class="cat">제품 비교</div><div class="title">우레탄 vs PVC vs 코트재 — 뭐가 달라요?</div><div class="meta">조회 14K · 2주 전</div></div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_MG_GUIDE_HTML = `<style>
+  .pmg5 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmg5 { background:#fff; padding:64px 18px; }
+  .pmg5-inner { max-width:1200px; margin:0 auto; }
+  .pmg5-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+  .pmg5-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:6px; }
+  .pmg5-head h2 { font-size:28px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .pmg5-head .more { font-size:13px; font-weight:700; color:#EA580C; text-decoration:none; padding:8px 14px; border:1px solid #FED7AA; border-radius:999px; background:#fff; }
+  .pmg5-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:14px; }
+  .pmg5-card { background:#fff; border:1px solid #F3F4F6; border-radius:16px; padding:24px 22px; transition:all .25s; }
+  .pmg5-card:hover { transform:translateY(-3px); box-shadow:0 16px 36px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .pmg5-card .icon { width:44px; height:44px; border-radius:11px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:22px; margin-bottom:14px; }
+  .pmg5-card .name { font-size:15px; font-weight:900; color:#0F1F5C; margin-bottom:6px; letter-spacing:-.3px; }
+  .pmg5-card .desc { font-size:12.5px; color:#6B7280; line-height:1.6; margin-bottom:12px; min-height:38px; }
+  .pmg5-card .meta { display:flex; align-items:center; gap:8px; padding-top:12px; border-top:1px solid #F3F4F6; font-size:11px; color:#9CA3AF; font-weight:700; }
+  .pmg5-card .meta .dot { width:3px; height:3px; border-radius:50%; background:#D1D5DB; }
+  .pmg5-card .pdf { display:inline-block; padding:3px 8px; background:#FEE2E2; color:#DC2626; font-size:10px; font-weight:800; border-radius:4px; }
+  @media (max-width:640px) { .pmg5-head h2 { font-size:22px; } }
+  </style>
+  <section class="pmg5">
+    <div class="pmg5-inner">
+      <div class="pmg5-head">
+        <div>
+          <div class="kicker">📋 SPEC SHEETS</div>
+          <h2>시공 설명서 모음</h2>
+        </div>
+        <a class="more" href="https://www.pourstore.net/spec">전체 시방서 →</a>
+      </div>
+      <div class="pmg5-grid">
+        <div class="pmg5-card"><div class="icon">💧</div><div class="name">슬라브 듀얼강화방수 시방서</div><div class="desc">옥상 슬라브 누수 + 콘크리트 중성화 — 6가지 핵심 방안 일체 시공</div><div class="meta"><span class="pdf">PDF</span><span>2.4 MB</span><span class="dot"></span><span>다운로드 1,245</span></div></div>
+        <div class="pmg5-card"><div class="icon">🏠</div><div class="name">아스팔트슁글 방수 시방서</div><div class="desc">건설신기술 1026호 — 박공지붕 누수·강풍 탈락 동시 해결</div><div class="meta"><span class="pdf">PDF</span><span>1.8 MB</span><span class="dot"></span><span>다운로드 982</span></div></div>
+        <div class="pmg5-card"><div class="icon">🎨</div><div class="name">외벽 균열보수·재도장 시방서</div><div class="desc">고급(바인더+플러스)/중급/경제형 — 예산별 선택 가능</div><div class="meta"><span class="pdf">PDF</span><span>3.1 MB</span><span class="dot"></span><span>다운로드 1,438</span></div></div>
+        <div class="pmg5-card"><div class="icon">🚗</div><div class="name">에폭시·엠보라이닝 시방서</div><div class="desc">지하주차장 바닥 — MMA 논슬립(83 BPN) 포함</div><div class="meta"><span class="pdf">PDF</span><span>2.7 MB</span><span class="dot"></span><span>다운로드 765</span></div></div>
+        <div class="pmg5-card"><div class="icon">🌊</div><div class="name">아크릴 배면차수 시방서</div><div class="desc">지하·수조 누수 — 초고압 주입 새 방수층 형성</div><div class="meta"><span class="pdf">PDF</span><span>1.5 MB</span><span class="dot"></span><span>다운로드 532</span></div></div>
+        <div class="pmg5-card"><div class="icon">🛣️</div><div class="name">아스콘 도로포장 시방서</div><div class="desc">POUR아스콘 — 포트홀·균열 보수 + 씰코팅</div><div class="meta"><span class="pdf">PDF</span><span>2.0 MB</span><span class="dot"></span><span>다운로드 412</span></div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_MG_POSTING_HTML = `<style>
+  .pmg6 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmg6 { background:#FFFBF5; padding:80px 18px; }
+  .pmg6-inner { max-width:1200px; margin:0 auto; }
+  .pmg6-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:12px; }
+  .pmg6-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:6px; }
+  .pmg6-head h2 { font-size:28px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
+  .pmg6-head .more { font-size:13px; font-weight:700; color:#EA580C; text-decoration:none; padding:8px 14px; border:1px solid #FED7AA; border-radius:999px; background:#fff; }
+  .pmg6-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px; }
+  .pmg6-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; overflow:hidden; transition:all .3s; cursor:pointer; }
+  .pmg6-card:hover { transform:translateY(-4px); box-shadow:0 18px 40px rgba(15,31,92,.1); border-color:#FED7AA; }
+  .pmg6-thumb { aspect-ratio:5/4; background-size:cover; background-position:center; }
+  .pmg6-info { padding:18px; }
+  .pmg6-info .cat { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:8px; }
+  .pmg6-info .title { font-size:15.5px; font-weight:900; color:#0F1F5C; margin-bottom:8px; line-height:1.4; letter-spacing:-.3px; }
+  .pmg6-info .desc { font-size:12.5px; color:#6B7280; line-height:1.65; margin-bottom:14px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:40px; }
+  .pmg6-info .author { display:flex; align-items:center; gap:10px; padding-top:14px; border-top:1px solid #F3F4F6; }
+  .pmg6-info .avatar { width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:12px; font-weight:900; color:#EA580C; }
+  .pmg6-info .author-info .name { font-size:11.5px; font-weight:800; color:#0F1F5C; }
+  .pmg6-info .author-info .meta { font-size:10.5px; color:#9CA3AF; font-weight:700; margin-top:1px; }
+  @media (max-width:640px) { .pmg6-head h2 { font-size:22px; } }
+  </style>
+  <section class="pmg6">
+    <div class="pmg6-inner">
+      <div class="pmg6-head">
+        <div>
+          <div class="kicker">✏️ STORE POSTING</div>
+          <h2>자사몰 포스팅 — 오늘의집 스타일</h2>
+        </div>
+        <a class="more" href="#">전체 포스팅 →</a>
+      </div>
+      <div class="pmg6-grid">
+        <div class="pmg6-card"><div class="pmg6-thumb" style="background-image:url('https://placehold.co/500x400/F97316/fff?text=POST1')"></div><div class="pmg6-info"><div class="cat">시공방법 · 옥상</div><div class="title">10년된 아파트 옥상, 한 번에 깨끗하게</div><div class="desc">매년 누수로 골치였던 분들 보세요. 코트재 한 통이면 끝나는 옥상 방수 노하우 전체 공개합니다.</div><div class="author"><div class="avatar">박</div><div class="author-info"><div class="name">에디터 박○○</div><div class="meta">5분 읽기 · 좋아요 248</div></div></div></div></div>
+        <div class="pmg6-card"><div class="pmg6-thumb" style="background-image:url('https://placehold.co/500x400/EA580C/fff?text=POST2')"></div><div class="pmg6-info"><div class="cat">셀프시공 · 베란다</div><div class="title">베란다 곰팡이 — 주말에 끝내는 셀프 솔루션</div><div class="desc">매년 봄·가을 곰팡이로 스트레스라면 — 5만원으로 끝내는 셀프 시공 가이드.</div><div class="author"><div class="avatar">김</div><div class="author-info"><div class="name">에디터 김○○</div><div class="meta">7분 읽기 · 좋아요 192</div></div></div></div></div>
+        <div class="pmg6-card"><div class="pmg6-thumb" style="background-image:url('https://placehold.co/500x400/0F1F5C/fff?text=POST3')"></div><div class="pmg6-info"><div class="cat">제품 비교</div><div class="title">방수재 비교 — 우레탄 vs PVC vs 코트재</div><div class="desc">"어떤 걸 사야 하지?" 망설이는 분들을 위한 — 상황별 추천 자재 정리.</div><div class="author"><div class="avatar">이</div><div class="author-info"><div class="name">에디터 이○○</div><div class="meta">8분 읽기 · 좋아요 156</div></div></div></div></div>
+        <div class="pmg6-card"><div class="pmg6-thumb" style="background-image:url('https://placehold.co/500x400/059669/fff?text=POST4')"></div><div class="pmg6-info"><div class="cat">트렌드 · 외벽</div><div class="title">2026 외벽 컬러 트렌드 — 차분한 누드톤</div><div class="desc">올해 인기 외벽 컬러 6선. 입주민 만족도 높은 단지들이 선택한 색상은?</div><div class="author"><div class="avatar">최</div><div class="author-info"><div class="name">에디터 최○○</div><div class="meta">4분 읽기 · 좋아요 134</div></div></div></div></div>
+        <div class="pmg6-card"><div class="pmg6-thumb" style="background-image:url('https://placehold.co/500x400/FB923C/fff?text=POST5')"></div><div class="pmg6-info"><div class="cat">케이스 스터디</div><div class="title">강남 래미안 옥상 — 6개월 추적기</div><div class="desc">시공 직후부터 6개월 후까지 — 실제 단지에서 어떤 변화가 있었는지 기록.</div><div class="author"><div class="avatar">정</div><div class="author-info"><div class="name">에디터 정○○</div><div class="meta">12분 읽기 · 좋아요 287</div></div></div></div></div>
+        <div class="pmg6-card"><div class="pmg6-thumb" style="background-image:url('https://placehold.co/500x400/F97316/fff?text=POST6')"></div><div class="pmg6-info"><div class="cat">관리자 노하우</div><div class="title">관리소장이 알려주는 — 장기수선충당금 활용법</div><div class="desc">방수·도장 공사 시 충당금을 효율적으로 쓰는 5가지 노하우.</div><div class="author"><div class="avatar">조</div><div class="author-info"><div class="name">에디터 조○○</div><div class="meta">9분 읽기 · 좋아요 218</div></div></div></div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_MG_RELATED_HTML = `<style>
+  .pmg7 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmg7 { background:#fff; padding:64px 18px; }
+  .pmg7-inner { max-width:1200px; margin:0 auto; }
+  .pmg7-head { text-align:center; margin-bottom:32px; }
+  .pmg7-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pmg7-head h2 { font-size:28px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
+  .pmg7-head p { font-size:14px; color:#6B7280; }
+  .pmg7-banner { background:linear-gradient(135deg,#FFF7ED,#FFEDD5); border:1px solid #FED7AA; border-radius:20px; padding:24px 28px; margin-bottom:24px; display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+  .pmg7-banner .icon { width:48px; height:48px; border-radius:12px; background:#fff; display:grid; place-items:center; font-size:24px; flex-shrink:0; box-shadow:0 4px 12px rgba(249,115,22,.15); }
+  .pmg7-banner .text { flex:1; min-width:200px; }
+  .pmg7-banner .title { font-size:14.5px; font-weight:900; color:#0F1F5C; margin-bottom:3px; letter-spacing:-.3px; }
+  .pmg7-banner .desc { font-size:12.5px; color:#6B7280; line-height:1.55; }
+  .pmg7-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; }
+  .pmg7-product { background:#fff; border:1px solid #F3F4F6; border-radius:14px; overflow:hidden; transition:all .25s; cursor:pointer; }
+  .pmg7-product:hover { transform:translateY(-3px); box-shadow:0 14px 32px rgba(15,31,92,.08); border-color:#FED7AA; }
+  .pmg7-product .thumb { aspect-ratio:1/1; background-size:cover; background-position:center; }
+  .pmg7-product .info { padding:12px; }
+  .pmg7-product .name { font-size:13px; font-weight:800; color:#0F1F5C; margin-bottom:6px; line-height:1.4; letter-spacing:-.3px; }
+  .pmg7-product .price { display:flex; align-items:center; gap:6px; }
+  .pmg7-product .now { font-size:14px; font-weight:900; color:#0F1F5C; }
+  .pmg7-product .sale { font-size:11px; font-weight:800; color:#DC2626; }
+  @media (max-width:640px) { .pmg7-head h2 { font-size:22px; } }
+  </style>
+  <section class="pmg7">
+    <div class="pmg7-inner">
+      <div class="pmg7-head">
+        <div class="kicker">RELATED PRODUCTS</div>
+        <h2>이 콘텐츠와 관련된 상품</h2>
+        <p>읽으신 콘텐츠에서 다룬 자재를 바로 구매할 수 있어요</p>
+      </div>
+      <div class="pmg7-banner">
+        <div class="icon">📖</div>
+        <div class="text">
+          <div class="title">"10년된 아파트 옥상, 한 번에 깨끗하게" 콘텐츠 관련</div>
+          <div class="desc">옥상 슬라브 방수에 사용된 핵심 자재 4종을 묶었습니다</div>
+        </div>
+      </div>
+      <div class="pmg7-grid">
+        <div class="pmg7-product"><div class="thumb" style="background-image:url('https://placehold.co/300x300/F97316/fff?text=COAT')"></div><div class="info"><div class="name">POUR 코트재 5kg</div><div class="price"><span class="sale">15%</span><span class="now">68,000원</span></div></div></div>
+        <div class="pmg7-product"><div class="thumb" style="background-image:url('https://placehold.co/300x300/EA580C/fff?text=SHEET')"></div><div class="info"><div class="name">슈퍼복합압축시트</div><div class="price"><span class="sale">8%</span><span class="now">128,000원</span></div></div></div>
+        <div class="pmg7-product"><div class="thumb" style="background-image:url('https://placehold.co/300x300/0F1F5C/fff?text=VENT')"></div><div class="info"><div class="name">페이퍼팬벤트</div><div class="price"><span class="now">38,000원</span></div></div></div>
+        <div class="pmg7-product"><div class="thumb" style="background-image:url('https://placehold.co/300x300/059669/fff?text=TRAP')"></div><div class="info"><div class="name">옥상배관 방수트랩</div><div class="price"><span class="now">56,000원</span></div></div></div>
+        <div class="pmg7-product"><div class="thumb" style="background-image:url('https://placehold.co/300x300/FB923C/fff?text=PACKAGE')"></div><div class="info"><div class="name">옥상 풀세트 패키지</div><div class="price"><span class="sale">22%</span><span class="now">240,000원</span></div></div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_MG_MORE_HTML = `<style>
+  .pmg8 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+  .pmg8 { background:#FFFBF5; padding:80px 18px; }
+  .pmg8-inner { max-width:1100px; margin:0 auto; }
+  .pmg8-head { text-align:center; margin-bottom:36px; }
+  .pmg8-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
+  .pmg8-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
+  .pmg8-head p { font-size:14px; color:#6B7280; }
+  .pmg8-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px; }
+  .pmg8-card { background:#fff; border:1px solid #F3F4F6; border-radius:18px; padding:24px 22px; transition:all .25s; cursor:pointer; text-decoration:none; display:block; }
+  .pmg8-card:hover { transform:translateY(-4px); box-shadow:0 18px 40px rgba(15,31,92,.1); border-color:#FED7AA; }
+  .pmg8-card .icon { width:48px; height:48px; border-radius:12px; background:linear-gradient(135deg,#FFEDD5,#FED7AA); display:grid; place-items:center; font-size:24px; margin-bottom:14px; transition:transform .3s; }
+  .pmg8-card:hover .icon { transform:rotate(-8deg) scale(1.05); }
+  .pmg8-card .name { font-size:15px; font-weight:900; color:#0F1F5C; margin-bottom:6px; letter-spacing:-.3px; }
+  .pmg8-card .count { font-size:11.5px; font-weight:800; color:#EA580C; margin-bottom:10px; letter-spacing:.3px; }
+  .pmg8-card .desc { font-size:12px; color:#6B7280; line-height:1.65; margin-bottom:14px; }
+  .pmg8-card .arrow { font-size:12px; font-weight:800; color:#0F1F5C; transition:transform .25s; }
+  .pmg8-card:hover .arrow { transform:translateX(4px); color:#EA580C; }
+  @media (max-width:640px) { .pmg8-head h2 { font-size:24px; } }
+  </style>
+  <section class="pmg8">
+    <div class="pmg8-inner">
+      <div class="pmg8-head">
+        <div class="kicker">EXPLORE MORE</div>
+        <h2>카테고리별 더보기</h2>
+        <p>관심 분야의 콘텐츠만 모아서 보세요</p>
+      </div>
+      <div class="pmg8-grid">
+        <a class="pmg8-card" href="#"><div class="icon">🔧</div><div class="name">시공 방법</div><div class="count">86개 콘텐츠</div><div class="desc">단계별 시공 가이드 — 옥상·외벽·균열 등</div><div class="arrow">전체 보기 →</div></a>
+        <a class="pmg8-card" href="#"><div class="icon">📊</div><div class="name">케이스 스터디</div><div class="count">62개 콘텐츠</div><div class="desc">실제 단지의 시공 전후 추적 기록</div><div class="arrow">전체 보기 →</div></a>
+        <a class="pmg8-card" href="#"><div class="icon">📦</div><div class="name">제품 가이드</div><div class="count">48개 콘텐츠</div><div class="desc">자재별 사용법·비교·선택 가이드</div><div class="arrow">전체 보기 →</div></a>
+        <a class="pmg8-card" href="#"><div class="icon">🛠️</div><div class="name">셀프시공</div><div class="count">36개 콘텐츠</div><div class="desc">초보자도 할 수 있는 셀프 시공법</div><div class="arrow">전체 보기 →</div></a>
+        <a class="pmg8-card" href="#"><div class="icon">📈</div><div class="name">트렌드</div><div class="count">24개 콘텐츠</div><div class="desc">2026 컬러·디자인·시장 동향</div><div class="arrow">전체 보기 →</div></a>
+        <a class="pmg8-card" href="#"><div class="icon">💼</div><div class="name">관리자 노하우</div><div class="count">28개 콘텐츠</div><div class="desc">관리소장·시설팀을 위한 실무 팁</div><div class="arrow">전체 보기 →</div></a>
+        <a class="pmg8-card" href="#"><div class="icon">▶</div><div class="name">영상 가이드</div><div class="count">72개 영상</div><div class="desc">짧고 명확한 시공 시연 영상</div><div class="arrow">전체 보기 →</div></a>
+        <a class="pmg8-card" href="#"><div class="icon">🎓</div><div class="name">기술·R&D</div><div class="count">18개 콘텐츠</div><div class="desc">POUR R&D 비하인드 — 신기술 개발기</div><div class="arrow">전체 보기 →</div></a>
+      </div>
+    </div>
+  </section>`;
+
+
   const DEFAULT_PAGES = () => ([
     { id: 'main', name: '메인 페이지', file: 'index.html', sections: [
       mkSec('메인 배너', SEED_BANNER_HTML, '라이트 크림 + 오렌지 그라디언트 — 가벼운 톤 (v3)', 'wip'),
@@ -1017,78 +3577,78 @@ show('entry');
       mkSec('POUR스토어 실적관', SEED_STATS_HTML, '실적 수치 + 시공 갤러리 + 협력사 (기존 cafe24 시안 임베드)', 'requested'),
     ]},
     { id: 'about', name: '브랜드스토리 소개', file: 'about.html', sections: [
-      mkSec('히어로 비주얼', '', ''),
-      mkSec('회사 소개', '', ''),
-      mkSec('핵심 기술 / R&D', '', ''),
-      mkSec('인증·특허', '', ''),
-      mkSec('연혁', '', ''),
-      mkSec('하단 CTA', '', ''),
+      mkSec('히어로 비주얼', SEED_AB_HERO_HTML, '라이트 크림 + 오렌지 + 4개 핵심 수치 (260만/250+/70+/110+)', 'wip'),
+      mkSec('회사 소개', SEED_AB_ABOUT_HTML, '2-column 이미지+텍스트 — 설립 정보 인포 그리드 포함', 'wip'),
+      mkSec('핵심 기술 / R&D', SEED_AB_RD_HTML, '6개 기술 카드 — 슈퍼복합압축시트·코트재·HOOKER·탄성강화·하이퍼티·페이퍼팬벤트', 'wip'),
+      mkSec('인증·특허', SEED_AB_CERT_HTML, '건설신기술 1026호 피처 카드 + KTR/KCL/SGS/건축성능원/특허/ISO 6종', 'wip'),
+      mkSec('연혁', SEED_AB_HISTORY_HTML, '타임라인 2018→2025 — 설립부터 자사몰 리뉴얼까지 6개 이정표', 'wip'),
+      mkSec('하단 CTA', SEED_AB_CTA_HTML, '네이비 그라디언트 + 시공 상담/파트너/쇼룸 3개 버튼', 'wip'),
     ]},
     { id: 'products', name: '제품 소개', file: 'products.html', sections: [
-      mkSec('카테고리 네비', '', ''),
-      mkSec('베스트 상품', '', ''),
-      mkSec('신제품', '', ''),
-      mkSec('카테고리별 제품 그리드', '', ''),
-      mkSec('시공 가이드 영상', '', ''),
+      mkSec('카테고리 네비', SEED_PR_NAV_HTML, '7개 카테고리 — SVG 아이콘 + 호버 회전 + 제품 수 (방수/도장/균열/코팅/도구/안전/부자재)', 'wip'),
+      mkSec('베스트 상품', SEED_PR_BEST_HTML, '랭크 뱃지 + 별점·리뷰수 + 할인율 — 매거진 카드 톤', 'wip'),
+      mkSec('신제품', SEED_PR_NEW_HTML, '입고일 표시 + NEW 배지 + 할인 가격 표기', 'wip'),
+      mkSec('카테고리별 제품 그리드', SEED_PR_GRID_HTML, '탭 필터 + 카테고리별 그룹(방수/도장/균열) — 각 5개 제품 진열', 'wip'),
+      mkSec('시공 가이드 영상', SEED_PR_GUIDE_HTML, '피처 영상 1 + 미니 카드 4 — 매거진 레이아웃 (메인 동영상 가이드와 통일)', 'wip'),
     ]},
     { id: 'construction', name: '시공 사례', file: 'construction.html', sections: [
-      mkSec('사례 인트로', '', ''),
-      mkSec('지역별 필터', '', ''),
-      mkSec('사례 갤러리', '', ''),
-      mkSec('공법별 사례', '', ''),
-      mkSec('고객 후기', '', ''),
+      mkSec('사례 인트로', SEED_CS_INTRO_HTML, '라이트 크림 + 4개 핵심 수치 (700+/260만/150만㎡/17개 광역시도)', 'wip'),
+      mkSec('지역별 필터', SEED_CS_FILTER_HTML, '지역 칩 + 건물유형 칩 + 검색바 (15개 광역 + 6개 유형)', 'wip'),
+      mkSec('사례 갤러리', SEED_CS_GALLERY_HTML, '12개 카드 — 지역·공법 태그 + 좋아요·완공일 표기', 'wip'),
+      mkSec('공법별 사례', SEED_CS_BYMETHOD_HTML, '8개 공법 카드 — 슬라브/슁글/금속기와/외벽/에폭시/배면차수/아스콘/단면복구', 'wip'),
+      mkSec('고객 후기', SEED_CS_REVIEW_HTML, '평균 만족도 4.9 + 6개 후기 카드 (관리소장·시설팀·입주자대표 등)', 'wip'),
     ]},
     { id: 'contact', name: '문의', file: 'contact.html', sections: [
-      mkSec('문의 폼', '', ''),
-      mkSec('매장 정보', '', ''),
-      mkSec('카카오톡 채널', '', ''),
-      mkSec('FAQ', '', ''),
+      mkSec('문의 폼', SEED_CT_FORM_HTML, '4종 문의유형 칩 + 성함·연락처·이메일·건물유형·지역·내용 + 동의', 'wip'),
+      mkSec('매장 정보', SEED_CT_STORE_HTML, '본사 정보 카드 (전화/시간/이메일/주소) + 평택 지도 미니뷰', 'wip'),
+      mkSec('카카오톡 채널', SEED_CT_KAKAO_HTML, '카카오 옐로우 풀카드 — 응답 3분 + 채널 친구 4,800+', 'wip'),
+      mkSec('FAQ', SEED_CT_FAQ_HTML, '6개 아코디언 (셀프시공/견적/지역/하자보증/파트너/B2B 단가)', 'wip'),
     ]},
     { id: 'partners', name: '파트너사 소개·신청', file: 'partners.html', sections: [
-      mkSec('히어로 + 신청 CTA', '', ''),
-      mkSec('파트너사 혜택', '', ''),
-      mkSec('자격 요건', '', ''),
-      mkSec('진행 절차', '', '신청 → 검토 → 승인 → 서류 → 계약'),
-      mkSec('주요 파트너사 로고', '', ''),
-      mkSec('파트너사 신청 폼', '', ''),
-      mkSec('자주 묻는 질문', '', ''),
+      mkSec('히어로 + 신청 CTA', SEED_PT_HERO_HTML, '라이트 크림 + 4개 파트너 수치 (250+/12,000+/94%/17 광역)', 'wip'),
+      mkSec('파트너사 혜택', SEED_PT_BENEFIT_HTML, '6개 혜택 카드 (자재 직공급/일감 배정/교육/마케팅/하자분담/결제 안전)', 'wip'),
+      mkSec('자격 요건', SEED_PT_REQ_HTML, '필수(오렌지 보더) + 우대(그린 보더) 2-column', 'wip'),
+      mkSec('진행 절차', SEED_PT_FLOW_HTML, '5단계 플로우 — 신청→검토→실사→계약→시공 (14일)', 'wip'),
+      mkSec('주요 파트너사 로고', SEED_PT_LOGOS_HTML, '12개 파트너사 카드 + 지역 표기', 'wip'),
+      mkSec('파트너사 신청 폼', SEED_PT_FORM_HTML, '회사정보/담당자/시공분야/실적/첨부서류 풀폼', 'wip'),
+      mkSec('자주 묻는 질문', SEED_PT_FAQ_HTML, '6개 아코디언 (가입비/등급/전속/일감/정산/교육)', 'wip'),
     ]},
     { id: 'dealers', name: '대리점·공급 문의', file: 'dealers.html', sections: [
-      mkSec('히어로', '', ''),
-      mkSec('대리점 혜택·마진 구조', '', ''),
-      mkSec('자격 요건', '', ''),
-      mkSec('공급 가능 카테고리', '', ''),
-      mkSec('진행 절차', '', ''),
-      mkSec('대리점 신청 폼', '', ''),
-      mkSec('자주 묻는 질문', '', ''),
+      mkSec('히어로', SEED_DL_HERO_HTML, '라이트 크림 + 4개 수치 (42 대리점/평균 28%/98% 재계약/12 신규권역)', 'wip'),
+      mkSec('대리점 혜택·마진 구조', SEED_DL_MARGIN_HTML, 'Silver 22% / Gold 28% (추천) / Platinum 35% 3-tier', 'wip'),
+      mkSec('자격 요건', SEED_DL_REQ_HTML, '필수 + 우대 2-column (매장 33㎡ / 초도 1천만원)', 'wip'),
+      mkSec('공급 가능 카테고리', SEED_DL_CAT_HTML, '8개 카테고리 카드 — 110+ SKU 라인업', 'wip'),
+      mkSec('진행 절차', SEED_DL_FLOW_HTML, '5단계 (신청→권역→실사→계약→오픈, 21일)', 'wip'),
+      mkSec('대리점 신청 폼', SEED_DL_FORM_HTML, '신청자/매장재고/사업정보 풀폼', 'wip'),
+      mkSec('자주 묻는 질문', SEED_DL_FAQ_HTML, '6개 아코디언 (전속/재고/페인트/정산/해지/광고)', 'wip'),
     ]},
     { id: 'matching', name: '시공 연결 신청', file: 'matching.html', sections: [
-      mkSec('히어로 + 진행 단계 미리보기', '', ''),
-      mkSec('시공 가능 공법', '', ''),
-      mkSec('신청 폼 (지역·건물유형·문제·예산)', '', ''),
-      mkSec('매칭 절차', '', '신청 → AI 매칭 → 추천 파트너 → 선택 → 시공'),
-      mkSec('전국 시공 네트워크', '', ''),
-      mkSec('최근 시공 사례', '', ''),
-      mkSec('고객 후기', '', ''),
+      mkSec('히어로 + 진행 단계 미리보기', SEED_MT_HERO_HTML, '라이트 크림 + 5단계 플로우 미리보기 (3분→즉시→1-2일→3-5일→7-14일)', 'wip'),
+      mkSec('시공 가능 공법', SEED_MT_METHOD_HTML, '8개 공법 카드 — 사례 수 + 보증 기간 표기', 'wip'),
+      mkSec('신청 폼 (지역·건물유형·문제·예산)', SEED_MT_FORM_HTML, '5단계 폼 — 지역/건물/문제 칩(9개)/예산(5단계)/연락처', 'wip'),
+      mkSec('매칭 절차', SEED_MT_FLOW_HTML, '7단계 상세 절차 — 신청→AI매칭→추천→진단→비교→계약→완공', 'wip'),
+      mkSec('전국 시공 네트워크', SEED_MT_NETWORK_HTML, '한국 지도 + 지역별 핀 (서울 38/경기 52/대전 18/부산 32/제주 8) + 4개 수치', 'wip'),
+      mkSec('최근 시공 사례', SEED_MT_RECENT_HTML, '최근 매칭 시공 4건 — 파트너사명·지역·완공일 표기', 'wip'),
+      mkSec('고객 후기', SEED_MT_REVIEW_HTML, '평균 매칭 만족도 4.8 + 3개 후기 (파트너 매칭 정보 포함)', 'wip'),
     ]},
     { id: 'showroom', name: '전시장·쇼룸', file: 'showroom.html', sections: [
-      mkSec('히어로', '', ''),
-      mkSec('쇼룸 위치·약도', '', ''),
-      mkSec('운영 시간', '', ''),
-      mkSec('쇼룸 둘러보기 (갤러리)', '', ''),
-      mkSec('전시 제품', '', ''),
-      mkSec('방문 예약 폼', '', ''),
-      mkSec('찾아오시는 길', '', ''),
+      mkSec('히어로', SEED_SH_HERO_HTML, '라이트 크림 + 110+ 제품 체험 강조 + 예약 CTA', 'wip'),
+      mkSec('쇼룸 위치·약도', SEED_SH_LOCATION_HTML, '평택 본사 지도 + 자가용/대중교통/거리 정보', 'wip'),
+      mkSec('운영 시간', SEED_SH_HOURS_HTML, '평일/토요일 운영 + 일요일/공휴일 CLOSED + 예약 안내', 'wip'),
+      mkSec('쇼룸 둘러보기 (갤러리)', SEED_SH_TOUR_HTML, '메인홀 피처 + 6개 존 (옥상모형/외벽/주차장/제품/상담/R&D)', 'wip'),
+      mkSec('전시 제품', SEED_SH_DISPLAY_HTML, '8개 핵심 자재 — 시연·체험 포인트 표기', 'wip'),
+      mkSec('방문 예약 폼', SEED_SH_BOOK_HTML, '일정/목적 6종 칩/방문정보 풀폼', 'wip'),
+      mkSec('찾아오시는 길', SEED_SH_DIRECT_HTML, '6개 교통수단 카드 (자가용/기차/버스/공항/주차/문의)', 'wip'),
     ]},
     { id: 'magazine', name: '스토어 매거진', file: 'magazine.html', sections: [
-      mkSec('히어로 + 검색', '', '시공설명서·영상·포스팅 통합 콘텐츠 허브'),
-      mkSec('콘텐츠 카테고리 탭', '', '시공방법 / 케이스스터디 / 제품 가이드 / 트렌드'),
-      mkSec('에디터 PICK', '', ''),
-      mkSec('이번 주 인기 시공 영상', '', ''),
-      mkSec('시공 설명서 모음', '', ''),
-      mkSec('자사몰 포스팅 카드 그리드', '', '오늘의집 스타일 — 사진 + 텍스트 카드'),
-      mkSec('관련 상품 추천 (콘텐츠 → 상품 연결)', '', ''),
-      mkSec('카테고리별 더보기', '', ''),
+      mkSec('히어로 + 검색', SEED_MG_HERO_HTML, '검색바 + 인기 태그 칩 (옥상누수/외벽도장/균열보수/셀프시공/하이퍼티/아파트관리)', 'wip'),
+      mkSec('콘텐츠 카테고리 탭', SEED_MG_TABS_HTML, '7개 탭 — 전체/시공방법/케이스/제품/영상/트렌드/셀프시공 + 카운트', 'wip'),
+      mkSec('에디터 PICK', SEED_MG_PICK_HTML, 'Cover Story 1 + 미니 4 (시공/케이스/셀프/트렌드)', 'wip'),
+      mkSec('이번 주 인기 시공 영상', SEED_MG_VIDEO_HTML, '4개 영상 카드 — #1~#4 랭크 + 조회수·시간', 'wip'),
+      mkSec('시공 설명서 모음', SEED_MG_GUIDE_HTML, '6개 시방서 PDF 카드 — 다운로드 수 표기', 'wip'),
+      mkSec('자사몰 포스팅 카드 그리드', SEED_MG_POSTING_HTML, '6개 포스팅 — 오늘의집 스타일 (에디터·읽기시간·좋아요)', 'wip'),
+      mkSec('관련 상품 추천 (콘텐츠 → 상품 연결)', SEED_MG_RELATED_HTML, '컨텐츠 연관 5개 상품 — 콘텐츠 배너 + 상품 카드', 'wip'),
+      mkSec('카테고리별 더보기', SEED_MG_MORE_HTML, '8개 카테고리 카드 — 시공/케이스/제품/셀프/트렌드/관리자/영상/R&D', 'wip'),
     ]},
   ]);
 

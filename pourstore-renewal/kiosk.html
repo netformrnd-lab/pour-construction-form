@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>POUR스토어 매장 키오스크</title>
+<meta name="theme-color" content="#0F1F5C">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyCBGjGzaTTyIwBs_a8355KfFKaWabJT3ac",
+  authDomain: "pour-exhibition.firebaseapp.com",
+  projectId: "pour-exhibition",
+  storageBucket: "pour-exhibition.firebasestorage.app",
+  messagingSenderId: "881527274265",
+  appId: "1:881527274265:web:0caad9688e30beb1ea6388"
+});
+const db = firebase.firestore();
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0F1F5C; --or: #F97316; --or-d: #EA580C; --or-l: #FFEDD5; --or-pale: #FFFBF5;
+  --green: #059669; --green-l: #ECFDF5;
+  --bg: #FFFBF5; --card: #FFFFFF; --text: #111827; --text-md: #4B5563; --text-sm: #6B7280;
+  --border: #E5E7EB; --border-s: #F3F4F6;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; }
+html, body { height: 100%; overflow: hidden; }
+body { background: linear-gradient(135deg, #FFFBF5 0%, #FFF7ED 50%, #FFFBF5 100%); color: var(--text); }
+button, input { font-family: inherit; color: inherit; }
+button { cursor: pointer; border: none; background: none; }
+#root { width: 100vw; height: 100vh; }
+.fade-in { animation: fadeIn .4s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.pulse { animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo } = React;
+
+const COLLECTIONS = {
+  DEALERS: 'dealers',
+  DEALER_ORDERS: 'dealer-orders',
+};
+const SETUP_KEY = 'pourKioskSetup'; // { dealerId, dealerName, ts }
+const SETUP_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+async function hashPin(pin) {
+  const enc = new TextEncoder().encode(pin);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+function fmtPrice(n) { return n == null ? '-' : Number(n).toLocaleString('ko-KR'); }
+function normalizePhone(p) { return (p || '').replace(/[^0-9]/g, ''); }
+function loadSetup() {
+  try {
+    const raw = localStorage.getItem(SETUP_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (Date.now() - (s.ts || 0) > SETUP_TTL) { localStorage.removeItem(SETUP_KEY); return null; }
+    return s;
+  } catch (e) { return null; }
+}
+function saveSetup(s) { localStorage.setItem(SETUP_KEY, JSON.stringify({ ...s, ts: Date.now() })); }
+function clearSetup() { localStorage.removeItem(SETUP_KEY); }
+
+// ============================================================
+// QR Code component
+// ============================================================
+function QRCode({ value, size = 240 }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!ref.current || !window.QRCode) return;
+    ref.current.innerHTML = '';
+    new window.QRCode(ref.current, {
+      text: value, width: size, height: size,
+      colorDark: '#0F1F5C', colorLight: '#ffffff',
+      correctLevel: window.QRCode.CorrectLevel.M,
+    });
+  }, [value, size]);
+  return <div ref={ref} style={{ display:'inline-block', padding:14, background:'#fff', borderRadius:14, boxShadow:'0 6px 24px rgba(15,31,92,.15)' }} />;
+}
+
+// ============================================================
+// Setup Screen — 처음 키오스크에 대리점 바인딩
+// ============================================================
+function SetupScreen({ onReady, onError }) {
+  const [phone, setPhone] = useState('');
+  const [pin, setPin] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function bind() {
+    if (!phone || !pin) { onError('전화번호와 PIN을 입력하세요'); return; }
+    setBusy(true);
+    try {
+      const np = normalizePhone(phone);
+      const snap = await db.collection(COLLECTIONS.DEALERS).get();
+      const dealer = snap.docs.map(d => ({ id:d.id, ...d.data() })).find(d => normalizePhone(d.contactPhone) === np);
+      if (!dealer) { onError('등록된 대리점을 찾을 수 없습니다'); setBusy(false); return; }
+      if (!dealer.portalPinHash) { onError('PIN이 설정되지 않았습니다 — POUR스토어 어드민에 문의'); setBusy(false); return; }
+      const h = await hashPin(pin);
+      if (h !== dealer.portalPinHash) { onError('PIN 불일치'); setBusy(false); return; }
+      if (dealer.contractStatus !== '활성') { onError('계약 상태가 활성이 아닙니다'); setBusy(false); return; }
+      saveSetup({ dealerId: dealer.id, dealerName: dealer.companyName });
+      onReady({ dealerId: dealer.id, dealerName: dealer.companyName });
+    } catch (e) {
+      console.error(e);
+      onError('연결 실패: ' + e.message);
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <div style={{ width:'100%', height:'100%', display:'grid', placeItems:'center', padding:40 }}>
+      <div className="fade-in" style={{ background:'#fff', borderRadius:28, padding:'48px 44px', maxWidth:520, width:'100%', boxShadow:'0 22px 60px rgba(15,31,92,.15)', border:'1px solid var(--border)' }}>
+        <div style={{ textAlign:'center', marginBottom:32 }}>
+          <div style={{ width:72, height:72, margin:'0 auto 18px', borderRadius:22, background:'linear-gradient(135deg, var(--or), var(--or-d))', display:'grid', placeItems:'center', fontSize:36, color:'#fff', boxShadow:'0 10px 24px rgba(249,115,22,.3)' }}>📱</div>
+          <h1 style={{ fontSize:28, fontWeight:900, color:'var(--navy)', letterSpacing:-0.8, marginBottom:8 }}>키오스크 초기 설정</h1>
+          <div style={{ fontSize:14, color:'var(--text-md)', fontWeight:700, lineHeight:1.65 }}>대리점 계정으로 1회 바인딩하면 이 태블릿이 매장 키오스크로 작동합니다</div>
+        </div>
+        <div style={{ marginBottom:14 }}>
+          <label style={{ display:'block', fontSize:12, fontWeight:800, color:'var(--or-d)', letterSpacing:.5, marginBottom:8 }}>대리점 전화번호</label>
+          <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="010-0000-0000" autoFocus
+            style={{ width:'100%', padding:'16px 20px', fontSize:18, fontWeight:700, border:'2px solid var(--border)', borderRadius:14, background:'var(--bg)', outline:'none' }} />
+        </div>
+        <div style={{ marginBottom:18 }}>
+          <label style={{ display:'block', fontSize:12, fontWeight:800, color:'var(--or-d)', letterSpacing:.5, marginBottom:8 }}>PIN (4자리 이상)</label>
+          <input type="password" value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 8))} onKeyDown={e => e.key==='Enter'&&bind()}
+            style={{ width:'100%', padding:'16px 20px', fontSize:22, fontWeight:800, letterSpacing:8, textAlign:'center', border:'2px solid var(--border)', borderRadius:14, background:'var(--bg)', outline:'none' }} />
+        </div>
+        <button onClick={bind} disabled={busy} style={{
+          width:'100%', padding:'18px', background: busy ? '#9CA3AF' : 'linear-gradient(135deg, var(--or), var(--or-d))', color:'#fff',
+          fontSize:16, fontWeight:900, borderRadius:14, boxShadow:'0 8px 22px rgba(249,115,22,.35)'
+        }}>{busy ? '연결 중...' : '키오스크 시작 →'}</button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Welcome Screen — 대기 상태
+// ============================================================
+function WelcomeScreen({ dealer, onAdmin }) {
+  return (
+    <div className="fade-in" style={{ width:'100%', height:'100%', display:'grid', placeItems:'center', padding:40, position:'relative' }}>
+      <button onClick={onAdmin} style={{
+        position:'absolute', top:18, right:18, padding:'8px 14px', borderRadius:9,
+        fontSize:12, fontWeight:800, color:'var(--text-sm)', background:'rgba(255,255,255,.7)', border:'1px solid var(--border)'
+      }}>⚙ 키오스크 설정</button>
+      <div style={{ textAlign:'center', maxWidth:720 }}>
+        <div className="pulse" style={{ width:120, height:120, margin:'0 auto 32px', borderRadius:32, background:'linear-gradient(135deg, var(--or), var(--or-d))', display:'grid', placeItems:'center', fontSize:60, color:'#fff', boxShadow:'0 16px 40px rgba(249,115,22,.35)' }}>🛒</div>
+        <div style={{ fontSize:14, fontWeight:800, color:'var(--or-d)', letterSpacing:1.5, marginBottom:14 }}>POUR스토어 매장 키오스크</div>
+        <h1 style={{ fontSize:48, fontWeight:900, color:'var(--navy)', letterSpacing:-1.5, lineHeight:1.2, marginBottom:18 }}>
+          어서오세요!<br/><span style={{ color:'var(--or)' }}>{dealer.dealerName}</span>입니다
+        </h1>
+        <p style={{ fontSize:18, color:'var(--text-md)', lineHeight:1.7, fontWeight:700, marginBottom:36, maxWidth:520, marginLeft:'auto', marginRight:'auto' }}>
+          매장 직원에게 원하시는 자재를 말씀해 주세요.<br/>
+          주문 입력이 시작되면 이 화면에 자동 표시됩니다.
+        </p>
+        <div style={{ display:'inline-flex', alignItems:'center', gap:12, padding:'14px 24px', background:'#fff', border:'1px solid var(--or-l)', borderRadius:14, fontSize:13, color:'var(--text-md)', fontWeight:700, boxShadow:'0 4px 12px rgba(0,0,0,.05)' }}>
+          <span style={{ width:8, height:8, borderRadius:'50%', background:'var(--green)', boxShadow:'0 0 0 4px rgba(5,150,105,.2)', animation:'pulse 2s infinite' }} />
+          신규 주문 대기 중...
+        </div>
+        <div style={{ marginTop:48, paddingTop:32, borderTop:'1px solid var(--border)', maxWidth:600, margin:'48px auto 0' }}>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14, fontSize:13, color:'var(--text-md)' }}>
+            <div>
+              <div style={{ fontSize:24, marginBottom:6 }}>🛡️</div>
+              <div style={{ fontWeight:900, color:'var(--navy)', marginBottom:4 }}>R&D 검증</div>
+              <div style={{ fontSize:11.5, fontWeight:700 }}>건설신기술 1026호</div>
+            </div>
+            <div>
+              <div style={{ fontSize:24, marginBottom:6 }}>📺</div>
+              <div style={{ fontWeight:900, color:'var(--navy)', marginBottom:4 }}>시공 영상 무료</div>
+              <div style={{ fontSize:11.5, fontWeight:700 }}>구매 패키지마다 제공</div>
+            </div>
+            <div>
+              <div style={{ fontSize:24, marginBottom:6 }}>🏆</div>
+              <div style={{ fontWeight:900, color:'var(--navy)', marginBottom:4 }}>250만+ 시공</div>
+              <div style={{ fontSize:11.5, fontWeight:700 }}>전국 검증 사례</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Order Display — 진행 중 주문 표시
+// ============================================================
+function OrderDisplay({ order, dealer }) {
+  const items = order.items || [];
+  const total = order.totalAmount || items.reduce((s, it) => s + (Number(it.qty)||0)*(Number(it.unitPrice)||0), 0);
+  // QR로 결제 안내 페이지 — 실제 결제 PG 미연결, POUR스토어 결제 페이지로 라우팅
+  const payUrl = `https://www.pourstore.net/pay?orderNo=${encodeURIComponent(order.orderNo || order.id)}&amount=${total}`;
+
+  return (
+    <div className="fade-in" style={{ width:'100%', height:'100%', overflow:'auto', padding:'28px 36px' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+          <div style={{ width:46, height:46, borderRadius:14, background:'linear-gradient(135deg, var(--or), var(--or-d))', display:'grid', placeItems:'center', fontSize:22, color:'#fff' }}>🛒</div>
+          <div>
+            <div style={{ fontSize:11, fontWeight:800, color:'var(--or-d)', letterSpacing:1, marginBottom:2 }}>{dealer.dealerName}</div>
+            <h1 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6 }}>주문 확인</h1>
+          </div>
+        </div>
+        <div style={{ padding:'8px 16px', background:'#fff', border:'1px solid var(--border)', borderRadius:10, fontSize:13, fontWeight:800, color:'var(--text-md)' }}>
+          주문번호 <span style={{ color:'var(--or-d)', fontFamily:'monospace', marginLeft:6 }}>{order.orderNo || '-'}</span>
+        </div>
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'1.4fr 1fr', gap:20 }}>
+        {/* 주문 내역 */}
+        <div style={{ background:'#fff', borderRadius:20, border:'1px solid var(--border)', overflow:'hidden', boxShadow:'0 6px 18px rgba(15,31,92,.06)' }}>
+          <div style={{ padding:'16px 22px', background:'linear-gradient(135deg, var(--or-pale), #fff)', borderBottom:'1px solid var(--border)' }}>
+            <div style={{ fontSize:11, fontWeight:800, color:'var(--or-d)', letterSpacing:.8, marginBottom:4 }}>📋 ORDER ITEMS</div>
+            <h2 style={{ fontSize:18, fontWeight:900, color:'var(--navy)', letterSpacing:-0.4 }}>고객님 주문 내역</h2>
+          </div>
+          <div style={{ padding:'8px 0' }}>
+            {items.length === 0 ? (
+              <div style={{ padding:30, textAlign:'center', color:'var(--text-sm)', fontWeight:700, fontSize:13 }}>품목이 추가 중입니다...</div>
+            ) : items.map((it, i) => (
+              <div key={i} style={{
+                display:'grid', gridTemplateColumns:'1fr auto auto', gap:12, padding:'14px 22px',
+                borderBottom: i < items.length-1 ? '1px solid var(--border-s)' : 'none', alignItems:'center'
+              }}>
+                <div>
+                  <div style={{ fontSize:14, fontWeight:900, color:'var(--navy)', letterSpacing:-0.3, marginBottom:2 }}>{it.name || '(이름 없음)'}</div>
+                  <div style={{ fontSize:11.5, color:'var(--text-sm)', fontWeight:700 }}>{fmtPrice(it.unitPrice)}원 × {it.qty}</div>
+                </div>
+                <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700, padding:'3px 9px', background:'var(--bg)', borderRadius:6 }}>{it.qty}개</div>
+                <div style={{ fontSize:16, fontWeight:900, color:'var(--or-d)', minWidth:110, textAlign:'right' }}>{fmtPrice((Number(it.qty)||0) * (Number(it.unitPrice)||0))}원</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ padding:'18px 22px', background:'var(--navy)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            <span style={{ fontSize:14, fontWeight:800, letterSpacing:.3, opacity:.85 }}>총 결제 금액</span>
+            <span style={{ fontFamily:'Bebas Neue', fontSize:36, fontWeight:900, color:'#fff', letterSpacing:.5 }}>
+              {fmtPrice(total)}<span style={{ fontFamily:'Pretendard', fontSize:18, marginLeft:6, opacity:.85 }}>원</span>
+            </span>
+          </div>
+        </div>
+
+        {/* QR 결제 안내 */}
+        <div style={{ background:'linear-gradient(135deg, var(--or-pale), #fff)', borderRadius:20, border:'1px solid var(--or-l)', padding:'24px 20px', textAlign:'center', boxShadow:'0 6px 18px rgba(249,115,22,.1)' }}>
+          <div style={{ fontSize:11, fontWeight:800, color:'var(--or-d)', letterSpacing:.8, marginBottom:6 }}>💳 PAYMENT</div>
+          <h2 style={{ fontSize:17, fontWeight:900, color:'var(--navy)', letterSpacing:-0.3, marginBottom:14, lineHeight:1.4 }}>
+            QR을 스캔해서<br/>POUR스토어로 직접 결제
+          </h2>
+          <div style={{ marginBottom:14 }}>
+            <QRCode value={payUrl} size={200} />
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', gap:6, fontSize:12.5, color:'var(--text-md)', fontWeight:700, lineHeight:1.6 }}>
+            <div>📱 카메라로 QR 스캔</div>
+            <div>💳 카드/계좌이체 가능</div>
+            <div>🛡 영수증 자동 발송</div>
+          </div>
+          <div style={{ marginTop:14, padding:'10px 12px', background:'#fff', border:'1px dashed var(--or-l)', borderRadius:10, fontSize:11, color:'var(--text-md)', fontWeight:700 }}>
+            결제는 <b style={{ color:'var(--or-d)' }}>POUR스토어 본사</b>로 직접 이뤄집니다
+          </div>
+        </div>
+      </div>
+
+      {order.customerName && (
+        <div style={{ marginTop:18, padding:'12px 18px', background:'#fff', border:'1px solid var(--border)', borderRadius:12, display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:8, fontSize:13, fontWeight:700, color:'var(--text-md)' }}>
+          <span>주문자: <b style={{ color:'var(--navy)' }}>{order.customerName}</b> · {order.customerPhone || '-'}</span>
+          <span style={{ fontSize:11, color:'var(--text-xs)' }}>{order.shippingAddress || ''}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// Paid Screen
+// ============================================================
+function PaidScreen({ order }) {
+  return (
+    <div className="fade-in" style={{ width:'100%', height:'100%', display:'grid', placeItems:'center', padding:40, background:'linear-gradient(135deg, #ECFDF5, #D1FAE5)' }}>
+      <div style={{ textAlign:'center', maxWidth:560 }}>
+        <div className="pulse" style={{ width:120, height:120, margin:'0 auto 32px', borderRadius:'50%', background:'#fff', display:'grid', placeItems:'center', fontSize:60, boxShadow:'0 16px 40px rgba(5,150,105,.3)' }}>✅</div>
+        <h1 style={{ fontSize:42, fontWeight:900, color:'var(--navy)', letterSpacing:-1.2, marginBottom:14 }}>결제 완료!</h1>
+        <p style={{ fontSize:17, color:'var(--text-md)', lineHeight:1.7, fontWeight:700, marginBottom:24 }}>
+          주문이 정상 접수되었습니다.<br/>
+          POUR스토어가 빠르게 처리해 드릴게요.
+        </p>
+        <div style={{ padding:'16px 24px', background:'#fff', borderRadius:14, border:'1px solid var(--green-l)', display:'inline-block' }}>
+          <div style={{ fontSize:11, fontWeight:800, color:'var(--green)', letterSpacing:.5, marginBottom:4 }}>주문번호</div>
+          <div style={{ fontSize:18, fontWeight:900, color:'var(--navy)', fontFamily:'monospace' }}>{order.orderNo || '-'}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// App
+// ============================================================
+function App() {
+  const [setup, setSetup] = useState(loadSetup());
+  const [latestOrder, setLatestOrder] = useState(null);
+  const [error, setError] = useState(null);
+  const [showAdmin, setShowAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!setup) return;
+    // 실시간 구독 — 해당 대리점의 최신 활성 주문
+    const unsub = db.collection(COLLECTIONS.DEALER_ORDERS)
+      .where('dealerId', '==', setup.dealerId)
+      .onSnapshot(snap => {
+        const list = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+        // 활성 = 결제대기/결제완료/배송준비 중에서 가장 최신
+        const active = list
+          .filter(o => ['결제대기','결제완료','배송준비'].includes(o.status))
+          .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))[0];
+        // 최근 60초 내 결제완료된 주문은 PaidScreen 표시
+        if (active) setLatestOrder(active);
+        else {
+          const justPaid = list
+            .filter(o => o.status === '결제완료' && o.updatedAt && (Date.now() - new Date(o.updatedAt).getTime()) < 60000)
+            .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))[0];
+          setLatestOrder(justPaid || null);
+        }
+      }, err => { console.error(err); setError('실시간 동기화 실패: ' + err.message); });
+    return unsub;
+  }, [setup]);
+
+  useEffect(() => {
+    if (!error) return;
+    const t = setTimeout(() => setError(null), 3500);
+    return () => clearTimeout(t);
+  }, [error]);
+
+  function reset() { clearSetup(); setSetup(null); setLatestOrder(null); setShowAdmin(false); }
+
+  if (!setup) {
+    return (
+      <>
+        <SetupScreen onReady={s => setSetup(s)} onError={e => setError(e)} />
+        {error && <ErrorBanner message={error} />}
+      </>
+    );
+  }
+
+  if (showAdmin) {
+    return (
+      <div style={{ width:'100%', height:'100%', display:'grid', placeItems:'center', padding:40 }}>
+        <div style={{ background:'#fff', borderRadius:24, padding:'40px 36px', maxWidth:480, width:'100%', boxShadow:'0 22px 48px rgba(15,31,92,.1)', border:'1px solid var(--border)' }}>
+          <h2 style={{ fontSize:20, fontWeight:900, color:'var(--navy)', marginBottom:8 }}>키오스크 설정</h2>
+          <div style={{ fontSize:13, color:'var(--text-md)', marginBottom:24, fontWeight:700 }}>현재 바인딩된 대리점</div>
+          <div style={{ padding:'18px 20px', background:'var(--bg)', borderRadius:12, marginBottom:24, fontSize:16, fontWeight:900, color:'var(--navy)' }}>{setup.dealerName}</div>
+          <div style={{ display:'flex', gap:8 }}>
+            <button onClick={() => setShowAdmin(false)} style={{ flex:1, padding:'14px', background:'#fff', color:'var(--text-md)', border:'1px solid var(--border)', borderRadius:12, fontSize:14, fontWeight:800 }}>닫기</button>
+            <button onClick={reset} style={{ flex:1, padding:'14px', background:'var(--red)', color:'#fff', border:'none', borderRadius:12, fontSize:14, fontWeight:800 }}>키오스크 해제</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const isPaid = latestOrder && latestOrder.status === '결제완료';
+
+  return (
+    <>
+      {!latestOrder && <WelcomeScreen dealer={setup} onAdmin={() => setShowAdmin(true)} />}
+      {latestOrder && !isPaid && <OrderDisplay order={latestOrder} dealer={setup} />}
+      {latestOrder && isPaid && <PaidScreen order={latestOrder} />}
+      {error && <ErrorBanner message={error} />}
+    </>
+  );
+}
+
+function ErrorBanner({ message }) {
+  return (
+    <div style={{ position:'fixed', bottom:30, left:'50%', transform:'translateX(-50%)', padding:'12px 22px', background:'#DC2626', color:'#fff', borderRadius:12, fontSize:13, fontWeight:700, boxShadow:'0 6px 24px rgba(0,0,0,.25)', zIndex:5000 }}>
+      ❌ {message}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

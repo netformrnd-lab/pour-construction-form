@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POUR스토어 어드민 센터</title>
+<meta name="theme-color" content="#0F1F5C">
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyCBGjGzaTTyIwBs_a8355KfFKaWabJT3ac",
+  authDomain: "pour-exhibition.firebaseapp.com",
+  projectId: "pour-exhibition",
+  storageBucket: "pour-exhibition.firebasestorage.app",
+  messagingSenderId: "881527274265",
+  appId: "1:881527274265:web:0caad9688e30beb1ea6388"
+});
+const db = firebase.firestore();
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0F1F5C; --navy2: #1A2E62;
+  --or: #F97316; --or-d: #EA580C; --or-l: #FFEDD5; --or-pale: #FFFBF5;
+  --green: #059669; --green-l: #ECFDF5; --green-m: #A7F3D0;
+  --red: #DC2626; --red-l: #FEE2E2; --red-m: #FCA5A5;
+  --amber: #D97706; --amber-l: #FEF3C7; --amber-m: #FCD34D;
+  --text: #111827; --text-md: #4B5563; --text-sm: #6B7280; --text-xs: #9CA3AF;
+  --bg: #F9FAFB; --card: #FFFFFF; --border: #E5E7EB; --border-s: #F3F4F6;
+  --r: 12px; --r-sm: 8px; --r-lg: 18px;
+  --shadow: 0 1px 6px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,.12);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; }
+body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
+button, input, textarea, select { font-family: inherit; font-size: inherit; color: inherit; }
+button { cursor: pointer; border: none; background: none; }
+a { color: inherit; text-decoration: none; }
+input::placeholder, textarea::placeholder { color: var(--text-xs); }
+#root { min-height: 100vh; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useMemo, useRef } = React;
+
+// ============================================================
+// Constants
+// ============================================================
+const COLLECTIONS = {
+  MATCHING_REQUESTS: 'matching-requests',
+  PARTNER_COMPANIES: 'partner-companies',
+  MATCHING_RULES: 'matching-rules',
+  DEALERS: 'dealers',
+  DEALER_ORDERS: 'dealer-orders',
+  PURCHASE_ORDERS: 'purchase-orders',
+  SITE_INQUIRIES: 'site-inquiries',
+};
+
+const ADMIN_PIN_KEY = 'pourStoreAdminPin';
+const DEFAULT_PIN = '1234';
+
+const SURFS = [
+  { id: 'roof-slab', name: '슬라브 (옥상)', risk: 'ok' },
+  { id: 'roof-shingle', name: '아스팔트 슁글', risk: 'pro' },
+  { id: 'roof-metal', name: '금속 기와', risk: 'pro' },
+  { id: 'roof-color-steel', name: '칼라강판·징크', risk: 'pro' },
+  { id: 'wall', name: '외벽 재도장·균열', risk: 'warn' },
+  { id: 'window', name: '창틀·이음부', risk: 'ok' },
+  { id: 'drain', name: '배수로·베란다', risk: 'ok' },
+  { id: 'parking', name: '지하주차장', risk: 'ok' },
+  { id: 'underg', name: '지하·수조', risk: 'ok' },
+  { id: 'road', name: '단지내 도로', risk: 'ok' },
+];
+
+const REGIONS = ['서울','경기','인천','부산','대구','광주','대전','울산','세종','강원','충청','전라','경상','제주'];
+
+const REQUEST_STATUS = ['신규','자동매칭','수동검토중','파트너통보','확정','시공중','완료','취소'];
+const STATUS_COLOR = {
+  '신규': { bg: '#FEE2E2', border: '#FCA5A5', color: '#DC2626' },
+  '자동매칭': { bg: '#DBEAFE', border: '#93C5FD', color: '#1E40AF' },
+  '수동검토중': { bg: '#FEF3C7', border: '#FCD34D', color: '#B45309' },
+  '파트너통보': { bg: '#FFEDD5', border: '#FED7AA', color: '#EA580C' },
+  '확정': { bg: '#D1FAE5', border: '#6EE7B7', color: '#047857' },
+  '시공중': { bg: '#FFEDD5', border: '#FED7AA', color: '#EA580C' },
+  '완료': { bg: '#ECFDF5', border: '#A7F3D0', color: '#059669' },
+  '취소': { bg: '#F3F4F6', border: '#E5E7EB', color: '#6B7280' },
+};
+
+const NAV = [
+  { id: 'dashboard', icon: '📊', label: '대시보드' },
+  { type: 'divider', label: '시공·파트너' },
+  { id: 'matching', icon: '🤝', label: '시공연결 신청' },
+  { id: 'partners', icon: '👷', label: '파트너사 관리' },
+  { id: 'rules', icon: '⚙', label: '매칭 룰 설정' },
+  { type: 'divider', label: '대리점·주문' },
+  { id: 'dealers', icon: '🏪', label: '대리점 관리' },
+  { id: 'purchase-orders', icon: '📦', label: '발주 관리' },
+  { id: 'orders', icon: '🛒', label: '주문 관리' },
+  { type: 'divider', label: '문의·설정' },
+  { id: 'inquiries', icon: '💬', label: '문의 관리' },
+  { id: 'settings', icon: '⚙️', label: '설정' },
+];
+
+// ============================================================
+// Utilities
+// ============================================================
+async function hashPin(pin) {
+  const enc = new TextEncoder().encode(pin);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function fmtDate(iso) {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  if (isNaN(d)) return '-';
+  return d.toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\. /g, '-').replace('.','');
+}
+
+function fmtPrice(n) {
+  if (n == null || n === '') return '-';
+  return Number(n).toLocaleString('ko-KR');
+}
+
+function nowIso() { return new Date().toISOString(); }
+function genId() { return 'id-' + Math.random().toString(36).slice(2, 10); }
+
+function surfLabel(id) { const s = SURFS.find(x => x.id === id); return s ? s.name : id; }
+function surfRisk(id) { const s = SURFS.find(x => x.id === id); return s ? s.risk : 'ok'; }
+
+// ============================================================
+// Toast
+// ============================================================
+function Toast({ message, type, onDone }) {
+  useEffect(() => { const t = setTimeout(onDone, 2800); return () => clearTimeout(t); }, []);
+  return (
+    <div style={{
+      position:'fixed', bottom:32, left:'50%', transform:'translateX(-50%)', zIndex:5000,
+      padding:'12px 22px', borderRadius:12, fontSize:13, fontWeight:700, color:'#fff',
+      background: type === 'success' ? 'var(--green)' : type === 'error' ? 'var(--red)' : 'var(--navy)',
+      boxShadow:'0 6px 24px rgba(0,0,0,.25)', whiteSpace:'nowrap'
+    }}>
+      {type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'} {message}
+    </div>
+  );
+}
+
+// ============================================================
+// Modal
+// ============================================================
+function Modal({ open, onClose, title, children, width = 720 }) {
+  if (!open) return null;
+  return (
+    <div onClick={onClose} style={{
+      position:'fixed', inset:0, background:'rgba(15,31,92,.45)', zIndex:4000,
+      display:'flex', alignItems:'center', justifyContent:'center', padding:18, backdropFilter:'blur(2px)'
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background:'#fff', borderRadius:'var(--r-lg)', width:'100%', maxWidth:width,
+        maxHeight:'92vh', display:'flex', flexDirection:'column', boxShadow:'var(--shadow-lg)'
+      }}>
+        <div style={{ padding:'20px 24px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <h3 style={{ fontSize:16, fontWeight:900, color:'var(--navy)', letterSpacing:-0.3 }}>{title}</h3>
+          <button onClick={onClose} style={{ width:32, height:32, borderRadius:8, color:'var(--text-sm)', fontSize:18 }}>✕</button>
+        </div>
+        <div style={{ padding:'22px 24px', overflowY:'auto', flex:1 }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// PIN Auth Screen
+// ============================================================
+function PinScreen({ onUnlock, onToast }) {
+  const [pin, setPin] = useState('');
+  const [stored, setStored] = useState(null);
+  const [setupMode, setSetupMode] = useState(false);
+
+  useEffect(() => {
+    const s = localStorage.getItem(ADMIN_PIN_KEY);
+    if (!s) {
+      hashPin(DEFAULT_PIN).then(h => { localStorage.setItem(ADMIN_PIN_KEY, h); setStored(h); });
+    } else {
+      setStored(s);
+    }
+  }, []);
+
+  async function submit() {
+    if (!pin || pin.length < 4) { onToast({ message: 'PIN 4자리 이상 입력', type: 'error' }); return; }
+    const h = await hashPin(pin);
+    if (h === stored) { onUnlock(); }
+    else { onToast({ message: 'PIN 불일치', type: 'error' }); setPin(''); }
+  }
+
+  return (
+    <div style={{
+      minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', padding:24,
+      background:'linear-gradient(135deg, #FFFBF5 0%, #FFF7ED 50%, #FFFBF5 100%)'
+    }}>
+      <div style={{ background:'#fff', borderRadius:24, padding:'40px 36px', maxWidth:420, width:'100%', boxShadow:'0 22px 48px rgba(15,31,92,.1)', border:'1px solid var(--border)' }}>
+        <div style={{ textAlign:'center', marginBottom:28 }}>
+          <div style={{ width:60, height:60, margin:'0 auto 16px', borderRadius:18, background:'linear-gradient(135deg, var(--or), var(--or-d))', display:'grid', placeItems:'center', fontSize:30, color:'#fff', boxShadow:'0 8px 20px rgba(249,115,22,.3)' }}>🛒</div>
+          <h1 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6, marginBottom:6 }}>POUR스토어 어드민</h1>
+          <div style={{ fontSize:12, color:'var(--text-sm)', fontWeight:700 }}>대리점·파트너·주문 통합 관리</div>
+        </div>
+        <input
+          type="password" value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 8))}
+          onKeyDown={e => e.key === 'Enter' && submit()}
+          placeholder="PIN 입력 (기본 1234)" autoFocus
+          style={{
+            width:'100%', padding:'16px 18px', fontSize:18, fontWeight:800, letterSpacing:6, textAlign:'center',
+            border:'2px solid var(--border)', borderRadius:14, marginBottom:14, background:'var(--bg)',
+            outline:'none', color:'var(--navy)'
+          }}
+        />
+        <button onClick={submit} style={{
+          width:'100%', padding:'15px', background:'linear-gradient(135deg, var(--or), var(--or-d))', color:'#fff',
+          fontSize:14, fontWeight:900, borderRadius:14, boxShadow:'0 6px 16px rgba(249,115,22,.3)'
+        }}>로그인 →</button>
+        <div style={{ marginTop:16, padding:'10px 14px', background:'var(--or-pale)', border:'1px solid var(--or-l)', borderRadius:10, fontSize:11.5, color:'var(--text-md)', fontWeight:700, lineHeight:1.6 }}>
+          💡 최초 PIN: <b style={{ color:'var(--or-d)' }}>1234</b> · 설정 메뉴에서 변경하세요
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Sidebar
+// ============================================================
+function Sidebar({ active, onNav, onLogout }) {
+  return (
+    <aside style={{
+      width:240, background:'var(--navy)', color:'#fff', display:'flex', flexDirection:'column',
+      position:'sticky', top:0, height:'100vh', overflowY:'auto'
+    }}>
+      <div style={{ padding:'22px 22px 18px', borderBottom:'1px solid rgba(255,255,255,.08)' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:6 }}>
+          <div style={{ width:36, height:36, borderRadius:10, background:'linear-gradient(135deg, var(--or), var(--or-d))', display:'grid', placeItems:'center', fontSize:18 }}>🛒</div>
+          <div>
+            <div style={{ fontSize:14, fontWeight:900, letterSpacing:-0.3 }}>POUR스토어</div>
+            <div style={{ fontSize:10.5, color:'rgba(255,255,255,.55)', fontWeight:700, letterSpacing:.5 }}>ADMIN CENTER</div>
+          </div>
+        </div>
+      </div>
+      <nav style={{ flex:1, padding:'12px 12px' }}>
+        {NAV.map((item, i) => {
+          if (item.type === 'divider') return (
+            <div key={i} style={{ padding:'14px 10px 6px', fontSize:10.5, fontWeight:800, color:'rgba(255,255,255,.4)', letterSpacing:1.2 }}>{item.label}</div>
+          );
+          const isActive = active === item.id;
+          return (
+            <button key={item.id} onClick={() => onNav(item.id)} style={{
+              display:'flex', alignItems:'center', gap:11, width:'100%', padding:'10px 12px', borderRadius:9,
+              fontSize:13, fontWeight:isActive ? 800 : 700, color: isActive ? '#fff' : 'rgba(255,255,255,.78)',
+              background: isActive ? 'rgba(249,115,22,.18)' : 'transparent', textAlign:'left', marginBottom:2,
+              borderLeft: isActive ? '3px solid var(--or)' : '3px solid transparent'
+            }}>
+              <span style={{ fontSize:15 }}>{item.icon}</span>
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+      <div style={{ padding:14, borderTop:'1px solid rgba(255,255,255,.08)' }}>
+        <button onClick={onLogout} style={{ width:'100%', padding:'10px', borderRadius:9, fontSize:12, fontWeight:800, color:'rgba(255,255,255,.7)', background:'rgba(255,255,255,.06)' }}>🔒 로그아웃</button>
+      </div>
+    </aside>
+  );
+}
+
+// ============================================================
+// Header
+// ============================================================
+function Header({ title, subtitle, actions }) {
+  return (
+    <div style={{
+      padding:'24px 32px 20px', borderBottom:'1px solid var(--border)', background:'#fff',
+      display:'flex', alignItems:'center', justifyContent:'space-between', gap:18, flexWrap:'wrap'
+    }}>
+      <div>
+        <h1 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6, marginBottom:4 }}>{title}</h1>
+        {subtitle && <div style={{ fontSize:12.5, color:'var(--text-sm)', fontWeight:700 }}>{subtitle}</div>}
+      </div>
+      {actions && <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>{actions}</div>}
+    </div>
+  );
+}
+
+// ============================================================
+// Status Badge
+// ============================================================
+function StatusBadge({ status }) {
+  const c = STATUS_COLOR[status] || { bg:'#F3F4F6', border:'#E5E7EB', color:'#6B7280' };
+  return (
+    <span style={{ display:'inline-block', padding:'4px 10px', background:c.bg, border:`1px solid ${c.border}`, color:c.color, fontSize:11, fontWeight:800, borderRadius:6 }}>{status}</span>
+  );
+}
+
+// ============================================================
+// Empty State
+// ============================================================
+function Empty({ icon, title, desc, action }) {
+  return (
+    <div style={{ padding:'64px 24px', textAlign:'center', background:'#fff', borderRadius:'var(--r-lg)', border:'1px dashed var(--border)' }}>
+      <div style={{ fontSize:38, marginBottom:12 }}>{icon}</div>
+      <div style={{ fontSize:15, fontWeight:900, color:'var(--navy)', marginBottom:6 }}>{title}</div>
+      <div style={{ fontSize:12.5, color:'var(--text-sm)', fontWeight:700, lineHeight:1.7, marginBottom: action ? 18 : 0 }}>{desc}</div>
+      {action}
+    </div>
+  );
+}
+
+// ============================================================
+// Dashboard
+// ============================================================
+function Dashboard({ stats }) {
+  const cards = [
+    { icon: '🤝', label: '시공연결 신청', value: stats.matching || 0, color: 'var(--or)' },
+    { icon: '👷', label: '활성 파트너', value: stats.partners || 0, color: 'var(--green)' },
+    { icon: '🏪', label: '대리점', value: stats.dealers || 0, color: 'var(--navy)' },
+    { icon: '🛒', label: '대기 주문', value: stats.orders || 0, color: 'var(--amber)' },
+  ];
+  return (
+    <div style={{ padding:'28px 32px' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))', gap:14, marginBottom:24 }}>
+        {cards.map((c, i) => (
+          <div key={i} style={{ background:'#fff', padding:'20px 22px', borderRadius:'var(--r-lg)', border:'1px solid var(--border)', boxShadow:'var(--shadow)' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+              <span style={{ fontSize:11, fontWeight:800, color:'var(--text-sm)', letterSpacing:.5 }}>{c.label}</span>
+              <span style={{ fontSize:18 }}>{c.icon}</span>
+            </div>
+            <div style={{ fontSize:30, fontWeight:900, color:c.color, letterSpacing:-1, lineHeight:1 }}>{c.value}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ background:'#fff', padding:'24px 26px', borderRadius:'var(--r-lg)', border:'1px solid var(--border)' }}>
+        <h3 style={{ fontSize:14, fontWeight:900, color:'var(--navy)', marginBottom:12 }}>📋 어드민 가이드</h3>
+        <ul style={{ paddingLeft:18, fontSize:12.5, color:'var(--text-md)', lineHeight:1.85, fontWeight:600 }}>
+          <li><b>시공연결 신청</b>: 자사몰 시공 매칭 신청 자동 매칭 → 수동 검토 후 파트너 통보</li>
+          <li><b>파트너사 관리</b>: 시공사 등록, 권역·전문분야·등급 설정</li>
+          <li><b>매칭 룰 설정</b>: 지역·부위별 자동 매칭 우선순위 정의</li>
+          <li><b>대리점·발주·주문</b>: 대리점 등록, POUR → 대리점 발주, 대리점 주문 처리</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Matching Requests (시공연결 신청)
+// ============================================================
+function MatchingRequests({ requests, partners, rules, onUpdate, onToast }) {
+  const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState(null);
+
+  const filtered = useMemo(() => {
+    let list = requests;
+    if (filter !== 'all') list = list.filter(r => r.status === filter);
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(r => (r.customerName || '').toLowerCase().includes(q) || (r.customerPhone || '').includes(q) || (r.address || '').toLowerCase().includes(q));
+    }
+    return list.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  }, [requests, filter, search]);
+
+  function autoMatch(req) {
+    // 부위 → surf 매칭, 지역 → region 매칭
+    const region = req.region;
+    const surf = (req.methods && req.methods[0]) || '';
+    const candidates = partners.filter(p => {
+      if (p.contractStatus !== '활성') return false;
+      if (region && p.regions && p.regions.length && !p.regions.includes(region)) return false;
+      if (surf && p.specialities && p.specialities.length && !p.specialities.includes(surf)) return false;
+      return true;
+    });
+    candidates.sort((a, b) => {
+      const gradeOrder = { 'A': 0, 'B': 1, 'C': 2 };
+      return (gradeOrder[a.grade] ?? 9) - (gradeOrder[b.grade] ?? 9);
+    });
+    return candidates.slice(0, 3);
+  }
+
+  return (
+    <div>
+      <Header title="시공연결 신청 관리" subtitle="자사몰 시공 매칭 신청 → 자동 매칭 → 수동 검토 → 파트너 통보" />
+      <div style={{ padding:'20px 32px 0' }}>
+        <div style={{ display:'flex', gap:8, marginBottom:14, flexWrap:'wrap', alignItems:'center' }}>
+          <select value={filter} onChange={e => setFilter(e.target.value)} style={inputStyle({ minWidth:140 })}>
+            <option value="all">전체 ({requests.length})</option>
+            {REQUEST_STATUS.map(s => {
+              const cnt = requests.filter(r => r.status === s).length;
+              return <option key={s} value={s}>{s} ({cnt})</option>;
+            })}
+          </select>
+          <input type="text" placeholder="고객명·전화·주소 검색" value={search} onChange={e => setSearch(e.target.value)} style={inputStyle({ flex:1, minWidth:220 })} />
+          <button onClick={() => { setSelected({ _new:true, status:'신규', methods:[], region:'서울', createdAt: nowIso() }); }} style={btnPrimary()}>+ 신규 등록</button>
+        </div>
+      </div>
+      <div style={{ padding:'0 32px 32px' }}>
+        {filtered.length === 0 ? (
+          <Empty icon="🤝" title="신청 내역이 없습니다" desc="자사몰에서 시공연결 신청이 들어오면 여기에 표시됩니다" />
+        ) : (
+          <div style={{ background:'#fff', borderRadius:'var(--r-lg)', border:'1px solid var(--border)', overflow:'hidden' }}>
+            <div style={{ overflowX:'auto' }}>
+              <table style={{ width:'100%', fontSize:12.5, borderCollapse:'collapse' }}>
+                <thead style={{ background:'var(--bg)' }}>
+                  <tr>
+                    {['상태','신청일','고객','연락처','지역','부위','자동매칭'].map(h => (
+                      <th key={h} style={th()}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map(r => {
+                    const matches = autoMatch(r);
+                    return (
+                      <tr key={r.id} onClick={() => setSelected(r)} style={{ cursor:'pointer', borderBottom:'1px solid var(--border-s)' }} onMouseOver={e => e.currentTarget.style.background='var(--or-pale)'} onMouseOut={e => e.currentTarget.style.background='#fff'}>
+                        <td style={td()}><StatusBadge status={r.status} /></td>
+                        <td style={td()}>{fmtDate(r.createdAt)}</td>
+                        <td style={td()}><b style={{ color:'var(--navy)' }}>{r.customerName || '-'}</b></td>
+                        <td style={td()}>{r.customerPhone || '-'}</td>
+                        <td style={td()}>{r.region || '-'}</td>
+                        <td style={td()}>
+                          {(r.methods || []).slice(0, 2).map(m => <span key={m} style={miniChip()}>{surfLabel(m)}</span>)}
+                        </td>
+                        <td style={td()}>
+                          <span style={{ fontSize:11, fontWeight:800, color: matches.length ? 'var(--green)' : 'var(--text-xs)' }}>{matches.length ? `${matches.length}곳 추천` : '없음'}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+      {selected && (
+        <RequestDetail
+          request={selected}
+          partners={partners}
+          autoMatches={selected._new ? [] : autoMatch(selected)}
+          onClose={() => setSelected(null)}
+          onSave={async (data) => {
+            try {
+              if (data._new) {
+                const { _new, ...payload } = data;
+                payload.createdAt = payload.createdAt || nowIso();
+                payload.updatedAt = nowIso();
+                await db.collection(COLLECTIONS.MATCHING_REQUESTS).add(payload);
+                onToast({ message: '신청 등록 완료', type: 'success' });
+              } else {
+                const { id, ...payload } = data;
+                payload.updatedAt = nowIso();
+                await db.collection(COLLECTIONS.MATCHING_REQUESTS).doc(id).set(payload, { merge: true });
+                onToast({ message: '저장 완료', type: 'success' });
+              }
+              setSelected(null);
+              onUpdate();
+            } catch (e) {
+              console.error(e);
+              onToast({ message: '저장 실패: ' + e.message, type: 'error' });
+            }
+          }}
+          onDelete={async (id) => {
+            if (!confirm('정말 삭제하시겠습니까?')) return;
+            try {
+              await db.collection(COLLECTIONS.MATCHING_REQUESTS).doc(id).delete();
+              onToast({ message: '삭제 완료', type: 'success' });
+              setSelected(null);
+              onUpdate();
+            } catch (e) {
+              onToast({ message: '삭제 실패: ' + e.message, type: 'error' });
+            }
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function RequestDetail({ request, partners, autoMatches, onClose, onSave, onDelete }) {
+  const [data, setData] = useState(request);
+  const update = (k, v) => setData(d => ({ ...d, [k]: v }));
+
+  return (
+    <Modal open={true} onClose={onClose} title={request._new ? '시공연결 신청 등록' : `신청 상세 — ${request.customerName || ''}`} width={820}>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:18 }}>
+        <Field label="상태">
+          <select value={data.status || '신규'} onChange={e => update('status', e.target.value)} style={inputStyle()}>
+            {REQUEST_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </Field>
+        <Field label="신청 채널">
+          <select value={data.source || 'pourstore-site'} onChange={e => update('source', e.target.value)} style={inputStyle()}>
+            <option value="pourstore-site">자사몰</option>
+            <option value="ai-guide">AI 길잡이</option>
+            <option value="phone">전화</option>
+            <option value="other">기타</option>
+          </select>
+        </Field>
+        <Field label="고객명"><input type="text" value={data.customerName || ''} onChange={e => update('customerName', e.target.value)} style={inputStyle()} /></Field>
+        <Field label="연락처"><input type="text" value={data.customerPhone || ''} onChange={e => update('customerPhone', e.target.value)} style={inputStyle()} placeholder="010-0000-0000" /></Field>
+        <Field label="이메일"><input type="email" value={data.customerEmail || ''} onChange={e => update('customerEmail', e.target.value)} style={inputStyle()} /></Field>
+        <Field label="지역">
+          <select value={data.region || '서울'} onChange={e => update('region', e.target.value)} style={inputStyle()}>
+            {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
+        </Field>
+        <Field label="건물 유형">
+          <select value={data.buildingType || ''} onChange={e => update('buildingType', e.target.value)} style={inputStyle()}>
+            <option value="">선택</option>
+            <option value="아파트">아파트</option>
+            <option value="관공서">관공서</option>
+            <option value="학교·병원">학교·병원</option>
+            <option value="상가·오피스">상가·오피스</option>
+            <option value="공장·창고">공장·창고</option>
+            <option value="주택">주택</option>
+          </select>
+        </Field>
+        <Field label="예상 예산">
+          <select value={data.estimatedBudget || ''} onChange={e => update('estimatedBudget', e.target.value)} style={inputStyle()}>
+            <option value="">선택</option>
+            <option value="~500">~500만원</option>
+            <option value="500-2000">500-2,000만원</option>
+            <option value="2000-5000">2,000-5,000만원</option>
+            <option value="5000-10000">5,000만원-1억</option>
+            <option value="10000+">1억 이상</option>
+          </select>
+        </Field>
+      </div>
+      <Field label="시공 부위 (복수 선택)">
+        <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+          {SURFS.map(s => {
+            const on = (data.methods || []).includes(s.id);
+            return (
+              <button key={s.id} onClick={() => {
+                const cur = data.methods || [];
+                update('methods', on ? cur.filter(x => x !== s.id) : [...cur, s.id]);
+              }} style={{
+                padding:'7px 13px', borderRadius:999, fontSize:12, fontWeight:700,
+                background: on ? 'linear-gradient(135deg, var(--or), var(--or-d))' : 'var(--bg)',
+                color: on ? '#fff' : 'var(--text-md)',
+                border: on ? '1px solid transparent' : '1px solid var(--border)'
+              }}>
+                {s.name}
+                {s.risk === 'pro' && <span style={{ marginLeft:4, fontSize:10, opacity:.85 }}>⛑️</span>}
+              </button>
+            );
+          })}
+        </div>
+      </Field>
+      <Field label="현장 주소"><input type="text" value={data.address || ''} onChange={e => update('address', e.target.value)} style={inputStyle()} placeholder="○○도 ○○시 ○○로" /></Field>
+      <Field label="상세 내용"><textarea value={data.description || ''} onChange={e => update('description', e.target.value)} style={{ ...inputStyle(), minHeight:80, resize:'vertical' }} placeholder="문제 상황·시급도·희망 일정 등" /></Field>
+      <Field label="관리자 메모"><textarea value={data.adminMemo || ''} onChange={e => update('adminMemo', e.target.value)} style={{ ...inputStyle(), minHeight:60, resize:'vertical' }} placeholder="내부 메모 (고객 미공개)" /></Field>
+
+      {!request._new && autoMatches.length > 0 && (
+        <div style={{ marginTop:18, padding:16, background:'var(--green-l)', border:'1px solid var(--green-m)', borderRadius:12 }}>
+          <div style={{ fontSize:12, fontWeight:900, color:'var(--green)', marginBottom:10, letterSpacing:.3 }}>🎯 자동 매칭 추천 파트너 ({autoMatches.length}곳)</div>
+          {autoMatches.map(p => (
+            <div key={p.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', background:'#fff', borderRadius:8, marginBottom:6, fontSize:12.5 }}>
+              <div>
+                <b style={{ color:'var(--navy)' }}>{p.companyName}</b>
+                <span style={{ marginLeft:8, fontSize:11, color:'var(--text-sm)', fontWeight:700 }}>등급 {p.grade || '-'} · {(p.regions || []).join(', ')}</span>
+              </div>
+              <button onClick={() => {
+                const cur = data.matchedPartners || [];
+                if (cur.find(x => x.partnerId === p.id)) return;
+                update('matchedPartners', [...cur, { partnerId: p.id, companyName: p.companyName, addedAt: nowIso(), notified: false }]);
+              }} style={btnPrimary({ padding:'7px 12px', fontSize:11 })}>선정</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {data.matchedPartners && data.matchedPartners.length > 0 && (
+        <div style={{ marginTop:14, padding:16, background:'var(--or-pale)', border:'1px solid var(--or-l)', borderRadius:12 }}>
+          <div style={{ fontSize:12, fontWeight:900, color:'var(--or-d)', marginBottom:10 }}>✓ 선정 파트너 ({data.matchedPartners.length})</div>
+          {data.matchedPartners.map((mp, idx) => (
+            <div key={idx} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', background:'#fff', borderRadius:8, marginBottom:6, fontSize:12.5 }}>
+              <div>
+                <b style={{ color:'var(--navy)' }}>{mp.companyName}</b>
+                {mp.notified && <span style={{ marginLeft:8, fontSize:10, color:'var(--green)', fontWeight:800 }}>✓ 통보 완료</span>}
+              </div>
+              <button onClick={() => {
+                update('matchedPartners', data.matchedPartners.filter((_, i) => i !== idx));
+              }} style={{ padding:'4px 10px', borderRadius:6, fontSize:11, fontWeight:700, color:'var(--red)', background:'var(--red-l)' }}>제거</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ display:'flex', gap:8, marginTop:24, paddingTop:18, borderTop:'1px solid var(--border-s)' }}>
+        {!request._new && (
+          <button onClick={() => onDelete(data.id)} style={{ padding:'12px 18px', borderRadius:10, fontSize:13, fontWeight:800, color:'var(--red)', background:'var(--red-l)', border:'1px solid var(--red-m)' }}>삭제</button>
+        )}
+        <div style={{ flex:1 }} />
+        <button onClick={onClose} style={btnGhost()}>취소</button>
+        <button onClick={() => onSave(data)} style={btnPrimary()}>{request._new ? '등록' : '저장'}</button>
+      </div>
+    </Modal>
+  );
+}
+
+// ============================================================
+// Partners (파트너사 관리)
+// ============================================================
+function Partners({ partners, onUpdate, onToast }) {
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState(null);
+  const filtered = useMemo(() => {
+    if (!search) return partners;
+    const q = search.toLowerCase();
+    return partners.filter(p => (p.companyName || '').toLowerCase().includes(q) || (p.representative || '').toLowerCase().includes(q) || (p.contactPhone || '').includes(q));
+  }, [partners, search]);
+
+  return (
+    <div>
+      <Header title="파트너사 관리" subtitle="시공사 등록 + 권역·전문분야·등급 설정 (자동 매칭 기준)" />
+      <div style={{ padding:'20px 32px 0' }}>
+        <div style={{ display:'flex', gap:8, marginBottom:14, flexWrap:'wrap' }}>
+          <input type="text" placeholder="회사명·대표·연락처 검색" value={search} onChange={e => setSearch(e.target.value)} style={inputStyle({ flex:1, minWidth:220 })} />
+          <button onClick={() => setSelected({ _new:true, contractStatus:'대기', regions:[], specialities:[], grade:'B' })} style={btnPrimary()}>+ 파트너 등록</button>
+        </div>
+      </div>
+      <div style={{ padding:'0 32px 32px' }}>
+        {filtered.length === 0 ? (
+          <Empty icon="👷" title="등록된 파트너사가 없습니다" desc="신규 파트너를 등록하면 매칭 풀에 추가됩니다" />
+        ) : (
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(320px, 1fr))', gap:12 }}>
+            {filtered.map(p => (
+              <button key={p.id} onClick={() => setSelected(p)} style={{
+                background:'#fff', padding:'18px 20px', borderRadius:'var(--r-lg)', border:'1px solid var(--border)',
+                textAlign:'left', transition:'all .2s', cursor:'pointer'
+              }} onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--or-l)'; e.currentTarget.style.boxShadow = 'var(--shadow)'; }} onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none'; }}>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+                  <h4 style={{ fontSize:14.5, fontWeight:900, color:'var(--navy)', letterSpacing:-0.3 }}>{p.companyName || '(이름없음)'}</h4>
+                  <span style={{
+                    padding:'3px 9px', borderRadius:5, fontSize:10.5, fontWeight:900, letterSpacing:.3,
+                    color: p.contractStatus === '활성' ? 'var(--green)' : p.contractStatus === '대기' ? 'var(--amber)' : 'var(--text-xs)',
+                    background: p.contractStatus === '활성' ? 'var(--green-l)' : p.contractStatus === '대기' ? 'var(--amber-l)' : '#F3F4F6'
+                  }}>{p.contractStatus || '대기'}</span>
+                </div>
+                <div style={{ fontSize:11.5, color:'var(--text-sm)', fontWeight:700, marginBottom:8, lineHeight:1.6 }}>
+                  대표 {p.representative || '-'} · {p.contactPhone || '-'}
+                </div>
+                <div style={{ display:'flex', gap:5, flexWrap:'wrap', marginBottom:10 }}>
+                  {(p.regions || []).slice(0, 3).map(r => <span key={r} style={miniChip()}>{r}</span>)}
+                  {p.regions && p.regions.length > 3 && <span style={miniChip()}>+{p.regions.length - 3}</span>}
+                </div>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', paddingTop:10, borderTop:'1px solid var(--border-s)', fontSize:11, color:'var(--text-sm)', fontWeight:700 }}>
+                  <span>등급 <b style={{ color:'var(--or-d)', fontSize:12 }}>{p.grade || '-'}</b></span>
+                  <span>{(p.specialities || []).length}개 전문분야</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      {selected && (
+        <PartnerDetail
+          partner={selected}
+          onClose={() => setSelected(null)}
+          onSave={async (data) => {
+            try {
+              if (data._new) {
+                const { _new, ...payload } = data;
+                payload.createdAt = nowIso();
+                payload.updatedAt = nowIso();
+                await db.collection(COLLECTIONS.PARTNER_COMPANIES).add(payload);
+                onToast({ message: '파트너 등록 완료', type: 'success' });
+              } else {
+                const { id, ...payload } = data;
+                payload.updatedAt = nowIso();
+                await db.collection(COLLECTIONS.PARTNER_COMPANIES).doc(id).set(payload, { merge: true });
+                onToast({ message: '저장 완료', type: 'success' });
+              }
+              setSelected(null);
+              onUpdate();
+            } catch (e) {
+              onToast({ message: '저장 실패: ' + e.message, type: 'error' });
+            }
+          }}
+          onDelete={async (id) => {
+            if (!confirm('정말 삭제하시겠습니까?')) return;
+            try {
+              await db.collection(COLLECTIONS.PARTNER_COMPANIES).doc(id).delete();
+              onToast({ message: '삭제 완료', type: 'success' });
+              setSelected(null);
+              onUpdate();
+            } catch (e) { onToast({ message: '삭제 실패: ' + e.message, type: 'error' }); }
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function PartnerDetail({ partner, onClose, onSave, onDelete }) {
+  const [data, setData] = useState(partner);
+  const update = (k, v) => setData(d => ({ ...d, [k]: v }));
+  const toggle = (k, val) => {
+    const cur = data[k] || [];
+    update(k, cur.includes(val) ? cur.filter(x => x !== val) : [...cur, val]);
+  };
+  return (
+    <Modal open={true} onClose={onClose} title={partner._new ? '파트너사 등록' : `파트너 상세 — ${partner.companyName || ''}`} width={780}>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
+        <Field label="회사명"><input type="text" value={data.companyName || ''} onChange={e => update('companyName', e.target.value)} style={inputStyle()} /></Field>
+        <Field label="사업자등록번호"><input type="text" value={data.businessNumber || ''} onChange={e => update('businessNumber', e.target.value)} style={inputStyle()} placeholder="000-00-00000" /></Field>
+        <Field label="대표자"><input type="text" value={data.representative || ''} onChange={e => update('representative', e.target.value)} style={inputStyle()} /></Field>
+        <Field label="연락처"><input type="text" value={data.contactPhone || ''} onChange={e => update('contactPhone', e.target.value)} style={inputStyle()} placeholder="010-0000-0000" /></Field>
+        <Field label="이메일"><input type="email" value={data.contactEmail || ''} onChange={e => update('contactEmail', e.target.value)} style={inputStyle()} /></Field>
+        <Field label="계약 상태">
+          <select value={data.contractStatus || '대기'} onChange={e => update('contractStatus', e.target.value)} style={inputStyle()}>
+            <option value="대기">대기</option><option value="활성">활성</option><option value="만료">만료</option><option value="해지">해지</option>
+          </select>
+        </Field>
+        <Field label="등급">
+          <select value={data.grade || 'B'} onChange={e => update('grade', e.target.value)} style={inputStyle()}>
+            <option value="A">A (최우선)</option><option value="B">B (일반)</option><option value="C">C (예비)</option>
+          </select>
+        </Field>
+        <Field label="계약일"><input type="date" value={data.contractDate || ''} onChange={e => update('contractDate', e.target.value)} style={inputStyle()} /></Field>
+      </div>
+      <Field label="사업장 주소"><input type="text" value={data.address || ''} onChange={e => update('address', e.target.value)} style={inputStyle()} /></Field>
+
+      <Field label="활동 권역 (복수 선택 — 자동 매칭 기준)">
+        <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+          {REGIONS.map(r => {
+            const on = (data.regions || []).includes(r);
+            return (
+              <button key={r} onClick={() => toggle('regions', r)} style={chipBtn(on)}>{r}</button>
+            );
+          })}
+        </div>
+      </Field>
+
+      <Field label="전문 시공 부위 (복수 선택 — 자동 매칭 기준)">
+        <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+          {SURFS.map(s => {
+            const on = (data.specialities || []).includes(s.id);
+            return (
+              <button key={s.id} onClick={() => toggle('specialities', s.id)} style={chipBtn(on)}>
+                {s.name}
+                {s.risk === 'pro' && <span style={{ marginLeft:4, fontSize:10, opacity:.85 }}>⛑️</span>}
+              </button>
+            );
+          })}
+        </div>
+      </Field>
+
+      <Field label="관리자 메모"><textarea value={data.adminMemo || ''} onChange={e => update('adminMemo', e.target.value)} style={{ ...inputStyle(), minHeight:60, resize:'vertical' }} placeholder="내부 메모" /></Field>
+
+      <div style={{ display:'flex', gap:8, marginTop:24, paddingTop:18, borderTop:'1px solid var(--border-s)' }}>
+        {!partner._new && (
+          <button onClick={() => onDelete(data.id)} style={{ padding:'12px 18px', borderRadius:10, fontSize:13, fontWeight:800, color:'var(--red)', background:'var(--red-l)', border:'1px solid var(--red-m)' }}>삭제</button>
+        )}
+        <div style={{ flex:1 }} />
+        <button onClick={onClose} style={btnGhost()}>취소</button>
+        <button onClick={() => onSave(data)} style={btnPrimary()}>{partner._new ? '등록' : '저장'}</button>
+      </div>
+    </Modal>
+  );
+}
+
+// ============================================================
+// Matching Rules (매칭 룰 설정)
+// ============================================================
+function MatchingRules() {
+  return (
+    <div>
+      <Header title="매칭 룰 설정" subtitle="자동 매칭 우선순위 — 권역·등급·전문분야 기반" />
+      <div style={{ padding:'24px 32px' }}>
+        <div style={{ background:'#fff', padding:'24px 28px', borderRadius:'var(--r-lg)', border:'1px solid var(--border)' }}>
+          <h3 style={{ fontSize:14, fontWeight:900, color:'var(--navy)', marginBottom:14 }}>📐 현재 자동 매칭 룰</h3>
+          <ol style={{ paddingLeft:18, fontSize:13, color:'var(--text-md)', lineHeight:2, fontWeight:600 }}>
+            <li><b style={{ color:'var(--navy)' }}>1순위 (필수):</b> 계약 상태 = 활성</li>
+            <li><b style={{ color:'var(--navy)' }}>2순위 (필수):</b> 활동 권역에 신청 지역 포함</li>
+            <li><b style={{ color:'var(--navy)' }}>3순위 (필수):</b> 전문 시공 부위에 신청 부위 포함</li>
+            <li><b style={{ color:'var(--navy)' }}>4순위 (정렬):</b> 등급 (A &gt; B &gt; C)</li>
+            <li><b style={{ color:'var(--navy)' }}>최대 추천:</b> 상위 3곳</li>
+          </ol>
+          <div style={{ marginTop:18, padding:'14px 16px', background:'var(--or-pale)', border:'1px solid var(--or-l)', borderRadius:10, fontSize:12.5, color:'var(--text-md)', lineHeight:1.7, fontWeight:700 }}>
+            💡 룰은 현재 코드 내장. 향후 가중치·반경·이전 시공 만족도 등 동적 룰 편집 UI 추가 예정.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Placeholders (Phase 2)
+// ============================================================
+function Placeholder({ title, subtitle, todo }) {
+  return (
+    <div>
+      <Header title={title} subtitle={subtitle} />
+      <div style={{ padding:'28px 32px' }}>
+        <Empty icon="🚧" title="개발 예정" desc={todo || 'Phase 2에서 구축 예정입니다'} />
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Settings
+// ============================================================
+function Settings({ onToast }) {
+  const [oldPin, setOldPin] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+
+  async function changePin() {
+    if (!oldPin || !newPin || !confirmPin) { onToast({ message: '모든 항목 입력', type: 'error' }); return; }
+    if (newPin !== confirmPin) { onToast({ message: '새 PIN 불일치', type: 'error' }); return; }
+    if (newPin.length < 4) { onToast({ message: 'PIN은 4자리 이상', type: 'error' }); return; }
+    const stored = localStorage.getItem(ADMIN_PIN_KEY);
+    const oldH = await hashPin(oldPin);
+    if (oldH !== stored) { onToast({ message: '현재 PIN 불일치', type: 'error' }); return; }
+    const newH = await hashPin(newPin);
+    localStorage.setItem(ADMIN_PIN_KEY, newH);
+    setOldPin(''); setNewPin(''); setConfirmPin('');
+    onToast({ message: 'PIN 변경 완료', type: 'success' });
+  }
+
+  return (
+    <div>
+      <Header title="설정" subtitle="PIN 변경 · 어드민 정보" />
+      <div style={{ padding:'24px 32px', maxWidth:560 }}>
+        <div style={{ background:'#fff', padding:'24px 26px', borderRadius:'var(--r-lg)', border:'1px solid var(--border)' }}>
+          <h3 style={{ fontSize:14, fontWeight:900, color:'var(--navy)', marginBottom:16 }}>🔒 PIN 변경</h3>
+          <Field label="현재 PIN"><input type="password" value={oldPin} onChange={e => setOldPin(e.target.value.replace(/\D/g, '').slice(0, 8))} style={inputStyle()} /></Field>
+          <Field label="새 PIN"><input type="password" value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 8))} style={inputStyle()} /></Field>
+          <Field label="새 PIN 확인"><input type="password" value={confirmPin} onChange={e => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 8))} style={inputStyle()} /></Field>
+          <button onClick={changePin} style={btnPrimary({ width:'100%', marginTop:8 })}>변경하기</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Style helpers
+// ============================================================
+const inputStyle = (extra = {}) => ({
+  padding:'10px 14px', border:'1px solid var(--border)', borderRadius:9, fontSize:13, fontWeight:600,
+  background:'var(--bg)', color:'var(--text)', outline:'none', width:'100%', ...extra
+});
+const btnPrimary = (extra = {}) => ({
+  padding:'10px 18px', background:'linear-gradient(135deg, var(--or), var(--or-d))', color:'#fff',
+  fontSize:13, fontWeight:800, borderRadius:9, boxShadow:'0 4px 12px rgba(249,115,22,.25)', ...extra
+});
+const btnGhost = (extra = {}) => ({
+  padding:'10px 18px', background:'#fff', color:'var(--text-md)', border:'1px solid var(--border)',
+  fontSize:13, fontWeight:700, borderRadius:9, ...extra
+});
+const chipBtn = (on) => ({
+  padding:'7px 13px', borderRadius:999, fontSize:12, fontWeight:700,
+  background: on ? 'linear-gradient(135deg, var(--or), var(--or-d))' : 'var(--bg)',
+  color: on ? '#fff' : 'var(--text-md)',
+  border: on ? '1px solid transparent' : '1px solid var(--border)'
+});
+const miniChip = () => ({
+  display:'inline-block', padding:'2px 7px', background:'var(--or-pale)', border:'1px solid var(--or-l)',
+  color:'var(--or-d)', fontSize:10.5, fontWeight:800, borderRadius:5, marginRight:4
+});
+const th = () => ({ padding:'12px 14px', textAlign:'left', fontSize:11, fontWeight:800, color:'var(--text-sm)', letterSpacing:.3, borderBottom:'1px solid var(--border)' });
+const td = () => ({ padding:'12px 14px', fontSize:12.5, color:'var(--text)', verticalAlign:'middle' });
+
+function Field({ label, children }) {
+  return (
+    <div style={{ marginBottom:14 }}>
+      <label style={{ display:'block', fontSize:11, fontWeight:800, color:'var(--or-d)', letterSpacing:.5, marginBottom:6 }}>{label}</label>
+      {children}
+    </div>
+  );
+}
+
+// ============================================================
+// App
+// ============================================================
+function App() {
+  const [unlocked, setUnlocked] = useState(false);
+  const [active, setActive] = useState('dashboard');
+  const [toast, setToast] = useState(null);
+
+  const [requests, setRequests] = useState([]);
+  const [partners, setPartners] = useState([]);
+  const [rules, setRules] = useState([]);
+
+  async function loadAll() {
+    try {
+      const [reqSnap, partSnap, ruleSnap] = await Promise.all([
+        db.collection(COLLECTIONS.MATCHING_REQUESTS).get(),
+        db.collection(COLLECTIONS.PARTNER_COMPANIES).get(),
+        db.collection(COLLECTIONS.MATCHING_RULES).get(),
+      ]);
+      setRequests(reqSnap.docs.map(d => ({ id:d.id, ...d.data() })));
+      setPartners(partSnap.docs.map(d => ({ id:d.id, ...d.data() })));
+      setRules(ruleSnap.docs.map(d => ({ id:d.id, ...d.data() })));
+      console.log(`[loadAll] requests=${reqSnap.size} partners=${partSnap.size} rules=${ruleSnap.size}`);
+    } catch (e) {
+      console.error('[loadAll] failed:', e);
+      setToast({ message: '데이터 로드 실패: ' + e.message, type: 'error' });
+    }
+  }
+
+  useEffect(() => { if (unlocked) loadAll(); }, [unlocked]);
+
+  if (!unlocked) {
+    return (
+      <>
+        <PinScreen onUnlock={() => setUnlocked(true)} onToast={setToast} />
+        {toast && <Toast {...toast} onDone={() => setToast(null)} />}
+      </>
+    );
+  }
+
+  const stats = {
+    matching: requests.filter(r => !['완료','취소'].includes(r.status)).length,
+    partners: partners.filter(p => p.contractStatus === '활성').length,
+    dealers: 0,
+    orders: 0,
+  };
+
+  return (
+    <div style={{ display:'flex', minHeight:'100vh' }}>
+      <Sidebar active={active} onNav={setActive} onLogout={() => setUnlocked(false)} />
+      <main style={{ flex:1, minWidth:0 }}>
+        {active === 'dashboard' && <Dashboard stats={stats} />}
+        {active === 'matching' && <MatchingRequests requests={requests} partners={partners} rules={rules} onUpdate={loadAll} onToast={setToast} />}
+        {active === 'partners' && <Partners partners={partners} onUpdate={loadAll} onToast={setToast} />}
+        {active === 'rules' && <MatchingRules />}
+        {active === 'dealers' && <Placeholder title="대리점 관리" subtitle="대리점 등록·등급(Silver/Gold/Platinum)·계약 관리" todo="Phase 2: dealers 컬렉션 + 마진 구조 + 권역 단독 영업권 관리" />}
+        {active === 'purchase-orders' && <Placeholder title="발주 관리" subtitle="대리점이 본사에 발주한 자재 주문 처리" todo="Phase 2: purchase-orders 컬렉션 + 출고·송장·정산" />}
+        {active === 'orders' && <Placeholder title="주문 관리" subtitle="자사몰 주문 + 대리점 매장 주문 통합 관리" todo="Phase 2: orders 컬렉션 + 결제·배송·환불 워크플로우" />}
+        {active === 'inquiries' && <Placeholder title="문의 관리" subtitle="자사몰 문의·카카오톡 채널·전화 통합" todo="Phase 3: site-inquiries 컬렉션 통합 뷰" />}
+        {active === 'settings' && <Settings onToast={setToast} />}
+      </main>
+      {toast && <Toast {...toast} onDone={() => setToast(null)} />}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

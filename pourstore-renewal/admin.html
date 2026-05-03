@@ -108,9 +108,10 @@ const PO_STATUS_COLOR = {
   '취소':       { bg: '#F3F4F6', border: '#E5E7EB', color: '#6B7280' },
 };
 
-const ORDER_STATUS = ['신규','결제완료','배송준비','배송중','완료','환불'];
+const ORDER_STATUS = ['신규','결제대기','결제완료','배송준비','배송중','완료','환불'];
 const ORDER_STATUS_COLOR = {
   '신규':       { bg: '#FEE2E2', border: '#FCA5A5', color: '#DC2626' },
+  '결제대기':   { bg: '#FEF3C7', border: '#FCD34D', color: '#B45309' },
   '결제완료':   { bg: '#DBEAFE', border: '#93C5FD', color: '#1E40AF' },
   '배송준비':   { bg: '#FEF3C7', border: '#FCD34D', color: '#B45309' },
   '배송중':     { bg: '#FFEDD5', border: '#FED7AA', color: '#EA580C' },
@@ -623,6 +624,12 @@ function RequestDetail({ request, partners, autoMatches, onClose, onSave, onDele
       <Field label="현장 주소"><input type="text" value={data.address || ''} onChange={e => update('address', e.target.value)} style={inputStyle()} placeholder="○○도 ○○시 ○○로" /></Field>
       <Field label="상세 내용"><textarea value={data.description || ''} onChange={e => update('description', e.target.value)} style={{ ...inputStyle(), minHeight:80, resize:'vertical' }} placeholder="문제 상황·시급도·희망 일정 등" /></Field>
       <Field label="관리자 메모"><textarea value={data.adminMemo || ''} onChange={e => update('adminMemo', e.target.value)} style={{ ...inputStyle(), minHeight:60, resize:'vertical' }} placeholder="내부 메모 (고객 미공개)" /></Field>
+      {data.partnerMemo && (
+        <div style={{ marginBottom:14, padding:'12px 14px', background:'var(--green-l)', border:'1px solid var(--green-m)', borderRadius:9 }}>
+          <div style={{ fontSize:11, fontWeight:800, color:'var(--green)', letterSpacing:.5, marginBottom:6 }}>👷 파트너 작성 메모 (포털에서 입력)</div>
+          <div style={{ fontSize:13, color:'var(--text)', fontWeight:600, lineHeight:1.6, whiteSpace:'pre-wrap' }}>{data.partnerMemo}</div>
+        </div>
+      )}
 
       {!request._new && autoMatches.length > 0 && (
         <div style={{ marginTop:18, padding:16, background:'var(--green-l)', border:'1px solid var(--green-m)', borderRadius:12 }}>
@@ -1515,7 +1522,7 @@ function Orders({ orders, dealers, onUpdate, onToast }) {
     const active = orders.filter(o => o.status !== '환불');
     return {
       total: active.length,
-      pending: orders.filter(o => ['신규','결제완료','배송준비'].includes(o.status)).length,
+      pending: orders.filter(o => ['신규','결제대기','결제완료','배송준비'].includes(o.status)).length,
       shipping: orders.filter(o => o.status === '배송중').length,
       monthAmount: orders
         .filter(o => o.status !== '환불' && o.createdAt && new Date(o.createdAt) > new Date(Date.now() - 30*24*60*60*1000))
@@ -2015,7 +2022,7 @@ function App() {
     matching: requests.filter(r => !['완료','취소'].includes(r.status)).length,
     partners: partners.filter(p => p.contractStatus === '활성').length,
     dealers: dealers.filter(d => d.contractStatus === '활성').length,
-    orders: orders.filter(o => ['신규','결제완료','배송준비'].includes(o.status)).length,
+    orders: orders.filter(o => ['신규','결제대기','결제완료','배송준비'].includes(o.status)).length,
   };
 
   return (

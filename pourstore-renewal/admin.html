@@ -97,6 +97,34 @@ const DEALER_STATUS_COLOR = {
 };
 
 const DEALER_CATEGORIES = ['방수재','도장재','균열 보수재','코팅·단열','시공 도구','안전용품','부자재','패키지 상품'];
+
+const PO_STATUS = ['신규','승인','출고대기','배송중','입고완료','취소'];
+const PO_STATUS_COLOR = {
+  '신규':       { bg: '#FEE2E2', border: '#FCA5A5', color: '#DC2626' },
+  '승인':       { bg: '#DBEAFE', border: '#93C5FD', color: '#1E40AF' },
+  '출고대기':   { bg: '#FEF3C7', border: '#FCD34D', color: '#B45309' },
+  '배송중':     { bg: '#FFEDD5', border: '#FED7AA', color: '#EA580C' },
+  '입고완료':   { bg: '#D1FAE5', border: '#6EE7B7', color: '#047857' },
+  '취소':       { bg: '#F3F4F6', border: '#E5E7EB', color: '#6B7280' },
+};
+
+const ORDER_STATUS = ['신규','결제완료','배송준비','배송중','완료','환불'];
+const ORDER_STATUS_COLOR = {
+  '신규':       { bg: '#FEE2E2', border: '#FCA5A5', color: '#DC2626' },
+  '결제완료':   { bg: '#DBEAFE', border: '#93C5FD', color: '#1E40AF' },
+  '배송준비':   { bg: '#FEF3C7', border: '#FCD34D', color: '#B45309' },
+  '배송중':     { bg: '#FFEDD5', border: '#FED7AA', color: '#EA580C' },
+  '완료':       { bg: '#D1FAE5', border: '#6EE7B7', color: '#047857' },
+  '환불':       { bg: '#F3F4F6', border: '#E5E7EB', color: '#6B7280' },
+};
+
+const PAYMENT_TYPES = ['선결제','외상','월정산','완료'];
+const ORDER_SOURCES = [
+  { id: 'pourstore-site', label: '자사몰', icon: '🛒' },
+  { id: 'dealer-store',   label: '대리점 매장', icon: '🏪' },
+  { id: 'phone',          label: '전화 주문', icon: '📞' },
+  { id: 'other',          label: '기타', icon: '📋' },
+];
 const STATUS_COLOR = {
   '신규': { bg: '#FEE2E2', border: '#FCA5A5', color: '#DC2626' },
   '자동매칭': { bg: '#DBEAFE', border: '#93C5FD', color: '#1E40AF' },
@@ -1131,6 +1159,448 @@ function DealerDetail({ dealer, onClose, onSave, onDelete }) {
 }
 
 // ============================================================
+// Items Editor (재사용 — 발주/주문 공통)
+// ============================================================
+function ItemsEditor({ items, onChange }) {
+  const list = items || [];
+  function update(idx, key, val) {
+    const next = list.map((it, i) => i === idx ? { ...it, [key]: val } : it);
+    onChange(next);
+  }
+  function add() {
+    onChange([...list, { name:'', qty:1, unitPrice:0 }]);
+  }
+  function remove(idx) {
+    onChange(list.filter((_, i) => i !== idx));
+  }
+  const total = list.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.unitPrice) || 0), 0);
+  return (
+    <div>
+      {list.length === 0 ? (
+        <div style={{ padding:'24px 14px', textAlign:'center', background:'var(--bg)', border:'1px dashed var(--border)', borderRadius:10, fontSize:12, color:'var(--text-sm)', fontWeight:700 }}>
+          품목이 없습니다. 아래 + 버튼으로 추가하세요.
+        </div>
+      ) : (
+        <div style={{ background:'var(--bg)', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 80px 120px 120px 36px', gap:8, padding:'10px 12px', background:'#fff', borderBottom:'1px solid var(--border)', fontSize:11, fontWeight:800, color:'var(--text-sm)', letterSpacing:.3 }}>
+            <span>품목</span><span style={{ textAlign:'right' }}>수량</span><span style={{ textAlign:'right' }}>단가</span><span style={{ textAlign:'right' }}>합계</span><span></span>
+          </div>
+          {list.map((it, idx) => {
+            const sub = (Number(it.qty) || 0) * (Number(it.unitPrice) || 0);
+            return (
+              <div key={idx} style={{ display:'grid', gridTemplateColumns:'1fr 80px 120px 120px 36px', gap:8, padding:'8px 12px', borderBottom:'1px solid var(--border-s)', alignItems:'center' }}>
+                <input value={it.name} onChange={e => update(idx, 'name', e.target.value)} placeholder="제품명" style={{ ...inputStyle({ padding:'7px 10px', fontSize:12.5, background:'#fff' }) }} />
+                <input type="number" value={it.qty} onChange={e => update(idx, 'qty', Number(e.target.value))} style={{ ...inputStyle({ padding:'7px 10px', fontSize:12.5, textAlign:'right', background:'#fff' }) }} />
+                <input type="number" value={it.unitPrice} onChange={e => update(idx, 'unitPrice', Number(e.target.value))} style={{ ...inputStyle({ padding:'7px 10px', fontSize:12.5, textAlign:'right', background:'#fff' }) }} />
+                <div style={{ textAlign:'right', fontSize:12.5, fontWeight:800, color:'var(--navy)' }}>{fmtPrice(sub)}원</div>
+                <button onClick={() => remove(idx)} style={{ width:30, height:30, borderRadius:6, color:'var(--red)', fontSize:14 }}>✕</button>
+              </div>
+            );
+          })}
+          <div style={{ padding:'12px 14px', background:'#fff', display:'flex', justifyContent:'space-between', alignItems:'center', borderTop:'2px solid var(--border)' }}>
+            <button onClick={add} style={{ padding:'7px 14px', borderRadius:8, fontSize:12, fontWeight:800, color:'var(--or-d)', background:'var(--or-pale)', border:'1px solid var(--or-l)' }}>+ 품목 추가</button>
+            <div style={{ fontSize:13, color:'var(--text-md)', fontWeight:700 }}>합계 <b style={{ color:'var(--or-d)', fontSize:16, marginLeft:6, letterSpacing:-.3 }}>{fmtPrice(total)}원</b></div>
+          </div>
+        </div>
+      )}
+      {list.length === 0 && (
+        <button onClick={add} style={{ marginTop:8, padding:'8px 14px', borderRadius:8, fontSize:12, fontWeight:800, color:'var(--or-d)', background:'var(--or-pale)', border:'1px solid var(--or-l)' }}>+ 품목 추가</button>
+      )}
+    </div>
+  );
+}
+
+function StatusPill({ status, colorMap }) {
+  const c = colorMap[status] || { bg:'#F3F4F6', border:'#E5E7EB', color:'#6B7280' };
+  return <span style={{ display:'inline-block', padding:'3px 9px', background:c.bg, border:`1px solid ${c.border}`, color:c.color, fontSize:10.5, fontWeight:900, borderRadius:5, letterSpacing:.3 }}>{status}</span>;
+}
+
+// ============================================================
+// Purchase Orders (발주 관리 — 대리점 → 본사)
+// ============================================================
+function PurchaseOrders({ purchaseOrders, dealers, onUpdate, onToast }) {
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState(null);
+
+  const filtered = useMemo(() => {
+    let list = purchaseOrders;
+    if (statusFilter !== 'all') list = list.filter(p => p.status === statusFilter);
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(p => (p.dealerName || '').toLowerCase().includes(q) || (p.orderNo || '').toLowerCase().includes(q));
+    }
+    return list.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  }, [purchaseOrders, statusFilter, search]);
+
+  const totals = useMemo(() => {
+    const active = purchaseOrders.filter(p => !['취소'].includes(p.status));
+    return {
+      count: active.length,
+      pending: purchaseOrders.filter(p => ['신규','승인','출고대기'].includes(p.status)).length,
+      shipping: purchaseOrders.filter(p => p.status === '배송중').length,
+      monthAmount: purchaseOrders
+        .filter(p => p.status !== '취소' && p.createdAt && new Date(p.createdAt) > new Date(Date.now() - 30*24*60*60*1000))
+        .reduce((s, p) => s + (p.totalAmount || 0), 0),
+    };
+  }, [purchaseOrders]);
+
+  return (
+    <div>
+      <Header title="발주 관리" subtitle="대리점이 본사에 발주한 자재 주문 처리 — 승인 → 출고 → 배송 → 입고" />
+
+      <div style={{ padding:'20px 32px 0' }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))', gap:12, marginBottom:18 }}>
+          <SummaryCard icon="📦" label="진행 중 발주" value={totals.count} color="var(--or)" />
+          <SummaryCard icon="⏱" label="처리 대기" value={totals.pending} color="var(--amber)" />
+          <SummaryCard icon="🚚" label="배송 중" value={totals.shipping} color="var(--navy)" />
+          <SummaryCard icon="💰" label="최근 30일 발주액" value={fmtPrice(totals.monthAmount) + '원'} color="var(--green)" small />
+        </div>
+
+        <div style={{ display:'flex', gap:8, marginBottom:14, flexWrap:'wrap', alignItems:'center' }}>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={inputStyle({ minWidth:140 })}>
+            <option value="all">전체 상태 ({purchaseOrders.length})</option>
+            {PO_STATUS.map(s => {
+              const cnt = purchaseOrders.filter(p => p.status === s).length;
+              return <option key={s} value={s}>{s} ({cnt})</option>;
+            })}
+          </select>
+          <input type="text" placeholder="대리점·발주번호 검색" value={search} onChange={e => setSearch(e.target.value)} style={inputStyle({ flex:1, minWidth:200 })} />
+          <button onClick={() => setSelected({
+            _new:true, status:'신규', items:[], paymentType:'외상',
+            createdAt: nowIso(), orderNo: 'PO-' + Date.now().toString().slice(-8)
+          })} style={btnPrimary()}>+ 신규 발주</button>
+        </div>
+      </div>
+
+      <div style={{ padding:'0 32px 32px' }}>
+        {filtered.length === 0 ? (
+          <Empty icon="📦" title="발주 내역이 없습니다" desc="대리점에서 자재 발주가 들어오면 여기에 표시됩니다" />
+        ) : (
+          <div style={{ background:'#fff', borderRadius:'var(--r-lg)', border:'1px solid var(--border)', overflow:'hidden' }}>
+            <div style={{ overflowX:'auto' }}>
+              <table style={{ width:'100%', fontSize:12.5, borderCollapse:'collapse' }}>
+                <thead style={{ background:'var(--bg)' }}>
+                  <tr>
+                    {['상태','발주번호','발주일','대리점','품목수','합계','결제'].map(h => <th key={h} style={th()}>{h}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map(p => (
+                    <tr key={p.id} onClick={() => setSelected(p)} style={{ cursor:'pointer', borderBottom:'1px solid var(--border-s)' }} onMouseOver={e => e.currentTarget.style.background='var(--or-pale)'} onMouseOut={e => e.currentTarget.style.background='#fff'}>
+                      <td style={td()}><StatusPill status={p.status} colorMap={PO_STATUS_COLOR} /></td>
+                      <td style={td()}><span style={{ fontFamily:'monospace', fontWeight:700, color:'var(--text-md)' }}>{p.orderNo || '-'}</span></td>
+                      <td style={td()}>{fmtDate(p.createdAt)}</td>
+                      <td style={td()}><b style={{ color:'var(--navy)' }}>{p.dealerName || '-'}</b></td>
+                      <td style={td()}>{(p.items || []).length}건</td>
+                      <td style={{ ...td(), textAlign:'right', fontWeight:800, color:'var(--navy)' }}>{fmtPrice(p.totalAmount || 0)}원</td>
+                      <td style={td()}><span style={{ ...miniChip(), background: p.paymentType === '완료' ? 'var(--green-l)' : 'var(--bg)', borderColor: p.paymentType === '완료' ? 'var(--green-m)' : 'var(--border)', color: p.paymentType === '완료' ? 'var(--green)' : 'var(--text-sm)' }}>{p.paymentType || '-'}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {selected && (
+        <PurchaseOrderDetail
+          po={selected}
+          dealers={dealers}
+          onClose={() => setSelected(null)}
+          onSave={async (data) => {
+            try {
+              data.totalAmount = (data.items || []).reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.unitPrice) || 0), 0);
+              if (data._new) {
+                const { _new, ...payload } = data;
+                payload.createdAt = payload.createdAt || nowIso();
+                payload.updatedAt = nowIso();
+                await db.collection(COLLECTIONS.PURCHASE_ORDERS).add(payload);
+                onToast({ message: '발주 등록 완료', type: 'success' });
+              } else {
+                const { id, ...payload } = data;
+                payload.updatedAt = nowIso();
+                await db.collection(COLLECTIONS.PURCHASE_ORDERS).doc(id).set(payload, { merge: true });
+                onToast({ message: '저장 완료', type: 'success' });
+              }
+              setSelected(null);
+              onUpdate();
+            } catch (e) { console.error(e); onToast({ message: '저장 실패: ' + e.message, type: 'error' }); }
+          }}
+          onDelete={async (id) => {
+            if (!confirm('정말 삭제하시겠습니까?')) return;
+            try { await db.collection(COLLECTIONS.PURCHASE_ORDERS).doc(id).delete(); onToast({ message:'삭제 완료', type:'success' }); setSelected(null); onUpdate(); }
+            catch (e) { onToast({ message:'삭제 실패: '+e.message, type:'error' }); }
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function PurchaseOrderDetail({ po, dealers, onClose, onSave, onDelete }) {
+  const [data, setData] = useState(po);
+  const update = (k, v) => setData(d => ({ ...d, [k]: v }));
+  const total = (data.items || []).reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.unitPrice) || 0), 0);
+
+  return (
+    <Modal open={true} onClose={onClose} title={po._new ? '신규 발주 등록' : `발주 상세 — ${po.orderNo || ''}`} width={840}>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14, marginBottom:14 }}>
+        <Field label="발주번호"><input type="text" value={data.orderNo || ''} onChange={e => update('orderNo', e.target.value)} style={inputStyle({ fontFamily:'monospace' })} /></Field>
+        <Field label="상태">
+          <select value={data.status || '신규'} onChange={e => update('status', e.target.value)} style={inputStyle()}>
+            {PO_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </Field>
+        <Field label="결제 유형">
+          <select value={data.paymentType || '외상'} onChange={e => update('paymentType', e.target.value)} style={inputStyle()}>
+            {PAYMENT_TYPES.map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
+        </Field>
+      </div>
+
+      <Field label="발주 대리점">
+        <select value={data.dealerId || ''} onChange={e => {
+          const d = dealers.find(x => x.id === e.target.value);
+          update('dealerId', e.target.value);
+          if (d) update('dealerName', d.companyName);
+        }} style={inputStyle()}>
+          <option value="">대리점 선택</option>
+          {dealers.filter(d => d.contractStatus === '활성').map(d => (
+            <option key={d.id} value={d.id}>{d.companyName} · {d.tier} · {d.region}</option>
+          ))}
+        </select>
+      </Field>
+
+      <Field label="품목 (대리점 발주 자재)">
+        <ItemsEditor items={data.items || []} onChange={items => update('items', items)} />
+      </Field>
+
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
+        <Field label="배송 주소"><input type="text" value={data.shippingAddress || ''} onChange={e => update('shippingAddress', e.target.value)} style={inputStyle()} /></Field>
+        <Field label="송장 번호"><input type="text" value={data.trackingNo || ''} onChange={e => update('trackingNo', e.target.value)} style={inputStyle({ fontFamily:'monospace' })} /></Field>
+      </div>
+      <Field label="관리자 메모"><textarea value={data.adminMemo || ''} onChange={e => update('adminMemo', e.target.value)} style={{ ...inputStyle(), minHeight:60, resize:'vertical' }} /></Field>
+
+      <div style={{ display:'flex', gap:8, marginTop:24, paddingTop:18, borderTop:'1px solid var(--border-s)' }}>
+        {!po._new && <button onClick={() => onDelete(data.id)} style={{ padding:'12px 18px', borderRadius:10, fontSize:13, fontWeight:800, color:'var(--red)', background:'var(--red-l)', border:'1px solid var(--red-m)' }}>삭제</button>}
+        <div style={{ flex:1 }} />
+        <button onClick={onClose} style={btnGhost()}>취소</button>
+        <button onClick={() => onSave(data)} style={btnPrimary()}>{po._new ? '등록' : '저장'}</button>
+      </div>
+    </Modal>
+  );
+}
+
+// ============================================================
+// Orders (주문 관리 — 자사몰 + 대리점 매장 + 전화)
+// ============================================================
+function Orders({ orders, dealers, onUpdate, onToast }) {
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState(null);
+
+  const filtered = useMemo(() => {
+    let list = orders;
+    if (statusFilter !== 'all') list = list.filter(o => o.status === statusFilter);
+    if (sourceFilter !== 'all') list = list.filter(o => o.source === sourceFilter);
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(o => (o.customerName || '').toLowerCase().includes(q) || (o.customerPhone || '').includes(q) || (o.orderNo || '').toLowerCase().includes(q));
+    }
+    return list.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  }, [orders, statusFilter, sourceFilter, search]);
+
+  const summary = useMemo(() => {
+    const active = orders.filter(o => o.status !== '환불');
+    return {
+      total: active.length,
+      pending: orders.filter(o => ['신규','결제완료','배송준비'].includes(o.status)).length,
+      shipping: orders.filter(o => o.status === '배송중').length,
+      monthAmount: orders
+        .filter(o => o.status !== '환불' && o.createdAt && new Date(o.createdAt) > new Date(Date.now() - 30*24*60*60*1000))
+        .reduce((s, o) => s + (o.totalAmount || 0), 0),
+    };
+  }, [orders]);
+
+  return (
+    <div>
+      <Header title="주문 관리" subtitle="자사몰 + 대리점 매장 + 전화 주문 통합 관리" />
+
+      <div style={{ padding:'20px 32px 0' }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))', gap:12, marginBottom:18 }}>
+          <SummaryCard icon="🛒" label="활성 주문" value={summary.total} color="var(--or)" />
+          <SummaryCard icon="⏱" label="처리 대기" value={summary.pending} color="var(--amber)" />
+          <SummaryCard icon="🚚" label="배송 중" value={summary.shipping} color="var(--navy)" />
+          <SummaryCard icon="💰" label="최근 30일 매출" value={fmtPrice(summary.monthAmount) + '원'} color="var(--green)" small />
+        </div>
+
+        <div style={{ display:'flex', gap:8, marginBottom:14, flexWrap:'wrap', alignItems:'center' }}>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={inputStyle({ minWidth:130 })}>
+            <option value="all">전체 상태</option>
+            {ORDER_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value)} style={inputStyle({ minWidth:130 })}>
+            <option value="all">전체 채널</option>
+            {ORDER_SOURCES.map(s => <option key={s.id} value={s.id}>{s.icon} {s.label}</option>)}
+          </select>
+          <input type="text" placeholder="주문번호·고객명·연락처" value={search} onChange={e => setSearch(e.target.value)} style={inputStyle({ flex:1, minWidth:200 })} />
+          <button onClick={() => setSelected({
+            _new:true, status:'신규', source:'pourstore-site', items:[],
+            createdAt: nowIso(), orderNo: 'OR-' + Date.now().toString().slice(-8)
+          })} style={btnPrimary()}>+ 신규 주문</button>
+        </div>
+      </div>
+
+      <div style={{ padding:'0 32px 32px' }}>
+        {filtered.length === 0 ? (
+          <Empty icon="🛒" title="주문 내역이 없습니다" desc="자사몰·대리점·전화 주문이 들어오면 여기에 표시됩니다" />
+        ) : (
+          <div style={{ background:'#fff', borderRadius:'var(--r-lg)', border:'1px solid var(--border)', overflow:'hidden' }}>
+            <div style={{ overflowX:'auto' }}>
+              <table style={{ width:'100%', fontSize:12.5, borderCollapse:'collapse' }}>
+                <thead style={{ background:'var(--bg)' }}>
+                  <tr>
+                    {['상태','채널','주문번호','주문일','고객','품목수','합계'].map(h => <th key={h} style={th()}>{h}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map(o => {
+                    const src = ORDER_SOURCES.find(x => x.id === o.source);
+                    return (
+                      <tr key={o.id} onClick={() => setSelected(o)} style={{ cursor:'pointer', borderBottom:'1px solid var(--border-s)' }} onMouseOver={e => e.currentTarget.style.background='var(--or-pale)'} onMouseOut={e => e.currentTarget.style.background='#fff'}>
+                        <td style={td()}><StatusPill status={o.status} colorMap={ORDER_STATUS_COLOR} /></td>
+                        <td style={td()}>
+                          <span style={{ fontSize:12, fontWeight:700, color:'var(--text-md)' }}>{src ? src.icon : '📋'} {src ? src.label : '-'}</span>
+                          {o.dealerName && <div style={{ fontSize:10.5, color:'var(--text-xs)', marginTop:2 }}>· {o.dealerName}</div>}
+                        </td>
+                        <td style={td()}><span style={{ fontFamily:'monospace', fontWeight:700, color:'var(--text-md)' }}>{o.orderNo || '-'}</span></td>
+                        <td style={td()}>{fmtDate(o.createdAt)}</td>
+                        <td style={td()}>
+                          <b style={{ color:'var(--navy)' }}>{o.customerName || '-'}</b>
+                          {o.customerPhone && <div style={{ fontSize:10.5, color:'var(--text-xs)', fontWeight:700, marginTop:2 }}>{o.customerPhone}</div>}
+                        </td>
+                        <td style={td()}>{(o.items || []).length}건</td>
+                        <td style={{ ...td(), textAlign:'right', fontWeight:800, color:'var(--navy)' }}>{fmtPrice(o.totalAmount || 0)}원</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {selected && (
+        <OrderDetail
+          order={selected}
+          dealers={dealers}
+          onClose={() => setSelected(null)}
+          onSave={async (data) => {
+            try {
+              data.totalAmount = (data.items || []).reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.unitPrice) || 0), 0);
+              if (data._new) {
+                const { _new, ...payload } = data;
+                payload.createdAt = payload.createdAt || nowIso();
+                payload.updatedAt = nowIso();
+                await db.collection(COLLECTIONS.DEALER_ORDERS).add(payload);
+                onToast({ message: '주문 등록 완료', type: 'success' });
+              } else {
+                const { id, ...payload } = data;
+                payload.updatedAt = nowIso();
+                await db.collection(COLLECTIONS.DEALER_ORDERS).doc(id).set(payload, { merge: true });
+                onToast({ message: '저장 완료', type: 'success' });
+              }
+              setSelected(null);
+              onUpdate();
+            } catch (e) { console.error(e); onToast({ message: '저장 실패: ' + e.message, type: 'error' }); }
+          }}
+          onDelete={async (id) => {
+            if (!confirm('정말 삭제하시겠습니까?')) return;
+            try { await db.collection(COLLECTIONS.DEALER_ORDERS).doc(id).delete(); onToast({ message:'삭제 완료', type:'success' }); setSelected(null); onUpdate(); }
+            catch (e) { onToast({ message:'삭제 실패: '+e.message, type:'error' }); }
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function OrderDetail({ order, dealers, onClose, onSave, onDelete }) {
+  const [data, setData] = useState(order);
+  const update = (k, v) => setData(d => ({ ...d, [k]: v }));
+  const isDealerOrder = data.source === 'dealer-store';
+
+  return (
+    <Modal open={true} onClose={onClose} title={order._new ? '신규 주문 등록' : `주문 상세 — ${order.orderNo || ''}`} width={840}>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14, marginBottom:14 }}>
+        <Field label="주문번호"><input type="text" value={data.orderNo || ''} onChange={e => update('orderNo', e.target.value)} style={inputStyle({ fontFamily:'monospace' })} /></Field>
+        <Field label="상태">
+          <select value={data.status || '신규'} onChange={e => update('status', e.target.value)} style={inputStyle()}>
+            {ORDER_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </Field>
+        <Field label="주문 채널">
+          <select value={data.source || 'pourstore-site'} onChange={e => update('source', e.target.value)} style={inputStyle()}>
+            {ORDER_SOURCES.map(s => <option key={s.id} value={s.id}>{s.icon} {s.label}</option>)}
+          </select>
+        </Field>
+      </div>
+
+      {isDealerOrder && (
+        <Field label="처리 대리점">
+          <select value={data.dealerId || ''} onChange={e => {
+            const d = dealers.find(x => x.id === e.target.value);
+            update('dealerId', e.target.value);
+            if (d) update('dealerName', d.companyName);
+          }} style={inputStyle()}>
+            <option value="">대리점 선택</option>
+            {dealers.filter(d => d.contractStatus === '활성').map(d => <option key={d.id} value={d.id}>{d.companyName} · {d.region}</option>)}
+          </select>
+        </Field>
+      )}
+
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
+        <Field label="고객명"><input type="text" value={data.customerName || ''} onChange={e => update('customerName', e.target.value)} style={inputStyle()} /></Field>
+        <Field label="연락처"><input type="text" value={data.customerPhone || ''} onChange={e => update('customerPhone', e.target.value)} style={inputStyle()} placeholder="010-0000-0000" /></Field>
+      </div>
+
+      <Field label="주문 품목">
+        <ItemsEditor items={data.items || []} onChange={items => update('items', items)} />
+      </Field>
+
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
+        <Field label="배송 주소"><input type="text" value={data.shippingAddress || ''} onChange={e => update('shippingAddress', e.target.value)} style={inputStyle()} /></Field>
+        <Field label="송장 번호"><input type="text" value={data.trackingNo || ''} onChange={e => update('trackingNo', e.target.value)} style={inputStyle({ fontFamily:'monospace' })} /></Field>
+      </div>
+      <Field label="관리자 메모"><textarea value={data.adminMemo || ''} onChange={e => update('adminMemo', e.target.value)} style={{ ...inputStyle(), minHeight:60, resize:'vertical' }} /></Field>
+
+      <div style={{ display:'flex', gap:8, marginTop:24, paddingTop:18, borderTop:'1px solid var(--border-s)' }}>
+        {!order._new && <button onClick={() => onDelete(data.id)} style={{ padding:'12px 18px', borderRadius:10, fontSize:13, fontWeight:800, color:'var(--red)', background:'var(--red-l)', border:'1px solid var(--red-m)' }}>삭제</button>}
+        <div style={{ flex:1 }} />
+        <button onClick={onClose} style={btnGhost()}>취소</button>
+        <button onClick={() => onSave(data)} style={btnPrimary()}>{order._new ? '등록' : '저장'}</button>
+      </div>
+    </Modal>
+  );
+}
+
+function SummaryCard({ icon, label, value, color, small }) {
+  return (
+    <div style={{ background:'#fff', padding:'16px 18px', borderRadius:12, border:'1px solid var(--border)', boxShadow:'var(--shadow)' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+        <span style={{ fontSize:11, fontWeight:800, color:'var(--text-sm)', letterSpacing:.5 }}>{label}</span>
+        <span style={{ fontSize:16 }}>{icon}</span>
+      </div>
+      <div style={{ fontSize: small ? 18 : 24, fontWeight:900, color, letterSpacing:-.5, lineHeight:1.1 }}>{value}</div>
+    </div>
+  );
+}
+
+// ============================================================
 // Settings
 // ============================================================
 function Settings({ onToast }) {
@@ -1216,20 +1686,26 @@ function App() {
   const [partners, setPartners] = useState([]);
   const [rules, setRules] = useState([]);
   const [dealers, setDealers] = useState([]);
+  const [purchaseOrders, setPurchaseOrders] = useState([]);
+  const [orders, setOrders] = useState([]);
 
   async function loadAll() {
     try {
-      const [reqSnap, partSnap, ruleSnap, dealerSnap] = await Promise.all([
+      const [reqSnap, partSnap, ruleSnap, dealerSnap, poSnap, orderSnap] = await Promise.all([
         db.collection(COLLECTIONS.MATCHING_REQUESTS).get(),
         db.collection(COLLECTIONS.PARTNER_COMPANIES).get(),
         db.collection(COLLECTIONS.MATCHING_RULES).get(),
         db.collection(COLLECTIONS.DEALERS).get(),
+        db.collection(COLLECTIONS.PURCHASE_ORDERS).get(),
+        db.collection(COLLECTIONS.DEALER_ORDERS).get(),
       ]);
       setRequests(reqSnap.docs.map(d => ({ id:d.id, ...d.data() })));
       setPartners(partSnap.docs.map(d => ({ id:d.id, ...d.data() })));
       setRules(ruleSnap.docs.map(d => ({ id:d.id, ...d.data() })));
       setDealers(dealerSnap.docs.map(d => ({ id:d.id, ...d.data() })));
-      console.log(`[loadAll] requests=${reqSnap.size} partners=${partSnap.size} rules=${ruleSnap.size} dealers=${dealerSnap.size}`);
+      setPurchaseOrders(poSnap.docs.map(d => ({ id:d.id, ...d.data() })));
+      setOrders(orderSnap.docs.map(d => ({ id:d.id, ...d.data() })));
+      console.log(`[loadAll] requests=${reqSnap.size} partners=${partSnap.size} rules=${ruleSnap.size} dealers=${dealerSnap.size} po=${poSnap.size} orders=${orderSnap.size}`);
     } catch (e) {
       console.error('[loadAll] failed:', e);
       setToast({ message: '데이터 로드 실패: ' + e.message, type: 'error' });
@@ -1251,7 +1727,7 @@ function App() {
     matching: requests.filter(r => !['완료','취소'].includes(r.status)).length,
     partners: partners.filter(p => p.contractStatus === '활성').length,
     dealers: dealers.filter(d => d.contractStatus === '활성').length,
-    orders: 0,
+    orders: orders.filter(o => ['신규','결제완료','배송준비'].includes(o.status)).length,
   };
 
   return (
@@ -1263,8 +1739,8 @@ function App() {
         {active === 'partners' && <Partners partners={partners} onUpdate={loadAll} onToast={setToast} />}
         {active === 'rules' && <MatchingRules />}
         {active === 'dealers' && <Dealers dealers={dealers} onUpdate={loadAll} onToast={setToast} />}
-        {active === 'purchase-orders' && <Placeholder title="발주 관리" subtitle="대리점이 본사에 발주한 자재 주문 처리" todo="Phase 2: purchase-orders 컬렉션 + 출고·송장·정산" />}
-        {active === 'orders' && <Placeholder title="주문 관리" subtitle="자사몰 주문 + 대리점 매장 주문 통합 관리" todo="Phase 2: orders 컬렉션 + 결제·배송·환불 워크플로우" />}
+        {active === 'purchase-orders' && <PurchaseOrders purchaseOrders={purchaseOrders} dealers={dealers} onUpdate={loadAll} onToast={setToast} />}
+        {active === 'orders' && <Orders orders={orders} dealers={dealers} onUpdate={loadAll} onToast={setToast} />}
         {active === 'inquiries' && <Placeholder title="문의 관리" subtitle="자사몰 문의·카카오톡 채널·전화 통합" todo="Phase 3: site-inquiries 컬렉션 통합 뷰" />}
         {active === 'settings' && <Settings onToast={setToast} />}
       </main>

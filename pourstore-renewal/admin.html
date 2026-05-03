@@ -81,6 +81,22 @@ const SURFS = [
 const REGIONS = ['서울','경기','인천','부산','대구','광주','대전','울산','세종','강원','충청','전라','경상','제주'];
 
 const REQUEST_STATUS = ['신규','자동매칭','수동검토중','파트너통보','확정','시공중','완료','취소'];
+
+const DEALER_TIERS = [
+  { id: 'Silver', label: 'SILVER', margin: 22, monthlyMin: 0, monthlyMax: 10000000, color: '#6B7280', bg: '#F3F4F6', border: '#D1D5DB' },
+  { id: 'Gold',   label: 'GOLD',   margin: 28, monthlyMin: 10000000, monthlyMax: 30000000, color: '#EA580C', bg: '#FFF7ED', border: '#FED7AA' },
+  { id: 'Platinum', label: 'PLATINUM', margin: 35, monthlyMin: 30000000, monthlyMax: Infinity, color: '#0F1F5C', bg: '#EEF2FF', border: '#C7D2FE' },
+];
+
+const DEALER_STATUS = ['대기','활성','만료','해지'];
+const DEALER_STATUS_COLOR = {
+  '대기': { bg: '#FEF3C7', border: '#FCD34D', color: '#B45309' },
+  '활성': { bg: '#D1FAE5', border: '#6EE7B7', color: '#047857' },
+  '만료': { bg: '#FEE2E2', border: '#FCA5A5', color: '#DC2626' },
+  '해지': { bg: '#F3F4F6', border: '#E5E7EB', color: '#6B7280' },
+};
+
+const DEALER_CATEGORIES = ['방수재','도장재','균열 보수재','코팅·단열','시공 도구','안전용품','부자재','패키지 상품'];
 const STATUS_COLOR = {
   '신규': { bg: '#FEE2E2', border: '#FCA5A5', color: '#DC2626' },
   '자동매칭': { bg: '#DBEAFE', border: '#93C5FD', color: '#1E40AF' },
@@ -814,6 +830,307 @@ function Placeholder({ title, subtitle, todo }) {
 }
 
 // ============================================================
+// Dealers (대리점 관리)
+// ============================================================
+function tierByMonthly(monthly) {
+  const m = Number(monthly) || 0;
+  return DEALER_TIERS.find(t => m >= t.monthlyMin && m < t.monthlyMax) || DEALER_TIERS[0];
+}
+function tierMeta(id) { return DEALER_TIERS.find(t => t.id === id) || DEALER_TIERS[0]; }
+
+function TierBadge({ tier, size = 'md' }) {
+  const t = tierMeta(tier);
+  const sm = size === 'sm';
+  return (
+    <span style={{
+      display:'inline-flex', alignItems:'center', gap:5,
+      padding: sm ? '3px 9px' : '4px 11px',
+      fontSize: sm ? 10.5 : 11.5, fontWeight:900, letterSpacing:.5,
+      background:t.bg, border:`1px solid ${t.border}`, color:t.color, borderRadius:6
+    }}>
+      {tier === 'Gold' ? '⭐' : tier === 'Platinum' ? '💎' : '◆'} {t.label}
+      <span style={{ opacity:.7, fontWeight:700 }}>· {t.margin}%</span>
+    </span>
+  );
+}
+function DealerStatusBadge({ status }) {
+  const c = DEALER_STATUS_COLOR[status] || DEALER_STATUS_COLOR['대기'];
+  return <span style={{ display:'inline-block', padding:'3px 9px', background:c.bg, border:`1px solid ${c.border}`, color:c.color, fontSize:10.5, fontWeight:900, borderRadius:5, letterSpacing:.3 }}>{status}</span>;
+}
+
+function Dealers({ dealers, onUpdate, onToast }) {
+  const [tierFilter, setTierFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [regionFilter, setRegionFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState(null);
+
+  const filtered = useMemo(() => {
+    let list = dealers;
+    if (tierFilter !== 'all') list = list.filter(d => d.tier === tierFilter);
+    if (statusFilter !== 'all') list = list.filter(d => d.contractStatus === statusFilter);
+    if (regionFilter !== 'all') list = list.filter(d => d.region === regionFilter);
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(d => (d.companyName || '').toLowerCase().includes(q) || (d.representative || '').toLowerCase().includes(q) || (d.contactPhone || '').includes(q));
+    }
+    return list.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  }, [dealers, tierFilter, statusFilter, regionFilter, search]);
+
+  const tierCounts = useMemo(() => {
+    return DEALER_TIERS.reduce((acc, t) => {
+      acc[t.id] = dealers.filter(d => d.tier === t.id && d.contractStatus === '활성').length;
+      return acc;
+    }, {});
+  }, [dealers]);
+
+  return (
+    <div>
+      <Header title="대리점 관리" subtitle="Silver / Gold / Platinum 3티어 등급 + 권역 단독 영업권 관리" />
+
+      <div style={{ padding:'20px 32px 0' }}>
+        {/* Tier 요약 카드 */}
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap:12, marginBottom:18 }}>
+          {DEALER_TIERS.map(t => {
+            const cnt = tierCounts[t.id] || 0;
+            const total = dealers.filter(d => d.tier === t.id).length;
+            return (
+              <div key={t.id} style={{
+                background:'#fff', padding:'16px 18px', borderRadius:12,
+                border:`1.5px solid ${t.border}`, position:'relative', overflow:'hidden'
+              }}>
+                <div style={{ position:'absolute', top:0, right:0, width:60, height:60, background:t.bg, borderRadius:'50%', transform:'translate(20px,-20px)', opacity:.6 }} />
+                <div style={{ position:'relative' }}>
+                  <div style={{ fontSize:11, fontWeight:800, color:t.color, letterSpacing:.8, marginBottom:6 }}>
+                    {t.id === 'Gold' ? '⭐' : t.id === 'Platinum' ? '💎' : '◆'} {t.label} · {t.margin}%
+                  </div>
+                  <div style={{ fontSize:24, fontWeight:900, color:'var(--navy)', letterSpacing:-.6, lineHeight:1 }}>
+                    {cnt}<span style={{ fontSize:13, color:'var(--text-sm)', fontWeight:700, marginLeft:5 }}>/ {total}</span>
+                  </div>
+                  <div style={{ fontSize:10.5, color:'var(--text-xs)', fontWeight:700, marginTop:4 }}>활성 / 전체</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={{ display:'flex', gap:8, marginBottom:14, flexWrap:'wrap', alignItems:'center' }}>
+          <select value={tierFilter} onChange={e => setTierFilter(e.target.value)} style={inputStyle({ minWidth:120 })}>
+            <option value="all">전체 등급</option>
+            {DEALER_TIERS.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+          </select>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={inputStyle({ minWidth:110 })}>
+            <option value="all">전체 상태</option>
+            {DEALER_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <select value={regionFilter} onChange={e => setRegionFilter(e.target.value)} style={inputStyle({ minWidth:110 })}>
+            <option value="all">전체 권역</option>
+            {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
+          <input type="text" placeholder="회사명·대표·연락처 검색" value={search} onChange={e => setSearch(e.target.value)} style={inputStyle({ flex:1, minWidth:200 })} />
+          <button onClick={() => setSelected({ _new:true, tier:'Silver', contractStatus:'대기', region:'서울', categories:[], monthlySales:0, initialStock:10000000, creditLimit:5000000 })} style={btnPrimary()}>+ 대리점 등록</button>
+        </div>
+      </div>
+
+      <div style={{ padding:'0 32px 32px' }}>
+        {filtered.length === 0 ? (
+          <Empty icon="🏪" title="등록된 대리점이 없습니다" desc={dealers.length === 0 ? '신규 대리점을 등록해 주세요' : '필터 조건에 맞는 대리점이 없습니다'} />
+        ) : (
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(340px, 1fr))', gap:12 }}>
+            {filtered.map(d => {
+              const t = tierMeta(d.tier);
+              return (
+                <button key={d.id} onClick={() => setSelected(d)} style={{
+                  background:'#fff', padding:'18px 20px', borderRadius:'var(--r-lg)',
+                  border:`1px solid ${d.tier === 'Gold' ? t.border : 'var(--border)'}`,
+                  textAlign:'left', cursor:'pointer', position:'relative', overflow:'hidden'
+                }} onMouseOver={e => { e.currentTarget.style.boxShadow = 'var(--shadow)'; e.currentTarget.style.transform = 'translateY(-2px)'; }} onMouseOut={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)'; }}>
+                  <div style={{ position:'absolute', top:0, left:0, right:0, height:3, background:t.color }} />
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10, gap:8 }}>
+                    <h4 style={{ fontSize:14.5, fontWeight:900, color:'var(--navy)', letterSpacing:-0.3, flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d.companyName || '(이름없음)'}</h4>
+                    <DealerStatusBadge status={d.contractStatus || '대기'} />
+                  </div>
+                  <div style={{ marginBottom:10 }}>
+                    <TierBadge tier={d.tier || 'Silver'} size="sm" />
+                  </div>
+                  <div style={{ fontSize:11.5, color:'var(--text-sm)', fontWeight:700, marginBottom:8, lineHeight:1.6 }}>
+                    {d.representative ? `대표 ${d.representative} · ` : ''}{d.contactPhone || '-'}
+                  </div>
+                  <div style={{ display:'flex', flexWrap:'wrap', gap:5, marginBottom:10 }}>
+                    {d.region && <span style={miniChip()}>📍 {d.region}</span>}
+                    {d.exclusiveRegion && <span style={{ ...miniChip(), background:'#FEE2E2', borderColor:'#FCA5A5', color:'#DC2626' }}>🛡 단독 {d.exclusiveRegion}</span>}
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', paddingTop:10, borderTop:'1px solid var(--border-s)', fontSize:11, color:'var(--text-sm)', fontWeight:700 }}>
+                    <span>월 매출 <b style={{ color:'var(--navy)' }}>{fmtPrice(d.monthlySales || 0)}원</b></span>
+                    <span>{(d.categories || []).length}개 카테고리</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {selected && (
+        <DealerDetail
+          dealer={selected}
+          onClose={() => setSelected(null)}
+          onSave={async (data) => {
+            try {
+              if (data._new) {
+                const { _new, ...payload } = data;
+                payload.createdAt = nowIso();
+                payload.updatedAt = nowIso();
+                await db.collection(COLLECTIONS.DEALERS).add(payload);
+                onToast({ message: '대리점 등록 완료', type: 'success' });
+              } else {
+                const { id, ...payload } = data;
+                payload.updatedAt = nowIso();
+                await db.collection(COLLECTIONS.DEALERS).doc(id).set(payload, { merge: true });
+                onToast({ message: '저장 완료', type: 'success' });
+              }
+              setSelected(null);
+              onUpdate();
+            } catch (e) {
+              console.error(e);
+              onToast({ message: '저장 실패: ' + e.message, type: 'error' });
+            }
+          }}
+          onDelete={async (id) => {
+            if (!confirm('정말 삭제하시겠습니까?')) return;
+            try {
+              await db.collection(COLLECTIONS.DEALERS).doc(id).delete();
+              onToast({ message: '삭제 완료', type: 'success' });
+              setSelected(null);
+              onUpdate();
+            } catch (e) { onToast({ message: '삭제 실패: ' + e.message, type: 'error' }); }
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function DealerDetail({ dealer, onClose, onSave, onDelete }) {
+  const [data, setData] = useState(dealer);
+  const update = (k, v) => setData(d => ({ ...d, [k]: v }));
+  const toggle = (k, val) => {
+    const cur = data[k] || [];
+    update(k, cur.includes(val) ? cur.filter(x => x !== val) : [...cur, val]);
+  };
+  const suggested = tierByMonthly(data.monthlySales || 0);
+  const showExclusive = data.tier === 'Gold' || data.tier === 'Platinum';
+
+  return (
+    <Modal open={true} onClose={onClose} title={dealer._new ? '대리점 등록' : `대리점 상세 — ${dealer.companyName || ''}`} width={820}>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
+        <Field label="회사명/상호"><input type="text" value={data.companyName || ''} onChange={e => update('companyName', e.target.value)} style={inputStyle()} /></Field>
+        <Field label="사업자등록번호"><input type="text" value={data.businessNumber || ''} onChange={e => update('businessNumber', e.target.value)} style={inputStyle()} placeholder="000-00-00000" /></Field>
+        <Field label="대표자"><input type="text" value={data.representative || ''} onChange={e => update('representative', e.target.value)} style={inputStyle()} /></Field>
+        <Field label="연락처"><input type="text" value={data.contactPhone || ''} onChange={e => update('contactPhone', e.target.value)} style={inputStyle()} placeholder="010-0000-0000" /></Field>
+        <Field label="이메일"><input type="email" value={data.contactEmail || ''} onChange={e => update('contactEmail', e.target.value)} style={inputStyle()} /></Field>
+        <Field label="권역">
+          <select value={data.region || ''} onChange={e => update('region', e.target.value)} style={inputStyle()}>
+            <option value="">선택</option>
+            {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
+        </Field>
+      </div>
+      <Field label="매장 주소"><input type="text" value={data.address || ''} onChange={e => update('address', e.target.value)} style={inputStyle()} placeholder="○○도 ○○시 ○○로" /></Field>
+
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
+        <Field label="매장 규모">
+          <select value={data.storeSize || ''} onChange={e => update('storeSize', e.target.value)} style={inputStyle()}>
+            <option value="">선택</option>
+            <option value="33-66">33-66㎡</option>
+            <option value="66-99">66-99㎡</option>
+            <option value="99-165">99-165㎡</option>
+            <option value="165+">165㎡ 이상</option>
+          </select>
+        </Field>
+        <Field label="창고 규모">
+          <select value={data.warehouseSize || ''} onChange={e => update('warehouseSize', e.target.value)} style={inputStyle()}>
+            <option value="">선택</option>
+            <option value="none">창고 없음</option>
+            <option value="0-33">33㎡ 미만</option>
+            <option value="33-66">33-66㎡</option>
+            <option value="66+">66㎡ 이상</option>
+          </select>
+        </Field>
+      </div>
+
+      {/* 등급 + 매출 섹션 */}
+      <div style={{ padding:16, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:12, marginBottom:14 }}>
+        <div style={{ fontSize:12, fontWeight:900, color:'var(--navy)', marginBottom:12, letterSpacing:.3 }}>📊 등급 · 매출</div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:8 }}>
+          <Field label="월 평균 매출 (원)">
+            <input type="number" value={data.monthlySales || 0} onChange={e => update('monthlySales', Number(e.target.value))} style={inputStyle()} placeholder="0" />
+            <div style={{ fontSize:10.5, color:'var(--text-sm)', fontWeight:700, marginTop:5 }}>
+              자동 추천 등급: <TierBadge tier={suggested.id} size="sm" />
+            </div>
+          </Field>
+          <Field label="등급 (수동 설정 가능)">
+            <select value={data.tier || 'Silver'} onChange={e => update('tier', e.target.value)} style={inputStyle()}>
+              {DEALER_TIERS.map(t => <option key={t.id} value={t.id}>{t.label} · 마진 {t.margin}%</option>)}
+            </select>
+          </Field>
+        </div>
+        {showExclusive && (
+          <Field label={`🛡 단독 영업 권역 (${data.tier} 전용)`}>
+            <input type="text" value={data.exclusiveRegion || ''} onChange={e => update('exclusiveRegion', e.target.value)} style={inputStyle()} placeholder="예: 서울 강남구 / 부산 해운대구" />
+            <div style={{ fontSize:10.5, color:'var(--text-sm)', fontWeight:700, marginTop:5 }}>
+              GOLD/PLATINUM은 시·군·구 단위 단독 영업권 부여 — 동일 권역 신규 대리점 불가
+            </div>
+          </Field>
+        )}
+      </div>
+
+      {/* 계약 섹션 */}
+      <div style={{ padding:16, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:12, marginBottom:14 }}>
+        <div style={{ fontSize:12, fontWeight:900, color:'var(--navy)', marginBottom:12, letterSpacing:.3 }}>📝 계약</div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14 }}>
+          <Field label="계약 상태">
+            <select value={data.contractStatus || '대기'} onChange={e => update('contractStatus', e.target.value)} style={inputStyle()}>
+              {DEALER_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </Field>
+          <Field label="계약일"><input type="date" value={data.contractDate || ''} onChange={e => update('contractDate', e.target.value)} style={inputStyle()} /></Field>
+          <Field label="만료일"><input type="date" value={data.contractExpiry || ''} onChange={e => update('contractExpiry', e.target.value)} style={inputStyle()} /></Field>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginTop:8 }}>
+          <Field label="초도 재고 매입액 (원)">
+            <input type="number" value={data.initialStock || 0} onChange={e => update('initialStock', Number(e.target.value))} style={inputStyle()} placeholder="10000000" />
+          </Field>
+          <Field label="외상 한도 (원)">
+            <input type="number" value={data.creditLimit || 0} onChange={e => update('creditLimit', Number(e.target.value))} style={inputStyle()} placeholder="5000000" />
+          </Field>
+        </div>
+      </div>
+
+      <Field label="공급 카테고리 (복수 선택)">
+        <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+          {DEALER_CATEGORIES.map(c => {
+            const on = (data.categories || []).includes(c);
+            return <button key={c} onClick={() => toggle('categories', c)} style={chipBtn(on)}>{c}</button>;
+          })}
+        </div>
+      </Field>
+
+      <Field label="관리자 메모"><textarea value={data.adminMemo || ''} onChange={e => update('adminMemo', e.target.value)} style={{ ...inputStyle(), minHeight:60, resize:'vertical' }} placeholder="내부 메모" /></Field>
+
+      <div style={{ display:'flex', gap:8, marginTop:24, paddingTop:18, borderTop:'1px solid var(--border-s)' }}>
+        {!dealer._new && (
+          <button onClick={() => onDelete(data.id)} style={{ padding:'12px 18px', borderRadius:10, fontSize:13, fontWeight:800, color:'var(--red)', background:'var(--red-l)', border:'1px solid var(--red-m)' }}>삭제</button>
+        )}
+        <div style={{ flex:1 }} />
+        <button onClick={onClose} style={btnGhost()}>취소</button>
+        <button onClick={() => onSave(data)} style={btnPrimary()}>{dealer._new ? '등록' : '저장'}</button>
+      </div>
+    </Modal>
+  );
+}
+
+// ============================================================
 // Settings
 // ============================================================
 function Settings({ onToast }) {
@@ -898,18 +1215,21 @@ function App() {
   const [requests, setRequests] = useState([]);
   const [partners, setPartners] = useState([]);
   const [rules, setRules] = useState([]);
+  const [dealers, setDealers] = useState([]);
 
   async function loadAll() {
     try {
-      const [reqSnap, partSnap, ruleSnap] = await Promise.all([
+      const [reqSnap, partSnap, ruleSnap, dealerSnap] = await Promise.all([
         db.collection(COLLECTIONS.MATCHING_REQUESTS).get(),
         db.collection(COLLECTIONS.PARTNER_COMPANIES).get(),
         db.collection(COLLECTIONS.MATCHING_RULES).get(),
+        db.collection(COLLECTIONS.DEALERS).get(),
       ]);
       setRequests(reqSnap.docs.map(d => ({ id:d.id, ...d.data() })));
       setPartners(partSnap.docs.map(d => ({ id:d.id, ...d.data() })));
       setRules(ruleSnap.docs.map(d => ({ id:d.id, ...d.data() })));
-      console.log(`[loadAll] requests=${reqSnap.size} partners=${partSnap.size} rules=${ruleSnap.size}`);
+      setDealers(dealerSnap.docs.map(d => ({ id:d.id, ...d.data() })));
+      console.log(`[loadAll] requests=${reqSnap.size} partners=${partSnap.size} rules=${ruleSnap.size} dealers=${dealerSnap.size}`);
     } catch (e) {
       console.error('[loadAll] failed:', e);
       setToast({ message: '데이터 로드 실패: ' + e.message, type: 'error' });
@@ -930,7 +1250,7 @@ function App() {
   const stats = {
     matching: requests.filter(r => !['완료','취소'].includes(r.status)).length,
     partners: partners.filter(p => p.contractStatus === '활성').length,
-    dealers: 0,
+    dealers: dealers.filter(d => d.contractStatus === '활성').length,
     orders: 0,
   };
 
@@ -942,7 +1262,7 @@ function App() {
         {active === 'matching' && <MatchingRequests requests={requests} partners={partners} rules={rules} onUpdate={loadAll} onToast={setToast} />}
         {active === 'partners' && <Partners partners={partners} onUpdate={loadAll} onToast={setToast} />}
         {active === 'rules' && <MatchingRules />}
-        {active === 'dealers' && <Placeholder title="대리점 관리" subtitle="대리점 등록·등급(Silver/Gold/Platinum)·계약 관리" todo="Phase 2: dealers 컬렉션 + 마진 구조 + 권역 단독 영업권 관리" />}
+        {active === 'dealers' && <Dealers dealers={dealers} onUpdate={loadAll} onToast={setToast} />}
         {active === 'purchase-orders' && <Placeholder title="발주 관리" subtitle="대리점이 본사에 발주한 자재 주문 처리" todo="Phase 2: purchase-orders 컬렉션 + 출고·송장·정산" />}
         {active === 'orders' && <Placeholder title="주문 관리" subtitle="자사몰 주문 + 대리점 매장 주문 통합 관리" todo="Phase 2: orders 컬렉션 + 결제·배송·환불 워크플로우" />}
         {active === 'inquiries' && <Placeholder title="문의 관리" subtitle="자사몰 문의·카카오톡 채널·전화 통합" todo="Phase 3: site-inquiries 컬렉션 통합 뷰" />}

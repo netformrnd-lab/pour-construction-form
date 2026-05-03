@@ -3974,6 +3974,551 @@ show('entry');
   </section>`;
 
 
+  const SEED_DPT_LOGIN_HTML = `<style>
+  .dpt1 * { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard',sans-serif; }
+  .dpt1 { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:40px 24px; background:linear-gradient(135deg,#FFFBF5 0%,#FFF7ED 50%,#FFFBF5 100%); }
+  .dpt1-card { background:#fff; border-radius:24px; padding:40px 36px; max-width:440px; width:100%; box-shadow:0 22px 48px rgba(15,31,92,.1); border:1px solid #E5E7EB; }
+  .dpt1-icon { width:60px; height:60px; margin:0 auto 16px; border-radius:18px; background:linear-gradient(135deg,#F97316,#EA580C); display:grid; place-items:center; font-size:30px; color:#fff; box-shadow:0 8px 20px rgba(249,115,22,.3); }
+  .dpt1-title { font-size:22px; font-weight:900; color:#0F1F5C; letter-spacing:-.6px; text-align:center; margin-bottom:6px; }
+  .dpt1-sub { font-size:12.5px; color:#6B7280; font-weight:700; text-align:center; margin-bottom:28px; }
+  .dpt1-label { font-size:11px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; display:block; }
+  .dpt1-input { width:100%; padding:13px 16px; font-size:15px; font-weight:700; border:1px solid #E5E7EB; border-radius:9px; background:#F9FAFB; outline:none; margin-bottom:14px; color:#111827; }
+  .dpt1-input.pin { font-size:18px; font-weight:800; letter-spacing:6px; text-align:center; }
+  .dpt1-btn { width:100%; padding:14px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; font-size:14px; font-weight:900; border-radius:14px; box-shadow:0 6px 16px rgba(249,115,22,.3); border:none; margin-top:6px; cursor:pointer; }
+  .dpt1-info { margin-top:18px; padding:12px 14px; background:#FFFBF5; border:1px solid #FFEDD5; border-radius:10px; font-size:11.5px; color:#4B5563; font-weight:700; line-height:1.6; }
+  .dpt1-info b { color:#EA580C; }
+  </style>
+  <section class="dpt1">
+    <div class="dpt1-card">
+      <div class="dpt1-icon">🤝</div>
+      <h1 class="dpt1-title">POUR스토어 포털</h1>
+      <div class="dpt1-sub">파트너사 · 대리점 전용</div>
+      <label class="dpt1-label">등록 전화번호</label>
+      <input type="tel" class="dpt1-input" placeholder="010-0000-0000"/>
+      <label class="dpt1-label">PIN (4자리 이상)</label>
+      <input type="password" class="dpt1-input pin" value="******"/>
+      <button class="dpt1-btn">로그인 →</button>
+      <div class="dpt1-info">💡 PIN은 <b>POUR스토어 어드민</b>에서 발급받으세요. 파트너·대리점 자동 인식.</div>
+    </div>
+  </section>`;
+
+  const SEED_DPT_HEADER_HTML = `<style>
+  .dpt2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard',sans-serif; }
+  .dpt2 { background:#fff; border-bottom:1px solid #E5E7EB; padding:16px 28px; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; }
+  .dpt2-left { display:flex; align-items:center; gap:14px; }
+  .dpt2-icon { width:40px; height:40px; border-radius:11px; background:linear-gradient(135deg,#F97316,#EA580C); display:grid; place-items:center; font-size:18px; color:#fff; }
+  .dpt2-meta { display:flex; align-items:center; gap:8px; margin-bottom:2px; }
+  .dpt2-role { font-size:11px; font-weight:800; color:#6B7280; letter-spacing:.5px; text-transform:uppercase; }
+  .dpt2-grade { padding:2px 7px; background:#FFFBF5; border:1px solid #FFEDD5; color:#EA580C; font-size:10px; font-weight:900; border-radius:4px; letter-spacing:.4px; }
+  .dpt2-name { font-size:17px; font-weight:900; color:#0F1F5C; letter-spacing:-.4px; }
+  .dpt2-right { display:flex; gap:8px; align-items:center; }
+  .dpt2-phone { font-size:11.5px; color:#6B7280; font-weight:700; }
+  .dpt2-logout { padding:8px 14px; border-radius:9px; font-size:12px; font-weight:800; color:#4B5563; background:#F9FAFB; border:1px solid #E5E7EB; cursor:pointer; }
+  </style>
+  <header class="dpt2">
+    <div class="dpt2-left">
+      <div class="dpt2-icon">👷</div>
+      <div>
+        <div class="dpt2-meta">
+          <span class="dpt2-role">파트너사</span>
+          <span class="dpt2-grade">등급 A</span>
+        </div>
+        <h1 class="dpt2-name">한울방수 (예시)</h1>
+      </div>
+    </div>
+    <div class="dpt2-right">
+      <span class="dpt2-phone">010-0000-0000</span>
+      <button class="dpt2-logout">🔒 로그아웃</button>
+    </div>
+  </header>`;
+
+  const SEED_DPT_SUMMARY_HTML = `<style>
+  .dpt3 * { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard',sans-serif; }
+  .dpt3 { padding:24px 28px; background:#F9FAFB; }
+  .dpt3-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+  .dpt3-card { background:#fff; padding:16px 18px; border-radius:18px; border:1px solid #E5E7EB; box-shadow:0 1px 6px rgba(0,0,0,.07); }
+  .dpt3-card.hi { background:linear-gradient(135deg,#ECFDF5,#D1FAE5); border-color:#A7F3D0; }
+  .dpt3-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .dpt3-lbl { font-size:11px; font-weight:800; color:#6B7280; letter-spacing:.4px; }
+  .dpt3-ic { font-size:16px; }
+  .dpt3-val { font-size:22px; font-weight:900; letter-spacing:-.5px; line-height:1.1; }
+  .dpt3-val.or { color:#F97316; }
+  .dpt3-val.amber { color:#D97706; }
+  .dpt3-val.green { color:#059669; }
+  .dpt3-val.navy { color:#0F1F5C; }
+  </style>
+  <section class="dpt3">
+    <div class="dpt3-grid">
+      <div class="dpt3-card"><div class="dpt3-row"><span class="dpt3-lbl">대기 중</span><span class="dpt3-ic">✋</span></div><div class="dpt3-val or">3건</div></div>
+      <div class="dpt3-card"><div class="dpt3-row"><span class="dpt3-lbl">시공 중</span><span class="dpt3-ic">🏗</span></div><div class="dpt3-val amber">2건</div></div>
+      <div class="dpt3-card hi"><div class="dpt3-row"><span class="dpt3-lbl">완료</span><span class="dpt3-ic">✅</span></div><div class="dpt3-val green">14건</div></div>
+      <div class="dpt3-card"><div class="dpt3-row"><span class="dpt3-lbl">누적 배정</span><span class="dpt3-ic">📋</span></div><div class="dpt3-val navy">28건</div></div>
+    </div>
+  </section>`;
+
+  const SEED_DPT_LIST_HTML = `<style>
+  .dpt4 * { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard',sans-serif; }
+  .dpt4 { padding:0 28px 40px; background:#F9FAFB; }
+  .dpt4-card { background:#fff; border-radius:18px; border:1px solid #E5E7EB; overflow:hidden; }
+  .dpt4-head { padding:16px 20px; border-bottom:1px solid #E5E7EB; }
+  .dpt4-h { font-size:14px; font-weight:900; color:#0F1F5C; letter-spacing:-.3px; }
+  .dpt4-row { padding:14px 20px; border-bottom:1px solid #F3F4F6; cursor:pointer; }
+  .dpt4-row:hover { background:#FFFBF5; }
+  .dpt4-row:last-child { border-bottom:none; }
+  .dpt4-meta { display:flex; align-items:center; gap:10px; margin-bottom:6px; flex-wrap:wrap; }
+  .dpt4-status { padding:3px 9px; background:#FFEDD5; border:1px solid #FED7AA; color:#EA580C; font-size:10.5px; font-weight:900; border-radius:5px; }
+  .dpt4-status.done { background:#D1FAE5; border-color:#6EE7B7; color:#047857; }
+  .dpt4-cust { font-size:13.5px; font-weight:900; color:#0F1F5C; }
+  .dpt4-info { font-size:11.5px; color:#6B7280; font-weight:700; }
+  .dpt4-time { font-size:11px; color:#9CA3AF; font-weight:700; margin-left:auto; }
+  .dpt4-desc { font-size:12px; color:#4B5563; font-weight:600; line-height:1.55; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  </style>
+  <section class="dpt4">
+    <div class="dpt4-card">
+      <div class="dpt4-head"><h3 class="dpt4-h">🤝 배정된 시공연결 신청</h3></div>
+      <div class="dpt4-row">
+        <div class="dpt4-meta">
+          <span class="dpt4-status">파트너통보</span>
+          <b class="dpt4-cust">김○○ 관리소장</b>
+          <span class="dpt4-info">서울 · 아파트</span>
+          <span class="dpt4-time">2시간 전</span>
+        </div>
+        <div class="dpt4-desc">옥상 슬라브 누수 — 1,200세대, 약 50평 옥상 일괄 시공 희망</div>
+      </div>
+      <div class="dpt4-row">
+        <div class="dpt4-meta">
+          <span class="dpt4-status done">시공중</span>
+          <b class="dpt4-cust">박○○ 시설팀장</b>
+          <span class="dpt4-info">경기 · 관공서</span>
+          <span class="dpt4-time">어제</span>
+        </div>
+        <div class="dpt4-desc">외벽 균열 보수 + 재도장 (고급형) — 본관 4개동, 일정 협의 완료</div>
+      </div>
+      <div class="dpt4-row">
+        <div class="dpt4-meta">
+          <span class="dpt4-status">파트너통보</span>
+          <b class="dpt4-cust">이○○ 입주자대표</b>
+          <span class="dpt4-info">부산 · 아파트</span>
+          <span class="dpt4-time">3일 전</span>
+        </div>
+        <div class="dpt4-desc">박공지붕 슁글 누수 — 23층 고층, 신기술 1026호 시공 가능 여부 확인 필요</div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_DPT_DETAIL_HTML = `<style>
+  .dpt5 * { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard',sans-serif; }
+  .dpt5 { padding:30px; background:rgba(15,31,92,.45); display:flex; align-items:center; justify-content:center; min-height:100vh; backdrop-filter:blur(2px); }
+  .dpt5-modal { background:#fff; border-radius:18px; max-width:680px; width:100%; box-shadow:0 12px 36px rgba(0,0,0,.25); overflow:hidden; }
+  .dpt5-head { padding:20px 24px; border-bottom:1px solid #E5E7EB; display:flex; align-items:center; justify-content:space-between; }
+  .dpt5-h { font-size:16px; font-weight:900; color:#0F1F5C; }
+  .dpt5-x { width:32px; height:32px; border-radius:8px; color:#6B7280; font-size:18px; background:none; border:none; cursor:pointer; }
+  .dpt5-body { padding:22px 24px; }
+  .dpt5-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+  .dpt5-info { }
+  .dpt5-info-l { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:5px; }
+  .dpt5-info-v { padding:10px 14px; background:#F9FAFB; border:1px solid #E5E7EB; border-radius:9px; font-size:13px; font-weight:600; color:#111827; }
+  .dpt5-fld { margin-bottom:14px; }
+  .dpt5-fld label { display:block; font-size:11px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
+  .dpt5-sel { width:100%; padding:10px 14px; border:1px solid #E5E7EB; border-radius:9px; font-size:13px; font-weight:600; background:#F9FAFB; }
+  .dpt5-ta { width:100%; padding:10px 14px; border:1px solid #E5E7EB; border-radius:9px; font-size:13px; min-height:80px; resize:vertical; background:#F9FAFB; font-weight:600; }
+  .dpt5-foot { display:flex; gap:8px; padding-top:18px; border-top:1px solid #F3F4F6; justify-content:flex-end; }
+  .dpt5-btn-g { padding:11px 20px; background:#fff; color:#4B5563; border:1px solid #E5E7EB; border-radius:9px; font-size:13px; font-weight:700; cursor:pointer; }
+  .dpt5-btn-p { padding:11px 20px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border-radius:9px; font-size:13px; font-weight:800; box-shadow:0 4px 12px rgba(249,115,22,.25); border:none; cursor:pointer; }
+  </style>
+  <section class="dpt5">
+    <div class="dpt5-modal">
+      <div class="dpt5-head">
+        <h3 class="dpt5-h">신청 상세 — 김○○</h3>
+        <button class="dpt5-x">✕</button>
+      </div>
+      <div class="dpt5-body">
+        <div class="dpt5-grid">
+          <div class="dpt5-info"><div class="dpt5-info-l">고객명</div><div class="dpt5-info-v">김○○</div></div>
+          <div class="dpt5-info"><div class="dpt5-info-l">연락처</div><div class="dpt5-info-v">010-0000-0000</div></div>
+          <div class="dpt5-info"><div class="dpt5-info-l">지역</div><div class="dpt5-info-v">서울</div></div>
+          <div class="dpt5-info"><div class="dpt5-info-l">건물 유형</div><div class="dpt5-info-v">아파트</div></div>
+        </div>
+        <div class="dpt5-fld">
+          <label>상태 업데이트</label>
+          <select class="dpt5-sel"><option>파트너통보</option><option>확정 (시공 진행 결정)</option><option>시공중</option><option>완료</option></select>
+        </div>
+        <div class="dpt5-fld">
+          <label>파트너 메모</label>
+          <textarea class="dpt5-ta" placeholder="현장 상황·일정·고객 협의 내용 등"></textarea>
+        </div>
+        <div class="dpt5-foot">
+          <button class="dpt5-btn-g">취소</button>
+          <button class="dpt5-btn-p">저장</button>
+        </div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_DLR_LOGIN_HTML = SEED_DPT_LOGIN_HTML;  // 동일 로그인 화면 (역할만 자동 감지)
+
+  const SEED_DLR_HEADER_HTML = `<style>
+  .dlr2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard',sans-serif; }
+  .dlr2 { background:#fff; border-bottom:1px solid #E5E7EB; padding:16px 28px; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; }
+  .dlr2-left { display:flex; align-items:center; gap:14px; }
+  .dlr2-icon { width:40px; height:40px; border-radius:11px; background:linear-gradient(135deg,#F97316,#EA580C); display:grid; place-items:center; font-size:18px; color:#fff; }
+  .dlr2-meta { display:flex; align-items:center; gap:8px; margin-bottom:2px; flex-wrap:wrap; }
+  .dlr2-role { font-size:11px; font-weight:800; color:#6B7280; letter-spacing:.5px; text-transform:uppercase; }
+  .dlr2-tier { padding:2px 7px; background:#FFF7ED; border:1px solid #FED7AA; color:#EA580C; font-size:10px; font-weight:900; border-radius:4px; letter-spacing:.4px; }
+  .dlr2-name { font-size:17px; font-weight:900; color:#0F1F5C; letter-spacing:-.4px; }
+  .dlr2-logout { padding:8px 14px; border-radius:9px; font-size:12px; font-weight:800; color:#4B5563; background:#F9FAFB; border:1px solid #E5E7EB; cursor:pointer; }
+  </style>
+  <header class="dlr2">
+    <div class="dlr2-left">
+      <div class="dlr2-icon">🏪</div>
+      <div>
+        <div class="dlr2-meta">
+          <span class="dlr2-role">대리점</span>
+          <span class="dlr2-tier">⭐ GOLD · 28%</span>
+        </div>
+        <h1 class="dlr2-name">○○건축자재 (예시)</h1>
+      </div>
+    </div>
+    <button class="dlr2-logout">🔒 로그아웃</button>
+  </header>`;
+
+  const SEED_DLR_CTA_HTML = `<style>
+  .dlr3 * { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard',sans-serif; }
+  .dlr3 { padding:24px 28px; background:#F9FAFB; }
+  .dlr3-grid { display:grid; grid-template-columns:1.2fr 1fr 1fr 1fr; gap:12px; }
+  .dlr3-cta { background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border-radius:18px; padding:22px 24px; text-align:left; box-shadow:0 12px 28px rgba(249,115,22,.32); cursor:pointer; border:none; }
+  .dlr3-cta-l { font-size:11px; font-weight:800; letter-spacing:.8px; opacity:.9; margin-bottom:6px; }
+  .dlr3-cta-h { font-size:22px; font-weight:900; letter-spacing:-.6px; margin-bottom:6px; }
+  .dlr3-cta-d { font-size:11.5px; opacity:.9; font-weight:700; }
+  .dlr3-card { background:#fff; padding:16px 18px; border-radius:18px; border:1px solid #E5E7EB; box-shadow:0 1px 6px rgba(0,0,0,.07); }
+  .dlr3-card.hi { background:linear-gradient(135deg,#ECFDF5,#D1FAE5); border-color:#A7F3D0; }
+  .dlr3-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .dlr3-l { font-size:11px; font-weight:800; color:#6B7280; letter-spacing:.4px; }
+  .dlr3-ic { font-size:16px; }
+  .dlr3-v { font-size:22px; font-weight:900; letter-spacing:-.5px; line-height:1.1; }
+  .dlr3-v.navy { color:#0F1F5C; }
+  .dlr3-v.or { color:#F97316; font-size:17px; }
+  .dlr3-v.green { color:#059669; font-size:17px; }
+  @media (max-width:880px) { .dlr3-grid { grid-template-columns:1fr 1fr; } }
+  </style>
+  <section class="dlr3">
+    <div class="dlr3-grid">
+      <button class="dlr3-cta">
+        <div class="dlr3-cta-l">NEW ORDER</div>
+        <div class="dlr3-cta-h">+ 새 주문 작성</div>
+        <div class="dlr3-cta-d">고객 정보 + 품목 입력 → POUR스토어 결제 안내</div>
+      </button>
+      <div class="dlr3-card"><div class="dlr3-row"><span class="dlr3-l">이달 주문 수</span><span class="dlr3-ic">🛒</span></div><div class="dlr3-v navy">12건</div></div>
+      <div class="dlr3-card"><div class="dlr3-row"><span class="dlr3-l">이달 매출 (고객 결제)</span><span class="dlr3-ic">💰</span></div><div class="dlr3-v or">8,640,000원</div></div>
+      <div class="dlr3-card hi"><div class="dlr3-row"><span class="dlr3-l">예상 수수료 (28%)</span><span class="dlr3-ic">💵</span></div><div class="dlr3-v green">2,419,200원</div></div>
+    </div>
+  </section>`;
+
+  const SEED_DLR_SETTLE_HTML = `<style>
+  .dlr4 * { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard',sans-serif; }
+  .dlr4 { padding:0 28px 18px; background:#F9FAFB; }
+  .dlr4-box { padding:14px 18px; background:#ECFDF5; border:1px solid #A7F3D0; border-radius:12px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .dlr4-ic { font-size:20px; }
+  .dlr4-text { flex:1; font-size:12.5px; color:#4B5563; line-height:1.65; font-weight:700; }
+  .dlr4-text b { color:#059669; }
+  </style>
+  <section class="dlr4">
+    <div class="dlr4-box">
+      <span class="dlr4-ic">💸</span>
+      <div class="dlr4-text"><b>월말 자동 정산</b> · 고객이 POUR스토어로 직접 결제 → 매월 마지막 영업일에 대리점 등록 계좌로 수수료 입금</div>
+    </div>
+  </section>`;
+
+  const SEED_DLR_ORDERS_HTML = `<style>
+  .dlr5 * { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard',sans-serif; }
+  .dlr5 { padding:0 28px 40px; background:#F9FAFB; }
+  .dlr5-card { background:#fff; border-radius:18px; border:1px solid #E5E7EB; overflow:hidden; }
+  .dlr5-head { padding:16px 20px; border-bottom:1px solid #E5E7EB; display:flex; justify-content:space-between; align-items:center; }
+  .dlr5-h { font-size:14px; font-weight:900; color:#0F1F5C; letter-spacing:-.3px; }
+  .dlr5-meta { font-size:11.5px; color:#6B7280; font-weight:700; }
+  .dlr5-table { width:100%; font-size:12.5px; border-collapse:collapse; }
+  .dlr5-table th { padding:10px 14px; text-align:left; font-size:11px; font-weight:800; color:#6B7280; letter-spacing:.3px; background:#F9FAFB; border-bottom:1px solid #E5E7EB; }
+  .dlr5-table th.r { text-align:right; }
+  .dlr5-table td { padding:10px 14px; border-bottom:1px solid #F3F4F6; vertical-align:middle; }
+  .dlr5-table td.r { text-align:right; font-weight:800; }
+  .dlr5-table td.r.navy { color:#0F1F5C; }
+  .dlr5-table td.r.green { color:#059669; }
+  .dlr5-status { padding:3px 9px; font-size:10.5px; font-weight:900; border-radius:5px; }
+  .dlr5-status.wait { background:#FEF3C7; border:1px solid #FCD34D; color:#B45309; }
+  .dlr5-status.paid { background:#DBEAFE; border:1px solid #93C5FD; color:#1E40AF; }
+  .dlr5-status.done { background:#D1FAE5; border:1px solid #6EE7B7; color:#047857; }
+  .dlr5-no { font-family:monospace; font-weight:700; color:#4B5563; }
+  .dlr5-cust b { color:#0F1F5C; font-weight:900; }
+  .dlr5-cust div { font-size:10.5px; color:#9CA3AF; font-weight:700; margin-top:2px; }
+  </style>
+  <section class="dlr5">
+    <div class="dlr5-card">
+      <div class="dlr5-head">
+        <h3 class="dlr5-h">📋 최근 주문 (12)</h3>
+        <span class="dlr5-meta">최신순 10건 표시</span>
+      </div>
+      <table class="dlr5-table">
+        <thead><tr><th>상태</th><th>주문번호</th><th>주문일</th><th>고객</th><th>품목</th><th class="r">매출</th><th class="r">수수료</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dlr5-status wait">결제대기</span></td><td><span class="dlr5-no">OR-12345678</span></td><td>05-03 14:20</td><td class="dlr5-cust"><b>홍길동</b><div>010-0000-0000</div></td><td>3건</td><td class="r navy">240,000원</td><td class="r green">67,200원</td></tr>
+          <tr><td><span class="dlr5-status paid">결제완료</span></td><td><span class="dlr5-no">OR-12345677</span></td><td>05-02 11:35</td><td class="dlr5-cust"><b>김철수</b><div>010-1234-5678</div></td><td>5건</td><td class="r navy">528,000원</td><td class="r green">147,840원</td></tr>
+          <tr><td><span class="dlr5-status done">완료</span></td><td><span class="dlr5-no">OR-12345676</span></td><td>04-30 16:10</td><td class="dlr5-cust"><b>박영희</b><div>010-9876-5432</div></td><td>2건</td><td class="r navy">128,000원</td><td class="r green">35,840원</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>`;
+
+  const SEED_DLR_NEW_HTML = `<style>
+  .dlr6 * { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard',sans-serif; }
+  .dlr6 { padding:30px; background:rgba(15,31,92,.45); display:flex; align-items:center; justify-content:center; min-height:100vh; backdrop-filter:blur(2px); }
+  .dlr6-modal { background:#fff; border-radius:18px; max-width:760px; width:100%; box-shadow:0 12px 36px rgba(0,0,0,.25); overflow:hidden; max-height:92vh; display:flex; flex-direction:column; }
+  .dlr6-head { padding:20px 24px; border-bottom:1px solid #E5E7EB; display:flex; align-items:center; justify-content:space-between; }
+  .dlr6-h { font-size:16px; font-weight:900; color:#0F1F5C; }
+  .dlr6-x { width:32px; height:32px; border-radius:8px; color:#6B7280; font-size:18px; background:none; border:none; }
+  .dlr6-body { padding:22px 24px; overflow-y:auto; flex:1; }
+  .dlr6-notice { padding:12px 14px; background:#FFFBF5; border:1px solid #FFEDD5; border-radius:10px; font-size:12px; color:#4B5563; font-weight:700; line-height:1.65; margin-bottom:16px; }
+  .dlr6-notice b { color:#EA580C; }
+  .dlr6-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+  .dlr6-fld label { display:block; font-size:11px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:6px; }
+  .dlr6-input { width:100%; padding:10px 14px; border:1px solid #E5E7EB; border-radius:9px; font-size:13px; font-weight:600; background:#F9FAFB; }
+  .dlr6-table { background:#F9FAFB; border:1px solid #E5E7EB; border-radius:10px; overflow:hidden; margin-top:8px; }
+  .dlr6-trow { display:grid; grid-template-columns:1fr 80px 130px 130px 36px; gap:8px; padding:10px 12px; font-size:11px; font-weight:800; color:#6B7280; background:#fff; border-bottom:1px solid #E5E7EB; letter-spacing:.3px; }
+  .dlr6-trow.r { text-align:right; }
+  .dlr6-tbody { display:grid; grid-template-columns:1fr 80px 130px 130px 36px; gap:8px; padding:8px 12px; align-items:center; border-bottom:1px solid #F3F4F6; }
+  .dlr6-input-sm { padding:7px 10px; font-size:12.5px; border:1px solid #E5E7EB; border-radius:6px; background:#fff; }
+  .dlr6-add { padding:7px 14px; border-radius:8px; font-size:12px; font-weight:800; color:#EA580C; background:#FFFBF5; border:1px solid #FFEDD5; cursor:pointer; margin:10px 14px; }
+  .dlr6-summary { padding:16px; background:#F9FAFB; border-radius:12px; margin-top:14px; }
+  .dlr6-srow { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .dlr6-srow.bd { padding-top:10px; border-top:1px solid #E5E7EB; margin-bottom:0; }
+  .dlr6-stext { font-size:12px; color:#4B5563; font-weight:700; }
+  .dlr6-stext.com { font-size:11.5px; color:#059669; font-weight:800; }
+  .dlr6-sval { font-size:18px; font-weight:900; color:#0F1F5C; }
+  .dlr6-sval.com { font-size:16px; color:#059669; }
+  .dlr6-foot { padding:18px 24px; border-top:1px solid #E5E7EB; display:flex; gap:8px; justify-content:flex-end; }
+  .dlr6-bg { padding:11px 20px; background:#fff; color:#4B5563; border:1px solid #E5E7EB; border-radius:9px; font-size:13px; font-weight:700; }
+  .dlr6-bp { padding:11px 20px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; border-radius:9px; font-size:13px; font-weight:800; box-shadow:0 4px 12px rgba(249,115,22,.25); border:none; }
+  </style>
+  <section class="dlr6">
+    <div class="dlr6-modal">
+      <div class="dlr6-head">
+        <h3 class="dlr6-h">새 주문 작성</h3>
+        <button class="dlr6-x">✕</button>
+      </div>
+      <div class="dlr6-body">
+        <div class="dlr6-notice">💳 <b>고객은 POUR스토어로 직접 결제</b>합니다 (대리점 카드/계좌 사용 X) · 매월 말 정산 시 수수료 28% 입금</div>
+        <div class="dlr6-grid">
+          <div class="dlr6-fld"><label>고객명 *</label><input class="dlr6-input" placeholder="홍길동"/></div>
+          <div class="dlr6-fld"><label>연락처 *</label><input class="dlr6-input" placeholder="010-0000-0000"/></div>
+        </div>
+        <div class="dlr6-fld" style="margin-bottom:14px;"><label>배송 주소</label><input class="dlr6-input" placeholder="○○도 ○○시 ○○로"/></div>
+        <div class="dlr6-fld"><label>주문 품목</label></div>
+        <div class="dlr6-table">
+          <div class="dlr6-trow"><span>품목</span><span class="r">수량</span><span class="r">단가</span><span class="r">합계</span><span></span></div>
+          <div class="dlr6-tbody"><input class="dlr6-input-sm" placeholder="POUR 코트재 5kg" value="POUR 코트재 5kg"/><input class="dlr6-input-sm" style="text-align:right" value="2"/><input class="dlr6-input-sm" style="text-align:right" value="68000"/><div style="text-align:right;font-weight:800;color:#0F1F5C;font-size:12.5px">136,000원</div><button style="width:30px;height:30px;border-radius:6px;color:#DC2626;font-size:14px;background:none;border:none">✕</button></div>
+          <button class="dlr6-add">+ 품목 추가</button>
+        </div>
+        <div class="dlr6-summary">
+          <div class="dlr6-srow"><span class="dlr6-stext">고객 결제 금액</span><span class="dlr6-sval">136,000원</span></div>
+          <div class="dlr6-srow bd"><span class="dlr6-stext com">예상 정산 수수료 (28%)</span><span class="dlr6-sval com">38,080원</span></div>
+        </div>
+      </div>
+      <div class="dlr6-foot">
+        <button class="dlr6-bg">취소</button>
+        <button class="dlr6-bp">주문 등록 →</button>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_KSK_SETUP_HTML = `<style>
+  .ksk1 * { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard',sans-serif; }
+  .ksk1 { width:100%; min-height:100vh; display:grid; place-items:center; padding:40px; background:linear-gradient(135deg,#FFFBF5 0%,#FFF7ED 50%,#FFFBF5 100%); }
+  .ksk1-card { background:#fff; border-radius:28px; padding:48px 44px; max-width:520px; width:100%; box-shadow:0 22px 60px rgba(15,31,92,.15); border:1px solid #E5E7EB; }
+  .ksk1-icon { width:72px; height:72px; margin:0 auto 18px; border-radius:22px; background:linear-gradient(135deg,#F97316,#EA580C); display:grid; place-items:center; font-size:36px; color:#fff; box-shadow:0 10px 24px rgba(249,115,22,.3); }
+  .ksk1-h { font-size:28px; font-weight:900; color:#0F1F5C; letter-spacing:-.8px; text-align:center; margin-bottom:8px; }
+  .ksk1-d { font-size:14px; color:#4B5563; font-weight:700; text-align:center; line-height:1.65; margin-bottom:32px; }
+  .ksk1-fld { margin-bottom:14px; }
+  .ksk1-fld label { display:block; font-size:12px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:8px; }
+  .ksk1-input { width:100%; padding:16px 20px; font-size:18px; font-weight:700; border:2px solid #E5E7EB; border-radius:14px; background:#F9FAFB; outline:none; }
+  .ksk1-input.pin { font-size:22px; font-weight:800; letter-spacing:8px; text-align:center; }
+  .ksk1-btn { width:100%; padding:18px; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; font-size:16px; font-weight:900; border-radius:14px; box-shadow:0 8px 22px rgba(249,115,22,.35); border:none; cursor:pointer; }
+  </style>
+  <section class="ksk1">
+    <div class="ksk1-card">
+      <div class="ksk1-icon">📱</div>
+      <h1 class="ksk1-h">키오스크 초기 설정</h1>
+      <p class="ksk1-d">대리점 계정으로 1회 바인딩하면<br/>이 태블릿이 매장 키오스크로 작동합니다</p>
+      <div class="ksk1-fld">
+        <label>대리점 전화번호</label>
+        <input type="tel" class="ksk1-input" placeholder="010-0000-0000"/>
+      </div>
+      <div class="ksk1-fld">
+        <label>PIN (4자리 이상)</label>
+        <input type="password" class="ksk1-input pin" value="******"/>
+      </div>
+      <button class="ksk1-btn">키오스크 시작 →</button>
+    </div>
+  </section>`;
+
+  const SEED_KSK_WELCOME_HTML = `<style>
+  .ksk2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard',sans-serif; }
+  .ksk2 { width:100%; min-height:100vh; display:grid; place-items:center; padding:40px; background:linear-gradient(135deg,#FFFBF5 0%,#FFF7ED 50%,#FFFBF5 100%); position:relative; }
+  .ksk2-admin { position:absolute; top:18px; right:18px; padding:8px 14px; border-radius:9px; font-size:12px; font-weight:800; color:#6B7280; background:rgba(255,255,255,.7); border:1px solid #E5E7EB; cursor:pointer; }
+  .ksk2-c { text-align:center; max-width:720px; }
+  .ksk2-bigicon { width:120px; height:120px; margin:0 auto 32px; border-radius:32px; background:linear-gradient(135deg,#F97316,#EA580C); display:grid; place-items:center; font-size:60px; color:#fff; box-shadow:0 16px 40px rgba(249,115,22,.35); animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.04); } }
+  .ksk2-tag { font-size:14px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:14px; }
+  .ksk2-h { font-size:48px; font-weight:900; color:#0F1F5C; letter-spacing:-1.5px; line-height:1.2; margin-bottom:18px; }
+  .ksk2-h .or { color:#F97316; }
+  .ksk2-d { font-size:18px; color:#4B5563; line-height:1.7; font-weight:700; margin-bottom:36px; max-width:520px; margin-left:auto; margin-right:auto; }
+  .ksk2-pill { display:inline-flex; align-items:center; gap:12px; padding:14px 24px; background:#fff; border:1px solid #FFEDD5; border-radius:14px; font-size:13px; color:#4B5563; font-weight:700; box-shadow:0 4px 12px rgba(0,0,0,.05); }
+  .ksk2-dot { width:8px; height:8px; border-radius:50%; background:#059669; box-shadow:0 0 0 4px rgba(5,150,105,.2); animation:pulse 2s infinite; }
+  .ksk2-trust { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; padding-top:32px; border-top:1px solid #E5E7EB; margin-top:48px; max-width:600px; margin-left:auto; margin-right:auto; font-size:13px; color:#4B5563; }
+  .ksk2-trust-ic { font-size:24px; margin-bottom:6px; }
+  .ksk2-trust-h { font-weight:900; color:#0F1F5C; margin-bottom:4px; }
+  .ksk2-trust-d { font-size:11.5px; font-weight:700; }
+  @media (max-width:640px) { .ksk2-h { font-size:32px; } }
+  </style>
+  <section class="ksk2">
+    <button class="ksk2-admin">⚙ 키오스크 설정</button>
+    <div class="ksk2-c">
+      <div class="ksk2-bigicon">🛒</div>
+      <div class="ksk2-tag">POUR스토어 매장 키오스크</div>
+      <h1 class="ksk2-h">어서오세요!<br/><span class="or">○○건축자재</span>입니다</h1>
+      <p class="ksk2-d">매장 직원에게 원하시는 자재를 말씀해 주세요.<br/>주문 입력이 시작되면 이 화면에 자동 표시됩니다.</p>
+      <div class="ksk2-pill"><span class="ksk2-dot"></span>신규 주문 대기 중...</div>
+      <div class="ksk2-trust">
+        <div><div class="ksk2-trust-ic">🛡️</div><div class="ksk2-trust-h">R&D 검증</div><div class="ksk2-trust-d">건설신기술 1026호</div></div>
+        <div><div class="ksk2-trust-ic">📺</div><div class="ksk2-trust-h">시공 영상 무료</div><div class="ksk2-trust-d">구매 패키지마다 제공</div></div>
+        <div><div class="ksk2-trust-ic">🏆</div><div class="ksk2-trust-h">250만+ 시공</div><div class="ksk2-trust-d">전국 검증 사례</div></div>
+      </div>
+    </div>
+  </section>`;
+
+  const SEED_KSK_DISPLAY_HTML = `<style>
+  .ksk3 * { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard',sans-serif; }
+  .ksk3 { width:100%; min-height:100vh; padding:28px 36px; background:linear-gradient(135deg,#FFFBF5 0%,#FFF7ED 50%,#FFFBF5 100%); }
+  .ksk3-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+  .ksk3-head-l { display:flex; align-items:center; gap:12px; }
+  .ksk3-head-icon { width:46px; height:46px; border-radius:14px; background:linear-gradient(135deg,#F97316,#EA580C); display:grid; place-items:center; font-size:22px; color:#fff; }
+  .ksk3-shop { font-size:11px; font-weight:800; color:#EA580C; letter-spacing:1px; margin-bottom:2px; }
+  .ksk3-title { font-size:22px; font-weight:900; color:#0F1F5C; letter-spacing:-.6px; }
+  .ksk3-no { padding:8px 16px; background:#fff; border:1px solid #E5E7EB; border-radius:10px; font-size:13px; font-weight:800; color:#4B5563; }
+  .ksk3-no-v { color:#EA580C; font-family:monospace; margin-left:6px; }
+  .ksk3-grid { display:grid; grid-template-columns:1.4fr 1fr; gap:20px; }
+  .ksk3-items { background:#fff; border-radius:20px; border:1px solid #E5E7EB; overflow:hidden; box-shadow:0 6px 18px rgba(15,31,92,.06); }
+  .ksk3-items-head { padding:16px 22px; background:linear-gradient(135deg,#FFFBF5,#fff); border-bottom:1px solid #E5E7EB; }
+  .ksk3-items-head-l { font-size:11px; font-weight:800; color:#EA580C; letter-spacing:.8px; margin-bottom:4px; }
+  .ksk3-items-head-h { font-size:18px; font-weight:900; color:#0F1F5C; letter-spacing:-.4px; }
+  .ksk3-row { display:grid; grid-template-columns:1fr auto auto; gap:12px; padding:14px 22px; border-bottom:1px solid #F3F4F6; align-items:center; }
+  .ksk3-row:last-child { border-bottom:none; }
+  .ksk3-name { font-size:14px; font-weight:900; color:#0F1F5C; letter-spacing:-.3px; margin-bottom:2px; }
+  .ksk3-d { font-size:11.5px; color:#6B7280; font-weight:700; }
+  .ksk3-qty { font-size:11px; color:#6B7280; font-weight:700; padding:3px 9px; background:#F9FAFB; border-radius:6px; }
+  .ksk3-sub { font-size:16px; font-weight:900; color:#EA580C; min-width:110px; text-align:right; }
+  .ksk3-total { padding:18px 22px; background:#0F1F5C; color:#fff; display:flex; align-items:center; justify-content:space-between; }
+  .ksk3-total-l { font-size:14px; font-weight:800; opacity:.85; }
+  .ksk3-total-v { font-family:'Bebas Neue',sans-serif; font-size:36px; font-weight:900; letter-spacing:.5px; }
+  .ksk3-total-w { font-family:'Pretendard',sans-serif; font-size:18px; margin-left:6px; opacity:.85; }
+  .ksk3-qr { background:linear-gradient(135deg,#FFFBF5,#fff); border-radius:20px; border:1px solid #FFEDD5; padding:24px 20px; text-align:center; box-shadow:0 6px 18px rgba(249,115,22,.1); }
+  .ksk3-qr-l { font-size:11px; font-weight:800; color:#EA580C; letter-spacing:.8px; margin-bottom:6px; }
+  .ksk3-qr-h { font-size:17px; font-weight:900; color:#0F1F5C; letter-spacing:-.3px; line-height:1.4; margin-bottom:14px; }
+  .ksk3-qr-img { display:inline-block; padding:14px; background:#fff; border-radius:14px; box-shadow:0 6px 24px rgba(15,31,92,.15); margin-bottom:14px; }
+  .ksk3-qr-img svg { display:block; }
+  .ksk3-qr-d { display:flex; flex-direction:column; gap:6px; font-size:12.5px; color:#4B5563; font-weight:700; line-height:1.6; }
+  .ksk3-qr-note { margin-top:14px; padding:10px 12px; background:#fff; border:1px dashed #FFEDD5; border-radius:10px; font-size:11px; color:#4B5563; font-weight:700; }
+  .ksk3-qr-note b { color:#EA580C; }
+  .ksk3-cust { margin-top:18px; padding:12px 18px; background:#fff; border:1px solid #E5E7EB; border-radius:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; font-size:13px; font-weight:700; color:#4B5563; }
+  .ksk3-cust b { color:#0F1F5C; font-weight:900; }
+  @media (max-width:880px) { .ksk3-grid { grid-template-columns:1fr; } }
+  </style>
+  <section class="ksk3">
+    <div class="ksk3-head">
+      <div class="ksk3-head-l">
+        <div class="ksk3-head-icon">🛒</div>
+        <div>
+          <div class="ksk3-shop">○○건축자재</div>
+          <h1 class="ksk3-title">주문 확인</h1>
+        </div>
+      </div>
+      <div class="ksk3-no">주문번호<span class="ksk3-no-v">OR-12345678</span></div>
+    </div>
+    <div class="ksk3-grid">
+      <div class="ksk3-items">
+        <div class="ksk3-items-head">
+          <div class="ksk3-items-head-l">📋 ORDER ITEMS</div>
+          <h2 class="ksk3-items-head-h">고객님 주문 내역</h2>
+        </div>
+        <div class="ksk3-row">
+          <div><div class="ksk3-name">POUR 코트재 5kg</div><div class="ksk3-d">68,000원 × 2</div></div>
+          <div class="ksk3-qty">2개</div>
+          <div class="ksk3-sub">136,000원</div>
+        </div>
+        <div class="ksk3-row">
+          <div><div class="ksk3-name">슈퍼복합압축시트</div><div class="ksk3-d">128,000원 × 1</div></div>
+          <div class="ksk3-qty">1개</div>
+          <div class="ksk3-sub">128,000원</div>
+        </div>
+        <div class="ksk3-total">
+          <span class="ksk3-total-l">총 결제 금액</span>
+          <span class="ksk3-total-v">264,000<span class="ksk3-total-w">원</span></span>
+        </div>
+      </div>
+      <div class="ksk3-qr">
+        <div class="ksk3-qr-l">💳 PAYMENT</div>
+        <h2 class="ksk3-qr-h">QR을 스캔해서<br/>POUR스토어로 직접 결제</h2>
+        <div class="ksk3-qr-img">
+          <svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <rect width="200" height="200" fill="#fff"/>
+            <g fill="#0F1F5C">
+              <rect x="20" y="20" width="40" height="40"/><rect x="140" y="20" width="40" height="40"/><rect x="20" y="140" width="40" height="40"/>
+              <rect x="30" y="30" width="20" height="20" fill="#fff"/><rect x="150" y="30" width="20" height="20" fill="#fff"/><rect x="30" y="150" width="20" height="20" fill="#fff"/>
+              <rect x="80" y="30" width="10" height="10"/><rect x="100" y="30" width="10" height="10"/><rect x="120" y="40" width="10" height="10"/>
+              <rect x="80" y="60" width="10" height="10"/><rect x="100" y="70" width="10" height="10"/><rect x="80" y="90" width="40" height="10"/>
+              <rect x="140" y="90" width="20" height="10"/><rect x="170" y="100" width="10" height="10"/><rect x="80" y="110" width="10" height="10"/>
+              <rect x="100" y="120" width="20" height="10"/><rect x="140" y="130" width="10" height="20"/><rect x="170" y="140" width="10" height="10"/>
+              <rect x="80" y="150" width="10" height="20"/><rect x="100" y="160" width="20" height="10"/><rect x="140" y="170" width="40" height="10"/>
+            </g>
+          </svg>
+        </div>
+        <div class="ksk3-qr-d">
+          <div>📱 카메라로 QR 스캔</div>
+          <div>💳 카드/계좌이체 가능</div>
+          <div>🛡 영수증 자동 발송</div>
+        </div>
+        <div class="ksk3-qr-note">결제는 <b>POUR스토어 본사</b>로 직접 이뤄집니다</div>
+      </div>
+    </div>
+    <div class="ksk3-cust">
+      <span>주문자: <b>홍길동</b> · 010-0000-0000</span>
+      <span style="font-size:11px;color:#9CA3AF">서울 강남구 ○○로 ○○</span>
+    </div>
+  </section>`;
+
+  const SEED_KSK_PAID_HTML = `<style>
+  .ksk4 * { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard',sans-serif; }
+  .ksk4 { width:100%; min-height:100vh; display:grid; place-items:center; padding:40px; background:linear-gradient(135deg,#ECFDF5,#D1FAE5); }
+  .ksk4-c { text-align:center; max-width:560px; }
+  .ksk4-icon { width:120px; height:120px; margin:0 auto 32px; border-radius:50%; background:#fff; display:grid; place-items:center; font-size:60px; box-shadow:0 16px 40px rgba(5,150,105,.3); animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.04); } }
+  .ksk4-h { font-size:42px; font-weight:900; color:#0F1F5C; letter-spacing:-1.2px; margin-bottom:14px; }
+  .ksk4-d { font-size:17px; color:#4B5563; line-height:1.7; font-weight:700; margin-bottom:24px; }
+  .ksk4-no { padding:16px 24px; background:#fff; border-radius:14px; border:1px solid #ECFDF5; display:inline-block; }
+  .ksk4-no-l { font-size:11px; font-weight:800; color:#059669; letter-spacing:.5px; margin-bottom:4px; }
+  .ksk4-no-v { font-size:18px; font-weight:900; color:#0F1F5C; font-family:monospace; }
+  </style>
+  <section class="ksk4">
+    <div class="ksk4-c">
+      <div class="ksk4-icon">✅</div>
+      <h1 class="ksk4-h">결제 완료!</h1>
+      <p class="ksk4-d">주문이 정상 접수되었습니다.<br/>POUR스토어가 빠르게 처리해 드릴게요.</p>
+      <div class="ksk4-no">
+        <div class="ksk4-no-l">주문번호</div>
+        <div class="ksk4-no-v">OR-12345678</div>
+      </div>
+    </div>
+  </section>`;
+
+
   const DEFAULT_PAGES = () => ([
     { id: 'main', name: '메인 페이지', file: 'index.html', sections: [
       mkSec('메인 배너', SEED_BANNER_HTML, '라이트 크림 + 오렌지 그라디언트 — 가벼운 톤 (v3)', 'wip'),
@@ -4062,6 +4607,27 @@ show('entry');
       mkSec('자사몰 포스팅 카드 그리드', SEED_MG_POSTING_HTML, '6개 포스팅 — 오늘의집 스타일 (에디터·읽기시간·좋아요)', 'wip'),
       mkSec('관련 상품 추천 (콘텐츠 → 상품 연결)', SEED_MG_RELATED_HTML, '컨텐츠 연관 5개 상품 — 콘텐츠 배너 + 상품 카드', 'wip'),
       mkSec('카테고리별 더보기', SEED_MG_MORE_HTML, '8개 카테고리 카드 — 시공/케이스/제품/셀프/트렌드/관리자/영상/R&D', 'wip'),
+    ]},
+    { id: 'dash-partner', name: '[대시보드] 파트너사', file: 'portal.html (partner view)', sections: [
+      mkSec('로그인 화면', SEED_DPT_LOGIN_HTML, '전화번호 + PIN — 파트너·대리점 공통 (역할 자동 감지)', 'wip'),
+      mkSec('상단 헤더', SEED_DPT_HEADER_HTML, '파트너 회사명·등급(A/B/C)·연락처·로그아웃', 'wip'),
+      mkSec('요약 4카드', SEED_DPT_SUMMARY_HTML, '대기 / 시공중 / 완료 / 누적 배정 (완료 그린 강조)', 'wip'),
+      mkSec('배정된 시공연결 신청', SEED_DPT_LIST_HTML, '리스트 카드 — 상태·고객·지역·건물·시간·요약', 'wip'),
+      mkSec('신청 상세 모달', SEED_DPT_DETAIL_HTML, '고객 정보 + 상태 업데이트 + 파트너 메모', 'wip'),
+    ]},
+    { id: 'dash-dealer', name: '[대시보드] 대리점주', file: 'portal.html (dealer view)', sections: [
+      mkSec('로그인 화면', SEED_DLR_LOGIN_HTML, '전화번호 + PIN (파트너 화면과 동일)', 'wip'),
+      mkSec('상단 헤더', SEED_DLR_HEADER_HTML, '대리점명·티어 배지(Silver/Gold/Platinum)·연락처·로그아웃', 'wip'),
+      mkSec('핵심 CTA + 이달 요약', SEED_DLR_CTA_HTML, '+ 새 주문 작성 빅버튼 + 주문수/매출/예상 수수료(28% 강조)', 'wip'),
+      mkSec('정산 안내 박스', SEED_DLR_SETTLE_HTML, '월말 자동 정산 안내 (그린 박스)', 'wip'),
+      mkSec('최근 주문 테이블', SEED_DLR_ORDERS_HTML, '상태·주문번호·주문일·고객·품목·매출·수수료 (자동 계산)', 'wip'),
+      mkSec('새 주문 모달', SEED_DLR_NEW_HTML, '결제 안내 + 고객정보 + 품목 다중 추가 + 합계·수수료 미리보기', 'wip'),
+    ]},
+    { id: 'dash-kiosk', name: '[대시보드] 매장 키오스크 (고객용)', file: 'kiosk.html', sections: [
+      mkSec('초기 설정 (대리점 바인딩)', SEED_KSK_SETUP_HTML, '대리점 전화번호 + PIN로 키오스크 바인딩 (30일 유지)', 'wip'),
+      mkSec('환영 화면 (대기)', SEED_KSK_WELCOME_HTML, '큰 펄스 아이콘 + 환영 메시지 + 신뢰 트리오(R&D/영상/시공실적)', 'wip'),
+      mkSec('주문 표시 (실시간)', SEED_KSK_DISPLAY_HTML, '좌: 품목 리스트 + 다크 네이비 총액 / 우: QR 결제 안내', 'wip'),
+      mkSec('결제 완료 화면', SEED_KSK_PAID_HTML, '그린 그라디언트 + ✅ 펄스 + 주문번호 표시 (60초 후 환영 복귀)', 'wip'),
     ]},
   ]);
 

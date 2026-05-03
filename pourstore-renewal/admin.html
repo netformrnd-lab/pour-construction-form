@@ -730,6 +730,7 @@ function Partners({ partners, onUpdate, onToast }) {
       {selected && (
         <PartnerDetail
           partner={selected}
+          onToast={onToast}
           onClose={() => setSelected(null)}
           onSave={async (data) => {
             try {
@@ -766,7 +767,82 @@ function Partners({ partners, onUpdate, onToast }) {
   );
 }
 
-function PartnerDetail({ partner, onClose, onSave, onDelete }) {
+// ============================================================
+// Portal PIN Block (재사용 — 파트너/대리점 모달 공통)
+// ============================================================
+function PortalPinBlock({ data, update, collection, onToast }) {
+  const [issuedPin, setIssuedPin] = useState(null);  // 방금 발급/생성된 평문 PIN
+  const [busy, setBusy] = useState(false);
+  const hasPin = !!data.portalPinHash;
+  const phone = data.contactPhone;
+  const accountId = data.id;
+
+  function generatePin() {
+    return Math.floor(100000 + Math.random() * 900000).toString();  // 6자리
+  }
+
+  async function issue() {
+    if (!phone) { onToast({ message: '전화번호 먼저 입력 후 저장해 주세요', type: 'error' }); return; }
+    if (!accountId) { onToast({ message: '먼저 계정을 저장해 주세요', type: 'error' }); return; }
+    setBusy(true);
+    try {
+      const newPin = generatePin();
+      const h = await hashPin(newPin);
+      await db.collection(collection).doc(accountId).set({ portalPinHash: h, portalPinIssuedAt: nowIso() }, { merge: true });
+      update('portalPinHash', h);
+      update('portalPinIssuedAt', nowIso());
+      setIssuedPin(newPin);
+      onToast({ message: '신규 PIN 발급 완료', type: 'success' });
+    } catch (e) { onToast({ message: '발급 실패: ' + e.message, type: 'error' }); }
+    setBusy(false);
+  }
+
+  async function reset() {
+    if (!confirm('PIN을 초기화하면 기존 PIN으로 로그인할 수 없습니다. 계속하시겠습니까?')) return;
+    setBusy(true);
+    try {
+      await db.collection(collection).doc(accountId).set({ portalPinHash: null, portalPinIssuedAt: null }, { merge: true });
+      update('portalPinHash', null);
+      update('portalPinIssuedAt', null);
+      setIssuedPin(null);
+      onToast({ message: 'PIN 초기화 완료', type: 'success' });
+    } catch (e) { onToast({ message: '초기화 실패: ' + e.message, type: 'error' }); }
+    setBusy(false);
+  }
+
+  return (
+    <div style={{ padding:16, background:'linear-gradient(135deg, #FFF7ED, #FFEDD5)', border:'1px solid #FED7AA', borderRadius:12, marginBottom:14 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10, flexWrap:'wrap', gap:8 }}>
+        <div>
+          <div style={{ fontSize:12, fontWeight:900, color:'var(--or-d)', letterSpacing:.5 }}>🔑 포털 로그인 PIN</div>
+          <div style={{ fontSize:11, color:'var(--text-md)', fontWeight:700, marginTop:3 }}>
+            {hasPin ? <>발급됨 · {data.portalPinIssuedAt ? fmtDate(data.portalPinIssuedAt) : ''}</> : <span style={{ color:'var(--red)' }}>미발급 — 포털·키오스크 로그인 불가</span>}
+          </div>
+        </div>
+        <div style={{ display:'flex', gap:6 }}>
+          {hasPin && <button onClick={reset} disabled={busy} style={{ padding:'8px 14px', borderRadius:9, fontSize:11.5, fontWeight:800, color:'var(--red)', background:'#fff', border:'1px solid #FCA5A5' }}>초기화</button>}
+          <button onClick={issue} disabled={busy || !accountId} style={{ padding:'8px 14px', borderRadius:9, fontSize:11.5, fontWeight:800, color:'#fff', background:'linear-gradient(135deg, var(--or), var(--or-d))', border:'none', boxShadow:'0 4px 10px rgba(249,115,22,.3)' }}>
+            {busy ? '...' : (hasPin ? '재발급' : '신규 발급')}
+          </button>
+        </div>
+      </div>
+      {issuedPin && (
+        <div style={{ padding:'14px 16px', background:'#fff', border:'2px dashed var(--or-d)', borderRadius:10, marginTop:10 }}>
+          <div style={{ fontSize:11, fontWeight:800, color:'var(--or-d)', letterSpacing:.5, marginBottom:6 }}>📋 신규 발급 PIN — 한 번만 표시됩니다</div>
+          <div style={{ display:'flex', alignItems:'center', gap:12, justifyContent:'space-between', flexWrap:'wrap', gap:10 }}>
+            <div style={{ fontFamily:'Bebas Neue, monospace', fontSize:36, fontWeight:900, color:'var(--navy)', letterSpacing:6 }}>{issuedPin}</div>
+            <button onClick={() => { navigator.clipboard.writeText(issuedPin); onToast({ message: 'PIN 복사 완료', type: 'success' }); }} style={{ padding:'8px 14px', borderRadius:9, fontSize:12, fontWeight:800, color:'var(--navy)', background:'var(--bg)', border:'1px solid var(--border)' }}>📋 복사</button>
+          </div>
+          <div style={{ fontSize:11, color:'var(--text-md)', fontWeight:700, marginTop:8, lineHeight:1.55 }}>
+            {phone && <>전화 <b style={{ color:'var(--navy)' }}>{phone}</b> + PIN <b style={{ color:'var(--or-d)' }}>{issuedPin}</b>으로 포털·키오스크 로그인 가능</>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PartnerDetail({ partner, onClose, onSave, onDelete, onToast }) {
   const [data, setData] = useState(partner);
   const update = (k, v) => setData(d => ({ ...d, [k]: v }));
   const toggle = (k, val) => {
@@ -821,6 +897,8 @@ function PartnerDetail({ partner, onClose, onSave, onDelete }) {
       </Field>
 
       <Field label="관리자 메모"><textarea value={data.adminMemo || ''} onChange={e => update('adminMemo', e.target.value)} style={{ ...inputStyle(), minHeight:60, resize:'vertical' }} placeholder="내부 메모" /></Field>
+
+      {!partner._new && <PortalPinBlock data={data} update={update} collection={COLLECTIONS.PARTNER_COMPANIES} onToast={onToast} />}
 
       <div style={{ display:'flex', gap:8, marginTop:24, paddingTop:18, borderTop:'1px solid var(--border-s)' }}>
         {!partner._new && (
@@ -1019,6 +1097,7 @@ function Dealers({ dealers, onUpdate, onToast }) {
       {selected && (
         <DealerDetail
           dealer={selected}
+          onToast={onToast}
           onClose={() => setSelected(null)}
           onSave={async (data) => {
             try {
@@ -1056,7 +1135,7 @@ function Dealers({ dealers, onUpdate, onToast }) {
   );
 }
 
-function DealerDetail({ dealer, onClose, onSave, onDelete }) {
+function DealerDetail({ dealer, onClose, onSave, onDelete, onToast }) {
   const [data, setData] = useState(dealer);
   const update = (k, v) => setData(d => ({ ...d, [k]: v }));
   const toggle = (k, val) => {
@@ -1162,6 +1241,8 @@ function DealerDetail({ dealer, onClose, onSave, onDelete }) {
       </Field>
 
       <Field label="관리자 메모"><textarea value={data.adminMemo || ''} onChange={e => update('adminMemo', e.target.value)} style={{ ...inputStyle(), minHeight:60, resize:'vertical' }} placeholder="내부 메모" /></Field>
+
+      {!dealer._new && <PortalPinBlock data={data} update={update} collection={COLLECTIONS.DEALERS} onToast={onToast} />}
 
       <div style={{ display:'flex', gap:8, marginTop:24, paddingTop:18, borderTop:'1px solid var(--border-s)' }}>
         {!dealer._new && (

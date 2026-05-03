@@ -504,9 +504,9 @@ var symList=root.querySelector('#par-sym-list');SYMPS.forEach(function(s){var b=
 root.querySelector('#par-go-diag').addEventListener('click',function(){state.choice.memo=(root.querySelector('#par-free-memo').value||'').trim()||state.choice.memo;runDiagnosis(matchProfile(state.choice));});
 function matchProfile(c){for(var i=0;i<PROFILES.length;i++){var p=PROFILES[i];if(!p.keys||!p.keys.surf)continue;if(p.keys.surf.indexOf(c.surf)===-1)continue;if(p.keys.bld&&p.keys.bld.indexOf(c.bld)===-1)continue;if(p.keys.symp&&c.syms&&!p.keys.symp.some(function(k){return c.syms.indexOf(k)!==-1;}))continue;return p;}return PROFILES[PROFILES.length-1];}
 function runDiagnosis(profile){state.profile=profile;root.querySelector('#par-diag-h').innerHTML=profile.diagH;var ol=root.querySelector('#par-diag-points');ol.innerHTML='';profile.diagPoints.forEach(function(pt){var li=document.createElement('li');li.innerHTML=pt;ol.appendChild(li);});show('diagnosis');}
-function safetyOf(surfId){var pro=['roof-shingle','roof-metal','roof-color-steel'];var warn=['wall','window'];if(pro.indexOf(surfId)>=0)return{cls:'pro',label:'🔧 전문 시공용'};if(warn.indexOf(surfId)>=0)return{cls:'warn',label:'⚠️ 저층 셀프 / 고층 전문'};return{cls:'ok',label:'✅ 셀프 가능'};}
+function safetyOf(surfId){var pro=['roof-shingle','roof-metal','roof-color-steel'];var warn=['wall','window'];if(pro.indexOf(surfId)>=0)return{cls:'pro',label:'🪢 고소작업 시공연결'};if(warn.indexOf(surfId)>=0)return{cls:'warn',label:'⚠️ 저층 셀프 / 고층 시공연결'};return{cls:'ok',label:'✅ 셀프 가능'};}
 function fmtPrice(n){return n.toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g,',');}
-root.querySelector('#par-go-sol').addEventListener('click',function(){var profile=state.profile||PROFILES[0];var s=profile.sol;root.querySelector('#par-sol-code').textContent=s.code;root.querySelector('#par-sol-name').textContent=s.name;root.querySelector('#par-sol-summary').textContent=s.summary;var pr=root.querySelector('#par-sol-principles');pr.innerHTML='';s.principles.forEach(function(t){var d=document.createElement('div');d.className='pr';d.innerHTML='<span class="dot"></span><span>'+t+'</span>';pr.appendChild(d);});var ev=root.querySelector('#par-sol-evidence');ev.innerHTML='';s.evidence.forEach(function(e){var b=document.createElement('div');b.className='par-ev';b.innerHTML='<div class="lbl">'+e.lbl+'</div><div class="val">'+e.val+(e.unit?'<span class="unit">'+e.unit+'</span>':'')+'</div>'+(e.src?'<div class="src">— '+e.src+'</div>':'');ev.appendChild(b);});var pwrap=root.querySelector('#par-sol-products-wrap');var surfId=(profile.keys&&profile.keys.surf&&profile.keys.surf[0])||'';var sf=safetyOf(surfId);var origTotal=s.products.reduce(function(a,p){return a+parseInt(p.price.replace(/,/g,''),10);},0);var saleTotal=Math.round(origTotal*0.88/1000)*1000;var videoCount=s.products.length+2;var composeNames=s.products.map(function(p){return p.name;}).join(' + ');pwrap.innerHTML='<div class="par-pkg"><span class="badge">⭐ 강력추천 · 풀패키지</span><div class="pkg-name">'+s.name+' 풀세트</div><div class="pkg-meta"><span class="self '+sf.cls+'">'+sf.label+'</span><span>▶ 영상 '+videoCount+'편</span><span>📄 시방서 PDF</span><span>📞 전화 코칭</span></div><div class="pkg-compose"><b>구성:</b>'+composeNames+'</div><div class="pkg-footer"><div class="pkg-price"><span class="orig">'+fmtPrice(origTotal)+'원</span><span class="now">'+fmtPrice(saleTotal)+'</span><span class="won">원~</span><span class="save">12% 할인</span></div><a class="pkg-buy" href="'+(s.packageUrl||'https://www.pourstore.net')+'" target="_blank" rel="noopener">패키지 구매 →</a></div></div><div class="par-products-h">패키지 구성 자재 — 단품 구매도 가능</div><div class="par-products" id="par-sol-products"></div>';var pgrid=pwrap.querySelector('#par-sol-products');s.products.forEach(function(pd){var a=document.createElement('a');a.className='par-pcard';a.href=pd.url;a.target='_blank';a.rel='noopener';a.innerHTML='<div class="img" style="background-image:url(\\''+pd.img+'\\')"><span class="role">'+pd.role+'</span><span class="ext">↗ STORE</span></div><div class="body"><div class="name">'+pd.name+'</div><div class="price">'+pd.price+'<span class="won">원</span></div></div>';pgrid.appendChild(a);});root.querySelector('#par-buy-package').setAttribute('href',s.packageUrl||'https://www.pourstore.net');root.querySelector('#par-consult').setAttribute('href',s.consultUrl||'https://www.poursolution.net/163');var noteEl=root.querySelector('#par-final-note');if(noteEl){noteEl.innerHTML=sf.cls==='pro'?'⚠️ <b>경사 지붕·로프 작업이 포함된 부위</b>입니다. 시공업자라면 직접 구매 OK · 일반 고객은 <b>시공 매칭</b>을 권장드려요':sf.cls==='warn'?'<b>저층</b>은 셀프 시공 가능 · 고층은 <b>시공 매칭</b>을 권장드려요':'<b>셀프 시공 가능 부위</b>입니다 · 시공업자도 자유 구매 OK';}show('solution');});
+root.querySelector('#par-go-sol').addEventListener('click',function(){var profile=state.profile||PROFILES[0];var s=profile.sol;root.querySelector('#par-sol-code').textContent=s.code;root.querySelector('#par-sol-name').textContent=s.name;root.querySelector('#par-sol-summary').textContent=s.summary;var pr=root.querySelector('#par-sol-principles');pr.innerHTML='';s.principles.forEach(function(t){var d=document.createElement('div');d.className='pr';d.innerHTML='<span class="dot"></span><span>'+t+'</span>';pr.appendChild(d);});var ev=root.querySelector('#par-sol-evidence');ev.innerHTML='';s.evidence.forEach(function(e){var b=document.createElement('div');b.className='par-ev';b.innerHTML='<div class="lbl">'+e.lbl+'</div><div class="val">'+e.val+(e.unit?'<span class="unit">'+e.unit+'</span>':'')+'</div>'+(e.src?'<div class="src">— '+e.src+'</div>':'');ev.appendChild(b);});var pwrap=root.querySelector('#par-sol-products-wrap');var surfId=(profile.keys&&profile.keys.surf&&profile.keys.surf[0])||'';var sf=safetyOf(surfId);var origTotal=s.products.reduce(function(a,p){return a+parseInt(p.price.replace(/,/g,''),10);},0);var saleTotal=Math.round(origTotal*0.88/1000)*1000;var videoCount=s.products.length+2;var composeNames=s.products.map(function(p){return p.name;}).join(' + ');pwrap.innerHTML='<div class="par-pkg"><span class="badge">⭐ 강력추천 · 풀패키지</span><div class="pkg-name">'+s.name+' 풀세트</div><div class="pkg-meta"><span class="self '+sf.cls+'">'+sf.label+'</span><span>▶ 영상 '+videoCount+'편</span><span>📄 시방서 PDF</span><span>📞 전화 코칭</span></div><div class="pkg-compose"><b>구성:</b>'+composeNames+'</div><div class="pkg-footer"><div class="pkg-price"><span class="orig">'+fmtPrice(origTotal)+'원</span><span class="now">'+fmtPrice(saleTotal)+'</span><span class="won">원~</span><span class="save">12% 할인</span></div><a class="pkg-buy" href="'+(s.packageUrl||'https://www.pourstore.net')+'" target="_blank" rel="noopener">패키지 구매 →</a></div></div><div class="par-products-h">패키지 구성 자재 — 단품 구매도 가능</div><div class="par-products" id="par-sol-products"></div>';var pgrid=pwrap.querySelector('#par-sol-products');s.products.forEach(function(pd){var a=document.createElement('a');a.className='par-pcard';a.href=pd.url;a.target='_blank';a.rel='noopener';a.innerHTML='<div class="img" style="background-image:url(\\''+pd.img+'\\')"><span class="role">'+pd.role+'</span><span class="ext">↗ STORE</span></div><div class="body"><div class="name">'+pd.name+'</div><div class="price">'+pd.price+'<span class="won">원</span></div></div>';pgrid.appendChild(a);});root.querySelector('#par-buy-package').setAttribute('href',s.packageUrl||'https://www.pourstore.net');root.querySelector('#par-consult').setAttribute('href',s.consultUrl||'https://www.poursolution.net/163');var noteEl=root.querySelector('#par-final-note');if(noteEl){noteEl.innerHTML=sf.cls==='pro'?'시공방법은 <b>영상으로 충분히 따라 할 수 있어요</b>. 다만 <b>고소작업·로프가 필요한 부위</b>라 안전상 일반 고객은 <b>시공 매칭</b>을 권장 · 시공업자는 자유 구매 OK':sf.cls==='warn'?'<b>저층은 셀프 시공 가능</b> · 고층 외벽은 안전상 <b>시공 매칭</b>을 권장드려요':'<b>고품질 자재라 영상만 따라하면 누구나 OK</b> · 시공업자도 자유 구매 환영';}show('solution');});
 root.querySelector('#par-back-diag').addEventListener('click',function(){show(state.photos.length?'photo-result':'manual3');});
 root.querySelector('#par-restart').addEventListener('click',function(){state.photos.forEach(function(p){try{URL.revokeObjectURL(p.url);}catch(e){}});state={screen:'entry',photos:[],detected:null,choice:{bld:null,surf:null,syms:[],memo:''}};renderThumbs();root.querySelectorAll('.par-sym.on').forEach(function(b){b.classList.remove('on');});var memo=root.querySelector('#par-free-memo');if(memo)memo.value='';show('entry');});
 show('entry');
@@ -1276,7 +1276,7 @@ show('entry');
       <div class="ppr1-head">
         <div class="kicker">📦 PACKAGE BY AREA</div>
         <h2>부위별 패키지 — 한 번에 끝내세요</h2>
-        <p>R&D <b style="color:#0F1F5C">시너지 조합 패키지</b>로 어떤 부위든 한 번 구매로 완전 시공 — <b>시공업자·셀프 보수 모두</b> 자유 구매 가능합니다</p>
+        <p><b style="color:#0F1F5C">고품질 R&D 자재 시너지 조합 패키지</b> — 영상만 따라하면 초보자도 품질 좋은 시공 가능. 시공업자·셀프 보수 모두 자유 구매하세요</p>
       </div>
       <div class="ppr1-line">
         <button class="active">🏢 전체</button>
@@ -1285,19 +1285,19 @@ show('entry');
       </div>
       <div style="display:flex;justify-content:center;gap:14px;margin-bottom:14px;flex-wrap:wrap;font-size:11.5px;color:#6B7280;font-weight:700;">
         <span><span style="display:inline-block;width:10px;height:10px;background:#10B981;border-radius:50%;margin-right:5px;vertical-align:-1px;"></span>셀프 가능 · 평지·난간 있음</span>
-        <span><span style="display:inline-block;width:10px;height:10px;background:#F59E0B;border-radius:50%;margin-right:5px;vertical-align:-1px;"></span>저층 셀프 / 고층 전문</span>
-        <span><span style="display:inline-block;width:10px;height:10px;background:#DC2626;border-radius:50%;margin-right:5px;vertical-align:-1px;"></span>전문 시공용 · 경사 지붕·로프 작업</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#F59E0B;border-radius:50%;margin-right:5px;vertical-align:-1px;"></span>저층 셀프 / 고층 시공연결</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#DC2626;border-radius:50%;margin-right:5px;vertical-align:-1px;"></span>고소작업 시공연결 · 경사·로프 (안전상)</span>
       </div>
       <div style="text-align:center;margin-bottom:22px;font-size:12px;color:#6B7280;line-height:1.65;">
-        시공업자라면 <b style="color:#0F1F5C">모든 부위 자유 구매 OK</b> · 일반 고객은 셀프 시공 난이도 안내, 어려우시면 <a href="#" style="color:#EA580C;font-weight:800;text-decoration:none;">시공 매칭</a>으로 파트너사 연결
+        <b style="color:#0F1F5C">시공방법은 영상만 따라하면 누구나 OK</b> — R&D 고품질 자재라 가능. 다만 <b style="color:#DC2626">고소작업이 필요한 부위는 안전상</b> <a href="#" style="color:#EA580C;font-weight:800;text-decoration:none;">시공 매칭</a> 권장 · 시공업자는 모든 부위 자유 구매
       </div>
       <div class="ppr1-nav">
         <a class="ppr1-card" href="#area-slab"><div class="icon">🟦</div><div class="name">슬라브</div><div class="count">패키지 6종</div><span class="self ok">✅ 셀프 OK</span><span class="hot">HOT</span></a>
-        <a class="ppr1-card" href="#area-shingle"><div class="icon">🏠</div><div class="name">아스팔트 슁글</div><div class="count">패키지 4종</div><span class="self pro">🔧 전문 시공용</span></a>
-        <a class="ppr1-card" href="#area-tile"><div class="icon">🧱</div><div class="name">금속 기와</div><div class="count">패키지 4종</div><span class="self pro">🔧 전문 시공용</span></a>
+        <a class="ppr1-card" href="#area-shingle"><div class="icon">🏠</div><div class="name">아스팔트 슁글</div><div class="count">패키지 4종</div><span class="self pro">🪢 고소작업 시공연결</span></a>
+        <a class="ppr1-card" href="#area-tile"><div class="icon">🧱</div><div class="name">금속 기와</div><div class="count">패키지 4종</div><span class="self pro">🪢 고소작업 시공연결</span></a>
         <a class="ppr1-card" href="#area-crack"><div class="icon">⚡</div><div class="name">균열 보수</div><div class="count">패키지 3종</div><span class="self warn">⚠️ 저층만 셀프</span></a>
-        <a class="ppr1-card" href="#area-paint"><div class="icon">🎨</div><div class="name">재도장 (외벽)</div><div class="count">패키지 5종</div><span class="self pro">🔧 전문 시공용</span><span class="hot">HOT</span></a>
-        <a class="ppr1-card" href="#area-color"><div class="icon">🔩</div><div class="name">칼라강판·징크</div><div class="count">패키지 3종</div><span class="self pro">🔧 전문 시공용</span></a>
+        <a class="ppr1-card" href="#area-paint"><div class="icon">🎨</div><div class="name">재도장 (외벽)</div><div class="count">패키지 5종</div><span class="self pro">🪢 고소작업 시공연결</span><span class="hot">HOT</span></a>
+        <a class="ppr1-card" href="#area-color"><div class="icon">🔩</div><div class="name">칼라강판·징크</div><div class="count">패키지 3종</div><span class="self pro">🪢 고소작업 시공연결</span></a>
         <a class="ppr1-card" href="#area-drain"><div class="icon">🌊</div><div class="name">배수로·베란다</div><div class="count">패키지 4종</div><span class="self ok">✅ 셀프 OK</span></a>
         <a class="ppr1-card" href="#area-parking"><div class="icon">🚗</div><div class="name">지하주차장</div><div class="count">패키지 3종</div><span class="self ok">✅ 셀프 OK</span></a>
         <a class="ppr1-card" href="#area-joint"><div class="icon">🔗</div><div class="name">이음부·실링</div><div class="count">패키지 2종</div><span class="self ok">✅ 셀프 OK</span></a>
@@ -1411,7 +1411,7 @@ show('entry');
       </div>
       <div class="pprt-info">
         <div class="ico">📺</div>
-        <div class="text">모든 패키지에는 <b>시공 영상·설명서·전화 코칭</b>이 포함됩니다. <b>시공업자에게는 빠른 시방 레퍼런스</b>, 셀프 시공자에게는 단계별 가이드. 셀프가 어려운 부위는 <b>시공 매칭</b>으로 파트너사 연결도 가능합니다.</div>
+        <div class="text"><b>시공방법 자체는 영상만 따라하면 누구나 OK</b> — 고품질 R&D 자재 덕분이에요. 시공업자에게는 빠른 시방 레퍼런스, 셀프 시공자에게는 단계별 가이드. 다만 <b>고소작업·로프 작업이 필요한 부위는 안전상 시공 매칭</b>을 권장드립니다.</div>
       </div>
     </div>
   </section>`;
@@ -1490,7 +1490,7 @@ show('entry');
             <div class="desc">균열 보수부터 마감 도장까지 일괄 — 고급형</div>
             <div class="price"><span class="sale">15%</span><span class="now">320,000원~</span></div>
             <div class="meta"><span class="star">★</span><span>4.8</span><span>·</span><span>리뷰 287</span></div>
-            <div class="footer"><span class="self pro">🔧 전문 시공용</span><span class="media video">▶ 영상 4편</span><span class="media">📄 PDF</span></div>
+            <div class="footer"><span class="self pro">🪢 고소작업 시공연결</span><span class="media video">▶ 영상 4편</span><span class="media">📄 PDF</span></div>
           </div>
         </a>
         <a class="ppr2-card" href="#">
@@ -1610,7 +1610,7 @@ show('entry');
             <div class="name">박공지붕 슁글 누수 풀세트 (1026호)</div>
             <div class="desc">건설신기술 1026호 적용 — 강풍·누수 동시</div>
             <div class="price"><span class="now">186,000원</span><span class="original">240,000원</span></div>
-            <div class="footer"><span class="self pro">🔧 전문 시공용</span><span class="media">▶ 영상 5편</span><span class="media">📄 PDF</span></div>
+            <div class="footer"><span class="self pro">🪢 고소작업 시공연결</span><span class="media">▶ 영상 5편</span><span class="media">📄 PDF</span></div>
           </div>
         </a>
         <a class="ppr3-card" href="#">
@@ -1708,7 +1708,7 @@ show('entry');
       </div>
 
       <div class="ppr4-section">
-        <div class="group-head"><div class="badge">🏠</div><h3>아스팔트 슁글 / 금속 기와 (경사 지붕)</h3><span class="self pro">🔧 전문 시공용</span></div>
+        <div class="group-head"><div class="badge">🏠</div><h3>아스팔트 슁글 / 금속 기와 (경사 지붕)</h3><span class="self pro">🪢 고소작업 시공연결</span></div>
         <div class="ppr4-row">
           <div class="ppr4-tier full"><div class="name">⭐ 풀패키지</div><div class="scope">전체 부위</div></div>
           <div class="ppr4-items">

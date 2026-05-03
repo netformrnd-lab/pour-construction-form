@@ -506,7 +506,7 @@ function matchProfile(c){for(var i=0;i<PROFILES.length;i++){var p=PROFILES[i];if
 function runDiagnosis(profile){state.profile=profile;root.querySelector('#par-diag-h').innerHTML=profile.diagH;var ol=root.querySelector('#par-diag-points');ol.innerHTML='';profile.diagPoints.forEach(function(pt){var li=document.createElement('li');li.innerHTML=pt;ol.appendChild(li);});show('diagnosis');}
 function safetyOf(surfId){var pro=['roof-shingle','roof-metal','roof-color-steel'];var warn=['wall','window'];if(pro.indexOf(surfId)>=0)return{cls:'pro',label:'⛑️ 안전 시공 권장'};if(warn.indexOf(surfId)>=0)return{cls:'warn',label:'⚠️ 저층 셀프 / 고층 시공연결'};return{cls:'ok',label:'✅ 셀프 가능'};}
 function fmtPrice(n){return n.toString().replace(/\\B(?=(\\d{3})+(?!\\d))/g,',');}
-root.querySelector('#par-go-sol').addEventListener('click',function(){var profile=state.profile||PROFILES[0];var s=profile.sol;root.querySelector('#par-sol-code').textContent=s.code;root.querySelector('#par-sol-name').textContent=s.name;root.querySelector('#par-sol-summary').textContent=s.summary;var pr=root.querySelector('#par-sol-principles');pr.innerHTML='';s.principles.forEach(function(t){var d=document.createElement('div');d.className='pr';d.innerHTML='<span class="dot"></span><span>'+t+'</span>';pr.appendChild(d);});var ev=root.querySelector('#par-sol-evidence');ev.innerHTML='';s.evidence.forEach(function(e){var b=document.createElement('div');b.className='par-ev';b.innerHTML='<div class="lbl">'+e.lbl+'</div><div class="val">'+e.val+(e.unit?'<span class="unit">'+e.unit+'</span>':'')+'</div>'+(e.src?'<div class="src">— '+e.src+'</div>':'');ev.appendChild(b);});var pwrap=root.querySelector('#par-sol-products-wrap');var surfId=(profile.keys&&profile.keys.surf&&profile.keys.surf[0])||'';var sf=safetyOf(surfId);var origTotal=s.products.reduce(function(a,p){return a+parseInt(p.price.replace(/,/g,''),10);},0);var saleTotal=Math.round(origTotal*0.88/1000)*1000;var videoCount=s.products.length+2;var composeNames=s.products.map(function(p){return p.name;}).join(' + ');pwrap.innerHTML='<div class="par-pkg"><span class="badge">⭐ 강력추천 · 풀패키지</span><div class="pkg-name">'+s.name+' 풀세트</div><div class="pkg-meta"><span class="self '+sf.cls+'">'+sf.label+'</span><span>▶ 영상 '+videoCount+'편</span><span>📄 시방서 PDF</span><span>📞 전화 코칭</span></div><div class="pkg-compose"><b>구성:</b>'+composeNames+'</div><div class="pkg-footer"><div class="pkg-price"><span class="orig">'+fmtPrice(origTotal)+'원</span><span class="now">'+fmtPrice(saleTotal)+'</span><span class="won">원~</span><span class="save">12% 할인</span></div><a class="pkg-buy" href="'+(s.packageUrl||'https://www.pourstore.net')+'" target="_blank" rel="noopener">패키지 구매 →</a></div></div><div class="par-products-h">패키지 구성 자재 — 단품 구매도 가능</div><div class="par-products" id="par-sol-products"></div>';var pgrid=pwrap.querySelector('#par-sol-products');s.products.forEach(function(pd){var a=document.createElement('a');a.className='par-pcard';a.href=pd.url;a.target='_blank';a.rel='noopener';a.innerHTML='<div class="img" style="background-image:url(\\''+pd.img+'\\')"><span class="role">'+pd.role+'</span><span class="ext">↗ STORE</span></div><div class="body"><div class="name">'+pd.name+'</div><div class="price">'+pd.price+'<span class="won">원</span></div></div>';pgrid.appendChild(a);});root.querySelector('#par-buy-package').setAttribute('href',s.packageUrl||'https://www.pourstore.net');root.querySelector('#par-consult').setAttribute('href',s.consultUrl||'https://www.poursolution.net/163');var noteEl=root.querySelector('#par-final-note');if(noteEl){noteEl.innerHTML=sf.cls==='pro'?'시공방법은 <b>영상으로 충분히 따라 할 수 있어요</b>. 다만 <b>사다리·로프 작업이 필요한 부위</b>라 안전상 일반 고객은 <b>시공 매칭</b>을 권장 · 시공업자는 자유 구매 OK':sf.cls==='warn'?'<b>저층은 셀프 시공 가능</b> · 고층 외벽은 안전상 <b>시공 매칭</b>을 권장드려요':'<b>고품질 자재라 영상만 따라하면 누구나 OK</b> · 시공업자도 자유 구매 환영';}show('solution');});
+root.querySelector('#par-go-sol').addEventListener('click',function(){var profile=state.profile||PROFILES[0];var s=profile.sol;root.querySelector('#par-sol-code').textContent=s.code;root.querySelector('#par-sol-name').textContent=s.name;root.querySelector('#par-sol-summary').textContent=s.summary;var pr=root.querySelector('#par-sol-principles');pr.innerHTML='';s.principles.forEach(function(t){var d=document.createElement('div');d.className='pr';d.innerHTML='<span class="dot"></span><span>'+t+'</span>';pr.appendChild(d);});var ev=root.querySelector('#par-sol-evidence');ev.innerHTML='';s.evidence.forEach(function(e){var b=document.createElement('div');b.className='par-ev';b.innerHTML='<div class="lbl">'+e.lbl+'</div><div class="val">'+e.val+(e.unit?'<span class="unit">'+e.unit+'</span>':'')+'</div>'+(e.src?'<div class="src">— '+e.src+'</div>':'');ev.appendChild(b);});var pwrap=root.querySelector('#par-sol-products-wrap');var surfId=(profile.keys&&profile.keys.surf&&profile.keys.surf[0])||'';var sf=safetyOf(surfId);var origTotal=s.products.reduce(function(a,p){return a+parseInt(p.price.replace(/,/g,''),10);},0);var saleTotal=Math.round(origTotal*0.88/1000)*1000;var videoCount=s.products.length+2;var composeNames=s.products.map(function(p){return p.name;}).join(' + ');pwrap.innerHTML='<div class="par-pkg"><span class="badge">⭐ 강력추천 · 풀패키지</span><div class="pkg-name">'+s.name+' 풀세트</div><div class="pkg-meta"><span class="self '+sf.cls+'">'+sf.label+'</span><span>▶ 영상 '+videoCount+'편</span><span>📞 전화 코칭</span></div><div class="pkg-compose"><b>구성:</b>'+composeNames+'</div><div class="pkg-footer"><div class="pkg-price"><span class="orig">'+fmtPrice(origTotal)+'원</span><span class="now">'+fmtPrice(saleTotal)+'</span><span class="won">원~</span><span class="save">12% 할인</span></div><a class="pkg-buy" href="'+(s.packageUrl||'https://www.pourstore.net')+'" target="_blank" rel="noopener">패키지 구매 →</a></div></div><div class="par-products-h">패키지 구성 자재 — 단품 구매도 가능</div><div class="par-products" id="par-sol-products"></div>';var pgrid=pwrap.querySelector('#par-sol-products');s.products.forEach(function(pd){var a=document.createElement('a');a.className='par-pcard';a.href=pd.url;a.target='_blank';a.rel='noopener';a.innerHTML='<div class="img" style="background-image:url(\\''+pd.img+'\\')"><span class="role">'+pd.role+'</span><span class="ext">↗ STORE</span></div><div class="body"><div class="name">'+pd.name+'</div><div class="price">'+pd.price+'<span class="won">원</span></div></div>';pgrid.appendChild(a);});root.querySelector('#par-buy-package').setAttribute('href',s.packageUrl||'https://www.pourstore.net');root.querySelector('#par-consult').setAttribute('href',s.consultUrl||'https://www.poursolution.net/163');var noteEl=root.querySelector('#par-final-note');if(noteEl){noteEl.innerHTML=sf.cls==='pro'?'⛑️ 안전 시공 권장 부위 — <b>안전상 셀프가 어려우시면 시공연결 도와드려요</b> · 시공업자는 자유 구매 OK':sf.cls==='warn'?'<b>저층은 셀프 시공 가능</b> · 고층 외벽은 안전상 시공연결을 도와드려요':'<b>고품질 자재라 영상만 따라하면 누구나 OK</b> · 시공업자도 자유 구매 환영';}show('solution');});
 root.querySelector('#par-back-diag').addEventListener('click',function(){show(state.photos.length?'photo-result':'manual3');});
 root.querySelector('#par-restart').addEventListener('click',function(){state.photos.forEach(function(p){try{URL.revokeObjectURL(p.url);}catch(e){}});state={screen:'entry',photos:[],detected:null,choice:{bld:null,surf:null,syms:[],memo:''}};renderThumbs();root.querySelectorAll('.par-sym.on').forEach(function(b){b.classList.remove('on');});var memo=root.querySelector('#par-free-memo');if(memo)memo.value='';show('entry');});
 show('entry');
@@ -1288,8 +1288,15 @@ show('entry');
         <span><span style="display:inline-block;width:10px;height:10px;background:#F59E0B;border-radius:50%;margin-right:5px;vertical-align:-1px;"></span>저층 셀프 / 고층 시공연결</span>
         <span><span style="display:inline-block;width:10px;height:10px;background:#DC2626;border-radius:50%;margin-right:5px;vertical-align:-1px;"></span>⛑️ 안전 시공 권장 · 경사·로프 (안전상)</span>
       </div>
-      <div style="text-align:center;margin-bottom:22px;font-size:12px;color:#6B7280;line-height:1.65;">
-        <b style="color:#0F1F5C">시공방법은 영상만 따라하면 누구나 OK</b> — R&D 고품질 자재라 가능. 다만 <b style="color:#DC2626">사다리·로프 작업이 필요한 부위는 안전상</b> <a href="#" style="color:#EA580C;font-weight:800;text-decoration:none;">시공 매칭</a> 권장 · 시공업자는 모든 부위 자유 구매
+      <div style="text-align:center;margin-bottom:18px;font-size:12px;color:#6B7280;line-height:1.65;">
+        <b style="color:#0F1F5C">시공방법은 영상만 따라하면 누구나 OK</b> — R&D 고품질 자재라 가능. 시공업자는 모든 부위 자유 구매하세요.
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 18px;background:linear-gradient(135deg,#FEF3C7,#FFEDD5);border:1px solid #FCD34D;border-radius:14px;margin-bottom:24px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:220px;font-size:13px;color:#0F1F5C;line-height:1.55;font-weight:700;">
+          <span style="display:inline-block;padding:3px 9px;background:#fff;border:1px solid #FCA5A5;color:#DC2626;font-size:11px;font-weight:900;border-radius:5px;margin-right:8px;">⛑️ 안전 시공 권장</span>
+          안전상 셀프가 어려우시면 — <b style="color:#DC2626;">시공연결 도와드려요</b>
+        </div>
+        <a href="https://www.poursolution.net/163" style="padding:11px 22px;background:linear-gradient(135deg,#F97316,#EA580C);color:#fff;border-radius:10px;font-size:13px;font-weight:900;text-decoration:none;box-shadow:0 4px 14px rgba(249,115,22,.35);white-space:nowrap;">신청하기 →</a>
       </div>
       <div class="ppr1-nav">
         <a class="ppr1-card" href="#area-slab"><div class="icon">🟦</div><div class="name">슬라브</div><div class="count">패키지 6종</div><span class="self ok">✅ 셀프 OK</span><span class="hot">HOT</span></a>
@@ -1386,7 +1393,7 @@ show('entry');
             <div class="self-icon">🎬</div>
             <div class="self-text">
               <div class="self-label">포함 가이드 · 풀세트</div>
-              <div class="self-meta"><span>▶ 영상 5편</span><span>📄 시방서 PDF</span><span>📞 전화 코칭</span></div>
+              <div class="self-meta"><span>▶ 영상 5편</span><span>📞 전화 코칭</span></div>
             </div>
           </div>
         </div>
@@ -1411,7 +1418,14 @@ show('entry');
       </div>
       <div class="pprt-info">
         <div class="ico">📺</div>
-        <div class="text"><b>시공방법 자체는 영상만 따라하면 누구나 OK</b> — 고품질 R&D 자재 덕분이에요. 시공업자에게는 빠른 시방 레퍼런스, 셀프 시공자에게는 단계별 가이드. 다만 <b>사다리·로프 작업이 필요한 부위는 안전상 시공 매칭</b>을 권장드립니다.</div>
+        <div class="text"><b>시공방법은 영상만 따라하면 누구나 OK</b> — 고품질 R&D 자재라 가능. 시공업자에게는 빠른 시방 레퍼런스, 셀프 시공자에게는 단계별 가이드.</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;padding:14px 18px;background:linear-gradient(135deg,#FEF3C7,#FFEDD5);border:1px solid #FCD34D;border-radius:14px;margin-top:14px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:220px;font-size:13px;color:#0F1F5C;line-height:1.55;font-weight:700;">
+          <span style="display:inline-block;padding:3px 9px;background:#fff;border:1px solid #FCA5A5;color:#DC2626;font-size:11px;font-weight:900;border-radius:5px;margin-right:8px;">⛑️ 안전 시공 권장</span>
+          안전상 셀프가 어려우시면 — <b style="color:#DC2626;">시공연결 도와드려요</b>
+        </div>
+        <a href="https://www.poursolution.net/163" style="padding:11px 22px;background:linear-gradient(135deg,#F97316,#EA580C);color:#fff;border-radius:10px;font-size:13px;font-weight:900;text-decoration:none;box-shadow:0 4px 14px rgba(249,115,22,.35);white-space:nowrap;">신청하기 →</a>
       </div>
     </div>
   </section>`;
@@ -1476,7 +1490,7 @@ show('entry');
             <div class="desc">누수·중성화·결로 동시 해결 — 약 50평형 기준</div>
             <div class="price"><span class="sale">22%</span><span class="now">240,000원~</span></div>
             <div class="meta"><span class="star">★</span><span>4.9</span><span>·</span><span>리뷰 412</span></div>
-            <div class="footer"><span class="self ok">✅ 셀프 OK</span><span class="media video">▶ 영상 5편</span><span class="media">📄 PDF</span></div>
+            <div class="footer"><span class="self ok">✅ 셀프 OK</span><span class="media video">▶ 영상 5편</span></div>
           </div>
         </a>
         <a class="ppr2-card" href="#">
@@ -1490,7 +1504,7 @@ show('entry');
             <div class="desc">균열 보수부터 마감 도장까지 일괄 — 고급형</div>
             <div class="price"><span class="sale">15%</span><span class="now">320,000원~</span></div>
             <div class="meta"><span class="star">★</span><span>4.8</span><span>·</span><span>리뷰 287</span></div>
-            <div class="footer"><span class="self pro">⛑️ 안전 시공 권장</span><span class="media video">▶ 영상 4편</span><span class="media">📄 PDF</span></div>
+            <div class="footer"><span class="self pro">⛑️ 안전 시공 권장</span><span class="media video">▶ 영상 4편</span></div>
           </div>
         </a>
         <a class="ppr2-card" href="#">
@@ -1504,7 +1518,7 @@ show('entry');
             <div class="desc">베란다 + 배수로 보수 — 셀프 입문자 추천</div>
             <div class="price"><span class="sale">10%</span><span class="now">128,000원~</span></div>
             <div class="meta"><span class="star">★</span><span>4.9</span><span>·</span><span>리뷰 196</span></div>
-            <div class="footer"><span class="self ok">✅ 셀프 OK</span><span class="media video">▶ 영상 3편</span><span class="media">📄 PDF</span></div>
+            <div class="footer"><span class="self ok">✅ 셀프 OK</span><span class="media video">▶ 영상 3편</span></div>
           </div>
         </a>
         <a class="ppr2-card" href="#">
@@ -1518,7 +1532,7 @@ show('entry');
             <div class="desc">에폭시 박락·미끄럼 — 약 30평 단위</div>
             <div class="price"><span class="sale">12%</span><span class="now">156,000원~</span></div>
             <div class="meta"><span class="star">★</span><span>4.7</span><span>·</span><span>리뷰 158</span></div>
-            <div class="footer"><span class="self ok">✅ 셀프 OK</span><span class="media video">▶ 영상 4편</span><span class="media">📄 PDF</span></div>
+            <div class="footer"><span class="self ok">✅ 셀프 OK</span><span class="media video">▶ 영상 4편</span></div>
           </div>
         </a>
       </div>
@@ -1582,7 +1596,7 @@ show('entry');
             <div class="name">이음부 누수 풀세트 (창틀+벽체)</div>
             <div class="desc">창틀·벽체 이음부 누수 일괄 해결 — 신규</div>
             <div class="price"><span class="now">98,000원</span><span class="original">128,000원</span></div>
-            <div class="footer"><span class="self ok">✅ 셀프 OK</span><span class="media">▶ 영상 4편</span><span class="media">📄 PDF</span></div>
+            <div class="footer"><span class="self ok">✅ 셀프 OK</span><span class="media">▶ 영상 4편</span></div>
           </div>
         </a>
         <a class="ppr3-card" href="#">
@@ -1596,7 +1610,7 @@ show('entry');
             <div class="name">저층 외벽 균열 셀프 보수 키트</div>
             <div class="desc">2-3층 주택 외벽 균열 — 사다리 작업 가능</div>
             <div class="price"><span class="now">86,000원</span><span class="original">110,000원</span></div>
-            <div class="footer"><span class="self ok">✅ 저층 셀프</span><span class="media">▶ 영상 3편</span><span class="media">📄 PDF</span></div>
+            <div class="footer"><span class="self ok">✅ 저층 셀프</span><span class="media">▶ 영상 3편</span></div>
           </div>
         </a>
         <a class="ppr3-card" href="#">
@@ -1610,7 +1624,7 @@ show('entry');
             <div class="name">박공지붕 슁글 누수 풀세트 (1026호)</div>
             <div class="desc">건설신기술 1026호 적용 — 강풍·누수 동시</div>
             <div class="price"><span class="now">186,000원</span><span class="original">240,000원</span></div>
-            <div class="footer"><span class="self pro">⛑️ 안전 시공 권장</span><span class="media">▶ 영상 5편</span><span class="media">📄 PDF</span></div>
+            <div class="footer"><span class="self pro">⛑️ 안전 시공 권장</span><span class="media">▶ 영상 5편</span></div>
           </div>
         </a>
         <a class="ppr3-card" href="#">
@@ -1624,7 +1638,7 @@ show('entry');
             <div class="name">옥상 결로·들뜸 방지 키트</div>
             <div class="desc">페이퍼팬벤트 + 배관 트랩 신규 조합</div>
             <div class="price"><span class="now">62,000원</span><span class="original">82,000원</span></div>
-            <div class="footer"><span class="self ok">✅ 셀프 OK</span><span class="media">▶ 영상 3편</span><span class="media">📄 PDF</span></div>
+            <div class="footer"><span class="self ok">✅ 셀프 OK</span><span class="media">▶ 영상 3편</span></div>
           </div>
         </a>
       </div>
@@ -1842,12 +1856,11 @@ show('entry');
     <div class="ppr5-inner">
       <div class="ppr5-head">
         <div class="kicker">▶ HOW TO INSTALL</div>
-        <h2>패키지별 시공 영상·설명서</h2>
-        <p>모든 패키지에 영상 가이드와 PDF 설명서가 포함됩니다 — 셀프 시공도, 발주 검토도 OK</p>
+        <h2>패키지별 시공 영상</h2>
+        <p>모든 패키지에 영상 가이드와 전화 코칭이 포함됩니다 — 셀프 시공도, 발주 검토도 OK</p>
       </div>
       <div class="ppr5-tabs">
         <button class="ppr5-tab active">▶ 영상 가이드</button>
-        <button class="ppr5-tab">📄 PDF 설명서</button>
         <button class="ppr5-tab">📞 전화 코칭</button>
       </div>
 
@@ -1866,24 +1879,6 @@ show('entry');
           <a class="ppr5-mini" href="#"><div class="thumb" style="background-image:url('https://placehold.co/200x125/059669/fff?text=JOINT')"><div class="dur">19:30</div></div><div class="text"><div class="sub">이음부 풀패키지</div><div class="title">창틀·벽체 이음부 누수 시공 (4편)</div><div class="meta">조회 9.8K · ✅ 셀프</div></div></a>
           <a class="ppr5-mini" href="#"><div class="thumb" style="background-image:url('https://placehold.co/200x125/FB923C/fff?text=CRACK')"><div class="dur">15:12</div></div><div class="text"><div class="sub">저층 외벽 균열</div><div class="title">사다리로 가능한 저층 외벽 균열 보수 (3편)</div><div class="meta">조회 8.2K · ⚠️ 저층</div></div></a>
         </div>
-      </div>
-
-      <div class="ppr5-divider"></div>
-
-      <div class="ppr5-docs-head">
-        <div class="left">
-          <div class="label">📄 PDF SPEC SHEETS</div>
-          <h3>패키지별 시공 설명서 (PDF)</h3>
-        </div>
-        <a class="more" href="https://www.pourstore.net/spec">전체 시방서 →</a>
-      </div>
-      <div class="ppr5-docs">
-        <a class="ppr5-doc" href="#"><div class="pdf-icon">PDF</div><div class="info"><div class="area">슬라브 풀패키지</div><div class="name">옥상 슬라브 듀얼강화방수 시방서</div><div class="meta">2.4 MB · 다운로드 1,245</div></div></a>
-        <a class="ppr5-doc" href="#"><div class="pdf-icon">PDF</div><div class="info"><div class="area">외벽 재도장 풀패키지</div><div class="name">외벽 균열보수·재도장 시방서 (3등급)</div><div class="meta">3.1 MB · 다운로드 1,438</div></div></a>
-        <a class="ppr5-doc" href="#"><div class="pdf-icon">PDF</div><div class="info"><div class="area">슁글 풀패키지</div><div class="name">박공지붕 슁글 방수공법 시방서 (1026호)</div><div class="meta">1.8 MB · 다운로드 982</div></div></a>
-        <a class="ppr5-doc" href="#"><div class="pdf-icon">PDF</div><div class="info"><div class="area">베란다 풀패키지</div><div class="name">베란다 누수·곰팡이 시공 가이드</div><div class="meta">1.2 MB · 다운로드 856</div></div></a>
-        <a class="ppr5-doc" href="#"><div class="pdf-icon">PDF</div><div class="info"><div class="area">지하주차장 풀패키지</div><div class="name">에폭시·엠보라이닝 시방서 + MMA 옵션</div><div class="meta">2.7 MB · 다운로드 765</div></div></a>
-        <a class="ppr5-doc" href="#"><div class="pdf-icon">PDF</div><div class="info"><div class="area">이음부 부분 패키지</div><div class="name">창틀·벽체 이음부 실링·누수 보수 가이드</div><div class="meta">1.0 MB · 다운로드 612</div></div></a>
       </div>
 
       <div class="ppr5-coach">
@@ -4003,11 +3998,11 @@ show('entry');
     ]},
     { id: 'products', name: '제품 소개', file: 'products.html', sections: [
       mkSec('부위별 패키지 네비', SEED_PR_NAV_HTML, '9개 부위 카드 (슬라브/슁글/기와/균열/재도장/칼라강판/배수로/주차장/이음부) + 라인 토글(아파트/저층) + HOT 배지', 'wip'),
-      mkSec('패키지 등급 가이드', SEED_PR_TIER_HTML, '풀패키지(강력추천) / 부분 패키지 / 단순 코팅 3티어 — 각 카드에 시공 영상·설명서·코칭 표시', 'wip'),
+      mkSec('패키지 등급 가이드', SEED_PR_TIER_HTML, '풀패키지(강력추천) / 부분 패키지 / 단순 코팅 3티어 — 각 카드에 시공 영상·코칭 표시', 'wip'),
       mkSec('베스트 패키지', SEED_PR_BEST_HTML, '4종 풀/부분 패키지 — 랭크·티어 배지 + 자재 조합 표시 + 셀프/시공연결 + 영상·PDF 인디케이터', 'wip'),
       mkSec('신규 패키지', SEED_PR_NEW_HTML, '4종 신규 패키지 — 이음부 풀/저층 균열/슁글 1026호 풀/결로방지 — 한정 할인 + 셀프·시공연결 + 영상·PDF', 'wip'),
       mkSec('전체 패키지 매트릭스', SEED_PR_GRID_HTML, '시안 매트릭스 그대로 — 라인(아파트/저층) × 부위 4그룹 × 등급 3티어, 부위별 셀프/시공연결 표시', 'wip'),
-      mkSec('시공 가이드 (영상·설명서·코칭)', SEED_PR_GUIDE_HTML, '영상/PDF/코칭 3탭 — 피처 영상(슬라브 풀세트) + 미니 4 + PDF 시방서 6 + 전화 코칭 안내', 'wip'),
+      mkSec('시공 가이드 (영상·코칭)', SEED_PR_GUIDE_HTML, '영상/코칭 2탭 — 피처 영상(슬라브 풀세트) + 미니 4 + 전화 코칭 안내 (시방서는 매거진으로 분리)', 'wip'),
     ]},
     { id: 'construction', name: '시공 사례', file: 'construction.html', sections: [
       mkSec('사례 인트로', SEED_CS_INTRO_HTML, '라이트 크림 + 4개 핵심 수치 (700+/260만/150만㎡/17개 광역시도)', 'wip'),

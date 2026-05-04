@@ -3115,55 +3115,133 @@ show('entry');
         <h2>시공 연결 신청서</h2>
         <p>아래 정보 입력 후 영업일 기준 1-2일 내 추천 파트너사가 연락드립니다</p>
       </div>
-      <form class="pmt3-card">
+      <form class="pmt3-card" id="pmt3-form" onsubmit="return false;">
         <div class="pmt3-section">
           <div class="stitle">📍 1. 지역·건물 유형</div>
           <div class="pmt3-row split">
-            <div><label>지역</label><select><option>선택</option><option>서울</option><option>경기</option><option>인천</option><option>부산</option><option>대구</option><option>광주</option><option>대전</option><option>기타</option></select></div>
-            <div><label>건물 유형</label><select><option>선택</option><option>아파트</option><option>관공서</option><option>학교·병원</option><option>상가·오피스</option><option>공장·창고</option><option>주택</option></select></div>
+            <div><label>지역</label><select id="pmt3-region"><option value="">선택</option><option>서울</option><option>경기</option><option>인천</option><option>부산</option><option>대구</option><option>광주</option><option>대전</option><option>기타</option></select></div>
+            <div><label>건물 유형</label><select id="pmt3-building"><option value="">선택</option><option>아파트</option><option>관공서</option><option>학교·병원</option><option>상가·오피스</option><option>공장·창고</option><option>주택</option></select></div>
           </div>
         </div>
         <div class="pmt3-section">
           <div class="stitle">🔧 2. 문제·필요한 공법 (복수 선택)</div>
-          <div class="pmt3-chips">
-            <button type="button" class="pmt3-chip active">옥상 누수</button>
-            <button type="button" class="pmt3-chip">외벽 균열</button>
-            <button type="button" class="pmt3-chip">지하 누수</button>
-            <button type="button" class="pmt3-chip">지하주차장</button>
-            <button type="button" class="pmt3-chip">슁글 지붕</button>
-            <button type="button" class="pmt3-chip">금속기와</button>
-            <button type="button" class="pmt3-chip">결로·곰팡이</button>
-            <button type="button" class="pmt3-chip">아스콘·도로</button>
-            <button type="button" class="pmt3-chip">기타</button>
+          <div class="pmt3-chips" id="pmt3-methods">
+            <button type="button" class="pmt3-chip active" data-v="옥상 누수">옥상 누수</button>
+            <button type="button" class="pmt3-chip" data-v="외벽 균열">외벽 균열</button>
+            <button type="button" class="pmt3-chip" data-v="지하 누수">지하 누수</button>
+            <button type="button" class="pmt3-chip" data-v="지하주차장">지하주차장</button>
+            <button type="button" class="pmt3-chip" data-v="슁글 지붕">슁글 지붕</button>
+            <button type="button" class="pmt3-chip" data-v="금속기와">금속기와</button>
+            <button type="button" class="pmt3-chip" data-v="결로·곰팡이">결로·곰팡이</button>
+            <button type="button" class="pmt3-chip" data-v="아스콘·도로">아스콘·도로</button>
+            <button type="button" class="pmt3-chip" data-v="기타">기타</button>
           </div>
         </div>
         <div class="pmt3-section">
           <div class="stitle">💰 3. 예상 예산 범위</div>
-          <div class="pmt3-budget">
-            <div class="pmt3-budget-item"><div class="v">~500</div><div class="l">만원</div></div>
-            <div class="pmt3-budget-item active"><div class="v">500-2K</div><div class="l">만원</div></div>
-            <div class="pmt3-budget-item"><div class="v">2K-5K</div><div class="l">만원</div></div>
-            <div class="pmt3-budget-item"><div class="v">5K-1억</div><div class="l">원</div></div>
-            <div class="pmt3-budget-item"><div class="v">1억+</div><div class="l">원</div></div>
+          <div class="pmt3-budget" id="pmt3-budget">
+            <div class="pmt3-budget-item" data-v="~500"><div class="v">~500</div><div class="l">만원</div></div>
+            <div class="pmt3-budget-item active" data-v="500-2000"><div class="v">500-2K</div><div class="l">만원</div></div>
+            <div class="pmt3-budget-item" data-v="2000-5000"><div class="v">2K-5K</div><div class="l">만원</div></div>
+            <div class="pmt3-budget-item" data-v="5000-10000"><div class="v">5K-1억</div><div class="l">원</div></div>
+            <div class="pmt3-budget-item" data-v="10000+"><div class="v">1억+</div><div class="l">원</div></div>
           </div>
         </div>
         <div class="pmt3-section">
           <div class="stitle">📝 4. 상세 내용</div>
-          <div class="pmt3-row"><label>문제 상황·시급도</label><textarea placeholder="누수 위치, 발생 시기, 진행 정도, 희망 시공 일정 등"></textarea></div>
+          <div class="pmt3-row"><label>문제 상황·시급도</label><textarea id="pmt3-desc" placeholder="누수 위치, 발생 시기, 진행 정도, 희망 시공 일정 등"></textarea></div>
         </div>
         <div class="pmt3-section">
           <div class="stitle">📞 5. 연락처</div>
           <div class="pmt3-row split">
-            <div><label>성함</label><input type="text" placeholder="홍길동"/></div>
-            <div><label>연락처</label><input type="text" placeholder="010-0000-0000"/></div>
+            <div><label>성함 *</label><input type="text" id="pmt3-name" placeholder="홍길동"/></div>
+            <div><label>연락처 *</label><input type="text" id="pmt3-phone" placeholder="010-0000-0000"/></div>
           </div>
-          <div class="pmt3-row"><label>주소 (현장 위치)</label><input type="text" placeholder="○○도 ○○시 ○○로"/></div>
+          <div class="pmt3-row"><label>주소 (현장 위치)</label><input type="text" id="pmt3-addr" placeholder="○○도 ○○시 ○○로"/></div>
         </div>
         <div class="pmt3-agree"><input type="checkbox" id="ag4"/><label for="ag4">개인정보 수집·이용 및 추천 파트너사 정보 공유에 동의합니다</label></div>
-        <button type="submit" class="pmt3-submit">시공 연결 신청하기</button>
+        <div id="pmt3-msg" style="display:none;margin-bottom:10px;padding:12px 14px;border-radius:9px;font-size:13px;font-weight:700;"></div>
+        <button type="button" id="pmt3-submit-btn" class="pmt3-submit">시공 연결 신청하기</button>
       </form>
     </div>
-  </section>`;
+  </section>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+(function(){
+  if (!window.firebase) { console.warn('[pmt3] Firebase SDK 로드 실패'); return; }
+  if (!firebase.apps.length) {
+    firebase.initializeApp({
+      apiKey: 'AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU',
+      authDomain: 'pour-app-new.firebaseapp.com',
+      projectId: 'pour-app-new',
+      storageBucket: 'pour-app-new.firebasestorage.app',
+      messagingSenderId: '411031141847',
+      appId: '1:411031141847:web:e658174fd4b9652cdadf92'
+    });
+  }
+  var db = firebase.firestore();
+  var root = document.getElementById('match-form');
+  if (!root) return;
+
+  // chip 토글
+  root.querySelectorAll('#pmt3-methods .pmt3-chip').forEach(function(b){
+    b.addEventListener('click', function(){ b.classList.toggle('active'); });
+  });
+  root.querySelectorAll('#pmt3-budget .pmt3-budget-item').forEach(function(b){
+    b.addEventListener('click', function(){
+      root.querySelectorAll('#pmt3-budget .pmt3-budget-item').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');
+    });
+  });
+
+  function showMsg(text, type){
+    var el = root.querySelector('#pmt3-msg');
+    el.textContent = text;
+    el.style.display = 'block';
+    if (type === 'success') { el.style.background = '#ECFDF5'; el.style.border = '1px solid #A7F3D0'; el.style.color = '#047857'; }
+    else { el.style.background = '#FEE2E2'; el.style.border = '1px solid #FCA5A5'; el.style.color = '#DC2626'; }
+  }
+
+  root.querySelector('#pmt3-submit-btn').addEventListener('click', async function(){
+    var name = root.querySelector('#pmt3-name').value.trim();
+    var phone = root.querySelector('#pmt3-phone').value.trim();
+    var agree = root.querySelector('#ag4').checked;
+    if (!name || !phone) { showMsg('성함과 연락처는 필수입니다', 'error'); return; }
+    if (!agree) { showMsg('개인정보 수집·이용 동의가 필요합니다', 'error'); return; }
+
+    var methods = Array.from(root.querySelectorAll('#pmt3-methods .pmt3-chip.active')).map(function(b){return b.dataset.v;});
+    var budgetEl = root.querySelector('#pmt3-budget .pmt3-budget-item.active');
+    var data = {
+      customerName: name,
+      customerPhone: phone,
+      region: root.querySelector('#pmt3-region').value || '',
+      buildingType: root.querySelector('#pmt3-building').value || '',
+      methods: methods,
+      estimatedBudget: budgetEl ? budgetEl.dataset.v : '',
+      description: root.querySelector('#pmt3-desc').value.trim(),
+      address: root.querySelector('#pmt3-addr').value.trim(),
+      status: '신규',
+      source: 'pourstore-site',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    var btn = root.querySelector('#pmt3-submit-btn');
+    btn.disabled = true; btn.textContent = '신청 중...';
+    try {
+      await db.collection('matching-requests').add(data);
+      showMsg('✅ 신청이 접수되었습니다. 영업일 기준 1-2일 내 연락드립니다.', 'success');
+      btn.textContent = '✓ 신청 완료';
+      // 폼 리셋 (선택)
+      setTimeout(function(){ root.querySelector('#pmt3-form').reset(); btn.disabled = false; btn.textContent = '시공 연결 신청하기'; var msg = root.querySelector('#pmt3-msg'); msg.style.display = 'none'; }, 4000);
+    } catch (e) {
+      console.error('[pmt3]', e);
+      showMsg('❌ 전송 실패: ' + e.message + ' — 잠시 후 다시 시도해 주세요', 'error');
+      btn.disabled = false; btn.textContent = '시공 연결 신청하기';
+    }
+  });
+})();
+</script>`;
 
   const SEED_MT_FLOW_HTML = `<style>
   .pmt4 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }

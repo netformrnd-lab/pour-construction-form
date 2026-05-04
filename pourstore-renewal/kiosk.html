@@ -805,7 +805,102 @@ function EstimateMode({ dealer, onBack }) {
 }
 
 // ============================================================
-// Mode Screens — Batch 6에서 실제 콘텐츠 채워질 자리
+// QR 모드 — 카탈로그·견적·매칭을 폰에 QR로 전달 (계약서 X)
+// ============================================================
+const QR_ITEMS = [
+  { id:'catalog', icon:'📦', title:'전체 카탈로그',
+    desc:'9개 부위 × 패키지 풀세트 정보',
+    url:'https://www.pourstore.net/category/all', color:'#F97316' },
+  { id:'guide', icon:'🧭', title:'AI 길잡이 (자가 진단)',
+    desc:'폰에서도 부위·증상으로 맞춤 추천',
+    url:'https://www.pourstore.net/guide', color:'#EA580C' },
+  { id:'videos', icon:'▶', title:'시공 영상 모음',
+    desc:'YouTube 채널 — 패키지별 시공 영상',
+    url:'https://www.pourstore.net/videos', color:'#DC2626' },
+  { id:'matching', icon:'🤝', title:'시공 매칭 신청',
+    desc:'안전 시공 권장 부위 — 가까운 파트너 매칭',
+    url:'https://www.pourstore.net/matching', color:'#0F1F5C' },
+  { id:'estimate', icon:'📐', title:'견적 요청 폼',
+    desc:'정밀 견적 — 도면·사진 첨부 가능',
+    url:'https://www.pourstore.net/estimate', color:'#059669' },
+  { id:'kakao', icon:'💬', title:'카카오톡 채널',
+    desc:'1:1 문의 — 평일 09-18시 응답',
+    url:'https://pf.kakao.com/_pourstore', color:'#FFCD00' },
+];
+
+function QrMode({ dealer, onBack }) {
+  const [selected, setSelected] = useState(null);
+
+  if (selected) {
+    const item = QR_ITEMS.find(x => x.id === selected);
+    return (
+      <div className="fade-in" style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', padding:'24px 32px', overflow:'auto' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:18 }}>
+          <button onClick={() => setSelected(null)} style={{ padding:'10px 16px', borderRadius:10, fontSize:13, fontWeight:800, color:'var(--text-md)', background:'#fff', border:'1px solid var(--border)' }}>← 목록</button>
+          <div>
+            <div style={{ fontSize:11, fontWeight:800, color:'var(--or-d)', letterSpacing:.8 }}>📱 폰에 받기</div>
+            <h1 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', letterSpacing:-0.4 }}>{item.icon} {item.title}</h1>
+          </div>
+        </div>
+        <div style={{ flex:1, display:'grid', placeItems:'center', padding:'20px 0' }}>
+          <div style={{ background:'#fff', border:`2px solid ${item.color}`, borderRadius:24, padding:'40px 36px', maxWidth:480, width:'100%', textAlign:'center', boxShadow:'0 18px 48px rgba(15,31,92,.1)' }}>
+            <div style={{ width:80, height:80, margin:'0 auto 18px', borderRadius:22, background:`linear-gradient(135deg, ${item.color}33, ${item.color}88)`, display:'grid', placeItems:'center', fontSize:38 }}>{item.icon}</div>
+            <h2 style={{ fontSize:20, fontWeight:900, color:'var(--navy)', letterSpacing:-0.4, marginBottom:8 }}>{item.title}</h2>
+            <p style={{ fontSize:13, color:'var(--text-md)', fontWeight:700, lineHeight:1.65, marginBottom:24 }}>{item.desc}</p>
+            <div style={{ marginBottom:14 }}>
+              <QRCode value={item.url} size={220} />
+            </div>
+            <div style={{ padding:'14px 18px', background:'var(--or-pale)', border:'1px solid var(--or-l)', borderRadius:12, fontSize:13, color:'var(--text-md)', fontWeight:700, lineHeight:1.7 }}>
+              📱 카메라 앱으로 QR을 스캔하면 폰에서 바로 열립니다
+            </div>
+            <div style={{ marginTop:14, fontSize:11, color:'var(--text-xs)', fontWeight:700, fontFamily:'monospace', wordBreak:'break-all' }}>
+              {item.url}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fade-in" style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', padding:'24px 32px', overflow:'auto' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:20 }}>
+        <button onClick={onBack} style={{ padding:'10px 16px', borderRadius:10, fontSize:13, fontWeight:800, color:'var(--text-md)', background:'#fff', border:'1px solid var(--border)' }}>← 메뉴로</button>
+        <div>
+          <div style={{ fontSize:11, fontWeight:800, color:'var(--or-d)', letterSpacing:.8 }}>{dealer.dealerName}</div>
+          <h1 style={{ fontSize:24, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6 }}>📱 폰에 받기</h1>
+        </div>
+      </div>
+
+      <div style={{ marginBottom:18, padding:'14px 18px', background:'var(--or-pale)', border:'1px solid var(--or-l)', borderRadius:12, fontSize:12.5, color:'var(--text-md)', fontWeight:700, lineHeight:1.65, maxWidth:780, width:'100%', margin:'0 auto 18px' }}>
+        💡 매장에서 본 정보를 폰으로 가져가세요. 카탈로그·영상·매칭 신청까지 — 어디서든 다시 보실 수 있습니다.
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(260px, 1fr))', gap:12, maxWidth:1100, width:'100%', margin:'0 auto' }}>
+        {QR_ITEMS.map(item => (
+          <button key={item.id} onClick={() => setSelected(item.id)} style={{
+            background:'#fff', border:`1.5px solid ${item.color}33`, borderRadius:16, padding:'20px 22px',
+            textAlign:'left', cursor:'pointer', transition:'all .25s'
+          }} onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = item.color; e.currentTarget.style.boxShadow = `0 12px 24px ${item.color}22`; }} onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = `${item.color}33`; e.currentTarget.style.boxShadow = 'none'; }}>
+            <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:10 }}>
+              <div style={{ width:48, height:48, borderRadius:13, background:`linear-gradient(135deg, ${item.color}22, ${item.color}55)`, display:'grid', placeItems:'center', fontSize:24 }}>{item.icon}</div>
+              <div>
+                <div style={{ fontSize:15.5, fontWeight:900, color:'var(--navy)', letterSpacing:-0.3 }}>{item.title}</div>
+              </div>
+            </div>
+            <div style={{ fontSize:12, color:'var(--text-md)', fontWeight:700, lineHeight:1.55, marginBottom:10 }}>{item.desc}</div>
+            <div style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'5px 11px', background:'var(--bg)', borderRadius:6, fontSize:11, fontWeight:800, color: item.color }}>
+              📱 QR 보기 →
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Mode Screens — 모든 batch 완료 후 fallback
 // ============================================================
 function ModePlaceholder({ mode, dealer, onBack }) {
   const titles = {
@@ -1033,7 +1128,7 @@ function App() {
       {!latestOrder && mode === 'videos' && <VideosMode dealer={setup} onBack={() => setMode(null)} />}
       {!latestOrder && mode === 'guide' && <GuideMode dealer={setup} onBack={() => setMode(null)} />}
       {!latestOrder && mode === 'estimate' && <EstimateMode dealer={setup} onBack={() => setMode(null)} />}
-      {!latestOrder && mode && !['catalog','videos','guide','estimate'].includes(mode) && <ModePlaceholder mode={mode} dealer={setup} onBack={() => setMode(null)} />}
+      {!latestOrder && mode === 'qr' && <QrMode dealer={setup} onBack={() => setMode(null)} />}
       {error && <ErrorBanner message={error} />}
     </>
   );

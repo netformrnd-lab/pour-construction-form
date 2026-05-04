@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>벽돌 발수 코팅제 4kg — 페일 라벨 전개도 | POUR스토어</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;800;900&family=Montserrat:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --or: #E8780F;
+    --or2: #F49A3A;
+    --or-deep: #C45F00;
+    --navy: #0B1848;
+    --navy2: #0F1F5C;
+    --ink: #111827;
+    --muted: #6B7280;
+    --line: #D1D5DB;
+    --paper: #F5F2EC;
+  }
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  html, body {
+    background:#1a1a2e;
+    min-height:100vh;
+    font-family:'Noto Sans KR','Malgun Gothic',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+    padding:0;
+  }
+  .scaler { transform-origin: top left; display:block; }
+  .stage {
+    width: 2400px;
+    padding: 60px;
+    background:
+      repeating-linear-gradient(45deg, transparent 0 18px, rgba(255,255,255,0.02) 18px 19px),
+      linear-gradient(180deg,#0d0d1f,#1a1a2e);
+  }
+  .info {
+    max-width: 2280px;
+    margin: 0 auto 28px;
+    color:#fff;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:32px;
+  }
+  .info h1 { font-size:34px; font-weight:900; letter-spacing:-1px; }
+  .info h1 em { font-style:normal; color:var(--or2); }
+  .info .sub { font-size:13px; color:rgba(255,255,255,0.55); margin-top:6px; letter-spacing:0.3px; }
+  .info .meta { font-size:12px; color:rgba(255,255,255,0.45); text-align:right; line-height:1.7; }
+  .info .meta b { color:var(--or2); font-weight:700; }
+  .label-frame {
+    background:#fff;
+    border-radius:6px;
+    padding:24px;
+    box-shadow: 0 12px 60px rgba(0,0,0,0.45);
+  }
+  svg.label-svg { display:block; width:100%; height:auto; }
+  /* 액션 버튼 */
+  .actions {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 9999;
+    display: flex;
+    gap: 8px;
+  }
+  .actions button {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+  #btn-svg { background: var(--or); color:#fff; }
+  #btn-svg:hover { background: var(--or2); }
+  #btn-png { background: #2563EB; color:#fff; }
+  #btn-png:hover { background: #1d4ed8; }
+  #view-toggle { background: rgba(255,255,255,0.92); color:#111; display:none; }
+</style>
+</head>
+<body>
+
+<div class="actions">
+  <button id="view-toggle">🔍 확대 보기</button>
+  <button id="btn-svg">📥 SVG 다운로드 (일러스트용)</button>
+  <button id="btn-png">📷 PNG 미리보기</button>
+</div>
+
+<div class="scaler">
+<div class="stage">
+
+  <div class="info">
+    <div>
+      <h1>벽돌 발수 코팅제 <em>4kg 페일</em> — 라벨 전개도</h1>
+      <div class="sub">600 × 180 mm 기준 · 좌측(설명) · 중앙(전면) · 우측(주의사항) · 절단 여백 5mm 포함</div>
+    </div>
+    <div class="meta">
+      POUR스토어 / 벽돌 발수 코팅제<br>
+      <b>SVG 다운로드 → Illustrator에서 편집 가능</b><br>
+      텍스트는 모두 &lt;text&gt; 요소로 추출됩니다
+    </div>
+  </div>
+
+  <div class="label-frame">
+    <!--
+      ▼ 페일 라벨 전개도 (네이티브 SVG)
+      좌표계: 2400 × 720 (1mm = 4px → 600mm × 180mm)
+      좌패널: 0~800 (설명/특징/시공)
+      중앙패널: 800~1600 (전면 비주얼)
+      우패널: 1600~2400 (보관/주의사항)
+      절단여백 20px (= 5mm)
+    -->
+    <svg class="label-svg" id="label-svg"
+         xmlns="http://www.w3.org/2000/svg"
+         viewBox="0 0 2400 720"
+         width="2400" height="720"
+         font-family="'Noto Sans KR', 'Malgun Gothic', sans-serif">
+
+      <defs>
+        <!-- 그라디언트 -->
+        <linearGradient id="frontBg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#1a2647"/>
+          <stop offset="50%" stop-color="#0F1F5C"/>
+          <stop offset="100%" stop-color="#0B1848"/>
+        </linearGradient>
+        <linearGradient id="orangeBar" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#E8780F"/>
+          <stop offset="100%" stop-color="#F49A3A"/>
+        </linearGradient>
+        <linearGradient id="brickFade" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#8B3A1F" stop-opacity="0.0"/>
+          <stop offset="100%" stop-color="#3a1810" stop-opacity="0.55"/>
+        </linearGradient>
+        <radialGradient id="waterDrop" cx="35%" cy="30%" r="60%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/>
+          <stop offset="40%" stop-color="#cfe6ff" stop-opacity="0.5"/>
+          <stop offset="100%" stop-color="#7fb6e8" stop-opacity="0.15"/>
+        </radialGradient>
+        <pattern id="brickPattern" x="0" y="0" width="120" height="60" patternUnits="userSpaceOnUse">
+          <rect width="120" height="60" fill="#8B3A1F"/>
+          <!-- 벽돌 라인 -->
+          <rect x="0" y="0" width="120" height="60" fill="none" stroke="#3a1810" stroke-width="2"/>
+          <line x1="60" y1="0" x2="60" y2="30" stroke="#3a1810" stroke-width="2"/>
+          <line x1="0" y1="30" x2="120" y2="30" stroke="#3a1810" stroke-width="2"/>
+          <line x1="0" y1="30" x2="0" y2="60" stroke="#3a1810" stroke-width="2"/>
+          <line x1="120" y1="30" x2="120" y2="60" stroke="#3a1810" stroke-width="2"/>
+          <!-- 텍스처 -->
+          <rect x="6" y="6" width="50" height="20" fill="#9c4524" opacity="0.4"/>
+          <rect x="66" y="36" width="50" height="20" fill="#a04a26" opacity="0.4"/>
+        </pattern>
+      </defs>
+
+      <!-- ───────── 절단 가이드 (출력 시 제거 가능 — id="cut-guides") ───────── -->
+      <g id="cut-guides" stroke="#FF00FF" stroke-width="1" stroke-dasharray="6 4" fill="none" opacity="0.6">
+        <rect x="0" y="0" width="2400" height="720"/>
+        <rect x="20" y="20" width="2360" height="680"/>
+        <line x1="800" y1="0" x2="800" y2="720"/>
+        <line x1="1600" y1="0" x2="1600" y2="720"/>
+      </g>
+
+      <!-- ═════════════════════════════════════════════════════════
+           좌패널 (0~800): 설명·특징·용도·작업조건·표면처리·시공방법
+           ═════════════════════════════════════════════════════════ -->
+      <g id="panel-left">
+        <rect x="0" y="0" width="800" height="720" fill="#FFFFFF"/>
+
+        <!-- 헤더 -->
+        <text x="40" y="58" font-size="22" font-weight="900" fill="#0B1848">포어스토어 벽돌 발수 코팅제</text>
+        <text x="40" y="86" font-size="11.5" font-weight="500" fill="#374151">벽돌·점토벽돌·고벽돌 표면의 백화(하얀 얼룩) 및 오염을 근본적으로 차단하는</text>
+        <text x="40" y="104" font-size="11.5" font-weight="500" fill="#374151">침투형 발수 코팅제. 수성 무취 1액형으로 누구나 간편하게 시공 가능.</text>
+
+        <line x1="40" y1="124" x2="760" y2="124" stroke="#E8780F" stroke-width="2"/>
+
+        <!-- 특징 -->
+        <text x="40" y="156" font-size="14" font-weight="900" fill="#E8780F">특징</text>
+        <g font-size="11" font-weight="500" fill="#1F2937">
+          <text x="40" y="180">• 1액형 제품으로 사용이 편리하고 작업성 우수</text>
+          <text x="40" y="200">• 수용성으로 무독, 무취한 친환경 제품</text>
+          <text x="40" y="220">• 기공 내부 5~8mm 침투 발수막 형성</text>
+          <text x="40" y="240">• 내후성, 내오염성, 내수성 우수</text>
+          <text x="40" y="260">• 백화(하얀 얼룩) 원인 수분 침투 완전 차단</text>
+        </g>
+
+        <!-- 용도 -->
+        <text x="40" y="296" font-size="14" font-weight="900" fill="#E8780F">용도</text>
+        <g font-size="11" font-weight="500" fill="#1F2937">
+          <text x="40" y="320">• 외벽 벽돌, 점토벽돌, 고벽돌, 조적 외벽</text>
+          <text x="40" y="340">• 단독주택·빌라 외벽, 담장, 조경 벽돌</text>
+          <text x="40" y="360">• 백화 현상이 반복되는 모든 벽돌 표면</text>
+        </g>
+
+        <!-- 작업조건 -->
+        <text x="40" y="396" font-size="14" font-weight="900" fill="#E8780F">작업조건</text>
+        <g font-size="11" font-weight="500" fill="#1F2937">
+          <text x="40" y="420">• 대기온도 5℃~35℃ 사이에서 작업한다.</text>
+          <text x="40" y="440">• 상대습도 80% 이하, 하지면 온도 40℃ 이하에서 작업한다.</text>
+        </g>
+
+        <!-- 표면처리 -->
+        <text x="40" y="476" font-size="14" font-weight="900" fill="#E8780F">표면처리</text>
+        <g font-size="11" font-weight="500" fill="#1F2937">
+          <text x="40" y="500">• 시공 부위의 기름, 이끼, 이물질을 깨끗이 제거한다.</text>
+          <text x="40" y="520">• 백화(하얀 얼룩) 부위는 물청소 후 완전 건조한다.</text>
+          <text x="40" y="540">• 소지면이 부실할 경우 프라이머를 도포하여 부착력을 향상한다.</text>
+          <text x="40" y="560">• 깨끗하고 건조한 상태에서 시공하십시오.</text>
+        </g>
+
+        <!-- 시공방법 -->
+        <text x="40" y="596" font-size="14" font-weight="900" fill="#E8780F">시공방법</text>
+        <g font-size="11" font-weight="500" fill="#1F2937">
+          <text x="40" y="620">• 원액 그대로 붓·롤러로 1차 도포한다.</text>
+          <text x="40" y="640">• 2시간 건조 후 2차 도포한다. (흡수 많은 면은 3차)</text>
+          <text x="40" y="660">• 24시간 완전 건조 후 사용 가능하다.</text>
+        </g>
+
+        <!-- 색상·중량 -->
+        <line x1="40" y1="678" x2="760" y2="678" stroke="#D1D5DB" stroke-width="1"/>
+        <text x="40" y="700" font-size="10.5" font-weight="700" fill="#6B7280">색상 ㅣ 유백색 (건조 후 투명)</text>
+        <text x="500" y="700" font-size="10.5" font-weight="700" fill="#6B7280">포장단위 ㅣ Gross Weight l 4kg pail</text>
+      </g>
+
+      <!-- ═════════════════════════════════════════════════════════
+           중앙패널 (800~1600): 전면 비주얼
+           ═════════════════════════════════════════════════════════ -->
+      <g id="panel-front">
+        <!-- 배경 (벽돌 + 다크 오버레이) -->
+        <rect x="800" y="0" width="800" height="720" fill="url(#brickPattern)"/>
+        <rect x="800" y="0" width="800" height="720" fill="url(#brickFade)"/>
+        <rect x="800" y="0" width="800" height="720" fill="#0B1848" opacity="0.35"/>
+
+        <!-- 물방울 데코 (4개) -->
+        <g opacity="0.85">
+          <ellipse cx="900" cy="180" rx="14" ry="18" fill="url(#waterDrop)"/>
+          <ellipse cx="1480" cy="160" rx="11" ry="14" fill="url(#waterDrop)"/>
+          <ellipse cx="1320" cy="240" rx="9" ry="11" fill="url(#waterDrop)"/>
+          <ellipse cx="980" cy="270" rx="7" ry="9" fill="url(#waterDrop)"/>
+          <ellipse cx="1530" cy="280" rx="13" ry="16" fill="url(#waterDrop)"/>
+          <ellipse cx="860" cy="340" rx="6" ry="8" fill="url(#waterDrop)"/>
+        </g>
+
+        <!-- 로고 영역 -->
+        <g id="logo-front">
+          <rect x="1080" y="44" width="240" height="86" rx="6" fill="#FFFFFF" opacity="0.96"/>
+          <!-- 빌딩 실루엣 (로고 마크 자리) -->
+          <g transform="translate(1108,58)" fill="#0B1848">
+            <rect x="0" y="14" width="6" height="22"/>
+            <rect x="9" y="6" width="6" height="30"/>
+            <rect x="18" y="10" width="6" height="26"/>
+            <rect x="27" y="2" width="6" height="34"/>
+            <rect x="36" y="8" width="6" height="28"/>
+            <rect x="45" y="14" width="6" height="22"/>
+          </g>
+          <text x="1200" y="86" text-anchor="middle" font-size="28" font-weight="900" fill="#0B1848" font-family="'Montserrat','Noto Sans KR',sans-serif" letter-spacing="3">POUR</text>
+          <text x="1200" y="115" text-anchor="middle" font-size="14" font-weight="800" fill="#0B1848" letter-spacing="6">포어스토어</text>
+        </g>
+
+        <!-- 메인 타이틀 -->
+        <g id="title-front">
+          <text x="1200" y="320" text-anchor="middle" font-size="92" font-weight="900" fill="#FFFFFF" letter-spacing="-2">
+            벽돌 발수
+          </text>
+          <text x="1200" y="412" text-anchor="middle" font-size="92" font-weight="900" fill="#FFFFFF" letter-spacing="-2">
+            코팅제
+          </text>
+          <!-- 타이틀 백라이트 -->
+          <rect x="900" y="220" width="600" height="6" fill="url(#orangeBar)" opacity="0.9"/>
+        </g>
+
+        <!-- 서브 카피 -->
+        <g id="subcopy-front">
+          <rect x="900" y="450" width="600" height="44" fill="#FFFFFF" opacity="0.95" rx="4"/>
+          <text x="1200" y="479" text-anchor="middle" font-size="20" font-weight="800" fill="#0B1848">백화·오염 차단 벽돌 발수 코팅제</text>
+
+          <text x="1200" y="528" text-anchor="middle" font-size="22" font-weight="800" fill="#F49A3A">
+            <tspan>백화</tspan>
+            <tspan dx="14" fill="#FFFFFF" opacity="0.6">ㅣ</tspan>
+            <tspan dx="14">오염</tspan>
+            <tspan dx="14" fill="#FFFFFF" opacity="0.6">ㅣ</tspan>
+            <tspan dx="14">빗물</tspan>
+            <tspan dx="14" fill="#FFFFFF">한번에 차단</tspan>
+          </text>
+        </g>
+
+        <!-- 용량 강조 -->
+        <text x="1540" y="585" text-anchor="end" font-size="56" font-weight="900" fill="#FFFFFF" font-family="'Montserrat','Noto Sans KR',sans-serif" letter-spacing="-1">4kg</text>
+
+        <!-- 4개 기능 아이콘 -->
+        <g id="features" transform="translate(840,610)">
+          <!-- 백화억제 -->
+          <g transform="translate(0,0)">
+            <rect x="0" y="0" width="170" height="80" rx="6" fill="#FFFFFF"/>
+            <g transform="translate(85,32)" fill="none" stroke="#0B1848" stroke-width="2.5">
+              <rect x="-18" y="-12" width="36" height="24"/>
+              <line x1="-9" y1="-12" x2="-9" y2="0"/>
+              <line x1="9" y1="0" x2="9" y2="12"/>
+              <line x1="-18" y1="0" x2="18" y2="0"/>
+            </g>
+            <text x="85" y="68" text-anchor="middle" font-size="13" font-weight="800" fill="#0B1848">백화억제</text>
+          </g>
+          <!-- 오염방지 -->
+          <g transform="translate(180,0)">
+            <rect x="0" y="0" width="170" height="80" rx="6" fill="#FFFFFF"/>
+            <g transform="translate(85,30)" fill="none" stroke="#0B1848" stroke-width="2.5" stroke-linecap="round">
+              <path d="M -16 -8 L -8 0 L 16 -10"/>
+              <circle cx="-2" cy="6" r="2" fill="#0B1848"/>
+              <circle cx="6" cy="2" r="1.5" fill="#0B1848"/>
+              <circle cx="-10" cy="10" r="1.5" fill="#0B1848"/>
+            </g>
+            <text x="85" y="68" text-anchor="middle" font-size="13" font-weight="800" fill="#0B1848">오염방지</text>
+          </g>
+          <!-- 색상유지 -->
+          <g transform="translate(360,0)">
+            <rect x="0" y="0" width="170" height="80" rx="6" fill="#FFFFFF"/>
+            <g transform="translate(85,30)" fill="#0B1848">
+              <path d="M 0 -14 L 4 -4 L 14 -4 L 6 2 L 9 12 L 0 6 L -9 12 L -6 2 L -14 -4 L -4 -4 Z"/>
+            </g>
+            <text x="85" y="68" text-anchor="middle" font-size="13" font-weight="800" fill="#0B1848">색상유지</text>
+          </g>
+          <!-- 발수코팅 -->
+          <g transform="translate(540,0)">
+            <rect x="0" y="0" width="170" height="80" rx="6" fill="#FFFFFF"/>
+            <g transform="translate(85,30)">
+              <path d="M 0 -16 C -10 -4, -14 4, -14 8 C -14 14, -7 18, 0 18 C 7 18, 14 14, 14 8 C 14 4, 10 -4, 0 -16 Z"
+                    fill="none" stroke="#0B1848" stroke-width="2.5"/>
+              <path d="M -6 4 C -6 1, -3 -2, 0 -2" fill="none" stroke="#0B1848" stroke-width="2" stroke-linecap="round"/>
+            </g>
+            <text x="85" y="68" text-anchor="middle" font-size="13" font-weight="800" fill="#0B1848">발수코팅</text>
+          </g>
+        </g>
+      </g>
+
+      <!-- ═════════════════════════════════════════════════════════
+           우패널 (1600~2400): 건조시간·보관·주의사항
+           ═════════════════════════════════════════════════════════ -->
+      <g id="panel-right">
+        <rect x="1600" y="0" width="800" height="720" fill="#FFFFFF"/>
+
+        <!-- 건조시간 박스 -->
+        <rect x="1640" y="40" width="720" height="92" fill="none" stroke="#0B1848" stroke-width="1.2" rx="3"/>
+        <text x="1660" y="68" font-size="13" font-weight="900" fill="#0B1848">건조시간</text>
+        <g font-size="11" font-weight="500" fill="#1F2937">
+          <text x="1660" y="92">- 표면건조: 약 2~4시간</text>
+          <text x="1660" y="110">- 완전경화: 24시간 이상</text>
+          <text x="1660" y="128">※ 온도·습도에 따라 차이 있음</text>
+        </g>
+
+        <!-- 보관 및 저장기간 박스 -->
+        <rect x="1640" y="148" width="720" height="106" fill="none" stroke="#0B1848" stroke-width="1.2" rx="3"/>
+        <text x="1660" y="176" font-size="13" font-weight="900" fill="#0B1848">보관 및 저장기간</text>
+        <g font-size="11" font-weight="500" fill="#1F2937">
+          <text x="1660" y="200">- 직사광선을 피하고 통풍이 잘되는 냉암소 보관</text>
+          <text x="1660" y="218">- 밀폐 용기에 보관</text>
+          <text x="1660" y="236">- 보관온도: 5℃ ~ 30℃</text>
+          <text x="1660" y="254">- 저장기간: 제조일로부터 12개월</text>
+        </g>
+
+        <!-- 취급보관시 주의사항 -->
+        <text x="1640" y="294" font-size="13" font-weight="900" fill="#E8780F">취급보관시 주의사항</text>
+        <g font-size="9.5" font-weight="500" fill="#1F2937">
+          <text x="1640" y="316">1) 제품보관 및 운송 시 던지거나 충격을 금하며 내용물이 얼지 않도록 상온(5~35℃)의</text>
+          <text x="1640" y="330">   건냉암소에 직사광선을 피하여 보관하시고, 용기는 반드시 밀폐시키고 주입구가 상단을</text>
+          <text x="1640" y="344">   향하도록 세워서 보관하십시오. 사용 후 잔량도 같은 방법으로 보관하십시오.</text>
+          <text x="1640" y="362">2) 도료를 엎지르거나 쏟을 경우 수질 및 토양오염을 일으킬 수 있으므로 취급 시 주의</text>
+          <text x="1640" y="376">   하시고, 오염이 확산되지 않도록 흡착포 등으로 즉시 회수하십시오.</text>
+          <text x="1640" y="394">3) 도장작업 후 건조 중에 사람이 접근하지 못하도록 조치하십시오.</text>
+          <text x="1640" y="412">4) 본 제품을 타 도료와 혼합하거나 표시된 용도 이외에는 사용하지 마십시오.</text>
+          <text x="1640" y="430">5) 도장작업 완료 후 노출된 피부는 비눗물로 충분히 씻으십시오.</text>
+          <text x="1640" y="448">6) 폐도료 및 도료로 오염된 흡착포, 필터 등은 환경부에서 지정한 폐기물 처리업체를 통</text>
+          <text x="1640" y="462">   하여 폐기하십시오.</text>
+        </g>
+
+        <!-- 사용시 주의사항 -->
+        <text x="1640" y="496" font-size="13" font-weight="900" fill="#E8780F">사용시 주의사항</text>
+        <g font-size="9.5" font-weight="500" fill="#1F2937">
+          <text x="1640" y="518">1) 어린이의 손이 닿지 않는 곳에 보관하십시오. 사용 후 잔량은 잘못 사용될 우려가</text>
+          <text x="1640" y="532">   있으므로 원래의 용기에 보관하십시오.</text>
+          <text x="1640" y="550">2) 장시간 노출 시 두통, 현기증, 피부염, 눈·코·목의 점막 자극, 중독 등의 건강장해를</text>
+          <text x="1640" y="564">   일으킬 수 있으니 섭취하거나 증기흡입, 또는 피부에 접촉되지 않도록 주의하십시오.</text>
+          <text x="1640" y="582">3) 밀폐된 장소에서의 도장작업 시 질식할 우려가 있으므로 도장작업을 금하며, 도장작</text>
+          <text x="1640" y="596">   업 중이나 건조 중에 환기가 부족할 시 건강장해가 있을 수 있으니 반드시 환기를 시켜</text>
+          <text x="1640" y="610">   주십시오.</text>
+          <text x="1640" y="628">4) 도장 시 냄새의 흡입, 또는 피부접촉을 피하기 위한 방독마스크, 보호안경, 불침투성</text>
+          <text x="1640" y="642">   앞치마, 보호 장갑 등 필요한 보호구를 착용하십시오.</text>
+          <text x="1640" y="660">5) 오염된 옷은 즉시 벗고, 피부에 묻은 경우 다량의 비눗물로 충분히 씻고, 눈에 들어간</text>
+          <text x="1640" y="674">   경우 흐르는 물로 충분히 씻으십시오. 구토 등 이상이 있다고 느끼시면 즉시 의사의</text>
+          <text x="1640" y="688">   처치를 받으십시오.</text>
+          <text x="1640" y="706">※ 기타 자세한 사항은 물질안전보건자료(MSDS)를 참조하시기 바랍니다.</text>
+        </g>
+      </g>
+
+      <!-- 패널 사이 미세 구분선 (절단 가이드와 별개) -->
+      <g stroke="#E5E7EB" stroke-width="0.5" opacity="0.5">
+        <line x1="800" y1="20" x2="800" y2="700"/>
+        <line x1="1600" y1="20" x2="1600" y2="700"/>
+      </g>
+    </svg>
+  </div>
+
+  <div class="info" style="margin-top:32px;">
+    <div style="font-size:11px; color:rgba(255,255,255,0.5); line-height:1.7;">
+      <b style="color:#F49A3A;">편집 가이드</b> ·
+      각 패널은 <code style="color:#fff;">id="panel-left"</code>, <code style="color:#fff;">panel-front"</code>, <code style="color:#fff;">panel-right"</code>로 구분됩니다.<br>
+      절단 가이드(자홍색 점선)는 <code style="color:#fff;">id="cut-guides"</code>로, 일러스트에서 레이어 단위로 끄거나 삭제할 수 있습니다.<br>
+      벽돌 텍스처는 SVG <code style="color:#fff;">&lt;pattern&gt;</code>이라 일러스트에서 색상·간격을 자유롭게 수정할 수 있습니다.
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+(function(){
+  // ─── 화면 맞춤 스케일러 ───
+  var CANVAS_W = 2400 + 120; // padding 포함
+  var isFit = true;
+  var btn = document.getElementById('view-toggle');
+  var scaler = document.querySelector('.scaler');
+
+  function applyFit(){
+    isFit = true;
+    var s = window.innerWidth / CANVAS_W;
+    scaler.style.transform = 'scale('+s+')';
+    scaler.style.transformOrigin = 'top left';
+    scaler.style.width = CANVAS_W + 'px';
+    btn.textContent = '🔍 확대 보기';
+  }
+  function applyFull(){
+    isFit = false;
+    scaler.style.transform = 'none';
+    scaler.style.width = '';
+    btn.textContent = '🔎 전체 보기';
+  }
+  function init(){
+    if(window.innerWidth < CANVAS_W + 60){
+      applyFit(); btn.style.display = 'inline-block';
+    } else {
+      applyFull(); btn.style.display = 'none';
+    }
+  }
+  btn.addEventListener('click', function(){ if(isFit) applyFull(); else applyFit(); });
+  init();
+  window.addEventListener('resize', init);
+})();
+
+// ─── SVG 다운로드 (네이티브 SVG 직렬화 → 일러스트에서 텍스트 편집 가능) ───
+document.getElementById('btn-svg').addEventListener('click', function(){
+  var svgEl = document.getElementById('label-svg').cloneNode(true);
+
+  // 폰트 패밀리 인라인 (일러스트가 폰트를 못 찾을 경우 대비)
+  svgEl.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  svgEl.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+
+  // CDATA로 폰트 import 삽입 (열기 시 폰트 자동 매핑 시도)
+  var styleEl = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+  styleEl.setAttribute('type', 'text/css');
+  styleEl.textContent = "@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;800;900&family=Montserrat:wght@700;900&display=swap');";
+  svgEl.insertBefore(styleEl, svgEl.firstChild);
+
+  var serializer = new XMLSerializer();
+  var xml = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n' + serializer.serializeToString(svgEl);
+  var blob = new Blob([xml], { type: 'image/svg+xml;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = '벽돌발수코팅제_4kg_라벨_' + new Date().toISOString().slice(0,10) + '.svg';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+});
+
+// ─── PNG 미리보기 (SVG → Canvas → PNG, 5x 해상도) ───
+document.getElementById('btn-png').addEventListener('click', function(){
+  var btn = this;
+  btn.textContent = '⏳ 변환 중...';
+  btn.style.pointerEvents = 'none';
+
+  var svgEl = document.getElementById('label-svg');
+  var serializer = new XMLSerializer();
+  var xml = serializer.serializeToString(svgEl);
+  var svg64 = btoa(unescape(encodeURIComponent(xml)));
+  var src = 'data:image/svg+xml;base64,' + svg64;
+
+  var img = new Image();
+  img.onload = function(){
+    var scale = 3;
+    var canvas = document.createElement('canvas');
+    canvas.width = 2400 * scale;
+    canvas.height = 720 * scale;
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    var a = document.createElement('a');
+    a.download = '벽돌발수코팅제_4kg_라벨_' + new Date().toISOString().slice(0,10) + '.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+    btn.textContent = '📷 PNG 미리보기';
+    btn.style.pointerEvents = 'auto';
+  };
+  img.onerror = function(){
+    alert('PNG 변환 실패 — SVG 다운로드를 사용하세요');
+    btn.textContent = '📷 PNG 미리보기';
+    btn.style.pointerEvents = 'auto';
+  };
+  img.src = src;
+});
+</script>
+</body>
+</html>

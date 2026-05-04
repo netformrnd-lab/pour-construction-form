@@ -203,7 +203,170 @@ function WelcomeScreen({ dealer, onAdmin, onMode }) {
 }
 
 // ============================================================
-// Mode Screens — Batch 2~6에서 실제 콘텐츠 채워질 자리
+// 패키지 카탈로그 데이터 (부위별)
+// ============================================================
+const AREAS = [
+  { id:'slab',    icon:'🟦', name:'슬라브 (옥상)',         self:'ok',  desc:'옥상 평지붕 누수·중성화', hot:true },
+  { id:'shingle', icon:'🏠', name:'아스팔트 슁글',          self:'pro', desc:'경사 박공지붕 누수·강풍 탈락' },
+  { id:'tile',    icon:'🧱', name:'금속 기와',              self:'pro', desc:'경사 지붕 맞물림 풀림·부식' },
+  { id:'crack',   icon:'⚡', name:'균열 보수',              self:'warn', desc:'외벽·내벽 균열·박락' },
+  { id:'paint',   icon:'🎨', name:'재도장 (외벽)',          self:'pro', desc:'외벽 재도장·균열 보수', hot:true },
+  { id:'color',   icon:'🔩', name:'칼라강판·징크',          self:'pro', desc:'금속 외장 색상 열화·녹·부식' },
+  { id:'drain',   icon:'🌊', name:'배수로·베란다',          self:'ok',  desc:'베란다 누수·곰팡이' },
+  { id:'parking', icon:'🚗', name:'지하주차장',             self:'ok',  desc:'바닥 박락·미끄럼' },
+  { id:'joint',   icon:'🔗', name:'이음부·실링',            self:'ok',  desc:'창틀·벽체 이음부' },
+];
+
+const PACKAGES = {
+  slab: [
+    { tier:'풀패키지', name:'옥상 슬라브 듀얼강화 풀세트', items:['POUR 모체강화함침','듀얼복합시트','POUR 코트재','페이퍼팬벤트','옥상배관 트랩'], price:280000, summary:'누수·중성화·결로·들뜸 일괄 해결' },
+    { tier:'부분 패키지', name:'옥상 부분 보수 키트', items:['POUR 코트재 5kg','복합시트 1m'], price:128000, summary:'특정 부위 보수' },
+    { tier:'단순 코팅', name:'POUR 탑코트재만 (5kg)', items:['POUR 코트재'], price:58000, summary:'표면 차열·방수 코팅' },
+  ],
+  shingle: [
+    { tier:'풀패키지', name:'박공지붕 슁글 풀세트 (1026호)', items:['슈퍼복합압축시트','POUR 코트재','POUR HOOKER','실링재','상도'], price:186000, summary:'건설신기술 1026호 — 강풍 탈락·누수' },
+    { tier:'부분 패키지', name:'후레싱 보강 키트', items:['POUR HOOKER 50개','실링'], price:88000, summary:'후레싱 풀림·이음부 누수' },
+  ],
+  tile: [
+    { tier:'풀패키지', name:'금속기와 풀세트 + HOOKER', items:['금속기와 일체화 시트','POUR HOOKER','금속기와 코팅재'], price:198000, summary:'맞물림·부식 일체 해결' },
+    { tier:'단순 코팅', name:'금속기와 코팅재만', items:['POUR 차열 상도'], price:68000, summary:'색상 열화·녹 방지' },
+  ],
+  crack: [
+    { tier:'풀패키지', name:'균열 보수 풀세트', items:['POUR 하이퍼티','탄성강화 파우더','POUR HOOKER'], price:158000, summary:'미세 균열 + 박락 단면 복구' },
+    { tier:'부분 패키지', name:'저층 외벽 균열 셀프 키트', items:['하이퍼티 4kg','크랙시트'], price:86000, summary:'2-3층 사다리 가능' },
+  ],
+  paint: [
+    { tier:'풀패키지', name:'외벽 재도장 풀세트 (고급)', items:['POUR 바인더','POUR 플러스','하이퍼티','HOOKER'], price:320000, summary:'균열 보수 + 마감 도장 일괄' },
+    { tier:'부분 패키지', name:'외벽 재도장 풀세트 (중급)', items:['POUR 바인더','수성','하이퍼티'], price:240000, summary:'표준 재도장' },
+    { tier:'단순 코팅', name:'바인더+수성 (경제형)', items:['바인더','수성도료'], price:68000, summary:'경제형 재도장' },
+  ],
+  color: [
+    { tier:'풀패키지', name:'칼라강판·징크 코팅 풀세트', items:['POUR 금속용 프라이머','POUR 코트재','POUR 차열 상도'], price:280000, summary:'부식 방지 + 차열 + 미관' },
+  ],
+  drain: [
+    { tier:'풀패키지', name:'베란다 누수·곰팡이 풀세트', items:['POUR 코트재','복합시트','하이퍼티'], price:128000, summary:'베란다 + 배수로' },
+    { tier:'부분 패키지', name:'배수로 보수 키트', items:['방수트랩','코트재'], price:68000, summary:'배수구 부식·누수' },
+  ],
+  parking: [
+    { tier:'풀패키지', name:'지하주차장 바닥 풀세트', items:['POUR 에폭시 프라이머','에폭시 본도장','엠보라이닝'], price:156000, summary:'에폭시 박락 + 미끄럼 방지' },
+  ],
+  joint: [
+    { tier:'풀패키지', name:'이음부 누수 풀세트 (창틀+벽체)', items:['POUR 코트재','POUR HOOKER','하이퍼티','실링재'], price:98000, summary:'창틀·벽체 이음부 누수 일괄' },
+    { tier:'단순 코팅', name:'실링재만 (1kg)', items:['POUR 실링재'], price:22000, summary:'기존 실링 보수' },
+  ],
+};
+
+const SAFETY_BADGE = {
+  ok:   { label:'✅ 셀프 가능', bg:'#ECFDF5', border:'#A7F3D0', color:'#059669' },
+  warn: { label:'⚠️ 저층 셀프', bg:'#FEF3C7', border:'#FCD34D', color:'#B45309' },
+  pro:  { label:'⛑️ 안전 시공 권장', bg:'#FEE2E2', border:'#FCA5A5', color:'#DC2626' },
+};
+const TIER_COLOR = {
+  '풀패키지':   { bg:'linear-gradient(135deg,#FFF7ED,#FFEDD5)', border:'#F97316', color:'#EA580C', star:'⭐' },
+  '부분 패키지': { bg:'#fff', border:'#FED7AA', color:'#EA580C', star:'' },
+  '단순 코팅':   { bg:'#fff', border:'#E5E7EB', color:'#6B7280', star:'' },
+};
+
+// ============================================================
+// 카탈로그 모드
+// ============================================================
+function CatalogMode({ dealer, onBack }) {
+  const [areaId, setAreaId] = useState(null);
+  const area = areaId ? AREAS.find(a => a.id === areaId) : null;
+  const packages = areaId ? (PACKAGES[areaId] || []) : [];
+
+  if (!areaId) {
+    // 부위 선택 화면
+    return (
+      <div className="fade-in" style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', padding:'24px 32px', overflow:'auto' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:24 }}>
+          <button onClick={onBack} style={{ padding:'10px 16px', borderRadius:10, fontSize:13, fontWeight:800, color:'var(--text-md)', background:'#fff', border:'1px solid var(--border)' }}>← 메뉴로</button>
+          <div>
+            <div style={{ fontSize:11, fontWeight:800, color:'var(--or-d)', letterSpacing:.8 }}>{dealer.dealerName}</div>
+            <h1 style={{ fontSize:24, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6 }}>📦 부위별 패키지</h1>
+          </div>
+        </div>
+        <div style={{ marginBottom:18, fontSize:13, color:'var(--text-md)', fontWeight:700 }}>어디를 시공하실 건가요? — 부위를 선택하세요</div>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))', gap:12, maxWidth:1100, width:'100%' }}>
+          {AREAS.map(a => {
+            const sf = SAFETY_BADGE[a.self];
+            return (
+              <button key={a.id} onClick={() => setAreaId(a.id)} style={{
+                background:'#fff', border:'1.5px solid var(--or-l)', borderRadius:18, padding:'20px 18px',
+                textAlign:'left', cursor:'pointer', position:'relative', transition:'all .25s'
+              }} onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = 'var(--or-d)'; e.currentTarget.style.boxShadow = '0 12px 28px rgba(249,115,22,.15)'; }} onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = 'var(--or-l)'; e.currentTarget.style.boxShadow = 'none'; }}>
+                {a.hot && <span style={{ position:'absolute', top:8, right:8, padding:'2px 7px', background:'#DC2626', color:'#fff', fontSize:9.5, fontWeight:900, borderRadius:4 }}>HOT</span>}
+                <div style={{ width:48, height:48, borderRadius:12, background:'linear-gradient(135deg,#FFEDD5,#FED7AA)', display:'grid', placeItems:'center', fontSize:22, marginBottom:12 }}>{a.icon}</div>
+                <div style={{ fontSize:15, fontWeight:900, color:'var(--navy)', marginBottom:5 }}>{a.name}</div>
+                <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700, marginBottom:10, lineHeight:1.5 }}>{a.desc}</div>
+                <div style={{ display:'flex', gap:5, alignItems:'center', justifyContent:'space-between' }}>
+                  <span style={{ fontSize:10.5, fontWeight:800, color:'var(--or-d)' }}>패키지 {(PACKAGES[a.id] || []).length}종</span>
+                  <span style={{ padding:'2px 7px', background:sf.bg, border:`1px solid ${sf.border}`, color:sf.color, fontSize:9.5, fontWeight:800, borderRadius:5 }}>{sf.label}</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // 부위 상세 — 패키지 리스트
+  const sf = SAFETY_BADGE[area.self];
+  return (
+    <div className="fade-in" style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', padding:'24px 32px', overflow:'auto' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:24 }}>
+        <button onClick={() => setAreaId(null)} style={{ padding:'10px 16px', borderRadius:10, fontSize:13, fontWeight:800, color:'var(--text-md)', background:'#fff', border:'1px solid var(--border)' }}>← 부위 선택</button>
+        <div style={{ flex:1 }}>
+          <div style={{ fontSize:11, fontWeight:800, color:'var(--or-d)', letterSpacing:.8 }}>📦 부위별 패키지</div>
+          <h1 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', letterSpacing:-0.4, display:'flex', alignItems:'center', gap:10 }}>
+            <span>{area.icon}</span>{area.name}
+            <span style={{ marginLeft:'auto', padding:'4px 10px', background:sf.bg, border:`1px solid ${sf.border}`, color:sf.color, fontSize:11, fontWeight:800, borderRadius:6 }}>{sf.label}</span>
+          </h1>
+        </div>
+      </div>
+      <div style={{ marginBottom:14, fontSize:12.5, color:'var(--text-md)', fontWeight:700 }}>{area.desc} — 패키지 {packages.length}종</div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap:14, maxWidth:1100, width:'100%' }}>
+        {packages.map((p, i) => {
+          const tc = TIER_COLOR[p.tier] || TIER_COLOR['단순 코팅'];
+          const isFull = p.tier === '풀패키지';
+          return (
+            <div key={i} style={{ background:tc.bg, border:`2px solid ${tc.border}`, borderRadius:18, padding:'20px 22px', position:'relative', boxShadow: isFull ? '0 12px 28px rgba(249,115,22,.15)' : '0 4px 12px rgba(15,31,92,.05)' }}>
+              {isFull && <span style={{ position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)', padding:'5px 12px', background:'linear-gradient(135deg,#F97316,#EA580C)', color:'#fff', fontSize:10.5, fontWeight:900, borderRadius:6, boxShadow:'0 4px 10px rgba(249,115,22,.4)', letterSpacing:.4 }}>⭐ 강력추천</span>}
+              <div style={{ fontSize:11, fontWeight:800, color:tc.color, letterSpacing:.5, marginBottom:6 }}>{p.tier}</div>
+              <div style={{ fontSize:16, fontWeight:900, color:'var(--navy)', letterSpacing:-0.3, marginBottom:6, lineHeight:1.35 }}>{p.name}</div>
+              <div style={{ fontSize:12, color:'var(--text-md)', fontWeight:700, marginBottom:10, lineHeight:1.55 }}>{p.summary}</div>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:4, marginBottom:14 }}>
+                {p.items.map((it, j) => <span key={j} style={{ padding:'3px 8px', background:'#fff', border:'1px solid #FED7AA', color:'var(--or-d)', fontSize:10.5, fontWeight:800, borderRadius:5 }}>{it}</span>)}
+              </div>
+              <div style={{ paddingTop:12, borderTop:'1px solid rgba(249,115,22,.18)', display:'flex', alignItems:'baseline', gap:6 }}>
+                <span style={{ fontFamily:'Bebas Neue', fontSize:24, fontWeight:900, color:'var(--or-d)' }}>{Number(p.price).toLocaleString('ko-KR')}</span>
+                <span style={{ fontSize:12, color:'var(--text-sm)', fontWeight:700 }}>원~</span>
+                <span style={{ marginLeft:'auto', fontSize:11, color:'var(--text-sm)', fontWeight:700 }}>※ 평수에 따라 조정</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 안전 안내 */}
+      {area.self === 'pro' && (
+        <div style={{ marginTop:18, padding:'14px 18px', background:'#FEE2E2', border:'1px solid #FCA5A5', borderRadius:12, fontSize:12.5, color:'#991B1B', fontWeight:700, lineHeight:1.65 }}>
+          <b>⛑️ 안전 시공 권장 부위</b> — 시공방법은 영상으로 누구나 OK · 다만 사다리·로프 작업이 필요해 안전상 일반 고객은 시공 매칭을 권장드립니다 (시공업자는 자유 구매).
+        </div>
+      )}
+      {area.self === 'warn' && (
+        <div style={{ marginTop:18, padding:'14px 18px', background:'#FEF3C7', border:'1px solid #FCD34D', borderRadius:12, fontSize:12.5, color:'#78350F', fontWeight:700, lineHeight:1.65 }}>
+          <b>⚠️ 저층 셀프 가능</b> — 2-3층 외벽까진 사다리로 가능 · 고층은 안전상 시공 매칭 권장.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// Mode Screens — Batch 3~6에서 실제 콘텐츠 채워질 자리
 // ============================================================
 function ModePlaceholder({ mode, dealer, onBack }) {
   const titles = {
@@ -427,7 +590,8 @@ function App() {
       {latestOrder && isPaid && <PaidScreen order={latestOrder} />}
       {/* 주문 없을 때 — 모드 전환 */}
       {!latestOrder && !mode && <WelcomeScreen dealer={setup} onAdmin={() => setShowAdmin(true)} onMode={setMode} />}
-      {!latestOrder && mode && <ModePlaceholder mode={mode} dealer={setup} onBack={() => setMode(null)} />}
+      {!latestOrder && mode === 'catalog' && <CatalogMode dealer={setup} onBack={() => setMode(null)} />}
+      {!latestOrder && mode && mode !== 'catalog' && <ModePlaceholder mode={mode} dealer={setup} onBack={() => setMode(null)} />}
       {error && <ErrorBanner message={error} />}
     </>
   );

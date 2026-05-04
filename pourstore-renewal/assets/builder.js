@@ -3048,41 +3048,112 @@ show('entry');
         <h2>대리점 신청서</h2>
         <p>아래 정보 제출 후 영업일 기준 5-7일 내 회신드립니다</p>
       </div>
-      <form class="pdl6-card">
+      <form class="pdl6-card" id="pdl6-form" onsubmit="return false;">
         <div class="pdl6-section">
           <div class="stitle">📋 신청자 정보</div>
           <div class="pdl6-row split">
-            <div><label>회사/상호명</label><input type="text" placeholder="○○건축자재"/></div>
-            <div><label>사업자등록번호</label><input type="text" placeholder="000-00-00000"/></div>
+            <div><label>회사/상호명 *</label><input type="text" id="pdl6-company" placeholder="○○건축자재"/></div>
+            <div><label>사업자등록번호</label><input type="text" id="pdl6-bn" placeholder="000-00-00000"/></div>
           </div>
           <div class="pdl6-row split">
-            <div><label>대표자명</label><input type="text" placeholder="홍길동"/></div>
-            <div><label>연락처</label><input type="text" placeholder="010-0000-0000"/></div>
+            <div><label>대표자명 *</label><input type="text" id="pdl6-ceo" placeholder="홍길동"/></div>
+            <div><label>연락처 *</label><input type="text" id="pdl6-phone" placeholder="010-0000-0000"/></div>
           </div>
-          <div class="pdl6-row"><label>이메일</label><input type="email" placeholder="example@email.com"/></div>
+          <div class="pdl6-row"><label>이메일</label><input type="email" id="pdl6-email" placeholder="example@email.com"/></div>
         </div>
         <div class="pdl6-section">
           <div class="stitle">🏪 매장·재고 정보</div>
-          <div class="pdl6-row"><label>매장 주소</label><input type="text" placeholder="○○도 ○○시 ○○로"/></div>
+          <div class="pdl6-row"><label>매장 주소</label><input type="text" id="pdl6-addr" placeholder="○○도 ○○시 ○○로"/></div>
           <div class="pdl6-row split">
-            <div><label>매장 규모</label><select><option>33-66㎡</option><option>66-99㎡</option><option>99-165㎡</option><option>165㎡ 이상</option></select></div>
-            <div><label>창고 규모</label><select><option>창고 없음</option><option>33㎡ 미만</option><option>33-66㎡</option><option>66㎡ 이상</option></select></div>
+            <div><label>매장 규모</label><select id="pdl6-store"><option>33-66㎡</option><option>66-99㎡</option><option>99-165㎡</option><option>165㎡ 이상</option></select></div>
+            <div><label>창고 규모</label><select id="pdl6-wh"><option>창고 없음</option><option>33㎡ 미만</option><option>33-66㎡</option><option>66㎡ 이상</option></select></div>
           </div>
-          <div class="pdl6-row"><label>희망 권역</label><input type="text" placeholder="예: 경기 남부 / 부산 해운대 일대"/></div>
+          <div class="pdl6-row"><label>희망 권역</label><input type="text" id="pdl6-region" placeholder="예: 경기 남부 / 부산 해운대 일대"/></div>
         </div>
         <div class="pdl6-section">
           <div class="stitle">📊 사업 정보</div>
           <div class="pdl6-row split">
-            <div><label>건설자재 유통 경력</label><select><option>없음</option><option>3년 미만</option><option>3-5년</option><option>5-10년</option><option>10년 이상</option></select></div>
-            <div><label>예상 월 매출 목표</label><select><option>1천만원 미만</option><option>1천-3천만원</option><option>3천-5천만원</option><option>5천만원 이상</option></select></div>
+            <div><label>건설자재 유통 경력</label><select id="pdl6-career"><option>없음</option><option>3년 미만</option><option>3-5년</option><option>5-10년</option><option>10년 이상</option></select></div>
+            <div><label>예상 월 매출 목표</label><select id="pdl6-target"><option>1천만원 미만</option><option>1천-3천만원</option><option>3천-5천만원</option><option>5천만원 이상</option></select></div>
           </div>
-          <div class="pdl6-row"><label>주요 거래처·실적 (간단 기재)</label><textarea placeholder="기존 거래처·취급 자재·시공사 네트워크 등"></textarea></div>
+          <div class="pdl6-row"><label>주요 거래처·실적 (간단 기재)</label><textarea id="pdl6-record" placeholder="기존 거래처·취급 자재·시공사 네트워크 등"></textarea></div>
         </div>
         <div class="pdl6-agree"><input type="checkbox" id="ag3"/><label for="ag3">개인정보·기업정보 수집·이용에 동의합니다</label></div>
-        <button type="submit" class="pdl6-submit">대리점 신청하기</button>
+        <div id="pdl6-msg" style="display:none;margin-bottom:10px;padding:12px 14px;border-radius:9px;font-size:13px;font-weight:700;"></div>
+        <button type="button" id="pdl6-submit-btn" class="pdl6-submit">대리점 신청하기</button>
       </form>
     </div>
-  </section>`;
+  </section>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+(function(){
+  if (!window.firebase) { console.warn('[pdl6] Firebase SDK 로드 실패'); return; }
+  if (!firebase.apps.length) {
+    firebase.initializeApp({
+      apiKey: 'AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU',
+      authDomain: 'pour-app-new.firebaseapp.com',
+      projectId: 'pour-app-new',
+      storageBucket: 'pour-app-new.firebasestorage.app',
+      messagingSenderId: '411031141847',
+      appId: '1:411031141847:web:e658174fd4b9652cdadf92'
+    });
+  }
+  var db = firebase.firestore();
+  var root = document.querySelector('.pdl6');
+  if (!root) return;
+
+  function showMsg(text, type){
+    var el = root.querySelector('#pdl6-msg');
+    el.textContent = text;
+    el.style.display = 'block';
+    if (type === 'success') { el.style.background = '#ECFDF5'; el.style.border = '1px solid #A7F3D0'; el.style.color = '#047857'; }
+    else { el.style.background = '#FEE2E2'; el.style.border = '1px solid #FCA5A5'; el.style.color = '#DC2626'; }
+  }
+
+  root.querySelector('#pdl6-submit-btn').addEventListener('click', async function(){
+    var company = root.querySelector('#pdl6-company').value.trim();
+    var ceo = root.querySelector('#pdl6-ceo').value.trim();
+    var phone = root.querySelector('#pdl6-phone').value.trim();
+    var agree = root.querySelector('#ag3').checked;
+    if (!company || !ceo || !phone) { showMsg('회사명, 대표자명, 연락처는 필수입니다', 'error'); return; }
+    if (!agree) { showMsg('개인정보·기업정보 수집·이용 동의가 필요합니다', 'error'); return; }
+
+    var data = {
+      type: '대리점 신청',
+      brand: 'pourstore',
+      companyName: company,
+      businessNumber: root.querySelector('#pdl6-bn').value.trim(),
+      representative: ceo,
+      contactPhone: phone,
+      contactEmail: root.querySelector('#pdl6-email').value.trim(),
+      address: root.querySelector('#pdl6-addr').value.trim(),
+      storeSize: root.querySelector('#pdl6-store').value || '',
+      warehouseSize: root.querySelector('#pdl6-wh').value || '',
+      desiredRegion: root.querySelector('#pdl6-region').value.trim(),
+      experience: root.querySelector('#pdl6-career').value || '',
+      monthlyTarget: root.querySelector('#pdl6-target').value || '',
+      record: root.querySelector('#pdl6-record').value.trim(),
+      status: '신규',
+      source: 'pourstore-site',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    var btn = root.querySelector('#pdl6-submit-btn');
+    btn.disabled = true; btn.textContent = '신청 중...';
+    try {
+      await db.collection('dealer-inquiries').add(data);
+      showMsg('✅ 대리점 신청이 접수되었습니다. 영업일 기준 5-7일 내 검토 후 연락드립니다.', 'success');
+      btn.textContent = '✓ 신청 완료';
+      setTimeout(function(){ root.querySelector('#pdl6-form').reset(); btn.disabled = false; btn.textContent = '대리점 신청하기'; root.querySelector('#pdl6-msg').style.display = 'none'; }, 5000);
+    } catch (e) {
+      console.error('[pdl6]', e);
+      showMsg('❌ 신청 실패: ' + e.message + ' — 잠시 후 다시 시도해 주세요', 'error');
+      btn.disabled = false; btn.textContent = '대리점 신청하기';
+    }
+  });
+})();
+</script>`;
 
   const SEED_DL_FAQ_HTML = `<style>
   .pdl7 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }

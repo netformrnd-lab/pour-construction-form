@@ -2145,28 +2145,100 @@ show('entry');
         <h2>POUR스토어에 문의하기</h2>
         <p>제품·시공·파트너십 — 어떤 문의든 24시간 내 답변드립니다</p>
       </div>
-      <form class="pct1-card">
-        <div class="pct1-types">
-          <div class="pct1-type active"><div class="icon">📦</div><div class="label">제품 문의</div></div>
-          <div class="pct1-type"><div class="icon">🔧</div><div class="label">시공 문의</div></div>
-          <div class="pct1-type"><div class="icon">🛠️</div><div class="label">셀프시공</div></div>
-          <div class="pct1-type"><div class="icon">💬</div><div class="label">기타</div></div>
+      <form class="pct1-card" id="pct1-form" onsubmit="return false;">
+        <div class="pct1-types" id="pct1-types">
+          <div class="pct1-type active" data-v="제품 문의"><div class="icon">📦</div><div class="label">제품 문의</div></div>
+          <div class="pct1-type" data-v="시공 문의"><div class="icon">🔧</div><div class="label">시공 문의</div></div>
+          <div class="pct1-type" data-v="셀프 시공"><div class="icon">🛠️</div><div class="label">셀프시공</div></div>
+          <div class="pct1-type" data-v="기타"><div class="icon">💬</div><div class="label">기타</div></div>
         </div>
         <div class="pct1-row split">
-          <div><label>성함</label><input type="text" placeholder="홍길동"/></div>
-          <div><label>연락처</label><input type="text" placeholder="010-0000-0000"/></div>
+          <div><label>성함 *</label><input type="text" id="pct1-name" placeholder="홍길동"/></div>
+          <div><label>연락처 *</label><input type="text" id="pct1-phone" placeholder="010-0000-0000"/></div>
         </div>
-        <div class="pct1-row"><label>이메일</label><input type="email" placeholder="example@email.com"/></div>
+        <div class="pct1-row"><label>이메일</label><input type="email" id="pct1-email" placeholder="example@email.com"/></div>
         <div class="pct1-row split">
-          <div><label>건물 유형</label><select><option>선택해 주세요</option><option>아파트</option><option>관공서</option><option>일반건물</option><option>주택</option><option>기타</option></select></div>
-          <div><label>지역</label><select><option>선택해 주세요</option><option>서울</option><option>경기</option><option>인천</option><option>부산</option><option>기타</option></select></div>
+          <div><label>건물 유형</label><select id="pct1-building"><option value="">선택해 주세요</option><option>아파트</option><option>관공서</option><option>일반건물</option><option>주택</option><option>기타</option></select></div>
+          <div><label>지역</label><select id="pct1-region"><option value="">선택해 주세요</option><option>서울</option><option>경기</option><option>인천</option><option>부산</option><option>기타</option></select></div>
         </div>
-        <div class="pct1-row"><label>문의 내용</label><textarea placeholder="문제 부위·증상·시급도 등을 자유롭게 적어주세요"></textarea></div>
+        <div class="pct1-row"><label>문의 내용</label><textarea id="pct1-msg-text" placeholder="문제 부위·증상·시급도 등을 자유롭게 적어주세요"></textarea></div>
         <div class="pct1-agree"><input type="checkbox" id="ag"/><label for="ag">개인정보 수집·이용에 동의합니다 <a href="#">(자세히)</a></label></div>
-        <button type="submit" class="pct1-submit">문의 보내기</button>
+        <div id="pct1-msg" style="display:none;margin-bottom:10px;padding:12px 14px;border-radius:9px;font-size:13px;font-weight:700;"></div>
+        <button type="button" id="pct1-submit-btn" class="pct1-submit">문의 보내기</button>
       </form>
     </div>
-  </section>`;
+  </section>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+(function(){
+  if (!window.firebase) { console.warn('[pct1] Firebase SDK 로드 실패'); return; }
+  if (!firebase.apps.length) {
+    firebase.initializeApp({
+      apiKey: 'AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU',
+      authDomain: 'pour-app-new.firebaseapp.com',
+      projectId: 'pour-app-new',
+      storageBucket: 'pour-app-new.firebasestorage.app',
+      messagingSenderId: '411031141847',
+      appId: '1:411031141847:web:e658174fd4b9652cdadf92'
+    });
+  }
+  var db = firebase.firestore();
+  var root = document.querySelector('.pct1');
+  if (!root) return;
+
+  // 문의 유형 칩 단일 선택
+  root.querySelectorAll('#pct1-types .pct1-type').forEach(function(b){
+    b.addEventListener('click', function(){
+      root.querySelectorAll('#pct1-types .pct1-type').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');
+    });
+  });
+
+  function showMsg(text, type){
+    var el = root.querySelector('#pct1-msg');
+    el.textContent = text;
+    el.style.display = 'block';
+    if (type === 'success') { el.style.background = '#ECFDF5'; el.style.border = '1px solid #A7F3D0'; el.style.color = '#047857'; }
+    else { el.style.background = '#FEE2E2'; el.style.border = '1px solid #FCA5A5'; el.style.color = '#DC2626'; }
+  }
+
+  root.querySelector('#pct1-submit-btn').addEventListener('click', async function(){
+    var name = root.querySelector('#pct1-name').value.trim();
+    var phone = root.querySelector('#pct1-phone').value.trim();
+    var agree = root.querySelector('#ag').checked;
+    if (!name || !phone) { showMsg('성함과 연락처는 필수입니다', 'error'); return; }
+    if (!agree) { showMsg('개인정보 수집·이용 동의가 필요합니다', 'error'); return; }
+
+    var typeEl = root.querySelector('#pct1-types .pct1-type.active');
+    var data = {
+      customerName: name,
+      customerPhone: phone,
+      customerEmail: root.querySelector('#pct1-email').value.trim(),
+      category: typeEl ? typeEl.dataset.v : '기타',
+      buildingType: root.querySelector('#pct1-building').value || '',
+      region: root.querySelector('#pct1-region').value || '',
+      message: root.querySelector('#pct1-msg-text').value.trim(),
+      status: '신규',
+      channel: 'pourstore-site',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    var btn = root.querySelector('#pct1-submit-btn');
+    btn.disabled = true; btn.textContent = '전송 중...';
+    try {
+      await db.collection('site-inquiries').add(data);
+      showMsg('✅ 문의가 접수되었습니다. 담당자가 빠르게 답변드릴게요.', 'success');
+      btn.textContent = '✓ 전송 완료';
+      setTimeout(function(){ root.querySelector('#pct1-form').reset(); btn.disabled = false; btn.textContent = '문의 보내기'; root.querySelector('#pct1-msg').style.display = 'none'; }, 4000);
+    } catch (e) {
+      console.error('[pct1]', e);
+      showMsg('❌ 전송 실패: ' + e.message + ' — 잠시 후 다시 시도해 주세요', 'error');
+      btn.disabled = false; btn.textContent = '문의 보내기';
+    }
+  });
+})();
+</script>`;
 
   const SEED_CT_STORE_HTML = `<style>
   .pct2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }

@@ -1139,6 +1139,7 @@ function Dealers({ dealers, onUpdate, onToast }) {
                   </div>
                   <div style={{ display:'flex', flexWrap:'wrap', gap:5, marginBottom:10 }}>
                     {d.region && <span style={miniChip()}>📍 {d.region}</span>}
+                    <span style={{ ...miniChip(), background: d.inventoryMode === 'stocked' ? '#DBEAFE' : 'var(--or-pale)', borderColor: d.inventoryMode === 'stocked' ? '#93C5FD' : 'var(--or-l)', color: d.inventoryMode === 'stocked' ? '#1E40AF' : 'var(--or-d)' }}>{d.inventoryMode === 'stocked' ? '🏪 유재고' : '📦 무재고'}</span>
                     {d.exclusiveRegion && <span style={{ ...miniChip(), background:'#FEE2E2', borderColor:'#FCA5A5', color:'#DC2626' }}>🛡 단독 {d.exclusiveRegion}</span>}
                   </div>
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', paddingTop:10, borderTop:'1px solid var(--border-s)', fontSize:11, color:'var(--text-sm)', fontWeight:700 }}>
@@ -1265,6 +1266,33 @@ function DealerDetail({ dealer, onClose, onSave, onDelete, onToast }) {
             </div>
           </Field>
         )}
+
+        {/* 운영 방식 */}
+        <Field label="🔄 운영 방식">
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+            <button type="button" onClick={() => update('inventoryMode', 'no-stock')} style={{
+              padding:'14px 14px', borderRadius:10, textAlign:'left',
+              background: (data.inventoryMode === 'no-stock' || !data.inventoryMode) ? 'linear-gradient(135deg,#FFF7ED,#FFEDD5)' : '#fff',
+              border: (data.inventoryMode === 'no-stock' || !data.inventoryMode) ? '2px solid var(--or-d)' : '1.5px solid var(--border)',
+              cursor:'pointer'
+            }}>
+              <div style={{ fontSize:13, fontWeight:900, color:'var(--navy)', marginBottom:4 }}>📦 무재고</div>
+              <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700, lineHeight:1.5 }}>주문 즉시 본사 입금 → 공장 직발주</div>
+            </button>
+            <button type="button" onClick={() => update('inventoryMode', 'stocked')} style={{
+              padding:'14px 14px', borderRadius:10, textAlign:'left',
+              background: data.inventoryMode === 'stocked' ? 'linear-gradient(135deg,#FFF7ED,#FFEDD5)' : '#fff',
+              border: data.inventoryMode === 'stocked' ? '2px solid var(--or-d)' : '1.5px solid var(--border)',
+              cursor:'pointer'
+            }}>
+              <div style={{ fontSize:13, fontWeight:900, color:'var(--navy)', marginBottom:4 }}>🏪 유재고</div>
+              <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700, lineHeight:1.5 }}>사전 매입·진열 / 재매입 1개월 / 운반비 대리점</div>
+            </button>
+          </div>
+          <div style={{ fontSize:10.5, color:'var(--text-sm)', fontWeight:700, marginTop:5 }}>
+            기본은 무재고. 대리점 희망 시 유재고 전환 — 가벼운 자재 위주 권장
+          </div>
+        </Field>
       </div>
 
       {/* 계약 섹션 */}

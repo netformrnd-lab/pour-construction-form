@@ -262,9 +262,12 @@ function PortalHeader({ account, roleType, onLogout }) {
       <div style={{ display:'flex', alignItems:'center', gap:14 }}>
         <div style={{ width:40, height:40, borderRadius:11, background:'linear-gradient(135deg, var(--or), var(--or-d))', display:'grid', placeItems:'center', fontSize:18, color:'#fff' }}>{isDealer ? '🏪' : '👷'}</div>
         <div>
-          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2, flexWrap:'wrap' }}>
             <span style={{ fontSize:11, fontWeight:800, color:'var(--text-sm)', letterSpacing:.5, textTransform:'uppercase' }}>{isDealer ? '대리점' : '파트너사'}</span>
             {tier && <span style={{ padding:'2px 7px', background:tier.bg, border:`1px solid ${tier.border}`, color:tier.color, fontSize:10, fontWeight:900, borderRadius:4, letterSpacing:.4 }}>{tier.label} · {tier.margin}%</span>}
+            {isDealer && (
+              <span style={{ padding:'2px 7px', background: account.inventoryMode === 'stocked' ? '#DBEAFE' : 'var(--or-pale)', border:`1px solid ${account.inventoryMode === 'stocked' ? '#93C5FD' : 'var(--or-l)'}`, color: account.inventoryMode === 'stocked' ? '#1E40AF' : 'var(--or-d)', fontSize:10, fontWeight:900, borderRadius:4 }}>{account.inventoryMode === 'stocked' ? '🏪 유재고' : '📦 무재고'}</span>
+            )}
             {!isDealer && account.grade && <span style={{ padding:'2px 7px', background:'var(--or-pale)', border:'1px solid var(--or-l)', color:'var(--or-d)', fontSize:10, fontWeight:900, borderRadius:4 }}>등급 {account.grade}</span>}
           </div>
           <h1 style={{ fontSize:17, fontWeight:900, color:'var(--navy)', letterSpacing:-0.4 }}>{account.companyName || '(이름없음)'}</h1>
@@ -347,20 +350,34 @@ function DealerDashboard({ account, orders, onUpdate, onToast }) {
         </div>
       </div>
 
-      {/* 운영 방식 (무재고/유재고) */}
+      {/* 운영 방식 (무재고/유재고) — 본인 모드 강조 */}
       <div style={{ padding:'14px 18px', background:'#fff', border:'1px solid var(--border)', borderRadius:12, marginBottom:24 }}>
-        <div style={{ fontSize:11, fontWeight:900, color:'var(--navy)', letterSpacing:.3, marginBottom:10 }}>🔄 운영 방식</div>
+        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+          <span style={{ fontSize:11, fontWeight:900, color:'var(--navy)', letterSpacing:.3 }}>🔄 운영 방식</span>
+          <span style={{ padding:'2px 8px', background: account.inventoryMode === 'stocked' ? '#DBEAFE' : 'var(--or-pale)', border:`1px solid ${account.inventoryMode === 'stocked' ? '#93C5FD' : 'var(--or-l)'}`, color: account.inventoryMode === 'stocked' ? '#1E40AF' : 'var(--or-d)', fontSize:10, fontWeight:900, borderRadius:4 }}>
+            현재: {account.inventoryMode === 'stocked' ? '🏪 유재고' : '📦 무재고'}
+          </span>
+        </div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(260px, 1fr))', gap:10 }}>
-          <div style={{ padding:'10px 12px', background:'var(--bg)', border:'1px solid var(--border-s)', borderRadius:8, fontSize:11.5, color:'var(--text-md)', fontWeight:600, lineHeight:1.65 }}>
+          <div style={{ padding:'10px 12px',
+            background: account.inventoryMode === 'stocked' ? 'var(--bg)' : 'linear-gradient(135deg,#FFF7ED,#FFEDD5)',
+            border: account.inventoryMode === 'stocked' ? '1px solid var(--border-s)' : '2px solid var(--or-l)',
+            borderRadius:8, fontSize:11.5, color:'var(--text-md)', fontWeight:600, lineHeight:1.65 }}>
             <b style={{ color:'var(--navy)', fontSize:12.5 }}>📦 무재고 방식</b><br/>
             고객 주문 → 본사에 <b>즉시 입금</b> → 본사 공장 직발주
             <div style={{ fontSize:10.5, color:'var(--text-sm)', marginTop:4 }}>※ 송금 확인 후 발주 진행</div>
           </div>
-          <div style={{ padding:'10px 12px', background:'var(--bg)', border:'1px solid var(--border-s)', borderRadius:8, fontSize:11.5, color:'var(--text-md)', fontWeight:600, lineHeight:1.65 }}>
+          <div style={{ padding:'10px 12px',
+            background: account.inventoryMode === 'stocked' ? 'linear-gradient(135deg,#DBEAFE,#BFDBFE)' : 'var(--bg)',
+            border: account.inventoryMode === 'stocked' ? '2px solid #93C5FD' : '1px solid var(--border-s)',
+            borderRadius:8, fontSize:11.5, color:'var(--text-md)', fontWeight:600, lineHeight:1.65 }}>
             <b style={{ color:'var(--navy)', fontSize:12.5 }}>🏪 유재고 방식</b><br/>
             가벼운 자재 / 희망 시 <b>사전 매입·진열·판매</b>
             <div style={{ fontSize:10.5, color:'var(--text-sm)', marginTop:4 }}>※ 재매입 1개월 내 가능 · 운반비 대리점 부담</div>
           </div>
+        </div>
+        <div style={{ fontSize:10.5, color:'var(--text-sm)', fontWeight:700, marginTop:8, textAlign:'right' }}>
+          모드 전환은 본사 어드민에 요청해 주세요
         </div>
       </div>
 

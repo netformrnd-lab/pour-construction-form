@@ -290,7 +290,7 @@ function PortalHeader({ account, roleType, onLogout }) {
 // ============================================================
 // Dealer Dashboard
 // ============================================================
-function DealerDashboard({ account, orders, settlements, onUpdate, onToast }) {
+function DealerDashboard({ account, orders, onUpdate, onToast }) {
   const [showOrderForm, setShowOrderForm] = useState(false);
 
   const myOrders = useMemo(() => orders.filter(o => o.dealerId === account.id).sort((a,b) => (b.createdAt||'').localeCompare(a.createdAt||'')), [orders, account.id]);
@@ -336,23 +336,23 @@ function DealerDashboard({ account, orders, settlements, onUpdate, onToast }) {
         <SummaryCard icon="📤" label={`본사 송금 예정 (${100-monthly.tierMargin}%)`} value={`${fmtPrice(monthly.supplyAmount)}원`} color="var(--text-md)" small />
       </div>
 
-      {/* 이달 정산 예정 강조 카드 */}
+      {/* 이달 마진 강조 카드 */}
       <div style={{ padding:'16px 22px', background:'linear-gradient(135deg, #ECFDF5, #D1FAE5)', border:'1px solid var(--green-m)', borderRadius:14, marginBottom:14, display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
         <span style={{ fontSize:24 }}>💵</span>
         <div style={{ flex:1, minWidth:200 }}>
-          <div style={{ fontSize:11, fontWeight:900, color:'var(--green)', letterSpacing:.5, marginBottom:3 }}>이달 정산 예정 ({monthly.tierMargin}%)</div>
+          <div style={{ fontSize:11, fontWeight:900, color:'var(--green)', letterSpacing:.5, marginBottom:3 }}>이달 매출 마진 ({monthly.tierMargin}%)</div>
           <div style={{ fontSize:24, fontWeight:900, color:'var(--green)', letterSpacing:-0.6, fontFamily:'Bebas Neue' }}>{fmtPrice(monthly.dealerMargin)}<span style={{ fontFamily:'Pretendard', fontSize:14, marginLeft:4 }}>원</span></div>
         </div>
         <div style={{ fontSize:12, color:'var(--text-md)', fontWeight:700, lineHeight:1.55, maxWidth:340 }}>
-          정가 매출에서 본사 송금분(공급단가)을 제외한 <b style={{ color:'var(--green)' }}>잠정 차액</b>입니다 · 월말 마감·확인 후 확정
+          매장 정가 매출에서 본사 공급단가를 제외한 <b style={{ color:'var(--green)' }}>실수익</b>입니다
         </div>
       </div>
 
-      {/* 정산 흐름 안내 */}
+      {/* 선입금 흐름 안내 */}
       <div style={{ padding:'14px 18px', background:'var(--or-pale)', border:'1px solid var(--or-l)', borderRadius:12, marginBottom:14, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
-        <span style={{ fontSize:20 }}>📅</span>
+        <span style={{ fontSize:20 }}>💸</span>
         <div style={{ flex:1, fontSize:12.5, color:'var(--text-md)', lineHeight:1.7, fontWeight:700 }}>
-          <b style={{ color:'var(--or-d)' }}>정산 흐름</b> — 월말 마감(정산 기준일) → 청구서 발송 → <b>대리점 확인 체크</b> → 본사 검토 → <b>익월 10일까지 본사 입금</b>
+          <b style={{ color:'var(--or-d)' }}>선입금 흐름</b> — 주문 → 본사 계좌 공급단가 송금 → 본사 입금 확인 → 자재 출고 → 매장 결제 (정산 절차 없음)
         </div>
       </div>
 
@@ -386,51 +386,6 @@ function DealerDashboard({ account, orders, settlements, onUpdate, onToast }) {
           모드 전환은 본사 어드민에 요청해 주세요
         </div>
       </div>
-
-      {/* 정산 청구서 (대리점 확인 대기) */}
-      {(settlements || []).filter(s => s.status === 'pending').length > 0 && (
-        <div style={{ marginBottom:24, padding:'18px 22px', background:'linear-gradient(135deg, #FEF3C7, #FDE68A)', border:'2px solid #FCD34D', borderRadius:14 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10, flexWrap:'wrap' }}>
-            <span style={{ fontSize:22 }}>📋</span>
-            <div style={{ flex:1 }}>
-              <div style={{ fontSize:11, fontWeight:900, color:'#B45309', letterSpacing:.4, marginBottom:3 }}>SETTLEMENT INVOICE</div>
-              <div style={{ fontSize:15, fontWeight:900, color:'var(--navy)', letterSpacing:-0.3 }}>본사가 발행한 정산 청구서가 있습니다 — 확인이 필요합니다</div>
-            </div>
-          </div>
-          {(settlements || []).filter(s => s.status === 'pending').map(s => (
-            <div key={s.id} style={{ background:'#fff', borderRadius:10, padding:'14px 16px', marginTop:10, border:'1px solid #FCD34D' }}>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10, flexWrap:'wrap', gap:8 }}>
-                <div>
-                  <div style={{ fontSize:11, fontWeight:800, color:'var(--text-sm)', letterSpacing:.3 }}>{s.period}</div>
-                  <div style={{ fontSize:14, fontWeight:900, color:'var(--navy)' }}>주문 {s.orderCount}건 · 정가 {fmtPrice(s.salesTotal)}원</div>
-                </div>
-                <div style={{ textAlign:'right' }}>
-                  <div style={{ fontSize:10.5, fontWeight:800, color:'var(--text-sm)', letterSpacing:.3 }}>본사 입금예정</div>
-                  <div style={{ fontFamily:'Bebas Neue', fontSize:24, fontWeight:900, color:'var(--or-d)' }}>{fmtPrice(s.supplyAmount)}<span style={{ fontFamily:'Pretendard', fontSize:13, marginLeft:3 }}>원</span></div>
-                </div>
-              </div>
-              <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
-                <span style={{ fontSize:11.5, color:'var(--text-md)', fontWeight:700, flex:1, minWidth:200 }}>📅 입금 예정일: <b>{fmtDate(s.dueDate)}</b></span>
-                <button onClick={async () => {
-                  if (!confirm('정산 내역을 확인했습니까?\n\n매출·공급단가가 정확하면 "확인 완료"를 눌러주세요. 본사가 검토 후 입금 안내드립니다.')) return;
-                  try {
-                    await db.collection(COLLECTIONS.SETTLEMENTS).doc(s.id).set({ status:'dealer-confirmed', dealerConfirmedAt: nowIso(), updatedAt: nowIso() }, { merge: true });
-                    onToast({ message:'확인 완료 — 본사 검토 대기', type:'success' });
-                  } catch (e) { onToast({ message:'실패: '+e.message, type:'error' }); }
-                }} style={{ padding:'10px 18px', background:'linear-gradient(135deg, var(--green), #047857)', color:'#fff', borderRadius:9, fontSize:13, fontWeight:900, border:'none', boxShadow:'0 4px 12px rgba(5,150,105,.3)' }}>✓ 확인 완료</button>
-                <button onClick={async () => {
-                  const reason = prompt('이의 제기 사유를 입력해주세요:');
-                  if (!reason) return;
-                  try {
-                    await db.collection(COLLECTIONS.SETTLEMENTS).doc(s.id).set({ status:'disputed', dealerMemo: reason, updatedAt: nowIso() }, { merge: true });
-                    onToast({ message:'이의 제기 접수 — 본사가 검토합니다', type:'success' });
-                  } catch (e) { onToast({ message:'실패: '+e.message, type:'error' }); }
-                }} style={{ padding:'10px 14px', background:'#fff', color:'var(--red)', borderRadius:9, fontSize:12, fontWeight:800, border:'1px solid var(--red-m)' }}>이의 제기</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* 최근 주문 */}
       <div style={{ background:'#fff', borderRadius:'var(--r-lg)', border:'1px solid var(--border)', overflow:'hidden' }}>
@@ -803,7 +758,6 @@ function App() {
   const [account, setAccount] = useState(null);
   const [orders, setOrders] = useState([]);
   const [requests, setRequests] = useState([]);
-  const [settlements, setSettlements] = useState([]);
   const [toast, setToast] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -843,13 +797,6 @@ function App() {
               setOrders(snap.docs.map(d => ({ id:d.id, ...d.data() })).filter(o => o.dealerId === account.id));
             });
           });
-        // 정산 청구서 구독 (대리점 본인 분만)
-        const unsub2 = db.collection(COLLECTIONS.SETTLEMENTS)
-          .where('dealerId', '==', account.id)
-          .onSnapshot(snap => setSettlements(snap.docs.map(d => ({ id:d.id, ...d.data() }))),
-            err => { console.error('[settlements snapshot]', err); db.collection(COLLECTIONS.SETTLEMENTS).get().then(snap => setSettlements(snap.docs.map(d=>({id:d.id,...d.data()})).filter(s=>s.dealerId===account.id))); });
-        const orig = unsub;
-        unsub = () => { try { orig && orig(); } catch(e){} try { unsub2 && unsub2(); } catch(e){} };
       } else {
         unsub = db.collection(COLLECTIONS.MATCHING_REQUESTS)
           .onSnapshot(snap => {
@@ -865,7 +812,7 @@ function App() {
     return () => { if (unsub) unsub(); };
   }, [account, session]);
 
-  function logout() { clearSession(); setSession(null); setAccount(null); setOrders([]); setRequests([]); setSettlements([]); }
+  function logout() { clearSession(); setSession(null); setAccount(null); setOrders([]); setRequests([]); }
 
   if (!session) {
     return (
@@ -889,7 +836,7 @@ function App() {
     <div style={{ minHeight:'100vh' }}>
       <PortalHeader account={account} roleType={session.roleType} onLogout={logout} />
       {session.roleType === 'dealer'
-        ? <DealerDashboard account={account} orders={orders} settlements={settlements} onUpdate={loadAccountAndData} onToast={setToast} />
+        ? <DealerDashboard account={account} orders={orders} onUpdate={loadAccountAndData} onToast={setToast} />
         : <PartnerDashboard account={account} requests={requests} onUpdate={loadAccountAndData} onToast={setToast} />
       }
       {toast && <Toast {...toast} onDone={() => setToast(null)} />}

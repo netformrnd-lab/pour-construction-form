@@ -149,44 +149,87 @@ function SetupScreen({ onReady, onError }) {
 // ============================================================
 // Welcome Screen — 대기 상태
 // ============================================================
-function WelcomeScreen({ dealer, onAdmin }) {
+function WelcomeScreen({ dealer, onAdmin, onMode }) {
+  const menus = [
+    { id: 'guide',     icon: '🧭', label: 'AI 길잡이',         desc: '건물 사진·증상으로 자가 진단 → 맞춤 패키지 추천' },
+    { id: 'catalog',   icon: '📦', label: '부위별 패키지',     desc: '슬라브·외벽·균열·이음부 등 9개 부위별 제품' },
+    { id: 'estimate',  icon: '📐', label: '즉석 견적',         desc: '평수·부위 입력 → 자재량·가격 자동 산출' },
+    { id: 'videos',    icon: '▶',  label: '시공 영상',         desc: '패키지별 시공 영상 — 셀프 시공 OK' },
+    { id: 'qr',        icon: '📱', label: '폰에 받기',         desc: '카탈로그·견적을 QR로 본인 폰에' },
+  ];
   return (
-    <div className="fade-in" style={{ width:'100%', height:'100%', display:'grid', placeItems:'center', padding:40, position:'relative' }}>
+    <div className="fade-in" style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', padding:'24px 32px', position:'relative', overflow:'auto' }}>
       <button onClick={onAdmin} style={{
         position:'absolute', top:18, right:18, padding:'8px 14px', borderRadius:9,
-        fontSize:12, fontWeight:800, color:'var(--text-sm)', background:'rgba(255,255,255,.7)', border:'1px solid var(--border)'
+        fontSize:12, fontWeight:800, color:'var(--text-sm)', background:'rgba(255,255,255,.7)', border:'1px solid var(--border)', zIndex:10
       }}>⚙ 키오스크 설정</button>
-      <div style={{ textAlign:'center', maxWidth:720 }}>
-        <div className="pulse" style={{ width:120, height:120, margin:'0 auto 32px', borderRadius:32, background:'linear-gradient(135deg, var(--or), var(--or-d))', display:'grid', placeItems:'center', fontSize:60, color:'#fff', boxShadow:'0 16px 40px rgba(249,115,22,.35)' }}>🛒</div>
-        <div style={{ fontSize:14, fontWeight:800, color:'var(--or-d)', letterSpacing:1.5, marginBottom:14 }}>POUR스토어 매장 키오스크</div>
-        <h1 style={{ fontSize:48, fontWeight:900, color:'var(--navy)', letterSpacing:-1.5, lineHeight:1.2, marginBottom:18 }}>
-          어서오세요!<br/><span style={{ color:'var(--or)' }}>{dealer.dealerName}</span>입니다
+      <div style={{ textAlign:'center', marginBottom:24 }}>
+        <div className="pulse" style={{ width:80, height:80, margin:'0 auto 16px', borderRadius:22, background:'linear-gradient(135deg, var(--or), var(--or-d))', display:'grid', placeItems:'center', fontSize:38, color:'#fff', boxShadow:'0 12px 28px rgba(249,115,22,.3)' }}>🛒</div>
+        <div style={{ fontSize:13, fontWeight:800, color:'var(--or-d)', letterSpacing:1.2, marginBottom:8 }}>POUR스토어 매장 키오스크</div>
+        <h1 style={{ fontSize:34, fontWeight:900, color:'var(--navy)', letterSpacing:-1.2, lineHeight:1.2, marginBottom:6 }}>
+          어서오세요! <span style={{ color:'var(--or)' }}>{dealer.dealerName}</span>입니다
         </h1>
-        <p style={{ fontSize:18, color:'var(--text-md)', lineHeight:1.7, fontWeight:700, marginBottom:36, maxWidth:520, marginLeft:'auto', marginRight:'auto' }}>
-          매장 직원에게 원하시는 자재를 말씀해 주세요.<br/>
-          주문 입력이 시작되면 이 화면에 자동 표시됩니다.
-        </p>
-        <div style={{ display:'inline-flex', alignItems:'center', gap:12, padding:'14px 24px', background:'#fff', border:'1px solid var(--or-l)', borderRadius:14, fontSize:13, color:'var(--text-md)', fontWeight:700, boxShadow:'0 4px 12px rgba(0,0,0,.05)' }}>
-          <span style={{ width:8, height:8, borderRadius:'50%', background:'var(--green)', boxShadow:'0 0 0 4px rgba(5,150,105,.2)', animation:'pulse 2s infinite' }} />
-          신규 주문 대기 중...
+        <div style={{ fontSize:14, color:'var(--text-md)', fontWeight:700 }}>아래 메뉴를 직접 둘러보거나 매장 직원에게 도움을 요청하세요</div>
+      </div>
+
+      {/* 5개 빅 버튼 */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(260px, 1fr))', gap:14, maxWidth:1100, margin:'0 auto 24px', width:'100%' }}>
+        {menus.map(m => (
+          <button key={m.id} onClick={() => onMode(m.id)} style={{
+            background:'#fff', border:'2px solid var(--or-l)', borderRadius:20, padding:'24px 22px',
+            textAlign:'left', cursor:'pointer', transition:'all .25s', boxShadow:'0 4px 14px rgba(15,31,92,.06)'
+          }} onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'var(--or-d)'; e.currentTarget.style.boxShadow = '0 14px 32px rgba(249,115,22,.18)'; }} onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = 'var(--or-l)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(15,31,92,.06)'; }}>
+            <div style={{ width:54, height:54, borderRadius:14, background:'linear-gradient(135deg,#FFEDD5,#FED7AA)', display:'grid', placeItems:'center', fontSize:26, marginBottom:14 }}>{m.icon}</div>
+            <div style={{ fontSize:18, fontWeight:900, color:'var(--navy)', letterSpacing:-0.4, marginBottom:6 }}>{m.label}</div>
+            <div style={{ fontSize:12.5, color:'var(--text-md)', lineHeight:1.55, fontWeight:700 }}>{m.desc}</div>
+          </button>
+        ))}
+      </div>
+
+      {/* 직원 도움 + 신뢰 */}
+      <div style={{ maxWidth:900, margin:'0 auto', width:'100%' }}>
+        <div style={{ padding:'14px 22px', background:'linear-gradient(135deg, #FFFBF5, #FFF7ED)', border:'1px solid var(--or-l)', borderRadius:14, marginBottom:14, display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
+          <span style={{ width:10, height:10, borderRadius:'50%', background:'var(--green)', boxShadow:'0 0 0 5px rgba(5,150,105,.2)', animation:'pulse 2s infinite', flexShrink:0 }} />
+          <span style={{ fontSize:13, color:'var(--text-md)', fontWeight:700 }}>매장 직원이 주문을 입력하시면 이 화면에 자동 표시됩니다 — 신규 주문 대기 중...</span>
         </div>
-        <div style={{ marginTop:48, paddingTop:32, borderTop:'1px solid var(--border)', maxWidth:600, margin:'48px auto 0' }}>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14, fontSize:13, color:'var(--text-md)' }}>
-            <div>
-              <div style={{ fontSize:24, marginBottom:6 }}>🛡️</div>
-              <div style={{ fontWeight:900, color:'var(--navy)', marginBottom:4 }}>R&D 검증</div>
-              <div style={{ fontSize:11.5, fontWeight:700 }}>건설신기술 1026호</div>
-            </div>
-            <div>
-              <div style={{ fontSize:24, marginBottom:6 }}>📺</div>
-              <div style={{ fontWeight:900, color:'var(--navy)', marginBottom:4 }}>시공 영상 무료</div>
-              <div style={{ fontSize:11.5, fontWeight:700 }}>구매 패키지마다 제공</div>
-            </div>
-            <div>
-              <div style={{ fontSize:24, marginBottom:6 }}>🏆</div>
-              <div style={{ fontWeight:900, color:'var(--navy)', marginBottom:4 }}>250만+ 시공</div>
-              <div style={{ fontSize:11.5, fontWeight:700 }}>전국 검증 사례</div>
-            </div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14, paddingTop:14, borderTop:'1px solid var(--border)', fontSize:12, color:'var(--text-md)', textAlign:'center' }}>
+          <div><div style={{ fontSize:20, marginBottom:5 }}>🛡️</div><div style={{ fontWeight:900, color:'var(--navy)', fontSize:13 }}>R&D 검증</div><div style={{ fontSize:11, fontWeight:700 }}>건설신기술 1026호</div></div>
+          <div><div style={{ fontSize:20, marginBottom:5 }}>📺</div><div style={{ fontWeight:900, color:'var(--navy)', fontSize:13 }}>시공 영상 무료</div><div style={{ fontSize:11, fontWeight:700 }}>구매 패키지마다 제공</div></div>
+          <div><div style={{ fontSize:20, marginBottom:5 }}>🏆</div><div style={{ fontWeight:900, color:'var(--navy)', fontSize:13 }}>250만+ 시공</div><div style={{ fontSize:11, fontWeight:700 }}>전국 검증 사례</div></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Mode Screens — Batch 2~6에서 실제 콘텐츠 채워질 자리
+// ============================================================
+function ModePlaceholder({ mode, dealer, onBack }) {
+  const titles = {
+    guide:    { icon:'🧭', title:'AI 길잡이',     desc:'건물 사진·증상을 입력하면 맞춤 패키지를 추천합니다' },
+    catalog:  { icon:'📦', title:'부위별 패키지', desc:'슬라브·외벽·균열·이음부 등 9개 부위별 제품 카탈로그' },
+    estimate: { icon:'📐', title:'즉석 견적',     desc:'평수·부위 입력 → 자재량·가격 자동 산출' },
+    videos:   { icon:'▶',  title:'시공 영상',     desc:'패키지별 시공 영상 모음' },
+    qr:       { icon:'📱', title:'폰에 받기',     desc:'카탈로그·견적을 QR로 본인 폰에' },
+  };
+  const t = titles[mode] || titles.catalog;
+  return (
+    <div className="fade-in" style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', padding:'24px 32px' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:24 }}>
+        <button onClick={onBack} style={{ padding:'10px 16px', borderRadius:10, fontSize:13, fontWeight:800, color:'var(--text-md)', background:'#fff', border:'1px solid var(--border)' }}>← 메뉴로</button>
+        <div>
+          <div style={{ fontSize:11, fontWeight:800, color:'var(--or-d)', letterSpacing:.8 }}>{dealer.dealerName}</div>
+          <h1 style={{ fontSize:24, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6 }}>{t.icon} {t.title}</h1>
+        </div>
+      </div>
+      <div style={{ flex:1, display:'grid', placeItems:'center', padding:32 }}>
+        <div style={{ textAlign:'center', maxWidth:480 }}>
+          <div style={{ fontSize:64, marginBottom:18, opacity:.4 }}>{t.icon}</div>
+          <h2 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', letterSpacing:-0.4, marginBottom:10 }}>곧 만나보실 수 있어요</h2>
+          <p style={{ fontSize:14, color:'var(--text-md)', fontWeight:700, lineHeight:1.7 }}>{t.desc}</p>
+          <div style={{ marginTop:24, padding:'12px 18px', background:'var(--or-pale)', border:'1px solid var(--or-l)', borderRadius:10, fontSize:11.5, color:'var(--text-md)', fontWeight:700, display:'inline-block' }}>
+            🚧 개발 중 — 곧 추가 업데이트
           </div>
         </div>
       </div>
@@ -312,6 +355,7 @@ function App() {
   const [latestOrder, setLatestOrder] = useState(null);
   const [error, setError] = useState(null);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [mode, setMode] = useState(null);  // null = 메인 메뉴 / 'guide'/'catalog'/'estimate'/'videos'/'qr'
 
   useEffect(() => {
     if (!setup) return;
@@ -342,7 +386,12 @@ function App() {
     return () => clearTimeout(t);
   }, [error]);
 
-  function reset() { clearSetup(); setSetup(null); setLatestOrder(null); setShowAdmin(false); }
+  // 주문이 들어오면 어느 모드에 있든 자동으로 OrderDisplay 전환
+  useEffect(() => {
+    if (latestOrder && mode) setMode(null);
+  }, [latestOrder]);
+
+  function reset() { clearSetup(); setSetup(null); setLatestOrder(null); setShowAdmin(false); setMode(null); }
 
   if (!setup) {
     return (
@@ -373,9 +422,12 @@ function App() {
 
   return (
     <>
-      {!latestOrder && <WelcomeScreen dealer={setup} onAdmin={() => setShowAdmin(true)} />}
+      {/* 주문 발생 시 — 모든 모드 무시하고 OrderDisplay/PaidScreen */}
       {latestOrder && !isPaid && <OrderDisplay order={latestOrder} dealer={setup} />}
       {latestOrder && isPaid && <PaidScreen order={latestOrder} />}
+      {/* 주문 없을 때 — 모드 전환 */}
+      {!latestOrder && !mode && <WelcomeScreen dealer={setup} onAdmin={() => setShowAdmin(true)} onMode={setMode} />}
+      {!latestOrder && mode && <ModePlaceholder mode={mode} dealer={setup} onBack={() => setMode(null)} />}
       {error && <ErrorBanner message={error} />}
     </>
   );

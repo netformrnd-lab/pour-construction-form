@@ -508,10 +508,19 @@ function DealerDashboard({ account, orders, settlements, onUpdate, onToast }) {
 
 function NewOrderModal({ dealer, onClose, onSave }) {
   const [data, setData] = useState({ customerName:'', customerPhone:'', shippingAddress:'', items:[{ name:'', qty:1, unitPrice:0 }], adminMemo:'' });
+  const [hqAccount, setHqAccount] = useState(null);
   const update = (k, v) => setData(d => ({ ...d, [k]: v }));
   const total = (data.items || []).reduce((s, it) => s + (Number(it.qty)||0) * (Number(it.unitPrice)||0), 0);
   const tier = tierMeta(dealer.tier);
   const commission = Math.round(total * tier.margin / 100);
+  const supplyAmount = Math.round((total - commission) / 1000) * 1000;
+
+  // 본사 계좌 정보 로드
+  useEffect(() => {
+    db.collection('app-config').doc('hq-account').get().then(doc => {
+      if (doc.exists) setHqAccount(doc.data());
+    }).catch(()=>{});
+  }, []);
 
   function updateItem(idx, k, v) {
     const next = data.items.map((it, i) => i === idx ? { ...it, [k]: v } : it);
@@ -529,9 +538,9 @@ function NewOrderModal({ dealer, onClose, onSave }) {
 
   return (
     <Modal open={true} onClose={onClose} title="새 주문 작성" width={760}>
-      {/* 결제 안내 */}
-      <div style={{ padding:'12px 14px', background:'var(--or-pale)', border:'1px solid var(--or-l)', borderRadius:10, fontSize:12, color:'var(--text-md)', fontWeight:700, lineHeight:1.65, marginBottom:16 }}>
-        💳 <b style={{ color:'var(--or-d)' }}>고객은 매장에서 정가 결제</b> (대리점 카드 단말기 / 계좌이체) · 익월 10일 본사 계좌로 공급단가 송금 · 대리점 마진 {tier.margin}%
+      {/* 선입금 흐름 안내 */}
+      <div style={{ padding:'12px 14px', background:'var(--or-pale)', border:'1px solid var(--or-l)', borderRadius:10, fontSize:12, color:'var(--text-md)', fontWeight:700, lineHeight:1.7, marginBottom:16 }}>
+        <b style={{ color:'var(--or-d)' }}>선입금 흐름</b> — 주문 등록 → 본사 계좌 공급단가 송금 → 본사 입금 확인 → 자재 출고 → 매장 결제
       </div>
 
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
@@ -567,18 +576,40 @@ function NewOrderModal({ dealer, onClose, onSave }) {
 
       <div style={{ padding:16, background:'var(--bg)', borderRadius:12, marginTop:14 }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
-          <span style={{ fontSize:12, color:'var(--text-md)', fontWeight:700 }}>고객 정가 결제 (매장 수령)</span>
-          <span style={{ fontSize:18, fontWeight:900, color:'var(--navy)' }}>{fmtPrice(total)}원</span>
+          <span style={{ fontSize:12, color:'var(--text-md)', fontWeight:700 }}>고객 정가 (매장 결제)</span>
+          <span style={{ fontSize:16, fontWeight:800, color:'var(--text-md)' }}>{fmtPrice(total)}원</span>
         </div>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingTop:10, borderTop:'1px solid var(--border)', marginBottom:4 }}>
-          <span style={{ fontSize:11.5, color:'var(--text-md)', fontWeight:800 }}>본사 송금 예정 ({100-tier.margin}%)</span>
-          <span style={{ fontSize:14, fontWeight:800, color:'var(--text-md)' }}>{fmtPrice(total - commission)}원</span>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingTop:10, borderTop:'1px solid var(--border)', marginBottom:6 }}>
+          <span style={{ fontSize:13, color:'var(--or-d)', fontWeight:900 }}>📤 본사 송금 ({100-tier.margin}%)</span>
+          <span style={{ fontFamily:'Bebas Neue', fontSize:24, fontWeight:900, color:'var(--or-d)' }}>{fmtPrice(supplyAmount)}<span style={{ fontFamily:'Pretendard', fontSize:13, marginLeft:3 }}>원</span></span>
         </div>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <span style={{ fontSize:11.5, color:'var(--green)', fontWeight:800 }}>대리점 마진 ({tier.margin}%)</span>
-          <span style={{ fontSize:16, fontWeight:900, color:'var(--green)' }}>{fmtPrice(commission)}원</span>
+          <span style={{ fontSize:14, fontWeight:800, color:'var(--green)' }}>{fmtPrice(commission)}원</span>
         </div>
       </div>
+
+      {/* 본사 입금 계좌 안내 */}
+      {hqAccount ? (
+        <div style={{ marginTop:14, padding:'14px 16px', background:'linear-gradient(135deg, #FFF7ED, #FFEDD5)', border:'2px solid var(--or)', borderRadius:12 }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8, flexWrap:'wrap', gap:6 }}>
+            <span style={{ fontSize:11, fontWeight:900, color:'var(--or-d)', letterSpacing:.5 }}>📥 본사 입금 계좌</span>
+            <button type="button" onClick={() => {
+              const txt = `${hqAccount.bankName} ${hqAccount.accountNo} (${hqAccount.accountHolder})`;
+              navigator.clipboard.writeText(txt).then(()=>alert('계좌 정보 복사됨'));
+            }} style={{ padding:'4px 10px', borderRadius:6, fontSize:11, fontWeight:800, color:'var(--or-d)', background:'#fff', border:'1px solid var(--or-l)' }}>📋 복사</button>
+          </div>
+          <div style={{ fontSize:14, fontWeight:900, color:'var(--navy)', letterSpacing:-.3, marginBottom:3 }}>{hqAccount.bankName} <span style={{ fontFamily:'monospace' }}>{hqAccount.accountNo}</span></div>
+          <div style={{ fontSize:12, color:'var(--text-md)', fontWeight:700 }}>예금주: {hqAccount.accountHolder}</div>
+          <div style={{ marginTop:10, padding:'8px 10px', background:'#fff', borderRadius:6, fontSize:11, color:'var(--text-md)', fontWeight:700, lineHeight:1.55 }}>
+            💡 위 계좌로 <b style={{ color:'var(--or-d)' }}>{fmtPrice(supplyAmount)}원</b> 송금 → 본사 입금 확인 후 자재 출고됩니다
+          </div>
+        </div>
+      ) : (
+        <div style={{ marginTop:14, padding:'12px 14px', background:'#FEE2E2', border:'1px solid #FCA5A5', borderRadius:10, fontSize:12, color:'#991B1B', fontWeight:700, lineHeight:1.6 }}>
+          ⚠️ 본사 입금 계좌 미등록 — 본사 어드민에서 설정 후 표시됩니다
+        </div>
+      )}
 
       <div style={{ display:'flex', gap:8, marginTop:24, paddingTop:18, borderTop:'1px solid var(--border-s)' }}>
         <div style={{ flex:1 }} />

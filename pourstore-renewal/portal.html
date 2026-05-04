@@ -71,11 +71,16 @@ const DEALER_TIERS = {
 
 const ORDER_STATUS_COLOR = {
   '신규':       { bg: '#FEE2E2', border: '#FCA5A5', color: '#DC2626' },
+  '입금대기':   { bg: '#FEF3C7', border: '#FCD34D', color: '#B45309' },
+  '입금확인':   { bg: '#DBEAFE', border: '#93C5FD', color: '#1E40AF' },
+  '출고':       { bg: '#FFEDD5', border: '#FED7AA', color: '#EA580C' },
+  '배송중':     { bg: '#FFEDD5', border: '#FED7AA', color: '#EA580C' },
+  '완료':       { bg: '#D1FAE5', border: '#6EE7B7', color: '#047857' },
+  '취소':       { bg: '#F3F4F6', border: '#E5E7EB', color: '#6B7280' },
+  // 하위 호환
   '결제대기':   { bg: '#FEF3C7', border: '#FCD34D', color: '#B45309' },
   '결제완료':   { bg: '#DBEAFE', border: '#93C5FD', color: '#1E40AF' },
   '배송준비':   { bg: '#FEF3C7', border: '#FCD34D', color: '#B45309' },
-  '배송중':     { bg: '#FFEDD5', border: '#FED7AA', color: '#EA580C' },
-  '완료':       { bg: '#D1FAE5', border: '#6EE7B7', color: '#047857' },
   '환불':       { bg: '#F3F4F6', border: '#E5E7EB', color: '#6B7280' },
 };
 
@@ -481,7 +486,7 @@ function DealerDashboard({ account, orders, settlements, onUpdate, onToast }) {
                 source: 'dealer-store',
                 dealerId: account.id,
                 dealerName: account.companyName,
-                status: '결제대기',
+                status: '입금대기',
                 paymentTarget: 'pourstore', // 고객 → POUR 직접 결제
                 orderNo: 'OR-' + Date.now().toString().slice(-8),
                 totalAmount: (data.items || []).reduce((s, it) => s + (Number(it.qty)||0) * (Number(it.unitPrice)||0), 0),

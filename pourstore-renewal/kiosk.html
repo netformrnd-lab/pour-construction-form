@@ -1061,15 +1061,15 @@ function App() {
       .where('dealerId', '==', setup.dealerId)
       .onSnapshot(snap => {
         const list = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-        // 활성 = 결제대기/결제완료/배송준비 중에서 가장 최신
+        // 활성 = 입금대기·입금확인·출고 (또는 하위호환 결제대기·결제완료·배송준비) 중 가장 최신
         const active = list
-          .filter(o => ['결제대기','결제완료','배송준비'].includes(o.status))
+          .filter(o => ['입금대기','입금확인','출고','결제대기','결제완료','배송준비'].includes(o.status))
           .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))[0];
-        // 최근 60초 내 결제완료된 주문은 PaidScreen 표시
+        // 최근 60초 내 입금확인된 주문은 PaidScreen 표시
         if (active) setLatestOrder(active);
         else {
           const justPaid = list
-            .filter(o => o.status === '결제완료' && o.updatedAt && (Date.now() - new Date(o.updatedAt).getTime()) < 60000)
+            .filter(o => ['입금확인','결제완료'].includes(o.status) && o.updatedAt && (Date.now() - new Date(o.updatedAt).getTime()) < 60000)
             .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))[0];
           setLatestOrder(justPaid || null);
         }
@@ -1115,7 +1115,7 @@ function App() {
     );
   }
 
-  const isPaid = latestOrder && latestOrder.status === '결제완료';
+  const isPaid = latestOrder && ['입금확인','결제완료'].includes(latestOrder.status);
 
   return (
     <>

@@ -525,7 +525,7 @@
 - `orderBy` 사용 금지 → 클라이언트 정렬
 - 빈 결과는 `console.log`로 건수 확인
 - catch에서 빈 배열 반환 금지
-- `pour-exhibition` Firebase 프로젝트 사용
+- `pour-app-new` Firebase 프로젝트 사용
 
 ---
 

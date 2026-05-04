@@ -9,7 +9,7 @@ POUR스토어 운영 시스템의 Firestore 보안 규칙 배포 방법.
 ### 1단계 — Firebase Console 접속
 
 1. https://console.firebase.google.com 접속
-2. 프로젝트 선택: **pour-exhibition**
+2. 프로젝트 선택: **pour-app-new**
 
 ### 2단계 — Firestore 규칙 페이지 이동
 
@@ -40,7 +40,7 @@ CI/CD 또는 정기 업데이트 시 사용. 모바일에선 어려움.
 ```bash
 npm install -g firebase-tools
 firebase login
-firebase use pour-exhibition
+firebase use pour-app-new
 ```
 
 ### 배포
@@ -82,7 +82,7 @@ POUR스토어 어드민은 단일 필드 `where` 쿼리만 사용 (`dealerId == 
 
 ### "FirebaseError: Failed to get document"
 - 원인: 네트워크 또는 프로젝트 ID 불일치
-- 해결: 어드민 HTML의 `projectId: "pour-exhibition"` 확인
+- 해결: 어드민 HTML의 `projectId: "pour-app-new"` 확인
 
 ### 규칙 변경 후에도 차단됨
 - 원인: 캐시

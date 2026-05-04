@@ -221,7 +221,7 @@ pour-construction-form/
   <section id="inquiry-form"></section>
 
   <script>
-    firebase.initializeApp({/* pour-exhibition config */});
+    firebase.initializeApp({/* pour-app-new config */});
     const db = firebase.firestore();
 
     // 공신력 수치 실시간 표출

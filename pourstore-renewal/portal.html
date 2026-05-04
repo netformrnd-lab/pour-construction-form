@@ -678,17 +678,6 @@ function App() {
       }
       const acc = { id:doc.id, ...doc.data() };
       setAccount(acc);
-
-      if (session.roleType === 'dealer') {
-        const snap = await db.collection(COLLECTIONS.DEALER_ORDERS).where('dealerId', '==', acc.id).get().catch(async () => {
-          // fallback if no index — load all
-          return db.collection(COLLECTIONS.DEALER_ORDERS).get();
-        });
-        setOrders(snap.docs.map(d => ({ id:d.id, ...d.data() })));
-      } else {
-        const snap = await db.collection(COLLECTIONS.MATCHING_REQUESTS).get();
-        setRequests(snap.docs.map(d => ({ id:d.id, ...d.data() })));
-      }
     } catch (e) {
       console.error(e);
       setToast({ message:'데이터 로드 실패: '+e.message, type:'error' });
@@ -696,6 +685,38 @@ function App() {
   }
 
   useEffect(() => { loadAccountAndData(); }, [session]);
+
+  // 실시간 구독 — 계정 로드 후 역할별로 활성화
+  useEffect(() => {
+    if (!account || !session) return;
+    let unsub = null;
+    try {
+      if (session.roleType === 'dealer') {
+        unsub = db.collection(COLLECTIONS.DEALER_ORDERS)
+          .where('dealerId', '==', account.id)
+          .onSnapshot(snap => {
+            setOrders(snap.docs.map(d => ({ id:d.id, ...d.data() })));
+          }, err => {
+            console.error('[orders snapshot]', err);
+            // fallback to one-shot get
+            db.collection(COLLECTIONS.DEALER_ORDERS).get().then(snap => {
+              setOrders(snap.docs.map(d => ({ id:d.id, ...d.data() })).filter(o => o.dealerId === account.id));
+            });
+          });
+      } else {
+        unsub = db.collection(COLLECTIONS.MATCHING_REQUESTS)
+          .onSnapshot(snap => {
+            setRequests(snap.docs.map(d => ({ id:d.id, ...d.data() })));
+          }, err => {
+            console.error('[requests snapshot]', err);
+            setToast({ message:'실시간 동기화 실패: '+err.message, type:'error' });
+          });
+      }
+    } catch (e) {
+      console.error('[subscribe]', e);
+    }
+    return () => { if (unsub) unsub(); };
+  }, [account, session]);
 
   function logout() { clearSession(); setSession(null); setAccount(null); setOrders([]); setRequests([]); }
 

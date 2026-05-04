@@ -6,12 +6,12 @@
   const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 
   const FIREBASE_CONFIG = {
-    apiKey: 'AIzaSyCBGjGzaTTyIwBs_a8355KfFKaWabJT3ac',
-    authDomain: 'pour-exhibition.firebaseapp.com',
-    projectId: 'pour-exhibition',
-    storageBucket: 'pour-exhibition.firebasestorage.app',
-    messagingSenderId: '881527274265',
-    appId: '1:881527274265:web:0caad9688e30beb1ea6388',
+    apiKey: 'AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU',
+    authDomain: 'pour-app-new.firebaseapp.com',
+    projectId: 'pour-app-new',
+    storageBucket: 'pour-app-new.firebasestorage.app',
+    messagingSenderId: '411031141847',
+    appId: '1:411031141847:web:e658174fd4b9652cdadf92',
   };
   const FIRESTORE_COLLECTION = 'pourstore-renewal-builder';
   const FIRESTORE_DOC = 'state';

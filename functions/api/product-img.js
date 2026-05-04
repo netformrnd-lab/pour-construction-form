@@ -11,7 +11,7 @@
  * 캐시: 10분 (s-maxage=600) — 수정 후 최대 10분 내 반영
  */
 
-const FIRESTORE_PROJECT = 'pour-exhibition';
+const FIRESTORE_PROJECT = 'pour-app-new';
 const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${FIRESTORE_PROJECT}/databases/(default)/documents`;
 const CACHE_SEC = 600; // 10분
 

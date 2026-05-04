@@ -22,14 +22,14 @@
 
 ### Firebase 프로젝트 설정
 ```javascript
-// 프로젝트: pour-exhibition (변경 금지)
+// 프로젝트: pour-app-new (변경 금지)
 firebase.initializeApp({
-  apiKey: "AIzaSyCBGjGzaTTyIwBs_a8355KfFKaWabJT3ac",
-  authDomain: "pour-exhibition.firebaseapp.com",
-  projectId: "pour-exhibition",
-  storageBucket: "pour-exhibition.firebasestorage.app",
-  messagingSenderId: "881527274265",
-  appId: "1:881527274265:web:0caad9688e30beb1ea6388"
+  apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
+  authDomain: "pour-app-new.firebaseapp.com",
+  projectId: "pour-app-new",
+  storageBucket: "pour-app-new.firebasestorage.app",
+  messagingSenderId: "411031141847",
+  appId: "1:411031141847:web:e658174fd4b9652cdadf92"
 });
 const db = firebase.firestore();
 ```

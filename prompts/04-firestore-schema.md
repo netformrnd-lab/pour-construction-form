@@ -1,6 +1,6 @@
 # PART 4. 스키마 프롬프트 — Firestore 데이터 구조
 
-> pour-exhibition 프로젝트의 전체 Firestore 컬렉션 스키마 (기존 + 신규)
+> pour-app-new 프로젝트의 전체 Firestore 컬렉션 스키마 (기존 + 신규)
 
 ---
 

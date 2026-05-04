@@ -1,11 +1,8 @@
 // ============================================================
 // 통합 Firestore 보안 규칙
-// 적용 프로젝트:
-//   - pour-app-new      (기존 영업앱: admin.html, index.html, defect-diagnosis.html 등)
-//   - pour-exhibition   (POUR스토어 신규: pourstore-renewal/admin·portal·kiosk)
-//
-// ※ 두 프로젝트 모두에 동일한 규칙을 게시하세요.
-//   각 프로젝트엔 자기 데이터만 있으므로 컬렉션 합본은 무해합니다.
+// 적용 프로젝트: pour-app-new (단일 프로젝트로 통합)
+//   - 박람회·영업앱: admin.html, index.html, defect-diagnosis.html 등
+//   - POUR스토어 신규: pourstore-renewal/admin·portal·kiosk
 // ============================================================
 // 배포 방법: FIREBASE-DEPLOY.md 참조
 // ============================================================
@@ -69,7 +66,7 @@ service cloud.firestore {
     match /sms-logs/{doc}           { allow read, write: if true; }
 
     // ─────────────────────────────────────────────
-    // POUR스토어 신규 컬렉션 (pour-exhibition · pourstore-renewal/*)
+    // POUR스토어 신규 컬렉션 (pourstore-renewal/*)
     // ─────────────────────────────────────────────
     match /matching-requests/{doc}  { allow read, write: if true; }
     match /partner-companies/{doc}  { allow read, write: if true; }

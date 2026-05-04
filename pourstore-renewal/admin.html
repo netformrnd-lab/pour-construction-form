@@ -1727,6 +1727,17 @@ function OrderDetail({ order, dealers, onClose, onSave, onDelete }) {
         <ItemsEditor items={data.items || []} onChange={items => update('items', items)} />
       </Field>
 
+      <div style={{ padding:14, background:'var(--or-pale)', border:'1px solid var(--or-l)', borderRadius:10, marginBottom:14 }}>
+        <div style={{ fontSize:11, fontWeight:900, color:'var(--or-d)', letterSpacing:.5, marginBottom:8 }}>💳 Cafe24 결제 매칭</div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:8 }}>
+          <Field label="Cafe24 주문번호"><input type="text" value={data.cafe24OrderNo || ''} onChange={e => update('cafe24OrderNo', e.target.value)} style={inputStyle({ fontFamily:'monospace' })} placeholder="20260504-0000123" /></Field>
+          <Field label="결제 확인일"><input type="date" value={data.paidDate || ''} onChange={e => update('paidDate', e.target.value)} style={inputStyle()} /></Field>
+        </div>
+        <div style={{ fontSize:11, color:'var(--text-md)', fontWeight:700, lineHeight:1.55 }}>
+          Cafe24 본사몰에서 결제 처리 후 주문번호를 여기에 기록 → 상태를 <b style={{ color:'var(--green)' }}>결제완료</b>로 변경 → 키오스크에 자동 반영
+        </div>
+      </div>
+
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
         <Field label="배송 주소"><input type="text" value={data.shippingAddress || ''} onChange={e => update('shippingAddress', e.target.value)} style={inputStyle()} /></Field>
         <Field label="송장 번호"><input type="text" value={data.trackingNo || ''} onChange={e => update('trackingNo', e.target.value)} style={inputStyle({ fontFamily:'monospace' })} /></Field>

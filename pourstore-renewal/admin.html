@@ -178,6 +178,25 @@ async function hashPin(pin) {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
+// /send-sms (Cloudflare Pages Function) 호출
+// 환경변수 미설정 시: { ok: false, skipped: true }
+async function sendSMS(to, text) {
+  try {
+    const cleaned = (to || '').replace(/[^0-9]/g, '');
+    if (!cleaned || cleaned.length < 9) return { ok: false, error: '전화번호 형식 오류' };
+    const res = await fetch('/send-sms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: cleaned, text })
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) return { ok: false, error: json.error || `HTTP ${res.status}` };
+    return { ok: true, data: json };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
 function fmtDate(iso) {
   if (!iso) return '-';
   const d = new Date(iso);
@@ -788,6 +807,25 @@ function PortalPinBlock({ data, update, collection, onToast }) {
     return Math.floor(100000 + Math.random() * 900000).toString();  // 6자리
   }
 
+  function buildPinSmsText(pin) {
+    const baseUrl = location.origin + '/pourstore-renewal';
+    return `[POUR스토어 포털] 로그인 PIN 발급
+PIN: ${pin}
+포털: ${baseUrl}/portal
+키오스크: ${baseUrl}/kiosk
+※ 본 메시지는 1회 발송, 안전 보관 부탁드립니다`;
+  }
+
+  async function autoSendSms(pin) {
+    const text = buildPinSmsText(pin);
+    const r = await sendSMS(phone, text);
+    if (r.ok) {
+      onToast({ message: `📱 ${phone}로 PIN 자동 전송 완료`, type: 'success' });
+    } else {
+      onToast({ message: `⚠️ SMS 전송 실패: ${r.error} — 화면 PIN을 직접 전달하세요`, type: 'error' });
+    }
+  }
+
   async function issue() {
     if (!phone) { onToast({ message: '전화번호 먼저 입력 후 저장해 주세요', type: 'error' }); return; }
     if (!accountId) { onToast({ message: '먼저 계정을 저장해 주세요', type: 'error' }); return; }
@@ -800,7 +838,16 @@ function PortalPinBlock({ data, update, collection, onToast }) {
       update('portalPinIssuedAt', nowIso());
       setIssuedPin(newPin);
       onToast({ message: '신규 PIN 발급 완료', type: 'success' });
+      // 발급 직후 자동 SMS 전송 시도 (실패해도 발급은 완료)
+      autoSendSms(newPin);
     } catch (e) { onToast({ message: '발급 실패: ' + e.message, type: 'error' }); }
+    setBusy(false);
+  }
+
+  async function resendSms() {
+    if (!issuedPin) { onToast({ message: '재전송할 PIN이 없습니다 (재발급 후 가능)', type: 'error' }); return; }
+    setBusy(true);
+    await autoSendSms(issuedPin);
     setBusy(false);
   }
 
@@ -838,7 +885,10 @@ function PortalPinBlock({ data, update, collection, onToast }) {
           <div style={{ fontSize:11, fontWeight:800, color:'var(--or-d)', letterSpacing:.5, marginBottom:6 }}>📋 신규 발급 PIN — 한 번만 표시됩니다</div>
           <div style={{ display:'flex', alignItems:'center', gap:12, justifyContent:'space-between', flexWrap:'wrap', gap:10 }}>
             <div style={{ fontFamily:'Bebas Neue, monospace', fontSize:36, fontWeight:900, color:'var(--navy)', letterSpacing:6 }}>{issuedPin}</div>
-            <button onClick={() => { navigator.clipboard.writeText(issuedPin); onToast({ message: 'PIN 복사 완료', type: 'success' }); }} style={{ padding:'8px 14px', borderRadius:9, fontSize:12, fontWeight:800, color:'var(--navy)', background:'var(--bg)', border:'1px solid var(--border)' }}>📋 복사</button>
+            <div style={{ display:'flex', gap:6 }}>
+              <button onClick={resendSms} disabled={busy} style={{ padding:'8px 14px', borderRadius:9, fontSize:12, fontWeight:800, color:'#fff', background:'linear-gradient(135deg, var(--or), var(--or-d))', border:'none', boxShadow:'0 3px 8px rgba(249,115,22,.3)' }}>📱 SMS 재전송</button>
+              <button onClick={() => { navigator.clipboard.writeText(issuedPin); onToast({ message: 'PIN 복사 완료', type: 'success' }); }} style={{ padding:'8px 14px', borderRadius:9, fontSize:12, fontWeight:800, color:'var(--navy)', background:'var(--bg)', border:'1px solid var(--border)' }}>📋 복사</button>
+            </div>
           </div>
           <div style={{ fontSize:11, color:'var(--text-md)', fontWeight:700, marginTop:8, lineHeight:1.55 }}>
             {phone && <>전화 <b style={{ color:'var(--navy)' }}>{phone}</b> + PIN <b style={{ color:'var(--or-d)' }}>{issuedPin}</b>으로 포털·키오스크 로그인 가능</>}

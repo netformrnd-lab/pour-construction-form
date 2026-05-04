@@ -366,7 +366,143 @@ function CatalogMode({ dealer, onBack }) {
 }
 
 // ============================================================
-// Mode Screens — Batch 3~6에서 실제 콘텐츠 채워질 자리
+// 시공 영상 데이터 (YouTube)
+// ※ 실제 영상 ID는 향후 어드민 등록 시스템으로 대체 가능
+// ============================================================
+const VIDEOS = [
+  { id:'dQw4w9WgXcQ', area:'슬라브', tier:'풀패키지', title:'옥상 슬라브 듀얼강화방수 풀시공', dur:'14:28', views:'28K', pick:true,
+    desc:'POUR 코트재 + 듀얼복합시트 + 페이퍼팬벤트 일괄 시공' },
+  { id:'dQw4w9WgXcQ', area:'외벽 균열', tier:'부분 패키지', title:'하이퍼티로 외벽 균열 보수 — 5분 정리', dur:'8:42', views:'12K',
+    desc:'600% 신율 고탄성 퍼티로 미세 균열까지' },
+  { id:'dQw4w9WgXcQ', area:'단면 복구', tier:'부분 패키지', title:'탄성강화 파우더 — 박락 단면 복구', dur:'11:15', views:'9.2K',
+    desc:'마이크로 스틸 보강재 — 망치로 때려도 안 깨짐' },
+  { id:'dQw4w9WgXcQ', area:'후레싱 보강', tier:'단순 코팅', title:'POUR HOOKER 시공 — 손상 마감면 대응', dur:'6:08', views:'7.8K',
+    desc:'특허 후레싱 탈락 방지 + 일체화' },
+  { id:'dQw4w9WgXcQ', area:'결로 방지', tier:'부분 패키지', title:'페이퍼팬벤트 설치 — 무동력 환기', dur:'5:30', views:'6.4K',
+    desc:'결로·들뜸 자연 배출' },
+  { id:'dQw4w9WgXcQ', area:'베란다', tier:'풀패키지', title:'베란다 누수·곰팡이 셀프 시공', dur:'22:18', views:'18K', pick:true,
+    desc:'베란다 + 배수로 보수 — 셀프 입문자 추천' },
+  { id:'dQw4w9WgXcQ', area:'지하주차장', tier:'풀패키지', title:'지하주차장 바닥 보수 풀가이드', dur:'28:45', views:'12K',
+    desc:'에폭시 + 엠보라이닝 — 미끄럼 방지' },
+  { id:'dQw4w9WgXcQ', area:'슁글', tier:'풀패키지', title:'박공지붕 슁글 풀시공 (1026호)', dur:'18:30', views:'9.8K',
+    desc:'건설신기술 1026호 — 강풍 탈락 방지' },
+];
+
+// ============================================================
+// 영상 모드
+// ============================================================
+function VideosMode({ dealer, onBack }) {
+  const [filter, setFilter] = useState('all');
+  const [playing, setPlaying] = useState(null);  // 재생 중 영상 객체
+
+  const areas = Array.from(new Set(VIDEOS.map(v => v.area)));
+  const filtered = filter === 'all' ? VIDEOS : VIDEOS.filter(v => v.area === filter);
+
+  if (playing) {
+    // 영상 재생 화면
+    return (
+      <div className="fade-in" style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', padding:'24px 32px', background:'var(--bg)', overflow:'auto' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:18 }}>
+          <button onClick={() => setPlaying(null)} style={{ padding:'10px 16px', borderRadius:10, fontSize:13, fontWeight:800, color:'var(--text-md)', background:'#fff', border:'1px solid var(--border)' }}>← 영상 목록</button>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ display:'flex', gap:8, marginBottom:4, flexWrap:'wrap' }}>
+              <span style={{ fontSize:10.5, fontWeight:800, color:'var(--or-d)', padding:'2px 7px', background:'var(--or-pale)', border:'1px solid var(--or-l)', borderRadius:5 }}>{playing.area}</span>
+              <span style={{ fontSize:10.5, fontWeight:800, color:'var(--text-sm)', padding:'2px 7px', background:'#fff', border:'1px solid var(--border)', borderRadius:5 }}>{playing.tier}</span>
+            </div>
+            <h1 style={{ fontSize:18, fontWeight:900, color:'var(--navy)', letterSpacing:-0.4, lineHeight:1.4 }}>{playing.title}</h1>
+          </div>
+        </div>
+        <div style={{ background:'#000', borderRadius:14, overflow:'hidden', maxWidth:1100, width:'100%', margin:'0 auto 14px', boxShadow:'0 12px 36px rgba(0,0,0,.3)' }}>
+          <div style={{ position:'relative', paddingBottom:'56.25%', height:0 }}>
+            <iframe
+              src={`https://www.youtube.com/embed/${playing.id}?autoplay=1&rel=0`}
+              style={{ position:'absolute', top:0, left:0, width:'100%', height:'100%', border:0 }}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              title={playing.title}
+            />
+          </div>
+        </div>
+        <div style={{ maxWidth:1100, width:'100%', margin:'0 auto', padding:'14px 18px', background:'#fff', border:'1px solid var(--border)', borderRadius:12 }}>
+          <div style={{ fontSize:13, color:'var(--text-md)', fontWeight:700, lineHeight:1.65, marginBottom:8 }}>{playing.desc}</div>
+          <div style={{ display:'flex', gap:8, fontSize:11, color:'var(--text-sm)', fontWeight:700 }}>
+            <span>⏱ {playing.dur}</span><span>·</span><span>👁 조회 {playing.views}</span>
+            {playing.pick && <span style={{ color:'var(--or-d)' }}>· ⭐ 가이드 PICK</span>}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 영상 목록
+  return (
+    <div className="fade-in" style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', padding:'24px 32px', overflow:'auto' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:20 }}>
+        <button onClick={onBack} style={{ padding:'10px 16px', borderRadius:10, fontSize:13, fontWeight:800, color:'var(--text-md)', background:'#fff', border:'1px solid var(--border)' }}>← 메뉴로</button>
+        <div>
+          <div style={{ fontSize:11, fontWeight:800, color:'var(--or-d)', letterSpacing:.8 }}>{dealer.dealerName}</div>
+          <h1 style={{ fontSize:24, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6 }}>▶ 시공 영상</h1>
+        </div>
+      </div>
+
+      <div style={{ marginBottom:14, padding:'12px 16px', background:'var(--or-pale)', border:'1px solid var(--or-l)', borderRadius:12, fontSize:12.5, color:'var(--text-md)', fontWeight:700, lineHeight:1.65 }}>
+        <b style={{ color:'var(--or-d)' }}>고품질 R&D 자재라 영상만 따라하면 누구나 OK</b> — 패키지 구매 시 모든 영상 무료 제공
+      </div>
+
+      {/* 부위 필터 */}
+      <div style={{ display:'flex', gap:6, marginBottom:18, flexWrap:'wrap' }}>
+        <button onClick={() => setFilter('all')} style={{
+          padding:'7px 14px', borderRadius:999, fontSize:12.5, fontWeight:700,
+          background: filter === 'all' ? 'linear-gradient(135deg,var(--or),var(--or-d))' : '#fff',
+          color: filter === 'all' ? '#fff' : 'var(--text-md)',
+          border: filter === 'all' ? '1px solid transparent' : '1px solid var(--border)'
+        }}>전체 ({VIDEOS.length})</button>
+        {areas.map(a => {
+          const cnt = VIDEOS.filter(v => v.area === a).length;
+          const on = filter === a;
+          return (
+            <button key={a} onClick={() => setFilter(a)} style={{
+              padding:'7px 14px', borderRadius:999, fontSize:12.5, fontWeight:700,
+              background: on ? 'linear-gradient(135deg,var(--or),var(--or-d))' : '#fff',
+              color: on ? '#fff' : 'var(--text-md)',
+              border: on ? '1px solid transparent' : '1px solid var(--border)'
+            }}>{a} ({cnt})</button>
+          );
+        })}
+      </div>
+
+      {/* 영상 그리드 */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap:14, maxWidth:1200, width:'100%' }}>
+        {filtered.map((v, i) => (
+          <button key={i} onClick={() => setPlaying(v)} style={{
+            background:'#fff', border:'1px solid var(--border)', borderRadius:14, overflow:'hidden',
+            cursor:'pointer', textAlign:'left', transition:'all .25s', padding:0
+          }} onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 14px 30px rgba(15,31,92,.12)'; e.currentTarget.style.borderColor = 'var(--or-l)'; }} onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.borderColor = 'var(--border)'; }}>
+            <div style={{ position:'relative', aspectRatio:'16/9', background:`url(https://i.ytimg.com/vi/${v.id}/hqdefault.jpg) center/cover, linear-gradient(135deg,#0F1F5C,#1E3A8A)` }}>
+              <div style={{ position:'absolute', inset:0, background:'linear-gradient(0deg, rgba(0,0,0,.6) 0%, transparent 50%)' }} />
+              {v.pick && <span style={{ position:'absolute', top:8, left:8, padding:'3px 8px', background:'#F97316', color:'#fff', fontSize:10, fontWeight:900, borderRadius:5, letterSpacing:.4, zIndex:1 }}>⭐ PICK</span>}
+              <span style={{ position:'absolute', bottom:8, right:8, padding:'3px 8px', background:'rgba(0,0,0,.78)', color:'#fff', fontSize:11, fontWeight:800, borderRadius:5, letterSpacing:.3 }}>{v.dur}</span>
+              <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', width:54, height:54, borderRadius:'50%', background:'rgba(255,255,255,.95)', display:'grid', placeItems:'center' }}>
+                <div style={{ width:0, height:0, borderTop:'10px solid transparent', borderBottom:'10px solid transparent', borderLeft:'16px solid var(--or-d)', marginLeft:4 }} />
+              </div>
+            </div>
+            <div style={{ padding:'14px 16px' }}>
+              <div style={{ display:'flex', gap:6, marginBottom:8 }}>
+                <span style={{ fontSize:10, fontWeight:800, color:'var(--or-d)', padding:'2px 7px', background:'var(--or-pale)', borderRadius:4 }}>{v.area}</span>
+                <span style={{ fontSize:10, fontWeight:800, color:'var(--text-sm)', padding:'2px 7px', background:'var(--bg)', borderRadius:4 }}>{v.tier}</span>
+              </div>
+              <div style={{ fontSize:14, fontWeight:900, color:'var(--navy)', marginBottom:6, lineHeight:1.4, letterSpacing:-0.3 }}>{v.title}</div>
+              <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700 }}>👁 조회 {v.views}</div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Mode Screens — Batch 4~6에서 실제 콘텐츠 채워질 자리
 // ============================================================
 function ModePlaceholder({ mode, dealer, onBack }) {
   const titles = {
@@ -591,7 +727,8 @@ function App() {
       {/* 주문 없을 때 — 모드 전환 */}
       {!latestOrder && !mode && <WelcomeScreen dealer={setup} onAdmin={() => setShowAdmin(true)} onMode={setMode} />}
       {!latestOrder && mode === 'catalog' && <CatalogMode dealer={setup} onBack={() => setMode(null)} />}
-      {!latestOrder && mode && mode !== 'catalog' && <ModePlaceholder mode={mode} dealer={setup} onBack={() => setMode(null)} />}
+      {!latestOrder && mode === 'videos' && <VideosMode dealer={setup} onBack={() => setMode(null)} />}
+      {!latestOrder && mode && !['catalog','videos'].includes(mode) && <ModePlaceholder mode={mode} dealer={setup} onBack={() => setMode(null)} />}
       {error && <ErrorBanner message={error} />}
     </>
   );

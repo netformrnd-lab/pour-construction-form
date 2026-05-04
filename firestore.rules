@@ -1,8 +1,13 @@
 // ============================================================
-// POUR스토어 + 박람회 통합 Firestore 보안 규칙
-// 프로젝트: pour-exhibition
+// 통합 Firestore 보안 규칙
+// 적용 프로젝트:
+//   - pour-app-new      (기존 영업앱: admin.html, index.html, defect-diagnosis.html 등)
+//   - pour-exhibition   (POUR스토어 신규: pourstore-renewal/admin·portal·kiosk)
+//
+// ※ 두 프로젝트 모두에 동일한 규칙을 게시하세요.
+//   각 프로젝트엔 자기 데이터만 있으므로 컬렉션 합본은 무해합니다.
 // ============================================================
-// 이 파일을 Firebase Console에 배포하는 방법은 FIREBASE-DEPLOY.md 참조
+// 배포 방법: FIREBASE-DEPLOY.md 참조
 // ============================================================
 
 rules_version = '2';
@@ -11,29 +16,60 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ─────────────────────────────────────────────
-    // 박람회 / 기존 컬렉션 (index.html, admin.html 사용 — 건드리지 말 것)
+    // 박람회 + 영업앱 컬렉션 (pour-app-new)
     // ─────────────────────────────────────────────
+    // 리드 + 백업
     match /leads/{doc}              { allow read, write: if true; }
     match /leads-store/{doc}        { allow read, write: if true; }
     match /leads-grohome/{doc}      { allow read, write: if true; }
     match /leads-method/{doc}       { allow read, write: if true; }
+    match /leads-backups/{doc}      { allow read, write: if true; }
+    match /history/{doc}            { allow read, write: if true; }
+
+    // 설정
     match /config/{doc}             { allow read, write: if true; }
     match /app-config/{doc}         { allow read, write: if true; }
+
+    // QR + 짧은 링크
     match /qr-stats/{doc}           { allow read, write: if true; }
+    match /short-links/{doc}        { allow read, write: if true; }
+
+    // 영업 활동·아웃바운드
     match /activities/{doc}         { allow read, write: if true; }
     match /outbound-solution/{doc}  { allow read, write: if true; }
     match /outbound-method/{doc}    { allow read, write: if true; }
     match /outbound-store/{doc}     { allow read, write: if true; }
     match /outbound-grohome/{doc}   { allow read, write: if true; }
+
+    // 문의·사이트 데이터
     match /partner-inquiries/{doc}  { allow read, write: if true; }
     match /dealer-inquiries/{doc}   { allow read, write: if true; }
+    match /site-inquiries/{doc}     { allow read, write: if true; }
     match /site-metrics/{doc}       { allow read, write: if true; }
     match /site-resources/{doc}     { allow read, write: if true; }
+
+    // 하자진단·완공현장
     match /defect-sites/{doc}       { allow read, write: if true; }
+    match /defect-diagnosis/{doc}   { allow read, write: if true; }
+    match /defect-photos/{doc}      { allow read, write: if true; }
+    match /defect-templates/{doc}   { allow read, write: if true; }
+    match /step-photos/{doc}        { allow read, write: if true; }
+    match /process-guide/{doc}      { allow read, write: if true; }
+
+    // 영업자료·제안서·콘텐츠
     match /sales-docs/{doc}         { allow read, write: if true; }
+    match /proposal-slides/{doc}    { allow read, write: if true; }
+    match /method-content/{doc}     { allow read, write: if true; }
+    match /method-links/{doc}       { allow read, write: if true; }
+    match /products/{doc}           { allow read, write: if true; }
+
+    // 고객 리포트·NPS·SMS 로그
+    match /customer-reports/{doc}   { allow read, write: if true; }
+    match /nps-surveys/{doc}        { allow read, write: if true; }
+    match /sms-logs/{doc}           { allow read, write: if true; }
 
     // ─────────────────────────────────────────────
-    // POUR스토어 어드민 컬렉션 (pourstore-renewal/admin.html)
+    // POUR스토어 신규 컬렉션 (pour-exhibition · pourstore-renewal/*)
     // ─────────────────────────────────────────────
     match /matching-requests/{doc}  { allow read, write: if true; }
     match /partner-companies/{doc}  { allow read, write: if true; }
@@ -41,7 +77,6 @@ service cloud.firestore {
     match /dealers/{doc}            { allow read, write: if true; }
     match /dealer-orders/{doc}      { allow read, write: if true; }
     match /purchase-orders/{doc}    { allow read, write: if true; }
-    match /site-inquiries/{doc}     { allow read, write: if true; }
 
     // ─────────────────────────────────────────────
     // 기본 정책: 명시되지 않은 컬렉션은 차단
@@ -55,20 +90,4 @@ service cloud.firestore {
 // ⚠️ MVP 단계 보안 정책 안내
 // ────────────────────────────────────────────────
 // 현재는 인증 없이 read/write 허용 (MVP 운영 단계).
-// 운영 안정화 후 다음 단계로 보안 강화 권장:
-//
-// 1단계 (인증 도입):
-//   match /dealer-orders/{doc} {
-//     allow read: if request.auth != null;
-//     allow write: if request.auth != null;
-//   }
-//
-// 2단계 (역할 기반 - Custom Claims):
-//   match /dealer-orders/{doc} {
-//     allow read: if request.auth.token.role in ['admin', 'dealer'];
-//     allow write: if request.auth.token.role == 'admin'
-//       || (request.auth.token.role == 'dealer' && resource.data.dealerId == request.auth.token.dealerId);
-//   }
-//
-// 3단계 (필드 검증 추가):
-//   필수 필드 존재 여부, 가격 합리성 등 데이터 정합성 강제
+// 운영 안정화 후 단계별 보안 강화 권장 — FIREBASE-DEPLOY.md 참조.

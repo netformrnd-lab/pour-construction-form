@@ -2377,6 +2377,30 @@ function Settings({ onToast }) {
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
 
+  // 본사 계좌 정보 (Firestore: app-config/hq-account)
+  const [hqAccount, setHqAccount] = useState({ bankName:'', accountNo:'', accountHolder:'' });
+  const [hqLoaded, setHqLoaded] = useState(false);
+  const [hqSaving, setHqSaving] = useState(false);
+
+  useEffect(() => {
+    db.collection('app-config').doc('hq-account').get().then(doc => {
+      if (doc.exists) setHqAccount({ bankName:'', accountNo:'', accountHolder:'', ...doc.data() });
+      setHqLoaded(true);
+    }).catch(e => { console.error(e); setHqLoaded(true); });
+  }, []);
+
+  async function saveHqAccount() {
+    if (!hqAccount.bankName || !hqAccount.accountNo || !hqAccount.accountHolder) {
+      onToast({ message:'은행명·계좌번호·예금주 모두 입력', type:'error' }); return;
+    }
+    setHqSaving(true);
+    try {
+      await db.collection('app-config').doc('hq-account').set({ ...hqAccount, updatedAt: nowIso() }, { merge:true });
+      onToast({ message:'본사 계좌 저장 완료 — portal·청구서에 자동 반영', type:'success' });
+    } catch (e) { onToast({ message:'저장 실패: '+e.message, type:'error' }); }
+    setHqSaving(false);
+  }
+
   async function changePin() {
     if (!oldPin || !newPin || !confirmPin) { onToast({ message: '모든 항목 입력', type: 'error' }); return; }
     if (newPin !== confirmPin) { onToast({ message: '새 PIN 불일치', type: 'error' }); return; }
@@ -2392,8 +2416,28 @@ function Settings({ onToast }) {
 
   return (
     <div>
-      <Header title="설정" subtitle="PIN 변경 · 어드민 정보" />
-      <div style={{ padding:'24px 32px', maxWidth:560 }}>
+      <Header title="설정" subtitle="본사 계좌 · PIN 변경 · 어드민 정보" />
+      <div style={{ padding:'24px 32px', maxWidth:560, display:'flex', flexDirection:'column', gap:18 }}>
+
+        {/* 본사 입금 계좌 */}
+        <div style={{ background:'#fff', padding:'24px 26px', borderRadius:'var(--r-lg)', border:'1px solid var(--border)' }}>
+          <h3 style={{ fontSize:14, fontWeight:900, color:'var(--navy)', marginBottom:6 }}>💰 본사 입금 계좌 (대리점이 송금받는 계좌)</h3>
+          <div style={{ fontSize:12, color:'var(--text-sm)', fontWeight:700, marginBottom:16, lineHeight:1.55 }}>
+            portal 새 주문 모달·청구서 CSV에 자동 표시됩니다.
+          </div>
+          <Field label="은행명">
+            <input type="text" value={hqAccount.bankName} onChange={e => setHqAccount(d => ({...d, bankName:e.target.value}))} style={inputStyle()} placeholder="국민은행" />
+          </Field>
+          <Field label="계좌번호">
+            <input type="text" value={hqAccount.accountNo} onChange={e => setHqAccount(d => ({...d, accountNo:e.target.value}))} style={inputStyle({ fontFamily:'monospace' })} placeholder="123456-78-901234" />
+          </Field>
+          <Field label="예금주">
+            <input type="text" value={hqAccount.accountHolder} onChange={e => setHqAccount(d => ({...d, accountHolder:e.target.value}))} style={inputStyle()} placeholder="(주)POUR스토어" />
+          </Field>
+          <button onClick={saveHqAccount} disabled={hqSaving || !hqLoaded} style={btnPrimary({ width:'100%', marginTop:8 })}>{hqSaving ? '저장 중...' : '저장하기'}</button>
+        </div>
+
+        {/* PIN 변경 */}
         <div style={{ background:'#fff', padding:'24px 26px', borderRadius:'var(--r-lg)', border:'1px solid var(--border)' }}>
           <h3 style={{ fontSize:14, fontWeight:900, color:'var(--navy)', marginBottom:16 }}>🔒 PIN 변경</h3>
           <Field label="현재 PIN"><input type="password" value={oldPin} onChange={e => setOldPin(e.target.value.replace(/\D/g, '').slice(0, 8))} style={inputStyle()} /></Field>

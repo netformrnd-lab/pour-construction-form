@@ -60,6 +60,15 @@ const COLLECTIONS = {
   DEALER_ORDERS: 'dealer-orders',
   PURCHASE_ORDERS: 'purchase-orders',
   SITE_INQUIRIES: 'site-inquiries',
+  SETTLEMENTS: 'settlements',  // 월별 정산 마감 데이터
+};
+
+const SETTLEMENT_STATUS_META = {
+  'pending':           { label: '대리점 확인 대기', color: '#B45309', bg: '#FEF3C7', border: '#FCD34D' },
+  'dealer-confirmed':  { label: '본사 검토 대기',   color: '#1E40AF', bg: '#DBEAFE', border: '#93C5FD' },
+  'admin-approved':    { label: '입금 대기',        color: '#EA580C', bg: '#FFEDD5', border: '#FED7AA' },
+  'paid':              { label: '입금 완료',        color: '#047857', bg: '#D1FAE5', border: '#6EE7B7' },
+  'disputed':          { label: '이의 제기',        color: '#DC2626', bg: '#FEE2E2', border: '#FCA5A5' },
 };
 
 const ADMIN_PIN_KEY = 'pourStoreAdminPin';
@@ -1988,7 +1997,7 @@ function InquiryDetail({ inquiry, onClose, onSave, onDelete }) {
 // ============================================================
 // Settlement (월말 정산) — 대리점별 매출·수수료 집계
 // ============================================================
-function Settlement({ orders, dealers, onToast }) {
+function Settlement({ orders, dealers, settlements, onUpdate, onToast }) {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -2085,6 +2094,55 @@ function Settlement({ orders, dealers, onToast }) {
     onToast({ message: `CSV 다운로드 완료 — ${summary.rows.length}개 대리점`, type: 'success' });
   }
 
+  // ─── 정산 마감 / 검토 워크플로우 ────────────────
+  const periodKey = `${year}-${String(month).padStart(2, '0')}`;
+  const periodSettlements = settlements.filter(s => s.period === periodKey);
+  const isClosed = periodSettlements.length > 0;
+
+  async function closeSettlement() {
+    if (summary.rows.length === 0) { onToast({ message: '집계 대상이 없습니다', type: 'error' }); return; }
+    if (!confirm(`${periodLabel} 정산을 마감하시겠습니까?\n\n청구서 ${summary.rows.length}건이 생성되며, 각 대리점이 portal에서 확인하게 됩니다.`)) return;
+    try {
+      const batch = db.batch();
+      const now = nowIso();
+      const dueIso = new Date(year, month, 10).toISOString();
+      summary.rows.forEach(r => {
+        const ref = db.collection(COLLECTIONS.SETTLEMENTS).doc();
+        batch.set(ref, {
+          period: periodKey,
+          dealerId: r.dealerId, dealerName: r.dealerName, tier: r.tier, margin: r.margin,
+          region: r.region, contactPhone: r.contactPhone,
+          orderCount: r.count, salesTotal: r.sales, supplyAmount: r.supplyAmount, dealerMargin: r.dealerMargin,
+          dueDate: dueIso, status: 'pending',
+          accountInfo: r.accountInfo,
+          createdAt: now, updatedAt: now,
+        });
+      });
+      await batch.commit();
+      onToast({ message: `${periodLabel} 정산 마감 완료 — ${summary.rows.length}건 청구서 생성`, type: 'success' });
+      onUpdate();
+    } catch (e) { console.error(e); onToast({ message: '마감 실패: ' + e.message, type: 'error' }); }
+  }
+
+  async function updateSettlement(id, data) {
+    try {
+      data.updatedAt = nowIso();
+      await db.collection(COLLECTIONS.SETTLEMENTS).doc(id).set(data, { merge: true });
+      onUpdate();
+    } catch (e) { console.error(e); onToast({ message: '업데이트 실패: ' + e.message, type: 'error' }); }
+  }
+
+  async function reopenSettlement() {
+    if (!confirm(`${periodLabel} 정산 마감을 취소하시겠습니까?\n\n생성된 청구서 ${periodSettlements.length}건이 모두 삭제됩니다.`)) return;
+    try {
+      const batch = db.batch();
+      periodSettlements.forEach(s => batch.delete(db.collection(COLLECTIONS.SETTLEMENTS).doc(s.id)));
+      await batch.commit();
+      onToast({ message: '마감 취소 완료', type: 'success' });
+      onUpdate();
+    } catch (e) { onToast({ message: '취소 실패: ' + e.message, type: 'error' }); }
+  }
+
   function changePeriod(delta) {
     let m = month + delta;
     let y = year;
@@ -2108,8 +2166,20 @@ function Settlement({ orders, dealers, onToast }) {
             <option value="all">환불 외 전체</option>
           </select>
           <div style={{ flex:1 }} />
-          <button onClick={exportCsv} disabled={summary.rows.length === 0} style={btnPrimary()}>📥 청구서 CSV</button>
+          <button onClick={exportCsv} disabled={summary.rows.length === 0} style={btnGhost({ marginRight:8 })}>📥 청구서 CSV</button>
+          {!isClosed
+            ? <button onClick={closeSettlement} disabled={summary.rows.length === 0} style={btnPrimary()}>📋 정산 마감</button>
+            : <button onClick={reopenSettlement} style={{ ...btnGhost(), color:'var(--red)', border:'1px solid var(--red-m)' }}>↻ 마감 취소</button>
+          }
         </div>
+
+        {/* 마감 상태 배너 */}
+        {isClosed && (
+          <div style={{ marginBottom:14, padding:'12px 16px', background:'var(--green-l)', border:'1px solid var(--green-m)', borderRadius:10, fontSize:12.5, color:'var(--text-md)', fontWeight:700, lineHeight:1.65, display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+            <span style={{ fontSize:16 }}>✅</span>
+            <span><b style={{ color:'var(--green)' }}>{periodLabel} 정산 마감됨</b> · 청구서 {periodSettlements.length}건 생성. 각 대리점이 portal에서 확인 중</span>
+          </div>
+        )}
 
         {/* 정산 기준일·입금 예정일 안내 */}
         <div style={{ marginBottom:14, padding:'14px 18px', background:'linear-gradient(135deg, #FFF7ED, #FFEDD5)', border:'1px solid #FED7AA', borderRadius:14, display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
@@ -2135,9 +2205,9 @@ function Settlement({ orders, dealers, onToast }) {
       </div>
 
       <div style={{ padding:'0 32px 32px' }}>
-        {summary.rows.length === 0 ? (
+        {!isClosed && summary.rows.length === 0 ? (
           <Empty icon="💰" title="정산 대상이 없습니다" desc={`${periodLabel}에 결제 완료된 대리점 주문이 없습니다`} />
-        ) : (
+        ) : !isClosed ? (
           <div style={{ background:'#fff', borderRadius:'var(--r-lg)', border:'1px solid var(--border)', overflow:'hidden' }}>
             <div style={{ overflowX:'auto' }}>
               <table style={{ width:'100%', fontSize:12.5, borderCollapse:'collapse' }}>
@@ -2163,11 +2233,76 @@ function Settlement({ orders, dealers, onToast }) {
                 </tbody>
                 <tfoot style={{ background:'linear-gradient(135deg, #ECFDF5, #D1FAE5)' }}>
                   <tr style={{ borderTop:'2px solid var(--green-m)' }}>
-                    <td colSpan="5" style={{ ...td(), fontWeight:900, color:'var(--navy)', fontSize:13 }}>합계</td>
+                    <td colSpan="5" style={{ ...td(), fontWeight:900, color:'var(--navy)', fontSize:13 }}>합계 (잠정)</td>
                     <td style={{ ...td(), fontWeight:900, fontSize:13 }}>{summary.totalCount}건</td>
                     <td style={{ ...td(), textAlign:'right', fontWeight:800, fontSize:13, color:'var(--text-md)' }}>{fmtPrice(summary.totalSales)}원</td>
                     <td style={{ ...td(), textAlign:'right', fontWeight:900, fontSize:14, color:'var(--green)' }}>{fmtPrice(summary.totalSupply)}원</td>
                     <td style={{ ...td(), textAlign:'right', fontWeight:800, fontSize:12, color:'var(--text-sm)' }}>{fmtPrice(summary.totalDealerMargin)}원</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            <div style={{ padding:'12px 16px', background:'var(--bg)', borderTop:'1px solid var(--border)', fontSize:11.5, color:'var(--text-sm)', fontWeight:700, lineHeight:1.6 }}>
+              ⚡ <b style={{ color:'var(--text-md)' }}>잠정 미리보기</b> — 정산 마감 전이에요. <b style={{ color:'var(--or-d)' }}>📋 정산 마감</b>을 눌러 청구서를 생성하세요.
+            </div>
+          </div>
+        ) : (
+          // 마감된 청구서 — 상태별 액션
+          <div style={{ background:'#fff', borderRadius:'var(--r-lg)', border:'1px solid var(--border)', overflow:'hidden' }}>
+            <div style={{ overflowX:'auto' }}>
+              <table style={{ width:'100%', fontSize:12.5, borderCollapse:'collapse' }}>
+                <thead style={{ background:'var(--bg)' }}>
+                  <tr>
+                    {['상태','대리점','지역','티어','정가매출','본사 입금예정','대리점 마진','액션'].map(h => <th key={h} style={th()}>{h}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {periodSettlements.sort((a,b)=>(b.supplyAmount||0)-(a.supplyAmount||0)).map(s => {
+                    const meta = SETTLEMENT_STATUS_META[s.status] || SETTLEMENT_STATUS_META['pending'];
+                    return (
+                      <tr key={s.id} style={{ borderBottom:'1px solid var(--border-s)' }}>
+                        <td style={td()}><span style={{ display:'inline-block', padding:'3px 9px', background:meta.bg, border:`1px solid ${meta.border}`, color:meta.color, fontSize:10.5, fontWeight:900, borderRadius:5 }}>{meta.label}</span></td>
+                        <td style={td()}>
+                          <b style={{ color:'var(--navy)' }}>{s.dealerName}</b>
+                          {s.dealerConfirmedAt && <div style={{ fontSize:10, color:'var(--text-sm)', fontWeight:700, marginTop:2 }}>✓ 대리점 확인 {fmtDate(s.dealerConfirmedAt)}</div>}
+                          {s.adminApprovedAt && <div style={{ fontSize:10, color:'var(--text-sm)', fontWeight:700 }}>✓ 본사 승인 {fmtDate(s.adminApprovedAt)}</div>}
+                          {s.paidAt && <div style={{ fontSize:10, color:'var(--green)', fontWeight:800 }}>💸 입금 {fmtDate(s.paidAt)}</div>}
+                        </td>
+                        <td style={td()}>{s.region}</td>
+                        <td style={td()}><TierBadge tier={s.tier} size="sm" /></td>
+                        <td style={{ ...td(), textAlign:'right', fontWeight:700, color:'var(--text-md)' }}>{fmtPrice(s.salesTotal)}원</td>
+                        <td style={{ ...td(), textAlign:'right', fontWeight:900, color:'var(--green)' }}>{fmtPrice(s.supplyAmount)}원</td>
+                        <td style={{ ...td(), textAlign:'right', fontWeight:700, color:'var(--text-sm)', fontSize:11.5 }}>{fmtPrice(s.dealerMargin)}원</td>
+                        <td style={td()}>
+                          <div style={{ display:'flex', gap:5 }}>
+                            {s.status === 'dealer-confirmed' && (
+                              <button onClick={() => updateSettlement(s.id, { status:'admin-approved', adminApprovedAt: nowIso() })} style={{ padding:'6px 11px', borderRadius:7, fontSize:11, fontWeight:800, color:'#fff', background:'var(--or)', border:'none' }}>본사 승인</button>
+                            )}
+                            {s.status === 'admin-approved' && (
+                              <button onClick={() => updateSettlement(s.id, { status:'paid', paidAt: nowIso() })} style={{ padding:'6px 11px', borderRadius:7, fontSize:11, fontWeight:800, color:'#fff', background:'var(--green)', border:'none' }}>입금 확인</button>
+                            )}
+                            {s.status === 'pending' && (
+                              <span style={{ fontSize:10.5, color:'var(--text-sm)', fontWeight:700 }}>대리점 portal 확인 대기</span>
+                            )}
+                            {s.status === 'paid' && (
+                              <span style={{ fontSize:11, color:'var(--green)', fontWeight:800 }}>✓ 완료</span>
+                            )}
+                            {s.status === 'disputed' && (
+                              <button onClick={() => updateSettlement(s.id, { status:'pending', dealerConfirmedAt: null })} style={{ padding:'6px 11px', borderRadius:7, fontSize:11, fontWeight:800, color:'#fff', background:'var(--red)', border:'none' }}>재요청</button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot style={{ background:'linear-gradient(135deg, #ECFDF5, #D1FAE5)' }}>
+                  <tr style={{ borderTop:'2px solid var(--green-m)' }}>
+                    <td colSpan="4" style={{ ...td(), fontWeight:900, color:'var(--navy)', fontSize:13 }}>마감 합계</td>
+                    <td style={{ ...td(), textAlign:'right', fontWeight:800, fontSize:13, color:'var(--text-md)' }}>{fmtPrice(periodSettlements.reduce((a,s)=>a+(s.salesTotal||0),0))}원</td>
+                    <td style={{ ...td(), textAlign:'right', fontWeight:900, fontSize:14, color:'var(--green)' }}>{fmtPrice(periodSettlements.reduce((a,s)=>a+(s.supplyAmount||0),0))}원</td>
+                    <td style={{ ...td(), textAlign:'right', fontWeight:800, fontSize:12, color:'var(--text-sm)' }}>{fmtPrice(periodSettlements.reduce((a,s)=>a+(s.dealerMargin||0),0))}원</td>
+                    <td style={td()}></td>
                   </tr>
                 </tfoot>
               </table>
@@ -2301,10 +2436,11 @@ function App() {
   const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [orders, setOrders] = useState([]);
   const [inquiries, setInquiries] = useState([]);
+  const [settlements, setSettlements] = useState([]);
 
   async function loadAll() {
     try {
-      const [reqSnap, partSnap, ruleSnap, dealerSnap, poSnap, orderSnap, inqSnap] = await Promise.all([
+      const [reqSnap, partSnap, ruleSnap, dealerSnap, poSnap, orderSnap, inqSnap, setSnap] = await Promise.all([
         db.collection(COLLECTIONS.MATCHING_REQUESTS).get(),
         db.collection(COLLECTIONS.PARTNER_COMPANIES).get(),
         db.collection(COLLECTIONS.MATCHING_RULES).get(),
@@ -2312,6 +2448,7 @@ function App() {
         db.collection(COLLECTIONS.PURCHASE_ORDERS).get(),
         db.collection(COLLECTIONS.DEALER_ORDERS).get(),
         db.collection(COLLECTIONS.SITE_INQUIRIES).get(),
+        db.collection(COLLECTIONS.SETTLEMENTS).get(),
       ]);
       setRequests(reqSnap.docs.map(d => ({ id:d.id, ...d.data() })));
       setPartners(partSnap.docs.map(d => ({ id:d.id, ...d.data() })));
@@ -2320,7 +2457,8 @@ function App() {
       setPurchaseOrders(poSnap.docs.map(d => ({ id:d.id, ...d.data() })));
       setOrders(orderSnap.docs.map(d => ({ id:d.id, ...d.data() })));
       setInquiries(inqSnap.docs.map(d => ({ id:d.id, ...d.data() })));
-      console.log(`[loadAll] requests=${reqSnap.size} partners=${partSnap.size} rules=${ruleSnap.size} dealers=${dealerSnap.size} po=${poSnap.size} orders=${orderSnap.size} inq=${inqSnap.size}`);
+      setSettlements(setSnap.docs.map(d => ({ id:d.id, ...d.data() })));
+      console.log(`[loadAll] req=${reqSnap.size} part=${partSnap.size} rules=${ruleSnap.size} dealers=${dealerSnap.size} po=${poSnap.size} orders=${orderSnap.size} inq=${inqSnap.size} settle=${setSnap.size}`);
     } catch (e) {
       console.error('[loadAll] failed:', e);
       setToast({ message: '데이터 로드 실패: ' + e.message, type: 'error' });
@@ -2356,7 +2494,7 @@ function App() {
         {active === 'dealers' && <Dealers dealers={dealers} onUpdate={loadAll} onToast={setToast} />}
         {active === 'purchase-orders' && <PurchaseOrders purchaseOrders={purchaseOrders} dealers={dealers} onUpdate={loadAll} onToast={setToast} />}
         {active === 'orders' && <Orders orders={orders} dealers={dealers} onUpdate={loadAll} onToast={setToast} />}
-        {active === 'settlement' && <Settlement orders={orders} dealers={dealers} onToast={setToast} />}
+        {active === 'settlement' && <Settlement orders={orders} dealers={dealers} settlements={settlements} onUpdate={loadAll} onToast={setToast} />}
         {active === 'inquiries' && <Inquiries inquiries={inquiries} onUpdate={loadAll} onToast={setToast} />}
         {active === 'settings' && <Settings onToast={setToast} />}
       </main>

@@ -1287,8 +1287,8 @@ function DealerDetail({ dealer, onClose, onSave, onDelete, onToast }) {
             <input type="number" value={data.creditLimit || 0} onChange={e => update('creditLimit', Number(e.target.value))} style={inputStyle()} placeholder="5000000" />
           </Field>
         </div>
-        <Field label="💰 정산 계좌 (월말 수수료 입금)">
-          <input type="text" value={data.accountInfo || ''} onChange={e => update('accountInfo', e.target.value)} style={inputStyle()} placeholder="국민은행 123456-78-901234 (예금주: 홍길동)" />
+        <Field label="💰 대리점 본사 입금 계좌 안내 (대리점이 송금 시 사용할 본사 계좌 — 청구서에 기재)">
+          <input type="text" value={data.accountInfo || ''} onChange={e => update('accountInfo', e.target.value)} style={inputStyle()} placeholder="대리점 메모 — 본사 입금 계좌·예금주 등 (CSV 청구서에 표시됨)" />
         </Field>
       </div>
 
@@ -1986,13 +1986,17 @@ function Settlement({ orders, dealers, onToast }) {
       byDealer[did].sales += (o.totalAmount || 0);
     }
 
-    // 대리점 정보(티어/연락처) 결합 + 수수료 계산
+    // 대리점 정보 결합 + 공급단가·차액 계산
+    // 마진율 = 대리점이 정가에서 가져가는 비율 (Silver 22% / Gold 28% / Platinum 35%)
+    // 공급단가 = 정가 × (1 - 마진율/100) ← 본사가 받을 금액
+    // 차액(대리점 마진) = 정가 × 마진율/100 ← 대리점이 가져가는 금액
     const tierMap = { Silver: 22, Gold: 28, Platinum: 35 };
     const rows = Object.entries(byDealer).map(([did, agg]) => {
       const d = dealers.find(x => x.id === did);
       const tier = d?.tier || 'Silver';
       const margin = tierMap[tier] || 22;
-      const commission = Math.round(agg.sales * margin / 100);
+      const dealerMargin = Math.round(agg.sales * margin / 100);   // 대리점이 가져가는 차액
+      const supplyAmount = agg.sales - dealerMargin;               // 본사 받을 공급단가 합계
       return {
         dealerId: did,
         dealerName: d?.companyName || agg.dealerName || '(미상)',
@@ -2001,26 +2005,34 @@ function Settlement({ orders, dealers, onToast }) {
         region: d?.region || '-',
         contactPhone: d?.contactPhone || '-',
         count: agg.count,
-        sales: agg.sales,
-        commission,
+        sales: agg.sales,        // 정가 매출 (대리점이 현장 결제 받음)
+        supplyAmount,            // 본사가 대리점에서 받을 금액
+        dealerMargin,            // 대리점 마진 (참고)
         accountInfo: d?.accountInfo || '',
       };
-    }).sort((a, b) => b.sales - a.sales);
+    }).sort((a, b) => b.supplyAmount - a.supplyAmount);
 
     const totalSales = rows.reduce((s, r) => s + r.sales, 0);
-    const totalCommission = rows.reduce((s, r) => s + r.commission, 0);
+    const totalSupply = rows.reduce((s, r) => s + r.supplyAmount, 0);
+    const totalDealerMargin = rows.reduce((s, r) => s + r.dealerMargin, 0);
     const totalCount = rows.reduce((s, r) => s + r.count, 0);
 
-    return { rows, totalSales, totalCommission, totalCount, periodCount: period.length };
+    return { rows, totalSales, totalSupply, totalDealerMargin, totalCount, periodCount: period.length };
   }, [orders, dealers, year, month, statusFilter, startIso, endIso]);
 
+  // 익월 10일 입금일 계산
+  const dueDate = useMemo(() => {
+    const d = new Date(year, month, 10);  // (다음달 10일)
+    return d.toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric', weekday:'short' });
+  }, [year, month]);
+
   function exportCsv() {
-    const header = ['대리점명','지역','티어','마진율','연락처','주문건수','매출(원)','수수료(원)','정산계좌메모'];
+    const header = ['대리점명','지역','티어','마진율','연락처','주문건수','정가매출(원)','공급단가(본사입금예정,원)','대리점마진(차액,원)','정산계좌메모'];
     const rows = summary.rows.map(r => [
       r.dealerName, r.region, r.tier, `${r.margin}%`, r.contactPhone,
-      r.count, r.sales, r.commission, r.accountInfo
+      r.count, r.sales, r.supplyAmount, r.dealerMargin, r.accountInfo
     ]);
-    const totalRow = ['합계','','','','', summary.totalCount, summary.totalSales, summary.totalCommission, ''];
+    const totalRow = ['합계','','','','', summary.totalCount, summary.totalSales, summary.totalSupply, summary.totalDealerMargin, ''];
     const allRows = [header, ...rows, totalRow];
     const csv = allRows.map(row => row.map(cell => {
       const s = String(cell ?? '');
@@ -2049,7 +2061,7 @@ function Settlement({ orders, dealers, onToast }) {
 
   return (
     <div>
-      <Header title="월말 정산" subtitle="대리점별 매출 집계 → 수수료 자동 산출 (Silver 22% / Gold 28% / Platinum 35%)" />
+      <Header title="월 정산 (대리점 → 본사 입금)" subtitle={`고객은 매장에서 정가 결제 → 대리점이 익월 10일 본사에 공급단가 입금 (마진 Silver 22% / Gold 28% / Platinum 35%)`} />
 
       <div style={{ padding:'20px 32px 0' }}>
         {/* 기간 선택 */}
@@ -2062,15 +2074,27 @@ function Settlement({ orders, dealers, onToast }) {
             <option value="all">환불 외 전체</option>
           </select>
           <div style={{ flex:1 }} />
-          <button onClick={exportCsv} disabled={summary.rows.length === 0} style={btnPrimary()}>📥 CSV 다운로드</button>
+          <button onClick={exportCsv} disabled={summary.rows.length === 0} style={btnPrimary()}>📥 청구서 CSV</button>
+        </div>
+
+        {/* 입금 예정일 안내 */}
+        <div style={{ marginBottom:14, padding:'14px 18px', background:'linear-gradient(135deg, #FFF7ED, #FFEDD5)', border:'1px solid #FED7AA', borderRadius:14, display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
+          <span style={{ fontSize:22 }}>📅</span>
+          <div style={{ flex:1, minWidth:240 }}>
+            <div style={{ fontSize:11, fontWeight:900, color:'var(--or-d)', letterSpacing:.5, marginBottom:3 }}>본사 입금 예정일</div>
+            <div style={{ fontSize:15, fontWeight:900, color:'var(--navy)', letterSpacing:-0.3 }}>{dueDate}</div>
+          </div>
+          <div style={{ fontSize:12, color:'var(--text-md)', fontWeight:700, lineHeight:1.55, maxWidth:340 }}>
+            대리점이 매장 결제 받은 정가 매출 중 <b style={{ color:'var(--or-d)' }}>공급단가</b>를 본사 계좌로 입금
+          </div>
         </div>
 
         {/* 합계 카드 */}
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))', gap:12, marginBottom:18 }}>
           <SummaryCard icon="📋" label={`${periodLabel} 주문`} value={`${summary.periodCount}건`} color="var(--navy)" />
           <SummaryCard icon="🏪" label="정산 대상 대리점" value={`${summary.rows.length}곳`} color="var(--or)" />
-          <SummaryCard icon="💰" label="총 매출" value={`${fmtPrice(summary.totalSales)}원`} color="var(--or)" small />
-          <SummaryCard icon="💵" label="총 지급 수수료" value={`${fmtPrice(summary.totalCommission)}원`} color="var(--green)" small highlight />
+          <SummaryCard icon="💰" label="정가 매출 (대리점)" value={`${fmtPrice(summary.totalSales)}원`} color="var(--or)" small />
+          <SummaryCard icon="📥" label="본사 입금 예정 합계" value={`${fmtPrice(summary.totalSupply)}원`} color="var(--green)" small highlight />
         </div>
       </div>
 
@@ -2083,7 +2107,7 @@ function Settlement({ orders, dealers, onToast }) {
               <table style={{ width:'100%', fontSize:12.5, borderCollapse:'collapse' }}>
                 <thead style={{ background:'var(--bg)' }}>
                   <tr>
-                    {['#','대리점','지역','티어','연락처','주문','매출','수수료'].map(h => <th key={h} style={th()}>{h}</th>)}
+                    {['#','대리점','지역','티어','연락처','주문','정가매출','본사 입금예정','대리점 마진'].map(h => <th key={h} style={th()}>{h}</th>)}
                   </tr>
                 </thead>
                 <tbody>
@@ -2095,8 +2119,9 @@ function Settlement({ orders, dealers, onToast }) {
                       <td style={td()}><TierBadge tier={r.tier} size="sm" /></td>
                       <td style={td()}><span style={{ fontFamily:'monospace', fontSize:12 }}>{r.contactPhone}</span></td>
                       <td style={td()}>{r.count}건</td>
-                      <td style={{ ...td(), textAlign:'right', fontWeight:800, color:'var(--navy)' }}>{fmtPrice(r.sales)}원</td>
-                      <td style={{ ...td(), textAlign:'right', fontWeight:900, color:'var(--green)' }}>{fmtPrice(r.commission)}원</td>
+                      <td style={{ ...td(), textAlign:'right', fontWeight:700, color:'var(--text-md)' }}>{fmtPrice(r.sales)}원</td>
+                      <td style={{ ...td(), textAlign:'right', fontWeight:900, color:'var(--green)' }}>{fmtPrice(r.supplyAmount)}원</td>
+                      <td style={{ ...td(), textAlign:'right', fontWeight:700, color:'var(--text-sm)', fontSize:11.5 }}>{fmtPrice(r.dealerMargin)}원</td>
                     </tr>
                   ))}
                 </tbody>
@@ -2104,8 +2129,9 @@ function Settlement({ orders, dealers, onToast }) {
                   <tr style={{ borderTop:'2px solid var(--green-m)' }}>
                     <td colSpan="5" style={{ ...td(), fontWeight:900, color:'var(--navy)', fontSize:13 }}>합계</td>
                     <td style={{ ...td(), fontWeight:900, fontSize:13 }}>{summary.totalCount}건</td>
-                    <td style={{ ...td(), textAlign:'right', fontWeight:900, fontSize:14, color:'var(--navy)' }}>{fmtPrice(summary.totalSales)}원</td>
-                    <td style={{ ...td(), textAlign:'right', fontWeight:900, fontSize:14, color:'var(--green)' }}>{fmtPrice(summary.totalCommission)}원</td>
+                    <td style={{ ...td(), textAlign:'right', fontWeight:800, fontSize:13, color:'var(--text-md)' }}>{fmtPrice(summary.totalSales)}원</td>
+                    <td style={{ ...td(), textAlign:'right', fontWeight:900, fontSize:14, color:'var(--green)' }}>{fmtPrice(summary.totalSupply)}원</td>
+                    <td style={{ ...td(), textAlign:'right', fontWeight:800, fontSize:12, color:'var(--text-sm)' }}>{fmtPrice(summary.totalDealerMargin)}원</td>
                   </tr>
                 </tfoot>
               </table>
@@ -2115,16 +2141,16 @@ function Settlement({ orders, dealers, onToast }) {
 
         {/* 정산 가이드 */}
         <div style={{ marginTop:18, padding:'16px 20px', background:'var(--or-pale)', border:'1px solid var(--or-l)', borderRadius:14 }}>
-          <div style={{ fontSize:12, fontWeight:900, color:'var(--or-d)', marginBottom:8, letterSpacing:.3 }}>📌 월말 정산 절차</div>
+          <div style={{ fontSize:12, fontWeight:900, color:'var(--or-d)', marginBottom:8, letterSpacing:.3 }}>📌 정산 흐름 (대리점 → 본사 입금)</div>
           <ol style={{ paddingLeft:18, fontSize:12, color:'var(--text-md)', lineHeight:1.85, fontWeight:600 }}>
-            <li>매월 마지막 영업일 — 위 표 확인</li>
-            <li><b>📥 CSV 다운로드</b> → 회계 시스템 또는 은행 일괄이체 양식에 활용</li>
-            <li>각 대리점 등록 계좌로 수수료 송금</li>
-            <li>송금 완료 후 대리점에 알림톡 (수동 또는 SMS 일괄)</li>
-            <li>다음 달 1일부터 자동 누적 시작</li>
+            <li>고객은 매장에서 정가로 결제 (대리점 카드 단말기 / 계좌이체)</li>
+            <li>대리점이 매월 마지막 영업일 — 자체 매출 마감</li>
+            <li>본사가 위 표 확인 → <b>📥 청구서 CSV 다운로드</b> → 각 대리점에 전송</li>
+            <li><b>익월 10일</b> — 대리점이 본사 계좌로 공급단가 합계 입금</li>
+            <li>본사가 입금 확인 → 다음 달 자동 누적 시작</li>
           </ol>
-          <div style={{ marginTop:8, fontSize:11.5, color:'var(--text-sm)', fontWeight:700, padding:'8px 12px', background:'#fff', borderRadius:8 }}>
-            💡 자사몰 직판 + 전화 주문 (대리점 없는 주문) 은 수수료 집계에서 제외됩니다.
+          <div style={{ marginTop:8, fontSize:11.5, color:'var(--text-sm)', fontWeight:700, padding:'8px 12px', background:'#fff', borderRadius:8, lineHeight:1.6 }}>
+            💡 <b>정가매출</b> = 대리점이 고객에게 받은 금액 · <b>본사 입금예정</b> = 대리점이 본사에 송금할 공급단가 · <b>대리점 마진</b> = 대리점이 가져가는 차액 (정가-공급단가). 자사몰 직판·전화 주문은 집계 제외.
           </div>
         </div>
       </div>

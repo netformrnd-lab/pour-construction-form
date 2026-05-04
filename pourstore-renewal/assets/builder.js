@@ -2626,56 +2626,133 @@ show('entry');
         <h2>파트너사 신청서</h2>
         <p>아래 정보를 입력해 주시면 검토 후 영업일 기준 5-7일 내 연락드립니다</p>
       </div>
-      <form class="ppt6-card">
+      <form class="ppt6-card" id="ppt6-form" onsubmit="return false;">
         <div class="ppt6-section">
           <div class="stitle">📋 회사 정보</div>
           <div class="ppt6-row split">
-            <div><label>회사명</label><input type="text" placeholder="㈜한울방수"/></div>
-            <div><label>사업자등록번호</label><input type="text" placeholder="000-00-00000"/></div>
+            <div><label>회사명 *</label><input type="text" id="ppt6-company" placeholder="㈜한울방수"/></div>
+            <div><label>사업자등록번호</label><input type="text" id="ppt6-bn" placeholder="000-00-00000"/></div>
           </div>
           <div class="ppt6-row split">
-            <div><label>대표자명</label><input type="text" placeholder="홍길동"/></div>
-            <div><label>설립연도</label><input type="text" placeholder="2015"/></div>
+            <div><label>대표자명</label><input type="text" id="ppt6-ceo" placeholder="홍길동"/></div>
+            <div><label>설립연도</label><input type="text" id="ppt6-year" placeholder="2015"/></div>
           </div>
-          <div class="ppt6-row"><label>사업장 주소</label><input type="text" placeholder="경기도 ○○시 ○○로 ○○"/></div>
+          <div class="ppt6-row"><label>사업장 주소</label><input type="text" id="ppt6-addr" placeholder="경기도 ○○시 ○○로 ○○"/></div>
         </div>
         <div class="ppt6-section">
           <div class="stitle">👤 담당자 정보</div>
           <div class="ppt6-row split">
-            <div><label>담당자명</label><input type="text" placeholder="홍길동"/></div>
-            <div><label>연락처</label><input type="text" placeholder="010-0000-0000"/></div>
+            <div><label>담당자명 *</label><input type="text" id="ppt6-name" placeholder="홍길동"/></div>
+            <div><label>연락처 *</label><input type="text" id="ppt6-phone" placeholder="010-0000-0000"/></div>
           </div>
-          <div class="ppt6-row"><label>이메일</label><input type="email" placeholder="example@email.com"/></div>
+          <div class="ppt6-row"><label>이메일</label><input type="email" id="ppt6-email" placeholder="example@email.com"/></div>
         </div>
         <div class="ppt6-section">
           <div class="stitle">🔧 시공 가능 분야 (복수 선택)</div>
-          <div class="ppt6-checks">
-            <div class="ppt6-check active">방수</div>
-            <div class="ppt6-check active">도장</div>
-            <div class="ppt6-check">균열 보수</div>
-            <div class="ppt6-check">코팅·단열</div>
-            <div class="ppt6-check">에폭시·바닥</div>
-            <div class="ppt6-check">아스콘·토목</div>
-            <div class="ppt6-check">기타</div>
+          <div class="ppt6-checks" id="ppt6-fields">
+            <div class="ppt6-check active" data-v="방수">방수</div>
+            <div class="ppt6-check active" data-v="도장">도장</div>
+            <div class="ppt6-check" data-v="균열 보수">균열 보수</div>
+            <div class="ppt6-check" data-v="코팅·단열">코팅·단열</div>
+            <div class="ppt6-check" data-v="에폭시·바닥">에폭시·바닥</div>
+            <div class="ppt6-check" data-v="아스콘·토목">아스콘·토목</div>
+            <div class="ppt6-check" data-v="기타">기타</div>
           </div>
         </div>
         <div class="ppt6-section">
           <div class="stitle">📊 시공 실적</div>
           <div class="ppt6-row split">
-            <div><label>시공 경력</label><select><option>3년 미만</option><option>3-5년</option><option>5-10년</option><option>10년 이상</option></select></div>
-            <div><label>연 시공 건수</label><select><option>10건 미만</option><option>10-30건</option><option>30-100건</option><option>100건 이상</option></select></div>
+            <div><label>시공 경력</label><select id="ppt6-career"><option>3년 미만</option><option>3-5년</option><option>5-10년</option><option>10년 이상</option></select></div>
+            <div><label>연 시공 건수</label><select id="ppt6-volume"><option>10건 미만</option><option>10-30건</option><option>30-100건</option><option>100건 이상</option></select></div>
           </div>
-          <div class="ppt6-row"><label>주요 실적 (간단 기재)</label><textarea placeholder="최근 3년 주요 시공 단지·관공서·발주처 등"></textarea></div>
+          <div class="ppt6-row"><label>주요 실적 (간단 기재)</label><textarea id="ppt6-record" placeholder="최근 3년 주요 시공 단지·관공서·발주처 등"></textarea></div>
         </div>
         <div class="ppt6-section">
-          <div class="stitle">📎 첨부 서류</div>
-          <div class="ppt6-upload"><div class="icon">📎</div><div class="text">사업자등록증 · 시공 실적표 · 면허증 등</div><div class="hint">PDF, JPG, PNG (최대 20MB)</div></div>
+          <div class="stitle">📎 첨부 서류 (제출 후 별도 안내)</div>
+          <div class="ppt6-upload"><div class="icon">📎</div><div class="text">사업자등록증 · 시공 실적표 · 면허증 등</div><div class="hint">신청 접수 후 담당자가 이메일로 안내</div></div>
         </div>
         <div class="ppt6-agree"><input type="checkbox" id="ag2"/><label for="ag2">개인정보·기업정보 수집·이용에 동의합니다</label></div>
-        <button type="submit" class="ppt6-submit">파트너 신청하기</button>
+        <div id="ppt6-msg" style="display:none;margin-bottom:10px;padding:12px 14px;border-radius:9px;font-size:13px;font-weight:700;"></div>
+        <button type="button" id="ppt6-submit-btn" class="ppt6-submit">파트너 신청하기</button>
       </form>
     </div>
-  </section>`;
+  </section>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+(function(){
+  if (!window.firebase) { console.warn('[ppt6] Firebase SDK 로드 실패'); return; }
+  if (!firebase.apps.length) {
+    firebase.initializeApp({
+      apiKey: 'AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU',
+      authDomain: 'pour-app-new.firebaseapp.com',
+      projectId: 'pour-app-new',
+      storageBucket: 'pour-app-new.firebasestorage.app',
+      messagingSenderId: '411031141847',
+      appId: '1:411031141847:web:e658174fd4b9652cdadf92'
+    });
+  }
+  var db = firebase.firestore();
+  var root = document.querySelector('.ppt6');
+  if (!root) return;
+
+  // 시공 분야 칩 복수 토글
+  root.querySelectorAll('#ppt6-fields .ppt6-check').forEach(function(b){
+    b.addEventListener('click', function(){ b.classList.toggle('active'); });
+  });
+
+  function showMsg(text, type){
+    var el = root.querySelector('#ppt6-msg');
+    el.textContent = text;
+    el.style.display = 'block';
+    if (type === 'success') { el.style.background = '#ECFDF5'; el.style.border = '1px solid #A7F3D0'; el.style.color = '#047857'; }
+    else { el.style.background = '#FEE2E2'; el.style.border = '1px solid #FCA5A5'; el.style.color = '#DC2626'; }
+  }
+
+  root.querySelector('#ppt6-submit-btn').addEventListener('click', async function(){
+    var company = root.querySelector('#ppt6-company').value.trim();
+    var name = root.querySelector('#ppt6-name').value.trim();
+    var phone = root.querySelector('#ppt6-phone').value.trim();
+    var agree = root.querySelector('#ag2').checked;
+    if (!company || !name || !phone) { showMsg('회사명, 담당자명, 연락처는 필수입니다', 'error'); return; }
+    if (!agree) { showMsg('개인정보·기업정보 수집·이용 동의가 필요합니다', 'error'); return; }
+
+    var fields = Array.from(root.querySelectorAll('#ppt6-fields .ppt6-check.active')).map(function(b){return b.dataset.v;});
+    var data = {
+      type: '파트너사 신청',
+      brand: 'pourstore',
+      companyName: company,
+      businessNumber: root.querySelector('#ppt6-bn').value.trim(),
+      representative: root.querySelector('#ppt6-ceo').value.trim(),
+      foundedYear: root.querySelector('#ppt6-year').value.trim(),
+      address: root.querySelector('#ppt6-addr').value.trim(),
+      contactName: name,
+      contactPhone: phone,
+      contactEmail: root.querySelector('#ppt6-email').value.trim(),
+      specialities: fields,
+      experience: root.querySelector('#ppt6-career').value || '',
+      volume: root.querySelector('#ppt6-volume').value || '',
+      record: root.querySelector('#ppt6-record').value.trim(),
+      status: '신규',
+      source: 'pourstore-site',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    var btn = root.querySelector('#ppt6-submit-btn');
+    btn.disabled = true; btn.textContent = '신청 중...';
+    try {
+      await db.collection('partner-inquiries').add(data);
+      showMsg('✅ 파트너 신청이 접수되었습니다. 영업일 기준 5-7일 내 검토 후 연락드립니다.', 'success');
+      btn.textContent = '✓ 신청 완료';
+      setTimeout(function(){ root.querySelector('#ppt6-form').reset(); btn.disabled = false; btn.textContent = '파트너 신청하기'; root.querySelector('#ppt6-msg').style.display = 'none'; }, 5000);
+    } catch (e) {
+      console.error('[ppt6]', e);
+      showMsg('❌ 신청 실패: ' + e.message + ' — 잠시 후 다시 시도해 주세요', 'error');
+      btn.disabled = false; btn.textContent = '파트너 신청하기';
+    }
+  });
+})();
+</script>`;
 
   const SEED_PT_FAQ_HTML = `<style>
   .ppt7 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }

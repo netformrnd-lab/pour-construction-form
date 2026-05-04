@@ -502,7 +502,179 @@ function VideosMode({ dealer, onBack }) {
 }
 
 // ============================================================
-// Mode Screens — Batch 4~6에서 실제 콘텐츠 채워질 자리
+// AI 길잡이 — 부위 → 증상 → 패키지 추천
+// 부위·증상 매핑은 PACKAGES 데이터 + 증상별 추천 매트릭스 사용
+// ============================================================
+const SYMPTOMS = {
+  slab:    ['천장 누수','균열·잔금','콘크리트 박락','결로·곰팡이','드레인 부식','표면 노후'],
+  shingle: ['슁글 탈락','강풍 피해','후레싱 풀림','지붕 누수','색상 열화'],
+  tile:    ['기와 부식','맞물림 풀림','강판 휨','이음부 누수','녹·부식'],
+  crack:   ['미세 균열','구조 균열','단면 박락','철근 노출','백화'],
+  paint:   ['외벽 균열+재도장','색상 열화','곰팡이·이끼','전체 재도장','일부 재도장'],
+  color:   ['색상 바램','녹·부식','이음부 누수','전체 코팅 노후'],
+  drain:   ['베란다 누수','곰팡이','배수구 부식','배수 막힘','바닥 균열'],
+  parking: ['바닥 박리','크랙·구멍','미끄럼','분진·소음','우레탄 노후'],
+  joint:   ['창틀 누수','벽체 이음 누수','실링재 노후','창호 결로'],
+};
+
+// 부위·증상 → 추천 패키지 매핑 (단순 휴리스틱)
+function recommendPackage(areaId, symptoms) {
+  const list = PACKAGES[areaId] || [];
+  if (list.length === 0) return null;
+  // 증상이 많거나 본질적 손상(누수/박락/구조)이면 풀패키지
+  const heavy = ['천장 누수','콘크리트 박락','구조 균열','단면 박락','철근 노출','슁글 탈락','맞물림 풀림','전체 재도장','전체 코팅 노후','베란다 누수','지붕 누수'];
+  const hasHeavy = symptoms.some(s => heavy.includes(s));
+  if (hasHeavy || symptoms.length >= 3) {
+    return list.find(p => p.tier === '풀패키지') || list[0];
+  }
+  // 부분 패키지 우선
+  return list.find(p => p.tier === '부분 패키지') || list.find(p => p.tier === '풀패키지') || list[0];
+}
+
+function GuideMode({ dealer, onBack }) {
+  const [step, setStep] = useState(1);  // 1=부위, 2=증상, 3=결과
+  const [areaId, setAreaId] = useState(null);
+  const [picked, setPicked] = useState([]);
+
+  const area = areaId ? AREAS.find(a => a.id === areaId) : null;
+  const symptoms = areaId ? (SYMPTOMS[areaId] || []) : [];
+  const recommendation = areaId && step === 3 ? recommendPackage(areaId, picked) : null;
+  const sf = area ? SAFETY_BADGE[area.self] : null;
+
+  function reset() { setStep(1); setAreaId(null); setPicked([]); }
+
+  return (
+    <div className="fade-in" style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', padding:'24px 32px', overflow:'auto' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:18 }}>
+        <button onClick={onBack} style={{ padding:'10px 16px', borderRadius:10, fontSize:13, fontWeight:800, color:'var(--text-md)', background:'#fff', border:'1px solid var(--border)' }}>← 메뉴로</button>
+        <div style={{ flex:1 }}>
+          <div style={{ fontSize:11, fontWeight:800, color:'var(--or-d)', letterSpacing:.8 }}>{dealer.dealerName}</div>
+          <h1 style={{ fontSize:24, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6 }}>🧭 AI 길잡이</h1>
+        </div>
+        {step > 1 && <button onClick={reset} style={{ padding:'8px 14px', borderRadius:9, fontSize:12, fontWeight:800, color:'var(--text-sm)', background:'#fff', border:'1px solid var(--border)' }}>↻ 처음부터</button>}
+      </div>
+
+      {/* 단계 표시 */}
+      <div style={{ display:'flex', gap:8, marginBottom:24, justifyContent:'center', flexWrap:'wrap' }}>
+        {['부위 선택','증상 체크','맞춤 추천'].map((label, idx) => {
+          const n = idx + 1;
+          const active = step === n;
+          const done = step > n;
+          return (
+            <div key={n} style={{
+              display:'flex', alignItems:'center', gap:8, padding:'8px 14px', borderRadius:999,
+              background: active ? 'linear-gradient(135deg,var(--or),var(--or-d))' : done ? 'var(--green-l)' : 'var(--bg)',
+              color: active ? '#fff' : done ? 'var(--green)' : 'var(--text-sm)',
+              border: active ? '1px solid transparent' : '1px solid var(--border)',
+              fontSize:12.5, fontWeight:800
+            }}>
+              <span style={{ width:18, height:18, borderRadius:'50%', background: active ? 'rgba(255,255,255,.25)' : done ? '#fff' : 'var(--border)', display:'grid', placeItems:'center', fontSize:11, fontWeight:900, color: active ? '#fff' : done ? 'var(--green)' : 'var(--text-sm)' }}>{done ? '✓' : n}</span>
+              {label}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Step 1 — 부위 선택 */}
+      {step === 1 && (
+        <div>
+          <div style={{ fontSize:14, color:'var(--text-md)', fontWeight:700, marginBottom:18, textAlign:'center' }}>어디에 문제가 있으신가요?</div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))', gap:10, maxWidth:1100, width:'100%', margin:'0 auto' }}>
+            {AREAS.map(a => (
+              <button key={a.id} onClick={() => { setAreaId(a.id); setStep(2); }} style={{
+                background:'#fff', border:'1.5px solid var(--or-l)', borderRadius:14, padding:'18px 16px', textAlign:'center',
+                cursor:'pointer', transition:'all .25s'
+              }} onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = 'var(--or-d)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(249,115,22,.12)'; }} onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = 'var(--or-l)'; e.currentTarget.style.boxShadow = 'none'; }}>
+                <div style={{ width:48, height:48, margin:'0 auto 10px', borderRadius:12, background:'linear-gradient(135deg,#FFEDD5,#FED7AA)', display:'grid', placeItems:'center', fontSize:22 }}>{a.icon}</div>
+                <div style={{ fontSize:13.5, fontWeight:900, color:'var(--navy)', marginBottom:4 }}>{a.name}</div>
+                <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700, lineHeight:1.4 }}>{a.desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Step 2 — 증상 체크 */}
+      {step === 2 && area && (
+        <div style={{ maxWidth:780, width:'100%', margin:'0 auto' }}>
+          <div style={{ fontSize:14, color:'var(--text-md)', fontWeight:700, marginBottom:6, textAlign:'center' }}>
+            <span style={{ fontSize:18, marginRight:6 }}>{area.icon}</span>{area.name} — 증상을 모두 선택해 주세요 (복수 가능)
+          </div>
+          <div style={{ fontSize:11.5, color:'var(--text-sm)', fontWeight:700, marginBottom:20, textAlign:'center' }}>증상이 많을수록 풀패키지가 추천됩니다</div>
+
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))', gap:10, marginBottom:24 }}>
+            {symptoms.map(s => {
+              const on = picked.includes(s);
+              return (
+                <button key={s} onClick={() => setPicked(prev => on ? prev.filter(x => x !== s) : [...prev, s])} style={{
+                  background: on ? 'linear-gradient(135deg,#FFF7ED,#FFEDD5)' : '#fff',
+                  border: on ? '2px solid var(--or-d)' : '1.5px solid var(--border)',
+                  borderRadius:12, padding:'14px 16px', textAlign:'left', cursor:'pointer', transition:'all .2s',
+                  display:'flex', alignItems:'center', gap:10
+                }}>
+                  <span style={{ width:22, height:22, borderRadius:6, background: on ? 'var(--or-d)' : 'var(--bg)', border: on ? 'none' : '1px solid var(--border)', display:'grid', placeItems:'center', fontSize:13, color:'#fff', fontWeight:900 }}>{on ? '✓' : ''}</span>
+                  <span style={{ fontSize:13.5, fontWeight: on ? 900 : 700, color: on ? 'var(--or-d)' : 'var(--text-md)' }}>{s}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div style={{ display:'flex', gap:10, justifyContent:'center' }}>
+            <button onClick={() => { setStep(1); setPicked([]); }} style={{ padding:'14px 22px', borderRadius:12, fontSize:14, fontWeight:800, color:'var(--text-md)', background:'#fff', border:'1px solid var(--border)' }}>← 부위 다시</button>
+            <button onClick={() => setStep(3)} disabled={picked.length === 0} style={{
+              padding:'14px 32px', borderRadius:12, fontSize:14, fontWeight:900, color:'#fff',
+              background: picked.length === 0 ? '#D1D5DB' : 'linear-gradient(135deg,var(--or),var(--or-d))',
+              border:'none', boxShadow: picked.length === 0 ? 'none' : '0 6px 16px rgba(249,115,22,.3)',
+              cursor: picked.length === 0 ? 'not-allowed' : 'pointer'
+            }}>맞춤 추천 받기 →</button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 3 — 결과 */}
+      {step === 3 && area && recommendation && (
+        <div style={{ maxWidth:780, width:'100%', margin:'0 auto' }}>
+          <div style={{ textAlign:'center', marginBottom:20 }}>
+            <div style={{ fontSize:11, fontWeight:800, color:'var(--or-d)', letterSpacing:.8, marginBottom:6 }}>🎯 RECOMMENDATION</div>
+            <h2 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6, marginBottom:10 }}>고객님께 맞는 패키지를 찾았어요</h2>
+            <div style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'6px 14px', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:999, fontSize:11.5, color:'var(--text-md)', fontWeight:700 }}>
+              <span>{area.icon} {area.name}</span><span>·</span><span>증상 {picked.length}개 선택</span>
+            </div>
+          </div>
+
+          {/* 풀패키지 강조 카드 */}
+          <div style={{ background:'linear-gradient(135deg,#FFF7ED,#FFEDD5)', border:'2px solid #F97316', borderRadius:20, padding:'28px 26px', position:'relative', boxShadow:'0 16px 40px rgba(249,115,22,.18)', marginBottom:18 }}>
+            {recommendation.tier === '풀패키지' && <span style={{ position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)', padding:'5px 14px', background:'linear-gradient(135deg,#F97316,#EA580C)', color:'#fff', fontSize:11, fontWeight:900, borderRadius:6, boxShadow:'0 4px 10px rgba(249,115,22,.4)' }}>⭐ 강력추천</span>}
+            <div style={{ fontSize:11, fontWeight:800, color:'var(--or-d)', letterSpacing:.5, marginBottom:6 }}>{recommendation.tier}</div>
+            <h3 style={{ fontSize:20, fontWeight:900, color:'var(--navy)', letterSpacing:-0.4, marginBottom:8, lineHeight:1.35 }}>{recommendation.name}</h3>
+            <div style={{ fontSize:13, color:'var(--text-md)', fontWeight:700, lineHeight:1.65, marginBottom:14 }}>{recommendation.summary}</div>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:5, marginBottom:18 }}>
+              {recommendation.items.map((it, i) => <span key={i} style={{ padding:'4px 10px', background:'#fff', border:'1px solid #FED7AA', color:'var(--or-d)', fontSize:11.5, fontWeight:800, borderRadius:6 }}>{it}</span>)}
+            </div>
+            <div style={{ paddingTop:14, borderTop:'1px solid rgba(249,115,22,.2)', display:'flex', alignItems:'baseline', gap:6 }}>
+              <span style={{ fontFamily:'Bebas Neue', fontSize:32, fontWeight:900, color:'var(--or-d)' }}>{Number(recommendation.price).toLocaleString('ko-KR')}</span>
+              <span style={{ fontSize:14, color:'var(--text-sm)', fontWeight:700 }}>원~</span>
+              <span style={{ marginLeft:'auto', padding:'4px 10px', background:sf.bg, border:`1px solid ${sf.border}`, color:sf.color, fontSize:11, fontWeight:800, borderRadius:6 }}>{sf.label}</span>
+            </div>
+          </div>
+
+          {/* 다음 액션 */}
+          <div style={{ padding:'14px 18px', background:'#fff', border:'1px solid var(--border)', borderRadius:12, fontSize:12.5, color:'var(--text-md)', fontWeight:700, lineHeight:1.65, marginBottom:14 }}>
+            💡 매장 직원에게 이 패키지를 말씀해 주세요 — 직원이 주문을 입력하면 결제 안내가 화면에 표시됩니다.
+          </div>
+
+          <div style={{ display:'flex', gap:10, justifyContent:'center' }}>
+            <button onClick={() => setStep(2)} style={{ padding:'12px 22px', borderRadius:12, fontSize:13, fontWeight:800, color:'var(--text-md)', background:'#fff', border:'1px solid var(--border)' }}>← 증상 다시</button>
+            <button onClick={reset} style={{ padding:'12px 22px', borderRadius:12, fontSize:13, fontWeight:800, color:'var(--or-d)', background:'#fff', border:'1px solid var(--or-d)' }}>↻ 다른 부위</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// Mode Screens — Batch 5~6에서 실제 콘텐츠 채워질 자리
 // ============================================================
 function ModePlaceholder({ mode, dealer, onBack }) {
   const titles = {
@@ -728,7 +900,8 @@ function App() {
       {!latestOrder && !mode && <WelcomeScreen dealer={setup} onAdmin={() => setShowAdmin(true)} onMode={setMode} />}
       {!latestOrder && mode === 'catalog' && <CatalogMode dealer={setup} onBack={() => setMode(null)} />}
       {!latestOrder && mode === 'videos' && <VideosMode dealer={setup} onBack={() => setMode(null)} />}
-      {!latestOrder && mode && !['catalog','videos'].includes(mode) && <ModePlaceholder mode={mode} dealer={setup} onBack={() => setMode(null)} />}
+      {!latestOrder && mode === 'guide' && <GuideMode dealer={setup} onBack={() => setMode(null)} />}
+      {!latestOrder && mode && !['catalog','videos','guide'].includes(mode) && <ModePlaceholder mode={mode} dealer={setup} onBack={() => setMode(null)} />}
       {error && <ErrorBanner message={error} />}
     </>
   );

@@ -2021,8 +2021,14 @@ function Settlement({ orders, dealers, onToast }) {
   }, [orders, dealers, year, month, statusFilter, startIso, endIso]);
 
   // 익월 10일 입금일 계산
+  // 정산 기준일 = 선택된 달의 마지막 일자
+  const cutoffDate = useMemo(() => {
+    const last = new Date(year, month, 0);  // month는 1-based, day=0 → 전월 마지막 일자 (= 선택된 달 말일)
+    return last.toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric', weekday:'short' });
+  }, [year, month]);
+  // 입금 예정일 = 익월 10일
   const dueDate = useMemo(() => {
-    const d = new Date(year, month, 10);  // (다음달 10일)
+    const d = new Date(year, month, 10);
     return d.toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric', weekday:'short' });
   }, [year, month]);
 
@@ -2077,15 +2083,17 @@ function Settlement({ orders, dealers, onToast }) {
           <button onClick={exportCsv} disabled={summary.rows.length === 0} style={btnPrimary()}>📥 청구서 CSV</button>
         </div>
 
-        {/* 입금 예정일 안내 */}
-        <div style={{ marginBottom:14, padding:'14px 18px', background:'linear-gradient(135deg, #FFF7ED, #FFEDD5)', border:'1px solid #FED7AA', borderRadius:14, display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
-          <span style={{ fontSize:22 }}>📅</span>
-          <div style={{ flex:1, minWidth:240 }}>
-            <div style={{ fontSize:11, fontWeight:900, color:'var(--or-d)', letterSpacing:.5, marginBottom:3 }}>본사 입금 예정일</div>
-            <div style={{ fontSize:15, fontWeight:900, color:'var(--navy)', letterSpacing:-0.3 }}>{dueDate}</div>
+        {/* 정산 기준일·입금 예정일 안내 */}
+        <div style={{ marginBottom:14, padding:'14px 18px', background:'linear-gradient(135deg, #FFF7ED, #FFEDD5)', border:'1px solid #FED7AA', borderRadius:14, display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+          <div style={{ borderRight:'1px solid #FED7AA', paddingRight:14 }}>
+            <div style={{ fontSize:11, fontWeight:900, color:'var(--text-sm)', letterSpacing:.5, marginBottom:3 }}>📋 정산 기준일 (마감)</div>
+            <div style={{ fontSize:14, fontWeight:900, color:'var(--navy)', letterSpacing:-0.3 }}>{cutoffDate}</div>
+            <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700, marginTop:4 }}>대리점 portal 확인 체크 후 본사 검토</div>
           </div>
-          <div style={{ fontSize:12, color:'var(--text-md)', fontWeight:700, lineHeight:1.55, maxWidth:340 }}>
-            대리점이 매장 결제 받은 정가 매출 중 <b style={{ color:'var(--or-d)' }}>공급단가</b>를 본사 계좌로 입금
+          <div>
+            <div style={{ fontSize:11, fontWeight:900, color:'var(--or-d)', letterSpacing:.5, marginBottom:3 }}>📅 본사 입금 예정일</div>
+            <div style={{ fontSize:14, fontWeight:900, color:'var(--or-d)', letterSpacing:-0.3 }}>{dueDate}</div>
+            <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700, marginTop:4 }}>대리점 → 본사 계좌 송금</div>
           </div>
         </div>
 
@@ -2139,18 +2147,36 @@ function Settlement({ orders, dealers, onToast }) {
           </div>
         )}
 
-        {/* 정산 가이드 */}
+        {/* 정산 흐름 가이드 */}
         <div style={{ marginTop:18, padding:'16px 20px', background:'var(--or-pale)', border:'1px solid var(--or-l)', borderRadius:14 }}>
-          <div style={{ fontSize:12, fontWeight:900, color:'var(--or-d)', marginBottom:8, letterSpacing:.3 }}>📌 정산 흐름 (대리점 → 본사 입금)</div>
+          <div style={{ fontSize:12, fontWeight:900, color:'var(--or-d)', marginBottom:10, letterSpacing:.3 }}>📌 정산 흐름 (월말 마감 → 익월 10일 입금)</div>
           <ol style={{ paddingLeft:18, fontSize:12, color:'var(--text-md)', lineHeight:1.85, fontWeight:600 }}>
-            <li>고객은 매장에서 정가로 결제 (대리점 카드 단말기 / 계좌이체)</li>
-            <li>대리점이 매월 마지막 영업일 — 자체 매출 마감</li>
-            <li>본사가 위 표 확인 → <b>📥 청구서 CSV 다운로드</b> → 각 대리점에 전송</li>
-            <li><b>익월 10일</b> — 대리점이 본사 계좌로 공급단가 합계 입금</li>
-            <li>본사가 입금 확인 → 다음 달 자동 누적 시작</li>
+            <li><b>매월 마지막 영업일 (정산 기준일)</b> — 본사가 자동 마감 → 청구서 산출</li>
+            <li>📥 <b>청구서 CSV 다운로드</b> → 각 대리점에 전송 (이메일·SMS)</li>
+            <li>대리점 portal에서 매출 내역 <b>확인 체크</b> (대리점 승인)</li>
+            <li>본사가 어드민에서 <b>확인됨</b> 검토 → 입금 안내</li>
+            <li><b>익월 10일까지</b> — 대리점이 본사 계좌로 공급단가 합계 입금</li>
+            <li>본사 입금 확인 → 다음 달 자동 누적 시작</li>
           </ol>
-          <div style={{ marginTop:8, fontSize:11.5, color:'var(--text-sm)', fontWeight:700, padding:'8px 12px', background:'#fff', borderRadius:8, lineHeight:1.6 }}>
-            💡 <b>정가매출</b> = 대리점이 고객에게 받은 금액 · <b>본사 입금예정</b> = 대리점이 본사에 송금할 공급단가 · <b>대리점 마진</b> = 대리점이 가져가는 차액 (정가-공급단가). 자사몰 직판·전화 주문은 집계 제외.
+
+          <div style={{ marginTop:14, padding:'12px 14px', background:'#fff', border:'1px solid var(--or-l)', borderRadius:10 }}>
+            <div style={{ fontSize:11.5, fontWeight:900, color:'var(--or-d)', marginBottom:8, letterSpacing:.3 }}>🔄 운영 흐름 (2가지 방식)</div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap:10 }}>
+              <div style={{ padding:'10px 12px', background:'var(--bg)', borderRadius:8, fontSize:11, color:'var(--text-md)', fontWeight:600, lineHeight:1.65 }}>
+                <b style={{ color:'var(--navy)', fontSize:11.5 }}>📦 무재고 방식</b><br/>
+                고객 주문 → 대리점이 본사에 <b>즉시 입금</b> → 본사 공장 직발주<br/>
+                <span style={{ color:'var(--text-sm)' }}>※ 재고 없음. 송금 확인 후 발주 진행</span>
+              </div>
+              <div style={{ padding:'10px 12px', background:'var(--bg)', borderRadius:8, fontSize:11, color:'var(--text-md)', fontWeight:600, lineHeight:1.65 }}>
+                <b style={{ color:'var(--navy)', fontSize:11.5 }}>🏪 유재고 방식</b><br/>
+                가벼운 자재 / 대리점 희망 시 <b>사전 매입·진열·판매</b><br/>
+                <span style={{ color:'var(--text-sm)' }}>※ 재매입 1개월 내 가능 · 운반비 대리점 부담</span>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginTop:10, fontSize:11.5, color:'var(--text-sm)', fontWeight:700, padding:'8px 12px', background:'#fff', borderRadius:8, lineHeight:1.6 }}>
+            💡 <b>정가매출</b> = 매장 결제액 · <b>본사 입금예정</b> = 공급단가 합계 · <b>대리점 마진</b> = 차액. 자사몰 직판·전화 주문은 집계 제외.
           </div>
         </div>
       </div>

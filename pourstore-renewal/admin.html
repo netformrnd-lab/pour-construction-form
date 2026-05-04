@@ -117,14 +117,20 @@ const PO_STATUS_COLOR = {
   '취소':       { bg: '#F3F4F6', border: '#E5E7EB', color: '#6B7280' },
 };
 
-const ORDER_STATUS = ['신규','결제대기','결제완료','배송준비','배송중','완료','환불'];
+// 선입금 모델: 신규 → 입금대기 → 입금확인 → 발주/출고 → 배송중 → 완료 (또는 취소)
+const ORDER_STATUS = ['신규','입금대기','입금확인','출고','배송중','완료','취소'];
 const ORDER_STATUS_COLOR = {
   '신규':       { bg: '#FEE2E2', border: '#FCA5A5', color: '#DC2626' },
+  '입금대기':   { bg: '#FEF3C7', border: '#FCD34D', color: '#B45309' },
+  '입금확인':   { bg: '#DBEAFE', border: '#93C5FD', color: '#1E40AF' },
+  '출고':       { bg: '#FFEDD5', border: '#FED7AA', color: '#EA580C' },
+  '배송중':     { bg: '#FFEDD5', border: '#FED7AA', color: '#EA580C' },
+  '완료':       { bg: '#D1FAE5', border: '#6EE7B7', color: '#047857' },
+  '취소':       { bg: '#F3F4F6', border: '#E5E7EB', color: '#6B7280' },
+  // 하위 호환
   '결제대기':   { bg: '#FEF3C7', border: '#FCD34D', color: '#B45309' },
   '결제완료':   { bg: '#DBEAFE', border: '#93C5FD', color: '#1E40AF' },
   '배송준비':   { bg: '#FEF3C7', border: '#FCD34D', color: '#B45309' },
-  '배송중':     { bg: '#FFEDD5', border: '#FED7AA', color: '#EA580C' },
-  '완료':       { bg: '#D1FAE5', border: '#6EE7B7', color: '#047857' },
   '환불':       { bg: '#F3F4F6', border: '#E5E7EB', color: '#6B7280' },
 };
 
@@ -1613,7 +1619,7 @@ function Orders({ orders, dealers, onUpdate, onToast }) {
     const active = orders.filter(o => o.status !== '환불');
     return {
       total: active.length,
-      pending: orders.filter(o => ['신규','결제대기','결제완료','배송준비'].includes(o.status)).length,
+      pending: orders.filter(o => ['신규','입금대기','입금확인','출고','결제대기','결제완료','배송준비'].includes(o.status)).length,
       shipping: orders.filter(o => o.status === '배송중').length,
       monthAmount: orders
         .filter(o => o.status !== '환불' && o.createdAt && new Date(o.createdAt) > new Date(Date.now() - 30*24*60*60*1000))
@@ -1769,13 +1775,29 @@ function OrderDetail({ order, dealers, onClose, onSave, onDelete }) {
       </Field>
 
       <div style={{ padding:14, background:'var(--or-pale)', border:'1px solid var(--or-l)', borderRadius:10, marginBottom:14 }}>
-        <div style={{ fontSize:11, fontWeight:900, color:'var(--or-d)', letterSpacing:.5, marginBottom:8 }}>💳 Cafe24 결제 매칭</div>
+        <div style={{ fontSize:11, fontWeight:900, color:'var(--or-d)', letterSpacing:.5, marginBottom:8 }}>💰 본사 입금 확인 (선입금 모델)</div>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:8 }}>
-          <Field label="Cafe24 주문번호"><input type="text" value={data.cafe24OrderNo || ''} onChange={e => update('cafe24OrderNo', e.target.value)} style={inputStyle({ fontFamily:'monospace' })} placeholder="20260504-0000123" /></Field>
-          <Field label="결제 확인일"><input type="date" value={data.paidDate || ''} onChange={e => update('paidDate', e.target.value)} style={inputStyle()} /></Field>
+          <Field label="입금자명·입금일">
+            <input type="text" value={data.payerNote || ''} onChange={e => update('payerNote', e.target.value)} style={inputStyle()} placeholder="○○건축자재 / 5월 4일 14:20" />
+          </Field>
+          <Field label="입금 확인일"><input type="date" value={data.paidDate || ''} onChange={e => update('paidDate', e.target.value)} style={inputStyle()} /></Field>
         </div>
+        {data.dealerId && (
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, padding:'10px 12px', background:'#fff', borderRadius:8, marginBottom:8, fontSize:12, fontWeight:800 }}>
+            <span style={{ color:'var(--text-md)' }}>대리점 송금 예정 (공급단가)</span>
+            <span style={{ color:'var(--or-d)', fontFamily:'Bebas Neue', fontSize:18 }}>
+              {(() => {
+                const tierMap = { Silver:22, Gold:28, Platinum:35 };
+                const dealer = dealers.find(d => d.id === data.dealerId);
+                const margin = tierMap[dealer?.tier || 'Silver'] || 22;
+                const supply = Math.round((data.totalAmount || 0) * (1 - margin/100) / 1000) * 1000;
+                return fmtPrice(supply) + '원';
+              })()}
+            </span>
+          </div>
+        )}
         <div style={{ fontSize:11, color:'var(--text-md)', fontWeight:700, lineHeight:1.55 }}>
-          Cafe24 본사몰에서 결제 처리 후 주문번호를 여기에 기록 → 상태를 <b style={{ color:'var(--green)' }}>결제완료</b>로 변경 → 키오스크에 자동 반영
+          대리점이 본사 계좌로 공급단가 송금 → 입금 확인 후 상태 <b style={{ color:'var(--green)' }}>입금확인</b> → 자재 출고/발주 진행
         </div>
       </div>
 
@@ -2010,7 +2032,7 @@ function Settlement({ orders, dealers, settlements, onUpdate, onToast }) {
   const summary = useMemo(() => {
     // 기간 내 주문 필터
     const period = orders.filter(o => o.createdAt && o.createdAt >= startIso && o.createdAt < endIso);
-    const isPaid = (o) => ['결제완료','배송준비','배송중','완료'].includes(o.status);
+    const isPaid = (o) => ['입금확인','출고','배송중','완료','결제완료','배송준비'].includes(o.status);
     const eligible = statusFilter === 'paid' ? period.filter(isPaid) : period.filter(o => o.status !== '환불');
 
     // 대리점별 집계
@@ -2480,7 +2502,7 @@ function App() {
     matching: requests.filter(r => !['완료','취소'].includes(r.status)).length,
     partners: partners.filter(p => p.contractStatus === '활성').length,
     dealers: dealers.filter(d => d.contractStatus === '활성').length,
-    orders: orders.filter(o => ['신규','결제대기','결제완료','배송준비'].includes(o.status)).length,
+    orders: orders.filter(o => ['신규','입금대기','입금확인','출고','결제대기','결제완료','배송준비'].includes(o.status)).length,
   };
 
   return (

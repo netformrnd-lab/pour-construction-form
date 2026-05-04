@@ -674,7 +674,138 @@ function GuideMode({ dealer, onBack }) {
 }
 
 // ============================================================
-// Mode Screens — Batch 5~6에서 실제 콘텐츠 채워질 자리
+// 견적 모드 — 평수·부위 → 자재량·가격
+// 패키지의 기준 평수: 50평 (모두 50평 가정으로 책정된 가격)
+// 면적별 단가는 50평 기준 가격을 평당 단가로 환산 + 패키지 셋업 비용
+// ============================================================
+const REF_AREA = 50;  // 패키지 기준 평수 (50평)
+
+function calcEstimate(pkg, areaPyeong) {
+  const base = pkg.price;
+  // 50평 기준 평당 단가 (베이스 가격의 80%만 평수에 비례, 20%는 셋업·도구 비용)
+  const variable = base * 0.8;
+  const fixed = base * 0.2;
+  const totalVar = (variable / REF_AREA) * areaPyeong;
+  const total = Math.round((fixed + totalVar) / 1000) * 1000;
+  return total;
+}
+
+function EstimateMode({ dealer, onBack }) {
+  const [areaId, setAreaId] = useState(null);
+  const [pyeong, setPyeong] = useState(50);
+
+  const area = areaId ? AREAS.find(a => a.id === areaId) : null;
+  const packages = areaId ? (PACKAGES[areaId] || []) : [];
+  const sf = area ? SAFETY_BADGE[area.self] : null;
+
+  if (!areaId) {
+    // 부위 선택
+    return (
+      <div className="fade-in" style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', padding:'24px 32px', overflow:'auto' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:24 }}>
+          <button onClick={onBack} style={{ padding:'10px 16px', borderRadius:10, fontSize:13, fontWeight:800, color:'var(--text-md)', background:'#fff', border:'1px solid var(--border)' }}>← 메뉴로</button>
+          <div>
+            <div style={{ fontSize:11, fontWeight:800, color:'var(--or-d)', letterSpacing:.8 }}>{dealer.dealerName}</div>
+            <h1 style={{ fontSize:24, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6 }}>📐 즉석 견적</h1>
+          </div>
+        </div>
+        <div style={{ marginBottom:18, fontSize:13, color:'var(--text-md)', fontWeight:700, textAlign:'center' }}>
+          어느 부위를 견적내시겠어요?
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap:10, maxWidth:1100, width:'100%', margin:'0 auto' }}>
+          {AREAS.map(a => (
+            <button key={a.id} onClick={() => setAreaId(a.id)} style={{
+              background:'#fff', border:'1.5px solid var(--or-l)', borderRadius:14, padding:'18px 16px', textAlign:'center',
+              cursor:'pointer', transition:'all .25s'
+            }} onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = 'var(--or-d)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(249,115,22,.12)'; }} onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = 'var(--or-l)'; e.currentTarget.style.boxShadow = 'none'; }}>
+              <div style={{ width:48, height:48, margin:'0 auto 10px', borderRadius:12, background:'linear-gradient(135deg,#FFEDD5,#FED7AA)', display:'grid', placeItems:'center', fontSize:22 }}>{a.icon}</div>
+              <div style={{ fontSize:13.5, fontWeight:900, color:'var(--navy)', marginBottom:4 }}>{a.name}</div>
+              <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700 }}>패키지 {(PACKAGES[a.id] || []).length}종</div>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fade-in" style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', padding:'24px 32px', overflow:'auto' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:18 }}>
+        <button onClick={() => setAreaId(null)} style={{ padding:'10px 16px', borderRadius:10, fontSize:13, fontWeight:800, color:'var(--text-md)', background:'#fff', border:'1px solid var(--border)' }}>← 부위 선택</button>
+        <div style={{ flex:1 }}>
+          <div style={{ fontSize:11, fontWeight:800, color:'var(--or-d)', letterSpacing:.8 }}>📐 즉석 견적</div>
+          <h1 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', letterSpacing:-0.4, display:'flex', alignItems:'center', gap:10 }}>
+            <span>{area.icon}</span>{area.name}
+            <span style={{ marginLeft:'auto', padding:'4px 10px', background:sf.bg, border:`1px solid ${sf.border}`, color:sf.color, fontSize:11, fontWeight:800, borderRadius:6 }}>{sf.label}</span>
+          </h1>
+        </div>
+      </div>
+
+      {/* 평수 입력 */}
+      <div style={{ background:'#fff', border:'1px solid var(--border)', borderRadius:18, padding:'24px 26px', marginBottom:18, maxWidth:780, width:'100%', margin:'0 auto 18px' }}>
+        <div style={{ fontSize:12, fontWeight:800, color:'var(--or-d)', letterSpacing:.5, marginBottom:14 }}>📏 시공 면적 (평)</div>
+        <div style={{ display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
+          <button onClick={() => setPyeong(Math.max(5, pyeong - 5))} style={{ width:48, height:48, borderRadius:12, fontSize:22, fontWeight:900, color:'var(--or-d)', background:'var(--or-pale)', border:'1px solid var(--or-l)' }}>−</button>
+          <div style={{ flex:1, textAlign:'center' }}>
+            <div style={{ fontFamily:'Bebas Neue', fontSize:56, fontWeight:900, color:'var(--navy)', letterSpacing:1, lineHeight:1 }}>
+              {pyeong}<span style={{ fontFamily:'Pretendard', fontSize:24, color:'var(--text-md)', marginLeft:8, fontWeight:700 }}>평</span>
+            </div>
+            <div style={{ fontSize:11.5, color:'var(--text-sm)', fontWeight:700, marginTop:4 }}>≈ {Math.round(pyeong * 3.3)}㎡</div>
+          </div>
+          <button onClick={() => setPyeong(Math.min(500, pyeong + 5))} style={{ width:48, height:48, borderRadius:12, fontSize:22, fontWeight:900, color:'var(--or-d)', background:'var(--or-pale)', border:'1px solid var(--or-l)' }}>+</button>
+        </div>
+        {/* 빠른 선택 */}
+        <div style={{ display:'flex', gap:6, marginTop:14, justifyContent:'center', flexWrap:'wrap' }}>
+          {[10, 30, 50, 100, 200].map(p => (
+            <button key={p} onClick={() => setPyeong(p)} style={{
+              padding:'7px 14px', borderRadius:999, fontSize:12, fontWeight:800,
+              background: pyeong === p ? 'linear-gradient(135deg,var(--or),var(--or-d))' : '#fff',
+              color: pyeong === p ? '#fff' : 'var(--text-md)',
+              border: pyeong === p ? '1px solid transparent' : '1px solid var(--border)'
+            }}>{p}평</button>
+          ))}
+        </div>
+      </div>
+
+      {/* 패키지별 견적 */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))', gap:14, maxWidth:1100, width:'100%', margin:'0 auto' }}>
+        {packages.map((p, i) => {
+          const tc = TIER_COLOR[p.tier] || TIER_COLOR['단순 코팅'];
+          const isFull = p.tier === '풀패키지';
+          const total = calcEstimate(p, pyeong);
+          const perPyeong = Math.round(total / pyeong);
+          return (
+            <div key={i} style={{ background:tc.bg, border:`2px solid ${tc.border}`, borderRadius:18, padding:'20px 22px', position:'relative', boxShadow: isFull ? '0 12px 28px rgba(249,115,22,.15)' : '0 4px 12px rgba(15,31,92,.05)' }}>
+              {isFull && <span style={{ position:'absolute', top:-12, left:'50%', transform:'translateX(-50%)', padding:'5px 12px', background:'linear-gradient(135deg,#F97316,#EA580C)', color:'#fff', fontSize:10.5, fontWeight:900, borderRadius:6, boxShadow:'0 4px 10px rgba(249,115,22,.4)' }}>⭐ 강력추천</span>}
+              <div style={{ fontSize:11, fontWeight:800, color:tc.color, letterSpacing:.5, marginBottom:6 }}>{p.tier}</div>
+              <div style={{ fontSize:15, fontWeight:900, color:'var(--navy)', letterSpacing:-0.3, marginBottom:10, lineHeight:1.35 }}>{p.name}</div>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:4, marginBottom:14 }}>
+                {p.items.map((it, j) => <span key={j} style={{ padding:'3px 7px', background:'#fff', border:'1px solid #FED7AA', color:'var(--or-d)', fontSize:10, fontWeight:800, borderRadius:5 }}>{it}</span>)}
+              </div>
+              <div style={{ background:'#fff', borderRadius:12, padding:'14px 16px', border:'1px solid var(--border-s)' }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+                  <span style={{ fontSize:11, color:'var(--text-sm)', fontWeight:800, letterSpacing:.3 }}>📐 {pyeong}평 견적</span>
+                  <span style={{ fontSize:10.5, color:'var(--text-xs)', fontWeight:700 }}>평당 {Number(perPyeong).toLocaleString('ko-KR')}원</span>
+                </div>
+                <div style={{ display:'flex', alignItems:'baseline', gap:6 }}>
+                  <span style={{ fontFamily:'Bebas Neue', fontSize:28, fontWeight:900, color:'var(--or-d)' }}>{Number(total).toLocaleString('ko-KR')}</span>
+                  <span style={{ fontSize:13, color:'var(--text-sm)', fontWeight:700 }}>원~</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ marginTop:18, maxWidth:780, width:'100%', margin:'18px auto 0', padding:'14px 18px', background:'var(--or-pale)', border:'1px solid var(--or-l)', borderRadius:12, fontSize:12, color:'var(--text-md)', fontWeight:700, lineHeight:1.65 }}>
+        💡 <b>참고 견적</b>입니다 — 정확한 금액은 매장 직원에게 문의하세요. 현장 상황에 따라 ±15% 내외 조정될 수 있습니다.
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Mode Screens — Batch 6에서 실제 콘텐츠 채워질 자리
 // ============================================================
 function ModePlaceholder({ mode, dealer, onBack }) {
   const titles = {
@@ -901,7 +1032,8 @@ function App() {
       {!latestOrder && mode === 'catalog' && <CatalogMode dealer={setup} onBack={() => setMode(null)} />}
       {!latestOrder && mode === 'videos' && <VideosMode dealer={setup} onBack={() => setMode(null)} />}
       {!latestOrder && mode === 'guide' && <GuideMode dealer={setup} onBack={() => setMode(null)} />}
-      {!latestOrder && mode && !['catalog','videos','guide'].includes(mode) && <ModePlaceholder mode={mode} dealer={setup} onBack={() => setMode(null)} />}
+      {!latestOrder && mode === 'estimate' && <EstimateMode dealer={setup} onBack={() => setMode(null)} />}
+      {!latestOrder && mode && !['catalog','videos','guide','estimate'].includes(mode) && <ModePlaceholder mode={mode} dealer={setup} onBack={() => setMode(null)} />}
       {error && <ErrorBanner message={error} />}
     </>
   );

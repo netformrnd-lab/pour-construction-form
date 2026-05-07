@@ -75,6 +75,7 @@ service cloud.firestore {
     match /dealer-orders/{doc}             { allow read, write: if true; }
     match /purchase-orders/{doc}           { allow read, write: if true; }
     match /pourstore-renewal-builder/{doc} { allow read, write: if true; }
+    match /pourstore-renewal-instances/{doc} { allow read, write: if true; }
 
     // ─────────────────────────────────────────────
     // POUR스토어 업무관리 (work-*) — pourstore-renewal/admin

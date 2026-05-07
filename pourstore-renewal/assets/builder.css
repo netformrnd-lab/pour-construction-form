@@ -295,6 +295,26 @@ footer { padding: 22px; text-align: center; font-size: 12px; color: var(--muted)
 .jn-author { font-size: 11px; font-weight: 600; color: var(--muted); }
 .jn-text { font-size: 12.5px; color: var(--ink2); line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
 
+/* ---------- 휴지통 ---------- */
+.trash-badge { display: inline-block; min-width: 18px; padding: 1px 6px; margin-left: 4px; border-radius: 999px; background: var(--border); color: var(--ink2); font-size: 10px; font-weight: 800; font-family: 'Bebas Neue', sans-serif; letter-spacing: .5px; vertical-align: 1px; }
+#btnTrash:hover .trash-badge { background: #FEE2E2; color: #991B1B; }
+
+.tr-list { display: flex; flex-direction: column; gap: 8px; }
+.tr-item { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 12px 14px; background: #fff; border: 1px solid var(--border); border-radius: 10px; }
+.tr-item.tr-orphan { background: #FEF2F2; border-color: #FECACA; }
+.tr-head { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 6px; border-bottom: 1px dashed var(--border); }
+.tr-target { font-size: 12px; font-weight: 800; color: var(--navy); }
+.tr-missing { font-size: 10px; padding: 2px 7px; background: #FEE2E2; color: #991B1B; border-radius: 999px; margin-left: 4px; font-weight: 700; }
+.tr-left { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; background: #FEF3C7; color: #92400E; font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px; }
+.tr-body { min-width: 0; }
+.tr-author { font-size: 11.5px; color: var(--ink2); margin-bottom: 4px; }
+.tr-author b { color: var(--ink); font-weight: 800; }
+.tr-author .tr-when { margin-left: 6px; color: var(--muted); font-family: ui-monospace, Consolas, monospace; font-size: 10.5px; }
+.tr-text { font-size: 13px; color: var(--ink); line-height: 1.55; white-space: pre-wrap; word-break: break-word; padding: 6px 10px; background: var(--light); border-radius: 6px; }
+.tr-meta { font-size: 10.5px; color: var(--muted); margin-top: 4px; }
+.tr-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; align-self: flex-end; }
+.tr-actions button[disabled] { opacity: .4; cursor: not-allowed; }
+
 @media (max-width: 880px) {
   .layout { grid-template-columns: 1fr; }
   .sidebar { position: static; }
@@ -304,4 +324,6 @@ footer { padding: 22px; text-align: center; font-size: 12px; color: var(--muted)
   .staff-add { grid-template-columns: 1fr; }
   .jn-item { grid-template-columns: 1fr; }
   .jn-when { padding-top: 0; }
+  .tr-item { grid-template-columns: 1fr; }
+  .tr-actions { flex-direction: row; align-self: stretch; }
 }

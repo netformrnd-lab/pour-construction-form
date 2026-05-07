@@ -113,6 +113,7 @@
           <button id="btnSetMe" class="btn btn-outline btn-sm" style="flex:1;">내 이름 설정</button>
           <button id="btnManageStaff" class="btn btn-ghost btn-sm" style="flex:1;">담당자 관리</button>
         </div>
+        <button id="btnTrash" class="btn btn-ghost btn-sm btn-block" style="margin-top:6px;" title="삭제된 피드백 — 7일간 보관 후 자동 영구 삭제">🗑 휴지통 <span id="trashCount" class="trash-badge">0</span></button>
       </div>
 
       <h3 style="margin-top:18px;">데이터 백업·공유</h3>
@@ -326,6 +327,26 @@
       <div class="modal-foot">
         <span style="font-size:11px; color:var(--muted);">최신순 · 페이지/섹션의 모든 피드백·편집·상태 변경 통합</span>
         <button id="jnCloseFoot" class="btn btn-ghost">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 휴지통 모달 (피드백 소프트 삭제) -->
+  <div id="trashModal" class="modal-mask">
+    <div class="modal" style="max-width: 760px;">
+      <div class="modal-head">
+        <h3>🗑 휴지통 — 삭제된 피드백</h3>
+        <button id="trClose" class="close" aria-label="닫기">×</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:12px; color:var(--ink2); background:#FFFBEB; border:1px solid #FCE7B6; padding:9px 12px; border-radius:8px; margin-bottom:14px;">
+          삭제된 피드백은 <b>7일간 보관</b> 후 자동으로 영구 삭제됩니다. 그 전에는 언제든 복원 가능합니다.
+        </div>
+        <div id="trList" class="tr-list"></div>
+      </div>
+      <div class="modal-foot">
+        <button id="trEmpty" class="btn btn-danger btn-sm">전체 영구 삭제</button>
+        <button id="trCloseFoot" class="btn btn-ghost">닫기</button>
       </div>
     </div>
   </div>

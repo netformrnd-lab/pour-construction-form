@@ -5,6 +5,7 @@
   const STORAGE_KEY_V1 = 'pourstore-renewal-builder-v1';
   const ME_STAFF_KEY = 'pourstore-renewal-me-staff-id'; // 기기별 — Firestore 동기화 안 함
   const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+  const TRASH_RETENTION_MS = 7 * 24 * 60 * 60 * 1000; // 휴지통 7일 보관 후 영구 삭제
   const STAFF_COLORS = ['#0F1F5C','#03C75A','#D97706','#7C3AED','#DC2626','#0284C7','#DB2777','#059669','#9333EA','#EA580C'];
 
   const FIREBASE_CONFIG = {
@@ -5019,6 +5020,8 @@ show('entry');
       if (!st.color) st.color = STAFF_COLORS[i % STAFF_COLORS.length];
       if (st.role === undefined) st.role = '';
     });
+    s.trash = s.trash && typeof s.trash === 'object' ? s.trash : {};
+    s.trash.feedbacks = Array.isArray(s.trash.feedbacks) ? s.trash.feedbacks : [];
     s.pages.forEach(p => {
       p.sections = p.sections || [];
       p.feedbacks = Array.isArray(p.feedbacks) ? p.feedbacks : [];
@@ -5280,10 +5283,12 @@ show('entry');
   // -------- rendering --------
   function renderAll() {
     if (checkShareLinkMode()) return; // 공유 링크 모드면 빌더 UI 렌더 안함
+    purgeOldTrash(); // 7일 경과 휴지통 항목 자동 영구 삭제
     renderPages();
     renderSections();
     renderMeCard();
     updatePageFeedbackCount();
+    updateTrashCount();
     checkOldHistoryAndNotify();
   }
 
@@ -6080,13 +6085,150 @@ show('entry');
       toast('본인이 작성한 피드백만 삭제할 수 있습니다.', 'error');
       return false;
     }
-    if (!fb.staffId && me) {
-      // 익명 작성은 누구나 삭제 가능 (작성자 식별 불가하므로)
-    }
-    if (!confirm('이 피드백을 삭제할까요?')) return false;
+    if (!confirm('이 피드백을 휴지통으로 옮길까요? (7일간 보관 후 자동 영구 삭제)')) return false;
     obj.feedbacks = obj.feedbacks.filter(f => f.id !== fbId);
+    state.trash = state.trash || { feedbacks: [] };
+    state.trash.feedbacks = state.trash.feedbacks || [];
+    state.trash.feedbacks.unshift({
+      id: fb.id,
+      target: { type: target.type, pageId: target.pageId, secId: target.secId || null },
+      targetLabel: targetLabel(target),
+      original: fb,
+      deletedAt: nowIso(),
+      deletedByStaffId: me ? me.id : null,
+      deletedByName: me ? me.name : '익명',
+    });
     saveState();
     return true;
+  }
+
+  // -------- 휴지통 (피드백 소프트 삭제) --------
+  function purgeOldTrash() {
+    state.trash = state.trash || { feedbacks: [] };
+    const list = state.trash.feedbacks || [];
+    if (list.length === 0) return 0;
+    const cutoff = Date.now() - TRASH_RETENTION_MS;
+    const kept = list.filter(t => {
+      const d = new Date(t.deletedAt).getTime();
+      return isFinite(d) && d >= cutoff;
+    });
+    const purged = list.length - kept.length;
+    if (purged > 0) {
+      state.trash.feedbacks = kept;
+      saveState();
+      console.log(`[trash] ${purged}건 영구 삭제 (7일 경과)`);
+    }
+    return purged;
+  }
+  function trashCount() {
+    return ((state.trash && state.trash.feedbacks) || []).length;
+  }
+  function updateTrashCount() {
+    const el = document.getElementById('trashCount');
+    if (el) el.textContent = trashCount();
+  }
+  function restoreTrashItem(itemId) {
+    const list = (state.trash && state.trash.feedbacks) || [];
+    const idx = list.findIndex(t => t.id === itemId);
+    if (idx < 0) return false;
+    const item = list[idx];
+    const obj = getFeedbackTarget(item.target);
+    if (!obj) {
+      toast('원래 위치(섹션/페이지)가 사라져 복원할 수 없습니다.', 'error');
+      return false;
+    }
+    obj.feedbacks = obj.feedbacks || [];
+    obj.feedbacks.unshift(item.original);
+    state.trash.feedbacks.splice(idx, 1);
+    saveState();
+    return true;
+  }
+  function purgeTrashItem(itemId) {
+    const list = (state.trash && state.trash.feedbacks) || [];
+    const item = list.find(t => t.id === itemId);
+    if (!item) return false;
+    if (!confirm('이 항목을 지금 영구 삭제할까요? (복구 불가)')) return false;
+    state.trash.feedbacks = list.filter(t => t.id !== itemId);
+    saveState();
+    return true;
+  }
+  function emptyTrashNow() {
+    if (trashCount() === 0) { toast('휴지통이 비어 있습니다.', 'info'); return; }
+    if (!confirm(`휴지통의 ${trashCount()}건을 모두 영구 삭제할까요? (복구 불가)`)) return;
+    state.trash.feedbacks = [];
+    saveState();
+    renderTrashList();
+    updateTrashCount();
+    toast('휴지통 비우기 완료', 'info');
+  }
+  function daysLeft(deletedAt) {
+    const exp = new Date(deletedAt).getTime() + TRASH_RETENTION_MS;
+    const ms = exp - Date.now();
+    if (ms <= 0) return 0;
+    return Math.max(1, Math.ceil(ms / (24 * 60 * 60 * 1000)));
+  }
+  function openTrashModal() {
+    renderTrashList();
+    openModal('trashModal');
+  }
+  function renderTrashList() {
+    const wrap = document.getElementById('trList');
+    if (!wrap) return;
+    const list = ((state.trash && state.trash.feedbacks) || []).slice()
+      .sort((a, b) => (b.deletedAt || '').localeCompare(a.deletedAt || ''));
+    if (list.length === 0) {
+      wrap.innerHTML = '<div class="empty-history">휴지통이 비어 있습니다.<br/>삭제된 피드백은 7일간 보관 후 자동 영구 삭제됩니다.</div>';
+      return;
+    }
+    wrap.innerHTML = '';
+    list.forEach(item => {
+      const fb = item.original || {};
+      const left = daysLeft(item.deletedAt);
+      const obj = getFeedbackTarget(item.target);
+      const targetMissing = !obj;
+      const row = document.createElement('div');
+      row.className = 'tr-item' + (targetMissing ? ' tr-orphan' : '');
+      row.innerHTML = `
+        <div class="tr-head">
+          <span class="tr-target" title="원래 위치">${escapeHtml(item.targetLabel || '(알 수 없음)')}${targetMissing ? ' <span class="tr-missing">대상 삭제됨</span>' : ''}</span>
+          <span class="tr-left" title="${escapeHtml(fmtDate(item.deletedAt))} 삭제">D-${left}</span>
+        </div>
+        <div class="tr-body">
+          <div class="tr-author">
+            <b>${escapeHtml(fb.staffName || '익명')}</b>${fb.staffRole ? ' · ' + escapeHtml(fb.staffRole) : ''}
+            <span class="tr-when">작성 ${escapeHtml(fmtDate(fb.createdAt))}</span>
+          </div>
+          <div class="tr-text">${escapeHtml(fb.text || '')}</div>
+          <div class="tr-meta">
+            🗑 ${escapeHtml(fmtDate(item.deletedAt))} · ${escapeHtml(item.deletedByName || '익명')} 삭제
+          </div>
+        </div>
+        <div class="tr-actions">
+          <button class="btn btn-sm btn-primary" data-act="restore" ${targetMissing ? 'disabled' : ''} title="${targetMissing ? '원래 위치가 사라져 복원 불가' : '원래 위치로 되돌리기'}">복원</button>
+          <button class="btn btn-sm btn-danger" data-act="purge" title="지금 영구 삭제">영구 삭제</button>
+        </div>
+      `;
+      const restoreBtn = row.querySelector('[data-act=restore]');
+      if (restoreBtn && !targetMissing) {
+        restoreBtn.addEventListener('click', () => {
+          if (restoreTrashItem(item.id)) {
+            renderTrashList();
+            updateTrashCount();
+            renderSections();
+            updatePageFeedbackCount();
+            toast('복원됨', 'success');
+          }
+        });
+      }
+      row.querySelector('[data-act=purge]').addEventListener('click', () => {
+        if (purgeTrashItem(item.id)) {
+          renderTrashList();
+          updateTrashCount();
+          toast('영구 삭제됨', 'info');
+        }
+      });
+      wrap.appendChild(row);
+    });
   }
 
   // -------- 피드백 모달 --------
@@ -6421,6 +6563,12 @@ show('entry');
     document.getElementById('jnClose').addEventListener('click', () => closeModal('journeyModal'));
     document.getElementById('jnCloseFoot').addEventListener('click', () => closeModal('journeyModal'));
     document.querySelectorAll('[data-jn-type]').forEach(c => c.addEventListener('change', renderJourney));
+
+    // 휴지통 모달
+    document.getElementById('btnTrash').addEventListener('click', openTrashModal);
+    document.getElementById('trClose').addEventListener('click', () => closeModal('trashModal'));
+    document.getElementById('trCloseFoot').addEventListener('click', () => closeModal('trashModal'));
+    document.getElementById('trEmpty').addEventListener('click', emptyTrashNow);
 
     document.querySelectorAll('.modal-mask').forEach(mask => {
       mask.addEventListener('click', e => { if (e.target === mask) mask.classList.remove('open'); });

@@ -6797,6 +6797,75 @@ show('entry');
     toast('템플릿 삭제됨', 'info');
   }
 
+  // POUR 기본 14섹션 템플릿 가져오기
+  async function loadPourDefaultTemplate() {
+    try {
+      const res = await fetch('./templates/pour-default-detail-v1.html', { cache: 'no-cache' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const html = await res.text();
+      const tpl = newTemplate();
+      tpl.name = 'POUR 기본 상세페이지 v1';
+      tpl.description = '14섹션 (인트로·사용처·데이터·시험성적서·기능·B/A·CTA·사례·컬러·주의·단계·FAQ·브랜드) — 마지막 브랜드 섹션 고정';
+      tpl.html = html;
+      syncSlotsWithHtml(tpl);
+      // 슬롯 라벨을 섹션 단위로 정돈
+      tpl.slots.forEach(s => { s.label = friendlyLabelForKey(s.key); });
+      state.templates = state.templates || [];
+      state.templates.push(tpl);
+      saveState();
+      renderTemplateList();
+      toast(`'${tpl.name}' 템플릿이 추가됐습니다 (슬롯 ${tpl.slots.length}개)`, 'success');
+    } catch (e) {
+      console.error('[templates] POUR 기본 템플릿 로드 실패:', e);
+      toast('템플릿 파일 로드 실패: ' + e.message, 'error');
+    }
+  }
+  // 키별 한국어 라벨 매핑
+  function friendlyLabelForKey(k) {
+    const map = {
+      intro_headline: '[1] 인트로 헤드라인', intro_image: '[1] 인트로 이미지',
+      intro_bullet1: '[1] 포인트 1', intro_bullet2: '[1] 포인트 2', intro_bullet3: '[1] 포인트 3',
+      usecase_image1: '[2] 사용처 사진 1', usecase_image2: '[2] 사용처 사진 2',
+      usecase_image3: '[2] 사용처 사진 3', usecase_image4: '[2] 사용처 사진 4',
+      usecase_summary: '[2] 사용처 한 줄 카피',
+      usecase_tag1: '[2] 키워드 1', usecase_tag2: '[2] 키워드 2', usecase_tag3: '[2] 키워드 3',
+      usecase_tag4: '[2] 키워드 4', usecase_tag5: '[2] 키워드 5', usecase_tag6: '[2] 키워드 6',
+      usecase_footnote: '[2] 사용처 주석',
+      data_headline: '[3] 데이터 헤드라인',
+      data_value1: '[3] 핵심 수치 1', data_unit1: '[3] 단위 1', data_label1: '[3] 라벨 1',
+      data_value2: '[3] 핵심 수치 2', data_unit2: '[3] 단위 2', data_label2: '[3] 라벨 2',
+      cert_image: '[4] 시험성적서 사진', cert_caption: '[4] 시험기관 캡션',
+      feat_overview_title: '[5] 기능 4종 타이틀',
+      feat_card1_title: '[5] 카드 1 라벨', feat_card1_image: '[5] 카드 1 이미지',
+      feat_card2_title: '[5] 카드 2 라벨', feat_card2_image: '[5] 카드 2 이미지',
+      feat_card3_title: '[5] 카드 3 라벨', feat_card3_image: '[5] 카드 3 이미지',
+      feat_card4_title: '[5] 카드 4 라벨', feat_card4_image: '[5] 카드 4 이미지',
+      featdetail_1_title: '[6] 기능1 제목', featdetail_1_body: '[6] 기능1 본문', featdetail_1_image: '[6] 기능1 이미지',
+      featdetail_2_title: '[6] 기능2 제목', featdetail_2_body: '[6] 기능2 본문', featdetail_2_image: '[6] 기능2 이미지',
+      featdetail_3_title: '[6] 기능3 제목', featdetail_3_body: '[6] 기능3 본문', featdetail_3_image: '[6] 기능3 이미지',
+      featdetail_4_title: '[6] 기능4 제목', featdetail_4_body: '[6] 기능4 본문', featdetail_4_image: '[6] 기능4 이미지',
+      ba_before: '[7] BEFORE 사진', ba_after: '[7] AFTER 사진', ba_caption: '[7] B/A 캡션',
+      cta_headline: '[8] CTA 헤드라인',
+      cta_concern1: '[8] 고민 1', cta_concern2: '[8] 고민 2', cta_concern3: '[8] 고민 3', cta_concern4: '[8] 고민 4',
+      cta_link: '[8] 구매 링크', cta_button_label: '[8] 버튼 텍스트',
+      trust_title: '[9] 사례 타이틀', trust_subhead: '[9] 사례 서브헤드',
+      trust_image1: '[9] 사례 이미지 1', trust_image2: '[9] 사례 이미지 2', trust_image3: '[9] 사례 이미지 3',
+      trust_image4: '[9] 사례 이미지 4', trust_image5: '[9] 사례 이미지 5', trust_image6: '[9] 사례 이미지 6',
+      color_image1: '[10] 컬러 칩 1', color_label1: '[10] 컬러 라벨 1',
+      color_image2: '[10] 컬러 칩 2', color_label2: '[10] 컬러 라벨 2',
+      color_image3: '[10] 컬러 칩 3', color_label3: '[10] 컬러 라벨 3',
+      warn_1: '[11] 주의 1', warn_2: '[11] 주의 2', warn_3: '[11] 주의 3', warn_4: '[11] 주의 4', warn_5: '[11] 주의 5',
+      step_1_title: '[12] 단계1 제목', step_1_body: '[12] 단계1 본문', step_1_image: '[12] 단계1 이미지',
+      step_2_title: '[12] 단계2 제목', step_2_body: '[12] 단계2 본문', step_2_image: '[12] 단계2 이미지',
+      step_3_title: '[12] 단계3 제목', step_3_body: '[12] 단계3 본문', step_3_image: '[12] 단계3 이미지',
+      step_4_title: '[12] 단계4 제목', step_4_body: '[12] 단계4 본문', step_4_image: '[12] 단계4 이미지',
+      faq_q1: '[13] Q1', faq_a1: '[13] A1', faq_q2: '[13] Q2', faq_a2: '[13] A2',
+      faq_q3: '[13] Q3', faq_a3: '[13] A3', faq_q4: '[13] Q4', faq_a4: '[13] A4',
+      faq_q5: '[13] Q5', faq_a5: '[13] A5',
+    };
+    return map[k] || inferSlotLabel(k);
+  }
+
   // 템플릿 목록 모달
   function openTemplatesModal() {
     renderTemplateList();
@@ -7357,6 +7426,7 @@ show('entry');
     document.getElementById('tplClose').addEventListener('click', () => closeModal('templatesModal'));
     document.getElementById('tplCloseFoot').addEventListener('click', () => closeModal('templatesModal'));
     document.getElementById('tplNew').addEventListener('click', () => openTemplateEditor(null));
+    document.getElementById('tplLoadDefault').addEventListener('click', loadPourDefaultTemplate);
     document.getElementById('teClose').addEventListener('click', () => closeModal('templateEditor'));
     document.getElementById('teCancel').addEventListener('click', () => closeModal('templateEditor'));
     document.getElementById('teSave').addEventListener('click', saveTemplateEditor);

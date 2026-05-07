@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>통 라벨 전개도 — POUR스토어 탑코트재 9종</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;800;900&family=Montserrat:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  html, body {
+    background:#1a1a2e;
+    min-height:100vh;
+    font-family:'Noto Sans KR','Malgun Gothic',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  .scaler { transform-origin: top left; display:block; }
+  .stage {
+    width: 2400px;
+    padding: 60px;
+    background:
+      repeating-linear-gradient(45deg, transparent 0 18px, rgba(255,255,255,0.02) 18px 19px),
+      linear-gradient(180deg,#0d0d1f,#1a1a2e);
+  }
+  .topbar {
+    max-width: 2280px;
+    margin: 0 auto 24px;
+    color:#fff;
+    display:flex; align-items:flex-end; justify-content:space-between;
+    gap:32px;
+  }
+  .topbar h1 { font-size:30px; font-weight:900; letter-spacing:-0.8px; }
+  .topbar h1 em { font-style:normal; color:#F49A3A; }
+  .topbar .sub { font-size:12.5px; color:rgba(255,255,255,0.55); margin-top:6px; }
+  .topbar .meta { font-size:11.5px; color:rgba(255,255,255,0.5); text-align:right; line-height:1.7; }
+  .topbar .meta b { color:#F49A3A; font-weight:800; }
+  .label-frame {
+    background:#fff;
+    border-radius:6px;
+    padding:24px;
+    box-shadow: 0 12px 60px rgba(0,0,0,0.45);
+  }
+  svg.label-svg { display:block; width:100%; height:auto; }
+
+  /* ─── 제품 선택 바 ─── */
+  .product-tabs {
+    max-width: 2280px;
+    margin: 0 auto 18px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .product-tabs a {
+    padding: 8px 14px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.75);
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    border: 1px solid rgba(255,255,255,0.08);
+    letter-spacing: -0.2px;
+  }
+  .product-tabs a:hover { background: rgba(232,120,15,0.18); color:#fff; }
+  .product-tabs a.active {
+    background: linear-gradient(135deg,#E8780F,#F49A3A);
+    color: #fff;
+    border-color: #F49A3A;
+    box-shadow: 0 4px 16px rgba(232,120,15,0.4);
+  }
+
+  /* 액션 버튼 */
+  .actions {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 9999;
+    display: flex;
+    gap: 8px;
+  }
+  .actions button {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+  #btn-svg { background: #E8780F; color:#fff; }
+  #btn-svg:hover { background: #F49A3A; }
+  #btn-png { background: #2563EB; color:#fff; }
+  #btn-png:hover { background: #1d4ed8; }
+  #btn-all { background: #059669; color:#fff; }
+  #btn-all:hover { background: #047857; }
+  #view-toggle { background: rgba(255,255,255,0.92); color:#111; display:none; }
+
+  .footnote {
+    max-width: 2280px;
+    margin: 28px auto 0;
+    color: rgba(255,255,255,0.5);
+    font-size: 11.5px;
+    line-height: 1.8;
+  }
+  .footnote b { color:#F49A3A; font-weight:800; }
+  .footnote code { color:#fff; background:rgba(255,255,255,0.06); padding:2px 6px; border-radius:4px; font-size:11px; }
+</style>
+</head>
+<body>
+
+<div class="actions">
+  <button id="view-toggle">🔍 확대 보기</button>
+  <button id="btn-all">📦 9종 SVG 일괄 다운로드</button>
+  <button id="btn-svg">📥 SVG 다운로드 (현재)</button>
+  <button id="btn-png">📷 PNG 미리보기</button>
+</div>
+
+<div class="scaler">
+<div class="stage">
+
+  <div class="topbar">
+    <div>
+      <h1 id="page-title">탑코트재 <em>통 라벨</em> — 전개도</h1>
+      <div class="sub" id="page-sub">600 × 180 mm 기준 · 좌(설명) · 중앙(전면) · 우(주의사항)</div>
+    </div>
+    <div class="meta">
+      POUR스토어 탑코트재 9종 / 4kg 페일 · 1액형 프리믹스<br>
+      <b>SVG 다운로드 → Illustrator에서 텍스트 그대로 편집</b><br>
+      v12 · 2026-05-11 생산 예정 · 통디자인 컨펌용 초안
+    </div>
+  </div>
+
+  <div class="product-tabs" id="product-tabs"><!-- JS로 9개 제품 탭 생성 --></div>
+
+  <div class="label-frame">
+    <div id="label-host"><!-- 선택된 제품의 SVG가 여기에 렌더 --></div>
+  </div>
+
+  <div class="footnote">
+    <b>편집 가이드</b> ·
+    각 패널은 <code>id="panel-left"</code>, <code>panel-front</code>, <code>panel-right</code>로 구분.
+    절단 가이드(자홍색 점선)는 <code>id="cut-guides"</code> — 일러스트에서 레이어 단위로 끄거나 삭제 가능.
+    배경 텍스처는 SVG <code>&lt;pattern&gt;</code>이라 일러스트에서 색·간격 직접 수정 가능.<br>
+    <b>9종 일괄 다운로드</b>를 누르면 9개 SVG 파일이 차례대로 받아집니다 (브라우저 다중 다운로드 허용 필요).
+  </div>
+
+</div>
+</div>
+
+<script src="data.js"></script>
+<script>
+// ============================================================
+// 1. 비주얼 테마별 배경 패턴 정의 (SVG <defs> 조각)
+// ============================================================
+const PATTERN_DEFS = {
+  brick: `
+    <pattern id="bgPattern" x="0" y="0" width="120" height="60" patternUnits="userSpaceOnUse">
+      <rect width="120" height="60" fill="#8B3A1F"/>
+      <rect x="0" y="0" width="120" height="60" fill="none" stroke="#3a1810" stroke-width="2"/>
+      <line x1="60" y1="0" x2="60" y2="30" stroke="#3a1810" stroke-width="2"/>
+      <line x1="0" y1="30" x2="120" y2="30" stroke="#3a1810" stroke-width="2"/>
+      <line x1="0" y1="30" x2="0" y2="60" stroke="#3a1810" stroke-width="2"/>
+      <line x1="120" y1="30" x2="120" y2="60" stroke="#3a1810" stroke-width="2"/>
+      <rect x="6" y="6" width="50" height="20" fill="#9c4524" opacity="0.4"/>
+      <rect x="66" y="36" width="50" height="20" fill="#a04a26" opacity="0.4"/>
+    </pattern>`,
+  shingle: `
+    <pattern id="bgPattern" x="0" y="0" width="120" height="40" patternUnits="userSpaceOnUse">
+      <rect width="120" height="40" fill="#4A3B2E"/>
+      <path d="M 0 20 L 30 0 L 60 20 L 90 0 L 120 20 L 120 40 L 0 40 Z" fill="#6B523F"/>
+      <path d="M 0 20 L 30 0 L 60 20 L 90 0 L 120 20" fill="none" stroke="#2C2218" stroke-width="1.5"/>
+      <circle cx="20" cy="28" r="1.5" fill="#8a6e58" opacity="0.4"/>
+      <circle cx="50" cy="32" r="1.5" fill="#8a6e58" opacity="0.4"/>
+      <circle cx="80" cy="28" r="1.5" fill="#8a6e58" opacity="0.4"/>
+      <circle cx="100" cy="32" r="1.5" fill="#8a6e58" opacity="0.4"/>
+    </pattern>`,
+  concrete: `
+    <pattern id="bgPattern" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
+      <rect width="80" height="80" fill="#6B7280"/>
+      <circle cx="20" cy="30" r="2" fill="#4B5563" opacity="0.6"/>
+      <circle cx="55" cy="50" r="1.5" fill="#9CA3AF" opacity="0.5"/>
+      <circle cx="65" cy="20" r="1" fill="#4B5563" opacity="0.5"/>
+      <circle cx="35" cy="65" r="1.8" fill="#9CA3AF" opacity="0.4"/>
+      <line x1="0" y1="78" x2="80" y2="78" stroke="#4B5563" stroke-width="0.5" opacity="0.3"/>
+    </pattern>`,
+  dryvit: `
+    <pattern id="bgPattern" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+      <rect width="60" height="60" fill="#A8A29E"/>
+      <circle cx="10" cy="15" r="0.8" fill="#78716C"/>
+      <circle cx="35" cy="20" r="1" fill="#78716C"/>
+      <circle cx="50" cy="40" r="0.7" fill="#78716C"/>
+      <circle cx="20" cy="45" r="0.9" fill="#78716C"/>
+      <circle cx="45" cy="55" r="0.6" fill="#78716C"/>
+      <circle cx="5" cy="35" r="0.8" fill="#78716C"/>
+    </pattern>`,
+  cementBrick: `
+    <pattern id="bgPattern" x="0" y="0" width="140" height="60" patternUnits="userSpaceOnUse">
+      <rect width="140" height="60" fill="#8C8580"/>
+      <rect x="0" y="0" width="140" height="60" fill="none" stroke="#5C5550" stroke-width="2"/>
+      <line x1="70" y1="0" x2="70" y2="30" stroke="#5C5550" stroke-width="2"/>
+      <line x1="0" y1="30" x2="140" y2="30" stroke="#5C5550" stroke-width="2"/>
+      <line x1="0" y1="30" x2="0" y2="60" stroke="#5C5550" stroke-width="2"/>
+      <rect x="6" y="36" width="58" height="18" fill="#9c948e" opacity="0.5"/>
+      <rect x="76" y="6" width="58" height="18" fill="#9c948e" opacity="0.5"/>
+    </pattern>`,
+  wood: `
+    <pattern id="bgPattern" x="0" y="0" width="200" height="40" patternUnits="userSpaceOnUse">
+      <rect width="200" height="40" fill="#8B5A2B"/>
+      <path d="M 0 8 Q 50 12, 100 9 T 200 8" fill="none" stroke="#6B4520" stroke-width="0.6" opacity="0.7"/>
+      <path d="M 0 18 Q 60 22, 130 19 T 200 18" fill="none" stroke="#5C3818" stroke-width="0.5" opacity="0.6"/>
+      <path d="M 0 28 Q 70 32, 140 29 T 200 28" fill="none" stroke="#6B4520" stroke-width="0.7" opacity="0.7"/>
+      <ellipse cx="40" cy="20" rx="6" ry="2" fill="#5C3818" opacity="0.4"/>
+      <ellipse cx="150" cy="14" rx="5" ry="1.8" fill="#5C3818" opacity="0.4"/>
+    </pattern>`,
+  steel: `
+    <pattern id="bgPattern" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+      <rect width="60" height="60" fill="#525252"/>
+      <line x1="0" y1="0" x2="0" y2="60" stroke="#404040" stroke-width="0.5"/>
+      <line x1="20" y1="0" x2="20" y2="60" stroke="#404040" stroke-width="0.5"/>
+      <line x1="40" y1="0" x2="40" y2="60" stroke="#404040" stroke-width="0.5"/>
+      <circle cx="10" cy="10" r="1.5" fill="#737373" opacity="0.5"/>
+      <circle cx="30" cy="30" r="1.5" fill="#737373" opacity="0.5"/>
+      <circle cx="50" cy="50" r="1.5" fill="#737373" opacity="0.5"/>
+    </pattern>`,
+  mortar: `
+    <pattern id="bgPattern" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+      <rect width="60" height="60" fill="#9CA3AF"/>
+      <circle cx="15" cy="20" r="0.5" fill="#6B7280" opacity="0.5"/>
+      <circle cx="40" cy="35" r="0.6" fill="#6B7280" opacity="0.5"/>
+      <circle cx="50" cy="10" r="0.4" fill="#6B7280" opacity="0.5"/>
+      <circle cx="25" cy="50" r="0.5" fill="#6B7280" opacity="0.5"/>
+    </pattern>`,
+  panel: `
+    <pattern id="bgPattern" x="0" y="0" width="120" height="40" patternUnits="userSpaceOnUse">
+      <rect width="120" height="40" fill="#3F4654"/>
+      <line x1="0" y1="20" x2="120" y2="20" stroke="#252A33" stroke-width="2"/>
+      <line x1="60" y1="0" x2="60" y2="40" stroke="#525866" stroke-width="0.4"/>
+      <circle cx="10" cy="10" r="1.2" fill="#5A6273" opacity="0.6"/>
+      <circle cx="110" cy="10" r="1.2" fill="#5A6273" opacity="0.6"/>
+      <circle cx="10" cy="30" r="1.2" fill="#5A6273" opacity="0.6"/>
+      <circle cx="110" cy="30" r="1.2" fill="#5A6273" opacity="0.6"/>
+    </pattern>`
+};
+
+// ============================================================
+// 2. 4개 뱃지 아이콘 — 키워드 → 미니 SVG 매핑
+// ============================================================
+const BADGE_ICON = (kw) => {
+  const k = kw.replace(/[\s·]/g,'');
+  // 키워드 매칭 우선순위
+  if (/백화/.test(k)) return `<g transform="translate(85,30)" fill="none" stroke="#0B1848" stroke-width="2.5"><rect x="-18" y="-12" width="36" height="24"/><line x1="-9" y1="-12" x2="-9" y2="0"/><line x1="9" y1="0" x2="9" y2="12"/><line x1="-18" y1="0" x2="18" y2="0"/></g>`;
+  if (/오염|변색/.test(k)) return `<g transform="translate(85,30)" fill="none" stroke="#0B1848" stroke-width="2.5" stroke-linecap="round"><path d="M -16 -8 L -8 0 L 16 -10"/><circle cx="-2" cy="6" r="2" fill="#0B1848"/><circle cx="6" cy="2" r="1.5" fill="#0B1848"/></g>`;
+  if (/색상|미관/.test(k)) return `<g transform="translate(85,30)" fill="#0B1848"><path d="M 0 -14 L 4 -4 L 14 -4 L 6 2 L 9 12 L 0 6 L -9 12 L -6 2 L -14 -4 L -4 -4 Z"/></g>`;
+  if (/발수|방수|빗물|누수/.test(k)) return `<g transform="translate(85,30)"><path d="M 0 -16 C -10 -4, -14 4, -14 8 C -14 14, -7 18, 0 18 C 7 18, 14 14, 14 8 C 14 4, 10 -4, 0 -16 Z" fill="none" stroke="#0B1848" stroke-width="2.5"/><path d="M -6 4 C -6 1, -3 -2, 0 -2" fill="none" stroke="#0B1848" stroke-width="2" stroke-linecap="round"/></g>`;
+  if (/방청|부식|녹|점부식/.test(k)) return `<g transform="translate(85,30)" fill="none" stroke="#0B1848" stroke-width="2.5"><circle cx="0" cy="0" r="14"/><line x1="-9" y1="-9" x2="9" y2="9"/><line x1="9" y1="-9" x2="-9" y2="9"/></g>`;
+  if (/들뜸|박리/.test(k)) return `<g transform="translate(85,30)" fill="none" stroke="#0B1848" stroke-width="2.5" stroke-linejoin="round"><path d="M -16 6 L -8 -8 L 0 4 L 8 -10 L 16 6"/><line x1="-18" y1="12" x2="18" y2="12"/></g>`;
+  if (/균열|크랙/.test(k)) return `<g transform="translate(85,30)" fill="none" stroke="#0B1848" stroke-width="2.5"><path d="M -14 -10 L -6 -2 L -10 4 L -2 10"/><path d="M 4 -10 L 10 -2 L 6 6"/></g>`;
+  if (/곰팡이/.test(k)) return `<g transform="translate(85,30)" fill="#0B1848"><circle cx="-8" cy="0" r="3"/><circle cx="8" cy="0" r="3"/><circle cx="0" cy="-8" r="2"/><circle cx="0" cy="8" r="2"/><circle cx="-6" cy="-6" r="1.5"/><circle cx="6" cy="6" r="1.5"/></g>`;
+  if (/해충/.test(k)) return `<g transform="translate(85,30)" fill="none" stroke="#0B1848" stroke-width="2.5"><ellipse cx="0" cy="0" rx="6" ry="10"/><line x1="-10" y1="-6" x2="-6" y2="-3"/><line x1="10" y1="-6" x2="6" y2="-3"/><line x1="-10" y1="0" x2="-6" y2="0"/><line x1="10" y1="0" x2="6" y2="0"/><line x1="-10" y1="6" x2="-6" y2="3"/><line x1="10" y1="6" x2="6" y2="3"/></g>`;
+  if (/방부|보호|손상/.test(k)) return `<g transform="translate(85,30)" fill="none" stroke="#0B1848" stroke-width="2.5"><path d="M 0 -14 L -12 -8 L -12 4 C -12 10, -6 14, 0 14 C 6 14, 12 10, 12 4 L 12 -8 Z"/></g>`;
+  if (/코팅|마감|평활/.test(k)) return `<g transform="translate(85,30)" fill="#0B1848"><path d="M -14 -2 L -10 2 L -2 -6 L 14 10 L 6 14 L -2 6 L -10 14 Z" stroke="#0B1848" stroke-width="1" stroke-linejoin="round"/></g>`;
+  if (/슁글|지붕/.test(k)) return `<g transform="translate(85,30)" fill="none" stroke="#0B1848" stroke-width="2.5" stroke-linejoin="round"><path d="M -16 8 L 0 -8 L 16 8 Z"/><line x1="-12" y1="8" x2="12" y2="8"/></g>`;
+  if (/예방|방지|억제|저감|보강/.test(k)) return `<g transform="translate(85,30)" fill="none" stroke="#0B1848" stroke-width="2.5"><circle cx="0" cy="0" r="12"/><path d="M -6 0 L -2 4 L 6 -4" stroke-linecap="round" stroke-linejoin="round"/></g>`;
+  // 기본: 체크 마크
+  return `<g transform="translate(85,30)" fill="none" stroke="#0B1848" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M -10 0 L -3 7 L 12 -8"/></g>`;
+};
+
+// ============================================================
+// 3. SVG 빌더 — data.js 데이터로 통라벨 SVG 생성
+// ============================================================
+function buildLabelSVG(p, common) {
+  const theme = common.themes[p.theme];
+  const patternDef = PATTERN_DEFS[p.theme] || PATTERN_DEFS.concrete;
+  const accent = theme.accent;
+
+  // 색상 칩
+  const colorChips = p.colors.map((c,i) => {
+    const hex = common.colorHex[c] || '#888';
+    return `<g transform="translate(${i*70},0)">
+      <circle cx="10" cy="10" r="9" fill="${hex}" stroke="#9CA3AF" stroke-width="0.6"/>
+      <text x="24" y="14" font-size="10.5" font-weight="700" fill="#374151">${c}</text>
+    </g>`;
+  }).join('');
+
+  // 좌패널 텍스트 (요약)
+  const summaryLines = p.summary.slice(0, 6).map((s,i) =>
+    `<text x="40" y="${88 + i*16}" font-size="10.5" font-weight="500" fill="#374151">${escapeXml(s)}</text>`
+  ).join('');
+
+  const featureLines = p.features.slice(0,3).map((f,i) =>
+    `<text x="40" y="${230 + i*38}" font-size="11" font-weight="800" fill="#1F2937">• ${escapeXml(f.title)}</text>
+     <text x="40" y="${246 + i*38}" font-size="9.5" font-weight="500" fill="#4B5563">${escapeXml(truncate(f.desc,46))}</text>`
+  ).join('');
+
+  const usesText = p.uses.slice(0,7).map((u,i) =>
+    `<text x="40" y="${390 + i*16}" font-size="10" font-weight="500" fill="#1F2937">• ${escapeXml(truncate(u,38))}</text>`
+  ).join('');
+
+  const appText = p.application.slice(0,4).map((a,i) =>
+    `<text x="40" y="${540 + i*16}" font-size="10" font-weight="500" fill="#1F2937">${i+1}. <tspan font-weight="700">${escapeXml(a.step)}</tspan> — ${escapeXml(truncate(a.desc,38))}</text>`
+  ).join('');
+
+  // 4개 뱃지 (전면)
+  const badges = p.badges.slice(0,4).map((b,i) => {
+    return `<g transform="translate(${i*180},0)">
+      <rect x="0" y="0" width="170" height="80" rx="6" fill="#FFFFFF"/>
+      ${BADGE_ICON(b)}
+      <text x="85" y="68" text-anchor="middle" font-size="13" font-weight="800" fill="#0B1848">${escapeXml(b)}</text>
+    </g>`;
+  }).join('');
+
+  // 우패널 — 건조시간/보관/주의
+  const handlingItems = common.handlingCautions.map((c,i) => {
+    return wrapText(c, 56).map((line, j) =>
+      `<text x="1640" y="${316 + i*30 + j*12}" font-size="9" font-weight="500" fill="#1F2937">${j===0 ? `${i+1}) ` : '   '}${escapeXml(line)}</text>`
+    ).join('');
+  }).join('');
+
+  const usageItems = common.usageCautions.slice(0,5).map((c,i) => {
+    return wrapText(c, 56).map((line, j) =>
+      `<text x="1640" y="${518 + i*36 + j*12}" font-size="9" font-weight="500" fill="#1F2937">${j===0 ? `${i+1}) ` : '   '}${escapeXml(line)}</text>`
+    ).join('');
+  }).join('');
+
+  const subname = p.subname ? `<text x="40" y="80" font-size="11" font-weight="700" fill="${accent}">[${escapeXml(p.subname)}]</text>` : '';
+
+  return `<svg class="label-svg" id="label-svg-${p.id}"
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 2400 720"
+    width="2400" height="720"
+    font-family="'Noto Sans KR', 'Malgun Gothic', sans-serif">
+
+    <defs>
+      ${patternDef}
+      <linearGradient id="frontFade-${p.id}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${theme.bg1}" stop-opacity="0.0"/>
+        <stop offset="100%" stop-color="${theme.bg2}" stop-opacity="0.55"/>
+      </linearGradient>
+      <linearGradient id="orangeBar-${p.id}" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="${accent}"/>
+        <stop offset="100%" stop-color="#F49A3A"/>
+      </linearGradient>
+    </defs>
+
+    <!-- 절단 가이드 -->
+    <g id="cut-guides" stroke="#FF00FF" stroke-width="1" stroke-dasharray="6 4" fill="none" opacity="0.5">
+      <rect x="0" y="0" width="2400" height="720"/>
+      <rect x="20" y="20" width="2360" height="680"/>
+      <line x1="800" y1="0" x2="800" y2="720"/>
+      <line x1="1600" y1="0" x2="1600" y2="720"/>
+    </g>
+
+    <!-- ═════ 좌패널 ═════ -->
+    <g id="panel-left">
+      <rect x="0" y="0" width="800" height="720" fill="#FFFFFF"/>
+      <text x="40" y="58" font-size="22" font-weight="900" fill="#0B1848">포어스토어 ${escapeXml(p.name)}</text>
+      ${subname}
+      <line x1="40" y1="120" x2="760" y2="120" stroke="${accent}" stroke-width="2"/>
+
+      ${summaryLines}
+
+      <text x="40" y="210" font-size="14" font-weight="900" fill="${accent}">특징</text>
+      ${featureLines}
+
+      <text x="40" y="370" font-size="14" font-weight="900" fill="${accent}">용도</text>
+      ${usesText}
+
+      <text x="40" y="520" font-size="14" font-weight="900" fill="${accent}">시공방법</text>
+      ${appText}
+
+      <line x1="40" y1="660" x2="760" y2="660" stroke="#D1D5DB" stroke-width="1"/>
+      <text x="40" y="682" font-size="10.5" font-weight="800" fill="#6B7280">색상</text>
+      <g transform="translate(85, 672)">${colorChips}</g>
+      <text x="40" y="704" font-size="10" font-weight="700" fill="#6B7280">포장단위 ㅣ ${escapeXml(p.no)}번 · ${escapeXml(common.packaging)} pail · ${escapeXml(common.paintType)}</text>
+    </g>
+
+    <!-- ═════ 중앙패널 (전면) ═════ -->
+    <g id="panel-front">
+      <rect x="800" y="0" width="800" height="720" fill="url(#bgPattern)"/>
+      <rect x="800" y="0" width="800" height="720" fill="url(#frontFade-${p.id})"/>
+      <rect x="800" y="0" width="800" height="720" fill="${theme.bg2}" opacity="0.42"/>
+
+      <!-- 로고 영역 -->
+      <g id="logo-front">
+        <rect x="1080" y="44" width="240" height="86" rx="6" fill="#FFFFFF" opacity="0.96"/>
+        <g transform="translate(1108,58)" fill="#0B1848">
+          <rect x="0" y="14" width="6" height="22"/>
+          <rect x="9" y="6" width="6" height="30"/>
+          <rect x="18" y="10" width="6" height="26"/>
+          <rect x="27" y="2" width="6" height="34"/>
+          <rect x="36" y="8" width="6" height="28"/>
+          <rect x="45" y="14" width="6" height="22"/>
+        </g>
+        <text x="1200" y="86" text-anchor="middle" font-size="28" font-weight="900" fill="#0B1848" font-family="'Montserrat','Noto Sans KR',sans-serif" letter-spacing="3">POUR</text>
+        <text x="1200" y="115" text-anchor="middle" font-size="14" font-weight="800" fill="#0B1848" letter-spacing="6">포어스토어</text>
+      </g>
+
+      <!-- 메인 타이틀 (제품명) -->
+      <g id="title-front">
+        <rect x="900" y="220" width="600" height="6" fill="url(#orangeBar-${p.id})" opacity="0.9"/>
+        ${renderProductTitle(p.name)}
+      </g>
+
+      <!-- 서브 카피 (중앙멘트) -->
+      <g id="subcopy-front">
+        <rect x="900" y="450" width="600" height="44" fill="#FFFFFF" opacity="0.95" rx="4"/>
+        <text x="1200" y="479" text-anchor="middle" font-size="20" font-weight="800" fill="#0B1848">${escapeXml(p.centerMessage.headline)}</text>
+
+        <text x="1200" y="528" text-anchor="middle" font-size="22" font-weight="800" fill="#F49A3A">${renderSubKeywords(p.centerMessage.sub)}</text>
+      </g>
+
+      <!-- 용량 강조 -->
+      <text x="1540" y="585" text-anchor="end" font-size="56" font-weight="900" fill="#FFFFFF" font-family="'Montserrat','Noto Sans KR',sans-serif" letter-spacing="-1">${escapeXml(common.packaging.toLowerCase())}</text>
+
+      <!-- 4개 뱃지 -->
+      <g id="features" transform="translate(840,610)">${badges}</g>
+    </g>
+
+    <!-- ═════ 우패널 ═════ -->
+    <g id="panel-right">
+      <rect x="1600" y="0" width="800" height="720" fill="#FFFFFF"/>
+
+      <!-- 건조시간 -->
+      <rect x="1640" y="40" width="720" height="92" fill="none" stroke="#0B1848" stroke-width="1.2" rx="3"/>
+      <text x="1660" y="68" font-size="13" font-weight="900" fill="#0B1848">건조시간</text>
+      <text x="1660" y="92" font-size="11" font-weight="500" fill="#1F2937">- 표면건조: ${escapeXml(common.dryTime.surface)}</text>
+      <text x="1660" y="110" font-size="11" font-weight="500" fill="#1F2937">- 완전경화: ${escapeXml(common.dryTime.cure)}</text>
+      <text x="1660" y="128" font-size="11" font-weight="500" fill="#1F2937">${escapeXml(common.dryTime.note)}</text>
+
+      <!-- 보관 -->
+      <rect x="1640" y="148" width="720" height="106" fill="none" stroke="#0B1848" stroke-width="1.2" rx="3"/>
+      <text x="1660" y="176" font-size="13" font-weight="900" fill="#0B1848">보관 및 저장기간</text>
+      ${common.storage.map((s,i)=>`<text x="1660" y="${200+i*18}" font-size="11" font-weight="500" fill="#1F2937">- ${escapeXml(s)}</text>`).join('')}
+
+      <!-- 취급 보관 시 주의사항 -->
+      <text x="1640" y="294" font-size="13" font-weight="900" fill="${accent}">취급 보관 시 주의사항</text>
+      ${handlingItems}
+
+      <!-- 사용 시 주의사항 (5개만, 라벨 공간 한정) -->
+      <text x="1640" y="496" font-size="13" font-weight="900" fill="${accent}">사용 시 주의사항</text>
+      ${usageItems}
+      <text x="1640" y="706" font-size="9" font-weight="600" fill="#4B5563">※ 전체 주의사항·MSDS는 상세페이지/물질안전보건자료(MSDS) 참조</text>
+    </g>
+
+    <!-- 패널 사이 미세 구분선 -->
+    <g stroke="#E5E7EB" stroke-width="0.5" opacity="0.5">
+      <line x1="800" y1="20" x2="800" y2="700"/>
+      <line x1="1600" y1="20" x2="1600" y2="700"/>
+    </g>
+  </svg>`;
+}
+
+// ─── 보조 함수 ───
+function escapeXml(s) {
+  if (s == null) return '';
+  return String(s).replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]));
+}
+function truncate(s, n) {
+  if (!s) return '';
+  return s.length > n ? s.slice(0, n-1) + '…' : s;
+}
+function wrapText(s, n) {
+  if (!s) return [''];
+  const lines = [];
+  let cur = '';
+  // 한글 어절 단위로 자름
+  const words = s.split(/(\s+)/);
+  for (const w of words) {
+    if ((cur + w).length > n) {
+      if (cur) lines.push(cur);
+      cur = w.trimStart();
+    } else {
+      cur += w;
+    }
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+function renderProductTitle(name) {
+  // 5~10자: 한 줄. 11자 이상: 두 줄로 분할
+  if (name.length <= 7) {
+    return `<text x="1200" y="380" text-anchor="middle" font-size="92" font-weight="900" fill="#FFFFFF" letter-spacing="-2">${escapeXml(name)}</text>`;
+  }
+  // 두 줄: 공백 또는 글자수 절반에서 분할
+  const half = Math.ceil(name.length / 2);
+  let split = name.indexOf(' ', half - 2);
+  if (split === -1 || Math.abs(split - half) > 4) split = half;
+  const top = name.slice(0, split).trim();
+  const bot = name.slice(split).trim();
+  const fontSize = name.length > 14 ? 64 : 76;
+  return `<text x="1200" y="320" text-anchor="middle" font-size="${fontSize}" font-weight="900" fill="#FFFFFF" letter-spacing="-2">${escapeXml(top)}</text>
+          <text x="1200" y="${320 + fontSize + 10}" text-anchor="middle" font-size="${fontSize}" font-weight="900" fill="#FFFFFF" letter-spacing="-2">${escapeXml(bot)}</text>`;
+}
+function renderSubKeywords(sub) {
+  // "백화 ㅣ 오염 ㅣ 빗물 차단" 형식 → 색상 변주
+  const parts = sub.split(/\s*ㅣ\s*/);
+  return parts.map((p,i) => {
+    const last = i === parts.length - 1;
+    const sep = i > 0 ? `<tspan dx="14" fill="#FFFFFF" opacity="0.55">ㅣ</tspan>` : '';
+    return `${sep}<tspan dx="14" fill="${last ? '#FFFFFF' : '#F49A3A'}">${escapeXml(p)}</tspan>`;
+  }).join('');
+}
+
+// ============================================================
+// 4. UI — 탭 + 렌더 + 다운로드
+// ============================================================
+const params = new URLSearchParams(location.search);
+let currentId = params.get('id') || (window.PRODUCTS && window.PRODUCTS[0].id);
+
+function renderTabs() {
+  const tabs = document.getElementById('product-tabs');
+  tabs.innerHTML = window.PRODUCTS.map(p =>
+    `<a href="?id=${p.id}" class="${p.id === currentId ? 'active' : ''}" data-id="${p.id}">${p.no}. ${p.name}</a>`
+  ).join('');
+  tabs.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      currentId = a.dataset.id;
+      history.replaceState(null, '', `?id=${currentId}`);
+      renderTabs();
+      renderLabel();
+    });
+  });
+}
+
+function renderLabel() {
+  const p = window.getProduct(currentId);
+  document.getElementById('label-host').innerHTML = buildLabelSVG(p, window.PRODUCT_COMMON);
+  document.getElementById('page-title').innerHTML = `${p.no}. <em>${p.name}</em> — 통 라벨 전개도`;
+  document.getElementById('page-sub').textContent = `테마: ${window.PRODUCT_COMMON.themes[p.theme].label} · 600 × 180 mm 기준 · 좌(설명) · 중앙(전면) · 우(주의사항)`;
+  document.title = `${p.name} 라벨 — POUR스토어`;
+}
+
+renderTabs();
+renderLabel();
+
+// ─── 화면 맞춤 스케일러 ───
+(function(){
+  const CANVAS_W = 2400 + 120;
+  let isFit = true;
+  const btn = document.getElementById('view-toggle');
+  const scaler = document.querySelector('.scaler');
+  function applyFit(){
+    isFit = true;
+    const s = window.innerWidth / CANVAS_W;
+    scaler.style.transform = 'scale('+s+')';
+    scaler.style.transformOrigin = 'top left';
+    scaler.style.width = CANVAS_W + 'px';
+    btn.textContent = '🔍 확대 보기';
+  }
+  function applyFull(){
+    isFit = false;
+    scaler.style.transform = 'none';
+    scaler.style.width = '';
+    btn.textContent = '🔎 전체 보기';
+  }
+  function init(){
+    if(window.innerWidth < CANVAS_W + 60){
+      applyFit(); btn.style.display = 'inline-block';
+    } else {
+      applyFull(); btn.style.display = 'none';
+    }
+  }
+  btn.addEventListener('click', () => { if(isFit) applyFull(); else applyFit(); });
+  init();
+  window.addEventListener('resize', init);
+})();
+
+// ─── SVG 다운로드 (단일) ───
+function downloadSVG(productId) {
+  const svgEl = document.querySelector(`#label-svg-${productId}`);
+  if (!svgEl) return;
+  const clone = svgEl.cloneNode(true);
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+  // 폰트 import
+  const styleEl = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+  styleEl.setAttribute('type', 'text/css');
+  styleEl.textContent = "@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;800;900&family=Montserrat:wght@700;900&display=swap');";
+  clone.insertBefore(styleEl, clone.firstChild);
+  const xml = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>\n' + new XMLSerializer().serializeToString(clone);
+  const blob = new Blob([xml], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const p = window.getProduct(productId);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${p.no}_${p.name}_라벨_${new Date().toISOString().slice(0,10)}.svg`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+document.getElementById('btn-svg').addEventListener('click', () => downloadSVG(currentId));
+
+// ─── 9종 일괄 다운로드 ───
+document.getElementById('btn-all').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-all');
+  const orig = btn.textContent;
+  btn.textContent = '⏳ 9종 생성 중...';
+  btn.style.pointerEvents = 'none';
+  // 모든 제품을 임시로 hidden 영역에 렌더링
+  const host = document.createElement('div');
+  host.style.position = 'absolute';
+  host.style.left = '-99999px';
+  host.style.top = '0';
+  host.style.visibility = 'hidden';
+  document.body.appendChild(host);
+  try {
+    for (const p of window.PRODUCTS) {
+      host.innerHTML = buildLabelSVG(p, window.PRODUCT_COMMON);
+      await new Promise(r => setTimeout(r, 50));
+      downloadSVG(p.id);
+      await new Promise(r => setTimeout(r, 250)); // 브라우저 다운로드 큐 여유
+    }
+  } finally {
+    document.body.removeChild(host);
+    btn.textContent = orig;
+    btn.style.pointerEvents = 'auto';
+  }
+});
+
+// ─── PNG 미리보기 (3x) ───
+document.getElementById('btn-png').addEventListener('click', function(){
+  const btn = this;
+  btn.textContent = '⏳ 변환 중...';
+  btn.style.pointerEvents = 'none';
+  const svgEl = document.querySelector(`#label-svg-${currentId}`);
+  const xml = new XMLSerializer().serializeToString(svgEl);
+  const svg64 = btoa(unescape(encodeURIComponent(xml)));
+  const src = 'data:image/svg+xml;base64,' + svg64;
+  const img = new Image();
+  img.onload = function(){
+    const scale = 3;
+    const canvas = document.createElement('canvas');
+    canvas.width = 2400 * scale;
+    canvas.height = 720 * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const p = window.getProduct(currentId);
+    const a = document.createElement('a');
+    a.download = `${p.no}_${p.name}_라벨_${new Date().toISOString().slice(0,10)}.png`;
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+    btn.textContent = '📷 PNG 미리보기';
+    btn.style.pointerEvents = 'auto';
+  };
+  img.onerror = function(){
+    alert('PNG 변환 실패 — SVG 다운로드를 사용하세요');
+    btn.textContent = '📷 PNG 미리보기';
+    btn.style.pointerEvents = 'auto';
+  };
+  img.src = src;
+});
+</script>
+</body>
+</html>

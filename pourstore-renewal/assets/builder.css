@@ -112,17 +112,32 @@ details.howto-card.sync-info > summary::after { color: var(--green-d); }
 
 .sidebar { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 14px; height: fit-content; position: sticky; top: 12px; }
 .sidebar h3 { font-size: 11px; font-weight: 800; color: var(--muted); letter-spacing: 1px; margin: 6px 4px 10px; }
-.sidebar .page-list { display: flex; flex-direction: column; gap: 4px; }
-.page-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 10px; font-size: 13px; font-weight: 600; color: var(--ink2); cursor: pointer; transition: background .12s; }
+.sidebar .page-list { display: flex; flex-direction: column; gap: 2px; }
+.page-item { display: flex; align-items: center; padding: 8px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--ink2); cursor: pointer; transition: background .12s; user-select: none; }
 .page-item:hover { background: var(--light); }
 .page-item.active { background: var(--navy); color: #fff; }
-.page-item .name { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.page-item .name .file { font-size: 10px; color: var(--muted); font-family: ui-monospace, Consolas, monospace; }
-.page-item.active .name .file { color: rgba(255,255,255,.6); }
-.page-item .count { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: var(--light); color: var(--ink2); }
+.page-item .name { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; }
+.page-item .caret { width: 14px; flex-shrink: 0; font-size: 9px; color: var(--muted); text-align: center; transition: transform .12s; }
+.page-item .caret-spacer { width: 14px; flex-shrink: 0; }
+.page-item.active .caret { color: rgba(255,255,255,.6); }
+.page-item .icon { font-size: 13px; flex-shrink: 0; opacity: .8; }
+.page-item .title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+.page-item .count { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: var(--light); color: var(--ink2); flex-shrink: 0; font-family: 'Bebas Neue', sans-serif; letter-spacing: .5px; }
 .page-item.active .count { background: rgba(255,255,255,.18); color: #fff; }
-.page-item .menu { font-size: 12px; opacity: 0; transition: opacity .12s; padding: 0 4px; color: inherit; }
-.page-item:hover .menu { opacity: 1; }
+.page-item .folder-meta { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: rgba(15,31,92,.06); color: var(--muted); flex-shrink: 0; font-family: 'Bebas Neue', sans-serif; letter-spacing: .5px; }
+.page-item.active .folder-meta { background: rgba(255,255,255,.18); color: rgba(255,255,255,.85); }
+.page-item.is-folder { font-weight: 800; color: var(--ink); }
+.page-item.is-folder.active { color: #fff; }
+.page-item.depth-0 { padding-left: 10px; }
+.page-item.depth-1 { padding-left: 22px; }
+.page-item.depth-2 { padding-left: 34px; }
+.empty-pages { padding: 24px 12px; text-align: center; color: var(--muted); font-size: 12px; line-height: 1.6; background: var(--light); border-radius: 10px; }
+.empty-pages b { color: var(--ink); font-weight: 800; }
+
+/* 이동 모달 */
+.mv-select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-family: inherit; background: #fff; color: var(--ink); }
+.mv-select:focus { outline: 2px solid rgba(3,199,90,.35); border-color: var(--green); }
+.mv-select option:disabled { color: var(--muted); background: #F3F4F6; }
 
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 14px; border-radius: 10px; font-size: 13px; font-weight: 700; transition: background .12s, transform .08s, box-shadow .12s; }
 .btn:active { transform: scale(.97); }

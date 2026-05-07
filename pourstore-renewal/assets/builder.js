@@ -4,8 +4,10 @@
   const STORAGE_KEY = 'pourstore-renewal-builder-v2';
   const STORAGE_KEY_V1 = 'pourstore-renewal-builder-v1';
   const ME_STAFF_KEY = 'pourstore-renewal-me-staff-id'; // 기기별 — Firestore 동기화 안 함
+  const FOLDER_COLLAPSE_KEY = 'pourstore-renewal-folder-collapsed'; // 기기별 UI 상태
   const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
   const TRASH_RETENTION_MS = 7 * 24 * 60 * 60 * 1000; // 휴지통 7일 보관 후 영구 삭제
+  const MAX_DEPTH = 3; // 0=대, 1=중, 2=소 (총 3단)
   const STAFF_COLORS = ['#0F1F5C','#03C75A','#D97706','#7C3AED','#DC2626','#0284C7','#DB2777','#059669','#9333EA','#EA580C'];
 
   const FIREBASE_CONFIG = {
@@ -5023,8 +5025,13 @@ show('entry');
     s.trash = s.trash && typeof s.trash === 'object' ? s.trash : {};
     s.trash.feedbacks = Array.isArray(s.trash.feedbacks) ? s.trash.feedbacks : [];
     s.pages.forEach(p => {
+      // 폴더 계층 (Step 2)
+      if (p.parentId === undefined) p.parentId = null;
+      if (!p.type) p.type = 'page'; // 기존 데이터는 모두 page
       p.sections = p.sections || [];
       p.feedbacks = Array.isArray(p.feedbacks) ? p.feedbacks : [];
+      // 폴더는 sections/file 의미 없음 — 안전하게 빈값 유지
+      if (p.type === 'folder') { p.sections = []; p.file = ''; }
       p.sections.forEach(sec => {
         if (typeof sec.confirmed !== 'boolean') sec.confirmed = false;
         if (sec.confirmedAt === undefined) sec.confirmedAt = null;
@@ -5265,8 +5272,79 @@ show('entry');
   }
 
   function getActivePage() {
-    return state.pages.find(p => p.id === state.activePageId) || state.pages[0];
+    // 활성 항목이 폴더면 첫 번째 페이지로 폴백
+    let p = state.pages.find(p => p.id === state.activePageId);
+    if (p && p.type !== 'folder') return p;
+    return state.pages.find(x => x.type !== 'folder') || state.pages[0];
   }
+  function getActiveNode() {
+    // 폴더든 페이지든 그대로 반환 (사이드바 선택 상태 표시용)
+    return state.pages.find(p => p.id === state.activePageId) || null;
+  }
+  function getChildren(parentId) {
+    return state.pages.filter(p => (p.parentId || null) === (parentId || null));
+  }
+  function getDepth(nodeId) {
+    let d = 0, id = nodeId;
+    while (id) {
+      const node = state.pages.find(p => p.id === id);
+      if (!node || !node.parentId) return d;
+      id = node.parentId;
+      d++;
+      if (d > 10) return d; // 안전장치
+    }
+    return d;
+  }
+  function maxSubtreeDepth(nodeId) {
+    const children = getChildren(nodeId);
+    if (children.length === 0) return 0;
+    return 1 + Math.max.apply(null, children.map(c => maxSubtreeDepth(c.id)));
+  }
+  function isDescendant(maybeAncestorId, nodeId) {
+    let id = nodeId;
+    while (id) {
+      if (id === maybeAncestorId) return true;
+      const node = state.pages.find(p => p.id === id);
+      if (!node) return false;
+      id = node.parentId;
+    }
+    return false;
+  }
+  function canMoveTo(nodeId, newParentId) {
+    if (nodeId === newParentId) return false;
+    if (newParentId && isDescendant(nodeId, newParentId)) return false; // 후손에게 이동 불가
+    const newParentDepth = newParentId ? getDepth(newParentId) : -1;
+    const sub = maxSubtreeDepth(nodeId);
+    return (newParentDepth + 1 + sub) < MAX_DEPTH; // 0,1,2 허용 → < 3
+  }
+  function canAddFolderUnder(parentId) {
+    const parentDepth = parentId ? getDepth(parentId) : -1;
+    return parentDepth + 1 <= 1; // 폴더는 depth 0 또는 1까지만
+  }
+  function canAddPageUnder(parentId) {
+    const parentDepth = parentId ? getDepth(parentId) : -1;
+    return parentDepth + 1 <= 2; // 페이지는 depth 0,1,2 허용
+  }
+
+  // 폴더 접힘 상태 — 기기별 localStorage
+  function loadCollapsed() {
+    try {
+      const raw = localStorage.getItem(FOLDER_COLLAPSE_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return new Set(Array.isArray(arr) ? arr : []);
+    } catch (_) { return new Set(); }
+  }
+  let collapsedFolders = loadCollapsed();
+  function saveCollapsed() {
+    try { localStorage.setItem(FOLDER_COLLAPSE_KEY, JSON.stringify(Array.from(collapsedFolders))); } catch (_) {}
+  }
+  function toggleFolder(id) {
+    if (collapsedFolders.has(id)) collapsedFolders.delete(id);
+    else collapsedFolders.add(id);
+    saveCollapsed();
+    renderPages();
+  }
+  function depthLabel(d) { return ['대분류','중분류','소분류'][d] || ('Lv.' + (d+1)); }
   function getSection(pageId, secId) {
     const p = state.pages.find(x => x.id === pageId);
     return p ? p.sections.find(s => s.id === secId) : null;
@@ -5295,23 +5373,45 @@ show('entry');
   function renderPages() {
     const list = document.getElementById('pageList');
     list.innerHTML = '';
-    state.pages.forEach(p => {
+    const renderNode = (node, depth) => {
       const item = document.createElement('div');
-      item.className = 'page-item' + (p.id === state.activePageId ? ' active' : '');
+      const isFolder = node.type === 'folder';
+      const isActive = node.id === state.activePageId;
+      const isCollapsed = isFolder && collapsedFolders.has(node.id);
+      item.className = 'page-item depth-' + depth + (isActive ? ' active' : '') + (isFolder ? ' is-folder' : ' is-page');
+      const childCount = isFolder ? getChildren(node.id).length : 0;
+      const secCount = isFolder ? '' : `<span class="count">${node.sections.length}</span>`;
+      const dlabel = depthLabel(depth);
       item.innerHTML = `
         <div class="name">
-          <span>${escapeHtml(p.name)}</span>
+          ${isFolder ? `<span class="caret" title="${isCollapsed ? '펼치기' : '접기'}">${isCollapsed ? '▶' : '▼'}</span>` : '<span class="caret-spacer"></span>'}
+          <span class="icon">${isFolder ? '📁' : '📄'}</span>
+          <span class="title" title="${escapeHtml(dlabel)} · ${escapeHtml(node.name)}">${escapeHtml(node.name)}</span>
+          ${isFolder ? `<span class="folder-meta">${childCount}</span>` : secCount}
         </div>
-        <span class="count">${p.sections.length}</span>
       `;
-      item.addEventListener('click', () => {
-        state.activePageId = p.id;
-        // 페이지 전환은 본인 브라우저에만 적용 — Firestore 동기화 대상 아님
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) {}
-        renderAll();
+      item.addEventListener('click', e => {
+        if (isFolder) {
+          // 폴더는 caret 클릭 = 토글, 본문 클릭 = 선택만 + 토글
+          toggleFolder(node.id);
+          state.activePageId = node.id;
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) {}
+          renderPages();
+        } else {
+          state.activePageId = node.id;
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) {}
+          renderAll();
+        }
       });
       list.appendChild(item);
-    });
+      if (isFolder && !isCollapsed) {
+        getChildren(node.id).forEach(c => renderNode(c, depth + 1));
+      }
+    };
+    getChildren(null).forEach(r => renderNode(r, 0));
+    if (state.pages.length === 0) {
+      list.innerHTML = '<div class="empty-pages">아직 등록된 페이지/폴더가 없습니다.<br/>아래 <b>+ 페이지</b> 또는 <b>+ 폴더</b> 버튼으로 시작하세요.</div>';
+    }
   }
 
   function renderSections() {
@@ -5448,42 +5548,94 @@ show('entry');
     toast('순서 변경됨', 'info');
   }
 
-  // -------- page CRUD --------
+  // -------- page / folder CRUD --------
+  function preferredParentForNew() {
+    // 활성 노드가 폴더면 그 안에 넣기, 페이지면 같은 부모
+    const node = getActiveNode();
+    if (!node) return null;
+    if (node.type === 'folder') return node.id;
+    return node.parentId || null;
+  }
   function addPage() {
+    let parentId = preferredParentForNew();
+    if (!canAddPageUnder(parentId)) {
+      // 깊이 초과 — 한 단계 위로 폴백
+      const node = state.pages.find(p => p.id === parentId);
+      parentId = node ? (node.parentId || null) : null;
+      if (!canAddPageUnder(parentId)) parentId = null;
+    }
     const name = prompt('새 페이지 이름을 입력하세요. (예: 이벤트, FAQ 등)');
     if (!name || !name.trim()) return;
     const fileGuess = prompt('파일명을 입력하세요. (예: event.html)', slug(name) + '.html');
     if (!fileGuess) return;
     const id = 'p-' + Math.random().toString(36).slice(2, 8);
-    state.pages.push({ id, name: name.trim(), file: fileGuess.trim(), sections: [], feedbacks: [] });
+    state.pages.push({ id, name: name.trim(), file: fileGuess.trim(), sections: [], feedbacks: [], parentId, type: 'page' });
     state.activePageId = id;
     saveState();
     renderAll();
-    toast('페이지 추가됨', 'success');
+    const where = parentId ? ` (${depthLabel(getDepth(parentId) + 1)})` : ' (대분류)';
+    toast('페이지 추가됨' + where, 'success');
+  }
+  function addFolder() {
+    let parentId = preferredParentForNew();
+    if (!canAddFolderUnder(parentId)) {
+      // 폴더는 depth 0,1만 가능. 부모가 너무 깊으면 한 단계 위로
+      const node = state.pages.find(p => p.id === parentId);
+      parentId = node ? (node.parentId || null) : null;
+      if (!canAddFolderUnder(parentId)) parentId = null;
+    }
+    const dlabel = depthLabel((parentId ? getDepth(parentId) + 1 : 0));
+    const name = prompt(`새 ${dlabel} 폴더 이름을 입력하세요.`);
+    if (!name || !name.trim()) return;
+    const id = 'f-' + Math.random().toString(36).slice(2, 8);
+    state.pages.push({ id, name: name.trim(), file: '', sections: [], feedbacks: [], parentId, type: 'folder' });
+    if (parentId) collapsedFolders.delete(parentId), saveCollapsed(); // 부모 펼치기
+    state.activePageId = id;
+    saveState();
+    renderAll();
+    toast(`${dlabel} 폴더 추가됨`, 'success');
   }
   function renamePage() {
-    const page = getActivePage();
-    const name = prompt('페이지 이름', page.name);
+    const node = getActiveNode();
+    if (!node) return;
+    const isFolder = node.type === 'folder';
+    const name = prompt(isFolder ? '폴더 이름' : '페이지 이름', node.name);
     if (!name || !name.trim()) return;
-    const file = prompt('파일명', page.file);
-    if (!file || !file.trim()) return;
-    page.name = name.trim();
-    page.file = file.trim();
+    node.name = name.trim();
+    if (!isFolder) {
+      const file = prompt('파일명', node.file);
+      if (file && file.trim()) node.file = file.trim();
+    }
     saveState();
     renderAll();
   }
   function deletePage() {
-    const page = getActivePage();
-    if (state.pages.length <= 1) { toast('최소 1개 페이지는 유지해야 합니다.', 'error'); return; }
-    if (!confirm(`'${page.name}' 페이지를 삭제할까요? 섹션과 이력이 모두 사라집니다.`)) return;
-    page.sections.forEach(s => { delete state.history[histKey(page.id, s.id)]; });
-    state.pages = state.pages.filter(p => p.id !== page.id);
+    const node = getActiveNode();
+    if (!node) return;
+    const isFolder = node.type === 'folder';
+    if (isFolder) {
+      const childCount = getChildren(node.id).length;
+      if (childCount > 0) {
+        toast(`'${node.name}' 폴더 안에 ${childCount}개 항목이 있습니다. 먼저 비우거나 다른 곳으로 이동해 주세요.`, 'error');
+        return;
+      }
+      if (!confirm(`'${node.name}' 폴더를 삭제할까요?`)) return;
+    } else {
+      // 마지막 페이지는 보호 (폴더 제외 페이지가 1개뿐이면)
+      const totalPages = state.pages.filter(p => p.type !== 'folder').length;
+      if (totalPages <= 1) { toast('최소 1개 페이지는 유지해야 합니다.', 'error'); return; }
+      if (!confirm(`'${node.name}' 페이지를 삭제할까요? 섹션과 이력이 모두 사라집니다.`)) return;
+      node.sections.forEach(s => { delete state.history[histKey(node.id, s.id)]; });
+    }
+    state.pages = state.pages.filter(p => p.id !== node.id);
     state.deletedDefaults = state.deletedDefaults || [];
-    if (state.deletedDefaults.indexOf(page.id) === -1) state.deletedDefaults.push(page.id);
-    state.activePageId = state.pages[0].id;
+    if (state.deletedDefaults.indexOf(node.id) === -1) state.deletedDefaults.push(node.id);
+    // 활성 전환: 같은 부모의 다른 페이지 → 첫 페이지
+    const sibling = getChildren(node.parentId || null).find(x => x.type !== 'folder');
+    state.activePageId = sibling ? sibling.id : (state.pages.find(p => p.type !== 'folder') || state.pages[0] || {}).id;
     saveState();
     renderAll();
-    toast('페이지 삭제됨', 'info');
+    toast((isFolder ? '폴더' : '페이지') + ' 삭제됨', 'info');
   }
   function slug(s) {
     return String(s).toLowerCase().replace(/[^a-z0-9가-힣]+/g, '-').replace(/^-|-$/g, '') || 'page';
@@ -6397,6 +6549,71 @@ show('entry');
     });
   }
 
+  // -------- 이동(부모 변경) 모달 --------
+  function openMoveModal() {
+    const node = getActiveNode();
+    if (!node) { toast('이동할 항목을 먼저 선택하세요.', 'error'); return; }
+    document.getElementById('mvTitle').textContent = `'${node.name}' 이동`;
+    document.getElementById('mvCurrent').textContent = currentPathLabel(node);
+    renderMoveOptions(node);
+    openModal('moveModal');
+  }
+  function currentPathLabel(node) {
+    const parts = [];
+    let cur = node;
+    while (cur) {
+      parts.unshift(cur.name);
+      cur = cur.parentId ? state.pages.find(p => p.id === cur.parentId) : null;
+    }
+    return parts.join(' / ') || '(최상위)';
+  }
+  function renderMoveOptions(node) {
+    const sel = document.getElementById('mvParent');
+    sel.innerHTML = '';
+    // (최상위) 옵션
+    const topOpt = document.createElement('option');
+    topOpt.value = '__root__';
+    const topOK = canMoveTo(node.id, null);
+    topOpt.textContent = '📂 (최상위 — 대분류)' + (topOK ? '' : ' — 깊이 초과로 불가');
+    if (!topOK) topOpt.disabled = true;
+    sel.appendChild(topOpt);
+    // 모든 폴더를 트리 순서로
+    const walk = (parentId, depth) => {
+      getChildren(parentId).filter(p => p.type === 'folder').forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        const indent = '— '.repeat(depth);
+        const ok = canMoveTo(node.id, f.id) && f.id !== node.parentId;
+        opt.textContent = `${indent}📁 ${f.name} (${depthLabel(depth)})${ok ? '' : (f.id === node.parentId ? ' — 현재 위치' : ' — 이동 불가')}`;
+        if (!ok) opt.disabled = true;
+        sel.appendChild(opt);
+        walk(f.id, depth + 1);
+      });
+    };
+    walk(null, 0);
+    // 현재 부모로 기본 선택
+    sel.value = node.parentId || '__root__';
+  }
+  function applyMove() {
+    const node = getActiveNode();
+    if (!node) return;
+    const sel = document.getElementById('mvParent');
+    const newParentId = sel.value === '__root__' ? null : sel.value;
+    if ((node.parentId || null) === (newParentId || null)) {
+      closeModal('moveModal'); toast('현재 위치와 동일합니다.', 'info'); return;
+    }
+    if (!canMoveTo(node.id, newParentId)) {
+      toast('해당 위치로는 이동할 수 없습니다 (깊이 초과 또는 자기 자신·후손).', 'error');
+      return;
+    }
+    node.parentId = newParentId;
+    if (newParentId) { collapsedFolders.delete(newParentId); saveCollapsed(); } // 이동 후 부모 펼치기
+    saveState();
+    closeModal('moveModal');
+    renderAll();
+    toast(`이동 완료 → ${currentPathLabel(node)}`, 'success');
+  }
+
   // -------- modal helpers --------
   function openModal(id) { document.getElementById(id).classList.add('open'); }
   function closeModal(id) { document.getElementById(id).classList.remove('open'); }
@@ -6484,6 +6701,8 @@ show('entry');
   // -------- bindings --------
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnAddPage').addEventListener('click', addPage);
+    document.getElementById('btnAddFolder').addEventListener('click', addFolder);
+    document.getElementById('btnMovePage').addEventListener('click', openMoveModal);
     document.getElementById('btnRenamePage').addEventListener('click', renamePage);
     document.getElementById('btnDeletePage').addEventListener('click', deletePage);
     document.getElementById('btnAddSection').addEventListener('click', addSection);
@@ -6563,6 +6782,11 @@ show('entry');
     document.getElementById('jnClose').addEventListener('click', () => closeModal('journeyModal'));
     document.getElementById('jnCloseFoot').addEventListener('click', () => closeModal('journeyModal'));
     document.querySelectorAll('[data-jn-type]').forEach(c => c.addEventListener('change', renderJourney));
+
+    // 이동 모달
+    document.getElementById('mvClose').addEventListener('click', () => closeModal('moveModal'));
+    document.getElementById('mvCancel').addEventListener('click', () => closeModal('moveModal'));
+    document.getElementById('mvApply').addEventListener('click', applyMove);
 
     // 휴지통 모달
     document.getElementById('btnTrash').addEventListener('click', openTrashModal);

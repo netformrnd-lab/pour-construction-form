@@ -90,12 +90,16 @@
 
   <div class="layout">
     <aside class="sidebar">
-      <h3>페이지</h3>
+      <h3>페이지·폴더</h3>
       <div id="pageList" class="page-list"></div>
       <div style="display:flex; flex-direction:column; gap:6px; margin-top:12px;">
-        <button id="btnAddPage" class="btn btn-green btn-block">+ 페이지 추가</button>
         <div style="display:flex; gap:6px;">
-          <button id="btnRenamePage" class="btn btn-outline btn-sm" style="flex:1;">이름·파일</button>
+          <button id="btnAddPage" class="btn btn-green btn-sm" style="flex:1;">+ 페이지</button>
+          <button id="btnAddFolder" class="btn btn-outline btn-sm" style="flex:1;" title="대/중분류 폴더 추가 (활성 폴더 안에 들어감)">+ 폴더</button>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button id="btnRenamePage" class="btn btn-ghost btn-sm" style="flex:1;">이름</button>
+          <button id="btnMovePage" class="btn btn-ghost btn-sm" style="flex:1;" title="다른 폴더로 이동">이동</button>
           <button id="btnDeletePage" class="btn btn-danger btn-sm" style="flex:1;">삭제</button>
         </div>
       </div>
@@ -113,6 +117,7 @@
           <button id="btnSetMe" class="btn btn-outline btn-sm" style="flex:1;">내 이름 설정</button>
           <button id="btnManageStaff" class="btn btn-ghost btn-sm" style="flex:1;">담당자 관리</button>
         </div>
+        <button id="btnTrash" class="btn btn-ghost btn-sm btn-block" style="margin-top:6px;" title="삭제된 피드백 — 7일간 보관 후 자동 영구 삭제">🗑 휴지통 <span id="trashCount" class="trash-badge">0</span></button>
       </div>
 
       <h3 style="margin-top:18px;">데이터 백업·공유</h3>
@@ -326,6 +331,49 @@
       <div class="modal-foot">
         <span style="font-size:11px; color:var(--muted);">최신순 · 페이지/섹션의 모든 피드백·편집·상태 변경 통합</span>
         <button id="jnCloseFoot" class="btn btn-ghost">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 이동(부모 변경) 모달 -->
+  <div id="moveModal" class="modal-mask">
+    <div class="modal" style="max-width: 520px;">
+      <div class="modal-head">
+        <h3 id="mvTitle">이동</h3>
+        <button id="mvClose" class="close" aria-label="닫기">×</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:11.5px; color:var(--muted); margin-bottom:6px;">현재 위치</div>
+        <div id="mvCurrent" style="font-size:13px; padding:8px 10px; background:var(--light); border-radius:8px; margin-bottom:14px; color:var(--ink);"></div>
+        <label for="mvParent" style="font-size:11.5px; font-weight:700; color:var(--muted); display:block; margin-bottom:6px;">이동할 위치 (부모 폴더)</label>
+        <select id="mvParent" class="mv-select"></select>
+        <div style="margin-top:10px; padding:9px 12px; background:#F0F9FF; border:1px solid #BAE6FD; border-radius:8px; font-size:11.5px; color:#0C4A6E;">
+          최대 3단계(대/중/소)까지 가능합니다. 자기 자신·후손·깊이 초과 항목은 비활성화돼 선택할 수 없습니다.
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button id="mvCancel" class="btn btn-ghost">취소</button>
+        <button id="mvApply" class="btn btn-primary">이동</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 휴지통 모달 (피드백 소프트 삭제) -->
+  <div id="trashModal" class="modal-mask">
+    <div class="modal" style="max-width: 760px;">
+      <div class="modal-head">
+        <h3>🗑 휴지통 — 삭제된 피드백</h3>
+        <button id="trClose" class="close" aria-label="닫기">×</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:12px; color:var(--ink2); background:#FFFBEB; border:1px solid #FCE7B6; padding:9px 12px; border-radius:8px; margin-bottom:14px;">
+          삭제된 피드백은 <b>7일간 보관</b> 후 자동으로 영구 삭제됩니다. 그 전에는 언제든 복원 가능합니다.
+        </div>
+        <div id="trList" class="tr-list"></div>
+      </div>
+      <div class="modal-foot">
+        <button id="trEmpty" class="btn btn-danger btn-sm">전체 영구 삭제</button>
+        <button id="trCloseFoot" class="btn btn-ghost">닫기</button>
       </div>
     </div>
   </div>

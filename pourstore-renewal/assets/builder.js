@@ -3,7 +3,9 @@
 
   const STORAGE_KEY = 'pourstore-renewal-builder-v2';
   const STORAGE_KEY_V1 = 'pourstore-renewal-builder-v1';
+  const ME_STAFF_KEY = 'pourstore-renewal-me-staff-id'; // 기기별 — Firestore 동기화 안 함
   const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+  const STAFF_COLORS = ['#0F1F5C','#03C75A','#D97706','#7C3AED','#DC2626','#0284C7','#DB2777','#059669','#9333EA','#EA580C'];
 
   const FIREBASE_CONFIG = {
     apiKey: 'AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU',
@@ -5011,12 +5013,20 @@ show('entry');
   function migrate(s) {
     s.history = s.history || {};
     s.activePageId = s.activePageId || (s.pages[0] && s.pages[0].id);
+    s.staff = Array.isArray(s.staff) ? s.staff : [];
+    s.staff.forEach((st, i) => {
+      if (!st.id) st.id = 'st-' + Math.random().toString(36).slice(2, 8);
+      if (!st.color) st.color = STAFF_COLORS[i % STAFF_COLORS.length];
+      if (st.role === undefined) st.role = '';
+    });
     s.pages.forEach(p => {
       p.sections = p.sections || [];
+      p.feedbacks = Array.isArray(p.feedbacks) ? p.feedbacks : [];
       p.sections.forEach(sec => {
         if (typeof sec.confirmed !== 'boolean') sec.confirmed = false;
         if (sec.confirmedAt === undefined) sec.confirmedAt = null;
         if (sec.note === undefined) sec.note = '';
+        sec.feedbacks = Array.isArray(sec.feedbacks) ? sec.feedbacks : [];
         // 컨펌 워크플로우 — 기존 confirmed 플래그를 status로 승격
         if (sec.status === undefined) {
           sec.status = sec.confirmed ? 'approved' : null;
@@ -5272,6 +5282,8 @@ show('entry');
     if (checkShareLinkMode()) return; // 공유 링크 모드면 빌더 UI 렌더 안함
     renderPages();
     renderSections();
+    renderMeCard();
+    updatePageFeedbackCount();
     checkOldHistoryAndNotify();
   }
 
@@ -5321,6 +5333,7 @@ show('entry');
       card.dataset.sectionId = s.id;
       const hasHtml = s.html && s.html.trim().length > 0;
       const histLen = (state.history[histKey(page.id, s.id)] || []).length;
+      const fbCount = (s.feedbacks || []).length;
       const meta = STATUS_META[s.status];
       const pillText = meta ? `${meta.icon} ${meta.label}` : '◌ 초안';
       const statusTitle = s.statusAt ? `${statusLabel(s.status)} (${fmtDate(s.statusAt)})` : '상태: 초안';
@@ -5353,6 +5366,7 @@ show('entry');
           ${hasHtml ? '<button class="btn btn-sm btn-outline" data-act="copy" title="HTML 코드 복사">HTML 복사</button>' : ''}
           ${hasHtml ? '<button class="btn btn-sm btn-outline" data-act="link" title="이 섹션만 보여주는 공유 링크 복사">🔗 링크</button>' : ''}
           <button class="btn btn-sm btn-ghost" data-act="preview">미리보기</button>
+          <button class="btn btn-sm btn-outline" data-act="feedback" title="이 섹션에 대한 피드백">💬 ${fbCount}</button>
           <button class="btn btn-sm btn-outline" data-act="history">이력</button>
           <button class="btn btn-sm btn-primary" data-act="edit">편집</button>
           <button class="btn btn-sm btn-danger" data-act="delete" title="삭제">×</button>
@@ -5377,6 +5391,7 @@ show('entry');
       const linkBtn = card.querySelector('[data-act=link]');
       if (linkBtn) linkBtn.addEventListener('click', () => copySectionLink(page.id, s.id));
       card.querySelector('[data-act=preview]').addEventListener('click', () => previewSection(s.id));
+      card.querySelector('[data-act=feedback]').addEventListener('click', () => openFeedbackModalForSection(s.id));
       card.querySelector('[data-act=history]').addEventListener('click', () => openHistory(s.id));
       card.querySelector('[data-act=edit]').addEventListener('click', () => openEditor(s.id));
       card.querySelector('[data-act=delete]').addEventListener('click', () => deleteSection(s.id));
@@ -5435,7 +5450,7 @@ show('entry');
     const fileGuess = prompt('파일명을 입력하세요. (예: event.html)', slug(name) + '.html');
     if (!fileGuess) return;
     const id = 'p-' + Math.random().toString(36).slice(2, 8);
-    state.pages.push({ id, name: name.trim(), file: fileGuess.trim(), sections: [] });
+    state.pages.push({ id, name: name.trim(), file: fileGuess.trim(), sections: [], feedbacks: [] });
     state.activePageId = id;
     saveState();
     renderAll();
@@ -5868,6 +5883,378 @@ show('entry');
     copyHtmlToClipboard(html);
   }
 
+  // -------- staff + me (담당자) --------
+  function getMeStaffId() {
+    try { return localStorage.getItem(ME_STAFF_KEY) || null; } catch (_) { return null; }
+  }
+  function setMeStaffId(id) {
+    try {
+      if (id) localStorage.setItem(ME_STAFF_KEY, id);
+      else localStorage.removeItem(ME_STAFF_KEY);
+    } catch (_) {}
+    renderMeCard();
+    renderMeStaffOptions();
+    refreshFeedbackAuthorChip();
+  }
+  function getMeStaff() {
+    const id = getMeStaffId();
+    if (!id) return null;
+    return (state.staff || []).find(s => s.id === id) || null;
+  }
+  function staffColor(staff, fallbackIdx) {
+    if (staff && staff.color) return staff.color;
+    return STAFF_COLORS[(fallbackIdx || 0) % STAFF_COLORS.length];
+  }
+  function staffInitial(name) {
+    if (!name) return '?';
+    return name.trim().slice(0, 1).toUpperCase();
+  }
+  function findStaffById(id) { return (state.staff || []).find(s => s.id === id) || null; }
+  function addStaff(name, role) {
+    name = (name || '').trim(); role = (role || '').trim();
+    if (!name) { toast('이름을 입력하세요.', 'error'); return false; }
+    const exists = (state.staff || []).some(s => s.name === name && s.role === role);
+    if (exists) { toast('이미 같은 이름·직함이 등록돼 있습니다.', 'error'); return false; }
+    const idx = (state.staff || []).length;
+    state.staff.push({
+      id: 'st-' + Math.random().toString(36).slice(2, 8),
+      name, role, color: STAFF_COLORS[idx % STAFF_COLORS.length],
+      createdAt: nowIso(),
+    });
+    saveState();
+    renderStaffList();
+    renderMeStaffOptions();
+    toast('담당자 추가됨', 'success');
+    return true;
+  }
+  function deleteStaff(id) {
+    const staff = findStaffById(id);
+    if (!staff) return;
+    if (!confirm(`'${staff.name}' 담당자를 목록에서 삭제할까요? 기존 피드백의 작성자명은 그대로 보존됩니다.`)) return;
+    state.staff = (state.staff || []).filter(s => s.id !== id);
+    if (getMeStaffId() === id) setMeStaffId(null);
+    saveState();
+    renderStaffList();
+    renderMeStaffOptions();
+    renderMeCard();
+    toast('담당자 삭제됨', 'info');
+  }
+  function renderMeCard() {
+    const me = getMeStaff();
+    const av = document.getElementById('meAvatar');
+    const nm = document.getElementById('meName');
+    const rl = document.getElementById('meRole');
+    if (!av || !nm || !rl) return;
+    if (me) {
+      av.textContent = staffInitial(me.name);
+      av.style.background = staffColor(me);
+      av.style.color = '#fff';
+      nm.textContent = me.name;
+      rl.textContent = me.role || '직함 없음';
+    } else {
+      av.textContent = '?';
+      av.style.background = 'var(--light)';
+      av.style.color = 'var(--muted)';
+      nm.textContent = '설정 안 됨';
+      rl.textContent = '이 기기에서 작성 시 자동 기록됩니다';
+    }
+  }
+
+  // -------- 담당자 관리 모달 --------
+  function openStaffModal() {
+    document.getElementById('stfName').value = '';
+    document.getElementById('stfRole').value = '';
+    renderStaffList();
+    openModal('staffModal');
+    setTimeout(() => document.getElementById('stfName').focus(), 60);
+  }
+  function renderStaffList() {
+    const wrap = document.getElementById('stfList');
+    if (!wrap) return;
+    const list = state.staff || [];
+    if (list.length === 0) {
+      wrap.innerHTML = '<div class="empty-history">아직 등록된 담당자가 없습니다.<br/>위 입력란에 이름·직함을 적고 추가해 주세요.</div>';
+      return;
+    }
+    wrap.innerHTML = '';
+    list.forEach((s, idx) => {
+      const row = document.createElement('div');
+      row.className = 'staff-row';
+      row.innerHTML = `
+        <span class="staff-avatar" style="background:${escapeHtml(staffColor(s, idx))}">${escapeHtml(staffInitial(s.name))}</span>
+        <div class="staff-meta">
+          <div class="staff-name">${escapeHtml(s.name)}</div>
+          <div class="staff-role">${escapeHtml(s.role || '직함 없음')}</div>
+        </div>
+        <div class="staff-actions">
+          <button class="btn btn-sm btn-ghost" data-act="set-me">내 이름으로</button>
+          <button class="btn btn-sm btn-danger" data-act="del" title="삭제">×</button>
+        </div>
+      `;
+      row.querySelector('[data-act=set-me]').addEventListener('click', () => {
+        setMeStaffId(s.id);
+        toast(`'${s.name}' 님으로 설정됨`, 'success');
+      });
+      row.querySelector('[data-act=del]').addEventListener('click', () => deleteStaff(s.id));
+      wrap.appendChild(row);
+    });
+  }
+
+  // -------- 내 이름 설정 모달 --------
+  function openMeModal() {
+    renderMeStaffOptions();
+    openModal('meModal');
+  }
+  function renderMeStaffOptions() {
+    const wrap = document.getElementById('meStaffList');
+    if (!wrap) return;
+    const list = state.staff || [];
+    if (list.length === 0) {
+      wrap.innerHTML = '<div class="empty-history">담당자가 등록돼 있지 않습니다. 먼저 <b>담당자 관리</b>에서 추가하세요.</div>';
+      return;
+    }
+    const meId = getMeStaffId();
+    wrap.innerHTML = '';
+    list.forEach((s, idx) => {
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'me-option' + (s.id === meId ? ' selected' : '');
+      row.innerHTML = `
+        <span class="staff-avatar" style="background:${escapeHtml(staffColor(s, idx))}">${escapeHtml(staffInitial(s.name))}</span>
+        <div class="staff-meta">
+          <div class="staff-name">${escapeHtml(s.name)}</div>
+          <div class="staff-role">${escapeHtml(s.role || '직함 없음')}</div>
+        </div>
+        ${s.id === meId ? '<span class="me-check">✓</span>' : ''}
+      `;
+      row.addEventListener('click', () => {
+        setMeStaffId(s.id);
+        toast(`'${s.name}' 님으로 설정됨`, 'success');
+      });
+      wrap.appendChild(row);
+    });
+  }
+
+  // -------- 피드백 데이터 모델 --------
+  // target = { type: 'section', pageId, secId } | { type: 'page', pageId }
+  function getFeedbackTarget(target) {
+    if (!target) return null;
+    const page = state.pages.find(p => p.id === target.pageId);
+    if (!page) return null;
+    if (target.type === 'page') return page;
+    if (target.type === 'section') return page.sections.find(s => s.id === target.secId) || null;
+    return null;
+  }
+  function targetLabel(target) {
+    const page = state.pages.find(p => p.id === target.pageId);
+    if (!page) return '(삭제됨)';
+    if (target.type === 'page') return `${page.name} · 페이지 단위`;
+    const sec = page.sections.find(s => s.id === target.secId);
+    return `${page.name} · ${sec ? sec.name : '(삭제된 섹션)'}`;
+  }
+  function addFeedback(target, text) {
+    const obj = getFeedbackTarget(target);
+    if (!obj) { toast('대상을 찾을 수 없습니다.', 'error'); return false; }
+    const trimmed = (text || '').trim();
+    if (!trimmed) { toast('피드백 내용을 입력하세요.', 'error'); return false; }
+    const me = getMeStaff();
+    obj.feedbacks = obj.feedbacks || [];
+    obj.feedbacks.unshift({
+      id: 'fb-' + Math.random().toString(36).slice(2, 9),
+      staffId: me ? me.id : null,
+      staffName: me ? me.name : '익명',
+      staffRole: me ? (me.role || '') : '',
+      text: trimmed,
+      createdAt: nowIso(),
+    });
+    saveState();
+    return true;
+  }
+  function deleteFeedback(target, fbId) {
+    const obj = getFeedbackTarget(target);
+    if (!obj) return false;
+    const me = getMeStaff();
+    const fb = (obj.feedbacks || []).find(f => f.id === fbId);
+    if (!fb) return false;
+    if (fb.staffId && (!me || me.id !== fb.staffId)) {
+      toast('본인이 작성한 피드백만 삭제할 수 있습니다.', 'error');
+      return false;
+    }
+    if (!fb.staffId && me) {
+      // 익명 작성은 누구나 삭제 가능 (작성자 식별 불가하므로)
+    }
+    if (!confirm('이 피드백을 삭제할까요?')) return false;
+    obj.feedbacks = obj.feedbacks.filter(f => f.id !== fbId);
+    saveState();
+    return true;
+  }
+
+  // -------- 피드백 모달 --------
+  let feedbackCtx = null;
+  function openFeedbackModalForSection(secId) {
+    const page = getActivePage();
+    const sec = getSection(page.id, secId);
+    if (!sec) return;
+    feedbackCtx = { type: 'section', pageId: page.id, secId };
+    document.getElementById('fbTitle').textContent = `피드백 — ${sec.name}`;
+    refreshFeedbackAuthorChip();
+    document.getElementById('fbInput').value = '';
+    renderFeedbackList();
+    openModal('feedbackModal');
+    setTimeout(() => document.getElementById('fbInput').focus(), 60);
+  }
+  function openFeedbackModalForPage() {
+    const page = getActivePage();
+    feedbackCtx = { type: 'page', pageId: page.id };
+    document.getElementById('fbTitle').textContent = `피드백 — ${page.name} (페이지 단위)`;
+    refreshFeedbackAuthorChip();
+    document.getElementById('fbInput').value = '';
+    renderFeedbackList();
+    openModal('feedbackModal');
+    setTimeout(() => document.getElementById('fbInput').focus(), 60);
+  }
+  function refreshFeedbackAuthorChip() {
+    const chip = document.getElementById('fbAuthorChip');
+    if (!chip) return;
+    const me = getMeStaff();
+    if (me) {
+      chip.innerHTML = `작성자: <b style="color:${escapeHtml(staffColor(me))};">${escapeHtml(me.name)}</b>${me.role ? ' · ' + escapeHtml(me.role) : ''}`;
+    } else {
+      chip.innerHTML = '작성자 없음 (익명) — <a href="#" id="fbSetMeLink">내 이름 설정</a>';
+      const link = chip.querySelector('#fbSetMeLink');
+      if (link) link.addEventListener('click', e => { e.preventDefault(); closeModal('feedbackModal'); openMeModal(); });
+    }
+  }
+  function renderFeedbackList() {
+    if (!feedbackCtx) return;
+    const obj = getFeedbackTarget(feedbackCtx);
+    const wrap = document.getElementById('fbList');
+    wrap.innerHTML = '';
+    const list = (obj && obj.feedbacks) || [];
+    if (list.length === 0) {
+      wrap.innerHTML = '<div class="empty-history">아직 기록된 피드백이 없습니다.</div>';
+      return;
+    }
+    const me = getMeStaff();
+    list.forEach(fb => {
+      const row = document.createElement('div');
+      row.className = 'fb-item';
+      const canDelete = !fb.staffId || (me && me.id === fb.staffId);
+      row.innerHTML = `
+        <div class="fb-head">
+          <span class="staff-avatar sm" style="background:${escapeHtml(staffColor(findStaffById(fb.staffId) || { color: '#6B7280' }))}">${escapeHtml(staffInitial(fb.staffName))}</span>
+          <span class="fb-author"><b>${escapeHtml(fb.staffName || '익명')}</b>${fb.staffRole ? ' · ' + escapeHtml(fb.staffRole) : ''}</span>
+          <span class="fb-when">${escapeHtml(fmtDate(fb.createdAt))}</span>
+          ${canDelete ? '<button class="fb-del" title="삭제" data-act="del">×</button>' : ''}
+        </div>
+        <div class="fb-text">${escapeHtml(fb.text)}</div>
+      `;
+      const del = row.querySelector('[data-act=del]');
+      if (del) del.addEventListener('click', () => {
+        if (deleteFeedback(feedbackCtx, fb.id)) {
+          renderFeedbackList();
+          renderSections();
+          updatePageFeedbackCount();
+          toast('삭제됨', 'info');
+        }
+      });
+      wrap.appendChild(row);
+    });
+  }
+  function submitFeedback() {
+    if (!feedbackCtx) return;
+    const input = document.getElementById('fbInput');
+    if (addFeedback(feedbackCtx, input.value)) {
+      input.value = '';
+      renderFeedbackList();
+      renderSections();
+      updatePageFeedbackCount();
+      toast('피드백 기록됨', 'success');
+    }
+  }
+
+  function updatePageFeedbackCount() {
+    const el = document.getElementById('pageFbCount');
+    if (!el) return;
+    const page = getActivePage();
+    el.textContent = ((page && page.feedbacks) || []).length;
+  }
+
+  // -------- 작업여정(통합 타임라인) 모달 --------
+  function openJourneyModal() {
+    const page = getActivePage();
+    document.getElementById('jnTitle').textContent = `작업여정 — ${page.name}`;
+    renderJourney();
+    openModal('journeyModal');
+  }
+  function buildJourneyEntries(page) {
+    const entries = [];
+    // 페이지 단위 피드백
+    (page.feedbacks || []).forEach(fb => entries.push({
+      type: 'feedback', when: fb.createdAt,
+      title: '💬 페이지 피드백', author: fb.staffName, role: fb.staffRole, body: fb.text, scope: '페이지'
+    }));
+    // 섹션 단위
+    page.sections.forEach(sec => {
+      (sec.feedbacks || []).forEach(fb => entries.push({
+        type: 'feedback', when: fb.createdAt,
+        title: `💬 ${sec.name}`, author: fb.staffName, role: fb.staffRole, body: fb.text, scope: '섹션'
+      }));
+      const hList = state.history[histKey(page.id, sec.id)] || [];
+      hList.forEach(v => {
+        const isStatus = v.kind && v.kind !== 'edit' && v.kind !== 'restore';
+        entries.push({
+          type: isStatus ? 'status' : 'edit',
+          when: v.savedAt,
+          title: (isStatus ? '◐ ' : '✎ ') + sec.name,
+          author: '', role: '',
+          body: v.reason || '(사유 없음)',
+          scope: kindLabelShort(v.kind),
+        });
+      });
+    });
+    entries.sort((a, b) => (b.when || '').localeCompare(a.when || ''));
+    return entries;
+  }
+  function kindLabelShort(k) {
+    return k === 'wip'          ? '작업중' :
+           k === 'request'      ? '컨펌요청' :
+           k === 'approve'      ? '승인' :
+           k === 'revision'     ? '재수정' :
+           k === 'reset-status' ? '초안화' :
+           k === 'restore'      ? '복원' :
+           k === 'confirm'      ? '컨펌' :
+           k === 'unconfirm'    ? '컨펌해제' : '편집';
+  }
+  function renderJourney() {
+    const page = getActivePage();
+    const wrap = document.getElementById('jnList');
+    const filters = Array.from(document.querySelectorAll('[data-jn-type]'))
+      .filter(c => c.checked).map(c => c.dataset.jnType);
+    const all = buildJourneyEntries(page).filter(e => filters.indexOf(e.type) !== -1);
+    wrap.innerHTML = '';
+    if (all.length === 0) {
+      wrap.innerHTML = '<div class="empty-history">표시할 항목이 없습니다.</div>';
+      return;
+    }
+    all.forEach(e => {
+      const row = document.createElement('div');
+      row.className = 'jn-item jn-' + e.type;
+      row.innerHTML = `
+        <div class="jn-when">${escapeHtml(fmtDate(e.when))}</div>
+        <div class="jn-body">
+          <div class="jn-title">
+            <span class="jn-scope">${escapeHtml(e.scope)}</span>
+            <span>${escapeHtml(e.title)}</span>
+            ${e.author ? `<span class="jn-author">— ${escapeHtml(e.author)}${e.role ? ' · ' + escapeHtml(e.role) : ''}</span>` : ''}
+          </div>
+          <div class="jn-text">${escapeHtml(e.body)}</div>
+        </div>
+      `;
+      wrap.appendChild(row);
+    });
+  }
+
   // -------- modal helpers --------
   function openModal(id) { document.getElementById(id).classList.add('open'); }
   function closeModal(id) { document.getElementById(id).classList.remove('open'); }
@@ -5958,6 +6345,10 @@ show('entry');
     document.getElementById('btnRenamePage').addEventListener('click', renamePage);
     document.getElementById('btnDeletePage').addEventListener('click', deletePage);
     document.getElementById('btnAddSection').addEventListener('click', addSection);
+    document.getElementById('btnPageFeedback').addEventListener('click', openFeedbackModalForPage);
+    document.getElementById('btnPageJourney').addEventListener('click', openJourneyModal);
+    document.getElementById('btnSetMe').addEventListener('click', openMeModal);
+    document.getElementById('btnManageStaff').addEventListener('click', openStaffModal);
     document.getElementById('btnFullPreview').addEventListener('click', previewFullPage);
     document.getElementById('btnCopyFullHtml').addEventListener('click', copyFullPageHtml);
     var btnPL = document.getElementById('btnCopyPageLink');
@@ -5992,6 +6383,44 @@ show('entry');
     document.getElementById('rmSelectAll').addEventListener('change', e => {
       document.querySelectorAll('#rmList input[type=checkbox]').forEach(c => { c.checked = e.target.checked; });
     });
+
+    // 담당자 관리 모달
+    document.getElementById('stfClose').addEventListener('click', () => closeModal('staffModal'));
+    document.getElementById('stfCloseFoot').addEventListener('click', () => closeModal('staffModal'));
+    document.getElementById('stfAdd').addEventListener('click', () => {
+      const ok = addStaff(document.getElementById('stfName').value, document.getElementById('stfRole').value);
+      if (ok) {
+        document.getElementById('stfName').value = '';
+        document.getElementById('stfRole').value = '';
+        document.getElementById('stfName').focus();
+      }
+    });
+    ['stfName', 'stfRole'].forEach(id => {
+      document.getElementById(id).addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('stfAdd').click();
+      });
+    });
+
+    // 내 이름 설정 모달
+    document.getElementById('meClose').addEventListener('click', () => closeModal('meModal'));
+    document.getElementById('meCloseFoot').addEventListener('click', () => closeModal('meModal'));
+    document.getElementById('meClearBtn').addEventListener('click', () => {
+      setMeStaffId(null);
+      toast('익명 작성으로 되돌림', 'info');
+    });
+
+    // 피드백 모달
+    document.getElementById('fbClose').addEventListener('click', () => closeModal('feedbackModal'));
+    document.getElementById('fbCloseFoot').addEventListener('click', () => closeModal('feedbackModal'));
+    document.getElementById('fbAdd').addEventListener('click', submitFeedback);
+    document.getElementById('fbInput').addEventListener('keydown', e => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') submitFeedback();
+    });
+
+    // 작업여정 모달
+    document.getElementById('jnClose').addEventListener('click', () => closeModal('journeyModal'));
+    document.getElementById('jnCloseFoot').addEventListener('click', () => closeModal('journeyModal'));
+    document.querySelectorAll('[data-jn-type]').forEach(c => c.addEventListener('change', renderJourney));
 
     document.querySelectorAll('.modal-mask').forEach(mask => {
       mask.addEventListener('click', e => { if (e.target === mask) mask.classList.remove('open'); });

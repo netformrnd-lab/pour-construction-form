@@ -122,6 +122,7 @@
 
       <h3 style="margin-top:18px;">상세페이지</h3>
       <div style="display:flex; flex-direction:column; gap:6px;">
+        <button id="btnInstances" class="btn btn-green btn-sm btn-block" title="저장된 상세페이지 목록 (템플릿 기반)">📄 상세페이지 목록</button>
         <button id="btnTemplates" class="btn btn-outline btn-sm btn-block" title="제품 상세페이지 템플릿 관리 — 고정 섹션 + 슬롯 정의">📐 템플릿 관리</button>
       </div>
 
@@ -444,6 +445,70 @@
         <div style="display:flex; gap:8px;">
           <button id="teCancel" class="btn btn-ghost">취소</button>
           <button id="teSave" class="btn btn-primary">저장</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 상세페이지 인스턴스 목록 모달 -->
+  <div id="instancesModal" class="modal-mask">
+    <div class="modal" style="max-width: 760px;">
+      <div class="modal-head">
+        <h3>📄 상세페이지 목록</h3>
+        <button id="insClose" class="close" aria-label="닫기">×</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:12px; color:var(--ink2); background:#ECFDF5; border:1px solid #BBF7D0; padding:9px 12px; border-radius:8px; margin-bottom:14px;">
+          상세페이지는 별도 컬렉션 <code style="font-size:11px; padding:1px 5px; background:#fff; border:1px solid var(--border); border-radius:4px;">pourstore-renewal-instances</code>에 1개=1문서로 저장됩니다. 1000개 이상도 한도 영향 없음.
+        </div>
+        <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+          <button id="insNew" class="btn btn-primary btn-sm">+ 새 상세페이지</button>
+        </div>
+        <div id="insListWrap" class="ins-list"></div>
+      </div>
+      <div class="modal-foot">
+        <span style="font-size:11px; color:var(--muted);">PNG 다운로드는 Step E · 이미지 드래그업로드는 Step D에서 추가됩니다.</span>
+        <button id="insCloseFoot" class="btn btn-ghost">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 인스턴스 편집 모달 -->
+  <div id="instanceEditor" class="modal-mask">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="ieTitle">상세페이지 편집</h3>
+        <button id="ieClose" class="close" aria-label="닫기">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="ie-grid">
+          <div class="ie-col">
+            <div class="ie-field-row">
+              <div>
+                <label for="ieName">상세페이지 이름 <span class="req">*</span></label>
+                <input id="ieName" type="text" placeholder="예: 벽돌 발수 코팅제 4kg" maxlength="60" />
+              </div>
+              <div>
+                <label for="ieTemplate">템플릿</label>
+                <select id="ieTemplate" class="mv-select"></select>
+              </div>
+            </div>
+            <label>슬롯 입력 <span style="color:var(--muted); font-weight:500; font-size:10px;">— 빈 칸은 기본값 또는 [라벨]로 표시됨</span></label>
+            <div id="ieSlots" class="ie-slots"></div>
+          </div>
+          <div class="ie-col">
+            <label>실시간 미리보기</label>
+            <div class="preview-frame">
+              <iframe id="iePreview" title="미리보기" sandbox="allow-same-origin allow-scripts allow-popups allow-forms"></iframe>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <span style="font-size:11px; color:var(--muted);">템플릿 변경은 새 인스턴스 생성 시에만 가능 (기존 슬롯 값 보존을 위해)</span>
+        <div style="display:flex; gap:8px;">
+          <button id="ieCancel" class="btn btn-ghost">취소</button>
+          <button id="ieSave" class="btn btn-primary">저장</button>
         </div>
       </div>
     </div>

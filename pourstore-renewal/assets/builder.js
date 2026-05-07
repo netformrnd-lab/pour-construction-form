@@ -5379,11 +5379,13 @@ show('entry');
       const isActive = node.id === state.activePageId;
       const isCollapsed = isFolder && collapsedFolders.has(node.id);
       item.className = 'page-item depth-' + depth + (isActive ? ' active' : '') + (isFolder ? ' is-folder' : ' is-page');
+      item.dataset.nodeId = node.id;
       const childCount = isFolder ? getChildren(node.id).length : 0;
       const secCount = isFolder ? '' : `<span class="count">${node.sections.length}</span>`;
       const dlabel = depthLabel(depth);
       item.innerHTML = `
         <div class="name">
+          <span class="grip" title="드래그해서 이동/순서변경">⋮⋮</span>
           ${isFolder ? `<span class="caret" title="${isCollapsed ? '펼치기' : '접기'}">${isCollapsed ? '▶' : '▼'}</span>` : '<span class="caret-spacer"></span>'}
           <span class="icon">${isFolder ? '📁' : '📄'}</span>
           <span class="title" title="${escapeHtml(dlabel)} · ${escapeHtml(node.name)}">${escapeHtml(node.name)}</span>
@@ -5403,6 +5405,7 @@ show('entry');
           renderAll();
         }
       });
+      attachPageDnd(item, node);
       list.appendChild(item);
       if (isFolder && !isCollapsed) {
         getChildren(node.id).forEach(c => renderNode(c, depth + 1));
@@ -5412,6 +5415,101 @@ show('entry');
     if (state.pages.length === 0) {
       list.innerHTML = '<div class="empty-pages">아직 등록된 페이지/폴더가 없습니다.<br/>아래 <b>+ 페이지</b> 또는 <b>+ 폴더</b> 버튼으로 시작하세요.</div>';
     }
+  }
+
+  // -------- 사이드바 DnD (페이지/폴더 순서 변경) --------
+  let pageDragSrcId = null;
+  function attachPageDnd(item, node) {
+    item.draggable = true;
+    item.addEventListener('dragstart', e => {
+      pageDragSrcId = node.id;
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', node.id); } catch (_) {}
+    });
+    item.addEventListener('dragend', () => {
+      document.querySelectorAll('.page-item').forEach(el => {
+        el.classList.remove('dragging','dnd-before','dnd-after','dnd-inside');
+        delete el.dataset.dropPos;
+      });
+      pageDragSrcId = null;
+    });
+    item.addEventListener('dragover', e => {
+      if (!pageDragSrcId || pageDragSrcId === node.id) return;
+      const isFolder = node.type === 'folder';
+      const rect = item.getBoundingClientRect();
+      const y = e.clientY - rect.top;
+      const h = rect.height;
+      let pos;
+      if (isFolder && y > h * 0.25 && y < h * 0.75) pos = 'inside';
+      else if (y < h / 2) pos = 'before';
+      else pos = 'after';
+      const valid = (pos === 'inside')
+        ? canMoveTo(pageDragSrcId, node.id)
+        : canMoveTo(pageDragSrcId, node.parentId || null);
+      item.classList.remove('dnd-before','dnd-after','dnd-inside');
+      if (!valid) { e.dataTransfer.dropEffect = 'none'; return; }
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      item.classList.add('dnd-' + pos);
+      item.dataset.dropPos = pos;
+    });
+    item.addEventListener('dragleave', () => {
+      item.classList.remove('dnd-before','dnd-after','dnd-inside');
+      delete item.dataset.dropPos;
+    });
+    item.addEventListener('drop', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const pos = item.dataset.dropPos;
+      item.classList.remove('dnd-before','dnd-after','dnd-inside');
+      delete item.dataset.dropPos;
+      if (!pageDragSrcId || pageDragSrcId === node.id || !pos) { pageDragSrcId = null; return; }
+      const ok = dropPageAt(pageDragSrcId, node.id, pos);
+      pageDragSrcId = null;
+      if (ok) {
+        saveState();
+        renderAll();
+        toast('이동됨', 'success');
+      } else {
+        toast('이동 불가 (깊이 초과 또는 자기 자신·후손)', 'error');
+      }
+    });
+  }
+  function dropPageAt(srcId, targetId, position) {
+    const src = state.pages.find(p => p.id === srcId);
+    const target = state.pages.find(p => p.id === targetId);
+    if (!src || !target || src.id === target.id) return false;
+    let newParentId;
+    if (position === 'inside') {
+      if (target.type !== 'folder') return false;
+      if (!canMoveTo(srcId, targetId)) return false;
+      newParentId = targetId;
+    } else {
+      newParentId = target.parentId || null;
+      if (!canMoveTo(srcId, newParentId)) return false;
+    }
+    // state.pages 배열에서 src를 제거 후 적절한 위치에 재삽입
+    const srcIdx = state.pages.findIndex(p => p.id === srcId);
+    if (srcIdx < 0) return false;
+    state.pages.splice(srcIdx, 1);
+    src.parentId = newParentId;
+    const targetIdx = state.pages.findIndex(p => p.id === targetId);
+    let insertIdx;
+    if (position === 'before') {
+      insertIdx = targetIdx;
+    } else if (position === 'after') {
+      insertIdx = targetIdx + 1;
+    } else {
+      // inside — 폴더 자식들의 마지막 다음 위치에 삽입
+      let lastChildIdx = -1;
+      state.pages.forEach((p, i) => { if (p.parentId === targetId) lastChildIdx = i; });
+      insertIdx = lastChildIdx >= 0 ? lastChildIdx + 1 : targetIdx + 1;
+      // 새로 들어가는 부모의 접힘 상태는 펼침
+      if (collapsedFolders.has(targetId)) { collapsedFolders.delete(targetId); saveCollapsed(); }
+    }
+    state.pages.splice(insertIdx, 0, src);
+    return true;
   }
 
   function renderSections() {

@@ -234,10 +234,74 @@ details.howto-card.sync-info > summary::after { color: var(--green-d); }
 
 footer { padding: 22px; text-align: center; font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); background: #fff; }
 
+/* ---------- 담당자 (사이드바 me 카드) ---------- */
+.me-card { background: var(--light); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; }
+.me-info { display: flex; align-items: center; gap: 10px; }
+.me-avatar { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 800; background: var(--light); color: var(--muted); flex-shrink: 0; font-family: 'Bebas Neue', sans-serif; letter-spacing: .5px; }
+.me-meta { min-width: 0; flex: 1; }
+.me-name { font-size: 13px; font-weight: 800; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.me-role { font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+
+/* ---------- 담당자 관리 모달 ---------- */
+.staff-add { display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; margin-bottom: 14px; }
+.staff-add input { border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px; font-size: 13px; font-family: inherit; background: #fff; }
+.staff-add input:focus { outline: 2px solid rgba(3,199,90,.35); border-color: var(--green); }
+.staff-list { display: flex; flex-direction: column; gap: 6px; }
+.staff-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #fff; border: 1px solid var(--border); border-radius: 10px; }
+.staff-avatar { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 13px; font-family: 'Bebas Neue', sans-serif; letter-spacing: .5px; flex-shrink: 0; }
+.staff-avatar.sm { width: 24px; height: 24px; font-size: 11px; }
+.staff-meta { flex: 1; min-width: 0; }
+.staff-name { font-size: 13px; font-weight: 800; color: var(--ink); }
+.staff-role { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.staff-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+/* ---------- 내 이름 설정 ---------- */
+.me-staff-list { display: flex; flex-direction: column; gap: 6px; }
+.me-option { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #fff; border: 1px solid var(--border); border-radius: 10px; cursor: pointer; text-align: left; transition: background .12s, border-color .12s; }
+.me-option:hover { background: var(--light); border-color: #C7D2FE; }
+.me-option.selected { background: rgba(3,199,90,.08); border-color: var(--green); }
+.me-option .me-check { color: var(--green-d); font-weight: 900; }
+
+/* ---------- 피드백 모달 ---------- */
+.fb-compose { background: var(--light); padding: 12px; border-radius: 10px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 8px; }
+.fb-compose-meta { display: flex; align-items: center; justify-content: space-between; }
+.fb-author-chip { font-size: 11.5px; color: var(--ink2); }
+.fb-author-chip a { color: var(--green-d); font-weight: 700; }
+.fb-compose textarea { width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px; font-size: 13px; font-family: inherit; background: #fff; resize: vertical; min-height: 60px; line-height: 1.55; }
+.fb-compose textarea:focus { outline: 2px solid rgba(3,199,90,.35); border-color: var(--green); }
+.fb-divider { font-size: 11px; font-weight: 800; color: var(--muted); letter-spacing: .5px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px dashed var(--border); }
+.fb-list { display: flex; flex-direction: column; gap: 8px; }
+.fb-item { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+.fb-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.fb-author { font-size: 12px; color: var(--ink2); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fb-author b { color: var(--ink); font-weight: 800; }
+.fb-when { font-size: 11px; color: var(--muted); font-family: ui-monospace, Consolas, monospace; flex-shrink: 0; }
+.fb-del { width: 22px; height: 22px; border-radius: 6px; background: transparent; color: #B91C1C; font-size: 14px; display: grid; place-items: center; flex-shrink: 0; }
+.fb-del:hover { background: #FEE2E2; }
+.fb-text { font-size: 13px; color: var(--ink); line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+
+/* ---------- 작업여정 모달 ---------- */
+.jn-filter { display: flex; gap: 14px; padding: 8px 12px; background: var(--light); border-radius: 8px; margin-bottom: 12px; font-size: 12px; color: var(--ink2); flex-wrap: wrap; }
+.jn-filter label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+.jn-list { display: flex; flex-direction: column; gap: 6px; }
+.jn-item { display: grid; grid-template-columns: 130px 1fr; gap: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: #fff; }
+.jn-item.jn-feedback { background: #FFFBEB; border-color: #FCE7B6; }
+.jn-item.jn-edit { background: #ECFDF5; border-color: #BBF7D0; }
+.jn-item.jn-status { background: #EFF6FF; border-color: #BFDBFE; }
+.jn-when { font-size: 11px; color: var(--ink2); font-family: ui-monospace, Consolas, monospace; padding-top: 2px; }
+.jn-body { min-width: 0; }
+.jn-title { font-size: 13px; font-weight: 800; color: var(--ink); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+.jn-scope { font-size: 10px; font-weight: 800; padding: 2px 6px; background: rgba(15,31,92,.08); color: var(--navy); border-radius: 6px; letter-spacing: .3px; }
+.jn-author { font-size: 11px; font-weight: 600; color: var(--muted); }
+.jn-text { font-size: 12.5px; color: var(--ink2); line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+
 @media (max-width: 880px) {
   .layout { grid-template-columns: 1fr; }
   .sidebar { position: static; }
   .editor-grid { grid-template-columns: 1fr; height: auto; }
   .editor-col textarea { min-height: 220px; }
   .editor-col .preview-frame { min-height: 280px; }
+  .staff-add { grid-template-columns: 1fr; }
+  .jn-item { grid-template-columns: 1fr; }
+  .jn-when { padding-top: 0; }
 }

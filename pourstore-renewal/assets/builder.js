@@ -5024,6 +5024,15 @@ show('entry');
     });
     s.trash = s.trash && typeof s.trash === 'object' ? s.trash : {};
     s.trash.feedbacks = Array.isArray(s.trash.feedbacks) ? s.trash.feedbacks : [];
+    // 상세페이지 템플릿 (Step A)
+    s.templates = Array.isArray(s.templates) ? s.templates : [];
+    s.templates.forEach(t => {
+      if (!t.id) t.id = 'tpl-' + Math.random().toString(36).slice(2, 8);
+      if (!Array.isArray(t.slots)) t.slots = [];
+      if (typeof t.html !== 'string') t.html = '';
+      if (typeof t.name !== 'string') t.name = '(이름 없음)';
+      if (typeof t.description !== 'string') t.description = '';
+    });
     s.pages.forEach(p => {
       // 폴더 계층 (Step 2)
       if (p.parentId === undefined) p.parentId = null;
@@ -6712,6 +6721,203 @@ show('entry');
     toast(`이동 완료 → ${currentPathLabel(node)}`, 'success');
   }
 
+  // -------- 상세페이지 템플릿 (Step A) --------
+  const SLOT_TYPES = [
+    { value: 'text',     label: '한 줄 텍스트' },
+    { value: 'textarea', label: '여러 줄 텍스트' },
+    { value: 'image',    label: '이미지 URL' },
+    { value: 'link',     label: '링크 URL' },
+  ];
+  function extractSlotKeys(html) {
+    const seen = [];
+    const re = /\{\{\s*([A-Za-z][\w-]*)\s*\}\}/g;
+    let m;
+    while ((m = re.exec(html)) !== null) {
+      if (seen.indexOf(m[1]) === -1) seen.push(m[1]);
+    }
+    return seen;
+  }
+  function inferSlotType(key) {
+    const k = key.toLowerCase();
+    if (/(img|image|photo|thumb|thumbnail|banner|hero|cover|gallery|pic)/.test(k)) return 'image';
+    if (/(desc|content|body|review|story|detail|long)/.test(k)) return 'textarea';
+    if (/(url|link|href|cta)/.test(k)) return 'link';
+    return 'text';
+  }
+  function inferSlotLabel(key) {
+    // camelCase / snake_case → 사람용 라벨
+    const spaced = key
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/[_-]+/g, ' ')
+      .trim()
+      .toLowerCase();
+    return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+  }
+  function newTemplate() {
+    return {
+      id: 'tpl-' + Math.random().toString(36).slice(2, 8),
+      name: '새 템플릿',
+      description: '',
+      html: '',
+      slots: [],
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    };
+  }
+  // 슬롯 정의 동기화: HTML에 있는 키만 살리고, 새 키는 추가, 기존 키는 사용자 설정 유지
+  function syncSlotsWithHtml(tpl) {
+    const keys = extractSlotKeys(tpl.html);
+    const byKey = Object.create(null);
+    (tpl.slots || []).forEach(s => { byKey[s.key] = s; });
+    tpl.slots = keys.map(k => byKey[k] || {
+      key: k,
+      type: inferSlotType(k),
+      label: inferSlotLabel(k),
+      defaultValue: '',
+      required: false,
+    });
+  }
+  function findTemplate(id) { return (state.templates || []).find(t => t.id === id) || null; }
+  function saveTemplate(tpl) {
+    syncSlotsWithHtml(tpl);
+    tpl.updatedAt = nowIso();
+    state.templates = state.templates || [];
+    const idx = state.templates.findIndex(t => t.id === tpl.id);
+    if (idx >= 0) state.templates[idx] = tpl;
+    else { tpl.createdAt = tpl.createdAt || nowIso(); state.templates.push(tpl); }
+    saveState();
+  }
+  function deleteTemplate(id) {
+    const tpl = findTemplate(id);
+    if (!tpl) return;
+    if (!confirm(`'${tpl.name}' 템플릿을 삭제할까요?`)) return;
+    state.templates = (state.templates || []).filter(t => t.id !== id);
+    saveState();
+    renderTemplateList();
+    toast('템플릿 삭제됨', 'info');
+  }
+
+  // 템플릿 목록 모달
+  function openTemplatesModal() {
+    renderTemplateList();
+    openModal('templatesModal');
+  }
+  function renderTemplateList() {
+    const wrap = document.getElementById('tplList');
+    if (!wrap) return;
+    const list = (state.templates || []).slice()
+      .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+    if (list.length === 0) {
+      wrap.innerHTML = '<div class="empty-history">아직 등록된 템플릿이 없습니다.<br/>위 <b>+ 새 템플릿</b> 버튼으로 시작하세요.</div>';
+      return;
+    }
+    wrap.innerHTML = '';
+    list.forEach(t => {
+      const slotCount = (t.slots || []).length;
+      const row = document.createElement('div');
+      row.className = 'tpl-row';
+      row.innerHTML = `
+        <div class="tpl-meta">
+          <div class="tpl-name">📐 ${escapeHtml(t.name)}</div>
+          <div class="tpl-desc">${escapeHtml(t.description || '설명 없음')}</div>
+          <div class="tpl-stats">
+            <span>슬롯 ${slotCount}개</span>
+            <span>·</span>
+            <span title="${escapeHtml(fmtDate(t.updatedAt))}">${escapeHtml(fmtDate(t.updatedAt))}</span>
+          </div>
+        </div>
+        <div class="tpl-actions">
+          <button class="btn btn-sm btn-primary" data-act="edit">편집</button>
+          <button class="btn btn-sm btn-danger" data-act="del" title="삭제">×</button>
+        </div>
+      `;
+      row.querySelector('[data-act=edit]').addEventListener('click', () => openTemplateEditor(t.id));
+      row.querySelector('[data-act=del]').addEventListener('click', () => deleteTemplate(t.id));
+      wrap.appendChild(row);
+    });
+  }
+
+  // 템플릿 편집 모달
+  let templateEditorCtx = null;
+  function openTemplateEditor(tplId) {
+    const tpl = tplId ? findTemplate(tplId) : null;
+    templateEditorCtx = tpl ? JSON.parse(JSON.stringify(tpl)) : newTemplate();
+    document.getElementById('teTitle').textContent = tpl ? `템플릿 편집 — ${tpl.name}` : '새 템플릿 만들기';
+    document.getElementById('teName').value = templateEditorCtx.name;
+    document.getElementById('teDesc').value = templateEditorCtx.description || '';
+    document.getElementById('teHtml').value = templateEditorCtx.html || '';
+    syncSlotsWithHtml(templateEditorCtx);
+    renderTemplateSlots();
+    refreshTemplatePreview();
+    openModal('templateEditor');
+    setTimeout(() => document.getElementById('teName').focus(), 60);
+  }
+  function renderTemplateSlots() {
+    const wrap = document.getElementById('teSlots');
+    if (!wrap || !templateEditorCtx) return;
+    const slots = templateEditorCtx.slots || [];
+    if (slots.length === 0) {
+      wrap.innerHTML = '<div class="empty-history" style="padding:18px 10px;">HTML에 <code>{{슬롯키}}</code> 형태로 플레이스홀더를 넣으면 여기 자동으로 나타납니다.<br/>예: <code>&lt;h1&gt;{{title}}&lt;/h1&gt;</code></div>';
+      return;
+    }
+    wrap.innerHTML = '';
+    slots.forEach((s, idx) => {
+      const row = document.createElement('div');
+      row.className = 'te-slot';
+      row.innerHTML = `
+        <span class="te-slot-key" title="HTML의 {{${escapeHtml(s.key)}}}와 매칭됨">{{${escapeHtml(s.key)}}}</span>
+        <input type="text" class="te-slot-label" value="${escapeHtml(s.label || '')}" placeholder="라벨 (예: 상품명)" />
+        <select class="te-slot-type">
+          ${SLOT_TYPES.map(t => `<option value="${t.value}"${s.type === t.value ? ' selected' : ''}>${t.label}</option>`).join('')}
+        </select>
+        <input type="text" class="te-slot-default" value="${escapeHtml(s.defaultValue || '')}" placeholder="기본값 (선택)" />
+      `;
+      row.querySelector('.te-slot-label').addEventListener('input', e => {
+        templateEditorCtx.slots[idx].label = e.target.value;
+      });
+      row.querySelector('.te-slot-type').addEventListener('change', e => {
+        templateEditorCtx.slots[idx].type = e.target.value;
+      });
+      row.querySelector('.te-slot-default').addEventListener('input', e => {
+        templateEditorCtx.slots[idx].defaultValue = e.target.value;
+        refreshTemplatePreview();
+      });
+      wrap.appendChild(row);
+    });
+  }
+  function refreshTemplatePreview() {
+    const frame = document.getElementById('tePreview');
+    if (!frame || !templateEditorCtx) return;
+    let html = templateEditorCtx.html || '';
+    (templateEditorCtx.slots || []).forEach(s => {
+      const placeholder = (s.defaultValue !== '' && s.defaultValue != null)
+        ? s.defaultValue
+        : `[${s.label || s.key}]`;
+      const re = new RegExp('\\{\\{\\s*' + s.key.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') + '\\s*\\}\\}', 'g');
+      html = html.replace(re, placeholder);
+    });
+    frame.srcdoc = wrapPreview(html);
+  }
+  function refreshSlotsAfterHtmlChange() {
+    if (!templateEditorCtx) return;
+    templateEditorCtx.html = document.getElementById('teHtml').value;
+    syncSlotsWithHtml(templateEditorCtx);
+    renderTemplateSlots();
+    refreshTemplatePreview();
+  }
+  function saveTemplateEditor() {
+    if (!templateEditorCtx) return;
+    const name = document.getElementById('teName').value.trim();
+    if (!name) { toast('템플릿 이름을 입력하세요.', 'error'); return; }
+    templateEditorCtx.name = name;
+    templateEditorCtx.description = document.getElementById('teDesc').value.trim();
+    templateEditorCtx.html = document.getElementById('teHtml').value;
+    saveTemplate(templateEditorCtx);
+    closeModal('templateEditor');
+    renderTemplateList();
+    toast('템플릿 저장됨', 'success');
+  }
+
   // -------- modal helpers --------
   function openModal(id) { document.getElementById(id).classList.add('open'); }
   function closeModal(id) { document.getElementById(id).classList.remove('open'); }
@@ -6885,6 +7091,17 @@ show('entry');
     document.getElementById('mvClose').addEventListener('click', () => closeModal('moveModal'));
     document.getElementById('mvCancel').addEventListener('click', () => closeModal('moveModal'));
     document.getElementById('mvApply').addEventListener('click', applyMove);
+
+    // 상세페이지 템플릿 모달
+    document.getElementById('btnTemplates').addEventListener('click', openTemplatesModal);
+    document.getElementById('tplClose').addEventListener('click', () => closeModal('templatesModal'));
+    document.getElementById('tplCloseFoot').addEventListener('click', () => closeModal('templatesModal'));
+    document.getElementById('tplNew').addEventListener('click', () => openTemplateEditor(null));
+    document.getElementById('teClose').addEventListener('click', () => closeModal('templateEditor'));
+    document.getElementById('teCancel').addEventListener('click', () => closeModal('templateEditor'));
+    document.getElementById('teSave').addEventListener('click', saveTemplateEditor);
+    document.getElementById('teRefresh').addEventListener('click', refreshSlotsAfterHtmlChange);
+    document.getElementById('teHtml').addEventListener('blur', refreshSlotsAfterHtmlChange);
 
     // 휴지통 모달
     document.getElementById('btnTrash').addEventListener('click', openTrashModal);

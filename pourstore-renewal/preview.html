@@ -120,6 +120,11 @@
         <button id="btnTrash" class="btn btn-ghost btn-sm btn-block" style="margin-top:6px;" title="삭제된 피드백 — 7일간 보관 후 자동 영구 삭제">🗑 휴지통 <span id="trashCount" class="trash-badge">0</span></button>
       </div>
 
+      <h3 style="margin-top:18px;">상세페이지</h3>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <button id="btnTemplates" class="btn btn-outline btn-sm btn-block" title="제품 상세페이지 템플릿 관리 — 고정 섹션 + 슬롯 정의">📐 템플릿 관리</button>
+      </div>
+
       <h3 style="margin-top:18px;">데이터 백업·공유</h3>
       <div style="display:flex; flex-direction:column; gap:6px;">
         <button id="btnShare" class="btn btn-green btn-sm btn-block">📤 카톡·메일로 공유</button>
@@ -374,6 +379,72 @@
       <div class="modal-foot">
         <button id="trEmpty" class="btn btn-danger btn-sm">전체 영구 삭제</button>
         <button id="trCloseFoot" class="btn btn-ghost">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 상세페이지 템플릿 목록 모달 -->
+  <div id="templatesModal" class="modal-mask">
+    <div class="modal" style="max-width: 720px;">
+      <div class="modal-head">
+        <h3>📐 상세페이지 템플릿</h3>
+        <button id="tplClose" class="close" aria-label="닫기">×</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:12px; color:var(--ink2); background:#F0F9FF; border:1px solid #BAE6FD; padding:9px 12px; border-radius:8px; margin-bottom:14px;">
+          템플릿은 <b>고정 섹션 HTML</b> + <code>{{슬롯키}}</code> 자리표시로 구성됩니다. 다음 단계(인스턴스)에서 슬롯을 채워 상세페이지를 빠르게 생성합니다.
+        </div>
+        <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+          <button id="tplNew" class="btn btn-primary btn-sm">+ 새 템플릿</button>
+        </div>
+        <div id="tplList" class="tpl-list"></div>
+      </div>
+      <div class="modal-foot">
+        <span style="font-size:11px; color:var(--muted);">템플릿은 빌더 단일 문서에 저장 (작은 데이터). 인스턴스는 별도 컬렉션에 저장됩니다.</span>
+        <button id="tplCloseFoot" class="btn btn-ghost">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 템플릿 편집 모달 -->
+  <div id="templateEditor" class="modal-mask">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="teTitle">템플릿 편집</h3>
+        <button id="teClose" class="close" aria-label="닫기">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="te-grid">
+          <div class="te-col">
+            <div class="te-field-row">
+              <div>
+                <label for="teName">템플릿 이름 <span class="req">*</span></label>
+                <input id="teName" type="text" placeholder="예: 기본 상세페이지 / 이미지 강조형" maxlength="40" />
+              </div>
+              <div>
+                <label for="teDesc">설명</label>
+                <input id="teDesc" type="text" placeholder="용도·특징 (선택)" maxlength="80" />
+              </div>
+            </div>
+            <label for="teHtml">HTML 코드 <span style="color:var(--muted); font-weight:500; font-size:10px;">— 슬롯은 <code>{{key}}</code> 형식으로</span></label>
+            <textarea id="teHtml" spellcheck="false" placeholder="<section>&#10;  <h1>{{title}}</h1>&#10;  <img src='{{heroImage}}' alt=''/>&#10;  <p>{{description}}</p>&#10;</section>"></textarea>
+            <label>슬롯 정의 <span style="color:var(--muted); font-weight:500; font-size:10px;">— HTML의 <code>{{key}}</code>에서 자동 추출</span></label>
+            <div id="teSlots" class="te-slots"></div>
+          </div>
+          <div class="te-col">
+            <label>실시간 미리보기 <span style="color:var(--muted); font-weight:500; font-size:10px;">— 빈 슬롯은 [라벨]로 표시</span></label>
+            <div class="preview-frame">
+              <iframe id="tePreview" title="미리보기" sandbox="allow-same-origin allow-scripts allow-popups allow-forms"></iframe>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button id="teRefresh" class="btn btn-outline btn-sm">슬롯 재추출 + 미리보기</button>
+        <div style="display:flex; gap:8px;">
+          <button id="teCancel" class="btn btn-ghost">취소</button>
+          <button id="teSave" class="btn btn-primary">저장</button>
+        </div>
       </div>
     </div>
   </div>

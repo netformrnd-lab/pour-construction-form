@@ -7686,6 +7686,791 @@ show('entry');
     });
   }
 
+  // ════════════════════════════════════════════════════════════════
+  // 🏷 상품 (Listings) — Stage 1 + Stage 2 + Stage 3 (디자인만)
+  // ════════════════════════════════════════════════════════════════
+  // 1제품(POUR코트재) → N상품(목재페인트·철재페인트…) — 카페24 등록 단위.
+  // 가격·SKU·재고는 카페24 영역 — 여기는 디자인만 다룸.
+  const LISTINGS_COLLECTION = 'pourstore-renewal-listings';
+  let listingsCache = [];
+  let listingEditorCtx = null;
+
+  // ── vibe 프리셋 5종 — 통디자인 시스템
+  const VIBE_PRESETS = [
+    {
+      id: 'warm-natural', emoji: '🟫', name: '따뜻·자연',
+      target: '목재·우드·데크',
+      primaryColor: '#8B5A3C', secondaryColor: '#FFF8E7', accentColor: '#D9A876',
+      bgColor: '#FAF7F2', fontMood: 'rounded',
+      imageStyle: 'natural light, warm tones, organic textures, soft shadows',
+      visualKeywords: ['우드', '따뜻함', '자연', '나무결'],
+    },
+    {
+      id: 'cool-tech', emoji: '⚫', name: '차가움·견고',
+      target: '철재·금속·산업',
+      primaryColor: '#1E3A5F', secondaryColor: '#F4F6F8', accentColor: '#6B7280',
+      bgColor: '#F4F6F8', fontMood: 'tight',
+      imageStyle: 'studio lighting, cool tones, sharp edges, industrial feel',
+      visualKeywords: ['메탈', '견고', '산업', '정밀'],
+    },
+    {
+      id: 'clean-bright', emoji: '⚪', name: '깔끔·밝음',
+      target: '실내·벽체·일반',
+      primaryColor: '#10B981', secondaryColor: '#FFFFFF', accentColor: '#A7F3D0',
+      bgColor: '#FFFFFF', fontMood: 'clean',
+      imageStyle: 'bright daylight, white background, minimalist, fresh',
+      visualKeywords: ['깔끔', '밝음', '청결', '실내'],
+    },
+    {
+      id: 'bold-industrial', emoji: '🔶', name: '강함·임팩트',
+      target: '외장·공업·콘크리트',
+      primaryColor: '#EA580C', secondaryColor: '#1F2937', accentColor: '#FBBF24',
+      bgColor: '#1F2937', fontMood: 'bold',
+      imageStyle: 'dramatic lighting, high contrast, urban concrete, raw textures',
+      visualKeywords: ['강함', '임팩트', '도시', '거침'],
+    },
+    {
+      id: 'earth-rough', emoji: '🟧', name: '자연·거침',
+      target: '벽돌·외벽·자연석',
+      primaryColor: '#B8593A', secondaryColor: '#F5E9DC', accentColor: '#7C5A4A',
+      bgColor: '#F8F1E9', fontMood: 'serif',
+      imageStyle: 'golden hour light, terracotta tones, weathered surfaces, earthy',
+      visualKeywords: ['벽돌', '외벽', '자연석', '거침'],
+    },
+  ];
+  function findVibe(id) { return VIBE_PRESETS.find(v => v.id === id) || VIBE_PRESETS[0]; }
+
+  // ── 모드 토글 (페이지 / 상품)
+  function setAppMode(mode) {
+    if (mode !== 'page' && mode !== 'product') mode = 'page';
+    document.body.setAttribute('data-mode', mode);
+    try { localStorage.setItem('pourstore-app-mode', mode); } catch (_) {}
+    document.querySelectorAll('.mode-tab').forEach(t => {
+      const active = t.dataset.mode === mode;
+      t.classList.toggle('mode-tab-active', active);
+      t.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    if (mode === 'product') refreshProductDashboard();
+  }
+  function loadAppMode() {
+    let saved = 'page';
+    try { saved = localStorage.getItem('pourstore-app-mode') || 'page'; } catch (_) {}
+    setAppMode(saved);
+  }
+
+  // ── 상품 대시보드
+  async function refreshProductDashboard() {
+    // 통계 — 캐시 있으면 그것 우선, 없으면 비동기 로드
+    const counts = {
+      products: productsCache.length || 0,
+      listings: listingsCache.length || 0,
+      instances: instancesCache.length || 0,
+      templates: (state.templates || []).length || 0,
+    };
+    document.getElementById('dashProductsCount').textContent = counts.products;
+    document.getElementById('dashListingsCount').textContent = counts.listings;
+    document.getElementById('dashInstancesCount').textContent = counts.instances;
+    document.getElementById('dashTemplatesCount').textContent = counts.templates;
+    // 캐시가 비어있으면 백그라운드로 채우고 한 번 더 갱신
+    const loads = [];
+    if (!productsCache.length) loads.push(loadProducts());
+    if (!listingsCache.length) loads.push(loadListings());
+    if (!instancesCache.length) loads.push(loadInstances());
+    if (loads.length) {
+      await Promise.all(loads);
+      document.getElementById('dashProductsCount').textContent = productsCache.length;
+      document.getElementById('dashListingsCount').textContent = listingsCache.length;
+      document.getElementById('dashInstancesCount').textContent = instancesCache.length;
+    }
+    renderDashRecent();
+  }
+  function renderDashRecent() {
+    const wrap = document.getElementById('dashRecentList');
+    if (!wrap) return;
+    const recents = [];
+    productsCache.slice(0, 5).forEach(p => recents.push({ kind: 'product', name: p.name || p.productCode, when: p.updatedAt, id: p.id }));
+    listingsCache.slice(0, 5).forEach(l => recents.push({ kind: 'listing', name: l.listingName, when: l.updatedAt, id: l.id }));
+    instancesCache.slice(0, 5).forEach(i => recents.push({ kind: 'instance', name: i.name, when: i.updatedAt, id: i.id }));
+    recents.sort((a, b) => (b.when || '').localeCompare(a.when || ''));
+    if (!recents.length) {
+      wrap.innerHTML = '<div class="dash-recent-empty">아직 작업 내역이 없습니다 — 상단 카드에서 시작하세요.</div>';
+      return;
+    }
+    wrap.innerHTML = '';
+    recents.slice(0, 8).forEach(r => {
+      const el = document.createElement('div');
+      el.className = 'dash-recent-item';
+      const tagCls = r.kind === 'product' ? 'dash-recent-tag-product'
+        : r.kind === 'listing' ? 'dash-recent-tag-listing' : 'dash-recent-tag-instance';
+      const tagText = r.kind === 'product' ? '제품' : r.kind === 'listing' ? '상품' : '상세';
+      el.innerHTML = `
+        <span class="dash-recent-tag ${tagCls}">${tagText}</span>
+        <span class="dash-recent-name">${escapeHtml(r.name || '(이름 없음)')}</span>
+        <span class="dash-recent-when">${escapeHtml((r.when || '').slice(0, 16).replace('T', ' '))}</span>
+      `;
+      el.addEventListener('click', () => {
+        if (r.kind === 'product') openProductEditor(r.id);
+        else if (r.kind === 'listing') openListingEditor(r.id);
+        else openInstanceEditor(r.id);
+      });
+      wrap.appendChild(el);
+    });
+  }
+
+  // ── listings CRUD
+  function newListing() {
+    return {
+      id: 'lst-' + Math.random().toString(36).slice(2, 10),
+      productId: '',
+      listingName: '',
+      targetSubstrate: '',
+      cafe24ProductNo: '',
+      customSlogan: '',
+      searchKeywords: [],
+      colorOptions: [],
+      emphasizedFactIds: [], // 마스터 facts에서 강조할 항목 id 목록
+      vibe: 'warm-natural',
+      customColors: { primary: '', secondary: '' },
+      detailPageInstanceId: null,
+      thumbnailImageUrl: '',
+      createdAt: null, updatedAt: null, deleted: false,
+    };
+  }
+  async function loadListings() {
+    if (!firebaseReady || !db) { return []; }
+    try {
+      const snap = await db.collection(LISTINGS_COLLECTION).get();
+      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(l => !l.deleted);
+      docs.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+      listingsCache = docs;
+      console.log(`[listings] ${docs.length}건 로드`);
+      return docs;
+    } catch (e) {
+      console.error('[listings] 로드 실패:', e);
+      toast('상품 목록 로드 실패: ' + (e.code || e.message || ''), 'error');
+      return [];
+    }
+  }
+  async function saveListing(lst) {
+    if (!firebaseReady || !db) { toast('오프라인 — 저장 불가', 'error'); return false; }
+    const me = getMeStaff();
+    lst.updatedAt = nowIso();
+    lst.updatedByName = me ? me.name : '익명';
+    if (!lst.createdAt) {
+      lst.createdAt = lst.updatedAt;
+      lst.createdByName = me ? me.name : '익명';
+    }
+    try {
+      await db.collection(LISTINGS_COLLECTION).doc(lst.id).set(lst, { merge: false });
+      const idx = listingsCache.findIndex(l => l.id === lst.id);
+      if (idx >= 0) listingsCache[idx] = lst; else listingsCache.unshift(lst);
+      return true;
+    } catch (e) {
+      console.error('[listings] 저장 실패:', e);
+      toast('저장 실패: ' + (e.code || e.message || ''), 'error');
+      return false;
+    }
+  }
+  async function deleteListing(id) {
+    const lst = listingsCache.find(l => l.id === id);
+    if (!lst) return;
+    if (!confirm(`'${lst.listingName}' 상품을 삭제할까요?`)) return;
+    try {
+      await db.collection(LISTINGS_COLLECTION).doc(id).update({ deleted: true, deletedAt: nowIso() });
+      listingsCache = listingsCache.filter(l => l.id !== id);
+      renderListingList();
+      toast('삭제됨', 'info');
+    } catch (e) {
+      console.error('[listings] 삭제 실패:', e);
+      toast('삭제 실패: ' + (e.code || e.message || ''), 'error');
+    }
+  }
+
+  // ── 상품 목록 모달
+  async function openListingsModal() {
+    document.getElementById('lstListWrap').innerHTML = '<div class="lst-empty">불러오는 중...</div>';
+    openModal('listingsModal');
+    if (!productsCache.length) await loadProducts();
+    await loadListings();
+    renderListingList();
+  }
+  function renderListingList() {
+    const wrap = document.getElementById('lstListWrap');
+    if (!listingsCache.length) {
+      wrap.innerHTML = `<div class="lst-empty">아직 등록된 상품이 없습니다.<br/>오른쪽 위 <b>+ 새 상품</b> 또는 <b>🪄 분기 제안</b>으로 시작하세요.</div>`;
+      return;
+    }
+    const list = document.createElement('div');
+    list.className = 'lst-list';
+    listingsCache.forEach(l => {
+      const master = productsCache.find(p => p.id === l.productId);
+      const vibe = findVibe(l.vibe);
+      const card = document.createElement('div');
+      card.className = 'lst-card';
+      card.innerHTML = `
+        <div class="lst-card-vibe" style="background:${vibe.bgColor}; border:1px solid ${vibe.primaryColor};">
+          <span style="font-size:24px;">${vibe.emoji}</span>
+        </div>
+        <div class="lst-card-main">
+          <div class="lst-card-title">
+            ${escapeHtml(l.listingName || '(이름 없음)')}
+            ${master ? `<span class="lst-card-master">📦 ${escapeHtml(master.name)}</span>` : '<span class="lst-card-master" style="color:#B91C1C;">⚠ 마스터 없음</span>'}
+            ${l.cafe24ProductNo ? `<span class="lst-card-cafe24">카페24 #${escapeHtml(l.cafe24ProductNo)}</span>` : ''}
+          </div>
+          <div class="lst-card-substrate">${l.targetSubstrate ? `적용기재: ${escapeHtml(l.targetSubstrate)}` : ''}${l.customSlogan ? ` · ${escapeHtml(l.customSlogan)}` : ''}</div>
+          <div class="lst-card-meta">
+            <span>vibe: <b style="color:${vibe.primaryColor};">${escapeHtml(vibe.name)}</b></span>
+            <span>강조 사실 <b>${(l.emphasizedFactIds || []).length}</b>개</span>
+            <span>상세페이지 <b>${l.detailPageInstanceId ? '✓' : '–'}</b></span>
+          </div>
+        </div>
+        <div class="lst-card-badges"></div>
+      `;
+      card.addEventListener('click', () => openListingEditor(l.id));
+      list.appendChild(card);
+    });
+    wrap.innerHTML = '';
+    wrap.appendChild(list);
+  }
+
+  // ── 상품 편집기
+  async function openListingEditor(listingId) {
+    if (!productsCache.length) await loadProducts();
+    if (!listingsCache.length && listingId) await loadListings();
+    if (!instancesCache.length) await loadInstances();
+    const isNew = !listingId;
+    const draft = isNew
+      ? newListing()
+      : JSON.parse(JSON.stringify(listingsCache.find(l => l.id === listingId) || newListing()));
+    listingEditorCtx = { listingId: draft.id, draft, mode: isNew ? 'new' : 'edit' };
+    document.getElementById('leTitle').textContent = isNew ? '+ 새 상품(Listing)' : `상품 편집: ${draft.listingName || ''}`;
+    document.getElementById('leDelete').style.display = isNew ? 'none' : '';
+    // 마스터 셀렉트 채우기
+    const masterSel = document.getElementById('leMaster');
+    masterSel.innerHTML = '<option value="">— 모제품 선택 —</option>';
+    productsCache.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id; opt.textContent = `📦 ${p.name || p.productCode}`;
+      masterSel.appendChild(opt);
+    });
+    masterSel.value = draft.productId || '';
+    onListingMasterChange(); // substrates 채움
+    document.getElementById('leSubstrate').value = draft.targetSubstrate || '';
+    document.getElementById('leName').value = draft.listingName || '';
+    document.getElementById('leCafe24').value = draft.cafe24ProductNo || '';
+    document.getElementById('leSlogan').value = draft.customSlogan || '';
+    document.getElementById('leKeywords').value = (draft.searchKeywords || []).join(', ');
+    document.getElementById('leColors').value = (draft.colorOptions || []).join(', ');
+    renderListingEmphasized();
+    renderListingVibeGrid();
+    setListingVibe(draft.vibe || 'warm-natural', /*skipDirty*/true);
+    document.getElementById('leCustomPrimary').value = draft.customColors && draft.customColors.primary ? draft.customColors.primary : findVibe(draft.vibe).primaryColor;
+    document.getElementById('leCustomPrimaryText').value = draft.customColors && draft.customColors.primary ? draft.customColors.primary : '';
+    renderListingDetailStatus();
+    switchListingTab('basic');
+    openModal('listingEditor');
+  }
+  function switchListingTab(tab) {
+    document.querySelectorAll('#listingEditor .le-tab').forEach(b => b.classList.toggle('le-tab-active', b.dataset.tab === tab));
+    ['basic','emphasized','vibe','output'].forEach(t => {
+      const el = document.getElementById('leTab' + t.charAt(0).toUpperCase() + t.slice(1));
+      if (el) el.style.display = (t === tab) ? '' : 'none';
+    });
+  }
+  function onListingMasterChange() {
+    const masterId = document.getElementById('leMaster').value;
+    const master = productsCache.find(p => p.id === masterId);
+    const sel = document.getElementById('leSubstrate');
+    sel.innerHTML = '<option value="">— 적용 기재 (선택) —</option>';
+    if (master && master.masterFacts && Array.isArray(master.masterFacts.compatibleSubstrates)) {
+      master.masterFacts.compatibleSubstrates.filter(s => s.approved !== false).forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.name; opt.textContent = s.name;
+        sel.appendChild(opt);
+      });
+    }
+    if (listingEditorCtx) listingEditorCtx.draft.productId = masterId;
+    renderListingEmphasized(); // 마스터 바뀌면 사실 목록도 갱신
+  }
+  function renderListingEmphasized() {
+    const wrap = document.getElementById('leEmpBody');
+    wrap.innerHTML = '';
+    if (!listingEditorCtx) return;
+    const master = productsCache.find(p => p.id === listingEditorCtx.draft.productId);
+    if (!master || !master.masterFacts) {
+      wrap.innerHTML = '<div class="le-emp-empty">먼저 ① 기본정보 탭에서 모제품(마스터)를 선택하세요.</div>';
+      return;
+    }
+    const f = master.masterFacts;
+    const groups = [
+      ['keySpecs', '핵심 수치'],
+      ['sellingPoints', '소구점'],
+      ['targetUses', '용도'],
+      ['certifications', '인증'],
+      ['composition', '성분·구성'],
+    ];
+    const checked = new Set(listingEditorCtx.draft.emphasizedFactIds || []);
+    groups.forEach(([key, title]) => {
+      const items = (f[key] || []).filter(it => it.approved !== false);
+      const grp = document.createElement('div');
+      grp.className = 'le-emp-group';
+      const head = document.createElement('div');
+      head.className = 'le-emp-head';
+      head.innerHTML = `<span>${escapeHtml(title)}</span><span class="le-emp-count">${items.filter(it => checked.has(it.id)).length} / ${items.length}</span>`;
+      grp.appendChild(head);
+      const body = document.createElement('div');
+      body.className = 'le-emp-body';
+      if (!items.length) {
+        const emp = document.createElement('div');
+        emp.className = 'le-emp-empty';
+        emp.textContent = `없음 — 마스터에서 추출/추가 후 다시 열어주세요`;
+        body.appendChild(emp);
+      } else {
+        items.forEach(it => {
+          const row = document.createElement('label');
+          row.className = 'le-emp-row' + (checked.has(it.id) ? ' le-emp-checked' : '');
+          const text = key === 'keySpecs'
+            ? `<b>${escapeHtml(it.label || '')}</b>: ${escapeHtml(it.value || '')} ${escapeHtml(it.unit || '')}`
+            : key === 'certifications'
+              ? `<b>${escapeHtml(it.name || '')}</b>${it.agency ? ` (${escapeHtml(it.agency)})` : ''}`
+              : escapeHtml(it.text || '');
+          row.innerHTML = `
+            <input type="checkbox" ${checked.has(it.id) ? 'checked' : ''} />
+            <div class="le-emp-text">${text}${it.source ? `<span class="le-emp-source">${escapeHtml(it.source)}</span>` : ''}</div>
+          `;
+          row.querySelector('input').addEventListener('change', e => {
+            const ids = listingEditorCtx.draft.emphasizedFactIds || [];
+            if (e.target.checked) { if (!ids.includes(it.id)) ids.push(it.id); }
+            else { const i = ids.indexOf(it.id); if (i >= 0) ids.splice(i, 1); }
+            listingEditorCtx.draft.emphasizedFactIds = ids;
+            row.classList.toggle('le-emp-checked', e.target.checked);
+            const cnt = head.querySelector('.le-emp-count');
+            if (cnt) {
+              const set = new Set(listingEditorCtx.draft.emphasizedFactIds || []);
+              cnt.textContent = `${items.filter(x => set.has(x.id)).length} / ${items.length}`;
+            }
+          });
+          body.appendChild(row);
+        });
+      }
+      grp.appendChild(body);
+      wrap.appendChild(grp);
+    });
+  }
+  function renderListingVibeGrid() {
+    const grid = document.getElementById('leVibeGrid');
+    grid.innerHTML = '';
+    VIBE_PRESETS.forEach(v => {
+      const card = document.createElement('div');
+      card.className = 'le-vibe-card';
+      card.dataset.vibe = v.id;
+      card.innerHTML = `
+        <div class="le-vibe-swatches">
+          <span class="le-vibe-swatch" style="background:${v.primaryColor};" title="primary"></span>
+          <span class="le-vibe-swatch" style="background:${v.secondaryColor};" title="secondary"></span>
+          <span class="le-vibe-swatch" style="background:${v.accentColor};" title="accent"></span>
+        </div>
+        <div class="le-vibe-name">${v.emoji} ${escapeHtml(v.name)}</div>
+        <div class="le-vibe-target">${escapeHtml(v.target)}</div>
+        <div class="le-vibe-keywords">${v.visualKeywords.map(k => `<span>${escapeHtml(k)}</span>`).join('')}</div>
+      `;
+      card.addEventListener('click', () => setListingVibe(v.id));
+      grid.appendChild(card);
+    });
+  }
+  function setListingVibe(id, skipDirty) {
+    if (!listingEditorCtx) return;
+    listingEditorCtx.draft.vibe = id;
+    document.querySelectorAll('#leVibeGrid .le-vibe-card').forEach(c => {
+      c.classList.toggle('le-vibe-active', c.dataset.vibe === id);
+    });
+    const v = findVibe(id);
+    if (!skipDirty) {
+      // 사용자가 클릭한 경우 — 미세조정 컬러 리셋
+      listingEditorCtx.draft.customColors = { primary: '', secondary: '' };
+      document.getElementById('leCustomPrimary').value = v.primaryColor;
+      document.getElementById('leCustomPrimaryText').value = '';
+    }
+  }
+  function renderListingDetailStatus() {
+    const ctx = listingEditorCtx; if (!ctx) return;
+    // 템플릿 셀렉트
+    const tplSel = document.getElementById('leDetailTemplate');
+    tplSel.innerHTML = '<option value="">— 템플릿 선택 —</option>';
+    (state.templates || []).forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.id; opt.textContent = `📐 ${t.name} (슬롯 ${(t.slots || []).length})`;
+      tplSel.appendChild(opt);
+    });
+    // 상태 표시
+    const status = document.getElementById('leDetailStatus');
+    const openBtn = document.getElementById('leOpenDetail');
+    if (ctx.draft.detailPageInstanceId) {
+      const inst = instancesCache.find(i => i.id === ctx.draft.detailPageInstanceId);
+      if (inst) {
+        const filled = Object.keys(inst.slots || {}).length;
+        const tpl = (state.templates || []).find(t => t.id === inst.templateId);
+        const total = tpl ? (tpl.slots || []).length : 0;
+        status.innerHTML = `✓ 연결됨 — <b>${escapeHtml(inst.name)}</b> · ${filled}/${total} 슬롯 채움`;
+        openBtn.style.display = '';
+        openBtn.onclick = () => { closeModal('listingEditor'); listingEditorCtx = null; openInstanceEditor(inst.id); };
+        return;
+      }
+    }
+    status.textContent = '아직 생성된 상세페이지가 없습니다. 템플릿을 선택하고 자동 생성 버튼을 눌러주세요.';
+    openBtn.style.display = 'none';
+  }
+
+  // ── 상품 → 상세페이지 자동 생성 (마스터 facts + 강조 + vibe → 슬롯 카피)
+  async function generateDetailFromListing() {
+    const ctx = listingEditorCtx; if (!ctx) return;
+    const tplId = document.getElementById('leDetailTemplate').value;
+    if (!tplId) { toast('템플릿을 선택하세요', 'error'); return; }
+    const tpl = (state.templates || []).find(t => t.id === tplId);
+    if (!tpl || !(tpl.slots || []).length) { toast('템플릿이 비어있습니다', 'error'); return; }
+    const master = productsCache.find(p => p.id === ctx.draft.productId);
+    if (!master) { toast('마스터 제품을 선택하세요', 'error'); switchListingTab('basic'); return; }
+    if (!master.masterFacts || countTotalFacts(master.masterFacts) === 0) {
+      toast('마스터 제품의 사실 카드가 비어있습니다 — 먼저 제품 편집기에서 사실 추출을 진행하세요', 'error'); return;
+    }
+    await loadClaudeProxyConfig();
+    if (!claudeProxyConfig || !claudeProxyConfig.workerUrl || !claudeProxyConfig.workerSecret || !claudeProxyConfig.claudeApiKey) {
+      toast('⚙ Claude 자동채우기 설정이 필요합니다 (페이지 모드에서 설정)', 'error');
+      return;
+    }
+    const status = document.getElementById('leDetailGenStatus');
+    const btn = document.getElementById('leGenerateDetail');
+    btn.disabled = true;
+    status.style.color = '#1E40AF';
+    status.textContent = '🤖 마스터 사실 + 강조 + vibe로 슬롯 카피 생성 중... (1~2분)';
+    try {
+      // facts 텍스트화
+      const factsText = serializeFactsForListing(master, ctx.draft);
+      const vibe = findVibe(ctx.draft.vibe);
+      const sysPrompt = [
+        '당신은 한국어 제품 상세페이지 슬롯 카피 작성 전문가입니다.',
+        '제공된 마스터 사실 + 강조 사실 + 통디자인(vibe)을 종합해 슬롯에 들어갈 카피를 작성하세요.',
+        '',
+        '【엄격 규칙】',
+        '1. 마스터 사실에 없는 수치·주장은 절대 만들지 마세요. 없으면 value=null.',
+        '2. 강조 사실은 헤드라인·소구점에 우선 배치.',
+        `3. 통디자인 톤: ${vibe.name} (${vibe.target}) — 키워드 ${vibe.visualKeywords.join(', ')}. 카피 톤이 이 분위기와 일관되어야 함.`,
+        '4. 슬롯 type에 맞게 작성 (text=한 줄, textarea=2~5문장, link=URL, image=이미지URL).',
+        '5. 이미지 슬롯은 자료에서 URL을 추출 못 하면 value=null (직접 채울 수 있도록).',
+        '',
+        '【출력 JSON 스키마】 — JSON 외 텍스트 금지. 코드펜스 금지.',
+        '{ "slots": { "<slotKey>": { "value": "<문자열 또는 null>", "kind": "fact|crafted|none", "reasoning": "<짧은 근거>" } }, "summary": "<1~2문장>" }',
+      ].join('\n');
+      const userText = [
+        `【모제품】 ${master.name}`,
+        `【상품】 ${ctx.draft.listingName} — 적용기재: ${ctx.draft.targetSubstrate || '미지정'}`,
+        ctx.draft.customSlogan ? `【슬로건】 ${ctx.draft.customSlogan}` : '',
+        `【통디자인 vibe】 ${vibe.emoji} ${vibe.name} — ${vibe.target}`,
+        `【비주얼 키워드】 ${vibe.visualKeywords.join(', ')}`,
+        '',
+        '【슬롯 정의】',
+        JSON.stringify((tpl.slots || []).map(s => ({ key: s.key, type: s.type, label: s.label || s.key })), null, 2),
+        '',
+        '【마스터 사실 + 강조 표시】',
+        factsText,
+        '',
+        '위 정보로 모든 슬롯에 카피를 작성해 JSON으로만 응답하세요. 강조(★) 표시된 사실을 헤드라인·소구점에 우선 배치하세요.',
+      ].filter(Boolean).join('\n');
+      const r = await fetch(claudeProxyConfig.workerUrl.replace(/\/$/, ''), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Worker-Secret': claudeProxyConfig.workerSecret },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 16384,
+          system: sysPrompt,
+          messages: [{ role: 'user', content: userText }],
+          claudeApiKey: claudeProxyConfig.claudeApiKey,
+        }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+      const json = extractClaudeJson(data);
+      const slotsObj = json.slots || {};
+      const filledSlots = {};
+      (tpl.slots || []).forEach(s => {
+        const v = slotsObj[s.key];
+        if (v && v.value !== null && v.value !== undefined && String(v.value).trim() !== '') {
+          filledSlots[s.key] = String(v.value);
+        }
+      });
+      // 공유 이미지 자동 주입 (옵션 A — 마스터에서 참조)
+      if (master.sharedImages) {
+        const map = { cert_image: 'cert', dataChart: 'dataChart', patent: 'patent' };
+        Object.keys(map).forEach(slotKey => {
+          const sharedKey = map[slotKey];
+          if (master.sharedImages[sharedKey] && master.sharedImages[sharedKey].url
+              && (tpl.slots || []).some(s => s.key === slotKey)
+              && !filledSlots[slotKey]) {
+            filledSlots[slotKey] = master.sharedImages[sharedKey].url;
+          }
+        });
+      }
+      // 인스턴스 생성
+      const newInst = {
+        id: 'inst-' + Math.random().toString(36).slice(2, 10),
+        templateId: tpl.id,
+        name: ctx.draft.listingName + ' — 상세페이지',
+        slots: filledSlots,
+        sourceListingId: ctx.draft.id,
+        sourceMasterProductId: master.id,
+        vibe: ctx.draft.vibe,
+      };
+      const ok = await saveInstance(newInst);
+      if (!ok) throw new Error('인스턴스 저장 실패');
+      ctx.draft.detailPageInstanceId = newInst.id;
+      const usage = data.usage || {};
+      const tokenInfo = usage.input_tokens ? ` · 토큰 ${usage.input_tokens}/${usage.output_tokens}` : '';
+      status.style.color = '#059669';
+      status.textContent = `✅ 생성 완료 — ${Object.keys(filledSlots).length}/${(tpl.slots || []).length} 슬롯 채움${tokenInfo}${json.summary ? ' · ' + json.summary : ''}`;
+      renderListingDetailStatus();
+    } catch (e) {
+      console.error('[listing] 자동 생성 실패:', e);
+      status.style.color = '#B91C1C';
+      status.textContent = '❌ 실패: ' + (e.message || '알 수 없는 오류');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+  function serializeFactsForListing(master, listing) {
+    const f = master.masterFacts || {};
+    const emp = new Set(listing.emphasizedFactIds || []);
+    const out = [];
+    const renderItem = (it, fmt) => {
+      const star = emp.has(it.id) ? '★ ' : '  ';
+      return `${star}${fmt(it)}${it.source ? ` (출처: ${it.source})` : ''}`;
+    };
+    const groups = [
+      ['keySpecs', '핵심 수치', it => `${it.label}: ${it.value}${it.unit ? ' ' + it.unit : ''}`],
+      ['sellingPoints', '소구점', it => it.text],
+      ['targetUses', '용도', it => it.text],
+      ['certifications', '인증', it => `${it.name}${it.agency ? ' (' + it.agency + ')' : ''}`],
+      ['composition', '성분·구성', it => it.text],
+      ['cautions', '주의', it => it.text],
+    ];
+    groups.forEach(([k, title, fmt]) => {
+      const items = (f[k] || []).filter(it => it.approved !== false);
+      if (!items.length) return;
+      out.push(`\n[${title}]`);
+      items.forEach(it => out.push(renderItem(it, fmt)));
+    });
+    return out.join('\n') + '\n\n※ ★ 표시된 사실은 이 상품에서 강조해야 할 항목입니다.';
+  }
+
+  // ── 상품 저장
+  async function saveListingEditor() {
+    const ctx = listingEditorCtx; if (!ctx) return;
+    const masterId = document.getElementById('leMaster').value;
+    const name = document.getElementById('leName').value.trim();
+    if (!masterId) { toast('모제품을 선택하세요', 'error'); switchListingTab('basic'); return; }
+    if (!name) { toast('상품명을 입력하세요', 'error'); switchListingTab('basic'); return; }
+    ctx.draft.productId = masterId;
+    ctx.draft.targetSubstrate = document.getElementById('leSubstrate').value;
+    ctx.draft.listingName = name;
+    ctx.draft.cafe24ProductNo = document.getElementById('leCafe24').value.trim().replace(/[^0-9]/g, '');
+    ctx.draft.customSlogan = document.getElementById('leSlogan').value.trim();
+    ctx.draft.searchKeywords = document.getElementById('leKeywords').value.split(',').map(s => s.trim()).filter(Boolean);
+    ctx.draft.colorOptions = document.getElementById('leColors').value.split(',').map(s => s.trim()).filter(Boolean);
+    const customPrim = document.getElementById('leCustomPrimaryText').value.trim();
+    ctx.draft.customColors = { primary: /^#[0-9A-F]{6}$/i.test(customPrim) ? customPrim : '', secondary: '' };
+    ctx.draft.thumbnailImageUrl = document.getElementById('leThumbnail').value.trim();
+    const ok = await saveListing(ctx.draft);
+    if (ok) {
+      closeModal('listingEditor');
+      listingEditorCtx = null;
+      renderListingList();
+      toast('상품 저장됨', 'success');
+    }
+  }
+
+  // ── 자식 상품 분기 제안 모달
+  let branchSuggestCtx = null;
+  function openBranchSuggestModal() {
+    branchSuggestCtx = { masterId: '', selected: new Set() };
+    const sel = document.getElementById('bsMaster');
+    sel.innerHTML = '<option value="">— 모제품 선택 —</option>';
+    productsCache.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id; opt.textContent = `📦 ${p.name || p.productCode}`;
+      sel.appendChild(opt);
+    });
+    document.getElementById('bsSubstrateSection').style.display = 'none';
+    document.getElementById('bsSuggestSection').style.display = 'none';
+    document.getElementById('bsCreate').disabled = true;
+    document.getElementById('bsHint').textContent = '마스터 선택 시 적용기재가 표시됩니다.';
+    openModal('branchSuggestModal');
+  }
+  function onBranchMasterChange() {
+    const id = document.getElementById('bsMaster').value;
+    branchSuggestCtx.masterId = id;
+    if (!id) {
+      document.getElementById('bsSubstrateSection').style.display = 'none';
+      document.getElementById('bsSuggestSection').style.display = 'none';
+      document.getElementById('bsCreate').disabled = true;
+      return;
+    }
+    const master = productsCache.find(p => p.id === id);
+    const substrates = (master && master.masterFacts && master.masterFacts.compatibleSubstrates || [])
+      .filter(s => s.approved !== false).map(s => s.name);
+    const subWrap = document.getElementById('bsSubstrateList');
+    subWrap.innerHTML = '';
+    if (!substrates.length) {
+      subWrap.innerHTML = '<span style="font-size:12px; color:#B91C1C;">⚠ 마스터의 적용기재가 비어있습니다 — 제품 편집기 ③ 사실 카드에서 추가하세요.</span>';
+      document.getElementById('bsSubstrateSection').style.display = '';
+      document.getElementById('bsSuggestSection').style.display = 'none';
+      document.getElementById('bsCreate').disabled = true;
+      return;
+    }
+    substrates.forEach(s => {
+      const chip = document.createElement('span');
+      chip.className = 'pe-chip'; chip.textContent = s;
+      subWrap.appendChild(chip);
+    });
+    document.getElementById('bsSubstrateSection').style.display = '';
+    // 제안 생성 (기재 → 상품명 휴리스틱)
+    const suggestList = document.getElementById('bsSuggestList');
+    suggestList.innerHTML = '';
+    branchSuggestCtx.selected = new Set();
+    substrates.forEach(s => {
+      const suggest = suggestListingForSubstrate(master, s);
+      const id2 = 'sub-' + s;
+      const row = document.createElement('div');
+      row.className = 'lb-suggest-row';
+      row.innerHTML = `
+        <input type="checkbox" data-substrate="${escapeHtml(s)}" />
+        <div>
+          <div class="lb-suggest-name">${escapeHtml(suggest.listingName)}</div>
+          <div class="lb-suggest-meta">기재: ${escapeHtml(s)} · 슬로건: ${escapeHtml(suggest.slogan)}</div>
+        </div>
+        <span class="lb-suggest-vibe" style="background:${findVibe(suggest.vibe).bgColor}; color:${findVibe(suggest.vibe).primaryColor};">${findVibe(suggest.vibe).emoji} ${escapeHtml(findVibe(suggest.vibe).name)}</span>
+      `;
+      row.dataset.suggest = JSON.stringify(suggest);
+      row.querySelector('input').addEventListener('change', e => {
+        if (e.target.checked) branchSuggestCtx.selected.add(s);
+        else branchSuggestCtx.selected.delete(s);
+        row.classList.toggle('lb-suggest-checked', e.target.checked);
+        document.getElementById('bsCreate').disabled = branchSuggestCtx.selected.size === 0;
+        document.getElementById('bsHint').textContent = `${branchSuggestCtx.selected.size}개 상품 생성 예정`;
+      });
+      suggestList.appendChild(row);
+    });
+    document.getElementById('bsSuggestSection').style.display = '';
+    document.getElementById('bsCreate').disabled = true;
+    document.getElementById('bsHint').textContent = '체크한 항목만 일괄 생성됩니다.';
+  }
+  function suggestListingForSubstrate(master, substrate) {
+    // 휴리스틱 — 기재명 기반 vibe + 상품명 + 슬로건
+    const vibeMap = {
+      '목재': 'warm-natural', '우드': 'warm-natural', '데크': 'warm-natural',
+      '철재': 'cool-tech', '금속': 'cool-tech', '스틸': 'cool-tech',
+      '벽돌': 'earth-rough', '외벽': 'earth-rough', '석재': 'earth-rough',
+      '벽체': 'clean-bright', '실내': 'clean-bright', '천장': 'clean-bright',
+      '콘크리트': 'bold-industrial', '바닥': 'bold-industrial',
+    };
+    let vibeId = 'warm-natural';
+    Object.keys(vibeMap).forEach(k => { if (substrate.includes(k)) vibeId = vibeMap[k]; });
+    const productKind = (master.name || '').includes('도료') || (master.name || '').includes('페인트') || (master.name || '').includes('코트')
+      ? '페인트' : '용';
+    const listingName = `${substrate}${productKind}`;
+    const sloganMap = {
+      '목재': `오래가는 ${substrate} 마감 — 자외선·수분 차단`,
+      '철재': `녹슬지 않는 ${substrate} 보호 — 부착·내구성 강화`,
+      '벽돌': `${substrate} 외장 미관 + 방수 — 한 번에`,
+      '벽체': `깔끔한 ${substrate} 마감 — 친환경·무취`,
+      '콘크리트': `${substrate}용 강한 보호막 — 마모 저항`,
+    };
+    let slogan = '';
+    Object.keys(sloganMap).forEach(k => { if (!slogan && substrate.includes(k)) slogan = sloganMap[k]; });
+    if (!slogan) slogan = `${substrate}용 — ${master.name} 기반`;
+    return { listingName, slogan, vibe: vibeId, substrate };
+  }
+  async function createSuggestedListings() {
+    const ctx = branchSuggestCtx; if (!ctx || !ctx.masterId) return;
+    const rows = document.querySelectorAll('#bsSuggestList .lb-suggest-row');
+    const toCreate = [];
+    rows.forEach(row => {
+      if (!row.querySelector('input').checked) return;
+      const s = JSON.parse(row.dataset.suggest);
+      toCreate.push(s);
+    });
+    if (!toCreate.length) return;
+    if (!confirm(`${toCreate.length}개 상품을 생성합니다. 진행할까요?`)) return;
+    document.getElementById('bsCreate').disabled = true;
+    document.getElementById('bsHint').textContent = '생성 중...';
+    let ok = 0, fail = 0;
+    for (const s of toCreate) {
+      const lst = newListing();
+      lst.productId = ctx.masterId;
+      lst.listingName = s.listingName;
+      lst.targetSubstrate = s.substrate;
+      lst.customSlogan = s.slogan;
+      lst.vibe = s.vibe;
+      const success = await saveListing(lst);
+      if (success) ok++; else fail++;
+    }
+    closeModal('branchSuggestModal');
+    branchSuggestCtx = null;
+    renderListingList();
+    refreshProductDashboard();
+    toast(`완료 — 성공 ${ok}건${fail ? ` / 실패 ${fail}건` : ''}`, fail ? 'info' : 'success');
+  }
+
+  // ── wire-up
+  function wireListingsAndDashboard() {
+    // 모드 토글 탭
+    document.querySelectorAll('.mode-tab').forEach(t => {
+      t.addEventListener('click', () => setAppMode(t.dataset.mode));
+    });
+    // 대시보드 카드
+    document.getElementById('btnDashNewProduct').addEventListener('click', () => openProductEditor(null));
+    document.getElementById('btnDashNewListing').addEventListener('click', () => openListingEditor(null));
+    document.getElementById('dashOpenProducts').addEventListener('click', openProductsModal);
+    document.getElementById('dashOpenListings').addEventListener('click', openListingsModal);
+    document.getElementById('dashOpenInstances').addEventListener('click', openInstancesModal);
+    document.getElementById('dashOpenTemplates').addEventListener('click', openTemplatesModal);
+    // 상품 목록 모달
+    document.getElementById('btnListings').addEventListener('click', openListingsModal);
+    document.getElementById('lstClose').addEventListener('click', () => closeModal('listingsModal'));
+    document.getElementById('lstCloseFoot').addEventListener('click', () => closeModal('listingsModal'));
+    document.getElementById('lstNew').addEventListener('click', () => openListingEditor(null));
+    document.getElementById('lstSuggestBranches').addEventListener('click', openBranchSuggestModal);
+    // 상품 편집기
+    document.querySelectorAll('#listingEditor .le-tab').forEach(b => {
+      b.addEventListener('click', () => switchListingTab(b.dataset.tab));
+    });
+    document.getElementById('leMaster').addEventListener('change', onListingMasterChange);
+    document.getElementById('leClose').addEventListener('click', () => { closeModal('listingEditor'); listingEditorCtx = null; });
+    document.getElementById('leCancel').addEventListener('click', () => { closeModal('listingEditor'); listingEditorCtx = null; });
+    document.getElementById('leSave').addEventListener('click', saveListingEditor);
+    document.getElementById('leDelete').addEventListener('click', async () => {
+      if (listingEditorCtx && listingEditorCtx.mode === 'edit') {
+        await deleteListing(listingEditorCtx.draft.id);
+        if (!listingsCache.find(l => l.id === listingEditorCtx.draft.id)) {
+          closeModal('listingEditor'); listingEditorCtx = null;
+        }
+      }
+    });
+    document.getElementById('leGenerateDetail').addEventListener('click', generateDetailFromListing);
+    document.getElementById('leResetPrimary').addEventListener('click', () => {
+      if (!listingEditorCtx) return;
+      const v = findVibe(listingEditorCtx.draft.vibe);
+      document.getElementById('leCustomPrimary').value = v.primaryColor;
+      document.getElementById('leCustomPrimaryText').value = '';
+      listingEditorCtx.draft.customColors = { primary: '', secondary: '' };
+    });
+    const cp = document.getElementById('leCustomPrimary');
+    cp.addEventListener('input', () => { document.getElementById('leCustomPrimaryText').value = cp.value.toUpperCase(); });
+    // 분기 제안 모달
+    document.getElementById('bsClose').addEventListener('click', () => closeModal('branchSuggestModal'));
+    document.getElementById('bsCancel').addEventListener('click', () => closeModal('branchSuggestModal'));
+    document.getElementById('bsMaster').addEventListener('change', onBranchMasterChange);
+    document.getElementById('bsCreate').addEventListener('click', createSuggestedListings);
+  }
+
   // -------- 상세페이지 인스턴스 (Step C) --------
   // 인스턴스는 별도 컬렉션(pourstore-renewal-instances)에 1개=1문서로 저장.
   // state.instancesCache는 메모리 캐시용으로만 쓰고 Firestore 빌더 문서에는 안 들어감.
@@ -9381,6 +10166,11 @@ show('entry');
     document.getElementById('prCloseFoot').addEventListener('click', () => closeModal('productsModal'));
     document.getElementById('prNew').addEventListener('click', () => openProductEditor(null));
     wireProductEditor();
+
+    // 🏷 상품(Listings) + 모드 토글 + 대시보드
+    wireListingsAndDashboard();
+    // 페이지 로드 시 마지막 모드 복원
+    loadAppMode();
 
     // 상세페이지 인스턴스 모달
     document.getElementById('btnInstances').addEventListener('click', openInstancesModal);

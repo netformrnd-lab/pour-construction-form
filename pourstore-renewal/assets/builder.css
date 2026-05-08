@@ -228,6 +228,18 @@ details.howto-card.sync-info > summary::after { color: var(--green-d); }
 .ie-slot-thumb { margin-top: 6px; padding: 6px; background: var(--light); border-radius: 6px; display: inline-block; }
 .ie-slot-thumb img { max-width: 120px; max-height: 90px; object-fit: contain; display: block; }
 
+/* Step D: 이미지 드래그업로드 */
+.ie-image-drop { border: 2px dashed #E8780F; background: rgba(232,120,15,0.05); border-radius: 8px; padding: 12px; text-align: center; cursor: pointer; margin-bottom: 6px; transition: background .15s, border-color .15s; outline: none; }
+.ie-image-drop:hover, .ie-image-drop:focus-visible { background: rgba(232,120,15,0.10); }
+.ie-image-drop.dragover { background: rgba(232,120,15,0.18); border-color: #C56708; }
+.ie-image-drop-hint { font-size: 12px; color: var(--ink2); font-weight: 600; line-height: 1.5; }
+.ie-image-pick { display: inline-block; background: #E8780F; color: #fff; border: 0; padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; margin: 0 2px; }
+.ie-image-pick:hover { background: #C56708; }
+.ie-image-progress { display: none; font-size: 11px; margin-top: 6px; font-weight: 700; }
+.ie-image-progress.uploading { display: block; color: #B45309; }
+.ie-image-progress.success { display: block; color: #03C75A; }
+.ie-image-progress.error { display: block; color: #DC2626; }
+
 @media (max-width: 880px) {
   .ie-grid { grid-template-columns: 1fr; height: auto; }
   .ie-field-row { grid-template-columns: 1fr; }

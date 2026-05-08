@@ -7176,7 +7176,14 @@ show('entry');
         inputHtml = `<textarea class="ie-slot-input" data-key="${escapeHtml(s.key)}" placeholder="${escapeHtml(s.defaultValue || '')}" rows="3">${escapeHtml(val)}</textarea>`;
       } else if (s.type === 'image') {
         inputHtml = `
-          <input type="text" class="ie-slot-input" data-key="${escapeHtml(s.key)}" value="${escapeHtml(val)}" placeholder="이미지 URL (https://...) — Step D에서 드래그업로드 추가 예정" />
+          <div class="ie-image-drop" data-key="${escapeHtml(s.key)}" tabindex="0" role="button" aria-label="이미지 업로드">
+            <input type="file" class="ie-image-file" accept="image/*" data-key="${escapeHtml(s.key)}" hidden />
+            <div class="ie-image-drop-hint">
+              🖼️ 이미지를 끌어다 놓거나 <button type="button" class="ie-image-pick" data-key="${escapeHtml(s.key)}">파일 선택</button>
+            </div>
+            <div class="ie-image-progress" data-key="${escapeHtml(s.key)}"></div>
+          </div>
+          <input type="text" class="ie-slot-input" data-key="${escapeHtml(s.key)}" value="${escapeHtml(val)}" placeholder="이미지 URL (https://...) — 직접 입력도 가능" />
           ${val ? `<div class="ie-slot-thumb"><img src="${escapeHtml(val)}" alt="" onerror="this.style.opacity='.3';this.title='이미지를 불러올 수 없음'" /></div>` : ''}
         `;
       } else if (s.type === 'link') {
@@ -7199,7 +7206,134 @@ show('entry');
         if (s.type === 'image') renderInstanceSlots();
         refreshInstancePreview();
       });
+      if (s.type === 'image') wireImageDrop(row, s.key);
       wrap.appendChild(row);
+    });
+  }
+
+  // -------- Step D: 이미지 드래그업로드 (Firebase Storage) --------
+  function wireImageDrop(row, slotKey) {
+    const drop = row.querySelector('.ie-image-drop');
+    const fileInput = row.querySelector('.ie-image-file');
+    const pickBtn = row.querySelector('.ie-image-pick');
+    if (!drop || !fileInput) return;
+
+    const openPicker = () => fileInput.click();
+    drop.addEventListener('click', e => {
+      if (e.target === pickBtn) return; // pickBtn 자체 클릭은 별도 처리
+      openPicker();
+    });
+    if (pickBtn) pickBtn.addEventListener('click', e => { e.stopPropagation(); openPicker(); });
+    drop.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPicker(); }
+    });
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragover'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+    drop.addEventListener('drop', e => {
+      e.preventDefault();
+      drop.classList.remove('dragover');
+      const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (file) handleImageFile(slotKey, file);
+    });
+    fileInput.addEventListener('change', e => {
+      const file = e.target.files && e.target.files[0];
+      if (file) handleImageFile(slotKey, file);
+      e.target.value = ''; // 같은 파일 재선택 가능
+    });
+  }
+
+  async function handleImageFile(slotKey, file) {
+    if (!file.type.startsWith('image/')) {
+      toast('이미지 파일만 업로드할 수 있습니다', 'error'); return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      toast('파일이 너무 큽니다 (최대 20MB)', 'error'); return;
+    }
+    const progEl = document.querySelector(`.ie-image-progress[data-key="${cssEscape(slotKey)}"]`);
+    const setProg = (msg, cls) => {
+      if (!progEl) return;
+      progEl.textContent = msg;
+      progEl.className = 'ie-image-progress' + (cls ? ' ' + cls : '');
+      progEl.dataset.key = slotKey;
+    };
+    try {
+      setProg('이미지 처리 중...', 'uploading');
+      const { blob, mime } = await resizeImageToBlob(file);
+      const url = await uploadImageToStorage(blob, mime, slotKey, (instanceEditorCtx && instanceEditorCtx.id) || 'tmp', pct => {
+        setProg(`업로드 ${Math.round(pct)}%`, 'uploading');
+      });
+      // 슬롯 값 갱신 + 폼 재렌더
+      instanceEditorCtx.slots = instanceEditorCtx.slots || {};
+      instanceEditorCtx.slots[slotKey] = url;
+      renderInstanceSlots();
+      refreshInstancePreview();
+      toast('이미지 업로드 완료', 'success');
+    } catch (e) {
+      console.error('[image-upload] 실패:', e);
+      const msg = (e && e.code) ? e.code : (e && e.message) || '알 수 없는 오류';
+      setProg('업로드 실패: ' + msg, 'error');
+      toast('업로드 실패: ' + msg, 'error');
+    }
+  }
+
+  function cssEscape(s) {
+    if (window.CSS && CSS.escape) return CSS.escape(s);
+    return String(s).replace(/["\\]/g, '\\$&');
+  }
+
+  async function resizeImageToBlob(file, maxDim = 1600, quality = 0.85) {
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+    const img = await new Promise((resolve, reject) => {
+      const im = new Image();
+      im.onload = () => resolve(im);
+      im.onerror = reject;
+      im.src = dataUrl;
+    });
+    let w = img.naturalWidth, h = img.naturalHeight;
+    if (w > maxDim || h > maxDim) {
+      const r = Math.min(maxDim / w, maxDim / h);
+      w = Math.round(w * r); h = Math.round(h * r);
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    const isPng = file.type === 'image/png';
+    const mime = isPng ? 'image/png' : 'image/jpeg';
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('canvas toBlob 실패')),
+        mime, isPng ? undefined : quality);
+    });
+    return { blob, mime };
+  }
+
+  async function uploadImageToStorage(blob, mime, slotKey, instanceId, onProgress) {
+    if (typeof firebase === 'undefined' || !firebase.storage) {
+      throw new Error('Firebase Storage SDK가 로드되지 않았습니다');
+    }
+    const ext = mime === 'image/png' ? 'png' : 'jpg';
+    const safeKey = String(slotKey || 'image').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const safeId = String(instanceId || 'tmp').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const path = `pourstore-detail/${safeId}/${safeKey}-${Date.now()}.${ext}`;
+    const ref = firebase.storage().ref().child(path);
+    const task = ref.put(blob, { contentType: mime, cacheControl: 'public, max-age=31536000' });
+    return new Promise((resolve, reject) => {
+      task.on('state_changed',
+        snap => {
+          if (onProgress && snap.totalBytes) {
+            onProgress(snap.bytesTransferred / snap.totalBytes * 100);
+          }
+        },
+        err => reject(err),
+        async () => {
+          try { resolve(await task.snapshot.ref.getDownloadURL()); }
+          catch (e) { reject(e); }
+        }
+      );
     });
   }
   function slotTypeLabel(t) {

@@ -7707,6 +7707,776 @@ show('entry');
     return true;
   }
 
+  // -------- 자료로 자동채우기 (Step E) --------
+  // Claude 프록시 워커 설정 (Firestore: app-config/claudeProxy) — defect-diagnosis와 공유
+  let claudeProxyConfig = null;
+  async function loadClaudeProxyConfig() {
+    if (!firebaseReady || !db) return null;
+    try {
+      const doc = await db.collection('app-config').doc('claudeProxy').get();
+      claudeProxyConfig = doc.exists ? doc.data() : null;
+      return claudeProxyConfig;
+    } catch (e) {
+      console.error('[claude-proxy] config 로드 실패:', e);
+      return null;
+    }
+  }
+  async function saveClaudeProxyConfig(cfg) {
+    if (!firebaseReady || !db) { toast('오프라인 — 저장 불가', 'error'); return false; }
+    try {
+      await db.collection('app-config').doc('claudeProxy').set({
+        workerUrl: cfg.workerUrl || '',
+        workerSecret: cfg.workerSecret || '',
+        updatedAt: nowIso(),
+      }, { merge: true });
+      claudeProxyConfig = cfg;
+      return true;
+    } catch (e) {
+      console.error('[claude-proxy] config 저장 실패:', e);
+      toast('저장 실패: ' + (e.code || e.message), 'error');
+      return false;
+    }
+  }
+  async function openClaudeConfigModal() {
+    await loadClaudeProxyConfig();
+    document.getElementById('ccUrl').value = (claudeProxyConfig && claudeProxyConfig.workerUrl) || '';
+    document.getElementById('ccSecret').value = (claudeProxyConfig && claudeProxyConfig.workerSecret) || '';
+    openModal('claudeConfigModal');
+  }
+  async function saveClaudeConfigEditor() {
+    const url = document.getElementById('ccUrl').value.trim();
+    const secret = document.getElementById('ccSecret').value.trim();
+    if (!url || !secret) { toast('URL과 시크릿 모두 입력하세요.', 'error'); return; }
+    if (!/^https?:\/\//.test(url)) { toast('URL은 http(s)://로 시작해야 합니다.', 'error'); return; }
+    const ok = await saveClaudeProxyConfig({ workerUrl: url.replace(/\/$/, ''), workerSecret: secret });
+    if (ok) {
+      closeModal('claudeConfigModal');
+      toast('Claude 설정 저장됨', 'success');
+    }
+  }
+  async function testClaudeConfig() {
+    const url = document.getElementById('ccUrl').value.trim().replace(/\/$/, '');
+    const secret = document.getElementById('ccSecret').value.trim();
+    if (!url || !secret) { toast('URL과 시크릿 모두 입력 후 테스트하세요.', 'error'); return; }
+    toast('연결 테스트 중...', 'info');
+    try {
+      // /fetch-url 으로 가벼운 테스트 (URL 누락 → 400 정상 응답이면 시크릿 통과)
+      const r = await fetch(url + '/fetch-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Worker-Secret': secret },
+        body: JSON.stringify({}),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (r.status === 401) { toast('❌ 시크릿이 워커와 일치하지 않습니다.', 'error'); return; }
+      if (r.status === 400) { toast('✅ 워커 연결 OK (시크릿 검증 통과)', 'success'); return; }
+      if (r.ok) { toast('✅ 워커 연결 OK', 'success'); return; }
+      toast(`연결됨 — HTTP ${r.status}: ${data.error || '응답 확인 필요'}`, 'info');
+    } catch (e) {
+      toast('연결 실패: ' + e.message, 'error');
+    }
+  }
+
+  // 자동채우기 상태
+  let autoFillCtx = null; // { ownPdfs:[{name,size,base64}], refPdfs:[...], stage:'input'|'result', suggestions:{...} }
+
+  function resetAutoFillCtx() {
+    autoFillCtx = { ownPdfs: [], refPdfs: [], suggestions: null, summary: '', selected: new Set() };
+  }
+
+  async function openAutoFillModal() {
+    if (!instanceEditorCtx) { toast('인스턴스 편집기에서만 열 수 있습니다.', 'error'); return; }
+    const tpl = findTemplate(instanceEditorCtx.templateId);
+    if (!tpl || !(tpl.slots || []).length) { toast('템플릿에 슬롯이 없습니다.', 'error'); return; }
+    await loadClaudeProxyConfig();
+    resetAutoFillCtx();
+    // UI 초기화
+    document.getElementById('afOwnText').value = '';
+    document.getElementById('afRefText').value = '';
+    document.getElementById('afRefUrls').value = '';
+    document.getElementById('afOwnFiles').innerHTML = '';
+    document.getElementById('afRefFiles').innerHTML = '';
+    document.getElementById('afOwnFile').value = '';
+    document.getElementById('afRefFile').value = '';
+    showAutoFillStage('input');
+    // 워커 설정 경고
+    const hasCfg = !!(claudeProxyConfig && claudeProxyConfig.workerUrl && claudeProxyConfig.workerSecret);
+    document.getElementById('afWarnConfig').style.display = hasCfg ? 'none' : 'block';
+    document.getElementById('afRun').disabled = !hasCfg;
+    openModal('autoFillModal');
+  }
+
+  function showAutoFillStage(stage) {
+    const isInput = stage === 'input';
+    document.getElementById('afInputStage').style.display = isInput ? '' : 'none';
+    document.getElementById('afResultStage').style.display = isInput ? 'none' : '';
+    document.getElementById('afRun').style.display = isInput ? '' : 'none';
+    document.getElementById('afApply').style.display = isInput ? 'none' : '';
+    document.getElementById('afBack').style.display = isInput ? 'none' : '';
+    document.getElementById('afFootHint').textContent = isInput
+      ? '우리 자료는 사실 추출, 타사 자료는 톤 참고만 사용됩니다.'
+      : '체크된 항목만 슬롯에 적용됩니다 — 적용 후에도 직접 편집 가능';
+  }
+
+  function fmtBytes(n) {
+    if (!n) return '';
+    if (n < 1024) return n + 'B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + 'KB';
+    return (n / (1024 * 1024)).toFixed(1) + 'MB';
+  }
+  function readPdfAsBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const s = reader.result;
+        const idx = s.indexOf(',');
+        resolve(idx >= 0 ? s.substring(idx + 1) : s);
+      };
+      reader.onerror = () => reject(new Error('PDF 읽기 실패'));
+      reader.readAsDataURL(file);
+    });
+  }
+  async function addAutoFillPdf(role, file) {
+    if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) {
+      toast('PDF 파일만 가능합니다', 'error'); return;
+    }
+    if (file.size > 30 * 1024 * 1024) {
+      toast('PDF가 너무 큽니다 (최대 30MB)', 'error'); return;
+    }
+    try {
+      const base64 = await readPdfAsBase64(file);
+      const list = role === 'own' ? autoFillCtx.ownPdfs : autoFillCtx.refPdfs;
+      list.push({ name: file.name, size: file.size, base64 });
+      renderAutoFillFiles(role);
+    } catch (e) {
+      console.error('[auto-fill] PDF 읽기 실패:', e);
+      toast('PDF 읽기 실패: ' + e.message, 'error');
+    }
+  }
+  function renderAutoFillFiles(role) {
+    const wrap = document.getElementById(role === 'own' ? 'afOwnFiles' : 'afRefFiles');
+    const list = role === 'own' ? autoFillCtx.ownPdfs : autoFillCtx.refPdfs;
+    wrap.innerHTML = '';
+    list.forEach((f, idx) => {
+      const row = document.createElement('div');
+      row.className = 'af-file';
+      row.innerHTML = `
+        <span class="af-file-icon">📄</span>
+        <span class="af-file-name" title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</span>
+        <span class="af-file-size">${fmtBytes(f.size)}</span>
+        <button type="button" class="af-file-rm" aria-label="제거">×</button>
+      `;
+      row.querySelector('.af-file-rm').addEventListener('click', () => {
+        list.splice(idx, 1);
+        renderAutoFillFiles(role);
+      });
+      wrap.appendChild(row);
+    });
+  }
+
+  function wireAutoFillDrop(dropId, fileInputId, pickBtnId, role) {
+    const drop = document.getElementById(dropId);
+    const fileInput = document.getElementById(fileInputId);
+    const pickBtn = document.getElementById(pickBtnId);
+    if (!drop || !fileInput) return;
+    const open = () => fileInput.click();
+    drop.addEventListener('click', e => { if (e.target !== pickBtn) open(); });
+    if (pickBtn) pickBtn.addEventListener('click', e => { e.stopPropagation(); open(); });
+    drop.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+    });
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragover'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+    drop.addEventListener('drop', async e => {
+      e.preventDefault();
+      drop.classList.remove('dragover');
+      const files = (e.dataTransfer && e.dataTransfer.files) || [];
+      for (const f of files) await addAutoFillPdf(role, f);
+    });
+    fileInput.addEventListener('change', async e => {
+      const files = e.target.files || [];
+      for (const f of files) await addAutoFillPdf(role, f);
+      e.target.value = '';
+    });
+  }
+
+  async function fetchUrlViaWorker(url) {
+    if (!claudeProxyConfig || !claudeProxyConfig.workerUrl || !claudeProxyConfig.workerSecret) {
+      throw new Error('Claude 워커 설정 없음');
+    }
+    const r = await fetch(claudeProxyConfig.workerUrl.replace(/\/$/, '') + '/fetch-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Worker-Secret': claudeProxyConfig.workerSecret },
+      body: JSON.stringify({ url }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    return data; // { text, title, url }
+  }
+
+  function buildAutoFillSystem() {
+    return [
+      '당신은 한국어 제품 상세페이지 슬롯 자동 채우기 전문가입니다.',
+      '두 종류의 자료를 받아 슬롯 정의에 맞는 값을 추출/작성하세요.',
+      '',
+      '【자료 종류】',
+      'A. 우리 제품 자료 (PDF / 텍스트) — 우리 제품의 사실(제품명·용량·수치·특징·효과·인증 등)을 추출하는 출처. 모든 구체적 사실은 반드시 이 자료에서만 가져옵니다.',
+      'B. 타사 참고 자료 (URL 본문 / PDF / 텍스트) — 헤드라인 톤, 섹션 구성, USP 프레이밍, 카피 패턴 참고용.',
+      '',
+      '【엄격 규칙】',
+      '1. 우리 제품 자료에서 확인되지 않는 사실(제품명·수치·인증·성능·가격·용량 등)은 절대 만들어내지 마세요. 없으면 value=null.',
+      '2. 타사 자료의 제품명·회사명·고유 수치·인증명·사진 캡션·고유 카피는 절대 그대로 인용 금지. 영감 받은 부분은 우리 제품에 맞게 자연스러운 한국어로 재작성하세요 (표절 방지).',
+      '3. 이미지 슬롯(image type)은 자료에서 직접 URL을 추출하지 못하면 value=null.',
+      '4. 한국어 어법으로 자연스럽게, 광고 톤 과장은 피하고 사실 기반.',
+      '5. 슬롯 type에 맞게 작성: text=한 줄(20자 내외), textarea=2~5문장, link=URL, image=이미지 URL.',
+      '',
+      '【출력 형식】',
+      '반드시 아래 JSON만 응답하세요. JSON 외 어떤 텍스트도 포함하지 마세요. ```json 코드펜스 사용 금지.',
+      '{',
+      '  "slots": {',
+      '    "<slotKey>": {',
+      '      "value": "<문자열 또는 null>",',
+      '      "kind": "own | rewrite | ref | none",',
+      '      "source": "<우리 자료 위치(예: PDF p.3) 또는 \'재작성\' 또는 null>",',
+      '      "reference": "<타사 참고 부분 또는 null>",',
+      '      "confidence": <0~1 사이 숫자>',
+      '    }',
+      '  },',
+      '  "summary": "<1~2문장 분석 요약>"',
+      '}',
+      '',
+      'kind 의미: own=우리 자료에서 그대로 추출 / rewrite=타사 톤 참고하되 우리 사실로 재작성 / ref=타사 구조에서 영감 / none=값 없음(null)',
+    ].join('\n');
+  }
+
+  function buildAutoFillUserContent(slots, ownText, refText, refUrlPages, ownPdfs, refPdfs) {
+    const blocks = [];
+    // 1) 슬롯 정의
+    const slotDefs = slots.map(s => ({
+      key: s.key,
+      type: s.type,
+      label: s.label || s.key,
+      defaultValue: s.defaultValue || '',
+    }));
+    blocks.push({
+      type: 'text',
+      text: '【슬롯 정의】 — 이 키들에 대해서만 값을 채우세요. 모르는 키는 응답에서 빼도 됩니다.\n' + JSON.stringify(slotDefs, null, 2),
+    });
+    // 2) 우리 자료 (PDF + 텍스트)
+    ownPdfs.forEach((p, i) => {
+      blocks.push({
+        type: 'text',
+        text: `【우리 제품 자료 PDF #${i + 1}】 파일명: ${p.name} — 사실 추출 출처`,
+      });
+      blocks.push({
+        type: 'document',
+        source: { type: 'base64', media_type: 'application/pdf', data: p.base64 },
+        cache_control: { type: 'ephemeral' },
+      });
+    });
+    if (ownText && ownText.trim()) {
+      blocks.push({
+        type: 'text',
+        text: '【우리 제품 자료 텍스트】 — 사실 추출 출처\n\n' + ownText.trim(),
+      });
+    }
+    // 3) 타사 참고 자료
+    refUrlPages.forEach((p, i) => {
+      const head = `【타사 참고 URL #${i + 1}】 출처: ${p.url}${p.title ? ` (제목: ${p.title})` : ''} — 구조·카피 톤만 참고, 사실 그대로 인용 금지`;
+      blocks.push({ type: 'text', text: head + '\n\n' + p.text });
+    });
+    refPdfs.forEach((p, i) => {
+      blocks.push({
+        type: 'text',
+        text: `【타사 참고 PDF #${i + 1}】 파일명: ${p.name} — 구조·카피 톤만 참고, 사실 그대로 인용 금지`,
+      });
+      blocks.push({
+        type: 'document',
+        source: { type: 'base64', media_type: 'application/pdf', data: p.base64 },
+        cache_control: { type: 'ephemeral' },
+      });
+    });
+    if (refText && refText.trim()) {
+      blocks.push({
+        type: 'text',
+        text: '【타사 참고 텍스트】 — 구조·카피 톤만 참고, 사실 그대로 인용 금지\n\n' + refText.trim(),
+      });
+    }
+    // 4) 응답 요청
+    blocks.push({
+      type: 'text',
+      text: '위 자료를 분석해 슬롯 정의의 모든 키에 대해 JSON으로만 응답하세요. 우리 자료에 없는 사실은 value=null로.',
+    });
+    return blocks;
+  }
+
+  async function callClaudeAutoFill(systemPrompt, content) {
+    if (!claudeProxyConfig || !claudeProxyConfig.workerUrl || !claudeProxyConfig.workerSecret) {
+      throw new Error('Claude 워커 설정 없음');
+    }
+    const r = await fetch(claudeProxyConfig.workerUrl.replace(/\/$/, ''), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Worker-Secret': claudeProxyConfig.workerSecret },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4096,
+        system: systemPrompt,
+        messages: [{ role: 'user', content }],
+      }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    return data;
+  }
+
+  function extractClaudeJson(claudeResp) {
+    const out = (claudeResp && claudeResp.content) || [];
+    let text = '';
+    for (const c of out) {
+      if (c.type === 'text' && typeof c.text === 'string') text += c.text;
+    }
+    text = text.trim();
+    // 코드펜스 제거
+    text = text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+    // 첫 { 부터 마지막 } 까지만 추출
+    const first = text.indexOf('{');
+    const last = text.lastIndexOf('}');
+    if (first === -1 || last === -1 || last < first) throw new Error('JSON 응답을 찾을 수 없음');
+    const jsonStr = text.substring(first, last + 1);
+    return JSON.parse(jsonStr);
+  }
+
+  async function runAutoFill() {
+    if (!autoFillCtx) return;
+    const tpl = findTemplate(instanceEditorCtx.templateId);
+    if (!tpl) { toast('템플릿이 없습니다.', 'error'); return; }
+    const slots = tpl.slots || [];
+    const ownText = document.getElementById('afOwnText').value;
+    const refText = document.getElementById('afRefText').value;
+    const refUrlsRaw = document.getElementById('afRefUrls').value;
+    const refUrls = refUrlsRaw.split('\n').map(s => s.trim()).filter(s => /^https?:\/\//.test(s)).slice(0, 3);
+    const hasOwn = autoFillCtx.ownPdfs.length > 0 || (ownText && ownText.trim().length > 0);
+    if (!hasOwn) {
+      toast('A. 우리 제품 자료를 1개 이상 넣어주세요 (PDF 또는 텍스트).', 'error'); return;
+    }
+    if (!claudeProxyConfig || !claudeProxyConfig.workerUrl) {
+      toast('Claude 자동채우기 설정이 필요합니다.', 'error'); return;
+    }
+
+    showAutoFillStage('result');
+    const status = document.getElementById('afStatus');
+    const summaryEl = document.getElementById('afSummary');
+    const listEl = document.getElementById('afSuggestList');
+    summaryEl.style.display = 'none';
+    listEl.innerHTML = '';
+
+    try {
+      // 1) URL 본문 가져오기
+      const urlPages = [];
+      for (let i = 0; i < refUrls.length; i++) {
+        status.className = 'af-status af-status-running';
+        status.textContent = `🔗 타사 URL 본문 가져오는 중... (${i + 1}/${refUrls.length})`;
+        try {
+          const res = await fetchUrlViaWorker(refUrls[i]);
+          if (res && res.text) urlPages.push({ url: res.url || refUrls[i], title: res.title || '', text: res.text });
+        } catch (e) {
+          console.warn('[auto-fill] URL fetch 실패:', refUrls[i], e.message);
+          urlPages.push({ url: refUrls[i], title: '', text: `[가져오기 실패: ${e.message}]` });
+        }
+      }
+
+      // 2) Claude 호출
+      status.className = 'af-status af-status-running';
+      status.textContent = '🤖 Claude로 자료 분석 중... (30초~2분 소요)';
+      const system = buildAutoFillSystem();
+      const content = buildAutoFillUserContent(slots, ownText, refText, urlPages, autoFillCtx.ownPdfs, autoFillCtx.refPdfs);
+      const resp = await callClaudeAutoFill(system, content);
+      const usage = resp.usage || {};
+      const json = extractClaudeJson(resp);
+      autoFillCtx.suggestions = json.slots || {};
+      autoFillCtx.summary = json.summary || '';
+      autoFillCtx.selected = new Set();
+      // 값 있는 것 기본 선택
+      Object.keys(autoFillCtx.suggestions).forEach(k => {
+        const v = autoFillCtx.suggestions[k];
+        if (v && v.value !== null && v.value !== undefined && String(v.value).trim() !== '') {
+          autoFillCtx.selected.add(k);
+        }
+      });
+
+      const tokenInfo = usage.input_tokens
+        ? ` · 토큰 ${usage.input_tokens || 0} in / ${usage.output_tokens || 0} out${usage.cache_creation_input_tokens ? ` (캐시 생성 ${usage.cache_creation_input_tokens})` : ''}`
+        : '';
+      status.className = 'af-status af-status-ok';
+      status.textContent = `✅ 분석 완료${tokenInfo}`;
+      if (autoFillCtx.summary) {
+        summaryEl.style.display = '';
+        summaryEl.innerHTML = '📌 <b>분석 요약:</b> ' + escapeHtml(autoFillCtx.summary);
+      }
+      renderAutoFillSuggestions(slots);
+    } catch (e) {
+      console.error('[auto-fill] 실패:', e);
+      status.className = 'af-status af-status-error';
+      status.textContent = '❌ 분석 실패: ' + (e.message || '알 수 없는 오류');
+    }
+  }
+
+  function kindLabel(kind) {
+    if (kind === 'own') return { txt: '우리 자료', cls: 'af-suggest-tag-own' };
+    if (kind === 'rewrite') return { txt: '재작성', cls: 'af-suggest-tag-rewrite' };
+    if (kind === 'ref') return { txt: '타사 영감', cls: 'af-suggest-tag-ref' };
+    return null;
+  }
+
+  function renderAutoFillSuggestions(slots) {
+    const listEl = document.getElementById('afSuggestList');
+    listEl.innerHTML = '';
+    const sug = autoFillCtx.suggestions || {};
+    const curSlots = (instanceEditorCtx && instanceEditorCtx.slots) || {};
+    slots.forEach(s => {
+      const v = sug[s.key];
+      const has = v && v.value !== null && v.value !== undefined && String(v.value).trim() !== '';
+      const cur = curSlots[s.key];
+      const checked = autoFillCtx.selected.has(s.key);
+      const kl = v ? kindLabel(v.kind) : null;
+      const conf = (v && typeof v.confidence === 'number') ? Math.round(v.confidence * 100) + '%' : null;
+      const row = document.createElement('label');
+      row.className = 'af-suggest';
+      row.innerHTML = `
+        <input type="checkbox" data-key="${escapeHtml(s.key)}" ${checked ? 'checked' : ''} ${has ? '' : 'disabled'} />
+        <div class="af-suggest-meta">
+          <div class="af-suggest-head">
+            <span class="af-suggest-key">${escapeHtml(s.label || s.key)}</span>
+            <span class="af-suggest-tag af-suggest-tag-conf" title="슬롯 키">${escapeHtml(s.key)} · ${escapeHtml(s.type)}</span>
+            ${kl ? `<span class="af-suggest-tag ${kl.cls}">${kl.txt}</span>` : ''}
+            ${conf ? `<span class="af-suggest-tag af-suggest-tag-conf">신뢰도 ${conf}</span>` : ''}
+          </div>
+          ${cur ? `<div class="af-suggest-cur"><b>현재 값:</b> ${escapeHtml(String(cur).slice(0, 120))}${String(cur).length > 120 ? '...' : ''}</div>` : ''}
+          <div class="af-suggest-val ${has ? '' : 'af-suggest-empty'}">${has ? escapeHtml(String(v.value)) : '(추출 결과 없음 — 자료에서 확인되지 않은 값)'}</div>
+          ${v && (v.source || v.reference) ? `<div class="af-suggest-source">${v.source ? `<b>출처:</b> ${escapeHtml(v.source)}` : ''}${v.source && v.reference ? ' · ' : ''}${v.reference ? `<b>참고:</b> ${escapeHtml(v.reference)}` : ''}</div>` : ''}
+        </div>
+      `;
+      const cb = row.querySelector('input[type=checkbox]');
+      cb.addEventListener('change', () => {
+        if (cb.checked) autoFillCtx.selected.add(s.key);
+        else autoFillCtx.selected.delete(s.key);
+        updateAutoFillSelCount(slots);
+        // 시각적 강조
+        row.classList.toggle('af-selected', cb.checked);
+      });
+      listEl.appendChild(row);
+    });
+    updateAutoFillSelCount(slots);
+  }
+
+  function updateAutoFillSelCount(slots) {
+    const eligible = slots.filter(s => {
+      const v = autoFillCtx.suggestions && autoFillCtx.suggestions[s.key];
+      return v && v.value !== null && v.value !== undefined && String(v.value).trim() !== '';
+    }).length;
+    document.getElementById('afSelCount').textContent = `${autoFillCtx.selected.size} / ${eligible} 선택`;
+  }
+
+  function autoFillSelectAll(mode) {
+    if (!autoFillCtx || !autoFillCtx.suggestions) return;
+    const tpl = findTemplate(instanceEditorCtx.templateId);
+    const slots = tpl ? (tpl.slots || []) : [];
+    autoFillCtx.selected = new Set();
+    slots.forEach(s => {
+      const v = autoFillCtx.suggestions[s.key];
+      const has = v && v.value !== null && v.value !== undefined && String(v.value).trim() !== '';
+      if (mode === 'all' && has) autoFillCtx.selected.add(s.key);
+      else if (mode === 'filled' && has) autoFillCtx.selected.add(s.key);
+      // mode === 'none' → 빈 셋 유지
+    });
+    renderAutoFillSuggestions(slots);
+  }
+
+  function applyAutoFillSelected() {
+    if (!autoFillCtx || !autoFillCtx.suggestions) return;
+    if (!instanceEditorCtx) return;
+    const sug = autoFillCtx.suggestions;
+    let applied = 0;
+    instanceEditorCtx.slots = instanceEditorCtx.slots || {};
+    autoFillCtx.selected.forEach(key => {
+      const v = sug[key];
+      if (v && v.value !== null && v.value !== undefined) {
+        instanceEditorCtx.slots[key] = String(v.value);
+        applied++;
+      }
+    });
+    if (applied === 0) { toast('적용할 항목이 없습니다.', 'info'); return; }
+    closeModal('autoFillModal');
+    renderInstanceSlots();
+    refreshInstancePreview();
+    toast(`${applied}개 슬롯에 적용됨`, 'success');
+  }
+
+  // -------- 자료로 일괄 생성 (Step F) --------
+  let batchAutoFillCtx = null;
+  const BAF_CONCURRENCY = 2;
+
+  async function openBatchAutoFillModal() {
+    await loadClaudeProxyConfig();
+    const hasCfg = !!(claudeProxyConfig && claudeProxyConfig.workerUrl && claudeProxyConfig.workerSecret);
+    document.getElementById('bafWarnConfig').style.display = hasCfg ? 'none' : 'block';
+    document.getElementById('bafConfigStage').style.display = '';
+    document.getElementById('bafProgressStage').style.display = 'none';
+    document.getElementById('bafStart').style.display = '';
+    document.getElementById('bafStart').disabled = !hasCfg;
+
+    // 템플릿 셀렉트 채우기
+    const sel = document.getElementById('bafTemplate');
+    sel.innerHTML = '';
+    (state.templates || []).forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = `📐 ${t.name} (슬롯 ${(t.slots || []).length}개)`;
+      sel.appendChild(opt);
+    });
+    if (sel.options.length === 0) {
+      const opt = document.createElement('option');
+      opt.value = ''; opt.textContent = '— 등록된 템플릿 없음 —'; opt.disabled = true;
+      sel.appendChild(opt);
+      document.getElementById('bafStart').disabled = true;
+    }
+
+    // 입력 초기화
+    batchAutoFillCtx = { ownPdfs: [], refPdfs: [], items: [], running: false, cancelled: false, ok: 0, fail: 0 };
+    document.getElementById('bafNamePattern').value = '{filename}';
+    document.getElementById('bafRefUrls').value = '';
+    document.getElementById('bafRefText').value = '';
+    document.getElementById('bafOwnFiles').innerHTML = '';
+    document.getElementById('bafRefFiles').innerHTML = '';
+    document.getElementById('bafOwnFile').value = '';
+    document.getElementById('bafRefFile').value = '';
+    openModal('batchAutoFillModal');
+  }
+
+  async function addBatchAutoFillPdf(role, file) {
+    if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) {
+      toast('PDF 파일만 가능합니다', 'error'); return;
+    }
+    if (file.size > 30 * 1024 * 1024) {
+      toast('PDF가 너무 큽니다 (최대 30MB)', 'error'); return;
+    }
+    try {
+      const base64 = await readPdfAsBase64(file);
+      const list = role === 'own' ? batchAutoFillCtx.ownPdfs : batchAutoFillCtx.refPdfs;
+      list.push({ name: file.name, size: file.size, base64 });
+      renderBatchAutoFillFiles(role);
+    } catch (e) {
+      console.error('[batch-auto-fill] PDF 읽기 실패:', e);
+      toast('PDF 읽기 실패: ' + e.message, 'error');
+    }
+  }
+
+  function renderBatchAutoFillFiles(role) {
+    const wrap = document.getElementById(role === 'own' ? 'bafOwnFiles' : 'bafRefFiles');
+    const list = role === 'own' ? batchAutoFillCtx.ownPdfs : batchAutoFillCtx.refPdfs;
+    wrap.innerHTML = '';
+    list.forEach((f, idx) => {
+      const row = document.createElement('div');
+      row.className = 'af-file';
+      row.innerHTML = `
+        <span class="af-file-icon">📄</span>
+        <span class="af-file-name" title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</span>
+        <span class="af-file-size">${fmtBytes(f.size)}</span>
+        <button type="button" class="af-file-rm" aria-label="제거">×</button>
+      `;
+      row.querySelector('.af-file-rm').addEventListener('click', () => {
+        list.splice(idx, 1);
+        renderBatchAutoFillFiles(role);
+      });
+      wrap.appendChild(row);
+    });
+  }
+
+  function wireBatchAutoFillDrop(dropId, fileInputId, pickBtnId, role) {
+    const drop = document.getElementById(dropId);
+    const fileInput = document.getElementById(fileInputId);
+    const pickBtn = document.getElementById(pickBtnId);
+    if (!drop || !fileInput) return;
+    const open = () => fileInput.click();
+    drop.addEventListener('click', e => { if (e.target !== pickBtn) open(); });
+    if (pickBtn) pickBtn.addEventListener('click', e => { e.stopPropagation(); open(); });
+    drop.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+    });
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragover'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+    drop.addEventListener('drop', async e => {
+      e.preventDefault();
+      drop.classList.remove('dragover');
+      const files = (e.dataTransfer && e.dataTransfer.files) || [];
+      for (const f of files) await addBatchAutoFillPdf(role, f);
+    });
+    fileInput.addEventListener('change', async e => {
+      const files = e.target.files || [];
+      for (const f of files) await addBatchAutoFillPdf(role, f);
+      e.target.value = '';
+    });
+  }
+
+  function buildBatchAutoFillNameFromPattern(pattern, filename, n) {
+    const baseName = filename.replace(/\.pdf$/i, '');
+    return (pattern || '{filename}')
+      .replace(/\{filename\}/g, baseName)
+      .replace(/\{n\}/g, String(n))
+      .trim() || baseName;
+  }
+
+  async function startBatchAutoFill() {
+    if (!batchAutoFillCtx) return;
+    if (batchAutoFillCtx.ownPdfs.length === 0) {
+      toast('우리 제품 PDF를 1개 이상 추가하세요.', 'error'); return;
+    }
+    if (!claudeProxyConfig || !claudeProxyConfig.workerUrl) {
+      toast('Claude 자동채우기 설정이 필요합니다.', 'error'); return;
+    }
+    const tplId = document.getElementById('bafTemplate').value;
+    const tpl = findTemplate(tplId);
+    if (!tpl || !(tpl.slots || []).length) { toast('템플릿이 유효하지 않거나 슬롯이 없습니다.', 'error'); return; }
+
+    const namePattern = document.getElementById('bafNamePattern').value.trim() || '{filename}';
+    const refText = document.getElementById('bafRefText').value;
+    const refUrlsRaw = document.getElementById('bafRefUrls').value;
+    const refUrls = refUrlsRaw.split('\n').map(s => s.trim()).filter(s => /^https?:\/\//.test(s)).slice(0, 3);
+
+    if (!confirm(`${batchAutoFillCtx.ownPdfs.length}개 PDF로 인스턴스를 일괄 생성합니다.\n예상 시간: 약 ${batchAutoFillCtx.ownPdfs.length * 60}초\n진행할까요?`)) return;
+
+    // 공통 타사 자료 — URL 한 번만 fetch (모든 인스턴스에서 재사용)
+    document.getElementById('bafConfigStage').style.display = 'none';
+    document.getElementById('bafProgressStage').style.display = '';
+    document.getElementById('bafStart').style.display = 'none';
+
+    const items = batchAutoFillCtx.ownPdfs.map((p, idx) => ({
+      pdf: p,
+      idx,
+      name: buildBatchAutoFillNameFromPattern(namePattern, p.name, idx + 1),
+      status: 'pending',
+      message: '',
+      instanceId: null,
+    }));
+    batchAutoFillCtx.items = items;
+    batchAutoFillCtx.running = true;
+    batchAutoFillCtx.cancelled = false;
+    batchAutoFillCtx.ok = 0;
+    batchAutoFillCtx.fail = 0;
+    batchAutoFillCtx.tpl = tpl;
+    batchAutoFillCtx.refText = refText;
+    batchAutoFillCtx.refPdfs = batchAutoFillCtx.refPdfs || [];
+
+    // URL 본문 — 1회 가져오기
+    batchAutoFillCtx.urlPages = [];
+    for (let i = 0; i < refUrls.length; i++) {
+      try {
+        const res = await fetchUrlViaWorker(refUrls[i]);
+        if (res && res.text) batchAutoFillCtx.urlPages.push({ url: res.url || refUrls[i], title: res.title || '', text: res.text });
+      } catch (e) {
+        console.warn('[batch-auto-fill] URL fetch 실패:', refUrls[i], e.message);
+        batchAutoFillCtx.urlPages.push({ url: refUrls[i], title: '', text: `[가져오기 실패: ${e.message}]` });
+      }
+    }
+
+    renderBatchAutoFillProgress();
+
+    // 동시성 풀 실행
+    let nextIdx = 0;
+    const workers = [];
+    for (let i = 0; i < BAF_CONCURRENCY; i++) {
+      workers.push((async () => {
+        while (true) {
+          if (batchAutoFillCtx.cancelled) return;
+          const idx = nextIdx++;
+          if (idx >= items.length) return;
+          await processBatchAutoFillItem(idx);
+        }
+      })());
+    }
+    await Promise.all(workers);
+
+    batchAutoFillCtx.running = false;
+    renderBatchAutoFillProgress();
+    renderInstanceList();
+    toast(`완료 — 성공 ${batchAutoFillCtx.ok}건 / 실패 ${batchAutoFillCtx.fail}건`,
+      batchAutoFillCtx.fail === 0 ? 'success' : 'info');
+  }
+
+  async function processBatchAutoFillItem(idx) {
+    const ctx = batchAutoFillCtx;
+    const item = ctx.items[idx];
+    item.status = 'running'; item.message = 'Claude 분석 중...';
+    renderBatchAutoFillProgress();
+    try {
+      const slots = ctx.tpl.slots || [];
+      const content = buildAutoFillUserContent(slots, '', ctx.refText, ctx.urlPages, [item.pdf], ctx.refPdfs);
+      const system = buildAutoFillSystem();
+      const resp = await callClaudeAutoFill(system, content);
+      const json = extractClaudeJson(resp);
+      const sug = json.slots || {};
+      // 인스턴스 생성
+      const newInst = {
+        id: 'inst-' + Math.random().toString(36).slice(2, 10),
+        templateId: ctx.tpl.id,
+        name: item.name,
+        slots: {},
+      };
+      slots.forEach(s => {
+        const v = sug[s.key];
+        if (v && v.value !== null && v.value !== undefined && String(v.value).trim() !== '') {
+          newInst.slots[s.key] = String(v.value);
+        }
+      });
+      const saved = await saveInstance(newInst);
+      if (!saved) throw new Error('저장 실패');
+      item.instanceId = newInst.id;
+      const filledCount = Object.keys(newInst.slots).length;
+      item.status = 'done';
+      item.message = `완료 · ${filledCount}/${slots.length}개 슬롯 채움`;
+      ctx.ok++;
+    } catch (e) {
+      console.error('[batch-auto-fill] 항목 실패:', e);
+      item.status = 'failed';
+      item.message = '실패: ' + (e.message || '알 수 없는 오류');
+      ctx.fail++;
+    }
+    renderBatchAutoFillProgress();
+  }
+
+  function renderBatchAutoFillProgress() {
+    const ctx = batchAutoFillCtx;
+    if (!ctx) return;
+    const done = ctx.items.filter(i => i.status === 'done' || i.status === 'failed').length;
+    document.getElementById('bafDone').textContent = done;
+    document.getElementById('bafTotalRunning').textContent = ctx.items.length;
+    document.getElementById('bafOk').textContent = ctx.ok;
+    document.getElementById('bafFail').textContent = ctx.fail;
+    const list = document.getElementById('bafProgressList');
+    list.innerHTML = '';
+    ctx.items.forEach(item => {
+      const row = document.createElement('div');
+      const statusClass = ({pending:'pending',running:'running',done:'done',failed:'failed'})[item.status] || 'pending';
+      row.className = 'bg-prog-row bg-prog-' + statusClass;
+      const icon = ({pending:'⏸',running:'⏳',done:'✅',failed:'❌'})[item.status] || '·';
+      row.innerHTML = `
+        <span class="bg-prog-icon">${icon}</span>
+        <span class="bg-prog-name">${escapeHtml(item.name)}</span>
+        <span class="bg-prog-msg">${escapeHtml(item.message || '')}</span>
+        ${item.instanceId ? '<span style="font-size:11px; color:var(--muted);">📄 생성됨</span>' : ''}
+      `;
+      list.appendChild(row);
+    });
+  }
+
+  function cancelBatchAutoFill() {
+    if (batchAutoFillCtx && batchAutoFillCtx.running) {
+      if (!confirm('진행 중인 일괄 생성을 취소할까요? 완료된 인스턴스는 유지됩니다.')) return false;
+      batchAutoFillCtx.cancelled = true;
+      toast('취소 요청됨 — 진행 중인 항목 마무리 후 종료', 'info');
+    }
+    return true;
+  }
+
   // -------- modal helpers --------
   function openModal(id) { document.getElementById(id).classList.add('open'); }
   function closeModal(id) { document.getElementById(id).classList.remove('open'); }
@@ -7905,6 +8675,34 @@ show('entry');
     document.getElementById('ieCancel').addEventListener('click', () => closeModal('instanceEditor'));
     document.getElementById('ieSave').addEventListener('click', saveInstanceEditor);
     document.getElementById('ieTemplate').addEventListener('change', onInstanceTemplateChange);
+    document.getElementById('ieAutoFill').addEventListener('click', openAutoFillModal);
+
+    // Claude 자동채우기 설정 모달
+    document.getElementById('btnClaudeConfig').addEventListener('click', openClaudeConfigModal);
+    document.getElementById('ccClose').addEventListener('click', () => closeModal('claudeConfigModal'));
+    document.getElementById('ccCancel').addEventListener('click', () => closeModal('claudeConfigModal'));
+    document.getElementById('ccSave').addEventListener('click', saveClaudeConfigEditor);
+    document.getElementById('ccTest').addEventListener('click', testClaudeConfig);
+
+    // 자료로 자동채우기 모달 (Step E)
+    document.getElementById('afClose').addEventListener('click', () => closeModal('autoFillModal'));
+    document.getElementById('afCancel').addEventListener('click', () => closeModal('autoFillModal'));
+    document.getElementById('afRun').addEventListener('click', runAutoFill);
+    document.getElementById('afApply').addEventListener('click', applyAutoFillSelected);
+    document.getElementById('afBack').addEventListener('click', () => showAutoFillStage('input'));
+    document.getElementById('afSelectAll').addEventListener('click', () => autoFillSelectAll('all'));
+    document.getElementById('afSelectNone').addEventListener('click', () => autoFillSelectAll('none'));
+    document.getElementById('afSelectFilled').addEventListener('click', () => autoFillSelectAll('filled'));
+    wireAutoFillDrop('afOwnDrop', 'afOwnFile', 'afOwnPick', 'own');
+    wireAutoFillDrop('afRefDrop', 'afRefFile', 'afRefPick', 'ref');
+
+    // 자료로 일괄 생성 모달 (Step F)
+    document.getElementById('btnBatchAutoFill').addEventListener('click', openBatchAutoFillModal);
+    document.getElementById('bafClose').addEventListener('click', () => { if (cancelBatchAutoFill()) closeModal('batchAutoFillModal'); });
+    document.getElementById('bafCancel').addEventListener('click', () => { if (cancelBatchAutoFill()) closeModal('batchAutoFillModal'); });
+    document.getElementById('bafStart').addEventListener('click', startBatchAutoFill);
+    wireBatchAutoFillDrop('bafOwnDrop', 'bafOwnFile', 'bafOwnPick', 'own');
+    wireBatchAutoFillDrop('bafRefDrop', 'bafRefFile', 'bafRefPick', 'ref');
 
     // 상세페이지 템플릿 모달
     document.getElementById('btnTemplates').addEventListener('click', openTemplatesModal);

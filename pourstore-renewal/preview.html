@@ -126,7 +126,9 @@
         <button id="btnInstances" class="btn btn-green btn-sm btn-block" title="저장된 상세페이지 목록 (템플릿 기반)">📄 상세페이지 목록</button>
         <button id="btnTemplates" class="btn btn-outline btn-sm btn-block" title="제품 상세페이지 템플릿 관리 — 고정 섹션 + 슬롯 정의">📐 템플릿 관리</button>
         <button id="btnBatchGen" class="btn btn-outline btn-sm btn-block" title="여러 상세페이지의 이미지 슬롯을 마누스로 일괄 생성">🚀 마누스 일괄 생성</button>
+        <button id="btnBatchAutoFill" class="btn btn-outline btn-sm btn-block" title="우리 제품 자료(PDF) 여러 개로 상세페이지 인스턴스를 한 번에 자동 생성">📎 자료로 일괄 생성</button>
         <button id="btnManusConfig" class="btn btn-ghost btn-sm btn-block" style="font-size:11px;" title="Cloudflare 워커 URL 및 시크릿 설정">⚙ 마누스 설정</button>
+        <button id="btnClaudeConfig" class="btn btn-ghost btn-sm btn-block" style="font-size:11px;" title="자료 자동채우기용 Claude 프록시 워커 설정">⚙ Claude 자동채우기 설정</button>
       </div>
 
       <h3 style="margin-top:18px;">데이터 백업·공유</h3>
@@ -497,6 +499,10 @@
                 <select id="ieTemplate" class="mv-select"></select>
               </div>
             </div>
+            <div class="ie-toolbar">
+              <button id="ieAutoFill" type="button" class="btn btn-autofill" title="자료(우리 PDF + 타사 URL/텍스트)를 분석해 슬롯을 자동으로 채웁니다">📎 자료로 자동채우기</button>
+              <span style="font-size:10.5px; color:var(--muted); flex:1;">우리 자료=사실 / 타사 자료=구조·카피 톤 참고만</span>
+            </div>
             <label>슬롯 입력 <span style="color:var(--muted); font-weight:500; font-size:10px;">— 빈 칸은 기본값 또는 [라벨]로 표시됨</span></label>
             <div id="ieSlots" class="ie-slots"></div>
           </div>
@@ -513,6 +519,214 @@
         <div style="display:flex; gap:8px;">
           <button id="ieCancel" class="btn btn-ghost">취소</button>
           <button id="ieSave" class="btn btn-primary">저장</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 자료로 일괄 생성 모달 (Step F) -->
+  <div id="batchAutoFillModal" class="modal-mask">
+    <div class="modal" style="max-width: 880px;">
+      <div class="modal-head">
+        <h3 id="bafTitle">📎 자료로 상세페이지 일괄 생성</h3>
+        <button id="bafClose" class="close" aria-label="닫기">×</button>
+      </div>
+      <div class="modal-body">
+
+        <div id="bafWarnConfig" style="display:none; font-size:12px; color:#7F1D1D; background:#FEE2E2; border:1px solid #FCA5A5; padding:10px 12px; border-radius:8px; margin-bottom:14px;">
+          ⚠ Claude 프록시 워커 설정이 없습니다. 사이드바 <b>⚙ Claude 자동채우기 설정</b>에서 워커 URL과 시크릿을 먼저 입력하세요.
+        </div>
+
+        <!-- 입력 단계 -->
+        <div id="bafConfigStage">
+          <div class="bg-step bg-row-2">
+            <div>
+              <div class="bg-step-label">1. 템플릿</div>
+              <select id="bafTemplate" class="mv-select"></select>
+            </div>
+            <div>
+              <div class="bg-step-label">2. 인스턴스 이름 패턴 <span style="color:var(--muted); font-weight:500; font-size:11px;">— <code>{filename}</code> = PDF 파일명, <code>{n}</code> = 순번</span></div>
+              <input id="bafNamePattern" type="text" placeholder="{filename}" />
+            </div>
+          </div>
+
+          <div class="af-section af-section-own">
+            <div class="af-section-head">
+              <span class="af-section-badge">3. 우리 제품들 (PDF당 1개 인스턴스)</span>
+            </div>
+            <div class="af-section-desc">
+              각 PDF는 <b>한 제품의 상세페이지 1개</b>로 생성됩니다. 여러 제품을 한 번에 만들고 싶으면 PDF를 여러 개 올려주세요.
+            </div>
+            <div id="bafOwnDrop" class="af-drop" tabindex="0" role="button" aria-label="우리 제품 PDF 업로드">
+              <input type="file" id="bafOwnFile" accept="application/pdf,.pdf" multiple hidden />
+              <div class="af-drop-hint">📄 우리 제품 PDF들을 끌어다 놓거나 <button type="button" class="af-drop-pick" id="bafOwnPick">파일 선택</button></div>
+            </div>
+            <div id="bafOwnFiles" class="af-files"></div>
+          </div>
+
+          <div class="af-section af-section-ref">
+            <div class="af-section-head">
+              <span class="af-section-badge">4. 공통 타사 참고 (선택)</span>
+              <span class="af-section-title">모든 인스턴스에 공유</span>
+            </div>
+            <div class="af-section-desc">
+              헤드라인·섹션 구성·USP 프레이밍 참고용. <b>모든 인스턴스에 동일하게 적용</b>됩니다. 표절 방지 규칙 자동 적용.
+            </div>
+            <div class="af-urls">
+              <label style="font-size:11px; font-weight:700; color:var(--muted); display:block;">🔗 타사 상세페이지 URL — 한 줄에 하나 (최대 3개)</label>
+              <textarea id="bafRefUrls" placeholder="https://smartstore.naver.com/..."></textarea>
+            </div>
+            <div id="bafRefDrop" class="af-drop" style="margin-top:10px;" tabindex="0" role="button" aria-label="타사 PDF 업로드">
+              <input type="file" id="bafRefFile" accept="application/pdf,.pdf" multiple hidden />
+              <div class="af-drop-hint">📄 타사 카탈로그 PDF (선택) <button type="button" class="af-drop-pick" id="bafRefPick">파일 선택</button></div>
+            </div>
+            <div id="bafRefFiles" class="af-files"></div>
+            <textarea id="bafRefText" class="af-text" placeholder="타사 카피·문장 붙여넣기 (선택)"></textarea>
+          </div>
+
+          <div style="font-size:11px; color:var(--muted); padding:8px 2px;">
+            🤖 모델: <code style="font-size:10.5px; padding:1px 5px; background:var(--light); border:1px solid var(--border); border-radius:4px;">claude-sonnet-4-20250514</code> · 동시 2건 처리 · 인스턴스당 ~30초~2분 · 같은 타사 자료는 캐시됨 (비용 절감)
+          </div>
+        </div>
+
+        <!-- 진행 단계 -->
+        <div id="bafProgressStage" style="display:none;">
+          <div class="bg-progress-summary">
+            진행: <b><span id="bafDone">0</span> / <span id="bafTotalRunning">0</span></b> ·
+            성공 <span id="bafOk" style="color:#059669;">0</span> · 실패 <span id="bafFail" style="color:#DC2626;">0</span>
+          </div>
+          <div id="bafProgressList" class="bg-progress-list"></div>
+        </div>
+
+      </div>
+      <div class="modal-foot">
+        <span id="bafFootHint" style="font-size:11px; color:var(--muted);">PDF 1개 = 인스턴스 1개. 분석 후 자동 저장됩니다.</span>
+        <div style="display:flex; gap:8px;">
+          <button id="bafCancel" class="btn btn-ghost">닫기</button>
+          <button id="bafStart" class="btn btn-primary">시작</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 자료로 자동채우기 모달 (Step E) -->
+  <div id="autoFillModal" class="modal-mask">
+    <div class="modal" style="max-width: 880px;">
+      <div class="modal-head">
+        <h3 id="afTitle">📎 자료로 자동채우기</h3>
+        <button id="afClose" class="close" aria-label="닫기">×</button>
+      </div>
+      <div class="modal-body">
+
+        <div id="afWarnConfig" style="display:none; font-size:12px; color:#7F1D1D; background:#FEE2E2; border:1px solid #FCA5A5; padding:10px 12px; border-radius:8px; margin-bottom:14px;">
+          ⚠ Claude 프록시 워커 설정이 없습니다. 사이드바 <b>⚙ Claude 자동채우기 설정</b>에서 워커 URL과 시크릿을 먼저 입력하세요.
+        </div>
+
+        <!-- 입력 단계 -->
+        <div id="afInputStage">
+          <!-- A. 우리 제품 자료 -->
+          <div class="af-section af-section-own">
+            <div class="af-section-head">
+              <span class="af-section-badge">A. 우리 제품</span>
+              <span class="af-section-title">사실 추출용</span>
+            </div>
+            <div class="af-section-desc">
+              제품명·용량·수치·특징·효과 등 모든 <b>구체적 사실</b>은 이 자료에서만 추출됩니다.<br/>
+              📄 <b>PDF</b>(시방서·카탈로그·제안서) + ✍ <b>텍스트 붙여넣기</b>
+            </div>
+            <div id="afOwnDrop" class="af-drop" tabindex="0" role="button" aria-label="우리 제품 PDF 업로드">
+              <input type="file" id="afOwnFile" accept="application/pdf,.pdf" multiple hidden />
+              <div class="af-drop-hint">📄 PDF를 끌어다 놓거나 <button type="button" class="af-drop-pick" id="afOwnPick">파일 선택</button></div>
+            </div>
+            <div id="afOwnFiles" class="af-files"></div>
+            <textarea id="afOwnText" class="af-text" placeholder="우리 제품 정보 텍스트 붙여넣기 (선택) — 예: 제품명, 용량, 핵심 수치, 특징"></textarea>
+          </div>
+
+          <!-- B. 타사 참고 자료 -->
+          <div class="af-section af-section-ref">
+            <div class="af-section-head">
+              <span class="af-section-badge">B. 타사 참고</span>
+              <span class="af-section-title">구조·카피 톤만</span>
+            </div>
+            <div class="af-section-desc">
+              헤드라인 패턴·섹션 구성·USP 프레이밍·FAQ 톤 등 <b>구조와 카피 톤만 참고</b>합니다.<br/>
+              <span style="color:#7C3AED; font-weight:700;">⚠ 타사 제품명·수치·고유 표현은 그대로 가져오지 않습니다 (표절 방지) — 영감 받은 부분은 우리 제품에 맞춰 재작성됨.</span>
+            </div>
+            <div class="af-urls">
+              <label style="font-size:11px; font-weight:700; color:var(--muted); display:block;">🔗 타사 상세페이지 URL — 한 줄에 하나씩 (최대 3개)</label>
+              <textarea id="afRefUrls" placeholder="https://smartstore.naver.com/...
+https://...
+https://..."></textarea>
+            </div>
+            <div id="afRefDrop" class="af-drop" style="margin-top:10px;" tabindex="0" role="button" aria-label="타사 참고 PDF 업로드">
+              <input type="file" id="afRefFile" accept="application/pdf,.pdf" multiple hidden />
+              <div class="af-drop-hint">📄 타사 카탈로그 PDF (선택) <button type="button" class="af-drop-pick" id="afRefPick">파일 선택</button></div>
+            </div>
+            <div id="afRefFiles" class="af-files"></div>
+            <textarea id="afRefText" class="af-text" placeholder="타사 카피·문장 붙여넣기 (선택) — 헤드라인, FAQ, 섹션 카피 등"></textarea>
+          </div>
+
+          <div style="font-size:11px; color:var(--muted); padding:8px 2px;">
+            🤖 모델: <code style="font-size:10.5px; padding:1px 5px; background:var(--light); border:1px solid var(--border); border-radius:4px;">claude-sonnet-4-20250514</code> · 분석 시 약 30초~2분 소요 · PDF당 ~25페이지 권장
+          </div>
+        </div>
+
+        <!-- 결과 단계 -->
+        <div id="afResultStage" style="display:none;">
+          <div id="afStatus" class="af-status"></div>
+          <div id="afSummary" class="af-summary" style="display:none;"></div>
+          <div class="af-toolbar">
+            <div class="af-toolbar-left">
+              <button id="afSelectAll" type="button" class="btn btn-sm btn-ghost">전체 선택</button>
+              <button id="afSelectNone" type="button" class="btn btn-sm btn-ghost">선택 해제</button>
+              <button id="afSelectFilled" type="button" class="btn btn-sm btn-ghost" title="값이 있는 항목만 선택">값 있는 것만</button>
+            </div>
+            <span id="afSelCount" style="font-size:11.5px; color:var(--muted);">0 / 0 선택</span>
+          </div>
+          <div id="afSuggestList" class="af-suggest-list"></div>
+        </div>
+
+      </div>
+      <div class="modal-foot">
+        <span id="afFootHint" style="font-size:11px; color:var(--muted);">우리 자료는 사실 추출, 타사 자료는 톤 참고만 사용됩니다.</span>
+        <div style="display:flex; gap:8px;">
+          <button id="afCancel" class="btn btn-ghost">닫기</button>
+          <button id="afBack" class="btn btn-ghost" style="display:none;">← 입력으로</button>
+          <button id="afRun" class="btn btn-primary">분석 시작</button>
+          <button id="afApply" class="btn btn-primary" style="display:none;">선택 항목 적용</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Claude 자동채우기 설정 모달 -->
+  <div id="claudeConfigModal" class="modal-mask">
+    <div class="modal" style="max-width: 540px;">
+      <div class="modal-head">
+        <h3>⚙ Claude 자동채우기 설정</h3>
+        <button id="ccClose" class="close" aria-label="닫기">×</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:12px; color:var(--ink2); background:#F5F3FF; border:1px solid #DDD6FE; padding:10px 12px; border-radius:8px; margin-bottom:14px; line-height:1.55;">
+          Cloudflare Workers에 등록한 <code style="font-size:11px; padding:1px 5px; background:#fff; border:1px solid var(--border); border-radius:4px;">pour-claude-proxy</code>의 URL과 빌더용 인증 시크릿을 입력하세요. Firestore <code style="font-size:11px; padding:1px 5px; background:#fff; border:1px solid var(--border); border-radius:4px;">app-config/claudeProxy</code> 에 저장되며 하자진단 앱과 공유됩니다.
+        </div>
+        <label for="ccUrl" style="font-size:11px; font-weight:700; color:var(--muted); display:block; margin-bottom:6px;">워커 URL</label>
+        <input id="ccUrl" type="text" placeholder="https://pour-claude-proxy.xxx.workers.dev" style="width:100%; padding:9px 11px; border:1px solid var(--border); border-radius:8px; font-size:13px; margin-bottom:12px;" />
+        <label for="ccSecret" style="font-size:11px; font-weight:700; color:var(--muted); display:block; margin-bottom:6px;">WORKER_SECRET (Cloudflare에 등록한 값과 동일하게)</label>
+        <input id="ccSecret" type="password" placeholder="긴 임의 문자열 — Cloudflare에 등록한 값" style="width:100%; padding:9px 11px; border:1px solid var(--border); border-radius:8px; font-size:13px; font-family: ui-monospace, Consolas, monospace;" />
+        <div style="margin-top:14px; font-size:11px; color:var(--muted); line-height:1.55;">
+          ⚠ 시크릿은 Firestore에 평문으로 저장됩니다. 외부의 무차별 워커 호출만 막는 1차 방어선입니다.<br/>
+          📦 Cloudflare 배포 명령어:<br/>
+          <code style="font-size:10.5px;">npx wrangler deploy --config workers/wrangler.claude-proxy.toml</code><br/>
+          <code style="font-size:10.5px;">npx wrangler secret put CLAUDE_API_KEY --config workers/wrangler.claude-proxy.toml</code><br/>
+          <code style="font-size:10.5px;">npx wrangler secret put WORKER_SECRET --config workers/wrangler.claude-proxy.toml</code>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button id="ccTest" class="btn btn-outline btn-sm">연결 테스트</button>
+        <div style="display:flex; gap:8px;">
+          <button id="ccCancel" class="btn btn-ghost">취소</button>
+          <button id="ccSave" class="btn btn-primary">저장</button>
         </div>
       </div>
     </div>

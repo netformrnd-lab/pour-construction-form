@@ -125,6 +125,8 @@
       <div style="display:flex; flex-direction:column; gap:6px;">
         <button id="btnInstances" class="btn btn-green btn-sm btn-block" title="저장된 상세페이지 목록 (템플릿 기반)">📄 상세페이지 목록</button>
         <button id="btnTemplates" class="btn btn-outline btn-sm btn-block" title="제품 상세페이지 템플릿 관리 — 고정 섹션 + 슬롯 정의">📐 템플릿 관리</button>
+        <button id="btnBatchGen" class="btn btn-outline btn-sm btn-block" title="여러 상세페이지의 이미지 슬롯을 마누스로 일괄 생성">🚀 마누스 일괄 생성</button>
+        <button id="btnManusConfig" class="btn btn-ghost btn-sm btn-block" style="font-size:11px;" title="Cloudflare 워커 URL 및 시크릿 설정">⚙ 마누스 설정</button>
       </div>
 
       <h3 style="margin-top:18px;">데이터 백업·공유</h3>
@@ -511,6 +513,98 @@
         <div style="display:flex; gap:8px;">
           <button id="ieCancel" class="btn btn-ghost">취소</button>
           <button id="ieSave" class="btn btn-primary">저장</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 마누스 워커 설정 모달 -->
+  <div id="manusConfigModal" class="modal-mask">
+    <div class="modal" style="max-width: 540px;">
+      <div class="modal-head">
+        <h3>⚙ 마누스 워커 설정</h3>
+        <button id="mcClose" class="close" aria-label="닫기">×</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:12px; color:var(--ink2); background:#FFFBEB; border:1px solid #FCE7B6; padding:10px 12px; border-radius:8px; margin-bottom:14px; line-height:1.55;">
+          Cloudflare Workers에 등록한 <code style="font-size:11px; padding:1px 5px; background:#fff; border:1px solid var(--border); border-radius:4px;">pour-manus-proxy</code>의 URL과 빌더용 인증 시크릿을 입력하세요. Firestore <code style="font-size:11px; padding:1px 5px; background:#fff; border:1px solid var(--border); border-radius:4px;">app-config/manus</code> 에 저장됩니다.
+        </div>
+        <label for="mcUrl" style="font-size:11px; font-weight:700; color:var(--muted); display:block; margin-bottom:6px;">워커 URL</label>
+        <input id="mcUrl" type="text" placeholder="https://pour-manus-proxy.xxx.workers.dev" style="width:100%; padding:9px 11px; border:1px solid var(--border); border-radius:8px; font-size:13px; margin-bottom:12px;" />
+        <label for="mcSecret" style="font-size:11px; font-weight:700; color:var(--muted); display:block; margin-bottom:6px;">WORKER_SECRET (Cloudflare에 등록한 값과 동일하게)</label>
+        <input id="mcSecret" type="password" placeholder="긴 임의 문자열 — 메모장에 보관해둔 값" style="width:100%; padding:9px 11px; border:1px solid var(--border); border-radius:8px; font-size:13px; font-family: ui-monospace, Consolas, monospace;" />
+        <div style="margin-top:14px; font-size:11px; color:var(--muted); line-height:1.55;">
+          ⚠ 이 시크릿은 Firestore에 평문으로 저장됩니다 (현재 보안규칙은 인증 없이 read 허용). 외부의 무차별 워커 호출만 막는 1차 방어선입니다.
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button id="mcTest" class="btn btn-outline btn-sm">연결 테스트</button>
+        <div style="display:flex; gap:8px;">
+          <button id="mcCancel" class="btn btn-ghost">취소</button>
+          <button id="mcSave" class="btn btn-primary">저장</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 마누스 일괄 생성 모달 -->
+  <div id="batchGenModal" class="modal-mask">
+    <div class="modal" style="max-width: 820px;">
+      <div class="modal-head">
+        <h3 id="bgTitle">🚀 마누스로 이미지 일괄 생성</h3>
+        <button id="bgClose" class="close" aria-label="닫기">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="bgWarnConfig" style="display:none; font-size:12px; color:#7F1D1D; background:#FEE2E2; border:1px solid #FCA5A5; padding:10px 12px; border-radius:8px; margin-bottom:14px;">
+          ⚠ 마누스 워커 설정이 없습니다. 사이드바 <b>⚙ 마누스 설정</b>에서 워커 URL과 시크릿을 먼저 입력하세요.
+        </div>
+
+        <div id="bgConfigSection">
+          <div class="bg-step">
+            <div class="bg-step-label">1. 프롬프트 템플릿 <span style="color:var(--muted); font-weight:500; font-size:11px;">— <code>{name}</code> = 인스턴스 이름</span></div>
+            <textarea id="bgPrompt" rows="3" placeholder="예: {name}을(를) 위한 깔끔한 제품 상세페이지 메인 이미지. 화이트 배경, 4:3 비율, 정면 촬영, 그림자 부드럽게."></textarea>
+          </div>
+
+          <div class="bg-step bg-row-2">
+            <div>
+              <div class="bg-step-label">2. 채울 슬롯 (이미지 타입만)</div>
+              <select id="bgSlot" class="mv-select"></select>
+            </div>
+            <div>
+              <div class="bg-step-label">3. 모델 (비용·속도 트레이드오프)</div>
+              <select id="bgProfile" class="mv-select">
+                <option value="manus-1.6-lite">Lite (저렴·빠름)</option>
+                <option value="manus-1.6" selected>1.6 (균형)</option>
+                <option value="manus-1.6-max">Max (최고 품질·비쌈)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="bg-step">
+            <div class="bg-step-label" style="display:flex; justify-content:space-between; align-items:center;">
+              <span>4. 적용할 인스턴스 <span id="bgSelCount">0</span>/<span id="bgTotal">0</span>개 선택</span>
+              <div style="display:flex; gap:6px;">
+                <button id="bgSelectAll" type="button" class="btn btn-sm btn-ghost">전체 선택</button>
+                <button id="bgSelectNone" type="button" class="btn btn-sm btn-ghost">선택 해제</button>
+              </div>
+            </div>
+            <div id="bgInstanceList" class="bg-instance-list"></div>
+          </div>
+        </div>
+
+        <div id="bgProgressSection" style="display:none;">
+          <div class="bg-progress-summary">
+            진행: <b><span id="bgDone">0</span> / <span id="bgTotalRunning">0</span></b> ·
+            성공 <span id="bgOk" style="color:#059669;">0</span> · 실패 <span id="bgFail" style="color:#DC2626;">0</span>
+          </div>
+          <div id="bgProgressList" class="bg-progress-list"></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <span style="font-size:11px; color:var(--muted);">동시 3건씩 처리 · 평균 1~3분/건 · 약 ~150 크레딧/건</span>
+        <div style="display:flex; gap:8px;">
+          <button id="bgCancel" class="btn btn-ghost">닫기</button>
+          <button id="bgStart" class="btn btn-primary">시작</button>
         </div>
       </div>
     </div>

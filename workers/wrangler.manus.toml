@@ -1,0 +1,16 @@
+# Cloudflare Workers — Manus API 프록시
+# 배포: npx wrangler deploy --config workers/wrangler.manus.toml
+# (또는 Cloudflare Dashboard에서 manus-proxy.js를 Edit code로 직접 붙여넣기)
+
+name = "pour-manus-proxy"
+main = "manus-proxy.js"
+compatibility_date = "2024-01-01"
+
+# ── 시크릿 등록 (CLI 명령 — 주석 참고) ──────────────────
+# npx wrangler secret put MANUS_API_KEY  --config workers/wrangler.manus.toml
+# npx wrangler secret put WORKER_SECRET  --config workers/wrangler.manus.toml
+#
+# ── 또는 Dashboard에서 ────────────────────────────────
+# Workers & Pages → pour-manus-proxy → Settings → Variables and Secrets → Add (Type: Secret)
+#   - MANUS_API_KEY  : 마누스 발급 키
+#   - WORKER_SECRET  : 빌더와 공유하는 임의 문자열

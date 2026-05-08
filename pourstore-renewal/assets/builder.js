@@ -7179,7 +7179,7 @@ show('entry');
           <div class="ie-image-drop" data-key="${escapeHtml(s.key)}" tabindex="0" role="button" aria-label="이미지 업로드">
             <input type="file" class="ie-image-file" accept="image/*" data-key="${escapeHtml(s.key)}" hidden />
             <div class="ie-image-drop-hint">
-              🖼️ 이미지를 끌어다 놓거나 <button type="button" class="ie-image-pick" data-key="${escapeHtml(s.key)}">파일 선택</button>
+              🖼️ 이미지 끌어다 놓기 · <kbd>Cmd/Ctrl+V</kbd> 붙여넣기 · <button type="button" class="ie-image-pick" data-key="${escapeHtml(s.key)}">파일 선택</button>
             </div>
             <div class="ie-image-progress" data-key="${escapeHtml(s.key)}"></div>
           </div>
@@ -7240,6 +7240,26 @@ show('entry');
       if (file) handleImageFile(slotKey, file);
       e.target.value = ''; // 같은 파일 재선택 가능
     });
+
+    // 클립보드 붙여넣기 — 드롭존 또는 URL 입력란에 포커스 후 Cmd/Ctrl+V
+    const handlePaste = (e) => {
+      const items = e.clipboardData && e.clipboardData.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.type && item.type.startsWith('image/')) {
+          const file = item.getAsFile();
+          if (file) {
+            e.preventDefault();
+            handleImageFile(slotKey, file);
+            return;
+          }
+        }
+      }
+    };
+    drop.addEventListener('paste', handlePaste);
+    const urlInput = row.querySelector('.ie-slot-input');
+    if (urlInput) urlInput.addEventListener('paste', handlePaste);
   }
 
   async function handleImageFile(slotKey, file) {
@@ -7369,6 +7389,322 @@ show('entry');
       renderInstanceList();
       toast('저장됨', 'success');
     }
+  }
+
+  // -------- 마누스 워커 설정 (Firestore: app-config/manus) --------
+  let manusConfig = null; // { workerUrl, workerSecret }
+  async function loadManusConfig() {
+    if (!firebaseReady || !db) return null;
+    try {
+      const doc = await db.collection('app-config').doc('manus').get();
+      manusConfig = doc.exists ? doc.data() : null;
+      return manusConfig;
+    } catch (e) {
+      console.error('[manus] config 로드 실패:', e);
+      return null;
+    }
+  }
+  async function saveManusConfig(cfg) {
+    if (!firebaseReady || !db) { toast('오프라인 — 저장 불가', 'error'); return false; }
+    try {
+      await db.collection('app-config').doc('manus').set({
+        workerUrl: cfg.workerUrl || '',
+        workerSecret: cfg.workerSecret || '',
+        updatedAt: nowIso(),
+      }, { merge: true });
+      manusConfig = cfg;
+      return true;
+    } catch (e) {
+      console.error('[manus] config 저장 실패:', e);
+      toast('저장 실패: ' + (e.code || e.message), 'error');
+      return false;
+    }
+  }
+  async function openManusConfigModal() {
+    await loadManusConfig();
+    document.getElementById('mcUrl').value = (manusConfig && manusConfig.workerUrl) || '';
+    document.getElementById('mcSecret').value = (manusConfig && manusConfig.workerSecret) || '';
+    openModal('manusConfigModal');
+  }
+  async function saveManusConfigEditor() {
+    const url = document.getElementById('mcUrl').value.trim();
+    const secret = document.getElementById('mcSecret').value.trim();
+    if (!url || !secret) { toast('URL과 시크릿 모두 입력하세요.', 'error'); return; }
+    if (!/^https?:\/\//.test(url)) { toast('URL은 http(s)://로 시작해야 합니다.', 'error'); return; }
+    const ok = await saveManusConfig({ workerUrl: url.replace(/\/$/, ''), workerSecret: secret });
+    if (ok) {
+      closeModal('manusConfigModal');
+      toast('마누스 설정 저장됨', 'success');
+    }
+  }
+  async function testManusConfig() {
+    const url = document.getElementById('mcUrl').value.trim().replace(/\/$/, '');
+    const secret = document.getElementById('mcSecret').value.trim();
+    if (!url || !secret) { toast('URL과 시크릿 모두 입력 후 테스트하세요.', 'error'); return; }
+    toast('연결 테스트 중...', 'info');
+    try {
+      const r = await fetch(url + '/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workerSecret: secret, taskId: '__test__' }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (r.status === 401) { toast('❌ 시크릿이 워커와 일치하지 않습니다.', 'error'); return; }
+      if (r.status === 400 || (r.status === 502 && data && data.error)) {
+        toast('✅ 워커 연결 OK (시크릿 검증 통과)', 'success'); return;
+      }
+      if (r.ok) { toast('✅ 워커 연결 OK', 'success'); return; }
+      toast(`연결됨 — HTTP ${r.status}: ${data.error || '응답 확인 필요'}`, 'info');
+    } catch (e) {
+      toast('연결 실패: ' + e.message, 'error');
+    }
+  }
+
+  async function manusCreate(prompt, agentProfile) {
+    if (!manusConfig || !manusConfig.workerUrl || !manusConfig.workerSecret) throw new Error('마누스 설정 없음');
+    const r = await fetch(manusConfig.workerUrl + '/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workerSecret: manusConfig.workerSecret, prompt, agentProfile }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    return data;
+  }
+  async function manusStatus(taskId) {
+    if (!manusConfig || !manusConfig.workerUrl || !manusConfig.workerSecret) throw new Error('마누스 설정 없음');
+    const r = await fetch(manusConfig.workerUrl + '/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workerSecret: manusConfig.workerSecret, taskId }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    return data;
+  }
+
+  // -------- 마누스 일괄 생성 (B안) --------
+  let batchGenCtx = null;
+  const BATCH_CONCURRENCY = 3;
+  const BATCH_POLL_MS = 6000;
+  const BATCH_MAX_POLL = 120; // 6초 × 120 = 12분 한도
+
+  async function openBatchGenModal() {
+    await loadManusConfig();
+    const hasCfg = manusConfig && manusConfig.workerUrl && manusConfig.workerSecret;
+    document.getElementById('bgWarnConfig').style.display = hasCfg ? 'none' : 'block';
+    document.getElementById('bgConfigSection').style.display = hasCfg ? 'block' : 'none';
+    document.getElementById('bgProgressSection').style.display = 'none';
+    document.getElementById('bgStart').disabled = !hasCfg;
+    document.getElementById('bgStart').style.display = '';
+
+    if (hasCfg) {
+      document.getElementById('bgInstanceList').innerHTML = '<div class="empty-history">불러오는 중...</div>';
+      openModal('batchGenModal');
+      await loadInstances();
+      renderBatchInstanceList();
+      renderBatchSlotOptions();
+    } else {
+      openModal('batchGenModal');
+    }
+  }
+  function renderBatchSlotOptions() {
+    const sel = document.getElementById('bgSlot');
+    sel.innerHTML = '';
+    const seenKeys = new Set();
+    (state.templates || []).forEach(tpl => {
+      (tpl.slots || []).forEach(s => {
+        if (s.type === 'image' && !seenKeys.has(s.key)) {
+          seenKeys.add(s.key);
+          const opt = document.createElement('option');
+          opt.value = s.key;
+          opt.textContent = `${s.label || s.key} (${s.key})`;
+          sel.appendChild(opt);
+        }
+      });
+    });
+    if (seenKeys.size === 0) {
+      const opt = document.createElement('option');
+      opt.value = ''; opt.textContent = '— 등록된 이미지 슬롯 없음 —'; opt.disabled = true;
+      sel.appendChild(opt);
+    }
+  }
+  function renderBatchInstanceList() {
+    const wrap = document.getElementById('bgInstanceList');
+    document.getElementById('bgTotal').textContent = instancesCache.length;
+    if (instancesCache.length === 0) {
+      wrap.innerHTML = '<div class="empty-history">상세페이지 인스턴스가 없습니다.</div>';
+      return;
+    }
+    wrap.innerHTML = '';
+    instancesCache.forEach(inst => {
+      const tpl = findTemplate(inst.templateId);
+      const row = document.createElement('label');
+      row.className = 'bg-inst-row';
+      row.innerHTML = `
+        <input type="checkbox" data-id="${escapeHtml(inst.id)}" />
+        <div class="bg-inst-meta">
+          <div class="bg-inst-name">📄 ${escapeHtml(inst.name)}</div>
+          <div class="bg-inst-tpl">${tpl ? escapeHtml(tpl.name) : '<span style="color:#B91C1C;">템플릿 삭제됨</span>'}</div>
+        </div>
+      `;
+      row.querySelector('input').addEventListener('change', updateBatchSelCount);
+      wrap.appendChild(row);
+    });
+    updateBatchSelCount();
+  }
+  function updateBatchSelCount() {
+    const n = document.querySelectorAll('#bgInstanceList input:checked').length;
+    document.getElementById('bgSelCount').textContent = n;
+    document.getElementById('bgStart').disabled = (n === 0) || !manusConfig;
+  }
+  function selectAllBatch(check) {
+    document.querySelectorAll('#bgInstanceList input').forEach(c => { c.checked = !!check; });
+    updateBatchSelCount();
+  }
+
+  async function startBatchGen() {
+    const prompt = document.getElementById('bgPrompt').value.trim();
+    const slotKey = document.getElementById('bgSlot').value;
+    const profile = document.getElementById('bgProfile').value;
+    if (!prompt) { toast('프롬프트 템플릿을 입력하세요.', 'error'); return; }
+    if (!slotKey) { toast('슬롯을 선택하세요.', 'error'); return; }
+    const checked = Array.from(document.querySelectorAll('#bgInstanceList input:checked'));
+    if (checked.length === 0) { toast('인스턴스를 1개 이상 선택하세요.', 'error'); return; }
+    if (!confirm(`${checked.length}개 인스턴스에 대해 마누스 일괄 생성을 시작합니다.\n예상 크레딧: 약 ${checked.length * 150}\n진행할까요?`)) return;
+
+    const items = checked.map(c => {
+      const id = c.dataset.id;
+      const inst = instancesCache.find(i => i.id === id);
+      return {
+        instanceId: id,
+        name: inst ? inst.name : '(이름 없음)',
+        status: 'pending',
+        message: '',
+        taskId: null,
+        fileUrl: null,
+      };
+    });
+
+    batchGenCtx = {
+      running: true, cancelled: false, items,
+      prompt, slotKey, profile,
+      concurrency: BATCH_CONCURRENCY, ok: 0, fail: 0,
+    };
+
+    document.getElementById('bgConfigSection').style.display = 'none';
+    document.getElementById('bgProgressSection').style.display = 'block';
+    document.getElementById('bgStart').style.display = 'none';
+    renderBatchProgress();
+    await runBatchWorkers();
+  }
+
+  async function runBatchWorkers() {
+    const ctx = batchGenCtx;
+    let nextIdx = 0;
+    const workers = [];
+    for (let i = 0; i < ctx.concurrency; i++) {
+      workers.push((async () => {
+        while (true) {
+          if (ctx.cancelled) return;
+          const idx = nextIdx++;
+          if (idx >= ctx.items.length) return;
+          await processBatchItem(ctx, idx);
+        }
+      })());
+    }
+    await Promise.all(workers);
+    ctx.running = false;
+    renderBatchProgress();
+    toast(`완료 — 성공 ${ctx.ok}건 / 실패 ${ctx.fail}건`, ctx.fail === 0 ? 'success' : 'info');
+  }
+
+  async function processBatchItem(ctx, idx) {
+    const item = ctx.items[idx];
+    const inst = instancesCache.find(i => i.id === item.instanceId);
+    if (!inst) { item.status = 'failed'; item.message = '인스턴스 삭제됨'; ctx.fail++; renderBatchProgress(); return; }
+    const filledPrompt = ctx.prompt.replace(/\{name\}/g, inst.name);
+
+    item.status = 'creating'; renderBatchProgress();
+    let taskId;
+    try {
+      const res = await manusCreate(filledPrompt, ctx.profile);
+      taskId = res.taskId; item.taskId = taskId;
+    } catch (e) {
+      item.status = 'failed'; item.message = '생성 요청 실패: ' + e.message; ctx.fail++; renderBatchProgress(); return;
+    }
+    if (!taskId) { item.status = 'failed'; item.message = 'taskId 없음'; ctx.fail++; renderBatchProgress(); return; }
+
+    item.status = 'running'; renderBatchProgress();
+    let pollCount = 0;
+    while (pollCount < BATCH_MAX_POLL) {
+      if (ctx.cancelled) { item.status = 'skipped'; item.message = '사용자 취소'; renderBatchProgress(); return; }
+      await sleep(BATCH_POLL_MS);
+      pollCount++;
+      let st;
+      try { st = await manusStatus(taskId); }
+      catch (e) { item.message = '상태 조회 실패: ' + e.message; renderBatchProgress(); continue; }
+      const s = st.status || 'unknown';
+      if (s === 'completed') {
+        if (!st.fileUrl) { item.status = 'failed'; item.message = '결과 파일 없음'; ctx.fail++; renderBatchProgress(); return; }
+        item.fileUrl = st.fileUrl;
+        try {
+          inst.slots = inst.slots || {};
+          inst.slots[ctx.slotKey] = st.fileUrl;
+          const saved = await saveInstance(inst);
+          if (!saved) throw new Error('인스턴스 저장 실패');
+          item.status = 'done';
+          item.message = `완료${st.creditUsage ? ' · ' + st.creditUsage + ' credits' : ''}`;
+          ctx.ok++;
+        } catch (e) {
+          item.status = 'failed'; item.message = '저장 실패: ' + e.message; ctx.fail++;
+        }
+        renderBatchProgress(); return;
+      }
+      if (s === 'failed') {
+        item.status = 'failed'; item.message = '마누스 작업 실패'; ctx.fail++; renderBatchProgress(); return;
+      }
+      item.message = `상태: ${s} · 폴링 ${pollCount}/${BATCH_MAX_POLL}`;
+      renderBatchProgress();
+    }
+    item.status = 'failed'; item.message = '시간 초과 (12분)'; ctx.fail++; renderBatchProgress();
+  }
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  function renderBatchProgress() {
+    if (!batchGenCtx) return;
+    const ctx = batchGenCtx;
+    const done = ctx.items.filter(i => i.status === 'done' || i.status === 'failed' || i.status === 'skipped').length;
+    document.getElementById('bgDone').textContent = done;
+    document.getElementById('bgTotalRunning').textContent = ctx.items.length;
+    document.getElementById('bgOk').textContent = ctx.ok;
+    document.getElementById('bgFail').textContent = ctx.fail;
+    const list = document.getElementById('bgProgressList');
+    list.innerHTML = '';
+    ctx.items.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'bg-prog-row bg-prog-' + item.status;
+      const statusIcon = ({pending:'⏸',creating:'🚀',running:'⏳',done:'✅',failed:'❌',skipped:'⏭'})[item.status] || '·';
+      row.innerHTML = `
+        <span class="bg-prog-icon">${statusIcon}</span>
+        <span class="bg-prog-name">${escapeHtml(item.name)}</span>
+        <span class="bg-prog-msg">${escapeHtml(item.message || statusLabelKr(item.status))}</span>
+        ${item.fileUrl ? `<a href="${escapeHtml(item.fileUrl)}" target="_blank" rel="noopener" class="bg-prog-link" title="새 창에서 보기">↗</a>` : ''}
+      `;
+      list.appendChild(row);
+    });
+  }
+  function statusLabelKr(s) {
+    return ({pending:'대기',creating:'요청 중',running:'생성 중',done:'완료',failed:'실패',skipped:'건너뜀'})[s] || s;
+  }
+  function cancelBatchGen() {
+    if (batchGenCtx && batchGenCtx.running) {
+      if (!confirm('진행 중인 일괄 생성을 취소할까요? 이미 시작된 작업은 마누스에서 계속 실행되고 크레딧은 사용됩니다.')) return false;
+      batchGenCtx.cancelled = true;
+      toast('취소 요청됨 — 진행 중인 항목 마무리 후 종료', 'info');
+    }
+    return true;
   }
 
   // -------- modal helpers --------
@@ -7544,6 +7880,21 @@ show('entry');
     document.getElementById('mvClose').addEventListener('click', () => closeModal('moveModal'));
     document.getElementById('mvCancel').addEventListener('click', () => closeModal('moveModal'));
     document.getElementById('mvApply').addEventListener('click', applyMove);
+
+    // 마누스 워커 설정 모달
+    document.getElementById('btnManusConfig').addEventListener('click', openManusConfigModal);
+    document.getElementById('mcClose').addEventListener('click', () => closeModal('manusConfigModal'));
+    document.getElementById('mcCancel').addEventListener('click', () => closeModal('manusConfigModal'));
+    document.getElementById('mcSave').addEventListener('click', saveManusConfigEditor);
+    document.getElementById('mcTest').addEventListener('click', testManusConfig);
+
+    // 마누스 일괄 생성 모달
+    document.getElementById('btnBatchGen').addEventListener('click', openBatchGenModal);
+    document.getElementById('bgClose').addEventListener('click', () => { if (cancelBatchGen()) closeModal('batchGenModal'); });
+    document.getElementById('bgCancel').addEventListener('click', () => { if (cancelBatchGen()) closeModal('batchGenModal'); });
+    document.getElementById('bgStart').addEventListener('click', startBatchGen);
+    document.getElementById('bgSelectAll').addEventListener('click', () => selectAllBatch(true));
+    document.getElementById('bgSelectNone').addEventListener('click', () => selectAllBatch(false));
 
     // 상세페이지 인스턴스 모달
     document.getElementById('btnInstances').addEventListener('click', openInstancesModal);

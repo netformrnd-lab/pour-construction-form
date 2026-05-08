@@ -17,7 +17,11 @@
   <div class="topbar">
     <div class="brand">
       <img src="./assets/logo-white.png" alt="POUR스토어" style="height:24px; width:auto; object-fit:contain;" />
-      <span>자사몰 리뉴얼 — 페이지 관리</span>
+      <span class="brand-text"><span class="brand-text-page">자사몰 리뉴얼 — 페이지 관리</span><span class="brand-text-product">자사몰 리뉴얼 — 상품 관리</span></span>
+    </div>
+    <div class="mode-tabs" role="tablist" aria-label="작업 영역 전환">
+      <button class="mode-tab mode-tab-active" data-mode="page" role="tab" aria-selected="true">📄 페이지 관리</button>
+      <button class="mode-tab" data-mode="product" role="tab" aria-selected="false">🏷 상품 관리</button>
     </div>
     <div class="meta">
       <span id="syncPill" class="sync-pill"><span class="dot"></span><span id="syncText">연결 중...</span></span>
@@ -25,7 +29,7 @@
     </div>
   </div>
 
-  <section class="hero">
+  <section class="hero for-page-mode">
     <div class="hero-inner">
       <span class="kicker">POUR스토어 자사몰 리뉴얼</span>
       <h1>페이지 관리</h1>
@@ -78,6 +82,14 @@
     </div>
   </section>
 
+  <section class="hero hero-product for-product-mode">
+    <div class="hero-inner">
+      <span class="kicker">POUR스토어 상품 관리 센터</span>
+      <h1>상품 관리</h1>
+      <p>모제품(POUR코트재 등)을 한 번 등록하고, 용도별 자식 상품(목재페인트·철재페인트…)으로 분기하세요. 통디자인·썸네일·상세페이지를 한 곳에서 관리합니다.</p>
+    </div>
+  </section>
+
   <div id="retentionBanner" class="retention-banner" style="display:none;">
     <div class="rb-msg">
       📦 <b>1년 이상 보관된 이력</b>이 <span id="retentionCount">0</span>건 있습니다.
@@ -91,20 +103,46 @@
 
   <div class="layout">
     <aside class="sidebar">
-      <h3>페이지·폴더</h3>
-      <div id="pageList" class="page-list"></div>
-      <div style="display:flex; flex-direction:column; gap:6px; margin-top:12px;">
-        <div style="display:flex; gap:6px;">
-          <button id="btnAddPage" class="btn btn-green btn-sm" style="flex:1;">+ 페이지</button>
-          <button id="btnAddFolder" class="btn btn-outline btn-sm" style="flex:1;" title="대/중분류 폴더 추가 (활성 폴더 안에 들어감)">+ 폴더</button>
-        </div>
-        <div style="display:flex; gap:6px;">
-          <button id="btnRenamePage" class="btn btn-ghost btn-sm" style="flex:1;">이름</button>
-          <button id="btnMovePage" class="btn btn-ghost btn-sm" style="flex:1;" title="다른 폴더로 이동">이동</button>
-          <button id="btnDeletePage" class="btn btn-danger btn-sm" style="flex:1;">삭제</button>
+
+      <!-- 페이지 모드 전용 -->
+      <div class="for-page-mode">
+        <h3>페이지·폴더</h3>
+        <div id="pageList" class="page-list"></div>
+        <div style="display:flex; flex-direction:column; gap:6px; margin-top:12px;">
+          <div style="display:flex; gap:6px;">
+            <button id="btnAddPage" class="btn btn-green btn-sm" style="flex:1;">+ 페이지</button>
+            <button id="btnAddFolder" class="btn btn-outline btn-sm" style="flex:1;" title="대/중분류 폴더 추가 (활성 폴더 안에 들어감)">+ 폴더</button>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button id="btnRenamePage" class="btn btn-ghost btn-sm" style="flex:1;">이름</button>
+            <button id="btnMovePage" class="btn btn-ghost btn-sm" style="flex:1;" title="다른 폴더로 이동">이동</button>
+            <button id="btnDeletePage" class="btn btn-danger btn-sm" style="flex:1;">삭제</button>
+          </div>
         </div>
       </div>
 
+      <!-- 상품 모드 전용 -->
+      <div class="for-product-mode">
+        <h3>상품 관리 센터</h3>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <button id="btnProducts" class="btn btn-primary btn-sm btn-block" title="POUR코트재 같은 모제품(마스터) — 카탈로그/시방서에서 사실 추출, 자식 상품들이 재활용">📦 제품 관리 (마스터)</button>
+          <button id="btnListings" class="btn btn-primary btn-sm btn-block" title="목재페인트·철재페인트 등 카페24 상품 단위 — 마스터 사실 + 통디자인(vibe) + 카페24 상품번호">🏷 상품 관리 (Listings)</button>
+        </div>
+        <h3 style="margin-top:18px;">상세페이지</h3>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <button id="btnInstances" class="btn btn-green btn-sm btn-block" title="저장된 상세페이지 목록 (템플릿 기반)">📄 상세페이지 목록</button>
+          <button id="btnTemplates" class="btn btn-outline btn-sm btn-block" title="제품 상세페이지 템플릿 관리 — 고정 섹션 + 슬롯 정의">📐 템플릿 관리</button>
+          <button id="btnBatchGen" class="btn btn-outline btn-sm btn-block" title="여러 상세페이지의 이미지 슬롯을 마누스로 일괄 생성">🚀 마누스 일괄 생성</button>
+          <button id="btnBatchAutoFill" class="btn btn-outline btn-sm btn-block" title="우리 제품 자료(PDF) 여러 개로 상세페이지 인스턴스를 한 번에 자동 생성">📎 자료로 일괄 생성</button>
+        </div>
+        <h3 style="margin-top:18px;">설정</h3>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <button id="btnManusConfig" class="btn btn-ghost btn-sm btn-block" style="font-size:11px;" title="Cloudflare 워커 URL 및 시크릿 설정">⚙ 마누스 설정</button>
+          <button id="btnClaudeConfig" class="btn btn-ghost btn-sm btn-block" style="font-size:11px;" title="자료 자동채우기용 Claude 프록시 워커 설정">⚙ Claude 자동채우기 설정</button>
+        </div>
+      </div>
+
+      <!-- 공통 -->
       <h3 style="margin-top:18px;">담당자</h3>
       <div class="me-card" id="meCard">
         <div class="me-info">
@@ -121,21 +159,6 @@
         <button id="btnTrash" class="btn btn-ghost btn-sm btn-block" style="margin-top:6px;" title="삭제된 피드백 — 7일간 보관 후 자동 영구 삭제">🗑 휴지통 <span id="trashCount" class="trash-badge">0</span></button>
       </div>
 
-      <h3 style="margin-top:18px;">제품·상품</h3>
-      <div style="display:flex; flex-direction:column; gap:6px;">
-        <button id="btnProducts" class="btn btn-primary btn-sm btn-block" title="POUR코트재 같은 모제품(마스터) 등록 — 카탈로그/시방서에서 사실 추출, 자식 상품들이 재활용">📦 제품 관리 (마스터)</button>
-      </div>
-
-      <h3 style="margin-top:18px;">상세페이지</h3>
-      <div style="display:flex; flex-direction:column; gap:6px;">
-        <button id="btnInstances" class="btn btn-green btn-sm btn-block" title="저장된 상세페이지 목록 (템플릿 기반)">📄 상세페이지 목록</button>
-        <button id="btnTemplates" class="btn btn-outline btn-sm btn-block" title="제품 상세페이지 템플릿 관리 — 고정 섹션 + 슬롯 정의">📐 템플릿 관리</button>
-        <button id="btnBatchGen" class="btn btn-outline btn-sm btn-block" title="여러 상세페이지의 이미지 슬롯을 마누스로 일괄 생성">🚀 마누스 일괄 생성</button>
-        <button id="btnBatchAutoFill" class="btn btn-outline btn-sm btn-block" title="우리 제품 자료(PDF) 여러 개로 상세페이지 인스턴스를 한 번에 자동 생성">📎 자료로 일괄 생성</button>
-        <button id="btnManusConfig" class="btn btn-ghost btn-sm btn-block" style="font-size:11px;" title="Cloudflare 워커 URL 및 시크릿 설정">⚙ 마누스 설정</button>
-        <button id="btnClaudeConfig" class="btn btn-ghost btn-sm btn-block" style="font-size:11px;" title="자료 자동채우기용 Claude 프록시 워커 설정">⚙ Claude 자동채우기 설정</button>
-      </div>
-
       <h3 style="margin-top:18px;">데이터 백업·공유</h3>
       <div style="display:flex; flex-direction:column; gap:6px;">
         <button id="btnShare" class="btn btn-green btn-sm btn-block">📤 카톡·메일로 공유</button>
@@ -149,22 +172,103 @@
     </aside>
 
     <main>
-      <div class="content-head">
-        <div>
-          <h2 id="pageTitle">메인 페이지</h2>
-          <span id="pageFile" class="file-tag">/index.html</span>
+      <!-- 페이지 모드 -->
+      <div class="for-page-mode">
+        <div class="content-head">
+          <div>
+            <h2 id="pageTitle">메인 페이지</h2>
+            <span id="pageFile" class="file-tag">/index.html</span>
+          </div>
+          <div class="actions">
+            <button id="btnAddSection" class="btn btn-green">+ 섹션 추가</button>
+            <button id="btnPageFeedback" class="btn btn-outline" title="페이지 단위 피드백 (대표·본부장 등)">💬 <span id="pageFbCount">0</span></button>
+            <button id="btnPageJourney" class="btn btn-outline" title="이 페이지의 모든 섹션·피드백·이력을 시간순으로 보기">📜 작업여정</button>
+            <button id="btnFullPreview" class="btn btn-primary">전체 시안 바로보기</button>
+            <button id="btnCopyFullHtml" class="btn btn-outline" title="현재 페이지의 모든 섹션 HTML을 클립보드로 복사 (카페24 붙여넣기용)">전체 HTML 복사</button>
+            <button id="btnCopyPageLink" class="btn btn-outline" title="이 페이지를 통째 보여주는 공유 링크 복사">🔗 페이지 링크 복사</button>
+          </div>
         </div>
-        <div class="actions">
-          <button id="btnAddSection" class="btn btn-green">+ 섹션 추가</button>
-          <button id="btnPageFeedback" class="btn btn-outline" title="페이지 단위 피드백 (대표·본부장 등)">💬 <span id="pageFbCount">0</span></button>
-          <button id="btnPageJourney" class="btn btn-outline" title="이 페이지의 모든 섹션·피드백·이력을 시간순으로 보기">📜 작업여정</button>
-          <button id="btnFullPreview" class="btn btn-primary">전체 시안 바로보기</button>
-          <button id="btnCopyFullHtml" class="btn btn-outline" title="현재 페이지의 모든 섹션 HTML을 클립보드로 복사 (카페24 붙여넣기용)">전체 HTML 복사</button>
-          <button id="btnCopyPageLink" class="btn btn-outline" title="이 페이지를 통째 보여주는 공유 링크 복사">🔗 페이지 링크 복사</button>
-        </div>
+        <div id="sectionList" class="section-list"></div>
       </div>
 
-      <div id="sectionList" class="section-list"></div>
+      <!-- 상품 모드 — 대시보드 -->
+      <div class="for-product-mode">
+        <div class="content-head">
+          <div>
+            <h2>상품 관리 대시보드</h2>
+            <span class="file-tag">제품(Master) → 상품(Listing) → 상세페이지</span>
+          </div>
+          <div class="actions">
+            <button id="btnDashNewProduct" class="btn btn-primary">+ 새 제품(마스터)</button>
+            <button id="btnDashNewListing" class="btn btn-green">+ 새 상품(Listing)</button>
+          </div>
+        </div>
+
+        <!-- 단계 흐름 안내 -->
+        <div class="dash-flow">
+          <div class="dash-flow-step">
+            <div class="dash-flow-num">1</div>
+            <div class="dash-flow-body">
+              <div class="dash-flow-title">제품(마스터) 등록</div>
+              <div class="dash-flow-desc">카탈로그·시방서 → 사실 추출 → 검수</div>
+            </div>
+          </div>
+          <span class="dash-flow-arrow">→</span>
+          <div class="dash-flow-step">
+            <div class="dash-flow-num">2</div>
+            <div class="dash-flow-body">
+              <div class="dash-flow-title">상품(Listing) 분기</div>
+              <div class="dash-flow-desc">용도별로 N개로 나누기 + 통디자인(vibe)</div>
+            </div>
+          </div>
+          <span class="dash-flow-arrow">→</span>
+          <div class="dash-flow-step">
+            <div class="dash-flow-num">3</div>
+            <div class="dash-flow-body">
+              <div class="dash-flow-title">상세페이지 자동 생성</div>
+              <div class="dash-flow-desc">사실 + vibe 기반 슬롯 카피 자동 채움</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 통계 카드 그리드 -->
+        <div class="dash-grid">
+          <div class="dash-card" id="dashCardProducts">
+            <div class="dash-card-icon">📦</div>
+            <div class="dash-card-title">제품 (마스터)</div>
+            <div class="dash-card-stat"><span id="dashProductsCount">0</span></div>
+            <div class="dash-card-desc">POUR코트재 같은 모제품 — 한 번 등록 → N개 상품에서 재활용</div>
+            <button class="btn btn-outline btn-sm dash-card-btn" id="dashOpenProducts">제품 목록 열기</button>
+          </div>
+          <div class="dash-card" id="dashCardListings">
+            <div class="dash-card-icon">🏷</div>
+            <div class="dash-card-title">상품 (Listing)</div>
+            <div class="dash-card-stat"><span id="dashListingsCount">0</span></div>
+            <div class="dash-card-desc">목재페인트·철재페인트 등 카페24 등록 단위 — 통디자인 + 카페24번호</div>
+            <button class="btn btn-outline btn-sm dash-card-btn" id="dashOpenListings">상품 목록 열기</button>
+          </div>
+          <div class="dash-card" id="dashCardInstances">
+            <div class="dash-card-icon">📄</div>
+            <div class="dash-card-title">상세페이지</div>
+            <div class="dash-card-stat"><span id="dashInstancesCount">0</span></div>
+            <div class="dash-card-desc">상품에 연결된 상세페이지 — 카페24에 붙여넣을 HTML 산출</div>
+            <button class="btn btn-outline btn-sm dash-card-btn" id="dashOpenInstances">상세페이지 목록</button>
+          </div>
+          <div class="dash-card" id="dashCardTemplates">
+            <div class="dash-card-icon">📐</div>
+            <div class="dash-card-title">템플릿</div>
+            <div class="dash-card-stat"><span id="dashTemplatesCount">0</span></div>
+            <div class="dash-card-desc">상세페이지 뼈대 — 14섹션 POUR 기본 템플릿 사용 가능</div>
+            <button class="btn btn-outline btn-sm dash-card-btn" id="dashOpenTemplates">템플릿 관리</button>
+          </div>
+        </div>
+
+        <!-- 최근 활동 (간단히) -->
+        <div class="dash-recent">
+          <h3>최근 작업</h3>
+          <div id="dashRecentList" class="dash-recent-list"></div>
+        </div>
+      </div>
     </main>
   </div>
 
@@ -867,6 +971,173 @@ https://..."></textarea>
           <button id="peDelete" class="btn btn-danger" style="margin-right:auto; display:none;">제품 삭제</button>
           <button id="peCancel" class="btn btn-ghost">취소</button>
           <button id="peSave" class="btn btn-primary">저장</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🏷 상품(Listing) 목록 모달 -->
+  <div id="listingsModal" class="modal-mask">
+    <div class="modal" style="max-width: 980px;">
+      <div class="modal-head">
+        <h3>🏷 상품 관리 (Listings)</h3>
+        <button id="lstClose" class="close" aria-label="닫기">×</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:12px; color:var(--ink2); background:#ECFDF5; border:1px solid #A7F3D0; padding:10px 12px; border-radius:8px; margin-bottom:14px; line-height:1.6;">
+          <b>상품(Listing)</b>은 카페24 등록 단위입니다 — 마스터 제품의 사실을 재활용하면서 용도별로 나뉘고, 각 상품에 통디자인(vibe)과 카페24 상품번호를 지정합니다.<br/>
+          저장 위치: <code style="font-size:11px; padding:1px 5px; background:#fff; border:1px solid var(--border); border-radius:4px;">pourstore-renewal-listings</code>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px; flex-wrap:wrap;">
+          <span style="font-size:12px; color:var(--muted);">예: POUR코트재(마스터) → 목재페인트·철재페인트·벽돌페인트(자식 상품)</span>
+          <div style="display:flex; gap:6px;">
+            <button id="lstSuggestBranches" class="btn btn-outline btn-sm" title="모제품의 적용기재 기반으로 자식 상품을 AI가 제안">🪄 자식 상품 분기 제안</button>
+            <button id="lstNew" class="btn btn-primary btn-sm">+ 새 상품</button>
+          </div>
+        </div>
+        <div id="lstListWrap"></div>
+      </div>
+      <div class="modal-foot">
+        <span style="font-size:11px; color:var(--muted);">상품 = 카페24 상품번호 1개에 대응 · 같은 마스터를 N개 상품이 공유</span>
+        <button id="lstCloseFoot" class="btn btn-ghost">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🏷 상품 편집기 -->
+  <div id="listingEditor" class="modal-mask">
+    <div class="modal" style="max-width: 1080px;">
+      <div class="modal-head">
+        <h3 id="leTitle">상품 편집</h3>
+        <button id="leClose" class="close" aria-label="닫기">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="le-tabs">
+          <button class="le-tab le-tab-active" data-tab="basic">① 기본정보</button>
+          <button class="le-tab" data-tab="emphasized">② 강조 사실</button>
+          <button class="le-tab" data-tab="vibe">③ 통디자인 (vibe)</button>
+          <button class="le-tab" data-tab="output">④ 산출물</button>
+        </div>
+
+        <!-- ① 기본정보 -->
+        <div id="leTabBasic" class="le-tabbody">
+          <div class="field-row">
+            <div>
+              <label for="leMaster">모제품 (마스터) <span class="req">*</span></label>
+              <select id="leMaster" style="width:100%;"></select>
+            </div>
+            <div>
+              <label for="leSubstrate">적용 기재 (자식 분기 핵심)</label>
+              <select id="leSubstrate" style="width:100%;"></select>
+            </div>
+          </div>
+          <div class="field-row">
+            <div>
+              <label for="leName">상품명 <span class="req">*</span></label>
+              <input id="leName" type="text" placeholder="예: 목재페인트" maxlength="60" />
+            </div>
+            <div>
+              <label for="leCafe24">카페24 상품번호 (직접 입력)</label>
+              <input id="leCafe24" type="text" placeholder="예: 12345" maxlength="20" pattern="[0-9]*" inputmode="numeric" />
+            </div>
+          </div>
+          <label for="leSlogan">슬로건 / 한 줄 카피 (선택)</label>
+          <input id="leSlogan" type="text" placeholder="예: 오래가는 목재 마감 — 자외선·수분에도" maxlength="80" />
+          <label for="leKeywords">검색 키워드 — 쉼표 구분 (선택)</label>
+          <input id="leKeywords" type="text" placeholder="목재페인트, 우드페인트, 데크페인트" />
+          <label for="leColors">컬러 옵션 라벨 — 쉼표 구분 (선택)</label>
+          <input id="leColors" type="text" placeholder="월넛, 오크, 화이트, 크림" />
+          <div style="font-size:11px; color:var(--muted); margin-top:4px;">
+            ⓘ 카페24 상품번호는 이미 등록된 상품에 매핑하기 위한 식별자입니다. 자동 생성되지 않습니다.
+          </div>
+        </div>
+
+        <!-- ② 강조 사실 (마스터에서 선택) -->
+        <div id="leTabEmphasized" class="le-tabbody" style="display:none;">
+          <div style="font-size:12px; color:var(--ink2); background:#FFFBEB; border:1px solid #FCE7B6; padding:10px 12px; border-radius:8px; margin-bottom:14px; line-height:1.55;">
+            마스터의 사실 카드 중에서 <b>이 상품에서 강조</b>할 항목을 선택하세요. 이 선택은 ④ 산출물 단계에서 슬롯 카피 생성 시 우선순위로 사용됩니다.<br/>
+            <span style="color:#7C3AED; font-weight:600;">선택 안 한 사실도 마스터에서 그대로 상속됩니다 — 강조는 "이 상품에서 특별히 부각할 것"의 의미.</span>
+          </div>
+          <div id="leEmpBody"></div>
+        </div>
+
+        <!-- ③ 통디자인 (vibe) -->
+        <div id="leTabVibe" class="le-tabbody" style="display:none;">
+          <div style="font-size:12px; color:var(--ink2); background:#F5F3FF; border:1px solid #DDD6FE; padding:10px 12px; border-radius:8px; margin-bottom:14px; line-height:1.55;">
+            상품이 풍기는 <b>분위기 프리셋</b>을 선택하면 메인 컬러·이미지 스타일·키워드가 자동 세팅됩니다. 같은 POUR코트재라도 목재페인트(따뜻)와 철재페인트(차가움)는 다른 vibe.
+          </div>
+          <div id="leVibeGrid" class="le-vibe-grid"></div>
+          <div style="margin-top:14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <label style="font-size:11px; font-weight:700; color:var(--muted);">메인 컬러 미세조정 (선택):</label>
+            <input id="leCustomPrimary" type="color" style="width:50px; height:34px; border:1px solid var(--border); border-radius:6px; cursor:pointer;" />
+            <input id="leCustomPrimaryText" type="text" placeholder="#8B5A3C" maxlength="7" style="width:100px; padding:7px 9px; font-family: ui-monospace, Consolas, monospace; font-size:12px;" />
+            <button id="leResetPrimary" class="btn btn-ghost btn-sm">vibe 기본값으로 되돌리기</button>
+          </div>
+        </div>
+
+        <!-- ④ 산출물 -->
+        <div id="leTabOutput" class="le-tabbody" style="display:none;">
+          <div style="font-size:12px; color:var(--ink2); background:#ECFDF5; border:1px solid #A7F3D0; padding:10px 12px; border-radius:8px; margin-bottom:14px; line-height:1.55;">
+            마스터 사실 + 강조 사실 + vibe → <b>상세페이지 슬롯 카피를 자동 생성</b>합니다. 인스턴스(상세페이지)는 별도 컬렉션에 저장되고 이 상품에 연결됩니다.
+          </div>
+          <div style="background:#fff; border:1px solid var(--border); border-radius:10px; padding:14px;">
+            <div style="font-size:13px; font-weight:800; color:var(--ink); margin-bottom:10px;">📄 상세페이지</div>
+            <div id="leDetailStatus" style="font-size:12.5px; color:var(--ink2); margin-bottom:10px;">아직 생성된 상세페이지가 없습니다.</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <select id="leDetailTemplate" style="padding:7px 10px; font-size:12px; border:1px solid var(--border); border-radius:6px;"></select>
+              <button id="leGenerateDetail" class="btn btn-primary btn-sm">🤖 사실 + vibe 기반 자동 생성</button>
+              <button id="leOpenDetail" class="btn btn-outline btn-sm" style="display:none;">상세페이지 편집</button>
+            </div>
+            <div id="leDetailGenStatus" style="font-size:11.5px; color:var(--muted); margin-top:8px;"></div>
+          </div>
+          <div style="background:#fff; border:1px solid var(--border); border-radius:10px; padding:14px; margin-top:12px;">
+            <div style="font-size:13px; font-weight:800; color:var(--ink); margin-bottom:10px;">🖼 썸네일 (선택)</div>
+            <input id="leThumbnail" type="text" placeholder="https://... 썸네일 이미지 URL (직접 업로드 또는 마누스 생성 결과)" style="width:100%;" />
+            <div style="font-size:11px; color:var(--muted); margin-top:6px;">※ 썸네일 자동 생성(마누스 연동)은 다음 단계에서 추가됩니다.</div>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-foot">
+        <span style="font-size:11px; color:var(--muted);">마스터 사실 + 강조 사실 + vibe = 슬롯 카피 자동 생성</span>
+        <div style="display:flex; gap:8px;">
+          <button id="leDelete" class="btn btn-danger" style="margin-right:auto; display:none;">상품 삭제</button>
+          <button id="leCancel" class="btn btn-ghost">취소</button>
+          <button id="leSave" class="btn btn-primary">저장</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🪄 자식 상품 분기 제안 모달 -->
+  <div id="branchSuggestModal" class="modal-mask">
+    <div class="modal" style="max-width: 760px;">
+      <div class="modal-head">
+        <h3>🪄 자식 상품 분기 제안</h3>
+        <button id="bsClose" class="close" aria-label="닫기">×</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:12px; color:var(--ink2); background:#FFFBEB; border:1px solid #FCE7B6; padding:10px 12px; border-radius:8px; margin-bottom:14px; line-height:1.55;">
+          모제품의 <b>적용 가능 기재(substrates)</b>를 기반으로 자식 상품을 자동 제안합니다. 체크한 항목만 상품(Listing)으로 일괄 생성됩니다.
+        </div>
+        <div class="lb-section">
+          <div class="lb-section-title">모제품(마스터) 선택</div>
+          <select id="bsMaster" style="width:100%; padding:8px 10px; font-size:13px; border:1px solid var(--border); border-radius:8px;"></select>
+        </div>
+        <div class="lb-section" id="bsSubstrateSection" style="display:none;">
+          <div class="lb-section-title">적용 기재 — 자동 감지됨</div>
+          <div id="bsSubstrateList" class="lb-substrate-list"></div>
+        </div>
+        <div class="lb-section" id="bsSuggestSection" style="display:none;">
+          <div class="lb-section-title">제안된 자식 상품 — 체크한 것만 생성</div>
+          <div id="bsSuggestList" class="lb-suggest-list"></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <span id="bsHint" style="font-size:11px; color:var(--muted);">마스터 선택 시 적용기재가 표시됩니다.</span>
+        <div style="display:flex; gap:8px;">
+          <button id="bsCancel" class="btn btn-ghost">취소</button>
+          <button id="bsCreate" class="btn btn-primary" disabled>선택한 상품 일괄 생성</button>
         </div>
       </div>
     </div>

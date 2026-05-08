@@ -1,0 +1,55 @@
+// ============================================================
+// 통합 Firebase Storage 보안 규칙
+// 적용 프로젝트: pour-app-new
+//   - 박람회·영업앱 (admin.html, index.html, defect-diagnosis.html)
+//   - POUR스토어 리뉴얼 (pourstore-renewal/* 정적 사이트 + 빌더)
+// ============================================================
+// 배포 방법: FIREBASE-DEPLOY.md 참조
+//
+// 사용 중인 Storage 경로 정리:
+//   POUR스토어_리뉴얼/**             — 마케팅 자산 (실적관 갤러리, 협력사 로고 등)
+//                                      → 공개 read 필요 (다운로드 토큰 없는 URL 사용 중)
+//   pourstore-detail/{instanceId}/** — 상세페이지 빌더 슬롯 이미지 (Step D 업로드)
+//   defect-photos/**                 — 하자진단 사진 업로드
+//   leads/**, leadphotos/**          — 박람회 리드 명함·메모 사진
+//
+// 보안 모델 (현재):
+//   firestore.rules와 동일한 정책 — 인증 없이 read/write 모두 허용.
+//   1차 운영 단계에서 빠른 출시 우선. 추후 PIN/이메일 인증 도입 시 함께 강화.
+//   (CLAUDE.md PART 14 인증 고도화 계획 참조)
+// ============================================================
+
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ─────────────────────────────────────────────
+    // 마케팅 자산 — 토큰 없이 공개 read 허용
+    // ─────────────────────────────────────────────
+    // pourstore-renewal/index.html (Vite 번들)이 ?alt=media 만 붙은
+    // URL로 직접 로딩 — 다운로드 토큰이 없어 룰에서 read 명시 필요.
+    match /POUR스토어_리뉴얼/{allPaths=**} {
+      allow read: if true;
+      allow write: if true;  // 어드민 업로드용 (추후 PIN 인증 도입 시 제한)
+    }
+
+    // ─────────────────────────────────────────────
+    // 앱 업로드 경로 — 인증 없이 read/write (1차 정책)
+    // ─────────────────────────────────────────────
+    match /pourstore-detail/{allPaths=**} { allow read, write: if true; }
+    match /defect-photos/{allPaths=**}    { allow read, write: if true; }
+    match /Proposal/{allPaths=**}         { allow read, write: if true; }
+    match /leadphotos/{allPaths=**}       { allow read, write: if true; }
+    match /leads/{allPaths=**}            { allow read, write: if true; }
+    match /memo/{allPaths=**}             { allow read, write: if true; }
+    match /namecard/{allPaths=**}         { allow read, write: if true; }
+
+    // ─────────────────────────────────────────────
+    // 그 외 — 명시되지 않은 경로는 모두 막음
+    // ─────────────────────────────────────────────
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

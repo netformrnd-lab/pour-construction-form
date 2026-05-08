@@ -121,6 +121,11 @@
         <button id="btnTrash" class="btn btn-ghost btn-sm btn-block" style="margin-top:6px;" title="삭제된 피드백 — 7일간 보관 후 자동 영구 삭제">🗑 휴지통 <span id="trashCount" class="trash-badge">0</span></button>
       </div>
 
+      <h3 style="margin-top:18px;">제품·상품</h3>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <button id="btnProducts" class="btn btn-primary btn-sm btn-block" title="POUR코트재 같은 모제품(마스터) 등록 — 카탈로그/시방서에서 사실 추출, 자식 상품들이 재활용">📦 제품 관리 (마스터)</button>
+      </div>
+
       <h3 style="margin-top:18px;">상세페이지</h3>
       <div style="display:flex; flex-direction:column; gap:6px;">
         <button id="btnInstances" class="btn btn-green btn-sm btn-block" title="저장된 상세페이지 목록 (템플릿 기반)">📄 상세페이지 목록</button>
@@ -729,6 +734,139 @@ https://..."></textarea>
         <div style="display:flex; gap:8px;">
           <button id="ccCancel" class="btn btn-ghost">취소</button>
           <button id="ccSave" class="btn btn-primary">저장</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 📦 제품 관리 (마스터) 목록 모달 -->
+  <div id="productsModal" class="modal-mask">
+    <div class="modal" style="max-width: 980px;">
+      <div class="modal-head">
+        <h3>📦 제품 관리 (마스터)</h3>
+        <button id="prClose" class="close" aria-label="닫기">×</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:12px; color:var(--ink2); background:#EFF6FF; border:1px solid #BFDBFE; padding:10px 12px; border-radius:8px; margin-bottom:14px; line-height:1.6;">
+          <b>모제품(마스터)</b>의 객관적 사실(인장강도·인증·성분 등)을 한 번만 등록해두면 자식 <b>상품</b>들(목재페인트·철재페인트 등)이 재활용합니다.<br/>
+          저장 위치: <code style="font-size:11px; padding:1px 5px; background:#fff; border:1px solid var(--border); border-radius:4px;">pourstore-renewal-products</code> · 자식 상품 컬렉션은 다음 단계에서 추가됩니다.
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <span style="font-size:12px; color:var(--muted);">제품 1개 → 자식 상품 N개 (예: POUR코트재 → 목재/철재/벽돌페인트)</span>
+          <button id="prNew" class="btn btn-primary btn-sm">+ 새 제품</button>
+        </div>
+        <div id="prListWrap"></div>
+      </div>
+      <div class="modal-foot">
+        <span style="font-size:11px; color:var(--muted);">사실 카드는 Claude가 자료에서 추출 → 사용자 검수 → 자식 상품에서 재활용</span>
+        <button id="prCloseFoot" class="btn btn-ghost">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 📦 제품 편집기 모달 -->
+  <div id="productEditor" class="modal-mask">
+    <div class="modal" style="max-width: 1080px;">
+      <div class="modal-head">
+        <h3 id="peTitle">제품 편집</h3>
+        <button id="peClose" class="close" aria-label="닫기">×</button>
+      </div>
+      <div class="modal-body">
+        <!-- 탭 -->
+        <div class="pe-tabs">
+          <button class="pe-tab pe-tab-active" data-tab="basic">① 기본정보</button>
+          <button class="pe-tab" data-tab="sources">② 자료 (PDF·텍스트)</button>
+          <button class="pe-tab" data-tab="facts">③ 사실 카드</button>
+          <button class="pe-tab" data-tab="shared">④ 공유 이미지</button>
+        </div>
+
+        <!-- ① 기본정보 -->
+        <div id="peTabBasic" class="pe-tabbody">
+          <div class="field-row">
+            <div>
+              <label for="peCode">제품 코드 <span class="req">*</span></label>
+              <input id="peCode" type="text" placeholder="예: PCT-01" maxlength="40" />
+            </div>
+            <div>
+              <label for="peName">제품명 <span class="req">*</span></label>
+              <input id="peName" type="text" placeholder="예: POUR코트재" maxlength="60" />
+            </div>
+          </div>
+          <label for="peDesc">제품 설명 (선택)</label>
+          <textarea id="peDesc" rows="3" placeholder="간단한 설명 — 어디 쓰는 제품인지 한 문장"></textarea>
+          <div style="font-size:11px; color:var(--muted); margin-top:4px;">
+            ※ 카페24 상품번호는 <b>자식 상품(listing)</b> 단계에서 입력합니다 (마스터에는 없음).
+          </div>
+        </div>
+
+        <!-- ② 자료 -->
+        <div id="peTabSources" class="pe-tabbody" style="display:none;">
+          <div style="font-size:12px; color:var(--ink2); background:#F5F3FF; border:1px solid #DDD6FE; padding:9px 12px; border-radius:8px; margin-bottom:12px; line-height:1.55;">
+            제품 카탈로그(해당 제품 페이지만 1~2장)·시방서·기존 상세페이지 등을 모두 올려주세요.<br/>
+            ③ 사실 카드 탭에서 Claude가 이 자료들에서 객관적 사실을 추출합니다.
+          </div>
+          <div id="peOwnDrop" class="af-drop" tabindex="0" role="button" aria-label="제품 자료 PDF">
+            <input type="file" id="peOwnFile" accept="application/pdf,.pdf" multiple hidden />
+            <div class="af-drop-hint">📄 PDF를 끌어다 놓거나 <button type="button" class="af-drop-pick" id="peOwnPick">파일 선택</button></div>
+          </div>
+          <div id="peOwnFiles" class="af-files"></div>
+          <label for="peOwnText" style="margin-top:10px; font-size:11px; font-weight:700; color:var(--muted); display:block;">✍ 텍스트 메모 (선택)</label>
+          <textarea id="peOwnText" rows="4" placeholder="제품 사실 텍스트 붙여넣기 (선택) — 예: 제품명, 용량, 핵심 수치, 적용기재, 특징"></textarea>
+        </div>
+
+        <!-- ③ 사실 카드 -->
+        <div id="peTabFacts" class="pe-tabbody" style="display:none;">
+          <div class="pe-facts-bar">
+            <button id="peExtract" class="btn btn-primary btn-sm">🤖 자료에서 사실 추출</button>
+            <span id="peExtractStatus" class="pe-extract-status"></span>
+            <span style="flex:1;"></span>
+            <span id="peFactsApprovedBadge" class="pe-approved-badge" style="display:none;">✓ 검수 완료</span>
+            <button id="peApproveFacts" class="btn btn-green btn-sm" style="display:none;">✓ 사실 확정</button>
+          </div>
+          <div id="peFactsBody"></div>
+        </div>
+
+        <!-- ④ 공유 이미지 -->
+        <div id="peTabShared" class="pe-tabbody" style="display:none;">
+          <div style="font-size:12px; color:var(--ink2); background:#ECFDF5; border:1px solid #A7F3D0; padding:9px 12px; border-radius:8px; margin-bottom:14px; line-height:1.55;">
+            모제품 단위로 한 번만 등록 → 자식 상품 N개의 상세페이지에서 동일한 이미지가 사용됩니다 (옵션 A).<br/>
+            ⚠ 이미지는 외부 URL을 권장합니다 (Firestore 1MB 문서 한도). 자체 호스팅이 없으면 GitHub Raw / Cloudflare R2 / Cafe24 파일관리 등 사용.
+          </div>
+          <div id="peSharedList" class="pe-shared-list">
+            <div class="pe-shared-row" data-key="cert">
+              <div class="pe-shared-label">시험성적서 (KTR/KCL)</div>
+              <input type="text" data-shared-url placeholder="https://... 이미지 URL" />
+              <input type="text" data-shared-caption placeholder="캡션 (선택) — 예: KTR 공인시험 / 인장강도 5.8 N/mm²" />
+              <div class="pe-shared-preview" data-shared-preview></div>
+            </div>
+            <div class="pe-shared-row" data-key="dataChart">
+              <div class="pe-shared-label">데이터 그래프</div>
+              <input type="text" data-shared-url placeholder="https://... 이미지 URL" />
+              <input type="text" data-shared-caption placeholder="캡션 (선택) — 예: 타사 대비 인장강도 10배" />
+              <div class="pe-shared-preview" data-shared-preview></div>
+            </div>
+            <div class="pe-shared-row" data-key="patent">
+              <div class="pe-shared-label">특허증</div>
+              <input type="text" data-shared-url placeholder="https://... 이미지 URL" />
+              <input type="text" data-shared-caption placeholder="캡션 (선택) — 예: 특허 제 10-XXXXX 호" />
+              <div class="pe-shared-preview" data-shared-preview></div>
+            </div>
+            <div class="pe-shared-row" data-key="certMark">
+              <div class="pe-shared-label">인증 마크</div>
+              <input type="text" data-shared-url placeholder="https://... 이미지 URL" />
+              <input type="text" data-shared-caption placeholder="캡션 (선택) — 예: 국토부 건설신기술 1026호" />
+              <div class="pe-shared-preview" data-shared-preview></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-foot">
+        <span id="peFootHint" style="font-size:11px; color:var(--muted);">자료 → 사실 추출 → 검수 → 자식 상품에서 재활용</span>
+        <div style="display:flex; gap:8px;">
+          <button id="peDelete" class="btn btn-danger" style="margin-right:auto; display:none;">제품 삭제</button>
+          <button id="peCancel" class="btn btn-ghost">취소</button>
+          <button id="peSave" class="btn btn-primary">저장</button>
         </div>
       </div>
     </div>

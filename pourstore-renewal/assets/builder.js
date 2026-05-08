@@ -6987,6 +6987,705 @@ show('entry');
     toast('템플릿 저장됨', 'success');
   }
 
+  // ════════════════════════════════════════════════════════════════
+  // 📦 제품 관리 (마스터) — Stage 0
+  // ════════════════════════════════════════════════════════════════
+  // 모제품(POUR코트재 등)의 객관적 사실을 한 번 등록 → 자식 상품(목재페인트 등)에서 재활용.
+  // 자식 상품 컬렉션(pourstore-renewal-listings)은 다음 단계에서 추가.
+  const PRODUCTS_COLLECTION = 'pourstore-renewal-products';
+  let productsCache = [];
+  let productEditorCtx = null; // { productId, draft, sourcePdfs, dirty, mode }
+
+  function newProduct() {
+    return {
+      id: 'prod-' + Math.random().toString(36).slice(2, 10),
+      productCode: '',
+      name: '',
+      description: '',
+      sources: { pdfs: [], texts: [] }, // pdfs: [{name,size,base64}] — Firestore 저장 시 base64 제외
+      sourcePdfMeta: [], // [{name,size,uploadedAt}] — Firestore 영속 (base64는 추출 직후 메모리에서 폐기 가능)
+      sharedImages: { cert: null, dataChart: null, patent: null, certMark: null }, // {url,caption}
+      masterFacts: emptyMasterFacts(),
+      factsExtractedAt: null,
+      factsApproved: false,
+      factsApprovedAt: null,
+      factsApprovedBy: null,
+      createdAt: null, updatedAt: null, deleted: false,
+    };
+  }
+  function emptyMasterFacts() {
+    return {
+      productName: '',
+      keySpecs: [],          // [{id,label,value,unit,source,kind,confidence,approved}]
+      sellingPoints: [],     // [{id,text,source,confidence,approved}]
+      composition: [],       // [{id,text,source,confidence,approved}]
+      certifications: [],    // [{id,name,agency,source,confidence,approved}]
+      compatibleSubstrates: [], // [{id,name,source,approved}]
+      targetUses: [],        // [{id,text,source,confidence,approved}]
+      cautions: [],          // [{id,text,source,confidence,approved}]
+    };
+  }
+  function newFactId(prefix) {
+    return prefix + '-' + Math.random().toString(36).slice(2, 8);
+  }
+
+  async function loadProducts() {
+    if (!firebaseReady || !db) {
+      toast('Firebase 미연결 — 제품 목록 로드 불가', 'error');
+      return [];
+    }
+    try {
+      const snap = await db.collection(PRODUCTS_COLLECTION).get();
+      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .filter(p => !p.deleted);
+      docs.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+      productsCache = docs;
+      console.log(`[products] ${docs.length}건 로드`);
+      return docs;
+    } catch (e) {
+      console.error('[products] 로드 실패:', e);
+      toast('제품 목록 로드 실패: ' + (e.code || e.message || ''), 'error');
+      return [];
+    }
+  }
+  async function saveProduct(prod) {
+    if (!firebaseReady || !db) { toast('오프라인 — 저장 불가', 'error'); return false; }
+    const me = getMeStaff();
+    prod.updatedAt = nowIso();
+    prod.updatedByName = me ? me.name : '익명';
+    if (!prod.createdAt) {
+      prod.createdAt = prod.updatedAt;
+      prod.createdByName = me ? me.name : '익명';
+    }
+    // base64 PDF는 Firestore에 안 들어감 (1MB 한도) — sourcePdfMeta로 메타만 보관
+    const persisted = JSON.parse(JSON.stringify(prod));
+    delete persisted.sources;
+    try {
+      await db.collection(PRODUCTS_COLLECTION).doc(prod.id).set(persisted, { merge: false });
+      const idx = productsCache.findIndex(p => p.id === prod.id);
+      if (idx >= 0) productsCache[idx] = persisted; else productsCache.unshift(persisted);
+      return true;
+    } catch (e) {
+      console.error('[products] 저장 실패:', e);
+      toast('저장 실패: ' + (e.code || e.message || ''), 'error');
+      return false;
+    }
+  }
+  async function deleteProduct(id) {
+    const prod = productsCache.find(p => p.id === id);
+    if (!prod) return;
+    if (!confirm(`'${prod.name || prod.productCode}' 제품을 삭제할까요? (자식 상품이 있으면 그 상품들의 사실 참조가 끊깁니다)`)) return;
+    if (!firebaseReady || !db) { toast('오프라인 — 삭제 불가', 'error'); return; }
+    try {
+      // 소프트 딜리트
+      await db.collection(PRODUCTS_COLLECTION).doc(id).update({ deleted: true, deletedAt: nowIso() });
+      productsCache = productsCache.filter(p => p.id !== id);
+      renderProductList();
+      toast('삭제됨', 'info');
+    } catch (e) {
+      console.error('[products] 삭제 실패:', e);
+      toast('삭제 실패: ' + (e.code || e.message || ''), 'error');
+    }
+  }
+
+  // -------- 제품 목록 모달 --------
+  async function openProductsModal() {
+    document.getElementById('prListWrap').innerHTML = '<div class="pr-empty">불러오는 중...</div>';
+    openModal('productsModal');
+    await loadProducts();
+    renderProductList();
+  }
+  function renderProductList() {
+    const wrap = document.getElementById('prListWrap');
+    if (!productsCache.length) {
+      wrap.innerHTML = `<div class="pr-empty">아직 등록된 제품이 없습니다.<br/>오른쪽 위 <b>+ 새 제품</b> 버튼으로 시작하세요.</div>`;
+      return;
+    }
+    const list = document.createElement('div');
+    list.className = 'pr-list';
+    productsCache.forEach(p => {
+      const card = document.createElement('div');
+      card.className = 'pr-card';
+      const factsCount = countApprovedFacts(p.masterFacts);
+      const totalCount = countTotalFacts(p.masterFacts);
+      const sharedCount = ['cert','dataChart','patent','certMark']
+        .filter(k => p.sharedImages && p.sharedImages[k] && p.sharedImages[k].url).length;
+      let badge;
+      if (p.factsApproved) badge = `<span class="pr-badge pr-badge-approved">✓ 검수 완료</span>`;
+      else if (p.factsExtractedAt) badge = `<span class="pr-badge pr-badge-pending">검수 대기</span>`;
+      else badge = `<span class="pr-badge pr-badge-empty">사실 미추출</span>`;
+      card.innerHTML = `
+        <div class="pr-card-main">
+          <div class="pr-card-title">
+            ${escapeHtml(p.name || '(이름 없음)')}
+            ${p.productCode ? `<span class="pr-card-code">${escapeHtml(p.productCode)}</span>` : ''}
+          </div>
+          <div class="pr-card-desc">${escapeHtml(p.description || '')}</div>
+          <div class="pr-card-meta">
+            <span>📄 자료 <b>${(p.sourcePdfMeta || []).length}</b>개</span>
+            <span>✓ 사실 <b>${factsCount}</b>/${totalCount}</span>
+            <span>🖼 공유이미지 <b>${sharedCount}</b>/4</span>
+          </div>
+        </div>
+        <div class="pr-card-badges">${badge}</div>
+      `;
+      card.addEventListener('click', () => openProductEditor(p.id));
+      list.appendChild(card);
+    });
+    wrap.innerHTML = '';
+    wrap.appendChild(list);
+  }
+  function countTotalFacts(f) {
+    if (!f) return 0;
+    return (f.keySpecs || []).length + (f.sellingPoints || []).length + (f.composition || []).length
+      + (f.certifications || []).length + (f.compatibleSubstrates || []).length
+      + (f.targetUses || []).length + (f.cautions || []).length;
+  }
+  function countApprovedFacts(f) {
+    if (!f) return 0;
+    const lists = ['keySpecs','sellingPoints','composition','certifications','compatibleSubstrates','targetUses','cautions'];
+    return lists.reduce((sum, k) => sum + (f[k] || []).filter(it => it.approved).length, 0);
+  }
+
+  // -------- 제품 편집기 --------
+  function openProductEditor(productId) {
+    const isNew = !productId;
+    const draft = isNew
+      ? newProduct()
+      : JSON.parse(JSON.stringify(productsCache.find(p => p.id === productId) || newProduct()));
+    if (!draft.masterFacts) draft.masterFacts = emptyMasterFacts();
+    if (!draft.sharedImages) draft.sharedImages = { cert: null, dataChart: null, patent: null, certMark: null };
+    if (!draft.sourcePdfMeta) draft.sourcePdfMeta = [];
+    productEditorCtx = {
+      productId: draft.id,
+      draft,
+      sourcePdfs: [], // 메모리 전용 [{name,size,base64}] — 사실 추출 시 사용
+      mode: isNew ? 'new' : 'edit',
+    };
+    document.getElementById('peTitle').textContent = isNew ? '+ 새 제품' : `제품 편집: ${draft.name || draft.productCode || ''}`;
+    document.getElementById('peDelete').style.display = isNew ? 'none' : '';
+    // 기본정보 채우기
+    document.getElementById('peCode').value = draft.productCode || '';
+    document.getElementById('peName').value = draft.name || '';
+    document.getElementById('peDesc').value = draft.description || '';
+    // 자료 (PDF는 메모리 전용이라 빈 채로 시작 — 메타만 표시)
+    document.getElementById('peOwnText').value = (draft.sources && draft.sources.texts && draft.sources.texts[0] && draft.sources.texts[0].text) || '';
+    document.getElementById('peOwnFile').value = '';
+    renderProductSourceFiles();
+    // 사실 카드
+    renderProductFacts();
+    updateProductApproveButton();
+    // 공유 이미지
+    renderProductSharedImages();
+    // 첫 탭으로
+    switchProductTab('basic');
+    openModal('productEditor');
+  }
+  function switchProductTab(tab) {
+    document.querySelectorAll('#productEditor .pe-tab').forEach(b => {
+      b.classList.toggle('pe-tab-active', b.dataset.tab === tab);
+    });
+    ['basic','sources','facts','shared'].forEach(t => {
+      const el = document.getElementById('peTab' + t.charAt(0).toUpperCase() + t.slice(1));
+      if (el) el.style.display = (t === tab) ? '' : 'none';
+    });
+  }
+  function renderProductSourceFiles() {
+    const wrap = document.getElementById('peOwnFiles');
+    wrap.innerHTML = '';
+    const ctx = productEditorCtx;
+    if (!ctx) return;
+    // 1) 메모리에 들어와 있는 새 PDF (이번 편집에서 추가됨, base64 보유)
+    ctx.sourcePdfs.forEach((f, idx) => {
+      const row = document.createElement('div');
+      row.className = 'af-file';
+      row.innerHTML = `
+        <span class="af-file-icon">📄</span>
+        <span class="af-file-name" title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</span>
+        <span class="af-file-size">${fmtBytes(f.size)}</span>
+        <span class="af-file-size" style="color:#059669; font-weight:700;">새 자료</span>
+        <button type="button" class="af-file-rm" aria-label="제거">×</button>
+      `;
+      row.querySelector('.af-file-rm').addEventListener('click', () => {
+        ctx.sourcePdfs.splice(idx, 1);
+        renderProductSourceFiles();
+      });
+      wrap.appendChild(row);
+    });
+    // 2) 이전에 저장된 메타 (base64 없음)
+    (ctx.draft.sourcePdfMeta || []).forEach((m, idx) => {
+      const row = document.createElement('div');
+      row.className = 'af-file';
+      row.style.opacity = '.7';
+      row.innerHTML = `
+        <span class="af-file-icon">📄</span>
+        <span class="af-file-name" title="${escapeHtml(m.name)}">${escapeHtml(m.name)}</span>
+        <span class="af-file-size">${fmtBytes(m.size || 0)}</span>
+        <span class="af-file-size" style="color:var(--muted);">기존 (재추출 시 다시 업로드)</span>
+        <button type="button" class="af-file-rm" aria-label="제거" title="메타 제거 (사실 카드는 보존)">×</button>
+      `;
+      row.querySelector('.af-file-rm').addEventListener('click', () => {
+        ctx.draft.sourcePdfMeta.splice(idx, 1);
+        renderProductSourceFiles();
+      });
+      wrap.appendChild(row);
+    });
+  }
+  async function addProductPdf(file) {
+    if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) {
+      toast('PDF 파일만 가능합니다', 'error'); return;
+    }
+    if (file.size > 30 * 1024 * 1024) {
+      toast('PDF가 너무 큽니다 (최대 30MB)', 'error'); return;
+    }
+    try {
+      const base64 = await readPdfAsBase64(file);
+      productEditorCtx.sourcePdfs.push({ name: file.name, size: file.size, base64 });
+      renderProductSourceFiles();
+    } catch (e) {
+      console.error('[products] PDF 읽기 실패:', e);
+      toast('PDF 읽기 실패: ' + e.message, 'error');
+    }
+  }
+
+  function renderProductFacts() {
+    const wrap = document.getElementById('peFactsBody');
+    wrap.innerHTML = '';
+    const f = productEditorCtx.draft.masterFacts;
+    if (!f) return;
+    // 그룹별 렌더
+    wrap.appendChild(renderFactGroup('keySpecs', '핵심 수치 (Specs)', '인장강도·부착강도·중성화 깊이 등 측정 가능한 수치'));
+    wrap.appendChild(renderFactGroup('sellingPoints', '소구점 (Selling Points)', '경쟁 우위·핵심 차별점'));
+    wrap.appendChild(renderSubstrateGroup());
+    wrap.appendChild(renderFactGroup('targetUses', '적용 대상 / 용도', '어디에 쓰는지 — 옥상·외벽·바닥 등'));
+    wrap.appendChild(renderFactGroup('certifications', '인증·시험 기관', 'KTR·KCL·국토부 신기술 등'));
+    wrap.appendChild(renderFactGroup('composition', '성분·구성', '재료 구성·작동 원리'));
+    wrap.appendChild(renderFactGroup('cautions', '주의사항', '시공 전 확인사항·금기'));
+  }
+  function renderFactGroup(groupKey, title, hint) {
+    const f = productEditorCtx.draft.masterFacts;
+    const items = f[groupKey] || [];
+    const wrap = document.createElement('div');
+    wrap.className = 'pe-facts-group';
+    const head = document.createElement('div');
+    head.className = 'pe-facts-group-head';
+    head.innerHTML = `<span>${escapeHtml(title)} <span class="pe-facts-count">${items.filter(it => it.approved).length} / ${items.length}</span></span>`;
+    const addBtn = document.createElement('button');
+    addBtn.className = 'pe-facts-group-add'; addBtn.textContent = '+ 직접 추가';
+    addBtn.addEventListener('click', () => {
+      const tpl = groupKey === 'keySpecs'
+        ? { id: newFactId('spec'), label: '', value: '', unit: '', source: '직접 추가', kind: 'declared', confidence: 1, approved: true }
+        : (groupKey === 'certifications')
+          ? { id: newFactId('cert'), name: '', agency: '', source: '직접 추가', confidence: 1, approved: true }
+          : { id: newFactId(groupKey.slice(0, 3)), text: '', source: '직접 추가', confidence: 1, approved: true };
+      f[groupKey] = items;
+      f[groupKey].push(tpl);
+      renderProductFacts();
+    });
+    head.appendChild(addBtn);
+    wrap.appendChild(head);
+    const body = document.createElement('div');
+    body.className = 'pe-facts-group-body';
+    if (!items.length) {
+      const empty = document.createElement('div');
+      empty.className = 'pe-facts-group-empty';
+      empty.textContent = `아직 ${title} 없음 — 자료 추출 또는 직접 추가`;
+      body.appendChild(empty);
+    } else {
+      items.forEach((it, idx) => body.appendChild(renderFactRow(groupKey, it, idx)));
+    }
+    wrap.appendChild(body);
+    return wrap;
+  }
+  function renderFactRow(groupKey, it, idx) {
+    const row = document.createElement('div');
+    row.className = 'pe-fact-row' + (it.approved ? '' : ' pe-fact-rejected');
+    const conf = typeof it.confidence === 'number' ? Math.round(it.confidence * 100) : null;
+    const confCls = conf == null ? '' : (conf >= 80 ? 'pe-fact-confidence-high' : (conf >= 50 ? 'pe-fact-confidence-mid' : 'pe-fact-confidence-low'));
+
+    let fieldsHtml = '';
+    if (groupKey === 'keySpecs') {
+      fieldsHtml = `
+        <div class="pe-fact-fields">
+          <input class="pe-fact-label-input" placeholder="항목" value="${escapeHtml(it.label || '')}" data-field="label" />
+          <input class="pe-fact-value-input" placeholder="수치" value="${escapeHtml(it.value || '')}" data-field="value" />
+          <input class="pe-fact-unit-input" placeholder="단위 (예: N/mm²)" value="${escapeHtml(it.unit || '')}" data-field="unit" />
+        </div>`;
+    } else if (groupKey === 'certifications') {
+      fieldsHtml = `
+        <div class="pe-fact-fields">
+          <input class="pe-fact-label-input" placeholder="인증명" value="${escapeHtml(it.name || '')}" data-field="name" />
+          <input class="pe-fact-value-input" placeholder="기관 (예: KTR)" value="${escapeHtml(it.agency || '')}" data-field="agency" />
+        </div>`;
+    } else {
+      fieldsHtml = `<input class="pe-fact-text-input" placeholder="내용" value="${escapeHtml(it.text || '')}" data-field="text" />`;
+    }
+
+    row.innerHTML = `
+      <input type="checkbox" class="pe-fact-check" ${it.approved ? 'checked' : ''} aria-label="채택" />
+      <div class="pe-fact-body">
+        ${fieldsHtml}
+        <div class="pe-fact-source">
+          ${it.source ? `<span class="pe-fact-source-tag">출처: ${escapeHtml(it.source)}</span>` : ''}
+          ${conf != null ? `<span class="pe-fact-confidence ${confCls}">신뢰도 ${conf}%</span>` : ''}
+        </div>
+      </div>
+      <button type="button" class="pe-fact-rm" aria-label="삭제">삭제</button>
+    `;
+    // 이벤트
+    row.querySelector('.pe-fact-check').addEventListener('change', e => {
+      it.approved = e.target.checked;
+      row.classList.toggle('pe-fact-rejected', !it.approved);
+      // 그룹 헤더 카운트 업데이트
+      const head = row.parentElement.previousElementSibling;
+      if (head) {
+        const items = productEditorCtx.draft.masterFacts[groupKey] || [];
+        const cnt = head.querySelector('.pe-facts-count');
+        if (cnt) cnt.textContent = `${items.filter(x => x.approved).length} / ${items.length}`;
+      }
+    });
+    row.querySelectorAll('input[data-field]').forEach(inp => {
+      inp.addEventListener('input', e => { it[e.target.dataset.field] = e.target.value; });
+    });
+    row.querySelector('.pe-fact-rm').addEventListener('click', () => {
+      const items = productEditorCtx.draft.masterFacts[groupKey] || [];
+      const i = items.indexOf(it);
+      if (i >= 0) items.splice(i, 1);
+      renderProductFacts();
+    });
+    return row;
+  }
+  function renderSubstrateGroup() {
+    const f = productEditorCtx.draft.masterFacts;
+    const items = f.compatibleSubstrates || [];
+    const wrap = document.createElement('div');
+    wrap.className = 'pe-facts-group';
+    const head = document.createElement('div');
+    head.className = 'pe-facts-group-head';
+    head.innerHTML = `<span>적용 가능 기재 (Substrates) — 자식 상품 분기의 핵심 <span class="pe-facts-count">${items.filter(x=>x.approved).length} / ${items.length}</span></span>`;
+    const addBtn = document.createElement('button');
+    addBtn.className = 'pe-facts-group-add'; addBtn.textContent = '+ 추가';
+    addBtn.addEventListener('click', () => {
+      const name = prompt('기재명 (예: 목재, 철재, 벽돌, 콘크리트)');
+      if (!name || !name.trim()) return;
+      f.compatibleSubstrates = items;
+      items.push({ id: newFactId('sub'), name: name.trim(), source: '직접 추가', approved: true });
+      renderProductFacts();
+    });
+    head.appendChild(addBtn);
+    wrap.appendChild(head);
+    const body = document.createElement('div');
+    body.className = 'pe-facts-group-body';
+    const chipRow = document.createElement('div');
+    chipRow.className = 'pe-substrate-row';
+    if (!items.length) {
+      const empty = document.createElement('span');
+      empty.style.cssText = 'font-size:12px; color:var(--muted);'; empty.textContent = '없음 — 추출하거나 직접 추가';
+      chipRow.appendChild(empty);
+    }
+    items.forEach((it, idx) => {
+      const chip = document.createElement('span');
+      chip.className = 'pe-chip' + (it.approved ? '' : ' pe-chip-rejected');
+      chip.innerHTML = `<span>${escapeHtml(it.name)}</span><button type="button" class="pe-chip-rm" aria-label="삭제">×</button>`;
+      chip.addEventListener('click', e => {
+        if (e.target.classList.contains('pe-chip-rm')) return;
+        it.approved = !it.approved;
+        chip.classList.toggle('pe-chip-rejected', !it.approved);
+        const cnt = head.querySelector('.pe-facts-count');
+        if (cnt) cnt.textContent = `${items.filter(x=>x.approved).length} / ${items.length}`;
+      });
+      chip.querySelector('.pe-chip-rm').addEventListener('click', ev => {
+        ev.stopPropagation();
+        const i = items.indexOf(it);
+        if (i >= 0) items.splice(i, 1);
+        renderProductFacts();
+      });
+      chipRow.appendChild(chip);
+    });
+    body.appendChild(chipRow);
+    wrap.appendChild(body);
+    return wrap;
+  }
+
+  function renderProductSharedImages() {
+    const ctx = productEditorCtx;
+    if (!ctx) return;
+    document.querySelectorAll('#peSharedList .pe-shared-row').forEach(row => {
+      const key = row.dataset.key;
+      const cur = (ctx.draft.sharedImages && ctx.draft.sharedImages[key]) || {};
+      row.querySelector('[data-shared-url]').value = cur.url || '';
+      row.querySelector('[data-shared-caption]').value = cur.caption || '';
+      const prev = row.querySelector('[data-shared-preview]');
+      if (cur.url) {
+        prev.innerHTML = `<img src="${escapeHtml(cur.url)}" alt="" onerror="this.parentElement.innerHTML='<span class=\\'pe-shared-preview-empty\\'>로드 실패</span>'" />`;
+      } else {
+        prev.innerHTML = '<span class="pe-shared-preview-empty">미리보기</span>';
+      }
+    });
+  }
+  function bindProductSharedImageInputs() {
+    document.querySelectorAll('#peSharedList .pe-shared-row').forEach(row => {
+      const key = row.dataset.key;
+      const urlInp = row.querySelector('[data-shared-url]');
+      const capInp = row.querySelector('[data-shared-caption]');
+      const onChange = () => {
+        if (!productEditorCtx) return;
+        const url = urlInp.value.trim(); const caption = capInp.value.trim();
+        if (!productEditorCtx.draft.sharedImages) productEditorCtx.draft.sharedImages = {};
+        productEditorCtx.draft.sharedImages[key] = url ? { url, caption } : null;
+        const prev = row.querySelector('[data-shared-preview]');
+        if (url) prev.innerHTML = `<img src="${escapeHtml(url)}" alt="" onerror="this.parentElement.innerHTML='<span class=\\'pe-shared-preview-empty\\'>로드 실패</span>'" />`;
+        else prev.innerHTML = '<span class="pe-shared-preview-empty">미리보기</span>';
+      };
+      urlInp.addEventListener('change', onChange);
+      capInp.addEventListener('change', onChange);
+    });
+  }
+
+  function updateProductApproveButton() {
+    const ctx = productEditorCtx;
+    if (!ctx) return;
+    const total = countTotalFacts(ctx.draft.masterFacts);
+    const btn = document.getElementById('peApproveFacts');
+    const badge = document.getElementById('peFactsApprovedBadge');
+    if (ctx.draft.factsApproved) {
+      btn.style.display = ''; btn.textContent = '↺ 검수 해제';
+      badge.style.display = '';
+    } else if (total > 0) {
+      btn.style.display = ''; btn.textContent = '✓ 사실 확정';
+      badge.style.display = 'none';
+    } else {
+      btn.style.display = 'none';
+      badge.style.display = 'none';
+    }
+  }
+
+  // -------- 사실 추출 (Claude) --------
+  function buildProductFactsSystem() {
+    return [
+      '당신은 한국어 건축자재 제품 자료 분석 전문가입니다.',
+      '사용자가 올린 우리 제품 자료(PDF·텍스트)에서 객관적 사실만 구조화하여 추출하세요.',
+      '',
+      '【엄격 규칙】',
+      '1. 자료에 명시되지 않은 사실은 절대 만들어내지 마세요. 없으면 그 항목을 응답에서 빼면 됩니다.',
+      '2. 수치는 단위까지 정확하게 분리하세요 (예: "5.8 N/mm²" → value="5.8", unit="N/mm²").',
+      '3. 동일 정보가 여러 자료에 나오면 가장 권위 있는 출처(공인시험기관 > 카탈로그 > 메모)를 source로 지정.',
+      '4. 광고 톤 표현("최고", "유일")은 그대로 옮기지 말고 측정 가능한 사실로 변환하거나 제외.',
+      '5. compatibleSubstrates는 자식 상품 분기의 핵심 — 자료에서 "OO에 사용 가능"으로 명시된 모든 기재(목재·철재·벽돌·콘크리트·벽체 등)를 빠짐없이 추출.',
+      '',
+      '【출력 JSON 스키마】 — 이 형태로만 응답. JSON 외 어떤 텍스트도 포함 금지. ```json 코드펜스 사용 금지.',
+      '{',
+      '  "productName": "<자료에서 확인된 제품명>",',
+      '  "keySpecs":     [{"label":"인장강도","value":"5.8","unit":"N/mm²","source":"카탈로그 p.2 / KTR 시험","kind":"tested","confidence":0.95}],',
+      '  "sellingPoints":[{"text":"타사 대비 인장강도 4배","source":"카탈로그 p.3","confidence":0.9}],',
+      '  "composition":  [{"text":"니들펀칭 섬유 + 도막방수재 일체화","source":"시방서 p.5","confidence":0.85}],',
+      '  "certifications":[{"name":"공인시험","agency":"KTR","source":"성적서","confidence":1.0}],',
+      '  "compatibleSubstrates":[{"name":"목재","source":"카탈로그 p.4"},{"name":"철재","source":"카탈로그 p.4"}],',
+      '  "targetUses":   [{"text":"옥상 방수","source":"카탈로그 p.1","confidence":0.95}],',
+      '  "cautions":     [{"text":"습윤 상태에서는 시공 금지","source":"시방서 p.7","confidence":0.9}],',
+      '  "summary": "<1~2문장 분석 요약>"',
+      '}',
+      '',
+      'kind: tested(공인시험 결과) | declared(자체 발표 수치) | unknown',
+      'confidence: 0~1, 자료에서 명확하면 0.9+, 추론이면 0.5~0.8',
+    ].join('\n');
+  }
+  function buildProductFactsUserContent(pdfs, ownText) {
+    const blocks = [];
+    pdfs.forEach((p, i) => {
+      blocks.push({ type: 'text', text: `【제품 자료 PDF #${i + 1}】 파일명: ${p.name}` });
+      blocks.push({
+        type: 'document',
+        source: { type: 'base64', media_type: 'application/pdf', data: p.base64 },
+        cache_control: { type: 'ephemeral' },
+      });
+    });
+    if (ownText && ownText.trim()) {
+      blocks.push({ type: 'text', text: '【제품 자료 텍스트】\n\n' + ownText.trim() });
+    }
+    blocks.push({ type: 'text', text: '위 자료에서 객관적 사실을 위 JSON 스키마로만 응답하세요. 자료에 없는 사실은 절대 만들지 마세요.' });
+    return blocks;
+  }
+  async function runProductFactsExtraction() {
+    const ctx = productEditorCtx;
+    if (!ctx) return;
+    await loadClaudeProxyConfig();
+    if (!claudeProxyConfig || !claudeProxyConfig.workerUrl || !claudeProxyConfig.workerSecret || !claudeProxyConfig.claudeApiKey) {
+      toast('⚙ Claude 자동채우기 설정에서 워커 URL · 시크릿 · API 키를 먼저 입력하세요.', 'error');
+      return;
+    }
+    const ownText = document.getElementById('peOwnText').value;
+    const hasInput = ctx.sourcePdfs.length > 0 || (ownText && ownText.trim().length > 0);
+    if (!hasInput) {
+      toast('자료 (PDF 또는 텍스트)를 1개 이상 추가하세요.', 'error');
+      return;
+    }
+    const status = document.getElementById('peExtractStatus');
+    const btn = document.getElementById('peExtract');
+    btn.disabled = true;
+    status.className = 'pe-extract-status running';
+    status.textContent = '🤖 Claude 분석 중... (PDF 1MB당 약 20초)';
+    try {
+      const system = buildProductFactsSystem();
+      const content = buildProductFactsUserContent(ctx.sourcePdfs, ownText);
+      const r = await fetch(claudeProxyConfig.workerUrl.replace(/\/$/, ''), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Worker-Secret': claudeProxyConfig.workerSecret },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 8192,
+          system, messages: [{ role: 'user', content }],
+          claudeApiKey: claudeProxyConfig.claudeApiKey,
+        }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+      const json = extractClaudeJson(data);
+      mergeProductFacts(ctx.draft.masterFacts, json);
+      // sourcePdfMeta 업데이트 (이번에 분석된 자료를 제품에 영구 기록)
+      ctx.sourcePdfs.forEach(p => {
+        if (!ctx.draft.sourcePdfMeta.some(m => m.name === p.name && m.size === p.size)) {
+          ctx.draft.sourcePdfMeta.push({ name: p.name, size: p.size, uploadedAt: nowIso() });
+        }
+      });
+      ctx.draft.factsExtractedAt = nowIso();
+      ctx.draft.factsApproved = false; // 새로 추출했으므로 재검수 필요
+      // 제품명 기본 채우기
+      if (json.productName && !ctx.draft.name) {
+        ctx.draft.name = json.productName;
+        document.getElementById('peName').value = ctx.draft.name;
+      }
+      const usage = data.usage || {};
+      const tokenInfo = usage.input_tokens
+        ? ` · 입력 ${usage.input_tokens} / 출력 ${usage.output_tokens}`
+        : '';
+      status.className = 'pe-extract-status ok';
+      const total = countTotalFacts(ctx.draft.masterFacts);
+      status.textContent = `✅ 추출 완료 — ${total}개 사실${tokenInfo}${json.summary ? ' · ' + json.summary : ''}`;
+      renderProductFacts();
+      updateProductApproveButton();
+    } catch (e) {
+      console.error('[products] 사실 추출 실패:', e);
+      status.className = 'pe-extract-status error';
+      status.textContent = '❌ 추출 실패: ' + (e.message || '알 수 없는 오류');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+  function mergeProductFacts(facts, extracted) {
+    if (!extracted) return;
+    const ensureId = (it, prefix) => { if (!it.id) it.id = newFactId(prefix); if (it.approved === undefined) it.approved = true; return it; };
+    const merge = (key, items, prefix) => {
+      if (!Array.isArray(items)) return;
+      facts[key] = facts[key] || [];
+      items.forEach(it => {
+        ensureId(it, prefix);
+        // 중복 검사 (label/text/name 기준)
+        const matchKey = it.label || it.text || it.name;
+        const dup = facts[key].find(x => (x.label || x.text || x.name) === matchKey);
+        if (!dup) facts[key].push(it);
+        else Object.assign(dup, it, { id: dup.id }); // 기존 항목 갱신, id는 보존
+      });
+    };
+    merge('keySpecs', extracted.keySpecs, 'spec');
+    merge('sellingPoints', extracted.sellingPoints, 'sp');
+    merge('composition', extracted.composition, 'cp');
+    merge('certifications', extracted.certifications, 'cert');
+    merge('compatibleSubstrates', extracted.compatibleSubstrates, 'sub');
+    merge('targetUses', extracted.targetUses, 'use');
+    merge('cautions', extracted.cautions, 'caution');
+  }
+
+  // -------- 제품 편집기 — 저장/검수/취소 --------
+  async function saveProductEditor() {
+    const ctx = productEditorCtx;
+    if (!ctx) return;
+    const code = document.getElementById('peCode').value.trim();
+    const name = document.getElementById('peName').value.trim();
+    if (!code) { toast('제품 코드를 입력하세요', 'error'); switchProductTab('basic'); return; }
+    if (!name) { toast('제품명을 입력하세요', 'error'); switchProductTab('basic'); return; }
+    ctx.draft.productCode = code;
+    ctx.draft.name = name;
+    ctx.draft.description = document.getElementById('peDesc').value.trim();
+    // 텍스트 자료 (단일 슬롯)
+    const ownText = document.getElementById('peOwnText').value.trim();
+    if (!ctx.draft.sources) ctx.draft.sources = { pdfs: [], texts: [] };
+    ctx.draft.sources.texts = ownText ? [{ label: 'memo', text: ownText, addedAt: nowIso() }] : [];
+    // 공유 이미지는 input change 이벤트로 이미 draft에 반영됨
+    const ok = await saveProduct(ctx.draft);
+    if (ok) {
+      closeModal('productEditor');
+      productEditorCtx = null;
+      renderProductList();
+      toast('제품 저장됨', 'success');
+    }
+  }
+  async function approveProductFacts() {
+    const ctx = productEditorCtx;
+    if (!ctx) return;
+    if (ctx.draft.factsApproved) {
+      ctx.draft.factsApproved = false;
+      ctx.draft.factsApprovedAt = null;
+      toast('검수 해제됨 — 재검수 필요', 'info');
+    } else {
+      const total = countTotalFacts(ctx.draft.masterFacts);
+      const approved = countApprovedFacts(ctx.draft.masterFacts);
+      if (!confirm(`사실 ${approved}/${total}개를 채택 상태로 확정합니다.\n확정 후에도 다시 편집·재추출 가능합니다.\n진행할까요?`)) return;
+      ctx.draft.factsApproved = true;
+      ctx.draft.factsApprovedAt = nowIso();
+      const me = getMeStaff();
+      ctx.draft.factsApprovedBy = me ? me.name : '익명';
+      toast('✓ 사실 확정 — 자식 상품 단계에서 재활용 가능', 'success');
+    }
+    updateProductApproveButton();
+  }
+
+  // -------- 와이어업 --------
+  function wireProductEditor() {
+    // 탭 전환
+    document.querySelectorAll('#productEditor .pe-tab').forEach(b => {
+      b.addEventListener('click', () => switchProductTab(b.dataset.tab));
+    });
+    // 자료 드롭
+    const drop = document.getElementById('peOwnDrop');
+    const fileInput = document.getElementById('peOwnFile');
+    const pickBtn = document.getElementById('peOwnPick');
+    const open = () => fileInput.click();
+    drop.addEventListener('click', e => { if (e.target !== pickBtn) open(); });
+    pickBtn.addEventListener('click', e => { e.stopPropagation(); open(); });
+    drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }});
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragover'); });
+    drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+    drop.addEventListener('drop', async e => {
+      e.preventDefault(); drop.classList.remove('dragover');
+      const files = (e.dataTransfer && e.dataTransfer.files) || [];
+      for (const f of files) await addProductPdf(f);
+    });
+    fileInput.addEventListener('change', async e => {
+      const files = e.target.files || [];
+      for (const f of files) await addProductPdf(f);
+      e.target.value = '';
+    });
+    // 사실 추출
+    document.getElementById('peExtract').addEventListener('click', runProductFactsExtraction);
+    document.getElementById('peApproveFacts').addEventListener('click', approveProductFacts);
+    // 공유 이미지 입력
+    bindProductSharedImageInputs();
+    // 닫기/저장/삭제
+    document.getElementById('peClose').addEventListener('click', () => { closeModal('productEditor'); productEditorCtx = null; });
+    document.getElementById('peCancel').addEventListener('click', () => { closeModal('productEditor'); productEditorCtx = null; });
+    document.getElementById('peSave').addEventListener('click', saveProductEditor);
+    document.getElementById('peDelete').addEventListener('click', async () => {
+      if (productEditorCtx && productEditorCtx.mode === 'edit') {
+        await deleteProduct(productEditorCtx.draft.id);
+        if (!productsCache.find(p => p.id === productEditorCtx.draft.id)) {
+          closeModal('productEditor');
+          productEditorCtx = null;
+        }
+      }
+    });
+  }
+
   // -------- 상세페이지 인스턴스 (Step C) --------
   // 인스턴스는 별도 컬렉션(pourstore-renewal-instances)에 1개=1문서로 저장.
   // state.instancesCache는 메모리 캐시용으로만 쓰고 Firestore 빌더 문서에는 안 들어감.
@@ -8675,6 +9374,13 @@ show('entry');
     document.getElementById('bgStart').addEventListener('click', startBatchGen);
     document.getElementById('bgSelectAll').addEventListener('click', () => selectAllBatch(true));
     document.getElementById('bgSelectNone').addEventListener('click', () => selectAllBatch(false));
+
+    // 📦 제품 관리 (마스터) 모달
+    document.getElementById('btnProducts').addEventListener('click', openProductsModal);
+    document.getElementById('prClose').addEventListener('click', () => closeModal('productsModal'));
+    document.getElementById('prCloseFoot').addEventListener('click', () => closeModal('productsModal'));
+    document.getElementById('prNew').addEventListener('click', () => openProductEditor(null));
+    wireProductEditor();
 
     // 상세페이지 인스턴스 모달
     document.getElementById('btnInstances').addEventListener('click', openInstancesModal);

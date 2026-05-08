@@ -1,6 +1,6 @@
 # Firebase 배포 가이드
 
-POUR스토어 운영 시스템의 Firestore 보안 규칙 배포 방법.
+POUR스토어 운영 시스템의 Firestore 보안 규칙 + Storage 보안 규칙 배포 방법.
 
 ## 빠른 배포 (5분, Firebase Console)
 
@@ -11,23 +11,31 @@ POUR스토어 운영 시스템의 Firestore 보안 규칙 배포 방법.
 1. https://console.firebase.google.com 접속
 2. 프로젝트 선택: **pour-app-new**
 
-### 2단계 — Firestore 규칙 페이지 이동
+### 2단계 — Firestore 규칙 게시
 
 1. 좌측 메뉴 → **빌드** → **Firestore Database**
 2. 상단 탭 → **규칙** (Rules)
+3. 이 저장소의 [`firestore.rules`](./firestore.rules) 파일 내용 전체 복사 → 편집기 붙여넣기
+4. 우측 상단 **게시** (Publish) 클릭
 
-### 3단계 — 규칙 복사·붙여넣기
+### 3단계 — Storage 규칙 게시 (실적관 갤러리 엑박 해결)
 
-1. 이 저장소의 [`firestore.rules`](./firestore.rules) 파일 내용 전체 복사
-2. Firebase Console 규칙 편집기에 붙여넣기
-3. 우측 상단 **게시** (Publish) 클릭
+1. 좌측 메뉴 → **빌드** → **Storage**
+2. 상단 탭 → **규칙** (Rules)
+3. 이 저장소의 [`storage.rules`](./storage.rules) 파일 내용 전체 복사 → 편집기 붙여넣기
+4. 우측 상단 **게시** (Publish) 클릭
+
+> **왜 필요한가?**
+> `pourstore-renewal/index.html`(메인 페이지)이 실적관 갤러리·협력사 로고를
+> `?alt=media` 만 붙은 URL로 직접 로딩 — 다운로드 토큰이 없어 룰에서
+> public read 허용을 명시해야 작동. 이 룰을 게시하지 않으면 엑박이 뜸.
 
 ### 4단계 — 검증
 
-1. 규칙 게시 직후 https://pour-construction-form.pages.dev/pourstore-renewal/admin 접속
-2. PIN `1234` 로그인 → 대리점 등록 시도
-3. 정상 저장되면 ✅
-4. "Permission denied" 에러 시 → 규칙 콘솔 다시 확인
+1. 규칙 게시 직후 https://pour-construction-form.pages.dev/pourstore-renewal/ 접속
+2. **POUR스토어 실적관**에서 19장 갤러리 사진이 모두 정상 로딩되는지 확인
+3. 협력사 로고 마키 띠가 정상 작동하는지 확인
+4. 깨지면 → 시크릿 모드로 재접속 (캐시 문제) → 그래도 안 되면 콘솔에서 규칙 게시 확인
 
 ---
 
@@ -47,7 +55,16 @@ firebase use pour-app-new
 
 ```bash
 firebase deploy --only firestore:rules
+firebase deploy --only storage:rules
 ```
+
+> 이 저장소엔 `firebase.json`이 없습니다. CLI 배포가 필요하면 다음 내용으로 생성:
+> ```json
+> {
+>   "firestore": { "rules": "firestore.rules" },
+>   "storage":   { "rules": "storage.rules" }
+> }
+> ```
 
 ---
 

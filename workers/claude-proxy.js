@@ -1,16 +1,20 @@
 /**
  * Claude API 프록시 Worker
- * - 클라이언트에서 API 키 노출 방지
- * - WORKER_SECRET으로 요청 인증
+ * - 클라이언트에서 Anthropic API에 직접 부르지 못하는 CORS·키 노출 문제 해결
+ * - WORKER_SECRET으로 외부 무차별 호출 차단
  * - Claude Vision (이미지 분석) + Text + PDF document 지원
  *
  * 엔드포인트:
- *   POST /            — Claude API 메시지 호출 (기존)
+ *   POST /            — Claude API 메시지 호출
  *   POST /fetch-url   — 외부 URL 본문을 텍스트로 추출 (CORS 우회)
  *
+ * Anthropic API 키 — 두 가지 소스 모두 지원 (body 우선, env fallback):
+ *   1) 요청 body의 claudeApiKey 필드 (페이지에서 직접 입력하는 솔라피식)
+ *   2) 환경변수 CLAUDE_API_KEY (defect-diagnosis 등 기존 호출자 호환)
+ *
  * 환경변수 (wrangler secret):
- *   CLAUDE_API_KEY  — Anthropic API 키
- *   WORKER_SECRET   — 클라이언트 인증용 시크릿
+ *   WORKER_SECRET   — 클라이언트 인증용 시크릿 (필수)
+ *   CLAUDE_API_KEY  — Anthropic API 키 (선택; body로 보내면 생략 가능)
  */
 
 const CORS_HEADERS = {
@@ -53,6 +57,13 @@ async function handleClaudeMessage(body, env) {
   if (!messages || !Array.isArray(messages)) {
     return jsonResponse({ error: 'messages 배열이 필요합니다' }, 400);
   }
+  // Anthropic 키 — body 우선 (솔라피식 직접 입력), env fallback (기존 호출자 호환)
+  const claudeApiKey = (typeof body.claudeApiKey === 'string' && body.claudeApiKey.trim())
+    ? body.claudeApiKey.trim()
+    : env.CLAUDE_API_KEY;
+  if (!claudeApiKey) {
+    return jsonResponse({ error: 'Anthropic API 키가 필요합니다 (body.claudeApiKey 또는 env.CLAUDE_API_KEY)' }, 400);
+  }
   const claudeBody = {
     model: model || 'claude-sonnet-4-20250514',
     max_tokens: max_tokens || 2048,
@@ -65,7 +76,7 @@ async function handleClaudeMessage(body, env) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': env.CLAUDE_API_KEY,
+        'x-api-key': claudeApiKey,
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify(claudeBody),

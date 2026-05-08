@@ -7727,6 +7727,7 @@ show('entry');
       await db.collection('app-config').doc('claudeProxy').set({
         workerUrl: cfg.workerUrl || '',
         workerSecret: cfg.workerSecret || '',
+        claudeApiKey: cfg.claudeApiKey || '',
         updatedAt: nowIso(),
       }, { merge: true });
       claudeProxyConfig = cfg;
@@ -7741,14 +7742,19 @@ show('entry');
     await loadClaudeProxyConfig();
     document.getElementById('ccUrl').value = (claudeProxyConfig && claudeProxyConfig.workerUrl) || '';
     document.getElementById('ccSecret').value = (claudeProxyConfig && claudeProxyConfig.workerSecret) || '';
+    document.getElementById('ccApiKey').value = (claudeProxyConfig && claudeProxyConfig.claudeApiKey) || '';
     openModal('claudeConfigModal');
   }
   async function saveClaudeConfigEditor() {
     const url = document.getElementById('ccUrl').value.trim();
     const secret = document.getElementById('ccSecret').value.trim();
-    if (!url || !secret) { toast('URL과 시크릿 모두 입력하세요.', 'error'); return; }
+    const apiKey = document.getElementById('ccApiKey').value.trim();
+    if (!url || !secret) { toast('URL과 시크릿을 입력하세요.', 'error'); return; }
     if (!/^https?:\/\//.test(url)) { toast('URL은 http(s)://로 시작해야 합니다.', 'error'); return; }
-    const ok = await saveClaudeProxyConfig({ workerUrl: url.replace(/\/$/, ''), workerSecret: secret });
+    if (apiKey && !/^sk-ant-/i.test(apiKey)) {
+      if (!confirm('Anthropic API 키 형식이 sk-ant-로 시작하지 않습니다. 그래도 저장할까요?')) return;
+    }
+    const ok = await saveClaudeProxyConfig({ workerUrl: url.replace(/\/$/, ''), workerSecret: secret, claudeApiKey: apiKey });
     if (ok) {
       closeModal('claudeConfigModal');
       toast('Claude 설정 저장됨', 'success');
@@ -7798,8 +7804,8 @@ show('entry');
     document.getElementById('afOwnFile').value = '';
     document.getElementById('afRefFile').value = '';
     showAutoFillStage('input');
-    // 워커 설정 경고
-    const hasCfg = !!(claudeProxyConfig && claudeProxyConfig.workerUrl && claudeProxyConfig.workerSecret);
+    // 워커 설정 + Anthropic 키 경고
+    const hasCfg = !!(claudeProxyConfig && claudeProxyConfig.workerUrl && claudeProxyConfig.workerSecret && claudeProxyConfig.claudeApiKey);
     document.getElementById('afWarnConfig').style.display = hasCfg ? 'none' : 'block';
     document.getElementById('afRun').disabled = !hasCfg;
     openModal('autoFillModal');
@@ -8013,6 +8019,9 @@ show('entry');
     if (!claudeProxyConfig || !claudeProxyConfig.workerUrl || !claudeProxyConfig.workerSecret) {
       throw new Error('Claude 워커 설정 없음');
     }
+    if (!claudeProxyConfig.claudeApiKey) {
+      throw new Error('Anthropic API 키가 설정되지 않았습니다. ⚙ Claude 자동채우기 설정에서 입력하세요.');
+    }
     const r = await fetch(claudeProxyConfig.workerUrl.replace(/\/$/, ''), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Worker-Secret': claudeProxyConfig.workerSecret },
@@ -8021,6 +8030,7 @@ show('entry');
         max_tokens: 4096,
         system: systemPrompt,
         messages: [{ role: 'user', content }],
+        claudeApiKey: claudeProxyConfig.claudeApiKey,
       }),
     });
     const data = await r.json().catch(() => ({}));
@@ -8217,7 +8227,7 @@ show('entry');
 
   async function openBatchAutoFillModal() {
     await loadClaudeProxyConfig();
-    const hasCfg = !!(claudeProxyConfig && claudeProxyConfig.workerUrl && claudeProxyConfig.workerSecret);
+    const hasCfg = !!(claudeProxyConfig && claudeProxyConfig.workerUrl && claudeProxyConfig.workerSecret && claudeProxyConfig.claudeApiKey);
     document.getElementById('bafWarnConfig').style.display = hasCfg ? 'none' : 'block';
     document.getElementById('bafConfigStage').style.display = '';
     document.getElementById('bafProgressStage').style.display = 'none';

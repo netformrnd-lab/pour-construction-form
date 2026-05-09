@@ -191,7 +191,7 @@
         <div id="sectionList" class="section-list"></div>
       </div>
 
-      <!-- 상품 모드 — 대시보드 -->
+      <!-- 상품 모드 — 단계별 가이드 대시보드 -->
       <div class="for-product-mode">
         <div class="content-head">
           <div>
@@ -199,75 +199,161 @@
             <span class="file-tag">제품(Master) → 상품(Listing) → 상세페이지</span>
           </div>
           <div class="actions">
-            <button id="btnDashNewProduct" class="btn btn-primary">+ 새 제품(마스터)</button>
-            <button id="btnDashNewListing" class="btn btn-green">+ 새 상품(Listing)</button>
+            <button id="btnDashHelp" class="btn btn-ghost btn-sm" title="가이드 다시 보기">❓ 가이드</button>
           </div>
         </div>
 
-        <!-- 단계 흐름 안내 -->
-        <div class="dash-flow">
-          <div class="dash-flow-step">
-            <div class="dash-flow-num">1</div>
-            <div class="dash-flow-body">
-              <div class="dash-flow-title">제품(마스터) 등록</div>
-              <div class="dash-flow-desc">카탈로그·시방서 → 사실 추출 → 검수</div>
-            </div>
+        <!-- 진행도 바 -->
+        <div class="dash-progress" id="dashProgressWrap">
+          <div class="dash-progress-head">
+            <span class="dash-progress-label">초기 세팅 진행도</span>
+            <span class="dash-progress-text"><b id="dashProgDone">0</b> / <span id="dashProgTotal">4</span> 완료</span>
           </div>
-          <span class="dash-flow-arrow">→</span>
-          <div class="dash-flow-step">
-            <div class="dash-flow-num">2</div>
-            <div class="dash-flow-body">
-              <div class="dash-flow-title">상품(Listing) 분기</div>
-              <div class="dash-flow-desc">용도별로 N개로 나누기 + 통디자인(vibe)</div>
-            </div>
-          </div>
-          <span class="dash-flow-arrow">→</span>
-          <div class="dash-flow-step">
-            <div class="dash-flow-num">3</div>
-            <div class="dash-flow-body">
-              <div class="dash-flow-title">상세페이지 자동 생성</div>
-              <div class="dash-flow-desc">사실 + vibe 기반 슬롯 카피 자동 채움</div>
-            </div>
-          </div>
+          <div class="dash-progress-bar"><div class="dash-progress-fill" id="dashProgFill" style="width:0%;"></div></div>
         </div>
 
-        <!-- 통계 카드 그리드 -->
-        <div class="dash-grid">
-          <div class="dash-card" id="dashCardProducts">
-            <div class="dash-card-icon">📦</div>
-            <div class="dash-card-title">제품 (마스터)</div>
-            <div class="dash-card-stat"><span id="dashProductsCount">0</span></div>
-            <div class="dash-card-desc">POUR코트재 같은 모제품 — 한 번 등록 → N개 상품에서 재활용</div>
-            <button class="btn btn-outline btn-sm dash-card-btn" id="dashOpenProducts">제품 목록 열기</button>
+        <!-- ① 초기 세팅 (한 번만) -->
+        <details class="dash-section dash-section-onboard" id="dashOnboard" open>
+          <summary>
+            <span class="dash-section-icon">🚀</span>
+            <span class="dash-section-title">초기 세팅 — 한 번만 하면 됩니다</span>
+            <span class="dash-section-tag" id="dashOnboardTag">진행 중</span>
+          </summary>
+          <div class="dash-section-body">
+            <div class="dash-checklist" id="dashChecklist"></div>
           </div>
-          <div class="dash-card" id="dashCardListings">
-            <div class="dash-card-icon">🏷</div>
-            <div class="dash-card-title">상품 (Listing)</div>
-            <div class="dash-card-stat"><span id="dashListingsCount">0</span></div>
-            <div class="dash-card-desc">목재페인트·철재페인트 등 카페24 등록 단위 — 통디자인 + 카페24번호</div>
-            <button class="btn btn-outline btn-sm dash-card-btn" id="dashOpenListings">상품 목록 열기</button>
-          </div>
-          <div class="dash-card" id="dashCardInstances">
-            <div class="dash-card-icon">📄</div>
-            <div class="dash-card-title">상세페이지</div>
-            <div class="dash-card-stat"><span id="dashInstancesCount">0</span></div>
-            <div class="dash-card-desc">상품에 연결된 상세페이지 — 카페24에 붙여넣을 HTML 산출</div>
-            <button class="btn btn-outline btn-sm dash-card-btn" id="dashOpenInstances">상세페이지 목록</button>
-          </div>
-          <div class="dash-card" id="dashCardTemplates">
-            <div class="dash-card-icon">📐</div>
-            <div class="dash-card-title">템플릿</div>
-            <div class="dash-card-stat"><span id="dashTemplatesCount">0</span></div>
-            <div class="dash-card-desc">상세페이지 뼈대 — 14섹션 POUR 기본 템플릿 사용 가능</div>
-            <button class="btn btn-outline btn-sm dash-card-btn" id="dashOpenTemplates">템플릿 관리</button>
-          </div>
-        </div>
+        </details>
 
-        <!-- 최근 활동 (간단히) -->
-        <div class="dash-recent">
-          <h3>최근 작업</h3>
-          <div id="dashRecentList" class="dash-recent-list"></div>
-        </div>
+        <!-- ② 일상 작업 단계 -->
+        <details class="dash-section dash-section-daily" id="dashDaily" open>
+          <summary>
+            <span class="dash-section-icon">🔄</span>
+            <span class="dash-section-title">일상 작업 — 새 상품 만들 때마다</span>
+            <span class="dash-section-tag dash-section-tag-info">반복 사용</span>
+          </summary>
+          <div class="dash-section-body">
+
+            <!-- STEP A. 제품(마스터) -->
+            <div class="dash-stage" data-stage="a">
+              <div class="dash-stage-head">
+                <div class="dash-stage-num">A</div>
+                <div class="dash-stage-meta">
+                  <div class="dash-stage-name">제품(마스터) 등록</div>
+                  <div class="dash-stage-desc">POUR코트재 같은 모제품 — 카탈로그·시방서에서 사실 추출 (제품마다 1회)</div>
+                </div>
+                <div class="dash-stage-stat"><b id="dashCntProducts">0</b><span>개</span></div>
+              </div>
+              <div class="dash-stage-actions">
+                <button class="dash-action-btn dash-action-primary" id="dashGoNewProduct">
+                  <span class="dash-action-icon">📦</span>
+                  <span class="dash-action-name">+ 새 마스터 제품</span>
+                  <span class="dash-action-desc">자료 업로드 → 사실 추출 → 검수</span>
+                </button>
+                <button class="dash-action-btn" id="dashGoProducts">
+                  <span class="dash-action-icon">📋</span>
+                  <span class="dash-action-name">제품 목록</span>
+                  <span class="dash-action-desc">기존 제품 편집·자료 추가</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- STEP B. 상품(Listing) 분기 -->
+            <div class="dash-stage" data-stage="b">
+              <div class="dash-stage-head">
+                <div class="dash-stage-num">B</div>
+                <div class="dash-stage-meta">
+                  <div class="dash-stage-name">상품(Listing) 분기 — 카페24 등록 단위</div>
+                  <div class="dash-stage-desc">목재페인트·철재페인트처럼 용도별로 상품 N개 만들기 + 통디자인(vibe) 지정</div>
+                </div>
+                <div class="dash-stage-stat"><b id="dashCntListings">0</b><span>개</span></div>
+              </div>
+              <div class="dash-stage-actions">
+                <button class="dash-action-btn dash-action-primary" id="dashGoSuggest">
+                  <span class="dash-action-icon">🪄</span>
+                  <span class="dash-action-name">분기 제안 (빠른/AI)</span>
+                  <span class="dash-action-desc">마스터의 적용기재로 자식 상품 자동 제안 → 일괄 생성</span>
+                </button>
+                <button class="dash-action-btn" id="dashGoNewListing">
+                  <span class="dash-action-icon">🏷</span>
+                  <span class="dash-action-name">+ 새 상품 직접</span>
+                  <span class="dash-action-desc">제안 안 쓰고 수동 등록</span>
+                </button>
+                <button class="dash-action-btn" id="dashGoListings">
+                  <span class="dash-action-icon">📋</span>
+                  <span class="dash-action-name">상품 목록</span>
+                  <span class="dash-action-desc">vibe·강조 사실·카페24번호 편집</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- STEP C. 상세페이지 생성 -->
+            <div class="dash-stage" data-stage="c">
+              <div class="dash-stage-head">
+                <div class="dash-stage-num">C</div>
+                <div class="dash-stage-meta">
+                  <div class="dash-stage-name">상세페이지 생성</div>
+                  <div class="dash-stage-desc">상품마다 상세페이지 1개 — 마스터 사실 + 강조 + vibe로 슬롯 자동 채우기</div>
+                </div>
+                <div class="dash-stage-stat"><b id="dashCntInstances">0</b><span>개</span></div>
+              </div>
+              <div class="dash-stage-actions">
+                <button class="dash-action-btn dash-action-primary" id="dashGoListingsForDetail">
+                  <span class="dash-action-icon">🤖</span>
+                  <span class="dash-action-name">상품 → 상세 자동 생성</span>
+                  <span class="dash-action-desc">상품 편집기 ④ 산출물 탭에서 자동 카피</span>
+                </button>
+                <button class="dash-action-btn" id="dashGoInstances2">
+                  <span class="dash-action-icon">📄</span>
+                  <span class="dash-action-name">상세페이지 목록</span>
+                  <span class="dash-action-desc">슬롯 검수·수정·미리보기</span>
+                </button>
+                <button class="dash-action-btn" id="dashGoBatchAutoFill">
+                  <span class="dash-action-icon">📎</span>
+                  <span class="dash-action-name">자료로 일괄 생성</span>
+                  <span class="dash-action-desc">PDF 여러 개 → 인스턴스 N개 (마스터 모델 안 쓸 때)</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- STEP D. 이미지 + 카페24 -->
+            <div class="dash-stage" data-stage="d">
+              <div class="dash-stage-head">
+                <div class="dash-stage-num">D</div>
+                <div class="dash-stage-meta">
+                  <div class="dash-stage-name">이미지 채우기 + 카페24 붙여넣기</div>
+                  <div class="dash-stage-desc">빈 이미지 슬롯을 마누스로 채우고, 최종 HTML을 카페24 상품에 붙여넣기</div>
+                </div>
+                <div class="dash-stage-stat"><b id="dashCntFilled">0</b><span>완성</span></div>
+              </div>
+              <div class="dash-stage-actions">
+                <button class="dash-action-btn" id="dashGoBatchGen">
+                  <span class="dash-action-icon">🚀</span>
+                  <span class="dash-action-name">마누스 이미지 일괄</span>
+                  <span class="dash-action-desc">여러 인스턴스의 이미지 슬롯을 한 번에 생성</span>
+                </button>
+                <button class="dash-action-btn" id="dashGoInstances3">
+                  <span class="dash-action-icon">📋</span>
+                  <span class="dash-action-name">전체 HTML 복사</span>
+                  <span class="dash-action-desc">상세페이지에서 HTML 추출 → 카페24 붙여넣기</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </details>
+
+        <!-- ③ 최근 작업 -->
+        <details class="dash-section dash-section-recent">
+          <summary>
+            <span class="dash-section-icon">🕘</span>
+            <span class="dash-section-title">최근 작업</span>
+            <span class="dash-section-tag dash-section-tag-quiet">자동</span>
+          </summary>
+          <div class="dash-section-body">
+            <div id="dashRecentList" class="dash-recent-list"></div>
+          </div>
+        </details>
+
       </div>
     </main>
   </div>
@@ -1157,6 +1243,88 @@ https://..."></textarea>
           <button id="bsCancel" class="btn btn-ghost">취소</button>
           <button id="bsCreate" class="btn btn-primary" disabled>선택한 상품 일괄 생성</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🎓 가이드 모달 — 처음 보는 사용자용 -->
+  <div id="guideModal" class="modal-mask">
+    <div class="modal" style="max-width: 720px;">
+      <div class="modal-head">
+        <h3>🎓 처음 사용하시나요? — 5분 가이드</h3>
+        <button id="gdClose" class="close" aria-label="닫기">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="guide-intro">
+          <p style="font-size:13px; color:var(--ink2); line-height:1.7; margin:0 0 14px;">
+            POUR스토어는 <b>모제품 1개 → 자식 상품 N개 → 상세페이지</b> 흐름으로 작업합니다.<br/>
+            아래 4단계만 따라 하면 첫 상품 상세페이지가 나옵니다.
+          </p>
+        </div>
+        <div class="guide-steps">
+          <div class="guide-step">
+            <div class="guide-step-num">1</div>
+            <div class="guide-step-body">
+              <div class="guide-step-title">초기 세팅 (첫 1회만)</div>
+              <div class="guide-step-desc">
+                대시보드 <b>🚀 초기 세팅</b> 섹션의 4개 항목을 차례로 완료하세요.<br/>
+                · <b>Claude API 키</b> — sk-ant-... 입력 (Anthropic 콘솔에서 발급)<br/>
+                · <b>POUR 기본 템플릿</b> — 14섹션 뼈대 자동 추가<br/>
+                · <b>첫 마스터 제품</b> — 제품명 + 카탈로그 PDF 업로드<br/>
+                · <b>사실 카드 추출</b> — 🤖 버튼 누르면 Claude가 자동 추출
+              </div>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">2</div>
+            <div class="guide-step-body">
+              <div class="guide-step-title">상품(Listing) 만들기 — 분기 제안 추천</div>
+              <div class="guide-step-desc">
+                <b>B 단계 → 🪄 분기 제안</b> 클릭<br/>
+                · <b>빠른 제안</b> — 키워드 사전 기반 (즉시·무료)<br/>
+                · <b>AI 제안</b> — Claude가 사실 종합 분석 (정교, 30초)<br/>
+                같은 모제품에서 목재페인트·철재페인트·벽돌페인트… 자동 생성됨.
+              </div>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">3</div>
+            <div class="guide-step-body">
+              <div class="guide-step-title">상세페이지 자동 생성</div>
+              <div class="guide-step-desc">
+                상품 편집기 → <b>④ 산출물 탭</b> → 템플릿 선택 → <b>🤖 자동 생성</b><br/>
+                마스터 사실 + 강조 + vibe로 슬롯 카피가 자동 채워집니다.<br/>
+                결과는 <b>📄 상세페이지 목록</b>에서 확인·수정 가능.
+              </div>
+            </div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-step-num">4</div>
+            <div class="guide-step-body">
+              <div class="guide-step-title">카페24 붙여넣기</div>
+              <div class="guide-step-desc">
+                상세페이지 편집 화면에서 <b>전체 HTML 복사</b><br/>
+                → 카페24 상품 상세 영역에 붙여넣기 → 끝!<br/>
+                상품마다 카페24 상품번호를 ① 기본정보 탭에 입력해두면 매핑 추적 가능.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="guide-tips">
+          <div class="guide-tips-head">💡 자주 묻는 질문</div>
+          <ul>
+            <li><b>"카탈로그가 100페이지 넘어요"</b> — 해당 제품 부분만 1~2장 뽑아서 PDF로 만드세요. 사실 추출 정확도 ↑.</li>
+            <li><b>"같은 목재인데 외장·실내가 다른데요"</b> — 🤖 AI 제안을 쓰세요. 같은 기재도 용도별로 자동 분기됩니다.</li>
+            <li><b>"이미지는 어떻게 채우나요"</b> — 텍스트 슬롯이 채워진 뒤 마누스 일괄 생성으로 N개 인스턴스의 이미지를 한 번에.</li>
+            <li><b>"마스터 사실을 수정하면 자식 상품에도 반영되나요"</b> — 새로 생성하는 상세페이지에는 반영. 기존 상세페이지는 다시 자동 생성하면 갱신.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <label style="font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px;">
+          <input id="gdNeverShow" type="checkbox" /> 다시 보지 않기
+        </label>
+        <button id="gdStart" class="btn btn-primary">시작하기 →</button>
       </div>
     </div>
   </div>

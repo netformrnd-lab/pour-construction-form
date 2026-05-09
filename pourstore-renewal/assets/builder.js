@@ -6815,6 +6815,7 @@ show('entry');
       saveState();
       renderTemplateList();
       toast(`'${tpl.name}' 템플릿이 추가됐습니다 (슬롯 ${tpl.slots.length}개)`, 'success');
+      if (document.body.getAttribute('data-mode') === 'product') refreshProductDashboard();
     } catch (e) {
       console.error('[templates] POUR 기본 템플릿 로드 실패:', e);
       toast('템플릿 파일 로드 실패: ' + e.message, 'error');
@@ -7618,6 +7619,7 @@ show('entry');
       productEditorCtx = null;
       renderProductList();
       toast('제품 저장됨', 'success');
+      if (document.body.getAttribute('data-mode') === 'product') refreshProductDashboard();
     }
   }
   async function approveProductFacts() {
@@ -8399,6 +8401,7 @@ show('entry');
       listingEditorCtx = null;
       renderListingList();
       toast('상품 저장됨', 'success');
+      if (document.body.getAttribute('data-mode') === 'product') refreshProductDashboard();
     }
   }
 
@@ -9269,6 +9272,7 @@ show('entry');
     if (ok) {
       closeModal('manusConfigModal');
       toast('마누스 설정 저장됨', 'success');
+      if (document.body.getAttribute('data-mode') === 'product') refreshProductDashboard();
     }
   }
   async function testManusConfig() {
@@ -9592,6 +9596,7 @@ show('entry');
     if (ok) {
       closeModal('claudeConfigModal');
       toast('Claude 설정 저장됨', 'success');
+      if (document.body.getAttribute('data-mode') === 'product') refreshProductDashboard();
     }
   }
   async function testClaudeConfig() {
@@ -9861,7 +9866,7 @@ show('entry');
       headers: { 'Content-Type': 'application/json', 'X-Worker-Secret': claudeProxyConfig.workerSecret },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 4096,
+        max_tokens: 8192,
         system: systemPrompt,
         messages: [{ role: 'user', content }],
         claudeApiKey: claudeProxyConfig.claudeApiKey,

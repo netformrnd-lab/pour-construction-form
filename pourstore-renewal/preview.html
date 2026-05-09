@@ -1310,6 +1310,14 @@ https://..."></textarea>
             </div>
           </div>
         </div>
+        <div class="guide-tips guide-tips-warn">
+          <div class="guide-tips-head">⚠ 시작 전 한 번만 확인 (관리자)</div>
+          <ul>
+            <li><b>Cloudflare Worker 배포</b> — <code>npx wrangler deploy --config workers/wrangler.claude-proxy.toml</code> 후 <code>npx wrangler secret put WORKER_SECRET</code>. Anthropic API 키는 페이지 설정에서 직접 입력 (솔라피식).</li>
+            <li><b>Firestore 보안 규칙</b> — 신규 컬렉션 <code>pourstore-renewal-products</code> · <code>pourstore-renewal-listings</code> 의 read/write 권한이 풀려 있어야 합니다 (기존 <code>pourstore-renewal-builder</code>와 동일 규칙 적용).</li>
+            <li><b>네트워크</b> — 워커 미배포 또는 URL 오타 시 모든 Claude 호출이 실패합니다. 설정 모달의 "테스트" 버튼으로 먼저 확인하세요.</li>
+          </ul>
+        </div>
         <div class="guide-tips">
           <div class="guide-tips-head">💡 자주 묻는 질문</div>
           <ul>

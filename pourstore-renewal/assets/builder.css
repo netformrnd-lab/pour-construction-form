@@ -747,3 +747,30 @@ body[data-mode="product"] .brand-text-page { display: none; }
 .lb-suggest-name { font-size: 13px; font-weight: 700; color: var(--ink); }
 .lb-suggest-meta { font-size: 11px; color: var(--ink2); margin-top: 2px; }
 .lb-suggest-vibe { font-size: 11px; padding: 2px 8px; background: var(--light); border-radius: 4px; font-weight: 600; color: var(--ink2); }
+
+/* 분기 제안 — 두 모드 버튼 */
+.bs-mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.bs-mode-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; padding: 14px; background: #fff; border: 2px solid var(--border); border-radius: 12px; cursor: pointer; transition: all .15s; font-family: inherit; }
+.bs-mode-btn:hover { border-color: var(--or); background: #FFF8F0; }
+.bs-mode-btn:disabled { opacity: .5; cursor: wait; }
+.bs-mode-btn.bs-mode-ai:hover { border-color: #7C3AED; background: #F5F3FF; }
+.bs-mode-icon { font-size: 24px; }
+.bs-mode-name { font-size: 14px; font-weight: 800; color: var(--ink); }
+.bs-mode-desc { font-size: 11.5px; color: var(--ink2); line-height: 1.5; }
+.bs-mode-cost { font-size: 11px; color: var(--muted); margin-top: 4px; padding: 2px 8px; background: var(--light); border-radius: 999px; align-self: flex-start; }
+
+/* 제안 결과 — 더 풍부한 카드 (AI 모드용) */
+.lb-suggest-row { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; padding: 10px 12px; background: #fff; border: 1px solid var(--border); border-radius: 8px; align-items: start; }
+.lb-suggest-row.lb-suggest-checked { border-color: var(--or); background: #FFF8F0; }
+.lb-suggest-row.lb-suggest-ai { border-left: 3px solid #7C3AED; }
+.lb-suggest-name { font-size: 13px; font-weight: 700; color: var(--ink); }
+.lb-suggest-meta { font-size: 11px; color: var(--ink2); margin-top: 3px; line-height: 1.5; }
+.lb-suggest-reason { font-size: 11px; color: #6D28D9; margin-top: 4px; padding: 4px 8px; background: #F5F3FF; border-radius: 4px; line-height: 1.5; }
+.lb-suggest-keywords { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.lb-suggest-keywords span { font-size: 10px; padding: 1px 6px; background: var(--light); border: 1px solid var(--border); border-radius: 999px; color: var(--ink2); }
+.lb-suggest-emp { font-size: 10.5px; color: var(--muted); margin-top: 4px; }
+.lb-suggest-emp b { color: var(--or); font-weight: 700; }
+
+@media (max-width: 700px) {
+  .bs-mode-grid { grid-template-columns: 1fr; }
+}

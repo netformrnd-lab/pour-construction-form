@@ -8288,9 +8288,64 @@ show('entry');
   }
 
   // ── 자식 상품 분기 제안 모달
+  // POUR 도메인 키워드 사전 — 첫 매칭 우선 (특정 → 일반 순서)
+  // suffix: 상품명 어미 (예: "페인트", "코팅", "방수페인트")
+  // category: '지붕재'·'옥상'·'외벽'·'바닥'·'실내' 등 분류 (참고용)
+  const SUBSTRATE_RULES = [
+    // 지붕재 (특정 → 일반)
+    { match: ['아스팔트슁글','슁글'], vibe: 'bold-industrial', suffix: '페인트', slogan: '노후 슁글에 새 옷을 — 방수·자외선 차단·강풍 대응', category: '지붕재' },
+    { match: ['금속기와','칼라강판'], vibe: 'cool-tech', suffix: '코팅', slogan: '녹·열화 차단 — 색상 회복 + 부식 보호', category: '지붕재' },
+    { match: ['박공지붕','경사지붕'], vibe: 'bold-industrial', suffix: '방수페인트', slogan: '경사 지붕 누수 차단 + 단열 한 번에', category: '지붕재' },
+    // 옥상·방수
+    { match: ['옥상슬라브','슬라브'], vibe: 'bold-industrial', suffix: '방수페인트', slogan: '옥상 누수 차단 — 무동력 통기로 들뜸 방지', category: '옥상' },
+    { match: ['옥상'], vibe: 'bold-industrial', suffix: '방수페인트', slogan: '옥상 방수·차열 — 한 번 시공으로 두 효과', category: '옥상' },
+    { match: ['우레탄방수'], vibe: 'cool-tech', suffix: '코팅', slogan: '고탄성 우레탄 — 균열 추종성', category: '옥상' },
+    { match: ['아크릴배면','배면차수'], vibe: 'bold-industrial', suffix: '차수재', slogan: '지하 배면 누수 — 초고압 주입 차단', category: '지하' },
+    { match: ['PVC방수'], vibe: 'bold-industrial', suffix: '방수재', slogan: '국토부 신기술 — 지하·옥상 복합 누수', category: '지하' },
+    // 지하·바닥
+    { match: ['지하주차장','주차장'], vibe: 'bold-industrial', suffix: '코팅', slogan: '차량 통행에 견디는 강도 — 내마모·내약품', category: '바닥' },
+    { match: ['에폭시'], vibe: 'cool-tech', suffix: '코팅', slogan: '내마모·내약품 에폭시 마감 — 공장·창고 적합', category: '바닥' },
+    { match: ['엠보라이닝','엠보'], vibe: 'bold-industrial', suffix: '코팅', slogan: '미끄럼 저항 + 반복하중 — 회전 구간 강화', category: '바닥' },
+    { match: ['MMA'], vibe: 'bold-industrial', suffix: '코팅', slogan: '논슬립 고강도 — 미끄럼저항 BPN 인증', category: '바닥' },
+    // 토목
+    { match: ['아스콘','포트홀','도로'], vibe: 'bold-industrial', suffix: '보수재', slogan: '도로 균열·포트홀 빠른 보수', category: '토목' },
+    { match: ['보도블록','블럭'], vibe: 'earth-rough', suffix: '보수재', slogan: '보도블록 균열·침하 보수', category: '토목' },
+    { match: ['씰코팅'], vibe: 'bold-industrial', suffix: '코팅', slogan: '주차장·도로 표면 보호 코팅', category: '토목' },
+    // 외벽재
+    { match: ['드라이비트'], vibe: 'earth-rough', suffix: '페인트', slogan: '드라이비트 균열 보수 + 재도장', category: '외벽' },
+    { match: ['사이딩'], vibe: 'earth-rough', suffix: '페인트', slogan: '사이딩 외벽 — 색상 회복 + 보호', category: '외벽' },
+    { match: ['노출콘크리트'], vibe: 'earth-rough', suffix: '코팅', slogan: '노출콘크리트 보호 — 미관 + 발수', category: '외벽' },
+    { match: ['외벽'], vibe: 'earth-rough', suffix: '페인트', slogan: '외벽 균열 보수 + 재도장', category: '외벽' },
+    { match: ['벽돌','적벽돌'], vibe: 'earth-rough', suffix: '페인트', slogan: '벽돌 외장 미관 + 방수 — 한 번에', category: '외벽' },
+    { match: ['석재'], vibe: 'earth-rough', suffix: '코팅', slogan: '석재 보호 — 발수·방오·미관 유지', category: '외벽' },
+    // 데크 (외장 목재 — earth-rough 우선)
+    { match: ['데크','우드데크','목재데크'], vibe: 'earth-rough', suffix: '페인트', slogan: '외장 데크 — 자외선·수분 차단 방부', category: '데크' },
+    // 목재·우드 (실내)
+    { match: ['우드'], vibe: 'warm-natural', suffix: '페인트', slogan: '오래가는 목재 마감 — 부착·발색', category: '목재' },
+    { match: ['목재'], vibe: 'warm-natural', suffix: '페인트', slogan: '목재 보호 + 발색 — 무독성·친환경', category: '목재' },
+    // 철재·금속
+    { match: ['난간','펜스'], vibe: 'cool-tech', suffix: '페인트', slogan: '난간·펜스 — 녹 방지 + 외관 회복', category: '철재' },
+    { match: ['철문','셔터'], vibe: 'cool-tech', suffix: '페인트', slogan: '철문·셔터 — 부식 방지·강한 부착', category: '철재' },
+    { match: ['철재','금속','스틸','강재'], vibe: 'cool-tech', suffix: '페인트', slogan: '녹·부식 방지 — 강한 부착·내후성', category: '철재' },
+    // 실내·벽체
+    { match: ['천장'], vibe: 'clean-bright', suffix: '페인트', slogan: '천장 — 무취·친환경·결로 대응', category: '실내' },
+    { match: ['벽체','내벽','실내벽'], vibe: 'clean-bright', suffix: '페인트', slogan: '실내 벽체 — 깔끔한 마감·무취·친환경', category: '실내' },
+    { match: ['실내'], vibe: 'clean-bright', suffix: '페인트', slogan: '실내 마감 — 친환경·무취·발색', category: '실내' },
+    // 콘크리트·시멘트 (일반)
+    { match: ['콘크리트','시멘트'], vibe: 'bold-industrial', suffix: '코팅', slogan: '콘크리트 강화 — 중성화 차단·마모 저항', category: '구조' },
+    { match: ['바닥'], vibe: 'bold-industrial', suffix: '코팅', slogan: '바닥 강화·마모 저항', category: '바닥' },
+  ];
+  function matchSubstrateRule(substrate) {
+    const s = (substrate || '').replace(/\s/g, '');
+    for (const rule of SUBSTRATE_RULES) {
+      if (rule.match.some(m => s.includes(m.replace(/\s/g, '')))) return rule;
+    }
+    return { vibe: 'warm-natural', suffix: '페인트', slogan: `${substrate}용 — 사실 카드 기반 카피 작성 필요`, category: '기타' };
+  }
+
   let branchSuggestCtx = null;
   function openBranchSuggestModal() {
-    branchSuggestCtx = { masterId: '', selected: new Set() };
+    branchSuggestCtx = { masterId: '', selected: new Set(), suggests: [], mode: '' };
     const sel = document.getElementById('bsMaster');
     sel.innerHTML = '<option value="">— 모제품 선택 —</option>';
     productsCache.forEach(p => {
@@ -8299,7 +8354,9 @@ show('entry');
       sel.appendChild(opt);
     });
     document.getElementById('bsSubstrateSection').style.display = 'none';
+    document.getElementById('bsModeSection').style.display = 'none';
     document.getElementById('bsSuggestSection').style.display = 'none';
+    document.getElementById('bsRunStatus').style.display = 'none';
     document.getElementById('bsCreate').disabled = true;
     document.getElementById('bsHint').textContent = '마스터 선택 시 적용기재가 표시됩니다.';
     openModal('branchSuggestModal');
@@ -8307,8 +8364,11 @@ show('entry');
   function onBranchMasterChange() {
     const id = document.getElementById('bsMaster').value;
     branchSuggestCtx.masterId = id;
+    branchSuggestCtx.suggests = [];
+    branchSuggestCtx.selected = new Set();
     if (!id) {
       document.getElementById('bsSubstrateSection').style.display = 'none';
+      document.getElementById('bsModeSection').style.display = 'none';
       document.getElementById('bsSuggestSection').style.display = 'none';
       document.getElementById('bsCreate').disabled = true;
       return;
@@ -8318,87 +8378,236 @@ show('entry');
       .filter(s => s.approved !== false).map(s => s.name);
     const subWrap = document.getElementById('bsSubstrateList');
     subWrap.innerHTML = '';
+    document.getElementById('bsSubstrateSection').style.display = '';
     if (!substrates.length) {
-      subWrap.innerHTML = '<span style="font-size:12px; color:#B91C1C;">⚠ 마스터의 적용기재가 비어있습니다 — 제품 편집기 ③ 사실 카드에서 추가하세요.</span>';
-      document.getElementById('bsSubstrateSection').style.display = '';
-      document.getElementById('bsSuggestSection').style.display = 'none';
-      document.getElementById('bsCreate').disabled = true;
+      subWrap.innerHTML = '<span style="font-size:12px; color:#B91C1C;">⚠ 마스터의 적용기재가 비어있습니다 — 제품 편집기 ③ 사실 카드에서 추가하거나, AI 제안을 사용하세요(다른 사실까지 종합).</span>';
+    } else {
+      substrates.forEach(s => {
+        const chip = document.createElement('span');
+        chip.className = 'pe-chip'; chip.textContent = s;
+        subWrap.appendChild(chip);
+      });
+    }
+    document.getElementById('bsModeSection').style.display = '';
+    document.getElementById('bsSuggestSection').style.display = 'none';
+    document.getElementById('bsCreate').disabled = true;
+    document.getElementById('bsHint').textContent = '🪄 빠른 제안 또는 🤖 AI 제안 중 선택하세요.';
+  }
+
+  // ── 빠른 제안 (사전 기반)
+  function runQuickSuggest() {
+    const ctx = branchSuggestCtx; if (!ctx || !ctx.masterId) return;
+    const master = productsCache.find(p => p.id === ctx.masterId);
+    if (!master) return;
+    const substrates = (master.masterFacts && master.masterFacts.compatibleSubstrates || [])
+      .filter(s => s.approved !== false).map(s => s.name);
+    if (!substrates.length) {
+      toast('적용기재가 없어 빠른 제안 불가 — AI 제안을 사용하거나 제품 편집기에서 기재 추가', 'error');
       return;
     }
-    substrates.forEach(s => {
-      const chip = document.createElement('span');
-      chip.className = 'pe-chip'; chip.textContent = s;
-      subWrap.appendChild(chip);
+    const productKind = (master.name || '').match(/(도료|페인트|코트|코팅)/) ? '' : '';
+    ctx.mode = 'quick';
+    ctx.suggests = substrates.map(s => {
+      const r = matchSubstrateRule(s);
+      return {
+        listingName: `${s}${r.suffix}`,
+        primarySubstrate: s,
+        targetUseRefined: `${s} (${r.category})`,
+        suggestedVibe: r.vibe,
+        vibeReason: `사전 매칭: ${r.category} 카테고리`,
+        customSlogan: r.slogan,
+        searchKeywords: [`${s}${r.suffix}`, `${s}코팅`, `${s}보수`].filter((v, i, a) => a.indexOf(v) === i),
+        emphasizedFactIds: [],
+      };
     });
-    document.getElementById('bsSubstrateSection').style.display = '';
-    // 제안 생성 (기재 → 상품명 휴리스틱)
-    const suggestList = document.getElementById('bsSuggestList');
-    suggestList.innerHTML = '';
-    branchSuggestCtx.selected = new Set();
-    substrates.forEach(s => {
-      const suggest = suggestListingForSubstrate(master, s);
-      const id2 = 'sub-' + s;
-      const row = document.createElement('div');
-      row.className = 'lb-suggest-row';
-      row.innerHTML = `
-        <input type="checkbox" data-substrate="${escapeHtml(s)}" />
-        <div>
-          <div class="lb-suggest-name">${escapeHtml(suggest.listingName)}</div>
-          <div class="lb-suggest-meta">기재: ${escapeHtml(s)} · 슬로건: ${escapeHtml(suggest.slogan)}</div>
-        </div>
-        <span class="lb-suggest-vibe" style="background:${findVibe(suggest.vibe).bgColor}; color:${findVibe(suggest.vibe).primaryColor};">${findVibe(suggest.vibe).emoji} ${escapeHtml(findVibe(suggest.vibe).name)}</span>
-      `;
-      row.dataset.suggest = JSON.stringify(suggest);
-      row.querySelector('input').addEventListener('change', e => {
-        if (e.target.checked) branchSuggestCtx.selected.add(s);
-        else branchSuggestCtx.selected.delete(s);
-        row.classList.toggle('lb-suggest-checked', e.target.checked);
-        document.getElementById('bsCreate').disabled = branchSuggestCtx.selected.size === 0;
-        document.getElementById('bsHint').textContent = `${branchSuggestCtx.selected.size}개 상품 생성 예정`;
+    renderSuggestResults();
+  }
+
+  // ── AI 제안 (Claude)
+  async function runAISuggest() {
+    const ctx = branchSuggestCtx; if (!ctx || !ctx.masterId) return;
+    const master = productsCache.find(p => p.id === ctx.masterId);
+    if (!master) return;
+    if (!master.masterFacts || countTotalFacts(master.masterFacts) === 0) {
+      toast('마스터 사실 카드가 비어있습니다 — 먼저 제품 편집기에서 사실 추출을 진행하세요', 'error');
+      return;
+    }
+    await loadClaudeProxyConfig();
+    if (!claudeProxyConfig || !claudeProxyConfig.workerUrl || !claudeProxyConfig.workerSecret || !claudeProxyConfig.claudeApiKey) {
+      toast('⚙ Claude 자동채우기 설정이 필요합니다', 'error');
+      return;
+    }
+    const status = document.getElementById('bsRunStatus');
+    const btnQuick = document.getElementById('bsRunQuick');
+    const btnAI = document.getElementById('bsRunAI');
+    btnQuick.disabled = true; btnAI.disabled = true;
+    status.style.display = ''; status.style.background = '#EFF6FF'; status.style.color = '#1E40AF';
+    status.textContent = '🤖 Claude가 마스터 사실 종합 분석 중... (30초~1분)';
+
+    const factsForAI = serializeFactsForAISuggest(master);
+    const sysPrompt = [
+      '당신은 한국어 건축자재 카페24 상품 기획 전문가입니다.',
+      '모제품의 사실(적용기재·소구점·용도·인증·주의)을 종합 분석해 카페24 등록할 자식 상품(Listing)을 제안하세요.',
+      '',
+      '【엄격 규칙】',
+      '1. 같은 적용기재라도 용도(외장/실내·노출/비노출)가 다르면 자식 상품을 분리하세요.',
+      '   예: "목재" → 외장 데크용(자외선·방부) + 실내 가구용(무독성·발색) → 2개 상품',
+      '2. 카페24 검색에서 고객이 실제 입력할 만한 용어를 listingName으로.',
+      '3. emphasizedFactIds는 입력으로 받은 fact ID(spec-xxx, sp-xxx 등) 중에서만 선택. 임의 ID 만들지 마세요.',
+      '4. suggestedVibe는 다음 5종 중 정확히 하나: warm-natural | cool-tech | clean-bright | bold-industrial | earth-rough',
+      '   - warm-natural: 따뜻·자연 (실내 목재·우드 톤)',
+      '   - cool-tech: 차가움·견고 (철재·금속·산업)',
+      '   - clean-bright: 깔끔·밝음 (실내·벽체·일반)',
+      '   - bold-industrial: 강함·임팩트 (외장·공업·콘크리트·지붕방수)',
+      '   - earth-rough: 자연·거침 (벽돌·외벽·자연석·외장 데크)',
+      '5. 너무 많이 만들지 마세요 — 의미 있는 분기 3~6개가 적정.',
+      '',
+      '【출력 JSON 스키마】 — JSON 외 텍스트 금지. 코드펜스 금지.',
+      '{',
+      '  "suggestedListings": [{',
+      '    "listingName": "아스팔트슁글페인트",',
+      '    "primarySubstrate": "아스팔트슁글",',
+      '    "targetUseRefined": "노후 슁글 지붕 보호 + 방수",',
+      '    "suggestedVibe": "bold-industrial",',
+      '    "vibeReason": "지붕은 햇볕·강풍·우수 노출 → 강함·견고함이 신뢰감",',
+      '    "customSlogan": "<한 줄 카피>",',
+      '    "searchKeywords": ["아스팔트슁글페인트","슁글도색","지붕방수페인트"],',
+      '    "emphasizedFactIds": ["spec-XX","sp-YY"]',
+      '  }],',
+      '  "summary": "<1~2문장 분석 요약>"',
+      '}',
+    ].join('\n');
+    const userText = [
+      `【모제품】 ${master.name} (${master.productCode || ''})`,
+      master.description ? `【설명】 ${master.description}` : '',
+      '',
+      factsForAI,
+      '',
+      '위 사실을 종합해 자식 상품을 제안하세요. 같은 기재도 용도가 다르면 분리하세요.',
+    ].filter(Boolean).join('\n');
+
+    try {
+      const r = await fetch(claudeProxyConfig.workerUrl.replace(/\/$/, ''), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Worker-Secret': claudeProxyConfig.workerSecret },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 8192,
+          system: sysPrompt,
+          messages: [{ role: 'user', content: userText }],
+          claudeApiKey: claudeProxyConfig.claudeApiKey,
+        }),
       });
-      suggestList.appendChild(row);
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+      const json = extractClaudeJson(data);
+      const suggests = (json.suggestedListings || []).filter(x => x.listingName).map(s => ({
+        listingName: s.listingName,
+        primarySubstrate: s.primarySubstrate || '',
+        targetUseRefined: s.targetUseRefined || '',
+        suggestedVibe: VIBE_PRESETS.find(v => v.id === s.suggestedVibe) ? s.suggestedVibe : 'warm-natural',
+        vibeReason: s.vibeReason || '',
+        customSlogan: s.customSlogan || '',
+        searchKeywords: Array.isArray(s.searchKeywords) ? s.searchKeywords : [],
+        emphasizedFactIds: Array.isArray(s.emphasizedFactIds) ? s.emphasizedFactIds : [],
+      }));
+      if (!suggests.length) throw new Error('AI 제안 결과가 비어있습니다');
+      ctx.mode = 'ai';
+      ctx.suggests = suggests;
+      ctx.selected = new Set();
+      const usage = data.usage || {};
+      const tokenInfo = usage.input_tokens ? ` · 토큰 ${usage.input_tokens}/${usage.output_tokens}` : '';
+      status.style.background = '#ECFDF5'; status.style.color = '#065F46';
+      status.textContent = `✅ AI 제안 완료 — ${suggests.length}개 상품${tokenInfo}${json.summary ? ' · ' + json.summary : ''}`;
+      renderSuggestResults();
+    } catch (e) {
+      console.error('[branch-ai] 실패:', e);
+      status.style.background = '#FEE2E2'; status.style.color = '#991B1B';
+      status.textContent = '❌ AI 제안 실패: ' + (e.message || '알 수 없는 오류');
+    } finally {
+      btnQuick.disabled = false; btnAI.disabled = false;
+    }
+  }
+  function serializeFactsForAISuggest(master) {
+    const f = master.masterFacts || {};
+    const out = [];
+    const subs = (f.compatibleSubstrates || []).filter(it => it.approved !== false);
+    if (subs.length) out.push('[적용기재] ' + subs.map(s => s.name).join(', '));
+    const groups = [
+      ['keySpecs', '핵심수치', it => `${it.id} | ${it.label}: ${it.value}${it.unit ? ' ' + it.unit : ''}`],
+      ['sellingPoints', '소구점', it => `${it.id} | ${it.text}`],
+      ['targetUses', '용도', it => `${it.id} | ${it.text}`],
+      ['certifications', '인증', it => `${it.id} | ${it.name}${it.agency ? ' (' + it.agency + ')' : ''}`],
+      ['composition', '성분·구성', it => `${it.id} | ${it.text}`],
+      ['cautions', '주의', it => `${it.id} | ${it.text}`],
+    ];
+    groups.forEach(([k, title, fmt]) => {
+      const items = (f[k] || []).filter(it => it.approved !== false);
+      if (!items.length) return;
+      out.push(`\n[${title}]`);
+      items.forEach(it => out.push('- ' + fmt(it)));
+    });
+    return out.join('\n');
+  }
+
+  // ── 제안 결과 렌더 (두 모드 공통)
+  function renderSuggestResults() {
+    const ctx = branchSuggestCtx; if (!ctx) return;
+    const master = productsCache.find(p => p.id === ctx.masterId);
+    const factsById = collectFactsById(master);
+    const wrap = document.getElementById('bsSuggestList');
+    wrap.innerHTML = '';
+    document.getElementById('bsSuggestTitle').textContent =
+      `${ctx.mode === 'ai' ? '🤖 AI' : '🪄 빠른'} 제안 — 체크한 항목만 생성 (${ctx.suggests.length}개)`;
+    ctx.suggests.forEach((s, idx) => {
+      const v = findVibe(s.suggestedVibe);
+      const row = document.createElement('div');
+      row.className = 'lb-suggest-row' + (ctx.mode === 'ai' ? ' lb-suggest-ai' : '');
+      const empNames = (s.emphasizedFactIds || []).map(id => {
+        const it = factsById[id];
+        if (!it) return null;
+        return it.label || it.text || it.name || id;
+      }).filter(Boolean);
+      row.innerHTML = `
+        <input type="checkbox" data-idx="${idx}" />
+        <div>
+          <div class="lb-suggest-name">${escapeHtml(s.listingName)}</div>
+          <div class="lb-suggest-meta">기재: <b>${escapeHtml(s.primarySubstrate || '-')}</b>${s.targetUseRefined ? ` · 용도: ${escapeHtml(s.targetUseRefined)}` : ''}</div>
+          ${s.customSlogan ? `<div class="lb-suggest-meta">💬 ${escapeHtml(s.customSlogan)}</div>` : ''}
+          ${ctx.mode === 'ai' && s.vibeReason ? `<div class="lb-suggest-reason">vibe 이유: ${escapeHtml(s.vibeReason)}</div>` : ''}
+          ${empNames.length ? `<div class="lb-suggest-emp">강조 사실 <b>${empNames.length}</b>개 — ${empNames.slice(0, 3).map(escapeHtml).join(', ')}${empNames.length > 3 ? ` 외 ${empNames.length - 3}` : ''}</div>` : ''}
+          ${(s.searchKeywords || []).length ? `<div class="lb-suggest-keywords">${s.searchKeywords.slice(0, 5).map(k => `<span>${escapeHtml(k)}</span>`).join('')}</div>` : ''}
+        </div>
+        <span class="lb-suggest-vibe" style="background:${v.bgColor}; color:${v.primaryColor};">${v.emoji} ${escapeHtml(v.name)}</span>
+      `;
+      row.querySelector('input').addEventListener('change', e => {
+        if (e.target.checked) ctx.selected.add(idx);
+        else ctx.selected.delete(idx);
+        row.classList.toggle('lb-suggest-checked', e.target.checked);
+        document.getElementById('bsCreate').disabled = ctx.selected.size === 0;
+        document.getElementById('bsHint').textContent = ctx.selected.size
+          ? `${ctx.selected.size}개 상품 생성 예정`
+          : '체크한 항목만 일괄 생성됩니다.';
+      });
+      wrap.appendChild(row);
     });
     document.getElementById('bsSuggestSection').style.display = '';
     document.getElementById('bsCreate').disabled = true;
     document.getElementById('bsHint').textContent = '체크한 항목만 일괄 생성됩니다.';
   }
-  function suggestListingForSubstrate(master, substrate) {
-    // 휴리스틱 — 기재명 기반 vibe + 상품명 + 슬로건
-    const vibeMap = {
-      '목재': 'warm-natural', '우드': 'warm-natural', '데크': 'warm-natural',
-      '철재': 'cool-tech', '금속': 'cool-tech', '스틸': 'cool-tech',
-      '벽돌': 'earth-rough', '외벽': 'earth-rough', '석재': 'earth-rough',
-      '벽체': 'clean-bright', '실내': 'clean-bright', '천장': 'clean-bright',
-      '콘크리트': 'bold-industrial', '바닥': 'bold-industrial',
-    };
-    let vibeId = 'warm-natural';
-    Object.keys(vibeMap).forEach(k => { if (substrate.includes(k)) vibeId = vibeMap[k]; });
-    const productKind = (master.name || '').includes('도료') || (master.name || '').includes('페인트') || (master.name || '').includes('코트')
-      ? '페인트' : '용';
-    const listingName = `${substrate}${productKind}`;
-    const sloganMap = {
-      '목재': `오래가는 ${substrate} 마감 — 자외선·수분 차단`,
-      '철재': `녹슬지 않는 ${substrate} 보호 — 부착·내구성 강화`,
-      '벽돌': `${substrate} 외장 미관 + 방수 — 한 번에`,
-      '벽체': `깔끔한 ${substrate} 마감 — 친환경·무취`,
-      '콘크리트': `${substrate}용 강한 보호막 — 마모 저항`,
-    };
-    let slogan = '';
-    Object.keys(sloganMap).forEach(k => { if (!slogan && substrate.includes(k)) slogan = sloganMap[k]; });
-    if (!slogan) slogan = `${substrate}용 — ${master.name} 기반`;
-    return { listingName, slogan, vibe: vibeId, substrate };
+  function collectFactsById(master) {
+    const map = {};
+    if (!master || !master.masterFacts) return map;
+    const f = master.masterFacts;
+    ['keySpecs','sellingPoints','composition','certifications','compatibleSubstrates','targetUses','cautions']
+      .forEach(k => (f[k] || []).forEach(it => { if (it && it.id) map[it.id] = it; }));
+    return map;
   }
   async function createSuggestedListings() {
     const ctx = branchSuggestCtx; if (!ctx || !ctx.masterId) return;
-    const rows = document.querySelectorAll('#bsSuggestList .lb-suggest-row');
-    const toCreate = [];
-    rows.forEach(row => {
-      if (!row.querySelector('input').checked) return;
-      const s = JSON.parse(row.dataset.suggest);
-      toCreate.push(s);
-    });
+    const toCreate = Array.from(ctx.selected).map(i => ctx.suggests[i]).filter(Boolean);
     if (!toCreate.length) return;
-    if (!confirm(`${toCreate.length}개 상품을 생성합니다. 진행할까요?`)) return;
+    if (!confirm(`${toCreate.length}개 상품을 생성합니다.\n${ctx.mode === 'ai' ? '(AI 제안 — 강조 사실·검색키워드까지 자동 채움)' : '(빠른 제안 — 키워드 사전 기반)'}\n진행할까요?`)) return;
     document.getElementById('bsCreate').disabled = true;
     document.getElementById('bsHint').textContent = '생성 중...';
     let ok = 0, fail = 0;
@@ -8406,9 +8615,11 @@ show('entry');
       const lst = newListing();
       lst.productId = ctx.masterId;
       lst.listingName = s.listingName;
-      lst.targetSubstrate = s.substrate;
-      lst.customSlogan = s.slogan;
-      lst.vibe = s.vibe;
+      lst.targetSubstrate = s.primarySubstrate;
+      lst.customSlogan = s.customSlogan || '';
+      lst.vibe = s.suggestedVibe;
+      lst.searchKeywords = s.searchKeywords || [];
+      lst.emphasizedFactIds = s.emphasizedFactIds || [];
       const success = await saveListing(lst);
       if (success) ok++; else fail++;
     }
@@ -8468,6 +8679,8 @@ show('entry');
     document.getElementById('bsClose').addEventListener('click', () => closeModal('branchSuggestModal'));
     document.getElementById('bsCancel').addEventListener('click', () => closeModal('branchSuggestModal'));
     document.getElementById('bsMaster').addEventListener('change', onBranchMasterChange);
+    document.getElementById('bsRunQuick').addEventListener('click', runQuickSuggest);
+    document.getElementById('bsRunAI').addEventListener('click', runAISuggest);
     document.getElementById('bsCreate').addEventListener('click', createSuggestedListings);
   }
 

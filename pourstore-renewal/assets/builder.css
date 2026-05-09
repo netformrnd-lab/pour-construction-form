@@ -774,3 +774,100 @@ body[data-mode="product"] .brand-text-page { display: none; }
 @media (max-width: 700px) {
   .bs-mode-grid { grid-template-columns: 1fr; }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   🚀 단계별 가이드 대시보드
+   ════════════════════════════════════════════════════════════════ */
+
+/* 진행도 바 */
+.dash-progress { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; }
+.dash-progress-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.dash-progress-label { font-size: 12px; font-weight: 800; color: var(--ink2); letter-spacing: .3px; text-transform: uppercase; }
+.dash-progress-text { font-size: 12px; color: var(--ink2); font-weight: 600; }
+.dash-progress-text b { font-size: 14px; color: var(--or); font-family: 'Bebas Neue', sans-serif; font-weight: 800; letter-spacing: .5px; }
+.dash-progress-bar { height: 8px; background: var(--border); border-radius: 999px; overflow: hidden; }
+.dash-progress-fill { height: 100%; background: linear-gradient(90deg, var(--or) 0%, #F49A3A 100%); border-radius: 999px; transition: width .3s ease; }
+.dash-progress.dash-progress-complete .dash-progress-fill { background: linear-gradient(90deg, #059669 0%, #10B981 100%); }
+
+/* 섹션 (details/summary) */
+.dash-section { background: #fff; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 14px; overflow: hidden; }
+.dash-section > summary { display: flex; align-items: center; gap: 10px; padding: 14px 18px; cursor: pointer; list-style: none; user-select: none; transition: background .15s; }
+.dash-section > summary::-webkit-details-marker { display: none; }
+.dash-section > summary::before { content: '▸'; font-size: 13px; color: var(--muted); transition: transform .15s; flex-shrink: 0; }
+.dash-section[open] > summary::before { transform: rotate(90deg); }
+.dash-section > summary:hover { background: var(--light); }
+.dash-section-icon { font-size: 20px; }
+.dash-section-title { font-size: 15px; font-weight: 800; color: var(--ink); flex: 1; }
+.dash-section-tag { font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 999px; background: #FEF3C7; color: #92400E; letter-spacing: .3px; }
+.dash-section-tag-info { background: #DBEAFE; color: #1E40AF; }
+.dash-section-tag-quiet { background: var(--light); color: var(--muted); font-weight: 600; }
+.dash-section-tag-done { background: #D1FAE5; color: #065F46; }
+.dash-section-body { padding: 0 18px 18px; }
+
+/* 초기 세팅 — 체크리스트 */
+.dash-checklist { display: flex; flex-direction: column; gap: 8px; }
+.dash-check-item { display: grid; grid-template-columns: 32px 1fr auto; gap: 12px; padding: 12px 14px; background: var(--light); border: 1px solid var(--border); border-radius: 10px; align-items: center; }
+.dash-check-item.dash-check-done { background: #ECFDF5; border-color: #A7F3D0; }
+.dash-check-item.dash-check-done .dash-check-name { color: #065F46; text-decoration: line-through; text-decoration-color: rgba(6,95,70,.3); }
+.dash-check-item.dash-check-current { background: #FFF8F0; border-color: var(--or); box-shadow: 0 0 0 3px rgba(232,120,15,.10); }
+.dash-check-icon { width: 28px; height: 28px; border-radius: 50%; background: #fff; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; color: var(--muted); }
+.dash-check-item.dash-check-done .dash-check-icon { background: #059669; border-color: #059669; color: #fff; }
+.dash-check-item.dash-check-current .dash-check-icon { background: var(--or); border-color: var(--or); color: #fff; }
+.dash-check-body { min-width: 0; }
+.dash-check-name { font-size: 13px; font-weight: 800; color: var(--ink); }
+.dash-check-name .dash-check-optional { font-size: 10px; padding: 1px 6px; background: var(--border); color: var(--muted); border-radius: 4px; margin-left: 6px; font-weight: 600; vertical-align: 1px; }
+.dash-check-desc { font-size: 11.5px; color: var(--ink2); margin-top: 2px; line-height: 1.5; }
+.dash-check-btn { font-size: 12px; padding: 6px 12px; }
+
+/* 일상 작업 — 단계 */
+.dash-stage { padding: 14px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 12px; background: #fff; }
+.dash-stage:last-child { margin-bottom: 0; }
+.dash-stage-head { display: grid; grid-template-columns: 36px 1fr auto; gap: 12px; align-items: center; margin-bottom: 12px; }
+.dash-stage-num { width: 32px; height: 32px; border-radius: 8px; background: var(--navy); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px; font-family: 'Bebas Neue', sans-serif; letter-spacing: .5px; }
+.dash-stage[data-stage="a"] .dash-stage-num { background: #1E40AF; }
+.dash-stage[data-stage="b"] .dash-stage-num { background: #059669; }
+.dash-stage[data-stage="c"] .dash-stage-num { background: #7C3AED; }
+.dash-stage[data-stage="d"] .dash-stage-num { background: var(--or); }
+.dash-stage-meta { min-width: 0; }
+.dash-stage-name { font-size: 14px; font-weight: 800; color: var(--ink); }
+.dash-stage-desc { font-size: 11.5px; color: var(--ink2); margin-top: 2px; line-height: 1.5; }
+.dash-stage-stat { display: flex; align-items: baseline; gap: 4px; flex-shrink: 0; padding: 4px 12px; background: var(--light); border-radius: 8px; }
+.dash-stage-stat b { font-size: 18px; font-weight: 900; color: var(--ink); font-family: 'Bebas Neue', sans-serif; line-height: 1; }
+.dash-stage-stat span { font-size: 10px; color: var(--muted); font-weight: 700; }
+.dash-stage-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
+.dash-action-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: #fff; cursor: pointer; transition: all .15s; font-family: inherit; }
+.dash-action-btn:hover { border-color: var(--ink2); background: var(--light); }
+.dash-action-primary { background: var(--navy); border-color: var(--navy); }
+.dash-action-primary:hover { background: var(--navy2); border-color: var(--navy2); }
+.dash-action-primary .dash-action-name,
+.dash-action-primary .dash-action-icon { color: #fff; }
+.dash-action-primary .dash-action-desc { color: rgba(255,255,255,.75); }
+.dash-action-icon { font-size: 18px; }
+.dash-action-name { font-size: 13px; font-weight: 800; color: var(--ink); }
+.dash-action-desc { font-size: 11px; color: var(--ink2); line-height: 1.45; }
+
+@media (max-width: 700px) {
+  .dash-stage-head { grid-template-columns: 32px 1fr; }
+  .dash-stage-stat { grid-column: 1 / -1; align-self: flex-start; }
+  .dash-stage-actions { grid-template-columns: 1fr; }
+  .dash-check-item { grid-template-columns: 28px 1fr; }
+  .dash-check-btn { grid-column: 1 / -1; justify-self: stretch; }
+}
+
+/* 🎓 가이드 모달 */
+.guide-intro p { margin: 0; }
+.guide-steps { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
+.guide-step { display: grid; grid-template-columns: 36px 1fr; gap: 14px; padding: 14px; background: #fff; border: 1px solid var(--border); border-radius: 10px; }
+.guide-step-num { width: 32px; height: 32px; background: var(--or); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', sans-serif; font-size: 18px; font-weight: 800; }
+.guide-step-title { font-size: 14px; font-weight: 800; color: var(--ink); margin-bottom: 5px; }
+.guide-step-desc { font-size: 12px; color: var(--ink2); line-height: 1.7; }
+.guide-step-desc b { color: var(--ink); }
+.guide-tips { padding: 14px; background: #FFFBEB; border: 1px solid #FCE7B6; border-radius: 10px; }
+.guide-tips-head { font-size: 13px; font-weight: 800; color: #92400E; margin-bottom: 8px; }
+.guide-tips ul { margin: 0; padding-left: 18px; }
+.guide-tips li { font-size: 12px; color: var(--ink2); line-height: 1.7; margin-bottom: 4px; }
+.guide-tips li b { color: var(--ink); }
+.guide-tips-warn { background: #FEF2F2; border-color: #FECACA; }
+.guide-tips-warn .guide-tips-head { color: #991B1B; }
+.guide-tips-warn ul li b { color: #991B1B; }
+.guide-tips-warn code { font-size: 11px; padding: 1px 5px; background: #fff; border: 1px solid #FCA5A5; border-radius: 4px; font-family: ui-monospace, Consolas, monospace; }

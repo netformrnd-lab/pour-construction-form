@@ -6815,6 +6815,7 @@ show('entry');
       saveState();
       renderTemplateList();
       toast(`'${tpl.name}' 템플릿이 추가됐습니다 (슬롯 ${tpl.slots.length}개)`, 'success');
+      if (document.body.getAttribute('data-mode') === 'product') refreshProductDashboard();
     } catch (e) {
       console.error('[templates] POUR 기본 템플릿 로드 실패:', e);
       toast('템플릿 파일 로드 실패: ' + e.message, 'error');
@@ -7618,6 +7619,7 @@ show('entry');
       productEditorCtx = null;
       renderProductList();
       toast('제품 저장됨', 'success');
+      if (document.body.getAttribute('data-mode') === 'product') refreshProductDashboard();
     }
   }
   async function approveProductFacts() {
@@ -7750,39 +7752,154 @@ show('entry');
       t.classList.toggle('mode-tab-active', active);
       t.setAttribute('aria-selected', active ? 'true' : 'false');
     });
-    if (mode === 'product') refreshProductDashboard();
+    if (mode === 'product') {
+      refreshProductDashboard();
+      maybeShowGuideOnce();
+    }
   }
   function loadAppMode() {
     let saved = 'page';
     try { saved = localStorage.getItem('pourstore-app-mode') || 'page'; } catch (_) {}
     setAppMode(saved);
+    // 처음 상품 모드 진입 시 가이드 한 번 자동 표시
+    if (saved === 'product') maybeShowGuideOnce();
+  }
+  function openGuideModal() {
+    const never = (() => { try { return localStorage.getItem('pourstore-guide-never') === '1'; } catch (_) { return false; } })();
+    const cb = document.getElementById('gdNeverShow');
+    if (cb) cb.checked = never;
+    openModal('guideModal');
+  }
+  function maybeShowGuideOnce() {
+    let seen = '0', never = '0';
+    try {
+      seen = localStorage.getItem('pourstore-guide-seen') || '0';
+      never = localStorage.getItem('pourstore-guide-never') || '0';
+    } catch (_) {}
+    if (seen === '0' && never === '0') {
+      // 다른 모달이 닫힌 후에 표시
+      setTimeout(() => openGuideModal(), 400);
+    }
   }
 
-  // ── 상품 대시보드
+  // ── 상품 대시보드 — 단계별 가이드
   async function refreshProductDashboard() {
-    // 통계 — 캐시 있으면 그것 우선, 없으면 비동기 로드
-    const counts = {
-      products: productsCache.length || 0,
-      listings: listingsCache.length || 0,
-      instances: instancesCache.length || 0,
-      templates: (state.templates || []).length || 0,
-    };
-    document.getElementById('dashProductsCount').textContent = counts.products;
-    document.getElementById('dashListingsCount').textContent = counts.listings;
-    document.getElementById('dashInstancesCount').textContent = counts.instances;
-    document.getElementById('dashTemplatesCount').textContent = counts.templates;
-    // 캐시가 비어있으면 백그라운드로 채우고 한 번 더 갱신
+    // 1) 카운트 즉시 표시 (캐시)
+    updateDashCounts();
+    // 2) 캐시 비어있으면 로드 후 다시 갱신
     const loads = [];
     if (!productsCache.length) loads.push(loadProducts());
     if (!listingsCache.length) loads.push(loadListings());
     if (!instancesCache.length) loads.push(loadInstances());
     if (loads.length) {
       await Promise.all(loads);
-      document.getElementById('dashProductsCount').textContent = productsCache.length;
-      document.getElementById('dashListingsCount').textContent = listingsCache.length;
-      document.getElementById('dashInstancesCount').textContent = instancesCache.length;
+      updateDashCounts();
     }
+    renderOnboardChecklist();
     renderDashRecent();
+  }
+  function updateDashCounts() {
+    const products = productsCache.length;
+    const listings = listingsCache.length;
+    const instances = instancesCache.length;
+    // 완성된 상세페이지 = 슬롯 1개 이상 채워진 인스턴스
+    const filled = instancesCache.filter(i => Object.keys(i.slots || {}).length > 0).length;
+    const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    setEl('dashCntProducts', products);
+    setEl('dashCntListings', listings);
+    setEl('dashCntInstances', instances);
+    setEl('dashCntFilled', filled);
+  }
+  function computeOnboarding() {
+    const claudeOk = !!(claudeProxyConfig && claudeProxyConfig.workerUrl && claudeProxyConfig.workerSecret && claudeProxyConfig.claudeApiKey);
+    const tplOk = (state.templates || []).length > 0;
+    const productOk = productsCache.length > 0;
+    const factsOk = productsCache.some(p => p.factsApproved);
+    const manusOk = !!(manusConfig && manusConfig.workerUrl && manusConfig.workerSecret);
+    return [
+      {
+        key: 'claude', icon: '🤖', name: 'Claude API 키 설정',
+        desc: '사실 추출·카피 생성·AI 분기 제안에 필요. 워커 URL + WORKER_SECRET + Anthropic API 키 (sk-ant-...)',
+        done: claudeOk, optional: false,
+        cta: claudeOk ? '재설정' : '지금 설정', action: () => openClaudeConfigModal(),
+      },
+      {
+        key: 'tpl', icon: '📐', name: 'POUR 기본 템플릿 불러오기',
+        desc: '14섹션 상세페이지 뼈대 (98개 슬롯). 한 번 등록하면 모든 상품에서 재사용.',
+        done: tplOk, optional: false,
+        cta: tplOk ? `보유 ${(state.templates || []).length}개` : '템플릿 불러오기', action: () => openTemplatesModal(),
+      },
+      {
+        key: 'product', icon: '📦', name: '첫 마스터 제품 등록',
+        desc: 'POUR코트재처럼 자식 상품들의 부모가 될 모제품. 기본정보 + PDF 자료까지 입력.',
+        done: productOk, optional: false,
+        cta: productOk ? `보유 ${productsCache.length}개` : '+ 첫 제품', action: () => openProductEditor(null),
+      },
+      {
+        key: 'facts', icon: '✓', name: '사실 카드 추출 + 검수',
+        desc: '제품 편집기 ③ 사실 카드 탭에서 자료 분석 → 검수 → 확정. 자식 상품 분기의 토대.',
+        done: factsOk, optional: false,
+        cta: factsOk ? '검수 완료' : (productOk ? '검수 진행' : '먼저 제품 등록'),
+        action: () => {
+          const pending = productsCache.find(p => !p.factsApproved);
+          if (pending) openProductEditor(pending.id);
+          else if (productsCache.length) openProductEditor(productsCache[0].id);
+          else openProductEditor(null);
+        },
+      },
+      {
+        key: 'manus', icon: '🚀', name: '마누스 워커 설정',
+        desc: '이미지 자동 생성용. 텍스트 카피만 쓸 거면 건너뛰어도 됩니다.',
+        done: manusOk, optional: true,
+        cta: manusOk ? '재설정' : '나중에 설정', action: () => openManusConfigModal(),
+      },
+    ];
+  }
+  function renderOnboardChecklist() {
+    const wrap = document.getElementById('dashChecklist');
+    if (!wrap) return;
+    const items = computeOnboarding();
+    const required = items.filter(it => !it.optional);
+    const doneRequired = required.filter(it => it.done).length;
+    const total = required.length;
+    // 첫 미완료 (필수만) — 현재 단계 표시
+    const currentKey = (required.find(it => !it.done) || {}).key;
+    wrap.innerHTML = '';
+    items.forEach((it, idx) => {
+      const row = document.createElement('div');
+      const isCurrent = it.key === currentKey;
+      row.className = 'dash-check-item' + (it.done ? ' dash-check-done' : '') + (isCurrent ? ' dash-check-current' : '');
+      row.innerHTML = `
+        <div class="dash-check-icon">${it.done ? '✓' : (idx + 1)}</div>
+        <div class="dash-check-body">
+          <div class="dash-check-name">${escapeHtml(it.name)}${it.optional ? '<span class="dash-check-optional">선택</span>' : ''}</div>
+          <div class="dash-check-desc">${escapeHtml(it.desc)}</div>
+        </div>
+        <button class="btn ${it.done ? 'btn-ghost' : 'btn-primary'} btn-sm dash-check-btn">${escapeHtml(it.cta)}</button>
+      `;
+      row.querySelector('.dash-check-btn').addEventListener('click', () => it.action());
+      wrap.appendChild(row);
+    });
+    // 진행도 바 갱신
+    const fill = document.getElementById('dashProgFill');
+    const done = document.getElementById('dashProgDone');
+    const totalEl = document.getElementById('dashProgTotal');
+    const tagEl = document.getElementById('dashOnboardTag');
+    const wrap2 = document.getElementById('dashProgressWrap');
+    const onb = document.getElementById('dashOnboard');
+    if (fill) fill.style.width = (doneRequired / total * 100) + '%';
+    if (done) done.textContent = doneRequired;
+    if (totalEl) totalEl.textContent = total;
+    if (wrap2) wrap2.classList.toggle('dash-progress-complete', doneRequired === total);
+    if (tagEl) {
+      if (doneRequired === total) {
+        tagEl.textContent = '완료'; tagEl.className = 'dash-section-tag dash-section-tag-done';
+      } else {
+        tagEl.textContent = `${doneRequired}/${total} 진행 중`; tagEl.className = 'dash-section-tag';
+      }
+    }
+    // 완료 시 자동 접기 (사용자가 다시 펼칠 수 있음)
+    if (onb && doneRequired === total && !onb.dataset.userOpened) onb.open = false;
   }
   function renderDashRecent() {
     const wrap = document.getElementById('dashRecentList');
@@ -8284,6 +8401,7 @@ show('entry');
       listingEditorCtx = null;
       renderListingList();
       toast('상품 저장됨', 'success');
+      if (document.body.getAttribute('data-mode') === 'product') refreshProductDashboard();
     }
   }
 
@@ -8636,13 +8754,35 @@ show('entry');
     document.querySelectorAll('.mode-tab').forEach(t => {
       t.addEventListener('click', () => setAppMode(t.dataset.mode));
     });
-    // 대시보드 카드
-    document.getElementById('btnDashNewProduct').addEventListener('click', () => openProductEditor(null));
-    document.getElementById('btnDashNewListing').addEventListener('click', () => openListingEditor(null));
-    document.getElementById('dashOpenProducts').addEventListener('click', openProductsModal);
-    document.getElementById('dashOpenListings').addEventListener('click', openListingsModal);
-    document.getElementById('dashOpenInstances').addEventListener('click', openInstancesModal);
-    document.getElementById('dashOpenTemplates').addEventListener('click', openTemplatesModal);
+    // 대시보드 — 단계별 가이드 액션
+    const wire = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
+    // STEP A
+    wire('dashGoNewProduct', () => openProductEditor(null));
+    wire('dashGoProducts', openProductsModal);
+    // STEP B
+    wire('dashGoSuggest', openBranchSuggestModal);
+    wire('dashGoNewListing', () => openListingEditor(null));
+    wire('dashGoListings', openListingsModal);
+    // STEP C
+    wire('dashGoListingsForDetail', openListingsModal);
+    wire('dashGoInstances2', openInstancesModal);
+    wire('dashGoBatchAutoFill', openBatchAutoFillModal);
+    // STEP D
+    wire('dashGoBatchGen', openBatchGenModal);
+    wire('dashGoInstances3', openInstancesModal);
+    // 사용자가 details 토글 시 기억 — 완료 후 자동 접기 동작 회피
+    const onbDetail = document.getElementById('dashOnboard');
+    if (onbDetail) onbDetail.addEventListener('toggle', () => {
+      if (onbDetail.open) onbDetail.dataset.userOpened = '1';
+    });
+    // 가이드 모달
+    wire('btnDashHelp', openGuideModal);
+    wire('gdClose', () => closeModal('guideModal'));
+    wire('gdStart', () => {
+      const never = document.getElementById('gdNeverShow').checked;
+      try { localStorage.setItem('pourstore-guide-seen', '1'); if (never) localStorage.setItem('pourstore-guide-never', '1'); } catch (_) {}
+      closeModal('guideModal');
+    });
     // 상품 목록 모달
     document.getElementById('btnListings').addEventListener('click', openListingsModal);
     document.getElementById('lstClose').addEventListener('click', () => closeModal('listingsModal'));
@@ -9132,6 +9272,7 @@ show('entry');
     if (ok) {
       closeModal('manusConfigModal');
       toast('마누스 설정 저장됨', 'success');
+      if (document.body.getAttribute('data-mode') === 'product') refreshProductDashboard();
     }
   }
   async function testManusConfig() {
@@ -9455,6 +9596,7 @@ show('entry');
     if (ok) {
       closeModal('claudeConfigModal');
       toast('Claude 설정 저장됨', 'success');
+      if (document.body.getAttribute('data-mode') === 'product') refreshProductDashboard();
     }
   }
   async function testClaudeConfig() {
@@ -9724,7 +9866,7 @@ show('entry');
       headers: { 'Content-Type': 'application/json', 'X-Worker-Secret': claudeProxyConfig.workerSecret },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 4096,
+        max_tokens: 8192,
         system: systemPrompt,
         messages: [{ role: 'user', content }],
         claudeApiKey: claudeProxyConfig.claudeApiKey,

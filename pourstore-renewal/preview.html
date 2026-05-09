@@ -1128,8 +1128,26 @@ https://..."></textarea>
           <div class="lb-section-title">적용 기재 — 자동 감지됨</div>
           <div id="bsSubstrateList" class="lb-substrate-list"></div>
         </div>
+        <div class="lb-section" id="bsModeSection" style="display:none;">
+          <div class="lb-section-title">제안 방식 선택</div>
+          <div class="bs-mode-grid">
+            <button id="bsRunQuick" class="bs-mode-btn">
+              <div class="bs-mode-icon">🪄</div>
+              <div class="bs-mode-name">빠른 제안</div>
+              <div class="bs-mode-desc">키워드 사전 기반 — 즉시 결과·무료<br/>단순 케이스에 적합 (기재 1개 = 상품 1개)</div>
+              <div class="bs-mode-cost">⚡ 즉시</div>
+            </button>
+            <button id="bsRunAI" class="bs-mode-btn bs-mode-ai">
+              <div class="bs-mode-icon">🤖</div>
+              <div class="bs-mode-name">AI 제안</div>
+              <div class="bs-mode-desc">Claude가 사실 전체를 종합 — 용도·소구점까지 분석<br/>같은 기재도 외장/실내로 분기 가능</div>
+              <div class="bs-mode-cost">🪙 30초~1분 · ~$0.01</div>
+            </button>
+          </div>
+          <div id="bsRunStatus" style="display:none; margin-top:10px; padding:8px 12px; border-radius:6px; font-size:12px;"></div>
+        </div>
         <div class="lb-section" id="bsSuggestSection" style="display:none;">
-          <div class="lb-section-title">제안된 자식 상품 — 체크한 것만 생성</div>
+          <div class="lb-section-title" id="bsSuggestTitle">제안된 자식 상품 — 체크한 것만 생성</div>
           <div id="bsSuggestList" class="lb-suggest-list"></div>
         </div>
       </div>

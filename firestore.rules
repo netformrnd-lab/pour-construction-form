@@ -90,6 +90,13 @@ service cloud.firestore {
     match /work-manuals/{doc}       { allow read, write: if true; }
 
     // ─────────────────────────────────────────────
+    // 어드민 담당자 마스터 — pourstore-renewal/admin
+    // 향후 OTP 인증(admin-auth) 도입 시 read는 활성 담당자에 한해 허용,
+    // write는 isAdmin=true 담당자에 한해 허용하도록 보강 예정 (CLAUDE.md PART 14).
+    // ─────────────────────────────────────────────
+    match /staff/{doc}              { allow read, write: if true; }
+
+    // ─────────────────────────────────────────────
     // 기본 정책: 명시되지 않은 컬렉션은 차단
     // ─────────────────────────────────────────────
     match /{document=**} {

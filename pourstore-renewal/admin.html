@@ -34,6 +34,9 @@ const db = firebase.firestore();
   --r: 12px; --r-sm: 8px; --r-lg: 18px;
   --shadow: 0 1px 6px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
   --shadow-lg: 0 8px 32px rgba(0,0,0,.12);
+  --accent: #F97316; --accent-s: #EA580C; --accent-l: #FFEDD5;
+  --blue: #2563EB; --blue-l: #EFF6FF; --blue-m: #BFDBFE;
+  --gold: #D97706; --orange: #EA580C; --purple: #7C3AED;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; }
 body { background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
@@ -61,6 +64,9 @@ const COLLECTIONS = {
   PURCHASE_ORDERS: 'purchase-orders',
   SITE_INQUIRIES: 'site-inquiries',
   SETTLEMENTS: 'settlements',  // 월별 정산 마감 데이터
+  PRODUCTS: 'products',
+  SITE_METRICS: 'site-metrics',
+  METHOD_LINKS: 'method-links',
 };
 
 const SETTLEMENT_STATUS_META = {
@@ -184,6 +190,10 @@ const NAV = [
   { id: 'settlement', icon: '📊', label: '매출 대시보드' },
   { type: 'divider', label: 'KPI 업무관리센터' },
   { type: 'divider', label: '디자인/개발 센터' },
+  { id: 'preview-external', icon: '🎨', label: '자사몰 페이지 관리', external: './preview.html' },
+  { id: 'products', icon: '📦', label: '상품관리' },
+  { id: 'metrics', icon: '📊', label: '공신력 수치' },
+  { id: 'method-links', icon: '🔗', label: '링크 관리' },
   { id: 'settings', icon: '⚙️', label: '설정' },
 ];
 
@@ -354,15 +364,23 @@ function Sidebar({ active, onNav, onLogout }) {
             <div key={i} style={{ padding:'14px 10px 6px', fontSize:10.5, fontWeight:800, color:'rgba(255,255,255,.4)', letterSpacing:1.2 }}>{item.label}</div>
           );
           const isActive = active === item.id;
+          const handleClick = () => {
+            if (item.external) {
+              window.open(item.external, '_blank', 'noopener,noreferrer');
+            } else {
+              onNav(item.id);
+            }
+          };
           return (
-            <button key={item.id} onClick={() => onNav(item.id)} style={{
+            <button key={item.id} onClick={handleClick} style={{
               display:'flex', alignItems:'center', gap:11, width:'100%', padding:'10px 12px', borderRadius:9,
               fontSize:13, fontWeight:isActive ? 800 : 700, color: isActive ? '#fff' : 'rgba(255,255,255,.78)',
               background: isActive ? 'rgba(249,115,22,.18)' : 'transparent', textAlign:'left', marginBottom:2,
               borderLeft: isActive ? '3px solid var(--or)' : '3px solid transparent'
             }}>
               <span style={{ fontSize:15 }}>{item.icon}</span>
-              <span>{item.label}</span>
+              <span style={{ flex:1 }}>{item.label}</span>
+              {item.external && <span style={{ fontSize:10, opacity:.6 }}>↗</span>}
             </button>
           );
         })}
@@ -2315,6 +2333,1834 @@ function Field({ label, children }) {
 }
 
 // ============================================================
+// 디자인/개발 센터 — admin.html에서 이식한 컴포넌트
+// ============================================================
+
+// 상품 태그
+const PRODUCT_TAGS = [
+  { key: 'popular', label: '인기상품', color: '#DC2626', bg: '#FEE2E2' },
+  { key: 'new', label: '신상품', color: '#2563EB', bg: '#EFF6FF' },
+  { key: 'promo', label: '프로모션', color: '#D97706', bg: '#FEF3C7' },
+  { key: 'waterproof', label: '방수', color: '#059669', bg: '#ECFDF5' },
+  { key: 'paint', label: '도장', color: '#7C3AED', bg: '#F5F3FF' },
+  { key: 'repair', label: '보수보강', color: '#EA580C', bg: '#FFF7ED' },
+  { key: 'self', label: '셀프시공', color: '#0891B2', bg: '#ECFEFF' },
+];
+const getTag = (key) => PRODUCT_TAGS.find(t => t.key === key);
+
+// 카테고리 Firestore 문서
+const CATEGORIES_DOC = 'product-categories';
+
+// ─── 카테고리 관리 모달 ───
+function CategoryManager({ categories, onSave, onClose }) {
+  const [list, setList] = useState([...categories]);
+  const [newCat, setNewCat] = useState('');
+
+  const addCategory = () => {
+    const name = newCat.trim();
+    if (!name || list.includes(name)) return;
+    setList([...list, name]);
+    setNewCat('');
+  };
+
+  const removeCategory = (idx) => setList(list.filter((_, i) => i !== idx));
+
+  return (
+    <div style={{
+      position:'fixed', inset:0, background:'rgba(0,0,0,.4)', zIndex:9998,
+      display:'flex', alignItems:'center', justifyContent:'center', animation:'fadeIn .2s ease'
+    }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background:'#fff', borderRadius:16, padding:'28px 24px', width:440, maxWidth:'92vw',
+        boxShadow:'0 20px 60px rgba(0,0,0,.2)', maxHeight:'80vh', display:'flex', flexDirection:'column'
+      }}>
+        <div style={{ fontSize:17, fontWeight:800, marginBottom:16 }}>카테고리 관리</div>
+
+        {/* 새 카테고리 추가 */}
+        <div style={{ display:'flex', gap:8, marginBottom:16 }}>
+          <input value={newCat} onChange={e => setNewCat(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addCategory()}
+            placeholder="새 카테고리명 입력"
+            style={{ flex:1, padding:'12px 14px', fontSize:14, border:'1px solid var(--border)', borderRadius:8, outline:'none' }} />
+          <button onClick={addCategory} style={{
+            padding:'12px 20px', fontSize:14, fontWeight:700, background:'var(--accent)',
+            color:'#fff', border:'none', borderRadius:8, cursor:'pointer', flexShrink:0
+          }}>추가</button>
+        </div>
+
+        {/* 카테고리 목록 */}
+        <div style={{ flex:1, overflowY:'auto', marginBottom:16 }}>
+          {list.length === 0 ? (
+            <div style={{ textAlign:'center', padding:30, color:'var(--text-sm)', fontSize:14 }}>등록된 카테고리가 없습니다</div>
+          ) : (
+            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              {list.map((cat, idx) => (
+                <div key={idx} style={{
+                  display:'flex', alignItems:'center', justifyContent:'space-between',
+                  padding:'10px 14px', background:'var(--bg)', borderRadius:8, fontSize:14
+                }}>
+                  <span style={{ fontWeight:600 }}>{cat}</span>
+                  <button onClick={() => removeCategory(idx)} style={{
+                    padding:'4px 12px', fontSize:12, fontWeight:600, background:'#FEE2E2',
+                    color:'var(--red)', border:'none', borderRadius:4, cursor:'pointer'
+                  }}>삭제</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div style={{ display:'flex', gap:10 }}>
+          <button onClick={onClose} style={{
+            flex:1, padding:'14px 0', fontSize:15, fontWeight:600, background:'var(--border-s)',
+            color:'var(--text-md)', border:'none', borderRadius:10, cursor:'pointer'
+          }}>취소</button>
+          <button onClick={() => onSave(list)} style={{
+            flex:1, padding:'14px 0', fontSize:15, fontWeight:700, background:'var(--accent)',
+            color:'#fff', border:'none', borderRadius:10, cursor:'pointer'
+          }}>저장</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── 확인 모달 ───
+function ConfirmModal({ message, onConfirm, onCancel, isInfo }) {
+  if (isInfo) {
+    return (
+      <div style={{
+        position:'fixed', inset:0, background:'rgba(0,0,0,.4)', zIndex:9998,
+        display:'flex', alignItems:'center', justifyContent:'center', animation:'fadeIn .2s ease'
+      }} onClick={onConfirm}>
+        <div onClick={e => e.stopPropagation()} style={{
+          background:'#fff', borderRadius:16, padding:'28px 24px', width:520, maxWidth:'92vw',
+          boxShadow:'0 20px 60px rgba(0,0,0,.2)', maxHeight:'85vh', overflowY:'auto'
+        }}>
+          <div style={{ fontSize:17, fontWeight:800, color:'var(--text)', marginBottom:16 }}>{message}</div>
+
+          <div style={{ fontSize:14, lineHeight:2, color:'var(--text-md)' }}>
+            <div style={{ fontWeight:700, color:'var(--accent)', marginBottom:8 }}>자동반영 되는 것 (이미지)</div>
+            <div style={{ background:'#ECFDF5', padding:'12px 16px', borderRadius:10, marginBottom:14 }}>
+              <div>1. 어드민에서 <b>상세 이미지 업로드</b></div>
+              <div>2. 아래 <b>"마켓용 고정 URL"</b>이 자동 생성됨</div>
+              <div>3. 각 마켓 상세설명에 <b>한 번만</b> 등록:</div>
+              <code style={{ display:'block', background:'#fff', padding:'8px 12px', borderRadius:6, fontSize:12, margin:'6px 0', color:'var(--text)' }}>
+                &lt;img src="https://pour-construction-form.pages.dev/api/product-img?id=상품ID&n=0"&gt;
+              </code>
+              <div>4. 어드민에서 이미지 교체 → <b style={{color:'var(--green)'}}>전 채널 자동 반영!</b> (1시간 캐시)</div>
+            </div>
+
+            <div style={{ fontWeight:700, color:'var(--red)', marginBottom:8 }}>자동반영 안 되는 것 (텍스트)</div>
+            <div style={{ background:'#FEF2F2', padding:'12px 16px', borderRadius:10, marginBottom:14 }}>
+              <div>텍스트/HTML 구조 변경 → 각 마켓에 <b>수동 복붙</b> 필요</div>
+              <div style={{ fontSize:12, color:'var(--text-sm)', marginTop:4 }}>대부분의 오픈마켓이 iframe을 차단하므로 텍스트 자동반영은 불가합니다</div>
+            </div>
+
+            <div style={{ fontWeight:700, color:'var(--text)', marginBottom:8 }}>권장 운영 방법</div>
+            <div style={{ background:'var(--accent-l)', padding:'12px 16px', borderRadius:10 }}>
+              <div>상세페이지를 <b>이미지 위주</b>로 구성하세요</div>
+              <div style={{ fontSize:13, marginTop:4 }}>① 포토샵/캔바에서 상세 이미지 제작</div>
+              <div style={{ fontSize:13 }}>② 어드민에서 이미지 업로드</div>
+              <div style={{ fontSize:13 }}>③ 마켓에 프록시 URL 등록 (최초 1회)</div>
+              <div style={{ fontSize:13 }}>④ 이후 이미지만 교체하면 전 채널 자동 반영</div>
+            </div>
+          </div>
+
+          <button onClick={onConfirm} style={{
+            width:'100%', marginTop:20, padding:'14px 0', fontSize:15, fontWeight:700,
+            background:'var(--accent)', color:'#fff', border:'none', borderRadius:10, cursor:'pointer'
+          }}>확인</button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div style={{
+      position:'fixed', inset:0, background:'rgba(0,0,0,.4)', zIndex:9998,
+      display:'flex', alignItems:'center', justifyContent:'center', animation:'fadeIn .2s ease'
+    }} onClick={onCancel}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background:'#fff', borderRadius:16, padding:'32px 28px', width:380,
+        boxShadow:'0 20px 60px rgba(0,0,0,.2)', textAlign:'center'
+      }}>
+        <div style={{ fontSize:16, fontWeight:700, color:'var(--text)', marginBottom:8, lineHeight:1.5 }}>{message}</div>
+        <div style={{ fontSize:13, color:'var(--text-sm)', marginBottom:24 }}>이 작업은 되돌릴 수 없습니다</div>
+        <div style={{ display:'flex', gap:10 }}>
+          <button onClick={onCancel} style={{
+            flex:1, padding:'14px 0', fontSize:15, fontWeight:600, background:'var(--border-s)',
+            color:'var(--text-md)', border:'none', borderRadius:10, cursor:'pointer'
+          }}>취소</button>
+          <button onClick={onConfirm} style={{
+            flex:1, padding:'14px 0', fontSize:15, fontWeight:700, background:'var(--red)',
+            color:'#fff', border:'none', borderRadius:10, cursor:'pointer'
+          }}>확인</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── 판매채널 정의 ───
+const CHANNELS = [
+  { key: 'sabangnet',    label: '사방넷',      color: '#1A73E8', urlTpl: null },
+  { key: 'imweb',        label: '아임웹(카페24)', color: '#5B2EFF', urlTpl: null },
+  { key: 'auction',      label: '옥션',         color: '#E44D26', urlTpl: id => `https://itempage3.auction.co.kr/DetailView.aspx?ItemNo=${id}` },
+  { key: 'gmarket',      label: 'G마켓',        color: '#00B050', urlTpl: id => `https://item.gmarket.co.kr/Item?goodscode=${id}` },
+  { key: 'elevenst',     label: '11번가',       color: '#FF0050', urlTpl: id => `https://www.11st.co.kr/products/${id}` },
+  { key: 'coupang',      label: '쿠팡',         color: '#E64626', urlTpl: id => `https://www.coupang.com/vp/products/${id}` },
+  { key: 'ohouse',       label: '오늘의집',      color: '#35C5F0', urlTpl: id => `https://ohou.se/productions/${id}` },
+  { key: 'smartstore',   label: '스마트스토어',   color: '#03C75A', urlTpl: id => `https://smartstore.naver.com/pourstore/products/${id}` },
+];
+
+// ─── 상품관리 페이지 ───
+function ProductsPage({ showToast }) {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [editingId, setEditingId] = useState(null); // null=목록, 'new'=신규, docId=수정
+  const [form, setForm] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [expandedChannel, setExpandedChannel] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('전체');
+  const [tagFilter, setTagFilter] = useState(null);
+  const [categoryFilter, setCategoryFilter] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [selected, setSelected] = useState(new Set());
+  const [confirmModal, setConfirmModal] = useState(null);
+  const [visibleCount, setVisibleCount] = useState(30);
+
+  // Firestore 로드
+  useEffect(() => {
+    (async () => {
+      try {
+        const [snap, catDoc] = await Promise.all([
+          db.collection(COLLECTIONS.PRODUCTS).get(),
+          db.collection('config').doc(CATEGORIES_DOC).get(),
+        ]);
+        const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        console.log(`[products] ${docs.length}건 로드`);
+        docs.sort((a, b) => (b.updatedAt || b.createdAt || '').localeCompare(a.updatedAt || a.createdAt || ''));
+        setProducts(docs);
+        if (catDoc.exists) {
+          setCategories(catDoc.data().list || []);
+          console.log(`[categories] ${(catDoc.data().list || []).length}개 로드`);
+        }
+      } catch (e) {
+        console.error('[products] 로드 실패:', e);
+        showToast('상품 로드 실패', 'error');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  // 카테고리 저장
+  const saveCategories = async (list) => {
+    try {
+      await db.collection('config').doc(CATEGORIES_DOC).set({ list, updatedAt: new Date().toISOString() });
+      setCategories(list);
+      setShowCategoryManager(false);
+      showToast(`카테고리 ${list.length}개 저장 완료`);
+    } catch (e) {
+      console.error('[categories] 저장 실패:', e);
+      showToast('카테고리 저장 실패', 'error');
+    }
+  };
+
+  // 빈 폼 생성
+  const emptyForm = () => ({
+    name: '',
+    category: '',
+    brand: 'store',
+    thumbnail: '',
+    price: '',
+    salePrice: '',
+    options: '',
+    description: '',
+    channels: CHANNELS.reduce((acc, ch) => { acc[ch.key] = ''; return acc; }, {}),
+    detailImages: [],
+    detailHtml: '',
+    tags: [],
+    isActive: true,
+  });
+
+  const [uploading, setUploading] = useState(false);
+  const [detailTab, setDetailTab] = useState('visual'); // visual | images | html | preview
+  const [slotCount, setSlotCount] = useState(10);
+  const editorRef = useRef(null);
+  const visualImgRef = useRef(null);
+  const excelRef = useRef(null);
+  const detailImgRef = useRef(null);
+
+  // 엑셀 일괄 등록 (Firestore batch 사용 — 500건씩)
+  const handleExcelUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    try {
+      setUploading(true);
+      const rows = await parseExcel(file);
+      if (rows.length === 0) { showToast('엑셀에 데이터가 없습니다', 'error'); return; }
+      const now = new Date().toISOString();
+      const newProducts = [];
+      let batch = db.batch();
+      let batchCount = 0;
+      let total = 0;
+
+      for (const row of rows) {
+        const data = excelRowToProduct(row);
+        if (!data.name) continue;
+        data.createdAt = now;
+        data.updatedAt = now;
+        const ref = db.collection(COLLECTIONS.PRODUCTS).doc();
+        batch.set(ref, data);
+        newProducts.push({ id: ref.id, ...data });
+        batchCount++;
+        total++;
+
+        if (batchCount >= 450) {
+          await batch.commit();
+          console.log(`[excel] batch commit: ${total}건`);
+          batch = db.batch();
+          batchCount = 0;
+        }
+      }
+      if (batchCount > 0) await batch.commit();
+
+      setProducts(prev => [...newProducts, ...prev]);
+      console.log(`[excel] ${total}건 등록 완료`);
+      showToast(`${total}건 일괄 등록 완료`);
+    } catch (err) {
+      console.error('[excel] 업로드 실패:', err);
+      showToast('엑셀 처리 실패: ' + err.message, 'error');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // 엑셀 템플릿 다운로드
+  const downloadTemplate = () => {
+    const header = ['상품명', '카테고리', '브랜드', '소비자가', '판매가', '옵션', '설명', '썸네일',
+      ...CHANNELS.map(ch => ch.label)];
+    const sample = ['POUR 우레탄 방수 키트', '셀프방수킷', 'store', '35000', '29800',
+      '소형(5kg), 대형(10kg)', '옥상 셀프 방수용', '',
+      '', '', '', '', '', '', '', ''];
+    const ws = XLSX.utils.aoa_to_sheet([header, sample]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '상품');
+    XLSX.writeFile(wb, '상품등록_템플릿.xlsx');
+  };
+
+  // 상세 이미지 업로드 (Firebase Storage)
+  const handleDetailImageUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    e.target.value = '';
+    setUploading(true);
+    try {
+      const productId = editingId === 'new' ? 'temp_' + Date.now() : editingId;
+      const newImages = [...(form.detailImages || [])];
+      for (let i = 0; i < files.length; i++) {
+        const idx = newImages.length + 1;
+        const path = `product-details/${productId}/detail-${idx}-${Date.now()}.jpg`;
+        const url = await uploadToStorage(path, files[i]);
+        newImages.push({ url, path, order: idx });
+      }
+      setForm({ ...form, detailImages: newImages });
+      showToast(`${files.length}장 업로드 완료`);
+    } catch (err) {
+      console.error('[detail-img] 업로드 실패:', err);
+      showToast('이미지 업로드 실패: ' + err.message, 'error');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // 상세 이미지 삭제
+  const removeDetailImage = (idx) => {
+    setForm({ ...form, detailImages: form.detailImages.filter((_, i) => i !== idx) });
+  };
+
+  // 상세 이미지 → HTML 자동 생성
+  const generateHtmlFromImages = () => {
+    if (!form.detailImages?.length) { showToast('업로드된 이미지가 없습니다', 'error'); return; }
+    const html = form.detailImages
+      .map(img => `<img src="${img.url}" style="width:100%;display:block;" alt="${form.name || '상품 상세'}">`)
+      .join('\n');
+    setForm({ ...form, detailHtml: html });
+    setDetailTab('html');
+    showToast('HTML 코드가 생성되었습니다');
+  };
+
+  // HTML 코드 클립보드 복사
+  const copyHtml = () => {
+    if (!form.detailHtml) { showToast('복사할 코드가 없습니다', 'error'); return; }
+    navigator.clipboard.writeText(form.detailHtml).then(() => showToast('코드가 클립보드에 복사되었습니다'));
+  };
+
+  // 비주얼 에디터: 서식 명령
+  const execCmd = (cmd, val) => { document.execCommand(cmd, false, val); editorRef.current?.focus(); };
+
+  // 비주얼 에디터: 이미지 삽입 (Storage 업로드)
+  const insertVisualImage = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    e.target.value = '';
+    setUploading(true);
+    try {
+      const productId = editingId === 'new' ? 'temp_' + Date.now() : editingId;
+      for (const file of files) {
+        const path = `product-details/${productId}/visual-${Date.now()}.jpg`;
+        const url = await uploadToStorage(path, file);
+        execCmd('insertHTML', `<img src="${url}" style="width:100%;display:block;margin:8px 0;" alt="상품 이미지">`);
+      }
+      showToast(`${files.length}장 삽입 완료`);
+    } catch (err) {
+      console.error('[visual-editor] 이미지 삽입 실패:', err);
+      showToast('이미지 삽입 실패', 'error');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // 비주얼 에디터 → HTML 반영하기
+  const applyVisualToHtml = () => {
+    if (!editorRef.current) return;
+    const html = editorRef.current.innerHTML;
+    setForm({ ...form, detailHtml: html });
+    showToast('상세페이지가 반영되었습니다');
+  };
+
+  // HTML → 비주얼 에디터에 로드
+  const loadHtmlToVisual = () => {
+    if (editorRef.current && form.detailHtml) {
+      editorRef.current.innerHTML = form.detailHtml;
+    }
+  };
+
+  // 신규 등록
+  const startNew = () => {
+    setForm(emptyForm());
+    setEditingId('new');
+  };
+
+  // 수정
+  const startEdit = (product) => {
+    setForm({
+      name: product.name || '',
+      category: product.category || '',
+      brand: product.brand || 'store',
+      thumbnail: product.thumbnail || '',
+      price: product.price || '',
+      salePrice: product.salePrice || '',
+      options: product.options || '',
+      description: product.description || '',
+      channels: CHANNELS.reduce((acc, ch) => {
+        acc[ch.key] = product.channels?.[ch.key] || '';
+        return acc;
+      }, {}),
+      detailImages: product.detailImages || [],
+      detailHtml: product.detailHtml || '',
+      tags: product.tags || [],
+      isActive: product.isActive !== false,
+    });
+    setEditingId(product.id);
+  };
+
+  // 빠른 상태 변경 (목록에서 직접)
+  const quickStatusChange = async (productId, newStatus) => {
+    try {
+      await db.collection(COLLECTIONS.PRODUCTS).doc(productId).update({ salesStatus: newStatus, updatedAt: new Date().toISOString() });
+      setProducts(prev => prev.map(p => p.id === productId ? { ...p, salesStatus: newStatus } : p));
+      showToast(`${STATUS_ICON[newStatus]} ${newStatus}(으)로 변경됨`);
+    } catch (e) {
+      console.error('[products] 상태변경 실패:', e);
+      showToast('상태 변경 실패', 'error');
+    }
+  };
+
+  // 벌크 액션
+  const bulkAction = async (action, value) => {
+    if (selected.size === 0) return;
+    const ids = Array.from(selected);
+    try {
+      const batch = db.batch();
+      const now = new Date().toISOString();
+      ids.forEach(id => {
+        const ref = db.collection(COLLECTIONS.PRODUCTS).doc(id);
+        if (action === 'status') batch.update(ref, { salesStatus: value, updatedAt: now });
+        if (action === 'delete') batch.delete(ref);
+      });
+      await batch.commit();
+      if (action === 'delete') {
+        setProducts(prev => prev.filter(p => !selected.has(p.id)));
+      } else {
+        setProducts(prev => prev.map(p => selected.has(p.id) ? { ...p, salesStatus: value } : p));
+      }
+      setSelected(new Set());
+      showToast(`${ids.length}건 처리 완료`);
+    } catch (e) {
+      console.error('[products] 벌크 실패:', e);
+      showToast('처리 실패', 'error');
+    }
+  };
+
+  // 채널 링크 (imwebUrl 지원)
+  const getChannelLink = (product, chKey) => {
+    const val = product.channels?.[chKey];
+    if (!val) return null;
+    const ch = CHANNELS.find(c => c.key === chKey);
+    if (ch?.urlTpl) return ch.urlTpl(val);
+    if (chKey === 'imweb' && product.imwebUrl) return product.imwebUrl;
+    return null;
+  };
+
+  // 프록시 등록 상태 토글
+  const toggleProxyRegistered = async (productId, chKey) => {
+    const product = products.find(p => p.id === productId);
+    const registered = product?.proxyRegistered || {};
+    const newVal = !registered[chKey];
+    const updated = { ...registered, [chKey]: newVal };
+    try {
+      await db.collection(COLLECTIONS.PRODUCTS).doc(productId).update({ proxyRegistered: updated, updatedAt: new Date().toISOString() });
+      setProducts(prev => prev.map(p => p.id === productId ? { ...p, proxyRegistered: updated } : p));
+      showToast(newVal ? '프록시 등록 완료 표시' : '미등록으로 변경');
+    } catch (e) {
+      console.error('[proxy] 상태변경 실패:', e);
+      showToast('상태 변경 실패', 'error');
+    }
+  };
+
+  // 수정 후 경과 시간 표시
+  const getTimeSince = (isoStr) => {
+    if (!isoStr) return '';
+    const diff = Date.now() - new Date(isoStr).getTime();
+    const min = Math.floor(diff / 60000);
+    if (min < 1) return '방금 전';
+    if (min < 60) return `${min}분 전`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return `${hr}시간 전`;
+    const day = Math.floor(hr / 24);
+    return `${day}일 전`;
+  };
+
+  // 프록시 반영 상태 계산
+  const getProxyStatus = (product, chKey) => {
+    if (!product.channels?.[chKey]) return 'none'; // 채널 미연결
+    if (!product.proxyRegistered?.[chKey]) return 'unregistered'; // 프록시 미등록
+    if (!product.updatedAt) return 'synced';
+    const diff = Date.now() - new Date(product.updatedAt).getTime();
+    if (diff < 600000) return 'syncing'; // 10분 이내 → 반영 중
+    return 'synced'; // 1시간 이후 → 반영 완료
+  };
+
+  // 변경이력 state
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyList, setHistoryList] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  // 변경이력 로드 (30일 이내)
+  const loadHistory = async (productId) => {
+    setHistoryLoading(true);
+    try {
+      const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const snap = await db.collection(COLLECTIONS.PRODUCTS).doc(productId).collection('history').get();
+      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .filter(h => h.changedAt >= cutoff)
+        .sort((a, b) => (b.changedAt || '').localeCompare(a.changedAt || ''));
+      console.log(`[history] ${productId}: ${docs.length}건 (30일 이내)`);
+      setHistoryList(docs);
+    } catch (e) {
+      console.error('[history] 로드 실패:', e);
+      showToast('변경이력 로드 실패', 'error');
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  // 히스토리에서 복원
+  const restoreFromHistory = async (snapshot) => {
+    if (!editingId || editingId === 'new') return;
+    try {
+      const { id, changedAt, changedBy, changedFields, ...restoreData } = snapshot;
+      await db.collection(COLLECTIONS.PRODUCTS).doc(editingId).update({
+        ...restoreData.snapshot,
+        updatedAt: new Date().toISOString(),
+      });
+      setProducts(prev => prev.map(p => p.id === editingId ? { ...p, ...restoreData.snapshot } : p));
+      startEdit({ id: editingId, ...restoreData.snapshot });
+      setHistoryOpen(false);
+      showToast('이전 버전으로 복원되었습니다');
+    } catch (e) {
+      console.error('[history] 복원 실패:', e);
+      showToast('복원 실패', 'error');
+    }
+  };
+
+  // 저장 (히스토리 기록 포함)
+  const handleSave = async () => {
+    if (!form.name.trim()) { showToast('상품명을 입력하세요', 'error'); return; }
+    setSaving(true);
+    try {
+      const now = new Date().toISOString();
+      const data = {
+        ...form,
+        price: form.price ? Number(form.price) : 0,
+        salePrice: form.salePrice ? Number(form.salePrice) : 0,
+        updatedAt: now,
+      };
+      if (editingId === 'new') {
+        data.createdAt = now;
+        const ref = await db.collection(COLLECTIONS.PRODUCTS).add(data);
+        console.log(`[products] 신규 저장: ${ref.id}`);
+        setProducts(prev => [{ id: ref.id, ...data }, ...prev]);
+        showToast('상품이 등록되었습니다');
+      } else {
+        // 저장 전: 이전 데이터를 히스토리에 기록
+        const oldProduct = products.find(p => p.id === editingId);
+        if (oldProduct) {
+          const changedFields = Object.keys(data).filter(k => JSON.stringify(data[k]) !== JSON.stringify(oldProduct[k]));
+          if (changedFields.length > 0) {
+            const { id: _skipId, ...rawSnapshot } = oldProduct;
+            // Firestore는 undefined 값을 허용하지 않으므로 재귀적으로 제거
+            const cleanObj = (obj) => {
+              if (obj === null || obj === undefined) return null;
+              if (Array.isArray(obj)) return obj.map(cleanObj);
+              if (typeof obj === 'object') {
+                const cleaned = {};
+                for (const [k, v] of Object.entries(obj)) {
+                  if (v !== undefined) cleaned[k] = cleanObj(v);
+                }
+                return cleaned;
+              }
+              return obj;
+            };
+            const snapshotData = cleanObj(rawSnapshot);
+            await db.collection(COLLECTIONS.PRODUCTS).doc(editingId).collection('history').add({
+              snapshot: snapshotData,
+              changedFields,
+              changedAt: now,
+              changedBy: '관리자',
+            });
+            console.log(`[history] 변경 기록: ${changedFields.join(', ')}`);
+          }
+        }
+        await db.collection(COLLECTIONS.PRODUCTS).doc(editingId).update(data);
+        console.log(`[products] 수정 완료: ${editingId}`);
+        setProducts(prev => prev.map(p => p.id === editingId ? { ...p, ...data } : p));
+        showToast('상품이 수정되었습니다');
+      }
+      setEditingId(null);
+      setForm(null);
+    } catch (e) {
+      console.error('[products] 저장 실패:', e);
+      showToast('저장 실패: ' + e.message, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // 삭제
+  const handleDelete = async (id) => {
+    if (!confirm('정말 삭제하시겠습니까?')) return;
+    try {
+      await db.collection(COLLECTIONS.PRODUCTS).doc(id).delete();
+      setProducts(prev => prev.filter(p => p.id !== id));
+      showToast('삭제 완료');
+      if (editingId === id) { setEditingId(null); setForm(null); }
+    } catch (e) {
+      console.error('[products] 삭제 실패:', e);
+      showToast('삭제 실패', 'error');
+    }
+  };
+
+  // 필터
+  const filtered = useMemo(() => {
+    let list = products;
+    if (statusFilter !== '전체') {
+      list = list.filter(p => (p.salesStatus || '판매중') === statusFilter);
+    }
+    if (tagFilter) {
+      list = list.filter(p => p.tags?.includes(tagFilter));
+    }
+    if (categoryFilter) {
+      list = list.filter(p => (p.category || '') === categoryFilter);
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(p =>
+        (p.name || '').toLowerCase().includes(q) ||
+        (p.category || '').toLowerCase().includes(q) ||
+        (p.imwebId || '').includes(q)
+      );
+    }
+    return list;
+  }, [products, search, statusFilter, tagFilter, categoryFilter]);
+
+  // 채널 연결 수 계산
+  const countChannels = (p) => CHANNELS.filter(ch => p.channels?.[ch.key]).length;
+
+  // ─── 편집 폼 화면 ───
+  if (form && editingId) {
+    const inputStyle = {
+      width: '100%', padding: '10px 12px', fontSize: 13, border: '1px solid var(--border)',
+      borderRadius: 8, outline: 'none', fontFamily: 'inherit',
+    };
+    const labelStyle = { fontSize: 12, fontWeight: 600, color: 'var(--text-md)', marginBottom: 4, display: 'block' };
+
+    return (
+      <div style={{ animation: 'fadeIn .3s ease', maxWidth: 900 }}>
+        {/* 상단 */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <button onClick={() => { setEditingId(null); setForm(null); }}
+            style={{ background: 'none', border: 'none', fontSize: 14, color: 'var(--accent)', cursor: 'pointer', fontWeight: 600 }}>
+            ← 목록으로
+          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {editingId !== 'new' && (
+              <button onClick={() => { setHistoryOpen(true); loadHistory(editingId); }}
+                style={{ padding: '10px 18px', fontSize: 14, fontWeight: 600, background: '#fff', color: 'var(--text-md)', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer' }}>
+                📋 변경이력
+              </button>
+            )}
+            {editingId !== 'new' && (
+              <button onClick={() => setConfirmModal({ message: '이 상품을 삭제하시겠습니까?', onConfirm: () => { handleDelete(editingId); setConfirmModal(null); } })}
+                style={{ padding: '10px 18px', fontSize: 14, fontWeight: 600, background: '#FEE2E2', color: 'var(--red)', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+                삭제
+              </button>
+            )}
+            <button onClick={handleSave} disabled={saving}
+              style={{ padding: '10px 24px', fontSize: 15, fontWeight: 700, background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
+              {saving ? '저장 중...' : '💾 저장하기'}
+            </button>
+          </div>
+        </div>
+
+        {/* 기본 정보 */}
+        <div style={{ background: '#fff', borderRadius: 12, padding: 24, boxShadow: 'var(--shadow)', marginBottom: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>기본 정보</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={labelStyle}>상품명 *</label>
+              <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="예: POUR 우레탄 방수 키트" style={inputStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>카테고리</label>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <select value={categories.includes(form.category) ? form.category : '__custom__'}
+                  onChange={e => { if (e.target.value !== '__custom__') setForm({ ...form, category: e.target.value }); }}
+                  style={{ ...inputStyle, flex: 1, cursor: 'pointer' }}>
+                  <option value="">선택하세요</option>
+                  {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                  {form.category && !categories.includes(form.category) && (
+                    <option value="__custom__">{form.category} (직접입력)</option>
+                  )}
+                  <option value="__custom__">직접 입력...</option>
+                </select>
+                <button onClick={() => setShowCategoryManager(true)} type="button"
+                  style={{ padding: '8px 12px', fontSize: 12, fontWeight: 600, background: 'var(--border-s)', color: 'var(--text-md)', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  관리
+                </button>
+              </div>
+              {(form.category && !categories.includes(form.category)) || (!categories.includes(form.category) && form.category) ? (
+                <input value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}
+                  placeholder="카테고리명 직접 입력" style={{ ...inputStyle, marginTop: 6 }} />
+              ) : null}
+            </div>
+            <div>
+              <label style={labelStyle}>브랜드</label>
+              <select value={form.brand} onChange={e => setForm({ ...form, brand: e.target.value })}
+                style={{ ...inputStyle, cursor: 'pointer' }}>
+                <option value="store">POUR스토어</option>
+                <option value="grohome">그로홈</option>
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>소비자가 (원)</label>
+              <input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="0" style={inputStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>판매가 (원)</label>
+              <input type="number" value={form.salePrice} onChange={e => setForm({ ...form, salePrice: e.target.value })} placeholder="0" style={inputStyle} />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={labelStyle}>옵션 (쉼표 구분)</label>
+              <input value={form.options} onChange={e => setForm({ ...form, options: e.target.value })} placeholder="예: 소형(5kg), 중형(10kg), 대형(20kg)" style={inputStyle} />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={labelStyle}>썸네일 이미지 URL</label>
+              <input value={form.thumbnail} onChange={e => setForm({ ...form, thumbnail: e.target.value })} placeholder="https://..." style={inputStyle} />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={labelStyle}>상품 설명</label>
+              <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3}
+                placeholder="간단한 상품 설명"
+                style={{ ...inputStyle, resize: 'vertical' }} />
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={labelStyle}>태그</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {PRODUCT_TAGS.map(t => {
+                  const active = form.tags?.includes(t.key);
+                  return (
+                    <button key={t.key} onClick={() => {
+                      const tags = form.tags || [];
+                      setForm({ ...form, tags: active ? tags.filter(k => k !== t.key) : [...tags, t.key] });
+                    }} style={{
+                      padding: '8px 16px', fontSize: 14, fontWeight: active ? 700 : 500,
+                      background: active ? t.bg : '#F9FAFB', color: active ? t.color : 'var(--text-sm)',
+                      border: `2px solid ${active ? t.color : 'var(--border)'}`, borderRadius: 20,
+                      cursor: 'pointer', transition: 'all .15s ease'
+                    }}>
+                      {t.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div>
+              <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input type="checkbox" checked={form.isActive} onChange={e => setForm({ ...form, isActive: e.target.checked })} style={{ width: 18, height: 18 }} />
+                <span style={{ fontSize: 14 }}>판매 활성</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* 상세페이지 관리 */}
+        <div style={{ background: '#fff', borderRadius: 12, padding: 24, boxShadow: 'var(--shadow)', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ fontSize: 14, fontWeight: 700 }}>상세페이지 관리</div>
+              <button onClick={() => setConfirmModal({
+                isInfo: true,
+                message: '상세페이지 마켓 연동 안내',
+                onConfirm: () => setConfirmModal(null),
+              })} style={{
+                padding: '4px 10px', fontSize: 12, fontWeight: 600,
+                background: 'var(--accent-l)', color: 'var(--accent)', border: 'none',
+                borderRadius: 6, cursor: 'pointer'
+              }}>
+                참고사항
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {['visual', 'images', 'html', 'preview'].map(t => (
+                <button key={t} onClick={() => { setDetailTab(t); if (t === 'visual') setTimeout(loadHtmlToVisual, 100); }} style={{
+                  padding: '6px 14px', fontSize: 13, fontWeight: 600, borderRadius: 8, border: 'none', cursor: 'pointer',
+                  background: detailTab === t ? 'var(--accent)' : 'var(--border-s)',
+                  color: detailTab === t ? '#fff' : 'var(--text-md)'
+                }}>
+                  {{ visual: '비주얼편집', images: '이미지', html: 'HTML코드', preview: '미리보기' }[t]}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-sm)', marginBottom: 16 }}>
+            이미지 업로드 → HTML 생성 → 각 마켓에 코드 복붙. 이미지 교체 시 전 채널 자동 반영.
+          </div>
+
+          {/* 마켓용 고정 URL 안내 */}
+          {editingId && editingId !== 'new' && (form.detailImages?.length > 0 || form.detailHtml) && (() => {
+            const baseUrl = `${window.location.origin}/api/product-img?id=${editingId}`;
+            const htmlImgCount = (form.detailHtml || '').match(/<img[^>]+src=/gi)?.length || 0;
+            const allSlotCode = Array.from({ length: slotCount }, (_, idx) =>
+              `<img src="${baseUrl}&n=${idx}" style="width:100%;display:block;">`
+            ).join('\n');
+            return (
+              <div style={{
+                padding: '14px 18px', marginBottom: 14, background: '#ECFDF5', borderRadius: 10,
+                border: '1px solid #A7F3D0', fontSize: 13
+              }}>
+                <div style={{ fontWeight: 700, color: 'var(--green)', marginBottom: 8, fontSize: 14 }}>마켓용 고정 URL (수정 시 ~10분 내 자동반영)</div>
+
+                {/* 슬롯 수 선택 */}
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-md)', marginBottom: 6 }}>
+                    슬롯 수 선택
+                    <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-sm)', marginLeft: 6 }}>
+                      (현재 이미지 {htmlImgCount}장 · 여유분 포함 등록 권장)
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {[5, 10, 15, 20].map(n => (
+                      <button key={n} onClick={() => setSlotCount(n)} style={{
+                        padding: '6px 14px', fontSize: 13, fontWeight: 700, borderRadius: 6, cursor: 'pointer', border: 'none',
+                        background: slotCount === n ? 'var(--green)' : 'var(--border-s)',
+                        color: slotCount === n ? '#fff' : 'var(--text-md)',
+                      }}>{n}장</button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 전체 코드 한 번에 복사 */}
+                <button onClick={() => { navigator.clipboard.writeText(allSlotCode); showToast(`${slotCount}슬롯 HTML 코드 복사됨 — 대행업체에 전달하세요`); }}
+                  style={{
+                    width: '100%', padding: '12px 0', fontSize: 14, fontWeight: 800, marginBottom: 12,
+                    background: 'var(--green)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer'
+                  }}>
+                  전체 코드 복사 ({slotCount}슬롯) — 대행업체 전달용
+                </button>
+
+                {/* 슬롯 목록 */}
+                <div style={{ marginBottom: 8 }}>
+                  {Array.from({ length: slotCount }, (_, idx) => {
+                    const imgUrl = `${baseUrl}&n=${idx}`;
+                    const isActive = idx < htmlImgCount;
+                    return (
+                      <div key={idx} style={{
+                        display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3,
+                        opacity: isActive ? 1 : 0.45,
+                      }}>
+                        <span style={{
+                          fontSize: 10, fontWeight: 700, minWidth: 44, padding: '2px 6px', borderRadius: 4, textAlign: 'center',
+                          background: isActive ? '#D1FAE5' : 'var(--border-s)',
+                          color: isActive ? 'var(--green)' : 'var(--text-sm)',
+                        }}>{isActive ? `이미지${idx + 1}` : `슬롯${idx + 1}`}</span>
+                        <code style={{ fontSize: 10, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-md)' }}>{imgUrl}</code>
+                        <button onClick={() => { navigator.clipboard.writeText(`<img src="${imgUrl}" style="width:100%;display:block;">`); showToast('img 태그 복사됨'); }}
+                          style={{ padding: '3px 8px', fontSize: 10, fontWeight: 600, background: 'var(--accent-l)', color: 'var(--accent)', border: 'none', borderRadius: 4, cursor: 'pointer', flexShrink: 0 }}>복사</button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div style={{ fontSize: 11, color: 'var(--text-sm)', lineHeight: 1.6 }}>
+                  이미지가 있는 슬롯(진하게)은 바로 표시되고, 빈 슬롯(흐리게)은 이후 어드민에서 이미지 추가 시 자동으로 활성화됩니다.
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* 비주얼편집 탭 */}
+          {detailTab === 'visual' && (
+            <div>
+              {/* 툴바 */}
+              <div style={{
+                display: 'flex', flexWrap: 'wrap', gap: 4, padding: '8px 10px', marginBottom: 8,
+                background: '#F9FAFB', borderRadius: 8, border: '1px solid var(--border)'
+              }}>
+                <button onClick={() => execCmd('bold')} title="굵게" style={{ padding: '6px 12px', fontSize: 14, fontWeight: 900, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>B</button>
+                <button onClick={() => execCmd('italic')} title="기울임" style={{ padding: '6px 12px', fontSize: 14, fontStyle: 'italic', background: '#fff', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>I</button>
+                <button onClick={() => execCmd('underline')} title="밑줄" style={{ padding: '6px 12px', fontSize: 14, textDecoration: 'underline', background: '#fff', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>U</button>
+                <div style={{ width: 1, height: 28, background: 'var(--border)', margin: '0 4px' }} />
+                <button onClick={() => execCmd('fontSize', 3)} title="작게" style={{ padding: '6px 10px', fontSize: 12, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>소</button>
+                <button onClick={() => execCmd('fontSize', 4)} title="보통" style={{ padding: '6px 10px', fontSize: 14, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>중</button>
+                <button onClick={() => execCmd('fontSize', 6)} title="크게" style={{ padding: '6px 10px', fontSize: 18, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>대</button>
+                <div style={{ width: 1, height: 28, background: 'var(--border)', margin: '0 4px' }} />
+                <button onClick={() => execCmd('justifyLeft')} title="왼쪽 정렬" style={{ padding: '6px 10px', fontSize: 14, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>◧</button>
+                <button onClick={() => execCmd('justifyCenter')} title="가운데 정렬" style={{ padding: '6px 10px', fontSize: 14, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>◫</button>
+                <button onClick={() => execCmd('justifyRight')} title="오른쪽 정렬" style={{ padding: '6px 10px', fontSize: 14, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>◨</button>
+                <div style={{ width: 1, height: 28, background: 'var(--border)', margin: '0 4px' }} />
+                <button onClick={() => execCmd('insertHorizontalRule')} title="구분선" style={{ padding: '6px 12px', fontSize: 13, background: '#fff', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>━ 구분선</button>
+                <input ref={visualImgRef} type="file" accept="image/*" multiple onChange={insertVisualImage} style={{ display: 'none' }} />
+                <button onClick={() => visualImgRef.current?.click()} disabled={uploading}
+                  style={{ padding: '6px 14px', fontSize: 13, fontWeight: 600, background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', opacity: uploading ? 0.6 : 1 }}>
+                  {uploading ? '업로드중...' : '🖼 이미지 삽입'}
+                </button>
+              </div>
+
+              {/* 에디터 영역 */}
+              <div
+                ref={editorRef}
+                contentEditable
+                style={{
+                  minHeight: 400, padding: 20, border: '2px solid var(--border)',
+                  borderRadius: 10, outline: 'none', fontSize: 15, lineHeight: 1.8,
+                  background: '#fff', overflowY: 'auto', maxHeight: 600,
+                }}
+                onFocus={() => { if (editorRef.current && !editorRef.current.innerHTML.trim()) editorRef.current.innerHTML = '<p>여기에 상세페이지 내용을 입력하세요...</p>'; }}
+              />
+
+              {/* 반영하기 버튼 */}
+              <button onClick={applyVisualToHtml}
+                style={{
+                  width: '100%', marginTop: 12, padding: '16px 0', fontSize: 16, fontWeight: 800,
+                  background: 'var(--green)', color: '#fff', border: 'none', borderRadius: 10, cursor: 'pointer'
+                }}>
+                편집완료 → 반영하기
+              </button>
+              <div style={{ fontSize: 12, color: 'var(--text-sm)', marginTop: 6, textAlign: 'center' }}>
+                반영 후 "HTML코드" 탭에서 코드를 복사하여 마켓에 붙여넣으세요
+              </div>
+            </div>
+          )}
+
+          {/* 이미지 탭 */}
+          {detailTab === 'images' && (
+            <div>
+              <input ref={detailImgRef} type="file" accept="image/*" multiple onChange={handleDetailImageUpload} style={{ display: 'none' }} />
+              <button onClick={() => detailImgRef.current?.click()} disabled={uploading}
+                style={{
+                  width: '100%', padding: 20, border: '2px dashed var(--border)', borderRadius: 10,
+                  background: 'var(--border-s)', cursor: 'pointer', textAlign: 'center',
+                  fontSize: 13, color: 'var(--text-md)', marginBottom: 12
+                }}>
+                {uploading ? '업로드 중...' : '+ 상세 이미지 추가 (여러 장 선택 가능)'}
+              </button>
+              {form.detailImages?.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {form.detailImages.map((img, idx) => (
+                    <div key={idx} style={{
+                      display: 'flex', alignItems: 'center', gap: 12, padding: 10,
+                      background: 'var(--border-s)', borderRadius: 8
+                    }}>
+                      <img src={img.url} style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 6 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600 }}>이미지 {idx + 1}</div>
+                        <div style={{ fontSize: 10, color: 'var(--text-sm)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {img.url?.substring(0, 60)}...
+                        </div>
+                      </div>
+                      <button onClick={() => removeDetailImage(idx)}
+                        style={{ padding: '4px 10px', fontSize: 11, background: '#FEE2E2', color: 'var(--red)', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
+                        삭제
+                      </button>
+                    </div>
+                  ))}
+                  <button onClick={generateHtmlFromImages}
+                    style={{
+                      padding: '10px 0', fontSize: 13, fontWeight: 700, background: 'var(--accent)',
+                      color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', marginTop: 4
+                    }}>
+                    HTML 코드 생성
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* HTML 코드 탭 */}
+          {detailTab === 'html' && (
+            <div>
+              <textarea
+                value={form.detailHtml || ''}
+                onChange={e => setForm({ ...form, detailHtml: e.target.value })}
+                rows={12}
+                placeholder={'<div style="text-align:center">\n  <img src="이미지URL" style="width:100%">\n</div>'}
+                style={{
+                  width: '100%', padding: 12, fontSize: 12, fontFamily: 'monospace',
+                  border: '1px solid var(--border)', borderRadius: 8, outline: 'none',
+                  resize: 'vertical', lineHeight: 1.6, background: '#1E1E1E', color: '#D4D4D4'
+                }}
+              />
+              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                <button onClick={copyHtml}
+                  style={{
+                    flex: 1, padding: '10px 0', fontSize: 13, fontWeight: 700,
+                    background: 'var(--accent-l)', color: 'var(--accent)', border: 'none',
+                    borderRadius: 8, cursor: 'pointer'
+                  }}>
+                  코드 복사 (마켓 붙여넣기용)
+                </button>
+                <button onClick={() => setDetailTab('preview')}
+                  style={{
+                    padding: '10px 16px', fontSize: 13, fontWeight: 600,
+                    background: 'var(--border-s)', color: 'var(--text-md)', border: 'none',
+                    borderRadius: 8, cursor: 'pointer'
+                  }}>
+                  미리보기
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 미리보기 탭 */}
+          {detailTab === 'preview' && (
+            <div>
+              {form.detailHtml ? (
+                <div style={{
+                  border: '1px solid var(--border)', borderRadius: 8, padding: 16,
+                  maxWidth: 860, margin: '0 auto', background: '#fff'
+                }}>
+                  <div dangerouslySetInnerHTML={{ __html: form.detailHtml }} />
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-sm)', fontSize: 13 }}>
+                  HTML 코드가 없습니다. 이미지를 업로드하고 HTML을 생성하거나 직접 입력하세요.
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* 채널별 상품번호 */}
+        <div style={{ background: '#fff', borderRadius: 12, padding: 24, boxShadow: 'var(--shadow)' }}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>판매채널 상품번호</div>
+          <div style={{ fontSize: 12, color: 'var(--text-sm)', marginBottom: 16 }}>
+            각 채널의 상품번호를 입력하면 해당 채널 상품 페이지로 바로 이동할 수 있습니다
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {CHANNELS.map(ch => {
+              const val = form.channels[ch.key] || '';
+              const link = val && ch.urlTpl ? ch.urlTpl(val) : null;
+              return (
+                <div key={ch.key} style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px',
+                  background: val ? 'var(--accent-l)' : 'var(--border-s)', borderRadius: 10,
+                  border: `1px solid ${val ? 'var(--blue-m)' : 'var(--border)'}`,
+                  transition: 'all .15s ease'
+                }}>
+                  <div style={{
+                    width: 8, height: 8, borderRadius: '50%',
+                    background: val ? ch.color : '#D1D5DB', flexShrink: 0
+                  }} />
+                  <div style={{ width: 110, fontSize: 13, fontWeight: 600, color: 'var(--text)', flexShrink: 0 }}>
+                    {ch.label}
+                  </div>
+                  <input
+                    value={val}
+                    onChange={e => setForm({ ...form, channels: { ...form.channels, [ch.key]: e.target.value } })}
+                    placeholder="상품번호 입력"
+                    style={{
+                      flex: 1, padding: '8px 10px', fontSize: 13, border: '1px solid var(--border)',
+                      borderRadius: 6, outline: 'none', fontFamily: 'monospace', background: '#fff'
+                    }}
+                  />
+                  {link && (
+                    <a href={link} target="_blank" rel="noopener"
+                      style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                      링크 →
+                    </a>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── 상품 목록 ───
+  const allSelected = filtered.length > 0 && filtered.every(p => selected.has(p.id));
+  const toggleAll = () => {
+    if (allSelected) setSelected(new Set());
+    else setSelected(new Set(filtered.map(p => p.id)));
+  };
+  const toggleOne = (id) => {
+    const s = new Set(selected);
+    s.has(id) ? s.delete(id) : s.add(id);
+    setSelected(s);
+  };
+
+  return (
+    <div style={{ animation: 'fadeIn .3s ease' }}>
+      {/* 상태 필터 */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+        {SALES_STATUS.map(s => {
+          const cnt = s === '전체' ? products.length : products.filter(p => (p.salesStatus || '판매중') === s).length;
+          const icon = STATUS_ICON[s] || '';
+          return (
+            <button key={s} onClick={() => { setStatusFilter(s); setSelected(new Set()); setVisibleCount(30); }} style={{
+              padding: '10px 20px', fontSize: 14, fontWeight: statusFilter === s ? 700 : 500,
+              background: statusFilter === s ? (s === '판매중' ? 'var(--green)' : s === '품절' ? 'var(--red)' : s === '숨김' ? 'var(--text-sm)' : 'var(--accent)') : '#fff',
+              color: statusFilter === s ? '#fff' : 'var(--text-md)',
+              border: statusFilter === s ? 'none' : '1px solid var(--border)',
+              borderRadius: 24, cursor: 'pointer', minHeight: 42,
+            }}>
+              {icon} {s} ({cnt})
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 태그 필터 */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 12, flexWrap: 'wrap' }}>
+        {tagFilter && (
+          <button onClick={() => setTagFilter(null)} style={{
+            padding: '5px 12px', fontSize: 12, fontWeight: 600,
+            background: 'var(--red)', color: '#fff', border: 'none',
+            borderRadius: 16, cursor: 'pointer'
+          }}>✕ 태그 해제</button>
+        )}
+        {PRODUCT_TAGS.map(t => (
+          <button key={t.key} onClick={() => setTagFilter(tagFilter === t.key ? null : t.key)} style={{
+            padding: '5px 14px', fontSize: 12, fontWeight: tagFilter === t.key ? 700 : 500,
+            background: tagFilter === t.key ? t.bg : '#fff',
+            color: tagFilter === t.key ? t.color : 'var(--text-sm)',
+            border: `1px solid ${tagFilter === t.key ? t.color : 'var(--border)'}`,
+            borderRadius: 16, cursor: 'pointer'
+          }}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 카테고리 필터 */}
+      {categories.length > 0 && (
+        <div style={{ display: 'flex', gap: 4, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-sm)', marginRight: 4 }}>카테고리:</span>
+          {categoryFilter && (
+            <button onClick={() => setCategoryFilter(null)} style={{
+              padding: '5px 12px', fontSize: 12, fontWeight: 600,
+              background: 'var(--red)', color: '#fff', border: 'none',
+              borderRadius: 16, cursor: 'pointer'
+            }}>✕ 해제</button>
+          )}
+          {categories.map(c => (
+            <button key={c} onClick={() => setCategoryFilter(categoryFilter === c ? null : c)} style={{
+              padding: '5px 14px', fontSize: 12, fontWeight: categoryFilter === c ? 700 : 500,
+              background: categoryFilter === c ? 'var(--accent)' : '#fff',
+              color: categoryFilter === c ? '#fff' : 'var(--text-md)',
+              border: `1px solid ${categoryFilter === c ? 'var(--accent)' : 'var(--border)'}`,
+              borderRadius: 16, cursor: 'pointer'
+            }}>
+              {c}
+            </button>
+          ))}
+          <button onClick={() => setShowCategoryManager(true)} style={{
+            padding: '5px 12px', fontSize: 11, fontWeight: 600,
+            background: 'none', color: 'var(--text-sm)', border: '1px dashed var(--border)',
+            borderRadius: 16, cursor: 'pointer'
+          }}>+ 관리</button>
+        </div>
+      )}
+
+      {/* 벌크 액션바 */}
+      {selected.size > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', marginBottom: 12,
+          background: 'var(--accent-l)', borderRadius: 10, border: '1px solid var(--blue-m)',
+          flexWrap: 'wrap'
+        }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent)' }}>
+            {selected.size}건 선택됨
+          </span>
+          <button onClick={() => bulkAction('status', '판매중')} style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, background: 'var(--green)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>🟢 판매중</button>
+          <button onClick={() => bulkAction('status', '품절')} style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, background: 'var(--red)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>🔴 품절</button>
+          <button onClick={() => bulkAction('status', '숨김')} style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, background: 'var(--text-sm)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>⬜ 숨김</button>
+          <button onClick={() => setConfirmModal({ message: `선택한 ${selected.size}건을 삭제하시겠습니까?`, onConfirm: () => { bulkAction('delete'); setConfirmModal(null); } })}
+            style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, background: '#FEE2E2', color: 'var(--red)', border: 'none', borderRadius: 8, cursor: 'pointer', marginLeft: 'auto' }}>삭제</button>
+          <button onClick={() => setSelected(new Set())} style={{ padding: '8px 12px', fontSize: 13, background: 'none', border: 'none', color: 'var(--text-sm)', cursor: 'pointer' }}>취소</button>
+        </div>
+      )}
+
+      {/* 상단 액션바 */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="상품명 / 아임웹ID 검색..."
+            style={{
+              padding: '11px 16px', fontSize: 14, border: '1px solid var(--border)',
+              borderRadius: 8, outline: 'none', width: 260
+            }}
+          />
+          <span style={{ fontSize: 13, color: 'var(--text-sm)', fontWeight: 600 }}>{filtered.length}건</span>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={downloadTemplate} style={{
+            padding: '10px 16px', fontSize: 13, fontWeight: 600,
+            background: '#fff', color: 'var(--text-md)', border: '1px solid var(--border)',
+            borderRadius: 8, cursor: 'pointer'
+          }}>
+            엑셀 템플릿
+          </button>
+          <input ref={excelRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleExcelUpload} style={{ display: 'none' }} />
+          <button onClick={() => excelRef.current?.click()} disabled={uploading} style={{
+            padding: '10px 16px', fontSize: 13, fontWeight: 600,
+            background: 'var(--green-l)', color: 'var(--green)', border: 'none',
+            borderRadius: 8, cursor: 'pointer', opacity: uploading ? 0.6 : 1
+          }}>
+            {uploading ? '처리 중...' : '엑셀 일괄등록'}
+          </button>
+          <button onClick={startNew} style={{
+            padding: '10px 20px', fontSize: 14, fontWeight: 700,
+            background: 'var(--accent)', color: '#fff', border: 'none',
+            borderRadius: 8, cursor: 'pointer'
+          }}>
+            + 상품 등록
+          </button>
+        </div>
+      </div>
+
+      {/* 로딩 */}
+      {loading && (
+        <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-sm)' }}>
+          <div style={{ width: 28, height: 28, border: '3px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+          <div style={{ fontSize: 14 }}>상품을 불러오는 중...</div>
+        </div>
+      )}
+
+      {/* 빈 상태 */}
+      {!loading && filtered.length === 0 && (
+        <div style={{ textAlign: 'center', padding: 80, color: 'var(--text-sm)' }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>📦</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>
+            {search ? '검색 결과가 없습니다' : '등록된 상품이 없습니다'}
+          </div>
+          <div style={{ fontSize: 14 }}>상품을 등록하고 채널별 상품번호를 연결하세요</div>
+        </div>
+      )}
+
+      {/* 전체 선택 */}
+      {!loading && filtered.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, paddingLeft: 4 }}>
+          <input type="checkbox" checked={allSelected} onChange={toggleAll} style={{ width: 18, height: 18, cursor: 'pointer' }} />
+          <span style={{ fontSize: 13, color: 'var(--text-sm)' }}>전체 선택</span>
+        </div>
+      )}
+
+      {/* 상품 카드 리스트 */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {filtered.slice(0, visibleCount).map(p => {
+          const chCount = countChannels(p);
+          const isExpanded = expandedChannel === p.id;
+          const isChecked = selected.has(p.id);
+          return (
+            <div key={p.id} style={{
+              background: '#fff', borderRadius: 12, boxShadow: 'var(--shadow)',
+              overflow: 'hidden', border: isChecked ? '2px solid var(--accent)' : '1px solid var(--border-s)',
+              transition: 'border .15s ease'
+            }}>
+              {/* 메인 행 */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '16px 18px', cursor: 'pointer'
+              }} onClick={() => setExpandedChannel(isExpanded ? null : p.id)}>
+                {/* 체크박스 */}
+                <input type="checkbox" checked={isChecked} onChange={e => { e.stopPropagation(); toggleOne(p.id); }}
+                  onClick={e => e.stopPropagation()}
+                  style={{ width: 20, height: 20, cursor: 'pointer', flexShrink: 0 }} />
+                {/* 썸네일 */}
+                <div style={{
+                  width: 52, height: 52, borderRadius: 8, background: '#F3F4F6',
+                  flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  {p.thumbnail
+                    ? <img src={p.thumbnail} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                    : <span style={{ fontSize: 24 }}>📦</span>
+                  }
+                </div>
+                {/* 상품 정보 */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 15, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {p.name}
+                    </span>
+                    {p.imwebId && (
+                      <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', background: '#EDE9FE', color: '#6D28D9', borderRadius: 4 }}>#{p.imwebId}</span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--text-md)', marginTop: 3 }}>
+                    {p.salePrice ? Number(p.salePrice).toLocaleString() + '원' : '-'}
+                    {p.category ? ` · ${p.category}` : ''}
+                  </div>
+                  {/* 태그 */}
+                  {p.tags?.length > 0 && (
+                    <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
+                      {p.tags.map(tk => {
+                        const t = getTag(tk);
+                        return t ? (
+                          <span key={tk} style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', background: t.bg, color: t.color, borderRadius: 10 }}>
+                            {t.label}
+                          </span>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
+                </div>
+                {/* 빠른 상태 변경 */}
+                <select value={p.salesStatus || '판매중'} onChange={e => { e.stopPropagation(); quickStatusChange(p.id, e.target.value); }}
+                  onClick={e => e.stopPropagation()}
+                  style={{
+                    padding: '8px 10px', fontSize: 13, fontWeight: 600, borderRadius: 8, cursor: 'pointer', flexShrink: 0,
+                    border: '1px solid var(--border)', outline: 'none',
+                    background: p.salesStatus === '판매중' ? '#ECFDF5' : p.salesStatus === '품절' ? '#FEE2E2' : '#F3F4F6',
+                    color: p.salesStatus === '판매중' ? 'var(--green)' : p.salesStatus === '품절' ? 'var(--red)' : 'var(--text-sm)',
+                  }}>
+                  <option value="판매중">🟢 판매중</option>
+                  <option value="품절">🔴 품절</option>
+                  <option value="숨김">⬜ 숨김</option>
+                </select>
+                {/* 채널 연결 뱃지 */}
+                <div style={{
+                  padding: '6px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700, flexShrink: 0,
+                  background: chCount > 0 ? 'var(--green-l)' : '#F3F4F6',
+                  color: chCount > 0 ? 'var(--green)' : 'var(--text-sm)'
+                }}>
+                  {chCount > 0 ? `${chCount}개 채널` : '미연결'}
+                </div>
+                <span style={{ fontSize: 14, color: 'var(--text-sm)', transition: 'transform .2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)' }}>▼</span>
+                {/* 수정 버튼 */}
+                <button onClick={e => { e.stopPropagation(); startEdit(p); }}
+                  style={{
+                    padding: '10px 20px', fontSize: 14, fontWeight: 700,
+                    background: 'var(--accent)', color: '#fff', border: 'none',
+                    borderRadius: 8, cursor: 'pointer', flexShrink: 0
+                  }}>
+                  수정하기
+                </button>
+              </div>
+
+              {/* 채널 상세 (펼침) — 프록시 반영 상태 포함 */}
+              {isExpanded && (
+                <div style={{
+                  padding: '0 18px 16px', borderTop: '1px solid var(--border-s)',
+                  animation: 'fadeIn .2s ease'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0 8px' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>판매채널 반영 상태</div>
+                    {p.updatedAt && (
+                      <span style={{ fontSize: 12, color: 'var(--text-sm)' }}>마지막 수정: {getTimeSince(p.updatedAt)}</span>
+                    )}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 8 }}>
+                    {CHANNELS.map(ch => {
+                      const val = p.channels?.[ch.key];
+                      const link = getChannelLink(p, ch.key);
+                      const status = getProxyStatus(p, ch.key);
+                      const statusUI = {
+                        none: { icon: '⚪', label: '미연결', color: '#D1D5DB', bg: '#F9FAFB' },
+                        unregistered: { icon: '🔴', label: '프록시 미등록', color: 'var(--red)', bg: '#FEF2F2' },
+                        syncing: { icon: '🔵', label: `반영 중 (~${Math.max(1, 10 - Math.floor((Date.now() - new Date(p.updatedAt).getTime()) / 60000))}분 후)`, color: 'var(--accent)', bg: 'var(--accent-l)' },
+                        synced: { icon: '🟢', label: '자동반영 중', color: 'var(--green)', bg: '#ECFDF5' },
+                      }[status];
+                      return (
+                        <div key={ch.key} style={{
+                          display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+                          borderRadius: 10, fontSize: 13, background: statusUI.bg,
+                          border: `1px solid ${val ? ch.color + '30' : 'var(--border-s)'}`,
+                        }}>
+                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: val ? ch.color : '#D1D5DB', flexShrink: 0 }} />
+                          <span style={{ fontWeight: 600, minWidth: 90 }}>{ch.label}</span>
+                          {val ? (
+                            <>
+                              <span style={{ fontFamily: 'monospace', fontSize: 11 }}>{val}</span>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: statusUI.color, whiteSpace: 'nowrap' }}>
+                                {statusUI.icon} {statusUI.label}
+                              </span>
+                              <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
+                                {status === 'unregistered' && (
+                                  <button onClick={e => { e.stopPropagation(); toggleProxyRegistered(p.id, ch.key); }}
+                                    style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, background: 'var(--green)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
+                                    등록 완료
+                                  </button>
+                                )}
+                                {(status === 'syncing' || status === 'synced') && (
+                                  <button onClick={e => { e.stopPropagation(); toggleProxyRegistered(p.id, ch.key); }}
+                                    style={{ padding: '4px 8px', fontSize: 10, fontWeight: 500, background: 'none', color: 'var(--text-sm)', border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer' }}>
+                                    해제
+                                  </button>
+                                )}
+                                {link && (
+                                  <button onClick={e => { e.stopPropagation(); window.open(link, '_blank'); }}
+                                    style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, background: 'var(--accent-l)', color: 'var(--accent)', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
+                                    열기→
+                                  </button>
+                                )}
+                              </div>
+                            </>
+                          ) : (
+                            <span style={{ fontSize: 12, color: '#D1D5DB' }}>미연결</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {/* 더 보기 */}
+      {filtered.length > visibleCount && (
+        <button onClick={() => setVisibleCount(v => v + 30)}
+          style={{
+            width: '100%', padding: '16px 0', marginTop: 12, fontSize: 15, fontWeight: 700,
+            background: '#fff', color: 'var(--accent)', border: '1px solid var(--border)',
+            borderRadius: 10, cursor: 'pointer'
+          }}>
+          더 보기 ({visibleCount}/{filtered.length}건)
+        </button>
+      )}
+
+      {/* 변경이력 모달 */}
+      {historyOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 9997,
+          display: 'flex', justifyContent: 'flex-end', animation: 'fadeIn .2s ease'
+        }} onClick={() => setHistoryOpen(false)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            width: 420, maxWidth: '90vw', height: '100vh', background: '#fff',
+            boxShadow: '-10px 0 30px rgba(0,0,0,.15)', overflowY: 'auto', padding: 24
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <div style={{ fontSize: 17, fontWeight: 800 }}>📋 변경이력 (최근 1개월)</div>
+              <button onClick={() => setHistoryOpen(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-sm)' }}>✕</button>
+            </div>
+            {historyLoading && (
+              <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-sm)', fontSize: 14 }}>불러오는 중...</div>
+            )}
+            {!historyLoading && historyList.length === 0 && (
+              <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-sm)', fontSize: 14 }}>변경이력이 없습니다</div>
+            )}
+            {historyList.map(h => (
+              <div key={h.id} style={{
+                padding: 16, marginBottom: 10, background: 'var(--bg)', borderRadius: 10,
+                border: '1px solid var(--border-s)'
+              }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
+                  {h.changedAt ? new Date(h.changedAt).toLocaleString('ko') : '-'}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-md)', marginBottom: 8 }}>
+                  변경: {(h.changedFields || []).map(f => {
+                    const labels = { name: '상품명', salePrice: '판매가', price: '소비자가', salesStatus: '상태', detailHtml: '상세페이지', tags: '태그', options: '옵션', channels: '채널' };
+                    return labels[f] || f;
+                  }).join(', ')}
+                </div>
+                <button onClick={() => restoreFromHistory(h)}
+                  style={{
+                    padding: '8px 16px', fontSize: 13, fontWeight: 700,
+                    background: 'var(--accent-l)', color: 'var(--accent)', border: 'none',
+                    borderRadius: 6, cursor: 'pointer', width: '100%'
+                  }}>
+                  이 버전으로 복원
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {showCategoryManager && <CategoryManager categories={categories} onSave={saveCategories} onClose={() => setShowCategoryManager(false)} />}
+      {confirmModal && <ConfirmModal message={confirmModal.message} onConfirm={confirmModal.onConfirm} onCancel={() => setConfirmModal(null)} isInfo={confirmModal.isInfo} />}
+    </div>
+  );
+}
+/* ══════════════════════════════════════════════════════════════
+   공신력 수치 관리 — site-metrics/current
+   ══════════════════════════════════════════════════════════════ */
+const METRICS_FIELDS=[
+  {key:'totalUnits',labelKey:'totalUnitsLabel',icon:'🏘',name:'시공 세대수',unit:'세대',placeholder:'2600000',labelPlaceholder:'260만 세대'},
+  {key:'patents',labelKey:'patentsLabel',icon:'📜',name:'특허/인증',unit:'개',placeholder:'70',labelPlaceholder:'70여 개'},
+  {key:'partners',labelKey:'partnersLabel',icon:'🤝',name:'파트너사',unit:'곳',placeholder:'250',labelPlaceholder:'250여 곳'},
+  {key:'totalArea',labelKey:'totalAreaLabel',icon:'📐',name:'시공 면적',unit:'㎡',placeholder:'1500000',labelPlaceholder:'150만 ㎡'},
+  {key:'products',labelKey:'productsLabel',icon:'📦',name:'제품 수',unit:'개',placeholder:'110',labelPlaceholder:'110여 개+'},
+  {key:'cooperatives',labelKey:'cooperativesLabel',icon:'🏢',name:'협력사',unit:'곳',placeholder:'250',labelPlaceholder:'250여 곳'},
+];
+
+function MetricsPage({showToast}){
+  const [form,setForm]=useState(null);
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [lastUpdated,setLastUpdated]=useState(null);
+
+  useEffect(()=>{
+    (async()=>{
+      try{
+        const doc=await db.collection(COLLECTIONS.SITE_METRICS).doc('current').get();
+        const data=doc.exists?doc.data():{};
+        const init={};
+        METRICS_FIELDS.forEach(f=>{
+          init[f.key]=data[f.key]!==undefined?String(data[f.key]):'';
+          init[f.labelKey]=data[f.labelKey]||'';
+        });
+        setForm(init);
+        if(data.updatedAt)setLastUpdated(data.updatedAt);
+      }catch(e){console.error('[site-metrics] 로드 실패:',e);showToast('데이터 로드 실패','error');}
+      setLoading(false);
+    })();
+  },[]);
+
+  const save=async()=>{
+    if(!form)return;
+    setSaving(true);
+    try{
+      const data={updatedAt:new Date().toISOString()};
+      METRICS_FIELDS.forEach(f=>{
+        const v=parseInt(form[f.key],10);
+        if(!isNaN(v))data[f.key]=v;
+        data[f.labelKey]=form[f.labelKey]||'';
+      });
+      await db.collection(COLLECTIONS.SITE_METRICS).doc('current').set(data,{merge:true});
+      setLastUpdated(data.updatedAt);
+      showToast('공신력 수치 저장 완료 — 3개 사이트에 즉시 반영됩니다');
+    }catch(e){console.error('[site-metrics] 저장 실패:',e);showToast('저장 실패','error');}
+    setSaving(false);
+  };
+
+  if(loading)return <div style={{textAlign:'center',padding:80,color:'var(--text-sm)'}}>로딩 중...</div>;
+
+  const inputStyle={width:'100%',padding:'10px 14px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:14,fontFamily:'inherit',outline:'none',boxSizing:'border-box'};
+  const labelStyle={fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:5,display:'block'};
+
+  return(
+    <div style={{animation:'fadeIn .3s ease',maxWidth:820}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+        <div>
+          <div style={{fontSize:20,fontWeight:800}}>📊 공신력 수치 관리</div>
+          <div style={{fontSize:12,color:'var(--text-sm)',marginTop:4}}>
+            POUR솔루션 · POUR공법 · POUR스토어 3개 사이트에 실시간 반영됩니다
+          </div>
+          {lastUpdated&&<div style={{fontSize:11,color:'var(--text-sm)',marginTop:2}}>
+            마지막 저장: {new Date(lastUpdated).toLocaleString('ko')}
+          </div>}
+        </div>
+        <button onClick={save} disabled={saving}
+          style={{padding:'10px 24px',borderRadius:10,border:'none',background:'var(--accent)',color:'#fff',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit',opacity:saving?0.6:1}}>
+          {saving?'저장 중...':'💾 저장하기'}
+        </button>
+      </div>
+
+      {/* 안내 배너 */}
+      <div style={{background:'#EFF6FF',border:'1.5px solid #BFDBFE',borderRadius:10,padding:'12px 16px',marginBottom:20,display:'flex',gap:10,alignItems:'flex-start'}}>
+        <span style={{fontSize:18,flexShrink:0}}>ℹ️</span>
+        <div style={{fontSize:13,color:'#1E40AF',lineHeight:1.6}}>
+          <strong>표시 텍스트</strong>는 웹사이트에서 그대로 표시됩니다 (예: "260만 세대").<br/>
+          <strong>실제 값</strong>은 내부 집계·API에 사용됩니다. 표시 텍스트만 변경해도 됩니다.
+        </div>
+      </div>
+
+      {/* 수치 카드 그리드 */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:16}}>
+        {METRICS_FIELDS.map(f=>(
+          <div key={f.key} style={{background:'#fff',borderRadius:12,padding:20,boxShadow:'var(--shadow)',border:'1px solid var(--border)'}}>
+            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:14}}>
+              <span style={{fontSize:24}}>{f.icon}</span>
+              <div style={{fontSize:14,fontWeight:800,color:'var(--text)'}}>{f.name}</div>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+              <div>
+                <label style={labelStyle}>실제 값 ({f.unit})</label>
+                <input type="number" style={inputStyle}
+                  value={form?.[f.key]||''} placeholder={f.placeholder}
+                  onChange={e=>setForm(prev=>({...prev,[f.key]:e.target.value}))}/>
+              </div>
+              <div>
+                <label style={labelStyle}>표시 텍스트</label>
+                <input type="text" style={inputStyle}
+                  value={form?.[f.labelKey]||''} placeholder={f.labelPlaceholder}
+                  onChange={e=>setForm(prev=>({...prev,[f.labelKey]:e.target.value}))}/>
+              </div>
+            </div>
+            {/* 미리보기 */}
+            <div style={{marginTop:10,padding:'8px 12px',background:'var(--bg)',borderRadius:8,display:'flex',alignItems:'center',gap:8}}>
+              <span style={{fontSize:11,color:'var(--text-sm)',fontWeight:600}}>미리보기</span>
+              <span style={{fontSize:18,fontWeight:900,color:'var(--accent)'}}>
+                {form?.[f.labelKey]||form?.[f.key]||'-'}
+              </span>
+              <span style={{fontSize:11,color:'var(--text-sm)'}}>{f.name}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 하단 저장 버튼 */}
+      <div style={{display:'flex',justifyContent:'flex-end',marginTop:20}}>
+        <button onClick={save} disabled={saving}
+          style={{padding:'12px 32px',borderRadius:10,border:'none',background:'var(--accent)',color:'#fff',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit',opacity:saving?0.6:1}}>
+          {saving?'저장 중...':'💾 공신력 수치 저장'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════
+   링크 관리 — method-links
+   ══════════════════════════════════════════════════════════════ */
+function MethodLinksPage({showToast}){
+  const [links,setLinks]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [saving,setSaving]=useState(false);
+  const [search,setSearch]=useState('');
+  const [editId,setEditId]=useState(null);
+  const [editForm,setEditForm]=useState({});
+
+  // 현재 하드코딩된 기본 링크 데이터
+  const DEFAULT_LINKS=[
+    {id:'shingle',label:'POUR 아스팔트싱글 방수 공법',cat:'방수',specUrl:'https://www.poursolution.net/128',proposalUrl:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/Proposal%2F%EB%B0%A9%EC%88%98%2FPOUR%EA%B3%B5%EB%B2%95_%EC%A0%9C%EC%95%88%EC%84%9C(ver08.)_%EC%95%84%EC%8A%A4%ED%8C%94%ED%8A%B8_%EC%8A%81%EA%B8%80_%EB%B0%A9%EC%88%98%EA%B3%B5%EC%82%AC.pdf?alt=media&token=21b3a984-cc41-411e-bd35-0cd4ebaeed6e',guideUrl:'https://featpaper.com/v/K1lvPVMp',caseUrl:'https://www.poursolution.net/110'},
+    {id:'metal',label:'POUR 금속기와 방수 공법',cat:'방수',specUrl:'https://www.poursolution.net/130',proposalUrl:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/Proposal%2F%EB%B0%A9%EC%88%98%2FPOUR%EA%B3%B5%EB%B2%95_%EC%A0%9C%EC%95%88%EC%84%9C(ver08.)_%EA%B8%88%EC%86%8D%EA%B8%B0%EC%99%80.%EC%B9%BC%EB%9D%BC%EA%B0%95%ED%8C%90_%EB%B0%A9%EC%88%98%EA%B3%B5%EC%82%AC.pdf?alt=media&token=d66ce37f-2a4d-4501-988e-88a037f2ac4f',guideUrl:'https://featpaper.com/v/dyFLt0he',caseUrl:'https://www.poursolution.net/127'},
+    {id:'slab_dual',label:'POUR 듀얼강화방수 공법',cat:'방수',specUrl:'https://www.poursolution.net/132',proposalUrl:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/Proposal%2F%EB%B0%A9%EC%88%98%2FPOUR%EA%B3%B5%EB%B2%95_%EC%A0%9C%EC%95%88%EC%84%9C(ver08.)_%EB%93%80%EC%96%BC%EA%B0%95%ED%99%94%EB%B0%A9%EC%88%98.pdf?alt=media&token=b927f328-077e-4c95-b269-218192dcc996',guideUrl:'https://featpaper.com/v/dF4rEVxl',caseUrl:'https://www.poursolution.net/111'},
+    {id:'slab_pvc',label:'POUR PVC 방수 공법',cat:'방수',specUrl:'https://www.poursolution.net/136',proposalUrl:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/Proposal%2F%EB%B0%A9%EC%88%98%2FPOUR%EA%B3%B5%EB%B2%95_%EC%A0%9C%EC%95%88%EC%84%9C(ver.08)_PVC%EB%B0%A9%EC%88%98.pdf?alt=media&token=a365dfb2-60c0-4c0b-9443-baacfa126aa9',guideUrl:'https://featpaper.com/v/pXOmvcT8',caseUrl:'https://www.poursolution.net/111'},
+    {id:'slab_urethane',label:'POUR 우레탄 방수 공법',cat:'방수',specUrl:'https://www.poursolution.net/124',proposalUrl:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/Proposal%2F%EB%B0%A9%EC%88%98%2FPOUR%EA%B3%B5%EB%B2%95_%EC%A0%9C%EC%95%88%EC%84%9C(ver08.)_%EC%9A%B0%EB%A0%88%ED%83%84%EB%B0%A9%EC%88%98.pdf?alt=media&token=b66154b0-7653-41c0-9740-f090014f2932',guideUrl:'https://featpaper.com/v/zghTinLH',caseUrl:'https://www.poursolution.net/111'},
+    {id:'slab_acrylic',label:'POUR 아크릴 배면차수 방수 공법',cat:'방수',specUrl:'https://www.poursolution.net/195',proposalUrl:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/Proposal%2F%EB%B0%A9%EC%88%98%2FPOUR%EA%B3%B5%EB%B2%95_%EC%A0%9C%EC%95%88%EC%84%9C(ver08.)_%EC%95%84%ED%81%AC%EB%A6%B4%EB%B0%B0%EB%A9%B4%EC%B0%A8%EC%88%98.pdf?alt=media&token=229838bf-14ee-4dab-8c61-ab8bd46e88e6',guideUrl:'',caseUrl:''},
+    {id:'parking_epoxy',label:'POUR 에폭시 도장 공법',cat:'도장',specUrl:'https://www.poursolution.net/125',proposalUrl:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/Proposal%2F%EB%8F%84%EC%9E%A5%2FPOUR%EA%B3%B5%EB%B2%95_%EC%A0%9C%EC%95%88%EC%84%9C(ver08.)_%EC%97%90%ED%8F%AD%EC%8B%9C%EA%B3%B5%EB%B2%95.pdf?alt=media&token=583c6546-254d-42e9-87a4-b68586894c2d',guideUrl:'https://featpaper.com/v/MxascF5S',caseUrl:'https://www.poursolution.net/96'},
+    {id:'parking_emboss',label:'POUR 엠보라이닝 도장 공법',cat:'도장',specUrl:'https://www.poursolution.net/195',proposalUrl:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/Proposal%2F%EB%8F%84%EC%9E%A5%2FPOUR%EA%B3%B5%EB%B2%95_%EC%A0%9C%EC%95%88%EC%84%9C(ver08.)_%EC%97%A0%EB%B3%B4%EB%9D%BC%EC%9D%B4%EB%8B%9D_%EB%8F%84%EC%9E%A5%EA%B3%B5%EB%B2%95.pdf?alt=media&token=8c722546-eaa0-4080-8ae6-4c691b6ea471',guideUrl:'https://featpaper.com/v/MxascF5S',caseUrl:'https://www.poursolution.net/96'},
+    {id:'wall_premium',label:'POUR 균열보수 및 재도장 공법(바인더+플러스)',cat:'도장',specUrl:'https://www.poursolution.net/139',proposalUrl:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/Proposal%2F%EB%8F%84%EC%9E%A5%2FPOUR%EA%B3%B5%EB%B2%95_%EC%A0%9C%EC%95%88%EC%84%9C(ver08.)_%EA%B7%A0%EC%97%B4%EB%B3%B4%EC%88%98_%EB%B0%8F_%EC%9E%AC%EB%8F%84%EC%9E%A5_%EA%B3%B5%EB%B2%95(%EB%B0%94%EC%9D%B8%EB%8D%94%2B%ED%94%8C%EB%9F%AC%EC%8A%A4).pdf?alt=media&token=4047abb9-ec6b-4cdb-a712-b2fb27370203',guideUrl:'https://featpaper.com/v/QT3iJqYh',caseUrl:'https://www.poursolution.net/98'},
+    {id:'wall_mid',label:'POUR 균열보수 및 재도장 공법(플러스+수성)',cat:'도장',specUrl:'https://www.poursolution.net/140',proposalUrl:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/Proposal%2F%EB%8F%84%EC%9E%A5%2FPOUR%EA%B3%B5%EB%B2%95_%EC%A0%9C%EC%95%88%EC%84%9C(ver08.)_%EA%B7%A0%EC%97%B4%EB%B3%B4%EC%88%98_%EB%B0%8F_%EC%9E%AC%EB%8F%84%EC%9E%A5_%EA%B3%B5%EB%B2%95(%ED%94%8C%EB%9F%AC%EC%8A%A4%2B%EC%88%98%EC%84%B1).pdf?alt=media&token=e17bc11e-c5ba-46aa-90af-a3fb6e0c49f5',guideUrl:'https://featpaper.com/v/QT3iJqYh',caseUrl:'https://www.poursolution.net/98'},
+    {id:'wall_economy',label:'POUR 균열보수 및 재도장 공법(바인더+수성)',cat:'도장',specUrl:'https://www.poursolution.net/190',proposalUrl:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/Proposal%2F%EB%8F%84%EC%9E%A5%2FPOUR%EA%B3%B5%EB%B2%95_%EC%A0%9C%EC%95%88%EC%84%9C(ver08.)_%EA%B7%A0%EC%97%B4%EB%B3%B4%EC%88%98_%EB%B0%8F_%EC%9E%AC%EB%8F%84%EC%9E%A5_%EA%B3%B5%EB%B2%95(%EB%B0%94%EC%9D%B8%EB%8D%94%2B%EC%88%98%EC%84%B1).pdf?alt=media&token=5f588b76-1204-4e42-bbd0-45f1cc23c9a8',guideUrl:'https://featpaper.com/v/QT3iJqYh',caseUrl:'https://www.poursolution.net/98'},
+    {id:'crack_surface',label:'POUR 탄성강화 보강공법 (바탕면)',cat:'보수/보강',specUrl:'https://www.poursolution.net/143',proposalUrl:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/Proposal%2F%EB%B3%B4%EC%88%98%EB%B3%B4%EA%B0%95%2FPOUR%EA%B3%B5%EB%B2%95_%EC%A0%9C%EC%95%88%EC%84%9C(ver08.)_%ED%83%84%EC%84%B1%EA%B0%95%ED%99%94_%EB%B3%B4%EA%B0%95%EA%B3%B5%EB%B2%95_%EB%B0%94%ED%83%95%EB%A9%B4.pdf?alt=media&token=590ad489-941d-4f0a-aa0a-3c7278e2f28c',guideUrl:'',caseUrl:'https://www.poursolution.net/portfolio'},
+    {id:'crack_section',label:'POUR 탄성강화 보강공법 (단면복구)',cat:'보수/보강',specUrl:'https://www.poursolution.net/144',proposalUrl:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/Proposal%2F%EB%B3%B4%EC%88%98%EB%B3%B4%EA%B0%95%2FPOUR%EA%B3%B5%EB%B2%95_%EC%A0%9C%EC%95%88%EC%84%9C(ver08.)_%ED%83%84%EC%84%B1%EA%B0%95%ED%99%94_%EB%B3%B4%EA%B0%95%EA%B3%B5%EB%B2%95_%EB%8B%A8%EB%A9%B4%EB%B3%B5%EA%B5%AC.pdf?alt=media&token=520438b6-de93-4bf4-bc21-5db3ab892f0d',guideUrl:'',caseUrl:'https://www.poursolution.net/portfolio'},
+    {id:'crack_sheet',label:'POUR 복합시트 균열보수 공법',cat:'보수/보강',specUrl:'https://www.poursolution.net/145',proposalUrl:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/Proposal%2F%EB%B3%B4%EC%88%98%EB%B3%B4%EA%B0%95%2FPOUR%EA%B3%B5%EB%B2%95_%EC%A0%9C%EC%95%88%EC%84%9C(ver08.)_%EB%B3%B5%ED%95%A9%EC%8B%9C%ED%8A%B8%20%EA%B7%A0%EC%97%B4%EB%B3%B4%EC%88%98_%EA%B3%B5%EB%B2%95.pdf?alt=media&token=76ee7584-96e8-4b64-8bad-a4cba91a7f8b',guideUrl:'',caseUrl:'https://www.poursolution.net/portfolio'},
+    {id:'ascon_repair',label:'POUR 아스콘 균열보수 및 단면복구 공법',cat:'토목',specUrl:'https://www.poursolution.net/150',proposalUrl:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/Proposal%2F%ED%86%A0%EB%AA%A9%2FPOUR%EC%95%84%EC%8A%A4%ED%8C%94%ED%8A%B8_%EB%B3%B4%EC%88%98_%EB%B0%8F_%EB%B3%B4%EA%B0%95%EA%B3%B5%EB%B2%95_%EC%B9%B4%EB%8B%AC%EB%A1%9C%EA%B7%B8.pdf?alt=media&token=9fd7e37b-1f4a-48df-9315-60d1e9f8fed3',guideUrl:'',caseUrl:'https://www.poursolution.net/portfolio'},
+    {id:'ascon_seal',label:'POUR 아스콘 씰코팅 공법',cat:'토목',specUrl:'https://www.poursolution.net/173',proposalUrl:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/Proposal%2F%ED%86%A0%EB%AA%A9%2FPOUR%EC%95%84%EC%8A%A4%EC%BD%98_%EC%94%B0%EC%BD%94%ED%8C%85_%EA%B3%B5%EB%B2%95_%EC%B9%B4%EB%8B%AC%EB%A1%9C%EA%B7%B8.pdf?alt=media&token=3a646ddf-6ae2-4012-8724-79d6b2b26073',guideUrl:'',caseUrl:'https://www.poursolution.net/portfolio'},
+    {id:'ascon_mma',label:'POUR MMA 공법',cat:'토목',specUrl:'https://www.poursolution.net/197',proposalUrl:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/Proposal%2F%ED%86%A0%EB%AA%A9%2FPOUR%EA%B3%B5%EB%B2%95_%EC%A0%9C%EC%95%88%EC%84%9C(ver08.)_mma%EA%B3%B5%EB%B2%95.pdf?alt=media&token=a4f1cc41-5b6b-44e7-b511-603b873c9f0f',guideUrl:'',caseUrl:'https://www.poursolution.net/portfolio'},
+    {id:'block',label:'POUR 보도블럭 보수 및 단면 복구',cat:'토목',specUrl:'https://www.poursolution.net/77',proposalUrl:'',guideUrl:'',caseUrl:'https://www.poursolution.net/portfolio'},
+  ];
+
+  const LINK_FIELDS=[
+    {key:'specUrl',label:'시방서',icon:'📋',color:'#2563EB'},
+    {key:'proposalUrl',label:'제안서',icon:'📄',color:'#7C3AED'},
+    {key:'guideUrl',label:'시공가이드',icon:'📘',color:'#059669'},
+    {key:'caseUrl',label:'시공사례',icon:'🏗',color:'#D97706'},
+  ];
+
+  const CAT_COLORS={'방수':'#2563EB','도장':'#D97706','보수/보강':'#059669','토목':'#DC2626'};
+
+  useEffect(()=>{
+    (async()=>{
+      try{
+        const snap=await db.collection(COLLECTIONS.METHOD_LINKS).get();
+        if(snap.empty){
+          // Firestore에 데이터 없으면 기본값 사용
+          setLinks(DEFAULT_LINKS);
+        }else{
+          const loaded=snap.docs.map(d=>({id:d.id,...d.data()}));
+          // 기본 목록에 없는 항목도 유지하면서 병합
+          const merged=DEFAULT_LINKS.map(dl=>{
+            const found=loaded.find(l=>l.id===dl.id);
+            return found?{...dl,...found}:dl;
+          });
+          setLinks(merged);
+        }
+      }catch(e){console.error(e);setLinks(DEFAULT_LINKS);}
+      setLoading(false);
+    })();
+  },[]);
+
+  const startEdit=(item)=>{
+    setEditId(item.id);
+    setEditForm({specUrl:item.specUrl||'',proposalUrl:item.proposalUrl||'',guideUrl:item.guideUrl||'',caseUrl:item.caseUrl||''});
+  };
+
+  const cancelEdit=()=>{setEditId(null);setEditForm({});};
+
+  const saveEdit=async()=>{
+    setSaving(true);
+    try{
+      await db.collection(COLLECTIONS.METHOD_LINKS).doc(editId).set({
+        ...editForm,
+        label:links.find(l=>l.id===editId)?.label||'',
+        cat:links.find(l=>l.id===editId)?.cat||'',
+        updatedAt:new Date().toISOString()
+      },{merge:true});
+      setLinks(prev=>prev.map(l=>l.id===editId?{...l,...editForm}:l));
+      setEditId(null);setEditForm({});
+      showToast('링크가 저장되었습니다');
+    }catch(e){console.error(e);showToast('저장 실패: '+e.message,'error');}
+    setSaving(false);
+  };
+
+  const saveAllToFirestore=async()=>{
+    setSaving(true);
+    try{
+      const batch=db.batch();
+      links.forEach(l=>{
+        const ref=db.collection(COLLECTIONS.METHOD_LINKS).doc(l.id);
+        batch.set(ref,{label:l.label,cat:l.cat,specUrl:l.specUrl||'',proposalUrl:l.proposalUrl||'',guideUrl:l.guideUrl||'',caseUrl:l.caseUrl||'',updatedAt:new Date().toISOString()},{merge:true});
+      });
+      await batch.commit();
+      showToast(`${links.length}개 공법 링크가 모두 저장되었습니다`);
+    }catch(e){console.error(e);showToast('일괄 저장 실패: '+e.message,'error');}
+    setSaving(false);
+  };
+
+  const filtered=links.filter(l=>!search||l.label.includes(search)||l.cat.includes(search)||l.id.includes(search));
+  const grouped={};
+  filtered.forEach(l=>{if(!grouped[l.cat])grouped[l.cat]=[];grouped[l.cat].push(l);});
+
+  if(loading)return <div style={{textAlign:'center',padding:60,color:'var(--text-sm)'}}>로딩 중...</div>;
+
+  return(
+    <div style={{maxWidth:1100,margin:'0 auto'}}>
+      {/* 헤더 */}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20,flexWrap:'wrap',gap:12}}>
+        <div>
+          <h2 style={{fontSize:20,fontWeight:800,color:'var(--text)',margin:0}}>링크 관리</h2>
+          <p style={{fontSize:13,color:'var(--text-sm)',margin:'4px 0 0'}}>공법별 제안서·시방서·시공가이드·시공사례 링크를 관리합니다. 변경 시 태블릿 앱과 고객 문자에 자동 반영됩니다.</p>
+        </div>
+        <button onClick={saveAllToFirestore} disabled={saving} style={{
+          padding:'10px 20px',borderRadius:10,border:'none',
+          background:'var(--accent)',color:'#fff',fontSize:13,fontWeight:700,
+          cursor:saving?'wait':'pointer',opacity:saving?.6:1
+        }}>
+          {saving?'저장 중...':'전체 일괄 저장'}
+        </button>
+      </div>
+
+      {/* 검색 */}
+      <div style={{marginBottom:16}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)}
+          placeholder="공법명 또는 카테고리 검색..."
+          style={{width:'100%',maxWidth:400,padding:'10px 14px',borderRadius:10,border:'1.5px solid var(--border)',fontSize:13,outline:'none'}}/>
+      </div>
+
+      {/* 카테고리별 그룹 */}
+      {Object.entries(grouped).map(([cat,items])=>(
+        <div key={cat} style={{marginBottom:24}}>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+            <div style={{width:4,height:18,borderRadius:2,background:CAT_COLORS[cat]||'#6B7280'}}/>
+            <span style={{fontSize:15,fontWeight:800,color:'var(--text)'}}>{cat}</span>
+            <span style={{fontSize:11,fontWeight:600,color:'var(--text-sm)',background:'var(--bg)',borderRadius:6,padding:'2px 8px'}}>{items.length}개</span>
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:8}}>
+            {items.map(item=>(
+              <div key={item.id} style={{background:'#fff',borderRadius:12,border:'1px solid var(--border)',overflow:'hidden'}}>
+                {/* 공법 헤더 */}
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',borderBottom:editId===item.id?'1px solid var(--border)':'none'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:10}}>
+                    <span style={{fontSize:9,fontWeight:800,color:CAT_COLORS[cat]||'#6B7280',background:(CAT_COLORS[cat]||'#6B7280')+'15',borderRadius:4,padding:'2px 6px'}}>{cat}</span>
+                    <span style={{fontSize:13,fontWeight:700,color:'var(--text)'}}>{item.label}</span>
+                    <span style={{fontSize:10,color:'var(--text-sm)'}}>({item.id})</span>
+                  </div>
+                  {editId===item.id?(
+                    <div style={{display:'flex',gap:6}}>
+                      <button onClick={cancelEdit} style={{padding:'6px 12px',borderRadius:8,border:'1px solid var(--border)',background:'#fff',fontSize:11,fontWeight:600,cursor:'pointer'}}>취소</button>
+                      <button onClick={saveEdit} disabled={saving} style={{padding:'6px 12px',borderRadius:8,border:'none',background:'var(--accent)',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer'}}>{saving?'저장중...':'저장'}</button>
+                    </div>
+                  ):(
+                    <button onClick={()=>startEdit(item)} style={{padding:'6px 12px',borderRadius:8,border:'1px solid var(--border)',background:'#fff',fontSize:11,fontWeight:600,cursor:'pointer',color:'var(--accent)'}}>수정</button>
+                  )}
+                </div>
+                {/* 링크 필드들 */}
+                {editId===item.id?(
+                  <div style={{padding:'12px 16px',display:'flex',flexDirection:'column',gap:10}}>
+                    {LINK_FIELDS.map(f=>(
+                      <div key={f.key}>
+                        <label style={{display:'flex',alignItems:'center',gap:6,fontSize:11,fontWeight:700,color:f.color,marginBottom:4}}>
+                          <span>{f.icon}</span>{f.label}
+                        </label>
+                        <input value={editForm[f.key]||''} onChange={e=>setEditForm(prev=>({...prev,[f.key]:e.target.value}))}
+                          placeholder={`${f.label} URL을 입력하세요`}
+                          style={{width:'100%',padding:'8px 12px',borderRadius:8,border:'1.5px solid var(--border)',fontSize:12,outline:'none',fontFamily:'monospace'}}/>
+                      </div>
+                    ))}
+                  </div>
+                ):(
+                  <div style={{padding:'8px 16px 12px',display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6}}>
+                    {LINK_FIELDS.map(f=>{
+                      const url=item[f.key];
+                      const hasUrl=url&&url.trim();
+                      return(
+                        <div key={f.key} style={{padding:'8px 10px',borderRadius:8,background:hasUrl?f.color+'08':'#F9FAFB',border:`1px solid ${hasUrl?f.color+'25':'var(--border)'}`,minHeight:44}}>
+                          <div style={{fontSize:9,fontWeight:700,color:hasUrl?f.color:'#9CA3AF',marginBottom:3,display:'flex',alignItems:'center',gap:4}}>
+                            <span>{f.icon}</span>{f.label}
+                          </div>
+                          {hasUrl?(
+                            <a href={url} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:f.color,wordBreak:'break-all',lineHeight:1.3,display:'block',maxHeight:32,overflow:'hidden',textOverflow:'ellipsis'}}>
+                              {url.length>60?url.substring(0,60)+'...':url}
+                            </a>
+                          ):(
+                            <span style={{fontSize:10,color:'#D1D5DB'}}>미등록</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ============================================================
 // App
 // ============================================================
 function App() {
@@ -2386,6 +4232,9 @@ function App() {
         {active === 'orders' && <Orders orders={orders} dealers={dealers} onUpdate={loadAll} onToast={setToast} />}
         {active === 'settlement' && <Settlement orders={orders} dealers={dealers} onToast={setToast} />}
         {active === 'inquiries' && <Inquiries inquiries={inquiries} onUpdate={loadAll} onToast={setToast} />}
+        {active === 'products' && <ProductsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
+        {active === 'metrics' && <MetricsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
+        {active === 'method-links' && <MethodLinksPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'settings' && <Settings onToast={setToast} />}
       </main>
       {toast && <Toast {...toast} onDone={() => setToast(null)} />}

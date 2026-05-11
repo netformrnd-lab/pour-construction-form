@@ -207,18 +207,12 @@ const NAV = [
   { type: 'divider', label: '메인' },
   { id: 'dashboard', icon: '📊', label: '통합 대시보드' },
   { type: 'divider', label: 'CRM센터' },
-  { id: 'matching', icon: '🤝', label: '시공연결 신청' },
-  { id: 'partners', icon: '👷', label: '파트너사 관리' },
-  { id: 'rules', icon: '⚙', label: '매칭 룰 설정' },
-  { id: 'inquiries', icon: '💬', label: '문의 관리' },
+  // 메뉴는 담당자 개발 완료 후 연결 예정 (matching/partners/rules/inquiries 컴포넌트는 유지)
   { type: 'divider', label: '매출관리센터' },
-  { id: 'dealers', icon: '🏪', label: '대리점 관리' },
-  { id: 'purchase-orders', icon: '📦', label: '발주 관리' },
-  { id: 'orders', icon: '🛒', label: '주문 관리' },
-  { id: 'settlement', icon: '📊', label: '매출 대시보드' },
+  // 메뉴는 담당자 개발 완료 후 연결 예정 (dealers/purchase-orders/orders/settlement 컴포넌트는 유지)
   { type: 'divider', label: 'KPI 업무관리센터' },
   { type: 'divider', label: '디자인/개발 센터' },
-  { id: 'preview-external', icon: '🎨', label: '자사몰 페이지 관리', external: './preview.html' },
+  { id: 'preview', icon: '🎨', label: '자사몰 페이지 관리' },
   { id: 'products', icon: '📦', label: '상품관리' },
   { id: 'metrics', icon: '📊', label: '공신력 수치' },
   { id: 'method-links', icon: '🔗', label: '링크 관리' },
@@ -4191,6 +4185,38 @@ function MethodLinksPage({showToast}){
 }
 
 // ============================================================
+// PreviewPage — 자사몰 페이지 관리 (preview.html iframe 임베드)
+// ============================================================
+function PreviewPage() {
+  return (
+    <div style={{ display:'flex', flexDirection:'column', height:'100vh', background:'var(--bg)' }}>
+      <div style={{
+        padding:'14px 20px', borderBottom:'1px solid var(--border)', background:'#fff',
+        display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap'
+      }}>
+        <div>
+          <h1 style={{ fontSize:16, fontWeight:900, color:'var(--navy)', marginBottom:2 }}>🎨 자사몰 페이지 관리</h1>
+          <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700 }}>
+            POUR스토어 자사몰 리뉴얼 — 페이지·상품 빌더. 섹션 등록·드래그 정렬·버전 이력 관리.
+          </div>
+        </div>
+        <a href="./preview.html" target="_blank" rel="noopener noreferrer" style={{
+          padding:'7px 14px', fontSize:11.5, fontWeight:800, color:'var(--or-d)',
+          border:'1px solid var(--or-l)', borderRadius:7, background:'#fff', display:'inline-flex', alignItems:'center', gap:6
+        }}>
+          새창에서 열기 <span style={{ fontSize:10 }}>↗</span>
+        </a>
+      </div>
+      <iframe
+        src="./preview.html"
+        title="자사몰 페이지 관리"
+        style={{ flex:1, width:'100%', border:0, background:'#fff' }}
+      />
+    </div>
+  );
+}
+
+// ============================================================
 // StaffPage — 담당자 마스터 (staff 컬렉션 CRUD)
 // ============================================================
 function StaffPage({ onToast }) {
@@ -4637,6 +4663,7 @@ function App() {
         {active === 'orders' && <Orders orders={orders} dealers={dealers} onUpdate={loadAll} onToast={setToast} />}
         {active === 'settlement' && <Settlement orders={orders} dealers={dealers} onToast={setToast} />}
         {active === 'inquiries' && <Inquiries inquiries={inquiries} onUpdate={loadAll} onToast={setToast} />}
+        {active === 'preview' && <PreviewPage />}
         {active === 'products' && <ProductsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'metrics' && <MetricsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'method-links' && <MethodLinksPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}

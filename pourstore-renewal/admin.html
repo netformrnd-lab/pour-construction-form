@@ -69,6 +69,16 @@ const COLLECTIONS = {
   SITE_METRICS: 'site-metrics',
   METHOD_LINKS: 'method-links',
   STAFF: 'staff',              // 어드민 담당자 마스터
+
+  // KPI 업무관리센터 (POUR OS → React 흡수, PR α 인프라)
+  // 모든 문서는 staffId(어드민 staff 컬렉션의 doc.id)로 소유자 식별.
+  POUR_TASKS: 'pour-tasks',           // { staffId, title, done, doneAt, priority, projectId, weekDay, weekSlot, dueDate, isFixed, recurringId, performedDate, notes, attachments, linkedMeetingId, linkedActionItemId, originalAssigneeStaffId, createdAt, updatedAt }
+  POUR_RECURRING: 'pour-recurring',   // { staffId, assigneeStaffIds:[] | 'all', title, recurType:'daily'|'weekly'|'monthly', weekDay, monthDay, time, priority, projectId, pinned, description, active, createdAt, updatedAt }
+  POUR_PROJECTS: 'pour-projects',     // { staffId(owner), kpiId, contribution, name, category, status, progress, collaboratorStaffIds:[], description, dueDate, linkedMeetingId, createdAt, updatedAt }
+  POUR_OBJECTIVES: 'pour-objectives', // { staffId, title, year, target, current, unit, description, createdAt, updatedAt }
+  POUR_KEYRESULTS: 'pour-keyresults', // { objectiveId, title, target, current, unit, channel:'inbound'|'outbound'|'ops', description, createdAt, updatedAt }
+  POUR_KPIS: 'pour-kpis',             // { staffId, keyResultId, name, target, baseline, unit, source:'auto'|'auto-progress'|'manual', current, history:[], description, createdAt, updatedAt }
+  POUR_MEETINGS: 'pour-meetings',     // { staffId, title, date, time, type, place, agenda, attendeeStaffIds:[], actionItems:[{id, text, assigneeStaffId, dueDate, priority, done, linkedTaskId, linkedProjectId}], createdAt, updatedAt }
 };
 
 // 담당자 role 7개 — KPI 시스템(pour-os-v6-2.html)의 5개 카테고리 + dev/manage
@@ -107,6 +117,9 @@ const SETTLEMENT_STATUS_META = {
 };
 
 const ADMIN_PIN_KEY = 'pourStoreAdminPin';
+// PIN 인증 직후 어떤 staff로 활동할지 — KPI 업무관리센터(POUR OS 흡수)의 모든 작업은 이 staff에 연결됨.
+// 향후 3-A 이메일 OTP 인증 도입 시 OTP 발급 staff로 자동 설정 예정.
+const ACTIVE_STAFF_KEY = 'pourAdminActiveStaffId';
 const DEFAULT_PIN = '1234';
 
 const SURFS = [
@@ -212,8 +225,7 @@ const NAV = [
   { type: 'divider', label: '매출관리센터' },
   // 메뉴는 담당자 개발 완료 후 연결 예정 (dealers/purchase-orders/orders/settlement 컴포넌트는 유지)
   { type: 'divider', label: 'KPI 업무관리센터' },
-  { id: 'pour-os', icon: '🎯', label: 'POUR OS' },
-  { id: 'growth-board', icon: '📈', label: '그로스보드' },
+  // 대시보드·캘린더·반복업무·회의록 → React 컴포넌트 흡수 작업 진행 중 (PR 1~3)
   { type: 'divider', label: '디자인/개발 센터' },
   { id: 'preview', icon: '🎨', label: '자사몰 페이지 관리' },
   { id: 'products', icon: '📦', label: '상품관리' },
@@ -312,6 +324,120 @@ function Modal({ open, onClose, title, children, width = 720 }) {
 }
 
 // ============================================================
+// Active Staff Session — 현재 로그인한 어드민이 어떤 staff인지 추적
+// 향후 3-A 이메일 OTP 인증 도입 시 OTP 발급 staff로 자동 설정.
+// 지금은 PIN 인증 통과 후 staff 목록에서 본인 선택.
+// ============================================================
+function getActiveStaffId() {
+  try { return localStorage.getItem(ACTIVE_STAFF_KEY); } catch (e) { return null; }
+}
+function setActiveStaffId(id) {
+  try {
+    if (id) localStorage.setItem(ACTIVE_STAFF_KEY, id);
+    else localStorage.removeItem(ACTIVE_STAFF_KEY);
+  } catch (e) {}
+}
+
+// useStaffMembers — staff 컬렉션을 POUR OS 멤버처럼 사용 (활성만, 이름순)
+// onSnapshot 실시간 구독 — 어드민에서 staff 추가/수정 시 즉시 반영
+function useStaffMembers({ includeInactive = false } = {}) {
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const unsub = db.collection(COLLECTIONS.STAFF).onSnapshot(snap => {
+      let list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (!includeInactive) list = list.filter(s => s.active !== false);
+      list.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ko'));
+      console.log(`[useStaffMembers] ${list.length}명 (active${includeInactive?'+inactive':' only'})`);
+      setMembers(list);
+      setLoading(false);
+    }, err => {
+      console.error('[useStaffMembers] 구독 실패:', err);
+      setLoading(false);
+    });
+    return unsub;
+  }, [includeInactive]);
+  return { members, loading };
+}
+
+// useActiveStaff — 현재 활동 중인 staff 객체 (members 중에서)
+function useActiveStaff(members) {
+  const [activeId, setActiveIdState] = useState(getActiveStaffId());
+  const active = useMemo(() => members.find(m => m.id === activeId) || null, [members, activeId]);
+  const setActive = (id) => { setActiveStaffId(id); setActiveIdState(id); };
+  // 저장된 staffId가 active 목록에 없으면 (비활성 처리 등) 초기화
+  useEffect(() => {
+    if (activeId && members.length && !active) setActive(null);
+  }, [activeId, members.length, active]);
+  return { active, activeId, setActive };
+}
+
+// ============================================================
+// Active Staff Picker — PIN 통과 후 본인 선택 (1회, 이후 localStorage 캐시)
+// ============================================================
+function ActiveStaffPicker({ onPicked, onToast }) {
+  const { members, loading } = useStaffMembers();
+  const [busy, setBusy] = useState(false);
+  if (loading) {
+    return <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text-sm)' }}>담당자 목록 로딩 중...</div>;
+  }
+  return (
+    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', padding:24, background:'linear-gradient(135deg, var(--navy), var(--navy2))' }}>
+      <div style={{ width:'100%', maxWidth:560, background:'#fff', borderRadius:18, padding:'32px 32px 28px', boxShadow:'var(--shadow-lg)' }}>
+        <div style={{ marginBottom:22 }}>
+          <h1 style={{ fontSize:20, fontWeight:900, color:'var(--navy)', letterSpacing:-0.4, marginBottom:6 }}>활동 담당자 선택</h1>
+          <div style={{ fontSize:12.5, color:'var(--text-sm)', fontWeight:700, lineHeight:1.6 }}>
+            지금부터 어드민에서 하는 모든 작업이 이 담당자 기록으로 남습니다.
+            <br/>본인이 아니면 잘못된 사람이 작업한 것으로 기록되니 주의.
+          </div>
+        </div>
+        {members.length === 0 ? (
+          <div style={{ padding:'28px 22px', background:'var(--or-pale)', border:'1.5px dashed var(--or-l)', borderRadius:12, textAlign:'center', fontSize:13, color:'var(--or-d)', fontWeight:700, lineHeight:1.7 }}>
+            등록된 담당자가 없습니다.<br/>
+            먼저 디자인/개발 센터 → 담당자 관리에서 담당자를 등록해 주세요.<br/>
+            (PIN으로 진입한 사용자가 첫 담당자가 됩니다.)
+            <div style={{ marginTop:14 }}>
+              <button onClick={() => onPicked(null)} style={{ padding:'10px 22px', borderRadius:9, fontSize:12, fontWeight:800, color:'#fff', background:'linear-gradient(135deg, var(--or), var(--or-d))' }}>
+                담당자 없이 진입 (담당자 관리로 이동)
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, maxHeight:'56vh', overflowY:'auto', marginBottom:18 }}>
+            {members.map(m => {
+              const meta = ROLE_META[m.role] || { color:'#9CA3AF', icon:'❔', label:m.role };
+              const initial = m.kpiInitial || (m.name || '?').charAt(0);
+              return (
+                <button key={m.id} disabled={busy} onClick={() => { setBusy(true); onPicked(m.id); }} style={{
+                  display:'flex', alignItems:'center', gap:12, padding:'14px 16px', borderRadius:11,
+                  border:`1.5px solid var(--border)`, background:'#fff', textAlign:'left',
+                  transition:'all .15s'
+                }}>
+                  <div style={{ width:40, height:40, borderRadius:'50%', flexShrink:0,
+                    background: m.kpiColor || meta.color, color:'#fff',
+                    display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:900 }}>
+                    {initial}
+                  </div>
+                  <div style={{ minWidth:0 }}>
+                    <div style={{ fontSize:14, fontWeight:900, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.name}</div>
+                    <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700, marginTop:2 }}>
+                      {meta.icon} {meta.label}{m.department ? ` · ${m.department}` : ''}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+        <div style={{ fontSize:10.5, color:'var(--text-xs)', fontWeight:600, textAlign:'center', lineHeight:1.7 }}>
+          향후 이메일 OTP 인증 도입 시 이 단계는 자동 처리됩니다 (3-A).
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // PIN Auth Screen
 // ============================================================
 function PinScreen({ onUnlock, onToast }) {
@@ -371,7 +497,8 @@ function PinScreen({ onUnlock, onToast }) {
 // ============================================================
 // Sidebar
 // ============================================================
-function Sidebar({ active, onNav, onLogout }) {
+function Sidebar({ active, onNav, onLogout, activeStaff, onSwitchStaff }) {
+  const staffMeta = activeStaff && (ROLE_META[activeStaff.role] || { icon:'❔', label: activeStaff.role, color:'#9CA3AF' });
   return (
     <aside style={{
       width:240, background:'var(--navy)', color:'#fff', display:'flex', flexDirection:'column',
@@ -384,6 +511,26 @@ function Sidebar({ active, onNav, onLogout }) {
             <div style={{ fontSize:10.5, color:'rgba(255,255,255,.55)', fontWeight:700, letterSpacing:.5 }}>ADMIN CENTER</div>
           </div>
         </div>
+        {activeStaff && (
+          <button onClick={onSwitchStaff} title="활동 담당자 전환" style={{
+            display:'flex', alignItems:'center', gap:9, width:'100%', marginTop:10,
+            padding:'8px 10px', borderRadius:9, background:'rgba(255,255,255,.06)',
+            border:'1px solid rgba(255,255,255,.08)', color:'#fff', textAlign:'left'
+          }}>
+            <div style={{ width:30, height:30, borderRadius:'50%', flexShrink:0,
+              background: activeStaff.kpiColor || staffMeta.color, color:'#fff',
+              display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:900 }}>
+              {activeStaff.kpiInitial || (activeStaff.name || '?').charAt(0)}
+            </div>
+            <div style={{ minWidth:0, flex:1 }}>
+              <div style={{ fontSize:12, fontWeight:900, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{activeStaff.name}</div>
+              <div style={{ fontSize:9.5, color:'rgba(255,255,255,.55)', fontWeight:700 }}>
+                {staffMeta.icon} {staffMeta.label}
+              </div>
+            </div>
+            <span style={{ fontSize:10, opacity:.55 }}>↻</span>
+          </button>
+        )}
       </div>
       <nav style={{ flex:1, padding:'12px 12px' }}>
         {NAV.map((item, i) => {
@@ -4284,87 +4431,6 @@ function MethodLinksPage({showToast}){
 }
 
 // ============================================================
-// PourOSPage — KPI/OKR 업무관리 (kpi/pour-os.html iframe 임베드)
-// ============================================================
-function PourOSPage() {
-  return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100vh', background:'var(--bg)' }}>
-      <div style={{
-        padding:'14px 20px', borderBottom:'1px solid var(--border)', background:'#fff',
-        display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap'
-      }}>
-        <div>
-          <h1 style={{ fontSize:16, fontWeight:900, color:'var(--navy)', marginBottom:2 }}>🎯 POUR OS</h1>
-          <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700 }}>
-            OKR·KPI·반복업무·회의록·매뉴얼 통합 운영 시스템 (v21). 그로스보드 데이터의 원천.
-          </div>
-        </div>
-        <a href="./kpi/pour-os.html" target="_blank" rel="noopener noreferrer" style={{
-          padding:'7px 14px', fontSize:11.5, fontWeight:800, color:'var(--or-d)',
-          border:'1px solid var(--or-l)', borderRadius:7, background:'#fff', display:'inline-flex', alignItems:'center', gap:6
-        }}>
-          새창에서 열기 <span style={{ fontSize:10 }}>↗</span>
-        </a>
-      </div>
-      <iframe
-        src="./kpi/pour-os.html"
-        title="POUR OS — KPI/OKR 업무관리"
-        style={{ flex:1, width:'100%', border:0, background:'#fff' }}
-      />
-    </div>
-  );
-}
-
-// ============================================================
-// GrowthBoardPage — 그로스보드 (주간보고 + 분기별 보고)
-// 현재는 placeholder. 다음 PR에서 POUR OS의 주간보고를 고도화하여 통합 예정.
-// ============================================================
-function GrowthBoardPage() {
-  return (
-    <div style={{ padding:'24px 32px', maxWidth:900 }}>
-      <h1 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6, marginBottom:4 }}>📈 그로스보드</h1>
-      <div style={{ fontSize:12.5, color:'var(--text-sm)', fontWeight:700, marginBottom:24 }}>
-        주간보고 + 분기별 보고 (담당자별 PPT 형식, 사진 첨부) 통합 보드. POUR OS에서 쌓은 데이터를 자동 집계해 표시합니다.
-      </div>
-
-      <div style={{ padding:'24px 28px', background:'var(--or-pale)', border:'1.5px solid var(--or-l)', borderRadius:14, marginBottom:18 }}>
-        <div style={{ display:'flex', alignItems:'flex-start', gap:14 }}>
-          <span style={{ fontSize:28 }}>🚧</span>
-          <div>
-            <div style={{ fontSize:14, fontWeight:900, color:'var(--or-d)', marginBottom:6 }}>준비 중 — 다음 PR에서 공개</div>
-            <div style={{ fontSize:12.5, color:'var(--text)', fontWeight:600, lineHeight:1.7 }}>
-              그로스보드는 <strong>POUR OS의 주간보고를 고도화</strong>하여 만들어집니다.
-              <br/>현재 POUR OS에서 KPI·OKR·반복업무 데이터를 쌓아주시면, 다음 단계에서 자동 집계되어 표시됩니다.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
-        <div style={{ padding:'18px 20px', background:'#fff', border:'1px solid var(--border)', borderRadius:12 }}>
-          <div style={{ fontSize:11, fontWeight:800, color:'var(--text-sm)', marginBottom:6, letterSpacing:.4 }}>주간보고</div>
-          <div style={{ fontSize:14, fontWeight:900, color:'var(--navy)', marginBottom:8 }}>매주 자동 집계</div>
-          <div style={{ fontSize:11.5, color:'var(--text-md)', fontWeight:600, lineHeight:1.6 }}>
-            POUR OS의 완료 task·진행 프로젝트·KPI 진척도를 주 단위로 묶어 담당자별 보고서로 정리.
-          </div>
-        </div>
-        <div style={{ padding:'18px 20px', background:'#fff', border:'1px solid var(--border)', borderRadius:12 }}>
-          <div style={{ fontSize:11, fontWeight:800, color:'var(--text-sm)', marginBottom:6, letterSpacing:.4 }}>분기별 보고</div>
-          <div style={{ fontSize:14, fontWeight:900, color:'var(--navy)', marginBottom:8 }}>PPT 형식 + 사진 첨부</div>
-          <div style={{ fontSize:11.5, color:'var(--text-md)', fontWeight:600, lineHeight:1.6 }}>
-            담당자별 발표자료. 분기 OKR 달성도·성과 사례·다음 분기 계획을 슬라이드 형식으로 작성·공유.
-          </div>
-        </div>
-      </div>
-
-      <div style={{ marginTop:18, padding:'14px 18px', background:'#fff', border:'1px dashed var(--border)', borderRadius:10, fontSize:12, color:'var(--text-sm)', fontWeight:600, lineHeight:1.7 }}>
-        ⚙️ 다음 작업 (별도 PR): POUR OS 내부의 "주간 보고서" 컴포넌트 → "그로스보드"로 이름 변경 + 분기별 PPT 슬라이드 모드 + 사진 업로드 + 어드민 임베드 연동.
-      </div>
-    </div>
-  );
-}
-
-// ============================================================
 // PreviewPage — 자사몰 페이지 관리 (preview.html iframe 임베드)
 // ============================================================
 function PreviewPage() {
@@ -4779,6 +4845,12 @@ function App() {
   const [active, setActive] = useState('dashboard');
   const [toast, setToast] = useState(null);
 
+  // 활동 staff 추적 — KPI 업무관리(POUR OS 흡수)의 모든 작업이 이 staff에 연결됨.
+  // PIN 통과 후 ActiveStaffPicker에서 선택 → localStorage 캐시 → 이후 로그인 자동.
+  const { members: staffMembers } = useStaffMembers();
+  const { active: activeStaff, activeId: activeStaffId, setActive: setActiveStaff } = useActiveStaff(staffMembers);
+  const [pickerSkipped, setPickerSkipped] = useState(false);  // 담당자 0명일 때 "없이 진입" 선택 시
+
   const [requests, setRequests] = useState([]);
   const [partners, setPartners] = useState([]);
   const [rules, setRules] = useState([]);
@@ -4823,6 +4895,28 @@ function App() {
     );
   }
 
+  // PIN 통과 후, activeStaff 미설정이면 ActiveStaffPicker 단계
+  // (pickerSkipped: 담당자 0명일 때 "담당자 없이 진입"으로 우회 → 담당자 관리에서 등록 후 다시 선택)
+  if (!activeStaffId && !pickerSkipped) {
+    return (
+      <>
+        <ActiveStaffPicker
+          onPicked={(id) => {
+            if (id) {
+              setActiveStaff(id);
+              setToast({ message: '담당자 선택 완료', type: 'success' });
+            } else {
+              setPickerSkipped(true);
+              setActive('staff');  // 담당자 관리 메뉴로 자동 이동
+            }
+          }}
+          onToast={setToast}
+        />
+        {toast && <Toast {...toast} onDone={() => setToast(null)} />}
+      </>
+    );
+  }
+
   const stats = {
     matching: requests.filter(r => !['완료','취소'].includes(r.status)).length,
     partners: partners.filter(p => p.contractStatus === '활성').length,
@@ -4832,7 +4926,13 @@ function App() {
 
   return (
     <div style={{ display:'flex', minHeight:'100vh' }}>
-      <Sidebar active={active} onNav={setActive} onLogout={() => setUnlocked(false)} />
+      <Sidebar
+        active={active}
+        onNav={setActive}
+        onLogout={() => { setActiveStaff(null); setPickerSkipped(false); setUnlocked(false); }}
+        activeStaff={activeStaff}
+        onSwitchStaff={() => { setActiveStaff(null); setPickerSkipped(false); }}
+      />
       <main style={{ flex:1, minWidth:0 }}>
         {active === 'dashboard' && <Dashboard stats={stats} />}
         {active === 'matching' && <MatchingRequests requests={requests} partners={partners} rules={rules} onUpdate={loadAll} onToast={setToast} />}
@@ -4843,8 +4943,6 @@ function App() {
         {active === 'orders' && <Orders orders={orders} dealers={dealers} onUpdate={loadAll} onToast={setToast} />}
         {active === 'settlement' && <Settlement orders={orders} dealers={dealers} onToast={setToast} />}
         {active === 'inquiries' && <Inquiries inquiries={inquiries} onUpdate={loadAll} onToast={setToast} />}
-        {active === 'pour-os' && <PourOSPage />}
-        {active === 'growth-board' && <GrowthBoardPage />}
         {active === 'preview' && <PreviewPage />}
         {active === 'products' && <ProductsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'metrics' && <MetricsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}

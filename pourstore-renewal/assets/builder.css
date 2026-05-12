@@ -113,7 +113,7 @@ details.howto-card.sync-info > summary::after { color: var(--green-d); }
 .retention-group .rg-item .rg-reason { color: var(--ink); }
 .retention-group .rg-item .rg-reason.empty { color: var(--muted); font-style: italic; }
 
-.layout { max-width: 1240px; margin: 0 auto; padding: 22px 24px 80px; display: grid; grid-template-columns: 240px 1fr; gap: 20px; }
+.layout { max-width: 1360px; margin: 0 auto; padding: 22px 24px 80px; display: grid; grid-template-columns: 360px 1fr; gap: 20px; }
 
 .sidebar { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 14px; height: fit-content; position: sticky; top: 12px; }
 .sidebar h3 { font-size: 11px; font-weight: 800; color: var(--muted); letter-spacing: 1px; margin: 6px 4px 10px; }

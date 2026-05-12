@@ -65,12 +65,25 @@
     border-radius:6px;
     overflow:hidden;
     box-shadow: 0 12px 60px rgba(0,0,0,0.45);
-    aspect-ratio: 639 / 383;   /* SVG 로드 전에도 컨테이너 비율 유지 */
+    /* 두 방식 모두 적용: padding-bottom 해킹(폴백) + aspect-ratio(최신) */
+    position: relative;
+    padding-bottom: 59.937%;   /* 383/639 = 0.59937 — 부채꼴 라벨 비율 */
+    aspect-ratio: 639 / 383;
+    height: 0;                 /* padding-bottom 해킹 활성화 */
+  }
+  /* aspect-ratio 지원 브라우저: height auto가 우선 */
+  @supports (aspect-ratio: 1) {
+    .label-frame > div { height: auto; padding-bottom: 0; }
   }
   svg.label-svg {
     display: block;
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
+  }
+  @supports (aspect-ratio: 1) {
+    svg.label-svg { position: static; }
   }
   /* 모바일: 좌우 패딩 축소 + 헤더 컴팩트 */
   @media (max-width: 600px) {

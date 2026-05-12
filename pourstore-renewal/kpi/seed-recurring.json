@@ -1,0 +1,155 @@
+[
+  {
+    "title": "🌅 출근 직후 — CS 확인 (이메일·채널톡·카톡·문자·게시판)",
+    "recurType": "daily",
+    "time": "09:00",
+    "priority": "high",
+    "description": "다양한 채널에서 들어온 CS 종합 점검",
+    "assignees": [
+      "m1"
+    ]
+  },
+  {
+    "title": "📋 출근 직후 — 주문 확인",
+    "recurType": "daily",
+    "time": "09:00",
+    "priority": "high",
+    "description": "전 채널 신규 주문 점검",
+    "assignees": [
+      "m1"
+    ]
+  },
+  {
+    "title": "📦 주문 마감 및 발주 처리",
+    "recurType": "daily",
+    "time": "13:30",
+    "priority": "high",
+    "description": "13:30 주문 마감 후 사방넷·세이고·로지쓰리 발주",
+    "assignees": [
+      "m1"
+    ]
+  },
+  {
+    "title": "💬 CS 확인 2차",
+    "recurType": "daily",
+    "time": "14:00",
+    "priority": "mid",
+    "description": "오후 1차 마감 후 추가 응대",
+    "assignees": [
+      "m1"
+    ]
+  },
+  {
+    "title": "🚚 출고 및 송장번호 확인",
+    "recurType": "daily",
+    "time": "17:00",
+    "priority": "high",
+    "description": "세이고/원스톱/용인공장 출고 검증",
+    "assignees": [
+      "m1"
+    ]
+  },
+  {
+    "title": "📢 금일 주문내역 공유 (잔디 토픽)",
+    "recurType": "daily",
+    "time": "17:15",
+    "priority": "mid",
+    "description": "팀 잔디 토픽에 일일 주문 요약",
+    "assignees": [
+      "m1"
+    ]
+  },
+  {
+    "title": "📅 저번 주 리뷰 + 이번 주 업무 보고 (10분)",
+    "recurType": "weekly",
+    "weekDay": "월",
+    "time": "09:30",
+    "priority": "high",
+    "description": "간략히 10분 투자",
+    "assignees": "all"
+  },
+  {
+    "title": "📊 금주 업무 정리 + KPI/프로젝트 수동 기재",
+    "recurType": "weekly",
+    "weekDay": "금",
+    "time": "17:00",
+    "priority": "high",
+    "description": "매일 기재 못한 업무 보완 + 전략 실행 페이지 갱신",
+    "assignees": "all"
+  },
+  {
+    "title": "💰 금주 매출 엑셀 등록",
+    "recurType": "weekly",
+    "weekDay": "금",
+    "time": "17:30",
+    "priority": "high",
+    "description": "채널별 매출 데이터 → KR current 합산",
+    "assignees": [
+      "m1"
+    ]
+  },
+  {
+    "title": "🗣 금주 상담 데이터 보고",
+    "recurType": "weekly",
+    "weekDay": "금",
+    "time": "18:00",
+    "priority": "mid",
+    "description": "CRM/CS 상담 건수·전환 데이터 정리",
+    "assignees": [
+      "m1"
+    ]
+  },
+  {
+    "title": "🏷 한진택배 계산서 발급 신청",
+    "recurType": "monthly",
+    "monthDay": 1,
+    "time": "10:00",
+    "priority": "high",
+    "description": "매달 1일",
+    "assignees": [
+      "m1"
+    ]
+  },
+  {
+    "title": "💸 고정지출 폼 입력",
+    "recurType": "monthly",
+    "monthDay": 5,
+    "time": "10:00",
+    "priority": "high",
+    "description": "매달 1~5일 사이 (5일 마감)",
+    "assignees": [
+      "m1"
+    ]
+  },
+  {
+    "title": "🏦 세이고 정산 확인",
+    "recurType": "monthly",
+    "monthDay": 25,
+    "time": "10:00",
+    "priority": "high",
+    "description": "매달 25일",
+    "assignees": [
+      "m1"
+    ]
+  },
+  {
+    "title": "🏦 나비엠알오·제비스코 등 위탁판매 정산 확인",
+    "recurType": "monthly",
+    "monthDay": 25,
+    "time": "14:00",
+    "priority": "high",
+    "description": "계약관계 위탁판매 정산 점검",
+    "assignees": [
+      "m1"
+    ]
+  },
+  {
+    "title": "🧹 전시장 청소",
+    "recurType": "monthly",
+    "monthDay": "last",
+    "time": "17:00",
+    "priority": "mid",
+    "description": "오산 쇼룸 전시장 청소 (월 마지막 날 모두 함께)",
+    "assignees": "all"
+  }
+]

@@ -158,6 +158,7 @@
 // ============================================================
 const FIGMA_ASSETS = {
   'brick-coating': {
+    fanOutline:   'https://www.figma.com/api/mcp/asset/7342f6c3-ed02-488b-9412-b65e82e7cd50', // 부채꼴 outline (Vector 65:864)
     centerPhoto:  'https://www.figma.com/api/mcp/asset/9dbf0c94-ef33-42b8-bcde-c0ef1bbf581b',
     logo:         'https://www.figma.com/api/mcp/asset/10e064ec-7b82-4d59-910e-079fdb307df5',
     headlineBg:   'https://www.figma.com/api/mcp/asset/f911a42e-fb3d-4d83-ab74-b96c6acda921',
@@ -167,6 +168,12 @@ const FIGMA_ASSETS = {
     badge4:       'https://www.figma.com/api/mcp/asset/1aa5037f-402a-45e6-a483-d766053f6141', // 발수코팅
   }
 };
+
+// 부채꼴 회전 각도 (Figma 평균값)
+// 좌측 텍스트들: rotate(-3.89° ~ -4.68°) → 평균 -4.2°
+// 우측 텍스트들: rotate(+2.44° ~ +3.64°) → 평균 +2.7°
+const FAN_ROTATE_LEFT  = -4.2;
+const FAN_ROTATE_RIGHT = 2.7;
 
 // 테마별 fallback 컬러 (Figma 에셋 없는 8종)
 const THEME_FALLBACK_BG = {
@@ -339,12 +346,14 @@ function buildLabelSVG(p, common) {
     <!-- ── 흰색 배경 ── -->
     <rect width="639" height="383" fill="#FFFFFF"/>
 
-    <!-- ── 절단 가이드 (자홍색 점선, 일러스트에서 끄거나 삭제 가능) ── -->
-    <g id="cut-guides" stroke="#FF00FF" stroke-width="0.5" stroke-dasharray="3 2" fill="none" opacity="0.5">
-      <rect x="6" y="5" width="628.71" height="372.35"/>
-      <line x1="186" y1="0" x2="186" y2="383"/>
-      <line x1="441" y1="0" x2="441" y2="383"/>
-    </g>
+    <!-- ── 부채꼴 outline (Figma Vector 65:864) ── -->
+    ${hasAssets
+      ? `<image x="6" y="5" width="628.71" height="372.35" href="${assets.fanOutline}" preserveAspectRatio="none" opacity="0.9"/>`
+      : `<g id="cut-guides-fallback" stroke="#FF00FF" stroke-width="0.5" stroke-dasharray="3 2" fill="none" opacity="0.5">
+           <rect x="6" y="5" width="628.71" height="372.35"/>
+           <line x1="186" y1="0" x2="186" y2="383"/>
+           <line x1="441" y1="0" x2="441" y2="383"/>
+         </g>`}
 
     <!-- ═════════ 중앙 패널 (전면) ═════════ -->
     <g id="panel-front">
@@ -390,8 +399,8 @@ function buildLabelSVG(p, common) {
       ${badgeLabels}
     </g>
 
-    <!-- ═════════ 좌패널 ═════════ -->
-    <g id="panel-left">
+    <!-- ═════════ 좌패널 (부채꼴 회전 -4.2°, 우측 안쪽 가장자리 기준) ═════════ -->
+    <g id="panel-left" transform="rotate(${FAN_ROTATE_LEFT} 186 191.5)">
       ${leftIntro}
       ${leftFeatures}
       ${leftUses}
@@ -401,8 +410,8 @@ function buildLabelSVG(p, common) {
       ${leftColors}
     </g>
 
-    <!-- ═════════ 우패널 ═════════ -->
-    <g id="panel-right">
+    <!-- ═════════ 우패널 (부채꼴 회전 +2.7°, 좌측 안쪽 가장자리 기준) ═════════ -->
+    <g id="panel-right" transform="rotate(${FAN_ROTATE_RIGHT} 441 191.5)">
       ${rightDry}
       ${rightStorage}
       ${rightHandling}

@@ -224,14 +224,43 @@ function buildLabelSVG(p, common) {
     ? `<image x="186" y="177" width="255" height="51" href="${assets.headlineBg}" preserveAspectRatio="none"/>`
     : `<rect x="186" y="177" width="255" height="51" fill="rgba(0,0,0,0.5)"/>`;
 
-  // ─── 4 뱃지 아이콘 (이미지 또는 폴백 SVG) ───
-  const badgeIcons = hasAssets ? [
-    { x: 224, href: assets.badge1 },
-    { x: 272, href: assets.badge2 },
-    { x: 320, href: assets.badge3 },
-    { x: 367, href: assets.badge4 }
-  ].map(b => `<image x="${b.x}" y="300" width="36" height="36" href="${b.href}" preserveAspectRatio="xMidYMid meet"/>`).join('')
-   : [224, 272, 320, 367].map((x, i) => fallbackBadgeIcon(x, 300, p.badges[i] || '')).join('');
+  // ─── 4 뱃지 — 재설계: 개별 카드, 구분선 제거, 아이콘 키움, 라벨 키움 ───
+  // 카드 4개 (214→362), 각 36×72, 4px 간격
+  // 아이콘 32×32 (살짝 키움), 라벨 11px Bold #0c3647
+  const BADGE_CARD_W = 36;
+  const BADGE_CARD_GAP = 5.7;
+  const BADGE_CARD_Y = 286;
+  const BADGE_CARD_H = 72;
+  const BADGE_ICON_SIZE = 30;
+  const badgeCardXs = [214, 214 + BADGE_CARD_W + BADGE_CARD_GAP, 214 + 2*(BADGE_CARD_W + BADGE_CARD_GAP), 214 + 3*(BADGE_CARD_W + BADGE_CARD_GAP)];
+  const badgeAssetHrefs = hasAssets ? [assets.badge1, assets.badge2, assets.badge3, assets.badge4] : [null, null, null, null];
+
+  const badgeCards = badgeCardXs.map((cx, i) => {
+    const iconX = cx + (BADGE_CARD_W - BADGE_ICON_SIZE) / 2;
+    const iconY = BADGE_CARD_Y + 8;
+    const iconHref = badgeAssetHrefs[i];
+    const label = p.badges[i] || '';
+    const labelX = cx + BADGE_CARD_W / 2;
+    const labelY = BADGE_CARD_Y + BADGE_CARD_H - 12;
+    const accentY = BADGE_CARD_Y + BADGE_CARD_H - 22;
+    return `
+      <g class="badge-card-${i}">
+        <!-- 카드 배경 (흰색 + 미세 섀도우) -->
+        <rect x="${cx}" y="${BADGE_CARD_Y}" width="${BADGE_CARD_W}" height="${BADGE_CARD_H}" rx="4"
+              fill="#FFFFFF" opacity="0.97" stroke="#E5E7EB" stroke-width="0.4"/>
+        <!-- 액센트 도트 (오렌지 작은 원) -->
+        <circle cx="${labelX}" cy="${accentY}" r="0.8" fill="#f47f19"/>
+        <!-- 아이콘 -->
+        ${iconHref
+          ? `<image x="${iconX}" y="${iconY}" width="${BADGE_ICON_SIZE}" height="${BADGE_ICON_SIZE}" href="${iconHref}" preserveAspectRatio="xMidYMid meet"/>`
+          : `<rect x="${iconX}" y="${iconY}" width="${BADGE_ICON_SIZE}" height="${BADGE_ICON_SIZE}" rx="3" fill="#F3F4F6" stroke="#D1D5DB" stroke-width="0.3"/>
+             <text x="${labelX}" y="${iconY + BADGE_ICON_SIZE/2 + 3}" text-anchor="middle" font-size="7" fill="#0c3647" font-weight="800" font-family="Pretendard, sans-serif">${escapeXml(label[0] || '?')}</text>`}
+        <!-- 라벨 -->
+        <text x="${labelX}" y="${labelY}" text-anchor="middle"
+              font-family="Pretendard, sans-serif" font-weight="800" font-size="9.5"
+              fill="#0c3647" letter-spacing="-0.4">${escapeXml(label)}</text>
+      </g>`;
+  }).join('');
 
   // ─── 헤드카피 텍스트 (line 1 black, line 2 orange) ───
   const head1 = escapeXml(p.centerMessage.headline);                                   // "백화·오염 차단 벽돌 발수 코팅제" 대신 v12에 맞춰서
@@ -239,98 +268,119 @@ function buildLabelSVG(p, common) {
   // 단, Figma 디자인은 header가 "백화·오염 차단 + 제품명" 형태였으므로 그에 맞춰서
   const head1Figma = `${escapeXml(p.centerMessage.headline.replace(/[+]/g,'·'))} ${escapeXml(p.name)}`;
 
-  // ─── 좌패널 본문 텍스트 (Figma 좌표 그대로) ───
-  // 단, 각 텍스트는 최대 N줄로 잘라서 라벨 공간에 맞춤
+  // ─── 좌패널 본문 텍스트 (가독성 개선 — 폰트 크기 4px → 6~8px) ───
+  // 타이틀: 8.5px Bold #0c3647 (브랜드 컬러) / 본문: 6px Regular #4B5563 (더 진한 회색)
+  const TITLE_SIZE = 8.5, TITLE_FILL = '#0c3647', TITLE_WEIGHT = '800';
+  const BODY_SIZE = 6, BODY_FILL = '#374151', BODY_LH = 7.5;
+  const SECTION_GAP = 4;
+
+  // 1. 제품설명 (y=46~)
   const leftIntro = p.summary.slice(0,3).map((s,i) =>
-    `<text x="21" y="${48 + i*5}" font-size="4.04" fill="#5a5652" font-family="Pretendard, sans-serif">${escapeXml(s)}</text>`
+    `<text x="21" y="${52 + i*BODY_LH}" font-size="${BODY_SIZE}" fill="${BODY_FILL}" font-family="Pretendard, sans-serif" font-weight="500">${escapeXml(truncate(s, 38))}</text>`
   ).join('');
 
+  // 2. 특징 (y=82~)
   const leftFeatures = `
-    <text x="23" y="85" font-size="4.04" fill="#5a5652" font-weight="700" font-family="Pretendard, sans-serif">특징</text>
-    ${p.features.slice(0,5).map((f,i) =>
-      `<text x="23" y="${90 + i*5}" font-size="4.04" fill="#5a5652" font-family="Pretendard, sans-serif">• ${escapeXml(truncate(f.title + (f.desc ? ' — ' + f.desc : ''), 60))}</text>`
+    <text x="23" y="86" font-size="${TITLE_SIZE}" fill="${TITLE_FILL}" font-weight="${TITLE_WEIGHT}" font-family="Pretendard, sans-serif">특징</text>
+    ${p.features.slice(0,4).map((f,i) =>
+      `<text x="23" y="${96 + i*BODY_LH}" font-size="${BODY_SIZE}" fill="${BODY_FILL}" font-family="Pretendard, sans-serif">• ${escapeXml(truncate(f.title, 32))}</text>`
     ).join('')}`;
 
+  // 3. 용도 (y=131~)
   const leftUses = `
-    <text x="27" y="133" font-size="4.04" fill="#5a5652" font-weight="700" font-family="Pretendard, sans-serif">용도</text>
+    <text x="27" y="134" font-size="${TITLE_SIZE}" fill="${TITLE_FILL}" font-weight="${TITLE_WEIGHT}" font-family="Pretendard, sans-serif">용도</text>
     ${p.uses.slice(0,4).map((u,i) =>
-      `<text x="27" y="${138 + i*5}" font-size="4.04" fill="#5a5652" font-family="Pretendard, sans-serif">• ${escapeXml(truncate(u,52))}</text>`
+      `<text x="27" y="${144 + i*BODY_LH}" font-size="${BODY_SIZE}" fill="${BODY_FILL}" font-family="Pretendard, sans-serif">• ${escapeXml(truncate(u, 32))}</text>`
     ).join('')}`;
 
+  // 4. 작업조건 (y=179~)
   const leftWork = `
-    <text x="30" y="179" font-size="4.04" fill="#5a5652" font-weight="700" font-family="Pretendard, sans-serif">작업조건</text>
-    <text x="30" y="184" font-size="4.04" fill="#5a5652" font-family="Pretendard, sans-serif">• 대기온도 5℃~35℃ 사이에서 작업한다.</text>
-    <text x="30" y="189" font-size="4.04" fill="#5a5652" font-family="Pretendard, sans-serif">• 상대습도 80% 이하, 표면 온도 40℃ 이하에서 작업한다.</text>`;
+    <text x="30" y="180" font-size="${TITLE_SIZE}" fill="${TITLE_FILL}" font-weight="${TITLE_WEIGHT}" font-family="Pretendard, sans-serif">작업조건</text>
+    <text x="30" y="190" font-size="${BODY_SIZE}" fill="${BODY_FILL}" font-family="Pretendard, sans-serif">• 대기온도 5~35℃, 상대습도 85% 이하</text>
+    <text x="30" y="${190+BODY_LH}" font-size="${BODY_SIZE}" fill="${BODY_FILL}" font-family="Pretendard, sans-serif">• 비·안개·강풍 시 시공 회피, 시공 후 24시간</text>`;
 
+  // 5. 표면처리 (y=214~)
   const leftSurface = `
-    <text x="33" y="217" font-size="4.04" fill="#5a5652" font-weight="700" font-family="Pretendard, sans-serif">표면처리</text>
-    ${p.surfacePrep.slice(0,4).map((s,i) =>
-      `<text x="33" y="${222 + i*5}" font-size="4.04" fill="#5a5652" font-family="Pretendard, sans-serif">• ${escapeXml(truncate(s,55))}</text>`
+    <text x="33" y="217" font-size="${TITLE_SIZE}" fill="${TITLE_FILL}" font-weight="${TITLE_WEIGHT}" font-family="Pretendard, sans-serif">표면처리</text>
+    ${p.surfacePrep.slice(0,3).map((s,i) =>
+      `<text x="33" y="${227 + i*BODY_LH}" font-size="${BODY_SIZE}" fill="${BODY_FILL}" font-family="Pretendard, sans-serif">• ${escapeXml(truncate(s, 30))}</text>`
     ).join('')}`;
 
+  // 6. 시공방법 (y=258~)
   const leftApp = `
-    <text x="37" y="264" font-size="4.04" fill="#5a5652" font-weight="700" font-family="Pretendard, sans-serif">시공방법</text>
+    <text x="37" y="261" font-size="${TITLE_SIZE}" fill="${TITLE_FILL}" font-weight="${TITLE_WEIGHT}" font-family="Pretendard, sans-serif">시공방법</text>
     ${p.application.slice(0,4).map((a,i) =>
-      `<text x="37" y="${269 + i*5}" font-size="4.04" fill="#5a5652" font-family="Pretendard, sans-serif">• ${escapeXml(truncate(a.step + ' — ' + a.desc, 55))}</text>`
+      `<text x="37" y="${271 + i*BODY_LH}" font-size="${BODY_SIZE}" fill="${BODY_FILL}" font-family="Pretendard, sans-serif">${i+1}. ${escapeXml(truncate(a.step + (a.desc ? ' — ' + a.desc : ''), 31))}</text>`
     ).join('')}`;
 
+  // 7. 색상·포장단위 (y=308~)
   const colorsText = p.colors.join(' / ');
   const leftColors = `
-    <text x="40" y="315" font-size="4.04" fill="#5a5652" font-family="Pretendard, sans-serif">색상 ㅣ <tspan font-size="4.19">${escapeXml(colorsText)} (유백색 건조 후 투명)</tspan></text>
-    <text x="41" y="335" font-size="4.04" fill="#5a5652" font-family="Pretendard, sans-serif">포장단위 ㅣ <tspan font-size="4.19">Gross Weight l ${escapeXml(common.packaging.toLowerCase())} pail</tspan></text>`;
+    <line x1="40" y1="306" x2="160" y2="306" stroke="#D1D5DB" stroke-width="0.4"/>
+    <text x="40" y="316" font-size="${BODY_SIZE+0.5}" fill="${TITLE_FILL}" font-family="Pretendard, sans-serif" font-weight="700">색상</text>
+    <text x="60" y="316" font-size="${BODY_SIZE+0.5}" fill="${BODY_FILL}" font-family="Pretendard, sans-serif">ㅣ ${escapeXml(colorsText)}</text>
+    <text x="40" y="326" font-size="${BODY_SIZE+0.5}" fill="${TITLE_FILL}" font-family="Pretendard, sans-serif" font-weight="700">포장</text>
+    <text x="60" y="326" font-size="${BODY_SIZE+0.5}" fill="${BODY_FILL}" font-family="Pretendard, sans-serif">ㅣ Gross Weight ${escapeXml(common.packaging.toLowerCase())} pail</text>`;
 
-  // ─── 우패널 ───
+  // ─── 우패널 (가독성 개선 — 폰트 4px → 5.5~8.5px) ───
+  // 건조시간 박스 (y=35~75)
   const rightDry = `
-    <text x="468" y="42" font-size="4.04" fill="#0d1b2a" font-weight="700" font-family="Pretendard, sans-serif">건조시간</text>
-    <text x="468" y="50" font-size="4.04" fill="#374151" font-family="Pretendard, sans-serif">- 표면건조: ${escapeXml(common.dryTime.surface)}</text>
-    <text x="468" y="56" font-size="4.04" fill="#374151" font-family="Pretendard, sans-serif">- 완전경화: ${escapeXml(common.dryTime.cure)}</text>
-    <text x="468" y="62" font-size="4.04" fill="#374151" font-family="Pretendard, sans-serif">${escapeXml(common.dryTime.note)}</text>`;
+    <rect x="461" y="35" width="148" height="40" rx="2" fill="none" stroke="${TITLE_FILL}" stroke-width="0.5"/>
+    <text x="468" y="46" font-size="${TITLE_SIZE}" fill="${TITLE_FILL}" font-weight="${TITLE_WEIGHT}" font-family="Pretendard, sans-serif">건조시간</text>
+    <text x="468" y="57" font-size="${BODY_SIZE}" fill="${BODY_FILL}" font-family="Pretendard, sans-serif">· 표면건조: ${escapeXml(common.dryTime.surface)}</text>
+    <text x="468" y="65" font-size="${BODY_SIZE}" fill="${BODY_FILL}" font-family="Pretendard, sans-serif">· 완전경화: ${escapeXml(common.dryTime.cure)}</text>
+    <text x="468" y="73" font-size="${BODY_SIZE-0.5}" fill="#9CA3AF" font-family="Pretendard, sans-serif" font-style="italic">${escapeXml(common.dryTime.note)}</text>`;
 
+  // 보관 박스 (y=82~132)
   const rightStorage = `
-    <text x="467" y="69" font-size="4.04" fill="#0d1b2a" font-weight="700" font-family="Pretendard, sans-serif">보관 및 저장기간</text>
+    <rect x="461" y="82" width="148" height="50" rx="2" fill="none" stroke="${TITLE_FILL}" stroke-width="0.5"/>
+    <text x="468" y="93" font-size="${TITLE_SIZE}" fill="${TITLE_FILL}" font-weight="${TITLE_WEIGHT}" font-family="Pretendard, sans-serif">보관 및 저장기간</text>
     ${common.storage.map((s,i) =>
-      `<text x="467" y="${77 + i*6}" font-size="4.04" fill="#374151" font-family="Pretendard, sans-serif">- ${escapeXml(s)}</text>`
+      `<text x="468" y="${103 + i*7}" font-size="${BODY_SIZE}" fill="${BODY_FILL}" font-family="Pretendard, sans-serif">· ${escapeXml(truncate(s, 40))}</text>`
     ).join('')}`;
 
+  // 취급보관시 주의사항 (y=140~230)
   const rightHandling = `
-    <text x="464" y="137" font-size="4.04" fill="#0d1b2a" font-weight="700" font-family="Pretendard, sans-serif">취급보관시 주의사항</text>
+    <text x="461" y="148" font-size="${TITLE_SIZE}" fill="${TITLE_FILL}" font-weight="${TITLE_WEIGHT}" font-family="Pretendard, sans-serif">취급 보관 시 주의사항</text>
     ${(() => {
-      let y = 144;
-      return common.handlingCautions.map((c,i) => {
-        const lines = wrapText(c, 56);
+      let y = 158;
+      const FONT = 5.2, LH = 6;
+      return common.handlingCautions.slice(0,5).map((c,i) => {
+        const lines = wrapText(c, 38);
         const out = lines.map((line, j) => {
-          const text = `<text x="464" y="${y}" font-size="3.5" fill="#374151" font-family="Pretendard, sans-serif">${j===0 ? `${i+1}) ` : '   '}${escapeXml(line)}</text>`;
-          y += 4.5;
+          const text = `<text x="461" y="${y}" font-size="${FONT}" fill="${BODY_FILL}" font-family="Pretendard, sans-serif">${j===0 ? `${i+1}) ` : '    '}${escapeXml(line)}</text>`;
+          y += LH;
           return text;
         }).join('');
-        y += 0.5;
+        y += 1;
         return out;
       }).join('');
     })()}`;
 
+  // 사용시 주의사항 (y=240~360)
   const rightUsage = `
-    <text x="460" y="240" font-size="4.04" fill="#0d1b2a" font-weight="700" font-family="Pretendard, sans-serif">사용시 주의사항</text>
+    <text x="461" y="248" font-size="${TITLE_SIZE}" fill="${TITLE_FILL}" font-weight="${TITLE_WEIGHT}" font-family="Pretendard, sans-serif">사용 시 주의사항</text>
     ${(() => {
-      let y = 247;
-      return common.usageCautions.map((c,i) => {
-        const lines = wrapText(c, 56);
+      let y = 258;
+      const FONT = 5.2, LH = 6;
+      return common.usageCautions.slice(0,6).map((c,i) => {
+        const lines = wrapText(c, 38);
         const out = lines.map((line, j) => {
-          const text = `<text x="460" y="${y}" font-size="3.5" fill="#374151" font-family="Pretendard, sans-serif">${j===0 ? `${i+1}) ` : '   '}${escapeXml(line)}</text>`;
-          y += 4.5;
+          const text = `<text x="461" y="${y}" font-size="${FONT}" fill="${BODY_FILL}" font-family="Pretendard, sans-serif">${j===0 ? `${i+1}) ` : '    '}${escapeXml(line)}</text>`;
+          y += LH;
           return text;
         }).join('');
-        y += 0.5;
+        y += 1;
         return out;
       }).join('');
-    })()}`;
+    })()}
+    <text x="461" y="358" font-size="${BODY_SIZE-0.5}" fill="#9CA3AF" font-family="Pretendard, sans-serif" font-style="italic">※ 자세한 사항은 물질안전보건자료(MSDS) 참조</text>`;
 
-  // ─── 4 뱃지 라벨 (이름) ───
-  const badgeLabels = [243, 291, 338, 386].map((x,i) =>
-    `<text x="${x}" y="349" text-anchor="middle" font-family="Pretendard, sans-serif" font-weight="500" font-size="9" fill="#000">${escapeXml(p.badges[i] || '')}</text>`
-  ).join('');
+  // ─── 4 뱃지 (사용 안 함 — badgeCards로 통합 렌더링) ───
 
-  // ─── 영업 고도화: BEFORE/AFTER + 베네핏 콜아웃 (벽돌 발수 코팅제 전용) ───
-  const isEnhanced = (p.id === 'brick-coating' && hasAssets);
+  // ─── 사용자 피드백 반영: 사진 자체가 BEFORE/AFTER 이미 표현하고 있음
+  // 가짜 오버레이/태그/화살표/베네핏 핀/시공면적 모두 비활성화
+  const isEnhanced = false;
 
   // BEFORE 영역 (사진 상반부) — 백화·오염 효과 오버레이
   const beforeStainOverlay = isEnhanced ? `
@@ -477,19 +527,8 @@ function buildLabelSVG(p, common) {
       <!-- 🆕 시공면적 표시 -->
       ${coverageText}
 
-      <!-- 뱃지 뒷배경 -->
-      <rect x="214" y="292" width="199" height="64" fill="#FFFFFF" opacity="0.85" rx="2"/>
-
-      <!-- 뱃지 구분선 -->
-      <line x1="266" y1="297" x2="266" y2="351" stroke="#D1D5DB" stroke-width="0.5"/>
-      <line x1="314" y1="297" x2="314" y2="351" stroke="#D1D5DB" stroke-width="0.5"/>
-      <line x1="361" y1="297" x2="361" y2="351" stroke="#D1D5DB" stroke-width="0.5"/>
-
-      <!-- 뱃지 아이콘 4개 -->
-      ${badgeIcons}
-
-      <!-- 뱃지 라벨 4개 -->
-      ${badgeLabels}
+      <!-- 🆕 4 뱃지 카드 (개별 카드 + 키운 라벨) -->
+      ${badgeCards}
     </g>
 
     <!-- ═════════ 좌패널 (부채꼴 회전 -4.2°, 우측 안쪽 가장자리 기준) ═════════ -->

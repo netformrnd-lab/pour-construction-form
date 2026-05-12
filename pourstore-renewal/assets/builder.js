@@ -10832,6 +10832,56 @@ show('entry');
     });
     window.addEventListener('offline', () => setSync('offline', '오프라인 — 연결되면 자동 동기화'));
 
+    // ─────────────────────────────────────────────
+    // 어드민 staff 동기화 — admin.html이 iframe에 staff 마스터를 postMessage로 전달.
+    // 받으면 state.staff를 어드민 마스터로 교체하고, 활동 담당자(activeStaffId)를 본인으로 자동 설정.
+    // builder의 자체 등록·삭제 UI는 isInAdminFrame=true일 때 안내문으로 대체.
+    // ─────────────────────────────────────────────
+    const isInAdminFrame = (() => { try { return window.parent && window.parent !== window; } catch (_) { return false; } })();
+    if (isInAdminFrame) {
+      window.addEventListener('message', (e) => {
+        const msg = e.data;
+        if (!msg || msg.type !== 'admin-staff-sync') return;
+        const incoming = (msg.payload && Array.isArray(msg.payload.staff)) ? msg.payload.staff : [];
+        const activeStaffId = msg.payload?.activeStaffId || null;
+        // state.staff 교체 (어드민 마스터를 단일 진실 소스로)
+        state.staff = incoming.map(s => ({
+          id: s.id,
+          name: s.name || '',
+          role: s.role || '',
+          color: s.color || null,
+          email: s.email || null,
+          fromAdmin: true,  // 표시: 어드민이 관리하는 항목
+        }));
+        // 활동 담당자 자동 설정 (없으면 그대로 두되, 캐시된 me staffId가 새 목록에 없으면 정리)
+        try {
+          if (activeStaffId && state.staff.some(s => s.id === activeStaffId)) {
+            if (typeof setMeStaffId === 'function') setMeStaffId(activeStaffId);
+            else localStorage.setItem('pourstore-renewal-me-staff-id', activeStaffId);
+          } else {
+            const cachedId = localStorage.getItem('pourstore-renewal-me-staff-id');
+            if (cachedId && !state.staff.some(s => s.id === cachedId)) {
+              localStorage.removeItem('pourstore-renewal-me-staff-id');
+            }
+          }
+        } catch (_) {}
+        saveState();
+        // 화면 갱신
+        try { renderAll(); } catch (_) {}
+        try { if (typeof renderMeCard === 'function') renderMeCard(); } catch (_) {}
+        try { if (typeof renderStaffList === 'function') renderStaffList(); } catch (_) {}
+        try { if (typeof renderMeStaffOptions === 'function') renderMeStaffOptions(); } catch (_) {}
+        console.log(`[builder] admin staff sync — ${state.staff.length}명 / active=${activeStaffId || '-'}`);
+      });
+      // 자체 등록 UI 비활성 안내
+      const stfAddBlock = document.querySelector('.staff-add');
+      if (stfAddBlock) {
+        stfAddBlock.innerHTML = '<div style="padding:12px 14px;background:var(--or-pale,#FFF7ED);border:1px dashed var(--or-l,#FED7AA);border-radius:8px;font-size:12px;color:var(--or-d,#EA580C);font-weight:700;line-height:1.6">담당자 등록·수정은 어드민의 <b>디자인/개발 센터 → 담당자 관리</b>에서 진행됩니다.<br/>여기 목록은 어드민 마스터를 자동으로 보여줍니다.</div>';
+      }
+      // 어드민 부모에 "준비 완료" 신호 (즉시 동기화 요청)
+      try { window.parent.postMessage({ type: 'builder-ready' }, '*'); } catch (_) {}
+    }
+
     renderAll();
     initFirebase();
   });

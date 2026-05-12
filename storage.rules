@@ -10,8 +10,19 @@
 //   POUR스토어_리뉴얼/**             — 마케팅 자산 (실적관 갤러리, 협력사 로고 등)
 //                                      → 공개 read 필요 (다운로드 토큰 없는 URL 사용 중)
 //   pourstore-detail/{instanceId}/** — 상세페이지 빌더 슬롯 이미지 (Step D 업로드)
-//   defect-photos/**                 — 하자진단 사진 업로드
+//   product-details/{productId}/**   — 상품 상세 이미지 (admin.html 상품관리)
+//   case-photos/**                   — 박람회 시공사례 사진 (index/admin)
+//   prob-photos/**                   — 박람회 문제유형 사진 (index)
+//   defect-tags/**                   — 박람회 하자 태그 사진 (index)
+//   defect-photos/**                 — 하자진단 사진 (admin/defect-diagnosis)
+//   defect-diagnosis/**              — 하자진단 AI 분석 사진 (defect-diagnosis)
+//   defect-sites/**                  — 완공현장 사진 (admin)
+//   defect-templates/**              — 하자진단 템플릿 (admin)
+//   method-content/**                — 공법별 콘텐츠 사진 (admin)
+//   sales-docs/**                    — 영업자료 파일 (admin)
+//   Proposal/**                      — 제안서 PDF
 //   leads/**, leadphotos/**          — 박람회 리드 명함·메모 사진
+//   memo/**, namecard/**             — 박람회 메모·명함
 //
 // 보안 모델 (현재):
 //   firestore.rules와 동일한 정책 — 인증 없이 read/write 모두 허용.
@@ -37,13 +48,29 @@ service firebase.storage {
     // ─────────────────────────────────────────────
     // 앱 업로드 경로 — 인증 없이 read/write (1차 정책)
     // ─────────────────────────────────────────────
-    match /pourstore-detail/{allPaths=**} { allow read, write: if true; }
-    match /defect-photos/{allPaths=**}    { allow read, write: if true; }
-    match /Proposal/{allPaths=**}         { allow read, write: if true; }
-    match /leadphotos/{allPaths=**}       { allow read, write: if true; }
-    match /leads/{allPaths=**}            { allow read, write: if true; }
-    match /memo/{allPaths=**}             { allow read, write: if true; }
-    match /namecard/{allPaths=**}         { allow read, write: if true; }
+    // POUR스토어 빌더·상품관리
+    match /pourstore-detail/{allPaths=**}  { allow read, write: if true; }
+    match /product-details/{allPaths=**}   { allow read, write: if true; }
+
+    // 박람회 영업앱 (index.html, admin.html)
+    match /case-photos/{allPaths=**}       { allow read, write: if true; }
+    match /prob-photos/{allPaths=**}       { allow read, write: if true; }
+    match /defect-tags/{allPaths=**}       { allow read, write: if true; }
+    match /leadphotos/{allPaths=**}        { allow read, write: if true; }
+    match /leads/{allPaths=**}             { allow read, write: if true; }
+    match /memo/{allPaths=**}              { allow read, write: if true; }
+    match /namecard/{allPaths=**}          { allow read, write: if true; }
+
+    // 하자진단·완공현장
+    match /defect-photos/{allPaths=**}     { allow read, write: if true; }
+    match /defect-diagnosis/{allPaths=**}  { allow read, write: if true; }
+    match /defect-sites/{allPaths=**}      { allow read, write: if true; }
+    match /defect-templates/{allPaths=**}  { allow read, write: if true; }
+
+    // 영업자료·공법 콘텐츠·제안서
+    match /method-content/{allPaths=**}    { allow read, write: if true; }
+    match /sales-docs/{allPaths=**}        { allow read, write: if true; }
+    match /Proposal/{allPaths=**}          { allow read, write: if true; }
 
     // ─────────────────────────────────────────────
     // 그 외 — 명시되지 않은 경로는 모두 막음

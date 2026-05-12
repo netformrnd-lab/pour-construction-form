@@ -212,6 +212,8 @@ const NAV = [
   { type: 'divider', label: '매출관리센터' },
   // 메뉴는 담당자 개발 완료 후 연결 예정 (dealers/purchase-orders/orders/settlement 컴포넌트는 유지)
   { type: 'divider', label: 'KPI 업무관리센터' },
+  { id: 'pour-os', icon: '🎯', label: 'POUR OS' },
+  { id: 'growth-board', icon: '📈', label: '그로스보드' },
   { type: 'divider', label: '디자인/개발 센터' },
   { id: 'preview', icon: '🎨', label: '자사몰 페이지 관리' },
   { id: 'products', icon: '📦', label: '상품관리' },
@@ -3566,7 +3568,12 @@ function ProductsPage({ showToast }) {
   };
 
   return (
-    <div style={{ animation: 'fadeIn .3s ease' }}>
+    <div style={{ padding:'24px 32px', animation: 'fadeIn .3s ease' }}>
+      {/* 페이지 헤더 */}
+      <div style={{ marginBottom:22 }}>
+        <h1 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6, marginBottom:4 }}>📦 상품관리</h1>
+        <div style={{ fontSize:12.5, color:'var(--text-sm)', fontWeight:700 }}>POUR스토어 자사몰·8개 판매채널 상품 마스터. 카테고리·태그·판매상태 관리.</div>
+      </div>
       {/* 상태 필터 */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
         {SALES_STATUS.map(s => {
@@ -3686,9 +3693,9 @@ function ProductsPage({ showToast }) {
             {uploading ? '처리 중...' : '엑셀 일괄등록'}
           </button>
           <button onClick={startNew} style={{
-            padding: '10px 20px', fontSize: 14, fontWeight: 700,
-            background: 'var(--accent)', color: '#fff', border: 'none',
-            borderRadius: 8, cursor: 'pointer'
+            padding: '10px 20px', fontSize: 13, fontWeight: 900,
+            background: 'linear-gradient(135deg, var(--or), var(--or-d))', color: '#fff',
+            borderRadius: 10, cursor: 'pointer', boxShadow:'0 4px 12px rgba(249,115,22,.25)'
           }}>
             + 상품 등록
           </button>
@@ -4006,27 +4013,24 @@ function MetricsPage({showToast}){
   const labelStyle={fontSize:12,fontWeight:700,color:'var(--text-md)',marginBottom:5,display:'block'};
 
   return(
-    <div style={{animation:'fadeIn .3s ease',maxWidth:820}}>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+    <div style={{padding:'24px 32px',maxWidth:980,animation:'fadeIn .3s ease'}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:22,gap:16,flexWrap:'wrap'}}>
         <div>
-          <div style={{fontSize:20,fontWeight:800}}>📊 공신력 수치 관리</div>
-          <div style={{fontSize:12,color:'var(--text-sm)',marginTop:4}}>
+          <h1 style={{fontSize:22,fontWeight:900,color:'var(--navy)',letterSpacing:-0.6,marginBottom:4}}>📊 공신력 수치</h1>
+          <div style={{fontSize:12.5,color:'var(--text-sm)',fontWeight:700}}>
             POUR솔루션 · POUR공법 · POUR스토어 3개 사이트에 실시간 반영됩니다
+            {lastUpdated && <span style={{marginLeft:8,color:'var(--text-xs)',fontWeight:600}}>· 마지막 저장 {new Date(lastUpdated).toLocaleString('ko')}</span>}
           </div>
-          {lastUpdated&&<div style={{fontSize:11,color:'var(--text-sm)',marginTop:2}}>
-            마지막 저장: {new Date(lastUpdated).toLocaleString('ko')}
-          </div>}
         </div>
-        <button onClick={save} disabled={saving}
-          style={{padding:'10px 24px',borderRadius:10,border:'none',background:'var(--accent)',color:'#fff',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit',opacity:saving?0.6:1}}>
+        <button onClick={save} disabled={saving} style={{padding:'12px 24px',borderRadius:10,fontSize:13,fontWeight:900,color:'#fff',background:saving?'var(--text-sm)':'linear-gradient(135deg, var(--or), var(--or-d))',boxShadow:'0 4px 12px rgba(249,115,22,.25)'}}>
           {saving?'저장 중...':'💾 저장하기'}
         </button>
       </div>
 
-      {/* 안내 배너 */}
-      <div style={{background:'#EFF6FF',border:'1.5px solid #BFDBFE',borderRadius:10,padding:'12px 16px',marginBottom:20,display:'flex',gap:10,alignItems:'flex-start'}}>
+      {/* 안내 배너 — 오렌지 톤 */}
+      <div style={{background:'var(--or-pale)',border:'1.5px solid var(--or-l)',borderRadius:12,padding:'12px 16px',marginBottom:20,display:'flex',gap:10,alignItems:'flex-start'}}>
         <span style={{fontSize:18,flexShrink:0}}>ℹ️</span>
-        <div style={{fontSize:13,color:'#1E40AF',lineHeight:1.6}}>
+        <div style={{fontSize:13,color:'var(--or-d)',lineHeight:1.6,fontWeight:600}}>
           <strong>표시 텍스트</strong>는 웹사이트에서 그대로 표시됩니다 (예: "260만 세대").<br/>
           <strong>실제 값</strong>은 내부 집계·API에 사용됩니다. 표시 텍스트만 변경해도 됩니다.
         </div>
@@ -4069,7 +4073,7 @@ function MetricsPage({showToast}){
       {/* 하단 저장 버튼 */}
       <div style={{display:'flex',justifyContent:'flex-end',marginTop:20}}>
         <button onClick={save} disabled={saving}
-          style={{padding:'12px 32px',borderRadius:10,border:'none',background:'var(--accent)',color:'#fff',fontSize:14,fontWeight:800,cursor:'pointer',fontFamily:'inherit',opacity:saving?0.6:1}}>
+          style={{padding:'12px 32px',borderRadius:10,fontSize:13,fontWeight:900,color:'#fff',background:saving?'var(--text-sm)':'linear-gradient(135deg, var(--or), var(--or-d))',boxShadow:'0 4px 12px rgba(249,115,22,.25)'}}>
           {saving?'저장 중...':'💾 공신력 수치 저장'}
         </button>
       </div>
@@ -4184,17 +4188,17 @@ function MethodLinksPage({showToast}){
   if(loading)return <div style={{textAlign:'center',padding:60,color:'var(--text-sm)'}}>로딩 중...</div>;
 
   return(
-    <div style={{maxWidth:1100,margin:'0 auto'}}>
+    <div style={{padding:'24px 32px',maxWidth:1140}}>
       {/* 헤더 */}
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20,flexWrap:'wrap',gap:12}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:22,flexWrap:'wrap',gap:16}}>
         <div>
-          <h2 style={{fontSize:20,fontWeight:800,color:'var(--text)',margin:0}}>링크 관리</h2>
-          <p style={{fontSize:13,color:'var(--text-sm)',margin:'4px 0 0'}}>공법별 제안서·시방서·시공가이드·시공사례 링크를 관리합니다. 변경 시 태블릿 앱과 고객 문자에 자동 반영됩니다.</p>
+          <h1 style={{fontSize:22,fontWeight:900,color:'var(--navy)',letterSpacing:-0.6,marginBottom:4}}>🔗 링크 관리</h1>
+          <div style={{fontSize:12.5,color:'var(--text-sm)',fontWeight:700}}>공법별 제안서·시방서·시공가이드·시공사례 링크. 변경 시 태블릿 앱과 고객 문자에 자동 반영됩니다.</div>
         </div>
         <button onClick={saveAllToFirestore} disabled={saving} style={{
-          padding:'10px 20px',borderRadius:10,border:'none',
-          background:'var(--accent)',color:'#fff',fontSize:13,fontWeight:700,
-          cursor:saving?'wait':'pointer',opacity:saving?.6:1
+          padding:'12px 24px',borderRadius:10,fontSize:13,fontWeight:900,color:'#fff',
+          background:saving?'var(--text-sm)':'linear-gradient(135deg, var(--or), var(--or-d))',
+          boxShadow:'0 4px 12px rgba(249,115,22,.25)',cursor:saving?'wait':'pointer'
         }}>
           {saving?'저장 중...':'전체 일괄 저장'}
         </button>
@@ -4275,6 +4279,87 @@ function MethodLinksPage({showToast}){
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ============================================================
+// PourOSPage — KPI/OKR 업무관리 (kpi/pour-os.html iframe 임베드)
+// ============================================================
+function PourOSPage() {
+  return (
+    <div style={{ display:'flex', flexDirection:'column', height:'100vh', background:'var(--bg)' }}>
+      <div style={{
+        padding:'14px 20px', borderBottom:'1px solid var(--border)', background:'#fff',
+        display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap'
+      }}>
+        <div>
+          <h1 style={{ fontSize:16, fontWeight:900, color:'var(--navy)', marginBottom:2 }}>🎯 POUR OS</h1>
+          <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700 }}>
+            OKR·KPI·반복업무·회의록·매뉴얼 통합 운영 시스템 (v21). 그로스보드 데이터의 원천.
+          </div>
+        </div>
+        <a href="./kpi/pour-os.html" target="_blank" rel="noopener noreferrer" style={{
+          padding:'7px 14px', fontSize:11.5, fontWeight:800, color:'var(--or-d)',
+          border:'1px solid var(--or-l)', borderRadius:7, background:'#fff', display:'inline-flex', alignItems:'center', gap:6
+        }}>
+          새창에서 열기 <span style={{ fontSize:10 }}>↗</span>
+        </a>
+      </div>
+      <iframe
+        src="./kpi/pour-os.html"
+        title="POUR OS — KPI/OKR 업무관리"
+        style={{ flex:1, width:'100%', border:0, background:'#fff' }}
+      />
+    </div>
+  );
+}
+
+// ============================================================
+// GrowthBoardPage — 그로스보드 (주간보고 + 분기별 보고)
+// 현재는 placeholder. 다음 PR에서 POUR OS의 주간보고를 고도화하여 통합 예정.
+// ============================================================
+function GrowthBoardPage() {
+  return (
+    <div style={{ padding:'24px 32px', maxWidth:900 }}>
+      <h1 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6, marginBottom:4 }}>📈 그로스보드</h1>
+      <div style={{ fontSize:12.5, color:'var(--text-sm)', fontWeight:700, marginBottom:24 }}>
+        주간보고 + 분기별 보고 (담당자별 PPT 형식, 사진 첨부) 통합 보드. POUR OS에서 쌓은 데이터를 자동 집계해 표시합니다.
+      </div>
+
+      <div style={{ padding:'24px 28px', background:'var(--or-pale)', border:'1.5px solid var(--or-l)', borderRadius:14, marginBottom:18 }}>
+        <div style={{ display:'flex', alignItems:'flex-start', gap:14 }}>
+          <span style={{ fontSize:28 }}>🚧</span>
+          <div>
+            <div style={{ fontSize:14, fontWeight:900, color:'var(--or-d)', marginBottom:6 }}>준비 중 — 다음 PR에서 공개</div>
+            <div style={{ fontSize:12.5, color:'var(--text)', fontWeight:600, lineHeight:1.7 }}>
+              그로스보드는 <strong>POUR OS의 주간보고를 고도화</strong>하여 만들어집니다.
+              <br/>현재 POUR OS에서 KPI·OKR·반복업무 데이터를 쌓아주시면, 다음 단계에서 자동 집계되어 표시됩니다.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+        <div style={{ padding:'18px 20px', background:'#fff', border:'1px solid var(--border)', borderRadius:12 }}>
+          <div style={{ fontSize:11, fontWeight:800, color:'var(--text-sm)', marginBottom:6, letterSpacing:.4 }}>주간보고</div>
+          <div style={{ fontSize:14, fontWeight:900, color:'var(--navy)', marginBottom:8 }}>매주 자동 집계</div>
+          <div style={{ fontSize:11.5, color:'var(--text-md)', fontWeight:600, lineHeight:1.6 }}>
+            POUR OS의 완료 task·진행 프로젝트·KPI 진척도를 주 단위로 묶어 담당자별 보고서로 정리.
+          </div>
+        </div>
+        <div style={{ padding:'18px 20px', background:'#fff', border:'1px solid var(--border)', borderRadius:12 }}>
+          <div style={{ fontSize:11, fontWeight:800, color:'var(--text-sm)', marginBottom:6, letterSpacing:.4 }}>분기별 보고</div>
+          <div style={{ fontSize:14, fontWeight:900, color:'var(--navy)', marginBottom:8 }}>PPT 형식 + 사진 첨부</div>
+          <div style={{ fontSize:11.5, color:'var(--text-md)', fontWeight:600, lineHeight:1.6 }}>
+            담당자별 발표자료. 분기 OKR 달성도·성과 사례·다음 분기 계획을 슬라이드 형식으로 작성·공유.
+          </div>
+        </div>
+      </div>
+
+      <div style={{ marginTop:18, padding:'14px 18px', background:'#fff', border:'1px dashed var(--border)', borderRadius:10, fontSize:12, color:'var(--text-sm)', fontWeight:600, lineHeight:1.7 }}>
+        ⚙️ 다음 작업 (별도 PR): POUR OS 내부의 "주간 보고서" 컴포넌트 → "그로스보드"로 이름 변경 + 분기별 PPT 슬라이드 모드 + 사진 업로드 + 어드민 임베드 연동.
+      </div>
     </div>
   );
 }
@@ -4758,6 +4843,8 @@ function App() {
         {active === 'orders' && <Orders orders={orders} dealers={dealers} onUpdate={loadAll} onToast={setToast} />}
         {active === 'settlement' && <Settlement orders={orders} dealers={dealers} onToast={setToast} />}
         {active === 'inquiries' && <Inquiries inquiries={inquiries} onUpdate={loadAll} onToast={setToast} />}
+        {active === 'pour-os' && <PourOSPage />}
+        {active === 'growth-board' && <GrowthBoardPage />}
         {active === 'preview' && <PreviewPage />}
         {active === 'products' && <ProductsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'metrics' && <MetricsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}

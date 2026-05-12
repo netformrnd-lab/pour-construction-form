@@ -329,6 +329,70 @@ function buildLabelSVG(p, common) {
     `<text x="${x}" y="349" text-anchor="middle" font-family="Pretendard, sans-serif" font-weight="500" font-size="9" fill="#000">${escapeXml(p.badges[i] || '')}</text>`
   ).join('');
 
+  // ─── 영업 고도화: BEFORE/AFTER + 베네핏 콜아웃 (벽돌 발수 코팅제 전용) ───
+  const isEnhanced = (p.id === 'brick-coating' && hasAssets);
+
+  // BEFORE 영역 (사진 상반부) — 백화·오염 효과 오버레이
+  const beforeStainOverlay = isEnhanced ? `
+    <g id="before-stain" clip-path="url(#topHalfClip-${p.id})">
+      <!-- 전체 백화 톤 (위쪽 강함) -->
+      <rect x="186" y="-2" width="255" height="195" fill="url(#beforeStainGrad-${p.id})"/>
+      <!-- 백화 패치들 (불규칙 분포) -->
+      <ellipse cx="220" cy="48" rx="22" ry="9" fill="#FFFFFF" opacity="0.55"/>
+      <ellipse cx="385" cy="78" rx="28" ry="11" fill="#FFFFFF" opacity="0.48"/>
+      <ellipse cx="270" cy="108" rx="18" ry="7" fill="#FFFFFF" opacity="0.5"/>
+      <ellipse cx="355" cy="142" rx="24" ry="10" fill="#FFFFFF" opacity="0.42"/>
+      <ellipse cx="205" cy="170" rx="16" ry="6" fill="#FFFFFF" opacity="0.45"/>
+      <!-- 미세 균열 -->
+      <path d="M 210 30 Q 215 50, 222 75 T 235 120" stroke="#8B6B5C" stroke-width="0.5" fill="none" opacity="0.6"/>
+      <path d="M 380 40 Q 388 65, 395 95" stroke="#8B6B5C" stroke-width="0.4" fill="none" opacity="0.5"/>
+    </g>` : '';
+
+  // BEFORE 태그 (왼쪽 위) — 빨강
+  const beforeTag = isEnhanced ? `
+    <g id="before-tag" transform="translate(199, 84)">
+      <rect x="0" y="0" width="62" height="24" rx="2" fill="#DC2626"/>
+      <rect x="0" y="0" width="62" height="24" rx="2" fill="none" stroke="#FFFFFF" stroke-width="0.6" opacity="0.6"/>
+      <text x="31" y="11" text-anchor="middle" font-family="Pretendard, sans-serif" font-weight="900" font-size="9" fill="#FFFFFF" letter-spacing="1.2">BEFORE</text>
+      <text x="31" y="20" text-anchor="middle" font-family="Pretendard, sans-serif" font-weight="700" font-size="6.5" fill="#FFFFFF" opacity="0.95">백화ㆍ오염</text>
+    </g>` : '';
+
+  // AFTER 태그 (오른쪽 아래) — 그린
+  const afterTag = isEnhanced ? `
+    <g id="after-tag" transform="translate(370, 244)">
+      <rect x="0" y="0" width="62" height="24" rx="2" fill="#059669"/>
+      <rect x="0" y="0" width="62" height="24" rx="2" fill="none" stroke="#FFFFFF" stroke-width="0.6" opacity="0.6"/>
+      <text x="31" y="11" text-anchor="middle" font-family="Pretendard, sans-serif" font-weight="900" font-size="9" fill="#FFFFFF" letter-spacing="1.2">AFTER</text>
+      <text x="31" y="20" text-anchor="middle" font-family="Pretendard, sans-serif" font-weight="700" font-size="6.5" fill="#FFFFFF" opacity="0.95">코팅ㆍ보호</text>
+    </g>` : '';
+
+  // BEFORE → AFTER 화살표 (중간 변환 영역)
+  const transitionArrow = isEnhanced ? `
+    <g id="transition-arrow" transform="translate(313, 165)">
+      <circle cx="0" cy="0" r="14" fill="#f47f19" stroke="#FFFFFF" stroke-width="1.5"/>
+      <path d="M -5 -4 L 5 0 L -5 4 Z" fill="#FFFFFF"/>
+    </g>` : '';
+
+  // 베네핏 콜아웃 핀 (제품명 아래)
+  const benefitPill = isEnhanced ? `
+    <g id="benefit-pill" transform="translate(214, 152)">
+      <rect x="0" y="0" width="199" height="20" rx="10" fill="#f47f19" stroke="#FFFFFF" stroke-width="0.8"/>
+      <text x="99.5" y="13" text-anchor="middle" font-family="Pretendard, sans-serif" font-weight="800" font-size="8.5" fill="#FFFFFF" letter-spacing="-0.3">
+        5~8mm 침투ㆍ수성 무취ㆍDIY 가능
+      </text>
+    </g>` : '';
+
+  // 시공면적 표시 (4kg 아래)
+  const coverageText = isEnhanced ? `
+    <text x="397" y="278" text-anchor="middle" font-family="Pretendard, sans-serif" font-weight="700" font-size="7" fill="#FFFFFF" opacity="0.95" style="text-shadow:0 1px 2px rgba(0,0,0,0.45);">
+      약 8~10㎡ 도포 (2회 기준)
+    </text>` : '';
+
+  // 표시광고법 안전화: "한번에 차단" → "차단 효과"
+  const safeSubMessage = isEnhanced
+    ? '백화 ㅣ 오염 ㅣ 빗물 차단 효과'
+    : p.centerMessage.sub;
+
   return `<svg class="label-svg" id="label-svg-${p.id}"
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 639 383"
@@ -341,6 +405,17 @@ function buildLabelSVG(p, common) {
         <stop offset="0%" stop-color="${bgPair[0]}"/>
         <stop offset="100%" stop-color="${bgPair[1]}"/>
       </linearGradient>
+      <!-- BEFORE 영역 백화 그라디언트 (위쪽이 더 진한 백색) -->
+      <linearGradient id="beforeStainGrad-${p.id}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.55"/>
+        <stop offset="40%" stop-color="#FFFFFF" stop-opacity="0.35"/>
+        <stop offset="75%" stop-color="#FFFFFF" stop-opacity="0.12"/>
+        <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+      </linearGradient>
+      <!-- BEFORE/AFTER 분할 클립 -->
+      <clipPath id="topHalfClip-${p.id}">
+        <rect x="186" y="-2" width="255" height="195"/>
+      </clipPath>
     </defs>
 
     <!-- ── 흰색 배경 ── -->
@@ -360,6 +435,9 @@ function buildLabelSVG(p, common) {
       <!-- 중앙 사진 -->
       ${centerVisual}
 
+      <!-- 🆕 BEFORE 백화 오버레이 (사진 상반부) -->
+      ${beforeStainOverlay}
+
       <!-- 브랜드 카드 (흰색 80%) -->
       <rect x="246" y="16" width="139" height="55" fill="#FFFFFF" opacity="0.8"/>
 
@@ -369,8 +447,17 @@ function buildLabelSVG(p, common) {
       <!-- 브랜드명: 포어스토어 -->
       <text x="314" y="65" text-anchor="middle" font-family="Pretendard, sans-serif" font-weight="700" font-size="16" fill="#0c3647">포어스토어</text>
 
+      <!-- 🆕 BEFORE 태그 -->
+      ${beforeTag}
+
       <!-- 제품명 (오렌지) -->
       <text x="314" y="142" text-anchor="middle" font-family="Pretendard, sans-serif" font-weight="700" font-size="${p.name.length > 9 ? 32 : 38}" fill="#f47f19" letter-spacing="-1">${escapeXml(p.name)}</text>
+
+      <!-- 🆕 베네핏 콜아웃 핀 (제품명 아래) -->
+      ${benefitPill}
+
+      <!-- 🆕 BEFORE → AFTER 변환 화살표 -->
+      ${transitionArrow}
 
       <!-- 헤드카피 뒷배경 -->
       ${headlineBg}
@@ -378,11 +465,17 @@ function buildLabelSVG(p, common) {
       <!-- 헤드카피 line 1 (검정) -->
       <text x="314" y="200" text-anchor="middle" font-family="Pretendard, sans-serif" font-weight="700" font-size="14" fill="#000">${escapeXml(p.centerMessage.headline)} ${escapeXml(p.name)}</text>
 
-      <!-- 헤드카피 line 2 (오렌지) -->
-      <text x="314" y="220" text-anchor="middle" font-family="Pretendard, sans-serif" font-weight="700" font-size="15" fill="#f47f19">${escapeXml(p.centerMessage.sub)}</text>
+      <!-- 헤드카피 line 2 (오렌지) — 표시광고법 안전화 -->
+      <text x="314" y="220" text-anchor="middle" font-family="Pretendard, sans-serif" font-weight="700" font-size="15" fill="#f47f19">${escapeXml(safeSubMessage)}</text>
+
+      <!-- 🆕 AFTER 태그 -->
+      ${afterTag}
 
       <!-- 4kg (사진 위) -->
       <text x="397" y="298" text-anchor="middle" font-family="Pretendard, sans-serif" font-weight="700" font-size="22" fill="#FFFFFF" style="text-shadow:0 1px 2px rgba(0,0,0,0.3);">${escapeXml(common.packaging.toLowerCase())}</text>
+
+      <!-- 🆕 시공면적 표시 -->
+      ${coverageText}
 
       <!-- 뱃지 뒷배경 -->
       <rect x="214" y="292" width="199" height="64" fill="#FFFFFF" opacity="0.85" rx="2"/>

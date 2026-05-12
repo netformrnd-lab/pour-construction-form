@@ -10,6 +10,7 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 <script>
 firebase.initializeApp({
   apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
@@ -2359,6 +2360,100 @@ function Field({ label, children }) {
 // ============================================================
 // 디자인/개발 센터 — admin.html에서 이식한 컴포넌트
 // ============================================================
+
+// ─── 엑셀 파싱 유틸 (ProductsPage 의존성) ───
+const parseExcel = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      console.log(`[excel] ${rows.length}행 파싱`);
+      resolve(rows);
+    } catch (err) { reject(err); }
+  };
+  reader.onerror = reject;
+  reader.readAsArrayBuffer(file);
+});
+
+// 아임웹 형식 감지
+const isImwebFormat = (row) => row.hasOwnProperty('상품번호') && row.hasOwnProperty('판매상태');
+
+// 아임웹 행 → 상품 데이터 변환
+const imwebRowToProduct = (row) => {
+  const name = String(row['상품명'] || '');
+  const brandMatch = name.match(/^\[([^\]]+)\]/);
+  let brand = 'store';
+  if (brandMatch) {
+    const b = brandMatch[1].toLowerCase();
+    if (b.includes('그로홈')) brand = 'grohome';
+  }
+  const optNames = String(row['필수옵션명'] || '');
+  const optVals = String(row['필수옵션값'] || '');
+  const optStr = optVals || optNames;
+
+  return {
+    name,
+    category: String(row['카테고리ID'] || ''),
+    brand,
+    price: Number(row['정가'] || row['판매가'] || 0),
+    salePrice: Number(row['판매가'] || 0),
+    options: optStr,
+    description: '',
+    thumbnail: String(row['대표이미지URL'] || ''),
+    detailHtml: String(row['상품상세정보'] || ''),
+    detailImages: [],
+    channels: { imweb: String(row['상품번호'] || '') },
+    isActive: true,
+    imwebId: String(row['상품번호'] || ''),
+    imwebUrl: String(row['상품URL'] || ''),
+    salesStatus: String(row['판매상태'] || '판매중'),
+    displayStatus: String(row['진열상태'] || ''),
+    productStatus: String(row['상품상태'] || ''),
+    origin: String(row['원산지'] || ''),
+    manufacturer: String(row['제조사'] || ''),
+    sku: String(row['재고번호SKU'] || ''),
+    weight: String(row['무게'] || ''),
+    costPrice: Number(row['원가'] || 0),
+    naverShoppingName: String(row['네이버다음쇼핑노출용상품명'] || ''),
+    naverCategoryId: String(row['네이버 쇼핑 카테고리 ID'] || ''),
+  };
+};
+
+// 관리센터 자체 템플릿 행 → 상품 데이터 변환
+const templateRowToProduct = (row) => {
+  const channels = {};
+  CHANNELS.forEach(ch => {
+    const val = row[ch.label] || row[ch.key] || '';
+    if (val) channels[ch.key] = String(val);
+  });
+  return {
+    name: row['상품명'] || row['name'] || '',
+    category: row['카테고리'] || row['category'] || '',
+    brand: row['브랜드'] || 'store',
+    price: Number(row['소비자가'] || row['price'] || 0),
+    salePrice: Number(row['판매가'] || row['salePrice'] || 0),
+    options: row['옵션'] || row['options'] || '',
+    description: row['설명'] || row['description'] || '',
+    thumbnail: row['썸네일'] || row['thumbnail'] || '',
+    channels,
+    detailImages: [],
+    detailHtml: '',
+    isActive: true,
+    salesStatus: '판매중',
+  };
+};
+
+// 자동 감지하여 변환
+const excelRowToProduct = (row) => {
+  if (isImwebFormat(row)) return imwebRowToProduct(row);
+  return templateRowToProduct(row);
+};
+
+// 판매상태 상수
+const SALES_STATUS = ['전체', '판매중', '품절', '숨김'];
+const STATUS_ICON = { '판매중': '🟢', '품절': '🔴', '숨김': '⬜' };
 
 // 상품 태그
 const PRODUCT_TAGS = [

@@ -47,7 +47,7 @@
             <li><b>순서 변경</b> — 카드 좌측 <kbd>⋮⋮</kbd> 그립을 잡고 드래그</li>
             <li><b>컨펌 워크플로우</b> — 카드 좌측 상태 칩 클릭 → <kbd>⚙ 작업중</kbd>·<kbd>✋ 컨펌 요청</kbd>(실행자) → <kbd>✅ 승인 완료</kbd> 또는 <kbd>↻ 재수정 요청</kbd>(관리자). 재수정 피드백은 피그마에 작성. 모든 전환은 이력에 자동 기록</li>
             <li><b>이력 확인/복원</b> — <kbd>이력</kbd> 버튼에서 이전 버전 미리보기·복원, 변경 사유 수정</li>
-            <li><b>전체 시안 보기</b> — <kbd>전체 시안 바로보기</kbd>로 현재 페이지의 모든 섹션을 합쳐 새 창에 표시</li>
+            <li><b>전체 시안 보기</b> — <kbd>전체 시안 바로보기</kbd>로 모든 섹션을 합쳐 미리보기. 왼쪽에서 섹션별 <b>이전 시안</b>을 모달로 열고, 오른쪽에서 섹션별 <b>댓글</b>을 바로 확인·작성할 수 있습니다 (필요 시 <kbd>↗ 새 창으로 열기</kbd>)</li>
             <li><b>이력 보관</b> — 모든 버전 영구 보관, 자동 삭제 없음. 1년 경과 항목은 상단 알림에서 직접 선택해 정리 (직전 버전은 항상 보호)</li>
           </ol>
         </details>
@@ -1425,6 +1425,47 @@ https://..."></textarea>
           <button id="bgCancel" class="btn btn-ghost">닫기</button>
           <button id="bgStart" class="btn btn-primary">시작</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 전체 시안 모달 (좌: 섹션·이전시안, 중: 미리보기, 우: 섹션 댓글) -->
+  <div id="fullPreviewModal" class="modal-mask fpv-mask">
+    <div class="modal fpv-modal">
+      <div class="modal-head fpv-head">
+        <h3 id="fpvTitle">전체 시안</h3>
+        <div class="fpv-head-actions">
+          <button id="fpvOpenWindow" class="btn btn-ghost btn-sm" title="새 창으로 열기">↗ 새 창으로 열기</button>
+          <button id="fpvClose" class="close" aria-label="닫기">×</button>
+        </div>
+      </div>
+      <div class="modal-body fpv-body">
+        <aside class="fpv-left">
+          <div class="fpv-panel-head">섹션 목록 <span class="fpv-hint">클릭하여 이동</span></div>
+          <div id="fpvSectionList" class="fpv-section-list"></div>
+        </aside>
+        <div class="fpv-center">
+          <iframe id="fpvFrame" class="fpv-frame" title="전체 시안 미리보기"></iframe>
+        </div>
+        <aside class="fpv-right">
+          <div class="fpv-panel-head">
+            <span><span id="fpvCommentTarget">섹션을 선택하세요</span></span>
+            <span id="fpvCommentCount" class="fpv-comment-count zero">0</span>
+          </div>
+          <div class="fpv-compose">
+            <div class="fb-compose-meta">
+              <span class="fb-author-chip" id="fpvAuthorChip">작성자 없음</span>
+            </div>
+            <textarea id="fpvCommentInput" placeholder="이 섹션에 대한 의견을 적어주세요. (Ctrl+Enter로 등록)" rows="3"></textarea>
+            <div style="display:flex; justify-content:flex-end; gap:6px;">
+              <button id="fpvCommentAdd" class="btn btn-primary btn-sm">+ 댓글 추가</button>
+            </div>
+          </div>
+          <div class="fpv-comment-list-wrap">
+            <div class="fpv-divider">등록된 댓글</div>
+            <div id="fpvCommentList" class="fpv-comment-list"></div>
+          </div>
+        </aside>
       </div>
     </div>
   </div>

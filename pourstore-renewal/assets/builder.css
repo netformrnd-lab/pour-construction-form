@@ -871,3 +871,48 @@ body[data-mode="product"] .brand-text-page { display: none; }
 .guide-tips-warn .guide-tips-head { color: #991B1B; }
 .guide-tips-warn ul li b { color: #991B1B; }
 .guide-tips-warn code { font-size: 11px; padding: 1px 5px; background: #fff; border: 1px solid #FCA5A5; border-radius: 4px; font-family: ui-monospace, Consolas, monospace; }
+
+/* ---------- 전체 시안 모달 (좌: 섹션·이전시안 · 중: 미리보기 · 우: 댓글) ---------- */
+.fpv-mask { padding: 0; z-index: 90; }
+.fpv-modal { max-width: none; width: 100vw; height: 100vh; max-height: 100vh; border-radius: 0; }
+.fpv-head { padding: 12px 18px; }
+.fpv-head h3 { font-size: 14px; }
+.fpv-head-actions { display: flex; align-items: center; gap: 8px; }
+.fpv-body { padding: 0; overflow: hidden; display: grid; grid-template-columns: 260px 1fr 340px; gap: 0; min-height: 0; }
+.fpv-left { border-right: 1px solid var(--border); background: var(--light); display: flex; flex-direction: column; min-height: 0; }
+.fpv-right { border-left: 1px solid var(--border); background: #fff; display: flex; flex-direction: column; min-height: 0; }
+.fpv-center { background: #fff; display: flex; min-height: 0; }
+.fpv-frame { flex: 1; width: 100%; height: 100%; border: 0; background: #fff; }
+
+.fpv-panel-head { padding: 12px 14px; font-size: 11px; font-weight: 800; color: var(--muted); letter-spacing: .5px; border-bottom: 1px solid var(--border); background: #fff; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-shrink: 0; text-transform: uppercase; }
+.fpv-panel-head .fpv-hint { font-weight: 600; color: var(--muted); text-transform: none; font-size: 10.5px; }
+.fpv-panel-head #fpvCommentTarget { text-transform: none; font-size: 12.5px; color: var(--ink); font-weight: 800; }
+
+.fpv-section-list { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.fpv-section-item { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; cursor: pointer; transition: border-color .12s, background .12s, box-shadow .12s; display: flex; align-items: center; gap: 8px; }
+.fpv-section-item:hover { border-color: var(--or); background: #FFF7ED; }
+.fpv-section-item.active { border-color: var(--or); background: #FFF7ED; box-shadow: 0 0 0 2px rgba(232,120,15,.18); }
+.fpv-section-item .fpv-idx { font-family: 'Bebas Neue', sans-serif; font-size: 13px; color: var(--or); width: 22px; flex-shrink: 0; text-align: center; }
+.fpv-section-item .fpv-name { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fpv-section-item .fpv-empty-tag { font-size: 9.5px; color: var(--muted); padding: 1px 5px; background: #F3F4F6; border-radius: 4px; flex-shrink: 0; }
+.fpv-section-item .fpv-cmt-badge { background: var(--or); color: #fff; font-size: 10px; font-weight: 800; border-radius: 999px; padding: 1px 6px; min-width: 18px; text-align: center; flex-shrink: 0; }
+.fpv-section-item .fpv-cmt-badge.zero { background: #E5E7EB; color: var(--muted); }
+.fpv-section-item .fpv-prev-btn { font-size: 10.5px; padding: 4px 7px; border-radius: 6px; background: #fff; border: 1px solid var(--border); color: var(--ink2); cursor: pointer; flex-shrink: 0; font-weight: 700; }
+.fpv-section-item .fpv-prev-btn:hover { background: var(--or); color: #fff; border-color: var(--or); }
+.fpv-section-item .fpv-prev-btn[disabled] { opacity: .4; cursor: not-allowed; }
+.fpv-section-item .fpv-prev-btn[disabled]:hover { background: #fff; color: var(--ink2); border-color: var(--border); }
+
+.fpv-compose { padding: 12px 14px; border-bottom: 1px solid var(--border); background: var(--light); display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+.fpv-compose textarea { width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px; font-size: 13px; font-family: inherit; background: #fff; resize: vertical; min-height: 60px; line-height: 1.55; }
+.fpv-compose textarea:focus { outline: 2px solid rgba(3,199,90,.35); border-color: var(--green); }
+.fpv-compose textarea:disabled { background: #F3F4F6; color: var(--muted); }
+.fpv-comment-list-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 12px 14px 14px; }
+.fpv-divider { font-size: 11px; font-weight: 800; color: var(--muted); letter-spacing: .5px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px dashed var(--border); flex-shrink: 0; }
+.fpv-comment-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.fpv-comment-count { font-size: 11px; font-weight: 800; color: #fff; background: var(--or); padding: 2px 8px; border-radius: 999px; flex-shrink: 0; }
+.fpv-comment-count.zero { background: #E5E7EB; color: var(--muted); }
+.fpv-empty-state { padding: 28px 10px; text-align: center; color: var(--muted); font-size: 12px; }
+
+@media (max-width: 1080px) {
+  .fpv-body { grid-template-columns: 220px 1fr 300px; }
+}

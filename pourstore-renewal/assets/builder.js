@@ -5392,16 +5392,27 @@ show('entry');
       const childCount = isFolder ? getChildren(node.id).length : 0;
       const secCount = isFolder ? '' : `<span class="count">${node.sections.length}</span>`;
       const dlabel = depthLabel(depth);
+      const pageStatus = node.pageStatus === 'wip' ? 'wip' : 'draft';
+      const dotTitle = pageStatus === 'wip' ? '진행중 — 클릭하여 초안으로 변경' : '초안 — 클릭하여 진행중으로 변경';
       item.innerHTML = `
         <div class="name">
           <span class="grip" title="드래그해서 이동/순서변경">⋮⋮</span>
           ${isFolder ? `<span class="caret" title="${isCollapsed ? '펼치기' : '접기'}">${isCollapsed ? '▶' : '▼'}</span>` : '<span class="caret-spacer"></span>'}
+          <span class="page-status-dot status-${pageStatus}" data-act="toggle-status" title="${dotTitle}" role="button" aria-label="${dotTitle}"></span>
           <span class="icon">${isFolder ? '📁' : '📄'}</span>
           <span class="title" title="${escapeHtml(dlabel)} · ${escapeHtml(node.name)}">${escapeHtml(node.name)}</span>
           ${isFolder ? `<span class="folder-meta">${childCount}</span>` : secCount}
         </div>
       `;
+      const dot = item.querySelector('[data-act=toggle-status]');
+      if (dot) {
+        dot.addEventListener('click', e => {
+          e.stopPropagation();
+          togglePageStatus(node.id);
+        });
+      }
       item.addEventListener('click', e => {
+        if (e.target.closest('[data-act=toggle-status]')) return;
         if (isFolder) {
           // 폴더는 caret 클릭 = 토글, 본문 클릭 = 선택만 + 토글
           toggleFolder(node.id);
@@ -5424,6 +5435,16 @@ show('entry');
     if (state.pages.length === 0) {
       list.innerHTML = '<div class="empty-pages">아직 등록된 페이지/폴더가 없습니다.<br/>아래 <b>+ 페이지</b> 또는 <b>+ 폴더</b> 버튼으로 시작하세요.</div>';
     }
+  }
+
+  function togglePageStatus(nodeId) {
+    const node = state.pages.find(p => p.id === nodeId);
+    if (!node) return;
+    const next = node.pageStatus === 'wip' ? 'draft' : 'wip';
+    node.pageStatus = next;
+    saveState();
+    renderPages();
+    toast(next === 'wip' ? '진행중으로 변경' : '초안으로 변경', 'success');
   }
 
   // -------- 사이드바 DnD (페이지/폴더 순서 변경) --------

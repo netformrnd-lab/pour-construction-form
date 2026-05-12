@@ -6125,7 +6125,29 @@ show('entry');
     }).join('\n\n');
   }
 
-  function previewFullPage() {
+  // 미리보기 모달용 — 각 섹션을 id로 감싸서 스크롤·하이라이트 지원
+  function buildFullPagePreviewHtml(page) {
+    return page.sections.map((s, i) => {
+      const html = (s.html || '').trim();
+      const idAttr = `fpv-sec-${escapeHtml(s.id)}`;
+      if (!html) {
+        return [
+          `<!-- [${i+1}] ${s.name} (EMPTY) -->`,
+          `<section id="${idAttr}" data-fpv-secid="${escapeHtml(s.id)}" data-empty="1" style="padding:60px 30px; text-align:center; color:#9CA3AF; font-size:13px; background:#FAFAFA; border-bottom:1px dashed #E5E7EB;">`,
+          `(빈 섹션 — ${escapeHtml(s.name)})`,
+          '</section>'
+        ].join('\n');
+      }
+      return [
+        `<!-- [${i+1}] ${s.name} -->`,
+        `<section id="${idAttr}" data-fpv-secid="${escapeHtml(s.id)}" data-section="${escapeHtml(s.name)}">`,
+        s.html,
+        '</section>'
+      ].join('\n');
+    }).join('\n\n');
+  }
+
+  function previewFullPageInWindow() {
     const page = getActivePage();
     const body = buildFullPageHtml(page);
     const w = window.open('', '_blank');
@@ -6134,6 +6156,186 @@ show('entry');
     w.document.write(wrapPreview(body));
     w.document.close();
     try { w.document.title = `${page.name} 시안`; } catch (_) {}
+  }
+
+  // -------- 전체 시안 모달 (좌: 섹션·이전시안 · 중: iframe · 우: 댓글) --------
+  let fpvCtx = null; // { pageId, secId } — secId: 우측 댓글 패널이 가리키는 섹션
+  function previewFullPage() {
+    const page = getActivePage();
+    if (!page) return;
+    if (page.type === 'folder') { toast('폴더에는 섹션이 없습니다.', 'info'); return; }
+    fpvCtx = { pageId: page.id, secId: (page.sections[0] && page.sections[0].id) || null };
+    document.getElementById('fpvTitle').textContent = `전체 시안 — ${page.name}`;
+    renderFpvSectionList();
+    refreshFpvAuthorChip();
+    renderFpvComments();
+    openModal('fullPreviewModal');
+    // iframe 로드 후 첫 섹션으로 스크롤
+    const frame = document.getElementById('fpvFrame');
+    frame.onload = () => {
+      if (fpvCtx && fpvCtx.secId) scrollFpvFrameTo(fpvCtx.secId);
+      frame.onload = null;
+    };
+    frame.srcdoc = wrapPreview(buildFullPagePreviewHtml(page));
+  }
+  function getFpvPage() {
+    if (!fpvCtx) return null;
+    return state.pages.find(p => p.id === fpvCtx.pageId) || null;
+  }
+  function getFpvSection() {
+    const page = getFpvPage();
+    if (!page || !fpvCtx.secId) return null;
+    return page.sections.find(s => s.id === fpvCtx.secId) || null;
+  }
+  function renderFpvSectionList() {
+    const wrap = document.getElementById('fpvSectionList');
+    if (!wrap) return;
+    const page = getFpvPage();
+    wrap.innerHTML = '';
+    if (!page || page.sections.length === 0) {
+      wrap.innerHTML = '<div class="fpv-empty-state">이 페이지에는 섹션이 없습니다.</div>';
+      return;
+    }
+    page.sections.forEach((s, idx) => {
+      const histLen = (state.history[histKey(page.id, s.id)] || []).length;
+      const cmtCount = (s.feedbacks || []).length;
+      const isActive = fpvCtx.secId === s.id;
+      const isEmpty = !((s.html || '').trim());
+      const row = document.createElement('div');
+      row.className = 'fpv-section-item' + (isActive ? ' active' : '');
+      row.dataset.secid = s.id;
+      row.innerHTML = `
+        <span class="fpv-idx">${idx + 1}</span>
+        <span class="fpv-name" title="${escapeHtml(s.name)}">${escapeHtml(s.name)}</span>
+        ${isEmpty ? '<span class="fpv-empty-tag">빈 섹션</span>' : ''}
+        <span class="fpv-cmt-badge ${cmtCount === 0 ? 'zero' : ''}" title="댓글 ${cmtCount}건">${cmtCount}</span>
+        <button class="fpv-prev-btn" data-act="prev" ${histLen === 0 ? 'disabled' : ''} title="${histLen === 0 ? '이전 시안 없음' : `이전 시안 ${histLen}건 보기`}">↺ 이전 시안</button>
+      `;
+      row.addEventListener('click', e => {
+        if (e.target.closest('[data-act=prev]')) return;
+        selectFpvSection(s.id, true);
+      });
+      const prevBtn = row.querySelector('[data-act=prev]');
+      if (prevBtn && histLen > 0) {
+        prevBtn.addEventListener('click', e => {
+          e.stopPropagation();
+          openFpvHistory(s.id);
+        });
+      }
+      wrap.appendChild(row);
+    });
+  }
+  function selectFpvSection(secId, scroll) {
+    if (!fpvCtx) return;
+    fpvCtx.secId = secId;
+    renderFpvSectionList();
+    renderFpvComments();
+    if (scroll) scrollFpvFrameTo(secId);
+  }
+  function scrollFpvFrameTo(secId) {
+    const frame = document.getElementById('fpvFrame');
+    if (!frame) return;
+    let doc = null;
+    try { doc = frame.contentDocument; } catch (_) {}
+    if (!doc) return;
+    const el = doc.getElementById('fpv-sec-' + secId);
+    if (el && typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+  // 이전 시안 — 기존 historyModal 재사용
+  function openFpvHistory(secId) {
+    if (!fpvCtx) return;
+    const page = getFpvPage();
+    const sec = page && page.sections.find(s => s.id === secId);
+    if (!sec) return;
+    historyCtx = { pageId: page.id, secId };
+    document.getElementById('hsTitle').textContent = `이전 시안 — ${sec.name}`;
+    renderHistoryList();
+    openModal('historyModal');
+  }
+  function refreshFpvAuthorChip() {
+    const chip = document.getElementById('fpvAuthorChip');
+    if (!chip) return;
+    const me = getMeStaff();
+    if (me) {
+      chip.innerHTML = `작성자: <b style="color:${escapeHtml(staffColor(me))};">${escapeHtml(me.name)}</b>${me.role ? ' · ' + escapeHtml(me.role) : ''}`;
+    } else {
+      chip.innerHTML = '작성자 없음 (익명) — <a href="#" id="fpvSetMeLink">내 이름 설정</a>';
+      const link = chip.querySelector('#fpvSetMeLink');
+      if (link) link.addEventListener('click', e => { e.preventDefault(); openMeModal(); });
+    }
+  }
+  function renderFpvComments() {
+    const targetEl = document.getElementById('fpvCommentTarget');
+    const countEl = document.getElementById('fpvCommentCount');
+    const listEl = document.getElementById('fpvCommentList');
+    const inputEl = document.getElementById('fpvCommentInput');
+    const addBtn = document.getElementById('fpvCommentAdd');
+    if (!listEl) return;
+    const sec = getFpvSection();
+    if (!sec) {
+      if (targetEl) targetEl.textContent = '섹션을 선택하세요';
+      if (countEl) { countEl.textContent = '0'; countEl.classList.add('zero'); }
+      listEl.innerHTML = '<div class="fpv-empty-state">왼쪽에서 섹션을 선택하면 댓글이 표시됩니다.</div>';
+      if (inputEl) { inputEl.disabled = true; inputEl.value = ''; }
+      if (addBtn) addBtn.disabled = true;
+      return;
+    }
+    if (targetEl) targetEl.textContent = sec.name;
+    const list = (sec.feedbacks || []);
+    if (countEl) {
+      countEl.textContent = String(list.length);
+      countEl.classList.toggle('zero', list.length === 0);
+    }
+    if (inputEl) inputEl.disabled = false;
+    if (addBtn) addBtn.disabled = false;
+    listEl.innerHTML = '';
+    if (list.length === 0) {
+      listEl.innerHTML = '<div class="fpv-empty-state">아직 등록된 댓글이 없습니다.<br/>위 입력란에 의견을 적어 주세요.</div>';
+      return;
+    }
+    const me = getMeStaff();
+    list.forEach(fb => {
+      const row = document.createElement('div');
+      row.className = 'fb-item';
+      const canDelete = !fb.staffId || (me && me.id === fb.staffId);
+      row.innerHTML = `
+        <div class="fb-head">
+          <span class="staff-avatar sm" style="background:${escapeHtml(staffColor(findStaffById(fb.staffId) || { color: '#6B7280' }))}">${escapeHtml(staffInitial(fb.staffName))}</span>
+          <span class="fb-author"><b>${escapeHtml(fb.staffName || '익명')}</b>${fb.staffRole ? ' · ' + escapeHtml(fb.staffRole) : ''}</span>
+          <span class="fb-when">${escapeHtml(fmtDate(fb.createdAt))}</span>
+          ${canDelete ? '<button class="fb-del" title="삭제" data-act="del">×</button>' : ''}
+        </div>
+        <div class="fb-text">${escapeHtml(fb.text)}</div>
+      `;
+      const del = row.querySelector('[data-act=del]');
+      if (del) del.addEventListener('click', () => {
+        const target = { type: 'section', pageId: fpvCtx.pageId, secId: fpvCtx.secId };
+        if (deleteFeedback(target, fb.id)) {
+          renderFpvComments();
+          renderFpvSectionList();
+          renderSections();
+          updatePageFeedbackCount();
+          toast('삭제됨', 'info');
+        }
+      });
+      listEl.appendChild(row);
+    });
+  }
+  function submitFpvComment() {
+    if (!fpvCtx || !fpvCtx.secId) return;
+    const input = document.getElementById('fpvCommentInput');
+    if (!input) return;
+    const target = { type: 'section', pageId: fpvCtx.pageId, secId: fpvCtx.secId };
+    if (addFeedback(target, input.value)) {
+      input.value = '';
+      renderFpvComments();
+      renderFpvSectionList();
+      renderSections();
+      updatePageFeedbackCount();
+      toast('댓글 등록됨', 'success');
+    }
   }
 
   function copyFullPageHtml() {
@@ -6159,6 +6361,7 @@ show('entry');
     renderMeCard();
     renderMeStaffOptions();
     refreshFeedbackAuthorChip();
+    if (typeof refreshFpvAuthorChip === 'function') refreshFpvAuthorChip();
   }
   function getMeStaff() {
     const id = getMeStaffId();
@@ -10423,6 +10626,14 @@ show('entry');
     document.getElementById('btnSetMe').addEventListener('click', openMeModal);
     document.getElementById('btnManageStaff').addEventListener('click', openStaffModal);
     document.getElementById('btnFullPreview').addEventListener('click', previewFullPage);
+
+    // 전체 시안 모달
+    document.getElementById('fpvClose').addEventListener('click', () => closeModal('fullPreviewModal'));
+    document.getElementById('fpvOpenWindow').addEventListener('click', previewFullPageInWindow);
+    document.getElementById('fpvCommentAdd').addEventListener('click', submitFpvComment);
+    document.getElementById('fpvCommentInput').addEventListener('keydown', e => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') submitFpvComment();
+    });
     document.getElementById('btnCopyFullHtml').addEventListener('click', copyFullPageHtml);
     var btnPL = document.getElementById('btnCopyPageLink');
     if (btnPL) btnPL.addEventListener('click', function(){ copyPageLink(getActivePage().id); });

@@ -251,6 +251,12 @@ function buildLabelSVG(p, common) {
        </g>`;
 
   // ─── 헤드카피 뒷배경 (Figma 이미지 또는 폴백 사각형) ───
+  // 디자인 상수 (renderIcon 및 badgeCards에서 참조하므로 위쪽에 먼저 선언)
+  const TITLE_SIZE = 8.5, TITLE_FILL = '#0c3647', TITLE_WEIGHT = '800';
+  const BODY_SIZE = 6, BODY_FILL = '#374151', BODY_LH = 7.5;
+  const SECTION_GAP = 4;
+  const ACCENT = '#f47f19';
+
   const headlineBg = hasAssets
     ? `<image x="186" y="177" width="255" height="51" href="${assets.headlineBg}" preserveAspectRatio="none"/>`
     : `<rect x="186" y="177" width="255" height="51" fill="rgba(0,0,0,0.5)"/>`;
@@ -362,12 +368,7 @@ function buildLabelSVG(p, common) {
   // 단, Figma 디자인은 header가 "백화·오염 차단 + 제품명" 형태였으므로 그에 맞춰서
   const head1Figma = `${escapeXml(p.centerMessage.headline.replace(/[+]/g,'·'))} ${escapeXml(p.name)}`;
 
-  // ─── 좌패널 본문 텍스트 (가독성 개선 — 폰트 크기 4px → 6~8px) ───
-  // 타이틀: 8.5px Bold #0c3647 (브랜드 컬러) / 본문: 6px Regular #4B5563 (더 진한 회색)
-  const TITLE_SIZE = 8.5, TITLE_FILL = '#0c3647', TITLE_WEIGHT = '800';
-  const BODY_SIZE = 6, BODY_FILL = '#374151', BODY_LH = 7.5;
-  const SECTION_GAP = 4;
-  const ACCENT = '#f47f19';
+  // ─── 좌패널 본문 텍스트 (디자인 상수는 위에서 선언) ───
 
   // 헬퍼: 섹션 타이틀 (오렌지 액센트 바 + 텍스트)
   const sectionTitle = (x, y, title) => `

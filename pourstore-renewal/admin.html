@@ -4983,6 +4983,11 @@ function App() {
   const { active: activeStaff, activeId: activeStaffId, setActive: setActiveStaff } = useActiveStaff(staffMembers);
   const [pickerSkipped, setPickerSkipped] = useState(false);  // 담당자 0명일 때 "없이 진입" 선택 시
 
+  // audit helper — 모든 CRUD 작업에 createdByStaffId/Name·updatedByStaffId/Name 자동 첨부
+  // ⚠️ early return(if (!unlocked) ...) 이전에 호출해야 hooks 호출 순서 유지됨 (React #310 방지)
+  const audit = useMemo(() => buildAuditHelpers(activeStaff), [activeStaff?.id, activeStaff?.name]);
+  const activeStaffCtx = useMemo(() => ({ activeStaff, audit, staffMembers }), [activeStaff, audit, staffMembers]);
+
   const [requests, setRequests] = useState([]);
   const [partners, setPartners] = useState([]);
   const [rules, setRules] = useState([]);
@@ -5055,10 +5060,6 @@ function App() {
     dealers: dealers.filter(d => d.contractStatus === '활성').length,
     orders: orders.filter(o => ['신규','입금대기','입금확인','출고','결제대기','결제완료','배송준비'].includes(o.status)).length,
   };
-
-  // audit helper — 모든 CRUD 작업에 createdByStaffId/Name·updatedByStaffId/Name 자동 첨부
-  const audit = useMemo(() => buildAuditHelpers(activeStaff), [activeStaff?.id, activeStaff?.name]);
-  const activeStaffCtx = useMemo(() => ({ activeStaff, audit, staffMembers }), [activeStaff, audit, staffMembers]);
 
   return (
     <ActiveStaffContext.Provider value={activeStaffCtx}>

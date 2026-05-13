@@ -10873,10 +10873,34 @@ show('entry');
         try { if (typeof renderMeStaffOptions === 'function') renderMeStaffOptions(); } catch (_) {}
         console.log(`[builder] admin staff sync — ${state.staff.length}명 / active=${activeStaffId || '-'}`);
       });
-      // 자체 등록 UI 비활성 안내
+      // 자체 등록 UI 비활성 안내 (담당자 관리 모달 내부)
       const stfAddBlock = document.querySelector('.staff-add');
       if (stfAddBlock) {
         stfAddBlock.innerHTML = '<div style="padding:12px 14px;background:var(--or-pale,#FFF7ED);border:1px dashed var(--or-l,#FED7AA);border-radius:8px;font-size:12px;color:var(--or-d,#EA580C);font-weight:700;line-height:1.6">담당자 등록·수정은 어드민의 <b>디자인/개발 센터 → 담당자 관리</b>에서 진행됩니다.<br/>여기 목록은 어드민 마스터를 자동으로 보여줍니다.</div>';
+      }
+
+      // ── 사이드바 담당자 영역 전면 정리 ──
+      // 어드민에서 활동 담당자가 자동 설정되므로 builder의 "담당자" 섹션·"내 이름 설정"·"담당자 관리" 버튼은 불필요.
+      // 휴지통(btnTrash)은 별도 기능이므로 유지.
+      const meCard = document.getElementById('meCard');
+      if (meCard) {
+        // h3 "담당자" 라벨 숨김 (meCard 직전 형제)
+        const prev = meCard.previousElementSibling;
+        if (prev && prev.tagName === 'H3') prev.style.display = 'none';
+        // me-info(아바타·이름·역할) 숨김
+        const meInfo = meCard.querySelector('.me-info');
+        if (meInfo) meInfo.style.display = 'none';
+        // "내 이름 설정" + "담당자 관리" 버튼 행 숨김 (btnSetMe·btnManageStaff 부모)
+        const btnSetMe = document.getElementById('btnSetMe');
+        if (btnSetMe && btnSetMe.parentElement) btnSetMe.parentElement.style.display = 'none';
+        // me-card 자체는 휴지통 컨테이너 역할로 유지하되, 어드민 안내 1줄을 위에 삽입
+        if (!meCard.querySelector('.admin-managed-hint')) {
+          const hint = document.createElement('div');
+          hint.className = 'admin-managed-hint';
+          hint.style.cssText = 'padding:8px 10px;background:var(--or-pale,#FFF7ED);border:1px dashed var(--or-l,#FED7AA);border-radius:6px;font-size:11px;color:var(--or-d,#EA580C);font-weight:700;line-height:1.5;margin-bottom:8px';
+          hint.innerHTML = '담당자는 <b>어드민에서 자동 동기화</b>됩니다 ↗';
+          meCard.insertBefore(hint, meCard.firstChild);
+        }
       }
       // 어드민 부모에 "준비 완료" 신호 (즉시 동기화 요청)
       try { window.parent.postMessage({ type: 'builder-ready' }, '*'); } catch (_) {}

@@ -20,12 +20,16 @@
   };
   const FIRESTORE_COLLECTION = 'pourstore-renewal-builder';
   const FIRESTORE_DOC = 'state';
+  const HISTORY_SUBCOL = 'history';   // pourstore-renewal-builder/state/history/{safeKey}
   const SAVE_DEBOUNCE_MS = 600;
+  const HISTORY_BATCH_LIMIT = 400;    // Firestore batch는 500ops 제한 → 여유
 
   let db = null;
   let firebaseReady = false;
   let saveTimer = null;
   let initialSnapshotConsumed = false;
+  let firstSnapshotLoaded = false;
+  const historyWriteTimers = {};
 
   const SEED_STATS_HTML =
     '<iframe src="./pour-store-cafe24.html"\n' +
@@ -4822,6 +4826,326 @@ show('entry');
   </section>`;
 
 
+  // ─────────────────────────────────────────────
+  // 자사몰 포스팅 (오하우스 스타일) — 사진 핀 → 상품 연결
+  // 5개 섹션: 헤더 / 인터랙티브 갤러리 / 본문 / 사용 제품 / 댓글
+  // ─────────────────────────────────────────────
+  const SEED_OH_HEAD_HTML = `
+<style>
+.ohh * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+.ohh { max-width:760px; margin:0 auto; padding:30px 22px 18px; background:#fff; }
+.ohh-cat { display:inline-block; padding:5px 12px; background:#FFEDD5; color:#EA580C; font-size:11.5px; font-weight:800; border-radius:999px; margin-bottom:14px; letter-spacing:.3px; }
+.ohh-h { font-size:26px; font-weight:900; color:#0F1F5C; line-height:1.35; letter-spacing:-.4px; margin-bottom:18px; }
+.ohh-author { display:flex; align-items:center; gap:12px; padding-bottom:18px; border-bottom:1px solid #F3F4F6; }
+.ohh-av { width:46px; height:46px; border-radius:50%; background:linear-gradient(135deg,#F97316,#EA580C); color:#fff; display:grid; place-items:center; font-size:18px; font-weight:900; flex-shrink:0; }
+.ohh-author .info { flex:1; min-width:0; }
+.ohh-author .nm { font-size:14.5px; font-weight:800; color:#111827; display:flex; align-items:center; gap:6px; }
+.ohh-author .nm .badge { font-size:10px; padding:2px 7px; background:#FEF3C7; color:#B45309; border-radius:4px; font-weight:800; }
+.ohh-author .meta { font-size:12px; color:#9CA3AF; margin-top:3px; }
+.ohh-author .follow { padding:8px 16px; background:#fff; border:1.5px solid #F97316; color:#EA580C; font-size:12.5px; font-weight:800; border-radius:8px; cursor:pointer; }
+.ohh-author .follow:hover { background:#F97316; color:#fff; }
+.ohh-stats { display:flex; gap:20px; margin-top:18px; font-size:12.5px; color:#6B7280; font-weight:600; }
+.ohh-stats span b { color:#0F1F5C; font-weight:800; }
+@media(max-width:640px){ .ohh-h{ font-size:22px; } .ohh{ padding:24px 16px 14px; } }
+</style>
+<section class="ohh">
+  <span class="ohh-cat">홈데코 · 거실 인테리어</span>
+  <h1 class="ohh-h">미니멀 거실에 모네 액자 한 점 — 작은 공간을 갤러리로 만드는 방법</h1>
+  <div class="ohh-author">
+    <div class="ohh-av">민</div>
+    <div class="info">
+      <div class="nm">민지의집 <span class="badge">에디터</span></div>
+      <div class="meta">2026.04.28 · 32평 아파트 · 경기 성남</div>
+    </div>
+    <button class="follow">+ 팔로우</button>
+  </div>
+  <div class="ohh-stats">
+    <span>조회 <b>3,842</b></span>
+    <span>좋아요 <b>284</b></span>
+    <span>스크랩 <b>156</b></span>
+    <span>댓글 <b>42</b></span>
+  </div>
+</section>`;
+
+  const SEED_OH_GALLERY_HTML = `
+<style>
+.ohg * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+.ohg { max-width:760px; margin:0 auto; padding:0 22px 24px; }
+.ohg-stage { position:relative; width:100%; aspect-ratio:4/3; border-radius:14px; overflow:hidden; background:#F3F4F6; box-shadow:0 4px 24px rgba(15,31,92,.08); }
+.ohg-stage-bg { position:absolute; inset:0; background-size:cover; background-position:center; transition:opacity .3s; }
+.ohg-pin { position:absolute; width:32px; height:32px; border-radius:50%; background:#fff; color:#F97316; border:3px solid #F97316; cursor:pointer; display:grid; place-items:center; font-size:18px; font-weight:900; box-shadow:0 4px 14px rgba(0,0,0,.25); transform:translate(-50%,-50%); transition:transform .15s; z-index:5; animation:ohg-pulse 2.4s ease-in-out infinite; }
+.ohg-pin:hover, .ohg-pin.on { transform:translate(-50%,-50%) scale(1.18); background:#F97316; color:#fff; animation:none; }
+@keyframes ohg-pulse { 0%,100%{box-shadow:0 4px 14px rgba(0,0,0,.25),0 0 0 0 rgba(249,115,22,.5);} 50%{box-shadow:0 4px 14px rgba(0,0,0,.25),0 0 0 10px rgba(249,115,22,0);} }
+.ohg-card { position:absolute; left:50%; bottom:18px; transform:translateX(-50%) translateY(120%); width:calc(100% - 36px); max-width:380px; background:rgba(255,255,255,.98); border-radius:14px; box-shadow:0 12px 36px rgba(0,0,0,.18); padding:12px; display:flex; gap:12px; align-items:center; cursor:pointer; transition:transform .35s cubic-bezier(.4,0,.2,1); z-index:10; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
+.ohg-card.on { transform:translateX(-50%) translateY(0); }
+.ohg-card .pc-img { width:64px; height:64px; flex-shrink:0; border-radius:8px; background-size:cover; background-position:center; background-color:#F3F4F6; }
+.ohg-card .pc-info { flex:1; min-width:0; }
+.ohg-card .pc-brand { font-size:11px; color:#9CA3AF; font-weight:700; margin-bottom:2px; }
+.ohg-card .pc-name { font-size:13px; color:#111827; font-weight:600; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:4px; }
+.ohg-card .pc-price { font-size:14px; color:#111827; font-weight:900; }
+.ohg-card .pc-arrow { width:28px; height:28px; flex-shrink:0; display:grid; place-items:center; color:#9CA3AF; font-size:22px; }
+.ohg-bookmark { position:absolute; right:14px; bottom:14px; width:38px; height:38px; background:rgba(255,255,255,.95); border:0; border-radius:10px; cursor:pointer; display:grid; place-items:center; z-index:6; box-shadow:0 2px 8px rgba(0,0,0,.15); }
+.ohg-bookmark svg { width:18px; height:18px; fill:none; stroke:#374151; stroke-width:2; }
+.ohg-bookmark.on svg { fill:#F97316; stroke:#F97316; }
+.ohg-thumbs { display:flex; gap:8px; margin-top:14px; overflow-x:auto; padding:2px 0; }
+.ohg-thumb { flex-shrink:0; width:96px; height:96px; border-radius:10px; overflow:hidden; cursor:pointer; border:3px solid transparent; background-size:cover; background-position:center; background-color:#F3F4F6; transition:border-color .15s; }
+.ohg-thumb.on { border-color:#F97316; }
+.ohg-help { font-size:12px; color:#6B7280; margin-top:14px; padding:10px 14px; background:#FFF7ED; border:1px dashed #FED7AA; border-radius:10px; display:flex; align-items:center; gap:8px; }
+.ohg-help .ic { width:22px; height:22px; border-radius:50%; background:#F97316; color:#fff; display:grid; place-items:center; font-size:14px; font-weight:900; flex-shrink:0; }
+@media(max-width:640px){ .ohg{ padding:0 16px 20px; } .ohg-thumb{ width:74px; height:74px; } .ohg-card{ width:calc(100% - 28px); } }
+</style>
+<section class="ohg">
+  <div class="ohg-stage" id="ohgStage">
+    <div class="ohg-stage-bg" id="ohgBg"></div>
+    <button class="ohg-bookmark" id="ohgBm" aria-label="스크랩"><svg viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+    <div class="ohg-card" id="ohgCard">
+      <div class="pc-img" id="ohgPcImg"></div>
+      <div class="pc-info">
+        <div class="pc-brand" id="ohgPcBrand"></div>
+        <div class="pc-name" id="ohgPcName"></div>
+        <div class="pc-price" id="ohgPcPrice"></div>
+      </div>
+      <span class="pc-arrow">›</span>
+    </div>
+  </div>
+  <div class="ohg-thumbs" id="ohgThumbs"></div>
+  <div class="ohg-help"><span class="ic">+</span><span>사진 위 <b>+</b> 마커를 누르면 사용된 상품을 바로 확인할 수 있어요.</span></div>
+</section>
+<script>
+(function(){
+  // 데모용 — 실제 운영 시 자사몰 상품 DB와 연동
+  var products = {
+    p1: { brand:'아트포스터', name:'모네 — 베테유의 화가 정원 액자 (60×80)', price:'89,000원', img:'https://picsum.photos/seed/oh-art/200', url:'#' },
+    p2: { brand:'그린홈', name:'아레카 야자 화분 — 중형 80cm 스탠드 포함', price:'45,000원', img:'https://picsum.photos/seed/oh-plant/200', url:'#' },
+    p3: { brand:'미러로프트', name:'아치형 풀렝스 미러 — 그린 우드프레임 50×170', price:'168,000원', img:'https://picsum.photos/seed/oh-mirror/200', url:'#' },
+    p4: { brand:'가구로드', name:'발코니 식탁 원목 의자 인테리어 카페 체어 2colors', price:'85,000원', img:'https://picsum.photos/seed/oh-chair/200', url:'#' },
+    p5: { brand:'리빙클래식', name:'유리 사이드 테이블 — 스테인리스 골드 트레이형', price:'124,000원', img:'https://picsum.photos/seed/oh-table/200', url:'#' },
+    p6: { brand:'무드플로어', name:'헤링본 강마루 — 화이트 오크 (1평 패키지)', price:'72,000원', img:'https://picsum.photos/seed/oh-floor/200', url:'#' },
+    p7: { brand:'세라믹랩', name:'무광 세라믹 화분 받침 세트 (3종)', price:'29,000원', img:'https://picsum.photos/seed/oh-pot/200', url:'#' },
+    p8: { brand:'노드아트', name:'미니 조각상 오브제 — 화이트 무광', price:'38,000원', img:'https://picsum.photos/seed/oh-deco/200', url:'#' },
+  };
+  var photos = [
+    { id:1, src:'https://picsum.photos/seed/oh-living-1/1200/900', pins:[
+      { x:18, y:46, product:'p1' }, { x:30, y:62, product:'p2' }, { x:46, y:38, product:'p3' }, { x:55, y:68, product:'p4' }
+    ]},
+    { id:2, src:'https://picsum.photos/seed/oh-living-2/1200/900', pins:[
+      { x:35, y:42, product:'p5' }, { x:60, y:55, product:'p3' }
+    ]},
+    { id:3, src:'https://picsum.photos/seed/oh-living-3/1200/900', pins:[
+      { x:25, y:50, product:'p6' }, { x:55, y:45, product:'p7' }, { x:72, y:60, product:'p8' }
+    ]},
+    { id:4, src:'https://picsum.photos/seed/oh-living-4/1200/900', pins:[
+      { x:40, y:38, product:'p4' }, { x:60, y:55, product:'p1' }
+    ]},
+    { id:5, src:'https://picsum.photos/seed/oh-living-5/1200/900', pins:[
+      { x:30, y:55, product:'p2' }, { x:55, y:45, product:'p4' }, { x:72, y:60, product:'p5' }
+    ]},
+  ];
+  var currentPhoto = 0;
+  var currentProduct = null;
+  function $(id){ return document.getElementById(id); }
+  function renderPhoto(){
+    var p = photos[currentPhoto];
+    $('ohgBg').style.backgroundImage = "url('" + p.src + "')";
+    var stage = $('ohgStage');
+    stage.querySelectorAll('.ohg-pin').forEach(function(el){ el.remove(); });
+    p.pins.forEach(function(pin){
+      var btn = document.createElement('button');
+      btn.className = 'ohg-pin';
+      btn.style.left = pin.x + '%';
+      btn.style.top = pin.y + '%';
+      btn.textContent = '+';
+      btn.setAttribute('aria-label', '상품 보기');
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        showProduct(pin.product, btn);
+      });
+      stage.appendChild(btn);
+    });
+    document.querySelectorAll('.ohg-thumb').forEach(function(t,i){ t.classList.toggle('on', i===currentPhoto); });
+    hideCard();
+  }
+  function showProduct(pid, pinEl){
+    var pr = products[pid];
+    if (!pr) return;
+    $('ohgPcImg').style.backgroundImage = "url('" + pr.img + "')";
+    $('ohgPcBrand').textContent = pr.brand;
+    $('ohgPcName').textContent = pr.name;
+    $('ohgPcPrice').textContent = pr.price;
+    $('ohgCard').classList.add('on');
+    document.querySelectorAll('.ohg-pin.on').forEach(function(el){ el.classList.remove('on'); });
+    if (pinEl) pinEl.classList.add('on');
+    currentProduct = pid;
+    var card = $('ohgCard');
+    card.onclick = function(){ window.open(pr.url || '#', '_blank'); };
+  }
+  function hideCard(){ $('ohgCard').classList.remove('on'); currentProduct = null; document.querySelectorAll('.ohg-pin.on').forEach(function(el){ el.classList.remove('on'); }); }
+  function renderThumbs(){
+    var wrap = $('ohgThumbs');
+    wrap.innerHTML = '';
+    photos.forEach(function(p, i){
+      var t = document.createElement('button');
+      t.className = 'ohg-thumb' + (i===0 ? ' on' : '');
+      t.style.backgroundImage = "url('" + p.src + "')";
+      t.setAttribute('aria-label', '사진 ' + (i+1));
+      t.addEventListener('click', function(){ currentPhoto = i; renderPhoto(); });
+      wrap.appendChild(t);
+    });
+  }
+  $('ohgStage').addEventListener('click', function(e){
+    if (!e.target.closest('.ohg-pin') && !e.target.closest('.ohg-card')) hideCard();
+  });
+  $('ohgBm').addEventListener('click', function(e){
+    e.stopPropagation();
+    e.currentTarget.classList.toggle('on');
+  });
+  renderThumbs();
+  renderPhoto();
+})();
+</script>`;
+
+  const SEED_OH_BODY_HTML = `
+<style>
+.ohb * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+.ohb { max-width:760px; margin:0 auto; padding:24px 22px; }
+.ohb-p { font-size:15.5px; line-height:1.85; color:#374151; margin-bottom:22px; word-break:keep-all; }
+.ohb-p b { color:#0F1F5C; font-weight:800; }
+.ohb-quote { padding:18px 22px; background:#FFF7ED; border-left:4px solid #F97316; border-radius:0 10px 10px 0; margin:22px 0; font-size:14.5px; line-height:1.75; color:#7C2D12; font-weight:600; font-style:italic; }
+.ohb-img { width:100%; border-radius:14px; margin:22px 0; box-shadow:0 4px 18px rgba(15,31,92,.08); display:block; }
+.ohb-h2 { font-size:19px; font-weight:900; color:#0F1F5C; margin:28px 0 12px; padding-left:12px; border-left:4px solid #F97316; line-height:1.4; }
+.ohb-tip { display:flex; gap:12px; padding:14px 16px; background:#ECFDF5; border:1px solid #A7F3D0; border-radius:12px; margin:18px 0; }
+.ohb-tip .ic { width:28px; height:28px; flex-shrink:0; background:#10B981; color:#fff; border-radius:50%; display:grid; place-items:center; font-size:14px; font-weight:900; }
+.ohb-tip .tx { flex:1; font-size:13.5px; line-height:1.65; color:#065F46; font-weight:600; }
+.ohb-tip .tx b { color:#047857; }
+@media(max-width:640px){ .ohb{ padding:18px 16px; } .ohb-p{ font-size:14.5px; } .ohb-h2{ font-size:17px; } }
+</style>
+<section class="ohb">
+  <p class="ohb-p">이사 온 지 두 달, <b>거실 한 면을 어떻게 채울지</b> 한참을 고민했어요. 큰 가구를 채워 넣기보다, 좋아하는 그림 하나로 공간의 분위기를 정하고 싶었거든요.</p>
+  <p class="ohb-p">그래서 선택한 게 <b>모네의 '베테유의 화가 정원'</b>. 따뜻한 노란 톤이 거실 우드 가구와 자연스럽게 어우러져요. 액자만 두는 게 너무 단조로울까 봐 옆에 키 큰 야자수 화분도 함께 두었습니다.</p>
+  <div class="ohb-quote">"가구를 줄이고 그림 하나, 식물 하나로 비우니 오히려 거실이 넓어 보여요."</div>
+  <h2 class="ohb-h2">아치형 미러로 공간감 더하기</h2>
+  <p class="ohb-p">맞은편 벽엔 풀렝스 미러를 세웠어요. 빛이 반사되면서 거실이 한 배쯤 넓어 보이는 효과가 있어요. 그린 우드 프레임이 야자수와 톤이 맞아서 자연스럽게 묶여요.</p>
+  <img class="ohb-img" src="https://picsum.photos/seed/oh-detail-1/1200/700" alt="거실 디테일"/>
+  <h2 class="ohb-h2">발코니 카페 체어 — 가장 좋아하는 자리</h2>
+  <p class="ohb-p">모닝 커피 마시는 자리예요. <b>원목 카페 체어 두 개</b>를 두고 작은 사이드 테이블 하나만 놓았어요. 비워둔 게 오히려 편안해요.</p>
+  <div class="ohb-tip"><div class="ic">💡</div><div class="tx"><b>POUR스토어 TIP</b> — 작은 공간일수록 가구를 줄이고 <b>한두 점의 포인트 오브제</b>로 분위기를 잡아보세요. 비워둔 만큼 시선이 머무를 곳이 생깁니다.</div></div>
+</section>`;
+
+  const SEED_OH_PRODUCTS_HTML = `
+<style>
+.ohp * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+.ohp { max-width:760px; margin:0 auto; padding:24px 22px; }
+.ohp-h { font-size:18px; font-weight:900; color:#0F1F5C; margin-bottom:14px; display:flex; align-items:center; gap:10px; }
+.ohp-h .ic { width:28px; height:28px; background:#F97316; color:#fff; border-radius:50%; display:grid; place-items:center; font-size:14px; font-weight:900; }
+.ohp-h .cnt { font-size:13px; color:#9CA3AF; font-weight:600; margin-left:4px; }
+.ohp-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; }
+.ohp-card { background:#fff; border:1px solid #E5E7EB; border-radius:12px; overflow:hidden; cursor:pointer; transition:transform .15s, box-shadow .15s; }
+.ohp-card:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(15,31,92,.10); border-color:#FED7AA; }
+.ohp-img { width:100%; aspect-ratio:1/1; background-size:cover; background-position:center; background-color:#F3F4F6; }
+.ohp-info { padding:10px 12px 12px; }
+.ohp-brand { font-size:11px; color:#9CA3AF; font-weight:700; margin-bottom:3px; }
+.ohp-name { font-size:12.5px; color:#111827; font-weight:600; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:6px; min-height:35px; }
+.ohp-price { font-size:14px; color:#111827; font-weight:900; }
+.ohp-tag { display:inline-block; font-size:10px; padding:2px 6px; background:#FFEDD5; color:#EA580C; border-radius:4px; font-weight:800; margin-top:4px; }
+@media(max-width:640px){ .ohp{ padding:20px 16px; } .ohp-grid{ grid-template-columns:repeat(2,1fr); } }
+</style>
+<section class="ohp">
+  <h3 class="ohp-h"><span class="ic">🏷</span>이 포스트에 사용된 상품<span class="cnt">8개</span></h3>
+  <div class="ohp-grid">
+    <a class="ohp-card"><div class="ohp-img" style="background-image:url('https://picsum.photos/seed/oh-art/400')"></div><div class="ohp-info"><div class="ohp-brand">아트포스터</div><div class="ohp-name">모네 — 베테유의 화가 정원 액자 (60×80)</div><div class="ohp-price">89,000원</div></div></a>
+    <a class="ohp-card"><div class="ohp-img" style="background-image:url('https://picsum.photos/seed/oh-plant/400')"></div><div class="ohp-info"><div class="ohp-brand">그린홈</div><div class="ohp-name">아레카 야자 화분 — 중형 80cm</div><div class="ohp-price">45,000원</div></div></a>
+    <a class="ohp-card"><div class="ohp-img" style="background-image:url('https://picsum.photos/seed/oh-mirror/400')"></div><div class="ohp-info"><div class="ohp-brand">미러로프트</div><div class="ohp-name">아치형 풀렝스 미러 — 그린 우드프레임</div><div class="ohp-price">168,000원</div></div></a>
+    <a class="ohp-card"><div class="ohp-img" style="background-image:url('https://picsum.photos/seed/oh-chair/400')"></div><div class="ohp-info"><div class="ohp-brand">가구로드</div><div class="ohp-name">발코니 식탁 원목 의자 카페 체어 2colors</div><div class="ohp-price">85,000원</div><span class="ohp-tag">인기</span></div></a>
+    <a class="ohp-card"><div class="ohp-img" style="background-image:url('https://picsum.photos/seed/oh-table/400')"></div><div class="ohp-info"><div class="ohp-brand">리빙클래식</div><div class="ohp-name">유리 사이드 테이블 골드 트레이</div><div class="ohp-price">124,000원</div></div></a>
+    <a class="ohp-card"><div class="ohp-img" style="background-image:url('https://picsum.photos/seed/oh-floor/400')"></div><div class="ohp-info"><div class="ohp-brand">무드플로어</div><div class="ohp-name">헤링본 강마루 — 화이트 오크 (1평)</div><div class="ohp-price">72,000원</div></div></a>
+    <a class="ohp-card"><div class="ohp-img" style="background-image:url('https://picsum.photos/seed/oh-pot/400')"></div><div class="ohp-info"><div class="ohp-brand">세라믹랩</div><div class="ohp-name">무광 세라믹 화분 받침 세트 (3종)</div><div class="ohp-price">29,000원</div></div></a>
+    <a class="ohp-card"><div class="ohp-img" style="background-image:url('https://picsum.photos/seed/oh-deco/400')"></div><div class="ohp-info"><div class="ohp-brand">노드아트</div><div class="ohp-name">미니 조각상 오브제 — 화이트 무광</div><div class="ohp-price">38,000원</div></div></a>
+  </div>
+</section>`;
+
+  const SEED_OH_COMMENTS_HTML = `
+<style>
+.ohc * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
+.ohc { max-width:760px; margin:0 auto; padding:24px 22px 40px; }
+.ohc-actions { display:flex; gap:10px; padding:14px 0 18px; border-bottom:1px solid #E5E7EB; margin-bottom:24px; }
+.ohc-act { flex:1; padding:12px 0; background:#fff; border:1.5px solid #E5E7EB; border-radius:10px; font-size:13px; font-weight:700; color:#374151; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; }
+.ohc-act:hover { border-color:#F97316; color:#EA580C; }
+.ohc-act.on { background:#FFF7ED; border-color:#F97316; color:#EA580C; }
+.ohc-act svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2; }
+.ohc-h { font-size:17px; font-weight:900; color:#0F1F5C; margin-bottom:14px; }
+.ohc-h .cnt { color:#F97316; }
+.ohc-input { display:flex; gap:10px; padding:12px; background:#F9FAFB; border:1px solid #E5E7EB; border-radius:12px; margin-bottom:18px; }
+.ohc-input .av { width:36px; height:36px; flex-shrink:0; border-radius:50%; background:linear-gradient(135deg,#9CA3AF,#6B7280); color:#fff; display:grid; place-items:center; font-size:13px; font-weight:800; }
+.ohc-input input { flex:1; border:0; background:transparent; outline:none; font-size:13.5px; color:#111827; padding:8px 0; }
+.ohc-input button { padding:8px 16px; background:#F97316; color:#fff; border:0; border-radius:8px; font-size:12.5px; font-weight:800; cursor:pointer; }
+.ohc-list { display:flex; flex-direction:column; gap:18px; margin-bottom:32px; }
+.ohc-item { display:flex; gap:12px; }
+.ohc-item .av { width:36px; height:36px; flex-shrink:0; border-radius:50%; color:#fff; display:grid; place-items:center; font-size:13px; font-weight:800; }
+.ohc-item .body { flex:1; min-width:0; }
+.ohc-item .nm { font-size:13px; font-weight:800; color:#111827; margin-bottom:4px; display:flex; align-items:center; gap:6px; }
+.ohc-item .nm .tm { font-size:11px; color:#9CA3AF; font-weight:600; }
+.ohc-item .tx { font-size:13.5px; color:#374151; line-height:1.6; }
+.ohc-item .reply { font-size:11.5px; color:#9CA3AF; font-weight:700; margin-top:6px; cursor:pointer; }
+.ohc-item .reply:hover { color:#F97316; }
+.ohc-rel-h { font-size:17px; font-weight:900; color:#0F1F5C; margin-bottom:14px; padding-top:24px; border-top:1px solid #E5E7EB; }
+.ohc-rel { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px; }
+.ohc-rel-card { background:#fff; border:1px solid #E5E7EB; border-radius:12px; overflow:hidden; cursor:pointer; transition:transform .15s, box-shadow .15s; }
+.ohc-rel-card:hover { transform:translateY(-2px); box-shadow:0 6px 18px rgba(15,31,92,.10); }
+.ohc-rel-img { width:100%; aspect-ratio:4/3; background-size:cover; background-position:center; background-color:#F3F4F6; }
+.ohc-rel-info { padding:10px 12px 12px; }
+.ohc-rel-cat { font-size:10.5px; color:#EA580C; font-weight:800; margin-bottom:3px; }
+.ohc-rel-t { font-size:13px; font-weight:700; color:#111827; line-height:1.45; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:6px; }
+.ohc-rel-meta { font-size:11px; color:#9CA3AF; }
+@media(max-width:640px){ .ohc{ padding:20px 16px 30px; } .ohc-rel{ grid-template-columns:repeat(2,1fr); } }
+</style>
+<section class="ohc">
+  <div class="ohc-actions">
+    <button class="ohc-act on"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>좋아요 284</button>
+    <button class="ohc-act"><svg viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>스크랩 156</button>
+    <button class="ohc-act"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>공유</button>
+  </div>
+  <h3 class="ohc-h">댓글 <span class="cnt">42</span></h3>
+  <div class="ohc-input">
+    <div class="av">나</div>
+    <input type="text" placeholder="응원의 댓글을 남겨주세요" />
+    <button>등록</button>
+  </div>
+  <div class="ohc-list">
+    <div class="ohc-item">
+      <div class="av" style="background:linear-gradient(135deg,#F97316,#EA580C)">서</div>
+      <div class="body">
+        <div class="nm">서연맘 <span class="tm">3시간 전</span></div>
+        <div class="tx">미러 위치 정보 너무 좋네요! 저희 집도 작은데 한번 따라해 보고 싶어요. 혹시 미러 높이가 어떻게 되나요?</div>
+        <div class="reply">↳ 답글 달기</div>
+      </div>
+    </div>
+    <div class="ohc-item">
+      <div class="av" style="background:linear-gradient(135deg,#10B981,#059669)">하</div>
+      <div class="body">
+        <div class="nm">하루의집 <span class="tm">5시간 전</span></div>
+        <div class="tx">모네 액자가 분위기 정말 살리네요 ✨ 저도 비워둔 인테리어 도전해보고 싶어요</div>
+        <div class="reply">↳ 답글 달기</div>
+      </div>
+    </div>
+    <div class="ohc-item">
+      <div class="av" style="background:linear-gradient(135deg,#7C3AED,#6D28D9)">민</div>
+      <div class="body">
+        <div class="nm">민지의집 <span class="tm">4시간 전</span> · <span style="color:#EA580C; font-weight:800">에디터</span></div>
+        <div class="tx">@서연맘 미러는 50×170 사이즈예요! 천장 닿지 않는 정도라 답답하지 않더라구요 :)</div>
+        <div class="reply">↳ 답글 달기</div>
+      </div>
+    </div>
+  </div>
+  <h3 class="ohc-rel-h">이 포스트와 어울리는 다른 집들이</h3>
+  <div class="ohc-rel">
+    <a class="ohc-rel-card"><div class="ohc-rel-img" style="background-image:url('https://picsum.photos/seed/oh-rel-1/400/300')"></div><div class="ohc-rel-info"><div class="ohc-rel-cat">미니멀 인테리어</div><div class="ohc-rel-t">25평 신혼집 — 비움의 미학으로 채운 거실</div><div class="ohc-rel-meta">조회 5.2k · ❤ 412</div></div></a>
+    <a class="ohc-rel-card"><div class="ohc-rel-img" style="background-image:url('https://picsum.photos/seed/oh-rel-2/400/300')"></div><div class="ohc-rel-info"><div class="ohc-rel-cat">홈데코</div><div class="ohc-rel-t">액자 한 점으로 바꾸는 거실 분위기 6가지</div><div class="ohc-rel-meta">조회 8.1k · ❤ 623</div></div></a>
+    <a class="ohc-rel-card"><div class="ohc-rel-img" style="background-image:url('https://picsum.photos/seed/oh-rel-3/400/300')"></div><div class="ohc-rel-info"><div class="ohc-rel-cat">식물 인테리어</div><div class="ohc-rel-t">초보자도 키우기 쉬운 거실 화분 8선</div><div class="ohc-rel-meta">조회 12k · ❤ 891</div></div></a>
+    <a class="ohc-rel-card"><div class="ohc-rel-img" style="background-image:url('https://picsum.photos/seed/oh-rel-4/400/300')"></div><div class="ohc-rel-info"><div class="ohc-rel-cat">셀프 리모델링</div><div class="ohc-rel-t">헤링본 강마루 직접 시공 — 비용·후기</div><div class="ohc-rel-meta">조회 6.8k · ❤ 524</div></div></a>
+  </div>
+</section>`;
+
+
   const DEFAULT_PAGES = () => ([
     { id: 'main', name: '메인 페이지', file: 'index.html', sections: [
       mkSec('메인 배너', SEED_BANNER_HTML, '라이트 크림 + 오렌지 그라디언트 — 가벼운 톤 (v3)', 'wip'),
@@ -4926,6 +5250,13 @@ show('entry');
       mkSec('최근 주문 테이블', SEED_DLR_ORDERS_HTML, '상태·주문번호·주문일·고객·품목·매출·수수료 (자동 계산)', 'wip'),
       mkSec('새 주문 모달', SEED_DLR_NEW_HTML, '결제 안내 + 고객정보 + 품목 다중 추가 + 합계·수수료 미리보기', 'wip'),
     ]},
+    { id: 'posting-ohouse', name: '포스팅 상세 (오하우스 스타일)', file: 'posting.html', parentHint: '자사몰', sections: [
+      mkSec('포스팅 헤더', SEED_OH_HEAD_HTML, '카테고리·제목·작성자·메타·조회/좋아요/스크랩 (v1)', 'wip'),
+      mkSec('인터랙티브 사진 + 상품 핀', SEED_OH_GALLERY_HTML, '오하우스 스타일 — 사진 위 + 핀 클릭 → 상품 카드 슬라이드, 5장 사진 썸네일 네비 (v1)', 'wip'),
+      mkSec('본문 콘텐츠', SEED_OH_BODY_HTML, '스토리 텍스트 + 인용 + 디테일 사진 + POUR스토어 TIP 박스 (v1)', 'wip'),
+      mkSec('사용된 상품 모음', SEED_OH_PRODUCTS_HTML, '8개 상품 그리드 — 브랜드·이름·가격 카드 (v1)', 'wip'),
+      mkSec('댓글 + 관련 포스팅', SEED_OH_COMMENTS_HTML, '좋아요/스크랩/공유 액션 + 3개 댓글 + 4개 관련 포스팅 (v1)', 'wip'),
+    ]},
     { id: 'dash-kiosk', name: '[대시보드] 매장 키오스크 (고객용)', file: 'kiosk.html', sections: [
       mkSec('초기 설정 (대리점 바인딩)', SEED_KSK_SETUP_HTML, '대리점 전화번호 + PIN로 키오스크 바인딩 (30일 유지)', 'wip'),
       mkSec('환영 화면 (대기)', SEED_KSK_WELCOME_HTML, '큰 펄스 아이콘 + 환영 메시지 + 신뢰 트리오(R&D/영상/시공실적)', 'wip'),
@@ -5004,11 +5335,22 @@ show('entry');
     // 사용자가 명시적으로 삭제한 페이지는 다시 추가하지 않음 (deletedDefaults 추적)
     s.deletedDefaults = s.deletedDefaults || [];
     const defaults = DEFAULT_PAGES();
+    let added = 0;
     defaults.forEach(dp => {
       const exists = s.pages.some(p => p.id === dp.id);
       const wasDeleted = s.deletedDefaults.indexOf(dp.id) !== -1;
-      if (!exists && !wasDeleted) s.pages.push(dp);
+      if (exists || wasDeleted) return;
+      // parentHint가 있으면 동일 이름의 폴더 아래에 자동 배치
+      const newPage = Object.assign({}, dp);
+      if (dp.parentHint) {
+        const folder = s.pages.find(p => p.type === 'folder' && p.name === dp.parentHint);
+        if (folder) newPage.parentId = folder.id;
+        delete newPage.parentHint; // 영구 저장 시엔 hint 제거
+      }
+      s.pages.push(newPage);
+      added++;
     });
+    return added;
   }
   function freshState() {
     return { pages: DEFAULT_PAGES(), history: {}, activePageId: 'main' };
@@ -5116,11 +5458,23 @@ show('entry');
       // 서버에 데이터 없음 → 현재 로컬 상태로 시드
       console.log('[firestore] 문서 없음 → 로컬 상태로 시드');
       initialSnapshotConsumed = true;
+      if (!firstSnapshotLoaded) {
+        firstSnapshotLoaded = true;
+        handleInitialHistoryLoad(state.history || {});
+      }
       pushToFirestore(true);
       return;
     }
     const data = snap.data() || {};
-    if (!data.state) { initialSnapshotConsumed = true; pushToFirestore(true); return; }
+    if (!data.state) {
+      initialSnapshotConsumed = true;
+      if (!firstSnapshotLoaded) {
+        firstSnapshotLoaded = true;
+        handleInitialHistoryLoad(state.history || {});
+      }
+      pushToFirestore(true);
+      return;
+    }
     // 자기 자신이 쓴 echo는 무시
     if (data.lastWrite && data.lastWrite === state.lastWrite) {
       setSync('synced', '동기화됨 ' + fmtTime(new Date()));
@@ -5131,7 +5485,13 @@ show('entry');
       const remote = JSON.parse(data.state);
       if (!remote || !Array.isArray(remote.pages)) throw new Error('형식 오류');
       const previousActive = state.activePageId;
+      const previousHistory = state.history; // 메모리 history 보존 — 서브컬렉션이 단일 진실
       state = migrate(remote);
+      const addedPages = addMissingDefaultPages(state); // 새 기본 페이지(parentHint 포함) 자동 추가
+      // 원격 state에 history가 포함돼 있으면 마이그레이션 후보 (legacy)
+      const embeddedFromRemote = (remote.history && typeof remote.history === 'object') ? remote.history : null;
+      // history는 서브컬렉션에서 로드됨 — 직전 메모리 값 우선 유지
+      state.history = previousHistory || state.history || {};
       if (previousActive && state.pages.some(p => p.id === previousActive)) {
         state.activePageId = previousActive;
       }
@@ -5139,6 +5499,14 @@ show('entry');
       renderAll();
       setSync('synced', initialSnapshotConsumed ? ('실시간 반영 ' + fmtTime(new Date())) : ('서버에서 불러옴 ' + fmtTime(new Date())));
       initialSnapshotConsumed = true;
+      if (!firstSnapshotLoaded) {
+        firstSnapshotLoaded = true;
+        handleInitialHistoryLoad(embeddedFromRemote || state.history || {});
+      }
+      if (addedPages > 0) {
+        console.log(`[builder] ${addedPages}개 신규 기본 페이지 추가 → 저장`);
+        saveState(); // 디바운스 저장 — 새 기본 페이지 영구 반영
+      }
     } catch (e) {
       console.error('[firestore] 원격 상태 적용 실패:', e);
       setSync('error', '원격 데이터 형식 오류');
@@ -5154,8 +5522,12 @@ show('entry');
     if (!firebaseReady || !db) { setSync('offline', '오프라인 — 로컬에만 저장됨'); return; }
     state.lastWrite = newWriteToken();
     if (!silent) setSync('syncing', '저장 중...');
+    // history는 서브컬렉션(pourstore-renewal-builder/state/history)에서 관리 →
+    // 메인 state 직렬화 시 분리하여 1MB 한도 회피
+    const stateForFirestore = Object.assign({}, state);
+    delete stateForFirestore.history;
     const payload = {
-      state: JSON.stringify(state),
+      state: JSON.stringify(stateForFirestore),
       lastWrite: state.lastWrite,
       updatedAt: new Date().toISOString(),
     };
@@ -5170,6 +5542,95 @@ show('entry');
         setSync('error', '서버 저장 실패: ' + (e.code || e.message || ''));
         toast('서버 저장 실패: ' + (e.code || e.message || ''), 'error');
       });
+  }
+
+  // ─────────────────────────────────────────────
+  // History 서브컬렉션 — 1MB 한도 회피를 위해 메인 state에서 분리
+  // 컬렉션 경로: pourstore-renewal-builder/state/history/{safeKey}
+  // 각 doc: { versions: [...], updatedAt }
+  // ─────────────────────────────────────────────
+  function safeKey(k) { return String(k).replace(/:/g, '__'); }
+  function unsafeKey(id) { return String(id).replace(/__/g, ':'); }
+  function historyColRef() {
+    return db.collection(FIRESTORE_COLLECTION).doc(FIRESTORE_DOC).collection(HISTORY_SUBCOL);
+  }
+  function persistHistory(k) {
+    if (!firebaseReady || !db) return;
+    if (historyWriteTimers[k]) clearTimeout(historyWriteTimers[k]);
+    historyWriteTimers[k] = setTimeout(() => {
+      delete historyWriteTimers[k];
+      const versions = state.history[k];
+      const ref = historyColRef().doc(safeKey(k));
+      if (!versions || versions.length === 0) {
+        ref.delete().catch(e => console.error('[history-persist] 삭제 실패:', k, e));
+      } else {
+        ref.set({ versions, updatedAt: new Date().toISOString() })
+          .catch(e => console.error('[history-persist] 저장 실패:', k, e));
+      }
+    }, SAVE_DEBOUNCE_MS);
+  }
+  async function loadHistorySubcollection() {
+    if (!firebaseReady || !db) return {};
+    try {
+      const snap = await historyColRef().get();
+      const out = {};
+      snap.forEach(doc => {
+        const data = doc.data() || {};
+        if (Array.isArray(data.versions)) out[unsafeKey(doc.id)] = data.versions;
+      });
+      console.log(`[history] 서브컬렉션 ${snap.size}개 키 로드`);
+      return out;
+    } catch (e) {
+      console.error('[history] 서브컬렉션 로드 실패:', e);
+      return {};
+    }
+  }
+  async function migrateHistoryToSubcollection(map) {
+    if (!firebaseReady || !db) return 0;
+    const keys = Object.keys(map || {});
+    if (keys.length === 0) return 0;
+    let written = 0;
+    for (let i = 0; i < keys.length; i += HISTORY_BATCH_LIMIT) {
+      const chunk = keys.slice(i, i + HISTORY_BATCH_LIMIT);
+      const batch = db.batch();
+      chunk.forEach(k => {
+        const versions = map[k];
+        if (!Array.isArray(versions) || versions.length === 0) return;
+        batch.set(historyColRef().doc(safeKey(k)), { versions, updatedAt: new Date().toISOString() });
+        written++;
+      });
+      try { await batch.commit(); }
+      catch (e) { console.error('[history-migrate] batch 실패:', e); throw e; }
+    }
+    console.log(`[history-migrate] ${written}개 키 마이그레이션 완료`);
+    return written;
+  }
+  async function handleInitialHistoryLoad(embeddedHistory) {
+    // 1) 서브컬렉션 로드 — 이미 마이그레이션된 데이터
+    const sub = await loadHistorySubcollection();
+    // 2) 내장 history 중 서브컬렉션에 없는 키만 마이그레이션 대상
+    const embedded = (embeddedHistory && typeof embeddedHistory === 'object') ? embeddedHistory : {};
+    const toMigrate = {};
+    Object.keys(embedded).forEach(k => {
+      if (!sub[k] && Array.isArray(embedded[k]) && embedded[k].length > 0) toMigrate[k] = embedded[k];
+    });
+    // 3) 메모리 state.history = 서브컬렉션 + 마이그레이션 후보
+    state.history = Object.assign({}, sub, toMigrate);
+    // 4) 마이그레이션 실행
+    if (Object.keys(toMigrate).length > 0) {
+      try {
+        await migrateHistoryToSubcollection(toMigrate);
+        toast(`수정 이력 ${Object.keys(toMigrate).length}개 안전하게 분리 저장 완료`, 'success');
+        // 메인 doc 재저장 — history 분리된 상태로 덮어씀 (이미 pushToFirestore에서 자동 분리)
+        pushToFirestore(true);
+      } catch (e) {
+        toast('이력 마이그레이션 실패: ' + (e.code || e.message || ''), 'error');
+      }
+    }
+    // 5) 화면 갱신
+    try { renderSections(); } catch (_) {}
+    try { if (historyCtx) renderHistoryList(); } catch (_) {}
+    try { checkOldHistoryAndNotify(); } catch (_) {}
   }
 
   function fmtTime(d) {
@@ -5267,14 +5728,17 @@ show('entry');
       (byKey[key] = byKey[key] || []).push(idx);
     });
     let removed = 0;
+    const affectedKeys = [];
     Object.keys(byKey).forEach(k => {
       const idxs = byKey[k].sort((a, b) => b - a);
       const list = state.history[k];
       if (!list) return;
       idxs.forEach(i => { if (i > 0 && i < list.length) { list.splice(i, 1); removed++; } });
       if (list.length === 0) delete state.history[k];
+      affectedKeys.push(k);
     });
     saveState();
+    affectedKeys.forEach(persistHistory); // 서브컬렉션에 반영 (빈 키는 삭제됨)
     closeModal('retentionModal');
     checkOldHistoryAndNotify();
     toast(`${removed}건 영구 삭제됨`, 'info');
@@ -5365,6 +5829,7 @@ show('entry');
     list.unshift(snapshot);
     // 자동 삭제 없음 — 모든 버전 영구 보관 (1년 경과 시 수동 정리 알림만 띄움)
     state.history[k] = list;
+    persistHistory(k); // 서브컬렉션에 디바운스 저장
   }
 
   // -------- rendering --------
@@ -5753,7 +6218,11 @@ show('entry');
       const totalPages = state.pages.filter(p => p.type !== 'folder').length;
       if (totalPages <= 1) { toast('최소 1개 페이지는 유지해야 합니다.', 'error'); return; }
       if (!confirm(`'${node.name}' 페이지를 삭제할까요? 섹션과 이력이 모두 사라집니다.`)) return;
-      node.sections.forEach(s => { delete state.history[histKey(node.id, s.id)]; });
+      node.sections.forEach(s => {
+        const k = histKey(node.id, s.id);
+        delete state.history[k];
+        persistHistory(k); // 서브컬렉션에서 빈 상태 → 삭제
+      });
     }
     state.pages = state.pages.filter(p => p.id !== node.id);
     state.deletedDefaults = state.deletedDefaults || [];
@@ -5785,7 +6254,9 @@ show('entry');
     if (!sec) return;
     if (!confirm(`'${sec.name}' 섹션을 삭제할까요? 이 섹션의 이력도 모두 사라집니다.`)) return;
     page.sections = page.sections.filter(s => s.id !== secId);
-    delete state.history[histKey(page.id, secId)];
+    const delKey = histKey(page.id, secId);
+    delete state.history[delKey];
+    persistHistory(delKey); // 서브컬렉션에서 삭제
     saveState();
     renderSections();
     toast('섹션 삭제됨', 'info');

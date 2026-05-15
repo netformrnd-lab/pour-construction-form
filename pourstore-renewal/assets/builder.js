@@ -10,6 +10,20 @@
   const MAX_DEPTH = 3; // 0=대, 1=중, 2=소 (총 3단)
   const STAFF_COLORS = ['#0F1F5C','#03C75A','#D97706','#7C3AED','#DC2626','#0284C7','#DB2777','#059669','#9333EA','#EA580C'];
 
+  // 폰트 토큰 — 역할별 일괄 적용 (state.fontTokens)
+  function DEFAULT_FONT_TOKENS() {
+    return [
+      { id: 'ft-heading',  key: '제목', label: '제목 (heading)', fontFamily: "'Noto Sans KR', sans-serif", fontSize: '28px', fontWeight: '900', color: '#0F1F5C', lineHeight: '1.3',  letterSpacing: '-0.02em' },
+      { id: 'ft-emphasis', key: '강조', label: '강조 (emphasis)', fontFamily: "'Noto Sans KR', sans-serif", fontSize: '20px', fontWeight: '700', color: '#E8780F', lineHeight: '1.4',  letterSpacing: '0' },
+      { id: 'ft-sub',      key: '서브', label: '서브 (sub)',      fontFamily: "'Noto Sans KR', sans-serif", fontSize: '14px', fontWeight: '500', color: '#6B7280', lineHeight: '1.6',  letterSpacing: '0' },
+      { id: 'ft-body',     key: '본문', label: '본문 (body)',     fontFamily: "'Noto Sans KR', sans-serif", fontSize: '15px', fontWeight: '400', color: '#111827', lineHeight: '1.75', letterSpacing: '0' },
+    ];
+  }
+  // 클래스 이름에 안전하지 않은 문자 제거 (한글/영문/숫자/하이픈/언더스코어만 허용)
+  function sanitizeRoleKey(k) {
+    return String(k || '').trim().replace(/[^0-9A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ_-]/g, '');
+  }
+
   const FIREBASE_CONFIG = {
     apiKey: 'AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU',
     authDomain: 'pour-app-new.firebaseapp.com',
@@ -586,6 +600,221 @@ show('entry');
     </div>
   </div>
   <div class="psb3-dots"><span class="on"></span><span></span><span></span></div>
+</section>`;
+
+  // 메인 1번 섹션 — 오늘의집 레이아웃 차용 v1 (헤더·탭·2분할 히어로·카테고리 아이콘 10개, 모바일 반응형)
+  const OHOUSE_V1_SECTION_HTML = `<section class="psm1">
+<style>
+.psm1 *, .psm1 *::before, .psm1 *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR','Apple SD Gothic Neo',sans-serif; }
+.psm1 { background:#fff; color:#111827; line-height:1.5; -webkit-font-smoothing:antialiased; }
+.psm1 a { color:inherit; text-decoration:none; }
+.psm1 button { background:none; border:none; cursor:pointer; font:inherit; color:inherit; }
+.psm1 img { display:block; max-width:100%; }
+/* 1) 헤더 */
+.psm1-hd { border-bottom:1px solid #F2F3F5; }
+.psm1-hd-inner { max-width:1256px; margin:0 auto; padding:16px 24px; display:flex; align-items:center; gap:32px; }
+.psm1-logo { display:flex; align-items:center; gap:8px; font-weight:900; font-size:22px; color:#0F1F5C; letter-spacing:-0.5px; flex-shrink:0; }
+.psm1-logo .psm1-logo-mark { width:30px; height:30px; border-radius:8px; background:linear-gradient(135deg,#F49A3A 0%,#E8780F 100%); display:grid; place-items:center; color:#fff; font-size:14px; font-weight:900; letter-spacing:-0.5px; }
+.psm1-gnb { display:flex; gap:24px; align-items:center; }
+.psm1-gnb a { font-size:16px; font-weight:700; color:#374151; padding:6px 0; }
+.psm1-gnb a.on { color:#0F1F5C; }
+.psm1-gnb a:hover { color:#E8780F; }
+.psm1-search { flex:1; max-width:480px; position:relative; }
+.psm1-search input { width:100%; padding:11px 16px 11px 44px; font-size:14px; background:#F5F6F8; border:1px solid #F5F6F8; border-radius:24px; outline:none; transition:.15s; }
+.psm1-search input:focus { background:#fff; border-color:#E8780F; }
+.psm1-search .psm1-search-ico { position:absolute; left:16px; top:50%; transform:translateY(-50%); width:18px; height:18px; opacity:.55; }
+.psm1-util { display:flex; align-items:center; gap:18px; margin-left:auto; }
+.psm1-util a { font-size:13px; color:#6B7280; }
+.psm1-util a:hover { color:#111827; }
+.psm1-util .psm1-cart { width:24px; height:24px; opacity:.7; }
+.psm1-write { display:inline-flex; align-items:center; gap:4px; padding:8px 16px; background:#0F1F5C; color:#fff !important; border-radius:20px; font-size:13px; font-weight:700; }
+.psm1-write:hover { background:#0A1742; }
+.psm1-hd-mb { display:none; }
+/* 2) 카테고리 탭 */
+.psm1-tabs { border-bottom:1px solid #F2F3F5; background:#fff; }
+.psm1-tabs-inner { max-width:1256px; margin:0 auto; padding:0 24px; display:flex; align-items:center; gap:0; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; }
+.psm1-tabs-inner::-webkit-scrollbar { display:none; }
+.psm1-tab { padding:16px 14px; font-size:15px; font-weight:600; color:#9CA3AF; white-space:nowrap; border-bottom:3px solid transparent; margin-bottom:-1px; transition:.15s; }
+.psm1-tab.on { color:#E8780F; border-color:#E8780F; font-weight:800; }
+.psm1-tab:hover { color:#111827; }
+.psm1-tab .psm1-tab-new { display:inline-block; font-size:9px; font-weight:900; color:#E8780F; vertical-align:top; margin-left:2px; }
+.psm1-tabs-tail { margin-left:auto; display:flex; align-items:center; gap:8px; padding:10px 0; flex-shrink:0; }
+.psm1-tabs-tail .psm1-tail-count { width:24px; height:24px; border-radius:50%; background:#FFF7ED; color:#E8780F; font-size:11px; font-weight:900; display:grid; place-items:center; }
+.psm1-tabs-tail .psm1-tail-txt { font-size:13px; color:#374151; font-weight:600; }
+.psm1-tabs-tail .psm1-tail-new { font-size:9px; font-weight:900; color:#E8780F; padding:2px 4px; border-radius:3px; background:#FFEDD5; }
+.psm1-tabs-tail .psm1-tail-chev { font-size:12px; color:#9CA3AF; }
+/* 3) 히어로 배너 (2분할) */
+.psm1-hero { background:#fff; padding:20px 24px 0; }
+.psm1-hero-inner { max-width:1256px; margin:0 auto; display:grid; grid-template-columns:1fr 320px; gap:20px; }
+.psm1-banner { position:relative; border-radius:12px; overflow:hidden; aspect-ratio:16/9; background:#F5F6F8; cursor:pointer; }
+.psm1-banner-img { width:100%; height:100%; object-fit:cover; }
+.psm1-banner-grad { position:absolute; inset:0; background:linear-gradient(180deg, transparent 40%, rgba(0,0,0,.55) 100%); }
+.psm1-banner-cap { position:absolute; left:24px; right:24px; bottom:24px; color:#fff; }
+.psm1-banner-cap .tag { display:inline-block; font-size:12px; font-weight:700; padding:4px 9px; background:rgba(232,120,15,.92); border-radius:4px; margin-bottom:10px; letter-spacing:-0.2px; }
+.psm1-banner-cap .title { font-size:22px; font-weight:900; line-height:1.35; letter-spacing:-0.5px; text-shadow:0 2px 8px rgba(0,0,0,.3); }
+.psm1-banner-cap .author { margin-top:8px; font-size:12px; font-weight:600; opacity:.95; display:flex; align-items:center; gap:5px; }
+.psm1-banner-cap .author .av { width:20px; height:20px; border-radius:50%; background:linear-gradient(135deg,#F49A3A,#E8780F); display:grid; place-items:center; font-size:10px; font-weight:900; }
+.psm1-banner-counter { position:absolute; right:14px; bottom:14px; background:rgba(15,23,42,.65); color:#fff; font-size:11px; font-weight:700; padding:4px 9px; border-radius:12px; backdrop-filter:blur(4px); }
+.psm1-banner-side { position:relative; border-radius:12px; overflow:hidden; aspect-ratio:auto; background:linear-gradient(160deg,#E8780F 0%,#F49A3A 60%,#FED7AA 100%); cursor:pointer; display:flex; flex-direction:column; padding:20px 22px; min-height:100%; }
+.psm1-banner-side .ad { display:inline-block; font-size:10px; font-weight:800; padding:2px 6px; background:rgba(255,255,255,.85); color:#7C2D12; border-radius:3px; align-self:flex-start; letter-spacing:.5px; }
+.psm1-banner-side .label { margin-top:18px; font-size:12px; font-weight:700; color:#7C2D12; }
+.psm1-banner-side .title { margin-top:6px; font-size:20px; font-weight:900; color:#fff; line-height:1.3; letter-spacing:-0.5px; }
+.psm1-banner-side .product { margin-top:auto; padding-top:20px; align-self:center; display:grid; place-items:center; }
+.psm1-banner-side .product-mock { width:120px; height:140px; background:rgba(255,255,255,.92); border-radius:10px; box-shadow:0 8px 24px rgba(124,45,18,.18); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:#0F1F5C; }
+.psm1-banner-side .product-mock .pm-pkg { font-size:36px; }
+.psm1-banner-side .product-mock .pm-name { font-size:10px; font-weight:800; color:#7C2D12; letter-spacing:.5px; }
+/* 4) 카테고리 아이콘 */
+.psm1-cats { padding:30px 24px 36px; }
+.psm1-cats-inner { max-width:1256px; margin:0 auto; display:grid; grid-template-columns:repeat(10,1fr); gap:8px; }
+.psm1-cat { display:flex; flex-direction:column; align-items:center; gap:8px; padding:8px 4px; border-radius:12px; cursor:pointer; transition:.15s; }
+.psm1-cat:hover { background:#FAFAFA; }
+.psm1-cat-ico { width:54px; height:54px; border-radius:14px; background:#F5F6F8; display:grid; place-items:center; font-size:24px; }
+.psm1-cat-ico.c1 { background:#F3E8FF; color:#7C3AED; }
+.psm1-cat-ico.c2 { background:#FFE4E6; color:#E11D48; }
+.psm1-cat-ico.c3 { background:#DBEAFE; color:#2563EB; }
+.psm1-cat-ico.c4 { background:#DCFCE7; color:#059669; }
+.psm1-cat-ico.c5 { background:#FCE7F3; color:#DB2777; }
+.psm1-cat-ico.c6 { background:#F1F5F9; color:#475569; }
+.psm1-cat-ico.c7 { background:#FFEDD5; color:#EA580C; }
+.psm1-cat-ico.c8 { background:#E0F2FE; color:#0284C7; }
+.psm1-cat-ico.c9 { background:#CFFAFE; color:#0891B2; }
+.psm1-cat-ico.c10 { background:#FEE2E2; color:#DC2626; }
+.psm1-cat-name { font-size:12px; font-weight:600; color:#374151; text-align:center; letter-spacing:-0.3px; }
+/* 모바일 반응형 */
+@media (max-width: 900px) {
+  .psm1-hero-inner { grid-template-columns:1fr 220px; gap:12px; }
+  .psm1-banner-side { padding:16px; }
+  .psm1-banner-side .title { font-size:16px; }
+  .psm1-banner-cap .title { font-size:18px; }
+  .psm1-cats-inner { grid-template-columns:repeat(5,1fr); row-gap:18px; }
+}
+@media (max-width: 700px) {
+  .psm1-hd-inner { display:none; }
+  .psm1-hd-mb { display:grid; grid-template-columns:40px 1fr 40px 40px; align-items:center; padding:12px 14px; gap:4px; }
+  .psm1-hd-mb .psm1-mb-menu, .psm1-hd-mb .psm1-mb-search, .psm1-hd-mb .psm1-mb-cart { width:40px; height:40px; display:grid; place-items:center; font-size:22px; color:#374151; }
+  .psm1-hd-mb .psm1-mb-logo { display:flex; align-items:center; justify-content:center; gap:7px; font-weight:900; font-size:19px; color:#0F1F5C; letter-spacing:-0.5px; }
+  .psm1-hd-mb .psm1-mb-logo .psm1-logo-mark { width:26px; height:26px; font-size:12px; }
+  .psm1-tabs-inner { padding:0 14px; }
+  .psm1-tab { font-size:14px; padding:14px 10px; }
+  .psm1-tabs-tail { display:none; }
+  .psm1-hero { padding:14px 14px 0; }
+  .psm1-hero-inner { grid-template-columns:1fr; gap:10px; }
+  .psm1-banner { aspect-ratio:4/3; border-radius:10px; }
+  .psm1-banner-cap { left:16px; right:16px; bottom:16px; }
+  .psm1-banner-cap .title { font-size:18px; }
+  .psm1-banner-side { aspect-ratio:auto; min-height:140px; flex-direction:row; align-items:center; gap:14px; padding:16px 18px; border-radius:10px; }
+  .psm1-banner-side .label { margin-top:0; }
+  .psm1-banner-side .title { font-size:17px; }
+  .psm1-banner-side .product { margin:0 0 0 auto; padding:0; }
+  .psm1-banner-side .product-mock { width:88px; height:96px; }
+  .psm1-banner-side .product-mock .pm-pkg { font-size:28px; }
+  .psm1-banner-side .ad { position:absolute; top:12px; right:12px; }
+  .psm1-banner-side .text-wrap { display:flex; flex-direction:column; gap:4px; }
+  .psm1-cats { padding:22px 8px 28px; }
+  .psm1-cats-inner { grid-template-columns:repeat(5,1fr); row-gap:18px; gap:0; }
+  .psm1-cat-ico { width:48px; height:48px; font-size:22px; border-radius:14px; }
+  .psm1-cat-name { font-size:11.5px; }
+}
+</style>
+<header class="psm1-hd">
+  <div class="psm1-hd-inner">
+    <a href="#" class="psm1-logo"><span class="psm1-logo-mark">P</span><span>POUR스토어</span></a>
+    <nav class="psm1-gnb">
+      <a href="#" class="on">자재찾기</a>
+      <a href="#">패키지</a>
+      <a href="#">시공가이드</a>
+    </nav>
+    <div class="psm1-search">
+      <svg class="psm1-search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input type="text" placeholder="자재·공법·증상으로 검색하세요 (예: 옥상누수)" aria-label="통합검색"/>
+    </div>
+    <div class="psm1-util">
+      <a href="#" aria-label="장바구니"><svg class="psm1-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.5"/><circle cx="19" cy="21" r="1.5"/><path d="M3 4h2l2.5 12h12l2-8H6"/></svg></a>
+      <a href="#">로그인</a>
+      <a href="#">회원가입</a>
+      <a href="#">고객센터</a>
+      <a href="#" class="psm1-write">견적요청 ▾</a>
+    </div>
+  </div>
+  <div class="psm1-hd-mb">
+    <button class="psm1-mb-menu" aria-label="메뉴">☰</button>
+    <a href="#" class="psm1-mb-logo"><span class="psm1-logo-mark">P</span><span>POUR스토어</span></a>
+    <button class="psm1-mb-search" aria-label="검색"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+    <button class="psm1-mb-cart" aria-label="장바구니"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.5"/><circle cx="19" cy="21" r="1.5"/><path d="M3 4h2l2.5 12h12l2-8H6"/></svg></button>
+  </div>
+</header>
+<nav class="psm1-tabs" aria-label="카테고리 탭">
+  <div class="psm1-tabs-inner">
+    <a href="#" class="psm1-tab on">홈</a>
+    <a href="#" class="psm1-tab">추천</a>
+    <a href="#" class="psm1-tab">베스트</a>
+    <a href="#" class="psm1-tab">신상품</a>
+    <a href="#" class="psm1-tab">셀프시공</a>
+    <a href="#" class="psm1-tab">시공가이드</a>
+    <a href="#" class="psm1-tab">시공사례</a>
+    <a href="#" class="psm1-tab">쇼핑수다</a>
+    <a href="#" class="psm1-tab">이벤트</a>
+    <a href="#" class="psm1-tab">패키지 NEW <span class="psm1-tab-new">N</span></a>
+    <div class="psm1-tabs-tail">
+      <span class="psm1-tail-count">3</span>
+      <span class="psm1-tail-txt">자재함</span>
+      <span class="psm1-tail-new">NEW</span>
+      <span class="psm1-tail-chev">▾</span>
+    </div>
+  </div>
+</nav>
+<div class="psm1-hero">
+  <div class="psm1-hero-inner">
+    <div class="psm1-banner" role="button" tabindex="0">
+      <svg class="psm1-banner-img" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="psm1bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F3E9DB"/><stop offset=".55" stop-color="#E8D7BC"/><stop offset="1" stop-color="#B89A77"/></linearGradient>
+          <linearGradient id="psm1sun" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE6B8"/><stop offset="1" stop-color="#F49A3A" stop-opacity=".55"/></linearGradient>
+        </defs>
+        <rect width="1280" height="720" fill="url(#psm1bg)"/>
+        <rect x="180" y="120" width="700" height="430" fill="#E8F0EE" opacity=".85"/>
+        <rect x="180" y="120" width="700" height="430" fill="url(#psm1sun)" opacity=".55"/>
+        <g stroke="#fff" stroke-width="6" opacity=".85"><line x1="530" y1="120" x2="530" y2="550"/><line x1="180" y1="335" x2="880" y2="335"/></g>
+        <ellipse cx="780" cy="560" rx="55" ry="14" fill="#3D4A33" opacity=".4"/>
+        <path d="M730 555 q50 -120 100 0 z" fill="#3F6B47"/>
+        <rect x="745" y="555" width="70" height="40" rx="6" fill="#7C4A2A"/>
+        <rect x="240" y="560" width="380" height="110" rx="14" fill="#C2A485"/>
+        <rect x="240" y="540" width="380" height="40" rx="14" fill="#A88564"/>
+        <line x1="160" y1="680" x2="160" y2="280" stroke="#3D2A1C" stroke-width="5"/>
+        <ellipse cx="160" cy="270" rx="50" ry="32" fill="#F5E8C8"/>
+      </svg>
+      <div class="psm1-banner-grad"></div>
+      <div class="psm1-banner-cap">
+        <span class="tag">#방수패키지</span>
+        <div class="title">옥상 누수, 한 번에 끝내는 셀프 방수 패키지</div>
+        <div class="author"><span class="av">P</span>@pour_official</div>
+      </div>
+      <div class="psm1-banner-counter">1 / 15 +</div>
+    </div>
+    <div class="psm1-banner-side" role="button" tabindex="0">
+      <span class="ad">AD</span>
+      <div class="text-wrap">
+        <div class="label">POUR스토어 단하루 특가</div>
+        <div class="title">방수 자재 60% ↓<br/>주말 한정</div>
+      </div>
+      <div class="product"><div class="product-mock"><span class="pm-pkg">🪣</span><span class="pm-name">POUR코트재</span></div></div>
+    </div>
+  </div>
+</div>
+<nav class="psm1-cats" aria-label="빠른 메뉴">
+  <div class="psm1-cats-inner">
+    <a href="#" class="psm1-cat"><span class="psm1-cat-ico c1">🏷</span><span class="psm1-cat-name">쇼핑하기</span></a>
+    <a href="#" class="psm1-cat"><span class="psm1-cat-ico c2">⚡</span><span class="psm1-cat-name">오늘의딜</span></a>
+    <a href="#" class="psm1-cat"><span class="psm1-cat-ico c3">🔍</span><span class="psm1-cat-name">시공가이드</span></a>
+    <a href="#" class="psm1-cat"><span class="psm1-cat-ico c4">✅</span><span class="psm1-cat-name">출석체크</span></a>
+    <a href="#" class="psm1-cat"><span class="psm1-cat-ico c5">📦</span><span class="psm1-cat-name">패키지할인</span></a>
+    <a href="#" class="psm1-cat"><span class="psm1-cat-ico c6">📸</span><span class="psm1-cat-name">후기참여</span></a>
+    <a href="#" class="psm1-cat"><span class="psm1-cat-ico c7">🛒</span><span class="psm1-cat-name">자재마트</span></a>
+    <a href="#" class="psm1-cat"><span class="psm1-cat-ico c8">🚚</span><span class="psm1-cat-name">원하는날도착</span></a>
+    <a href="#" class="psm1-cat"><span class="psm1-cat-ico c9">🧹</span><span class="psm1-cat-name">시공·상담</span></a>
+    <a href="#" class="psm1-cat"><span class="psm1-cat-ico c10">📡</span><span class="psm1-cat-name">견적신청</span></a>
+  </div>
+</nav>
 </section>`;
 
   const SEED_CATEGORY_HTML = `<style>
@@ -5325,10 +5554,10 @@ show('entry');
           return migrated;
         }
       }
-      return freshState();
+      return migrate(freshState());
     } catch (e) {
       console.error('[builder] loadState 실패:', e);
-      return freshState();
+      return migrate(freshState());
     }
   }
   function addMissingDefaultPages(s) {
@@ -5366,6 +5595,19 @@ show('entry');
     });
     s.trash = s.trash && typeof s.trash === 'object' ? s.trash : {};
     s.trash.feedbacks = Array.isArray(s.trash.feedbacks) ? s.trash.feedbacks : [];
+    // 폰트 토큰 — 역할별 일괄 적용 (없으면 기본 4종 시드)
+    if (!Array.isArray(s.fontTokens)) s.fontTokens = DEFAULT_FONT_TOKENS();
+    s.fontTokens.forEach((t, i) => {
+      if (!t.id) t.id = 'ft-' + Math.random().toString(36).slice(2, 8);
+      if (typeof t.key !== 'string') t.key = '역할' + (i + 1);
+      if (typeof t.label !== 'string') t.label = t.key;
+      if (typeof t.fontFamily !== 'string') t.fontFamily = "'Noto Sans KR', sans-serif";
+      if (typeof t.fontSize !== 'string') t.fontSize = '15px';
+      if (typeof t.fontWeight !== 'string') t.fontWeight = '400';
+      if (typeof t.color !== 'string') t.color = '#111827';
+      if (typeof t.lineHeight !== 'string') t.lineHeight = '1.6';
+      if (typeof t.letterSpacing !== 'string') t.letterSpacing = '0';
+    });
     // 상세페이지 템플릿 (Step A)
     s.templates = Array.isArray(s.templates) ? s.templates : [];
     s.templates.forEach(t => {
@@ -5400,6 +5642,33 @@ show('entry');
       if (!Array.isArray(list)) { delete s.history[k]; return; }
       list.forEach(v => { if (v.reason === undefined) v.reason = ''; });
     });
+    // 1회성 마이그레이션 — 메인 1번 섹션을 오늘의집 레이아웃 v1 시안으로 자동 교체
+    // (이전 HTML은 이력에 자동 보관 — "이력" 버튼에서 언제든 복원 가능)
+    s.migrations = (s.migrations && typeof s.migrations === 'object') ? s.migrations : {};
+    if (!s.migrations.mainBannerOhouseV1) {
+      const mainPage = s.pages.find(p => p.id === 'main');
+      if (mainPage && Array.isArray(mainPage.sections) && mainPage.sections.length > 0) {
+        const sec = mainPage.sections[0];
+        const now = new Date().toISOString();
+        const key = mainPage.id + ':' + sec.id;
+        s.history[key] = s.history[key] || [];
+        s.history[key].unshift({
+          name: sec.name,
+          html: sec.html,
+          note: sec.note || '',
+          reason: '오늘의집 레이아웃 v1 시안 자동 적용 (이전 버전 자동 보관 — 이력에서 복원 가능)',
+          kind: 'auto-migration',
+          savedAt: now,
+        });
+        sec.html = OHOUSE_V1_SECTION_HTML;
+        sec.note = '오늘의집 레이아웃 차용 v1 — 헤더·탭·2분할 히어로·카테고리 아이콘 10개 (모바일 반응형)';
+        sec.status = 'wip';
+        sec.statusAt = now;
+        sec.confirmed = false;
+        sec.confirmedAt = null;
+      }
+      s.migrations.mainBannerOhouseV1 = true;
+    }
     return s;
   }
   function mergeDefaultSeeds(s) {
@@ -6330,6 +6599,7 @@ show('entry');
     const rEl = document.getElementById('edReason');
     rEl.value = '';
     rEl.classList.remove('required-empty');
+    renderEditorRoleBar();
     refreshEditorPreview();
     openModal('editorModal');
     setTimeout(() => document.getElementById('edHtml').focus(), 60);
@@ -6414,19 +6684,74 @@ show('entry');
             <button class="btn btn-sm btn-outline" data-act="copy" title="HTML 코드 복사">HTML 복사</button>
             <button class="btn btn-sm btn-ghost" data-act="view">미리보기</button>
             <button class="btn btn-sm btn-primary" data-act="restore">복원</button>
+            <button class="btn btn-sm btn-danger" data-act="del" title="이 버전을 영구 삭제 (복구 불가)">🗑 영구 삭제</button>
           </div>
         </div>
         <div class="reason-row">
           <span class="reason-label">변경 사유</span>
           <div class="reason-text ${v.reason ? '' : 'empty'}" data-act="edit-reason" title="클릭하여 수정">${v.reason ? escapeHtml(v.reason) : '(사유 없음 — 클릭하여 추가)'}</div>
         </div>
+        <div class="del-confirm" data-del-confirm style="display:none;"></div>
       `;
       row.querySelector('[data-act=copy]').addEventListener('click', () => copyHtmlToClipboard(v.html));
       row.querySelector('[data-act=view]').addEventListener('click', () => previewHtml(v.html, v.name));
       row.querySelector('[data-act=restore]').addEventListener('click', () => restoreVersion(idx));
       row.querySelector('[data-act=edit-reason]').addEventListener('click', () => startEditReason(row, idx));
+      row.querySelector('[data-act=del]').addEventListener('click', () => startDeleteHistoryConfirm(row, idx));
       wrap.appendChild(row);
     });
+  }
+  // 이력 항목 영구 삭제 — 인라인 2단계 확인 ("영구 삭제" 수기 입력 + 확인 버튼)
+  function startDeleteHistoryConfirm(row, idx) {
+    if (!historyCtx) return;
+    const list = state.history[histKey(historyCtx.pageId, historyCtx.secId)] || [];
+    const v = list[idx];
+    if (!v) return;
+    const verNum = list.length - idx;
+    const box = row.querySelector('[data-del-confirm]');
+    if (!box) return;
+    // 이미 열려있으면 닫기 토글
+    if (box.style.display !== 'none') { box.style.display = 'none'; box.innerHTML = ''; return; }
+    box.style.display = 'block';
+    box.innerHTML = `
+      <div class="del-warn">
+        <span class="del-warn-icon">⚠</span>
+        <div class="del-warn-text">
+          <b>v${verNum} 버전을 영구 삭제합니다.</b><br/>
+          이 작업은 <b>되돌릴 수 없습니다.</b> 진행하려면 아래 칸에 <b>영구 삭제</b>를 정확히 입력하고 확인 버튼을 누르세요.
+        </div>
+      </div>
+      <div class="del-confirm-row">
+        <input type="text" class="del-confirm-input" placeholder='여기에 "영구 삭제" 입력' autocomplete="off" />
+        <button class="btn btn-sm btn-danger" data-confirm disabled>영구 삭제하기</button>
+        <button class="btn btn-sm btn-ghost" data-cancel>취소</button>
+      </div>
+    `;
+    const input = box.querySelector('.del-confirm-input');
+    const confirmBtn = box.querySelector('[data-confirm]');
+    const cancelBtn = box.querySelector('[data-cancel]');
+    const REQUIRED = '영구 삭제';
+    input.addEventListener('input', () => {
+      confirmBtn.disabled = input.value.trim() !== REQUIRED;
+    });
+    input.focus();
+    cancelBtn.addEventListener('click', () => { box.style.display = 'none'; box.innerHTML = ''; });
+    confirmBtn.addEventListener('click', () => {
+      if (input.value.trim() !== REQUIRED) return;
+      deleteHistoryEntry(idx);
+    });
+  }
+  function deleteHistoryEntry(idx) {
+    if (!historyCtx) return;
+    const key = histKey(historyCtx.pageId, historyCtx.secId);
+    const list = state.history[key] || [];
+    const v = list[idx];
+    if (!v) return;
+    list.splice(idx, 1);
+    if (list.length === 0) delete state.history[key];
+    saveState();
+    renderHistoryList();
+    toast('영구 삭제 완료', 'info');
   }
   function startEditReason(row, idx) {
     if (!historyCtx) return;
@@ -6495,6 +6820,24 @@ show('entry');
     const href = window.location.href.replace(/[^/]*$/, '');
     return href;
   }
+  function buildFontTokensCss() {
+    const tokens = (state && Array.isArray(state.fontTokens)) ? state.fontTokens : [];
+    if (tokens.length === 0) return '';
+    const rules = tokens.map(t => {
+      const key = sanitizeRoleKey(t.key);
+      if (!key) return '';
+      const decl = [
+        t.fontFamily   && `font-family:${t.fontFamily}`,
+        t.fontSize     && `font-size:${t.fontSize}`,
+        t.fontWeight   && `font-weight:${t.fontWeight}`,
+        t.color        && `color:${t.color}`,
+        t.lineHeight   && `line-height:${t.lineHeight}`,
+        t.letterSpacing && `letter-spacing:${t.letterSpacing}`,
+      ].filter(Boolean).join(';');
+      return `.role-${key}{${decl};}`;
+    }).filter(Boolean).join('\n');
+    return rules ? `<style data-pour-font-tokens="1">\n${rules}\n</style>` : '';
+  }
   function wrapPreview(bodyHtml) {
     const baseHref = previewBaseHref();
     return [
@@ -6504,6 +6847,7 @@ show('entry');
       '<title>섹션 미리보기</title>',
       '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Bebas+Neue&display=swap" rel="stylesheet"/>',
       '<style>html,body{margin:0;font-family:\'Noto Sans KR\',sans-serif;background:#fff;color:#111827;}</style>',
+      buildFontTokensCss(),
       '</head><body>',
       bodyHtml || '<div style="padding:40px; text-align:center; color:#9CA3AF; font-size:13px;">섹션 HTML이 비어있습니다.</div>',
       '</body></html>'
@@ -6610,11 +6954,15 @@ show('entry');
     if (title) try { w.document.title = title; } catch (_) {}
   }
   function buildFullPageHtml(page) {
-    return page.sections.map((s, i) => {
+    const body = page.sections.map((s, i) => {
       const html = (s.html || '').trim();
       if (!html) return `<!-- [${i+1}] ${s.name} (EMPTY) -->`;
       return `<!-- [${i+1}] ${s.name} -->\n<section data-section="${escapeHtml(s.name)}">\n${s.html}\n</section>`;
     }).join('\n\n');
+    const fontCss = buildFontTokensCss();
+    return fontCss
+      ? `<!-- [폰트 토큰] 폰트 관리에서 역할별로 일괄 정의됨 -->\n${fontCss}\n\n${body}`
+      : body;
   }
 
   // 미리보기 모달용 — 각 섹션을 id로 감싸서 스크롤·하이라이트 지원
@@ -6839,6 +7187,169 @@ show('entry');
     }
     const html = buildFullPageHtml(page);
     copyHtmlToClipboard(html);
+  }
+
+  // -------- 폰트 토큰 (역할별 일괄 폰트) --------
+  function openFontTokensModal() {
+    renderFontTokensList();
+    openModal('fontTokensModal');
+  }
+  function renderFontTokensList() {
+    const wrap = document.getElementById('ftList');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    const tokens = state.fontTokens || [];
+    if (tokens.length === 0) {
+      wrap.innerHTML = '<div class="ft-empty">등록된 역할이 없습니다.<br/>아래 <b>+ 역할 추가</b>를 눌러 첫 역할을 만들어 주세요.</div>';
+      return;
+    }
+    tokens.forEach(t => {
+      const row = document.createElement('div');
+      row.className = 'ft-item';
+      row.dataset.id = t.id;
+      row.innerHTML = `
+        <div class="ft-field"><label>키 (class명)</label><input class="ft-key" data-f="key" value="${escapeHtml(t.key)}" placeholder="예: 강조" maxlength="24" /></div>
+        <div class="ft-field"><label>설명 (이름표)</label><input data-f="label" value="${escapeHtml(t.label)}" placeholder="예: 강조 (emphasis)" maxlength="40" /></div>
+        <div class="ft-field"><label>폰트 패밀리</label><input data-f="fontFamily" value="${escapeHtml(t.fontFamily)}" placeholder="'Noto Sans KR', sans-serif" /></div>
+        <div class="ft-field"><label>크기</label><input data-f="fontSize" value="${escapeHtml(t.fontSize)}" placeholder="16px" /></div>
+        <div class="ft-field"><label>굵기</label><input data-f="fontWeight" value="${escapeHtml(t.fontWeight)}" placeholder="400~900" /></div>
+        <div class="ft-field"><label>줄 높이</label><input data-f="lineHeight" value="${escapeHtml(t.lineHeight)}" placeholder="1.6" /></div>
+        <div class="ft-field"><label>색상</label><input type="color" data-f="color" value="${escapeHtml(toHexColor(t.color))}" /></div>
+        <button class="ft-del" data-act="del" title="이 역할 삭제">삭제</button>
+        <div class="ft-field" style="grid-column:1/-1;"><label>자간 (letter-spacing)</label><input data-f="letterSpacing" value="${escapeHtml(t.letterSpacing)}" placeholder="0 / -0.02em" /></div>
+        <div class="ft-preview" data-preview style="font-family:${cssEscape(t.fontFamily)}; font-size:${cssEscape(t.fontSize)}; font-weight:${cssEscape(t.fontWeight)}; color:${cssEscape(t.color)}; line-height:${cssEscape(t.lineHeight)}; letter-spacing:${cssEscape(t.letterSpacing)};">미리보기 — 가나다라 ABC 0123 ${escapeHtml(t.label || t.key)}</div>
+      `;
+      row.querySelectorAll('input[data-f]').forEach(inp => {
+        inp.addEventListener('input', () => updateFontToken(t.id, inp.dataset.f, inp.value));
+        inp.addEventListener('blur', () => {
+          if (inp.dataset.f === 'key') {
+            const cleaned = sanitizeRoleKey(inp.value);
+            if (cleaned !== inp.value) { inp.value = cleaned; updateFontToken(t.id, 'key', cleaned); }
+          }
+        });
+      });
+      row.querySelector('[data-act=del]').addEventListener('click', () => deleteFontToken(t.id));
+      wrap.appendChild(row);
+    });
+  }
+  function toHexColor(v) {
+    // <input type=color>는 #rrggbb만 허용 — rgb/이름을 임시로 #111827로 폴백
+    if (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v.trim())) return v.trim();
+    return '#111827';
+  }
+  function cssEscape(v) {
+    // 인라인 style 속성에 들어가는 값 — 쌍따옴표만 안전화
+    return String(v == null ? '' : v).replace(/"/g, "'");
+  }
+  function updateFontToken(id, field, value) {
+    const t = (state.fontTokens || []).find(x => x.id === id);
+    if (!t) return;
+    if (field === 'key') value = sanitizeRoleKey(value);
+    t[field] = String(value);
+    // 즉시 미리보기 갱신
+    const row = document.querySelector(`.ft-item[data-id="${id}"]`);
+    if (row) {
+      const pv = row.querySelector('[data-preview]');
+      if (pv) {
+        pv.style.fontFamily = t.fontFamily;
+        pv.style.fontSize = t.fontSize;
+        pv.style.fontWeight = t.fontWeight;
+        pv.style.color = t.color;
+        pv.style.lineHeight = t.lineHeight;
+        pv.style.letterSpacing = t.letterSpacing;
+        if (field === 'label' || field === 'key') {
+          pv.textContent = `미리보기 — 가나다라 ABC 0123 ${t.label || t.key}`;
+        }
+      }
+    }
+    saveState();
+    // 열려있는 섹션 편집 미리보기에도 즉시 반영
+    if (document.getElementById('editorModal').classList.contains('open')) {
+      refreshEditorPreview();
+    }
+  }
+  function addFontToken() {
+    const id = 'ft-' + Math.random().toString(36).slice(2, 8);
+    (state.fontTokens = state.fontTokens || []).push({
+      id, key: '역할' + (state.fontTokens.length + 1), label: '새 역할',
+      fontFamily: "'Noto Sans KR', sans-serif", fontSize: '15px', fontWeight: '400',
+      color: '#111827', lineHeight: '1.6', letterSpacing: '0',
+    });
+    saveState();
+    renderFontTokensList();
+    renderEditorRoleBar();
+    toast('역할 추가됨', 'success');
+  }
+  function deleteFontToken(id) {
+    const t = (state.fontTokens || []).find(x => x.id === id);
+    if (!t) return;
+    if (!confirm(`"${t.label || t.key}" 역할을 삭제할까요?\n섹션 HTML에 박혀있는 class="role-${t.key}"는 그대로 남지만 폰트가 더이상 적용되지 않습니다.`)) return;
+    state.fontTokens = state.fontTokens.filter(x => x.id !== id);
+    saveState();
+    renderFontTokensList();
+    renderEditorRoleBar();
+    if (document.getElementById('editorModal').classList.contains('open')) refreshEditorPreview();
+    toast('삭제됨', 'info');
+  }
+  function resetFontTokens() {
+    if (!confirm('폰트 역할을 기본값(제목·강조·서브·본문)으로 되돌릴까요?\n현재 등록된 역할은 모두 사라집니다.')) return;
+    state.fontTokens = DEFAULT_FONT_TOKENS();
+    saveState();
+    renderFontTokensList();
+    renderEditorRoleBar();
+    if (document.getElementById('editorModal').classList.contains('open')) refreshEditorPreview();
+    toast('기본값으로 초기화', 'success');
+  }
+  // 편집 모달 — 텍스트 선택 영역을 <span class="role-…">로 감싸기
+  function renderEditorRoleBar() {
+    const bar = document.getElementById('edRoleBar');
+    if (!bar) return;
+    bar.innerHTML = '';
+    const tokens = state.fontTokens || [];
+    if (tokens.length === 0) {
+      bar.innerHTML = '<span class="ed-role-hint">폰트 관리에서 역할을 먼저 등록하세요.</span>';
+      return;
+    }
+    const hint = document.createElement('span');
+    hint.className = 'ed-role-hint';
+    hint.textContent = '역할 적용:';
+    bar.appendChild(hint);
+    tokens.forEach(t => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ed-role-chip';
+      btn.textContent = t.label || t.key;
+      btn.style.color = t.color || '';
+      btn.title = `선택한 텍스트를 <span class="role-${t.key}">로 감쌉니다`;
+      btn.addEventListener('click', e => { e.preventDefault(); wrapSelectionWithRole(t.key); });
+      bar.appendChild(btn);
+    });
+    const mgr = document.createElement('button');
+    mgr.type = 'button';
+    mgr.className = 'ed-role-chip';
+    mgr.textContent = '⚙ 관리';
+    mgr.title = '폰트 관리 열기';
+    mgr.style.marginLeft = 'auto';
+    mgr.addEventListener('click', e => { e.preventDefault(); openFontTokensModal(); });
+    bar.appendChild(mgr);
+  }
+  function wrapSelectionWithRole(rawKey) {
+    const ta = document.getElementById('edHtml');
+    if (!ta) return;
+    const key = sanitizeRoleKey(rawKey);
+    if (!key) { toast('역할 키가 비어있습니다.', 'error'); return; }
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    if (start === end) { toast('적용할 텍스트를 먼저 선택해 주세요.', 'info'); return; }
+    const before = ta.value.slice(0, start);
+    const sel = ta.value.slice(start, end);
+    const after = ta.value.slice(end);
+    const open = `<span class="role-${key}">`;
+    const close = '</span>';
+    ta.value = before + open + sel + close + after;
+    const newPos = start + open.length + sel.length + close.length;
+    ta.setSelectionRange(newPos, newPos);
+    ta.focus();
+    refreshEditorPreview();
   }
 
   // -------- staff + me (담당자) --------
@@ -11127,6 +11638,16 @@ show('entry');
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') submitFpvComment();
     });
     document.getElementById('btnCopyFullHtml').addEventListener('click', copyFullPageHtml);
+    const btnFT = document.getElementById('btnFontTokens');
+    if (btnFT) btnFT.addEventListener('click', openFontTokensModal);
+    const ftClose = document.getElementById('ftClose');
+    if (ftClose) ftClose.addEventListener('click', () => closeModal('fontTokensModal'));
+    const ftCloseFoot = document.getElementById('ftCloseFoot');
+    if (ftCloseFoot) ftCloseFoot.addEventListener('click', () => closeModal('fontTokensModal'));
+    const ftAdd = document.getElementById('ftAdd');
+    if (ftAdd) ftAdd.addEventListener('click', addFontToken);
+    const ftReset = document.getElementById('ftReset');
+    if (ftReset) ftReset.addEventListener('click', resetFontTokens);
     var btnPL = document.getElementById('btnCopyPageLink');
     if (btnPL) btnPL.addEventListener('click', function(){ copyPageLink(getActivePage().id); });
     document.getElementById('btnExport').addEventListener('click', exportJson);

@@ -5257,6 +5257,12 @@ show('entry');
     });
     s.trash = s.trash && typeof s.trash === 'object' ? s.trash : {};
     s.trash.feedbacks = Array.isArray(s.trash.feedbacks) ? s.trash.feedbacks : [];
+    // 폰트 시스템 컨펌 워크플로우 (섹션 단위와 동일 패턴)
+    if (!s.fontSystem || typeof s.fontSystem !== 'object') {
+      s.fontSystem = { status: null, statusAt: null, statusBy: null, statusByName: null, note: '', history: [] };
+    }
+    if (typeof s.fontSystem.note !== 'string') s.fontSystem.note = '';
+    if (!Array.isArray(s.fontSystem.history)) s.fontSystem.history = [];
     // 폰트 토큰 — 역할별 일괄 적용 (없으면 기본 4종 시드)
     if (!Array.isArray(s.fontTokens)) s.fontTokens = DEFAULT_FONT_TOKENS();
     s.fontTokens.forEach((t, i) => {
@@ -6757,8 +6763,129 @@ show('entry');
   // -------- 폰트 토큰 (역할별 일괄 폰트) --------
   function openFontTokensModal() {
     renderFontTokensList();
+    renderFontConfirmBar();
+    renderFontHistory();
+    const memoEl = document.getElementById('ftMemo');
+    if (memoEl) memoEl.value = (state.fontSystem && state.fontSystem.note) || '';
     openModal('fontTokensModal');
   }
+  // 폰트 시스템 — 컨펌 상태 바 렌더
+  function renderFontConfirmBar() {
+    const fs = state.fontSystem || {};
+    const chip = document.getElementById('ftStatusBtn');
+    const icon = document.getElementById('ftStatusIcon');
+    const text = document.getElementById('ftStatusText');
+    const meta = document.getElementById('ftStatusMeta');
+    if (!chip) return;
+    const meta1 = STATUS_META[fs.status];
+    if (meta1) {
+      chip.setAttribute('data-status', fs.status);
+      icon.textContent = meta1.icon;
+      text.textContent = meta1.label;
+    } else {
+      chip.removeAttribute('data-status');
+      icon.textContent = '●';
+      text.textContent = '초안';
+    }
+    if (meta) {
+      if (fs.statusAt) {
+        const who = fs.statusByName ? ` · ${fs.statusByName}` : '';
+        meta.textContent = `${fmtDate(fs.statusAt)}${who}`;
+      } else {
+        meta.textContent = '';
+      }
+    }
+    // 이력 배지
+    const histBadge = document.getElementById('ftHistoryCount');
+    if (histBadge) {
+      const cnt = (fs.history || []).length;
+      histBadge.textContent = String(cnt);
+      histBadge.classList.toggle('has', cnt > 0);
+    }
+  }
+  function toggleFontStatusMenu(force) {
+    const menu = document.getElementById('ftStatusMenu');
+    if (!menu) return;
+    const open = typeof force === 'boolean' ? force : !menu.classList.contains('open');
+    menu.classList.toggle('open', open);
+  }
+  function setFontSystemStatus(newStatus) {
+    const fs = state.fontSystem || (state.fontSystem = { status: null, statusAt: null, statusBy: null, statusByName: null, note: '', history: [] });
+    newStatus = newStatus || null;
+    if ((fs.status || null) === newStatus) { toggleFontStatusMenu(false); return; }
+    const fromLabel = STATUS_META[fs.status] ? STATUS_META[fs.status].label : '초안';
+    const toLabel = STATUS_META[newStatus] ? STATUS_META[newStatus].label : '초안';
+    // 변경 사유 입력 (사용자 확인)
+    const reasonInput = prompt(`폰트 시스템 상태 변경\n\n${fromLabel} → ${toLabel}\n\n변경 사유를 입력하세요 (이력에 기록됨):`, '');
+    if (reasonInput === null) { toggleFontStatusMenu(false); return; } // 취소
+    const reason = reasonInput.trim();
+    const me = getMeStaff ? getMeStaff() : null;
+    let kind, toastMsg, toastType;
+    if (newStatus === 'wip')           { kind = 'wip';      toastMsg = '작업중으로 표시됨';   toastType = 'info'; }
+    else if (newStatus === 'requested'){ kind = 'request';  toastMsg = '컨펌 요청으로 표시됨'; toastType = 'info'; }
+    else if (newStatus === 'approved') { kind = 'approve';  toastMsg = '승인 완료로 표시됨';   toastType = 'success'; }
+    else if (newStatus === 'revision') { kind = 'revision'; toastMsg = '재수정 요청으로 표시됨'; toastType = 'error'; }
+    else                                { kind = 'reset-status'; toastMsg = '초안 상태로 되돌림'; toastType = 'info'; }
+    fs.history = fs.history || [];
+    fs.history.unshift({
+      kind,
+      reason: reason || `${fromLabel} → ${toLabel}`,
+      status: newStatus,
+      fromStatus: fs.status || null,
+      note: fs.note || '',
+      staffId: me ? me.id : null,
+      staffName: me ? me.name : null,
+      staffRole: me ? me.role : null,
+      savedAt: nowIso(),
+    });
+    fs.status = newStatus;
+    fs.statusAt = newStatus ? nowIso() : null;
+    fs.statusBy = me ? me.id : null;
+    fs.statusByName = me ? me.name : null;
+    saveState();
+    toggleFontStatusMenu(false);
+    renderFontConfirmBar();
+    renderFontHistory();
+    toast(`폰트 시스템 → ${toLabel} · ${toastMsg}`, toastType);
+  }
+  function updateFontSystemNote(value) {
+    const fs = state.fontSystem || (state.fontSystem = { status: null, statusAt: null, statusBy: null, statusByName: null, note: '', history: [] });
+    fs.note = String(value || '');
+    saveState();
+  }
+  function renderFontHistory() {
+    const list = document.getElementById('ftHistoryList');
+    if (!list) return;
+    const fs = state.fontSystem || {};
+    const arr = fs.history || [];
+    list.innerHTML = '';
+    if (arr.length === 0) {
+      list.innerHTML = '<div class="ft-history-empty">아직 변경 이력이 없습니다.<br/>상단 상태 칩을 클릭해 컨펌 요청·승인·재수정 흐름을 시작하세요.</div>';
+      return;
+    }
+    arr.forEach(h => {
+      const row = document.createElement('div');
+      row.className = 'ft-history-item';
+      const kindLabel =
+        h.kind === 'approve'      ? '✅ 승인' :
+        h.kind === 'request'      ? '✋ 컨펌요청' :
+        h.kind === 'revision'     ? '↻ 재수정요청' :
+        h.kind === 'wip'          ? '⚙ 작업중' :
+        h.kind === 'reset-status' ? '⊘ 초안화' : '✎ 변경';
+      row.innerHTML = `
+        <div class="fh-head">
+          <span class="fh-kind" data-k="${escapeHtml(h.kind || '')}">${kindLabel}</span>
+          ${h.staffName ? `<span class="fh-who">${escapeHtml(h.staffName)}${h.staffRole ? ' · ' + escapeHtml(h.staffRole) : ''}</span>` : '<span class="fh-who" style="color:var(--muted); font-weight:500;">익명</span>'}
+          <span class="fh-when">${escapeHtml(fmtDate(h.savedAt))}</span>
+        </div>
+        ${h.reason ? `<div class="fh-reason">${escapeHtml(h.reason)}</div>` : ''}
+        ${h.note ? `<div class="fh-reason" style="background:var(--light); padding:6px 8px; border-radius:6px; color:var(--ink2); font-size:11.5px;">📝 ${escapeHtml(h.note)}</div>` : ''}
+      `;
+      list.appendChild(row);
+    });
+  }
+
+
   function renderFontTokensList() {
     const wrap = document.getElementById('ftList');
     if (!wrap) return;
@@ -11213,6 +11340,46 @@ show('entry');
     if (ftAdd) ftAdd.addEventListener('click', addFontToken);
     const ftReset = document.getElementById('ftReset');
     if (ftReset) ftReset.addEventListener('click', resetFontTokens);
+    // 폰트 시스템 컨펌 워크플로우
+    const ftStatusBtn = document.getElementById('ftStatusBtn');
+    if (ftStatusBtn) ftStatusBtn.addEventListener('click', e => { e.stopPropagation(); toggleFontStatusMenu(); });
+    const ftStatusMenu = document.getElementById('ftStatusMenu');
+    if (ftStatusMenu) {
+      ftStatusMenu.querySelectorAll('.ft-status-item').forEach(btn => {
+        btn.addEventListener('click', () => setFontSystemStatus(btn.dataset.status || null));
+      });
+    }
+    // 메뉴 바깥 클릭 시 닫기
+    document.addEventListener('click', e => {
+      const menu = document.getElementById('ftStatusMenu');
+      if (!menu || !menu.classList.contains('open')) return;
+      if (e.target.closest('#ftStatusMenu') || e.target.closest('#ftStatusBtn')) return;
+      menu.classList.remove('open');
+    });
+    // 메모 자동 저장 (debounce)
+    const ftMemo = document.getElementById('ftMemo');
+    if (ftMemo) {
+      let memoTimer = null;
+      ftMemo.addEventListener('input', () => {
+        if (memoTimer) clearTimeout(memoTimer);
+        memoTimer = setTimeout(() => updateFontSystemNote(ftMemo.value), 400);
+      });
+      ftMemo.addEventListener('blur', () => {
+        if (memoTimer) { clearTimeout(memoTimer); memoTimer = null; }
+        updateFontSystemNote(ftMemo.value);
+      });
+    }
+    // 이력 패널 토글
+    const ftHistoryBtn = document.getElementById('ftHistoryBtn');
+    if (ftHistoryBtn) {
+      ftHistoryBtn.addEventListener('click', () => {
+        const panel = document.getElementById('ftHistoryPanel');
+        if (!panel) return;
+        const open = panel.style.display !== 'none';
+        panel.style.display = open ? 'none' : 'block';
+        if (!open) renderFontHistory();
+      });
+    }
     var btnPL = document.getElementById('btnCopyPageLink');
     if (btnPL) btnPL.addEventListener('click', function(){ copyPageLink(getActivePage().id); });
     document.getElementById('btnExport').addEventListener('click', exportJson);

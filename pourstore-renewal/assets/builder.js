@@ -11,12 +11,15 @@
   const STAFF_COLORS = ['#0F1F5C','#03C75A','#D97706','#7C3AED','#DC2626','#0284C7','#DB2777','#059669','#9333EA','#EA580C'];
 
   // 폰트 토큰 — 역할별 일괄 적용 (state.fontTokens)
+  // 오늘의집(ohou.se) 폰트 시스템 — Pretendard 기반
+  // 패밀리: Pretendard, 컬러: 본문 #2F3438 / 서브 #888888, 자간 -0.02em ~ -0.04em
+  const OHOUSE_FONT_FAMILY = "'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
   function DEFAULT_FONT_TOKENS() {
     return [
-      { id: 'ft-heading',  key: '제목', label: '제목 (heading)', fontFamily: "'Noto Sans KR', sans-serif", fontSize: '28px', fontWeight: '900', color: '#0F1F5C', lineHeight: '1.3',  letterSpacing: '-0.02em' },
-      { id: 'ft-emphasis', key: '강조', label: '강조 (emphasis)', fontFamily: "'Noto Sans KR', sans-serif", fontSize: '20px', fontWeight: '700', color: '#E8780F', lineHeight: '1.4',  letterSpacing: '0' },
-      { id: 'ft-sub',      key: '서브', label: '서브 (sub)',      fontFamily: "'Noto Sans KR', sans-serif", fontSize: '14px', fontWeight: '500', color: '#6B7280', lineHeight: '1.6',  letterSpacing: '0' },
-      { id: 'ft-body',     key: '본문', label: '본문 (body)',     fontFamily: "'Noto Sans KR', sans-serif", fontSize: '15px', fontWeight: '400', color: '#111827', lineHeight: '1.75', letterSpacing: '0' },
+      { id: 'ft-heading',  key: '제목', label: '제목 (heading · 오늘의집)', fontFamily: OHOUSE_FONT_FAMILY, fontSize: '24px', fontWeight: '900', color: '#111111', lineHeight: '1.4',  letterSpacing: '-0.04em' },
+      { id: 'ft-emphasis', key: '강조', label: '강조 (emphasis · 오늘의집)', fontFamily: OHOUSE_FONT_FAMILY, fontSize: '16px', fontWeight: '700', color: '#2F3438', lineHeight: '1.45', letterSpacing: '-0.03em' },
+      { id: 'ft-body',     key: '본문', label: '본문 (body · 오늘의집)',     fontFamily: OHOUSE_FONT_FAMILY, fontSize: '14px', fontWeight: '400', color: '#2F3438', lineHeight: '1.5',  letterSpacing: '-0.02em' },
+      { id: 'ft-sub',      key: '서브', label: '서브 (sub · 오늘의집)',      fontFamily: OHOUSE_FONT_FAMILY, fontSize: '12px', fontWeight: '500', color: '#888888', lineHeight: '1.5',  letterSpacing: '-0.02em' },
     ];
   }
   // 클래스 이름에 안전하지 않은 문자 제거 (한글/영문/숫자/하이픈/언더스코어만 허용)
@@ -5300,9 +5303,14 @@ show('entry');
       if (!Array.isArray(list)) { delete s.history[k]; return; }
       list.forEach(v => { if (v.reason === undefined) v.reason = ''; });
     });
+    s.migrations = (s.migrations && typeof s.migrations === 'object') ? s.migrations : {};
+    // 1회성 마이그레이션 — 폰트 토큰을 오늘의집(Pretendard 기반) 스펙으로 재설정
+    if (!s.migrations.fontTokensOhouseV1) {
+      s.fontTokens = DEFAULT_FONT_TOKENS();
+      s.migrations.fontTokensOhouseV1 = true;
+    }
     // 1회성 마이그레이션 — 메인 1번 섹션을 오늘의집 레이아웃 v1 시안으로 자동 교체
     // (이전 HTML은 이력에 자동 보관 — "이력" 버튼에서 언제든 복원 가능)
-    s.migrations = (s.migrations && typeof s.migrations === 'object') ? s.migrations : {};
     if (!s.migrations.mainBannerOhouseV1) {
       const mainPage = s.pages.find(p => p.id === 'main');
       if (mainPage && Array.isArray(mainPage.sections) && mainPage.sections.length > 0) {
@@ -6349,6 +6357,8 @@ show('entry');
     const href = window.location.href.replace(/[^/]*$/, '');
     return href;
   }
+  // Pretendard CDN — 오늘의집과 동일 폰트 (variable + static fallback)
+  const PRETENDARD_CSS_URL = 'https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css';
   function buildFontTokensCss() {
     const tokens = (state && Array.isArray(state.fontTokens)) ? state.fontTokens : [];
     if (tokens.length === 0) return '';
@@ -6365,7 +6375,9 @@ show('entry');
       ].filter(Boolean).join(';');
       return `.role-${key}{${decl};}`;
     }).filter(Boolean).join('\n');
-    return rules ? `<style data-pour-font-tokens="1">\n${rules}\n</style>` : '';
+    if (!rules) return '';
+    // @import을 인라인 <style>에 포함 — 외부 사이트(카페24 등)에 붙여넣어도 Pretendard가 자동 로드됨
+    return `<style data-pour-font-tokens="1">\n@import url('${PRETENDARD_CSS_URL}');\n${rules}\n</style>`;
   }
   function wrapPreview(bodyHtml) {
     const baseHref = previewBaseHref();
@@ -6374,8 +6386,9 @@ show('entry');
       '<meta name="viewport" content="width=device-width, initial-scale=1"/>',
       `<base href="${baseHref}"/>`,
       '<title>섹션 미리보기</title>',
+      `<link href="${PRETENDARD_CSS_URL}" rel="stylesheet"/>`,
       '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Bebas+Neue&display=swap" rel="stylesheet"/>',
-      '<style>html,body{margin:0;font-family:\'Noto Sans KR\',sans-serif;background:#fff;color:#111827;}</style>',
+      '<style>html,body{margin:0;font-family:\'Pretendard Variable\',Pretendard,-apple-system,BlinkMacSystemFont,\'Apple SD Gothic Neo\',\'Noto Sans KR\',sans-serif;background:#fff;color:#111827;}</style>',
       buildFontTokensCss(),
       '</head><body>',
       bodyHtml || '<div style="padding:40px; text-align:center; color:#9CA3AF; font-size:13px;">섹션 HTML이 비어있습니다.</div>',

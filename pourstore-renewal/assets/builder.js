@@ -6213,19 +6213,74 @@ show('entry');
             <button class="btn btn-sm btn-outline" data-act="copy" title="HTML 코드 복사">HTML 복사</button>
             <button class="btn btn-sm btn-ghost" data-act="view">미리보기</button>
             <button class="btn btn-sm btn-primary" data-act="restore">복원</button>
+            <button class="btn btn-sm btn-danger" data-act="del" title="이 버전을 영구 삭제 (복구 불가)">🗑 영구 삭제</button>
           </div>
         </div>
         <div class="reason-row">
           <span class="reason-label">변경 사유</span>
           <div class="reason-text ${v.reason ? '' : 'empty'}" data-act="edit-reason" title="클릭하여 수정">${v.reason ? escapeHtml(v.reason) : '(사유 없음 — 클릭하여 추가)'}</div>
         </div>
+        <div class="del-confirm" data-del-confirm style="display:none;"></div>
       `;
       row.querySelector('[data-act=copy]').addEventListener('click', () => copyHtmlToClipboard(v.html));
       row.querySelector('[data-act=view]').addEventListener('click', () => previewHtml(v.html, v.name));
       row.querySelector('[data-act=restore]').addEventListener('click', () => restoreVersion(idx));
       row.querySelector('[data-act=edit-reason]').addEventListener('click', () => startEditReason(row, idx));
+      row.querySelector('[data-act=del]').addEventListener('click', () => startDeleteHistoryConfirm(row, idx));
       wrap.appendChild(row);
     });
+  }
+  // 이력 항목 영구 삭제 — 인라인 2단계 확인 ("영구 삭제" 수기 입력 + 확인 버튼)
+  function startDeleteHistoryConfirm(row, idx) {
+    if (!historyCtx) return;
+    const list = state.history[histKey(historyCtx.pageId, historyCtx.secId)] || [];
+    const v = list[idx];
+    if (!v) return;
+    const verNum = list.length - idx;
+    const box = row.querySelector('[data-del-confirm]');
+    if (!box) return;
+    // 이미 열려있으면 닫기 토글
+    if (box.style.display !== 'none') { box.style.display = 'none'; box.innerHTML = ''; return; }
+    box.style.display = 'block';
+    box.innerHTML = `
+      <div class="del-warn">
+        <span class="del-warn-icon">⚠</span>
+        <div class="del-warn-text">
+          <b>v${verNum} 버전을 영구 삭제합니다.</b><br/>
+          이 작업은 <b>되돌릴 수 없습니다.</b> 진행하려면 아래 칸에 <b>영구 삭제</b>를 정확히 입력하고 확인 버튼을 누르세요.
+        </div>
+      </div>
+      <div class="del-confirm-row">
+        <input type="text" class="del-confirm-input" placeholder='여기에 "영구 삭제" 입력' autocomplete="off" />
+        <button class="btn btn-sm btn-danger" data-confirm disabled>영구 삭제하기</button>
+        <button class="btn btn-sm btn-ghost" data-cancel>취소</button>
+      </div>
+    `;
+    const input = box.querySelector('.del-confirm-input');
+    const confirmBtn = box.querySelector('[data-confirm]');
+    const cancelBtn = box.querySelector('[data-cancel]');
+    const REQUIRED = '영구 삭제';
+    input.addEventListener('input', () => {
+      confirmBtn.disabled = input.value.trim() !== REQUIRED;
+    });
+    input.focus();
+    cancelBtn.addEventListener('click', () => { box.style.display = 'none'; box.innerHTML = ''; });
+    confirmBtn.addEventListener('click', () => {
+      if (input.value.trim() !== REQUIRED) return;
+      deleteHistoryEntry(idx);
+    });
+  }
+  function deleteHistoryEntry(idx) {
+    if (!historyCtx) return;
+    const key = histKey(historyCtx.pageId, historyCtx.secId);
+    const list = state.history[key] || [];
+    const v = list[idx];
+    if (!v) return;
+    list.splice(idx, 1);
+    if (list.length === 0) delete state.history[key];
+    saveState();
+    renderHistoryList();
+    toast('영구 삭제 완료', 'info');
   }
   function startEditReason(row, idx) {
     if (!historyCtx) return;

@@ -188,6 +188,7 @@
             <button id="btnPageFeedback" class="btn btn-outline" title="페이지 단위 피드백 (대표·본부장 등)">💬 <span id="pageFbCount">0</span></button>
             <button id="btnPageJourney" class="btn btn-outline" title="이 페이지의 모든 섹션·피드백·이력을 시간순으로 보기">📜 작업여정</button>
             <button id="btnFullPreview" class="btn btn-primary">전체 시안 바로보기</button>
+            <button id="btnFontTokens" class="btn btn-outline" title="강조·서브·본문 등 역할별 폰트를 한 곳에서 일괄 관리. 미리보기·전체 HTML 복사에 자동 반영됩니다.">🔤 폰트 관리</button>
             <button id="btnCopyFullHtml" class="btn btn-outline" title="현재 페이지의 모든 섹션 HTML을 클립보드로 복사 (카페24 붙여넣기용)">전체 HTML 복사</button>
             <button id="btnCopyPageLink" class="btn btn-outline" title="이 페이지를 통째 보여주는 공유 링크 복사">🔗 페이지 링크 복사</button>
           </div>
@@ -385,6 +386,7 @@
             <label for="edReason">변경 사유 <span class="req">*</span> <span style="color:var(--muted); font-weight:500; font-size:10px;">— 변경이 있을 때 필수</span></label>
             <input id="edReason" type="text" placeholder="예: 배너 카피 수정 / 컨펌 반영 / 이미지 교체" />
             <label for="edHtml">HTML 코드</label>
+            <div id="edRoleBar" class="ed-role-bar" title="텍스트를 선택한 뒤 역할 버튼을 누르면 해당 역할 클래스로 감쌉니다 (폰트 관리에서 일괄 변경 가능)"></div>
             <textarea id="edHtml" spellcheck="false" placeholder="<section>...</section>"></textarea>
           </div>
           <div class="editor-col">
@@ -444,6 +446,33 @@
           <button id="rmCloseFoot" class="btn btn-ghost">닫기</button>
           <button id="rmDelete" class="btn btn-danger">선택 항목 영구 삭제</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 폰트 관리 모달 -->
+  <div id="fontTokensModal" class="modal-mask">
+    <div class="modal" style="max-width: 880px;">
+      <div class="modal-head">
+        <h3>폰트 관리 — 역할별 일괄 적용</h3>
+        <button id="ftClose" class="close" aria-label="닫기">×</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:12px; color:var(--ink2); background:#F0F9FF; border:1px solid #BAE6FD; padding:9px 12px; border-radius:8px; margin-bottom:14px; line-height:1.6;">
+          역할(강조·서브·본문·제목 등)별로 폰트를 정의해 두면, 섹션 HTML에서 <code>class="role-강조"</code> 처럼 클래스만 붙여도 모든 섹션에 일괄 반영됩니다.<br/>
+          📋 전체 시안 미리보기와 <b>전체 HTML 복사</b>에 자동 포함됩니다. (개별 섹션 HTML 복사에는 포함되지 않음 — 카페24 등 외부 붙여넣기는 "전체 HTML 복사" 사용)<br/>
+          ⚠ 섹션에 인라인 <code>style="font-family:…"</code>가 박혀있으면 해당 부분은 덮어쓰지 못합니다.
+        </div>
+        <div id="ftList" class="ft-list"></div>
+        <div style="display:flex; gap:8px; align-items:center; margin-top:14px;">
+          <button id="ftAdd" class="btn btn-outline btn-sm">+ 역할 추가</button>
+          <button id="ftReset" class="btn btn-ghost btn-sm" title="기본 4종(강조·서브·본문·제목)으로 되돌리기">기본값으로 초기화</button>
+          <span style="margin-left:auto; font-size:11px; color:var(--muted);">변경은 자동 저장되며 모든 PC·브라우저에 동기화됩니다.</span>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <span style="font-size:11.5px; color:var(--muted);">키(key)는 클래스명에 그대로 사용됩니다 — 한글/영문/숫자/하이픈 사용 권장 (공백·특수문자 금지).</span>
+        <button id="ftCloseFoot" class="btn btn-primary">닫기</button>
       </div>
     </div>
   </div>

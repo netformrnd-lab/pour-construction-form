@@ -10,6 +10,20 @@
   const MAX_DEPTH = 3; // 0=대, 1=중, 2=소 (총 3단)
   const STAFF_COLORS = ['#0F1F5C','#03C75A','#D97706','#7C3AED','#DC2626','#0284C7','#DB2777','#059669','#9333EA','#EA580C'];
 
+  // 폰트 토큰 — 역할별 일괄 적용 (state.fontTokens)
+  function DEFAULT_FONT_TOKENS() {
+    return [
+      { id: 'ft-heading',  key: '제목', label: '제목 (heading)', fontFamily: "'Noto Sans KR', sans-serif", fontSize: '28px', fontWeight: '900', color: '#0F1F5C', lineHeight: '1.3',  letterSpacing: '-0.02em' },
+      { id: 'ft-emphasis', key: '강조', label: '강조 (emphasis)', fontFamily: "'Noto Sans KR', sans-serif", fontSize: '20px', fontWeight: '700', color: '#E8780F', lineHeight: '1.4',  letterSpacing: '0' },
+      { id: 'ft-sub',      key: '서브', label: '서브 (sub)',      fontFamily: "'Noto Sans KR', sans-serif", fontSize: '14px', fontWeight: '500', color: '#6B7280', lineHeight: '1.6',  letterSpacing: '0' },
+      { id: 'ft-body',     key: '본문', label: '본문 (body)',     fontFamily: "'Noto Sans KR', sans-serif", fontSize: '15px', fontWeight: '400', color: '#111827', lineHeight: '1.75', letterSpacing: '0' },
+    ];
+  }
+  // 클래스 이름에 안전하지 않은 문자 제거 (한글/영문/숫자/하이픈/언더스코어만 허용)
+  function sanitizeRoleKey(k) {
+    return String(k || '').trim().replace(/[^0-9A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ_-]/g, '');
+  }
+
   const FIREBASE_CONFIG = {
     apiKey: 'AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU',
     authDomain: 'pour-app-new.firebaseapp.com',
@@ -5024,6 +5038,19 @@ show('entry');
     });
     s.trash = s.trash && typeof s.trash === 'object' ? s.trash : {};
     s.trash.feedbacks = Array.isArray(s.trash.feedbacks) ? s.trash.feedbacks : [];
+    // 폰트 토큰 — 역할별 일괄 적용 (없으면 기본 4종 시드)
+    if (!Array.isArray(s.fontTokens)) s.fontTokens = DEFAULT_FONT_TOKENS();
+    s.fontTokens.forEach((t, i) => {
+      if (!t.id) t.id = 'ft-' + Math.random().toString(36).slice(2, 8);
+      if (typeof t.key !== 'string') t.key = '역할' + (i + 1);
+      if (typeof t.label !== 'string') t.label = t.key;
+      if (typeof t.fontFamily !== 'string') t.fontFamily = "'Noto Sans KR', sans-serif";
+      if (typeof t.fontSize !== 'string') t.fontSize = '15px';
+      if (typeof t.fontWeight !== 'string') t.fontWeight = '400';
+      if (typeof t.color !== 'string') t.color = '#111827';
+      if (typeof t.lineHeight !== 'string') t.lineHeight = '1.6';
+      if (typeof t.letterSpacing !== 'string') t.letterSpacing = '0';
+    });
     // 상세페이지 템플릿 (Step A)
     s.templates = Array.isArray(s.templates) ? s.templates : [];
     s.templates.forEach(t => {
@@ -5859,6 +5886,7 @@ show('entry');
     const rEl = document.getElementById('edReason');
     rEl.value = '';
     rEl.classList.remove('required-empty');
+    renderEditorRoleBar();
     refreshEditorPreview();
     openModal('editorModal');
     setTimeout(() => document.getElementById('edHtml').focus(), 60);
@@ -6024,6 +6052,24 @@ show('entry');
     const href = window.location.href.replace(/[^/]*$/, '');
     return href;
   }
+  function buildFontTokensCss() {
+    const tokens = (state && Array.isArray(state.fontTokens)) ? state.fontTokens : [];
+    if (tokens.length === 0) return '';
+    const rules = tokens.map(t => {
+      const key = sanitizeRoleKey(t.key);
+      if (!key) return '';
+      const decl = [
+        t.fontFamily   && `font-family:${t.fontFamily}`,
+        t.fontSize     && `font-size:${t.fontSize}`,
+        t.fontWeight   && `font-weight:${t.fontWeight}`,
+        t.color        && `color:${t.color}`,
+        t.lineHeight   && `line-height:${t.lineHeight}`,
+        t.letterSpacing && `letter-spacing:${t.letterSpacing}`,
+      ].filter(Boolean).join(';');
+      return `.role-${key}{${decl};}`;
+    }).filter(Boolean).join('\n');
+    return rules ? `<style data-pour-font-tokens="1">\n${rules}\n</style>` : '';
+  }
   function wrapPreview(bodyHtml) {
     const baseHref = previewBaseHref();
     return [
@@ -6033,6 +6079,7 @@ show('entry');
       '<title>섹션 미리보기</title>',
       '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Bebas+Neue&display=swap" rel="stylesheet"/>',
       '<style>html,body{margin:0;font-family:\'Noto Sans KR\',sans-serif;background:#fff;color:#111827;}</style>',
+      buildFontTokensCss(),
       '</head><body>',
       bodyHtml || '<div style="padding:40px; text-align:center; color:#9CA3AF; font-size:13px;">섹션 HTML이 비어있습니다.</div>',
       '</body></html>'
@@ -6139,11 +6186,15 @@ show('entry');
     if (title) try { w.document.title = title; } catch (_) {}
   }
   function buildFullPageHtml(page) {
-    return page.sections.map((s, i) => {
+    const body = page.sections.map((s, i) => {
       const html = (s.html || '').trim();
       if (!html) return `<!-- [${i+1}] ${s.name} (EMPTY) -->`;
       return `<!-- [${i+1}] ${s.name} -->\n<section data-section="${escapeHtml(s.name)}">\n${s.html}\n</section>`;
     }).join('\n\n');
+    const fontCss = buildFontTokensCss();
+    return fontCss
+      ? `<!-- [폰트 토큰] 폰트 관리에서 역할별로 일괄 정의됨 -->\n${fontCss}\n\n${body}`
+      : body;
   }
 
   // 미리보기 모달용 — 각 섹션을 id로 감싸서 스크롤·하이라이트 지원
@@ -6368,6 +6419,169 @@ show('entry');
     }
     const html = buildFullPageHtml(page);
     copyHtmlToClipboard(html);
+  }
+
+  // -------- 폰트 토큰 (역할별 일괄 폰트) --------
+  function openFontTokensModal() {
+    renderFontTokensList();
+    openModal('fontTokensModal');
+  }
+  function renderFontTokensList() {
+    const wrap = document.getElementById('ftList');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    const tokens = state.fontTokens || [];
+    if (tokens.length === 0) {
+      wrap.innerHTML = '<div class="ft-empty">등록된 역할이 없습니다.<br/>아래 <b>+ 역할 추가</b>를 눌러 첫 역할을 만들어 주세요.</div>';
+      return;
+    }
+    tokens.forEach(t => {
+      const row = document.createElement('div');
+      row.className = 'ft-item';
+      row.dataset.id = t.id;
+      row.innerHTML = `
+        <div class="ft-field"><label>키 (class명)</label><input class="ft-key" data-f="key" value="${escapeHtml(t.key)}" placeholder="예: 강조" maxlength="24" /></div>
+        <div class="ft-field"><label>설명 (이름표)</label><input data-f="label" value="${escapeHtml(t.label)}" placeholder="예: 강조 (emphasis)" maxlength="40" /></div>
+        <div class="ft-field"><label>폰트 패밀리</label><input data-f="fontFamily" value="${escapeHtml(t.fontFamily)}" placeholder="'Noto Sans KR', sans-serif" /></div>
+        <div class="ft-field"><label>크기</label><input data-f="fontSize" value="${escapeHtml(t.fontSize)}" placeholder="16px" /></div>
+        <div class="ft-field"><label>굵기</label><input data-f="fontWeight" value="${escapeHtml(t.fontWeight)}" placeholder="400~900" /></div>
+        <div class="ft-field"><label>줄 높이</label><input data-f="lineHeight" value="${escapeHtml(t.lineHeight)}" placeholder="1.6" /></div>
+        <div class="ft-field"><label>색상</label><input type="color" data-f="color" value="${escapeHtml(toHexColor(t.color))}" /></div>
+        <button class="ft-del" data-act="del" title="이 역할 삭제">삭제</button>
+        <div class="ft-field" style="grid-column:1/-1;"><label>자간 (letter-spacing)</label><input data-f="letterSpacing" value="${escapeHtml(t.letterSpacing)}" placeholder="0 / -0.02em" /></div>
+        <div class="ft-preview" data-preview style="font-family:${cssEscape(t.fontFamily)}; font-size:${cssEscape(t.fontSize)}; font-weight:${cssEscape(t.fontWeight)}; color:${cssEscape(t.color)}; line-height:${cssEscape(t.lineHeight)}; letter-spacing:${cssEscape(t.letterSpacing)};">미리보기 — 가나다라 ABC 0123 ${escapeHtml(t.label || t.key)}</div>
+      `;
+      row.querySelectorAll('input[data-f]').forEach(inp => {
+        inp.addEventListener('input', () => updateFontToken(t.id, inp.dataset.f, inp.value));
+        inp.addEventListener('blur', () => {
+          if (inp.dataset.f === 'key') {
+            const cleaned = sanitizeRoleKey(inp.value);
+            if (cleaned !== inp.value) { inp.value = cleaned; updateFontToken(t.id, 'key', cleaned); }
+          }
+        });
+      });
+      row.querySelector('[data-act=del]').addEventListener('click', () => deleteFontToken(t.id));
+      wrap.appendChild(row);
+    });
+  }
+  function toHexColor(v) {
+    // <input type=color>는 #rrggbb만 허용 — rgb/이름을 임시로 #111827로 폴백
+    if (typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v.trim())) return v.trim();
+    return '#111827';
+  }
+  function cssEscape(v) {
+    // 인라인 style 속성에 들어가는 값 — 쌍따옴표만 안전화
+    return String(v == null ? '' : v).replace(/"/g, "'");
+  }
+  function updateFontToken(id, field, value) {
+    const t = (state.fontTokens || []).find(x => x.id === id);
+    if (!t) return;
+    if (field === 'key') value = sanitizeRoleKey(value);
+    t[field] = String(value);
+    // 즉시 미리보기 갱신
+    const row = document.querySelector(`.ft-item[data-id="${id}"]`);
+    if (row) {
+      const pv = row.querySelector('[data-preview]');
+      if (pv) {
+        pv.style.fontFamily = t.fontFamily;
+        pv.style.fontSize = t.fontSize;
+        pv.style.fontWeight = t.fontWeight;
+        pv.style.color = t.color;
+        pv.style.lineHeight = t.lineHeight;
+        pv.style.letterSpacing = t.letterSpacing;
+        if (field === 'label' || field === 'key') {
+          pv.textContent = `미리보기 — 가나다라 ABC 0123 ${t.label || t.key}`;
+        }
+      }
+    }
+    saveState();
+    // 열려있는 섹션 편집 미리보기에도 즉시 반영
+    if (document.getElementById('editorModal').classList.contains('open')) {
+      refreshEditorPreview();
+    }
+  }
+  function addFontToken() {
+    const id = 'ft-' + Math.random().toString(36).slice(2, 8);
+    (state.fontTokens = state.fontTokens || []).push({
+      id, key: '역할' + (state.fontTokens.length + 1), label: '새 역할',
+      fontFamily: "'Noto Sans KR', sans-serif", fontSize: '15px', fontWeight: '400',
+      color: '#111827', lineHeight: '1.6', letterSpacing: '0',
+    });
+    saveState();
+    renderFontTokensList();
+    renderEditorRoleBar();
+    toast('역할 추가됨', 'success');
+  }
+  function deleteFontToken(id) {
+    const t = (state.fontTokens || []).find(x => x.id === id);
+    if (!t) return;
+    if (!confirm(`"${t.label || t.key}" 역할을 삭제할까요?\n섹션 HTML에 박혀있는 class="role-${t.key}"는 그대로 남지만 폰트가 더이상 적용되지 않습니다.`)) return;
+    state.fontTokens = state.fontTokens.filter(x => x.id !== id);
+    saveState();
+    renderFontTokensList();
+    renderEditorRoleBar();
+    if (document.getElementById('editorModal').classList.contains('open')) refreshEditorPreview();
+    toast('삭제됨', 'info');
+  }
+  function resetFontTokens() {
+    if (!confirm('폰트 역할을 기본값(제목·강조·서브·본문)으로 되돌릴까요?\n현재 등록된 역할은 모두 사라집니다.')) return;
+    state.fontTokens = DEFAULT_FONT_TOKENS();
+    saveState();
+    renderFontTokensList();
+    renderEditorRoleBar();
+    if (document.getElementById('editorModal').classList.contains('open')) refreshEditorPreview();
+    toast('기본값으로 초기화', 'success');
+  }
+  // 편집 모달 — 텍스트 선택 영역을 <span class="role-…">로 감싸기
+  function renderEditorRoleBar() {
+    const bar = document.getElementById('edRoleBar');
+    if (!bar) return;
+    bar.innerHTML = '';
+    const tokens = state.fontTokens || [];
+    if (tokens.length === 0) {
+      bar.innerHTML = '<span class="ed-role-hint">폰트 관리에서 역할을 먼저 등록하세요.</span>';
+      return;
+    }
+    const hint = document.createElement('span');
+    hint.className = 'ed-role-hint';
+    hint.textContent = '역할 적용:';
+    bar.appendChild(hint);
+    tokens.forEach(t => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ed-role-chip';
+      btn.textContent = t.label || t.key;
+      btn.style.color = t.color || '';
+      btn.title = `선택한 텍스트를 <span class="role-${t.key}">로 감쌉니다`;
+      btn.addEventListener('click', e => { e.preventDefault(); wrapSelectionWithRole(t.key); });
+      bar.appendChild(btn);
+    });
+    const mgr = document.createElement('button');
+    mgr.type = 'button';
+    mgr.className = 'ed-role-chip';
+    mgr.textContent = '⚙ 관리';
+    mgr.title = '폰트 관리 열기';
+    mgr.style.marginLeft = 'auto';
+    mgr.addEventListener('click', e => { e.preventDefault(); openFontTokensModal(); });
+    bar.appendChild(mgr);
+  }
+  function wrapSelectionWithRole(rawKey) {
+    const ta = document.getElementById('edHtml');
+    if (!ta) return;
+    const key = sanitizeRoleKey(rawKey);
+    if (!key) { toast('역할 키가 비어있습니다.', 'error'); return; }
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    if (start === end) { toast('적용할 텍스트를 먼저 선택해 주세요.', 'info'); return; }
+    const before = ta.value.slice(0, start);
+    const sel = ta.value.slice(start, end);
+    const after = ta.value.slice(end);
+    const open = `<span class="role-${key}">`;
+    const close = '</span>';
+    ta.value = before + open + sel + close + after;
+    const newPos = start + open.length + sel.length + close.length;
+    ta.setSelectionRange(newPos, newPos);
+    ta.focus();
+    refreshEditorPreview();
   }
 
   // -------- staff + me (담당자) --------
@@ -10656,6 +10870,16 @@ show('entry');
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') submitFpvComment();
     });
     document.getElementById('btnCopyFullHtml').addEventListener('click', copyFullPageHtml);
+    const btnFT = document.getElementById('btnFontTokens');
+    if (btnFT) btnFT.addEventListener('click', openFontTokensModal);
+    const ftClose = document.getElementById('ftClose');
+    if (ftClose) ftClose.addEventListener('click', () => closeModal('fontTokensModal'));
+    const ftCloseFoot = document.getElementById('ftCloseFoot');
+    if (ftCloseFoot) ftCloseFoot.addEventListener('click', () => closeModal('fontTokensModal'));
+    const ftAdd = document.getElementById('ftAdd');
+    if (ftAdd) ftAdd.addEventListener('click', addFontToken);
+    const ftReset = document.getElementById('ftReset');
+    if (ftReset) ftReset.addEventListener('click', resetFontTokens);
     var btnPL = document.getElementById('btnCopyPageLink');
     if (btnPL) btnPL.addEventListener('click', function(){ copyPageLink(getActivePage().id); });
     document.getElementById('btnExport').addEventListener('click', exportJson);

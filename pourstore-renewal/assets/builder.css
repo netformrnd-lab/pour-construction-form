@@ -930,3 +930,25 @@ body[data-mode="product"] .brand-text-page { display: none; }
 @media (max-width: 1080px) {
   .fpv-body { grid-template-columns: 220px 1fr 300px; }
 }
+
+/* ---------- 폰트 관리 모달 ---------- */
+.ft-list { display: flex; flex-direction: column; gap: 10px; }
+.ft-item { border: 1px solid var(--border); border-radius: var(--r); padding: 12px 14px; background: #fff; display: grid; grid-template-columns: 130px 1fr 1fr 90px 90px 80px 60px auto; gap: 8px 10px; align-items: end; }
+.ft-item .ft-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ft-item .ft-field label { font-size: 10.5px; color: var(--muted); font-weight: 600; }
+.ft-item .ft-field input { width: 100%; padding: 6px 8px; font-size: 12px; border: 1px solid var(--border); border-radius: 6px; background: #fff; box-sizing: border-box; }
+.ft-item .ft-field input[type=color] { padding: 1px; height: 30px; cursor: pointer; }
+.ft-item .ft-field input.ft-key { font-family: ui-monospace, Consolas, monospace; }
+.ft-item .ft-preview { grid-column: 1 / -1; padding: 10px 12px; background: var(--light); border-radius: 6px; font-size: 14px; color: var(--ink); margin-top: 4px; word-break: break-word; }
+.ft-item .ft-del { background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: 6px 9px; cursor: pointer; font-size: 12px; height: 30px; }
+.ft-item .ft-del:hover { color: #DC2626; border-color: #FCA5A5; background: #FEF2F2; }
+.ft-empty { padding: 24px 12px; text-align: center; color: var(--muted); font-size: 12px; border: 1px dashed var(--border); border-radius: var(--r); }
+@media (max-width: 900px) {
+  .ft-item { grid-template-columns: 1fr 1fr; }
+}
+
+/* ---------- 편집 모달 — 역할 적용 툴바 ---------- */
+.ed-role-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.ed-role-bar .ed-role-chip { font-size: 11.5px; padding: 4px 9px; border-radius: 14px; border: 1px solid var(--border); background: #fff; color: var(--ink2); cursor: pointer; font-weight: 600; }
+.ed-role-bar .ed-role-chip:hover { background: var(--light); color: var(--ink); }
+.ed-role-bar .ed-role-hint { font-size: 11px; color: var(--muted); padding: 5px 4px; }

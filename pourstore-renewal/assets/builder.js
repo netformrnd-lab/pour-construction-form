@@ -1098,20 +1098,18 @@ show('entry');
       <span class="pdq-pulse"></span>
     </div>
     <div class="pdq-text">
-      <span class="pdq-kicker"><span class="pdq-dot"></span>POUR스토어만의 1:1 진단 서비스 · 지금도 진단 중</span>
-      <div class="pdq-title">건물 상태가 걱정된다면 — <b>당신만의 POUR주치의</b></div>
-      <div class="pdq-desc">방수·도장·보수 50+ 특허 기반, 240만 세대 진단 데이터로<br/>증상만 알려주시면 R&D팀이 직접 처방서 + 시공 매칭까지 한 번에.</div>
+      <span class="pdq-kicker"><span class="pdq-dot"></span>POUR주치의 · 1:1 진단</span>
+      <div class="pdq-title">건물에 어려움이 있다면,<br/><b>편하게 말씀해 주세요.</b></div>
+      <div class="pdq-desc">사진 한 장이면 R&D 박사가 직접 답해드려요.</div>
       <div class="pdq-stats">
-        <span class="pdq-stat">🩺 누적 진단 <b>2.4M</b>+</span>
-        <span class="pdq-stat">📊 특허·기술 <b>50+</b></span>
-        <span class="pdq-stat">🏥 진단한 단지 <b>700+</b></span>
+        <span class="pdq-stat">🩺 박사 직접 답변</span>
         <span class="pdq-stat">⏱ 평균 응답 <b>3분</b></span>
       </div>
     </div>
   </div>
   <div class="pdq-right">
-    <button class="pdq-cta" type="button">무료 진단 받기 <span>→</span></button>
-    <span class="pdq-cta-sub">증상 입력 → 3분 안에 처방서 발송</span>
+    <button class="pdq-cta" type="button">지금 말씀하기 <span>→</span></button>
+    <span class="pdq-cta-sub">사진만 첨부하면 끝</span>
   </div>
 </a>
 </section>`;
@@ -6348,6 +6346,28 @@ show('entry');
         }
       }
       s.migrations.pourDoctorFabV1 = true;
+    }
+    // 1회성 마이그레이션 — 메인 3번 퀵배너 카피 간소화 (어려움이 있다면 말씀해주세요 톤)
+    if (!s.migrations.quickBannerCopyV1) {
+      const mainPage4 = s.pages.find(p => p.id === 'main');
+      if (mainPage4 && Array.isArray(mainPage4.sections)) {
+        // class="pdq" 가 들어있는 섹션을 찾아 교체 (위치가 옮겨졌어도 안전하게)
+        const idx = mainPage4.sections.findIndex(sec => (sec.html || '').indexOf('class="pdq"') !== -1);
+        if (idx !== -1) {
+          const sec = mainPage4.sections[idx];
+          const now4 = new Date().toISOString();
+          const key = mainPage4.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason: '퀵배너 카피 간소화 — 글자 줄이고 권유형 톤 ("어려움이 있다면, 편하게 말씀해 주세요")',
+            kind: 'auto-migration', savedAt: now4,
+          });
+          sec.html = POUR_DR_QUICK_BANNER_HTML;
+          sec.statusAt = now4;
+        }
+      }
+      s.migrations.quickBannerCopyV1 = true;
     }
     return s;
   }

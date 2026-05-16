@@ -1950,6 +1950,15 @@ show('entry');
 .psy3-card .views::before { content:'▶'; font-size:8px; color:#DC2626; }
 .psy3-card .duration { position:absolute; top:12px; right:12px; padding:4px 8px; background:rgba(15,31,92,.85); color:#fff; font-size:10.5px; font-weight:700; border-radius:5px; z-index:1; }
 .psy3-card .title { position:absolute; bottom:14px; left:14px; right:14px; color:#fff; font-size:13px; font-weight:700; line-height:1.45; z-index:1; letter-spacing:-.2px; }
+/* 재생 상태 표시 */
+.psy3-card .psy3-prog { position:absolute; left:14px; right:14px; bottom:6px; height:3px; background:rgba(255,255,255,.22); border-radius:99px; overflow:hidden; z-index:2; opacity:0; transition:opacity .3s; }
+.psy3-card[data-psy3-active] .psy3-prog { opacity:1; }
+.psy3-card .psy3-prog::after { content:''; position:absolute; left:0; top:0; bottom:0; width:0; background:#fff; border-radius:99px; }
+.psy3-card[data-psy3-active] .psy3-prog::after { animation:psy3Fill var(--psy3-d, 5s) linear forwards; }
+@keyframes psy3Fill { to { width:100%; } }
+.psy3-card[data-psy3-active] .play { background:#DC2626; box-shadow:0 8px 22px rgba(220,38,38,.55); }
+.psy3-card[data-psy3-active] .play::after { border-left-color:#fff; }
+.psy3-card[data-psy3-active] { outline:2px solid #E8780F; outline-offset:-2px; }
 @media (max-width:700px) {
   .psy3 { padding:48px 0 56px; }
   .psy3-inner { max-width:none; }
@@ -1974,11 +1983,11 @@ show('entry');
       <a class="more" href="https://www.pourstore.net/videos">전체 영상 →</a>
     </div>
     <div class="psy3-grid" data-psy3-scroll>
-      <a class="psy3-card" href="https://www.pourstore.net/videos/short1"><div class="img" style="background-image:url('https://placehold.co/300x533/0F1F5C/F97316?text=DRAIN')"></div><span class="views">12K</span><span class="duration">0:48</span><div class="play"></div><div class="title">옥상 배수구 누수 1분 보수법</div></a>
-      <a class="psy3-card" href="https://www.pourstore.net/videos/short2"><div class="img" style="background-image:url('https://placehold.co/300x533/EA580C/fff?text=ROOF')"></div><span class="views">8.5K</span><span class="duration">0:55</span><div class="play"></div><div class="title">방수보수 빌라·아파트 차이</div></a>
-      <a class="psy3-card" href="https://www.pourstore.net/videos/short3"><div class="img" style="background-image:url('https://placehold.co/300x533/F97316/fff?text=SHINGLE')"></div><span class="views">15K</span><span class="duration">1:00</span><div class="play"></div><div class="title">슁글 지붕에 방수페인트 칠하면?</div></a>
-      <a class="psy3-card" href="https://www.pourstore.net/videos/short4"><div class="img" style="background-image:url('https://placehold.co/300x533/059669/fff?text=CRACK')"></div><span class="views">6.2K</span><span class="duration">0:42</span><div class="play"></div><div class="title">콘크리트 균열 봉합 한 방에</div></a>
-      <a class="psy3-card" href="https://www.pourstore.net/videos/short5"><div class="img" style="background-image:url('https://placehold.co/300x533/9333EA/fff?text=COAT')"></div><span class="views">9.8K</span><span class="duration">0:38</span><div class="play"></div><div class="title">옥상 방수는 코트재로 끝</div></a>
+      <a class="psy3-card" data-psy3-dur="5" href="https://www.pourstore.net/videos/short1"><div class="img" style="background-image:url('https://placehold.co/300x533/0F1F5C/F97316?text=DRAIN')"></div><span class="views">12K</span><span class="duration">0:48</span><div class="play"></div><div class="title">옥상 배수구 누수 1분 보수법</div><span class="psy3-prog"></span></a>
+      <a class="psy3-card" data-psy3-dur="5" href="https://www.pourstore.net/videos/short2"><div class="img" style="background-image:url('https://placehold.co/300x533/EA580C/fff?text=ROOF')"></div><span class="views">8.5K</span><span class="duration">0:55</span><div class="play"></div><div class="title">방수보수 빌라·아파트 차이</div><span class="psy3-prog"></span></a>
+      <a class="psy3-card" data-psy3-dur="5" href="https://www.pourstore.net/videos/short3"><div class="img" style="background-image:url('https://placehold.co/300x533/F97316/fff?text=SHINGLE')"></div><span class="views">15K</span><span class="duration">1:00</span><div class="play"></div><div class="title">슁글 지붕에 방수페인트 칠하면?</div><span class="psy3-prog"></span></a>
+      <a class="psy3-card" data-psy3-dur="5" href="https://www.pourstore.net/videos/short4"><div class="img" style="background-image:url('https://placehold.co/300x533/059669/fff?text=CRACK')"></div><span class="views">6.2K</span><span class="duration">0:42</span><div class="play"></div><div class="title">콘크리트 균열 봉합 한 방에</div><span class="psy3-prog"></span></a>
+      <a class="psy3-card" data-psy3-dur="5" href="https://www.pourstore.net/videos/short5"><div class="img" style="background-image:url('https://placehold.co/300x533/9333EA/fff?text=COAT')"></div><span class="views">9.8K</span><span class="duration">0:38</span><div class="play"></div><div class="title">옥상 방수는 코트재로 끝</div><span class="psy3-prog"></span></a>
     </div>
   </div>
   <script>
@@ -1987,126 +1996,214 @@ show('entry');
     if (!root) return;
     var scroller = root.querySelector('[data-psy3-scroll]');
     if (!scroller) return;
+    var cards = Array.prototype.slice.call(scroller.querySelectorAll('.psy3-card'));
+    if (cards.length === 0) return;
+    var current = 0, paused = false, inView = false;
+    var advanceT = null, resumeT = null;
     var mq = window.matchMedia('(max-width:700px)');
-    var paused = false, pauseT = null, intv = null;
-    function isMobile(){ return mq.matches; }
+    function durMs(i){
+      var d = parseFloat(cards[i].getAttribute('data-psy3-dur') || '5');
+      return Math.min(Math.max(d, 3), 10) * 1000;
+    }
+    function clearAdvance(){ if (advanceT) { clearTimeout(advanceT); advanceT = null; } }
+    function activate(i){
+      clearAdvance();
+      current = ((i % cards.length) + cards.length) % cards.length;
+      cards.forEach(function(c, idx){
+        if (idx === current) {
+          var d = durMs(current);
+          c.style.setProperty('--psy3-d', (d/1000) + 's');
+          // 애니메이션 재시작을 위해 속성을 잠깐 떼었다 다시 붙임
+          c.removeAttribute('data-psy3-active');
+          void c.offsetWidth;
+          c.setAttribute('data-psy3-active', '');
+        } else {
+          c.removeAttribute('data-psy3-active');
+        }
+      });
+      // 모바일에선 활성 카드가 화면 중앙에 오도록 스크롤
+      if (mq.matches) {
+        try { cards[current].scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' }); }
+        catch(_) { scroller.scrollLeft = cards[current].offsetLeft - (scroller.clientWidth - cards[current].clientWidth)/2; }
+      }
+      if (!paused && inView && !document.hidden) {
+        advanceT = setTimeout(function(){ activate(current + 1); }, durMs(current));
+      }
+    }
     function pauseFor(ms){
       paused = true;
-      if (pauseT) clearTimeout(pauseT);
-      pauseT = setTimeout(function(){ paused = false; }, ms||5000);
-    }
-    function step(){
-      if (!isMobile() || paused) return;
-      if (document.hidden) return;
-      var max = scroller.scrollWidth - scroller.clientWidth - 2;
-      var card = scroller.querySelector('.psy3-card');
-      var w = card ? card.getBoundingClientRect().width + 12 : scroller.clientWidth * 0.8;
-      var next = scroller.scrollLeft + w;
-      if (next >= max) next = 0;
-      scroller.scrollTo({ left: next, behavior: 'smooth' });
-    }
-    function start(){
-      if (intv) clearInterval(intv);
-      intv = setInterval(step, 4000); // 4초 간격으로 천천히
+      clearAdvance();
+      if (resumeT) clearTimeout(resumeT);
+      resumeT = setTimeout(function(){ paused = false; if (inView) activate(current); }, ms || 6000);
     }
     scroller.addEventListener('touchstart', function(){ pauseFor(7000); }, {passive:true});
     scroller.addEventListener('pointerdown', function(){ pauseFor(7000); });
-    scroller.addEventListener('mouseenter', function(){ pauseFor(8000); });
-    // 화면에 보일 때만 자동 슬라이드
+    scroller.addEventListener('mouseenter', function(){ pauseFor(9000); });
+    document.addEventListener('visibilitychange', function(){
+      if (document.hidden) clearAdvance();
+      else if (inView && !paused) activate(current);
+    });
     if ('IntersectionObserver' in window) {
       var io = new IntersectionObserver(function(entries){
         entries.forEach(function(e){
-          if (e.isIntersecting) { paused = false; start(); }
-          else if (intv) { clearInterval(intv); intv = null; }
+          inView = e.isIntersecting;
+          if (inView && !paused) activate(current);
+          else clearAdvance();
         });
-      }, { threshold: 0.25 });
+      }, { threshold: 0.3 });
       io.observe(scroller);
-    } else { start(); }
+    } else {
+      inView = true; activate(0);
+    }
   })();
   </script>
 </section>`;
 
   const SEED_SERVICE_HTML = `<style>
-.psv2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
-.psv2 { background:#fff; padding:80px 18px; }
-.psv2-inner { max-width:1200px; margin:0 auto; }
-.psv2-head { text-align:center; margin-bottom:36px; }
-.psv2-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:10px; }
-.psv2-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
-.psv2-head p { font-size:14px; color:#6B7280; }
-.psv2-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:18px; }
-.psv2-card { padding:36px 30px; border-radius:24px; cursor:pointer; transition:all .3s; text-decoration:none; color:inherit; display:flex; flex-direction:column; gap:18px; position:relative; overflow:hidden; min-height:320px; background:#fff; border:1px solid #F3F4F6; }
-.psv2-card::before { content:''; position:absolute; top:-30px; right:-30px; width:160px; height:160px; border-radius:50%; opacity:.12; transition:transform .35s; }
-.psv2-card:hover { transform:translateY(-6px); box-shadow:0 24px 56px rgba(15,31,92,.14); border-color:transparent; }
-.psv2-card:hover::before { transform:scale(1.4); }
-.psv2-card .icon-wrap { width:64px; height:64px; border-radius:18px; display:grid; place-items:center; position:relative; z-index:1; }
-.psv2-card .icon-wrap svg { width:30px; height:30px; fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
-.psv2-card .label { display:inline-block; padding:5px 11px; border-radius:999px; font-size:10.5px; font-weight:800; letter-spacing:.5px; align-self:flex-start; position:relative; z-index:1; }
-.psv2-card h3 { font-size:19px; font-weight:900; color:#0F1F5C; line-height:1.4; letter-spacing:-.4px; position:relative; z-index:1; }
-.psv2-card p { font-size:13px; color:#6B7280; line-height:1.7; position:relative; z-index:1; flex:1; }
-.psv2-card .arr { display:inline-flex; align-items:center; justify-content:space-between; padding:14px 18px; border-radius:14px; font-size:13px; font-weight:800; position:relative; z-index:1; transition:all .25s; }
-.psv2-card.shop::before { background:#F97316; }
-.psv2-card.shop .icon-wrap { background:linear-gradient(135deg,#FED7AA,#FB923C); }
-.psv2-card.shop .icon-wrap svg { stroke:#7C2D12; }
-.psv2-card.shop .label { background:#FFEDD5; color:#7C2D12; }
-.psv2-card.shop .arr { background:#FFEDD5; color:#7C2D12; }
-.psv2-card.shop:hover .arr { background:#F97316; color:#fff; }
-.psv2-card.partner::before { background:#0F1F5C; }
-.psv2-card.partner .icon-wrap { background:linear-gradient(135deg,#BFDBFE,#60A5FA); }
-.psv2-card.partner .icon-wrap svg { stroke:#1E3A8A; }
-.psv2-card.partner .label { background:#DBEAFE; color:#1E3A8A; }
-.psv2-card.partner .arr { background:#DBEAFE; color:#1E3A8A; }
-.psv2-card.partner:hover .arr { background:#0F1F5C; color:#fff; }
-.psv2-card.show::before { background:#10B981; }
-.psv2-card.show .icon-wrap { background:linear-gradient(135deg,#A7F3D0,#34D399); }
-.psv2-card.show .icon-wrap svg { stroke:#064E3B; }
-.psv2-card.show .label { background:#D1FAE5; color:#064E3B; }
-.psv2-card.show .arr { background:#D1FAE5; color:#064E3B; }
-.psv2-card.show:hover .arr { background:#10B981; color:#fff; }
-.psv2-card .arr::after { content:'→'; transition:transform .25s; }
-.psv2-card:hover .arr::after { transform:translateX(4px); }
+.psv2 *, .psv2 *::before, .psv2 *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.psv2 { background:#fff; padding:72px 18px; color:#2F3438; letter-spacing:-0.02em; }
+.psv2-inner { max-width:1100px; margin:0 auto; }
+.psv2-head { text-align:center; margin-bottom:28px; }
+.psv2-head .kicker { display:inline-block; font-size:12px; font-weight:800; color:#E8780F; letter-spacing:0.06em; padding:4px 12px; background:#FFF7ED; border:1px solid #FED7AA; border-radius:999px; margin-bottom:12px; }
+.psv2-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-0.045em; line-height:1.25; margin-bottom:8px; }
+.psv2-head p { font-size:14px; font-weight:500; color:#6B7280; }
+/* 탭 */
+.psv2-tabs { display:flex; gap:6px; padding:6px; background:#F5F6F8; border-radius:14px; margin-bottom:20px; }
+.psv2-tab { flex:1; padding:12px 14px; font-size:14px; font-weight:700; color:#6B7280; background:transparent; border:none; border-radius:10px; cursor:pointer; transition:.18s; letter-spacing:-0.03em; display:inline-flex; align-items:center; justify-content:center; gap:6px; white-space:nowrap; }
+.psv2-tab:hover { color:#111827; }
+.psv2-tab.active { background:#fff; color:#0F1F5C; box-shadow:0 2px 8px rgba(15,31,92,.10), 0 1px 2px rgba(15,31,92,.06); font-weight:800; }
+.psv2-tab .em { font-size:16px; }
+/* 패널 */
+.psv2-panels { position:relative; }
+.psv2-panel { display:none; padding:42px 38px; border-radius:24px; background:#fff; border:1px solid #F3F4F6; position:relative; overflow:hidden; box-shadow:0 8px 28px rgba(15,31,92,.06); flex-direction:column; gap:18px; }
+.psv2-panel.active { display:flex; animation:psv2In .35s cubic-bezier(.16,1,.3,1); }
+@keyframes psv2In { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+.psv2-panel::before { content:''; position:absolute; top:-50px; right:-50px; width:240px; height:240px; border-radius:50%; opacity:.12; pointer-events:none; }
+.psv2-panel::after { content:''; position:absolute; bottom:-80px; left:-60px; width:180px; height:180px; border-radius:50%; opacity:.08; pointer-events:none; }
+.psv2-panel > * { position:relative; z-index:1; }
+.psv2-panel .icon-wrap { width:64px; height:64px; border-radius:18px; display:grid; place-items:center; }
+.psv2-panel .icon-wrap svg { width:30px; height:30px; fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+.psv2-panel .label { display:inline-block; padding:5px 12px; border-radius:999px; font-size:11px; font-weight:800; letter-spacing:0.06em; align-self:flex-start; }
+.psv2-panel h3 { font-size:22px; font-weight:900; color:#0F1F5C; line-height:1.4; letter-spacing:-0.045em; }
+.psv2-panel p { font-size:14px; font-weight:500; color:#6B7280; line-height:1.7; }
+.psv2-panel .sub-chips { display:flex; gap:6px; flex-wrap:wrap; }
+.psv2-panel .sub-chip { font-size:12px; font-weight:700; padding:5px 11px; border-radius:999px; letter-spacing:-0.02em; }
+.psv2-panel .arr { display:inline-flex; align-items:center; justify-content:space-between; padding:14px 20px; border-radius:14px; font-size:13.5px; font-weight:800; text-decoration:none; transition:all .25s; letter-spacing:-0.02em; align-self:flex-start; min-width:280px; }
+.psv2-panel .arr::after { content:'→'; transition:transform .25s; }
+.psv2-panel .arr:hover::after { transform:translateX(4px); }
+/* 패널 컬러 — 공급 제휴 (오렌지) */
+.psv2-panel.shop::before { background:#F97316; }
+.psv2-panel.shop::after { background:#FED7AA; }
+.psv2-panel.shop .icon-wrap { background:linear-gradient(135deg,#FED7AA,#FB923C); }
+.psv2-panel.shop .icon-wrap svg { stroke:#7C2D12; }
+.psv2-panel.shop .label { background:#FFEDD5; color:#7C2D12; }
+.psv2-panel.shop .sub-chip { background:#FFEDD5; color:#7C2D12; border:1px solid #FED7AA; }
+.psv2-panel.shop .arr { background:#FFEDD5; color:#7C2D12; }
+.psv2-panel.shop .arr:hover { background:#F97316; color:#fff; }
+.psv2-tab[data-tab="supply"].active { color:#7C2D12; }
+/* 패널 컬러 — 파트너사 (네이비) */
+.psv2-panel.partner::before { background:#0F1F5C; }
+.psv2-panel.partner::after { background:#BFDBFE; }
+.psv2-panel.partner .icon-wrap { background:linear-gradient(135deg,#BFDBFE,#60A5FA); }
+.psv2-panel.partner .icon-wrap svg { stroke:#1E3A8A; }
+.psv2-panel.partner .label { background:#DBEAFE; color:#1E3A8A; }
+.psv2-panel.partner .arr { background:#DBEAFE; color:#1E3A8A; }
+.psv2-panel.partner .arr:hover { background:#0F1F5C; color:#fff; }
+.psv2-tab[data-tab="partner"].active { color:#1E3A8A; }
+/* 패널 컬러 — 전시장 (그린) */
+.psv2-panel.show::before { background:#10B981; }
+.psv2-panel.show::after { background:#A7F3D0; }
+.psv2-panel.show .icon-wrap { background:linear-gradient(135deg,#A7F3D0,#34D399); }
+.psv2-panel.show .icon-wrap svg { stroke:#064E3B; }
+.psv2-panel.show .label { background:#D1FAE5; color:#064E3B; }
+.psv2-panel.show .arr { background:#D1FAE5; color:#064E3B; }
+.psv2-panel.show .arr:hover { background:#10B981; color:#fff; }
+.psv2-tab[data-tab="show"].active { color:#064E3B; }
+/* 모바일 */
 @media (max-width:700px) {
-  .psv2 { padding:56px 0 64px; }
-  .psv2-inner { max-width:none; }
-  .psv2-head { padding:0 18px; margin-bottom:24px; }
+  .psv2 { padding:56px 14px; }
   .psv2-head h2 { font-size:24px; }
-  .psv2-grid { display:flex; grid-template-columns:none; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; -ms-overflow-style:none; gap:12px; padding:0 18px 8px; -webkit-overflow-scrolling:touch; }
-  .psv2-grid::-webkit-scrollbar { display:none; }
-  .psv2-card { flex:0 0 82%; max-width:340px; scroll-snap-align:center; min-height:auto; padding:26px 22px; }
+  .psv2-head p { font-size:13px; }
+  .psv2-tabs { gap:4px; padding:4px; overflow-x:auto; scrollbar-width:none; }
+  .psv2-tabs::-webkit-scrollbar { display:none; }
+  .psv2-tab { padding:10px 12px; font-size:12.5px; flex:1 0 auto; min-width:0; }
+  .psv2-tab .em { font-size:14px; }
+  .psv2-panel { padding:28px 22px; gap:14px; border-radius:18px; }
+  .psv2-panel h3 { font-size:18px; }
+  .psv2-panel p { font-size:13px; }
+  .psv2-panel .icon-wrap { width:54px; height:54px; border-radius:14px; }
+  .psv2-panel .icon-wrap svg { width:24px; height:24px; }
+  .psv2-panel .sub-chip { font-size:11px; padding:4px 9px; }
+  .psv2-panel .arr { width:100%; min-width:0; justify-content:space-between; padding:13px 16px; font-size:13px; }
 }
-@media (max-width:640px) { .psv2-head h2 { font-size:22px; } }
 </style>
 <section class="psv2">
   <div class="psv2-inner">
     <div class="psv2-head">
       <div class="kicker">SERVICE</div>
       <h2>POUR스토어 서비스 안내</h2>
-      <p>대리점·파트너사·전시장 — 어떤 채널로 만나실래요?</p>
+      <p>공급 제휴·파트너사·전시장 — 어떤 채널로 만나실래요?</p>
     </div>
-    <div class="psv2-grid">
-      <a class="psv2-card shop" href="https://www.pourstore.net/dealers">
+    <div class="psv2-tabs" role="tablist">
+      <button class="psv2-tab active" data-psv2-tab="supply" type="button"><span class="em">📦</span> 공급 제휴</button>
+      <button class="psv2-tab" data-psv2-tab="partner" type="button"><span class="em">👥</span> 파트너사</button>
+      <button class="psv2-tab" data-psv2-tab="show" type="button"><span class="em">🏬</span> 전시장·쇼룸</button>
+    </div>
+    <div class="psv2-panels">
+      <div class="psv2-panel shop active" data-psv2-panel="supply">
         <div class="icon-wrap"><svg viewBox="0 0 24 24"><path d="M3 9V21h18V9"/><path d="M2 6h20l-2 3H4Z"/><path d="M16 14h-8"/></svg></div>
-        <span class="label">대리점</span>
-        <h3>건축물 유지보수, 직접 보고 만지고 채택해 선택하세요</h3>
-        <p>잘못된 시공·불안한 자재 걱정 없이 — 가까운 대리점에서 실물 체험.</p>
-        <span class="arr">대리점 신청 / 위치 보기</span>
-      </a>
-      <a class="psv2-card partner" href="https://www.pourstore.net/partners">
+        <span class="label">공급 제휴</span>
+        <h3>대리점·인플루언서·유튜버 — 다양한 채널로 함께</h3>
+        <p>POUR스토어의 자재·기술을 다양한 방식으로 전달할 제휴 파트너를 모집합니다. 대리점부터 콘텐츠 크리에이터까지, 채널에 맞는 협업 구조를 제안드려요.</p>
+        <div class="sub-chips">
+          <span class="sub-chip">🏬 대리점</span>
+          <span class="sub-chip">🎬 인플루언서·유튜버 협업</span>
+          <span class="sub-chip">✍ 블로거</span>
+          <span class="sub-chip">＋ 기타 제휴 (커뮤니티·미디어)</span>
+        </div>
+        <a class="arr" href="https://www.pourstore.net/supply">공급 제휴 신청 / 자세히 보기</a>
+      </div>
+      <div class="psv2-panel partner" data-psv2-panel="partner">
         <div class="icon-wrap"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
         <span class="label">파트너사</span>
         <h3>POUR스토어와 함께 유지보수 업계를 이끌 파트너 모집</h3>
-        <p>전국 250+ 시공 파트너사와 함께 성장 — 안정적 발주 + 기술 교육 지원.</p>
-        <span class="arr">파트너 신청</span>
-      </a>
-      <a class="psv2-card show" href="https://www.pourstore.net/showroom">
+        <p>전국 250+ 시공 파트너사와 함께 성장합니다. 안정적인 발주 + 기술 교육 + 마케팅 지원으로 지역 1등 시공 파트너를 만듭니다.</p>
+        <div class="sub-chips">
+          <span class="sub-chip" style="background:#DBEAFE; color:#1E3A8A; border:1px solid #BFDBFE;">전국 250+</span>
+          <span class="sub-chip" style="background:#DBEAFE; color:#1E3A8A; border:1px solid #BFDBFE;">기술 교육</span>
+          <span class="sub-chip" style="background:#DBEAFE; color:#1E3A8A; border:1px solid #BFDBFE;">마케팅 지원</span>
+        </div>
+        <a class="arr" href="https://www.pourstore.net/partners">파트너 신청</a>
+      </div>
+      <div class="psv2-panel show" data-psv2-panel="show">
         <div class="icon-wrap"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18"/><path d="M9 21V9"/></svg></div>
         <span class="label">전시장 · 쇼룸</span>
         <h3>모든 자재를 직접 체험할 수 있는 전국 쇼룸</h3>
-        <p>제품 실물·시공 결과물·교육 콘텐츠까지 한 공간에서.</p>
-        <span class="arr">쇼룸 방문 예약</span>
-      </a>
+        <p>제품 실물·시공 결과물·교육 콘텐츠까지 한 공간에서 만나보세요. 방문 예약하시면 전문가가 직접 안내해드립니다.</p>
+        <div class="sub-chips">
+          <span class="sub-chip" style="background:#D1FAE5; color:#064E3B; border:1px solid #A7F3D0;">실물 체험</span>
+          <span class="sub-chip" style="background:#D1FAE5; color:#064E3B; border:1px solid #A7F3D0;">시공 사례</span>
+          <span class="sub-chip" style="background:#D1FAE5; color:#064E3B; border:1px solid #A7F3D0;">교육 프로그램</span>
+        </div>
+        <a class="arr" href="https://www.pourstore.net/showroom">쇼룸 방문 예약</a>
+      </div>
     </div>
   </div>
+  <script>
+  (function(){
+    var root = document.currentScript && document.currentScript.parentElement;
+    if (!root) return;
+    var tabs = root.querySelectorAll('[data-psv2-tab]');
+    var panels = root.querySelectorAll('[data-psv2-panel]');
+    tabs.forEach(function(t){
+      t.addEventListener('click', function(){
+        var k = t.getAttribute('data-psv2-tab');
+        tabs.forEach(function(x){ x.classList.toggle('active', x === t); });
+        panels.forEach(function(p){ p.classList.toggle('active', p.getAttribute('data-psv2-panel') === k); });
+      });
+    });
+  })();
+  </script>
 </section>`;
 
   const SEED_POSTING_HTML = `<style>
@@ -6589,6 +6686,29 @@ show('entry');
         swap('class="psv2"', SEED_SERVICE_HTML, '서비스 안내 섹션 — 모바일에서 세로 적층 → 가로 스크롤 카드 (82% 너비, 다음 카드 살짝 보임)');
       }
       s.migrations.mobileSliderV1 = true;
+    }
+    // 1회성 마이그레이션 v2 — 서비스 섹션 탭+디테일 UI로 변경, 숏폼 자동재생→슬라이드 동기화
+    if (!s.migrations.mobileSliderV2) {
+      const mainPage8 = s.pages.find(p => p.id === 'main');
+      if (mainPage8 && Array.isArray(mainPage8.sections)) {
+        const now8 = new Date().toISOString();
+        const swap8 = (matchClass, html, reason) => {
+          const idx = mainPage8.sections.findIndex(sec => (sec.html || '').indexOf(matchClass) !== -1);
+          if (idx === -1) return;
+          const sec = mainPage8.sections[idx];
+          const key = mainPage8.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason, kind: 'auto-migration', savedAt: now8,
+          });
+          sec.html = html;
+          sec.statusAt = now8;
+        };
+        swap8('class="psv2"', SEED_SERVICE_HTML, '서비스 안내 — 가로 슬라이드 카드 → 탭+디테일 UI (공급 제휴 안에 대리점·인플루언서·유튜버·블로거 하위 채널 칩 포함)');
+        swap8('class="psy3"', SEED_YOUTUBE_HTML, '숏폼 — 시간 기반 슬라이드 → 카드별 5초 자동재생(흰 프로그레스 바·오렌지 외곽선·빨간 플레이 강조) 후 다음 카드로 자동 슬라이드');
+      }
+      s.migrations.mobileSliderV2 = true;
     }
     return s;
   }

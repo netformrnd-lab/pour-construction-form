@@ -1116,6 +1116,65 @@ show('entry');
 </a>
 </section>`;
 
+  // POUR주치의 — 플로팅 진단 FAB (전체 시안 우하단에 항상 떠있는 퀵 진입 버튼)
+  const POUR_DR_FAB_HTML = `<section class="pdfab" aria-label="POUR주치의 빠른 진단">
+<style>
+.pdfab *, .pdfab *::before, .pdfab *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.pdfab { all:unset; }
+.pdfab-wrap { position:fixed; right:24px; bottom:24px; z-index:9999; display:flex; flex-direction:column; align-items:flex-end; gap:10px; pointer-events:none; }
+.pdfab-wrap > * { pointer-events:auto; }
+/* 작은 툴팁 (펄스 신호) */
+.pdfab-tip { background:#fff; border:1px solid #F2F3F5; border-radius:14px; padding:12px 16px; box-shadow:0 8px 28px rgba(15,31,92,.18); display:flex; align-items:center; gap:10px; opacity:0; transform:translateY(8px); animation:pdfabSlide .4s ease .8s forwards; max-width:280px; }
+@keyframes pdfabSlide { to { opacity:1; transform:translateY(0); } }
+.pdfab-tip-close { width:22px; height:22px; border-radius:50%; background:#F3F4F6; color:#6B7280; border:none; cursor:pointer; font-size:13px; display:grid; place-items:center; flex-shrink:0; transition:.15s; }
+.pdfab-tip-close:hover { background:#E5E7EB; color:#111; }
+.pdfab-tip-text { font-size:13px; font-weight:600; color:#2F3438; letter-spacing:-0.03em; line-height:1.4; }
+.pdfab-tip-text b { color:#E8780F; font-weight:800; }
+.pdfab-tip.hidden { display:none; }
+/* 메인 버튼 */
+.pdfab-btn { display:inline-flex; align-items:center; gap:10px; padding:14px 22px 14px 14px; background:linear-gradient(135deg,#F49A3A 0%,#E8780F 100%); color:#fff; border-radius:999px; text-decoration:none; box-shadow:0 12px 32px rgba(232,120,15,.4), 0 4px 12px rgba(15,31,92,.12); border:none; cursor:pointer; font-size:14.5px; font-weight:800; letter-spacing:-0.03em; transition:.18s; position:relative; }
+.pdfab-btn:hover { transform:translateY(-3px); box-shadow:0 18px 40px rgba(232,120,15,.5), 0 6px 16px rgba(15,31,92,.18); }
+.pdfab-btn:active { transform:translateY(-1px); }
+.pdfab-ico { width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,.22); display:grid; place-items:center; backdrop-filter:blur(4px); }
+.pdfab-ico svg { width:22px; height:22px; color:#fff; }
+.pdfab-text-wrap { display:flex; flex-direction:column; gap:1px; align-items:flex-start; line-height:1.2; padding-right:4px; }
+.pdfab-text-top { font-size:10.5px; font-weight:700; color:rgba(255,255,255,.85); letter-spacing:0.04em; text-transform:uppercase; }
+.pdfab-text-bot { font-size:14px; font-weight:800; letter-spacing:-0.03em; }
+/* 펄스 링 */
+.pdfab-ring { position:absolute; inset:-6px; border-radius:999px; border:2px solid rgba(232,120,15,.6); animation:pdfabRing 2.2s ease-out infinite; pointer-events:none; }
+@keyframes pdfabRing { 0% { opacity:.8; transform:scale(.95); } 100% { opacity:0; transform:scale(1.18); } }
+.pdfab-live { position:absolute; top:-2px; right:-2px; width:14px; height:14px; border-radius:50%; background:#10B981; border:3px solid #fff; box-shadow:0 0 0 0 rgba(16,185,129,.6); animation:pdfabLivePulse 1.6s ease-in-out infinite; }
+@keyframes pdfabLivePulse { 0% { box-shadow:0 0 0 0 rgba(16,185,129,.6); } 70% { box-shadow:0 0 0 8px rgba(16,185,129,0); } 100% { box-shadow:0 0 0 0 rgba(16,185,129,0); } }
+@media (max-width:700px) {
+  .pdfab-wrap { right:16px; bottom:16px; gap:8px; }
+  .pdfab-tip { padding:10px 14px; max-width:240px; }
+  .pdfab-tip-text { font-size:12px; }
+  .pdfab-btn { padding:12px 18px 12px 12px; font-size:13.5px; }
+  .pdfab-ico { width:34px; height:34px; }
+  .pdfab-ico svg { width:20px; height:20px; }
+  .pdfab-text-top { font-size:9.5px; }
+  .pdfab-text-bot { font-size:13px; }
+}
+</style>
+<div class="pdfab-wrap">
+  <div class="pdfab-tip" id="pdfabTip">
+    <span class="pdfab-tip-text">증상만 알려주세요 — <b>3분 안에</b> 처방서 받아보세요 🩺</span>
+    <button class="pdfab-tip-close" type="button" aria-label="알림 닫기" onclick="this.parentElement.classList.add('hidden')">✕</button>
+  </div>
+  <a class="pdfab-btn" href="./pour-doctor.html" aria-label="POUR주치의 무료 진단">
+    <span class="pdfab-ring"></span>
+    <span class="pdfab-ico">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5v6a4 4 0 0 0 8 0V5"/><path d="M6 5h-2"/><path d="M10 5h2"/><path d="M12 15v2a4 4 0 0 0 8 0v-2"/><circle cx="20" cy="11" r="2"/></svg>
+    </span>
+    <span class="pdfab-text-wrap">
+      <span class="pdfab-text-top">POUR DOCTOR</span>
+      <span class="pdfab-text-bot">무료 진단</span>
+    </span>
+    <span class="pdfab-live" aria-hidden="true"></span>
+  </a>
+</div>
+</section>`;
+
   // POUR주치의 페이지 — 히어로
   const POUR_DR_HERO_HTML = `<section class="pdh">
 <style>
@@ -6273,6 +6332,22 @@ show('entry');
       overwrite2(doctorPage2, 0, POUR_DR_HERO_HTML, null, '다크 네이비 + 라이브 진단 보드 + 5개 신뢰 수치 (의료·전문 톤, 관리/케어 워딩 제거)', 'POUR주치의 히어로 — "처방·시공·관리까지" → "처방서+시공 매칭까지", 케어 단지 → 진단한 단지');
       overwrite2(doctorPage2, 1, POUR_DR_PROCESS_HTML, '3단계 시공 프로세스', '진단→처방→시공 매칭(선택) + 일반 쇼핑몰 비교표', 'POUR주치의 프로세스 — 4단계(관리 포함)에서 3단계로 축소, 시공 단계를 셀프/매칭 선택으로 표기, 비교표 "시공 후 케어" 행 제거');
       s.migrations.plainWordingV2 = true;
+    }
+    // 1회성 마이그레이션 — POUR주치의 플로팅 FAB을 메인 페이지에 추가 (전체 시안 우하단 고정 버튼)
+    if (!s.migrations.pourDoctorFabV1) {
+      const mainPage3 = s.pages.find(p => p.id === 'main');
+      if (mainPage3 && Array.isArray(mainPage3.sections)) {
+        const already = mainPage3.sections.some(sec => (sec.html || '').indexOf('class="pdfab"') !== -1);
+        if (!already) {
+          mainPage3.sections.push(mkSec(
+            'POUR주치의 플로팅 FAB (우하단 고정)',
+            POUR_DR_FAB_HTML,
+            '전체 시안 우하단에 항상 떠있는 진단 진입 버튼 — 펄스 링 + 라이브 도트 + 3초 후 툴팁 노출',
+            'wip'
+          ));
+        }
+      }
+      s.migrations.pourDoctorFabV1 = true;
     }
     return s;
   }

@@ -626,7 +626,21 @@ show('entry');
 .psm1-search input { width:100%; padding:11px 16px 11px 44px; font-size:14px; font-weight:400; letter-spacing:-0.02em; background:#F5F6F8; border:1px solid #F5F6F8; border-radius:24px; outline:none; transition:.15s; color:#2F3438; }
 .psm1-search input::placeholder { color:#9E9E9E; font-weight:400; }
 .psm1-search input:focus { background:#fff; border-color:#E8780F; }
-.psm1-search .psm1-search-ico { position:absolute; left:16px; top:50%; transform:translateY(-50%); width:18px; height:18px; opacity:.55; }
+.psm1-search .psm1-search-ico { position:absolute; left:16px; top:50%; transform:translateY(-50%); width:18px; height:18px; opacity:.55; pointer-events:none; }
+/* POUR주치의 헬퍼 (검색 포커스 시 펼침) */
+.psm1-helper { position:absolute; top:calc(100% + 10px); left:0; right:0; background:#fff; border:1px solid #F2F3F5; border-radius:18px; box-shadow:0 16px 48px rgba(15,31,92,.14), 0 4px 12px rgba(15,31,92,.08); padding:18px; display:flex; gap:14px; opacity:0; pointer-events:none; transform:translateY(-6px); transition:all .22s cubic-bezier(.16,1,.3,1); z-index:50; }
+.psm1-helper.open { opacity:1; pointer-events:auto; transform:translateY(0); }
+.psm1-helper::before { content:''; position:absolute; top:-7px; left:32px; width:14px; height:14px; background:#fff; border-left:1px solid #F2F3F5; border-top:1px solid #F2F3F5; transform:rotate(45deg); }
+.psm1-helper-char { flex-shrink:0; width:96px; height:104px; border-radius:14px; overflow:hidden; background:#F0F4FF; align-self:flex-end; }
+.psm1-helper-char svg, .psm1-helper-char img { width:100%; height:100%; object-fit:cover; display:block; }
+.psm1-helper-bubble { flex:1; min-width:0; display:flex; flex-direction:column; gap:10px; }
+.psm1-helper-msg { font-size:14px; font-weight:600; color:#2F3438; line-height:1.5; letter-spacing:-0.03em; }
+.psm1-helper-msg b { color:#E8780F; font-weight:800; }
+.psm1-helper-chips { display:flex; flex-wrap:wrap; gap:6px; }
+.psm1-helper-chip { padding:7px 12px; font-size:12.5px; font-weight:600; color:#374151; background:#F5F6F8; border:1px solid #F5F6F8; border-radius:999px; cursor:pointer; transition:.15s; letter-spacing:-0.02em; font-family:inherit; }
+.psm1-helper-chip:hover { background:#FFF7ED; border-color:#FED7AA; color:#E8780F; }
+.psm1-helper-more { display:inline-block; margin-top:2px; font-size:12.5px; font-weight:700; color:#0F1F5C; letter-spacing:-0.02em; text-decoration:none; }
+.psm1-helper-more:hover { color:#E8780F; }
 .psm1-util { display:flex; align-items:center; gap:18px; margin-left:auto; }
 .psm1-util a { font-size:13px; font-weight:500; color:#757575; letter-spacing:-0.02em; }
 .psm1-util a:hover { color:#2F3438; }
@@ -698,6 +712,11 @@ show('entry');
   .psm1-hd-mb .psm1-mb-menu, .psm1-hd-mb .psm1-mb-search, .psm1-hd-mb .psm1-mb-cart { width:40px; height:40px; display:grid; place-items:center; font-size:22px; color:#374151; }
   .psm1-hd-mb .psm1-mb-logo { display:flex; align-items:center; justify-content:center; gap:7px; font-weight:800; font-size:19px; color:#0F1F5C; letter-spacing:-0.04em; }
   .psm1-hd-mb .psm1-mb-logo .psm1-logo-mark { width:26px; height:26px; font-size:12px; font-weight:800; letter-spacing:-0.04em; }
+  /* 모바일: 헬퍼는 화면 좌우 가득, 캐릭터 작게 */
+  .psm1-helper { left:14px; right:14px; padding:14px; gap:10px; border-radius:14px; }
+  .psm1-helper-char { width:72px; height:80px; border-radius:12px; }
+  .psm1-helper-msg { font-size:13px; }
+  .psm1-helper-chip { padding:6px 10px; font-size:12px; }
   .psm1-tabs-inner { padding:0 14px; }
   .psm1-tab { font-size:14px; padding:14px 10px; }
   .psm1-tabs-tail { display:none; }
@@ -728,9 +747,60 @@ show('entry');
       <a href="#">패키지</a>
       <a href="#">시공가이드</a>
     </nav>
-    <div class="psm1-search">
+    <div class="psm1-search" data-psm1-search>
       <svg class="psm1-search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input type="text" placeholder="자재·공법·증상으로 검색하세요 (예: 옥상누수)" aria-label="통합검색"/>
+      <input type="text" placeholder="어떤 어려움이 있으세요? (예: 옥상 누수, 외벽 균열)" aria-label="통합검색"/>
+      <!-- 검색 포커스 시 펼쳐지는 POUR주치의 헬퍼 (캐릭터 + 말풍선 + 추천 칩) -->
+      <div class="psm1-helper" data-psm1-helper>
+        <div class="psm1-helper-char">
+          <!-- ⓘ 실제 3D 캐릭터 이미지가 준비되면 아래 SVG 전체를 <img src="캐릭터.png" alt="POUR주치의"/> 로 교체 -->
+          <svg viewBox="0 0 120 130" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+              <linearGradient id="psm1charBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F0F4FF"/><stop offset="1" stop-color="#DCEBFF"/></linearGradient>
+              <linearGradient id="psm1charSuit" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3A4D6B"/><stop offset="1" stop-color="#1E2D47"/></linearGradient>
+            </defs>
+            <rect width="120" height="130" rx="14" fill="url(#psm1charBg)"/>
+            <!-- 회사 로고 자리 (상단 좌측) -->
+            <g transform="translate(8,8)" opacity=".55">
+              <path d="M0 12 L4 8 L8 12 L8 4 L12 0 L16 4 L16 12" stroke="#0F1F5C" stroke-width="1.6" fill="none" stroke-linejoin="round"/>
+              <text x="18" y="11" font-size="5" font-weight="800" fill="#0F1F5C" font-family="Pretendard">POUR</text>
+            </g>
+            <!-- 머리 -->
+            <ellipse cx="60" cy="44" rx="14" ry="16" fill="#F2C9A6"/>
+            <!-- 헤어 -->
+            <path d="M46 38 Q48 28 60 26 Q72 28 74 38 L72 36 Q70 30 60 30 Q50 30 48 36 Z" fill="#2C2422"/>
+            <!-- 눈 -->
+            <ellipse cx="55" cy="44" rx="1.3" ry="2" fill="#2C2422"/>
+            <ellipse cx="65" cy="44" rx="1.3" ry="2" fill="#2C2422"/>
+            <!-- 입(미소) -->
+            <path d="M56 51 Q60 54 64 51" stroke="#7C4A2A" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+            <!-- 셔츠 카라 (흰색 V) -->
+            <path d="M50 64 L60 78 L70 64 L70 70 L60 82 L50 70 Z" fill="#FFFFFF"/>
+            <!-- 정장 어깨/몸 -->
+            <path d="M30 70 Q30 64 42 62 L50 64 L60 78 L70 64 L78 62 Q90 64 90 70 L90 130 L30 130 Z" fill="url(#psm1charSuit)"/>
+            <!-- 정장 라펠 -->
+            <path d="M44 68 L60 82 L50 90 Z" fill="#2A3954"/>
+            <path d="M76 68 L60 82 L70 90 Z" fill="#2A3954"/>
+            <!-- 손가락 들기 (왼팔) -->
+            <path d="M30 72 Q22 64 18 50 L18 36 Q18 32 22 32 Q26 32 26 36 L26 50 L34 64" fill="url(#psm1charSuit)" stroke="#1E2D47" stroke-width=".5"/>
+            <!-- 검지손가락 끝 (포인팅) -->
+            <ellipse cx="22" cy="30" rx="3" ry="4" fill="#F2C9A6"/>
+            <circle cx="22" cy="26" r="1.2" fill="#F2C9A6"/>
+          </svg>
+        </div>
+        <div class="psm1-helper-bubble">
+          <div class="psm1-helper-msg">어떤 <b>어려움</b>이 있으세요?<br/>편하게 말씀해 주세요. <b>사진</b>으로도 가능해요!</div>
+          <div class="psm1-helper-chips">
+            <button type="button" class="psm1-helper-chip">💧 옥상 누수</button>
+            <button type="button" class="psm1-helper-chip">⚡ 외벽 균열</button>
+            <button type="button" class="psm1-helper-chip">🦠 곰팡이·결로</button>
+            <button type="button" class="psm1-helper-chip">🧱 박락·박리</button>
+            <button type="button" class="psm1-helper-chip">🟫 녹·부식</button>
+            <button type="button" class="psm1-helper-chip">🎨 도장 열화</button>
+          </div>
+          <a class="psm1-helper-more" href="./pour-doctor.html">또는 사진으로 진단받기 →</a>
+        </div>
+      </div>
     </div>
     <div class="psm1-util">
       <a href="#" aria-label="장바구니"><svg class="psm1-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.5"/><circle cx="19" cy="21" r="1.5"/><path d="M3 4h2l2.5 12h12l2-8H6"/></svg></a>
@@ -819,6 +889,35 @@ show('entry');
     <a href="#" class="psm1-cat"><span class="psm1-cat-ico c10">📡</span><span class="psm1-cat-name">견적신청</span></a>
   </div>
 </nav>
+<script>
+(function(){
+  var root = document.currentScript && document.currentScript.parentElement;
+  if (!root) return;
+  // 검색 포커스 시 POUR주치의 헬퍼 펼침 (B 옵션)
+  root.querySelectorAll('[data-psm1-search]').forEach(function(box){
+    var input = box.querySelector('input');
+    var helper = box.querySelector('[data-psm1-helper]');
+    if (!input || !helper) return;
+    var blurTimer = null;
+    input.addEventListener('focus', function(){
+      if (blurTimer) { clearTimeout(blurTimer); blurTimer = null; }
+      helper.classList.add('open');
+    });
+    input.addEventListener('blur', function(){
+      // 칩 클릭 시점에 blur가 먼저 떠서 닫힘 → 짧은 지연
+      blurTimer = setTimeout(function(){ helper.classList.remove('open'); }, 180);
+    });
+    helper.addEventListener('mousedown', function(e){ e.preventDefault(); }); // blur 방지
+    helper.querySelectorAll('.psm1-helper-chip').forEach(function(chip){
+      chip.addEventListener('click', function(){
+        var txt = chip.textContent.replace(/^[^\\s]+\\s/, '').trim(); // 이모지 제거
+        input.value = txt;
+        input.focus();
+      });
+    });
+  });
+})();
+</script>
 </section>`;
 
   // 메인 2번 섹션 — 오늘의집 "이런 사진 찾고 있나요?" 스타일 (가로 스크롤 카드 + 필터칩, 1:1 비율)
@@ -1102,20 +1201,18 @@ show('entry');
       <span class="pdq-pulse"></span>
     </div>
     <div class="pdq-text">
-      <span class="pdq-kicker"><span class="pdq-dot"></span>POUR스토어만의 1:1 진단 서비스 · 지금도 진단 중</span>
-      <div class="pdq-title">건물 상태가 걱정된다면 — <b>당신만의 POUR주치의</b></div>
-      <div class="pdq-desc">방수·도장·보수 50+ 특허 기반, 240만 세대 진단 데이터로<br/>증상만 알려주시면 R&D팀이 직접 처방서 + 시공 매칭까지 한 번에.</div>
+      <span class="pdq-kicker"><span class="pdq-dot"></span>POUR주치의 · 1:1 진단</span>
+      <div class="pdq-title">건물에 어려움이 있다면,<br/><b>편하게 말씀해 주세요.</b></div>
+      <div class="pdq-desc">사진 한 장이면 R&D 박사가 직접 답해드려요.</div>
       <div class="pdq-stats">
-        <span class="pdq-stat">🩺 누적 진단 <b>2.4M</b>+</span>
-        <span class="pdq-stat">📊 특허·기술 <b>50+</b></span>
-        <span class="pdq-stat">🏥 진단한 단지 <b>700+</b></span>
+        <span class="pdq-stat">🩺 박사 직접 답변</span>
         <span class="pdq-stat">⏱ 평균 응답 <b>3분</b></span>
       </div>
     </div>
   </div>
   <div class="pdq-right">
-    <button class="pdq-cta" type="button">무료 진단 받기 <span>→</span></button>
-    <span class="pdq-cta-sub">증상 입력 → 3분 안에 처방서 발송</span>
+    <button class="pdq-cta" type="button">지금 말씀하기 <span>→</span></button>
+    <span class="pdq-cta-sub">사진만 첨부하면 끝</span>
   </div>
 </a>
 </section>`;
@@ -6690,6 +6787,46 @@ show('entry');
         }
       }
       s.migrations.pourDoctorFabV1 = true;
+    }
+    // 1회성 마이그레이션 — 메인 3번 퀵배너 카피 간소화 (어려움이 있다면 말씀해주세요 톤)
+    if (!s.migrations.quickBannerCopyV1) {
+      const mainPage4 = s.pages.find(p => p.id === 'main');
+      if (mainPage4 && Array.isArray(mainPage4.sections)) {
+        // class="pdq" 가 들어있는 섹션을 찾아 교체 (위치가 옮겨졌어도 안전하게)
+        const idx = mainPage4.sections.findIndex(sec => (sec.html || '').indexOf('class="pdq"') !== -1);
+        if (idx !== -1) {
+          const sec = mainPage4.sections[idx];
+          const now4 = new Date().toISOString();
+          const key = mainPage4.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason: '퀵배너 카피 간소화 — 글자 줄이고 권유형 톤 ("어려움이 있다면, 편하게 말씀해 주세요")',
+            kind: 'auto-migration', savedAt: now4,
+          });
+          sec.html = POUR_DR_QUICK_BANNER_HTML;
+          sec.statusAt = now4;
+        }
+      }
+      s.migrations.quickBannerCopyV1 = true;
+    }
+    // 1회성 마이그레이션 — 메인 1번 검색 영역에 POUR주치의 캐릭터 헬퍼 추가 (검색 포커스 시 펼침)
+    if (!s.migrations.searchHelperV1) {
+      const mainPage5 = s.pages.find(p => p.id === 'main');
+      if (mainPage5 && Array.isArray(mainPage5.sections) && mainPage5.sections.length > 0) {
+        const sec = mainPage5.sections[0];
+        const now5 = new Date().toISOString();
+        const key = mainPage5.id + ':' + sec.id;
+        s.history[key] = s.history[key] || [];
+        s.history[key].unshift({
+          name: sec.name, html: sec.html, note: sec.note || '',
+          reason: '검색바에 POUR주치의 캐릭터 헬퍼 추가 (포커스 시 캐릭터+말풍선+증상 추천 칩 펼침)',
+          kind: 'auto-migration', savedAt: now5,
+        });
+        sec.html = OHOUSE_V1_SECTION_HTML;
+        sec.statusAt = now5;
+      }
+      s.migrations.searchHelperV1 = true;
     }
     return s;
   }

@@ -1950,7 +1950,18 @@ show('entry');
 .psy3-card .views::before { content:'▶'; font-size:8px; color:#DC2626; }
 .psy3-card .duration { position:absolute; top:12px; right:12px; padding:4px 8px; background:rgba(15,31,92,.85); color:#fff; font-size:10.5px; font-weight:700; border-radius:5px; z-index:1; }
 .psy3-card .title { position:absolute; bottom:14px; left:14px; right:14px; color:#fff; font-size:13px; font-weight:700; line-height:1.45; z-index:1; letter-spacing:-.2px; }
-@media (max-width:520px) { .psy3-grid { grid-template-columns:repeat(2, 1fr); gap:10px; } .psy3-head h2 { font-size:24px; } }
+@media (max-width:700px) {
+  .psy3 { padding:48px 0 56px; }
+  .psy3-inner { max-width:none; }
+  .psy3-head { padding:0 18px; margin-bottom:20px; }
+  .psy3-head h2 { font-size:24px; }
+  .psy3-head .more { font-size:12px; padding:9px 14px; }
+  .psy3-grid { display:flex; grid-template-columns:none; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; -ms-overflow-style:none; gap:12px; padding:0 18px 8px; -webkit-overflow-scrolling:touch; }
+  .psy3-grid::-webkit-scrollbar { display:none; }
+  .psy3-card { flex:0 0 78%; max-width:280px; scroll-snap-align:center; aspect-ratio:9/16; }
+  .psy3-card .title { font-size:13px; }
+}
+@media (max-width:520px) { .psy3-head h2 { font-size:22px; } }
 </style>
 <section class="psy3">
   <div class="psy3-inner">
@@ -1962,7 +1973,7 @@ show('entry');
       </div>
       <a class="more" href="https://www.pourstore.net/videos">전체 영상 →</a>
     </div>
-    <div class="psy3-grid">
+    <div class="psy3-grid" data-psy3-scroll>
       <a class="psy3-card" href="https://www.pourstore.net/videos/short1"><div class="img" style="background-image:url('https://placehold.co/300x533/0F1F5C/F97316?text=DRAIN')"></div><span class="views">12K</span><span class="duration">0:48</span><div class="play"></div><div class="title">옥상 배수구 누수 1분 보수법</div></a>
       <a class="psy3-card" href="https://www.pourstore.net/videos/short2"><div class="img" style="background-image:url('https://placehold.co/300x533/EA580C/fff?text=ROOF')"></div><span class="views">8.5K</span><span class="duration">0:55</span><div class="play"></div><div class="title">방수보수 빌라·아파트 차이</div></a>
       <a class="psy3-card" href="https://www.pourstore.net/videos/short3"><div class="img" style="background-image:url('https://placehold.co/300x533/F97316/fff?text=SHINGLE')"></div><span class="views">15K</span><span class="duration">1:00</span><div class="play"></div><div class="title">슁글 지붕에 방수페인트 칠하면?</div></a>
@@ -1970,6 +1981,49 @@ show('entry');
       <a class="psy3-card" href="https://www.pourstore.net/videos/short5"><div class="img" style="background-image:url('https://placehold.co/300x533/9333EA/fff?text=COAT')"></div><span class="views">9.8K</span><span class="duration">0:38</span><div class="play"></div><div class="title">옥상 방수는 코트재로 끝</div></a>
     </div>
   </div>
+  <script>
+  (function(){
+    var root = document.currentScript && document.currentScript.parentElement;
+    if (!root) return;
+    var scroller = root.querySelector('[data-psy3-scroll]');
+    if (!scroller) return;
+    var mq = window.matchMedia('(max-width:700px)');
+    var paused = false, pauseT = null, intv = null;
+    function isMobile(){ return mq.matches; }
+    function pauseFor(ms){
+      paused = true;
+      if (pauseT) clearTimeout(pauseT);
+      pauseT = setTimeout(function(){ paused = false; }, ms||5000);
+    }
+    function step(){
+      if (!isMobile() || paused) return;
+      if (document.hidden) return;
+      var max = scroller.scrollWidth - scroller.clientWidth - 2;
+      var card = scroller.querySelector('.psy3-card');
+      var w = card ? card.getBoundingClientRect().width + 12 : scroller.clientWidth * 0.8;
+      var next = scroller.scrollLeft + w;
+      if (next >= max) next = 0;
+      scroller.scrollTo({ left: next, behavior: 'smooth' });
+    }
+    function start(){
+      if (intv) clearInterval(intv);
+      intv = setInterval(step, 4000); // 4초 간격으로 천천히
+    }
+    scroller.addEventListener('touchstart', function(){ pauseFor(7000); }, {passive:true});
+    scroller.addEventListener('pointerdown', function(){ pauseFor(7000); });
+    scroller.addEventListener('mouseenter', function(){ pauseFor(8000); });
+    // 화면에 보일 때만 자동 슬라이드
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function(entries){
+        entries.forEach(function(e){
+          if (e.isIntersecting) { paused = false; start(); }
+          else if (intv) { clearInterval(intv); intv = null; }
+        });
+      }, { threshold: 0.25 });
+      io.observe(scroller);
+    } else { start(); }
+  })();
+  </script>
 </section>`;
 
   const SEED_SERVICE_HTML = `<style>
@@ -2011,7 +2065,16 @@ show('entry');
 .psv2-card.show:hover .arr { background:#10B981; color:#fff; }
 .psv2-card .arr::after { content:'→'; transition:transform .25s; }
 .psv2-card:hover .arr::after { transform:translateX(4px); }
-@media (max-width:640px) { .psv2-card { padding:28px 24px; min-height:auto; } .psv2-head h2 { font-size:24px; } }
+@media (max-width:700px) {
+  .psv2 { padding:56px 0 64px; }
+  .psv2-inner { max-width:none; }
+  .psv2-head { padding:0 18px; margin-bottom:24px; }
+  .psv2-head h2 { font-size:24px; }
+  .psv2-grid { display:flex; grid-template-columns:none; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; -ms-overflow-style:none; gap:12px; padding:0 18px 8px; -webkit-overflow-scrolling:touch; }
+  .psv2-grid::-webkit-scrollbar { display:none; }
+  .psv2-card { flex:0 0 82%; max-width:340px; scroll-snap-align:center; min-height:auto; padding:26px 22px; }
+}
+@media (max-width:640px) { .psv2-head h2 { font-size:22px; } }
 </style>
 <section class="psv2">
   <div class="psv2-inner">
@@ -6503,6 +6566,29 @@ show('entry');
         }
       }
       s.migrations.characterImageV1 = true;
+    }
+    // 1회성 마이그레이션 — 숏츠·서비스 섹션을 모바일에서 가로 슬라이드(숏츠는 자동)로 변경
+    if (!s.migrations.mobileSliderV1) {
+      const mainPage7 = s.pages.find(p => p.id === 'main');
+      if (mainPage7 && Array.isArray(mainPage7.sections)) {
+        const now7 = new Date().toISOString();
+        const swap = (matchClass, html, reason) => {
+          const idx = mainPage7.sections.findIndex(sec => (sec.html || '').indexOf(matchClass) !== -1);
+          if (idx === -1) return;
+          const sec = mainPage7.sections[idx];
+          const key = mainPage7.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason, kind: 'auto-migration', savedAt: now7,
+          });
+          sec.html = html;
+          sec.statusAt = now7;
+        };
+        swap('class="psy3"', SEED_YOUTUBE_HTML, '숏츠 섹션 — 모바일에서 가로 스크롤 + 4초 간격 천천히 자동 슬라이드 (터치/호버 시 일시정지, 화면 밖에서는 정지)');
+        swap('class="psv2"', SEED_SERVICE_HTML, '서비스 안내 섹션 — 모바일에서 세로 적층 → 가로 스크롤 카드 (82% 너비, 다음 카드 살짝 보임)');
+      }
+      s.migrations.mobileSliderV1 = true;
     }
     return s;
   }

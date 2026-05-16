@@ -817,6 +817,265 @@ show('entry');
 </nav>
 </section>`;
 
+  // 메인 2번 섹션 — 오늘의집 "이런 사진 찾고 있나요?" 스타일 (가로 스크롤 카드 + 필터칩, 1:1 비율)
+  const OHOUSE_SECTION2_HTML = `<section class="psm2">
+<style>
+.psm2 *, .psm2 *::before, .psm2 *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,Roboto,'Helvetica Neue','Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.psm2 { background:#fff; padding:36px 24px; color:#2F3438; letter-spacing:-0.02em; -webkit-font-smoothing:antialiased; }
+.psm2 a { color:inherit; text-decoration:none; }
+.psm2 button { background:none; border:none; cursor:pointer; font:inherit; color:inherit; letter-spacing:inherit; }
+.psm2-inner { max-width:1256px; margin:0 auto; }
+/* 헤더 */
+.psm2-head { display:flex; align-items:flex-end; justify-content:space-between; gap:14px; margin-bottom:14px; }
+.psm2-title-wrap { flex:1; min-width:0; }
+.psm2-title { font-size:24px; font-weight:800; color:#111111; letter-spacing:-0.04em; line-height:1.3; }
+.psm2-subtitle { margin-top:6px; font-size:14px; font-weight:500; color:#888888; letter-spacing:-0.02em; }
+.psm2-more { display:inline-flex; align-items:center; gap:2px; font-size:14px; font-weight:600; color:#2F3438; padding:6px 0 6px 12px; flex-shrink:0; letter-spacing:-0.03em; }
+.psm2-more:hover { color:#E8780F; }
+/* 필터 칩 */
+.psm2-filters { display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
+.psm2-filter { padding:8px 16px; font-size:14px; font-weight:600; color:#2F3438; background:#fff; border:1px solid #E5E7EB; border-radius:999px; cursor:pointer; transition:.15s; letter-spacing:-0.03em; }
+.psm2-filter:hover { border-color:#9CA3AF; background:#FAFAFA; }
+.psm2-filter.on { background:#E8780F; border-color:#E8780F; color:#fff; }
+.psm2-filter.on:hover { background:#C8650D; border-color:#C8650D; }
+/* 가로 스크롤 카드 */
+.psm2-scroll-wrap { position:relative; }
+.psm2-scroll { display:grid; grid-auto-flow:column; grid-auto-columns:calc((100% - 48px) / 4); gap:16px; overflow-x:auto; scroll-snap-type:x mandatory; padding-bottom:8px; scrollbar-width:none; -ms-overflow-style:none; }
+.psm2-scroll::-webkit-scrollbar { display:none; }
+.psm2-card { position:relative; scroll-snap-align:start; cursor:pointer; }
+.psm2-card-img { position:relative; aspect-ratio:1/1; border-radius:14px; overflow:hidden; background:#F5F6F8; }
+.psm2-card-img svg, .psm2-card-img img { width:100%; height:100%; object-fit:cover; display:block; }
+.psm2-card-tag { position:absolute; left:12px; top:12px; padding:5px 10px; background:rgba(232,120,15,.95); color:#fff; font-size:11.5px; font-weight:700; border-radius:5px; letter-spacing:-0.02em; }
+.psm2-card-bookmark { position:absolute; right:10px; bottom:10px; width:32px; height:32px; background:rgba(255,255,255,.92); border-radius:50%; display:grid; place-items:center; box-shadow:0 2px 6px rgba(0,0,0,.12); border:none; cursor:pointer; transition:.15s; }
+.psm2-card-bookmark:hover { background:#fff; transform:scale(1.06); }
+.psm2-card-bookmark svg { width:15px; height:15px; color:#2F3438; }
+.psm2-card-bottom { position:absolute; left:10px; bottom:10px; display:flex; align-items:center; gap:7px; padding:5px 11px 5px 5px; background:rgba(255,255,255,.92); border-radius:999px; backdrop-filter:blur(6px); max-width:calc(100% - 60px); }
+.psm2-card-av { width:24px; height:24px; border-radius:50%; background:linear-gradient(135deg,#F49A3A,#E8780F); color:#fff; display:grid; place-items:center; font-size:10.5px; font-weight:800; flex-shrink:0; letter-spacing:-0.04em; }
+.psm2-card-name { font-size:12px; font-weight:600; color:#2F3438; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; letter-spacing:-0.02em; }
+.psm2-card-info { margin-top:10px; padding:0 2px; }
+.psm2-card-title { font-size:14px; font-weight:600; color:#2F3438; letter-spacing:-0.03em; line-height:1.4; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; min-height:39px; }
+.psm2-card-price { margin-top:5px; display:flex; align-items:baseline; gap:6px; }
+.psm2-card-price .disc { font-size:14px; font-weight:800; color:#E8780F; letter-spacing:-0.02em; }
+.psm2-card-price .now { font-size:14px; font-weight:700; color:#111111; letter-spacing:-0.02em; }
+/* 좌우 화살표 */
+.psm2-arrow { position:absolute; top:calc(50% - 30px); transform:translateY(-50%); width:42px; height:42px; background:#fff; border-radius:50%; box-shadow:0 4px 16px rgba(0,0,0,.16); display:grid; place-items:center; cursor:pointer; z-index:2; transition:.15s; border:1px solid #F2F3F5; color:#2F3438; }
+.psm2-arrow:hover { background:#FAFAFA; box-shadow:0 6px 22px rgba(0,0,0,.22); }
+.psm2-arrow.prev { left:-14px; }
+.psm2-arrow.next { right:-14px; }
+.psm2-arrow svg { width:18px; height:18px; }
+/* 카드 컬러 (1:1 썸네일 placeholder) */
+.thb-1 { background:linear-gradient(135deg,#7B8794 0%,#3E4C59 100%); }
+.thb-2 { background:linear-gradient(135deg,#A0AEC0 0%,#4A5568 100%); }
+.thb-3 { background:linear-gradient(135deg,#CBD5E0 0%,#718096 100%); }
+.thb-4 { background:linear-gradient(135deg,#E8780F 0%,#C8650D 100%); }
+.thb-5 { background:linear-gradient(135deg,#0F1F5C 0%,#1E3A8A 100%); }
+.thb-6 { background:linear-gradient(135deg,#52525B 0%,#27272A 100%); }
+.thb-7 { background:linear-gradient(135deg,#F59E0B 0%,#D97706 100%); }
+.thb-8 { background:linear-gradient(135deg,#475569 0%,#1E293B 100%); }
+/* 모바일 반응형 */
+@media (max-width: 900px) {
+  .psm2-scroll { grid-auto-columns:calc((100% - 32px) / 3); }
+  .psm2-arrow { display:none; }
+}
+@media (max-width: 700px) {
+  .psm2 { padding:24px 14px 28px; }
+  .psm2-title { font-size:20px; }
+  .psm2-subtitle { font-size:13px; }
+  .psm2-more { font-size:13px; }
+  .psm2-filter { padding:7px 13px; font-size:13px; }
+  .psm2-scroll { grid-auto-columns:46%; gap:10px; }
+  .psm2-card-img { border-radius:12px; }
+  .psm2-card-tag { font-size:10.5px; padding:3px 7px; left:10px; top:10px; }
+  .psm2-card-bookmark { width:28px; height:28px; right:8px; bottom:8px; }
+  .psm2-card-bottom { padding:4px 9px 4px 4px; left:8px; bottom:8px; }
+  .psm2-card-av { width:20px; height:20px; font-size:9.5px; }
+  .psm2-card-name { font-size:11px; max-width:90px; }
+  .psm2-card-title { font-size:13px; min-height:36px; }
+  .psm2-card-price .disc, .psm2-card-price .now { font-size:13px; }
+}
+</style>
+<div class="psm2-inner">
+  <div class="psm2-head">
+    <div class="psm2-title-wrap">
+      <div class="psm2-title">철재를 고치고 싶다면?</div>
+      <div class="psm2-subtitle">녹·부식·찍힘까지 — POUR 자재로 한 번에 해결하세요</div>
+    </div>
+    <a href="#" class="psm2-more">더보기 ›</a>
+  </div>
+  <div class="psm2-filters">
+    <button class="psm2-filter on" type="button">전체</button>
+    <button class="psm2-filter" type="button">방수</button>
+    <button class="psm2-filter" type="button">코팅</button>
+    <button class="psm2-filter" type="button">보수</button>
+    <button class="psm2-filter" type="button">단열·차열</button>
+    <button class="psm2-filter" type="button">하도</button>
+  </div>
+  <div class="psm2-scroll-wrap">
+    <div class="psm2-scroll">
+      <!-- 1 -->
+      <div class="psm2-card">
+        <div class="psm2-card-img">
+          <svg class="thb-1" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <g stroke="rgba(255,255,255,.18)" stroke-width="2"><line x1="0" y1="80" x2="400" y2="80"/><line x1="0" y1="160" x2="400" y2="160"/><line x1="0" y1="240" x2="400" y2="240"/><line x1="0" y1="320" x2="400" y2="320"/></g>
+            <rect x="80" y="120" width="240" height="160" rx="6" fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.3)" stroke-width="2"/>
+            <circle cx="200" cy="200" r="36" fill="rgba(232,120,15,.85)"/>
+            <text x="200" y="208" text-anchor="middle" fill="#fff" font-size="22" font-weight="800" font-family="Pretendard">방수</text>
+          </svg>
+          <span class="psm2-card-tag">방수</span>
+          <div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">옥상슬라브 PKG</span></div>
+          <button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+        </div>
+        <div class="psm2-card-info">
+          <div class="psm2-card-title">옥상 슬라브 듀얼강화 방수 패키지</div>
+          <div class="psm2-card-price"><span class="disc">35%</span><span class="now">189,000원</span></div>
+        </div>
+      </div>
+      <!-- 2 -->
+      <div class="psm2-card">
+        <div class="psm2-card-img">
+          <svg class="thb-2" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <g fill="rgba(255,255,255,.1)"><rect x="20" y="20" width="170" height="170" rx="8"/><rect x="210" y="20" width="170" height="170" rx="8"/><rect x="20" y="210" width="170" height="170" rx="8"/><rect x="210" y="210" width="170" height="170" rx="8"/></g>
+            <circle cx="200" cy="200" r="48" fill="rgba(15,31,92,.85)"/>
+            <text x="200" y="210" text-anchor="middle" fill="#fff" font-size="22" font-weight="800" font-family="Pretendard">코팅</text>
+          </svg>
+          <span class="psm2-card-tag" style="background:rgba(15,31,92,.92);">코팅</span>
+          <div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">금속기와 코팅</span></div>
+          <button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+        </div>
+        <div class="psm2-card-info">
+          <div class="psm2-card-title">금속기와 일사반사 코팅 — 91.8% 반사율</div>
+          <div class="psm2-card-price"><span class="disc">28%</span><span class="now">142,000원</span></div>
+        </div>
+      </div>
+      <!-- 3 -->
+      <div class="psm2-card">
+        <div class="psm2-card-img">
+          <svg class="thb-3" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <path d="M50 320 L130 180 L200 250 L300 100 L380 240 L380 380 L50 380 Z" fill="rgba(255,255,255,.18)"/>
+            <circle cx="280" cy="120" r="40" fill="rgba(232,120,15,.7)"/>
+            <text x="200" y="350" text-anchor="middle" fill="#fff" font-size="20" font-weight="800" font-family="Pretendard">보수</text>
+          </svg>
+          <span class="psm2-card-tag">보수</span>
+          <div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">탄성강화 보강</span></div>
+          <button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+        </div>
+        <div class="psm2-card-info">
+          <div class="psm2-card-title">탄성강화 단면복구 — 부착강도 1.5 N/mm²</div>
+          <div class="psm2-card-price"><span class="disc">22%</span><span class="now">96,000원</span></div>
+        </div>
+      </div>
+      <!-- 4 -->
+      <div class="psm2-card">
+        <div class="psm2-card-img">
+          <svg class="thb-4" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <g fill="rgba(255,255,255,.18)"><circle cx="100" cy="100" r="50"/><circle cx="300" cy="100" r="50"/><circle cx="100" cy="300" r="50"/><circle cx="300" cy="300" r="50"/><circle cx="200" cy="200" r="80" fill="rgba(255,255,255,.28)"/></g>
+            <text x="200" y="212" text-anchor="middle" fill="#fff" font-size="26" font-weight="900" font-family="Pretendard">PKG</text>
+          </svg>
+          <span class="psm2-card-tag">패키지</span>
+          <div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">올인원 키트</span></div>
+          <button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+        </div>
+        <div class="psm2-card-info">
+          <div class="psm2-card-title">철재 누수+코팅+보수 올인원 패키지</div>
+          <div class="psm2-card-price"><span class="disc">40%</span><span class="now">259,000원</span></div>
+        </div>
+      </div>
+      <!-- 5 -->
+      <div class="psm2-card">
+        <div class="psm2-card-img">
+          <svg class="thb-5" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <g stroke="rgba(255,255,255,.25)" stroke-width="3" fill="none"><path d="M40 60 Q200 40 360 60"/><path d="M40 120 Q200 100 360 120"/><path d="M40 180 Q200 160 360 180"/><path d="M40 240 Q200 220 360 240"/><path d="M40 300 Q200 280 360 300"/></g>
+            <circle cx="200" cy="200" r="42" fill="rgba(232,120,15,.95)"/>
+            <text x="200" y="210" text-anchor="middle" fill="#fff" font-size="20" font-weight="800" font-family="Pretendard">단열</text>
+          </svg>
+          <span class="psm2-card-tag">단열·차열</span>
+          <div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">POUR코트재</span></div>
+          <button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+        </div>
+        <div class="psm2-card-info">
+          <div class="psm2-card-title">단열·차열 코트재 — 옥상 표면온도 -15℃</div>
+          <div class="psm2-card-price"><span class="disc">25%</span><span class="now">118,000원</span></div>
+        </div>
+      </div>
+      <!-- 6 -->
+      <div class="psm2-card">
+        <div class="psm2-card-img">
+          <svg class="thb-6" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <g fill="rgba(255,255,255,.13)"><rect x="60" y="60" width="280" height="280" rx="20"/></g>
+            <g fill="rgba(255,255,255,.22)"><rect x="100" y="100" width="200" height="60" rx="6"/><rect x="100" y="170" width="200" height="60" rx="6"/><rect x="100" y="240" width="200" height="60" rx="6"/></g>
+            <text x="200" y="358" text-anchor="middle" fill="rgba(232,120,15,.95)" font-size="18" font-weight="800" font-family="Pretendard">HOOKER</text>
+          </svg>
+          <span class="psm2-card-tag">보수</span>
+          <div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">POUR HOOKER</span></div>
+          <button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+        </div>
+        <div class="psm2-card-info">
+          <div class="psm2-card-title">후레싱 탈락 방지 — POUR HOOKER 특허기술</div>
+          <div class="psm2-card-price"><span class="disc">18%</span><span class="now">76,000원</span></div>
+        </div>
+      </div>
+      <!-- 7 -->
+      <div class="psm2-card">
+        <div class="psm2-card-img">
+          <svg class="thb-7" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <g fill="rgba(255,255,255,.18)"><polygon points="200,40 360,360 40,360"/></g>
+            <circle cx="200" cy="240" r="48" fill="rgba(15,31,92,.85)"/>
+            <text x="200" y="250" text-anchor="middle" fill="#fff" font-size="22" font-weight="800" font-family="Pretendard">HOT</text>
+          </svg>
+          <span class="psm2-card-tag" style="background:#DC2626;">BEST</span>
+          <div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">하이퍼티</span></div>
+          <button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+        </div>
+        <div class="psm2-card-info">
+          <div class="psm2-card-title">POUR하이퍼티 — 신장률 608% 초고탄성 퍼티</div>
+          <div class="psm2-card-price"><span class="disc">30%</span><span class="now">68,000원</span></div>
+        </div>
+      </div>
+      <!-- 8 -->
+      <div class="psm2-card">
+        <div class="psm2-card-img">
+          <svg class="thb-8" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <g stroke="rgba(255,255,255,.2)" stroke-width="2" fill="none"><path d="M40 200 L160 80 L240 200 L360 80"/><path d="M40 320 L160 200 L240 320 L360 200"/></g>
+            <rect x="150" y="160" width="100" height="100" rx="8" fill="rgba(232,120,15,.85)"/>
+            <text x="200" y="218" text-anchor="middle" fill="#fff" font-size="18" font-weight="800" font-family="Pretendard">하도</text>
+          </svg>
+          <span class="psm2-card-tag">하도</span>
+          <div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">모체강화함침</span></div>
+          <button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
+        </div>
+        <div class="psm2-card-info">
+          <div class="psm2-card-title">모체강화함침 하도 — 노후 콘크리트 생애주기 연장</div>
+          <div class="psm2-card-price"><span class="disc">15%</span><span class="now">54,000원</span></div>
+        </div>
+      </div>
+    </div>
+    <button class="psm2-arrow prev" type="button" aria-label="이전" data-psm2-scroll="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button class="psm2-arrow next" type="button" aria-label="다음" data-psm2-scroll="next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+  </div>
+</div>
+<script>
+(function(){
+  var root = document.currentScript && document.currentScript.parentElement;
+  if (!root) return;
+  var scroller = root.querySelector('.psm2-scroll');
+  var filters = root.querySelectorAll('.psm2-filter');
+  filters.forEach(function(b){ b.addEventListener('click', function(){
+    filters.forEach(function(x){ x.classList.remove('on'); });
+    b.classList.add('on');
+  }); });
+  root.querySelectorAll('[data-psm2-scroll]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      if (!scroller) return;
+      var dir = btn.dataset.psm2Scroll === 'next' ? 1 : -1;
+      var card = scroller.querySelector('.psm2-card');
+      var step = card ? (card.getBoundingClientRect().width + 16) * 2 : 300;
+      scroller.scrollBy({ left: dir * step, behavior: 'smooth' });
+    });
+  });
+})();
+</script>
+</section>`;
+
   const SEED_CATEGORY_HTML = `<style>
 .psc3 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
 .psc3 { background:#fff; padding:48px 16px 36px; }
@@ -5363,6 +5622,32 @@ show('entry');
         sec.statusAt = now;
       }
       s.migrations.mainBannerOhouseV2 = true;
+    }
+    // 1회성 마이그레이션 — 메인 2번 섹션을 오늘의집 "이런 사진 찾고 있나요?" 스타일로 자동 교체
+    // (가로 스크롤 1:1 카드 + 필터 칩, 이전 HTML은 이력에 자동 보관)
+    if (!s.migrations.mainSection2OhouseV1) {
+      const mainPage = s.pages.find(p => p.id === 'main');
+      if (mainPage && Array.isArray(mainPage.sections) && mainPage.sections.length > 1) {
+        const sec = mainPage.sections[1];
+        const now = new Date().toISOString();
+        const key = mainPage.id + ':' + sec.id;
+        s.history[key] = s.history[key] || [];
+        s.history[key].unshift({
+          name: sec.name,
+          html: sec.html,
+          note: sec.note || '',
+          reason: '오늘의집 가로스크롤 카드 시안 자동 적용 (필터 칩 + 1:1 정사각 썸네일, 이전 버전 자동 보관)',
+          kind: 'auto-migration',
+          savedAt: now,
+        });
+        sec.html = OHOUSE_SECTION2_HTML;
+        sec.note = '오늘의집 "이런 사진 찾고 있나요?" 스타일 — 메인 제목 + 필터 칩(방수/코팅/보수…) + 1:1 정사각 가로스크롤 카드 (모바일 반응형)';
+        sec.status = 'wip';
+        sec.statusAt = now;
+        sec.confirmed = false;
+        sec.confirmedAt = null;
+      }
+      s.migrations.mainSection2OhouseV1 = true;
     }
     return s;
   }

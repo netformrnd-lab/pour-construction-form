@@ -2137,22 +2137,22 @@ show('entry');
         <button class="psv2-summary" type="button" data-psv2-trigger>
           <div class="psv2-icon"><svg viewBox="0 0 24 24"><path d="M3 9V21h18V9"/><path d="M2 6h20l-2 3H4Z"/><path d="M16 14h-8"/></svg></div>
           <div class="psv2-summary-text">
-            <span class="psv2-summary-label">공급 제휴</span>
-            <div class="psv2-summary-title">대리점·크리에이터 — 다양한 채널로</div>
-            <div class="psv2-summary-sub">잘못된 시공·자재 걱정 없이 신뢰할 수 있는 파트너와</div>
+            <span class="psv2-summary-label">대리점</span>
+            <div class="psv2-summary-title">가까운 대리점에서 자재·시공을 직접 체험하세요</div>
+            <div class="psv2-summary-sub">잘못된 시공·자재 걱정 없이</div>
           </div>
           <span class="psv2-toggle" aria-hidden="true">▾</span>
         </button>
         <div class="psv2-body">
           <div class="psv2-body-inner">
-            <div class="psv2-body-desc">POUR스토어의 자재·기술을 다양한 방식으로 전달할 제휴 파트너를 모집합니다. 대리점부터 크리에이터까지, 채널에 맞는 협업 구조를 제안드려요.</div>
+            <div class="psv2-body-desc">전국 POUR 대리점에서 자재 실물 확인·전문 상담·즉시 구매가 가능합니다. 가까운 매장 위치를 확인하시거나, 신규 대리점 개설을 문의해 보세요.</div>
             <div class="psv2-body-chips">
-              <span class="psv2-body-chip">🏬 대리점</span>
-              <span class="psv2-body-chip">🎥 크리에이터</span>
-              <span class="psv2-body-chip">✍ 블로거</span>
-              <span class="psv2-body-chip">＋ 기타 제휴 (커뮤니티·미디어)</span>
+              <span class="psv2-body-chip">🏬 전국 대리점망</span>
+              <span class="psv2-body-chip">🔍 자재 실물 체험</span>
+              <span class="psv2-body-chip">💳 즉시 구매</span>
+              <span class="psv2-body-chip">🤝 전문 상담</span>
             </div>
-            <a class="psv2-body-cta" href="https://www.pourstore.net/supply">공급 제휴 신청 / 자세히</a>
+            <a class="psv2-body-cta" href="https://www.pourstore.net/dealers">대리점 위치 / 개설 문의</a>
           </div>
         </div>
       </div>
@@ -6767,6 +6767,27 @@ show('entry');
         }
       }
       s.migrations.creatorWordingV1 = true;
+    }
+    // 1회성 마이그레이션 — "공급 제휴" 카테고리 제거하고 "대리점"으로 복원 (크리에이터·블로거 카테고리 표면 노출 제거)
+    if (!s.migrations.dealerBackV1) {
+      const mainPageB = s.pages.find(p => p.id === 'main');
+      if (mainPageB && Array.isArray(mainPageB.sections)) {
+        const idx = mainPageB.sections.findIndex(sec => (sec.html || '').indexOf('class="psv2"') !== -1);
+        if (idx !== -1) {
+          const sec = mainPageB.sections[idx];
+          const now = new Date().toISOString();
+          const key = mainPageB.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason: '서비스 안내 — "공급 제휴(크리에이터·블로거 포함)" 카테고리 제거하고 "대리점" 단일 채널로 복원 (R&D·특허 기반 기업 브랜드 톤 유지, 인플루언서 마케팅 인상 차단)',
+            kind: 'auto-migration', savedAt: now,
+          });
+          sec.html = SEED_SERVICE_HTML;
+          sec.statusAt = now;
+        }
+      }
+      s.migrations.dealerBackV1 = true;
     }
     return s;
   }

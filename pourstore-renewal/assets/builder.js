@@ -2138,7 +2138,7 @@ show('entry');
           <div class="psv2-icon"><svg viewBox="0 0 24 24"><path d="M3 9V21h18V9"/><path d="M2 6h20l-2 3H4Z"/><path d="M16 14h-8"/></svg></div>
           <div class="psv2-summary-text">
             <span class="psv2-summary-label">공급 제휴</span>
-            <div class="psv2-summary-title">대리점·인플루언서·유튜버 — 다양한 채널로</div>
+            <div class="psv2-summary-title">대리점·콘텐츠 크리에이터 — 다양한 채널로</div>
             <div class="psv2-summary-sub">잘못된 시공·자재 걱정 없이 신뢰할 수 있는 파트너와</div>
           </div>
           <span class="psv2-toggle" aria-hidden="true">▾</span>
@@ -2148,7 +2148,7 @@ show('entry');
             <div class="psv2-body-desc">POUR스토어의 자재·기술을 다양한 방식으로 전달할 제휴 파트너를 모집합니다. 대리점부터 콘텐츠 크리에이터까지, 채널에 맞는 협업 구조를 제안드려요.</div>
             <div class="psv2-body-chips">
               <span class="psv2-body-chip">🏬 대리점</span>
-              <span class="psv2-body-chip">🎬 인플루언서·유튜버</span>
+              <span class="psv2-body-chip">🎥 콘텐츠 크리에이터</span>
               <span class="psv2-body-chip">✍ 블로거</span>
               <span class="psv2-body-chip">＋ 기타 제휴 (커뮤니티·미디어)</span>
             </div>
@@ -6746,6 +6746,27 @@ show('entry');
         swap9('class="psv2"', SEED_SERVICE_HTML, '서비스 안내 — 탭+디테일 → 아코디언 (탭하면 같은 자리에서 아래로 펼침, 한 번에 하나만 열림, 첫 항목 기본 펼침)');
       }
       s.migrations.uiRefreshV3 = true;
+    }
+    // 1회성 마이그레이션 — 서비스 안내 "인플루언서·유튜버" → "콘텐츠 크리에이터" 워딩 변경
+    if (!s.migrations.creatorWordingV1) {
+      const mainPageA = s.pages.find(p => p.id === 'main');
+      if (mainPageA && Array.isArray(mainPageA.sections)) {
+        const idx = mainPageA.sections.findIndex(sec => (sec.html || '').indexOf('class="psv2"') !== -1);
+        if (idx !== -1) {
+          const sec = mainPageA.sections[idx];
+          const now = new Date().toISOString();
+          const key = mainPageA.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason: '서비스 안내 — "인플루언서·유튜버" → "콘텐츠 크리에이터"로 워딩 변경 (유튜브·인스타·틱톡·블로그 모두 포함하는 더 전문적인 표현)',
+            kind: 'auto-migration', savedAt: now,
+          });
+          sec.html = SEED_SERVICE_HTML;
+          sec.statusAt = now;
+        }
+      }
+      s.migrations.creatorWordingV1 = true;
     }
     return s;
   }

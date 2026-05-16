@@ -1121,28 +1121,30 @@ show('entry');
   const POUR_DR_QUICK_BANNER_HTML = `<section class="pdq">
 <style>
 .pdq *, .pdq *::before, .pdq *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
-.pdq { padding:20px 24px 48px; }
-.pdq-card { max-width:1256px; margin:0 auto; position:relative; border-radius:28px; background:linear-gradient(135deg,#FFFBF5 0%,#FFF4E6 55%,#FFE4C0 100%); color:#0F1F5C; padding:36px 40px 36px 40px; display:grid; grid-template-columns:240px 1fr auto; gap:28px; align-items:center; border:1.5px solid rgba(232,120,15,.22); box-shadow:0 12px 36px rgba(232,120,15,.16), 0 2px 6px rgba(15,31,92,.04); cursor:pointer; transition:.22s; letter-spacing:-0.02em; isolation:isolate; overflow:visible; text-decoration:none; }
+.pdq { padding:24px 24px 52px; }
+.pdq-card { max-width:1256px; margin:0 auto; position:relative; border-radius:28px; background:linear-gradient(135deg,#FFFBF5 0%,#FFF4E6 55%,#FFE4C0 100%); color:#0F1F5C; padding:40px 40px 40px 40px; display:grid; grid-template-columns:240px 1fr auto; gap:32px; align-items:center; border:1.5px solid rgba(232,120,15,.22); box-shadow:0 12px 36px rgba(232,120,15,.16), 0 2px 6px rgba(15,31,92,.04); cursor:pointer; transition:.22s; letter-spacing:-0.02em; isolation:isolate; overflow:visible; text-decoration:none; }
 .pdq-card:hover { transform:translateY(-3px); box-shadow:0 22px 56px rgba(232,120,15,.26), 0 4px 10px rgba(15,31,92,.06); border-color:rgba(232,120,15,.4); }
 .pdq-card::before { content:''; position:absolute; inset:0; border-radius:28px; overflow:hidden; pointer-events:none; z-index:0; background:radial-gradient(circle at 88% 14%, rgba(232,120,15,.2) 0%, transparent 38%), radial-gradient(circle at 16% 88%, rgba(244,154,58,.16) 0%, transparent 50%); }
 .pdq-card::after { content:''; position:absolute; inset:0; border-radius:28px; overflow:hidden; opacity:.5; pointer-events:none; z-index:0; background-image:radial-gradient(circle, rgba(232,120,15,.16) 1.2px, transparent 1.5px); background-size:22px 22px; }
 .pdq-card > * { position:relative; z-index:1; }
 /* 캐릭터 */
-.pdq-char { position:relative; align-self:end; margin-bottom:-36px; min-height:200px; }
+.pdq-char { position:relative; align-self:end; margin-bottom:-40px; min-height:200px; }
 .pdq-char-img { display:block; width:100%; max-width:240px; height:auto; filter:drop-shadow(0 16px 24px rgba(15,31,92,.2)); }
 .pdq-char-spot { position:absolute; left:50%; bottom:-4px; transform:translateX(-50%); width:200px; height:32px; background:radial-gradient(ellipse, rgba(232,120,15,.32) 0%, transparent 70%); pointer-events:none; z-index:-1; }
-/* 말풍선 */
-.pdq-bubble { position:absolute; top:14px; right:-26px; background:#fff; color:#0F1F5C; padding:8px 14px; border-radius:14px; font-size:12.5px; font-weight:800; letter-spacing:-0.02em; white-space:nowrap; box-shadow:0 6px 18px rgba(15,31,92,.16); animation:pdqBubble 2.6s ease-in-out infinite; }
-.pdq-bubble::after { content:''; position:absolute; left:14px; bottom:-7px; width:0; height:0; border-style:solid; border-width:8px 6px 0 6px; border-color:#fff transparent transparent transparent; }
-@keyframes pdqBubble { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-5px); } }
-/* 텍스트 */
+/* 텍스트 영역 */
 .pdq-text { min-width:0; }
-.pdq-kicker { display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:800; color:#E8780F; letter-spacing:0.02em; margin-bottom:12px; padding:5px 13px; background:#fff; border:1px solid #FED7AA; border-radius:999px; box-shadow:0 2px 6px rgba(232,120,15,.08); }
+.pdq-kicker { display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:800; color:#E8780F; letter-spacing:0.02em; margin-bottom:14px; padding:5px 13px; background:#fff; border:1px solid #FED7AA; border-radius:999px; box-shadow:0 2px 6px rgba(232,120,15,.08); }
 .pdq-kicker .pdq-dot { width:7px; height:7px; border-radius:50%; background:#10B981; animation:pdqDot 1.6s ease-in-out infinite; box-shadow:0 0 0 4px rgba(16,185,129,.22); }
 @keyframes pdqDot { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.5; transform:scale(.85); } }
-.pdq-title { font-size:28px; font-weight:900; line-height:1.3; letter-spacing:-0.045em; color:#0F1F5C; }
-.pdq-title b { color:#E8780F; }
-.pdq-desc { margin-top:12px; font-size:14.5px; font-weight:500; color:#374151; line-height:1.6; letter-spacing:-0.02em; }
+/* ★ 핵심 — 큰 말풍선 (캐릭터가 말하는 느낌) */
+.pdq-speech { position:relative; display:inline-block; background:#fff; border:2px solid #0F1F5C; border-radius:22px; padding:20px 28px 22px 32px; box-shadow:0 10px 28px rgba(15,31,92,.16), inset 0 -3px 0 rgba(15,31,92,.05); animation:pdqSway 4s ease-in-out infinite; }
+.pdq-speech::before { content:''; position:absolute; left:-12px; top:36px; width:22px; height:22px; background:#fff; border-left:2px solid #0F1F5C; border-bottom:2px solid #0F1F5C; transform:rotate(45deg); }
+.pdq-speech::after { content:'\\201C'; position:absolute; top:-6px; left:14px; font-size:52px; font-weight:900; color:#E8780F; line-height:1; opacity:.7; font-family:Georgia,serif; pointer-events:none; }
+@keyframes pdqSway { 0%,100% { transform:translateY(0) rotate(-0.4deg); } 50% { transform:translateY(-3px) rotate(0.4deg); } }
+.pdq-speech-text { font-size:30px; font-weight:900; line-height:1.32; letter-spacing:-0.045em; color:#0F1F5C; }
+.pdq-speech-text b { color:#E8780F; font-weight:900; position:relative; display:inline-block; }
+.pdq-speech-text b::after { content:''; position:absolute; left:-2px; right:-2px; bottom:1px; height:10px; background:linear-gradient(180deg, transparent 50%, rgba(254,215,170,.85) 50%); z-index:-1; border-radius:2px; }
+.pdq-desc { margin-top:16px; font-size:14.5px; font-weight:500; color:#374151; line-height:1.6; letter-spacing:-0.02em; }
 .pdq-stats { margin-top:14px; display:flex; gap:8px; flex-wrap:wrap; }
 .pdq-stat { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:600; color:#374151; letter-spacing:-0.02em; padding:6px 12px; background:#fff; border:1px solid #FED7AA; border-radius:999px; }
 .pdq-stat b { color:#E8780F; font-weight:800; font-size:13px; }
@@ -1155,23 +1157,31 @@ show('entry');
 .pdq-cta-arrow { font-size:18px; transition:.18s; }
 .pdq-cta:hover .pdq-cta-arrow { transform:translateX(3px); }
 .pdq-cta-sub { font-size:12px; font-weight:600; color:#6B7280; letter-spacing:-0.02em; }
+/* 태블릿 */
 @media (max-width:900px) {
-  .pdq-card { grid-template-columns:180px 1fr; gap:18px; padding:30px 24px 28px; }
-  .pdq-char-img { max-width:180px; }
-  .pdq-char { min-height:160px; }
-  .pdq-title { font-size:22px; }
-  .pdq-right { grid-column:1/-1; flex-direction:row; justify-content:space-between; align-items:center; margin-top:6px; }
-  .pdq-bubble { display:none; }
+  .pdq-card { grid-template-columns:160px 1fr; gap:18px; padding:32px 26px 30px; }
+  .pdq-char-img { max-width:160px; }
+  .pdq-char { min-height:140px; margin-bottom:-32px; }
+  .pdq-speech { padding:16px 22px 18px 26px; }
+  .pdq-speech::before { top:28px; }
+  .pdq-speech::after { font-size:42px; top:-4px; }
+  .pdq-speech-text { font-size:22px; }
+  .pdq-right { grid-column:1/-1; flex-direction:row; justify-content:space-between; align-items:center; margin-top:8px; }
 }
+/* 모바일 */
 @media (max-width:700px) {
-  .pdq { padding:10px 14px 32px; }
-  .pdq-card { padding:24px 22px 22px; grid-template-columns:110px 1fr; gap:12px; border-radius:22px; }
-  .pdq-char { margin-bottom:-24px; min-height:120px; }
-  .pdq-char-img { max-width:110px; }
-  .pdq-char-spot { width:110px; height:22px; }
-  .pdq-kicker { font-size:11px; padding:3px 10px; margin-bottom:8px; }
-  .pdq-title { font-size:18px; line-height:1.3; }
-  .pdq-desc { font-size:12.5px; margin-top:8px; }
+  .pdq { padding:12px 14px 32px; }
+  .pdq-card { padding:24px 18px 22px; grid-template-columns:96px 1fr; gap:10px; border-radius:22px; }
+  .pdq-char { margin-bottom:-22px; min-height:110px; }
+  .pdq-char-img { max-width:96px; }
+  .pdq-char-spot { width:96px; height:20px; }
+  .pdq-kicker { font-size:11px; padding:3px 10px; margin-bottom:10px; }
+  .pdq-speech { padding:14px 18px 14px 22px; border-radius:18px; border-width:1.5px; }
+  .pdq-speech::before { left:-10px; top:24px; width:18px; height:18px; border-width:1.5px; }
+  .pdq-speech::after { font-size:34px; top:-2px; left:10px; }
+  .pdq-speech-text { font-size:18px; line-height:1.35; }
+  .pdq-speech-text b::after { height:7px; bottom:1px; }
+  .pdq-desc { font-size:12.5px; margin-top:12px; }
   .pdq-stats { margin-top:10px; gap:6px; }
   .pdq-stat { font-size:11px; padding:4px 10px; }
   .pdq-right { grid-column:1/-1; flex-direction:column; align-items:stretch; margin-top:16px; }
@@ -1184,11 +1194,12 @@ show('entry');
   <div class="pdq-char">
     <div class="pdq-char-spot"></div>
     <img class="pdq-char-img" src="./assets/pour-doctor-3d.png" alt="POUR주치의" loading="lazy"/>
-    <span class="pdq-bubble">안녕하세요! 👋</span>
   </div>
   <div class="pdq-text">
     <span class="pdq-kicker"><span class="pdq-dot"></span>POUR주치의 · 1:1 진단</span>
-    <div class="pdq-title">건물에 어려움이 있다면,<br/><b>편하게 말씀해 주세요.</b></div>
+    <div class="pdq-speech">
+      <div class="pdq-speech-text">건물에 어려움이 있다면,<br/><b>편하게 말씀해 주세요!</b></div>
+    </div>
     <div class="pdq-desc">사진 한 장이면 R&D 박사가 직접 답해드려요.</div>
     <div class="pdq-stats">
       <span class="pdq-stat">🩺 박사 직접 답변</span>
@@ -2225,17 +2236,19 @@ show('entry');
 </section>`;
 
   const SEED_POSTING_HTML = `<style>
-.psg3 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
-.psg3 { background:#FFFBF5; padding:80px 18px; }
+.psg3 *, .psg3 *::before, .psg3 *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.psg3 { background:#FFFBF5; padding:72px 18px; letter-spacing:-0.02em; }
 .psg3-inner { max-width:1200px; margin:0 auto; }
-.psg3-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:32px; flex-wrap:wrap; gap:14px; }
+.psg3-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:14px; }
 .psg3-head .left { flex:1; min-width:240px; }
-.psg3-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:8px; }
-.psg3-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; }
-.psg3-head p { font-size:13.5px; color:#6B7280; margin-top:8px; }
-.psg3-head .more { display:inline-flex; align-items:center; gap:6px; padding:11px 18px; background:#fff; border:1.5px solid #E5E7EB; border-radius:999px; color:#0F1F5C; font-size:13px; font-weight:800; text-decoration:none; transition:all .2s; }
+.psg3-head .kicker { font-size:12px; font-weight:800; color:#E8780F; letter-spacing:0.06em; margin-bottom:8px; }
+.psg3-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-0.045em; line-height:1.25; }
+.psg3-head p { font-size:13.5px; font-weight:500; color:#6B7280; margin-top:6px; }
+.psg3-head .more { display:inline-flex; align-items:center; gap:6px; padding:10px 18px; background:#fff; border:1.5px solid #E5E7EB; border-radius:999px; color:#0F1F5C; font-size:13px; font-weight:800; text-decoration:none; transition:all .2s; letter-spacing:-0.02em; }
 .psg3-head .more:hover { border-color:#0F1F5C; background:#0F1F5C; color:#fff; }
+/* 데스크탑 그리드 (Feature 좌측 큰, 우측 3개) */
 .psg3-grid { display:grid; grid-template-columns:1.5fr 1fr 1fr; grid-template-rows:auto auto; gap:14px; }
+.psg3-list { display:contents; }
 .psg3-card { background:#fff; border-radius:20px; overflow:hidden; cursor:pointer; transition:all .3s; text-decoration:none; color:inherit; display:flex; flex-direction:column; border:1px solid #F3F4F6; }
 .psg3-card:hover { transform:translateY(-4px); box-shadow:0 20px 44px rgba(15,31,92,.1); border-color:transparent; }
 .psg3-card.feature { grid-row:span 2; }
@@ -2243,20 +2256,43 @@ show('entry');
 .psg3-card .img::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg,transparent 50%, rgba(0,0,0,.05) 100%); }
 .psg3-card.feature .img { aspect-ratio:1.4/1; }
 .psg3-card:not(.feature) .img { aspect-ratio:16/10; }
-.psg3-card .tag { position:absolute; top:14px; left:14px; padding:5px 11px; background:rgba(15,31,92,.95); color:#fff; font-size:10.5px; font-weight:800; border-radius:6px; backdrop-filter:blur(8px); letter-spacing:.5px; }
+.psg3-card .tag { position:absolute; top:14px; left:14px; padding:5px 11px; background:rgba(15,31,92,.95); color:#fff; font-size:10.5px; font-weight:800; border-radius:6px; backdrop-filter:blur(8px); letter-spacing:0.04em; }
 .psg3-card.feature .tag { background:#F97316; }
 .psg3-card .meta-tl { position:absolute; bottom:14px; right:14px; display:flex; gap:6px; }
 .psg3-card .meta-tl span { padding:4px 9px; background:rgba(0,0,0,.6); color:#fff; font-size:10.5px; font-weight:700; border-radius:5px; backdrop-filter:blur(4px); }
 .psg3-card .body { padding:18px 20px 22px; flex:1; display:flex; flex-direction:column; }
 .psg3-card.feature .body { padding:24px 26px 26px; }
-.psg3-card .title { font-size:14.5px; font-weight:800; color:#0F1F5C; line-height:1.45; margin-bottom:8px; letter-spacing:-.3px; }
-.psg3-card.feature .title { font-size:20px; line-height:1.3; }
-.psg3-card .desc { font-size:12.5px; color:#6B7280; line-height:1.6; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; flex:1; }
-.psg3-card.feature .desc { font-size:14px; -webkit-line-clamp:3; }
-.psg3-card .meta-bot { display:flex; gap:10px; align-items:center; margin-top:14px; padding-top:14px; border-top:1px solid #F3F4F6; font-size:11.5px; color:#9CA3AF; font-weight:600; }
+.psg3-card .title { font-size:14.5px; font-weight:800; color:#0F1F5C; line-height:1.45; margin-bottom:8px; letter-spacing:-0.03em; }
+.psg3-card.feature .title { font-size:20px; line-height:1.3; letter-spacing:-0.04em; }
+.psg3-card .desc { font-size:12.5px; font-weight:500; color:#6B7280; line-height:1.65; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; flex:1; letter-spacing:-0.02em; }
+.psg3-card.feature .desc { font-size:13.5px; -webkit-line-clamp:3; }
+.psg3-card .meta-bot { display:flex; gap:10px; align-items:center; margin-top:14px; padding-top:14px; border-top:1px solid #F3F4F6; font-size:11.5px; color:#9CA3AF; font-weight:600; letter-spacing:-0.02em; }
 .psg3-card .meta-bot .dot { width:3px; height:3px; background:#D1D5DB; border-radius:50%; }
-@media (max-width:880px) { .psg3-grid { grid-template-columns:1fr 1fr; } .psg3-card.feature { grid-row:auto; grid-column:span 2; } }
-@media (max-width:520px) { .psg3-grid { grid-template-columns:1fr; } .psg3-card.feature { grid-column:auto; } .psg3-head h2 { font-size:24px; } }
+/* 태블릿 */
+@media (max-width:1080px) {
+  .psg3-grid { grid-template-columns:1fr 1fr; }
+  .psg3-card.feature { grid-row:auto; grid-column:span 2; }
+  .psg3-card.feature .img { aspect-ratio:2.4/1; }
+}
+/* 모바일 — Feature 풀폭 + 나머지 3개 가로 스크롤 */
+@media (max-width:700px) {
+  .psg3 { padding:48px 0 56px; }
+  .psg3-inner { max-width:none; }
+  .psg3-head { padding:0 18px; margin-bottom:18px; }
+  .psg3-head h2 { font-size:24px; }
+  .psg3-head p { font-size:12.5px; }
+  .psg3-head .more { font-size:12px; padding:9px 14px; }
+  .psg3-grid { grid-template-columns:1fr; gap:14px; padding:0 18px; }
+  .psg3-card.feature { grid-column:auto; }
+  .psg3-card.feature .img { aspect-ratio:16/10; }
+  .psg3-card.feature .body { padding:18px 20px 22px; }
+  .psg3-card.feature .title { font-size:17px; }
+  .psg3-card.feature .desc { font-size:13px; -webkit-line-clamp:2; }
+  /* 비특집 카드 3개를 가로 스크롤 컨테이너로 */
+  .psg3-list { display:flex !important; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; -ms-overflow-style:none; gap:12px; padding:0 18px 8px; margin:0 -18px; -webkit-overflow-scrolling:touch; grid-column:auto; }
+  .psg3-list::-webkit-scrollbar { display:none; }
+  .psg3-list .psg3-card { flex:0 0 76%; max-width:300px; scroll-snap-align:center; }
+}
 </style>
 <section class="psg3">
   <div class="psg3-inner">
@@ -2273,18 +2309,20 @@ show('entry');
         <div class="img" style="background-image:url('https://placehold.co/1200x800/8B4513/fff?text=COVER+STORY')"><span class="tag">COVER STORY</span><div class="meta-tl"><span>📖 읽기 8분</span></div></div>
         <div class="body"><div class="title">금속기와 하자, 이렇게 대응합니다 — 실제 시공자가 알려주는 5단계</div><div class="desc">금속기와 지붕 소재의 특성과 하자 발생 원인, 그리고 POUR HOOKER 시스템으로 어떻게 해결하는지 단계별로 정리했습니다.</div><div class="meta-bot"><span>POUR 편집팀</span><span class="dot"></span><span>2일 전</span><span class="dot"></span><span>👁 4.2K</span></div></div>
       </a>
-      <a class="psg3-card" href="https://www.pourstore.net/posts/silicone">
-        <div class="img" style="background-image:url('https://placehold.co/600x375/D1D5DB/0F1F5C?text=SILICONE')"><span class="tag">노하우</span></div>
-        <div class="body"><div class="title">실리콘이 답일까? 외벽 균열 보수의 진실</div><div class="desc">실리콘 보수의 한계와 600% 신축 하이퍼티가 답인 이유.</div><div class="meta-bot"><span>5일 전</span><span class="dot"></span><span>👁 2.1K</span></div></div>
-      </a>
-      <a class="psg3-card" href="https://www.pourstore.net/posts/leak-fix">
-        <div class="img" style="background-image:url('https://placehold.co/600x375/059669/fff?text=DIY')"><span class="tag">셀프시공</span></div>
-        <div class="body"><div class="title">크랙·누수 한 방에 — 빌라 옥상 셀프 방수 후기</div><div class="desc">평택 빌라 옥상 셀프 방수 사례, 비용·시간·결과 모두 공개.</div><div class="meta-bot"><span>1주 전</span><span class="dot"></span><span>👁 3.5K</span></div></div>
-      </a>
-      <a class="psg3-card" href="https://www.pourstore.net/posts/shingle-coat">
-        <div class="img" style="background-image:url('https://placehold.co/600x375/B91C1C/fff?text=SHINGLE')"><span class="tag">슁글</span></div>
-        <div class="body"><div class="title">아스팔트 슁글에 도막방수, 잘 버틸까?</div><div class="desc">경사형 지붕에 액체방수의 한계 — 시트+도료 일체화 방식이 답.</div><div class="meta-bot"><span>2주 전</span><span class="dot"></span><span>👁 1.8K</span></div></div>
-      </a>
+      <div class="psg3-list">
+        <a class="psg3-card" href="https://www.pourstore.net/posts/silicone">
+          <div class="img" style="background-image:url('https://placehold.co/600x375/D1D5DB/0F1F5C?text=SILICONE')"><span class="tag">노하우</span></div>
+          <div class="body"><div class="title">실리콘이 답일까? 외벽 균열 보수의 진실</div><div class="desc">실리콘 보수의 한계와 600% 신축 하이퍼티가 답인 이유.</div><div class="meta-bot"><span>5일 전</span><span class="dot"></span><span>👁 2.1K</span></div></div>
+        </a>
+        <a class="psg3-card" href="https://www.pourstore.net/posts/leak-fix">
+          <div class="img" style="background-image:url('https://placehold.co/600x375/059669/fff?text=DIY')"><span class="tag">셀프시공</span></div>
+          <div class="body"><div class="title">크랙·누수 한 방에 — 빌라 옥상 셀프 방수 후기</div><div class="desc">평택 빌라 옥상 셀프 방수 사례, 비용·시간·결과 모두 공개.</div><div class="meta-bot"><span>1주 전</span><span class="dot"></span><span>👁 3.5K</span></div></div>
+        </a>
+        <a class="psg3-card" href="https://www.pourstore.net/posts/shingle-coat">
+          <div class="img" style="background-image:url('https://placehold.co/600x375/B91C1C/fff?text=SHINGLE')"><span class="tag">슁글</span></div>
+          <div class="body"><div class="title">아스팔트 슁글에 도막방수, 잘 버틸까?</div><div class="desc">경사형 지붕에 액체방수의 한계 — 시트+도료 일체화 방식이 답.</div><div class="meta-bot"><span>2주 전</span><span class="dot"></span><span>👁 1.8K</span></div></div>
+        </a>
+      </div>
     </div>
   </div>
 </section>`;
@@ -7130,6 +7168,29 @@ show('entry');
         }
       }
       s.migrations.dealerBackV1 = true;
+    }
+    // 1회성 마이그레이션 — 매거진 모바일 가로 스크롤 + 섹션 3 말풍선 디자인
+    if (!s.migrations.speechBubbleV1) {
+      const mainPageC = s.pages.find(p => p.id === 'main');
+      if (mainPageC && Array.isArray(mainPageC.sections)) {
+        const now = new Date().toISOString();
+        const swap = (matchClass, html, reason) => {
+          const idx = mainPageC.sections.findIndex(sec => (sec.html || '').indexOf(matchClass) !== -1);
+          if (idx === -1) return;
+          const sec = mainPageC.sections[idx];
+          const key = mainPageC.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason, kind: 'auto-migration', savedAt: now,
+          });
+          sec.html = html;
+          sec.statusAt = now;
+        };
+        swap('class="psg3"', SEED_POSTING_HTML, '매거진 — 모바일 가로 스크롤 적용 (Feature 카드 풀폭 + 비특집 3개는 76% 너비 가로 스크롤·peek)');
+        swap('class="pdq"', POUR_DR_QUICK_BANNER_HTML, 'POUR주치의 — 핵심 카피를 큰 말풍선으로 강조 (캐릭터 쪽 꼬리 + 따옴표 데코 + 살짝 흔들리는 sway 애니메이션, 강조 단어에 노란 형광펜)');
+      }
+      s.migrations.speechBubbleV1 = true;
     }
     return s;
   }

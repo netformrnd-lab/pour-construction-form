@@ -2138,17 +2138,17 @@ show('entry');
           <div class="psv2-icon"><svg viewBox="0 0 24 24"><path d="M3 9V21h18V9"/><path d="M2 6h20l-2 3H4Z"/><path d="M16 14h-8"/></svg></div>
           <div class="psv2-summary-text">
             <span class="psv2-summary-label">공급 제휴</span>
-            <div class="psv2-summary-title">대리점·콘텐츠 크리에이터 — 다양한 채널로</div>
+            <div class="psv2-summary-title">대리점·크리에이터 — 다양한 채널로</div>
             <div class="psv2-summary-sub">잘못된 시공·자재 걱정 없이 신뢰할 수 있는 파트너와</div>
           </div>
           <span class="psv2-toggle" aria-hidden="true">▾</span>
         </button>
         <div class="psv2-body">
           <div class="psv2-body-inner">
-            <div class="psv2-body-desc">POUR스토어의 자재·기술을 다양한 방식으로 전달할 제휴 파트너를 모집합니다. 대리점부터 콘텐츠 크리에이터까지, 채널에 맞는 협업 구조를 제안드려요.</div>
+            <div class="psv2-body-desc">POUR스토어의 자재·기술을 다양한 방식으로 전달할 제휴 파트너를 모집합니다. 대리점부터 크리에이터까지, 채널에 맞는 협업 구조를 제안드려요.</div>
             <div class="psv2-body-chips">
               <span class="psv2-body-chip">🏬 대리점</span>
-              <span class="psv2-body-chip">🎥 콘텐츠 크리에이터</span>
+              <span class="psv2-body-chip">🎥 크리에이터</span>
               <span class="psv2-body-chip">✍ 블로거</span>
               <span class="psv2-body-chip">＋ 기타 제휴 (커뮤니티·미디어)</span>
             </div>

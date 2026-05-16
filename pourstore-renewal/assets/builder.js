@@ -1098,13 +1098,13 @@ show('entry');
       <span class="pdq-pulse"></span>
     </div>
     <div class="pdq-text">
-      <span class="pdq-kicker"><span class="pdq-dot"></span>POUR스토어만의 1:1 서비스 · 24시간 케어 중</span>
+      <span class="pdq-kicker"><span class="pdq-dot"></span>POUR스토어만의 1:1 진단 서비스 · 지금도 진단 중</span>
       <div class="pdq-title">건물 상태가 걱정된다면 — <b>당신만의 POUR주치의</b></div>
-      <div class="pdq-desc">방수·도장·보수 50+ 특허 기반, 240만 세대 진단 데이터로<br/>증상만 알려주시면 우리 R&D팀이 직접 처방·시공 매칭까지 케어합니다.</div>
+      <div class="pdq-desc">방수·도장·보수 50+ 특허 기반, 240만 세대 진단 데이터로<br/>증상만 알려주시면 R&D팀이 직접 처방서 + 시공 매칭까지 한 번에.</div>
       <div class="pdq-stats">
         <span class="pdq-stat">🩺 누적 진단 <b>2.4M</b>+</span>
         <span class="pdq-stat">📊 특허·기술 <b>50+</b></span>
-        <span class="pdq-stat">🏥 케어 단지 <b>700+</b></span>
+        <span class="pdq-stat">🏥 진단한 단지 <b>700+</b></span>
         <span class="pdq-stat">⏱ 평균 응답 <b>3분</b></span>
       </div>
     </div>
@@ -1178,9 +1178,9 @@ show('entry');
 </style>
 <div class="pdh-inner">
   <div class="pdh-text">
-    <span class="pdh-kicker"><span class="pdh-kicker-dot"></span>POUR스토어만의 1:1 케어 서비스</span>
+    <span class="pdh-kicker"><span class="pdh-kicker-dot"></span>POUR스토어만의 1:1 진단 서비스</span>
     <h1 class="pdh-title">당신만의<br/>건물 <span class="pdh-accent">주치의</span>가<br/>여기 있습니다.</h1>
-    <p class="pdh-sub">사진 한 장이면 <b>R&D 박사·전문 시공팀·AI 분석가</b>가 함께 진단합니다.<br/>방수·도장·보수 <b>50+ 특허</b>와 <b>240만 세대 빅데이터</b>로 처방·시공·관리까지 — 한 번에.</p>
+    <p class="pdh-sub">사진 한 장이면 <b>R&D 박사·전문 시공팀·AI 분석가</b>가 함께 진단합니다.<br/>방수·도장·보수 <b>50+ 특허</b>와 <b>240만 세대 빅데이터</b>로 <b>처방서 + 시공 매칭</b>까지 — 한 번에.</p>
     <div class="pdh-cta">
       <button class="pdh-btn-primary" type="button">🩺 무료 진단 시작</button>
       <button class="pdh-btn-ghost" type="button">서비스 더 알아보기</button>
@@ -1188,8 +1188,8 @@ show('entry');
     <div class="pdh-trust">
       <div class="pdh-trust-item"><span class="pdh-trust-num">2.4M+</span><span class="pdh-trust-label">누적 진단 세대</span></div>
       <div class="pdh-trust-item"><span class="pdh-trust-num">50+</span><span class="pdh-trust-label">자체 특허·기술</span></div>
-      <div class="pdh-trust-item"><span class="pdh-trust-num">700+</span><span class="pdh-trust-label">케어 단지</span></div>
-      <div class="pdh-trust-item"><span class="pdh-trust-num">250+</span><span class="pdh-trust-label">전국 파트너</span></div>
+      <div class="pdh-trust-item"><span class="pdh-trust-num">700+</span><span class="pdh-trust-label">진단한 단지</span></div>
+      <div class="pdh-trust-item"><span class="pdh-trust-num">250+</span><span class="pdh-trust-label">전국 시공 파트너</span></div>
       <div class="pdh-trust-item"><span class="pdh-trust-num">3분</span><span class="pdh-trust-label">평균 응답</span></div>
     </div>
   </div>
@@ -1222,8 +1222,8 @@ show('entry');
       </div>
     </div>
     <div class="pdh-display-foot">
-      <span class="pdh-display-foot-label">오늘 진단 건수 · 케어 중 단지</span>
-      <span class="pdh-display-foot-val">23건 · 1,247세대</span>
+      <span class="pdh-display-foot-label">오늘 진단 건수 · 시공 매칭 완료</span>
+      <span class="pdh-display-foot-val">23건 · 14건</span>
     </div>
   </div>
 </div>
@@ -1240,7 +1240,7 @@ show('entry');
 .pdp-title { font-size:36px; font-weight:900; color:#111111; letter-spacing:-0.045em; line-height:1.25; }
 .pdp-title b { color:#E8780F; }
 .pdp-sub { margin-top:14px; font-size:16px; font-weight:500; color:#6B7280; letter-spacing:-0.02em; line-height:1.65; }
-.pdp-steps { display:grid; grid-template-columns:repeat(4,1fr); gap:22px; position:relative; }
+.pdp-steps { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; position:relative; }
 .pdp-steps::before { content:''; position:absolute; top:38px; left:8%; right:8%; height:2px; background:repeating-linear-gradient(90deg,#FED7AA 0,#FED7AA 6px,transparent 6px,transparent 12px); z-index:0; }
 .pdp-step { position:relative; background:#fff; border:1px solid #F2F3F5; border-radius:18px; padding:28px 22px; transition:.18s; z-index:1; }
 .pdp-step:hover { border-color:#E8780F; transform:translateY(-3px); box-shadow:0 12px 32px rgba(15,31,92,.08); }
@@ -1278,8 +1278,8 @@ show('entry');
 <div class="pdp-inner">
   <div class="pdp-head">
     <span class="pdp-kicker">CARE PROCESS</span>
-    <h2 class="pdp-title">진단부터 관리까지 — <b>4단계로 끝</b></h2>
-    <p class="pdp-sub">증상만 알려주시면 R&D 박사가 직접 처방서를 작성합니다. 시공·정기 케어까지 한 번에.</p>
+    <h2 class="pdp-title">진단부터 시공까지 — <b>3단계로 끝</b></h2>
+    <p class="pdp-sub">증상만 알려주시면 R&D 박사가 직접 처방서를 작성합니다. 셀프시공 가이드 또는 전문 시공팀 매칭까지 한 번에.</p>
   </div>
   <div class="pdp-steps">
     <div class="pdp-step">
@@ -1306,25 +1306,14 @@ show('entry');
     </div>
     <div class="pdp-step">
       <div class="pdp-step-num">03</div>
-      <div class="pdp-step-name">🔧 시공</div>
-      <p class="pdp-step-desc">250+ 전국 파트너 네트워크에서 최적 시공팀 자동 매칭</p>
+      <div class="pdp-step-name">🔧 시공 (선택)</div>
+      <p class="pdp-step-desc">셀프시공 가이드 또는 250+ 전국 파트너 네트워크에서 시공팀 매칭</p>
       <div class="pdp-step-list">
-        <div class="pdp-step-list-item">지역·경력·등급 기반 매칭</div>
-        <div class="pdp-step-list-item">시공 일정·진행 투명 공유</div>
-        <div class="pdp-step-list-item">하자 발생 시 POUR 직접 책임</div>
+        <div class="pdp-step-list-item">셀프시공 영상·단계 가이드 제공</div>
+        <div class="pdp-step-list-item">전문 시공: 지역·경력·등급 기반 매칭</div>
+        <div class="pdp-step-list-item">자재 직배송 + 시공팀 일정 조율</div>
       </div>
-      <span class="pdp-step-time">⏱ 평균 7~14일 내 착공</span>
-    </div>
-    <div class="pdp-step">
-      <div class="pdp-step-num">04</div>
-      <div class="pdp-step-name">📋 관리</div>
-      <p class="pdp-step-desc">시공 후에도 12개월간 정기 체크업 — 진짜 주치의 케어</p>
-      <div class="pdp-step-list">
-        <div class="pdp-step-list-item">3·6·12개월 정기 점검 알림</div>
-        <div class="pdp-step-list-item">재하자 발생 시 우선 대응</div>
-        <div class="pdp-step-list-item">관리 이력 카드 보관·승계</div>
-      </div>
-      <span class="pdp-step-time">⏱ 12개월 무상 케어</span>
+      <span class="pdp-step-time">⏱ 평균 7~14일 내 진행</span>
     </div>
   </div>
   <div class="pdp-cmp">
@@ -1338,13 +1327,10 @@ show('entry');
       <div class="pdp-cmp-cell us"><span class="ok">✓</span> 전문의 처방서 발급</div>
       <div class="pdp-cmp-cell">시공 매칭</div>
       <div class="pdp-cmp-cell"><span class="no">별도 업체 찾아야 함</span></div>
-      <div class="pdp-cmp-cell us"><span class="ok">✓</span> 250+ 파트너 자동 매칭</div>
-      <div class="pdp-cmp-cell">하자 보증</div>
-      <div class="pdp-cmp-cell"><span class="no">자재만 — 시공은 별도</span></div>
-      <div class="pdp-cmp-cell us"><span class="ok">✓</span> 자재+시공 통합 책임</div>
-      <div class="pdp-cmp-cell">시공 후 케어</div>
-      <div class="pdp-cmp-cell"><span class="no">없음</span></div>
-      <div class="pdp-cmp-cell us"><span class="ok">✓</span> 12개월 정기 체크업</div>
+      <div class="pdp-cmp-cell us"><span class="ok">✓</span> 250+ 파트너 자동 매칭 (선택)</div>
+      <div class="pdp-cmp-cell">셀프시공 가이드</div>
+      <div class="pdp-cmp-cell"><span class="no">상품 설명서 수준</span></div>
+      <div class="pdp-cmp-cell us"><span class="ok">✓</span> 단계별 영상·체크리스트 제공</div>
       <div class="pdp-cmp-cell">근거</div>
       <div class="pdp-cmp-cell"><span class="no">상품 설명 위주</span></div>
       <div class="pdp-cmp-cell us"><span class="ok">✓</span> 50+ 특허·240만 세대 데이터</div>
@@ -5847,7 +5833,7 @@ show('entry');
     ]},
     { id: 'pour-doctor', name: 'POUR주치의 (전용 페이지)', file: 'pour-doctor.html', sections: [
       mkSec('히어로 — 당신만의 건물 주치의', POUR_DR_HERO_HTML, '다크 네이비 + 라이브 진단 보드 + 5개 신뢰 수치 (의료·전문 톤)', 'wip'),
-      mkSec('4단계 케어 프로세스', POUR_DR_PROCESS_HTML, '진단→처방→시공→관리 + 일반 쇼핑몰 비교표', 'wip'),
+      mkSec('3단계 시공 프로세스', POUR_DR_PROCESS_HTML, '진단→처방→시공 매칭(선택) + 일반 쇼핑몰 비교표', 'wip'),
       mkSec('전문가 팀 + 빅데이터', POUR_DR_TRUST_HTML, 'R&D 박사·시공팀·AI 데이터팀 3카드 + 8개 핵심 수치 패널', 'wip'),
       mkSec('무료 진단 폼', POUR_DR_FORM_HTML, '건물유형·증상칩·메모·사진·연락처 — 3분 처방서 발송 CTA', 'wip'),
     ]},
@@ -6207,7 +6193,7 @@ show('entry');
           type: 'page',
           sections: [
             mkSec('히어로 — 당신만의 건물 주치의', POUR_DR_HERO_HTML, '다크 네이비 + 라이브 진단 보드 + 5개 신뢰 수치 (의료·전문 톤)', 'wip'),
-            mkSec('4단계 케어 프로세스', POUR_DR_PROCESS_HTML, '진단→처방→시공→관리 + 일반 쇼핑몰 비교표', 'wip'),
+            mkSec('3단계 시공 프로세스', POUR_DR_PROCESS_HTML, '진단→처방→시공 매칭(선택) + 일반 쇼핑몰 비교표', 'wip'),
             mkSec('전문가 팀 + 빅데이터', POUR_DR_TRUST_HTML, 'R&D 박사·시공팀·AI 데이터팀 3카드 + 8개 핵심 수치 패널', 'wip'),
             mkSec('무료 진단 폼', POUR_DR_FORM_HTML, '건물유형·증상칩·메모·사진·연락처 — 3분 처방서 발송 CTA', 'wip'),
           ],
@@ -6262,6 +6248,31 @@ show('entry');
       overwrite(doctorPage, 0, POUR_DR_HERO_HTML, 'POUR주치의 히어로 — 라이브 보드 4건 공법명 제거');
       overwrite(doctorPage, 1, POUR_DR_PROCESS_HTML, 'POUR주치의 처방 단계 — "POUR 공법" → "맞춤 시공 방법" 변경');
       s.migrations.plainWordingV1 = true;
+    }
+    // 1회성 마이그레이션 v2 — POUR주치의 "관리(4단계)" 제거 → 3단계(진단·처방·시공 매칭)로 축소
+    // 케어/체크업/관리 워딩 정리 + 시공 단계는 "선택"으로 명시 (셀프시공/매칭)
+    if (!s.migrations.plainWordingV2) {
+      const now2 = new Date().toISOString();
+      const overwrite2 = (page, idx, html, name, note, reason) => {
+        if (!page || !Array.isArray(page.sections) || idx >= page.sections.length) return;
+        const sec = page.sections[idx];
+        const key = page.id + ':' + sec.id;
+        s.history[key] = s.history[key] || [];
+        s.history[key].unshift({
+          name: sec.name, html: sec.html, note: sec.note || '',
+          reason, kind: 'auto-migration', savedAt: now2,
+        });
+        sec.html = html;
+        if (name) sec.name = name;
+        if (note) sec.note = note;
+        sec.statusAt = now2;
+      };
+      const mainPage2 = s.pages.find(p => p.id === 'main');
+      const doctorPage2 = s.pages.find(p => p.id === 'pour-doctor');
+      overwrite2(mainPage2, 2, POUR_DR_QUICK_BANNER_HTML, null, null, 'POUR주치의 퀵배너 — "24시간 케어 중·케어 단지" → "지금도 진단 중·진단한 단지"로 워딩 정리');
+      overwrite2(doctorPage2, 0, POUR_DR_HERO_HTML, null, '다크 네이비 + 라이브 진단 보드 + 5개 신뢰 수치 (의료·전문 톤, 관리/케어 워딩 제거)', 'POUR주치의 히어로 — "처방·시공·관리까지" → "처방서+시공 매칭까지", 케어 단지 → 진단한 단지');
+      overwrite2(doctorPage2, 1, POUR_DR_PROCESS_HTML, '3단계 시공 프로세스', '진단→처방→시공 매칭(선택) + 일반 쇼핑몰 비교표', 'POUR주치의 프로세스 — 4단계(관리 포함)에서 3단계로 축소, 시공 단계를 셀프/매칭 선택으로 표기, 비교표 "시공 후 케어" 행 제거');
+      s.migrations.plainWordingV2 = true;
     }
     return s;
   }

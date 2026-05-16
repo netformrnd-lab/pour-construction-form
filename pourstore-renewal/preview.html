@@ -458,7 +458,41 @@
         <button id="ftClose" class="close" aria-label="닫기">×</button>
       </div>
       <div class="modal-body">
-        <div style="font-size:12px; color:var(--ink2); background:#F0F9FF; border:1px solid #BAE6FD; padding:9px 12px; border-radius:8px; margin-bottom:14px; line-height:1.6;">
+        <!-- 컨펌 워크플로우 (섹션 단위와 동일 패턴) -->
+        <div class="ft-confirm-bar">
+          <div class="ft-confirm-left">
+            <span class="ft-confirm-label">현재 상태</span>
+            <button id="ftStatusBtn" class="ft-status-chip" type="button" title="클릭하여 상태 변경">
+              <span id="ftStatusIcon">●</span>
+              <span id="ftStatusText">초안</span>
+              <span class="ft-status-caret">▾</span>
+            </button>
+            <span id="ftStatusMeta" class="ft-status-meta"></span>
+          </div>
+          <div class="ft-confirm-right">
+            <button id="ftHistoryBtn" class="btn btn-ghost btn-sm" title="폰트 시스템 변경 이력 보기">📜 이력 <span id="ftHistoryCount" class="ft-hist-badge">0</span></button>
+          </div>
+          <!-- 상태 메뉴 (드롭다운) -->
+          <div id="ftStatusMenu" class="ft-status-menu" role="menu">
+            <button class="ft-status-item" data-status="wip"><span>⚙</span> 작업중</button>
+            <button class="ft-status-item" data-status="requested"><span>✋</span> 컨펌 요청</button>
+            <button class="ft-status-item" data-status="approved"><span>✅</span> 승인 완료</button>
+            <button class="ft-status-item" data-status="revision"><span>↻</span> 재수정 요청</button>
+            <button class="ft-status-item ft-status-item-quiet" data-status=""><span>⊘</span> 초안으로</button>
+          </div>
+        </div>
+        <!-- 메모 -->
+        <div class="ft-memo-wrap">
+          <label for="ftMemo" class="ft-memo-label">📝 폰트 시스템 메모 <span style="color:var(--muted); font-weight:500;">— 컨펌 요청·승인 시 참고용 (자동 저장)</span></label>
+          <textarea id="ftMemo" class="ft-memo" rows="2" placeholder="예: 오늘의집 기반, POUR 오렌지 컬러 유지 / 본문 14px·자간 -0.02em / 모바일 동일 적용"></textarea>
+        </div>
+        <!-- 이력 패널 (접이식) -->
+        <div id="ftHistoryPanel" class="ft-history-panel" style="display:none;">
+          <div class="ft-history-head"><b>변경 이력</b><span style="margin-left:auto; font-size:11px; color:var(--muted);">최신순 · 영구 보관</span></div>
+          <div id="ftHistoryList" class="ft-history-list"></div>
+        </div>
+
+        <div style="font-size:12px; color:var(--ink2); background:#F0F9FF; border:1px solid #BAE6FD; padding:9px 12px; border-radius:8px; margin:14px 0; line-height:1.6;">
           역할(강조·서브·본문·제목 등)별로 폰트를 정의해 두면, 섹션 HTML에서 <code>class="role-강조"</code> 처럼 클래스만 붙여도 모든 섹션에 일괄 반영됩니다.<br/>
           📋 전체 시안 미리보기와 <b>전체 HTML 복사</b>에 자동 포함됩니다. (개별 섹션 HTML 복사에는 포함되지 않음 — 카페24 등 외부 붙여넣기는 "전체 HTML 복사" 사용)<br/>
           ⚠ 섹션에 인라인 <code>style="font-family:…"</code>가 박혀있으면 해당 부분은 덮어쓰지 못합니다.

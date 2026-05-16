@@ -11,12 +11,15 @@
   const STAFF_COLORS = ['#0F1F5C','#03C75A','#D97706','#7C3AED','#DC2626','#0284C7','#DB2777','#059669','#9333EA','#EA580C'];
 
   // 폰트 토큰 — 역할별 일괄 적용 (state.fontTokens)
+  // 오늘의집(ohou.se) 폰트 시스템 — Pretendard 기반
+  // 패밀리: Pretendard, 컬러: 본문 #2F3438 / 서브 #888888, 자간 -0.02em ~ -0.04em
+  const OHOUSE_FONT_FAMILY = "'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
   function DEFAULT_FONT_TOKENS() {
     return [
-      { id: 'ft-heading',  key: '제목', label: '제목 (heading)', fontFamily: "'Noto Sans KR', sans-serif", fontSize: '28px', fontWeight: '900', color: '#0F1F5C', lineHeight: '1.3',  letterSpacing: '-0.02em' },
-      { id: 'ft-emphasis', key: '강조', label: '강조 (emphasis)', fontFamily: "'Noto Sans KR', sans-serif", fontSize: '20px', fontWeight: '700', color: '#E8780F', lineHeight: '1.4',  letterSpacing: '0' },
-      { id: 'ft-sub',      key: '서브', label: '서브 (sub)',      fontFamily: "'Noto Sans KR', sans-serif", fontSize: '14px', fontWeight: '500', color: '#6B7280', lineHeight: '1.6',  letterSpacing: '0' },
-      { id: 'ft-body',     key: '본문', label: '본문 (body)',     fontFamily: "'Noto Sans KR', sans-serif", fontSize: '15px', fontWeight: '400', color: '#111827', lineHeight: '1.75', letterSpacing: '0' },
+      { id: 'ft-heading',  key: '제목', label: '제목 (heading · 오늘의집)', fontFamily: OHOUSE_FONT_FAMILY, fontSize: '24px', fontWeight: '900', color: '#111111', lineHeight: '1.4',  letterSpacing: '-0.04em' },
+      { id: 'ft-emphasis', key: '강조', label: '강조 (emphasis · 오늘의집)', fontFamily: OHOUSE_FONT_FAMILY, fontSize: '16px', fontWeight: '700', color: '#2F3438', lineHeight: '1.45', letterSpacing: '-0.03em' },
+      { id: 'ft-body',     key: '본문', label: '본문 (body · 오늘의집)',     fontFamily: OHOUSE_FONT_FAMILY, fontSize: '14px', fontWeight: '400', color: '#2F3438', lineHeight: '1.5',  letterSpacing: '-0.02em' },
+      { id: 'ft-sub',      key: '서브', label: '서브 (sub · 오늘의집)',      fontFamily: OHOUSE_FONT_FAMILY, fontSize: '12px', fontWeight: '500', color: '#888888', lineHeight: '1.5',  letterSpacing: '-0.02em' },
     ];
   }
   // 클래스 이름에 안전하지 않은 문자 제거 (한글/영문/숫자/하이픈/언더스코어만 허용)
@@ -605,43 +608,44 @@ show('entry');
   // 메인 1번 섹션 — 오늘의집 레이아웃 차용 v1 (헤더·탭·2분할 히어로·카테고리 아이콘 10개, 모바일 반응형)
   const OHOUSE_V1_SECTION_HTML = `<section class="psm1">
 <style>
-.psm1 *, .psm1 *::before, .psm1 *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR','Apple SD Gothic Neo',sans-serif; }
-.psm1 { background:#fff; color:#111827; line-height:1.5; -webkit-font-smoothing:antialiased; }
+.psm1 *, .psm1 *::before, .psm1 *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,Roboto,'Helvetica Neue','Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.psm1 { background:#fff; color:#2F3438; line-height:1.5; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; letter-spacing:-0.02em; }
 .psm1 a { color:inherit; text-decoration:none; }
-.psm1 button { background:none; border:none; cursor:pointer; font:inherit; color:inherit; }
+.psm1 button { background:none; border:none; cursor:pointer; font:inherit; color:inherit; letter-spacing:inherit; }
 .psm1 img { display:block; max-width:100%; }
 /* 1) 헤더 */
 .psm1-hd { border-bottom:1px solid #F2F3F5; }
 .psm1-hd-inner { max-width:1256px; margin:0 auto; padding:16px 24px; display:flex; align-items:center; gap:32px; }
-.psm1-logo { display:flex; align-items:center; gap:8px; font-weight:900; font-size:22px; color:#0F1F5C; letter-spacing:-0.5px; flex-shrink:0; }
-.psm1-logo .psm1-logo-mark { width:30px; height:30px; border-radius:8px; background:linear-gradient(135deg,#F49A3A 0%,#E8780F 100%); display:grid; place-items:center; color:#fff; font-size:14px; font-weight:900; letter-spacing:-0.5px; }
+.psm1-logo { display:flex; align-items:center; gap:8px; font-weight:800; font-size:22px; color:#0F1F5C; letter-spacing:-0.04em; flex-shrink:0; }
+.psm1-logo .psm1-logo-mark { width:30px; height:30px; border-radius:8px; background:linear-gradient(135deg,#F49A3A 0%,#E8780F 100%); display:grid; place-items:center; color:#fff; font-size:14px; font-weight:800; letter-spacing:-0.04em; }
 .psm1-gnb { display:flex; gap:24px; align-items:center; }
-.psm1-gnb a { font-size:16px; font-weight:700; color:#374151; padding:6px 0; }
-.psm1-gnb a.on { color:#0F1F5C; }
+.psm1-gnb a { font-size:16px; font-weight:700; color:#424242; padding:6px 0; letter-spacing:-0.03em; }
+.psm1-gnb a.on { color:#E8780F; }
 .psm1-gnb a:hover { color:#E8780F; }
 .psm1-search { flex:1; max-width:480px; position:relative; }
-.psm1-search input { width:100%; padding:11px 16px 11px 44px; font-size:14px; background:#F5F6F8; border:1px solid #F5F6F8; border-radius:24px; outline:none; transition:.15s; }
+.psm1-search input { width:100%; padding:11px 16px 11px 44px; font-size:14px; font-weight:400; letter-spacing:-0.02em; background:#F5F6F8; border:1px solid #F5F6F8; border-radius:24px; outline:none; transition:.15s; color:#2F3438; }
+.psm1-search input::placeholder { color:#9E9E9E; font-weight:400; }
 .psm1-search input:focus { background:#fff; border-color:#E8780F; }
 .psm1-search .psm1-search-ico { position:absolute; left:16px; top:50%; transform:translateY(-50%); width:18px; height:18px; opacity:.55; }
 .psm1-util { display:flex; align-items:center; gap:18px; margin-left:auto; }
-.psm1-util a { font-size:13px; color:#6B7280; }
-.psm1-util a:hover { color:#111827; }
+.psm1-util a { font-size:13px; font-weight:500; color:#757575; letter-spacing:-0.02em; }
+.psm1-util a:hover { color:#2F3438; }
 .psm1-util .psm1-cart { width:24px; height:24px; opacity:.7; }
-.psm1-write { display:inline-flex; align-items:center; gap:4px; padding:8px 16px; background:#0F1F5C; color:#fff !important; border-radius:20px; font-size:13px; font-weight:700; }
-.psm1-write:hover { background:#0A1742; }
+.psm1-write { display:inline-flex; align-items:center; gap:4px; padding:8px 16px; background:#E8780F; color:#fff !important; border-radius:20px; font-size:14px; font-weight:700; letter-spacing:-0.03em; }
+.psm1-write:hover { background:#C8650D; }
 .psm1-hd-mb { display:none; }
 /* 2) 카테고리 탭 */
 .psm1-tabs { border-bottom:1px solid #F2F3F5; background:#fff; }
 .psm1-tabs-inner { max-width:1256px; margin:0 auto; padding:0 24px; display:flex; align-items:center; gap:0; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; }
 .psm1-tabs-inner::-webkit-scrollbar { display:none; }
-.psm1-tab { padding:16px 14px; font-size:15px; font-weight:600; color:#9CA3AF; white-space:nowrap; border-bottom:3px solid transparent; margin-bottom:-1px; transition:.15s; }
-.psm1-tab.on { color:#E8780F; border-color:#E8780F; font-weight:800; }
-.psm1-tab:hover { color:#111827; }
-.psm1-tab .psm1-tab-new { display:inline-block; font-size:9px; font-weight:900; color:#E8780F; vertical-align:top; margin-left:2px; }
+.psm1-tab { padding:16px 14px; font-size:15px; font-weight:600; color:#757575; white-space:nowrap; border-bottom:2px solid transparent; margin-bottom:-1px; transition:.15s; letter-spacing:-0.03em; }
+.psm1-tab.on { color:#E8780F; border-color:#E8780F; font-weight:700; }
+.psm1-tab:hover { color:#2F3438; }
+.psm1-tab .psm1-tab-new { display:inline-block; font-size:10px; font-weight:800; color:#E8780F; vertical-align:top; margin-left:2px; letter-spacing:0; }
 .psm1-tabs-tail { margin-left:auto; display:flex; align-items:center; gap:8px; padding:10px 0; flex-shrink:0; }
-.psm1-tabs-tail .psm1-tail-count { width:24px; height:24px; border-radius:50%; background:#FFF7ED; color:#E8780F; font-size:11px; font-weight:900; display:grid; place-items:center; }
-.psm1-tabs-tail .psm1-tail-txt { font-size:13px; color:#374151; font-weight:600; }
-.psm1-tabs-tail .psm1-tail-new { font-size:9px; font-weight:900; color:#E8780F; padding:2px 4px; border-radius:3px; background:#FFEDD5; }
+.psm1-tabs-tail .psm1-tail-count { width:24px; height:24px; border-radius:50%; background:#FFF7ED; color:#E8780F; font-size:12px; font-weight:800; display:grid; place-items:center; letter-spacing:-0.02em; }
+.psm1-tabs-tail .psm1-tail-txt { font-size:14px; color:#2F3438; font-weight:600; letter-spacing:-0.03em; }
+.psm1-tabs-tail .psm1-tail-new { font-size:10px; font-weight:800; color:#E8780F; padding:2px 4px; border-radius:3px; background:#FFEDD5; letter-spacing:0; }
 .psm1-tabs-tail .psm1-tail-chev { font-size:12px; color:#9CA3AF; }
 /* 3) 히어로 배너 (2분할) */
 .psm1-hero { background:#fff; padding:20px 24px 0; }
@@ -650,19 +654,19 @@ show('entry');
 .psm1-banner-img { width:100%; height:100%; object-fit:cover; }
 .psm1-banner-grad { position:absolute; inset:0; background:linear-gradient(180deg, transparent 40%, rgba(0,0,0,.55) 100%); }
 .psm1-banner-cap { position:absolute; left:24px; right:24px; bottom:24px; color:#fff; }
-.psm1-banner-cap .tag { display:inline-block; font-size:12px; font-weight:700; padding:4px 9px; background:rgba(232,120,15,.92); border-radius:4px; margin-bottom:10px; letter-spacing:-0.2px; }
-.psm1-banner-cap .title { font-size:22px; font-weight:900; line-height:1.35; letter-spacing:-0.5px; text-shadow:0 2px 8px rgba(0,0,0,.3); }
-.psm1-banner-cap .author { margin-top:8px; font-size:12px; font-weight:600; opacity:.95; display:flex; align-items:center; gap:5px; }
-.psm1-banner-cap .author .av { width:20px; height:20px; border-radius:50%; background:linear-gradient(135deg,#F49A3A,#E8780F); display:grid; place-items:center; font-size:10px; font-weight:900; }
-.psm1-banner-counter { position:absolute; right:14px; bottom:14px; background:rgba(15,23,42,.65); color:#fff; font-size:11px; font-weight:700; padding:4px 9px; border-radius:12px; backdrop-filter:blur(4px); }
+.psm1-banner-cap .tag { display:inline-block; font-size:12px; font-weight:700; padding:4px 9px; background:rgba(232,120,15,.92); border-radius:4px; margin-bottom:10px; letter-spacing:-0.02em; }
+.psm1-banner-cap .title { font-size:22px; font-weight:800; line-height:1.35; letter-spacing:-0.04em; text-shadow:0 2px 8px rgba(0,0,0,.3); }
+.psm1-banner-cap .author { margin-top:8px; font-size:12px; font-weight:500; opacity:.95; display:flex; align-items:center; gap:5px; letter-spacing:-0.02em; }
+.psm1-banner-cap .author .av { width:20px; height:20px; border-radius:50%; background:linear-gradient(135deg,#F49A3A,#E8780F); display:grid; place-items:center; font-size:10px; font-weight:800; }
+.psm1-banner-counter { position:absolute; right:14px; bottom:14px; background:rgba(15,23,42,.65); color:#fff; font-size:11px; font-weight:600; padding:4px 9px; border-radius:12px; backdrop-filter:blur(4px); letter-spacing:-0.02em; }
 .psm1-banner-side { position:relative; border-radius:12px; overflow:hidden; aspect-ratio:auto; background:linear-gradient(160deg,#E8780F 0%,#F49A3A 60%,#FED7AA 100%); cursor:pointer; display:flex; flex-direction:column; padding:20px 22px; min-height:100%; }
-.psm1-banner-side .ad { display:inline-block; font-size:10px; font-weight:800; padding:2px 6px; background:rgba(255,255,255,.85); color:#7C2D12; border-radius:3px; align-self:flex-start; letter-spacing:.5px; }
-.psm1-banner-side .label { margin-top:18px; font-size:12px; font-weight:700; color:#7C2D12; }
-.psm1-banner-side .title { margin-top:6px; font-size:20px; font-weight:900; color:#fff; line-height:1.3; letter-spacing:-0.5px; }
+.psm1-banner-side .ad { display:inline-block; font-size:10px; font-weight:700; padding:2px 6px; background:rgba(255,255,255,.85); color:#7C2D12; border-radius:3px; align-self:flex-start; letter-spacing:0.02em; }
+.psm1-banner-side .label { margin-top:18px; font-size:12px; font-weight:600; color:#7C2D12; letter-spacing:-0.02em; }
+.psm1-banner-side .title { margin-top:6px; font-size:20px; font-weight:800; color:#fff; line-height:1.3; letter-spacing:-0.04em; }
 .psm1-banner-side .product { margin-top:auto; padding-top:20px; align-self:center; display:grid; place-items:center; }
 .psm1-banner-side .product-mock { width:120px; height:140px; background:rgba(255,255,255,.92); border-radius:10px; box-shadow:0 8px 24px rgba(124,45,18,.18); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:#0F1F5C; }
 .psm1-banner-side .product-mock .pm-pkg { font-size:36px; }
-.psm1-banner-side .product-mock .pm-name { font-size:10px; font-weight:800; color:#7C2D12; letter-spacing:.5px; }
+.psm1-banner-side .product-mock .pm-name { font-size:10px; font-weight:700; color:#7C2D12; letter-spacing:0.02em; }
 /* 4) 카테고리 아이콘 */
 .psm1-cats { padding:30px 24px 36px; }
 .psm1-cats-inner { max-width:1256px; margin:0 auto; display:grid; grid-template-columns:repeat(10,1fr); gap:8px; }
@@ -679,7 +683,7 @@ show('entry');
 .psm1-cat-ico.c8 { background:#E0F2FE; color:#0284C7; }
 .psm1-cat-ico.c9 { background:#CFFAFE; color:#0891B2; }
 .psm1-cat-ico.c10 { background:#FEE2E2; color:#DC2626; }
-.psm1-cat-name { font-size:12px; font-weight:600; color:#374151; text-align:center; letter-spacing:-0.3px; }
+.psm1-cat-name { font-size:13px; font-weight:500; color:#2F3438; text-align:center; letter-spacing:-0.03em; }
 /* 모바일 반응형 */
 @media (max-width: 900px) {
   .psm1-hero-inner { grid-template-columns:1fr 220px; gap:12px; }
@@ -692,8 +696,8 @@ show('entry');
   .psm1-hd-inner { display:none; }
   .psm1-hd-mb { display:grid; grid-template-columns:40px 1fr 40px 40px; align-items:center; padding:12px 14px; gap:4px; }
   .psm1-hd-mb .psm1-mb-menu, .psm1-hd-mb .psm1-mb-search, .psm1-hd-mb .psm1-mb-cart { width:40px; height:40px; display:grid; place-items:center; font-size:22px; color:#374151; }
-  .psm1-hd-mb .psm1-mb-logo { display:flex; align-items:center; justify-content:center; gap:7px; font-weight:900; font-size:19px; color:#0F1F5C; letter-spacing:-0.5px; }
-  .psm1-hd-mb .psm1-mb-logo .psm1-logo-mark { width:26px; height:26px; font-size:12px; }
+  .psm1-hd-mb .psm1-mb-logo { display:flex; align-items:center; justify-content:center; gap:7px; font-weight:800; font-size:19px; color:#0F1F5C; letter-spacing:-0.04em; }
+  .psm1-hd-mb .psm1-mb-logo .psm1-logo-mark { width:26px; height:26px; font-size:12px; font-weight:800; letter-spacing:-0.04em; }
   .psm1-tabs-inner { padding:0 14px; }
   .psm1-tab { font-size:14px; padding:14px 10px; }
   .psm1-tabs-tail { display:none; }
@@ -5595,6 +5599,12 @@ show('entry');
     });
     s.trash = s.trash && typeof s.trash === 'object' ? s.trash : {};
     s.trash.feedbacks = Array.isArray(s.trash.feedbacks) ? s.trash.feedbacks : [];
+    // 폰트 시스템 컨펌 워크플로우 (섹션 단위와 동일 패턴)
+    if (!s.fontSystem || typeof s.fontSystem !== 'object') {
+      s.fontSystem = { status: null, statusAt: null, statusBy: null, statusByName: null, note: '', history: [] };
+    }
+    if (typeof s.fontSystem.note !== 'string') s.fontSystem.note = '';
+    if (!Array.isArray(s.fontSystem.history)) s.fontSystem.history = [];
     // 폰트 토큰 — 역할별 일괄 적용 (없으면 기본 4종 시드)
     if (!Array.isArray(s.fontTokens)) s.fontTokens = DEFAULT_FONT_TOKENS();
     s.fontTokens.forEach((t, i) => {
@@ -5642,9 +5652,14 @@ show('entry');
       if (!Array.isArray(list)) { delete s.history[k]; return; }
       list.forEach(v => { if (v.reason === undefined) v.reason = ''; });
     });
+    s.migrations = (s.migrations && typeof s.migrations === 'object') ? s.migrations : {};
+    // 1회성 마이그레이션 — 폰트 토큰을 오늘의집(Pretendard 기반) 스펙으로 재설정
+    if (!s.migrations.fontTokensOhouseV1) {
+      s.fontTokens = DEFAULT_FONT_TOKENS();
+      s.migrations.fontTokensOhouseV1 = true;
+    }
     // 1회성 마이그레이션 — 메인 1번 섹션을 오늘의집 레이아웃 v1 시안으로 자동 교체
     // (이전 HTML은 이력에 자동 보관 — "이력" 버튼에서 언제든 복원 가능)
-    s.migrations = (s.migrations && typeof s.migrations === 'object') ? s.migrations : {};
     if (!s.migrations.mainBannerOhouseV1) {
       const mainPage = s.pages.find(p => p.id === 'main');
       if (mainPage && Array.isArray(mainPage.sections) && mainPage.sections.length > 0) {
@@ -5668,6 +5683,28 @@ show('entry');
         sec.confirmedAt = null;
       }
       s.migrations.mainBannerOhouseV1 = true;
+    }
+    // 1회성 마이그레이션 v2 — 메인 1번 섹션 폰트 정밀화 (Pretendard + 오늘의집 굵기·크기, POUR 오렌지 유지)
+    if (!s.migrations.mainBannerOhouseV2) {
+      const mainPage = s.pages.find(p => p.id === 'main');
+      if (mainPage && Array.isArray(mainPage.sections) && mainPage.sections.length > 0) {
+        const sec = mainPage.sections[0];
+        const now = new Date().toISOString();
+        const key = mainPage.id + ':' + sec.id;
+        s.history[key] = s.history[key] || [];
+        s.history[key].unshift({
+          name: sec.name,
+          html: sec.html,
+          note: sec.note || '',
+          reason: '오늘의집 레이아웃 v2 — 폰트 정밀화 (Pretendard 패밀리·굵기·크기 적용, POUR 오렌지 컬러 유지)',
+          kind: 'auto-migration',
+          savedAt: now,
+        });
+        sec.html = OHOUSE_V1_SECTION_HTML;
+        sec.note = '오늘의집 레이아웃 v2 — Pretendard + 정밀 굵기·크기 (POUR 오렌지 컬러 유지, 모바일 반응형)';
+        sec.statusAt = now;
+      }
+      s.migrations.mainBannerOhouseV2 = true;
     }
     return s;
   }
@@ -6820,6 +6857,8 @@ show('entry');
     const href = window.location.href.replace(/[^/]*$/, '');
     return href;
   }
+  // Pretendard CDN — 오늘의집과 동일 폰트 (variable + static fallback)
+  const PRETENDARD_CSS_URL = 'https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css';
   function buildFontTokensCss() {
     const tokens = (state && Array.isArray(state.fontTokens)) ? state.fontTokens : [];
     if (tokens.length === 0) return '';
@@ -6836,7 +6875,9 @@ show('entry');
       ].filter(Boolean).join(';');
       return `.role-${key}{${decl};}`;
     }).filter(Boolean).join('\n');
-    return rules ? `<style data-pour-font-tokens="1">\n${rules}\n</style>` : '';
+    if (!rules) return '';
+    // @import을 인라인 <style>에 포함 — 외부 사이트(카페24 등)에 붙여넣어도 Pretendard가 자동 로드됨
+    return `<style data-pour-font-tokens="1">\n@import url('${PRETENDARD_CSS_URL}');\n${rules}\n</style>`;
   }
   function wrapPreview(bodyHtml) {
     const baseHref = previewBaseHref();
@@ -6845,8 +6886,9 @@ show('entry');
       '<meta name="viewport" content="width=device-width, initial-scale=1"/>',
       `<base href="${baseHref}"/>`,
       '<title>섹션 미리보기</title>',
+      `<link href="${PRETENDARD_CSS_URL}" rel="stylesheet"/>`,
       '<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Bebas+Neue&display=swap" rel="stylesheet"/>',
-      '<style>html,body{margin:0;font-family:\'Noto Sans KR\',sans-serif;background:#fff;color:#111827;}</style>',
+      '<style>html,body{margin:0;font-family:\'Pretendard Variable\',Pretendard,-apple-system,BlinkMacSystemFont,\'Apple SD Gothic Neo\',\'Noto Sans KR\',sans-serif;background:#fff;color:#111827;}</style>',
       buildFontTokensCss(),
       '</head><body>',
       bodyHtml || '<div style="padding:40px; text-align:center; color:#9CA3AF; font-size:13px;">섹션 HTML이 비어있습니다.</div>',
@@ -7192,8 +7234,129 @@ show('entry');
   // -------- 폰트 토큰 (역할별 일괄 폰트) --------
   function openFontTokensModal() {
     renderFontTokensList();
+    renderFontConfirmBar();
+    renderFontHistory();
+    const memoEl = document.getElementById('ftMemo');
+    if (memoEl) memoEl.value = (state.fontSystem && state.fontSystem.note) || '';
     openModal('fontTokensModal');
   }
+  // 폰트 시스템 — 컨펌 상태 바 렌더
+  function renderFontConfirmBar() {
+    const fs = state.fontSystem || {};
+    const chip = document.getElementById('ftStatusBtn');
+    const icon = document.getElementById('ftStatusIcon');
+    const text = document.getElementById('ftStatusText');
+    const meta = document.getElementById('ftStatusMeta');
+    if (!chip) return;
+    const meta1 = STATUS_META[fs.status];
+    if (meta1) {
+      chip.setAttribute('data-status', fs.status);
+      icon.textContent = meta1.icon;
+      text.textContent = meta1.label;
+    } else {
+      chip.removeAttribute('data-status');
+      icon.textContent = '●';
+      text.textContent = '초안';
+    }
+    if (meta) {
+      if (fs.statusAt) {
+        const who = fs.statusByName ? ` · ${fs.statusByName}` : '';
+        meta.textContent = `${fmtDate(fs.statusAt)}${who}`;
+      } else {
+        meta.textContent = '';
+      }
+    }
+    // 이력 배지
+    const histBadge = document.getElementById('ftHistoryCount');
+    if (histBadge) {
+      const cnt = (fs.history || []).length;
+      histBadge.textContent = String(cnt);
+      histBadge.classList.toggle('has', cnt > 0);
+    }
+  }
+  function toggleFontStatusMenu(force) {
+    const menu = document.getElementById('ftStatusMenu');
+    if (!menu) return;
+    const open = typeof force === 'boolean' ? force : !menu.classList.contains('open');
+    menu.classList.toggle('open', open);
+  }
+  function setFontSystemStatus(newStatus) {
+    const fs = state.fontSystem || (state.fontSystem = { status: null, statusAt: null, statusBy: null, statusByName: null, note: '', history: [] });
+    newStatus = newStatus || null;
+    if ((fs.status || null) === newStatus) { toggleFontStatusMenu(false); return; }
+    const fromLabel = STATUS_META[fs.status] ? STATUS_META[fs.status].label : '초안';
+    const toLabel = STATUS_META[newStatus] ? STATUS_META[newStatus].label : '초안';
+    // 변경 사유 입력 (사용자 확인)
+    const reasonInput = prompt(`폰트 시스템 상태 변경\n\n${fromLabel} → ${toLabel}\n\n변경 사유를 입력하세요 (이력에 기록됨):`, '');
+    if (reasonInput === null) { toggleFontStatusMenu(false); return; } // 취소
+    const reason = reasonInput.trim();
+    const me = getMeStaff ? getMeStaff() : null;
+    let kind, toastMsg, toastType;
+    if (newStatus === 'wip')           { kind = 'wip';      toastMsg = '작업중으로 표시됨';   toastType = 'info'; }
+    else if (newStatus === 'requested'){ kind = 'request';  toastMsg = '컨펌 요청으로 표시됨'; toastType = 'info'; }
+    else if (newStatus === 'approved') { kind = 'approve';  toastMsg = '승인 완료로 표시됨';   toastType = 'success'; }
+    else if (newStatus === 'revision') { kind = 'revision'; toastMsg = '재수정 요청으로 표시됨'; toastType = 'error'; }
+    else                                { kind = 'reset-status'; toastMsg = '초안 상태로 되돌림'; toastType = 'info'; }
+    fs.history = fs.history || [];
+    fs.history.unshift({
+      kind,
+      reason: reason || `${fromLabel} → ${toLabel}`,
+      status: newStatus,
+      fromStatus: fs.status || null,
+      note: fs.note || '',
+      staffId: me ? me.id : null,
+      staffName: me ? me.name : null,
+      staffRole: me ? me.role : null,
+      savedAt: nowIso(),
+    });
+    fs.status = newStatus;
+    fs.statusAt = newStatus ? nowIso() : null;
+    fs.statusBy = me ? me.id : null;
+    fs.statusByName = me ? me.name : null;
+    saveState();
+    toggleFontStatusMenu(false);
+    renderFontConfirmBar();
+    renderFontHistory();
+    toast(`폰트 시스템 → ${toLabel} · ${toastMsg}`, toastType);
+  }
+  function updateFontSystemNote(value) {
+    const fs = state.fontSystem || (state.fontSystem = { status: null, statusAt: null, statusBy: null, statusByName: null, note: '', history: [] });
+    fs.note = String(value || '');
+    saveState();
+  }
+  function renderFontHistory() {
+    const list = document.getElementById('ftHistoryList');
+    if (!list) return;
+    const fs = state.fontSystem || {};
+    const arr = fs.history || [];
+    list.innerHTML = '';
+    if (arr.length === 0) {
+      list.innerHTML = '<div class="ft-history-empty">아직 변경 이력이 없습니다.<br/>상단 상태 칩을 클릭해 컨펌 요청·승인·재수정 흐름을 시작하세요.</div>';
+      return;
+    }
+    arr.forEach(h => {
+      const row = document.createElement('div');
+      row.className = 'ft-history-item';
+      const kindLabel =
+        h.kind === 'approve'      ? '✅ 승인' :
+        h.kind === 'request'      ? '✋ 컨펌요청' :
+        h.kind === 'revision'     ? '↻ 재수정요청' :
+        h.kind === 'wip'          ? '⚙ 작업중' :
+        h.kind === 'reset-status' ? '⊘ 초안화' : '✎ 변경';
+      row.innerHTML = `
+        <div class="fh-head">
+          <span class="fh-kind" data-k="${escapeHtml(h.kind || '')}">${kindLabel}</span>
+          ${h.staffName ? `<span class="fh-who">${escapeHtml(h.staffName)}${h.staffRole ? ' · ' + escapeHtml(h.staffRole) : ''}</span>` : '<span class="fh-who" style="color:var(--muted); font-weight:500;">익명</span>'}
+          <span class="fh-when">${escapeHtml(fmtDate(h.savedAt))}</span>
+        </div>
+        ${h.reason ? `<div class="fh-reason">${escapeHtml(h.reason)}</div>` : ''}
+        ${h.note ? `<div class="fh-reason" style="background:var(--light); padding:6px 8px; border-radius:6px; color:var(--ink2); font-size:11.5px;">📝 ${escapeHtml(h.note)}</div>` : ''}
+      `;
+      list.appendChild(row);
+    });
+  }
+
+
   function renderFontTokensList() {
     const wrap = document.getElementById('ftList');
     if (!wrap) return;
@@ -11648,6 +11811,46 @@ show('entry');
     if (ftAdd) ftAdd.addEventListener('click', addFontToken);
     const ftReset = document.getElementById('ftReset');
     if (ftReset) ftReset.addEventListener('click', resetFontTokens);
+    // 폰트 시스템 컨펌 워크플로우
+    const ftStatusBtn = document.getElementById('ftStatusBtn');
+    if (ftStatusBtn) ftStatusBtn.addEventListener('click', e => { e.stopPropagation(); toggleFontStatusMenu(); });
+    const ftStatusMenu = document.getElementById('ftStatusMenu');
+    if (ftStatusMenu) {
+      ftStatusMenu.querySelectorAll('.ft-status-item').forEach(btn => {
+        btn.addEventListener('click', () => setFontSystemStatus(btn.dataset.status || null));
+      });
+    }
+    // 메뉴 바깥 클릭 시 닫기
+    document.addEventListener('click', e => {
+      const menu = document.getElementById('ftStatusMenu');
+      if (!menu || !menu.classList.contains('open')) return;
+      if (e.target.closest('#ftStatusMenu') || e.target.closest('#ftStatusBtn')) return;
+      menu.classList.remove('open');
+    });
+    // 메모 자동 저장 (debounce)
+    const ftMemo = document.getElementById('ftMemo');
+    if (ftMemo) {
+      let memoTimer = null;
+      ftMemo.addEventListener('input', () => {
+        if (memoTimer) clearTimeout(memoTimer);
+        memoTimer = setTimeout(() => updateFontSystemNote(ftMemo.value), 400);
+      });
+      ftMemo.addEventListener('blur', () => {
+        if (memoTimer) { clearTimeout(memoTimer); memoTimer = null; }
+        updateFontSystemNote(ftMemo.value);
+      });
+    }
+    // 이력 패널 토글
+    const ftHistoryBtn = document.getElementById('ftHistoryBtn');
+    if (ftHistoryBtn) {
+      ftHistoryBtn.addEventListener('click', () => {
+        const panel = document.getElementById('ftHistoryPanel');
+        if (!panel) return;
+        const open = panel.style.display !== 'none';
+        panel.style.display = open ? 'none' : 'block';
+        if (!open) renderFontHistory();
+      });
+    }
     var btnPL = document.getElementById('btnCopyPageLink');
     if (btnPL) btnPL.addEventListener('click', function(){ copyPageLink(getActivePage().id); });
     document.getElementById('btnExport').addEventListener('click', exportJson);

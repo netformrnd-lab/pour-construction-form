@@ -631,8 +631,8 @@ show('entry');
 .psm1-helper { position:absolute; top:calc(100% + 10px); left:0; right:0; background:#fff; border:1px solid #F2F3F5; border-radius:18px; box-shadow:0 16px 48px rgba(15,31,92,.14), 0 4px 12px rgba(15,31,92,.08); padding:18px; display:flex; gap:14px; opacity:0; pointer-events:none; transform:translateY(-6px); transition:all .22s cubic-bezier(.16,1,.3,1); z-index:50; }
 .psm1-helper.open { opacity:1; pointer-events:auto; transform:translateY(0); }
 .psm1-helper::before { content:''; position:absolute; top:-7px; left:32px; width:14px; height:14px; background:#fff; border-left:1px solid #F2F3F5; border-top:1px solid #F2F3F5; transform:rotate(45deg); }
-.psm1-helper-char { flex-shrink:0; width:96px; height:104px; border-radius:14px; overflow:hidden; background:#F0F4FF; align-self:flex-end; }
-.psm1-helper-char svg, .psm1-helper-char img { width:100%; height:100%; object-fit:cover; display:block; }
+.psm1-helper-char { flex-shrink:0; width:96px; height:104px; border-radius:14px; overflow:hidden; background:linear-gradient(180deg,#F0F4FF 0%,#DCEBFF 100%); align-self:flex-end; }
+.psm1-helper-char svg, .psm1-helper-char img { width:100%; height:100%; object-fit:cover; object-position:center top; display:block; }
 .psm1-helper-bubble { flex:1; min-width:0; display:flex; flex-direction:column; gap:10px; }
 .psm1-helper-msg { font-size:14px; font-weight:600; color:#2F3438; line-height:1.5; letter-spacing:-0.03em; }
 .psm1-helper-msg b { color:#E8780F; font-weight:800; }
@@ -753,40 +753,8 @@ show('entry');
       <!-- 검색 포커스 시 펼쳐지는 POUR주치의 헬퍼 (캐릭터 + 말풍선 + 추천 칩) -->
       <div class="psm1-helper" data-psm1-helper>
         <div class="psm1-helper-char">
-          <!-- ⓘ 실제 3D 캐릭터 이미지가 준비되면 아래 SVG 전체를 <img src="캐릭터.png" alt="POUR주치의"/> 로 교체 -->
-          <svg viewBox="0 0 120 130" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <defs>
-              <linearGradient id="psm1charBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F0F4FF"/><stop offset="1" stop-color="#DCEBFF"/></linearGradient>
-              <linearGradient id="psm1charSuit" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3A4D6B"/><stop offset="1" stop-color="#1E2D47"/></linearGradient>
-            </defs>
-            <rect width="120" height="130" rx="14" fill="url(#psm1charBg)"/>
-            <!-- 회사 로고 자리 (상단 좌측) -->
-            <g transform="translate(8,8)" opacity=".55">
-              <path d="M0 12 L4 8 L8 12 L8 4 L12 0 L16 4 L16 12" stroke="#0F1F5C" stroke-width="1.6" fill="none" stroke-linejoin="round"/>
-              <text x="18" y="11" font-size="5" font-weight="800" fill="#0F1F5C" font-family="Pretendard">POUR</text>
-            </g>
-            <!-- 머리 -->
-            <ellipse cx="60" cy="44" rx="14" ry="16" fill="#F2C9A6"/>
-            <!-- 헤어 -->
-            <path d="M46 38 Q48 28 60 26 Q72 28 74 38 L72 36 Q70 30 60 30 Q50 30 48 36 Z" fill="#2C2422"/>
-            <!-- 눈 -->
-            <ellipse cx="55" cy="44" rx="1.3" ry="2" fill="#2C2422"/>
-            <ellipse cx="65" cy="44" rx="1.3" ry="2" fill="#2C2422"/>
-            <!-- 입(미소) -->
-            <path d="M56 51 Q60 54 64 51" stroke="#7C4A2A" stroke-width="1.2" fill="none" stroke-linecap="round"/>
-            <!-- 셔츠 카라 (흰색 V) -->
-            <path d="M50 64 L60 78 L70 64 L70 70 L60 82 L50 70 Z" fill="#FFFFFF"/>
-            <!-- 정장 어깨/몸 -->
-            <path d="M30 70 Q30 64 42 62 L50 64 L60 78 L70 64 L78 62 Q90 64 90 70 L90 130 L30 130 Z" fill="url(#psm1charSuit)"/>
-            <!-- 정장 라펠 -->
-            <path d="M44 68 L60 82 L50 90 Z" fill="#2A3954"/>
-            <path d="M76 68 L60 82 L70 90 Z" fill="#2A3954"/>
-            <!-- 손가락 들기 (왼팔) -->
-            <path d="M30 72 Q22 64 18 50 L18 36 Q18 32 22 32 Q26 32 26 36 L26 50 L34 64" fill="url(#psm1charSuit)" stroke="#1E2D47" stroke-width=".5"/>
-            <!-- 검지손가락 끝 (포인팅) -->
-            <ellipse cx="22" cy="30" rx="3" ry="4" fill="#F2C9A6"/>
-            <circle cx="22" cy="26" r="1.2" fill="#F2C9A6"/>
-          </svg>
+          <!-- 실제 3D 캐릭터 — 배경 투명 PNG. 이미지 교체 시 src만 바꾸면 됨 -->
+          <img src="./assets/pour-doctor-3d.png" alt="POUR주치의" loading="lazy"/>
         </div>
         <div class="psm1-helper-bubble">
           <div class="psm1-helper-msg">어떤 <b>어려움</b>이 있으세요?<br/>편하게 말씀해 주세요. <b>사진</b>으로도 가능해요!</div>
@@ -1153,65 +1121,88 @@ show('entry');
   const POUR_DR_QUICK_BANNER_HTML = `<section class="pdq">
 <style>
 .pdq *, .pdq *::before, .pdq *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
-.pdq { padding:14px 24px 36px; }
-.pdq-card { max-width:1256px; margin:0 auto; position:relative; border-radius:20px; overflow:hidden; background:linear-gradient(120deg,#0F1F5C 0%,#1E3A8A 50%,#0F1F5C 100%); color:#fff; padding:32px 36px; display:grid; grid-template-columns:1fr auto; gap:24px; align-items:center; box-shadow:0 12px 40px rgba(15,31,92,.22); cursor:pointer; transition:.18s; letter-spacing:-0.02em; }
-.pdq-card:hover { transform:translateY(-2px); box-shadow:0 18px 50px rgba(15,31,92,.32); }
-.pdq-card::before { content:''; position:absolute; top:-60px; right:-60px; width:280px; height:280px; background:radial-gradient(circle, rgba(232,120,15,.4) 0%, transparent 60%); border-radius:50%; pointer-events:none; }
-.pdq-card::after { content:''; position:absolute; bottom:-90px; left:30%; width:240px; height:240px; background:radial-gradient(circle, rgba(244,154,58,.22) 0%, transparent 60%); border-radius:50%; pointer-events:none; }
-.pdq-left { position:relative; z-index:1; display:flex; gap:22px; align-items:center; min-width:0; }
-.pdq-badge-wrap { flex-shrink:0; position:relative; }
-.pdq-badge { width:72px; height:72px; border-radius:20px; background:#fff; display:grid; place-items:center; box-shadow:0 6px 18px rgba(0,0,0,.18); }
-.pdq-badge svg { width:42px; height:42px; color:#E8780F; }
-.pdq-pulse { position:absolute; top:-4px; right:-4px; width:18px; height:18px; border-radius:50%; background:#10B981; border:3px solid #0F1F5C; animation:pdqPulse 2s ease-in-out infinite; }
-@keyframes pdqPulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.18); } }
+.pdq { padding:20px 24px 44px; }
+.pdq-card { max-width:1256px; margin:0 auto; position:relative; border-radius:28px; overflow:visible; background:linear-gradient(135deg,#0F1F5C 0%,#1E3A8A 50%,#243B7A 100%); color:#fff; padding:38px 44px 38px 44px; display:grid; grid-template-columns:260px 1fr auto; gap:32px; align-items:center; box-shadow:0 18px 50px rgba(15,31,92,.32); cursor:pointer; transition:.22s; letter-spacing:-0.02em; isolation:isolate; }
+.pdq-card:hover { transform:translateY(-3px); box-shadow:0 26px 70px rgba(15,31,92,.42); }
+.pdq-card::before { content:''; position:absolute; inset:0; border-radius:28px; overflow:hidden; background:
+  radial-gradient(circle at 88% 8%, rgba(232,120,15,.42) 0%, transparent 38%),
+  radial-gradient(circle at 18% 92%, rgba(244,154,58,.22) 0%, transparent 45%);
+  pointer-events:none; z-index:0; }
+/* 도트 패턴 배경 */
+.pdq-card::after { content:''; position:absolute; inset:0; border-radius:28px; overflow:hidden; opacity:.5; pointer-events:none; z-index:0;
+  background-image:radial-gradient(circle, rgba(255,255,255,.08) 1.2px, transparent 1.5px);
+  background-size:18px 18px; }
+.pdq-card > * { position:relative; z-index:1; }
+/* 캐릭터 영역 */
+.pdq-char { position:relative; align-self:end; margin-bottom:-38px; }
+.pdq-char-img { display:block; width:100%; max-width:260px; height:auto; filter:drop-shadow(0 14px 24px rgba(0,0,0,.32)); }
+.pdq-char-spot { position:absolute; left:50%; bottom:-6px; transform:translateX(-50%); width:220px; height:36px; background:radial-gradient(ellipse, rgba(232,120,15,.38) 0%, transparent 70%); pointer-events:none; z-index:-1; }
+/* 캐릭터 말풍선 (떠다님 애니메이션) */
+.pdq-bubble { position:absolute; top:14px; right:-26px; background:#fff; color:#0F1F5C; padding:8px 14px; border-radius:14px; font-size:12.5px; font-weight:800; letter-spacing:-0.02em; white-space:nowrap; box-shadow:0 8px 20px rgba(0,0,0,.22); animation:pdqBubble 2.6s ease-in-out infinite; }
+.pdq-bubble::after { content:''; position:absolute; left:14px; bottom:-7px; width:0; height:0; border-style:solid; border-width:8px 6px 0 6px; border-color:#fff transparent transparent transparent; }
+@keyframes pdqBubble { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-5px); } }
+/* 텍스트 */
 .pdq-text { min-width:0; }
-.pdq-kicker { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:#FED7AA; letter-spacing:0.02em; margin-bottom:6px; }
-.pdq-kicker .pdq-dot { width:6px; height:6px; border-radius:50%; background:#10B981; }
-.pdq-title { font-size:22px; font-weight:800; line-height:1.35; letter-spacing:-0.04em; }
-.pdq-title b { color:#FED7AA; font-weight:900; }
-.pdq-desc { margin-top:8px; font-size:13.5px; font-weight:500; color:rgba(255,255,255,.78); line-height:1.55; letter-spacing:-0.02em; }
-.pdq-stats { margin-top:10px; display:flex; gap:14px; flex-wrap:wrap; }
-.pdq-stat { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600; color:rgba(255,255,255,.85); letter-spacing:-0.02em; }
-.pdq-stat b { color:#FED7AA; font-weight:800; font-size:12.5px; }
-.pdq-right { position:relative; z-index:1; display:flex; flex-direction:column; gap:8px; align-items:flex-end; }
-.pdq-cta { padding:13px 22px; background:#E8780F; color:#fff; font-size:14px; font-weight:700; border-radius:999px; border:none; display:inline-flex; align-items:center; gap:6px; cursor:pointer; transition:.15s; letter-spacing:-0.03em; box-shadow:0 6px 18px rgba(232,120,15,.4); }
-.pdq-cta:hover { background:#C8650D; transform:translateX(2px); }
-.pdq-cta-sub { font-size:11px; font-weight:500; color:rgba(255,255,255,.6); letter-spacing:-0.02em; }
-@media (max-width:760px) {
-  .pdq { padding:8px 14px 24px; }
-  .pdq-card { padding:22px 20px; grid-template-columns:1fr; gap:16px; border-radius:16px; }
-  .pdq-left { gap:14px; }
-  .pdq-badge { width:56px; height:56px; border-radius:16px; }
-  .pdq-badge svg { width:32px; height:32px; }
-  .pdq-title { font-size:18px; }
-  .pdq-desc { font-size:12.5px; }
-  .pdq-right { align-items:stretch; }
-  .pdq-cta { width:100%; justify-content:center; padding:13px 18px; }
+.pdq-kicker { display:inline-flex; align-items:center; gap:7px; font-size:12.5px; font-weight:800; color:#FED7AA; letter-spacing:0.02em; margin-bottom:10px; padding:4px 12px; background:rgba(232,120,15,.18); border:1px solid rgba(232,120,15,.36); border-radius:999px; }
+.pdq-kicker .pdq-dot { width:7px; height:7px; border-radius:50%; background:#10B981; animation:pdqDot 1.6s ease-in-out infinite; box-shadow:0 0 0 4px rgba(16,185,129,.22); }
+@keyframes pdqDot { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.5; transform:scale(.85); } }
+.pdq-title { font-size:28px; font-weight:900; line-height:1.28; letter-spacing:-0.045em; }
+.pdq-title b { color:#FED7AA; font-weight:900; background:linear-gradient(120deg,#FED7AA,#F49A3A); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+.pdq-desc { margin-top:12px; font-size:14.5px; font-weight:500; color:rgba(255,255,255,.85); line-height:1.6; letter-spacing:-0.02em; }
+.pdq-stats { margin-top:14px; display:flex; gap:16px; flex-wrap:wrap; }
+.pdq-stat { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:600; color:rgba(255,255,255,.88); letter-spacing:-0.02em; padding:5px 11px; background:rgba(255,255,255,.08); border-radius:999px; }
+.pdq-stat b { color:#FED7AA; font-weight:800; font-size:13px; }
+/* CTA 영역 */
+.pdq-right { display:flex; flex-direction:column; gap:10px; align-items:flex-end; position:relative; }
+.pdq-free-badge { position:absolute; top:-14px; right:-12px; background:#DC2626; color:#fff; font-size:11px; font-weight:900; padding:5px 11px; border-radius:8px; letter-spacing:0.06em; box-shadow:0 6px 14px rgba(220,38,38,.48); transform:rotate(8deg); z-index:2; animation:pdqFree 2.4s ease-in-out infinite; }
+@keyframes pdqFree { 0%,100% { transform:rotate(8deg) scale(1); } 50% { transform:rotate(8deg) scale(1.08); } }
+.pdq-cta { padding:17px 30px; background:linear-gradient(135deg,#F49A3A 0%,#E8780F 100%); color:#fff; font-size:15.5px; font-weight:800; border-radius:999px; border:none; display:inline-flex; align-items:center; gap:8px; cursor:pointer; transition:.18s; letter-spacing:-0.03em; box-shadow:0 10px 26px rgba(232,120,15,.52), inset 0 -2px 0 rgba(0,0,0,.12); }
+.pdq-cta:hover { transform:translateX(3px) translateY(-1px); box-shadow:0 14px 32px rgba(232,120,15,.62), inset 0 -2px 0 rgba(0,0,0,.12); }
+.pdq-cta-arrow { font-size:18px; transition:.18s; }
+.pdq-cta:hover .pdq-cta-arrow { transform:translateX(3px); }
+.pdq-cta-sub { font-size:12px; font-weight:600; color:rgba(255,255,255,.7); letter-spacing:-0.02em; }
+@media (max-width:900px) {
+  .pdq-card { grid-template-columns:200px 1fr; gap:18px; padding:32px 24px 32px; }
+  .pdq-char-img { max-width:200px; }
+  .pdq-title { font-size:22px; }
+  .pdq-right { grid-column:1/-1; flex-direction:row; justify-content:space-between; align-items:center; margin-top:6px; }
+  .pdq-bubble { display:none; }
+}
+@media (max-width:700px) {
+  .pdq { padding:10px 14px 28px; }
+  .pdq-card { padding:24px 22px 24px; grid-template-columns:120px 1fr; gap:14px; border-radius:22px; }
+  .pdq-char { margin-bottom:-24px; }
+  .pdq-char-img { max-width:120px; }
+  .pdq-char-spot { width:120px; height:24px; }
+  .pdq-kicker { font-size:11px; padding:3px 10px; }
+  .pdq-title { font-size:19px; line-height:1.3; }
+  .pdq-desc { font-size:12.5px; margin-top:8px; }
+  .pdq-stats { margin-top:10px; gap:6px; }
+  .pdq-stat { font-size:11px; padding:4px 9px; }
+  .pdq-right { grid-column:1/-1; flex-direction:column; align-items:stretch; margin-top:12px; }
+  .pdq-free-badge { top:-10px; right:0; font-size:10px; padding:4px 9px; }
+  .pdq-cta { width:100%; justify-content:center; padding:14px 18px; font-size:14.5px; }
   .pdq-cta-sub { text-align:center; }
-  .pdq-stats { gap:10px; }
-  .pdq-stat { font-size:11px; }
 }
 </style>
 <a class="pdq-card" href="./pour-doctor.html">
-  <div class="pdq-left">
-    <div class="pdq-badge-wrap">
-      <div class="pdq-badge">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5v6a4 4 0 0 0 8 0V5"/><path d="M6 5h-2"/><path d="M10 5h2"/><path d="M12 15v2a4 4 0 0 0 8 0v-2"/><circle cx="20" cy="11" r="2"/></svg>
-      </div>
-      <span class="pdq-pulse"></span>
-    </div>
-    <div class="pdq-text">
-      <span class="pdq-kicker"><span class="pdq-dot"></span>POUR주치의 · 1:1 진단</span>
-      <div class="pdq-title">건물에 어려움이 있다면,<br/><b>편하게 말씀해 주세요.</b></div>
-      <div class="pdq-desc">사진 한 장이면 R&D 박사가 직접 답해드려요.</div>
-      <div class="pdq-stats">
-        <span class="pdq-stat">🩺 박사 직접 답변</span>
-        <span class="pdq-stat">⏱ 평균 응답 <b>3분</b></span>
-      </div>
+  <div class="pdq-char">
+    <div class="pdq-char-spot"></div>
+    <img class="pdq-char-img" src="./assets/pour-doctor-3d.png" alt="POUR주치의" loading="lazy"/>
+    <span class="pdq-bubble">안녕하세요! 👋</span>
+  </div>
+  <div class="pdq-text">
+    <span class="pdq-kicker"><span class="pdq-dot"></span>POUR주치의 · 1:1 진단</span>
+    <div class="pdq-title">건물에 어려움이 있다면,<br/><b>편하게 말씀해 주세요.</b></div>
+    <div class="pdq-desc">사진 한 장이면 R&D 박사가 직접 답해드려요.</div>
+    <div class="pdq-stats">
+      <span class="pdq-stat">🩺 박사 직접 답변</span>
+      <span class="pdq-stat">⏱ 평균 응답 <b>3분</b></span>
     </div>
   </div>
   <div class="pdq-right">
-    <button class="pdq-cta" type="button">지금 말씀하기 <span>→</span></button>
+    <span class="pdq-free-badge">FREE</span>
+    <button class="pdq-cta" type="button">지금 말씀하기 <span class="pdq-cta-arrow">→</span></button>
     <span class="pdq-cta-sub">사진만 첨부하면 끝</span>
   </div>
 </a>
@@ -1963,7 +1954,27 @@ show('entry');
 .psy3-card .views::before { content:'▶'; font-size:8px; color:#DC2626; }
 .psy3-card .duration { position:absolute; top:12px; right:12px; padding:4px 8px; background:rgba(15,31,92,.85); color:#fff; font-size:10.5px; font-weight:700; border-radius:5px; z-index:1; }
 .psy3-card .title { position:absolute; bottom:14px; left:14px; right:14px; color:#fff; font-size:13px; font-weight:700; line-height:1.45; z-index:1; letter-spacing:-.2px; }
-@media (max-width:520px) { .psy3-grid { grid-template-columns:repeat(2, 1fr); gap:10px; } .psy3-head h2 { font-size:24px; } }
+/* 재생 상태 표시 */
+.psy3-card .psy3-prog { position:absolute; left:14px; right:14px; bottom:6px; height:3px; background:rgba(255,255,255,.22); border-radius:99px; overflow:hidden; z-index:2; opacity:0; transition:opacity .3s; }
+.psy3-card[data-psy3-active] .psy3-prog { opacity:1; }
+.psy3-card .psy3-prog::after { content:''; position:absolute; left:0; top:0; bottom:0; width:0; background:#fff; border-radius:99px; }
+.psy3-card[data-psy3-active] .psy3-prog::after { animation:psy3Fill var(--psy3-d, 5s) linear forwards; }
+@keyframes psy3Fill { to { width:100%; } }
+.psy3-card[data-psy3-active] .play { background:#DC2626; box-shadow:0 8px 22px rgba(220,38,38,.55); }
+.psy3-card[data-psy3-active] .play::after { border-left-color:#fff; }
+.psy3-card[data-psy3-active] { outline:2px solid #E8780F; outline-offset:-2px; }
+@media (max-width:700px) {
+  .psy3 { padding:48px 0 56px; }
+  .psy3-inner { max-width:none; }
+  .psy3-head { padding:0 18px; margin-bottom:20px; }
+  .psy3-head h2 { font-size:24px; }
+  .psy3-head .more { font-size:12px; padding:9px 14px; }
+  .psy3-grid { display:flex; grid-template-columns:none; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; -ms-overflow-style:none; gap:12px; padding:0 18px 8px; -webkit-overflow-scrolling:touch; }
+  .psy3-grid::-webkit-scrollbar { display:none; }
+  .psy3-card { flex:0 0 78%; max-width:280px; scroll-snap-align:center; aspect-ratio:9/16; }
+  .psy3-card .title { font-size:13px; }
+}
+@media (max-width:520px) { .psy3-head h2 { font-size:22px; } }
 </style>
 <section class="psy3">
   <div class="psy3-inner">
@@ -1975,88 +1986,228 @@ show('entry');
       </div>
       <a class="more" href="https://www.pourstore.net/videos">전체 영상 →</a>
     </div>
-    <div class="psy3-grid">
-      <a class="psy3-card" href="https://www.pourstore.net/videos/short1"><div class="img" style="background-image:url('https://placehold.co/300x533/0F1F5C/F97316?text=DRAIN')"></div><span class="views">12K</span><span class="duration">0:48</span><div class="play"></div><div class="title">옥상 배수구 누수 1분 보수법</div></a>
-      <a class="psy3-card" href="https://www.pourstore.net/videos/short2"><div class="img" style="background-image:url('https://placehold.co/300x533/EA580C/fff?text=ROOF')"></div><span class="views">8.5K</span><span class="duration">0:55</span><div class="play"></div><div class="title">방수보수 빌라·아파트 차이</div></a>
-      <a class="psy3-card" href="https://www.pourstore.net/videos/short3"><div class="img" style="background-image:url('https://placehold.co/300x533/F97316/fff?text=SHINGLE')"></div><span class="views">15K</span><span class="duration">1:00</span><div class="play"></div><div class="title">슁글 지붕에 방수페인트 칠하면?</div></a>
-      <a class="psy3-card" href="https://www.pourstore.net/videos/short4"><div class="img" style="background-image:url('https://placehold.co/300x533/059669/fff?text=CRACK')"></div><span class="views">6.2K</span><span class="duration">0:42</span><div class="play"></div><div class="title">콘크리트 균열 봉합 한 방에</div></a>
-      <a class="psy3-card" href="https://www.pourstore.net/videos/short5"><div class="img" style="background-image:url('https://placehold.co/300x533/9333EA/fff?text=COAT')"></div><span class="views">9.8K</span><span class="duration">0:38</span><div class="play"></div><div class="title">옥상 방수는 코트재로 끝</div></a>
+    <div class="psy3-grid" data-psy3-scroll>
+      <a class="psy3-card" data-psy3-dur="5" href="https://www.pourstore.net/videos/short1"><div class="img" style="background-image:url('https://placehold.co/300x533/0F1F5C/F97316?text=DRAIN')"></div><span class="views">12K</span><span class="duration">0:48</span><div class="play"></div><div class="title">옥상 배수구 누수 1분 보수법</div><span class="psy3-prog"></span></a>
+      <a class="psy3-card" data-psy3-dur="5" href="https://www.pourstore.net/videos/short2"><div class="img" style="background-image:url('https://placehold.co/300x533/EA580C/fff?text=ROOF')"></div><span class="views">8.5K</span><span class="duration">0:55</span><div class="play"></div><div class="title">방수보수 빌라·아파트 차이</div><span class="psy3-prog"></span></a>
+      <a class="psy3-card" data-psy3-dur="5" href="https://www.pourstore.net/videos/short3"><div class="img" style="background-image:url('https://placehold.co/300x533/F97316/fff?text=SHINGLE')"></div><span class="views">15K</span><span class="duration">1:00</span><div class="play"></div><div class="title">슁글 지붕에 방수페인트 칠하면?</div><span class="psy3-prog"></span></a>
+      <a class="psy3-card" data-psy3-dur="5" href="https://www.pourstore.net/videos/short4"><div class="img" style="background-image:url('https://placehold.co/300x533/059669/fff?text=CRACK')"></div><span class="views">6.2K</span><span class="duration">0:42</span><div class="play"></div><div class="title">콘크리트 균열 봉합 한 방에</div><span class="psy3-prog"></span></a>
+      <a class="psy3-card" data-psy3-dur="5" href="https://www.pourstore.net/videos/short5"><div class="img" style="background-image:url('https://placehold.co/300x533/9333EA/fff?text=COAT')"></div><span class="views">9.8K</span><span class="duration">0:38</span><div class="play"></div><div class="title">옥상 방수는 코트재로 끝</div><span class="psy3-prog"></span></a>
     </div>
   </div>
+  <script>
+  (function(){
+    var root = document.currentScript && document.currentScript.parentElement;
+    if (!root) return;
+    var scroller = root.querySelector('[data-psy3-scroll]');
+    if (!scroller) return;
+    var cards = Array.prototype.slice.call(scroller.querySelectorAll('.psy3-card'));
+    if (cards.length === 0) return;
+    var current = 0, paused = false, inView = false;
+    var advanceT = null, resumeT = null;
+    var mq = window.matchMedia('(max-width:700px)');
+    function durMs(i){
+      var d = parseFloat(cards[i].getAttribute('data-psy3-dur') || '5');
+      return Math.min(Math.max(d, 3), 10) * 1000;
+    }
+    function clearAdvance(){ if (advanceT) { clearTimeout(advanceT); advanceT = null; } }
+    function activate(i){
+      clearAdvance();
+      current = ((i % cards.length) + cards.length) % cards.length;
+      cards.forEach(function(c, idx){
+        if (idx === current) {
+          var d = durMs(current);
+          c.style.setProperty('--psy3-d', (d/1000) + 's');
+          // 애니메이션 재시작을 위해 속성을 잠깐 떼었다 다시 붙임
+          c.removeAttribute('data-psy3-active');
+          void c.offsetWidth;
+          c.setAttribute('data-psy3-active', '');
+        } else {
+          c.removeAttribute('data-psy3-active');
+        }
+      });
+      // 모바일에선 활성 카드가 화면 중앙에 오도록 스크롤
+      if (mq.matches) {
+        try { cards[current].scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' }); }
+        catch(_) { scroller.scrollLeft = cards[current].offsetLeft - (scroller.clientWidth - cards[current].clientWidth)/2; }
+      }
+      if (!paused && inView && !document.hidden) {
+        advanceT = setTimeout(function(){ activate(current + 1); }, durMs(current));
+      }
+    }
+    function pauseFor(ms){
+      paused = true;
+      clearAdvance();
+      if (resumeT) clearTimeout(resumeT);
+      resumeT = setTimeout(function(){ paused = false; if (inView) activate(current); }, ms || 6000);
+    }
+    scroller.addEventListener('touchstart', function(){ pauseFor(7000); }, {passive:true});
+    scroller.addEventListener('pointerdown', function(){ pauseFor(7000); });
+    scroller.addEventListener('mouseenter', function(){ pauseFor(9000); });
+    document.addEventListener('visibilitychange', function(){
+      if (document.hidden) clearAdvance();
+      else if (inView && !paused) activate(current);
+    });
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function(entries){
+        entries.forEach(function(e){
+          inView = e.isIntersecting;
+          if (inView && !paused) activate(current);
+          else clearAdvance();
+        });
+      }, { threshold: 0.3 });
+      io.observe(scroller);
+    } else {
+      inView = true; activate(0);
+    }
+  })();
+  </script>
 </section>`;
 
   const SEED_SERVICE_HTML = `<style>
-.psv2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
-.psv2 { background:#fff; padding:80px 18px; }
-.psv2-inner { max-width:1200px; margin:0 auto; }
-.psv2-head { text-align:center; margin-bottom:36px; }
-.psv2-head .kicker { font-size:11.5px; font-weight:800; color:#EA580C; letter-spacing:1.5px; margin-bottom:10px; }
-.psv2-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-1px; line-height:1.2; margin-bottom:8px; }
-.psv2-head p { font-size:14px; color:#6B7280; }
-.psv2-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:18px; }
-.psv2-card { padding:36px 30px; border-radius:24px; cursor:pointer; transition:all .3s; text-decoration:none; color:inherit; display:flex; flex-direction:column; gap:18px; position:relative; overflow:hidden; min-height:320px; background:#fff; border:1px solid #F3F4F6; }
-.psv2-card::before { content:''; position:absolute; top:-30px; right:-30px; width:160px; height:160px; border-radius:50%; opacity:.12; transition:transform .35s; }
-.psv2-card:hover { transform:translateY(-6px); box-shadow:0 24px 56px rgba(15,31,92,.14); border-color:transparent; }
-.psv2-card:hover::before { transform:scale(1.4); }
-.psv2-card .icon-wrap { width:64px; height:64px; border-radius:18px; display:grid; place-items:center; position:relative; z-index:1; }
-.psv2-card .icon-wrap svg { width:30px; height:30px; fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
-.psv2-card .label { display:inline-block; padding:5px 11px; border-radius:999px; font-size:10.5px; font-weight:800; letter-spacing:.5px; align-self:flex-start; position:relative; z-index:1; }
-.psv2-card h3 { font-size:19px; font-weight:900; color:#0F1F5C; line-height:1.4; letter-spacing:-.4px; position:relative; z-index:1; }
-.psv2-card p { font-size:13px; color:#6B7280; line-height:1.7; position:relative; z-index:1; flex:1; }
-.psv2-card .arr { display:inline-flex; align-items:center; justify-content:space-between; padding:14px 18px; border-radius:14px; font-size:13px; font-weight:800; position:relative; z-index:1; transition:all .25s; }
-.psv2-card.shop::before { background:#F97316; }
-.psv2-card.shop .icon-wrap { background:linear-gradient(135deg,#FED7AA,#FB923C); }
-.psv2-card.shop .icon-wrap svg { stroke:#7C2D12; }
-.psv2-card.shop .label { background:#FFEDD5; color:#7C2D12; }
-.psv2-card.shop .arr { background:#FFEDD5; color:#7C2D12; }
-.psv2-card.shop:hover .arr { background:#F97316; color:#fff; }
-.psv2-card.partner::before { background:#0F1F5C; }
-.psv2-card.partner .icon-wrap { background:linear-gradient(135deg,#BFDBFE,#60A5FA); }
-.psv2-card.partner .icon-wrap svg { stroke:#1E3A8A; }
-.psv2-card.partner .label { background:#DBEAFE; color:#1E3A8A; }
-.psv2-card.partner .arr { background:#DBEAFE; color:#1E3A8A; }
-.psv2-card.partner:hover .arr { background:#0F1F5C; color:#fff; }
-.psv2-card.show::before { background:#10B981; }
-.psv2-card.show .icon-wrap { background:linear-gradient(135deg,#A7F3D0,#34D399); }
-.psv2-card.show .icon-wrap svg { stroke:#064E3B; }
-.psv2-card.show .label { background:#D1FAE5; color:#064E3B; }
-.psv2-card.show .arr { background:#D1FAE5; color:#064E3B; }
-.psv2-card.show:hover .arr { background:#10B981; color:#fff; }
-.psv2-card .arr::after { content:'→'; transition:transform .25s; }
-.psv2-card:hover .arr::after { transform:translateX(4px); }
-@media (max-width:640px) { .psv2-card { padding:28px 24px; min-height:auto; } .psv2-head h2 { font-size:24px; } }
+.psv2 *, .psv2 *::before, .psv2 *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.psv2 { background:#fff; padding:72px 18px; color:#2F3438; letter-spacing:-0.02em; }
+.psv2-inner { max-width:1100px; margin:0 auto; }
+.psv2-head { text-align:center; margin-bottom:28px; }
+.psv2-head .kicker { display:inline-block; font-size:12px; font-weight:800; color:#E8780F; letter-spacing:0.06em; padding:4px 12px; background:#FFF7ED; border:1px solid #FED7AA; border-radius:999px; margin-bottom:12px; }
+.psv2-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-0.045em; line-height:1.25; margin-bottom:8px; }
+.psv2-head p { font-size:14px; font-weight:500; color:#6B7280; }
+/* 탭 */
+.psv2-tabs { display:flex; gap:6px; padding:6px; background:#F5F6F8; border-radius:14px; margin-bottom:20px; }
+.psv2-tab { flex:1; padding:12px 14px; font-size:14px; font-weight:700; color:#6B7280; background:transparent; border:none; border-radius:10px; cursor:pointer; transition:.18s; letter-spacing:-0.03em; display:inline-flex; align-items:center; justify-content:center; gap:6px; white-space:nowrap; }
+.psv2-tab:hover { color:#111827; }
+.psv2-tab.active { background:#fff; color:#0F1F5C; box-shadow:0 2px 8px rgba(15,31,92,.10), 0 1px 2px rgba(15,31,92,.06); font-weight:800; }
+.psv2-tab .em { font-size:16px; }
+/* 패널 */
+.psv2-panels { position:relative; }
+.psv2-panel { display:none; padding:42px 38px; border-radius:24px; background:#fff; border:1px solid #F3F4F6; position:relative; overflow:hidden; box-shadow:0 8px 28px rgba(15,31,92,.06); flex-direction:column; gap:18px; }
+.psv2-panel.active { display:flex; animation:psv2In .35s cubic-bezier(.16,1,.3,1); }
+@keyframes psv2In { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+.psv2-panel::before { content:''; position:absolute; top:-50px; right:-50px; width:240px; height:240px; border-radius:50%; opacity:.12; pointer-events:none; }
+.psv2-panel::after { content:''; position:absolute; bottom:-80px; left:-60px; width:180px; height:180px; border-radius:50%; opacity:.08; pointer-events:none; }
+.psv2-panel > * { position:relative; z-index:1; }
+.psv2-panel .icon-wrap { width:64px; height:64px; border-radius:18px; display:grid; place-items:center; }
+.psv2-panel .icon-wrap svg { width:30px; height:30px; fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+.psv2-panel .label { display:inline-block; padding:5px 12px; border-radius:999px; font-size:11px; font-weight:800; letter-spacing:0.06em; align-self:flex-start; }
+.psv2-panel h3 { font-size:22px; font-weight:900; color:#0F1F5C; line-height:1.4; letter-spacing:-0.045em; }
+.psv2-panel p { font-size:14px; font-weight:500; color:#6B7280; line-height:1.7; }
+.psv2-panel .sub-chips { display:flex; gap:6px; flex-wrap:wrap; }
+.psv2-panel .sub-chip { font-size:12px; font-weight:700; padding:5px 11px; border-radius:999px; letter-spacing:-0.02em; }
+.psv2-panel .arr { display:inline-flex; align-items:center; justify-content:space-between; padding:14px 20px; border-radius:14px; font-size:13.5px; font-weight:800; text-decoration:none; transition:all .25s; letter-spacing:-0.02em; align-self:flex-start; min-width:280px; }
+.psv2-panel .arr::after { content:'→'; transition:transform .25s; }
+.psv2-panel .arr:hover::after { transform:translateX(4px); }
+/* 패널 컬러 — 공급 제휴 (오렌지) */
+.psv2-panel.shop::before { background:#F97316; }
+.psv2-panel.shop::after { background:#FED7AA; }
+.psv2-panel.shop .icon-wrap { background:linear-gradient(135deg,#FED7AA,#FB923C); }
+.psv2-panel.shop .icon-wrap svg { stroke:#7C2D12; }
+.psv2-panel.shop .label { background:#FFEDD5; color:#7C2D12; }
+.psv2-panel.shop .sub-chip { background:#FFEDD5; color:#7C2D12; border:1px solid #FED7AA; }
+.psv2-panel.shop .arr { background:#FFEDD5; color:#7C2D12; }
+.psv2-panel.shop .arr:hover { background:#F97316; color:#fff; }
+.psv2-tab[data-tab="supply"].active { color:#7C2D12; }
+/* 패널 컬러 — 파트너사 (네이비) */
+.psv2-panel.partner::before { background:#0F1F5C; }
+.psv2-panel.partner::after { background:#BFDBFE; }
+.psv2-panel.partner .icon-wrap { background:linear-gradient(135deg,#BFDBFE,#60A5FA); }
+.psv2-panel.partner .icon-wrap svg { stroke:#1E3A8A; }
+.psv2-panel.partner .label { background:#DBEAFE; color:#1E3A8A; }
+.psv2-panel.partner .arr { background:#DBEAFE; color:#1E3A8A; }
+.psv2-panel.partner .arr:hover { background:#0F1F5C; color:#fff; }
+.psv2-tab[data-tab="partner"].active { color:#1E3A8A; }
+/* 패널 컬러 — 전시장 (그린) */
+.psv2-panel.show::before { background:#10B981; }
+.psv2-panel.show::after { background:#A7F3D0; }
+.psv2-panel.show .icon-wrap { background:linear-gradient(135deg,#A7F3D0,#34D399); }
+.psv2-panel.show .icon-wrap svg { stroke:#064E3B; }
+.psv2-panel.show .label { background:#D1FAE5; color:#064E3B; }
+.psv2-panel.show .arr { background:#D1FAE5; color:#064E3B; }
+.psv2-panel.show .arr:hover { background:#10B981; color:#fff; }
+.psv2-tab[data-tab="show"].active { color:#064E3B; }
+/* 모바일 */
+@media (max-width:700px) {
+  .psv2 { padding:56px 14px; }
+  .psv2-head h2 { font-size:24px; }
+  .psv2-head p { font-size:13px; }
+  .psv2-tabs { gap:4px; padding:4px; overflow-x:auto; scrollbar-width:none; }
+  .psv2-tabs::-webkit-scrollbar { display:none; }
+  .psv2-tab { padding:10px 12px; font-size:12.5px; flex:1 0 auto; min-width:0; }
+  .psv2-tab .em { font-size:14px; }
+  .psv2-panel { padding:28px 22px; gap:14px; border-radius:18px; }
+  .psv2-panel h3 { font-size:18px; }
+  .psv2-panel p { font-size:13px; }
+  .psv2-panel .icon-wrap { width:54px; height:54px; border-radius:14px; }
+  .psv2-panel .icon-wrap svg { width:24px; height:24px; }
+  .psv2-panel .sub-chip { font-size:11px; padding:4px 9px; }
+  .psv2-panel .arr { width:100%; min-width:0; justify-content:space-between; padding:13px 16px; font-size:13px; }
+}
 </style>
 <section class="psv2">
   <div class="psv2-inner">
     <div class="psv2-head">
       <div class="kicker">SERVICE</div>
       <h2>POUR스토어 서비스 안내</h2>
-      <p>대리점·파트너사·전시장 — 어떤 채널로 만나실래요?</p>
+      <p>공급 제휴·파트너사·전시장 — 어떤 채널로 만나실래요?</p>
     </div>
-    <div class="psv2-grid">
-      <a class="psv2-card shop" href="https://www.pourstore.net/dealers">
+    <div class="psv2-tabs" role="tablist">
+      <button class="psv2-tab active" data-psv2-tab="supply" type="button"><span class="em">📦</span> 공급 제휴</button>
+      <button class="psv2-tab" data-psv2-tab="partner" type="button"><span class="em">👥</span> 파트너사</button>
+      <button class="psv2-tab" data-psv2-tab="show" type="button"><span class="em">🏬</span> 전시장·쇼룸</button>
+    </div>
+    <div class="psv2-panels">
+      <div class="psv2-panel shop active" data-psv2-panel="supply">
         <div class="icon-wrap"><svg viewBox="0 0 24 24"><path d="M3 9V21h18V9"/><path d="M2 6h20l-2 3H4Z"/><path d="M16 14h-8"/></svg></div>
-        <span class="label">대리점</span>
-        <h3>건축물 유지보수, 직접 보고 만지고 채택해 선택하세요</h3>
-        <p>잘못된 시공·불안한 자재 걱정 없이 — 가까운 대리점에서 실물 체험.</p>
-        <span class="arr">대리점 신청 / 위치 보기</span>
-      </a>
-      <a class="psv2-card partner" href="https://www.pourstore.net/partners">
+        <span class="label">공급 제휴</span>
+        <h3>대리점·인플루언서·유튜버 — 다양한 채널로 함께</h3>
+        <p>POUR스토어의 자재·기술을 다양한 방식으로 전달할 제휴 파트너를 모집합니다. 대리점부터 콘텐츠 크리에이터까지, 채널에 맞는 협업 구조를 제안드려요.</p>
+        <div class="sub-chips">
+          <span class="sub-chip">🏬 대리점</span>
+          <span class="sub-chip">🎬 인플루언서·유튜버 협업</span>
+          <span class="sub-chip">✍ 블로거</span>
+          <span class="sub-chip">＋ 기타 제휴 (커뮤니티·미디어)</span>
+        </div>
+        <a class="arr" href="https://www.pourstore.net/supply">공급 제휴 신청 / 자세히 보기</a>
+      </div>
+      <div class="psv2-panel partner" data-psv2-panel="partner">
         <div class="icon-wrap"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
         <span class="label">파트너사</span>
         <h3>POUR스토어와 함께 유지보수 업계를 이끌 파트너 모집</h3>
-        <p>전국 250+ 시공 파트너사와 함께 성장 — 안정적 발주 + 기술 교육 지원.</p>
-        <span class="arr">파트너 신청</span>
-      </a>
-      <a class="psv2-card show" href="https://www.pourstore.net/showroom">
+        <p>전국 250+ 시공 파트너사와 함께 성장합니다. 안정적인 발주 + 기술 교육 + 마케팅 지원으로 지역 1등 시공 파트너를 만듭니다.</p>
+        <div class="sub-chips">
+          <span class="sub-chip" style="background:#DBEAFE; color:#1E3A8A; border:1px solid #BFDBFE;">전국 250+</span>
+          <span class="sub-chip" style="background:#DBEAFE; color:#1E3A8A; border:1px solid #BFDBFE;">기술 교육</span>
+          <span class="sub-chip" style="background:#DBEAFE; color:#1E3A8A; border:1px solid #BFDBFE;">마케팅 지원</span>
+        </div>
+        <a class="arr" href="https://www.pourstore.net/partners">파트너 신청</a>
+      </div>
+      <div class="psv2-panel show" data-psv2-panel="show">
         <div class="icon-wrap"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18"/><path d="M9 21V9"/></svg></div>
         <span class="label">전시장 · 쇼룸</span>
         <h3>모든 자재를 직접 체험할 수 있는 전국 쇼룸</h3>
-        <p>제품 실물·시공 결과물·교육 콘텐츠까지 한 공간에서.</p>
-        <span class="arr">쇼룸 방문 예약</span>
-      </a>
+        <p>제품 실물·시공 결과물·교육 콘텐츠까지 한 공간에서 만나보세요. 방문 예약하시면 전문가가 직접 안내해드립니다.</p>
+        <div class="sub-chips">
+          <span class="sub-chip" style="background:#D1FAE5; color:#064E3B; border:1px solid #A7F3D0;">실물 체험</span>
+          <span class="sub-chip" style="background:#D1FAE5; color:#064E3B; border:1px solid #A7F3D0;">시공 사례</span>
+          <span class="sub-chip" style="background:#D1FAE5; color:#064E3B; border:1px solid #A7F3D0;">교육 프로그램</span>
+        </div>
+        <a class="arr" href="https://www.pourstore.net/showroom">쇼룸 방문 예약</a>
+      </div>
     </div>
   </div>
+  <script>
+  (function(){
+    var root = document.currentScript && document.currentScript.parentElement;
+    if (!root) return;
+    var tabs = root.querySelectorAll('[data-psv2-tab]');
+    var panels = root.querySelectorAll('[data-psv2-panel]');
+    tabs.forEach(function(t){
+      t.addEventListener('click', function(){
+        var k = t.getAttribute('data-psv2-tab');
+        tabs.forEach(function(x){ x.classList.toggle('active', x === t); });
+        panels.forEach(function(p){ p.classList.toggle('active', p.getAttribute('data-psv2-panel') === k); });
+      });
+    });
+  })();
+  </script>
 </section>`;
 
   const SEED_POSTING_HTML = `<style>
@@ -6827,6 +6978,79 @@ show('entry');
         sec.statusAt = now5;
       }
       s.migrations.searchHelperV1 = true;
+    }
+    // 1회성 마이그레이션 — POUR주치의 캐릭터 실제 이미지 반영 + 섹션 3 재디자인
+    if (!s.migrations.characterImageV1) {
+      const mainPage6 = s.pages.find(p => p.id === 'main');
+      if (mainPage6 && Array.isArray(mainPage6.sections)) {
+        const now6 = new Date().toISOString();
+        const overwrite6 = (idx, html, reason) => {
+          if (idx < 0 || idx >= mainPage6.sections.length) return;
+          const sec = mainPage6.sections[idx];
+          const key = mainPage6.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason, kind: 'auto-migration', savedAt: now6,
+          });
+          sec.html = html;
+          sec.statusAt = now6;
+        };
+        // 메인 1번 — 검색 헬퍼 SVG → 실제 캐릭터 이미지
+        overwrite6(0, OHOUSE_V1_SECTION_HTML, '검색 헬퍼 캐릭터 — SVG 플레이스홀더 → 실제 3D 캐릭터 이미지로 교체');
+        // 메인 3번 — 퀵배너 캐릭터 중심 재디자인
+        const pdqIdx = mainPage6.sections.findIndex(sec => (sec.html || '').indexOf('class="pdq"') !== -1);
+        if (pdqIdx !== -1) {
+          overwrite6(pdqIdx, POUR_DR_QUICK_BANNER_HTML, '퀵배너 재디자인 — 캐릭터 전면 배치, 도트 패턴 배경, 말풍선, FREE 배지, 큰 CTA로 시선 집중');
+        }
+      }
+      s.migrations.characterImageV1 = true;
+    }
+    // 1회성 마이그레이션 — 숏츠·서비스 섹션을 모바일에서 가로 슬라이드(숏츠는 자동)로 변경
+    if (!s.migrations.mobileSliderV1) {
+      const mainPage7 = s.pages.find(p => p.id === 'main');
+      if (mainPage7 && Array.isArray(mainPage7.sections)) {
+        const now7 = new Date().toISOString();
+        const swap = (matchClass, html, reason) => {
+          const idx = mainPage7.sections.findIndex(sec => (sec.html || '').indexOf(matchClass) !== -1);
+          if (idx === -1) return;
+          const sec = mainPage7.sections[idx];
+          const key = mainPage7.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason, kind: 'auto-migration', savedAt: now7,
+          });
+          sec.html = html;
+          sec.statusAt = now7;
+        };
+        swap('class="psy3"', SEED_YOUTUBE_HTML, '숏츠 섹션 — 모바일에서 가로 스크롤 + 4초 간격 천천히 자동 슬라이드 (터치/호버 시 일시정지, 화면 밖에서는 정지)');
+        swap('class="psv2"', SEED_SERVICE_HTML, '서비스 안내 섹션 — 모바일에서 세로 적층 → 가로 스크롤 카드 (82% 너비, 다음 카드 살짝 보임)');
+      }
+      s.migrations.mobileSliderV1 = true;
+    }
+    // 1회성 마이그레이션 v2 — 서비스 섹션 탭+디테일 UI로 변경, 숏폼 자동재생→슬라이드 동기화
+    if (!s.migrations.mobileSliderV2) {
+      const mainPage8 = s.pages.find(p => p.id === 'main');
+      if (mainPage8 && Array.isArray(mainPage8.sections)) {
+        const now8 = new Date().toISOString();
+        const swap8 = (matchClass, html, reason) => {
+          const idx = mainPage8.sections.findIndex(sec => (sec.html || '').indexOf(matchClass) !== -1);
+          if (idx === -1) return;
+          const sec = mainPage8.sections[idx];
+          const key = mainPage8.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason, kind: 'auto-migration', savedAt: now8,
+          });
+          sec.html = html;
+          sec.statusAt = now8;
+        };
+        swap8('class="psv2"', SEED_SERVICE_HTML, '서비스 안내 — 가로 슬라이드 카드 → 탭+디테일 UI (공급 제휴 안에 대리점·인플루언서·유튜버·블로거 하위 채널 칩 포함)');
+        swap8('class="psy3"', SEED_YOUTUBE_HTML, '숏폼 — 시간 기반 슬라이드 → 카드별 5초 자동재생(흰 프로그레스 바·오렌지 외곽선·빨간 플레이 강조) 후 다음 카드로 자동 슬라이드');
+      }
+      s.migrations.mobileSliderV2 = true;
     }
     return s;
   }

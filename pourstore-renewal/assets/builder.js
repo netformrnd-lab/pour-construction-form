@@ -801,7 +801,7 @@ show('entry');
         <div class="label">POUR스토어 단하루 특가</div>
         <div class="title">방수 자재 60% ↓<br/>주말 한정</div>
       </div>
-      <div class="product"><div class="product-mock"><span class="pm-pkg">🪣</span><span class="pm-name">POUR코트재</span></div></div>
+      <div class="product"><div class="product-mock"><span class="pm-pkg">🪣</span><span class="pm-name">방수 자재</span></div></div>
     </div>
   </div>
 </div>
@@ -935,18 +935,18 @@ show('entry');
       <button class="psm2-filter" type="button">코팅</button>
       <button class="psm2-filter" type="button">보수</button>
       <button class="psm2-filter" type="button">단열·차열</button>
-      <button class="psm2-filter" type="button">하도</button>
+      <button class="psm2-filter" type="button">밑칠</button>
     </div>
     <div class="psm2-scroll-wrap">
       <div class="psm2-scroll">
-        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-m1" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g stroke="rgba(255,255,255,.18)" stroke-width="2"><line x1="0" y1="80" x2="400" y2="80"/><line x1="0" y1="160" x2="400" y2="160"/><line x1="0" y1="240" x2="400" y2="240"/><line x1="0" y1="320" x2="400" y2="320"/></g><rect x="80" y="120" width="240" height="160" rx="6" fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.3)" stroke-width="2"/><circle cx="200" cy="200" r="36" fill="rgba(232,120,15,.85)"/><text x="200" y="208" text-anchor="middle" fill="#fff" font-size="22" font-weight="800" font-family="Pretendard">방수</text></svg><span class="psm2-card-tag">방수</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">옥상슬라브 PKG</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">옥상 슬라브 듀얼강화 방수 패키지</div><div class="psm2-card-price"><span class="disc">35%</span><span class="now">189,000원</span></div></div></div>
-        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-m2" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g fill="rgba(255,255,255,.1)"><rect x="20" y="20" width="170" height="170" rx="8"/><rect x="210" y="20" width="170" height="170" rx="8"/><rect x="20" y="210" width="170" height="170" rx="8"/><rect x="210" y="210" width="170" height="170" rx="8"/></g><circle cx="200" cy="200" r="48" fill="rgba(15,31,92,.85)"/><text x="200" y="210" text-anchor="middle" fill="#fff" font-size="22" font-weight="800" font-family="Pretendard">코팅</text></svg><span class="psm2-card-tag" style="background:rgba(15,31,92,.92);">코팅</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">금속기와 코팅</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">금속기와 일사반사 코팅 — 91.8% 반사율</div><div class="psm2-card-price"><span class="disc">28%</span><span class="now">142,000원</span></div></div></div>
-        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-m3" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><path d="M50 320 L130 180 L200 250 L300 100 L380 240 L380 380 L50 380 Z" fill="rgba(255,255,255,.18)"/><circle cx="280" cy="120" r="40" fill="rgba(232,120,15,.7)"/><text x="200" y="350" text-anchor="middle" fill="#fff" font-size="20" font-weight="800" font-family="Pretendard">보수</text></svg><span class="psm2-card-tag">보수</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">탄성강화 보강</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">탄성강화 단면복구 — 부착강도 1.5 N/mm²</div><div class="psm2-card-price"><span class="disc">22%</span><span class="now">96,000원</span></div></div></div>
+        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-m1" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g stroke="rgba(255,255,255,.18)" stroke-width="2"><line x1="0" y1="80" x2="400" y2="80"/><line x1="0" y1="160" x2="400" y2="160"/><line x1="0" y1="240" x2="400" y2="240"/><line x1="0" y1="320" x2="400" y2="320"/></g><rect x="80" y="120" width="240" height="160" rx="6" fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.3)" stroke-width="2"/><circle cx="200" cy="200" r="36" fill="rgba(232,120,15,.85)"/><text x="200" y="208" text-anchor="middle" fill="#fff" font-size="22" font-weight="800" font-family="Pretendard">방수</text></svg><span class="psm2-card-tag">방수</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">옥상 누수 패키지</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">옥상 누수 한 번에 — 방수 풀패키지</div><div class="psm2-card-price"><span class="disc">35%</span><span class="now">189,000원</span></div></div></div>
+        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-m2" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g fill="rgba(255,255,255,.1)"><rect x="20" y="20" width="170" height="170" rx="8"/><rect x="210" y="20" width="170" height="170" rx="8"/><rect x="20" y="210" width="170" height="170" rx="8"/><rect x="210" y="210" width="170" height="170" rx="8"/></g><circle cx="200" cy="200" r="48" fill="rgba(15,31,92,.85)"/><text x="200" y="210" text-anchor="middle" fill="#fff" font-size="22" font-weight="800" font-family="Pretendard">코팅</text></svg><span class="psm2-card-tag" style="background:rgba(15,31,92,.92);">코팅</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">지붕 햇빛 코팅</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">햇빛 차단 코팅 — 옥상 온도 -15℃</div><div class="psm2-card-price"><span class="disc">28%</span><span class="now">142,000원</span></div></div></div>
+        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-m3" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><path d="M50 320 L130 180 L200 250 L300 100 L380 240 L380 380 L50 380 Z" fill="rgba(255,255,255,.18)"/><circle cx="280" cy="120" r="40" fill="rgba(232,120,15,.7)"/><text x="200" y="350" text-anchor="middle" fill="#fff" font-size="20" font-weight="800" font-family="Pretendard">보수</text></svg><span class="psm2-card-tag">보수</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">박락 복구재</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">철근 노출·박락 복구 — 망치질에도 안 깨짐</div><div class="psm2-card-price"><span class="disc">22%</span><span class="now">96,000원</span></div></div></div>
         <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-m4" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g fill="rgba(255,255,255,.18)"><circle cx="100" cy="100" r="50"/><circle cx="300" cy="100" r="50"/><circle cx="100" cy="300" r="50"/><circle cx="300" cy="300" r="50"/><circle cx="200" cy="200" r="80" fill="rgba(255,255,255,.28)"/></g><text x="200" y="212" text-anchor="middle" fill="#fff" font-size="26" font-weight="900" font-family="Pretendard">PKG</text></svg><span class="psm2-card-tag">패키지</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">올인원 키트</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">철재 누수+코팅+보수 올인원 패키지</div><div class="psm2-card-price"><span class="disc">40%</span><span class="now">259,000원</span></div></div></div>
-        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-m5" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g stroke="rgba(255,255,255,.25)" stroke-width="3" fill="none"><path d="M40 60 Q200 40 360 60"/><path d="M40 120 Q200 100 360 120"/><path d="M40 180 Q200 160 360 180"/><path d="M40 240 Q200 220 360 240"/><path d="M40 300 Q200 280 360 300"/></g><circle cx="200" cy="200" r="42" fill="rgba(232,120,15,.95)"/><text x="200" y="210" text-anchor="middle" fill="#fff" font-size="20" font-weight="800" font-family="Pretendard">단열</text></svg><span class="psm2-card-tag">단열·차열</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">POUR코트재</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">단열·차열 코트재 — 옥상 표면온도 -15℃</div><div class="psm2-card-price"><span class="disc">25%</span><span class="now">118,000원</span></div></div></div>
-        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-m6" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g fill="rgba(255,255,255,.13)"><rect x="60" y="60" width="280" height="280" rx="20"/></g><g fill="rgba(255,255,255,.22)"><rect x="100" y="100" width="200" height="60" rx="6"/><rect x="100" y="170" width="200" height="60" rx="6"/><rect x="100" y="240" width="200" height="60" rx="6"/></g><text x="200" y="358" text-anchor="middle" fill="rgba(232,120,15,.95)" font-size="18" font-weight="800" font-family="Pretendard">HOOKER</text></svg><span class="psm2-card-tag">보수</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">POUR HOOKER</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">후레싱 탈락 방지 — POUR HOOKER 특허기술</div><div class="psm2-card-price"><span class="disc">18%</span><span class="now">76,000원</span></div></div></div>
-        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-m7" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g fill="rgba(255,255,255,.18)"><polygon points="200,40 360,360 40,360"/></g><circle cx="200" cy="240" r="48" fill="rgba(15,31,92,.85)"/><text x="200" y="250" text-anchor="middle" fill="#fff" font-size="22" font-weight="800" font-family="Pretendard">HOT</text></svg><span class="psm2-card-tag" style="background:#DC2626;">BEST</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">하이퍼티</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">POUR하이퍼티 — 신장률 608% 초고탄성 퍼티</div><div class="psm2-card-price"><span class="disc">30%</span><span class="now">68,000원</span></div></div></div>
-        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-m8" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g stroke="rgba(255,255,255,.2)" stroke-width="2" fill="none"><path d="M40 200 L160 80 L240 200 L360 80"/><path d="M40 320 L160 200 L240 320 L360 200"/></g><rect x="150" y="160" width="100" height="100" rx="8" fill="rgba(232,120,15,.85)"/><text x="200" y="218" text-anchor="middle" fill="#fff" font-size="18" font-weight="800" font-family="Pretendard">하도</text></svg><span class="psm2-card-tag">하도</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">모체강화함침</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">모체강화함침 하도 — 노후 콘크리트 생애주기 연장</div><div class="psm2-card-price"><span class="disc">15%</span><span class="now">54,000원</span></div></div></div>
+        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-m5" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g stroke="rgba(255,255,255,.25)" stroke-width="3" fill="none"><path d="M40 60 Q200 40 360 60"/><path d="M40 120 Q200 100 360 120"/><path d="M40 180 Q200 160 360 180"/><path d="M40 240 Q200 220 360 240"/><path d="M40 300 Q200 280 360 300"/></g><circle cx="200" cy="200" r="42" fill="rgba(232,120,15,.95)"/><text x="200" y="210" text-anchor="middle" fill="#fff" font-size="20" font-weight="800" font-family="Pretendard">단열</text></svg><span class="psm2-card-tag">단열·차열</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">단열 페인트</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">옥상 단열·차열 페인트 — 여름 -15℃</div><div class="psm2-card-price"><span class="disc">25%</span><span class="now">118,000원</span></div></div></div>
+        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-m6" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g fill="rgba(255,255,255,.13)"><rect x="60" y="60" width="280" height="280" rx="20"/></g><g fill="rgba(255,255,255,.22)"><rect x="100" y="100" width="200" height="60" rx="6"/><rect x="100" y="170" width="200" height="60" rx="6"/><rect x="100" y="240" width="200" height="60" rx="6"/></g><text x="200" y="358" text-anchor="middle" fill="rgba(232,120,15,.95)" font-size="18" font-weight="800" font-family="Pretendard">HOOKER</text></svg><span class="psm2-card-tag">보수</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">탈락 방지 키트</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">지붕 마감재 탈락 방지 보강 키트</div><div class="psm2-card-price"><span class="disc">18%</span><span class="now">76,000원</span></div></div></div>
+        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-m7" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g fill="rgba(255,255,255,.18)"><polygon points="200,40 360,360 40,360"/></g><circle cx="200" cy="240" r="48" fill="rgba(15,31,92,.85)"/><text x="200" y="250" text-anchor="middle" fill="#fff" font-size="22" font-weight="800" font-family="Pretendard">HOT</text></svg><span class="psm2-card-tag" style="background:#DC2626;">BEST</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">초고탄성 퍼티</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">초고탄성 퍼티 — 미세 균열까지 한 번에</div><div class="psm2-card-price"><span class="disc">30%</span><span class="now">68,000원</span></div></div></div>
+        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-m8" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g stroke="rgba(255,255,255,.2)" stroke-width="2" fill="none"><path d="M40 200 L160 80 L240 200 L360 80"/><path d="M40 320 L160 200 L240 320 L360 200"/></g><rect x="150" y="160" width="100" height="100" rx="8" fill="rgba(232,120,15,.85)"/><text x="200" y="218" text-anchor="middle" fill="#fff" font-size="18" font-weight="800" font-family="Pretendard">하도</text></svg><span class="psm2-card-tag">밑칠</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">표면 강화제</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">노후 철재 표면 강화 — 처음 칠하기 전에</div><div class="psm2-card-price"><span class="disc">15%</span><span class="now">54,000원</span></div></div></div>
       </div>
       <button class="psm2-arrow prev" type="button" aria-label="이전" data-psm2-scroll="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
       <button class="psm2-arrow next" type="button" aria-label="다음" data-psm2-scroll="next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
@@ -969,7 +969,7 @@ show('entry');
       <button class="psm2-filter" type="button">방수</button>
       <button class="psm2-filter" type="button">보수</button>
       <button class="psm2-filter" type="button">마감·오일</button>
-      <button class="psm2-filter" type="button">하도</button>
+      <button class="psm2-filter" type="button">밑칠</button>
     </div>
     <div class="psm2-scroll-wrap">
       <div class="psm2-scroll">
@@ -980,7 +980,7 @@ show('entry');
         <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-w5" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g stroke="rgba(255,255,255,.25)" stroke-width="3" fill="none"><line x1="0" y1="100" x2="400" y2="120"/><line x1="0" y1="180" x2="400" y2="200"/><line x1="0" y1="260" x2="400" y2="280"/></g><g fill="rgba(232,120,15,.55)"><path d="M150 150 L250 150 L260 250 L140 250 Z"/></g><text x="200" y="210" text-anchor="middle" fill="#fff" font-size="18" font-weight="800" font-family="Pretendard">보수</text></svg><span class="psm2-card-tag">보수</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">갈라짐 보수</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">목재 갈라짐 보수 키트 — 컬러 매칭 가능</div><div class="psm2-card-price"><span class="disc">18%</span><span class="now">32,000원</span></div></div></div>
         <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-w6" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g fill="rgba(255,255,255,.2)"><ellipse cx="200" cy="200" rx="160" ry="120"/></g><g fill="rgba(232,120,15,.7)"><circle cx="200" cy="200" r="56"/></g><text x="200" y="212" text-anchor="middle" fill="#fff" font-size="22" font-weight="800" font-family="Pretendard">OIL</text></svg><span class="psm2-card-tag">마감·오일</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">천연 오일</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">천연 오일 마감 — 무광·반광 선택 가능</div><div class="psm2-card-price"><span class="disc">35%</span><span class="now">28,000원</span></div></div></div>
         <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-w7" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g fill="rgba(255,255,255,.18)"><polygon points="200,40 360,360 40,360"/></g><circle cx="200" cy="240" r="48" fill="rgba(232,120,15,.95)"/><text x="200" y="250" text-anchor="middle" fill="#fff" font-size="22" font-weight="800" font-family="Pretendard">HOT</text></svg><span class="psm2-card-tag" style="background:#DC2626;">BEST</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">외부 목재</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">외부 목재 페인트 — 자외선·곰팡이 방지</div><div class="psm2-card-price"><span class="disc">28%</span><span class="now">52,000원</span></div></div></div>
-        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-w8" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g stroke="rgba(255,255,255,.2)" stroke-width="2" fill="none"><path d="M40 200 L160 80 L240 200 L360 80"/><path d="M40 320 L160 200 L240 320 L360 200"/></g><rect x="150" y="160" width="100" height="100" rx="8" fill="rgba(232,120,15,.85)"/><text x="200" y="218" text-anchor="middle" fill="#fff" font-size="18" font-weight="800" font-family="Pretendard">하도</text></svg><span class="psm2-card-tag">하도</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">목재 프라이머</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">목재 전용 프라이머 — 흡수 균일·부착 향상</div><div class="psm2-card-price"><span class="disc">15%</span><span class="now">24,000원</span></div></div></div>
+        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-w8" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g stroke="rgba(255,255,255,.2)" stroke-width="2" fill="none"><path d="M40 200 L160 80 L240 200 L360 80"/><path d="M40 320 L160 200 L240 320 L360 200"/></g><rect x="150" y="160" width="100" height="100" rx="8" fill="rgba(232,120,15,.85)"/><text x="200" y="218" text-anchor="middle" fill="#fff" font-size="18" font-weight="800" font-family="Pretendard">하도</text></svg><span class="psm2-card-tag">밑칠</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">목재 프라이머</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">목재 밑칠용 — 페인트 더 잘 묻고 오래가게</div><div class="psm2-card-price"><span class="disc">15%</span><span class="now">24,000원</span></div></div></div>
       </div>
       <button class="psm2-arrow prev" type="button" aria-label="이전" data-psm2-scroll="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
       <button class="psm2-arrow next" type="button" aria-label="다음" data-psm2-scroll="next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
@@ -1001,20 +1001,20 @@ show('entry');
       <button class="psm2-filter" type="button">방수</button>
       <button class="psm2-filter" type="button">코팅</button>
       <button class="psm2-filter" type="button">보수</button>
-      <button class="psm2-filter" type="button">크랙보수</button>
+      <button class="psm2-filter" type="button">균열·갈라짐</button>
       <button class="psm2-filter" type="button">단열·차열</button>
-      <button class="psm2-filter" type="button">하도</button>
+      <button class="psm2-filter" type="button">밑칠</button>
     </div>
     <div class="psm2-scroll-wrap">
       <div class="psm2-scroll">
-        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-c1" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g fill="rgba(255,255,255,.13)"><rect x="0" y="0" width="120" height="120"/><rect x="140" y="0" width="120" height="120"/><rect x="280" y="0" width="120" height="120"/><rect x="0" y="140" width="120" height="120"/><rect x="280" y="140" width="120" height="120"/><rect x="0" y="280" width="120" height="120"/><rect x="140" y="280" width="120" height="120"/><rect x="280" y="280" width="120" height="120"/></g><circle cx="200" cy="200" r="56" fill="rgba(232,120,15,.92)"/><text x="200" y="212" text-anchor="middle" fill="#fff" font-size="22" font-weight="800" font-family="Pretendard">PVC</text></svg><span class="psm2-card-tag">방수</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">지하 방수</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">PVC 지하 방수 — 건설신기술 1026호</div><div class="psm2-card-price"><span class="disc">35%</span><span class="now">142,000원</span></div></div></div>
-        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-c2" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g stroke="rgba(255,255,255,.25)" stroke-width="2"><line x1="0" y1="100" x2="400" y2="120"/><line x1="0" y1="200" x2="400" y2="220"/><line x1="0" y1="300" x2="400" y2="280"/></g><g fill="rgba(255,255,255,.15)"><polygon points="50,80 150,90 140,180 60,170"/><polygon points="200,110 300,100 320,210 220,200"/><polygon points="80,230 180,240 200,330 90,320"/></g><circle cx="320" cy="320" r="44" fill="rgba(15,31,92,.85)"/><text x="320" y="330" text-anchor="middle" fill="#fff" font-size="16" font-weight="800" font-family="Pretendard">코팅</text></svg><span class="psm2-card-tag" style="background:rgba(15,31,92,.92);">코팅</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">콘크리트 강화</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">콘크리트 표면 강화 코팅 — 중성화 방지</div><div class="psm2-card-price"><span class="disc">28%</span><span class="now">88,000원</span></div></div></div>
-        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-c3" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g stroke="rgba(255,255,255,.3)" stroke-width="3" fill="none"><path d="M40 200 L120 180 L160 230 L240 190 L290 250 L360 220"/><path d="M60 280 L140 260 L180 310 L260 270 L310 320 L380 290"/></g><circle cx="200" cy="120" r="38" fill="rgba(232,120,15,.85)"/><text x="200" y="130" text-anchor="middle" fill="#fff" font-size="18" font-weight="800" font-family="Pretendard">보수</text></svg><span class="psm2-card-tag">보수</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">단면 복구</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">단면 복구 모르타르 — 철근 노출 박락 보수</div><div class="psm2-card-price"><span class="disc">22%</span><span class="now">54,000원</span></div></div></div>
-        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-c4" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g stroke="rgba(255,255,255,.6)" stroke-width="4" fill="none"><path d="M100 50 L130 130 L100 200 L150 270 L120 360"/><path d="M250 50 L220 130 L280 200 L240 270 L290 360"/></g><circle cx="200" cy="200" r="48" fill="rgba(232,120,15,.92)"/><text x="200" y="210" text-anchor="middle" fill="#fff" font-size="20" font-weight="800" font-family="Pretendard">크랙</text></svg><span class="psm2-card-tag">크랙보수</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">균열보수 시트</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">복합시트 균열보수 — 인장강도 11.4 N/mm²</div><div class="psm2-card-price"><span class="disc">30%</span><span class="now">76,000원</span></div></div></div>
-        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-c5" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g stroke="rgba(255,255,255,.22)" stroke-width="3" fill="none"><path d="M40 60 Q200 40 360 60"/><path d="M40 120 Q200 100 360 120"/><path d="M40 180 Q200 160 360 180"/><path d="M40 240 Q200 220 360 240"/><path d="M40 300 Q200 280 360 300"/></g><circle cx="200" cy="200" r="42" fill="rgba(232,120,15,.95)"/><text x="200" y="210" text-anchor="middle" fill="#fff" font-size="20" font-weight="800" font-family="Pretendard">단열</text></svg><span class="psm2-card-tag">단열·차열</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">외벽 단열</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">외벽 단열·차열 코팅 — 일사반사율 91.8%</div><div class="psm2-card-price"><span class="disc">25%</span><span class="now">128,000원</span></div></div></div>
+        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-c1" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g fill="rgba(255,255,255,.13)"><rect x="0" y="0" width="120" height="120"/><rect x="140" y="0" width="120" height="120"/><rect x="280" y="0" width="120" height="120"/><rect x="0" y="140" width="120" height="120"/><rect x="280" y="140" width="120" height="120"/><rect x="0" y="280" width="120" height="120"/><rect x="140" y="280" width="120" height="120"/><rect x="280" y="280" width="120" height="120"/></g><circle cx="200" cy="200" r="56" fill="rgba(232,120,15,.92)"/><text x="200" y="212" text-anchor="middle" fill="#fff" font-size="22" font-weight="800" font-family="Pretendard">PVC</text></svg><span class="psm2-card-tag">방수</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">지하 방수</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">지하 누수 방수 — 국가 신기술 인증</div><div class="psm2-card-price"><span class="disc">35%</span><span class="now">142,000원</span></div></div></div>
+        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-c2" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g stroke="rgba(255,255,255,.25)" stroke-width="2"><line x1="0" y1="100" x2="400" y2="120"/><line x1="0" y1="200" x2="400" y2="220"/><line x1="0" y1="300" x2="400" y2="280"/></g><g fill="rgba(255,255,255,.15)"><polygon points="50,80 150,90 140,180 60,170"/><polygon points="200,110 300,100 320,210 220,200"/><polygon points="80,230 180,240 200,330 90,320"/></g><circle cx="320" cy="320" r="44" fill="rgba(15,31,92,.85)"/><text x="320" y="330" text-anchor="middle" fill="#fff" font-size="16" font-weight="800" font-family="Pretendard">코팅</text></svg><span class="psm2-card-tag" style="background:rgba(15,31,92,.92);">코팅</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">표면 강화 코팅</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">콘크리트 표면 강화 코팅 — 노후화 방지</div><div class="psm2-card-price"><span class="disc">28%</span><span class="now">88,000원</span></div></div></div>
+        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-c3" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g stroke="rgba(255,255,255,.3)" stroke-width="3" fill="none"><path d="M40 200 L120 180 L160 230 L240 190 L290 250 L360 220"/><path d="M60 280 L140 260 L180 310 L260 270 L310 320 L380 290"/></g><circle cx="200" cy="120" r="38" fill="rgba(232,120,15,.85)"/><text x="200" y="130" text-anchor="middle" fill="#fff" font-size="18" font-weight="800" font-family="Pretendard">보수</text></svg><span class="psm2-card-tag">보수</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">단면 메움 복구</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">철근 노출·박락 복구 — 메우고 다시 칠하기</div><div class="psm2-card-price"><span class="disc">22%</span><span class="now">54,000원</span></div></div></div>
+        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-c4" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g stroke="rgba(255,255,255,.6)" stroke-width="4" fill="none"><path d="M100 50 L130 130 L100 200 L150 270 L120 360"/><path d="M250 50 L220 130 L280 200 L240 270 L290 360"/></g><circle cx="200" cy="200" r="48" fill="rgba(232,120,15,.92)"/><text x="200" y="210" text-anchor="middle" fill="#fff" font-size="20" font-weight="800" font-family="Pretendard">크랙</text></svg><span class="psm2-card-tag">균열·갈라짐</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">균열 보수 시트</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">외벽 균열 보수 시트 — 강력 부착·잘 안 찢어짐</div><div class="psm2-card-price"><span class="disc">30%</span><span class="now">76,000원</span></div></div></div>
+        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-c5" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g stroke="rgba(255,255,255,.22)" stroke-width="3" fill="none"><path d="M40 60 Q200 40 360 60"/><path d="M40 120 Q200 100 360 120"/><path d="M40 180 Q200 160 360 180"/><path d="M40 240 Q200 220 360 240"/><path d="M40 300 Q200 280 360 300"/></g><circle cx="200" cy="200" r="42" fill="rgba(232,120,15,.95)"/><text x="200" y="210" text-anchor="middle" fill="#fff" font-size="20" font-weight="800" font-family="Pretendard">단열</text></svg><span class="psm2-card-tag">단열·차열</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">외벽 단열</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">외벽 단열·차열 코팅 — 햇빛 91% 반사</div><div class="psm2-card-price"><span class="disc">25%</span><span class="now">128,000원</span></div></div></div>
         <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-c6" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g fill="rgba(255,255,255,.2)"><circle cx="100" cy="100" r="50"/><circle cx="300" cy="100" r="50"/><circle cx="100" cy="300" r="50"/><circle cx="300" cy="300" r="50"/><circle cx="200" cy="200" r="80" fill="rgba(232,120,15,.55)"/></g><text x="200" y="212" text-anchor="middle" fill="#fff" font-size="26" font-weight="900" font-family="Pretendard">PKG</text></svg><span class="psm2-card-tag" style="background:#DC2626;">BEST</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">외벽 토탈</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">외벽 크랙보수+재도장 토탈 패키지</div><div class="psm2-card-price"><span class="disc">38%</span><span class="now">198,000원</span></div></div></div>
-        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-c7" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g fill="rgba(255,255,255,.13)"><rect x="50" y="50" width="300" height="300" rx="14"/></g><g fill="rgba(232,120,15,.45)"><rect x="80" y="80" width="240" height="40" rx="4"/><rect x="80" y="135" width="240" height="40" rx="4"/><rect x="80" y="190" width="240" height="40" rx="4"/><rect x="80" y="245" width="240" height="40" rx="4"/><rect x="80" y="300" width="240" height="20" rx="4"/></g><text x="200" y="370" text-anchor="middle" fill="rgba(255,255,255,.7)" font-size="16" font-weight="800" font-family="Pretendard">EPOXY</text></svg><span class="psm2-card-tag" style="background:rgba(15,31,92,.92);">코팅</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">에폭시 바닥</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">에폭시 바닥 코팅 — 압축강도 85.9 N/mm²</div><div class="psm2-card-price"><span class="disc">28%</span><span class="now">96,000원</span></div></div></div>
-        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-c8" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g stroke="rgba(255,255,255,.2)" stroke-width="2" fill="none"><path d="M40 200 L160 80 L240 200 L360 80"/><path d="M40 320 L160 200 L240 320 L360 200"/></g><rect x="150" y="160" width="100" height="100" rx="8" fill="rgba(232,120,15,.85)"/><text x="200" y="218" text-anchor="middle" fill="#fff" font-size="18" font-weight="800" font-family="Pretendard">하도</text></svg><span class="psm2-card-tag">하도</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">모체강화</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">모체강화 함침 하도 — 노후 콘크리트 강화</div><div class="psm2-card-price"><span class="disc">18%</span><span class="now">64,000원</span></div></div></div>
+        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-c7" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g fill="rgba(255,255,255,.13)"><rect x="50" y="50" width="300" height="300" rx="14"/></g><g fill="rgba(232,120,15,.45)"><rect x="80" y="80" width="240" height="40" rx="4"/><rect x="80" y="135" width="240" height="40" rx="4"/><rect x="80" y="190" width="240" height="40" rx="4"/><rect x="80" y="245" width="240" height="40" rx="4"/><rect x="80" y="300" width="240" height="20" rx="4"/></g><text x="200" y="370" text-anchor="middle" fill="rgba(255,255,255,.7)" font-size="16" font-weight="800" font-family="Pretendard">EPOXY</text></svg><span class="psm2-card-tag" style="background:rgba(15,31,92,.92);">코팅</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">바닥 강화 코팅</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">바닥 강화 코팅 — 차도 다녀도 안 깨짐</div><div class="psm2-card-price"><span class="disc">28%</span><span class="now">96,000원</span></div></div></div>
+        <div class="psm2-card"><div class="psm2-card-img"><svg class="thb-c8" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><g stroke="rgba(255,255,255,.2)" stroke-width="2" fill="none"><path d="M40 200 L160 80 L240 200 L360 80"/><path d="M40 320 L160 200 L240 320 L360 200"/></g><rect x="150" y="160" width="100" height="100" rx="8" fill="rgba(232,120,15,.85)"/><text x="200" y="218" text-anchor="middle" fill="#fff" font-size="18" font-weight="800" font-family="Pretendard">하도</text></svg><span class="psm2-card-tag">밑칠</span><div class="psm2-card-bottom"><span class="psm2-card-av">P</span><span class="psm2-card-name">표면 강화제</span></div><button class="psm2-card-bookmark" type="button" aria-label="저장"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button></div><div class="psm2-card-info"><div class="psm2-card-title">노후 콘크리트 표면 강화 — 칠하기 전 필수</div><div class="psm2-card-price"><span class="disc">18%</span><span class="now">64,000원</span></div></div></div>
       </div>
       <button class="psm2-arrow prev" type="button" aria-label="이전" data-psm2-scroll="prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
       <button class="psm2-arrow next" type="button" aria-label="다음" data-psm2-scroll="next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
@@ -1102,13 +1102,13 @@ show('entry');
       <span class="pdq-pulse"></span>
     </div>
     <div class="pdq-text">
-      <span class="pdq-kicker"><span class="pdq-dot"></span>POUR스토어만의 1:1 서비스 · 24시간 케어 중</span>
+      <span class="pdq-kicker"><span class="pdq-dot"></span>POUR스토어만의 1:1 진단 서비스 · 지금도 진단 중</span>
       <div class="pdq-title">건물 상태가 걱정된다면 — <b>당신만의 POUR주치의</b></div>
-      <div class="pdq-desc">방수·도장·보수 50+ 특허 기반, 240만 세대 진단 데이터로<br/>증상만 알려주시면 우리 R&D팀이 직접 처방·시공 매칭까지 케어합니다.</div>
+      <div class="pdq-desc">방수·도장·보수 50+ 특허 기반, 240만 세대 진단 데이터로<br/>증상만 알려주시면 R&D팀이 직접 처방서 + 시공 매칭까지 한 번에.</div>
       <div class="pdq-stats">
         <span class="pdq-stat">🩺 누적 진단 <b>2.4M</b>+</span>
         <span class="pdq-stat">📊 특허·기술 <b>50+</b></span>
-        <span class="pdq-stat">🏥 케어 단지 <b>700+</b></span>
+        <span class="pdq-stat">🏥 진단한 단지 <b>700+</b></span>
         <span class="pdq-stat">⏱ 평균 응답 <b>3분</b></span>
       </div>
     </div>
@@ -1118,6 +1118,65 @@ show('entry');
     <span class="pdq-cta-sub">증상 입력 → 3분 안에 처방서 발송</span>
   </div>
 </a>
+</section>`;
+
+  // POUR주치의 — 플로팅 진단 FAB (전체 시안 우하단에 항상 떠있는 퀵 진입 버튼)
+  const POUR_DR_FAB_HTML = `<section class="pdfab" aria-label="POUR주치의 빠른 진단">
+<style>
+.pdfab *, .pdfab *::before, .pdfab *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.pdfab { all:unset; }
+.pdfab-wrap { position:fixed; right:24px; bottom:24px; z-index:9999; display:flex; flex-direction:column; align-items:flex-end; gap:10px; pointer-events:none; }
+.pdfab-wrap > * { pointer-events:auto; }
+/* 작은 툴팁 (펄스 신호) */
+.pdfab-tip { background:#fff; border:1px solid #F2F3F5; border-radius:14px; padding:12px 16px; box-shadow:0 8px 28px rgba(15,31,92,.18); display:flex; align-items:center; gap:10px; opacity:0; transform:translateY(8px); animation:pdfabSlide .4s ease .8s forwards; max-width:280px; }
+@keyframes pdfabSlide { to { opacity:1; transform:translateY(0); } }
+.pdfab-tip-close { width:22px; height:22px; border-radius:50%; background:#F3F4F6; color:#6B7280; border:none; cursor:pointer; font-size:13px; display:grid; place-items:center; flex-shrink:0; transition:.15s; }
+.pdfab-tip-close:hover { background:#E5E7EB; color:#111; }
+.pdfab-tip-text { font-size:13px; font-weight:600; color:#2F3438; letter-spacing:-0.03em; line-height:1.4; }
+.pdfab-tip-text b { color:#E8780F; font-weight:800; }
+.pdfab-tip.hidden { display:none; }
+/* 메인 버튼 */
+.pdfab-btn { display:inline-flex; align-items:center; gap:10px; padding:14px 22px 14px 14px; background:linear-gradient(135deg,#F49A3A 0%,#E8780F 100%); color:#fff; border-radius:999px; text-decoration:none; box-shadow:0 12px 32px rgba(232,120,15,.4), 0 4px 12px rgba(15,31,92,.12); border:none; cursor:pointer; font-size:14.5px; font-weight:800; letter-spacing:-0.03em; transition:.18s; position:relative; }
+.pdfab-btn:hover { transform:translateY(-3px); box-shadow:0 18px 40px rgba(232,120,15,.5), 0 6px 16px rgba(15,31,92,.18); }
+.pdfab-btn:active { transform:translateY(-1px); }
+.pdfab-ico { width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,.22); display:grid; place-items:center; backdrop-filter:blur(4px); }
+.pdfab-ico svg { width:22px; height:22px; color:#fff; }
+.pdfab-text-wrap { display:flex; flex-direction:column; gap:1px; align-items:flex-start; line-height:1.2; padding-right:4px; }
+.pdfab-text-top { font-size:10.5px; font-weight:700; color:rgba(255,255,255,.85); letter-spacing:0.04em; text-transform:uppercase; }
+.pdfab-text-bot { font-size:14px; font-weight:800; letter-spacing:-0.03em; }
+/* 펄스 링 */
+.pdfab-ring { position:absolute; inset:-6px; border-radius:999px; border:2px solid rgba(232,120,15,.6); animation:pdfabRing 2.2s ease-out infinite; pointer-events:none; }
+@keyframes pdfabRing { 0% { opacity:.8; transform:scale(.95); } 100% { opacity:0; transform:scale(1.18); } }
+.pdfab-live { position:absolute; top:-2px; right:-2px; width:14px; height:14px; border-radius:50%; background:#10B981; border:3px solid #fff; box-shadow:0 0 0 0 rgba(16,185,129,.6); animation:pdfabLivePulse 1.6s ease-in-out infinite; }
+@keyframes pdfabLivePulse { 0% { box-shadow:0 0 0 0 rgba(16,185,129,.6); } 70% { box-shadow:0 0 0 8px rgba(16,185,129,0); } 100% { box-shadow:0 0 0 0 rgba(16,185,129,0); } }
+@media (max-width:700px) {
+  .pdfab-wrap { right:16px; bottom:16px; gap:8px; }
+  .pdfab-tip { padding:10px 14px; max-width:240px; }
+  .pdfab-tip-text { font-size:12px; }
+  .pdfab-btn { padding:12px 18px 12px 12px; font-size:13.5px; }
+  .pdfab-ico { width:34px; height:34px; }
+  .pdfab-ico svg { width:20px; height:20px; }
+  .pdfab-text-top { font-size:9.5px; }
+  .pdfab-text-bot { font-size:13px; }
+}
+</style>
+<div class="pdfab-wrap">
+  <div class="pdfab-tip" id="pdfabTip">
+    <span class="pdfab-tip-text">증상만 알려주세요 — <b>3분 안에</b> 처방서 받아보세요 🩺</span>
+    <button class="pdfab-tip-close" type="button" aria-label="알림 닫기" onclick="this.parentElement.classList.add('hidden')">✕</button>
+  </div>
+  <a class="pdfab-btn" href="./pour-doctor.html" aria-label="POUR주치의 무료 진단">
+    <span class="pdfab-ring"></span>
+    <span class="pdfab-ico">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5v6a4 4 0 0 0 8 0V5"/><path d="M6 5h-2"/><path d="M10 5h2"/><path d="M12 15v2a4 4 0 0 0 8 0v-2"/><circle cx="20" cy="11" r="2"/></svg>
+    </span>
+    <span class="pdfab-text-wrap">
+      <span class="pdfab-text-top">POUR DOCTOR</span>
+      <span class="pdfab-text-bot">무료 진단</span>
+    </span>
+    <span class="pdfab-live" aria-hidden="true"></span>
+  </a>
+</div>
 </section>`;
 
   // POUR주치의 페이지 — 히어로
@@ -1182,9 +1241,9 @@ show('entry');
 </style>
 <div class="pdh-inner">
   <div class="pdh-text">
-    <span class="pdh-kicker"><span class="pdh-kicker-dot"></span>POUR스토어만의 1:1 케어 서비스</span>
+    <span class="pdh-kicker"><span class="pdh-kicker-dot"></span>POUR스토어만의 1:1 진단 서비스</span>
     <h1 class="pdh-title">당신만의<br/>건물 <span class="pdh-accent">주치의</span>가<br/>여기 있습니다.</h1>
-    <p class="pdh-sub">사진 한 장이면 <b>R&D 박사·전문 시공팀·AI 분석가</b>가 함께 진단합니다.<br/>방수·도장·보수 <b>50+ 특허</b>와 <b>240만 세대 빅데이터</b>로 처방·시공·관리까지 — 한 번에.</p>
+    <p class="pdh-sub">사진 한 장이면 <b>R&D 박사·전문 시공팀·AI 분석가</b>가 함께 진단합니다.<br/>방수·도장·보수 <b>50+ 특허</b>와 <b>240만 세대 빅데이터</b>로 <b>처방서 + 시공 매칭</b>까지 — 한 번에.</p>
     <div class="pdh-cta">
       <button class="pdh-btn-primary" type="button">🩺 무료 진단 시작</button>
       <button class="pdh-btn-ghost" type="button">서비스 더 알아보기</button>
@@ -1192,8 +1251,8 @@ show('entry');
     <div class="pdh-trust">
       <div class="pdh-trust-item"><span class="pdh-trust-num">2.4M+</span><span class="pdh-trust-label">누적 진단 세대</span></div>
       <div class="pdh-trust-item"><span class="pdh-trust-num">50+</span><span class="pdh-trust-label">자체 특허·기술</span></div>
-      <div class="pdh-trust-item"><span class="pdh-trust-num">700+</span><span class="pdh-trust-label">케어 단지</span></div>
-      <div class="pdh-trust-item"><span class="pdh-trust-num">250+</span><span class="pdh-trust-label">전국 파트너</span></div>
+      <div class="pdh-trust-item"><span class="pdh-trust-num">700+</span><span class="pdh-trust-label">진단한 단지</span></div>
+      <div class="pdh-trust-item"><span class="pdh-trust-num">250+</span><span class="pdh-trust-label">전국 시공 파트너</span></div>
       <div class="pdh-trust-item"><span class="pdh-trust-num">3분</span><span class="pdh-trust-label">평균 응답</span></div>
     </div>
   </div>
@@ -1206,28 +1265,28 @@ show('entry');
     <div class="pdh-display-body">
       <div class="pdh-display-row">
         <div class="pdh-display-row-ico">🏢</div>
-        <div class="pdh-display-row-text"><div class="pdh-display-row-name">○○아파트 옥상 슬라브</div><div class="pdh-display-row-meta">202동 · 듀얼강화 방수 PKG 처방 · 2026.05.16 09:24</div></div>
+        <div class="pdh-display-row-text"><div class="pdh-display-row-name">○○아파트 옥상 누수</div><div class="pdh-display-row-meta">202동 · 옥상 방수 패키지 추천 · 2026.05.16 09:24</div></div>
         <span class="pdh-display-row-tag ok">처방완료</span>
       </div>
       <div class="pdh-display-row">
         <div class="pdh-display-row-ico">🏭</div>
-        <div class="pdh-display-row-text"><div class="pdh-display-row-name">○○공장 외벽 균열</div><div class="pdh-display-row-meta">남측 벽체 · 복합시트 + 재도장 매칭 중 · 2026.05.16 09:18</div></div>
+        <div class="pdh-display-row-text"><div class="pdh-display-row-name">○○공장 외벽 균열</div><div class="pdh-display-row-meta">남측 벽체 · 균열 보수 + 재도장 매칭 중 · 2026.05.16 09:18</div></div>
         <span class="pdh-display-row-tag warn">시공매칭</span>
       </div>
       <div class="pdh-display-row">
         <div class="pdh-display-row-ico">🏪</div>
-        <div class="pdh-display-row-text"><div class="pdh-display-row-name">○○상가 지하 누수</div><div class="pdh-display-row-meta">B1 주차장 · 아크릴배면차수 긴급 처방 · 2026.05.16 09:12</div></div>
+        <div class="pdh-display-row-text"><div class="pdh-display-row-name">○○상가 지하 누수</div><div class="pdh-display-row-meta">B1 주차장 · 지하 누수 긴급 처방 · 2026.05.16 09:12</div></div>
         <span class="pdh-display-row-tag crit">긴급</span>
       </div>
       <div class="pdh-display-row">
         <div class="pdh-display-row-ico">🏠</div>
-        <div class="pdh-display-row-text"><div class="pdh-display-row-name">○○빌라 옥상 슁글</div><div class="pdh-display-row-meta">탈락 위험 · POUR HOOKER 보강 추천 · 2026.05.16 09:05</div></div>
+        <div class="pdh-display-row-text"><div class="pdh-display-row-name">○○빌라 지붕 슁글</div><div class="pdh-display-row-meta">탈락 위험 · 슁글 탈락 방지 보강 추천 · 2026.05.16 09:05</div></div>
         <span class="pdh-display-row-tag ok">처방완료</span>
       </div>
     </div>
     <div class="pdh-display-foot">
-      <span class="pdh-display-foot-label">오늘 진단 건수 · 케어 중 단지</span>
-      <span class="pdh-display-foot-val">23건 · 1,247세대</span>
+      <span class="pdh-display-foot-label">오늘 진단 건수 · 시공 매칭 완료</span>
+      <span class="pdh-display-foot-val">23건 · 14건</span>
     </div>
   </div>
 </div>
@@ -1244,7 +1303,7 @@ show('entry');
 .pdp-title { font-size:36px; font-weight:900; color:#111111; letter-spacing:-0.045em; line-height:1.25; }
 .pdp-title b { color:#E8780F; }
 .pdp-sub { margin-top:14px; font-size:16px; font-weight:500; color:#6B7280; letter-spacing:-0.02em; line-height:1.65; }
-.pdp-steps { display:grid; grid-template-columns:repeat(4,1fr); gap:22px; position:relative; }
+.pdp-steps { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; position:relative; }
 .pdp-steps::before { content:''; position:absolute; top:38px; left:8%; right:8%; height:2px; background:repeating-linear-gradient(90deg,#FED7AA 0,#FED7AA 6px,transparent 6px,transparent 12px); z-index:0; }
 .pdp-step { position:relative; background:#fff; border:1px solid #F2F3F5; border-radius:18px; padding:28px 22px; transition:.18s; z-index:1; }
 .pdp-step:hover { border-color:#E8780F; transform:translateY(-3px); box-shadow:0 12px 32px rgba(15,31,92,.08); }
@@ -1282,8 +1341,8 @@ show('entry');
 <div class="pdp-inner">
   <div class="pdp-head">
     <span class="pdp-kicker">CARE PROCESS</span>
-    <h2 class="pdp-title">진단부터 관리까지 — <b>4단계로 끝</b></h2>
-    <p class="pdp-sub">증상만 알려주시면 R&D 박사가 직접 처방서를 작성합니다. 시공·정기 케어까지 한 번에.</p>
+    <h2 class="pdp-title">진단부터 시공까지 — <b>3단계로 끝</b></h2>
+    <p class="pdp-sub">증상만 알려주시면 R&D 박사가 직접 처방서를 작성합니다. 셀프시공 가이드 또는 전문 시공팀 매칭까지 한 번에.</p>
   </div>
   <div class="pdp-steps">
     <div class="pdp-step">
@@ -1300,35 +1359,24 @@ show('entry');
     <div class="pdp-step">
       <div class="pdp-step-num">02</div>
       <div class="pdp-step-name">💊 처방</div>
-      <p class="pdp-step-desc">50+ 특허 자재 + 240만 세대 데이터 기반 맞춤 처방서</p>
+      <p class="pdp-step-desc">240만 세대 데이터 기반으로 가장 잘 맞는 방법·자재를 골라드려요</p>
       <div class="pdp-step-list">
-        <div class="pdp-step-list-item">POUR 공법·자재 조합 추천</div>
+        <div class="pdp-step-list-item">맞춤 시공 방법·자재 조합 추천</div>
         <div class="pdp-step-list-item">셀프시공 vs 전문시공 가이드</div>
-        <div class="pdp-step-list-item">예상 비용·기간 산출</div>
+        <div class="pdp-step-list-item">예상 비용·기간 안내</div>
       </div>
       <span class="pdp-step-time">⏱ 당일 처방서 발송</span>
     </div>
     <div class="pdp-step">
       <div class="pdp-step-num">03</div>
-      <div class="pdp-step-name">🔧 시공</div>
-      <p class="pdp-step-desc">250+ 전국 파트너 네트워크에서 최적 시공팀 자동 매칭</p>
+      <div class="pdp-step-name">🔧 시공 (선택)</div>
+      <p class="pdp-step-desc">셀프시공 가이드 또는 250+ 전국 파트너 네트워크에서 시공팀 매칭</p>
       <div class="pdp-step-list">
-        <div class="pdp-step-list-item">지역·경력·등급 기반 매칭</div>
-        <div class="pdp-step-list-item">시공 일정·진행 투명 공유</div>
-        <div class="pdp-step-list-item">하자 발생 시 POUR 직접 책임</div>
+        <div class="pdp-step-list-item">셀프시공 영상·단계 가이드 제공</div>
+        <div class="pdp-step-list-item">전문 시공: 지역·경력·등급 기반 매칭</div>
+        <div class="pdp-step-list-item">자재 직배송 + 시공팀 일정 조율</div>
       </div>
-      <span class="pdp-step-time">⏱ 평균 7~14일 내 착공</span>
-    </div>
-    <div class="pdp-step">
-      <div class="pdp-step-num">04</div>
-      <div class="pdp-step-name">📋 관리</div>
-      <p class="pdp-step-desc">시공 후에도 12개월간 정기 체크업 — 진짜 주치의 케어</p>
-      <div class="pdp-step-list">
-        <div class="pdp-step-list-item">3·6·12개월 정기 점검 알림</div>
-        <div class="pdp-step-list-item">재하자 발생 시 우선 대응</div>
-        <div class="pdp-step-list-item">관리 이력 카드 보관·승계</div>
-      </div>
-      <span class="pdp-step-time">⏱ 12개월 무상 케어</span>
+      <span class="pdp-step-time">⏱ 평균 7~14일 내 진행</span>
     </div>
   </div>
   <div class="pdp-cmp">
@@ -1342,13 +1390,10 @@ show('entry');
       <div class="pdp-cmp-cell us"><span class="ok">✓</span> 전문의 처방서 발급</div>
       <div class="pdp-cmp-cell">시공 매칭</div>
       <div class="pdp-cmp-cell"><span class="no">별도 업체 찾아야 함</span></div>
-      <div class="pdp-cmp-cell us"><span class="ok">✓</span> 250+ 파트너 자동 매칭</div>
-      <div class="pdp-cmp-cell">하자 보증</div>
-      <div class="pdp-cmp-cell"><span class="no">자재만 — 시공은 별도</span></div>
-      <div class="pdp-cmp-cell us"><span class="ok">✓</span> 자재+시공 통합 책임</div>
-      <div class="pdp-cmp-cell">시공 후 케어</div>
-      <div class="pdp-cmp-cell"><span class="no">없음</span></div>
-      <div class="pdp-cmp-cell us"><span class="ok">✓</span> 12개월 정기 체크업</div>
+      <div class="pdp-cmp-cell us"><span class="ok">✓</span> 250+ 파트너 자동 매칭 (선택)</div>
+      <div class="pdp-cmp-cell">셀프시공 가이드</div>
+      <div class="pdp-cmp-cell"><span class="no">상품 설명서 수준</span></div>
+      <div class="pdp-cmp-cell us"><span class="ok">✓</span> 단계별 영상·체크리스트 제공</div>
       <div class="pdp-cmp-cell">근거</div>
       <div class="pdp-cmp-cell"><span class="no">상품 설명 위주</span></div>
       <div class="pdp-cmp-cell us"><span class="ok">✓</span> 50+ 특허·240만 세대 데이터</div>
@@ -6171,7 +6216,7 @@ show('entry');
     ]},
     { id: 'pour-doctor', name: 'POUR주치의 (전용 페이지)', file: 'pour-doctor.html', sections: [
       mkSec('히어로 — 당신만의 건물 주치의', POUR_DR_HERO_HTML, '다크 네이비 + 라이브 진단 보드 + 5개 신뢰 수치 (의료·전문 톤)', 'wip'),
-      mkSec('4단계 케어 프로세스', POUR_DR_PROCESS_HTML, '진단→처방→시공→관리 + 일반 쇼핑몰 비교표', 'wip'),
+      mkSec('3단계 시공 프로세스', POUR_DR_PROCESS_HTML, '진단→처방→시공 매칭(선택) + 일반 쇼핑몰 비교표', 'wip'),
       mkSec('전문가 팀 + 빅데이터', POUR_DR_TRUST_HTML, 'R&D 박사·시공팀·AI 데이터팀 3카드 + 8개 핵심 수치 패널', 'wip'),
       mkSec('무료 진단 폼', POUR_DR_FORM_HTML, '건물유형·증상칩·메모·사진·연락처 — 3분 처방서 발송 CTA', 'wip'),
     ]},
@@ -6549,7 +6594,7 @@ show('entry');
           type: 'page',
           sections: [
             mkSec('히어로 — 당신만의 건물 주치의', POUR_DR_HERO_HTML, '다크 네이비 + 라이브 진단 보드 + 5개 신뢰 수치 (의료·전문 톤)', 'wip'),
-            mkSec('4단계 케어 프로세스', POUR_DR_PROCESS_HTML, '진단→처방→시공→관리 + 일반 쇼핑몰 비교표', 'wip'),
+            mkSec('3단계 시공 프로세스', POUR_DR_PROCESS_HTML, '진단→처방→시공 매칭(선택) + 일반 쇼핑몰 비교표', 'wip'),
             mkSec('전문가 팀 + 빅데이터', POUR_DR_TRUST_HTML, 'R&D 박사·시공팀·AI 데이터팀 3카드 + 8개 핵심 수치 패널', 'wip'),
             mkSec('무료 진단 폼', POUR_DR_FORM_HTML, '건물유형·증상칩·메모·사진·연락처 — 3분 처방서 발송 CTA', 'wip'),
           ],
@@ -6579,6 +6624,72 @@ show('entry');
         sec.confirmedAt = null;
       }
       s.migrations.pourDoctorV1 = true;
+    }
+    // 1회성 마이그레이션 — 워딩 일상어화 v1 (공법·기술 용어 → 초보자 친화 표현)
+    // 적용 대상: 메인 1번(배너), 메인 2번(철재·돌시멘트 카드), 메인 3번(퀵배너 그대로),
+    //          POUR주치의 히어로(라이브 보드), POUR주치의 처방 단계
+    if (!s.migrations.plainWordingV1) {
+      const now = new Date().toISOString();
+      const overwrite = (page, idx, html, reason) => {
+        if (!page || !Array.isArray(page.sections) || idx >= page.sections.length) return;
+        const sec = page.sections[idx];
+        const key = page.id + ':' + sec.id;
+        s.history[key] = s.history[key] || [];
+        s.history[key].unshift({
+          name: sec.name, html: sec.html, note: sec.note || '',
+          reason, kind: 'auto-migration', savedAt: now,
+        });
+        sec.html = html;
+        sec.statusAt = now;
+      };
+      const mainPage = s.pages.find(p => p.id === 'main');
+      const doctorPage = s.pages.find(p => p.id === 'pour-doctor');
+      overwrite(mainPage, 0, OHOUSE_V1_SECTION_HTML, '메인 배너 — 사이드 상품명 일상어 변경 (POUR코트재 → 방수 자재)');
+      overwrite(mainPage, 1, OHOUSE_SECTION2_HTML, '메인 2번 — 카드 제목·태그·라벨 일상어 변경 (공법명·기술 수치 → 효과 중심 카피)');
+      overwrite(doctorPage, 0, POUR_DR_HERO_HTML, 'POUR주치의 히어로 — 라이브 보드 4건 공법명 제거');
+      overwrite(doctorPage, 1, POUR_DR_PROCESS_HTML, 'POUR주치의 처방 단계 — "POUR 공법" → "맞춤 시공 방법" 변경');
+      s.migrations.plainWordingV1 = true;
+    }
+    // 1회성 마이그레이션 v2 — POUR주치의 "관리(4단계)" 제거 → 3단계(진단·처방·시공 매칭)로 축소
+    // 케어/체크업/관리 워딩 정리 + 시공 단계는 "선택"으로 명시 (셀프시공/매칭)
+    if (!s.migrations.plainWordingV2) {
+      const now2 = new Date().toISOString();
+      const overwrite2 = (page, idx, html, name, note, reason) => {
+        if (!page || !Array.isArray(page.sections) || idx >= page.sections.length) return;
+        const sec = page.sections[idx];
+        const key = page.id + ':' + sec.id;
+        s.history[key] = s.history[key] || [];
+        s.history[key].unshift({
+          name: sec.name, html: sec.html, note: sec.note || '',
+          reason, kind: 'auto-migration', savedAt: now2,
+        });
+        sec.html = html;
+        if (name) sec.name = name;
+        if (note) sec.note = note;
+        sec.statusAt = now2;
+      };
+      const mainPage2 = s.pages.find(p => p.id === 'main');
+      const doctorPage2 = s.pages.find(p => p.id === 'pour-doctor');
+      overwrite2(mainPage2, 2, POUR_DR_QUICK_BANNER_HTML, null, null, 'POUR주치의 퀵배너 — "24시간 케어 중·케어 단지" → "지금도 진단 중·진단한 단지"로 워딩 정리');
+      overwrite2(doctorPage2, 0, POUR_DR_HERO_HTML, null, '다크 네이비 + 라이브 진단 보드 + 5개 신뢰 수치 (의료·전문 톤, 관리/케어 워딩 제거)', 'POUR주치의 히어로 — "처방·시공·관리까지" → "처방서+시공 매칭까지", 케어 단지 → 진단한 단지');
+      overwrite2(doctorPage2, 1, POUR_DR_PROCESS_HTML, '3단계 시공 프로세스', '진단→처방→시공 매칭(선택) + 일반 쇼핑몰 비교표', 'POUR주치의 프로세스 — 4단계(관리 포함)에서 3단계로 축소, 시공 단계를 셀프/매칭 선택으로 표기, 비교표 "시공 후 케어" 행 제거');
+      s.migrations.plainWordingV2 = true;
+    }
+    // 1회성 마이그레이션 — POUR주치의 플로팅 FAB을 메인 페이지에 추가 (전체 시안 우하단 고정 버튼)
+    if (!s.migrations.pourDoctorFabV1) {
+      const mainPage3 = s.pages.find(p => p.id === 'main');
+      if (mainPage3 && Array.isArray(mainPage3.sections)) {
+        const already = mainPage3.sections.some(sec => (sec.html || '').indexOf('class="pdfab"') !== -1);
+        if (!already) {
+          mainPage3.sections.push(mkSec(
+            'POUR주치의 플로팅 FAB (우하단 고정)',
+            POUR_DR_FAB_HTML,
+            '전체 시안 우하단에 항상 떠있는 진단 진입 버튼 — 펄스 링 + 라이브 도트 + 3초 후 툴팁 노출',
+            'wip'
+          ));
+        }
+      }
+      s.migrations.pourDoctorFabV1 = true;
     }
     return s;
   }

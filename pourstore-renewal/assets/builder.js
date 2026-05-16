@@ -627,8 +627,8 @@ show('entry');
 .psm1-helper { position:absolute; top:calc(100% + 10px); left:0; right:0; background:#fff; border:1px solid #F2F3F5; border-radius:18px; box-shadow:0 16px 48px rgba(15,31,92,.14), 0 4px 12px rgba(15,31,92,.08); padding:18px; display:flex; gap:14px; opacity:0; pointer-events:none; transform:translateY(-6px); transition:all .22s cubic-bezier(.16,1,.3,1); z-index:50; }
 .psm1-helper.open { opacity:1; pointer-events:auto; transform:translateY(0); }
 .psm1-helper::before { content:''; position:absolute; top:-7px; left:32px; width:14px; height:14px; background:#fff; border-left:1px solid #F2F3F5; border-top:1px solid #F2F3F5; transform:rotate(45deg); }
-.psm1-helper-char { flex-shrink:0; width:96px; height:104px; border-radius:14px; overflow:hidden; background:#F0F4FF; align-self:flex-end; }
-.psm1-helper-char svg, .psm1-helper-char img { width:100%; height:100%; object-fit:cover; display:block; }
+.psm1-helper-char { flex-shrink:0; width:96px; height:104px; border-radius:14px; overflow:hidden; background:linear-gradient(180deg,#F0F4FF 0%,#DCEBFF 100%); align-self:flex-end; }
+.psm1-helper-char svg, .psm1-helper-char img { width:100%; height:100%; object-fit:cover; object-position:center top; display:block; }
 .psm1-helper-bubble { flex:1; min-width:0; display:flex; flex-direction:column; gap:10px; }
 .psm1-helper-msg { font-size:14px; font-weight:600; color:#2F3438; line-height:1.5; letter-spacing:-0.03em; }
 .psm1-helper-msg b { color:#E8780F; font-weight:800; }
@@ -749,40 +749,8 @@ show('entry');
       <!-- 검색 포커스 시 펼쳐지는 POUR주치의 헬퍼 (캐릭터 + 말풍선 + 추천 칩) -->
       <div class="psm1-helper" data-psm1-helper>
         <div class="psm1-helper-char">
-          <!-- ⓘ 실제 3D 캐릭터 이미지가 준비되면 아래 SVG 전체를 <img src="캐릭터.png" alt="POUR주치의"/> 로 교체 -->
-          <svg viewBox="0 0 120 130" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <defs>
-              <linearGradient id="psm1charBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F0F4FF"/><stop offset="1" stop-color="#DCEBFF"/></linearGradient>
-              <linearGradient id="psm1charSuit" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3A4D6B"/><stop offset="1" stop-color="#1E2D47"/></linearGradient>
-            </defs>
-            <rect width="120" height="130" rx="14" fill="url(#psm1charBg)"/>
-            <!-- 회사 로고 자리 (상단 좌측) -->
-            <g transform="translate(8,8)" opacity=".55">
-              <path d="M0 12 L4 8 L8 12 L8 4 L12 0 L16 4 L16 12" stroke="#0F1F5C" stroke-width="1.6" fill="none" stroke-linejoin="round"/>
-              <text x="18" y="11" font-size="5" font-weight="800" fill="#0F1F5C" font-family="Pretendard">POUR</text>
-            </g>
-            <!-- 머리 -->
-            <ellipse cx="60" cy="44" rx="14" ry="16" fill="#F2C9A6"/>
-            <!-- 헤어 -->
-            <path d="M46 38 Q48 28 60 26 Q72 28 74 38 L72 36 Q70 30 60 30 Q50 30 48 36 Z" fill="#2C2422"/>
-            <!-- 눈 -->
-            <ellipse cx="55" cy="44" rx="1.3" ry="2" fill="#2C2422"/>
-            <ellipse cx="65" cy="44" rx="1.3" ry="2" fill="#2C2422"/>
-            <!-- 입(미소) -->
-            <path d="M56 51 Q60 54 64 51" stroke="#7C4A2A" stroke-width="1.2" fill="none" stroke-linecap="round"/>
-            <!-- 셔츠 카라 (흰색 V) -->
-            <path d="M50 64 L60 78 L70 64 L70 70 L60 82 L50 70 Z" fill="#FFFFFF"/>
-            <!-- 정장 어깨/몸 -->
-            <path d="M30 70 Q30 64 42 62 L50 64 L60 78 L70 64 L78 62 Q90 64 90 70 L90 130 L30 130 Z" fill="url(#psm1charSuit)"/>
-            <!-- 정장 라펠 -->
-            <path d="M44 68 L60 82 L50 90 Z" fill="#2A3954"/>
-            <path d="M76 68 L60 82 L70 90 Z" fill="#2A3954"/>
-            <!-- 손가락 들기 (왼팔) -->
-            <path d="M30 72 Q22 64 18 50 L18 36 Q18 32 22 32 Q26 32 26 36 L26 50 L34 64" fill="url(#psm1charSuit)" stroke="#1E2D47" stroke-width=".5"/>
-            <!-- 검지손가락 끝 (포인팅) -->
-            <ellipse cx="22" cy="30" rx="3" ry="4" fill="#F2C9A6"/>
-            <circle cx="22" cy="26" r="1.2" fill="#F2C9A6"/>
-          </svg>
+          <!-- 실제 3D 캐릭터 — 배경 투명 PNG. 이미지 교체 시 src만 바꾸면 됨 -->
+          <img src="./assets/pour-doctor-3d.png" alt="POUR주치의" loading="lazy"/>
         </div>
         <div class="psm1-helper-bubble">
           <div class="psm1-helper-msg">어떤 <b>어려움</b>이 있으세요?<br/>편하게 말씀해 주세요. <b>사진</b>으로도 가능해요!</div>
@@ -1149,65 +1117,88 @@ show('entry');
   const POUR_DR_QUICK_BANNER_HTML = `<section class="pdq">
 <style>
 .pdq *, .pdq *::before, .pdq *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
-.pdq { padding:14px 24px 36px; }
-.pdq-card { max-width:1256px; margin:0 auto; position:relative; border-radius:20px; overflow:hidden; background:linear-gradient(120deg,#0F1F5C 0%,#1E3A8A 50%,#0F1F5C 100%); color:#fff; padding:32px 36px; display:grid; grid-template-columns:1fr auto; gap:24px; align-items:center; box-shadow:0 12px 40px rgba(15,31,92,.22); cursor:pointer; transition:.18s; letter-spacing:-0.02em; }
-.pdq-card:hover { transform:translateY(-2px); box-shadow:0 18px 50px rgba(15,31,92,.32); }
-.pdq-card::before { content:''; position:absolute; top:-60px; right:-60px; width:280px; height:280px; background:radial-gradient(circle, rgba(232,120,15,.4) 0%, transparent 60%); border-radius:50%; pointer-events:none; }
-.pdq-card::after { content:''; position:absolute; bottom:-90px; left:30%; width:240px; height:240px; background:radial-gradient(circle, rgba(244,154,58,.22) 0%, transparent 60%); border-radius:50%; pointer-events:none; }
-.pdq-left { position:relative; z-index:1; display:flex; gap:22px; align-items:center; min-width:0; }
-.pdq-badge-wrap { flex-shrink:0; position:relative; }
-.pdq-badge { width:72px; height:72px; border-radius:20px; background:#fff; display:grid; place-items:center; box-shadow:0 6px 18px rgba(0,0,0,.18); }
-.pdq-badge svg { width:42px; height:42px; color:#E8780F; }
-.pdq-pulse { position:absolute; top:-4px; right:-4px; width:18px; height:18px; border-radius:50%; background:#10B981; border:3px solid #0F1F5C; animation:pdqPulse 2s ease-in-out infinite; }
-@keyframes pdqPulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.18); } }
+.pdq { padding:20px 24px 44px; }
+.pdq-card { max-width:1256px; margin:0 auto; position:relative; border-radius:28px; overflow:visible; background:linear-gradient(135deg,#0F1F5C 0%,#1E3A8A 50%,#243B7A 100%); color:#fff; padding:38px 44px 38px 44px; display:grid; grid-template-columns:260px 1fr auto; gap:32px; align-items:center; box-shadow:0 18px 50px rgba(15,31,92,.32); cursor:pointer; transition:.22s; letter-spacing:-0.02em; isolation:isolate; }
+.pdq-card:hover { transform:translateY(-3px); box-shadow:0 26px 70px rgba(15,31,92,.42); }
+.pdq-card::before { content:''; position:absolute; inset:0; border-radius:28px; overflow:hidden; background:
+  radial-gradient(circle at 88% 8%, rgba(232,120,15,.42) 0%, transparent 38%),
+  radial-gradient(circle at 18% 92%, rgba(244,154,58,.22) 0%, transparent 45%);
+  pointer-events:none; z-index:0; }
+/* 도트 패턴 배경 */
+.pdq-card::after { content:''; position:absolute; inset:0; border-radius:28px; overflow:hidden; opacity:.5; pointer-events:none; z-index:0;
+  background-image:radial-gradient(circle, rgba(255,255,255,.08) 1.2px, transparent 1.5px);
+  background-size:18px 18px; }
+.pdq-card > * { position:relative; z-index:1; }
+/* 캐릭터 영역 */
+.pdq-char { position:relative; align-self:end; margin-bottom:-38px; }
+.pdq-char-img { display:block; width:100%; max-width:260px; height:auto; filter:drop-shadow(0 14px 24px rgba(0,0,0,.32)); }
+.pdq-char-spot { position:absolute; left:50%; bottom:-6px; transform:translateX(-50%); width:220px; height:36px; background:radial-gradient(ellipse, rgba(232,120,15,.38) 0%, transparent 70%); pointer-events:none; z-index:-1; }
+/* 캐릭터 말풍선 (떠다님 애니메이션) */
+.pdq-bubble { position:absolute; top:14px; right:-26px; background:#fff; color:#0F1F5C; padding:8px 14px; border-radius:14px; font-size:12.5px; font-weight:800; letter-spacing:-0.02em; white-space:nowrap; box-shadow:0 8px 20px rgba(0,0,0,.22); animation:pdqBubble 2.6s ease-in-out infinite; }
+.pdq-bubble::after { content:''; position:absolute; left:14px; bottom:-7px; width:0; height:0; border-style:solid; border-width:8px 6px 0 6px; border-color:#fff transparent transparent transparent; }
+@keyframes pdqBubble { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-5px); } }
+/* 텍스트 */
 .pdq-text { min-width:0; }
-.pdq-kicker { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:#FED7AA; letter-spacing:0.02em; margin-bottom:6px; }
-.pdq-kicker .pdq-dot { width:6px; height:6px; border-radius:50%; background:#10B981; }
-.pdq-title { font-size:22px; font-weight:800; line-height:1.35; letter-spacing:-0.04em; }
-.pdq-title b { color:#FED7AA; font-weight:900; }
-.pdq-desc { margin-top:8px; font-size:13.5px; font-weight:500; color:rgba(255,255,255,.78); line-height:1.55; letter-spacing:-0.02em; }
-.pdq-stats { margin-top:10px; display:flex; gap:14px; flex-wrap:wrap; }
-.pdq-stat { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600; color:rgba(255,255,255,.85); letter-spacing:-0.02em; }
-.pdq-stat b { color:#FED7AA; font-weight:800; font-size:12.5px; }
-.pdq-right { position:relative; z-index:1; display:flex; flex-direction:column; gap:8px; align-items:flex-end; }
-.pdq-cta { padding:13px 22px; background:#E8780F; color:#fff; font-size:14px; font-weight:700; border-radius:999px; border:none; display:inline-flex; align-items:center; gap:6px; cursor:pointer; transition:.15s; letter-spacing:-0.03em; box-shadow:0 6px 18px rgba(232,120,15,.4); }
-.pdq-cta:hover { background:#C8650D; transform:translateX(2px); }
-.pdq-cta-sub { font-size:11px; font-weight:500; color:rgba(255,255,255,.6); letter-spacing:-0.02em; }
-@media (max-width:760px) {
-  .pdq { padding:8px 14px 24px; }
-  .pdq-card { padding:22px 20px; grid-template-columns:1fr; gap:16px; border-radius:16px; }
-  .pdq-left { gap:14px; }
-  .pdq-badge { width:56px; height:56px; border-radius:16px; }
-  .pdq-badge svg { width:32px; height:32px; }
-  .pdq-title { font-size:18px; }
-  .pdq-desc { font-size:12.5px; }
-  .pdq-right { align-items:stretch; }
-  .pdq-cta { width:100%; justify-content:center; padding:13px 18px; }
+.pdq-kicker { display:inline-flex; align-items:center; gap:7px; font-size:12.5px; font-weight:800; color:#FED7AA; letter-spacing:0.02em; margin-bottom:10px; padding:4px 12px; background:rgba(232,120,15,.18); border:1px solid rgba(232,120,15,.36); border-radius:999px; }
+.pdq-kicker .pdq-dot { width:7px; height:7px; border-radius:50%; background:#10B981; animation:pdqDot 1.6s ease-in-out infinite; box-shadow:0 0 0 4px rgba(16,185,129,.22); }
+@keyframes pdqDot { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.5; transform:scale(.85); } }
+.pdq-title { font-size:28px; font-weight:900; line-height:1.28; letter-spacing:-0.045em; }
+.pdq-title b { color:#FED7AA; font-weight:900; background:linear-gradient(120deg,#FED7AA,#F49A3A); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+.pdq-desc { margin-top:12px; font-size:14.5px; font-weight:500; color:rgba(255,255,255,.85); line-height:1.6; letter-spacing:-0.02em; }
+.pdq-stats { margin-top:14px; display:flex; gap:16px; flex-wrap:wrap; }
+.pdq-stat { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:600; color:rgba(255,255,255,.88); letter-spacing:-0.02em; padding:5px 11px; background:rgba(255,255,255,.08); border-radius:999px; }
+.pdq-stat b { color:#FED7AA; font-weight:800; font-size:13px; }
+/* CTA 영역 */
+.pdq-right { display:flex; flex-direction:column; gap:10px; align-items:flex-end; position:relative; }
+.pdq-free-badge { position:absolute; top:-14px; right:-12px; background:#DC2626; color:#fff; font-size:11px; font-weight:900; padding:5px 11px; border-radius:8px; letter-spacing:0.06em; box-shadow:0 6px 14px rgba(220,38,38,.48); transform:rotate(8deg); z-index:2; animation:pdqFree 2.4s ease-in-out infinite; }
+@keyframes pdqFree { 0%,100% { transform:rotate(8deg) scale(1); } 50% { transform:rotate(8deg) scale(1.08); } }
+.pdq-cta { padding:17px 30px; background:linear-gradient(135deg,#F49A3A 0%,#E8780F 100%); color:#fff; font-size:15.5px; font-weight:800; border-radius:999px; border:none; display:inline-flex; align-items:center; gap:8px; cursor:pointer; transition:.18s; letter-spacing:-0.03em; box-shadow:0 10px 26px rgba(232,120,15,.52), inset 0 -2px 0 rgba(0,0,0,.12); }
+.pdq-cta:hover { transform:translateX(3px) translateY(-1px); box-shadow:0 14px 32px rgba(232,120,15,.62), inset 0 -2px 0 rgba(0,0,0,.12); }
+.pdq-cta-arrow { font-size:18px; transition:.18s; }
+.pdq-cta:hover .pdq-cta-arrow { transform:translateX(3px); }
+.pdq-cta-sub { font-size:12px; font-weight:600; color:rgba(255,255,255,.7); letter-spacing:-0.02em; }
+@media (max-width:900px) {
+  .pdq-card { grid-template-columns:200px 1fr; gap:18px; padding:32px 24px 32px; }
+  .pdq-char-img { max-width:200px; }
+  .pdq-title { font-size:22px; }
+  .pdq-right { grid-column:1/-1; flex-direction:row; justify-content:space-between; align-items:center; margin-top:6px; }
+  .pdq-bubble { display:none; }
+}
+@media (max-width:700px) {
+  .pdq { padding:10px 14px 28px; }
+  .pdq-card { padding:24px 22px 24px; grid-template-columns:120px 1fr; gap:14px; border-radius:22px; }
+  .pdq-char { margin-bottom:-24px; }
+  .pdq-char-img { max-width:120px; }
+  .pdq-char-spot { width:120px; height:24px; }
+  .pdq-kicker { font-size:11px; padding:3px 10px; }
+  .pdq-title { font-size:19px; line-height:1.3; }
+  .pdq-desc { font-size:12.5px; margin-top:8px; }
+  .pdq-stats { margin-top:10px; gap:6px; }
+  .pdq-stat { font-size:11px; padding:4px 9px; }
+  .pdq-right { grid-column:1/-1; flex-direction:column; align-items:stretch; margin-top:12px; }
+  .pdq-free-badge { top:-10px; right:0; font-size:10px; padding:4px 9px; }
+  .pdq-cta { width:100%; justify-content:center; padding:14px 18px; font-size:14.5px; }
   .pdq-cta-sub { text-align:center; }
-  .pdq-stats { gap:10px; }
-  .pdq-stat { font-size:11px; }
 }
 </style>
 <a class="pdq-card" href="./pour-doctor.html">
-  <div class="pdq-left">
-    <div class="pdq-badge-wrap">
-      <div class="pdq-badge">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5v6a4 4 0 0 0 8 0V5"/><path d="M6 5h-2"/><path d="M10 5h2"/><path d="M12 15v2a4 4 0 0 0 8 0v-2"/><circle cx="20" cy="11" r="2"/></svg>
-      </div>
-      <span class="pdq-pulse"></span>
-    </div>
-    <div class="pdq-text">
-      <span class="pdq-kicker"><span class="pdq-dot"></span>POUR주치의 · 1:1 진단</span>
-      <div class="pdq-title">건물에 어려움이 있다면,<br/><b>편하게 말씀해 주세요.</b></div>
-      <div class="pdq-desc">사진 한 장이면 R&D 박사가 직접 답해드려요.</div>
-      <div class="pdq-stats">
-        <span class="pdq-stat">🩺 박사 직접 답변</span>
-        <span class="pdq-stat">⏱ 평균 응답 <b>3분</b></span>
-      </div>
+  <div class="pdq-char">
+    <div class="pdq-char-spot"></div>
+    <img class="pdq-char-img" src="./assets/pour-doctor-3d.png" alt="POUR주치의" loading="lazy"/>
+    <span class="pdq-bubble">안녕하세요! 👋</span>
+  </div>
+  <div class="pdq-text">
+    <span class="pdq-kicker"><span class="pdq-dot"></span>POUR주치의 · 1:1 진단</span>
+    <div class="pdq-title">건물에 어려움이 있다면,<br/><b>편하게 말씀해 주세요.</b></div>
+    <div class="pdq-desc">사진 한 장이면 R&D 박사가 직접 답해드려요.</div>
+    <div class="pdq-stats">
+      <span class="pdq-stat">🩺 박사 직접 답변</span>
+      <span class="pdq-stat">⏱ 평균 응답 <b>3분</b></span>
     </div>
   </div>
   <div class="pdq-right">
-    <button class="pdq-cta" type="button">지금 말씀하기 <span>→</span></button>
+    <span class="pdq-free-badge">FREE</span>
+    <button class="pdq-cta" type="button">지금 말씀하기 <span class="pdq-cta-arrow">→</span></button>
     <span class="pdq-cta-sub">사진만 첨부하면 끝</span>
   </div>
 </a>
@@ -6485,6 +6476,33 @@ show('entry');
         sec.statusAt = now5;
       }
       s.migrations.searchHelperV1 = true;
+    }
+    // 1회성 마이그레이션 — POUR주치의 캐릭터 실제 이미지 반영 + 섹션 3 재디자인
+    if (!s.migrations.characterImageV1) {
+      const mainPage6 = s.pages.find(p => p.id === 'main');
+      if (mainPage6 && Array.isArray(mainPage6.sections)) {
+        const now6 = new Date().toISOString();
+        const overwrite6 = (idx, html, reason) => {
+          if (idx < 0 || idx >= mainPage6.sections.length) return;
+          const sec = mainPage6.sections[idx];
+          const key = mainPage6.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason, kind: 'auto-migration', savedAt: now6,
+          });
+          sec.html = html;
+          sec.statusAt = now6;
+        };
+        // 메인 1번 — 검색 헬퍼 SVG → 실제 캐릭터 이미지
+        overwrite6(0, OHOUSE_V1_SECTION_HTML, '검색 헬퍼 캐릭터 — SVG 플레이스홀더 → 실제 3D 캐릭터 이미지로 교체');
+        // 메인 3번 — 퀵배너 캐릭터 중심 재디자인
+        const pdqIdx = mainPage6.sections.findIndex(sec => (sec.html || '').indexOf('class="pdq"') !== -1);
+        if (pdqIdx !== -1) {
+          overwrite6(pdqIdx, POUR_DR_QUICK_BANNER_HTML, '퀵배너 재디자인 — 캐릭터 전면 배치, 도트 패턴 배경, 말풍선, FREE 배지, 큰 CTA로 시선 집중');
+        }
+      }
+      s.migrations.characterImageV1 = true;
     }
     return s;
   }

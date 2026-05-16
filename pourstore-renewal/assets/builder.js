@@ -1046,6 +1046,553 @@ show('entry');
 </script>
 </section>`;
 
+  // 메인 3번 섹션 — POUR주치의 진입 퀵배너
+  const POUR_DR_QUICK_BANNER_HTML = `<section class="pdq">
+<style>
+.pdq *, .pdq *::before, .pdq *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.pdq { padding:14px 24px 36px; }
+.pdq-card { max-width:1256px; margin:0 auto; position:relative; border-radius:20px; overflow:hidden; background:linear-gradient(120deg,#0F1F5C 0%,#1E3A8A 50%,#0F1F5C 100%); color:#fff; padding:32px 36px; display:grid; grid-template-columns:1fr auto; gap:24px; align-items:center; box-shadow:0 12px 40px rgba(15,31,92,.22); cursor:pointer; transition:.18s; letter-spacing:-0.02em; }
+.pdq-card:hover { transform:translateY(-2px); box-shadow:0 18px 50px rgba(15,31,92,.32); }
+.pdq-card::before { content:''; position:absolute; top:-60px; right:-60px; width:280px; height:280px; background:radial-gradient(circle, rgba(232,120,15,.4) 0%, transparent 60%); border-radius:50%; pointer-events:none; }
+.pdq-card::after { content:''; position:absolute; bottom:-90px; left:30%; width:240px; height:240px; background:radial-gradient(circle, rgba(244,154,58,.22) 0%, transparent 60%); border-radius:50%; pointer-events:none; }
+.pdq-left { position:relative; z-index:1; display:flex; gap:22px; align-items:center; min-width:0; }
+.pdq-badge-wrap { flex-shrink:0; position:relative; }
+.pdq-badge { width:72px; height:72px; border-radius:20px; background:#fff; display:grid; place-items:center; box-shadow:0 6px 18px rgba(0,0,0,.18); }
+.pdq-badge svg { width:42px; height:42px; color:#E8780F; }
+.pdq-pulse { position:absolute; top:-4px; right:-4px; width:18px; height:18px; border-radius:50%; background:#10B981; border:3px solid #0F1F5C; animation:pdqPulse 2s ease-in-out infinite; }
+@keyframes pdqPulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.18); } }
+.pdq-text { min-width:0; }
+.pdq-kicker { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:#FED7AA; letter-spacing:0.02em; margin-bottom:6px; }
+.pdq-kicker .pdq-dot { width:6px; height:6px; border-radius:50%; background:#10B981; }
+.pdq-title { font-size:22px; font-weight:800; line-height:1.35; letter-spacing:-0.04em; }
+.pdq-title b { color:#FED7AA; font-weight:900; }
+.pdq-desc { margin-top:8px; font-size:13.5px; font-weight:500; color:rgba(255,255,255,.78); line-height:1.55; letter-spacing:-0.02em; }
+.pdq-stats { margin-top:10px; display:flex; gap:14px; flex-wrap:wrap; }
+.pdq-stat { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; font-weight:600; color:rgba(255,255,255,.85); letter-spacing:-0.02em; }
+.pdq-stat b { color:#FED7AA; font-weight:800; font-size:12.5px; }
+.pdq-right { position:relative; z-index:1; display:flex; flex-direction:column; gap:8px; align-items:flex-end; }
+.pdq-cta { padding:13px 22px; background:#E8780F; color:#fff; font-size:14px; font-weight:700; border-radius:999px; border:none; display:inline-flex; align-items:center; gap:6px; cursor:pointer; transition:.15s; letter-spacing:-0.03em; box-shadow:0 6px 18px rgba(232,120,15,.4); }
+.pdq-cta:hover { background:#C8650D; transform:translateX(2px); }
+.pdq-cta-sub { font-size:11px; font-weight:500; color:rgba(255,255,255,.6); letter-spacing:-0.02em; }
+@media (max-width:760px) {
+  .pdq { padding:8px 14px 24px; }
+  .pdq-card { padding:22px 20px; grid-template-columns:1fr; gap:16px; border-radius:16px; }
+  .pdq-left { gap:14px; }
+  .pdq-badge { width:56px; height:56px; border-radius:16px; }
+  .pdq-badge svg { width:32px; height:32px; }
+  .pdq-title { font-size:18px; }
+  .pdq-desc { font-size:12.5px; }
+  .pdq-right { align-items:stretch; }
+  .pdq-cta { width:100%; justify-content:center; padding:13px 18px; }
+  .pdq-cta-sub { text-align:center; }
+  .pdq-stats { gap:10px; }
+  .pdq-stat { font-size:11px; }
+}
+</style>
+<a class="pdq-card" href="./pour-doctor.html">
+  <div class="pdq-left">
+    <div class="pdq-badge-wrap">
+      <div class="pdq-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5v6a4 4 0 0 0 8 0V5"/><path d="M6 5h-2"/><path d="M10 5h2"/><path d="M12 15v2a4 4 0 0 0 8 0v-2"/><circle cx="20" cy="11" r="2"/></svg>
+      </div>
+      <span class="pdq-pulse"></span>
+    </div>
+    <div class="pdq-text">
+      <span class="pdq-kicker"><span class="pdq-dot"></span>POUR스토어만의 1:1 서비스 · 24시간 케어 중</span>
+      <div class="pdq-title">건물 상태가 걱정된다면 — <b>당신만의 POUR주치의</b></div>
+      <div class="pdq-desc">방수·도장·보수 50+ 특허 기반, 240만 세대 진단 데이터로<br/>증상만 알려주시면 우리 R&D팀이 직접 처방·시공 매칭까지 케어합니다.</div>
+      <div class="pdq-stats">
+        <span class="pdq-stat">🩺 누적 진단 <b>2.4M</b>+</span>
+        <span class="pdq-stat">📊 특허·기술 <b>50+</b></span>
+        <span class="pdq-stat">🏥 케어 단지 <b>700+</b></span>
+        <span class="pdq-stat">⏱ 평균 응답 <b>3분</b></span>
+      </div>
+    </div>
+  </div>
+  <div class="pdq-right">
+    <button class="pdq-cta" type="button">무료 진단 받기 <span>→</span></button>
+    <span class="pdq-cta-sub">증상 입력 → 3분 안에 처방서 발송</span>
+  </div>
+</a>
+</section>`;
+
+  // POUR주치의 페이지 — 히어로
+  const POUR_DR_HERO_HTML = `<section class="pdh">
+<style>
+.pdh *, .pdh *::before, .pdh *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.pdh { background:radial-gradient(ellipse at top right, rgba(232,120,15,.08) 0%, transparent 50%),linear-gradient(180deg,#0A1742 0%,#0F1F5C 60%,#1E3A8A 100%); padding:72px 24px 80px; color:#fff; letter-spacing:-0.02em; position:relative; overflow:hidden; }
+.pdh::before { content:''; position:absolute; top:-200px; left:-100px; width:600px; height:600px; background:radial-gradient(circle, rgba(232,120,15,.14) 0%, transparent 60%); pointer-events:none; }
+.pdh::after { content:''; position:absolute; bottom:-150px; right:-80px; width:520px; height:520px; background:radial-gradient(circle, rgba(96,165,250,.12) 0%, transparent 65%); pointer-events:none; }
+.pdh-inner { max-width:1200px; margin:0 auto; display:grid; grid-template-columns:1.15fr 1fr; gap:48px; align-items:center; position:relative; z-index:1; }
+.pdh-kicker { display:inline-flex; align-items:center; gap:8px; font-size:12.5px; font-weight:700; color:#FED7AA; letter-spacing:0.02em; padding:6px 14px; background:rgba(232,120,15,.18); border:1px solid rgba(232,120,15,.32); border-radius:999px; margin-bottom:20px; }
+.pdh-kicker-dot { width:7px; height:7px; border-radius:50%; background:#10B981; box-shadow:0 0 0 4px rgba(16,185,129,.22); }
+.pdh-title { font-size:46px; font-weight:900; line-height:1.18; letter-spacing:-0.045em; }
+.pdh-title b { color:#FED7AA; }
+.pdh-title .pdh-accent { background:linear-gradient(120deg,#F49A3A,#FED7AA); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+.pdh-sub { margin-top:18px; font-size:16px; font-weight:500; color:rgba(255,255,255,.78); line-height:1.7; letter-spacing:-0.02em; }
+.pdh-sub b { color:#fff; font-weight:700; }
+.pdh-cta { margin-top:30px; display:flex; gap:10px; flex-wrap:wrap; }
+.pdh-btn-primary { padding:14px 26px; background:#E8780F; color:#fff; border-radius:999px; border:none; font-size:14.5px; font-weight:700; cursor:pointer; letter-spacing:-0.03em; box-shadow:0 8px 20px rgba(232,120,15,.4); transition:.15s; }
+.pdh-btn-primary:hover { background:#C8650D; transform:translateY(-1px); }
+.pdh-btn-ghost { padding:14px 24px; background:rgba(255,255,255,.08); color:#fff; border-radius:999px; border:1px solid rgba(255,255,255,.2); font-size:14.5px; font-weight:600; cursor:pointer; letter-spacing:-0.03em; transition:.15s; }
+.pdh-btn-ghost:hover { background:rgba(255,255,255,.14); border-color:rgba(255,255,255,.3); }
+.pdh-trust { margin-top:34px; display:flex; gap:24px; flex-wrap:wrap; align-items:center; padding-top:24px; border-top:1px solid rgba(255,255,255,.12); }
+.pdh-trust-item { display:flex; flex-direction:column; }
+.pdh-trust-num { font-size:24px; font-weight:900; color:#FED7AA; letter-spacing:-0.04em; line-height:1; }
+.pdh-trust-label { margin-top:4px; font-size:11.5px; font-weight:600; color:rgba(255,255,255,.65); letter-spacing:-0.02em; }
+/* 우측 진단 카드 (라이브 디스플레이 분위기) */
+.pdh-display { background:linear-gradient(160deg,rgba(255,255,255,.08) 0%,rgba(255,255,255,.04) 100%); border:1px solid rgba(255,255,255,.14); border-radius:20px; padding:24px; backdrop-filter:blur(20px); box-shadow:0 20px 60px rgba(0,0,0,.25); }
+.pdh-display-head { display:flex; align-items:center; gap:10px; margin-bottom:18px; }
+.pdh-display-dot { display:flex; gap:5px; }
+.pdh-display-dot span { width:10px; height:10px; border-radius:50%; }
+.pdh-display-dot span:nth-child(1) { background:#EF4444; }
+.pdh-display-dot span:nth-child(2) { background:#F59E0B; }
+.pdh-display-dot span:nth-child(3) { background:#10B981; }
+.pdh-display-title { font-size:12.5px; font-weight:700; color:rgba(255,255,255,.7); letter-spacing:-0.02em; }
+.pdh-display-live { margin-left:auto; display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:700; color:#10B981; letter-spacing:0.04em; padding:3px 9px; background:rgba(16,185,129,.14); border-radius:999px; }
+.pdh-display-live::before { content:''; width:6px; height:6px; border-radius:50%; background:#10B981; animation:pdhPulse 1.5s ease infinite; }
+@keyframes pdhPulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+.pdh-display-body { display:flex; flex-direction:column; gap:12px; }
+.pdh-display-row { display:flex; gap:12px; align-items:center; padding:14px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:12px; }
+.pdh-display-row-ico { width:38px; height:38px; border-radius:10px; background:rgba(232,120,15,.18); display:grid; place-items:center; flex-shrink:0; font-size:18px; }
+.pdh-display-row-text { flex:1; min-width:0; }
+.pdh-display-row-name { font-size:12.5px; font-weight:700; color:#fff; letter-spacing:-0.02em; }
+.pdh-display-row-meta { margin-top:2px; font-size:11px; font-weight:500; color:rgba(255,255,255,.55); letter-spacing:-0.02em; }
+.pdh-display-row-tag { font-size:10.5px; font-weight:800; padding:4px 9px; border-radius:6px; letter-spacing:-0.02em; }
+.pdh-display-row-tag.ok { background:rgba(16,185,129,.18); color:#6EE7B7; }
+.pdh-display-row-tag.warn { background:rgba(245,158,11,.18); color:#FCD34D; }
+.pdh-display-row-tag.crit { background:rgba(239,68,68,.18); color:#FCA5A5; }
+.pdh-display-foot { margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,.1); display:flex; justify-content:space-between; align-items:center; }
+.pdh-display-foot-label { font-size:10.5px; font-weight:600; color:rgba(255,255,255,.55); letter-spacing:-0.02em; }
+.pdh-display-foot-val { font-size:13px; font-weight:800; color:#FED7AA; letter-spacing:-0.02em; }
+@media (max-width:900px) {
+  .pdh-inner { grid-template-columns:1fr; gap:32px; }
+}
+@media (max-width:700px) {
+  .pdh { padding:48px 16px 56px; }
+  .pdh-title { font-size:30px; }
+  .pdh-sub { font-size:14px; }
+  .pdh-trust-num { font-size:20px; }
+  .pdh-trust { gap:18px; }
+}
+</style>
+<div class="pdh-inner">
+  <div class="pdh-text">
+    <span class="pdh-kicker"><span class="pdh-kicker-dot"></span>POUR스토어만의 1:1 케어 서비스</span>
+    <h1 class="pdh-title">당신만의<br/>건물 <span class="pdh-accent">주치의</span>가<br/>여기 있습니다.</h1>
+    <p class="pdh-sub">사진 한 장이면 <b>R&D 박사·전문 시공팀·AI 분석가</b>가 함께 진단합니다.<br/>방수·도장·보수 <b>50+ 특허</b>와 <b>240만 세대 빅데이터</b>로 처방·시공·관리까지 — 한 번에.</p>
+    <div class="pdh-cta">
+      <button class="pdh-btn-primary" type="button">🩺 무료 진단 시작</button>
+      <button class="pdh-btn-ghost" type="button">서비스 더 알아보기</button>
+    </div>
+    <div class="pdh-trust">
+      <div class="pdh-trust-item"><span class="pdh-trust-num">2.4M+</span><span class="pdh-trust-label">누적 진단 세대</span></div>
+      <div class="pdh-trust-item"><span class="pdh-trust-num">50+</span><span class="pdh-trust-label">자체 특허·기술</span></div>
+      <div class="pdh-trust-item"><span class="pdh-trust-num">700+</span><span class="pdh-trust-label">케어 단지</span></div>
+      <div class="pdh-trust-item"><span class="pdh-trust-num">250+</span><span class="pdh-trust-label">전국 파트너</span></div>
+      <div class="pdh-trust-item"><span class="pdh-trust-num">3분</span><span class="pdh-trust-label">평균 응답</span></div>
+    </div>
+  </div>
+  <div class="pdh-display">
+    <div class="pdh-display-head">
+      <div class="pdh-display-dot"><span></span><span></span><span></span></div>
+      <span class="pdh-display-title">POUR Doctor — 실시간 진단 보드</span>
+      <span class="pdh-display-live">LIVE</span>
+    </div>
+    <div class="pdh-display-body">
+      <div class="pdh-display-row">
+        <div class="pdh-display-row-ico">🏢</div>
+        <div class="pdh-display-row-text"><div class="pdh-display-row-name">○○아파트 옥상 슬라브</div><div class="pdh-display-row-meta">202동 · 듀얼강화 방수 PKG 처방 · 2026.05.16 09:24</div></div>
+        <span class="pdh-display-row-tag ok">처방완료</span>
+      </div>
+      <div class="pdh-display-row">
+        <div class="pdh-display-row-ico">🏭</div>
+        <div class="pdh-display-row-text"><div class="pdh-display-row-name">○○공장 외벽 균열</div><div class="pdh-display-row-meta">남측 벽체 · 복합시트 + 재도장 매칭 중 · 2026.05.16 09:18</div></div>
+        <span class="pdh-display-row-tag warn">시공매칭</span>
+      </div>
+      <div class="pdh-display-row">
+        <div class="pdh-display-row-ico">🏪</div>
+        <div class="pdh-display-row-text"><div class="pdh-display-row-name">○○상가 지하 누수</div><div class="pdh-display-row-meta">B1 주차장 · 아크릴배면차수 긴급 처방 · 2026.05.16 09:12</div></div>
+        <span class="pdh-display-row-tag crit">긴급</span>
+      </div>
+      <div class="pdh-display-row">
+        <div class="pdh-display-row-ico">🏠</div>
+        <div class="pdh-display-row-text"><div class="pdh-display-row-name">○○빌라 옥상 슁글</div><div class="pdh-display-row-meta">탈락 위험 · POUR HOOKER 보강 추천 · 2026.05.16 09:05</div></div>
+        <span class="pdh-display-row-tag ok">처방완료</span>
+      </div>
+    </div>
+    <div class="pdh-display-foot">
+      <span class="pdh-display-foot-label">오늘 진단 건수 · 케어 중 단지</span>
+      <span class="pdh-display-foot-val">23건 · 1,247세대</span>
+    </div>
+  </div>
+</div>
+</section>`;
+
+  // POUR주치의 페이지 — 4단계 케어 프로세스
+  const POUR_DR_PROCESS_HTML = `<section class="pdp">
+<style>
+.pdp *, .pdp *::before, .pdp *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.pdp { background:#F9FAFB; padding:80px 24px; color:#2F3438; letter-spacing:-0.02em; }
+.pdp-inner { max-width:1200px; margin:0 auto; }
+.pdp-head { text-align:center; margin-bottom:48px; }
+.pdp-kicker { display:inline-block; font-size:12.5px; font-weight:700; color:#E8780F; letter-spacing:0.04em; padding:5px 14px; background:#FFF7ED; border:1px solid #FED7AA; border-radius:999px; margin-bottom:14px; }
+.pdp-title { font-size:36px; font-weight:900; color:#111111; letter-spacing:-0.045em; line-height:1.25; }
+.pdp-title b { color:#E8780F; }
+.pdp-sub { margin-top:14px; font-size:16px; font-weight:500; color:#6B7280; letter-spacing:-0.02em; line-height:1.65; }
+.pdp-steps { display:grid; grid-template-columns:repeat(4,1fr); gap:22px; position:relative; }
+.pdp-steps::before { content:''; position:absolute; top:38px; left:8%; right:8%; height:2px; background:repeating-linear-gradient(90deg,#FED7AA 0,#FED7AA 6px,transparent 6px,transparent 12px); z-index:0; }
+.pdp-step { position:relative; background:#fff; border:1px solid #F2F3F5; border-radius:18px; padding:28px 22px; transition:.18s; z-index:1; }
+.pdp-step:hover { border-color:#E8780F; transform:translateY(-3px); box-shadow:0 12px 32px rgba(15,31,92,.08); }
+.pdp-step-num { width:56px; height:56px; border-radius:18px; background:linear-gradient(135deg,#F49A3A,#E8780F); color:#fff; display:grid; place-items:center; font-size:22px; font-weight:900; letter-spacing:-0.04em; box-shadow:0 8px 20px rgba(232,120,15,.32); margin:0 auto 16px; }
+.pdp-step-name { font-size:18px; font-weight:800; color:#111111; letter-spacing:-0.04em; text-align:center; margin-bottom:8px; }
+.pdp-step-desc { font-size:13px; font-weight:500; color:#6B7280; letter-spacing:-0.02em; line-height:1.6; text-align:center; margin-bottom:16px; }
+.pdp-step-list { display:flex; flex-direction:column; gap:8px; padding-top:14px; border-top:1px solid #F2F3F5; }
+.pdp-step-list-item { display:flex; gap:8px; align-items:flex-start; font-size:12px; font-weight:600; color:#374151; letter-spacing:-0.02em; line-height:1.5; }
+.pdp-step-list-item::before { content:'✓'; color:#10B981; font-weight:900; flex-shrink:0; }
+.pdp-step-time { margin-top:14px; display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700; color:#E8780F; background:#FFF7ED; padding:4px 10px; border-radius:6px; letter-spacing:-0.02em; }
+.pdp-cmp { margin-top:60px; padding:32px; background:#fff; border-radius:18px; border:1px solid #F2F3F5; }
+.pdp-cmp-title { font-size:18px; font-weight:800; color:#111; letter-spacing:-0.04em; margin-bottom:18px; text-align:center; }
+.pdp-cmp-title b { color:#E8780F; }
+.pdp-cmp-grid { display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:1px; background:#F2F3F5; border-radius:12px; overflow:hidden; border:1px solid #F2F3F5; }
+.pdp-cmp-cell { padding:14px 16px; background:#fff; font-size:13px; font-weight:600; color:#374151; letter-spacing:-0.02em; display:flex; align-items:center; gap:6px; }
+.pdp-cmp-cell.h { background:#FAFAFA; font-weight:800; color:#111; font-size:13.5px; }
+.pdp-cmp-cell.h.us { background:#FFF7ED; color:#E8780F; }
+.pdp-cmp-cell.us { background:#FFFBF5; color:#111; font-weight:700; }
+.pdp-cmp-cell .ok { color:#10B981; font-weight:800; }
+.pdp-cmp-cell .no { color:#9CA3AF; font-weight:600; }
+@media (max-width:900px) {
+  .pdp-steps { grid-template-columns:repeat(2,1fr); }
+  .pdp-steps::before { display:none; }
+}
+@media (max-width:700px) {
+  .pdp { padding:56px 16px; }
+  .pdp-title { font-size:28px; }
+  .pdp-sub { font-size:14px; }
+  .pdp-steps { grid-template-columns:1fr; gap:14px; }
+  .pdp-cmp { padding:20px; margin-top:40px; }
+  .pdp-cmp-grid { grid-template-columns:1fr; }
+  .pdp-cmp-cell { padding:10px 14px; font-size:12.5px; }
+}
+</style>
+<div class="pdp-inner">
+  <div class="pdp-head">
+    <span class="pdp-kicker">CARE PROCESS</span>
+    <h2 class="pdp-title">진단부터 관리까지 — <b>4단계로 끝</b></h2>
+    <p class="pdp-sub">증상만 알려주시면 R&D 박사가 직접 처방서를 작성합니다. 시공·정기 케어까지 한 번에.</p>
+  </div>
+  <div class="pdp-steps">
+    <div class="pdp-step">
+      <div class="pdp-step-num">01</div>
+      <div class="pdp-step-name">🩺 진단</div>
+      <p class="pdp-step-desc">사진·증상으로 AI 1차 분석 후, 전문의가 직접 검수</p>
+      <div class="pdp-step-list">
+        <div class="pdp-step-list-item">사진 업로드 또는 증상 체크</div>
+        <div class="pdp-step-list-item">AI 하자유형·심각도 자동 분류</div>
+        <div class="pdp-step-list-item">R&D 박사 1차 검수</div>
+      </div>
+      <span class="pdp-step-time">⏱ 평균 3분</span>
+    </div>
+    <div class="pdp-step">
+      <div class="pdp-step-num">02</div>
+      <div class="pdp-step-name">💊 처방</div>
+      <p class="pdp-step-desc">50+ 특허 자재 + 240만 세대 데이터 기반 맞춤 처방서</p>
+      <div class="pdp-step-list">
+        <div class="pdp-step-list-item">POUR 공법·자재 조합 추천</div>
+        <div class="pdp-step-list-item">셀프시공 vs 전문시공 가이드</div>
+        <div class="pdp-step-list-item">예상 비용·기간 산출</div>
+      </div>
+      <span class="pdp-step-time">⏱ 당일 처방서 발송</span>
+    </div>
+    <div class="pdp-step">
+      <div class="pdp-step-num">03</div>
+      <div class="pdp-step-name">🔧 시공</div>
+      <p class="pdp-step-desc">250+ 전국 파트너 네트워크에서 최적 시공팀 자동 매칭</p>
+      <div class="pdp-step-list">
+        <div class="pdp-step-list-item">지역·경력·등급 기반 매칭</div>
+        <div class="pdp-step-list-item">시공 일정·진행 투명 공유</div>
+        <div class="pdp-step-list-item">하자 발생 시 POUR 직접 책임</div>
+      </div>
+      <span class="pdp-step-time">⏱ 평균 7~14일 내 착공</span>
+    </div>
+    <div class="pdp-step">
+      <div class="pdp-step-num">04</div>
+      <div class="pdp-step-name">📋 관리</div>
+      <p class="pdp-step-desc">시공 후에도 12개월간 정기 체크업 — 진짜 주치의 케어</p>
+      <div class="pdp-step-list">
+        <div class="pdp-step-list-item">3·6·12개월 정기 점검 알림</div>
+        <div class="pdp-step-list-item">재하자 발생 시 우선 대응</div>
+        <div class="pdp-step-list-item">관리 이력 카드 보관·승계</div>
+      </div>
+      <span class="pdp-step-time">⏱ 12개월 무상 케어</span>
+    </div>
+  </div>
+  <div class="pdp-cmp">
+    <div class="pdp-cmp-title">일반 건자재 쇼핑몰 <span style="color:#9CA3AF;">vs</span> <b>POUR주치의 서비스</b></div>
+    <div class="pdp-cmp-grid">
+      <div class="pdp-cmp-cell h">항목</div>
+      <div class="pdp-cmp-cell h">일반 쇼핑몰</div>
+      <div class="pdp-cmp-cell h us">POUR주치의</div>
+      <div class="pdp-cmp-cell">자재 선택</div>
+      <div class="pdp-cmp-cell"><span class="no">고객이 직접 검색</span></div>
+      <div class="pdp-cmp-cell us"><span class="ok">✓</span> 전문의 처방서 발급</div>
+      <div class="pdp-cmp-cell">시공 매칭</div>
+      <div class="pdp-cmp-cell"><span class="no">별도 업체 찾아야 함</span></div>
+      <div class="pdp-cmp-cell us"><span class="ok">✓</span> 250+ 파트너 자동 매칭</div>
+      <div class="pdp-cmp-cell">하자 보증</div>
+      <div class="pdp-cmp-cell"><span class="no">자재만 — 시공은 별도</span></div>
+      <div class="pdp-cmp-cell us"><span class="ok">✓</span> 자재+시공 통합 책임</div>
+      <div class="pdp-cmp-cell">시공 후 케어</div>
+      <div class="pdp-cmp-cell"><span class="no">없음</span></div>
+      <div class="pdp-cmp-cell us"><span class="ok">✓</span> 12개월 정기 체크업</div>
+      <div class="pdp-cmp-cell">근거</div>
+      <div class="pdp-cmp-cell"><span class="no">상품 설명 위주</span></div>
+      <div class="pdp-cmp-cell us"><span class="ok">✓</span> 50+ 특허·240만 세대 데이터</div>
+    </div>
+  </div>
+</div>
+</section>`;
+
+  // POUR주치의 페이지 — 전문가 팀 + 빅데이터 신뢰
+  const POUR_DR_TRUST_HTML = `<section class="pdt">
+<style>
+.pdt *, .pdt *::before, .pdt *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.pdt { background:#fff; padding:80px 24px; color:#2F3438; letter-spacing:-0.02em; }
+.pdt-inner { max-width:1200px; margin:0 auto; }
+.pdt-head { text-align:center; margin-bottom:48px; }
+.pdt-kicker { display:inline-block; font-size:12.5px; font-weight:700; color:#E8780F; letter-spacing:0.04em; padding:5px 14px; background:#FFF7ED; border:1px solid #FED7AA; border-radius:999px; margin-bottom:14px; }
+.pdt-title { font-size:36px; font-weight:900; color:#111111; letter-spacing:-0.045em; line-height:1.25; }
+.pdt-title b { color:#E8780F; }
+.pdt-sub { margin-top:14px; font-size:16px; font-weight:500; color:#6B7280; letter-spacing:-0.02em; }
+/* 팀 카드 */
+.pdt-team { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-bottom:48px; }
+.pdt-team-card { background:linear-gradient(180deg,#F9FAFB 0%,#fff 100%); border:1px solid #F2F3F5; border-radius:18px; padding:26px; transition:.18s; }
+.pdt-team-card:hover { border-color:#E8780F; transform:translateY(-3px); }
+.pdt-team-av { width:56px; height:56px; border-radius:16px; display:grid; place-items:center; font-size:24px; margin-bottom:14px; }
+.pdt-team-av.av1 { background:linear-gradient(135deg,#DBEAFE,#3B82F6); color:#fff; }
+.pdt-team-av.av2 { background:linear-gradient(135deg,#FFEDD5,#E8780F); color:#fff; }
+.pdt-team-av.av3 { background:linear-gradient(135deg,#D1FAE5,#059669); color:#fff; }
+.pdt-team-role { font-size:11.5px; font-weight:700; color:#6B7280; letter-spacing:0.04em; text-transform:uppercase; margin-bottom:6px; }
+.pdt-team-name { font-size:18px; font-weight:800; color:#111; letter-spacing:-0.04em; margin-bottom:8px; }
+.pdt-team-desc { font-size:13px; font-weight:500; color:#6B7280; letter-spacing:-0.02em; line-height:1.6; }
+.pdt-team-tags { margin-top:14px; display:flex; gap:5px; flex-wrap:wrap; }
+.pdt-team-tag { font-size:10.5px; font-weight:700; padding:3px 8px; background:#F3F4F6; color:#374151; border-radius:999px; letter-spacing:-0.02em; }
+/* 빅데이터 패널 */
+.pdt-data { background:linear-gradient(135deg,#0F1F5C 0%,#1E3A8A 100%); color:#fff; border-radius:24px; padding:48px 36px; position:relative; overflow:hidden; }
+.pdt-data::before { content:''; position:absolute; top:-100px; right:-80px; width:340px; height:340px; background:radial-gradient(circle, rgba(232,120,15,.2) 0%, transparent 60%); pointer-events:none; }
+.pdt-data-head { text-align:center; margin-bottom:36px; position:relative; z-index:1; }
+.pdt-data-kicker { display:inline-block; font-size:11.5px; font-weight:700; color:#FED7AA; letter-spacing:0.06em; padding:4px 12px; background:rgba(232,120,15,.18); border:1px solid rgba(232,120,15,.3); border-radius:999px; margin-bottom:12px; }
+.pdt-data-title { font-size:28px; font-weight:900; letter-spacing:-0.045em; line-height:1.3; }
+.pdt-data-title b { color:#FED7AA; }
+.pdt-data-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; position:relative; z-index:1; }
+.pdt-data-cell { background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:14px; padding:22px 18px; text-align:center; transition:.15s; }
+.pdt-data-cell:hover { background:rgba(255,255,255,.1); }
+.pdt-data-num { font-size:34px; font-weight:900; color:#FED7AA; letter-spacing:-0.045em; line-height:1; }
+.pdt-data-num small { font-size:18px; font-weight:800; }
+.pdt-data-label { margin-top:8px; font-size:12.5px; font-weight:600; color:rgba(255,255,255,.78); letter-spacing:-0.02em; line-height:1.4; }
+.pdt-data-foot { margin-top:32px; padding-top:24px; border-top:1px solid rgba(255,255,255,.12); display:flex; gap:16px; flex-wrap:wrap; justify-content:center; align-items:center; position:relative; z-index:1; }
+.pdt-data-foot-label { font-size:11.5px; font-weight:700; color:rgba(255,255,255,.55); letter-spacing:0.04em; }
+.pdt-data-partner { font-size:13px; font-weight:700; color:#fff; letter-spacing:-0.02em; padding:6px 14px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.16); border-radius:999px; }
+@media (max-width:900px) {
+  .pdt-team { grid-template-columns:1fr; }
+  .pdt-data-grid { grid-template-columns:repeat(2,1fr); }
+}
+@media (max-width:700px) {
+  .pdt { padding:56px 16px; }
+  .pdt-title { font-size:28px; }
+  .pdt-data { padding:32px 22px; border-radius:18px; }
+  .pdt-data-title { font-size:22px; }
+  .pdt-data-num { font-size:26px; }
+}
+</style>
+<div class="pdt-inner">
+  <div class="pdt-head">
+    <span class="pdt-kicker">EXPERT TEAM</span>
+    <h2 class="pdt-title">당신만의 주치의는 <b>이런 팀</b>입니다</h2>
+    <p class="pdt-sub">서울과학기술대학교 공동 R&D · 강남제비스코 생산 파트너십 · 50+ 자체 특허 보유</p>
+  </div>
+  <div class="pdt-team">
+    <div class="pdt-team-card">
+      <div class="pdt-team-av av1">🔬</div>
+      <div class="pdt-team-role">R&D · 기술</div>
+      <div class="pdt-team-name">전문 R&D 박사진</div>
+      <p class="pdt-team-desc">서울과학기술대학교 건축·재료 연구진과 공동 개발. 슈퍼복합압축시트·POUR코트재 등 50+ 특허를 만든 기술 진단 책임자들입니다.</p>
+      <div class="pdt-team-tags"><span class="pdt-team-tag">건축재료 박사</span><span class="pdt-team-tag">서울과기대 협력</span><span class="pdt-team-tag">건설신기술 1026호</span></div>
+    </div>
+    <div class="pdt-team-card">
+      <div class="pdt-team-av av2">🛠</div>
+      <div class="pdt-team-role">전문 시공팀</div>
+      <div class="pdt-team-name">현장 진단 시공 전문가</div>
+      <p class="pdt-team-desc">전국 250+ 파트너사 시공 전문가 네트워크. 평균 경력 12년, 240만 세대 시공 경험을 처방·매칭에 직접 활용합니다.</p>
+      <div class="pdt-team-tags"><span class="pdt-team-tag">평균경력 12년</span><span class="pdt-team-tag">17개 광역</span><span class="pdt-team-tag">240만 세대 경험</span></div>
+    </div>
+    <div class="pdt-team-card">
+      <div class="pdt-team-av av3">📊</div>
+      <div class="pdt-team-role">데이터 · AI</div>
+      <div class="pdt-team-name">AI 진단 데이터팀</div>
+      <p class="pdt-team-desc">240만 세대 진단 데이터와 700+ 단지 시공 결과를 머신러닝으로 학습. Claude Vision으로 사진 진단을 자동화하는 분석 전담팀입니다.</p>
+      <div class="pdt-team-tags"><span class="pdt-team-tag">AI Vision</span><span class="pdt-team-tag">240만 세대 학습</span><span class="pdt-team-tag">하자 8종 분류</span></div>
+    </div>
+  </div>
+  <div class="pdt-data">
+    <div class="pdt-data-head">
+      <span class="pdt-data-kicker">BIG DATA</span>
+      <h3 class="pdt-data-title">10년+ 축적된 <b>POUR 빅데이터</b>로<br/>당신의 건물을 진단합니다</h3>
+    </div>
+    <div class="pdt-data-grid">
+      <div class="pdt-data-cell"><div class="pdt-data-num">2.4<small>M+</small></div><div class="pdt-data-label">누적 시공 세대수</div></div>
+      <div class="pdt-data-cell"><div class="pdt-data-num">700<small>+</small></div><div class="pdt-data-label">단지 채택 실적</div></div>
+      <div class="pdt-data-cell"><div class="pdt-data-num">150<small>만㎡</small></div><div class="pdt-data-label">누적 시공 면적</div></div>
+      <div class="pdt-data-cell"><div class="pdt-data-num">50<small>+</small></div><div class="pdt-data-label">자체 R&D 특허·기술</div></div>
+      <div class="pdt-data-cell"><div class="pdt-data-num">110<small>+</small></div><div class="pdt-data-label">유지보수 제품</div></div>
+      <div class="pdt-data-cell"><div class="pdt-data-num">250<small>+</small></div><div class="pdt-data-label">전국 파트너 네트워크</div></div>
+      <div class="pdt-data-cell"><div class="pdt-data-num">850<small>억+</small></div><div class="pdt-data-label">누적 거래액</div></div>
+      <div class="pdt-data-cell"><div class="pdt-data-num">50<small>%</small></div><div class="pdt-data-label">연평균 성장률</div></div>
+    </div>
+    <div class="pdt-data-foot">
+      <span class="pdt-data-foot-label">공동 연구·생산 파트너</span>
+      <span class="pdt-data-partner">🎓 서울과학기술대학교</span>
+      <span class="pdt-data-partner">🏭 강남제비스코</span>
+      <span class="pdt-data-partner">📜 국토교통부 건설신기술 1026호</span>
+    </div>
+  </div>
+</div>
+</section>`;
+
+  // POUR주치의 페이지 — 무료 진단 폼
+  const POUR_DR_FORM_HTML = `<section class="pdf">
+<style>
+.pdf *, .pdf *::before, .pdf *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.pdf { background:#F9FAFB; padding:80px 24px; color:#2F3438; letter-spacing:-0.02em; }
+.pdf-inner { max-width:880px; margin:0 auto; }
+.pdf-head { text-align:center; margin-bottom:40px; }
+.pdf-kicker { display:inline-block; font-size:12.5px; font-weight:700; color:#E8780F; letter-spacing:0.04em; padding:5px 14px; background:#FFF7ED; border:1px solid #FED7AA; border-radius:999px; margin-bottom:14px; }
+.pdf-title { font-size:34px; font-weight:900; color:#111111; letter-spacing:-0.045em; line-height:1.25; }
+.pdf-title b { color:#E8780F; }
+.pdf-sub { margin-top:14px; font-size:15px; font-weight:500; color:#6B7280; letter-spacing:-0.02em; line-height:1.6; }
+.pdf-card { background:#fff; border-radius:20px; padding:36px; box-shadow:0 6px 24px rgba(15,31,92,.06); border:1px solid #F2F3F5; }
+.pdf-step { margin-bottom:26px; }
+.pdf-step:last-child { margin-bottom:0; }
+.pdf-step-label { display:flex; align-items:center; gap:8px; font-size:14px; font-weight:800; color:#111; letter-spacing:-0.03em; margin-bottom:12px; }
+.pdf-step-num { width:24px; height:24px; border-radius:50%; background:#E8780F; color:#fff; font-size:12px; font-weight:900; display:grid; place-items:center; }
+.pdf-step-req { color:#E8780F; }
+.pdf-chips { display:flex; gap:8px; flex-wrap:wrap; }
+.pdf-chip { padding:9px 16px; font-size:13px; font-weight:600; color:#2F3438; background:#fff; border:1px solid #E5E7EB; border-radius:999px; cursor:pointer; transition:.15s; letter-spacing:-0.02em; }
+.pdf-chip:hover { border-color:#9CA3AF; background:#FAFAFA; }
+.pdf-chip.on { background:#E8780F; border-color:#E8780F; color:#fff; }
+.pdf-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.pdf-input { width:100%; padding:13px 16px; font-size:14px; font-weight:500; color:#2F3438; background:#fff; border:1px solid #E5E7EB; border-radius:10px; outline:none; transition:.15s; letter-spacing:-0.02em; }
+.pdf-input::placeholder { color:#9CA3AF; }
+.pdf-input:focus { border-color:#E8780F; box-shadow:0 0 0 3px rgba(232,120,15,.12); }
+.pdf-textarea { min-height:84px; resize:vertical; line-height:1.55; font-family:inherit; }
+.pdf-file-zone { padding:24px; border:2px dashed #D1D5DB; border-radius:12px; text-align:center; cursor:pointer; transition:.15s; background:#FAFAFA; }
+.pdf-file-zone:hover { border-color:#E8780F; background:#FFF7ED; }
+.pdf-file-ico { font-size:28px; margin-bottom:6px; }
+.pdf-file-text { font-size:13.5px; font-weight:700; color:#374151; letter-spacing:-0.02em; }
+.pdf-file-sub { margin-top:4px; font-size:11.5px; font-weight:500; color:#9CA3AF; letter-spacing:-0.02em; }
+.pdf-agree { display:flex; gap:8px; align-items:flex-start; margin-top:20px; padding:14px 16px; background:#FAFAFA; border-radius:10px; }
+.pdf-agree input[type=checkbox] { margin-top:2px; accent-color:#E8780F; cursor:pointer; }
+.pdf-agree label { font-size:12.5px; font-weight:500; color:#6B7280; letter-spacing:-0.02em; line-height:1.5; cursor:pointer; }
+.pdf-agree label b { color:#2F3438; }
+.pdf-submit { width:100%; margin-top:18px; padding:16px; background:#E8780F; color:#fff; font-size:15px; font-weight:800; border-radius:12px; border:none; cursor:pointer; letter-spacing:-0.03em; box-shadow:0 8px 20px rgba(232,120,15,.32); transition:.15s; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+.pdf-submit:hover { background:#C8650D; transform:translateY(-1px); }
+.pdf-trust { margin-top:18px; display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+.pdf-trust-item { font-size:11.5px; font-weight:600; color:#6B7280; letter-spacing:-0.02em; display:inline-flex; align-items:center; gap:4px; }
+.pdf-trust-item::before { content:'✓'; color:#10B981; font-weight:900; }
+@media (max-width:700px) {
+  .pdf { padding:56px 14px; }
+  .pdf-title { font-size:26px; }
+  .pdf-sub { font-size:13.5px; }
+  .pdf-card { padding:24px 18px; border-radius:16px; }
+  .pdf-grid2 { grid-template-columns:1fr; }
+  .pdf-chip { padding:8px 13px; font-size:12.5px; }
+}
+</style>
+<div class="pdf-inner">
+  <div class="pdf-head">
+    <span class="pdf-kicker">FREE DIAGNOSIS</span>
+    <h2 class="pdf-title">지금 <b>무료 진단</b>을 시작해보세요</h2>
+    <p class="pdf-sub">아래 정보만 입력하시면 R&D 박사가 직접 처방서를 작성해<br/><b>카카오톡으로 3분 이내</b> 보내드립니다.</p>
+  </div>
+  <form class="pdf-card" onsubmit="return false;">
+    <div class="pdf-step">
+      <div class="pdf-step-label"><span class="pdf-step-num">1</span>건물 유형 <span class="pdf-step-req">*</span></div>
+      <div class="pdf-chips" data-pdf-chips="single">
+        <button type="button" class="pdf-chip on">아파트</button>
+        <button type="button" class="pdf-chip">관공서</button>
+        <button type="button" class="pdf-chip">상가·오피스텔</button>
+        <button type="button" class="pdf-chip">공장·창고</button>
+        <button type="button" class="pdf-chip">학교·병원</button>
+        <button type="button" class="pdf-chip">단독·빌라</button>
+      </div>
+    </div>
+    <div class="pdf-step">
+      <div class="pdf-step-label"><span class="pdf-step-num">2</span>주요 증상 (복수 선택 가능)<span class="pdf-step-req"> *</span></div>
+      <div class="pdf-chips" data-pdf-chips="multi">
+        <button type="button" class="pdf-chip">💧 누수</button>
+        <button type="button" class="pdf-chip">⚡ 균열·크랙</button>
+        <button type="button" class="pdf-chip">🧱 박락·박리</button>
+        <button type="button" class="pdf-chip">🦠 곰팡이·결로</button>
+        <button type="button" class="pdf-chip">🦠 백화현상</button>
+        <button type="button" class="pdf-chip">🪲 철근 노출</button>
+        <button type="button" class="pdf-chip">🟫 녹·부식</button>
+        <button type="button" class="pdf-chip">🎨 도장 열화</button>
+        <button type="button" class="pdf-chip">🏚 슁글·기와 탈락</button>
+      </div>
+    </div>
+    <div class="pdf-step">
+      <div class="pdf-step-label"><span class="pdf-step-num">3</span>증상이 발생한 위치 / 메모</div>
+      <textarea class="pdf-input pdf-textarea" placeholder="예: 102동 옥상 슬라브 / 가장자리 드레인 주변 누수 / 작년 7월부터 점점 심해짐"></textarea>
+    </div>
+    <div class="pdf-step">
+      <div class="pdf-step-label"><span class="pdf-step-num">4</span>사진 첨부 (선택, 최대 5장)</div>
+      <label class="pdf-file-zone">
+        <div class="pdf-file-ico">📷</div>
+        <div class="pdf-file-text">사진을 끌어다 놓거나 클릭해서 업로드</div>
+        <div class="pdf-file-sub">JPG · PNG · HEIC · 최대 10MB / 사진당</div>
+        <input type="file" accept="image/*" multiple hidden/>
+      </label>
+    </div>
+    <div class="pdf-step">
+      <div class="pdf-step-label"><span class="pdf-step-num">5</span>연락처 <span class="pdf-step-req">*</span></div>
+      <div class="pdf-grid2">
+        <input type="text" class="pdf-input" placeholder="성함" required/>
+        <input type="tel" class="pdf-input" placeholder="010-0000-0000" required/>
+      </div>
+    </div>
+    <div class="pdf-agree">
+      <input type="checkbox" id="pdf-agree-1" checked/>
+      <label for="pdf-agree-1"><b>개인정보 수집·이용 동의</b> — 진단 결과 안내 목적으로만 사용되며, 마케팅 수신은 별도 동의 시에만 적용됩니다. 보관 기간: 진단 완료 후 6개월.</label>
+    </div>
+    <button type="submit" class="pdf-submit">🩺 무료 진단 처방서 받기 (3분 이내)</button>
+    <div class="pdf-trust">
+      <span class="pdf-trust-item">SSL 암호화</span>
+      <span class="pdf-trust-item">개인정보 6개월 후 자동 파기</span>
+      <span class="pdf-trust-item">광고·홍보 발송 없음</span>
+    </div>
+  </form>
+</div>
+<script>
+(function(){
+  var root = document.currentScript && document.currentScript.parentElement;
+  if (!root) return;
+  root.querySelectorAll('[data-pdf-chips]').forEach(function(group){
+    var mode = group.dataset.pdfChips;
+    group.querySelectorAll('.pdf-chip').forEach(function(c){
+      c.addEventListener('click', function(){
+        if (mode === 'single') {
+          group.querySelectorAll('.pdf-chip').forEach(function(x){ x.classList.remove('on'); });
+          c.classList.add('on');
+        } else {
+          c.classList.toggle('on');
+        }
+      });
+    });
+  });
+})();
+</script>
+</section>`;
+
   const SEED_CATEGORY_HTML = `<style>
 .psc3 * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
 .psc3 { background:#fff; padding:48px 16px 36px; }
@@ -5298,6 +5845,12 @@ show('entry');
       mkSec('동영상 가이드', SEED_VIDEO_GUIDE_HTML, 'POUR스토어 자체 영상 — 추천 영상 + 미니 카드 매거진 레이아웃 (v2)', 'wip'),
       mkSec('POUR스토어 실적관', SEED_STATS_HTML, '실적 수치 + 시공 갤러리 + 협력사 (기존 cafe24 시안 임베드)', 'requested'),
     ]},
+    { id: 'pour-doctor', name: 'POUR주치의 (전용 페이지)', file: 'pour-doctor.html', sections: [
+      mkSec('히어로 — 당신만의 건물 주치의', POUR_DR_HERO_HTML, '다크 네이비 + 라이브 진단 보드 + 5개 신뢰 수치 (의료·전문 톤)', 'wip'),
+      mkSec('4단계 케어 프로세스', POUR_DR_PROCESS_HTML, '진단→처방→시공→관리 + 일반 쇼핑몰 비교표', 'wip'),
+      mkSec('전문가 팀 + 빅데이터', POUR_DR_TRUST_HTML, 'R&D 박사·시공팀·AI 데이터팀 3카드 + 8개 핵심 수치 패널', 'wip'),
+      mkSec('무료 진단 폼', POUR_DR_FORM_HTML, '건물유형·증상칩·메모·사진·연락처 — 3분 처방서 발송 CTA', 'wip'),
+    ]},
     { id: 'about', name: '브랜드스토리 소개', file: 'about.html', sections: [
       mkSec('히어로 비주얼', SEED_AB_HERO_HTML, '라이트 크림 + 오렌지 + 4개 핵심 수치 (260만/250+/70+/110+)', 'wip'),
       mkSec('회사 소개', SEED_AB_ABOUT_HTML, '2-column 이미지+텍스트 — 설립 정보 인포 그리드 포함', 'wip'),
@@ -5640,6 +6193,50 @@ show('entry');
         sec.statusAt = now;
       }
       s.migrations.mainSection2OhouseV2 = true;
+    }
+    // 1회성 마이그레이션 — POUR주치의 전용 페이지 추가 + 메인 3번 섹션에 퀵배너 적용
+    if (!s.migrations.pourDoctorV1) {
+      const now = new Date().toISOString();
+      // 1) POUR주치의 페이지가 없으면 추가
+      if (!s.pages.find(p => p.id === 'pour-doctor')) {
+        s.pages.push({
+          id: 'pour-doctor',
+          name: 'POUR주치의 (전용 페이지)',
+          file: 'pour-doctor.html',
+          parentId: null,
+          type: 'page',
+          sections: [
+            mkSec('히어로 — 당신만의 건물 주치의', POUR_DR_HERO_HTML, '다크 네이비 + 라이브 진단 보드 + 5개 신뢰 수치 (의료·전문 톤)', 'wip'),
+            mkSec('4단계 케어 프로세스', POUR_DR_PROCESS_HTML, '진단→처방→시공→관리 + 일반 쇼핑몰 비교표', 'wip'),
+            mkSec('전문가 팀 + 빅데이터', POUR_DR_TRUST_HTML, 'R&D 박사·시공팀·AI 데이터팀 3카드 + 8개 핵심 수치 패널', 'wip'),
+            mkSec('무료 진단 폼', POUR_DR_FORM_HTML, '건물유형·증상칩·메모·사진·연락처 — 3분 처방서 발송 CTA', 'wip'),
+          ],
+          feedbacks: [],
+        });
+      }
+      // 2) 메인 페이지 3번 섹션을 POUR주치의 퀵배너로 교체
+      const mainPage = s.pages.find(p => p.id === 'main');
+      if (mainPage && Array.isArray(mainPage.sections) && mainPage.sections.length > 2) {
+        const sec = mainPage.sections[2];
+        const key = mainPage.id + ':' + sec.id;
+        s.history[key] = s.history[key] || [];
+        s.history[key].unshift({
+          name: sec.name,
+          html: sec.html,
+          note: sec.note || '',
+          reason: 'POUR주치의 진입 퀵배너 자동 적용 (이전 버전 자동 보관 — 이력에서 복원 가능)',
+          kind: 'auto-migration',
+          savedAt: now,
+        });
+        sec.name = 'POUR주치의 퀵배너 (전용 페이지 진입)';
+        sec.html = POUR_DR_QUICK_BANNER_HTML;
+        sec.note = 'POUR주치의 진입 퀵배너 — 다크 네이비 + 의료 메디컬 톤 + 4개 신뢰 수치, 클릭 시 pour-doctor.html로 이동';
+        sec.status = 'wip';
+        sec.statusAt = now;
+        sec.confirmed = false;
+        sec.confirmedAt = null;
+      }
+      s.migrations.pourDoctorV1 = true;
     }
     return s;
   }

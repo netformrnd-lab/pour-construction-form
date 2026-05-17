@@ -2265,6 +2265,12 @@ show('entry');
 .psg3-card.feature .desc { font-size:13.5px; -webkit-line-clamp:3; }
 .psg3-card .meta-bot { display:flex; gap:10px; align-items:center; margin-top:14px; padding-top:14px; border-top:1px solid #F3F4F6; font-size:11.5px; color:#9CA3AF; font-weight:600; letter-spacing:-0.02em; }
 .psg3-card .meta-bot .dot { width:3px; height:3px; background:#D1D5DB; border-radius:50%; }
+/* 활성(자동 재생 중) 카드 표시 — 모바일에서만 활성화 */
+.psg3-card .psg3-prog { position:absolute; left:0; right:0; bottom:0; height:3px; background:rgba(232,120,15,.15); overflow:hidden; opacity:0; transition:opacity .3s; pointer-events:none; }
+.psg3-card[data-psg3-active] .psg3-prog { opacity:1; }
+.psg3-card .psg3-prog::after { content:''; position:absolute; left:0; top:0; bottom:0; width:0; background:linear-gradient(90deg,#F49A3A,#E8780F); }
+.psg3-card[data-psg3-active] .psg3-prog::after { animation:psg3Fill var(--psg3-d, 6s) linear forwards; }
+@keyframes psg3Fill { to { width:100%; } }
 /* 태블릿 */
 @media (max-width:1080px) {
   .psg3-grid { grid-template-columns:1fr 1fr; }
@@ -2288,7 +2294,8 @@ show('entry');
   /* 비특집 카드 3개를 가로 스크롤 컨테이너로 */
   .psg3-list { display:flex !important; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; -ms-overflow-style:none; gap:12px; padding:0 18px 8px; margin:0 -18px; -webkit-overflow-scrolling:touch; grid-column:auto; }
   .psg3-list::-webkit-scrollbar { display:none; }
-  .psg3-list .psg3-card { flex:0 0 76%; max-width:300px; scroll-snap-align:center; }
+  .psg3-list .psg3-card { flex:0 0 76%; max-width:300px; scroll-snap-align:center; position:relative; transition:.25s; }
+  .psg3-list .psg3-card[data-psg3-active] { outline:2px solid #E8780F; outline-offset:-2px; box-shadow:0 14px 32px rgba(232,120,15,.22); }
 }
 </style>
 <section class="psg3">
@@ -2306,22 +2313,89 @@ show('entry');
         <div class="img" style="background-image:url('https://placehold.co/1200x800/8B4513/fff?text=COVER+STORY')"><span class="tag">COVER STORY</span><div class="meta-tl"><span>📖 읽기 8분</span></div></div>
         <div class="body"><div class="title">금속기와 하자, 이렇게 대응합니다 — 실제 시공자가 알려주는 5단계</div><div class="desc">금속기와 지붕 소재의 특성과 하자 발생 원인, 그리고 POUR HOOKER 시스템으로 어떻게 해결하는지 단계별로 정리했습니다.</div><div class="meta-bot"><span>POUR 편집팀</span><span class="dot"></span><span>2일 전</span><span class="dot"></span><span>👁 4.2K</span></div></div>
       </a>
-      <div class="psg3-list">
-        <a class="psg3-card" href="https://www.pourstore.net/posts/silicone">
+      <div class="psg3-list" data-psg3-scroll>
+        <a class="psg3-card" data-psg3-dur="6" href="https://www.pourstore.net/posts/silicone">
           <div class="img" style="background-image:url('https://placehold.co/600x375/D1D5DB/0F1F5C?text=SILICONE')"><span class="tag">노하우</span></div>
           <div class="body"><div class="title">실리콘이 답일까? 외벽 균열 보수의 진실</div><div class="desc">실리콘 보수의 한계와 600% 신축 하이퍼티가 답인 이유.</div><div class="meta-bot"><span>5일 전</span><span class="dot"></span><span>👁 2.1K</span></div></div>
+          <span class="psg3-prog"></span>
         </a>
-        <a class="psg3-card" href="https://www.pourstore.net/posts/leak-fix">
+        <a class="psg3-card" data-psg3-dur="6" href="https://www.pourstore.net/posts/leak-fix">
           <div class="img" style="background-image:url('https://placehold.co/600x375/059669/fff?text=DIY')"><span class="tag">셀프시공</span></div>
           <div class="body"><div class="title">크랙·누수 한 방에 — 빌라 옥상 셀프 방수 후기</div><div class="desc">평택 빌라 옥상 셀프 방수 사례, 비용·시간·결과 모두 공개.</div><div class="meta-bot"><span>1주 전</span><span class="dot"></span><span>👁 3.5K</span></div></div>
+          <span class="psg3-prog"></span>
         </a>
-        <a class="psg3-card" href="https://www.pourstore.net/posts/shingle-coat">
+        <a class="psg3-card" data-psg3-dur="6" href="https://www.pourstore.net/posts/shingle-coat">
           <div class="img" style="background-image:url('https://placehold.co/600x375/B91C1C/fff?text=SHINGLE')"><span class="tag">슁글</span></div>
           <div class="body"><div class="title">아스팔트 슁글에 도막방수, 잘 버틸까?</div><div class="desc">경사형 지붕에 액체방수의 한계 — 시트+도료 일체화 방식이 답.</div><div class="meta-bot"><span>2주 전</span><span class="dot"></span><span>👁 1.8K</span></div></div>
+          <span class="psg3-prog"></span>
         </a>
       </div>
     </div>
   </div>
+  <script>
+  (function(){
+    var root = document.currentScript && document.currentScript.parentElement;
+    if (!root) return;
+    var scroller = root.querySelector('[data-psg3-scroll]');
+    if (!scroller) return;
+    var cards = Array.prototype.slice.call(scroller.querySelectorAll('.psg3-card'));
+    if (cards.length === 0) return;
+    var current = 0, paused = false, inView = false;
+    var advanceT = null, resumeT = null;
+    var mq = window.matchMedia('(max-width:700px)');
+    function durMs(i){
+      var d = parseFloat(cards[i].getAttribute('data-psg3-dur') || '6');
+      return Math.min(Math.max(d, 3), 12) * 1000;
+    }
+    function clearAdvance(){ if (advanceT) { clearTimeout(advanceT); advanceT = null; } }
+    function activate(i){
+      clearAdvance();
+      current = ((i % cards.length) + cards.length) % cards.length;
+      cards.forEach(function(c, idx){
+        if (idx === current) {
+          c.style.setProperty('--psg3-d', (durMs(current)/1000) + 's');
+          c.removeAttribute('data-psg3-active');
+          void c.offsetWidth;
+          c.setAttribute('data-psg3-active', '');
+        } else {
+          c.removeAttribute('data-psg3-active');
+        }
+      });
+      if (mq.matches) {
+        try { cards[current].scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' }); }
+        catch(_) { scroller.scrollLeft = cards[current].offsetLeft - (scroller.clientWidth - cards[current].clientWidth)/2; }
+      }
+      if (!paused && inView && !document.hidden) {
+        advanceT = setTimeout(function(){ activate(current + 1); }, durMs(current));
+      }
+    }
+    function pauseFor(ms){
+      paused = true;
+      clearAdvance();
+      if (resumeT) clearTimeout(resumeT);
+      resumeT = setTimeout(function(){ paused = false; if (inView) activate(current); }, ms || 7000);
+    }
+    scroller.addEventListener('touchstart', function(){ pauseFor(8000); }, {passive:true});
+    scroller.addEventListener('pointerdown', function(){ pauseFor(8000); });
+    scroller.addEventListener('mouseenter', function(){ pauseFor(10000); });
+    document.addEventListener('visibilitychange', function(){
+      if (document.hidden) clearAdvance();
+      else if (inView && !paused) activate(current);
+    });
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function(entries){
+        entries.forEach(function(e){
+          inView = e.isIntersecting;
+          if (inView && !paused && mq.matches) activate(current);
+          else clearAdvance();
+        });
+      }, { threshold: 0.3 });
+      io.observe(scroller);
+    } else if (mq.matches) {
+      inView = true; activate(0);
+    }
+  })();
+  </script>
 </section>`;
 
   const SEED_VIDEO_GUIDE_HTML = `<style>
@@ -6924,6 +6998,27 @@ show('entry');
         }
       }
       s.migrations.fabFaceV1 = true;
+    }
+    // 1회성 마이그레이션 — 매거진 2번째 행 자동 슬라이드 (숏폼 동일 패턴, 6초 간격)
+    if (!s.migrations.magazineAutoSlideV1) {
+      const mainPageM = s.pages.find(p => p.id === 'main');
+      if (mainPageM && Array.isArray(mainPageM.sections)) {
+        const idx = mainPageM.sections.findIndex(sec => (sec.html || '').indexOf('class="psg3"') !== -1);
+        if (idx !== -1) {
+          const sec = mainPageM.sections[idx];
+          const now = new Date().toISOString();
+          const key = mainPageM.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason: '매거진 2번째 행 — 모바일 가로 스크롤에 자동 슬라이드 추가 (6초 간격, 오렌지 프로그레스 바 + 활성 카드 외곽선, 화면 안에서만 동작·탭/터치/호버 시 일시정지)',
+            kind: 'auto-migration', savedAt: now,
+          });
+          sec.html = SEED_POSTING_HTML;
+          sec.statusAt = now;
+        }
+      }
+      s.migrations.magazineAutoSlideV1 = true;
     }
     return s;
   }

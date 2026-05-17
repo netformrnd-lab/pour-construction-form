@@ -1229,8 +1229,9 @@ show('entry');
 .pdfab-btn { display:inline-flex; align-items:center; gap:10px; padding:14px 22px 14px 14px; background:linear-gradient(135deg,#F49A3A 0%,#E8780F 100%); color:#fff; border-radius:999px; text-decoration:none; box-shadow:0 12px 32px rgba(232,120,15,.4), 0 4px 12px rgba(15,31,92,.12); border:none; cursor:pointer; font-size:14.5px; font-weight:800; letter-spacing:-0.03em; transition:.18s; position:relative; }
 .pdfab-btn:hover { transform:translateY(-3px); box-shadow:0 18px 40px rgba(232,120,15,.5), 0 6px 16px rgba(15,31,92,.18); }
 .pdfab-btn:active { transform:translateY(-1px); }
-.pdfab-ico { width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,.22); display:grid; place-items:center; backdrop-filter:blur(4px); }
-.pdfab-ico svg { width:22px; height:22px; color:#fff; }
+.pdfab-ico { width:42px; height:42px; border-radius:50%; background:#fff; display:grid; place-items:center; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.18), inset 0 0 0 2px rgba(255,255,255,.95); }
+.pdfab-ico img { width:100%; height:100%; object-fit:cover; object-position:center 22%; display:block; }
+.pdfab-ico svg { width:22px; height:22px; color:#E8780F; }
 .pdfab-text-wrap { display:flex; flex-direction:column; gap:1px; align-items:flex-start; line-height:1.2; padding-right:4px; }
 .pdfab-text-top { font-size:10.5px; font-weight:700; color:rgba(255,255,255,.85); letter-spacing:0.04em; text-transform:uppercase; }
 .pdfab-text-bot { font-size:14px; font-weight:800; letter-spacing:-0.03em; }
@@ -1244,7 +1245,7 @@ show('entry');
   .pdfab-tip { padding:10px 14px; max-width:240px; }
   .pdfab-tip-text { font-size:12px; }
   .pdfab-btn { padding:12px 18px 12px 12px; font-size:13.5px; }
-  .pdfab-ico { width:34px; height:34px; }
+  .pdfab-ico { width:36px; height:36px; }
   .pdfab-ico svg { width:20px; height:20px; }
   .pdfab-text-top { font-size:9.5px; }
   .pdfab-text-bot { font-size:13px; }
@@ -1258,7 +1259,7 @@ show('entry');
   <a class="pdfab-btn" href="./pour-doctor.html" aria-label="POUR닥터 무료 진단">
     <span class="pdfab-ring"></span>
     <span class="pdfab-ico">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5v6a4 4 0 0 0 8 0V5"/><path d="M6 5h-2"/><path d="M10 5h2"/><path d="M12 15v2a4 4 0 0 0 8 0v-2"/><circle cx="20" cy="11" r="2"/></svg>
+      <img src="./assets/pour-doctor-3d.png" alt="POUR닥터" loading="lazy"/>
     </span>
     <span class="pdfab-text-wrap">
       <span class="pdfab-text-top">POUR DOCTOR</span>
@@ -6902,6 +6903,27 @@ show('entry');
         swap('class="pdfab"', POUR_DR_FAB_HTML, '플로팅 FAB — POUR주치의 → POUR닥터 표기 통일 (aria-label·메시지 포함)');
       }
       s.migrations.pourDoctorRenameV1 = true;
+    }
+    // 1회성 마이그레이션 — 플로팅 FAB 아이콘을 청진기 SVG → 캐릭터 얼굴 이미지로 교체
+    if (!s.migrations.fabFaceV1) {
+      const mainPageF = s.pages.find(p => p.id === 'main');
+      if (mainPageF && Array.isArray(mainPageF.sections)) {
+        const idx = mainPageF.sections.findIndex(sec => (sec.html || '').indexOf('class="pdfab"') !== -1);
+        if (idx !== -1) {
+          const sec = mainPageF.sections[idx];
+          const now = new Date().toISOString();
+          const key = mainPageF.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason: '플로팅 FAB — 청진기 SVG 아이콘 → POUR닥터 캐릭터 얼굴 이미지 (object-position center 22%로 얼굴 영역 크롭)',
+            kind: 'auto-migration', savedAt: now,
+          });
+          sec.html = POUR_DR_FAB_HTML;
+          sec.statusAt = now;
+        }
+      }
+      s.migrations.fabFaceV1 = true;
     }
     return s;
   }

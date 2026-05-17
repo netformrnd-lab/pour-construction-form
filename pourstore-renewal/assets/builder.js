@@ -627,7 +627,7 @@ show('entry');
 .psm1-search input::placeholder { color:#9E9E9E; font-weight:400; }
 .psm1-search input:focus { background:#fff; border-color:#E8780F; }
 .psm1-search .psm1-search-ico { position:absolute; left:16px; top:50%; transform:translateY(-50%); width:18px; height:18px; opacity:.55; pointer-events:none; }
-/* POUR주치의 헬퍼 (검색 포커스 시 펼침) */
+/* POUR닥터 헬퍼 (검색 포커스 시 펼침) */
 .psm1-helper { position:absolute; top:calc(100% + 10px); left:0; right:0; background:#fff; border:1px solid #F2F3F5; border-radius:18px; box-shadow:0 16px 48px rgba(15,31,92,.14), 0 4px 12px rgba(15,31,92,.08); padding:18px; display:flex; gap:14px; opacity:0; pointer-events:none; transform:translateY(-6px); transition:all .22s cubic-bezier(.16,1,.3,1); z-index:50; }
 .psm1-helper.open { opacity:1; pointer-events:auto; transform:translateY(0); }
 .psm1-helper::before { content:''; position:absolute; top:-7px; left:32px; width:14px; height:14px; background:#fff; border-left:1px solid #F2F3F5; border-top:1px solid #F2F3F5; transform:rotate(45deg); }
@@ -750,11 +750,11 @@ show('entry');
     <div class="psm1-search" data-psm1-search>
       <svg class="psm1-search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
       <input type="text" placeholder="어떤 어려움이 있으세요? (예: 옥상 누수, 외벽 균열)" aria-label="통합검색"/>
-      <!-- 검색 포커스 시 펼쳐지는 POUR주치의 헬퍼 (캐릭터 + 말풍선 + 추천 칩) -->
+      <!-- 검색 포커스 시 펼쳐지는 POUR닥터 헬퍼 (캐릭터 + 말풍선 + 추천 칩) -->
       <div class="psm1-helper" data-psm1-helper>
         <div class="psm1-helper-char">
           <!-- 실제 3D 캐릭터 — 배경 투명 PNG. 이미지 교체 시 src만 바꾸면 됨 -->
-          <img src="./assets/pour-doctor-3d.png" alt="POUR주치의" loading="lazy"/>
+          <img src="./assets/pour-doctor-3d.png" alt="POUR닥터" loading="lazy"/>
         </div>
         <div class="psm1-helper-bubble">
           <div class="psm1-helper-msg">어떤 <b>어려움</b>이 있으세요?<br/>편하게 말씀해 주세요. <b>사진</b>으로도 가능해요!</div>
@@ -861,7 +861,7 @@ show('entry');
 (function(){
   var root = document.currentScript && document.currentScript.parentElement;
   if (!root) return;
-  // 검색 포커스 시 POUR주치의 헬퍼 펼침 (B 옵션)
+  // 검색 포커스 시 POUR닥터 헬퍼 펼침 (B 옵션)
   root.querySelectorAll('[data-psm1-search]').forEach(function(box){
     var input = box.querySelector('input');
     var helper = box.querySelector('[data-psm1-helper]');
@@ -1117,7 +1117,7 @@ show('entry');
 </script>
 </section>`;
 
-  // 메인 3번 섹션 — POUR주치의 진입 퀵배너
+  // 메인 3번 섹션 — POUR닥터 진입 퀵배너
   const POUR_DR_QUICK_BANNER_HTML = `<section class="pdq">
 <style>
 .pdq *, .pdq *::before, .pdq *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
@@ -1193,10 +1193,10 @@ show('entry');
 <a class="pdq-card" href="./pour-doctor.html">
   <div class="pdq-char">
     <div class="pdq-char-spot"></div>
-    <img class="pdq-char-img" src="./assets/pour-doctor-3d.png" alt="POUR주치의" loading="lazy"/>
+    <img class="pdq-char-img" src="./assets/pour-doctor-3d.png" alt="POUR닥터" loading="lazy"/>
   </div>
   <div class="pdq-text">
-    <span class="pdq-kicker"><span class="pdq-dot"></span>POUR주치의 · 1:1 진단</span>
+    <span class="pdq-kicker"><span class="pdq-dot"></span>POUR닥터 · 1:1 진단</span>
     <div class="pdq-speech">
       <div class="pdq-speech-text">건물에 어려움이 있다면,<br/><b>편하게 말씀해 주세요!</b></div>
     </div>
@@ -1214,8 +1214,8 @@ show('entry');
 </a>
 </section>`;
 
-  // POUR주치의 — 플로팅 진단 FAB (전체 시안 우하단에 항상 떠있는 퀵 진입 버튼)
-  const POUR_DR_FAB_HTML = `<section class="pdfab" aria-label="POUR주치의 빠른 진단">
+  // POUR닥터 — 플로팅 진단 FAB (전체 시안 우하단에 항상 떠있는 퀵 진입 버튼)
+  const POUR_DR_FAB_HTML = `<section class="pdfab" aria-label="POUR닥터 빠른 진단">
 <style>
 .pdfab *, .pdfab *::before, .pdfab *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
 .pdfab { all:unset; }
@@ -1233,8 +1233,9 @@ show('entry');
 .pdfab-btn { display:inline-flex; align-items:center; gap:10px; padding:14px 22px 14px 14px; background:linear-gradient(135deg,#F49A3A 0%,#E8780F 100%); color:#fff; border-radius:999px; text-decoration:none; box-shadow:0 12px 32px rgba(232,120,15,.4), 0 4px 12px rgba(15,31,92,.12); border:none; cursor:pointer; font-size:14.5px; font-weight:800; letter-spacing:-0.03em; transition:.18s; position:relative; }
 .pdfab-btn:hover { transform:translateY(-3px); box-shadow:0 18px 40px rgba(232,120,15,.5), 0 6px 16px rgba(15,31,92,.18); }
 .pdfab-btn:active { transform:translateY(-1px); }
-.pdfab-ico { width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,.22); display:grid; place-items:center; backdrop-filter:blur(4px); }
-.pdfab-ico svg { width:22px; height:22px; color:#fff; }
+.pdfab-ico { width:42px; height:42px; border-radius:50%; background:#fff; display:grid; place-items:center; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.18), inset 0 0 0 2px rgba(255,255,255,.95); }
+.pdfab-ico img { width:100%; height:100%; object-fit:cover; object-position:center 22%; display:block; }
+.pdfab-ico svg { width:22px; height:22px; color:#E8780F; }
 .pdfab-text-wrap { display:flex; flex-direction:column; gap:1px; align-items:flex-start; line-height:1.2; padding-right:4px; }
 .pdfab-text-top { font-size:10.5px; font-weight:700; color:rgba(255,255,255,.85); letter-spacing:0.04em; text-transform:uppercase; }
 .pdfab-text-bot { font-size:14px; font-weight:800; letter-spacing:-0.03em; }
@@ -1248,7 +1249,7 @@ show('entry');
   .pdfab-tip { padding:10px 14px; max-width:240px; }
   .pdfab-tip-text { font-size:12px; }
   .pdfab-btn { padding:12px 18px 12px 12px; font-size:13.5px; }
-  .pdfab-ico { width:34px; height:34px; }
+  .pdfab-ico { width:36px; height:36px; }
   .pdfab-ico svg { width:20px; height:20px; }
   .pdfab-text-top { font-size:9.5px; }
   .pdfab-text-bot { font-size:13px; }
@@ -1259,10 +1260,10 @@ show('entry');
     <span class="pdfab-tip-text">증상만 알려주세요 — <b>3분 안에</b> 처방서 받아보세요 🩺</span>
     <button class="pdfab-tip-close" type="button" aria-label="알림 닫기" onclick="this.parentElement.classList.add('hidden')">✕</button>
   </div>
-  <a class="pdfab-btn" href="./pour-doctor.html" aria-label="POUR주치의 무료 진단">
+  <a class="pdfab-btn" href="./pour-doctor.html" aria-label="POUR닥터 무료 진단">
     <span class="pdfab-ring"></span>
     <span class="pdfab-ico">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5v6a4 4 0 0 0 8 0V5"/><path d="M6 5h-2"/><path d="M10 5h2"/><path d="M12 15v2a4 4 0 0 0 8 0v-2"/><circle cx="20" cy="11" r="2"/></svg>
+      <img src="./assets/pour-doctor-3d.png" alt="POUR닥터" loading="lazy"/>
     </span>
     <span class="pdfab-text-wrap">
       <span class="pdfab-text-top">POUR DOCTOR</span>
@@ -1273,7 +1274,7 @@ show('entry');
 </div>
 </section>`;
 
-  // POUR주치의 페이지 — 히어로
+  // POUR닥터 페이지 — 히어로
   const POUR_DR_HERO_HTML = `<section class="pdh">
 <style>
 .pdh *, .pdh *::before, .pdh *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
@@ -1336,7 +1337,7 @@ show('entry');
 <div class="pdh-inner">
   <div class="pdh-text">
     <span class="pdh-kicker"><span class="pdh-kicker-dot"></span>POUR스토어만의 1:1 진단 서비스</span>
-    <h1 class="pdh-title">당신만의<br/>건물 <span class="pdh-accent">주치의</span>가<br/>여기 있습니다.</h1>
+    <h1 class="pdh-title">당신만의<br/>건물 <span class="pdh-accent">닥터</span>가<br/>여기 있습니다.</h1>
     <p class="pdh-sub">사진 한 장이면 <b>R&D 박사·전문 시공팀·AI 분석가</b>가 함께 진단합니다.<br/>방수·도장·보수 <b>50+ 특허</b>와 <b>240만 세대 빅데이터</b>로 <b>처방서 + 시공 매칭</b>까지 — 한 번에.</p>
     <div class="pdh-cta">
       <button class="pdh-btn-primary" type="button">🩺 무료 진단 시작</button>
@@ -1386,7 +1387,7 @@ show('entry');
 </div>
 </section>`;
 
-  // POUR주치의 페이지 — 4단계 케어 프로세스
+  // POUR닥터 페이지 — 4단계 케어 프로세스
   const POUR_DR_PROCESS_HTML = `<section class="pdp">
 <style>
 .pdp *, .pdp *::before, .pdp *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
@@ -1474,11 +1475,11 @@ show('entry');
     </div>
   </div>
   <div class="pdp-cmp">
-    <div class="pdp-cmp-title">일반 건자재 쇼핑몰 <span style="color:#9CA3AF;">vs</span> <b>POUR주치의 서비스</b></div>
+    <div class="pdp-cmp-title">일반 건자재 쇼핑몰 <span style="color:#9CA3AF;">vs</span> <b>POUR닥터 서비스</b></div>
     <div class="pdp-cmp-grid">
       <div class="pdp-cmp-cell h">항목</div>
       <div class="pdp-cmp-cell h">일반 쇼핑몰</div>
-      <div class="pdp-cmp-cell h us">POUR주치의</div>
+      <div class="pdp-cmp-cell h us">POUR닥터</div>
       <div class="pdp-cmp-cell">자재 선택</div>
       <div class="pdp-cmp-cell"><span class="no">고객이 직접 검색</span></div>
       <div class="pdp-cmp-cell us"><span class="ok">✓</span> 전문의 처방서 발급</div>
@@ -1496,7 +1497,7 @@ show('entry');
 </div>
 </section>`;
 
-  // POUR주치의 페이지 — 전문가 팀 + 빅데이터 신뢰
+  // POUR닥터 페이지 — 전문가 팀 + 빅데이터 신뢰
   const POUR_DR_TRUST_HTML = `<section class="pdt">
 <style>
 .pdt *, .pdt *::before, .pdt *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
@@ -1551,7 +1552,7 @@ show('entry');
 <div class="pdt-inner">
   <div class="pdt-head">
     <span class="pdt-kicker">EXPERT TEAM</span>
-    <h2 class="pdt-title">당신만의 주치의는 <b>이런 팀</b>입니다</h2>
+    <h2 class="pdt-title">당신만의 <b>POUR닥터</b>는 이런 팀입니다</h2>
     <p class="pdt-sub">서울과학기술대학교 공동 R&D · 강남제비스코 생산 파트너십 · 50+ 자체 특허 보유</p>
   </div>
   <div class="pdt-team">
@@ -1602,7 +1603,7 @@ show('entry');
 </div>
 </section>`;
 
-  // POUR주치의 페이지 — 무료 진단 폼
+  // POUR닥터 페이지 — 무료 진단 폼
   const POUR_DR_FORM_HTML = `<section class="pdf">
 <style>
 .pdf *, .pdf *::before, .pdf *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
@@ -6514,8 +6515,8 @@ show('entry');
       mkSec('동영상 가이드', SEED_VIDEO_GUIDE_HTML, 'POUR스토어 자체 영상 — 추천 영상 + 미니 카드 매거진 레이아웃 (v2)', 'wip'),
       mkSec('POUR스토어 실적관', SEED_STATS_HTML, '실적 수치 + 시공 갤러리 + 협력사 (기존 cafe24 시안 임베드)', 'requested'),
     ]},
-    { id: 'pour-doctor', name: 'POUR주치의 (전용 페이지)', file: 'pour-doctor.html', sections: [
-      mkSec('히어로 — 당신만의 건물 주치의', POUR_DR_HERO_HTML, '다크 네이비 + 라이브 진단 보드 + 5개 신뢰 수치 (의료·전문 톤)', 'wip'),
+    { id: 'pour-doctor', name: 'POUR닥터 (전용 페이지)', file: 'pour-doctor.html', sections: [
+      mkSec('히어로 — 당신만의 건물 닥터', POUR_DR_HERO_HTML, '다크 네이비 + 라이브 진단 보드 + 5개 신뢰 수치 (의료·전문 톤)', 'wip'),
       mkSec('3단계 시공 프로세스', POUR_DR_PROCESS_HTML, '진단→처방→시공 매칭(선택) + 일반 쇼핑몰 비교표', 'wip'),
       mkSec('전문가 팀 + 빅데이터', POUR_DR_TRUST_HTML, 'R&D 박사·시공팀·AI 데이터팀 3카드 + 8개 핵심 수치 패널', 'wip'),
       mkSec('무료 진단 폼', POUR_DR_FORM_HTML, '건물유형·증상칩·메모·사진·연락처 — 3분 처방서 발송 CTA', 'wip'),
@@ -6881,19 +6882,19 @@ show('entry');
       }
       s.migrations.mainSection2OhouseV2 = true;
     }
-    // 1회성 마이그레이션 — POUR주치의 전용 페이지 추가 + 메인 3번 섹션에 퀵배너 적용
+    // 1회성 마이그레이션 — POUR닥터 전용 페이지 추가 + 메인 3번 섹션에 퀵배너 적용
     if (!s.migrations.pourDoctorV1) {
       const now = new Date().toISOString();
-      // 1) POUR주치의 페이지가 없으면 추가
+      // 1) POUR닥터 페이지가 없으면 추가
       if (!s.pages.find(p => p.id === 'pour-doctor')) {
         s.pages.push({
           id: 'pour-doctor',
-          name: 'POUR주치의 (전용 페이지)',
+          name: 'POUR닥터 (전용 페이지)',
           file: 'pour-doctor.html',
           parentId: null,
           type: 'page',
           sections: [
-            mkSec('히어로 — 당신만의 건물 주치의', POUR_DR_HERO_HTML, '다크 네이비 + 라이브 진단 보드 + 5개 신뢰 수치 (의료·전문 톤)', 'wip'),
+            mkSec('히어로 — 당신만의 건물 닥터', POUR_DR_HERO_HTML, '다크 네이비 + 라이브 진단 보드 + 5개 신뢰 수치 (의료·전문 톤)', 'wip'),
             mkSec('3단계 시공 프로세스', POUR_DR_PROCESS_HTML, '진단→처방→시공 매칭(선택) + 일반 쇼핑몰 비교표', 'wip'),
             mkSec('전문가 팀 + 빅데이터', POUR_DR_TRUST_HTML, 'R&D 박사·시공팀·AI 데이터팀 3카드 + 8개 핵심 수치 패널', 'wip'),
             mkSec('무료 진단 폼', POUR_DR_FORM_HTML, '건물유형·증상칩·메모·사진·연락처 — 3분 처방서 발송 CTA', 'wip'),
@@ -6901,7 +6902,7 @@ show('entry');
           feedbacks: [],
         });
       }
-      // 2) 메인 페이지 3번 섹션을 POUR주치의 퀵배너로 교체
+      // 2) 메인 페이지 3번 섹션을 POUR닥터 퀵배너로 교체
       const mainPage = s.pages.find(p => p.id === 'main');
       if (mainPage && Array.isArray(mainPage.sections) && mainPage.sections.length > 2) {
         const sec = mainPage.sections[2];
@@ -6911,13 +6912,13 @@ show('entry');
           name: sec.name,
           html: sec.html,
           note: sec.note || '',
-          reason: 'POUR주치의 진입 퀵배너 자동 적용 (이전 버전 자동 보관 — 이력에서 복원 가능)',
+          reason: 'POUR닥터 진입 퀵배너 자동 적용 (이전 버전 자동 보관 — 이력에서 복원 가능)',
           kind: 'auto-migration',
           savedAt: now,
         });
-        sec.name = 'POUR주치의 퀵배너 (전용 페이지 진입)';
+        sec.name = 'POUR닥터 퀵배너 (전용 페이지 진입)';
         sec.html = POUR_DR_QUICK_BANNER_HTML;
-        sec.note = 'POUR주치의 진입 퀵배너 — 다크 네이비 + 의료 메디컬 톤 + 4개 신뢰 수치, 클릭 시 pour-doctor.html로 이동';
+        sec.note = 'POUR닥터 진입 퀵배너 — 다크 네이비 + 의료 메디컬 톤 + 4개 신뢰 수치, 클릭 시 pour-doctor.html로 이동';
         sec.status = 'wip';
         sec.statusAt = now;
         sec.confirmed = false;
@@ -6927,7 +6928,7 @@ show('entry');
     }
     // 1회성 마이그레이션 — 워딩 일상어화 v1 (공법·기술 용어 → 초보자 친화 표현)
     // 적용 대상: 메인 1번(배너), 메인 2번(철재·돌시멘트 카드), 메인 3번(퀵배너 그대로),
-    //          POUR주치의 히어로(라이브 보드), POUR주치의 처방 단계
+    //          POUR닥터 히어로(라이브 보드), POUR닥터 처방 단계
     if (!s.migrations.plainWordingV1) {
       const now = new Date().toISOString();
       const overwrite = (page, idx, html, reason) => {
@@ -6946,11 +6947,11 @@ show('entry');
       const doctorPage = s.pages.find(p => p.id === 'pour-doctor');
       overwrite(mainPage, 0, OHOUSE_V1_SECTION_HTML, '메인 배너 — 사이드 상품명 일상어 변경 (POUR코트재 → 방수 자재)');
       overwrite(mainPage, 1, OHOUSE_SECTION2_HTML, '메인 2번 — 카드 제목·태그·라벨 일상어 변경 (공법명·기술 수치 → 효과 중심 카피)');
-      overwrite(doctorPage, 0, POUR_DR_HERO_HTML, 'POUR주치의 히어로 — 라이브 보드 4건 공법명 제거');
-      overwrite(doctorPage, 1, POUR_DR_PROCESS_HTML, 'POUR주치의 처방 단계 — "POUR 공법" → "맞춤 시공 방법" 변경');
+      overwrite(doctorPage, 0, POUR_DR_HERO_HTML, 'POUR닥터 히어로 — 라이브 보드 4건 공법명 제거');
+      overwrite(doctorPage, 1, POUR_DR_PROCESS_HTML, 'POUR닥터 처방 단계 — "POUR 공법" → "맞춤 시공 방법" 변경');
       s.migrations.plainWordingV1 = true;
     }
-    // 1회성 마이그레이션 v2 — POUR주치의 "관리(4단계)" 제거 → 3단계(진단·처방·시공 매칭)로 축소
+    // 1회성 마이그레이션 v2 — POUR닥터 "관리(4단계)" 제거 → 3단계(진단·처방·시공 매칭)로 축소
     // 케어/체크업/관리 워딩 정리 + 시공 단계는 "선택"으로 명시 (셀프시공/매칭)
     if (!s.migrations.plainWordingV2) {
       const now2 = new Date().toISOString();
@@ -6970,19 +6971,19 @@ show('entry');
       };
       const mainPage2 = s.pages.find(p => p.id === 'main');
       const doctorPage2 = s.pages.find(p => p.id === 'pour-doctor');
-      overwrite2(mainPage2, 2, POUR_DR_QUICK_BANNER_HTML, null, null, 'POUR주치의 퀵배너 — "24시간 케어 중·케어 단지" → "지금도 진단 중·진단한 단지"로 워딩 정리');
-      overwrite2(doctorPage2, 0, POUR_DR_HERO_HTML, null, '다크 네이비 + 라이브 진단 보드 + 5개 신뢰 수치 (의료·전문 톤, 관리/케어 워딩 제거)', 'POUR주치의 히어로 — "처방·시공·관리까지" → "처방서+시공 매칭까지", 케어 단지 → 진단한 단지');
-      overwrite2(doctorPage2, 1, POUR_DR_PROCESS_HTML, '3단계 시공 프로세스', '진단→처방→시공 매칭(선택) + 일반 쇼핑몰 비교표', 'POUR주치의 프로세스 — 4단계(관리 포함)에서 3단계로 축소, 시공 단계를 셀프/매칭 선택으로 표기, 비교표 "시공 후 케어" 행 제거');
+      overwrite2(mainPage2, 2, POUR_DR_QUICK_BANNER_HTML, null, null, 'POUR닥터 퀵배너 — "24시간 케어 중·케어 단지" → "지금도 진단 중·진단한 단지"로 워딩 정리');
+      overwrite2(doctorPage2, 0, POUR_DR_HERO_HTML, null, '다크 네이비 + 라이브 진단 보드 + 5개 신뢰 수치 (의료·전문 톤, 관리/케어 워딩 제거)', 'POUR닥터 히어로 — "처방·시공·관리까지" → "처방서+시공 매칭까지", 케어 단지 → 진단한 단지');
+      overwrite2(doctorPage2, 1, POUR_DR_PROCESS_HTML, '3단계 시공 프로세스', '진단→처방→시공 매칭(선택) + 일반 쇼핑몰 비교표', 'POUR닥터 프로세스 — 4단계(관리 포함)에서 3단계로 축소, 시공 단계를 셀프/매칭 선택으로 표기, 비교표 "시공 후 케어" 행 제거');
       s.migrations.plainWordingV2 = true;
     }
-    // 1회성 마이그레이션 — POUR주치의 플로팅 FAB을 메인 페이지에 추가 (전체 시안 우하단 고정 버튼)
+    // 1회성 마이그레이션 — POUR닥터 플로팅 FAB을 메인 페이지에 추가 (전체 시안 우하단 고정 버튼)
     if (!s.migrations.pourDoctorFabV1) {
       const mainPage3 = s.pages.find(p => p.id === 'main');
       if (mainPage3 && Array.isArray(mainPage3.sections)) {
         const already = mainPage3.sections.some(sec => (sec.html || '').indexOf('class="pdfab"') !== -1);
         if (!already) {
           mainPage3.sections.push(mkSec(
-            'POUR주치의 플로팅 FAB (우하단 고정)',
+            'POUR닥터 플로팅 FAB (우하단 고정)',
             POUR_DR_FAB_HTML,
             '전체 시안 우하단에 항상 떠있는 진단 진입 버튼 — 펄스 링 + 라이브 도트 + 3초 후 툴팁 노출',
             'wip'
@@ -7013,7 +7014,7 @@ show('entry');
       }
       s.migrations.quickBannerCopyV1 = true;
     }
-    // 1회성 마이그레이션 — 메인 1번 검색 영역에 POUR주치의 캐릭터 헬퍼 추가 (검색 포커스 시 펼침)
+    // 1회성 마이그레이션 — 메인 1번 검색 영역에 POUR닥터 캐릭터 헬퍼 추가 (검색 포커스 시 펼침)
     if (!s.migrations.searchHelperV1) {
       const mainPage5 = s.pages.find(p => p.id === 'main');
       if (mainPage5 && Array.isArray(mainPage5.sections) && mainPage5.sections.length > 0) {
@@ -7023,7 +7024,7 @@ show('entry');
         s.history[key] = s.history[key] || [];
         s.history[key].unshift({
           name: sec.name, html: sec.html, note: sec.note || '',
-          reason: '검색바에 POUR주치의 캐릭터 헬퍼 추가 (포커스 시 캐릭터+말풍선+증상 추천 칩 펼침)',
+          reason: '검색바에 POUR닥터 캐릭터 헬퍼 추가 (포커스 시 캐릭터+말풍선+증상 추천 칩 펼침)',
           kind: 'auto-migration', savedAt: now5,
         });
         sec.html = OHOUSE_V1_SECTION_HTML;
@@ -7031,7 +7032,7 @@ show('entry');
       }
       s.migrations.searchHelperV1 = true;
     }
-    // 1회성 마이그레이션 — POUR주치의 캐릭터 실제 이미지 반영 + 섹션 3 재디자인
+    // 1회성 마이그레이션 — POUR닥터 캐릭터 실제 이미지 반영 + 섹션 3 재디자인
     if (!s.migrations.characterImageV1) {
       const mainPage6 = s.pages.find(p => p.id === 'main');
       if (mainPage6 && Array.isArray(mainPage6.sections)) {
@@ -7122,7 +7123,7 @@ show('entry');
           sec.html = html;
           sec.statusAt = now9;
         };
-        swap9('class="pdq"', POUR_DR_QUICK_BANNER_HTML, 'POUR주치의 퀵배너 — 다크 네이비 → 크림+오렌지 라이트 톤 (브랜드 따뜻함 강조, 캐릭터 가독성 ↑)');
+        swap9('class="pdq"', POUR_DR_QUICK_BANNER_HTML, 'POUR닥터 퀵배너 — 다크 네이비 → 크림+오렌지 라이트 톤 (브랜드 따뜻함 강조, 캐릭터 가독성 ↑)');
         swap9('class="psv2"', SEED_SERVICE_HTML, '서비스 안내 — 탭+디테일 → 아코디언 (탭하면 같은 자리에서 아래로 펼침, 한 번에 하나만 열림, 첫 항목 기본 펼침)');
       }
       s.migrations.uiRefreshV3 = true;
@@ -7188,9 +7189,83 @@ show('entry');
           sec.statusAt = now;
         };
         swap('class="psg3"', SEED_POSTING_HTML, '매거진 — 모바일 가로 스크롤 적용 (Feature 카드 풀폭 + 비특집 3개는 76% 너비 가로 스크롤·peek)');
-        swap('class="pdq"', POUR_DR_QUICK_BANNER_HTML, 'POUR주치의 — 핵심 카피를 큰 말풍선으로 강조 (캐릭터 쪽 꼬리 + 따옴표 데코 + 살짝 흔들리는 sway 애니메이션, 강조 단어에 노란 형광펜)');
+        swap('class="pdq"', POUR_DR_QUICK_BANNER_HTML, 'POUR닥터 — 핵심 카피를 큰 말풍선으로 강조 (캐릭터 쪽 꼬리 + 따옴표 데코 + 살짝 흔들리는 sway 애니메이션, 강조 단어에 노란 형광펜)');
       }
       s.migrations.speechBubbleV1 = true;
+    }
+    // 1회성 마이그레이션 — POUR주치의 → POUR닥터 명칭 통일 (HTML·섹션 이름·페이지 이름 모두 갱신)
+    if (!s.migrations.pourDoctorRenameV1) {
+      const now = new Date().toISOString();
+      // 1) POUR닥터 페이지 자체의 이름 변경
+      const doctorPage = s.pages.find(p => p.id === 'pour-doctor');
+      if (doctorPage) {
+        if (doctorPage.name && doctorPage.name.indexOf('주치의') !== -1) {
+          doctorPage.name = doctorPage.name.replace(/주치의/g, '닥터');
+        }
+        // 페이지 내 섹션들도 갱신 (히어로·프로세스·트러스트·폼)
+        if (Array.isArray(doctorPage.sections)) {
+          const htmlMap = [POUR_DR_HERO_HTML, POUR_DR_PROCESS_HTML, POUR_DR_TRUST_HTML, POUR_DR_FORM_HTML];
+          doctorPage.sections.forEach((sec, i) => {
+            if (sec.name && sec.name.indexOf('주치의') !== -1) {
+              sec.name = sec.name.replace(/주치의/g, '닥터');
+            }
+            if (i < htmlMap.length && htmlMap[i]) {
+              const key = doctorPage.id + ':' + sec.id;
+              s.history[key] = s.history[key] || [];
+              s.history[key].unshift({
+                name: sec.name, html: sec.html, note: sec.note || '',
+                reason: 'POUR주치의 → POUR닥터 명칭 통일 (HTML 내 모든 표기 일괄 변경)',
+                kind: 'auto-migration', savedAt: now,
+              });
+              sec.html = htmlMap[i];
+              sec.statusAt = now;
+            }
+          });
+        }
+      }
+      // 2) 메인 페이지 — 퀵배너·검색 헬퍼·FAB 모두 갱신
+      const mainPageR = s.pages.find(p => p.id === 'main');
+      if (mainPageR && Array.isArray(mainPageR.sections)) {
+        const swap = (matchClass, html, reason) => {
+          const idx = mainPageR.sections.findIndex(sec => (sec.html || '').indexOf(matchClass) !== -1);
+          if (idx === -1) return;
+          const sec = mainPageR.sections[idx];
+          if (sec.name && sec.name.indexOf('주치의') !== -1) sec.name = sec.name.replace(/주치의/g, '닥터');
+          const key = mainPageR.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason, kind: 'auto-migration', savedAt: now,
+          });
+          sec.html = html;
+          sec.statusAt = now;
+        };
+        swap('class="psm1"', OHOUSE_V1_SECTION_HTML, '메인 1번 검색 헬퍼 — POUR주치의 → POUR닥터 표기 통일 (alt·코멘트 포함)');
+        swap('class="pdq"', POUR_DR_QUICK_BANNER_HTML, '메인 3번 퀵배너 — POUR주치의 → POUR닥터 표기 통일');
+        swap('class="pdfab"', POUR_DR_FAB_HTML, '플로팅 FAB — POUR주치의 → POUR닥터 표기 통일 (aria-label·메시지 포함)');
+      }
+      s.migrations.pourDoctorRenameV1 = true;
+    }
+    // 1회성 마이그레이션 — 플로팅 FAB 아이콘을 청진기 SVG → 캐릭터 얼굴 이미지로 교체
+    if (!s.migrations.fabFaceV1) {
+      const mainPageF = s.pages.find(p => p.id === 'main');
+      if (mainPageF && Array.isArray(mainPageF.sections)) {
+        const idx = mainPageF.sections.findIndex(sec => (sec.html || '').indexOf('class="pdfab"') !== -1);
+        if (idx !== -1) {
+          const sec = mainPageF.sections[idx];
+          const now = new Date().toISOString();
+          const key = mainPageF.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason: '플로팅 FAB — 청진기 SVG 아이콘 → POUR닥터 캐릭터 얼굴 이미지 (object-position center 22%로 얼굴 영역 크롭)',
+            kind: 'auto-migration', savedAt: now,
+          });
+          sec.html = POUR_DR_FAB_HTML;
+          sec.statusAt = now;
+        }
+      }
+      s.migrations.fabFaceV1 = true;
     }
     return s;
   }

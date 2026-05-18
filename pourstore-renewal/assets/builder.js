@@ -48,11 +48,115 @@
   let firstSnapshotLoaded = false;
   const historyWriteTimers = {};
 
-  const SEED_STATS_HTML =
-    '<iframe src="./pour-store-cafe24.html"\n' +
-    '        title="실적 + 시공 갤러리 + 협력사 (기존 시안)"\n' +
-    '        loading="lazy"\n' +
-    '        style="width:100%; height:100vh; border:0; display:block;"></iframe>';
+  const SEED_STATS_HTML = `<section class="pst1">
+<style>
+.pst1 *, .pst1 *::before, .pst1 *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.pst1 { background:linear-gradient(180deg,#fff 0%,#FFFBF5 60%,#FFF4E6 100%); padding:72px 18px 80px; color:#2F3438; letter-spacing:-0.02em; }
+.pst1-inner { max-width:1200px; margin:0 auto; }
+.pst1-head { text-align:center; margin-bottom:36px; }
+.pst1-kicker { display:inline-block; font-size:12px; font-weight:800; color:#E8780F; letter-spacing:0.06em; padding:4px 12px; background:#fff; border:1px solid #FED7AA; border-radius:999px; margin-bottom:12px; }
+.pst1-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-0.045em; line-height:1.25; margin-bottom:8px; }
+.pst1-head h2 b { color:#E8780F; }
+.pst1-head p { font-size:14px; font-weight:500; color:#6B7280; }
+/* 수치 그리드 */
+.pst1-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:28px; }
+.pst1-stat { background:#fff; border:1px solid #F2F3F5; border-radius:18px; padding:26px 22px; transition:.2s; position:relative; overflow:hidden; }
+.pst1-stat:hover { transform:translateY(-3px); border-color:#FED7AA; box-shadow:0 12px 28px rgba(232,120,15,.12); }
+.pst1-stat::before { content:''; position:absolute; top:-30px; right:-30px; width:140px; height:140px; border-radius:50%; background:radial-gradient(circle,rgba(232,120,15,.1) 0%,transparent 65%); pointer-events:none; }
+.pst1-stat > * { position:relative; z-index:1; }
+.pst1-stat-icon { width:42px; height:42px; border-radius:12px; background:linear-gradient(135deg,#FED7AA,#FB923C); display:grid; place-items:center; font-size:20px; margin-bottom:14px; }
+.pst1-stat-num { font-size:34px; font-weight:900; letter-spacing:-0.045em; line-height:1.1; background:linear-gradient(120deg,#0F1F5C,#E8780F); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+.pst1-stat-num small { font-size:18px; font-weight:800; -webkit-text-fill-color:#E8780F; }
+.pst1-stat-label { margin-top:6px; font-size:13.5px; font-weight:800; color:#0F1F5C; letter-spacing:-0.03em; }
+.pst1-stat-sub { margin-top:4px; font-size:11.5px; font-weight:500; color:#9CA3AF; letter-spacing:-0.02em; }
+/* 시공 갤러리 */
+.pst1-card { background:#fff; border:1px solid #F2F3F5; border-radius:20px; padding:24px; margin-bottom:14px; }
+.pst1-card-head { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:16px; flex-wrap:wrap; gap:8px; }
+.pst1-card-title { font-size:16px; font-weight:800; color:#0F1F5C; letter-spacing:-0.03em; }
+.pst1-card-title em { color:#E8780F; font-style:normal; }
+.pst1-card-more { font-size:12.5px; font-weight:700; color:#6B7280; text-decoration:none; }
+.pst1-card-more:hover { color:#E8780F; }
+.pst1-gallery { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr); gap:10px; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; -ms-overflow-style:none; padding-bottom:6px; }
+.pst1-gallery::-webkit-scrollbar { display:none; }
+.pst1-thumb { position:relative; aspect-ratio:4/5; border-radius:12px; overflow:hidden; cursor:pointer; scroll-snap-align:start; background:#F5F6F8; }
+.pst1-thumb svg { width:100%; height:100%; display:block; }
+.pst1-thumb-grad { position:absolute; inset:0; background:linear-gradient(180deg, transparent 50%, rgba(0,0,0,.55) 100%); pointer-events:none; }
+.pst1-thumb-tag { position:absolute; top:10px; left:10px; padding:3px 9px; background:rgba(232,120,15,.95); color:#fff; font-size:10px; font-weight:800; border-radius:5px; letter-spacing:-0.02em; }
+.pst1-thumb-tag.navy { background:rgba(15,31,92,.92); }
+.pst1-thumb-tag.green { background:rgba(5,150,105,.95); }
+.pst1-thumb-loc { position:absolute; bottom:10px; left:10px; right:10px; color:#fff; font-size:11.5px; font-weight:700; letter-spacing:-0.02em; }
+/* 협력사·인증 */
+.pst1-partners-head { font-size:11.5px; font-weight:800; color:#9CA3AF; letter-spacing:0.08em; text-align:center; margin-bottom:14px; }
+.pst1-partners-grid { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; align-items:center; }
+.pst1-partner-pill { display:inline-flex; align-items:center; gap:6px; padding:8px 14px; background:#FAFAFA; border:1px solid #F2F3F5; border-radius:999px; font-size:12.5px; font-weight:700; color:#374151; letter-spacing:-0.02em; transition:.15s; }
+.pst1-partner-pill:hover { border-color:#FED7AA; color:#0F1F5C; background:#fff; }
+.pst1-partner-pill .em { font-size:14px; }
+@media (max-width:900px) {
+  .pst1-stats { grid-template-columns:repeat(2,1fr); gap:10px; }
+}
+@media (max-width:700px) {
+  .pst1 { padding:48px 14px 56px; }
+  .pst1-head h2 { font-size:24px; }
+  .pst1-head p { font-size:12.5px; }
+  .pst1-stats { gap:10px; margin-bottom:18px; }
+  .pst1-stat { padding:18px 14px; border-radius:14px; }
+  .pst1-stat-icon { width:36px; height:36px; font-size:17px; margin-bottom:10px; }
+  .pst1-stat-num { font-size:24px; }
+  .pst1-stat-num small { font-size:13px; }
+  .pst1-stat-label { font-size:12px; }
+  .pst1-stat-sub { font-size:10.5px; }
+  .pst1-card { padding:16px; border-radius:14px; }
+  .pst1-card-title { font-size:14.5px; }
+  .pst1-gallery { grid-auto-columns:48%; gap:8px; }
+  .pst1-thumb-loc { font-size:11px; }
+  .pst1-partner-pill { font-size:11.5px; padding:6px 11px; }
+}
+</style>
+<div class="pst1-inner">
+  <div class="pst1-head">
+    <span class="pst1-kicker">ACHIEVEMENT</span>
+    <h2>우리가 쌓아온 <b>신뢰의 숫자</b></h2>
+    <p>POUR스토어가 만들어온 실적과 함께해 주신 파트너들</p>
+  </div>
+  <!-- 6개 핵심 수치 -->
+  <div class="pst1-stats">
+    <div class="pst1-stat"><div class="pst1-stat-icon">🏢</div><div class="pst1-stat-num">2.4<small>M+</small></div><div class="pst1-stat-label">누적 시공 세대수</div><div class="pst1-stat-sub">전국 17개 광역 시도</div></div>
+    <div class="pst1-stat"><div class="pst1-stat-icon">🏘</div><div class="pst1-stat-num">700<small>+</small></div><div class="pst1-stat-label">단지 채택 실적</div><div class="pst1-stat-sub">아파트·관공서·공장</div></div>
+    <div class="pst1-stat"><div class="pst1-stat-icon">💰</div><div class="pst1-stat-num">850<small>억+</small></div><div class="pst1-stat-label">누적 거래액</div><div class="pst1-stat-sub">연평균 성장률 50%</div></div>
+    <div class="pst1-stat"><div class="pst1-stat-icon">🔬</div><div class="pst1-stat-num">50<small>+</small></div><div class="pst1-stat-label">자체 특허·기술</div><div class="pst1-stat-sub">건설신기술 1026호</div></div>
+    <div class="pst1-stat"><div class="pst1-stat-icon">📦</div><div class="pst1-stat-num">80<small>+</small></div><div class="pst1-stat-label">자체 개발 제품</div><div class="pst1-stat-sub">유지보수 자재 라인업</div></div>
+    <div class="pst1-stat"><div class="pst1-stat-icon">🤝</div><div class="pst1-stat-num">250<small>+</small></div><div class="pst1-stat-label">전국 시공 파트너</div><div class="pst1-stat-sub">평균 경력 12년</div></div>
+  </div>
+  <!-- 시공 갤러리 (가로 스크롤) -->
+  <div class="pst1-card">
+    <div class="pst1-card-head">
+      <span class="pst1-card-title">최근 <em>시공 사례</em></span>
+      <a class="pst1-card-more" href="https://www.poursolution.net/portfolio">전체 사례 →</a>
+    </div>
+    <div class="pst1-gallery">
+      <div class="pst1-thumb"><svg viewBox="0 0 200 250" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="pstg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7B8794"/><stop offset="1" stop-color="#3E4C59"/></linearGradient></defs><rect width="200" height="250" fill="url(#pstg1)"/><g stroke="rgba(255,255,255,.18)" stroke-width="1.5"><line x1="0" y1="80" x2="200" y2="80"/><line x1="0" y1="160" x2="200" y2="160"/></g><circle cx="100" cy="125" r="32" fill="rgba(232,120,15,.85)"/></svg><span class="pst1-thumb-grad"></span><span class="pst1-thumb-tag">방수</span><div class="pst1-thumb-loc">평택 ○○아파트</div></div>
+      <div class="pst1-thumb"><svg viewBox="0 0 200 250" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="pstg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0F1F5C"/><stop offset="1" stop-color="#1E3A8A"/></linearGradient></defs><rect width="200" height="250" fill="url(#pstg2)"/><g fill="rgba(255,255,255,.13)"><rect x="40" y="40" width="120" height="40"/><rect x="40" y="100" width="120" height="40"/><rect x="40" y="160" width="120" height="40"/></g><circle cx="155" cy="195" r="22" fill="rgba(232,120,15,.85)"/></svg><span class="pst1-thumb-grad"></span><span class="pst1-thumb-tag navy">도장</span><div class="pst1-thumb-loc">서울 ○○관공서</div></div>
+      <div class="pst1-thumb"><svg viewBox="0 0 200 250" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="pstg3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E8780F"/><stop offset="1" stop-color="#7C2D12"/></linearGradient></defs><rect width="200" height="250" fill="url(#pstg3)"/><g fill="rgba(255,255,255,.18)"><circle cx="60" cy="80" r="22"/><circle cx="140" cy="80" r="22"/><circle cx="100" cy="160" r="36"/></g><rect x="80" y="200" width="40" height="40" rx="4" fill="rgba(0,0,0,.25)"/></svg><span class="pst1-thumb-grad"></span><span class="pst1-thumb-tag">보수</span><div class="pst1-thumb-loc">부산 ○○공장</div></div>
+      <div class="pst1-thumb"><svg viewBox="0 0 200 250" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="pstg4" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#60A5FA"/><stop offset="1" stop-color="#1E3A8A"/></linearGradient></defs><rect width="200" height="250" fill="url(#pstg4)"/><g stroke="rgba(255,255,255,.3)" stroke-width="2" fill="none"><path d="M20 60 Q100 40 180 60"/><path d="M20 120 Q100 100 180 120"/><path d="M20 180 Q100 160 180 180"/></g><circle cx="100" cy="125" r="28" fill="rgba(232,120,15,.85)"/></svg><span class="pst1-thumb-grad"></span><span class="pst1-thumb-tag">단열·차열</span><div class="pst1-thumb-loc">인천 ○○빌라</div></div>
+      <div class="pst1-thumb"><svg viewBox="0 0 200 250" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="pstg5" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A7F3D0"/><stop offset="1" stop-color="#065F46"/></linearGradient></defs><rect width="200" height="250" fill="url(#pstg5)"/><g stroke="rgba(255,255,255,.5)" stroke-width="3" fill="none"><path d="M50 40 L70 110 L60 180 L80 240"/><path d="M120 40 L100 110 L130 180 L110 240"/></g><rect x="80" y="95" width="40" height="40" rx="6" fill="rgba(232,120,15,.85)"/></svg><span class="pst1-thumb-grad"></span><span class="pst1-thumb-tag green">균열·보수</span><div class="pst1-thumb-loc">광주 ○○학교</div></div>
+      <div class="pst1-thumb"><svg viewBox="0 0 200 250" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="pstg6" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F49A3A"/><stop offset="1" stop-color="#D97706"/></linearGradient></defs><rect width="200" height="250" fill="url(#pstg6)"/><g fill="rgba(255,255,255,.18)"><rect x="20" y="20" width="76" height="76" rx="6"/><rect x="104" y="20" width="76" height="76" rx="6"/><rect x="20" y="104" width="76" height="76" rx="6"/><rect x="104" y="104" width="76" height="76" rx="6"/></g><circle cx="100" cy="200" r="26" fill="rgba(15,31,92,.65)"/></svg><span class="pst1-thumb-grad"></span><span class="pst1-thumb-tag">코팅</span><div class="pst1-thumb-loc">대전 ○○상가</div></div>
+    </div>
+  </div>
+  <!-- 협력사·인증 -->
+  <div class="pst1-card">
+    <div class="pst1-partners-head">PARTNERS · CERTIFICATIONS</div>
+    <div class="pst1-partners-grid">
+      <span class="pst1-partner-pill"><span class="em">🎓</span> 서울과학기술대학교</span>
+      <span class="pst1-partner-pill"><span class="em">🏭</span> 강남제비스코</span>
+      <span class="pst1-partner-pill"><span class="em">📜</span> 건설신기술 1026호</span>
+      <span class="pst1-partner-pill"><span class="em">🔬</span> KTR 한국화학융합시험연구원</span>
+      <span class="pst1-partner-pill"><span class="em">🔬</span> KCL 한국건설생활환경시험연구원</span>
+      <span class="pst1-partner-pill"><span class="em">🔬</span> SGS 공인시험</span>
+      <span class="pst1-partner-pill"><span class="em">🏛</span> 국토교통부 신기술 인증</span>
+    </div>
+  </div>
+</div>
+</section>`;
 
   const SEED_AI_RECOMMEND_HTML = `
 <style>
@@ -2269,6 +2373,12 @@ show('entry');
 .psg3-card.feature .desc { font-size:13.5px; -webkit-line-clamp:3; }
 .psg3-card .meta-bot { display:flex; gap:10px; align-items:center; margin-top:14px; padding-top:14px; border-top:1px solid #F3F4F6; font-size:11.5px; color:#9CA3AF; font-weight:600; letter-spacing:-0.02em; }
 .psg3-card .meta-bot .dot { width:3px; height:3px; background:#D1D5DB; border-radius:50%; }
+/* 활성(자동 재생 중) 카드 표시 — 모바일에서만 활성화 */
+.psg3-card .psg3-prog { position:absolute; left:0; right:0; bottom:0; height:3px; background:rgba(232,120,15,.15); overflow:hidden; opacity:0; transition:opacity .3s; pointer-events:none; }
+.psg3-card[data-psg3-active] .psg3-prog { opacity:1; }
+.psg3-card .psg3-prog::after { content:''; position:absolute; left:0; top:0; bottom:0; width:0; background:linear-gradient(90deg,#F49A3A,#E8780F); }
+.psg3-card[data-psg3-active] .psg3-prog::after { animation:psg3Fill var(--psg3-d, 6s) linear forwards; }
+@keyframes psg3Fill { to { width:100%; } }
 /* 태블릿 */
 @media (max-width:1080px) {
   .psg3-grid { grid-template-columns:1fr 1fr; }
@@ -2292,7 +2402,8 @@ show('entry');
   /* 비특집 카드 3개를 가로 스크롤 컨테이너로 */
   .psg3-list { display:flex !important; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; -ms-overflow-style:none; gap:12px; padding:0 18px 8px; margin:0 -18px; -webkit-overflow-scrolling:touch; grid-column:auto; }
   .psg3-list::-webkit-scrollbar { display:none; }
-  .psg3-list .psg3-card { flex:0 0 76%; max-width:300px; scroll-snap-align:center; }
+  .psg3-list .psg3-card { flex:0 0 76%; max-width:300px; scroll-snap-align:center; position:relative; transition:.25s; }
+  .psg3-list .psg3-card[data-psg3-active] { outline:2px solid #E8780F; outline-offset:-2px; box-shadow:0 14px 32px rgba(232,120,15,.22); }
 }
 </style>
 <section class="psg3">
@@ -2310,22 +2421,89 @@ show('entry');
         <div class="img" style="background-image:url('https://placehold.co/1200x800/8B4513/fff?text=COVER+STORY')"><span class="tag">COVER STORY</span><div class="meta-tl"><span>📖 읽기 8분</span></div></div>
         <div class="body"><div class="title">금속기와 하자, 이렇게 대응합니다 — 실제 시공자가 알려주는 5단계</div><div class="desc">금속기와 지붕 소재의 특성과 하자 발생 원인, 그리고 POUR HOOKER 시스템으로 어떻게 해결하는지 단계별로 정리했습니다.</div><div class="meta-bot"><span>POUR 편집팀</span><span class="dot"></span><span>2일 전</span><span class="dot"></span><span>👁 4.2K</span></div></div>
       </a>
-      <div class="psg3-list">
-        <a class="psg3-card" href="https://www.pourstore.net/posts/silicone">
+      <div class="psg3-list" data-psg3-scroll>
+        <a class="psg3-card" data-psg3-dur="6" href="https://www.pourstore.net/posts/silicone">
           <div class="img" style="background-image:url('https://placehold.co/600x375/D1D5DB/0F1F5C?text=SILICONE')"><span class="tag">노하우</span></div>
           <div class="body"><div class="title">실리콘이 답일까? 외벽 균열 보수의 진실</div><div class="desc">실리콘 보수의 한계와 600% 신축 하이퍼티가 답인 이유.</div><div class="meta-bot"><span>5일 전</span><span class="dot"></span><span>👁 2.1K</span></div></div>
+          <span class="psg3-prog"></span>
         </a>
-        <a class="psg3-card" href="https://www.pourstore.net/posts/leak-fix">
+        <a class="psg3-card" data-psg3-dur="6" href="https://www.pourstore.net/posts/leak-fix">
           <div class="img" style="background-image:url('https://placehold.co/600x375/059669/fff?text=DIY')"><span class="tag">셀프시공</span></div>
           <div class="body"><div class="title">크랙·누수 한 방에 — 빌라 옥상 셀프 방수 후기</div><div class="desc">평택 빌라 옥상 셀프 방수 사례, 비용·시간·결과 모두 공개.</div><div class="meta-bot"><span>1주 전</span><span class="dot"></span><span>👁 3.5K</span></div></div>
+          <span class="psg3-prog"></span>
         </a>
-        <a class="psg3-card" href="https://www.pourstore.net/posts/shingle-coat">
+        <a class="psg3-card" data-psg3-dur="6" href="https://www.pourstore.net/posts/shingle-coat">
           <div class="img" style="background-image:url('https://placehold.co/600x375/B91C1C/fff?text=SHINGLE')"><span class="tag">슁글</span></div>
           <div class="body"><div class="title">아스팔트 슁글에 도막방수, 잘 버틸까?</div><div class="desc">경사형 지붕에 액체방수의 한계 — 시트+도료 일체화 방식이 답.</div><div class="meta-bot"><span>2주 전</span><span class="dot"></span><span>👁 1.8K</span></div></div>
+          <span class="psg3-prog"></span>
         </a>
       </div>
     </div>
   </div>
+  <script>
+  (function(){
+    var root = document.currentScript && document.currentScript.parentElement;
+    if (!root) return;
+    var scroller = root.querySelector('[data-psg3-scroll]');
+    if (!scroller) return;
+    var cards = Array.prototype.slice.call(scroller.querySelectorAll('.psg3-card'));
+    if (cards.length === 0) return;
+    var current = 0, paused = false, inView = false;
+    var advanceT = null, resumeT = null;
+    var mq = window.matchMedia('(max-width:700px)');
+    function durMs(i){
+      var d = parseFloat(cards[i].getAttribute('data-psg3-dur') || '6');
+      return Math.min(Math.max(d, 3), 12) * 1000;
+    }
+    function clearAdvance(){ if (advanceT) { clearTimeout(advanceT); advanceT = null; } }
+    function activate(i){
+      clearAdvance();
+      current = ((i % cards.length) + cards.length) % cards.length;
+      cards.forEach(function(c, idx){
+        if (idx === current) {
+          c.style.setProperty('--psg3-d', (durMs(current)/1000) + 's');
+          c.removeAttribute('data-psg3-active');
+          void c.offsetWidth;
+          c.setAttribute('data-psg3-active', '');
+        } else {
+          c.removeAttribute('data-psg3-active');
+        }
+      });
+      if (mq.matches) {
+        try { cards[current].scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' }); }
+        catch(_) { scroller.scrollLeft = cards[current].offsetLeft - (scroller.clientWidth - cards[current].clientWidth)/2; }
+      }
+      if (!paused && inView && !document.hidden) {
+        advanceT = setTimeout(function(){ activate(current + 1); }, durMs(current));
+      }
+    }
+    function pauseFor(ms){
+      paused = true;
+      clearAdvance();
+      if (resumeT) clearTimeout(resumeT);
+      resumeT = setTimeout(function(){ paused = false; if (inView) activate(current); }, ms || 7000);
+    }
+    scroller.addEventListener('touchstart', function(){ pauseFor(8000); }, {passive:true});
+    scroller.addEventListener('pointerdown', function(){ pauseFor(8000); });
+    scroller.addEventListener('mouseenter', function(){ pauseFor(10000); });
+    document.addEventListener('visibilitychange', function(){
+      if (document.hidden) clearAdvance();
+      else if (inView && !paused) activate(current);
+    });
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function(entries){
+        entries.forEach(function(e){
+          inView = e.isIntersecting;
+          if (inView && !paused && mq.matches) activate(current);
+          else clearAdvance();
+        });
+      }, { threshold: 0.3 });
+      io.observe(scroller);
+    } else if (mq.matches) {
+      inView = true; activate(0);
+    }
+  })();
+  </script>
 </section>`;
 
   const SEED_VIDEO_GUIDE_HTML = `<style>
@@ -6513,7 +6691,7 @@ show('entry');
       mkSec('서비스 소개', SEED_SERVICE_HTML, '대리점·파트너사·전시장 — SVG 아이콘 + 컬러별 차별 (v2)', 'wip'),
       mkSec('자사몰 내 포스팅', SEED_POSTING_HTML, '매거진 레이아웃 (Cover Story 1+3) + 읽기시간·조회수 (v2)', 'wip'),
       mkSec('동영상 가이드', SEED_VIDEO_GUIDE_HTML, 'POUR스토어 자체 영상 — 추천 영상 + 미니 카드 매거진 레이아웃 (v2)', 'wip'),
-      mkSec('POUR스토어 실적관', SEED_STATS_HTML, '실적 수치 + 시공 갤러리 + 협력사 (기존 cafe24 시안 임베드)', 'requested'),
+      mkSec('POUR스토어 실적관', SEED_STATS_HTML, '신뢰의 숫자 6개 카드(그라데이션 텍스트) + 시공 갤러리 6장(가로 스크롤) + 협력사·인증 알약 배지 (라이트 톤·Pretendard)', 'requested'),
     ]},
     { id: 'pour-doctor', name: 'POUR닥터 (전용 페이지)', file: 'pour-doctor.html', sections: [
       mkSec('히어로 — 당신만의 건물 닥터', POUR_DR_HERO_HTML, '다크 네이비 + 라이브 진단 보드 + 5개 신뢰 수치 (의료·전문 톤)', 'wip'),
@@ -7266,6 +7444,56 @@ show('entry');
         }
       }
       s.migrations.fabFaceV1 = true;
+    }
+    // 1회성 마이그레이션 — 매거진 2번째 행 자동 슬라이드 (숏폼 동일 패턴, 6초 간격)
+    if (!s.migrations.magazineAutoSlideV1) {
+      const mainPageM = s.pages.find(p => p.id === 'main');
+      if (mainPageM && Array.isArray(mainPageM.sections)) {
+        const idx = mainPageM.sections.findIndex(sec => (sec.html || '').indexOf('class="psg3"') !== -1);
+        if (idx !== -1) {
+          const sec = mainPageM.sections[idx];
+          const now = new Date().toISOString();
+          const key = mainPageM.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason: '매거진 2번째 행 — 모바일 가로 스크롤에 자동 슬라이드 추가 (6초 간격, 오렌지 프로그레스 바 + 활성 카드 외곽선, 화면 안에서만 동작·탭/터치/호버 시 일시정지)',
+            kind: 'auto-migration', savedAt: now,
+          });
+          sec.html = SEED_POSTING_HTML;
+          sec.statusAt = now;
+        }
+      }
+      s.migrations.magazineAutoSlideV1 = true;
+    }
+    // 1회성 마이그레이션 — 실적관(iframe) → 브랜드 일관 디자인으로 교체
+    if (!s.migrations.statsRedesignV1) {
+      const mainPageS = s.pages.find(p => p.id === 'main');
+      if (mainPageS && Array.isArray(mainPageS.sections)) {
+        // iframe 임베드인 기존 실적관 또는 새 디자인이 이미 있는 경우 모두 매칭
+        const idx = mainPageS.sections.findIndex(sec => {
+          const h = sec.html || '';
+          return (h.indexOf('pour-store-cafe24.html') !== -1) || (h.indexOf('class="pst1"') !== -1);
+        });
+        if (idx !== -1) {
+          const sec = mainPageS.sections[idx];
+          // 이미 새 디자인이면 스킵 (중복 적용 방지)
+          if ((sec.html || '').indexOf('class="pst1"') === -1) {
+            const now = new Date().toISOString();
+            const key = mainPageS.id + ':' + sec.id;
+            s.history[key] = s.history[key] || [];
+            s.history[key].unshift({
+              name: sec.name, html: sec.html, note: sec.note || '',
+              reason: '실적관 — iframe 임베드(pour-store-cafe24.html) → 브랜드 일관 디자인 (6개 신뢰 수치 카드 + 시공 갤러리 6장 가로 스크롤 + 협력사·인증 알약 배지, 라이트 톤·Pretendard·POUR 컬러)',
+              kind: 'auto-migration', savedAt: now,
+            });
+            sec.html = SEED_STATS_HTML;
+            sec.note = '신뢰의 숫자 6개 카드(그라데이션 텍스트) + 시공 갤러리 6장(가로 스크롤) + 협력사·인증 알약 배지 (라이트 톤·Pretendard)';
+            sec.statusAt = now;
+          }
+        }
+      }
+      s.migrations.statsRedesignV1 = true;
     }
     return s;
   }

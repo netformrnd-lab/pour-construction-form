@@ -8,6 +8,34 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Bebas+Neue&display=swap" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable.css" rel="stylesheet" />
+    <style id="pour-brand-override">
+      /* POUR 브랜드 톤 통일 — 폰트, 자간, 컬러, 여백 */
+      :root {
+        --pour-orange:#E8780F; --pour-orange-light:#F49A3A; --pour-orange-pale:#FED7AA;
+        --pour-navy:#0F1F5C; --pour-navy-dark:#0A1742;
+      }
+      html, body { font-family:'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif !important; letter-spacing:-0.02em; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+      body, #root, #app { background:linear-gradient(180deg,#0A1742 0%,#0F1F5C 100%) !important; }
+      *, *::before, *::after { font-family:inherit !important; }
+      /* Bebas Neue는 숫자 강조 폰트라 유지 */
+      [class*="bebas"], .font-bebas, [style*="Bebas"] { font-family:'Bebas Neue', 'Pretendard Variable', sans-serif !important; }
+      /* 오렌지 계열 색상을 POUR 오렌지(#E8780F)로 통일 (Tailwind orange-500/600/700 등) */
+      [style*="#F97316"], [style*="#f97316"], [style*="rgb(249, 115, 22)"], [style*="rgb(249,115,22)"] { color:#E8780F !important; }
+      [style*="background-color:#F97316"], [style*="background:#F97316"], [style*="background-color: #F97316"], [style*="background: #F97316"] { background-color:#E8780F !important; }
+      [style*="#EA580C"], [style*="#ea580c"] { color:#E8780F !important; }
+      [style*="background-color:#EA580C"], [style*="background:#EA580C"] { background-color:#C8650D !important; }
+      /* 네이비 — 원본의 navy/blue를 POUR 네이비로 미세 보정 */
+      [style*="#1E3A8A"], [style*="#1e3a8a"] { color:#1E3A8A !important; }
+      /* Tailwind 클래스 기반 오버라이드 (있을 경우) */
+      .text-orange-500, .text-orange-600 { color:#E8780F !important; }
+      .bg-orange-500, .bg-orange-600 { background-color:#E8780F !important; }
+      .border-orange-500, .border-orange-600 { border-color:#E8780F !important; }
+      .text-navy, .text-navy-900 { color:#0F1F5C !important; }
+      .bg-navy, .bg-navy-900 { background-color:#0F1F5C !important; }
+      /* 섹션 여백을 형제 섹션(64-80px)에 가깝게 미세 보정 */
+      section { letter-spacing:-0.02em; }
+    </style>
     <script type="module" crossorigin>function NA(r,s){for(var c=0;c<s.length;c++){const f=s[c];if(typeof f!="string"&&!Array.isArray(f)){for(const m in f)if(m!=="default"&&!(m in r)){const p=Object.getOwnPropertyDescriptor(f,m);p&&Object.defineProperty(r,m,p.get?p:{enumerable:!0,get:()=>f[m]})}}}return Object.freeze(Object.defineProperty(r,Symbol.toStringTag,{value:"Module"}))}(function(){const s=document.createElement("link").relList;if(s&&s.supports&&s.supports("modulepreload"))return;for(const m of document.querySelectorAll('link[rel="modulepreload"]'))f(m);new MutationObserver(m=>{for(const p of m)if(p.type==="childList")for(const v of p.addedNodes)v.tagName==="LINK"&&v.rel==="modulepreload"&&f(v)}).observe(document,{childList:!0,subtree:!0});function c(m){const p={};return m.integrity&&(p.integrity=m.integrity),m.referrerPolicy&&(p.referrerPolicy=m.referrerPolicy),m.crossOrigin==="use-credentials"?p.credentials="include":m.crossOrigin==="anonymous"?p.credentials="omit":p.credentials="same-origin",p}function f(m){if(m.ep)return;m.ep=!0;const p=c(m);fetch(m.href,p)}})();function qE(r){return r&&r.__esModule&&Object.prototype.hasOwnProperty.call(r,"default")?r.default:r}var Uh={exports:{}},zf={},jh={exports:{}},du={exports:{}};du.exports;var FS;function MA(){return FS||(FS=1,(function(r,s){/**
  * @license React
  * react.development.js

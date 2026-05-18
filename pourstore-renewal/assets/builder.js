@@ -47,15 +47,29 @@
   const SEED_STATS_HTML = `<section class="pst1">
 <style>
 .pst1 *, .pst1 *::before, .pst1 *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
-.pst1 { background:linear-gradient(180deg,#fff 0%,#FFFBF5 60%,#FFF4E6 100%); padding:72px 0 80px; color:#2F3438; letter-spacing:-0.02em; overflow:hidden; }
-.pst1-inner { max-width:1200px; margin:0 auto; padding:0 18px; }
-.pst1-head { text-align:center; margin-bottom:36px; }
+.pst1 { background:linear-gradient(180deg,#fff 0%,#FFFBF5 60%,#FFF4E6 100%); color:#2F3438; letter-spacing:-0.02em; overflow:hidden; }
+/* ===== 1) 시공 현장 갤러리 (다크 네이비, 가로 슬라이드) ===== */
+.pst1-gallery { background:linear-gradient(180deg,#0A1742 0%,#0F1F5C 100%); padding:36px 0 40px; color:#fff; position:relative; }
+.pst1-gallery-head { max-width:1200px; margin:0 auto; padding:0 18px 20px; }
+.pst1-gallery-kicker { display:inline-flex; align-items:center; gap:8px; font-size:11.5px; font-weight:800; color:#FED7AA; letter-spacing:0.08em; margin-bottom:8px; }
+.pst1-gallery-kicker::before { content:''; width:20px; height:2px; background:#E8780F; border-radius:2px; }
+.pst1-gallery h3 { font-size:24px; font-weight:900; color:#fff; letter-spacing:-0.045em; line-height:1.25; }
+.pst1-gallery h3 small { display:inline-block; font-size:13px; font-weight:500; color:rgba(255,255,255,.7); margin-left:8px; vertical-align:middle; letter-spacing:-0.02em; }
+.pst1-sites { display:flex; gap:14px; overflow-x:auto; scroll-snap-type:x mandatory; padding:0 18px 8px; scrollbar-width:none; -ms-overflow-style:none; -webkit-overflow-scrolling:touch; }
+.pst1-sites::-webkit-scrollbar { display:none; }
+.pst1-site { flex:0 0 64%; max-width:320px; aspect-ratio:3/4; border-radius:14px; overflow:hidden; scroll-snap-align:center; box-shadow:0 12px 28px rgba(0,0,0,.32); position:relative; cursor:pointer; transition:.2s; }
+.pst1-site:hover { transform:translateY(-3px); box-shadow:0 18px 40px rgba(0,0,0,.42); }
+.pst1-site svg { width:100%; height:100%; display:block; }
+.pst1-site-tag { position:absolute; top:12px; left:12px; padding:4px 10px; background:rgba(232,120,15,.95); color:#fff; font-size:10.5px; font-weight:800; border-radius:5px; letter-spacing:-0.02em; }
+.pst1-site-loc { position:absolute; bottom:14px; left:14px; right:14px; color:#fff; font-size:12.5px; font-weight:700; letter-spacing:-0.02em; text-shadow:0 1px 4px rgba(0,0,0,.5); }
+/* ===== 2) 헤더 + 수치 카드 ===== */
+.pst1-inner { max-width:1200px; margin:0 auto; padding:64px 18px 24px; }
+.pst1-head { text-align:center; margin-bottom:32px; }
 .pst1-kicker { display:inline-block; font-size:12px; font-weight:800; color:#E8780F; letter-spacing:0.06em; padding:4px 12px; background:#fff; border:1px solid #FED7AA; border-radius:999px; margin-bottom:12px; }
 .pst1-head h2 { font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-0.045em; line-height:1.25; margin-bottom:8px; }
 .pst1-head h2 b { color:#E8780F; }
 .pst1-head p { font-size:14px; font-weight:500; color:#6B7280; }
-/* 수치 그리드 */
-.pst1-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:40px; }
+.pst1-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
 .pst1-stat { background:#fff; border:1px solid #F2F3F5; border-radius:18px; padding:26px 22px; transition:.2s; position:relative; overflow:hidden; }
 .pst1-stat:hover { transform:translateY(-3px); border-color:#FED7AA; box-shadow:0 12px 28px rgba(232,120,15,.12); }
 .pst1-stat::before { content:''; position:absolute; top:-30px; right:-30px; width:140px; height:140px; border-radius:50%; background:radial-gradient(circle,rgba(232,120,15,.1) 0%,transparent 65%); pointer-events:none; }
@@ -65,33 +79,73 @@
 .pst1-stat-num small { font-size:20px; font-weight:800; -webkit-text-fill-color:#E8780F; }
 .pst1-stat-label { margin-top:6px; font-size:13.5px; font-weight:800; color:#0F1F5C; letter-spacing:-0.03em; }
 .pst1-stat-sub { margin-top:4px; font-size:11.5px; font-weight:500; color:#9CA3AF; letter-spacing:-0.02em; }
-/* 협력사·인증 로고 그리드 (자동 줄바꿈, 가운데 정렬) */
-.pst1-partners { background:#fff; border:1px solid #F2F3F5; border-radius:20px; padding:28px 24px; max-width:1200px; margin:0 auto; }
-.pst1-partners-title { text-align:center; font-size:11.5px; font-weight:800; color:#9CA3AF; letter-spacing:0.08em; margin-bottom:18px; }
-.pst1-partners-grid { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; align-items:center; }
-.pst1-logo { display:inline-flex; align-items:center; gap:7px; padding:10px 18px; background:#FAFAFA; border:1px solid #F2F3F5; border-radius:999px; font-size:13px; font-weight:700; color:#374151; letter-spacing:-0.02em; transition:.15s; }
-.pst1-logo:hover { background:#fff; border-color:#FED7AA; color:#0F1F5C; }
-.pst1-logo .em { font-size:15px; }
+/* ===== 3) 협력사 로고 4행 마키 ===== */
+.pst1-partners-wrap { padding:24px 0 56px; }
+.pst1-partners-inner { max-width:1200px; margin:0 auto; padding:0 18px; }
+.pst1-partners-title { text-align:center; font-size:11.5px; font-weight:800; color:#9CA3AF; letter-spacing:0.08em; margin-bottom:6px; }
+.pst1-partners-sub { text-align:center; font-size:18px; font-weight:900; color:#0F1F5C; letter-spacing:-0.04em; margin-bottom:18px; }
+.pst1-partners-sub b { color:#E8780F; }
+.pst1-rows { display:flex; flex-direction:column; gap:10px; }
+.pst1-row { overflow:hidden; -webkit-mask-image:linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%); mask-image:linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%); }
+.pst1-row-track { display:flex; gap:10px; width:max-content; will-change:transform; }
+.pst1-row[data-dir="left"] .pst1-row-track { animation:pstRowLeft 38s linear infinite; }
+.pst1-row[data-dir="right"] .pst1-row-track { animation:pstRowRight 42s linear infinite; }
+.pst1-row:nth-child(2) .pst1-row-track { animation-duration:45s; }
+.pst1-row:nth-child(3) .pst1-row-track { animation-duration:40s; }
+.pst1-row:nth-child(4) .pst1-row-track { animation-duration:36s; }
+@keyframes pstRowLeft { from { transform:translateX(0); } to { transform:translateX(-50%); } }
+@keyframes pstRowRight { from { transform:translateX(-50%); } to { transform:translateX(0); } }
+.pst1-row:hover .pst1-row-track, .pst1-row:focus-within .pst1-row-track { animation-play-state:paused; }
+.pst1-logo { display:inline-flex; align-items:center; justify-content:center; padding:14px 22px; background:#fff; border:1px solid #F2F3F5; border-radius:14px; font-size:13px; font-weight:700; color:#374151; letter-spacing:-0.02em; white-space:nowrap; flex-shrink:0; min-width:170px; min-height:64px; box-shadow:0 2px 8px rgba(15,31,92,.04); transition:.15s; }
+.pst1-logo:hover { border-color:#FED7AA; color:#0F1F5C; box-shadow:0 4px 14px rgba(232,120,15,.12); }
+@media (prefers-reduced-motion: reduce) { .pst1-row-track { animation:none !important; } }
 @media (max-width:900px) {
   .pst1-stats { grid-template-columns:repeat(2,1fr); gap:10px; }
 }
 @media (max-width:700px) {
-  .pst1 { padding:48px 0 56px; }
-  .pst1-inner { padding:0 14px; }
+  .pst1-gallery { padding:28px 0 32px; }
+  .pst1-gallery-head { padding:0 14px 16px; }
+  .pst1-gallery h3 { font-size:19px; }
+  .pst1-gallery h3 small { display:block; margin-left:0; margin-top:4px; font-size:12px; }
+  .pst1-sites { gap:10px; padding:0 14px 8px; }
+  .pst1-site { flex:0 0 78%; }
+  .pst1-inner { padding:48px 14px 20px; }
   .pst1-head h2 { font-size:24px; }
   .pst1-head p { font-size:12.5px; }
-  .pst1-stats { gap:10px; margin-bottom:28px; }
+  .pst1-stats { gap:10px; }
   .pst1-stat { padding:18px 14px; border-radius:14px; }
   .pst1-stat-icon { width:36px; height:36px; font-size:17px; margin-bottom:10px; }
   .pst1-stat-num { font-size:26px; }
   .pst1-stat-num small { font-size:14px; }
   .pst1-stat-label { font-size:12px; }
   .pst1-stat-sub { font-size:10.5px; }
-  .pst1-partners { border-radius:14px; padding:20px 16px; margin:0 14px; }
-  .pst1-logo { font-size:11.5px; padding:8px 14px; gap:5px; }
-  .pst1-logo .em { font-size:13px; }
+  .pst1-partners-wrap { padding:16px 0 48px; }
+  .pst1-partners-inner { padding:0 14px; }
+  .pst1-partners-sub { font-size:15px; margin-bottom:14px; }
+  .pst1-row[data-dir="left"] .pst1-row-track { animation-duration:28s; }
+  .pst1-row[data-dir="right"] .pst1-row-track { animation-duration:30s; }
+  .pst1-row:nth-child(2) .pst1-row-track { animation-duration:32s; }
+  .pst1-row:nth-child(3) .pst1-row-track { animation-duration:29s; }
+  .pst1-row:nth-child(4) .pst1-row-track { animation-duration:26s; }
+  .pst1-logo { font-size:11.5px; padding:11px 16px; min-width:130px; min-height:52px; }
 }
 </style>
+<!-- 1) 시공 현장 갤러리 -->
+<div class="pst1-gallery">
+  <div class="pst1-gallery-head">
+    <span class="pst1-gallery-kicker">CONSTRUCTION GALLERY</span>
+    <h3>전국 시공 현장<small>직접 시공한 현장들입니다</small></h3>
+  </div>
+  <div class="pst1-sites">
+    <div class="pst1-site"><svg viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="psts1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4ade80"/><stop offset="1" stop-color="#15803d"/></linearGradient></defs><rect width="300" height="400" fill="url(#psts1)"/><rect x="0" y="260" width="300" height="140" fill="#22c55e"/><rect x="30" y="180" width="80" height="80" fill="#94a3b8"/><circle cx="70" cy="190" r="14" fill="#475569"/><circle cx="100" cy="195" r="10" fill="#34d399"/></svg><span class="pst1-site-tag">옥상 방수</span><div class="pst1-site-loc">평택 ○○아파트 옥상</div></div>
+    <div class="pst1-site"><svg viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="psts2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7dd3fc"/><stop offset=".7" stop-color="#0ea5e9"/><stop offset="1" stop-color="#0369a1"/></linearGradient></defs><rect width="300" height="400" fill="url(#psts2)"/><polygon points="0,260 80,180 150,240 220,160 300,230 300,400 0,400" fill="#b45309"/><polygon points="0,290 80,210 150,270 220,190 300,260 300,400 0,400" fill="#92400e"/></svg><span class="pst1-site-tag">금속기와</span><div class="pst1-site-loc">서울 ○○빌라 지붕</div></div>
+    <div class="pst1-site"><svg viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="psts3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fef3c7"/><stop offset="1" stop-color="#c084fc"/></linearGradient></defs><rect width="300" height="400" fill="url(#psts3)"/><g fill="#f1f5f9"><rect x="30" y="100" width="60" height="180" rx="4"/><rect x="100" y="80" width="60" height="200" rx="4"/><rect x="170" y="90" width="60" height="190" rx="4"/></g><g fill="rgba(15,31,92,.6)"><rect x="40" y="120" width="40" height="20"/><rect x="110" y="100" width="40" height="20"/><rect x="180" y="110" width="40" height="20"/></g><rect x="0" y="280" width="300" height="120" fill="#0F1F5C"/></svg><span class="pst1-site-tag">외벽 도장</span><div class="pst1-site-loc">인천 ○○아파트 외벽</div></div>
+    <div class="pst1-site"><svg viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="psts4" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#94a3b8"/><stop offset="1" stop-color="#1e293b"/></linearGradient></defs><rect width="300" height="400" fill="url(#psts4)"/><g fill="rgba(255,255,255,.18)"><rect x="20" y="120" width="260" height="40" rx="4"/><rect x="20" y="180" width="260" height="40" rx="4"/><rect x="20" y="240" width="260" height="40" rx="4"/></g><circle cx="150" cy="320" r="36" fill="rgba(232,120,15,.85)"/></svg><span class="pst1-site-tag">지하 방수</span><div class="pst1-site-loc">부산 ○○상가 지하</div></div>
+    <div class="pst1-site"><svg viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="psts5" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cbd5e0"/><stop offset="1" stop-color="#475569"/></linearGradient></defs><rect width="300" height="400" fill="url(#psts5)"/><g stroke="rgba(255,255,255,.4)" stroke-width="2" fill="none"><path d="M40 100 L80 240 L60 380"/><path d="M180 80 L160 220 L200 380"/></g><rect x="100" y="160" width="100" height="100" rx="6" fill="rgba(232,120,15,.85)"/></svg><span class="pst1-site-tag">외벽 균열</span><div class="pst1-site-loc">대전 ○○공장 외벽</div></div>
+    <div class="pst1-site"><svg viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="psts6" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fed7aa"/><stop offset="1" stop-color="#9a3412"/></linearGradient></defs><rect width="300" height="400" fill="url(#psts6)"/><g fill="rgba(255,255,255,.2)"><rect x="0" y="200" width="300" height="200"/></g><g fill="#fff" opacity=".6"><circle cx="80" cy="280" r="6"/><circle cx="160" cy="290" r="6"/><circle cx="240" cy="280" r="6"/></g><circle cx="150" cy="120" r="30" fill="rgba(15,31,92,.55)"/></svg><span class="pst1-site-tag">바닥 코팅</span><div class="pst1-site-loc">광주 ○○주차장 바닥</div></div>
+  </div>
+</div>
+<!-- 2) 헤더 + 수치 카드 -->
 <div class="pst1-inner">
   <div class="pst1-head">
     <span class="pst1-kicker">ACHIEVEMENT</span>
@@ -107,17 +161,37 @@
     <div class="pst1-stat"><div class="pst1-stat-icon">🤝</div><div class="pst1-stat-num" data-pst1-count="250" data-pst1-suffix="+">0<small>+</small></div><div class="pst1-stat-label">전국 시공 파트너</div><div class="pst1-stat-sub">평균 경력 12년</div></div>
   </div>
 </div>
-<div class="pst1-partners">
-  <div class="pst1-partners-title">PARTNERS · CERTIFICATIONS</div>
-  <div class="pst1-partners-grid">
-    <span class="pst1-logo"><span class="em">🎓</span> 서울과학기술대학교</span>
-    <span class="pst1-logo"><span class="em">🏭</span> 강남제비스코</span>
-    <span class="pst1-logo"><span class="em">📜</span> 국토교통부 건설신기술 1026호</span>
-    <span class="pst1-logo"><span class="em">🔬</span> KTR 한국화학융합시험연구원</span>
-    <span class="pst1-logo"><span class="em">🔬</span> KCL 한국건설생활환경시험연구원</span>
-    <span class="pst1-logo"><span class="em">🔬</span> SGS 공인시험</span>
-    <span class="pst1-logo"><span class="em">🏛</span> 한국건설기술연구원</span>
-    <span class="pst1-logo"><span class="em">🏆</span> 한국디자인진흥원</span>
+<!-- 3) 협력사 로고 4행 슬라이드 -->
+<div class="pst1-partners-wrap">
+  <div class="pst1-partners-inner">
+    <div class="pst1-partners-title">PARTNERS</div>
+    <div class="pst1-partners-sub"><b>250+</b> 전문 시공사가 함께합니다</div>
+    <div class="pst1-rows">
+      <div class="pst1-row" data-dir="left">
+        <div class="pst1-row-track">
+          <span class="pst1-logo">(주)썬시카방수</span><span class="pst1-logo">대신엘엔씨건설</span><span class="pst1-logo">(주)도경</span><span class="pst1-logo">새로이건설(주)</span><span class="pst1-logo">선재기업</span><span class="pst1-logo">수산기업</span><span class="pst1-logo">희민건설(주)</span><span class="pst1-logo">강남제비스코</span><span class="pst1-logo">드림종합건설</span><span class="pst1-logo">명가종합건설</span><span class="pst1-logo">명하건설</span><span class="pst1-logo">방수존건설</span>
+          <span class="pst1-logo" aria-hidden="true">(주)썬시카방수</span><span class="pst1-logo" aria-hidden="true">대신엘엔씨건설</span><span class="pst1-logo" aria-hidden="true">(주)도경</span><span class="pst1-logo" aria-hidden="true">새로이건설(주)</span><span class="pst1-logo" aria-hidden="true">선재기업</span><span class="pst1-logo" aria-hidden="true">수산기업</span><span class="pst1-logo" aria-hidden="true">희민건설(주)</span><span class="pst1-logo" aria-hidden="true">강남제비스코</span><span class="pst1-logo" aria-hidden="true">드림종합건설</span><span class="pst1-logo" aria-hidden="true">명가종합건설</span><span class="pst1-logo" aria-hidden="true">명하건설</span><span class="pst1-logo" aria-hidden="true">방수존건설</span>
+        </div>
+      </div>
+      <div class="pst1-row" data-dir="right">
+        <div class="pst1-row-track">
+          <span class="pst1-logo">삼우건설</span><span class="pst1-logo">석진건설</span><span class="pst1-logo">성훈종합건설</span><span class="pst1-logo">신양아이엔지건설</span><span class="pst1-logo">신한건설산업(주)</span><span class="pst1-logo">알지씨앤씨(주)</span><span class="pst1-logo">에스피플레닝</span><span class="pst1-logo">엠에스이엔지</span><span class="pst1-logo">영성건설</span><span class="pst1-logo">은성이엔씨</span><span class="pst1-logo">이두건설</span><span class="pst1-logo">이루미건설</span>
+          <span class="pst1-logo" aria-hidden="true">삼우건설</span><span class="pst1-logo" aria-hidden="true">석진건설</span><span class="pst1-logo" aria-hidden="true">성훈종합건설</span><span class="pst1-logo" aria-hidden="true">신양아이엔지건설</span><span class="pst1-logo" aria-hidden="true">신한건설산업(주)</span><span class="pst1-logo" aria-hidden="true">알지씨앤씨(주)</span><span class="pst1-logo" aria-hidden="true">에스피플레닝</span><span class="pst1-logo" aria-hidden="true">엠에스이엔지</span><span class="pst1-logo" aria-hidden="true">영성건설</span><span class="pst1-logo" aria-hidden="true">은성이엔씨</span><span class="pst1-logo" aria-hidden="true">이두건설</span><span class="pst1-logo" aria-hidden="true">이루미건설</span>
+        </div>
+      </div>
+      <div class="pst1-row" data-dir="left">
+        <div class="pst1-row-track">
+          <span class="pst1-logo">이음건설</span><span class="pst1-logo">자연담은건설</span><span class="pst1-logo">종명건설</span><span class="pst1-logo">파가니건설</span><span class="pst1-logo">한별이엔씨</span><span class="pst1-logo">효원이엔씨</span><span class="pst1-logo">흥산건설산업</span><span class="pst1-logo">강남이앤알</span><span class="pst1-logo">건인씨엔알</span><span class="pst1-logo">국일구조</span><span class="pst1-logo">금환기업</span><span class="pst1-logo">대성이앤씨</span>
+          <span class="pst1-logo" aria-hidden="true">이음건설</span><span class="pst1-logo" aria-hidden="true">자연담은건설</span><span class="pst1-logo" aria-hidden="true">종명건설</span><span class="pst1-logo" aria-hidden="true">파가니건설</span><span class="pst1-logo" aria-hidden="true">한별이엔씨</span><span class="pst1-logo" aria-hidden="true">효원이엔씨</span><span class="pst1-logo" aria-hidden="true">흥산건설산업</span><span class="pst1-logo" aria-hidden="true">강남이앤알</span><span class="pst1-logo" aria-hidden="true">건인씨엔알</span><span class="pst1-logo" aria-hidden="true">국일구조</span><span class="pst1-logo" aria-hidden="true">금환기업</span><span class="pst1-logo" aria-hidden="true">대성이앤씨</span>
+        </div>
+      </div>
+      <div class="pst1-row" data-dir="right">
+        <div class="pst1-row-track">
+          <span class="pst1-logo">도원씨엔씨</span><span class="pst1-logo">동양에폭시</span><span class="pst1-logo">동현이앤씨</span><span class="pst1-logo">디엘씨엔씨</span><span class="pst1-logo">레인보우테크</span><span class="pst1-logo">루아이앤씨</span><span class="pst1-logo">보라씨엔씨</span><span class="pst1-logo">부영씨엔씨</span><span class="pst1-logo">삼인유엔아이</span><span class="pst1-logo">삼창엔지니어링</span><span class="pst1-logo">석민이앤씨</span><span class="pst1-logo">청우엔지니어링</span>
+          <span class="pst1-logo" aria-hidden="true">도원씨엔씨</span><span class="pst1-logo" aria-hidden="true">동양에폭시</span><span class="pst1-logo" aria-hidden="true">동현이앤씨</span><span class="pst1-logo" aria-hidden="true">디엘씨엔씨</span><span class="pst1-logo" aria-hidden="true">레인보우테크</span><span class="pst1-logo" aria-hidden="true">루아이앤씨</span><span class="pst1-logo" aria-hidden="true">보라씨엔씨</span><span class="pst1-logo" aria-hidden="true">부영씨엔씨</span><span class="pst1-logo" aria-hidden="true">삼인유엔아이</span><span class="pst1-logo" aria-hidden="true">삼창엔지니어링</span><span class="pst1-logo" aria-hidden="true">석민이앤씨</span><span class="pst1-logo" aria-hidden="true">청우엔지니어링</span>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 <script>
@@ -131,9 +205,7 @@
     var suffix = el.getAttribute('data-pst1-suffix') || '';
     var duration = 1500;
     var start = performance.now();
-    function fmt(v){
-      return decimals > 0 ? v.toFixed(decimals) : Math.round(v).toLocaleString('ko-KR');
-    }
+    function fmt(v){ return decimals > 0 ? v.toFixed(decimals) : Math.round(v).toLocaleString('ko-KR'); }
     function step(now){
       var t = Math.min(1, (now - start) / duration);
       var eased = 1 - Math.pow(1 - t, 3);
@@ -6369,7 +6441,7 @@ show('entry');
       mkSec('서비스 소개', SEED_SERVICE_HTML, '대리점·파트너사·전시장 — SVG 아이콘 + 컬러별 차별 (v2)', 'wip'),
       mkSec('자사몰 내 포스팅', SEED_POSTING_HTML, '매거진 레이아웃 (Cover Story 1+3) + 읽기시간·조회수 (v2)', 'wip'),
       mkSec('동영상 가이드', SEED_VIDEO_GUIDE_HTML, 'POUR스토어 자체 영상 — 추천 영상 + 미니 카드 매거진 레이아웃 (v2)', 'wip'),
-      mkSec('POUR스토어 실적관', SEED_STATS_HTML, '신뢰의 숫자 6개 카드 (IntersectionObserver 카운팅) + 협력사·인증 8개 로고 자동 줄바꿈 그리드 — 라이트 톤·Pretendard', 'requested'),
+      mkSec('POUR스토어 실적관', SEED_STATS_HTML, '시공 현장 갤러리(다크 네이비, 가로 슬라이드 6장) + 숫자 6개 카드 (IntersectionObserver 카운팅) + 협력사 48개 로고 4행 마키 슬라이드(좌·우 교차) — 라이트 톤·Pretendard', 'requested'),
     ]},
     { id: 'pour-doctor', name: 'POUR닥터 (전용 페이지)', file: 'pour-doctor.html', sections: [
       mkSec('히어로 — 당신만의 건물 닥터', POUR_DR_HERO_HTML, '다크 네이비 + 라이브 진단 보드 + 5개 신뢰 수치 (의료·전문 톤)', 'wip'),
@@ -7198,6 +7270,28 @@ show('entry');
         }
       }
       s.migrations.statsRedesignV3 = true;
+    }
+    // 1회성 마이그레이션 v4 — 시공 현장 갤러리 슬라이드 추가 + 협력사 로고 4행 마키 (cafe24 원본 48개 시공사 반영)
+    if (!s.migrations.statsRedesignV4) {
+      const mainPageS4 = s.pages.find(p => p.id === 'main');
+      if (mainPageS4 && Array.isArray(mainPageS4.sections)) {
+        const idx = mainPageS4.sections.findIndex(sec => (sec.html || '').indexOf('class="pst1"') !== -1);
+        if (idx !== -1) {
+          const sec = mainPageS4.sections[idx];
+          const now = new Date().toISOString();
+          const key = mainPageS4.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason: '실적관 — 다크 네이비 시공 현장 갤러리(가로 슬라이드 6장) 상단 추가 + 협력사 로고를 4행 마키 슬라이드(좌·우 교차, 행별 다른 속도)로 교체. 로고는 cafe24 원본에서 추출한 48개 실제 시공사명 사용.',
+            kind: 'auto-migration', savedAt: now,
+          });
+          sec.html = SEED_STATS_HTML;
+          sec.note = '시공 현장 갤러리(다크 네이비, 가로 슬라이드 6장) + 숫자 6개 카드 (IntersectionObserver 카운팅) + 협력사 48개 로고 4행 마키 슬라이드(좌·우 교차) — 라이트 톤·Pretendard';
+          sec.statusAt = now;
+        }
+      }
+      s.migrations.statsRedesignV4 = true;
     }
     return s;
   }

@@ -281,8 +281,9 @@ const NAV = [
   // 메뉴는 담당자 개발 완료 후 연결 예정 (matching/partners/rules/inquiries 컴포넌트는 유지)
   { type: 'divider', label: '매출관리센터', pending: true },
   // 메뉴는 담당자 개발 완료 후 연결 예정 (dealers/purchase-orders/orders/settlement 컴포넌트는 유지)
-  { type: 'divider', label: 'KPI 업무관리센터', pending: true },
-  // 대시보드·캘린더·반복업무·회의록 → React 컴포넌트 흡수 작업 진행 중 (PR 1~3)
+  { type: 'divider', label: 'KPI 업무관리센터' },
+  { id: 'workmgmt', icon: '📋', label: '업무관리' },
+  // 대시보드·캘린더·반복업무·회의록 → 추후 React 컴포넌트 흡수 예정
   { type: 'divider', label: '디자인/개발 센터' },
   { id: 'preview', icon: '🎨', label: '자사몰 페이지 관리' },
   { id: 'products', icon: '📦', label: '상품관리' },
@@ -4512,6 +4513,40 @@ function MethodLinksPage({showToast}){
 // ============================================================
 // PreviewPage — 자사몰 페이지 관리 (preview.html iframe 임베드)
 // ============================================================
+// ============================================================
+// WorkMgmtPage — POUR스토어 업무관리 (workmgmt.html iframe 임베드)
+// O1 매출 10억 → KR1·KR2·KR3 → 44개 프로젝트 일괄 추적.
+// 3인 기준 (송희·민지·란님) — 채림님은 별도 메모.
+// ============================================================
+function WorkMgmtPage() {
+  return (
+    <div style={{ display:'flex', flexDirection:'column', height:'100vh', background:'var(--bg)' }}>
+      <div style={{
+        padding:'14px 20px', borderBottom:'1px solid var(--border)', background:'#fff',
+        display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap'
+      }}>
+        <div>
+          <h1 style={{ fontSize:16, fontWeight:900, color:'var(--navy)', marginBottom:2 }}>📋 업무관리</h1>
+          <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700 }}>
+            O1 매출 10억 · KR1/2/3 · 44 프로젝트 · 3인 (송희·민지·란님) · 체크 상태는 브라우저에 저장됩니다.
+          </div>
+        </div>
+        <a href="./workmgmt.html" target="_blank" rel="noopener noreferrer" style={{
+          padding:'7px 14px', fontSize:11.5, fontWeight:800, color:'var(--or-d)',
+          border:'1px solid var(--or-l)', borderRadius:7, background:'#fff', display:'inline-flex', alignItems:'center', gap:6
+        }}>
+          새창에서 열기 <span style={{ fontSize:10 }}>↗</span>
+        </a>
+      </div>
+      <iframe
+        src="./workmgmt.html"
+        title="POUR스토어 업무관리"
+        style={{ flex:1, width:'100%', border:0, background:'#fff' }}
+      />
+    </div>
+  );
+}
+
 function PreviewPage() {
   const { activeStaff, staffMembers } = useActiveStaffContext();
   const iframeRef = useRef(null);
@@ -5081,6 +5116,7 @@ function App() {
         {active === 'orders' && <Orders orders={orders} dealers={dealers} onUpdate={loadAll} onToast={setToast} />}
         {active === 'settlement' && <Settlement orders={orders} dealers={dealers} onToast={setToast} />}
         {active === 'inquiries' && <Inquiries inquiries={inquiries} onUpdate={loadAll} onToast={setToast} />}
+        {active === 'workmgmt' && <WorkMgmtPage />}
         {active === 'preview' && <PreviewPage />}
         {active === 'products' && <ProductsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'metrics' && <MetricsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}

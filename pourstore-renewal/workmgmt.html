@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>POUR스토어 업무관리 — KPI · 프로젝트</title>
+<meta name="description" content="POUR스토어 3인 (송희·민지·란님) KPI·프로젝트 일괄 관리. O1 매출 10억 → KR1·KR2·KR3 → 44개 프로젝트." />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --primary: #3182F6;
+  --primary-light: #E8F3FF;
+  --primary-dark: #1B64DA;
+
+  --kr1: #3182F6;  /* B 자사몰 직판 */
+  --kr2: #9C27B0;  /* P B2B 종합 */
+  --kr3: #FF6F00;  /* S 시스템 */
+
+  --check: #2BC472;
+  --collab: #8B95A1;
+  --warn: #FFB300;
+  --urgent: #E53935;
+  --pause: #C5CCD3;
+
+  --text-primary: #191F28;
+  --text-secondary: #4E5968;
+  --text-tertiary: #8B95A1;
+  --border: #E5E8EB;
+  --border-strong: #C5CCD3;
+  --bg-subtle: #F2F4F6;
+  --bg-card: #FFFFFF;
+  --bg-page: #F8F9FB;
+  --bg-soft: #FAFBFC;
+  --category-bg: #EDF2F9;
+
+  --songhee: #3182F6;
+  --minji: #2BC472;
+  --ran: #FF8A00;
+
+  --shadow-sm: 0 1px 3px rgba(15, 31, 92, 0.04);
+  --shadow-md: 0 4px 12px rgba(15, 31, 92, 0.06);
+  --shadow-lg: 0 12px 32px rgba(15, 31, 92, 0.08);
+
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, sans-serif; }
+html, body { background: var(--bg-page); color: var(--text-primary); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+button, input, textarea { font-family: inherit; color: inherit; font-size: inherit; }
+button { cursor: pointer; border: none; background: none; }
+a { color: inherit; text-decoration: none; }
+ul { list-style: none; }
+.bebas { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.02em; }
+
+/* ─── Header ───────────────────────────── */
+.hd {
+  background: linear-gradient(135deg, #0F1F5C 0%, #1A2E62 100%);
+  color: #fff; padding: 28px 32px 26px; position: relative; overflow: hidden;
+}
+.hd::after {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 88% 30%, rgba(255,138,0,0.18), transparent 50%);
+  pointer-events: none;
+}
+.hd-inner { max-width: 1280px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; position: relative; z-index: 1; }
+.hd-title { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+.hd-sub { font-size: 13px; color: rgba(255,255,255,.7); font-weight: 600; margin-top: 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hd-badge { display: inline-block; padding: 4px 10px; background: rgba(255,138,0,.2); border: 1px solid rgba(255,138,0,.4); border-radius: 999px; font-size: 11px; font-weight: 800; color: #FFAB40; letter-spacing: 0.3px; }
+.hd-update { font-size: 11px; color: rgba(255,255,255,.5); font-weight: 600; }
+
+/* D-Day 위젯 */
+.dday {
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12);
+  border-radius: var(--r-lg); padding: 14px 22px; display: flex; align-items: center; gap: 18px;
+  backdrop-filter: blur(8px);
+}
+.dday-label { font-size: 11px; font-weight: 800; color: rgba(255,255,255,.6); letter-spacing: 0.5px; }
+.dday-event { font-size: 13px; font-weight: 700; color: #fff; margin-top: 2px; }
+.dday-num { font-size: 38px; font-weight: 700; color: #FFAB40; line-height: 1; }
+.dday-date { font-size: 11px; color: rgba(255,255,255,.55); font-weight: 600; margin-top: 4px; }
+.dday-done { font-size: 14px; font-weight: 800; color: #2BC472; }
+
+/* ─── Container ─── */
+.wrap { max-width: 1280px; margin: 0 auto; padding: 28px 32px 80px; }
+.section { background: var(--bg-card); border-radius: var(--r-lg); padding: 26px 28px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); margin-bottom: 22px; }
+.section-h { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; margin-bottom: 4px; }
+.section-sub { font-size: 12.5px; color: var(--text-tertiary); font-weight: 600; margin-bottom: 18px; }
+
+/* ─── KPI 트리 ─── */
+.kpi-tree { display: grid; grid-template-columns: 280px 1fr; gap: 22px; align-items: stretch; }
+.kpi-obj {
+  background: linear-gradient(135deg, #0F1F5C, #1A2E62); color: #fff;
+  border-radius: var(--r-lg); padding: 26px 24px; display: flex; flex-direction: column; justify-content: center;
+  position: relative; overflow: hidden;
+}
+.kpi-obj::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 100% 0%, rgba(255,138,0,0.25), transparent 60%); pointer-events: none; }
+.kpi-obj-code { font-size: 11px; font-weight: 800; color: rgba(255,255,255,.6); letter-spacing: 1px; position: relative; z-index: 1; }
+.kpi-obj-label { font-size: 16px; font-weight: 800; color: rgba(255,255,255,.85); margin-top: 6px; position: relative; z-index: 1; }
+.kpi-obj-num { font-size: 64px; font-weight: 700; color: #FFAB40; margin-top: 8px; line-height: 0.95; position: relative; z-index: 1; }
+.kpi-obj-unit { font-size: 13px; color: rgba(255,255,255,.6); font-weight: 700; margin-top: 6px; position: relative; z-index: 1; }
+
+.kpi-krs { display: grid; gap: 12px; }
+.kpi-kr { background: var(--bg-card); border: 1.5px solid var(--border); border-radius: var(--r-md); padding: 16px 20px; transition: all 0.15s; }
+.kpi-kr:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.kpi-kr-head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; margin-bottom: 10px; }
+.kpi-kr-code { display: inline-block; padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 800; color: #fff; letter-spacing: 0.5px; }
+.kpi-kr1 .kpi-kr-code { background: var(--kr1); }
+.kpi-kr2 .kpi-kr-code { background: var(--kr2); }
+.kpi-kr3 .kpi-kr-code { background: var(--kr3); }
+.kpi-kr-label { font-size: 14.5px; font-weight: 800; color: var(--text-primary); flex: 1; }
+.kpi-kr-target { font-size: 22px; font-weight: 700; color: var(--text-primary); }
+.kpi-kr-target.small { font-size: 13px; color: var(--text-tertiary); font-weight: 700; }
+.kpi-kr-bd { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 6px; margin-top: 10px; }
+.kpi-bd-cell { background: var(--bg-subtle); border-radius: var(--r-sm); padding: 8px 10px; }
+.kpi-bd-ch { font-size: 11px; font-weight: 700; color: var(--text-secondary); line-height: 1.3; }
+.kpi-bd-tg { font-size: 13.5px; font-weight: 800; color: var(--text-primary); margin-top: 3px; }
+.kpi-bd-tg.tbd { color: var(--text-tertiary); font-weight: 700; font-style: italic; }
+
+/* ─── 사람 카드 (3인) ─── */
+.people { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.p-card { background: var(--bg-card); border-radius: var(--r-lg); padding: 20px 22px; border: 1.5px solid var(--border); box-shadow: var(--shadow-sm); transition: all 0.2s; display: flex; flex-direction: column; min-height: 380px; }
+.p-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.p-card.songhee { border-top: 4px solid var(--songhee); }
+.p-card.minji { border-top: 4px solid var(--minji); }
+.p-card.ran { border-top: 4px solid var(--ran); }
+.p-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.p-emoji { font-size: 36px; line-height: 1; flex-shrink: 0; }
+.p-name { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
+.p-role { font-size: 11px; font-weight: 800; color: var(--text-tertiary); letter-spacing: 0.6px; margin-top: 1px; }
+.p-area { font-size: 12px; color: var(--text-secondary); font-weight: 600; line-height: 1.5; padding-bottom: 14px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+.p-stats { display: flex; gap: 14px; padding-bottom: 12px; margin-bottom: 14px; border-bottom: 1px solid var(--border); }
+.p-stat { display: flex; flex-direction: column; align-items: flex-start; }
+.p-stat-num { font-size: 22px; font-weight: 700; color: var(--text-primary); line-height: 1; }
+.p-stat-num.done { color: var(--check); }
+.p-stat-lbl { font-size: 10px; color: var(--text-tertiary); font-weight: 700; letter-spacing: 0.4px; margin-top: 2px; }
+.p-projs { flex: 1; overflow-y: auto; max-height: 320px; padding-right: 2px; }
+.p-projs::-webkit-scrollbar { width: 4px; }
+.p-projs::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
+.p-proj {
+  display: flex; align-items: flex-start; gap: 8px; padding: 7px 0;
+  border-bottom: 1px dashed var(--border); transition: opacity 0.15s;
+}
+.p-proj:last-child { border-bottom: 0; }
+.p-proj.is-done .p-proj-name { text-decoration: line-through; color: var(--text-tertiary); }
+.p-proj.is-done { opacity: 0.55; }
+.p-proj-check { flex-shrink: 0; width: 14px; height: 14px; margin-top: 3px; cursor: pointer; accent-color: var(--check); }
+.p-proj-body { flex: 1; min-width: 0; }
+.p-proj-kr {
+  display: inline-block; padding: 1px 6px; font-size: 9px; font-weight: 800;
+  border-radius: 4px; color: #fff; vertical-align: middle; margin-right: 4px; letter-spacing: 0.3px;
+}
+.p-proj-kr.kr1 { background: var(--kr1); }
+.p-proj-kr.kr2 { background: var(--kr2); }
+.p-proj-kr.kr3 { background: var(--kr3); }
+.p-proj-name { font-size: 12.5px; font-weight: 700; color: var(--text-primary); line-height: 1.4; word-break: keep-all; }
+.p-proj-collab { font-size: 10.5px; color: var(--collab); font-weight: 600; margin-top: 2px; font-style: italic; }
+
+/* ─── 프로젝트 마스터 표 ─── */
+.proj-master { padding: 0; overflow: hidden; }
+.proj-master-h { padding: 22px 28px 14px; }
+.kr-block { border-top: 1px solid var(--border); }
+.kr-block:first-of-type { border-top: 0; }
+.kr-block-h {
+  padding: 14px 28px; background: var(--category-bg);
+  display: flex; align-items: center; gap: 10px; justify-content: space-between;
+}
+.kr-block-h-l { display: flex; align-items: center; gap: 10px; }
+.kr-tag {
+  display: inline-block; padding: 3px 10px; border-radius: 6px; font-size: 11px;
+  font-weight: 800; color: #fff; letter-spacing: 0.5px;
+}
+.kr-tag.kr1 { background: var(--kr1); }
+.kr-tag.kr2 { background: var(--kr2); }
+.kr-tag.kr3 { background: var(--kr3); }
+.kr-tag.kr-none { background: var(--text-tertiary); }
+.kr-label { font-size: 14.5px; font-weight: 800; }
+.kr-count { font-size: 11px; font-weight: 700; color: var(--text-tertiary); }
+.kr-progress { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-secondary); font-weight: 700; }
+.kr-progress-bar { width: 80px; height: 5px; background: var(--bg-subtle); border-radius: 999px; overflow: hidden; }
+.kr-progress-bar > div { height: 100%; background: var(--check); border-radius: 999px; transition: width 0.3s; }
+
+.grp-block { padding: 8px 28px 16px; }
+.grp-h { font-size: 12px; font-weight: 800; color: var(--text-tertiary); letter-spacing: 0.5px; padding: 12px 0 8px; }
+.grp-table { width: 100%; border-collapse: collapse; }
+.grp-table th, .grp-table td { padding: 10px 12px; text-align: left; font-size: 12.5px; }
+.grp-table th {
+  font-size: 10.5px; font-weight: 800; color: var(--text-tertiary); letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border); padding: 8px 12px;
+}
+.grp-table td { border-bottom: 1px dashed var(--border); vertical-align: middle; }
+.grp-table tbody tr { transition: background 0.1s; }
+.grp-table tbody tr:hover { background: var(--bg-soft); }
+.grp-table tbody tr.is-done .proj-name { text-decoration: line-through; color: var(--text-tertiary); }
+.grp-table tbody tr.is-done { opacity: 0.55; }
+.proj-check { width: 16px; height: 16px; accent-color: var(--check); cursor: pointer; vertical-align: middle; }
+.proj-name { font-weight: 700; color: var(--text-primary); word-break: keep-all; line-height: 1.4; }
+.proj-note { font-size: 11px; color: var(--warn); font-weight: 700; margin-left: 8px; }
+.owner-chip {
+  display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px;
+  font-size: 11.5px; font-weight: 800; color: #fff; letter-spacing: 0.3px;
+}
+.owner-chip.songhee { background: var(--songhee); }
+.owner-chip.minji { background: var(--minji); }
+.owner-chip.ran { background: var(--ran); }
+.owner-chip.none { background: var(--bg-subtle); color: var(--text-tertiary); border: 1px dashed var(--border-strong); }
+.collab-list { display: flex; gap: 4px; flex-wrap: wrap; }
+.collab-chip {
+  display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 700; color: var(--text-secondary);
+  background: var(--bg-subtle); border: 1px solid var(--border);
+}
+.collab-chip .collab-role { font-size: 9.5px; color: var(--text-tertiary); font-weight: 700; }
+
+/* ─── 메모 영역 ─── */
+.memos { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.memo {
+  background: var(--bg-card); border-radius: var(--r-md); padding: 20px 22px;
+  border: 1.5px solid var(--border); border-left: 4px solid var(--warn);
+}
+.memo-h { font-size: 13.5px; font-weight: 800; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.memo-body { font-size: 12.5px; color: var(--text-secondary); line-height: 1.7; font-weight: 600; }
+.memo-body strong { color: var(--text-primary); font-weight: 800; }
+.memo-body ul { margin: 4px 0 0 16px; }
+.memo-body li { margin-bottom: 3px; list-style: disc; }
+.memo-body .lbl { display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: 10px; font-weight: 800; margin-right: 4px; color: #fff; }
+.memo-body .lbl.s { background: var(--songhee); }
+.memo-body .lbl.m { background: var(--minji); }
+.memo-body .lbl.r { background: var(--ran); }
+.memo-body .lbl.c { background: var(--warn); color: #fff; }
+
+/* ─── 합계 위젯 ─── */
+.summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
+.sm-card { background: var(--bg-card); border-radius: var(--r-md); padding: 18px 20px; border: 1.5px solid var(--border); box-shadow: var(--shadow-sm); }
+.sm-card-lbl { font-size: 10.5px; font-weight: 800; color: var(--text-tertiary); letter-spacing: 0.5px; }
+.sm-card-num { font-size: 32px; font-weight: 700; color: var(--text-primary); line-height: 1; margin-top: 8px; }
+.sm-card-sub { font-size: 11px; color: var(--text-secondary); font-weight: 700; margin-top: 4px; }
+.sm-card.done .sm-card-num { color: var(--check); }
+.sm-card.kr1 { border-left: 4px solid var(--kr1); }
+.sm-card.kr2 { border-left: 4px solid var(--kr2); }
+.sm-card.kr3 { border-left: 4px solid var(--kr3); }
+.sm-card.all { border-left: 4px solid var(--check); }
+
+/* ─── 하단 ─── */
+.foot {
+  text-align: center; font-size: 11px; color: var(--text-tertiary); font-weight: 600;
+  padding: 32px 0 0;
+}
+.foot button {
+  display: inline-block; margin: 0 6px; padding: 6px 14px; border-radius: 6px;
+  border: 1px solid var(--border); background: #fff; color: var(--text-secondary);
+  font-size: 11px; font-weight: 700; transition: all 0.15s;
+}
+.foot button:hover { background: var(--bg-subtle); color: var(--text-primary); }
+
+/* ─── 반응형 ─── */
+@media (max-width: 1024px) {
+  .kpi-tree { grid-template-columns: 1fr; }
+  .people { grid-template-columns: repeat(2, 1fr); }
+  .memos { grid-template-columns: 1fr; }
+  .summary { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .hd { padding: 22px 20px; }
+  .hd-title { font-size: 22px; }
+  .wrap { padding: 20px 16px 60px; }
+  .section { padding: 20px 18px; }
+  .people { grid-template-columns: 1fr; }
+  .summary { grid-template-columns: 1fr 1fr; }
+  .grp-block { padding: 8px 16px 16px; overflow-x: auto; }
+  .grp-table { min-width: 580px; }
+  .kr-block-h { padding: 12px 16px; flex-wrap: wrap; }
+  .proj-master-h { padding: 18px 18px 10px; }
+}
+
+/* ─── 인쇄 모드 ─── */
+@media print {
+  body { background: #fff; font-size: 11px; }
+  .hd { background: #0F1F5C !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 18px 22px; }
+  .hd-inner { gap: 16px; }
+  .hd-title { font-size: 18px; }
+  .dday { padding: 8px 14px; }
+  .dday-num { font-size: 22px; }
+  .wrap { padding: 14px 18px; max-width: 100%; }
+  .section { box-shadow: none; border: 1px solid #ccc; padding: 14px 16px; page-break-inside: avoid; margin-bottom: 12px; }
+  .kpi-tree { grid-template-columns: 1fr; gap: 12px; }
+  .people { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .p-card { padding: 10px 12px; min-height: auto; box-shadow: none; }
+  .p-card:hover { transform: none; }
+  .p-projs { max-height: none; overflow: visible; }
+  .grp-table { min-width: auto; }
+  .grp-table th, .grp-table td { padding: 5px 7px; font-size: 10px; }
+  .foot { display: none; }
+  .proj-check, .p-proj-check { display: none; }
+  .summary { grid-template-columns: repeat(4, 1fr); }
+  .sm-card { padding: 8px 10px; }
+  .sm-card-num { font-size: 18px; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- ─── Header ──────────────────────────────────────────────── -->
+<header class="hd">
+  <div class="hd-inner">
+    <div>
+      <div class="hd-title">📋 POUR스토어 업무관리</div>
+      <div class="hd-sub">
+        <span class="hd-badge">시스템 구축 집중기</span>
+        <span>3인 기준 (송희 · 민지 · 란님) · 채림님 합류 시 운영 인프라 배정</span>
+      </div>
+      <div class="hd-update" id="lastUpdate">—</div>
+    </div>
+    <div class="dday" id="dday"></div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ─── 합계 위젯 ─── -->
+  <div class="summary" id="summary"></div>
+
+  <!-- ─── KPI 트리 ─── -->
+  <section class="section">
+    <h2 class="section-h">🎯 KPI 트리</h2>
+    <div class="section-sub">목표(O) → 핵심결과(KR) → 채널·브레이크다운</div>
+    <div class="kpi-tree" id="kpiTree"></div>
+  </section>
+
+  <!-- ─── 사람별 카드 (3인) ─── -->
+  <section class="section">
+    <h2 class="section-h">👥 사람별 진행</h2>
+    <div class="section-sub">각 담당자가 주관하는 프로젝트 · 체크박스 클릭 시 완료 표시 (자동 저장)</div>
+    <div class="people" id="people"></div>
+  </section>
+
+  <!-- ─── 프로젝트 마스터 ─── -->
+  <section class="section proj-master" id="projMaster">
+    <div class="proj-master-h">
+      <h2 class="section-h">📂 프로젝트 마스터</h2>
+      <div class="section-sub">KR · 그룹별 44건. 담당자(주관) + 협업자(역할) 명시. 체크 완료 시 자동 저장</div>
+    </div>
+    <div id="projBlocks"></div>
+  </section>
+
+  <!-- ─── 메모 영역 ─── -->
+  <section class="section">
+    <h2 class="section-h">📝 전략·전환 메모</h2>
+    <div class="section-sub">프로젝트 데이터와 분리. 현재 상황 / 채림님 전환 / 전환 트리거 — 윗선 보고용</div>
+    <div class="memos" id="memos"></div>
+  </section>
+
+  <!-- ─── 하단 ─── -->
+  <div class="foot">
+    <button onclick="resetAll()">전체 초기화</button>
+    <button onclick="window.print()">🖨 인쇄</button>
+    <button onclick="exportJson()">JSON 내보내기</button>
+    <div style="margin-top: 10px; opacity: 0.7;">localStorage · pour_workmgmt_*</div>
+  </div>
+
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════
+// 데이터 — v9 (3인 기준, 채림님 별도 메모)
+// ════════════════════════════════════════════════════════════════════
+const DATA = {
+  objective: { code: 'O1', label: '매출 10억', target: 10, unit: '억' },
+  keyResults: [
+    {
+      kr: 'KR1', label: 'POUR 직판', target: '5억',
+      breakdown: [
+        { ch: '자사몰', tg: '3.0억' },
+        { ch: '마켓플레이스', tg: '1.5억', note: '스마트스토어·쿠팡·11번가·G마켓·옥션·오늘의집' },
+        { ch: '쇼룸·전화·박람회', tg: '0.5억' },
+      ],
+    },
+    {
+      kr: 'KR2', label: 'B2B 종합', target: '5억',
+      breakdown: [
+        { ch: 'P4 파트너사', tg: '3.0억' },
+        { ch: 'P3 대리점·오프라인몰', tg: '0.8억' },
+        { ch: 'H 이관 (공법·솔루션)', tg: '0.5억' },
+        { ch: 'P5 위탁·브로커', tg: '0.4억' },
+        { ch: 'P6 온라인 도매', tg: '0.3억' },
+        { ch: 'M 시공매칭', tg: 'TBD' },
+      ],
+    },
+    {
+      kr: 'KR3', label: '운영 시스템 4모듈', target: null,
+      breakdown: [
+        { ch: 'CRM 시스템', tg: '구축' },
+        { ch: '매출관리 시스템', tg: '구축' },
+        { ch: '어드민센터', tg: '구축' },
+        { ch: '매뉴얼 33건', tg: '7카테고리' },
+      ],
+    },
+  ],
+  people: [
+    { key: 'songhee', name: '송희', role: 'LEAD', area: '정책·소싱·세팅 · 리뉴얼·병목 시 직접 투입 · 큰 협상 직접', emoji: '🧑‍💼' },
+    { key: 'minji',   name: '민지',   role: 'M1',   area: '콘텐츠·등록 · 자사몰·마켓·도매처 SKU · 매거진',           emoji: '👩‍🎨' },
+    { key: 'ran',     name: '란님',   role: 'M2',   area: '마케팅·영업·B2B 푸시 · B2B는 무조건 란님',                emoji: '👩‍💼' },
+  ],
+  projects: [
+    // KR1 — 자사몰 구축·운영 (7)
+    { id: 'p001', kr: 'KR1', group: '자사몰 구축·운영', name: '자사몰 페이지 디자인 전면 재구축', owner: 'songhee', collab: [] },
+    { id: 'p002', kr: 'KR1', group: '자사몰 구축·운영', name: '자사몰 프로젝트 정교화 진행',        owner: 'songhee', collab: [] },
+    { id: 'p003', kr: 'KR1', group: '자사몰 구축·운영', name: '자사몰 KPI 설정 (페이지별 측정)',    owner: 'songhee', collab: [] },
+    { id: 'p004', kr: 'KR1', group: '자사몰 구축·운영', name: '신규 SKU 세팅 (썸네일·상페·통디자인)', owner: 'minji',  collab: [] },
+    { id: 'p005', kr: 'KR1', group: '자사몰 구축·운영', name: '상품 등록 (자사몰·마켓·도매처)',      owner: 'minji',   collab: [] },
+    { id: 'p006', kr: 'KR1', group: '자사몰 구축·운영', name: '자사몰 운영·매거진 페이지',           owner: 'minji',   collab: [] },
+    { id: 'p007', kr: 'KR1', group: '자사몰 구축·운영', name: '미디어 콘텐츠 제작 (포스팅·숏폼)',     owner: 'minji',   collab: [] },
+    // KR1 — SKU 유지관리 (6)
+    { id: 'p010', kr: 'KR1', group: 'SKU 유지관리', name: 'SKU 유지보수 (단가·썸네일·품절·재개)',   owner: 'minji',   collab: [] },
+    { id: 'p011', kr: 'KR1', group: 'SKU 유지관리', name: '팝업배너 (발주·휴무 이슈)',              owner: 'minji',   collab: [] },
+    { id: 'p012', kr: 'KR1', group: 'SKU 유지관리', name: '챗봇 AI (POUR길잡이) 관리 운영',         owner: 'minji',   collab: [{ person: 'songhee', role: '정책' }] },
+    { id: 'p013', kr: 'KR1', group: 'SKU 유지관리', name: 'B2C CS 2차 응대',                       owner: 'minji',   collab: [] },
+    { id: 'p014', kr: 'KR1', group: 'SKU 유지관리', name: 'B2C CS 1차 응대 (~5/22까지)',           owner: 'songhee', collab: [] },
+    { id: 'p015', kr: 'KR1', group: 'SKU 유지관리', name: 'B2C CS 1차 응대 (5/22 이후)',           owner: 'minji',   collab: [] },
+    // KR1 — 사후 관리 (3)
+    { id: 'p020', kr: 'KR1', group: '사후 관리',    name: '후기 이벤트 운영',                     owner: 'minji',   collab: [] },
+    { id: 'p021', kr: 'KR1', group: '사후 관리',    name: 'B2C NPS 정기 조사 발송',              owner: 'minji',   collab: [] },
+    { id: 'p022', kr: 'KR1', group: '사후 관리',    name: '패키지상품 안내문자',                  owner: 'minji',   collab: [] },
+    // KR1 — 광고·키워드 (4)
+    { id: 'p030', kr: 'KR1', group: '광고·키워드',  name: '광고 운영 전체 (네이버·메타·CPC)',     owner: 'ran',     collab: [{ person: 'songhee', role: '예산' }] },
+    { id: 'p031', kr: 'KR1', group: '광고·키워드',  name: 'SEO·키워드 최적화',                   owner: 'ran',     collab: [] },
+    { id: 'p032', kr: 'KR1', group: '광고·키워드',  name: '인플루언서 컨텐츠 기획',                owner: 'ran',     collab: [{ person: 'minji', role: '콘텐츠' }] },
+    { id: 'p033', kr: 'KR1', group: '광고·키워드',  name: '공동구매 판매 운영',                   owner: 'ran',     collab: [{ person: 'minji', role: '콘텐츠' }] },
+    // KR2 — B2B 종합 (12)
+    { id: 'p100', kr: 'KR2', group: 'B2B 종합', name: '대리점 정책 구축 및 진행',                 owner: 'songhee', collab: [] },
+    { id: 'p101', kr: 'KR2', group: 'B2B 종합', name: 'B2B 협약 협상',                          owner: 'songhee', collab: [] },
+    { id: 'p102', kr: 'KR2', group: 'B2B 종합', name: 'OEM/ODM 소싱·협상',                      owner: 'songhee', collab: [] },
+    { id: 'p103', kr: 'KR2', group: 'B2B 종합', name: '도매꾹·나비엠알오 프로모션·박스(MOQ) 운영', owner: 'ran',     collab: [{ person: 'minji', role: '등록' }] },
+    { id: 'p104', kr: 'KR2', group: 'B2B 종합', name: '위탁 셀러·인플루언서·유튜버 협업',         owner: 'ran',     collab: [{ person: 'songhee', role: '정책' }] },
+    { id: 'p105', kr: 'KR2', group: 'B2B 종합', name: '대리점·파트너 고객/운영관리',              owner: 'ran',     collab: [{ person: 'songhee', role: '정책' }] },
+    { id: 'p106', kr: 'KR2', group: 'B2B 종합', name: '시공매칭 실행',                          owner: 'ran',     collab: [{ person: 'songhee', role: '정책' }] },
+    { id: 'p107', kr: 'KR2', group: 'B2B 종합', name: '박람회 참여관리',                        owner: 'ran',     collab: [{ person: 'minji', role: '콘텐츠' }] },
+    { id: 'p108', kr: 'KR2', group: 'B2B 종합', name: '신규 SKU 대리점 추가입고 제안',           owner: 'ran',     collab: [{ person: 'minji', role: '자료' }] },
+    { id: 'p109', kr: 'KR2', group: 'B2B 종합', name: 'B2B CS (1차+2차)',                      owner: 'ran',     collab: [] },
+    { id: 'p110', kr: 'KR2', group: 'B2B 종합', name: 'B2B NPS 정기 조사 발송',                 owner: 'ran',     collab: [] },
+    { id: 'p111', kr: 'KR2', group: 'B2B 종합', name: 'B2C·B2B 기프티콘 발송',                  owner: 'ran',     collab: [] },
+    // KR3 — 운영 시스템 (10)
+    { id: 'p200', kr: 'KR3', group: '운영 시스템', name: 'AI 챗봇 개발',                        owner: 'songhee', collab: [] },
+    { id: 'p201', kr: 'KR3', group: '운영 시스템', name: '어드민센터 개발',                     owner: 'songhee', collab: [] },
+    { id: 'p202', kr: 'KR3', group: '운영 시스템', name: 'CRM 센터 개발',                       owner: 'ran',     collab: [] },
+    { id: 'p203', kr: 'KR3', group: '운영 시스템', name: '매출관리 센터 개발',                   owner: 'ran',     collab: [] },
+    { id: 'p204', kr: 'KR3', group: '운영 시스템', name: '파트너사 자동매칭 개발',               owner: 'ran',     collab: [] },
+    { id: 'p205', kr: 'KR3', group: '운영 시스템', name: '디자인 자동 생성 시스템',              owner: 'songhee', collab: [{ person: 'minji', role: '활용' }] },
+    { id: 'p206', kr: 'KR3', group: '운영 시스템', name: '시스템 정책 관리 및 업무환경 개선',    owner: 'songhee', collab: [] },
+    { id: 'p207', kr: 'KR3', group: '운영 시스템', name: '광고 예산 설정·승인',                  owner: 'songhee', collab: [] },
+    { id: 'p208', kr: 'KR3', group: '운영 시스템', name: '전략기획·신규 프로젝트',                owner: 'songhee', collab: [] },
+    { id: 'p209', kr: 'KR3', group: '운영 시스템', name: '리뉴얼·병목 시 직접 투입',             owner: 'songhee', collab: [] },
+    // 운영 인프라 (2, 미정)
+    { id: 'p300', kr: null,  group: '운영 인프라', name: '주문·발주 (그로홈 + POUR스토어)',      owner: null,      collab: [], note: '채림님 합류 시 배정' },
+    { id: 'p301', kr: null,  group: '운영 인프라', name: '재고관리',                            owner: null,      collab: [], note: '채림님 합류 시 배정' },
+    { id: 'p302', kr: null,  group: '운영 인프라', name: '반품 CS',                            owner: null,      collab: [], note: '채림님 합류 시 배정' },
+  ],
+};
+
+// ════════════════════════════════════════════════════════════════════
+// localStorage
+// ════════════════════════════════════════════════════════════════════
+const LS_DONE = 'pour_workmgmt_done';
+const LS_UPDATE = 'pour_workmgmt_last_update';
+function loadDone() {
+  try { return JSON.parse(localStorage.getItem(LS_DONE) || '{}'); } catch (e) { return {}; }
+}
+function saveDone(state) {
+  localStorage.setItem(LS_DONE, JSON.stringify(state));
+  localStorage.setItem(LS_UPDATE, new Date().toISOString());
+  renderUpdate();
+}
+function isDone(id) { return !!loadDone()[id]; }
+function setDone(id, val) {
+  const s = loadDone();
+  if (val) s[id] = new Date().toISOString();
+  else delete s[id];
+  saveDone(s);
+}
+
+// ════════════════════════════════════════════════════════════════════
+// D-Day
+// ════════════════════════════════════════════════════════════════════
+function renderDDay() {
+  const target = new Date('2026-05-22T00:00:00+09:00');
+  const today = new Date();
+  const diff = Math.ceil((target - today) / 86400000);
+  const dd = document.getElementById('dday');
+  if (diff > 0) {
+    dd.innerHTML = `
+      <div>
+        <div class="dday-label">분기점</div>
+        <div class="dday-event">민지 B2C CS 1차 합류</div>
+        <div class="dday-date">📅 2026년 5월 22일</div>
+      </div>
+      <div style="text-align:right">
+        <div class="dday-num">D-${diff}</div>
+      </div>`;
+  } else if (diff === 0) {
+    dd.innerHTML = `<div><div class="dday-label">오늘</div><div class="dday-event">민지 B2C CS 1차 합류 시작</div></div><div class="dday-num">D-DAY</div>`;
+  } else {
+    dd.innerHTML = `<div><div class="dday-label">완료</div><div class="dday-event">민지 B2C CS 1차 합류 완료</div><div class="dday-date">📅 2026년 5월 22일</div></div><div class="dday-done">✅ 합류 완료</div>`;
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// Summary
+// ════════════════════════════════════════════════════════════════════
+function renderSummary() {
+  const state = loadDone();
+  const total = DATA.projects.length;
+  const done = Object.keys(state).filter(k => DATA.projects.find(p => p.id === k)).length;
+  const byKr = {};
+  ['KR1','KR2','KR3'].forEach(kr => {
+    const ps = DATA.projects.filter(p => p.kr === kr);
+    const d = ps.filter(p => state[p.id]).length;
+    byKr[kr] = { total: ps.length, done: d };
+  });
+  const wrap = document.getElementById('summary');
+  wrap.innerHTML = `
+    <div class="sm-card all">
+      <div class="sm-card-lbl">전체 프로젝트</div>
+      <div class="sm-card-num"><span class="bebas">${done}</span> <span style="font-size:18px;color:var(--text-tertiary)">/ ${total}</span></div>
+      <div class="sm-card-sub">${Math.round(done/total*100)}% 완료</div>
+    </div>
+    <div class="sm-card kr1">
+      <div class="sm-card-lbl">KR1 · POUR 직판 5억</div>
+      <div class="sm-card-num"><span class="bebas">${byKr.KR1.done}</span> <span style="font-size:18px;color:var(--text-tertiary)">/ ${byKr.KR1.total}</span></div>
+      <div class="sm-card-sub">${Math.round(byKr.KR1.done/byKr.KR1.total*100)}% 완료</div>
+    </div>
+    <div class="sm-card kr2">
+      <div class="sm-card-lbl">KR2 · B2B 종합 5억</div>
+      <div class="sm-card-num"><span class="bebas">${byKr.KR2.done}</span> <span style="font-size:18px;color:var(--text-tertiary)">/ ${byKr.KR2.total}</span></div>
+      <div class="sm-card-sub">${Math.round(byKr.KR2.done/byKr.KR2.total*100)}% 완료</div>
+    </div>
+    <div class="sm-card kr3">
+      <div class="sm-card-lbl">KR3 · 운영 시스템 4모듈</div>
+      <div class="sm-card-num"><span class="bebas">${byKr.KR3.done}</span> <span style="font-size:18px;color:var(--text-tertiary)">/ ${byKr.KR3.total}</span></div>
+      <div class="sm-card-sub">${Math.round(byKr.KR3.done/byKr.KR3.total*100)}% 완료</div>
+    </div>`;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// KPI Tree
+// ════════════════════════════════════════════════════════════════════
+function renderKpiTree() {
+  const tree = document.getElementById('kpiTree');
+  tree.innerHTML = `
+    <div class="kpi-obj">
+      <div class="kpi-obj-code">${DATA.objective.code}</div>
+      <div class="kpi-obj-label">${DATA.objective.label}</div>
+      <div class="kpi-obj-num bebas">${DATA.objective.target}</div>
+      <div class="kpi-obj-unit">${DATA.objective.unit}</div>
+    </div>
+    <div class="kpi-krs">
+      ${DATA.keyResults.map(kr => {
+        const cls = 'kpi-kr-' + kr.kr.slice(-1).toLowerCase();
+        const cls2 = 'kpi-kr kpi-kr' + kr.kr.slice(-1);
+        const tg = kr.target ? `<div class="kpi-kr-target bebas">${kr.target}</div>` : `<div class="kpi-kr-target small">${kr.breakdown.length}개 모듈</div>`;
+        return `
+          <div class="${cls2}">
+            <div class="kpi-kr-head">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span class="kpi-kr-code">${kr.kr}</span>
+                <span class="kpi-kr-label">${kr.label}</span>
+              </div>
+              ${tg}
+            </div>
+            <div class="kpi-kr-bd">
+              ${kr.breakdown.map(b => `
+                <div class="kpi-bd-cell" ${b.note ? `title="${b.note}"` : ''}>
+                  <div class="kpi-bd-ch">${b.ch}</div>
+                  <div class="kpi-bd-tg ${b.tg === 'TBD' ? 'tbd' : ''}">${b.tg}</div>
+                </div>`).join('')}
+            </div>
+          </div>`;
+      }).join('')}
+    </div>`;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// 사람 카드
+// ════════════════════════════════════════════════════════════════════
+function renderPeople() {
+  const state = loadDone();
+  const wrap = document.getElementById('people');
+  wrap.innerHTML = DATA.people.map(p => {
+    const owned = DATA.projects.filter(pr => pr.owner === p.key);
+    const collabIn = DATA.projects.filter(pr => pr.collab.some(c => c.person === p.key));
+    const ownedDone = owned.filter(pr => state[pr.id]).length;
+    return `
+      <div class="p-card ${p.key}">
+        <div class="p-head">
+          <div class="p-emoji">${p.emoji}</div>
+          <div>
+            <div class="p-name">${p.name}</div>
+            <div class="p-role">${p.role}</div>
+          </div>
+        </div>
+        <div class="p-area">${p.area}</div>
+        <div class="p-stats">
+          <div class="p-stat"><div class="p-stat-num bebas">${owned.length}</div><div class="p-stat-lbl">주관</div></div>
+          <div class="p-stat"><div class="p-stat-num bebas done">${ownedDone}</div><div class="p-stat-lbl">완료</div></div>
+          <div class="p-stat"><div class="p-stat-num bebas">${collabIn.length}</div><div class="p-stat-lbl">협업</div></div>
+        </div>
+        <div class="p-projs">
+          ${owned.map(pr => {
+            const done = !!state[pr.id];
+            const krClass = pr.kr ? pr.kr.toLowerCase() : '';
+            const collabTxt = pr.collab.length ? `<div class="p-proj-collab">+ ${pr.collab.map(c => {
+              const cp = DATA.people.find(x => x.key === c.person);
+              return `${cp ? cp.name : c.person}(${c.role})`;
+            }).join(', ')}</div>` : '';
+            return `
+              <label class="p-proj ${done ? 'is-done' : ''}">
+                <input type="checkbox" class="p-proj-check" data-id="${pr.id}" ${done ? 'checked' : ''}>
+                <div class="p-proj-body">
+                  <span class="p-proj-name">
+                    ${pr.kr ? `<span class="p-proj-kr ${krClass}">${pr.kr}</span>` : ''}
+                    ${pr.name}
+                  </span>
+                  ${collabTxt}
+                </div>
+              </label>`;
+          }).join('')}
+        </div>
+      </div>`;
+  }).join('');
+  wrap.querySelectorAll('.p-proj-check').forEach(cb => {
+    cb.addEventListener('change', (e) => {
+      setDone(e.target.dataset.id, e.target.checked);
+      renderAll();
+    });
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+// 프로젝트 마스터
+// ════════════════════════════════════════════════════════════════════
+function renderProjMaster() {
+  const state = loadDone();
+  const wrap = document.getElementById('projBlocks');
+
+  // KR별 → 그룹별 그룹화
+  const krOrder = ['KR1', 'KR2', 'KR3', null];
+  const krLabels = {
+    'KR1': { label: 'POUR 직판 5억', cls: 'kr1' },
+    'KR2': { label: 'B2B 종합 5억', cls: 'kr2' },
+    'KR3': { label: '운영 시스템 4모듈', cls: 'kr3' },
+    'null': { label: '운영 인프라 (미정)', cls: 'kr-none' },
+  };
+
+  wrap.innerHTML = krOrder.map(kr => {
+    const krKey = kr === null ? 'null' : kr;
+    const lbl = krLabels[krKey];
+    const projs = DATA.projects.filter(p => p.kr === kr);
+    if (!projs.length) return '';
+    const done = projs.filter(p => state[p.id]).length;
+    const pct = Math.round(done / projs.length * 100);
+
+    // 그룹별 묶기
+    const groups = {};
+    projs.forEach(p => { (groups[p.group] = groups[p.group] || []).push(p); });
+
+    return `
+      <div class="kr-block">
+        <div class="kr-block-h">
+          <div class="kr-block-h-l">
+            <span class="kr-tag ${lbl.cls}">${kr || 'TBD'}</span>
+            <span class="kr-label">${lbl.label}</span>
+            <span class="kr-count">${projs.length}건</span>
+          </div>
+          <div class="kr-progress">
+            <span class="bebas" style="font-size:14px;color:var(--text-primary)">${done} / ${projs.length}</span>
+            <div class="kr-progress-bar"><div style="width:${pct}%"></div></div>
+            <span>${pct}%</span>
+          </div>
+        </div>
+        ${Object.entries(groups).map(([gName, gProjs]) => `
+          <div class="grp-block">
+            <div class="grp-h">${gName}</div>
+            <table class="grp-table">
+              <thead>
+                <tr>
+                  <th style="width:30px;"></th>
+                  <th>프로젝트</th>
+                  <th style="width:110px;">주관</th>
+                  <th style="width:240px;">협업</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${gProjs.map(pr => {
+                  const isD = !!state[pr.id];
+                  const owner = DATA.people.find(p => p.key === pr.owner);
+                  const ownerChip = owner
+                    ? `<span class="owner-chip ${owner.key}">${owner.name}</span>`
+                    : `<span class="owner-chip none">미정</span>`;
+                  const collabChips = pr.collab.length
+                    ? `<div class="collab-list">${pr.collab.map(c => {
+                        const cp = DATA.people.find(x => x.key === c.person);
+                        return `<span class="collab-chip">${cp ? cp.name : c.person}<span class="collab-role">· ${c.role}</span></span>`;
+                      }).join('')}</div>`
+                    : `<span style="color:var(--text-tertiary);font-size:11px;">—</span>`;
+                  const note = pr.note ? `<span class="proj-note">📌 ${pr.note}</span>` : '';
+                  return `
+                    <tr class="${isD ? 'is-done' : ''}">
+                      <td><input type="checkbox" class="proj-check" data-id="${pr.id}" ${isD ? 'checked' : ''}></td>
+                      <td><span class="proj-name">${pr.name}</span>${note}</td>
+                      <td>${ownerChip}</td>
+                      <td>${collabChips}</td>
+                    </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>`).join('')}
+      </div>`;
+  }).join('');
+
+  wrap.querySelectorAll('.proj-check').forEach(cb => {
+    cb.addEventListener('change', (e) => {
+      setDone(e.target.dataset.id, e.target.checked);
+      renderAll();
+    });
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+// 메모
+// ════════════════════════════════════════════════════════════════════
+function renderMemos() {
+  const wrap = document.getElementById('memos');
+  wrap.innerHTML = `
+    <div class="memo">
+      <div class="memo-h">🔥 현재 상황 (시스템 구축 집중기)</div>
+      <div class="memo-body">
+        자사몰 리뉴얼 + 시스템 5개 + 신규 프로젝트 동시 진행 — <strong>비상 분배 상태</strong>.
+        <ul>
+          <li><span class="lbl s">송희</span>자사몰 리뉴얼 + 대리점 정책 + AI 챗봇 + 어드민 (4건 시급) + B2C CS 1차 (~5/22)</li>
+          <li><span class="lbl r">란님</span>CRM·매출관리·파트너사 자동매칭 (3건 시급) + B2B CS 계속</li>
+          <li><span class="lbl m">민지</span>입사 8일 적응 단계, SKU 세팅 훈련 중 → 5/22부터 B2C CS 1차 합류</li>
+        </ul>
+        <p style="margin-top:8px"><strong>보류</strong>: OEM/ODM 소싱, SKU 신규 등록, 미디어 콘텐츠, B2C 사후 관리 (시스템 완료 후 재개)</p>
+        <p style="margin-top:6px"><strong>5월 22일</strong> = 민지 적응 완료 → B2C CS 1차 응대 합류 분기점</p>
+      </div>
+    </div>
+    <div class="memo">
+      <div class="memo-h">🎯 채림님 정규직 전환 방안</div>
+      <div class="memo-body">
+        채림님은 현재 파트타임 (그로홈+POUR 주문·발주·반품 CS). 정규직 전환 시:
+        <p style="margin-top:6px"><strong>기본 업무 동일</strong> (주문·발주·반품 CS) + B2C CS 1차</p>
+        <p style="margin-top:8px"><strong>추가 프로젝트 이관 (10건):</strong></p>
+        <ul>
+          <li><span class="lbl m">민지</span>→ <span class="lbl c">채림님</span> SKU 유지보수 / 팝업배너 / 챗봇 AI / 후기 이벤트 / B2C NPS / 패키지 안내문자</li>
+          <li><span class="lbl r">란님</span>→ <span class="lbl c">채림님</span> B2B NPS / B2C·B2B 기프티콘</li>
+          <li>신규 추가: CRM 데이터 운영 / 매출관리 실무 데이터</li>
+        </ul>
+        <p style="margin-top:8px"><strong>효과</strong>: 민지=콘텐츠·등록 집중, 란님=B2B 영업·마케팅 집중, 채림님=사후관리·운영 인프라 전담</p>
+      </div>
+    </div>
+    <div class="memo" style="grid-column: 1 / -1;">
+      <div class="memo-h">🚀 전환 트리거</div>
+      <div class="memo-body" style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+        <div>
+          <strong>시스템 구축 완료 (정상화 진입)</strong>
+          <ul>
+            <li>자사몰 리뉴얼 완료 + KPI 설정</li>
+            <li>대리점 정책 구축 완료</li>
+            <li>AI 챗봇 / 어드민센터 / CRM / 매출관리 / 파트너사 자동매칭 가동</li>
+            <li>민지 적응 완료</li>
+          </ul>
+        </div>
+        <div>
+          <strong>채림님 정규직 전환</strong>
+          <ul>
+            <li>윗선 정규직 결정</li>
+            <li>추가 프로젝트 인수인계 완료</li>
+            <li>시공매칭 정책 컨펌 (마진율 + 대리점1 일용직 매칭 모델)</li>
+            <li>어드민센터 v2 (디자인 자동 생성 포함)</li>
+          </ul>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// 마지막 업데이트 표시
+// ════════════════════════════════════════════════════════════════════
+function renderUpdate() {
+  const t = localStorage.getItem(LS_UPDATE);
+  const el = document.getElementById('lastUpdate');
+  if (!t) { el.textContent = '아직 저장된 변경이 없습니다'; return; }
+  const d = new Date(t);
+  el.textContent = `마지막 업데이트 · ${d.toLocaleString('ko-KR')}`;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// 액션
+// ════════════════════════════════════════════════════════════════════
+function resetAll() {
+  if (!confirm('체크된 완료 상태를 모두 초기화합니다. 진행할까요?')) return;
+  localStorage.removeItem(LS_DONE);
+  localStorage.removeItem(LS_UPDATE);
+  renderAll();
+}
+
+function exportJson() {
+  const state = loadDone();
+  const out = {
+    exportedAt: new Date().toISOString(),
+    summary: {
+      total: DATA.projects.length,
+      done: Object.keys(state).filter(k => DATA.projects.find(p => p.id === k)).length,
+    },
+    projects: DATA.projects.map(p => ({
+      ...p,
+      doneAt: state[p.id] || null,
+      ownerName: (DATA.people.find(x => x.key === p.owner) || {}).name || null,
+    })),
+  };
+  const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `pour-workmgmt-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ════════════════════════════════════════════════════════════════════
+// 렌더 일괄
+// ════════════════════════════════════════════════════════════════════
+function renderAll() {
+  renderDDay();
+  renderSummary();
+  renderKpiTree();
+  renderPeople();
+  renderProjMaster();
+  renderMemos();
+  renderUpdate();
+}
+
+renderAll();
+</script>
+
+</body>
+</html>

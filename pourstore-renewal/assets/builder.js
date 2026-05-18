@@ -65,16 +65,13 @@
 .pst1-stat-num small { font-size:20px; font-weight:800; -webkit-text-fill-color:#E8780F; }
 .pst1-stat-label { margin-top:6px; font-size:13.5px; font-weight:800; color:#0F1F5C; letter-spacing:-0.03em; }
 .pst1-stat-sub { margin-top:4px; font-size:11.5px; font-weight:500; color:#9CA3AF; letter-spacing:-0.02em; }
-/* 협력사·인증 로고 슬라이드 (마키) */
-.pst1-partners { background:#fff; border:1px solid #F2F3F5; border-radius:20px; padding:24px 0; max-width:1200px; margin:0 auto; }
-.pst1-partners-title { text-align:center; font-size:11.5px; font-weight:800; color:#9CA3AF; letter-spacing:0.08em; margin-bottom:16px; padding:0 18px; }
-.pst1-marquee { overflow:hidden; position:relative; -webkit-mask-image:linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%); mask-image:linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%); }
-.pst1-marquee-track { display:flex; gap:12px; width:max-content; animation:pstMarquee 32s linear infinite; will-change:transform; }
-.pst1-marquee:hover .pst1-marquee-track, .pst1-marquee:focus-within .pst1-marquee-track { animation-play-state:paused; }
-@keyframes pstMarquee { from { transform:translateX(0); } to { transform:translateX(-50%); } }
-.pst1-logo { display:inline-flex; align-items:center; gap:7px; padding:10px 18px; background:#FAFAFA; border:1px solid #F2F3F5; border-radius:999px; font-size:13px; font-weight:700; color:#374151; letter-spacing:-0.02em; white-space:nowrap; flex-shrink:0; }
+/* 협력사·인증 로고 그리드 (자동 줄바꿈, 가운데 정렬) */
+.pst1-partners { background:#fff; border:1px solid #F2F3F5; border-radius:20px; padding:28px 24px; max-width:1200px; margin:0 auto; }
+.pst1-partners-title { text-align:center; font-size:11.5px; font-weight:800; color:#9CA3AF; letter-spacing:0.08em; margin-bottom:18px; }
+.pst1-partners-grid { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; align-items:center; }
+.pst1-logo { display:inline-flex; align-items:center; gap:7px; padding:10px 18px; background:#FAFAFA; border:1px solid #F2F3F5; border-radius:999px; font-size:13px; font-weight:700; color:#374151; letter-spacing:-0.02em; transition:.15s; }
+.pst1-logo:hover { background:#fff; border-color:#FED7AA; color:#0F1F5C; }
 .pst1-logo .em { font-size:15px; }
-@media (prefers-reduced-motion: reduce) { .pst1-marquee-track { animation:none; } }
 @media (max-width:900px) {
   .pst1-stats { grid-template-columns:repeat(2,1fr); gap:10px; }
 }
@@ -90,9 +87,9 @@
   .pst1-stat-num small { font-size:14px; }
   .pst1-stat-label { font-size:12px; }
   .pst1-stat-sub { font-size:10.5px; }
-  .pst1-partners { border-radius:14px; padding:18px 0; margin:0 14px; }
-  .pst1-logo { font-size:11.5px; padding:8px 14px; }
-  .pst1-marquee-track { animation-duration:24s; }
+  .pst1-partners { border-radius:14px; padding:20px 16px; margin:0 14px; }
+  .pst1-logo { font-size:11.5px; padding:8px 14px; gap:5px; }
+  .pst1-logo .em { font-size:13px; }
 }
 </style>
 <div class="pst1-inner">
@@ -112,25 +109,15 @@
 </div>
 <div class="pst1-partners">
   <div class="pst1-partners-title">PARTNERS · CERTIFICATIONS</div>
-  <div class="pst1-marquee">
-    <div class="pst1-marquee-track">
-      <span class="pst1-logo"><span class="em">🎓</span> 서울과학기술대학교</span>
-      <span class="pst1-logo"><span class="em">🏭</span> 강남제비스코</span>
-      <span class="pst1-logo"><span class="em">📜</span> 국토교통부 건설신기술 1026호</span>
-      <span class="pst1-logo"><span class="em">🔬</span> KTR 한국화학융합시험연구원</span>
-      <span class="pst1-logo"><span class="em">🔬</span> KCL 한국건설생활환경시험연구원</span>
-      <span class="pst1-logo"><span class="em">🔬</span> SGS 공인시험</span>
-      <span class="pst1-logo"><span class="em">🏛</span> 한국건설기술연구원</span>
-      <span class="pst1-logo"><span class="em">🏆</span> 한국디자인진흥원</span>
-      <span class="pst1-logo" aria-hidden="true"><span class="em">🎓</span> 서울과학기술대학교</span>
-      <span class="pst1-logo" aria-hidden="true"><span class="em">🏭</span> 강남제비스코</span>
-      <span class="pst1-logo" aria-hidden="true"><span class="em">📜</span> 국토교통부 건설신기술 1026호</span>
-      <span class="pst1-logo" aria-hidden="true"><span class="em">🔬</span> KTR 한국화학융합시험연구원</span>
-      <span class="pst1-logo" aria-hidden="true"><span class="em">🔬</span> KCL 한국건설생활환경시험연구원</span>
-      <span class="pst1-logo" aria-hidden="true"><span class="em">🔬</span> SGS 공인시험</span>
-      <span class="pst1-logo" aria-hidden="true"><span class="em">🏛</span> 한국건설기술연구원</span>
-      <span class="pst1-logo" aria-hidden="true"><span class="em">🏆</span> 한국디자인진흥원</span>
-    </div>
+  <div class="pst1-partners-grid">
+    <span class="pst1-logo"><span class="em">🎓</span> 서울과학기술대학교</span>
+    <span class="pst1-logo"><span class="em">🏭</span> 강남제비스코</span>
+    <span class="pst1-logo"><span class="em">📜</span> 국토교통부 건설신기술 1026호</span>
+    <span class="pst1-logo"><span class="em">🔬</span> KTR 한국화학융합시험연구원</span>
+    <span class="pst1-logo"><span class="em">🔬</span> KCL 한국건설생활환경시험연구원</span>
+    <span class="pst1-logo"><span class="em">🔬</span> SGS 공인시험</span>
+    <span class="pst1-logo"><span class="em">🏛</span> 한국건설기술연구원</span>
+    <span class="pst1-logo"><span class="em">🏆</span> 한국디자인진흥원</span>
   </div>
 </div>
 <script>
@@ -6382,7 +6369,7 @@ show('entry');
       mkSec('서비스 소개', SEED_SERVICE_HTML, '대리점·파트너사·전시장 — SVG 아이콘 + 컬러별 차별 (v2)', 'wip'),
       mkSec('자사몰 내 포스팅', SEED_POSTING_HTML, '매거진 레이아웃 (Cover Story 1+3) + 읽기시간·조회수 (v2)', 'wip'),
       mkSec('동영상 가이드', SEED_VIDEO_GUIDE_HTML, 'POUR스토어 자체 영상 — 추천 영상 + 미니 카드 매거진 레이아웃 (v2)', 'wip'),
-      mkSec('POUR스토어 실적관', SEED_STATS_HTML, '신뢰의 숫자 6개 카드 (IntersectionObserver 카운팅) + 협력사·인증 8개 로고 무한 마키 슬라이드 — 라이트 톤·Pretendard', 'requested'),
+      mkSec('POUR스토어 실적관', SEED_STATS_HTML, '신뢰의 숫자 6개 카드 (IntersectionObserver 카운팅) + 협력사·인증 8개 로고 자동 줄바꿈 그리드 — 라이트 톤·Pretendard', 'requested'),
     ]},
     { id: 'pour-doctor', name: 'POUR닥터 (전용 페이지)', file: 'pour-doctor.html', sections: [
       mkSec('히어로 — 당신만의 건물 닥터', POUR_DR_HERO_HTML, '다크 네이비 + 라이브 진단 보드 + 5개 신뢰 수치 (의료·전문 톤)', 'wip'),
@@ -7189,6 +7176,28 @@ show('entry');
         }
       }
       s.migrations.statsRedesignV2 = true;
+    }
+    // 1회성 마이그레이션 v3 — 로고 마키 슬라이드 → 정적 flex-wrap 그리드(자동 줄바꿈)로 복귀
+    if (!s.migrations.statsRedesignV3) {
+      const mainPageS3 = s.pages.find(p => p.id === 'main');
+      if (mainPageS3 && Array.isArray(mainPageS3.sections)) {
+        const idx = mainPageS3.sections.findIndex(sec => (sec.html || '').indexOf('class="pst1"') !== -1);
+        if (idx !== -1) {
+          const sec = mainPageS3.sections[idx];
+          const now = new Date().toISOString();
+          const key = mainPageS3.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason: '실적관 로고 — 무한 마키 슬라이드 → 정적 flex-wrap 알약 그리드 (자동 줄바꿈, 가운데 정렬). 카운팅 애니메이션은 유지.',
+            kind: 'auto-migration', savedAt: now,
+          });
+          sec.html = SEED_STATS_HTML;
+          sec.note = '신뢰의 숫자 6개 카드 (IntersectionObserver 카운팅) + 협력사·인증 8개 로고 자동 줄바꿈 그리드 — 라이트 톤·Pretendard';
+          sec.statusAt = now;
+        }
+      }
+      s.migrations.statsRedesignV3 = true;
     }
     return s;
   }

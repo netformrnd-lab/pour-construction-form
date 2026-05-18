@@ -198,10 +198,13 @@
     </div>
   </div>
 </div>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 <script>
 (function(){
   var root = document.currentScript && document.currentScript.parentElement;
   if (!root) return;
+  // 1) 수치 카운팅 애니메이션
   var counters = root.querySelectorAll('[data-pst1-count]');
   function animate(el){
     var target = parseFloat(el.getAttribute('data-pst1-count')) || 0;
@@ -228,6 +231,82 @@
   } else {
     counters.forEach(animate);
   }
+  // 2) Firebase Storage에서 시공 현장 사진 + 협력사 로고 동적 로드 (cafe24와 동일 폴더)
+  function loadFromFirebase(){
+    if (typeof firebase === 'undefined' || !firebase.initializeApp) {
+      console.warn('[pst1] firebase SDK not loaded — SVG/텍스트 fallback 유지');
+      return;
+    }
+    try {
+      if (!firebase.apps.length) {
+        firebase.initializeApp({
+          apiKey: 'AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU',
+          authDomain: 'pour-app-new.firebaseapp.com',
+          projectId: 'pour-app-new',
+          storageBucket: 'pour-app-new.firebasestorage.app',
+          messagingSenderId: '411031141847',
+          appId: '1:411031141847:web:e658174fd4b9652cdadf92'
+        });
+      }
+      var storage = firebase.storage();
+      // ---- 시공 현장 갤러리 ----
+      storage.ref('POUR스토어_리뉴얼/자사몰/아파트, 공장, 병원~ ,, 여러협력사사용중').listAll()
+        .then(function(res){
+          return Promise.all(res.items.map(function(it){ return it.getDownloadURL(); }));
+        }).then(function(urls){
+          if (!urls.length) return;
+          var cards = root.querySelectorAll('.pst1-site');
+          urls.slice(0, cards.length).forEach(function(url, i){
+            var card = cards[i];
+            var svg = card.querySelector('svg');
+            if (svg) svg.remove();
+            var img = document.createElement('img');
+            img.src = url;
+            img.loading = 'lazy';
+            img.alt = (card.querySelector('.pst1-site-loc') || {}).textContent || '시공 현장';
+            img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+            card.insertBefore(img, card.firstChild);
+          });
+        }).catch(function(e){ console.warn('[pst1] gallery load failed:', e.code || e.message); });
+      // ---- 협력사 로고 ----
+      storage.ref('POUR스토어_리뉴얼/자사몰/협력사 로고들').listAll()
+        .then(function(res){
+          return Promise.all(res.items.map(function(it){ return it.getDownloadURL(); }));
+        }).then(function(urls){
+          if (!urls.length) return;
+          var rowTracks = root.querySelectorAll('.pst1-row-track');
+          if (!rowTracks.length) return;
+          var per = Math.max(1, Math.ceil(urls.length / rowTracks.length));
+          rowTracks.forEach(function(track, r){
+            var slice = urls.slice(r * per, (r + 1) * per);
+            if (!slice.length) return;
+            track.innerHTML = '';
+            // 끊김 없는 무한 루프용 ×2 복제
+            for (var pass = 0; pass < 2; pass++) {
+              slice.forEach(function(url){
+                var el = document.createElement('span');
+                el.className = 'pst1-logo';
+                el.style.padding = '8px 14px';
+                if (pass === 1) el.setAttribute('aria-hidden', 'true');
+                var img = document.createElement('img');
+                img.src = url;
+                img.loading = 'lazy';
+                img.alt = 'POUR스토어 협력사';
+                img.style.cssText = 'max-height:40px;max-width:140px;object-fit:contain;display:block;';
+                el.appendChild(img);
+                track.appendChild(el);
+              });
+            }
+          });
+        }).catch(function(e){ console.warn('[pst1] logos load failed:', e.code || e.message); });
+    } catch (e) { console.warn('[pst1] firebase init error:', e.message); }
+  }
+  // Firebase SDK 로드 대기 (안전장치)
+  if (typeof firebase !== 'undefined' && firebase.initializeApp) loadFromFirebase();
+  else { var t = 0; var iv = setInterval(function(){
+    if (typeof firebase !== 'undefined' && firebase.initializeApp) { clearInterval(iv); loadFromFirebase(); return; }
+    t += 100; if (t > 5000) { clearInterval(iv); console.warn('[pst1] firebase load timeout'); }
+  }, 100); }
 })();
 </script>
 </section>`;
@@ -7634,6 +7713,27 @@ show('entry');
         }
       }
       s.migrations.statsRedesignV4 = true;
+    }
+    // 1회성 마이그레이션 v5 — Firebase Storage 이미지 동적 로드 복원 (시공 현장 사진 + 협력사 로고)
+    if (!s.migrations.statsRedesignV5) {
+      const mainPageS5 = s.pages.find(p => p.id === 'main');
+      if (mainPageS5 && Array.isArray(mainPageS5.sections)) {
+        const idx = mainPageS5.sections.findIndex(sec => (sec.html || '').indexOf('class="pst1"') !== -1);
+        if (idx !== -1) {
+          const sec = mainPageS5.sections[idx];
+          const now = new Date().toISOString();
+          const key = mainPageS5.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason: '실적관 — Firebase Storage 이미지 동적 로드 복원. 시공 현장 6장은 "POUR스토어_리뉴얼/자사몰/아파트, 공장, 병원~ ,, 여러협력사사용중" 폴더, 협력사 로고는 "협력사 로고들" 폴더 listAll. 로드 실패 시 SVG/텍스트 fallback 유지.',
+            kind: 'auto-migration', savedAt: now,
+          });
+          sec.html = SEED_STATS_HTML;
+          sec.statusAt = now;
+        }
+      }
+      s.migrations.statsRedesignV5 = true;
     }
     return s;
   }

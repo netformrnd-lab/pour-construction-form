@@ -48,284 +48,13 @@
   let firstSnapshotLoaded = false;
   const historyWriteTimers = {};
 
-  const SEED_STATS_HTML = `<section class="pst1">
-<style>
-.pst1 *, .pst1 *::before, .pst1 *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
-.pst1 { background:linear-gradient(180deg,#0A1742 0%,#0F1F5C 50%,#1E3A8A 100%); color:#fff; letter-spacing:-0.02em; overflow:hidden; position:relative; }
-.pst1::before { content:''; position:absolute; top:-200px; left:-100px; width:520px; height:520px; background:radial-gradient(circle, rgba(232,120,15,.16) 0%, transparent 60%); pointer-events:none; }
-.pst1::after { content:''; position:absolute; bottom:-150px; right:-100px; width:480px; height:480px; background:radial-gradient(circle, rgba(244,154,58,.12) 0%, transparent 65%); pointer-events:none; }
-.pst1 > * { position:relative; z-index:1; }
-/* ===== 1) 시공 현장 갤러리 (자동 마키 슬라이드) ===== */
-.pst1-gallery { padding:48px 0 12px; }
-.pst1-gallery-head { max-width:1200px; margin:0 auto; padding:0 18px 22px; }
-.pst1-gallery-kicker { display:inline-flex; align-items:center; gap:8px; font-size:11.5px; font-weight:800; color:#FED7AA; letter-spacing:0.08em; margin-bottom:8px; }
-.pst1-gallery-kicker::before { content:''; width:20px; height:2px; background:#E8780F; border-radius:2px; }
-.pst1-gallery h3 { font-size:24px; font-weight:900; color:#fff; letter-spacing:-0.045em; line-height:1.25; }
-.pst1-gallery h3 small { display:inline-block; font-size:13px; font-weight:500; color:rgba(255,255,255,.7); margin-left:8px; vertical-align:middle; letter-spacing:-0.02em; }
-.pst1-sites-marquee { overflow:hidden; padding:8px 0 16px; -webkit-mask-image:linear-gradient(90deg, transparent 0%, #000 5%, #000 95%, transparent 100%); mask-image:linear-gradient(90deg, transparent 0%, #000 5%, #000 95%, transparent 100%); }
-.pst1-sites-track { display:flex; gap:14px; width:max-content; will-change:transform; animation:pstSitesMq 60s linear infinite; padding:0 18px; }
-.pst1-sites-marquee:hover .pst1-sites-track, .pst1-sites-marquee:focus-within .pst1-sites-track { animation-play-state:paused; }
-@keyframes pstSitesMq { from { transform:translateX(0); } to { transform:translateX(-50%); } }
-.pst1-site { flex:0 0 280px; aspect-ratio:3/4; border-radius:14px; overflow:hidden; box-shadow:0 12px 28px rgba(0,0,0,.35); position:relative; cursor:pointer; transition:transform .25s, box-shadow .25s; background:#1a2540; }
-.pst1-site:hover { transform:translateY(-4px); box-shadow:0 18px 40px rgba(0,0,0,.45); }
-.pst1-site svg, .pst1-site img { width:100%; height:100%; object-fit:cover; display:block; }
-/* ===== 2) 헤더 + 수치 카드 (다크 톤) ===== */
-.pst1-inner { max-width:1200px; margin:0 auto; padding:48px 18px 32px; }
-.pst1-head { text-align:center; margin-bottom:32px; }
-.pst1-kicker { display:inline-block; font-size:12px; font-weight:800; color:#FED7AA; letter-spacing:0.06em; padding:4px 12px; background:rgba(232,120,15,.16); border:1px solid rgba(232,120,15,.4); border-radius:999px; margin-bottom:12px; }
-.pst1-head h2 { font-size:32px; font-weight:900; color:#fff; letter-spacing:-0.045em; line-height:1.25; margin-bottom:8px; }
-.pst1-head h2 b { color:#FED7AA; }
-.pst1-head p { font-size:14px; font-weight:500; color:rgba(255,255,255,.65); }
-.pst1-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
-.pst1-stat { background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:18px; padding:26px 22px; transition:.2s; position:relative; overflow:hidden; backdrop-filter:blur(4px); }
-.pst1-stat:hover { transform:translateY(-3px); border-color:rgba(254,215,170,.5); background:rgba(255,255,255,.1); box-shadow:0 12px 28px rgba(0,0,0,.3); }
-.pst1-stat::before { content:''; position:absolute; top:-30px; right:-30px; width:140px; height:140px; border-radius:50%; background:radial-gradient(circle,rgba(232,120,15,.18) 0%,transparent 65%); pointer-events:none; }
-.pst1-stat > * { position:relative; z-index:1; }
-.pst1-stat-icon { width:42px; height:42px; border-radius:12px; background:linear-gradient(135deg,#FED7AA,#FB923C); display:grid; place-items:center; font-size:20px; margin-bottom:14px; }
-.pst1-stat-num { font-size:36px; font-weight:900; letter-spacing:-0.045em; line-height:1.1; background:linear-gradient(120deg,#fff,#FED7AA); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; min-height:1.1em; }
-.pst1-stat-num small { font-size:20px; font-weight:800; -webkit-text-fill-color:#FED7AA; }
-.pst1-stat-label { margin-top:6px; font-size:13.5px; font-weight:800; color:#fff; letter-spacing:-0.03em; }
-.pst1-stat-sub { margin-top:4px; font-size:11.5px; font-weight:500; color:rgba(255,255,255,.55); letter-spacing:-0.02em; }
-/* ===== 3) 협력사 로고 4행 마키 (다크 위 흰 로고 카드) ===== */
-.pst1-partners-wrap { padding:24px 0 60px; }
-.pst1-partners-inner { max-width:1200px; margin:0 auto; padding:0 18px; }
-.pst1-partners-title { text-align:center; font-size:11.5px; font-weight:800; color:rgba(255,255,255,.55); letter-spacing:0.08em; margin-bottom:6px; }
-.pst1-partners-sub { text-align:center; font-size:18px; font-weight:900; color:#fff; letter-spacing:-0.04em; margin-bottom:18px; }
-.pst1-partners-sub b { color:#FED7AA; }
-.pst1-rows { display:flex; flex-direction:column; gap:10px; }
-.pst1-row { overflow:hidden; -webkit-mask-image:linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%); mask-image:linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%); }
-.pst1-row-track { display:flex; gap:10px; width:max-content; will-change:transform; }
-.pst1-row[data-dir="left"] .pst1-row-track { animation:pstRowLeft 38s linear infinite; }
-.pst1-row[data-dir="right"] .pst1-row-track { animation:pstRowRight 42s linear infinite; }
-.pst1-row:nth-child(2) .pst1-row-track { animation-duration:45s; }
-.pst1-row:nth-child(3) .pst1-row-track { animation-duration:40s; }
-.pst1-row:nth-child(4) .pst1-row-track { animation-duration:36s; }
-@keyframes pstRowLeft { from { transform:translateX(0); } to { transform:translateX(-50%); } }
-@keyframes pstRowRight { from { transform:translateX(-50%); } to { transform:translateX(0); } }
-.pst1-row:hover .pst1-row-track, .pst1-row:focus-within .pst1-row-track { animation-play-state:paused; }
-.pst1-logo { display:inline-flex; align-items:center; justify-content:center; padding:14px 22px; background:#fff; border:1px solid #F2F3F5; border-radius:14px; font-size:13px; font-weight:700; color:#0F1F5C; letter-spacing:-0.02em; white-space:nowrap; flex-shrink:0; min-width:170px; min-height:64px; box-shadow:0 4px 12px rgba(0,0,0,.18); transition:.15s; }
-.pst1-logo:hover { border-color:#FED7AA; box-shadow:0 6px 18px rgba(232,120,15,.25); }
-@media (prefers-reduced-motion: reduce) { .pst1-row-track, .pst1-sites-track { animation:none !important; } }
-@media (max-width:900px) {
-  .pst1-stats { grid-template-columns:repeat(2,1fr); gap:10px; }
-}
-@media (max-width:700px) {
-  .pst1-gallery { padding:32px 0 8px; }
-  .pst1-gallery-head { padding:0 14px 16px; }
-  .pst1-gallery h3 { font-size:19px; }
-  .pst1-gallery h3 small { display:block; margin-left:0; margin-top:4px; font-size:12px; }
-  .pst1-sites-track { gap:10px; padding:0 14px; animation-duration:48s; }
-  .pst1-site { flex:0 0 220px; border-radius:12px; }
-  .pst1-inner { padding:36px 14px 24px; }
-  .pst1-head h2 { font-size:24px; }
-  .pst1-head p { font-size:12.5px; }
-  .pst1-stats { gap:10px; }
-  .pst1-stat { padding:18px 14px; border-radius:14px; }
-  .pst1-stat-icon { width:36px; height:36px; font-size:17px; margin-bottom:10px; }
-  .pst1-stat-num { font-size:26px; }
-  .pst1-stat-num small { font-size:14px; }
-  .pst1-stat-label { font-size:12px; }
-  .pst1-stat-sub { font-size:10.5px; }
-  .pst1-partners-wrap { padding:16px 0 48px; }
-  .pst1-partners-inner { padding:0 14px; }
-  .pst1-partners-sub { font-size:15px; margin-bottom:14px; }
-  .pst1-row[data-dir="left"] .pst1-row-track { animation-duration:28s; }
-  .pst1-row[data-dir="right"] .pst1-row-track { animation-duration:30s; }
-  .pst1-row:nth-child(2) .pst1-row-track { animation-duration:32s; }
-  .pst1-row:nth-child(3) .pst1-row-track { animation-duration:29s; }
-  .pst1-row:nth-child(4) .pst1-row-track { animation-duration:26s; }
-  .pst1-logo { font-size:11.5px; padding:11px 16px; min-width:130px; min-height:52px; }
-}
-</style>
-<!-- 1) 시공 현장 갤러리 (자동 마키 슬라이드, 텍스트 라벨 없음) -->
-<div class="pst1-gallery">
-  <div class="pst1-gallery-head">
-    <span class="pst1-gallery-kicker">CONSTRUCTION GALLERY</span>
-    <h3>전국 시공 현장<small>직접 시공한 현장들입니다</small></h3>
-  </div>
-  <div class="pst1-sites-marquee">
-    <div class="pst1-sites-track" data-pst1-sites>
-      <!-- 12장 (×2 복제 = 24개) 끊김 없는 무한 슬라이드. Firebase Storage에서 실사진 로드되면 SVG 교체 -->
-      <div class="pst1-site"><svg viewBox="0 0 280 373" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="psts1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4ade80"/><stop offset="1" stop-color="#15803d"/></linearGradient></defs><rect width="280" height="373" fill="url(#psts1)"/><circle cx="140" cy="180" r="30" fill="rgba(232,120,15,.85)"/></svg></div>
-      <div class="pst1-site"><svg viewBox="0 0 280 373" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="psts2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7dd3fc"/><stop offset=".7" stop-color="#0ea5e9"/><stop offset="1" stop-color="#0369a1"/></linearGradient></defs><rect width="280" height="373" fill="url(#psts2)"/><polygon points="0,240 90,160 180,220 280,160 280,373 0,373" fill="#b45309"/></svg></div>
-      <div class="pst1-site"><svg viewBox="0 0 280 373" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="psts3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fef3c7"/><stop offset="1" stop-color="#c084fc"/></linearGradient></defs><rect width="280" height="373" fill="url(#psts3)"/><rect x="20" y="100" width="240" height="180" fill="#f1f5f9"/></svg></div>
-      <div class="pst1-site"><svg viewBox="0 0 280 373" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="psts4" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#94a3b8"/><stop offset="1" stop-color="#1e293b"/></linearGradient></defs><rect width="280" height="373" fill="url(#psts4)"/><circle cx="140" cy="200" r="44" fill="rgba(232,120,15,.85)"/></svg></div>
-      <div class="pst1-site"><svg viewBox="0 0 280 373" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="psts5" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cbd5e0"/><stop offset="1" stop-color="#475569"/></linearGradient></defs><rect width="280" height="373" fill="url(#psts5)"/><rect x="90" y="140" width="100" height="100" rx="6" fill="rgba(232,120,15,.85)"/></svg></div>
-      <div class="pst1-site"><svg viewBox="0 0 280 373" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="psts6" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fed7aa"/><stop offset="1" stop-color="#9a3412"/></linearGradient></defs><rect width="280" height="373" fill="url(#psts6)"/><circle cx="140" cy="140" r="34" fill="rgba(15,31,92,.65)"/></svg></div>
-      <div class="pst1-site"><svg viewBox="0 0 280 373" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="psts7" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#86efac"/><stop offset="1" stop-color="#166534"/></linearGradient></defs><rect width="280" height="373" fill="url(#psts7)"/><rect x="40" y="160" width="200" height="100" fill="rgba(255,255,255,.18)"/></svg></div>
-      <div class="pst1-site"><svg viewBox="0 0 280 373" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="psts8" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbbf24"/><stop offset="1" stop-color="#92400e"/></linearGradient></defs><rect width="280" height="373" fill="url(#psts8)"/><polygon points="0,200 100,140 200,200 280,140 280,373 0,373" fill="rgba(15,31,92,.55)"/></svg></div>
-      <div class="pst1-site"><svg viewBox="0 0 280 373" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="psts9" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a5b4fc"/><stop offset="1" stop-color="#312e81"/></linearGradient></defs><rect width="280" height="373" fill="url(#psts9)"/><g fill="rgba(255,255,255,.2)"><rect x="40" y="80" width="60" height="220"/><rect x="110" y="60" width="60" height="240"/><rect x="180" y="100" width="60" height="200"/></g></svg></div>
-      <div class="pst1-site"><svg viewBox="0 0 280 373" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="psts10" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fecaca"/><stop offset="1" stop-color="#7f1d1d"/></linearGradient></defs><rect width="280" height="373" fill="url(#psts10)"/><circle cx="140" cy="180" r="48" fill="rgba(232,120,15,.85)"/></svg></div>
-      <div class="pst1-site"><svg viewBox="0 0 280 373" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="psts11" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#67e8f9"/><stop offset="1" stop-color="#155e75"/></linearGradient></defs><rect width="280" height="373" fill="url(#psts11)"/><polygon points="40,250 240,250 220,140 60,140" fill="rgba(255,255,255,.18)"/></svg></div>
-      <div class="pst1-site"><svg viewBox="0 0 280 373" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="psts12" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d8b4fe"/><stop offset="1" stop-color="#581c87"/></linearGradient></defs><rect width="280" height="373" fill="url(#psts12)"/><rect x="60" y="100" width="160" height="180" rx="8" fill="rgba(255,255,255,.18)"/></svg></div>
-      <!-- ×2 복제 -->
-      <div class="pst1-site" aria-hidden="true"><svg viewBox="0 0 280 373" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><rect width="280" height="373" fill="url(#psts1)"/><circle cx="140" cy="180" r="30" fill="rgba(232,120,15,.85)"/></svg></div>
-      <div class="pst1-site" aria-hidden="true"><svg viewBox="0 0 280 373" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><rect width="280" height="373" fill="url(#psts2)"/><polygon points="0,240 90,160 180,220 280,160 280,373 0,373" fill="#b45309"/></svg></div>
-      <div class="pst1-site" aria-hidden="true"><svg viewBox="0 0 280 373" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><rect width="280" height="373" fill="url(#psts3)"/><rect x="20" y="100" width="240" height="180" fill="#f1f5f9"/></svg></div>
-      <div class="pst1-site" aria-hidden="true"><svg viewBox="0 0 280 373" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><rect width="280" height="373" fill="url(#psts4)"/><circle cx="140" cy="200" r="44" fill="rgba(232,120,15,.85)"/></svg></div>
-      <div class="pst1-site" aria-hidden="true"><svg viewBox="0 0 280 373" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><rect width="280" height="373" fill="url(#psts5)"/><rect x="90" y="140" width="100" height="100" rx="6" fill="rgba(232,120,15,.85)"/></svg></div>
-      <div class="pst1-site" aria-hidden="true"><svg viewBox="0 0 280 373" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><rect width="280" height="373" fill="url(#psts6)"/><circle cx="140" cy="140" r="34" fill="rgba(15,31,92,.65)"/></svg></div>
-      <div class="pst1-site" aria-hidden="true"><svg viewBox="0 0 280 373" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><rect width="280" height="373" fill="url(#psts7)"/><rect x="40" y="160" width="200" height="100" fill="rgba(255,255,255,.18)"/></svg></div>
-      <div class="pst1-site" aria-hidden="true"><svg viewBox="0 0 280 373" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><rect width="280" height="373" fill="url(#psts8)"/><polygon points="0,200 100,140 200,200 280,140 280,373 0,373" fill="rgba(15,31,92,.55)"/></svg></div>
-      <div class="pst1-site" aria-hidden="true"><svg viewBox="0 0 280 373" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><rect width="280" height="373" fill="url(#psts9)"/><g fill="rgba(255,255,255,.2)"><rect x="40" y="80" width="60" height="220"/><rect x="110" y="60" width="60" height="240"/><rect x="180" y="100" width="60" height="200"/></g></svg></div>
-      <div class="pst1-site" aria-hidden="true"><svg viewBox="0 0 280 373" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><rect width="280" height="373" fill="url(#psts10)"/><circle cx="140" cy="180" r="48" fill="rgba(232,120,15,.85)"/></svg></div>
-      <div class="pst1-site" aria-hidden="true"><svg viewBox="0 0 280 373" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><rect width="280" height="373" fill="url(#psts11)"/><polygon points="40,250 240,250 220,140 60,140" fill="rgba(255,255,255,.18)"/></svg></div>
-      <div class="pst1-site" aria-hidden="true"><svg viewBox="0 0 280 373" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><rect width="280" height="373" fill="url(#psts12)"/><rect x="60" y="100" width="160" height="180" rx="8" fill="rgba(255,255,255,.18)"/></svg></div>
-    </div>
-  </div>
-</div>
-<!-- 2) 헤더 + 수치 카드 -->
-<div class="pst1-inner">
-  <div class="pst1-head">
-    <span class="pst1-kicker">ACHIEVEMENT</span>
-    <h2>우리가 쌓아온 <b>신뢰의 숫자</b></h2>
-    <p>POUR스토어가 만들어온 실적과 함께해 주신 파트너들</p>
-  </div>
-  <div class="pst1-stats">
-    <div class="pst1-stat"><div class="pst1-stat-icon">🏢</div><div class="pst1-stat-num" data-pst1-count="2.4" data-pst1-decimals="1" data-pst1-suffix="M+">0<small>M+</small></div><div class="pst1-stat-label">누적 시공 세대수</div><div class="pst1-stat-sub">전국 17개 광역 시도</div></div>
-    <div class="pst1-stat"><div class="pst1-stat-icon">🏘</div><div class="pst1-stat-num" data-pst1-count="700" data-pst1-suffix="+">0<small>+</small></div><div class="pst1-stat-label">단지 채택 실적</div><div class="pst1-stat-sub">아파트·관공서·공장</div></div>
-    <div class="pst1-stat"><div class="pst1-stat-icon">💰</div><div class="pst1-stat-num" data-pst1-count="850" data-pst1-suffix="억+">0<small>억+</small></div><div class="pst1-stat-label">누적 거래액</div><div class="pst1-stat-sub">연평균 성장률 50%</div></div>
-    <div class="pst1-stat"><div class="pst1-stat-icon">🔬</div><div class="pst1-stat-num" data-pst1-count="50" data-pst1-suffix="+">0<small>+</small></div><div class="pst1-stat-label">자체 특허·기술</div><div class="pst1-stat-sub">건설신기술 1026호</div></div>
-    <div class="pst1-stat"><div class="pst1-stat-icon">📦</div><div class="pst1-stat-num" data-pst1-count="80" data-pst1-suffix="+">0<small>+</small></div><div class="pst1-stat-label">자체 개발 제품</div><div class="pst1-stat-sub">유지보수 자재 라인업</div></div>
-    <div class="pst1-stat"><div class="pst1-stat-icon">🤝</div><div class="pst1-stat-num" data-pst1-count="250" data-pst1-suffix="+">0<small>+</small></div><div class="pst1-stat-label">전국 시공 파트너</div><div class="pst1-stat-sub">평균 경력 12년</div></div>
-  </div>
-</div>
-<!-- 3) 협력사 로고 4행 슬라이드 -->
-<div class="pst1-partners-wrap">
-  <div class="pst1-partners-inner">
-    <div class="pst1-partners-title">PARTNERS</div>
-    <div class="pst1-partners-sub"><b>250+</b> 전문 시공사가 함께합니다</div>
-    <div class="pst1-rows">
-      <div class="pst1-row" data-dir="left"><div class="pst1-row-track">
-        <span class="pst1-logo">(주)썬시카방수</span><span class="pst1-logo">대신엘엔씨건설</span><span class="pst1-logo">(주)도경</span><span class="pst1-logo">새로이건설(주)</span><span class="pst1-logo">선재기업</span><span class="pst1-logo">수산기업</span><span class="pst1-logo">희민건설(주)</span><span class="pst1-logo">강남제비스코</span><span class="pst1-logo">드림종합건설</span><span class="pst1-logo">명가종합건설</span><span class="pst1-logo">명하건설</span><span class="pst1-logo">방수존건설</span>
-        <span class="pst1-logo" aria-hidden="true">(주)썬시카방수</span><span class="pst1-logo" aria-hidden="true">대신엘엔씨건설</span><span class="pst1-logo" aria-hidden="true">(주)도경</span><span class="pst1-logo" aria-hidden="true">새로이건설(주)</span><span class="pst1-logo" aria-hidden="true">선재기업</span><span class="pst1-logo" aria-hidden="true">수산기업</span><span class="pst1-logo" aria-hidden="true">희민건설(주)</span><span class="pst1-logo" aria-hidden="true">강남제비스코</span><span class="pst1-logo" aria-hidden="true">드림종합건설</span><span class="pst1-logo" aria-hidden="true">명가종합건설</span><span class="pst1-logo" aria-hidden="true">명하건설</span><span class="pst1-logo" aria-hidden="true">방수존건설</span>
-      </div></div>
-      <div class="pst1-row" data-dir="right"><div class="pst1-row-track">
-        <span class="pst1-logo">삼우건설</span><span class="pst1-logo">석진건설</span><span class="pst1-logo">성훈종합건설</span><span class="pst1-logo">신양아이엔지건설</span><span class="pst1-logo">신한건설산업(주)</span><span class="pst1-logo">알지씨앤씨(주)</span><span class="pst1-logo">에스피플레닝</span><span class="pst1-logo">엠에스이엔지</span><span class="pst1-logo">영성건설</span><span class="pst1-logo">은성이엔씨</span><span class="pst1-logo">이두건설</span><span class="pst1-logo">이루미건설</span>
-        <span class="pst1-logo" aria-hidden="true">삼우건설</span><span class="pst1-logo" aria-hidden="true">석진건설</span><span class="pst1-logo" aria-hidden="true">성훈종합건설</span><span class="pst1-logo" aria-hidden="true">신양아이엔지건설</span><span class="pst1-logo" aria-hidden="true">신한건설산업(주)</span><span class="pst1-logo" aria-hidden="true">알지씨앤씨(주)</span><span class="pst1-logo" aria-hidden="true">에스피플레닝</span><span class="pst1-logo" aria-hidden="true">엠에스이엔지</span><span class="pst1-logo" aria-hidden="true">영성건설</span><span class="pst1-logo" aria-hidden="true">은성이엔씨</span><span class="pst1-logo" aria-hidden="true">이두건설</span><span class="pst1-logo" aria-hidden="true">이루미건설</span>
-      </div></div>
-      <div class="pst1-row" data-dir="left"><div class="pst1-row-track">
-        <span class="pst1-logo">이음건설</span><span class="pst1-logo">자연담은건설</span><span class="pst1-logo">종명건설</span><span class="pst1-logo">파가니건설</span><span class="pst1-logo">한별이엔씨</span><span class="pst1-logo">효원이엔씨</span><span class="pst1-logo">흥산건설산업</span><span class="pst1-logo">강남이앤알</span><span class="pst1-logo">건인씨엔알</span><span class="pst1-logo">국일구조</span><span class="pst1-logo">금환기업</span><span class="pst1-logo">대성이앤씨</span>
-        <span class="pst1-logo" aria-hidden="true">이음건설</span><span class="pst1-logo" aria-hidden="true">자연담은건설</span><span class="pst1-logo" aria-hidden="true">종명건설</span><span class="pst1-logo" aria-hidden="true">파가니건설</span><span class="pst1-logo" aria-hidden="true">한별이엔씨</span><span class="pst1-logo" aria-hidden="true">효원이엔씨</span><span class="pst1-logo" aria-hidden="true">흥산건설산업</span><span class="pst1-logo" aria-hidden="true">강남이앤알</span><span class="pst1-logo" aria-hidden="true">건인씨엔알</span><span class="pst1-logo" aria-hidden="true">국일구조</span><span class="pst1-logo" aria-hidden="true">금환기업</span><span class="pst1-logo" aria-hidden="true">대성이앤씨</span>
-      </div></div>
-      <div class="pst1-row" data-dir="right"><div class="pst1-row-track">
-        <span class="pst1-logo">도원씨엔씨</span><span class="pst1-logo">동양에폭시</span><span class="pst1-logo">동현이앤씨</span><span class="pst1-logo">디엘씨엔씨</span><span class="pst1-logo">레인보우테크</span><span class="pst1-logo">루아이앤씨</span><span class="pst1-logo">보라씨엔씨</span><span class="pst1-logo">부영씨엔씨</span><span class="pst1-logo">삼인유엔아이</span><span class="pst1-logo">삼창엔지니어링</span><span class="pst1-logo">석민이앤씨</span><span class="pst1-logo">청우엔지니어링</span>
-        <span class="pst1-logo" aria-hidden="true">도원씨엔씨</span><span class="pst1-logo" aria-hidden="true">동양에폭시</span><span class="pst1-logo" aria-hidden="true">동현이앤씨</span><span class="pst1-logo" aria-hidden="true">디엘씨엔씨</span><span class="pst1-logo" aria-hidden="true">레인보우테크</span><span class="pst1-logo" aria-hidden="true">루아이앤씨</span><span class="pst1-logo" aria-hidden="true">보라씨엔씨</span><span class="pst1-logo" aria-hidden="true">부영씨엔씨</span><span class="pst1-logo" aria-hidden="true">삼인유엔아이</span><span class="pst1-logo" aria-hidden="true">삼창엔지니어링</span><span class="pst1-logo" aria-hidden="true">석민이앤씨</span><span class="pst1-logo" aria-hidden="true">청우엔지니어링</span>
-      </div></div>
-    </div>
-  </div>
-</div>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
-<script>
-(function(){
-  var root = document.currentScript && document.currentScript.parentElement;
-  if (!root) return;
-  // 1) 수치 카운팅 애니메이션
-  var counters = root.querySelectorAll('[data-pst1-count]');
-  function animate(el){
-    var target = parseFloat(el.getAttribute('data-pst1-count')) || 0;
-    var decimals = parseInt(el.getAttribute('data-pst1-decimals') || '0', 10);
-    var suffix = el.getAttribute('data-pst1-suffix') || '';
-    var duration = 1500;
-    var start = performance.now();
-    function fmt(v){ return decimals > 0 ? v.toFixed(decimals) : Math.round(v).toLocaleString('ko-KR'); }
-    function step(now){
-      var t = Math.min(1, (now - start) / duration);
-      var eased = 1 - Math.pow(1 - t, 3);
-      el.innerHTML = fmt(target * eased) + '<small>' + suffix + '</small>';
-      if (t < 1) requestAnimationFrame(step);
-    }
-    requestAnimationFrame(step);
-  }
-  if ('IntersectionObserver' in window) {
-    var io = new IntersectionObserver(function(entries){
-      entries.forEach(function(e){
-        if (e.isIntersecting) { animate(e.target); io.unobserve(e.target); }
-      });
-    }, { threshold: 0.4 });
-    counters.forEach(function(c){ io.observe(c); });
-  } else {
-    counters.forEach(animate);
-  }
-  // 2) Firebase Storage — 시공 현장 사진 + 협력사 로고 동적 로드
-  function loadFromFirebase(){
-    if (typeof firebase === 'undefined' || !firebase.initializeApp) return;
-    try {
-      if (!firebase.apps.length) {
-        firebase.initializeApp({
-          apiKey: 'AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU',
-          authDomain: 'pour-app-new.firebaseapp.com',
-          projectId: 'pour-app-new',
-          storageBucket: 'pour-app-new.firebasestorage.app',
-          messagingSenderId: '411031141847',
-          appId: '1:411031141847:web:e658174fd4b9652cdadf92'
-        });
-      }
-      var storage = firebase.storage();
-      // 시공 현장 — 12장 SVG 카드를 실사진으로 교체. 더 많으면 추가로 cloneNode해서 트랙에 추가
-      storage.ref('POUR스토어_리뉴얼/자사몰/아파트, 공장, 병원~ ,, 여러협력사사용중').listAll()
-        .then(function(res){ return Promise.all(res.items.map(function(it){ return it.getDownloadURL(); })); })
-        .then(function(urls){
-          if (!urls.length) return;
-          var track = root.querySelector('[data-pst1-sites]');
-          if (!track) return;
-          // 트랙 비우고 새 카드 12장 + 복제로 채움
-          track.innerHTML = '';
-          var sample = urls.slice(0, Math.min(urls.length, 16));
-          for (var pass = 0; pass < 2; pass++) {
-            sample.forEach(function(url){
-              var card = document.createElement('div');
-              card.className = 'pst1-site';
-              if (pass === 1) card.setAttribute('aria-hidden', 'true');
-              var img = document.createElement('img');
-              img.src = url;
-              img.loading = 'lazy';
-              img.alt = '시공 현장';
-              card.appendChild(img);
-              track.appendChild(card);
-            });
-          }
-        }).catch(function(e){ console.warn('[pst1] gallery load failed:', e.code || e.message); });
-      // 협력사 로고
-      storage.ref('POUR스토어_리뉴얼/자사몰/협력사 로고들').listAll()
-        .then(function(res){ return Promise.all(res.items.map(function(it){ return it.getDownloadURL(); })); })
-        .then(function(urls){
-          if (!urls.length) return;
-          var rowTracks = root.querySelectorAll('.pst1-row-track');
-          if (!rowTracks.length) return;
-          var per = Math.max(1, Math.ceil(urls.length / rowTracks.length));
-          rowTracks.forEach(function(track, r){
-            var slice = urls.slice(r * per, (r + 1) * per);
-            if (!slice.length) return;
-            track.innerHTML = '';
-            for (var pass = 0; pass < 2; pass++) {
-              slice.forEach(function(url){
-                var el = document.createElement('span');
-                el.className = 'pst1-logo';
-                el.style.padding = '8px 14px';
-                if (pass === 1) el.setAttribute('aria-hidden', 'true');
-                var img = document.createElement('img');
-                img.src = url;
-                img.loading = 'lazy';
-                img.alt = 'POUR스토어 협력사';
-                img.style.cssText = 'max-height:40px;max-width:140px;object-fit:contain;display:block;';
-                el.appendChild(img);
-                track.appendChild(el);
-              });
-            }
-          });
-        }).catch(function(e){ console.warn('[pst1] logos load failed:', e.code || e.message); });
-    } catch (e) { console.warn('[pst1] firebase init error:', e.message); }
-  }
-  if (typeof firebase !== 'undefined' && firebase.initializeApp) loadFromFirebase();
-  else { var t = 0; var iv = setInterval(function(){
-    if (typeof firebase !== 'undefined' && firebase.initializeApp) { clearInterval(iv); loadFromFirebase(); return; }
-    t += 100; if (t > 5000) { clearInterval(iv); }
-  }, 100); }
-})();
-</script>
-</section>`;
+  const SEED_STATS_HTML =
+    '<section style="background:linear-gradient(180deg,#0A1742 0%,#0F1F5C 100%); padding:0; margin:0; position:relative; overflow:hidden;">\n' +
+    '  <iframe src="./pour-store-cafe24.html"\n' +
+    '          title="POUR스토어 실적관 (전국 시공 현장 · 신뢰의 숫자 · 협력사)"\n' +
+    '          loading="lazy"\n' +
+    '          style="width:100%; height:100vh; border:0; display:block; background:transparent;"></iframe>\n' +
+    '</section>';
 
   const SEED_AI_RECOMMEND_HTML = `
 <style>
@@ -6860,7 +6589,7 @@ show('entry');
       mkSec('서비스 소개', SEED_SERVICE_HTML, '대리점·파트너사·전시장 — SVG 아이콘 + 컬러별 차별 (v2)', 'wip'),
       mkSec('자사몰 내 포스팅', SEED_POSTING_HTML, '매거진 레이아웃 (Cover Story 1+3) + 읽기시간·조회수 (v2)', 'wip'),
       mkSec('동영상 가이드', SEED_VIDEO_GUIDE_HTML, 'POUR스토어 자체 영상 — 추천 영상 + 미니 카드 매거진 레이아웃 (v2)', 'wip'),
-      mkSec('POUR스토어 실적관', SEED_STATS_HTML, '전 영역 다크 네이비 + POUR 오렌지 액센트로 통일. 시공 현장 12장 마키 자동 슬라이드(텍스트 라벨 X) + 숫자 6개 카드(카운팅) + 협력사 48개 로고 4행 마키 슬라이드. Firebase Storage 실사진/로고 동적 로드.', 'requested'),
+      mkSec('POUR스토어 실적관', SEED_STATS_HTML, '원본 cafe24 페이지를 iframe으로 임베드 (기능·내용 그대로). pour-store-cafe24.html에 Pretendard + POUR 오렌지/네이비 컬러·자간 오버라이드 CSS만 추가해 형제 섹션과 톤 통일.', 'requested'),
     ]},
     { id: 'pour-doctor', name: 'POUR닥터 (전용 페이지)', file: 'pour-doctor.html', sections: [
       mkSec('히어로 — 당신만의 건물 닥터', POUR_DR_HERO_HTML, '다크 네이비 + 라이브 진단 보드 + 5개 신뢰 수치 (의료·전문 톤)', 'wip'),
@@ -7772,6 +7501,35 @@ show('entry');
         }
       }
       s.migrations.statsRedesignV6 = true;
+    }
+    // 1회성 마이그레이션 v7 — 실적관 원본(iframe + cafe24) 복원, 톤만 POUR 브랜드와 통일
+    if (!s.migrations.statsRevertV7) {
+      const mainPageS7 = s.pages.find(p => p.id === 'main');
+      if (mainPageS7 && Array.isArray(mainPageS7.sections)) {
+        // class="pst1" 또는 기존 iframe을 가진 섹션을 찾아 SEED_STATS_HTML(iframe)로 통일
+        const idx = mainPageS7.sections.findIndex(sec => {
+          const h = sec.html || '';
+          return (h.indexOf('class="pst1"') !== -1) || (h.indexOf('pour-store-cafe24.html') !== -1);
+        });
+        if (idx !== -1) {
+          const sec = mainPageS7.sections[idx];
+          // 이미 새 iframe-only 버전이면 스킵
+          if (!(sec.html || '').match(/^\s*<section[^>]*background:linear-gradient[^>]*>\s*<iframe src="\.\/pour-store-cafe24/m)) {
+            const now = new Date().toISOString();
+            const key = mainPageS7.id + ':' + sec.id;
+            s.history[key] = s.history[key] || [];
+            s.history[key].unshift({
+              name: sec.name, html: sec.html, note: sec.note || '',
+              reason: '실적관 — 원본 iframe(cafe24) 복원. 톤만 POUR 브랜드(Pretendard + 오렌지 #E8780F + 네이비 #0F1F5C)로 통일하기 위해 pour-store-cafe24.html에 폰트·컬러·자간 오버라이드 CSS 주입. 기능·텍스트 내용은 그대로 유지.',
+              kind: 'auto-migration', savedAt: now,
+            });
+            sec.html = SEED_STATS_HTML;
+            sec.note = '원본 cafe24 페이지를 iframe으로 임베드. pour-store-cafe24.html에 Pretendard 폰트 + POUR 오렌지/네이비 컬러 오버라이드 CSS 적용해 형제 섹션과 톤 통일.';
+            sec.statusAt = now;
+          }
+        }
+      }
+      s.migrations.statsRevertV7 = true;
     }
     return s;
   }

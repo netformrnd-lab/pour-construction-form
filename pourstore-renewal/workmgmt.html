@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>POUR스토어 업무관리 — KPI · 프로젝트</title>
-<meta name="description" content="POUR스토어 3인 (송희·민지·란님) KPI·프로젝트 일괄 관리. O1 매출 10억 → KR1·KR2·KR3 → 44개 프로젝트." />
+<meta name="description" content="POUR스토어 3인 (송희·민지·란) KPI·프로젝트 일괄 관리. O1 매출 10억 → KR1·KR2·KR3 → 45개 프로젝트." />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet" />
@@ -68,7 +68,7 @@ a { color: inherit; text-decoration: none; }
 ul { list-style: none; }
 .bebas { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.02em; }
 
-/* ─── Header ───────────────────────────── */
+/* ─── Header ─── 단독 진입(새창)용 ─ iframe 모드에선 숨김 ─── */
 .hd {
   background: linear-gradient(135deg, #0F1F5C 0%, #1A2E62 100%);
   color: #fff; padding: 28px 32px 26px; position: relative; overflow: hidden;
@@ -83,6 +83,33 @@ ul { list-style: none; }
 .hd-sub { font-size: 13px; color: rgba(255,255,255,.7); font-weight: 600; margin-top: 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .hd-badge { display: inline-block; padding: 4px 10px; background: rgba(255,138,0,.2); border: 1px solid rgba(255,138,0,.4); border-radius: 999px; font-size: 11px; font-weight: 800; color: #FFAB40; letter-spacing: 0.3px; }
 .hd-update { font-size: 11px; color: rgba(255,255,255,.5); font-weight: 600; }
+
+/* ─── iframe 모드 (어드민 안에서 진입) — 헤더 숨기고 컴팩트 인라인 메타바로 대체 ─── */
+body.in-iframe .hd { display: none; }
+body.in-iframe .wrap { padding: 18px 24px 60px; max-width: 100%; }
+.meta-bar {
+  display: none;
+  align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 12px 16px; margin-bottom: 18px;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
+}
+body.in-iframe .meta-bar { display: flex; }
+.meta-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: var(--bg-subtle); border-radius: 999px; font-size: 11.5px; font-weight: 700; color: var(--text-secondary); }
+.meta-pill.warn { background: rgba(255,138,0,.1); color: var(--ran); }
+.meta-pill.ok   { background: rgba(43,196,114,.12); color: var(--check); }
+.meta-pill.err  { background: rgba(229,57,53,.1); color: var(--urgent); }
+.meta-pill.me   { background: rgba(43,196,114,.15); color: var(--check); border: 1px solid rgba(43,196,114,.3); font-weight: 800; }
+.meta-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.meta-dday {
+  margin-left: auto;
+  display: inline-flex; align-items: baseline; gap: 8px;
+  padding: 6px 14px; border-radius: var(--r-sm);
+  background: linear-gradient(135deg, #0F1F5C, #1A2E62);
+  color: #fff;
+}
+.meta-dday-label { font-size: 10px; color: rgba(255,255,255,.6); font-weight: 700; letter-spacing: 0.3px; }
+.meta-dday-num { font-size: 18px; font-weight: 700; color: #FFAB40; }
 
 /* D-Day 위젯 */
 .dday {
@@ -140,7 +167,11 @@ ul { list-style: none; }
 .p-card.minji { border-top: 4px solid var(--minji); }
 .p-card.ran { border-top: 4px solid var(--ran); }
 .p-card.is-me { box-shadow: 0 0 0 2px var(--check), var(--shadow-md); background: linear-gradient(180deg, #F3FBF6 0%, #FFFFFF 80%); }
+.p-card.is-unmatched { background: var(--bg-soft); opacity: 0.85; border-style: dashed; }
+.p-card.is-unmatched .p-emoji { filter: grayscale(0.4); opacity: 0.7; }
 .me-tag { display: inline-block; margin-left: 6px; padding: 1px 7px; font-size: 9.5px; font-weight: 800; color: #fff; background: var(--check); border-radius: 999px; letter-spacing: 0.3px; vertical-align: 2px; }
+.unmatched-tag { display: inline-block; margin-left: 6px; padding: 1px 7px; font-size: 9.5px; font-weight: 800; color: var(--ran); background: rgba(255,138,0,.1); border: 1px solid rgba(255,138,0,.3); border-radius: 999px; letter-spacing: 0.3px; vertical-align: 2px; }
+.dept-tag { display: inline-block; margin-left: 6px; padding: 1px 6px; font-size: 9.5px; font-weight: 700; color: var(--text-secondary); background: var(--bg-subtle); border-radius: 4px; letter-spacing: 0.2px; }
 .p-proj-stamp { font-size: 10px; color: var(--check); font-weight: 700; margin-top: 2px; letter-spacing: 0.2px; }
 .row-stamp { font-size: 10px; color: var(--check); font-weight: 700; margin-top: 2px; letter-spacing: 0.2px; }
 .p-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
@@ -327,7 +358,7 @@ ul { list-style: none; }
       <div class="hd-title">📋 POUR스토어 업무관리</div>
       <div class="hd-sub">
         <span class="hd-badge">시스템 구축 집중기</span>
-        <span>3인 기준 (송희 · 민지 · 란님) · 채림님 합류 시 운영 인프라 배정</span>
+        <span>3인 기준 (송희 · 민지 · 란) · 채림님 합류 시 운영 인프라 배정</span>
       </div>
       <div class="hd-update" id="lastUpdate">—</div>
       <div class="hd-update" id="syncStatus" style="margin-top: 3px;">● 동기화 중...</div>
@@ -338,6 +369,15 @@ ul { list-style: none; }
 </header>
 
 <div class="wrap">
+
+  <!-- ─── iframe 모드 컴팩트 메타바 (어드민 안에서만 표시) ─── -->
+  <div class="meta-bar" id="metaBar">
+    <span class="meta-pill"><span style="font-size:13px">📋</span> <b>업무관리</b> · 3인 (송희·민지·란) · 45 프로젝트</span>
+    <span class="meta-pill" id="metaSync"><span class="dot"></span> 동기화 중...</span>
+    <span class="meta-pill" id="metaMe" style="display:none;"></span>
+    <span class="meta-pill" id="metaUpdate" style="display:none;"></span>
+    <div class="meta-dday" id="metaDday"></div>
+  </div>
 
   <!-- ─── 합계 위젯 ─── -->
   <div class="summary" id="summary"></div>
@@ -353,6 +393,7 @@ ul { list-style: none; }
   <section class="section">
     <h2 class="section-h">👥 사람별 진행</h2>
     <div class="section-sub">각 담당자가 주관하는 프로젝트 · 체크박스 클릭 시 완료 표시 (자동 저장)</div>
+    <div id="missingNotice" style="display:none; padding:12px 16px; margin-bottom:14px; background:rgba(255,138,0,.08); border:1px dashed rgba(255,138,0,.4); border-radius:var(--r-md); font-size:12.5px; color:var(--text-primary); font-weight:700; line-height:1.6; display:flex; align-items:flex-start; gap:10px;"></div>
     <div class="people" id="people"></div>
   </section>
 
@@ -360,7 +401,7 @@ ul { list-style: none; }
   <section class="section proj-master" id="projMaster">
     <div class="proj-master-h">
       <h2 class="section-h">📂 프로젝트 마스터</h2>
-      <div class="section-sub">KR · 그룹별 44건. 담당자(주관) + 협업자(역할) 명시. 체크 완료 시 자동 저장</div>
+      <div class="section-sub">KR · 그룹별 45건. 담당자(주관) + 협업자(역할) 명시. 체크 완료 시 자동 저장</div>
     </div>
     <div id="projBlocks"></div>
   </section>
@@ -421,7 +462,7 @@ const DATA = {
   people: [
     { key: 'songhee', name: '송희', role: 'LEAD', area: '정책·소싱·세팅 · 리뉴얼·병목 시 직접 투입 · 큰 협상 직접', emoji: '🧑‍💼' },
     { key: 'minji',   name: '민지',   role: 'M1',   area: '콘텐츠·등록 · 자사몰·마켓·도매처 SKU · 매거진',           emoji: '👩‍🎨' },
-    { key: 'ran',     name: '란님',   role: 'M2',   area: '마케팅·영업·B2B 푸시 · B2B는 무조건 란님',                emoji: '👩‍💼' },
+    { key: 'ran',     name: '란',   role: 'M2',   area: '마케팅·영업·B2B 푸시 · B2B는 무조건 란',                emoji: '👩‍💼' },
   ],
   projects: [
     // KR1 — 자사몰 구축·운영 (7)
@@ -701,13 +742,18 @@ function renderPeople() {
     const collabIn = DATA.projects.filter(pr => pr.collab.some(c => c.person === p.key));
     const ownedDone = owned.filter(pr => state[pr.id]).length;
     const isMe = ACTIVE_STAFF && ACTIVE_STAFF.name === p.name;
+    // 어드민 staff 매칭 여부 — STAFF_LIST가 있고 매칭 안 됐으면 회색 표시
+    const hasStaffData = STAFF_LIST.length > 0;
+    const unmatched = hasStaffData && !p._adminMatched;
+    const deptTag = (p._adminMatched && p._department) ? `<span class="dept-tag">${p._department}</span>` : '';
+    const unmatchedTag = unmatched ? `<span class="unmatched-tag">어드민 미등록</span>` : '';
     return `
-      <div class="p-card ${p.key} ${isMe ? 'is-me' : ''}">
+      <div class="p-card ${p.key} ${isMe ? 'is-me' : ''} ${unmatched ? 'is-unmatched' : ''}">
         <div class="p-head">
           <div class="p-emoji">${p.emoji}</div>
-          <div>
-            <div class="p-name">${p.name}${isMe ? ' <span class="me-tag">본인</span>' : ''}</div>
-            <div class="p-role">${p.role}</div>
+          <div style="flex:1; min-width: 0;">
+            <div class="p-name">${p.name}${isMe ? ' <span class="me-tag">본인</span>' : ''}${unmatchedTag}</div>
+            <div class="p-role">${p.role}${deptTag}</div>
           </div>
         </div>
         <div class="p-area">${p.area}</div>
@@ -875,7 +921,7 @@ function renderMemos() {
         자사몰 리뉴얼 + 시스템 5개 + 신규 프로젝트 동시 진행 — <strong>비상 분배 상태</strong>.
         <ul>
           <li><span class="lbl s">송희</span>자사몰 리뉴얼 + 대리점 정책 + AI 챗봇 + 어드민 (4건 시급) + B2C CS 1차 (~5/22)</li>
-          <li><span class="lbl r">란님</span>CRM·매출관리·파트너사 자동매칭 (3건 시급) + B2B CS 계속</li>
+          <li><span class="lbl r">란</span>CRM·매출관리·파트너사 자동매칭 (3건 시급) + B2B CS 계속</li>
           <li><span class="lbl m">민지</span>입사 8일 적응 단계, SKU 세팅 훈련 중 → 5/22부터 B2C CS 1차 합류</li>
         </ul>
         <p style="margin-top:8px"><strong>보류</strong>: OEM/ODM 소싱, SKU 신규 등록, 미디어 콘텐츠, B2C 사후 관리 (시스템 완료 후 재개)</p>
@@ -890,10 +936,10 @@ function renderMemos() {
         <p style="margin-top:8px"><strong>추가 프로젝트 이관 (10건):</strong></p>
         <ul>
           <li><span class="lbl m">민지</span>→ <span class="lbl c">채림님</span> SKU 유지보수 / 팝업배너 / 챗봇 AI / 후기 이벤트 / B2C NPS / 패키지 안내문자</li>
-          <li><span class="lbl r">란님</span>→ <span class="lbl c">채림님</span> B2B NPS / B2C·B2B 기프티콘</li>
+          <li><span class="lbl r">란</span>→ <span class="lbl c">채림님</span> B2B NPS / B2C·B2B 기프티콘</li>
           <li>신규 추가: CRM 데이터 운영 / 매출관리 실무 데이터</li>
         </ul>
-        <p style="margin-top:8px"><strong>효과</strong>: 민지=콘텐츠·등록 집중, 란님=B2B 영업·마케팅 집중, 채림님=사후관리·운영 인프라 전담</p>
+        <p style="margin-top:8px"><strong>효과</strong>: 민지=콘텐츠·등록 집중, 란=B2B 영업·마케팅 집중, 채림님=사후관리·운영 인프라 전담</p>
       </div>
     </div>
     <div class="memo" style="grid-column: 1 / -1;">
@@ -927,10 +973,15 @@ function renderMemos() {
 function renderUpdate() {
   const t = DONE_META.updatedAt || localStorage.getItem(LS_UPDATE);
   const el = document.getElementById('lastUpdate');
-  if (!t) { el.textContent = '아직 저장된 변경이 없습니다'; return; }
-  const d = new Date(t);
-  const who = DONE_META.updatedByStaffName ? ` · ${DONE_META.updatedByStaffName}` : '';
-  el.textContent = `마지막 업데이트 · ${d.toLocaleString('ko-KR')}${who}`;
+  const text = !t ? '아직 저장된 변경이 없습니다'
+    : `마지막 업데이트 · ${new Date(t).toLocaleString('ko-KR')}${DONE_META.updatedByStaffName ? ` · ${DONE_META.updatedByStaffName}` : ''}`;
+  if (el) el.textContent = text;
+  // iframe 모드 메타바
+  const m = document.getElementById('metaUpdate');
+  if (m && t) {
+    m.style.display = 'inline-flex';
+    m.innerHTML = `<span class="dot" style="background:var(--text-tertiary)"></span> ${fmtRelative(t)}${DONE_META.updatedByStaffName ? ` · ${DONE_META.updatedByStaffName}` : ''}`;
+  } else if (m) { m.style.display = 'none'; }
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -938,27 +989,103 @@ function renderUpdate() {
 // ════════════════════════════════════════════════════════════════════
 function renderMeBadge() {
   const el = document.getElementById('meBadge');
-  if (!ACTIVE_STAFF) { el.style.display = 'none'; return; }
-  // workmgmt people에서 같은 이름 찾아 매칭 — 매칭 안 되어도 본인 정보는 표시
+  const meta = document.getElementById('metaMe');
+  if (!ACTIVE_STAFF) {
+    if (el) el.style.display = 'none';
+    if (meta) meta.style.display = 'none';
+    return;
+  }
   const matched = DATA.people.find(p => p.name === ACTIVE_STAFF.name);
-  el.style.display = 'block';
-  el.innerHTML = matched
+  const html = matched
     ? `● 본인: <b style="color:#FFAB40">${ACTIVE_STAFF.name}</b> (담당 카드 강조됨)`
     : `● 본인: <b style="color:#FFAB40">${ACTIVE_STAFF.name}</b> (3인 외부 담당자 — 카드 매칭 없음)`;
+  if (el) { el.style.display = 'block'; el.innerHTML = html; }
+  if (meta) {
+    meta.style.display = 'inline-flex';
+    meta.className = 'meta-pill me';
+    meta.innerHTML = `<span class="dot"></span> ${matched ? '본인' : '본인(외부)'}: <b>${ACTIVE_STAFF.name}</b>`;
+  }
 }
 
 // ════════════════════════════════════════════════════════════════════
-// admin → iframe postMessage 수신 (admin-staff-active)
+// iframe 모드 감지 + 메타바 동기화
 // ════════════════════════════════════════════════════════════════════
+const IS_IFRAME = (() => { try { return window.parent && window.parent !== window; } catch (_) { return false; } })();
+if (IS_IFRAME) document.body.classList.add('in-iframe');
+
+// setSyncStatus 보강 — 메타바도 같이 업데이트
+const _origSetSyncStatus = setSyncStatus;
+setSyncStatus = function(state, msg) {
+  _origSetSyncStatus(state, msg);
+  const m = document.getElementById('metaSync');
+  if (!m) return;
+  const cls = { connecting: '', synced: 'ok', error: 'err' }[state] || '';
+  m.className = 'meta-pill ' + cls;
+  m.innerHTML = `<span class="dot"></span> ${state === 'synced' ? '실시간 동기화' : state === 'error' ? '동기화 오류' : '동기화 중...'}`;
+};
+
+// 메타바 D-Day 위젯 동기화 (renderDDay 보강)
+const _origRenderDDay = renderDDay;
+renderDDay = function() {
+  _origRenderDDay();
+  const m = document.getElementById('metaDday');
+  if (!m) return;
+  const target = new Date('2026-05-22T00:00:00+09:00');
+  const diff = Math.ceil((target - new Date()) / 86400000);
+  if (diff > 0) {
+    m.innerHTML = `<span class="meta-dday-label">민지 합류</span><span class="meta-dday-num bebas">D-${diff}</span>`;
+  } else if (diff === 0) {
+    m.innerHTML = `<span class="meta-dday-label">민지 합류</span><span class="meta-dday-num bebas" style="color:#2BC472">D-DAY</span>`;
+  } else {
+    m.innerHTML = `<span class="meta-dday-label">민지 합류</span><span class="meta-dday-num bebas" style="color:#2BC472;font-size:13px">✅ 완료</span>`;
+  }
+};
+
+// ════════════════════════════════════════════════════════════════════
+// admin → iframe postMessage 수신 (admin-staff-active)
+// 어드민 staff 컬렉션이 단일 진실 소스 — DATA.people과 이름으로 매칭하여
+// 컬러·이니셜·이메일·부서 정보를 풍부하게 사용.
+// ════════════════════════════════════════════════════════════════════
+let STAFF_LIST = [];  // admin staff 목록 (이름 매칭용)
 window.addEventListener('message', (e) => {
   const msg = e.data;
   if (!msg) return;
   if (msg.type === 'admin-staff-active') {
     ACTIVE_STAFF = msg.payload?.activeStaff || null;
+    STAFF_LIST = msg.payload?.staffList || [];
+    // DATA.people에 staff 매칭 정보 주입 (이름 기준)
+    DATA.people.forEach(p => {
+      const matched = STAFF_LIST.find(s => s.name === p.name);
+      p._adminMatched = !!matched;
+      p._staffId = matched?.id || null;
+      p._department = matched?.department || '';
+      p._kpiColor = matched?.kpiColor || null;
+      p._email = matched?.email || null;
+    });
     renderMeBadge();
-    renderPeople();   // 본인 카드 강조 갱신
+    renderPeople();
+    renderMissingStaffNotice();
   }
 });
+
+// 매칭 안 된 사람 안내 (어드민 등록 필요)
+function renderMissingStaffNotice() {
+  const el = document.getElementById('missingNotice');
+  if (!el) return;
+  // STAFF_LIST가 비어있으면 (admin 진입 전 또는 등록 0명) 표시 안 함
+  if (!STAFF_LIST.length) { el.style.display = 'none'; return; }
+  const missing = DATA.people.filter(p => !p._adminMatched);
+  if (missing.length === 0) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  el.innerHTML = `
+    <span style="font-size:15px">⚠️</span>
+    <div>
+      <b>어드민 담당자 등록 필요:</b> ${missing.map(m => `<b style="color:var(--ran)">${m.name}</b>`).join(' · ')}
+      <div style="font-size:11px;color:var(--text-tertiary);font-weight:600;margin-top:2px">
+        디자인/개발 센터 → 담당자 관리에서 등록하면 자동 동기화됩니다. (이름 기준 매칭)
+      </div>
+    </div>`;
+}
 
 // iframe인 경우 admin에게 "ready" 신호 → 즉시 동기화 요청
 try {

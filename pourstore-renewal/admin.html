@@ -283,6 +283,8 @@ const NAV = [
   // 메뉴는 담당자 개발 완료 후 연결 예정 (dealers/purchase-orders/orders/settlement 컴포넌트는 유지)
   { type: 'divider', label: 'KPI 업무관리센터' },
   { id: 'workmgmt', icon: '📋', label: '업무관리' },
+  { id: 'dashboard-os', icon: '🏠', label: '대시보드' },
+  { id: 'recurring', icon: '🔁', label: '반복업무' },
   // 대시보드·캘린더·반복업무·회의록 → 추후 React 컴포넌트 흡수 예정
   { type: 'divider', label: '디자인/개발 센터' },
   { id: 'preview', icon: '🎨', label: '자사몰 페이지 관리' },
@@ -5217,6 +5219,559 @@ function FirebaseUsagePage() {
 }
 
 // ============================================================
+// POUR OS 흡수 PR 1 — Dashboard + Recurring Tasks
+// v22 (pour-os-v22.html)의 대시보드 + 반복업무 기능을 React로 재구현.
+// 메모: 대시보드의 isFixed 고정업무 = pour-recurring.pinned 토글로 자동 동기화.
+// ============================================================
+
+const WEEK_DAYS = ['월','화','수','목','금'];
+const ALL_DAYS = ['일','월','화','수','목','금','토'];
+const PRIORITY_META = {
+  high: { label: '높음', icon: '🔴' },
+  mid:  { label: '중간', icon: '🟡' },
+  low:  { label: '낮음', icon: '🟢' },
+};
+const TASK_STATUS_META = {
+  active:  { label: '진행', icon: '▶' },
+  hold:    { label: '보류', icon: '⏸' },
+  stopped: { label: '중단', icon: '⛔' },
+  resume:  { label: '재개', icon: '🔄' },
+};
+
+// D-day 문자열 계산
+function calcDday(iso) {
+  if (!iso) return '';
+  const target = new Date(iso); target.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.round((target - today) / 86400000);
+  if (diff === 0) return 'D-day';
+  if (diff > 0) return `D-${diff}`;
+  return `D+${-diff}`;
+}
+
+// 반복업무가 현재 staff에 배정됐는지 — assigneeStaffIds: 'all' | [id, ...] | id
+function isRecurringForStaff(r, staffId) {
+  if (!staffId) return false;
+  const a = r.assigneeStaffIds;
+  if (a === 'all') return true;
+  if (Array.isArray(a)) return a.includes(staffId);
+  return a === staffId;
+}
+
+// 오늘의 반복업무 인스턴스 자동 생성 (dedup: recurringId + performedDate + staffId)
+// 호출: DashboardPage·RecurringTasksPage 마운트 시 1회
+async function generateRecurringForToday({ recurring, tasks, staffId, audit }) {
+  if (!staffId) return { created: 0 };
+  const today = new Date();
+  const todayKey = today.toISOString().split('T')[0];
+  const todayDay = ALL_DAYS[today.getDay()];
+  const todayMonthDay = today.getDate();
+  const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth()+1, 0).getDate();
+  const isLastDayToday = todayMonthDay === lastDayOfMonth;
+
+  const mine = (recurring || []).filter(r => r.active !== false && isRecurringForStaff(r, staffId));
+  const newTasks = [];
+  for (const r of mine) {
+    let should = false;
+    if (r.recurType === 'daily') should = true;
+    else if (r.recurType === 'weekly' && r.weekDay === todayDay) should = true;
+    else if (r.recurType === 'monthly') {
+      if (r.monthDay === 'last' && isLastDayToday) should = true;
+      else if (typeof r.monthDay === 'number' && r.monthDay === todayMonthDay) should = true;
+    }
+    if (!should) continue;
+    // dedup
+    const exists = (tasks || []).some(t => t.recurringId === r.id && t.performedDate === todayKey && t.staffId === staffId);
+    if (exists) continue;
+    newTasks.push({
+      staffId,
+      title: r.title,
+      done: false,
+      priority: r.priority || 'mid',
+      projectId: r.projectId || null,
+      weekDay: todayDay,
+      weekSlot: null,
+      dueDate: '',
+      isFixed: r.pinned === true,
+      pulledToday: true,
+      recurringId: r.id,
+      performedDate: todayKey,
+      notes: [],
+      attachments: [],
+      status: 'active',
+      time: r.time || '',
+      ...audit.create(),
+    });
+  }
+  // Firestore 일괄 추가
+  for (const data of newTasks) {
+    await db.collection(COLLECTIONS.POUR_TASKS).add(data);
+  }
+  return { created: newTasks.length };
+}
+
+// ============================================================
+// useStaffTasks / useStaffRecurring — 활동 담당자의 task·반복업무 실시간 구독
+// ============================================================
+function useStaffTasks(staffId) {
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    if (!staffId) { setTasks([]); setLoading(false); return; }
+    const unsub = db.collection(COLLECTIONS.POUR_TASKS).where('staffId','==',staffId).onSnapshot(snap => {
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      console.log(`[pour-tasks] ${list.length}건 (${staffId})`);
+      setTasks(list);
+      setLoading(false);
+    }, err => { console.error('[pour-tasks] 구독 실패:', err); setLoading(false); });
+    return unsub;
+  }, [staffId]);
+  return { tasks, loading };
+}
+function useStaffRecurring(staffId) {
+  const [recurring, setRecurring] = useState([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    if (!staffId) { setRecurring([]); setLoading(false); return; }
+    // assigneeStaffIds 'all' 포함하기 위해 전체 구독 후 클라이언트 필터
+    const unsub = db.collection(COLLECTIONS.POUR_RECURRING).onSnapshot(snap => {
+      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const mine = all.filter(r => r.active !== false && isRecurringForStaff(r, staffId));
+      console.log(`[pour-recurring] ${mine.length}건 (${staffId} / 전체 ${all.length})`);
+      setRecurring(mine);
+      setLoading(false);
+    }, err => { console.error('[pour-recurring] 구독 실패:', err); setLoading(false); });
+    return unsub;
+  }, [staffId]);
+  return { recurring, loading };
+}
+
+// ============================================================
+// DashboardPage — 주간 5슬롯 + 오늘 업무 + 고정업무 + 마감 임박
+// ============================================================
+function DashboardPage({ onToast }) {
+  const { activeStaff, audit } = useActiveStaffContext();
+  const { tasks, loading: loadingTasks } = useStaffTasks(activeStaff?.id);
+  const { recurring, loading: loadingRec } = useStaffRecurring(activeStaff?.id);
+  const [generated, setGenerated] = useState(false);
+
+  // 오늘의 반복업무 자동 생성 (마운트 + 데이터 로드 1회)
+  useEffect(() => {
+    if (!activeStaff?.id || loadingTasks || loadingRec || generated) return;
+    setGenerated(true);
+    generateRecurringForToday({ recurring, tasks, staffId: activeStaff.id, audit }).then(({ created }) => {
+      if (created > 0) onToast({ message: `🔁 오늘의 반복업무 ${created}건 자동 추가`, type: 'success' });
+    });
+  }, [activeStaff?.id, loadingTasks, loadingRec, generated]);
+
+  if (!activeStaff) {
+    return <div style={{ padding:60, textAlign:'center', color:'var(--text-sm)' }}>활동 담당자 선택이 필요합니다. 사이드바 상단 ↻로 전환하세요.</div>;
+  }
+  if (loadingTasks || loadingRec) {
+    return <div style={{ padding:60, textAlign:'center', color:'var(--text-sm)' }}>로딩 중...</div>;
+  }
+
+  const today = new Date();
+  const todayDay = ALL_DAYS[today.getDay()];
+  const todayKey = today.toISOString().split('T')[0];
+  const myTasks = tasks;  // 이미 staffId로 필터됨
+  const todayTasks = myTasks.filter(t => !t.isFixed && (t.weekDay === todayDay || t.pulledToday) && t.performedDate !== undefined ? t.performedDate === todayKey || !t.performedDate : !t.isFixed && t.weekDay === todayDay);
+  // 단순화: 오늘 = (오늘 요일 + 미고정) 또는 (pulledToday=true)
+  const todayTasksFinal = myTasks.filter(t => !t.isFixed && (t.weekDay === todayDay || t.pulledToday));
+  const fixedTasks = myTasks.filter(t => t.isFixed && (t.performedDate === todayKey || !t.recurringId));
+
+  // 마감 임박 D-3 이내
+  const urgentTasks = myTasks.filter(t => {
+    if (t.done || !t.dueDate) return false;
+    const diff = Math.ceil((new Date(t.dueDate) - today) / 86400000);
+    return diff >= 0 && diff <= 3;
+  });
+
+  // 주간 5슬롯 (월~금)
+  const slotsByDay = {};
+  WEEK_DAYS.forEach(d => {
+    const dayTasks = myTasks.filter(t => t.weekDay === d && !t.isFixed);
+    slotsByDay[d] = [1,2,3,4,5].map(p => dayTasks.find(t => t.weekSlot === p) || null);
+  });
+
+  // 통계
+  const totalToday = todayTasksFinal.length;
+  const doneToday = todayTasksFinal.filter(t => t.done).length;
+
+  return (
+    <div style={{ padding:'24px 32px', maxWidth:1280 }}>
+      {/* 헤더 */}
+      <div style={{ marginBottom:18 }}>
+        <h1 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6, marginBottom:4 }}>🏠 대시보드</h1>
+        <div style={{ fontSize:12.5, color:'var(--text-sm)', fontWeight:700 }}>
+          {activeStaff.name} · {todayDay}요일 · 오늘 업무 {doneToday}/{totalToday} · 고정업무 {fixedTasks.length}건
+        </div>
+      </div>
+
+      {/* 마감 임박 배너 */}
+      {urgentTasks.length > 0 && (
+        <div style={{ background:'rgba(229,57,53,.08)', border:'1.5px solid rgba(229,57,53,.3)', borderRadius:10, padding:'10px 16px', marginBottom:16, display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+          <span style={{ fontSize:16 }}>🚨</span>
+          <span style={{ fontSize:12.5, fontWeight:800, color:'#DC2626' }}>D-3 이내 마감</span>
+          <div style={{ display:'flex', gap:6, flexWrap:'wrap', flex:1 }}>
+            {urgentTasks.map(t => {
+              const dd = calcDday(t.dueDate);
+              return <span key={t.id} style={{ background:'rgba(229,57,53,.15)', color:'#DC2626', padding:'2px 9px', borderRadius:999, fontSize:11, fontWeight:800 }}>{t.title} {dd}</span>;
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 주간 5슬롯 */}
+      <div style={{ background:'#fff', border:'1px solid var(--border)', borderRadius:12, padding:16, marginBottom:18, boxShadow:'var(--shadow)' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+          <div style={{ fontSize:13, fontWeight:900, color:'var(--text)' }}>📆 주간 업무 배치 (월~금 · 우선순위 1~5)</div>
+          <div style={{ fontSize:10.5, fontWeight:700, color:'var(--text-sm)' }}>슬롯 클릭 시 미완료 업무 선택 · 5칸 = 매일 핵심 5건만</div>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap:10 }}>
+          {WEEK_DAYS.map(d => {
+            const isToday = d === todayDay;
+            return (
+              <div key={d} style={{ background: isToday ? 'rgba(249,115,22,.06)' : 'var(--bg)', border: isToday ? '1.5px solid var(--or)' : '1px solid var(--border)', borderRadius:10, padding:'10px 8px' }}>
+                <div style={{ fontSize:11, fontWeight:900, color: isToday ? 'var(--or-d)' : 'var(--text-md)', marginBottom:8, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                  <span>{d}요일</span>
+                  {isToday && <span style={{ fontSize:9, fontWeight:900, color:'#fff', background:'var(--or)', padding:'1px 6px', borderRadius:999 }}>오늘</span>}
+                </div>
+                <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+                  {slotsByDay[d].map((t, i) => {
+                    const slotNum = i + 1;
+                    if (t) {
+                      const dd = t.dueDate ? calcDday(t.dueDate) : '';
+                      return (
+                        <div key={slotNum} style={{
+                          background: t.done ? 'rgba(43,196,114,.08)' : '#fff', border:'1px solid var(--border)', borderRadius:6, padding:'6px 8px',
+                          fontSize:11, opacity: t.done ? 0.6 : 1, textDecoration: t.done ? 'line-through' : 'none',
+                          display:'flex', alignItems:'center', gap:6, minHeight:30
+                        }}>
+                          <span style={{ fontSize:9, fontWeight:900, color:'var(--text-sm)', minWidth:14 }}>{slotNum}</span>
+                          <span style={{ flex:1, fontWeight:700, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{t.title}</span>
+                          {dd && <span style={{ fontSize:9, fontWeight:800, color: dd === 'D-day' ? '#DC2626' : dd.startsWith('D+') ? '#DC2626' : 'var(--text-sm)' }}>{dd}</span>}
+                        </div>
+                      );
+                    }
+                    return (
+                      <div key={slotNum} style={{ background:'transparent', border:'1px dashed var(--border)', borderRadius:6, padding:'6px 8px', fontSize:10.5, color:'var(--text-xs)', fontWeight:600, display:'flex', alignItems:'center', gap:6, minHeight:30 }}>
+                        <span style={{ fontSize:9, fontWeight:800, minWidth:14 }}>{slotNum}</span>
+                        <span style={{ flex:1, fontStyle:'italic' }}>비어있음</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 오늘 업무 + 고정업무 */}
+      <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:14 }}>
+        {/* 오늘 업무 */}
+        <div style={{ background:'#fff', border:'1px solid var(--border)', borderRadius:12, padding:16, boxShadow:'var(--shadow)' }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+            <div style={{ fontSize:13, fontWeight:900, color:'var(--text)' }}>📋 오늘 업무 ({todayDay}요일)</div>
+            <div style={{ fontSize:10.5, fontWeight:700, color:'var(--text-sm)' }}>{doneToday}/{totalToday} 완료</div>
+          </div>
+          {todayTasksFinal.length === 0 ? (
+            <div style={{ padding:24, textAlign:'center', color:'var(--text-sm)', fontSize:12, fontWeight:600 }}>
+              오늘 배치된 업무가 없습니다. 위 주간 배치 슬롯에서 업무를 추가하거나, 반복업무를 등록하세요.
+            </div>
+          ) : (
+            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              {todayTasksFinal.map(t => (
+                <TodayTaskRow key={t.id} task={t} audit={audit} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 고정업무 = pinned 반복업무 인스턴스 */}
+        <div style={{ background:'#fff', border:'1px solid var(--border)', borderRadius:12, padding:16, boxShadow:'var(--shadow)' }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+            <div style={{ fontSize:13, fontWeight:900, color:'var(--text)' }}>📌 고정업무</div>
+            <div style={{ fontSize:10.5, fontWeight:700, color:'var(--text-sm)' }}>{fixedTasks.filter(t => t.done).length}/{fixedTasks.length}</div>
+          </div>
+          {fixedTasks.length === 0 ? (
+            <div style={{ padding:18, textAlign:'center', color:'var(--text-sm)', fontSize:11, fontWeight:600 }}>
+              반복업무에서 📌 토글하면<br/>여기 자동 표시됩니다
+            </div>
+          ) : (
+            <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+              {fixedTasks.map(t => (
+                <TodayTaskRow key={t.id} task={t} audit={audit} compact />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 오늘 업무 한 줄 (체크박스 + 제목 + 우선순위 + 마감)
+function TodayTaskRow({ task, audit, compact }) {
+  const toggleDone = async () => {
+    const newDone = !task.done;
+    await db.collection(COLLECTIONS.POUR_TASKS).doc(task.id).update({
+      done: newDone,
+      doneAt: newDone ? nowIso() : null,
+      ...audit.update(),
+    });
+  };
+  const dd = task.dueDate ? calcDday(task.dueDate) : '';
+  const pri = PRIORITY_META[task.priority] || PRIORITY_META.mid;
+  return (
+    <label style={{
+      display:'flex', alignItems:'center', gap:8, padding: compact ? '5px 8px' : '7px 10px',
+      background: task.done ? 'rgba(43,196,114,.06)' : 'var(--bg)', borderRadius:6, cursor:'pointer',
+      opacity: task.done ? 0.65 : 1
+    }}>
+      <input type="checkbox" checked={!!task.done} onChange={toggleDone} style={{ accentColor:'var(--green)' }} />
+      <span style={{ flex:1, fontSize: compact ? 11 : 12.5, fontWeight:700, color:'var(--text)', textDecoration: task.done ? 'line-through' : 'none' }}>
+        {task.title}
+      </span>
+      {!compact && <span style={{ fontSize:11 }}>{pri.icon}</span>}
+      {dd && <span style={{ fontSize:10, fontWeight:800, color: dd === 'D-day' || dd.startsWith('D+') ? '#DC2626' : 'var(--text-sm)' }}>{dd}</span>}
+    </label>
+  );
+}
+
+// ============================================================
+// RecurringTasksPage — 반복업무 엑셀 표 + 빠른 추가 + 📌 토글
+// ============================================================
+function RecurringTasksPage({ onToast }) {
+  const { activeStaff, audit, staffMembers } = useActiveStaffContext();
+  const { recurring, loading } = useStaffRecurring(activeStaff?.id);
+  const [adding, setAdding] = useState(false);
+  const [newRow, setNewRow] = useState({
+    title: '', recurType: 'daily', weekDay: '월', monthDay: 1, time: '', priority: 'mid', pinned: false,
+  });
+
+  if (!activeStaff) {
+    return <div style={{ padding:60, textAlign:'center', color:'var(--text-sm)' }}>활동 담당자 선택이 필요합니다.</div>;
+  }
+  if (loading) return <div style={{ padding:60, textAlign:'center', color:'var(--text-sm)' }}>로딩 중...</div>;
+
+  const togglePinned = async (r) => {
+    await db.collection(COLLECTIONS.POUR_RECURRING).doc(r.id).update({
+      pinned: !r.pinned,
+      ...audit.update(),
+    });
+    // 오늘 인스턴스 isFixed도 즉시 동기화
+    const todayKey = new Date().toISOString().split('T')[0];
+    const snap = await db.collection(COLLECTIONS.POUR_TASKS)
+      .where('recurringId','==',r.id).where('performedDate','==',todayKey).get();
+    const batch = db.batch();
+    snap.docs.forEach(d => batch.update(d.ref, { isFixed: !r.pinned, ...audit.update() }));
+    if (snap.size > 0) await batch.commit();
+    onToast({ message: `📌 ${r.title} ${!r.pinned ? '고정' : '해제'}`, type: 'success' });
+  };
+
+  const toggleActive = async (r) => {
+    await db.collection(COLLECTIONS.POUR_RECURRING).doc(r.id).update({ active: !r.active, ...audit.update() });
+    onToast({ message: `${r.title} ${!r.active ? '활성화' : '비활성화'}`, type: 'success' });
+  };
+
+  const deleteOne = async (r) => {
+    if (!confirm(`"${r.title}" 반복업무를 삭제할까요? 오늘 생성된 인스턴스는 별도로 유지됩니다.`)) return;
+    await db.collection(COLLECTIONS.POUR_RECURRING).doc(r.id).delete();
+    onToast({ message: '삭제 완료', type: 'success' });
+  };
+
+  const updateField = async (r, field, value) => {
+    await db.collection(COLLECTIONS.POUR_RECURRING).doc(r.id).update({ [field]: value, ...audit.update() });
+  };
+
+  const addNew = async () => {
+    if (!newRow.title.trim()) { onToast({ message: '업무 내용을 입력하세요', type: 'error' }); return; }
+    setAdding(true);
+    try {
+      const data = {
+        staffId: activeStaff.id,
+        assigneeStaffIds: activeStaff.id,
+        title: newRow.title.trim(),
+        recurType: newRow.recurType,
+        weekDay: newRow.recurType === 'weekly' ? newRow.weekDay : null,
+        monthDay: newRow.recurType === 'monthly' ? newRow.monthDay : null,
+        time: newRow.time,
+        priority: newRow.priority,
+        projectId: null,
+        description: '',
+        pinned: newRow.pinned,
+        active: true,
+        ...audit.create(),
+      };
+      await db.collection(COLLECTIONS.POUR_RECURRING).add(data);
+      setNewRow({ title: '', recurType: newRow.recurType, weekDay: '월', monthDay: 1, time: '', priority: 'mid', pinned: false });
+      onToast({ message: '반복업무 추가 완료', type: 'success' });
+    } catch (e) {
+      onToast({ message: '추가 실패: ' + e.message, type: 'error' });
+    }
+    setAdding(false);
+  };
+
+  const tdSty = { padding:'8px 10px', fontSize:12, borderBottom:'1px dashed var(--border-s)' };
+  const thSty = { padding:'10px 10px', fontSize:10.5, fontWeight:800, color:'var(--text-sm)', textAlign:'left', letterSpacing:.4, borderBottom:'1px solid var(--border)' };
+  const inputSty = { padding:'5px 8px', border:'1px solid var(--border)', borderRadius:6, fontSize:11.5, fontWeight:600, background:'#fff', outline:'none', width:'100%' };
+
+  // 정렬: 주기(주→월→일) + 시간
+  const order = { weekly: 0, monthly: 1, daily: 2 };
+  const sorted = [...recurring].sort((a,b) => {
+    const o = (order[a.recurType] ?? 9) - (order[b.recurType] ?? 9);
+    if (o !== 0) return o;
+    return (a.time || '').localeCompare(b.time || '');
+  });
+
+  return (
+    <div style={{ padding:'24px 32px', maxWidth:1280 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18, gap:14, flexWrap:'wrap' }}>
+        <div>
+          <h1 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6, marginBottom:4 }}>🔁 반복업무</h1>
+          <div style={{ fontSize:12.5, color:'var(--text-sm)', fontWeight:700 }}>
+            {activeStaff.name} · {recurring.length}건 (활성만) · 📌 = 대시보드 고정업무 표시 토글
+          </div>
+        </div>
+      </div>
+
+      <div style={{ background:'#fff', borderRadius:12, border:'1px solid var(--border)', overflow:'hidden', boxShadow:'var(--shadow)' }}>
+        <table style={{ width:'100%', borderCollapse:'collapse' }}>
+          <thead>
+            <tr style={{ background:'var(--bg)' }}>
+              <th style={{ ...thSty, width:60 }}>주기</th>
+              <th style={{ ...thSty, width:80 }}>요일/일자</th>
+              <th style={{ ...thSty, width:70 }}>시간</th>
+              <th style={{ ...thSty, width:70 }}>우선순위</th>
+              <th style={thSty}>업무 내용</th>
+              <th style={{ ...thSty, width:50, textAlign:'center' }}>📌</th>
+              <th style={{ ...thSty, width:80, textAlign:'right' }}>액션</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map(r => (
+              <tr key={r.id} style={{ opacity: r.active === false ? 0.5 : 1 }}>
+                <td style={tdSty}>
+                  <select value={r.recurType} onChange={e => updateField(r, 'recurType', e.target.value)} style={inputSty}>
+                    <option value="daily">매일</option>
+                    <option value="weekly">매주</option>
+                    <option value="monthly">매월</option>
+                  </select>
+                </td>
+                <td style={tdSty}>
+                  {r.recurType === 'weekly' && (
+                    <select value={r.weekDay || '월'} onChange={e => updateField(r, 'weekDay', e.target.value)} style={inputSty}>
+                      {ALL_DAYS.map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                  )}
+                  {r.recurType === 'monthly' && (
+                    <select value={r.monthDay} onChange={e => updateField(r, 'monthDay', e.target.value === 'last' ? 'last' : parseInt(e.target.value, 10))} style={inputSty}>
+                      {[...Array(31)].map((_, i) => <option key={i+1} value={i+1}>{i+1}일</option>)}
+                      <option value="last">말일</option>
+                    </select>
+                  )}
+                  {r.recurType === 'daily' && <span style={{ color:'var(--text-xs)', fontSize:11 }}>—</span>}
+                </td>
+                <td style={tdSty}>
+                  <input type="time" value={r.time || ''} onChange={e => updateField(r, 'time', e.target.value)} style={inputSty} />
+                </td>
+                <td style={tdSty}>
+                  <select value={r.priority || 'mid'} onChange={e => updateField(r, 'priority', e.target.value)} style={inputSty}>
+                    <option value="high">🔴 높음</option>
+                    <option value="mid">🟡 중간</option>
+                    <option value="low">🟢 낮음</option>
+                  </select>
+                </td>
+                <td style={tdSty}>
+                  <input value={r.title || ''} onBlur={e => updateField(r, 'title', e.target.value)} onChange={e => { /* uncontrolled OK */ }} defaultValue={r.title || ''} style={{ ...inputSty, fontWeight:700 }} />
+                </td>
+                <td style={{ ...tdSty, textAlign:'center' }}>
+                  <button onClick={() => togglePinned(r)} title={r.pinned ? '고정 해제' : '대시보드 고정업무로 표시'} style={{
+                    width:28, height:28, borderRadius:6, fontSize:14,
+                    background: r.pinned ? 'var(--or)' : 'var(--bg-subtle, #F2F4F6)',
+                    color: r.pinned ? '#fff' : 'var(--text-sm)',
+                    border:'1px solid var(--border)'
+                  }}>📌</button>
+                </td>
+                <td style={{ ...tdSty, textAlign:'right' }}>
+                  <button onClick={() => toggleActive(r)} style={{ padding:'4px 8px', borderRadius:6, fontSize:10.5, fontWeight:800, color: r.active === false ? '#047857' : '#6B7280', border:'1px solid var(--border)', background:'#fff', marginRight:4 }}>
+                    {r.active === false ? '활성' : '비활성'}
+                  </button>
+                  <button onClick={() => deleteOne(r)} style={{ padding:'4px 8px', borderRadius:6, fontSize:10.5, fontWeight:800, color:'#DC2626', border:'1px solid var(--red-l, #FEE2E2)', background:'#fff' }}>삭제</button>
+                </td>
+              </tr>
+            ))}
+            {/* 빠른 추가 행 */}
+            <tr style={{ background:'var(--or-pale, #FFFBF5)' }}>
+              <td style={tdSty}>
+                <select value={newRow.recurType} onChange={e => setNewRow({ ...newRow, recurType: e.target.value })} style={inputSty}>
+                  <option value="daily">매일</option>
+                  <option value="weekly">매주</option>
+                  <option value="monthly">매월</option>
+                </select>
+              </td>
+              <td style={tdSty}>
+                {newRow.recurType === 'weekly' && (
+                  <select value={newRow.weekDay} onChange={e => setNewRow({ ...newRow, weekDay: e.target.value })} style={inputSty}>
+                    {ALL_DAYS.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                )}
+                {newRow.recurType === 'monthly' && (
+                  <select value={newRow.monthDay} onChange={e => setNewRow({ ...newRow, monthDay: e.target.value === 'last' ? 'last' : parseInt(e.target.value, 10) })} style={inputSty}>
+                    {[...Array(31)].map((_, i) => <option key={i+1} value={i+1}>{i+1}일</option>)}
+                    <option value="last">말일</option>
+                  </select>
+                )}
+                {newRow.recurType === 'daily' && <span style={{ color:'var(--text-xs)', fontSize:11 }}>—</span>}
+              </td>
+              <td style={tdSty}>
+                <input type="time" value={newRow.time} onChange={e => setNewRow({ ...newRow, time: e.target.value })} style={inputSty} />
+              </td>
+              <td style={tdSty}>
+                <select value={newRow.priority} onChange={e => setNewRow({ ...newRow, priority: e.target.value })} style={inputSty}>
+                  <option value="high">🔴 높음</option>
+                  <option value="mid">🟡 중간</option>
+                  <option value="low">🟢 낮음</option>
+                </select>
+              </td>
+              <td style={tdSty}>
+                <input value={newRow.title} onChange={e => setNewRow({ ...newRow, title: e.target.value })}
+                  onKeyDown={e => { if (e.key === 'Enter') addNew(); }}
+                  placeholder="새 반복업무... (Enter로 추가)"
+                  style={{ ...inputSty, fontWeight:700 }} />
+              </td>
+              <td style={{ ...tdSty, textAlign:'center' }}>
+                <button onClick={() => setNewRow({ ...newRow, pinned: !newRow.pinned })} title={newRow.pinned ? '고정 해제' : '대시보드 고정업무로'} style={{
+                  width:28, height:28, borderRadius:6, fontSize:14,
+                  background: newRow.pinned ? 'var(--or)' : 'var(--bg-subtle, #F2F4F6)',
+                  color: newRow.pinned ? '#fff' : 'var(--text-sm)',
+                  border:'1px solid var(--border)'
+                }}>📌</button>
+              </td>
+              <td style={{ ...tdSty, textAlign:'right' }}>
+                <button onClick={addNew} disabled={adding || !newRow.title.trim()} style={{
+                  padding:'6px 14px', borderRadius:7, fontSize:11.5, fontWeight:900, color:'#fff',
+                  background: 'linear-gradient(135deg, var(--or), var(--or-d))',
+                  opacity: (adding || !newRow.title.trim()) ? 0.5 : 1,
+                }}>+ 추가</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* 안내 */}
+      <div style={{ marginTop:14, padding:'12px 16px', background:'var(--or-pale, #FFFBF5)', border:'1px dashed var(--or-l, #FED7AA)', borderRadius:10, fontSize:11.5, color:'var(--text-md)', fontWeight:600, lineHeight:1.6 }}>
+        📌 토글 시 대시보드의 <b>고정업무</b> 영역에 표시됩니다. 오늘 생성된 인스턴스도 즉시 동기화 (isFixed=true).
+        <br/>매일/매주/매월 주기에 따라 페이지 진입 시 오늘의 인스턴스가 자동 생성됩니다 (중복 방지).
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // App
 // ============================================================
 function App() {
@@ -5329,6 +5884,8 @@ function App() {
         {active === 'settlement' && <Settlement orders={orders} dealers={dealers} onToast={setToast} />}
         {active === 'inquiries' && <Inquiries inquiries={inquiries} onUpdate={loadAll} onToast={setToast} />}
         {active === 'workmgmt' && <WorkMgmtPage />}
+        {active === 'dashboard-os' && <DashboardPage onToast={setToast} />}
+        {active === 'recurring' && <RecurringTasksPage onToast={setToast} />}
         {active === 'preview' && <PreviewPage />}
         {active === 'products' && <ProductsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'metrics' && <MetricsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}

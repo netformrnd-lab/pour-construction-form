@@ -8,6 +8,19 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet" />
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
+  authDomain: "pour-app-new.firebaseapp.com",
+  projectId: "pour-app-new",
+  storageBucket: "pour-app-new.firebasestorage.app",
+  messagingSenderId: "411031141847",
+  appId: "1:411031141847:web:e658174fd4b9652cdadf92"
+});
+const db = firebase.firestore();
+</script>
 <style>
 :root {
   --primary: #3182F6;
@@ -126,6 +139,10 @@ ul { list-style: none; }
 .p-card.songhee { border-top: 4px solid var(--songhee); }
 .p-card.minji { border-top: 4px solid var(--minji); }
 .p-card.ran { border-top: 4px solid var(--ran); }
+.p-card.is-me { box-shadow: 0 0 0 2px var(--check), var(--shadow-md); background: linear-gradient(180deg, #F3FBF6 0%, #FFFFFF 80%); }
+.me-tag { display: inline-block; margin-left: 6px; padding: 1px 7px; font-size: 9.5px; font-weight: 800; color: #fff; background: var(--check); border-radius: 999px; letter-spacing: 0.3px; vertical-align: 2px; }
+.p-proj-stamp { font-size: 10px; color: var(--check); font-weight: 700; margin-top: 2px; letter-spacing: 0.2px; }
+.row-stamp { font-size: 10px; color: var(--check); font-weight: 700; margin-top: 2px; letter-spacing: 0.2px; }
 .p-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
 .p-emoji { font-size: 36px; line-height: 1; flex-shrink: 0; }
 .p-name { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
@@ -313,6 +330,8 @@ ul { list-style: none; }
         <span>3인 기준 (송희 · 민지 · 란님) · 채림님 합류 시 운영 인프라 배정</span>
       </div>
       <div class="hd-update" id="lastUpdate">—</div>
+      <div class="hd-update" id="syncStatus" style="margin-top: 3px;">● 동기화 중...</div>
+      <div class="hd-update" id="meBadge" style="margin-top: 3px; display: none;"></div>
     </div>
     <div class="dday" id="dday"></div>
   </div>
@@ -461,24 +480,114 @@ const DATA = {
 };
 
 // ════════════════════════════════════════════════════════════════════
-// localStorage
+// 상태 저장 — Firestore 단일 문서(work-mgmt/main) + localStorage 캐시
+// 모든 사용자가 같은 문서를 읽고 쓰므로 실시간 협업 가능.
+// localStorage는 오프라인·로딩 전 fallback.
 // ════════════════════════════════════════════════════════════════════
-const LS_DONE = 'pour_workmgmt_done';
+const LS_DONE = 'pour_workmgmt_done';     // { p001: {staffId, staffName, doneAt}, ... }
 const LS_UPDATE = 'pour_workmgmt_last_update';
-function loadDone() {
-  try { return JSON.parse(localStorage.getItem(LS_DONE) || '{}'); } catch (e) { return {}; }
+const FS_COLL = 'work-mgmt';
+const FS_DOC = 'main';
+
+// 현재 활동 담당자 (admin에서 postMessage로 받음, 없으면 익명)
+let ACTIVE_STAFF = null;  // { id, name, role, color, email }
+
+// 메모리 캐시 (Firestore와 동기화)
+let DONE_STATE = {};  // { p001: { staffId, staffName, doneAt }, ... }
+let DONE_META = {};   // { updatedAt, updatedByStaffName }
+
+function loadDoneLocal() {
+  try {
+    const raw = localStorage.getItem(LS_DONE);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    // 구버전(string 값) → 새 구조 변환
+    const normalized = {};
+    for (const [k, v] of Object.entries(parsed)) {
+      normalized[k] = typeof v === 'string' ? { doneAt: v, staffId: null, staffName: null } : v;
+    }
+    return normalized;
+  } catch (e) { return {}; }
 }
-function saveDone(state) {
+
+function saveDoneLocal(state) {
   localStorage.setItem(LS_DONE, JSON.stringify(state));
   localStorage.setItem(LS_UPDATE, new Date().toISOString());
-  renderUpdate();
 }
-function isDone(id) { return !!loadDone()[id]; }
-function setDone(id, val) {
-  const s = loadDone();
-  if (val) s[id] = new Date().toISOString();
-  else delete s[id];
-  saveDone(s);
+
+function loadDone() { return DONE_STATE; }  // 동기 접근용 — 항상 최신 메모리 캐시 반환
+
+async function setDone(id, val) {
+  const now = new Date().toISOString();
+  const next = { ...DONE_STATE };
+  if (val) {
+    next[id] = {
+      staffId: ACTIVE_STAFF?.id || null,
+      staffName: ACTIVE_STAFF?.name || null,
+      doneAt: now,
+    };
+  } else {
+    delete next[id];
+  }
+  DONE_STATE = next;
+  DONE_META = {
+    updatedAt: now,
+    updatedByStaffId: ACTIVE_STAFF?.id || null,
+    updatedByStaffName: ACTIVE_STAFF?.name || null,
+  };
+  saveDoneLocal(next);
+  renderUpdate();
+  // Firestore 비동기 저장 (실패해도 로컬 캐시는 유지)
+  try {
+    await db.collection(FS_COLL).doc(FS_DOC).set({
+      done: next,
+      ...DONE_META,
+    }, { merge: true });
+    setSyncStatus('synced');
+  } catch (e) {
+    console.error('[work-mgmt] Firestore 저장 실패:', e);
+    setSyncStatus('error', e.message);
+  }
+}
+
+let _unsub = null;
+function subscribeFirestore() {
+  setSyncStatus('connecting');
+  // 초기 로드 — localStorage 캐시로 즉시 1차 렌더
+  DONE_STATE = loadDoneLocal();
+  // onSnapshot 실시간 구독
+  _unsub = db.collection(FS_COLL).doc(FS_DOC).onSnapshot(snap => {
+    if (!snap.exists) {
+      // 빈 문서 → 로컬 캐시 그대로 유지, 첫 쓰기에서 생성됨
+      setSyncStatus('synced');
+      return;
+    }
+    const data = snap.data();
+    DONE_STATE = data.done || {};
+    DONE_META = {
+      updatedAt: data.updatedAt || null,
+      updatedByStaffId: data.updatedByStaffId || null,
+      updatedByStaffName: data.updatedByStaffName || null,
+    };
+    saveDoneLocal(DONE_STATE);
+    setSyncStatus('synced');
+    renderAll();
+  }, err => {
+    console.error('[work-mgmt] onSnapshot 오류:', err);
+    setSyncStatus('error', err.message);
+  });
+}
+
+function setSyncStatus(state, msg) {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  const m = {
+    connecting: { txt: '동기화 중...', color: '#FFAB40' },
+    synced:     { txt: '실시간 동기화 OK', color: '#2BC472' },
+    error:      { txt: '동기화 오류' + (msg ? ' · ' + msg : ''), color: '#E53935' },
+  }[state] || { txt: state, color: '#8B95A1' };
+  el.textContent = '● ' + m.txt;
+  el.style.color = m.color;
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -591,12 +700,13 @@ function renderPeople() {
     const owned = DATA.projects.filter(pr => pr.owner === p.key);
     const collabIn = DATA.projects.filter(pr => pr.collab.some(c => c.person === p.key));
     const ownedDone = owned.filter(pr => state[pr.id]).length;
+    const isMe = ACTIVE_STAFF && ACTIVE_STAFF.name === p.name;
     return `
-      <div class="p-card ${p.key}">
+      <div class="p-card ${p.key} ${isMe ? 'is-me' : ''}">
         <div class="p-head">
           <div class="p-emoji">${p.emoji}</div>
           <div>
-            <div class="p-name">${p.name}</div>
+            <div class="p-name">${p.name}${isMe ? ' <span class="me-tag">본인</span>' : ''}</div>
             <div class="p-role">${p.role}</div>
           </div>
         </div>
@@ -608,12 +718,16 @@ function renderPeople() {
         </div>
         <div class="p-projs">
           ${owned.map(pr => {
-            const done = !!state[pr.id];
+            const doneInfo = state[pr.id];
+            const done = !!doneInfo;
             const krClass = pr.kr ? pr.kr.toLowerCase() : '';
             const collabTxt = pr.collab.length ? `<div class="p-proj-collab">+ ${pr.collab.map(c => {
               const cp = DATA.people.find(x => x.key === c.person);
               return `${cp ? cp.name : c.person}(${c.role})`;
             }).join(', ')}</div>` : '';
+            const stamp = (done && doneInfo.staffName && doneInfo.doneAt)
+              ? `<div class="p-proj-stamp">✓ ${doneInfo.staffName} · ${fmtRelative(doneInfo.doneAt)}</div>`
+              : '';
             return `
               <label class="p-proj ${done ? 'is-done' : ''}">
                 <input type="checkbox" class="p-proj-check" data-id="${pr.id}" ${done ? 'checked' : ''}>
@@ -623,6 +737,7 @@ function renderPeople() {
                     ${pr.name}
                   </span>
                   ${collabTxt}
+                  ${stamp}
                 </div>
               </label>`;
           }).join('')}
@@ -631,10 +746,27 @@ function renderPeople() {
   }).join('');
   wrap.querySelectorAll('.p-proj-check').forEach(cb => {
     cb.addEventListener('change', (e) => {
+      // 옵티미스틱 — 즉시 메모리 캐시 갱신 + 렌더 → Firestore 백그라운드 저장
       setDone(e.target.dataset.id, e.target.checked);
       renderAll();
     });
   });
+}
+
+// 상대 시간 짧은 표기
+function fmtRelative(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d)) return '';
+  const diff = Date.now() - d.getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return '방금';
+  if (m < 60) return `${m}분 전`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}시간 전`;
+  const days = Math.floor(h / 24);
+  if (days < 3) return `${days}일 전`;
+  return d.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' });
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -693,7 +825,8 @@ function renderProjMaster() {
               </thead>
               <tbody>
                 ${gProjs.map(pr => {
-                  const isD = !!state[pr.id];
+                  const doneInfo = state[pr.id];
+                  const isD = !!doneInfo;
                   const owner = DATA.people.find(p => p.key === pr.owner);
                   const ownerChip = owner
                     ? `<span class="owner-chip ${owner.key}">${owner.name}</span>`
@@ -705,10 +838,13 @@ function renderProjMaster() {
                       }).join('')}</div>`
                     : `<span style="color:var(--text-tertiary);font-size:11px;">—</span>`;
                   const note = pr.note ? `<span class="proj-note">📌 ${pr.note}</span>` : '';
+                  const stamp = (isD && doneInfo.staffName && doneInfo.doneAt)
+                    ? `<div class="row-stamp">✓ ${doneInfo.staffName} · ${fmtRelative(doneInfo.doneAt)}</div>`
+                    : '';
                   return `
                     <tr class="${isD ? 'is-done' : ''}">
                       <td><input type="checkbox" class="proj-check" data-id="${pr.id}" ${isD ? 'checked' : ''}></td>
-                      <td><span class="proj-name">${pr.name}</span>${note}</td>
+                      <td><span class="proj-name">${pr.name}</span>${note}${stamp}</td>
                       <td>${ownerChip}</td>
                       <td>${collabChips}</td>
                     </tr>`;
@@ -786,39 +922,93 @@ function renderMemos() {
 }
 
 // ════════════════════════════════════════════════════════════════════
-// 마지막 업데이트 표시
+// 마지막 업데이트 표시 — Firestore 메타 우선, fallback localStorage
 // ════════════════════════════════════════════════════════════════════
 function renderUpdate() {
-  const t = localStorage.getItem(LS_UPDATE);
+  const t = DONE_META.updatedAt || localStorage.getItem(LS_UPDATE);
   const el = document.getElementById('lastUpdate');
   if (!t) { el.textContent = '아직 저장된 변경이 없습니다'; return; }
   const d = new Date(t);
-  el.textContent = `마지막 업데이트 · ${d.toLocaleString('ko-KR')}`;
+  const who = DONE_META.updatedByStaffName ? ` · ${DONE_META.updatedByStaffName}` : '';
+  el.textContent = `마지막 업데이트 · ${d.toLocaleString('ko-KR')}${who}`;
 }
+
+// ════════════════════════════════════════════════════════════════════
+// 본인 배지 (admin에서 postMessage로 받은 활동 담당자)
+// ════════════════════════════════════════════════════════════════════
+function renderMeBadge() {
+  const el = document.getElementById('meBadge');
+  if (!ACTIVE_STAFF) { el.style.display = 'none'; return; }
+  // workmgmt people에서 같은 이름 찾아 매칭 — 매칭 안 되어도 본인 정보는 표시
+  const matched = DATA.people.find(p => p.name === ACTIVE_STAFF.name);
+  el.style.display = 'block';
+  el.innerHTML = matched
+    ? `● 본인: <b style="color:#FFAB40">${ACTIVE_STAFF.name}</b> (담당 카드 강조됨)`
+    : `● 본인: <b style="color:#FFAB40">${ACTIVE_STAFF.name}</b> (3인 외부 담당자 — 카드 매칭 없음)`;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// admin → iframe postMessage 수신 (admin-staff-active)
+// ════════════════════════════════════════════════════════════════════
+window.addEventListener('message', (e) => {
+  const msg = e.data;
+  if (!msg) return;
+  if (msg.type === 'admin-staff-active') {
+    ACTIVE_STAFF = msg.payload?.activeStaff || null;
+    renderMeBadge();
+    renderPeople();   // 본인 카드 강조 갱신
+  }
+});
+
+// iframe인 경우 admin에게 "ready" 신호 → 즉시 동기화 요청
+try {
+  if (window.parent && window.parent !== window) {
+    window.parent.postMessage({ type: 'workmgmt-ready' }, '*');
+  }
+} catch (_) {}
 
 // ════════════════════════════════════════════════════════════════════
 // 액션
 // ════════════════════════════════════════════════════════════════════
-function resetAll() {
-  if (!confirm('체크된 완료 상태를 모두 초기화합니다. 진행할까요?')) return;
-  localStorage.removeItem(LS_DONE);
-  localStorage.removeItem(LS_UPDATE);
+async function resetAll() {
+  if (!confirm('체크된 완료 상태를 모두 초기화합니다. 모든 사용자에게 즉시 반영됩니다.\n진행할까요?')) return;
+  DONE_STATE = {};
+  DONE_META = {
+    updatedAt: new Date().toISOString(),
+    updatedByStaffId: ACTIVE_STAFF?.id || null,
+    updatedByStaffName: ACTIVE_STAFF?.name || null,
+  };
+  saveDoneLocal({});
   renderAll();
+  try {
+    await db.collection(FS_COLL).doc(FS_DOC).set({ done: {}, ...DONE_META }, { merge: false });
+    setSyncStatus('synced');
+  } catch (e) {
+    console.error('[work-mgmt] 초기화 실패:', e);
+    setSyncStatus('error', e.message);
+  }
 }
 
 function exportJson() {
   const state = loadDone();
   const out = {
     exportedAt: new Date().toISOString(),
+    meta: DONE_META,
     summary: {
       total: DATA.projects.length,
       done: Object.keys(state).filter(k => DATA.projects.find(p => p.id === k)).length,
     },
-    projects: DATA.projects.map(p => ({
-      ...p,
-      doneAt: state[p.id] || null,
-      ownerName: (DATA.people.find(x => x.key === p.owner) || {}).name || null,
-    })),
+    projects: DATA.projects.map(p => {
+      const di = state[p.id] || null;
+      return {
+        ...p,
+        ownerName: (DATA.people.find(x => x.key === p.owner) || {}).name || null,
+        done: !!di,
+        doneAt: di?.doneAt || null,
+        doneByStaffId: di?.staffId || null,
+        doneByStaffName: di?.staffName || null,
+      };
+    }),
   };
   const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -840,9 +1030,15 @@ function renderAll() {
   renderProjMaster();
   renderMemos();
   renderUpdate();
+  renderMeBadge();
 }
 
+// ════════════════════════════════════════════════════════════════════
+// 부팅
+// ════════════════════════════════════════════════════════════════════
+DONE_STATE = loadDoneLocal();   // 즉시 캐시로 1차 렌더
 renderAll();
+subscribeFirestore();           // 그 다음 Firestore 구독 — 도착하면 자동 재렌더
 </script>
 
 </body>

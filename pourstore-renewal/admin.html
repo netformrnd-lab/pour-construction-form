@@ -4519,6 +4519,38 @@ function MethodLinksPage({showToast}){
 // 3인 기준 (송희·민지·란님) — 채림님은 별도 메모.
 // ============================================================
 function WorkMgmtPage() {
+  const { activeStaff } = useActiveStaffContext();
+  const iframeRef = useRef(null);
+  // iframe에 활동 담당자 정보 전달 (postMessage) — workmgmt는 이걸 받아 본인 카드 강조
+  const sendActiveStaff = useMemo(() => () => {
+    const win = iframeRef.current?.contentWindow;
+    if (!win) return;
+    win.postMessage({
+      type: 'admin-staff-active',
+      payload: {
+        activeStaff: activeStaff ? {
+          id: activeStaff.id,
+          name: activeStaff.name,
+          role: activeStaff.role,
+          color: activeStaff.kpiColor || null,
+          email: activeStaff.email || null,
+        } : null,
+      },
+    }, '*');
+  }, [activeStaff?.id, activeStaff?.name]);
+
+  // iframe 로드 시 + activeStaff 변경 시 자동 송신
+  useEffect(() => { sendActiveStaff(); }, [sendActiveStaff]);
+
+  // workmgmt가 "ready" 신호 보내면 즉시 한 번 더 sync (load 타이밍 안전망)
+  useEffect(() => {
+    const onMsg = (e) => {
+      if (e.data && e.data.type === 'workmgmt-ready') sendActiveStaff();
+    };
+    window.addEventListener('message', onMsg);
+    return () => window.removeEventListener('message', onMsg);
+  }, [sendActiveStaff]);
+
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100vh', background:'var(--bg)' }}>
       <div style={{
@@ -4528,7 +4560,7 @@ function WorkMgmtPage() {
         <div>
           <h1 style={{ fontSize:16, fontWeight:900, color:'var(--navy)', marginBottom:2 }}>📋 업무관리</h1>
           <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700 }}>
-            O1 매출 10억 · KR1/2/3 · 44 프로젝트 · 3인 (송희·민지·란님) · 체크 상태는 브라우저에 저장됩니다.
+            O1 매출 10억 · KR1/2/3 · 45 프로젝트 · 3인 (송희·민지·란님) · <b>실시간 협업 동기화</b> (work-mgmt/main · Firestore)
           </div>
         </div>
         <a href="./workmgmt.html" target="_blank" rel="noopener noreferrer" style={{
@@ -4539,8 +4571,10 @@ function WorkMgmtPage() {
         </a>
       </div>
       <iframe
+        ref={iframeRef}
         src="./workmgmt.html"
         title="POUR스토어 업무관리"
+        onLoad={sendActiveStaff}
         style={{ flex:1, width:'100%', border:0, background:'#fff' }}
       />
     </div>

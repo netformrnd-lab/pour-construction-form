@@ -4668,6 +4668,8 @@ function StaffPage({ onToast }) {
   const [search, setSearch] = useState('');
   const [filterRole, setFilterRole] = useState('all');
   const [filterActive, setFilterActive] = useState('active'); // active|all|inactive
+  const [viewMode, setViewMode] = useState('card'); // 'card' | 'table' — 업무관리 페이지처럼 사람 카드 그리드를 기본으로
+  const [groupByRole, setGroupByRole] = useState(true); // role별 그룹 (카드 모드)
 
   async function load() {
     try {
@@ -4889,38 +4891,199 @@ function StaffPage({ onToast }) {
     );
   }
 
+  // ─── 합계 통계 ───
+  const totalActive = list.filter(s => s.active !== false).length;
+  const totalInactive = list.length - totalActive;
+  const totalAdmins = list.filter(s => s.isAdmin).length;
+  // role별 카운트 (활성만)
+  const byRole = ROLE_KEYS.map(rk => ({
+    key: rk,
+    meta: ROLE_META[rk],
+    count: list.filter(s => s.role === rk && s.active !== false).length,
+  }));
+  // 본인 매칭
+  const isMe = (s) => activeStaff && s.id === activeStaff.id;
+  // 그룹화 (카드 모드, groupByRole=true)
+  const grouped = ROLE_KEYS.reduce((acc, rk) => {
+    const items = filtered.filter(s => s.role === rk);
+    if (items.length) acc[rk] = items;
+    return acc;
+  }, {});
+
   return (
     <div style={{ padding:'24px 32px' }}>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20, gap:16, flexWrap:'wrap' }}>
+      {/* ─── 페이지 헤더 ─── */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18, gap:16, flexWrap:'wrap' }}>
         <div>
           <h1 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', marginBottom:4 }}>👥 담당자 관리</h1>
           <div style={{ fontSize:12.5, color:'var(--text-sm)', fontWeight:700 }}>
-            어드민에서 활동하는 담당자 마스터. 향후 모든 작업은 담당자와 연결되어 기록됩니다.
+            어드민에서 활동하는 담당자 마스터. 모든 작업(상품·공신력·링크·업무관리 등)이 담당자와 자동 연결됩니다.
           </div>
         </div>
         <button onClick={openNew} style={{ padding:'12px 22px', borderRadius:10, fontSize:13, fontWeight:900, color:'#fff', background:'linear-gradient(135deg, var(--or), var(--or-d))', boxShadow:'0 4px 12px rgba(249,115,22,.25)' }}>+ 신규 담당자</button>
       </div>
 
-      <div style={{ display:'flex', gap:10, marginBottom:16, flexWrap:'wrap' }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="이름·이메일·부서 검색" style={{ ...inputCss, maxWidth:280, padding:'9px 14px' }} />
-        <select value={filterRole} onChange={e => setFilterRole(e.target.value)} style={{ ...inputCss, maxWidth:200, padding:'9px 14px' }}>
-          <option value="all">전체 역할</option>
-          {ROLE_KEYS.map(rk => <option key={rk} value={rk}>{ROLE_META[rk].icon} {ROLE_META[rk].label}</option>)}
-        </select>
-        <select value={filterActive} onChange={e => setFilterActive(e.target.value)} style={{ ...inputCss, maxWidth:160, padding:'9px 14px' }}>
+      {/* ─── 합계 위젯 (업무관리 페이지 패턴) ─── */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(150px, 1fr))', gap:10, marginBottom:14 }}>
+        <div style={{ padding:'14px 16px', background:'#fff', border:'1.5px solid var(--border)', borderLeft:'4px solid var(--or)', borderRadius:10, boxShadow:'var(--shadow)' }}>
+          <div style={{ fontSize:10.5, fontWeight:800, color:'var(--text-sm)', letterSpacing:.4 }}>전체 담당자</div>
+          <div style={{ fontSize:26, fontWeight:900, color:'var(--text)', lineHeight:1, marginTop:6 }}>{list.length}<span style={{ fontSize:13, color:'var(--text-sm)', fontWeight:700, marginLeft:4 }}>명</span></div>
+          <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700, marginTop:4 }}>등록된 모든 인원</div>
+        </div>
+        <div style={{ padding:'14px 16px', background:'#fff', border:'1.5px solid var(--border)', borderLeft:'4px solid #2BC472', borderRadius:10, boxShadow:'var(--shadow)' }}>
+          <div style={{ fontSize:10.5, fontWeight:800, color:'var(--text-sm)', letterSpacing:.4 }}>활성</div>
+          <div style={{ fontSize:26, fontWeight:900, color:'#047857', lineHeight:1, marginTop:6 }}>{totalActive}<span style={{ fontSize:13, color:'var(--text-sm)', fontWeight:700, marginLeft:4 }}>명</span></div>
+          <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700, marginTop:4 }}>어드민 접근 가능</div>
+        </div>
+        <div style={{ padding:'14px 16px', background:'#fff', border:'1.5px solid var(--border)', borderLeft:'4px solid #9CA3AF', borderRadius:10, boxShadow:'var(--shadow)' }}>
+          <div style={{ fontSize:10.5, fontWeight:800, color:'var(--text-sm)', letterSpacing:.4 }}>비활성</div>
+          <div style={{ fontSize:26, fontWeight:900, color:'#6B7280', lineHeight:1, marginTop:6 }}>{totalInactive}<span style={{ fontSize:13, color:'var(--text-sm)', fontWeight:700, marginLeft:4 }}>명</span></div>
+          <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700, marginTop:4 }}>접근 차단</div>
+        </div>
+        <div style={{ padding:'14px 16px', background:'#fff', border:'1.5px solid var(--border)', borderLeft:'4px solid var(--or-d)', borderRadius:10, boxShadow:'var(--shadow)' }}>
+          <div style={{ fontSize:10.5, fontWeight:800, color:'var(--text-sm)', letterSpacing:.4 }}>본인</div>
+          <div style={{ fontSize:16, fontWeight:900, color:'var(--text)', lineHeight:1.2, marginTop:6, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+            {activeStaff ? activeStaff.name : <span style={{ color:'var(--text-sm)', fontSize:13 }}>미선택</span>}
+          </div>
+          <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700, marginTop:4 }}>{activeStaff ? (ROLE_META[activeStaff.role]?.label || activeStaff.role) : 'PIN 후 선택'}</div>
+        </div>
+      </div>
+
+      {/* ─── role별 분포 (KPI 트리 패턴) ─── */}
+      <div style={{ padding:'14px 18px', background:'#fff', border:'1px solid var(--border)', borderRadius:10, marginBottom:18, display:'flex', alignItems:'center', gap:14, flexWrap:'wrap', boxShadow:'var(--shadow)' }}>
+        <div style={{ fontSize:11, fontWeight:800, color:'var(--text-sm)', letterSpacing:.5, marginRight:4 }}>역할 분포</div>
+        {byRole.map(r => (
+          <button key={r.key} onClick={() => setFilterRole(r.key === filterRole ? 'all' : r.key)}
+            title={r.meta.desc}
+            style={{
+              display:'inline-flex', alignItems:'center', gap:6, padding:'5px 11px', borderRadius:999,
+              border: filterRole === r.key ? `1.5px solid ${r.meta.color}` : '1.5px solid var(--border)',
+              background: filterRole === r.key ? r.meta.color + '15' : '#fff',
+              color: r.meta.color, fontSize:11.5, fontWeight:800, cursor:'pointer',
+              opacity: r.count === 0 ? 0.5 : 1,
+            }}>
+            <span style={{ fontSize:14 }}>{r.meta.icon}</span>
+            <span>{r.meta.label}</span>
+            <span style={{ fontSize:11, fontWeight:900, color: r.meta.color, background: r.meta.color + '22', padding:'1px 6px', borderRadius:999 }}>{r.count}</span>
+          </button>
+        ))}
+        {totalAdmins > 0 && (
+          <span style={{ marginLeft:'auto', fontSize:11, color:'var(--or-d)', fontWeight:800 }}>
+            마스터 관리자 {totalAdmins}명
+          </span>
+        )}
+      </div>
+
+      {/* ─── 검색 + 필터 + 뷰 토글 ─── */}
+      <div style={{ display:'flex', gap:10, marginBottom:16, flexWrap:'wrap', alignItems:'center' }}>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍 이름·이메일·부서 검색" style={{ ...inputCss, maxWidth:280, padding:'9px 14px' }} />
+        <select value={filterActive} onChange={e => setFilterActive(e.target.value)} style={{ ...inputCss, maxWidth:140, padding:'9px 14px' }}>
           <option value="active">활성만</option>
           <option value="all">전체</option>
           <option value="inactive">비활성만</option>
         </select>
-        <div style={{ alignSelf:'center', fontSize:12, color:'var(--text-sm)', fontWeight:700, marginLeft:'auto' }}>
-          총 {filtered.length}명 / 전체 {list.length}명
+        {filterRole !== 'all' && (
+          <button onClick={() => setFilterRole('all')} style={{ padding:'6px 11px', fontSize:11, fontWeight:800, color:'var(--text-sm)', border:'1px solid var(--border)', borderRadius:7, background:'#fff' }}>
+            {ROLE_META[filterRole]?.icon} {ROLE_META[filterRole]?.label} ✕
+          </button>
+        )}
+        {/* 뷰 모드 토글 */}
+        <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8 }}>
+          <div style={{ fontSize:11.5, color:'var(--text-sm)', fontWeight:700 }}>
+            총 <b style={{ color:'var(--text)' }}>{filtered.length}</b>명 / 전체 {list.length}명
+          </div>
+          <div style={{ display:'inline-flex', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden' }}>
+            <button onClick={() => setViewMode('card')} style={{
+              padding:'7px 12px', fontSize:11.5, fontWeight:800,
+              background: viewMode === 'card' ? 'var(--or)' : '#fff',
+              color: viewMode === 'card' ? '#fff' : 'var(--text-sm)',
+            }}>🃏 카드</button>
+            <button onClick={() => setViewMode('table')} style={{
+              padding:'7px 12px', fontSize:11.5, fontWeight:800,
+              background: viewMode === 'table' ? 'var(--or)' : '#fff',
+              color: viewMode === 'table' ? '#fff' : 'var(--text-sm)',
+              borderLeft:'1px solid var(--border)',
+            }}>📋 표</button>
+          </div>
         </div>
       </div>
 
       {filtered.length === 0 ? (
         <Empty icon="👥" title={list.length === 0 ? "등록된 담당자가 없습니다" : "조건에 맞는 담당자가 없습니다"}
           desc={list.length === 0 ? "+ 신규 담당자 버튼을 눌러 첫 담당자를 등록하세요. 이메일은 향후 OTP 인증에 사용됩니다." : "필터를 조정해 보세요."} />
+      ) : viewMode === 'card' ? (
+        // ─── 카드 뷰 (업무관리 사람 카드 패턴) ───
+        <div>
+          {Object.entries(grouped).map(([rk, items]) => {
+            const meta = ROLE_META[rk];
+            return (
+              <div key={rk} style={{ marginBottom:22 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10, padding:'4px 2px' }}>
+                  <span style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 11px', borderRadius:7, fontSize:12, fontWeight:900, color:'#fff', background:meta.color }}>
+                    {meta.icon} {meta.label}
+                  </span>
+                  <span style={{ fontSize:11, fontWeight:700, color:'var(--text-sm)' }}>{items.length}명</span>
+                  <span style={{ fontSize:11, fontWeight:600, color:'var(--text-xs)', fontStyle:'italic' }}>{meta.desc}</span>
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:12 }}>
+                  {items.map(s => {
+                    const me = isMe(s);
+                    const c = s.kpiColor || meta.color;
+                    return (
+                      <div key={s.id} style={{
+                        background:'#fff', borderRadius:12, padding:'16px 18px',
+                        border: me ? `2px solid #2BC472` : `1.5px solid var(--border)`,
+                        borderTop: `4px solid ${c}`,
+                        boxShadow: me ? '0 4px 16px rgba(43,196,114,.18)' : 'var(--shadow)',
+                        background: me ? 'linear-gradient(180deg, #F3FBF6 0%, #FFFFFF 70%)' : '#fff',
+                        opacity: s.active === false ? 0.65 : 1,
+                        position:'relative',
+                      }}>
+                        {me && (
+                          <span style={{ position:'absolute', top:10, right:12, padding:'2px 8px', fontSize:9.5, fontWeight:900, color:'#fff', background:'#2BC472', borderRadius:999, letterSpacing:0.3 }}>본인</span>
+                        )}
+                        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
+                          <div style={{ width:46, height:46, borderRadius:'50%', background:c, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, fontWeight:900, flexShrink:0 }}>
+                            {s.kpiInitial || (s.name || '?').charAt(0)}
+                          </div>
+                          <div style={{ minWidth:0, flex:1 }}>
+                            <div style={{ fontSize:15, fontWeight:900, letterSpacing:-0.2, color:'var(--text)' }}>{s.name}</div>
+                            <div style={{ display:'flex', gap:6, marginTop:2, flexWrap:'wrap', alignItems:'center' }}>
+                              {s.isAdmin && <span style={{ fontSize:9, fontWeight:900, color:'var(--or-d)', background:'var(--or-l)', padding:'1px 6px', borderRadius:4 }}>마스터 관리자</span>}
+                              <span style={{ fontSize:10, fontWeight:700, color:'var(--text-sm)' }}>{s.companyType || '본사'}</span>
+                              {s.active === false && <span style={{ fontSize:9, fontWeight:900, color:'#6B7280', background:'#F3F4F6', padding:'1px 6px', borderRadius:4 }}>비활성</span>}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ fontSize:11, color:'var(--text-md)', fontWeight:600, lineHeight:1.6, paddingBottom:10, borderBottom:'1px dashed var(--border)', marginBottom:10 }}>
+                          {s.department && <div>🏢 {s.department}</div>}
+                          {s.email && <div style={{ fontFamily:'monospace', fontSize:10.5, color:'var(--text-sm)', wordBreak:'break-all' }}>✉ {s.email}</div>}
+                          {s.phone && <div>📞 {s.phone}</div>}
+                          {!s.department && !s.email && !s.phone && <div style={{ color:'var(--text-xs)' }}>—</div>}
+                        </div>
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', fontSize:10, color:'var(--text-sm)', fontWeight:700, marginBottom:10 }}>
+                          <div>
+                            {s.createdByStaffName && <div>등록: {s.createdByStaffName} · {relativeTime(s.createdAt)}</div>}
+                            {s.updatedByStaffName && s.updatedAt !== s.createdAt && <div>수정: {s.updatedByStaffName} · {relativeTime(s.updatedAt)}</div>}
+                            {!s.createdByStaffName && <div style={{ color:'var(--text-xs)' }}>{relativeTime(s.createdAt)}</div>}
+                          </div>
+                        </div>
+                        <div style={{ display:'flex', gap:6 }}>
+                          <button onClick={() => openEdit(s)} style={{ flex:1, padding:'7px 0', borderRadius:7, fontSize:11, fontWeight:800, color:'var(--or-d)', border:'1px solid var(--or-l)', background:'#fff' }}>수정</button>
+                          <button onClick={() => toggleActive(s)} style={{ flex:1, padding:'7px 0', borderRadius:7, fontSize:11, fontWeight:800, color: s.active === false ? '#047857' : '#6B7280', border:'1px solid var(--border)', background:'#fff' }}>
+                            {s.active === false ? '활성화' : '비활성화'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       ) : (
+        // ─── 표 뷰 ───
         <div style={{ background:'#fff', borderRadius:'var(--r-lg)', overflow:'hidden', border:'1px solid var(--border)' }}>
           <table style={{ width:'100%', borderCollapse:'collapse' }}>
             <thead>
@@ -4939,15 +5102,19 @@ function StaffPage({ onToast }) {
             <tbody>
               {filtered.map(s => {
                 const meta = ROLE_META[s.role] || { label: s.role, icon: '❔', color: '#9CA3AF' };
+                const me = isMe(s);
                 return (
-                  <tr key={s.id} style={{ borderTop:'1px solid var(--border-s)' }}>
+                  <tr key={s.id} style={{ borderTop:'1px solid var(--border-s)', background: me ? 'rgba(43,196,114,.05)' : undefined }}>
                     <td style={td()}>
                       <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                        <div style={{ width:32, height:32, borderRadius:'50%', background: s.kpiColor || meta.color, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:900 }}>
+                        <div style={{ width:32, height:32, borderRadius:'50%', background: s.kpiColor || meta.color, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:900, boxShadow: me ? '0 0 0 2px #2BC472' : 'none' }}>
                           {s.kpiInitial || (s.name || '?').charAt(0)}
                         </div>
                         <div>
-                          <div style={{ fontWeight:800 }}>{s.name}</div>
+                          <div style={{ fontWeight:800, display:'flex', alignItems:'center', gap:6 }}>
+                            {s.name}
+                            {me && <span style={{ fontSize:9, fontWeight:900, color:'#fff', background:'#2BC472', padding:'1px 6px', borderRadius:999 }}>본인</span>}
+                          </div>
                           {s.isAdmin && <div style={{ fontSize:10, fontWeight:800, color:'var(--or-d)' }}>마스터 관리자</div>}
                         </div>
                       </div>

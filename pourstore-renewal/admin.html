@@ -46,6 +46,22 @@ button { cursor: pointer; border: none; background: none; }
 a { color: inherit; text-decoration: none; }
 input::placeholder, textarea::placeholder { color: var(--text-xs); }
 #root { min-height: 100vh; }
+
+/* 인쇄 전용 컨테이너 — 화면에서는 숨김, @media print에서만 표시 */
+.print-only { display: none; }
+
+/* @media print — 인쇄 시 어드민 UI 전부 숨기고 .print-only(포스터) 1장만 출력 */
+@media print {
+  @page { size: A4 portrait; margin: 10mm; }
+  body { background: #fff !important; }
+  /* 어드민 본체 + 모달 컨트롤 전부 숨김 */
+  #root > div:first-child, .poster-modal-shell, .poster-controls { display: none !important; }
+  /* 인쇄용 포스터만 표시 */
+  .print-only { display: block !important; }
+  .print-only .channels-poster { box-shadow: none !important; max-width: 100% !important; }
+  /* 배경색·테두리 보존 (Chrome/Edge/Safari) */
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+}
 </style>
 </head>
 <body>
@@ -6607,11 +6623,30 @@ const CHANNEL_STATUS_META = {
   archived: { label: '종료',  color: '#6B7280', bg: '#F3F4F6' },
 };
 
+// 기본 거래코드 시드 — workmgmt KR breakdown과 1:1 매핑 (KR1·KR2)
+// "기본 채널 일괄 등록" 버튼 1회 클릭 시 채워짐. 이후 자유 편집.
+const DEFAULT_CHANNELS_SEED = [
+  // KR1 — POUR 직판 5억
+  { code: 'OWN',  krGroup: 'KR1', name: '자사몰 직판',           target: 300000000, unit: '원', description: 'pourstore.net 직판 (PG·CRM 자체)' },
+  { code: 'MK',   krGroup: 'KR1', name: '마켓플레이스',          target: 150000000, unit: '원', description: '스마트스토어·쿠팡·11번가·G마켓·옥션·오늘의집' },
+  { code: 'SHOW', krGroup: 'KR1', name: '쇼룸·전화·박람회',      target:  50000000, unit: '원', description: '오프라인 쇼룸·전화 주문·박람회 현장 매출' },
+  // KR2 — B2B 종합 5억
+  { code: 'P4', krGroup: 'KR2', name: '파트너사',                target: 300000000, unit: '원', description: 'POUR 공법 파트너사 직거래' },
+  { code: 'P3', krGroup: 'KR2', name: '대리점·오프라인몰',       target:  80000000, unit: '원', description: '지역 대리점·오프라인 자재상' },
+  { code: 'H',  krGroup: 'KR2', name: '이관 (공법·솔루션)',      target:  50000000, unit: '원', description: 'POUR공법·솔루션 영업에서 이관된 단건 거래' },
+  { code: 'P5', krGroup: 'KR2', name: '위탁·브로커',             target:  40000000, unit: '원', description: '위탁 셀러·인플루언서·유튜버·브로커' },
+  { code: 'P6', krGroup: 'KR2', name: '온라인 도매',             target:  30000000, unit: '원', description: '도매꾹·나비엠알오·온라인 도매 MOQ 운영' },
+  { code: 'M',  krGroup: 'KR2', name: '시공매칭',                target: 0,         unit: '원', description: '자재 + 시공 한묶음 매칭 (TBD)' },
+  { code: 'G',  krGroup: 'KR2', name: '조달청·관급 (벤처나라)',   target: 0,         unit: '원', description: '벤처나라 등록 → 건축사 스펙 인서트 → 시공사·관급 발주 (신설, 학습기간)' },
+];
+
 function ChannelsPage({ onToast }) {
   const { activeStaff, audit } = useActiveStaffContext();
   const [channels, setChannels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(null);  // null | 'new' | channel object
+  const [showPoster, setShowPoster] = useState(false);
+  const [seeding, setSeeding] = useState(false);
 
   useEffect(() => {
     const unsub = db.collection(COLLECTIONS.WORK_CHANNELS).onSnapshot(snap => {
@@ -6654,6 +6689,37 @@ function ChannelsPage({ onToast }) {
     onToast({ message: '삭제 완료', type: 'success' });
   };
 
+  // 기본 채널 일괄 등록 — workmgmt KR breakdown을 work-channels로 1회 시드
+  const seedDefaults = async () => {
+    const existingCodes = new Set(channels.map(c => (c.code || '').toUpperCase()));
+    const toAdd = DEFAULT_CHANNELS_SEED.filter(s => !existingCodes.has(s.code.toUpperCase()));
+    if (toAdd.length === 0) { onToast({ message: '이미 모든 기본 채널이 등록되어 있습니다', type: 'info' }); return; }
+    if (!confirm(`기본 채널 ${toAdd.length}건을 일괄 등록합니다.\n(이미 등록된 코드는 건너뜁니다)\n진행할까요?`)) return;
+    setSeeding(true);
+    try {
+      const krOrder = { KR1: 0, KR2: 100, KR3: 200, '기타': 900 };
+      let idx = 0;
+      for (const s of toAdd) {
+        await db.collection(COLLECTIONS.WORK_CHANNELS).add({
+          code: s.code.toUpperCase(),
+          krGroup: s.krGroup,
+          name: s.name,
+          target: s.target,
+          unit: s.unit,
+          description: s.description,
+          status: s.target > 0 ? 'active' : 'draft',
+          order: (krOrder[s.krGroup] || 0) + idx,
+          ...audit.create(),
+        });
+        idx++;
+      }
+      onToast({ message: `기본 채널 ${toAdd.length}건 등록 완료`, type: 'success' });
+    } catch (e) {
+      onToast({ message: '일괄 등록 실패: ' + e.message, type: 'error' });
+    }
+    setSeeding(false);
+  };
+
   // KR 그룹별 묶기
   const byKr = {};
   CHANNEL_KR_GROUPS.forEach(g => { byKr[g] = channels.filter(c => c.krGroup === g); });
@@ -6668,10 +6734,24 @@ function ChannelsPage({ onToast }) {
             <br/>전체 {channels.length} · 운영 {channels.filter(c => c.status === 'active').length} · 준비 {channels.filter(c => c.status === 'draft').length} · 종료 {channels.filter(c => c.status === 'archived').length}
           </div>
         </div>
-        <button onClick={() => setShowForm('new')} style={{
-          padding:'10px 18px', borderRadius:9, fontSize:13, fontWeight:900, color:'#fff',
-          background:'linear-gradient(135deg, var(--or), var(--or-d))',
-        }}>+ 채널 추가</button>
+        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+          {channels.length > 0 && (
+            <button onClick={() => setShowPoster(true)} style={{
+              padding:'10px 16px', borderRadius:9, fontSize:13, fontWeight:900, color:'var(--navy)',
+              background:'#fff', border:'1.5px solid var(--navy)',
+            }} title="A4 인쇄용 포스터 — 벽에 붙여 팀원들이 항상 보게 하기">📄 인쇄용 포스터</button>
+          )}
+          {channels.length === 0 && (
+            <button onClick={seedDefaults} disabled={seeding} style={{
+              padding:'10px 16px', borderRadius:9, fontSize:13, fontWeight:900, color:'#fff',
+              background:'#0F1F5C', border:'none', opacity: seeding ? 0.6 : 1,
+            }}>🌱 기본 채널 일괄 등록 (10건)</button>
+          )}
+          <button onClick={() => setShowForm('new')} style={{
+            padding:'10px 18px', borderRadius:9, fontSize:13, fontWeight:900, color:'#fff',
+            background:'linear-gradient(135deg, var(--or), var(--or-d))',
+          }}>+ 채널 추가</button>
+        </div>
       </div>
 
       {/* 안내 박스 (벤처나라 사례) */}
@@ -6686,8 +6766,9 @@ function ChannelsPage({ onToast }) {
 
       {channels.length === 0 ? (
         <div style={{ padding:60, textAlign:'center', background:'#fff', border:'1px dashed var(--border)', borderRadius:12, color:'var(--text-sm)', fontSize:13, fontWeight:600 }}>
-          등록된 거래 채널이 없습니다. [+ 채널 추가]로 첫 채널을 등록해 주세요.
-          <br/>예: KR2 / G / 조달청·관급 (벤처나라 등록 후속)
+          등록된 거래 채널이 없습니다.
+          <br/>👉 상단의 <b style={{ color:'var(--navy)' }}>[🌱 기본 채널 일괄 등록]</b> 버튼 한 번 클릭으로 KR1·KR2 기본 10개 채널이 자동 등록됩니다.
+          <br/>(또는 [+ 채널 추가]로 1개씩 직접 입력)
         </div>
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
@@ -6755,7 +6836,163 @@ function ChannelsPage({ onToast }) {
           onCancel={() => setShowForm(null)}
         />}
       </Modal>
+
+      {showPoster && <ChannelsPoster channels={channels} onClose={() => setShowPoster(false)} />}
     </div>
+  );
+}
+
+// ============================================================
+// ChannelsPoster — A4 인쇄용 포스터 (벽에 붙여 팀원 암기용)
+// 큰 코드 + 채널명 + 목표를 KR 그룹별로 시각 정리.
+// window.print() 호출 시 @media print 룰이 사이드바·헤더·기타 UI 전부 숨기고
+// .print-only 영역(이 포스터)만 A4 1장에 출력.
+// ============================================================
+const KR_POSTER_META = {
+  KR1: { label: 'KR1 · POUR 직판',           sub: '자사몰·마켓·쇼룸 — 5억', accent: '#3182F6', bg: '#EBF3FF' },
+  KR2: { label: 'KR2 · B2B 종합',            sub: '파트너·대리점·도매·관급 — 5억', accent: '#9C27B0', bg: '#F5E9F7' },
+  KR3: { label: 'KR3 · 운영 시스템',          sub: 'CRM·매출관리·어드민·매뉴얼', accent: '#FF6F00', bg: '#FFF3E0' },
+  '기타': { label: '기타',                    sub: '', accent: '#6B7280', bg: '#F3F4F6' },
+};
+
+function ChannelsPoster({ channels, onClose }) {
+  // 화면용은 모달 컨테이너, 인쇄용은 print-only 컨테이너에 똑같은 HTML 1회만 렌더 (CSS로 보임 제어)
+  const active = channels.filter(c => c.status !== 'archived');
+  const byKr = {};
+  CHANNEL_KR_GROUPS.forEach(g => { byKr[g] = active.filter(c => c.krGroup === g).sort((a,b) => (Number(a.order)||0) - (Number(b.order)||0)); });
+  const today = new Date().toLocaleDateString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit' });
+
+  const PosterContent = () => (
+    <div className="channels-poster" style={{
+      width:'100%', maxWidth: 794, margin:'0 auto',  // A4 portrait width @ 96dpi ≈ 794px
+      background:'#fff', padding:'24px 28px',
+      fontFamily:'inherit', color:'#0F1F5C', boxSizing:'border-box',
+    }}>
+      {/* 헤더 */}
+      <div style={{ borderBottom:'3px solid #0F1F5C', paddingBottom:10, marginBottom:14, display:'flex', justifyContent:'space-between', alignItems:'flex-end' }}>
+        <div>
+          <div style={{ fontSize:11, fontWeight:800, color:'#EA580C', letterSpacing:3, marginBottom:2 }}>POUR STORE · TRANSACTION CODES</div>
+          <h1 style={{ fontSize:24, fontWeight:900, letterSpacing:-0.8, lineHeight:1.1 }}>거래코드 마스터 · O1 매출 10억</h1>
+          <div style={{ fontSize:11.5, fontWeight:700, color:'#4B5563', marginTop:3 }}>3인 (송희·민지·란) · KR1 5억 + KR2 5억 · 코드는 모두 외워서 일합시다</div>
+        </div>
+        <div style={{ textAlign:'right', fontSize:10.5, fontWeight:700, color:'#6B7280' }}>
+          기준일 {today}<br/>총 {active.length}개 채널
+        </div>
+      </div>
+
+      {/* KR1 + KR2 가로 2열 */}
+      {['KR1', 'KR2'].map(grp => {
+        const items = byKr[grp];
+        if (!items || items.length === 0) return null;
+        const meta = KR_POSTER_META[grp];
+        return (
+          <div key={grp} style={{ marginBottom:14, border:`2px solid ${meta.accent}`, borderRadius:10, overflow:'hidden', pageBreakInside:'avoid' }}>
+            <div style={{ background:meta.accent, color:'#fff', padding:'8px 14px', display:'flex', justifyContent:'space-between', alignItems:'baseline' }}>
+              <div style={{ fontSize:14, fontWeight:900, letterSpacing:-0.3 }}>{meta.label}</div>
+              <div style={{ fontSize:11, fontWeight:700, opacity:.95 }}>{meta.sub}</div>
+            </div>
+            <div style={{ background:meta.bg, padding:10, display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:8 }}>
+              {items.map(c => {
+                const isNew = (c.description || '').includes('신설') || c.code === 'G';
+                return (
+                  <div key={c.id} style={{ background:'#fff', border:`1.5px solid ${meta.accent}`, borderRadius:8, padding:'10px 12px', position:'relative', minHeight:78 }}>
+                    {isNew && <span style={{ position:'absolute', top:4, right:4, fontSize:8.5, fontWeight:900, color:'#fff', background:'#DC2626', padding:'1px 6px', borderRadius:4, letterSpacing:0.5 }}>NEW</span>}
+                    <div style={{ display:'flex', alignItems:'baseline', gap:6, marginBottom:3 }}>
+                      <span style={{ fontSize:24, fontWeight:900, color:meta.accent, fontFamily:'monospace', letterSpacing:-1 }}>{c.code}</span>
+                      <span style={{ fontSize:12, fontWeight:800, color:'#0F1F5C', flex:1, lineHeight:1.15 }}>{c.name}</span>
+                    </div>
+                    <div style={{ fontSize:11, fontWeight:800, color:meta.accent, marginBottom:3 }}>
+                      {c.target > 0 ? `${(c.target / 100000000).toFixed(1)}억` : (c.target === 0 ? 'TBD' : `${fmtPrice(c.target)} ${c.unit||''}`)}
+                    </div>
+                    {c.description && (
+                      <div style={{ fontSize:9.5, fontWeight:600, color:'#4B5563', lineHeight:1.35 }}>{c.description}</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* KR3 + 기타 */}
+      {['KR3', '기타'].filter(grp => byKr[grp]?.length).map(grp => {
+        const items = byKr[grp];
+        const meta = KR_POSTER_META[grp];
+        return (
+          <div key={grp} style={{ marginBottom:12, border:`1.5px solid ${meta.accent}`, borderRadius:8, padding:'8px 12px', background:meta.bg, pageBreakInside:'avoid' }}>
+            <div style={{ fontSize:11, fontWeight:900, color:meta.accent, marginBottom:5 }}>{meta.label}</div>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+              {items.map(c => (
+                <span key={c.id} style={{ background:'#fff', padding:'4px 9px', borderRadius:5, border:`1px solid ${meta.accent}`, fontSize:10, fontWeight:800, color:'#0F1F5C' }}>
+                  <b style={{ color:meta.accent, fontFamily:'monospace' }}>{c.code}</b> · {c.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* 영업 흐름 다이어그램 (조달청 G 채널이 있을 때만) */}
+      {active.some(c => c.code === 'G') && (
+        <div style={{ marginTop:10, padding:10, background:'#0F1F5C', color:'#fff', borderRadius:8, pageBreakInside:'avoid' }}>
+          <div style={{ fontSize:11, fontWeight:900, marginBottom:6, color:'#FED7AA' }}>🎯 G 채널 (조달청·관급) 영업 흐름</div>
+          <div style={{ display:'flex', alignItems:'center', gap:4, fontSize:9.5, fontWeight:800, lineHeight:1.3, flexWrap:'wrap' }}>
+            <span style={{ background:'rgba(255,255,255,.15)', padding:'4px 8px', borderRadius:4 }}>① 건축사</span>
+            <span style={{ opacity:.6 }}>▶</span>
+            <span style={{ background:'rgba(255,255,255,.15)', padding:'4px 8px', borderRadius:4 }}>② 도면·시방서 스펙 반영</span>
+            <span style={{ opacity:.6 }}>▶</span>
+            <span style={{ background:'rgba(255,255,255,.15)', padding:'4px 8px', borderRadius:4 }}>③ 시공사·공무팀</span>
+            <span style={{ opacity:.6 }}>▶</span>
+            <span style={{ background:'rgba(255,255,255,.15)', padding:'4px 8px', borderRadius:4 }}>④ 관급/민간 발주</span>
+            <span style={{ opacity:.6 }}>▶</span>
+            <span style={{ background:'#EA580C', padding:'4px 8px', borderRadius:4 }}>⑤ POUR 자재 선정</span>
+          </div>
+          <div style={{ fontSize:9, fontWeight:600, color:'#FED7AA', marginTop:6, lineHeight:1.4 }}>
+            ⚠ B2C와 다름 — "예뻐요·셀프인테리어" 카피 ❌ / "시험성적서·신장률·인장강도·내후성·친환경 수성" 카피 ⭕
+          </div>
+        </div>
+      )}
+
+      {/* 푸터 */}
+      <div style={{ marginTop:12, paddingTop:8, borderTop:'1px dashed #D1D5DB', fontSize:9, color:'#9CA3AF', fontWeight:700, textAlign:'center', letterSpacing:0.3 }}>
+        POUR스토어 어드민센터 · 거래코드·채널 페이지에서 최신 갱신 · 변경 시 본 포스터 재인쇄
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      {/* 화면용 모달 (인쇄 시에는 @media print로 숨김) */}
+      <div className="poster-modal-shell" onClick={onClose} style={{
+        position:'fixed', inset:0, background:'rgba(15,31,92,.55)', zIndex:5500,
+        display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'20px 16px', overflowY:'auto', backdropFilter:'blur(2px)',
+      }}>
+        <div onClick={e => e.stopPropagation()} style={{ background:'#fff', borderRadius:14, maxWidth:840, width:'100%', boxShadow:'var(--shadow-lg)' }}>
+          {/* 컨트롤 바 (인쇄 시 숨김) */}
+          <div className="poster-controls" style={{ padding:'10px 14px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+            <div style={{ fontSize:13, fontWeight:900, color:'var(--navy)' }}>📄 인쇄용 포스터 미리보기 (A4 세로)</div>
+            <div style={{ display:'flex', gap:6 }}>
+              <button onClick={() => window.print()} style={{ padding:'7px 14px', borderRadius:7, fontSize:12, fontWeight:900, color:'#fff', background:'var(--or)' }}>🖨️ 인쇄</button>
+              <button onClick={onClose} style={{ padding:'7px 14px', borderRadius:7, fontSize:12, fontWeight:800, background:'var(--bg)', color:'var(--text-md)' }}>닫기</button>
+            </div>
+          </div>
+          {/* 포스터 본문 */}
+          <div style={{ padding:'18px 12px', background:'#F3F4F6' }}>
+            <div style={{ background:'#fff', boxShadow:'0 4px 12px rgba(0,0,0,.06)' }}>
+              <PosterContent />
+            </div>
+            <div style={{ fontSize:10.5, color:'var(--text-sm)', fontWeight:700, marginTop:10, textAlign:'center', lineHeight:1.6 }}>
+              인쇄 시 브라우저 인쇄 다이얼로그에서 "배경 그래픽" 옵션을 켜주세요 (Chrome: 더보기 → 옵션). 권장: A4 · 세로 · 여백 보통.
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* 인쇄 전용 컨테이너 (@media print에서만 표시) */}
+      <div className="print-only">
+        <PosterContent />
+      </div>
+    </>
   );
 }
 

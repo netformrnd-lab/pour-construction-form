@@ -619,9 +619,13 @@ function subscribeFirestore() {
   });
 }
 
+// 마지막 에러 메시지 — 메타바 클릭 시 상세 안내에 사용
+let _LAST_SYNC_ERR = '';
+
 function setSyncStatus(state, msg) {
   const el = document.getElementById('syncStatus');
   if (!el) return;
+  if (state === 'error') _LAST_SYNC_ERR = msg || '';
   const m = {
     connecting: { txt: '동기화 중...', color: '#FFAB40' },
     synced:     { txt: '실시간 동기화 OK', color: '#2BC472' },
@@ -629,6 +633,27 @@ function setSyncStatus(state, msg) {
   }[state] || { txt: state, color: '#8B95A1' };
   el.textContent = '● ' + m.txt;
   el.style.color = m.color;
+}
+
+// 메타바 동기화 오류 클릭 시 원인·해결 안내 모달
+function showSyncErrorHelp() {
+  const detail = _LAST_SYNC_ERR || '(원인 미상)';
+  const isPerm = /permission|insufficient|denied|PERMISSION_DENIED/i.test(detail);
+  const lines = [
+    `에러 메시지: ${detail}`,
+    '',
+    isPerm
+      ? '⚠ Firestore 권한 거부 — work-mgmt 컬렉션 규칙이 콘솔에 배포되지 않은 것이 가장 흔한 원인입니다.'
+      : '⚠ Firestore 연결 실패 — 네트워크 또는 콘솔 설정 확인 필요.',
+    '',
+    '해결 방법:',
+    '1) Firebase 콘솔(pour-app-new) → Firestore → 규칙 탭에서 firestore.rules의 최신 내용을 붙여넣고 "게시" 클릭',
+    '2) work-mgmt / pour-* / staff 컬렉션이 모두 allow read,write로 열려있는지 확인',
+    '3) 네트워크 연결 확인 후 페이지 새로고침',
+    '',
+    '※ 데이터는 localStorage에 캐시되므로 동기화 오류 상태에서도 본인 화면 작업은 가능 (다만 다른 담당자와 실시간 공유 안 됨)',
+  ];
+  alert(lines.join('\n'));
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -985,8 +1010,27 @@ function renderUpdate() {
 }
 
 // ════════════════════════════════════════════════════════════════════
-// 본인 배지 (admin에서 postMessage로 받은 활동 담당자)
+// 본인 배지 + 담당자 매칭 헬퍼
+// 매칭 우선순위:
+//   1) kpiMemberId === people.key  ← 안정적 ID 매칭 (어드민 select로 강제 입력)
+//   2) 이름 완전 일치
+//   3) 이름 부분 일치 (예: "김송희" ↔ "송희") — 레거시 호환
 // ════════════════════════════════════════════════════════════════════
+function matchPersonByStaff(staff) {
+  if (!staff) return null;
+  // 1순위: kpiMemberId (어드민에서 select로 강제 입력된 안정 키)
+  if (staff.kpiMemberId) {
+    const m = DATA.people.find(p => p.key === staff.kpiMemberId);
+    if (m) return m;
+  }
+  // 2~3순위: 이름 완전 일치 → 부분 일치 (레거시)
+  const tn = String(staff.name || '').trim();
+  if (!tn) return null;
+  let m = DATA.people.find(p => p.name === tn);
+  if (m) return m;
+  return DATA.people.find(p => tn.includes(p.name) || p.name.includes(tn)) || null;
+}
+
 function renderMeBadge() {
   const el = document.getElementById('meBadge');
   const meta = document.getElementById('metaMe');
@@ -995,15 +1039,18 @@ function renderMeBadge() {
     if (meta) meta.style.display = 'none';
     return;
   }
-  const matched = DATA.people.find(p => p.name === ACTIVE_STAFF.name);
+  const matched = matchPersonByStaff(ACTIVE_STAFF);
+  const matchedBy = matched
+    ? (ACTIVE_STAFF.kpiMemberId && matched.key === ACTIVE_STAFF.kpiMemberId ? 'ID' : '이름')
+    : null;
   const html = matched
-    ? `● 본인: <b style="color:#FFAB40">${ACTIVE_STAFF.name}</b> (담당 카드 강조됨)`
-    : `● 본인: <b style="color:#FFAB40">${ACTIVE_STAFF.name}</b> (3인 외부 담당자 — 카드 매칭 없음)`;
+    ? `● 본인: <b style="color:#FFAB40">${ACTIVE_STAFF.name}</b> → <b>${matched.name}</b> (${matchedBy} 매칭 · 담당 카드 강조됨)`
+    : `● 본인: <b style="color:#FFAB40">${ACTIVE_STAFF.name}</b> (3인 외부 담당자 — 카드 매칭 없음 · 어드민에서 매칭 ID 선택 필요)`;
   if (el) { el.style.display = 'block'; el.innerHTML = html; }
   if (meta) {
     meta.style.display = 'inline-flex';
     meta.className = 'meta-pill me';
-    meta.innerHTML = `<span class="dot"></span> ${matched ? '본인' : '본인(외부)'}: <b>${ACTIVE_STAFF.name}</b>`;
+    meta.innerHTML = `<span class="dot"></span> ${matched ? '본인' : '본인(외부)'}: <b>${ACTIVE_STAFF.name}</b>${matched && matched.name !== ACTIVE_STAFF.name ? ` → ${matched.name}` : ''}`;
   }
 }
 
@@ -1014,6 +1061,7 @@ const IS_IFRAME = (() => { try { return window.parent && window.parent !== windo
 if (IS_IFRAME) document.body.classList.add('in-iframe');
 
 // setSyncStatus 보강 — 메타바도 같이 업데이트
+// 에러 상태에서는 클릭 시 원인·해결 안내 alert 표시 (Firestore 규칙 콘솔 배포 필요 시)
 const _origSetSyncStatus = setSyncStatus;
 setSyncStatus = function(state, msg) {
   _origSetSyncStatus(state, msg);
@@ -1021,7 +1069,14 @@ setSyncStatus = function(state, msg) {
   if (!m) return;
   const cls = { connecting: '', synced: 'ok', error: 'err' }[state] || '';
   m.className = 'meta-pill ' + cls;
-  m.innerHTML = `<span class="dot"></span> ${state === 'synced' ? '실시간 동기화' : state === 'error' ? '동기화 오류' : '동기화 중...'}`;
+  m.style.cursor = state === 'error' ? 'pointer' : 'default';
+  m.title = state === 'error' ? '클릭하면 원인·해결 안내가 표시됩니다' : '';
+  m.innerHTML = `<span class="dot"></span> ${state === 'synced' ? '실시간 동기화' : state === 'error' ? '동기화 오류 (클릭)' : '동기화 중...'}`;
+  // 핸들러 1회 등록 (idempotent)
+  if (!m._helpBound) {
+    m.addEventListener('click', () => { if (m.classList.contains('err')) showSyncErrorHelp(); });
+    m._helpBound = true;
+  }
 };
 
 // 메타바 D-Day 위젯 동기화 (renderDDay 보강)
@@ -1043,22 +1098,30 @@ renderDDay = function() {
 
 // ════════════════════════════════════════════════════════════════════
 // admin → iframe postMessage 수신 (admin-staff-active)
-// 어드민 staff 컬렉션이 단일 진실 소스 — DATA.people과 이름으로 매칭하여
-// 컬러·이니셜·이메일·부서 정보를 풍부하게 사용.
+// 어드민 staff 컬렉션이 단일 진실 소스. 매칭 우선순위:
+//   1) kpiMemberId === people.key (어드민 select로 강제 입력된 안정 키)
+//   2) 이름 완전 일치
+//   3) 이름 부분 일치 (레거시)
 // ════════════════════════════════════════════════════════════════════
-let STAFF_LIST = [];  // admin staff 목록 (이름 매칭용)
+let STAFF_LIST = [];  // admin staff 목록
 window.addEventListener('message', (e) => {
   const msg = e.data;
   if (!msg) return;
   if (msg.type === 'admin-staff-active') {
     ACTIVE_STAFF = msg.payload?.activeStaff || null;
     STAFF_LIST = msg.payload?.staffList || [];
-    // DATA.people에 staff 매칭 정보 주입 (이름 기준)
+    // DATA.people에 staff 매칭 정보 주입 — ID 우선, 이름 fallback
     DATA.people.forEach(p => {
-      const matched = STAFF_LIST.find(s => s.name === p.name);
+      // 1순위: kpiMemberId === p.key
+      let matched = STAFF_LIST.find(s => s.kpiMemberId && s.kpiMemberId === p.key);
+      // 2순위: 이름 완전 일치
+      if (!matched) matched = STAFF_LIST.find(s => s.name === p.name);
+      // 3순위: 부분 일치 (예: admin "김송희" ↔ workmgmt "송희")
+      if (!matched) matched = STAFF_LIST.find(s => (s.name || '').includes(p.name) || p.name.includes(s.name || ''));
       p._adminMatched = !!matched;
+      p._matchedBy = matched ? (matched.kpiMemberId === p.key ? 'id' : 'name') : null;
       p._staffId = matched?.id || null;
-      p._department = matched?.department || '';
+      p._adminName = matched?.name || null;
       p._kpiColor = matched?.kpiColor || null;
       p._email = matched?.email || null;
     });
@@ -1072,7 +1135,6 @@ window.addEventListener('message', (e) => {
 function renderMissingStaffNotice() {
   const el = document.getElementById('missingNotice');
   if (!el) return;
-  // STAFF_LIST가 비어있으면 (admin 진입 전 또는 등록 0명) 표시 안 함
   if (!STAFF_LIST.length) { el.style.display = 'none'; return; }
   const missing = DATA.people.filter(p => !p._adminMatched);
   if (missing.length === 0) { el.style.display = 'none'; return; }
@@ -1080,9 +1142,9 @@ function renderMissingStaffNotice() {
   el.innerHTML = `
     <span style="font-size:15px">⚠️</span>
     <div>
-      <b>어드민 담당자 등록 필요:</b> ${missing.map(m => `<b style="color:var(--ran)">${m.name}</b>`).join(' · ')}
+      <b>어드민 담당자 등록 필요:</b> ${missing.map(m => `<b style="color:var(--ran)">${m.name}</b>(${m.key})`).join(' · ')}
       <div style="font-size:11px;color:var(--text-tertiary);font-weight:600;margin-top:2px">
-        디자인/개발 센터 → 담당자 관리에서 등록하면 자동 동기화됩니다. (이름 기준 매칭)
+        어드민 → 디자인/개발 센터 → 담당자 관리 → 등록·수정 → <b>"업무관리 연동" 섹션에서 매칭 ID(${DATA.people.map(p => p.key).join('·')}) 선택</b> 후 저장.
       </div>
     </div>`;
 }

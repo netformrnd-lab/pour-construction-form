@@ -379,6 +379,32 @@ body.in-iframe .meta-bar { display: flex; }
     <div class="meta-dday" id="metaDday"></div>
   </div>
 
+  <!-- ─── 권한 거부 안내 배너 (Firestore 규칙 미배포 시 자동 표시) ─── -->
+  <div id="permBanner" style="display:none; margin: 10px 0 0; padding: 14px 18px; background: linear-gradient(135deg, #FEE2E2, #FECACA); border: 2px solid #DC2626; border-radius: 12px; font-size: 13px; color: #7F1D1D; font-weight: 700; line-height: 1.6;">
+    <div style="display:flex; align-items:flex-start; gap:10px;">
+      <span style="font-size:18px; flex-shrink:0">🚨</span>
+      <div style="flex:1; min-width:0">
+        <div style="font-size:14px; font-weight:900; color:#991B1B; margin-bottom:6px">Firestore 권한 거부 — work-mgmt 컬렉션 규칙이 콘솔에 배포되지 않았습니다</div>
+        <div style="font-size:12px; font-weight:700; color:#7F1D1D; margin-bottom:8px">
+          현재 상태: 화면은 표시되지만 <b>체크해도 다른 담당자와 공유되지 않습니다</b> (로컬에만 저장).
+          <br/>해결 방법 (3분):
+        </div>
+        <ol style="margin:0 0 8px 18px; padding:0; font-size:11.5px; font-weight:700; color:#7F1D1D; line-height:1.7">
+          <li><a href="https://console.firebase.google.com/project/pour-app-new/firestore/rules" target="_blank" rel="noopener" style="color:#991B1B; text-decoration:underline; font-weight:900">Firebase 콘솔 → Firestore → 규칙 탭</a> 열기</li>
+          <li>git 저장소의 <b>firestore.rules</b> 파일 내용 전체 복사 → 콘솔 에디터에 붙여넣기</li>
+          <li>우측 상단 <b>[게시]</b> 버튼 클릭 → 1~2분 후 본 페이지 새로고침</li>
+        </ol>
+        <div style="font-size:10.5px; font-weight:600; color:#7C2D12; padding-top:6px; border-top:1px dashed #FCA5A5">
+          ※ 필요 컬렉션: <code style="background:#FFF; padding:1px 5px; border-radius:3px">work-mgmt</code> · <code style="background:#FFF; padding:1px 5px; border-radius:3px">staff</code> · <code style="background:#FFF; padding:1px 5px; border-radius:3px">pour-*</code> (tasks/recurring/projects/objectives/keyresults/kpis/meetings/journals) · <code style="background:#FFF; padding:1px 5px; border-radius:3px">work-channels</code>
+        </div>
+        <div style="font-size:10.5px; font-weight:600; color:#7C2D12; margin-top:4px">
+          에러 메시지: <code id="permBannerErr" style="background:#FFF; padding:1px 5px; border-radius:3px; font-family:monospace">—</code>
+        </div>
+      </div>
+      <button onclick="document.getElementById('permBanner').style.display='none'" style="flex-shrink:0; width:24px; height:24px; border-radius:5px; background:#FCA5A5; color:#7F1D1D; font-size:13px; font-weight:900; cursor:pointer; border:none">×</button>
+    </div>
+  </div>
+
   <!-- ─── 합계 위젯 ─── -->
   <div class="summary" id="summary"></div>
 
@@ -1034,6 +1060,24 @@ setSyncStatus = function(state, msg) {
   const cls = { connecting: '', synced: 'ok', error: 'err' }[state] || '';
   m.className = 'meta-pill ' + cls;
   m.innerHTML = `<span class="dot"></span> ${state === 'synced' ? '실시간 동기화' : state === 'error' ? '동기화 오류' : '동기화 중...'}`;
+};
+
+// setSyncStatus 추가 보강 — Firestore 권한 거부 시 영구 빨간 배너 자동 표시
+// (메타바 칩만으로는 사용자가 인지 못할 수 있음. 항상 보이는 배너로 안내)
+// 별도 wrap으로 분리해서 다른 보강과 conflict 없이 추가됨.
+const _bannerOrigSetSync = setSyncStatus;
+setSyncStatus = function(state, msg) {
+  _bannerOrigSetSync(state, msg);
+  const banner = document.getElementById('permBanner');
+  if (!banner) return;
+  const isPerm = state === 'error' && /permission|insufficient|denied|PERMISSION_DENIED/i.test(msg || '');
+  if (isPerm) {
+    banner.style.display = 'block';
+    const errEl = document.getElementById('permBannerErr');
+    if (errEl) errEl.textContent = msg || '(상세 미상)';
+  } else if (state === 'synced') {
+    banner.style.display = 'none';
+  }
 };
 
 // 메타바 D-Day 위젯 동기화 (renderDDay 보강)

@@ -53,6 +53,214 @@
     '</section>';
 
   // ===== B2B 시크릿 대시보드 — 대리점주 =====
+  // ===== 대리점 모집 소개 페이지 — 토스 스타일 + POUR 오렌지/네이비 =====
+  const SEED_INTRO_DEALER_HTML = `<section class="pin pin-dealer">
+<style>
+.pin *, .pin *::before, .pin *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.pin { background:#fff; color:#191F28; letter-spacing:-0.02em; -webkit-font-smoothing:antialiased; }
+.pin a { color:inherit; text-decoration:none; }
+.pin button { font:inherit; cursor:pointer; border:none; background:none; color:inherit; letter-spacing:inherit; }
+/* 1) Hero */
+.pin-hero { background:linear-gradient(135deg,#FFFBF5 0%,#FFEDD5 100%); padding:80px 20px 72px; position:relative; overflow:hidden; }
+.pin-hero::before { content:''; position:absolute; top:-100px; right:-80px; width:380px; height:380px; border-radius:50%; background:radial-gradient(circle,rgba(232,120,15,.22) 0%,transparent 65%); pointer-events:none; }
+.pin-hero-inner { max-width:720px; margin:0 auto; position:relative; z-index:1; text-align:center; }
+.pin-kicker { display:inline-block; font-size:12px; font-weight:800; color:#E8780F; letter-spacing:0.08em; padding:6px 14px; background:#fff; border:1px solid #FED7AA; border-radius:999px; margin-bottom:18px; box-shadow:0 2px 8px rgba(232,120,15,.1); }
+.pin-h1 { font-size:36px; font-weight:900; color:#0F1F5C; letter-spacing:-0.045em; line-height:1.25; }
+.pin-h1 b { color:#E8780F; }
+.pin-sub { margin-top:14px; font-size:15px; font-weight:500; color:#8B95A1; line-height:1.65; letter-spacing:-0.02em; }
+.pin-hero-stats { margin-top:32px; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.pin-hero-stat { background:#fff; border-radius:14px; padding:14px 10px; box-shadow:0 4px 12px rgba(15,31,92,.06); }
+.pin-hero-stat-num { font-size:22px; font-weight:900; color:#E8780F; letter-spacing:-0.04em; line-height:1.1; }
+.pin-hero-stat-num .unit { font-size:13px; font-weight:800; }
+.pin-hero-stat-label { margin-top:4px; font-size:11.5px; font-weight:600; color:#6B7280; letter-spacing:-0.02em; }
+/* 2) 섹션 공통 */
+.pin-sec { padding:64px 20px; }
+.pin-sec.alt { background:#F9FAFB; }
+.pin-sec-inner { max-width:720px; margin:0 auto; }
+.pin-sec-kicker { display:block; font-size:12px; font-weight:800; color:#E8780F; letter-spacing:0.06em; margin-bottom:8px; text-align:center; }
+.pin-sec-title { font-size:26px; font-weight:900; color:#191F28; letter-spacing:-0.045em; line-height:1.3; text-align:center; }
+.pin-sec-title b { color:#E8780F; }
+.pin-sec-sub { margin-top:10px; text-align:center; font-size:14px; font-weight:500; color:#8B95A1; letter-spacing:-0.02em; line-height:1.65; margin-bottom:32px; }
+/* 3) 혜택 카드 */
+.pin-benefits { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+.pin-benefit { background:#fff; border:1px solid #F2F4F6; border-radius:16px; padding:22px 20px; transition:.18s; }
+.pin-benefit:hover { border-color:#FED7AA; transform:translateY(-2px); box-shadow:0 8px 20px rgba(232,120,15,.08); }
+.pin-benefit-ico { width:44px; height:44px; border-radius:12px; background:#FFF7ED; color:#E8780F; display:grid; place-items:center; font-size:20px; margin-bottom:12px; }
+.pin-benefit-title { font-size:15px; font-weight:800; color:#191F28; letter-spacing:-0.03em; margin-bottom:6px; }
+.pin-benefit-desc { font-size:13px; font-weight:500; color:#6B7280; letter-spacing:-0.02em; line-height:1.6; }
+/* 4) 등급제 */
+.pin-tiers { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.pin-tier { background:#fff; border:1.5px solid #F2F4F6; border-radius:18px; padding:24px 20px; position:relative; transition:.18s; }
+.pin-tier.recommend { border-color:#E8780F; box-shadow:0 8px 24px rgba(232,120,15,.15); }
+.pin-tier.recommend::before { content:'추천'; position:absolute; top:-10px; left:50%; transform:translateX(-50%); padding:3px 10px; background:#E8780F; color:#fff; font-size:10.5px; font-weight:800; border-radius:999px; letter-spacing:0.04em; }
+.pin-tier-name { font-size:13px; font-weight:800; color:#6B7280; letter-spacing:0.04em; }
+.pin-tier.recommend .pin-tier-name { color:#E8780F; }
+.pin-tier-margin { margin-top:8px; font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-0.045em; line-height:1; }
+.pin-tier-margin .unit { font-size:18px; color:#E8780F; }
+.pin-tier-cond { margin-top:6px; font-size:11.5px; color:#9CA3AF; font-weight:600; letter-spacing:-0.02em; }
+.pin-tier-list { margin-top:16px; padding-top:16px; border-top:1px solid #F2F4F6; display:flex; flex-direction:column; gap:8px; }
+.pin-tier-item { display:flex; gap:6px; align-items:flex-start; font-size:12px; font-weight:600; color:#374151; letter-spacing:-0.02em; line-height:1.5; }
+.pin-tier-item::before { content:'✓'; color:#0FA864; font-weight:900; flex-shrink:0; }
+/* 5) 절차 */
+.pin-steps { display:flex; flex-direction:column; gap:10px; }
+.pin-step { display:flex; gap:16px; padding:18px 20px; background:#fff; border:1px solid #F2F4F6; border-radius:14px; align-items:center; }
+.pin-step-num { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,#F49A3A,#E8780F); color:#fff; font-size:14px; font-weight:900; display:grid; place-items:center; flex-shrink:0; box-shadow:0 4px 10px rgba(232,120,15,.3); }
+.pin-step-body { flex:1; }
+.pin-step-title { font-size:14px; font-weight:800; color:#191F28; letter-spacing:-0.03em; }
+.pin-step-desc { margin-top:3px; font-size:12.5px; font-weight:500; color:#8B95A1; letter-spacing:-0.02em; line-height:1.5; }
+.pin-step-time { font-size:11px; font-weight:700; color:#E8780F; flex-shrink:0; }
+/* 6) FAQ */
+.pin-faqs { display:flex; flex-direction:column; gap:8px; }
+.pin-faq { background:#fff; border:1px solid #F2F4F6; border-radius:14px; overflow:hidden; }
+.pin-faq summary { padding:18px 20px; font-size:14px; font-weight:700; color:#191F28; letter-spacing:-0.02em; cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; }
+.pin-faq summary::-webkit-details-marker { display:none; }
+.pin-faq summary::after { content:'+'; font-size:18px; color:#E8780F; font-weight:900; transition:.2s; }
+.pin-faq[open] summary::after { transform:rotate(45deg); }
+.pin-faq-body { padding:0 20px 18px; font-size:13px; font-weight:500; color:#6B7280; line-height:1.7; letter-spacing:-0.02em; }
+/* 7) Bottom CTA */
+.pin-cta-sec { padding:64px 20px 80px; background:linear-gradient(135deg,#0F1F5C 0%,#1E3A8A 100%); color:#fff; text-align:center; }
+.pin-cta-inner { max-width:720px; margin:0 auto; }
+.pin-cta-kicker { display:inline-block; font-size:12px; font-weight:800; color:#FED7AA; letter-spacing:0.08em; padding:5px 14px; background:rgba(232,120,15,.2); border:1px solid rgba(232,120,15,.4); border-radius:999px; margin-bottom:16px; }
+.pin-cta-title { font-size:28px; font-weight:900; letter-spacing:-0.045em; line-height:1.3; }
+.pin-cta-title b { color:#FED7AA; }
+.pin-cta-sub { margin-top:12px; font-size:14px; font-weight:500; color:rgba(255,255,255,.78); line-height:1.65; letter-spacing:-0.02em; }
+.pin-cta-buttons { margin-top:28px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+.pin-cta-primary { padding:16px 32px; background:#E8780F; color:#fff; font-size:15px; font-weight:800; border-radius:999px; box-shadow:0 8px 22px rgba(232,120,15,.4); letter-spacing:-0.03em; transition:.18s; }
+.pin-cta-primary:hover { background:#C8650D; transform:translateY(-2px); }
+.pin-cta-ghost { padding:16px 28px; background:rgba(255,255,255,.1); color:#fff; font-size:15px; font-weight:700; border-radius:999px; border:1px solid rgba(255,255,255,.2); letter-spacing:-0.03em; transition:.18s; }
+.pin-cta-ghost:hover { background:rgba(255,255,255,.2); }
+@media (max-width:700px) {
+  .pin-hero { padding:56px 18px 48px; }
+  .pin-h1 { font-size:26px; }
+  .pin-sub { font-size:13.5px; }
+  .pin-hero-stat-num { font-size:18px; }
+  .pin-sec { padding:48px 18px; }
+  .pin-sec-title { font-size:22px; }
+  .pin-sec-sub { font-size:13px; }
+  .pin-benefits { grid-template-columns:1fr; }
+  .pin-tiers { grid-template-columns:1fr; }
+  .pin-tier.recommend { order:-1; }
+  .pin-cta-sec { padding:48px 18px 60px; }
+  .pin-cta-title { font-size:22px; }
+  .pin-cta-buttons { flex-direction:column; }
+  .pin-cta-primary, .pin-cta-ghost { width:100%; }
+}
+</style>
+<!-- Hero -->
+<div class="pin-hero">
+  <div class="pin-hero-inner">
+    <span class="pin-kicker">DEALER RECRUITMENT</span>
+    <h1 class="pin-h1">POUR스토어<br/><b>대리점</b>이 되어보세요</h1>
+    <p class="pin-sub">240만 세대가 선택한 POUR 자재를 도매가로 공급받고,<br/>안정적인 마진 + 자동 정산으로 운영하세요.</p>
+    <div class="pin-hero-stats">
+      <div class="pin-hero-stat"><div class="pin-hero-stat-num">250<span class="unit">+</span></div><div class="pin-hero-stat-label">운영 대리점</div></div>
+      <div class="pin-hero-stat"><div class="pin-hero-stat-num">22<span class="unit">~35%</span></div><div class="pin-hero-stat-label">대리점 마진</div></div>
+      <div class="pin-hero-stat"><div class="pin-hero-stat-num">98<span class="unit">%</span></div><div class="pin-hero-stat-label">재계약률</div></div>
+    </div>
+  </div>
+</div>
+<!-- 혜택 -->
+<div class="pin-sec">
+  <div class="pin-sec-inner">
+    <span class="pin-sec-kicker">BENEFITS</span>
+    <h2 class="pin-sec-title">POUR 대리점만의 <b>6가지 혜택</b></h2>
+    <p class="pin-sec-sub">대리점 사장님이 운영에만 집중할 수 있도록 본사가 모두 지원합니다</p>
+    <div class="pin-benefits">
+      <div class="pin-benefit"><div class="pin-benefit-ico">💰</div><div class="pin-benefit-title">최대 35% 마진</div><div class="pin-benefit-desc">등급에 따라 22~35%의 안정적인 마진율. 등급 산정 시 추가 인센티브.</div></div>
+      <div class="pin-benefit"><div class="pin-benefit-ico">⚡</div><div class="pin-benefit-title">자동 정산</div><div class="pin-benefit-desc">매월 말 자동 집계 → 익월 5일 입금. 수기 보고 없이 자동 처리.</div></div>
+      <div class="pin-benefit"><div class="pin-benefit-ico">📦</div><div class="pin-benefit-title">소량 주문 가능</div><div class="pin-benefit-desc">최소 발주 수량 없음. 필요할 때 필요한 만큼만 주문하세요.</div></div>
+      <div class="pin-benefit"><div class="pin-benefit-ico">🎓</div><div class="pin-benefit-title">기술 교육 무상 지원</div><div class="pin-benefit-desc">정기 시공 교육·자재 사용법·CS 응대까지. 본사가 직접 교육.</div></div>
+      <div class="pin-benefit"><div class="pin-benefit-ico">📣</div><div class="pin-benefit-title">마케팅 지원</div><div class="pin-benefit-desc">전단·온라인 광고·SNS 콘텐츠 본사 제작. 매장 홍보비 절감.</div></div>
+      <div class="pin-benefit"><div class="pin-benefit-ico">🛡</div><div class="pin-benefit-title">하자 책임 분담</div><div class="pin-benefit-desc">자재 하자 발생 시 본사 직접 책임. 대리점이 부담 X.</div></div>
+    </div>
+  </div>
+</div>
+<!-- 등급제 -->
+<div class="pin-sec alt">
+  <div class="pin-sec-inner">
+    <span class="pin-sec-kicker">TIER PROGRAM</span>
+    <h2 class="pin-sec-title">3단계 <b>등급제</b>로 성장에 맞춰</h2>
+    <p class="pin-sec-sub">분기별 매출·재계약률을 기반으로 자동 승급. 등급마다 마진과 혜택이 달라집니다</p>
+    <div class="pin-tiers">
+      <div class="pin-tier">
+        <div class="pin-tier-name">SILVER</div>
+        <div class="pin-tier-margin">22<span class="unit">%</span></div>
+        <div class="pin-tier-cond">진입 등급 · 매출 무관</div>
+        <div class="pin-tier-list">
+          <div class="pin-tier-item">기본 마진율 22%</div>
+          <div class="pin-tier-item">정기 기술 교육 (분기 1회)</div>
+          <div class="pin-tier-item">기본 마케팅 자료</div>
+        </div>
+      </div>
+      <div class="pin-tier recommend">
+        <div class="pin-tier-name">GOLD</div>
+        <div class="pin-tier-margin">28<span class="unit">%</span></div>
+        <div class="pin-tier-cond">월 매출 500만+ · 추천</div>
+        <div class="pin-tier-list">
+          <div class="pin-tier-item">마진율 28% (+6%p)</div>
+          <div class="pin-tier-item">전담 영업 매니저 배정</div>
+          <div class="pin-tier-item">우선 신상품 공급</div>
+          <div class="pin-tier-item">지역 마케팅 50% 지원</div>
+        </div>
+      </div>
+      <div class="pin-tier">
+        <div class="pin-tier-name">PLATINUM</div>
+        <div class="pin-tier-margin">35<span class="unit">%</span></div>
+        <div class="pin-tier-cond">월 매출 1,500만+</div>
+        <div class="pin-tier-list">
+          <div class="pin-tier-item">최고 마진율 35%</div>
+          <div class="pin-tier-item">독점 권역 보호</div>
+          <div class="pin-tier-item">신제품 베타 우선 접근</div>
+          <div class="pin-tier-item">B2B 영업 기회 우선 분배</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- 신청 절차 -->
+<div class="pin-sec">
+  <div class="pin-sec-inner">
+    <span class="pin-sec-kicker">HOW TO APPLY</span>
+    <h2 class="pin-sec-title">신청부터 운영까지 <b>5단계</b></h2>
+    <p class="pin-sec-sub">평균 14일 이내에 대리점 운영을 시작하실 수 있습니다</p>
+    <div class="pin-steps">
+      <div class="pin-step"><div class="pin-step-num">1</div><div class="pin-step-body"><div class="pin-step-title">온라인 신청서 작성</div><div class="pin-step-desc">사업자 정보·지역·연락처 등 기본 정보 제출</div></div><div class="pin-step-time">5분</div></div>
+      <div class="pin-step"><div class="pin-step-num">2</div><div class="pin-step-body"><div class="pin-step-title">본사 검토 + 전화 상담</div><div class="pin-step-desc">자격 요건 확인 후 영업 담당자가 직접 연락</div></div><div class="pin-step-time">1~2일</div></div>
+      <div class="pin-step"><div class="pin-step-num">3</div><div class="pin-step-body"><div class="pin-step-title">현장 실사 + 계약</div><div class="pin-step-desc">매장·창고 점검 후 대리점 계약 체결</div></div><div class="pin-step-time">3~5일</div></div>
+      <div class="pin-step"><div class="pin-step-num">4</div><div class="pin-step-body"><div class="pin-step-title">초도 물량 발주 + 기술 교육</div><div class="pin-step-desc">초도 자재 공급 · 시공 교육 · 시스템 가이드</div></div><div class="pin-step-time">3~5일</div></div>
+      <div class="pin-step"><div class="pin-step-num">5</div><div class="pin-step-body"><div class="pin-step-title">대시보드 발급 + 운영 시작</div><div class="pin-step-desc">시크릿 페이지·정산 대시보드 발급 · 본격 운영</div></div><div class="pin-step-time">즉시</div></div>
+    </div>
+  </div>
+</div>
+<!-- FAQ -->
+<div class="pin-sec alt">
+  <div class="pin-sec-inner">
+    <span class="pin-sec-kicker">FAQ</span>
+    <h2 class="pin-sec-title">자주 묻는 질문</h2>
+    <p class="pin-sec-sub">신청 전에 가장 많이 받는 질문들입니다</p>
+    <div class="pin-faqs">
+      <details class="pin-faq"><summary>가입비·보증금이 있나요?</summary><div class="pin-faq-body">가입비는 없습니다. 초도 물량 발주(최소 500만원 권장) 외에 별도 보증금이나 권리금이 없습니다.</div></details>
+      <details class="pin-faq"><summary>매장 크기·위치 제한이 있나요?</summary><div class="pin-faq-body">최소 33㎡(10평) 이상이면 신청 가능. 위치는 인접 대리점 5km 이내가 아닌 곳이면 우선 배정됩니다.</div></details>
+      <details class="pin-faq"><summary>독점 권역은 어떻게 정해지나요?</summary><div class="pin-faq-body">Platinum 등급부터 권역 독점이 보호됩니다. Silver·Gold는 인접 대리점 거리 5km 기준으로 신규 진입을 제한합니다.</div></details>
+      <details class="pin-faq"><summary>정산은 어떻게 받나요?</summary><div class="pin-faq-body">매월 말 17시 기준 매출 집계 → 익월 5일 등록 계좌로 자동 입금. PG 수수료 차감 후 실수령액이 들어옵니다.</div></details>
+      <details class="pin-faq"><summary>하자가 발생하면 누가 책임지나요?</summary><div class="pin-faq-body">자재 하자는 POUR 본사가 직접 책임집니다. 대리점이 부담하지 않으며, 본사가 시공 파트너와 직접 소통해 처리합니다.</div></details>
+    </div>
+  </div>
+</div>
+<!-- Bottom CTA -->
+<div class="pin-cta-sec">
+  <div class="pin-cta-inner">
+    <span class="pin-cta-kicker">START NOW</span>
+    <h2 class="pin-cta-title"><b>5분</b> 만에 신청, <b>14일</b> 만에 운영 시작</h2>
+    <p class="pin-cta-sub">POUR스토어 대리점이 되어 안정적인 수익 구조를 만들어보세요</p>
+    <div class="pin-cta-buttons">
+      <a class="pin-cta-primary" href="https://www.pourstore.net/dealers/apply">대리점 신청하기 →</a>
+      <a class="pin-cta-ghost" href="https://www.pourstore.net/dealers/info">자세히 알아보기</a>
+    </div>
+  </div>
+</div>
+</section>`;
+
   const SEED_DASH_DEALER_HTML = `<section class="pdb pdb-dealer">
 <style>
 .pdb *, .pdb *::before, .pdb *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
@@ -7443,6 +7651,23 @@ show('entry');
         }
       }
       s.migrations.dealerDashboardV2 = true;
+    }
+    // 1회성 마이그레이션 — 대리점 모집 소개 페이지 (Hero · 혜택 · 등급제 · 절차 · FAQ · CTA)
+    if (!s.migrations.dealerIntroV1) {
+      // "대시보드" 단어가 없고 "대리점" + "소개"가 있는 페이지 찾기
+      const introPage = s.pages.find(p => p.name && p.name.indexOf('대시보드') === -1 && p.name.indexOf('대리점') !== -1 && p.name.indexOf('소개') !== -1);
+      if (introPage && Array.isArray(introPage.sections)) {
+        const exists = introPage.sections.some(sec => (sec.html || '').indexOf('class="pin pin-dealer"') !== -1);
+        if (!exists) {
+          introPage.sections.push(mkSec(
+            '대리점 모집 소개 (디자인 시안)',
+            SEED_INTRO_DEALER_HTML,
+            'Hero(혜택 3종 수치) + 6개 혜택 카드 + 3단계 등급제(Silver/Gold/Platinum 마진 22~35%) + 5단계 신청 절차 + FAQ 5건 + 다크 네이비 Bottom CTA. 토스 스타일·POUR 오렌지/네이비, 모바일 반응형.',
+            'wip'
+          ));
+        }
+      }
+      s.migrations.dealerIntroV1 = true;
     }
     return s;
   }

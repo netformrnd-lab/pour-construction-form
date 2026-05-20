@@ -465,8 +465,8 @@ function ActiveStaffPicker({ onPicked, onToast }) {
         ) : (
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, maxHeight:'56vh', overflowY:'auto', marginBottom:18 }}>
             {members.map(m => {
-              const meta = ROLE_META[m.role] || { color:'#9CA3AF', icon:'❔', label:m.role };
               const initial = m.kpiInitial || (m.name || '?').charAt(0);
+              const c = m.kpiColor || '#9CA3AF';
               return (
                 <button key={m.id} disabled={busy} onClick={() => { setBusy(true); onPicked(m.id); }} style={{
                   display:'flex', alignItems:'center', gap:12, padding:'14px 16px', borderRadius:11,
@@ -474,15 +474,17 @@ function ActiveStaffPicker({ onPicked, onToast }) {
                   transition:'all .15s'
                 }}>
                   <div style={{ width:40, height:40, borderRadius:'50%', flexShrink:0,
-                    background: m.kpiColor || meta.color, color:'#fff',
+                    background: c, color:'#fff',
                     display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:900 }}>
                     {initial}
                   </div>
-                  <div style={{ minWidth:0 }}>
+                  <div style={{ minWidth:0, flex:1 }}>
                     <div style={{ fontSize:14, fontWeight:900, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.name}</div>
-                    <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700, marginTop:2 }}>
-                      {meta.icon} {meta.label}{m.department ? ` · ${m.department}` : ''}
-                    </div>
+                    {m.email && (
+                      <div style={{ fontSize:10.5, color:'var(--text-sm)', fontWeight:600, marginTop:2, fontFamily:'monospace', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                        {m.email}
+                      </div>
+                    )}
                   </div>
                 </button>
               );
@@ -558,7 +560,6 @@ function PinScreen({ onUnlock, onToast }) {
 // Sidebar
 // ============================================================
 function Sidebar({ active, onNav, onLogout, activeStaff, onSwitchStaff }) {
-  const staffMeta = activeStaff && (ROLE_META[activeStaff.role] || { icon:'❔', label: activeStaff.role, color:'#9CA3AF' });
   return (
     <aside style={{
       width:240, background:'var(--navy)', color:'#fff', display:'flex', flexDirection:'column',
@@ -578,14 +579,14 @@ function Sidebar({ active, onNav, onLogout, activeStaff, onSwitchStaff }) {
             border:'1px solid rgba(255,255,255,.08)', color:'#fff', textAlign:'left'
           }}>
             <div style={{ width:30, height:30, borderRadius:'50%', flexShrink:0,
-              background: activeStaff.kpiColor || staffMeta.color, color:'#fff',
+              background: activeStaff.kpiColor || '#9CA3AF', color:'#fff',
               display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:900 }}>
               {activeStaff.kpiInitial || (activeStaff.name || '?').charAt(0)}
             </div>
             <div style={{ minWidth:0, flex:1 }}>
               <div style={{ fontSize:12, fontWeight:900, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{activeStaff.name}</div>
               <div style={{ fontSize:9.5, color:'rgba(255,255,255,.55)', fontWeight:700 }}>
-                {staffMeta.icon} {staffMeta.label}
+                활동 담당자
               </div>
             </div>
             <span style={{ fontSize:10, opacity:.55 }}>↻</span>
@@ -4690,18 +4691,16 @@ function StaffPage({ onToast }) {
 
   const emptyForm = () => ({
     name: '', email: '', phone: '',
-    role: 'commerce', department: '', companyType: '본사',
     active: true, isAdmin: false,
-    kpiMemberId: '', kpiInitial: '', kpiColor: ROLE_META.commerce.color,
+    kpiMemberId: '', kpiInitial: '', kpiColor: '#3B82F6',
   });
 
   const openNew = () => { setForm(emptyForm()); setEditId('new'); };
   const openEdit = (s) => {
     setForm({
       name: s.name || '', email: s.email || '', phone: s.phone || '',
-      role: s.role || 'commerce', department: s.department || '', companyType: s.companyType || '본사',
       active: s.active !== false, isAdmin: !!s.isAdmin,
-      kpiMemberId: s.kpiMemberId || '', kpiInitial: s.kpiInitial || '', kpiColor: s.kpiColor || (ROLE_META[s.role]?.color || '#3B82F6'),
+      kpiMemberId: s.kpiMemberId || '', kpiInitial: s.kpiInitial || '', kpiColor: s.kpiColor || '#3B82F6',
     });
     setEditId(s.id);
   };
@@ -4739,9 +4738,6 @@ function StaffPage({ onToast }) {
         name: form.name.trim(),
         email: form.email.trim().toLowerCase(),
         phone: form.phone.trim(),
-        role: form.role,
-        department: form.department.trim(),
-        companyType: form.companyType,
         active: !!form.active,
         isAdmin: !!form.isAdmin,
         kpiMemberId: form.kpiMemberId.trim() || null,
@@ -4785,12 +4781,10 @@ function StaffPage({ onToast }) {
   const filtered = list.filter(s => {
     if (filterActive === 'active' && s.active === false) return false;
     if (filterActive === 'inactive' && s.active !== false) return false;
-    if (filterRole !== 'all' && s.role !== filterRole) return false;
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       if (!(s.name || '').toLowerCase().includes(q)
-        && !(s.email || '').toLowerCase().includes(q)
-        && !(s.department || '').toLowerCase().includes(q)) return false;
+        && !(s.email || '').toLowerCase().includes(q)) return false;
     }
     return true;
   });
@@ -4820,13 +4814,6 @@ function StaffPage({ onToast }) {
             <div><label style={labelCss}>이름 *</label><input style={inputCss} value={form.name} onChange={e => updateField('name', e.target.value)} placeholder="홍길동" /></div>
             <div><label style={labelCss}>이메일 * <span style={{ color:'var(--or-d)' }}>(OTP 인증 식별자)</span></label><input style={inputCss} type="email" value={form.email} onChange={e => updateField('email', e.target.value)} placeholder="staff@netformrnd.com" /></div>
             <div><label style={labelCss}>연락처</label><input style={inputCss} value={form.phone} onChange={e => updateField('phone', e.target.value)} placeholder="010-1234-5678" /></div>
-            <div><label style={labelCss}>부서</label><input style={inputCss} value={form.department} onChange={e => updateField('department', e.target.value)} placeholder="커머스1팀 / 유통혁신팀 등" /></div>
-            <div>
-              <label style={labelCss}>소속</label>
-              <select style={inputCss} value={form.companyType} onChange={e => updateField('companyType', e.target.value)}>
-                {COMPANY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
           </div>
         </div>
 
@@ -4947,48 +4934,25 @@ function StaffPage({ onToast }) {
           <div style={{ fontSize:16, fontWeight:900, color:'var(--text)', lineHeight:1.2, marginTop:6, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
             {activeStaff ? activeStaff.name : <span style={{ color:'var(--text-sm)', fontSize:13 }}>미선택</span>}
           </div>
-          <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700, marginTop:4 }}>{activeStaff ? (ROLE_META[activeStaff.role]?.label || activeStaff.role) : 'PIN 후 선택'}</div>
+          <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700, marginTop:4 }}>{activeStaff ? '활동 담당자' : 'PIN 후 선택'}</div>
         </div>
       </div>
 
-      {/* ─── role별 분포 (KPI 트리 패턴) ─── */}
-      <div style={{ padding:'14px 18px', background:'#fff', border:'1px solid var(--border)', borderRadius:10, marginBottom:18, display:'flex', alignItems:'center', gap:14, flexWrap:'wrap', boxShadow:'var(--shadow)' }}>
-        <div style={{ fontSize:11, fontWeight:800, color:'var(--text-sm)', letterSpacing:.5, marginRight:4 }}>역할 분포</div>
-        {byRole.map(r => (
-          <button key={r.key} onClick={() => setFilterRole(r.key === filterRole ? 'all' : r.key)}
-            title={r.meta.desc}
-            style={{
-              display:'inline-flex', alignItems:'center', gap:6, padding:'5px 11px', borderRadius:999,
-              border: filterRole === r.key ? `1.5px solid ${r.meta.color}` : '1.5px solid var(--border)',
-              background: filterRole === r.key ? r.meta.color + '15' : '#fff',
-              color: r.meta.color, fontSize:11.5, fontWeight:800, cursor:'pointer',
-              opacity: r.count === 0 ? 0.5 : 1,
-            }}>
-            <span style={{ fontSize:14 }}>{r.meta.icon}</span>
-            <span>{r.meta.label}</span>
-            <span style={{ fontSize:11, fontWeight:900, color: r.meta.color, background: r.meta.color + '22', padding:'1px 6px', borderRadius:999 }}>{r.count}</span>
-          </button>
-        ))}
-        {totalAdmins > 0 && (
-          <span style={{ marginLeft:'auto', fontSize:11, color:'var(--or-d)', fontWeight:800 }}>
-            마스터 관리자 {totalAdmins}명
-          </span>
-        )}
-      </div>
+      {/* 역할(KPI 카테고리) 분포 박스 제거 — 프로젝트별 배정 + 부서·소속 필드 모두 폐지 */}
+      {totalAdmins > 0 && (
+        <div style={{ padding:'8px 14px', marginBottom:14, fontSize:11, color:'var(--or-d)', fontWeight:800 }}>
+          마스터 관리자 {totalAdmins}명
+        </div>
+      )}
 
       {/* ─── 검색 + 필터 + 뷰 토글 ─── */}
       <div style={{ display:'flex', gap:10, marginBottom:16, flexWrap:'wrap', alignItems:'center' }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍 이름·이메일·부서 검색" style={{ ...inputCss, maxWidth:280, padding:'9px 14px' }} />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍 이름·이메일 검색" style={{ ...inputCss, maxWidth:280, padding:'9px 14px' }} />
         <select value={filterActive} onChange={e => setFilterActive(e.target.value)} style={{ ...inputCss, maxWidth:140, padding:'9px 14px' }}>
           <option value="active">활성만</option>
           <option value="all">전체</option>
           <option value="inactive">비활성만</option>
         </select>
-        {filterRole !== 'all' && (
-          <button onClick={() => setFilterRole('all')} style={{ padding:'6px 11px', fontSize:11, fontWeight:800, color:'var(--text-sm)', border:'1px solid var(--border)', borderRadius:7, background:'#fff' }}>
-            {ROLE_META[filterRole]?.icon} {ROLE_META[filterRole]?.label} ✕
-          </button>
-        )}
         {/* 뷰 모드 토글 */}
         <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8 }}>
           <div style={{ fontSize:11.5, color:'var(--text-sm)', fontWeight:700 }}>
@@ -5014,71 +4978,53 @@ function StaffPage({ onToast }) {
         <Empty icon="👥" title={list.length === 0 ? "등록된 담당자가 없습니다" : "조건에 맞는 담당자가 없습니다"}
           desc={list.length === 0 ? "+ 신규 담당자 버튼을 눌러 첫 담당자를 등록하세요. 이메일은 향후 OTP 인증에 사용됩니다." : "필터를 조정해 보세요."} />
       ) : viewMode === 'card' ? (
-        // ─── 카드 뷰 (업무관리 사람 카드 패턴) ───
-        <div>
-          {Object.entries(grouped).map(([rk, items]) => {
-            const meta = ROLE_META[rk];
+        // ─── 카드 뷰 (역할 그룹화 제거 — 단일 그리드) ───
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:12 }}>
+          {filtered.map(s => {
+            const me = isMe(s);
+            const c = s.kpiColor || '#9CA3AF';
             return (
-              <div key={rk} style={{ marginBottom:22 }}>
-                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10, padding:'4px 2px' }}>
-                  <span style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 11px', borderRadius:7, fontSize:12, fontWeight:900, color:'#fff', background:meta.color }}>
-                    {meta.icon} {meta.label}
-                  </span>
-                  <span style={{ fontSize:11, fontWeight:700, color:'var(--text-sm)' }}>{items.length}명</span>
-                  <span style={{ fontSize:11, fontWeight:600, color:'var(--text-xs)', fontStyle:'italic' }}>{meta.desc}</span>
+              <div key={s.id} style={{
+                background: me ? 'linear-gradient(180deg, #F3FBF6 0%, #FFFFFF 70%)' : '#fff',
+                borderRadius:12, padding:'16px 18px',
+                border: me ? `2px solid #2BC472` : `1.5px solid var(--border)`,
+                borderTop: `4px solid ${c}`,
+                boxShadow: me ? '0 4px 16px rgba(43,196,114,.18)' : 'var(--shadow)',
+                opacity: s.active === false ? 0.65 : 1,
+                position:'relative',
+              }}>
+                {me && (
+                  <span style={{ position:'absolute', top:10, right:12, padding:'2px 8px', fontSize:9.5, fontWeight:900, color:'#fff', background:'#2BC472', borderRadius:999, letterSpacing:0.3 }}>본인</span>
+                )}
+                <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
+                  <div style={{ width:46, height:46, borderRadius:'50%', background:c, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, fontWeight:900, flexShrink:0 }}>
+                    {s.kpiInitial || (s.name || '?').charAt(0)}
+                  </div>
+                  <div style={{ minWidth:0, flex:1 }}>
+                    <div style={{ fontSize:15, fontWeight:900, letterSpacing:-0.2, color:'var(--text)' }}>{s.name}</div>
+                    <div style={{ display:'flex', gap:6, marginTop:2, flexWrap:'wrap', alignItems:'center' }}>
+                      {s.isAdmin && <span style={{ fontSize:9, fontWeight:900, color:'var(--or-d)', background:'var(--or-l)', padding:'1px 6px', borderRadius:4 }}>마스터 관리자</span>}
+                      {s.active === false && <span style={{ fontSize:9, fontWeight:900, color:'#6B7280', background:'#F3F4F6', padding:'1px 6px', borderRadius:4 }}>비활성</span>}
+                    </div>
+                  </div>
                 </div>
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px, 1fr))', gap:12 }}>
-                  {items.map(s => {
-                    const me = isMe(s);
-                    const c = s.kpiColor || meta.color;
-                    return (
-                      <div key={s.id} style={{
-                        background:'#fff', borderRadius:12, padding:'16px 18px',
-                        border: me ? `2px solid #2BC472` : `1.5px solid var(--border)`,
-                        borderTop: `4px solid ${c}`,
-                        boxShadow: me ? '0 4px 16px rgba(43,196,114,.18)' : 'var(--shadow)',
-                        background: me ? 'linear-gradient(180deg, #F3FBF6 0%, #FFFFFF 70%)' : '#fff',
-                        opacity: s.active === false ? 0.65 : 1,
-                        position:'relative',
-                      }}>
-                        {me && (
-                          <span style={{ position:'absolute', top:10, right:12, padding:'2px 8px', fontSize:9.5, fontWeight:900, color:'#fff', background:'#2BC472', borderRadius:999, letterSpacing:0.3 }}>본인</span>
-                        )}
-                        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
-                          <div style={{ width:46, height:46, borderRadius:'50%', background:c, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, fontWeight:900, flexShrink:0 }}>
-                            {s.kpiInitial || (s.name || '?').charAt(0)}
-                          </div>
-                          <div style={{ minWidth:0, flex:1 }}>
-                            <div style={{ fontSize:15, fontWeight:900, letterSpacing:-0.2, color:'var(--text)' }}>{s.name}</div>
-                            <div style={{ display:'flex', gap:6, marginTop:2, flexWrap:'wrap', alignItems:'center' }}>
-                              {s.isAdmin && <span style={{ fontSize:9, fontWeight:900, color:'var(--or-d)', background:'var(--or-l)', padding:'1px 6px', borderRadius:4 }}>마스터 관리자</span>}
-                              <span style={{ fontSize:10, fontWeight:700, color:'var(--text-sm)' }}>{s.companyType || '본사'}</span>
-                              {s.active === false && <span style={{ fontSize:9, fontWeight:900, color:'#6B7280', background:'#F3F4F6', padding:'1px 6px', borderRadius:4 }}>비활성</span>}
-                            </div>
-                          </div>
-                        </div>
-                        <div style={{ fontSize:11, color:'var(--text-md)', fontWeight:600, lineHeight:1.6, paddingBottom:10, borderBottom:'1px dashed var(--border)', marginBottom:10 }}>
-                          {s.department && <div>🏢 {s.department}</div>}
-                          {s.email && <div style={{ fontFamily:'monospace', fontSize:10.5, color:'var(--text-sm)', wordBreak:'break-all' }}>✉ {s.email}</div>}
-                          {s.phone && <div>📞 {s.phone}</div>}
-                          {!s.department && !s.email && !s.phone && <div style={{ color:'var(--text-xs)' }}>—</div>}
-                        </div>
-                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', fontSize:10, color:'var(--text-sm)', fontWeight:700, marginBottom:10 }}>
-                          <div>
-                            {s.createdByStaffName && <div>등록: {s.createdByStaffName} · {relativeTime(s.createdAt)}</div>}
-                            {s.updatedByStaffName && s.updatedAt !== s.createdAt && <div>수정: {s.updatedByStaffName} · {relativeTime(s.updatedAt)}</div>}
-                            {!s.createdByStaffName && <div style={{ color:'var(--text-xs)' }}>{relativeTime(s.createdAt)}</div>}
-                          </div>
-                        </div>
-                        <div style={{ display:'flex', gap:6 }}>
-                          <button onClick={() => openEdit(s)} style={{ flex:1, padding:'7px 0', borderRadius:7, fontSize:11, fontWeight:800, color:'var(--or-d)', border:'1px solid var(--or-l)', background:'#fff' }}>수정</button>
-                          <button onClick={() => toggleActive(s)} style={{ flex:1, padding:'7px 0', borderRadius:7, fontSize:11, fontWeight:800, color: s.active === false ? '#047857' : '#6B7280', border:'1px solid var(--border)', background:'#fff' }}>
-                            {s.active === false ? '활성화' : '비활성화'}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div style={{ fontSize:11, color:'var(--text-md)', fontWeight:600, lineHeight:1.6, paddingBottom:10, borderBottom:'1px dashed var(--border)', marginBottom:10 }}>
+                  {s.email && <div style={{ fontFamily:'monospace', fontSize:10.5, color:'var(--text-sm)', wordBreak:'break-all' }}>✉ {s.email}</div>}
+                  {s.phone && <div>📞 {s.phone}</div>}
+                  {!s.email && !s.phone && <div style={{ color:'var(--text-xs)' }}>—</div>}
+                </div>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', fontSize:10, color:'var(--text-sm)', fontWeight:700, marginBottom:10 }}>
+                  <div>
+                    {s.createdByStaffName && <div>등록: {s.createdByStaffName} · {relativeTime(s.createdAt)}</div>}
+                    {s.updatedByStaffName && s.updatedAt !== s.createdAt && <div>수정: {s.updatedByStaffName} · {relativeTime(s.updatedAt)}</div>}
+                    {!s.createdByStaffName && <div style={{ color:'var(--text-xs)' }}>{relativeTime(s.createdAt)}</div>}
+                  </div>
+                </div>
+                <div style={{ display:'flex', gap:6 }}>
+                  <button onClick={() => openEdit(s)} style={{ flex:1, padding:'7px 0', borderRadius:7, fontSize:11, fontWeight:800, color:'var(--or-d)', border:'1px solid var(--or-l)', background:'#fff' }}>수정</button>
+                  <button onClick={() => toggleActive(s)} style={{ flex:1, padding:'7px 0', borderRadius:7, fontSize:11, fontWeight:800, color: s.active === false ? '#047857' : '#6B7280', border:'1px solid var(--border)', background:'#fff' }}>
+                    {s.active === false ? '활성화' : '비활성화'}
+                  </button>
                 </div>
               </div>
             );
@@ -5091,9 +5037,7 @@ function StaffPage({ onToast }) {
             <thead>
               <tr style={{ background:'var(--bg)' }}>
                 <th style={th()}>이름</th>
-                <th style={th()}>역할</th>
                 <th style={th()}>이메일</th>
-                <th style={th()}>부서·소속</th>
                 <th style={th()}>연락처</th>
                 <th style={th()}>상태</th>
                 <th style={th()}>등록</th>
@@ -5103,13 +5047,13 @@ function StaffPage({ onToast }) {
             </thead>
             <tbody>
               {filtered.map(s => {
-                const meta = ROLE_META[s.role] || { label: s.role, icon: '❔', color: '#9CA3AF' };
+                const c = s.kpiColor || '#9CA3AF';
                 const me = isMe(s);
                 return (
                   <tr key={s.id} style={{ borderTop:'1px solid var(--border-s)', background: me ? 'rgba(43,196,114,.05)' : undefined }}>
                     <td style={td()}>
                       <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                        <div style={{ width:32, height:32, borderRadius:'50%', background: s.kpiColor || meta.color, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:900, boxShadow: me ? '0 0 0 2px #2BC472' : 'none' }}>
+                        <div style={{ width:32, height:32, borderRadius:'50%', background: c, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:900, boxShadow: me ? '0 0 0 2px #2BC472' : 'none' }}>
                           {s.kpiInitial || (s.name || '?').charAt(0)}
                         </div>
                         <div>
@@ -5122,16 +5066,7 @@ function StaffPage({ onToast }) {
                       </div>
                     </td>
                     <td style={td()}>
-                      <span style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'4px 10px', background: meta.color + '15', color: meta.color, borderRadius:6, fontSize:11, fontWeight:900 }}>
-                        {meta.icon} {meta.label}
-                      </span>
-                    </td>
-                    <td style={td()}>
                       <span style={{ fontFamily:'monospace', fontSize:11.5 }}>{s.email || '-'}</span>
-                    </td>
-                    <td style={td()}>
-                      <div style={{ fontSize:12 }}>{s.department || '-'}</div>
-                      <div style={{ fontSize:10.5, color:'var(--text-sm)', fontWeight:700 }}>{s.companyType || '본사'}</div>
                     </td>
                     <td style={td()}>{s.phone || '-'}</td>
                     <td style={td()}>

@@ -142,6 +142,16 @@ const COLLECTIONS = {
 // 담당자 역할·부서·소속 모두 폐지 (POUR스토어 단일 부서 운영 + 프로젝트별 배정으로 대체)
 // 기존 데이터(s.role / s.department / s.companyType)는 Firestore에 남아있을 수 있으나 UI에서 노출하지 않음.
 
+// 업무관리(workmgmt.html) 매칭 ID — 담당자별 카드/프로젝트 owner 매칭의 1순위 키.
+// workmgmt.html DATA.people[].key와 1:1 매핑되어야 매칭 보장. 새 멤버 추가 시 양쪽에 동일 키 등록 필요.
+// 어드민 staff 등록 시 select(드롭다운)로 강제 입력 — 자유 텍스트 방지.
+const KPI_MEMBER_OPTIONS = [
+  { id: 'songhee', label: '송희 (LEAD · 정책·소싱·세팅)' },
+  { id: 'minji',   label: '민지 (M1 · 콘텐츠·등록·CS)'  },
+  { id: 'ran',     label: '란 (M2 · 마케팅·영업·B2B)'   },
+];
+const KPI_MEMBER_IDS = KPI_MEMBER_OPTIONS.map(o => o.id);
+
 // Firebase 사용량 — Spark 플랜 무료 한도
 const FIREBASE_FREE_LIMITS = [
   { key: 'firestore-read',  label: 'Firestore 읽기',   limit: '50,000회/일',       icon: '📖' },
@@ -4530,12 +4540,14 @@ function WorkMgmtPage() {
         activeStaff: activeStaff ? {
           id: activeStaff.id,
           name: activeStaff.name,
+          kpiMemberId: activeStaff.kpiMemberId || null,
           color: activeStaff.kpiColor || null,
           email: activeStaff.email || null,
         } : null,
         staffList: activeList.map(s => ({
           id: s.id,
           name: s.name,
+          kpiMemberId: s.kpiMemberId || null,
           kpiColor: s.kpiColor || null,
           kpiInitial: s.kpiInitial || null,
           email: s.email || null,
@@ -4709,8 +4721,11 @@ function StaffPage({ onToast }) {
     if (!form.name.trim()) return '이름은 필수입니다';
     if (!form.email.trim()) return '이메일은 필수입니다 (OTP 인증 식별자)';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return '이메일 형식이 올바르지 않습니다';
+    if (!KPI_MEMBER_IDS.includes(form.kpiMemberId)) return '업무관리 매칭 ID(KPI 멤버)를 선택하세요';
     const dup = list.find(s => s.id !== editId && (s.email || '').toLowerCase() === form.email.trim().toLowerCase());
     if (dup) return `이메일 중복: "${dup.name}" 와(과) 동일`;
+    const kpiDup = list.find(s => s.id !== editId && s.kpiMemberId === form.kpiMemberId);
+    if (kpiDup) return `업무관리 매칭 ID 중복: "${kpiDup.name}" 와(과) 동일 (한 멤버 ID당 1명)`;
     return null;
   };
 
@@ -4817,10 +4832,32 @@ function StaffPage({ onToast }) {
         </div>
 
         <div style={{ background:'#fff', borderRadius:14, padding:24, boxShadow:'var(--shadow)', marginBottom:16 }}>
-          <h2 style={{ fontSize:13, fontWeight:900, color:'var(--or-d)', marginBottom:4 }}>KPI 시스템 연동 (선택)</h2>
-          <p style={{ fontSize:11, color:'var(--text-sm)', fontWeight:600, marginBottom:14 }}>pour-os-v6-2.html(KPI/업무관리)와 연결하기 위한 식별자. 향후 KPI 시스템을 어드민에 흡수할 때 사용.</p>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 160px', gap:16 }}>
-            <div><label style={labelCss}>KPI 멤버 ID</label><input style={inputCss} value={form.kpiMemberId} onChange={e => updateField('kpiMemberId', e.target.value)} placeholder="m1, m2, m3 ..." /></div>
+          <h2 style={{ fontSize:13, fontWeight:900, color:'var(--or-d)', marginBottom:4 }}>업무관리 연동 <span style={{ color:'#DC2626' }}>*</span></h2>
+          <p style={{ fontSize:11, color:'var(--text-sm)', fontWeight:600, marginBottom:14 }}>
+            업무관리(workmgmt) 카드·프로젝트 owner와의 매칭 키. <b>이 ID로 본인 카드가 자동 매칭됩니다.</b> 한 멤버 ID당 1명만 등록 가능 (중복 방지).
+          </p>
+          <div style={{ display:'grid', gridTemplateColumns:'1.4fr 1fr 160px', gap:16 }}>
+            <div>
+              <label style={labelCss}>업무관리 매칭 ID <span style={{ color:'#DC2626' }}>*</span></label>
+              <select
+                style={{ ...inputCss, cursor:'pointer' }}
+                value={form.kpiMemberId || ''}
+                onChange={e => updateField('kpiMemberId', e.target.value)}
+              >
+                <option value="">— 선택 —</option>
+                {KPI_MEMBER_OPTIONS.map(opt => {
+                  const taken = list.find(s => s.id !== editId && s.kpiMemberId === opt.id);
+                  return (
+                    <option key={opt.id} value={opt.id} disabled={!!taken}>
+                      {opt.label}{taken ? ` · 이미 사용됨 (${taken.name})` : ''}
+                    </option>
+                  );
+                })}
+              </select>
+              <div style={{ fontSize:10.5, color:'var(--text-sm)', fontWeight:700, marginTop:6, lineHeight:1.5 }}>
+                ※ workmgmt 3인 카드(송희·민지·란)와 1:1 매칭. 신규 멤버 추가 시 workmgmt에도 동일 키 등록 필요.
+              </div>
+            </div>
             <div><label style={labelCss}>이니셜 (1~2자)</label><input style={inputCss} value={form.kpiInitial} onChange={e => updateField('kpiInitial', e.target.value)} placeholder="홍" maxLength={2} /></div>
             <div>
               <label style={labelCss}>대표 컬러</label>
@@ -4890,10 +4927,23 @@ function StaffPage({ onToast }) {
 
       {/* 역할(KPI 카테고리) 분포 박스 제거 — 프로젝트별 배정 + 부서·소속 필드 모두 폐지 */}
       {totalAdmins > 0 && (
-        <div style={{ padding:'8px 14px', marginBottom:14, fontSize:11, color:'var(--or-d)', fontWeight:800 }}>
+        <div style={{ padding:'8px 14px', marginBottom:8, fontSize:11, color:'var(--or-d)', fontWeight:800 }}>
           마스터 관리자 {totalAdmins}명
         </div>
       )}
+      {/* 업무관리 매칭 미설정 경고 — 활성 담당자 중 kpiMemberId 없는 사람이 있으면 표시 */}
+      {(() => {
+        const missing = list.filter(s => s.active !== false && !KPI_MEMBER_IDS.includes(s.kpiMemberId));
+        if (missing.length === 0) return null;
+        return (
+          <div style={{ padding:'10px 14px', marginBottom:14, background:'#FEE2E2', border:'1.5px solid #FCA5A5', borderRadius:9, fontSize:11.5, color:'#991B1B', fontWeight:700, lineHeight:1.6 }}>
+            ⚠ <b>업무관리 매칭 ID 미설정 담당자 {missing.length}명</b>: {missing.map(s => s.name).join(' · ')}
+            <div style={{ fontSize:10.5, color:'#7F1D1D', fontWeight:600, marginTop:3 }}>
+              각 담당자 수정 → "업무관리 연동 *" 섹션에서 송희/민지/란 중 하나 선택 → 저장. 미설정 시 업무관리 페이지에서 본인 카드 매칭이 안 됩니다.
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ─── 검색 + 필터 + 뷰 토글 ─── */}
       <div style={{ display:'flex', gap:10, marginBottom:16, flexWrap:'wrap', alignItems:'center' }}>
@@ -4955,6 +5005,10 @@ function StaffPage({ onToast }) {
                     <div style={{ display:'flex', gap:6, marginTop:2, flexWrap:'wrap', alignItems:'center' }}>
                       {s.isAdmin && <span style={{ fontSize:9, fontWeight:900, color:'var(--or-d)', background:'var(--or-l)', padding:'1px 6px', borderRadius:4 }}>마스터 관리자</span>}
                       {s.active === false && <span style={{ fontSize:9, fontWeight:900, color:'#6B7280', background:'#F3F4F6', padding:'1px 6px', borderRadius:4 }}>비활성</span>}
+                      {KPI_MEMBER_IDS.includes(s.kpiMemberId)
+                        ? <span title="업무관리 매칭 OK" style={{ fontSize:9, fontWeight:900, color:'#047857', background:'#D1FAE5', padding:'1px 6px', borderRadius:4 }}>🔗 {s.kpiMemberId}</span>
+                        : <span title="업무관리 매칭 ID 미설정 — 수정해서 선택 필요" style={{ fontSize:9, fontWeight:900, color:'#DC2626', background:'#FEE2E2', padding:'1px 6px', borderRadius:4 }}>⚠ 매칭 미설정</span>
+                      }
                     </div>
                   </div>
                 </div>
@@ -5012,6 +5066,10 @@ function StaffPage({ onToast }) {
                             {me && <span style={{ fontSize:9, fontWeight:900, color:'#fff', background:'#2BC472', padding:'1px 6px', borderRadius:999 }}>본인</span>}
                           </div>
                           {s.isAdmin && <div style={{ fontSize:10, fontWeight:800, color:'var(--or-d)' }}>마스터 관리자</div>}
+                          {KPI_MEMBER_IDS.includes(s.kpiMemberId)
+                            ? <div style={{ fontSize:10, fontWeight:800, color:'#047857' }}>🔗 {s.kpiMemberId}</div>
+                            : <div style={{ fontSize:10, fontWeight:800, color:'#DC2626' }}>⚠ 매칭 미설정</div>
+                          }
                         </div>
                       </div>
                     </td>

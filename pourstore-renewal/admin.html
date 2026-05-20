@@ -137,6 +137,8 @@ const COLLECTIONS = {
   POUR_KPIS: 'pour-kpis',             // { staffId, keyResultId, name, target, baseline, unit, source:'auto'|'auto-progress'|'manual', current, history:[], description, createdAt, updatedAt }
   POUR_MEETINGS: 'pour-meetings',     // { staffId, title, date, time, type, place, agenda, attendeeStaffIds:[], actionItems:[{id, text, assigneeStaffId, dueDate, priority, done, linkedTaskId, linkedProjectId}], createdAt, updatedAt }
   POUR_JOURNALS: 'pour-journals',     // 업무일지 — { staffId, staffName, date(YYYY-MM-DD), projectId, projectName, content, hoursSpent, progressDelta, mood, attachments:[], createdAt, updatedAt }
+  // 거래코드·채널 (workmgmt KR 하위 세부 채널 — 조달청·관급 신설처럼 채널 추가 시 어드민에서 등록)
+  WORK_CHANNELS: 'work-channels',     // { code, krGroup('KR1'|'KR2'|'KR3'|'기타'), name, target, unit, description, status('active'|'draft'|'archived'), order, createdAt/By, updatedAt/By }
 };
 
 // 담당자 역할·부서·소속 모두 폐지 (POUR스토어 단일 부서 운영 + 프로젝트별 배정으로 대체)
@@ -279,6 +281,7 @@ const NAV = [
   { id: 'okr', icon: '🎯', label: 'OKR · 활동지표' },
   { id: 'projects', icon: '🗂️', label: '프로젝트' },
   { id: 'journals', icon: '📝', label: '업무일지' },
+  { id: 'channels', icon: '🏷️', label: '거래코드·채널' },
   // 캘린더·회의록 → 추후 React 컴포넌트 흡수 예정
   { type: 'divider', label: '디자인/개발 센터' },
   { id: 'preview', icon: '🎨', label: '자사몰 페이지 관리' },
@@ -4565,7 +4568,7 @@ function WorkMgmtPage() {
         <div>
           <h1 style={{ fontSize:16, fontWeight:900, color:'var(--navy)', marginBottom:2 }}>📋 업무관리</h1>
           <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700 }}>
-            O1 매출 10억 · KR1/2/3 · 45 프로젝트 · 3인 (송희·민지·란) · <b>실시간 협업 동기화</b> (work-mgmt/main · Firestore)
+            O1 매출 10억 · KR1/2/3 · 53 프로젝트 (G 조달청·관급 신설) · 3인 (송희·민지·란) · <b>실시간 협업 동기화</b> (work-mgmt/main · Firestore)
           </div>
         </div>
         <a href="./workmgmt.html" target="_blank" rel="noopener noreferrer" style={{
@@ -6588,6 +6591,230 @@ function JournalForm({ onSubmit, onCancel, projects, activeStaff }) {
 }
 
 // ============================================================
+// ChannelsPage — 거래코드·채널 관리
+// 데이터 모델 (work-channels):
+//   { code(예 'G'), krGroup('KR1'|'KR2'|'KR3'|'기타'), name, target, unit, description,
+//     status('active'|'draft'|'archived'), order, createdAt/By, updatedAt/By }
+// 용도:
+//   workmgmt의 KR 하위 세부 채널(P3·P4·G·M 등 거래코드)을 어드민에서 직접 추가·편집·아카이브.
+//   예: 2026-05 벤처나라 등록 → G 조달청·관급 채널 신설 → 여기서 등록만으로 시스템 반영.
+//   향후 workmgmt가 본 컬렉션을 읽어 동적으로 KR 트리에 표시 (현 PR 범위 외).
+// ============================================================
+const CHANNEL_KR_GROUPS = ['KR1', 'KR2', 'KR3', '기타'];
+const CHANNEL_STATUS_META = {
+  active:   { label: '운영',  color: '#047857', bg: '#D1FAE5' },
+  draft:    { label: '준비',  color: '#B45309', bg: '#FEF3C7' },
+  archived: { label: '종료',  color: '#6B7280', bg: '#F3F4F6' },
+};
+
+function ChannelsPage({ onToast }) {
+  const { activeStaff, audit } = useActiveStaffContext();
+  const [channels, setChannels] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(null);  // null | 'new' | channel object
+
+  useEffect(() => {
+    const unsub = db.collection(COLLECTIONS.WORK_CHANNELS).onSnapshot(snap => {
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      list.sort((a, b) => {
+        const k = (a.krGroup || '').localeCompare(b.krGroup || '');
+        if (k !== 0) return k;
+        return (Number(a.order) || 0) - (Number(b.order) || 0);
+      });
+      console.log(`[work-channels] ${list.length}건 로드`);
+      setChannels(list);
+      setLoading(false);
+    }, err => { console.error('[work-channels]', err); setLoading(false); });
+    return unsub;
+  }, []);
+
+  if (!activeStaff) return <div style={{ padding:60, textAlign:'center', color:'var(--text-sm)' }}>활동 담당자 선택이 필요합니다.</div>;
+  if (loading) return <div style={{ padding:60, textAlign:'center', color:'var(--text-sm)' }}>로딩 중...</div>;
+
+  const addChannel = async (data) => {
+    await db.collection(COLLECTIONS.WORK_CHANNELS).add({
+      code: data.code.trim().toUpperCase(),
+      krGroup: data.krGroup,
+      name: data.name.trim(),
+      target: Number(data.target) || 0,
+      unit: data.unit || '원',
+      description: data.description || '',
+      status: data.status || 'draft',
+      order: Number(data.order) || (channels.filter(c => c.krGroup === data.krGroup).length + 1),
+      ...audit.create(),
+    });
+    onToast({ message: `채널 "${data.code} ${data.name}" 등록`, type: 'success' });
+  };
+  const updateChannel = async (id, patch) => {
+    await db.collection(COLLECTIONS.WORK_CHANNELS).doc(id).update({ ...patch, ...audit.update() });
+  };
+  const delChannel = async (c) => {
+    if (!confirm(`채널 "${c.code} ${c.name}" 삭제? 관련 프로젝트/일지는 별도로 유지됩니다.`)) return;
+    await db.collection(COLLECTIONS.WORK_CHANNELS).doc(c.id).delete();
+    onToast({ message: '삭제 완료', type: 'success' });
+  };
+
+  // KR 그룹별 묶기
+  const byKr = {};
+  CHANNEL_KR_GROUPS.forEach(g => { byKr[g] = channels.filter(c => c.krGroup === g); });
+
+  return (
+    <div style={{ padding:'24px 32px', maxWidth:1280 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18, flexWrap:'wrap', gap:12 }}>
+        <div>
+          <h1 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6, marginBottom:4 }}>🏷️ 거래코드·채널</h1>
+          <div style={{ fontSize:12.5, color:'var(--text-sm)', fontWeight:700 }}>
+            KR 하위 거래 채널(예: <b>P3 대리점·오프라인몰</b>, <b>P4 파트너사</b>, <b>G 조달청·관급</b>) 관리.
+            <br/>전체 {channels.length} · 운영 {channels.filter(c => c.status === 'active').length} · 준비 {channels.filter(c => c.status === 'draft').length} · 종료 {channels.filter(c => c.status === 'archived').length}
+          </div>
+        </div>
+        <button onClick={() => setShowForm('new')} style={{
+          padding:'10px 18px', borderRadius:9, fontSize:13, fontWeight:900, color:'#fff',
+          background:'linear-gradient(135deg, var(--or), var(--or-d))',
+        }}>+ 채널 추가</button>
+      </div>
+
+      {/* 안내 박스 (벤처나라 사례) */}
+      <div style={{ padding:'12px 14px', marginBottom:18, background:'var(--or-pale, #FFF7ED)', border:'1px dashed var(--or-l, #FED7AA)', borderRadius:9, fontSize:11.5, color:'var(--or-d, #B45309)', fontWeight:700, lineHeight:1.7 }}>
+        💡 새 거래 채널 추가 워크플로우 — 예: <b>벤처나라 등록 → 조달청·관급 (G) 신설</b>
+        <ol style={{ margin:'6px 0 0 16px', padding:0, fontSize:11, fontWeight:600, color:'#7C2D12' }}>
+          <li>이 페이지에서 [+ 채널 추가] → 코드(G) · 이름(조달청·관급) · KR(KR2) · 목표 입력 → 저장</li>
+          <li>업무관리(workmgmt)에 관련 프로젝트는 별도로 등록 (지금은 workmgmt.html 데이터에 직접 반영, 향후 work-channels를 동적 로드)</li>
+          <li>OKR 페이지에서 해당 KR의 KPI 활동지표 자동 산출 가능</li>
+        </ol>
+      </div>
+
+      {channels.length === 0 ? (
+        <div style={{ padding:60, textAlign:'center', background:'#fff', border:'1px dashed var(--border)', borderRadius:12, color:'var(--text-sm)', fontSize:13, fontWeight:600 }}>
+          등록된 거래 채널이 없습니다. [+ 채널 추가]로 첫 채널을 등록해 주세요.
+          <br/>예: KR2 / G / 조달청·관급 (벤처나라 등록 후속)
+        </div>
+      ) : (
+        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+          {CHANNEL_KR_GROUPS.map(grp => {
+            const items = byKr[grp];
+            if (items.length === 0) return null;
+            return (
+              <div key={grp} style={{ background:'#fff', borderRadius:12, border:'1px solid var(--border)', boxShadow:'var(--shadow)', overflow:'hidden' }}>
+                <div style={{ padding:'12px 18px', background:'var(--bg)', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                  <div style={{ fontSize:13, fontWeight:900, color:'var(--navy)' }}>📂 {grp} <span style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700, marginLeft:6 }}>{items.length}개 채널</span></div>
+                </div>
+                <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
+                  <thead>
+                    <tr style={{ background:'#fff' }}>
+                      <th style={{ ...th(), width:70 }}>코드</th>
+                      <th style={th()}>채널명</th>
+                      <th style={{ ...th(), width:100 }}>목표</th>
+                      <th style={{ ...th(), width:80 }}>상태</th>
+                      <th style={th()}>설명</th>
+                      <th style={{ ...th(), width:120, textAlign:'right' }}>작업</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map(c => {
+                      const meta = CHANNEL_STATUS_META[c.status] || CHANNEL_STATUS_META.draft;
+                      return (
+                        <tr key={c.id} style={{ borderTop:'1px solid var(--border-s)', opacity: c.status === 'archived' ? 0.6 : 1 }}>
+                          <td style={td()}><b style={{ color:'var(--or-d)', fontFamily:'monospace' }}>{c.code}</b></td>
+                          <td style={td()}><b>{c.name}</b></td>
+                          <td style={td()}>{c.target ? `${fmtPrice(c.target)} ${c.unit || ''}` : <span style={{ color:'var(--text-xs)' }}>—</span>}</td>
+                          <td style={td()}>
+                            <select value={c.status || 'draft'} onChange={e => updateChannel(c.id, { status: e.target.value })} style={{ padding:'3px 7px', borderRadius:5, fontSize:11, fontWeight:800, color:meta.color, background:meta.bg, border:'1px solid '+meta.bg }}>
+                              {Object.entries(CHANNEL_STATUS_META).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                            </select>
+                          </td>
+                          <td style={{ ...td(), fontSize:11, color:'var(--text-md)' }}>{c.description || <span style={{ color:'var(--text-xs)' }}>—</span>}</td>
+                          <td style={{ ...td(), textAlign:'right' }}>
+                            <button onClick={() => setShowForm(c)} style={{ padding:'4px 10px', borderRadius:6, fontSize:11, fontWeight:800, color:'var(--or-d)', border:'1px solid var(--or-l)', background:'#fff', marginRight:4 }}>편집</button>
+                            <button onClick={() => delChannel(c)} style={{ padding:'4px 10px', borderRadius:6, fontSize:11, fontWeight:800, color:'#DC2626', border:'1px solid #FECACA', background:'#fff' }}>삭제</button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <Modal open={!!showForm} onClose={() => setShowForm(null)} title={showForm === 'new' ? '거래 채널 추가' : '거래 채널 편집'} width={520}>
+        {showForm && <ChannelForm
+          initial={showForm === 'new' ? null : showForm}
+          existingCodes={channels.filter(c => showForm === 'new' || c.id !== showForm.id).map(c => c.code)}
+          onSubmit={(d) => {
+            if (showForm === 'new') addChannel(d);
+            else updateChannel(showForm.id, {
+              code: d.code.trim().toUpperCase(), krGroup: d.krGroup, name: d.name.trim(),
+              target: Number(d.target) || 0, unit: d.unit, description: d.description,
+              status: d.status, order: Number(d.order) || 0,
+            }).then(() => onToast({ message: '저장 완료', type: 'success' }));
+            setShowForm(null);
+          }}
+          onCancel={() => setShowForm(null)}
+        />}
+      </Modal>
+    </div>
+  );
+}
+
+function ChannelForm({ initial, existingCodes, onSubmit, onCancel }) {
+  const [code, setCode] = useState(initial?.code || '');
+  const [krGroup, setKrGroup] = useState(initial?.krGroup || 'KR2');
+  const [name, setName] = useState(initial?.name || '');
+  const [target, setTarget] = useState(initial?.target || '');
+  const [unit, setUnit] = useState(initial?.unit || '원');
+  const [description, setDescription] = useState(initial?.description || '');
+  const [status, setStatus] = useState(initial?.status || 'draft');
+  const [order, setOrder] = useState(initial?.order || '');
+  const inputSty = { width:'100%', padding:'10px 12px', border:'1.5px solid var(--border)', borderRadius:8, fontSize:13, fontWeight:600, background:'#fff', outline:'none', marginTop:4 };
+  const labelSty = { fontSize:11, fontWeight:800, color:'var(--text-md)', letterSpacing:.3 };
+
+  const codeDup = code.trim() && existingCodes.includes(code.trim().toUpperCase());
+  const canSubmit = code.trim() && name.trim() && !codeDup;
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'120px 130px 1fr', gap:10 }}>
+        <div>
+          <label style={labelSty}>코드 *</label>
+          <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="G" maxLength={6} style={{ ...inputSty, fontFamily:'monospace', fontWeight:900, color:'var(--or-d)', textTransform:'uppercase' }} />
+          {codeDup && <div style={{ fontSize:10.5, color:'#DC2626', fontWeight:800, marginTop:3 }}>이미 사용된 코드</div>}
+        </div>
+        <div>
+          <label style={labelSty}>KR 그룹</label>
+          <select value={krGroup} onChange={e => setKrGroup(e.target.value)} style={inputSty}>
+            {CHANNEL_KR_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={labelSty}>채널명 *</label>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="조달청·관급" style={inputSty} />
+        </div>
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 100px 110px', gap:10 }}>
+        <div><label style={labelSty}>목표값</label><input type="number" value={target} onChange={e => setTarget(e.target.value)} placeholder="100000000" style={inputSty} /></div>
+        <div><label style={labelSty}>단위</label><input value={unit} onChange={e => setUnit(e.target.value)} style={inputSty} /></div>
+        <div>
+          <label style={labelSty}>상태</label>
+          <select value={status} onChange={e => setStatus(e.target.value)} style={inputSty}>
+            {Object.entries(CHANNEL_STATUS_META).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+          </select>
+        </div>
+      </div>
+      <div><label style={labelSty}>설명</label>
+        <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="채널 정의·핵심 영업포인트·운영 메모" rows={3} style={{ ...inputSty, resize:'vertical', fontFamily:'inherit' }} /></div>
+      <div><label style={labelSty}>표시 순서 (낮을수록 위)</label><input type="number" value={order} onChange={e => setOrder(e.target.value)} placeholder="자동" style={inputSty} /></div>
+      <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:8 }}>
+        <button onClick={onCancel} style={{ padding:'9px 18px', borderRadius:8, fontSize:12, fontWeight:800, background:'var(--bg)', color:'var(--text-md)' }}>취소</button>
+        <button disabled={!canSubmit} onClick={() => onSubmit({ code, krGroup, name, target, unit, description, status, order })} style={{ padding:'9px 18px', borderRadius:8, fontSize:12, fontWeight:900, color:'#fff', background:'var(--or)', opacity: canSubmit ? 1 : 0.5 }}>{initial ? '저장' : '추가'}</button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // App
 // ============================================================
 function App() {
@@ -6705,6 +6932,7 @@ function App() {
         {active === 'okr' && <OKRPage onToast={setToast} />}
         {active === 'projects' && <ProjectsPage onToast={setToast} />}
         {active === 'journals' && <JournalsPage onToast={setToast} />}
+        {active === 'channels' && <ChannelsPage onToast={setToast} />}
         {active === 'preview' && <PreviewPage />}
         {active === 'products' && <ProductsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'metrics' && <MetricsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}

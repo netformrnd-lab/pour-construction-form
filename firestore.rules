@@ -119,6 +119,8 @@ service cloud.firestore {
     // 향후 OTP 인증 도입 시 활동 담당자만 쓰기 허용으로 강화 예정.
     // ─────────────────────────────────────────────
     match /work-mgmt/{doc}          { allow read, write: if true; }
+    // 거래코드·채널 관리 (KR 하위 세부 채널 — G 조달청·관급 등 신설/편집)
+    match /work-channels/{doc}      { allow read, write: if true; }
 
     // ─────────────────────────────────────────────
     // 기본 정책: 명시되지 않은 컬렉션은 차단

@@ -136,6 +136,7 @@ const COLLECTIONS = {
   POUR_KEYRESULTS: 'pour-keyresults', // { objectiveId, title, target, current, unit, channel:'inbound'|'outbound'|'ops', description, createdAt, updatedAt }
   POUR_KPIS: 'pour-kpis',             // { staffId, keyResultId, name, target, baseline, unit, source:'auto'|'auto-progress'|'manual', current, history:[], description, createdAt, updatedAt }
   POUR_MEETINGS: 'pour-meetings',     // { staffId, title, date, time, type, place, agenda, attendeeStaffIds:[], actionItems:[{id, text, assigneeStaffId, dueDate, priority, done, linkedTaskId, linkedProjectId}], createdAt, updatedAt }
+  POUR_JOURNALS: 'pour-journals',     // 업무일지 — { staffId, staffName, date(YYYY-MM-DD), projectId, projectName, content, hoursSpent, progressDelta, mood, attachments:[], createdAt, updatedAt }
 };
 
 // 담당자 role 7개 — KPI 시스템(pour-os-v6-2.html)의 5개 카테고리 + dev/manage
@@ -285,7 +286,10 @@ const NAV = [
   { id: 'workmgmt', icon: '📋', label: '업무관리' },
   { id: 'dashboard-os', icon: '🏠', label: '대시보드' },
   { id: 'recurring', icon: '🔁', label: '반복업무' },
-  // 대시보드·캘린더·반복업무·회의록 → 추후 React 컴포넌트 흡수 예정
+  { id: 'okr', icon: '🎯', label: 'OKR · 활동지표' },
+  { id: 'projects', icon: '🗂️', label: '프로젝트' },
+  { id: 'journals', icon: '📝', label: '업무일지' },
+  // 캘린더·회의록 → 추후 React 컴포넌트 흡수 예정
   { type: 'divider', label: '디자인/개발 센터' },
   { id: 'preview', icon: '🎨', label: '자사몰 페이지 관리' },
   { id: 'products', icon: '📦', label: '상품관리' },
@@ -5707,6 +5711,937 @@ function RecurringTasksPage({ onToast }) {
 }
 
 // ============================================================
+// OKR · 프로젝트 · 업무일지 — 공통 hooks/유틸
+// 데이터 모델 (CLAUDE.md PART 12-2 기준):
+//   pour-objectives   — Objective (O)
+//   pour-keyresults   — Key Result (KR), objectiveId 참조
+//   pour-kpis         — KPI 활동지표 (KR의 측정수치), keyResultId 참조, source='auto-progress' 시 프로젝트 progress 평균으로 자동산출
+//   pour-projects     — KR 달성을 위한 실행 단위. assigneeStaffIds: [] 다중 담당자, keyResultId 연결, progress 0~100
+//   pour-journals     — 업무일지: 담당자가 프로젝트별로 작성 (date, content, hoursSpent, progressDelta)
+// 단일 진실 소스(staff 컬렉션)와 audit 헬퍼는 모든 페이지에서 공유.
+// ============================================================
+function useAllOkrData() {
+  const [objectives, setObjectives] = useState([]);
+  const [keyResults, setKeyResults] = useState([]);
+  const [kpis, setKpis] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let counters = { o: false, kr: false, kpi: false, proj: false };
+    const checkDone = () => { if (counters.o && counters.kr && counters.kpi && counters.proj) setLoading(false); };
+    const u1 = db.collection(COLLECTIONS.POUR_OBJECTIVES).onSnapshot(snap => {
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      console.log(`[pour-objectives] ${list.length}건`);
+      setObjectives(list); counters.o = true; checkDone();
+    }, err => { console.error('[pour-objectives]', err); counters.o = true; checkDone(); });
+    const u2 = db.collection(COLLECTIONS.POUR_KEYRESULTS).onSnapshot(snap => {
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      console.log(`[pour-keyresults] ${list.length}건`);
+      setKeyResults(list); counters.kr = true; checkDone();
+    }, err => { console.error('[pour-keyresults]', err); counters.kr = true; checkDone(); });
+    const u3 = db.collection(COLLECTIONS.POUR_KPIS).onSnapshot(snap => {
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      console.log(`[pour-kpis] ${list.length}건`);
+      setKpis(list); counters.kpi = true; checkDone();
+    }, err => { console.error('[pour-kpis]', err); counters.kpi = true; checkDone(); });
+    const u4 = db.collection(COLLECTIONS.POUR_PROJECTS).onSnapshot(snap => {
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      console.log(`[pour-projects] ${list.length}건`);
+      setProjects(list); counters.proj = true; checkDone();
+    }, err => { console.error('[pour-projects]', err); counters.proj = true; checkDone(); });
+    return () => { u1(); u2(); u3(); u4(); };
+  }, []);
+  return { objectives, keyResults, kpis, projects, loading };
+}
+
+function useJournals() {
+  const [journals, setJournals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const unsub = db.collection(COLLECTIONS.POUR_JOURNALS).onSnapshot(snap => {
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // 날짜 desc → 작성 시간 desc 정렬 (클라이언트 정렬: index 생성 회피)
+      list.sort((a, b) => {
+        const d = (b.date || '').localeCompare(a.date || '');
+        if (d !== 0) return d;
+        return (b.createdAt || '').localeCompare(a.createdAt || '');
+      });
+      console.log(`[pour-journals] ${list.length}건`);
+      setJournals(list);
+      setLoading(false);
+    }, err => { console.error('[pour-journals]', err); setLoading(false); });
+    return unsub;
+  }, []);
+  return { journals, loading };
+}
+
+// KPI 자동산출: 연결된 keyResultId의 모든 프로젝트 progress 평균 (source='auto-progress')
+function computeKpiAutoValue(kpi, projects) {
+  if (!kpi || kpi.source !== 'auto-progress') return kpi?.current ?? 0;
+  const linked = projects.filter(p => p.keyResultId === kpi.keyResultId);
+  if (linked.length === 0) return 0;
+  const sum = linked.reduce((s, p) => s + (Number(p.progress) || 0), 0);
+  return Math.round(sum / linked.length);
+}
+
+// KR 진척도(0~100): 소속 프로젝트 progress 평균
+function computeKrProgress(kr, projects) {
+  const linked = projects.filter(p => p.keyResultId === kr.id);
+  if (linked.length === 0) return 0;
+  const sum = linked.reduce((s, p) => s + (Number(p.progress) || 0), 0);
+  return Math.round(sum / linked.length);
+}
+
+// 담당자별 프로젝트 기여도 (assigneeStaffIds 포함된 프로젝트의 progress 평균)
+function computeStaffContribution(staffId, projects) {
+  const mine = projects.filter(p => Array.isArray(p.assigneeStaffIds) && p.assigneeStaffIds.includes(staffId));
+  if (mine.length === 0) return { count: 0, avgProgress: 0, doneCount: 0 };
+  const sum = mine.reduce((s, p) => s + (Number(p.progress) || 0), 0);
+  const doneCount = mine.filter(p => p.status === 'done' || Number(p.progress) >= 100).length;
+  return { count: mine.length, avgProgress: Math.round(sum / mine.length), doneCount };
+}
+
+// ============================================================
+// OKRPage — Objective → KR → KPI 활동지표 트리
+// 회사 OKR 1개(매출 10억) 가정 + 다중 KR + KR별 KPI 활동지표
+// ============================================================
+function OKRPage({ onToast }) {
+  const { activeStaff, audit, staffMembers } = useActiveStaffContext();
+  const { objectives, keyResults, kpis, projects, loading } = useAllOkrData();
+  const [showObjModal, setShowObjModal] = useState(false);
+  const [showKrModal, setShowKrModal] = useState(null);   // objectiveId
+  const [showKpiModal, setShowKpiModal] = useState(null); // keyResultId
+
+  if (!activeStaff) return <div style={{ padding:60, textAlign:'center', color:'var(--text-sm)' }}>활동 담당자 선택이 필요합니다.</div>;
+  if (loading) return <div style={{ padding:60, textAlign:'center', color:'var(--text-sm)' }}>로딩 중...</div>;
+
+  const addObjective = async (title, target, unit, year) => {
+    await db.collection(COLLECTIONS.POUR_OBJECTIVES).add({
+      title, target: Number(target) || 0, current: 0, unit: unit || '',
+      year: year || new Date().getFullYear(),
+      ownerStaffId: activeStaff.id, ownerStaffName: activeStaff.name,
+      description: '',
+      ...audit.create(),
+    });
+    onToast({ message: 'Objective 추가 완료', type: 'success' });
+  };
+  const addKR = async (objectiveId, title, target, unit, channel) => {
+    await db.collection(COLLECTIONS.POUR_KEYRESULTS).add({
+      objectiveId, title, target: Number(target) || 0, current: 0, unit: unit || '',
+      channel: channel || 'ops',
+      ...audit.create(),
+    });
+    onToast({ message: 'Key Result 추가 완료', type: 'success' });
+  };
+  const addKpi = async (keyResultId, name, target, baseline, unit, source) => {
+    await db.collection(COLLECTIONS.POUR_KPIS).add({
+      keyResultId, name, target: Number(target) || 0, baseline: Number(baseline) || 0,
+      unit: unit || '', source: source || 'manual', current: Number(baseline) || 0, history: [],
+      staffId: activeStaff.id,
+      ...audit.create(),
+    });
+    onToast({ message: 'KPI 활동지표 추가 완료', type: 'success' });
+  };
+  const updateKpiValue = async (kpi, newValue) => {
+    const v = Number(newValue) || 0;
+    const history = [...(kpi.history || []), { value: v, at: nowIso(), by: activeStaff.id }];
+    await db.collection(COLLECTIONS.POUR_KPIS).doc(kpi.id).update({
+      current: v, history: history.slice(-50),
+      ...audit.update(),
+    });
+    onToast({ message: 'KPI 값 업데이트', type: 'success' });
+  };
+  const delObjective = async (o) => {
+    if (!confirm(`Objective "${o.title}" 삭제? (하위 KR/KPI는 별도로 삭제 필요)`)) return;
+    await db.collection(COLLECTIONS.POUR_OBJECTIVES).doc(o.id).delete();
+    onToast({ message: '삭제 완료', type: 'success' });
+  };
+  const delKR = async (kr) => {
+    if (!confirm(`KR "${kr.title}" 삭제?`)) return;
+    await db.collection(COLLECTIONS.POUR_KEYRESULTS).doc(kr.id).delete();
+    onToast({ message: '삭제 완료', type: 'success' });
+  };
+  const delKpi = async (k) => {
+    if (!confirm(`KPI "${k.name}" 삭제?`)) return;
+    await db.collection(COLLECTIONS.POUR_KPIS).doc(k.id).delete();
+    onToast({ message: '삭제 완료', type: 'success' });
+  };
+
+  return (
+    <div style={{ padding:'24px 32px', maxWidth:1280 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18, flexWrap:'wrap', gap:12 }}>
+        <div>
+          <h1 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6, marginBottom:4 }}>🎯 OKR · 활동지표</h1>
+          <div style={{ fontSize:12.5, color:'var(--text-sm)', fontWeight:700 }}>
+            Objective {objectives.length} · Key Result {keyResults.length} · KPI 활동지표 {kpis.length} · 프로젝트 {projects.length}
+            <br/>※ source=<b>auto-progress</b> 설정 시 KPI 값은 연결 프로젝트들의 진척도 평균으로 자동 산출됩니다.
+          </div>
+        </div>
+        <button onClick={() => setShowObjModal(true)} style={{
+          padding:'10px 18px', borderRadius:9, fontSize:13, fontWeight:900, color:'#fff',
+          background:'linear-gradient(135deg, var(--or), var(--or-d))',
+        }}>+ Objective 추가</button>
+      </div>
+
+      {objectives.length === 0 ? (
+        <div style={{ padding:60, textAlign:'center', background:'#fff', border:'1px dashed var(--border)', borderRadius:12, color:'var(--text-sm)', fontSize:13, fontWeight:600 }}>
+          등록된 Objective가 없습니다. 우상단 [+ Objective 추가]로 시작하세요.<br/>
+          예: 2026년 매출 10억 · 신규 거래처 50개 · 어드민 시스템 4모듈 안정화
+        </div>
+      ) : (
+        <div style={{ display:'flex', flexDirection:'column', gap:18 }}>
+          {objectives.map(o => {
+            const myKRs = keyResults.filter(kr => kr.objectiveId === o.id);
+            const oProgress = myKRs.length === 0 ? 0 : Math.round(myKRs.reduce((s, kr) => s + computeKrProgress(kr, projects), 0) / myKRs.length);
+            return (
+              <div key={o.id} style={{ background:'#fff', borderRadius:14, border:'1.5px solid var(--border)', boxShadow:'var(--shadow)', overflow:'hidden' }}>
+                {/* Objective 헤더 */}
+                <div style={{ padding:'18px 22px', background:'linear-gradient(135deg, var(--navy), var(--navy2))', color:'#fff' }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:10 }}>
+                    <div style={{ minWidth:0, flex:1 }}>
+                      <div style={{ fontSize:10.5, fontWeight:800, color:'rgba(255,255,255,.65)', letterSpacing:1, marginBottom:4 }}>OBJECTIVE · {o.year || ''}</div>
+                      <div style={{ fontSize:17, fontWeight:900, letterSpacing:-0.4 }}>{o.title}</div>
+                      {o.target ? (
+                        <div style={{ fontSize:11.5, color:'rgba(255,255,255,.8)', fontWeight:700, marginTop:4 }}>
+                          목표: {fmtPrice(o.target)} {o.unit || ''} · 평균 진척도: <b>{oProgress}%</b>
+                        </div>
+                      ) : null}
+                    </div>
+                    <div style={{ display:'flex', gap:6 }}>
+                      <button onClick={() => setShowKrModal(o.id)} style={{ padding:'7px 12px', borderRadius:7, fontSize:11.5, fontWeight:800, color:'#fff', background:'rgba(255,255,255,.16)', border:'1px solid rgba(255,255,255,.3)' }}>+ KR</button>
+                      <button onClick={() => delObjective(o)} style={{ padding:'7px 10px', borderRadius:7, fontSize:11.5, fontWeight:800, color:'rgba(255,255,255,.85)', background:'rgba(0,0,0,.2)', border:'1px solid rgba(255,255,255,.15)' }}>삭제</button>
+                    </div>
+                  </div>
+                  {/* Objective progress bar */}
+                  <div style={{ marginTop:12, height:6, background:'rgba(255,255,255,.15)', borderRadius:3, overflow:'hidden' }}>
+                    <div style={{ width:`${oProgress}%`, height:'100%', background:'linear-gradient(90deg, #FFD66B, var(--or))' }} />
+                  </div>
+                </div>
+
+                {/* KR 목록 */}
+                <div style={{ padding:'14px 18px', display:'flex', flexDirection:'column', gap:12 }}>
+                  {myKRs.length === 0 ? (
+                    <div style={{ padding:18, textAlign:'center', color:'var(--text-sm)', fontSize:12, fontWeight:600, border:'1px dashed var(--border)', borderRadius:8 }}>
+                      Key Result가 없습니다. 우상단 [+ KR] 버튼으로 추가하세요.
+                    </div>
+                  ) : myKRs.map(kr => {
+                    const myKpis = kpis.filter(k => k.keyResultId === kr.id);
+                    const linkedProjects = projects.filter(p => p.keyResultId === kr.id);
+                    const krProg = computeKrProgress(kr, projects);
+                    const channelMeta = {
+                      inbound:  { label: 'Inbound',  color:'#2563EB', bg:'#DBEAFE' },
+                      outbound: { label: 'Outbound', color:'#7C3AED', bg:'#EDE9FE' },
+                      ops:      { label: 'Ops',      color:'#059669', bg:'#D1FAE5' },
+                    }[kr.channel || 'ops'] || { label: 'Ops', color:'#059669', bg:'#D1FAE5' };
+                    return (
+                      <div key={kr.id} style={{ border:'1px solid var(--border)', borderRadius:10, padding:'12px 14px', background:'var(--bg)' }}>
+                        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8, marginBottom:8 }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:8, minWidth:0, flex:1 }}>
+                            <span style={{ padding:'2px 7px', borderRadius:5, fontSize:10, fontWeight:900, color:channelMeta.color, background:channelMeta.bg }}>{channelMeta.label}</span>
+                            <span style={{ fontSize:13.5, fontWeight:900, color:'var(--text)' }}>{kr.title}</span>
+                            <span style={{ fontSize:11, fontWeight:800, color:'var(--text-sm)' }}>· 목표 {fmtPrice(kr.target)} {kr.unit}</span>
+                            <span style={{ fontSize:11, fontWeight:900, color:'var(--or-d)' }}>· {krProg}%</span>
+                          </div>
+                          <div style={{ display:'flex', gap:6 }}>
+                            <button onClick={() => setShowKpiModal(kr.id)} style={{ padding:'5px 10px', borderRadius:6, fontSize:11, fontWeight:800, color:'#fff', background:'var(--or)' }}>+ KPI</button>
+                            <button onClick={() => delKR(kr)} style={{ padding:'5px 9px', borderRadius:6, fontSize:11, fontWeight:800, color:'#DC2626', background:'#fff', border:'1px solid #FECACA' }}>삭제</button>
+                          </div>
+                        </div>
+                        {/* KR progress */}
+                        <div style={{ height:5, background:'#fff', borderRadius:3, overflow:'hidden', border:'1px solid var(--border)', marginBottom:10 }}>
+                          <div style={{ width:`${krProg}%`, height:'100%', background:'var(--or)' }} />
+                        </div>
+
+                        {/* 연결된 프로젝트 요약 */}
+                        <div style={{ fontSize:11, color:'var(--text-md)', fontWeight:700, marginBottom:8 }}>
+                          🗂️ 연결 프로젝트: {linkedProjects.length === 0 ? '없음' : linkedProjects.map(p => `${p.name}(${p.progress||0}%)`).join(' · ')}
+                        </div>
+
+                        {/* KPI 활동지표 */}
+                        {myKpis.length > 0 && (
+                          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(180px, 1fr))', gap:8 }}>
+                            {myKpis.map(k => {
+                              const current = k.source === 'auto-progress' ? computeKpiAutoValue(k, projects) : (k.current || 0);
+                              const tgt = k.target || 1;
+                              const pct = Math.min(100, Math.round((current / tgt) * 100));
+                              return (
+                                <div key={k.id} style={{ background:'#fff', borderRadius:8, padding:'10px 12px', border:'1px solid var(--border)' }}>
+                                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
+                                    <div style={{ fontSize:10.5, fontWeight:800, color:'var(--text-md)' }}>{k.name}</div>
+                                    <button onClick={() => delKpi(k)} title="삭제" style={{ fontSize:10, color:'var(--text-sm)' }}>×</button>
+                                  </div>
+                                  <div style={{ display:'flex', alignItems:'baseline', gap:4 }}>
+                                    {k.source === 'manual' ? (
+                                      <input type="number" defaultValue={k.current || 0}
+                                        onBlur={e => updateKpiValue(k, e.target.value)}
+                                        style={{ width:60, padding:'2px 4px', fontSize:13, fontWeight:900, color:'var(--or-d)', border:'1px solid var(--border)', borderRadius:4 }} />
+                                    ) : (
+                                      <span style={{ fontSize:15, fontWeight:900, color:'var(--or-d)' }}>{fmtPrice(current)}</span>
+                                    )}
+                                    <span style={{ fontSize:10, color:'var(--text-sm)', fontWeight:700 }}>/ {fmtPrice(tgt)} {k.unit || ''}</span>
+                                  </div>
+                                  <div style={{ marginTop:5, height:3, background:'var(--bg)', borderRadius:2, overflow:'hidden' }}>
+                                    <div style={{ width:`${pct}%`, height:'100%', background:pct >= 100 ? 'var(--green)' : 'var(--or)' }} />
+                                  </div>
+                                  <div style={{ fontSize:9.5, color:'var(--text-sm)', fontWeight:700, marginTop:3 }}>
+                                    {k.source === 'auto-progress' ? '🔁 자동(프로젝트 평균)' : k.source === 'auto' ? '🔁 자동' : '✏️ 수동입력'}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Objective 추가 모달 */}
+      <Modal open={showObjModal} onClose={() => setShowObjModal(false)} title="Objective 추가" width={460}>
+        <ObjectiveForm onSubmit={(d) => { addObjective(d.title, d.target, d.unit, d.year); setShowObjModal(false); }} onCancel={() => setShowObjModal(false)} />
+      </Modal>
+      {/* KR 추가 모달 */}
+      <Modal open={!!showKrModal} onClose={() => setShowKrModal(null)} title="Key Result 추가" width={460}>
+        {showKrModal && <KRForm onSubmit={(d) => { addKR(showKrModal, d.title, d.target, d.unit, d.channel); setShowKrModal(null); }} onCancel={() => setShowKrModal(null)} />}
+      </Modal>
+      {/* KPI 추가 모달 */}
+      <Modal open={!!showKpiModal} onClose={() => setShowKpiModal(null)} title="KPI 활동지표 추가" width={500}>
+        {showKpiModal && <KpiForm onSubmit={(d) => { addKpi(showKpiModal, d.name, d.target, d.baseline, d.unit, d.source); setShowKpiModal(null); }} onCancel={() => setShowKpiModal(null)} />}
+      </Modal>
+    </div>
+  );
+}
+
+function ObjectiveForm({ onSubmit, onCancel }) {
+  const [title, setTitle] = useState('');
+  const [target, setTarget] = useState('');
+  const [unit, setUnit] = useState('원');
+  const [year, setYear] = useState(new Date().getFullYear());
+  const inputSty = { width:'100%', padding:'10px 12px', border:'1.5px solid var(--border)', borderRadius:8, fontSize:13, fontWeight:600, background:'#fff', outline:'none', marginTop:4 };
+  const labelSty = { fontSize:11, fontWeight:800, color:'var(--text-md)', letterSpacing:.3 };
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+      <div><label style={labelSty}>제목 *</label><input value={title} onChange={e => setTitle(e.target.value)} placeholder="2026년 매출 10억 달성" style={inputSty} /></div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 100px', gap:10 }}>
+        <div><label style={labelSty}>목표값</label><input type="number" value={target} onChange={e => setTarget(e.target.value)} placeholder="1000000000" style={inputSty} /></div>
+        <div><label style={labelSty}>단위</label><input value={unit} onChange={e => setUnit(e.target.value)} placeholder="원" style={inputSty} /></div>
+      </div>
+      <div><label style={labelSty}>연도</label><input type="number" value={year} onChange={e => setYear(e.target.value)} style={inputSty} /></div>
+      <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:8 }}>
+        <button onClick={onCancel} style={{ padding:'9px 18px', borderRadius:8, fontSize:12, fontWeight:800, background:'var(--bg)', color:'var(--text-md)' }}>취소</button>
+        <button disabled={!title.trim()} onClick={() => onSubmit({ title: title.trim(), target, unit, year: Number(year) })} style={{ padding:'9px 18px', borderRadius:8, fontSize:12, fontWeight:900, color:'#fff', background:'var(--or)', opacity: title.trim() ? 1 : 0.5 }}>추가</button>
+      </div>
+    </div>
+  );
+}
+
+function KRForm({ onSubmit, onCancel }) {
+  const [title, setTitle] = useState('');
+  const [target, setTarget] = useState('');
+  const [unit, setUnit] = useState('원');
+  const [channel, setChannel] = useState('ops');
+  const inputSty = { width:'100%', padding:'10px 12px', border:'1.5px solid var(--border)', borderRadius:8, fontSize:13, fontWeight:600, background:'#fff', outline:'none', marginTop:4 };
+  const labelSty = { fontSize:11, fontWeight:800, color:'var(--text-md)', letterSpacing:.3 };
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+      <div><label style={labelSty}>Key Result 제목 *</label><input value={title} onChange={e => setTitle(e.target.value)} placeholder="POUR 직판 매출 5억" style={inputSty} /></div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 100px', gap:10 }}>
+        <div><label style={labelSty}>목표값</label><input type="number" value={target} onChange={e => setTarget(e.target.value)} placeholder="500000000" style={inputSty} /></div>
+        <div><label style={labelSty}>단위</label><input value={unit} onChange={e => setUnit(e.target.value)} style={inputSty} /></div>
+      </div>
+      <div>
+        <label style={labelSty}>채널</label>
+        <select value={channel} onChange={e => setChannel(e.target.value)} style={inputSty}>
+          <option value="inbound">Inbound (자사몰·SEO·광고)</option>
+          <option value="outbound">Outbound (제휴·박람회·콜드)</option>
+          <option value="ops">Ops (운영·시스템·인프라)</option>
+        </select>
+      </div>
+      <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:8 }}>
+        <button onClick={onCancel} style={{ padding:'9px 18px', borderRadius:8, fontSize:12, fontWeight:800, background:'var(--bg)', color:'var(--text-md)' }}>취소</button>
+        <button disabled={!title.trim()} onClick={() => onSubmit({ title: title.trim(), target, unit, channel })} style={{ padding:'9px 18px', borderRadius:8, fontSize:12, fontWeight:900, color:'#fff', background:'var(--or)', opacity: title.trim() ? 1 : 0.5 }}>추가</button>
+      </div>
+    </div>
+  );
+}
+
+function KpiForm({ onSubmit, onCancel }) {
+  const [name, setName] = useState('');
+  const [target, setTarget] = useState('');
+  const [baseline, setBaseline] = useState('0');
+  const [unit, setUnit] = useState('');
+  const [source, setSource] = useState('manual');
+  const inputSty = { width:'100%', padding:'10px 12px', border:'1.5px solid var(--border)', borderRadius:8, fontSize:13, fontWeight:600, background:'#fff', outline:'none', marginTop:4 };
+  const labelSty = { fontSize:11, fontWeight:800, color:'var(--text-md)', letterSpacing:.3 };
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+      <div><label style={labelSty}>KPI 이름 *</label><input value={name} onChange={e => setName(e.target.value)} placeholder="월간 신규 거래처 수" style={inputSty} /></div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 100px', gap:10 }}>
+        <div><label style={labelSty}>목표값</label><input type="number" value={target} onChange={e => setTarget(e.target.value)} placeholder="50" style={inputSty} /></div>
+        <div><label style={labelSty}>기준값</label><input type="number" value={baseline} onChange={e => setBaseline(e.target.value)} placeholder="0" style={inputSty} /></div>
+        <div><label style={labelSty}>단위</label><input value={unit} onChange={e => setUnit(e.target.value)} placeholder="건" style={inputSty} /></div>
+      </div>
+      <div>
+        <label style={labelSty}>측정 방식</label>
+        <select value={source} onChange={e => setSource(e.target.value)} style={inputSty}>
+          <option value="manual">✏️ 수동 입력 (담당자가 KPI 카드에서 직접 수정)</option>
+          <option value="auto-progress">🔁 자동 — 연결된 프로젝트 진척도 평균</option>
+          <option value="auto">🔁 자동 — 외부 시스템(향후 연동)</option>
+        </select>
+      </div>
+      <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:8 }}>
+        <button onClick={onCancel} style={{ padding:'9px 18px', borderRadius:8, fontSize:12, fontWeight:800, background:'var(--bg)', color:'var(--text-md)' }}>취소</button>
+        <button disabled={!name.trim()} onClick={() => onSubmit({ name: name.trim(), target, baseline, unit, source })} style={{ padding:'9px 18px', borderRadius:8, fontSize:12, fontWeight:900, color:'#fff', background:'var(--or)', opacity: name.trim() ? 1 : 0.5 }}>추가</button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// ProjectsPage — pour-projects CRUD + 다중 담당자 배정 + KR 연결
+// 모든 담당자에게 보이며, 본인 배정 프로젝트는 강조 표시.
+// ============================================================
+function ProjectsPage({ onToast }) {
+  const { activeStaff, audit, staffMembers } = useActiveStaffContext();
+  const { keyResults, kpis, projects, loading } = useAllOkrData();
+  const [showAdd, setShowAdd] = useState(false);
+  const [editing, setEditing] = useState(null);  // project object
+  const [filterStaffId, setFilterStaffId] = useState('mine');  // mine|all|<staffId>
+  const [filterStatus, setFilterStatus] = useState('open');    // open|all|done
+
+  if (!activeStaff) return <div style={{ padding:60, textAlign:'center', color:'var(--text-sm)' }}>활동 담당자 선택이 필요합니다.</div>;
+  if (loading) return <div style={{ padding:60, textAlign:'center', color:'var(--text-sm)' }}>로딩 중...</div>;
+
+  const addProject = async (data) => {
+    await db.collection(COLLECTIONS.POUR_PROJECTS).add({
+      name: data.name,
+      description: data.description || '',
+      keyResultId: data.keyResultId || null,
+      assigneeStaffIds: data.assigneeStaffIds || [],
+      ownerStaffId: data.ownerStaffId || activeStaff.id,
+      ownerStaffName: (staffMembers.find(s => s.id === (data.ownerStaffId || activeStaff.id)) || {}).name || activeStaff.name,
+      status: 'active',
+      progress: 0,
+      dueDate: data.dueDate || '',
+      startDate: data.startDate || new Date().toISOString().split('T')[0],
+      contribution: Number(data.contribution) || 0,
+      ...audit.create(),
+    });
+    onToast({ message: '프로젝트 추가 완료', type: 'success' });
+  };
+
+  const updateProject = async (id, patch) => {
+    await db.collection(COLLECTIONS.POUR_PROJECTS).doc(id).update({ ...patch, ...audit.update() });
+  };
+
+  const delProject = async (p) => {
+    if (!confirm(`프로젝트 "${p.name}" 삭제? (연결 일지/업무는 별도로 유지)`)) return;
+    await db.collection(COLLECTIONS.POUR_PROJECTS).doc(p.id).delete();
+    onToast({ message: '삭제 완료', type: 'success' });
+  };
+
+  // 필터링
+  let filtered = projects.slice();
+  if (filterStaffId === 'mine') {
+    filtered = filtered.filter(p => Array.isArray(p.assigneeStaffIds) && p.assigneeStaffIds.includes(activeStaff.id));
+  } else if (filterStaffId !== 'all') {
+    filtered = filtered.filter(p => Array.isArray(p.assigneeStaffIds) && p.assigneeStaffIds.includes(filterStaffId));
+  }
+  if (filterStatus === 'open') filtered = filtered.filter(p => p.status !== 'done' && (p.progress || 0) < 100);
+  else if (filterStatus === 'done') filtered = filtered.filter(p => p.status === 'done' || (p.progress || 0) >= 100);
+  // 정렬: 진척도 asc → 마감 asc
+  filtered.sort((a, b) => {
+    const p = (Number(a.progress) || 0) - (Number(b.progress) || 0);
+    if (p !== 0) return p;
+    return (a.dueDate || 'z').localeCompare(b.dueDate || 'z');
+  });
+
+  // 담당자별 통계 (전체 staff)
+  const staffStats = staffMembers.map(s => ({ staff: s, ...computeStaffContribution(s.id, projects) }));
+
+  const STATUS_META = {
+    active: { label:'진행', color:'#2563EB', bg:'#DBEAFE' },
+    paused: { label:'보류', color:'#D97706', bg:'#FEF3C7' },
+    done:   { label:'완료', color:'#059669', bg:'#D1FAE5' },
+  };
+
+  return (
+    <div style={{ padding:'24px 32px', maxWidth:1280 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14, flexWrap:'wrap', gap:12 }}>
+        <div>
+          <h1 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6, marginBottom:4 }}>🗂️ 프로젝트</h1>
+          <div style={{ fontSize:12.5, color:'var(--text-sm)', fontWeight:700 }}>
+            전체 {projects.length} · 진행 {projects.filter(p => p.status !== 'done' && (p.progress||0) < 100).length} · 완료 {projects.filter(p => p.status === 'done' || (p.progress||0) >= 100).length}
+          </div>
+        </div>
+        <button onClick={() => setShowAdd(true)} style={{
+          padding:'10px 18px', borderRadius:9, fontSize:13, fontWeight:900, color:'#fff',
+          background:'linear-gradient(135deg, var(--or), var(--or-d))',
+        }}>+ 프로젝트 추가</button>
+      </div>
+
+      {/* 담당자별 기여 위젯 */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(180px, 1fr))', gap:10, marginBottom:18 }}>
+        {staffStats.map(({ staff, count, avgProgress, doneCount }) => {
+          const isMe = staff.id === activeStaff.id;
+          return (
+            <div key={staff.id} style={{
+              background: isMe ? 'linear-gradient(135deg, var(--or-pale), #fff)' : '#fff',
+              border: isMe ? '2px solid var(--or)' : '1px solid var(--border)',
+              borderRadius:11, padding:'12px 14px', boxShadow:'var(--shadow)'
+            }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+                <div style={{ width:30, height:30, borderRadius:'50%', background:staff.kpiColor || '#9CA3AF', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:900 }}>
+                  {staff.kpiInitial || (staff.name || '?').charAt(0)}
+                </div>
+                <div style={{ fontSize:12, fontWeight:900, color:'var(--text)' }}>{staff.name} {isMe && <span style={{ fontSize:9, color:'var(--or-d)', marginLeft:3 }}>(나)</span>}</div>
+              </div>
+              <div style={{ fontSize:11, fontWeight:700, color:'var(--text-md)', display:'flex', justifyContent:'space-between' }}>
+                <span>프로젝트</span><span style={{ fontWeight:900, color:'var(--or-d)' }}>{count}</span>
+              </div>
+              <div style={{ fontSize:11, fontWeight:700, color:'var(--text-md)', display:'flex', justifyContent:'space-between', marginTop:3 }}>
+                <span>평균 진척</span><span style={{ fontWeight:900, color:'var(--or-d)' }}>{avgProgress}%</span>
+              </div>
+              <div style={{ fontSize:11, fontWeight:700, color:'var(--text-md)', display:'flex', justifyContent:'space-between', marginTop:3 }}>
+                <span>완료</span><span style={{ fontWeight:900, color:'var(--green)' }}>{doneCount}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 필터 */}
+      <div style={{ display:'flex', gap:8, marginBottom:14, flexWrap:'wrap' }}>
+        <select value={filterStaffId} onChange={e => setFilterStaffId(e.target.value)} style={{ padding:'7px 11px', borderRadius:7, border:'1.5px solid var(--border)', fontSize:11.5, fontWeight:700, background:'#fff' }}>
+          <option value="mine">📍 내 프로젝트</option>
+          <option value="all">전체 담당자</option>
+          {staffMembers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ padding:'7px 11px', borderRadius:7, border:'1.5px solid var(--border)', fontSize:11.5, fontWeight:700, background:'#fff' }}>
+          <option value="open">진행/보류</option>
+          <option value="done">완료</option>
+          <option value="all">전체</option>
+        </select>
+        <div style={{ flex:1, textAlign:'right', fontSize:11.5, color:'var(--text-sm)', fontWeight:700, alignSelf:'center' }}>
+          {filtered.length}건 표시
+        </div>
+      </div>
+
+      {/* 프로젝트 카드 그리드 */}
+      {filtered.length === 0 ? (
+        <div style={{ padding:60, textAlign:'center', background:'#fff', border:'1px dashed var(--border)', borderRadius:12, color:'var(--text-sm)', fontSize:13, fontWeight:600 }}>
+          조건에 맞는 프로젝트가 없습니다.
+        </div>
+      ) : (
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(320px, 1fr))', gap:12 }}>
+          {filtered.map(p => {
+            const kr = keyResults.find(k => k.id === p.keyResultId);
+            const assignees = (p.assigneeStaffIds || []).map(id => staffMembers.find(s => s.id === id)).filter(Boolean);
+            const isMine = (p.assigneeStaffIds || []).includes(activeStaff.id);
+            const status = p.status === 'done' || (p.progress || 0) >= 100 ? 'done' : (p.status || 'active');
+            const meta = STATUS_META[status] || STATUS_META.active;
+            return (
+              <div key={p.id} style={{
+                background:'#fff', borderRadius:12, padding:'14px 16px',
+                border: isMine ? '2px solid var(--or)' : '1px solid var(--border)',
+                boxShadow:'var(--shadow)', display:'flex', flexDirection:'column', gap:10
+              }}>
+                <div style={{ display:'flex', alignItems:'flex-start', gap:8 }}>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4, flexWrap:'wrap' }}>
+                      <span style={{ padding:'2px 7px', borderRadius:5, fontSize:9.5, fontWeight:900, color:meta.color, background:meta.bg }}>{meta.label}</span>
+                      {isMine && <span style={{ fontSize:9.5, fontWeight:900, color:'var(--or-d)', background:'var(--or-pale)', padding:'2px 7px', borderRadius:5 }}>📍 내 프로젝트</span>}
+                    </div>
+                    <div style={{ fontSize:14, fontWeight:900, color:'var(--text)', marginBottom:3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.name}</div>
+                    {kr && (
+                      <div style={{ fontSize:10.5, fontWeight:700, color:'var(--text-sm)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                        🔗 KR: {kr.title}
+                      </div>
+                    )}
+                  </div>
+                  <button onClick={() => setEditing(p)} title="편집" style={{ width:26, height:26, borderRadius:6, fontSize:13, background:'var(--bg)' }}>✎</button>
+                  <button onClick={() => delProject(p)} title="삭제" style={{ width:26, height:26, borderRadius:6, fontSize:13, color:'#DC2626' }}>×</button>
+                </div>
+
+                {/* 진척도 슬라이더 */}
+                <div>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
+                    <span style={{ fontSize:10.5, fontWeight:800, color:'var(--text-md)' }}>진척도</span>
+                    <span style={{ fontSize:13, fontWeight:900, color:'var(--or-d)' }}>{p.progress || 0}%</span>
+                  </div>
+                  <input type="range" min="0" max="100" step="5" value={p.progress || 0}
+                    onChange={e => updateProject(p.id, { progress: Number(e.target.value) })}
+                    style={{ width:'100%', accentColor:'var(--or)' }} />
+                </div>
+
+                {/* 담당자 + 마감 */}
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:-4 }}>
+                    {assignees.length === 0 ? (
+                      <span style={{ fontSize:10.5, color:'var(--text-sm)', fontWeight:700, fontStyle:'italic' }}>담당자 미배정</span>
+                    ) : assignees.slice(0, 4).map((s, i) => (
+                      <div key={s.id} title={s.name} style={{
+                        width:26, height:26, borderRadius:'50%', background:s.kpiColor || '#9CA3AF', color:'#fff',
+                        display:'flex', alignItems:'center', justifyContent:'center', fontSize:10.5, fontWeight:900,
+                        marginLeft: i === 0 ? 0 : -6, border:'2px solid #fff'
+                      }}>{s.kpiInitial || (s.name || '?').charAt(0)}</div>
+                    ))}
+                    {assignees.length > 4 && <span style={{ fontSize:10, fontWeight:800, color:'var(--text-sm)', marginLeft:4 }}>+{assignees.length - 4}</span>}
+                  </div>
+                  {p.dueDate && (
+                    <span style={{ fontSize:10.5, fontWeight:800, color: calcDday(p.dueDate) === 'D-day' || (calcDday(p.dueDate) || '').startsWith('D+') ? '#DC2626' : 'var(--text-sm)' }}>
+                      📅 {p.dueDate} ({calcDday(p.dueDate)})
+                    </span>
+                  )}
+                </div>
+
+                {/* 상태 전환 */}
+                <select value={status} onChange={e => updateProject(p.id, { status: e.target.value })} style={{
+                  padding:'5px 9px', borderRadius:6, border:'1px solid var(--border)', fontSize:11, fontWeight:700, background:'var(--bg)'
+                }}>
+                  <option value="active">▶ 진행</option>
+                  <option value="paused">⏸ 보류</option>
+                  <option value="done">✅ 완료</option>
+                </select>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="프로젝트 추가" width={560}>
+        {showAdd && <ProjectForm
+          onSubmit={(d) => { addProject(d); setShowAdd(false); }}
+          onCancel={() => setShowAdd(false)}
+          keyResults={keyResults}
+          staffMembers={staffMembers}
+          activeStaff={activeStaff}
+        />}
+      </Modal>
+      <Modal open={!!editing} onClose={() => setEditing(null)} title="프로젝트 편집" width={560}>
+        {editing && <ProjectForm
+          initial={editing}
+          onSubmit={(d) => {
+            const patch = {
+              name: d.name, description: d.description, keyResultId: d.keyResultId || null,
+              assigneeStaffIds: d.assigneeStaffIds || [], dueDate: d.dueDate || '',
+              startDate: d.startDate || '', contribution: Number(d.contribution) || 0,
+              ownerStaffId: d.ownerStaffId,
+              ownerStaffName: (staffMembers.find(s => s.id === d.ownerStaffId) || {}).name || '',
+            };
+            updateProject(editing.id, patch).then(() => onToast({ message: '저장 완료', type: 'success' }));
+            setEditing(null);
+          }}
+          onCancel={() => setEditing(null)}
+          keyResults={keyResults}
+          staffMembers={staffMembers}
+          activeStaff={activeStaff}
+        />}
+      </Modal>
+    </div>
+  );
+}
+
+function ProjectForm({ initial, onSubmit, onCancel, keyResults, staffMembers, activeStaff }) {
+  const [name, setName] = useState(initial?.name || '');
+  const [description, setDescription] = useState(initial?.description || '');
+  const [keyResultId, setKeyResultId] = useState(initial?.keyResultId || '');
+  const [assigneeStaffIds, setAssigneeStaffIds] = useState(initial?.assigneeStaffIds || [activeStaff.id]);
+  const [ownerStaffId, setOwnerStaffId] = useState(initial?.ownerStaffId || activeStaff.id);
+  const [dueDate, setDueDate] = useState(initial?.dueDate || '');
+  const [startDate, setStartDate] = useState(initial?.startDate || new Date().toISOString().split('T')[0]);
+  const [contribution, setContribution] = useState(initial?.contribution || 0);
+  const inputSty = { width:'100%', padding:'10px 12px', border:'1.5px solid var(--border)', borderRadius:8, fontSize:13, fontWeight:600, background:'#fff', outline:'none', marginTop:4 };
+  const labelSty = { fontSize:11, fontWeight:800, color:'var(--text-md)', letterSpacing:.3 };
+
+  const toggleAssignee = (id) => {
+    setAssigneeStaffIds(arr => arr.includes(id) ? arr.filter(x => x !== id) : [...arr, id]);
+  };
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+      <div><label style={labelSty}>프로젝트명 *</label><input value={name} onChange={e => setName(e.target.value)} placeholder="자사몰 SEO 최적화" style={inputSty} /></div>
+      <div><label style={labelSty}>설명</label><textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="목표·범위·산출물·검수 기준 등" rows={3} style={{ ...inputSty, resize:'vertical', fontFamily:'inherit' }} /></div>
+      <div>
+        <label style={labelSty}>연결 KR (선택)</label>
+        <select value={keyResultId} onChange={e => setKeyResultId(e.target.value)} style={inputSty}>
+          <option value="">— KR 미연결 —</option>
+          {keyResults.map(kr => <option key={kr.id} value={kr.id}>{kr.title}</option>)}
+        </select>
+      </div>
+      <div>
+        <label style={labelSty}>담당자 (다중 선택) *</label>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))', gap:6, marginTop:6 }}>
+          {staffMembers.map(s => {
+            const on = assigneeStaffIds.includes(s.id);
+            return (
+              <button key={s.id} type="button" onClick={() => toggleAssignee(s.id)} style={{
+                display:'flex', alignItems:'center', gap:6, padding:'8px 10px', borderRadius:8,
+                border: on ? `2px solid var(--or)` : '1.5px solid var(--border)',
+                background: on ? 'var(--or-pale)' : '#fff',
+                textAlign:'left', fontSize:12, fontWeight:800, color:'var(--text)'
+              }}>
+                <div style={{ width:22, height:22, borderRadius:'50%', background:s.kpiColor || '#9CA3AF', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:900, flexShrink:0 }}>
+                  {s.kpiInitial || (s.name || '?').charAt(0)}
+                </div>
+                <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{s.name}</span>
+                {on && <span style={{ marginLeft:'auto', color:'var(--or-d)', fontSize:11 }}>✓</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div>
+        <label style={labelSty}>오너 (책임자)</label>
+        <select value={ownerStaffId} onChange={e => setOwnerStaffId(e.target.value)} style={inputSty}>
+          {staffMembers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 130px', gap:10 }}>
+        <div><label style={labelSty}>시작일</label><input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={inputSty} /></div>
+        <div><label style={labelSty}>마감일</label><input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} style={inputSty} /></div>
+        <div><label style={labelSty}>기여(원)</label><input type="number" value={contribution} onChange={e => setContribution(e.target.value)} style={inputSty} /></div>
+      </div>
+      <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:8 }}>
+        <button onClick={onCancel} style={{ padding:'9px 18px', borderRadius:8, fontSize:12, fontWeight:800, background:'var(--bg)', color:'var(--text-md)' }}>취소</button>
+        <button disabled={!name.trim() || assigneeStaffIds.length === 0} onClick={() => onSubmit({ name: name.trim(), description, keyResultId, assigneeStaffIds, ownerStaffId, dueDate, startDate, contribution })} style={{ padding:'9px 18px', borderRadius:8, fontSize:12, fontWeight:900, color:'#fff', background:'var(--or)', opacity: (!name.trim() || assigneeStaffIds.length === 0) ? 0.5 : 1 }}>{initial ? '저장' : '추가'}</button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// JournalsPage — 업무일지 (프로젝트별 일일 기록)
+// 본인 일지 작성 + 모든 일지 열람 가능 (팀 투명성)
+// 일지 작성 시 프로젝트 progressDelta 입력하면 해당 프로젝트 progress가 자동 누적됨.
+// ============================================================
+function JournalsPage({ onToast }) {
+  const { activeStaff, audit, staffMembers } = useActiveStaffContext();
+  const { projects, loading: loadingProj } = useAllOkrData();
+  const { journals, loading: loadingJ } = useJournals();
+  const [showAdd, setShowAdd] = useState(false);
+  const [filterStaffId, setFilterStaffId] = useState('all'); // all | mine | <staffId>
+  const [filterProjectId, setFilterProjectId] = useState('all');
+  const [filterDate, setFilterDate] = useState(''); // YYYY-MM-DD
+
+  if (!activeStaff) return <div style={{ padding:60, textAlign:'center', color:'var(--text-sm)' }}>활동 담당자 선택이 필요합니다.</div>;
+  if (loadingProj || loadingJ) return <div style={{ padding:60, textAlign:'center', color:'var(--text-sm)' }}>로딩 중...</div>;
+
+  const addJournal = async (data) => {
+    const project = projects.find(p => p.id === data.projectId);
+    const projectName = project?.name || '';
+    await db.collection(COLLECTIONS.POUR_JOURNALS).add({
+      staffId: activeStaff.id,
+      staffName: activeStaff.name,
+      date: data.date,
+      projectId: data.projectId || null,
+      projectName,
+      content: data.content,
+      hoursSpent: Number(data.hoursSpent) || 0,
+      progressDelta: Number(data.progressDelta) || 0,
+      mood: data.mood || 'normal',
+      attachments: [],
+      ...audit.create(),
+    });
+    // progress 누적
+    if (project && Number(data.progressDelta)) {
+      const newProgress = Math.max(0, Math.min(100, (Number(project.progress) || 0) + Number(data.progressDelta)));
+      await db.collection(COLLECTIONS.POUR_PROJECTS).doc(project.id).update({
+        progress: newProgress, ...audit.update(),
+      });
+    }
+    onToast({ message: '업무일지 작성 완료', type: 'success' });
+  };
+
+  const delJournal = async (j) => {
+    if (j.staffId !== activeStaff.id) {
+      onToast({ message: '본인 일지만 삭제할 수 있습니다', type: 'error' });
+      return;
+    }
+    if (!confirm('이 일지를 삭제할까요? (프로젝트 진척도는 자동 복원되지 않습니다)')) return;
+    await db.collection(COLLECTIONS.POUR_JOURNALS).doc(j.id).delete();
+    onToast({ message: '삭제 완료', type: 'success' });
+  };
+
+  // 필터링
+  let filtered = journals.slice();
+  if (filterStaffId === 'mine') filtered = filtered.filter(j => j.staffId === activeStaff.id);
+  else if (filterStaffId !== 'all') filtered = filtered.filter(j => j.staffId === filterStaffId);
+  if (filterProjectId !== 'all') filtered = filtered.filter(j => j.projectId === filterProjectId);
+  if (filterDate) filtered = filtered.filter(j => j.date === filterDate);
+
+  // 통계: 본인 이번주(최근7일) 일지·시간
+  const today = new Date(); today.setHours(0,0,0,0);
+  const weekAgo = new Date(today.getTime() - 6 * 86400000);
+  const weekKey = weekAgo.toISOString().split('T')[0];
+  const myWeekJournals = journals.filter(j => j.staffId === activeStaff.id && (j.date || '') >= weekKey);
+  const myWeekHours = myWeekJournals.reduce((s, j) => s + (Number(j.hoursSpent) || 0), 0);
+  const myWeekProgressDelta = myWeekJournals.reduce((s, j) => s + (Number(j.progressDelta) || 0), 0);
+
+  const MOOD_META = {
+    good:   { icon:'😀', label:'순조' },
+    normal: { icon:'😐', label:'보통' },
+    tough:  { icon:'😣', label:'난항' },
+  };
+
+  return (
+    <div style={{ padding:'24px 32px', maxWidth:1280 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14, flexWrap:'wrap', gap:12 }}>
+        <div>
+          <h1 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6, marginBottom:4 }}>📝 업무일지</h1>
+          <div style={{ fontSize:12.5, color:'var(--text-sm)', fontWeight:700 }}>
+            {activeStaff.name} · 최근 7일 일지 <b style={{ color:'var(--or-d)' }}>{myWeekJournals.length}</b>건 · 누적시간 <b style={{ color:'var(--or-d)' }}>{myWeekHours}</b>h · 진척기여 <b style={{ color:'var(--or-d)' }}>+{myWeekProgressDelta}%</b>
+          </div>
+        </div>
+        <button onClick={() => setShowAdd(true)} style={{
+          padding:'10px 18px', borderRadius:9, fontSize:13, fontWeight:900, color:'#fff',
+          background:'linear-gradient(135deg, var(--or), var(--or-d))',
+        }}>+ 일지 작성</button>
+      </div>
+
+      {/* 필터 */}
+      <div style={{ display:'flex', gap:8, marginBottom:14, flexWrap:'wrap' }}>
+        <select value={filterStaffId} onChange={e => setFilterStaffId(e.target.value)} style={{ padding:'7px 11px', borderRadius:7, border:'1.5px solid var(--border)', fontSize:11.5, fontWeight:700, background:'#fff' }}>
+          <option value="all">전체 담당자</option>
+          <option value="mine">📍 내 일지만</option>
+          {staffMembers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+        <select value={filterProjectId} onChange={e => setFilterProjectId(e.target.value)} style={{ padding:'7px 11px', borderRadius:7, border:'1.5px solid var(--border)', fontSize:11.5, fontWeight:700, background:'#fff' }}>
+          <option value="all">전체 프로젝트</option>
+          {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+        <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} style={{ padding:'7px 11px', borderRadius:7, border:'1.5px solid var(--border)', fontSize:11.5, fontWeight:700, background:'#fff' }} />
+        {filterDate && <button onClick={() => setFilterDate('')} style={{ padding:'7px 12px', borderRadius:7, fontSize:11, fontWeight:800, background:'var(--bg)', color:'var(--text-md)' }}>날짜 초기화</button>}
+        <div style={{ flex:1, textAlign:'right', fontSize:11.5, color:'var(--text-sm)', fontWeight:700, alignSelf:'center' }}>
+          {filtered.length}건 표시
+        </div>
+      </div>
+
+      {/* 일지 리스트 */}
+      {filtered.length === 0 ? (
+        <div style={{ padding:60, textAlign:'center', background:'#fff', border:'1px dashed var(--border)', borderRadius:12, color:'var(--text-sm)', fontSize:13, fontWeight:600 }}>
+          조건에 맞는 일지가 없습니다. [+ 일지 작성]으로 첫 일지를 남겨보세요.
+        </div>
+      ) : (
+        <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+          {filtered.map(j => {
+            const staff = staffMembers.find(s => s.id === j.staffId);
+            const c = staff?.kpiColor || '#9CA3AF';
+            const initial = staff?.kpiInitial || (j.staffName || '?').charAt(0);
+            const isMine = j.staffId === activeStaff.id;
+            const mood = MOOD_META[j.mood] || MOOD_META.normal;
+            return (
+              <div key={j.id} style={{
+                background:'#fff', borderRadius:11, padding:'14px 16px',
+                border: isMine ? '2px solid var(--or)' : '1px solid var(--border)',
+                boxShadow:'var(--shadow)', display:'flex', gap:12
+              }}>
+                <div style={{ width:36, height:36, borderRadius:'50%', background:c, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:900, flexShrink:0 }}>
+                  {initial}
+                </div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6, flexWrap:'wrap' }}>
+                    <span style={{ fontSize:13, fontWeight:900, color:'var(--text)' }}>{j.staffName}</span>
+                    <span style={{ fontSize:10.5, fontWeight:700, color:'var(--text-sm)' }}>{j.date}</span>
+                    {j.projectName && <span style={{ fontSize:10.5, fontWeight:800, color:'var(--or-d)', background:'var(--or-pale)', padding:'2px 8px', borderRadius:5 }}>🗂️ {j.projectName}</span>}
+                    <span title={mood.label} style={{ fontSize:14 }}>{mood.icon}</span>
+                    {Number(j.hoursSpent) > 0 && <span style={{ fontSize:10.5, fontWeight:700, color:'var(--text-md)' }}>⏱ {j.hoursSpent}h</span>}
+                    {Number(j.progressDelta) !== 0 && <span style={{ fontSize:10.5, fontWeight:800, color: Number(j.progressDelta) > 0 ? 'var(--green)' : '#DC2626' }}>
+                      {Number(j.progressDelta) > 0 ? '↑' : '↓'} {Math.abs(Number(j.progressDelta))}%
+                    </span>}
+                  </div>
+                  <div style={{ fontSize:12.5, fontWeight:600, color:'var(--text-md)', whiteSpace:'pre-wrap', lineHeight:1.7 }}>{j.content}</div>
+                </div>
+                {isMine && (
+                  <button onClick={() => delJournal(j)} title="삭제" style={{ width:26, height:26, borderRadius:6, fontSize:13, color:'#DC2626', flexShrink:0 }}>×</button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="업무일지 작성" width={520}>
+        {showAdd && <JournalForm
+          onSubmit={(d) => { addJournal(d); setShowAdd(false); }}
+          onCancel={() => setShowAdd(false)}
+          projects={projects}
+          activeStaff={activeStaff}
+        />}
+      </Modal>
+    </div>
+  );
+}
+
+function JournalForm({ onSubmit, onCancel, projects, activeStaff }) {
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [projectId, setProjectId] = useState('');
+  const [content, setContent] = useState('');
+  const [hoursSpent, setHoursSpent] = useState('');
+  const [progressDelta, setProgressDelta] = useState('0');
+  const [mood, setMood] = useState('normal');
+  const inputSty = { width:'100%', padding:'10px 12px', border:'1.5px solid var(--border)', borderRadius:8, fontSize:13, fontWeight:600, background:'#fff', outline:'none', marginTop:4 };
+  const labelSty = { fontSize:11, fontWeight:800, color:'var(--text-md)', letterSpacing:.3 };
+
+  // 본인 배정 프로젝트만 표시 (오타·실수 방지)
+  const myProjects = projects.filter(p => Array.isArray(p.assigneeStaffIds) && p.assigneeStaffIds.includes(activeStaff.id));
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'150px 1fr', gap:10 }}>
+        <div><label style={labelSty}>날짜 *</label><input type="date" value={date} onChange={e => setDate(e.target.value)} style={inputSty} /></div>
+        <div>
+          <label style={labelSty}>프로젝트 *</label>
+          <select value={projectId} onChange={e => setProjectId(e.target.value)} style={inputSty}>
+            <option value="">— 선택 —</option>
+            {myProjects.length === 0 && <option disabled>본인 배정 프로젝트가 없습니다</option>}
+            {myProjects.map(p => <option key={p.id} value={p.id}>{p.name} ({p.progress || 0}%)</option>)}
+            {/* 본인 외 프로젝트도 보고용으로 선택 가능 */}
+            {projects.filter(p => !myProjects.includes(p)).length > 0 && (
+              <optgroup label="— 다른 담당자 프로젝트 (보고용) —">
+                {projects.filter(p => !myProjects.includes(p)).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </optgroup>
+            )}
+          </select>
+        </div>
+      </div>
+      <div>
+        <label style={labelSty}>내용 *</label>
+        <textarea value={content} onChange={e => setContent(e.target.value)} placeholder="오늘 한 일·이슈·다음 액션…" rows={5} style={{ ...inputSty, resize:'vertical', fontFamily:'inherit' }} />
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10 }}>
+        <div><label style={labelSty}>소요시간 (h)</label><input type="number" value={hoursSpent} onChange={e => setHoursSpent(e.target.value)} placeholder="2" min="0" step="0.5" style={inputSty} /></div>
+        <div>
+          <label style={labelSty}>진척도 변동 (%)</label>
+          <input type="number" value={progressDelta} onChange={e => setProgressDelta(e.target.value)} placeholder="+10" min="-100" max="100" step="5" style={inputSty} />
+        </div>
+        <div>
+          <label style={labelSty}>분위기</label>
+          <select value={mood} onChange={e => setMood(e.target.value)} style={inputSty}>
+            <option value="good">😀 순조</option>
+            <option value="normal">😐 보통</option>
+            <option value="tough">😣 난항</option>
+          </select>
+        </div>
+      </div>
+      <div style={{ fontSize:10.5, color:'var(--text-sm)', fontWeight:600, lineHeight:1.6, padding:'8px 10px', background:'var(--or-pale)', borderRadius:7 }}>
+        💡 진척도 변동을 입력하면 해당 프로젝트의 진척도(progress)에 자동 누적됩니다. (예: +10% 입력 시 프로젝트 0→10%)
+        <br/>※ 일지 삭제 시 자동 복원되지 않으니, 잘못 입력 시 프로젝트 페이지에서 슬라이더로 직접 보정하세요.
+      </div>
+      <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:4 }}>
+        <button onClick={onCancel} style={{ padding:'9px 18px', borderRadius:8, fontSize:12, fontWeight:800, background:'var(--bg)', color:'var(--text-md)' }}>취소</button>
+        <button disabled={!content.trim() || !projectId} onClick={() => onSubmit({ date, projectId, content: content.trim(), hoursSpent, progressDelta, mood })} style={{ padding:'9px 18px', borderRadius:8, fontSize:12, fontWeight:900, color:'#fff', background:'var(--or)', opacity: (!content.trim() || !projectId) ? 0.5 : 1 }}>작성</button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // App
 // ============================================================
 function App() {
@@ -5821,6 +6756,9 @@ function App() {
         {active === 'workmgmt' && <WorkMgmtPage />}
         {active === 'dashboard-os' && <DashboardPage onToast={setToast} />}
         {active === 'recurring' && <RecurringTasksPage onToast={setToast} />}
+        {active === 'okr' && <OKRPage onToast={setToast} />}
+        {active === 'projects' && <ProjectsPage onToast={setToast} />}
+        {active === 'journals' && <JournalsPage onToast={setToast} />}
         {active === 'preview' && <PreviewPage />}
         {active === 'products' && <ProductsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'metrics' && <MetricsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}

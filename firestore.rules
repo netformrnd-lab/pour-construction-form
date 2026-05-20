@@ -99,7 +99,7 @@ service cloud.firestore {
     match /staff/{doc}              { allow read, write: if true; }
 
     // ─────────────────────────────────────────────
-    // KPI 업무관리센터 (POUR OS → React 흡수) — pour-* 7종
+    // KPI 업무관리센터 (POUR OS → React 흡수) — pour-* 8종
     // 모든 문서는 staffId(어드민 staff 컬렉션의 doc.id)로 소유자 식별.
     // 향후 OTP 인증 도입 시 read 본인+팀 / write 본인만으로 제한 예정.
     // ─────────────────────────────────────────────
@@ -110,6 +110,7 @@ service cloud.firestore {
     match /pour-keyresults/{doc}    { allow read, write: if true; }
     match /pour-kpis/{doc}          { allow read, write: if true; }
     match /pour-meetings/{doc}      { allow read, write: if true; }
+    match /pour-journals/{doc}      { allow read, write: if true; }
 
     // ─────────────────────────────────────────────
     // POUR스토어 업무관리 — workmgmt.html

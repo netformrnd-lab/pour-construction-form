@@ -139,18 +139,8 @@ const COLLECTIONS = {
   POUR_JOURNALS: 'pour-journals',     // 업무일지 — { staffId, staffName, date(YYYY-MM-DD), projectId, projectName, content, hoursSpent, progressDelta, mood, attachments:[], createdAt, updatedAt }
 };
 
-// 담당자 role 7개 — KPI 시스템(pour-os-v6-2.html)의 5개 카테고리 + dev/manage
-const ROLE_META = {
-  commerce: { label: '커머스',  icon: '📦', color: '#3B82F6', desc: '주문운영·발주·매핑·CS·반품·매출' },
-  media:    { label: '미디어',  icon: '🎨', color: '#A855F7', desc: '컨텐츠·디자인·촬영·상세페이지·라벨' },
-  service:  { label: '서비스',  icon: '🤝', color: '#10B981', desc: '시공매칭·박람회·아카데미·파트너사' },
-  product:  { label: '상품',    icon: '✨', color: '#EC4899', desc: '신상품·ODM·기획·매핑 의뢰' },
-  internal: { label: '내부',    icon: '📋', color: '#6B7280', desc: '회계·세금계산서·시방서·연구·자재승인원' },
-  dev:      { label: '개발',    icon: '💻', color: '#0F172A', desc: '시스템 개발 (어드민·앱·웹)' },
-  manage:   { label: '관리',    icon: '👔', color: '#B45309', desc: '임원·전사 관리·전략' },
-};
-const ROLE_KEYS = Object.keys(ROLE_META);
-const COMPANY_TYPES = ['본사', '외주', '파트너사'];
+// 담당자 역할·부서·소속 모두 폐지 (POUR스토어 단일 부서 운영 + 프로젝트별 배정으로 대체)
+// 기존 데이터(s.role / s.department / s.companyType)는 Firestore에 남아있을 수 있으나 UI에서 노출하지 않음.
 
 // Firebase 사용량 — Spark 플랜 무료 한도
 const FIREBASE_FREE_LIMITS = [
@@ -4540,15 +4530,12 @@ function WorkMgmtPage() {
         activeStaff: activeStaff ? {
           id: activeStaff.id,
           name: activeStaff.name,
-          role: activeStaff.role,
           color: activeStaff.kpiColor || null,
           email: activeStaff.email || null,
         } : null,
         staffList: activeList.map(s => ({
           id: s.id,
           name: s.name,
-          role: s.role,
-          department: s.department || '',
           kpiColor: s.kpiColor || null,
           kpiInitial: s.kpiInitial || null,
           email: s.email || null,
@@ -4611,7 +4598,7 @@ function PreviewPage() {
       type: 'admin-staff-sync',
       payload: {
         staff: activeList.map(s => ({
-          id: s.id, name: s.name, role: s.role,
+          id: s.id, name: s.name,
           color: s.kpiColor || null,
           email: s.email || null,
         })),
@@ -4673,10 +4660,8 @@ function StaffPage({ onToast }) {
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
-  const [filterRole, setFilterRole] = useState('all');
   const [filterActive, setFilterActive] = useState('active'); // active|all|inactive
   const [viewMode, setViewMode] = useState('card'); // 'card' | 'table' — 업무관리 페이지처럼 사람 카드 그리드를 기본으로
-  const [groupByRole, setGroupByRole] = useState(true); // role별 그룹 (카드 모드)
 
   async function load() {
     try {
@@ -4713,9 +4698,6 @@ function StaffPage({ onToast }) {
   const updateField = (key, val) => {
     setForm(prev => {
       const next = { ...prev, [key]: val };
-      if (key === 'role' && (!prev.kpiColor || prev.kpiColor === (ROLE_META[prev.role]?.color))) {
-        next.kpiColor = ROLE_META[val]?.color || prev.kpiColor;
-      }
       if (key === 'name' && !prev.kpiInitial) {
         next.kpiInitial = (val || '').trim().charAt(0);
       }
@@ -4727,7 +4709,6 @@ function StaffPage({ onToast }) {
     if (!form.name.trim()) return '이름은 필수입니다';
     if (!form.email.trim()) return '이메일은 필수입니다 (OTP 인증 식별자)';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return '이메일 형식이 올바르지 않습니다';
-    if (!ROLE_KEYS.includes(form.role)) return '역할을 선택하세요';
     const dup = list.find(s => s.id !== editId && (s.email || '').toLowerCase() === form.email.trim().toLowerCase());
     if (dup) return `이메일 중복: "${dup.name}" 와(과) 동일`;
     return null;
@@ -4822,29 +4803,6 @@ function StaffPage({ onToast }) {
         </div>
 
         <div style={{ background:'#fff', borderRadius:14, padding:24, boxShadow:'var(--shadow)', marginBottom:16 }}>
-          <h2 style={{ fontSize:13, fontWeight:900, color:'var(--or-d)', marginBottom:14 }}>역할 (KPI 시스템 카테고리)</h2>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(220px, 1fr))', gap:10 }}>
-            {ROLE_KEYS.map(rk => {
-              const meta = ROLE_META[rk];
-              const on = form.role === rk;
-              return (
-                <button key={rk} onClick={() => updateField('role', rk)} style={{
-                  padding:'14px 14px', borderRadius:10, textAlign:'left',
-                  border: on ? `2px solid ${meta.color}` : '1px solid var(--border)',
-                  background: on ? meta.color + '0F' : '#fff'
-                }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
-                    <span style={{ fontSize:18 }}>{meta.icon}</span>
-                    <span style={{ fontSize:13, fontWeight:900, color: on ? meta.color : 'var(--text)' }}>{meta.label}</span>
-                  </div>
-                  <div style={{ fontSize:11, fontWeight:600, color:'var(--text-sm)', lineHeight:1.5 }}>{meta.desc}</div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div style={{ background:'#fff', borderRadius:14, padding:24, boxShadow:'var(--shadow)', marginBottom:16 }}>
           <h2 style={{ fontSize:13, fontWeight:900, color:'var(--or-d)', marginBottom:16 }}>활성 / 권한</h2>
           <div style={{ display:'flex', gap:24, flexWrap:'wrap' }}>
             <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, fontWeight:700 }}>
@@ -4888,20 +4846,8 @@ function StaffPage({ onToast }) {
   const totalActive = list.filter(s => s.active !== false).length;
   const totalInactive = list.length - totalActive;
   const totalAdmins = list.filter(s => s.isAdmin).length;
-  // role별 카운트 (활성만)
-  const byRole = ROLE_KEYS.map(rk => ({
-    key: rk,
-    meta: ROLE_META[rk],
-    count: list.filter(s => s.role === rk && s.active !== false).length,
-  }));
   // 본인 매칭
   const isMe = (s) => activeStaff && s.id === activeStaff.id;
-  // 그룹화 (카드 모드, groupByRole=true)
-  const grouped = ROLE_KEYS.reduce((acc, rk) => {
-    const items = filtered.filter(s => s.role === rk);
-    if (items.length) acc[rk] = items;
-    return acc;
-  }, {});
 
   return (
     <div style={{ padding:'24px 32px' }}>

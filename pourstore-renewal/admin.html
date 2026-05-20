@@ -5,6 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>POUR스토어 어드민 센터</title>
 <meta name="theme-color" content="#0F1F5C">
+<!-- PWA — PC 데스크톱·모바일에 앱처럼 설치 가능 (Chrome/Edge/Brave/Safari 16+) -->
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="./admin-icon.svg">
+<link rel="apple-touch-icon" href="./admin-icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="POUR어드민">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="POUR스토어 어드민 센터">
+<meta name="description" content="POUR스토어 부서 어드민 — CRM·매출관리·KPI 업무관리·거래코드·자사몰 페이지 관리">
+<script>
+  // Service Worker 등록 — PWA 설치 가능성(installability) 충족 + 오프라인 shell fallback
+  // localhost·https 환경에서만 등록됨 (브라우저 정책).
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js', { scope: './' })
+        .then((reg) => console.log('[sw] 등록 완료 scope=' + reg.scope))
+        .catch((err) => console.warn('[sw] 등록 실패:', err));
+    });
+  }
+</script>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -7052,6 +7073,105 @@ function ChannelForm({ initial, existingCodes, onSubmit, onCancel }) {
 }
 
 // ============================================================
+// InstallAppButton — PWA 설치 트리거 (PC/모바일 모두 동작)
+// 흐름:
+//   1) 브라우저가 PWA 설치 가능 판단 → beforeinstallprompt 이벤트 발생
+//   2) 우리는 이벤트를 가로채 저장 + 사용자에게 "📥 앱으로 설치" 버튼 노출
+//   3) 클릭 → prompt() 호출 → 사용자 OK 시 설치
+//   4) 이미 standalone 모드(설치 후 실행)거나 사용자가 닫았으면 숨김 (24시간 캐시)
+// 지원: Chrome/Edge/Brave/Opera (Windows/macOS/Linux/Android) · Safari(iOS 16.4+ 일부 다름)
+// ============================================================
+const INSTALL_DISMISS_KEY = 'pourAdminInstallDismissed';
+function useInstallPrompt() {
+  const [installEvent, setInstallEvent] = useState(null);
+  const [installed, setInstalled] = useState(false);
+  const [dismissedUntil, setDismissedUntil] = useState(() => {
+    try { return Number(localStorage.getItem(INSTALL_DISMISS_KEY) || 0); } catch (_) { return 0; }
+  });
+
+  useEffect(() => {
+    // 이미 standalone(설치 후 실행) 또는 iOS 홈화면 추가 모드
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+      || window.navigator.standalone === true;
+    if (isStandalone) { setInstalled(true); return; }
+
+    const onBeforeInstall = (e) => {
+      e.preventDefault();
+      setInstallEvent(e);
+      console.log('[pwa] beforeinstallprompt 캡처 — 설치 가능');
+    };
+    const onInstalled = () => {
+      setInstalled(true);
+      setInstallEvent(null);
+      console.log('[pwa] appinstalled — 설치 완료');
+    };
+    window.addEventListener('beforeinstallprompt', onBeforeInstall);
+    window.addEventListener('appinstalled', onInstalled);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onBeforeInstall);
+      window.removeEventListener('appinstalled', onInstalled);
+    };
+  }, []);
+
+  const promptInstall = async () => {
+    if (!installEvent) return { ok: false, reason: 'no-event' };
+    installEvent.prompt();
+    const choice = await installEvent.userChoice;
+    setInstallEvent(null);
+    return { ok: choice.outcome === 'accepted', outcome: choice.outcome };
+  };
+
+  const dismiss = (hours = 24) => {
+    const until = Date.now() + hours * 3600 * 1000;
+    try { localStorage.setItem(INSTALL_DISMISS_KEY, String(until)); } catch (_) {}
+    setDismissedUntil(until);
+  };
+
+  const visible = !installed && !!installEvent && Date.now() > dismissedUntil;
+  return { visible, installed, hasEvent: !!installEvent, promptInstall, dismiss };
+}
+
+function InstallAppBanner() {
+  const { visible, promptInstall, dismiss } = useInstallPrompt();
+  if (!visible) return null;
+  return (
+    <div style={{
+      position:'fixed', bottom:24, right:24, zIndex:5000,
+      background:'#fff', borderRadius:14, boxShadow:'0 12px 40px rgba(15,31,92,.25)',
+      border:'1.5px solid var(--navy)', padding:'14px 18px',
+      maxWidth:340, display:'flex', alignItems:'flex-start', gap:12
+    }}>
+      <div style={{
+        width:44, height:44, borderRadius:11, flexShrink:0,
+        background:'linear-gradient(135deg, var(--navy), var(--navy2))',
+        color:'#fff', display:'flex', alignItems:'center', justifyContent:'center',
+        fontSize:22, fontWeight:900
+      }}>📥</div>
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ fontSize:13, fontWeight:900, color:'var(--navy)', marginBottom:3 }}>앱으로 설치하기</div>
+        <div style={{ fontSize:11, color:'var(--text-md)', fontWeight:600, lineHeight:1.5, marginBottom:10 }}>
+          PC 작업표시줄/Dock에서 바로 실행할 수 있어요. 브라우저 탭 없이 어드민 단독 창으로 실행됩니다.
+        </div>
+        <div style={{ display:'flex', gap:6 }}>
+          <button onClick={async () => {
+            const r = await promptInstall();
+            if (r.outcome === 'dismissed') dismiss(24);
+          }} style={{
+            padding:'7px 14px', borderRadius:8, fontSize:11.5, fontWeight:900, color:'#fff',
+            background:'linear-gradient(135deg, var(--or), var(--or-d))'
+          }}>설치하기</button>
+          <button onClick={() => dismiss(24 * 7)} style={{
+            padding:'7px 12px', borderRadius:8, fontSize:11.5, fontWeight:800, color:'var(--text-md)',
+            background:'var(--bg)', border:'1px solid var(--border)'
+          }}>일주일 안 보기</button>
+        </div>
+      </div>
+      <button onClick={() => dismiss(24)} title="오늘 닫기" style={{ width:22, height:22, borderRadius:5, fontSize:13, color:'var(--text-sm)', flexShrink:0 }}>✕</button>
+    </div>
+  );
+}
+
+// ============================================================
 // App
 // ============================================================
 function App() {
@@ -7179,6 +7299,7 @@ function App() {
         {active === 'settings' && <Settings onToast={setToast} />}
       </main>
       {toast && <Toast {...toast} onDone={() => setToast(null)} />}
+      <InstallAppBanner />
     </div>
     </ActiveStaffContext.Provider>
   );

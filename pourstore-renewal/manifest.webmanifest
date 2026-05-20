@@ -1,0 +1,50 @@
+{
+  "name": "POUR스토어 어드민 센터",
+  "short_name": "POUR어드민",
+  "description": "POUR스토어 부서 어드민 — CRM·매출관리·KPI 업무관리·거래코드·자사몰 페이지 관리",
+  "id": "/pourstore-renewal/admin",
+  "start_url": "/pourstore-renewal/admin",
+  "scope": "/pourstore-renewal/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "theme_color": "#0F1F5C",
+  "background_color": "#F9FAFB",
+  "lang": "ko",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "./admin-icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "./admin-icon-maskable.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["productivity", "business"],
+  "shortcuts": [
+    {
+      "name": "통합 대시보드",
+      "short_name": "대시보드",
+      "url": "/pourstore-renewal/admin#dashboard",
+      "description": "전체 KPI 한눈에 보기"
+    },
+    {
+      "name": "업무관리",
+      "short_name": "업무",
+      "url": "/pourstore-renewal/admin#workmgmt",
+      "description": "53개 프로젝트 진행 현황"
+    },
+    {
+      "name": "거래코드·채널",
+      "short_name": "거래코드",
+      "url": "/pourstore-renewal/admin#channels",
+      "description": "거래코드 마스터 + 인쇄용 포스터"
+    }
+  ]
+}

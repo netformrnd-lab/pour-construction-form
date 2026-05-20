@@ -52,6 +52,209 @@
     '          style="width:100%; height:100vh; border:0; display:block; background:transparent;"></iframe>\n' +
     '</section>';
 
+  // ===== B2B 시크릿 대시보드 — 대리점주 =====
+  const SEED_DASH_DEALER_HTML = `<section class="pdb pdb-dealer">
+<style>
+.pdb *, .pdb *::before, .pdb *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.pdb { background:#F9FAFB; padding:24px 18px 48px; color:#2F3438; letter-spacing:-0.02em; min-height:100vh; }
+.pdb-wrap { max-width:1200px; margin:0 auto; }
+/* 상단 회원 정보 바 */
+.pdb-topbar { display:flex; align-items:center; gap:14px; padding:18px 22px; background:linear-gradient(135deg,#0F1F5C 0%,#1E3A8A 100%); color:#fff; border-radius:18px; margin-bottom:18px; flex-wrap:wrap; }
+.pdb-avatar { width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg,#F49A3A,#E8780F); display:grid; place-items:center; font-size:22px; font-weight:900; flex-shrink:0; box-shadow:0 4px 12px rgba(232,120,15,.35); }
+.pdb-greet { flex:1; min-width:0; }
+.pdb-greet-name { font-size:15px; font-weight:800; letter-spacing:-0.03em; }
+.pdb-greet-sub { margin-top:3px; font-size:12px; color:rgba(255,255,255,.7); letter-spacing:-0.02em; }
+.pdb-tier { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; background:linear-gradient(135deg,#FED7AA,#F49A3A); color:#7C2D12; border-radius:999px; font-size:11.5px; font-weight:800; letter-spacing:0.04em; box-shadow:0 2px 8px rgba(244,154,58,.3); }
+.pdb-tier .em { font-size:13px; }
+.pdb-bell { width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,.12); display:grid; place-items:center; cursor:pointer; position:relative; transition:.15s; }
+.pdb-bell:hover { background:rgba(255,255,255,.2); }
+.pdb-bell::after { content:''; position:absolute; top:8px; right:8px; width:8px; height:8px; border-radius:50%; background:#E8780F; border:2px solid #1E3A8A; }
+/* KPI 4개 카드 */
+.pdb-kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+.pdb-kpi { background:#fff; border:1px solid #F2F3F5; border-radius:16px; padding:18px 20px; transition:.18s; position:relative; overflow:hidden; }
+.pdb-kpi:hover { transform:translateY(-2px); border-color:#FED7AA; box-shadow:0 8px 20px rgba(232,120,15,.1); }
+.pdb-kpi::before { content:''; position:absolute; top:-20px; right:-20px; width:80px; height:80px; border-radius:50%; opacity:.14; }
+.pdb-kpi[data-tone="orange"]::before { background:#E8780F; }
+.pdb-kpi[data-tone="navy"]::before { background:#0F1F5C; }
+.pdb-kpi[data-tone="green"]::before { background:#10B981; }
+.pdb-kpi[data-tone="red"]::before { background:#DC2626; }
+.pdb-kpi-head { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.pdb-kpi-ico { width:32px; height:32px; border-radius:9px; display:grid; place-items:center; font-size:15px; flex-shrink:0; }
+.pdb-kpi[data-tone="orange"] .pdb-kpi-ico { background:#FFEDD5; color:#7C2D12; }
+.pdb-kpi[data-tone="navy"] .pdb-kpi-ico { background:#DBEAFE; color:#1E3A8A; }
+.pdb-kpi[data-tone="green"] .pdb-kpi-ico { background:#D1FAE5; color:#064E3B; }
+.pdb-kpi[data-tone="red"] .pdb-kpi-ico { background:#FEE2E2; color:#991B1B; }
+.pdb-kpi-label { font-size:11.5px; font-weight:700; color:#6B7280; letter-spacing:-0.02em; }
+.pdb-kpi-num { font-size:24px; font-weight:900; color:#0F1F5C; letter-spacing:-0.045em; line-height:1.1; }
+.pdb-kpi-num .unit { font-size:14px; font-weight:800; color:#E8780F; margin-left:2px; }
+.pdb-kpi-delta { margin-top:5px; font-size:11px; font-weight:700; letter-spacing:-0.02em; display:inline-flex; align-items:center; gap:3px; }
+.pdb-kpi-delta.up { color:#059669; }
+.pdb-kpi-delta.down { color:#DC2626; }
+/* 메인 그리드 */
+.pdb-grid { display:grid; grid-template-columns:1.6fr 1fr; gap:14px; margin-bottom:18px; }
+.pdb-card { background:#fff; border:1px solid #F2F3F5; border-radius:18px; padding:22px; }
+.pdb-card-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; gap:8px; flex-wrap:wrap; }
+.pdb-card-title { font-size:15px; font-weight:800; color:#0F1F5C; letter-spacing:-0.03em; display:flex; align-items:center; gap:6px; }
+.pdb-card-more { font-size:12px; font-weight:700; color:#6B7280; text-decoration:none; }
+.pdb-card-more:hover { color:#E8780F; }
+/* 정산 위젯 */
+.pdb-settle-big { padding:18px; background:linear-gradient(135deg,#FFF7ED 0%,#FED7AA 100%); border-radius:14px; margin-bottom:14px; }
+.pdb-settle-big-label { font-size:11.5px; font-weight:800; color:#7C2D12; letter-spacing:0.04em; margin-bottom:4px; }
+.pdb-settle-big-num { font-size:32px; font-weight:900; color:#7C2D12; letter-spacing:-0.045em; line-height:1.1; }
+.pdb-settle-big-num .unit { font-size:18px; }
+.pdb-settle-big-meta { margin-top:6px; font-size:12px; font-weight:600; color:#9A3412; letter-spacing:-0.02em; }
+.pdb-settle-rows { display:flex; flex-direction:column; gap:8px; }
+.pdb-settle-row { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:#FAFAFA; border-radius:10px; font-size:13px; }
+.pdb-settle-row .label { color:#6B7280; font-weight:600; letter-spacing:-0.02em; }
+.pdb-settle-row .val { color:#0F1F5C; font-weight:800; letter-spacing:-0.02em; }
+.pdb-settle-row .val.orange { color:#E8780F; }
+/* 발주 테이블 */
+.pdb-orders { display:flex; flex-direction:column; gap:8px; }
+.pdb-order { display:grid; grid-template-columns:auto 1fr auto auto; gap:10px; align-items:center; padding:11px 14px; background:#FAFAFA; border-radius:10px; transition:.15s; cursor:pointer; }
+.pdb-order:hover { background:#FFF7ED; }
+.pdb-order-status { padding:3px 8px; border-radius:6px; font-size:10.5px; font-weight:800; letter-spacing:-0.02em; }
+.pdb-order-status.ready { background:#DBEAFE; color:#1E3A8A; }
+.pdb-order-status.shipping { background:#FEF3C7; color:#92400E; }
+.pdb-order-status.done { background:#D1FAE5; color:#065F46; }
+.pdb-order-status.pending { background:#FEE2E2; color:#991B1B; }
+.pdb-order-name { font-size:12.5px; font-weight:700; color:#0F1F5C; letter-spacing:-0.02em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pdb-order-date { font-size:11px; color:#9CA3AF; font-weight:500; letter-spacing:-0.02em; }
+.pdb-order-amt { font-size:12.5px; font-weight:800; color:#E8780F; letter-spacing:-0.02em; }
+/* 빠른 액션 */
+.pdb-actions { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+.pdb-action { padding:18px 14px; background:#fff; border:1px solid #F2F3F5; border-radius:14px; cursor:pointer; transition:.18s; text-align:center; text-decoration:none; color:inherit; display:flex; flex-direction:column; align-items:center; gap:8px; }
+.pdb-action:hover { transform:translateY(-3px); border-color:#FED7AA; box-shadow:0 8px 20px rgba(232,120,15,.12); }
+.pdb-action.primary { background:linear-gradient(135deg,#F49A3A,#E8780F); border-color:transparent; color:#fff; box-shadow:0 6px 16px rgba(232,120,15,.32); }
+.pdb-action.primary:hover { box-shadow:0 12px 28px rgba(232,120,15,.45); }
+.pdb-action-ico { width:36px; height:36px; border-radius:10px; background:#FFEDD5; color:#7C2D12; display:grid; place-items:center; font-size:18px; }
+.pdb-action.primary .pdb-action-ico { background:rgba(255,255,255,.22); color:#fff; }
+.pdb-action-name { font-size:12.5px; font-weight:800; letter-spacing:-0.03em; }
+.pdb-action-sub { font-size:10.5px; font-weight:500; color:#6B7280; letter-spacing:-0.02em; }
+.pdb-action.primary .pdb-action-sub { color:rgba(255,255,255,.78); }
+/* 알림/공지 */
+.pdb-notices { display:flex; flex-direction:column; gap:8px; }
+.pdb-notice { display:flex; gap:10px; padding:10px 12px; background:#FAFAFA; border-radius:10px; border-left:3px solid #E8780F; font-size:12px; }
+.pdb-notice .when { color:#9CA3AF; font-weight:600; flex-shrink:0; }
+.pdb-notice .msg { color:#374151; font-weight:600; letter-spacing:-0.02em; }
+.pdb-notice .msg b { color:#0F1F5C; }
+@media (max-width:900px) {
+  .pdb-kpis { grid-template-columns:repeat(2,1fr); }
+  .pdb-grid { grid-template-columns:1fr; }
+  .pdb-actions { grid-template-columns:repeat(2,1fr); }
+}
+@media (max-width:700px) {
+  .pdb { padding:14px 14px 36px; }
+  .pdb-topbar { padding:14px 16px; gap:10px; border-radius:14px; }
+  .pdb-avatar { width:42px; height:42px; font-size:18px; }
+  .pdb-greet-name { font-size:14px; }
+  .pdb-greet-sub { font-size:11.5px; }
+  .pdb-tier { font-size:10.5px; padding:4px 10px; }
+  .pdb-bell { width:36px; height:36px; }
+  .pdb-kpi { padding:14px 16px; border-radius:14px; }
+  .pdb-kpi-num { font-size:20px; }
+  .pdb-kpi-num .unit { font-size:12px; }
+  .pdb-card { padding:18px 16px; border-radius:14px; }
+  .pdb-settle-big-num { font-size:26px; }
+  .pdb-settle-big-num .unit { font-size:15px; }
+  .pdb-action { padding:14px 10px; }
+  .pdb-action-ico { width:32px; height:32px; font-size:16px; }
+  .pdb-action-name { font-size:11.5px; }
+  .pdb-action-sub { font-size:10px; }
+}
+</style>
+<div class="pdb-wrap">
+  <!-- 상단 회원 정보 바 -->
+  <div class="pdb-topbar">
+    <div class="pdb-avatar">대</div>
+    <div class="pdb-greet">
+      <div class="pdb-greet-name">○○대리점 사장님, 안녕하세요 👋</div>
+      <div class="pdb-greet-sub">오늘 새 주문 <b style="color:#FED7AA;">3건</b> · 배송 대기 <b style="color:#FED7AA;">2건</b> 확인하세요</div>
+    </div>
+    <span class="pdb-tier"><span class="em">🥇</span> GOLD 등급</span>
+    <button class="pdb-bell" type="button" aria-label="알림">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
+    </button>
+  </div>
+  <!-- KPI 4개 -->
+  <div class="pdb-kpis">
+    <div class="pdb-kpi" data-tone="orange">
+      <div class="pdb-kpi-head"><div class="pdb-kpi-ico">💰</div><div class="pdb-kpi-label">이번달 매출</div></div>
+      <div class="pdb-kpi-num">12,840,000<span class="unit">원</span></div>
+      <div class="pdb-kpi-delta up">↑ 전월 대비 +18%</div>
+    </div>
+    <div class="pdb-kpi" data-tone="navy">
+      <div class="pdb-kpi-head"><div class="pdb-kpi-ico">📦</div><div class="pdb-kpi-label">이번달 발주</div></div>
+      <div class="pdb-kpi-num">38<span class="unit">건</span></div>
+      <div class="pdb-kpi-delta up">↑ 전월 대비 +5건</div>
+    </div>
+    <div class="pdb-kpi" data-tone="green">
+      <div class="pdb-kpi-head"><div class="pdb-kpi-ico">💳</div><div class="pdb-kpi-label">정산 예정</div></div>
+      <div class="pdb-kpi-num">2,824,800<span class="unit">원</span></div>
+      <div class="pdb-kpi-delta up">5월 31일 입금 예정</div>
+    </div>
+    <div class="pdb-kpi" data-tone="red">
+      <div class="pdb-kpi-head"><div class="pdb-kpi-ico">⏳</div><div class="pdb-kpi-label">처리 대기</div></div>
+      <div class="pdb-kpi-num">3<span class="unit">건</span></div>
+      <div class="pdb-kpi-delta down">미발주 확인 필요</div>
+    </div>
+  </div>
+  <!-- 메인 그리드: 좌측 정산, 우측 최근 발주 -->
+  <div class="pdb-grid">
+    <div class="pdb-card">
+      <div class="pdb-card-head">
+        <div class="pdb-card-title">💳 정산 상세</div>
+        <a class="pdb-card-more" href="#">전체 정산 내역 →</a>
+      </div>
+      <div class="pdb-settle-big">
+        <div class="pdb-settle-big-label">다음 입금 예정</div>
+        <div class="pdb-settle-big-num">2,824,800<span class="unit">원</span></div>
+        <div class="pdb-settle-big-meta">📅 2026년 5월 31일 (금) · 신한은행 ○○○-○○-○○○○○○</div>
+      </div>
+      <div class="pdb-settle-rows">
+        <div class="pdb-settle-row"><span class="label">이번달 매출 합계</span><span class="val">12,840,000원</span></div>
+        <div class="pdb-settle-row"><span class="label">대리점 마진 (22%)</span><span class="val orange">2,824,800원</span></div>
+        <div class="pdb-settle-row"><span class="label">POUR 공급가 합계</span><span class="val">10,015,200원</span></div>
+        <div class="pdb-settle-row"><span class="label">PG 수수료</span><span class="val" style="color:#9CA3AF;">-128,400원</span></div>
+        <div class="pdb-settle-row" style="background:#FFF7ED;"><span class="label" style="color:#7C2D12; font-weight:800;">실수령 예정액</span><span class="val orange" style="font-size:14px;">2,696,400원</span></div>
+      </div>
+    </div>
+    <div class="pdb-card">
+      <div class="pdb-card-head">
+        <div class="pdb-card-title">📦 최근 발주 5건</div>
+        <a class="pdb-card-more" href="#">전체 발주 →</a>
+      </div>
+      <div class="pdb-orders">
+        <div class="pdb-order"><span class="pdb-order-status done">완료</span><div><div class="pdb-order-name">옥상 방수 패키지 × 5</div><div class="pdb-order-date">05/14 14:22</div></div><span class="pdb-order-amt">389,500원</span></div>
+        <div class="pdb-order"><span class="pdb-order-status shipping">배송중</span><div><div class="pdb-order-name">단열 페인트 × 12</div><div class="pdb-order-date">05/15 09:08</div></div><span class="pdb-order-amt">236,400원</span></div>
+        <div class="pdb-order"><span class="pdb-order-status ready">발주 준비</span><div><div class="pdb-order-name">탈락 방지 키트 × 3</div><div class="pdb-order-date">05/16 11:35</div></div><span class="pdb-order-amt">68,400원</span></div>
+        <div class="pdb-order"><span class="pdb-order-status pending">결제 대기</span><div><div class="pdb-order-name">균열 보수 시트 × 8</div><div class="pdb-order-date">05/16 16:12</div></div><span class="pdb-order-amt">152,000원</span></div>
+        <div class="pdb-order"><span class="pdb-order-status done">완료</span><div><div class="pdb-order-name">초고탄성 퍼티 × 4</div><div class="pdb-order-date">05/12 10:45</div></div><span class="pdb-order-amt">95,200원</span></div>
+      </div>
+    </div>
+  </div>
+  <!-- 빠른 액션 -->
+  <div class="pdb-card" style="margin-bottom:18px;">
+    <div class="pdb-card-head"><div class="pdb-card-title">⚡ 빠른 액션</div></div>
+    <div class="pdb-actions">
+      <a class="pdb-action primary" href="#"><div class="pdb-action-ico">🛒</div><div class="pdb-action-name">새 발주하기</div><div class="pdb-action-sub">도매가로 즉시 발주</div></a>
+      <a class="pdb-action" href="#"><div class="pdb-action-ico">📊</div><div class="pdb-action-name">정산 내역</div><div class="pdb-action-sub">엑셀 다운로드</div></a>
+      <a class="pdb-action" href="#"><div class="pdb-action-ico">📦</div><div class="pdb-action-name">재고 확인</div><div class="pdb-action-sub">대리점 보유 현황</div></a>
+      <a class="pdb-action" href="#"><div class="pdb-action-ico">💬</div><div class="pdb-action-name">본사 문의</div><div class="pdb-action-sub">카톡 즉시 응답</div></a>
+    </div>
+  </div>
+  <!-- 공지 -->
+  <div class="pdb-card">
+    <div class="pdb-card-head"><div class="pdb-card-title">📢 본사 공지</div><a class="pdb-card-more" href="#">전체 보기 →</a></div>
+    <div class="pdb-notices">
+      <div class="pdb-notice"><span class="when">05/14</span><div class="msg"><b>[정산]</b> 5월 정산 마감일 안내 — 매월 말일 17시 기준 집계, 익월 5일 입금</div></div>
+      <div class="pdb-notice"><span class="when">05/10</span><div class="msg"><b>[신상품]</b> POUR 슈퍼복합압축시트 v3 출시 — Gold 등급 12% 추가 할인</div></div>
+      <div class="pdb-notice"><span class="when">05/03</span><div class="msg"><b>[등급제]</b> Q2 등급 산정 결과 안내 — ○○대리점 Silver → Gold 승급 🎉</div></div>
+    </div>
+  </div>
+</div>
+</section>`;
+
+
   const SEED_AI_RECOMMEND_HTML = `
 <style>
 .par * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Noto Sans KR', sans-serif; }
@@ -7188,6 +7391,24 @@ show('entry');
         }
       }
       s.migrations.statsRevertV7 = true;
+    }
+    // 1회성 마이그레이션 — 대리점주 대시보드 디자인 섹션 추가
+    if (!s.migrations.dealerDashboardV1) {
+      // 페이지 이름에 "대시보드"와 "대리점" 포함된 페이지 찾기
+      const dashPage = s.pages.find(p => p.name && p.name.indexOf('대시보드') !== -1 && p.name.indexOf('대리점') !== -1);
+      if (dashPage && Array.isArray(dashPage.sections)) {
+        // class="pdb-dealer"가 이미 있으면 중복 추가 안 함
+        const exists = dashPage.sections.some(sec => (sec.html || '').indexOf('class="pdb pdb-dealer"') !== -1);
+        if (!exists) {
+          dashPage.sections.push(mkSec(
+            '대리점주 대시보드 (디자인 시안)',
+            SEED_DASH_DEALER_HTML,
+            'GOLD 등급 + 회원정보 헤더 · KPI 4종(매출/발주/정산예정/대기) · 정산 상세 + 최근 발주 5건 · 빠른 액션 4종 · 본사 공지 — Pretendard·POUR 브랜드 톤, 모바일 반응형',
+            'wip'
+          ));
+        }
+      }
+      s.migrations.dealerDashboardV1 = true;
     }
     return s;
   }

@@ -57,202 +57,422 @@
     '</section>';
 
   // ===== B2B 시크릿 대시보드 — 대리점주 =====
+  // ===== 대리점 모집 소개 페이지 — 토스 스타일 + POUR 오렌지/네이비 =====
+  const SEED_INTRO_DEALER_HTML = `<section class="pin pin-dealer">
+<style>
+.pin *, .pin *::before, .pin *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.pin { background:#fff; color:#191F28; letter-spacing:-0.02em; -webkit-font-smoothing:antialiased; }
+.pin a { color:inherit; text-decoration:none; }
+.pin button { font:inherit; cursor:pointer; border:none; background:none; color:inherit; letter-spacing:inherit; }
+/* 1) Hero */
+.pin-hero { background:linear-gradient(135deg,#FFFBF5 0%,#FFEDD5 100%); padding:80px 20px 72px; position:relative; overflow:hidden; }
+.pin-hero::before { content:''; position:absolute; top:-100px; right:-80px; width:380px; height:380px; border-radius:50%; background:radial-gradient(circle,rgba(232,120,15,.22) 0%,transparent 65%); pointer-events:none; }
+.pin-hero-inner { max-width:720px; margin:0 auto; position:relative; z-index:1; text-align:center; }
+.pin-kicker { display:inline-block; font-size:12px; font-weight:800; color:#E8780F; letter-spacing:0.08em; padding:6px 14px; background:#fff; border:1px solid #FED7AA; border-radius:999px; margin-bottom:18px; box-shadow:0 2px 8px rgba(232,120,15,.1); }
+.pin-h1 { font-size:36px; font-weight:900; color:#0F1F5C; letter-spacing:-0.045em; line-height:1.25; }
+.pin-h1 b { color:#E8780F; }
+.pin-sub { margin-top:14px; font-size:15px; font-weight:500; color:#8B95A1; line-height:1.65; letter-spacing:-0.02em; }
+.pin-hero-stats { margin-top:32px; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.pin-hero-stat { background:#fff; border-radius:14px; padding:14px 10px; box-shadow:0 4px 12px rgba(15,31,92,.06); }
+.pin-hero-stat-num { font-size:22px; font-weight:900; color:#E8780F; letter-spacing:-0.04em; line-height:1.1; }
+.pin-hero-stat-num .unit { font-size:13px; font-weight:800; }
+.pin-hero-stat-label { margin-top:4px; font-size:11.5px; font-weight:600; color:#6B7280; letter-spacing:-0.02em; }
+/* 2) 섹션 공통 */
+.pin-sec { padding:64px 20px; }
+.pin-sec.alt { background:#F9FAFB; }
+.pin-sec-inner { max-width:720px; margin:0 auto; }
+.pin-sec-kicker { display:block; font-size:12px; font-weight:800; color:#E8780F; letter-spacing:0.06em; margin-bottom:8px; text-align:center; }
+.pin-sec-title { font-size:26px; font-weight:900; color:#191F28; letter-spacing:-0.045em; line-height:1.3; text-align:center; }
+.pin-sec-title b { color:#E8780F; }
+.pin-sec-sub { margin-top:10px; text-align:center; font-size:14px; font-weight:500; color:#8B95A1; letter-spacing:-0.02em; line-height:1.65; margin-bottom:32px; }
+/* 3) 혜택 카드 */
+.pin-benefits { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+.pin-benefit { background:#fff; border:1px solid #F2F4F6; border-radius:16px; padding:22px 20px; transition:.18s; }
+.pin-benefit:hover { border-color:#FED7AA; transform:translateY(-2px); box-shadow:0 8px 20px rgba(232,120,15,.08); }
+.pin-benefit-ico { width:44px; height:44px; border-radius:12px; background:#FFF7ED; color:#E8780F; display:grid; place-items:center; font-size:20px; margin-bottom:12px; }
+.pin-benefit-title { font-size:15px; font-weight:800; color:#191F28; letter-spacing:-0.03em; margin-bottom:6px; }
+.pin-benefit-desc { font-size:13px; font-weight:500; color:#6B7280; letter-spacing:-0.02em; line-height:1.6; }
+/* 4) 등급제 */
+.pin-tiers { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.pin-tier { background:#fff; border:1.5px solid #F2F4F6; border-radius:18px; padding:24px 20px; position:relative; transition:.18s; }
+.pin-tier.recommend { border-color:#E8780F; box-shadow:0 8px 24px rgba(232,120,15,.15); }
+.pin-tier.recommend::before { content:'추천'; position:absolute; top:-10px; left:50%; transform:translateX(-50%); padding:3px 10px; background:#E8780F; color:#fff; font-size:10.5px; font-weight:800; border-radius:999px; letter-spacing:0.04em; }
+.pin-tier-name { font-size:13px; font-weight:800; color:#6B7280; letter-spacing:0.04em; }
+.pin-tier.recommend .pin-tier-name { color:#E8780F; }
+.pin-tier-margin { margin-top:8px; font-size:32px; font-weight:900; color:#0F1F5C; letter-spacing:-0.045em; line-height:1; }
+.pin-tier-margin .unit { font-size:18px; color:#E8780F; }
+.pin-tier-cond { margin-top:6px; font-size:11.5px; color:#9CA3AF; font-weight:600; letter-spacing:-0.02em; }
+.pin-tier-list { margin-top:16px; padding-top:16px; border-top:1px solid #F2F4F6; display:flex; flex-direction:column; gap:8px; }
+.pin-tier-item { display:flex; gap:6px; align-items:flex-start; font-size:12px; font-weight:600; color:#374151; letter-spacing:-0.02em; line-height:1.5; }
+.pin-tier-item::before { content:'✓'; color:#0FA864; font-weight:900; flex-shrink:0; }
+/* 5) 절차 */
+.pin-steps { display:flex; flex-direction:column; gap:10px; }
+.pin-step { display:flex; gap:16px; padding:18px 20px; background:#fff; border:1px solid #F2F4F6; border-radius:14px; align-items:center; }
+.pin-step-num { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,#F49A3A,#E8780F); color:#fff; font-size:14px; font-weight:900; display:grid; place-items:center; flex-shrink:0; box-shadow:0 4px 10px rgba(232,120,15,.3); }
+.pin-step-body { flex:1; }
+.pin-step-title { font-size:14px; font-weight:800; color:#191F28; letter-spacing:-0.03em; }
+.pin-step-desc { margin-top:3px; font-size:12.5px; font-weight:500; color:#8B95A1; letter-spacing:-0.02em; line-height:1.5; }
+.pin-step-time { font-size:11px; font-weight:700; color:#E8780F; flex-shrink:0; }
+/* 6) FAQ */
+.pin-faqs { display:flex; flex-direction:column; gap:8px; }
+.pin-faq { background:#fff; border:1px solid #F2F4F6; border-radius:14px; overflow:hidden; }
+.pin-faq summary { padding:18px 20px; font-size:14px; font-weight:700; color:#191F28; letter-spacing:-0.02em; cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; }
+.pin-faq summary::-webkit-details-marker { display:none; }
+.pin-faq summary::after { content:'+'; font-size:18px; color:#E8780F; font-weight:900; transition:.2s; }
+.pin-faq[open] summary::after { transform:rotate(45deg); }
+.pin-faq-body { padding:0 20px 18px; font-size:13px; font-weight:500; color:#6B7280; line-height:1.7; letter-spacing:-0.02em; }
+/* 7) Bottom CTA */
+.pin-cta-sec { padding:64px 20px 80px; background:linear-gradient(135deg,#0F1F5C 0%,#1E3A8A 100%); color:#fff; text-align:center; }
+.pin-cta-inner { max-width:720px; margin:0 auto; }
+.pin-cta-kicker { display:inline-block; font-size:12px; font-weight:800; color:#FED7AA; letter-spacing:0.08em; padding:5px 14px; background:rgba(232,120,15,.2); border:1px solid rgba(232,120,15,.4); border-radius:999px; margin-bottom:16px; }
+.pin-cta-title { font-size:28px; font-weight:900; letter-spacing:-0.045em; line-height:1.3; }
+.pin-cta-title b { color:#FED7AA; }
+.pin-cta-sub { margin-top:12px; font-size:14px; font-weight:500; color:rgba(255,255,255,.78); line-height:1.65; letter-spacing:-0.02em; }
+.pin-cta-buttons { margin-top:28px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+.pin-cta-primary { padding:16px 32px; background:#E8780F; color:#fff; font-size:15px; font-weight:800; border-radius:999px; box-shadow:0 8px 22px rgba(232,120,15,.4); letter-spacing:-0.03em; transition:.18s; }
+.pin-cta-primary:hover { background:#C8650D; transform:translateY(-2px); }
+.pin-cta-ghost { padding:16px 28px; background:rgba(255,255,255,.1); color:#fff; font-size:15px; font-weight:700; border-radius:999px; border:1px solid rgba(255,255,255,.2); letter-spacing:-0.03em; transition:.18s; }
+.pin-cta-ghost:hover { background:rgba(255,255,255,.2); }
+@media (max-width:700px) {
+  .pin-hero { padding:56px 18px 48px; }
+  .pin-h1 { font-size:26px; }
+  .pin-sub { font-size:13.5px; }
+  .pin-hero-stat-num { font-size:18px; }
+  .pin-sec { padding:48px 18px; }
+  .pin-sec-title { font-size:22px; }
+  .pin-sec-sub { font-size:13px; }
+  .pin-benefits { grid-template-columns:1fr; }
+  .pin-tiers { grid-template-columns:1fr; }
+  .pin-tier.recommend { order:-1; }
+  .pin-cta-sec { padding:48px 18px 60px; }
+  .pin-cta-title { font-size:22px; }
+  .pin-cta-buttons { flex-direction:column; }
+  .pin-cta-primary, .pin-cta-ghost { width:100%; }
+}
+</style>
+<!-- Hero -->
+<div class="pin-hero">
+  <div class="pin-hero-inner">
+    <span class="pin-kicker">DEALER RECRUITMENT</span>
+    <h1 class="pin-h1">POUR스토어<br/><b>대리점</b>이 되어보세요</h1>
+    <p class="pin-sub">240만 세대가 선택한 POUR 자재를 도매가로 공급받고,<br/>안정적인 마진 + 자동 정산으로 운영하세요.</p>
+    <div class="pin-hero-stats">
+      <div class="pin-hero-stat"><div class="pin-hero-stat-num">250<span class="unit">+</span></div><div class="pin-hero-stat-label">운영 대리점</div></div>
+      <div class="pin-hero-stat"><div class="pin-hero-stat-num">22<span class="unit">~35%</span></div><div class="pin-hero-stat-label">대리점 마진</div></div>
+      <div class="pin-hero-stat"><div class="pin-hero-stat-num">98<span class="unit">%</span></div><div class="pin-hero-stat-label">재계약률</div></div>
+    </div>
+  </div>
+</div>
+<!-- 혜택 -->
+<div class="pin-sec">
+  <div class="pin-sec-inner">
+    <span class="pin-sec-kicker">BENEFITS</span>
+    <h2 class="pin-sec-title">POUR 대리점만의 <b>6가지 혜택</b></h2>
+    <p class="pin-sec-sub">대리점 사장님이 운영에만 집중할 수 있도록 본사가 모두 지원합니다</p>
+    <div class="pin-benefits">
+      <div class="pin-benefit"><div class="pin-benefit-ico">💰</div><div class="pin-benefit-title">최대 35% 마진</div><div class="pin-benefit-desc">등급에 따라 22~35%의 안정적인 마진율. 등급 산정 시 추가 인센티브.</div></div>
+      <div class="pin-benefit"><div class="pin-benefit-ico">⚡</div><div class="pin-benefit-title">자동 정산</div><div class="pin-benefit-desc">매월 말 자동 집계 → 익월 5일 입금. 수기 보고 없이 자동 처리.</div></div>
+      <div class="pin-benefit"><div class="pin-benefit-ico">📦</div><div class="pin-benefit-title">소량 주문 가능</div><div class="pin-benefit-desc">최소 발주 수량 없음. 필요할 때 필요한 만큼만 주문하세요.</div></div>
+      <div class="pin-benefit"><div class="pin-benefit-ico">🎓</div><div class="pin-benefit-title">기술 교육 무상 지원</div><div class="pin-benefit-desc">정기 시공 교육·자재 사용법·CS 응대까지. 본사가 직접 교육.</div></div>
+      <div class="pin-benefit"><div class="pin-benefit-ico">📣</div><div class="pin-benefit-title">마케팅 지원</div><div class="pin-benefit-desc">전단·온라인 광고·SNS 콘텐츠 본사 제작. 매장 홍보비 절감.</div></div>
+      <div class="pin-benefit"><div class="pin-benefit-ico">🛡</div><div class="pin-benefit-title">하자 책임 분담</div><div class="pin-benefit-desc">자재 하자 발생 시 본사 직접 책임. 대리점이 부담 X.</div></div>
+    </div>
+  </div>
+</div>
+<!-- 등급제 -->
+<div class="pin-sec alt">
+  <div class="pin-sec-inner">
+    <span class="pin-sec-kicker">TIER PROGRAM</span>
+    <h2 class="pin-sec-title">3단계 <b>등급제</b>로 성장에 맞춰</h2>
+    <p class="pin-sec-sub">분기별 매출·재계약률을 기반으로 자동 승급. 등급마다 마진과 혜택이 달라집니다</p>
+    <div class="pin-tiers">
+      <div class="pin-tier">
+        <div class="pin-tier-name">SILVER</div>
+        <div class="pin-tier-margin">22<span class="unit">%</span></div>
+        <div class="pin-tier-cond">진입 등급 · 매출 무관</div>
+        <div class="pin-tier-list">
+          <div class="pin-tier-item">기본 마진율 22%</div>
+          <div class="pin-tier-item">정기 기술 교육 (분기 1회)</div>
+          <div class="pin-tier-item">기본 마케팅 자료</div>
+        </div>
+      </div>
+      <div class="pin-tier recommend">
+        <div class="pin-tier-name">GOLD</div>
+        <div class="pin-tier-margin">28<span class="unit">%</span></div>
+        <div class="pin-tier-cond">월 매출 500만+ · 추천</div>
+        <div class="pin-tier-list">
+          <div class="pin-tier-item">마진율 28% (+6%p)</div>
+          <div class="pin-tier-item">전담 영업 매니저 배정</div>
+          <div class="pin-tier-item">우선 신상품 공급</div>
+          <div class="pin-tier-item">지역 마케팅 50% 지원</div>
+        </div>
+      </div>
+      <div class="pin-tier">
+        <div class="pin-tier-name">PLATINUM</div>
+        <div class="pin-tier-margin">35<span class="unit">%</span></div>
+        <div class="pin-tier-cond">월 매출 1,500만+</div>
+        <div class="pin-tier-list">
+          <div class="pin-tier-item">최고 마진율 35%</div>
+          <div class="pin-tier-item">독점 권역 보호</div>
+          <div class="pin-tier-item">신제품 베타 우선 접근</div>
+          <div class="pin-tier-item">B2B 영업 기회 우선 분배</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- 신청 절차 -->
+<div class="pin-sec">
+  <div class="pin-sec-inner">
+    <span class="pin-sec-kicker">HOW TO APPLY</span>
+    <h2 class="pin-sec-title">신청부터 운영까지 <b>5단계</b></h2>
+    <p class="pin-sec-sub">평균 14일 이내에 대리점 운영을 시작하실 수 있습니다</p>
+    <div class="pin-steps">
+      <div class="pin-step"><div class="pin-step-num">1</div><div class="pin-step-body"><div class="pin-step-title">온라인 신청서 작성</div><div class="pin-step-desc">사업자 정보·지역·연락처 등 기본 정보 제출</div></div><div class="pin-step-time">5분</div></div>
+      <div class="pin-step"><div class="pin-step-num">2</div><div class="pin-step-body"><div class="pin-step-title">본사 검토 + 전화 상담</div><div class="pin-step-desc">자격 요건 확인 후 영업 담당자가 직접 연락</div></div><div class="pin-step-time">1~2일</div></div>
+      <div class="pin-step"><div class="pin-step-num">3</div><div class="pin-step-body"><div class="pin-step-title">현장 실사 + 계약</div><div class="pin-step-desc">매장·창고 점검 후 대리점 계약 체결</div></div><div class="pin-step-time">3~5일</div></div>
+      <div class="pin-step"><div class="pin-step-num">4</div><div class="pin-step-body"><div class="pin-step-title">초도 물량 발주 + 기술 교육</div><div class="pin-step-desc">초도 자재 공급 · 시공 교육 · 시스템 가이드</div></div><div class="pin-step-time">3~5일</div></div>
+      <div class="pin-step"><div class="pin-step-num">5</div><div class="pin-step-body"><div class="pin-step-title">대시보드 발급 + 운영 시작</div><div class="pin-step-desc">시크릿 페이지·정산 대시보드 발급 · 본격 운영</div></div><div class="pin-step-time">즉시</div></div>
+    </div>
+  </div>
+</div>
+<!-- FAQ -->
+<div class="pin-sec alt">
+  <div class="pin-sec-inner">
+    <span class="pin-sec-kicker">FAQ</span>
+    <h2 class="pin-sec-title">자주 묻는 질문</h2>
+    <p class="pin-sec-sub">신청 전에 가장 많이 받는 질문들입니다</p>
+    <div class="pin-faqs">
+      <details class="pin-faq"><summary>가입비·보증금이 있나요?</summary><div class="pin-faq-body">가입비는 없습니다. 초도 물량 발주(최소 500만원 권장) 외에 별도 보증금이나 권리금이 없습니다.</div></details>
+      <details class="pin-faq"><summary>매장 크기·위치 제한이 있나요?</summary><div class="pin-faq-body">최소 33㎡(10평) 이상이면 신청 가능. 위치는 인접 대리점 5km 이내가 아닌 곳이면 우선 배정됩니다.</div></details>
+      <details class="pin-faq"><summary>독점 권역은 어떻게 정해지나요?</summary><div class="pin-faq-body">Platinum 등급부터 권역 독점이 보호됩니다. Silver·Gold는 인접 대리점 거리 5km 기준으로 신규 진입을 제한합니다.</div></details>
+      <details class="pin-faq"><summary>정산은 어떻게 받나요?</summary><div class="pin-faq-body">매월 말 17시 기준 매출 집계 → 익월 5일 등록 계좌로 자동 입금. PG 수수료 차감 후 실수령액이 들어옵니다.</div></details>
+      <details class="pin-faq"><summary>하자가 발생하면 누가 책임지나요?</summary><div class="pin-faq-body">자재 하자는 POUR 본사가 직접 책임집니다. 대리점이 부담하지 않으며, 본사가 시공 파트너와 직접 소통해 처리합니다.</div></details>
+    </div>
+  </div>
+</div>
+<!-- Bottom CTA -->
+<div class="pin-cta-sec">
+  <div class="pin-cta-inner">
+    <span class="pin-cta-kicker">START NOW</span>
+    <h2 class="pin-cta-title"><b>5분</b> 만에 신청, <b>14일</b> 만에 운영 시작</h2>
+    <p class="pin-cta-sub">POUR스토어 대리점이 되어 안정적인 수익 구조를 만들어보세요</p>
+    <div class="pin-cta-buttons">
+      <a class="pin-cta-primary" href="https://www.pourstore.net/dealers/apply">대리점 신청하기 →</a>
+      <a class="pin-cta-ghost" href="https://www.pourstore.net/dealers/info">자세히 알아보기</a>
+    </div>
+  </div>
+</div>
+</section>`;
+
   const SEED_DASH_DEALER_HTML = `<section class="pdb pdb-dealer">
 <style>
 .pdb *, .pdb *::before, .pdb *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
-.pdb { background:#F9FAFB; padding:24px 18px 48px; color:#2F3438; letter-spacing:-0.02em; min-height:100vh; }
-.pdb-wrap { max-width:1200px; margin:0 auto; }
-/* 상단 회원 정보 바 */
-.pdb-topbar { display:flex; align-items:center; gap:14px; padding:18px 22px; background:linear-gradient(135deg,#0F1F5C 0%,#1E3A8A 100%); color:#fff; border-radius:18px; margin-bottom:18px; flex-wrap:wrap; }
-.pdb-avatar { width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg,#F49A3A,#E8780F); display:grid; place-items:center; font-size:22px; font-weight:900; flex-shrink:0; box-shadow:0 4px 12px rgba(232,120,15,.35); }
-.pdb-greet { flex:1; min-width:0; }
-.pdb-greet-name { font-size:15px; font-weight:800; letter-spacing:-0.03em; }
-.pdb-greet-sub { margin-top:3px; font-size:12px; color:rgba(255,255,255,.7); letter-spacing:-0.02em; }
-.pdb-tier { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; background:linear-gradient(135deg,#FED7AA,#F49A3A); color:#7C2D12; border-radius:999px; font-size:11.5px; font-weight:800; letter-spacing:0.04em; box-shadow:0 2px 8px rgba(244,154,58,.3); }
-.pdb-tier .em { font-size:13px; }
-.pdb-bell { width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,.12); display:grid; place-items:center; cursor:pointer; position:relative; transition:.15s; }
-.pdb-bell:hover { background:rgba(255,255,255,.2); }
-.pdb-bell::after { content:''; position:absolute; top:8px; right:8px; width:8px; height:8px; border-radius:50%; background:#E8780F; border:2px solid #1E3A8A; }
-/* KPI 4개 카드 */
-.pdb-kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
-.pdb-kpi { background:#fff; border:1px solid #F2F3F5; border-radius:16px; padding:18px 20px; transition:.18s; position:relative; overflow:hidden; }
-.pdb-kpi:hover { transform:translateY(-2px); border-color:#FED7AA; box-shadow:0 8px 20px rgba(232,120,15,.1); }
-.pdb-kpi::before { content:''; position:absolute; top:-20px; right:-20px; width:80px; height:80px; border-radius:50%; opacity:.14; }
-.pdb-kpi[data-tone="orange"]::before { background:#E8780F; }
-.pdb-kpi[data-tone="navy"]::before { background:#0F1F5C; }
-.pdb-kpi[data-tone="green"]::before { background:#10B981; }
-.pdb-kpi[data-tone="red"]::before { background:#DC2626; }
-.pdb-kpi-head { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
-.pdb-kpi-ico { width:32px; height:32px; border-radius:9px; display:grid; place-items:center; font-size:15px; flex-shrink:0; }
-.pdb-kpi[data-tone="orange"] .pdb-kpi-ico { background:#FFEDD5; color:#7C2D12; }
-.pdb-kpi[data-tone="navy"] .pdb-kpi-ico { background:#DBEAFE; color:#1E3A8A; }
-.pdb-kpi[data-tone="green"] .pdb-kpi-ico { background:#D1FAE5; color:#064E3B; }
-.pdb-kpi[data-tone="red"] .pdb-kpi-ico { background:#FEE2E2; color:#991B1B; }
-.pdb-kpi-label { font-size:11.5px; font-weight:700; color:#6B7280; letter-spacing:-0.02em; }
-.pdb-kpi-num { font-size:24px; font-weight:900; color:#0F1F5C; letter-spacing:-0.045em; line-height:1.1; }
-.pdb-kpi-num .unit { font-size:14px; font-weight:800; color:#E8780F; margin-left:2px; }
-.pdb-kpi-delta { margin-top:5px; font-size:11px; font-weight:700; letter-spacing:-0.02em; display:inline-flex; align-items:center; gap:3px; }
-.pdb-kpi-delta.up { color:#059669; }
-.pdb-kpi-delta.down { color:#DC2626; }
-/* 메인 그리드 */
-.pdb-grid { display:grid; grid-template-columns:1.6fr 1fr; gap:14px; margin-bottom:18px; }
-.pdb-card { background:#fff; border:1px solid #F2F3F5; border-radius:18px; padding:22px; }
-.pdb-card-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; gap:8px; flex-wrap:wrap; }
-.pdb-card-title { font-size:15px; font-weight:800; color:#0F1F5C; letter-spacing:-0.03em; display:flex; align-items:center; gap:6px; }
-.pdb-card-more { font-size:12px; font-weight:700; color:#6B7280; text-decoration:none; }
-.pdb-card-more:hover { color:#E8780F; }
-/* 정산 위젯 */
-.pdb-settle-big { padding:18px; background:linear-gradient(135deg,#FFF7ED 0%,#FED7AA 100%); border-radius:14px; margin-bottom:14px; }
-.pdb-settle-big-label { font-size:11.5px; font-weight:800; color:#7C2D12; letter-spacing:0.04em; margin-bottom:4px; }
-.pdb-settle-big-num { font-size:32px; font-weight:900; color:#7C2D12; letter-spacing:-0.045em; line-height:1.1; }
-.pdb-settle-big-num .unit { font-size:18px; }
-.pdb-settle-big-meta { margin-top:6px; font-size:12px; font-weight:600; color:#9A3412; letter-spacing:-0.02em; }
-.pdb-settle-rows { display:flex; flex-direction:column; gap:8px; }
-.pdb-settle-row { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:#FAFAFA; border-radius:10px; font-size:13px; }
-.pdb-settle-row .label { color:#6B7280; font-weight:600; letter-spacing:-0.02em; }
-.pdb-settle-row .val { color:#0F1F5C; font-weight:800; letter-spacing:-0.02em; }
-.pdb-settle-row .val.orange { color:#E8780F; }
-/* 발주 테이블 */
-.pdb-orders { display:flex; flex-direction:column; gap:8px; }
-.pdb-order { display:grid; grid-template-columns:auto 1fr auto auto; gap:10px; align-items:center; padding:11px 14px; background:#FAFAFA; border-radius:10px; transition:.15s; cursor:pointer; }
-.pdb-order:hover { background:#FFF7ED; }
-.pdb-order-status { padding:3px 8px; border-radius:6px; font-size:10.5px; font-weight:800; letter-spacing:-0.02em; }
-.pdb-order-status.ready { background:#DBEAFE; color:#1E3A8A; }
-.pdb-order-status.shipping { background:#FEF3C7; color:#92400E; }
-.pdb-order-status.done { background:#D1FAE5; color:#065F46; }
-.pdb-order-status.pending { background:#FEE2E2; color:#991B1B; }
-.pdb-order-name { font-size:12.5px; font-weight:700; color:#0F1F5C; letter-spacing:-0.02em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.pdb-order-date { font-size:11px; color:#9CA3AF; font-weight:500; letter-spacing:-0.02em; }
-.pdb-order-amt { font-size:12.5px; font-weight:800; color:#E8780F; letter-spacing:-0.02em; }
-/* 빠른 액션 */
-.pdb-actions { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
-.pdb-action { padding:18px 14px; background:#fff; border:1px solid #F2F3F5; border-radius:14px; cursor:pointer; transition:.18s; text-align:center; text-decoration:none; color:inherit; display:flex; flex-direction:column; align-items:center; gap:8px; }
-.pdb-action:hover { transform:translateY(-3px); border-color:#FED7AA; box-shadow:0 8px 20px rgba(232,120,15,.12); }
-.pdb-action.primary { background:linear-gradient(135deg,#F49A3A,#E8780F); border-color:transparent; color:#fff; box-shadow:0 6px 16px rgba(232,120,15,.32); }
-.pdb-action.primary:hover { box-shadow:0 12px 28px rgba(232,120,15,.45); }
-.pdb-action-ico { width:36px; height:36px; border-radius:10px; background:#FFEDD5; color:#7C2D12; display:grid; place-items:center; font-size:18px; }
-.pdb-action.primary .pdb-action-ico { background:rgba(255,255,255,.22); color:#fff; }
-.pdb-action-name { font-size:12.5px; font-weight:800; letter-spacing:-0.03em; }
-.pdb-action-sub { font-size:10.5px; font-weight:500; color:#6B7280; letter-spacing:-0.02em; }
-.pdb-action.primary .pdb-action-sub { color:rgba(255,255,255,.78); }
-/* 알림/공지 */
-.pdb-notices { display:flex; flex-direction:column; gap:8px; }
-.pdb-notice { display:flex; gap:10px; padding:10px 12px; background:#FAFAFA; border-radius:10px; border-left:3px solid #E8780F; font-size:12px; }
-.pdb-notice .when { color:#9CA3AF; font-weight:600; flex-shrink:0; }
-.pdb-notice .msg { color:#374151; font-weight:600; letter-spacing:-0.02em; }
-.pdb-notice .msg b { color:#0F1F5C; }
-@media (max-width:900px) {
-  .pdb-kpis { grid-template-columns:repeat(2,1fr); }
-  .pdb-grid { grid-template-columns:1fr; }
-  .pdb-actions { grid-template-columns:repeat(2,1fr); }
-}
+.pdb { background:#fff; padding:32px 20px 80px; color:#191F28; letter-spacing:-0.02em; min-height:100vh; -webkit-font-smoothing:antialiased; }
+.pdb-wrap { max-width:720px; margin:0 auto; }
+/* 인사 헤더 */
+.pdb-hello { margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.pdb-hello-text { font-size:22px; font-weight:800; color:#191F28; letter-spacing:-0.04em; line-height:1.4; }
+.pdb-hello-text b { color:#E8780F; }
+.pdb-hello-sub { margin-top:6px; font-size:13.5px; color:#8B95A1; font-weight:500; letter-spacing:-0.02em; }
+.pdb-tier { display:inline-flex; align-items:center; gap:5px; padding:6px 12px; background:#FFF7ED; color:#E8780F; border-radius:999px; font-size:11.5px; font-weight:800; letter-spacing:0.02em; flex-shrink:0; border:1px solid #FED7AA; }
+/* 메인 매출 카드 — 토스 스타일 hero */
+.pdb-hero { background:linear-gradient(135deg,#FFFBF5 0%,#FFEDD5 100%); border-radius:20px; padding:28px 24px; margin-bottom:14px; position:relative; overflow:hidden; }
+.pdb-hero::after { content:''; position:absolute; top:-40px; right:-40px; width:160px; height:160px; border-radius:50%; background:radial-gradient(circle,rgba(232,120,15,.18) 0%,transparent 65%); pointer-events:none; }
+.pdb-hero-label { font-size:13px; font-weight:700; color:#7C2D12; letter-spacing:-0.02em; margin-bottom:8px; position:relative; z-index:1; }
+.pdb-hero-num { font-size:36px; font-weight:900; color:#0F1F5C; letter-spacing:-0.045em; line-height:1.1; position:relative; z-index:1; }
+.pdb-hero-num .unit { font-size:20px; color:#E8780F; margin-left:2px; font-weight:800; }
+.pdb-hero-meta { margin-top:12px; display:flex; gap:14px; align-items:center; position:relative; z-index:1; }
+.pdb-hero-delta { font-size:13px; font-weight:800; color:#E8780F; letter-spacing:-0.02em; }
+.pdb-hero-date { font-size:12px; color:#8B95A1; font-weight:500; letter-spacing:-0.02em; }
+/* 미니 KPI 3개 */
+.pdb-minis { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:24px; }
+.pdb-mini { background:#F9FAFB; border-radius:14px; padding:16px 14px; text-align:center; }
+.pdb-mini-num { font-size:20px; font-weight:900; color:#191F28; letter-spacing:-0.04em; line-height:1.1; }
+.pdb-mini-num.orange { color:#E8780F; }
+.pdb-mini-num.navy { color:#0F1F5C; }
+.pdb-mini-num .unit { font-size:13px; font-weight:800; }
+.pdb-mini-label { margin-top:6px; font-size:11.5px; color:#8B95A1; font-weight:600; letter-spacing:-0.02em; }
+/* CTA 큰 버튼 */
+.pdb-cta { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:18px; background:#E8780F; color:#fff; border-radius:14px; font-size:15.5px; font-weight:800; border:none; cursor:pointer; letter-spacing:-0.03em; box-shadow:0 8px 20px rgba(232,120,15,.3); margin-bottom:24px; transition:.18s; }
+.pdb-cta:hover { background:#C8650D; transform:translateY(-1px); box-shadow:0 12px 26px rgba(232,120,15,.4); }
+.pdb-cta-arrow { font-size:18px; }
+/* 빠른 액션 4개 */
+.pdb-quick { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:28px; }
+.pdb-quick-btn { padding:18px 8px; background:#F9FAFB; border:none; border-radius:14px; text-align:center; cursor:pointer; transition:.15s; display:flex; flex-direction:column; align-items:center; gap:8px; text-decoration:none; color:inherit; }
+.pdb-quick-btn:hover { background:#FFF7ED; }
+.pdb-quick-ico { font-size:22px; }
+.pdb-quick-name { font-size:11.5px; font-weight:700; color:#191F28; letter-spacing:-0.02em; line-height:1.3; }
+/* 리스트 카드 */
+.pdb-list { background:#fff; border:1px solid #F2F4F6; border-radius:18px; overflow:hidden; margin-bottom:14px; }
+.pdb-list-head { display:flex; justify-content:space-between; align-items:center; padding:18px 20px 14px; }
+.pdb-list-title { font-size:15px; font-weight:800; color:#191F28; letter-spacing:-0.03em; }
+.pdb-list-more { font-size:12.5px; color:#8B95A1; font-weight:600; text-decoration:none; letter-spacing:-0.02em; }
+.pdb-list-more:hover { color:#E8780F; }
+.pdb-row { display:flex; align-items:center; gap:12px; padding:14px 20px; border-top:1px solid #F2F4F6; transition:.15s; }
+.pdb-row:hover { background:#FAFBFC; }
+.pdb-row-ico { width:38px; height:38px; border-radius:12px; background:#FFF7ED; color:#E8780F; display:grid; place-items:center; font-size:17px; flex-shrink:0; }
+.pdb-row-ico.navy { background:#EEF2FF; color:#0F1F5C; }
+.pdb-row-ico.gray { background:#F2F4F6; color:#6B7280; }
+.pdb-row-body { flex:1; min-width:0; }
+.pdb-row-title { font-size:13.5px; font-weight:700; color:#191F28; letter-spacing:-0.02em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pdb-row-meta { margin-top:2px; font-size:11.5px; color:#8B95A1; font-weight:500; letter-spacing:-0.02em; }
+.pdb-row-val { font-size:14px; font-weight:800; color:#191F28; letter-spacing:-0.02em; text-align:right; }
+.pdb-row-val.orange { color:#E8780F; }
+.pdb-row-val.navy { color:#0F1F5C; }
+.pdb-row-status { font-size:10.5px; font-weight:800; padding:4px 9px; border-radius:6px; letter-spacing:-0.02em; }
+.pdb-row-status.done { background:#E8FBF1; color:#0FA864; }
+.pdb-row-status.wait { background:#FFF4D5; color:#A88300; }
+.pdb-row-status.ship { background:#E1F0FF; color:#1B64DA; }
+.pdb-row-status.warn { background:#FFEBEB; color:#D93A3A; }
+/* 정산 상세 카드 */
+.pdb-settle-card { background:#fff; border:1px solid #F2F4F6; border-radius:18px; padding:20px 22px; margin-bottom:14px; }
+.pdb-settle-card .pdb-list-title { margin-bottom:14px; }
+.pdb-settle-rows { display:flex; flex-direction:column; gap:0; }
+.pdb-settle-line { display:flex; justify-content:space-between; align-items:center; padding:11px 0; font-size:13.5px; border-bottom:1px solid #F8F9FA; }
+.pdb-settle-line:last-child { border-bottom:none; padding-top:14px; font-size:14.5px; }
+.pdb-settle-line .label { color:#8B95A1; font-weight:600; letter-spacing:-0.02em; }
+.pdb-settle-line .val { color:#191F28; font-weight:800; letter-spacing:-0.02em; }
+.pdb-settle-line.total .label { color:#191F28; font-weight:800; }
+.pdb-settle-line.total .val { color:#E8780F; font-weight:900; font-size:18px; }
+/* 공지 */
+.pdb-notice { padding:14px 20px; border-top:1px solid #F2F4F6; }
+.pdb-notice:first-of-type { border-top:none; }
+.pdb-notice-top { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+.pdb-notice-tag { font-size:10.5px; font-weight:800; color:#E8780F; background:#FFF7ED; padding:2px 7px; border-radius:5px; letter-spacing:-0.02em; }
+.pdb-notice-date { font-size:11px; color:#8B95A1; font-weight:600; letter-spacing:-0.02em; }
+.pdb-notice-msg { font-size:13px; font-weight:600; color:#191F28; letter-spacing:-0.02em; line-height:1.5; }
 @media (max-width:700px) {
-  .pdb { padding:14px 14px 36px; }
-  .pdb-topbar { padding:14px 16px; gap:10px; border-radius:14px; }
-  .pdb-avatar { width:42px; height:42px; font-size:18px; }
-  .pdb-greet-name { font-size:14px; }
-  .pdb-greet-sub { font-size:11.5px; }
-  .pdb-tier { font-size:10.5px; padding:4px 10px; }
-  .pdb-bell { width:36px; height:36px; }
-  .pdb-kpi { padding:14px 16px; border-radius:14px; }
-  .pdb-kpi-num { font-size:20px; }
-  .pdb-kpi-num .unit { font-size:12px; }
-  .pdb-card { padding:18px 16px; border-radius:14px; }
-  .pdb-settle-big-num { font-size:26px; }
-  .pdb-settle-big-num .unit { font-size:15px; }
-  .pdb-action { padding:14px 10px; }
-  .pdb-action-ico { width:32px; height:32px; font-size:16px; }
-  .pdb-action-name { font-size:11.5px; }
-  .pdb-action-sub { font-size:10px; }
+  .pdb { padding:24px 16px 60px; }
+  .pdb-hello-text { font-size:19px; }
+  .pdb-hero { padding:22px 20px; border-radius:16px; }
+  .pdb-hero-num { font-size:30px; }
+  .pdb-hero-num .unit { font-size:17px; }
+  .pdb-quick-btn { padding:14px 6px; }
+  .pdb-quick-ico { font-size:20px; }
+  .pdb-quick-name { font-size:11px; }
+  .pdb-list-head { padding:16px 18px 12px; }
+  .pdb-list-title { font-size:14px; }
+  .pdb-row { padding:12px 18px; gap:10px; }
+  .pdb-row-ico { width:34px; height:34px; font-size:15px; }
+  .pdb-row-title { font-size:13px; }
+  .pdb-row-meta { font-size:11px; }
+  .pdb-row-val { font-size:13px; }
+  .pdb-settle-card { padding:18px 18px; }
+  .pdb-settle-line.total .val { font-size:16px; }
 }
 </style>
 <div class="pdb-wrap">
-  <!-- 상단 회원 정보 바 -->
-  <div class="pdb-topbar">
-    <div class="pdb-avatar">대</div>
-    <div class="pdb-greet">
-      <div class="pdb-greet-name">○○대리점 사장님, 안녕하세요 👋</div>
-      <div class="pdb-greet-sub">오늘 새 주문 <b style="color:#FED7AA;">3건</b> · 배송 대기 <b style="color:#FED7AA;">2건</b> 확인하세요</div>
+  <!-- 인사 -->
+  <div class="pdb-hello">
+    <div>
+      <div class="pdb-hello-text">○○대리점 사장님,<br/>오늘도 <b>좋은 하루</b> 되세요 👋</div>
+      <div class="pdb-hello-sub">새 주문 3건 · 배송 대기 2건이 있어요</div>
     </div>
-    <span class="pdb-tier"><span class="em">🥇</span> GOLD 등급</span>
-    <button class="pdb-bell" type="button" aria-label="알림">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
-    </button>
+    <span class="pdb-tier">🥇 GOLD 등급</span>
   </div>
-  <!-- KPI 4개 -->
-  <div class="pdb-kpis">
-    <div class="pdb-kpi" data-tone="orange">
-      <div class="pdb-kpi-head"><div class="pdb-kpi-ico">💰</div><div class="pdb-kpi-label">이번달 매출</div></div>
-      <div class="pdb-kpi-num">12,840,000<span class="unit">원</span></div>
-      <div class="pdb-kpi-delta up">↑ 전월 대비 +18%</div>
-    </div>
-    <div class="pdb-kpi" data-tone="navy">
-      <div class="pdb-kpi-head"><div class="pdb-kpi-ico">📦</div><div class="pdb-kpi-label">이번달 발주</div></div>
-      <div class="pdb-kpi-num">38<span class="unit">건</span></div>
-      <div class="pdb-kpi-delta up">↑ 전월 대비 +5건</div>
-    </div>
-    <div class="pdb-kpi" data-tone="green">
-      <div class="pdb-kpi-head"><div class="pdb-kpi-ico">💳</div><div class="pdb-kpi-label">정산 예정</div></div>
-      <div class="pdb-kpi-num">2,824,800<span class="unit">원</span></div>
-      <div class="pdb-kpi-delta up">5월 31일 입금 예정</div>
-    </div>
-    <div class="pdb-kpi" data-tone="red">
-      <div class="pdb-kpi-head"><div class="pdb-kpi-ico">⏳</div><div class="pdb-kpi-label">처리 대기</div></div>
-      <div class="pdb-kpi-num">3<span class="unit">건</span></div>
-      <div class="pdb-kpi-delta down">미발주 확인 필요</div>
+  <!-- 메인 매출 hero -->
+  <div class="pdb-hero">
+    <div class="pdb-hero-label">이번달 매출이에요</div>
+    <div class="pdb-hero-num">12,840,000<span class="unit">원</span></div>
+    <div class="pdb-hero-meta">
+      <span class="pdb-hero-delta">↑ 전월보다 +18%</span>
+      <span class="pdb-hero-date">5월 1일 ~ 오늘</span>
     </div>
   </div>
-  <!-- 메인 그리드: 좌측 정산, 우측 최근 발주 -->
-  <div class="pdb-grid">
-    <div class="pdb-card">
-      <div class="pdb-card-head">
-        <div class="pdb-card-title">💳 정산 상세</div>
-        <a class="pdb-card-more" href="#">전체 정산 내역 →</a>
-      </div>
-      <div class="pdb-settle-big">
-        <div class="pdb-settle-big-label">다음 입금 예정</div>
-        <div class="pdb-settle-big-num">2,824,800<span class="unit">원</span></div>
-        <div class="pdb-settle-big-meta">📅 2026년 5월 31일 (금) · 신한은행 ○○○-○○-○○○○○○</div>
-      </div>
-      <div class="pdb-settle-rows">
-        <div class="pdb-settle-row"><span class="label">이번달 매출 합계</span><span class="val">12,840,000원</span></div>
-        <div class="pdb-settle-row"><span class="label">대리점 마진 (22%)</span><span class="val orange">2,824,800원</span></div>
-        <div class="pdb-settle-row"><span class="label">POUR 공급가 합계</span><span class="val">10,015,200원</span></div>
-        <div class="pdb-settle-row"><span class="label">PG 수수료</span><span class="val" style="color:#9CA3AF;">-128,400원</span></div>
-        <div class="pdb-settle-row" style="background:#FFF7ED;"><span class="label" style="color:#7C2D12; font-weight:800;">실수령 예정액</span><span class="val orange" style="font-size:14px;">2,696,400원</span></div>
-      </div>
-    </div>
-    <div class="pdb-card">
-      <div class="pdb-card-head">
-        <div class="pdb-card-title">📦 최근 발주 5건</div>
-        <a class="pdb-card-more" href="#">전체 발주 →</a>
-      </div>
-      <div class="pdb-orders">
-        <div class="pdb-order"><span class="pdb-order-status done">완료</span><div><div class="pdb-order-name">옥상 방수 패키지 × 5</div><div class="pdb-order-date">05/14 14:22</div></div><span class="pdb-order-amt">389,500원</span></div>
-        <div class="pdb-order"><span class="pdb-order-status shipping">배송중</span><div><div class="pdb-order-name">단열 페인트 × 12</div><div class="pdb-order-date">05/15 09:08</div></div><span class="pdb-order-amt">236,400원</span></div>
-        <div class="pdb-order"><span class="pdb-order-status ready">발주 준비</span><div><div class="pdb-order-name">탈락 방지 키트 × 3</div><div class="pdb-order-date">05/16 11:35</div></div><span class="pdb-order-amt">68,400원</span></div>
-        <div class="pdb-order"><span class="pdb-order-status pending">결제 대기</span><div><div class="pdb-order-name">균열 보수 시트 × 8</div><div class="pdb-order-date">05/16 16:12</div></div><span class="pdb-order-amt">152,000원</span></div>
-        <div class="pdb-order"><span class="pdb-order-status done">완료</span><div><div class="pdb-order-name">초고탄성 퍼티 × 4</div><div class="pdb-order-date">05/12 10:45</div></div><span class="pdb-order-amt">95,200원</span></div>
-      </div>
-    </div>
+  <!-- 미니 KPI -->
+  <div class="pdb-minis">
+    <div class="pdb-mini"><div class="pdb-mini-num navy">38<span class="unit">건</span></div><div class="pdb-mini-label">이번달 발주</div></div>
+    <div class="pdb-mini"><div class="pdb-mini-num orange">2.8<span class="unit">M원</span></div><div class="pdb-mini-label">정산 예정</div></div>
+    <div class="pdb-mini"><div class="pdb-mini-num">3<span class="unit">건</span></div><div class="pdb-mini-label">처리 대기</div></div>
   </div>
+  <!-- 메인 CTA -->
+  <button class="pdb-cta" type="button">🛒 새 발주하기 <span class="pdb-cta-arrow">→</span></button>
   <!-- 빠른 액션 -->
-  <div class="pdb-card" style="margin-bottom:18px;">
-    <div class="pdb-card-head"><div class="pdb-card-title">⚡ 빠른 액션</div></div>
-    <div class="pdb-actions">
-      <a class="pdb-action primary" href="#"><div class="pdb-action-ico">🛒</div><div class="pdb-action-name">새 발주하기</div><div class="pdb-action-sub">도매가로 즉시 발주</div></a>
-      <a class="pdb-action" href="#"><div class="pdb-action-ico">📊</div><div class="pdb-action-name">정산 내역</div><div class="pdb-action-sub">엑셀 다운로드</div></a>
-      <a class="pdb-action" href="#"><div class="pdb-action-ico">📦</div><div class="pdb-action-name">재고 확인</div><div class="pdb-action-sub">대리점 보유 현황</div></a>
-      <a class="pdb-action" href="#"><div class="pdb-action-ico">💬</div><div class="pdb-action-name">본사 문의</div><div class="pdb-action-sub">카톡 즉시 응답</div></a>
+  <div class="pdb-quick">
+    <a class="pdb-quick-btn" href="#"><span class="pdb-quick-ico">📊</span><span class="pdb-quick-name">정산 내역</span></a>
+    <a class="pdb-quick-btn" href="#"><span class="pdb-quick-ico">📦</span><span class="pdb-quick-name">재고 확인</span></a>
+    <a class="pdb-quick-btn" href="#"><span class="pdb-quick-ico">📑</span><span class="pdb-quick-name">발주 이력</span></a>
+    <a class="pdb-quick-btn" href="#"><span class="pdb-quick-ico">💬</span><span class="pdb-quick-name">본사 문의</span></a>
+  </div>
+  <!-- 정산 상세 -->
+  <div class="pdb-settle-card">
+    <div class="pdb-list-title">💳 다음 정산 안내</div>
+    <div class="pdb-settle-rows">
+      <div class="pdb-settle-line"><span class="label">이번달 매출 합계</span><span class="val">12,840,000원</span></div>
+      <div class="pdb-settle-line"><span class="label">대리점 마진 (22%)</span><span class="val">2,824,800원</span></div>
+      <div class="pdb-settle-line"><span class="label">PG 수수료</span><span class="val" style="color:#8B95A1;">-128,400원</span></div>
+      <div class="pdb-settle-line total"><span class="label">5월 31일 입금 예정</span><span class="val">2,696,400원</span></div>
+    </div>
+  </div>
+  <!-- 최근 발주 -->
+  <div class="pdb-list">
+    <div class="pdb-list-head">
+      <div class="pdb-list-title">📦 최근 발주</div>
+      <a class="pdb-list-more" href="#">전체 →</a>
+    </div>
+    <div class="pdb-row">
+      <div class="pdb-row-ico">💧</div>
+      <div class="pdb-row-body">
+        <div class="pdb-row-title">옥상 방수 패키지 × 5</div>
+        <div class="pdb-row-meta">05/14 14:22 · 배송완료</div>
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+        <span class="pdb-row-status done">완료</span>
+        <span class="pdb-row-val orange">389,500원</span>
+      </div>
+    </div>
+    <div class="pdb-row">
+      <div class="pdb-row-ico navy">🎨</div>
+      <div class="pdb-row-body">
+        <div class="pdb-row-title">단열 페인트 × 12</div>
+        <div class="pdb-row-meta">05/15 09:08 · CJ대한통운</div>
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+        <span class="pdb-row-status ship">배송중</span>
+        <span class="pdb-row-val">236,400원</span>
+      </div>
+    </div>
+    <div class="pdb-row">
+      <div class="pdb-row-ico gray">🛠</div>
+      <div class="pdb-row-body">
+        <div class="pdb-row-title">탈락 방지 키트 × 3</div>
+        <div class="pdb-row-meta">05/16 11:35</div>
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+        <span class="pdb-row-status wait">발주 준비</span>
+        <span class="pdb-row-val">68,400원</span>
+      </div>
+    </div>
+    <div class="pdb-row">
+      <div class="pdb-row-ico" style="background:#FFEBEB; color:#D93A3A;">⚡</div>
+      <div class="pdb-row-body">
+        <div class="pdb-row-title">균열 보수 시트 × 8</div>
+        <div class="pdb-row-meta">05/16 16:12 · 결제 대기중</div>
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+        <span class="pdb-row-status warn">결제 대기</span>
+        <span class="pdb-row-val">152,000원</span>
+      </div>
     </div>
   </div>
   <!-- 공지 -->
-  <div class="pdb-card">
-    <div class="pdb-card-head"><div class="pdb-card-title">📢 본사 공지</div><a class="pdb-card-more" href="#">전체 보기 →</a></div>
-    <div class="pdb-notices">
-      <div class="pdb-notice"><span class="when">05/14</span><div class="msg"><b>[정산]</b> 5월 정산 마감일 안내 — 매월 말일 17시 기준 집계, 익월 5일 입금</div></div>
-      <div class="pdb-notice"><span class="when">05/10</span><div class="msg"><b>[신상품]</b> POUR 슈퍼복합압축시트 v3 출시 — Gold 등급 12% 추가 할인</div></div>
-      <div class="pdb-notice"><span class="when">05/03</span><div class="msg"><b>[등급제]</b> Q2 등급 산정 결과 안내 — ○○대리점 Silver → Gold 승급 🎉</div></div>
+  <div class="pdb-list">
+    <div class="pdb-list-head">
+      <div class="pdb-list-title">📢 본사 공지</div>
+      <a class="pdb-list-more" href="#">전체 →</a>
+    </div>
+    <div class="pdb-notice">
+      <div class="pdb-notice-top"><span class="pdb-notice-tag">정산</span><span class="pdb-notice-date">2일 전</span></div>
+      <div class="pdb-notice-msg">5월 정산 마감일 안내 — 매월 말일 17시 기준 집계, 익월 5일 입금</div>
+    </div>
+    <div class="pdb-notice">
+      <div class="pdb-notice-top"><span class="pdb-notice-tag">신상품</span><span class="pdb-notice-date">6일 전</span></div>
+      <div class="pdb-notice-msg">POUR 슈퍼복합압축시트 v3 출시 — Gold 등급 12% 추가 할인</div>
+    </div>
+    <div class="pdb-notice">
+      <div class="pdb-notice-top"><span class="pdb-notice-tag">등급</span><span class="pdb-notice-date">2주 전</span></div>
+      <div class="pdb-notice-msg">Q2 등급 산정 결과 — ○○대리점 Silver → Gold 승급 🎉</div>
     </div>
   </div>
 </div>
@@ -7751,6 +7971,45 @@ show('entry');
         }
       }
       s.migrations.dealerDashboardV1 = true;
+    }
+    // 1회성 마이그레이션 v2 — 대리점주 대시보드를 토스 스타일로 재디자인
+    if (!s.migrations.dealerDashboardV2) {
+      const dashPage2 = s.pages.find(p => p.name && p.name.indexOf('대시보드') !== -1 && p.name.indexOf('대리점') !== -1);
+      if (dashPage2 && Array.isArray(dashPage2.sections)) {
+        const idx = dashPage2.sections.findIndex(sec => (sec.html || '').indexOf('class="pdb pdb-dealer"') !== -1);
+        if (idx !== -1) {
+          const sec = dashPage2.sections[idx];
+          const now = new Date().toISOString();
+          const key = dashPage2.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason: '대리점주 대시보드 — 토스 스타일로 재디자인 (흰 배경 720px 좁은 폭, 큰 hero 매출 카드 크림+오렌지, 미니 KPI 3개, 큰 오렌지 CTA, 빠른 액션 4종, 정산 4행 카드, 최근 발주·공지 리스트). 컬러는 POUR 오렌지·네이비 그대로 유지.',
+            kind: 'auto-migration', savedAt: now,
+          });
+          sec.html = SEED_DASH_DEALER_HTML;
+          sec.note = '토스 스타일 — 흰 배경 + POUR 오렌지/네이비 강조. 인사 + 큰 매출 hero + 미니 KPI 3개 + 오렌지 CTA + 빠른 액션 4 + 정산 카드 + 발주 리스트 + 공지 리스트. 모바일 반응형.';
+          sec.statusAt = now;
+        }
+      }
+      s.migrations.dealerDashboardV2 = true;
+    }
+    // 1회성 마이그레이션 — 대리점 모집 소개 페이지 (Hero · 혜택 · 등급제 · 절차 · FAQ · CTA)
+    if (!s.migrations.dealerIntroV1) {
+      // "대시보드" 단어가 없고 "대리점" + "소개"가 있는 페이지 찾기
+      const introPage = s.pages.find(p => p.name && p.name.indexOf('대시보드') === -1 && p.name.indexOf('대리점') !== -1 && p.name.indexOf('소개') !== -1);
+      if (introPage && Array.isArray(introPage.sections)) {
+        const exists = introPage.sections.some(sec => (sec.html || '').indexOf('class="pin pin-dealer"') !== -1);
+        if (!exists) {
+          introPage.sections.push(mkSec(
+            '대리점 모집 소개 (디자인 시안)',
+            SEED_INTRO_DEALER_HTML,
+            'Hero(혜택 3종 수치) + 6개 혜택 카드 + 3단계 등급제(Silver/Gold/Platinum 마진 22~35%) + 5단계 신청 절차 + FAQ 5건 + 다크 네이비 Bottom CTA. 토스 스타일·POUR 오렌지/네이비, 모바일 반응형.',
+            'wip'
+          ));
+        }
+      }
+      s.migrations.dealerIntroV1 = true;
     }
     return s;
   }

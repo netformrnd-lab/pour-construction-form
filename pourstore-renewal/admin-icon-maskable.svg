@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Maskable icon: safe zone is center 80% (40-472), edges may be cropped by OS launcher.
+       Full background fills, content stays inside safe zone. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0F1F5C"/>
+      <stop offset="1" stop-color="#1A2E62"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F97316"/>
+      <stop offset="1" stop-color="#EA580C"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <!-- Content within safe zone (center 80%, padded to 64-448) -->
+  <path d="M 184 150 L 184 362 L 240 362 L 240 280 L 290 280 C 348 280 388 246 388 222 C 388 178 348 150 290 150 Z M 240 200 L 290 200 C 314 200 326 212 326 222 C 326 232 314 244 290 244 L 240 244 Z" fill="url(#accent)"/>
+  <text x="256" y="412" font-family="Arial, sans-serif" font-size="44" font-weight="900" fill="#FFFFFF" text-anchor="middle" opacity="0.9">POUR</text>
+</svg>

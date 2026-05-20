@@ -5788,6 +5788,117 @@ function computeStaffContribution(staffId, projects) {
 }
 
 // ============================================================
+// 기본 OKR 시드 데이터 — 1 Objective + 3 KR + 16 KPI
+// "🌱 기본 OKR·KPI 일괄 등록" 버튼 1회 클릭으로 즉시 등록.
+// 매출 KPI는 source='manual' (매주 금요일 수동 입력),
+// 활동지표 KPI는 source='auto-progress' (연결 프로젝트 진척도 평균 자동)
+// KR에는 krKey('KR1'|'KR2'|'KR3')를 함께 저장 → 프로젝트 시드 시 매핑 키로 사용
+// ============================================================
+const OKR_SEED = {
+  objective: { title: '2026년 매출 10억 달성', target: 1000000000, unit: '원', year: 2026 },
+  keyResults: [
+    {
+      krKey: 'KR1', title: 'POUR 직판 매출 5억', target: 500000000, unit: '원', channel: 'inbound',
+      kpis: [
+        { name: '🛒 자사몰 매출 (OWN)',            target: 300000000, unit: '원', source: 'manual',        baseline: 0, channelCode: 'OWN' },
+        { name: '🏬 마켓플레이스 매출 (MK)',       target: 150000000, unit: '원', source: 'manual',        baseline: 0, channelCode: 'MK' },
+        { name: '🎪 쇼룸·전화·박람회 매출 (SHOW)', target:  50000000, unit: '원', source: 'manual',        baseline: 0, channelCode: 'SHOW' },
+        { name: '📊 KR1 활동지표 (프로젝트 평균)', target: 100,       unit: '%',  source: 'auto-progress', baseline: 0 },
+      ],
+    },
+    {
+      krKey: 'KR2', title: 'B2B 종합 매출 5억', target: 500000000, unit: '원', channel: 'outbound',
+      kpis: [
+        { name: '🤝 P4 파트너사 매출',            target: 300000000, unit: '원', source: 'manual',        baseline: 0, channelCode: 'P4' },
+        { name: '🏪 P3 대리점·오프라인몰 매출',    target:  80000000, unit: '원', source: 'manual',        baseline: 0, channelCode: 'P3' },
+        { name: '🔧 H 이관 매출 (공법·솔루션)',    target:  50000000, unit: '원', source: 'manual',        baseline: 0, channelCode: 'H' },
+        { name: '🎯 P5 위탁·브로커 매출',          target:  40000000, unit: '원', source: 'manual',        baseline: 0, channelCode: 'P5' },
+        { name: '🌐 P6 온라인 도매 매출',          target:  30000000, unit: '원', source: 'manual',        baseline: 0, channelCode: 'P6' },
+        { name: '🛠️ M 시공매칭 매출',              target:         0, unit: '원', source: 'manual',        baseline: 0, channelCode: 'M' },
+        { name: '🏛️ G 조달청·관급 매출 (벤처나라)', target:        0, unit: '원', source: 'manual',        baseline: 0, channelCode: 'G' },
+        { name: '📊 KR2 활동지표 (프로젝트 평균)', target: 100,       unit: '%',  source: 'auto-progress', baseline: 0 },
+      ],
+    },
+    {
+      krKey: 'KR3', title: '운영 시스템 4모듈 구축', target: 4, unit: '모듈', channel: 'ops',
+      kpis: [
+        { name: '💼 CRM 시스템 구축',     target: 100, unit: '%', source: 'auto-progress', baseline: 0 },
+        { name: '💰 매출관리 시스템 구축', target: 100, unit: '%', source: 'auto-progress', baseline: 0 },
+        { name: '⚙️ 어드민센터 구축',      target: 100, unit: '%', source: 'auto-progress', baseline: 0 },
+        { name: '📚 매뉴얼 33건 (7카테고리)', target: 33, unit: '건', source: 'manual', baseline: 0 },
+      ],
+    },
+  ],
+};
+
+// 기본 프로젝트 시드 — workmgmt 53개 프로젝트를 pour-projects로 복제
+// owner/collab의 kpiMemberId(songhee·minji·ran)는 staff 컬렉션에서 매칭하여 staffId로 변환.
+// krKey로 keyResults 매핑 → keyResultId 설정.
+const WORKMGMT_PROJECTS_SEED = [
+  // KR1 — 자사몰 구축·운영 (7)
+  { code:'p001', krKey:'KR1', group:'자사몰 구축·운영', name:'자사몰 페이지 디자인 전면 재구축',         ownerKey:'songhee' },
+  { code:'p002', krKey:'KR1', group:'자사몰 구축·운영', name:'자사몰 프로젝트 정교화 진행',              ownerKey:'songhee' },
+  { code:'p003', krKey:'KR1', group:'자사몰 구축·운영', name:'자사몰 KPI 설정 (페이지별 측정)',          ownerKey:'songhee' },
+  { code:'p004', krKey:'KR1', group:'자사몰 구축·운영', name:'신규 SKU 세팅 (썸네일·상페·통디자인)',     ownerKey:'minji'   },
+  { code:'p005', krKey:'KR1', group:'자사몰 구축·운영', name:'상품 등록 (자사몰·마켓·도매처)',           ownerKey:'minji'   },
+  { code:'p006', krKey:'KR1', group:'자사몰 구축·운영', name:'자사몰 운영·매거진 페이지',                ownerKey:'minji'   },
+  { code:'p007', krKey:'KR1', group:'자사몰 구축·운영', name:'미디어 콘텐츠 제작 (포스팅·숏폼)',          ownerKey:'minji'   },
+  // KR1 — SKU 유지관리 (6)
+  { code:'p010', krKey:'KR1', group:'SKU 유지관리', name:'SKU 유지보수 (단가·썸네일·품절·재개)',          ownerKey:'minji'   },
+  { code:'p011', krKey:'KR1', group:'SKU 유지관리', name:'팝업배너 (발주·휴무 이슈)',                    ownerKey:'minji'   },
+  { code:'p012', krKey:'KR1', group:'SKU 유지관리', name:'챗봇 AI (POUR길잡이) 관리 운영',                ownerKey:'minji', collabKeys:['songhee'] },
+  { code:'p013', krKey:'KR1', group:'SKU 유지관리', name:'B2C CS 2차 응대',                              ownerKey:'minji'   },
+  { code:'p014', krKey:'KR1', group:'SKU 유지관리', name:'B2C CS 1차 응대 (~5/22까지)',                  ownerKey:'songhee' },
+  { code:'p015', krKey:'KR1', group:'SKU 유지관리', name:'B2C CS 1차 응대 (5/22 이후)',                  ownerKey:'minji'   },
+  // KR1 — 사후 관리 (3)
+  { code:'p020', krKey:'KR1', group:'사후 관리', name:'후기 이벤트 운영',                                 ownerKey:'minji'   },
+  { code:'p021', krKey:'KR1', group:'사후 관리', name:'B2C NPS 정기 조사 발송',                          ownerKey:'minji'   },
+  { code:'p022', krKey:'KR1', group:'사후 관리', name:'패키지상품 안내문자',                              ownerKey:'minji'   },
+  // KR1 — 광고·키워드 (4)
+  { code:'p030', krKey:'KR1', group:'광고·키워드', name:'광고 운영 전체 (네이버·메타·CPC)',               ownerKey:'ran', collabKeys:['songhee'] },
+  { code:'p031', krKey:'KR1', group:'광고·키워드', name:'SEO·키워드 최적화',                              ownerKey:'ran'     },
+  { code:'p032', krKey:'KR1', group:'광고·키워드', name:'인플루언서 컨텐츠 기획',                          ownerKey:'ran', collabKeys:['minji'] },
+  { code:'p033', krKey:'KR1', group:'광고·키워드', name:'공동구매 판매 운영',                              ownerKey:'ran', collabKeys:['minji'] },
+  // KR2 — B2B 종합 (12)
+  { code:'p100', krKey:'KR2', group:'B2B 종합', name:'대리점 정책 구축 및 진행',                         ownerKey:'songhee' },
+  { code:'p101', krKey:'KR2', group:'B2B 종합', name:'B2B 협약 협상',                                     ownerKey:'songhee' },
+  { code:'p102', krKey:'KR2', group:'B2B 종합', name:'OEM/ODM 소싱·협상',                                ownerKey:'songhee' },
+  { code:'p103', krKey:'KR2', group:'B2B 종합', name:'도매꾹·나비엠알오 프로모션·박스(MOQ) 운영',          ownerKey:'ran', collabKeys:['minji'] },
+  { code:'p104', krKey:'KR2', group:'B2B 종합', name:'위탁 셀러·인플루언서·유튜버 협업',                  ownerKey:'ran', collabKeys:['songhee'] },
+  { code:'p105', krKey:'KR2', group:'B2B 종합', name:'대리점·파트너 고객/운영관리',                       ownerKey:'ran', collabKeys:['songhee'] },
+  { code:'p106', krKey:'KR2', group:'B2B 종합', name:'시공매칭 실행',                                     ownerKey:'ran', collabKeys:['songhee'] },
+  { code:'p107', krKey:'KR2', group:'B2B 종합', name:'박람회 참여관리',                                   ownerKey:'ran', collabKeys:['minji'] },
+  { code:'p108', krKey:'KR2', group:'B2B 종합', name:'신규 SKU 대리점 추가입고 제안',                     ownerKey:'ran', collabKeys:['minji'] },
+  { code:'p109', krKey:'KR2', group:'B2B 종합', name:'B2B CS (1차+2차)',                                  ownerKey:'ran'     },
+  { code:'p110', krKey:'KR2', group:'B2B 종합', name:'B2B NPS 정기 조사 발송',                            ownerKey:'ran'     },
+  { code:'p111', krKey:'KR2', group:'B2B 종합', name:'B2C·B2B 기프티콘 발송',                             ownerKey:'ran'     },
+  // KR2 — 조달청·관급 (G) ⭐ 신설 8
+  { code:'p400', krKey:'KR2', group:'조달청·관급 (G)', name:'벤처나라 등록 후속 운영 (페이지·문의·발주 응대)',                ownerKey:'minji', collabKeys:['songhee'] },
+  { code:'p401', krKey:'KR2', group:'조달청·관급 (G)', name:'건축사 협회·학회 광고 운영 (건축사협회·건축학회·기술인협회)',      ownerKey:'ran', collabKeys:['minji'] },
+  { code:'p402', krKey:'KR2', group:'조달청·관급 (G)', name:'시방서 스펙 영업 (코트재 인서트 제안 · 친환경/신장률/인장강도)',  ownerKey:'songhee', collabKeys:['ran'] },
+  { code:'p403', krKey:'KR2', group:'조달청·관급 (G)', name:'조달청 도면 인서트 세미나 참여 (일정 확인·발표 검토)',           ownerKey:'songhee' },
+  { code:'p404', krKey:'KR2', group:'조달청·관급 (G)', name:'나라장터 견적서 발송 (방수·외벽페인트·방청·방목 키워드)',         ownerKey:'ran', collabKeys:['songhee'] },
+  { code:'p405', krKey:'KR2', group:'조달청·관급 (G)', name:'시공사 공무팀 콜드아웃 (수의계약·오픈견적 안내)',                 ownerKey:'ran' },
+  { code:'p406', krKey:'KR2', group:'조달청·관급 (G)', name:'관리소장 직판 영업 (관리소장 수의계약 가능 안내)',                ownerKey:'ran', collabKeys:['songhee'] },
+  { code:'p407', krKey:'KR2', group:'조달청·관급 (G)', name:'관급 스펙 카피라이팅 (시험성적서·신장률·내후성·친환경)',          ownerKey:'minji', collabKeys:['songhee'] },
+  // KR3 — 운영 시스템 (10)
+  { code:'p200', krKey:'KR3', group:'운영 시스템', name:'AI 챗봇 개발',                              ownerKey:'songhee' },
+  { code:'p201', krKey:'KR3', group:'운영 시스템', name:'어드민센터 개발',                           ownerKey:'songhee' },
+  { code:'p202', krKey:'KR3', group:'운영 시스템', name:'CRM 센터 개발',                             ownerKey:'ran'     },
+  { code:'p203', krKey:'KR3', group:'운영 시스템', name:'매출관리 센터 개발',                         ownerKey:'ran'     },
+  { code:'p204', krKey:'KR3', group:'운영 시스템', name:'파트너사 자동매칭 개발',                     ownerKey:'ran'     },
+  { code:'p205', krKey:'KR3', group:'운영 시스템', name:'디자인 자동 생성 시스템',                    ownerKey:'songhee', collabKeys:['minji'] },
+  { code:'p206', krKey:'KR3', group:'운영 시스템', name:'시스템 정책 관리 및 업무환경 개선',          ownerKey:'songhee' },
+  { code:'p207', krKey:'KR3', group:'운영 시스템', name:'광고 예산 설정·승인',                        ownerKey:'songhee' },
+  { code:'p208', krKey:'KR3', group:'운영 시스템', name:'전략기획·신규 프로젝트',                      ownerKey:'songhee' },
+  { code:'p209', krKey:'KR3', group:'운영 시스템', name:'리뉴얼·병목 시 직접 투입',                   ownerKey:'songhee' },
+  // 운영 인프라 (3, 미정 — KR null)
+  { code:'p300', krKey:null,  group:'운영 인프라', name:'주문·발주 (그로홈 + POUR스토어)',           ownerKey:null, note:'채림님 합류 시 배정' },
+  { code:'p301', krKey:null,  group:'운영 인프라', name:'재고관리',                                   ownerKey:null, note:'채림님 합류 시 배정' },
+  { code:'p302', krKey:null,  group:'운영 인프라', name:'반품 CS',                                   ownerKey:null, note:'채림님 합류 시 배정' },
+];
+
+// ============================================================
 // OKRPage — Objective → KR → KPI 활동지표 트리
 // 회사 OKR 1개(매출 10억) 가정 + 다중 KR + KR별 KPI 활동지표
 // ============================================================
@@ -5797,9 +5908,72 @@ function OKRPage({ onToast }) {
   const [showObjModal, setShowObjModal] = useState(false);
   const [showKrModal, setShowKrModal] = useState(null);   // objectiveId
   const [showKpiModal, setShowKpiModal] = useState(null); // keyResultId
+  const [seeding, setSeeding] = useState(false);
 
   if (!activeStaff) return <div style={{ padding:60, textAlign:'center', color:'var(--text-sm)' }}>활동 담당자 선택이 필요합니다.</div>;
   if (loading) return <div style={{ padding:60, textAlign:'center', color:'var(--text-sm)' }}>로딩 중...</div>;
+
+  // 🌱 기본 OKR·KPI 일괄 시드 — 1 Objective + 3 KR + 16 KPI
+  const seedOKR = async () => {
+    if (!confirm(
+      `기본 OKR을 일괄 등록합니다:\n` +
+      `· Objective 1개 (2026년 매출 10억)\n` +
+      `· Key Result 3개 (KR1 직판 5억 / KR2 B2B 5억 / KR3 운영 4모듈)\n` +
+      `· KPI ${OKR_SEED.keyResults.reduce((s, kr) => s + kr.kpis.length, 0)}개\n\n` +
+      `매출 KPI는 매주 금요일 수동 입력, 활동지표 KPI는 프로젝트 진척도 평균으로 자동 산출됩니다.\n\n` +
+      `진행할까요?`
+    )) return;
+    setSeeding(true);
+    try {
+      // 1) Objective
+      const objRef = await db.collection(COLLECTIONS.POUR_OBJECTIVES).add({
+        title: OKR_SEED.objective.title,
+        target: OKR_SEED.objective.target,
+        unit: OKR_SEED.objective.unit,
+        year: OKR_SEED.objective.year,
+        current: 0,
+        ownerStaffId: activeStaff.id, ownerStaffName: activeStaff.name,
+        description: '',
+        ...audit.create(),
+      });
+      // 2) Key Results + KPI 순차 등록 (각 KR id를 받아 KPI에 연결)
+      let krCount = 0, kpiCount = 0;
+      for (const kr of OKR_SEED.keyResults) {
+        const krRef = await db.collection(COLLECTIONS.POUR_KEYRESULTS).add({
+          objectiveId: objRef.id,
+          krKey: kr.krKey,                  // 'KR1' | 'KR2' | 'KR3' — 프로젝트 시드 매핑 키
+          title: kr.title,
+          target: kr.target,
+          current: 0,
+          unit: kr.unit,
+          channel: kr.channel,
+          description: '',
+          ...audit.create(),
+        });
+        krCount++;
+        for (const k of kr.kpis) {
+          await db.collection(COLLECTIONS.POUR_KPIS).add({
+            keyResultId: krRef.id,
+            name: k.name,
+            target: k.target,
+            baseline: k.baseline || 0,
+            current: k.baseline || 0,
+            unit: k.unit,
+            source: k.source,
+            channelCode: k.channelCode || null,  // 채널 매핑 (예: OWN, P4, G)
+            history: [],
+            staffId: activeStaff.id,
+            ...audit.create(),
+          });
+          kpiCount++;
+        }
+      }
+      onToast({ message: `🌱 OKR 시드 완료 — Objective 1 / KR ${krCount} / KPI ${kpiCount}`, type: 'success' });
+    } catch (e) {
+      onToast({ message: '시드 실패: ' + e.message, type: 'error' });
+    }
+    setSeeding(false);
+  };
 
   const addObjective = async (title, target, unit, year) => {
     await db.collection(COLLECTIONS.POUR_OBJECTIVES).add({
@@ -5863,16 +6037,48 @@ function OKRPage({ onToast }) {
             <br/>※ source=<b>auto-progress</b> 설정 시 KPI 값은 연결 프로젝트들의 진척도 평균으로 자동 산출됩니다.
           </div>
         </div>
-        <button onClick={() => setShowObjModal(true)} style={{
-          padding:'10px 18px', borderRadius:9, fontSize:13, fontWeight:900, color:'#fff',
-          background:'linear-gradient(135deg, var(--or), var(--or-d))',
-        }}>+ Objective 추가</button>
+        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+          {objectives.length === 0 && (
+            <button onClick={seedOKR} disabled={seeding} style={{
+              padding:'10px 16px', borderRadius:9, fontSize:13, fontWeight:900, color:'#fff',
+              background:'#0F1F5C', border:'none', opacity: seeding ? 0.6 : 1,
+            }}>🌱 기본 OKR·KPI 일괄 등록 ({1}·{3}·{OKR_SEED.keyResults.reduce((s, kr) => s + kr.kpis.length, 0)})</button>
+          )}
+          <button onClick={() => setShowObjModal(true)} style={{
+            padding:'10px 18px', borderRadius:9, fontSize:13, fontWeight:900, color:'#fff',
+            background:'linear-gradient(135deg, var(--or), var(--or-d))',
+          }}>+ Objective 추가</button>
+        </div>
       </div>
+
+      {/* 매주 금요일 입력 안내 (Objective 등록되어 있고 manual KPI가 있을 때) */}
+      {objectives.length > 0 && kpis.some(k => k.source === 'manual') && (() => {
+        const today = new Date();
+        const isFriday = today.getDay() === 5;
+        const dayOfWeek = ['일','월','화','수','목','금','토'][today.getDay()];
+        return (
+          <div style={{
+            padding:'12px 16px', marginBottom:18,
+            background: isFriday ? 'linear-gradient(135deg, #FEF3C7, #FDE68A)' : 'var(--or-pale, #FFF7ED)',
+            border: isFriday ? '2px solid #F59E0B' : '1px dashed var(--or-l, #FED7AA)',
+            borderRadius:10, fontSize:11.5, color: isFriday ? '#92400E' : 'var(--or-d, #B45309)',
+            fontWeight:700, lineHeight:1.7, display:'flex', alignItems:'center', gap:10
+          }}>
+            <span style={{ fontSize:18 }}>{isFriday ? '🔔' : '📅'}</span>
+            <div style={{ flex:1 }}>
+              <b>{isFriday ? '오늘은 금요일 — 매출 KPI 산출 입력일!' : `오늘은 ${dayOfWeek}요일`}</b>
+              {' · '}매주 금요일에 각 채널 매출 KPI(수동 입력)에 이번 주 실적을 입력해 주세요.
+              <span style={{ fontSize:10.5, fontWeight:600, marginLeft:6 }}>(💰 매출 KPI는 ✏️수동 / 📊 활동지표 KPI는 🔁자동)</span>
+            </div>
+          </div>
+        );
+      })()}
 
       {objectives.length === 0 ? (
         <div style={{ padding:60, textAlign:'center', background:'#fff', border:'1px dashed var(--border)', borderRadius:12, color:'var(--text-sm)', fontSize:13, fontWeight:600 }}>
-          등록된 Objective가 없습니다. 우상단 [+ Objective 추가]로 시작하세요.<br/>
-          예: 2026년 매출 10억 · 신규 거래처 50개 · 어드민 시스템 4모듈 안정화
+          등록된 Objective가 없습니다.<br/>
+          👉 상단의 <b style={{ color:'var(--navy)' }}>[🌱 기본 OKR·KPI 일괄 등록]</b> 버튼 한 번 클릭으로 2026년 매출 10억 OKR이 자동 등록됩니다.<br/>
+          (또는 [+ Objective 추가]로 1개씩 직접 입력)
         </div>
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:18 }}>
@@ -5950,28 +6156,47 @@ function OKRPage({ onToast }) {
                               const current = k.source === 'auto-progress' ? computeKpiAutoValue(k, projects) : (k.current || 0);
                               const tgt = k.target || 1;
                               const pct = Math.min(100, Math.round((current / tgt) * 100));
+                              const lastUpdate = k.history && k.history.length > 0 ? k.history[k.history.length - 1] : null;
+                              const isManual = k.source === 'manual';
                               return (
-                                <div key={k.id} style={{ background:'#fff', borderRadius:8, padding:'10px 12px', border:'1px solid var(--border)' }}>
-                                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
-                                    <div style={{ fontSize:10.5, fontWeight:800, color:'var(--text-md)' }}>{k.name}</div>
-                                    <button onClick={() => delKpi(k)} title="삭제" style={{ fontSize:10, color:'var(--text-sm)' }}>×</button>
+                                <div key={k.id} style={{
+                                  background:'#fff', borderRadius:8, padding:'10px 12px',
+                                  border: isManual ? '1.5px solid var(--or-l, #FED7AA)' : '1px solid var(--border)',
+                                }}>
+                                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4, gap:4 }}>
+                                    <div style={{ fontSize:10.5, fontWeight:800, color:'var(--text-md)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{k.name}</div>
+                                    <button onClick={() => delKpi(k)} title="삭제" style={{ fontSize:10, color:'var(--text-sm)', flexShrink:0 }}>×</button>
                                   </div>
-                                  <div style={{ display:'flex', alignItems:'baseline', gap:4 }}>
-                                    {k.source === 'manual' ? (
+                                  {isManual ? (
+                                    <div style={{ display:'flex', alignItems:'center', gap:4, marginBottom:3 }}>
                                       <input type="number" defaultValue={k.current || 0}
-                                        onBlur={e => updateKpiValue(k, e.target.value)}
-                                        style={{ width:60, padding:'2px 4px', fontSize:13, fontWeight:900, color:'var(--or-d)', border:'1px solid var(--border)', borderRadius:4 }} />
-                                    ) : (
+                                        onBlur={e => { if (Number(e.target.value) !== Number(k.current)) updateKpiValue(k, e.target.value); }}
+                                        onKeyDown={e => { if (e.key === 'Enter') e.target.blur(); }}
+                                        placeholder="0"
+                                        title="값 입력 후 Enter 또는 다른 곳 클릭 시 저장"
+                                        style={{ flex:1, minWidth:60, padding:'4px 6px', fontSize:14, fontWeight:900, color:'var(--or-d)', border:'1.5px solid var(--or)', borderRadius:5, outline:'none' }} />
+                                      <span style={{ fontSize:9.5, color:'var(--text-sm)', fontWeight:700, whiteSpace:'nowrap' }}>/ {fmtPrice(tgt)}</span>
+                                    </div>
+                                  ) : (
+                                    <div style={{ display:'flex', alignItems:'baseline', gap:4, marginBottom:3 }}>
                                       <span style={{ fontSize:15, fontWeight:900, color:'var(--or-d)' }}>{fmtPrice(current)}</span>
-                                    )}
-                                    <span style={{ fontSize:10, color:'var(--text-sm)', fontWeight:700 }}>/ {fmtPrice(tgt)} {k.unit || ''}</span>
-                                  </div>
-                                  <div style={{ marginTop:5, height:3, background:'var(--bg)', borderRadius:2, overflow:'hidden' }}>
+                                      <span style={{ fontSize:10, color:'var(--text-sm)', fontWeight:700 }}>/ {fmtPrice(tgt)} {k.unit || ''}</span>
+                                    </div>
+                                  )}
+                                  <div style={{ height:4, background:'var(--bg)', borderRadius:2, overflow:'hidden' }}>
                                     <div style={{ width:`${pct}%`, height:'100%', background:pct >= 100 ? 'var(--green)' : 'var(--or)' }} />
                                   </div>
-                                  <div style={{ fontSize:9.5, color:'var(--text-sm)', fontWeight:700, marginTop:3 }}>
-                                    {k.source === 'auto-progress' ? '🔁 자동(프로젝트 평균)' : k.source === 'auto' ? '🔁 자동' : '✏️ 수동입력'}
+                                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:3, gap:4 }}>
+                                    <span style={{ fontSize:9.5, color:'var(--text-sm)', fontWeight:700 }}>
+                                      {k.source === 'auto-progress' ? '🔁 자동(프로젝트 평균)' : k.source === 'auto' ? '🔁 자동' : '✏️ 수동 (금요일 입력)'}
+                                    </span>
+                                    <span style={{ fontSize:9.5, color:pct >= 100 ? 'var(--green)' : 'var(--text-sm)', fontWeight:900 }}>{pct}%</span>
                                   </div>
+                                  {isManual && lastUpdate && (
+                                    <div style={{ fontSize:9, color:'var(--text-xs)', fontWeight:600, marginTop:2 }}>
+                                      🕒 최근 입력 {relativeTime(lastUpdate.at)}
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}
@@ -6099,9 +6324,81 @@ function ProjectsPage({ onToast }) {
   const [editing, setEditing] = useState(null);  // project object
   const [filterStaffId, setFilterStaffId] = useState('mine');  // mine|all|<staffId>
   const [filterStatus, setFilterStatus] = useState('open');    // open|all|done
+  const [seeding, setSeeding] = useState(false);
 
   if (!activeStaff) return <div style={{ padding:60, textAlign:'center', color:'var(--text-sm)' }}>활동 담당자 선택이 필요합니다.</div>;
   if (loading) return <div style={{ padding:60, textAlign:'center', color:'var(--text-sm)' }}>로딩 중...</div>;
+
+  // 🌱 workmgmt 53개 프로젝트를 pour-projects로 일괄 시드
+  // 매핑:
+  //   krKey ('KR1'|'KR2'|'KR3') → keyResults에서 동일 krKey인 KR의 id
+  //   ownerKey ('songhee'|'minji'|'ran') → staff 컬렉션에서 kpiMemberId === ownerKey인 staff의 id
+  // 매칭 실패한 경우: 그대로 null로 두고 사용자가 나중에 수동 배정
+  const seedProjects = async () => {
+    // 사전 점검
+    const krByKey = {};
+    keyResults.forEach(kr => { if (kr.krKey) krByKey[kr.krKey] = kr.id; });
+    const missingKRs = ['KR1','KR2','KR3'].filter(k => !krByKey[k]);
+    if (missingKRs.length > 0) {
+      if (!confirm(
+        `⚠️ 일부 Key Result가 등록되지 않았습니다: ${missingKRs.join(', ')}\n\n` +
+        `해당 KR에 속한 프로젝트는 keyResultId 없이 등록됩니다.\n` +
+        `먼저 OKR 페이지에서 [🌱 기본 OKR·KPI 일괄 등록]을 실행하면 KR이 자동 매핑됩니다.\n\n` +
+        `이대로 진행할까요?`
+      )) return;
+    }
+
+    const staffByKpi = {};
+    staffMembers.forEach(s => { if (s.kpiMemberId) staffByKpi[s.kpiMemberId] = s; });
+    const usedKpiKeys = new Set();
+    WORKMGMT_PROJECTS_SEED.forEach(p => {
+      if (p.ownerKey) usedKpiKeys.add(p.ownerKey);
+      (p.collabKeys || []).forEach(k => usedKpiKeys.add(k));
+    });
+    const missingStaff = [...usedKpiKeys].filter(k => !staffByKpi[k]);
+    if (missingStaff.length > 0) {
+      if (!confirm(
+        `⚠️ 일부 담당자가 어드민에 등록되지 않았거나 매칭 ID가 없습니다: ${missingStaff.join(', ')}\n\n` +
+        `해당 owner/협업자는 빈 상태로 등록되며, 나중에 프로젝트 편집에서 직접 배정 가능합니다.\n` +
+        `담당자 관리에서 각 담당자의 "업무관리 연동 *" 섹션에서 매칭 ID를 설정하면 자동 매핑됩니다.\n\n` +
+        `이대로 진행할까요?`
+      )) return;
+    }
+
+    if (!confirm(`기본 프로젝트 ${WORKMGMT_PROJECTS_SEED.length}건을 일괄 등록합니다.\n진행할까요?`)) return;
+
+    setSeeding(true);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      let added = 0;
+      for (const p of WORKMGMT_PROJECTS_SEED) {
+        const ownerStaff = p.ownerKey ? staffByKpi[p.ownerKey] : null;
+        const collabStaff = (p.collabKeys || []).map(k => staffByKpi[k]).filter(Boolean);
+        const assigneeStaffIds = [ownerStaff, ...collabStaff].filter(Boolean).map(s => s.id);
+        await db.collection(COLLECTIONS.POUR_PROJECTS).add({
+          name: p.name,
+          description: p.group + (p.note ? ' · ' + p.note : ''),
+          keyResultId: p.krKey ? (krByKey[p.krKey] || null) : null,
+          krGroup: p.group,
+          projectCode: p.code,
+          assigneeStaffIds,
+          ownerStaffId: ownerStaff?.id || null,
+          ownerStaffName: ownerStaff?.name || null,
+          status: 'active',
+          progress: 0,
+          dueDate: '',
+          startDate: today,
+          contribution: 0,
+          ...audit.create(),
+        });
+        added++;
+      }
+      onToast({ message: `🌱 프로젝트 시드 완료 — ${added}건 등록`, type: 'success' });
+    } catch (e) {
+      onToast({ message: '시드 실패: ' + e.message, type: 'error' });
+    }
+    setSeeding(false);
+  };
 
   const addProject = async (data) => {
     await db.collection(COLLECTIONS.POUR_PROJECTS).add({
@@ -6165,10 +6462,18 @@ function ProjectsPage({ onToast }) {
             전체 {projects.length} · 진행 {projects.filter(p => p.status !== 'done' && (p.progress||0) < 100).length} · 완료 {projects.filter(p => p.status === 'done' || (p.progress||0) >= 100).length}
           </div>
         </div>
-        <button onClick={() => setShowAdd(true)} style={{
-          padding:'10px 18px', borderRadius:9, fontSize:13, fontWeight:900, color:'#fff',
-          background:'linear-gradient(135deg, var(--or), var(--or-d))',
-        }}>+ 프로젝트 추가</button>
+        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+          {projects.length === 0 && (
+            <button onClick={seedProjects} disabled={seeding} style={{
+              padding:'10px 16px', borderRadius:9, fontSize:13, fontWeight:900, color:'#fff',
+              background:'#0F1F5C', border:'none', opacity: seeding ? 0.6 : 1,
+            }}>🌱 기본 프로젝트 일괄 등록 ({WORKMGMT_PROJECTS_SEED.length}건)</button>
+          )}
+          <button onClick={() => setShowAdd(true)} style={{
+            padding:'10px 18px', borderRadius:9, fontSize:13, fontWeight:900, color:'#fff',
+            background:'linear-gradient(135deg, var(--or), var(--or-d))',
+          }}>+ 프로젝트 추가</button>
+        </div>
       </div>
 
       {/* 담당자별 기여 위젯 */}
@@ -6221,7 +6526,13 @@ function ProjectsPage({ onToast }) {
       {/* 프로젝트 카드 그리드 */}
       {filtered.length === 0 ? (
         <div style={{ padding:60, textAlign:'center', background:'#fff', border:'1px dashed var(--border)', borderRadius:12, color:'var(--text-sm)', fontSize:13, fontWeight:600 }}>
-          조건에 맞는 프로젝트가 없습니다.
+          {projects.length === 0 ? (
+            <>
+              등록된 프로젝트가 없습니다.<br/>
+              👉 상단의 <b style={{ color:'var(--navy)' }}>[🌱 기본 프로젝트 일괄 등록 ({WORKMGMT_PROJECTS_SEED.length}건)]</b> 버튼 한 번 클릭으로 workmgmt 53개 프로젝트가 KR과 자동 연결되어 등록됩니다.<br/>
+              <span style={{ fontSize:11, color:'var(--text-xs)' }}>※ 사전에 OKR 페이지에서 KR을 먼저 등록해야 자동 매칭됩니다.</span>
+            </>
+          ) : '조건에 맞는 프로젝트가 없습니다.'}
         </div>
       ) : (
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(320px, 1fr))', gap:12 }}>

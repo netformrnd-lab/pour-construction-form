@@ -5395,23 +5395,20 @@ function DashboardPage({ onToast }) {
 
       {/* 오늘 업무 + 고정업무 */}
       <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:14 }}>
-        {/* 오늘 업무 */}
+        {/* 오늘 업무 — v22 스타일 인라인 테이블 + 빠른 추가 행 */}
         <div style={{ background:'#fff', border:'1px solid var(--border)', borderRadius:12, padding:16, boxShadow:'var(--shadow)' }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-            <div style={{ fontSize:13, fontWeight:900, color:'var(--text)' }}>📋 오늘 업무 ({todayDay}요일)</div>
-            <div style={{ fontSize:10.5, fontWeight:700, color:'var(--text-sm)' }}>{doneToday}/{totalToday} 완료</div>
+            <div style={{ fontSize:13, fontWeight:900, color:'var(--text)' }}>✅ 오늘 업무 ({todayDay}요일)</div>
+            <div style={{ fontSize:10.5, fontWeight:700, color:'var(--text-sm)' }}>{doneToday}/{totalToday} 완료 · 표 안에서 바로 편집·추가</div>
           </div>
-          {todayTasksFinal.length === 0 ? (
-            <div style={{ padding:24, textAlign:'center', color:'var(--text-sm)', fontSize:12, fontWeight:600 }}>
-              오늘 배치된 업무가 없습니다. 위 주간 배치 슬롯에서 업무를 추가하거나, 반복업무를 등록하세요.
-            </div>
-          ) : (
-            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-              {todayTasksFinal.map(t => (
-                <TodayTaskRow key={t.id} task={t} audit={audit} />
-              ))}
-            </div>
-          )}
+          <TodayTaskTable
+            tasks={todayTasksFinal}
+            projects={projects}
+            audit={audit}
+            activeStaff={activeStaff}
+            onAdd={addTask}
+            onToast={onToast}
+          />
         </div>
 
         {/* 고정업무 = pinned 반복업무 인스턴스 */}
@@ -5437,7 +5434,210 @@ function DashboardPage({ onToast }) {
   );
 }
 
-// 오늘 업무 한 줄 (체크박스 + 제목 + 우선순위 + 마감)
+// ============================================================
+// TodayTaskTable — v22 스타일 인라인 편집 테이블 + 빠른 추가 행
+// 모든 편집은 그 자리에서 즉시 Firestore 반영. 마지막 행은 항상 빈 입력 행.
+// ============================================================
+function TodayTaskTable({ tasks, projects, audit, activeStaff, onAdd, onToast }) {
+  const [quickTitle, setQuickTitle] = useState('');
+  const [quickProjectId, setQuickProjectId] = useState('');
+  const [quickPriority, setQuickPriority] = useState('mid');
+  const [quickDue, setQuickDue] = useState('');
+  const [adding, setAdding] = useState(false);
+
+  const myProjects = projects.filter(p => Array.isArray(p.assigneeStaffIds) && p.assigneeStaffIds.includes(activeStaff.id));
+  const otherProjects = projects.filter(p => !myProjects.includes(p));
+
+  const updateField = async (taskId, patch) => {
+    try {
+      await db.collection(COLLECTIONS.POUR_TASKS).doc(taskId).update({ ...patch, ...audit.update() });
+    } catch (e) {
+      onToast({ message: '저장 실패: ' + e.message, type: 'error' });
+    }
+  };
+
+  const toggleDone = async (t) => {
+    const newDone = !t.done;
+    await updateField(t.id, { done: newDone, doneAt: newDone ? nowIso() : null });
+  };
+
+  const deleteTask = async (t) => {
+    if (!confirm(`"${t.title}" 삭제할까요?`)) return;
+    await db.collection(COLLECTIONS.POUR_TASKS).doc(t.id).delete();
+    onToast({ message: '삭제 완료', type: 'success' });
+  };
+
+  const handleQuickAdd = async () => {
+    if (!quickTitle.trim() || adding) return;
+    setAdding(true);
+    try {
+      const selected = projects.find(p => p.id === quickProjectId);
+      await onAdd({
+        title: quickTitle,
+        projectId: quickProjectId || null,
+        projectName: selected?.name || null,
+        weekDay: null,  // null이면 addTask에서 todayDay로 자동 설정
+        weekSlot: null,
+        priority: quickPriority,
+        dueDate: quickDue || '',
+      });
+      // 입력 초기화 (프로젝트·우선순위는 유지 → 연속 입력 편의)
+      setQuickTitle('');
+      setQuickDue('');
+    } catch (e) {
+      onToast({ message: '추가 실패: ' + e.message, type: 'error' });
+    }
+    setAdding(false);
+  };
+
+  // 스타일
+  const th = { padding:'8px 6px', fontSize:10.5, fontWeight:800, color:'var(--text-sm)', letterSpacing:.4, textAlign:'left', borderBottom:'1.5px solid var(--border)', background:'var(--bg)' };
+  const td = { padding:'7px 6px', fontSize:12, borderBottom:'1px dashed var(--border-s)', verticalAlign:'middle' };
+  const cellInput = { width:'100%', background:'transparent', border:'none', fontSize:12.5, fontWeight:600, color:'var(--text)', outline:'none', padding:'2px 4px' };
+  const cellSelect = { background:'var(--bg)', border:'1px solid var(--border)', borderRadius:5, fontSize:11, fontWeight:700, padding:'3px 5px', cursor:'pointer', width:'100%' };
+
+  const ProjectSelect = ({ value, onChange }) => (
+    <select value={value || ''} onChange={onChange} style={{ ...cellSelect, color: value ? 'var(--or-d)' : 'var(--text-sm)' }} title="프로젝트 연결">
+      <option value="">+ 프로젝트</option>
+      {myProjects.length > 0 && (
+        <optgroup label="📍 내 프로젝트">
+          {myProjects.map(p => <option key={p.id} value={p.id}>{p.name} ({p.progress||0}%)</option>)}
+        </optgroup>
+      )}
+      {otherProjects.length > 0 && (
+        <optgroup label="🗂️ 그 외">
+          {otherProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </optgroup>
+      )}
+    </select>
+  );
+
+  return (
+    <div style={{ overflow:'hidden', border:'1px solid var(--border)', borderRadius:9 }}>
+      <table style={{ width:'100%', borderCollapse:'collapse' }}>
+        <thead>
+          <tr>
+            <th style={{ ...th, width:32, textAlign:'center' }}>✓</th>
+            <th style={th}>업무 내용</th>
+            <th style={{ ...th, width:130 }}>프로젝트</th>
+            <th style={{ ...th, width:75 }}>우선순위</th>
+            <th style={{ ...th, width:95 }}>마감</th>
+            <th style={{ ...th, width:65 }}>상태</th>
+            <th style={{ ...th, width:32, textAlign:'center' }}></th>
+          </tr>
+        </thead>
+        <tbody>
+          {tasks.length === 0 && (
+            <tr>
+              <td colSpan={7} style={{ padding:'18px 12px', textAlign:'center', color:'var(--text-sm)', fontSize:12, fontWeight:600 }}>
+                오늘 배치된 업무가 없습니다. 아래 행에 바로 입력하거나, 위 주간 슬롯을 클릭하세요.
+              </td>
+            </tr>
+          )}
+          {tasks.map(t => {
+            const dd = t.dueDate ? calcDday(t.dueDate) : '';
+            const ddColor = dd === 'D-day' || dd.startsWith('D+') ? '#DC2626' : 'var(--text-sm)';
+            const proj = projects.find(p => p.id === t.projectId);
+            return (
+              <tr key={t.id} style={{ background: t.done ? 'rgba(43,196,114,.05)' : 'transparent', opacity: t.done ? 0.7 : 1 }}>
+                <td style={{ ...td, textAlign:'center' }}>
+                  <input type="checkbox" checked={!!t.done} onChange={() => toggleDone(t)} style={{ accentColor:'var(--green)', cursor:'pointer' }} />
+                </td>
+                <td style={td}>
+                  <input
+                    defaultValue={t.title}
+                    onBlur={e => { if (e.target.value !== t.title) updateField(t.id, { title: e.target.value }); }}
+                    onKeyDown={e => { if (e.key === 'Enter') e.target.blur(); }}
+                    placeholder="업무 내용..."
+                    style={{ ...cellInput, fontWeight:700, textDecoration: t.done ? 'line-through' : 'none' }}
+                  />
+                </td>
+                <td style={td}>
+                  <ProjectSelect value={t.projectId} onChange={e => {
+                    const pid = e.target.value;
+                    const p = projects.find(x => x.id === pid);
+                    updateField(t.id, { projectId: pid || null, projectName: p?.name || null });
+                  }} />
+                </td>
+                <td style={td}>
+                  <select value={t.priority || 'mid'} onChange={e => updateField(t.id, { priority: e.target.value })} style={cellSelect}>
+                    <option value="high">🔴 높음</option>
+                    <option value="mid">🟡 중간</option>
+                    <option value="low">🟢 낮음</option>
+                  </select>
+                </td>
+                <td style={td}>
+                  {t.dueDate ? (
+                    <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                      <input type="date" defaultValue={t.dueDate}
+                        onChange={e => updateField(t.id, { dueDate: e.target.value })}
+                        style={{ ...cellInput, fontSize:10.5, color:'var(--text-md)', cursor:'pointer' }} />
+                      <span style={{ fontSize:10, fontWeight:900, color:ddColor, whiteSpace:'nowrap' }}>{dd}</span>
+                    </div>
+                  ) : (
+                    <input type="date" defaultValue=""
+                      onChange={e => updateField(t.id, { dueDate: e.target.value })}
+                      style={{ ...cellInput, fontSize:10.5, color:'var(--text-sm)', cursor:'pointer' }}
+                      title="마감일 추가" />
+                  )}
+                </td>
+                <td style={td}>
+                  <select value={t.status || 'active'} onChange={e => updateField(t.id, { status: e.target.value })} style={cellSelect}>
+                    <option value="active">▶ 진행</option>
+                    <option value="hold">⏸ 보류</option>
+                    <option value="stopped">⛔ 중단</option>
+                    <option value="resume">🔄 재개</option>
+                  </select>
+                </td>
+                <td style={{ ...td, textAlign:'center' }}>
+                  <button onClick={() => deleteTask(t)} title="삭제"
+                    style={{ width:22, height:22, borderRadius:5, fontSize:11, color:'#DC2626', background:'transparent', cursor:'pointer' }}>🗑</button>
+                </td>
+              </tr>
+            );
+          })}
+          {/* 빠른 추가 행 — 항상 마지막에 표시. Enter로 즉시 추가, 프로젝트·우선순위·마감 인라인 입력 */}
+          <tr style={{ background:'var(--or-pale, #FFF7ED)' }}>
+            <td style={{ ...td, textAlign:'center' }}>
+              <span style={{ fontSize:18, color:'var(--or)', fontWeight:900 }}>+</span>
+            </td>
+            <td style={td}>
+              <input
+                value={quickTitle}
+                onChange={e => setQuickTitle(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleQuickAdd(); }}
+                placeholder="새 업무 입력 후 Enter ↵"
+                style={{ ...cellInput, fontWeight:700 }}
+              />
+            </td>
+            <td style={td}>
+              <ProjectSelect value={quickProjectId} onChange={e => setQuickProjectId(e.target.value)} />
+            </td>
+            <td style={td}>
+              <select value={quickPriority} onChange={e => setQuickPriority(e.target.value)} style={cellSelect}>
+                <option value="high">🔴 높음</option>
+                <option value="mid">🟡 중간</option>
+                <option value="low">🟢 낮음</option>
+              </select>
+            </td>
+            <td style={td}>
+              <input type="date" value={quickDue} onChange={e => setQuickDue(e.target.value)}
+                style={{ ...cellInput, fontSize:10.5, cursor:'pointer' }} title="마감일 (선택)" />
+            </td>
+            <td colSpan={2} style={{ ...td, textAlign:'center' }}>
+              <button onClick={handleQuickAdd} disabled={adding || !quickTitle.trim()} style={{
+                padding:'4px 12px', borderRadius:6, fontSize:11, fontWeight:900, color:'#fff',
+                background: (adding || !quickTitle.trim()) ? 'var(--text-sm)' : 'var(--or)', cursor:(adding || !quickTitle.trim()) ? 'not-allowed' : 'pointer'
+              }}>+ 추가</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// 오늘 업무 한 줄 (체크박스 + 제목 + 우선순위 + 마감) — 고정업무 영역에서만 사용
 function TodayTaskRow({ task, audit, compact }) {
   const toggleDone = async () => {
     const newDone = !task.done;

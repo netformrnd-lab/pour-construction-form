@@ -5278,6 +5278,10 @@ function DashboardPage({ onToast }) {
   const { activeStaff, audit } = useActiveStaffContext();
   const { tasks, loading: loadingTasks } = useStaffTasks(activeStaff?.id);
   const { recurring, loading: loadingRec } = useStaffRecurring(activeStaff?.id);
+  // 프로젝트 인라인 연결용 — useAllOkrData에서 projects만 사용
+  // (loading은 OKR 페이지에서 보장되므로 여기서는 빈 배열 fallback)
+  const okrData = useAllOkrData();
+  const projects = okrData.projects || [];
   const [generated, setGenerated] = useState(false);
 
   // 오늘의 반복업무 자동 생성 (마운트 + 데이터 로드 1회)
@@ -5295,6 +5299,38 @@ function DashboardPage({ onToast }) {
   if (loadingTasks || loadingRec) {
     return <div style={{ padding:60, textAlign:'center', color:'var(--text-sm)' }}>로딩 중...</div>;
   }
+
+  // TodayTaskTable의 빠른 추가 행에서 호출 — 오늘 요일로 즉시 등록 (pulledToday=true)
+  const addTask = async (data) => {
+    const t0 = new Date();
+    const dayKey = t0.toISOString().split('T')[0];
+    const todayDay0 = ALL_DAYS[t0.getDay()];
+    const targetDay = data.weekDay || todayDay0;
+    try {
+      await db.collection(COLLECTIONS.POUR_TASKS).add({
+        staffId: activeStaff.id,
+        title: (data.title || '').trim(),
+        done: false,
+        priority: data.priority || 'mid',
+        projectId: data.projectId || null,
+        projectName: data.projectName || null,
+        weekDay: targetDay,
+        weekSlot: data.weekSlot || null,
+        dueDate: data.dueDate || '',
+        isFixed: false,
+        pulledToday: targetDay === todayDay0,
+        performedDate: targetDay === todayDay0 ? dayKey : null,
+        notes: [],
+        attachments: [],
+        status: 'active',
+        ...audit.create(),
+      });
+      onToast({ message: `✅ "${(data.title || '').trim()}" 추가`, type: 'success' });
+    } catch (e) {
+      onToast({ message: '추가 실패: ' + e.message, type: 'error' });
+      throw e;
+    }
+  };
 
   const today = new Date();
   const todayDay = ALL_DAYS[today.getDay()];

@@ -304,6 +304,8 @@ const STATUS_COLOR = {
   '취소': { bg: '#F3F4F6', border: '#E5E7EB', color: '#6B7280' },
 };
 
+// NAV — 자주 쓰는 메뉴는 펼친 상태, 마스터/DB·관리 메뉴는 접은 상태가 기본.
+// divider에 group:'키' + collapsible:true 면 토글 가능. defaultCollapsed:true면 처음엔 접힘.
 const NAV = [
   { type: 'divider', label: '메인' },
   { id: 'dashboard', icon: '📊', label: '통합 대시보드' },
@@ -311,23 +313,29 @@ const NAV = [
   // 메뉴는 담당자 개발 완료 후 연결 예정 (matching/partners/rules/inquiries 컴포넌트는 유지)
   { type: 'divider', label: '매출관리센터', pending: true },
   // 메뉴는 담당자 개발 완료 후 연결 예정 (dealers/purchase-orders/orders/settlement 컴포넌트는 유지)
-  { type: 'divider', label: 'KPI 업무관리센터' },
-  { id: 'workmgmt', icon: '📋', label: '업무관리' },
-  { id: 'dashboard-os', icon: '🏠', label: '대시보드' },
-  { id: 'recurring', icon: '🔁', label: '반복업무' },
-  { id: 'okr', icon: '🎯', label: 'OKR · 활동지표' },
-  { id: 'projects', icon: '🗂️', label: '프로젝트' },
-  { id: 'journals', icon: '📝', label: '업무일지' },
-  { id: 'channels', icon: '🏷️', label: '거래코드·채널' },
+
+  // ─ 자주 사용 (매일·매주 진입) ─
+  { type: 'divider', label: 'KPI 업무관리센터', group: 'kpi-main', collapsible: true, defaultCollapsed: false },
+  { id: 'dashboard-os', icon: '🏠', label: '오늘 업무',  group: 'kpi-main' },
+  { id: 'journals',     icon: '📝', label: '업무일지',  group: 'kpi-main' },
+  { id: 'recurring',    icon: '🔁', label: '반복업무',  group: 'kpi-main' },
+
+  // ─ 업무 DB · 설정 (마스터 등록은 1회, 평소엔 접어둠) ─
+  { type: 'divider', label: '업무 DB · 설정', group: 'kpi-db', collapsible: true, defaultCollapsed: true },
+  { id: 'okr',       icon: '🎯', label: 'OKR · 활동지표',     group: 'kpi-db' },
+  { id: 'projects',  icon: '🗂️', label: '프로젝트',           group: 'kpi-db' },
+  { id: 'workmgmt',  icon: '📋', label: '업무관리 (53)',      group: 'kpi-db' },
+  { id: 'channels',  icon: '🏷️', label: '거래코드·채널',      group: 'kpi-db' },
   // 캘린더·회의록 → 추후 React 컴포넌트 흡수 예정
-  { type: 'divider', label: '디자인/개발 센터' },
-  { id: 'preview', icon: '🎨', label: '자사몰 페이지 관리' },
-  { id: 'products', icon: '📦', label: '상품관리' },
-  { id: 'metrics', icon: '📊', label: '공신력 수치' },
-  { id: 'method-links', icon: '🔗', label: '링크 관리' },
-  { id: 'staff', icon: '👥', label: '담당자 관리' },
-  { id: 'firebase-usage', icon: '📊', label: 'Firebase 사용량' },
-  { id: 'settings', icon: '⚙️', label: '설정' },
+
+  { type: 'divider', label: '디자인/개발 센터', group: 'design', collapsible: true, defaultCollapsed: false },
+  { id: 'preview',         icon: '🎨', label: '자사몰 페이지 관리', group: 'design' },
+  { id: 'products',        icon: '📦', label: '상품관리',           group: 'design' },
+  { id: 'metrics',         icon: '📊', label: '공신력 수치',         group: 'design' },
+  { id: 'method-links',    icon: '🔗', label: '링크 관리',           group: 'design' },
+  { id: 'staff',           icon: '👥', label: '담당자 관리',         group: 'design' },
+  { id: 'firebase-usage',  icon: '📊', label: 'Firebase 사용량',     group: 'design' },
+  { id: 'settings',        icon: '⚙️', label: '설정',                group: 'design' },
 ];
 
 // ============================================================
@@ -593,7 +601,48 @@ function PinScreen({ onUnlock, onToast }) {
 // ============================================================
 // Sidebar
 // ============================================================
+// Sidebar — collapsible divider 그룹 지원 (자주 사용 vs DB·설정 구분)
+// group별 펼침/접힘 상태는 localStorage에 저장.
+const SIDEBAR_COLLAPSE_KEY = 'pourAdminSidebarCollapsed';
+
+function loadCollapsedGroups() {
+  try {
+    const raw = localStorage.getItem(SIDEBAR_COLLAPSE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (_) {}
+  // 초기값: defaultCollapsed:true 인 group들
+  const init = {};
+  NAV.forEach(item => {
+    if (item.type === 'divider' && item.collapsible && item.defaultCollapsed) init[item.group] = true;
+  });
+  return init;
+}
+
 function Sidebar({ active, onNav, onLogout, activeStaff, onSwitchStaff }) {
+  const [collapsed, setCollapsed] = useState(loadCollapsedGroups);
+
+  // 활성 메뉴가 접힌 그룹 안에 있으면 자동으로 그 그룹을 펼침
+  useEffect(() => {
+    const activeItem = NAV.find(it => it.id === active);
+    if (!activeItem || !activeItem.group) return;
+    setCollapsed(prev => {
+      if (prev[activeItem.group]) {
+        const next = { ...prev, [activeItem.group]: false };
+        try { localStorage.setItem(SIDEBAR_COLLAPSE_KEY, JSON.stringify(next)); } catch (_) {}
+        return next;
+      }
+      return prev;
+    });
+  }, [active]);
+
+  const toggleGroup = (group) => {
+    setCollapsed(prev => {
+      const next = { ...prev, [group]: !prev[group] };
+      try { localStorage.setItem(SIDEBAR_COLLAPSE_KEY, JSON.stringify(next)); } catch (_) {}
+      return next;
+    });
+  };
+
   return (
     <aside style={{
       width:240, background:'var(--navy)', color:'#fff', display:'flex', flexDirection:'column',
@@ -629,14 +678,37 @@ function Sidebar({ active, onNav, onLogout, activeStaff, onSwitchStaff }) {
       </div>
       <nav style={{ flex:1, padding:'12px 12px' }}>
         {NAV.map((item, i) => {
-          if (item.type === 'divider') return (
-            <div key={i} style={{ padding:'14px 10px 6px', display:'flex', alignItems:'center', gap:6 }}>
-              <span style={{ fontSize:10.5, fontWeight:800, color:'rgba(255,255,255,.4)', letterSpacing:1.2 }}>{item.label}</span>
-              {item.pending && (
-                <span style={{ fontSize:9, fontWeight:800, color:'rgba(249,115,22,.85)', background:'rgba(249,115,22,.12)', border:'1px solid rgba(249,115,22,.3)', padding:'1px 6px', borderRadius:5, letterSpacing:.3 }}>준비 중</span>
-              )}
-            </div>
-          );
+          if (item.type === 'divider') {
+            const isCollapsible = !!item.collapsible;
+            const isCollapsed = isCollapsible && collapsed[item.group];
+            // 이 group에 속한 메뉴 개수 (접혔을 때 카운트 표시용)
+            const groupCount = item.group ? NAV.filter(n => n.id && n.group === item.group).length : 0;
+            return (
+              <button key={i}
+                onClick={isCollapsible ? () => toggleGroup(item.group) : undefined}
+                disabled={!isCollapsible}
+                style={{
+                  width:'100%', padding:'14px 10px 6px', display:'flex', alignItems:'center', gap:6,
+                  background:'none', textAlign:'left',
+                  cursor: isCollapsible ? 'pointer' : 'default',
+                }}>
+                {isCollapsible && (
+                  <span style={{ fontSize:10, fontWeight:800, color:'rgba(255,255,255,.5)', width:10, display:'inline-block', textAlign:'center' }}>
+                    {isCollapsed ? '▸' : '▾'}
+                  </span>
+                )}
+                <span style={{ fontSize:10.5, fontWeight:800, color:'rgba(255,255,255,.4)', letterSpacing:1.2, flex:1 }}>{item.label}</span>
+                {isCollapsible && isCollapsed && groupCount > 0 && (
+                  <span style={{ fontSize:9, fontWeight:800, color:'rgba(255,255,255,.45)', background:'rgba(255,255,255,.08)', padding:'1px 5px', borderRadius:4 }}>{groupCount}</span>
+                )}
+                {item.pending && (
+                  <span style={{ fontSize:9, fontWeight:800, color:'rgba(249,115,22,.85)', background:'rgba(249,115,22,.12)', border:'1px solid rgba(249,115,22,.3)', padding:'1px 6px', borderRadius:5, letterSpacing:.3 }}>준비 중</span>
+                )}
+              </button>
+            );
+          }
+          // 메뉴 항목 — 속한 group이 접혀있으면 숨김
+          if (item.group && collapsed[item.group]) return null;
           const isActive = active === item.id;
           const handleClick = () => {
             if (item.external) {
@@ -5278,7 +5350,9 @@ function DashboardPage({ onToast }) {
   const { activeStaff, audit } = useActiveStaffContext();
   const { tasks, loading: loadingTasks } = useStaffTasks(activeStaff?.id);
   const { recurring, loading: loadingRec } = useStaffRecurring(activeStaff?.id);
+  const { projects, keyResults } = useAllOkrData();  // 프로젝트 선택용
   const [generated, setGenerated] = useState(false);
+  const [showAddTask, setShowAddTask] = useState(false);
 
   // 오늘의 반복업무 자동 생성 (마운트 + 데이터 로드 1회)
   useEffect(() => {
@@ -5295,6 +5369,33 @@ function DashboardPage({ onToast }) {
   if (loadingTasks || loadingRec) {
     return <div style={{ padding:60, textAlign:'center', color:'var(--text-sm)' }}>로딩 중...</div>;
   }
+
+  // 새 업무 추가 — 프로젝트 연결 가능, 추가 시 즉시 오늘 슬롯 또는 지정 요일에 노출
+  const addTask = async (data) => {
+    const t0 = new Date();
+    const dayKey = t0.toISOString().split('T')[0];
+    const todayDay0 = ALL_DAYS[t0.getDay()];
+    const targetDay = data.weekDay || todayDay0;
+    await db.collection(COLLECTIONS.POUR_TASKS).add({
+      staffId: activeStaff.id,
+      title: data.title.trim(),
+      done: false,
+      priority: data.priority || 'mid',
+      projectId: data.projectId || null,
+      projectName: data.projectName || null,
+      weekDay: targetDay,
+      weekSlot: data.weekSlot || null,
+      dueDate: data.dueDate || '',
+      isFixed: false,
+      pulledToday: targetDay === todayDay0,
+      performedDate: targetDay === todayDay0 ? dayKey : null,
+      notes: [],
+      attachments: [],
+      status: 'active',
+      ...audit.create(),
+    });
+    onToast({ message: `✅ "${data.title}" 추가 완료`, type: 'success' });
+  };
 
   const today = new Date();
   const todayDay = ALL_DAYS[today.getDay()];
@@ -5326,12 +5427,30 @@ function DashboardPage({ onToast }) {
   return (
     <div style={{ padding:'24px 32px', maxWidth:1280 }}>
       {/* 헤더 */}
-      <div style={{ marginBottom:18 }}>
-        <h1 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6, marginBottom:4 }}>🏠 대시보드</h1>
-        <div style={{ fontSize:12.5, color:'var(--text-sm)', fontWeight:700 }}>
-          {activeStaff.name} · {todayDay}요일 · 오늘 업무 {doneToday}/{totalToday} · 고정업무 {fixedTasks.length}건
+      <div style={{ marginBottom:18, display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12 }}>
+        <div>
+          <h1 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6, marginBottom:4 }}>🏠 오늘 업무</h1>
+          <div style={{ fontSize:12.5, color:'var(--text-sm)', fontWeight:700 }}>
+            {activeStaff.name} · {todayDay}요일 · 오늘 업무 <b style={{ color:'var(--or-d)' }}>{doneToday}/{totalToday}</b> · 고정업무 {fixedTasks.length}건
+          </div>
         </div>
+        <button onClick={() => setShowAddTask(true)} style={{
+          padding:'12px 22px', borderRadius:10, fontSize:14, fontWeight:900, color:'#fff',
+          background:'linear-gradient(135deg, var(--or), var(--or-d))', boxShadow:'0 4px 14px rgba(249,115,22,.25)'
+        }}>+ 오늘 업무 추가</button>
       </div>
+
+      {/* 사용 가이드 (업무 0건일 때만 노출) */}
+      {tasks.length === 0 && (
+        <div style={{ padding:'14px 18px', marginBottom:16, background:'var(--or-pale, #FFF7ED)', border:'1.5px dashed var(--or-l, #FED7AA)', borderRadius:11, fontSize:12, color:'var(--or-d, #B45309)', fontWeight:700, lineHeight:1.7 }}>
+          💡 <b>업무를 등록하는 방법</b>
+          <ol style={{ margin:'4px 0 0 18px', padding:0, fontSize:11.5, color:'#7C2D12', fontWeight:600 }}>
+            <li>일회성 업무 → 우상단 <b>[+ 오늘 업무 추가]</b> 클릭 → 제목·프로젝트·요일·우선순위 입력</li>
+            <li>매일/매주 반복 업무 → 사이드바 <b>🔁 반복업무</b>에서 등록 → 매일 자동 생성</li>
+            <li>업무 완료 시 → 체크박스 클릭 (자동 저장) → 업무일지에 기록 권장</li>
+          </ol>
+        </div>
+      )}
 
       {/* 마감 임박 배너 */}
       {urgentTasks.length > 0 && (
@@ -5432,6 +5551,116 @@ function DashboardPage({ onToast }) {
             </div>
           )}
         </div>
+      </div>
+
+      {/* 업무 추가 모달 */}
+      <Modal open={showAddTask} onClose={() => setShowAddTask(false)} title="+ 새 업무 추가" width={520}>
+        {showAddTask && <AddTaskForm
+          activeStaff={activeStaff}
+          projects={projects}
+          tasks={tasks}
+          onSubmit={(d) => { addTask(d); setShowAddTask(false); }}
+          onCancel={() => setShowAddTask(false)}
+        />}
+      </Modal>
+    </div>
+  );
+}
+
+// 오늘 업무 추가 폼 — 프로젝트 연결 + 요일 + 슬롯 + 우선순위 + 마감
+function AddTaskForm({ activeStaff, projects, tasks, onSubmit, onCancel }) {
+  const today = new Date();
+  const todayDay = ALL_DAYS[today.getDay()];
+  const [title, setTitle] = useState('');
+  const [projectId, setProjectId] = useState('');
+  const [weekDay, setWeekDay] = useState(WEEK_DAYS.includes(todayDay) ? todayDay : '월');
+  const [weekSlot, setWeekSlot] = useState('');
+  const [priority, setPriority] = useState('mid');
+  const [dueDate, setDueDate] = useState('');
+  const inputSty = { width:'100%', padding:'10px 12px', border:'1.5px solid var(--border)', borderRadius:8, fontSize:13, fontWeight:600, background:'#fff', outline:'none', marginTop:4 };
+  const labelSty = { fontSize:11, fontWeight:800, color:'var(--text-md)', letterSpacing:.3 };
+
+  // 본인 배정 프로젝트만 추천 (다른 프로젝트는 optgroup으로 분리)
+  const myProjects = projects.filter(p => Array.isArray(p.assigneeStaffIds) && p.assigneeStaffIds.includes(activeStaff.id));
+  const otherProjects = projects.filter(p => !myProjects.includes(p));
+
+  // 선택한 요일의 비어있는 슬롯 안내
+  const slotsUsed = tasks.filter(t => t.weekDay === weekDay && !t.isFixed && t.weekSlot).map(t => t.weekSlot);
+  const emptySlots = [1,2,3,4,5].filter(n => !slotsUsed.includes(n));
+
+  const selectedProject = projects.find(p => p.id === projectId);
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+      <div>
+        <label style={labelSty}>업무 제목 *</label>
+        <input value={title} onChange={e => setTitle(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && title.trim()) onSubmit({ title, projectId, projectName: selectedProject?.name || null, weekDay, weekSlot: weekSlot ? Number(weekSlot) : null, priority, dueDate }); }}
+          placeholder="예: 자사몰 5월 베스트셀러 페이지 작성" autoFocus style={inputSty} />
+      </div>
+
+      <div>
+        <label style={labelSty}>연결 프로젝트 (선택)</label>
+        <select value={projectId} onChange={e => setProjectId(e.target.value)} style={inputSty}>
+          <option value="">— 프로젝트 미연결 —</option>
+          {myProjects.length > 0 && (
+            <optgroup label="📍 내가 배정된 프로젝트">
+              {myProjects.map(p => <option key={p.id} value={p.id}>{p.name} ({p.progress || 0}%)</option>)}
+            </optgroup>
+          )}
+          {otherProjects.length > 0 && (
+            <optgroup label="🗂️ 그 외 프로젝트 (보고용)">
+              {otherProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </optgroup>
+          )}
+          {projects.length === 0 && <option disabled>등록된 프로젝트 없음 — 프로젝트 페이지에서 먼저 등록하세요</option>}
+        </select>
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'130px 130px 1fr', gap:10 }}>
+        <div>
+          <label style={labelSty}>요일</label>
+          <select value={weekDay} onChange={e => setWeekDay(e.target.value)} style={inputSty}>
+            {WEEK_DAYS.map(d => <option key={d} value={d}>{d}요일 {d === todayDay ? '(오늘)' : ''}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={labelSty}>슬롯 (1~5, 선택)</label>
+          <select value={weekSlot} onChange={e => setWeekSlot(e.target.value)} style={inputSty}>
+            <option value="">— 자동 —</option>
+            {[1,2,3,4,5].map(n => (
+              <option key={n} value={n} disabled={slotsUsed.includes(n)}>
+                {n} {slotsUsed.includes(n) ? '(사용중)' : ''}
+              </option>
+            ))}
+          </select>
+          {emptySlots.length > 0 && <div style={{ fontSize:10, color:'var(--text-sm)', fontWeight:600, marginTop:3 }}>비어있는 슬롯: {emptySlots.join(', ')}</div>}
+        </div>
+        <div>
+          <label style={labelSty}>우선순위</label>
+          <select value={priority} onChange={e => setPriority(e.target.value)} style={inputSty}>
+            <option value="high">🔴 높음</option>
+            <option value="mid">🟡 중간</option>
+            <option value="low">🟢 낮음</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label style={labelSty}>마감일 (선택)</label>
+        <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} style={inputSty} />
+      </div>
+
+      <div style={{ fontSize:10.5, color:'var(--text-sm)', fontWeight:600, padding:'8px 10px', background:'var(--or-pale, #FFF7ED)', borderRadius:7, lineHeight:1.6 }}>
+        💡 오늘 요일로 추가하면 즉시 "오늘 업무"에 노출됩니다. 다른 요일로 추가하면 주간 5슬롯에서 확인.
+        <br/>매일·매주 반복되는 업무는 사이드바 <b>🔁 반복업무</b>에 등록하면 자동 생성됩니다.
+      </div>
+
+      <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:4 }}>
+        <button onClick={onCancel} style={{ padding:'9px 18px', borderRadius:8, fontSize:12, fontWeight:800, background:'var(--bg)', color:'var(--text-md)' }}>취소</button>
+        <button disabled={!title.trim()}
+          onClick={() => onSubmit({ title, projectId, projectName: selectedProject?.name || null, weekDay, weekSlot: weekSlot ? Number(weekSlot) : null, priority, dueDate })}
+          style={{ padding:'9px 22px', borderRadius:8, fontSize:13, fontWeight:900, color:'#fff', background:'var(--or)', opacity: title.trim() ? 1 : 0.5 }}>업무 추가</button>
       </div>
     </div>
   );

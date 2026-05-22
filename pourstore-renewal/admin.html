@@ -5565,7 +5565,6 @@ function TodayTaskTable({ tasks, projects, audit, activeStaff, onAdd, onToast })
   const [adding, setAdding] = useState(false);
 
   const myProjects = projects.filter(p => Array.isArray(p.assigneeStaffIds) && p.assigneeStaffIds.includes(activeStaff.id));
-  const otherProjects = projects.filter(p => !myProjects.includes(p));
 
   const updateField = async (taskId, patch) => {
     try {
@@ -5615,21 +5614,28 @@ function TodayTaskTable({ tasks, projects, audit, activeStaff, onAdd, onToast })
   const cellInput = { width:'100%', background:'transparent', border:'none', fontSize:12.5, fontWeight:600, color:'var(--text)', outline:'none', padding:'2px 4px' };
   const cellSelect = { background:'var(--bg)', border:'1px solid var(--border)', borderRadius:5, fontSize:11, fontWeight:700, padding:'3px 5px', cursor:'pointer', width:'100%' };
 
-  const ProjectSelect = ({ value, onChange }) => (
-    <select value={value || ''} onChange={onChange} style={{ ...cellSelect, color: value ? 'var(--or-d)' : 'var(--text-sm)' }} title="프로젝트 연결">
-      <option value="">+ 프로젝트</option>
-      {myProjects.length > 0 && (
-        <optgroup label="📍 내 프로젝트">
-          {myProjects.map(p => <option key={p.id} value={p.id}>{p.name} ({p.progress||0}%)</option>)}
-        </optgroup>
-      )}
-      {otherProjects.length > 0 && (
-        <optgroup label="🗂️ 그 외">
-          {otherProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </optgroup>
-      )}
-    </select>
-  );
+  // ProjectSelect — 본인 배정 프로젝트만 노출. 그 외 프로젝트는 의도적으로 숨김 (혼란 방지).
+  // 단, 이미 선택된 프로젝트가 본인 배정이 아닌 경우엔 그 프로젝트도 유지 (편집 기존 값 보존).
+  // 새 프로젝트 연결이 필요하면 프로젝트 페이지에서 본인을 담당자로 추가 후 사용.
+  const ProjectSelect = ({ value, onChange }) => {
+    const inMine = !value || myProjects.some(p => p.id === value);
+    const externalSelected = !inMine ? projects.find(p => p.id === value) : null;
+    return (
+      <select value={value || ''} onChange={onChange}
+        style={{ ...cellSelect, color: value ? 'var(--or-d)' : 'var(--text-sm)' }}
+        title={myProjects.length === 0 ? '본인 배정 프로젝트가 없습니다 — 프로젝트 페이지에서 담당자 배정 필요' : '본인 배정 프로젝트만 노출'}>
+        <option value="">+ 프로젝트</option>
+        {myProjects.length === 0 ? (
+          <option disabled>— 본인 배정 프로젝트 없음 (프로젝트 페이지에서 담당자 배정) —</option>
+        ) : (
+          myProjects.map(p => <option key={p.id} value={p.id}>{p.name} ({p.progress || 0}%)</option>)
+        )}
+        {externalSelected && (
+          <option value={externalSelected.id}>↳ {externalSelected.name} (외부 — 기존 연결 유지)</option>
+        )}
+      </select>
+    );
+  };
 
   return (
     <div style={{ overflow:'hidden', border:'1px solid var(--border)', borderRadius:9 }}>

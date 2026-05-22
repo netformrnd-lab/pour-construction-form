@@ -6720,6 +6720,64 @@ function ProjectsPage({ onToast }) {
     setSeeding(false);
   };
 
+  // 🔄 본인/담당자 매핑 재계산 — 시드 후 staff.kpiMemberId 설정한 경우 53개 프로젝트 일괄 보정
+  // pour-projects.projectCode (p001 등) 기준으로 WORKMGMT_PROJECTS_SEED에서 ownerKey/collabKeys 찾기
+  //  → staff.kpiMemberId로 staffId 매핑 → ownerStaffId/ownerStaffName/assigneeStaffIds 업데이트
+  const [remapping, setRemapping] = useState(false);
+  const remapOwners = async () => {
+    const seedByCode = {};
+    WORKMGMT_PROJECTS_SEED.forEach(p => { if (p.code) seedByCode[p.code] = p; });
+    const staffByKpi = {};
+    staffMembers.forEach(s => { if (s.kpiMemberId) staffByKpi[s.kpiMemberId] = s; });
+    // 사전 점검 — 사용된 kpiMemberId 중 staff 미설정 있는지
+    const usedKeys = new Set();
+    WORKMGMT_PROJECTS_SEED.forEach(p => {
+      if (p.ownerKey) usedKeys.add(p.ownerKey);
+      (p.collabKeys || []).forEach(k => usedKeys.add(k));
+    });
+    const missing = [...usedKeys].filter(k => !staffByKpi[k]);
+    if (missing.length > 0) {
+      alert(
+        `⚠️ 다음 매칭 ID가 staff에 등록되지 않았습니다: ${missing.join(', ')}\n\n` +
+        `사이드바 → 담당자 관리 → 각 담당자 수정 → "업무관리 연동 *" 섹션에서\n` +
+        `해당 ID(${missing.join(', ')})를 선택 후 저장 → 다시 [재매핑] 클릭하세요.`
+      );
+      return;
+    }
+    const target = projects.filter(p => p.projectCode && seedByCode[p.projectCode]);
+    if (target.length === 0) {
+      onToast({ message: 'projectCode가 있는 시드 프로젝트가 없습니다 (직접 추가한 프로젝트는 영향 없음)', type: 'info' });
+      return;
+    }
+    if (!confirm(
+      `프로젝트 ${target.length}건의 owner/담당자를 staff.kpiMemberId 기준으로 재매핑합니다.\n\n` +
+      `· 시드 데이터(p001~p407 + 운영 인프라)의 ownerKey/collabKeys 기준\n` +
+      `· 직접 추가한 프로젝트(projectCode 없음)는 영향 없음\n\n` +
+      `진행할까요?`
+    )) return;
+    setRemapping(true);
+    try {
+      let updated = 0;
+      for (const p of target) {
+        const seed = seedByCode[p.projectCode];
+        const owner = seed.ownerKey ? staffByKpi[seed.ownerKey] : null;
+        const collabs = (seed.collabKeys || []).map(k => staffByKpi[k]).filter(Boolean);
+        const assigneeStaffIds = [owner, ...collabs].filter(Boolean).map(s => s.id);
+        await db.collection(COLLECTIONS.POUR_PROJECTS).doc(p.id).update({
+          ownerStaffId: owner?.id || null,
+          ownerStaffName: owner?.name || null,
+          assigneeStaffIds,
+          ...audit.update(),
+        });
+        updated++;
+      }
+      onToast({ message: `🔄 ${updated}건 owner/담당자 재매핑 완료`, type: 'success' });
+    } catch (e) {
+      onToast({ message: '재매핑 실패: ' + e.message, type: 'error' });
+    }
+    setRemapping(false);
+  };
+
   const addProject = async (data) => {
     await db.collection(COLLECTIONS.POUR_PROJECTS).add({
       name: data.name,
@@ -6789,12 +6847,42 @@ function ProjectsPage({ onToast }) {
               background:'#0F1F5C', border:'none', opacity: seeding ? 0.6 : 1,
             }}>🌱 기본 프로젝트 일괄 등록 ({WORKMGMT_PROJECTS_SEED.length}건)</button>
           )}
+          {projects.length > 0 && projects.some(p => p.projectCode) && (
+            <button onClick={remapOwners} disabled={remapping} title="시드 프로젝트의 owner/담당자를 staff.kpiMemberId 기준으로 일괄 재매핑"
+              style={{
+                padding:'10px 14px', borderRadius:9, fontSize:12.5, fontWeight:900, color:'var(--navy)',
+                background:'#fff', border:'1.5px solid var(--navy)', opacity: remapping ? 0.6 : 1,
+              }}>🔄 본인 매핑 재계산</button>
+          )}
           <button onClick={() => setShowAdd(true)} style={{
             padding:'10px 18px', borderRadius:9, fontSize:13, fontWeight:900, color:'#fff',
             background:'linear-gradient(135deg, var(--or), var(--or-d))',
           }}>+ 프로젝트 추가</button>
         </div>
       </div>
+
+      {/* 본인 배정 프로젝트 0건 + 전체는 있을 때 안내 배너 */}
+      {(() => {
+        const mineCount = projects.filter(p => Array.isArray(p.assigneeStaffIds) && p.assigneeStaffIds.includes(activeStaff.id)).length;
+        if (projects.length === 0 || mineCount > 0) return null;
+        const hasKpiId = !!activeStaff.kpiMemberId;
+        const hasSeed = projects.some(p => p.projectCode);
+        return (
+          <div style={{ padding:'12px 16px', marginBottom:14, background:'#FEE2E2', border:'1.5px solid #FCA5A5', borderRadius:10, fontSize:12, color:'#991B1B', fontWeight:700, lineHeight:1.7 }}>
+            ⚠️ <b>본인({activeStaff.name}) 배정 프로젝트가 0건입니다.</b> (전체 {projects.length}건)
+            <ol style={{ margin:'6px 0 0 18px', padding:0, fontSize:11.5, color:'#7F1D1D', fontWeight:600 }}>
+              {!hasKpiId && (
+                <li><b>담당자 관리</b>에서 본인의 <b>"업무관리 연동 *"</b> ID(songhee/minji/ran 중 하나)를 먼저 설정하세요.</li>
+              )}
+              {hasSeed && (
+                <li>위 <b>[🔄 본인 매핑 재계산]</b> 버튼을 클릭하면 시드 프로젝트({projects.filter(p => p.projectCode).length}건)의 owner/담당자가 자동으로 채워집니다.</li>
+              )}
+              <li>또는 필터를 <b>"전체 담당자"</b>로 바꾸면 모든 프로젝트가 보입니다.</li>
+              <li>직접 추가한 프로젝트는 편집 → 담당자 토글 선택으로 배정.</li>
+            </ol>
+          </div>
+        );
+      })()}
 
       {/* 담당자별 기여 위젯 */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(180px, 1fr))', gap:10, marginBottom:18 }}>

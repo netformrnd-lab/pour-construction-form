@@ -72,6 +72,16 @@ service firebase.storage {
     match /sales-docs/{allPaths=**}        { allow read, write: if true; }
     match /Proposal/{allPaths=**}          { allow read, write: if true; }
 
+    // POUR스토어 어드민 — task별 사진 첨부 (오늘 업무 페이지)
+    // 경로: task-attachments/{staffId}/{taskId}/{filename}
+    // 파일 크기 10MB 제한 + 이미지 MIME만 허용 (영상은 링크로만 첨부)
+    match /task-attachments/{staffId}/{taskId}/{file=**} {
+      allow read: if true;
+      allow write: if request.resource.size < 10 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+      allow delete: if true;
+    }
+
     // ─────────────────────────────────────────────
     // 그 외 — 명시되지 않은 경로는 모두 막음
     // ─────────────────────────────────────────────

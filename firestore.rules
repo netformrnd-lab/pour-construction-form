@@ -122,6 +122,10 @@ service cloud.firestore {
     // 거래코드·채널 관리 (KR 하위 세부 채널 — G 조달청·관급 등 신설/편집)
     match /work-channels/{doc}      { allow read, write: if true; }
 
+    // task별 메모·첨부 (별도 컬렉션으로 분리 — task 문서 1MB 한도 회피 + 무한 확장)
+    match /pour-task-notes/{doc}        { allow read, write: if true; }
+    match /pour-task-attachments/{doc}  { allow read, write: if true; }
+
     // ─────────────────────────────────────────────
     // 기본 정책: 명시되지 않은 컬렉션은 차단
     // ─────────────────────────────────────────────

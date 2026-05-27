@@ -8054,6 +8054,37 @@ async function buildWeekSnapshot(activeStaff) {
     .map(p => ({ name: p.name, group: p.krGroup, progress: p.progress || 0, status: p.status, ownerStaffName: p.ownerStaffName }))
     .sort((a, b) => (b.progress || 0) - (a.progress || 0));
 
+  // 어드민 자체 진단용 컨텍스트 — Claude가 어드민의 구조·미흡점·개선 필요를 평가하도록
+  const adminContext = {
+    pages: [
+      { id: 'dashboard', name: '통합 대시보드', purpose: '메인 위젯 (현재 미흡)' },
+      { id: 'dashboard-os', name: '오늘 업무', purpose: '주간 5슬롯·인라인 task 표·빠른 추가·고정업무' },
+      { id: 'journals', name: '업무일지', purpose: '프로젝트별 일지·진척도 누적 (메뉴 폐지 검토 중)' },
+      { id: 'recurring', name: '고정업무(반복)', purpose: '매일/매주/매월 반복 → 오늘 자동 생성' },
+      { id: 'okr', name: 'OKR · 활동지표', purpose: 'Objective→KR→KPI 트리 + 매출 매주 입력' },
+      { id: 'projects', name: '프로젝트', purpose: '55개 프로젝트 CRUD + 담당자 매핑' },
+      { id: 'workmgmt', name: 'KPI 보고 보드 (read-only)', purpose: '외부 보고용 시각화' },
+      { id: 'channels', name: '거래코드·채널', purpose: '거래코드 마스터 + 인쇄 포스터' },
+      { id: 'ai-review', name: 'AI 주간 점검 (Friday Review)', purpose: '이번 주 분석 (← 이 페이지)' },
+      { id: 'preview', name: '자사몰 페이지 관리', purpose: 'pourstore-renewal builder iframe' },
+      { id: 'products', name: '상품관리', purpose: '8개 채널 상품번호 연동' },
+      { id: 'metrics', name: '공신력 수치', purpose: '6개 수치 편집' },
+      { id: 'method-links', name: '링크 관리', purpose: '공법 사이트 URL 관리' },
+      { id: 'staff', name: '담당자 관리', purpose: '4인 마스터 + 페이지 매핑 ID' },
+      { id: 'crm', name: 'CRM센터', purpose: '준비 중 (matching/partners/rules/inquiries)' },
+      { id: 'sales', name: '매출관리센터', purpose: '준비 중 (dealers/po/orders/settlement)' },
+    ],
+    collections: ['staff', 'pour-tasks', 'pour-recurring', 'pour-projects', 'pour-objectives', 'pour-keyresults', 'pour-kpis', 'pour-journals', 'work-channels', 'work-mgmt', 'pour-ai-reviews'],
+    aiReviewHistory: 0,  // 이전 분석 수 (인보크 시점에 갱신)
+    techStack: 'React 18 (Babel standalone) · Firebase Firestore + Storage · Cloudflare Pages · 단일 HTML 파일',
+    knownGaps: [
+      'CRM센터·매출관리센터 메뉴 준비 중 (페이지 코드는 있으나 사이드바 미연결)',
+      '회의록(meetings)·캘린더 흡수 미완',
+      '담당자별 KPI 활동지표 자동 산출 (현재 수동 입력)',
+      'AB 테스트 실행·측정 도구 (현재 권장만, 실행 추적 없음)',
+    ],
+  };
+
   return {
     weekOf, weekStart: fmtIso(monday), weekEnd: fmtIso(friday),
     runByStaff: activeStaff?.name,
@@ -8064,24 +8095,30 @@ async function buildWeekSnapshot(activeStaff) {
     kpiSummary,
     projectSummary,
     channels: channels.filter(c => c.status === 'active').map(c => ({ code: c.code, name: c.name, target: c.target, krGroup: c.krGroup })),
+    adminContext,
   };
 }
 
-// Claude 프롬프트 — 분석 + AB 테스트 제안 + 데이터 자산화 통찰
+// Claude 프롬프트 — 2 트랙 분석:
+//   A) 운영 분석 (프로젝트·업무·KPI·AB 테스트)
+//   B) 어드민 자체 메타 분석 (페이지·기능·UX·개발 필요사항) ← 사용자 핵심 비전
 function buildClaudePrompt(snapshot) {
-  return `당신은 POUR스토어(자재 D2C/B2B 유통 브랜드, 넷폼알앤디 소속)의 운영 분석가입니다.
+  return `당신은 POUR스토어(자재 D2C/B2B 유통 브랜드, 넷폼알앤디 소속)의 운영 분석가이자
+어드민 시스템 자체를 진단하는 프로덕트 분석가입니다.
 4인 팀(송희 LEAD, 민지 M1 콘텐츠·자사몰, 란 M2 마케팅·B2B, 채림 M3 운영 인프라).
 2026년 목표: 매출 10억 — KR1 POUR 직판 5억, KR2 B2B 종합 5억, KR3 운영 시스템 4모듈.
 
-이번 주 실데이터 스냅샷 (월~금):
+# 분석 입력 (이번 주 실데이터 + 어드민 구조)
 ${JSON.stringify(snapshot, null, 2)}
 
-다음 JSON 형식으로만 응답하세요 (코드 블록 없이 순수 JSON):
+# 출력 — 다음 JSON 형식으로만 응답 (코드 블록 없이 순수 JSON):
 
 {
-  "summary": "이번 주 한 줄 요약 (성과·이슈 핵심, 50자 이내)",
+  "summary": "이번 주 한 줄 요약 (50자 이내)",
+
+  // ─── A. 운영 분석 (프로젝트·업무·KPI 판단) ───
   "achievements": ["잘 진행된 항목 (구체적·정량적)", ...],
-  "concerns": ["우려·미진한 항목 (담당자별 부담 균형 포함)", ...],
+  "concerns": ["우려·미진한 항목 (4인 부담 분배 평가 포함)", ...],
   "recommendations": ["다음 주 권장 액션 (실행 가능한 것)", ...],
   "abTests": [
     {
@@ -8093,15 +8130,57 @@ ${JSON.stringify(snapshot, null, 2)}
       "duration": "권장 기간 (예: 1주, 2주)"
     }
   ],
-  "dataInsights": ["축적 데이터로부터 도출 가능한 통찰 (브랜드 성장 기여 관점)", ...]
+  "dataInsights": ["축적 데이터 통찰 (브랜드 성장 기여 관점)", ...],
+
+  // ─── B. 어드민 자체 진단 (시스템 고도화 권장) ───
+  // ★ 4인이 어드민을 사용하면서 부족·불편·개발 필요한 부분을 직접 짚어주세요.
+  // ★ snapshot.adminContext (pages, collections, knownGaps) 참조.
+  // ★ 사용자가 이 제안을 받아 실제 코드 개발에 반영 → 어드민 고도화.
+  "adminDiagnosis": {
+    "missingFeatures": [
+      {
+        "page": "페이지명 (snapshot.adminContext.pages 중)",
+        "feature": "추가할 기능명",
+        "reason": "왜 필요한지 (운영 데이터로부터 근거)",
+        "priority": "high|mid|low",
+        "complexity": "small|medium|large"
+      }
+    ],
+    "uxIssues": [
+      {
+        "page": "페이지명",
+        "issue": "관측된 UX 문제 (사용 패턴·완료율·진입률로부터 추정)",
+        "suggestion": "개선 제안"
+      }
+    ],
+    "dataGaps": [
+      {
+        "topic": "데이터 영역 (예: AB 테스트 추적, 자동 KPI 산출)",
+        "missing": "현재 누락된 데이터·계측",
+        "howToImprove": "구체적 컬렉션·필드·자동화 제안"
+      }
+    ],
+    "developmentSuggestions": [
+      {
+        "title": "신규 페이지·기능 제목",
+        "rationale": "왜 만들어야 하는지 (브랜드 성장 기여)",
+        "expectedImpact": "기대 효과 (정량적이면 좋음)",
+        "complexity": "small|medium|large",
+        "priority": "high|mid|low"
+      }
+    ]
+  }
 }
 
-주의사항:
-- 4인 부담 분배(특히 민지·란) 균형 평가 포함
+# 주의사항
+- 4인 부담 분배 (특히 민지·란) 균형 평가 포함
 - KR1/KR2/KR3 진척도 균형 평가
-- AB 테스트는 실제 실행 가능한 것만 제안 (자사몰 페이지 디자인, 광고 카피, 상품 진열 순서 등)
+- AB 테스트는 실제 실행 가능한 것만 제안
+- 어드민 진단은 snapshot.adminContext.pages를 기반으로 구체적 페이지·기능 지목
+- knownGaps 항목은 이미 사용자가 인지한 미흡점 — 우선순위 평가에 활용
 - 추정 아닌 데이터 기반 권장
-- 한국어 응답`;
+- 한국어 응답
+- 한 트랙 안의 항목은 3~5개 권장 (너무 많지 않게, 실행 가능 우선)`;
 }
 
 function FridayReviewPage({ onToast }) {
@@ -8187,6 +8266,7 @@ function FridayReviewPage({ onToast }) {
         } : null,
         abTests: parsed?.abTests || [],
         dataInsights: parsed?.dataInsights || [],
+        adminDiagnosis: parsed?.adminDiagnosis || null,
         rawText,
         parseError: parsed ? null : 'JSON 파싱 실패 (rawText 참조)',
         ...audit.create(),
@@ -8223,14 +8303,32 @@ function FridayReviewPage({ onToast }) {
         </div>
       </div>
 
-      {/* 안내 박스 */}
+      {/* 안내 박스 — 2 트랙 분석 */}
       <div style={{ padding:'14px 18px', marginBottom:18, background:'#EFF6FF', border:'1.5px solid #BFDBFE', borderRadius:11, fontSize:12, color:'#1E40AF', fontWeight:700, lineHeight:1.7 }}>
-        💡 <b>작동 방식</b>
-        <ol style={{ margin:'4px 0 0 18px', padding:0, fontSize:11.5, color:'#1E3A8A', fontWeight:600 }}>
-          <li><b>데이터 스냅샷 수집</b> — 이번 주 task 완료·KPI 변동·프로젝트 진척·업무일지·담당자별 부담 통계 자동 추출</li>
-          <li><b>Claude Sonnet 분석</b> — 잘한 점·우려·다음 주 권장 액션 + <b>A/B 테스트 제안</b> + 데이터 통찰 도출</li>
-          <li><b>pour-ai-reviews 누적 저장</b> — 매주 분석이 쌓이며 추후 트렌드·실험 효과 측정에 활용 (데이터 자산화)</li>
-        </ol>
+        💡 <b>2 트랙 분석 — 운영 판단 + 어드민 자체 고도화</b>
+        <div style={{ marginTop:6, display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+          <div style={{ padding:'8px 10px', background:'#fff', border:'1px solid #BFDBFE', borderRadius:7 }}>
+            <div style={{ fontSize:11.5, fontWeight:900, color:'#1E40AF', marginBottom:3 }}>🅰️ 운영 분석</div>
+            <ul style={{ margin:0, padding:'0 0 0 16px', fontSize:10.5, color:'#1E3A8A', fontWeight:600, lineHeight:1.7 }}>
+              <li>잘 진행된 항목 / 우려</li>
+              <li>다음 주 권장 액션</li>
+              <li>A/B 테스트 제안</li>
+              <li>데이터 통찰 (자산화)</li>
+            </ul>
+          </div>
+          <div style={{ padding:'8px 10px', background:'#fff', border:'1px solid #FCD34D', borderRadius:7 }}>
+            <div style={{ fontSize:11.5, fontWeight:900, color:'#B45309', marginBottom:3 }}>🅱️ 어드민 자체 진단</div>
+            <ul style={{ margin:0, padding:'0 0 0 16px', fontSize:10.5, color:'#7C2D12', fontWeight:600, lineHeight:1.7 }}>
+              <li>📌 누락된 기능 (페이지별)</li>
+              <li>🎨 UX 이슈</li>
+              <li>📊 데이터 갭</li>
+              <li>🚀 개발 제안 (우선순위·복잡도)</li>
+            </ul>
+          </div>
+        </div>
+        <div style={{ marginTop:8, fontSize:10.5, color:'#1E3A8A', fontWeight:600 }}>
+          🅰️로 프로젝트·업무 방향 결정 → 🅱️로 어드민 자체 고도화 → 누적 데이터(pour-ai-reviews)로 브랜드 성장
+        </div>
       </div>
 
       {/* 최근 결과 */}
@@ -8316,6 +8414,10 @@ function ReviewResultCard({ review, highlight }) {
           {review.dataInsights?.length > 0 && (
             <Section title="💎 데이터 통찰 (자산화)" color="#1E40AF" items={review.dataInsights} />
           )}
+
+          {/* ★ 어드민 자체 진단 — 사용자 핵심 비전: AI가 어드민 부족점을 짚으면 개발해서 고도화 */}
+          {review.adminDiagnosis && <AdminDiagnosisBlock dx={review.adminDiagnosis} />}
+
           {review.parseError && review.rawText && (
             <details style={{ marginTop:14, fontSize:11, color:'var(--text-sm)' }}>
               <summary style={{ cursor:'pointer', fontWeight:800 }}>🔍 원본 응답 보기 (파싱 실패)</summary>
@@ -8324,6 +8426,96 @@ function ReviewResultCard({ review, highlight }) {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// 어드민 자체 진단 블록 — Claude가 식별한 페이지 미흡·UX 이슈·데이터 갭·개발 제안
+// 사용자가 이 결과를 받아 개발 작업으로 옮기는 것이 핵심 비전.
+function AdminDiagnosisBlock({ dx }) {
+  const PRIO_COLOR = { high: '#DC2626', mid: '#D97706', low: '#6B7280' };
+  const COMPLEX_COLOR = { small: '#047857', medium: '#D97706', large: '#7C3AED' };
+  const Chip = ({ color, text }) => (
+    <span style={{ fontSize:9, fontWeight:900, color:'#fff', background:color, padding:'1px 6px', borderRadius:4, marginLeft:4, letterSpacing:.3 }}>{text}</span>
+  );
+  const has = (a) => Array.isArray(a) && a.length > 0;
+  return (
+    <div style={{ marginTop:18, padding:'14px 16px', background:'linear-gradient(135deg, #FFF7ED, #FFFBEB)', border:'2px solid #FCD34D', borderRadius:10 }}>
+      <h4 style={{ fontSize:13, fontWeight:900, color:'#B45309', marginBottom:8, letterSpacing:-0.3 }}>
+        🛠️ 어드민센터 자체 진단 · 고도화 제안
+        <span style={{ fontSize:10, fontWeight:700, color:'#92400E', marginLeft:6 }}>(개발 우선순위 결정용)</span>
+      </h4>
+
+      {has(dx.missingFeatures) && (
+        <div style={{ marginBottom:10 }}>
+          <div style={{ fontSize:11, fontWeight:900, color:'#92400E', marginBottom:5 }}>📌 누락된 기능 ({dx.missingFeatures.length})</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+            {dx.missingFeatures.map((f, i) => (
+              <div key={i} style={{ padding:'8px 10px', background:'#fff', border:'1px solid #FED7AA', borderRadius:7, fontSize:11.5, color:'var(--text-md)', fontWeight:600, lineHeight:1.6 }}>
+                <div style={{ fontWeight:900, color:'#0F1F5C' }}>
+                  📍 {f.page} · {f.feature}
+                  <Chip color={PRIO_COLOR[f.priority] || '#6B7280'} text={(f.priority || 'mid').toUpperCase()} />
+                  <Chip color={COMPLEX_COLOR[f.complexity] || '#6B7280'} text={f.complexity || 'medium'} />
+                </div>
+                <div style={{ fontSize:11, color:'var(--text-md)', marginTop:2 }}>{f.reason}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {has(dx.uxIssues) && (
+        <div style={{ marginBottom:10 }}>
+          <div style={{ fontSize:11, fontWeight:900, color:'#92400E', marginBottom:5 }}>🎨 UX 이슈 ({dx.uxIssues.length})</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+            {dx.uxIssues.map((u, i) => (
+              <div key={i} style={{ padding:'8px 10px', background:'#fff', border:'1px solid #FED7AA', borderRadius:7, fontSize:11.5, color:'var(--text-md)', fontWeight:600, lineHeight:1.6 }}>
+                <div style={{ fontWeight:900, color:'#0F1F5C' }}>📍 {u.page}</div>
+                <div style={{ fontSize:11, color:'#DC2626', marginTop:2 }}><b>이슈:</b> {u.issue}</div>
+                <div style={{ fontSize:11, color:'#047857', marginTop:2 }}><b>제안:</b> {u.suggestion}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {has(dx.dataGaps) && (
+        <div style={{ marginBottom:10 }}>
+          <div style={{ fontSize:11, fontWeight:900, color:'#92400E', marginBottom:5 }}>📊 데이터 갭 ({dx.dataGaps.length})</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+            {dx.dataGaps.map((g, i) => (
+              <div key={i} style={{ padding:'8px 10px', background:'#fff', border:'1px solid #FED7AA', borderRadius:7, fontSize:11.5, color:'var(--text-md)', fontWeight:600, lineHeight:1.6 }}>
+                <div style={{ fontWeight:900, color:'#0F1F5C' }}>📍 {g.topic}</div>
+                <div style={{ fontSize:11, color:'#DC2626', marginTop:2 }}><b>누락:</b> {g.missing}</div>
+                <div style={{ fontSize:11, color:'#047857', marginTop:2 }}><b>개선:</b> {g.howToImprove}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {has(dx.developmentSuggestions) && (
+        <div>
+          <div style={{ fontSize:11, fontWeight:900, color:'#92400E', marginBottom:5 }}>🚀 개발 제안 ({dx.developmentSuggestions.length})</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+            {dx.developmentSuggestions.map((d, i) => (
+              <div key={i} style={{ padding:'8px 10px', background:'#fff', border:'1px solid #FED7AA', borderRadius:7, fontSize:11.5, color:'var(--text-md)', fontWeight:600, lineHeight:1.6 }}>
+                <div style={{ fontWeight:900, color:'#0F1F5C' }}>
+                  🚀 {d.title}
+                  <Chip color={PRIO_COLOR[d.priority] || '#6B7280'} text={(d.priority || 'mid').toUpperCase()} />
+                  <Chip color={COMPLEX_COLOR[d.complexity] || '#6B7280'} text={d.complexity || 'medium'} />
+                </div>
+                <div style={{ fontSize:11, color:'var(--text-md)', marginTop:2 }}><b>이유:</b> {d.rationale}</div>
+                <div style={{ fontSize:11, color:'#047857', marginTop:2 }}><b>기대 효과:</b> {d.expectedImpact}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div style={{ marginTop:10, padding:'8px 10px', background:'rgba(180,83,9,.08)', borderRadius:6, fontSize:10.5, color:'#7C2D12', fontWeight:700, lineHeight:1.6 }}>
+        💬 이 진단을 받아 개발에 반영하려면: 우선순위 high·complexity small부터 처리 → 다음 주 점검에서 효과 확인 → 누적 데이터로 어드민 자체가 진화.
+      </div>
     </div>
   );
 }

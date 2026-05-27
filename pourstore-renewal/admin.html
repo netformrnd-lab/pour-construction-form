@@ -304,6 +304,36 @@ const STATUS_COLOR = {
   '취소': { bg: '#F3F4F6', border: '#E5E7EB', color: '#6B7280' },
 };
 
+// ============================================================
+// 🔗 KPI_MEMBER_OPTIONS — 담당자 매핑 ID의 단일 진실 소스 (Single Source of Truth)
+// ============================================================
+// 마스터 프롬프트 v3.0 (2026-05): 4인 체제 (송희·민지·란·채림).
+// 이 ID는 다음 모든 페이지에서 staff 매핑 키로 사용됨:
+//   - workmgmt(업무관리)        : DATA.people[].key 매칭
+//   - 프로젝트(pour-projects)   : ownerStaffId/assigneeStaffIds 매핑
+//   - OKR/KPI(pour-kpis)        : 활동지표 자동 산출 시 owner 매칭
+//   - 고정업무(pour-recurring)  : 본인 매칭 후 오늘 인스턴스 자동 생성
+//   - 향후 추가 페이지           : 동일 키로 매핑
+const KPI_MEMBER_OPTIONS = [
+  { id: 'songhee', label: '송희 (LEAD · 정책·소싱·세팅)' },
+  { id: 'minji',   label: '민지 (M1 · 콘텐츠·등록·자사몰)' },
+  { id: 'ran',     label: '란 (M2 · 마케팅·영업·B2B)' },
+  { id: 'chaerim', label: '채림 (M3 · 운영 인프라·CS·발주)' },
+];
+const KPI_MEMBER_IDS = KPI_MEMBER_OPTIONS.map(o => o.id);
+
+// 이름에서 매칭 ID 자동 추론 — staff 등록·재매핑 시 사용
+// 우선순위: 더 구체적인 키워드 먼저 (2글자 → '란'은 1글자라 마지막)
+function inferKpiMemberId(name) {
+  const n = String(name || '').trim();
+  if (!n) return null;
+  if (n.includes('송희')) return 'songhee';
+  if (n.includes('민지')) return 'minji';
+  if (n.includes('채림')) return 'chaerim';
+  if (n.includes('란'))   return 'ran';
+  return null;
+}
+
 // NAV — divider에 group/collapsible/defaultCollapsed 추가하면 그 그룹 메뉴를 접기 가능.
 // 자주 쓰는 메뉴는 펼침 기본, 마스터/DB·관리 메뉴는 접힌 상태가 기본.
 const NAV = [
@@ -4820,8 +4850,11 @@ function StaffPage({ onToast }) {
     if (!form.name.trim()) return '이름은 필수입니다';
     if (!form.email.trim()) return '이메일은 필수입니다 (OTP 인증 식별자)';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return '이메일 형식이 올바르지 않습니다';
+    if (!KPI_MEMBER_IDS.includes(form.kpiMemberId)) return '🔗 페이지 매핑 ID(KPI 멤버)를 선택하세요 — 모든 페이지가 이 ID로 본인을 인식합니다';
     const dup = list.find(s => s.id !== editId && (s.email || '').toLowerCase() === form.email.trim().toLowerCase());
     if (dup) return `이메일 중복: "${dup.name}" 와(과) 동일`;
+    const mapDup = list.find(s => s.id !== editId && s.kpiMemberId === form.kpiMemberId);
+    if (mapDup) return `매핑 ID 중복: "${mapDup.name}" 가 이미 "${form.kpiMemberId}" 사용 중 (한 ID당 1명만 가능)`;
     return null;
   };
 
@@ -4927,11 +4960,50 @@ function StaffPage({ onToast }) {
           </div>
         </div>
 
-        <div style={{ background:'#fff', borderRadius:14, padding:24, boxShadow:'var(--shadow)', marginBottom:16 }}>
-          <h2 style={{ fontSize:13, fontWeight:900, color:'var(--or-d)', marginBottom:4 }}>KPI 시스템 연동 (선택)</h2>
-          <p style={{ fontSize:11, color:'var(--text-sm)', fontWeight:600, marginBottom:14 }}>pour-os-v6-2.html(KPI/업무관리)와 연결하기 위한 식별자. 향후 KPI 시스템을 어드민에 흡수할 때 사용.</p>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 160px', gap:16 }}>
-            <div><label style={labelCss}>KPI 멤버 ID</label><input style={inputCss} value={form.kpiMemberId} onChange={e => updateField('kpiMemberId', e.target.value)} placeholder="m1, m2, m3 ..." /></div>
+        <div style={{ background:'#fff', borderRadius:14, padding:24, boxShadow:'var(--shadow)', marginBottom:16, border:'2px solid var(--or-l)' }}>
+          <h2 style={{ fontSize:14, fontWeight:900, color:'var(--or-d)', marginBottom:4 }}>🔗 페이지 매핑 ID <span style={{ color:'#DC2626' }}>*</span></h2>
+          <p style={{ fontSize:11.5, color:'var(--text-md)', fontWeight:700, marginBottom:12, lineHeight:1.7 }}>
+            이 ID 하나로 어드민 모든 페이지에 본인을 매핑합니다 (단일 진실 소스). 한 ID당 1명만 가능.
+          </p>
+          {/* 옛 무효 값(m1/m2/m3 등) 경고 — KPI_MEMBER_IDS에 없는 값이 들어있을 때 */}
+          {form.kpiMemberId && !KPI_MEMBER_IDS.includes(form.kpiMemberId) && (
+            <div style={{ padding:'8px 12px', marginBottom:12, background:'#FEE2E2', border:'1.5px solid #FCA5A5', borderRadius:7, fontSize:11.5, color:'#991B1B', fontWeight:700, lineHeight:1.5 }}>
+              ⚠ 현재 저장된 값 <b style={{ fontFamily:'monospace' }}>"{form.kpiMemberId}"</b>은 유효하지 않은 옛 값입니다. 아래 select에서 다시 선택해 주세요.
+            </div>
+          )}
+          <div style={{ display:'grid', gridTemplateColumns:'1.4fr 1fr 160px', gap:16 }}>
+            <div>
+              <label style={labelCss}>매핑 ID <span style={{ color:'#DC2626' }}>*</span></label>
+              <select
+                style={{ ...inputCss, cursor:'pointer' }}
+                value={KPI_MEMBER_IDS.includes(form.kpiMemberId) ? form.kpiMemberId : ''}
+                onChange={e => updateField('kpiMemberId', e.target.value)}
+              >
+                <option value="">— 선택 —</option>
+                {KPI_MEMBER_OPTIONS.map(opt => {
+                  const taken = list.find(s => s.id !== editId && s.kpiMemberId === opt.id);
+                  return (
+                    <option key={opt.id} value={opt.id} disabled={!!taken}>
+                      {opt.label}{taken ? ` · 이미 사용됨 (${taken.name})` : ''}
+                    </option>
+                  );
+                })}
+              </select>
+              {/* 자동 추천: 이름으로 추론된 ID와 다르면 안내 */}
+              {form.name && (() => {
+                const suggested = inferKpiMemberId(form.name);
+                if (suggested && form.kpiMemberId !== suggested) {
+                  return (
+                    <button type="button" onClick={() => updateField('kpiMemberId', suggested)} style={{
+                      marginTop:6, padding:'5px 10px', fontSize:10.5, fontWeight:800,
+                      background:'var(--or-pale, #FFF7ED)', border:'1px solid var(--or-l, #FED7AA)',
+                      borderRadius:6, color:'var(--or-d)', cursor:'pointer'
+                    }}>🤖 이름 "{form.name}" → 자동 추천: <b>{suggested}</b> 적용</button>
+                  );
+                }
+                return null;
+              })()}
+            </div>
             <div><label style={labelCss}>이니셜 (1~2자)</label><input style={inputCss} value={form.kpiInitial} onChange={e => updateField('kpiInitial', e.target.value)} placeholder="홍" maxLength={2} /></div>
             <div>
               <label style={labelCss}>대표 컬러</label>
@@ -4940,6 +5012,9 @@ function StaffPage({ onToast }) {
                 <input style={{ ...inputCss, fontFamily:'monospace', fontSize:12 }} value={form.kpiColor} onChange={e => updateField('kpiColor', e.target.value)} />
               </div>
             </div>
+          </div>
+          <div style={{ marginTop:14, padding:'10px 12px', background:'#EFF6FF', border:'1px dashed #BFDBFE', borderRadius:8, fontSize:10.5, color:'#1E40AF', fontWeight:700, lineHeight:1.7 }}>
+            💡 <b>이 ID로 매핑되는 페이지·기능:</b> 📋 업무관리 · 🗂️ 프로젝트 · 🏠 오늘 업무 · 📌 고정업무 · 🎯 OKR · 🏷️ 거래코드 · 자사몰 페이지 관리 · 향후 추가 페이지
           </div>
         </div>
 
@@ -5001,10 +5076,26 @@ function StaffPage({ onToast }) {
 
       {/* 역할(KPI 카테고리) 분포 박스 제거 — 프로젝트별 배정 + 부서·소속 필드 모두 폐지 */}
       {totalAdmins > 0 && (
-        <div style={{ padding:'8px 14px', marginBottom:14, fontSize:11, color:'var(--or-d)', fontWeight:800 }}>
+        <div style={{ padding:'8px 14px', marginBottom:8, fontSize:11, color:'var(--or-d)', fontWeight:800 }}>
           마스터 관리자 {totalAdmins}명
         </div>
       )}
+
+      {/* 🔗 페이지 매핑 미설정·무효 경고 — 4인 체제 정합성 점검 */}
+      {(() => {
+        const issues = list.filter(s => s.active !== false && !KPI_MEMBER_IDS.includes(s.kpiMemberId));
+        if (issues.length === 0) return null;
+        return (
+          <div style={{ padding:'12px 16px', marginBottom:14, background:'#FEE2E2', border:'1.5px solid #FCA5A5', borderRadius:10, fontSize:12, color:'#991B1B', fontWeight:700, lineHeight:1.7 }}>
+            ⚠️ <b>페이지 매핑 ID 미설정·무효 담당자 {issues.length}명</b>:
+            <div style={{ fontSize:11.5, fontWeight:600, color:'#7F1D1D', marginTop:4 }}>
+              {issues.map(s => `${s.name}${s.kpiMemberId ? ` (현재 "${s.kpiMemberId}" — 무효)` : ' (미설정)'}`).join(' · ')}
+              <br/>각 담당자 수정 → "🔗 페이지 매핑 ID *" select에서 4명 중 선택 (이름이 인식되면 🤖 자동 추천 버튼).
+              <br/>또는 프로젝트 페이지의 <b>[🔄 본인 매핑 재계산]</b>으로 4명 일괄 자동 매핑.
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ─── 검색 + 필터 + 뷰 토글 ─── */}
       <div style={{ display:'flex', gap:10, marginBottom:16, flexWrap:'wrap', alignItems:'center' }}>
@@ -5066,6 +5157,13 @@ function StaffPage({ onToast }) {
                     <div style={{ display:'flex', gap:6, marginTop:2, flexWrap:'wrap', alignItems:'center' }}>
                       {s.isAdmin && <span style={{ fontSize:9, fontWeight:900, color:'var(--or-d)', background:'var(--or-l)', padding:'1px 6px', borderRadius:4 }}>마스터 관리자</span>}
                       {s.active === false && <span style={{ fontSize:9, fontWeight:900, color:'#6B7280', background:'#F3F4F6', padding:'1px 6px', borderRadius:4 }}>비활성</span>}
+                      {KPI_MEMBER_IDS.includes(s.kpiMemberId)
+                        ? <span title="페이지 매핑 OK" style={{ fontSize:9, fontWeight:900, color:'#047857', background:'#D1FAE5', padding:'1px 6px', borderRadius:4 }}>🔗 {s.kpiMemberId}</span>
+                        : <span title={s.kpiMemberId ? `현재 "${s.kpiMemberId}" — 무효 (수정해서 4명 중 선택)` : '미설정 (수정해서 4명 중 선택)'}
+                            style={{ fontSize:9, fontWeight:900, color:'#DC2626', background:'#FEE2E2', padding:'1px 6px', borderRadius:4 }}>
+                            ⚠ {s.kpiMemberId ? `"${s.kpiMemberId}" 무효` : '매핑 미설정'}
+                          </span>
+                      }
                     </div>
                   </div>
                 </div>
@@ -5123,6 +5221,10 @@ function StaffPage({ onToast }) {
                             {me && <span style={{ fontSize:9, fontWeight:900, color:'#fff', background:'#2BC472', padding:'1px 6px', borderRadius:999 }}>본인</span>}
                           </div>
                           {s.isAdmin && <div style={{ fontSize:10, fontWeight:800, color:'var(--or-d)' }}>마스터 관리자</div>}
+                          {KPI_MEMBER_IDS.includes(s.kpiMemberId)
+                            ? <div style={{ fontSize:10, fontWeight:800, color:'#047857' }}>🔗 {s.kpiMemberId}</div>
+                            : <div style={{ fontSize:10, fontWeight:800, color:'#DC2626' }}>⚠ {s.kpiMemberId ? `"${s.kpiMemberId}" 무효` : '매핑 미설정'}</div>
+                          }
                         </div>
                       </div>
                     </td>
@@ -6729,18 +6831,9 @@ function ProjectsPage({ onToast }) {
   };
 
   // 🔄 본인/담당자 매핑 재계산 — 시드 후 staff.kpiMemberId 설정한 경우 53개 프로젝트 일괄 보정
-  // 스마트 자동 추론: staff.name에 '송희' 포함 → kpiMemberId='songhee', '민지'→'minji', '란'→'ran'
-  // 1) 미설정 staff를 이름으로 자동 추론 → 미리보기 confirm → staff.kpiMemberId 업데이트
+  // 핵심 정정: 유효한 KPI_MEMBER_IDS(songhee/minji/ran/chaerim)에 없는 옛 값(m1/m2/m3 등)은 무시
+  // 1) 미설정 OR 무효한 값 staff를 이름으로 자동 추론 → 미리보기 confirm → staff.kpiMemberId 업데이트
   // 2) 프로젝트의 ownerStaffId/assigneeStaffIds를 시드 데이터 기준으로 일괄 재계산
-  const inferKpiId = (name) => {
-    const n = String(name || '').trim();
-    if (!n) return null;
-    if (n.includes('송희')) return 'songhee';
-    if (n.includes('민지')) return 'minji';
-    if (n.includes('란')) return 'ran';
-    return null;
-  };
-
   const remapOwners = async () => {
     const seedByCode = {};
     WORKMGMT_PROJECTS_SEED.forEach(p => { if (p.code) seedByCode[p.code] = p; });
@@ -6751,21 +6844,24 @@ function ProjectsPage({ onToast }) {
       (p.collabKeys || []).forEach(k => usedKeys.add(k));
     });
 
-    // 현재 staff의 kpiMemberId 인덱스
+    // 현재 staff의 kpiMemberId 인덱스 — 유효한 ID만 (옛 m1/m2/m3 등은 무시)
     const staffByKpi = {};
-    staffMembers.forEach(s => { if (s.kpiMemberId) staffByKpi[s.kpiMemberId] = s; });
+    staffMembers.forEach(s => {
+      if (s.kpiMemberId && KPI_MEMBER_IDS.includes(s.kpiMemberId)) staffByKpi[s.kpiMemberId] = s;
+    });
 
     // 1단계: 미설정 매칭 ID를 staff 이름으로 자동 추론
     const missing = [...usedKeys].filter(k => !staffByKpi[k]);
-    const autoSuggest = [];  // { staff, inferredId } 목록
+    const autoSuggest = [];  // { staff, inferredId, oldId } 목록
     if (missing.length > 0) {
-      const idToStaff = {};  // 추론 결과 임시 인덱스
+      const idToStaff = {};
       staffMembers.forEach(s => {
-        if (s.kpiMemberId) return;  // 이미 설정된 staff는 건너뜀
-        const id = inferKpiId(s.name);
+        // 이미 유효한 ID 설정된 staff는 건너뜀. 옛 무효 값(m1/m2)인 경우는 추론 시도.
+        if (s.kpiMemberId && KPI_MEMBER_IDS.includes(s.kpiMemberId)) return;
+        const id = inferKpiMemberId(s.name);
         if (id && missing.includes(id) && !idToStaff[id]) {
           idToStaff[id] = s;
-          autoSuggest.push({ staff: s, inferredId: id });
+          autoSuggest.push({ staff: s, inferredId: id, oldId: s.kpiMemberId || null });
         }
       });
 
@@ -6773,15 +6869,18 @@ function ProjectsPage({ onToast }) {
       if (autoSuggest.length === 0) {
         alert(
           `⚠️ 시드 프로젝트의 매칭 ID(${missing.join(', ')})가 staff에 등록되지 않았습니다.\n\n` +
-          `자동 추론도 실패 — 이름에 "송희/민지/란"이 포함된 staff가 필요합니다.\n\n` +
-          `해결: 담당자 관리에서 staff 이름이 김송희·김민지·이란 등으로 등록되어 있어야 합니다.\n` +
-          `또는 [+ 프로젝트 추가]에서 직접 담당자를 선택해 주세요.`
+          `자동 추론도 실패 — 이름에 "송희/민지/란/채림"이 포함된 staff가 필요합니다.\n\n` +
+          `해결: 담당자 관리에서 staff 이름 확인 (김송희·김민지·이란·채림 등),\n` +
+          `또는 각 담당자 수정 → "🔗 페이지 매핑 ID *" 직접 선택.`
         );
         return;
       }
 
-      // 미리보기 confirm
-      const lines = autoSuggest.map(s => `  ${s.staff.name} → ${s.inferredId}`).join('\n');
+      // 미리보기 confirm — 옛 무효 값(m1/m2 등)이 있는 staff는 표기
+      const lines = autoSuggest.map(s => {
+        const fromMsg = s.oldId ? ` (옛 "${s.oldId}" 정정)` : '';
+        return `  ${s.staff.name} → ${s.inferredId}${fromMsg}`;
+      }).join('\n');
       const missingLine = stillMissing.length > 0
         ? `\n\n⚠️ 여전히 매핑 안 됨: ${stillMissing.join(', ')} (해당 owner의 프로젝트는 빈 채로 남음)\n`
         : '';

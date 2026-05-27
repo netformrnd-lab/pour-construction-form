@@ -111,6 +111,7 @@ service cloud.firestore {
     match /pour-kpis/{doc}          { allow read, write: if true; }
     match /pour-meetings/{doc}      { allow read, write: if true; }
     match /pour-journals/{doc}      { allow read, write: if true; }
+    match /pour-ai-reviews/{doc}    { allow read, write: if true; }  // 🤖 AI 주간 점검 결과 누적 (데이터 자산화)
 
     // ─────────────────────────────────────────────
     // POUR스토어 업무관리 — workmgmt.html

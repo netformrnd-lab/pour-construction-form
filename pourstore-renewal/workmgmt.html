@@ -51,6 +51,7 @@ const db = firebase.firestore();
   --songhee: #3182F6;
   --minji: #2BC472;
   --ran: #FF8A00;
+  --chaerim: #9C27B0;  /* 채림 — 운영 인프라 (M3) */
 
   --shadow-sm: 0 1px 3px rgba(15, 31, 92, 0.04);
   --shadow-md: 0 4px 12px rgba(15, 31, 92, 0.06);
@@ -166,6 +167,7 @@ body.in-iframe .meta-bar { display: flex; }
 .p-card.songhee { border-top: 4px solid var(--songhee); }
 .p-card.minji { border-top: 4px solid var(--minji); }
 .p-card.ran { border-top: 4px solid var(--ran); }
+.p-card.chaerim { border-top: 4px solid var(--chaerim); }
 .p-card.is-me { box-shadow: 0 0 0 2px var(--check), var(--shadow-md); background: linear-gradient(180deg, #F3FBF6 0%, #FFFFFF 80%); }
 .p-card.is-unmatched { background: var(--bg-soft); opacity: 0.85; border-style: dashed; }
 .p-card.is-unmatched .p-emoji { filter: grayscale(0.4); opacity: 0.7; }
@@ -253,6 +255,7 @@ body.in-iframe .meta-bar { display: flex; }
 .owner-chip.songhee { background: var(--songhee); }
 .owner-chip.minji { background: var(--minji); }
 .owner-chip.ran { background: var(--ran); }
+.owner-chip.chaerim { background: var(--chaerim); }
 .owner-chip.none { background: var(--bg-subtle); color: var(--text-tertiary); border: 1px dashed var(--border-strong); }
 .collab-list { display: flex; gap: 4px; flex-wrap: wrap; }
 .collab-chip {
@@ -277,7 +280,7 @@ body.in-iframe .meta-bar { display: flex; }
 .memo-body .lbl.s { background: var(--songhee); }
 .memo-body .lbl.m { background: var(--minji); }
 .memo-body .lbl.r { background: var(--ran); }
-.memo-body .lbl.c { background: var(--warn); color: #fff; }
+.memo-body .lbl.c { background: var(--chaerim); color: #fff; }
 
 /* ─── 합계 위젯 ─── */
 .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
@@ -358,7 +361,7 @@ body.in-iframe .meta-bar { display: flex; }
       <div class="hd-title">📋 POUR스토어 업무관리</div>
       <div class="hd-sub">
         <span class="hd-badge">시스템 구축 집중기</span>
-        <span>3인 기준 (송희 · 민지 · 란) · 채림님 합류 시 운영 인프라 배정</span>
+        <span>4인 (송희 · 민지 · 란 · 채림) · 채림 합류 — 운영 인프라 배정 완료 (v3.0)</span>
       </div>
       <div class="hd-update" id="lastUpdate">—</div>
       <div class="hd-update" id="syncStatus" style="margin-top: 3px;">● 동기화 중...</div>
@@ -372,7 +375,7 @@ body.in-iframe .meta-bar { display: flex; }
 
   <!-- ─── iframe 모드 컴팩트 메타바 (어드민 안에서만 표시) ─── -->
   <div class="meta-bar" id="metaBar">
-    <span class="meta-pill"><span style="font-size:13px">📋</span> <b>업무관리</b> · 3인 (송희·민지·란) · 53 프로젝트 (G 조달청·관급 신설)</span>
+    <span class="meta-pill"><span style="font-size:13px">📋</span> <b>업무관리</b> · 4인 (송희·민지·란·채림) · 53 프로젝트 (G 조달청·관급 신설)</span>
     <span class="meta-pill" id="metaSync"><span class="dot"></span> 동기화 중...</span>
     <span class="meta-pill" id="metaMe" style="display:none;"></span>
     <span class="meta-pill" id="metaUpdate" style="display:none;"></span>
@@ -490,6 +493,7 @@ const DATA = {
     { key: 'songhee', name: '송희', role: 'LEAD', area: '정책·소싱·세팅 · 리뉴얼·병목 시 직접 투입 · 큰 협상 직접', emoji: '🧑‍💼' },
     { key: 'minji',   name: '민지',   role: 'M1',   area: '콘텐츠·등록 · 자사몰·마켓·도매처 SKU · 매거진',           emoji: '👩‍🎨' },
     { key: 'ran',     name: '란',   role: 'M2',   area: '마케팅·영업·B2B 푸시 · B2B는 무조건 란',                emoji: '👩‍💼' },
+    { key: 'chaerim', name: '채림', role: 'M3',   area: '운영 인프라 · 주문·발주 · 재고관리 · 반품 CS (그로홈 + POUR)', emoji: '👩‍💻' },
   ],
   projects: [
     // KR1 — 자사몰 구축·운영 (7)
@@ -552,9 +556,9 @@ const DATA = {
     { id: 'p406', kr: 'KR2', group: '조달청·관급 (G)', name: '관리소장 직판 영업 (관리소장 수의계약 가능 안내)',     owner: 'ran',     collab: [{ person: 'songhee', role: '정책' }] },
     { id: 'p407', kr: 'KR2', group: '조달청·관급 (G)', name: '관급 스펙 카피라이팅 (시험성적서·신장률·내후성·친환경)', owner: 'minji',   collab: [{ person: 'songhee', role: '검수' }] },
     // 운영 인프라 (3, 미정)
-    { id: 'p300', kr: null,  group: '운영 인프라', name: '주문·발주 (그로홈 + POUR스토어)',      owner: null,      collab: [], note: '채림님 합류 시 배정' },
-    { id: 'p301', kr: null,  group: '운영 인프라', name: '재고관리',                            owner: null,      collab: [], note: '채림님 합류 시 배정' },
-    { id: 'p302', kr: null,  group: '운영 인프라', name: '반품 CS',                            owner: null,      collab: [], note: '채림님 합류 시 배정' },
+    { id: 'p300', kr: null,  group: '운영 인프라', name: '주문·발주 (그로홈 + POUR스토어)',      owner: 'chaerim', collab: [] },
+    { id: 'p301', kr: null,  group: '운영 인프라', name: '재고관리',                            owner: 'chaerim', collab: [] },
+    { id: 'p302', kr: null,  group: '운영 인프라', name: '반품 CS',                            owner: 'chaerim', collab: [] },
   ],
 };
 

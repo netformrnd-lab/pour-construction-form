@@ -176,6 +176,8 @@ const COLLECTIONS = {
   POUR_JOURNALS: 'pour-journals',     // 업무일지 — { staffId, staffName, date(YYYY-MM-DD), projectId, projectName, content, hoursSpent, progressDelta, mood, attachments:[], createdAt, updatedAt }
   // 거래코드·채널 (workmgmt KR 하위 세부 채널 — 조달청·관급 신설처럼 채널 추가 시 어드민에서 등록)
   WORK_CHANNELS: 'work-channels',     // { code, krGroup('KR1'|'KR2'|'KR3'|'기타'), name, target, unit, description, status('active'|'draft'|'archived'), order, createdAt/By, updatedAt/By }
+  // 🤖 AI 주간 점검 (Friday Review) — Claude API로 매주 분석 + 데이터 자산화
+  POUR_AI_REVIEWS: 'pour-ai-reviews', // { weekOf(YYYY-MM-DD), runAt, runByStaffId, runByStaffName, snapshot:{tasks,projects,kpis,journals 통계}, llm:{model,inputTokens,outputTokens}, insights:{summary,achievements,concerns,recommendations}, abTests:[{projectId,hypothesis,variantA,variantB,metric,duration}], dataInsights:[], rawText, createdAt }
 };
 
 // 담당자 역할·부서·소속 모두 폐지 (POUR스토어 단일 부서 운영 + 프로젝트별 배정으로 대체)
@@ -316,8 +318,9 @@ const NAV = [
 
   // ─ KPI 업무관리센터 (매일 진입) — 자주 사용 ─
   { type: 'divider', label: 'KPI 업무관리센터', group: 'kpi-main', collapsible: true, defaultCollapsed: false },
-  { id: 'dashboard-os', icon: '🏠', label: '오늘 업무',  group: 'kpi-main' },
-  { id: 'journals',     icon: '📝', label: '업무일지',  group: 'kpi-main' },
+  { id: 'dashboard-os', icon: '🏠', label: '오늘 업무',         group: 'kpi-main' },
+  { id: 'journals',     icon: '📝', label: '업무일지',         group: 'kpi-main' },
+  { id: 'ai-review',    icon: '🤖', label: 'AI 주간 점검',     group: 'kpi-main' },
 
   // ─ 업무 DB · 설정 (마스터/룰 등록은 1회 또는 가끔, 평소엔 접어둠) ─
   // 반복업무 = 오늘 업무의 "📌 고정업무" DB. 등록 후엔 매일 자동 노출되므로 DB·설정 그룹.
@@ -7970,6 +7973,421 @@ function InstallAppBanner() {
 }
 
 // ============================================================
+// 🤖 FridayReviewPage — AI 주간 점검 (Claude API 연동)
+// 매주 금요일 [점검 실행] 버튼 클릭 시:
+//   1. 이번 주(월~금) 실데이터 자동 수집 (tasks, projects, kpis, journals, channels)
+//   2. Claude Sonnet에 프롬프트 + 데이터 전달 → 분석
+//   3. 응답 JSON 파싱 → insights/achievements/concerns/recommendations/abTests
+//   4. pour-ai-reviews 컬렉션에 저장 → 누적 데이터 자산화
+// ============================================================
+const AI_REVIEW_CONFIG_KEY = 'pourAiReviewConfig';
+function loadAiReviewConfig() {
+  try { return JSON.parse(localStorage.getItem(AI_REVIEW_CONFIG_KEY) || '{}'); }
+  catch { return {}; }
+}
+function saveAiReviewConfig(cfg) {
+  try { localStorage.setItem(AI_REVIEW_CONFIG_KEY, JSON.stringify(cfg)); } catch {}
+}
+
+// 이번 주(월~금) 데이터 스냅샷 — Claude 입력용
+async function buildWeekSnapshot(activeStaff) {
+  const now = new Date();
+  const day = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((day + 6) % 7));
+  monday.setHours(0,0,0,0);
+  const friday = new Date(monday);
+  friday.setDate(monday.getDate() + 4);
+  friday.setHours(23,59,59,999);
+  const weekOf = monday.toISOString().split('T')[0];
+  const fmtIso = (d) => d.toISOString();
+
+  // 병렬 조회
+  const [staffSnap, tasksSnap, projsSnap, kpisSnap, journalsSnap, channelsSnap] = await Promise.all([
+    db.collection(COLLECTIONS.STAFF).get(),
+    db.collection(COLLECTIONS.POUR_TASKS).get(),
+    db.collection(COLLECTIONS.POUR_PROJECTS).get(),
+    db.collection(COLLECTIONS.POUR_KPIS).get(),
+    db.collection(COLLECTIONS.POUR_JOURNALS).get(),
+    db.collection(COLLECTIONS.WORK_CHANNELS).get(),
+  ]);
+  const staff = staffSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(s => s.active !== false);
+  const tasks = tasksSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const projects = projsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const kpis = kpisSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const journals = journalsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const channels = channelsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  // 이번 주 task 완료 — doneAt이 monday~friday 안
+  const inThisWeek = (iso) => {
+    if (!iso) return false;
+    const t = new Date(iso).getTime();
+    return t >= monday.getTime() && t <= friday.getTime();
+  };
+  const weekDoneTasks = tasks.filter(t => t.done && inThisWeek(t.doneAt));
+  const weekJournals = journals.filter(j => j.date >= weekOf && j.date <= friday.toISOString().split('T')[0]);
+
+  // 담당자별 통계
+  const byStaff = staff.map(s => {
+    const sid = s.id;
+    const doneCount = weekDoneTasks.filter(t => t.staffId === sid).length;
+    const myProjects = projects.filter(p => (p.assigneeStaffIds || []).includes(sid));
+    const avgProgress = myProjects.length === 0 ? 0
+      : Math.round(myProjects.reduce((sum, p) => sum + (Number(p.progress) || 0), 0) / myProjects.length);
+    const myJournals = weekJournals.filter(j => j.staffId === sid);
+    const totalHours = myJournals.reduce((sum, j) => sum + (Number(j.hoursSpent) || 0), 0);
+    return {
+      name: s.name, kpiMemberId: s.kpiMemberId || '미설정',
+      projects: myProjects.length, avgProgress, weekTasksDone: doneCount,
+      weekHours: totalHours, weekJournals: myJournals.length,
+    };
+  });
+
+  // KPI 현황
+  const kpiSummary = kpis.map(k => ({
+    name: k.name, target: k.target, current: k.current || k.baseline || 0, unit: k.unit, source: k.source,
+  }));
+
+  // 프로젝트 진척 (상위 10개 + 정체)
+  const projectSummary = projects
+    .filter(p => p.status !== 'archived')
+    .map(p => ({ name: p.name, group: p.krGroup, progress: p.progress || 0, status: p.status, ownerStaffName: p.ownerStaffName }))
+    .sort((a, b) => (b.progress || 0) - (a.progress || 0));
+
+  return {
+    weekOf, weekStart: fmtIso(monday), weekEnd: fmtIso(friday),
+    runByStaff: activeStaff?.name,
+    teamSize: staff.length,
+    byStaff,
+    weekTasksTotal: weekDoneTasks.length,
+    weekJournalsTotal: weekJournals.length,
+    kpiSummary,
+    projectSummary,
+    channels: channels.filter(c => c.status === 'active').map(c => ({ code: c.code, name: c.name, target: c.target, krGroup: c.krGroup })),
+  };
+}
+
+// Claude 프롬프트 — 분석 + AB 테스트 제안 + 데이터 자산화 통찰
+function buildClaudePrompt(snapshot) {
+  return `당신은 POUR스토어(자재 D2C/B2B 유통 브랜드, 넷폼알앤디 소속)의 운영 분석가입니다.
+4인 팀(송희 LEAD, 민지 M1 콘텐츠·자사몰, 란 M2 마케팅·B2B, 채림 M3 운영 인프라).
+2026년 목표: 매출 10억 — KR1 POUR 직판 5억, KR2 B2B 종합 5억, KR3 운영 시스템 4모듈.
+
+이번 주 실데이터 스냅샷 (월~금):
+${JSON.stringify(snapshot, null, 2)}
+
+다음 JSON 형식으로만 응답하세요 (코드 블록 없이 순수 JSON):
+
+{
+  "summary": "이번 주 한 줄 요약 (성과·이슈 핵심, 50자 이내)",
+  "achievements": ["잘 진행된 항목 (구체적·정량적)", ...],
+  "concerns": ["우려·미진한 항목 (담당자별 부담 균형 포함)", ...],
+  "recommendations": ["다음 주 권장 액션 (실행 가능한 것)", ...],
+  "abTests": [
+    {
+      "projectName": "프로젝트명 (snapshot의 projectSummary에서 선택)",
+      "hypothesis": "검증할 가설 한 문장",
+      "variantA": "변형 A 구체적 설명",
+      "variantB": "변형 B 구체적 설명",
+      "metric": "측정 지표 (예: 클릭률, 전환율, 매출액)",
+      "duration": "권장 기간 (예: 1주, 2주)"
+    }
+  ],
+  "dataInsights": ["축적 데이터로부터 도출 가능한 통찰 (브랜드 성장 기여 관점)", ...]
+}
+
+주의사항:
+- 4인 부담 분배(특히 민지·란) 균형 평가 포함
+- KR1/KR2/KR3 진척도 균형 평가
+- AB 테스트는 실제 실행 가능한 것만 제안 (자사몰 페이지 디자인, 광고 카피, 상품 진열 순서 등)
+- 추정 아닌 데이터 기반 권장
+- 한국어 응답`;
+}
+
+function FridayReviewPage({ onToast }) {
+  const { activeStaff, audit } = useActiveStaffContext();
+  const [config, setConfig] = useState(loadAiReviewConfig);
+  const [showConfig, setShowConfig] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [latestResult, setLatestResult] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+
+  useEffect(() => {
+    const unsub = db.collection(COLLECTIONS.POUR_AI_REVIEWS).onSnapshot(snap => {
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      list.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      setHistory(list);
+      setLoadingHistory(false);
+    }, err => { console.error('[pour-ai-reviews]', err); setLoadingHistory(false); });
+    return unsub;
+  }, []);
+
+  if (!activeStaff) return <div style={{ padding:60, textAlign:'center', color:'var(--text-sm)' }}>활동 담당자 선택이 필요합니다.</div>;
+
+  const today = new Date();
+  const isFriday = today.getDay() === 5;
+  const dayName = ['일','월','화','수','목','금','토'][today.getDay()];
+
+  const cfgValid = !!(config.workerUrl && config.workerSecret && config.claudeApiKey);
+
+  const runReview = async () => {
+    if (!cfgValid) {
+      onToast({ message: '먼저 [⚙️ 설정] 버튼으로 Worker URL/Secret/Claude API Key 입력', type: 'error' });
+      setShowConfig(true);
+      return;
+    }
+    if (!confirm(`이번 주 (월~금) 데이터로 Claude AI 분석을 실행합니다.\n· Cloudflare Worker 호출 (소량 토큰 비용)\n· 결과는 pour-ai-reviews에 누적 저장\n\n진행할까요?`)) return;
+    setRunning(true);
+    setLatestResult(null);
+    try {
+      // 1) 스냅샷 수집
+      const snapshot = await buildWeekSnapshot(activeStaff);
+      const prompt = buildClaudePrompt(snapshot);
+
+      // 2) Worker 호출
+      const res = await fetch(config.workerUrl.replace(/\/+$/, ''), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Worker-Secret': config.workerSecret },
+        body: JSON.stringify({
+          workerSecret: config.workerSecret,
+          claudeApiKey: config.claudeApiKey,
+          model: config.model || 'claude-sonnet-4-20250514',
+          max_tokens: 4096,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || `Worker HTTP ${res.status}`);
+      }
+      const rawText = json.content?.[0]?.text || '';
+      let parsed = null;
+      try {
+        const m = rawText.match(/\{[\s\S]*\}/);
+        if (m) parsed = JSON.parse(m[0]);
+      } catch (e) { /* fallthrough */ }
+
+      // 3) 저장
+      const doc = {
+        weekOf: snapshot.weekOf,
+        runAt: nowIso(),
+        runByStaffId: activeStaff.id, runByStaffName: activeStaff.name,
+        snapshot,
+        llm: {
+          model: json.model || config.model || 'claude-sonnet-4-20250514',
+          inputTokens: json.usage?.input_tokens || null,
+          outputTokens: json.usage?.output_tokens || null,
+        },
+        insights: parsed ? {
+          summary: parsed.summary || '',
+          achievements: parsed.achievements || [],
+          concerns: parsed.concerns || [],
+          recommendations: parsed.recommendations || [],
+        } : null,
+        abTests: parsed?.abTests || [],
+        dataInsights: parsed?.dataInsights || [],
+        rawText,
+        parseError: parsed ? null : 'JSON 파싱 실패 (rawText 참조)',
+        ...audit.create(),
+      };
+      const saved = await db.collection(COLLECTIONS.POUR_AI_REVIEWS).add(doc);
+      setLatestResult({ id: saved.id, ...doc });
+      saveAiReviewConfig({ ...config, lastRun: nowIso() });
+      onToast({ message: `🤖 주간 점검 완료 — pour-ai-reviews에 저장 (input ${doc.llm.inputTokens || '?'}T / output ${doc.llm.outputTokens || '?'}T)`, type: 'success' });
+    } catch (e) {
+      onToast({ message: '점검 실패: ' + e.message, type: 'error' });
+    }
+    setRunning(false);
+  };
+
+  return (
+    <div style={{ padding:'24px 32px', maxWidth:1100 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18, gap:12, flexWrap:'wrap' }}>
+        <div>
+          <h1 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6, marginBottom:4 }}>🤖 AI 주간 점검 (Friday Review)</h1>
+          <div style={{ fontSize:12.5, color:'var(--text-sm)', fontWeight:700, lineHeight:1.7 }}>
+            매주 금요일 1클릭으로 이번 주 실데이터를 Claude AI가 분석 → 데이터 자산화로 브랜드 성장.
+            <br/>오늘은 <b style={{ color: isFriday ? 'var(--or-d)' : 'var(--text)' }}>{dayName}요일{isFriday ? ' (점검 권장일 🔔)' : ''}</b> · 누적 분석 {history.length}건
+          </div>
+        </div>
+        <div style={{ display:'flex', gap:8 }}>
+          <button onClick={() => setShowConfig(true)} title="Claude API 키 · Worker URL 설정" style={{
+            padding:'10px 14px', borderRadius:9, fontSize:12.5, fontWeight:800, color:'var(--text-md)', background:'#fff', border:'1.5px solid var(--border)'
+          }}>⚙️ 설정 {cfgValid ? '✓' : '⚠'}</button>
+          <button onClick={runReview} disabled={running} style={{
+            padding:'10px 22px', borderRadius:10, fontSize:14, fontWeight:900, color:'#fff',
+            background: running ? 'var(--text-sm)' : (isFriday ? 'linear-gradient(135deg, #F59E0B, #EA580C)' : 'linear-gradient(135deg, var(--or), var(--or-d))'),
+            boxShadow:'0 4px 14px rgba(249,115,22,.25)', cursor: running ? 'not-allowed' : 'pointer'
+          }}>{running ? '⏳ 분석 중...' : '🔍 이번 주 점검 실행'}</button>
+        </div>
+      </div>
+
+      {/* 안내 박스 */}
+      <div style={{ padding:'14px 18px', marginBottom:18, background:'#EFF6FF', border:'1.5px solid #BFDBFE', borderRadius:11, fontSize:12, color:'#1E40AF', fontWeight:700, lineHeight:1.7 }}>
+        💡 <b>작동 방식</b>
+        <ol style={{ margin:'4px 0 0 18px', padding:0, fontSize:11.5, color:'#1E3A8A', fontWeight:600 }}>
+          <li><b>데이터 스냅샷 수집</b> — 이번 주 task 완료·KPI 변동·프로젝트 진척·업무일지·담당자별 부담 통계 자동 추출</li>
+          <li><b>Claude Sonnet 분석</b> — 잘한 점·우려·다음 주 권장 액션 + <b>A/B 테스트 제안</b> + 데이터 통찰 도출</li>
+          <li><b>pour-ai-reviews 누적 저장</b> — 매주 분석이 쌓이며 추후 트렌드·실험 효과 측정에 활용 (데이터 자산화)</li>
+        </ol>
+      </div>
+
+      {/* 최근 결과 */}
+      {latestResult && <ReviewResultCard review={latestResult} highlight />}
+
+      {/* 과거 리뷰 목록 */}
+      {history.length > 0 && (
+        <div style={{ marginTop:18 }}>
+          <h2 style={{ fontSize:14, fontWeight:900, color:'var(--navy)', marginBottom:10 }}>📚 누적 리뷰 ({history.length}건)</h2>
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            {history.filter(h => !latestResult || h.id !== latestResult.id).map(r => <ReviewResultCard key={r.id} review={r} />)}
+          </div>
+        </div>
+      )}
+      {!loadingHistory && history.length === 0 && !latestResult && (
+        <div style={{ padding:40, textAlign:'center', background:'#fff', border:'1px dashed var(--border)', borderRadius:12, color:'var(--text-sm)', fontSize:13, fontWeight:600 }}>
+          아직 분석 결과가 없습니다. 우상단 <b>[🔍 이번 주 점검 실행]</b>으로 첫 분석을 진행하세요.
+        </div>
+      )}
+
+      {/* 설정 모달 */}
+      <Modal open={showConfig} onClose={() => setShowConfig(false)} title="⚙️ AI 점검 설정 (1회 입력)" width={560}>
+        <AiReviewConfigForm config={config} onSave={(cfg) => { setConfig(cfg); saveAiReviewConfig(cfg); setShowConfig(false); onToast({ message: '설정 저장 완료', type: 'success' }); }} onCancel={() => setShowConfig(false)} />
+      </Modal>
+    </div>
+  );
+}
+
+function ReviewResultCard({ review, highlight }) {
+  const [open, setOpen] = useState(!!highlight);
+  const ins = review.insights || {};
+  return (
+    <div style={{
+      background:'#fff', borderRadius:12,
+      border: highlight ? '2px solid var(--or)' : '1px solid var(--border)',
+      boxShadow: highlight ? '0 4px 16px rgba(249,115,22,.18)' : 'var(--shadow)',
+      overflow:'hidden'
+    }}>
+      <button onClick={() => setOpen(!open)} style={{ width:'100%', padding:'14px 18px', textAlign:'left', background:'transparent', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+        <div style={{ minWidth:0, flex:1 }}>
+          <div style={{ fontSize:13, fontWeight:900, color:'var(--text)', marginBottom:3 }}>
+            🗓️ {review.weekOf} 주간 점검
+            {highlight && <span style={{ marginLeft:8, fontSize:10, fontWeight:900, color:'#fff', background:'var(--or)', padding:'2px 7px', borderRadius:4 }}>최신</span>}
+          </div>
+          {ins.summary && <div style={{ fontSize:12, fontWeight:700, color:'var(--text-md)' }}>{ins.summary}</div>}
+          <div style={{ fontSize:10, color:'var(--text-sm)', fontWeight:600, marginTop:2 }}>
+            {review.runByStaffName} · {relativeTime(review.runAt || review.createdAt)}
+            {review.llm?.inputTokens && ` · ${review.llm.inputTokens + review.llm.outputTokens} tokens`}
+            {review.parseError && <span style={{ color:'#DC2626', marginLeft:6 }}>⚠ {review.parseError}</span>}
+          </div>
+        </div>
+        <span style={{ fontSize:14, color:'var(--text-sm)' }}>{open ? '▾' : '▸'}</span>
+      </button>
+      {open && (
+        <div style={{ padding:'0 18px 18px', borderTop:'1px dashed var(--border)' }}>
+          {ins.achievements?.length > 0 && (
+            <Section title="🎯 잘 진행된 항목" color="#047857" items={ins.achievements} />
+          )}
+          {ins.concerns?.length > 0 && (
+            <Section title="⚠️ 우려·개선 필요" color="#DC2626" items={ins.concerns} />
+          )}
+          {ins.recommendations?.length > 0 && (
+            <Section title="📝 다음 주 권장 액션" color="var(--or-d)" items={ins.recommendations} />
+          )}
+          {review.abTests?.length > 0 && (
+            <div style={{ marginTop:14 }}>
+              <h4 style={{ fontSize:12, fontWeight:900, color:'#7C3AED', marginBottom:6 }}>🧪 A/B 테스트 제안 ({review.abTests.length})</h4>
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {review.abTests.map((ab, i) => (
+                  <div key={i} style={{ padding:'10px 12px', background:'#F5F3FF', border:'1px solid #DDD6FE', borderRadius:8, fontSize:11.5, fontWeight:600, lineHeight:1.6, color:'#4C1D95' }}>
+                    <div style={{ fontWeight:900, marginBottom:3 }}>📍 {ab.projectName} <span style={{ fontSize:9, color:'#6D28D9', marginLeft:5 }}>{ab.duration}</span></div>
+                    <div><b>가설:</b> {ab.hypothesis}</div>
+                    <div style={{ marginTop:2, display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
+                      <div style={{ padding:'4px 7px', background:'#EDE9FE', borderRadius:5 }}><b>A:</b> {ab.variantA}</div>
+                      <div style={{ padding:'4px 7px', background:'#EDE9FE', borderRadius:5 }}><b>B:</b> {ab.variantB}</div>
+                    </div>
+                    <div style={{ marginTop:3 }}><b>측정:</b> {ab.metric}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {review.dataInsights?.length > 0 && (
+            <Section title="💎 데이터 통찰 (자산화)" color="#1E40AF" items={review.dataInsights} />
+          )}
+          {review.parseError && review.rawText && (
+            <details style={{ marginTop:14, fontSize:11, color:'var(--text-sm)' }}>
+              <summary style={{ cursor:'pointer', fontWeight:800 }}>🔍 원본 응답 보기 (파싱 실패)</summary>
+              <pre style={{ marginTop:6, padding:10, background:'var(--bg)', borderRadius:6, fontSize:10.5, whiteSpace:'pre-wrap', maxHeight:300, overflow:'auto' }}>{review.rawText}</pre>
+            </details>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Section({ title, color, items }) {
+  return (
+    <div style={{ marginTop:14 }}>
+      <h4 style={{ fontSize:12, fontWeight:900, color, marginBottom:6 }}>{title}</h4>
+      <ul style={{ margin:'0 0 0 18px', padding:0, fontSize:11.5, color:'var(--text-md)', fontWeight:600, lineHeight:1.8 }}>
+        {items.map((t, i) => <li key={i}>{t}</li>)}
+      </ul>
+    </div>
+  );
+}
+
+function AiReviewConfigForm({ config, onSave, onCancel }) {
+  const [workerUrl, setWorkerUrl] = useState(config.workerUrl || '');
+  const [workerSecret, setWorkerSecret] = useState(config.workerSecret || '');
+  const [claudeApiKey, setClaudeApiKey] = useState(config.claudeApiKey || '');
+  const [model, setModel] = useState(config.model || 'claude-sonnet-4-20250514');
+  const inputSty = { width:'100%', padding:'10px 12px', border:'1.5px solid var(--border)', borderRadius:8, fontSize:12.5, fontFamily:'monospace', background:'#fff', outline:'none', marginTop:4 };
+  const labelSty = { fontSize:11, fontWeight:800, color:'var(--text-md)', letterSpacing:.3 };
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+      <div style={{ padding:'10px 12px', background:'#FEF3C7', border:'1px dashed #FCD34D', borderRadius:8, fontSize:11, color:'#92400E', fontWeight:700, lineHeight:1.7 }}>
+        ⚠️ 입력값은 <b>localStorage</b>에 저장됩니다 (브라우저별, 본인 PC에만). 다른 담당자도 사용하려면 각자 1회 입력 필요.
+      </div>
+      <div>
+        <label style={labelSty}>Cloudflare Worker URL *</label>
+        <input value={workerUrl} onChange={e => setWorkerUrl(e.target.value)} placeholder="https://pour-claude-proxy.YOURDOMAIN.workers.dev" style={inputSty} />
+        <div style={{ fontSize:10, color:'var(--text-sm)', fontWeight:600, marginTop:3 }}>
+          기존 <code style={{ fontFamily:'monospace', background:'var(--bg)', padding:'1px 4px', borderRadius:3 }}>workers/claude-proxy.js</code> 배포 후 받은 URL. 미배포 시 README 참조.
+        </div>
+      </div>
+      <div>
+        <label style={labelSty}>Worker Secret *</label>
+        <input type="password" value={workerSecret} onChange={e => setWorkerSecret(e.target.value)} placeholder="wrangler secret put WORKER_SECRET 으로 설정한 값" style={inputSty} />
+      </div>
+      <div>
+        <label style={labelSty}>Claude API Key (Anthropic) *</label>
+        <input type="password" value={claudeApiKey} onChange={e => setClaudeApiKey(e.target.value)} placeholder="sk-ant-..." style={inputSty} />
+        <div style={{ fontSize:10, color:'var(--text-sm)', fontWeight:600, marginTop:3 }}>
+          <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" style={{ color:'var(--or-d)', textDecoration:'underline' }}>console.anthropic.com/settings/keys</a> 에서 발급
+        </div>
+      </div>
+      <div>
+        <label style={labelSty}>모델</label>
+        <select value={model} onChange={e => setModel(e.target.value)} style={{ ...inputSty, fontFamily:'inherit' }}>
+          <option value="claude-sonnet-4-20250514">claude-sonnet-4 (균형, 권장)</option>
+          <option value="claude-opus-4-20250514">claude-opus-4 (최고 품질, 더 비쌈)</option>
+          <option value="claude-3-5-haiku-20241022">claude-haiku-3.5 (저렴, 빠름)</option>
+        </select>
+      </div>
+      <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:8 }}>
+        <button onClick={onCancel} style={{ padding:'9px 18px', borderRadius:8, fontSize:12, fontWeight:800, background:'var(--bg)', color:'var(--text-md)' }}>취소</button>
+        <button onClick={() => onSave({ workerUrl: workerUrl.trim(), workerSecret: workerSecret.trim(), claudeApiKey: claudeApiKey.trim(), model })}
+          disabled={!workerUrl.trim() || !workerSecret.trim() || !claudeApiKey.trim()}
+          style={{ padding:'9px 22px', borderRadius:8, fontSize:13, fontWeight:900, color:'#fff', background:'var(--or)', opacity: (!workerUrl.trim() || !workerSecret.trim() || !claudeApiKey.trim()) ? 0.5 : 1 }}>저장</button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // App
 // ============================================================
 function App() {
@@ -8088,6 +8506,7 @@ function App() {
         {active === 'projects' && <ProjectsPage onToast={setToast} />}
         {active === 'journals' && <JournalsPage onToast={setToast} />}
         {active === 'channels' && <ChannelsPage onToast={setToast} />}
+        {active === 'ai-review' && <FridayReviewPage onToast={setToast} />}
         {active === 'preview' && <PreviewPage />}
         {active === 'products' && <ProductsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'metrics' && <MetricsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}

@@ -176,6 +176,8 @@ const COLLECTIONS = {
   POUR_JOURNALS: 'pour-journals',     // 업무일지 — { staffId, staffName, date(YYYY-MM-DD), projectId, projectName, content, hoursSpent, progressDelta, mood, attachments:[], createdAt, updatedAt }
   // 거래코드·채널 (workmgmt KR 하위 세부 채널 — 조달청·관급 신설처럼 채널 추가 시 어드민에서 등록)
   WORK_CHANNELS: 'work-channels',     // { code, krGroup('KR1'|'KR2'|'KR3'|'기타'), name, target, unit, description, status('active'|'draft'|'archived'), order, createdAt/By, updatedAt/By }
+  // 🤖 AI 주간 점검 (Friday Review) — Claude API로 매주 분석 + 데이터 자산화
+  POUR_AI_REVIEWS: 'pour-ai-reviews', // { weekOf(YYYY-MM-DD), runAt, runByStaffId, runByStaffName, snapshot:{tasks,projects,kpis,journals 통계}, llm:{model,inputTokens,outputTokens}, insights:{summary,achievements,concerns,recommendations}, abTests:[{projectId,hypothesis,variantA,variantB,metric,duration}], dataInsights:[], rawText, createdAt }
 };
 
 // 담당자 역할·부서·소속 모두 폐지 (POUR스토어 단일 부서 운영 + 프로젝트별 배정으로 대체)
@@ -316,8 +318,9 @@ const NAV = [
 
   // ─ KPI 업무관리센터 (매일 진입) — 자주 사용 ─
   { type: 'divider', label: 'KPI 업무관리센터', group: 'kpi-main', collapsible: true, defaultCollapsed: false },
-  { id: 'dashboard-os', icon: '🏠', label: '오늘 업무',  group: 'kpi-main' },
-  { id: 'journals',     icon: '📝', label: '업무일지',  group: 'kpi-main' },
+  { id: 'dashboard-os', icon: '🏠', label: '오늘 업무',         group: 'kpi-main' },
+  { id: 'journals',     icon: '📝', label: '업무일지',         group: 'kpi-main' },
+  { id: 'ai-review',    icon: '🤖', label: 'AI 주간 점검',     group: 'kpi-main' },
 
   // ─ 업무 DB · 설정 (마스터/룰 등록은 1회 또는 가끔, 평소엔 접어둠) ─
   // 반복업무 = 오늘 업무의 "📌 고정업무" DB. 등록 후엔 매일 자동 노출되므로 DB·설정 그룹.
@@ -7970,6 +7973,613 @@ function InstallAppBanner() {
 }
 
 // ============================================================
+// 🤖 FridayReviewPage — AI 주간 점검 (Claude API 연동)
+// 매주 금요일 [점검 실행] 버튼 클릭 시:
+//   1. 이번 주(월~금) 실데이터 자동 수집 (tasks, projects, kpis, journals, channels)
+//   2. Claude Sonnet에 프롬프트 + 데이터 전달 → 분석
+//   3. 응답 JSON 파싱 → insights/achievements/concerns/recommendations/abTests
+//   4. pour-ai-reviews 컬렉션에 저장 → 누적 데이터 자산화
+// ============================================================
+const AI_REVIEW_CONFIG_KEY = 'pourAiReviewConfig';
+function loadAiReviewConfig() {
+  try { return JSON.parse(localStorage.getItem(AI_REVIEW_CONFIG_KEY) || '{}'); }
+  catch { return {}; }
+}
+function saveAiReviewConfig(cfg) {
+  try { localStorage.setItem(AI_REVIEW_CONFIG_KEY, JSON.stringify(cfg)); } catch {}
+}
+
+// 이번 주(월~금) 데이터 스냅샷 — Claude 입력용
+async function buildWeekSnapshot(activeStaff) {
+  const now = new Date();
+  const day = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((day + 6) % 7));
+  monday.setHours(0,0,0,0);
+  const friday = new Date(monday);
+  friday.setDate(monday.getDate() + 4);
+  friday.setHours(23,59,59,999);
+  const weekOf = monday.toISOString().split('T')[0];
+  const fmtIso = (d) => d.toISOString();
+
+  // 병렬 조회
+  const [staffSnap, tasksSnap, projsSnap, kpisSnap, journalsSnap, channelsSnap] = await Promise.all([
+    db.collection(COLLECTIONS.STAFF).get(),
+    db.collection(COLLECTIONS.POUR_TASKS).get(),
+    db.collection(COLLECTIONS.POUR_PROJECTS).get(),
+    db.collection(COLLECTIONS.POUR_KPIS).get(),
+    db.collection(COLLECTIONS.POUR_JOURNALS).get(),
+    db.collection(COLLECTIONS.WORK_CHANNELS).get(),
+  ]);
+  const staff = staffSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(s => s.active !== false);
+  const tasks = tasksSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const projects = projsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const kpis = kpisSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const journals = journalsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const channels = channelsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  // 이번 주 task 완료 — doneAt이 monday~friday 안
+  const inThisWeek = (iso) => {
+    if (!iso) return false;
+    const t = new Date(iso).getTime();
+    return t >= monday.getTime() && t <= friday.getTime();
+  };
+  const weekDoneTasks = tasks.filter(t => t.done && inThisWeek(t.doneAt));
+  const weekJournals = journals.filter(j => j.date >= weekOf && j.date <= friday.toISOString().split('T')[0]);
+
+  // 담당자별 통계
+  const byStaff = staff.map(s => {
+    const sid = s.id;
+    const doneCount = weekDoneTasks.filter(t => t.staffId === sid).length;
+    const myProjects = projects.filter(p => (p.assigneeStaffIds || []).includes(sid));
+    const avgProgress = myProjects.length === 0 ? 0
+      : Math.round(myProjects.reduce((sum, p) => sum + (Number(p.progress) || 0), 0) / myProjects.length);
+    const myJournals = weekJournals.filter(j => j.staffId === sid);
+    const totalHours = myJournals.reduce((sum, j) => sum + (Number(j.hoursSpent) || 0), 0);
+    return {
+      name: s.name, kpiMemberId: s.kpiMemberId || '미설정',
+      projects: myProjects.length, avgProgress, weekTasksDone: doneCount,
+      weekHours: totalHours, weekJournals: myJournals.length,
+    };
+  });
+
+  // KPI 현황
+  const kpiSummary = kpis.map(k => ({
+    name: k.name, target: k.target, current: k.current || k.baseline || 0, unit: k.unit, source: k.source,
+  }));
+
+  // 프로젝트 진척 (상위 10개 + 정체)
+  const projectSummary = projects
+    .filter(p => p.status !== 'archived')
+    .map(p => ({ name: p.name, group: p.krGroup, progress: p.progress || 0, status: p.status, ownerStaffName: p.ownerStaffName }))
+    .sort((a, b) => (b.progress || 0) - (a.progress || 0));
+
+  // 어드민 자체 진단용 컨텍스트 — Claude가 어드민의 구조·미흡점·개선 필요를 평가하도록
+  const adminContext = {
+    pages: [
+      { id: 'dashboard', name: '통합 대시보드', purpose: '메인 위젯 (현재 미흡)' },
+      { id: 'dashboard-os', name: '오늘 업무', purpose: '주간 5슬롯·인라인 task 표·빠른 추가·고정업무' },
+      { id: 'journals', name: '업무일지', purpose: '프로젝트별 일지·진척도 누적 (메뉴 폐지 검토 중)' },
+      { id: 'recurring', name: '고정업무(반복)', purpose: '매일/매주/매월 반복 → 오늘 자동 생성' },
+      { id: 'okr', name: 'OKR · 활동지표', purpose: 'Objective→KR→KPI 트리 + 매출 매주 입력' },
+      { id: 'projects', name: '프로젝트', purpose: '55개 프로젝트 CRUD + 담당자 매핑' },
+      { id: 'workmgmt', name: 'KPI 보고 보드 (read-only)', purpose: '외부 보고용 시각화' },
+      { id: 'channels', name: '거래코드·채널', purpose: '거래코드 마스터 + 인쇄 포스터' },
+      { id: 'ai-review', name: 'AI 주간 점검 (Friday Review)', purpose: '이번 주 분석 (← 이 페이지)' },
+      { id: 'preview', name: '자사몰 페이지 관리', purpose: 'pourstore-renewal builder iframe' },
+      { id: 'products', name: '상품관리', purpose: '8개 채널 상품번호 연동' },
+      { id: 'metrics', name: '공신력 수치', purpose: '6개 수치 편집' },
+      { id: 'method-links', name: '링크 관리', purpose: '공법 사이트 URL 관리' },
+      { id: 'staff', name: '담당자 관리', purpose: '4인 마스터 + 페이지 매핑 ID' },
+      { id: 'crm', name: 'CRM센터', purpose: '준비 중 (matching/partners/rules/inquiries)' },
+      { id: 'sales', name: '매출관리센터', purpose: '준비 중 (dealers/po/orders/settlement)' },
+    ],
+    collections: ['staff', 'pour-tasks', 'pour-recurring', 'pour-projects', 'pour-objectives', 'pour-keyresults', 'pour-kpis', 'pour-journals', 'work-channels', 'work-mgmt', 'pour-ai-reviews'],
+    aiReviewHistory: 0,  // 이전 분석 수 (인보크 시점에 갱신)
+    techStack: 'React 18 (Babel standalone) · Firebase Firestore + Storage · Cloudflare Pages · 단일 HTML 파일',
+    knownGaps: [
+      'CRM센터·매출관리센터 메뉴 준비 중 (페이지 코드는 있으나 사이드바 미연결)',
+      '회의록(meetings)·캘린더 흡수 미완',
+      '담당자별 KPI 활동지표 자동 산출 (현재 수동 입력)',
+      'AB 테스트 실행·측정 도구 (현재 권장만, 실행 추적 없음)',
+    ],
+  };
+
+  return {
+    weekOf, weekStart: fmtIso(monday), weekEnd: fmtIso(friday),
+    runByStaff: activeStaff?.name,
+    teamSize: staff.length,
+    byStaff,
+    weekTasksTotal: weekDoneTasks.length,
+    weekJournalsTotal: weekJournals.length,
+    kpiSummary,
+    projectSummary,
+    channels: channels.filter(c => c.status === 'active').map(c => ({ code: c.code, name: c.name, target: c.target, krGroup: c.krGroup })),
+    adminContext,
+  };
+}
+
+// Claude 프롬프트 — 2 트랙 분석:
+//   A) 운영 분석 (프로젝트·업무·KPI·AB 테스트)
+//   B) 어드민 자체 메타 분석 (페이지·기능·UX·개발 필요사항) ← 사용자 핵심 비전
+function buildClaudePrompt(snapshot) {
+  return `당신은 POUR스토어(자재 D2C/B2B 유통 브랜드, 넷폼알앤디 소속)의 운영 분석가이자
+어드민 시스템 자체를 진단하는 프로덕트 분석가입니다.
+4인 팀(송희 LEAD, 민지 M1 콘텐츠·자사몰, 란 M2 마케팅·B2B, 채림 M3 운영 인프라).
+2026년 목표: 매출 10억 — KR1 POUR 직판 5억, KR2 B2B 종합 5억, KR3 운영 시스템 4모듈.
+
+# 분석 입력 (이번 주 실데이터 + 어드민 구조)
+${JSON.stringify(snapshot, null, 2)}
+
+# 출력 — 다음 JSON 형식으로만 응답 (코드 블록 없이 순수 JSON):
+
+{
+  "summary": "이번 주 한 줄 요약 (50자 이내)",
+
+  // ─── A. 운영 분석 (프로젝트·업무·KPI 판단) ───
+  "achievements": ["잘 진행된 항목 (구체적·정량적)", ...],
+  "concerns": ["우려·미진한 항목 (4인 부담 분배 평가 포함)", ...],
+  "recommendations": ["다음 주 권장 액션 (실행 가능한 것)", ...],
+  "abTests": [
+    {
+      "projectName": "프로젝트명 (snapshot의 projectSummary에서 선택)",
+      "hypothesis": "검증할 가설 한 문장",
+      "variantA": "변형 A 구체적 설명",
+      "variantB": "변형 B 구체적 설명",
+      "metric": "측정 지표 (예: 클릭률, 전환율, 매출액)",
+      "duration": "권장 기간 (예: 1주, 2주)"
+    }
+  ],
+  "dataInsights": ["축적 데이터 통찰 (브랜드 성장 기여 관점)", ...],
+
+  // ─── B. 어드민 자체 진단 (시스템 고도화 권장) ───
+  // ★ 4인이 어드민을 사용하면서 부족·불편·개발 필요한 부분을 직접 짚어주세요.
+  // ★ snapshot.adminContext (pages, collections, knownGaps) 참조.
+  // ★ 사용자가 이 제안을 받아 실제 코드 개발에 반영 → 어드민 고도화.
+  "adminDiagnosis": {
+    "missingFeatures": [
+      {
+        "page": "페이지명 (snapshot.adminContext.pages 중)",
+        "feature": "추가할 기능명",
+        "reason": "왜 필요한지 (운영 데이터로부터 근거)",
+        "priority": "high|mid|low",
+        "complexity": "small|medium|large"
+      }
+    ],
+    "uxIssues": [
+      {
+        "page": "페이지명",
+        "issue": "관측된 UX 문제 (사용 패턴·완료율·진입률로부터 추정)",
+        "suggestion": "개선 제안"
+      }
+    ],
+    "dataGaps": [
+      {
+        "topic": "데이터 영역 (예: AB 테스트 추적, 자동 KPI 산출)",
+        "missing": "현재 누락된 데이터·계측",
+        "howToImprove": "구체적 컬렉션·필드·자동화 제안"
+      }
+    ],
+    "developmentSuggestions": [
+      {
+        "title": "신규 페이지·기능 제목",
+        "rationale": "왜 만들어야 하는지 (브랜드 성장 기여)",
+        "expectedImpact": "기대 효과 (정량적이면 좋음)",
+        "complexity": "small|medium|large",
+        "priority": "high|mid|low"
+      }
+    ]
+  }
+}
+
+# 주의사항
+- 4인 부담 분배 (특히 민지·란) 균형 평가 포함
+- KR1/KR2/KR3 진척도 균형 평가
+- AB 테스트는 실제 실행 가능한 것만 제안
+- 어드민 진단은 snapshot.adminContext.pages를 기반으로 구체적 페이지·기능 지목
+- knownGaps 항목은 이미 사용자가 인지한 미흡점 — 우선순위 평가에 활용
+- 추정 아닌 데이터 기반 권장
+- 한국어 응답
+- 한 트랙 안의 항목은 3~5개 권장 (너무 많지 않게, 실행 가능 우선)`;
+}
+
+function FridayReviewPage({ onToast }) {
+  const { activeStaff, audit } = useActiveStaffContext();
+  const [config, setConfig] = useState(loadAiReviewConfig);
+  const [showConfig, setShowConfig] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [latestResult, setLatestResult] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+
+  useEffect(() => {
+    const unsub = db.collection(COLLECTIONS.POUR_AI_REVIEWS).onSnapshot(snap => {
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      list.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      setHistory(list);
+      setLoadingHistory(false);
+    }, err => { console.error('[pour-ai-reviews]', err); setLoadingHistory(false); });
+    return unsub;
+  }, []);
+
+  if (!activeStaff) return <div style={{ padding:60, textAlign:'center', color:'var(--text-sm)' }}>활동 담당자 선택이 필요합니다.</div>;
+
+  const today = new Date();
+  const isFriday = today.getDay() === 5;
+  const dayName = ['일','월','화','수','목','금','토'][today.getDay()];
+
+  const cfgValid = !!(config.workerUrl && config.workerSecret && config.claudeApiKey);
+
+  const runReview = async () => {
+    if (!cfgValid) {
+      onToast({ message: '먼저 [⚙️ 설정] 버튼으로 Worker URL/Secret/Claude API Key 입력', type: 'error' });
+      setShowConfig(true);
+      return;
+    }
+    if (!confirm(`이번 주 (월~금) 데이터로 Claude AI 분석을 실행합니다.\n· Cloudflare Worker 호출 (소량 토큰 비용)\n· 결과는 pour-ai-reviews에 누적 저장\n\n진행할까요?`)) return;
+    setRunning(true);
+    setLatestResult(null);
+    try {
+      // 1) 스냅샷 수집
+      const snapshot = await buildWeekSnapshot(activeStaff);
+      const prompt = buildClaudePrompt(snapshot);
+
+      // 2) Worker 호출
+      const res = await fetch(config.workerUrl.replace(/\/+$/, ''), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Worker-Secret': config.workerSecret },
+        body: JSON.stringify({
+          workerSecret: config.workerSecret,
+          claudeApiKey: config.claudeApiKey,
+          model: config.model || 'claude-sonnet-4-20250514',
+          max_tokens: 4096,
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || `Worker HTTP ${res.status}`);
+      }
+      const rawText = json.content?.[0]?.text || '';
+      let parsed = null;
+      try {
+        const m = rawText.match(/\{[\s\S]*\}/);
+        if (m) parsed = JSON.parse(m[0]);
+      } catch (e) { /* fallthrough */ }
+
+      // 3) 저장
+      const doc = {
+        weekOf: snapshot.weekOf,
+        runAt: nowIso(),
+        runByStaffId: activeStaff.id, runByStaffName: activeStaff.name,
+        snapshot,
+        llm: {
+          model: json.model || config.model || 'claude-sonnet-4-20250514',
+          inputTokens: json.usage?.input_tokens || null,
+          outputTokens: json.usage?.output_tokens || null,
+        },
+        insights: parsed ? {
+          summary: parsed.summary || '',
+          achievements: parsed.achievements || [],
+          concerns: parsed.concerns || [],
+          recommendations: parsed.recommendations || [],
+        } : null,
+        abTests: parsed?.abTests || [],
+        dataInsights: parsed?.dataInsights || [],
+        adminDiagnosis: parsed?.adminDiagnosis || null,
+        rawText,
+        parseError: parsed ? null : 'JSON 파싱 실패 (rawText 참조)',
+        ...audit.create(),
+      };
+      const saved = await db.collection(COLLECTIONS.POUR_AI_REVIEWS).add(doc);
+      setLatestResult({ id: saved.id, ...doc });
+      saveAiReviewConfig({ ...config, lastRun: nowIso() });
+      onToast({ message: `🤖 주간 점검 완료 — pour-ai-reviews에 저장 (input ${doc.llm.inputTokens || '?'}T / output ${doc.llm.outputTokens || '?'}T)`, type: 'success' });
+    } catch (e) {
+      onToast({ message: '점검 실패: ' + e.message, type: 'error' });
+    }
+    setRunning(false);
+  };
+
+  return (
+    <div style={{ padding:'24px 32px', maxWidth:1100 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18, gap:12, flexWrap:'wrap' }}>
+        <div>
+          <h1 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6, marginBottom:4 }}>🤖 AI 주간 점검 (Friday Review)</h1>
+          <div style={{ fontSize:12.5, color:'var(--text-sm)', fontWeight:700, lineHeight:1.7 }}>
+            매주 금요일 1클릭으로 이번 주 실데이터를 Claude AI가 분석 → 데이터 자산화로 브랜드 성장.
+            <br/>오늘은 <b style={{ color: isFriday ? 'var(--or-d)' : 'var(--text)' }}>{dayName}요일{isFriday ? ' (점검 권장일 🔔)' : ''}</b> · 누적 분석 {history.length}건
+          </div>
+        </div>
+        <div style={{ display:'flex', gap:8 }}>
+          <button onClick={() => setShowConfig(true)} title="Claude API 키 · Worker URL 설정" style={{
+            padding:'10px 14px', borderRadius:9, fontSize:12.5, fontWeight:800, color:'var(--text-md)', background:'#fff', border:'1.5px solid var(--border)'
+          }}>⚙️ 설정 {cfgValid ? '✓' : '⚠'}</button>
+          <button onClick={runReview} disabled={running} style={{
+            padding:'10px 22px', borderRadius:10, fontSize:14, fontWeight:900, color:'#fff',
+            background: running ? 'var(--text-sm)' : (isFriday ? 'linear-gradient(135deg, #F59E0B, #EA580C)' : 'linear-gradient(135deg, var(--or), var(--or-d))'),
+            boxShadow:'0 4px 14px rgba(249,115,22,.25)', cursor: running ? 'not-allowed' : 'pointer'
+          }}>{running ? '⏳ 분석 중...' : '🔍 이번 주 점검 실행'}</button>
+        </div>
+      </div>
+
+      {/* 안내 박스 — 2 트랙 분석 */}
+      <div style={{ padding:'14px 18px', marginBottom:18, background:'#EFF6FF', border:'1.5px solid #BFDBFE', borderRadius:11, fontSize:12, color:'#1E40AF', fontWeight:700, lineHeight:1.7 }}>
+        💡 <b>2 트랙 분석 — 운영 판단 + 어드민 자체 고도화</b>
+        <div style={{ marginTop:6, display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+          <div style={{ padding:'8px 10px', background:'#fff', border:'1px solid #BFDBFE', borderRadius:7 }}>
+            <div style={{ fontSize:11.5, fontWeight:900, color:'#1E40AF', marginBottom:3 }}>🅰️ 운영 분석</div>
+            <ul style={{ margin:0, padding:'0 0 0 16px', fontSize:10.5, color:'#1E3A8A', fontWeight:600, lineHeight:1.7 }}>
+              <li>잘 진행된 항목 / 우려</li>
+              <li>다음 주 권장 액션</li>
+              <li>A/B 테스트 제안</li>
+              <li>데이터 통찰 (자산화)</li>
+            </ul>
+          </div>
+          <div style={{ padding:'8px 10px', background:'#fff', border:'1px solid #FCD34D', borderRadius:7 }}>
+            <div style={{ fontSize:11.5, fontWeight:900, color:'#B45309', marginBottom:3 }}>🅱️ 어드민 자체 진단</div>
+            <ul style={{ margin:0, padding:'0 0 0 16px', fontSize:10.5, color:'#7C2D12', fontWeight:600, lineHeight:1.7 }}>
+              <li>📌 누락된 기능 (페이지별)</li>
+              <li>🎨 UX 이슈</li>
+              <li>📊 데이터 갭</li>
+              <li>🚀 개발 제안 (우선순위·복잡도)</li>
+            </ul>
+          </div>
+        </div>
+        <div style={{ marginTop:8, fontSize:10.5, color:'#1E3A8A', fontWeight:600 }}>
+          🅰️로 프로젝트·업무 방향 결정 → 🅱️로 어드민 자체 고도화 → 누적 데이터(pour-ai-reviews)로 브랜드 성장
+        </div>
+      </div>
+
+      {/* 최근 결과 */}
+      {latestResult && <ReviewResultCard review={latestResult} highlight />}
+
+      {/* 과거 리뷰 목록 */}
+      {history.length > 0 && (
+        <div style={{ marginTop:18 }}>
+          <h2 style={{ fontSize:14, fontWeight:900, color:'var(--navy)', marginBottom:10 }}>📚 누적 리뷰 ({history.length}건)</h2>
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            {history.filter(h => !latestResult || h.id !== latestResult.id).map(r => <ReviewResultCard key={r.id} review={r} />)}
+          </div>
+        </div>
+      )}
+      {!loadingHistory && history.length === 0 && !latestResult && (
+        <div style={{ padding:40, textAlign:'center', background:'#fff', border:'1px dashed var(--border)', borderRadius:12, color:'var(--text-sm)', fontSize:13, fontWeight:600 }}>
+          아직 분석 결과가 없습니다. 우상단 <b>[🔍 이번 주 점검 실행]</b>으로 첫 분석을 진행하세요.
+        </div>
+      )}
+
+      {/* 설정 모달 */}
+      <Modal open={showConfig} onClose={() => setShowConfig(false)} title="⚙️ AI 점검 설정 (1회 입력)" width={560}>
+        <AiReviewConfigForm config={config} onSave={(cfg) => { setConfig(cfg); saveAiReviewConfig(cfg); setShowConfig(false); onToast({ message: '설정 저장 완료', type: 'success' }); }} onCancel={() => setShowConfig(false)} />
+      </Modal>
+    </div>
+  );
+}
+
+function ReviewResultCard({ review, highlight }) {
+  const [open, setOpen] = useState(!!highlight);
+  const ins = review.insights || {};
+  return (
+    <div style={{
+      background:'#fff', borderRadius:12,
+      border: highlight ? '2px solid var(--or)' : '1px solid var(--border)',
+      boxShadow: highlight ? '0 4px 16px rgba(249,115,22,.18)' : 'var(--shadow)',
+      overflow:'hidden'
+    }}>
+      <button onClick={() => setOpen(!open)} style={{ width:'100%', padding:'14px 18px', textAlign:'left', background:'transparent', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+        <div style={{ minWidth:0, flex:1 }}>
+          <div style={{ fontSize:13, fontWeight:900, color:'var(--text)', marginBottom:3 }}>
+            🗓️ {review.weekOf} 주간 점검
+            {highlight && <span style={{ marginLeft:8, fontSize:10, fontWeight:900, color:'#fff', background:'var(--or)', padding:'2px 7px', borderRadius:4 }}>최신</span>}
+          </div>
+          {ins.summary && <div style={{ fontSize:12, fontWeight:700, color:'var(--text-md)' }}>{ins.summary}</div>}
+          <div style={{ fontSize:10, color:'var(--text-sm)', fontWeight:600, marginTop:2 }}>
+            {review.runByStaffName} · {relativeTime(review.runAt || review.createdAt)}
+            {review.llm?.inputTokens && ` · ${review.llm.inputTokens + review.llm.outputTokens} tokens`}
+            {review.parseError && <span style={{ color:'#DC2626', marginLeft:6 }}>⚠ {review.parseError}</span>}
+          </div>
+        </div>
+        <span style={{ fontSize:14, color:'var(--text-sm)' }}>{open ? '▾' : '▸'}</span>
+      </button>
+      {open && (
+        <div style={{ padding:'0 18px 18px', borderTop:'1px dashed var(--border)' }}>
+          {ins.achievements?.length > 0 && (
+            <Section title="🎯 잘 진행된 항목" color="#047857" items={ins.achievements} />
+          )}
+          {ins.concerns?.length > 0 && (
+            <Section title="⚠️ 우려·개선 필요" color="#DC2626" items={ins.concerns} />
+          )}
+          {ins.recommendations?.length > 0 && (
+            <Section title="📝 다음 주 권장 액션" color="var(--or-d)" items={ins.recommendations} />
+          )}
+          {review.abTests?.length > 0 && (
+            <div style={{ marginTop:14 }}>
+              <h4 style={{ fontSize:12, fontWeight:900, color:'#7C3AED', marginBottom:6 }}>🧪 A/B 테스트 제안 ({review.abTests.length})</h4>
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {review.abTests.map((ab, i) => (
+                  <div key={i} style={{ padding:'10px 12px', background:'#F5F3FF', border:'1px solid #DDD6FE', borderRadius:8, fontSize:11.5, fontWeight:600, lineHeight:1.6, color:'#4C1D95' }}>
+                    <div style={{ fontWeight:900, marginBottom:3 }}>📍 {ab.projectName} <span style={{ fontSize:9, color:'#6D28D9', marginLeft:5 }}>{ab.duration}</span></div>
+                    <div><b>가설:</b> {ab.hypothesis}</div>
+                    <div style={{ marginTop:2, display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
+                      <div style={{ padding:'4px 7px', background:'#EDE9FE', borderRadius:5 }}><b>A:</b> {ab.variantA}</div>
+                      <div style={{ padding:'4px 7px', background:'#EDE9FE', borderRadius:5 }}><b>B:</b> {ab.variantB}</div>
+                    </div>
+                    <div style={{ marginTop:3 }}><b>측정:</b> {ab.metric}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {review.dataInsights?.length > 0 && (
+            <Section title="💎 데이터 통찰 (자산화)" color="#1E40AF" items={review.dataInsights} />
+          )}
+
+          {/* ★ 어드민 자체 진단 — 사용자 핵심 비전: AI가 어드민 부족점을 짚으면 개발해서 고도화 */}
+          {review.adminDiagnosis && <AdminDiagnosisBlock dx={review.adminDiagnosis} />}
+
+          {review.parseError && review.rawText && (
+            <details style={{ marginTop:14, fontSize:11, color:'var(--text-sm)' }}>
+              <summary style={{ cursor:'pointer', fontWeight:800 }}>🔍 원본 응답 보기 (파싱 실패)</summary>
+              <pre style={{ marginTop:6, padding:10, background:'var(--bg)', borderRadius:6, fontSize:10.5, whiteSpace:'pre-wrap', maxHeight:300, overflow:'auto' }}>{review.rawText}</pre>
+            </details>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 어드민 자체 진단 블록 — Claude가 식별한 페이지 미흡·UX 이슈·데이터 갭·개발 제안
+// 사용자가 이 결과를 받아 개발 작업으로 옮기는 것이 핵심 비전.
+function AdminDiagnosisBlock({ dx }) {
+  const PRIO_COLOR = { high: '#DC2626', mid: '#D97706', low: '#6B7280' };
+  const COMPLEX_COLOR = { small: '#047857', medium: '#D97706', large: '#7C3AED' };
+  const Chip = ({ color, text }) => (
+    <span style={{ fontSize:9, fontWeight:900, color:'#fff', background:color, padding:'1px 6px', borderRadius:4, marginLeft:4, letterSpacing:.3 }}>{text}</span>
+  );
+  const has = (a) => Array.isArray(a) && a.length > 0;
+  return (
+    <div style={{ marginTop:18, padding:'14px 16px', background:'linear-gradient(135deg, #FFF7ED, #FFFBEB)', border:'2px solid #FCD34D', borderRadius:10 }}>
+      <h4 style={{ fontSize:13, fontWeight:900, color:'#B45309', marginBottom:8, letterSpacing:-0.3 }}>
+        🛠️ 어드민센터 자체 진단 · 고도화 제안
+        <span style={{ fontSize:10, fontWeight:700, color:'#92400E', marginLeft:6 }}>(개발 우선순위 결정용)</span>
+      </h4>
+
+      {has(dx.missingFeatures) && (
+        <div style={{ marginBottom:10 }}>
+          <div style={{ fontSize:11, fontWeight:900, color:'#92400E', marginBottom:5 }}>📌 누락된 기능 ({dx.missingFeatures.length})</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+            {dx.missingFeatures.map((f, i) => (
+              <div key={i} style={{ padding:'8px 10px', background:'#fff', border:'1px solid #FED7AA', borderRadius:7, fontSize:11.5, color:'var(--text-md)', fontWeight:600, lineHeight:1.6 }}>
+                <div style={{ fontWeight:900, color:'#0F1F5C' }}>
+                  📍 {f.page} · {f.feature}
+                  <Chip color={PRIO_COLOR[f.priority] || '#6B7280'} text={(f.priority || 'mid').toUpperCase()} />
+                  <Chip color={COMPLEX_COLOR[f.complexity] || '#6B7280'} text={f.complexity || 'medium'} />
+                </div>
+                <div style={{ fontSize:11, color:'var(--text-md)', marginTop:2 }}>{f.reason}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {has(dx.uxIssues) && (
+        <div style={{ marginBottom:10 }}>
+          <div style={{ fontSize:11, fontWeight:900, color:'#92400E', marginBottom:5 }}>🎨 UX 이슈 ({dx.uxIssues.length})</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+            {dx.uxIssues.map((u, i) => (
+              <div key={i} style={{ padding:'8px 10px', background:'#fff', border:'1px solid #FED7AA', borderRadius:7, fontSize:11.5, color:'var(--text-md)', fontWeight:600, lineHeight:1.6 }}>
+                <div style={{ fontWeight:900, color:'#0F1F5C' }}>📍 {u.page}</div>
+                <div style={{ fontSize:11, color:'#DC2626', marginTop:2 }}><b>이슈:</b> {u.issue}</div>
+                <div style={{ fontSize:11, color:'#047857', marginTop:2 }}><b>제안:</b> {u.suggestion}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {has(dx.dataGaps) && (
+        <div style={{ marginBottom:10 }}>
+          <div style={{ fontSize:11, fontWeight:900, color:'#92400E', marginBottom:5 }}>📊 데이터 갭 ({dx.dataGaps.length})</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+            {dx.dataGaps.map((g, i) => (
+              <div key={i} style={{ padding:'8px 10px', background:'#fff', border:'1px solid #FED7AA', borderRadius:7, fontSize:11.5, color:'var(--text-md)', fontWeight:600, lineHeight:1.6 }}>
+                <div style={{ fontWeight:900, color:'#0F1F5C' }}>📍 {g.topic}</div>
+                <div style={{ fontSize:11, color:'#DC2626', marginTop:2 }}><b>누락:</b> {g.missing}</div>
+                <div style={{ fontSize:11, color:'#047857', marginTop:2 }}><b>개선:</b> {g.howToImprove}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {has(dx.developmentSuggestions) && (
+        <div>
+          <div style={{ fontSize:11, fontWeight:900, color:'#92400E', marginBottom:5 }}>🚀 개발 제안 ({dx.developmentSuggestions.length})</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+            {dx.developmentSuggestions.map((d, i) => (
+              <div key={i} style={{ padding:'8px 10px', background:'#fff', border:'1px solid #FED7AA', borderRadius:7, fontSize:11.5, color:'var(--text-md)', fontWeight:600, lineHeight:1.6 }}>
+                <div style={{ fontWeight:900, color:'#0F1F5C' }}>
+                  🚀 {d.title}
+                  <Chip color={PRIO_COLOR[d.priority] || '#6B7280'} text={(d.priority || 'mid').toUpperCase()} />
+                  <Chip color={COMPLEX_COLOR[d.complexity] || '#6B7280'} text={d.complexity || 'medium'} />
+                </div>
+                <div style={{ fontSize:11, color:'var(--text-md)', marginTop:2 }}><b>이유:</b> {d.rationale}</div>
+                <div style={{ fontSize:11, color:'#047857', marginTop:2 }}><b>기대 효과:</b> {d.expectedImpact}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div style={{ marginTop:10, padding:'8px 10px', background:'rgba(180,83,9,.08)', borderRadius:6, fontSize:10.5, color:'#7C2D12', fontWeight:700, lineHeight:1.6 }}>
+        💬 이 진단을 받아 개발에 반영하려면: 우선순위 high·complexity small부터 처리 → 다음 주 점검에서 효과 확인 → 누적 데이터로 어드민 자체가 진화.
+      </div>
+    </div>
+  );
+}
+
+function Section({ title, color, items }) {
+  return (
+    <div style={{ marginTop:14 }}>
+      <h4 style={{ fontSize:12, fontWeight:900, color, marginBottom:6 }}>{title}</h4>
+      <ul style={{ margin:'0 0 0 18px', padding:0, fontSize:11.5, color:'var(--text-md)', fontWeight:600, lineHeight:1.8 }}>
+        {items.map((t, i) => <li key={i}>{t}</li>)}
+      </ul>
+    </div>
+  );
+}
+
+function AiReviewConfigForm({ config, onSave, onCancel }) {
+  const [workerUrl, setWorkerUrl] = useState(config.workerUrl || '');
+  const [workerSecret, setWorkerSecret] = useState(config.workerSecret || '');
+  const [claudeApiKey, setClaudeApiKey] = useState(config.claudeApiKey || '');
+  const [model, setModel] = useState(config.model || 'claude-sonnet-4-20250514');
+  const inputSty = { width:'100%', padding:'10px 12px', border:'1.5px solid var(--border)', borderRadius:8, fontSize:12.5, fontFamily:'monospace', background:'#fff', outline:'none', marginTop:4 };
+  const labelSty = { fontSize:11, fontWeight:800, color:'var(--text-md)', letterSpacing:.3 };
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+      <div style={{ padding:'10px 12px', background:'#FEF3C7', border:'1px dashed #FCD34D', borderRadius:8, fontSize:11, color:'#92400E', fontWeight:700, lineHeight:1.7 }}>
+        ⚠️ 입력값은 <b>localStorage</b>에 저장됩니다 (브라우저별, 본인 PC에만). 다른 담당자도 사용하려면 각자 1회 입력 필요.
+      </div>
+      <div>
+        <label style={labelSty}>Cloudflare Worker URL *</label>
+        <input value={workerUrl} onChange={e => setWorkerUrl(e.target.value)} placeholder="https://pour-claude-proxy.YOURDOMAIN.workers.dev" style={inputSty} />
+        <div style={{ fontSize:10, color:'var(--text-sm)', fontWeight:600, marginTop:3 }}>
+          기존 <code style={{ fontFamily:'monospace', background:'var(--bg)', padding:'1px 4px', borderRadius:3 }}>workers/claude-proxy.js</code> 배포 후 받은 URL. 미배포 시 README 참조.
+        </div>
+      </div>
+      <div>
+        <label style={labelSty}>Worker Secret *</label>
+        <input type="password" value={workerSecret} onChange={e => setWorkerSecret(e.target.value)} placeholder="wrangler secret put WORKER_SECRET 으로 설정한 값" style={inputSty} />
+      </div>
+      <div>
+        <label style={labelSty}>Claude API Key (Anthropic) *</label>
+        <input type="password" value={claudeApiKey} onChange={e => setClaudeApiKey(e.target.value)} placeholder="sk-ant-..." style={inputSty} />
+        <div style={{ fontSize:10, color:'var(--text-sm)', fontWeight:600, marginTop:3 }}>
+          <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" style={{ color:'var(--or-d)', textDecoration:'underline' }}>console.anthropic.com/settings/keys</a> 에서 발급
+        </div>
+      </div>
+      <div>
+        <label style={labelSty}>모델</label>
+        <select value={model} onChange={e => setModel(e.target.value)} style={{ ...inputSty, fontFamily:'inherit' }}>
+          <option value="claude-sonnet-4-20250514">claude-sonnet-4 (균형, 권장)</option>
+          <option value="claude-opus-4-20250514">claude-opus-4 (최고 품질, 더 비쌈)</option>
+          <option value="claude-3-5-haiku-20241022">claude-haiku-3.5 (저렴, 빠름)</option>
+        </select>
+      </div>
+      <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:8 }}>
+        <button onClick={onCancel} style={{ padding:'9px 18px', borderRadius:8, fontSize:12, fontWeight:800, background:'var(--bg)', color:'var(--text-md)' }}>취소</button>
+        <button onClick={() => onSave({ workerUrl: workerUrl.trim(), workerSecret: workerSecret.trim(), claudeApiKey: claudeApiKey.trim(), model })}
+          disabled={!workerUrl.trim() || !workerSecret.trim() || !claudeApiKey.trim()}
+          style={{ padding:'9px 22px', borderRadius:8, fontSize:13, fontWeight:900, color:'#fff', background:'var(--or)', opacity: (!workerUrl.trim() || !workerSecret.trim() || !claudeApiKey.trim()) ? 0.5 : 1 }}>저장</button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // App
 // ============================================================
 function App() {
@@ -8088,6 +8698,7 @@ function App() {
         {active === 'projects' && <ProjectsPage onToast={setToast} />}
         {active === 'journals' && <JournalsPage onToast={setToast} />}
         {active === 'channels' && <ChannelsPage onToast={setToast} />}
+        {active === 'ai-review' && <FridayReviewPage onToast={setToast} />}
         {active === 'preview' && <PreviewPage />}
         {active === 'products' && <ProductsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}
         {active === 'metrics' && <MetricsPage showToast={(msg, type='success') => setToast({ message: msg, type })} />}

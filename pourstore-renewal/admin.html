@@ -325,7 +325,7 @@ const NAV = [
   { id: 'recurring', icon: '📌', label: '고정업무 (반복)',   group: 'kpi-db' },
   { id: 'okr',       icon: '🎯', label: 'OKR · 활동지표',    group: 'kpi-db' },
   { id: 'projects',  icon: '🗂️', label: '프로젝트',          group: 'kpi-db' },
-  { id: 'workmgmt',  icon: '📋', label: '업무관리 (53)',     group: 'kpi-db' },
+  { id: 'workmgmt',  icon: '📊', label: 'KPI 보고 보드',      group: 'kpi-db' },
   { id: 'channels',  icon: '🏷️', label: '거래코드·채널',     group: 'kpi-db' },
   // 캘린더·회의록 → 추후 React 컴포넌트 흡수 예정
 
@@ -4674,9 +4674,9 @@ function WorkMgmtPage() {
         display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap'
       }}>
         <div>
-          <h1 style={{ fontSize:16, fontWeight:900, color:'var(--navy)', marginBottom:2 }}>📋 업무관리</h1>
+          <h1 style={{ fontSize:16, fontWeight:900, color:'var(--navy)', marginBottom:2 }}>📊 KPI 보고 보드 <span style={{ fontSize:10, fontWeight:800, color:'var(--text-sm)', background:'var(--bg)', padding:'2px 7px', borderRadius:5, marginLeft:4, letterSpacing:.3 }}>READ-ONLY · 시각화 전용</span></h1>
           <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700 }}>
-            O1 매출 10억 · KR1/2/3 · 53 프로젝트 (G 조달청·관급 신설) · 3인 (송희·민지·란) · <b>실시간 협업 동기화</b> (work-mgmt/main · Firestore)
+            O1 매출 10억 · KR1/2/3 · 53 프로젝트 · 4인 (송희·민지·란·채림) · <b>외부 보고용 시각화</b>
           </div>
         </div>
         <a href="./workmgmt.html" target="_blank" rel="noopener noreferrer" style={{
@@ -4686,10 +4686,25 @@ function WorkMgmtPage() {
           새창에서 열기 <span style={{ fontSize:10 }}>↗</span>
         </a>
       </div>
+      {/* 안내 배너 — 이 페이지의 정체성 명확화 */}
+      <div style={{
+        padding:'10px 20px', background:'#EFF6FF', borderBottom:'1px solid #BFDBFE',
+        fontSize:11.5, color:'#1E40AF', fontWeight:700, lineHeight:1.6
+      }}>
+        💡 <b>이 보드는 외부 보고용 시각화 화면입니다 (KPI 트리 + 53 프로젝트 체크리스트).</b>
+        실데이터(매출 입력·프로젝트 진척도·담당자 배정)는 별도 페이지에서 관리하세요:
+        <span style={{ marginLeft:4 }}>
+          🎯 <b>OKR · 활동지표</b> (KPI 매출 입력) · 🗂️ <b>프로젝트</b> (53건 진척도·담당자) · 🏠 <b>오늘 업무</b> (task 인라인 편집)
+        </span>
+        <br/>
+        <span style={{ fontSize:10.5, fontWeight:600, color:'#1E3A8A' }}>
+          ※ 본 보드의 체크박스는 work-mgmt/main 단일 문서에 별도 저장되며, OKR/프로젝트 데이터와는 자동 연동되지 않습니다.
+        </span>
+      </div>
       <iframe
         ref={iframeRef}
         src="./workmgmt.html"
-        title="POUR스토어 업무관리"
+        title="POUR스토어 KPI 보고 보드"
         onLoad={sendActiveStaff}
         style={{ flex:1, width:'100%', border:0, background:'#fff' }}
       />

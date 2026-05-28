@@ -1547,22 +1547,22 @@ show('entry');
 <style>
 .pdq *, .pdq *::before, .pdq *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
 .pdq { padding:24px 24px 52px; }
-.pdq-card { max-width:1256px; margin:0 auto; position:relative; border-radius:28px; background:linear-gradient(135deg,#FFFBF5 0%,#FFF4E6 55%,#FFE4C0 100%); color:#0F1F5C; padding:40px 40px 40px 40px; display:grid; grid-template-columns:240px 1fr auto; gap:32px; align-items:center; border:1.5px solid rgba(232,120,15,.22); box-shadow:0 12px 36px rgba(232,120,15,.16), 0 2px 6px rgba(15,31,92,.04); cursor:pointer; transition:.22s; letter-spacing:-0.02em; isolation:isolate; overflow:visible; text-decoration:none; }
+.pdq-card { max-width:1256px; margin:0 auto; position:relative; border-radius:28px; background:linear-gradient(135deg,#FFFBF5 0%,#FFF4E6 55%,#FFE4C0 100%); color:#0F1F5C; padding:36px 44px; display:grid; grid-template-columns:210px minmax(0,1fr) auto; gap:28px; align-items:center; border:1.5px solid rgba(232,120,15,.22); box-shadow:0 12px 36px rgba(232,120,15,.16), 0 2px 6px rgba(15,31,92,.04); cursor:pointer; transition:.22s; letter-spacing:-0.02em; isolation:isolate; overflow:visible; text-decoration:none; }
 .pdq-card:hover { transform:translateY(-3px); box-shadow:0 22px 56px rgba(232,120,15,.26), 0 4px 10px rgba(15,31,92,.06); border-color:rgba(232,120,15,.4); }
 .pdq-card::before { content:''; position:absolute; inset:0; border-radius:28px; overflow:hidden; pointer-events:none; z-index:0; background:radial-gradient(circle at 88% 14%, rgba(232,120,15,.2) 0%, transparent 38%), radial-gradient(circle at 16% 88%, rgba(244,154,58,.16) 0%, transparent 50%); }
 .pdq-card::after { content:''; position:absolute; inset:0; border-radius:28px; overflow:hidden; opacity:.5; pointer-events:none; z-index:0; background-image:radial-gradient(circle, rgba(232,120,15,.16) 1.2px, transparent 1.5px); background-size:22px 22px; }
 .pdq-card > * { position:relative; z-index:1; }
 /* 캐릭터 */
 .pdq-char { position:relative; align-self:end; margin-bottom:-40px; min-height:200px; }
-.pdq-char-img { display:block; width:100%; max-width:240px; height:auto; filter:drop-shadow(0 16px 24px rgba(15,31,92,.2)); }
-.pdq-char-spot { position:absolute; left:50%; bottom:-4px; transform:translateX(-50%); width:200px; height:32px; background:radial-gradient(ellipse, rgba(232,120,15,.32) 0%, transparent 70%); pointer-events:none; z-index:-1; }
+.pdq-char-img { display:block; width:100%; max-width:210px; height:auto; mix-blend-mode:multiply; }
+.pdq-char-spot { position:absolute; left:50%; bottom:-4px; transform:translateX(-50%); width:180px; height:30px; background:radial-gradient(ellipse, rgba(232,120,15,.32) 0%, transparent 70%); pointer-events:none; z-index:-1; }
 /* 텍스트 영역 */
 .pdq-text { min-width:0; }
 .pdq-kicker { display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:800; color:#E8780F; letter-spacing:0.02em; margin-bottom:14px; padding:5px 13px; background:#fff; border:1px solid #FED7AA; border-radius:999px; box-shadow:0 2px 6px rgba(232,120,15,.08); }
 .pdq-kicker .pdq-dot { width:7px; height:7px; border-radius:50%; background:#10B981; animation:pdqDot 1.6s ease-in-out infinite; box-shadow:0 0 0 4px rgba(16,185,129,.22); }
 @keyframes pdqDot { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.5; transform:scale(.85); } }
 /* ★ 핵심 — 큰 말풍선 (캐릭터가 말하는 느낌) */
-.pdq-speech { position:relative; display:inline-block; background:#fff; border:2px solid #0F1F5C; border-radius:22px; padding:20px 28px 22px 32px; box-shadow:0 10px 28px rgba(15,31,92,.16), inset 0 -3px 0 rgba(15,31,92,.05); animation:pdqSway 4s ease-in-out infinite; }
+.pdq-speech { position:relative; display:block; background:#fff; border:2px solid #0F1F5C; border-radius:22px; padding:20px 28px 22px 32px; box-shadow:0 10px 28px rgba(15,31,92,.16), inset 0 -3px 0 rgba(15,31,92,.05); animation:pdqSway 4s ease-in-out infinite; }
 .pdq-speech::before { content:''; position:absolute; left:-12px; top:36px; width:22px; height:22px; background:#fff; border-left:2px solid #0F1F5C; border-bottom:2px solid #0F1F5C; transform:rotate(45deg); }
 .pdq-speech::after { content:'\\201C'; position:absolute; top:-6px; left:14px; font-size:52px; font-weight:900; color:#E8780F; line-height:1; opacity:.7; font-family:Georgia,serif; pointer-events:none; }
 @keyframes pdqSway { 0%,100% { transform:translateY(0) rotate(-0.4deg); } 50% { transform:translateY(-3px) rotate(0.4deg); } }
@@ -1618,7 +1618,7 @@ show('entry');
 <a class="pdq-card" href="./pour-doctor.html">
   <div class="pdq-char">
     <div class="pdq-char-spot"></div>
-    <img class="pdq-char-img" src="./assets/pour-doctor-3d.png" alt="POUR닥터" loading="lazy"/>
+    <img class="pdq-char-img" src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fbeaver_consulting.png?alt=media&token=d41aff22-7b96-4857-8fc8-1838bcf96372" alt="POUR닥터" loading="lazy"/>
   </div>
   <div class="pdq-text">
     <span class="pdq-kicker"><span class="pdq-dot"></span>POUR닥터 · 1:1 진단</span>
@@ -8010,6 +8010,27 @@ show('entry');
         }
       }
       s.migrations.dealerIntroV1 = true;
+    }
+    // 1회성 마이그레이션 — POUR닥터 퀵배너 캐릭터 실제 이미지 반영 + 여백 정리
+    if (!s.migrations.quickBannerImageV2) {
+      const qbPage = s.pages.find(p => p.id === 'main');
+      if (qbPage && Array.isArray(qbPage.sections)) {
+        const idx = qbPage.sections.findIndex(sec => (sec.html || '').indexOf('class="pdq"') !== -1);
+        if (idx !== -1) {
+          const sec = qbPage.sections[idx];
+          const nowQb = new Date().toISOString();
+          const key = qbPage.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason: 'POUR닥터 퀵배너 — 깨진 캐릭터 이미지를 실제 비버 닥터 이미지(Firebase)로 교체 + 말풍선 전체폭·캐릭터 열·패딩 정리로 빈 여백 제거',
+            kind: 'auto-migration', savedAt: nowQb,
+          });
+          sec.html = POUR_DR_QUICK_BANNER_HTML;
+          sec.statusAt = nowQb;
+        }
+      }
+      s.migrations.quickBannerImageV2 = true;
     }
     return s;
   }

@@ -1575,17 +1575,21 @@ show('entry');
 <style>
 .pdq *, .pdq *::before, .pdq *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
 .pdq { padding:20px 24px 48px; }
-.pdq-card { max-width:1256px; margin:0 auto; position:relative; border-radius:24px; background:linear-gradient(135deg,#FFFAF2 0%,#FFF1DF 100%); color:#0F1F5C; padding:26px 32px; display:grid; grid-template-columns:188px minmax(0,1fr); gap:22px; align-items:center; border:1px solid rgba(232,120,15,.18); box-shadow:0 10px 30px rgba(232,120,15,.12), 0 1px 3px rgba(15,31,92,.04); cursor:pointer; transition:transform .22s ease, box-shadow .22s ease; letter-spacing:-0.02em; isolation:isolate; overflow:visible; text-decoration:none; }
+.pdq-card { max-width:1256px; margin:0 auto; position:relative; border-radius:26px; background:linear-gradient(135deg,#FFFBF4 0%,#FFF0DB 100%); color:#0F1F5C; padding:26px 32px; display:grid; grid-template-columns:188px minmax(0,1fr); gap:22px; align-items:center; border:1px solid rgba(232,120,15,.16); box-shadow:0 14px 38px rgba(232,120,15,.16), 0 2px 6px rgba(15,31,92,.05); cursor:pointer; transition:transform .25s cubic-bezier(.2,.8,.25,1), box-shadow .25s ease; letter-spacing:-0.02em; isolation:isolate; overflow:visible; text-decoration:none; }
 .pdq-card:hover { transform:translateY(-2px); box-shadow:0 18px 46px rgba(232,120,15,.2), 0 3px 8px rgba(15,31,92,.06); }
-.pdq-card::before { content:''; position:absolute; inset:0; border-radius:24px; pointer-events:none; z-index:0; background:radial-gradient(120% 90% at 96% 6%, rgba(232,120,15,.13) 0%, transparent 46%); }
+.pdq-card::before { content:''; position:absolute; inset:0; border-radius:26px; pointer-events:none; z-index:0; background:radial-gradient(130% 100% at 97% -8%, rgba(232,120,15,.16) 0%, transparent 48%), radial-gradient(90% 90% at 2% 110%, rgba(244,154,58,.12) 0%, transparent 55%); }
 .pdq-card > * { position:relative; z-index:1; }
-/* 캐릭터 */
+/* 캐릭터 — 살짝 떠오르는 움직임 + 은은한 후광 */
 .pdq-char { position:relative; align-self:end; margin-bottom:-26px; }
-.pdq-char-img { display:block; width:100%; max-width:188px; height:auto; filter:drop-shadow(0 12px 18px rgba(15,31,92,.18)); }
-.pdq-char-spot { position:absolute; left:50%; bottom:4px; transform:translateX(-50%); width:144px; height:22px; background:radial-gradient(ellipse, rgba(232,120,15,.28) 0%, transparent 70%); pointer-events:none; z-index:-1; }
+.pdq-char::after { content:''; position:absolute; left:50%; top:46%; transform:translate(-50%,-50%); width:160px; height:160px; border-radius:50%; background:radial-gradient(circle, rgba(244,154,58,.22) 0%, transparent 62%); z-index:-1; animation:pdqHalo 4s ease-in-out infinite; }
+@keyframes pdqHalo { 0%,100% { opacity:.55; transform:translate(-50%,-50%) scale(.9); } 50% { opacity:.9; transform:translate(-50%,-50%) scale(1.08); } }
+.pdq-char-img { display:block; width:100%; max-width:188px; height:auto; filter:drop-shadow(0 14px 20px rgba(15,31,92,.2)); animation:pdqFloat 3.8s ease-in-out infinite; }
+@keyframes pdqFloat { 0%,100% { transform:translateY(0) rotate(-0.6deg); } 50% { transform:translateY(-7px) rotate(0.6deg); } }
+.pdq-char-spot { position:absolute; left:50%; bottom:2px; transform:translateX(-50%); width:140px; height:20px; background:radial-gradient(ellipse, rgba(232,120,15,.26) 0%, transparent 70%); pointer-events:none; z-index:-1; animation:pdqSpot 3.8s ease-in-out infinite; }
+@keyframes pdqSpot { 0%,100% { opacity:1; transform:translateX(-50%) scaleX(1); } 50% { opacity:.7; transform:translateX(-50%) scaleX(.86); } }
 /* 말풍선 — 메시지 + CTA를 한 박스에 담아 통합 (CTA가 따로 놀지 않게) */
-.pdq-bubble { position:relative; background:#fff; border:1px solid #F6E2C8; border-radius:20px; padding:20px 24px; box-shadow:0 8px 26px rgba(15,31,92,.08); display:flex; align-items:center; gap:24px; }
-.pdq-bubble::before { content:''; position:absolute; left:-8px; top:42px; width:16px; height:16px; background:#fff; border-left:1px solid #F6E2C8; border-bottom:1px solid #F6E2C8; transform:rotate(45deg); }
+.pdq-bubble { position:relative; background:linear-gradient(180deg,#FFFFFF 0%,#FFFCF7 100%); border:1px solid #F7E6CF; border-radius:24px; padding:20px 24px; box-shadow:0 10px 30px rgba(232,120,15,.1), 0 2px 6px rgba(15,31,92,.05); display:flex; align-items:center; gap:24px; }
+.pdq-bubble::before { content:''; position:absolute; left:-8px; top:42px; width:16px; height:16px; background:#fff; border-left:1px solid #F7E6CF; border-bottom:1px solid #F7E6CF; border-radius:0 0 0 4px; transform:rotate(45deg); }
 .pdq-msg { flex:1; min-width:0; }
 .pdq-kicker { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:800; color:#E8780F; margin-bottom:11px; white-space:nowrap; }
 .pdq-dot { width:6px; height:6px; border-radius:50%; background:#10B981; box-shadow:0 0 0 3px rgba(16,185,129,.2); animation:pdqDot 1.7s ease-in-out infinite; flex-shrink:0; }
@@ -1596,17 +1600,26 @@ show('entry');
 .pdq-sub { margin-top:12px; font-size:14px; font-weight:500; color:#5C6675; line-height:1.55; word-break:keep-all; }
 .pdq-sub b { color:#0F1F5C; font-weight:700; }
 .pdq-chips { margin-top:16px; display:flex; gap:8px; flex-wrap:wrap; }
-.pdq-chip { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:600; color:#475569; background:#FFF6EA; border:1px solid #FBE6CC; border-radius:999px; padding:6px 12px; }
+.pdq-chip { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:600; color:#475569; background:#FFF6EA; border:1px solid #FBE6CC; border-radius:999px; padding:6px 12px; transition:transform .18s ease, box-shadow .18s ease; }
 .pdq-chip b { color:#E8780F; font-weight:800; }
-/* CTA — 말풍선 우측, 구분선으로 영역만 분리 */
-.pdq-action { flex-shrink:0; width:196px; display:flex; flex-direction:column; align-items:stretch; gap:9px; padding-left:24px; border-left:1px solid #F3E7D5; }
-.pdq-free { align-self:center; display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:900; color:#fff; background:#EF4444; padding:5px 12px; border-radius:999px; letter-spacing:0.04em; box-shadow:0 4px 10px rgba(239,68,68,.28); }
-.pdq-free::before { content:''; width:5px; height:5px; border-radius:50%; background:#fff; }
-.pdq-cta { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:16px 24px; background:linear-gradient(135deg,#F49A3A 0%,#E8780F 100%); color:#fff; font-size:15px; font-weight:800; border:none; border-radius:14px; cursor:pointer; letter-spacing:-0.02em; box-shadow:0 8px 20px rgba(232,120,15,.35); transition:transform .18s ease, box-shadow .18s ease; }
-.pdq-card:hover .pdq-cta { transform:translateY(-1px); box-shadow:0 12px 26px rgba(232,120,15,.46); }
-.pdq-cta-arrow { font-size:17px; transition:transform .18s ease; }
-.pdq-card:hover .pdq-cta-arrow { transform:translateX(3px); }
+.pdq-card:hover .pdq-chip { box-shadow:0 3px 8px rgba(232,120,15,.12); }
+/* CTA — 말풍선 우측, 부드러운 페이드 구분선으로만 분리 */
+.pdq-action { position:relative; flex-shrink:0; width:196px; display:flex; flex-direction:column; align-items:stretch; gap:9px; padding-left:26px; }
+.pdq-action::before { content:''; position:absolute; left:0; top:12%; bottom:12%; width:1px; background:linear-gradient(180deg, transparent 0%, #F0DCC2 25%, #F0DCC2 75%, transparent 100%); }
+.pdq-free { align-self:center; display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:900; color:#fff; background:#EF4444; padding:5px 12px; border-radius:999px; letter-spacing:0.04em; box-shadow:0 4px 10px rgba(239,68,68,.28); transform-origin:center; animation:pdqFree 3s ease-in-out infinite; }
+.pdq-free::before { content:''; width:5px; height:5px; border-radius:50%; background:#fff; animation:pdqDot 1.7s ease-in-out infinite; }
+@keyframes pdqFree { 0%,88%,100% { transform:rotate(0deg) scale(1); } 92% { transform:rotate(-5deg) scale(1.06); } 96% { transform:rotate(5deg) scale(1.06); } }
+.pdq-cta { position:relative; display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:16px 24px; background:linear-gradient(135deg,#F9A94A 0%,#E8780F 100%); color:#fff; font-size:15px; font-weight:800; border:none; border-radius:16px; cursor:pointer; letter-spacing:-0.02em; box-shadow:0 8px 22px rgba(232,120,15,.4); transition:transform .2s ease, box-shadow .2s ease; animation:pdqCtaBreathe 3.4s ease-in-out infinite; overflow:hidden; }
+@keyframes pdqCtaBreathe { 0%,100% { box-shadow:0 8px 22px rgba(232,120,15,.4); } 50% { box-shadow:0 10px 30px rgba(232,120,15,.55); } }
+.pdq-cta::after { content:''; position:absolute; top:0; left:-60%; width:40%; height:100%; background:linear-gradient(100deg, transparent, rgba(255,255,255,.45), transparent); transform:skewX(-18deg); animation:pdqShine 4.5s ease-in-out infinite; }
+@keyframes pdqShine { 0%,72% { left:-60%; } 86%,100% { left:130%; } }
+.pdq-card:hover .pdq-cta { transform:translateY(-2px) scale(1.02); box-shadow:0 14px 32px rgba(232,120,15,.5); }
+.pdq-cta-arrow { font-size:17px; transition:transform .2s ease; }
+.pdq-card:hover .pdq-cta-arrow { transform:translateX(4px); }
 .pdq-cta-sub { text-align:center; font-size:12px; font-weight:600; color:#94A3B8; }
+@media (prefers-reduced-motion: reduce) {
+  .pdq-char-img, .pdq-char::after, .pdq-char-spot, .pdq-cta, .pdq-cta::after, .pdq-free, .pdq-free::before, .pdq-dot { animation:none !important; }
+}
 /* 태블릿 */
 @media (max-width:900px) {
   .pdq-card { grid-template-columns:138px minmax(0,1fr); gap:14px; padding:22px 20px; }
@@ -8069,7 +8082,7 @@ show('entry');
       s.migrations.quickBannerImageV2 = true;
     }
     // 1회성 마이그레이션 — POUR닥터 퀵배너/검색요정 (투명 배경 비버 + 모바일 세로 재설계)
-    if (!s.migrations.quickBannerRedesignV5) {
+    if (!s.migrations.quickBannerRedesignV6) {
       const mp = s.pages.find(p => p.id === 'main');
       if (mp && Array.isArray(mp.sections)) {
         const nowR = new Date().toISOString();
@@ -8089,7 +8102,7 @@ show('entry');
         swapR('class="pdq"', POUR_DR_QUICK_BANNER_HTML, 'POUR닥터 퀵배너 — 배경 누끼한 투명 비버 이미지 적용(흰 박스 제거) + 모바일 세로 재설계(마스코트 상단 중앙·전체폭 말풍선·풀폭 CTA)');
         swapR('class="psm1"', OHOUSE_V1_SECTION_HTML, '검색바 마스코트 요정 — 배경 누끼한 투명 비버 이미지로 교체(흰 박스 제거), 클릭 시 진단 헬퍼 펼침');
       }
-      s.migrations.quickBannerRedesignV5 = true;
+      s.migrations.quickBannerRedesignV6 = true;
     }
     return s;
   }

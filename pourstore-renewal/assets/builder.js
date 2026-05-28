@@ -1574,8 +1574,8 @@ show('entry');
   const POUR_DR_QUICK_BANNER_HTML = `<section class="pdq">
 <style>
 .pdq *, .pdq *::before, .pdq *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
-.pdq { padding:20px 24px 48px; }
-.pdq-card { max-width:1256px; margin:0 auto; position:relative; border-radius:26px; background:linear-gradient(135deg,#FFFBF4 0%,#FFF0DB 100%); color:#0F1F5C; padding:26px 32px; display:grid; grid-template-columns:188px minmax(0,1fr); gap:22px; align-items:center; border:1px solid rgba(232,120,15,.16); box-shadow:0 14px 38px rgba(232,120,15,.16), 0 2px 6px rgba(15,31,92,.05); cursor:pointer; transition:transform .25s cubic-bezier(.2,.8,.25,1), box-shadow .25s ease; letter-spacing:-0.02em; isolation:isolate; overflow:visible; text-decoration:none; }
+.pdq { padding:14px 24px 18px; display:flex; justify-content:center; }
+.pdq-card { max-width:960px; position:relative; border-radius:26px; background:linear-gradient(135deg,#FFFBF4 0%,#FFF0DB 100%); color:#0F1F5C; padding:22px 30px; display:grid; grid-template-columns:188px auto; gap:24px; align-items:center; border:1px solid rgba(232,120,15,.16); box-shadow:0 14px 38px rgba(232,120,15,.16), 0 2px 6px rgba(15,31,92,.05); cursor:pointer; transition:transform .25s cubic-bezier(.2,.8,.25,1), box-shadow .25s ease; letter-spacing:-0.02em; isolation:isolate; overflow:visible; text-decoration:none; }
 .pdq-card:hover { transform:translateY(-2px); box-shadow:0 18px 46px rgba(232,120,15,.2), 0 3px 8px rgba(15,31,92,.06); }
 .pdq-card::before { content:''; position:absolute; inset:0; border-radius:26px; pointer-events:none; z-index:0; background:radial-gradient(130% 100% at 97% -8%, rgba(232,120,15,.16) 0%, transparent 48%), radial-gradient(90% 90% at 2% 110%, rgba(244,154,58,.12) 0%, transparent 55%); }
 .pdq-card > * { position:relative; z-index:1; }
@@ -1590,11 +1590,11 @@ show('entry');
 /* 말풍선 — 메시지 + CTA를 한 박스에 담아 통합 (CTA가 따로 놀지 않게) */
 .pdq-bubble { position:relative; background:linear-gradient(180deg,#FFFFFF 0%,#FFFCF7 100%); border:1px solid #F7E6CF; border-radius:24px; padding:20px 24px; box-shadow:0 10px 30px rgba(232,120,15,.1), 0 2px 6px rgba(15,31,92,.05); display:flex; align-items:center; gap:24px; }
 .pdq-bubble::before { content:''; position:absolute; left:-8px; top:42px; width:16px; height:16px; background:#fff; border-left:1px solid #F7E6CF; border-bottom:1px solid #F7E6CF; border-radius:0 0 0 4px; transform:rotate(45deg); }
-.pdq-msg { flex:1; min-width:0; }
+.pdq-msg { min-width:0; }
 .pdq-kicker { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:800; color:#E8780F; margin-bottom:11px; white-space:nowrap; }
 .pdq-dot { width:6px; height:6px; border-radius:50%; background:#10B981; box-shadow:0 0 0 3px rgba(16,185,129,.2); animation:pdqDot 1.7s ease-in-out infinite; flex-shrink:0; }
 @keyframes pdqDot { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.45; transform:scale(.8); } }
-.pdq-headline { font-size:26px; font-weight:900; line-height:1.36; letter-spacing:-0.04em; color:#0F1F5C; word-break:keep-all; }
+.pdq-headline { font-size:29px; font-weight:900; line-height:1.34; letter-spacing:-0.04em; color:#0F1F5C; word-break:keep-all; }
 .pdq-headline b { color:#E8780F; font-weight:900; position:relative; display:inline-block; }
 .pdq-headline b::after { content:''; position:absolute; left:-1px; right:-1px; bottom:2px; height:9px; background:rgba(254,210,160,.75); z-index:-1; border-radius:2px; }
 .pdq-sub { margin-top:12px; font-size:14px; font-weight:500; color:#5C6675; line-height:1.55; word-break:keep-all; }
@@ -1622,7 +1622,7 @@ show('entry');
 }
 /* 태블릿 */
 @media (max-width:900px) {
-  .pdq-card { grid-template-columns:138px minmax(0,1fr); gap:14px; padding:22px 20px; }
+  .pdq-card { grid-template-columns:138px auto; gap:14px; padding:20px 20px; }
   .pdq-char-img { max-width:138px; }
   .pdq-char { margin-bottom:-22px; }
   .pdq-char-spot { width:108px; }
@@ -1636,7 +1636,7 @@ show('entry');
 /* 모바일 — 마스코트 상단 중앙 + 세로 스택 (모바일 우선 최적화) */
 @media (max-width:700px) {
   .pdq { padding:10px 12px 24px; }
-  .pdq-card { display:flex; flex-direction:column; align-items:center; text-align:center; gap:0; padding:20px 16px 18px; border-radius:20px; }
+  .pdq-card { width:100%; max-width:480px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:0; padding:20px 16px 18px; border-radius:20px; }
   /* 캐릭터 — 상단 중앙, 말풍선 위로 살짝 겹쳐 "말하는" 느낌 */
   .pdq-char { order:1; align-self:center; margin:0 0 -12px; }
   .pdq-char-img { max-width:100px; }
@@ -8082,7 +8082,7 @@ show('entry');
       s.migrations.quickBannerImageV2 = true;
     }
     // 1회성 마이그레이션 — POUR닥터 퀵배너/검색요정 (투명 배경 비버 + 모바일 세로 재설계)
-    if (!s.migrations.quickBannerRedesignV6) {
+    if (!s.migrations.quickBannerRedesignV7) {
       const mp = s.pages.find(p => p.id === 'main');
       if (mp && Array.isArray(mp.sections)) {
         const nowR = new Date().toISOString();
@@ -8102,7 +8102,7 @@ show('entry');
         swapR('class="pdq"', POUR_DR_QUICK_BANNER_HTML, 'POUR닥터 퀵배너 — 배경 누끼한 투명 비버 이미지 적용(흰 박스 제거) + 모바일 세로 재설계(마스코트 상단 중앙·전체폭 말풍선·풀폭 CTA)');
         swapR('class="psm1"', OHOUSE_V1_SECTION_HTML, '검색바 마스코트 요정 — 배경 누끼한 투명 비버 이미지로 교체(흰 박스 제거), 클릭 시 진단 헬퍼 펼침');
       }
-      s.migrations.quickBannerRedesignV6 = true;
+      s.migrations.quickBannerRedesignV7 = true;
     }
     return s;
   }

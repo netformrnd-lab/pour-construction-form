@@ -1056,7 +1056,7 @@ show('entry');
 .psm1-fairy { position:absolute; right:6px; top:50%; transform:translateY(-50%); width:36px; height:36px; border:none; background:none; padding:0; cursor:pointer; z-index:4; line-height:0; }
 .psm1-fairy-glow { position:absolute; inset:-5px; border-radius:50%; background:radial-gradient(circle, rgba(232,120,15,.32) 0%, transparent 68%); z-index:0; animation:psm1FairyGlow 3s ease-in-out infinite; }
 @keyframes psm1FairyGlow { 0%,100% { opacity:.45; transform:scale(.85); } 50% { opacity:.85; transform:scale(1.12); } }
-.psm1-fairy img { position:relative; z-index:1; width:100%; height:100%; object-fit:contain; mix-blend-mode:multiply; animation:psm1FairyBob 3s ease-in-out infinite; }
+.psm1-fairy img { position:relative; z-index:1; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 2px 3px rgba(15,31,92,.2)); animation:psm1FairyBob 3s ease-in-out infinite; }
 @keyframes psm1FairyBob { 0%,100% { transform:translateY(0) rotate(-4deg); } 50% { transform:translateY(-3px) rotate(4deg); } }
 .psm1-fairy-spark { position:absolute; top:-3px; right:-2px; z-index:2; font-size:11px; pointer-events:none; animation:psm1FairySpark 2.4s ease-in-out infinite; }
 @keyframes psm1FairySpark { 0%,100% { opacity:0; transform:scale(.5) rotate(0deg); } 45% { opacity:1; transform:scale(1) rotate(15deg); } }
@@ -1069,7 +1069,7 @@ show('entry');
 .psm1-helper.open { opacity:1; pointer-events:auto; transform:translateY(0); }
 .psm1-helper::before { content:''; position:absolute; top:-7px; left:32px; width:14px; height:14px; background:#fff; border-left:1px solid #F2F3F5; border-top:1px solid #F2F3F5; transform:rotate(45deg); }
 .psm1-helper-char { flex-shrink:0; width:96px; height:104px; border-radius:14px; overflow:hidden; background:linear-gradient(180deg,#FFF6EC 0%,#FFE7CB 100%); align-self:flex-end; display:flex; align-items:flex-end; justify-content:center; }
-.psm1-helper-char svg, .psm1-helper-char img { width:100%; height:100%; object-fit:contain; object-position:center bottom; display:block; mix-blend-mode:multiply; }
+.psm1-helper-char svg, .psm1-helper-char img { width:100%; height:100%; object-fit:contain; object-position:center bottom; display:block; }
 .psm1-helper-bubble { flex:1; min-width:0; display:flex; flex-direction:column; gap:10px; }
 .psm1-helper-msg { font-size:14px; font-weight:600; color:#2F3438; line-height:1.5; letter-spacing:-0.03em; }
 .psm1-helper-msg b { color:#E8780F; font-weight:800; }
@@ -1190,14 +1190,14 @@ show('entry');
       <!-- 검색창 우측 마스코트 요정 — 클릭 시 진단 헬퍼 펼침 -->
       <button type="button" class="psm1-fairy" data-psm1-fairy aria-label="POUR닥터에게 물어보기">
         <span class="psm1-fairy-glow"></span>
-        <img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fbeaver_consulting.png?alt=media&token=d41aff22-7b96-4857-8fc8-1838bcf96372" alt="POUR닥터" loading="lazy"/>
+        <img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fbeaver_consulting_transparent.png?alt=media&token=aae66b52-2850-4804-8492-fb8b602282ac" alt="POUR닥터" loading="lazy"/>
         <span class="psm1-fairy-spark">✨</span>
         <span class="psm1-fairy-tip">무엇이든 물어보세요!</span>
       </button>
       <!-- 검색 포커스 시 펼쳐지는 POUR닥터 헬퍼 (캐릭터 + 말풍선 + 추천 칩) -->
       <div class="psm1-helper" data-psm1-helper>
         <div class="psm1-helper-char">
-          <img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fbeaver_consulting.png?alt=media&token=d41aff22-7b96-4857-8fc8-1838bcf96372" alt="POUR닥터" loading="lazy"/>
+          <img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fbeaver_consulting_transparent.png?alt=media&token=aae66b52-2850-4804-8492-fb8b602282ac" alt="POUR닥터" loading="lazy"/>
         </div>
         <div class="psm1-helper-bubble">
           <div class="psm1-helper-msg">어떤 <b>어려움</b>이 있으세요?<br/>편하게 말씀해 주세요. <b>사진</b>으로도 가능해요!</div>
@@ -1581,7 +1581,7 @@ show('entry');
 .pdq-card > * { position:relative; z-index:1; }
 /* 캐릭터 */
 .pdq-char { position:relative; align-self:end; margin-bottom:-30px; }
-.pdq-char-img { display:block; width:100%; max-width:196px; height:auto; mix-blend-mode:multiply; }
+.pdq-char-img { display:block; width:100%; max-width:196px; height:auto; filter:drop-shadow(0 12px 18px rgba(15,31,92,.18)); }
 .pdq-char-spot { position:absolute; left:50%; bottom:4px; transform:translateX(-50%); width:150px; height:24px; background:radial-gradient(ellipse, rgba(232,120,15,.28) 0%, transparent 70%); pointer-events:none; z-index:-1; }
 /* 말풍선 — 인사·질문·근거·신뢰칩을 하나로 묶어 캐릭터가 말하는 한 단위 */
 .pdq-bubble { position:relative; background:#fff; border:1px solid #F6E2C8; border-radius:20px; padding:22px 26px; box-shadow:0 8px 26px rgba(15,31,92,.08); }
@@ -1620,30 +1620,41 @@ show('entry');
   .pdq-cta { order:2; }
   .pdq-cta-sub { order:3; }
 }
-/* 모바일 */
+/* 모바일 — 마스코트 상단 중앙 + 세로 스택 (모바일 우선 최적화) */
 @media (max-width:700px) {
-  .pdq { padding:14px 14px 30px; }
-  .pdq-card { padding:20px 16px; grid-template-columns:76px minmax(0,1fr); gap:12px; border-radius:20px; }
-  .pdq-char { margin-bottom:-18px; }
-  .pdq-char-img { max-width:76px; }
-  .pdq-char-spot { width:66px; height:16px; }
-  .pdq-bubble { padding:16px 18px; border-radius:16px; }
-  .pdq-bubble::before { left:-7px; top:30px; width:14px; height:14px; }
-  .pdq-kicker { font-size:11px; margin-bottom:9px; }
-  .pdq-headline { font-size:18px; line-height:1.4; }
-  .pdq-headline b::after { height:7px; }
-  .pdq-sub { font-size:12.5px; margin-top:10px; }
-  .pdq-chips { margin-top:12px; gap:6px; }
+  .pdq { padding:10px 12px 24px; }
+  .pdq-card { display:flex; flex-direction:column; align-items:center; text-align:center; gap:0; padding:20px 16px 18px; border-radius:20px; }
+  /* 캐릭터 — 상단 중앙, 말풍선 위로 살짝 겹쳐 "말하는" 느낌 */
+  .pdq-char { order:1; align-self:center; margin:0 0 -12px; }
+  .pdq-char-img { max-width:100px; }
+  .pdq-char-spot { display:none; }
+  /* 말풍선 — 전체폭, 꼬리는 위(캐릭터)를 향함 */
+  .pdq-bubble { order:2; width:100%; padding:28px 18px 20px; border-radius:18px; }
+  .pdq-bubble::before { left:50%; top:-8px; width:16px; height:16px; transform:translateX(-50%) rotate(45deg); border-left:1px solid #F6E2C8; border-top:1px solid #F6E2C8; border-bottom:0; }
+  .pdq-kicker { font-size:11.5px; margin-bottom:8px; }
+  .pdq-headline { font-size:20px; line-height:1.4; }
+  .pdq-headline b::after { height:8px; }
+  .pdq-sub { font-size:13px; margin-top:9px; }
+  .pdq-chips { margin-top:14px; gap:7px; justify-content:center; }
+  .pdq-chip { font-size:12px; padding:6px 12px; }
+  /* CTA — 풀폭 세로 */
+  .pdq-action { order:3; width:100%; flex-direction:column; align-items:center; gap:9px; margin-top:14px; }
+  .pdq-free { align-self:center; order:1; }
+  .pdq-cta { width:100%; padding:15px 18px; font-size:15px; order:2; }
+  .pdq-cta-sub { order:3; }
+}
+/* 초소형 (≤380px) — 폰트·여백 추가 축소 */
+@media (max-width:380px) {
+  .pdq-char-img { max-width:88px; }
+  .pdq-headline { font-size:18px; }
+  .pdq-chips { gap:6px; }
   .pdq-chip { font-size:11.5px; padding:5px 10px; }
-  .pdq-action { grid-column:1/-1; flex-direction:column; align-items:stretch; gap:8px; margin-top:8px; }
-  .pdq-free { align-self:center; }
-  .pdq-cta { width:100%; padding:14px 18px; font-size:14.5px; }
 }
 </style>
 <a class="pdq-card" href="./pour-doctor.html">
   <div class="pdq-char">
     <div class="pdq-char-spot"></div>
-    <img class="pdq-char-img" src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fbeaver_consulting.png?alt=media&token=d41aff22-7b96-4857-8fc8-1838bcf96372" alt="POUR닥터" loading="lazy"/>
+    <img class="pdq-char-img" src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fbeaver_consulting_transparent.png?alt=media&token=aae66b52-2850-4804-8492-fb8b602282ac" alt="POUR닥터" loading="lazy"/>
   </div>
   <div class="pdq-bubble">
     <span class="pdq-kicker"><span class="pdq-dot"></span>POUR닥터 · 1:1 무료 진단</span>
@@ -8055,8 +8066,8 @@ show('entry');
       }
       s.migrations.quickBannerImageV2 = true;
     }
-    // 1회성 마이그레이션 — POUR닥터 퀵배너 재설계(말풍선 하나로 통합·톤 정리) + 검색바 마스코트 요정 추가
-    if (!s.migrations.quickBannerRedesignV3) {
+    // 1회성 마이그레이션 — POUR닥터 퀵배너/검색요정 (투명 배경 비버 + 모바일 세로 재설계)
+    if (!s.migrations.quickBannerRedesignV4) {
       const mp = s.pages.find(p => p.id === 'main');
       if (mp && Array.isArray(mp.sections)) {
         const nowR = new Date().toISOString();
@@ -8073,10 +8084,10 @@ show('entry');
           sec.html = html;
           sec.statusAt = nowR;
         };
-        swapR('class="pdq"', POUR_DR_QUICK_BANNER_HTML, 'POUR닥터 퀵배너 재설계 — kicker·헤드라인·근거문구·신뢰칩을 하나의 말풍선으로 통합, 무거운 네이비 테두리·과한 장식·독립 흔들림 애니메이션 제거(오늘의집 톤·여백 정리)');
-        swapR('class="psm1"', OHOUSE_V1_SECTION_HTML, '검색바 우측에 POUR닥터 마스코트 요정 추가(살랑 떠다니며 클릭 시 진단 헬퍼 펼침) + 검색 헬퍼 깨진 이미지 → 실제 비버 이미지로 교체');
+        swapR('class="pdq"', POUR_DR_QUICK_BANNER_HTML, 'POUR닥터 퀵배너 — 배경 누끼한 투명 비버 이미지 적용(흰 박스 제거) + 모바일 세로 재설계(마스코트 상단 중앙·전체폭 말풍선·풀폭 CTA)');
+        swapR('class="psm1"', OHOUSE_V1_SECTION_HTML, '검색바 마스코트 요정 — 배경 누끼한 투명 비버 이미지로 교체(흰 박스 제거), 클릭 시 진단 헬퍼 펼침');
       }
-      s.migrations.quickBannerRedesignV3 = true;
+      s.migrations.quickBannerRedesignV4 = true;
     }
     return s;
   }

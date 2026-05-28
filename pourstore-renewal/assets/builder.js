@@ -1575,17 +1575,18 @@ show('entry');
 <style>
 .pdq *, .pdq *::before, .pdq *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
 .pdq { padding:20px 24px 48px; }
-.pdq-card { max-width:1256px; margin:0 auto; position:relative; border-radius:24px; background:linear-gradient(135deg,#FFFAF2 0%,#FFF1DF 100%); color:#0F1F5C; padding:30px 36px; display:grid; grid-template-columns:196px minmax(0,1fr) 208px; gap:30px; align-items:center; border:1px solid rgba(232,120,15,.18); box-shadow:0 10px 30px rgba(232,120,15,.12), 0 1px 3px rgba(15,31,92,.04); cursor:pointer; transition:transform .22s ease, box-shadow .22s ease; letter-spacing:-0.02em; isolation:isolate; overflow:visible; text-decoration:none; }
+.pdq-card { max-width:1256px; margin:0 auto; position:relative; border-radius:24px; background:linear-gradient(135deg,#FFFAF2 0%,#FFF1DF 100%); color:#0F1F5C; padding:26px 32px; display:grid; grid-template-columns:188px minmax(0,1fr); gap:22px; align-items:center; border:1px solid rgba(232,120,15,.18); box-shadow:0 10px 30px rgba(232,120,15,.12), 0 1px 3px rgba(15,31,92,.04); cursor:pointer; transition:transform .22s ease, box-shadow .22s ease; letter-spacing:-0.02em; isolation:isolate; overflow:visible; text-decoration:none; }
 .pdq-card:hover { transform:translateY(-2px); box-shadow:0 18px 46px rgba(232,120,15,.2), 0 3px 8px rgba(15,31,92,.06); }
 .pdq-card::before { content:''; position:absolute; inset:0; border-radius:24px; pointer-events:none; z-index:0; background:radial-gradient(120% 90% at 96% 6%, rgba(232,120,15,.13) 0%, transparent 46%); }
 .pdq-card > * { position:relative; z-index:1; }
 /* 캐릭터 */
-.pdq-char { position:relative; align-self:end; margin-bottom:-30px; }
-.pdq-char-img { display:block; width:100%; max-width:196px; height:auto; filter:drop-shadow(0 12px 18px rgba(15,31,92,.18)); }
-.pdq-char-spot { position:absolute; left:50%; bottom:4px; transform:translateX(-50%); width:150px; height:24px; background:radial-gradient(ellipse, rgba(232,120,15,.28) 0%, transparent 70%); pointer-events:none; z-index:-1; }
-/* 말풍선 — 인사·질문·근거·신뢰칩을 하나로 묶어 캐릭터가 말하는 한 단위 */
-.pdq-bubble { position:relative; background:#fff; border:1px solid #F6E2C8; border-radius:20px; padding:22px 26px; box-shadow:0 8px 26px rgba(15,31,92,.08); }
+.pdq-char { position:relative; align-self:end; margin-bottom:-26px; }
+.pdq-char-img { display:block; width:100%; max-width:188px; height:auto; filter:drop-shadow(0 12px 18px rgba(15,31,92,.18)); }
+.pdq-char-spot { position:absolute; left:50%; bottom:4px; transform:translateX(-50%); width:144px; height:22px; background:radial-gradient(ellipse, rgba(232,120,15,.28) 0%, transparent 70%); pointer-events:none; z-index:-1; }
+/* 말풍선 — 메시지 + CTA를 한 박스에 담아 통합 (CTA가 따로 놀지 않게) */
+.pdq-bubble { position:relative; background:#fff; border:1px solid #F6E2C8; border-radius:20px; padding:20px 24px; box-shadow:0 8px 26px rgba(15,31,92,.08); display:flex; align-items:center; gap:24px; }
 .pdq-bubble::before { content:''; position:absolute; left:-8px; top:42px; width:16px; height:16px; background:#fff; border-left:1px solid #F6E2C8; border-bottom:1px solid #F6E2C8; transform:rotate(45deg); }
+.pdq-msg { flex:1; min-width:0; }
 .pdq-kicker { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:800; color:#E8780F; margin-bottom:11px; white-space:nowrap; }
 .pdq-dot { width:6px; height:6px; border-radius:50%; background:#10B981; box-shadow:0 0 0 3px rgba(16,185,129,.2); animation:pdqDot 1.7s ease-in-out infinite; flex-shrink:0; }
 @keyframes pdqDot { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.45; transform:scale(.8); } }
@@ -1597,8 +1598,8 @@ show('entry');
 .pdq-chips { margin-top:16px; display:flex; gap:8px; flex-wrap:wrap; }
 .pdq-chip { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:600; color:#475569; background:#FFF6EA; border:1px solid #FBE6CC; border-radius:999px; padding:6px 12px; }
 .pdq-chip b { color:#E8780F; font-weight:800; }
-/* CTA */
-.pdq-action { display:flex; flex-direction:column; align-items:stretch; gap:9px; }
+/* CTA — 말풍선 우측, 구분선으로 영역만 분리 */
+.pdq-action { flex-shrink:0; width:196px; display:flex; flex-direction:column; align-items:stretch; gap:9px; padding-left:24px; border-left:1px solid #F3E7D5; }
 .pdq-free { align-self:center; display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:900; color:#fff; background:#EF4444; padding:5px 12px; border-radius:999px; letter-spacing:0.04em; box-shadow:0 4px 10px rgba(239,68,68,.28); }
 .pdq-free::before { content:''; width:5px; height:5px; border-radius:50%; background:#fff; }
 .pdq-cta { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:16px 24px; background:linear-gradient(135deg,#F49A3A 0%,#E8780F 100%); color:#fff; font-size:15px; font-weight:800; border:none; border-radius:14px; cursor:pointer; letter-spacing:-0.02em; box-shadow:0 8px 20px rgba(232,120,15,.35); transition:transform .18s ease, box-shadow .18s ease; }
@@ -1608,17 +1609,16 @@ show('entry');
 .pdq-cta-sub { text-align:center; font-size:12px; font-weight:600; color:#94A3B8; }
 /* 태블릿 */
 @media (max-width:900px) {
-  .pdq-card { grid-template-columns:150px minmax(0,1fr); gap:20px; padding:28px 24px; }
-  .pdq-char-img { max-width:150px; }
-  .pdq-char { margin-bottom:-26px; }
-  .pdq-char-spot { width:120px; }
-  .pdq-bubble { padding:18px 22px; }
+  .pdq-card { grid-template-columns:138px minmax(0,1fr); gap:14px; padding:22px 20px; }
+  .pdq-char-img { max-width:138px; }
+  .pdq-char { margin-bottom:-22px; }
+  .pdq-char-spot { width:108px; }
+  .pdq-bubble { gap:16px; padding:16px 18px; }
   .pdq-bubble::before { top:34px; }
-  .pdq-headline { font-size:22px; }
-  .pdq-action { grid-column:1/-1; flex-direction:row; align-items:center; justify-content:flex-end; gap:14px; margin-top:4px; }
-  .pdq-free { align-self:auto; order:1; }
-  .pdq-cta { order:2; }
-  .pdq-cta-sub { order:3; }
+  .pdq-headline { font-size:20px; }
+  .pdq-action { width:150px; padding-left:16px; }
+  .pdq-cta { padding:13px 14px; font-size:13.5px; }
+  .pdq-cta-arrow { font-size:15px; }
 }
 /* 모바일 — 마스코트 상단 중앙 + 세로 스택 (모바일 우선 최적화) */
 @media (max-width:700px) {
@@ -1628,20 +1628,20 @@ show('entry');
   .pdq-char { order:1; align-self:center; margin:0 0 -12px; }
   .pdq-char-img { max-width:100px; }
   .pdq-char-spot { display:none; }
-  /* 말풍선 — 전체폭, 꼬리는 위(캐릭터)를 향함 */
-  .pdq-bubble { order:2; width:100%; padding:28px 18px 20px; border-radius:18px; }
+  /* 말풍선 — 전체폭 세로(메시지→CTA), 꼬리는 위(캐릭터)를 향함 */
+  .pdq-bubble { order:2; width:100%; flex-direction:column; align-items:center; gap:0; padding:28px 18px 20px; border-radius:18px; }
   .pdq-bubble::before { left:50%; top:-8px; width:16px; height:16px; transform:translateX(-50%) rotate(45deg); border-left:1px solid #F6E2C8; border-top:1px solid #F6E2C8; border-bottom:0; }
+  .pdq-msg { width:100%; }
   .pdq-kicker { font-size:11.5px; margin-bottom:8px; }
   .pdq-headline { font-size:20px; line-height:1.4; }
   .pdq-headline b::after { height:8px; }
   .pdq-sub { font-size:13px; margin-top:9px; }
   .pdq-chips { margin-top:14px; gap:7px; justify-content:center; }
   .pdq-chip { font-size:12px; padding:6px 12px; }
-  /* CTA — 풀폭 세로 */
-  .pdq-action { order:3; width:100%; flex-direction:column; align-items:center; gap:9px; margin-top:14px; }
-  .pdq-free { align-self:center; order:1; }
-  .pdq-cta { width:100%; padding:15px 18px; font-size:15px; order:2; }
-  .pdq-cta-sub { order:3; }
+  /* CTA — 말풍선 하단, 구분선으로 분리 */
+  .pdq-action { width:100%; flex-direction:column; align-items:center; gap:9px; border-left:none; padding-left:0; border-top:1px solid #F3E7D5; margin-top:16px; padding-top:16px; }
+  .pdq-free { align-self:center; }
+  .pdq-cta { width:100%; padding:15px 18px; font-size:15px; }
 }
 /* 초소형 (≤380px) — 폰트·여백 추가 축소 */
 @media (max-width:380px) {
@@ -1657,18 +1657,20 @@ show('entry');
     <img class="pdq-char-img" src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fbeaver_consulting_transparent.png?alt=media&token=aae66b52-2850-4804-8492-fb8b602282ac" alt="POUR닥터" loading="lazy"/>
   </div>
   <div class="pdq-bubble">
-    <span class="pdq-kicker"><span class="pdq-dot"></span>POUR닥터 · 1:1 무료 진단</span>
-    <div class="pdq-headline">건물에 어려움이 있다면,<br/><b>편하게 말씀해 주세요!</b></div>
-    <div class="pdq-sub">사진 한 장이면 <b>R&D 박사</b>가 직접 답해드려요.</div>
-    <div class="pdq-chips">
-      <span class="pdq-chip">🩺 박사 직접 답변</span>
-      <span class="pdq-chip">⏱ 평균 응답 <b>3분</b></span>
+    <div class="pdq-msg">
+      <span class="pdq-kicker"><span class="pdq-dot"></span>POUR닥터 · 1:1 무료 진단</span>
+      <div class="pdq-headline">건물에 어려움이 있다면,<br/><b>편하게 말씀해 주세요!</b></div>
+      <div class="pdq-sub">사진 한 장이면 <b>R&D 박사</b>가 직접 답해드려요.</div>
+      <div class="pdq-chips">
+        <span class="pdq-chip">🩺 박사 직접 답변</span>
+        <span class="pdq-chip">⏱ 평균 응답 <b>3분</b></span>
+      </div>
     </div>
-  </div>
-  <div class="pdq-action">
-    <span class="pdq-free">FREE</span>
-    <button class="pdq-cta" type="button">지금 말씀하기 <span class="pdq-cta-arrow">→</span></button>
-    <span class="pdq-cta-sub">사진만 첨부하면 끝</span>
+    <div class="pdq-action">
+      <span class="pdq-free">FREE</span>
+      <button class="pdq-cta" type="button">지금 말씀하기 <span class="pdq-cta-arrow">→</span></button>
+      <span class="pdq-cta-sub">사진만 첨부하면 끝</span>
+    </div>
   </div>
 </a>
 </section>`;
@@ -8067,7 +8069,7 @@ show('entry');
       s.migrations.quickBannerImageV2 = true;
     }
     // 1회성 마이그레이션 — POUR닥터 퀵배너/검색요정 (투명 배경 비버 + 모바일 세로 재설계)
-    if (!s.migrations.quickBannerRedesignV4) {
+    if (!s.migrations.quickBannerRedesignV5) {
       const mp = s.pages.find(p => p.id === 'main');
       if (mp && Array.isArray(mp.sections)) {
         const nowR = new Date().toISOString();
@@ -8087,7 +8089,7 @@ show('entry');
         swapR('class="pdq"', POUR_DR_QUICK_BANNER_HTML, 'POUR닥터 퀵배너 — 배경 누끼한 투명 비버 이미지 적용(흰 박스 제거) + 모바일 세로 재설계(마스코트 상단 중앙·전체폭 말풍선·풀폭 CTA)');
         swapR('class="psm1"', OHOUSE_V1_SECTION_HTML, '검색바 마스코트 요정 — 배경 누끼한 투명 비버 이미지로 교체(흰 박스 제거), 클릭 시 진단 헬퍼 펼침');
       }
-      s.migrations.quickBannerRedesignV4 = true;
+      s.migrations.quickBannerRedesignV5 = true;
     }
     return s;
   }

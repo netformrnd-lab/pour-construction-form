@@ -1575,21 +1575,20 @@ show('entry');
 <style>
 .pdq *, .pdq *::before, .pdq *::after { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
 .pdq { padding:14px 24px 18px; display:flex; justify-content:center; }
-.pdq-card { max-width:960px; position:relative; border-radius:26px; background:linear-gradient(135deg,#FFFBF4 0%,#FFF0DB 100%); color:#0F1F5C; padding:22px 30px; display:grid; grid-template-columns:188px auto; gap:24px; align-items:center; border:1px solid rgba(232,120,15,.16); box-shadow:0 14px 38px rgba(232,120,15,.16), 0 2px 6px rgba(15,31,92,.05); cursor:pointer; transition:transform .25s cubic-bezier(.2,.8,.25,1), box-shadow .25s ease; letter-spacing:-0.02em; isolation:isolate; overflow:visible; text-decoration:none; }
+.pdq-card { max-width:960px; position:relative; border-radius:26px; background:linear-gradient(135deg,#FFFBF4 0%,#FFF0DB 100%); color:#0F1F5C; padding:14px 30px 24px; display:flex; flex-direction:column; align-items:center; gap:0; border:1px solid rgba(232,120,15,.16); box-shadow:0 14px 38px rgba(232,120,15,.16), 0 2px 6px rgba(15,31,92,.05); cursor:pointer; transition:transform .25s cubic-bezier(.2,.8,.25,1), box-shadow .25s ease; letter-spacing:-0.02em; isolation:isolate; overflow:visible; text-decoration:none; }
 .pdq-card:hover { transform:translateY(-2px); box-shadow:0 18px 46px rgba(232,120,15,.2), 0 3px 8px rgba(15,31,92,.06); }
 .pdq-card::before { content:''; position:absolute; inset:0; border-radius:26px; pointer-events:none; z-index:0; background:radial-gradient(130% 100% at 97% -8%, rgba(232,120,15,.16) 0%, transparent 48%), radial-gradient(90% 90% at 2% 110%, rgba(244,154,58,.12) 0%, transparent 55%); }
 .pdq-card > * { position:relative; z-index:1; }
-/* 캐릭터 — 살짝 떠오르는 움직임 + 은은한 후광 */
-.pdq-char { position:relative; align-self:end; margin-bottom:-26px; }
-.pdq-char::after { content:''; position:absolute; left:50%; top:46%; transform:translate(-50%,-50%); width:160px; height:160px; border-radius:50%; background:radial-gradient(circle, rgba(244,154,58,.22) 0%, transparent 62%); z-index:-1; animation:pdqHalo 4s ease-in-out infinite; }
+/* 캐릭터 — 상단 중앙, 살짝 떠오르는 움직임 + 은은한 후광 */
+.pdq-char { position:relative; align-self:center; margin:0 0 -8px; z-index:2; }
+.pdq-char::after { content:''; position:absolute; left:50%; top:46%; transform:translate(-50%,-50%); width:150px; height:150px; border-radius:50%; background:radial-gradient(circle, rgba(244,154,58,.22) 0%, transparent 62%); z-index:-1; animation:pdqHalo 4s ease-in-out infinite; }
 @keyframes pdqHalo { 0%,100% { opacity:.55; transform:translate(-50%,-50%) scale(.9); } 50% { opacity:.9; transform:translate(-50%,-50%) scale(1.08); } }
-.pdq-char-img { display:block; width:100%; max-width:188px; height:auto; filter:drop-shadow(0 14px 20px rgba(15,31,92,.2)); animation:pdqFloat 3.8s ease-in-out infinite; }
-@keyframes pdqFloat { 0%,100% { transform:translateY(0) rotate(-0.6deg); } 50% { transform:translateY(-7px) rotate(0.6deg); } }
-.pdq-char-spot { position:absolute; left:50%; bottom:2px; transform:translateX(-50%); width:140px; height:20px; background:radial-gradient(ellipse, rgba(232,120,15,.26) 0%, transparent 70%); pointer-events:none; z-index:-1; animation:pdqSpot 3.8s ease-in-out infinite; }
-@keyframes pdqSpot { 0%,100% { opacity:1; transform:translateX(-50%) scaleX(1); } 50% { opacity:.7; transform:translateX(-50%) scaleX(.86); } }
+.pdq-char-img { display:block; width:100%; max-width:150px; height:auto; filter:drop-shadow(0 12px 16px rgba(15,31,92,.2)); animation:pdqFloat 3.8s ease-in-out infinite; }
+@keyframes pdqFloat { 0%,100% { transform:translateY(0) rotate(-0.6deg); } 50% { transform:translateY(-6px) rotate(0.6deg); } }
+.pdq-char-spot { display:none; }
 /* 말풍선 — 메시지 + CTA를 한 박스에 담아 통합 (CTA가 따로 놀지 않게) */
 .pdq-bubble { position:relative; background:linear-gradient(180deg,#FFFFFF 0%,#FFFCF7 100%); border:1px solid #F7E6CF; border-radius:24px; padding:20px 24px; box-shadow:0 10px 30px rgba(232,120,15,.1), 0 2px 6px rgba(15,31,92,.05); display:flex; align-items:center; gap:24px; }
-.pdq-bubble::before { content:''; position:absolute; left:-8px; top:42px; width:16px; height:16px; background:#fff; border-left:1px solid #F7E6CF; border-bottom:1px solid #F7E6CF; border-radius:0 0 0 4px; transform:rotate(45deg); }
+.pdq-bubble::before { content:''; position:absolute; left:50%; top:-8px; width:16px; height:16px; background:#fff; border-left:1px solid #F7E6CF; border-top:1px solid #F7E6CF; border-radius:4px 0 0 0; transform:translateX(-50%) rotate(45deg); }
 .pdq-msg { min-width:0; }
 .pdq-kicker { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:800; color:#E8780F; margin-bottom:11px; white-space:nowrap; }
 .pdq-dot { width:6px; height:6px; border-radius:50%; background:#10B981; box-shadow:0 0 0 3px rgba(16,185,129,.2); animation:pdqDot 1.7s ease-in-out infinite; flex-shrink:0; }
@@ -1622,16 +1621,12 @@ show('entry');
 }
 /* 태블릿 */
 @media (max-width:900px) {
-  .pdq-card { grid-template-columns:138px auto; gap:14px; padding:20px 20px; }
-  .pdq-char-img { max-width:138px; }
-  .pdq-char { margin-bottom:-22px; }
-  .pdq-char-spot { width:108px; }
-  .pdq-bubble { gap:16px; padding:16px 18px; }
-  .pdq-bubble::before { top:34px; }
-  .pdq-headline { font-size:20px; }
-  .pdq-action { width:150px; padding-left:16px; }
-  .pdq-cta { padding:13px 14px; font-size:13.5px; }
-  .pdq-cta-arrow { font-size:15px; }
+  .pdq-card { padding:12px 22px 20px; }
+  .pdq-char-img { max-width:132px; }
+  .pdq-bubble { gap:18px; padding:18px 20px; }
+  .pdq-headline { font-size:22px; }
+  .pdq-action { width:160px; padding-left:18px; }
+  .pdq-cta { padding:14px 16px; font-size:14px; }
 }
 /* 모바일 — 마스코트 상단 중앙 + 세로 스택 (모바일 우선 최적화) */
 @media (max-width:700px) {
@@ -1652,7 +1647,8 @@ show('entry');
   .pdq-chips { margin-top:14px; gap:7px; justify-content:center; }
   .pdq-chip { font-size:12px; padding:6px 12px; }
   /* CTA — 말풍선 하단, 구분선으로 분리 */
-  .pdq-action { width:100%; flex-direction:column; align-items:center; gap:9px; border-left:none; padding-left:0; border-top:1px solid #F3E7D5; margin-top:16px; padding-top:16px; }
+  .pdq-action { width:100%; flex-direction:column; align-items:center; gap:9px; padding-left:0; border-top:1px solid #F3E7D5; margin-top:16px; padding-top:16px; }
+  .pdq-action::before { display:none; }
   .pdq-free { align-self:center; }
   .pdq-cta { width:100%; padding:15px 18px; font-size:15px; }
 }
@@ -8082,7 +8078,7 @@ show('entry');
       s.migrations.quickBannerImageV2 = true;
     }
     // 1회성 마이그레이션 — POUR닥터 퀵배너/검색요정 (투명 배경 비버 + 모바일 세로 재설계)
-    if (!s.migrations.quickBannerRedesignV7) {
+    if (!s.migrations.quickBannerRedesignV8) {
       const mp = s.pages.find(p => p.id === 'main');
       if (mp && Array.isArray(mp.sections)) {
         const nowR = new Date().toISOString();
@@ -8102,7 +8098,7 @@ show('entry');
         swapR('class="pdq"', POUR_DR_QUICK_BANNER_HTML, 'POUR닥터 퀵배너 — 배경 누끼한 투명 비버 이미지 적용(흰 박스 제거) + 모바일 세로 재설계(마스코트 상단 중앙·전체폭 말풍선·풀폭 CTA)');
         swapR('class="psm1"', OHOUSE_V1_SECTION_HTML, '검색바 마스코트 요정 — 배경 누끼한 투명 비버 이미지로 교체(흰 박스 제거), 클릭 시 진단 헬퍼 펼침');
       }
-      s.migrations.quickBannerRedesignV7 = true;
+      s.migrations.quickBannerRedesignV8 = true;
     }
     return s;
   }

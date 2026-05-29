@@ -287,6 +287,18 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
 .bma-insight-col.after .bma-insight-txt b{color:var(--accent-dark);}
 @media(max-width:560px){.bma-insight-row{flex-direction:column;gap:11px;}.bma-insight-arrow{transform:rotate(90deg);align-self:flex-start;}}
 
+/* 성장 램프 */
+.ramp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;align-items:end;margin-bottom:18px;padding-top:10px;}
+.ramp-step{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;text-align:center;}
+.ramp-v{font-size:clamp(15px,1.8vw,19px);font-weight:800;color:var(--ink);margin-bottom:10px;letter-spacing:-.02em;}
+.ramp-step.on .ramp-v{color:var(--accent-dark);}
+.ramp-bar{width:100%;max-width:88px;border-radius:12px 12px 0 0;background:linear-gradient(180deg,var(--accent),var(--accent-dark));}
+.ramp-bar.loss{background:linear-gradient(180deg,#ff7a86,var(--red));}
+.ramp-q{font-size:12.5px;font-weight:800;color:var(--ink2);margin-top:12px;}
+.ramp-step.on .ramp-q{color:var(--accent-dark);}
+.ramp-l{font-size:11px;color:var(--ink3);margin-top:4px;font-weight:600;line-height:1.4;}
+@media(max-width:980px){.ramp-grid{grid-template-columns:repeat(2,1fr);}}
+
 /* goal */
 .goal-big{font-size:clamp(72px,11vw,128px);font-weight:800;line-height:1;letter-spacing:-0.04em;background:linear-gradient(135deg,var(--accent),var(--accent-dark));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 .goal-sub{font-size:15px;color:var(--ink2);margin-top:10px;margin-bottom:30px;font-weight:600;}
@@ -389,15 +401,16 @@ body.present-mode .edit-fab{display:none!important;}
     <button class="nav-pill">여정</button>
     <button class="nav-pill">모여라딜</button>
     <button class="nav-pill">직접 팔아보자</button>
+    <button class="nav-pill">협업·모여라딜</button>
     <button class="nav-pill">POUR스토어</button>
     <button class="nav-pill">자사몰 리뉴얼</button>
     <button class="nav-pill">AI솔루션·SKU</button>
-    <button class="nav-pill">대시보드·KPI</button>
-    <button class="nav-pill">팀 구조</button>
-    <button class="nav-pill">협업·모여라딜</button>
     <button class="nav-pill">협업·스토어</button>
+    <button class="nav-pill">팀 구조</button>
+    <button class="nav-pill">대시보드·KPI</button>
     <button class="nav-pill">신규 프로젝트</button>
     <button class="nav-pill">Next</button>
+    <button class="nav-pill">성장 램프</button>
     <button class="nav-pill">목표</button>
   </div>
 </nav>
@@ -435,10 +448,9 @@ body.present-mode .edit-fab{display:none!important;}
   </div>
 </section>
 
-<!-- S1 여정 -->
 <section class="slide" id="s1">
   <div class="slide-header">
-    <div class="sec-num fade">01 · Journey</div>
+    <div class="sec-num fade">01 · JOURNEY</div>
     <h2 class="sec-title fade d1">지원으로 들어와서 구조를 만들었습니다.</h2>
     <p class="sec-desc fade d2">모여라딜 리드였고, 지원 업무로 넘어갔고, 결국 두 프로젝트의 리드가 됐습니다.</p>
   </div>
@@ -490,10 +502,9 @@ body.present-mode .edit-fab{display:none!important;}
   </div>
 </section>
 
-<!-- S2 모여라딜 -->
 <section class="slide" id="s2">
   <div class="slide-header">
-    <div class="sec-num fade">02 · 모여라딜</div>
+    <div class="sec-num fade">PART 1 · 모여라딜 — 성과</div>
     <h2 class="sec-title fade d1">수요는 증명했고, 전환은 이제부터입니다.</h2>
     <p class="sec-desc fade d2">검증된 것(수요·인바운드 146건·8개 수익구조)과 아직 비어 있는 것(전환·실매출)을 분명히 구분합니다.</p>
   </div>
@@ -544,10 +555,9 @@ body.present-mode .edit-fab{display:none!important;}
   </div>
 </section>
 
-<!-- S3 직접 팔아보자 -->
 <section class="slide" id="s3">
   <div class="slide-header">
-    <div class="sec-num fade">03 · 직접 팔아보자</div>
+    <div class="sec-num fade">PART 1 · 모여라딜 — 직접 팔아보자</div>
     <h2 class="sec-title fade d1">이제 직접 팔아봅니다.</h2>
     <p class="sec-desc fade d2">4개의 가설을 동시에 실험 — 하현님이 실행을 열고, 정하님이 본격 가동합니다.</p>
   </div>
@@ -585,10 +595,39 @@ body.present-mode .edit-fab{display:none!important;}
   </div>
 </section>
 
-<!-- S4 POUR스토어 -->
+<section class="slide" id="s7m">
+  <div class="slide-header">
+    <div class="sec-num fade">PART 1 · 모여라딜 — 협업</div>
+    <h2 class="sec-title fade d1">모여라딜 — 누가 무엇을 함께했나.</h2>
+    <p class="sec-desc fade d2">모여라딜 재점화의 핵심 축은 <b>정하님</b> — 송희(리드)와 함께 <b>"직접 팔아보자"</b> 실행을 본격 가동합니다.</p>
+  </div>
+  <div class="slide-body">
+    <div class="cn-wrap fade d1">
+      <div class="cn-graph">
+        <svg class="cn-svg" viewBox="0 0 560 380" role="img" aria-label="모여라딜 협업 네트워크">
+          <line class="cn-edge lead" x1="280" y1="85" x2="280" y2="285" stroke-width="9"/>
+          <g><rect class="cn-elabel-bg" x="262" y="175" width="36" height="20" rx="10"/><text class="cn-elabel" x="280" y="189">6건</text></g>
+          <g><circle class="cn-ncirc lead" cx="280" cy="85" r="44"/><text class="cn-nname lead" x="280" y="81">송희</text><text class="cn-nrole lead" x="280" y="99">리드</text></g>
+          <g><circle class="cn-ncirc" cx="280" cy="285" r="44"/><text class="cn-nname" x="280" y="281">정하</text><text class="cn-nrole" x="280" y="299">본격 가동</text></g>
+        </svg>
+      </div>
+      <div>
+        <div class="cn-total"><b>6건</b><span>주요 협업 · 송희 + 정하</span></div>
+        <div class="cn-pairs">
+          <div class="cn-pair">
+            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 정하</span><span class="cn-pair-cnt">6건</span><span class="cn-pair-flow">본격 가동 → 재점화</span></div>
+            <div class="cn-chips"><span class="cn-chip">모여라딜 재점화</span><span class="cn-chip">셀러 공구 제안</span><span class="cn-chip">신박템 소싱 33건</span><span class="cn-chip">공급사 DB 109건</span><span class="cn-chip">인스타 자체판매</span><span class="cn-chip">공구 운영·판매 데이터</span></div>
+          </div>
+        </div>
+        <div class="cn-note">※ 모여라딜 협업 <b>건수·항목은 잠정값</b>입니다 — 정하님 실제 협업 내역을 알려주시면 정확히 반영하겠습니다.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="slide" id="s4">
   <div class="slide-header">
-    <div class="sec-num fade">04 · POUR스토어</div>
+    <div class="sec-num fade">PART 2 · POUR스토어 — 개요</div>
     <h2 class="sec-title fade d1">합류 두 달, 운영 시스템을 세웠습니다.</h2>
     <p class="sec-desc fade d2">3.26 합류 이후 만든 것들 — 그리고 솔직한 현황.</p>
   </div>
@@ -612,10 +651,9 @@ body.present-mode .edit-fab{display:none!important;}
   </div>
 </section>
 
-<!-- S5 자사몰 리뉴얼 현황 -->
 <section class="slide" id="s5r">
   <div class="slide-header">
-    <div class="sec-num fade">05 · 자사몰 리뉴얼</div>
+    <div class="sec-num fade">PART 2 · POUR스토어 — 자사몰</div>
     <h2 class="sec-title fade d1">자사몰 리뉴얼 — 3대 축으로 다시.<button class="media-star" data-node="n6" data-title="자사몰 리뉴얼 — 구축 현황" title="구축 현황 사진 보기">★<span class="cnt">3</span></button></h2>
     <p class="sec-desc fade d2">아임웹 → 카페24 이전 + 모바일 퍼스트 재설계. <b>페이지 디자인 · 로고 개편 · AI 챗봇</b> 3가지를 동시에 진행 중입니다.</p>
   </div>
@@ -644,10 +682,9 @@ body.present-mode .edit-fab{display:none!important;}
   </div>
 </section>
 
-<!-- S5B AI 솔루션 & SKU 확장 -->
 <section class="slide" id="s5b">
   <div class="slide-header">
-    <div class="sec-num fade">06 · AI 솔루션 &amp; SKU 확장</div>
+    <div class="sec-num fade">PART 2 · POUR스토어 — AI·SKU</div>
     <h2 class="sec-title fade d1">데이터가 쌓이는 구조를 만듭니다.</h2>
     <p class="sec-desc fade d2">AI 하자진단 템플릿 · SKU 세분화 — 쌓일수록 영업·추천이 똑똑해집니다.</p>
   </div>
@@ -681,10 +718,134 @@ body.present-mode .edit-fab{display:none!important;}
   </div>
 </section>
 
-<!-- S6 대시보드·KPI -->
+<section class="slide" id="s7p">
+  <div class="slide-header">
+    <div class="sec-num fade">PART 2 · POUR스토어 — 협업</div>
+    <h2 class="sec-title fade d1">POUR스토어 — 4인 협업 구조.</h2>
+    <p class="sec-desc fade d2">송희(리드) + 민지·란·채림 — 영역별로 분담하며 <b>33개 협업 프로젝트</b>를 함께 진행했습니다.</p>
+  </div>
+  <div class="slide-body">
+    <div class="cn-wrap cn-ps fade d1">
+      <div class="cn-graph">
+        <svg class="cn-svg" viewBox="0 0 560 380" role="img" aria-label="POUR스토어 협업 네트워크">
+          <line class="cn-edge" x1="90" y1="200" x2="470" y2="200" stroke-width="6.9"/>
+          <line class="cn-edge" x1="90" y1="200" x2="280" y2="330" stroke-width="3.4"/>
+          <line class="cn-edge" x1="470" y1="200" x2="280" y2="330" stroke-width="3.4"/>
+          <line class="cn-edge lead" x1="280" y1="60" x2="470" y2="200" stroke-width="9.7"/>
+          <line class="cn-edge lead" x1="280" y1="60" x2="90" y2="200" stroke-width="7.6"/>
+          <line class="cn-edge lead" x1="280" y1="60" x2="280" y2="330" stroke-width="4.1"/>
+          <g><rect class="cn-elabel-bg" x="357" y="118" width="40" height="20" rx="10"/><text class="cn-elabel" x="377" y="132">11건</text></g>
+          <g><rect class="cn-elabel-bg" x="167" y="118" width="36" height="20" rx="10"/><text class="cn-elabel" x="185" y="132">8건</text></g>
+          <g><rect class="cn-elabel-bg" x="262" y="125" width="36" height="20" rx="10"/><text class="cn-elabel" x="280" y="139">3건</text></g>
+          <g><rect class="cn-elabel-bg" x="262" y="190" width="36" height="20" rx="10"/><text class="cn-elabel" x="280" y="204">7건</text></g>
+          <g><rect class="cn-elabel-bg" x="162" y="262" width="36" height="20" rx="10"/><text class="cn-elabel" x="180" y="276">2건</text></g>
+          <g><rect class="cn-elabel-bg" x="362" y="262" width="36" height="20" rx="10"/><text class="cn-elabel" x="380" y="276">2건</text></g>
+          <g><circle class="cn-ncirc lead" cx="280" cy="60" r="40"/><text class="cn-nname lead" x="280" y="56">송희</text><text class="cn-nrole lead" x="280" y="72">LEAD</text></g>
+          <g><circle class="cn-ncirc" cx="90" cy="200" r="34"/><text class="cn-nname" x="90" y="197">민지</text><text class="cn-nrole" x="90" y="213">M1</text></g>
+          <g><circle class="cn-ncirc" cx="470" cy="200" r="34"/><text class="cn-nname" x="470" y="197">란</text><text class="cn-nrole" x="470" y="213">M2</text></g>
+          <g><circle class="cn-ncirc dash" cx="280" cy="330" r="32"/><text class="cn-nname" x="280" y="327">채림</text><text class="cn-nrole" x="280" y="343">M3</text></g>
+        </svg>
+      </div>
+      <div>
+        <div class="cn-total"><b>33건</b><span>협업 프로젝트 · 4인 (송희·민지·란·채림)</span></div>
+        <div class="cn-pairs">
+          <div class="cn-pair">
+            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 란</span><span class="cn-pair-cnt">11건</span><span class="cn-pair-flow">B2B 정책 → 실무</span></div>
+            <div class="cn-chips"><span class="cn-chip">광고 운영(네이버·메타)</span><span class="cn-chip">채널별 광고(마켓)</span><span class="cn-chip">대리점 정책</span><span class="cn-chip">협업 정책 수립</span><span class="cn-chip">발주 시스템</span><span class="cn-chip">파트너사 자동매칭</span><span class="cn-chip">인플루언서·유튜버 정책</span><span class="cn-chip">철물점 지점화</span><span class="cn-chip">POUR공법 이관 표준화</span><span class="cn-chip">POUR솔루션 이관 표준화</span><span class="cn-chip">매칭 시스템</span></div>
+          </div>
+          <div class="cn-pair">
+            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 민지</span><span class="cn-pair-cnt">8건</span><span class="cn-pair-flow">SKU 소싱 → 등록</span></div>
+            <div class="cn-chips"><span class="cn-chip">코트재 외주 색상</span><span class="cn-chip">탑코트재 파생 8개</span><span class="cn-chip">써밋페인트 파생 5개</span><span class="cn-chip">제비스코 OEM 라인</span><span class="cn-chip">제비스코 ODM 라인</span><span class="cn-chip">부자재·안전용품 ODM</span><span class="cn-chip">신규 채널 확장</span><span class="cn-chip">디자인 자동 생성</span></div>
+          </div>
+          <div class="cn-pair">
+            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 채림</span><span class="cn-pair-cnt">3건</span><span class="cn-pair-flow">시스템 → 데이터 운영</span></div>
+            <div class="cn-chips"><span class="cn-chip">CRM 시스템 개발</span><span class="cn-chip">매출관리 시스템</span><span class="cn-chip">POUR길잡이 구축</span></div>
+          </div>
+        </div>
+        <div class="cn-relay">
+          <div class="cn-relay-t">🪃 대리점 — 송희 ↔ 란 '바통' 협업 사례</div>
+          <div class="cn-relay-flow">
+            <b>송희 시작<small>2025 초 ~ 9월</small></b>
+            <span class="ar">→</span>
+            <b>란님 이어 운영<small>송희 이탈 기간</small></b>
+            <span class="ar">→</span>
+            <b>송희 재합류·리드<small>2026 · 정책 고도화</small></b>
+            <span class="ar">→</span>
+            <b>운영 이관<small>향후 란님</small></b>
+          </div>
+        </div>
+        <div class="cn-note">노드 간 선 굵기 = 협업 건수. 멤버 간 협업(민지–란 7 · 민지–채림 2 · 란–채림 2)까지 합산 <b>총 33건</b>.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="slide" id="s7">
+  <div class="slide-header">
+    <div class="sec-num fade">PART 2 · POUR스토어 — 팀</div>
+    <h2 class="sec-title fade d1">3인 체계 완성.</h2>
+    <p class="sec-desc fade d2">채림님 인턴 → 정규직 전환 계약 포함 · Phase 0 → 1 → 2</p>
+  </div>
+  <div class="slide-body">
+    <div class="team-grid fade d1">
+      <div class="team-card lead">
+        <div class="team-badge lead">LEAD</div>
+        <div class="team-name">김송희</div>
+        <div class="team-role">모여라딜 + 브랜드커머스<br>리드매니저 (겸직)</div>
+        <ul class="team-tasks">
+          <li>전략기획·신규 프로젝트</li><li>OEM/ODM 소싱·협상</li>
+          <li>자사몰 리뉴얼 (현재 시급)</li><li>AI 챗봇·어드민 개발</li>
+          <li>대리점 정책 구축</li>
+        </ul>
+      </div>
+      <div class="team-card">
+        <div class="team-badge m">M1</div>
+        <div class="team-name">민지님</div>
+        <div class="team-role">26.05 입사 · 적응 중<br>(입사 8일, 능률 상승)</div>
+        <ul class="team-tasks">
+          <li>SKU 세팅 훈련 중</li><li>상세페이지 구축</li>
+          <li>B2C CS 1차 (분담)</li><li>적응 후 콘텐츠·등록 풀가동</li>
+        </ul>
+      </div>
+      <div class="team-card">
+        <div class="team-badge m">M2</div>
+        <div class="team-name">란님</div>
+        <div class="team-role">기존 매니저<br>(B2B는 무조건 란님)</div>
+        <ul class="team-tasks">
+          <li>CRM·매출관리 센터 개발</li><li>B2B CS (1·2차)</li>
+          <li>광고 운영 전체</li><li>대리점·파트너 관리</li>
+        </ul>
+      </div>
+      <div class="team-card">
+        <div class="team-badge new">M3</div>
+        <div class="team-name">채림님</div>
+        <div class="team-role">파트타임<br>인턴 → 정규직 전환 예정</div>
+        <ul class="team-tasks">
+          <li>주문·발주 (그로홈+POUR)</li><li>반품 CS</li>
+          <li>B2C CS 1차 응대</li><li>재고 관리</li>
+        </ul>
+      </div>
+    </div>
+    <div class="phase-row fade d2">
+      <div class="phase-box now">
+        <div class="phase-box-title">PHASE 0 · 현재</div>
+        <div class="phase-box-desc">시스템 구축 집중기. 자사몰 리뉴얼 즉시 착수. 시스템 4개(CRM·매출관리·어드민·챗봇) 동시 구축. 민지님 적응, 채림님 운영 유지.</div>
+      </div>
+      <div class="phase-box">
+        <div class="phase-box-title">PHASE 1 · 정상화</div>
+        <div class="phase-box-desc">시스템 구축 완료 + 민지님 적응 완료. 채림님 파트타임 유지. 각자 담당 영역 풀가동 시작.</div>
+      </div>
+      <div class="phase-box">
+        <div class="phase-box-title">PHASE 2 · 확장</div>
+        <div class="phase-box-desc">채림님 정규직 전환 후. 기본 업무 동일 + 담당 프로젝트 추가 배정. 4인 완전 체계로 KPI 본격 달성.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="slide" id="s6">
   <div class="slide-header">
-    <div class="sec-num fade">07 · 경영 대시보드 &amp; KPI</div>
+    <div class="sec-num fade">PART 2 · POUR스토어 — 대시보드·KPI</div>
     <h2 class="sec-title fade d1">숫자로 경영합니다.</h2>
     <p class="sec-desc fade d2">모여라딜에 먼저 구축 · POUR스토어도 제작 예정 — 실데이터 검증이 다음 과제.</p>
   </div>
@@ -752,168 +913,9 @@ body.present-mode .edit-fab{display:none!important;}
   </div>
 </section>
 
-<!-- S7 팀 구조 -->
-<section class="slide" id="s7">
-  <div class="slide-header">
-    <div class="sec-num fade">08 · 팀 구조</div>
-    <h2 class="sec-title fade d1">3인 체계 완성.</h2>
-    <p class="sec-desc fade d2">채림님 인턴 → 정규직 전환 계약 포함 · Phase 0 → 1 → 2</p>
-  </div>
-  <div class="slide-body">
-    <div class="team-grid fade d1">
-      <div class="team-card lead">
-        <div class="team-badge lead">LEAD</div>
-        <div class="team-name">김송희</div>
-        <div class="team-role">모여라딜 + 브랜드커머스<br>리드매니저 (겸직)</div>
-        <ul class="team-tasks">
-          <li>전략기획·신규 프로젝트</li><li>OEM/ODM 소싱·협상</li>
-          <li>자사몰 리뉴얼 (현재 시급)</li><li>AI 챗봇·어드민 개발</li>
-          <li>대리점 정책 구축</li>
-        </ul>
-      </div>
-      <div class="team-card">
-        <div class="team-badge m">M1</div>
-        <div class="team-name">민지님</div>
-        <div class="team-role">26.05 입사 · 적응 중<br>(입사 8일, 능률 상승)</div>
-        <ul class="team-tasks">
-          <li>SKU 세팅 훈련 중</li><li>상세페이지 구축</li>
-          <li>B2C CS 1차 (분담)</li><li>적응 후 콘텐츠·등록 풀가동</li>
-        </ul>
-      </div>
-      <div class="team-card">
-        <div class="team-badge m">M2</div>
-        <div class="team-name">란님</div>
-        <div class="team-role">기존 매니저<br>(B2B는 무조건 란님)</div>
-        <ul class="team-tasks">
-          <li>CRM·매출관리 센터 개발</li><li>B2B CS (1·2차)</li>
-          <li>광고 운영 전체</li><li>대리점·파트너 관리</li>
-        </ul>
-      </div>
-      <div class="team-card">
-        <div class="team-badge new">M3</div>
-        <div class="team-name">채림님</div>
-        <div class="team-role">파트타임<br>인턴 → 정규직 전환 예정</div>
-        <ul class="team-tasks">
-          <li>주문·발주 (그로홈+POUR)</li><li>반품 CS</li>
-          <li>B2C CS 1차 응대</li><li>재고 관리</li>
-        </ul>
-      </div>
-    </div>
-    <div class="phase-row fade d2">
-      <div class="phase-box now">
-        <div class="phase-box-title">PHASE 0 · 현재</div>
-        <div class="phase-box-desc">시스템 구축 집중기. 자사몰 리뉴얼 즉시 착수. 시스템 4개(CRM·매출관리·어드민·챗봇) 동시 구축. 민지님 적응, 채림님 운영 유지.</div>
-      </div>
-      <div class="phase-box">
-        <div class="phase-box-title">PHASE 1 · 정상화</div>
-        <div class="phase-box-desc">시스템 구축 완료 + 민지님 적응 완료. 채림님 파트타임 유지. 각자 담당 영역 풀가동 시작.</div>
-      </div>
-      <div class="phase-box">
-        <div class="phase-box-title">PHASE 2 · 확장</div>
-        <div class="phase-box-desc">채림님 정규직 전환 후. 기본 업무 동일 + 담당 프로젝트 추가 배정. 4인 완전 체계로 KPI 본격 달성.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- S7M 협업 네트워크 · 모여라딜 -->
-<section class="slide" id="s7m">
-  <div class="slide-header">
-    <div class="sec-num fade">09 · 협업 네트워크 · 모여라딜</div>
-    <h2 class="sec-title fade d1">모여라딜 — 누가 무엇을 함께했나.</h2>
-    <p class="sec-desc fade d2">모여라딜 재점화의 핵심 축은 <b>정하님</b> — 송희(리드)와 함께 <b>"직접 팔아보자"</b> 실행을 본격 가동합니다.</p>
-  </div>
-  <div class="slide-body">
-    <div class="cn-wrap fade d1">
-      <div class="cn-graph">
-        <svg class="cn-svg" viewBox="0 0 560 380" role="img" aria-label="모여라딜 협업 네트워크">
-          <line class="cn-edge lead" x1="280" y1="85" x2="280" y2="285" stroke-width="9"/>
-          <g><rect class="cn-elabel-bg" x="262" y="175" width="36" height="20" rx="10"/><text class="cn-elabel" x="280" y="189">6건</text></g>
-          <g><circle class="cn-ncirc lead" cx="280" cy="85" r="44"/><text class="cn-nname lead" x="280" y="81">송희</text><text class="cn-nrole lead" x="280" y="99">리드</text></g>
-          <g><circle class="cn-ncirc" cx="280" cy="285" r="44"/><text class="cn-nname" x="280" y="281">정하</text><text class="cn-nrole" x="280" y="299">본격 가동</text></g>
-        </svg>
-      </div>
-      <div>
-        <div class="cn-total"><b>6건</b><span>주요 협업 · 송희 + 정하</span></div>
-        <div class="cn-pairs">
-          <div class="cn-pair">
-            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 정하</span><span class="cn-pair-cnt">6건</span><span class="cn-pair-flow">본격 가동 → 재점화</span></div>
-            <div class="cn-chips"><span class="cn-chip">모여라딜 재점화</span><span class="cn-chip">셀러 공구 제안</span><span class="cn-chip">신박템 소싱 33건</span><span class="cn-chip">공급사 DB 109건</span><span class="cn-chip">인스타 자체판매</span><span class="cn-chip">공구 운영·판매 데이터</span></div>
-          </div>
-        </div>
-        <div class="cn-note">※ 모여라딜 협업 <b>건수·항목은 잠정값</b>입니다 — 정하님 실제 협업 내역을 알려주시면 정확히 반영하겠습니다.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- S7P 협업 네트워크 · POUR스토어 -->
-<section class="slide" id="s7p">
-  <div class="slide-header">
-    <div class="sec-num fade">10 · 협업 네트워크 · POUR스토어</div>
-    <h2 class="sec-title fade d1">POUR스토어 — 4인 협업 구조.</h2>
-    <p class="sec-desc fade d2">송희(리드) + 민지·란·채림 — 영역별로 분담하며 <b>33개 협업 프로젝트</b>를 함께 진행했습니다.</p>
-  </div>
-  <div class="slide-body">
-    <div class="cn-wrap cn-ps fade d1">
-      <div class="cn-graph">
-        <svg class="cn-svg" viewBox="0 0 560 380" role="img" aria-label="POUR스토어 협업 네트워크">
-          <line class="cn-edge" x1="90" y1="200" x2="470" y2="200" stroke-width="6.9"/>
-          <line class="cn-edge" x1="90" y1="200" x2="280" y2="330" stroke-width="3.4"/>
-          <line class="cn-edge" x1="470" y1="200" x2="280" y2="330" stroke-width="3.4"/>
-          <line class="cn-edge lead" x1="280" y1="60" x2="470" y2="200" stroke-width="9.7"/>
-          <line class="cn-edge lead" x1="280" y1="60" x2="90" y2="200" stroke-width="7.6"/>
-          <line class="cn-edge lead" x1="280" y1="60" x2="280" y2="330" stroke-width="4.1"/>
-          <g><rect class="cn-elabel-bg" x="357" y="118" width="40" height="20" rx="10"/><text class="cn-elabel" x="377" y="132">11건</text></g>
-          <g><rect class="cn-elabel-bg" x="167" y="118" width="36" height="20" rx="10"/><text class="cn-elabel" x="185" y="132">8건</text></g>
-          <g><rect class="cn-elabel-bg" x="262" y="125" width="36" height="20" rx="10"/><text class="cn-elabel" x="280" y="139">3건</text></g>
-          <g><rect class="cn-elabel-bg" x="262" y="190" width="36" height="20" rx="10"/><text class="cn-elabel" x="280" y="204">7건</text></g>
-          <g><rect class="cn-elabel-bg" x="162" y="262" width="36" height="20" rx="10"/><text class="cn-elabel" x="180" y="276">2건</text></g>
-          <g><rect class="cn-elabel-bg" x="362" y="262" width="36" height="20" rx="10"/><text class="cn-elabel" x="380" y="276">2건</text></g>
-          <g><circle class="cn-ncirc lead" cx="280" cy="60" r="40"/><text class="cn-nname lead" x="280" y="56">송희</text><text class="cn-nrole lead" x="280" y="72">LEAD</text></g>
-          <g><circle class="cn-ncirc" cx="90" cy="200" r="34"/><text class="cn-nname" x="90" y="197">민지</text><text class="cn-nrole" x="90" y="213">M1</text></g>
-          <g><circle class="cn-ncirc" cx="470" cy="200" r="34"/><text class="cn-nname" x="470" y="197">란</text><text class="cn-nrole" x="470" y="213">M2</text></g>
-          <g><circle class="cn-ncirc dash" cx="280" cy="330" r="32"/><text class="cn-nname" x="280" y="327">채림</text><text class="cn-nrole" x="280" y="343">M3</text></g>
-        </svg>
-      </div>
-      <div>
-        <div class="cn-total"><b>33건</b><span>협업 프로젝트 · 4인 (송희·민지·란·채림)</span></div>
-        <div class="cn-pairs">
-          <div class="cn-pair">
-            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 란</span><span class="cn-pair-cnt">11건</span><span class="cn-pair-flow">B2B 정책 → 실무</span></div>
-            <div class="cn-chips"><span class="cn-chip">광고 운영(네이버·메타)</span><span class="cn-chip">채널별 광고(마켓)</span><span class="cn-chip">대리점 정책</span><span class="cn-chip">협업 정책 수립</span><span class="cn-chip">발주 시스템</span><span class="cn-chip">파트너사 자동매칭</span><span class="cn-chip">인플루언서·유튜버 정책</span><span class="cn-chip">철물점 지점화</span><span class="cn-chip">POUR공법 이관 표준화</span><span class="cn-chip">POUR솔루션 이관 표준화</span><span class="cn-chip">매칭 시스템</span></div>
-          </div>
-          <div class="cn-pair">
-            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 민지</span><span class="cn-pair-cnt">8건</span><span class="cn-pair-flow">SKU 소싱 → 등록</span></div>
-            <div class="cn-chips"><span class="cn-chip">코트재 외주 색상</span><span class="cn-chip">탑코트재 파생 8개</span><span class="cn-chip">써밋페인트 파생 5개</span><span class="cn-chip">제비스코 OEM 라인</span><span class="cn-chip">제비스코 ODM 라인</span><span class="cn-chip">부자재·안전용품 ODM</span><span class="cn-chip">신규 채널 확장</span><span class="cn-chip">디자인 자동 생성</span></div>
-          </div>
-          <div class="cn-pair">
-            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 채림</span><span class="cn-pair-cnt">3건</span><span class="cn-pair-flow">시스템 → 데이터 운영</span></div>
-            <div class="cn-chips"><span class="cn-chip">CRM 시스템 개발</span><span class="cn-chip">매출관리 시스템</span><span class="cn-chip">POUR길잡이 구축</span></div>
-          </div>
-        </div>
-        <div class="cn-relay">
-          <div class="cn-relay-t">🪃 대리점 — 송희 ↔ 란 '바통' 협업 사례</div>
-          <div class="cn-relay-flow">
-            <b>송희 시작<small>2025 초 ~ 9월</small></b>
-            <span class="ar">→</span>
-            <b>란님 이어 운영<small>송희 이탈 기간</small></b>
-            <span class="ar">→</span>
-            <b>송희 재합류·리드<small>2026 · 정책 고도화</small></b>
-            <span class="ar">→</span>
-            <b>운영 이관<small>향후 란님</small></b>
-          </div>
-        </div>
-        <div class="cn-note">노드 간 선 굵기 = 협업 건수. 멤버 간 협업(민지–란 7 · 민지–채림 2 · 란–채림 2)까지 합산 <b>총 33건</b>.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- SNEW 신규 프로젝트 -->
 <section class="slide" id="snew">
   <div class="slide-header">
-    <div class="sec-num fade">11 · 신규 프로젝트</div>
+    <div class="sec-num fade">확장 · 신규 / 재정비</div>
     <h2 class="sec-title fade d1">신규 · 재정비 — 구조부터 만듭니다.</h2>
     <p class="sec-desc fade d2">리드가 직접 붙어 구조를 세우는 사업들 — <b>신규 진입</b>과 <b>재정비·재가동</b>을 함께. 자리 잡으면 담당에게 이관합니다.</p>
   </div>
@@ -944,10 +946,9 @@ body.present-mode .edit-fab{display:none!important;}
   </div>
 </section>
 
-<!-- S8 NEXT -->
 <section class="slide" id="s8">
   <div class="slide-header">
-    <div class="sec-num fade">12 · Next</div>
+    <div class="sec-num fade">마무리 · NEXT</div>
     <h2 class="sec-title fade d1">다음 분기에 들고 옵니다.</h2>
     <p class="sec-desc fade d2">모여라딜 재점화 · POUR스토어 실매출 · 시스템 실검증</p>
   </div>
@@ -986,10 +987,50 @@ body.present-mode .edit-fab{display:none!important;}
   </div>
 </section>
 
-<!-- S9 목표 -->
+<section class="slide" id="sramp">
+  <div class="slide-header">
+    <div class="sec-num fade">마무리 · 성장 램프</div>
+    <h2 class="sec-title fade d1">0에서 BEP를 지나, 연 10억까지.</h2>
+    <p class="sec-desc fade d2">상반기엔 구조를 만들었습니다. 하반기는 이 곡선을 탑니다 — 언제 · 무엇 · 얼마.</p>
+  </div>
+  <div class="slide-body">
+    <div class="ramp-grid fade d1">
+      <div class="ramp-step">
+        <div class="ramp-v">월 -650만</div>
+        <div class="ramp-bar loss" style="height:30px"></div>
+        <div class="ramp-q">26 상반기</div>
+        <div class="ramp-l">구조 구축 · 투자기</div>
+      </div>
+      <div class="ramp-step">
+        <div class="ramp-v">실매출 시작</div>
+        <div class="ramp-bar" style="height:95px"></div>
+        <div class="ramp-q">26 Q3</div>
+        <div class="ramp-l">자사몰 오픈 · 정상화</div>
+      </div>
+      <div class="ramp-step">
+        <div class="ramp-v">월 9,700만</div>
+        <div class="ramp-bar" style="height:165px"></div>
+        <div class="ramp-q">26 Q4</div>
+        <div class="ramp-l">BEP 도달</div>
+      </div>
+      <div class="ramp-step on">
+        <div class="ramp-v">연 10억</div>
+        <div class="ramp-bar" style="height:235px"></div>
+        <div class="ramp-q">2026 연</div>
+        <div class="ramp-l">직판 5 + B2B 5</div>
+      </div>
+    </div>
+    <div class="run-strip fade d3">
+      <div class="lab">⚡ 연결 고리</div>
+      <div class="txt">상반기 <b>구조</b>(BMA·KPI·시스템·팀) → Q3 <b>자사몰·PG 정상화로 실매출</b> → Q4 <b>BEP</b> → <b>연 10억</b>. 모든 구조는 결국 이 숫자를 만들기 위한 것이었습니다.</div>
+    </div>
+    <div class="cn-note">※ Q3·Q4 월 GMV·공구 건수·셀러 수는 확정 후 반영 예정 — 현재는 BEP(9,700만/월)·연 10억 기준의 경로 표시입니다.</div>
+  </div>
+</section>
+
 <section class="slide" id="s9">
   <div class="slide-header">
-    <div class="sec-num fade">13 · 목표</div>
+    <div class="sec-num fade">마무리 · 목표</div>
     <h2 class="sec-title fade d1">2026 목표</h2>
     <p class="sec-desc fade d2">POUR스토어 연매출 10억 · 모여라딜 재점화</p>
   </div>

@@ -250,6 +250,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
 .cn-ps .cn-ncirc.lead{fill:var(--indigo);stroke:var(--indigo);}
 .cn-ps .cn-pair{border-left-color:var(--indigo);}
 .cn-ps .cn-pair-cnt{color:var(--indigo);background:var(--indigo-soft);}
+.cn-relay{margin-top:12px;background:var(--indigo-soft);border:1px solid var(--border);border-radius:14px;padding:13px 16px;}
+.cn-relay-t{font-size:12.5px;font-weight:800;color:var(--indigo);margin-bottom:10px;}
+.cn-relay-flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:7px;}
+.cn-relay-flow b{background:#fff;border:1px solid var(--border);border-radius:9px;padding:6px 10px;display:inline-flex;flex-direction:column;line-height:1.35;font-size:11.5px;font-weight:700;color:var(--ink);}
+.cn-relay-flow b small{font-size:9.5px;font-weight:600;color:var(--ink3);}
+.cn-relay-flow .ar{align-self:center;color:var(--indigo);font-weight:800;font-size:12px;}
 
 /* next */
 .next-hero{text-align:center;margin-bottom:18px;}
@@ -846,6 +852,18 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
             <div class="cn-chips"><span class="cn-chip">CRM 시스템 개발</span><span class="cn-chip">매출관리 시스템</span><span class="cn-chip">POUR길잡이 구축</span></div>
           </div>
         </div>
+        <div class="cn-relay">
+          <div class="cn-relay-t">🪃 대리점 — 송희 ↔ 란 '바통' 협업 사례</div>
+          <div class="cn-relay-flow">
+            <b>송희 시작<small>2025 초 ~ 9월</small></b>
+            <span class="ar">→</span>
+            <b>란님 이어 운영<small>송희 이탈 기간</small></b>
+            <span class="ar">→</span>
+            <b>송희 재합류·리드<small>2026 · 정책 고도화</small></b>
+            <span class="ar">→</span>
+            <b>운영 이관<small>향후 란님</small></b>
+          </div>
+        </div>
         <div class="cn-note">노드 간 선 굵기 = 협업 건수. 멤버 간 협업(민지–란 7 · 민지–채림 2 · 란–채림 2)까지 합산 <b>총 33건</b>.</div>
       </div>
     </div>
@@ -856,29 +874,32 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
 <section class="slide" id="snew">
   <div class="slide-header">
     <div class="sec-num fade">11 · 신규 프로젝트</div>
-    <h2 class="sec-title fade d1">신규 사업 — 구조부터 만듭니다.</h2>
-    <p class="sec-desc fade d2">초기에는 리드가 직접 붙어 구조를 구축하고, 자리 잡으면 담당에게 이관합니다.</p>
+    <h2 class="sec-title fade d1">신규 · 재정비 — 구조부터 만듭니다.</h2>
+    <p class="sec-desc fade d2">리드가 직접 붙어 구조를 세우는 사업들 — <b>신규 진입</b>과 <b>재정비·재가동</b>을 함께. 자리 잡으면 담당에게 이관합니다.</p>
   </div>
   <div class="slide-body">
     <div class="three-col">
       <div class="feat-card fade d1">
         <div class="feat-icon">🏪</div>
-        <div class="feat-title">대리점 진출</div>
-        <div class="feat-desc"><b>가나랜드 · 경남지사</b> 오픈 예정. 대리점 정책을 세분화해 구축 중. <b>5포점</b>까지 시행착오 기반으로 고도화하며 점포 수 확대.<br><br>초기 <b>전략·수익구조·계약</b>은 송희(리드) → 이후 <b>대리점 문의·관리·프로세스·로드맵 고도화</b>는 란님.</div>
+        <div style="margin-bottom:9px"><span class="tag gold">재가동 · 재정비</span></div>
+        <div class="feat-title">대리점</div>
+        <div class="feat-desc"><b>가나랜드 · 경남지사</b> 오픈 예정. 대리점 정책을 세분화해 고도화 중. <b>5포점</b>까지 시행착오 기반으로 점포 수 확대.<br><br>작년 첫 세팅 → 란님이 이어 운영 → <b>송희 재합류로 재가동·리드</b>. (송희↔란 바통 사례: 10번 슬라이드)</div>
       </div>
       <div class="feat-card fade d2">
         <div class="feat-icon">🤝</div>
+        <div style="margin-bottom:9px"><span class="tag blue">신규</span></div>
         <div class="feat-title">B2B 이관 (관리주체)</div>
         <div class="feat-desc">사업자등록 관리주체(<b>아파트·공장·관공서</b>) 대상 <b>낮은 단가 B2B</b> + <b>PT 지원</b> 서비스 안내. <b>POUR솔루션·POUR공법으로 이관</b>하는 구조.<br><br>🎯 <b>9월까지 파트너 10곳 확보 + PT 문의 진입</b>이 목표.</div>
       </div>
       <div class="feat-card fade d3">
         <div class="feat-icon">🏛️</div>
+        <div style="margin-bottom:9px"><span class="tag blue">신규 · 탐색</span></div>
         <div class="feat-title">조달청 진입</div>
         <div class="feat-desc"><b>설계사 영업</b>을 세팅 → 시공사가 POUR 자재를 <b>구매할 수밖에 없는 구조</b> 구축.<br><br>다른 프로젝트와 병행하며 <b>여건이 될 때 시도</b>.</div>
       </div>
     </div>
     <div class="insight-strip fade d4">
-      <p>신규 사업은 <strong>리드가 구조를 먼저 세우고</strong>, 검증되면 <strong>팀에 이관</strong>해 확장합니다.</p>
+      <p>신규든 재정비든, <strong>리드가 구조를 먼저 세우고</strong> 검증되면 <strong>팀에 이관</strong>해 확장합니다.</p>
     </div>
   </div>
 </section>

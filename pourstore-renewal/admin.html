@@ -5350,7 +5350,8 @@ function useStaffRecurring(staffId) {
     // assigneeStaffIds 'all' 포함하기 위해 전체 구독 후 클라이언트 필터
     const unsub = db.collection(COLLECTIONS.POUR_RECURRING).onSnapshot(snap => {
       const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      const mine = all.filter(r => r.active !== false && isRecurringForStaff(r, staffId));
+      // 담당자(assignee) 또는 생성자(staffId) 본인이면 노출 — 리드가 남에게 배정한 것도 관리 가능
+      const mine = all.filter(r => r.active !== false && (r.staffId === staffId || isRecurringForStaff(r, staffId)));
       console.log(`[pour-recurring] ${mine.length}건 (${staffId} / 전체 ${all.length})`);
       setRecurring(mine);
       setLoading(false);
@@ -5371,6 +5372,7 @@ function DashboardPage({ onToast, onNav }) {
   const okrData = useAllOkrData();
   const projects = okrData.projects || [];
   const [generated, setGenerated] = useState(false);
+  const [slotPick, setSlotPick] = useState(null);  // 주간 슬롯 배정 모달 {day, slot, current}
 
   // 오늘의 반복업무 자동 생성 (마운트 + 데이터 로드 1회)
   useEffect(() => {
@@ -5424,10 +5426,11 @@ function DashboardPage({ onToast, onNav }) {
   const todayDay = ALL_DAYS[today.getDay()];
   const todayKey = today.toISOString().split('T')[0];
   const myTasks = tasks;  // 이미 staffId로 필터됨
-  const todayTasks = myTasks.filter(t => !t.isFixed && (t.weekDay === todayDay || t.pulledToday) && t.performedDate !== undefined ? t.performedDate === todayKey || !t.performedDate : !t.isFixed && t.weekDay === todayDay);
-  // 단순화: 오늘 = (오늘 요일 + 미고정) 또는 (pulledToday=true)
-  const todayTasksFinal = myTasks.filter(t => !t.isFixed && (t.weekDay === todayDay || t.pulledToday));
-  const fixedTasks = myTasks.filter(t => t.isFixed && (t.performedDate === todayKey || !t.recurringId));
+  // 고정업무 = 반복업무로 등록한 오늘 인스턴스(recurringId 보유) 또는 isFixed 플래그. 그 외는 오늘 업무.
+  const isFixedTask = (t) => t.recurringId ? t.performedDate === todayKey : !!t.isFixed;
+  const todayTasksFinal = myTasks.filter(t => !isFixedTask(t) && (t.weekDay === todayDay || t.pulledToday));
+  const fixedTasks = myTasks.filter(isFixedTask)
+    .sort((a, b) => (b.isFixed ? 1 : 0) - (a.isFixed ? 1 : 0));  // 📌(pinned=isFixed) 상단 정렬
 
   // 마감 임박 D-3 이내
   const urgentTasks = myTasks.filter(t => {
@@ -5439,9 +5442,46 @@ function DashboardPage({ onToast, onNav }) {
   // 주간 5슬롯 (월~금)
   const slotsByDay = {};
   WEEK_DAYS.forEach(d => {
-    const dayTasks = myTasks.filter(t => t.weekDay === d && !t.isFixed);
+    const dayTasks = myTasks.filter(t => t.weekDay === d && !isFixedTask(t));
     slotsByDay[d] = [1,2,3,4,5].map(p => dayTasks.find(t => t.weekSlot === p) || null);
   });
+
+  // 주간 슬롯 배정 핸들러 (빈 슬롯 클릭 → 배정 / 채워진 슬롯 → 교체·비우기)
+  const assignToSlot = async (taskId, day, slot) => {
+    try {
+      const occupant = myTasks.find(t => t.weekDay === day && t.weekSlot === slot && t.id !== taskId);
+      const batch = db.batch();
+      if (occupant) batch.update(db.collection(COLLECTIONS.POUR_TASKS).doc(occupant.id), { weekSlot: null, ...audit.update() });
+      batch.update(db.collection(COLLECTIONS.POUR_TASKS).doc(taskId), { weekDay: day, weekSlot: slot, ...audit.update() });
+      await batch.commit();
+      onToast({ message: `📆 ${day}요일 ${slot}순위에 배치`, type: 'success' });
+    } catch (e) { onToast({ message: '배치 실패: ' + e.message, type: 'error' }); }
+    setSlotPick(null);
+  };
+  const clearSlot = async (task) => {
+    if (!task) { setSlotPick(null); return; }
+    try {
+      await db.collection(COLLECTIONS.POUR_TASKS).doc(task.id).update({ weekSlot: null, ...audit.update() });
+      onToast({ message: '슬롯 비움 (업무는 유지)', type: 'success' });
+    } catch (e) { onToast({ message: '실패: ' + e.message, type: 'error' }); }
+    setSlotPick(null);
+  };
+  const createInSlot = async (title, day, slot) => {
+    const t = (title || '').trim();
+    if (!t) return;
+    try {
+      const occupant = myTasks.find(x => x.weekDay === day && x.weekSlot === slot);
+      if (occupant) await db.collection(COLLECTIONS.POUR_TASKS).doc(occupant.id).update({ weekSlot: null, ...audit.update() });
+      await db.collection(COLLECTIONS.POUR_TASKS).add({
+        staffId: activeStaff.id, title: t, done: false, priority: 'mid', projectId: null, projectName: null,
+        weekDay: day, weekSlot: slot, dueDate: '', isFixed: false,
+        pulledToday: day === todayDay, performedDate: day === todayDay ? todayKey : null,
+        notes: [], attachments: [], status: 'active', ...audit.create(),
+      });
+      onToast({ message: `📆 ${day}요일 ${slot}순위에 새 업무 배치`, type: 'success' });
+    } catch (e) { onToast({ message: '추가 실패: ' + e.message, type: 'error' }); }
+    setSlotPick(null);
+  };
 
   // 통계
   const totalToday = todayTasksFinal.length;
@@ -5492,10 +5532,10 @@ function DashboardPage({ onToast, onNav }) {
                     if (t) {
                       const dd = t.dueDate ? calcDday(t.dueDate) : '';
                       return (
-                        <div key={slotNum} style={{
+                        <div key={slotNum} onClick={() => setSlotPick({ day: d, slot: slotNum, current: t })} title="클릭 — 교체·비우기" style={{
                           background: t.done ? 'rgba(43,196,114,.08)' : '#fff', border:'1px solid var(--border)', borderRadius:6, padding:'6px 8px',
                           fontSize:11, opacity: t.done ? 0.6 : 1, textDecoration: t.done ? 'line-through' : 'none',
-                          display:'flex', alignItems:'center', gap:6, minHeight:30
+                          display:'flex', alignItems:'center', gap:6, minHeight:30, cursor:'pointer'
                         }}>
                           <span style={{ fontSize:9, fontWeight:900, color:'var(--text-sm)', minWidth:14 }}>{slotNum}</span>
                           <span style={{ flex:1, fontWeight:700, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{t.title}</span>
@@ -5504,9 +5544,9 @@ function DashboardPage({ onToast, onNav }) {
                       );
                     }
                     return (
-                      <div key={slotNum} style={{ background:'transparent', border:'1px dashed var(--border)', borderRadius:6, padding:'6px 8px', fontSize:10.5, color:'var(--text-xs)', fontWeight:600, display:'flex', alignItems:'center', gap:6, minHeight:30 }}>
+                      <div key={slotNum} onClick={() => setSlotPick({ day: d, slot: slotNum, current: null })} title="클릭 — 업무 배치" style={{ background:'transparent', border:'1px dashed var(--border)', borderRadius:6, padding:'6px 8px', fontSize:10.5, color:'var(--text-xs)', fontWeight:600, display:'flex', alignItems:'center', gap:6, minHeight:30, cursor:'pointer' }}>
                         <span style={{ fontSize:9, fontWeight:800, minWidth:14 }}>{slotNum}</span>
-                        <span style={{ flex:1, fontStyle:'italic' }}>비어있음</span>
+                        <span style={{ flex:1, fontStyle:'italic' }}>+ 배치</span>
                       </div>
                     );
                   })}
@@ -5556,7 +5596,7 @@ function DashboardPage({ onToast, onNav }) {
                 <button onClick={() => onNav('recurring')} style={{ marginTop:6, padding:'6px 12px', borderRadius:6, fontSize:11, fontWeight:800, color:'#fff', background:'var(--or)', cursor:'pointer' }}>
                   📌 고정업무 등록하러 가기
                 </button>
-              ) : <>사이드바 <b>업무 DB · 설정 → 📌 고정업무 (반복)</b>에서<br/>매일·매주 반복할 업무에 📌 토글</>}
+              ) : <>사이드바 <b>업무 DB · 설정 → 📌 고정업무 (반복)</b>에서<br/>매일·매주 반복 업무를 등록하면 여기 표시됩니다</>}
             </div>
           ) : (
             <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
@@ -5565,6 +5605,59 @@ function DashboardPage({ onToast, onNav }) {
               ))}
             </div>
           )}
+        </div>
+      </div>
+      {slotPick && (
+        <SlotAssignModal
+          day={slotPick.day} slot={slotPick.slot} current={slotPick.current}
+          tasks={myTasks.filter(t => !t.done && !isFixedTask(t))}
+          onAssign={(taskId) => assignToSlot(taskId, slotPick.day, slotPick.slot)}
+          onClear={() => clearSlot(slotPick.current)}
+          onCreate={(title) => createInSlot(title, slotPick.day, slotPick.slot)}
+          onClose={() => setSlotPick(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// SlotAssignModal — 주간 슬롯(요일·우선순위)에 업무 배정/교체/신규
+// ============================================================
+function SlotAssignModal({ day, slot, current, tasks, onAssign, onClear, onCreate, onClose }) {
+  const [newTitle, setNewTitle] = useState('');
+  const candidates = tasks.filter(t => !(t.weekDay === day && t.weekSlot === slot));
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.4)', zIndex:3000, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
+      <div onClick={e => e.stopPropagation()} style={{ width:'100%', maxWidth:440, background:'#fff', borderRadius:14, boxShadow:'var(--shadow-lg)', padding:'20px 22px', maxHeight:'80vh', display:'flex', flexDirection:'column' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+          <div style={{ fontSize:15, fontWeight:900, color:'var(--navy)' }}>📆 {day}요일 · {slot}순위 슬롯</div>
+          <button onClick={onClose} style={{ fontSize:18, color:'var(--text-sm)', background:'transparent', cursor:'pointer', border:'none' }}>✕</button>
+        </div>
+        {current && (
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, padding:'9px 12px', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:9, marginBottom:12 }}>
+            <span style={{ fontSize:12.5, fontWeight:700, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>현재: {current.title}</span>
+            <button onClick={onClear} style={{ flexShrink:0, padding:'5px 11px', borderRadius:7, fontSize:11, fontWeight:800, color:'#DC2626', border:'1px solid var(--red-l, #FEE2E2)', background:'#fff', cursor:'pointer' }}>슬롯 비우기</button>
+          </div>
+        )}
+        <div style={{ fontSize:11, fontWeight:800, color:'var(--text-sm)', marginBottom:6 }}>새 업무 만들어 배치</div>
+        <div style={{ display:'flex', gap:6, marginBottom:14 }}>
+          <input value={newTitle} onChange={e => setNewTitle(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && newTitle.trim()) onCreate(newTitle); }} placeholder="새 업무 입력 후 Enter" style={{ flex:1, padding:'8px 10px', border:'1px solid var(--border)', borderRadius:8, fontSize:12.5, fontWeight:600, outline:'none' }} />
+          <button onClick={() => newTitle.trim() && onCreate(newTitle)} disabled={!newTitle.trim()} style={{ padding:'8px 14px', borderRadius:8, fontSize:12, fontWeight:900, color:'#fff', background: newTitle.trim() ? 'var(--or)' : 'var(--text-sm)', cursor: newTitle.trim() ? 'pointer' : 'not-allowed', border:'none' }}>추가</button>
+        </div>
+        <div style={{ fontSize:11, fontWeight:800, color:'var(--text-sm)', marginBottom:6 }}>기존 미완료 업무 배치 ({candidates.length})</div>
+        <div style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:5 }}>
+          {candidates.length === 0 ? (
+            <div style={{ padding:'14px', textAlign:'center', fontSize:11.5, color:'var(--text-sm)', fontWeight:600 }}>배치할 미완료 업무가 없습니다.</div>
+          ) : candidates.map(t => {
+            const placed = t.weekDay && t.weekSlot;
+            return (
+              <button key={t.id} onClick={() => onAssign(t.id)} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, padding:'9px 12px', borderRadius:8, border:'1px solid var(--border)', background:'#fff', textAlign:'left', cursor:'pointer' }}>
+                <span style={{ fontSize:12.5, fontWeight:700, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{(PRIORITY_META[t.priority] || {}).icon || ''} {t.title}</span>
+                {placed && <span style={{ flexShrink:0, fontSize:10, fontWeight:800, color:'var(--text-sm)', whiteSpace:'nowrap' }}>{t.weekDay}·{t.weekSlot}순위 →</span>}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -5583,6 +5676,23 @@ function TodayTaskTable({ tasks, projects, audit, activeStaff, onAdd, onToast })
   const [adding, setAdding] = useState(false);
 
   const myProjects = projects.filter(p => Array.isArray(p.assigneeStaffIds) && p.assigneeStaffIds.includes(activeStaff.id));
+
+  // ⭐ 프로젝트 즐겨찾기 — 담당자별 staff.favoriteProjectIds에 저장(기기 간 동기화). 즐겨찾기는 드롭다운 상단 우선노출.
+  const favIds = activeStaff.favoriteProjectIds || [];
+  const sortedMyProjects = [...myProjects].sort((a, b) => {
+    const fa = favIds.includes(a.id) ? 0 : 1, fb = favIds.includes(b.id) ? 0 : 1;
+    if (fa !== fb) return fa - fb;
+    return (a.name || '').localeCompare(b.name || '', 'ko');
+  });
+  const toggleFav = async (pid) => {
+    if (!pid) return;
+    const cur = activeStaff.favoriteProjectIds || [];
+    const next = cur.includes(pid) ? cur.filter(x => x !== pid) : [...cur, pid];
+    try {
+      await db.collection(COLLECTIONS.STAFF).doc(activeStaff.id).update({ favoriteProjectIds: next });
+      onToast({ message: cur.includes(pid) ? '즐겨찾기 해제' : '⭐ 즐겨찾기 추가 (상단 노출)', type: 'success' });
+    } catch (e) { onToast({ message: '즐겨찾기 저장 실패: ' + e.message, type: 'error' }); }
+  };
 
   const updateField = async (taskId, patch) => {
     try {
@@ -5638,20 +5748,28 @@ function TodayTaskTable({ tasks, projects, audit, activeStaff, onAdd, onToast })
   const ProjectSelect = ({ value, onChange }) => {
     const inMine = !value || myProjects.some(p => p.id === value);
     const externalSelected = !inMine ? projects.find(p => p.id === value) : null;
+    const starred = !!value && favIds.includes(value);
     return (
-      <select value={value || ''} onChange={onChange}
-        style={{ ...cellSelect, color: value ? 'var(--or-d)' : 'var(--text-sm)' }}
-        title={myProjects.length === 0 ? '본인 배정 프로젝트가 없습니다 — 프로젝트 페이지에서 담당자 배정 필요' : '본인 배정 프로젝트만 노출'}>
-        <option value="">+ 프로젝트</option>
-        {myProjects.length === 0 ? (
-          <option disabled>— 본인 배정 프로젝트 없음 (프로젝트 페이지에서 담당자 배정) —</option>
-        ) : (
-          myProjects.map(p => <option key={p.id} value={p.id}>{p.name} ({p.progress || 0}%)</option>)
-        )}
-        {externalSelected && (
-          <option value={externalSelected.id}>↳ {externalSelected.name} (외부 — 기존 연결 유지)</option>
-        )}
-      </select>
+      <div style={{ display:'flex', alignItems:'center', gap:3 }}>
+        <select value={value || ''} onChange={onChange}
+          style={{ ...cellSelect, flex:1, color: value ? 'var(--or-d)' : 'var(--text-sm)' }}
+          title={myProjects.length === 0 ? '본인 배정 프로젝트가 없습니다 — 프로젝트 페이지에서 담당자 배정 필요' : '⭐ 즐겨찾기 프로젝트는 상단에 표시'}>
+          <option value="">+ 프로젝트</option>
+          {myProjects.length === 0 ? (
+            <option disabled>— 본인 배정 프로젝트 없음 (프로젝트 페이지에서 담당자 배정) —</option>
+          ) : (
+            sortedMyProjects.map(p => <option key={p.id} value={p.id}>{favIds.includes(p.id) ? '⭐ ' : ''}{p.name} ({p.progress || 0}%)</option>)
+          )}
+          {externalSelected && (
+            <option value={externalSelected.id}>↳ {externalSelected.name} (외부 — 기존 연결 유지)</option>
+          )}
+        </select>
+        <button onClick={() => toggleFav(value)} disabled={!value}
+          title={!value ? '프로젝트 선택 후 즐겨찾기' : starred ? '즐겨찾기 해제' : '즐겨찾기 — 상단 우선노출'}
+          style={{ width:22, height:22, flexShrink:0, borderRadius:5, fontSize:12, lineHeight:1, padding:0, background:'transparent', border:'none', cursor: value ? 'pointer' : 'default', opacity: value ? 1 : 0.3, color: starred ? 'var(--gold, #D97706)' : 'var(--text-sm)' }}>
+          {starred ? '⭐' : '☆'}
+        </button>
+      </div>
     );
   };
 
@@ -5809,6 +5927,64 @@ function TodayTaskRow({ task, audit, compact }) {
 }
 
 // ============================================================
+// AssigneePicker — 반복업무 담당자 다중 선택 (체크박스 팝오버). 값: 'all' | [staffId,...]
+// ============================================================
+function AssigneePicker({ value, staffMembers, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState(null);  // position:fixed 좌표 (overflow:hidden 컨테이너 탈출용)
+  const btnRef = useRef(null);
+  const menuRef = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const h = (e) => {
+      if (btnRef.current && btnRef.current.contains(e.target)) return;
+      if (menuRef.current && menuRef.current.contains(e.target)) return;
+      setOpen(false);
+    };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, [open]);
+  const isAll = value === 'all';
+  const ids = isAll ? [] : (Array.isArray(value) ? value : (value ? [value] : []));
+  const label = isAll ? '전체' : (ids.length === 0 ? '미지정' : ids.length === 1 ? ((staffMembers.find(s => s.id === ids[0]) || {}).name || '1명') : `${ids.length}명`);
+  const toggleStaff = (id) => {
+    if (isAll) { onChange([id]); return; }
+    onChange(ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]);
+  };
+  const openMenu = () => {
+    if (open) { setOpen(false); return; }
+    const r = btnRef.current.getBoundingClientRect();
+    const menuH = Math.min(60 + staffMembers.length * 34, 260);
+    const below = window.innerHeight - r.bottom;
+    const top = below > menuH + 8 ? r.bottom + 4 : Math.max(8, r.top - menuH - 4);  // 아래 공간 부족 시 위로
+    setPos({ top, left: r.left, width: Math.max(r.width, 170) });
+    setOpen(true);
+  };
+  return (
+    <>
+      <button ref={btnRef} onClick={openMenu} title="담당자 지정 (다중 선택)" style={{ width:'100%', padding:'5px 8px', border:'1px solid var(--border)', borderRadius:6, fontSize:11.5, fontWeight:700, background:'#fff', cursor:'pointer', textAlign:'left', color: (isAll || ids.length) ? 'var(--text)' : 'var(--text-sm)' }}>
+        👤 {label} ▾
+      </button>
+      {open && pos && (
+        <div ref={menuRef} style={{ position:'fixed', top:pos.top, left:pos.left, width:pos.width, zIndex:4000, background:'#fff', border:'1px solid var(--border)', borderRadius:8, boxShadow:'var(--shadow-lg)', padding:6, maxHeight:260, overflowY:'auto' }}>
+          <label style={{ display:'flex', alignItems:'center', gap:7, padding:'6px 8px', borderRadius:6, cursor:'pointer', fontSize:12, fontWeight:800, color:'var(--or-d)' }}>
+            <input type="checkbox" checked={isAll} onChange={() => onChange(isAll ? [] : 'all')} style={{ accentColor:'var(--or)', cursor:'pointer' }} />
+            전체 (전 담당자에게 생성)
+          </label>
+          <div style={{ height:1, background:'var(--border-s)', margin:'4px 0' }} />
+          {staffMembers.map(s => (
+            <label key={s.id} style={{ display:'flex', alignItems:'center', gap:7, padding:'6px 8px', borderRadius:6, cursor: isAll ? 'default' : 'pointer', fontSize:12, fontWeight:700, color:'var(--text)', opacity: isAll ? 0.5 : 1 }}>
+              <input type="checkbox" checked={isAll || ids.includes(s.id)} disabled={isAll} onChange={() => toggleStaff(s.id)} style={{ accentColor:'var(--or)', cursor: isAll ? 'default' : 'pointer' }} />
+              {s.name}
+            </label>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+// ============================================================
 // RecurringTasksPage — 반복업무 엑셀 표 + 빠른 추가 + 📌 토글
 // ============================================================
 function RecurringTasksPage({ onToast }) {
@@ -5816,7 +5992,7 @@ function RecurringTasksPage({ onToast }) {
   const { recurring, loading } = useStaffRecurring(activeStaff?.id);
   const [adding, setAdding] = useState(false);
   const [newRow, setNewRow] = useState({
-    title: '', recurType: 'daily', weekDay: '월', monthDay: 1, time: '', priority: 'mid', pinned: false,
+    title: '', recurType: 'daily', weekDay: '월', monthDay: 1, time: '', priority: 'mid', pinned: false, assigneeStaffIds: [],
   });
 
   if (!activeStaff) {
@@ -5858,9 +6034,12 @@ function RecurringTasksPage({ onToast }) {
     if (!newRow.title.trim()) { onToast({ message: '업무 내용을 입력하세요', type: 'error' }); return; }
     setAdding(true);
     try {
+      // 담당자 미선택 시 본인에게 배정 (고아 업무 방지)
+      const av = newRow.assigneeStaffIds;
+      const assignee = av === 'all' ? 'all' : (Array.isArray(av) && av.length ? av : [activeStaff.id]);
       const data = {
         staffId: activeStaff.id,
-        assigneeStaffIds: activeStaff.id,
+        assigneeStaffIds: assignee,
         title: newRow.title.trim(),
         recurType: newRow.recurType,
         weekDay: newRow.recurType === 'weekly' ? newRow.weekDay : null,
@@ -5874,7 +6053,7 @@ function RecurringTasksPage({ onToast }) {
         ...audit.create(),
       };
       await db.collection(COLLECTIONS.POUR_RECURRING).add(data);
-      setNewRow({ title: '', recurType: newRow.recurType, weekDay: '월', monthDay: 1, time: '', priority: 'mid', pinned: false });
+      setNewRow({ title: '', recurType: newRow.recurType, weekDay: '월', monthDay: 1, time: '', priority: 'mid', pinned: false, assigneeStaffIds: [] });
       onToast({ message: '반복업무 추가 완료', type: 'success' });
     } catch (e) {
       onToast({ message: '추가 실패: ' + e.message, type: 'error' });
@@ -5900,8 +6079,8 @@ function RecurringTasksPage({ onToast }) {
         <div>
           <h1 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6, marginBottom:4 }}>📌 고정업무 (반복)</h1>
           <div style={{ fontSize:12.5, color:'var(--text-sm)', fontWeight:700, lineHeight:1.7 }}>
-            {activeStaff.name} · {recurring.length}건 (활성만) · <b>오늘 업무 페이지의 📌 고정업무 DB 관리 페이지</b>
-            <br/>여기 등록한 매일·매주·매월 반복 업무가 오늘 업무에 자동 생성됨 · 📌 토글 시 "📌 고정업무" 영역에 항상 표시
+            {activeStaff.name} · {recurring.length}건 (본인 담당+생성) · <b>오늘 업무 페이지의 📌 고정업무 DB 관리 페이지</b>
+            <br/>여기 등록한 반복 업무는 담당자의 오늘 업무 → <b>📌 고정업무</b> 영역에 자동 표시됨 · 담당자 다중 지정 가능 · 📌는 상단 고정
           </div>
         </div>
       </div>
@@ -5914,6 +6093,7 @@ function RecurringTasksPage({ onToast }) {
               <th style={{ ...thSty, width:80 }}>요일/일자</th>
               <th style={{ ...thSty, width:70 }}>시간</th>
               <th style={{ ...thSty, width:70 }}>우선순위</th>
+              <th style={{ ...thSty, width:120 }}>담당자</th>
               <th style={thSty}>업무 내용</th>
               <th style={{ ...thSty, width:50, textAlign:'center' }}>📌</th>
               <th style={{ ...thSty, width:80, textAlign:'right' }}>액션</th>
@@ -5952,6 +6132,9 @@ function RecurringTasksPage({ onToast }) {
                     <option value="mid">🟡 중간</option>
                     <option value="low">🟢 낮음</option>
                   </select>
+                </td>
+                <td style={tdSty}>
+                  <AssigneePicker value={r.assigneeStaffIds} staffMembers={staffMembers} onChange={v => updateField(r, 'assigneeStaffIds', v)} />
                 </td>
                 <td style={tdSty}>
                   <input value={r.title || ''} onBlur={e => updateField(r, 'title', e.target.value)} onChange={e => { /* uncontrolled OK */ }} defaultValue={r.title || ''} style={{ ...inputSty, fontWeight:700 }} />
@@ -6006,6 +6189,9 @@ function RecurringTasksPage({ onToast }) {
                 </select>
               </td>
               <td style={tdSty}>
+                <AssigneePicker value={newRow.assigneeStaffIds} staffMembers={staffMembers} onChange={v => setNewRow({ ...newRow, assigneeStaffIds: v })} />
+              </td>
+              <td style={tdSty}>
                 <input value={newRow.title} onChange={e => setNewRow({ ...newRow, title: e.target.value })}
                   onKeyDown={e => { if (e.key === 'Enter') addNew(); }}
                   placeholder="새 반복업무... (Enter로 추가)"
@@ -6033,8 +6219,8 @@ function RecurringTasksPage({ onToast }) {
 
       {/* 안내 */}
       <div style={{ marginTop:14, padding:'12px 16px', background:'var(--or-pale, #FFFBF5)', border:'1px dashed var(--or-l, #FED7AA)', borderRadius:10, fontSize:11.5, color:'var(--text-md)', fontWeight:600, lineHeight:1.6 }}>
-        📌 토글 시 대시보드의 <b>고정업무</b> 영역에 표시됩니다. 오늘 생성된 인스턴스도 즉시 동기화 (isFixed=true).
-        <br/>매일/매주/매월 주기에 따라 페이지 진입 시 오늘의 인스턴스가 자동 생성됩니다 (중복 방지).
+        여기 등록한 반복업무는 <b>담당자의 오늘 업무 → 📌 고정업무</b> 영역에 자동 표시됩니다 (📌 토글은 상단 고정용).
+        <br/>담당자는 다중 선택 가능 ('전체' 선택 시 전 담당자에게 생성) · 매일/매주/매월 주기에 따라 페이지 진입 시 오늘 인스턴스 자동 생성 (중복 방지).
       </div>
     </div>
   );

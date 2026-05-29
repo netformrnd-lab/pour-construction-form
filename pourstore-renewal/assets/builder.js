@@ -2746,6 +2746,8 @@ show('entry');
 .psg3-card .psg3-prog::after { content:''; position:absolute; left:0; top:0; bottom:0; width:0; background:linear-gradient(90deg,#F49A3A,#E8780F); }
 .psg3-card[data-psg3-active] .psg3-prog::after { animation:psg3Fill var(--psg3-d, 6s) linear forwards; }
 @keyframes psg3Fill { to { width:100%; } }
+.psg3-swipe { display:none; }
+@keyframes psg3SwipeAr { 0%,100% { transform:translateX(0); } 50% { transform:translateX(4px); } }
 /* 태블릿 */
 @media (max-width:1080px) {
   .psg3-grid { grid-template-columns:1fr 1fr; }
@@ -2771,6 +2773,8 @@ show('entry');
   .psg3-list::-webkit-scrollbar { display:none; }
   .psg3-list .psg3-card { flex:0 0 76%; max-width:300px; scroll-snap-align:center; position:relative; transition:.25s; }
   .psg3-list .psg3-card[data-psg3-active] { outline:2px solid #E8780F; outline-offset:-2px; box-shadow:0 14px 32px rgba(232,120,15,.22); }
+  .psg3-swipe { display:flex; align-items:center; justify-content:center; gap:6px; margin:6px 18px 0; font-size:12px; font-weight:700; color:#E8780F; letter-spacing:-0.02em; }
+  .psg3-swipe .ar { display:inline-block; animation:psg3SwipeAr 1.3s ease-in-out infinite; }
 }
 </style>
 <section class="psg3">
@@ -2805,6 +2809,7 @@ show('entry');
           <span class="psg3-prog"></span>
         </a>
       </div>
+      <div class="psg3-swipe">옆으로 밀어 더 보기 <span class="ar">→</span></div>
     </div>
   </div>
   <script>
@@ -2905,7 +2910,11 @@ show('entry');
 .psg4-mini .info .sub { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:4px; }
 .psg4-mini .info .title { font-size:13px; font-weight:700; color:#0F1F5C; line-height:1.45; letter-spacing:-.3px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .psg4-mini .info .meta { font-size:10.5px; color:#9CA3AF; margin-top:4px; font-weight:600; }
-@media (max-width:880px) { .psg4-feature { grid-template-columns:1fr; } .psg4-side { flex-direction:row; overflow-x:auto; padding-bottom:8px; } .psg4-mini { min-width:280px; } .psg4-head h2 { font-size:24px; } }
+.psg4-swipe { display:none; }
+@keyframes psg4SwipeAr { 0%,100% { transform:translateX(0); } 50% { transform:translateX(4px); } }
+@keyframes psg4Nudge { 0%,100% { transform:translateX(0); } 12% { transform:translateX(-22px); } 26% { transform:translateX(0); } }
+@media (prefers-reduced-motion:reduce) { .psg4-side { animation:none !important; } }
+@media (max-width:880px) { .psg4-feature { grid-template-columns:1fr; } .psg4-side { flex-direction:row; overflow-x:auto; padding-bottom:8px; animation:psg4Nudge 1.6s ease 0.9s 2; } .psg4-mini { min-width:280px; } .psg4-head h2 { font-size:24px; } .psg4-swipe { display:flex; align-items:center; justify-content:center; gap:6px; margin:10px 18px 0; font-size:12px; font-weight:700; color:#E8780F; letter-spacing:-0.02em; } .psg4-swipe .ar { display:inline-block; animation:psg4SwipeAr 1.3s ease-in-out infinite; } }
 @media (max-width:640px) {
   .psg4-main { aspect-ratio:4/3; }
   .psg4-main .play { width:60px; height:60px; top:34%; }
@@ -2938,6 +2947,7 @@ show('entry');
         <a class="psg4-mini" href="https://www.pourstore.net/videos/v3"><div class="thumb" style="background-image:url('https://placehold.co/240x135/F97316/fff?text=CASE')"></div><div class="info"><div class="sub">시공 사례</div><div class="title">신축 정밀 자공 푸드프트정 시공 현장</div><div class="meta">12:05 · 6.5K 회</div></div></a>
         <a class="psg4-mini" href="https://www.pourstore.net/videos/v4"><div class="thumb" style="background-image:url('https://placehold.co/240x135/059669/fff?text=APT')"></div><div class="info"><div class="sub">아파트 사례</div><div class="title">구안주 아파트 단지 — 유니크하우 시공</div><div class="meta">9:33 · 4.1K 회</div></div></a>
       </div>
+      <div class="psg4-swipe">옆으로 밀어 더 보기 <span class="ar">→</span></div>
     </div>
   </div>
 </section>`;
@@ -8193,6 +8203,29 @@ show('entry');
         }
       }
       s.migrations.videoGuideMobileV1 = true;
+    }
+    // 가로 스와이프 힌트 — 매거진·동영상 미니리스트에 "옆으로 밀어 더 보기" 칩 + 넛지
+    if (!s.migrations.swipeHintsV1) {
+      const mpH = s.pages.find(p => p.id === 'main');
+      if (mpH && Array.isArray(mpH.sections)) {
+        const nowH = new Date().toISOString();
+        const swapH = (matchClass, html, reason) => {
+          const i = mpH.sections.findIndex(sec => (sec.html || '').indexOf(matchClass) !== -1);
+          if (i === -1) return;
+          const sec = mpH.sections[i];
+          const key = mpH.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason, kind: 'auto-migration', savedAt: nowH,
+          });
+          sec.html = html;
+          sec.statusAt = nowH;
+        };
+        swapH('class="psg3"', SEED_POSTING_HTML, '매거진 — 모바일 가로 스와이프에 "옆으로 밀어 더 보기 →" 힌트 칩 추가');
+        swapH('class="psg4"', SEED_VIDEO_GUIDE_HTML, '동영상 — 미니리스트 가로 스와이프에 넛지 모션 + "옆으로 밀어 더 보기 →" 힌트 칩 추가');
+      }
+      s.migrations.swipeHintsV1 = true;
     }
     return s;
   }

@@ -65,7 +65,7 @@ async function handleClaudeMessage(body, env) {
     return jsonResponse({ error: 'Anthropic API 키가 필요합니다 (body.claudeApiKey 또는 env.CLAUDE_API_KEY)' }, 400);
   }
   const claudeBody = {
-    model: model || 'claude-sonnet-4-20250514',
+    model: model || 'claude-sonnet-4-6',
     max_tokens: max_tokens || 2048,
     messages,
   };

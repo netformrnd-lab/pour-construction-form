@@ -7981,9 +7981,21 @@ function InstallAppBanner() {
 //   4. pour-ai-reviews 컬렉션에 저장 → 누적 데이터 자산화
 // ============================================================
 const AI_REVIEW_CONFIG_KEY = 'pourAiReviewConfig';
+// Claude 모델 — 2026 현행 ID (claude-sonnet-4-20250514 등 4.0 스냅샷은 은퇴됨)
+const AI_REVIEW_MODELS = [
+  { id: 'claude-sonnet-4-6', label: 'claude-sonnet-4.6 (균형, 권장)' },
+  { id: 'claude-opus-4-7', label: 'claude-opus-4.7 (최고 품질, 더 비쌈)' },
+  { id: 'claude-haiku-4-5-20251001', label: 'claude-haiku-4.5 (저렴, 빠름)' },
+];
+const AI_REVIEW_DEFAULT_MODEL = 'claude-sonnet-4-6';
+// 저장된 값이 은퇴 모델이면 현행 기본값으로 보정 (옛 localStorage가 또 404 내는 것 방지)
+const normalizeAiModel = (m) => AI_REVIEW_MODELS.some(x => x.id === m) ? m : AI_REVIEW_DEFAULT_MODEL;
 function loadAiReviewConfig() {
-  try { return JSON.parse(localStorage.getItem(AI_REVIEW_CONFIG_KEY) || '{}'); }
-  catch { return {}; }
+  try {
+    const c = JSON.parse(localStorage.getItem(AI_REVIEW_CONFIG_KEY) || '{}');
+    c.model = normalizeAiModel(c.model);
+    return c;
+  } catch { return { model: AI_REVIEW_DEFAULT_MODEL }; }
 }
 function saveAiReviewConfig(cfg) {
   try { localStorage.setItem(AI_REVIEW_CONFIG_KEY, JSON.stringify(cfg)); } catch {}
@@ -8231,7 +8243,7 @@ function FridayReviewPage({ onToast }) {
         body: JSON.stringify({
           workerSecret: config.workerSecret,
           claudeApiKey: config.claudeApiKey,
-          model: config.model || 'claude-sonnet-4-20250514',
+          model: normalizeAiModel(config.model),
           max_tokens: 4096,
           messages: [{ role: 'user', content: prompt }],
         }),
@@ -8254,7 +8266,7 @@ function FridayReviewPage({ onToast }) {
         runByStaffId: activeStaff.id, runByStaffName: activeStaff.name,
         snapshot,
         llm: {
-          model: json.model || config.model || 'claude-sonnet-4-20250514',
+          model: json.model || normalizeAiModel(config.model),
           inputTokens: json.usage?.input_tokens || null,
           outputTokens: json.usage?.output_tokens || null,
         },
@@ -8535,7 +8547,7 @@ function AiReviewConfigForm({ config, onSave, onCancel }) {
   const [workerUrl, setWorkerUrl] = useState(config.workerUrl || '');
   const [workerSecret, setWorkerSecret] = useState(config.workerSecret || '');
   const [claudeApiKey, setClaudeApiKey] = useState(config.claudeApiKey || '');
-  const [model, setModel] = useState(config.model || 'claude-sonnet-4-20250514');
+  const [model, setModel] = useState(normalizeAiModel(config.model));
   const inputSty = { width:'100%', padding:'10px 12px', border:'1.5px solid var(--border)', borderRadius:8, fontSize:12.5, fontFamily:'monospace', background:'#fff', outline:'none', marginTop:4 };
   const labelSty = { fontSize:11, fontWeight:800, color:'var(--text-md)', letterSpacing:.3 };
   return (
@@ -8564,9 +8576,7 @@ function AiReviewConfigForm({ config, onSave, onCancel }) {
       <div>
         <label style={labelSty}>모델</label>
         <select value={model} onChange={e => setModel(e.target.value)} style={{ ...inputSty, fontFamily:'inherit' }}>
-          <option value="claude-sonnet-4-20250514">claude-sonnet-4 (균형, 권장)</option>
-          <option value="claude-opus-4-20250514">claude-opus-4 (최고 품질, 더 비쌈)</option>
-          <option value="claude-3-5-haiku-20241022">claude-haiku-3.5 (저렴, 빠름)</option>
+          {AI_REVIEW_MODELS.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
         </select>
       </div>
       <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:8 }}>

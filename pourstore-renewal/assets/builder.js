@@ -11296,7 +11296,7 @@ show('entry');
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Worker-Secret': claudeProxyConfig.workerSecret },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-4-6',
           max_tokens: 8192,
           system, messages: [{ role: 'user', content }],
           claudeApiKey: claudeProxyConfig.claudeApiKey,
@@ -12060,7 +12060,7 @@ show('entry');
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Worker-Secret': claudeProxyConfig.workerSecret },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-4-6',
           max_tokens: 16384,
           system: sysPrompt,
           messages: [{ role: 'user', content: userText }],
@@ -12372,7 +12372,7 @@ show('entry');
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Worker-Secret': claudeProxyConfig.workerSecret },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-4-6',
           max_tokens: 8192,
           system: sysPrompt,
           messages: [{ role: 'user', content: userText }],
@@ -13628,7 +13628,7 @@ show('entry');
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Worker-Secret': claudeProxyConfig.workerSecret },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 8192,
         system: systemPrompt,
         messages: [{ role: 'user', content }],

@@ -296,6 +296,31 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
 .modal-dots{display:flex;gap:6px;}
 .modal-dot{width:7px;height:7px;border-radius:50%;background:var(--border);border:none;cursor:pointer;padding:0;transition:all .2s;}
 .modal-dot.on{background:var(--accent);width:20px;border-radius:4px;}
+/* 편집 모드 */
+.edit-fab{position:fixed;bottom:60px;right:24px;z-index:300;background:rgba(255,255,255,.93);border:1.5px solid var(--border);border-radius:999px;padding:6px 15px;font-size:11.5px;font-weight:700;color:var(--ink3);cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;font-family:inherit;letter-spacing:-.01em;}
+.edit-fab.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+.m-edit-bar{display:none;flex-direction:column;gap:8px;padding:10px 18px 4px;border-top:1px solid var(--border-l);}
+.m-edit-bar.show{display:flex;}
+.m-edit-btns{display:flex;gap:8px;}
+.m-btn-add{flex:1;background:var(--accent-soft);color:var(--accent);border:1.5px solid var(--accent);border-radius:10px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;}
+.m-btn-add:hover{background:var(--accent);color:#fff;}
+.m-btn-del{flex:1;background:var(--red-soft);color:var(--red);border:1.5px solid transparent;border-radius:10px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;}
+.m-btn-del:hover{background:var(--red);color:#fff;}
+.m-upload-panel{display:none;flex-direction:column;gap:9px;padding:12px 18px;background:var(--bg-soft);border-top:1px solid var(--border-l);}
+.m-upload-panel.show{display:flex;}
+.m-file-label{display:inline-flex;align-items:center;gap:7px;background:var(--accent-soft);color:var(--accent);border:1.5px solid var(--accent);border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;width:fit-content;}
+.m-file-label input{display:none;}
+.m-fname{font-size:11.5px;color:var(--ink3);}
+.m-cap-inp{width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:13px;font-family:inherit;outline:none;background:var(--bg);}
+.m-cap-inp:focus{border-color:var(--accent);}
+.m-progress{height:3px;background:var(--border);border-radius:2px;overflow:hidden;display:none;}
+.m-progress.show{display:block;}
+.m-progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s;width:0;}
+.m-upload-row{display:flex;gap:8px;}
+.m-btn-do-upload{flex:1;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+.m-btn-do-upload:disabled{opacity:.45;cursor:not-allowed;}
+.m-btn-cancel-up{background:var(--bg-section);color:var(--ink2);border:none;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+.m-upload-status{font-size:12px;color:var(--ink3);text-align:center;min-height:16px;}
 </style>
 </head>
 <body>
@@ -778,9 +803,30 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
       <div class="modal-caption" id="mCaption"></div>
       <div class="modal-dots" id="mDots"></div>
     </div>
+    <div class="m-edit-bar" id="mEditBar">
+      <div class="m-edit-btns">
+        <button class="m-btn-add" id="mAddBtn">+ 파일 추가</button>
+        <button class="m-btn-del" id="mDelBtn">현재 삭제</button>
+      </div>
+    </div>
+    <div class="m-upload-panel" id="mUploadPanel">
+      <label class="m-file-label">
+        <span>📁 파일 선택</span>
+        <input type="file" id="mFileInput" accept="image/*,video/*">
+      </label>
+      <div class="m-fname" id="mFname">이미지 또는 영상 파일을 선택하세요</div>
+      <input class="m-cap-inp" id="mCapInp" type="text" placeholder="설명 입력 (선택)">
+      <div class="m-progress" id="mProgress"><div class="m-progress-fill" id="mProgressFill"></div></div>
+      <div class="m-upload-status" id="mUploadStatus"></div>
+      <div class="m-upload-row">
+        <button class="m-btn-do-upload" id="mDoUpload" disabled>업로드</button>
+        <button class="m-btn-cancel-up" id="mCancelUp">취소</button>
+      </div>
+    </div>
   </div>
 </div>
 
+<button class="edit-fab" id="editFab">✎ 편집</button>
 <div class="page-counter">
   <div class="page-fraction"><strong id="curNum">1</strong> / <span id="totNum">10</span></div>
   <div class="page-dots" id="pageDots"></div>
@@ -790,6 +836,21 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
   <button class="arr-btn" id="next">→</button>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",
+  authDomain:"pour-app-new.firebaseapp.com",
+  projectId:"pour-app-new",
+  storageBucket:"pour-app-new.firebasestorage.app",
+  messagingSenderId:"411031141847",
+  appId:"1:411031141847:web:e658174fd4b9652cdadf92"
+});
+const db=firebase.firestore();
+const storage=firebase.storage();
+</script>
 <script>
 const slides=document.querySelectorAll('.slide');
 const pills=document.querySelectorAll('.nav-pill');
@@ -828,13 +889,10 @@ slides.forEach(s=>io.observe(s));
 const fio=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');});},{threshold:0.12});
 document.querySelectorAll('.fade').forEach(el=>fio.observe(el));
 document.querySelectorAll('.dash-tab').forEach(t=>t.addEventListener('click',()=>{document.querySelectorAll('.dash-tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');}));
-/* ── 자료 모달 (사진·영상 갤러리 + 좌우 캐러셀) ── */
+/* ── 자료 모달 (사진·영상 갤러리 + Firebase Storage 업로드) ── */
 function ph(t,s){return 'data:image/svg+xml,'+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='750'><rect width='100%' height='100%' fill='#f2f4f6'/><rect x='3' y='3' width='1194' height='744' rx='18' fill='none' stroke='#cfd6dd' stroke-width='2' stroke-dasharray='12 9'/><text x='600' y='350' font-family='Pretendard,sans-serif' font-size='44' font-weight='800' fill='#3182f6' text-anchor='middle'>"+t+"</text><text x='600' y='405' font-family='Pretendard,sans-serif' font-size='21' fill='#8b95a1' text-anchor='middle'>"+s+"</text></svg>");}
 
-/* 각 타임라인 노드(n0~n5)에 연결된 자료. 실제 사진/영상으로 교체하세요.
-   이미지: {type:'image', src:'이미지 URL 또는 파일경로', cap:'설명'}
-   영상  : {type:'video', src:'영상.mp4 URL', cap:'설명'}
-   자료 없는 노드는 항목을 지우면 별(★) 버튼이 자동으로 사라집니다. */
+/* 기본 플레이스홀더 (Firestore 로드 후 교체됨) */
 const mediaData={
   n0:[{type:'image',src:ph('자료 1','공급사 인바운드 · 댓글 작업 캡처'),cap:'동환님 댓글 작업 3회 → 인바운드 146건'},
       {type:'image',src:ph('자료 2','BMA 8개 수익구조'),cap:'BMA 정리 — 8개 수익구조 도출'},
@@ -848,12 +906,52 @@ const mediaData={
   n5:[{type:'image',src:ph('자료 1','겸직 리드매니저 · 재점화'),cap:'모여라딜 + 브랜드커머스 리드매니저'}]
 };
 
+/* Firebase Firestore에서 미디어 로드 */
+async function loadMediaFromFirestore(){
+  try{
+    const snap=await db.collection('growthboard-song-media').get();
+    snap.forEach(doc=>{
+      const d=doc.data();
+      if(d.items&&d.items.length>0){mediaData[doc.id]=d.items;}
+    });
+    console.log('[growthboard-song-media] 미디어 로드 완료');
+    refreshStarButtons();
+  }catch(e){console.error('[growthboard-song-media] 로드 실패:', e);}
+}
+
+function refreshStarButtons(){
+  document.querySelectorAll('.media-star').forEach(b=>{
+    const node=b.dataset.node,arr=mediaData[node];
+    if(!arr||!arr.length){b.style.display='none';return;}
+    b.style.display='';
+    const c=b.querySelector('.cnt');if(c)c.textContent=arr.length;
+  });
+}
+
+/* 편집 모드 */
+let editMode=false;
+let curNode='';
+const editFab=document.getElementById('editFab');
+const mEditBar=document.getElementById('mEditBar');
+const mUploadPanel=document.getElementById('mUploadPanel');
+const mFileInput=document.getElementById('mFileInput');
+const mDoUpload=document.getElementById('mDoUpload');
+
+editFab.addEventListener('click',()=>{
+  editMode=!editMode;
+  editFab.classList.toggle('on',editMode);
+  editFab.textContent=editMode?'✎ 편집 중':'✎ 편집';
+  if(modalOpen)mEditBar.classList.toggle('show',editMode);
+});
+
+/* 모달 */
 let modalOpen=false,mArr=[],mIdx=0;
 const mOverlay=document.getElementById('mediaModal');
 const mPrevBtn=document.getElementById('mPrevBtn');
 const mNextBtn=document.getElementById('mNextBtn');
 const mDots=document.getElementById('mDots');
 const mHolder=document.getElementById('mMediaHolder');
+
 function mRender(){
   const it=mArr[mIdx];mHolder.innerHTML='';
   let el;
@@ -868,10 +966,99 @@ function mRender(){
   mPrevBtn.style.display=single?'none':'';mNextBtn.style.display=single?'none':'';mDots.style.display=single?'none':'flex';
   mPrevBtn.disabled=mIdx===0;mNextBtn.disabled=mIdx===mArr.length-1;
 }
-function mOpen(node,title){const arr=mediaData[node];if(!arr||!arr.length)return;mArr=arr;mIdx=0;modalOpen=true;document.getElementById('mTitle').textContent=title||'관련 자료';mOverlay.classList.add('open');mRender();}
-function mClose(){modalOpen=false;mOverlay.classList.remove('open');const v=mHolder.querySelector('video');if(v)v.pause();mHolder.innerHTML='';}
+
+function mOpen(node,title){
+  const arr=mediaData[node];
+  if(!arr||!arr.length)return;
+  mArr=[...arr];mIdx=0;curNode=node;modalOpen=true;
+  document.getElementById('mTitle').textContent=title||'관련 자료';
+  mOverlay.classList.add('open');
+  mRender();
+  mEditBar.classList.toggle('show',editMode);
+  mUploadPanel.classList.remove('show');
+}
+
+function mClose(){
+  modalOpen=false;mOverlay.classList.remove('open');
+  const v=mHolder.querySelector('video');if(v)v.pause();mHolder.innerHTML='';
+  mEditBar.classList.remove('show');mUploadPanel.classList.remove('show');
+  resetUploadPanel();
+}
+
 function mNext(){if(mIdx<mArr.length-1){mIdx++;mRender();}}
 function mPrev(){if(mIdx>0){mIdx--;mRender();}}
+
+/* 현재 슬라이드 삭제 */
+document.getElementById('mDelBtn').addEventListener('click',async()=>{
+  if(!mArr.length||!curNode)return;
+  const item=mArr[mIdx];
+  if(!confirm((item.cap||'이 항목')+'을(를) 삭제하시겠습니까?'))return;
+  if(item.storagePath){
+    try{await storage.ref(item.storagePath).delete();}
+    catch(e){console.warn('스토리지 파일 삭제 실패:', e);}
+  }
+  const newItems=mArr.filter((_,i)=>i!==mIdx);
+  try{
+    await db.collection('growthboard-song-media').doc(curNode).set({items:newItems});
+    mediaData[curNode]=newItems;mArr=newItems;
+    if(!mArr.length){mClose();refreshStarButtons();return;}
+    if(mIdx>=mArr.length)mIdx=mArr.length-1;
+    mRender();refreshStarButtons();
+  }catch(e){alert('삭제 실패: '+e.message);}
+});
+
+/* 파일 추가 패널 열기/닫기 */
+document.getElementById('mAddBtn').addEventListener('click',()=>mUploadPanel.classList.toggle('show'));
+
+mFileInput.addEventListener('change',()=>{
+  const f=mFileInput.files[0];
+  document.getElementById('mFname').textContent=f?f.name+' ('+Math.round(f.size/1024)+'KB)':'이미지 또는 영상 파일을 선택하세요';
+  mDoUpload.disabled=!f;
+});
+
+/* 업로드 실행 */
+mDoUpload.addEventListener('click',async()=>{
+  const f=mFileInput.files[0];if(!f||!curNode)return;
+  const capVal=document.getElementById('mCapInp').value.trim();
+  const ts=Date.now();
+  const storagePath='growthboard-song/'+curNode+'/'+ts+'_'+f.name;
+  const ref=storage.ref(storagePath);
+  const prog=document.getElementById('mProgress');
+  const progFill=document.getElementById('mProgressFill');
+  const status=document.getElementById('mUploadStatus');
+  prog.classList.add('show');status.textContent='업로드 중...';mDoUpload.disabled=true;
+  const task=ref.put(f);
+  task.on('state_changed',
+    s=>{const p=Math.round(s.bytesTransferred/s.totalBytes*100);progFill.style.width=p+'%';status.textContent='업로드 중... '+p+'%';},
+    err=>{status.textContent='실패: '+err.message;prog.classList.remove('show');mDoUpload.disabled=false;},
+    async()=>{
+      const url=await ref.getDownloadURL();
+      const type=f.type.startsWith('video')?'video':'image';
+      const newItem={type,src:url,cap:capVal,storagePath,createdAt:new Date().toISOString()};
+      const newItems=[...(mediaData[curNode]||[]),newItem];
+      try{
+        await db.collection('growthboard-song-media').doc(curNode).set({items:newItems});
+        mediaData[curNode]=newItems;mArr=newItems;mIdx=mArr.length-1;
+        mRender();refreshStarButtons();
+        status.textContent='✅ 업로드 완료!';
+        setTimeout(()=>{mUploadPanel.classList.remove('show');resetUploadPanel();},1200);
+      }catch(e){status.textContent='저장 실패: '+e.message;}
+    }
+  );
+});
+
+document.getElementById('mCancelUp').addEventListener('click',()=>{mUploadPanel.classList.remove('show');resetUploadPanel();});
+
+function resetUploadPanel(){
+  mFileInput.value='';
+  document.getElementById('mFname').textContent='이미지 또는 영상 파일을 선택하세요';
+  document.getElementById('mCapInp').value='';
+  document.getElementById('mProgress').classList.remove('show');
+  document.getElementById('mProgressFill').style.width='0';
+  document.getElementById('mUploadStatus').textContent='';
+  mDoUpload.disabled=true;
+}
+
 document.querySelectorAll('.media-star').forEach(b=>{
   const node=b.dataset.node,arr=mediaData[node];
   if(!arr||!arr.length){b.style.display='none';return;}
@@ -885,6 +1072,8 @@ mOverlay.addEventListener('click',e=>{if(e.target===mOverlay)mClose();});
 let mSx=0;const mStage=document.getElementById('mStage');
 mStage.addEventListener('touchstart',e=>{mSx=e.touches[0].clientX;},{passive:true});
 mStage.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-mSx;if(Math.abs(dx)>40){dx<0?mNext():mPrev();}});
+
+loadMediaFromFirestore();
 
 updateUI(0);
 </script>

@@ -1251,15 +1251,20 @@ show('entry');
 }
 @media (max-width: 700px) {
   .psm1-hd-inner { display:none; }
-  .psm1-hd-mb { display:grid; grid-template-columns:40px 1fr 62px 40px 40px; align-items:center; padding:12px 12px; gap:2px; position:relative; overflow:visible; z-index:20; }
-  .psm1-hd-mb .psm1-mb-menu, .psm1-hd-mb .psm1-mb-search, .psm1-hd-mb .psm1-mb-cart { width:40px; height:40px; display:grid; place-items:center; font-size:22px; color:#374151; }
+  .psm1-hd-mb { display:block; padding:12px 14px 14px; position:relative; overflow:visible; z-index:20; }
+  .psm1-mb-top { display:grid; grid-template-columns:40px 1fr 40px; align-items:center; }
+  .psm1-hd-mb .psm1-mb-menu, .psm1-hd-mb .psm1-mb-cart { width:40px; height:40px; display:grid; place-items:center; font-size:22px; color:#374151; }
   .psm1-hd-mb .psm1-mb-logo { display:flex; align-items:center; justify-content:center; gap:7px; font-weight:800; font-size:19px; color:#0F1F5C; letter-spacing:-0.04em; }
   .psm1-hd-mb .psm1-mb-logo .psm1-logo-mark { width:26px; height:26px; font-size:12px; font-weight:800; letter-spacing:-0.04em; }
-  /* 모바일 헤더 POUR닥터 마스코트 — 검색 아이콘 옆에 크게, 아래로 살짝 걸터앉음 */
-  .psm1-mb-doctor { position:relative; width:62px; height:62px; padding:0; border:none; background:none; cursor:pointer; line-height:0; justify-self:center; margin-bottom:-22px; z-index:21; }
-  .psm1-mb-doctor-glow { position:absolute; inset:-4px; border-radius:50%; background:radial-gradient(circle, rgba(232,120,15,.34) 0%, transparent 68%); animation:psm1FairyGlow 3s ease-in-out infinite; z-index:0; }
-  .psm1-mb-doctor img { position:relative; z-index:1; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 4px 6px rgba(15,31,92,.22)); animation:psm1FairyBob 3s ease-in-out infinite; }
-  .psm1-mb-doctor-spark { position:absolute; top:0; right:1px; z-index:2; font-size:13px; pointer-events:none; animation:psm1FairySpark 2.4s ease-in-out infinite; }
+  /* 모바일 전체폭 검색바 + 그 위에 걸터앉은 POUR닥터 요정 */
+  .psm1-mb-searchbar { position:relative; margin-top:14px; display:flex; align-items:center; gap:8px; background:#F5F6F8; border:1px solid #ECEEF1; border-radius:26px; padding:12px 16px; cursor:pointer; }
+  .psm1-mb-searchbar .psm1-mb-search-ico { width:18px; height:18px; color:#9E9E9E; flex-shrink:0; }
+  .psm1-mb-searchbar input { flex:1; min-width:0; border:none; background:none; outline:none; font-size:14px; color:#2F3438; letter-spacing:-0.02em; cursor:pointer; }
+  .psm1-mb-searchbar input::placeholder { color:#9E9E9E; }
+  .psm1-mb-doctor { position:absolute; right:10px; top:-26px; width:60px; height:60px; padding:0; border:none; background:none; cursor:pointer; line-height:0; z-index:21; }
+  .psm1-mb-doctor-glow { position:absolute; inset:-4px; bottom:8px; border-radius:50%; background:radial-gradient(circle, rgba(232,120,15,.3) 0%, transparent 68%); animation:psm1FairyGlow 3s ease-in-out infinite; z-index:0; }
+  .psm1-mb-doctor img { position:relative; z-index:1; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 4px 7px rgba(15,31,92,.24)); animation:psm1FairyBob 3s ease-in-out infinite; }
+  .psm1-mb-doctor-spark { position:absolute; top:2px; right:4px; z-index:2; font-size:13px; pointer-events:none; animation:psm1FairySpark 2.4s ease-in-out infinite; }
   /* 모바일: 헬퍼는 화면 좌우 가득, 캐릭터 작게 */
   .psm1-helper { left:14px; right:14px; padding:14px; gap:10px; border-radius:14px; }
   .psm1-helper-char { width:72px; height:80px; border-radius:12px; }
@@ -1333,15 +1338,20 @@ show('entry');
     </div>
   </div>
   <div class="psm1-hd-mb">
-    <button class="psm1-mb-menu" aria-label="메뉴">☰</button>
-    <a href="#" class="psm1-mb-logo"><span class="psm1-logo-mark">P</span><span>POUR스토어</span></a>
-    <button class="psm1-mb-doctor" data-psm1-fairy aria-label="POUR닥터에게 물어보기">
-      <span class="psm1-mb-doctor-glow"></span>
-      <img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fbeaver_search_fairy_nukki.png?alt=media&token=5f4d8a9a-13e1-49d2-b007-56a98286ed24" alt="POUR닥터" loading="lazy"/>
-      <span class="psm1-mb-doctor-spark">✨</span>
-    </button>
-    <button class="psm1-mb-search" aria-label="검색"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
-    <button class="psm1-mb-cart" aria-label="장바구니"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.5"/><circle cx="19" cy="21" r="1.5"/><path d="M3 4h2l2.5 12h12l2-8H6"/></svg></button>
+    <div class="psm1-mb-top">
+      <button class="psm1-mb-menu" aria-label="메뉴">☰</button>
+      <a href="#" class="psm1-mb-logo"><span class="psm1-logo-mark">P</span><span>POUR스토어</span></a>
+      <button class="psm1-mb-cart" aria-label="장바구니"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.5"/><circle cx="19" cy="21" r="1.5"/><path d="M3 4h2l2.5 12h12l2-8H6"/></svg></button>
+    </div>
+    <div class="psm1-mb-searchbar" data-psm1-mb-search>
+      <svg class="psm1-mb-search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input type="text" placeholder="어떤 어려움이 있으세요? (예: 옥상 누수)" aria-label="통합검색" readonly/>
+      <button class="psm1-mb-doctor" data-psm1-fairy aria-label="POUR닥터에게 물어보기">
+        <span class="psm1-mb-doctor-glow"></span>
+        <img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fbeaver_search_fairy_nukki.png?alt=media&token=5f4d8a9a-13e1-49d2-b007-56a98286ed24" alt="POUR닥터" loading="lazy"/>
+        <span class="psm1-mb-doctor-spark">✨</span>
+      </button>
+    </div>
   </div>
 </header>
 <nav class="psm1-tabs" aria-label="카테고리 탭">
@@ -1453,14 +1463,12 @@ show('entry');
       });
     });
   });
-  // 모바일 헤더 마스코트 — 검색바가 숨겨져 있으므로 진단 페이지로 직접 이동
+  // 모바일 검색바·마스코트 — 탭하면 진단 페이지로 이동
+  var mbGo = function(e){ if(e) e.preventDefault(); window.location.href = './pour-doctor.html'; };
   var mbDoctor = root.querySelector('.psm1-mb-doctor');
-  if (mbDoctor) {
-    mbDoctor.addEventListener('click', function(e){
-      e.preventDefault();
-      window.location.href = './pour-doctor.html';
-    });
-  }
+  if (mbDoctor) mbDoctor.addEventListener('click', mbGo);
+  var mbBar = root.querySelector('[data-psm1-mb-search]');
+  if (mbBar) mbBar.addEventListener('click', mbGo);
 })();
 </script>
 </section>`;
@@ -8441,6 +8449,27 @@ show('entry');
         });
       });
       s.migrations.bigDoctorV1 = true;
+    }
+    // 모바일 헤더에 실제 검색바 추가 + 요정이 검색바 위에 걸터앉는 레이아웃
+    if (!s.migrations.mbSearchbarV1) {
+      const nowMS = new Date().toISOString();
+      s.pages.forEach(pg => {
+        if (!Array.isArray(pg.sections)) return;
+        pg.sections.forEach(sec => {
+          if ((sec.html || '').indexOf('class="psm1"') !== -1) {
+            const key = pg.id + ':' + sec.id;
+            s.history[key] = s.history[key] || [];
+            s.history[key].unshift({
+              name: sec.name, html: sec.html, note: sec.note || '',
+              reason: '모바일 헤더에 전체폭 검색바 추가 + 요정이 검색바 위에 걸터앉아 돋보기로 들여다보는 히어로 레이아웃(첨부 시안)',
+              kind: 'auto-migration', savedAt: nowMS,
+            });
+            sec.html = OHOUSE_V1_SECTION_HTML;
+            sec.statusAt = nowMS;
+          }
+        });
+      });
+      s.migrations.mbSearchbarV1 = true;
     }
     return s;
   }

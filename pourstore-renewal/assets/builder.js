@@ -2447,6 +2447,7 @@ show('entry');
   .psy3-head h2 { font-size:24px; }
   .psy3-head .more { font-size:12px; padding:9px 14px; }
   .psy3-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; padding:0 16px; }
+  .psy3-grid .psy3-card:nth-child(n+5) { display:none; }
   .psy3-card { max-width:none; aspect-ratio:9/16; }
   .psy3-card .title { font-size:12.5px; bottom:12px; left:12px; right:12px; }
   .psy3-card .play { width:46px; height:46px; }
@@ -2483,18 +2484,21 @@ show('entry');
     if (cards.length === 0) return;
     var current = 0, paused = false, inView = false;
     var advanceT = null, resumeT = null;
-    function durMs(i){
-      var d = parseFloat(cards[i].getAttribute('data-psy3-dur') || '5');
+    function visCards(){ return cards.filter(function(c){ return c.offsetParent !== null; }); }
+    function durMsEl(el){
+      var d = parseFloat(el.getAttribute('data-psy3-dur') || '5');
       return Math.min(Math.max(d, 3), 10) * 1000;
     }
     function clearAdvance(){ if (advanceT) { clearTimeout(advanceT); advanceT = null; } }
     function activate(i){
       clearAdvance();
-      current = ((i % cards.length) + cards.length) % cards.length;
-      cards.forEach(function(c, idx){
-        if (idx === current) {
-          var d = durMs(current);
-          c.style.setProperty('--psy3-d', (d/1000) + 's');
+      var list = visCards();
+      if (!list.length) return;
+      current = ((i % list.length) + list.length) % list.length;
+      var active = list[current];
+      cards.forEach(function(c){
+        if (c === active) {
+          c.style.setProperty('--psy3-d', (durMsEl(c)/1000) + 's');
           // 애니메이션 재시작을 위해 속성을 잠깐 떼었다 다시 붙임
           c.removeAttribute('data-psy3-active');
           void c.offsetWidth;
@@ -2503,9 +2507,9 @@ show('entry');
           c.removeAttribute('data-psy3-active');
         }
       });
-      // 2열 그리드 — 모든 카드가 보이므로 스크롤 없이 활성 카드만 순환 강조
+      // 그리드 — 보이는 카드만 순환 강조 (모바일 숨김 카드 건너뜀)
       if (!paused && inView && !document.hidden) {
-        advanceT = setTimeout(function(){ activate(current + 1); }, durMs(current));
+        advanceT = setTimeout(function(){ activate(current + 1); }, durMsEl(active));
       }
     }
     function pauseFor(ms){
@@ -8117,6 +8121,27 @@ show('entry');
         }
       }
       s.migrations.shortsGrid2colV1 = true;
+    }
+    // 숏츠 섹션 — 모바일에서 정확히 2행(4장)만 노출하도록 5번째 카드 숨김
+    if (!s.migrations.shortsGrid2rowV1) {
+      const mpS2 = s.pages.find(p => p.id === 'main');
+      if (mpS2 && Array.isArray(mpS2.sections)) {
+        const nowS2 = new Date().toISOString();
+        const idx = mpS2.sections.findIndex(sec => (sec.html || '').indexOf('class="psy3"') !== -1);
+        if (idx !== -1) {
+          const sec = mpS2.sections[idx];
+          const key = mpS2.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason: '숏츠 섹션 — 모바일 2행(4장)으로 고정, 자동순환은 보이는 카드만',
+            kind: 'auto-migration', savedAt: nowS2,
+          });
+          sec.html = SEED_YOUTUBE_HTML;
+          sec.statusAt = nowS2;
+        }
+      }
+      s.migrations.shortsGrid2rowV1 = true;
     }
     return s;
   }

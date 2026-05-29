@@ -8244,7 +8244,7 @@ function FridayReviewPage({ onToast }) {
           workerSecret: config.workerSecret,
           claudeApiKey: config.claudeApiKey,
           model: normalizeAiModel(config.model),
-          max_tokens: 4096,
+          max_tokens: 16000, // 2트랙 한국어 분석은 4096 초과 → 잘려서 JSON 파싱 실패하던 문제 해결
           messages: [{ role: 'user', content: prompt }],
         }),
       });

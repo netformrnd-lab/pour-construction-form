@@ -276,6 +276,28 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
 .insight-strip{background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:16px;padding:20px 26px;text-align:center;}
 .insight-strip p{font-size:15px;color:var(--ink);line-height:1.7;font-weight:600;}
 .insight-strip strong{color:var(--accent-dark);font-weight:800;}
+.bma-insight{margin-top:16px;background:var(--bg-section);border:1px solid var(--border);border-radius:18px;padding:18px 20px;}
+.bma-insight-row{display:flex;align-items:stretch;gap:14px;}
+.bma-insight-col{flex:1;}
+.bma-insight-arrow{align-self:center;color:var(--accent);font-weight:800;font-size:20px;}
+.bma-insight-tag{display:inline-block;font-size:11px;font-weight:800;padding:3px 11px;border-radius:999px;margin-bottom:9px;background:#fff;border:1px solid var(--border);color:var(--ink3);}
+.bma-insight-tag.on{background:var(--accent-soft);border-color:transparent;color:var(--accent-dark);}
+.bma-insight-txt{font-size:13px;line-height:1.65;color:var(--ink2);font-weight:500;}
+.bma-insight-txt b{color:var(--ink);font-weight:700;}
+.bma-insight-col.after .bma-insight-txt b{color:var(--accent-dark);}
+@media(max-width:560px){.bma-insight-row{flex-direction:column;gap:11px;}.bma-insight-arrow{transform:rotate(90deg);align-self:flex-start;}}
+
+/* 성장 램프 */
+.ramp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;align-items:end;margin-bottom:18px;padding-top:10px;}
+.ramp-step{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;text-align:center;}
+.ramp-v{font-size:clamp(15px,1.8vw,19px);font-weight:800;color:var(--ink);margin-bottom:10px;letter-spacing:-.02em;}
+.ramp-step.on .ramp-v{color:var(--accent-dark);}
+.ramp-bar{width:100%;max-width:88px;border-radius:12px 12px 0 0;background:linear-gradient(180deg,var(--accent),var(--accent-dark));}
+.ramp-bar.loss{background:linear-gradient(180deg,#ff7a86,var(--red));}
+.ramp-q{font-size:12.5px;font-weight:800;color:var(--ink2);margin-top:12px;}
+.ramp-step.on .ramp-q{color:var(--accent-dark);}
+.ramp-l{font-size:11px;color:var(--ink3);margin-top:4px;font-weight:600;line-height:1.4;}
+@media(max-width:980px){.ramp-grid{grid-template-columns:repeat(2,1fr);}}
 
 /* goal */
 .goal-big{font-size:clamp(72px,11vw,128px);font-weight:800;line-height:1;letter-spacing:-0.04em;background:linear-gradient(135deg,var(--accent),var(--accent-dark));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
@@ -342,6 +364,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
 /* 편집 모드 */
 .edit-fab{position:fixed;bottom:60px;right:24px;z-index:300;background:rgba(255,255,255,.93);border:1.5px solid var(--border);border-radius:999px;padding:6px 15px;font-size:11.5px;font-weight:700;color:var(--ink3);cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;font-family:inherit;letter-spacing:-.01em;}
 .edit-fab.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+.present-fab{position:fixed;bottom:104px;right:24px;z-index:300;background:rgba(255,255,255,.93);border:1.5px solid var(--border);border-radius:999px;padding:6px 15px;font-size:11.5px;font-weight:700;color:var(--ink3);cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;font-family:inherit;letter-spacing:-.01em;}
+.present-fab.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+body.present-mode .media-star{display:none!important;}
+body.present-mode .edit-fab{display:none!important;}
 .m-edit-bar{display:none;flex-direction:column;gap:8px;padding:10px 18px 4px;border-top:1px solid var(--border-l);}
 .m-edit-bar.show{display:flex;}
 .m-edit-btns{display:flex;gap:8px;}
@@ -375,15 +401,16 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
     <button class="nav-pill">여정</button>
     <button class="nav-pill">모여라딜</button>
     <button class="nav-pill">직접 팔아보자</button>
+    <button class="nav-pill">협업·모여라딜</button>
     <button class="nav-pill">POUR스토어</button>
     <button class="nav-pill">자사몰 리뉴얼</button>
     <button class="nav-pill">AI솔루션·SKU</button>
-    <button class="nav-pill">대시보드·KPI</button>
-    <button class="nav-pill">팀 구조</button>
-    <button class="nav-pill">협업·모여라딜</button>
     <button class="nav-pill">협업·스토어</button>
+    <button class="nav-pill">팀 구조</button>
+    <button class="nav-pill">대시보드·KPI</button>
     <button class="nav-pill">신규 프로젝트</button>
     <button class="nav-pill">Next</button>
+    <button class="nav-pill">성장 램프</button>
     <button class="nav-pill">목표</button>
   </div>
 </nav>
@@ -421,10 +448,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
   </div>
 </section>
 
-<!-- S1 여정 -->
 <section class="slide" id="s1">
   <div class="slide-header">
-    <div class="sec-num fade">01 · Journey</div>
+    <div class="sec-num fade">01 · JOURNEY</div>
     <h2 class="sec-title fade d1">지원으로 들어와서 구조를 만들었습니다.</h2>
     <p class="sec-desc fade d2">모여라딜 리드였고, 지원 업무로 넘어갔고, 결국 두 프로젝트의 리드가 됐습니다.</p>
   </div>
@@ -476,33 +502,32 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
   </div>
 </section>
 
-<!-- S2 모여라딜 -->
 <section class="slide" id="s2">
   <div class="slide-header">
-    <div class="sec-num fade">02 · 모여라딜</div>
-    <h2 class="sec-title fade d1">BMA를 증명했습니다.</h2>
-    <p class="sec-desc fade d2">리드로서 구조를 설계하고, 가설을 검증하고, 인바운드를 만들었습니다.</p>
+    <div class="sec-num fade">PART 1 · 모여라딜 — 성과</div>
+    <h2 class="sec-title fade d1">수요는 증명했고, 전환은 이제부터입니다.</h2>
+    <p class="sec-desc fade d2">검증된 것(수요·인바운드 146건·8개 수익구조)과 아직 비어 있는 것(전환·실매출)을 분명히 구분합니다.</p>
   </div>
   <div class="slide-body">
     <div class="two-col">
       <div class="card fade d1">
-        <div class="card-label">// 증명한 것</div>
-        <div class="card-title">BMA 검증 &amp; 구조 설계</div>
+        <div class="card-label">// 증명됨 (Validated)</div>
+        <div class="card-title">수요와 구조는 만들었다</div>
         <ul class="card-list">
-          <li><span class="ic">🧠</span><b>마스터프롬프트 제작</b> — 브랜드 정체성·BMA·KPI 내재화. 전략·디자인·CS·UX 일관 구현</li>
-          <li><span class="ic">📐</span>BMA 정리 → <b>8개 수익구조</b> 도출. BMA별 서비스소개·계약서·UX 설계 가능</li>
-          <li><span class="ic">📣</span>동환님 댓글 작업 3회 → 공급사 인바운드 <b>146건</b> (입점 17 · 제안서 13 포함)</li>
-          <li><span class="ic">🛒</span>셀러 리스트업 101건 → 제안서 26건 → 공구 <b>10건</b>(누적), 매출 <b>108만원</b></li>
+          <li><span class="ic">🧠</span><b>마스터프롬프트 제작</b> — 브랜드 정체성·BMA·KPI 내재화, 판단 기준 확립</li>
+          <li><span class="ic">📐</span>BMA 정리 → <b>8개 수익구조</b> 도출 (서비스소개·계약서·UX 설계 가능)</li>
+          <li><span class="ic">📣</span>공급사 인바운드 <b>146건</b> — 광고비 0원, 전부 아웃리치로 확보</li>
+          <li><span class="ic">📦</span>공급사 DB 109 · 신박템 33 · 셀러 16 <b>자산화</b></li>
           <li><span class="ic">🔧</span>관리자 시스템 · CRM센터 · 경영 대시보드 설계·구축</li>
         </ul>
       </div>
       <div class="card fade d2">
-        <div class="card-label">// 지금 숫자</div>
-        <div class="card-title">검증된 수요, 아직 비어 있는 전환</div>
+        <div class="card-label">// 미검증 (Not yet)</div>
+        <div class="card-title">남은 건 '전환'이다</div>
         <ul class="card-list">
-          <li><span class="ic">✅</span>공급사 인바운드 <b>146건</b> — 광고비 0원, 전부 아웃리치로 확보</li>
-          <li><span class="ic">📦</span>공급사 DB 109건 · 신박템 33건 · 셀러 DB 16건 자산화</li>
-          <li><span class="ic">⚠️</span>공구 공백으로 GMV 집계 중단 — <b>수요는 있는데 실행이 비었다</b></li>
+          <li><span class="ic">🛒</span>셀러 101 → 제안 26 → 공구 <b>10건</b>·매출 108만원 — <b>소규모 검증까지만</b></li>
+          <li><span class="ic">⚠️</span>실매출·GMV 본격 전환은 아직 — <b>수요는 충분, 전환이 비었다</b></li>
+          <li><span class="ic">🎯</span><b>다음 반기 1순위 = 실매출 전환</b> — 정하님과 본격 실행</li>
         </ul>
         <div class="stat-row">
           <div class="stat-mini"><div class="stat-mini-v">146건</div><div class="stat-mini-l">인바운드</div></div>
@@ -511,16 +536,28 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
         </div>
       </div>
     </div>
-    <div class="highlight-box fade d3">
+    <div class="bma-insight fade d3">
+      <div class="bma-insight-row">
+        <div class="bma-insight-col before">
+          <div class="bma-insight-tag">9건을 해보고 느낀 것</div>
+          <div class="bma-insight-txt"><b>순액법</b> 구조라 순마진이 거의 남지 않았고, 밸류업을 위해 다양한 판매방식을 시도하고 싶어도 <b>어디서부터 손대야 할지 막막</b>했습니다.</div>
+        </div>
+        <div class="bma-insight-arrow">→</div>
+        <div class="bma-insight-col after">
+          <div class="bma-insight-tag on">BMA를 설계하고 나니</div>
+          <div class="bma-insight-txt"><b>총액법 전환</b>과 <b>순마진율을 끌어올리는 경로</b>가 보였습니다. 실제 매출은 잠시 멈췄지만, <b>앞으로 어떻게 나아갈지가 분명해져 마음이 단단해졌습니다.</b></div>
+        </div>
+      </div>
+    </div>
+    <div class="highlight-box fade d4">
       <p>마스터프롬프트가 <strong>방향성이 흔들릴 때의 판단 기준</strong>이 됐습니다. 실행과 전략을 동시에 진행하면서도 <strong>잘못된 방향으로 새지 않도록</strong> 잡아주는 역할.</p>
     </div>
   </div>
 </section>
 
-<!-- S3 직접 팔아보자 -->
 <section class="slide" id="s3">
   <div class="slide-header">
-    <div class="sec-num fade">03 · 직접 팔아보자</div>
+    <div class="sec-num fade">PART 1 · 모여라딜 — 직접 팔아보자</div>
     <h2 class="sec-title fade d1">이제 직접 팔아봅니다.</h2>
     <p class="sec-desc fade d2">4개의 가설을 동시에 실험 — 하현님이 실행을 열고, 정하님이 본격 가동합니다.</p>
   </div>
@@ -558,20 +595,48 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
   </div>
 </section>
 
-<!-- S4 POUR스토어 -->
+<section class="slide" id="s7m">
+  <div class="slide-header">
+    <div class="sec-num fade">PART 1 · 모여라딜 — 협업</div>
+    <h2 class="sec-title fade d1">모여라딜 — 누가 무엇을 함께했나.</h2>
+    <p class="sec-desc fade d2">모여라딜 재점화의 핵심 축은 <b>정하님</b> — 송희(리드)와 함께 <b>"직접 팔아보자"</b> 실행을 본격 가동합니다.</p>
+  </div>
+  <div class="slide-body">
+    <div class="cn-wrap fade d1">
+      <div class="cn-graph">
+        <svg class="cn-svg" viewBox="0 0 560 380" role="img" aria-label="모여라딜 협업 네트워크">
+          <line class="cn-edge lead" x1="280" y1="85" x2="280" y2="285" stroke-width="9"/>
+          <g><rect class="cn-elabel-bg" x="262" y="175" width="36" height="20" rx="10"/><text class="cn-elabel" x="280" y="189">6건</text></g>
+          <g><circle class="cn-ncirc lead" cx="280" cy="85" r="44"/><text class="cn-nname lead" x="280" y="81">송희</text><text class="cn-nrole lead" x="280" y="99">리드</text></g>
+          <g><circle class="cn-ncirc" cx="280" cy="285" r="44"/><text class="cn-nname" x="280" y="281">정하</text><text class="cn-nrole" x="280" y="299">본격 가동</text></g>
+        </svg>
+      </div>
+      <div>
+        <div class="cn-total"><b>6건</b><span>주요 협업 · 송희 + 정하</span></div>
+        <div class="cn-pairs">
+          <div class="cn-pair">
+            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 정하</span><span class="cn-pair-cnt">6건</span><span class="cn-pair-flow">본격 가동 → 재점화</span></div>
+            <div class="cn-chips"><span class="cn-chip">모여라딜 재점화</span><span class="cn-chip">셀러 공구 제안</span><span class="cn-chip">신박템 소싱 33건</span><span class="cn-chip">공급사 DB 109건</span><span class="cn-chip">인스타 자체판매</span><span class="cn-chip">공구 운영·판매 데이터</span></div>
+          </div>
+        </div>
+        <div class="cn-note">※ 모여라딜 협업 <b>건수·항목은 잠정값</b>입니다 — 정하님 실제 협업 내역을 알려주시면 정확히 반영하겠습니다.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="slide" id="s4">
   <div class="slide-header">
-    <div class="sec-num fade">04 · POUR스토어</div>
-    <h2 class="sec-title fade d1">지원으로 들어왔는데 구조를 만들게 됐습니다.</h2>
+    <div class="sec-num fade">PART 2 · POUR스토어 — 개요</div>
+    <h2 class="sec-title fade d1">합류 두 달, 운영 시스템을 세웠습니다.</h2>
     <p class="sec-desc fade d2">3.26 합류 이후 만든 것들 — 그리고 솔직한 현황.</p>
   </div>
   <div class="slide-body">
     <div class="three-col">
-      <div class="feat-card fade d1"><div class="feat-icon">🧠</div><div class="feat-title">마스터프롬프트 (모든 것의 기반)</div><div class="feat-desc">개발 전 선제작 원칙. 브랜드 정체성·톤앤매너·BMA·KPI·데이터관리 내재화. 방향성 판단 기준 역할.</div></div>
+      <div class="feat-card fade d1"><div class="feat-icon">🧠</div><div class="feat-title">마스터프롬프트 — POUR스토어판</div><div class="feat-desc">모여라딜에서 검증한 선제작 원칙을 POUR스토어용으로 확장. 서비스소개·계약서·UX·CS 톤을 일관 적용.</div></div>
       <div class="feat-card fade d2"><div class="feat-icon">📱</div><div class="feat-title">박람회 영업앱</div><div class="feat-desc">넷폼 박람회 영업사원용 앱 제작 완료. 클로드 API 연결, 맞춤 제안서 자동 생성.</div></div>
       <div class="feat-card fade d3"><div class="feat-icon">🎯</div><div class="feat-title">KPI 체계 v6</div><div class="feat-desc">5단계 계층 구조 (O→KR→결과지표→활동지표→Task). 조달청 G채널 추가. 연매출 10억 목표.</div></div>
-      <div class="feat-card fade d4"><div class="feat-icon">👥</div><div class="feat-title">업무분장 설계</div><div class="feat-desc">Phase 0→1→2 분담 매트릭스. 채림님 인턴→정규직 전환 계약 포함.</div></div>
-      <div class="feat-card fade d5"><div class="feat-icon">💳</div><div class="feat-title">PG사 탐색 &amp; 전환</div><div class="feat-desc">KG이니시스·토스 불가 → 스마트로 가능 확인. 총액법·순액법 개념 체득.</div></div>
+      <div class="feat-card fade d4"><div class="feat-icon">💳</div><div class="feat-title">PG사 입점 탐색</div><div class="feat-desc">모여라딜은 <b>공동구매 단일 판매방식</b>이라 KG이니시스·토스 입점 불가 → 스마트로 가능 확인. <b>판매방식을 다양화해야 한다</b>는 과제 확인.</div></div>
       <div class="feat-card fade d6"><div class="feat-icon">📡</div><div class="feat-title">CRM · 운영 인프라</div><div class="feat-desc">Solapi SMS API 연동, 대표번호 신청, 파트너소개사이트 포스팅 3건 완료.</div></div>
     </div>
     <div class="honest-box fade d6">
@@ -586,10 +651,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
   </div>
 </section>
 
-<!-- S5 자사몰 리뉴얼 현황 -->
 <section class="slide" id="s5r">
   <div class="slide-header">
-    <div class="sec-num fade">05 · 자사몰 리뉴얼</div>
+    <div class="sec-num fade">PART 2 · POUR스토어 — 자사몰</div>
     <h2 class="sec-title fade d1">자사몰 리뉴얼 — 3대 축으로 다시.<button class="media-star" data-node="n6" data-title="자사몰 리뉴얼 — 구축 현황" title="구축 현황 사진 보기">★<span class="cnt">3</span></button></h2>
     <p class="sec-desc fade d2">아임웹 → 카페24 이전 + 모바일 퍼스트 재설계. <b>페이지 디자인 · 로고 개편 · AI 챗봇</b> 3가지를 동시에 진행 중입니다.</p>
   </div>
@@ -618,10 +682,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
   </div>
 </section>
 
-<!-- S5B AI 솔루션 & SKU 확장 -->
 <section class="slide" id="s5b">
   <div class="slide-header">
-    <div class="sec-num fade">06 · AI 솔루션 &amp; SKU 확장</div>
+    <div class="sec-num fade">PART 2 · POUR스토어 — AI·SKU</div>
     <h2 class="sec-title fade d1">데이터가 쌓이는 구조를 만듭니다.</h2>
     <p class="sec-desc fade d2">AI 하자진단 템플릿 · SKU 세분화 — 쌓일수록 영업·추천이 똑똑해집니다.</p>
   </div>
@@ -655,81 +718,71 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
   </div>
 </section>
 
-<!-- S6 대시보드·KPI -->
-<section class="slide" id="s6">
+<section class="slide" id="s7p">
   <div class="slide-header">
-    <div class="sec-num fade">07 · 경영 대시보드 &amp; KPI</div>
-    <h2 class="sec-title fade d1">숫자로 경영할 수 있는 구조.</h2>
-    <p class="sec-desc fade d2">모여라딜에 먼저 구축 · POUR스토어도 제작 예정 — 실데이터 검증이 다음 과제.</p>
+    <div class="sec-num fade">PART 2 · POUR스토어 — 협업</div>
+    <h2 class="sec-title fade d1">POUR스토어 — 4인 협업 구조.</h2>
+    <p class="sec-desc fade d2">송희(리드) + 민지·란·채림 — 영역별로 분담하며 <b>33개 협업 프로젝트</b>를 함께 진행했습니다.</p>
   </div>
   <div class="slide-body">
-    <div class="dash-split">
-      <div class="dash-preview fade d1">
-        <div class="dash-tabs">
-          <div class="dash-tab on">📦 매입매출</div><div class="dash-tab">🔥 BMA별</div><div class="dash-tab">📉 손익</div>
-          <div class="dash-tab">💎 현금흐름</div><div class="dash-tab">⚡ 단위경제성</div><div class="dash-tab">🏛 밸류에이션</div>
-        </div>
-        <div class="dash-body">
-          <div class="dash-metrics">
-            <div class="dash-metric"><div class="dash-metric-v gold">598,510원</div><div class="dash-metric-l">2026 GMV (15건)</div></div>
-            <div class="dash-metric"><div class="dash-metric-v g">8.7%</div><div class="dash-metric-l">매출총이익률</div></div>
-            <div class="dash-metric"><div class="dash-metric-v r">-650만원</div><div class="dash-metric-l">월 순현금흐름</div></div>
-            <div class="dash-metric"><div class="dash-metric-v">83%</div><div class="dash-metric-l">공구 완판율</div></div>
+    <div class="cn-wrap cn-ps fade d1">
+      <div class="cn-graph">
+        <svg class="cn-svg" viewBox="0 0 560 380" role="img" aria-label="POUR스토어 협업 네트워크">
+          <line class="cn-edge" x1="90" y1="200" x2="470" y2="200" stroke-width="6.9"/>
+          <line class="cn-edge" x1="90" y1="200" x2="280" y2="330" stroke-width="3.4"/>
+          <line class="cn-edge" x1="470" y1="200" x2="280" y2="330" stroke-width="3.4"/>
+          <line class="cn-edge lead" x1="280" y1="60" x2="470" y2="200" stroke-width="9.7"/>
+          <line class="cn-edge lead" x1="280" y1="60" x2="90" y2="200" stroke-width="7.6"/>
+          <line class="cn-edge lead" x1="280" y1="60" x2="280" y2="330" stroke-width="4.1"/>
+          <g><rect class="cn-elabel-bg" x="357" y="118" width="40" height="20" rx="10"/><text class="cn-elabel" x="377" y="132">11건</text></g>
+          <g><rect class="cn-elabel-bg" x="167" y="118" width="36" height="20" rx="10"/><text class="cn-elabel" x="185" y="132">8건</text></g>
+          <g><rect class="cn-elabel-bg" x="262" y="125" width="36" height="20" rx="10"/><text class="cn-elabel" x="280" y="139">3건</text></g>
+          <g><rect class="cn-elabel-bg" x="262" y="190" width="36" height="20" rx="10"/><text class="cn-elabel" x="280" y="204">7건</text></g>
+          <g><rect class="cn-elabel-bg" x="162" y="262" width="36" height="20" rx="10"/><text class="cn-elabel" x="180" y="276">2건</text></g>
+          <g><rect class="cn-elabel-bg" x="362" y="262" width="36" height="20" rx="10"/><text class="cn-elabel" x="380" y="276">2건</text></g>
+          <g><circle class="cn-ncirc lead" cx="280" cy="60" r="40"/><text class="cn-nname lead" x="280" y="56">송희</text><text class="cn-nrole lead" x="280" y="72">LEAD</text></g>
+          <g><circle class="cn-ncirc" cx="90" cy="200" r="34"/><text class="cn-nname" x="90" y="197">민지</text><text class="cn-nrole" x="90" y="213">M1</text></g>
+          <g><circle class="cn-ncirc" cx="470" cy="200" r="34"/><text class="cn-nname" x="470" y="197">란</text><text class="cn-nrole" x="470" y="213">M2</text></g>
+          <g><circle class="cn-ncirc dash" cx="280" cy="330" r="32"/><text class="cn-nname" x="280" y="327">채림</text><text class="cn-nrole" x="280" y="343">M3</text></g>
+        </svg>
+      </div>
+      <div>
+        <div class="cn-total"><b>33건</b><span>협업 프로젝트 · 4인 (송희·민지·란·채림)</span></div>
+        <div class="cn-pairs">
+          <div class="cn-pair">
+            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 란</span><span class="cn-pair-cnt">11건</span><span class="cn-pair-flow">B2B 정책 → 실무</span></div>
+            <div class="cn-chips"><span class="cn-chip">광고 운영(네이버·메타)</span><span class="cn-chip">채널별 광고(마켓)</span><span class="cn-chip">대리점 정책</span><span class="cn-chip">협업 정책 수립</span><span class="cn-chip">발주 시스템</span><span class="cn-chip">파트너사 자동매칭</span><span class="cn-chip">인플루언서·유튜버 정책</span><span class="cn-chip">철물점 지점화</span><span class="cn-chip">POUR공법 이관 표준화</span><span class="cn-chip">POUR솔루션 이관 표준화</span><span class="cn-chip">매칭 시스템</span></div>
           </div>
-          <div class="gmv-chart">
-            <div class="gmv-row"><span class="gmv-mon">25.12</span><div class="gmv-bar-wrap"><div class="gmv-bar" style="width:71%"></div></div><span class="gmv-val">356,300</span></div>
-            <div class="gmv-row"><span class="gmv-mon">26.01</span><div class="gmv-bar-wrap"><div class="gmv-bar" style="width:100%"></div></div><span class="gmv-val">501,000</span></div>
-            <div class="gmv-row"><span class="gmv-mon">26.02</span><div class="gmv-bar-wrap"><div class="gmv-bar" style="width:1%"></div></div><span class="gmv-val">0</span></div>
-            <div class="gmv-row"><span class="gmv-mon">26.03</span><div class="gmv-bar-wrap"><div class="gmv-bar" style="width:19%"></div></div><span class="gmv-val">97,510</span></div>
-            <div class="gmv-row"><span class="gmv-mon">26.04~05</span><div class="gmv-bar-wrap"><div class="gmv-bar" style="width:1%"></div></div><span class="gmv-val">0</span></div>
+          <div class="cn-pair">
+            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 민지</span><span class="cn-pair-cnt">8건</span><span class="cn-pair-flow">SKU 소싱 → 등록</span></div>
+            <div class="cn-chips"><span class="cn-chip">코트재 외주 색상</span><span class="cn-chip">탑코트재 파생 8개</span><span class="cn-chip">써밋페인트 파생 5개</span><span class="cn-chip">제비스코 OEM 라인</span><span class="cn-chip">제비스코 ODM 라인</span><span class="cn-chip">부자재·안전용품 ODM</span><span class="cn-chip">신규 채널 확장</span><span class="cn-chip">디자인 자동 생성</span></div>
+          </div>
+          <div class="cn-pair">
+            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 채림</span><span class="cn-pair-cnt">3건</span><span class="cn-pair-flow">시스템 → 데이터 운영</span></div>
+            <div class="cn-chips"><span class="cn-chip">CRM 시스템 개발</span><span class="cn-chip">매출관리 시스템</span><span class="cn-chip">POUR길잡이 구축</span></div>
           </div>
         </div>
-      </div>
-      <div class="bep-box fade d2">
-        <div class="bep-top"><span>현재 월 GMV</span><span>BEP 목표 <b>9,700만원/월</b></span></div>
-        <div class="bep-track"><div class="bep-fill"></div></div>
-        <div class="bep-note">월 고정비 650만 · 공헌이익률(기본) <b>6.7%</b> 기준 BEP GMV <b>약 9,700만원</b>. 광고비 0원(아웃리치) 전략으로 <b>LTV/CAC ∞</b> — 핵심 강점.</div>
-        <div class="bma-row">
-          <div class="bma-tag dfp"><div class="c">DFP</div><div class="l">직접판매</div></div>
-          <div class="bma-tag cpa"><div class="c">CPA</div><div class="l">어필리에이트</div></div>
-          <div class="bma-tag icp"><div class="c">ICP</div><div class="l">해외소싱</div></div>
+        <div class="cn-relay">
+          <div class="cn-relay-t">🪃 대리점 — 송희 ↔ 란 '바통' 협업 사례</div>
+          <div class="cn-relay-flow">
+            <b>송희 시작<small>2025 초 ~ 9월</small></b>
+            <span class="ar">→</span>
+            <b>란님 이어 운영<small>송희 이탈 기간</small></b>
+            <span class="ar">→</span>
+            <b>송희 재합류·리드<small>2026 · 정책 고도화</small></b>
+            <span class="ar">→</span>
+            <b>운영 이관<small>향후 란님</small></b>
+          </div>
         </div>
-        <div class="bep-note" style="margin-top:11px;">전략 방향 — <b>CPA(어필리에이트) 중심 전환</b>. 권장 믹스 DFP 60 : CPA 40.</div>
-      </div>
-    </div>
-    <div class="kpi-structure fade d3">
-      <div class="kpi-box">
-        <div class="kpi-box-title">KR1 · POUR 직판 5억</div>
-        <div class="kpi-row"><span class="kpi-row-label">자사몰</span><span class="kpi-row-val">3.0억</span></div>
-        <div class="kpi-row"><span class="kpi-row-label">마켓플레이스</span><span class="kpi-row-val">1.5억</span></div>
-        <div class="kpi-row"><span class="kpi-row-label">쇼룸·전화·박람회</span><span class="kpi-row-val">0.5억</span></div>
-      </div>
-      <div class="kpi-box">
-        <div class="kpi-box-title">KR2 · B2B 종합 5억</div>
-        <div class="kpi-row"><span class="kpi-row-label">파트너사 (P4)</span><span class="kpi-row-val">3.0억</span></div>
-        <div class="kpi-row"><span class="kpi-row-label">대리점·오프라인</span><span class="kpi-row-val">0.8억</span></div>
-        <div class="kpi-row"><span class="kpi-row-label">위탁셀러·도매·이관</span><span class="kpi-row-val">1.2억</span></div>
-      </div>
-      <div class="kpi-box">
-        <div class="kpi-box-title">KR3 · 운영 시스템</div>
-        <div class="kpi-row"><span class="kpi-row-label">M1</span><span class="kpi-row-val">CRM</span></div>
-        <div class="kpi-row"><span class="kpi-row-label">M2</span><span class="kpi-row-val">매출관리</span></div>
-        <div class="kpi-row"><span class="kpi-row-label">M3·M4</span><span class="kpi-row-val">어드민·매칭</span></div>
-      </div>
-      <div class="kpi-box">
-        <div class="kpi-box-title">단위 경제성 목표</div>
-        <div class="kpi-row"><span class="kpi-row-label">공구당 GMV</span><span class="kpi-row-val">1,000만+</span></div>
-        <div class="kpi-row"><span class="kpi-row-label">활성 셀러</span><span class="kpi-row-val">10→30명</span></div>
-        <div class="kpi-row"><span class="kpi-row-label">밸류 목표</span><span class="kpi-row-val">10억→30억</span></div>
+        <div class="cn-note">노드 간 선 굵기 = 협업 건수. 멤버 간 협업(민지–란 7 · 민지–채림 2 · 란–채림 2)까지 합산 <b>총 33건</b>.</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- S7 팀 구조 -->
 <section class="slide" id="s7">
   <div class="slide-header">
-    <div class="sec-num fade">08 · 팀 구조</div>
+    <div class="sec-num fade">PART 2 · POUR스토어 — 팀</div>
     <h2 class="sec-title fade d1">3인 체계 완성.</h2>
     <p class="sec-desc fade d2">채림님 인턴 → 정규직 전환 계약 포함 · Phase 0 → 1 → 2</p>
   </div>
@@ -790,104 +843,79 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
   </div>
 </section>
 
-<!-- S7M 협업 네트워크 · 모여라딜 -->
-<section class="slide" id="s7m">
+<section class="slide" id="s6">
   <div class="slide-header">
-    <div class="sec-num fade">09 · 협업 네트워크 · 모여라딜</div>
-    <h2 class="sec-title fade d1">모여라딜 — 누가 무엇을 함께했나.</h2>
-    <p class="sec-desc fade d2">모여라딜 재점화의 핵심 축은 <b>정하님</b> — 송희(리드)와 함께 <b>"직접 팔아보자"</b> 실행을 본격 가동합니다.</p>
+    <div class="sec-num fade">PART 2 · POUR스토어 — 대시보드·KPI</div>
+    <h2 class="sec-title fade d1">숫자로 경영합니다.</h2>
+    <p class="sec-desc fade d2">모여라딜에 먼저 구축 · POUR스토어도 제작 예정 — 실데이터 검증이 다음 과제.</p>
   </div>
   <div class="slide-body">
-    <div class="cn-wrap fade d1">
-      <div class="cn-graph">
-        <svg class="cn-svg" viewBox="0 0 560 380" role="img" aria-label="모여라딜 협업 네트워크">
-          <line class="cn-edge lead" x1="280" y1="85" x2="280" y2="285" stroke-width="9"/>
-          <g><rect class="cn-elabel-bg" x="262" y="175" width="36" height="20" rx="10"/><text class="cn-elabel" x="280" y="189">6건</text></g>
-          <g><circle class="cn-ncirc lead" cx="280" cy="85" r="44"/><text class="cn-nname lead" x="280" y="81">송희</text><text class="cn-nrole lead" x="280" y="99">리드</text></g>
-          <g><circle class="cn-ncirc" cx="280" cy="285" r="44"/><text class="cn-nname" x="280" y="281">정하</text><text class="cn-nrole" x="280" y="299">본격 가동</text></g>
-        </svg>
-      </div>
-      <div>
-        <div class="cn-total"><b>6건</b><span>주요 협업 · 송희 + 정하</span></div>
-        <div class="cn-pairs">
-          <div class="cn-pair">
-            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 정하</span><span class="cn-pair-cnt">6건</span><span class="cn-pair-flow">본격 가동 → 재점화</span></div>
-            <div class="cn-chips"><span class="cn-chip">모여라딜 재점화</span><span class="cn-chip">셀러 공구 제안</span><span class="cn-chip">신박템 소싱 33건</span><span class="cn-chip">공급사 DB 109건</span><span class="cn-chip">인스타 자체판매</span><span class="cn-chip">공구 운영·판매 데이터</span></div>
+    <div class="dash-split">
+      <div class="dash-preview fade d1">
+        <div class="dash-tabs">
+          <div class="dash-tab on">📦 매입매출</div><div class="dash-tab">🔥 BMA별</div><div class="dash-tab">📉 손익</div>
+          <div class="dash-tab">💎 현금흐름</div><div class="dash-tab">⚡ 단위경제성</div><div class="dash-tab">🏛 밸류에이션</div>
+        </div>
+        <div class="dash-body">
+          <div class="dash-metrics">
+            <div class="dash-metric"><div class="dash-metric-v gold">598,510원</div><div class="dash-metric-l">2026 GMV (15건)</div></div>
+            <div class="dash-metric"><div class="dash-metric-v g">8.7%</div><div class="dash-metric-l">매출총이익률</div></div>
+            <div class="dash-metric"><div class="dash-metric-v r">-650만원</div><div class="dash-metric-l">월 순현금흐름</div></div>
+            <div class="dash-metric"><div class="dash-metric-v">83%</div><div class="dash-metric-l">공구 완판율</div></div>
+          </div>
+          <div class="gmv-chart">
+            <div class="gmv-row"><span class="gmv-mon">25.12</span><div class="gmv-bar-wrap"><div class="gmv-bar" style="width:71%"></div></div><span class="gmv-val">356,300</span></div>
+            <div class="gmv-row"><span class="gmv-mon">26.01</span><div class="gmv-bar-wrap"><div class="gmv-bar" style="width:100%"></div></div><span class="gmv-val">501,000</span></div>
+            <div class="gmv-row"><span class="gmv-mon">26.02</span><div class="gmv-bar-wrap"><div class="gmv-bar" style="width:1%"></div></div><span class="gmv-val">0</span></div>
+            <div class="gmv-row"><span class="gmv-mon">26.03</span><div class="gmv-bar-wrap"><div class="gmv-bar" style="width:19%"></div></div><span class="gmv-val">97,510</span></div>
+            <div class="gmv-row"><span class="gmv-mon">26.04~05</span><div class="gmv-bar-wrap"><div class="gmv-bar" style="width:1%"></div></div><span class="gmv-val">0</span></div>
           </div>
         </div>
-        <div class="cn-note">※ 모여라딜 협업 <b>건수·항목은 잠정값</b>입니다 — 정하님 실제 협업 내역을 알려주시면 정확히 반영하겠습니다.</div>
+      </div>
+      <div class="bep-box fade d2">
+        <div class="bep-top"><span>현재 월 GMV</span><span>BEP 목표 <b>9,700만원/월</b></span></div>
+        <div class="bep-track"><div class="bep-fill"></div></div>
+        <div class="bep-note">현재 <b>CAC 매우 낮음</b>(광고비 0·아웃리치). 단, <b>아웃리치는 확장성이 약함 → CPA(어필리에이트) 전환</b>이 다음 핵심. 공헌이익률 기본 <b>6.7%</b> → 총액법·CPA 믹스로 개선, 월 고정비 650만 기준 BEP GMV <b>약 9,700만원</b>.</div>
+        <div class="bma-row">
+          <div class="bma-tag dfp"><div class="c">DFP</div><div class="l">직접판매</div></div>
+          <div class="bma-tag cpa"><div class="c">CPA</div><div class="l">어필리에이트</div></div>
+          <div class="bma-tag icp"><div class="c">ICP</div><div class="l">해외소싱</div></div>
+        </div>
+        <div class="bep-note" style="margin-top:11px;">전략 방향 — <b>CPA(어필리에이트) 중심 전환</b>. 권장 믹스 DFP 60 : CPA 40.</div>
+      </div>
+    </div>
+    <div class="kpi-structure fade d3">
+      <div class="kpi-box">
+        <div class="kpi-box-title">KR1 · POUR 직판 5억</div>
+        <div class="kpi-row"><span class="kpi-row-label">자사몰</span><span class="kpi-row-val">3.0억</span></div>
+        <div class="kpi-row"><span class="kpi-row-label">마켓플레이스</span><span class="kpi-row-val">1.5억</span></div>
+        <div class="kpi-row"><span class="kpi-row-label">쇼룸·전화·박람회</span><span class="kpi-row-val">0.5억</span></div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-box-title">KR2 · B2B 종합 5억</div>
+        <div class="kpi-row"><span class="kpi-row-label">파트너사 (P4)</span><span class="kpi-row-val">3.0억</span></div>
+        <div class="kpi-row"><span class="kpi-row-label">대리점·오프라인</span><span class="kpi-row-val">0.8억</span></div>
+        <div class="kpi-row"><span class="kpi-row-label">위탁셀러·도매·이관</span><span class="kpi-row-val">1.2억</span></div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-box-title">KR3 · 운영 시스템</div>
+        <div class="kpi-row"><span class="kpi-row-label">M1</span><span class="kpi-row-val">CRM</span></div>
+        <div class="kpi-row"><span class="kpi-row-label">M2</span><span class="kpi-row-val">매출관리</span></div>
+        <div class="kpi-row"><span class="kpi-row-label">M3·M4</span><span class="kpi-row-val">어드민·매칭</span></div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-box-title">단위 경제성 목표</div>
+        <div class="kpi-row"><span class="kpi-row-label">공구당 GMV</span><span class="kpi-row-val">1,000만+</span></div>
+        <div class="kpi-row"><span class="kpi-row-label">활성 셀러</span><span class="kpi-row-val">10→30명</span></div>
+        <div class="kpi-row"><span class="kpi-row-label">밸류 목표</span><span class="kpi-row-val">10억→30억</span></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- S7P 협업 네트워크 · POUR스토어 -->
-<section class="slide" id="s7p">
-  <div class="slide-header">
-    <div class="sec-num fade">10 · 협업 네트워크 · POUR스토어</div>
-    <h2 class="sec-title fade d1">POUR스토어 — 4인 협업 구조.</h2>
-    <p class="sec-desc fade d2">송희(리드) + 민지·란·채림 — 영역별로 분담하며 <b>33개 협업 프로젝트</b>를 함께 진행했습니다.</p>
-  </div>
-  <div class="slide-body">
-    <div class="cn-wrap cn-ps fade d1">
-      <div class="cn-graph">
-        <svg class="cn-svg" viewBox="0 0 560 380" role="img" aria-label="POUR스토어 협업 네트워크">
-          <line class="cn-edge" x1="90" y1="200" x2="470" y2="200" stroke-width="6.9"/>
-          <line class="cn-edge" x1="90" y1="200" x2="280" y2="330" stroke-width="3.4"/>
-          <line class="cn-edge" x1="470" y1="200" x2="280" y2="330" stroke-width="3.4"/>
-          <line class="cn-edge lead" x1="280" y1="60" x2="470" y2="200" stroke-width="9.7"/>
-          <line class="cn-edge lead" x1="280" y1="60" x2="90" y2="200" stroke-width="7.6"/>
-          <line class="cn-edge lead" x1="280" y1="60" x2="280" y2="330" stroke-width="4.1"/>
-          <g><rect class="cn-elabel-bg" x="357" y="118" width="40" height="20" rx="10"/><text class="cn-elabel" x="377" y="132">11건</text></g>
-          <g><rect class="cn-elabel-bg" x="167" y="118" width="36" height="20" rx="10"/><text class="cn-elabel" x="185" y="132">8건</text></g>
-          <g><rect class="cn-elabel-bg" x="262" y="125" width="36" height="20" rx="10"/><text class="cn-elabel" x="280" y="139">3건</text></g>
-          <g><rect class="cn-elabel-bg" x="262" y="190" width="36" height="20" rx="10"/><text class="cn-elabel" x="280" y="204">7건</text></g>
-          <g><rect class="cn-elabel-bg" x="162" y="262" width="36" height="20" rx="10"/><text class="cn-elabel" x="180" y="276">2건</text></g>
-          <g><rect class="cn-elabel-bg" x="362" y="262" width="36" height="20" rx="10"/><text class="cn-elabel" x="380" y="276">2건</text></g>
-          <g><circle class="cn-ncirc lead" cx="280" cy="60" r="40"/><text class="cn-nname lead" x="280" y="56">송희</text><text class="cn-nrole lead" x="280" y="72">LEAD</text></g>
-          <g><circle class="cn-ncirc" cx="90" cy="200" r="34"/><text class="cn-nname" x="90" y="197">민지</text><text class="cn-nrole" x="90" y="213">M1</text></g>
-          <g><circle class="cn-ncirc" cx="470" cy="200" r="34"/><text class="cn-nname" x="470" y="197">란</text><text class="cn-nrole" x="470" y="213">M2</text></g>
-          <g><circle class="cn-ncirc dash" cx="280" cy="330" r="32"/><text class="cn-nname" x="280" y="327">채림</text><text class="cn-nrole" x="280" y="343">M3</text></g>
-        </svg>
-      </div>
-      <div>
-        <div class="cn-total"><b>33건</b><span>협업 프로젝트 · 4인 (송희·민지·란·채림)</span></div>
-        <div class="cn-pairs">
-          <div class="cn-pair">
-            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 란</span><span class="cn-pair-cnt">11건</span><span class="cn-pair-flow">B2B 정책 → 실무</span></div>
-            <div class="cn-chips"><span class="cn-chip">광고 운영(네이버·메타)</span><span class="cn-chip">채널별 광고(마켓)</span><span class="cn-chip">대리점 정책</span><span class="cn-chip">협업 정책 수립</span><span class="cn-chip">발주 시스템</span><span class="cn-chip">파트너사 자동매칭</span><span class="cn-chip">인플루언서·유튜버 정책</span><span class="cn-chip">철물점 지점화</span><span class="cn-chip">POUR공법 이관 표준화</span><span class="cn-chip">POUR솔루션 이관 표준화</span><span class="cn-chip">매칭 시스템</span></div>
-          </div>
-          <div class="cn-pair">
-            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 민지</span><span class="cn-pair-cnt">8건</span><span class="cn-pair-flow">SKU 소싱 → 등록</span></div>
-            <div class="cn-chips"><span class="cn-chip">코트재 외주 색상</span><span class="cn-chip">탑코트재 파생 8개</span><span class="cn-chip">써밋페인트 파생 5개</span><span class="cn-chip">제비스코 OEM 라인</span><span class="cn-chip">제비스코 ODM 라인</span><span class="cn-chip">부자재·안전용품 ODM</span><span class="cn-chip">신규 채널 확장</span><span class="cn-chip">디자인 자동 생성</span></div>
-          </div>
-          <div class="cn-pair">
-            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 채림</span><span class="cn-pair-cnt">3건</span><span class="cn-pair-flow">시스템 → 데이터 운영</span></div>
-            <div class="cn-chips"><span class="cn-chip">CRM 시스템 개발</span><span class="cn-chip">매출관리 시스템</span><span class="cn-chip">POUR길잡이 구축</span></div>
-          </div>
-        </div>
-        <div class="cn-relay">
-          <div class="cn-relay-t">🪃 대리점 — 송희 ↔ 란 '바통' 협업 사례</div>
-          <div class="cn-relay-flow">
-            <b>송희 시작<small>2025 초 ~ 9월</small></b>
-            <span class="ar">→</span>
-            <b>란님 이어 운영<small>송희 이탈 기간</small></b>
-            <span class="ar">→</span>
-            <b>송희 재합류·리드<small>2026 · 정책 고도화</small></b>
-            <span class="ar">→</span>
-            <b>운영 이관<small>향후 란님</small></b>
-          </div>
-        </div>
-        <div class="cn-note">노드 간 선 굵기 = 협업 건수. 멤버 간 협업(민지–란 7 · 민지–채림 2 · 란–채림 2)까지 합산 <b>총 33건</b>.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- SNEW 신규 프로젝트 -->
 <section class="slide" id="snew">
   <div class="slide-header">
-    <div class="sec-num fade">11 · 신규 프로젝트</div>
+    <div class="sec-num fade">확장 · 신규 / 재정비</div>
     <h2 class="sec-title fade d1">신규 · 재정비 — 구조부터 만듭니다.</h2>
     <p class="sec-desc fade d2">리드가 직접 붙어 구조를 세우는 사업들 — <b>신규 진입</b>과 <b>재정비·재가동</b>을 함께. 자리 잡으면 담당에게 이관합니다.</p>
   </div>
@@ -918,10 +946,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
   </div>
 </section>
 
-<!-- S8 NEXT -->
 <section class="slide" id="s8">
   <div class="slide-header">
-    <div class="sec-num fade">12 · Next</div>
+    <div class="sec-num fade">마무리 · NEXT</div>
     <h2 class="sec-title fade d1">다음 분기에 들고 옵니다.</h2>
     <p class="sec-desc fade d2">모여라딜 재점화 · POUR스토어 실매출 · 시스템 실검증</p>
   </div>
@@ -960,10 +987,50 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
   </div>
 </section>
 
-<!-- S9 목표 -->
+<section class="slide" id="sramp">
+  <div class="slide-header">
+    <div class="sec-num fade">마무리 · 성장 램프</div>
+    <h2 class="sec-title fade d1">0에서 BEP를 지나, 연 10억까지.</h2>
+    <p class="sec-desc fade d2">상반기엔 구조를 만들었습니다. 하반기는 이 곡선을 탑니다 — 언제 · 무엇 · 얼마.</p>
+  </div>
+  <div class="slide-body">
+    <div class="ramp-grid fade d1">
+      <div class="ramp-step">
+        <div class="ramp-v">월 -650만</div>
+        <div class="ramp-bar loss" style="height:30px"></div>
+        <div class="ramp-q">26 상반기</div>
+        <div class="ramp-l">구조 구축 · 투자기</div>
+      </div>
+      <div class="ramp-step">
+        <div class="ramp-v">실매출 시작</div>
+        <div class="ramp-bar" style="height:95px"></div>
+        <div class="ramp-q">26 Q3</div>
+        <div class="ramp-l">자사몰 오픈 · 정상화</div>
+      </div>
+      <div class="ramp-step">
+        <div class="ramp-v">월 9,700만</div>
+        <div class="ramp-bar" style="height:165px"></div>
+        <div class="ramp-q">26 Q4</div>
+        <div class="ramp-l">BEP 도달</div>
+      </div>
+      <div class="ramp-step on">
+        <div class="ramp-v">연 10억</div>
+        <div class="ramp-bar" style="height:235px"></div>
+        <div class="ramp-q">2026 연</div>
+        <div class="ramp-l">직판 5 + B2B 5</div>
+      </div>
+    </div>
+    <div class="run-strip fade d3">
+      <div class="lab">⚡ 연결 고리</div>
+      <div class="txt">상반기 <b>구조</b>(BMA·KPI·시스템·팀) → Q3 <b>자사몰·PG 정상화로 실매출</b> → Q4 <b>BEP</b> → <b>연 10억</b>. 모든 구조는 결국 이 숫자를 만들기 위한 것이었습니다.</div>
+    </div>
+    <div class="cn-note">※ Q3·Q4 월 GMV·공구 건수·셀러 수는 확정 후 반영 예정 — 현재는 BEP(9,700만/월)·연 10억 기준의 경로 표시입니다.</div>
+  </div>
+</section>
+
 <section class="slide" id="s9">
   <div class="slide-header">
-    <div class="sec-num fade">13 · 목표</div>
+    <div class="sec-num fade">마무리 · 목표</div>
     <h2 class="sec-title fade d1">2026 목표</h2>
     <p class="sec-desc fade d2">POUR스토어 연매출 10억 · 모여라딜 재점화</p>
   </div>
@@ -995,6 +1062,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
     <div class="closing fade d3">
       <h3>구조를 만든 사람이 숫자도 만들겠습니다.</h3>
       <p>이번 상반기 기반 위에서, 하반기는 <span>실제 매출</span>로 증명합니다.</p>
+      <p style="margin-top:12px;font-size:13.5px;">필요한 것 — <span>정하님 모여라딜 전담</span> · <span>자사몰·PG 정상화 지원</span> · <span>신규사업 의사결정 권한</span></p>
     </div>
   </div>
 </section>
@@ -1041,6 +1109,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
   </div>
 </div>
 
+<button class="present-fab" id="presentFab">▶ 발표 모드</button>
 <button class="edit-fab" id="editFab">✎ 편집</button>
 <div class="page-counter">
   <div class="page-fraction"><strong id="curNum">1</strong> / <span id="totNum">10</span></div>
@@ -1160,6 +1229,14 @@ editFab.addEventListener('click',()=>{
   editFab.classList.toggle('on',editMode);
   editFab.textContent=editMode?'✎ 편집 중':'✎ 편집';
   if(modalOpen)mEditBar.classList.toggle('show',editMode);
+});
+
+/* 발표 모드 토글 — ★·편집 FAB 숨김 (기존 기능은 유지) */
+const presentFab=document.getElementById('presentFab');
+presentFab.addEventListener('click',()=>{
+  const on=document.body.classList.toggle('present-mode');
+  presentFab.classList.toggle('on',on);
+  presentFab.textContent=on?'▶ 발표 중':'▶ 발표 모드';
 });
 
 /* 모달 */

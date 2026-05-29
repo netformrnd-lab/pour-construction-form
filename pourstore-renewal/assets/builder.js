@@ -1590,21 +1590,21 @@ show('entry');
 .pdq-bubble { position:relative; background:#fff; border:none; border-radius:28px; padding:22px 26px; box-shadow:0 12px 32px rgba(232,120,15,.1), 0 3px 10px rgba(15,31,92,.05); display:flex; align-items:center; gap:26px; }
 .pdq-bubble::before { content:''; position:absolute; left:-7px; top:50%; margin-top:-8px; width:16px; height:16px; background:#fff; border-radius:0 0 0 5px; transform:rotate(45deg); }
 .pdq-msg { min-width:0; }
-.pdq-kicker { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:800; color:#E8780F; margin-bottom:11px; white-space:nowrap; }
+.pdq-kicker { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:#E8780F; margin-bottom:12px; white-space:nowrap; letter-spacing:0.01em; }
 .pdq-dot { width:6px; height:6px; border-radius:50%; background:#10B981; box-shadow:0 0 0 3px rgba(16,185,129,.2); animation:pdqDot 1.7s ease-in-out infinite; flex-shrink:0; }
 @keyframes pdqDot { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.45; transform:scale(.8); } }
-.pdq-headline { font-size:29px; font-weight:900; line-height:1.34; letter-spacing:-0.04em; color:#0F1F5C; word-break:keep-all; }
-.pdq-headline b { color:#E8780F; font-weight:900; position:relative; display:inline-block; }
+.pdq-headline { font-size:27px; font-weight:800; line-height:1.46; letter-spacing:-0.02em; color:#0F1F5C; word-break:keep-all; }
+.pdq-headline b { color:#E8780F; font-weight:800; position:relative; display:inline-block; }
 .pdq-headline b::after { content:''; position:absolute; left:-1px; right:-1px; bottom:2px; height:9px; background:rgba(254,210,160,.75); z-index:-1; border-radius:2px; }
-.pdq-sub { margin-top:12px; font-size:14px; font-weight:500; color:#5C6675; line-height:1.55; word-break:keep-all; }
-.pdq-sub b { color:#0F1F5C; font-weight:700; }
+.pdq-sub { margin-top:13px; font-size:14px; font-weight:500; color:#5C6675; line-height:1.6; letter-spacing:-0.01em; word-break:keep-all; }
+.pdq-sub b { color:#0F1F5C; font-weight:600; }
 .pdq-chips { margin-top:16px; display:flex; gap:8px; flex-wrap:wrap; }
-.pdq-chip { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:700; color:#9A5B1E; background:#FFF2E0; border:none; border-radius:999px; padding:7px 13px; transition:transform .18s ease, box-shadow .18s ease; }
-.pdq-chip b { color:#E8780F; font-weight:800; }
+.pdq-chip { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:600; color:#9A5B1E; background:#FFF2E0; border:none; border-radius:999px; padding:7px 13px; letter-spacing:-0.01em; transition:transform .18s ease, box-shadow .18s ease; }
+.pdq-chip b { color:#E8780F; font-weight:700; }
 .pdq-card:hover .pdq-chip { transform:translateY(-1px); box-shadow:0 4px 10px rgba(232,120,15,.14); }
 /* CTA — 말풍선 우측, 구분선 없이 여백으로만 분리 (부드럽게) */
 .pdq-action { position:relative; flex-shrink:0; width:196px; display:flex; flex-direction:column; align-items:stretch; gap:10px; padding-left:28px; }
-.pdq-free { align-self:center; display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:900; color:#fff; background:#EF4444; padding:5px 12px; border-radius:999px; letter-spacing:0.04em; box-shadow:0 4px 10px rgba(239,68,68,.28); transform-origin:center; animation:pdqFree 3s ease-in-out infinite; }
+.pdq-free { align-self:center; display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:800; color:#fff; background:linear-gradient(135deg,#2ED477 0%,#03B95A 100%); padding:5px 12px; border-radius:999px; letter-spacing:0.03em; box-shadow:0 4px 10px rgba(3,185,90,.3); transform-origin:center; animation:pdqFree 3s ease-in-out infinite; }
 .pdq-free::before { content:''; width:5px; height:5px; border-radius:50%; background:#fff; animation:pdqDot 1.7s ease-in-out infinite; }
 @keyframes pdqFree { 0%,88%,100% { transform:rotate(0deg) scale(1); } 92% { transform:rotate(-5deg) scale(1.06); } 96% { transform:rotate(5deg) scale(1.06); } }
 .pdq-cta { position:relative; display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:16px 24px; background:linear-gradient(135deg,#F9A94A 0%,#E8780F 100%); color:#fff; font-size:15px; font-weight:800; border:none; border-radius:16px; cursor:pointer; letter-spacing:-0.02em; box-shadow:0 8px 22px rgba(232,120,15,.4); transition:transform .2s ease, box-shadow .2s ease; animation:pdqCtaBreathe 3.4s ease-in-out infinite; overflow:hidden; }
@@ -8078,7 +8078,7 @@ show('entry');
       s.migrations.quickBannerImageV2 = true;
     }
     // 1회성 마이그레이션 — POUR닥터 퀵배너/검색요정 (투명 배경 비버 + 모바일 세로 재설계)
-    if (!s.migrations.quickBannerRedesignV10) {
+    if (!s.migrations.quickBannerRedesignV11) {
       const mp = s.pages.find(p => p.id === 'main');
       if (mp && Array.isArray(mp.sections)) {
         const nowR = new Date().toISOString();
@@ -8098,7 +8098,7 @@ show('entry');
         swapR('class="pdq"', POUR_DR_QUICK_BANNER_HTML, 'POUR닥터 퀵배너 — 배경 누끼한 투명 비버 이미지 적용(흰 박스 제거) + 모바일 세로 재설계(마스코트 상단 중앙·전체폭 말풍선·풀폭 CTA)');
         swapR('class="psm1"', OHOUSE_V1_SECTION_HTML, '검색바 마스코트 요정 — 배경 누끼한 투명 비버 이미지로 교체(흰 박스 제거), 클릭 시 진단 헬퍼 펼침');
       }
-      s.migrations.quickBannerRedesignV10 = true;
+      s.migrations.quickBannerRedesignV11 = true;
     }
     return s;
   }

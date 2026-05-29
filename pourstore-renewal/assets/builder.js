@@ -1340,7 +1340,7 @@ show('entry');
   <div class="psm1-hd-mb">
     <div class="psm1-mb-top">
       <button class="psm1-mb-menu" aria-label="메뉴">☰</button>
-      <a href="#" class="psm1-mb-logo"><span class="psm1-logo-mark">P</span><span>POUR스토어</span></a>
+      <a href="#" class="psm1-mb-logo"><span>POUR스토어</span></a>
       <button class="psm1-mb-cart" aria-label="장바구니"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.5"/><circle cx="19" cy="21" r="1.5"/><path d="M3 4h2l2.5 12h12l2-8H6"/></svg></button>
     </div>
     <div class="psm1-mb-searchbar" data-psm1-mb-search>
@@ -1795,7 +1795,7 @@ show('entry');
 <a class="pdq-card" href="./pour-doctor.html">
   <div class="pdq-char">
     <div class="pdq-char-spot"></div>
-    <img class="pdq-char-img" src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fbeaver_search_fairy_nukki.png?alt=media&token=5f4d8a9a-13e1-49d2-b007-56a98286ed24" alt="POUR닥터" loading="lazy"/>
+    <img class="pdq-char-img" src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fbeaver_consulting_transparent.png?alt=media&token=aae66b52-2850-4804-8492-fb8b602282ac" alt="POUR닥터" loading="lazy"/>
   </div>
   <div class="pdq-bubble">
     <div class="pdq-msg">
@@ -8470,6 +8470,30 @@ show('entry');
         });
       });
       s.migrations.mbSearchbarV1 = true;
+    }
+    // 퀵배너 캐릭터 기존 비버로 복구 + 모바일 로고 떠 있는 'P' 마크 제거
+    if (!s.migrations.bannerRevertLogoFixV1) {
+      const nowBR = new Date().toISOString();
+      const reswap2 = (matchClass, html, reason) => {
+        s.pages.forEach(pg => {
+          if (!Array.isArray(pg.sections)) return;
+          pg.sections.forEach(sec => {
+            if ((sec.html || '').indexOf(matchClass) !== -1) {
+              const key = pg.id + ':' + sec.id;
+              s.history[key] = s.history[key] || [];
+              s.history[key].unshift({
+                name: sec.name, html: sec.html, note: sec.note || '',
+                reason, kind: 'auto-migration', savedAt: nowBR,
+              });
+              sec.html = html;
+              sec.statusAt = nowBR;
+            }
+          });
+        });
+      };
+      reswap2('class="pdq"', POUR_DR_QUICK_BANNER_HTML, '퀵배너 — 요정으로 잘못 바뀐 캐릭터를 기존 비버 닥터로 복구');
+      reswap2('class="psm1"', OHOUSE_V1_SECTION_HTML, '모바일 로고 — 옆에 떠 있던 P 마크 제거');
+      s.migrations.bannerRevertLogoFixV1 = true;
     }
     return s;
   }

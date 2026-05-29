@@ -392,6 +392,9 @@ details.howto-card.sync-info > summary::after { color: var(--green-d); }
 .section-card.status-approved { border-color: #6EE7B7; background: linear-gradient(0deg, rgba(3,199,90,.04), rgba(3,199,90,.04)), #fff; }
 .section-card.status-requested { border-color: #FCD34D; background: linear-gradient(0deg, rgba(217,119,6,.04), rgba(217,119,6,.04)), #fff; }
 .section-card.status-revision { border-color: #FCA5A5; background: linear-gradient(0deg, rgba(220,38,38,.05), rgba(220,38,38,.05)), #fff; }
+.section-card.section-hidden { opacity: .55; background: repeating-linear-gradient(45deg, #FAFAFA, #FAFAFA 10px, #F3F4F6 10px, #F3F4F6 20px); }
+.section-card.section-hidden:hover { opacity: .8; }
+.badge.badge-hidden { background: #6B7280; color: #fff; }
 
 .status-control { position: relative; flex-shrink: 0; }
 .status-pill { display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px 5px 9px; border-radius: 999px; border: 1px solid var(--border); background: #fff; color: var(--ink2); font-size: 11px; font-weight: 700; cursor: pointer; line-height: 1; transition: background .12s, border-color .12s, transform .08s; white-space: nowrap; }

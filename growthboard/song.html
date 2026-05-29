@@ -73,6 +73,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
 .title-stat-v{font-size:clamp(28px,3.6vw,42px);font-weight:800;line-height:1;letter-spacing:-0.02em;color:var(--ink);}
 .title-stat-v.g{background:linear-gradient(135deg,var(--accent),var(--accent-dark));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 .title-stat-l{font-size:13px;color:var(--ink3);margin-top:8px;font-weight:500;}
+.tstat-glabel{display:inline-block;font-size:11.5px;font-weight:800;padding:4px 12px;border-radius:999px;margin-bottom:16px;letter-spacing:0.02em;}
+.tstat-glabel.md{background:var(--accent-soft);color:var(--accent-dark);}
+.tstat-glabel.ps{background:var(--indigo-soft);color:var(--indigo);}
+.tstat-row{display:flex;gap:36px;}
+.title-stat-v.i{background:linear-gradient(135deg,var(--indigo),#3b40c9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 .s0-foot{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
 .role-badge{display:inline-flex;align-items:center;gap:9px;background:var(--bg-section);border:1px solid var(--border);border-radius:999px;padding:11px 18px;}
 .role-badge .dot{width:7px;height:7px;background:var(--success);border-radius:50%;animation:blink 2s infinite;}
@@ -389,18 +394,27 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
   <div class="s0-inner">
     <div class="title-kicker fade">2026 상반기 · 그로스보드</div>
     <h1 class="title-name fade d1">구조를<br><em>만들었습니다.</em></h1>
-    <p class="title-sub fade d2">모여라딜 리드 → POUR스토어 합류 → 두 프로젝트 겸직 리드매니저</p>
+    <p class="title-sub fade d2">모여라딜 리드 → POUR스토어 합류</p>
     <div class="title-stats fade d3">
-      <div class="title-stat"><div class="title-stat-v g">2개</div><div class="title-stat-l">담당 프로젝트</div></div>
-      <div class="title-stat"><div class="title-stat-v">3명</div><div class="title-stat-l">팀 구성 완료</div></div>
-      <div class="title-stat"><div class="title-stat-v g">146건</div><div class="title-stat-l">공급사 인바운드</div></div>
-      <div class="title-stat"><div class="title-stat-v">KPI v6</div><div class="title-stat-l">체계 설계</div></div>
+      <div class="tstat-group">
+        <div class="tstat-glabel md">모여라딜</div>
+        <div class="tstat-row">
+          <div class="title-stat"><div class="title-stat-v g">146건</div><div class="title-stat-l">공급사 인바운드</div></div>
+          <div class="title-stat"><div class="title-stat-v g">10건</div><div class="title-stat-l">공구 누적</div></div>
+        </div>
+      </div>
+      <div class="tstat-group">
+        <div class="tstat-glabel ps">POUR스토어</div>
+        <div class="tstat-row">
+          <div class="title-stat"><div class="title-stat-v i">3명</div><div class="title-stat-l">팀 구성 완료</div></div>
+          <div class="title-stat"><div class="title-stat-v i">KPI v6</div><div class="title-stat-l">체계 설계</div></div>
+        </div>
+      </div>
     </div>
     <div class="s0-foot fade d4">
       <div class="role-badge">
         <div class="dot"></div>
         <span>모여라딜 + 브랜드커머스 리드매니저</span>
-        <small>· 겸직 | 2026.05.13 직급 변경</small>
       </div>
       <div class="date-chip">2026.06.04 · 김송희</div>
     </div>
@@ -418,10 +432,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
     <div class="timeline">
       <div class="tl-item fade d1">
         <div class="tl-dot"></div>
-        <div class="tl-date">2025 4Q</div>
-        <div class="tl-head">모여라딜 리드 — BMA 검증<button class="media-star" data-node="n0" data-title="2025 4Q · 모여라딜 리드 — BMA 검증" title="관련 자료 보기">★<span class="cnt">3</span></button></div>
-        <div class="tl-body">BMA를 뾰족하게 정리 → 8개 수익구조 도출. 동환님 댓글 작업 <b>3회</b>로 공급사 인바운드 <b>19곳</b> 확보(~2026.1). 셀러 영업·공구 9건, 누적 매출 108만원.</div>
-        <div class="tl-tags"><span class="tag gold">BMA 정리</span><span class="tag gold">인바운드 19곳</span><span class="tag gold">공구 9건</span></div>
+        <div class="tl-date">이전 그로스보드</div>
+        <div class="tl-head">모여라딜 리드 — 공급사 인바운드·공구<button class="media-star" data-node="n0" data-title="이전 그로스보드 · 모여라딜 리드 — 공급사 인바운드·공구" title="관련 자료 보기">★<span class="cnt">3</span></button></div>
+        <div class="tl-body">동환님 댓글 작업 <b>3회</b>로 공급사 인바운드 <b>19곳</b> 확보. 셀러 영업·공구 <b>9건</b>, 누적 매출 108만원.</div>
+        <div class="tl-tags"><span class="tag gold">인바운드 19곳</span><span class="tag gold">공구 9건</span><span class="tag gold">누적 108만원</span></div>
       </div>
       <div class="tl-item fade d2">
         <div class="tl-dot green"></div>
@@ -441,7 +455,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
         <div class="tl-dot"></div>
         <div class="tl-date">2026 · 3~4월</div>
         <div class="tl-head"><span class="tl-track md">모여라딜</span>"직접 팔아보자" 실행<button class="media-star" data-node="n3" data-title="모여라딜 — 직접 팔아보자 실행" title="관련 자료 보기">★<span class="cnt">2</span></button></div>
-        <div class="tl-body">하현님(8일)과 정하님 합류로 실행 가속. 도매꾹 상품 등록, 신박템 소싱 <b>33건</b>, 국내 공급사 데이터 <b>109건</b>, 셀러 DB <b>16건</b> 추출. 가설을 실제 실행으로 옮김.</div>
+        <div class="tl-body">하현님(8일)과 정하님 합류로 실행 가속. 도매꾹 상품 등록, 신박템 소싱 <b>33건</b>, 국내 공급사 데이터 <b>109건</b>, 셀러 DB <b>16건</b> 추출. <b>3월 공구 1건</b> 진행(2건 취소) → 누적 공구 <b>10건</b>. 가설을 실제 실행으로 옮김.</div>
         <div class="tl-tags"><span class="tag gold">직접 팔아보자</span><span class="tag gold">하현·정하 합류</span><span class="tag gold">소싱·DB 실행</span></div>
       </div>
       <div class="tl-item fade d4">
@@ -478,7 +492,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
           <li><span class="ic">🧠</span><b>마스터프롬프트 제작</b> — 브랜드 정체성·BMA·KPI 내재화. 전략·디자인·CS·UX 일관 구현</li>
           <li><span class="ic">📐</span>BMA 정리 → <b>8개 수익구조</b> 도출. BMA별 서비스소개·계약서·UX 설계 가능</li>
           <li><span class="ic">📣</span>동환님 댓글 작업 3회 → 공급사 인바운드 <b>146건</b> (입점 17 · 제안서 13 포함)</li>
-          <li><span class="ic">🛒</span>셀러 리스트업 101건 → 제안서 26건 → 공구 9건, 누적 <b>108만원</b></li>
+          <li><span class="ic">🛒</span>셀러 리스트업 101건 → 제안서 26건 → 공구 <b>10건</b>(누적), 매출 <b>108만원</b></li>
           <li><span class="ic">🔧</span>관리자 시스템 · CRM센터 · 경영 대시보드 설계·구축</li>
         </ul>
       </div>
@@ -492,7 +506,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
         </ul>
         <div class="stat-row">
           <div class="stat-mini"><div class="stat-mini-v">146건</div><div class="stat-mini-l">인바운드</div></div>
-          <div class="stat-mini"><div class="stat-mini-v">9건</div><div class="stat-mini-l">공구 진행</div></div>
+          <div class="stat-mini"><div class="stat-mini-v">10건</div><div class="stat-mini-l">공구 누적</div></div>
           <div class="stat-mini"><div class="stat-mini-v">83%</div><div class="stat-mini-l">완판율</div></div>
         </div>
       </div>

@@ -2906,6 +2906,15 @@ show('entry');
 .psg4-mini .info .title { font-size:13px; font-weight:700; color:#0F1F5C; line-height:1.45; letter-spacing:-.3px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .psg4-mini .info .meta { font-size:10.5px; color:#9CA3AF; margin-top:4px; font-weight:600; }
 @media (max-width:880px) { .psg4-feature { grid-template-columns:1fr; } .psg4-side { flex-direction:row; overflow-x:auto; padding-bottom:8px; } .psg4-mini { min-width:280px; } .psg4-head h2 { font-size:24px; } }
+@media (max-width:640px) {
+  .psg4-main { aspect-ratio:4/3; }
+  .psg4-main .play { width:60px; height:60px; top:34%; }
+  .psg4-main .play::after { border-left:17px solid #fff; border-top:10px solid transparent; border-bottom:10px solid transparent; margin-left:4px; }
+  .psg4-main .info { padding:18px; }
+  .psg4-main .badge { margin-bottom:8px; }
+  .psg4-main h3 { font-size:18px; }
+  .psg4-main p { display:none; }
+}
 </style>
 <section class="psg4">
   <div class="psg4-inner">
@@ -8163,6 +8172,27 @@ show('entry');
         }
       }
       s.migrations.categoryGrid3colV1 = true;
+    }
+    // 동영상 가이드 — 모바일 추천 카드 플레이버튼/제목 겹침 해소
+    if (!s.migrations.videoGuideMobileV1) {
+      const mpV = s.pages.find(p => p.id === 'main');
+      if (mpV && Array.isArray(mpV.sections)) {
+        const nowV = new Date().toISOString();
+        const idx = mpV.sections.findIndex(sec => (sec.html || '').indexOf('class="psg4"') !== -1);
+        if (idx !== -1) {
+          const sec = mpV.sections[idx];
+          const key = mpV.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason: '동영상 가이드 — 모바일 추천 카드 4:3 비율·플레이버튼 상단 이동으로 제목 겹침 해소',
+            kind: 'auto-migration', savedAt: nowV,
+          });
+          sec.html = SEED_VIDEO_GUIDE_HTML;
+          sec.statusAt = nowV;
+        }
+      }
+      s.migrations.videoGuideMobileV1 = true;
     }
     return s;
   }

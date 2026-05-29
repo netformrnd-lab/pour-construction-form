@@ -326,7 +326,7 @@ const NAV = [
   // 반복업무 = 오늘 업무의 "📌 고정업무" DB. 등록 후엔 매일 자동 노출되므로 DB·설정 그룹.
   { type: 'divider', label: '업무 DB · 설정', group: 'kpi-db', collapsible: true, defaultCollapsed: true },
   { id: 'recurring', icon: '📌', label: '고정업무 (반복)',   group: 'kpi-db' },
-  { id: 'okr',       icon: '🎯', label: 'OKR · 활동지표',    group: 'kpi-db' },
+  { id: 'okr',       icon: '🎯', label: 'OKR · 결과지표',    group: 'kpi-db' },
   { id: 'projects',  icon: '🗂️', label: '프로젝트',          group: 'kpi-db' },
   { id: 'workmgmt',  icon: '📊', label: 'KPI 보고 보드',      group: 'kpi-db' },
   { id: 'channels',  icon: '🏷️', label: '거래코드·채널',     group: 'kpi-db' },
@@ -4697,7 +4697,7 @@ function WorkMgmtPage() {
         💡 <b>이 보드는 외부 보고용 시각화 화면입니다 (KPI 트리 + 53 프로젝트 체크리스트).</b>
         실데이터(매출 입력·프로젝트 진척도·담당자 배정)는 별도 페이지에서 관리하세요:
         <span style={{ marginLeft:4 }}>
-          🎯 <b>OKR · 활동지표</b> (KPI 매출 입력) · 🗂️ <b>프로젝트</b> (53건 진척도·담당자) · 🏠 <b>오늘 업무</b> (task 인라인 편집)
+          🎯 <b>OKR · 결과지표</b> (매출 입력) · 🗂️ <b>프로젝트</b> (진척도·담당자·📈활동지표) · 🏠 <b>오늘 업무</b> (task 인라인 편집)
         </span>
         <br/>
         <span style={{ fontSize:10.5, fontWeight:600, color:'#1E3A8A' }}>
@@ -5261,6 +5261,16 @@ function calcDday(iso) {
   if (diff === 0) return 'D-day';
   if (diff > 0) return `D-${diff}`;
   return `D+${-diff}`;
+}
+
+// ISO 주차 키 'YYYY-Www' — 활동지표 주간 기록 키. 주 시작=월요일 기준.
+function isoWeek(d) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = date.getUTCDay() || 7;            // 일=7
+  date.setUTCDate(date.getUTCDate() + 4 - day); // 목요일로 이동(ISO)
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+  return `${date.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
 }
 
 // 반복업무가 현재 staff에 배정됐는지 — assigneeStaffIds: 'all' | [id, ...] | id
@@ -6231,7 +6241,9 @@ function RecurringTasksPage({ onToast }) {
 // 데이터 모델 (CLAUDE.md PART 12-2 기준):
 //   pour-objectives   — Objective (O)
 //   pour-keyresults   — Key Result (KR), objectiveId 참조
-//   pour-kpis         — KPI 활동지표 (KR의 측정수치), keyResultId 참조, source='auto-progress' 시 프로젝트 progress 평균으로 자동산출
+//   pour-kpis         — KPI. 두 종류 공존:
+//                       (A) 결과지표/진척도: keyResultId 참조 (KR의 측정수치). source='manual'(매출 등) | 'auto-progress'(프로젝트 progress 평균)
+//                       (B) 활동지표(leading): kind='activity', projectId 참조, period='weekly', history:[{week,value,at,by}] — 프로젝트별 선행 행동량
 //   pour-projects     — KR 달성을 위한 실행 단위. assigneeStaffIds: [] 다중 담당자, keyResultId 연결, progress 0~100
 //   pour-journals     — 업무일지: 담당자가 프로젝트별로 작성 (date, content, hoursSpent, progressDelta)
 // 단일 진실 소스(staff 컬렉션)와 audit 헬퍼는 모든 페이지에서 공유.
@@ -6333,7 +6345,7 @@ const OKR_SEED = {
         { name: '🛒 자사몰 매출 (OWN)',            target: 300000000, unit: '원', source: 'manual',        baseline: 0, channelCode: 'OWN' },
         { name: '🏬 마켓플레이스 매출 (MK)',       target: 150000000, unit: '원', source: 'manual',        baseline: 0, channelCode: 'MK' },
         { name: '🎪 쇼룸·전화·박람회 매출 (SHOW)', target:  50000000, unit: '원', source: 'manual',        baseline: 0, channelCode: 'SHOW' },
-        { name: '📊 KR1 활동지표 (프로젝트 평균)', target: 100,       unit: '%',  source: 'auto-progress', baseline: 0 },
+        { name: '📊 KR1 진척도 (프로젝트 평균)', target: 100,       unit: '%',  source: 'auto-progress', baseline: 0 },
       ],
     },
     {
@@ -6346,7 +6358,7 @@ const OKR_SEED = {
         { name: '🌐 P6 온라인 도매 매출',          target:  30000000, unit: '원', source: 'manual',        baseline: 0, channelCode: 'P6' },
         { name: '🛠️ M 시공매칭 매출',              target:         0, unit: '원', source: 'manual',        baseline: 0, channelCode: 'M' },
         { name: '🏛️ G 조달청·관급 매출 (벤처나라)', target:        0, unit: '원', source: 'manual',        baseline: 0, channelCode: 'G' },
-        { name: '📊 KR2 활동지표 (프로젝트 평균)', target: 100,       unit: '%',  source: 'auto-progress', baseline: 0 },
+        { name: '📊 KR2 진척도 (프로젝트 평균)', target: 100,       unit: '%',  source: 'auto-progress', baseline: 0 },
       ],
     },
     {
@@ -6429,8 +6441,8 @@ const WORKMGMT_PROJECTS_SEED = [
 ];
 
 // ============================================================
-// OKRPage — Objective → KR → KPI 활동지표 트리
-// 회사 OKR 1개(매출 10억) 가정 + 다중 KR + KR별 KPI 활동지표
+// OKRPage — Objective → KR → 결과지표 KPI(매출 수동·진척도 자동) 트리
+// 회사 OKR 1개(매출 10억) 가정 + 다중 KR + KR별 결과지표 KPI. (선행 활동지표는 프로젝트 페이지)
 // ============================================================
 function OKRPage({ onToast }) {
   const { activeStaff, audit, staffMembers } = useActiveStaffContext();
@@ -6530,7 +6542,7 @@ function OKRPage({ onToast }) {
       staffId: activeStaff.id,
       ...audit.create(),
     });
-    onToast({ message: 'KPI 활동지표 추가 완료', type: 'success' });
+    onToast({ message: '결과지표 KPI 추가 완료', type: 'success' });
   };
   const updateKpiValue = async (kpi, newValue) => {
     const v = Number(newValue) || 0;
@@ -6561,9 +6573,9 @@ function OKRPage({ onToast }) {
     <div style={{ padding:'24px 32px', maxWidth:1280 }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18, flexWrap:'wrap', gap:12 }}>
         <div>
-          <h1 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6, marginBottom:4 }}>🎯 OKR · 활동지표</h1>
+          <h1 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6, marginBottom:4 }}>🎯 OKR · 결과지표</h1>
           <div style={{ fontSize:12.5, color:'var(--text-sm)', fontWeight:700 }}>
-            Objective {objectives.length} · Key Result {keyResults.length} · KPI 활동지표 {kpis.length} · 프로젝트 {projects.length}
+            Objective {objectives.length} · Key Result {keyResults.length} · 결과지표 KPI {kpis.filter(k => k.kind !== 'activity').length} · 프로젝트 {projects.length} · 📈 활동지표 {kpis.filter(k => k.kind === 'activity').length}(프로젝트)
             <br/>※ source=<b>auto-progress</b> 설정 시 KPI 값은 연결 프로젝트들의 진척도 평균으로 자동 산출됩니다.
           </div>
         </div>
@@ -6598,7 +6610,7 @@ function OKRPage({ onToast }) {
             <div style={{ flex:1 }}>
               <b>{isFriday ? '오늘은 금요일 — 매출 KPI 산출 입력일!' : `오늘은 ${dayOfWeek}요일`}</b>
               {' · '}매주 금요일에 각 채널 매출 KPI(수동 입력)에 이번 주 실적을 입력해 주세요.
-              <span style={{ fontSize:10.5, fontWeight:600, marginLeft:6 }}>(💰 매출 KPI는 ✏️수동 / 📊 활동지표 KPI는 🔁자동)</span>
+              <span style={{ fontSize:10.5, fontWeight:600, marginLeft:6 }}>(💰 매출=결과지표 ✏️수동 / 📊 진척도 🔁자동 · 선행 <b>활동지표</b>는 🗂️프로젝트에서 입력)</span>
             </div>
           </div>
         );
@@ -6679,7 +6691,7 @@ function OKRPage({ onToast }) {
                           🗂️ 연결 프로젝트: {linkedProjects.length === 0 ? '없음' : linkedProjects.map(p => `${p.name}(${p.progress||0}%)`).join(' · ')}
                         </div>
 
-                        {/* KPI 활동지표 */}
+                        {/* 결과지표 KPI(매출=수동) + 진척도(auto-progress). 활동지표는 프로젝트 페이지 */}
                         {myKpis.length > 0 && (
                           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(180px, 1fr))', gap:8 }}>
                             {myKpis.map(k => {
@@ -6694,7 +6706,7 @@ function OKRPage({ onToast }) {
                                   border: isManual ? '1.5px solid var(--or-l, #FED7AA)' : '1px solid var(--border)',
                                 }}>
                                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4, gap:4 }}>
-                                    <div style={{ fontSize:10.5, fontWeight:800, color:'var(--text-md)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{k.name}</div>
+                                    <div style={{ fontSize:10.5, fontWeight:800, color:'var(--text-md)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{k.source === 'auto-progress' ? (k.name || '').replace('활동지표', '진척도') : k.name}</div>
                                     <button onClick={() => delKpi(k)} title="삭제" style={{ fontSize:10, color:'var(--text-sm)', flexShrink:0 }}>×</button>
                                   </div>
                                   {isManual ? (
@@ -6718,7 +6730,7 @@ function OKRPage({ onToast }) {
                                   </div>
                                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:3, gap:4 }}>
                                     <span style={{ fontSize:9.5, color:'var(--text-sm)', fontWeight:700 }}>
-                                      {k.source === 'auto-progress' ? '🔁 자동(프로젝트 평균)' : k.source === 'auto' ? '🔁 자동' : '✏️ 수동 (금요일 입력)'}
+                                      {k.source === 'auto-progress' ? '🔁 진척도(프로젝트 평균)' : k.source === 'auto' ? '🔁 자동' : '✏️ 수동 (금요일 입력)'}
                                     </span>
                                     <span style={{ fontSize:9.5, color:pct >= 100 ? 'var(--green)' : 'var(--text-sm)', fontWeight:900 }}>{pct}%</span>
                                   </div>
@@ -6751,7 +6763,7 @@ function OKRPage({ onToast }) {
         {showKrModal && <KRForm onSubmit={(d) => { addKR(showKrModal, d.title, d.target, d.unit, d.channel); setShowKrModal(null); }} onCancel={() => setShowKrModal(null)} />}
       </Modal>
       {/* KPI 추가 모달 */}
-      <Modal open={!!showKpiModal} onClose={() => setShowKpiModal(null)} title="KPI 활동지표 추가" width={500}>
+      <Modal open={!!showKpiModal} onClose={() => setShowKpiModal(null)} title="결과지표 KPI 추가 (매출·진척도)" width={500}>
         {showKpiModal && <KpiForm onSubmit={(d) => { addKpi(showKpiModal, d.name, d.target, d.baseline, d.unit, d.source); setShowKpiModal(null); }} onCancel={() => setShowKpiModal(null)} />}
       </Modal>
     </div>
@@ -6847,6 +6859,111 @@ function KpiForm({ onSubmit, onCancel }) {
 // ProjectsPage — pour-projects CRUD + 다중 담당자 배정 + KR 연결
 // 모든 담당자에게 보이며, 본인 배정 프로젝트는 강조 표시.
 // ============================================================
+// ============================================================
+// ProjectActivityMetrics — 프로젝트별 활동지표(leading metric)
+// 결과지표(매출)는 OKR/KR에, 활동지표(콜드콜·미팅·견적·콘텐츠 등 선행 행동량)는 프로젝트에 연결.
+// pour-kpis 재사용: { kind:'activity', projectId, name, unit, target(주간), period:'weekly',
+//                     source:'manual', current, history:[{week,value,at,by}] }
+// ============================================================
+function ProjectActivityMetrics({ project, kpis, activeStaff, audit, onToast }) {
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState('');
+  const [unit, setUnit] = useState('건');
+  const [target, setTarget] = useState('');
+  const metrics = kpis.filter(k => k.kind === 'activity' && k.projectId === project.id);
+  const wk = isoWeek(new Date());
+
+  const weekVal = (m, week) => {
+    const h = (m.history || []).find(x => x.week === week);
+    return h ? Number(h.value) || 0 : 0;
+  };
+  const recentWeeks = (() => {
+    const out = []; const base = new Date();
+    for (let i = 3; i >= 0; i--) { const d = new Date(base); d.setDate(base.getDate() - i * 7); out.push(isoWeek(d)); }
+    return out;
+  })();
+
+  const setWeekValue = async (m, value) => {
+    const v = Number(value) || 0;
+    const hist = [...(m.history || [])];
+    const i = hist.findIndex(h => h.week === wk);
+    const entry = { week: wk, value: v, at: nowIso(), by: activeStaff.id };
+    if (i >= 0) hist[i] = entry; else hist.push(entry);
+    try {
+      await db.collection(COLLECTIONS.POUR_KPIS).doc(m.id).update({ history: hist, current: v, ...audit.update() });
+    } catch (e) { onToast({ message: '활동지표 저장 실패: ' + e.message, type: 'error' }); }
+  };
+  const addMetric = async () => {
+    if (!name.trim()) { onToast({ message: '활동지표명을 입력하세요', type: 'error' }); return; }
+    try {
+      await db.collection(COLLECTIONS.POUR_KPIS).add({
+        kind: 'activity', projectId: project.id, keyResultId: null, staffId: activeStaff.id,
+        name: name.trim(), unit: (unit || '건').trim(), target: Number(target) || 0,
+        period: 'weekly', source: 'manual', current: 0, history: [], ...audit.create(),
+      });
+      setName(''); setTarget(''); setAdding(false);
+      onToast({ message: '📈 활동지표 추가', type: 'success' });
+    } catch (e) { onToast({ message: '추가 실패: ' + e.message, type: 'error' }); }
+  };
+  const delMetric = async (m) => {
+    if (!confirm(`활동지표 "${m.name}"를 삭제할까요?`)) return;
+    try { await db.collection(COLLECTIONS.POUR_KPIS).doc(m.id).delete(); }
+    catch (e) { onToast({ message: '삭제 실패: ' + e.message, type: 'error' }); }
+  };
+
+  const lblSty = { fontSize:9, fontWeight:800, color:'var(--text-sm)', letterSpacing:.3 };
+  return (
+    <div style={{ borderTop:'1px dashed var(--border)', paddingTop:8, marginTop:2 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
+        <span style={{ fontSize:10.5, fontWeight:900, color:'var(--text-md)' }}>📈 활동지표 <span style={{ fontWeight:700, color:'var(--text-sm)' }}>(선행 · 이번주 {wk.split('-W')[1]}주차)</span></span>
+        <button onClick={() => setAdding(a => !a)} title="활동지표 추가" style={{ fontSize:10, fontWeight:800, color:'var(--or-d)', background:'var(--or-pale, #FFF7ED)', border:'1px solid var(--or-l, #FED7AA)', borderRadius:5, padding:'2px 7px', cursor:'pointer' }}>{adding ? '닫기' : '+ 추가'}</button>
+      </div>
+
+      {metrics.length === 0 && !adding && (
+        <div style={{ fontSize:10, color:'var(--text-sm)', fontWeight:600, fontStyle:'italic', padding:'2px 0 4px' }}>
+          매출을 만드는 선행 행동(콜드콜·미팅·견적·콘텐츠 등)을 [+ 추가]로 등록하고 매주 입력하세요.
+        </div>
+      )}
+
+      {metrics.map(m => {
+        const cur = weekVal(m, wk);
+        const tgt = Number(m.target) || 0;
+        const max = Math.max(1, ...recentWeeks.map(w => weekVal(m, w)), tgt);
+        return (
+          <div key={m.id} style={{ display:'flex', alignItems:'center', gap:7, padding:'4px 0' }}>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:11, fontWeight:800, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{m.name}</div>
+              {/* 최근 4주 미니 막대 */}
+              <div style={{ display:'flex', alignItems:'flex-end', gap:2, height:14, marginTop:2 }} title={recentWeeks.map(w => `${w.split('-W')[1]}주:${weekVal(m,w)}`).join(' · ')}>
+                {recentWeeks.map(w => {
+                  const v = weekVal(m, w);
+                  return <div key={w} style={{ width:6, height:`${Math.max(2, Math.round((v / max) * 14))}px`, background: w === wk ? 'var(--or)' : 'var(--border)', borderRadius:1 }} />;
+                })}
+              </div>
+            </div>
+            <input type="number" defaultValue={cur} key={m.id + wk + cur}
+              onBlur={e => { if (Number(e.target.value) !== cur) setWeekValue(m, e.target.value); }}
+              onKeyDown={e => { if (e.key === 'Enter') e.target.blur(); }}
+              title="이번 주 실적 입력 후 Enter"
+              style={{ width:46, padding:'4px 5px', fontSize:12.5, fontWeight:900, color:'var(--or-d)', border:'1.5px solid var(--or)', borderRadius:5, outline:'none', textAlign:'right' }} />
+            <span style={{ fontSize:9.5, fontWeight:700, color:'var(--text-sm)', whiteSpace:'nowrap' }}>/ {tgt}{m.unit || ''}</span>
+            <button onClick={() => delMetric(m)} title="삭제" style={{ fontSize:11, color:'var(--text-sm)', background:'transparent', border:'none', cursor:'pointer' }}>×</button>
+          </div>
+        );
+      })}
+
+      {adding && (
+        <div style={{ display:'flex', gap:4, marginTop:6, flexWrap:'wrap', alignItems:'center' }}>
+          <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addMetric(); }} placeholder="활동지표명 (예: 콜드콜 건수)" style={{ flex:'1 1 130px', minWidth:110, padding:'5px 7px', fontSize:11, fontWeight:600, border:'1px solid var(--border)', borderRadius:5, outline:'none' }} />
+          <input value={target} onChange={e => setTarget(e.target.value)} type="number" placeholder="주간목표" style={{ width:64, padding:'5px 6px', fontSize:11, fontWeight:600, border:'1px solid var(--border)', borderRadius:5, outline:'none' }} />
+          <input value={unit} onChange={e => setUnit(e.target.value)} placeholder="단위" style={{ width:44, padding:'5px 6px', fontSize:11, fontWeight:600, border:'1px solid var(--border)', borderRadius:5, outline:'none' }} />
+          <button onClick={addMetric} disabled={!name.trim()} style={{ padding:'5px 11px', borderRadius:6, fontSize:11, fontWeight:900, color:'#fff', background: name.trim() ? 'var(--or)' : 'var(--text-sm)', border:'none', cursor: name.trim() ? 'pointer' : 'not-allowed' }}>추가</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ProjectsPage({ onToast }) {
   const { activeStaff, audit, staffMembers } = useActiveStaffContext();
   const { keyResults, kpis, projects, loading } = useAllOkrData();
@@ -7281,6 +7398,9 @@ function ProjectsPage({ onToast }) {
                   <option value="paused">⏸ 보류</option>
                   <option value="done">✅ 완료</option>
                 </select>
+
+                {/* 📈 활동지표 (선행 행동량) — 결과지표(매출)는 OKR, 활동지표는 프로젝트에 */}
+                <ProjectActivityMetrics project={p} kpis={kpis} activeStaff={activeStaff} audit={audit} onToast={onToast} />
               </div>
             );
           })}
@@ -7768,7 +7888,7 @@ function ChannelsPage({ onToast }) {
         <ol style={{ margin:'6px 0 0 16px', padding:0, fontSize:11, fontWeight:600, color:'#7C2D12' }}>
           <li>이 페이지에서 [+ 채널 추가] → 코드(G) · 이름(조달청·관급) · KR(KR2) · 목표 입력 → 저장</li>
           <li>업무관리(workmgmt)에 관련 프로젝트는 별도로 등록 (지금은 workmgmt.html 데이터에 직접 반영, 향후 work-channels를 동적 로드)</li>
-          <li>OKR 페이지에서 해당 KR의 KPI 활동지표 자동 산출 가능</li>
+          <li>OKR 페이지에서 해당 KR의 진척도 자동 산출 가능</li>
         </ol>
       </div>
 
@@ -8241,9 +8361,10 @@ async function buildWeekSnapshot(activeStaff) {
     };
   });
 
-  // KPI 현황
+  // KPI 현황 — 결과지표(매출·진척도, KR 연결)와 활동지표(선행 행동량, 프로젝트 연결) 구분
   const kpiSummary = kpis.map(k => ({
     name: k.name, target: k.target, current: k.current || k.baseline || 0, unit: k.unit, source: k.source,
+    type: k.kind === 'activity' ? '활동지표(선행)' : (k.source === 'auto-progress' ? '진척도' : '결과지표(매출 등)'),
   }));
 
   // 프로젝트 진척 (상위 10개 + 정체)
@@ -8259,8 +8380,8 @@ async function buildWeekSnapshot(activeStaff) {
       { id: 'dashboard-os', name: '오늘 업무', purpose: '주간 5슬롯·인라인 task 표·빠른 추가·고정업무' },
       { id: 'journals', name: '업무일지', purpose: '프로젝트별 일지·진척도 누적 (메뉴 폐지 검토 중)' },
       { id: 'recurring', name: '고정업무(반복)', purpose: '매일/매주/매월 반복 → 오늘 자동 생성' },
-      { id: 'okr', name: 'OKR · 활동지표', purpose: 'Objective→KR→KPI 트리 + 매출 매주 입력' },
-      { id: 'projects', name: '프로젝트', purpose: '55개 프로젝트 CRUD + 담당자 매핑' },
+      { id: 'okr', name: 'OKR · 결과지표', purpose: 'Objective→KR→결과지표 KPI(매출 수동·진척도 자동) 트리' },
+      { id: 'projects', name: '프로젝트', purpose: '프로젝트 CRUD + 담당자 + 📈활동지표(선행 행동량, 주간 입력)' },
       { id: 'workmgmt', name: 'KPI 보고 보드 (read-only)', purpose: '외부 보고용 시각화' },
       { id: 'channels', name: '거래코드·채널', purpose: '거래코드 마스터 + 인쇄 포스터' },
       { id: 'ai-review', name: 'AI 주간 점검 (Friday Review)', purpose: '이번 주 분석 (← 이 페이지)' },
@@ -8278,7 +8399,7 @@ async function buildWeekSnapshot(activeStaff) {
     knownGaps: [
       'CRM센터·매출관리센터 메뉴 준비 중 (페이지 코드는 있으나 사이드바 미연결)',
       '회의록(meetings)·캘린더 흡수 미완',
-      '담당자별 KPI 활동지표 자동 산출 (현재 수동 입력)',
+      '활동지표(프로젝트 선행지표)와 결과지표(매출) 간 인과 분석·예측 자동화 (현재 수동 입력·병렬 표시까지)',
       'AB 테스트 실행·측정 도구 (현재 권장만, 실행 추적 없음)',
     ],
   };

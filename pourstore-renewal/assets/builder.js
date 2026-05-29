@@ -56,6 +56,112 @@
     '          style="width:100%; height:100vh; border:0; display:block; background:transparent;"></iframe>\n' +
     '</section>';
 
+  const POUR_STATS_NATIVE_HTML = `<section class="pst2">
+<style>
+.pst2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.pst2 { background:#FFFBF5; padding:80px 18px; letter-spacing:-0.02em; }
+.pst2-inner { max-width:1200px; margin:0 auto; }
+.pst2-top { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:22px; }
+.pst2-kicker { font-size:12px; font-weight:800; color:#E8780F; letter-spacing:0.14em; }
+.pst2-note { font-size:13px; font-weight:500; color:#8B95A1; }
+.pst2-note b { color:#E8780F; font-weight:800; }
+.pst2-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:64px; }
+.pst2-stat { background:#fff; border:1px solid #F3E7D5; border-radius:20px; padding:26px 24px; box-shadow:0 6px 18px rgba(232,120,15,.06); }
+.pst2-stat .lbl { font-size:12px; font-weight:800; color:#E8780F; letter-spacing:0.1em; margin-bottom:14px; }
+.pst2-stat .num { display:flex; align-items:baseline; gap:4px; }
+.pst2-stat .num b { font-size:38px; font-weight:900; color:#0F1F5C; letter-spacing:-0.03em; line-height:1; }
+.pst2-stat .num span { font-size:15px; font-weight:700; color:#0F1F5C; }
+.pst2-stat .sub { margin-top:12px; font-size:12.5px; font-weight:500; color:#8B95A1; line-height:1.5; word-break:keep-all; }
+.pst2-gal-head { margin-bottom:24px; }
+.pst2-gk { display:inline-flex; align-items:center; gap:10px; font-size:11.5px; font-weight:800; color:#E8780F; letter-spacing:0.16em; margin-bottom:12px; }
+.pst2-gk::before { content:''; width:26px; height:2px; background:#E8780F; }
+.pst2-gal-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-0.04em; line-height:1.2; }
+.pst2-gal-head h2 span { font-size:15px; font-weight:500; color:#8B95A1; letter-spacing:-0.02em; margin-left:10px; }
+.pst2-gal { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+.pst2-card { display:block; border-radius:18px; overflow:hidden; aspect-ratio:4/3; background:#EEE; box-shadow:0 6px 18px rgba(15,31,92,.08); border:1px solid #F3F4F6; transition:transform .25s ease, box-shadow .25s ease; }
+.pst2-card:hover { transform:translateY(-4px); box-shadow:0 18px 40px rgba(15,31,92,.16); }
+.pst2-img { width:100%; height:100%; background:#0F1F5C center/cover no-repeat; }
+.pst2-logo-head { margin-top:64px; margin-bottom:24px; }
+.pst2-logos { display:grid; grid-template-columns:repeat(8,1fr); gap:12px; }
+.pst2-logo { display:flex; align-items:center; justify-content:center; aspect-ratio:3/2; background:#fff; border:1px solid #F3E7D5; border-radius:14px; padding:12px; box-shadow:0 4px 12px rgba(232,120,15,.05); transition:transform .2s ease, box-shadow .2s ease; }
+.pst2-logo:hover { transform:translateY(-3px); box-shadow:0 10px 24px rgba(15,31,92,.1); }
+.pst2-logo img { max-width:100%; max-height:100%; object-fit:contain; filter:grayscale(1); opacity:.7; transition:filter .2s ease, opacity .2s ease; }
+.pst2-logo:hover img { filter:grayscale(0); opacity:1; }
+.pst2-logo.pst2-logo-fallback { font-size:11px; font-weight:700; color:#8B95A1; text-align:center; word-break:keep-all; line-height:1.3; }
+.pst2-swipe { display:none; }
+@keyframes pst2SwipeAr { 0%,100% { transform:translateX(0); } 50% { transform:translateX(4px); } }
+@media (max-width:880px) {
+  .pst2-stats { grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:48px; }
+  .pst2-gal { grid-template-columns:repeat(3,1fr); }
+  .pst2-gal-head h2 { font-size:24px; }
+  .pst2-gal-head h2 span { display:block; margin-left:0; margin-top:6px; font-size:13px; }
+  .pst2-logos { grid-template-columns:repeat(5,1fr); gap:10px; }
+  .pst2-logo-head { margin-top:48px; }
+  .pst2-logo-head h2 { font-size:24px; }
+  .pst2-logo-head h2 span { display:block; margin-left:0; margin-top:6px; font-size:13px; }
+}
+@media (max-width:640px) {
+  .pst2 { padding:48px 0 56px; }
+  .pst2-inner { max-width:none; }
+  .pst2-top, .pst2-stats, .pst2-gal-head, .pst2-logo-head, .pst2-logos { padding-left:18px; padding-right:18px; }
+  .pst2-stat .num b { font-size:30px; }
+  .pst2-gal { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; -ms-overflow-style:none; gap:12px; padding:0 18px 8px; }
+  .pst2-gal::-webkit-scrollbar { display:none; }
+  .pst2-card { flex:0 0 72%; max-width:300px; scroll-snap-align:center; aspect-ratio:4/3; }
+  .pst2-swipe { display:flex; align-items:center; justify-content:center; gap:6px; margin:10px 18px 0; font-size:12px; font-weight:700; color:#E8780F; }
+  .pst2-swipe .ar { display:inline-block; animation:pst2SwipeAr 1.3s ease-in-out infinite; }
+  .pst2-logos { grid-template-columns:repeat(3,1fr); gap:8px; }
+}
+</style>
+<div class="pst2-inner">
+  <div class="pst2-top"><span class="pst2-kicker">POUR스토어 실적</span><span class="pst2-note">아파트·공장·병원·관공서에서 <b>사용 중</b></span></div>
+  <div class="pst2-stats"><div class="pst2-stat"><div class="lbl">누적 시공</div><div class="num"><b>2,600,000</b><span>세대</span></div><div class="sub">아파트·공장·병원·관공서</div></div><div class="pst2-stat"><div class="lbl">보유 특허</div><div class="num"><b>70</b><span>여 개</span></div><div class="sub">건축물 유지보수 관련 자체 특허</div></div><div class="pst2-stat"><div class="lbl">제품 라인업</div><div class="num"><b>110</b><span>여 개</span></div><div class="sub">R&D 자체 개발 유지보수 제품</div></div><div class="pst2-stat"><div class="lbl">시공 협력사</div><div class="num"><b>250</b><span>여 곳</span></div><div class="sub">전국 검증된 전문 시공 네트워크</div></div></div>
+  <div class="pst2-gal-head"><span class="pst2-gk">CONSTRUCTION GALLERY</span><h2>전국 시공 현장 <span>직접 시공한 현장들입니다</span></h2></div>
+  <div class="pst2-gal" data-pst2-gal></div>
+  <div class="pst2-swipe">옆으로 밀어 더 보기 <span class="ar">→</span></div>
+  <div class="pst2-logo-head"><span class="pst2-gk">PARTNERS</span><h2>함께한 시공 협력사 <span>전국 250여 곳과 함께합니다</span></h2></div>
+  <div class="pst2-logos" data-pst2-logos></div>
+</div>
+<script>
+(function(){
+  var root = document.currentScript && document.currentScript.parentElement;
+  if(!root) return;
+  var g = root.querySelector('[data-pst2-gal]'); if(!g) return;
+  var imgs = ['https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2F15b49f57ee357.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2F2947421fc5f48.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2F29aa19f8601ee.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2F32abb25f8678a.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2F392c65f8e3085.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2F3de8628ad463a.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2F4bac2050a3d21.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2F4f3fd524afd55.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2F633281b2a4416.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2F8202321a9069d.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2F93f3fb0d576fd.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2F9f803bd67b921.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2Fa5b7f9da035af.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2Fc2f7d57bc599d.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2Fd3cea2787945e.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2Fdaa13cd70fed3.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2Fed8d18d5f230b.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2Fedf2d48381c4c.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2Ff8ae7d285b05e.png?alt=media'];
+  imgs.forEach(function(u){
+    var a = document.createElement('a');
+    a.className = 'pst2-card';
+    a.href = 'https://www.pourstore.net';
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.setAttribute('aria-label', 'POUR스토어 시공 현장');
+    var sp = document.createElement('span');
+    sp.className = 'pst2-img';
+    sp.style.backgroundImage = 'url("' + u + '")';
+    a.appendChild(sp);
+    g.appendChild(a);
+  });
+  var lg = root.querySelector('[data-pst2-logos]');
+  if (lg) {
+    var logos = [{n:'석민이앤씨',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%23%EC%84%9D%EB%AF%BC%EC%9D%B4%EC%95%A4%EC%94%A8.png?alt=media'},{n:'썬시카방수',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%23%EC%8D%AC%EC%8B%9C%EC%B9%B4%EB%B0%A9%EC%88%98.png?alt=media'},{n:'(주)대신엘엔씨건설',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%28%EC%A3%BC%29%EB%8C%80%EC%8B%A0%EC%97%98%EC%97%94%EC%94%A8%EA%B1%B4%EC%84%A4%20%EB%A1%9C%EA%B3%A0.png?alt=media'},{n:'(주)도경',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%28%EC%A3%BC%29%EB%8F%84%EA%B2%BD.jpg?alt=media'},{n:'(주)보람C&C',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%28%EC%A3%BC%29%EB%B3%B4%EB%9E%8CC%26C.png?alt=media'},{n:'(주)에이피티건설',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%28%EC%A3%BC%29%EC%97%90%EC%9D%B4%ED%94%BC%ED%8B%B0%EA%B1%B4%EC%84%A4.png?alt=media'},{n:'(주)예신건설',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%28%EC%A3%BC%29%EC%98%88%EC%8B%A0%EA%B1%B4%EC%84%A4-%EB%A1%9C%EA%B3%A0.png?alt=media'},{n:'(주)정문씨앤씨',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%28%EC%A3%BC%29%EC%A0%95%EB%AC%B8%EC%94%A8%EC%95%A4%EC%94%A8-%EB%A1%9C%EA%B3%A0.png?alt=media'},{n:'(주)지호건설',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%28%EC%A3%BC%29%EC%A7%80%ED%98%B8%EA%B1%B4%EC%84%A4.png?alt=media'},{n:'(주)진성이엔지',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%28%EC%A3%BC%29%EC%A7%84%EC%84%B1%EC%9D%B4%EC%97%94%EC%A7%80-%EB%A1%9C%EA%B3%A0.png?alt=media'},{n:'(주)파가니건설',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%28%EC%A3%BC%29%ED%8C%8C%EA%B0%80%EB%8B%88%EA%B1%B4%EC%84%A4.jpg?alt=media'},{n:'K.B건설',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2Fk.b%EA%B1%B4%EC%84%A4.png?alt=media'},{n:'강남이앤알',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EA%B0%95%EB%82%A8%EC%9D%B4%EC%95%A4%EC%95%8C.png?alt=media'},{n:'건인씨엔알',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EA%B1%B4%EC%9D%B8%EC%94%A8%EC%97%94%EC%95%8C.png?alt=media'},{n:'건축성능원',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EA%B1%B4%EC%B6%95%EC%84%B1%EB%8A%A5%EC%9B%90.png?alt=media'},{n:'과기대',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EA%B3%BC%EA%B8%B0%EB%8C%80.png?alt=media'},{n:'국일구조',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EA%B5%AD%EC%9D%BC%EA%B5%AC%EC%A1%B0.png?alt=media'},{n:'금환기업',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EA%B8%88%ED%99%98%EA%B8%B0%EC%97%85.png?alt=media'},{n:'다온',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EB%8B%A4%EC%98%A8.png?alt=media'},{n:'대성이앤씨',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EB%8C%80%EC%84%B1%EC%9D%B4%EC%95%A4%EC%94%A8.png?alt=media'},{n:'대표건설(주)',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EB%8C%80%ED%91%9C%EA%B1%B4%EC%84%A4%28%EC%A3%BC%29.png?alt=media'},{n:'도원씨엔씨',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EB%8F%84%EC%9B%90%EC%94%A8%EC%97%94%EC%94%A8.png?alt=media'},{n:'동양에폭시',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EB%8F%99%EC%96%91%EC%97%90%ED%8F%AD%EC%8B%9C.png?alt=media'},{n:'동현이앤씨',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EB%8F%99%ED%98%84%EC%9D%B4%EC%95%A4%EC%94%A8.png?alt=media'},{n:'드림종합건설',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EB%93%9C%EB%A6%BC%EC%A2%85%ED%95%A9%EA%B1%B4%EC%84%A4.png?alt=media'},{n:'디엘씨엔씨',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EB%94%94%EC%97%98%EC%94%A8%EC%97%94%EC%94%A8.png?alt=media'},{n:'레인보우테크',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EB%A0%88%EC%9D%B8%EB%B3%B4%EC%9A%B0%ED%85%8C%ED%81%AC.png?alt=media'},{n:'로토텍다이아몬드건설',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EB%A1%9C%ED%86%A0%ED%85%8D%EB%8B%A4%EC%9D%B4%EC%95%84%EB%AA%AC%EB%93%9C%EA%B1%B4%EC%84%A4.png?alt=media'},{n:'루아이앤씨',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EB%A3%A8%EC%95%84%EC%9D%B4%EC%95%A4%EC%94%A8.png?alt=media'},{n:'명가종합건설',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EB%AA%85%EA%B0%80%EC%A2%85%ED%95%A9%EA%B1%B4%EC%84%A4.png?alt=media'},{n:'명하건설',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EB%AA%85%ED%95%98%EA%B1%B4%EC%84%A4.png?alt=media'},{n:'방수존건설',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EB%B0%A9%EC%88%98%EC%A1%B4%EA%B1%B4%EC%84%A4.png?alt=media'},{n:'백승',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EB%B0%B1%EC%8A%B9.png?alt=media'},{n:'보라씨엔씨',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EB%B3%B4%EB%9D%BC%EC%94%A8%EC%97%94%EC%94%A8.png?alt=media'},{n:'부영씨엔씨',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EB%B6%80%EC%98%81%EC%94%A8%EC%97%94%EC%94%A8.png?alt=media'},{n:'삼우건설',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%82%BC%EC%9A%B0%EA%B1%B4%EC%84%A4.png?alt=media'},{n:'삼원건설(주)',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%82%BC%EC%9B%90%EA%B1%B4%EC%84%A4%28%EC%A3%BC%29.png?alt=media'},{n:'삼인유엔아이',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%82%BC%EC%9D%B8%EC%9C%A0%EC%97%94%EC%95%84%EC%9D%B4.png?alt=media'},{n:'삼창엔지니어링',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%82%BC%EC%B0%BD%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4%EB%A7%81.png?alt=media'},{n:'새로이건설(주)',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%83%88%EB%A1%9C%EC%9D%B4%EA%B1%B4%EC%84%A4%28%EC%A3%BC%29.png?alt=media'},{n:'석진건설',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%84%9D%EC%A7%84%EA%B1%B4%EC%84%A4.png?alt=media'},{n:'선재기업',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%84%A0%EC%9E%AC%EA%B8%B0%EC%97%85.png?alt=media'},{n:'성훈종합건설',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%84%B1%ED%9B%88%EC%A2%85%ED%95%A9%EA%B1%B4%EC%84%A4.png?alt=media'},{n:'수산기업',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%88%98%EC%82%B0%EA%B8%B0%EC%97%85.png?alt=media'},{n:'신양아이엔지건설',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%8B%A0%EC%96%91%EC%95%84%EC%9D%B4%EC%97%94%EC%A7%80%EA%B1%B4%EC%84%A4.png?alt=media'},{n:'신한건설산업(주)',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%8B%A0%ED%95%9C%EA%B1%B4%EC%84%A4%EC%82%B0%EC%97%85%28%EC%A3%BC%29.png?alt=media'},{n:'알지씨앤씨(주)',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%95%8C%EC%A7%80%EC%94%A8%EC%95%A4%EC%94%A8%28%EC%A3%BC%29.png?alt=media'},{n:'에스피플레닝',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%97%90%EC%8A%A4%ED%94%BC%ED%94%8C%EB%A0%88%EB%8B%9D.png?alt=media'},{n:'엘케이개발',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%97%98%EC%BC%80%EC%9D%B4%EA%B0%9C%EB%B0%9C.png?alt=media'},{n:'엠에스이엔지',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%97%A0%EC%97%90%EC%8A%A4%EC%9D%B4%EC%97%94%EC%A7%80.png?alt=media'},{n:'영성건설',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%98%81%EC%84%B1%EA%B1%B4%EC%84%A4-%EB%A1%9C%EA%B3%A0.png?alt=media'},{n:'영성조경',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%98%81%EC%84%B1%EC%A1%B0%EA%B2%BD.png?alt=media'},{n:'예운',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%98%88%EC%9A%B4.png?alt=media'},{n:'우영엘디아이',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%9A%B0%EC%98%81%EC%97%98%EB%94%94%EC%95%84%EC%9D%B4.png?alt=media'},{n:'우주티앤아이',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%9A%B0%EC%A3%BC%ED%8B%B0%EC%95%A4%EC%95%84%EC%9D%B4.png?alt=media'},{n:'은성이엔씨',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%9D%80%EC%84%B1%EC%9D%B4%EC%97%94%EC%94%A8.png?alt=media'},{n:'이두건설',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%9D%B4%EB%91%90%EA%B1%B4%EC%84%A4.png?alt=media'},{n:'이루미건설',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%9D%B4%EB%A3%A8%EB%AF%B8%EA%B1%B4%EC%84%A4.png?alt=media'},{n:'이음건설',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%9D%B4%EC%9D%8C%EA%B1%B4%EC%84%A4.png?alt=media'},{n:'자연담은건설',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%9E%90%EC%97%B0%EB%8B%B4%EC%9D%80%EA%B1%B4%EC%84%A4.jpg?alt=media'},{n:'제비스코',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%A0%9C%EB%B9%84%EC%8A%A4%EC%BD%94.png?alt=media'},{n:'종명건설',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%A2%85%EB%AA%85%EA%B1%B4%EC%84%A4-%EB%A1%9C%EA%B3%A0.png?alt=media'},{n:'주원디엔피',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%A3%BC%EC%9B%90%EB%94%94%EC%97%94%ED%94%BC%20%EB%A1%9C%EA%B3%A0.png?alt=media'},{n:'지앤필드',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%A7%80%EC%95%A4%ED%95%84%EB%93%9C.png?alt=media'},{n:'진원피앤씨',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%A7%84%EC%9B%90%ED%94%BC%EC%95%A4%EC%94%A8.png?alt=media'},{n:'청우엔지니어링',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%B2%AD%EC%9A%B0%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4%EB%A7%81.jpg?alt=media'},{n:'초담건설(주)',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%B4%88%EB%8B%B4%EA%B1%B4%EC%84%A4%28%EC%A3%BC%29.png?alt=media'},{n:'케이원',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%BC%80%EC%9D%B4%EC%9B%90%20%EB%A1%9C%EA%B3%A0%20%ED%88%AC%EB%AA%85.png?alt=media'},{n:'코지건설(주)',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%EC%BD%94%EC%A7%80%EA%B1%B4%EC%84%A4%20%EC%A3%BC%EC%8B%9D%ED%9A%8C%EC%82%AC-%EB%A1%9C%EA%B3%A0.png?alt=media'},{n:'탑이앤씨',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%ED%83%91%EC%9D%B4%EC%95%A4%EC%94%A8.png?alt=media'},{n:'탱크마스타',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%ED%83%B1%ED%81%AC%EB%A7%88%EC%8A%A4%ED%83%80.png?alt=media'},{n:'파가니건설',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%ED%8C%8C%EA%B0%80%EB%8B%88%EA%B1%B4%EC%84%A4.png?alt=media'},{n:'한별이엔씨',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%ED%95%9C%EB%B3%84%EC%9D%B4%EC%97%94%EC%94%A8.png?alt=media'},{n:'현대도건',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%ED%98%84%EB%8C%80%EB%8F%84%EA%B1%B4.png?alt=media'},{n:'혜성씨앤씨',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%ED%98%9C%EC%84%B1%EC%94%A8%EC%95%A4%EC%94%A8.png?alt=media'},{n:'효덕산업',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%ED%9A%A8%EB%8D%95%EC%82%B0%EC%97%85.png?alt=media'},{n:'효성씨앤씨',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%ED%9A%A8%EC%84%B1%EC%94%A8%EC%95%A4%EC%94%A8-%EB%A1%9C%EA%B3%A0.png?alt=media'},{n:'효원이엔씨',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%ED%9A%A8%EC%9B%90%EC%9D%B4%EC%97%94%EC%94%A8.png?alt=media'},{n:'흥산건설산업',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%ED%9D%A5%EC%82%B0%EA%B1%B4%EC%84%A4%EC%82%B0%EC%97%85.png?alt=media'},{n:'희민건설',u:'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%ED%98%91%EB%A0%B5%EC%82%AC%20%EB%A1%9C%EA%B3%A0%EB%93%A4%2F%ED%9D%AC%EB%AF%BC%EA%B1%B4%EC%84%A4%EB%A1%9C%EA%B3%A0%20jpg.jpg?alt=media'}];
+    logos.forEach(function(o){
+      var cell = document.createElement('div');
+      cell.className = 'pst2-logo';
+      cell.title = o.n;
+      var im = document.createElement('img');
+      im.src = o.u;
+      im.alt = o.n;
+      im.loading = 'lazy';
+      im.onerror = function(){ cell.classList.add('pst2-logo-fallback'); cell.textContent = o.n; };
+      cell.appendChild(im);
+      lg.appendChild(cell);
+    });
+  }
+})();
+</script>
+</section>`;
+
+
   // ===== B2B 시크릿 대시보드 — 대리점주 =====
   // ===== 대리점 모집 소개 페이지 — 토스 스타일 + POUR 오렌지/네이비 =====
   const SEED_INTRO_DEALER_HTML = `<section class="pin pin-dealer">
@@ -1145,10 +1251,20 @@ show('entry');
 }
 @media (max-width: 700px) {
   .psm1-hd-inner { display:none; }
-  .psm1-hd-mb { display:grid; grid-template-columns:40px 1fr 40px 40px; align-items:center; padding:12px 14px; gap:4px; }
-  .psm1-hd-mb .psm1-mb-menu, .psm1-hd-mb .psm1-mb-search, .psm1-hd-mb .psm1-mb-cart { width:40px; height:40px; display:grid; place-items:center; font-size:22px; color:#374151; }
+  .psm1-hd-mb { display:block; padding:12px 14px 14px; position:relative; overflow:visible; z-index:20; }
+  .psm1-mb-top { display:grid; grid-template-columns:40px 1fr 40px; align-items:center; }
+  .psm1-hd-mb .psm1-mb-menu, .psm1-hd-mb .psm1-mb-cart { width:40px; height:40px; display:grid; place-items:center; font-size:22px; color:#374151; }
   .psm1-hd-mb .psm1-mb-logo { display:flex; align-items:center; justify-content:center; gap:7px; font-weight:800; font-size:19px; color:#0F1F5C; letter-spacing:-0.04em; }
   .psm1-hd-mb .psm1-mb-logo .psm1-logo-mark { width:26px; height:26px; font-size:12px; font-weight:800; letter-spacing:-0.04em; }
+  /* 모바일 전체폭 검색바 + 그 위에 걸터앉은 POUR닥터 요정 */
+  .psm1-mb-searchbar { position:relative; margin-top:14px; display:flex; align-items:center; gap:8px; background:#F5F6F8; border:1px solid #ECEEF1; border-radius:26px; padding:12px 16px; cursor:pointer; }
+  .psm1-mb-searchbar .psm1-mb-search-ico { width:18px; height:18px; color:#9E9E9E; flex-shrink:0; }
+  .psm1-mb-searchbar input { flex:1; min-width:0; border:none; background:none; outline:none; font-size:14px; color:#2F3438; letter-spacing:-0.02em; cursor:pointer; }
+  .psm1-mb-searchbar input::placeholder { color:#9E9E9E; }
+  .psm1-mb-doctor { position:absolute; right:10px; top:-26px; width:60px; height:60px; padding:0; border:none; background:none; cursor:pointer; line-height:0; z-index:21; }
+  .psm1-mb-doctor-glow { position:absolute; inset:-4px; bottom:8px; border-radius:50%; background:radial-gradient(circle, rgba(232,120,15,.3) 0%, transparent 68%); animation:psm1FairyGlow 3s ease-in-out infinite; z-index:0; }
+  .psm1-mb-doctor img { position:relative; z-index:1; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 4px 7px rgba(15,31,92,.24)); animation:psm1FairyBob 3s ease-in-out infinite; }
+  .psm1-mb-doctor-spark { position:absolute; top:2px; right:4px; z-index:2; font-size:13px; pointer-events:none; animation:psm1FairySpark 2.4s ease-in-out infinite; }
   /* 모바일: 헬퍼는 화면 좌우 가득, 캐릭터 작게 */
   .psm1-helper { left:14px; right:14px; padding:14px; gap:10px; border-radius:14px; }
   .psm1-helper-char { width:72px; height:80px; border-radius:12px; }
@@ -1190,14 +1306,14 @@ show('entry');
       <!-- 검색창 우측 마스코트 요정 — 클릭 시 진단 헬퍼 펼침 -->
       <button type="button" class="psm1-fairy" data-psm1-fairy aria-label="POUR닥터에게 물어보기">
         <span class="psm1-fairy-glow"></span>
-        <img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fbeaver_consulting_transparent.png?alt=media&token=aae66b52-2850-4804-8492-fb8b602282ac" alt="POUR닥터" loading="lazy"/>
+        <img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fbeaver_search_fairy_nukki.png?alt=media&token=5f4d8a9a-13e1-49d2-b007-56a98286ed24" alt="POUR닥터" loading="lazy"/>
         <span class="psm1-fairy-spark">✨</span>
         <span class="psm1-fairy-tip">무엇이든 물어보세요!</span>
       </button>
       <!-- 검색 포커스 시 펼쳐지는 POUR닥터 헬퍼 (캐릭터 + 말풍선 + 추천 칩) -->
       <div class="psm1-helper" data-psm1-helper>
         <div class="psm1-helper-char">
-          <img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fbeaver_consulting_transparent.png?alt=media&token=aae66b52-2850-4804-8492-fb8b602282ac" alt="POUR닥터" loading="lazy"/>
+          <img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fbeaver_search_fairy_nukki.png?alt=media&token=5f4d8a9a-13e1-49d2-b007-56a98286ed24" alt="POUR닥터" loading="lazy"/>
         </div>
         <div class="psm1-helper-bubble">
           <div class="psm1-helper-msg">어떤 <b>어려움</b>이 있으세요?<br/>편하게 말씀해 주세요. <b>사진</b>으로도 가능해요!</div>
@@ -1222,10 +1338,20 @@ show('entry');
     </div>
   </div>
   <div class="psm1-hd-mb">
-    <button class="psm1-mb-menu" aria-label="메뉴">☰</button>
-    <a href="#" class="psm1-mb-logo"><span class="psm1-logo-mark">P</span><span>POUR스토어</span></a>
-    <button class="psm1-mb-search" aria-label="검색"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
-    <button class="psm1-mb-cart" aria-label="장바구니"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.5"/><circle cx="19" cy="21" r="1.5"/><path d="M3 4h2l2.5 12h12l2-8H6"/></svg></button>
+    <div class="psm1-mb-top">
+      <button class="psm1-mb-menu" aria-label="메뉴">☰</button>
+      <a href="#" class="psm1-mb-logo"><span class="psm1-logo-mark">P</span><span>POUR스토어</span></a>
+      <button class="psm1-mb-cart" aria-label="장바구니"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.5"/><circle cx="19" cy="21" r="1.5"/><path d="M3 4h2l2.5 12h12l2-8H6"/></svg></button>
+    </div>
+    <div class="psm1-mb-searchbar" data-psm1-mb-search>
+      <svg class="psm1-mb-search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input type="text" placeholder="어떤 어려움이 있으세요? (예: 옥상 누수)" aria-label="통합검색" readonly/>
+      <button class="psm1-mb-doctor" data-psm1-fairy aria-label="POUR닥터에게 물어보기">
+        <span class="psm1-mb-doctor-glow"></span>
+        <img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fbeaver_search_fairy_nukki.png?alt=media&token=5f4d8a9a-13e1-49d2-b007-56a98286ed24" alt="POUR닥터" loading="lazy"/>
+        <span class="psm1-mb-doctor-spark">✨</span>
+      </button>
+    </div>
   </div>
 </header>
 <nav class="psm1-tabs" aria-label="카테고리 탭">
@@ -1337,6 +1463,12 @@ show('entry');
       });
     });
   });
+  // 모바일 검색바·마스코트 — 탭하면 진단 페이지로 이동
+  var mbGo = function(e){ if(e) e.preventDefault(); window.location.href = './pour-doctor.html'; };
+  var mbDoctor = root.querySelector('.psm1-mb-doctor');
+  if (mbDoctor) mbDoctor.addEventListener('click', mbGo);
+  var mbBar = root.querySelector('[data-psm1-mb-search]');
+  if (mbBar) mbBar.addEventListener('click', mbGo);
 })();
 </script>
 </section>`;
@@ -1663,7 +1795,7 @@ show('entry');
 <a class="pdq-card" href="./pour-doctor.html">
   <div class="pdq-char">
     <div class="pdq-char-spot"></div>
-    <img class="pdq-char-img" src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fbeaver_consulting_transparent.png?alt=media&token=aae66b52-2850-4804-8492-fb8b602282ac" alt="POUR닥터" loading="lazy"/>
+    <img class="pdq-char-img" src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fbeaver_search_fairy_nukki.png?alt=media&token=5f4d8a9a-13e1-49d2-b007-56a98286ed24" alt="POUR닥터" loading="lazy"/>
   </div>
   <div class="pdq-bubble">
     <div class="pdq-msg">
@@ -7077,7 +7209,7 @@ show('entry');
       mkSec('서비스 소개', SEED_SERVICE_HTML, '대리점·파트너사·전시장 — SVG 아이콘 + 컬러별 차별 (v2)', 'wip'),
       mkSec('자사몰 내 포스팅', SEED_POSTING_HTML, '매거진 레이아웃 (Cover Story 1+3) + 읽기시간·조회수 (v2)', 'wip'),
       mkSec('동영상 가이드', SEED_VIDEO_GUIDE_HTML, 'POUR스토어 자체 영상 — 추천 영상 + 미니 카드 매거진 레이아웃 (v2)', 'wip'),
-      mkSec('POUR스토어 실적관', SEED_STATS_HTML, '원본 cafe24 페이지를 iframe으로 임베드 (기능·내용 그대로). pour-store-cafe24.html에 Pretendard + POUR 오렌지/네이비 컬러·자간 오버라이드 CSS만 추가해 형제 섹션과 톤 통일.', 'requested'),
+      mkSec('POUR스토어 실적관', POUR_STATS_NATIVE_HTML, '네이티브 재구축 — 라이트 크림+오렌지 톤(형제 섹션 통일). 실적 수치 4종 + 전국 시공 현장 갤러리(19장). 기존 cafe24 iframe 대체.', 'requested'),
     ]},
     { id: 'pour-doctor', name: 'POUR닥터 (전용 페이지)', file: 'pour-doctor.html', sections: [
       mkSec('히어로 — 당신만의 건물 닥터', POUR_DR_HERO_HTML, '다크 네이비 + 라이브 진단 보드 + 5개 신뢰 수치 (의료·전문 톤)', 'wip'),
@@ -8226,6 +8358,118 @@ show('entry');
         swapH('class="psg4"', SEED_VIDEO_GUIDE_HTML, '동영상 — 미니리스트 가로 스와이프에 넛지 모션 + "옆으로 밀어 더 보기 →" 힌트 칩 추가');
       }
       s.migrations.swipeHintsV1 = true;
+    }
+    // 실적 섹션 — cafe24 iframe(다크) → 네이티브 라이트 톤 재구축
+    if (!s.migrations.statsNativeV1) {
+      const mpStat = s.pages.find(p => p.id === 'store-showcase') || s.pages.find(p => p.id === 'main');
+      // 모든 페이지에서 iframe 실적 섹션을 찾아 교체 (페이지 id 불확실 대비)
+      const nowStat = new Date().toISOString();
+      s.pages.forEach(pg => {
+        if (!Array.isArray(pg.sections)) return;
+        pg.sections.forEach(sec => {
+          const h = sec.html || '';
+          if (h.indexOf('pour-store-cafe24.html') !== -1 || h.indexOf('class="pst1"') !== -1) {
+            const key = pg.id + ':' + sec.id;
+            s.history[key] = s.history[key] || [];
+            s.history[key].unshift({
+              name: sec.name, html: sec.html, note: sec.note || '',
+              reason: '실적 섹션 — cafe24 iframe(다크) → 네이티브 라이트 크림+오렌지 톤 재구축 (수치 4종 + 전국 시공 갤러리 19장)',
+              kind: 'auto-migration', savedAt: nowStat,
+            });
+            sec.html = POUR_STATS_NATIVE_HTML;
+            sec.statusAt = nowStat;
+          }
+        });
+      });
+      s.migrations.statsNativeV1 = true;
+    }
+    // 검색바 마스코트 — 모바일 헤더에도 POUR닥터 상시 노출
+    if (!s.migrations.mobileDoctorV1) {
+      const nowMD = new Date().toISOString();
+      s.pages.forEach(pg => {
+        if (!Array.isArray(pg.sections)) return;
+        pg.sections.forEach(sec => {
+          if ((sec.html || '').indexOf('class="psm1"') !== -1) {
+            const key = pg.id + ':' + sec.id;
+            s.history[key] = s.history[key] || [];
+            s.history[key].unshift({
+              name: sec.name, html: sec.html, note: sec.note || '',
+              reason: '검색바 마스코트 — 모바일 헤더(≤700px)에서 검색바 숨김으로 안 보이던 POUR닥터를, 모바일 헤더 검색 아이콘 옆에 상시 노출(탭 시 진단 페이지 이동)',
+              kind: 'auto-migration', savedAt: nowMD,
+            });
+            sec.html = OHOUSE_V1_SECTION_HTML;
+            sec.statusAt = nowMD;
+          }
+        });
+      });
+      s.migrations.mobileDoctorV1 = true;
+    }
+    // 요정 캐릭터 이미지 교체(beaver_search_fairy_nukki) + 실적 협력사 로고 80개 추가
+    if (!s.migrations.fairyLogosV1) {
+      const nowFL = new Date().toISOString();
+      const reswap = (matchClass, html, reason) => {
+        s.pages.forEach(pg => {
+          if (!Array.isArray(pg.sections)) return;
+          pg.sections.forEach(sec => {
+            if ((sec.html || '').indexOf(matchClass) !== -1) {
+              const key = pg.id + ':' + sec.id;
+              s.history[key] = s.history[key] || [];
+              s.history[key].unshift({
+                name: sec.name, html: sec.html, note: sec.note || '',
+                reason, kind: 'auto-migration', savedAt: nowFL,
+              });
+              sec.html = html;
+              sec.statusAt = nowFL;
+            }
+          });
+        });
+      };
+      reswap('class="psm1"', OHOUSE_V1_SECTION_HTML, '검색 마스코트 — 요정 캐릭터 이미지(beaver_search_fairy_nukki)로 교체');
+      reswap('class="pdq"', POUR_DR_QUICK_BANNER_HTML, 'POUR닥터 퀵배너 — 요정 캐릭터 이미지(beaver_search_fairy_nukki)로 교체');
+      reswap('class="pst2"', POUR_STATS_NATIVE_HTML, '실적 섹션 — 함께한 시공 협력사 로고 80개 추가');
+      s.migrations.fairyLogosV1 = true;
+    }
+    // 모바일 헤더 요정 마스코트 크게(44→62px) + 탭 위로 걸터앉는 히어로 느낌
+    if (!s.migrations.bigDoctorV1) {
+      const nowBD = new Date().toISOString();
+      s.pages.forEach(pg => {
+        if (!Array.isArray(pg.sections)) return;
+        pg.sections.forEach(sec => {
+          if ((sec.html || '').indexOf('class="psm1"') !== -1) {
+            const key = pg.id + ':' + sec.id;
+            s.history[key] = s.history[key] || [];
+            s.history[key].unshift({
+              name: sec.name, html: sec.html, note: sec.note || '',
+              reason: '모바일 헤더 요정 마스코트 확대(44→62px) + 탭 바 위로 걸터앉는 히어로 느낌',
+              kind: 'auto-migration', savedAt: nowBD,
+            });
+            sec.html = OHOUSE_V1_SECTION_HTML;
+            sec.statusAt = nowBD;
+          }
+        });
+      });
+      s.migrations.bigDoctorV1 = true;
+    }
+    // 모바일 헤더에 실제 검색바 추가 + 요정이 검색바 위에 걸터앉는 레이아웃
+    if (!s.migrations.mbSearchbarV1) {
+      const nowMS = new Date().toISOString();
+      s.pages.forEach(pg => {
+        if (!Array.isArray(pg.sections)) return;
+        pg.sections.forEach(sec => {
+          if ((sec.html || '').indexOf('class="psm1"') !== -1) {
+            const key = pg.id + ':' + sec.id;
+            s.history[key] = s.history[key] || [];
+            s.history[key].unshift({
+              name: sec.name, html: sec.html, note: sec.note || '',
+              reason: '모바일 헤더에 전체폭 검색바 추가 + 요정이 검색바 위에 걸터앉아 돋보기로 들여다보는 히어로 레이아웃(첨부 시안)',
+              kind: 'auto-migration', savedAt: nowMS,
+            });
+            sec.html = OHOUSE_V1_SECTION_HTML;
+            sec.statusAt = nowMS;
+          }
+        });
+      });
+      s.migrations.mbSearchbarV1 = true;
     }
     return s;
   }

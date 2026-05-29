@@ -2223,7 +2223,7 @@ show('entry');
 .psc3-item:hover .icon svg { stroke:#fff; }
 .psc3-item .label { font-size:12.5px; font-weight:700; color:#0F1F5C; text-align:center; line-height:1.35; word-break:keep-all; letter-spacing:-.2px; }
 @media (max-width:880px) { .psc3-grid { grid-template-columns:repeat(5, 1fr); } }
-@media (max-width:520px) { .psc3-grid { grid-template-columns:repeat(4, 1fr); gap:6px; } .psc3-item { padding:14px 6px; } .psc3-item .icon { width:46px; height:46px; } .psc3-item .label { font-size:11.5px; } }
+@media (max-width:520px) { .psc3-grid { grid-template-columns:repeat(3, 1fr); gap:8px; } .psc3-item { padding:18px 6px; } .psc3-item .icon { width:54px; height:54px; } .psc3-item .icon svg { width:27px; height:27px; } .psc3-item .label { font-size:13px; } }
 </style>
 <section class="psc3">
   <div class="psc3-inner">
@@ -2447,6 +2447,7 @@ show('entry');
   .psy3-head h2 { font-size:24px; }
   .psy3-head .more { font-size:12px; padding:9px 14px; }
   .psy3-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; padding:0 16px; }
+  .psy3-grid .psy3-card:nth-child(n+5) { display:none; }
   .psy3-card { max-width:none; aspect-ratio:9/16; }
   .psy3-card .title { font-size:12.5px; bottom:12px; left:12px; right:12px; }
   .psy3-card .play { width:46px; height:46px; }
@@ -2483,18 +2484,21 @@ show('entry');
     if (cards.length === 0) return;
     var current = 0, paused = false, inView = false;
     var advanceT = null, resumeT = null;
-    function durMs(i){
-      var d = parseFloat(cards[i].getAttribute('data-psy3-dur') || '5');
+    function visCards(){ return cards.filter(function(c){ return c.offsetParent !== null; }); }
+    function durMsEl(el){
+      var d = parseFloat(el.getAttribute('data-psy3-dur') || '5');
       return Math.min(Math.max(d, 3), 10) * 1000;
     }
     function clearAdvance(){ if (advanceT) { clearTimeout(advanceT); advanceT = null; } }
     function activate(i){
       clearAdvance();
-      current = ((i % cards.length) + cards.length) % cards.length;
-      cards.forEach(function(c, idx){
-        if (idx === current) {
-          var d = durMs(current);
-          c.style.setProperty('--psy3-d', (d/1000) + 's');
+      var list = visCards();
+      if (!list.length) return;
+      current = ((i % list.length) + list.length) % list.length;
+      var active = list[current];
+      cards.forEach(function(c){
+        if (c === active) {
+          c.style.setProperty('--psy3-d', (durMsEl(c)/1000) + 's');
           // 애니메이션 재시작을 위해 속성을 잠깐 떼었다 다시 붙임
           c.removeAttribute('data-psy3-active');
           void c.offsetWidth;
@@ -2503,9 +2507,9 @@ show('entry');
           c.removeAttribute('data-psy3-active');
         }
       });
-      // 2열 그리드 — 모든 카드가 보이므로 스크롤 없이 활성 카드만 순환 강조
+      // 그리드 — 보이는 카드만 순환 강조 (모바일 숨김 카드 건너뜀)
       if (!paused && inView && !document.hidden) {
-        advanceT = setTimeout(function(){ activate(current + 1); }, durMs(current));
+        advanceT = setTimeout(function(){ activate(current + 1); }, durMsEl(active));
       }
     }
     function pauseFor(ms){
@@ -2742,6 +2746,8 @@ show('entry');
 .psg3-card .psg3-prog::after { content:''; position:absolute; left:0; top:0; bottom:0; width:0; background:linear-gradient(90deg,#F49A3A,#E8780F); }
 .psg3-card[data-psg3-active] .psg3-prog::after { animation:psg3Fill var(--psg3-d, 6s) linear forwards; }
 @keyframes psg3Fill { to { width:100%; } }
+.psg3-swipe { display:none; }
+@keyframes psg3SwipeAr { 0%,100% { transform:translateX(0); } 50% { transform:translateX(4px); } }
 /* 태블릿 */
 @media (max-width:1080px) {
   .psg3-grid { grid-template-columns:1fr 1fr; }
@@ -2767,6 +2773,8 @@ show('entry');
   .psg3-list::-webkit-scrollbar { display:none; }
   .psg3-list .psg3-card { flex:0 0 76%; max-width:300px; scroll-snap-align:center; position:relative; transition:.25s; }
   .psg3-list .psg3-card[data-psg3-active] { outline:2px solid #E8780F; outline-offset:-2px; box-shadow:0 14px 32px rgba(232,120,15,.22); }
+  .psg3-swipe { display:flex; align-items:center; justify-content:center; gap:6px; margin:6px 18px 0; font-size:12px; font-weight:700; color:#E8780F; letter-spacing:-0.02em; }
+  .psg3-swipe .ar { display:inline-block; animation:psg3SwipeAr 1.3s ease-in-out infinite; }
 }
 </style>
 <section class="psg3">
@@ -2801,6 +2809,7 @@ show('entry');
           <span class="psg3-prog"></span>
         </a>
       </div>
+      <div class="psg3-swipe">옆으로 밀어 더 보기 <span class="ar">→</span></div>
     </div>
   </div>
   <script>
@@ -2901,7 +2910,20 @@ show('entry');
 .psg4-mini .info .sub { font-size:10.5px; font-weight:800; color:#EA580C; letter-spacing:.5px; margin-bottom:4px; }
 .psg4-mini .info .title { font-size:13px; font-weight:700; color:#0F1F5C; line-height:1.45; letter-spacing:-.3px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .psg4-mini .info .meta { font-size:10.5px; color:#9CA3AF; margin-top:4px; font-weight:600; }
-@media (max-width:880px) { .psg4-feature { grid-template-columns:1fr; } .psg4-side { flex-direction:row; overflow-x:auto; padding-bottom:8px; } .psg4-mini { min-width:280px; } .psg4-head h2 { font-size:24px; } }
+.psg4-swipe { display:none; }
+@keyframes psg4SwipeAr { 0%,100% { transform:translateX(0); } 50% { transform:translateX(4px); } }
+@keyframes psg4Nudge { 0%,100% { transform:translateX(0); } 12% { transform:translateX(-22px); } 26% { transform:translateX(0); } }
+@media (prefers-reduced-motion:reduce) { .psg4-side { animation:none !important; } }
+@media (max-width:880px) { .psg4-feature { grid-template-columns:1fr; } .psg4-side { flex-direction:row; overflow-x:auto; padding-bottom:8px; animation:psg4Nudge 1.6s ease 0.9s 2; } .psg4-mini { min-width:280px; } .psg4-head h2 { font-size:24px; } .psg4-swipe { display:flex; align-items:center; justify-content:center; gap:6px; margin:10px 18px 0; font-size:12px; font-weight:700; color:#E8780F; letter-spacing:-0.02em; } .psg4-swipe .ar { display:inline-block; animation:psg4SwipeAr 1.3s ease-in-out infinite; } }
+@media (max-width:640px) {
+  .psg4-main { aspect-ratio:4/3; }
+  .psg4-main .play { width:60px; height:60px; top:34%; }
+  .psg4-main .play::after { border-left:17px solid #fff; border-top:10px solid transparent; border-bottom:10px solid transparent; margin-left:4px; }
+  .psg4-main .info { padding:18px; }
+  .psg4-main .badge { margin-bottom:8px; }
+  .psg4-main h3 { font-size:18px; }
+  .psg4-main p { display:none; }
+}
 </style>
 <section class="psg4">
   <div class="psg4-inner">
@@ -2925,6 +2947,7 @@ show('entry');
         <a class="psg4-mini" href="https://www.pourstore.net/videos/v3"><div class="thumb" style="background-image:url('https://placehold.co/240x135/F97316/fff?text=CASE')"></div><div class="info"><div class="sub">시공 사례</div><div class="title">신축 정밀 자공 푸드프트정 시공 현장</div><div class="meta">12:05 · 6.5K 회</div></div></a>
         <a class="psg4-mini" href="https://www.pourstore.net/videos/v4"><div class="thumb" style="background-image:url('https://placehold.co/240x135/059669/fff?text=APT')"></div><div class="info"><div class="sub">아파트 사례</div><div class="title">구안주 아파트 단지 — 유니크하우 시공</div><div class="meta">9:33 · 4.1K 회</div></div></a>
       </div>
+      <div class="psg4-swipe">옆으로 밀어 더 보기 <span class="ar">→</span></div>
     </div>
   </div>
 </section>`;
@@ -8117,6 +8140,92 @@ show('entry');
         }
       }
       s.migrations.shortsGrid2colV1 = true;
+    }
+    // 숏츠 섹션 — 모바일에서 정확히 2행(4장)만 노출하도록 5번째 카드 숨김
+    if (!s.migrations.shortsGrid2rowV1) {
+      const mpS2 = s.pages.find(p => p.id === 'main');
+      if (mpS2 && Array.isArray(mpS2.sections)) {
+        const nowS2 = new Date().toISOString();
+        const idx = mpS2.sections.findIndex(sec => (sec.html || '').indexOf('class="psy3"') !== -1);
+        if (idx !== -1) {
+          const sec = mpS2.sections[idx];
+          const key = mpS2.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason: '숏츠 섹션 — 모바일 2행(4장)으로 고정, 자동순환은 보이는 카드만',
+            kind: 'auto-migration', savedAt: nowS2,
+          });
+          sec.html = SEED_YOUTUBE_HTML;
+          sec.statusAt = nowS2;
+        }
+      }
+      s.migrations.shortsGrid2rowV1 = true;
+    }
+    // 카테고리(퀵메뉴) — 모바일 3열×3행 균형 + 아이콘 확대
+    if (!s.migrations.categoryGrid3colV1) {
+      const mpC = s.pages.find(p => p.id === 'main');
+      if (mpC && Array.isArray(mpC.sections)) {
+        const nowC = new Date().toISOString();
+        const idx = mpC.sections.findIndex(sec => (sec.html || '').indexOf('class="psc3"') !== -1);
+        if (idx !== -1) {
+          const sec = mpC.sections[idx];
+          const key = mpC.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason: '카테고리 퀵메뉴 — 모바일 4열(외톨이 발생) → 3열×3행 균형, 아이콘·라벨 확대',
+            kind: 'auto-migration', savedAt: nowC,
+          });
+          sec.html = SEED_CATEGORY_HTML;
+          sec.statusAt = nowC;
+        }
+      }
+      s.migrations.categoryGrid3colV1 = true;
+    }
+    // 동영상 가이드 — 모바일 추천 카드 플레이버튼/제목 겹침 해소
+    if (!s.migrations.videoGuideMobileV1) {
+      const mpV = s.pages.find(p => p.id === 'main');
+      if (mpV && Array.isArray(mpV.sections)) {
+        const nowV = new Date().toISOString();
+        const idx = mpV.sections.findIndex(sec => (sec.html || '').indexOf('class="psg4"') !== -1);
+        if (idx !== -1) {
+          const sec = mpV.sections[idx];
+          const key = mpV.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason: '동영상 가이드 — 모바일 추천 카드 4:3 비율·플레이버튼 상단 이동으로 제목 겹침 해소',
+            kind: 'auto-migration', savedAt: nowV,
+          });
+          sec.html = SEED_VIDEO_GUIDE_HTML;
+          sec.statusAt = nowV;
+        }
+      }
+      s.migrations.videoGuideMobileV1 = true;
+    }
+    // 가로 스와이프 힌트 — 매거진·동영상 미니리스트에 "옆으로 밀어 더 보기" 칩 + 넛지
+    if (!s.migrations.swipeHintsV1) {
+      const mpH = s.pages.find(p => p.id === 'main');
+      if (mpH && Array.isArray(mpH.sections)) {
+        const nowH = new Date().toISOString();
+        const swapH = (matchClass, html, reason) => {
+          const i = mpH.sections.findIndex(sec => (sec.html || '').indexOf(matchClass) !== -1);
+          if (i === -1) return;
+          const sec = mpH.sections[i];
+          const key = mpH.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason, kind: 'auto-migration', savedAt: nowH,
+          });
+          sec.html = html;
+          sec.statusAt = nowH;
+        };
+        swapH('class="psg3"', SEED_POSTING_HTML, '매거진 — 모바일 가로 스와이프에 "옆으로 밀어 더 보기 →" 힌트 칩 추가');
+        swapH('class="psg4"', SEED_VIDEO_GUIDE_HTML, '동영상 — 미니리스트 가로 스와이프에 넛지 모션 + "옆으로 밀어 더 보기 →" 힌트 칩 추가');
+      }
+      s.migrations.swipeHintsV1 = true;
     }
     return s;
   }

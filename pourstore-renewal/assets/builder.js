@@ -1288,6 +1288,22 @@ show('entry');
   .psm1-mb-doctor-glow { position:absolute; inset:-4px; bottom:8px; border-radius:50%; background:radial-gradient(circle, rgba(232,120,15,.3) 0%, transparent 68%); animation:psm1FairyGlow 3s ease-in-out infinite; z-index:0; }
   .psm1-mb-doctor img { position:relative; z-index:1; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 4px 7px rgba(15,31,92,.24)); animation:psm1FairyBob 3s ease-in-out infinite; }
   .psm1-mb-doctor-spark { position:absolute; top:2px; right:4px; z-index:2; font-size:13px; pointer-events:none; animation:psm1FairySpark 2.4s ease-in-out infinite; }
+  /* 모바일 헬퍼 모달 — 풀스크린 슬라이드업 */
+  .psm1-mb-modal { display:none; position:fixed; inset:0; z-index:9999; background:rgba(15,31,92,.42); align-items:flex-end; }
+  .psm1-mb-modal.open { display:flex; animation:psm1MbFade .2s ease; }
+  @keyframes psm1MbFade { from { background:rgba(15,31,92,0); } to { background:rgba(15,31,92,.42); } }
+  .psm1-mb-modal-sheet { position:relative; width:100%; background:#fff; border-radius:22px 22px 0 0; padding:24px 20px 28px; box-shadow:0 -12px 36px rgba(15,31,92,.18); animation:psm1MbSlide .25s cubic-bezier(.16,1,.3,1); max-height:88vh; overflow-y:auto; }
+  @keyframes psm1MbSlide { from { transform:translateY(100%); } to { transform:translateY(0); } }
+  .psm1-mb-modal-close { position:absolute; top:14px; right:14px; width:32px; height:32px; border:none; background:#F5F6F8; border-radius:50%; font-size:20px; color:#6B7280; cursor:pointer; line-height:1; padding:0; display:grid; place-items:center; }
+  .psm1-mb-modal-head { display:flex; align-items:center; gap:14px; margin-bottom:18px; padding-right:36px; }
+  .psm1-mb-modal-char { flex-shrink:0; width:72px; height:80px; border-radius:14px; overflow:hidden; background:linear-gradient(180deg,#FFF6EC 0%,#FFE7CB 100%); display:flex; align-items:center; justify-content:center; }
+  .psm1-mb-modal-char img { width:100%; height:100%; object-fit:contain; }
+  .psm1-mb-modal-msg { flex:1; font-size:14px; font-weight:600; color:#2F3438; line-height:1.5; letter-spacing:-0.03em; }
+  .psm1-mb-modal-msg b { color:#E8780F; font-weight:800; }
+  .psm1-mb-modal-chips { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:16px; }
+  .psm1-mb-modal-chip { padding:14px 12px; font-size:13.5px; font-weight:700; color:#374151; background:#F5F6F8; border:1px solid #F5F6F8; border-radius:12px; cursor:pointer; letter-spacing:-0.02em; font-family:inherit; transition:.15s; text-align:center; }
+  .psm1-mb-modal-chip:hover, .psm1-mb-modal-chip:active { background:#FFF7ED; border-color:#FED7AA; color:#E8780F; }
+  .psm1-mb-modal-more { display:block; text-align:center; padding:14px 16px; background:linear-gradient(135deg,#F49A3A,#E8780F); color:#fff; font-size:14px; font-weight:800; border-radius:14px; text-decoration:none; letter-spacing:-0.02em; box-shadow:0 6px 16px rgba(232,120,15,.28); }
   /* 모바일: 헬퍼는 화면 좌우 가득, 캐릭터 작게 */
   .psm1-helper { left:14px; right:14px; padding:14px; gap:10px; border-radius:14px; }
   .psm1-helper-char { width:72px; height:80px; border-radius:12px; }
@@ -1374,6 +1390,27 @@ show('entry');
         <img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fbeaver_search_fairy_nukki.png?alt=media&token=5f4d8a9a-13e1-49d2-b007-56a98286ed24" alt="POUR닥터" loading="lazy"/>
         <span class="psm1-mb-doctor-spark">✨</span>
       </button>
+    </div>
+  </div>
+  <!-- 모바일 검색 헬퍼 모달 — 검색바·요정 탭 시 풀스크린으로 열림 -->
+  <div class="psm1-mb-modal" data-psm1-mb-modal aria-hidden="true">
+    <div class="psm1-mb-modal-sheet" role="dialog" aria-label="POUR닥터 진단">
+      <button type="button" class="psm1-mb-modal-close" data-psm1-mb-close aria-label="닫기">×</button>
+      <div class="psm1-mb-modal-head">
+        <div class="psm1-mb-modal-char">
+          <img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fbeaver_search_fairy_nukki.png?alt=media&token=5f4d8a9a-13e1-49d2-b007-56a98286ed24" alt="POUR닥터" loading="lazy"/>
+        </div>
+        <div class="psm1-mb-modal-msg">어떤 <b>어려움</b>이 있으세요?<br/>편하게 말씀해 주세요. <b>사진</b>으로도 가능해요!</div>
+      </div>
+      <div class="psm1-mb-modal-chips">
+        <button type="button" class="psm1-mb-modal-chip">💧 옥상 누수</button>
+        <button type="button" class="psm1-mb-modal-chip">⚡ 외벽 균열</button>
+        <button type="button" class="psm1-mb-modal-chip">🦠 곰팡이·결로</button>
+        <button type="button" class="psm1-mb-modal-chip">🧱 박락·박리</button>
+        <button type="button" class="psm1-mb-modal-chip">🟫 녹·부식</button>
+        <button type="button" class="psm1-mb-modal-chip">🎨 도장 열화</button>
+      </div>
+      <a class="psm1-mb-modal-more" href="./pour-doctor.html">또는 사진으로 진단받기 →</a>
     </div>
   </div>
 </header>
@@ -1486,12 +1523,42 @@ show('entry');
       });
     });
   });
-  // 모바일 검색바·마스코트 — 탭하면 진단 페이지로 이동
-  var mbGo = function(e){ if(e) e.preventDefault(); window.location.href = './pour-doctor.html'; };
+  // 모바일 검색바·마스코트 — 탭하면 진단 헬퍼 모달 열림
+  var mbModal = root.querySelector('[data-psm1-mb-modal]');
+  function mbOpen(e){
+    if (e) e.preventDefault();
+    if (!mbModal) { window.location.href = './pour-doctor.html'; return; }
+    mbModal.classList.add('open');
+    mbModal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+  function mbClose(){
+    if (!mbModal) return;
+    mbModal.classList.remove('open');
+    mbModal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
   var mbDoctor = root.querySelector('.psm1-mb-doctor');
-  if (mbDoctor) mbDoctor.addEventListener('click', mbGo);
+  if (mbDoctor) mbDoctor.addEventListener('click', mbOpen);
   var mbBar = root.querySelector('[data-psm1-mb-search]');
-  if (mbBar) mbBar.addEventListener('click', mbGo);
+  if (mbBar) mbBar.addEventListener('click', mbOpen);
+  if (mbModal) {
+    var closeBtn = mbModal.querySelector('[data-psm1-mb-close]');
+    if (closeBtn) closeBtn.addEventListener('click', mbClose);
+    // 배경 탭으로 닫기 — 시트 내부 클릭은 닫지 않음
+    mbModal.addEventListener('click', function(e){ if (e.target === mbModal) mbClose(); });
+    // 칩 탭 → 진단 페이지로 키워드 전달
+    mbModal.querySelectorAll('.psm1-mb-modal-chip').forEach(function(chip){
+      chip.addEventListener('click', function(){
+        var txt = chip.textContent.replace(/^[^\\s]+\\s/, '').trim();
+        window.location.href = './pour-doctor.html?q=' + encodeURIComponent(txt);
+      });
+    });
+    // ESC 키로 닫기
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape' && mbModal.classList.contains('open')) mbClose();
+    });
+  }
 })();
 </script>
 </section>`;
@@ -8538,6 +8605,27 @@ show('entry');
         });
       });
       s.migrations.logoMarqueeV1 = true;
+    }
+    // 모바일 검색바·요정 탭 시 진단 헬퍼 모달 노출
+    if (!s.migrations.mbHelperModalV1) {
+      const nowMM = new Date().toISOString();
+      s.pages.forEach(pg => {
+        if (!Array.isArray(pg.sections)) return;
+        pg.sections.forEach(sec => {
+          if ((sec.html || '').indexOf('class="psm1"') !== -1) {
+            const key = pg.id + ':' + sec.id;
+            s.history[key] = s.history[key] || [];
+            s.history[key].unshift({
+              name: sec.name, html: sec.html, note: sec.note || '',
+              reason: '모바일 검색바·요정 탭 시 풀스크린 진단 헬퍼 모달(증상 칩 6종) 노출 — 기존 직접 페이지 이동 대체',
+              kind: 'auto-migration', savedAt: nowMM,
+            });
+            sec.html = OHOUSE_V1_SECTION_HTML;
+            sec.statusAt = nowMM;
+          }
+        });
+      });
+      s.migrations.mbHelperModalV1 = true;
     }
     return s;
   }

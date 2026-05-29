@@ -56,6 +56,70 @@
     '          style="width:100%; height:100vh; border:0; display:block; background:transparent;"></iframe>\n' +
     '</section>';
 
+  const POUR_STATS_NATIVE_HTML = `<section class="pst2">
+<style>
+.pst2 * { box-sizing:border-box; margin:0; padding:0; font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,'Apple SD Gothic Neo','Noto Sans KR',sans-serif; }
+.pst2 { background:#FFFBF5; padding:80px 18px; letter-spacing:-0.02em; }
+.pst2-inner { max-width:1200px; margin:0 auto; }
+.pst2-top { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:22px; }
+.pst2-kicker { font-size:12px; font-weight:800; color:#E8780F; letter-spacing:0.14em; }
+.pst2-note { font-size:13px; font-weight:500; color:#8B95A1; }
+.pst2-note b { color:#E8780F; font-weight:800; }
+.pst2-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:64px; }
+.pst2-stat { background:#fff; border:1px solid #F3E7D5; border-radius:20px; padding:26px 24px; box-shadow:0 6px 18px rgba(232,120,15,.06); }
+.pst2-stat .lbl { font-size:12px; font-weight:800; color:#E8780F; letter-spacing:0.1em; margin-bottom:14px; }
+.pst2-stat .num { display:flex; align-items:baseline; gap:4px; }
+.pst2-stat .num b { font-size:38px; font-weight:900; color:#0F1F5C; letter-spacing:-0.03em; line-height:1; }
+.pst2-stat .num span { font-size:15px; font-weight:700; color:#0F1F5C; }
+.pst2-stat .sub { margin-top:12px; font-size:12.5px; font-weight:500; color:#8B95A1; line-height:1.5; word-break:keep-all; }
+.pst2-gal-head { margin-bottom:24px; }
+.pst2-gk { display:inline-flex; align-items:center; gap:10px; font-size:11.5px; font-weight:800; color:#E8780F; letter-spacing:0.16em; margin-bottom:12px; }
+.pst2-gk::before { content:''; width:26px; height:2px; background:#E8780F; }
+.pst2-gal-head h2 { font-size:30px; font-weight:900; color:#0F1F5C; letter-spacing:-0.04em; line-height:1.2; }
+.pst2-gal-head h2 span { font-size:15px; font-weight:500; color:#8B95A1; letter-spacing:-0.02em; margin-left:10px; }
+.pst2-gal { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+.pst2-card { display:block; border-radius:18px; overflow:hidden; aspect-ratio:4/3; background:#EEE; box-shadow:0 6px 18px rgba(15,31,92,.08); border:1px solid #F3F4F6; transition:transform .25s ease, box-shadow .25s ease; }
+.pst2-card:hover { transform:translateY(-4px); box-shadow:0 18px 40px rgba(15,31,92,.16); }
+.pst2-img { width:100%; height:100%; background:#0F1F5C center/cover no-repeat; }
+.pst2-swipe { display:none; }
+@keyframes pst2SwipeAr { 0%,100% { transform:translateX(0); } 50% { transform:translateX(4px); } }
+@media (max-width:880px) {
+  .pst2-stats { grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:48px; }
+  .pst2-gal { grid-template-columns:repeat(3,1fr); }
+  .pst2-gal-head h2 { font-size:24px; }
+  .pst2-gal-head h2 span { display:block; margin-left:0; margin-top:6px; font-size:13px; }
+}
+@media (max-width:640px) {
+  .pst2 { padding:48px 0 56px; }
+  .pst2-inner { max-width:none; }
+  .pst2-top, .pst2-stats, .pst2-gal-head { padding-left:18px; padding-right:18px; }
+  .pst2-stat .num b { font-size:30px; }
+  .pst2-gal { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; -ms-overflow-style:none; gap:12px; padding:0 18px 8px; }
+  .pst2-gal::-webkit-scrollbar { display:none; }
+  .pst2-card { flex:0 0 72%; max-width:300px; scroll-snap-align:center; aspect-ratio:4/3; }
+  .pst2-swipe { display:flex; align-items:center; justify-content:center; gap:6px; margin:10px 18px 0; font-size:12px; font-weight:700; color:#E8780F; }
+  .pst2-swipe .ar { display:inline-block; animation:pst2SwipeAr 1.3s ease-in-out infinite; }
+}
+</style>
+<div class="pst2-inner">
+  <div class="pst2-top"><span class="pst2-kicker">POUR스토어 실적</span><span class="pst2-note">아파트·공장·병원·관공서에서 <b>사용 중</b></span></div>
+  <div class="pst2-stats"><div class="pst2-stat"><div class="lbl">누적 시공</div><div class="num"><b>2,600,000</b><span>세대</span></div><div class="sub">아파트·공장·병원·관공서</div></div><div class="pst2-stat"><div class="lbl">보유 특허</div><div class="num"><b>70</b><span>여 개</span></div><div class="sub">건축물 유지보수 관련 자체 특허</div></div><div class="pst2-stat"><div class="lbl">제품 라인업</div><div class="num"><b>110</b><span>여 개</span></div><div class="sub">R&D 자체 개발 유지보수 제품</div></div><div class="pst2-stat"><div class="lbl">시공 협력사</div><div class="num"><b>250</b><span>여 곳</span></div><div class="sub">전국 검증된 전문 시공 네트워크</div></div></div>
+  <div class="pst2-gal-head"><span class="pst2-gk">CONSTRUCTION GALLERY</span><h2>전국 시공 현장 <span>직접 시공한 현장들입니다</span></h2></div>
+  <div class="pst2-gal" data-pst2-gal></div>
+  <div class="pst2-swipe">옆으로 밀어 더 보기 <span class="ar">→</span></div>
+</div>
+<script>
+(function(){
+  var root = document.currentScript && document.currentScript.parentElement;
+  if(!root) return;
+  var g = root.querySelector('[data-pst2-gal]'); if(!g) return;
+  var imgs = ['https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2F15b49f57ee357.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2F2947421fc5f48.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2F29aa19f8601ee.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2F32abb25f8678a.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2F392c65f8e3085.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2F3de8628ad463a.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2F4bac2050a3d21.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2F4f3fd524afd55.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2F633281b2a4416.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2F8202321a9069d.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2F93f3fb0d576fd.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2F9f803bd67b921.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2Fa5b7f9da035af.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2Fc2f7d57bc599d.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2Fd3cea2787945e.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2Fdaa13cd70fed3.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2Fed8d18d5f230b.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2Fedf2d48381c4c.png?alt=media','https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EC%95%84%ED%8C%8C%ED%8A%B8%2C%20%EA%B3%B5%EC%9E%A5%2C%20%EB%B3%91%EC%9B%90~%20%2C%2C%20%EC%97%AC%EB%9F%AC%ED%98%91%EB%A0%A5%EC%82%AC%EC%82%AC%EC%9A%A9%EC%A4%91%2Ff8ae7d285b05e.png?alt=media'];
+  g.innerHTML = imgs.map(function(u){ return '<a class="pst2-card" href="https://www.pourstore.net" target="_blank" rel="noopener" aria-label="POUR스토어 시공 현장"><span class="pst2-img" style="background-image:url(\\''+u+'\\')"></span></a>'; }).join('');
+})();
+<\/script>
+</section>`;
+
+
   // ===== B2B 시크릿 대시보드 — 대리점주 =====
   // ===== 대리점 모집 소개 페이지 — 토스 스타일 + POUR 오렌지/네이비 =====
   const SEED_INTRO_DEALER_HTML = `<section class="pin pin-dealer">
@@ -7077,7 +7141,7 @@ show('entry');
       mkSec('서비스 소개', SEED_SERVICE_HTML, '대리점·파트너사·전시장 — SVG 아이콘 + 컬러별 차별 (v2)', 'wip'),
       mkSec('자사몰 내 포스팅', SEED_POSTING_HTML, '매거진 레이아웃 (Cover Story 1+3) + 읽기시간·조회수 (v2)', 'wip'),
       mkSec('동영상 가이드', SEED_VIDEO_GUIDE_HTML, 'POUR스토어 자체 영상 — 추천 영상 + 미니 카드 매거진 레이아웃 (v2)', 'wip'),
-      mkSec('POUR스토어 실적관', SEED_STATS_HTML, '원본 cafe24 페이지를 iframe으로 임베드 (기능·내용 그대로). pour-store-cafe24.html에 Pretendard + POUR 오렌지/네이비 컬러·자간 오버라이드 CSS만 추가해 형제 섹션과 톤 통일.', 'requested'),
+      mkSec('POUR스토어 실적관', POUR_STATS_NATIVE_HTML, '네이티브 재구축 — 라이트 크림+오렌지 톤(형제 섹션 통일). 실적 수치 4종 + 전국 시공 현장 갤러리(19장). 기존 cafe24 iframe 대체.', 'requested'),
     ]},
     { id: 'pour-doctor', name: 'POUR닥터 (전용 페이지)', file: 'pour-doctor.html', sections: [
       mkSec('히어로 — 당신만의 건물 닥터', POUR_DR_HERO_HTML, '다크 네이비 + 라이브 진단 보드 + 5개 신뢰 수치 (의료·전문 톤)', 'wip'),
@@ -8226,6 +8290,30 @@ show('entry');
         swapH('class="psg4"', SEED_VIDEO_GUIDE_HTML, '동영상 — 미니리스트 가로 스와이프에 넛지 모션 + "옆으로 밀어 더 보기 →" 힌트 칩 추가');
       }
       s.migrations.swipeHintsV1 = true;
+    }
+    // 실적 섹션 — cafe24 iframe(다크) → 네이티브 라이트 톤 재구축
+    if (!s.migrations.statsNativeV1) {
+      const mpStat = s.pages.find(p => p.id === 'store-showcase') || s.pages.find(p => p.id === 'main');
+      // 모든 페이지에서 iframe 실적 섹션을 찾아 교체 (페이지 id 불확실 대비)
+      const nowStat = new Date().toISOString();
+      s.pages.forEach(pg => {
+        if (!Array.isArray(pg.sections)) return;
+        pg.sections.forEach(sec => {
+          const h = sec.html || '';
+          if (h.indexOf('pour-store-cafe24.html') !== -1 || h.indexOf('class="pst1"') !== -1) {
+            const key = pg.id + ':' + sec.id;
+            s.history[key] = s.history[key] || [];
+            s.history[key].unshift({
+              name: sec.name, html: sec.html, note: sec.note || '',
+              reason: '실적 섹션 — cafe24 iframe(다크) → 네이티브 라이트 크림+오렌지 톤 재구축 (수치 4종 + 전국 시공 갤러리 19장)',
+              kind: 'auto-migration', savedAt: nowStat,
+            });
+            sec.html = POUR_STATS_NATIVE_HTML;
+            sec.statusAt = nowStat;
+          }
+        });
+      });
+      s.migrations.statsNativeV1 = true;
     }
     return s;
   }

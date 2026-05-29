@@ -352,6 +352,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
 /* 편집 모드 */
 .edit-fab{position:fixed;bottom:60px;right:24px;z-index:300;background:rgba(255,255,255,.93);border:1.5px solid var(--border);border-radius:999px;padding:6px 15px;font-size:11.5px;font-weight:700;color:var(--ink3);cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;font-family:inherit;letter-spacing:-.01em;}
 .edit-fab.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+.present-fab{position:fixed;bottom:104px;right:24px;z-index:300;background:rgba(255,255,255,.93);border:1.5px solid var(--border);border-radius:999px;padding:6px 15px;font-size:11.5px;font-weight:700;color:var(--ink3);cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.1);transition:all .2s;font-family:inherit;letter-spacing:-.01em;}
+.present-fab.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+body.present-mode .media-star{display:none!important;}
+body.present-mode .edit-fab{display:none!important;}
 .m-edit-bar{display:none;flex-direction:column;gap:8px;padding:10px 18px 4px;border-top:1px solid var(--border-l);}
 .m-edit-bar.show{display:flex;}
 .m-edit-btns{display:flex;gap:8px;}
@@ -490,29 +494,29 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
 <section class="slide" id="s2">
   <div class="slide-header">
     <div class="sec-num fade">02 · 모여라딜</div>
-    <h2 class="sec-title fade d1">BMA를 증명했습니다.</h2>
-    <p class="sec-desc fade d2">리드로서 구조를 설계하고, 가설을 검증하고, 인바운드를 만들었습니다.</p>
+    <h2 class="sec-title fade d1">수요는 증명했고, 전환은 이제부터입니다.</h2>
+    <p class="sec-desc fade d2">검증된 것(수요·인바운드 146건·8개 수익구조)과 아직 비어 있는 것(전환·실매출)을 분명히 구분합니다.</p>
   </div>
   <div class="slide-body">
     <div class="two-col">
       <div class="card fade d1">
-        <div class="card-label">// 증명한 것</div>
-        <div class="card-title">BMA 검증 &amp; 구조 설계</div>
+        <div class="card-label">// 증명됨 (Validated)</div>
+        <div class="card-title">수요와 구조는 만들었다</div>
         <ul class="card-list">
-          <li><span class="ic">🧠</span><b>마스터프롬프트 제작</b> — 브랜드 정체성·BMA·KPI 내재화. 전략·디자인·CS·UX 일관 구현</li>
-          <li><span class="ic">📐</span>BMA 정리 → <b>8개 수익구조</b> 도출. BMA별 서비스소개·계약서·UX 설계 가능</li>
-          <li><span class="ic">📣</span>동환님 댓글 작업 3회 → 공급사 인바운드 <b>146건</b> (입점 17 · 제안서 13 포함)</li>
-          <li><span class="ic">🛒</span>셀러 리스트업 101건 → 제안서 26건 → 공구 <b>10건</b>(누적), 매출 <b>108만원</b></li>
+          <li><span class="ic">🧠</span><b>마스터프롬프트 제작</b> — 브랜드 정체성·BMA·KPI 내재화, 판단 기준 확립</li>
+          <li><span class="ic">📐</span>BMA 정리 → <b>8개 수익구조</b> 도출 (서비스소개·계약서·UX 설계 가능)</li>
+          <li><span class="ic">📣</span>공급사 인바운드 <b>146건</b> — 광고비 0원, 전부 아웃리치로 확보</li>
+          <li><span class="ic">📦</span>공급사 DB 109 · 신박템 33 · 셀러 16 <b>자산화</b></li>
           <li><span class="ic">🔧</span>관리자 시스템 · CRM센터 · 경영 대시보드 설계·구축</li>
         </ul>
       </div>
       <div class="card fade d2">
-        <div class="card-label">// 지금 숫자</div>
-        <div class="card-title">검증된 수요, 아직 비어 있는 전환</div>
+        <div class="card-label">// 미검증 (Not yet)</div>
+        <div class="card-title">남은 건 '전환'이다</div>
         <ul class="card-list">
-          <li><span class="ic">✅</span>공급사 인바운드 <b>146건</b> — 광고비 0원, 전부 아웃리치로 확보</li>
-          <li><span class="ic">📦</span>공급사 DB 109건 · 신박템 33건 · 셀러 DB 16건 자산화</li>
-          <li><span class="ic">⚠️</span>공구 공백으로 GMV 집계 중단 — <b>수요는 있는데 실행이 비었다</b></li>
+          <li><span class="ic">🛒</span>셀러 101 → 제안 26 → 공구 <b>10건</b>·매출 108만원 — <b>소규모 검증까지만</b></li>
+          <li><span class="ic">⚠️</span>실매출·GMV 본격 전환은 아직 — <b>수요는 충분, 전환이 비었다</b></li>
+          <li><span class="ic">🎯</span><b>다음 반기 1순위 = 실매출 전환</b> — 정하님과 본격 실행</li>
         </ul>
         <div class="stat-row">
           <div class="stat-mini"><div class="stat-mini-v">146건</div><div class="stat-mini-l">인바운드</div></div>
@@ -585,16 +589,15 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
 <section class="slide" id="s4">
   <div class="slide-header">
     <div class="sec-num fade">04 · POUR스토어</div>
-    <h2 class="sec-title fade d1">지원으로 들어왔는데 구조를 만들게 됐습니다.</h2>
+    <h2 class="sec-title fade d1">합류 두 달, 운영 시스템을 세웠습니다.</h2>
     <p class="sec-desc fade d2">3.26 합류 이후 만든 것들 — 그리고 솔직한 현황.</p>
   </div>
   <div class="slide-body">
     <div class="three-col">
-      <div class="feat-card fade d1"><div class="feat-icon">🧠</div><div class="feat-title">마스터프롬프트 (모든 것의 기반)</div><div class="feat-desc">개발 전 선제작 원칙. 브랜드 정체성·톤앤매너·BMA·KPI·데이터관리 내재화. 방향성 판단 기준 역할.</div></div>
+      <div class="feat-card fade d1"><div class="feat-icon">🧠</div><div class="feat-title">마스터프롬프트 — POUR스토어판</div><div class="feat-desc">모여라딜에서 검증한 선제작 원칙을 POUR스토어용으로 확장. 서비스소개·계약서·UX·CS 톤을 일관 적용.</div></div>
       <div class="feat-card fade d2"><div class="feat-icon">📱</div><div class="feat-title">박람회 영업앱</div><div class="feat-desc">넷폼 박람회 영업사원용 앱 제작 완료. 클로드 API 연결, 맞춤 제안서 자동 생성.</div></div>
       <div class="feat-card fade d3"><div class="feat-icon">🎯</div><div class="feat-title">KPI 체계 v6</div><div class="feat-desc">5단계 계층 구조 (O→KR→결과지표→활동지표→Task). 조달청 G채널 추가. 연매출 10억 목표.</div></div>
-      <div class="feat-card fade d4"><div class="feat-icon">👥</div><div class="feat-title">업무분장 설계</div><div class="feat-desc">Phase 0→1→2 분담 매트릭스. 채림님 인턴→정규직 전환 계약 포함.</div></div>
-      <div class="feat-card fade d5"><div class="feat-icon">💳</div><div class="feat-title">PG사 입점 탐색</div><div class="feat-desc">모여라딜은 <b>공동구매 단일 판매방식</b>이라 KG이니시스·토스 입점 불가 → 스마트로 가능 확인. <b>판매방식을 다양화해야 한다</b>는 과제 확인.</div></div>
+      <div class="feat-card fade d4"><div class="feat-icon">💳</div><div class="feat-title">PG사 입점 탐색</div><div class="feat-desc">모여라딜은 <b>공동구매 단일 판매방식</b>이라 KG이니시스·토스 입점 불가 → 스마트로 가능 확인. <b>판매방식을 다양화해야 한다</b>는 과제 확인.</div></div>
       <div class="feat-card fade d6"><div class="feat-icon">📡</div><div class="feat-title">CRM · 운영 인프라</div><div class="feat-desc">Solapi SMS API 연동, 대표번호 신청, 파트너소개사이트 포스팅 3건 완료.</div></div>
     </div>
     <div class="honest-box fade d6">
@@ -682,7 +685,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
 <section class="slide" id="s6">
   <div class="slide-header">
     <div class="sec-num fade">07 · 경영 대시보드 &amp; KPI</div>
-    <h2 class="sec-title fade d1">숫자로 경영할 수 있는 구조.</h2>
+    <h2 class="sec-title fade d1">숫자로 경영합니다.</h2>
     <p class="sec-desc fade d2">모여라딜에 먼저 구축 · POUR스토어도 제작 예정 — 실데이터 검증이 다음 과제.</p>
   </div>
   <div class="slide-body">
@@ -711,7 +714,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
       <div class="bep-box fade d2">
         <div class="bep-top"><span>현재 월 GMV</span><span>BEP 목표 <b>9,700만원/월</b></span></div>
         <div class="bep-track"><div class="bep-fill"></div></div>
-        <div class="bep-note">월 고정비 650만 · 공헌이익률(기본) <b>6.7%</b> 기준 BEP GMV <b>약 9,700만원</b>. 광고비 0원(아웃리치) 전략으로 <b>LTV/CAC ∞</b> — 핵심 강점.</div>
+        <div class="bep-note">현재 <b>CAC 매우 낮음</b>(광고비 0·아웃리치). 단, <b>아웃리치는 확장성이 약함 → CPA(어필리에이트) 전환</b>이 다음 핵심. 공헌이익률 기본 <b>6.7%</b> → 총액법·CPA 믹스로 개선, 월 고정비 650만 기준 BEP GMV <b>약 9,700만원</b>.</div>
         <div class="bma-row">
           <div class="bma-tag dfp"><div class="c">DFP</div><div class="l">직접판매</div></div>
           <div class="bma-tag cpa"><div class="c">CPA</div><div class="l">어필리에이트</div></div>
@@ -1018,6 +1021,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
     <div class="closing fade d3">
       <h3>구조를 만든 사람이 숫자도 만들겠습니다.</h3>
       <p>이번 상반기 기반 위에서, 하반기는 <span>실제 매출</span>로 증명합니다.</p>
+      <p style="margin-top:12px;font-size:13.5px;">필요한 것 — <span>정하님 모여라딜 전담</span> · <span>자사몰·PG 정상화 지원</span> · <span>신규사업 의사결정 권한</span></p>
     </div>
   </div>
 </section>
@@ -1064,6 +1068,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
   </div>
 </div>
 
+<button class="present-fab" id="presentFab">▶ 발표 모드</button>
 <button class="edit-fab" id="editFab">✎ 편집</button>
 <div class="page-counter">
   <div class="page-fraction"><strong id="curNum">1</strong> / <span id="totNum">10</span></div>
@@ -1183,6 +1188,14 @@ editFab.addEventListener('click',()=>{
   editFab.classList.toggle('on',editMode);
   editFab.textContent=editMode?'✎ 편집 중':'✎ 편집';
   if(modalOpen)mEditBar.classList.toggle('show',editMode);
+});
+
+/* 발표 모드 토글 — ★·편집 FAB 숨김 (기존 기능은 유지) */
+const presentFab=document.getElementById('presentFab');
+presentFab.addEventListener('click',()=>{
+  const on=document.body.classList.toggle('present-mode');
+  presentFab.classList.toggle('on',on);
+  presentFab.textContent=on?'▶ 발표 중':'▶ 발표 모드';
 });
 
 /* 모달 */

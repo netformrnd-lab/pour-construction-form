@@ -276,6 +276,16 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
 .insight-strip{background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:16px;padding:20px 26px;text-align:center;}
 .insight-strip p{font-size:15px;color:var(--ink);line-height:1.7;font-weight:600;}
 .insight-strip strong{color:var(--accent-dark);font-weight:800;}
+.bma-insight{margin-top:16px;background:var(--bg-section);border:1px solid var(--border);border-radius:18px;padding:18px 20px;}
+.bma-insight-row{display:flex;align-items:stretch;gap:14px;}
+.bma-insight-col{flex:1;}
+.bma-insight-arrow{align-self:center;color:var(--accent);font-weight:800;font-size:20px;}
+.bma-insight-tag{display:inline-block;font-size:11px;font-weight:800;padding:3px 11px;border-radius:999px;margin-bottom:9px;background:#fff;border:1px solid var(--border);color:var(--ink3);}
+.bma-insight-tag.on{background:var(--accent-soft);border-color:transparent;color:var(--accent-dark);}
+.bma-insight-txt{font-size:13px;line-height:1.65;color:var(--ink2);font-weight:500;}
+.bma-insight-txt b{color:var(--ink);font-weight:700;}
+.bma-insight-col.after .bma-insight-txt b{color:var(--accent-dark);}
+@media(max-width:560px){.bma-insight-row{flex-direction:column;gap:11px;}.bma-insight-arrow{transform:rotate(90deg);align-self:flex-start;}}
 
 /* goal */
 .goal-big{font-size:clamp(72px,11vw,128px);font-weight:800;line-height:1;letter-spacing:-0.04em;background:linear-gradient(135deg,var(--accent),var(--accent-dark));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
@@ -511,7 +521,20 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
         </div>
       </div>
     </div>
-    <div class="highlight-box fade d3">
+    <div class="bma-insight fade d3">
+      <div class="bma-insight-row">
+        <div class="bma-insight-col before">
+          <div class="bma-insight-tag">9건을 해보고 느낀 것</div>
+          <div class="bma-insight-txt"><b>순액법</b> 구조라 순마진이 거의 남지 않았고, 밸류업을 위해 다양한 판매방식을 시도하고 싶어도 <b>어디서부터 손대야 할지 막막</b>했습니다.</div>
+        </div>
+        <div class="bma-insight-arrow">→</div>
+        <div class="bma-insight-col after">
+          <div class="bma-insight-tag on">BMA를 설계하고 나니</div>
+          <div class="bma-insight-txt"><b>총액법 전환</b>과 <b>순마진율을 끌어올리는 경로</b>가 보였습니다. 실제 매출은 잠시 멈췄지만, <b>앞으로 어떻게 나아갈지가 분명해져 마음이 단단해졌습니다.</b></div>
+        </div>
+      </div>
+    </div>
+    <div class="highlight-box fade d4">
       <p>마스터프롬프트가 <strong>방향성이 흔들릴 때의 판단 기준</strong>이 됐습니다. 실행과 전략을 동시에 진행하면서도 <strong>잘못된 방향으로 새지 않도록</strong> 잡아주는 역할.</p>
     </div>
   </div>

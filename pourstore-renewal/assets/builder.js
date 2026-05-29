@@ -2418,7 +2418,7 @@ show('entry');
 .psy3-head p { font-size:13.5px; color:#6B7280; margin-top:8px; max-width:520px; }
 .psy3-head .more { display:inline-flex; align-items:center; gap:6px; padding:11px 18px; background:#fff; border:1.5px solid #E5E7EB; border-radius:999px; color:#0F1F5C; font-size:13px; font-weight:800; text-decoration:none; transition:all .2s; }
 .psy3-head .more:hover { border-color:#0F1F5C; background:#0F1F5C; color:#fff; }
-.psy3-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:14px; }
+.psy3-grid { display:grid; grid-template-columns:repeat(5, 1fr); gap:16px; }
 .psy3-card { aspect-ratio:9/16; border-radius:18px; overflow:hidden; cursor:pointer; position:relative; transition:all .3s; text-decoration:none; color:inherit; display:block; box-shadow:0 6px 18px rgba(15,31,92,.08); border:1px solid #F3F4F6; background:#fff; }
 .psy3-card:hover { transform:translateY(-6px); box-shadow:0 22px 44px rgba(15,31,92,.16); border-color:#FED7AA; }
 .psy3-card .img { position:absolute; inset:0; background:#0F1F5C center/cover no-repeat; }
@@ -2446,12 +2446,14 @@ show('entry');
   .psy3-head { padding:0 18px; margin-bottom:20px; }
   .psy3-head h2 { font-size:24px; }
   .psy3-head .more { font-size:12px; padding:9px 14px; }
-  .psy3-grid { display:flex; grid-template-columns:none; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; -ms-overflow-style:none; gap:12px; padding:0 18px 8px; -webkit-overflow-scrolling:touch; }
-  .psy3-grid::-webkit-scrollbar { display:none; }
-  .psy3-card { flex:0 0 78%; max-width:280px; scroll-snap-align:center; aspect-ratio:9/16; }
-  .psy3-card .title { font-size:13px; }
+  .psy3-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; padding:0 16px; }
+  .psy3-card { max-width:none; aspect-ratio:9/16; }
+  .psy3-card .title { font-size:12.5px; bottom:12px; left:12px; right:12px; }
+  .psy3-card .play { width:46px; height:46px; }
+  .psy3-card .play::after { border-left:11px solid #DC2626; border-top:7px solid transparent; border-bottom:7px solid transparent; }
+  .psy3-card .views, .psy3-card .duration { top:10px; font-size:10px; padding:3px 7px; }
 }
-@media (max-width:520px) { .psy3-head h2 { font-size:22px; } }
+@media (max-width:520px) { .psy3-head h2 { font-size:22px; } .psy3-card .title { font-size:12px; } }
 </style>
 <section class="psy3">
   <div class="psy3-inner">
@@ -2481,7 +2483,6 @@ show('entry');
     if (cards.length === 0) return;
     var current = 0, paused = false, inView = false;
     var advanceT = null, resumeT = null;
-    var mq = window.matchMedia('(max-width:700px)');
     function durMs(i){
       var d = parseFloat(cards[i].getAttribute('data-psy3-dur') || '5');
       return Math.min(Math.max(d, 3), 10) * 1000;
@@ -2502,11 +2503,7 @@ show('entry');
           c.removeAttribute('data-psy3-active');
         }
       });
-      // 모바일에선 활성 카드가 화면 중앙에 오도록 스크롤
-      if (mq.matches) {
-        try { cards[current].scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' }); }
-        catch(_) { scroller.scrollLeft = cards[current].offsetLeft - (scroller.clientWidth - cards[current].clientWidth)/2; }
-      }
+      // 2열 그리드 — 모든 카드가 보이므로 스크롤 없이 활성 카드만 순환 강조
       if (!paused && inView && !document.hidden) {
         advanceT = setTimeout(function(){ activate(current + 1); }, durMs(current));
       }
@@ -8099,6 +8096,27 @@ show('entry');
         swapR('class="psm1"', OHOUSE_V1_SECTION_HTML, '검색바 마스코트 요정 — 배경 누끼한 투명 비버 이미지로 교체(흰 박스 제거), 클릭 시 진단 헬퍼 펼침');
       }
       s.migrations.quickBannerRedesignV11 = true;
+    }
+    // 숏츠 섹션 — 모바일 2열 그리드 / PC 1줄(5열) 재구성
+    if (!s.migrations.shortsGrid2colV1) {
+      const mpS = s.pages.find(p => p.id === 'main');
+      if (mpS && Array.isArray(mpS.sections)) {
+        const nowS = new Date().toISOString();
+        const idx = mpS.sections.findIndex(sec => (sec.html || '').indexOf('class="psy3"') !== -1);
+        if (idx !== -1) {
+          const sec = mpS.sections[idx];
+          const key = mpS.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason: '숏츠 섹션 — 모바일 한 화면 2열 그리드 / PC 1줄(5열)로 재구성, 자동 가로스크롤 제거',
+            kind: 'auto-migration', savedAt: nowS,
+          });
+          sec.html = SEED_YOUTUBE_HTML;
+          sec.statusAt = nowS;
+        }
+      }
+      s.migrations.shortsGrid2colV1 = true;
     }
     return s;
   }

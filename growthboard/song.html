@@ -219,6 +219,44 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
 .phase-box-title{font-size:11.5px;font-weight:800;color:var(--accent);margin-bottom:9px;letter-spacing:0.03em;}
 .phase-box-desc{font-size:12px;color:var(--ink2);line-height:1.6;font-weight:400;}
 
+/* 협업 네트워크 */
+.cn-wrap{display:grid;grid-template-columns:0.82fr 1.18fr;gap:22px;align-items:start;}
+.cn-graph{background:var(--bg-soft);border:1px solid var(--border-l);border-radius:20px;padding:10px 6px;}
+.cn-svg{width:100%;height:auto;display:block;}
+.cn-edge{stroke:var(--border);stroke-linecap:round;}
+.cn-edge.lead{stroke:var(--accent);opacity:.9;}
+.cn-elabel{fill:var(--ink2);font-size:12.5px;font-weight:800;text-anchor:middle;}
+.cn-elabel-bg{fill:#fff;stroke:var(--border);}
+.cn-ncirc{fill:#fff;stroke:var(--border);stroke-width:2;}
+.cn-ncirc.lead{fill:var(--accent);stroke:var(--accent);}
+.cn-ncirc.dash{stroke-dasharray:5 4;stroke:var(--success);}
+.cn-nname{font-size:15px;font-weight:800;text-anchor:middle;fill:var(--ink);}
+.cn-nname.lead{fill:#fff;}
+.cn-nrole{font-size:10px;font-weight:700;text-anchor:middle;fill:var(--ink3);letter-spacing:0.04em;}
+.cn-nrole.lead{fill:rgba(255,255,255,.85);}
+.cn-total{display:flex;align-items:baseline;gap:9px;margin-bottom:13px;}
+.cn-total b{font-size:30px;font-weight:800;color:var(--ink);line-height:1;}
+.cn-total span{font-size:13px;color:var(--ink3);font-weight:600;}
+.cn-pairs{display:flex;flex-direction:column;gap:11px;}
+.cn-pair{background:var(--bg);border:1px solid var(--border);border-radius:15px;padding:14px 16px;border-left:3px solid var(--accent);}
+.cn-pair-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.cn-pair-who{font-size:14.5px;font-weight:800;color:var(--ink);}
+.cn-pair-cnt{font-size:12px;font-weight:800;color:var(--accent-dark);background:var(--accent-soft);border-radius:999px;padding:2px 10px;}
+.cn-pair-flow{font-size:12px;color:var(--ink3);font-weight:700;margin-left:auto;}
+.cn-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.cn-chip{font-size:11px;font-weight:600;background:var(--bg-section);color:var(--ink2);border:1px solid var(--border-l);border-radius:7px;padding:4px 9px;}
+.cn-note{margin-top:14px;font-size:12px;color:var(--ink3);font-weight:600;background:var(--bg-soft);border:1px dashed var(--border);border-radius:12px;padding:10px 14px;line-height:1.5;}
+.cn-ps .cn-edge.lead{stroke:var(--indigo);}
+.cn-ps .cn-ncirc.lead{fill:var(--indigo);stroke:var(--indigo);}
+.cn-ps .cn-pair{border-left-color:var(--indigo);}
+.cn-ps .cn-pair-cnt{color:var(--indigo);background:var(--indigo-soft);}
+.cn-relay{margin-top:12px;background:var(--indigo-soft);border:1px solid var(--border);border-radius:14px;padding:13px 16px;}
+.cn-relay-t{font-size:12.5px;font-weight:800;color:var(--indigo);margin-bottom:10px;}
+.cn-relay-flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:7px;}
+.cn-relay-flow b{background:#fff;border:1px solid var(--border);border-radius:9px;padding:6px 10px;display:inline-flex;flex-direction:column;line-height:1.35;font-size:11.5px;font-weight:700;color:var(--ink);}
+.cn-relay-flow b small{font-size:9.5px;font-weight:600;color:var(--ink3);}
+.cn-relay-flow .ar{align-self:center;color:var(--indigo);font-weight:800;font-size:12px;}
+
 /* next */
 .next-hero{text-align:center;margin-bottom:18px;}
 .next-hero-text{font-size:clamp(15px,1.7vw,18px);font-weight:500;line-height:1.7;color:var(--ink2);}
@@ -334,8 +372,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
     <button class="nav-pill">직접 팔아보자</button>
     <button class="nav-pill">POUR스토어</button>
     <button class="nav-pill">자사몰 리뉴얼</button>
+    <button class="nav-pill">AI솔루션·SKU</button>
     <button class="nav-pill">대시보드·KPI</button>
     <button class="nav-pill">팀 구조</button>
+    <button class="nav-pill">협업·모여라딜</button>
+    <button class="nav-pill">협업·스토어</button>
+    <button class="nav-pill">신규 프로젝트</button>
     <button class="nav-pill">Next</button>
     <button class="nav-pill">목표</button>
   </div>
@@ -378,8 +420,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
         <div class="tl-dot"></div>
         <div class="tl-date">2025 4Q</div>
         <div class="tl-head">모여라딜 리드 — BMA 검증<button class="media-star" data-node="n0" data-title="2025 4Q · 모여라딜 리드 — BMA 검증" title="관련 자료 보기">★<span class="cnt">3</span></button></div>
-        <div class="tl-body">BMA를 뾰족하게 정리 → 8개 수익구조 도출. 동환님 댓글 작업 <b>3회</b>로 공급사 인바운드 <b>146건</b> 확보. 셀러 영업·공구 9건, 누적 매출 108만원.</div>
-        <div class="tl-tags"><span class="tag gold">BMA 정리</span><span class="tag gold">인바운드 146건</span><span class="tag gold">공구 9건</span></div>
+        <div class="tl-body">BMA를 뾰족하게 정리 → 8개 수익구조 도출. 동환님 댓글 작업 <b>3회</b>로 공급사 인바운드 <b>19곳</b> 확보(~2026.1). 셀러 영업·공구 9건, 누적 매출 108만원.</div>
+        <div class="tl-tags"><span class="tag gold">BMA 정리</span><span class="tag gold">인바운드 19곳</span><span class="tag gold">공구 9건</span></div>
       </div>
       <div class="tl-item fade d2">
         <div class="tl-dot green"></div>
@@ -534,36 +576,67 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
 <section class="slide" id="s5r">
   <div class="slide-header">
     <div class="sec-num fade">05 · 자사몰 리뉴얼</div>
-    <h2 class="sec-title fade d1">자사몰 리뉴얼 — 모바일 반응형으로.</h2>
-    <p class="sec-desc fade d2">아임웹 → 카페24 이전 + 모바일 퍼스트 재설계. 현재 가장 시급한 과제입니다.</p>
+    <h2 class="sec-title fade d1">자사몰 리뉴얼 — 3대 축으로 다시.<button class="media-star" data-node="n6" data-title="자사몰 리뉴얼 — 구축 현황" title="구축 현황 사진 보기">★<span class="cnt">3</span></button></h2>
+    <p class="sec-desc fade d2">아임웹 → 카페24 이전 + 모바일 퍼스트 재설계. <b>페이지 디자인 · 로고 개편 · AI 챗봇</b> 3가지를 동시에 진행 중입니다.</p>
   </div>
   <div class="slide-body">
     <div class="renew-why fade d1">
       <div class="ic">📉</div>
       <div class="t">기존 자사몰은 모바일 최적화가 부족해 <b>모바일 구매수가 떨어졌습니다.</b> 주 구매자의 <b>70% 이상이 스마트폰</b> 사용자 — 이번 리뉴얼은 <b>모바일 반응형을 최우선</b>으로 진행합니다.</div>
     </div>
-    <div class="renew-split">
-      <div class="card fade d2">
-        <div class="card-label">// 진행 현황</div>
-        <ul class="status-list">
-          <li class="status-row"><span class="status-name">상품·데이터 이전 (아임웹→카페24)</span><span class="status-badge done">완료</span></li>
-          <li class="status-row"><span class="status-name">카페24 디자인 마이그레이션</span><span class="status-badge doing">진행 중</span></li>
-          <li class="status-row"><span class="status-name">메인·상세 고도화 (모바일 반응형)</span><span class="status-badge doing">진행 중</span></li>
-          <li class="status-row"><span class="status-name">PG 연동 (스마트로) · 계약방식 변경</span><span class="status-badge doing">심사 중</span></li>
-          <li class="status-row"><span class="status-name">사방넷 채널 재연동</span><span class="status-badge todo">예정</span></li>
-          <li class="status-row"><span class="status-name">리뉴얼 오픈</span><span class="status-badge todo">이번 달 목표</span></li>
-        </ul>
-      </div>
-      <div class="card fade d3">
-        <div class="card-label">// 리뉴얼 핵심 방향</div>
+    <div class="three-col fade d2">
+      <div class="feat-card"><div class="feat-icon">📐</div><div class="feat-title">① 페이지 디자인</div><div class="feat-desc"><b>편집·디자인 데이터관리센터</b>(/pourstore-renewal/preview)를 직접 구축해 제작 중. 모바일 반응형 메인·상세 재설계. SKU 확장 기반 <b>통디자인 템플릿</b>으로 양산.</div></div>
+      <div class="feat-card"><div class="feat-icon">🦫</div><div class="feat-title">② 로고 개편 + 마스코트</div><div class="feat-desc">브랜드 로고 개편. AI 챗봇 도입 전 <b>마스코트 '비버 캐릭터'</b>를 먼저 생성 → 브랜드·챗봇에 일관 적용.</div></div>
+      <div class="feat-card"><div class="feat-icon">🤖</div><div class="feat-title">③ AI 챗봇</div><div class="feat-desc"><b>CS · 상품 CTA · 솔루션 안내</b>까지 대응. POUR AI <b>하자진단</b>을 연동 — 상세는 다음 슬라이드에서.</div></div>
+    </div>
+    <div class="card fade d3">
+      <div class="card-label">// 진행 현황</div>
+      <ul class="status-list">
+        <li class="status-row"><span class="status-name">상품·데이터 이전 (아임웹→카페24)</span><span class="status-badge done">완료</span></li>
+        <li class="status-row"><span class="status-name">편집·디자인 데이터관리센터 구축 (/pourstore-renewal/preview)</span><span class="status-badge doing">진행 중</span></li>
+        <li class="status-row"><span class="status-name">메인·상세 고도화 (모바일 반응형)</span><span class="status-badge doing">진행 중</span></li>
+        <li class="status-row"><span class="status-name">로고 개편 · 비버 마스코트 생성</span><span class="status-badge doing">진행 중</span></li>
+        <li class="status-row"><span class="status-name">AI 챗봇 (CS·상품 CTA·솔루션) 설계</span><span class="status-badge doing">진행 중</span></li>
+        <li class="status-row"><span class="status-name">PG 연동 (스마트로) · 계약방식 변경</span><span class="status-badge doing">심사 중</span></li>
+        <li class="status-row"><span class="status-name">리뉴얼 오픈 (사방넷 채널 재연동 포함)</span><span class="status-badge todo">이번 달 목표</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- S5B AI 솔루션 & SKU 확장 -->
+<section class="slide" id="s5b">
+  <div class="slide-header">
+    <div class="sec-num fade">06 · AI 솔루션 &amp; SKU 확장</div>
+    <h2 class="sec-title fade d1">데이터가 쌓이는 구조를 만듭니다.</h2>
+    <p class="sec-desc fade d2">AI 하자진단 템플릿 · SKU 세분화 — 쌓일수록 영업·추천이 똑똑해집니다.</p>
+  </div>
+  <div class="slide-body">
+    <div class="two-col">
+      <div class="card fade d1">
+        <div class="card-label">// AI 하자진단 (영업앱 툴 + Manus API)</div>
+        <div class="card-title">하자 '기준 템플릿' → 데이터 축적</div>
         <ul class="card-list">
-          <li><span class="ic">📱</span><b>모바일 반응형 우선</b> — 구매 동선 5탭 이내, 모바일 화면 기준 재설계</li>
-          <li><span class="ic">🏷️</span><b>브랜드 경험 중심</b> — 자사몰 정가(P8) 기준, 마켓과 차별화된 상세페이지</li>
-          <li><span class="ic">💬</span><b>플로팅 CTA 고정</b> — 채널톡·카카오톡·전화 + POUR AI 하자진단</li>
-          <li><span class="ic">🤖</span>POUR AI 하자진단 <b>POUR스토어 전용 버전</b> 연동 예정</li>
-          <li><span class="ic">⚙️</span>상세페이지 <b>자동 생성</b> 구축 (민지님) → 등록 속도 향상</li>
+          <li><span class="ic">🧩</span>영업앱에서 만든 진단 툴 + <b>마누스(Manus) API</b>를 활용해 템플릿 설정</li>
+          <li><span class="ic">📐</span>하자 기준을 템플릿화 — <b>슁글 이음부 3장 · 슁글 탈락 3장 · 후레싱 탈락 3장</b> 등 유형별 기준</li>
+          <li><span class="ic">📥</span>신규 하자 사진 등록(소비자·팀원) → 템플릿 기준으로 <b>자동 데이터 축적</b></li>
+          <li><span class="ic">🔎</span>축적될수록 <b>유사현장 사진 도출</b>이 쉬워짐 → 상담·영업 자산화</li>
         </ul>
       </div>
+      <div class="card fade d2">
+        <div class="card-label">// SKU 확장 (맞춤 추천의 전제)</div>
+        <div class="card-title">SKU를 잘게 쪼개야 맞춤이 된다</div>
+        <ul class="card-list">
+          <li><span class="ic">🧮</span>고객 맞춤 추천을 위해 <b>SKU 세분화·다양화</b> 진행 중</li>
+          <li><span class="ic">⚙️</span><b>민지님</b> — 상세페이지 <b>자동화 방안</b> 마련. 통디자인·상세 템플릿 1개 세팅 후 양산</li>
+          <li><span class="ic">🖼️</span><b>채림님</b> — 사후관리 담당이나 리뉴얼 지원. 실사 기반 사진을 <b>AI로 정돈</b>, 전용 프롬프트 제작 중</li>
+          <li><span class="ic">📈</span>다음 분기 <b>SKU 대폭 확장 → 판매량 상승</b> 기대</li>
+        </ul>
+      </div>
+    </div>
+    <div class="run-strip fade d3">
+      <div class="lab">⚡ 축적 구조</div>
+      <div class="txt">템플릿 설정 → <b>신규 사진 등록</b> → 데이터 축적 → <b>유사현장 도출</b>. 쌓일수록 진단·추천·영업이 자동으로 똑똑해지는 <b>데이터 자산화</b> 구조.</div>
     </div>
   </div>
 </section>
@@ -571,7 +644,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
 <!-- S6 대시보드·KPI -->
 <section class="slide" id="s6">
   <div class="slide-header">
-    <div class="sec-num fade">06 · 경영 대시보드 &amp; KPI</div>
+    <div class="sec-num fade">07 · 경영 대시보드 &amp; KPI</div>
     <h2 class="sec-title fade d1">숫자로 경영할 수 있는 구조.</h2>
     <p class="sec-desc fade d2">모여라딜에 먼저 구축 · POUR스토어도 제작 예정 — 실데이터 검증이 다음 과제.</p>
   </div>
@@ -642,7 +715,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
 <!-- S7 팀 구조 -->
 <section class="slide" id="s7">
   <div class="slide-header">
-    <div class="sec-num fade">07 · 팀 구조</div>
+    <div class="sec-num fade">08 · 팀 구조</div>
     <h2 class="sec-title fade d1">3인 체계 완성.</h2>
     <p class="sec-desc fade d2">채림님 인턴 → 정규직 전환 계약 포함 · Phase 0 → 1 → 2</p>
   </div>
@@ -703,10 +776,138 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
   </div>
 </section>
 
+<!-- S7M 협업 네트워크 · 모여라딜 -->
+<section class="slide" id="s7m">
+  <div class="slide-header">
+    <div class="sec-num fade">09 · 협업 네트워크 · 모여라딜</div>
+    <h2 class="sec-title fade d1">모여라딜 — 누가 무엇을 함께했나.</h2>
+    <p class="sec-desc fade d2">모여라딜 재점화의 핵심 축은 <b>정하님</b> — 송희(리드)와 함께 <b>"직접 팔아보자"</b> 실행을 본격 가동합니다.</p>
+  </div>
+  <div class="slide-body">
+    <div class="cn-wrap fade d1">
+      <div class="cn-graph">
+        <svg class="cn-svg" viewBox="0 0 560 380" role="img" aria-label="모여라딜 협업 네트워크">
+          <line class="cn-edge lead" x1="280" y1="85" x2="280" y2="285" stroke-width="9"/>
+          <g><rect class="cn-elabel-bg" x="262" y="175" width="36" height="20" rx="10"/><text class="cn-elabel" x="280" y="189">6건</text></g>
+          <g><circle class="cn-ncirc lead" cx="280" cy="85" r="44"/><text class="cn-nname lead" x="280" y="81">송희</text><text class="cn-nrole lead" x="280" y="99">리드</text></g>
+          <g><circle class="cn-ncirc" cx="280" cy="285" r="44"/><text class="cn-nname" x="280" y="281">정하</text><text class="cn-nrole" x="280" y="299">본격 가동</text></g>
+        </svg>
+      </div>
+      <div>
+        <div class="cn-total"><b>6건</b><span>주요 협업 · 송희 + 정하</span></div>
+        <div class="cn-pairs">
+          <div class="cn-pair">
+            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 정하</span><span class="cn-pair-cnt">6건</span><span class="cn-pair-flow">본격 가동 → 재점화</span></div>
+            <div class="cn-chips"><span class="cn-chip">모여라딜 재점화</span><span class="cn-chip">셀러 공구 제안</span><span class="cn-chip">신박템 소싱 33건</span><span class="cn-chip">공급사 DB 109건</span><span class="cn-chip">인스타 자체판매</span><span class="cn-chip">공구 운영·판매 데이터</span></div>
+          </div>
+        </div>
+        <div class="cn-note">※ 모여라딜 협업 <b>건수·항목은 잠정값</b>입니다 — 정하님 실제 협업 내역을 알려주시면 정확히 반영하겠습니다.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- S7P 협업 네트워크 · POUR스토어 -->
+<section class="slide" id="s7p">
+  <div class="slide-header">
+    <div class="sec-num fade">10 · 협업 네트워크 · POUR스토어</div>
+    <h2 class="sec-title fade d1">POUR스토어 — 4인 협업 구조.</h2>
+    <p class="sec-desc fade d2">송희(리드) + 민지·란·채림 — 영역별로 분담하며 <b>33개 협업 프로젝트</b>를 함께 진행했습니다.</p>
+  </div>
+  <div class="slide-body">
+    <div class="cn-wrap cn-ps fade d1">
+      <div class="cn-graph">
+        <svg class="cn-svg" viewBox="0 0 560 380" role="img" aria-label="POUR스토어 협업 네트워크">
+          <line class="cn-edge" x1="90" y1="200" x2="470" y2="200" stroke-width="6.9"/>
+          <line class="cn-edge" x1="90" y1="200" x2="280" y2="330" stroke-width="3.4"/>
+          <line class="cn-edge" x1="470" y1="200" x2="280" y2="330" stroke-width="3.4"/>
+          <line class="cn-edge lead" x1="280" y1="60" x2="470" y2="200" stroke-width="9.7"/>
+          <line class="cn-edge lead" x1="280" y1="60" x2="90" y2="200" stroke-width="7.6"/>
+          <line class="cn-edge lead" x1="280" y1="60" x2="280" y2="330" stroke-width="4.1"/>
+          <g><rect class="cn-elabel-bg" x="357" y="118" width="40" height="20" rx="10"/><text class="cn-elabel" x="377" y="132">11건</text></g>
+          <g><rect class="cn-elabel-bg" x="167" y="118" width="36" height="20" rx="10"/><text class="cn-elabel" x="185" y="132">8건</text></g>
+          <g><rect class="cn-elabel-bg" x="262" y="125" width="36" height="20" rx="10"/><text class="cn-elabel" x="280" y="139">3건</text></g>
+          <g><rect class="cn-elabel-bg" x="262" y="190" width="36" height="20" rx="10"/><text class="cn-elabel" x="280" y="204">7건</text></g>
+          <g><rect class="cn-elabel-bg" x="162" y="262" width="36" height="20" rx="10"/><text class="cn-elabel" x="180" y="276">2건</text></g>
+          <g><rect class="cn-elabel-bg" x="362" y="262" width="36" height="20" rx="10"/><text class="cn-elabel" x="380" y="276">2건</text></g>
+          <g><circle class="cn-ncirc lead" cx="280" cy="60" r="40"/><text class="cn-nname lead" x="280" y="56">송희</text><text class="cn-nrole lead" x="280" y="72">LEAD</text></g>
+          <g><circle class="cn-ncirc" cx="90" cy="200" r="34"/><text class="cn-nname" x="90" y="197">민지</text><text class="cn-nrole" x="90" y="213">M1</text></g>
+          <g><circle class="cn-ncirc" cx="470" cy="200" r="34"/><text class="cn-nname" x="470" y="197">란</text><text class="cn-nrole" x="470" y="213">M2</text></g>
+          <g><circle class="cn-ncirc dash" cx="280" cy="330" r="32"/><text class="cn-nname" x="280" y="327">채림</text><text class="cn-nrole" x="280" y="343">M3</text></g>
+        </svg>
+      </div>
+      <div>
+        <div class="cn-total"><b>33건</b><span>협업 프로젝트 · 4인 (송희·민지·란·채림)</span></div>
+        <div class="cn-pairs">
+          <div class="cn-pair">
+            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 란</span><span class="cn-pair-cnt">11건</span><span class="cn-pair-flow">B2B 정책 → 실무</span></div>
+            <div class="cn-chips"><span class="cn-chip">광고 운영(네이버·메타)</span><span class="cn-chip">채널별 광고(마켓)</span><span class="cn-chip">대리점 정책</span><span class="cn-chip">협업 정책 수립</span><span class="cn-chip">발주 시스템</span><span class="cn-chip">파트너사 자동매칭</span><span class="cn-chip">인플루언서·유튜버 정책</span><span class="cn-chip">철물점 지점화</span><span class="cn-chip">POUR공법 이관 표준화</span><span class="cn-chip">POUR솔루션 이관 표준화</span><span class="cn-chip">매칭 시스템</span></div>
+          </div>
+          <div class="cn-pair">
+            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 민지</span><span class="cn-pair-cnt">8건</span><span class="cn-pair-flow">SKU 소싱 → 등록</span></div>
+            <div class="cn-chips"><span class="cn-chip">코트재 외주 색상</span><span class="cn-chip">탑코트재 파생 8개</span><span class="cn-chip">써밋페인트 파생 5개</span><span class="cn-chip">제비스코 OEM 라인</span><span class="cn-chip">제비스코 ODM 라인</span><span class="cn-chip">부자재·안전용품 ODM</span><span class="cn-chip">신규 채널 확장</span><span class="cn-chip">디자인 자동 생성</span></div>
+          </div>
+          <div class="cn-pair">
+            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 채림</span><span class="cn-pair-cnt">3건</span><span class="cn-pair-flow">시스템 → 데이터 운영</span></div>
+            <div class="cn-chips"><span class="cn-chip">CRM 시스템 개발</span><span class="cn-chip">매출관리 시스템</span><span class="cn-chip">POUR길잡이 구축</span></div>
+          </div>
+        </div>
+        <div class="cn-relay">
+          <div class="cn-relay-t">🪃 대리점 — 송희 ↔ 란 '바통' 협업 사례</div>
+          <div class="cn-relay-flow">
+            <b>송희 시작<small>2025 초 ~ 9월</small></b>
+            <span class="ar">→</span>
+            <b>란님 이어 운영<small>송희 이탈 기간</small></b>
+            <span class="ar">→</span>
+            <b>송희 재합류·리드<small>2026 · 정책 고도화</small></b>
+            <span class="ar">→</span>
+            <b>운영 이관<small>향후 란님</small></b>
+          </div>
+        </div>
+        <div class="cn-note">노드 간 선 굵기 = 협업 건수. 멤버 간 협업(민지–란 7 · 민지–채림 2 · 란–채림 2)까지 합산 <b>총 33건</b>.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SNEW 신규 프로젝트 -->
+<section class="slide" id="snew">
+  <div class="slide-header">
+    <div class="sec-num fade">11 · 신규 프로젝트</div>
+    <h2 class="sec-title fade d1">신규 · 재정비 — 구조부터 만듭니다.</h2>
+    <p class="sec-desc fade d2">리드가 직접 붙어 구조를 세우는 사업들 — <b>신규 진입</b>과 <b>재정비·재가동</b>을 함께. 자리 잡으면 담당에게 이관합니다.</p>
+  </div>
+  <div class="slide-body">
+    <div class="three-col">
+      <div class="feat-card fade d1">
+        <div class="feat-icon">🏪</div>
+        <div style="margin-bottom:9px"><span class="tag gold">재가동 · 재정비</span></div>
+        <div class="feat-title">대리점</div>
+        <div class="feat-desc"><b>가나랜드 · 경남지사</b> 오픈 예정. 대리점 정책을 세분화해 고도화 중. <b>5포점</b>까지 시행착오 기반으로 점포 수 확대.<br><br>작년 첫 세팅 → 란님이 이어 운영 → <b>송희 재합류로 재가동·리드</b>. (송희↔란 바통 사례: 10번 슬라이드)</div>
+      </div>
+      <div class="feat-card fade d2">
+        <div class="feat-icon">🤝</div>
+        <div style="margin-bottom:9px"><span class="tag blue">신규</span></div>
+        <div class="feat-title">B2B 이관 (관리주체)</div>
+        <div class="feat-desc">사업자등록 관리주체(<b>아파트·공장·관공서</b>) 대상 <b>낮은 단가 B2B</b> + <b>PT 지원</b> 서비스 안내. <b>POUR솔루션·POUR공법으로 이관</b>하는 구조.<br><br>🎯 <b>9월까지 파트너 10곳 확보 + PT 문의 진입</b>이 목표.</div>
+      </div>
+      <div class="feat-card fade d3">
+        <div class="feat-icon">🏛️</div>
+        <div style="margin-bottom:9px"><span class="tag blue">신규 · 탐색</span></div>
+        <div class="feat-title">조달청 진입</div>
+        <div class="feat-desc"><b>설계사 영업</b>을 세팅 → 시공사가 POUR 자재를 <b>구매할 수밖에 없는 구조</b> 구축.<br><br>다른 프로젝트와 병행하며 <b>여건이 될 때 시도</b>.</div>
+      </div>
+    </div>
+    <div class="insight-strip fade d4">
+      <p>신규든 재정비든, <strong>리드가 구조를 먼저 세우고</strong> 검증되면 <strong>팀에 이관</strong>해 확장합니다.</p>
+    </div>
+  </div>
+</section>
+
 <!-- S8 NEXT -->
 <section class="slide" id="s8">
   <div class="slide-header">
-    <div class="sec-num fade">08 · Next</div>
+    <div class="sec-num fade">12 · Next</div>
     <h2 class="sec-title fade d1">다음 분기에 들고 옵니다.</h2>
     <p class="sec-desc fade d2">모여라딜 재점화 · POUR스토어 실매출 · 시스템 실검증</p>
   </div>
@@ -748,7 +949,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
 <!-- S9 목표 -->
 <section class="slide" id="s9">
   <div class="slide-header">
-    <div class="sec-num fade">09 · 목표</div>
+    <div class="sec-num fade">13 · 목표</div>
     <h2 class="sec-title fade d1">2026 목표</h2>
     <p class="sec-desc fade d2">POUR스토어 연매출 10억 · 모여라딜 재점화</p>
   </div>
@@ -903,7 +1104,10 @@ const mediaData={
       {type:'image',src:ph('자료 2','신박템 · 공급사 · 셀러 DB'),cap:'신박템 33 · 공급사 109 · 셀러 16'}],
   n4:[{type:'image',src:ph('자료 1','박람회 영업앱'),cap:'넷폼 박람회 영업앱'},
       {type:'image',src:ph('자료 2','KPI v6 체계'),cap:'KPI v6 설계 완료'}],
-  n5:[{type:'image',src:ph('자료 1','겸직 리드매니저 · 재점화'),cap:'모여라딜 + 브랜드커머스 리드매니저'}]
+  n5:[{type:'image',src:ph('자료 1','겸직 리드매니저 · 재점화'),cap:'모여라딜 + 브랜드커머스 리드매니저'}],
+  n6:[{type:'image',src:ph('자료 1','디자인 데이터관리센터'),cap:'편집·디자인 데이터관리센터 (/pourstore-renewal/preview)'},
+      {type:'image',src:ph('자료 2','리뉴얼 메인·상세'),cap:'모바일 반응형 메인·상세 제작 현황'},
+      {type:'image',src:ph('자료 3','비버 마스코트'),cap:'브랜드 마스코트 — 비버 캐릭터'}]
 };
 
 /* Firebase Firestore에서 미디어 로드 */

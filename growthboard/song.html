@@ -219,6 +219,38 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
 .phase-box-title{font-size:11.5px;font-weight:800;color:var(--accent);margin-bottom:9px;letter-spacing:0.03em;}
 .phase-box-desc{font-size:12px;color:var(--ink2);line-height:1.6;font-weight:400;}
 
+/* 협업 네트워크 */
+.cn-wrap{display:grid;grid-template-columns:0.82fr 1.18fr;gap:22px;align-items:start;}
+.cn-graph{background:var(--bg-soft);border:1px solid var(--border-l);border-radius:20px;padding:10px 6px;}
+.cn-svg{width:100%;height:auto;display:block;}
+.cn-edge{stroke:var(--border);stroke-linecap:round;}
+.cn-edge.lead{stroke:var(--accent);opacity:.9;}
+.cn-elabel{fill:var(--ink2);font-size:12.5px;font-weight:800;text-anchor:middle;}
+.cn-elabel-bg{fill:#fff;stroke:var(--border);}
+.cn-ncirc{fill:#fff;stroke:var(--border);stroke-width:2;}
+.cn-ncirc.lead{fill:var(--accent);stroke:var(--accent);}
+.cn-ncirc.dash{stroke-dasharray:5 4;stroke:var(--success);}
+.cn-nname{font-size:15px;font-weight:800;text-anchor:middle;fill:var(--ink);}
+.cn-nname.lead{fill:#fff;}
+.cn-nrole{font-size:10px;font-weight:700;text-anchor:middle;fill:var(--ink3);letter-spacing:0.04em;}
+.cn-nrole.lead{fill:rgba(255,255,255,.85);}
+.cn-total{display:flex;align-items:baseline;gap:9px;margin-bottom:13px;}
+.cn-total b{font-size:30px;font-weight:800;color:var(--ink);line-height:1;}
+.cn-total span{font-size:13px;color:var(--ink3);font-weight:600;}
+.cn-pairs{display:flex;flex-direction:column;gap:11px;}
+.cn-pair{background:var(--bg);border:1px solid var(--border);border-radius:15px;padding:14px 16px;border-left:3px solid var(--accent);}
+.cn-pair-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.cn-pair-who{font-size:14.5px;font-weight:800;color:var(--ink);}
+.cn-pair-cnt{font-size:12px;font-weight:800;color:var(--accent-dark);background:var(--accent-soft);border-radius:999px;padding:2px 10px;}
+.cn-pair-flow{font-size:12px;color:var(--ink3);font-weight:700;margin-left:auto;}
+.cn-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.cn-chip{font-size:11px;font-weight:600;background:var(--bg-section);color:var(--ink2);border:1px solid var(--border-l);border-radius:7px;padding:4px 9px;}
+.cn-note{margin-top:14px;font-size:12px;color:var(--ink3);font-weight:600;background:var(--bg-soft);border:1px dashed var(--border);border-radius:12px;padding:10px 14px;line-height:1.5;}
+.cn-ps .cn-edge.lead{stroke:var(--indigo);}
+.cn-ps .cn-ncirc.lead{fill:var(--indigo);stroke:var(--indigo);}
+.cn-ps .cn-pair{border-left-color:var(--indigo);}
+.cn-ps .cn-pair-cnt{color:var(--indigo);background:var(--indigo-soft);}
+
 /* next */
 .next-hero{text-align:center;margin-bottom:18px;}
 .next-hero-text{font-size:clamp(15px,1.7vw,18px);font-weight:500;line-height:1.7;color:var(--ink2);}
@@ -336,6 +368,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
     <button class="nav-pill">자사몰 리뉴얼</button>
     <button class="nav-pill">대시보드·KPI</button>
     <button class="nav-pill">팀 구조</button>
+    <button class="nav-pill">협업·모여라딜</button>
+    <button class="nav-pill">협업·스토어</button>
     <button class="nav-pill">Next</button>
     <button class="nav-pill">목표</button>
   </div>
@@ -703,10 +737,105 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
   </div>
 </section>
 
+<!-- S7M 협업 네트워크 · 모여라딜 -->
+<section class="slide" id="s7m">
+  <div class="slide-header">
+    <div class="sec-num fade">08 · 협업 네트워크 · 모여라딜</div>
+    <h2 class="sec-title fade d1">모여라딜 — 누가 무엇을 함께했나.</h2>
+    <p class="sec-desc fade d2">송희(리드) 중심으로 하현·정하님과 실행을 분담 — <b>"직접 팔아보자"</b> 트랙의 협업 구조.</p>
+  </div>
+  <div class="slide-body">
+    <div class="cn-wrap fade d1">
+      <div class="cn-graph">
+        <svg class="cn-svg" viewBox="0 0 560 380" role="img" aria-label="모여라딜 협업 네트워크">
+          <line class="cn-edge" x1="140" y1="290" x2="420" y2="290" stroke-width="3.4"/>
+          <line class="cn-edge lead" x1="280" y1="70" x2="420" y2="290" stroke-width="5.5"/>
+          <line class="cn-edge lead" x1="280" y1="70" x2="140" y2="290" stroke-width="4.1"/>
+          <g><rect class="cn-elabel-bg" x="332" y="170" width="36" height="20" rx="10"/><text class="cn-elabel" x="350" y="184">5건</text></g>
+          <g><rect class="cn-elabel-bg" x="192" y="170" width="36" height="20" rx="10"/><text class="cn-elabel" x="210" y="184">3건</text></g>
+          <g><rect class="cn-elabel-bg" x="262" y="280" width="36" height="20" rx="10"/><text class="cn-elabel" x="280" y="294">2건</text></g>
+          <g><circle class="cn-ncirc lead" cx="280" cy="70" r="40"/><text class="cn-nname lead" x="280" y="66">송희</text><text class="cn-nrole lead" x="280" y="82">리드</text></g>
+          <g><circle class="cn-ncirc" cx="140" cy="290" r="34"/><text class="cn-nname" x="140" y="287">하현</text><text class="cn-nrole" x="140" y="303">실행오픈</text></g>
+          <g><circle class="cn-ncirc" cx="420" cy="290" r="34"/><text class="cn-nname" x="420" y="287">정하</text><text class="cn-nrole" x="420" y="303">본격가동</text></g>
+        </svg>
+      </div>
+      <div>
+        <div class="cn-total"><b>10건</b><span>협업 프로젝트 · 3인 (송희·하현·정하)</span></div>
+        <div class="cn-pairs">
+          <div class="cn-pair">
+            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 정하</span><span class="cn-pair-cnt">5건</span><span class="cn-pair-flow">본격 가동 → 재점화</span></div>
+            <div class="cn-chips"><span class="cn-chip">셀러 공구 제안</span><span class="cn-chip">신박템 소싱 33건</span><span class="cn-chip">공급사 DB 109건</span><span class="cn-chip">인스타 자체판매</span><span class="cn-chip">모여라딜 재점화</span></div>
+          </div>
+          <div class="cn-pair">
+            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 하현</span><span class="cn-pair-cnt">3건</span><span class="cn-pair-flow">실행 오픈</span></div>
+            <div class="cn-chips"><span class="cn-chip">도매꾹 상품 등록 50개</span><span class="cn-chip">샘플 구매·촬영</span><span class="cn-chip">공구 실행 세팅</span></div>
+          </div>
+          <div class="cn-pair">
+            <div class="cn-pair-head"><span class="cn-pair-who">하현 + 정하</span><span class="cn-pair-cnt">2건</span><span class="cn-pair-flow">실행 협업</span></div>
+            <div class="cn-chips"><span class="cn-chip">공구 운영</span><span class="cn-chip">판매 데이터 수집</span></div>
+          </div>
+        </div>
+        <div class="cn-note">※ 모여라딜 협업 <b>건수·항목은 잠정값</b>입니다 — 하현·정하님 실제 협업 내역을 알려주시면 정확히 반영하겠습니다.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- S7P 협업 네트워크 · POUR스토어 -->
+<section class="slide" id="s7p">
+  <div class="slide-header">
+    <div class="sec-num fade">09 · 협업 네트워크 · POUR스토어</div>
+    <h2 class="sec-title fade d1">POUR스토어 — 4인 협업 구조.</h2>
+    <p class="sec-desc fade d2">송희(리드) + 민지·란·채림 — 영역별로 분담하며 <b>33개 협업 프로젝트</b>를 함께 진행했습니다.</p>
+  </div>
+  <div class="slide-body">
+    <div class="cn-wrap cn-ps fade d1">
+      <div class="cn-graph">
+        <svg class="cn-svg" viewBox="0 0 560 380" role="img" aria-label="POUR스토어 협업 네트워크">
+          <line class="cn-edge" x1="90" y1="200" x2="470" y2="200" stroke-width="6.9"/>
+          <line class="cn-edge" x1="90" y1="200" x2="280" y2="330" stroke-width="3.4"/>
+          <line class="cn-edge" x1="470" y1="200" x2="280" y2="330" stroke-width="3.4"/>
+          <line class="cn-edge lead" x1="280" y1="60" x2="470" y2="200" stroke-width="9.7"/>
+          <line class="cn-edge lead" x1="280" y1="60" x2="90" y2="200" stroke-width="7.6"/>
+          <line class="cn-edge lead" x1="280" y1="60" x2="280" y2="330" stroke-width="4.1"/>
+          <g><rect class="cn-elabel-bg" x="357" y="118" width="40" height="20" rx="10"/><text class="cn-elabel" x="377" y="132">11건</text></g>
+          <g><rect class="cn-elabel-bg" x="167" y="118" width="36" height="20" rx="10"/><text class="cn-elabel" x="185" y="132">8건</text></g>
+          <g><rect class="cn-elabel-bg" x="262" y="125" width="36" height="20" rx="10"/><text class="cn-elabel" x="280" y="139">3건</text></g>
+          <g><rect class="cn-elabel-bg" x="262" y="190" width="36" height="20" rx="10"/><text class="cn-elabel" x="280" y="204">7건</text></g>
+          <g><rect class="cn-elabel-bg" x="162" y="262" width="36" height="20" rx="10"/><text class="cn-elabel" x="180" y="276">2건</text></g>
+          <g><rect class="cn-elabel-bg" x="362" y="262" width="36" height="20" rx="10"/><text class="cn-elabel" x="380" y="276">2건</text></g>
+          <g><circle class="cn-ncirc lead" cx="280" cy="60" r="40"/><text class="cn-nname lead" x="280" y="56">송희</text><text class="cn-nrole lead" x="280" y="72">LEAD</text></g>
+          <g><circle class="cn-ncirc" cx="90" cy="200" r="34"/><text class="cn-nname" x="90" y="197">민지</text><text class="cn-nrole" x="90" y="213">M1</text></g>
+          <g><circle class="cn-ncirc" cx="470" cy="200" r="34"/><text class="cn-nname" x="470" y="197">란</text><text class="cn-nrole" x="470" y="213">M2</text></g>
+          <g><circle class="cn-ncirc dash" cx="280" cy="330" r="32"/><text class="cn-nname" x="280" y="327">채림</text><text class="cn-nrole" x="280" y="343">M3</text></g>
+        </svg>
+      </div>
+      <div>
+        <div class="cn-total"><b>33건</b><span>협업 프로젝트 · 4인 (송희·민지·란·채림)</span></div>
+        <div class="cn-pairs">
+          <div class="cn-pair">
+            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 란</span><span class="cn-pair-cnt">11건</span><span class="cn-pair-flow">B2B 정책 → 실무</span></div>
+            <div class="cn-chips"><span class="cn-chip">광고 운영(네이버·메타)</span><span class="cn-chip">채널별 광고(마켓)</span><span class="cn-chip">대리점 정책</span><span class="cn-chip">협업 정책 수립</span><span class="cn-chip">발주 시스템</span><span class="cn-chip">파트너사 자동매칭</span><span class="cn-chip">인플루언서·유튜버 정책</span><span class="cn-chip">철물점 지점화</span><span class="cn-chip">POUR공법 이관 표준화</span><span class="cn-chip">POUR솔루션 이관 표준화</span><span class="cn-chip">매칭 시스템</span></div>
+          </div>
+          <div class="cn-pair">
+            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 민지</span><span class="cn-pair-cnt">8건</span><span class="cn-pair-flow">SKU 소싱 → 등록</span></div>
+            <div class="cn-chips"><span class="cn-chip">코트재 외주 색상</span><span class="cn-chip">탑코트재 파생 8개</span><span class="cn-chip">써밋페인트 파생 5개</span><span class="cn-chip">제비스코 OEM 라인</span><span class="cn-chip">제비스코 ODM 라인</span><span class="cn-chip">부자재·안전용품 ODM</span><span class="cn-chip">신규 채널 확장</span><span class="cn-chip">디자인 자동 생성</span></div>
+          </div>
+          <div class="cn-pair">
+            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 채림</span><span class="cn-pair-cnt">3건</span><span class="cn-pair-flow">시스템 → 데이터 운영</span></div>
+            <div class="cn-chips"><span class="cn-chip">CRM 시스템 개발</span><span class="cn-chip">매출관리 시스템</span><span class="cn-chip">POUR길잡이 구축</span></div>
+          </div>
+        </div>
+        <div class="cn-note">노드 간 선 굵기 = 협업 건수. 멤버 간 협업(민지–란 7 · 민지–채림 2 · 란–채림 2)까지 합산 <b>총 33건</b>.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- S8 NEXT -->
 <section class="slide" id="s8">
   <div class="slide-header">
-    <div class="sec-num fade">08 · Next</div>
+    <div class="sec-num fade">10 · Next</div>
     <h2 class="sec-title fade d1">다음 분기에 들고 옵니다.</h2>
     <p class="sec-desc fade d2">모여라딜 재점화 · POUR스토어 실매출 · 시스템 실검증</p>
   </div>
@@ -748,7 +877,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
 <!-- S9 목표 -->
 <section class="slide" id="s9">
   <div class="slide-header">
-    <div class="sec-num fade">09 · 목표</div>
+    <div class="sec-num fade">11 · 목표</div>
     <h2 class="sec-title fade d1">2026 목표</h2>
     <p class="sec-desc fade d2">POUR스토어 연매출 10억 · 모여라딜 재점화</p>
   </div>

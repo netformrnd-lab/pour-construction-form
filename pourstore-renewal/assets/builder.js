@@ -2223,7 +2223,7 @@ show('entry');
 .psc3-item:hover .icon svg { stroke:#fff; }
 .psc3-item .label { font-size:12.5px; font-weight:700; color:#0F1F5C; text-align:center; line-height:1.35; word-break:keep-all; letter-spacing:-.2px; }
 @media (max-width:880px) { .psc3-grid { grid-template-columns:repeat(5, 1fr); } }
-@media (max-width:520px) { .psc3-grid { grid-template-columns:repeat(4, 1fr); gap:6px; } .psc3-item { padding:14px 6px; } .psc3-item .icon { width:46px; height:46px; } .psc3-item .label { font-size:11.5px; } }
+@media (max-width:520px) { .psc3-grid { grid-template-columns:repeat(3, 1fr); gap:8px; } .psc3-item { padding:18px 6px; } .psc3-item .icon { width:54px; height:54px; } .psc3-item .icon svg { width:27px; height:27px; } .psc3-item .label { font-size:13px; } }
 </style>
 <section class="psc3">
   <div class="psc3-inner">
@@ -8142,6 +8142,27 @@ show('entry');
         }
       }
       s.migrations.shortsGrid2rowV1 = true;
+    }
+    // 카테고리(퀵메뉴) — 모바일 3열×3행 균형 + 아이콘 확대
+    if (!s.migrations.categoryGrid3colV1) {
+      const mpC = s.pages.find(p => p.id === 'main');
+      if (mpC && Array.isArray(mpC.sections)) {
+        const nowC = new Date().toISOString();
+        const idx = mpC.sections.findIndex(sec => (sec.html || '').indexOf('class="psc3"') !== -1);
+        if (idx !== -1) {
+          const sec = mpC.sections[idx];
+          const key = mpC.id + ':' + sec.id;
+          s.history[key] = s.history[key] || [];
+          s.history[key].unshift({
+            name: sec.name, html: sec.html, note: sec.note || '',
+            reason: '카테고리 퀵메뉴 — 모바일 4열(외톨이 발생) → 3열×3행 균형, 아이콘·라벨 확대',
+            kind: 'auto-migration', savedAt: nowC,
+          });
+          sec.html = SEED_CATEGORY_HTML;
+          sec.statusAt = nowC;
+        }
+      }
+      s.migrations.categoryGrid3colV1 = true;
     }
     return s;
   }

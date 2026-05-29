@@ -1251,15 +1251,15 @@ show('entry');
 }
 @media (max-width: 700px) {
   .psm1-hd-inner { display:none; }
-  .psm1-hd-mb { display:grid; grid-template-columns:40px 1fr 44px 40px 40px; align-items:center; padding:12px 12px; gap:2px; }
+  .psm1-hd-mb { display:grid; grid-template-columns:40px 1fr 62px 40px 40px; align-items:center; padding:12px 12px; gap:2px; position:relative; overflow:visible; z-index:20; }
   .psm1-hd-mb .psm1-mb-menu, .psm1-hd-mb .psm1-mb-search, .psm1-hd-mb .psm1-mb-cart { width:40px; height:40px; display:grid; place-items:center; font-size:22px; color:#374151; }
   .psm1-hd-mb .psm1-mb-logo { display:flex; align-items:center; justify-content:center; gap:7px; font-weight:800; font-size:19px; color:#0F1F5C; letter-spacing:-0.04em; }
   .psm1-hd-mb .psm1-mb-logo .psm1-logo-mark { width:26px; height:26px; font-size:12px; font-weight:800; letter-spacing:-0.04em; }
-  /* 모바일 헤더 POUR닥터 마스코트 — 검색 아이콘 옆 상시 노출 */
-  .psm1-mb-doctor { position:relative; width:44px; height:44px; padding:0; border:none; background:none; cursor:pointer; line-height:0; justify-self:center; }
-  .psm1-mb-doctor-glow { position:absolute; inset:-2px; border-radius:50%; background:radial-gradient(circle, rgba(232,120,15,.34) 0%, transparent 68%); animation:psm1FairyGlow 3s ease-in-out infinite; z-index:0; }
-  .psm1-mb-doctor img { position:relative; z-index:1; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 2px 3px rgba(15,31,92,.2)); animation:psm1FairyBob 3s ease-in-out infinite; }
-  .psm1-mb-doctor-spark { position:absolute; top:-2px; right:-1px; z-index:2; font-size:11px; pointer-events:none; animation:psm1FairySpark 2.4s ease-in-out infinite; }
+  /* 모바일 헤더 POUR닥터 마스코트 — 검색 아이콘 옆에 크게, 아래로 살짝 걸터앉음 */
+  .psm1-mb-doctor { position:relative; width:62px; height:62px; padding:0; border:none; background:none; cursor:pointer; line-height:0; justify-self:center; margin-bottom:-22px; z-index:21; }
+  .psm1-mb-doctor-glow { position:absolute; inset:-4px; border-radius:50%; background:radial-gradient(circle, rgba(232,120,15,.34) 0%, transparent 68%); animation:psm1FairyGlow 3s ease-in-out infinite; z-index:0; }
+  .psm1-mb-doctor img { position:relative; z-index:1; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 4px 6px rgba(15,31,92,.22)); animation:psm1FairyBob 3s ease-in-out infinite; }
+  .psm1-mb-doctor-spark { position:absolute; top:0; right:1px; z-index:2; font-size:13px; pointer-events:none; animation:psm1FairySpark 2.4s ease-in-out infinite; }
   /* 모바일: 헬퍼는 화면 좌우 가득, 캐릭터 작게 */
   .psm1-helper { left:14px; right:14px; padding:14px; gap:10px; border-radius:14px; }
   .psm1-helper-char { width:72px; height:80px; border-radius:12px; }
@@ -8420,6 +8420,27 @@ show('entry');
       reswap('class="pdq"', POUR_DR_QUICK_BANNER_HTML, 'POUR닥터 퀵배너 — 요정 캐릭터 이미지(beaver_search_fairy_nukki)로 교체');
       reswap('class="pst2"', POUR_STATS_NATIVE_HTML, '실적 섹션 — 함께한 시공 협력사 로고 80개 추가');
       s.migrations.fairyLogosV1 = true;
+    }
+    // 모바일 헤더 요정 마스코트 크게(44→62px) + 탭 위로 걸터앉는 히어로 느낌
+    if (!s.migrations.bigDoctorV1) {
+      const nowBD = new Date().toISOString();
+      s.pages.forEach(pg => {
+        if (!Array.isArray(pg.sections)) return;
+        pg.sections.forEach(sec => {
+          if ((sec.html || '').indexOf('class="psm1"') !== -1) {
+            const key = pg.id + ':' + sec.id;
+            s.history[key] = s.history[key] || [];
+            s.history[key].unshift({
+              name: sec.name, html: sec.html, note: sec.note || '',
+              reason: '모바일 헤더 요정 마스코트 확대(44→62px) + 탭 바 위로 걸터앉는 히어로 느낌',
+              kind: 'auto-migration', savedAt: nowBD,
+            });
+            sec.html = OHOUSE_V1_SECTION_HTML;
+            sec.statusAt = nowBD;
+          }
+        });
+      });
+      s.migrations.bigDoctorV1 = true;
     }
     return s;
   }

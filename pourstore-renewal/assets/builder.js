@@ -9122,7 +9122,7 @@ show('entry');
     page.sections.forEach((s, idx) => {
       const card = document.createElement('div');
       const cardStatus = s.status || 'draft';
-      card.className = 'section-card status-' + cardStatus;
+      card.className = 'section-card status-' + cardStatus + (s.hidden ? ' section-hidden' : '');
       card.draggable = true;
       card.dataset.sectionId = s.id;
       const hasHtml = s.html && s.html.trim().length > 0;
@@ -9144,6 +9144,7 @@ show('entry');
             <button class="sm-item sm-approve"  data-status="approved"  type="button"><span class="sm-icon">✅</span> 승인 완료 <span class="sm-hint">관리자</span></button>
             <button class="sm-item sm-revision" data-status="revision"  type="button"><span class="sm-icon">↻</span> 재수정 요청 <span class="sm-hint">관리자 · 피그마 피드백</span></button>
             <div class="sm-sep"></div>
+            <button class="sm-item sm-hide"     data-hide-toggle="1"    type="button"><span class="sm-icon">${s.hidden ? '👁' : '🙈'}</span> ${s.hidden ? '숨김 해제 (미리보기 포함)' : '숨기기 (미리보기·HTML 제외)'}</button>
             <button class="sm-item sm-reset"    data-status=""          type="button"><span class="sm-icon">⊘</span> 초안으로 되돌리기</button>
           </div>
         </div>
@@ -9153,6 +9154,7 @@ show('entry');
             <span>${escapeHtml(s.name)}</span>
             <span class="badge ${hasHtml ? 'ready' : 'empty'}">${hasHtml ? 'READY' : 'EMPTY'}</span>
             ${histLen ? `<span class="badge">v${histLen}</span>` : ''}
+            ${s.hidden ? '<span class="badge badge-hidden">🙈 숨김</span>' : ''}
           </div>
           <div class="meta">${escapeHtml(s.note || '메모 없음')}${s.statusAt ? ` · ${statusLabel(s.status)} ${fmtDate(s.statusAt)}` : ''}</div>
         </div>
@@ -9179,6 +9181,11 @@ show('entry');
           e.stopPropagation();
           setSectionStatus(s.id, btn.dataset.status || null);
         });
+      });
+      const hideBtn = menu.querySelector('[data-hide-toggle]');
+      if (hideBtn) hideBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        toggleSectionHidden(s.id);
       });
       const copyBtn = card.querySelector('[data-act=copy]');
       if (copyBtn) copyBtn.addEventListener('click', () => copyHtmlToClipboard(s.html));
@@ -9407,6 +9414,16 @@ show('entry');
     closeStatusMenus();
     renderSections();
     toast(`[${sec.name}] → ${toLabel} · ${toastMsg}`, toastType);
+  }
+  function toggleSectionHidden(secId) {
+    const page = getActivePage();
+    const sec = page.sections.find(x => x.id === secId);
+    if (!sec) return;
+    sec.hidden = !sec.hidden;
+    saveState();
+    closeStatusMenus();
+    renderSections();
+    toast(sec.hidden ? `[${sec.name}] 숨김 — 미리보기·HTML에서 제외됩니다` : `[${sec.name}] 숨김 해제`, 'info');
   }
   function closeStatusMenus() {
     document.querySelectorAll('.status-menu.open').forEach(m => m.classList.remove('open'));
@@ -9733,7 +9750,7 @@ show('entry');
       var pid = decodeURIComponent(pm[1]);
       var page = state.pages.find(function(p){ return p.id === pid; });
       if (!page) return false;
-      var body = page.sections.map(function(s, i){
+      var body = page.sections.filter(function(s){ return !s.hidden; }).map(function(s, i){
         var html = (s.html || '').trim();
         if (!html) return '<!-- [' + (i+1) + '] ' + s.name + ' (EMPTY) -->';
         return '<!-- [' + (i+1) + '] ' + s.name + ' -->\n<section data-section="' + escapeHtml(s.name) + '">\n' + s.html + '\n</section>';
@@ -9786,7 +9803,7 @@ show('entry');
     if (title) try { w.document.title = title; } catch (_) {}
   }
   function buildFullPageHtml(page) {
-    const body = page.sections.map((s, i) => {
+    const body = page.sections.filter(s => !s.hidden).map((s, i) => {
       const html = (s.html || '').trim();
       if (!html) return `<!-- [${i+1}] ${s.name} (EMPTY) -->`;
       return `<!-- [${i+1}] ${s.name} -->\n<section data-section="${escapeHtml(s.name)}">\n${s.html}\n</section>`;
@@ -9799,7 +9816,7 @@ show('entry');
 
   // 미리보기 모달용 — 각 섹션을 id로 감싸서 스크롤·하이라이트 지원
   function buildFullPagePreviewHtml(page) {
-    return page.sections.map((s, i) => {
+    return page.sections.filter(s => !s.hidden).map((s, i) => {
       const html = (s.html || '').trim();
       const idAttr = `fpv-sec-${escapeHtml(s.id)}`;
       if (!html) {
@@ -9836,7 +9853,8 @@ show('entry');
     const page = getActivePage();
     if (!page) return;
     if (page.type === 'folder') { toast('폴더에는 섹션이 없습니다.', 'info'); return; }
-    fpvCtx = { pageId: page.id, secId: (page.sections[0] && page.sections[0].id) || null };
+    const firstVisible = page.sections.find(x => !x.hidden) || page.sections[0];
+    fpvCtx = { pageId: page.id, secId: (firstVisible && firstVisible.id) || null };
     document.getElementById('fpvTitle').textContent = `전체 시안 — ${page.name}`;
     renderFpvSectionList();
     refreshFpvAuthorChip();
@@ -9874,11 +9892,12 @@ show('entry');
       const isActive = fpvCtx.secId === s.id;
       const isEmpty = !((s.html || '').trim());
       const row = document.createElement('div');
-      row.className = 'fpv-section-item' + (isActive ? ' active' : '');
+      row.className = 'fpv-section-item' + (isActive ? ' active' : '') + (s.hidden ? ' fpv-hidden' : '');
       row.dataset.secid = s.id;
       row.innerHTML = `
         <span class="fpv-idx">${idx + 1}</span>
         <span class="fpv-name" title="${escapeHtml(s.name)}">${escapeHtml(s.name)}</span>
+        ${s.hidden ? '<span class="fpv-empty-tag" style="background:#6B7280;color:#fff;">🙈 숨김</span>' : ''}
         ${isEmpty ? '<span class="fpv-empty-tag">빈 섹션</span>' : ''}
         <span class="fpv-cmt-badge ${cmtCount === 0 ? 'zero' : ''}" title="댓글 ${cmtCount}건">${cmtCount}</span>
         <button class="fpv-prev-btn" data-act="prev" ${histLen === 0 ? 'disabled' : ''} title="${histLen === 0 ? '이전 시안 없음' : `이전 시안 ${histLen}건 보기`}">↺ 이전 시안</button>
@@ -10012,9 +10031,9 @@ show('entry');
 
   function copyFullPageHtml() {
     const page = getActivePage();
-    const filled = page.sections.filter(s => (s.html || '').trim());
+    const filled = page.sections.filter(s => !s.hidden && (s.html || '').trim());
     if (filled.length === 0) {
-      toast('이 페이지에 입력된 섹션 HTML이 없습니다.', 'error');
+      toast('이 페이지에 표시할 섹션 HTML이 없습니다. (숨김 제외)', 'error');
       return;
     }
     const html = buildFullPageHtml(page);

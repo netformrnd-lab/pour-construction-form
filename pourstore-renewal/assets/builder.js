@@ -1221,10 +1221,15 @@ show('entry');
 }
 @media (max-width: 700px) {
   .psm1-hd-inner { display:none; }
-  .psm1-hd-mb { display:grid; grid-template-columns:40px 1fr 40px 40px; align-items:center; padding:12px 14px; gap:4px; }
+  .psm1-hd-mb { display:grid; grid-template-columns:40px 1fr 44px 40px 40px; align-items:center; padding:12px 12px; gap:2px; }
   .psm1-hd-mb .psm1-mb-menu, .psm1-hd-mb .psm1-mb-search, .psm1-hd-mb .psm1-mb-cart { width:40px; height:40px; display:grid; place-items:center; font-size:22px; color:#374151; }
   .psm1-hd-mb .psm1-mb-logo { display:flex; align-items:center; justify-content:center; gap:7px; font-weight:800; font-size:19px; color:#0F1F5C; letter-spacing:-0.04em; }
   .psm1-hd-mb .psm1-mb-logo .psm1-logo-mark { width:26px; height:26px; font-size:12px; font-weight:800; letter-spacing:-0.04em; }
+  /* 모바일 헤더 POUR닥터 마스코트 — 검색 아이콘 옆 상시 노출 */
+  .psm1-mb-doctor { position:relative; width:44px; height:44px; padding:0; border:none; background:none; cursor:pointer; line-height:0; justify-self:center; }
+  .psm1-mb-doctor-glow { position:absolute; inset:-2px; border-radius:50%; background:radial-gradient(circle, rgba(232,120,15,.34) 0%, transparent 68%); animation:psm1FairyGlow 3s ease-in-out infinite; z-index:0; }
+  .psm1-mb-doctor img { position:relative; z-index:1; width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 2px 3px rgba(15,31,92,.2)); animation:psm1FairyBob 3s ease-in-out infinite; }
+  .psm1-mb-doctor-spark { position:absolute; top:-2px; right:-1px; z-index:2; font-size:11px; pointer-events:none; animation:psm1FairySpark 2.4s ease-in-out infinite; }
   /* 모바일: 헬퍼는 화면 좌우 가득, 캐릭터 작게 */
   .psm1-helper { left:14px; right:14px; padding:14px; gap:10px; border-radius:14px; }
   .psm1-helper-char { width:72px; height:80px; border-radius:12px; }
@@ -1300,6 +1305,11 @@ show('entry');
   <div class="psm1-hd-mb">
     <button class="psm1-mb-menu" aria-label="메뉴">☰</button>
     <a href="#" class="psm1-mb-logo"><span class="psm1-logo-mark">P</span><span>POUR스토어</span></a>
+    <button class="psm1-mb-doctor" data-psm1-fairy aria-label="POUR닥터에게 물어보기">
+      <span class="psm1-mb-doctor-glow"></span>
+      <img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fbeaver_consulting_transparent.png?alt=media&token=aae66b52-2850-4804-8492-fb8b602282ac" alt="POUR닥터" loading="lazy"/>
+      <span class="psm1-mb-doctor-spark">✨</span>
+    </button>
     <button class="psm1-mb-search" aria-label="검색"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
     <button class="psm1-mb-cart" aria-label="장바구니"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.5"/><circle cx="19" cy="21" r="1.5"/><path d="M3 4h2l2.5 12h12l2-8H6"/></svg></button>
   </div>
@@ -1413,6 +1423,14 @@ show('entry');
       });
     });
   });
+  // 모바일 헤더 마스코트 — 검색바가 숨겨져 있으므로 진단 페이지로 직접 이동
+  var mbDoctor = root.querySelector('.psm1-mb-doctor');
+  if (mbDoctor) {
+    mbDoctor.addEventListener('click', function(e){
+      e.preventDefault();
+      window.location.href = './pour-doctor.html';
+    });
+  }
 })();
 </script>
 </section>`;
@@ -8326,6 +8344,27 @@ show('entry');
         });
       });
       s.migrations.statsNativeV1 = true;
+    }
+    // 검색바 마스코트 — 모바일 헤더에도 POUR닥터 상시 노출
+    if (!s.migrations.mobileDoctorV1) {
+      const nowMD = new Date().toISOString();
+      s.pages.forEach(pg => {
+        if (!Array.isArray(pg.sections)) return;
+        pg.sections.forEach(sec => {
+          if ((sec.html || '').indexOf('class="psm1"') !== -1) {
+            const key = pg.id + ':' + sec.id;
+            s.history[key] = s.history[key] || [];
+            s.history[key].unshift({
+              name: sec.name, html: sec.html, note: sec.note || '',
+              reason: '검색바 마스코트 — 모바일 헤더(≤700px)에서 검색바 숨김으로 안 보이던 POUR닥터를, 모바일 헤더 검색 아이콘 옆에 상시 노출(탭 시 진단 페이지 이동)',
+              kind: 'auto-migration', savedAt: nowMD,
+            });
+            sec.html = OHOUSE_V1_SECTION_HTML;
+            sec.statusAt = nowMD;
+          }
+        });
+      });
+      s.migrations.mobileDoctorV1 = true;
     }
     return s;
   }

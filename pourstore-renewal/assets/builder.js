@@ -107,10 +107,11 @@
   .pst2-stat .num b { font-size:30px; }
   .pst2-gal { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; -ms-overflow-style:none; gap:12px; padding:0 18px 8px; }
   .pst2-gal::-webkit-scrollbar { display:none; }
-  .pst2-card { flex:0 0 72%; max-width:300px; scroll-snap-align:center; aspect-ratio:4/3; }
+  .pst2-card { flex:0 0 64%; max-width:280px; scroll-snap-align:center; aspect-ratio:4/5.1; }
   .pst2-swipe { display:flex; align-items:center; justify-content:center; gap:6px; margin:10px 18px 0; font-size:12px; font-weight:700; color:#E8780F; }
   .pst2-swipe .ar { display:inline-block; animation:pst2SwipeAr 1.3s ease-in-out infinite; }
-  .pst2-logos { grid-template-columns:repeat(3,1fr); gap:8px; }
+  .pst2-logos { grid-template-columns:repeat(4,1fr); gap:7px; }
+  .pst2-logo { padding:8px; border-radius:11px; }
 }
 </style>
 <div class="pst2-inner">

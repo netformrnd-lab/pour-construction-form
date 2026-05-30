@@ -46,6 +46,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
 .sec-num{font-size:13px;font-weight:700;color:var(--accent);letter-spacing:0.06em;margin-bottom:13px;}
 .sec-title{font-size:clamp(26px,3.3vw,40px);font-weight:800;letter-spacing:-0.02em;margin-bottom:8px;line-height:1.2;color:var(--ink);}
 .sec-desc{font-size:15px;color:var(--ink2);font-weight:500;line-height:1.6;}
+/* 슬라이드별 트랙 색 구분 (모여라딜=블루 / 스토어=주황 / 인트로·마무리=그레이) */
+.sec-num.md{color:var(--accent);}
+.sec-num.ps{color:var(--indigo);}
+.sec-num.end{color:var(--ink3);}
+.sec-num::before{content:"";display:inline-block;width:16px;height:3px;border-radius:2px;background:currentColor;vertical-align:middle;margin-right:9px;opacity:.95;}
 
 /* tags */
 .tag{display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:0;}
@@ -450,7 +455,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="s1">
   <div class="slide-header">
-    <div class="sec-num fade">01 · JOURNEY</div>
+    <div class="sec-num fade end">01 · JOURNEY</div>
     <h2 class="sec-title fade d1">지원으로 들어와서 구조를 만들었습니다.</h2>
     <p class="sec-desc fade d2">모여라딜 리드였고, 지원 업무로 넘어갔고, 결국 두 프로젝트의 리드가 됐습니다.</p>
   </div>
@@ -504,7 +509,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="s2">
   <div class="slide-header">
-    <div class="sec-num fade">PART 1 · 모여라딜 — 성과</div>
+    <div class="sec-num fade md">PART 1 · 모여라딜 — 성과</div>
     <h2 class="sec-title fade d1">수요는 증명했고, 전환은 이제부터입니다.</h2>
     <p class="sec-desc fade d2">검증된 것(수요·인바운드 146건·8개 수익구조)과 아직 비어 있는 것(전환·실매출)을 분명히 구분합니다.</p>
   </div>
@@ -557,7 +562,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="s3">
   <div class="slide-header">
-    <div class="sec-num fade">PART 1 · 모여라딜 — 직접 팔아보자</div>
+    <div class="sec-num fade md">PART 1 · 모여라딜 — 직접 팔아보자</div>
     <h2 class="sec-title fade d1">이제 직접 팔아봅니다.</h2>
     <p class="sec-desc fade d2">4개의 가설을 동시에 실험 — 하현님이 실행을 열고, 정하님이 본격 가동합니다.</p>
   </div>
@@ -600,7 +605,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="s7m">
   <div class="slide-header">
-    <div class="sec-num fade">PART 1 · 모여라딜 — 협업</div>
+    <div class="sec-num fade md">PART 1 · 모여라딜 — 협업</div>
     <h2 class="sec-title fade d1">모여라딜 — 누가 무엇을 함께했나.</h2>
     <p class="sec-desc fade d2">모여라딜 재점화의 핵심 축은 <b>정하님</b> — 송희(리드)와 함께 <b>"직접 팔아보자"</b> 실행을 본격 가동합니다.</p>
   </div>
@@ -630,7 +635,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="s4">
   <div class="slide-header">
-    <div class="sec-num fade">PART 2 · POUR스토어 — 개요</div>
+    <div class="sec-num fade ps">PART 2 · POUR스토어 — 개요</div>
     <h2 class="sec-title fade d1">합류 두 달, 운영 시스템을 세웠습니다.</h2>
     <p class="sec-desc fade d2">3.26 합류 이후 만든 것들 — 그리고 솔직한 현황.</p>
   </div>
@@ -656,7 +661,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="s5r">
   <div class="slide-header">
-    <div class="sec-num fade">PART 2 · POUR스토어 — 자사몰</div>
+    <div class="sec-num fade ps">PART 2 · POUR스토어 — 자사몰</div>
     <h2 class="sec-title fade d1">자사몰 리뉴얼 — 3대 축으로 다시.<button class="media-star" data-node="n6" data-title="자사몰 리뉴얼 — 구축 현황" title="구축 현황 사진 보기">★<span class="cnt">3</span></button></h2>
     <p class="sec-desc fade d2">아임웹 → 카페24 이전 + 모바일 퍼스트 재설계. <b>페이지 디자인 · 로고 개편 · AI 챗봇</b> 3가지를 동시에 진행 중입니다.</p>
   </div>
@@ -687,7 +692,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="s5b">
   <div class="slide-header">
-    <div class="sec-num fade">PART 2 · POUR스토어 — AI·SKU</div>
+    <div class="sec-num fade ps">PART 2 · POUR스토어 — AI·SKU</div>
     <h2 class="sec-title fade d1">데이터가 쌓이는 구조를 만듭니다.</h2>
     <p class="sec-desc fade d2">AI 하자진단 템플릿 · SKU 세분화 — 쌓일수록 영업·추천이 똑똑해집니다.</p>
   </div>
@@ -723,7 +728,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="s7p">
   <div class="slide-header">
-    <div class="sec-num fade">PART 2 · POUR스토어 — 협업</div>
+    <div class="sec-num fade ps">PART 2 · POUR스토어 — 협업</div>
     <h2 class="sec-title fade d1">POUR스토어 — 4인 협업 구조.</h2>
     <p class="sec-desc fade d2">송희(리드) + 민지·란·채림 — 영역별로 분담하며 <b>33개 협업 프로젝트</b>를 함께 진행했습니다.</p>
   </div>
@@ -785,7 +790,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="s7">
   <div class="slide-header">
-    <div class="sec-num fade">PART 2 · POUR스토어 — 팀</div>
+    <div class="sec-num fade ps">PART 2 · POUR스토어 — 팀</div>
     <h2 class="sec-title fade d1">3인 체계 완성.</h2>
     <p class="sec-desc fade d2">채림님 인턴 → 정규직 전환 계약 포함 · Phase 0 → 1 → 2</p>
   </div>
@@ -848,7 +853,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="s6">
   <div class="slide-header">
-    <div class="sec-num fade">PART 2 · POUR스토어 — 대시보드·KPI</div>
+    <div class="sec-num fade ps">PART 2 · POUR스토어 — 대시보드·KPI</div>
     <h2 class="sec-title fade d1">숫자로 경영합니다.</h2>
     <p class="sec-desc fade d2">모여라딜에 먼저 구축 · POUR스토어도 제작 예정 — 실데이터 검증이 다음 과제.</p>
   </div>
@@ -918,7 +923,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="snew">
   <div class="slide-header">
-    <div class="sec-num fade">확장 · 신규 / 재정비</div>
+    <div class="sec-num fade end">확장 · 신규 / 재정비</div>
     <h2 class="sec-title fade d1">신규 · 재정비 — 구조부터 만듭니다.</h2>
     <p class="sec-desc fade d2">리드가 직접 붙어 구조를 세우는 사업들 — <b>신규 진입</b>과 <b>재정비·재가동</b>을 함께. 자리 잡으면 담당에게 이관합니다.</p>
   </div>
@@ -951,7 +956,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="s8">
   <div class="slide-header">
-    <div class="sec-num fade">마무리 · NEXT</div>
+    <div class="sec-num fade end">마무리 · NEXT</div>
     <h2 class="sec-title fade d1">다음 분기에 들고 옵니다.</h2>
     <p class="sec-desc fade d2">모여라딜 재점화 · POUR스토어 실매출 · 시스템 실검증</p>
   </div>
@@ -992,7 +997,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="sramp">
   <div class="slide-header">
-    <div class="sec-num fade">마무리 · 성장 램프</div>
+    <div class="sec-num fade end">마무리 · 성장 램프</div>
     <h2 class="sec-title fade d1">0에서 BEP를 지나, 연 10억까지.</h2>
     <p class="sec-desc fade d2">상반기엔 구조를 만들었습니다. 하반기는 이 곡선을 탑니다 — 언제 · 무엇 · 얼마.</p>
   </div>
@@ -1033,7 +1038,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="s9">
   <div class="slide-header">
-    <div class="sec-num fade">마무리 · 목표</div>
+    <div class="sec-num fade end">마무리 · 목표</div>
     <h2 class="sec-title fade d1">2026 목표</h2>
     <p class="sec-desc fade d2">POUR스토어 연매출 10억 · 모여라딜 재점화</p>
   </div>

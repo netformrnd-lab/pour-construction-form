@@ -51,6 +51,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
 .sec-num.ps{color:var(--indigo);}
 .sec-num.end{color:var(--ink3);}
 .sec-num::before{content:"";display:inline-block;width:16px;height:3px;border-radius:2px;background:currentColor;vertical-align:middle;margin-right:9px;opacity:.95;}
+/* 확인 필요 값(빨간 표시) — 실제 값(숫자) 입력하면 자동으로 정상색 처리 */
+.tbd{color:var(--red);font-weight:800;border-bottom:1.5px dashed var(--red);padding-bottom:1px;}
+.tbd.filled{color:inherit;font-weight:inherit;border-bottom:none;padding-bottom:0;}
 
 /* tags */
 .tag{display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:0;}
@@ -530,7 +533,7 @@ body.present-mode .edit-fab{display:none!important;}
         <div class="card-label">// 미검증 (Not yet)</div>
         <div class="card-title">남은 건 '전환'이다</div>
         <ul class="card-list">
-          <li><span class="ic">🛒</span>셀러 101 → 제안 26 → 공구 <b>10건</b>·매출 108만원 — <b>소규모 검증까지만</b></li>
+          <li><span class="ic">🛒</span>셀러 101 → 제안 26 → 공구 <b>10건</b>·매출 <span class="tbd">___만원</span> — <b>소규모 검증까지만</b></li>
           <li><span class="ic">⚠️</span>실매출·GMV 본격 전환은 아직 — <b>수요는 충분, 전환이 비었다</b></li>
           <li><span class="ic">🎯</span><b>다음 반기 1순위 = 실매출 전환</b> — 정하님과 본격 실행</li>
         </ul>
@@ -595,10 +598,10 @@ body.present-mode .edit-fab{display:none!important;}
     </div>
     <div class="run-strip fade d5">
       <div class="lab">⚡ 실행 원칙</div>
-      <div class="txt">도매꾹으로 <b>직접 공구 10회</b> 실험 (개당 마진 1천원 → <b>최소 2천원 남는 구조</b> 목표). 샘플 구매 완료, 직접 촬영·셀러 협찬 병행. <b>빠른 실행 → 데이터 → 개선</b> 반복으로 빅데이터를 자산화합니다.</div>
+      <div class="txt"><b>다음 분기</b> 도매꾹 <b>직접 공구 10회</b> 실험 (개당 마진 1천원 → <b>최소 2천원 남는 구조</b> 목표). 샘플 구매 완료, 직접 촬영·셀러 협찬 병행. <b>빠른 실행 → 데이터 → 개선</b> 반복으로 빅데이터를 자산화합니다.</div>
     </div>
     <div class="insight-strip fade d6">
-      <p>모여라딜은 <strong>카테고리 제한이 없습니다.</strong> 방안을 <strong>100번 실행·실패</strong>하고 <strong>AB테스트로 더 나은 방식을 내재화</strong>하면 — <strong>10억, 그 이상도 어렵지 않은 곳</strong>입니다.</p>
+      <p>모여라딜은 <strong>카테고리 제한이 없습니다.</strong> <strong>올해</strong> 방안을 <strong>100번 실행·실패</strong>하고 <strong>AB테스트로 더 나은 방식을 내재화</strong>하면 — <strong>10억, 그 이상도 어렵지 않은 곳</strong>입니다.</p>
     </div>
   </div>
 </section>
@@ -791,7 +794,7 @@ body.present-mode .edit-fab{display:none!important;}
 <section class="slide" id="s7">
   <div class="slide-header">
     <div class="sec-num fade ps">PART 2 · POUR스토어 — 팀</div>
-    <h2 class="sec-title fade d1">3인 체계 완성.</h2>
+    <h2 class="sec-title fade d1">리드 + 3인, 4인 체계 완성.</h2>
     <p class="sec-desc fade d2">채림님 인턴 → 정규직 전환 계약 포함 · Phase 0 → 1 → 2</p>
   </div>
   <div class="slide-body">
@@ -853,7 +856,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="s6">
   <div class="slide-header">
-    <div class="sec-num fade ps">PART 2 · POUR스토어 — 대시보드·KPI</div>
+    <div class="sec-num fade end">공통 · 경영 대시보드·KPI</div>
     <h2 class="sec-title fade d1">숫자로 경영합니다.</h2>
     <p class="sec-desc fade d2">모여라딜에 먼저 구축 · POUR스토어도 제작 예정 — 실데이터 검증이 다음 과제.</p>
   </div>
@@ -971,7 +974,7 @@ body.present-mode .edit-fab{display:none!important;}
       <div class="next-card fade d2">
         <div class="next-card-tag">모여라딜</div>
         <div class="next-card-title">정하님과 본격 실행</div>
-        <div class="next-card-desc">도매꾹 직접 공구 10회 실험. 신박템 소싱 → 공급사 입점 제안. 인스타그램 숏폼+메타광고 자체 판매. "직접 팔아보자" 가설 검증.</div>
+        <div class="next-card-desc">다음 분기 도매꾹 직접 공구 10회 실험. 신박템 소싱 → 공급사 입점 제안. 인스타그램 숏폼+메타광고 자체 판매. "직접 팔아보자" 가설 검증.</div>
       </div>
       <div class="next-card fade d2">
         <div class="next-card-tag">POUR스토어</div>
@@ -1010,7 +1013,7 @@ body.present-mode .edit-fab{display:none!important;}
         <div class="ramp-l">BMA 집중 · 공구 1건</div>
       </div>
       <div class="ramp-step">
-        <div class="ramp-v">실매출 시작</div>
+        <div class="ramp-v">월 <span class="tbd">___</span></div>
         <div class="ramp-bar" style="height:95px"></div>
         <div class="ramp-q">26 Q3</div>
         <div class="ramp-l">자사몰 오픈 · 정상화</div>
@@ -1376,6 +1379,11 @@ mStage.addEventListener('touchstart',e=>{mSx=e.touches[0].clientX;},{passive:tru
 mStage.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-mSx;if(Math.abs(dx)>40){dx<0?mNext():mPrev();}});
 
 loadMediaFromFirestore();
+
+/* 확인 필요 값: 실제 값(언더스코어/?/○/확인/TBD 없는 텍스트)이 채워지면 자동 정상색 */
+document.querySelectorAll('.tbd').forEach(el=>{
+  if(!/[_?○]|확인|TBD/.test(el.textContent)) el.classList.add('filled');
+});
 
 updateUI(0);
 </script>

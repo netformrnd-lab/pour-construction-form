@@ -15,7 +15,7 @@
   --success:#2bc472; --success-soft:#e7f7ef; --success-dark:#15a35b;
   --warning:#ff9500; --warning-soft:#fff4e5;
   --red:#f04452; --red-soft:#fdecef; --red-dark:#e0354b;
-  --indigo:#4f55e0; --indigo-soft:#eef0ff;
+  --indigo:#ee6c1a; --indigo-soft:#fff1e6; /* POUR스토어 트랙색 = 주황 (모여라딜 블루와 구분) */
   --purple:#7c3aed; --purple-soft:#f4eeff;
   --sans:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
 }
@@ -77,7 +77,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
 .tstat-glabel.md{background:var(--accent-soft);color:var(--accent-dark);}
 .tstat-glabel.ps{background:var(--indigo-soft);color:var(--indigo);}
 .tstat-row{display:flex;gap:36px;}
-.title-stat-v.i{background:linear-gradient(135deg,var(--indigo),#3b40c9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.title-stat-v.i{background:linear-gradient(135deg,var(--indigo),#c2410c);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 .s0-foot{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
 .role-badge{display:inline-flex;align-items:center;gap:9px;background:var(--bg-section);border:1px solid var(--border);border-radius:999px;padding:11px 18px;}
 .role-badge .dot{width:7px;height:7px;background:var(--success);border-radius:50%;animation:blink 2s infinite;}
@@ -93,7 +93,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
 .tl-item:last-child{margin-bottom:0;}
 .tl-dot{position:absolute;left:-37px;top:3px;width:13px;height:13px;border-radius:50%;border:2.5px solid var(--accent);background:#fff;box-shadow:0 0 0 4px rgba(49,130,246,0.08);}
 .tl-dot.green{border-color:var(--success);box-shadow:0 0 0 4px rgba(43,196,114,0.08);}
-.tl-dot.blue{border-color:var(--indigo);box-shadow:0 0 0 4px rgba(79,85,224,0.08);}
+.tl-dot.blue{border-color:var(--indigo);box-shadow:0 0 0 4px rgba(238,108,26,0.12);}
 .tl-dot.purple{border-color:var(--purple);box-shadow:0 0 0 5px rgba(124,58,237,0.12);}
 .tl-date{font-size:11px;color:var(--accent);margin-bottom:4px;letter-spacing:0.04em;font-weight:700;}
 .tl-date.green{color:var(--success-dark);}.tl-date.blue{color:var(--indigo);}.tl-date.purple{color:var(--purple);}

@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>POUR스토어 KPI 보고 보드 — 외부 보고용 시각화</title>
-<meta name="description" content="POUR스토어 4인 (송희·민지·란·채림) KPI 보고용 시각화 보드. O1 매출 10억 → KR1·KR2·KR3 → 53개 프로젝트 체크리스트. 실데이터는 어드민의 OKR·프로젝트 페이지에서 관리." />
+<meta name="description" content="POUR스토어 4인 (송희·민지·란·채림) KPI 보고용 시각화 보드. O1 매출 10억 → KR1·KR2·KR3 → 55개 프로젝트 체크리스트. 실데이터는 어드민의 OKR·프로젝트 페이지에서 관리." />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet" />
@@ -375,7 +375,7 @@ body.in-iframe .meta-bar { display: flex; }
 
   <!-- ─── iframe 모드 컴팩트 메타바 (어드민 안에서만 표시) ─── -->
   <div class="meta-bar" id="metaBar">
-    <span class="meta-pill"><span style="font-size:13px">📋</span> <b>업무관리</b> · 4인 (송희·민지·란·채림) · 53 프로젝트 (G 조달청·관급 신설)</span>
+    <span class="meta-pill"><span style="font-size:13px">📋</span> <b>업무관리</b> · 4인 (송희·민지·란·채림) · 55 프로젝트 (G 조달청·관급 신설)</span>
     <span class="meta-pill" id="metaSync"><span class="dot"></span> 동기화 중...</span>
     <span class="meta-pill" id="metaMe" style="display:none;"></span>
     <span class="meta-pill" id="metaUpdate" style="display:none;"></span>
@@ -525,7 +525,9 @@ const DATA = {
     { id: 'p101', kr: 'KR2', group: 'B2B 종합', name: 'B2B 협약 협상',                          owner: 'songhee', collab: [] },
     { id: 'p102', kr: 'KR2', group: 'B2B 종합', name: 'OEM/ODM 소싱·협상',                      owner: 'songhee', collab: [] },
     { id: 'p103', kr: 'KR2', group: 'B2B 종합', name: '도매꾹·나비엠알오 프로모션·박스(MOQ) 운영', owner: 'ran',     collab: [{ person: 'minji', role: '등록' }] },
-    { id: 'p104', kr: 'KR2', group: 'B2B 종합', name: '위탁 셀러·인플루언서·유튜버 협업',         owner: 'ran',     collab: [{ person: 'songhee', role: '정책' }] },
+    { id: 'p104', kr: 'KR2', group: 'B2B 종합', name: '인플루언서·유튜버 마케팅 협업',             owner: 'ran',     collab: [{ person: 'minji', role: '콘텐츠' }] },
+    { id: 'p113', kr: 'KR2', group: 'B2B 종합', name: '온라인 위탁 판매처 제안 (셀러 발굴·온보딩)', owner: 'minji',   collab: [{ person: 'songhee', role: '정책' }] },
+    { id: 'p114', kr: 'KR2', group: 'B2B 종합', name: '온라인 위탁 판매처 매출 추적·정산',         owner: 'minji',   collab: [{ person: 'ran',     role: '판매처 발굴' }] },
     { id: 'p105', kr: 'KR2', group: 'B2B 종합', name: '대리점·파트너 고객/운영관리',              owner: 'ran',     collab: [{ person: 'songhee', role: '정책' }] },
     { id: 'p106', kr: 'KR2', group: 'B2B 종합', name: '시공매칭 실행',                          owner: 'ran',     collab: [{ person: 'songhee', role: '정책' }] },
     { id: 'p107', kr: 'KR2', group: 'B2B 종합', name: '박람회 참여관리',                        owner: 'ran',     collab: [{ person: 'minji', role: '콘텐츠' }] },

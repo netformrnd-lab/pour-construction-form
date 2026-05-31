@@ -4679,7 +4679,7 @@ function WorkMgmtPage() {
         <div>
           <h1 style={{ fontSize:16, fontWeight:900, color:'var(--navy)', marginBottom:2 }}>📊 KPI 보고 보드 <span style={{ fontSize:10, fontWeight:800, color:'var(--text-sm)', background:'var(--bg)', padding:'2px 7px', borderRadius:5, marginLeft:4, letterSpacing:.3 }}>READ-ONLY · 시각화 전용</span></h1>
           <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700 }}>
-            O1 매출 10억 · KR1/2/3 · 53 프로젝트 · 4인 (송희·민지·란·채림) · <b>외부 보고용 시각화</b>
+            O1 매출 10억 · KR1/2/3 · 55 프로젝트 · 4인 (송희·민지·란·채림) · <b>외부 보고용 시각화</b>
           </div>
         </div>
         <a href="./workmgmt.html" target="_blank" rel="noopener noreferrer" style={{
@@ -4694,10 +4694,10 @@ function WorkMgmtPage() {
         padding:'10px 20px', background:'#EFF6FF', borderBottom:'1px solid #BFDBFE',
         fontSize:11.5, color:'#1E40AF', fontWeight:700, lineHeight:1.6
       }}>
-        💡 <b>이 보드는 외부 보고용 시각화 화면입니다 (KPI 트리 + 53 프로젝트 체크리스트).</b>
+        💡 <b>이 보드는 외부 보고용 시각화 화면입니다 (KPI 트리 + 55 프로젝트 체크리스트).</b>
         실데이터(매출 입력·프로젝트 진척도·담당자 배정)는 별도 페이지에서 관리하세요:
         <span style={{ marginLeft:4 }}>
-          🎯 <b>OKR · 결과지표</b> (매출 입력) · 🗂️ <b>프로젝트</b> (진척도·담당자·📈활동지표) · 🏠 <b>오늘 업무</b> (task 인라인 편집)
+          🎯 <b>OKR · 결과지표</b> (매출 입력) · 🗂️ <b>프로젝트</b> (55건 진척도·담당자·📈활동지표) · 🏠 <b>오늘 업무</b> (task 인라인 편집)
         </span>
         <br/>
         <span style={{ fontSize:10.5, fontWeight:600, color:'#1E3A8A' }}>
@@ -6373,7 +6373,7 @@ const OKR_SEED = {
   ],
 };
 
-// 기본 프로젝트 시드 — workmgmt 53개 프로젝트를 pour-projects로 복제
+// 기본 프로젝트 시드 — workmgmt 55개 프로젝트를 pour-projects로 복제
 // owner/collab의 kpiMemberId(songhee·minji·ran)는 staff 컬렉션에서 매칭하여 staffId로 변환.
 // krKey로 keyResults 매핑 → keyResultId 설정.
 const WORKMGMT_PROJECTS_SEED = [
@@ -6406,7 +6406,9 @@ const WORKMGMT_PROJECTS_SEED = [
   { code:'p101', krKey:'KR2', group:'B2B 종합', name:'B2B 협약 협상',                                     ownerKey:'songhee' },
   { code:'p102', krKey:'KR2', group:'B2B 종합', name:'OEM/ODM 소싱·협상',                                ownerKey:'songhee' },
   { code:'p103', krKey:'KR2', group:'B2B 종합', name:'도매꾹·나비엠알오 프로모션·박스(MOQ) 운영',          ownerKey:'ran', collabKeys:['minji'] },
-  { code:'p104', krKey:'KR2', group:'B2B 종합', name:'위탁 셀러·인플루언서·유튜버 협업',                  ownerKey:'ran', collabKeys:['songhee'] },
+  { code:'p104', krKey:'KR2', group:'B2B 종합', name:'인플루언서·유튜버 마케팅 협업',                      ownerKey:'ran', collabKeys:['minji'] },
+  { code:'p113', krKey:'KR2', group:'B2B 종합', name:'온라인 위탁 판매처 제안 (셀러 발굴·온보딩)',         ownerKey:'minji', collabKeys:['songhee'] },
+  { code:'p114', krKey:'KR2', group:'B2B 종합', name:'온라인 위탁 판매처 매출 추적·정산',                  ownerKey:'minji', collabKeys:['ran'] },
   { code:'p105', krKey:'KR2', group:'B2B 종합', name:'대리점·파트너 고객/운영관리',                       ownerKey:'ran', collabKeys:['songhee'] },
   { code:'p106', krKey:'KR2', group:'B2B 종합', name:'시공매칭 실행',                                     ownerKey:'ran', collabKeys:['songhee'] },
   { code:'p107', krKey:'KR2', group:'B2B 종합', name:'박람회 참여관리',                                   ownerKey:'ran', collabKeys:['minji'] },
@@ -6978,7 +6980,7 @@ function ProjectsPage({ onToast }) {
   if (!activeStaff) return <div style={{ padding:60, textAlign:'center', color:'var(--text-sm)' }}>활동 담당자 선택이 필요합니다.</div>;
   if (loading) return <div style={{ padding:60, textAlign:'center', color:'var(--text-sm)' }}>로딩 중...</div>;
 
-  // 🌱 workmgmt 53개 프로젝트를 pour-projects로 일괄 시드
+  // 🌱 workmgmt 55개 프로젝트를 pour-projects로 일괄 시드
   // 매핑:
   //   krKey ('KR1'|'KR2'|'KR3') → keyResults에서 동일 krKey인 KR의 id
   //   ownerKey ('songhee'|'minji'|'ran') → staff 컬렉션에서 kpiMemberId === ownerKey인 staff의 id
@@ -7049,7 +7051,7 @@ function ProjectsPage({ onToast }) {
     setSeeding(false);
   };
 
-  // 🔄 본인/담당자 매핑 재계산 — 시드 후 staff.kpiMemberId 설정한 경우 53개 프로젝트 일괄 보정
+  // 🔄 본인/담당자 매핑 재계산 — 시드 후 staff.kpiMemberId 설정한 경우 55개 프로젝트 일괄 보정
   // 스마트 자동 추론: staff.name에 '송희' 포함 → kpiMemberId='songhee', '민지'→'minji', '란'→'ran'
   // 1) 미설정 staff를 이름으로 자동 추론 → 미리보기 confirm → staff.kpiMemberId 업데이트
   // 2) 프로젝트의 ownerStaffId/assigneeStaffIds를 시드 데이터 기준으로 일괄 재계산
@@ -7322,7 +7324,7 @@ function ProjectsPage({ onToast }) {
           {projects.length === 0 ? (
             <>
               등록된 프로젝트가 없습니다.<br/>
-              👉 상단의 <b style={{ color:'var(--navy)' }}>[🌱 기본 프로젝트 일괄 등록 ({WORKMGMT_PROJECTS_SEED.length}건)]</b> 버튼 한 번 클릭으로 workmgmt 53개 프로젝트가 KR과 자동 연결되어 등록됩니다.<br/>
+              👉 상단의 <b style={{ color:'var(--navy)' }}>[🌱 기본 프로젝트 일괄 등록 ({WORKMGMT_PROJECTS_SEED.length}건)]</b> 버튼 한 번 클릭으로 workmgmt 55개 프로젝트가 KR과 자동 연결되어 등록됩니다.<br/>
               <span style={{ fontSize:11, color:'var(--text-xs)' }}>※ 사전에 OKR 페이지에서 KR을 먼저 등록해야 자동 매칭됩니다.</span>
             </>
           ) : '조건에 맞는 프로젝트가 없습니다.'}

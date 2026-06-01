@@ -347,6 +347,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
 .media-star{display:inline-flex;align-items:center;gap:3px;margin-left:9px;vertical-align:middle;background:var(--accent-soft);color:var(--accent);border:none;border-radius:999px;font-family:inherit;font-size:11px;font-weight:800;padding:3px 9px;cursor:pointer;transition:all .15s;line-height:1;}
 .media-star:hover{background:var(--accent);color:#fff;transform:translateY(-1px);}
 .media-star .cnt{font-size:10px;font-weight:800;}
+.media-star.empty{opacity:.5;}
+/* 인라인 글 편집 (편집 모드) */
+.editable-on{outline:1.5px dashed rgba(49,130,246,.45);outline-offset:2px;border-radius:5px;cursor:text;}
+.editable-on:focus{outline:2px solid var(--accent);background:rgba(49,130,246,.06);}
 
 .modal-overlay{position:fixed;inset:0;z-index:500;background:rgba(15,20,30,0.74);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;padding:40px;}
 .modal-overlay.open{display:flex;animation:mfade .2s ease;}
@@ -522,20 +526,20 @@ body.present-mode .edit-fab{display:none!important;}
         <div class="card-label">// 증명됨 (Validated)</div>
         <div class="card-title">수요와 구조는 만들었다</div>
         <ul class="card-list">
-          <li><span class="ic">🧠</span><b>마스터프롬프트 제작</b> — 브랜드 정체성·BMA·KPI 내재화, 판단 기준 확립</li>
-          <li><span class="ic">📐</span>BMA 정리 → <b>8개 수익구조</b> 도출 (서비스소개·계약서·UX 설계 가능)</li>
-          <li><span class="ic">📣</span>공급사 인바운드 <b>146건</b> — 광고비 0원, 전부 아웃리치로 확보</li>
-          <li><span class="ic">📦</span>공급사 DB 109 · 신박템 33 · 셀러 16 <b>자산화</b></li>
-          <li><span class="ic">🔧</span>관리자 시스템 · CRM센터 · 경영 대시보드 설계·구축</li>
+          <li><span class="ic">🧠</span><b>마스터프롬프트 제작</b> — 브랜드 정체성·BMA·KPI 내재화, 판단 기준 확립<button class="media-star" data-node="s2-1" data-title="마스터프롬프트 제작" title="자료 첨부·보기" contenteditable="false" style="margin-left:auto;flex-shrink:0">★<span class="cnt">0</span></button></li>
+          <li><span class="ic">📐</span>BMA 정리 → <b>8개 수익구조</b> 도출 (서비스소개·계약서·UX 설계 가능)<button class="media-star" data-node="s2-2" data-title="BMA 8개 수익구조" title="자료 첨부·보기" contenteditable="false" style="margin-left:auto;flex-shrink:0">★<span class="cnt">0</span></button></li>
+          <li><span class="ic">📣</span>공급사 인바운드 <b>146건</b> — 광고비 0원, 전부 아웃리치로 확보<button class="media-star" data-node="s2-3" data-title="공급사 인바운드 146건" title="자료 첨부·보기" contenteditable="false" style="margin-left:auto;flex-shrink:0">★<span class="cnt">0</span></button></li>
+          <li><span class="ic">📦</span>공급사 DB 109 · 신박템 33 · 셀러 16 <b>자산화</b><button class="media-star" data-node="s2-4" data-title="DB 자산화(공급사·신박템·셀러)" title="자료 첨부·보기" contenteditable="false" style="margin-left:auto;flex-shrink:0">★<span class="cnt">0</span></button></li>
+          <li><span class="ic">🔧</span>관리자 시스템 · CRM센터 · 경영 대시보드 설계·구축<button class="media-star" data-node="s2-5" data-title="관리자·CRM·대시보드" title="자료 첨부·보기" contenteditable="false" style="margin-left:auto;flex-shrink:0">★<span class="cnt">0</span></button></li>
         </ul>
       </div>
       <div class="card fade d2">
         <div class="card-label">// 미검증 (Not yet)</div>
         <div class="card-title">남은 건 '전환'이다</div>
         <ul class="card-list">
-          <li><span class="ic">🛒</span>셀러 101 → 제안 26 → 공구 <b>10건</b>·누적 매출 <b>1,220,610원</b> — <b>소규모 검증까지만</b></li>
-          <li><span class="ic">⚠️</span>실매출·GMV 본격 전환은 아직 — <b>수요는 충분, 전환이 비었다</b></li>
-          <li><span class="ic">🎯</span><b>다음 반기 1순위 = 실매출 전환</b> — 정하님과 본격 실행</li>
+          <li><span class="ic">🛒</span>셀러 101 → 제안 26 → 공구 <b>10건</b>·누적 매출 <b>1,220,610원</b> — <b>소규모 검증까지만</b><button class="media-star" data-node="s2-6" data-title="셀러 퍼널·공구 10건·누적매출" title="자료 첨부·보기" contenteditable="false" style="margin-left:auto;flex-shrink:0">★<span class="cnt">0</span></button></li>
+          <li><span class="ic">⚠️</span>실매출·GMV 본격 전환은 아직 — <b>수요는 충분, 전환이 비었다</b><button class="media-star" data-node="s2-7" data-title="전환 미검증(실매출·GMV)" title="자료 첨부·보기" contenteditable="false" style="margin-left:auto;flex-shrink:0">★<span class="cnt">0</span></button></li>
+          <li><span class="ic">🎯</span><b>다음 반기 1순위 = 실매출 전환</b> — 정하님과 본격 실행<button class="media-star" data-node="s2-8" data-title="다음 반기 실매출 전환" title="자료 첨부·보기" contenteditable="false" style="margin-left:auto;flex-shrink:0">★<span class="cnt">0</span></button></li>
         </ul>
         <div class="stat-row">
           <div class="stat-mini"><div class="stat-mini-v">146건</div><div class="stat-mini-l">인바운드</div></div>
@@ -572,25 +576,25 @@ body.present-mode .edit-fab{display:none!important;}
   <div class="slide-body">
     <div class="exp-grid">
       <div class="exp-card fade d1">
-        <div class="exp-no">EXP 01</div>
+        <div class="exp-no">EXP 01<button class="media-star" data-node="s3-1" data-title="EXP01 도매꾹 상품 등록" title="자료 첨부·보기" contenteditable="false" style="float:right">★<span class="cnt">0</span></button></div>
         <div class="exp-title">도매꾹 상품 등록 50개</div>
         <div class="exp-hyp">가설 — <b>판매 품목이 많아 보이면 신뢰성이 올라간다.</b> 중급 브랜드 엑셀 정리 후 자사몰(카페24) 진열.</div>
         <div class="exp-foot"><span class="exp-chip">등록 50개</span><span class="exp-chip">진행 중</span></div>
       </div>
       <div class="exp-card fade d2">
-        <div class="exp-no">EXP 02</div>
+        <div class="exp-no">EXP 02<button class="media-star" data-node="s3-2" data-title="EXP02 인스타 자체판매" title="자료 첨부·보기" contenteditable="false" style="float:right">★<span class="cnt">0</span></button></div>
         <div class="exp-title">인스타그램 자체 판매</div>
         <div class="exp-hyp">가설 — <b>자체 판매 시 광고·노출·이익률이 함께 오른다.</b> 숏폼+메타광고, 인포크링크 자동화, '~~맘' 버티컬 계정 전략.</div>
         <div class="exp-foot"><span class="exp-chip">숏폼+메타</span><span class="exp-chip">버티컬 브랜드</span></div>
       </div>
       <div class="exp-card fade d3">
-        <div class="exp-no">EXP 03</div>
+        <div class="exp-no">EXP 03<button class="media-star" data-node="s3-3" data-title="EXP03 신박템 소싱·입점제안" title="자료 첨부·보기" contenteditable="false" style="float:right">★<span class="cnt">0</span></button></div>
         <div class="exp-title">신박템 소싱 → 입점 제안</div>
         <div class="exp-hyp">가설 — <b>1~3만원대 신박템은 구매 욕구가 높다.</b> 소싱 후 공급사에 입점 제안서 발송.</div>
         <div class="exp-foot"><span class="exp-chip">신박템 33건</span><span class="exp-chip">공급사 DB 109건</span></div>
       </div>
       <div class="exp-card fade d4">
-        <div class="exp-no">EXP 04</div>
+        <div class="exp-no">EXP 04<button class="media-star" data-node="s3-4" data-title="EXP04 셀러 공구 제안" title="자료 첨부·보기" contenteditable="false" style="float:right">★<span class="cnt">0</span></button></div>
         <div class="exp-title">셀러 공구 제안</div>
         <div class="exp-hyp">가설 — <b>협찬·공구 제안 + 촬영 가이드 제공</b>으로 셀러가 직접 공구를 개최하게 만든다.</div>
         <div class="exp-foot"><span class="exp-chip">셀러 DB 16건</span><span class="exp-chip">제안서 제작</span></div>
@@ -626,7 +630,7 @@ body.present-mode .edit-fab{display:none!important;}
         <div class="cn-total"><b>6건</b><span>주요 협업 · 송희 + 정하</span></div>
         <div class="cn-pairs">
           <div class="cn-pair">
-            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 정하</span><span class="cn-pair-cnt">6건</span><span class="cn-pair-flow">본격 가동 → 재점화</span></div>
+            <div class="cn-pair-head"><span class="cn-pair-who">송희 + 정하</span><span class="cn-pair-cnt">6건</span><button class="media-star" data-node="s7m-1" data-title="송희+정하 협업 자료" title="자료 첨부·보기" contenteditable="false" style="margin-left:9px">★<span class="cnt">0</span></button><span class="cn-pair-flow">본격 가동 → 재점화</span></div>
             <div class="cn-chips"><span class="cn-chip">모여라딜 재점화</span><span class="cn-chip">셀러 공구 제안</span><span class="cn-chip">신박템 소싱 33건</span><span class="cn-chip">공급사 DB 109건</span><span class="cn-chip">인스타 자체판매</span><span class="cn-chip">공구 운영·판매 데이터</span></div>
           </div>
         </div>
@@ -1220,9 +1224,11 @@ async function loadMediaFromFirestore(){
 function refreshStarButtons(){
   document.querySelectorAll('.media-star').forEach(b=>{
     const node=b.dataset.node,arr=mediaData[node];
-    if(!arr||!arr.length){b.style.display='none';return;}
-    b.style.display='';
-    const c=b.querySelector('.cnt');if(c)c.textContent=arr.length;
+    const n=arr?arr.length:0;
+    const c=b.querySelector('.cnt');if(c)c.textContent=n;
+    if(n>0){b.style.display='';b.classList.remove('empty');}
+    else if(editMode){b.style.display='';b.classList.add('empty');}
+    else{b.style.display='none';}
   });
 }
 
@@ -1239,6 +1245,8 @@ editFab.addEventListener('click',()=>{
   editMode=!editMode;
   editFab.classList.toggle('on',editMode);
   editFab.textContent=editMode?'✎ 편집 중':'✎ 편집';
+  refreshStarButtons();
+  setTextEditable(editMode);
   if(modalOpen)mEditBar.classList.toggle('show',editMode);
 });
 
@@ -1274,14 +1282,21 @@ function mRender(){
 }
 
 function mOpen(node,title){
-  const arr=mediaData[node];
-  if(!arr||!arr.length)return;
+  const arr=mediaData[node]||[];
+  if(!arr.length && !editMode){return;}   /* 빈 항목은 편집 모드에서만 열림 */
   mArr=[...arr];mIdx=0;curNode=node;modalOpen=true;
   document.getElementById('mTitle').textContent=title||'관련 자료';
   mOverlay.classList.add('open');
-  mRender();
+  if(mArr.length){mRender();}
+  else{
+    mHolder.innerHTML='<div style="color:#fff;opacity:.65;padding:48px 24px;text-align:center;font-size:14px;line-height:1.7">아직 첨부된 자료가 없습니다.<br>아래 <b>+ 파일 추가</b>로 사진·영상을 업로드하세요.</div>';
+    document.getElementById('mCaption').textContent='';
+    document.getElementById('mCounter').textContent='0 / 0';
+    mDots.innerHTML='';mPrevBtn.style.display='none';mNextBtn.style.display='none';
+  }
   mEditBar.classList.toggle('show',editMode);
-  mUploadPanel.classList.remove('show');
+  if(!mArr.length && editMode){mUploadPanel.classList.add('show');}
+  else{mUploadPanel.classList.remove('show');}
 }
 
 function mClose(){
@@ -1365,12 +1380,14 @@ function resetUploadPanel(){
   mDoUpload.disabled=true;
 }
 
-document.querySelectorAll('.media-star').forEach(b=>{
-  const node=b.dataset.node,arr=mediaData[node];
-  if(!arr||!arr.length){b.style.display='none';return;}
-  const c=b.querySelector('.cnt');if(c)c.textContent=arr.length;
-  b.addEventListener('click',e=>{e.stopPropagation();mOpen(node,b.dataset.title);});
+/* ★ 클릭은 이벤트 위임 — 글 편집(innerHTML 교체) 후에도 안정 동작 */
+document.addEventListener('click',e=>{
+  const b=e.target.closest('.media-star');
+  if(!b)return;
+  e.preventDefault();e.stopPropagation();
+  mOpen(b.dataset.node,b.dataset.title);
 });
+refreshStarButtons();
 mPrevBtn.addEventListener('click',mPrev);
 mNextBtn.addEventListener('click',mNext);
 document.getElementById('mClose').addEventListener('click',mClose);
@@ -1385,6 +1402,45 @@ loadMediaFromFirestore();
 document.querySelectorAll('.tbd').forEach(el=>{
   if(!/[_?○]|확인|TBD/.test(el.textContent)) el.classList.add('filled');
 });
+
+/* ── 인라인 글 편집: 편집 모드에서 모든 글 항목 직접 수정 → Firestore 저장 ── */
+const EDIT_SEL=['.sec-title','.sec-desc','.card-title','.card-label','.card-list li','.feat-title','.feat-desc','.exp-title','.exp-hyp','.exp-no','.tl-head','.tl-body','.tl-date','.highlight-box p','.insight-strip p','.run-strip .txt','.run-strip .lab','.bma-insight-txt','.bma-insight-tag','.honest-title','.honest-item-title','.honest-item-desc','.renew-why .t','.status-name','.phase-box-title','.phase-box-desc','.team-name','.team-role','.team-tasks li','.cn-chip','.cn-pair-who','.cn-pair-flow','.cn-total','.cn-note','.cn-relay-t','.next-card-title','.next-card-desc','.next-card-tag','.next-hero-text','.goal-card-title','.goal-item','.goal-big','.goal-sub','.kpi-box-title','.kpi-row','.dash-metric-v','.dash-metric-l','.gmv-cap','.bep-note','.bep-top','.closing h3','.closing p','.stat-mini-l','.ramp-v','.ramp-q','.ramp-l','.title-name','.title-sub','.title-stat-l','.tstat-glabel','.date-chip','.role-badge span'].join(',');
+const editEls=[...document.querySelectorAll(EDIT_SEL)];
+editEls.forEach((el,i)=>{el.dataset.eid='t'+i;});
+let textOverrides={};
+function applyTextOverrides(){
+  editEls.forEach(el=>{const v=textOverrides[el.dataset.eid];if(v!=null && el.innerHTML!==v)el.innerHTML=v;});
+  refreshStarButtons();
+}
+async function loadTextOverrides(){
+  try{
+    const doc=await db.collection('growthboard-song-media').doc('__text__').get();
+    if(doc.exists){textOverrides=doc.data()||{};applyTextOverrides();
+      console.log('[text-override] 적용',Object.keys(textOverrides).length,'건');}
+  }catch(e){console.error('[text-override] 로드 실패',e);}
+}
+let txtSaveTimer=null;
+function queueSaveText(){
+  clearTimeout(txtSaveTimer);
+  txtSaveTimer=setTimeout(()=>{
+    db.collection('growthboard-song-media').doc('__text__').set(textOverrides,{merge:true})
+      .then(()=>console.log('[text-override] 저장 완료'))
+      .catch(e=>console.error('[text-override] 저장 실패',e));
+  },800);
+}
+function setTextEditable(on){
+  editEls.forEach(el=>{el.contentEditable=on?'true':'false';el.classList.toggle('editable-on',on);});
+  document.querySelectorAll('.media-star').forEach(b=>{b.contentEditable='false';});
+}
+editEls.forEach(el=>{
+  el.addEventListener('blur',()=>{
+    if(!editMode)return;
+    textOverrides[el.dataset.eid]=el.innerHTML;
+    queueSaveText();
+  });
+  el.addEventListener('keydown',ev=>{ev.stopPropagation();});
+});
+loadTextOverrides();
 
 updateUI(0);
 </script>

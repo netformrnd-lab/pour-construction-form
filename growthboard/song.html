@@ -46,6 +46,14 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
 .sec-num{font-size:13px;font-weight:700;color:var(--accent);letter-spacing:0.06em;margin-bottom:13px;}
 .sec-title{font-size:clamp(26px,3.3vw,40px);font-weight:800;letter-spacing:-0.02em;margin-bottom:8px;line-height:1.2;color:var(--ink);}
 .sec-desc{font-size:15px;color:var(--ink2);font-weight:500;line-height:1.6;}
+/* 슬라이드별 트랙 색 구분 (모여라딜=블루 / 스토어=주황 / 인트로·마무리=그레이) */
+.sec-num.md{color:var(--accent);}
+.sec-num.ps{color:var(--indigo);}
+.sec-num.end{color:var(--ink3);}
+.sec-num::before{content:"";display:inline-block;width:16px;height:3px;border-radius:2px;background:currentColor;vertical-align:middle;margin-right:9px;opacity:.95;}
+/* 확인 필요 값(빨간 표시) — 실제 값(숫자) 입력하면 자동으로 정상색 처리 */
+.tbd{color:var(--red);font-weight:800;border-bottom:1.5px dashed var(--red);padding-bottom:1px;}
+.tbd.filled{color:inherit;font-weight:inherit;border-bottom:none;padding-bottom:0;}
 
 /* tags */
 .tag{display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:0;}
@@ -450,7 +458,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="s1">
   <div class="slide-header">
-    <div class="sec-num fade">01 · JOURNEY</div>
+    <div class="sec-num fade end">01 · JOURNEY</div>
     <h2 class="sec-title fade d1">지원으로 들어와서 구조를 만들었습니다.</h2>
     <p class="sec-desc fade d2">모여라딜 리드였고, 지원 업무로 넘어갔고, 결국 두 프로젝트의 리드가 됐습니다.</p>
   </div>
@@ -460,7 +468,7 @@ body.present-mode .edit-fab{display:none!important;}
         <div class="tl-dot"></div>
         <div class="tl-date">이전 그로스보드</div>
         <div class="tl-head">모여라딜 리드 — 공급사 인바운드·공구<button class="media-star" data-node="n0" data-title="이전 그로스보드 · 모여라딜 리드 — 공급사 인바운드·공구" title="관련 자료 보기">★<span class="cnt">3</span></button></div>
-        <div class="tl-body">동환님 댓글 작업 <b>3회</b>로 공급사 인바운드 <b>19곳</b> 확보. 셀러 영업·공구 <b>9건</b>, 누적 매출 108만원.</div>
+        <div class="tl-body">동환님 댓글 작업 <b>1회</b>로 공급사 인바운드 <b>19곳</b> 확보. 셀러 영업·공구 <b>9건</b>, 누적 매출 108만원.</div>
         <div class="tl-tags"><span class="tag gold">인바운드 19곳</span><span class="tag gold">공구 9건</span><span class="tag gold">누적 108만원</span></div>
       </div>
       <div class="tl-item fade d2">
@@ -504,7 +512,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="s2">
   <div class="slide-header">
-    <div class="sec-num fade">PART 1 · 모여라딜 — 성과</div>
+    <div class="sec-num fade md">PART 1 · 모여라딜 — 성과</div>
     <h2 class="sec-title fade d1">수요는 증명했고, 전환은 이제부터입니다.</h2>
     <p class="sec-desc fade d2">검증된 것(수요·인바운드 146건·8개 수익구조)과 아직 비어 있는 것(전환·실매출)을 분명히 구분합니다.</p>
   </div>
@@ -525,7 +533,7 @@ body.present-mode .edit-fab{display:none!important;}
         <div class="card-label">// 미검증 (Not yet)</div>
         <div class="card-title">남은 건 '전환'이다</div>
         <ul class="card-list">
-          <li><span class="ic">🛒</span>셀러 101 → 제안 26 → 공구 <b>10건</b>·매출 108만원 — <b>소규모 검증까지만</b></li>
+          <li><span class="ic">🛒</span>셀러 101 → 제안 26 → 공구 <b>10건</b>·누적 매출 <b>1,220,610원</b> — <b>소규모 검증까지만</b></li>
           <li><span class="ic">⚠️</span>실매출·GMV 본격 전환은 아직 — <b>수요는 충분, 전환이 비었다</b></li>
           <li><span class="ic">🎯</span><b>다음 반기 1순위 = 실매출 전환</b> — 정하님과 본격 실행</li>
         </ul>
@@ -557,7 +565,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="s3">
   <div class="slide-header">
-    <div class="sec-num fade">PART 1 · 모여라딜 — 직접 팔아보자</div>
+    <div class="sec-num fade md">PART 1 · 모여라딜 — 직접 팔아보자</div>
     <h2 class="sec-title fade d1">이제 직접 팔아봅니다.</h2>
     <p class="sec-desc fade d2">4개의 가설을 동시에 실험 — 하현님이 실행을 열고, 정하님이 본격 가동합니다.</p>
   </div>
@@ -590,17 +598,17 @@ body.present-mode .edit-fab{display:none!important;}
     </div>
     <div class="run-strip fade d5">
       <div class="lab">⚡ 실행 원칙</div>
-      <div class="txt">도매꾹으로 <b>직접 공구 10회</b> 실험 (개당 마진 1천원 → <b>최소 2천원 남는 구조</b> 목표). 샘플 구매 완료, 직접 촬영·셀러 협찬 병행. <b>빠른 실행 → 데이터 → 개선</b> 반복으로 빅데이터를 자산화합니다.</div>
+      <div class="txt"><b>다음 분기</b> 도매꾹 <b>직접 공구 10회</b> 실험 (개당 마진 1천원 → <b>최소 2천원 남는 구조</b> 목표). 샘플 구매 완료, 직접 촬영·셀러 협찬 병행. <b>빠른 실행 → 데이터 → 개선</b> 반복으로 빅데이터를 자산화합니다.</div>
     </div>
     <div class="insight-strip fade d6">
-      <p>모여라딜은 <strong>카테고리 제한이 없습니다.</strong> 방안을 <strong>100번 실행·실패</strong>하고 <strong>AB테스트로 더 나은 방식을 내재화</strong>하면 — <strong>10억, 그 이상도 어렵지 않은 곳</strong>입니다.</p>
+      <p>모여라딜은 <strong>카테고리 제한이 없습니다.</strong> <strong>올해</strong> 방안을 <strong>100번 실행·실패</strong>하고 <strong>AB테스트로 더 나은 방식을 내재화</strong>하면 — <strong>10억, 그 이상도 어렵지 않은 곳</strong>입니다.</p>
     </div>
   </div>
 </section>
 
 <section class="slide" id="s7m">
   <div class="slide-header">
-    <div class="sec-num fade">PART 1 · 모여라딜 — 협업</div>
+    <div class="sec-num fade md">PART 1 · 모여라딜 — 협업</div>
     <h2 class="sec-title fade d1">모여라딜 — 누가 무엇을 함께했나.</h2>
     <p class="sec-desc fade d2">모여라딜 재점화의 핵심 축은 <b>정하님</b> — 송희(리드)와 함께 <b>"직접 팔아보자"</b> 실행을 본격 가동합니다.</p>
   </div>
@@ -630,7 +638,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="s4">
   <div class="slide-header">
-    <div class="sec-num fade">PART 2 · POUR스토어 — 개요</div>
+    <div class="sec-num fade ps">PART 2 · POUR스토어 — 개요</div>
     <h2 class="sec-title fade d1">합류 두 달, 운영 시스템을 세웠습니다.</h2>
     <p class="sec-desc fade d2">3.26 합류 이후 만든 것들 — 그리고 솔직한 현황.</p>
   </div>
@@ -656,7 +664,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="s5r">
   <div class="slide-header">
-    <div class="sec-num fade">PART 2 · POUR스토어 — 자사몰</div>
+    <div class="sec-num fade ps">PART 2 · POUR스토어 — 자사몰</div>
     <h2 class="sec-title fade d1">자사몰 리뉴얼 — 3대 축으로 다시.<button class="media-star" data-node="n6" data-title="자사몰 리뉴얼 — 구축 현황" title="구축 현황 사진 보기">★<span class="cnt">3</span></button></h2>
     <p class="sec-desc fade d2">아임웹 → 카페24 이전 + 모바일 퍼스트 재설계. <b>페이지 디자인 · 로고 개편 · AI 챗봇</b> 3가지를 동시에 진행 중입니다.</p>
   </div>
@@ -687,7 +695,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="s5b">
   <div class="slide-header">
-    <div class="sec-num fade">PART 2 · POUR스토어 — AI·SKU</div>
+    <div class="sec-num fade ps">PART 2 · POUR스토어 — AI·SKU</div>
     <h2 class="sec-title fade d1">데이터가 쌓이는 구조를 만듭니다.</h2>
     <p class="sec-desc fade d2">AI 하자진단 템플릿 · SKU 세분화 — 쌓일수록 영업·추천이 똑똑해집니다.</p>
   </div>
@@ -723,7 +731,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="s7p">
   <div class="slide-header">
-    <div class="sec-num fade">PART 2 · POUR스토어 — 협업</div>
+    <div class="sec-num fade ps">PART 2 · POUR스토어 — 협업</div>
     <h2 class="sec-title fade d1">POUR스토어 — 4인 협업 구조.</h2>
     <p class="sec-desc fade d2">송희(리드) + 민지·란·채림 — 영역별로 분담하며 <b>33개 협업 프로젝트</b>를 함께 진행했습니다.</p>
   </div>
@@ -785,8 +793,8 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="s7">
   <div class="slide-header">
-    <div class="sec-num fade">PART 2 · POUR스토어 — 팀</div>
-    <h2 class="sec-title fade d1">3인 체계 완성.</h2>
+    <div class="sec-num fade ps">PART 2 · POUR스토어 — 팀</div>
+    <h2 class="sec-title fade d1">리드 + 3인, 4인 체계 완성.</h2>
     <p class="sec-desc fade d2">채림님 인턴 → 정규직 전환 계약 포함 · Phase 0 → 1 → 2</p>
   </div>
   <div class="slide-body">
@@ -848,7 +856,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="s6">
   <div class="slide-header">
-    <div class="sec-num fade">PART 2 · POUR스토어 — 대시보드·KPI</div>
+    <div class="sec-num fade end">공통 · 경영 대시보드·KPI</div>
     <h2 class="sec-title fade d1">숫자로 경영합니다.</h2>
     <p class="sec-desc fade d2">모여라딜에 먼저 구축 · POUR스토어도 제작 예정 — 실데이터 검증이 다음 과제.</p>
   </div>
@@ -867,11 +875,12 @@ body.present-mode .edit-fab{display:none!important;}
             <div class="dash-metric"><div class="dash-metric-v">83%</div><div class="dash-metric-l">공구 완판율</div></div>
           </div>
           <div class="gmv-chart">
-            <div class="gmv-row"><span class="gmv-mon">25.12</span><div class="gmv-bar-wrap"><div class="gmv-bar" style="width:71%"></div></div><span class="gmv-val">356,300</span></div>
+            <div class="gmv-cap" style="font-size:11px;color:var(--ink3);font-weight:600;margin-bottom:9px;">월별 GMV · 2026 — 전체 누적(LIFETIME) <b style="color:var(--ink)">1,220,610원</b> = 2025 622,100 + 2026 598,510</div>
             <div class="gmv-row"><span class="gmv-mon">26.01</span><div class="gmv-bar-wrap"><div class="gmv-bar" style="width:100%"></div></div><span class="gmv-val">501,000</span></div>
             <div class="gmv-row"><span class="gmv-mon">26.02</span><div class="gmv-bar-wrap"><div class="gmv-bar" style="width:1%"></div></div><span class="gmv-val">0</span></div>
             <div class="gmv-row"><span class="gmv-mon">26.03</span><div class="gmv-bar-wrap"><div class="gmv-bar" style="width:19%"></div></div><span class="gmv-val">97,510</span></div>
-            <div class="gmv-row"><span class="gmv-mon">26.04~05</span><div class="gmv-bar-wrap"><div class="gmv-bar" style="width:1%"></div></div><span class="gmv-val">0</span></div>
+            <div class="gmv-row"><span class="gmv-mon">26.04</span><div class="gmv-bar-wrap"><div class="gmv-bar" style="width:1%"></div></div><span class="gmv-val">0</span></div>
+            <div class="gmv-row"><span class="gmv-mon">26.05</span><div class="gmv-bar-wrap"><div class="gmv-bar" style="width:1%"></div></div><span class="gmv-val">0</span></div>
           </div>
         </div>
       </div>
@@ -918,7 +927,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="snew">
   <div class="slide-header">
-    <div class="sec-num fade">확장 · 신규 / 재정비</div>
+    <div class="sec-num fade end">확장 · 신규 / 재정비</div>
     <h2 class="sec-title fade d1">신규 · 재정비 — 구조부터 만듭니다.</h2>
     <p class="sec-desc fade d2">리드가 직접 붙어 구조를 세우는 사업들 — <b>신규 진입</b>과 <b>재정비·재가동</b>을 함께. 자리 잡으면 담당에게 이관합니다.</p>
   </div>
@@ -928,7 +937,7 @@ body.present-mode .edit-fab{display:none!important;}
         <div class="feat-icon">🏪</div>
         <div style="margin-bottom:9px"><span class="tag gold">재가동 · 재정비</span></div>
         <div class="feat-title">대리점</div>
-        <div class="feat-desc"><b>가나랜드 · 경남지사</b> 오픈 예정. 대리점 정책을 세분화해 고도화 중. <b>5포점</b>까지 시행착오 기반으로 점포 수 확대.<br><br>작년 첫 세팅 → 란님이 이어 운영 → <b>송희 재합류로 재가동·리드</b>. (송희↔란 바통 사례: 10번 슬라이드)</div>
+        <div class="feat-desc"><b>가나랜드 · 경남지사</b> 오픈 예정. 대리점 정책을 세분화해 고도화 중. <b>5포점</b>까지 시행착오 기반으로 점포 수 확대.<br><br>작년 첫 세팅 → 란님이 이어 운영 → <b>송희 재합류로 재가동·리드</b>. (송희↔란 바통 사례: 협업·스토어 슬라이드 참고)</div>
       </div>
       <div class="feat-card fade d2">
         <div class="feat-icon">🤝</div>
@@ -951,7 +960,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="s8">
   <div class="slide-header">
-    <div class="sec-num fade">마무리 · NEXT</div>
+    <div class="sec-num fade end">마무리 · NEXT</div>
     <h2 class="sec-title fade d1">다음 분기에 들고 옵니다.</h2>
     <p class="sec-desc fade d2">모여라딜 재점화 · POUR스토어 실매출 · 시스템 실검증</p>
   </div>
@@ -966,7 +975,7 @@ body.present-mode .edit-fab{display:none!important;}
       <div class="next-card fade d2">
         <div class="next-card-tag">모여라딜</div>
         <div class="next-card-title">정하님과 본격 실행</div>
-        <div class="next-card-desc">도매꾹 직접 공구 10회 실험. 신박템 소싱 → 공급사 입점 제안. 인스타그램 숏폼+메타광고 자체 판매. "직접 팔아보자" 가설 검증.</div>
+        <div class="next-card-desc">다음 분기 도매꾹 직접 공구 10회 실험. 신박템 소싱 → 공급사 입점 제안. 인스타그램 숏폼+메타광고 자체 판매. "직접 팔아보자" 가설 검증.</div>
       </div>
       <div class="next-card fade d2">
         <div class="next-card-tag">POUR스토어</div>
@@ -992,7 +1001,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="sramp">
   <div class="slide-header">
-    <div class="sec-num fade">마무리 · 성장 램프</div>
+    <div class="sec-num fade end">마무리 · 성장 램프</div>
     <h2 class="sec-title fade d1">0에서 BEP를 지나, 연 10억까지.</h2>
     <p class="sec-desc fade d2">상반기엔 구조를 만들었습니다. 하반기는 이 곡선을 탑니다 — 언제 · 무엇 · 얼마.</p>
   </div>
@@ -1005,7 +1014,7 @@ body.present-mode .edit-fab{display:none!important;}
         <div class="ramp-l">BMA 집중 · 공구 1건</div>
       </div>
       <div class="ramp-step">
-        <div class="ramp-v">실매출 시작</div>
+        <div class="ramp-v">월 <span class="tbd">___</span></div>
         <div class="ramp-bar" style="height:95px"></div>
         <div class="ramp-q">26 Q3</div>
         <div class="ramp-l">자사몰 오픈 · 정상화</div>
@@ -1033,7 +1042,7 @@ body.present-mode .edit-fab{display:none!important;}
 
 <section class="slide" id="s9">
   <div class="slide-header">
-    <div class="sec-num fade">마무리 · 목표</div>
+    <div class="sec-num fade end">마무리 · 목표</div>
     <h2 class="sec-title fade d1">2026 목표</h2>
     <p class="sec-desc fade d2">POUR스토어 연매출 10억 · 모여라딜 재점화</p>
   </div>
@@ -1180,7 +1189,7 @@ function ph(t,s){return 'data:image/svg+xml,'+encodeURIComponent("<svg xmlns='ht
 
 /* 기본 플레이스홀더 (Firestore 로드 후 교체됨) */
 const mediaData={
-  n0:[{type:'image',src:'https://firebasestorage.googleapis.com/v0/b/moyeora-deal-manager.firebasestorage.app/o/growthboard%2Fsonghee-growthboard%2F%EC%9D%B8%EB%B0%94%EC%9A%B4%EB%93%9C1.%EB%8F%99%ED%99%98.jpg?alt=media',cap:'동환님 댓글 작업 3회 → 공급사 인바운드 총 146건 확보'},
+  n0:[{type:'image',src:'https://firebasestorage.googleapis.com/v0/b/moyeora-deal-manager.firebasestorage.app/o/growthboard%2Fsonghee-growthboard%2F%EC%9D%B8%EB%B0%94%EC%9A%B4%EB%93%9C1.%EB%8F%99%ED%99%98.jpg?alt=media',cap:'동환님 댓글 작업 3회(누적) → 공급사 인바운드 총 146건 확보'},
       {type:'image',src:'https://firebasestorage.googleapis.com/v0/b/moyeora-deal-manager.firebasestorage.app/o/growthboard%2Fsonghee-growthboard%2F%EC%95%84%EC%9B%83%EB%B0%94%EC%9A%B4%EB%93%9C.jpg?alt=media',cap:'월유입 공급사 신규: 1월 19곳 · 2월 50곳 · 3월 37곳'},
       {type:'image',src:'https://firebasestorage.googleapis.com/v0/b/moyeora-deal-manager.firebasestorage.app/o/growthboard%2Fsonghee-growthboard%2F%EC%9D%B8%EB%B0%94%EC%9A%B4%EB%93%9C2.3pl.jpg?alt=media',cap:'3월 공구 1건 진행 · 셀러 영업·공구 9건 · 누적 108만원'}],
   n1:[{type:'image',src:ph('자료 1','타운홀미팅 발표'),cap:'타운홀미팅 — AI 도입 결심'}],
@@ -1371,6 +1380,11 @@ mStage.addEventListener('touchstart',e=>{mSx=e.touches[0].clientX;},{passive:tru
 mStage.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-mSx;if(Math.abs(dx)>40){dx<0?mNext():mPrev();}});
 
 loadMediaFromFirestore();
+
+/* 확인 필요 값: 실제 값(언더스코어/?/○/확인/TBD 없는 텍스트)이 채워지면 자동 정상색 */
+document.querySelectorAll('.tbd').forEach(el=>{
+  if(!/[_?○]|확인|TBD/.test(el.textContent)) el.classList.add('filled');
+});
 
 updateUI(0);
 </script>

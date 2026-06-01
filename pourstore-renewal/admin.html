@@ -7150,6 +7150,8 @@ function ProjectsPage({ onToast }) {
   const [filterStatus, setFilterStatus] = useState('open');    // open|all|done
   const [seeding, setSeeding] = useState(false);
   const [remapping, setRemapping] = useState(false);  // 본인 매핑 재계산 진행 중
+  const [seedingExtras, setSeedingExtras] = useState(false);  // 활동지표·task 보충 진행 중
+  // ⚠️ 모든 useState/useEffect는 반드시 early return 위에 (React Rules of Hooks · #310 방지)
 
   if (!activeStaff) return <div style={{ padding:60, textAlign:'center', color:'var(--text-sm)' }}>활동 담당자 선택이 필요합니다.</div>;
   if (loading) return <div style={{ padding:60, textAlign:'center', color:'var(--text-sm)' }}>로딩 중...</div>;
@@ -7228,7 +7230,7 @@ function ProjectsPage({ onToast }) {
 
   // 🌱 활동지표·기본 task 일괄 보충 — 이미 등록된 프로젝트(projectCode 매칭)에 대해 KPI/task 추가
   // 중복 방지: 동일 이름 KPI/task가 있으면 스킵
-  const [seedingExtras, setSeedingExtras] = useState(false);
+  // (useState는 위로 이동 — early return 이후 호출 시 React #310 발생)
   const seedKpisAndTasks = async () => {
     if (!confirm(
       `프로젝트별 권장 활동지표(KPI) + 기본 task를 일괄 보충합니다.\n\n` +

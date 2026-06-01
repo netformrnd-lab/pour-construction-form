@@ -7236,7 +7236,8 @@ function ProjectsPage({ onToast }) {
       `프로젝트별 권장 활동지표(KPI) + 기본 task를 일괄 보충합니다.\n\n` +
       `· KPI: 각 프로젝트 1~2개 (이름·단위만, 목표값은 사용자가 입력)\n` +
       `· task: 각 프로젝트 2~3개 (제목만, weekDay 미배정)\n` +
-      `· 동일 이름은 중복 추가 안 함\n\n` +
+      `· 동일 이름은 중복 추가 안 함\n` +
+      `· projectCode 미설정 프로젝트는 이름으로 fallback 매칭 + projectCode 자동 백필\n\n` +
       `진행할까요?`
     )) return;
     setSeedingExtras(true);
@@ -7250,17 +7251,54 @@ function ProjectsPage({ onToast }) {
       const existingKpis = existingKpisSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       const existingTasks = existingTasksSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       const existingProjects = existingProjectsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      console.log(`[seed-extras] 시작 — 기존 프로젝트 ${existingProjects.length}건 / KPI ${existingKpis.length}건 / task ${existingTasks.length}건`);
+
+      // 인덱스 구축: projectCode 우선, 이름 fallback
       const projectsByCode = {};
-      existingProjects.forEach(p => { if (p.projectCode) projectsByCode[p.projectCode] = p; });
+      const projectsByName = {};
+      let codedCount = 0, namedCount = 0;
+      existingProjects.forEach(p => {
+        if (p.projectCode) { projectsByCode[p.projectCode] = p; codedCount++; }
+        if (p.name) { projectsByName[p.name] = p; namedCount++; }
+      });
+      console.log(`[seed-extras] projectCode 매칭 가능: ${codedCount}건 / 이름 인덱스: ${namedCount}건`);
 
       let kpiAdded = 0, taskAdded = 0;
-      for (const p of WORKMGMT_PROJECTS_SEED) {
-        const proj = projectsByCode[p.code];
-        if (!proj) continue;  // 프로젝트 미등록 → 스킵 (먼저 프로젝트 시드 필요)
+      let matchedProjects = 0, skippedProjects = 0;
+      let codeBackfilled = 0;
 
-        // KPI 보충
+      for (const p of WORKMGMT_PROJECTS_SEED) {
+        // 1순위: projectCode 매칭, 2순위: 이름 정확 일치
+        let proj = projectsByCode[p.code];
+        let matchedBy = 'code';
+        if (!proj && projectsByName[p.name]) {
+          proj = projectsByName[p.name];
+          matchedBy = 'name';
+        }
+        if (!proj) {
+          skippedProjects++;
+          continue;
+        }
+        matchedProjects++;
+
+        // projectCode 백필 — 이름으로 매칭됐는데 projectCode 비어있으면 자동 채움
+        if (matchedBy === 'name' && !proj.projectCode) {
+          try {
+            await db.collection(COLLECTIONS.POUR_PROJECTS).doc(proj.id).update({
+              projectCode: p.code,
+              ...audit.update(),
+            });
+            proj = { ...proj, projectCode: p.code };
+            codeBackfilled++;
+          } catch (e) { console.warn('[seed-extras] code 백필 실패:', e.message); }
+        }
+
+        // KPI 보충 — 동일 projectId·name 중복 방지 (keyResultId는 빈 KR 일 수 있어 projectId 우선)
         for (const k of (p.kpis || [])) {
-          const dup = existingKpis.find(x => x.keyResultId === proj.keyResultId && x.name === k.name);
+          const dup = existingKpis.find(x =>
+            (x.projectId === proj.id || (x.keyResultId && x.keyResultId === proj.keyResultId)) &&
+            x.name === k.name
+          );
           if (dup) continue;
           await db.collection(COLLECTIONS.POUR_KPIS).add({
             keyResultId: proj.keyResultId || null,
@@ -7291,7 +7329,7 @@ function ProjectsPage({ onToast }) {
             priority: 'mid',
             projectId: proj.id,
             projectName: proj.name,
-            weekDay: null,        // 미배정 — 사용자가 슬롯 배치
+            weekDay: null,
             weekSlot: null,
             dueDate: '',
             isFixed: false,
@@ -7305,8 +7343,31 @@ function ProjectsPage({ onToast }) {
           taskAdded++;
         }
       }
-      onToast({ message: `🌱 보충 완료 — KPI ${kpiAdded}개 + task ${taskAdded}개 추가`, type: 'success' });
+
+      console.log(`[seed-extras] 완료 — 매칭 ${matchedProjects}건 / 스킵 ${skippedProjects}건 / code 백필 ${codeBackfilled}건 / KPI +${kpiAdded} / task +${taskAdded}`);
+
+      // 친절한 토스트 — 0건이면 원인 안내
+      if (matchedProjects === 0) {
+        const seedCount = WORKMGMT_PROJECTS_SEED.length;
+        alert(
+          `⚠️ 매칭된 프로젝트가 0건입니다.\n\n` +
+          `현재 등록된 프로젝트: ${existingProjects.length}건\n` +
+          `시드 데이터: ${seedCount}건\n` +
+          `projectCode 매칭 가능 프로젝트: ${codedCount}건\n\n` +
+          `원인 가능성:\n` +
+          `1) 프로젝트가 [+ 직접 추가]로 등록되어 시드의 이름·code와 다름\n` +
+          `2) 프로젝트 시드를 안 했음 — 먼저 [🌱 기본 프로젝트 일괄 등록]\n\n` +
+          `해결:\n` +
+          `· 빈 컬렉션에 [🌱 기본 프로젝트 일괄 등록] 실행 후 재시도\n` +
+          `· 또는 시드 프로젝트의 이름을 ${seedCount}개 표준 이름으로 맞춰 주세요 (콘솔 [seed-extras] 로그 참조)`
+        );
+      } else if (kpiAdded === 0 && taskAdded === 0) {
+        onToast({ message: `🌱 보충 — 매칭 ${matchedProjects}건 / 모두 이미 등록됨 (중복 스킵)`, type: 'info' });
+      } else {
+        onToast({ message: `🌱 보충 완료 — 매칭 ${matchedProjects}건 · KPI +${kpiAdded} · task +${taskAdded}${codeBackfilled ? ` · code 백필 ${codeBackfilled}` : ''}`, type: 'success' });
+      }
     } catch (e) {
+      console.error('[seed-extras] 실패:', e);
       onToast({ message: '보충 실패: ' + e.message, type: 'error' });
     }
     setSeedingExtras(false);

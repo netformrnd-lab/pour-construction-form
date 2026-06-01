@@ -3,7 +3,7 @@
 // 정책: 네트워크 우선, 실패 시 캐시. Firestore/Cloudflare 등 외부 API는 통과(intercept 안 함).
 // scope: /pourstore-renewal/ — admin.html · workmgmt.html · preview.html 등 포함
 
-const VERSION = 'pour-admin-v7';  // 2026-05-27 — AI 주간 점검 + 어드민 자체 진단 2 트랙, 캐시 강제 무효화
+const VERSION = 'pour-admin-v8';  // 2026-05-27 — 프로젝트 priority + 활동지표·task 보충 + 슬롯 정렬 강화
 const SHELL = [
   './admin.html',
   './workmgmt.html',

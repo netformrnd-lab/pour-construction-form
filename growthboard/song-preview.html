@@ -3,233 +3,338 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>그로스보드 시안 (미리보기) — 김송희</title>
+<title>그로스보드 v2 시안 — 김송희</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
 <style>
 :root{
-  --bg:#ffffff; --bg-soft:#f9fafb; --bg-section:#f2f4f6;
-  --ink:#191f28; --ink2:#4e5968; --ink3:#8b95a1;
-  --border:#e5e8eb; --border-l:#f2f4f6;
-  --accent:#3182f6; --accent-soft:#e8f3ff; --accent-dark:#1b64da;     /* 모여라딜=블루 */
-  --store:#ee6c1a; --store-soft:#fff1e6; --store-dark:#c2410c;        /* 스토어=주황 */
-  --success:#2bc472; --red:#f04452;
-  --md-bg:#f4f8ff;   /* 모여라딜 배경 틴트 */
-  --ps-bg:#fff7f1;   /* 스토어 배경 틴트 */
-  --co-bg:#ffffff;   /* 공통 배경 */
+  --ink:#0f1722; --ink2:#3d4a5c; --ink3:#8b95a1;
+  --border:#e7ebef; --border-l:#f1f4f7;
+  --accent:#2f6df6; --accent-soft:#e9f2ff; --accent-dark:#1b54d6;     /* 모여라딜 */
+  --store:#f26a1b; --store-soft:#fff1e7; --store-dark:#c2410c;        /* 스토어 */
+  --md-bg:#f3f8ff; --ps-bg:#fff7f1; --co-bg:#ffffff;
+  --navy:#0c1730;
   --sans:'Pretendard Variable',Pretendard,-apple-system,system-ui,sans-serif;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-html{scroll-snap-type:y mandatory;scroll-behavior:smooth;font-size:16px;}
-body{font-family:var(--sans);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased;letter-spacing:-.01em;background:#000;}
+html{scroll-snap-type:y mandatory;scroll-behavior:smooth;}
+body{font-family:var(--sans);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased;letter-spacing:-.012em;background:#000;}
 
-/* 시안 배너 */
-.demo-bar{position:fixed;top:0;left:0;right:0;z-index:300;background:#111;color:#fff;font-size:12px;font-weight:700;padding:8px 18px;display:flex;justify-content:space-between;align-items:center;}
+.demo-bar{position:fixed;top:0;left:0;right:0;z-index:500;background:#0a0e14;color:#fff;font-size:11.5px;font-weight:700;padding:7px 18px;display:flex;justify-content:space-between;}
 .demo-bar span{color:#ffb86b;}
 
-/* 슬라이드 */
-.slide{min-height:100vh;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:78px 64px 56px;position:relative;}
+/* ── 좌측 트랙맵 ── */
+.trackmap{position:fixed;left:18px;top:50%;transform:translateY(-50%);z-index:400;display:flex;flex-direction:column;gap:6px;background:rgba(255,255,255,.82);backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:16px;padding:12px 12px;box-shadow:0 8px 30px rgba(0,0,0,.10);}
+.tm-grp{font-size:9.5px;font-weight:800;letter-spacing:.04em;color:var(--ink3);margin:6px 4px 1px;}
+.tm-item{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:9px;cursor:pointer;transition:all .2s;border:none;background:none;font-family:inherit;text-align:left;width:138px;}
+.tm-item:hover{background:var(--border-l);}
+.tm-dot{width:8px;height:8px;border-radius:50%;background:var(--border);flex:0 0 auto;transition:all .25s;}
+.tm-item .tm-tx{font-size:11px;font-weight:700;color:var(--ink3);transition:color .2s;white-space:nowrap;}
+.tm-item.on .tm-tx{color:var(--ink);}
+.tm-item.on .tm-dot{transform:scale(1.5);}
+.tm-item.md.on .tm-dot{background:var(--accent);} .tm-item.ps.on .tm-dot{background:var(--store);} .tm-item.co.on .tm-dot{background:var(--ink);}
+.tm-prog{height:2px;background:var(--border);border-radius:2px;margin:8px 4px 2px;overflow:hidden;}
+.tm-prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--store));transition:width .4s;}
+
+/* ── 슬라이드 ── */
+.slide{min-height:100vh;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:64px 64px 56px 230px;position:relative;overflow:hidden;}
 .slide.t-md{background:var(--md-bg);}
 .slide.t-ps{background:var(--ps-bg);}
 .slide.t-co{background:var(--co-bg);}
-.inner{max-width:1100px;width:100%;margin:0 auto;}
+.inner{max-width:1040px;width:100%;}
 
-.eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:13px;font-weight:800;letter-spacing:.02em;margin-bottom:14px;}
-.eyebrow::before{content:"";width:16px;height:3px;border-radius:2px;background:currentColor;}
-.t-md .eyebrow{color:var(--accent);}
-.t-ps .eyebrow{color:var(--store);}
-.t-co .eyebrow{color:var(--ink3);}
-.title{font-size:clamp(28px,3.6vw,44px);font-weight:800;letter-spacing:-.03em;line-height:1.15;margin-bottom:8px;}
-.sub{font-size:15px;color:var(--ink2);font-weight:500;margin-bottom:28px;line-height:1.6;}
-.sub b{color:var(--ink);}
+.eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;font-weight:800;letter-spacing:.03em;margin-bottom:16px;}
+.eyebrow::before{content:"";width:18px;height:3px;border-radius:2px;background:currentColor;}
+.t-md .eyebrow{color:var(--accent);} .t-ps .eyebrow{color:var(--store);} .t-co .eyebrow{color:var(--ink3);}
+.title{font-size:clamp(30px,4.2vw,52px);font-weight:800;letter-spacing:-.035em;line-height:1.1;margin-bottom:10px;}
+.sub{font-size:16px;color:var(--ink2);font-weight:500;margin-bottom:34px;max-width:760px;line-height:1.65;}
+.sub b{color:var(--ink);font-weight:700;}
 
-/* 카드/타일 */
-.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
-.tile{background:#fff;border:1px solid var(--border);border-radius:18px;padding:20px 22px;box-shadow:0 1px 3px rgba(0,0,0,.03);}
-.tile .v{font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1;}
-.t-md .tile .v{color:var(--accent-dark);}
-.t-ps .tile .v{color:var(--store-dark);}
-.tile .l{font-size:12.5px;color:var(--ink3);margin-top:7px;font-weight:600;}
+/* reveal 모션 */
+.rv{opacity:0;transform:translateY(22px);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1);}
+.rv.in{opacity:1;transform:none;}
+.d1{transition-delay:.05s}.d2{transition-delay:.13s}.d3{transition-delay:.21s}.d4{transition-delay:.29s}.d5{transition-delay:.37s}
 
-/* 깔때기 */
-.funnel{display:flex;flex-direction:column;gap:8px;background:#fff;border:1px solid var(--border);border-radius:18px;padding:20px 22px;margin-bottom:20px;}
-.funnel-row{display:flex;align-items:center;gap:14px;}
-.funnel-bar{height:34px;border-radius:9px;background:linear-gradient(90deg,var(--accent),var(--accent-dark));display:flex;align-items:center;padding:0 14px;color:#fff;font-weight:800;font-size:14px;white-space:nowrap;}
-.funnel-cap{font-size:12.5px;color:var(--ink2);font-weight:600;}
+/* 히어로 숫자 타일 */
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;}
+.tile{background:#fff;border:1px solid var(--border);border-radius:20px;padding:22px 24px;box-shadow:0 2px 10px rgba(0,0,0,.03);}
+.tile .v{font-size:clamp(26px,3vw,38px);font-weight:800;letter-spacing:-.03em;line-height:1;}
+.t-md .tile .v{color:var(--accent-dark);} .t-ps .tile .v{color:var(--store-dark);}
+.tile .l{font-size:12.5px;color:var(--ink3);margin-top:9px;font-weight:600;}
 
-/* 영업앱 5단계 플로우 */
-.flow{display:flex;align-items:stretch;gap:0;margin-bottom:20px;flex-wrap:wrap;}
-.flow-step{flex:1;min-width:150px;background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px 14px;text-align:center;position:relative;}
-.flow-step .n{display:inline-flex;width:26px;height:26px;border-radius:50%;background:var(--store-soft);color:var(--store-dark);font-weight:800;font-size:13px;align-items:center;justify-content:center;margin-bottom:9px;}
-.flow-step .ic{font-size:22px;display:block;margin-bottom:6px;}
-.flow-step .h{font-size:13.5px;font-weight:800;margin-bottom:4px;}
-.flow-step .d{font-size:11px;color:var(--ink3);line-height:1.45;font-weight:500;}
-.flow-arrow{align-self:center;color:var(--store);font-weight:800;font-size:20px;padding:0 6px;flex:0 0 auto;}
+.grid2{display:grid;grid-template-columns:1.15fr .85fr;gap:20px;}
+.panel{background:#fff;border:1px solid var(--border);border-radius:20px;padding:22px 24px;box-shadow:0 2px 10px rgba(0,0,0,.03);}
+.panel-h{font-size:12.5px;font-weight:800;color:var(--ink3);letter-spacing:.03em;margin-bottom:16px;}
 
-/* 스텝퍼(공통) */
-.stepper{display:flex;gap:0;align-items:stretch;flex-wrap:wrap;margin-bottom:18px;}
-.step{flex:1;min-width:170px;background:var(--bg-soft);border:1px solid var(--border);border-radius:16px;padding:18px 16px;}
-.step .n{font-size:12px;font-weight:800;color:var(--accent);}
-.step .ps{color:var(--store);}
-.step .h{font-size:15px;font-weight:800;margin:6px 0 5px;}
-.step .d{font-size:12px;color:var(--ink2);line-height:1.55;font-weight:500;}
-.step-arrow{align-self:center;color:var(--ink3);font-weight:800;font-size:18px;padding:0 8px;}
-.note{background:var(--bg-soft);border:1px dashed var(--border);border-radius:14px;padding:14px 18px;font-size:13.5px;color:var(--ink2);font-weight:600;}
-.note b{color:var(--ink);}
+/* 퍼널 */
+.funnel{display:flex;flex-direction:column;gap:4px;align-items:center;}
+.fseg{height:50px;border-radius:11px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14.5px;white-space:nowrap;width:0;transition:width 1s cubic-bezier(.16,1,.3,1);overflow:hidden;}
+.fseg.s1{background:linear-gradient(90deg,#5b93ff,var(--accent));}
+.fseg.s2{background:linear-gradient(90deg,#3f7bf6,var(--accent-dark));}
+.fseg.s3{background:linear-gradient(90deg,#1b54d6,#123a9c);}
+.fconv{font-size:11.5px;font-weight:800;color:var(--accent-dark);background:var(--accent-soft);border-radius:999px;padding:2px 10px;}
 
-/* ▶ 인라인 미디어 레일 (모달 대신) */
-.rail{display:flex;align-items:center;gap:9px;margin-top:8px;flex-wrap:wrap;background:rgba(255,255,255,.6);border:1px solid var(--border-l);border-radius:14px;padding:10px 12px;}
+/* GMV area (SVG) */
+.spark{width:100%;height:120px;display:block;}
+.spark .area{opacity:0;transition:opacity 1s .3s;}
+.spark.in .area{opacity:.18;}
+.spark .line{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:600;stroke-dashoffset:600;transition:stroke-dashoffset 1.3s cubic-bezier(.16,1,.3,1);}
+.spark.in .line{stroke-dashoffset:0;}
+.spark .dot{fill:var(--accent);opacity:0;transition:opacity .4s 1s;}
+.spark.in .dot{opacity:1;}
+.spark text{font-size:9px;fill:var(--ink3);font-weight:600;font-family:var(--sans);}
+
+/* 파이프라인(영업앱) */
+.pipe{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;margin-bottom:22px;}
+.pstep{flex:1;min-width:140px;background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px 12px;text-align:center;opacity:.35;transform:scale(.97);transition:all .45s;}
+.pstep.lit{opacity:1;transform:scale(1);box-shadow:0 6px 18px rgba(242,106,27,.14);border-color:#f7c9a6;}
+.pstep .n{display:inline-flex;width:24px;height:24px;border-radius:50%;background:var(--store-soft);color:var(--store-dark);font-weight:800;font-size:12px;align-items:center;justify-content:center;margin-bottom:8px;}
+.pstep .ic{font-size:21px;display:block;margin-bottom:5px;}
+.pstep .h{font-size:13px;font-weight:800;margin-bottom:3px;}
+.pstep .d{font-size:10.5px;color:var(--ink3);line-height:1.4;font-weight:500;}
+.parrow{align-self:center;color:var(--store);font-weight:800;font-size:18px;padding:0 5px;}
+
+/* BEP 게이지 (SVG) */
+.gauge{width:100%;max-width:240px;display:block;margin:0 auto;}
+.gauge .track{fill:none;stroke:var(--border);stroke-width:16;stroke-linecap:round;}
+.gauge .fill{fill:none;stroke:var(--store);stroke-width:16;stroke-linecap:round;stroke-dasharray:251;stroke-dashoffset:251;transition:stroke-dashoffset 1.4s cubic-bezier(.16,1,.3,1);}
+.gauge.in .fill{stroke-dashoffset:248;} /* 현재 ~1% */
+.gauge-c{text-align:center;margin-top:-46px;}
+.gauge-c .gv{font-size:22px;font-weight:800;color:var(--store-dark);}
+.gauge-c .gl{font-size:11px;color:var(--ink3);font-weight:600;}
+
+/* 공통 스텝퍼 */
+.stepper{display:flex;gap:0;align-items:stretch;flex-wrap:wrap;margin-bottom:20px;}
+.mstep{flex:1;min-width:180px;background:var(--md-bg);border:1px solid var(--border);border-radius:18px;padding:20px 18px;}
+.mstep:nth-child(4n+5),.mstep.ps{background:var(--ps-bg);}
+.mstep .n{font-size:12px;font-weight:800;color:var(--accent);}
+.mstep .h{font-size:16px;font-weight:800;margin:7px 0 6px;}
+.mstep .d{font-size:12.5px;color:var(--ink2);line-height:1.55;font-weight:500;}
+.marrow{align-self:center;color:var(--ink3);font-weight:800;font-size:18px;padding:0 8px;}
+.note{background:linear-gradient(100deg,var(--accent-soft),var(--store-soft));border-radius:16px;padding:18px 22px;font-size:14.5px;color:var(--ink);font-weight:600;line-height:1.6;}
+.note b{font-weight:800;}
+
+/* 커버 (다크 프리미엄) */
+#cover{background:radial-gradient(1200px 600px at 70% 10%,#16284e,transparent 60%),linear-gradient(160deg,#0c1730,#0a1426);color:#fff;padding-left:230px;}
+#cover .kick{display:inline-block;font-size:13px;font-weight:700;letter-spacing:.08em;color:#8fb3ff;border:1px solid rgba(143,179,255,.3);border-radius:999px;padding:7px 16px;margin-bottom:26px;}
+#cover h1{font-size:clamp(40px,6vw,80px);font-weight:800;letter-spacing:-.04em;line-height:1.02;margin-bottom:18px;}
+#cover h1 .g{background:linear-gradient(90deg,#5b93ff,#f29b5b);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+#cover .csub{font-size:17px;color:rgba(255,255,255,.66);margin-bottom:44px;font-weight:500;}
+.twotrack{display:flex;gap:18px;flex-wrap:wrap;}
+.tt{flex:1;min-width:240px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:24px;backdrop-filter:blur(6px);}
+.tt .tt-tag{font-size:12px;font-weight:800;letter-spacing:.04em;margin-bottom:12px;display:inline-flex;align-items:center;gap:8px;}
+.tt.md .tt-tag{color:#7ea8ff;} .tt.ps .tt-tag{color:#f5a463;}
+.tt .tt-h{font-size:21px;font-weight:800;margin-bottom:8px;color:#fff;}
+.tt .tt-d{font-size:13px;color:rgba(255,255,255,.6);line-height:1.6;}
+.tt .tt-n{font-size:30px;font-weight:800;margin-top:14px;}
+.tt.md .tt-n{color:#7ea8ff;} .tt.ps .tt-n{color:#f5a463;}
+
+/* 인라인 미디어 레일 + 라이트박스 */
+.rail{display:flex;align-items:center;gap:9px;margin-top:20px;flex-wrap:wrap;background:rgba(255,255,255,.55);border:1px solid var(--border-l);border-radius:14px;padding:10px 12px;}
 .rail-label{font-size:11.5px;font-weight:800;color:var(--ink3);margin-right:2px;white-space:nowrap;}
-.thumb{width:96px;height:64px;border-radius:10px;border:1px solid var(--border);cursor:pointer;transition:transform .15s,box-shadow .15s;object-fit:cover;flex:0 0 auto;}
-.thumb:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.14);}
-.thumb-add{width:96px;height:64px;border-radius:10px;border:1.5px dashed var(--border);color:var(--ink3);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;background:#fff;flex:0 0 auto;}
-
-/* 라이트박스 */
-.lb{position:fixed;inset:0;background:rgba(12,16,22,.9);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:400;padding:48px;}
+.thumb{width:104px;height:68px;border-radius:10px;border:1px solid var(--border);cursor:pointer;transition:transform .15s,box-shadow .15s;object-fit:cover;flex:0 0 auto;}
+.thumb:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(0,0,0,.16);}
+.thumb-add{width:104px;height:68px;border-radius:10px;border:1.5px dashed var(--border);color:var(--ink3);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;background:#fff;flex:0 0 auto;}
+.lb{position:fixed;inset:0;background:rgba(10,14,20,.92);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;z-index:600;padding:48px;}
 .lb.open{display:flex;}
-.lb img{max-width:92vw;max-height:84vh;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.5);}
-.lb-x{position:absolute;top:20px;right:24px;width:42px;height:42px;border:none;border-radius:12px;background:rgba(255,255,255,.15);color:#fff;font-size:18px;cursor:pointer;}
+.lb img{max-width:90vw;max-height:84vh;border-radius:12px;box-shadow:0 24px 70px rgba(0,0,0,.6);}
+.lb-x{position:absolute;top:20px;right:24px;width:42px;height:42px;border:none;border-radius:12px;background:rgba(255,255,255,.16);color:#fff;font-size:18px;cursor:pointer;}
 .lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:48px;height:48px;border:none;border-radius:50%;background:rgba(255,255,255,.92);color:#111;font-size:22px;cursor:pointer;}
-.lb-prev{left:24px;}.lb-next{right:24px;}
+.lb-prev{left:24px}.lb-next{right:24px}
 .lb-cap{position:absolute;bottom:26px;left:0;right:0;text-align:center;color:#fff;font-size:13px;font-weight:600;}
 
-@media(max-width:860px){
-  .slide{padding:70px 20px 48px;}
-  .tiles,.flow,.stepper{grid-template-columns:1fr;}
-  .flow,.stepper{flex-direction:column;}
-  .flow-arrow,.step-arrow{transform:rotate(90deg);padding:4px 0;}
+@media(max-width:980px){
+  .trackmap{display:none;}
+  .slide,#cover{padding:64px 20px 48px;}
+  .grid2,.tiles,.pipe,.stepper{grid-template-columns:1fr;}
+  .pipe,.stepper{flex-direction:column;} .parrow,.marrow{transform:rotate(90deg);padding:4px 0;}
 }
 </style>
 </head>
 <body>
-<div class="demo-bar">🧪 시안 미리보기 (song-preview.html) <span>본 발표 파일 아님 · ↑↓ 스크롤</span></div>
+<div class="demo-bar">🧪 v2 시안 (song-preview.html) <span>본 발표 파일 아님 · 데이터차트·모션·트랙맵·프리미엄</span></div>
 
-<!-- 1) 🔵 모여라딜 -->
-<section class="slide t-md">
+<nav class="trackmap" id="tmap">
+  <div class="tm-grp">INTRO</div>
+  <button class="tm-item co" data-go="cover"><span class="tm-dot"></span><span class="tm-tx">커버</span></button>
+  <div class="tm-grp" style="color:var(--accent)">🔵 모여라딜</div>
+  <button class="tm-item md" data-go="md"><span class="tm-dot"></span><span class="tm-tx">성과·전환</span></button>
+  <div class="tm-grp" style="color:var(--store)">🟠 POUR스토어</div>
+  <button class="tm-item ps" data-go="ps"><span class="tm-dot"></span><span class="tm-tx">영업앱 시스템</span></button>
+  <div class="tm-grp">⬛ 공통</div>
+  <button class="tm-item co" data-go="co"><span class="tm-dot"></span><span class="tm-tx">전략·개발</span></button>
+  <div class="tm-prog"><i id="tmprog"></i></div>
+</nav>
+
+<!-- 0) 커버 -->
+<section class="slide t-co" id="cover">
   <div class="inner">
-    <div class="eyebrow">PART 1 · 모여라딜 — 성과</div>
-    <h1 class="title">수요는 증명했고, 전환은 이제부터.</h1>
-    <p class="sub">검증된 것(수요·인바운드)과 아직 비어 있는 것(전환·실매출)을 분명히 — <b>퍼널로 한눈에</b>.</p>
-
-    <div class="tiles">
-      <div class="tile"><div class="v">146건</div><div class="l">공급사 인바운드 (광고비 0)</div></div>
-      <div class="tile"><div class="v">8개</div><div class="l">BMA 수익구조 도출</div></div>
-      <div class="tile"><div class="v">1,220,610원</div><div class="l">누적 매출 (LIFETIME)</div></div>
-    </div>
-
-    <div class="funnel">
-      <div class="funnel-row"><div class="funnel-bar" style="width:100%">셀러 리스트업 101</div><span class="funnel-cap">아웃리치</span></div>
-      <div class="funnel-row"><div class="funnel-bar" style="width:42%">제안서 26</div><span class="funnel-cap">제안 전환</span></div>
-      <div class="funnel-row"><div class="funnel-bar" style="width:18%">공구 10</div><span class="funnel-cap">실행 — 다음 반기 1순위</span></div>
-    </div>
-
-    <div class="rail" data-group="md">
-      <span class="rail-label">📎 자료</span>
-      <!-- 썸네일은 JS가 생성 (시안: 플레이스홀더) -->
+    <div class="kick rv">2026 상반기 · 그로스보드</div>
+    <h1 class="rv d1">모호한 미션을<br><span class="g">운영 구조로</span> 두 번 바꿨습니다.</h1>
+    <p class="csub rv d2">모여라딜에서 수요를, POUR스토어에서 시스템을 — 같은 방식으로.</p>
+    <div class="twotrack rv d3">
+      <div class="tt md">
+        <div class="tt-tag">🔵 모여라딜</div>
+        <div class="tt-h">수요를 증명</div>
+        <div class="tt-d">광고비 0으로 공급사 인바운드 확보, BMA 8개 수익구조 설계</div>
+        <div class="tt-n"><span class="num" data-to="146" data-suffix="건">0건</span></div>
+      </div>
+      <div class="tt ps">
+        <div class="tt-tag">🟠 POUR스토어</div>
+        <div class="tt-h">시스템을 구축</div>
+        <div class="tt-d">영업앱+관리자로 박람회 실데이터 수집, KPI·대시보드 체계화</div>
+        <div class="tt-n"><span class="num" data-to="47" data-suffix="건">0건</span></div>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- 2) 🟠 스토어 — 영업앱 (5단계 플로우) -->
-<section class="slide t-ps">
+<!-- 1) 🔵 모여라딜 대시보드 -->
+<section class="slide t-md" id="md">
   <div class="inner">
-    <div class="eyebrow">PART 2 · POUR스토어 — 영업앱</div>
-    <h1 class="title">제안서가 아니라, 도는 시스템.</h1>
-    <p class="sub">영업사원 태블릿 앱 → 관리자 데이터센터. 박람회 현장에서 <b>실데이터 47건</b> 수집·분석.</p>
-
-    <div class="flow">
-      <div class="flow-step"><span class="n">1</span><span class="ic">🧭</span><div class="h">공법 선택</div><div class="d">방수·도장·보수·토목</div></div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step"><span class="n">2</span><span class="ic">🔍</span><div class="h">하자진단</div><div class="d">사진·원인·솔루션·시공방안</div></div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step"><span class="n">3</span><span class="ic">✍️</span><div class="h">고객정보·메모</div><div class="d">건물유형·연락처·손글씨</div></div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step"><span class="n">4</span><span class="ic">📎</span><div class="h">자료 선택</div><div class="d">제안서·시방서·시공가이드</div></div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step"><span class="n">5</span><span class="ic">📩</span><div class="h">문자 발송</div><div class="d">QR 링크 + 고객 DB 축적</div></div>
+    <div class="eyebrow rv">PART 1 · 모여라딜</div>
+    <h1 class="title rv d1">수요는 증명했고, 전환은 이제부터.</h1>
+    <p class="sub rv d2">광고비 0으로 <b>수요</b>를 만들었습니다. 남은 건 <b>전환</b> — 퍼널로 한눈에.</p>
+    <div class="tiles rv d2">
+      <div class="tile"><div class="v"><span class="num" data-to="146" data-suffix="건">0</span></div><div class="l">공급사 인바운드 (광고비 0)</div></div>
+      <div class="tile"><div class="v"><span class="num" data-to="8" data-suffix="개">0</span></div><div class="l">BMA 수익구조</div></div>
+      <div class="tile"><div class="v">1,220,610<span style="font-size:16px">원</span></div><div class="l">누적 매출 (LIFETIME)</div></div>
     </div>
-
-    <div class="tiles">
-      <div class="tile"><div class="v">47건</div><div class="l">박람회 상담 (관리자 집계)</div></div>
-      <div class="tile"><div class="v">9종</div><div class="l">공법별 문의량</div></div>
-      <div class="tile"><div class="v">16명</div><div class="l">관리소장 (직급별 최다)</div></div>
+    <div class="grid2">
+      <div class="panel rv d3">
+        <div class="panel-h">// 전환 퍼널</div>
+        <div class="funnel" id="funnel">
+          <div class="fseg s1" data-w="100">셀러 리스트업 101</div>
+          <div class="fconv">↓ 26% 전환</div>
+          <div class="fseg s2" data-w="52">제안서 26</div>
+          <div class="fconv">↓ 38% 전환</div>
+          <div class="fseg s3" data-w="26">공구 10 — 다음 반기 1순위</div>
+        </div>
+      </div>
+      <div class="panel rv d4">
+        <div class="panel-h">// 월별 GMV (2026, 원)</div>
+        <svg class="spark" id="spark" viewBox="0 0 300 120" preserveAspectRatio="none">
+          <path class="area" d="M0,90 L0,40 L75,18 L150,90 L225,52 L300,90 Z" fill="var(--accent)"/>
+          <path class="line" d="M0,40 L75,18 L150,90 L225,52 L300,90"/>
+          <circle class="dot" cx="75" cy="18" r="3.5"/><circle class="dot" cx="225" cy="52" r="3.5"/>
+          <text x="75" y="14" text-anchor="middle">501,000</text>
+          <text x="225" y="48" text-anchor="middle">97,510</text>
+        </svg>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--ink3);font-weight:600;margin-top:2px;"><span>1월</span><span>2월</span><span>3월</span><span>4월</span><span>5월</span></div>
+        <div style="font-size:11.5px;color:var(--ink2);margin-top:8px;font-weight:600;">수요는 있는데 <b>실행이 비었다</b> — 곡선이 말해줍니다.</div>
+      </div>
     </div>
-
-    <div class="rail" data-group="ps">
-      <span class="rail-label">📎 영업앱 화면</span>
-    </div>
+    <div class="rail rv d5" data-group="md"><span class="rail-label">📎 자료</span></div>
   </div>
 </section>
 
-<!-- 3) ⬛ 공통 — 전략·개발 방식 -->
-<section class="slide t-co">
+<!-- 2) 🟠 스토어 영업앱 -->
+<section class="slide t-ps" id="ps">
   <div class="inner">
-    <div class="eyebrow">공통 · 전략 · 개발 방식</div>
-    <h1 class="title">두 트랙을 같은 방식으로 — 두 번 증명.</h1>
-    <p class="sub">모여라딜에서 검증하고, 스토어에서 다시. <b>같은 운영구조화 방법</b>이 두 트랙을 관통합니다.</p>
+    <div class="eyebrow rv">PART 2 · POUR스토어 — 영업앱</div>
+    <h1 class="title rv d1">제안서가 아니라, 도는 시스템.</h1>
+    <p class="sub rv d2">영업사원 태블릿 앱 → 관리자 데이터센터. 박람회에서 <b>실데이터 47건</b> 수집·분석.</p>
+    <div class="pipe rv d2" id="pipe">
+      <div class="pstep"><span class="n">1</span><span class="ic">🧭</span><div class="h">공법 선택</div><div class="d">방수·도장·보수·토목</div></div>
+      <div class="parrow">→</div>
+      <div class="pstep"><span class="n">2</span><span class="ic">🔍</span><div class="h">하자진단</div><div class="d">사진·원인·솔루션</div></div>
+      <div class="parrow">→</div>
+      <div class="pstep"><span class="n">3</span><span class="ic">✍️</span><div class="h">고객·메모</div><div class="d">정보+손글씨</div></div>
+      <div class="parrow">→</div>
+      <div class="pstep"><span class="n">4</span><span class="ic">📎</span><div class="h">자료 선택</div><div class="d">제안서·시방서</div></div>
+      <div class="parrow">→</div>
+      <div class="pstep"><span class="n">5</span><span class="ic">📩</span><div class="h">문자 발송</div><div class="d">QR + DB 축적</div></div>
+    </div>
+    <div class="grid2">
+      <div class="panel rv d3">
+        <div class="panel-h">// POUR 관리자 — 실데이터</div>
+        <div class="tiles" style="margin-bottom:0;grid-template-columns:repeat(3,1fr)">
+          <div class="tile" style="padding:16px"><div class="v"><span class="num" data-to="47" data-suffix="건">0</span></div><div class="l">박람회 상담</div></div>
+          <div class="tile" style="padding:16px"><div class="v"><span class="num" data-to="9" data-suffix="종">0</span></div><div class="l">공법 문의</div></div>
+          <div class="tile" style="padding:16px"><div class="v"><span class="num" data-to="16" data-suffix="명">0</span></div><div class="l">관리소장</div></div>
+        </div>
+      </div>
+      <div class="panel rv d4">
+        <div class="panel-h">// BEP 게이지 (월 GMV)</div>
+        <svg class="gauge" id="gauge" viewBox="0 0 200 110">
+          <path class="track" d="M16,100 A84,84 0 0,1 184,100"/>
+          <path class="fill" d="M16,100 A84,84 0 0,1 184,100"/>
+        </svg>
+        <div class="gauge-c"><div class="gv">BEP 9,700만<span style="font-size:12px">/월</span></div><div class="gl">현재 월 GMV는 출발선 — 하반기 목표</div></div>
+      </div>
+    </div>
+    <div class="rail rv d5" data-group="ps"><span class="rail-label">📎 영업앱 화면</span></div>
+  </div>
+</section>
 
+<!-- 3) ⬛ 공통 전략·개발 -->
+<section class="slide t-co" id="co">
+  <div class="inner">
+    <div class="eyebrow rv">공통 · 전략 · 개발 방식</div>
+    <h1 class="title rv d1">두 트랙을 같은 방식으로 — 두 번 증명.</h1>
+    <p class="sub rv d2">모여라딜에서 검증하고, 스토어에서 다시. 하나의 운영구조화 방법이 둘을 관통합니다.</p>
     <div class="stepper">
-      <div class="step"><div class="n">STEP 1</div><div class="h">마스터프롬프트 선제작</div><div class="d">개발 전 브랜드 정체성·BMA·KPI 내재화 → 방향 판단 기준</div></div>
-      <div class="step-arrow">→</div>
-      <div class="step"><div class="n">STEP 2</div><div class="h">KPI 체계 v6</div><div class="d">O→KR→결과·활동지표→Task, 5단계로 측정 가능하게</div></div>
-      <div class="step-arrow">→</div>
-      <div class="step"><div class="n">STEP 3</div><div class="h">시스템화</div><div class="d">CRM·경영 대시보드로 상담·매출을 데이터로 축적</div></div>
-      <div class="step-arrow">→</div>
-      <div class="step"><div class="n">STEP 4</div><div class="h">데이터 기반 실행</div><div class="d">빠르게 실행·실패·AB → 더 나은 방식 내재화</div></div>
+      <div class="mstep rv d2"><div class="n">STEP 1</div><div class="h">마스터프롬프트 선제작</div><div class="d">개발 전 정체성·BMA·KPI 내재화 → 방향 판단 기준</div></div>
+      <div class="marrow rv d2">→</div>
+      <div class="mstep rv d3"><div class="n">STEP 2</div><div class="h">KPI 체계 v6</div><div class="d">O→KR→지표→Task, 측정 가능하게</div></div>
+      <div class="marrow rv d3">→</div>
+      <div class="mstep rv d4"><div class="n">STEP 3</div><div class="h">시스템화</div><div class="d">CRM·경영 대시보드로 데이터 축적</div></div>
+      <div class="marrow rv d4">→</div>
+      <div class="mstep ps rv d5"><div class="n" style="color:var(--store)">STEP 4</div><div class="h">데이터 기반 실행</div><div class="d">빠른 실행·실패·AB → 더 나은 방식 내재화</div></div>
     </div>
-
-    <div class="note">🔵 <b>모여라딜</b> = 이 방식으로 <b>수요</b>를 증명 &nbsp;·&nbsp; 🟠 <b>POUR스토어</b> = 같은 방식으로 <b>운영 시스템</b>을 구축 &nbsp;→&nbsp; 다음 반기엔 <b>숫자</b>로.</div>
+    <div class="note rv d5">🔵 <b>모여라딜</b> = 이 방식으로 <b>수요</b>를 증명 &nbsp;·&nbsp; 🟠 <b>POUR스토어</b> = 같은 방식으로 <b>운영 시스템</b>을 구축 &nbsp;→&nbsp; 다음 반기엔 <b>숫자</b>로 증명합니다.</div>
   </div>
 </section>
 
-<!-- 라이트박스 -->
 <div class="lb" id="lb">
-  <button class="lb-x" id="lbx">✕</button>
-  <button class="lb-nav lb-prev" id="lbp">‹</button>
-  <img id="lbimg" src="" alt="">
-  <button class="lb-nav lb-next" id="lbn">›</button>
+  <button class="lb-x" id="lbx">✕</button><button class="lb-nav lb-prev" id="lbp">‹</button>
+  <img id="lbimg" src="" alt=""><button class="lb-nav lb-next" id="lbn">›</button>
   <div class="lb-cap" id="lbcap"></div>
 </div>
 
 <script>
-/* 시안용 플레이스홀더 썸네일 생성 (오프라인 렌더) */
-function ph(label,color){
-  return 'data:image/svg+xml,'+encodeURIComponent(
-    "<svg xmlns='http://www.w3.org/2000/svg' width='480' height='320'><rect width='100%' height='100%' fill='"+color+"'/><rect x='2' y='2' width='476' height='316' rx='14' fill='none' stroke='rgba(255,255,255,.5)' stroke-width='2'/><text x='240' y='168' font-family='Pretendard,sans-serif' font-size='26' font-weight='800' fill='#fff' text-anchor='middle'>"+label+"</text></svg>");
-}
-const GROUPS={
-  md:[['인바운드 146건 현황','#3182f6'],['월별 GMV 차트','#1b64da'],['공구 사례','#2b8cff']],
-  ps:[['① 공법 선택 화면','#ee6c1a'],['② 하자진단·솔루션','#c2410c'],['③ 상담 메모(낙서장)','#f0892f'],['④ 문자 발송 미리보기','#d4570a'],['POUR 관리자 통계','#a8380a']]
-};
-/* 레일에 썸네일 채우기 + 편집모드 추가버튼 시늉 */
-document.querySelectorAll('.rail').forEach(rail=>{
-  const g=rail.dataset.group, items=GROUPS[g]||[];
-  items.forEach((it,i)=>{
-    const img=document.createElement('img');
-    img.className='thumb'; img.src=ph(it[0],it[1]); img.alt=it[0];
-    img.addEventListener('click',()=>openLB(g,i));
-    rail.appendChild(img);
-  });
-  const add=document.createElement('div');
-  add.className='thumb-add'; add.textContent='＋ 추가';
-  add.title='편집 모드에서 사진·영상 첨부';
-  rail.appendChild(add);
-});
-/* 라이트박스 */
-let lbGroup=[], lbIdx=0;
-const lb=document.getElementById('lb'), lbimg=document.getElementById('lbimg'), lbcap=document.getElementById('lbcap');
-function openLB(g,i){ lbGroup=GROUPS[g]; lbIdx=i; renderLB(); lb.classList.add('open'); }
-function renderLB(){ const it=lbGroup[lbIdx]; lbimg.src=ph(it[0],it[1]); lbcap.textContent=it[0]+'  ('+(lbIdx+1)+'/'+lbGroup.length+')'; }
-function closeLB(){ lb.classList.remove('open'); }
-document.getElementById('lbx').onclick=closeLB;
-document.getElementById('lbp').onclick=()=>{lbIdx=(lbIdx-1+lbGroup.length)%lbGroup.length;renderLB();};
-document.getElementById('lbn').onclick=()=>{lbIdx=(lbIdx+1)%lbGroup.length;renderLB();};
-lb.addEventListener('click',e=>{if(e.target===lb)closeLB();});
-document.addEventListener('keydown',e=>{
-  if(!lb.classList.contains('open'))return;
-  if(e.key==='Escape')closeLB();
-  if(e.key==='ArrowLeft')document.getElementById('lbp').click();
-  if(e.key==='ArrowRight')document.getElementById('lbn').click();
-});
+/* 플레이스홀더 썸네일 */
+function ph(label,color){return 'data:image/svg+xml,'+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='480' height='320'><rect width='100%' height='100%' fill='"+color+"'/><rect x='2' y='2' width='476' height='316' rx='14' fill='none' stroke='rgba(255,255,255,.5)' stroke-width='2'/><text x='240' y='168' font-family='Pretendard,sans-serif' font-size='24' font-weight='800' fill='#fff' text-anchor='middle'>"+label+"</text></svg>");}
+const GROUPS={md:[['인바운드 146건','#2f6df6'],['월별 GMV','#1b54d6'],['공구 사례','#4f86ff']],ps:[['① 공법 선택','#f26a1b'],['② 하자진단','#c2410c'],['③ 상담 메모','#f5904a'],['④ 자료·문자','#d4570a'],['관리자 통계','#a8380a']]};
+document.querySelectorAll('.rail').forEach(rail=>{(GROUPS[rail.dataset.group]||[]).forEach((it,i)=>{const img=document.createElement('img');img.className='thumb';img.src=ph(it[0],it[1]);img.alt=it[0];img.onclick=()=>openLB(rail.dataset.group,i);rail.appendChild(img);});const a=document.createElement('div');a.className='thumb-add';a.textContent='＋ 추가';rail.appendChild(a);});
+let G=[],gi=0;const lb=document.getElementById('lb'),lbi=document.getElementById('lbimg'),lbc=document.getElementById('lbcap');
+function openLB(g,i){G=GROUPS[g];gi=i;rl();lb.classList.add('open');}
+function rl(){const it=G[gi];lbi.src=ph(it[0],it[1]);lbc.textContent=it[0]+'  ('+(gi+1)+'/'+G.length+')';}
+document.getElementById('lbx').onclick=()=>lb.classList.remove('open');
+document.getElementById('lbp').onclick=()=>{gi=(gi-1+G.length)%G.length;rl();};
+document.getElementById('lbn').onclick=()=>{gi=(gi+1)%G.length;rl();};
+lb.addEventListener('click',e=>{if(e.target===lb)lb.classList.remove('open');});
+document.addEventListener('keydown',e=>{if(!lb.classList.contains('open'))return;if(e.key==='Escape')lb.classList.remove('open');if(e.key==='ArrowLeft')document.getElementById('lbp').click();if(e.key==='ArrowRight')document.getElementById('lbn').click();});
+
+/* 카운트업 */
+function countUp(el){if(el._cnt)return;el._cnt=1;const to=+el.dataset.to,suf=el.dataset.suffix||'';let s=null;const dur=900;function f(t){s=s||t;const p=Math.min((t-s)/dur,1);const v=Math.round(to*(1-Math.pow(1-p,3)));el.textContent=v.toLocaleString()+suf;if(p<1)requestAnimationFrame(f);}requestAnimationFrame(f);}
+
+/* reveal + 차트 모션 */
+const seen=new WeakSet();
+const io=new IntersectionObserver(es=>{es.forEach(e=>{if(!e.isIntersecting)return;const el=e.target;el.classList.add('in');
+  if(!seen.has(el)){seen.add(el);
+    el.querySelectorAll&&el.querySelectorAll('.num').forEach(countUp);
+    if(el.classList.contains('num'))countUp(el);
+  }
+});},{threshold:.25});
+document.querySelectorAll('.rv,.num').forEach(el=>io.observe(el));
+
+/* 퍼널·스파크·게이지·파이프라인 트리거 */
+const once=new WeakSet();
+const io2=new IntersectionObserver(es=>{es.forEach(e=>{if(!e.isIntersecting||once.has(e.target))return;once.add(e.target);
+  const sec=e.target;
+  const f=sec.querySelector('#funnel');if(f)f.querySelectorAll('.fseg').forEach((b,i)=>setTimeout(()=>b.style.width=b.dataset.w+'%',150+i*220));
+  const sp=sec.querySelector('#spark');if(sp)sp.classList.add('in');
+  const ga=sec.querySelector('#gauge');if(ga)ga.classList.add('in');
+  const pp=sec.querySelector('#pipe');if(pp)pp.querySelectorAll('.pstep').forEach((s,i)=>setTimeout(()=>s.classList.add('lit'),200+i*260));
+});},{threshold:.4});
+document.querySelectorAll('.slide').forEach(s=>io2.observe(s));
+
+/* 트랙맵 */
+const tmItems=[...document.querySelectorAll('.tm-item')];
+tmItems.forEach(b=>b.onclick=()=>document.getElementById(b.dataset.go).scrollIntoView({behavior:'smooth'}));
+const slides=[...document.querySelectorAll('.slide')];
+const io3=new IntersectionObserver(es=>{es.forEach(e=>{if(!e.isIntersecting)return;const id=e.target.id;tmItems.forEach(b=>b.classList.toggle('on',b.dataset.go===id));const idx=slides.indexOf(e.target);document.getElementById('tmprog').style.width=((idx+1)/slides.length*100)+'%';});},{threshold:.5});
+slides.forEach(s=>io3.observe(s));
 </script>
 </body>
 </html>

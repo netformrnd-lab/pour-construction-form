@@ -31,6 +31,7 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
 <script>
 firebase.initializeApp({
@@ -42,6 +43,8 @@ firebase.initializeApp({
   appId: "1:411031141847:web:e658174fd4b9652cdadf92"
 });
 const db = firebase.firestore();
+// Storage — task 메모·첨부 (task-attachments/{taskId}/**) 전용. 다른 페이지 영향 없음.
+const storage = firebase.storage();
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
@@ -5731,6 +5734,186 @@ function SlotAssignModal({ day, slot, current, tasks, projects, onAssign, onClea
 }
 
 // ============================================================
+// TaskNotesModal — task 메모 + 사진 첨부 (빠른 판별용)
+// 데이터: task.notes(string) + task.attachments([{name, url, path, size, contentType, uploadedAt}])
+// 영향: 이 메모·첨부는 어디에도 영향 주지 않음 — 담당자 본인의 빠른 판별/기록용
+// 저장: Firestore task 문서에 직접 (1MB 한도 충분 — 파일은 URL만 저장)
+// 파일: Firebase Storage `task-attachments/{taskId}/{filename}`
+// ============================================================
+function TaskNotesModal({ task, audit, onClose, onToast }) {
+  const [notes, setNotes] = useState(task.notes || '');
+  const [attachments, setAttachments] = useState(Array.isArray(task.attachments) ? task.attachments : []);
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const MAX_FILE_MB = 5;
+  const MAX_FILES = 10;
+
+  const handleFileSelect = async (files) => {
+    if (!files || files.length === 0) return;
+    if (attachments.length + files.length > MAX_FILES) {
+      onToast({ message: `첨부는 최대 ${MAX_FILES}장까지 가능합니다`, type: 'error' });
+      return;
+    }
+    setUploading(true);
+    const newAttachments = [];
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) {
+        onToast({ message: `${file.name} — 이미지 파일만 가능`, type: 'error' });
+        continue;
+      }
+      if (file.size > MAX_FILE_MB * 1024 * 1024) {
+        onToast({ message: `${file.name} — ${MAX_FILE_MB}MB 초과`, type: 'error' });
+        continue;
+      }
+      try {
+        const ts = Date.now();
+        const safeName = file.name.replace(/[^\w.\-]/g, '_');
+        const path = `task-attachments/${task.id}/${ts}_${safeName}`;
+        const ref = storage.ref(path);
+        const snap = await ref.put(file);
+        const url = await snap.ref.getDownloadURL();
+        newAttachments.push({
+          name: file.name,
+          url,
+          path,
+          size: file.size,
+          contentType: file.type,
+          uploadedAt: nowIso(),
+        });
+      } catch (e) {
+        onToast({ message: `${file.name} 업로드 실패: ${e.message}`, type: 'error' });
+      }
+    }
+    setAttachments(prev => [...prev, ...newAttachments]);
+    setUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeAttachment = async (att) => {
+    if (!confirm(`"${att.name}" 첨부를 삭제할까요?`)) return;
+    try {
+      if (att.path) {
+        try { await storage.ref(att.path).delete(); } catch (e) { /* 이미 삭제된 경우 무시 */ }
+      }
+      setAttachments(prev => prev.filter(a => a.url !== att.url));
+    } catch (e) {
+      onToast({ message: '삭제 실패: ' + e.message, type: 'error' });
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await db.collection(COLLECTIONS.POUR_TASKS).doc(task.id).update({
+        notes: notes.trim() || '',
+        attachments,
+        ...audit.update(),
+      });
+      onToast({ message: '메모·첨부 저장 완료', type: 'success' });
+      onClose();
+    } catch (e) {
+      onToast({ message: '저장 실패: ' + e.message, type: 'error' });
+    }
+    setSaving(false);
+  };
+
+  return (
+    <Modal open={true} onClose={onClose} title={`📎 메모·첨부 — ${task.title}`} width={620}>
+      <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+        {/* 메모 */}
+        <div>
+          <label style={{ fontSize:11, fontWeight:800, color:'var(--text-md)', display:'block', marginBottom:5 }}>
+            📝 메모 (담당자 본인의 빠른 기록용 — 다른 곳에 영향 없음)
+          </label>
+          <textarea
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            placeholder="예: 채림님 확인 필요 / 자료 위치 / 상태 등 빠른 메모..."
+            rows={4}
+            style={{
+              width:'100%', padding:'10px 12px', border:'1px solid var(--border)', borderRadius:8,
+              fontSize:13, fontWeight:500, color:'var(--text)', outline:'none', resize:'vertical',
+              minHeight:80, background:'var(--card)',
+            }}
+          />
+        </div>
+
+        {/* 첨부 사진 */}
+        <div>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
+            <label style={{ fontSize:11, fontWeight:800, color:'var(--text-md)' }}>
+              🖼 사진 첨부 ({attachments.length}/{MAX_FILES}) — 각 {MAX_FILE_MB}MB 이내
+            </label>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading || attachments.length >= MAX_FILES}
+              style={{
+                padding:'5px 12px', borderRadius:6, fontSize:11, fontWeight:800, color:'#fff',
+                background: (uploading || attachments.length >= MAX_FILES) ? 'var(--text-sm)' : 'var(--or)',
+                cursor: (uploading || attachments.length >= MAX_FILES) ? 'not-allowed' : 'pointer',
+              }}>
+              {uploading ? '업로드 중...' : '+ 사진 추가'}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={e => handleFileSelect(Array.from(e.target.files || []))}
+              style={{ display:'none' }}
+            />
+          </div>
+
+          {attachments.length === 0 ? (
+            <div style={{
+              padding:'24px 12px', textAlign:'center', border:'1.5px dashed var(--border)', borderRadius:8,
+              fontSize:12, fontWeight:600, color:'var(--text-sm)', background:'var(--bg)',
+            }}>
+              아직 첨부된 사진이 없습니다
+            </div>
+          ) : (
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(110px, 1fr))', gap:8 }}>
+              {attachments.map((att, idx) => (
+                <div key={att.url + idx} style={{
+                  position:'relative', borderRadius:8, overflow:'hidden', border:'1px solid var(--border)',
+                  background:'var(--bg)', aspectRatio:'1',
+                }}>
+                  <a href={att.url} target="_blank" rel="noopener noreferrer" title={att.name} style={{ display:'block', width:'100%', height:'100%' }}>
+                    <img src={att.url} alt={att.name} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+                  </a>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); removeAttachment(att); }}
+                    title="삭제"
+                    style={{
+                      position:'absolute', top:4, right:4, width:22, height:22, borderRadius:'50%',
+                      background:'rgba(220,38,38,.9)', color:'#fff', fontSize:11, fontWeight:900,
+                      display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer',
+                    }}>×</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 액션 */}
+        <div style={{ display:'flex', justifyContent:'flex-end', gap:8, paddingTop:6, borderTop:'1px solid var(--border-s)' }}>
+          <button onClick={onClose} style={{
+            padding:'9px 18px', borderRadius:8, fontSize:12, fontWeight:800, color:'var(--text-md)',
+            background:'var(--bg)', border:'1px solid var(--border)',
+          }}>취소</button>
+          <button onClick={handleSave} disabled={saving || uploading} style={{
+            padding:'9px 22px', borderRadius:8, fontSize:12, fontWeight:900, color:'#fff',
+            background: (saving || uploading) ? 'var(--text-sm)' : 'var(--or)',
+            cursor: (saving || uploading) ? 'not-allowed' : 'pointer',
+          }}>{saving ? '저장 중...' : '저장'}</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 // TodayTaskTable — v22 스타일 인라인 편집 테이블 + 빠른 추가 행
 // 모든 편집은 그 자리에서 즉시 Firestore 반영. 마지막 행은 항상 빈 입력 행.
 // ============================================================
@@ -5740,6 +5923,8 @@ function TodayTaskTable({ tasks, projects, audit, activeStaff, onAdd, onToast })
   const [quickPriority, setQuickPriority] = useState('mid');
   const [quickDue, setQuickDue] = useState('');
   const [adding, setAdding] = useState(false);
+  // 📎 메모·첨부 모달 — 열린 task 객체 또는 null
+  const [notesTask, setNotesTask] = useState(null);
 
   const myProjects = projects.filter(p => Array.isArray(p.assigneeStaffIds) && p.assigneeStaffIds.includes(activeStaff.id));
 
@@ -5850,13 +6035,14 @@ function TodayTaskTable({ tasks, projects, audit, activeStaff, onAdd, onToast })
             <th style={{ ...th, width:75 }}>우선순위</th>
             <th style={{ ...th, width:95 }}>마감</th>
             <th style={{ ...th, width:65 }}>상태</th>
+            <th style={{ ...th, width:36, textAlign:'center' }} title="메모·첨부">📎</th>
             <th style={{ ...th, width:32, textAlign:'center' }}></th>
           </tr>
         </thead>
         <tbody>
           {tasks.length === 0 && (
             <tr>
-              <td colSpan={7} style={{ padding:'18px 12px', textAlign:'center', color:'var(--text-sm)', fontSize:12, fontWeight:600 }}>
+              <td colSpan={8} style={{ padding:'18px 12px', textAlign:'center', color:'var(--text-sm)', fontSize:12, fontWeight:600 }}>
                 오늘 배치된 업무가 없습니다. 아래 행에 바로 입력하거나, 위 주간 슬롯을 클릭하세요.
               </td>
             </tr>
@@ -5916,6 +6102,25 @@ function TodayTaskTable({ tasks, projects, audit, activeStaff, onAdd, onToast })
                     <option value="resume">🔄 재개</option>
                   </select>
                 </td>
+                <td style={{ ...td, textAlign:'center', position:'relative' }}>
+                  {(() => {
+                    const hasNotes = !!(t.notes && t.notes.trim());
+                    const attCount = Array.isArray(t.attachments) ? t.attachments.length : 0;
+                    const has = hasNotes || attCount > 0;
+                    return (
+                      <button onClick={() => setNotesTask(t)}
+                        title={has ? `메모${hasNotes ? ' O' : ''} · 첨부 ${attCount}장` : '메모·첨부 추가'}
+                        style={{
+                          width:24, height:22, borderRadius:5, fontSize:12, padding:0,
+                          background: has ? 'var(--or-l)' : 'transparent',
+                          color: has ? 'var(--or-d)' : 'var(--text-sm)',
+                          cursor:'pointer', position:'relative', fontWeight:800,
+                        }}>
+                        📎{attCount > 0 && <sub style={{ fontSize:8, fontWeight:900 }}>{attCount}</sub>}
+                      </button>
+                    );
+                  })()}
+                </td>
                 <td style={{ ...td, textAlign:'center' }}>
                   <button onClick={() => deleteTask(t)} title="삭제"
                     style={{ width:22, height:22, borderRadius:5, fontSize:11, color:'#DC2626', background:'transparent', cursor:'pointer' }}>🗑</button>
@@ -5951,7 +6156,7 @@ function TodayTaskTable({ tasks, projects, audit, activeStaff, onAdd, onToast })
               <input type="date" value={quickDue} onChange={e => setQuickDue(e.target.value)}
                 style={{ ...cellInput, fontSize:10.5, cursor:'pointer' }} title="마감일 (선택)" />
             </td>
-            <td colSpan={2} style={{ ...td, textAlign:'center' }}>
+            <td colSpan={3} style={{ ...td, textAlign:'center' }}>
               <button onClick={handleQuickAdd} disabled={adding || !quickTitle.trim()} style={{
                 padding:'4px 12px', borderRadius:6, fontSize:11, fontWeight:900, color:'#fff',
                 background: (adding || !quickTitle.trim()) ? 'var(--text-sm)' : 'var(--or)', cursor:(adding || !quickTitle.trim()) ? 'not-allowed' : 'pointer'
@@ -5960,6 +6165,15 @@ function TodayTaskTable({ tasks, projects, audit, activeStaff, onAdd, onToast })
           </tr>
         </tbody>
       </table>
+      {/* 📎 메모·첨부 모달 — 빠른 판별용. 데이터는 task 문서에 직접 저장(다른 페이지 영향 없음) */}
+      {notesTask && (
+        <TaskNotesModal
+          task={notesTask}
+          audit={audit}
+          onClose={() => setNotesTask(null)}
+          onToast={onToast}
+        />
+      )}
     </div>
   );
 }

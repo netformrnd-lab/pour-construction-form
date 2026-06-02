@@ -330,7 +330,9 @@ const NAV = [
   { id: 'recurring', icon: '📌', label: '고정업무 (반복)',   group: 'kpi-db' },
   { id: 'okr',       icon: '🎯', label: 'OKR · 결과지표',    group: 'kpi-db' },
   { id: 'projects',  icon: '🗂️', label: '프로젝트',          group: 'kpi-db' },
-  { id: 'workmgmt',  icon: '📊', label: 'KPI 보고 보드',      group: 'kpi-db' },
+  // 'workmgmt' 메뉴는 옵션 B로 폐지 — 프로젝트 메뉴 안의 [📊 보고 모드] 토글로 흡수.
+  // 외부 공유용 URL(./workmgmt.html)은 프로젝트 페이지의 [↗ 외부 공유] 버튼으로 접근.
+  // WorkMgmtPage 컴포넌트와 라우팅(active==='workmgmt')은 보존 — 향후 복구 1줄로 가능.
   { id: 'channels',  icon: '🏷️', label: '거래코드·채널',     group: 'kpi-db' },
   // 캘린더·회의록 → 추후 React 컴포넌트 흡수 예정
 
@@ -7153,6 +7155,9 @@ function ProjectsPage({ onToast }) {
   const [seeding, setSeeding] = useState(false);
   const [remapping, setRemapping] = useState(false);  // 본인 매핑 재계산 진행 중
   const [seedingExtras, setSeedingExtras] = useState(false);  // 활동지표·task 보충 진행 중
+  // 📊 보고 모드 토글 — 'edit'(편집) | 'report'(read-only 카드, 회의·공유용)
+  // 옵션 B: 보고 보드 페이지를 폐지하고 프로젝트 메뉴 안에 흡수. workmgmt.html은 외부 공유용으로만 유지.
+  const [boardMode, setBoardMode] = useState('edit');
   // ⚠️ 모든 useState/useEffect는 반드시 early return 위에 (React Rules of Hooks · #310 방지)
 
   if (!activeStaff) return <div style={{ padding:60, textAlign:'center', color:'var(--text-sm)' }}>활동 담당자 선택이 필요합니다.</div>;
@@ -7552,40 +7557,72 @@ function ProjectsPage({ onToast }) {
     done:   { label:'완료', color:'#059669', bg:'#D1FAE5' },
   };
 
+  // 보고 모드 여부 — 편집 UI(시드 버튼·추가·편집·삭제·슬라이더)를 숨김
+  const isReportMode = boardMode === 'report';
+
   return (
     <div style={{ padding:'24px 32px', maxWidth:1280 }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14, flexWrap:'wrap', gap:12 }}>
         <div>
-          <h1 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6, marginBottom:4 }}>🗂️ 프로젝트</h1>
+          <h1 style={{ fontSize:22, fontWeight:900, color:'var(--navy)', letterSpacing:-0.6, marginBottom:4 }}>
+            🗂️ 프로젝트
+            {isReportMode && <span style={{ fontSize:11, fontWeight:800, color:'#fff', background:'var(--navy)', padding:'3px 9px', borderRadius:6, marginLeft:9, letterSpacing:.4 }}>📊 보고 모드 · READ-ONLY</span>}
+          </h1>
           <div style={{ fontSize:12.5, color:'var(--text-sm)', fontWeight:700 }}>
             전체 {projects.length} · 진행 {projects.filter(p => p.status !== 'done' && (p.progress||0) < 100).length} · 완료 {projects.filter(p => p.status === 'done' || (p.progress||0) >= 100).length}
+            {isReportMode && <span style={{ marginLeft:8, color:'var(--navy)', fontWeight:800 }}>· 회의·공유용 — 편집 잠금</span>}
           </div>
         </div>
-        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-          {projects.length === 0 && (
+        <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
+          {/* 📊 편집 ↔ 보고 모드 토글 — 옵션 B: 보고 보드 흡수 */}
+          <div style={{ display:'flex', background:'var(--bg)', border:'1.5px solid var(--border)', borderRadius:9, padding:3 }}>
+            <button onClick={() => setBoardMode('edit')} style={{
+              padding:'7px 13px', borderRadius:6, fontSize:11.5, fontWeight:900,
+              color: boardMode === 'edit' ? '#fff' : 'var(--text-md)',
+              background: boardMode === 'edit' ? 'var(--or)' : 'transparent',
+              cursor:'pointer', transition:'all .15s',
+            }}>✏️ 편집</button>
+            <button onClick={() => setBoardMode('report')} style={{
+              padding:'7px 13px', borderRadius:6, fontSize:11.5, fontWeight:900,
+              color: boardMode === 'report' ? '#fff' : 'var(--text-md)',
+              background: boardMode === 'report' ? 'var(--navy)' : 'transparent',
+              cursor:'pointer', transition:'all .15s',
+            }}>📊 보고</button>
+          </div>
+          {/* ↗ 외부 공유 URL — workmgmt.html은 외부 공유용으로 유지 (협력사·투자자 등) */}
+          <a href="./workmgmt.html" target="_blank" rel="noopener noreferrer"
+            title="외부 공유용 보고 보드 (workmgmt.html) — 새 탭"
+            style={{
+              padding:'8px 13px', borderRadius:8, fontSize:11.5, fontWeight:800, color:'var(--navy)',
+              background:'#fff', border:'1.5px solid var(--navy)', textDecoration:'none', display:'inline-flex', alignItems:'center', gap:5,
+            }}>↗ 외부 공유</a>
+          {/* 편집 모드에서만 노출 — 시드·추가 버튼 */}
+          {!isReportMode && projects.length === 0 && (
             <button onClick={seedProjects} disabled={seeding} style={{
               padding:'10px 16px', borderRadius:9, fontSize:13, fontWeight:900, color:'#fff',
               background:'#0F1F5C', border:'none', opacity: seeding ? 0.6 : 1,
             }}>🌱 기본 프로젝트 일괄 등록 ({WORKMGMT_PROJECTS_SEED.length}건)</button>
           )}
-          {projects.length > 0 && projects.some(p => p.projectCode) && (
+          {!isReportMode && projects.length > 0 && projects.some(p => p.projectCode) && (
             <button onClick={remapOwners} disabled={remapping} title="시드 프로젝트의 owner/담당자를 staff.kpiMemberId 기준으로 일괄 재매핑"
               style={{
                 padding:'10px 14px', borderRadius:9, fontSize:12.5, fontWeight:900, color:'var(--navy)',
                 background:'#fff', border:'1.5px solid var(--navy)', opacity: remapping ? 0.6 : 1,
               }}>🔄 본인 매핑 재계산</button>
           )}
-          {projects.length > 0 && projects.some(p => p.projectCode) && (
+          {!isReportMode && projects.length > 0 && projects.some(p => p.projectCode) && (
             <button onClick={seedKpisAndTasks} disabled={seedingExtras} title="프로젝트별 권장 활동지표(KPI) + 기본 task 일괄 보충"
               style={{
                 padding:'10px 14px', borderRadius:9, fontSize:12.5, fontWeight:900, color:'#fff',
                 background:'#7C3AED', border:'none', opacity: seedingExtras ? 0.6 : 1,
               }}>🌱 활동지표·task 보충</button>
           )}
-          <button onClick={() => setShowAdd(true)} style={{
-            padding:'10px 18px', borderRadius:9, fontSize:13, fontWeight:900, color:'#fff',
-            background:'linear-gradient(135deg, var(--or), var(--or-d))',
-          }}>+ 프로젝트 추가</button>
+          {!isReportMode && (
+            <button onClick={() => setShowAdd(true)} style={{
+              padding:'10px 18px', borderRadius:9, fontSize:13, fontWeight:900, color:'#fff',
+              background:'linear-gradient(135deg, var(--or), var(--or-d))',
+            }}>+ 프로젝트 추가</button>
+          )}
         </div>
       </div>
 
@@ -7697,19 +7734,34 @@ function ProjectsPage({ onToast }) {
                       </div>
                     )}
                   </div>
-                  <button onClick={() => setEditing(p)} title="편집" style={{ width:26, height:26, borderRadius:6, fontSize:13, background:'var(--bg)' }}>✎</button>
-                  <button onClick={() => delProject(p)} title="삭제" style={{ width:26, height:26, borderRadius:6, fontSize:13, color:'#DC2626' }}>×</button>
+                  {/* 보고 모드에선 편집/삭제 버튼 숨김 */}
+                  {!isReportMode && (
+                    <>
+                      <button onClick={() => setEditing(p)} title="편집" style={{ width:26, height:26, borderRadius:6, fontSize:13, background:'var(--bg)' }}>✎</button>
+                      <button onClick={() => delProject(p)} title="삭제" style={{ width:26, height:26, borderRadius:6, fontSize:13, color:'#DC2626' }}>×</button>
+                    </>
+                  )}
                 </div>
 
-                {/* 진척도 슬라이더 */}
+                {/* 진척도 — 편집 모드: 슬라이더 / 보고 모드: 막대그래프 read-only */}
                 <div>
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
                     <span style={{ fontSize:10.5, fontWeight:800, color:'var(--text-md)' }}>진척도</span>
                     <span style={{ fontSize:13, fontWeight:900, color:'var(--or-d)' }}>{p.progress || 0}%</span>
                   </div>
-                  <input type="range" min="0" max="100" step="5" value={p.progress || 0}
-                    onChange={e => updateProject(p.id, { progress: Number(e.target.value) })}
-                    style={{ width:'100%', accentColor:'var(--or)' }} />
+                  {isReportMode ? (
+                    <div style={{ height:8, background:'var(--border-s)', borderRadius:4, overflow:'hidden' }}>
+                      <div style={{
+                        width:`${Math.min(100, Math.max(0, p.progress || 0))}%`, height:'100%',
+                        background:(p.progress || 0) >= 100 ? 'var(--green)' : 'linear-gradient(90deg, var(--or), var(--or-d))',
+                        transition:'width .25s',
+                      }} />
+                    </div>
+                  ) : (
+                    <input type="range" min="0" max="100" step="5" value={p.progress || 0}
+                      onChange={e => updateProject(p.id, { progress: Number(e.target.value) })}
+                      style={{ width:'100%', accentColor:'var(--or)' }} />
+                  )}
                 </div>
 
                 {/* 담당자 + 마감 */}
@@ -8734,8 +8786,8 @@ async function buildWeekSnapshot(activeStaff) {
       { id: 'journals', name: '업무일지', purpose: '프로젝트별 일지·진척도 누적 (메뉴 폐지 검토 중)' },
       { id: 'recurring', name: '고정업무(반복)', purpose: '매일/매주/매월 반복 → 오늘 자동 생성' },
       { id: 'okr', name: 'OKR · 결과지표', purpose: 'Objective→KR→결과지표 KPI(매출 수동·진척도 자동) 트리' },
-      { id: 'projects', name: '프로젝트', purpose: '프로젝트 CRUD + 담당자 + 📈활동지표(선행 행동량, 주간 입력)' },
-      { id: 'workmgmt', name: 'KPI 보고 보드 (read-only)', purpose: '외부 보고용 시각화' },
+      { id: 'projects', name: '프로젝트 (편집 + 📊보고 모드 토글)', purpose: '프로젝트 CRUD + 담당자 + 📈활동지표(선행 행동량, 주간 입력). 보고 모드에서 카드 그리드 read-only 시각화 — workmgmt.html 흡수' },
+      // workmgmt 메뉴는 사이드바에서 폐지(옵션 B). 외부 공유 URL(./workmgmt.html)은 프로젝트 페이지의 [↗ 외부 공유] 버튼으로 접근.
       { id: 'channels', name: '거래코드·채널', purpose: '거래코드 마스터 + 인쇄 포스터' },
       { id: 'ai-review', name: 'AI 주간 점검 (Friday Review)', purpose: '이번 주 분석 (← 이 페이지)' },
       { id: 'preview', name: '자사몰 페이지 관리', purpose: 'pourstore-renewal builder iframe' },

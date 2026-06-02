@@ -299,11 +299,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1
 .ramp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;align-items:end;margin-bottom:18px;padding-top:10px;}
 .ramp-step{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;text-align:center;}
 .ramp-v{font-size:clamp(15px,1.8vw,19px);font-weight:800;color:var(--ink);margin-bottom:10px;letter-spacing:-.02em;}
-.ramp-step.on .ramp-v{color:var(--accent-dark);}
-.ramp-bar{width:100%;max-width:88px;border-radius:12px 12px 0 0;background:linear-gradient(180deg,var(--accent),var(--accent-dark));}
+.ramp-step.on .ramp-v{color:var(--indigo);}
+.ramp-bar{width:100%;max-width:88px;border-radius:12px 12px 0 0;background:linear-gradient(180deg,var(--indigo),#c2410c);}
 .ramp-bar.loss{background:linear-gradient(180deg,#ff7a86,var(--red));}
 .ramp-q{font-size:12.5px;font-weight:800;color:var(--ink2);margin-top:12px;}
-.ramp-step.on .ramp-q{color:var(--accent-dark);}
+.ramp-step.on .ramp-q{color:var(--indigo);}
 .ramp-l{font-size:11px;color:var(--ink3);margin-top:4px;font-weight:600;line-height:1.4;}
 @media(max-width:980px){.ramp-grid{grid-template-columns:repeat(2,1fr);}}
 
@@ -544,7 +544,7 @@ body.present-mode .edit-fab{display:none!important;}
         <div class="stat-row">
           <div class="stat-mini"><div class="stat-mini-v">146건</div><div class="stat-mini-l">인바운드</div></div>
           <div class="stat-mini"><div class="stat-mini-v">10건</div><div class="stat-mini-l">공구 누적</div></div>
-          <div class="stat-mini"><div class="stat-mini-v">83%</div><div class="stat-mini-l">완판율</div></div>
+          <div class="stat-mini"><div class="stat-mini-v" style="font-size:14px">1,220,610원</div><div class="stat-mini-l">누적 매출</div></div>
         </div>
       </div>
     </div>
@@ -649,18 +649,16 @@ body.present-mode .edit-fab{display:none!important;}
   <div class="slide-body">
     <div class="three-col">
       <div class="feat-card fade d1"><div class="feat-icon">🧠</div><div class="feat-title">마스터프롬프트 — POUR스토어판</div><div class="feat-desc">모여라딜에서 검증한 선제작 원칙을 POUR스토어용으로 확장. 서비스소개·계약서·UX·CS 톤을 일관 적용.</div></div>
-      <div class="feat-card fade d2"><div class="feat-icon">📱</div><div class="feat-title">박람회 영업앱</div><div class="feat-desc">넷폼 박람회 영업사원용 앱 제작 완료. 클로드 API 연결, 맞춤 제안서 자동 생성.</div></div>
+      <div class="feat-card fade d2"><div class="feat-icon">📱</div><div class="feat-title">박람회 영업앱</div><div class="feat-desc">넷폼 박람회 영업사원용 앱 제작 완료. 클로드 API 연결, 맞춤 제안서 자동 생성, <b>Solapi SMS 문자 API 연동</b>.</div></div>
       <div class="feat-card fade d3"><div class="feat-icon">🎯</div><div class="feat-title">KPI 체계 v6</div><div class="feat-desc">5단계 계층 구조 (O→KR→결과지표→활동지표→Task). 조달청 G채널 추가. 연매출 10억 목표.</div></div>
-      <div class="feat-card fade d4"><div class="feat-icon">💳</div><div class="feat-title">PG사 입점 탐색</div><div class="feat-desc">모여라딜은 <b>공동구매 단일 판매방식</b>이라 KG이니시스·토스 입점 불가 → 스마트로 가능 확인. <b>판매방식을 다양화해야 한다</b>는 과제 확인.</div></div>
-      <div class="feat-card fade d6"><div class="feat-icon">📡</div><div class="feat-title">CRM · 운영 인프라</div><div class="feat-desc">Solapi SMS API 연동, 대표번호 신청, 파트너소개사이트 포스팅 3건 완료.</div></div>
     </div>
     <div class="honest-box fade d6">
       <div class="honest-title">⚠ 솔직한 현황 — 완전하지 않습니다</div>
       <div class="honest-items">
-        <div class="honest-item"><div class="honest-item-title">마스터프롬프트</div><div class="honest-item-desc">POUR스토어 버전 보완 필요. 경영 대시보드 연동 미완. B2B 세분화 예정.</div></div>
-        <div class="honest-item"><div class="honest-item-title">경영 대시보드</div><div class="honest-item-desc">실행 테스트 미완. 공구 공백으로 실데이터 미확인. 지표는 설계 완료.</div></div>
-        <div class="honest-item"><div class="honest-item-title">PG 전환</div><div class="honest-item-desc">스마트로 가능 확인, 선입금 계약 방식 변경 필요. 공급사 재계약 중.</div></div>
+        <div class="honest-item"><div class="honest-item-title">마스터프롬프트</div><div class="honest-item-desc">POUR스토어 버전 보완 필요. B2B 고객군 세분화 예정.</div></div>
+        <div class="honest-item"><div class="honest-item-title">BMA · 경영 대시보드</div><div class="honest-item-desc"><b>POUR스토어 BMA 미제작</b> · 매입매출·손익 대시보드 미구축 (코드만 정리됨).</div></div>
         <div class="honest-item"><div class="honest-item-title">자사몰 리뉴얼</div><div class="honest-item-desc">현재 가장 시급. 메인 개선 중. 카페24 PG 연동 후 정상화 목표.</div></div>
+        <div class="honest-item"><div class="honest-item-title">실데이터 검증</div><div class="honest-item-desc">실매출 전환 후 가능. 지표·구조는 설계 완료.</div></div>
       </div>
     </div>
   </div>
@@ -701,18 +699,18 @@ body.present-mode .edit-fab{display:none!important;}
   <div class="slide-header">
     <div class="sec-num fade ps">PART 2 · POUR스토어 — AI·SKU</div>
     <h2 class="sec-title fade d1">데이터가 쌓이는 구조를 만듭니다.</h2>
-    <p class="sec-desc fade d2">AI 하자진단 템플릿 · SKU 세분화 — 쌓일수록 영업·추천이 똑똑해집니다.</p>
+    <p class="sec-desc fade d2">AI 하자진단(현재 <b>수동 정리</b> 단계) · SKU 세분화 — 데이터가 쌓일수록 영업·추천이 똑똑해지는 구조.</p>
   </div>
   <div class="slide-body">
     <div class="two-col">
       <div class="card fade d1">
-        <div class="card-label">// AI 하자진단 (영업앱 툴 + Manus API)</div>
-        <div class="card-title">하자 '기준 템플릿' → 데이터 축적</div>
+        <div class="card-label">// AI 하자진단 (현재 수동 정리 단계 · 자동화는 추후)</div>
+        <div class="card-title">지금은 수동 정리 — 자동 축적은 다음 단계</div>
         <ul class="card-list">
-          <li><span class="ic">🧩</span>영업앱에서 만든 진단 툴 + <b>마누스(Manus) API</b>를 활용해 템플릿 설정</li>
-          <li><span class="ic">📐</span>하자 기준을 템플릿화 — <b>슁글 이음부 3장 · 슁글 탈락 3장 · 후레싱 탈락 3장</b> 등 유형별 기준</li>
-          <li><span class="ic">📥</span>신규 하자 사진 등록(소비자·팀원) → 템플릿 기준으로 <b>자동 데이터 축적</b></li>
-          <li><span class="ic">🔎</span>축적될수록 <b>유사현장 사진 도출</b>이 쉬워짐 → 상담·영업 자산화</li>
+          <li><span class="ic">🧩</span>영업앱 진단 툴로 하자 기준을 <b>수동으로 정리</b> 중 (현재 단계)</li>
+          <li><span class="ic">📐</span>유형별 템플릿화 — <b>슁글 이음부 · 슁글 탈락 · 후레싱 탈락</b> 등 기준 수동 정리</li>
+          <li><span class="ic">📥</span>각 유형당 <b>3~5장 이상</b> 쌓이면 → <b>마누스(Manus) API 연결</b> (예정)</li>
+          <li><span class="ic">🔎</span>추후: 사진 등록 시 <b>자동 필터 → 해당 항목에 축적</b> → 유사현장 도출 <b>(미구현)</b></li>
         </ul>
       </div>
       <div class="card fade d2">
@@ -727,8 +725,8 @@ body.present-mode .edit-fab{display:none!important;}
       </div>
     </div>
     <div class="run-strip fade d3">
-      <div class="lab">⚡ 축적 구조</div>
-      <div class="txt">템플릿 설정 → <b>신규 사진 등록</b> → 데이터 축적 → <b>유사현장 도출</b>. 쌓일수록 진단·추천·영업이 자동으로 똑똑해지는 <b>데이터 자산화</b> 구조.</div>
+      <div class="lab">⚡ 단계</div>
+      <div class="txt"><b>현재: 수동 정리</b> → 유형당 3~5장↑ → <b>마누스 API 연결(예정)</b> → 사진 등록 시 자동 필터·축적<b>(추후)</b>. 지금은 자동화의 <b>기반 데이터를 모으는 단계</b>입니다.</div>
     </div>
   </div>
 </section>
@@ -836,8 +834,8 @@ body.present-mode .edit-fab{display:none!important;}
         <div class="team-name">채림님</div>
         <div class="team-role">파트타임<br>인턴 → 정규직 전환 예정</div>
         <ul class="team-tasks">
-          <li>주문·발주 (그로홈+POUR)</li><li>반품 CS</li>
-          <li>B2C CS 1차 응대</li><li>재고 관리</li>
+          <li>운영 인프라 (시스템 운영)</li><li>주문·발주 (그로홈+POUR)</li>
+          <li>재고 관리</li><li>반품 CS</li>
         </ul>
       </div>
     </div>
@@ -852,7 +850,7 @@ body.present-mode .edit-fab{display:none!important;}
       </div>
       <div class="phase-box">
         <div class="phase-box-title">PHASE 2 · 확장</div>
-        <div class="phase-box-desc">채림님 정규직 전환 후. 기본 업무 동일 + 담당 프로젝트 추가 배정. 4인 완전 체계로 KPI 본격 달성.</div>
+        <div class="phase-box-desc">채림님 정규직 전환 + <b>G(조달청·관급) 채널 신설</b>(학습기간). 담당 프로젝트 추가 배정 → 4인 완전 체계로 KPI(직판 5 + B2B 5) 본격 달성.</div>
       </div>
     </div>
   </div>
@@ -862,7 +860,7 @@ body.present-mode .edit-fab{display:none!important;}
   <div class="slide-header">
     <div class="sec-num fade end">공통 · 경영 대시보드·KPI</div>
     <h2 class="sec-title fade d1">숫자로 경영합니다.</h2>
-    <p class="sec-desc fade d2">모여라딜에 먼저 구축 · POUR스토어도 제작 예정 — 실데이터 검증이 다음 과제.</p>
+    <p class="sec-desc fade d2">아래 대시보드는 <b>모여라딜 기준(실데이터 구축)</b>. <b>POUR스토어는 아직 코드만 정리</b> — 매입매출·손익·BMA 미구축이 다음 과제.</p>
   </div>
   <div class="slide-body">
     <div class="dash-split">
@@ -876,7 +874,7 @@ body.present-mode .edit-fab{display:none!important;}
             <div class="dash-metric"><div class="dash-metric-v gold">598,510원</div><div class="dash-metric-l">2026 GMV (15건)</div></div>
             <div class="dash-metric"><div class="dash-metric-v g">8.7%</div><div class="dash-metric-l">매출총이익률</div></div>
             <div class="dash-metric"><div class="dash-metric-v r">-650만원</div><div class="dash-metric-l">월 순현금흐름</div></div>
-            <div class="dash-metric"><div class="dash-metric-v">83%</div><div class="dash-metric-l">공구 완판율</div></div>
+            <div class="dash-metric"><div class="dash-metric-v gold">622,100원</div><div class="dash-metric-l">2025 GMV</div></div>
           </div>
           <div class="gmv-chart">
             <div class="gmv-cap" style="font-size:11px;color:var(--ink3);font-weight:600;margin-bottom:9px;">월별 GMV · 2026 — 전체 누적(LIFETIME) <b style="color:var(--ink)">1,220,610원</b> = 2025 622,100 + 2026 598,510</div>
@@ -1010,6 +1008,7 @@ body.present-mode .edit-fab{display:none!important;}
     <p class="sec-desc fade d2">상반기엔 구조를 만들었습니다. 하반기는 이 곡선을 탑니다 — 언제 · 무엇 · 얼마.</p>
   </div>
   <div class="slide-body">
+    <div class="fade d1" style="font-size:13px;font-weight:800;color:var(--indigo);margin-bottom:4px">🟠 POUR스토어 — 매출 램프 (0 → BEP → 연 10억)</div>
     <div class="ramp-grid fade d1">
       <div class="ramp-step">
         <div class="ramp-v">월 -650만</div>
@@ -1041,6 +1040,10 @@ body.present-mode .edit-fab{display:none!important;}
       <div class="txt">상반기 <b>구조</b>(BMA·KPI·시스템·팀) → Q3 <b>자사몰·PG 정상화로 실매출</b> → Q4 <b>BEP</b> → <b>연 10억</b>. 모든 구조는 결국 이 숫자를 만들기 위한 것이었습니다.</div>
     </div>
     <div class="cn-note">※ 상반기는 BMA 설계에 집중해 공구 1건 · 셀러 수는 현 수준 유지. Q3·Q4 월 GMV는 확정 후 반영 예정 — 현재는 BEP 9,700만/월 · 연 10억 기준의 경로 표시입니다.</div>
+    <div class="run-strip fade d4" style="margin-top:12px;border-left-color:var(--accent);background:var(--accent-soft)">
+      <div class="lab" style="color:var(--accent-dark)">🔵 모여라딜</div>
+      <div class="txt">매출 램프와는 <b>다른 궤도</b> — <b>카테고리 무제한</b>이라 정해진 곡선보다 <b>실험·학습</b>으로 큽니다. <b>올해 100번 실행·AB테스트 → 더 나은 방식 내재화 → 10억+ 잠재력</b>. (정하님과 재점화)</div>
+    </div>
   </div>
 </section>
 
@@ -1053,23 +1056,23 @@ body.present-mode .edit-fab{display:none!important;}
   <div class="slide-body">
     <div class="fade d1">
       <div class="goal-big">10억</div>
-      <div class="goal-sub">POUR스토어 2026 연매출 목표</div>
+      <div class="goal-sub">POUR스토어 2026 연매출 목표 <span style="color:var(--accent);font-weight:800">· 모여라딜 10억+ 잠재력 (카테고리 무제한)</span></div>
     </div>
     <div class="goal-grid fade d2">
       <div class="goal-card">
-        <div class="goal-card-title">매출 구성</div>
+        <div class="goal-card-title" style="color:var(--indigo)">🟠 POUR스토어 · 매출 구성</div>
         <div class="goal-item"><span class="goal-item-l">KR1 직판</span><span class="goal-item-r">5억</span></div>
         <div class="goal-item"><span class="goal-item-l">KR2 B2B</span><span class="goal-item-r">5억</span></div>
         <div class="goal-item"><span class="goal-item-l">KR3 시스템</span><span class="goal-item-r">4모듈</span></div>
       </div>
       <div class="goal-card">
-        <div class="goal-card-title">파트너 네트워크</div>
+        <div class="goal-card-title" style="color:var(--indigo)">🟠 POUR스토어 · 파트너</div>
         <div class="goal-item"><span class="goal-item-l">활성 셀러</span><span class="goal-item-r">10 → 30명</span></div>
         <div class="goal-item"><span class="goal-item-l">대리점 확충</span><span class="goal-item-r">진행 중</span></div>
         <div class="goal-item"><span class="goal-item-l">파트너사 (P4)</span><span class="goal-item-r">협약 진행</span></div>
       </div>
       <div class="goal-card">
-        <div class="goal-card-title">모여라딜</div>
+        <div class="goal-card-title" style="color:var(--accent)">🔵 모여라딜</div>
         <div class="goal-item"><span class="goal-item-l">카테고리 무제한</span><span class="goal-item-r">10억+ 잠재력</span></div>
         <div class="goal-item"><span class="goal-item-l">100번 실행·AB테스트</span><span class="goal-item-r">방식 내재화</span></div>
         <div class="goal-item"><span class="goal-item-l">정하님과 재점화</span><span class="goal-item-r">성장</span></div>
@@ -1406,7 +1409,9 @@ document.querySelectorAll('.tbd').forEach(el=>{
 /* ── 인라인 글 편집: 편집 모드에서 모든 글 항목 직접 수정 → Firestore 저장 ── */
 const EDIT_SEL=['.sec-title','.sec-desc','.card-title','.card-label','.card-list li','.feat-title','.feat-desc','.exp-title','.exp-hyp','.exp-no','.tl-head','.tl-body','.tl-date','.highlight-box p','.insight-strip p','.run-strip .txt','.run-strip .lab','.bma-insight-txt','.bma-insight-tag','.honest-title','.honest-item-title','.honest-item-desc','.renew-why .t','.status-name','.phase-box-title','.phase-box-desc','.team-name','.team-role','.team-tasks li','.cn-chip','.cn-pair-who','.cn-pair-flow','.cn-total','.cn-note','.cn-relay-t','.next-card-title','.next-card-desc','.next-card-tag','.next-hero-text','.goal-card-title','.goal-item','.goal-big','.goal-sub','.kpi-box-title','.kpi-row','.dash-metric-v','.dash-metric-l','.gmv-cap','.bep-note','.bep-top','.closing h3','.closing p','.stat-mini-l','.ramp-v','.ramp-q','.ramp-l','.title-name','.title-sub','.title-stat-l','.tstat-glabel','.date-chip','.role-badge span'].join(',');
 const editEls=[...document.querySelectorAll(EDIT_SEL)];
-editEls.forEach((el,i)=>{el.dataset.eid='t'+i;});
+function eidHash(s){let h=5381;for(let i=0;i<s.length;i++){h=((h<<5)+h+s.charCodeAt(i))|0;}return 't'+(h>>>0).toString(36);}
+const _eidSeen={};
+editEls.forEach(el=>{let k=eidHash(el.innerHTML.trim());if(_eidSeen[k]!=null){_eidSeen[k]++;k+='_'+_eidSeen[k];}else{_eidSeen[k]=0;}el.dataset.eid=k;});
 let textOverrides={};
 function applyTextOverrides(){
   editEls.forEach(el=>{const v=textOverrides[el.dataset.eid];if(v!=null && el.innerHTML!==v)el.innerHTML=v;});

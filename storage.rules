@@ -52,6 +52,11 @@ service firebase.storage {
     match /pourstore-detail/{allPaths=**}  { allow read, write: if true; }
     match /product-details/{allPaths=**}   { allow read, write: if true; }
 
+    // POUR스토어 어드민 — task 메모·첨부 (빠른 판별용, pourstore-renewal/admin)
+    // 경로: task-attachments/{taskId}/{filename}
+    // 사용: TaskNotesModal (오늘 업무 페이지). 다른 페이지·앱에서 사용하지 않음.
+    match /task-attachments/{allPaths=**}  { allow read, write: if true; }
+
     // 박람회 영업앱 (index.html, admin.html)
     match /case-photos/{allPaths=**}       { allow read, write: if true; }
     match /prob-photos/{allPaths=**}       { allow read, write: if true; }

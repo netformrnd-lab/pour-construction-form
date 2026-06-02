@@ -3,7 +3,7 @@
 // 정책: 네트워크 우선, 실패 시 캐시. Firestore/Cloudflare 등 외부 API는 통과(intercept 안 함).
 // scope: /pourstore-renewal/ — admin.html · workmgmt.html · preview.html 등 포함
 
-const VERSION = 'pour-admin-v9';  // 2026-06-02 — 업무일지 메뉴 폐지 (사이드바에서만 제거, 데이터·컴포넌트 보존)
+const VERSION = 'pour-admin-v10'; // 2026-06-02 — task 메모·첨부 (📎 모달) 추가
 const SHELL = [
   './admin.html',
   './workmgmt.html',

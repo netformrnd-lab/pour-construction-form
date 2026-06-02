@@ -3,7 +3,7 @@
 // 정책: 네트워크 우선, 실패 시 캐시. Firestore/Cloudflare 등 외부 API는 통과(intercept 안 함).
 // scope: /pourstore-renewal/ — admin.html · workmgmt.html · preview.html 등 포함
 
-const VERSION = 'pour-admin-v11'; // 2026-06-02 — 프로젝트 메뉴에 [📊 보고 모드] 토글 흡수, 보고 보드 메뉴 폐지
+const VERSION = 'pour-admin-v12'; // 2026-06-02 — 프로젝트 페이지에 🤝 협업 관계도 위젯 추가 (SVG + 페어 카드)
 const SHELL = [
   './admin.html',
   './workmgmt.html',

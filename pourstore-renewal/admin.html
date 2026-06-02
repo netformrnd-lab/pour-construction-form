@@ -7144,6 +7144,198 @@ function ProjectActivityMetrics({ project, kpis, activeStaff, audit, onToast }) 
   );
 }
 
+// ============================================================
+// CollaborationWidget — 팀 협업 관계도 (자동 계산)
+// 입력: projects + staffMembers
+// 출력:
+//   ① 상단 SVG 관계도 — 팀원 노드(원형 배치) + 협업 건수 연결선(굵기·색)
+//   ② 하단 페어별 카드 — 두 사람 이니셜 + 건수 + 프로젝트 칩 목록
+// 자동화: 팀원 추가/삭제 시 노드·페어 자동 재계산 (별도 입력 불필요)
+// 데이터 변경 없음 — pour-projects의 assigneeStaffIds 조합만 분석 (READ-ONLY)
+// ============================================================
+function CollaborationWidget({ projects, staffMembers, activeStaffId }) {
+  const [collapsed, setCollapsed] = useState(false);
+
+  // 1. 페어 카운트 — assigneeStaffIds 2명 이상인 프로젝트의 모든 조합
+  const pairMap = new Map();
+  projects.forEach(p => {
+    const ids = (p.assigneeStaffIds || []).filter(id => staffMembers.some(s => s.id === id));
+    const unique = Array.from(new Set(ids)).sort();
+    for (let i = 0; i < unique.length; i++) {
+      for (let j = i + 1; j < unique.length; j++) {
+        const key = unique[i] + '__' + unique[j];
+        if (!pairMap.has(key)) pairMap.set(key, { ids: [unique[i], unique[j]], projects: [] });
+        pairMap.get(key).projects.push(p);
+      }
+    }
+  });
+
+  // 2. 협업 건수 desc 정렬
+  const pairs = Array.from(pairMap.values()).sort((a, b) => b.projects.length - a.projects.length);
+  const maxCnt = pairs.length > 0 ? pairs[0].projects.length : 1;
+
+  // 3. SVG 원형 배치 — N명을 균등 분할 (상단부터 시계방향)
+  const N = staffMembers.length;
+  const cx = 180, cy = 175, r = N <= 4 ? 110 : 130;
+  const nodes = staffMembers.map((s, i) => {
+    const angle = (i / Math.max(1, N)) * 2 * Math.PI - Math.PI / 2; // 첫 노드 위쪽
+    return {
+      ...s,
+      x: cx + r * Math.cos(angle),
+      y: cy + r * Math.sin(angle),
+    };
+  });
+  const nodeById = Object.fromEntries(nodes.map(n => [n.id, n]));
+
+  // 4. 에지 (페어 → SVG line)
+  const edges = pairs.map(p => {
+    const a = nodeById[p.ids[0]];
+    const b = nodeById[p.ids[1]];
+    if (!a || !b) return null;
+    return { a, b, cnt: p.projects.length };
+  }).filter(Boolean);
+
+  // 협업 없으면 안내만
+  if (N === 0) return null;
+
+  // 솔로 프로젝트(혼자 작업) 카운트 — 협업 없이도 가치 있는 정보
+  const soloCount = projects.filter(p => {
+    const ids = (p.assigneeStaffIds || []).filter(id => staffMembers.some(s => s.id === id));
+    return new Set(ids).size === 1;
+  }).length;
+
+  return (
+    <div style={{
+      background:'#fff', border:'1.5px solid var(--border)', borderRadius:12,
+      padding:'16px 18px', marginBottom:18, boxShadow:'var(--shadow)',
+    }}>
+      {/* 헤더 */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: collapsed ? 0 : 14 }}>
+        <div>
+          <h3 style={{ fontSize:14, fontWeight:900, color:'var(--navy)', marginBottom:3 }}>
+            🤝 팀 협업 관계도
+            <span style={{ fontSize:10, fontWeight:800, color:'var(--text-sm)', background:'var(--bg)', padding:'2px 7px', borderRadius:5, marginLeft:8 }}>
+              자동 계산 · {staffMembers.length}명 · 협업 페어 {pairs.length}개
+            </span>
+          </h3>
+          <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700 }}>
+            프로젝트의 담당자 조합으로 자동 산출 — 팀원 추가/삭제 시 자동 반영 · 솔로 작업 {soloCount}건
+          </div>
+        </div>
+        <button onClick={() => setCollapsed(!collapsed)} style={{
+          padding:'6px 12px', borderRadius:7, fontSize:11, fontWeight:800, color:'var(--text-md)',
+          background:'var(--bg)', border:'1px solid var(--border)', cursor:'pointer',
+        }}>{collapsed ? '▼ 펼치기' : '▲ 접기'}</button>
+      </div>
+
+      {!collapsed && (
+        <>
+          {/* ① SVG 원형 관계도 */}
+          {pairs.length === 0 ? (
+            <div style={{
+              padding:'30px 16px', textAlign:'center', background:'var(--bg)', borderRadius:9,
+              fontSize:12, fontWeight:700, color:'var(--text-sm)',
+            }}>
+              아직 2명 이상이 함께 배정된 프로젝트가 없습니다. 프로젝트 편집에서 담당자를 2명 이상 선택하면 협업 관계도가 그려져요.
+            </div>
+          ) : (
+            <div style={{ display:'flex', justifyContent:'center', marginBottom:14 }}>
+              <svg viewBox="0 0 360 360" style={{ width:'100%', maxWidth:380, height:'auto' }}>
+                {/* 에지 — 굵기·색은 협업 건수에 비례 */}
+                {edges.map((e, i) => {
+                  const intensity = e.cnt / maxCnt;
+                  const stroke = intensity >= 0.7 ? '#3B82F6' : intensity >= 0.4 ? '#93C5FD' : '#CBD5E1';
+                  const strokeW = Math.max(1.5, 1 + intensity * 5);
+                  const mx = (e.a.x + e.b.x) / 2;
+                  const my = (e.a.y + e.b.y) / 2;
+                  return (
+                    <g key={i}>
+                      <line x1={e.a.x} y1={e.a.y} x2={e.b.x} y2={e.b.y} stroke={stroke} strokeWidth={strokeW} strokeLinecap="round" />
+                      <rect x={mx - 18} y={my - 9} width={36} height={18} rx={9} fill="#fff" stroke={stroke} strokeWidth="1.5" />
+                      <text x={mx} y={my + 4} textAnchor="middle" fontSize="10.5" fontWeight="900" fill="#1E40AF">{e.cnt}건</text>
+                    </g>
+                  );
+                })}
+                {/* 노드 — 팀원 원형 */}
+                {nodes.map((n) => {
+                  const isMe = n.id === activeStaffId;
+                  const ringR = isMe ? 32 : 28;
+                  return (
+                    <g key={n.id}>
+                      {isMe && <circle cx={n.x} cy={n.y} r={ringR + 4} fill="none" stroke="var(--or)" strokeWidth="2" strokeDasharray="4 3" />}
+                      <circle cx={n.x} cy={n.y} r={ringR} fill={n.kpiColor || '#9CA3AF'} stroke="#fff" strokeWidth="3" />
+                      <text x={n.x} y={n.y + 1} textAnchor="middle" fill="#fff" fontSize="13" fontWeight="900">{n.name}</text>
+                      <text x={n.x} y={n.y + 16} textAnchor="middle" fill="#fff" fontSize="8.5" fontWeight="700" opacity="0.9">{n.kpiRole || ''}</text>
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
+          )}
+
+          {/* ② 페어별 협업 카드 */}
+          {pairs.length > 0 && (
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(260px, 1fr))', gap:10 }}>
+              {pairs.map(pair => {
+                const a = staffMembers.find(s => s.id === pair.ids[0]);
+                const b = staffMembers.find(s => s.id === pair.ids[1]);
+                if (!a || !b) return null;
+                const cnt = pair.projects.length;
+                // krGroup 요약 (가장 많이 등장하는 카테고리 2개)
+                const groupCount = {};
+                pair.projects.forEach(p => {
+                  const g = p.krGroup || (p.description || '').split('·')[0].trim() || '기타';
+                  groupCount[g] = (groupCount[g] || 0) + 1;
+                });
+                const topGroups = Object.entries(groupCount).sort((x, y) => y[1] - x[1]).slice(0, 2).map(([g]) => g);
+                return (
+                  <div key={pair.ids.join('__')} style={{
+                    background:'#fff', border:'1.5px solid var(--border)', borderRadius:10, padding:'12px 14px',
+                  }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6 }}>
+                      <div style={{ display:'flex' }}>
+                        <div style={{ width:24, height:24, borderRadius:'50%', background:a.kpiColor || '#9CA3AF', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:900, border:'2px solid #fff', boxShadow:'0 1px 2px rgba(0,0,0,.1)' }}>
+                          {a.kpiInitial || (a.name || '?').charAt(0)}
+                        </div>
+                        <div style={{ width:24, height:24, borderRadius:'50%', background:b.kpiColor || '#9CA3AF', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:900, border:'2px solid #fff', boxShadow:'0 1px 2px rgba(0,0,0,.1)', marginLeft:-6 }}>
+                          {b.kpiInitial || (b.name || '?').charAt(0)}
+                        </div>
+                      </div>
+                      <div style={{ flex:1, fontSize:12.5, fontWeight:900, color:'var(--text)' }}>
+                        {a.name} + {b.name}
+                      </div>
+                      <div style={{ fontSize:13, fontWeight:900, color:'var(--or-d)' }}>{cnt}<span style={{ fontSize:10, marginLeft:1 }}>건</span></div>
+                    </div>
+                    {topGroups.length > 0 && (
+                      <div style={{ fontSize:11, fontWeight:700, color:'var(--text-md)', marginBottom:7 }}>
+                        {topGroups.join(' · ')}
+                      </div>
+                    )}
+                    <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
+                      {pair.projects.slice(0, 12).map(p => (
+                        <span key={p.id} title={p.name} style={{
+                          fontSize:10.5, fontWeight:700, color:'var(--text-md)',
+                          background:'var(--bg)', padding:'3px 7px', borderRadius:5, border:'1px solid var(--border-s)',
+                          maxWidth:140, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+                        }}>{p.name}</span>
+                      ))}
+                      {pair.projects.length > 12 && (
+                        <span style={{ fontSize:10, fontWeight:800, color:'var(--text-sm)', padding:'3px 7px' }}>
+                          +{pair.projects.length - 12}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 function ProjectsPage({ onToast }) {
   const { activeStaff, audit, staffMembers } = useActiveStaffContext();
   const { keyResults, kpis, projects, loading } = useAllOkrData();
@@ -7674,6 +7866,9 @@ function ProjectsPage({ onToast }) {
           );
         })}
       </div>
+
+      {/* 🤝 협업 관계도 — 페어 카운트 자동 계산 (assigneeStaffIds 조합) */}
+      <CollaborationWidget projects={projects} staffMembers={staffMembers} activeStaffId={activeStaff.id} />
 
       {/* 필터 */}
       <div style={{ display:'flex', gap:8, marginBottom:14, flexWrap:'wrap' }}>

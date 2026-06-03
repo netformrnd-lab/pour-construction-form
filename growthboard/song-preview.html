@@ -247,6 +247,14 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
   .grid2,.grid2b,.tiles,.cards{grid-template-columns:1fr;}
   .pipe,.stepper{flex-direction:column;} .parrow,.marrow{transform:rotate(90deg);padding:4px 0;}
 }
+/* 더보기 버튼 + 인포 모달 */
+.more-btn{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px dashed var(--accent);color:var(--accent-dark);font-family:inherit;font-size:13px;font-weight:800;padding:11px 17px;border-radius:12px;cursor:pointer;margin-top:16px;transition:background .15s,transform .15s;}
+.more-btn:hover{background:var(--accent-soft);transform:translateY(-1px);}
+.imodal{position:fixed;inset:0;background:rgba(10,14,20,.55);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:610;padding:28px;}
+.imodal.open{display:flex;}
+.imodal-box{background:#fff;border-radius:20px;max-width:640px;width:100%;max-height:84vh;overflow:auto;padding:30px 30px 26px;box-shadow:0 24px 70px rgba(0,0,0,.35);position:relative;}
+.imodal-x{position:absolute;top:14px;right:16px;border:none;background:var(--border-l);width:34px;height:34px;border-radius:10px;font-size:16px;cursor:pointer;color:var(--ink2);}
+.imodal-h{font-size:18px;font-weight:800;margin-bottom:16px;letter-spacing:-.02em;}
 </style>
 </head>
 <body>
@@ -389,14 +397,7 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
       <div class="card"><div class="ci">🧩</div><div class="ch ed" data-k="mde-c3h">선택형 소싱 → 입점 제안서</div><div class="cd ed" data-k="mde-c3d">신박템 소싱 33건 → 공급사 맞춤 입점 제안서 제작.</div></div>
       <div class="card"><div class="ci">🤝</div><div class="ch ed" data-k="mde-c4h">셀러 공구 제안</div><div class="cd ed" data-k="mde-c4d">협찬·가이드 패키지로 셀러가 직접 공구 개최하도록 제안.</div></div>
     </div>
-    <div class="ed rv d4" data-k="mde-tools" style="margin-top:16px;background:var(--accent-soft);border:1px solid var(--accent);border-left:4px solid var(--accent);border-radius:14px;padding:14px 18px;font-size:13px;font-weight:600;color:var(--ink);line-height:1.6;">🛠 <b>직접 만든 판매 도구</b><br>🧮 <b>마진 계산기</b> — 공급단가·셀러 수수료·이벤트비·PG수수료 조정 → 순마진 손익 즉시 판정·셀러 마진율 안내<br>📑 <b>맞춤 제안서 사이트</b>(피트페이퍼형) — Claude AI가 상품 링크·캡처에서 <b>소구포인트·판매전략 자동 생성</b> · 열람/체류 분석 · 제안서 내 즉시 문의</div>
-    <div class="chips rv d5" style="margin-top:14px;">
-      <span class="chip ed" data-k="mde-b1">입점 수수료</span><span class="chip ed" data-k="mde-b2">공동구매 수수료</span>
-      <span class="chip ed" data-k="mde-b3">광고·노출</span><span class="chip ed" data-k="mde-b4">구독</span>
-      <span class="chip ed" data-k="mde-b5">데이터</span><span class="chip ed" data-k="mde-b6">물류·풀필먼트</span>
-      <span class="chip ed" data-k="mde-b7">금융·정산</span><span class="chip ed" data-k="mde-b8">PB·자체상품</span>
-    </div>
-    <div class="rail-hint" style="display:block;margin-top:8px;color:var(--ink3);font-size:11px;font-weight:600">＋ 설계한 BMA 수익구조 8개 (명칭은 편집모드에서 수정)</div>
+    <button class="more-btn rv d4" data-more="im-tools">🛠 자체 제작 도구 · BMA 8개 수익구조 자세히</button>
     <div class="ed rv d5" data-k="mde-next" style="margin-top:16px;background:var(--accent-soft);border-radius:12px;padding:13px 17px;font-size:13px;color:var(--ink);line-height:1.6;font-weight:600;">🧪 <b>다음 분기 — 직접 공구 10회 실험</b> (개당 마진 1,000원 → 최소 2,000원 구조 목표). 샘플 구매 완료 · 직접 촬영 · 셀러 협찬 병행. <b>빠른 실행 → 데이터 → 개선</b> 반복으로 빅데이터를 자산화.</div>
     <div class="ed rv d5" data-k="mde-vision" style="margin-top:10px;font-size:14.5px;font-weight:800;color:var(--accent-dark);line-height:1.5;letter-spacing:-.02em;">🚀 모여라딜은 <b>카테고리 제한이 없습니다.</b> 100번 실행·실패하고 AB 테스트로 더 나은 방식을 내재화하면 — <b>10억, 그 이상도</b> 어렵지 않습니다.</div>
     <div class="rail" data-group="md-exec"></div>
@@ -719,6 +720,19 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
   </div>
 </section>
 
+<div class="imodal" id="im-tools">
+  <div class="imodal-box">
+    <button class="imodal-x" aria-label="닫기">✕</button>
+    <div class="imodal-h">🛠 자체 제작 도구 · 수익구조</div>
+    <div class="ed" data-k="im-calc" style="background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:12px;padding:14px 16px;font-size:13.5px;font-weight:600;color:var(--ink);line-height:1.6;margin-bottom:12px;">🧮 <b>마진 계산기</b> — 공급단가·판매가 등록 상품 선택 → 판매수량·셀러 수수료·이벤트비(광고·활동지원금·기프티콘)·PG수수료 조정 → <b>순마진 손익 즉시 판정</b> · 셀러 마진율 안내 · 셀러 제안서 자동 생성.</div>
+    <div class="ed" data-k="im-prop" style="background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:12px;padding:14px 16px;font-size:13.5px;font-weight:600;color:var(--ink);line-height:1.6;margin-bottom:16px;">📑 <b>맞춤 제안서 사이트</b>(피트페이퍼형) — 설정한 템플릿에 Claude AI가 상품 링크·상세 캡처에서 <b>소구포인트·판매전략 자동 생성</b> · 슬라이드별 열람·체류 분석 · 제안서 내 즉시 문의 접수.</div>
+    <div style="font-size:12px;font-weight:800;color:var(--ink3);margin:6px 0 9px;">＋ 설계한 BMA 수익구조 8개</div>
+    <div class="chips">
+      <span class="chip ed" data-k="mde-b1">입점 수수료</span><span class="chip ed" data-k="mde-b2">공동구매 수수료</span><span class="chip ed" data-k="mde-b3">광고·노출</span><span class="chip ed" data-k="mde-b4">구독</span><span class="chip ed" data-k="mde-b5">데이터</span><span class="chip ed" data-k="mde-b6">물류·풀필먼트</span><span class="chip ed" data-k="mde-b7">금융·정산</span><span class="chip ed" data-k="mde-b8">PB·자체상품</span>
+    </div>
+  </div>
+</div>
+
 <div class="lb" id="lb">
   <button class="lb-x" id="lbx">✕</button>
   <div class="lb-cap" id="lbcap"></div>
@@ -886,7 +900,10 @@ const io3=new IntersectionObserver(es=>{es.forEach(e=>{if(!e.isIntersecting)retu
   document.getElementById('scount').textContent=(curIdx+1)+' / '+slides.length;});},{threshold:.5});
 slides.forEach(s=>io3.observe(s));
 
+document.querySelectorAll('.more-btn').forEach(b=>{const t=document.getElementById(b.dataset.more);if(t)b.onclick=()=>t.classList.add('open');});
+document.querySelectorAll('.imodal').forEach(m=>m.addEventListener('click',ev=>{if(ev.target===m||ev.target.classList.contains('imodal-x'))m.classList.remove('open');}));
 document.addEventListener('keydown',e=>{
+  const _om=document.querySelector('.imodal.open');if(_om){if(e.key==='Escape')_om.classList.remove('open');return;}
   if(lb.classList.contains('open')){if(e.key==='Escape'){closeLB();return;}if(document.activeElement===lbcap)return;if(e.key==='ArrowLeft')document.getElementById('lbp').click();if(e.key==='ArrowRight')document.getElementById('lbn').click();return;}
   if(document.activeElement&&document.activeElement.isContentEditable)return;
   if(e.key==='Escape'&&document.body.classList.contains('present')){exitPresent();return;}

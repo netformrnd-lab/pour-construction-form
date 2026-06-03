@@ -280,6 +280,20 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:var(--ink3);fo
 .mjr .em{color:#c5cbd3;display:flex;align-items:center;justify-content:center;}
 .mjr b{color:var(--ink);font-weight:700;}
 @media(max-width:560px){.mjr{grid-template-columns:42px 1fr 1fr;}.mjr>div{padding:8px 8px;font-size:11px;}}
+/* 세로 막대 양방향 여정 타임라인 */
+.vtl{display:grid;grid-template-columns:1fr 64px 1fr;align-items:center;position:relative;row-gap:4px;margin-top:6px;}
+.vtl::before{content:"";position:absolute;left:50%;top:34px;bottom:24px;width:2px;background:var(--border);transform:translateX(-50%);z-index:0;}
+.vtl-h{font-weight:800;font-size:12.5px;padding-bottom:6px;}
+.vtl-h.md{color:var(--accent);text-align:right;} .vtl-h.ps{color:var(--store);text-align:left;}
+.vtl-l{text-align:right;} .vtl-r{text-align:left;}
+.vtl-n{display:flex;justify-content:center;z-index:1;}
+.vtl-dot{width:50px;height:50px;border-radius:50%;background:#fff;border:2.5px solid var(--ink3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--ink2);}
+.vtl-dot.md{border-color:var(--accent);color:var(--accent);} .vtl-dot.ps{border-color:var(--store);color:var(--store-dark);} .vtl-dot.now{background:var(--accent);border-color:var(--accent);color:#fff;}
+.vtl-card{display:inline-block;background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 13px;font-size:12px;line-height:1.5;color:var(--ink2);text-align:left;max-width:96%;box-shadow:0 1px 5px rgba(0,0,0,.05);}
+.vtl-l .vtl-card{border-right:3px solid var(--accent);} .vtl-r .vtl-card{border-left:3px solid var(--store);}
+.vtl-card b{color:var(--ink);font-weight:700;}
+.vtl-em{color:#c8cdd4;font-weight:700;}
+@media(max-width:640px){.vtl{grid-template-columns:1fr 44px 1fr;}.vtl-card{font-size:10.5px;padding:7px 9px;}.vtl-dot{width:40px;height:40px;font-size:9.5px;}}
 </style>
 </head>
 <body>
@@ -390,30 +404,30 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:var(--ink3);fo
     <div class="eyebrow rv">여정 · JOURNEY</div>
     <h1 class="title ed rv d1" data-k="jn-title">두 프로젝트를 오가며, 구조를 만들었습니다.</h1>
     <p class="sub ed rv d2" data-k="jn-sub">모여라딜 리드로 입사 → 지원 업무로 → 결국 <b>두 프로젝트의 리드</b>가 됐습니다.</p>
-    <div class="mjr rv d3">
-      <div class="gh" style="text-align:center;color:var(--ink3)">월</div>
-      <div class="gh md">🔵 모여라딜</div>
-      <div class="gh ps">🟠 POUR스토어</div>
+    <div class="vtl rv d3">
+      <div class="vtl-h md">🔵 모여라딜</div>
+      <div></div>
+      <div class="vtl-h ps">🟠 POUR스토어</div>
 
-      <div class="mo">~1월</div>
-      <div class="ed" data-k="jm1"><b>수요의 첫 신호</b> — 공급사 19곳·공구 9건, 누적 매출 1,123,100원 <span style="color:var(--ink3)">(이전 그로스보드)</span></div>
-      <div class="em">—</div>
+      <div class="vtl-l"><div class="vtl-card ed" data-k="jm1"><b>수요의 첫 신호</b> — 공급사 19곳·공구 9건, 누적 1,123,100원 <span style="color:var(--ink3)">(이전 그로스보드)</span></div></div>
+      <div class="vtl-n"><div class="vtl-dot md">~1월</div></div>
+      <div class="vtl-r"><span class="vtl-em">—</span></div>
 
-      <div class="mo">2월</div>
-      <div class="ed" data-k="jm2"><b>타운홀미팅</b> → 마스터프롬프트 제작 결심</div>
-      <div class="em">—</div>
+      <div class="vtl-l"><div class="vtl-card ed" data-k="jm2"><b>타운홀미팅</b> → 마스터프롬프트 제작 결심</div></div>
+      <div class="vtl-n"><div class="vtl-dot md">2월</div></div>
+      <div class="vtl-r"><span class="vtl-em">—</span></div>
 
-      <div class="mo">3월</div>
-      <div class="ed" data-k="jm3"><b>마스터프롬프트 · BMA 제작</b> — 총액법 전환 경로 확보</div>
-      <div class="ed" data-k="jp3"><b>자사몰 리뉴얼로 합류</b> · 호스팅 이전 (아임웹 → 카페24)</div>
+      <div class="vtl-l"><div class="vtl-card ed" data-k="jm3"><b>마스터프롬프트 · BMA 제작</b> — 총액법 전환 경로</div></div>
+      <div class="vtl-n"><div class="vtl-dot ps">3월</div></div>
+      <div class="vtl-r"><div class="vtl-card ed" data-k="jp3"><b>자사몰 리뉴얼로 합류</b> · 호스팅 이전 (아임웹 → 카페24)</div></div>
 
-      <div class="mo">4월</div>
-      <div class="ed" data-k="jm4"><b>'직접 팔아보자' 실행</b> — 신박템 국내 공급사 DB <b>109건</b>. 직접 공구 시도 → 더 빠른 방안 모색</div>
-      <div class="ed" data-k="jp4"><b>박람회 영업앱 제작</b> · 마스터프롬프트 제작</div>
+      <div class="vtl-l"><div class="vtl-card ed" data-k="jm4"><b>'직접 팔아보자' 실행</b> — 공급사 DB <b>109건</b>, 직접 공구 시도 → 더 빠른 방안 모색</div></div>
+      <div class="vtl-n"><div class="vtl-dot md">4월</div></div>
+      <div class="vtl-r"><div class="vtl-card ed" data-k="jp4"><b>박람회 영업앱</b> · 마스터프롬프트 제작</div></div>
 
-      <div class="mo">5월</div>
-      <div class="ed" data-k="jm5"><b>도매꾹·자사몰 공구 시작</b> — 상품 진열·공구 준비, 컨텐츠 협찬 취득 중</div>
-      <div class="ed" data-k="jp5"><b>리뉴얼 · SKU 대량확장</b>(탑코트재 파생→상세페이지) · KPI 구축·업무분장·고객/판매채널 코드 세분화</div>
+      <div class="vtl-l"><div class="vtl-card ed" data-k="jm5"><b>도매꾹·자사몰 공구 시작</b> — 상품 진열·공구 준비, 컨텐츠 협찬 취득 중</div></div>
+      <div class="vtl-n"><div class="vtl-dot now">5월</div></div>
+      <div class="vtl-r"><div class="vtl-card ed" data-k="jp5"><b>리뉴얼 · SKU 대량확장</b>(탑코트재 파생→상세페이지) · KPI·업무분장·고객/판매채널 코드 세분화</div></div>
     </div>
     <div class="note ed rv d4" data-k="jn-now" style="margin-top:14px;font-size:13px;">🟣 <b>5월·현재</b> — 직급 변경: 모여라딜 + 브랜드커머스 리드매니저(겸직). 정하님과 <b>모여라딜 재점화</b> 시작.</div>
     <div class="rail" data-group="start"></div>

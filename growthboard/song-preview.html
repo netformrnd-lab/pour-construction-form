@@ -255,6 +255,21 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
 .imodal-box{background:#fff;border-radius:20px;max-width:640px;width:100%;max-height:84vh;overflow:auto;padding:30px 30px 26px;box-shadow:0 24px 70px rgba(0,0,0,.35);position:relative;}
 .imodal-x{position:absolute;top:14px;right:16px;border:none;background:var(--border-l);width:34px;height:34px;border-radius:10px;font-size:16px;cursor:pointer;color:var(--ink2);}
 .imodal-h{font-size:18px;font-weight:800;margin-bottom:16px;letter-spacing:-.02em;}
+/* 디바이스 비교 막대 (자사몰 리뉴얼) */
+.dvbar{display:flex;flex-direction:column;gap:11px;}
+.dvbar-row{display:flex;align-items:center;gap:11px;}
+.dvbar-lab{width:48px;font-size:12px;font-weight:800;color:var(--ink2);text-align:right;flex:0 0 auto;}
+.dvbar-track{flex:1;display:flex;height:36px;border-radius:10px;overflow:hidden;}
+.dvbar-pc{background:var(--store-dark);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:800;white-space:nowrap;}
+.dvbar-mo{background:#f7c9a6;color:var(--store-dark);display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:800;white-space:nowrap;}
+.dvbar-leg{display:flex;gap:14px;font-size:11px;font-weight:700;color:var(--ink3);margin-top:4px;}
+.dvbar-leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;}
+/* 파트 표지(디바이더) 슬라이드 */
+.divider .inner{text-align:center;max-width:820px;margin:0 auto;}
+.dv-part{font-size:13px;font-weight:800;letter-spacing:.14em;margin-bottom:16px;}
+.t-md .dv-part{color:var(--accent);} .t-ps .dv-part{color:var(--store);} .t-co .dv-part{color:var(--ink3);}
+.dv-h{font-size:clamp(40px,6.5vw,74px);font-weight:800;letter-spacing:-.04em;line-height:1.05;margin-bottom:16px;}
+.dv-sub{font-size:16.5px;color:var(--ink2);font-weight:500;line-height:1.6;}
 </style>
 </head>
 <body>
@@ -264,7 +279,7 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
   <button class="ctrl" id="btnPresent">▶︎ 발표모드</button>
 </div>
 <button class="exit-present" id="btnExit">✕ 발표 종료 (Esc)</button>
-<div class="slidecount" id="scount">1 / 16</div>
+<div class="slidecount" id="scount">1 / 20</div>
 
 <nav class="trackmap" id="tmap">
   <div class="tm-grp">오프닝</div>
@@ -273,18 +288,22 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
   <button class="tm-item co" data-go="start"><span class="tm-dot"></span><span class="tm-tx">여정</span></button>
   <button class="tm-item co" data-go="method"><span class="tm-dot"></span><span class="tm-tx">일하는 방식</span></button>
   <div class="tm-grp" style="color:var(--accent)">🔵 모여라딜</div>
+  <button class="tm-item md" data-go="div-md"><span class="tm-dot"></span><span class="tm-tx">표지</span></button>
   <button class="tm-item md" data-go="md-mission"><span class="tm-dot"></span><span class="tm-tx">한계</span></button>
   <button class="tm-item md" data-go="md-analysis"><span class="tm-dot"></span><span class="tm-tx">구조·BMA</span></button>
   <button class="tm-item md" data-go="md-exec"><span class="tm-dot"></span><span class="tm-tx">직접 팔아보자</span></button>
   <button class="tm-item md" data-go="md-result"><span class="tm-dot"></span><span class="tm-tx">성과</span></button>
   <button class="tm-item md" data-go="md-collab"><span class="tm-dot"></span><span class="tm-tx">협업</span></button>
   <div class="tm-grp" style="color:var(--store)">🟠 POUR스토어</div>
+  <button class="tm-item ps" data-go="div-ps"><span class="tm-dot"></span><span class="tm-tx">표지</span></button>
   <button class="tm-item ps" data-go="ps-mission"><span class="tm-dot"></span><span class="tm-tx">개요</span></button>
+  <button class="tm-item ps" data-go="ps-renew"><span class="tm-dot"></span><span class="tm-tx">자사몰 리뉴얼</span></button>
   <button class="tm-item ps" data-go="ps-exec"><span class="tm-dot"></span><span class="tm-tx">실행</span></button>
   <button class="tm-item ps" data-go="ps-result"><span class="tm-dot"></span><span class="tm-tx">성과</span></button>
   <button class="tm-item ps" data-go="ps-collab"><span class="tm-dot"></span><span class="tm-tx">협업</span></button>
   <button class="tm-item ps" data-go="ps-next"><span class="tm-dot"></span><span class="tm-tx">다음 분기</span></button>
   <div class="tm-grp">종합·다음</div>
+  <button class="tm-item co" data-go="div-co"><span class="tm-dot"></span><span class="tm-tx">표지</span></button>
   <button class="tm-item co" data-go="next"><span class="tm-dot"></span><span class="tm-tx">다음 반기</span></button>
   <button class="tm-item co" data-go="end"><span class="tm-dot"></span><span class="tm-tx">마무리</span></button>
   <div class="tm-prog"><i id="tmprog"></i></div>
@@ -366,6 +385,15 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
       <div class="mstep rv d4"><div class="n">③ 데이터</div><div class="h ed" data-k="mw-s3h">측정해 개선한다</div><div class="d ed" data-k="mw-s3d">결과를 데이터로 보고 더 나은 방식 내재화</div></div>
     </div>
     <div class="note ed rv d5" data-k="mw-note">🔵 <b>모여라딜</b>: 분석·BMA → 직접 판매·도구 → 공구·매출 데이터 &nbsp;·&nbsp; 🟠 <b>POUR스토어</b>: 프롬프트·KPI → 운영·앱 → 매출·52개 데이터</div>
+  </div>
+</section>
+
+<!-- 표지 · PART 1 모여라딜 -->
+<section class="slide divider t-md" id="div-md">
+  <div class="inner">
+    <div class="dv-part rv">PART 1 ─────────</div>
+    <h1 class="dv-h ed rv d1" data-k="dvmd-h">🔵 모여라딜</h1>
+    <p class="dv-sub ed rv d2" data-k="dvmd-s">실행하며 한계를 만나, 구조부터 다시 설계하고 — <b>직접 팔기까지.</b></p>
   </div>
 </section>
 
@@ -498,6 +526,15 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
   </div>
 </section>
 
+<!-- 표지 · PART 2 POUR스토어 -->
+<section class="slide divider t-ps" id="div-ps">
+  <div class="inner">
+    <div class="dv-part rv">PART 2 ─────────</div>
+    <h1 class="dv-h ed rv d1" data-k="dvps-h">🟠 POUR스토어</h1>
+    <p class="dv-sub ed rv d2" data-k="dvps-s">합류 두 달, 운영 시스템을 세우고 — <b>매출로 증명합니다.</b></p>
+  </div>
+</section>
+
 <!-- 7) 스토어 미션 -->
 <section class="slide t-ps" id="ps-mission">
   <div class="inner">
@@ -512,6 +549,36 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
     </div>
     <div class="note ed rv d4" data-k="psm-pagemgr" style="margin-top:16px;">🛠 <b>페이지 관리 사이트 자체 개발</b> (자사몰 리뉴얼) — HTML을 <b>섹션별 관리</b>·정렬 · 수정 이력(버전) 보관·복원 · 섹션마다 <b>댓글·피드백</b> · 작업여정 공유 → <b>4인 공동작업·협업</b> 원활.</div>
     <div class="rail" data-group="ps-mission"></div>
+  </div>
+</section>
+
+<!-- 스토어 자사몰 리뉴얼 -->
+<section class="slide t-ps" id="ps-renew">
+  <div class="inner">
+    <div class="eyebrow rv">PART 2 · POUR스토어 — 자사몰 리뉴얼</div>
+    <h1 class="title ed rv d1" data-k="pr-title">반응형 리뉴얼 — 데이터로 결정했습니다.</h1>
+    <p class="sub ed rv d2" data-k="pr-sub">방문자는 모바일이 PC를 역전(5월 54%)·매출은 PC 80%(대량 B2B). 게다가 리뉴얼엔 <b>SKU 대량확장·AI 챗봇·매거진 고도화</b>까지 — 그래서 <b>PC·모바일 둘 다 중요</b>.</p>
+    <div class="grid2">
+      <div class="panel rv d3">
+        <div class="panel-h">// 2026 비중 — 방문자 vs 매출</div>
+        <div class="dvbar">
+          <div class="dvbar-row"><span class="dvbar-lab">방문자</span><div class="dvbar-track"><div class="dvbar-pc" style="width:51.1%">PC 51%</div><div class="dvbar-mo" style="width:48.9%">모바일 49%</div></div></div>
+          <div class="dvbar-row"><span class="dvbar-lab">매출</span><div class="dvbar-track"><div class="dvbar-pc" style="width:79.8%">PC 80%</div><div class="dvbar-mo" style="width:20.2%">20%</div></div></div>
+        </div>
+        <div class="dvbar-leg"><span><i style="background:var(--store-dark)"></i>PC</span><span><i style="background:#f7c9a6"></i>모바일</span></div>
+        <div class="ed" data-k="pr-cap" style="font-size:11.5px;color:var(--ink3);margin-top:9px;font-weight:600;line-height:1.5;">방문자는 거의 반반인데 매출은 PC 쏠림 → <b>트래픽 ≠ 매출</b> (PC 객단가 2.5배). ⚠️ 모바일 전환율 1.54%→0.97% 하락 = <b>UX 누수</b>.</div>
+      </div>
+      <div class="panel rv d4">
+        <div class="panel-h">// 리뉴얼에 담는 것</div>
+        <ul class="clist">
+          <li class="ed" data-k="pr-f1"><b>SKU 대량 확장</b> — 상품·용도별 라인업 대폭 확대</li>
+          <li class="ed" data-k="pr-f2"><b>AI 챗봇 (POUR길잡이)</b> — 상담·상품 추천 자동화</li>
+          <li class="ed" data-k="pr-f3"><b>컨텐츠 매거진 고도화</b> — 가이드·후기·매거진 강화</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note ed rv d5" data-k="pr-note">🎯 결론 — <b>반응형, PC·모바일 둘 다 중요</b>: 모바일 = 탐색·전환 동선(개인·DIY, UX 1순위) / PC = 대량 구매(B2B 시공·공무, 묶음 단가·세금계산서). 기능 고도화(SKU·챗봇·매거진)로 모바일 경험도 핵심.</div>
+    <div class="rail" data-group="ps-renew"></div>
   </div>
 </section>
 
@@ -675,6 +742,15 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
     </div>
     <div class="note ed rv d4" data-k="psn-note">🚀 검증된 자산을 재사용 → <b>더 빠르게, 더 정교하게.</b> 모여라딜에서 쌓은 실행·데이터가 스토어 성장을 가속합니다.</div>
     <div class="rail" data-group="ps-next"></div>
+  </div>
+</section>
+
+<!-- 표지 · 종합·다음 -->
+<section class="slide divider t-co" id="div-co">
+  <div class="inner">
+    <div class="dv-part rv">종합 · 다음 ─────────</div>
+    <h1 class="dv-h ed rv d1" data-k="dvco-h">다음으로</h1>
+    <p class="dv-sub ed rv d2" data-k="dvco-s">지금까지를 묶고, <b>다음 반기를 향해.</b></p>
   </div>
 </section>
 

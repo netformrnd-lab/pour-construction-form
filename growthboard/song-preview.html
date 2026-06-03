@@ -9,21 +9,30 @@
 :root{
   --ink:#0f1722; --ink2:#3d4a5c; --ink3:#8b95a1;
   --border:#e7ebef; --border-l:#f1f4f7;
-  --accent:#2f6df6; --accent-soft:#e9f2ff; --accent-dark:#1b54d6;     /* 모여라딜 */
-  --store:#f26a1b; --store-soft:#fff1e7; --store-dark:#c2410c;        /* 스토어 */
+  --accent:#2f6df6; --accent-soft:#e9f2ff; --accent-dark:#1b54d6;
+  --store:#f26a1b; --store-soft:#fff1e7; --store-dark:#c2410c;
   --md-bg:#f3f8ff; --ps-bg:#fff7f1; --co-bg:#ffffff;
-  --navy:#0c1730;
   --sans:'Pretendard Variable',Pretendard,-apple-system,system-ui,sans-serif;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 html{scroll-snap-type:y mandatory;scroll-behavior:smooth;}
 body{font-family:var(--sans);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased;letter-spacing:-.012em;background:#000;}
 
-.demo-bar{position:fixed;top:0;left:0;right:0;z-index:500;background:#0a0e14;color:#fff;font-size:11.5px;font-weight:700;padding:7px 18px;display:flex;justify-content:space-between;}
+.demo-bar{position:fixed;top:0;left:0;right:0;z-index:500;background:#0a0e14;color:#fff;font-size:11.5px;font-weight:700;padding:7px 18px;}
 .demo-bar span{color:#ffb86b;}
+body.present .demo-bar{display:none;}
 
-/* ── 좌측 트랙맵 ── */
-.trackmap{position:fixed;left:18px;top:50%;transform:translateY(-50%);z-index:400;display:flex;flex-direction:column;gap:6px;background:rgba(255,255,255,.82);backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:16px;padding:12px 12px;box-shadow:0 8px 30px rgba(0,0,0,.10);}
+/* 컨트롤 (편집/발표) */
+.controls{position:fixed;top:34px;right:16px;z-index:520;display:flex;gap:8px;}
+body.present .controls{display:none;}
+.ctrl{border:1px solid var(--border);background:#fff;color:var(--ink);font-family:inherit;font-size:12.5px;font-weight:800;padding:8px 14px;border-radius:10px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.12);transition:all .15s;}
+.ctrl:hover{transform:translateY(-1px);}
+.ctrl.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+.exit-present{display:none;position:fixed;top:14px;right:16px;z-index:520;border:none;background:rgba(0,0,0,.55);color:#fff;font-family:inherit;font-size:12px;font-weight:800;padding:8px 14px;border-radius:10px;cursor:pointer;}
+body.present .exit-present{display:block;}
+
+/* 좌측 트랙맵 */
+.trackmap{position:fixed;left:18px;top:50%;transform:translateY(-50%);z-index:400;display:flex;flex-direction:column;gap:6px;background:rgba(255,255,255,.82);backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:16px;padding:12px;box-shadow:0 8px 30px rgba(0,0,0,.10);}
 .tm-grp{font-size:9.5px;font-weight:800;letter-spacing:.04em;color:var(--ink3);margin:6px 4px 1px;}
 .tm-item{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:9px;cursor:pointer;transition:all .2s;border:none;background:none;font-family:inherit;text-align:left;width:138px;}
 .tm-item:hover{background:var(--border-l);}
@@ -35,56 +44,51 @@ body{font-family:var(--sans);color:var(--ink);line-height:1.55;-webkit-font-smoo
 .tm-prog{height:2px;background:var(--border);border-radius:2px;margin:8px 4px 2px;overflow:hidden;}
 .tm-prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--store));transition:width .4s;}
 
-/* ── 슬라이드 ── */
+/* 슬라이드 */
 .slide{min-height:100vh;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:64px 64px 56px 230px;position:relative;overflow:hidden;}
-.slide.t-md{background:var(--md-bg);}
-.slide.t-ps{background:var(--ps-bg);}
-.slide.t-co{background:var(--co-bg);}
+.slide.t-md{background:var(--md-bg);} .slide.t-ps{background:var(--ps-bg);} .slide.t-co{background:var(--co-bg);}
 .inner{max-width:1040px;width:100%;}
 
 .eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;font-weight:800;letter-spacing:.03em;margin-bottom:16px;}
 .eyebrow::before{content:"";width:18px;height:3px;border-radius:2px;background:currentColor;}
 .t-md .eyebrow{color:var(--accent);} .t-ps .eyebrow{color:var(--store);} .t-co .eyebrow{color:var(--ink3);}
-.title{font-size:clamp(30px,4.2vw,52px);font-weight:800;letter-spacing:-.035em;line-height:1.1;margin-bottom:10px;}
-.sub{font-size:16px;color:var(--ink2);font-weight:500;margin-bottom:34px;max-width:760px;line-height:1.65;}
+.title{font-size:clamp(28px,4vw,50px);font-weight:800;letter-spacing:-.035em;line-height:1.12;margin-bottom:12px;}
+.sub{font-size:16px;color:var(--ink2);font-weight:500;margin-bottom:32px;max-width:760px;line-height:1.65;}
 .sub b{color:var(--ink);font-weight:700;}
 
-/* reveal 모션 */
 .rv{opacity:0;transform:translateY(22px);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1);}
 .rv.in{opacity:1;transform:none;}
 .d1{transition-delay:.05s}.d2{transition-delay:.13s}.d3{transition-delay:.21s}.d4{transition-delay:.29s}.d5{transition-delay:.37s}
 
-/* 히어로 숫자 타일 */
 .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;}
-.tile{background:#fff;border:1px solid var(--border);border-radius:20px;padding:22px 24px;box-shadow:0 2px 10px rgba(0,0,0,.03);}
-.tile .v{font-size:clamp(26px,3vw,38px);font-weight:800;letter-spacing:-.03em;line-height:1;}
+.tile{background:#fff;border:1px solid var(--border);border-radius:20px;padding:20px 22px;box-shadow:0 2px 10px rgba(0,0,0,.03);}
+.tile .v{font-size:clamp(24px,2.6vw,34px);font-weight:800;letter-spacing:-.03em;line-height:1.05;word-break:keep-all;}
 .t-md .tile .v{color:var(--accent-dark);} .t-ps .tile .v{color:var(--store-dark);}
-.tile .l{font-size:12.5px;color:var(--ink3);margin-top:9px;font-weight:600;}
+.tile .l{font-size:12px;color:var(--ink3);margin-top:9px;font-weight:600;line-height:1.4;}
 
-.grid2{display:grid;grid-template-columns:1.15fr .85fr;gap:20px;}
+.grid2{display:grid;grid-template-columns:1.12fr .88fr;gap:20px;}
 .panel{background:#fff;border:1px solid var(--border);border-radius:20px;padding:22px 24px;box-shadow:0 2px 10px rgba(0,0,0,.03);}
-.panel-h{font-size:12.5px;font-weight:800;color:var(--ink3);letter-spacing:.03em;margin-bottom:16px;}
+.panel-h{font-size:12.5px;font-weight:800;color:var(--ink3);letter-spacing:.03em;margin-bottom:18px;}
 
-/* 퍼널 */
-.funnel{display:flex;flex-direction:column;gap:4px;align-items:center;}
-.fseg{height:50px;border-radius:11px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14.5px;white-space:nowrap;width:0;transition:width 1s cubic-bezier(.16,1,.3,1);overflow:hidden;}
-.fseg.s1{background:linear-gradient(90deg,#5b93ff,var(--accent));}
-.fseg.s2{background:linear-gradient(90deg,#3f7bf6,var(--accent-dark));}
-.fseg.s3{background:linear-gradient(90deg,#1b54d6,#123a9c);}
-.fconv{font-size:11.5px;font-weight:800;color:var(--accent-dark);background:var(--accent-soft);border-radius:999px;padding:2px 10px;}
+/* 퍼널 — 라벨 막대 바깥(안 잘림) */
+.funnel{display:flex;flex-direction:column;align-items:center;gap:3px;}
+.fbar{height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:17px;width:0;transition:width 1s cubic-bezier(.16,1,.3,1);}
+.fbar.s1{background:linear-gradient(90deg,#5b93ff,var(--accent));}
+.fbar.s2{background:linear-gradient(90deg,#3f7bf6,var(--accent-dark));}
+.fbar.s3{background:linear-gradient(90deg,#1b54d6,#123a9c);}
+.flabel{font-size:12.5px;font-weight:700;color:var(--ink2);margin-bottom:5px;text-align:center;}
+.fconv{font-size:11.5px;font-weight:800;color:var(--accent-dark);background:var(--accent-soft);border-radius:999px;padding:2px 11px;margin:2px 0;}
 
-/* GMV area (SVG) */
+/* GMV area */
 .spark{width:100%;height:120px;display:block;}
-.spark .area{opacity:0;transition:opacity 1s .3s;}
-.spark.in .area{opacity:.18;}
+.spark .area{opacity:0;transition:opacity 1s .3s;} .spark.in .area{opacity:.18;}
 .spark .line{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:600;stroke-dashoffset:600;transition:stroke-dashoffset 1.3s cubic-bezier(.16,1,.3,1);}
 .spark.in .line{stroke-dashoffset:0;}
-.spark .dot{fill:var(--accent);opacity:0;transition:opacity .4s 1s;}
-.spark.in .dot{opacity:1;}
+.spark .dot{fill:var(--accent);opacity:0;transition:opacity .4s 1s;} .spark.in .dot{opacity:1;}
 .spark text{font-size:9px;fill:var(--ink3);font-weight:600;font-family:var(--sans);}
 
-/* 파이프라인(영업앱) */
-.pipe{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;margin-bottom:22px;}
+/* 파이프라인 */
+.pipe{display:flex;align-items:stretch;flex-wrap:wrap;margin-bottom:22px;}
 .pstep{flex:1;min-width:140px;background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px 12px;text-align:center;opacity:.35;transform:scale(.97);transition:all .45s;}
 .pstep.lit{opacity:1;transform:scale(1);box-shadow:0 6px 18px rgba(242,106,27,.14);border-color:#f7c9a6;}
 .pstep .n{display:inline-flex;width:24px;height:24px;border-radius:50%;background:var(--store-soft);color:var(--store-dark);font-weight:800;font-size:12px;align-items:center;justify-content:center;margin-bottom:8px;}
@@ -93,19 +97,19 @@ body{font-family:var(--sans);color:var(--ink);line-height:1.55;-webkit-font-smoo
 .pstep .d{font-size:10.5px;color:var(--ink3);line-height:1.4;font-weight:500;}
 .parrow{align-self:center;color:var(--store);font-weight:800;font-size:18px;padding:0 5px;}
 
-/* BEP 게이지 (SVG) */
+/* BEP 게이지 */
 .gauge{width:100%;max-width:240px;display:block;margin:0 auto;}
 .gauge .track{fill:none;stroke:var(--border);stroke-width:16;stroke-linecap:round;}
-.gauge .fill{fill:none;stroke:var(--store);stroke-width:16;stroke-linecap:round;stroke-dasharray:251;stroke-dashoffset:251;transition:stroke-dashoffset 1.4s cubic-bezier(.16,1,.3,1);}
-.gauge.in .fill{stroke-dashoffset:248;} /* 현재 ~1% */
-.gauge-c{text-align:center;margin-top:-46px;}
+.gauge .fill{fill:none;stroke:var(--store);stroke-width:16;stroke-linecap:round;stroke-dasharray:264;stroke-dashoffset:264;transition:stroke-dashoffset 1.4s cubic-bezier(.16,1,.3,1);}
+.gauge.in .fill{stroke-dashoffset:260;}
+.gauge-c{text-align:center;margin-top:-44px;}
 .gauge-c .gv{font-size:22px;font-weight:800;color:var(--store-dark);}
-.gauge-c .gl{font-size:11px;color:var(--ink3);font-weight:600;}
+.gauge-c .gl{font-size:11px;color:var(--ink3);font-weight:600;margin-top:2px;}
 
 /* 공통 스텝퍼 */
-.stepper{display:flex;gap:0;align-items:stretch;flex-wrap:wrap;margin-bottom:20px;}
-.mstep{flex:1;min-width:180px;background:var(--md-bg);border:1px solid var(--border);border-radius:18px;padding:20px 18px;}
-.mstep:nth-child(4n+5),.mstep.ps{background:var(--ps-bg);}
+.stepper{display:flex;align-items:stretch;flex-wrap:wrap;margin-bottom:20px;}
+.mstep{flex:1;min-width:178px;background:var(--md-bg);border:1px solid var(--border);border-radius:18px;padding:20px 18px;}
+.mstep.ps{background:var(--ps-bg);}
 .mstep .n{font-size:12px;font-weight:800;color:var(--accent);}
 .mstep .h{font-size:16px;font-weight:800;margin:7px 0 6px;}
 .mstep .d{font-size:12.5px;color:var(--ink2);line-height:1.55;font-weight:500;}
@@ -113,10 +117,10 @@ body{font-family:var(--sans);color:var(--ink);line-height:1.55;-webkit-font-smoo
 .note{background:linear-gradient(100deg,var(--accent-soft),var(--store-soft));border-radius:16px;padding:18px 22px;font-size:14.5px;color:var(--ink);font-weight:600;line-height:1.6;}
 .note b{font-weight:800;}
 
-/* 커버 (다크 프리미엄) */
-#cover{background:radial-gradient(1200px 600px at 70% 10%,#16284e,transparent 60%),linear-gradient(160deg,#0c1730,#0a1426);color:#fff;padding-left:230px;}
+/* 커버 (다크) */
+#cover{background:radial-gradient(1200px 600px at 70% 10%,#16284e,transparent 60%),linear-gradient(160deg,#0c1730,#0a1426);color:#fff;}
 #cover .kick{display:inline-block;font-size:13px;font-weight:700;letter-spacing:.08em;color:#8fb3ff;border:1px solid rgba(143,179,255,.3);border-radius:999px;padding:7px 16px;margin-bottom:26px;}
-#cover h1{font-size:clamp(40px,6vw,80px);font-weight:800;letter-spacing:-.04em;line-height:1.02;margin-bottom:18px;}
+#cover h1{font-size:clamp(38px,5.6vw,76px);font-weight:800;letter-spacing:-.04em;line-height:1.04;margin-bottom:18px;}
 #cover h1 .g{background:linear-gradient(90deg,#5b93ff,#f29b5b);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
 #cover .csub{font-size:17px;color:rgba(255,255,255,.66);margin-bottom:44px;font-weight:500;}
 .twotrack{display:flex;gap:18px;flex-wrap:wrap;}
@@ -124,16 +128,32 @@ body{font-family:var(--sans);color:var(--ink);line-height:1.55;-webkit-font-smoo
 .tt .tt-tag{font-size:12px;font-weight:800;letter-spacing:.04em;margin-bottom:12px;display:inline-flex;align-items:center;gap:8px;}
 .tt.md .tt-tag{color:#7ea8ff;} .tt.ps .tt-tag{color:#f5a463;}
 .tt .tt-h{font-size:21px;font-weight:800;margin-bottom:8px;color:#fff;}
-.tt .tt-d{font-size:13px;color:rgba(255,255,255,.6);line-height:1.6;}
+.tt .tt-d{font-size:13px;color:rgba(255,255,255,.62);line-height:1.6;}
 .tt .tt-n{font-size:30px;font-weight:800;margin-top:14px;}
 .tt.md .tt-n{color:#7ea8ff;} .tt.ps .tt-n{color:#f5a463;}
 
-/* 인라인 미디어 레일 + 라이트박스 */
-.rail{display:flex;align-items:center;gap:9px;margin-top:20px;flex-wrap:wrap;background:rgba(255,255,255,.55);border:1px solid var(--border-l);border-radius:14px;padding:10px 12px;}
+/* 미디어 레일 */
+.rail{display:flex;align-items:center;gap:9px;margin-top:20px;flex-wrap:wrap;background:rgba(255,255,255,.55);border:1px solid var(--border-l);border-radius:14px;padding:10px 12px;min-height:50px;}
+.rail.empty{display:none;}
+body.edit .rail.empty{display:flex;}
 .rail-label{font-size:11.5px;font-weight:800;color:var(--ink3);margin-right:2px;white-space:nowrap;}
-.thumb{width:104px;height:68px;border-radius:10px;border:1px solid var(--border);cursor:pointer;transition:transform .15s,box-shadow .15s;object-fit:cover;flex:0 0 auto;}
+.thumb-wrap{position:relative;flex:0 0 auto;}
+.thumb{width:104px;height:68px;border-radius:10px;border:1px solid var(--border);cursor:pointer;transition:transform .15s,box-shadow .15s;object-fit:cover;display:block;}
 .thumb:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(0,0,0,.16);}
-.thumb-add{width:104px;height:68px;border-radius:10px;border:1.5px dashed var(--border);color:var(--ink3);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;background:#fff;flex:0 0 auto;}
+.thumb-wrap.sel .thumb{outline:3px solid var(--store);outline-offset:1px;}
+.tw-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.7);pointer-events:none;}
+.tw-del{position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:#dc2626;color:#fff;border:none;font-size:11px;font-weight:800;cursor:pointer;display:none;line-height:1;z-index:2;}
+body.edit .tw-del{display:block;}
+.rail-add{display:none;border:1.5px dashed var(--border);background:#fff;color:var(--ink2);font-family:inherit;font-size:11.5px;font-weight:800;padding:8px 12px;border-radius:10px;cursor:pointer;white-space:nowrap;}
+body.edit .rail-add{display:inline-block;}
+.rail-hint{display:none;font-size:11px;color:var(--ink3);font-weight:600;}
+body.edit .rail-hint{display:inline;}
+
+/* 편집 표시 */
+body.edit .ed{outline:1px dashed rgba(47,109,246,.4);outline-offset:3px;border-radius:3px;}
+.ed:focus{outline:2px solid var(--accent)!important;background:rgba(47,109,246,.05);}
+
+/* 라이트박스 */
 .lb{position:fixed;inset:0;background:rgba(10,14,20,.92);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;z-index:600;padding:48px;}
 .lb.open{display:flex;}
 .lb img{max-width:90vw;max-height:84vh;border-radius:12px;box-shadow:0 24px 70px rgba(0,0,0,.6);}
@@ -144,14 +164,19 @@ body{font-family:var(--sans);color:var(--ink);line-height:1.55;-webkit-font-smoo
 
 @media(max-width:980px){
   .trackmap{display:none;}
-  .slide,#cover{padding:64px 20px 48px;}
-  .grid2,.tiles,.pipe,.stepper{grid-template-columns:1fr;}
+  .slide{padding:70px 18px 44px;}
+  .grid2,.tiles{grid-template-columns:1fr;}
   .pipe,.stepper{flex-direction:column;} .parrow,.marrow{transform:rotate(90deg);padding:4px 0;}
 }
 </style>
 </head>
 <body>
-<div class="demo-bar">🧪 v2 시안 (song-preview.html) <span>본 발표 파일 아님 · 데이터차트·모션·트랙맵·프리미엄</span></div>
+<div class="demo-bar">🧪 v2 시안 (song-preview.html) · <span>편집모드로 글·링크 수정, 발표모드로 전체화면 발표</span></div>
+<div class="controls">
+  <button class="ctrl" id="btnEdit">✏️ 편집모드</button>
+  <button class="ctrl" id="btnPresent">▶︎ 발표모드</button>
+</div>
+<button class="exit-present" id="btnExit">✕ 발표 종료 (Esc)</button>
 
 <nav class="trackmap" id="tmap">
   <div class="tm-grp">INTRO</div>
@@ -168,46 +193,49 @@ body{font-family:var(--sans);color:var(--ink);line-height:1.55;-webkit-font-smoo
 <!-- 0) 커버 -->
 <section class="slide t-co" id="cover">
   <div class="inner">
-    <div class="kick rv">2026 상반기 · 그로스보드</div>
-    <h1 class="rv d1">모호한 미션을<br><span class="g">운영 구조로</span> 두 번 바꿨습니다.</h1>
-    <p class="csub rv d2">모여라딜에서 수요를, POUR스토어에서 시스템을 — 같은 방식으로.</p>
+    <div class="kick ed rv" data-k="cover-kick">2026 상반기 · 그로스보드</div>
+    <h1 class="ed rv d1" data-k="cover-h1">모호한 미션을<br><span class="g">운영 구조로</span> 두 번 바꿨습니다.</h1>
+    <p class="csub ed rv d2" data-k="cover-sub">모여라딜에서 수요를, POUR스토어에서 시스템을 — 같은 방식으로.</p>
     <div class="twotrack rv d3">
       <div class="tt md">
         <div class="tt-tag">🔵 모여라딜</div>
-        <div class="tt-h">수요를 증명</div>
-        <div class="tt-d">광고비 0으로 공급사 인바운드 확보, BMA 8개 수익구조 설계</div>
+        <div class="tt-h ed" data-k="cover-mdh">수요를 증명</div>
+        <div class="tt-d ed" data-k="cover-mdd">광고비 0으로 공급사 인바운드 확보, BMA 8개 수익구조 설계</div>
         <div class="tt-n"><span class="num" data-to="146" data-suffix="건">0건</span></div>
       </div>
       <div class="tt ps">
         <div class="tt-tag">🟠 POUR스토어</div>
-        <div class="tt-h">시스템을 구축</div>
-        <div class="tt-d">영업앱+관리자로 박람회 실데이터 수집, KPI·대시보드 체계화</div>
+        <div class="tt-h ed" data-k="cover-psh">시스템을 구축</div>
+        <div class="tt-d ed" data-k="cover-psd">영업앱+관리자로 박람회 실데이터 수집, KPI·대시보드 체계화</div>
         <div class="tt-n"><span class="num" data-to="47" data-suffix="건">0건</span></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- 1) 🔵 모여라딜 대시보드 -->
+<!-- 1) 모여라딜 -->
 <section class="slide t-md" id="md">
   <div class="inner">
     <div class="eyebrow rv">PART 1 · 모여라딜</div>
-    <h1 class="title rv d1">수요는 증명했고, 전환은 이제부터.</h1>
-    <p class="sub rv d2">광고비 0으로 <b>수요</b>를 만들었습니다. 남은 건 <b>전환</b> — 퍼널로 한눈에.</p>
+    <h1 class="title ed rv d1" data-k="md-title">수요는 증명했고, 전환은 이제부터.</h1>
+    <p class="sub ed rv d2" data-k="md-sub">광고비 0으로 <b>수요</b>를 만들었습니다. 남은 건 <b>전환</b> — 퍼널로 한눈에.</p>
     <div class="tiles rv d2">
-      <div class="tile"><div class="v"><span class="num" data-to="146" data-suffix="건">0</span></div><div class="l">공급사 인바운드 (광고비 0)</div></div>
-      <div class="tile"><div class="v"><span class="num" data-to="8" data-suffix="개">0</span></div><div class="l">BMA 수익구조</div></div>
-      <div class="tile"><div class="v">1,220,610<span style="font-size:16px">원</span></div><div class="l">누적 매출 (LIFETIME)</div></div>
+      <div class="tile"><div class="v"><span class="num" data-to="146" data-suffix="건">0</span></div><div class="l ed" data-k="md-t1">공급사 인바운드 (광고비 0)</div></div>
+      <div class="tile"><div class="v"><span class="num" data-to="8" data-suffix="개">0</span></div><div class="l ed" data-k="md-t2">BMA 수익구조</div></div>
+      <div class="tile"><div class="v" style="font-size:28px">1,220,610<span style="font-size:15px">원</span></div><div class="l ed" data-k="md-t3">누적 매출 (LIFETIME)</div></div>
     </div>
     <div class="grid2">
       <div class="panel rv d3">
         <div class="panel-h">// 전환 퍼널</div>
         <div class="funnel" id="funnel">
-          <div class="fseg s1" data-w="100">셀러 리스트업 101</div>
+          <div class="fbar s1" data-w="100">101</div>
+          <div class="flabel">셀러 리스트업</div>
           <div class="fconv">↓ 26% 전환</div>
-          <div class="fseg s2" data-w="52">제안서 26</div>
+          <div class="fbar s2" data-w="54">26</div>
+          <div class="flabel">제안서 발송</div>
           <div class="fconv">↓ 38% 전환</div>
-          <div class="fseg s3" data-w="26">공구 10 — 다음 반기 1순위</div>
+          <div class="fbar s3" data-w="28">10</div>
+          <div class="flabel">공구 진행 — 다음 반기 1순위</div>
         </div>
       </div>
       <div class="panel rv d4">
@@ -216,23 +244,23 @@ body{font-family:var(--sans);color:var(--ink);line-height:1.55;-webkit-font-smoo
           <path class="area" d="M0,90 L0,40 L75,18 L150,90 L225,52 L300,90 Z" fill="var(--accent)"/>
           <path class="line" d="M0,40 L75,18 L150,90 L225,52 L300,90"/>
           <circle class="dot" cx="75" cy="18" r="3.5"/><circle class="dot" cx="225" cy="52" r="3.5"/>
-          <text x="75" y="14" text-anchor="middle">501,000</text>
-          <text x="225" y="48" text-anchor="middle">97,510</text>
+          <text x="75" y="13" text-anchor="middle">501,000</text>
+          <text x="225" y="47" text-anchor="middle">97,510</text>
         </svg>
         <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--ink3);font-weight:600;margin-top:2px;"><span>1월</span><span>2월</span><span>3월</span><span>4월</span><span>5월</span></div>
-        <div style="font-size:11.5px;color:var(--ink2);margin-top:8px;font-weight:600;">수요는 있는데 <b>실행이 비었다</b> — 곡선이 말해줍니다.</div>
+        <div class="ed" style="font-size:11.5px;color:var(--ink2);margin-top:8px;font-weight:600;" data-k="md-spnote">수요는 있는데 <b>실행이 비었다</b> — 곡선이 말해줍니다.</div>
       </div>
     </div>
-    <div class="rail rv d5" data-group="md"><span class="rail-label">📎 자료</span></div>
+    <div class="rail" data-group="md"></div>
   </div>
 </section>
 
-<!-- 2) 🟠 스토어 영업앱 -->
+<!-- 2) 스토어 -->
 <section class="slide t-ps" id="ps">
   <div class="inner">
     <div class="eyebrow rv">PART 2 · POUR스토어 — 영업앱</div>
-    <h1 class="title rv d1">제안서가 아니라, 도는 시스템.</h1>
-    <p class="sub rv d2">영업사원 태블릿 앱 → 관리자 데이터센터. 박람회에서 <b>실데이터 47건</b> 수집·분석.</p>
+    <h1 class="title ed rv d1" data-k="ps-title">제안서가 아니라, 도는 시스템.</h1>
+    <p class="sub ed rv d2" data-k="ps-sub">영업사원 태블릿 앱 → 관리자 데이터센터. 박람회에서 <b>실데이터 47건</b> 수집·분석.</p>
     <div class="pipe rv d2" id="pipe">
       <div class="pstep"><span class="n">1</span><span class="ic">🧭</span><div class="h">공법 선택</div><div class="d">방수·도장·보수·토목</div></div>
       <div class="parrow">→</div>
@@ -247,7 +275,7 @@ body{font-family:var(--sans);color:var(--ink);line-height:1.55;-webkit-font-smoo
     <div class="grid2">
       <div class="panel rv d3">
         <div class="panel-h">// POUR 관리자 — 실데이터</div>
-        <div class="tiles" style="margin-bottom:0;grid-template-columns:repeat(3,1fr)">
+        <div class="tiles" style="margin-bottom:0">
           <div class="tile" style="padding:16px"><div class="v"><span class="num" data-to="47" data-suffix="건">0</span></div><div class="l">박람회 상담</div></div>
           <div class="tile" style="padding:16px"><div class="v"><span class="num" data-to="9" data-suffix="종">0</span></div><div class="l">공법 문의</div></div>
           <div class="tile" style="padding:16px"><div class="v"><span class="num" data-to="16" data-suffix="명">0</span></div><div class="l">관리소장</div></div>
@@ -259,29 +287,29 @@ body{font-family:var(--sans);color:var(--ink);line-height:1.55;-webkit-font-smoo
           <path class="track" d="M16,100 A84,84 0 0,1 184,100"/>
           <path class="fill" d="M16,100 A84,84 0 0,1 184,100"/>
         </svg>
-        <div class="gauge-c"><div class="gv">BEP 9,700만<span style="font-size:12px">/월</span></div><div class="gl">현재 월 GMV는 출발선 — 하반기 목표</div></div>
+        <div class="gauge-c"><div class="gv">BEP 9,700만<span style="font-size:12px">/월</span></div><div class="gl ed" data-k="ps-gl">현재 월 GMV는 출발선 — 하반기 목표</div></div>
       </div>
     </div>
-    <div class="rail rv d5" data-group="ps"><span class="rail-label">📎 영업앱 화면</span></div>
+    <div class="rail" data-group="ps"></div>
   </div>
 </section>
 
-<!-- 3) ⬛ 공통 전략·개발 -->
+<!-- 3) 공통 -->
 <section class="slide t-co" id="co">
   <div class="inner">
     <div class="eyebrow rv">공통 · 전략 · 개발 방식</div>
-    <h1 class="title rv d1">두 트랙을 같은 방식으로 — 두 번 증명.</h1>
-    <p class="sub rv d2">모여라딜에서 검증하고, 스토어에서 다시. 하나의 운영구조화 방법이 둘을 관통합니다.</p>
+    <h1 class="title ed rv d1" data-k="co-title">두 트랙을 같은 방식으로 — 두 번 증명.</h1>
+    <p class="sub ed rv d2" data-k="co-sub">모여라딜에서 검증하고, 스토어에서 다시. 하나의 운영구조화 방법이 둘을 관통합니다.</p>
     <div class="stepper">
-      <div class="mstep rv d2"><div class="n">STEP 1</div><div class="h">마스터프롬프트 선제작</div><div class="d">개발 전 정체성·BMA·KPI 내재화 → 방향 판단 기준</div></div>
+      <div class="mstep rv d2"><div class="n">STEP 1</div><div class="h ed" data-k="co-s1h">마스터프롬프트 선제작</div><div class="d ed" data-k="co-s1d">개발 전 정체성·BMA·KPI 내재화 → 방향 판단 기준</div></div>
       <div class="marrow rv d2">→</div>
-      <div class="mstep rv d3"><div class="n">STEP 2</div><div class="h">KPI 체계 v6</div><div class="d">O→KR→지표→Task, 측정 가능하게</div></div>
+      <div class="mstep rv d3"><div class="n">STEP 2</div><div class="h ed" data-k="co-s2h">KPI 체계 v6</div><div class="d ed" data-k="co-s2d">O→KR→지표→Task, 측정 가능하게</div></div>
       <div class="marrow rv d3">→</div>
-      <div class="mstep rv d4"><div class="n">STEP 3</div><div class="h">시스템화</div><div class="d">CRM·경영 대시보드로 데이터 축적</div></div>
+      <div class="mstep rv d4"><div class="n">STEP 3</div><div class="h ed" data-k="co-s3h">시스템화</div><div class="d ed" data-k="co-s3d">CRM·경영 대시보드로 데이터 축적</div></div>
       <div class="marrow rv d4">→</div>
-      <div class="mstep ps rv d5"><div class="n" style="color:var(--store)">STEP 4</div><div class="h">데이터 기반 실행</div><div class="d">빠른 실행·실패·AB → 더 나은 방식 내재화</div></div>
+      <div class="mstep ps rv d5"><div class="n" style="color:var(--store)">STEP 4</div><div class="h ed" data-k="co-s4h">데이터 기반 실행</div><div class="d ed" data-k="co-s4d">빠른 실행·실패·AB → 더 나은 방식 내재화</div></div>
     </div>
-    <div class="note rv d5">🔵 <b>모여라딜</b> = 이 방식으로 <b>수요</b>를 증명 &nbsp;·&nbsp; 🟠 <b>POUR스토어</b> = 같은 방식으로 <b>운영 시스템</b>을 구축 &nbsp;→&nbsp; 다음 반기엔 <b>숫자</b>로 증명합니다.</div>
+    <div class="note ed" data-k="co-note">🔵 <b>모여라딜</b> = 이 방식으로 <b>수요</b>를 증명 &nbsp;·&nbsp; 🟠 <b>POUR스토어</b> = 같은 방식으로 <b>운영 시스템</b>을 구축 &nbsp;→&nbsp; 다음 반기엔 <b>숫자</b>로 증명합니다.</div>
   </div>
 </section>
 
@@ -292,49 +320,132 @@ body{font-family:var(--sans);color:var(--ink);line-height:1.55;-webkit-font-smoo
 </div>
 
 <script>
-/* 플레이스홀더 썸네일 */
-function ph(label,color){return 'data:image/svg+xml,'+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='480' height='320'><rect width='100%' height='100%' fill='"+color+"'/><rect x='2' y='2' width='476' height='316' rx='14' fill='none' stroke='rgba(255,255,255,.5)' stroke-width='2'/><text x='240' y='168' font-family='Pretendard,sans-serif' font-size='24' font-weight='800' fill='#fff' text-anchor='middle'>"+label+"</text></svg>");}
-const GROUPS={md:[['인바운드 146건','#2f6df6'],['월별 GMV','#1b54d6'],['공구 사례','#4f86ff']],ps:[['① 공법 선택','#f26a1b'],['② 하자진단','#c2410c'],['③ 상담 메모','#f5904a'],['④ 자료·문자','#d4570a'],['관리자 통계','#a8380a']]};
-document.querySelectorAll('.rail').forEach(rail=>{(GROUPS[rail.dataset.group]||[]).forEach((it,i)=>{const img=document.createElement('img');img.className='thumb';img.src=ph(it[0],it[1]);img.alt=it[0];img.onclick=()=>openLB(rail.dataset.group,i);rail.appendChild(img);});const a=document.createElement('div');a.className='thumb-add';a.textContent='＋ 추가';rail.appendChild(a);});
-let G=[],gi=0;const lb=document.getElementById('lb'),lbi=document.getElementById('lbimg'),lbc=document.getElementById('lbcap');
-function openLB(g,i){G=GROUPS[g];gi=i;rl();lb.classList.add('open');}
-function rl(){const it=G[gi];lbi.src=ph(it[0],it[1]);lbc.textContent=it[0]+'  ('+(gi+1)+'/'+G.length+')';}
-document.getElementById('lbx').onclick=()=>lb.classList.remove('open');
-document.getElementById('lbp').onclick=()=>{gi=(gi-1+G.length)%G.length;rl();};
-document.getElementById('lbn').onclick=()=>{gi=(gi+1)%G.length;rl();};
-lb.addEventListener('click',e=>{if(e.target===lb)lb.classList.remove('open');});
-document.addEventListener('keydown',e=>{if(!lb.classList.contains('open'))return;if(e.key==='Escape')lb.classList.remove('open');if(e.key==='ArrowLeft')document.getElementById('lbp').click();if(e.key==='ArrowRight')document.getElementById('lbn').click();});
+/* ── 저장소 ── */
+const STORE='songv2';
+function ph(label,color){return 'data:image/svg+xml,'+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='480' height='320'><rect width='100%' height='100%' fill='"+color+"'/><rect x='2' y='2' width='476' height='316' rx='14' fill='none' stroke='rgba(255,255,255,.5)' stroke-width='2'/><text x='240' y='168' font-family='Pretendard,sans-serif' font-size='22' font-weight='800' fill='#fff' text-anchor='middle'>"+label+"</text></svg>");}
+let D;
+try{D=JSON.parse(localStorage.getItem(STORE)||'{}');}catch(e){D={};}
+D.text=D.text||{};
+D.media=D.media||{
+  md:[{type:'img',src:ph('인바운드 146건','#2f6df6'),cap:'인바운드 현황'}],
+  ps:[{type:'img',src:ph('영업앱 화면','#f26a1b'),cap:'영업앱'},{type:'img',src:ph('관리자 통계','#c2410c'),cap:'관리자 대시보드'}]
+};
+const persist=()=>localStorage.setItem(STORE,JSON.stringify(D));
 
-/* 카운트업 */
-function countUp(el){if(el._cnt)return;el._cnt=1;const to=+el.dataset.to,suf=el.dataset.suffix||'';let s=null;const dur=900;function f(t){s=s||t;const p=Math.min((t-s)/dur,1);const v=Math.round(to*(1-Math.pow(1-p,3)));el.textContent=v.toLocaleString()+suf;if(p<1)requestAnimationFrame(f);}requestAnimationFrame(f);}
+/* ── 편집 텍스트 복원 ── */
+document.querySelectorAll('.ed').forEach(el=>{const k=el.dataset.k;if(k&&D.text[k]!=null)el.innerHTML=D.text[k];
+  el.addEventListener('input',()=>{D.text[el.dataset.k]=el.innerHTML;persist();});});
 
-/* reveal + 차트 모션 */
-const seen=new WeakSet();
-const io=new IntersectionObserver(es=>{es.forEach(e=>{if(!e.isIntersecting)return;const el=e.target;el.classList.add('in');
-  if(!seen.has(el)){seen.add(el);
-    el.querySelectorAll&&el.querySelectorAll('.num').forEach(countUp);
-    if(el.classList.contains('num'))countUp(el);
+/* ── 미디어 레일 ── */
+const railEls={};
+document.querySelectorAll('.rail').forEach(r=>{railEls[r.dataset.group]=r;});
+let activeGroup=null, sel=null; // sel={g,i}
+function renderRail(g){
+  const rail=railEls[g], items=D.media[g]||[];
+  rail.innerHTML='';
+  const lbl=document.createElement('span');lbl.className='rail-label';lbl.textContent='📎 자료';rail.appendChild(lbl);
+  items.forEach((it,i)=>{
+    const w=document.createElement('div');w.className='thumb-wrap'+(sel&&sel.g===g&&sel.i===i?' sel':'');
+    const img=document.createElement('img');img.className='thumb';img.src=it.src||ph('썸네일 없음','#9aa5b1');img.alt=it.cap||'';
+    img.onclick=()=>{
+      if(document.body.classList.contains('edit')){sel={g,i};renderRail(g);return;}
+      if(it.type==='video'){if(it.href)window.open(it.href,'_blank');return;}
+      openLB(g,i);
+    };
+    w.appendChild(img);
+    if(it.type==='video'){const p=document.createElement('div');p.className='tw-play';p.textContent='▶';w.appendChild(p);}
+    const del=document.createElement('button');del.className='tw-del';del.textContent='✕';
+    del.onclick=(e)=>{e.stopPropagation();D.media[g].splice(i,1);sel=null;persist();renderRail(g);};
+    w.appendChild(del);
+    rail.appendChild(w);
+  });
+  const aImg=document.createElement('button');aImg.className='rail-add';aImg.textContent='＋ 사진 링크';
+  aImg.onclick=()=>{const u=prompt('이미지 링크(URL)를 붙여넣으세요');if(u){D.media[g].push({type:'img',src:u.trim(),cap:'사진'});persist();renderRail(g);}};
+  const aVid=document.createElement('button');aVid.className='rail-add';aVid.textContent='＋ 영상 링크';
+  aVid.onclick=()=>{const h=prompt('영상 링크(YouTube 등)를 붙여넣으세요');if(!h)return;const href=h.trim();
+    let thumb=ytThumb(href)||'';
+    if(!thumb)thumb=ph('영상 ▶ (썸네일은 클릭 후 Ctrl+V)','#0c1730');
+    D.media[g].push({type:'video',href,src:thumb,cap:'영상'});persist();renderRail(g);};
+  rail.appendChild(aImg);rail.appendChild(aVid);
+  const hint=document.createElement('span');hint.className='rail-hint';hint.textContent='팁: 영상 썸네일은 그 영상칸 클릭 → Ctrl+V로 붙여넣기';
+  rail.appendChild(hint);
+  rail.classList.toggle('empty',items.length===0);
+  rail.onclick=()=>{activeGroup=g;};
+}
+function ytThumb(url){const m=url.match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/)([\w-]{11})/);return m?('https://img.youtube.com/vi/'+m[1]+'/hqdefault.jpg'):null;}
+Object.keys(railEls).forEach(renderRail);
+
+/* 붙여넣기로 이미지/썸네일 추가 */
+document.addEventListener('paste',e=>{
+  if(!document.body.classList.contains('edit'))return;
+  if(document.activeElement&&document.activeElement.isContentEditable)return; // 텍스트 편집 중엔 기본 동작
+  const dt=e.clipboardData;if(!dt)return;
+  for(const it of dt.items){
+    if(it.type.indexOf('image')===0){const f=it.getAsFile();const r=new FileReader();r.onload=()=>applyImg(r.result);r.readAsDataURL(f);e.preventDefault();return;}
   }
-});},{threshold:.25});
+  const txt=dt.getData('text');if(txt&&/^https?:\/\//.test(txt.trim())){applyImg(txt.trim());e.preventDefault();}
+});
+function applyImg(src){
+  if(sel){D.media[sel.g][sel.i].src=src;persist();renderRail(sel.g);return;}
+  const g=activeGroup||Object.keys(railEls)[0];
+  D.media[g].push({type:'img',src,cap:'붙여넣은 이미지'});persist();renderRail(g);
+}
+
+/* ── 라이트박스 (이미지만) ── */
+let LBlist=[],lbi=0;
+const lb=document.getElementById('lb'),lbimg=document.getElementById('lbimg'),lbcap=document.getElementById('lbcap');
+function openLB(g,i){LBlist=(D.media[g]||[]).map((it,idx)=>({it,idx})).filter(x=>x.it.type!=='video');
+  lbi=Math.max(0,LBlist.findIndex(x=>x.idx===i));rl();lb.classList.add('open');}
+function rl(){if(!LBlist.length)return;const it=LBlist[lbi].it;lbimg.src=it.src;lbcap.textContent=(it.cap||'')+'  ('+(lbi+1)+'/'+LBlist.length+')';}
+document.getElementById('lbx').onclick=()=>lb.classList.remove('open');
+document.getElementById('lbp').onclick=()=>{lbi=(lbi-1+LBlist.length)%LBlist.length;rl();};
+document.getElementById('lbn').onclick=()=>{lbi=(lbi+1)%LBlist.length;rl();};
+lb.addEventListener('click',e=>{if(e.target===lb)lb.classList.remove('open');});
+
+/* ── 편집/발표 모드 ── */
+const btnEdit=document.getElementById('btnEdit'),btnPresent=document.getElementById('btnPresent'),btnExit=document.getElementById('btnExit');
+function setEdit(on){document.body.classList.toggle('edit',on);btnEdit.classList.toggle('on',on);
+  btnEdit.textContent=on?'✓ 편집 종료':'✏️ 편집모드';
+  document.querySelectorAll('.ed').forEach(e=>e.contentEditable=on?'true':'false');
+  if(!on){sel=null;}Object.keys(railEls).forEach(renderRail);}
+btnEdit.onclick=()=>setEdit(!document.body.classList.contains('edit'));
+btnPresent.onclick=()=>{setEdit(false);document.body.classList.add('present');
+  const el=document.documentElement;if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});};
+function exitPresent(){document.body.classList.remove('present');if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});}
+btnExit.onclick=exitPresent;
+document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement)document.body.classList.remove('present');});
+
+/* ── 카운트업 ── */
+function countUp(el){if(el._cnt)return;el._cnt=1;const to=+el.dataset.to,suf=el.dataset.suffix||'';let s=null,dur=900;
+  function f(t){s=s||t;const p=Math.min((t-s)/dur,1);el.textContent=Math.round(to*(1-Math.pow(1-p,3))).toLocaleString()+suf;if(p<1)requestAnimationFrame(f);}requestAnimationFrame(f);}
+const io=new IntersectionObserver(es=>{es.forEach(e=>{if(!e.isIntersecting)return;e.target.classList.add('in');
+  if(e.target.querySelectorAll)e.target.querySelectorAll('.num').forEach(countUp);
+  if(e.target.classList.contains('num'))countUp(e.target);});},{threshold:.25});
 document.querySelectorAll('.rv,.num').forEach(el=>io.observe(el));
 
-/* 퍼널·스파크·게이지·파이프라인 트리거 */
+/* ── 차트 트리거 ── */
 const once=new WeakSet();
-const io2=new IntersectionObserver(es=>{es.forEach(e=>{if(!e.isIntersecting||once.has(e.target))return;once.add(e.target);
-  const sec=e.target;
-  const f=sec.querySelector('#funnel');if(f)f.querySelectorAll('.fseg').forEach((b,i)=>setTimeout(()=>b.style.width=b.dataset.w+'%',150+i*220));
+const io2=new IntersectionObserver(es=>{es.forEach(e=>{if(!e.isIntersecting||once.has(e.target))return;once.add(e.target);const sec=e.target;
+  const f=sec.querySelector('#funnel');if(f)f.querySelectorAll('.fbar').forEach((b,i)=>setTimeout(()=>b.style.width=b.dataset.w+'%',150+i*220));
   const sp=sec.querySelector('#spark');if(sp)sp.classList.add('in');
   const ga=sec.querySelector('#gauge');if(ga)ga.classList.add('in');
-  const pp=sec.querySelector('#pipe');if(pp)pp.querySelectorAll('.pstep').forEach((s,i)=>setTimeout(()=>s.classList.add('lit'),200+i*260));
-});},{threshold:.4});
+  const pp=sec.querySelector('#pipe');if(pp)pp.querySelectorAll('.pstep').forEach((s,i)=>setTimeout(()=>s.classList.add('lit'),200+i*260));});},{threshold:.4});
 document.querySelectorAll('.slide').forEach(s=>io2.observe(s));
 
-/* 트랙맵 */
+/* ── 트랙맵 ── */
 const tmItems=[...document.querySelectorAll('.tm-item')];
 tmItems.forEach(b=>b.onclick=()=>document.getElementById(b.dataset.go).scrollIntoView({behavior:'smooth'}));
 const slides=[...document.querySelectorAll('.slide')];
-const io3=new IntersectionObserver(es=>{es.forEach(e=>{if(!e.isIntersecting)return;const id=e.target.id;tmItems.forEach(b=>b.classList.toggle('on',b.dataset.go===id));const idx=slides.indexOf(e.target);document.getElementById('tmprog').style.width=((idx+1)/slides.length*100)+'%';});},{threshold:.5});
+const io3=new IntersectionObserver(es=>{es.forEach(e=>{if(!e.isIntersecting)return;const id=e.target.id;
+  tmItems.forEach(b=>b.classList.toggle('on',b.dataset.go===id));
+  document.getElementById('tmprog').style.width=((slides.indexOf(e.target)+1)/slides.length*100)+'%';});},{threshold:.5});
 slides.forEach(s=>io3.observe(s));
+
+/* 키보드 */
+document.addEventListener('keydown',e=>{
+  if(lb.classList.contains('open')){if(e.key==='Escape')lb.classList.remove('open');if(e.key==='ArrowLeft')document.getElementById('lbp').click();if(e.key==='ArrowRight')document.getElementById('lbn').click();return;}
+  if(e.key==='Escape'&&document.body.classList.contains('present'))exitPresent();
+});
 </script>
 </body>
 </html>

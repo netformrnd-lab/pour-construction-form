@@ -402,31 +402,49 @@ body.present-mode .edit-fab{display:none!important;}
 .m-btn-do-upload:disabled{opacity:.45;cursor:not-allowed;}
 .m-btn-cancel-up{background:var(--bg-section);color:var(--ink2);border:none;border-radius:10px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
 .m-upload-status{font-size:12px;color:var(--ink3);text-align:center;min-height:16px;}
+/* ── 그룹 트랙맵 (좌측 사이드바) ── */
+.trackmap{position:fixed;left:16px;top:50%;transform:translateY(-50%);z-index:198;display:flex;flex-direction:column;gap:1px;width:150px;max-height:88vh;overflow:auto;background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:16px;padding:10px;box-shadow:0 8px 30px rgba(0,0,0,.08);}
+.trackmap::-webkit-scrollbar{width:0;}
+.tm-grp{font-size:9px;font-weight:800;letter-spacing:.04em;color:var(--ink3);margin:7px 5px 2px;white-space:nowrap;}
+.trackmap .nav-pill{display:flex;align-items:center;gap:8px;width:100%;padding:5px 9px;border-radius:9px;background:none;border:none;font-family:inherit;font-size:11px;font-weight:600;color:var(--ink3);cursor:pointer;text-align:left;white-space:nowrap;transition:background .18s,color .18s;}
+.trackmap .nav-pill:hover{background:var(--bg-section);color:var(--ink2);}
+.trackmap .nav-pill.on{color:var(--ink);font-weight:800;background:none;}
+.trackmap .nav-pill .tm-dot{width:7px;height:7px;border-radius:50%;background:var(--border);flex:0 0 auto;transition:transform .2s,background .2s;}
+.trackmap .nav-pill.on .tm-dot{transform:scale(1.5);}
+.trackmap .nav-pill.md.on .tm-dot{background:var(--accent);}
+.trackmap .nav-pill.ps.on .tm-dot{background:var(--indigo);}
+.trackmap .nav-pill.co.on .tm-dot{background:var(--ink);}
+@media(min-width:981px){.slide-header{padding-left:200px;}.slide-body{padding-left:200px;}#s0{padding-left:200px;}}
+@media(max-width:980px){.trackmap{display:none;}}
 </style>
 </head>
 <body>
 
 <nav class="nav">
   <div class="nav-logo">김송희 <span>· 모여라딜 + 브랜드커머스 리드매니저 (겸직)</span></div>
-  <div class="nav-pills">
-    <button class="nav-pill on">타이틀</button>
-    <button class="nav-pill">여정</button>
-    <button class="nav-pill">모여라딜</button>
-    <button class="nav-pill">직접 팔아보자</button>
-    <button class="nav-pill">협업·모여라딜</button>
-    <button class="nav-pill">POUR스토어</button>
-    <button class="nav-pill">영업앱</button>
-    <button class="nav-pill">자사몰 리뉴얼</button>
-    <button class="nav-pill">AI솔루션·SKU</button>
-    <button class="nav-pill">협업·스토어</button>
-    <button class="nav-pill">팀 구조</button>
-    <button class="nav-pill">대시보드·KPI</button>
-    <button class="nav-pill">신규 프로젝트</button>
-    <button class="nav-pill">Next</button>
-    <button class="nav-pill">성장 램프</button>
-    <button class="nav-pill">목표</button>
-  </div>
 </nav>
+<aside class="trackmap" id="trackmap">
+  <div class="tm-grp">오프닝</div>
+  <button class="nav-pill co on"><span class="tm-dot"></span>타이틀</button>
+  <button class="nav-pill co"><span class="tm-dot"></span>여정</button>
+  <div class="tm-grp" style="color:var(--accent)">🔵 모여라딜</div>
+  <button class="nav-pill md"><span class="tm-dot"></span>성과</button>
+  <button class="nav-pill md"><span class="tm-dot"></span>직접 팔아보자</button>
+  <button class="nav-pill md"><span class="tm-dot"></span>협업</button>
+  <div class="tm-grp" style="color:var(--indigo)">🟠 POUR스토어</div>
+  <button class="nav-pill ps"><span class="tm-dot"></span>개요</button>
+  <button class="nav-pill ps"><span class="tm-dot"></span>영업앱</button>
+  <button class="nav-pill ps"><span class="tm-dot"></span>자사몰 리뉴얼</button>
+  <button class="nav-pill ps"><span class="tm-dot"></span>AI솔루션·SKU</button>
+  <button class="nav-pill ps"><span class="tm-dot"></span>협업</button>
+  <button class="nav-pill ps"><span class="tm-dot"></span>팀 구조</button>
+  <div class="tm-grp">종합·다음</div>
+  <button class="nav-pill co"><span class="tm-dot"></span>대시보드·KPI</button>
+  <button class="nav-pill co"><span class="tm-dot"></span>신규·재정비</button>
+  <button class="nav-pill co"><span class="tm-dot"></span>Next</button>
+  <button class="nav-pill co"><span class="tm-dot"></span>성장 램프</button>
+  <button class="nav-pill co"><span class="tm-dot"></span>목표</button>
+</aside>
 <div class="progress"><div class="progress-fill" id="pbar"></div></div>
 
 <!-- S0 TITLE -->

@@ -256,7 +256,7 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
   <button class="tm-item md" data-go="md-result"><span class="tm-dot"></span><span class="tm-tx">성과</span></button>
   <button class="tm-item md" data-go="md-collab"><span class="tm-dot"></span><span class="tm-tx">협업</span></button>
   <div class="tm-grp" style="color:var(--store)">🟠 POUR스토어</div>
-  <button class="tm-item ps" data-go="ps-mission"><span class="tm-dot"></span><span class="tm-tx">미션·목표</span></button>
+  <button class="tm-item ps" data-go="ps-mission"><span class="tm-dot"></span><span class="tm-tx">개요</span></button>
   <button class="tm-item ps" data-go="ps-exec"><span class="tm-dot"></span><span class="tm-tx">실행</span></button>
   <button class="tm-item ps" data-go="ps-result"><span class="tm-dot"></span><span class="tm-tx">성과</span></button>
   <div class="tm-grp">종합·다음</div>
@@ -274,7 +274,7 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
     <p class="csub ed rv d2" data-k="cover-sub">모여라딜에서 수요를, POUR스토어에서 시스템을 — 같은 방식으로.</p>
     <div class="twotrack rv d3">
       <div class="tt md"><div class="tt-tag">🔵 모여라딜</div><div class="tt-h ed" data-k="cover-mdh">수요를 증명</div><div class="tt-d ed" data-k="cover-mdd">광고비 0으로 공급사 106곳 확보 · BMA 8개 수익구조 설계</div><div class="tt-n"><span class="num" data-to="106" data-suffix="곳">0곳</span></div></div>
-      <div class="tt ps"><div class="tt-tag">🟠 POUR스토어</div><div class="tt-h ed" data-k="cover-psh">영업 시스템을 구축</div><div class="tt-d ed" data-k="cover-psd">대리점·B2B 파트너·전시장에서 쓰는 영업앱 — 박람회에서 첫 검증</div><div class="tt-n"><span class="num" data-to="47" data-suffix="건">0건</span></div></div>
+      <div class="tt ps"><div class="tt-tag">🟠 POUR스토어</div><div class="tt-h ed" data-k="cover-psh">영업 시스템을 구축</div><div class="tt-d ed" data-k="cover-psd">영업앱 · 마스터프롬프트 · KPI v6 · 고객 코드 · 업무분장(팀 3명) — 운영 체계 구축</div><div class="tt-n"><span class="num" data-to="47" data-suffix="건">0건</span></div></div>
     </div>
     <div class="sign ed rv d4" data-k="cover-sign">김송희 · 넷폼알앤디</div>
   </div>
@@ -378,7 +378,8 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
       <div class="card"><div class="ci">🧩</div><div class="ch ed" data-k="mde-c3h">선택형 소싱 → 입점 제안서</div><div class="cd ed" data-k="mde-c3d">신박템 소싱 33건 → 공급사 맞춤 입점 제안서 제작.</div></div>
       <div class="card"><div class="ci">🤝</div><div class="ch ed" data-k="mde-c4h">셀러 공구 제안</div><div class="cd ed" data-k="mde-c4d">협찬·가이드 패키지로 셀러가 직접 공구 개최하도록 제안.</div></div>
     </div>
-    <div class="chips rv d4" style="margin-top:18px;">
+    <div class="ed rv d4" data-k="mde-calc" style="margin-top:16px;background:var(--accent-soft);border:1px solid var(--accent);border-left:4px solid var(--accent);border-radius:14px;padding:14px 18px;font-size:13.5px;font-weight:600;color:var(--ink);line-height:1.65;">🧮 <b>마진 계산기 자체 제작 — 셀러 협상용</b><br>공급단가·판매가 등록 상품 선택 → 판매수량·셀러 수수료·이벤트비(광고·활동지원금·기프티콘)·PG수수료 조정 → 모여라딜 <b>순마진 손익 즉시 판정</b> · 셀러 마진율 안내 · 셀러 제안서 자동 생성.</div>
+    <div class="chips rv d5" style="margin-top:14px;">
       <span class="chip ed" data-k="mde-b1">입점 수수료</span><span class="chip ed" data-k="mde-b2">공동구매 수수료</span>
       <span class="chip ed" data-k="mde-b3">광고·노출</span><span class="chip ed" data-k="mde-b4">구독</span>
       <span class="chip ed" data-k="mde-b5">데이터</span><span class="chip ed" data-k="mde-b6">물류·풀필먼트</span>
@@ -458,13 +459,14 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
 <!-- 7) 스토어 미션 -->
 <section class="slide t-ps" id="ps-mission">
   <div class="inner">
-    <div class="eyebrow rv">PART 2 · POUR스토어 — 미션·목표</div>
-    <h1 class="title ed rv d1" data-k="psm-title">누구나 잘 파는 시스템을 만들자.</h1>
-    <p class="sub ed rv d2" data-k="psm-sub">POUR스토어의 영업력을 끌어올리는 도구 — <b>대리점·파트너·전시장</b> 누구나 같은 품질로 상담하게.</p>
-    <div class="cards rv d3">
-      <div class="card"><div class="ci">📱</div><div class="ch ed" data-k="psm-c1h">영업 표준화</div><div class="cd ed" data-k="psm-c1d">공법 선택→진단→자료→발송까지, 누구나 같은 흐름으로 전문 상담.</div></div>
-      <div class="card"><div class="ci">🤝</div><div class="ch ed" data-k="psm-c2h">파트너 영업력</div><div class="cd ed" data-k="psm-c2d">대리점주·B2B 파트너사에 제공해 현장 영업력을 강화.</div></div>
-      <div class="card"><div class="ci">🏢</div><div class="ch ed" data-k="psm-c3h">전시장 응대</div><div class="cd ed" data-k="psm-c3d">본사 전시장에 배치, 태블릿으로 방문 고객을 바로 응대.</div></div>
+    <div class="eyebrow rv">PART 2 · POUR스토어 — 개요</div>
+    <h1 class="title ed rv d1" data-k="psm-title">합류 두 달, 운영 시스템을 세웠습니다.</h1>
+    <p class="sub ed rv d2" data-k="psm-sub">영업앱 하나로 끝이 아니라 — <b>프롬프트 · KPI · 고객 코드 · 업무분장</b>까지 운영 체계를 세웠습니다.</p>
+    <div class="cards rv d3" style="grid-template-columns:repeat(2,1fr)">
+      <div class="card"><div class="ci">🧭</div><div class="ch ed" data-k="psm-c1h">마스터프롬프트 (4월)</div><div class="cd ed" data-k="psm-c1d">비주얼아이덴티티·톤앤매너·고객별 페르소나 내재화 → 전략·디자인·CS 일관성.</div></div>
+      <div class="card"><div class="ci">📱</div><div class="ch ed" data-k="psm-c2h">박람회 영업앱</div><div class="cd ed" data-k="psm-c2d">공법선택→진단→자료→발송. 대리점·B2B 파트너·전시장 어디서나 같은 품질의 영업.</div></div>
+      <div class="card"><div class="ci">📊</div><div class="ch ed" data-k="psm-c3h">KPI 체계 v6 (5월)</div><div class="cd ed" data-k="psm-c3d">O→KR→지표→Task. 스토어 프롬프트 기반, 측정 가능한 운영.</div></div>
+      <div class="card"><div class="ci">🗂</div><div class="ch ed" data-k="psm-c4h">고객 코드 · 업무분장</div><div class="cd ed" data-k="psm-c4d">B2B 고객군 코드 정립 + 팀 3명(란·민지·채림) 업무분장.</div></div>
     </div>
     <div class="rail" data-group="ps-mission"></div>
   </div>

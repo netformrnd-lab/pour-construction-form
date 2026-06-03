@@ -255,6 +255,15 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
 .imodal-box{background:#fff;border-radius:20px;max-width:640px;width:100%;max-height:84vh;overflow:auto;padding:30px 30px 26px;box-shadow:0 24px 70px rgba(0,0,0,.35);position:relative;}
 .imodal-x{position:absolute;top:14px;right:16px;border:none;background:var(--border-l);width:34px;height:34px;border-radius:10px;font-size:16px;cursor:pointer;color:var(--ink2);}
 .imodal-h{font-size:18px;font-weight:800;margin-bottom:16px;letter-spacing:-.02em;}
+/* 디바이스 비교 막대 (자사몰 리뉴얼) */
+.dvbar{display:flex;flex-direction:column;gap:11px;}
+.dvbar-row{display:flex;align-items:center;gap:11px;}
+.dvbar-lab{width:48px;font-size:12px;font-weight:800;color:var(--ink2);text-align:right;flex:0 0 auto;}
+.dvbar-track{flex:1;display:flex;height:36px;border-radius:10px;overflow:hidden;}
+.dvbar-pc{background:var(--store-dark);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:800;white-space:nowrap;}
+.dvbar-mo{background:#f7c9a6;color:var(--store-dark);display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:800;white-space:nowrap;}
+.dvbar-leg{display:flex;gap:14px;font-size:11px;font-weight:700;color:var(--ink3);margin-top:4px;}
+.dvbar-leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;}
 </style>
 </head>
 <body>
@@ -264,7 +273,7 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
   <button class="ctrl" id="btnPresent">▶︎ 발표모드</button>
 </div>
 <button class="exit-present" id="btnExit">✕ 발표 종료 (Esc)</button>
-<div class="slidecount" id="scount">1 / 16</div>
+<div class="slidecount" id="scount">1 / 17</div>
 
 <nav class="trackmap" id="tmap">
   <div class="tm-grp">오프닝</div>
@@ -280,6 +289,7 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
   <button class="tm-item md" data-go="md-collab"><span class="tm-dot"></span><span class="tm-tx">협업</span></button>
   <div class="tm-grp" style="color:var(--store)">🟠 POUR스토어</div>
   <button class="tm-item ps" data-go="ps-mission"><span class="tm-dot"></span><span class="tm-tx">개요</span></button>
+  <button class="tm-item ps" data-go="ps-renew"><span class="tm-dot"></span><span class="tm-tx">자사몰 리뉴얼</span></button>
   <button class="tm-item ps" data-go="ps-exec"><span class="tm-dot"></span><span class="tm-tx">실행</span></button>
   <button class="tm-item ps" data-go="ps-result"><span class="tm-dot"></span><span class="tm-tx">성과</span></button>
   <button class="tm-item ps" data-go="ps-collab"><span class="tm-dot"></span><span class="tm-tx">협업</span></button>
@@ -512,6 +522,36 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
     </div>
     <div class="note ed rv d4" data-k="psm-pagemgr" style="margin-top:16px;">🛠 <b>페이지 관리 사이트 자체 개발</b> (자사몰 리뉴얼) — HTML을 <b>섹션별 관리</b>·정렬 · 수정 이력(버전) 보관·복원 · 섹션마다 <b>댓글·피드백</b> · 작업여정 공유 → <b>4인 공동작업·협업</b> 원활.</div>
     <div class="rail" data-group="ps-mission"></div>
+  </div>
+</section>
+
+<!-- 스토어 자사몰 리뉴얼 -->
+<section class="slide t-ps" id="ps-renew">
+  <div class="inner">
+    <div class="eyebrow rv">PART 2 · POUR스토어 — 자사몰 리뉴얼</div>
+    <h1 class="title ed rv d1" data-k="pr-title">반응형 리뉴얼 — 데이터로 결정했습니다.</h1>
+    <p class="sub ed rv d2" data-k="pr-sub">모바일 트래픽은 PC를 역전(5월 54%)했지만 <b>매출은 PC가 80%</b>(대량 B2B). → <b>반응형 · 모바일 우선</b>, 단 PC 대량 동선도 최적화.</p>
+    <div class="grid2">
+      <div class="panel rv d3">
+        <div class="panel-h">// 2026 비중 — 방문자 vs 매출</div>
+        <div class="dvbar">
+          <div class="dvbar-row"><span class="dvbar-lab">방문자</span><div class="dvbar-track"><div class="dvbar-pc" style="width:51.1%">PC 51%</div><div class="dvbar-mo" style="width:48.9%">모바일 49%</div></div></div>
+          <div class="dvbar-row"><span class="dvbar-lab">매출</span><div class="dvbar-track"><div class="dvbar-pc" style="width:79.8%">PC 80%</div><div class="dvbar-mo" style="width:20.2%">20%</div></div></div>
+        </div>
+        <div class="dvbar-leg"><span><i style="background:var(--store-dark)"></i>PC</span><span><i style="background:#f7c9a6"></i>모바일</span></div>
+        <div class="ed" data-k="pr-cap" style="font-size:11.5px;color:var(--ink3);margin-top:9px;font-weight:600;line-height:1.5;">방문자는 거의 반반인데 매출은 PC 쏠림 → <b>트래픽 ≠ 매출.</b> PC 객단가가 모바일의 약 2.5배.</div>
+      </div>
+      <div class="panel rv d4">
+        <div class="panel-h">// 데이터가 말하는 것</div>
+        <ul class="clist">
+          <li class="ed" data-k="pr-i1">방문자 <b>PC→모바일 역전</b> (2026.5 모바일 54%, 상승 추세)</li>
+          <li class="ed" data-k="pr-i2">매출 <b>PC 80%</b> — 대량 B2B 집중 (4월 대형주문 영향)</li>
+          <li class="ed" data-k="pr-i3">⚠️ 모바일 전환율 하락(1.54%→0.97%) — <b>모바일 UX 누수 = 1순위 개선</b></li>
+        </ul>
+      </div>
+    </div>
+    <div class="note ed rv d5" data-k="pr-note">🎯 결론 — <b>반응형, 디바이스별 동선 분리</b>: 모바일 = 탐색·전환(개인·DIY) / PC = 대량 구매(B2B 시공·공무, 묶음 단가·세금계산서).</div>
+    <div class="rail" data-group="ps-renew"></div>
   </div>
 </section>
 

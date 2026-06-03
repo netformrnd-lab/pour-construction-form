@@ -175,6 +175,20 @@ body.present .trackmap{display:flex;}
 .node.sub .nrole{color:var(--ink3);}
 .nedge{width:2px;height:50px;background:var(--accent);position:relative;}
 .nedge span{position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:11.5px;font-weight:800;color:var(--accent-dark);white-space:nowrap;}
+/* 4인 협업 카드 */
+.ccard{border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:9px;}
+.cch{display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:8px;flex-wrap:wrap;}
+.cch .cnt{background:var(--store);color:#fff;font-size:11px;font-weight:800;padding:2px 9px;border-radius:999px;}
+.cch .theme{margin-left:auto;font-size:11px;color:var(--ink3);font-weight:700;}
+.chips.sm .chip{font-size:10.5px;padding:5px 10px;}
+.baton{background:var(--store-soft);border-radius:14px;padding:12px 14px;margin-top:2px;}
+.baton .bh{font-size:12px;font-weight:800;color:var(--store-dark);margin-bottom:8px;}
+.batonflow{display:flex;align-items:stretch;gap:6px;flex-wrap:wrap;}
+.batonflow .bs{flex:1;min-width:92px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:8px 9px;text-align:center;}
+.batonflow .bs .bt{font-size:11px;font-weight:800;}
+.batonflow .bs .bd{font-size:9px;color:var(--ink3);font-weight:600;margin-top:2px;line-height:1.3;}
+.batonflow .ba{align-self:center;color:var(--store);font-weight:800;font-size:14px;}
+.netfoot{font-size:10.5px;color:var(--ink3);font-weight:600;margin-top:10px;}
 
 /* 다크 슬라이드 */
 .dark{background:radial-gradient(1200px 600px at 70% 10%,#16284e,transparent 60%),linear-gradient(160deg,#0c1730,#0a1426);color:#fff;}
@@ -242,7 +256,7 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
   <button class="ctrl" id="btnPresent">▶︎ 발표모드</button>
 </div>
 <button class="exit-present" id="btnExit">✕ 발표 종료 (Esc)</button>
-<div class="slidecount" id="scount">1 / 14</div>
+<div class="slidecount" id="scount">1 / 15</div>
 
 <nav class="trackmap" id="tmap">
   <div class="tm-grp">오프닝</div>
@@ -259,6 +273,7 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
   <button class="tm-item ps" data-go="ps-mission"><span class="tm-dot"></span><span class="tm-tx">개요</span></button>
   <button class="tm-item ps" data-go="ps-exec"><span class="tm-dot"></span><span class="tm-tx">실행</span></button>
   <button class="tm-item ps" data-go="ps-result"><span class="tm-dot"></span><span class="tm-tx">성과</span></button>
+  <button class="tm-item ps" data-go="ps-collab"><span class="tm-dot"></span><span class="tm-tx">협업</span></button>
   <div class="tm-grp">종합·다음</div>
   <button class="tm-item co" data-go="method"><span class="tm-dot"></span><span class="tm-tx">관통하는 방법</span></button>
   <button class="tm-item co" data-go="next"><span class="tm-dot"></span><span class="tm-tx">다음 반기</span></button>
@@ -520,6 +535,84 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
     </div>
     <div class="takeaway ed rv d5" data-k="psr-take">💡 배운 점 — 박람회로 <b>검증 완료.</b> 다음은 대리점·파트너·전시장에 <b>실제 배치</b>해 영업력으로 전환.</div>
     <div class="rail" data-group="ps-result"></div>
+  </div>
+</section>
+
+<!-- POUR스토어 4인 협업 관계도 -->
+<section class="slide t-ps" id="ps-collab">
+  <div class="inner">
+    <div class="eyebrow rv">PART 2 · POUR스토어 — 협업</div>
+    <h1 class="title ed rv d1" data-k="pc-title">POUR스토어 — 4인 협업 구조.</h1>
+    <p class="sub ed rv d2" data-k="pc-sub">송희(리드) + 민지·란·채림 — 영역별로 분담하며 <b>33개 협업 프로젝트</b>를 함께 진행했습니다.</p>
+    <div class="grid2">
+      <div class="panel rv d3" style="display:flex;align-items:center;justify-content:center;">
+        <svg viewBox="0 0 400 450" style="width:100%;max-width:420px;display:block;font-family:'Pretendard Variable',Pretendard,sans-serif;">
+          <line x1="200" y1="78" x2="322" y2="236" stroke="#f26a1b" stroke-width="6" stroke-linecap="round" opacity=".85"/>
+          <line x1="200" y1="78" x2="78" y2="236" stroke="#f26a1b" stroke-width="5" stroke-linecap="round" opacity=".8"/>
+          <line x1="200" y1="78" x2="200" y2="388" stroke="#f26a1b" stroke-width="2.5" stroke-linecap="round" opacity=".5"/>
+          <line x1="78" y1="236" x2="322" y2="236" stroke="#cbd2da" stroke-width="4" stroke-linecap="round"/>
+          <line x1="78" y1="236" x2="200" y2="388" stroke="#cbd2da" stroke-width="2" stroke-linecap="round"/>
+          <line x1="322" y1="236" x2="200" y2="388" stroke="#cbd2da" stroke-width="2" stroke-linecap="round"/>
+          <g font-weight="800" font-size="12" style="paint-order:stroke;stroke:#fff;stroke-width:4px;stroke-linejoin:round;">
+            <text x="266" y="150" text-anchor="middle" fill="#c2410c">11건</text>
+            <text x="134" y="150" text-anchor="middle" fill="#c2410c">8건</text>
+            <text x="214" y="205" text-anchor="middle" fill="#c2410c">3건</text>
+            <text x="252" y="228" text-anchor="middle" fill="#3d4a5c">7건</text>
+            <text x="128" y="318" text-anchor="middle" fill="#3d4a5c">2건</text>
+            <text x="272" y="318" text-anchor="middle" fill="#3d4a5c">2건</text>
+          </g>
+          <g text-anchor="middle">
+            <circle cx="200" cy="72" r="42" fill="#f26a1b"/>
+            <text x="200" y="70" fill="#fff" font-size="17" font-weight="800">송희</text>
+            <text x="200" y="87" fill="#ffe3cf" font-size="10" font-weight="700">LEAD</text>
+            <circle cx="78" cy="236" r="33" fill="#fff" stroke="#e7ebef" stroke-width="2"/>
+            <text x="78" y="234" fill="#0f1722" font-size="15" font-weight="800">민지</text>
+            <text x="78" y="250" fill="#8b95a1" font-size="9" font-weight="700">M1</text>
+            <circle cx="322" cy="236" r="33" fill="#fff" stroke="#e7ebef" stroke-width="2"/>
+            <text x="322" y="234" fill="#0f1722" font-size="15" font-weight="800">란</text>
+            <text x="322" y="250" fill="#8b95a1" font-size="9" font-weight="700">M2</text>
+            <circle cx="200" cy="388" r="33" fill="#fff" stroke="#10b981" stroke-width="2" stroke-dasharray="4 3"/>
+            <text x="200" y="386" fill="#0f1722" font-size="15" font-weight="800">채림</text>
+            <text x="200" y="402" fill="#8b95a1" font-size="9" font-weight="700">M3</text>
+          </g>
+        </svg>
+      </div>
+      <div class="panel rv d4">
+        <div style="font-size:21px;font-weight:800;letter-spacing:-.02em;margin-bottom:12px;">33건 <span style="font-size:12px;color:var(--ink3);font-weight:600;">협업 프로젝트 · 4인</span></div>
+        <div class="ccard">
+          <div class="cch"><b>송희 + 란</b><span class="cnt">11건</span><span class="theme ed" data-k="pc-lt">B2B 정책 → 실무</span></div>
+          <div class="chips sm">
+            <span class="chip ed" data-k="pl1">광고 운영(네이버·메타)</span><span class="chip ed" data-k="pl2">채널별 광고(마켓)</span><span class="chip ed" data-k="pl3">대리점 정책</span><span class="chip ed" data-k="pl4">협업 정책 수립</span><span class="chip ed" data-k="pl5">발주 시스템</span><span class="chip ed" data-k="pl6">파트너사 자동매칭</span><span class="chip ed" data-k="pl7">인플루언서·유튜버 정책</span><span class="chip ed" data-k="pl8">철물점 지점화</span><span class="chip ed" data-k="pl9">POUR공법 이관 표준화</span><span class="chip ed" data-k="pl10">POUR솔루션 이관 표준화</span><span class="chip ed" data-k="pl11">매칭 시스템</span>
+          </div>
+        </div>
+        <div class="ccard">
+          <div class="cch"><b>송희 + 민지</b><span class="cnt">8건</span><span class="theme ed" data-k="pc-mt">SKU 소싱 → 등록</span></div>
+          <div class="chips sm">
+            <span class="chip ed" data-k="pm1">코트제 외주 색상</span><span class="chip ed" data-k="pm2">탑코트제 파생 8개</span><span class="chip ed" data-k="pm3">써밋페인트 파생 5개</span><span class="chip ed" data-k="pm4">제비스코 OEM 라인</span><span class="chip ed" data-k="pm5">제비스코 ODM 라인</span><span class="chip ed" data-k="pm6">부자재·안전용품 ODM</span><span class="chip ed" data-k="pm7">신규 채널 확장</span><span class="chip ed" data-k="pm8">디자인 자동 생성</span>
+          </div>
+        </div>
+        <div class="ccard">
+          <div class="cch"><b>송희 + 채림</b><span class="cnt">3건</span><span class="theme ed" data-k="pc-ct">시스템 → 데이터 운영</span></div>
+          <div class="chips sm">
+            <span class="chip ed" data-k="pc1">CRM 시스템 개발</span><span class="chip ed" data-k="pc2">매출관리 시스템</span><span class="chip ed" data-k="pc3">POUR집잡이 구축</span>
+          </div>
+        </div>
+        <div class="baton">
+          <div class="bh">🪄 대리점 — 송희 ↔ 란 '바통' 협업 사례</div>
+          <div class="batonflow">
+            <div class="bs"><div class="bt ed" data-k="pb1">송희 시작</div><div class="bd ed" data-k="pb1d">2025 초~9월</div></div>
+            <div class="ba">→</div>
+            <div class="bs"><div class="bt ed" data-k="pb2">란님 이어 운영</div><div class="bd ed" data-k="pb2d">송희 이별 기간</div></div>
+            <div class="ba">→</div>
+            <div class="bs"><div class="bt ed" data-k="pb3">송희 재합류·리드</div><div class="bd ed" data-k="pb3d">2026 · 정책 고도화</div></div>
+            <div class="ba">→</div>
+            <div class="bs"><div class="bt ed" data-k="pb4">운영 이관</div><div class="bd ed" data-k="pb4d">향후 란님</div></div>
+          </div>
+        </div>
+        <div class="netfoot ed" data-k="pc-foot">노드 간 선 굵기 = 협업 건수. 멤버 간 협업(민지–란 7 · 민지–채림 2 · 란–채림 2)까지 합산 총 33건.</div>
+      </div>
+    </div>
+    <div class="rail" data-group="ps-collab"></div>
   </div>
 </section>
 

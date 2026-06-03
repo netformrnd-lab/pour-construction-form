@@ -216,6 +216,8 @@ body.present .trackmap{display:flex;}
 .thumb-wrap.sel .thumb{outline:3px solid var(--store);outline-offset:1px;}
 body.edit .thumb-wrap{cursor:grab;}
 .thumb-cap{font-size:10px;color:var(--ink3);font-weight:600;max-width:104px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;}
+body.edit .thumb-cap{cursor:text;white-space:normal;overflow:visible;text-overflow:clip;outline:1px dashed var(--border);border-radius:5px;padding:1px 4px;}
+body.edit .thumb-cap:empty::before{content:'파일명 입력';color:#c5cbd3;}
 .tw-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.7);pointer-events:none;}
 .tw-del{position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:#dc2626;color:#fff;border:none;font-size:11px;font-weight:800;cursor:pointer;display:none;line-height:1;z-index:2;}
 body.edit .tw-del{display:block;}
@@ -429,7 +431,7 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:var(--ink3);fo
       <div class="vtl-n"><div class="vtl-dot now">5월</div></div>
       <div class="vtl-r"><div class="vtl-card ed" data-k="jp5"><b>리뉴얼 · SKU 대량확장</b>(탑코트재 파생→상세페이지) · KPI·업무분장·고객/판매채널 코드 세분화</div></div>
     </div>
-    <div class="note ed rv d4" data-k="jn-now" style="margin-top:14px;font-size:13px;">🟣 <b>5월·현재</b> — 직급 변경: 모여라딜 + 브랜드커머스 리드매니저(겸직). 정하님과 <b>모여라딜 재점화</b> 시작.</div>
+    <div class="note ed rv d4" data-k="jn-now2" style="margin-top:14px;font-size:13px;">🟣 <b>5월·현재</b> — 직급 변경: <b>모여라딜 + 브랜드커머스 리드매니저(겸직)</b>. POUR스토어는 각 팀원이 프로젝트 안착·실행 중, 모여라딜은 <b>정하님과 재점화</b> 시작.</div>
     <div class="rail" data-group="start"></div>
   </div>
 </section>
@@ -508,11 +510,11 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:var(--ink3);fo
     <div class="ed rv d2" data-k="mde-why" style="font-size:13.5px;color:var(--ink2);line-height:1.65;font-weight:500;background:#fff;border:1px solid var(--border);border-radius:12px;padding:13px 17px;margin:-14px 0 24px;">💡 공급사 수요는 확보했지만, 다음 숙제는 <b>셀러 수요 확보</b>였습니다. 혼자 진행하다 보니 인력이 부족해 쉽지 않았고 — 그래서 <b>'직접 팔아보자'</b>. 인스타그램 공식계정을 활성화하고, 자사몰을 폐쇄형에서 <b>오픈형으로 리뉴얼</b>하려 합니다.</div>
     <div class="cards rv d3">
       <div class="card"><div class="ci">📦</div><div class="ch ed" data-k="mde-c1h">도매꾹 상품 등록</div><div class="cd ed" data-k="mde-c1d">상품 50개 등록 → 채널 신뢰도·노출 확보.</div><div class="rail" data-group="mde-r1" data-label="📎"></div></div>
-      <div class="card"><div class="ci">📱</div><div class="ch ed" data-k="mde-c2h">인스타그램 자체 판매</div><div class="cd ed" data-k="mde-c2d">직접 공구 판매로 수요·전환 데이터 축적.</div><div class="rail" data-group="mde-r2" data-label="📎"></div></div>
-      <div class="card"><div class="ci">🧩</div><div class="ch ed" data-k="mde-c3h">선택형 소싱 → 입점 제안서</div><div class="cd ed" data-k="mde-c3d">신박템 소싱 33건 → 공급사 맞춤 입점 제안서 제작.</div><div class="rail" data-group="mde-r3" data-label="📎"></div></div>
+      <div class="card"><div class="ci">📱</div><div class="ch ed" data-k="mde-c2h2">내 채널로 직접 판매 — 컨텐츠 확보 + 협찬 연결</div><div class="cd ed" data-k="mde-c2d2">직접 공구 판매로 수요·전환 데이터 축적. 셀러 <b>85명 제안 → 13명 컨택</b>, 협찬·공구 <b>조율 중</b>.</div><div class="rail" data-group="mde-r2" data-label="📎"></div></div>
+      <div class="card"><div class="ci">🧩</div><div class="ch ed" data-k="mde-c3h2">선택형 소싱 → 맞춤 제안서 사이트</div><div class="cd ed" data-k="mde-c3d2">신박템 소싱 33건 → 공급사 <b>맞춤 입점 제안서</b> 제작. 직접 만든 <b>맞춤 제안서 사이트</b>(피트페이퍼형) — 템플릿에 Claude AI가 상품 링크·상세 캡처에서 <b>소구포인트·판매전략 자동 생성</b> · 슬라이드별 열람·체류 분석 · 제안서 내 즉시 문의 접수.</div><div class="rail" data-group="mde-r3" data-label="📎"></div></div>
     </div>
-    <div class="ed rv d4" data-k="mde-plus" style="margin-top:16px;background:#fff;border:1px dashed var(--accent);border-radius:12px;padding:13px 17px;font-size:13px;color:var(--ink2);font-weight:500;line-height:1.6;">➕ <b>플러스 — 셀러 공구 제안</b>: 협찬으로 컨텐츠를 확보해 <b>오피셜계정 공동구매</b>를 여는 게 기본. 여기에 협찬한 <b>셀러 채널에서도 공동구매</b>를 열도록 추가 제안(협찬·촬영 가이드 패키지) → <b>판매 채널 확장</b>.</div>
-    <button class="more-btn rv d4" data-more="im-tools">🛠 효율을 높인 자체 도구 — 자세히</button>
+    <div class="ed rv d4" data-k="mde-calc" style="margin-top:16px;background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:12px;padding:13px 17px;font-size:13px;color:var(--ink);line-height:1.6;font-weight:600;">🧮 <b>자체 도구 · 마진 계산기</b> — 공급단가·판매가 등록 상품 선택 → 셀러 수수료·이벤트비(광고·활동지원금·기프티콘)·PG수수료 조정 → <b>순마진 손익 즉시 판정</b> · 셀러 마진율 안내 · 셀러 제안서 자동 생성. <span style="color:var(--ink3);font-weight:500;">→ 셀러에게 빠른 영업·응대 증진이 가능합니다.</span></div>
+    <div class="rail rv d4" data-group="md-calc" data-label="📎 마진 계산기"></div>
     <div class="ed rv d5" data-k="mde-next" style="margin-top:16px;background:var(--accent-soft);border-radius:12px;padding:13px 17px;font-size:13px;color:var(--ink);line-height:1.6;font-weight:600;">🧪 <b>다음 분기 — 직접 공구 10회 실험</b> (개당 마진 1,000원 → 최소 2,000원 구조 목표). 샘플 구매 완료 · 직접 촬영 · 셀러 협찬 병행. <b>빠른 실행 → 데이터 → 개선</b> 반복으로 빅데이터를 자산화.</div>
     <div class="ed rv d5" data-k="mde-vision" style="margin-top:10px;font-size:14.5px;font-weight:800;color:var(--accent-dark);line-height:1.5;letter-spacing:-.02em;">🚀 모여라딜은 <b>카테고리 제한이 없습니다.</b> 100번 실행·실패하고 AB 테스트로 더 나은 방식을 내재화하면 — <b>10억, 그 이상도</b> 어렵지 않습니다.</div>
   </div>
@@ -580,7 +582,7 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:var(--ink3);fo
           <div class="cch"><b>👩 정하</b><span class="cnt" style="background:var(--accent)">실행</span></div>
           <ul class="clist" style="gap:8px;">
             <li class="ed" data-k="mc-j1">영업 — 인포크링크 · 인스타DM 제안</li>
-            <li class="ed" data-k="mc-j4">공구 · 협찬 운영관리</li>
+            <li class="ed" data-k="mc-j4b">공구 · 협찬 운영관리 <span style="color:var(--ink3);font-weight:500;">— 협찬으로 컨텐츠 확보 → 오피셜계정 공구가 기본, 협찬한 셀러 채널에서도 공구를 열도록 추가 제안(촬영 가이드 패키지)해 판매 채널 확장</span></li>
             <li class="ed" data-k="mc-j5">인스타그램 자체 판매 운영</li>
           </ul>
         </div>
@@ -859,17 +861,6 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:var(--ink3);fo
   </div>
 </section>
 
-<div class="imodal" id="im-tools">
-  <div class="imodal-box">
-    <button class="imodal-x" aria-label="닫기">✕</button>
-    <div class="imodal-h">🛠 효율을 높인 자체 도구</div>
-    <div class="ed" data-k="im-calc" style="background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:12px;padding:14px 16px;font-size:13.5px;font-weight:600;color:var(--ink);line-height:1.6;margin-bottom:12px;">🧮 <b>마진 계산기</b> — 공급단가·판매가 등록 상품 선택 → 판매수량·셀러 수수료·이벤트비(광고·활동지원금·기프티콘)·PG수수료 조정 → <b>순마진 손익 즉시 판정</b> · 셀러 마진율 안내 · 셀러 제안서 자동 생성.</div>
-    <div class="rail" data-group="md-calc" data-label="📎 마진 계산기"></div>
-    <div class="ed" data-k="im-prop" style="background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:12px;padding:14px 16px;font-size:13.5px;font-weight:600;color:var(--ink);line-height:1.6;margin-bottom:16px;">📑 <b>맞춤 제안서 사이트</b>(피트페이퍼형) — 설정한 템플릿에 Claude AI가 상품 링크·상세 캡처에서 <b>소구포인트·판매전략 자동 생성</b> · 슬라이드별 열람·체류 분석 · 제안서 내 즉시 문의 접수.</div>
-    <div class="rail" data-group="md-prop" data-label="📎 제안서 사이트"></div>
-  </div>
-</div>
-
 <div class="lb" id="lb">
   <button class="lb-nav lb-prev" id="lbp">‹</button>
   <div class="lb-card">
@@ -945,7 +936,13 @@ function renderRail(g){
     const del=document.createElement('button');del.className='tw-del';del.textContent='✕';
     del.onclick=(e)=>{e.stopPropagation();D.media[g].splice(i,1);sel=null;persist();renderRail(g);};
     w.appendChild(del);
-    if(it.cap){const cp=document.createElement('div');cp.className='thumb-cap';cp.textContent=it.cap;w.appendChild(cp);}
+    if(it.cap||edit){const cp=document.createElement('div');cp.className='thumb-cap';cp.textContent=it.cap||'';
+      if(edit){cp.contentEditable='true';cp.title='파일명 수정';cp.draggable=false;
+        cp.addEventListener('blur',()=>{D.media[g][i].cap=cp.textContent.trim();persist();});
+        cp.addEventListener('keydown',ev=>ev.stopPropagation());
+        cp.addEventListener('mousedown',ev=>ev.stopPropagation());
+        cp.addEventListener('click',ev=>ev.stopPropagation());}
+      w.appendChild(cp);}
     rail.appendChild(w);
   });
   const aImg=document.createElement('button');aImg.className='rail-add';aImg.textContent='＋ 사진 링크';
@@ -971,11 +968,19 @@ document.addEventListener('paste',e=>{
   if(!document.body.classList.contains('edit'))return;
   if(document.activeElement&&document.activeElement.isContentEditable)return;
   const dt=e.clipboardData;if(!dt)return;
-  for(const it of dt.items){if(it.type.indexOf('image')===0){const f=it.getAsFile();const r=new FileReader();r.onload=()=>applyImg(r.result);r.readAsDataURL(f);e.preventDefault();return;}}
-  const txt=dt.getData('text');if(txt&&/^https?:\/\//.test(txt.trim())){applyImg(txt.trim());e.preventDefault();}
+  const g=(sel&&sel.g)||activeGroup||Object.keys(railEls)[0];
+  for(const it of dt.items){
+    if(it.type.indexOf('image')===0){const f=it.getAsFile();if(!f)break;
+      if(sel){const r=new FileReader();r.onload=()=>{D.media[sel.g][sel.i].src=r.result;persist();renderRail(sel.g);};r.readAsDataURL(f);}
+      else{uploadFile(g,f);}
+      e.preventDefault();return;}
+  }
+  const txt=dt.getData('text');
+  if(txt&&/^https?:\/\//.test(txt.trim())){const u=txt.trim();const yt=ytThumb(u);
+    if(yt||/\.(mp4|mov|webm|m4v)(\?|$)/i.test(u)){D.media[g].push({type:'video',href:u,src:yt||ph('영상 ▶','#0c1730'),cap:'영상'});}
+    else{D.media[g].push({type:'img',src:u,cap:'사진'});}
+    persist();renderRail(g);e.preventDefault();}
 });
-function applyImg(src){if(sel){D.media[sel.g][sel.i].src=src;persist();renderRail(sel.g);return;}
-  const g=activeGroup||Object.keys(railEls)[0];D.media[g].push({type:'img',src,cap:'붙여넣은 이미지'});persist();renderRail(g);}
 
 /* 라이트박스 */
 let LBlist=[],lbi=0,LBgroup=null;

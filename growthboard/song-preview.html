@@ -175,6 +175,8 @@ body.present .trackmap{display:flex;}
 .thumb{width:104px;height:68px;border-radius:10px;border:1px solid var(--border);cursor:pointer;transition:transform .15s,box-shadow .15s;object-fit:cover;display:block;}
 .thumb:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(0,0,0,.16);}
 .thumb-wrap.sel .thumb{outline:3px solid var(--store);outline-offset:1px;}
+body.edit .thumb-wrap{cursor:grab;}
+.thumb-cap{font-size:10px;color:var(--ink3);font-weight:600;max-width:104px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;}
 .tw-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.7);pointer-events:none;}
 .tw-del{position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:#dc2626;color:#fff;border:none;font-size:11px;font-weight:800;cursor:pointer;display:none;line-height:1;z-index:2;}
 body.edit .tw-del{display:block;}
@@ -189,11 +191,16 @@ body.edit .ed{outline:1px dashed rgba(47,109,246,.4);outline-offset:3px;border-r
 /* 라이트박스 */
 .lb{position:fixed;inset:0;background:rgba(10,14,20,.92);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;z-index:600;padding:48px;}
 .lb.open{display:flex;}
-.lb img{max-width:90vw;max-height:84vh;border-radius:12px;box-shadow:0 24px 70px rgba(0,0,0,.6);}
+.lb-stage{display:flex;align-items:center;justify-content:center;width:100%;height:100%;padding:74px 84px;}
+.lb-media{max-width:88vw;max-height:76vh;border-radius:12px;box-shadow:0 24px 70px rgba(0,0,0,.6);background:#000;display:block;}
+iframe.lb-media{width:min(88vw,1080px);height:min(76vh,608px);border:none;}
 .lb-x{position:absolute;top:20px;right:24px;width:42px;height:42px;border:none;border-radius:12px;background:rgba(255,255,255,.16);color:#fff;font-size:18px;cursor:pointer;}
 .lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:48px;height:48px;border:none;border-radius:50%;background:rgba(255,255,255,.92);color:#111;font-size:22px;cursor:pointer;}
 .lb-prev{left:24px}.lb-next{right:24px}
-.lb-cap{position:absolute;bottom:26px;left:0;right:0;text-align:center;color:#fff;font-size:13px;font-weight:600;}
+.lb-cap{position:absolute;top:22px;left:0;right:0;text-align:center;color:#fff;font-size:22px;font-weight:800;padding:0 90px;letter-spacing:-.02em;}
+body.edit .lb-cap{cursor:text;}
+body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,255,.4);font-weight:600;}
+.lb-sub{position:absolute;bottom:22px;left:0;right:0;text-align:center;color:rgba(255,255,255,.6);font-size:13px;font-weight:600;}
 
 @media(max-width:980px){
   .trackmap{display:none;}
@@ -524,9 +531,12 @@ body.edit .ed{outline:1px dashed rgba(47,109,246,.4);outline-offset:3px;border-r
 </section>
 
 <div class="lb" id="lb">
-  <button class="lb-x" id="lbx">✕</button><button class="lb-nav lb-prev" id="lbp">‹</button>
-  <img id="lbimg" src="" alt=""><button class="lb-nav lb-next" id="lbn">›</button>
+  <button class="lb-x" id="lbx">✕</button>
   <div class="lb-cap" id="lbcap"></div>
+  <button class="lb-nav lb-prev" id="lbp">‹</button>
+  <div class="lb-stage" id="lbstage"></div>
+  <button class="lb-nav lb-next" id="lbn">›</button>
+  <div class="lb-sub" id="lbsub"></div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -571,22 +581,30 @@ document.querySelectorAll('.ed').forEach(el=>{const k=el.dataset.k;if(k&&D.text[
 /* 미디어 레일 */
 const railEls={};
 document.querySelectorAll('.rail').forEach(r=>{railEls[r.dataset.group]=r;});
-let activeGroup=null, sel=null;
+let activeGroup=null, sel=null, dragFrom=null;
 function ytThumb(url){const m=url.match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/)([\w-]{11})/);return m?('https://img.youtube.com/vi/'+m[1]+'/hqdefault.jpg'):null;}
 function renderRail(g){
   const rail=railEls[g], items=D.media[g]||(D.media[g]=[]);
   rail.innerHTML='';
   const lbl=document.createElement('span');lbl.className='rail-label';lbl.textContent=rail.dataset.label||'📎 사진·영상';rail.appendChild(lbl);
+  const edit=document.body.classList.contains('edit');
   items.forEach((it,i)=>{
     const w=document.createElement('div');w.className='thumb-wrap'+(sel&&sel.g===g&&sel.i===i?' sel':'');
+    if(edit){w.draggable=true;
+      w.ondragstart=(e)=>{dragFrom={g,i};e.dataTransfer.effectAllowed='move';try{e.dataTransfer.setData('text/plain','reorder');}catch(_){}};
+      w.ondragend=()=>{dragFrom=null;};
+      w.ondragover=(e)=>{if(dragFrom&&dragFrom.g===g)e.preventDefault();};
+      w.ondrop=(e)=>{if(dragFrom&&dragFrom.g===g){e.preventDefault();e.stopPropagation();const arr=D.media[g];const mv=arr.splice(dragFrom.i,1)[0];arr.splice(i,0,mv);dragFrom=null;persist();renderRail(g);}};
+    }
     const img=document.createElement('img');img.className='thumb';img.src=it.src||ph('썸네일 없음','#9aa5b1');img.alt=it.cap||'';
-    img.onclick=()=>{if(document.body.classList.contains('edit')){sel={g,i};renderRail(g);return;}
-      if(it.type==='video'){if(it.href)window.open(it.href,'_blank');return;} openLB(g,i);};
+    img.onclick=()=>{if(edit){sel={g,i};renderRail(g);return;}openLB(g,i);};
     w.appendChild(img);
     if(it.type==='video'){const p=document.createElement('div');p.className='tw-play';p.textContent='▶';w.appendChild(p);}
     const del=document.createElement('button');del.className='tw-del';del.textContent='✕';
     del.onclick=(e)=>{e.stopPropagation();D.media[g].splice(i,1);sel=null;persist();renderRail(g);};
-    w.appendChild(del);rail.appendChild(w);
+    w.appendChild(del);
+    if(it.cap){const cp=document.createElement('div');cp.className='thumb-cap';cp.textContent=it.cap;w.appendChild(cp);}
+    rail.appendChild(w);
   });
   const aImg=document.createElement('button');aImg.className='rail-add';aImg.textContent='＋ 사진 링크';
   aImg.onclick=()=>{const u=prompt('이미지 링크(URL)를 붙여넣으세요');if(u){D.media[g].push({type:'img',src:u.trim(),cap:'사진'});persist();renderRail(g);}};
@@ -603,7 +621,7 @@ function renderRail(g){
   rail.onclick=()=>{activeGroup=g;};
   rail.ondragover=(e)=>{if(document.body.classList.contains('edit')){e.preventDefault();rail.style.outline='2px dashed var(--store)';}};
   rail.ondragleave=()=>{rail.style.outline='';};
-  rail.ondrop=(e)=>{rail.style.outline='';if(!document.body.classList.contains('edit'))return;e.preventDefault();const f=e.dataTransfer.files&&e.dataTransfer.files[0];if(f)uploadFile(g,f);};
+  rail.ondrop=(e)=>{rail.style.outline='';if(!document.body.classList.contains('edit'))return;if(dragFrom){return;}e.preventDefault();const f=e.dataTransfer.files&&e.dataTransfer.files[0];if(f)uploadFile(g,f);};
 }
 Object.keys(railEls).forEach(renderRail);
 
@@ -618,15 +636,25 @@ function applyImg(src){if(sel){D.media[sel.g][sel.i].src=src;persist();renderRai
   const g=activeGroup||Object.keys(railEls)[0];D.media[g].push({type:'img',src,cap:'붙여넣은 이미지'});persist();renderRail(g);}
 
 /* 라이트박스 */
-let LBlist=[],lbi=0;
-const lb=document.getElementById('lb'),lbimg=document.getElementById('lbimg'),lbcap=document.getElementById('lbcap');
-function openLB(g,i){LBlist=(D.media[g]||[]).map((it,idx)=>({it,idx})).filter(x=>x.it.type!=='video');
-  lbi=Math.max(0,LBlist.findIndex(x=>x.idx===i));rl();lb.classList.add('open');}
-function rl(){if(!LBlist.length)return;const it=LBlist[lbi].it;lbimg.src=it.src;lbcap.textContent=(it.cap||'')+'  ('+(lbi+1)+'/'+LBlist.length+')';}
-document.getElementById('lbx').onclick=()=>lb.classList.remove('open');
+let LBlist=[],lbi=0,LBgroup=null;
+const lb=document.getElementById('lb'),lbstage=document.getElementById('lbstage'),lbcap=document.getElementById('lbcap'),lbsub=document.getElementById('lbsub');
+function ytId(url){const m=(url||'').match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/)([\w-]{11})/);return m?m[1]:null;}
+function openLB(g,i){LBgroup=g;LBlist=(D.media[g]||[]).map((it,idx)=>({it,idx}));lbi=Math.max(0,LBlist.findIndex(x=>x.idx===i));rl();lb.classList.add('open');}
+function rl(){if(!LBlist.length)return;const it=LBlist[lbi].it;lbstage.innerHTML='';let el;
+  if(it.type==='video'){const yt=ytId(it.href);
+    if(yt){el=document.createElement('iframe');el.src='https://www.youtube.com/embed/'+yt+'?autoplay=1';el.allow='autoplay; encrypted-media; fullscreen';el.allowFullscreen=true;}
+    else{el=document.createElement('video');el.src=it.href||it.src;el.controls=true;el.autoplay=true;el.playsInline=true;}}
+  else{el=document.createElement('img');el.src=it.src;}
+  el.className='lb-media';lbstage.appendChild(el);
+  lbcap.textContent=it.cap||'';
+  lbcap.contentEditable=document.body.classList.contains('edit')?'true':'false';
+  lbsub.textContent=(lbi+1)+' / '+LBlist.length+(it.type==='video'?' · 영상':' · 사진');}
+function closeLB(){lb.classList.remove('open');lbstage.innerHTML='';if(LBgroup)renderRail(LBgroup);}
+document.getElementById('lbx').onclick=closeLB;
 document.getElementById('lbp').onclick=()=>{lbi=(lbi-1+LBlist.length)%LBlist.length;rl();};
 document.getElementById('lbn').onclick=()=>{lbi=(lbi+1)%LBlist.length;rl();};
-lb.addEventListener('click',e=>{if(e.target===lb)lb.classList.remove('open');});
+lbcap.addEventListener('input',()=>{if(!LBlist.length||LBgroup==null)return;D.media[LBgroup][LBlist[lbi].idx].cap=lbcap.textContent;persist();});
+lb.addEventListener('click',e=>{if(e.target===lb)closeLB();});
 
 /* 편집/발표 모드 */
 const btnEdit=document.getElementById('btnEdit'),btnPresent=document.getElementById('btnPresent'),btnExit=document.getElementById('btnExit');
@@ -670,7 +698,7 @@ const io3=new IntersectionObserver(es=>{es.forEach(e=>{if(!e.isIntersecting)retu
 slides.forEach(s=>io3.observe(s));
 
 document.addEventListener('keydown',e=>{
-  if(lb.classList.contains('open')){if(e.key==='Escape')lb.classList.remove('open');if(e.key==='ArrowLeft')document.getElementById('lbp').click();if(e.key==='ArrowRight')document.getElementById('lbn').click();return;}
+  if(lb.classList.contains('open')){if(e.key==='Escape'){closeLB();return;}if(document.activeElement===lbcap)return;if(e.key==='ArrowLeft')document.getElementById('lbp').click();if(e.key==='ArrowRight')document.getElementById('lbn').click();return;}
   if(document.activeElement&&document.activeElement.isContentEditable)return;
   if(e.key==='Escape'&&document.body.classList.contains('present')){exitPresent();return;}
   if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){goSlide(curIdx+1);e.preventDefault();}

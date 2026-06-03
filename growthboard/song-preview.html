@@ -287,6 +287,7 @@ body.edit .ed{outline:1px dashed rgba(47,109,246,.4);outline-offset:3px;border-r
       <div class="card"><div class="ci">❓</div><div class="ch ed" data-k="start-c2h">풀리지 않던 질문</div><div class="cd ed" data-k="start-c2d">공급사에 어떻게 제안할지, 수익구조를 어떻게 탄탄히 해 규모를 키울지 — 다양한 방안을 검토했지만 답을 찾지 못했습니다.</div></div>
       <div class="card"><div class="ci">🎯</div><div class="ch ed" data-k="start-c3h">그래서, 접근을 바꿨다</div><div class="cd ed" data-k="start-c3d">막연한 목표를 '증명 가능한 질문과 구조'로 바꾸고, 성격이 다른 두 프로젝트에 똑같이 적용했습니다.</div></div>
     </div>
+    <div class="rail" data-group="start"></div>
   </div>
 </section>
 
@@ -301,6 +302,7 @@ body.edit .ed{outline:1px dashed rgba(47,109,246,.4);outline-offset:3px;border-r
       <div class="card"><div class="ci">💰</div><div class="ch ed" data-k="mdm-c2h">돈이 되는 구조인가</div><div class="cd ed" data-k="mdm-c2d">수익 모델(BMA)을 설계 가능한지.</div></div>
       <div class="card"><div class="ci">🚀</div><div class="ch ed" data-k="mdm-c3h">비용 없이 가능한가</div><div class="cd ed" data-k="mdm-c3d">광고비 0으로 시작할 수 있는지.</div></div>
     </div>
+    <div class="rail" data-group="md-mission"></div>
   </div>
 </section>
 
@@ -383,6 +385,7 @@ body.edit .ed{outline:1px dashed rgba(47,109,246,.4);outline-offset:3px;border-r
       <div class="card"><div class="ci">🤝</div><div class="ch ed" data-k="psm-c2h">파트너 영업력</div><div class="cd ed" data-k="psm-c2d">대리점주·B2B 파트너사에 제공해 현장 영업력을 강화.</div></div>
       <div class="card"><div class="ci">🏢</div><div class="ch ed" data-k="psm-c3h">전시장 응대</div><div class="cd ed" data-k="psm-c3d">본사 전시장에 배치, 태블릿으로 방문 고객을 바로 응대.</div></div>
     </div>
+    <div class="rail" data-group="ps-mission"></div>
   </div>
 </section>
 
@@ -521,7 +524,7 @@ function ytThumb(url){const m=url.match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/)
 function renderRail(g){
   const rail=railEls[g], items=D.media[g]||(D.media[g]=[]);
   rail.innerHTML='';
-  const lbl=document.createElement('span');lbl.className='rail-label';lbl.textContent='📎 자료';rail.appendChild(lbl);
+  const lbl=document.createElement('span');lbl.className='rail-label';lbl.textContent='📎 사진·영상';rail.appendChild(lbl);
   items.forEach((it,i)=>{
     const w=document.createElement('div');w.className='thumb-wrap'+(sel&&sel.g===g&&sel.i===i?' sel':'');
     const img=document.createElement('img');img.className='thumb';img.src=it.src||ph('썸네일 없음','#9aa5b1');img.alt=it.cap||'';

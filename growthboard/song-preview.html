@@ -271,10 +271,11 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
   <button class="tm-item co" data-go="cover"><span class="tm-dot"></span><span class="tm-tx">커버</span></button>
   <button class="tm-item co" data-go="tldr"><span class="tm-dot"></span><span class="tm-tx">한 장 요약</span></button>
   <button class="tm-item co" data-go="start"><span class="tm-dot"></span><span class="tm-tx">여정</span></button>
+  <button class="tm-item co" data-go="method"><span class="tm-dot"></span><span class="tm-tx">일하는 방식</span></button>
   <div class="tm-grp" style="color:var(--accent)">🔵 모여라딜</div>
-  <button class="tm-item md" data-go="md-mission"><span class="tm-dot"></span><span class="tm-tx">실행·한계</span></button>
+  <button class="tm-item md" data-go="md-mission"><span class="tm-dot"></span><span class="tm-tx">한계</span></button>
   <button class="tm-item md" data-go="md-analysis"><span class="tm-dot"></span><span class="tm-tx">구조·BMA</span></button>
-  <button class="tm-item md" data-go="md-exec"><span class="tm-dot"></span><span class="tm-tx">실행</span></button>
+  <button class="tm-item md" data-go="md-exec"><span class="tm-dot"></span><span class="tm-tx">직접 팔아보자</span></button>
   <button class="tm-item md" data-go="md-result"><span class="tm-dot"></span><span class="tm-tx">성과</span></button>
   <button class="tm-item md" data-go="md-collab"><span class="tm-dot"></span><span class="tm-tx">협업</span></button>
   <div class="tm-grp" style="color:var(--store)">🟠 POUR스토어</div>
@@ -284,7 +285,6 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
   <button class="tm-item ps" data-go="ps-collab"><span class="tm-dot"></span><span class="tm-tx">협업</span></button>
   <button class="tm-item ps" data-go="ps-next"><span class="tm-dot"></span><span class="tm-tx">다음 분기</span></button>
   <div class="tm-grp">종합·다음</div>
-  <button class="tm-item co" data-go="method"><span class="tm-dot"></span><span class="tm-tx">관통하는 방법</span></button>
   <button class="tm-item co" data-go="next"><span class="tm-dot"></span><span class="tm-tx">다음 반기</span></button>
   <button class="tm-item co" data-go="end"><span class="tm-dot"></span><span class="tm-tx">마무리</span></button>
   <div class="tm-prog"><i id="tmprog"></i></div>
@@ -352,10 +352,27 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
   </div>
 </section>
 
+<!-- 일하는 방식 (스파인) -->
+<section class="slide t-co" id="method">
+  <div class="inner">
+    <div class="eyebrow rv">일하는 방식 · 두 트랙 공통</div>
+    <h1 class="title ed rv d1" data-k="mw-title">두 프로젝트, 같은 방식으로 풉니다.</h1>
+    <p class="sub ed rv d2" data-k="mw-sub">성격이 다른 두 프로젝트지만 — <b>구조 → 실행 → 데이터</b>, 접근법은 하나입니다.</p>
+    <div class="stepper">
+      <div class="mstep rv d2"><div class="n">① 구조</div><div class="h ed" data-k="mw-s1h">먼저 틀을 잡는다</div><div class="d ed" data-k="mw-s1d">마스터프롬프트 · 분석 · KPI로 판단 기준 확립</div></div>
+      <div class="marrow rv d2">→</div>
+      <div class="mstep rv d3"><div class="n">② 실행</div><div class="h ed" data-k="mw-s2h">빠르게 직접 한다</div><div class="d ed" data-k="mw-s2d">필요한 도구를 만들며 직접 팔고 · 운영</div></div>
+      <div class="marrow rv d3">→</div>
+      <div class="mstep rv d4"><div class="n">③ 데이터</div><div class="h ed" data-k="mw-s3h">측정해 개선한다</div><div class="d ed" data-k="mw-s3d">결과를 데이터로 보고 더 나은 방식 내재화</div></div>
+    </div>
+    <div class="note ed rv d5" data-k="mw-note">🔵 <b>모여라딜</b>: 분석·BMA → 직접 판매·도구 → 공구·매출 데이터 &nbsp;·&nbsp; 🟠 <b>POUR스토어</b>: 프롬프트·KPI → 운영·앱 → 매출·52개 데이터</div>
+  </div>
+</section>
+
 <!-- 4) 모여라딜 미션 -->
 <section class="slide t-md" id="md-mission">
   <div class="inner">
-    <div class="eyebrow rv">PART 1 · 모여라딜 — 실행·한계</div>
+    <div class="eyebrow rv">PART 1 · 모여라딜 — 한계</div>
     <h1 class="title ed rv d1" data-k="mdl-title">실행했고, 한계를 만났습니다.</h1>
     <p class="sub ed rv d2" data-k="mdl-sub">지난 분기까지 공동구매 <b>9건</b>을 직접 팔아보며 — 막힌 지점 <b>3가지</b>가 분명해졌습니다.</p>
     <div class="cards rv d3">
@@ -387,9 +404,9 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
 <!-- 6) 모여라딜 실행 -->
 <section class="slide t-md" id="md-exec">
   <div class="inner">
-    <div class="eyebrow rv">PART 1 · 모여라딜 — 실행</div>
+    <div class="eyebrow rv">PART 1 · 모여라딜 — 직접 팔아보자</div>
     <h1 class="title ed rv d1" data-k="mde-title">이제, 직접 팔아봅니다.</h1>
-    <p class="sub ed rv d2" data-k="mde-sub">4가지 채널로 동시에 — 광고비 0으로 직접 팔며 <b>수요·전환 데이터</b>를 쌓습니다.</p>
+    <p class="sub ed rv d2" data-k="mde-sub">4가지 채널로 동시에 — 직접 팔며 <b>수요·전환 데이터</b>를 쌓습니다.</p>
     <div class="ed rv d2" data-k="mde-why" style="font-size:13.5px;color:var(--ink2);line-height:1.65;font-weight:500;background:#fff;border:1px solid var(--border);border-radius:12px;padding:13px 17px;margin:-14px 0 24px;">💡 공급사 수요는 확보했지만, 다음 숙제는 <b>셀러 수요 확보</b>였습니다. 혼자 진행하다 보니 인력이 부족해 쉽지 않았고 — 그래서 <b>'직접 팔아보자'</b>. 인스타그램 공식계정을 활성화하고, 자사몰을 폐쇄형에서 <b>오픈형으로 리뉴얼</b>하려 합니다.</div>
     <div class="cards rv d3">
       <div class="card"><div class="ci">📦</div><div class="ch ed" data-k="mde-c1h">도매꾹 상품 등록</div><div class="cd ed" data-k="mde-c1d">상품 50개 등록 → 채널 신뢰도·노출 확보.</div></div>
@@ -425,12 +442,12 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
         </ul>
       </div>
       <div class="panel rv d4">
-        <div class="panel-h">🔥 전환 — 지금 진행 중 (정하님 합류 후)</div>
-        <div class="funnel" id="funnel">
-          <div class="fbar s1" data-w="100">85</div><div class="flabel">제안 — 인포크링크 38 · 인스타DM 47</div>
-          <div class="fconv">↓ 약 15% 컨택</div>
-          <div class="fbar s2" data-w="34">13</div><div class="flabel">공구·협찬 의사 — 협의 진행 중</div>
-        </div>
+        <div class="panel-h">🎯 남은 것 — 전환</div>
+        <ul class="clist">
+          <li class="ed" data-k="mdr-n1">실매출·GMV 본격 전환은 아직 — <b>수요는 충분, 전환이 비었다</b></li>
+          <li class="ed" data-k="mdr-n2">협찬 → 컨텐츠 → 공구 <b>전환 사이클</b> 가동 (정하님 합류 후)</li>
+          <li class="ed" data-k="mdr-n3"><b>다음 반기 1순위 = 실매출 전환</b> (상세는 협업 슬라이드)</li>
+        </ul>
       </div>
     </div>
     <div class="takeaway ed rv d5" data-k="mdr-take">💡 배운 점 — <b>수요·구조는 증명 완료.</b> 협찬→컨텐츠→공구 사이클로 <b>본격 전환</b>이 다음 반기 1순위.</div>
@@ -658,25 +675,6 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
     </div>
     <div class="note ed rv d4" data-k="psn-note">🚀 검증된 자산을 재사용 → <b>더 빠르게, 더 정교하게.</b> 모여라딜에서 쌓은 실행·데이터가 스토어 성장을 가속합니다.</div>
     <div class="rail" data-group="ps-next"></div>
-  </div>
-</section>
-
-<!-- 10) 관통하는 방법 -->
-<section class="slide t-co" id="method">
-  <div class="inner">
-    <div class="eyebrow rv">종합 · 두 트랙을 관통한 것</div>
-    <h1 class="title ed rv d1" data-k="m-title">두 번 다, 같은 방식이었습니다.</h1>
-    <p class="sub ed rv d2" data-k="m-sub">성격이 다른 두 프로젝트지만 — 접근법은 하나였습니다.</p>
-    <div class="stepper">
-      <div class="mstep rv d2"><div class="n">STEP 1</div><div class="h ed" data-k="m-s1h">마스터프롬프트 선제작</div><div class="d ed" data-k="m-s1d">개발 전 정체성·BMA·KPI 내재화 → 방향 판단 기준</div></div>
-      <div class="marrow rv d2">→</div>
-      <div class="mstep rv d3"><div class="n">STEP 2</div><div class="h ed" data-k="m-s2h">KPI 체계 v6</div><div class="d ed" data-k="m-s2d">O→KR→지표→Task, 측정 가능하게</div></div>
-      <div class="marrow rv d3">→</div>
-      <div class="mstep rv d4"><div class="n">STEP 3</div><div class="h ed" data-k="m-s3h">시스템화</div><div class="d ed" data-k="m-s3d">CRM·경영 대시보드로 데이터 축적</div></div>
-      <div class="marrow rv d4">→</div>
-      <div class="mstep ps rv d5"><div class="n">STEP 4</div><div class="h ed" data-k="m-s4h">데이터 기반 실행</div><div class="d ed" data-k="m-s4d">빠른 실행·실패·AB → 더 나은 방식 내재화</div></div>
-    </div>
-    <div class="note ed rv d5" data-k="m-note">🔵 <b>모여라딜</b> = 이 방식으로 <b>수요</b>를 증명 &nbsp;·&nbsp; 🟠 <b>POUR스토어</b> = 같은 방식으로 <b>운영 시스템</b>을 구축.</div>
   </div>
 </section>
 

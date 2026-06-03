@@ -34,9 +34,9 @@ body.present .slidecount{display:block;}
 
 /* 트랙맵 */
 .trackmap{position:fixed;left:18px;top:50%;transform:translateY(-50%);z-index:400;display:flex;flex-direction:column;gap:2px;background:rgba(255,255,255,.84);backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:16px;padding:11px;box-shadow:0 8px 30px rgba(0,0,0,.10);max-height:92vh;overflow:auto;}
-body.present .trackmap{display:none;}
+body.present .trackmap{display:flex;}
 .tm-grp{font-size:9px;font-weight:800;letter-spacing:.04em;color:var(--ink3);margin:7px 4px 1px;}
-.tm-item{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:8px;cursor:pointer;transition:all .2s;border:none;background:none;font-family:inherit;text-align:left;width:150px;}
+.tm-item{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:8px;cursor:pointer;transition:all .2s;border:none;background:none;font-family:inherit;text-align:left;}
 .tm-item:hover{background:var(--border-l);}
 .tm-dot{width:7px;height:7px;border-radius:50%;background:var(--border);flex:0 0 auto;transition:all .25s;}
 .tm-item .tm-tx{font-size:10.5px;font-weight:700;color:var(--ink3);transition:color .2s;white-space:nowrap;}
@@ -47,7 +47,7 @@ body.present .trackmap{display:none;}
 .tm-prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--store));transition:width .4s;}
 
 /* 슬라이드 */
-.slide{min-height:100vh;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:66px 64px 56px 236px;position:relative;overflow:hidden;}
+.slide{min-height:100vh;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:66px 64px 56px 196px;position:relative;overflow:hidden;}
 .slide.t-md{background:var(--md-bg);} .slide.t-ps{background:var(--ps-bg);} .slide.t-co{background:var(--co-bg);}
 .inner{max-width:1060px;width:100%;}
 
@@ -210,7 +210,7 @@ body.edit .ed{outline:1px dashed rgba(47,109,246,.4);outline-offset:3px;border-r
   <button class="ctrl" id="btnPresent">▶︎ 발표모드</button>
 </div>
 <button class="exit-present" id="btnExit">✕ 발표 종료 (Esc)</button>
-<div class="slidecount" id="scount">1 / 12</div>
+<div class="slidecount" id="scount">1 / 13</div>
 
 <nav class="trackmap" id="tmap">
   <div class="tm-grp">오프닝</div>
@@ -219,6 +219,7 @@ body.edit .ed{outline:1px dashed rgba(47,109,246,.4);outline-offset:3px;border-r
   <button class="tm-item co" data-go="start"><span class="tm-dot"></span><span class="tm-tx">시작점</span></button>
   <div class="tm-grp" style="color:var(--accent)">🔵 모여라딜</div>
   <button class="tm-item md" data-go="md-mission"><span class="tm-dot"></span><span class="tm-tx">미션·목표</span></button>
+  <button class="tm-item md" data-go="md-analysis"><span class="tm-dot"></span><span class="tm-tx">분석·레퍼런스</span></button>
   <button class="tm-item md" data-go="md-exec"><span class="tm-dot"></span><span class="tm-tx">실행</span></button>
   <button class="tm-item md" data-go="md-result"><span class="tm-dot"></span><span class="tm-tx">성과</span></button>
   <div class="tm-grp" style="color:var(--store)">🟠 POUR스토어</div>
@@ -236,11 +237,11 @@ body.edit .ed{outline:1px dashed rgba(47,109,246,.4);outline-offset:3px;border-r
 <section class="slide dark" id="cover">
   <div class="inner">
     <div class="kick ed rv" data-k="cover-kick">2026 상반기 · 그로스보드</div>
-    <h1 class="ed rv d1" data-k="cover-h1">모호한 미션을<br><span class="g">운영 구조로</span> 두 번 바꿨습니다.</h1>
+    <h1 class="ed rv d1" data-k="cover-h1">수요는 증명하고,<br>시스템은 <span class="g">구축</span>했습니다.</h1>
     <p class="csub ed rv d2" data-k="cover-sub">모여라딜에서 수요를, POUR스토어에서 시스템을 — 같은 방식으로.</p>
     <div class="twotrack rv d3">
       <div class="tt md"><div class="tt-tag">🔵 모여라딜</div><div class="tt-h ed" data-k="cover-mdh">수요를 증명</div><div class="tt-d ed" data-k="cover-mdd">광고비 0으로 공급사 인바운드 확보, BMA 8개 수익구조 설계</div><div class="tt-n"><span class="num" data-to="146" data-suffix="건">0건</span></div></div>
-      <div class="tt ps"><div class="tt-tag">🟠 POUR스토어</div><div class="tt-h ed" data-k="cover-psh">시스템을 구축</div><div class="tt-d ed" data-k="cover-psd">영업앱+관리자로 박람회 실데이터 수집, KPI·대시보드 체계화</div><div class="tt-n"><span class="num" data-to="47" data-suffix="건">0건</span></div></div>
+      <div class="tt ps"><div class="tt-tag">🟠 POUR스토어</div><div class="tt-h ed" data-k="cover-psh">영업 시스템을 구축</div><div class="tt-d ed" data-k="cover-psd">대리점·B2B 파트너·전시장에서 쓰는 영업앱 — 박람회에서 첫 검증</div><div class="tt-n"><span class="num" data-to="47" data-suffix="건">0건</span></div></div>
     </div>
     <div class="sign ed rv d4" data-k="cover-sign">김송희 · 넷폼알앤디</div>
   </div>
@@ -251,13 +252,28 @@ body.edit .ed{outline:1px dashed rgba(47,109,246,.4);outline-offset:3px;border-r
   <div class="inner">
     <div class="eyebrow rv">한 장으로 요약하면</div>
     <h1 class="title ed rv d1" data-k="tldr-title">두 개의 프로젝트, 하나의 방식으로 증명했습니다.</h1>
-    <p class="sub ed rv d2" data-k="tldr-sub">모여라딜은 <b>수요</b>를, POUR스토어는 <b>운영 시스템</b>을 — 각각 측정 가능한 결과로 만들었습니다.</p>
-    <div class="tiles rv d2">
-      <div class="tile"><div class="v"><span class="num" data-to="146" data-suffix="건">0</span></div><div class="l ed" data-k="tldr-t1">공급사 인바운드 (광고비 0)</div></div>
-      <div class="tile"><div class="v"><span class="num" data-to="47" data-suffix="건">0</span></div><div class="l ed" data-k="tldr-t2">박람회 실데이터 (영업앱)</div></div>
-      <div class="tile"><div class="v"><span class="num" data-to="8" data-suffix="개">0</span></div><div class="l ed" data-k="tldr-t3">설계한 BMA 수익구조</div></div>
+    <p class="sub ed rv d2" data-k="tldr-sub">모여라딜은 <b>수요</b>를, POUR스토어는 <b>영업 시스템</b>을 — 각각 명확한 결과로 만들었습니다.</p>
+    <div class="grid2b rv d3">
+      <div class="rcard md">
+        <div class="rh">🔵 모여라딜 — 수요를 증명</div>
+        <div class="rt ed" data-k="tldr-mdt">광고비 0으로 "수요 있음"을 입증</div>
+        <ul class="clist">
+          <li class="ed" data-k="tldr-md1"><b>146건</b> 공급사 인바운드 (광고비 0)</li>
+          <li class="ed" data-k="tldr-md2"><b>BMA 8개</b> 수익구조 설계 · 실매출 발생</li>
+          <li class="ed" data-k="tldr-md3">→ 다음 과제는 <b>전환</b></li>
+        </ul>
+      </div>
+      <div class="rcard ps">
+        <div class="rh">🟠 POUR스토어 — 영업 시스템</div>
+        <div class="rt ed" data-k="tldr-pst">현장에서 쓰는 영업앱을 구축</div>
+        <ul class="clist">
+          <li class="ed" data-k="tldr-ps1"><b>영업앱</b> 제작 — 박람회에서 첫 검증</li>
+          <li class="ed" data-k="tldr-ps2"><b>대리점·B2B 파트너·전시장</b> 영업력 강화 도구</li>
+          <li class="ed" data-k="tldr-ps3">→ 다음 과제는 <b>실배치·확대</b></li>
+        </ul>
+      </div>
     </div>
-    <div class="note ed rv d4" data-k="tldr-note">🔵 수요는 증명됐고 → 다음은 <b>전환</b> &nbsp;·&nbsp; 🟠 시스템은 돌기 시작했고 → 다음은 <b>BEP</b>. 두 트랙 모두 <b>같은 운영구조화 방식</b>으로 진행했습니다.</div>
+    <div class="note ed rv d4" data-k="tldr-note">서로 다른 두 프로젝트지만 — <b>같은 운영구조화 방식</b>으로 진행했습니다.</div>
   </div>
 </section>
 
@@ -266,12 +282,13 @@ body.edit .ed{outline:1px dashed rgba(47,109,246,.4);outline-offset:3px;border-r
   <div class="inner">
     <div class="eyebrow rv">상반기 출발선</div>
     <h1 class="title ed rv d1" data-k="start-title">미션은 컸지만, 구체적이지 않았습니다.</h1>
-    <p class="sub ed rv d2" data-k="start-sub">그래서 가장 먼저 한 일은 — 모호한 미션을 <b>측정 가능한 구조</b>로 바꾸는 것이었습니다.</p>
+    <p class="sub ed rv d2" data-k="start-sub">막연한 목표를 붙잡고 있기보다, 먼저 그것을 <b>측정 가능한 구조</b>로 바꾸기로 했습니다.</p>
     <div class="cards rv d3">
-      <div class="card"><div class="ci">🌀</div><div class="ch ed" data-k="start-c1h">모호한 미션</div><div class="cd ed" data-k="start-c1d">"성장시켜라"는 컸지만, 무엇을·어떻게 증명할지는 비어 있었습니다.</div></div>
-      <div class="card"><div class="ci">🎯</div><div class="ch ed" data-k="start-c2h">질문으로 변환</div><div class="cd ed" data-k="start-c2d">증명 가능한 질문과 KPI로 쪼개, 판단 기준을 먼저 세웠습니다.</div></div>
-      <div class="card"><div class="ci">🔁</div><div class="ch ed" data-k="start-c3h">두 트랙에 적용</div><div class="cd ed" data-k="start-c3d">성격이 다른 두 프로젝트(모여라딜·스토어)에 같은 접근을 적용했습니다.</div></div>
+      <div class="card"><div class="ci">🌀</div><div class="ch ed" data-k="start-c1h">막막했던 출발</div><div class="cd ed" data-k="start-c1d">"고도화하고 성장해서 성공하자"는 마음은 굴뚝같았습니다. 작은 시스템으로 실제 판매까지 해봤지만, 수익구조가 기대에 미치지 못했습니다.</div></div>
+      <div class="card"><div class="ci">❓</div><div class="ch ed" data-k="start-c2h">풀리지 않던 질문</div><div class="cd ed" data-k="start-c2d">공급사에 어떻게 제안할지, 수익구조를 어떻게 탄탄히 해 규모를 키울지 — 다양한 방안을 검토했지만 답을 찾지 못했습니다.</div></div>
+      <div class="card"><div class="ci">🎯</div><div class="ch ed" data-k="start-c3h">그래서, 접근을 바꿨다</div><div class="cd ed" data-k="start-c3d">막연한 목표를 '증명 가능한 질문과 구조'로 바꾸고, 성격이 다른 두 프로젝트에 똑같이 적용했습니다.</div></div>
     </div>
+    <div class="rail" data-group="start"></div>
   </div>
 </section>
 
@@ -286,10 +303,34 @@ body.edit .ed{outline:1px dashed rgba(47,109,246,.4);outline-offset:3px;border-r
       <div class="card"><div class="ci">💰</div><div class="ch ed" data-k="mdm-c2h">돈이 되는 구조인가</div><div class="cd ed" data-k="mdm-c2d">수익 모델(BMA)을 설계 가능한지.</div></div>
       <div class="card"><div class="ci">🚀</div><div class="ch ed" data-k="mdm-c3h">비용 없이 가능한가</div><div class="cd ed" data-k="mdm-c3d">광고비 0으로 시작할 수 있는지.</div></div>
     </div>
+    <div class="rail" data-group="md-mission"></div>
   </div>
 </section>
 
-<!-- 5) 모여라딜 실행 -->
+<!-- 5) 모여라딜 분석·레퍼런스 -->
+<section class="slide t-md" id="md-analysis">
+  <div class="inner">
+    <div class="eyebrow rv">PART 1 · 모여라딜 — 분석·레퍼런스</div>
+    <h1 class="title ed rv d1" data-k="mda-title">BMA를 만들기 전에, 먼저 분석했습니다.</h1>
+    <p class="sub ed rv d2" data-k="mda-sub">무작정 설계하지 않았습니다 — 국내 타사 사업구조를 <b>비교</b>하고, 해외 유사 모델 <b>핀둬둬</b>를 분석해 모델을 검증했습니다.</p>
+    <div class="grid2b rv d3">
+      <div class="panel">
+        <div class="panel-h">🇰🇷 국내 — 타사 사업구조 비교</div>
+        <div class="ed" data-k="mda-kr" style="font-size:13.5px;color:var(--ink2);line-height:1.7;font-weight:500;">유통·플랫폼 사업구조를 표로 대조해, 모여라딜 수익구조(공구 선매입·OTP·CPA)가 어디와 같고 어디서 차별화되는지 확인했습니다. → <b>모여라딜만의 차별 포인트</b>를 도출.</div>
+        <div class="rail" data-group="md-analysis-kr" data-label="📎 타사 비교표"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-h">🌏 해외 — 핀둬둬 (拼多多, Pinduoduo)</div>
+        <div style="font-size:12.5px;color:var(--ink3);font-weight:700;margin-bottom:7px;">2015 창업 · 중국 이커머스 1위 · 나스닥 상장</div>
+        <div class="ed" data-k="mda-pdd" style="font-size:13.5px;color:var(--ink2);line-height:1.7;font-weight:500;"><b>소비자가 구매자이자 영업사원</b>이 되는 그룹바이로, 광고비 없이 네트워크 효과만으로 알리바바를 추월. → 모여라딜의 <b>엠버서더 네트워크</b> 모델로 진화.</div>
+        <div class="rail" data-group="md-analysis-pdd" data-label="📎 핀둬둬 자료"></div>
+      </div>
+    </div>
+    <div class="takeaway ed rv d4" data-k="mda-take">🔎 검증된 모델 위에 — 모여라딜 <b>BMA 8개</b>를 설계했습니다.</div>
+  </div>
+</section>
+
+<!-- 6) 모여라딜 실행 -->
 <section class="slide t-md" id="md-exec">
   <div class="inner">
     <div class="eyebrow rv">PART 1 · 모여라딜 — 실행</div>
@@ -361,13 +402,14 @@ body.edit .ed{outline:1px dashed rgba(47,109,246,.4);outline-offset:3px;border-r
 <section class="slide t-ps" id="ps-mission">
   <div class="inner">
     <div class="eyebrow rv">PART 2 · POUR스토어 — 미션·목표</div>
-    <h1 class="title ed rv d1" data-k="psm-title">무엇을 만들어야 했나.</h1>
-    <p class="sub ed rv d2" data-k="psm-sub">박람회를 일회성 상담이 아니라, <b>데이터가 쌓이는 시스템</b>으로 바꾸는 것.</p>
+    <h1 class="title ed rv d1" data-k="psm-title">누구나 잘 파는 시스템을 만들자.</h1>
+    <p class="sub ed rv d2" data-k="psm-sub">POUR스토어의 영업력을 끌어올리는 도구 — <b>대리점·파트너·전시장</b> 누구나 같은 품질로 상담하게.</p>
     <div class="cards rv d3">
-      <div class="card"><div class="ci">📱</div><div class="ch ed" data-k="psm-c1h">영업 표준화</div><div class="cd ed" data-k="psm-c1d">사람마다 다르던 영업을 같은 흐름의 앱으로.</div></div>
-      <div class="card"><div class="ci">🗂</div><div class="ch ed" data-k="psm-c2h">데이터 축적</div><div class="cd ed" data-k="psm-c2d">모든 상담이 자동으로 DB에 남도록.</div></div>
-      <div class="card"><div class="ci">📊</div><div class="ch ed" data-k="psm-c3h">측정 가능</div><div class="cd ed" data-k="psm-c3d">관리자 대시보드에서 KPI로 보이도록.</div></div>
+      <div class="card"><div class="ci">📱</div><div class="ch ed" data-k="psm-c1h">영업 표준화</div><div class="cd ed" data-k="psm-c1d">공법 선택→진단→자료→발송까지, 누구나 같은 흐름으로 전문 상담.</div></div>
+      <div class="card"><div class="ci">🤝</div><div class="ch ed" data-k="psm-c2h">파트너 영업력</div><div class="cd ed" data-k="psm-c2d">대리점주·B2B 파트너사에 제공해 현장 영업력을 강화.</div></div>
+      <div class="card"><div class="ci">🏢</div><div class="ch ed" data-k="psm-c3h">전시장 응대</div><div class="cd ed" data-k="psm-c3d">본사 전시장에 배치, 태블릿으로 방문 고객을 바로 응대.</div></div>
     </div>
+    <div class="rail" data-group="ps-mission"></div>
   </div>
 </section>
 
@@ -388,7 +430,7 @@ body.edit .ed{outline:1px dashed rgba(47,109,246,.4);outline-offset:3px;border-r
       <div class="parrow">→</div>
       <div class="pstep"><span class="n">5</span><span class="ic">📩</span><div class="h">문자 발송</div><div class="d">QR + DB 축적</div></div>
     </div>
-    <div class="note ed rv d4" data-k="pse-note">📊 <b>관리자 데이터센터</b> — 영업앱에서 들어온 상담이 실시간으로 모여, 공법별·고객유형별로 자동 집계됩니다.</div>
+    <div class="note ed rv d4" data-k="pse-note">🤝 이 앱 하나로 — <b>대리점·B2B 파트너·전시장</b> 어디서나 같은 품질의 영업이 가능합니다. 상담은 자동으로 데이터로 남습니다.</div>
     <div class="rail" data-group="ps-exec"></div>
   </div>
 </section>
@@ -397,26 +439,27 @@ body.edit .ed{outline:1px dashed rgba(47,109,246,.4);outline-offset:3px;border-r
 <section class="slide t-ps" id="ps-result">
   <div class="inner">
     <div class="eyebrow rv">PART 2 · POUR스토어 — 성과</div>
-    <h1 class="title ed rv d1" data-k="psr-title">박람회에서 실데이터가 쌓였습니다.</h1>
+    <h1 class="title ed rv d1" data-k="psr-title">박람회에서 검증하고, 영업 자산으로 확장합니다.</h1>
+    <p class="sub ed rv d2" data-k="psr-sub">박람회는 끝이 아니라 <b>첫 검증</b>이었습니다. 검증된 영업앱은 그대로 POUR스토어의 <b>영업 자산</b>이 됩니다.</p>
     <div class="grid2">
       <div class="panel rv d3">
-        <div class="panel-h">// POUR 관리자 — 실데이터</div>
+        <div class="panel-h">// 박람회 첫 검증</div>
         <div class="tiles" style="margin-bottom:0">
-          <div class="tile" style="padding:16px"><div class="v"><span class="num" data-to="47" data-suffix="건">0</span></div><div class="l ed" data-k="psr-t1">박람회 상담</div></div>
+          <div class="tile" style="padding:16px"><div class="v"><span class="num" data-to="47" data-suffix="건">0</span></div><div class="l ed" data-k="psr-t1">현장 상담</div></div>
           <div class="tile" style="padding:16px"><div class="v"><span class="num" data-to="9" data-suffix="종">0</span></div><div class="l ed" data-k="psr-t2">공법 문의</div></div>
-          <div class="tile" style="padding:16px"><div class="v"><span class="num" data-to="16" data-suffix="명">0</span></div><div class="l ed" data-k="psr-t3">관리소장</div></div>
+          <div class="tile" style="padding:16px"><div class="v"><span class="num" data-to="16" data-suffix="명">0</span></div><div class="l ed" data-k="psr-t3">관리소장 상담</div></div>
         </div>
       </div>
       <div class="panel rv d4">
-        <div class="panel-h">// BEP 게이지 (월 GMV)</div>
-        <svg class="gauge" id="gauge" viewBox="0 0 200 110">
-          <path class="track" d="M16,100 A84,84 0 0,1 184,100"/>
-          <path class="fill" d="M16,100 A84,84 0 0,1 184,100"/>
-        </svg>
-        <div class="gauge-c"><div class="gv">BEP 9,700만<span style="font-size:12px">/월</span></div><div class="gl ed" data-k="psr-gl">현재 월 GMV는 출발선 — 하반기 목표</div></div>
+        <div class="panel-h">// 영업 자산 활용처</div>
+        <div style="display:flex;flex-direction:column;gap:15px;">
+          <div class="ed" data-k="psr-u1" style="font-size:14px;font-weight:600;line-height:1.5;">🏪 <b>대리점주</b> — 현장 상담 도구로 제공</div>
+          <div class="ed" data-k="psr-u2" style="font-size:14px;font-weight:600;line-height:1.5;">🤝 <b>B2B 파트너사</b> — 영업력 강화에 활용</div>
+          <div class="ed" data-k="psr-u3" style="font-size:14px;font-weight:600;line-height:1.5;">🏢 <b>본사 전시장</b> — 태블릿으로 방문 고객 응대</div>
+        </div>
       </div>
     </div>
-    <div class="takeaway ed rv d5" data-k="psr-take">💡 배운 점 — <b>시스템은 돌기 시작했다.</b> 다음은 거래를 붙여 <b>BEP</b>에 다가가는 것.</div>
+    <div class="takeaway ed rv d5" data-k="psr-take">💡 배운 점 — 박람회로 <b>검증 완료.</b> 다음은 대리점·파트너·전시장에 <b>실제 배치</b>해 영업력으로 전환.</div>
     <div class="rail" data-group="ps-result"></div>
   </div>
 </section>
@@ -505,7 +548,7 @@ function ytThumb(url){const m=url.match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/)
 function renderRail(g){
   const rail=railEls[g], items=D.media[g]||(D.media[g]=[]);
   rail.innerHTML='';
-  const lbl=document.createElement('span');lbl.className='rail-label';lbl.textContent='📎 자료';rail.appendChild(lbl);
+  const lbl=document.createElement('span');lbl.className='rail-label';lbl.textContent=rail.dataset.label||'📎 사진·영상';rail.appendChild(lbl);
   items.forEach((it,i)=>{
     const w=document.createElement('div');w.className='thumb-wrap'+(sel&&sel.g===g&&sel.i===i?' sel':'');
     const img=document.createElement('img');img.className='thumb';img.src=it.src||ph('썸네일 없음','#9aa5b1');img.alt=it.cap||'';

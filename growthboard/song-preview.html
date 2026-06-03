@@ -529,12 +529,40 @@ body.edit .ed{outline:1px dashed rgba(47,109,246,.4);outline-offset:3px;border-r
   <div class="lb-cap" id="lbcap"></div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 <script>
 const STORE='songv3';
 function ph(label,color){return 'data:image/svg+xml,'+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='480' height='320'><rect width='100%' height='100%' fill='"+color+"'/><rect x='2' y='2' width='476' height='316' rx='14' fill='none' stroke='rgba(255,255,255,.5)' stroke-width='2'/><text x='240' y='168' font-family='Pretendard,sans-serif' font-size='20' font-weight='800' fill='#fff' text-anchor='middle'>"+label+"</text></svg>");}
 let D;try{D=JSON.parse(localStorage.getItem(STORE)||'{}');}catch(e){D={};}
 D.text=D.text||{}; D.media=D.media||{};
 const persist=()=>localStorage.setItem(STORE,JSON.stringify(D));
+
+/* Firebase Storage — 파일 직접 업로드 (gs://pour-app-new / 송희 폴더) */
+let _storage=null;
+try{ if(typeof firebase!=='undefined'){ if(!firebase.apps.length){firebase.initializeApp({apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",storageBucket:"pour-app-new.firebasestorage.app",messagingSenderId:"411031141847",appId:"1:411031141847:web:e658174fd4b9652cdadf92"});} _storage=firebase.storage(); } }catch(e){console.error('[firebase] init 실패:',e);}
+let uploadingGroup=null;
+function setUploading(g,on){uploadingGroup=on?g:null;renderRail(g);}
+function pickFile(g){const inp=document.createElement('input');inp.type='file';inp.accept='image/*,video/*';inp.onchange=()=>{const f=inp.files&&inp.files[0];if(f)uploadFile(g,f);};inp.click();}
+function videoThumb(file){return new Promise((res,rej)=>{const v=document.createElement('video');v.preload='metadata';v.muted=true;v.playsInline=true;const url=URL.createObjectURL(file);v.onloadeddata=()=>{try{v.currentTime=Math.min(0.1,(v.duration||1)/2);}catch(e){}};v.onseeked=()=>{try{const c=document.createElement('canvas');c.width=v.videoWidth||320;c.height=v.videoHeight||180;c.getContext('2d').drawImage(v,0,0,c.width,c.height);const d=c.toDataURL('image/jpeg',0.72);URL.revokeObjectURL(url);res(d);}catch(e){URL.revokeObjectURL(url);rej(e);}};v.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('thumb'));};v.src=url;});}
+async function uploadFile(g,file){
+  if(!_storage){alert('Storage 초기화 실패 — 네트워크/권한을 확인하세요');return;}
+  const isVid=file.type.indexOf('video')===0;
+  let thumb='';
+  if(isVid){try{thumb=await videoThumb(file);}catch(e){console.warn('[thumb] 생성 실패',e);}}
+  const safe=file.name.replace(/[^\w.\-가-힣]/g,'_');
+  const path='송희/'+Date.now()+'_'+safe;
+  setUploading(g,true);
+  try{
+    const ref=_storage.ref(path);
+    await ref.put(file);
+    const url=await ref.getDownloadURL();
+    if(isVid)D.media[g].push({type:'video',href:url,src:thumb||ph('영상 ▶','#0c1730'),cap:file.name});
+    else D.media[g].push({type:'img',src:url,cap:file.name});
+    persist();
+  }catch(e){console.error('[upload] 실패:',e);alert('업로드 실패: '+(e.code||e.message||e)+'\n(Storage 보안규칙에서 송희/ 경로 쓰기 권한이 필요할 수 있어요)');}
+  finally{setUploading(g,false);}
+}
 
 /* 편집 텍스트 복원 */
 document.querySelectorAll('.ed').forEach(el=>{const k=el.dataset.k;if(k&&D.text[k]!=null)el.innerHTML=D.text[k];
@@ -566,10 +594,16 @@ function renderRail(g){
   aVid.onclick=()=>{const h=prompt('영상 링크(YouTube 등)를 붙여넣으세요');if(!h)return;const href=h.trim();
     let thumb=ytThumb(href)||ph('영상 ▶ (칸 클릭 후 Ctrl+V)','#0c1730');
     D.media[g].push({type:'video',href,src:thumb,cap:'영상'});persist();renderRail(g);};
-  rail.appendChild(aImg);rail.appendChild(aVid);
-  const hint=document.createElement('span');hint.className='rail-hint';hint.textContent='팁: 영상 썸네일은 영상칸 클릭 → Ctrl+V';rail.appendChild(hint);
+  const aUp=document.createElement('button');aUp.className='rail-add';aUp.style.borderStyle='solid';aUp.style.borderColor='var(--store)';aUp.style.color='var(--store-dark)';aUp.textContent='⬆ 파일 업로드';
+  aUp.onclick=()=>pickFile(g);
+  rail.appendChild(aImg);rail.appendChild(aVid);rail.appendChild(aUp);
+  const hint=document.createElement('span');hint.className='rail-hint';hint.textContent='사진·영상 파일을 끌어다 놓거나 ⬆업로드 → 송희 폴더에 저장';rail.appendChild(hint);
+  if(uploadingGroup===g){const u=document.createElement('span');u.className='rail-hint';u.style.display='inline';u.style.color='var(--store-dark)';u.style.fontWeight='800';u.textContent='⏳ 업로드 중…';rail.appendChild(u);}
   rail.classList.toggle('empty',items.length===0);
   rail.onclick=()=>{activeGroup=g;};
+  rail.ondragover=(e)=>{if(document.body.classList.contains('edit')){e.preventDefault();rail.style.outline='2px dashed var(--store)';}};
+  rail.ondragleave=()=>{rail.style.outline='';};
+  rail.ondrop=(e)=>{rail.style.outline='';if(!document.body.classList.contains('edit'))return;e.preventDefault();const f=e.dataTransfer.files&&e.dataTransfer.files[0];if(f)uploadFile(g,f);};
 }
 Object.keys(railEls).forEach(renderRail);
 

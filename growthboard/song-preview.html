@@ -216,6 +216,8 @@ body.present .trackmap{display:flex;}
 .thumb-wrap.sel .thumb{outline:3px solid var(--store);outline-offset:1px;}
 body.edit .thumb-wrap{cursor:grab;}
 .thumb-cap{font-size:10px;color:var(--ink3);font-weight:600;max-width:104px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;}
+body.edit .thumb-cap{cursor:text;white-space:normal;overflow:visible;text-overflow:clip;outline:1px dashed var(--border);border-radius:5px;padding:1px 4px;}
+body.edit .thumb-cap:empty::before{content:'파일명 입력';color:#c5cbd3;}
 .tw-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.7);pointer-events:none;}
 .tw-del{position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:#dc2626;color:#fff;border:none;font-size:11px;font-weight:800;cursor:pointer;display:none;line-height:1;z-index:2;}
 body.edit .tw-del{display:block;}
@@ -945,7 +947,13 @@ function renderRail(g){
     const del=document.createElement('button');del.className='tw-del';del.textContent='✕';
     del.onclick=(e)=>{e.stopPropagation();D.media[g].splice(i,1);sel=null;persist();renderRail(g);};
     w.appendChild(del);
-    if(it.cap){const cp=document.createElement('div');cp.className='thumb-cap';cp.textContent=it.cap;w.appendChild(cp);}
+    if(it.cap||edit){const cp=document.createElement('div');cp.className='thumb-cap';cp.textContent=it.cap||'';
+      if(edit){cp.contentEditable='true';cp.title='파일명 수정';cp.draggable=false;
+        cp.addEventListener('blur',()=>{D.media[g][i].cap=cp.textContent.trim();persist();});
+        cp.addEventListener('keydown',ev=>ev.stopPropagation());
+        cp.addEventListener('mousedown',ev=>ev.stopPropagation());
+        cp.addEventListener('click',ev=>ev.stopPropagation());}
+      w.appendChild(cp);}
     rail.appendChild(w);
   });
   const aImg=document.createElement('button');aImg.className='rail-add';aImg.textContent='＋ 사진 링크';
@@ -971,11 +979,19 @@ document.addEventListener('paste',e=>{
   if(!document.body.classList.contains('edit'))return;
   if(document.activeElement&&document.activeElement.isContentEditable)return;
   const dt=e.clipboardData;if(!dt)return;
-  for(const it of dt.items){if(it.type.indexOf('image')===0){const f=it.getAsFile();const r=new FileReader();r.onload=()=>applyImg(r.result);r.readAsDataURL(f);e.preventDefault();return;}}
-  const txt=dt.getData('text');if(txt&&/^https?:\/\//.test(txt.trim())){applyImg(txt.trim());e.preventDefault();}
+  const g=(sel&&sel.g)||activeGroup||Object.keys(railEls)[0];
+  for(const it of dt.items){
+    if(it.type.indexOf('image')===0){const f=it.getAsFile();if(!f)break;
+      if(sel){const r=new FileReader();r.onload=()=>{D.media[sel.g][sel.i].src=r.result;persist();renderRail(sel.g);};r.readAsDataURL(f);}
+      else{uploadFile(g,f);}
+      e.preventDefault();return;}
+  }
+  const txt=dt.getData('text');
+  if(txt&&/^https?:\/\//.test(txt.trim())){const u=txt.trim();const yt=ytThumb(u);
+    if(yt||/\.(mp4|mov|webm|m4v)(\?|$)/i.test(u)){D.media[g].push({type:'video',href:u,src:yt||ph('영상 ▶','#0c1730'),cap:'영상'});}
+    else{D.media[g].push({type:'img',src:u,cap:'사진'});}
+    persist();renderRail(g);e.preventDefault();}
 });
-function applyImg(src){if(sel){D.media[sel.g][sel.i].src=src;persist();renderRail(sel.g);return;}
-  const g=activeGroup||Object.keys(railEls)[0];D.media[g].push({type:'img',src,cap:'붙여넣은 이미지'});persist();renderRail(g);}
 
 /* 라이트박스 */
 let LBlist=[],lbi=0,LBgroup=null;

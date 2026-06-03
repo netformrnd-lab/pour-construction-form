@@ -49,7 +49,7 @@ body.present .trackmap{display:flex;}
 /* 슬라이드 */
 .slide{min-height:100vh;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;padding:66px 64px 56px 196px;position:relative;overflow:hidden;}
 .slide.t-md{background:var(--md-bg);} .slide.t-ps{background:var(--ps-bg);} .slide.t-co{background:var(--co-bg);}
-.inner{max-width:1060px;width:100%;}
+.inner{max-width:1060px;width:100%;margin:0 auto;}
 
 .eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;font-weight:800;letter-spacing:.03em;margin-bottom:16px;}
 .eyebrow::before{content:"";width:18px;height:3px;border-radius:2px;background:currentColor;}
@@ -384,7 +384,7 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
       <div class="tli md"><span class="dot"></span><div class="mo ed" data-k="jn1m">~2026 · 1월 · 모여라딜 (이전 그로스보드)</div><div class="th ed" data-k="jn1h">공급사 니즈타겟 성공, 수요의 첫 신호</div><div class="td ed" data-k="jn1d">공급사 동환님 작업으로 19곳 확보 · 공구 9건. 1월까지 누적 매출 <b>1,123,100원</b>.</div><div class="tg"><span>인바운드 19곳</span><span>공구 9건</span></div></div>
       <div class="tli co"><span class="dot"></span><div class="mo ed" data-k="jn2m">2026 · 2월 · 공통</div><div class="th ed" data-k="jn2h">타운홀미팅 — 마스터프롬프트 도입 결심</div><div class="td ed" data-k="jn2d">"브랜드 마스터프롬프트를 만들면 전략·디자인·CS·프로세스를 동일성 있게 구현 가능" → <b>개발 전 마스터프롬프트 선제작</b> 원칙 확립.</div><div class="tg"><span>마스터프롬프트 원칙</span></div></div>
       <div class="tli ps"><span class="dot"></span><div class="mo ed" data-k="jn3m">2026 · 3월 · POUR스토어</div><div class="th ed" data-k="jn3h">POUR스토어 합류 · 겸직 시작</div><div class="td ed" data-k="jn3d">3/26 합류 — 모여라딜 리드를 유지한 채 두 프로젝트 동시 진행. (공급사: 동환님 2·3월 작업으로 누적 <b>106곳</b> 확보)</div><div class="tg"><span>겸직 시작</span><span>공급사 106곳</span></div></div>
-      <div class="tli md"><span class="dot"></span><div class="mo ed" data-k="jn4m">2026 · 3~5월 · 모여라딜</div><div class="th ed" data-k="jn4h">"직접 팔아보자" 실행</div><div class="td ed" data-k="jn4d">정하(5/18 합류)와 가속. 신박템 국내 공급사 DB 추출 <b>109건</b>, SNS 오피셜계정 활성화, 3월 공구 1건(2건 취소) → 누적 공구 <b>10건</b>.</div><div class="tg"><span>직접 팔아보자</span><span>소싱 33 · 셀러DB 16</span></div></div>
+      <div class="tli md"><span class="dot"></span><div class="mo ed" data-k="jn4m">2026 · 3~5월 · 모여라딜</div><div class="th ed" data-k="jn4h">"직접 팔아보자" 실행</div><div class="td ed" data-k="jn4d">정하(5/18 합류)와 가속. 신박템 국내 공급사 DB 추출 <b>109건</b>, SNS 오피셜계정 활성화, 3월 공구 1건(2건 취소) → 누적 공구 <b>10건</b>.</div><div class="tg"><span>직접 팔아보자</span><span>공급사DB 109</span><span>SNS 오피셜계정</span></div></div>
       <div class="tli ps"><span class="dot"></span><div class="mo ed" data-k="jn5m">2026 · 3~5월 · POUR스토어</div><div class="th ed" data-k="jn5h">운영 시스템 구축</div><div class="td ed" data-k="jn5d">박람회 영업앱 제작 · 마스터프롬프트(4월, 비주얼아이덴티티·톤앤매너·고객 페르소나) · 자사몰 리뉴얼 · KPI v6(5월) + 업무분장 팀 3명(란·민지·채림) · 고객/판매채널 코드 세분화.</div><div class="tg"><span>영업앱</span><span>KPI v6</span><span>팀 3명</span></div></div>
       <div class="tli co"><span class="dot"></span><div class="mo ed" data-k="jn6m">2026 · 5월 · 현재</div><div class="th ed" data-k="jn6h">모여라딜 + 브랜드커머스 리드매니저 (겸직)</div><div class="td ed" data-k="jn6d">직급 변경 · POUR스토어는 각 팀원별 업무 정착·실행, 정하님은 <b>모여라딜 재점화</b>를 시작합니다.</div><div class="tg"><span>겸직 리드매니저</span><span>재점화</span></div></div>
     </div>
@@ -449,14 +449,12 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
     <div class="eyebrow rv">PART 1 · 모여라딜 — 구조 재설계</div>
     <h1 class="title ed rv d1" data-k="mds-title">구조를 다시 설계했습니다 — BMA 8개.</h1>
     <p class="sub ed rv d2" data-k="mds-sub">국내 판매구조를 조사해 <b>총액법 전환·순마진 인상</b> 경로를 찾고, <b>BMA 8개</b>를 구축했습니다.</p>
-    <div class="cards rv d3" style="grid-template-columns:repeat(2,1fr)">
-      <div class="card"><div class="ci">🔍</div><div class="ch ed" data-k="mds-c1h2">국내·해외 판매구조 분석</div><div class="cd ed" data-k="mds-c1d2"><b>국내</b> — 수수료형(순액법) vs 총액법(자체 브랜딩), 어디서 마진이 나는지 확인. <b>해외</b> — 중국 <b>핀둬둬</b>: 소비자가 지인 추천으로 함께 사는 그룹바이로 광고비 없이 알리바바를 추월 → 모여라딜 <b>엠버서더 네트워크</b> 모델로 검증.</div></div>
-      <div class="card"><div class="ci">🧩</div><div class="ch ed" data-k="mds-c2h">방안 발굴 → DFP</div><div class="cd ed" data-k="mds-c2d">3PL·CPA(상시판매) 검토 — 재고 선투자는 무리 → <b>DFP</b>: 수요 먼저 확정 후 선매입. 결제 선금 70% + 7일 뒤 잔금 30%(반품 시 차감).</div></div>
-      <div class="card"><div class="ci">📐</div><div class="ch ed" data-k="mds-c3h">BMA 8개 구축 (3/5)</div><div class="cd ed" data-k="mds-c3d">재고 리스크 없이 총액법 가능 → 순마진율 인상 경로 확보.</div></div>
-      <div class="card"><div class="ci">🧠</div><div class="ch ed" data-k="mds-c4h">마스터프롬프트 제작 — 핵심</div><div class="cd ed" data-k="mds-c4d">모여라딜의 모든 것을 담은 마스터프롬프트. <b>전략·기획·추진·개발 속도</b>를 크게 끌어올리고, 방향이 흔들릴 때 <b>판단 기준</b>이 됩니다.</div></div>
+    <div class="cards rv d3">
+      <div class="card"><div class="ci">🔍</div><div class="ch ed" data-k="mds-c1h2">국내·해외 판매구조 분석</div><div class="cd ed" data-k="mds-c1d2"><b>국내</b> — 수수료형(순액법) vs 총액법(자체 브랜딩), 어디서 마진이 나는지 확인. <b>해외</b> — 중국 <b>핀둬둬</b>: 소비자가 지인 추천으로 함께 사는 그룹바이로 광고비 없이 알리바바를 추월 → 모여라딜 <b>엠버서더 네트워크</b> 모델로 검증.</div><div class="rail" data-group="md-analysis" data-label="📎 핀둬둬·테무"></div></div>
+      <div class="card"><div class="ci">📐</div><div class="ch ed" data-k="mds-bma-h">방안 발굴 → BMA 8개 구축</div><div class="cd ed" data-k="mds-bma-d">3PL·CPA(상시판매) 검토 · 재고 선투자는 무리 → <b>DFP</b>(수요 먼저 확정 후 선매입, 선금 70%+7일 뒤 잔금 30%). 이를 묶어 <b>비즈니스 모델 아키텍처(BMA) 8개</b>로 구축 → 재고 리스크 없이 <b>총액법·순마진 인상</b> 경로 확보.</div><div class="rail" data-group="md-bma" data-label="📎 BMA 자료"></div></div>
+      <div class="card"><div class="ci">🧠</div><div class="ch ed" data-k="mds-c4h">마스터프롬프트 제작 — 핵심</div><div class="cd ed" data-k="mds-c4d">모여라딜의 모든 것을 담은 마스터프롬프트. <b>전략·기획·추진·개발 속도</b>를 크게 끌어올리고, 방향이 흔들릴 때 <b>판단 기준</b>이 됩니다.</div><div class="rail" data-group="md-prompt" data-label="📎 프롬프트 자료"></div></div>
     </div>
     <div class="note ed rv d5" data-k="mds-note2" style="text-align:center;font-size:16.5px;font-weight:800;">📈 매출은 잠시 멈췄지만, <b>갈 길이 분명해졌습니다.</b></div>
-    <div class="rail" data-group="md-analysis"></div>
   </div>
 </section>
 
@@ -465,15 +463,15 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
   <div class="inner">
     <div class="eyebrow rv">PART 1 · 모여라딜 — 직접 팔아보자</div>
     <h1 class="title ed rv d1" data-k="mde-title">이제, 직접 팔아봅니다.</h1>
-    <p class="sub ed rv d2" data-k="mde-sub">4가지 채널로 동시에 — 직접 팔며 <b>수요·전환 데이터</b>를 쌓습니다.</p>
+    <p class="sub ed rv d2" data-k="mde-sub">3가지 채널로 동시에 — 직접 팔며 <b>수요·전환 데이터</b>를 쌓습니다.</p>
     <div class="ed rv d2" data-k="mde-why" style="font-size:13.5px;color:var(--ink2);line-height:1.65;font-weight:500;background:#fff;border:1px solid var(--border);border-radius:12px;padding:13px 17px;margin:-14px 0 24px;">💡 공급사 수요는 확보했지만, 다음 숙제는 <b>셀러 수요 확보</b>였습니다. 혼자 진행하다 보니 인력이 부족해 쉽지 않았고 — 그래서 <b>'직접 팔아보자'</b>. 인스타그램 공식계정을 활성화하고, 자사몰을 폐쇄형에서 <b>오픈형으로 리뉴얼</b>하려 합니다.</div>
     <div class="cards rv d3">
       <div class="card"><div class="ci">📦</div><div class="ch ed" data-k="mde-c1h">도매꾹 상품 등록</div><div class="cd ed" data-k="mde-c1d">상품 50개 등록 → 채널 신뢰도·노출 확보.</div></div>
       <div class="card"><div class="ci">📱</div><div class="ch ed" data-k="mde-c2h">인스타그램 자체 판매</div><div class="cd ed" data-k="mde-c2d">직접 공구 판매로 수요·전환 데이터 축적.</div></div>
       <div class="card"><div class="ci">🧩</div><div class="ch ed" data-k="mde-c3h">선택형 소싱 → 입점 제안서</div><div class="cd ed" data-k="mde-c3d">신박템 소싱 33건 → 공급사 맞춤 입점 제안서 제작.</div></div>
-      <div class="card"><div class="ci">🤝</div><div class="ch ed" data-k="mde-c4h">셀러 공구 제안</div><div class="cd ed" data-k="mde-c4d">협찬·가이드 패키지로 셀러가 직접 공구 개최하도록 제안.</div></div>
     </div>
-    <button class="more-btn rv d4" data-more="im-tools">🛠 자체 제작 도구 자세히</button>
+    <div class="ed rv d4" data-k="mde-plus" style="margin-top:16px;background:#fff;border:1px dashed var(--accent);border-radius:12px;padding:13px 17px;font-size:13px;color:var(--ink2);font-weight:500;line-height:1.6;">➕ <b>플러스 — 셀러 공구 제안</b>: 협찬으로 컨텐츠를 확보해 <b>오피셜계정 공동구매</b>를 여는 게 기본. 여기에 협찬한 <b>셀러 채널에서도 공동구매</b>를 열도록 추가 제안(협찬·촬영 가이드 패키지) → <b>판매 채널 확장</b>.</div>
+    <button class="more-btn rv d4" data-more="im-tools">🛠 효율을 높인 자체 도구 — 자세히</button>
     <div class="ed rv d5" data-k="mde-next" style="margin-top:16px;background:var(--accent-soft);border-radius:12px;padding:13px 17px;font-size:13px;color:var(--ink);line-height:1.6;font-weight:600;">🧪 <b>다음 분기 — 직접 공구 10회 실험</b> (개당 마진 1,000원 → 최소 2,000원 구조 목표). 샘플 구매 완료 · 직접 촬영 · 셀러 협찬 병행. <b>빠른 실행 → 데이터 → 개선</b> 반복으로 빅데이터를 자산화.</div>
     <div class="ed rv d5" data-k="mde-vision" style="margin-top:10px;font-size:14.5px;font-weight:800;color:var(--accent-dark);line-height:1.5;letter-spacing:-.02em;">🚀 모여라딜은 <b>카테고리 제한이 없습니다.</b> 100번 실행·실패하고 AB 테스트로 더 나은 방식을 내재화하면 — <b>10억, 그 이상도</b> 어렵지 않습니다.</div>
     <div class="rail" data-group="md-exec"></div>
@@ -536,23 +534,20 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
             <li class="ed" data-k="mc-s1">전략 · 기획 (공구 방향 · 셀러 정책)</li>
             <li class="ed" data-k="mc-s2">자사몰 · 소개페이지 제작</li>
             <li class="ed" data-k="mc-s3">셀러 제안서 제작</li>
-            <li class="ed" data-k="mc-s4">선택형 소싱 33건 · 셀러 DB 16건 정비</li>
           </ul>
         </div>
         <div class="ccard">
           <div class="cch"><b>👩 정하</b><span class="cnt" style="background:var(--accent)">실행</span></div>
           <ul class="clist" style="gap:8px;">
             <li class="ed" data-k="mc-j1">영업 — 인포크링크 · 인스타DM 제안</li>
-            <li class="ed" data-k="mc-j2">협찬 → 컨텐츠 확보 → 직접 공구 진행</li>
-            <li class="ed" data-k="mc-j3">협찬 셀러 계정에 공구 제안</li>
             <li class="ed" data-k="mc-j4">공구 · 협찬 운영관리</li>
             <li class="ed" data-k="mc-j5">인스타그램 자체 판매 운영</li>
           </ul>
         </div>
-        <div class="note ed" data-k="mc-note" style="margin-top:14px;font-size:13px;">📣 현재 — 인포크링크 38명 + 인스타DM 47명 <b>제안</b> → <b>13명 컨택</b> (공구·협찬 의사 협의 중). 단, <b>DM 회신율은 낮은 편.</b></div>
-        <div class="takeaway ed" data-k="mc-hyp" style="margin-top:10px;">🔬 가설 — <b>모여라딜 공식 인스타 활성화</b> → 공구 모집 자동 확보 · 계정 활성화 · 이벤트 프로모션으로 판매 증진</div>
       </div>
     </div>
+    <div class="note ed rv d4" data-k="mc-note" style="margin-top:16px;">📣 현재 — 셀러 <b>85명 제안</b> → <b>13명 컨택</b> (공구·협찬 의사 협의 중). 단, <b>DM 회신율 낮음.</b></div>
+    <div class="takeaway ed rv d5" data-k="mc-hyp" style="margin-top:10px;">🔬 가설 — <b>모여라딜 공식 인스타 활성화</b> → 공구 모집 홍보 → 자동 영업 → <b>계정 활성화 · 판매 증진</b></div>
     <div class="rail" data-group="md-collab"></div>
   </div>
 </section>
@@ -597,7 +592,7 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
           <div class="dvbar-row"><span class="dvbar-lab">매출</span><div class="dvbar-track"><div class="dvbar-pc" style="width:79.8%">PC 80%</div><div class="dvbar-mo" style="width:20.2%">20%</div></div></div>
         </div>
         <div class="dvbar-leg"><span><i style="background:var(--store-dark)"></i>PC</span><span><i style="background:#f7c9a6"></i>모바일</span></div>
-        <div class="ed" data-k="pr-cap" style="font-size:11.5px;color:var(--ink3);margin-top:9px;font-weight:600;line-height:1.5;">방문자는 거의 반반인데 매출은 PC 쏠림 → <b>트래픽 ≠ 매출</b> (PC 객단가 2.5배). ⚠️ 모바일 전환율 1.54%→0.97% 하락 = <b>UX 누수</b>.</div>
+        <div class="ed" data-k="pr-cap" style="font-size:11.5px;color:var(--ink3);margin-top:9px;font-weight:600;line-height:1.5;">방문자는 거의 반반인데 매출은 PC 쏠림 → <b>트래픽 ≠ 매출</b> (PC 객단가 2.5배). ⚠️ 모바일 전환율 1.54%→0.97% 하락 = <b>UX 누수인가, 고관여 제품이 원인인가?</b></div>
       </div>
       <div class="panel rv d4">
         <div class="panel-h">// 리뉴얼에 담는 것</div>
@@ -608,7 +603,7 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
         </ul>
       </div>
     </div>
-    <div class="note ed rv d5" data-k="pr-note">🎯 결론 — <b>반응형, PC·모바일 둘 다 중요</b>: 모바일 = 탐색·전환 동선(개인·DIY, UX 1순위) / PC = 대량 구매(B2B 시공·공무, 묶음 단가·세금계산서). 기능 고도화(SKU·챗봇·매거진)로 모바일 경험도 핵심.</div>
+    <div class="note ed rv d5" data-k="pr-note">🎯 결론 — <b>반응형, PC·모바일 둘 다 중요</b>: 모바일 = 탐색·전환 동선(개인·DIY, UX 1순위) / PC = 대량 구매(B2B 시공·공무, 묶음 단가·세금계산서). 기능 고도화(SKU증진·AI챗봇·컨텐츠매거진)로 모바일 경험도 핵심.</div>
     <div class="rail" data-group="ps-renew"></div>
   </div>
 </section>
@@ -828,7 +823,7 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:rgba(255,255,2
 <div class="imodal" id="im-tools">
   <div class="imodal-box">
     <button class="imodal-x" aria-label="닫기">✕</button>
-    <div class="imodal-h">🛠 자체 제작 도구</div>
+    <div class="imodal-h">🛠 효율을 높인 자체 도구</div>
     <div class="ed" data-k="im-calc" style="background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:12px;padding:14px 16px;font-size:13.5px;font-weight:600;color:var(--ink);line-height:1.6;margin-bottom:12px;">🧮 <b>마진 계산기</b> — 공급단가·판매가 등록 상품 선택 → 판매수량·셀러 수수료·이벤트비(광고·활동지원금·기프티콘)·PG수수료 조정 → <b>순마진 손익 즉시 판정</b> · 셀러 마진율 안내 · 셀러 제안서 자동 생성.</div>
     <div class="rail" data-group="md-calc" data-label="📎 마진 계산기"></div>
     <div class="ed" data-k="im-prop" style="background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:12px;padding:14px 16px;font-size:13.5px;font-weight:600;color:var(--ink);line-height:1.6;margin-bottom:16px;">📑 <b>맞춤 제안서 사이트</b>(피트페이퍼형) — 설정한 템플릿에 Claude AI가 상품 링크·상세 캡처에서 <b>소구포인트·판매전략 자동 생성</b> · 슬라이드별 열람·체류 분석 · 제안서 내 즉시 문의 접수.</div>

@@ -845,6 +845,56 @@ const STORE='songv3';
 function ph(label,color){return 'data:image/svg+xml,'+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='480' height='320'><rect width='100%' height='100%' fill='"+color+"'/><rect x='2' y='2' width='476' height='316' rx='14' fill='none' stroke='rgba(255,255,255,.5)' stroke-width='2'/><text x='240' y='168' font-family='Pretendard,sans-serif' font-size='20' font-weight='800' fill='#fff' text-anchor='middle'>"+label+"</text></svg>");}
 let D;try{D=JSON.parse(localStorage.getItem(STORE)||'{}');}catch(e){D={};}
 D.text=D.text||{}; D.media=D.media||{};
+
+/* === 고정 미디어 매핑 (gs://pour-app-new/송희) — 어느 기기에서나 동일 표시 ===
+   path만 박아두고, 실행 시 getDownloadURL로 URL을 받아 렌더링 */
+const M='송희/';
+const DEFAULT_MEDIA={
+  'md-analysis':[
+    {type:'img',path:M+'1780450397482_모여라딜_타사업체_사업구조_비교표.jpg',cap:'국내·해외 판매구조 비교표'},
+    {type:'img',path:M+'1780456347228_화면_캡처_2026-06-03_121205.jpg',cap:'핀둬둬 분석 ①'},
+    {type:'img',path:M+'1780456353779_화면_캡처_2026-06-03_121136.jpg',cap:'핀둬둬 분석 ②'},
+    {type:'img',path:M+'1780456207694_화면_캡처_2026-06-03_121000.jpg',cap:'핀둬둬 분석 ③'}
+  ],
+  'md-bma':[{type:'img',path:M+'1780501245129_모여라딜_BMA.jpg',cap:'BMA 8개 구조'}],
+  'md-prompt':[{type:'video',path:M+'1780501662655_모여라딜_마스터프롬프트.mp4',cap:'모여라딜 마스터프롬프트'}],
+  'md-result':[{type:'video',path:M+'1780455264414_공급사_유입.mp4',cap:'공급사 인바운드 유입'}],
+  'mde-r1':[{type:'img',path:M+'1780502980526_상품진열_증진.jpg',cap:'상품진열 증진'}],
+  'mde-r2':[
+    {type:'img',path:M+'1780503617015_셀러_컨택-인포크링크.jpg',cap:'셀러 컨택·인포크링크'},
+    {type:'img',path:M+'1780502987826_인스타그램_모여라딜_오피셜계정_활성화.jpg',cap:'인스타그램 오피셜계정 활성화'}
+  ],
+  'mde-r3':[
+    {type:'video',path:M+'1780503195156_모여라딜_공급사_상품_맞춤제안서.mp4',cap:'공급사 맞춤 제안서 사이트'},
+    {type:'video',path:M+'1780503378660_모여라딜_셀러마진_계산기.mp4',cap:'셀러 마진 계산기'}
+  ],
+  'psm-r1':[{type:'video',path:M+'1780504634532_POUR스토어_마스터프롬프트.mp4',cap:'POUR스토어 마스터프롬프트'}],
+  'psm-r2':[
+    {type:'img',path:M+'1780504966459_POUR스토어_영업앱1.jpg',cap:'영업앱 화면 ①'},
+    {type:'img',path:M+'1780504968826_POUR스토어_영업앱2.jpg',cap:'영업앱 화면 ②'}
+  ],
+  'psm-r3':[{type:'img',path:M+'1780505348229_POUR스토어_KPI.jpg',cap:'KPI 체계 v6'}],
+  'psm-r4':[
+    {type:'img',path:M+'1780505566584_POUR스토어_거래코드.jpg',cap:'고객·거래 코드'},
+    {type:'img',path:M+'1780505569848_POUR스토어_업무분장.jpg',cap:'업무분장'}
+  ],
+  'pr-r1':[{type:'video',path:M+'1780507200063_POUR스토어_자사몰리뉴얼.mp4',cap:'자사몰 리뉴얼'}],
+  'pr-r2':[
+    {type:'img',path:M+'1780507556778_POUR스토어_로고시안.jpg',cap:'로고 시안'},
+    {type:'img',path:M+'1780507563513_POUR스토어_마스코트_후보.jpg',cap:'비버 마스코트 후보 ①'},
+    {type:'img',path:M+'1780507567696_POUR스토어_마스코트_후보2.jpg',cap:'비버 마스코트 후보 ②'}
+  ],
+  'ps-exec':[
+    {type:'img',path:M+'1780505289030_POUR스토어_영업앱_공법선택.jpg',cap:'① 공법 선택'},
+    {type:'img',path:M+'1780505294446_POUR스토어_영업앱_하자사진_솔루션_안내.jpg',cap:'② 하자진단·솔루션 안내'},
+    {type:'img',path:M+'1780505297781_POUR스토어_영업앱_고객DB추출.jpg',cap:'④ 고객 DB 추출'},
+    {type:'img',path:M+'1780505301567_POUR스토어_영업앱_문자전송.jpg',cap:'⑤ 문자 전송'}
+  ],
+  'ps-hazard':[{type:'img',path:M+'1780509432846_POUR스토어_현장_하자컨텐츠_관리센터.jpg',cap:'하자사진 분류·관리센터'}]
+};
+// 고정 매핑을 항상 적용 (기기 간 동일 보장)
+for(const g in DEFAULT_MEDIA){ D.media[g]=DEFAULT_MEDIA[g].map(x=>Object.assign({},x)); }
+
 function persist(){ try{localStorage.setItem(STORE,JSON.stringify(D));}catch(e){} scheduleCloudSave(); }
 
 /* 클라우드 동기화 — Storage에 목록(JSON) 저장/불러오기 (기기 간 공유) */
@@ -857,6 +907,20 @@ function saveCloud(){ if(!_storage)return; try{
   _storage.ref(MANIFEST_PATH).put(blob).then(()=>{console.log('[cloud] 저장 완료');cstat('☁ 클라우드 저장됨');}).catch(e=>{console.error('[cloud] 저장 실패:',e);cstat('⚠ 저장 실패');});
 }catch(e){console.error('[cloud] 저장 예외:',e);} }
 function applyText(){ document.querySelectorAll('.ed').forEach(el=>{const k=el.dataset.k;if(k&&D.text[k]!=null)el.innerHTML=D.text[k];}); }
+/* path → 실제 다운로드 URL 변환 (Storage) */
+async function resolveMedia(){ if(!_storage)return;
+  const tasks=[];
+  for(const g in D.media){ (D.media[g]||[]).forEach(it=>{
+    if(!it.path)return;
+    if(it.type==='video'){ tasks.push(_storage.ref(it.path).getDownloadURL().then(u=>{it.href=u;if(!it.src)it.src=ph('▶ '+(it.cap||'영상'),'#0D1B2A');}).catch(e=>console.warn('[media] URL 실패:',it.path,e))); }
+    else { tasks.push(_storage.ref(it.path).getDownloadURL().then(u=>{it.src=u;}).catch(e=>console.warn('[media] URL 실패:',it.path,e))); }
+  }); }
+  if(tasks.length)cstat('미디어 불러오는 중…');
+  await Promise.all(tasks);
+  Object.keys(railEls).forEach(renderRail);
+  console.log('[media] '+tasks.length+'개 자료 로드');
+  if(tasks.length)cstat('✓ 사진·영상 '+tasks.length+'개 표시');
+}
 async function loadCloud(){ if(!_storage)return; try{
   const url=await _storage.ref(MANIFEST_PATH).getDownloadURL();
   const res=await fetch(url,{cache:'no-store'}); const c=await res.json();
@@ -952,7 +1016,7 @@ function renderRail(g){
   rail.ondrop=(e)=>{rail.style.outline='';if(!document.body.classList.contains('edit'))return;if(dragFrom){return;}e.preventDefault();const f=e.dataTransfer.files&&e.dataTransfer.files[0];if(f)uploadFile(g,f);};
 }
 Object.keys(railEls).forEach(renderRail);
-loadCloud();
+resolveMedia();
 
 document.addEventListener('paste',e=>{
   if(!document.body.classList.contains('edit'))return;

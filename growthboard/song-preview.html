@@ -310,6 +310,7 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:var(--ink3);fo
 <div class="demo-bar">📊 2026 상반기 그로스보드 · <span>우상단에서 편집모드/발표모드 · 발표모드는 ←/→ 로 이동</span></div>
 <div class="controls">
   <button class="ctrl" id="btnEdit">✏️ 편집모드</button>
+  <button class="ctrl" id="btnCloud">☁ 클라우드 저장</button>
   <button class="ctrl" id="btnPresent">▶︎ 발표모드</button>
 </div>
 <button class="exit-present" id="btnExit">✕ 발표 종료 (Esc)</button>
@@ -999,6 +1000,8 @@ function setEdit(on){document.body.classList.toggle('edit',on);btnEdit.classList
   document.querySelectorAll('.ed').forEach(e=>e.contentEditable=on?'true':'false');
   if(!on)sel=null;Object.keys(railEls).forEach(renderRail);}
 btnEdit.onclick=()=>setEdit(!document.body.classList.contains('edit'));
+const btnCloud=document.getElementById('btnCloud');
+if(btnCloud)btnCloud.onclick=()=>{cstat('☁ 저장 중…');saveCloud();};
 btnPresent.onclick=()=>{setEdit(false);document.body.classList.add('present');const el=document.documentElement;if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});};
 function exitPresent(){document.body.classList.remove('present');if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});}
 btnExit.onclick=exitPresent;

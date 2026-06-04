@@ -825,6 +825,7 @@ body.edit .lb-cap:empty::before{content:'＋ 설명 입력';color:var(--ink3);fo
   </div>
 </section>
 
+<div id="cloudstat" style="position:fixed;left:14px;bottom:12px;z-index:560;font-size:11px;font-weight:800;color:#fff;background:rgba(15,23,42,.72);padding:6px 11px;border-radius:9px;display:none;"></div>
 <div class="lb" id="lb">
   <button class="lb-nav lb-prev" id="lbp">‹</button>
   <div class="lb-card">
@@ -843,7 +844,30 @@ const STORE='songv3';
 function ph(label,color){return 'data:image/svg+xml,'+encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='480' height='320'><rect width='100%' height='100%' fill='"+color+"'/><rect x='2' y='2' width='476' height='316' rx='14' fill='none' stroke='rgba(255,255,255,.5)' stroke-width='2'/><text x='240' y='168' font-family='Pretendard,sans-serif' font-size='20' font-weight='800' fill='#fff' text-anchor='middle'>"+label+"</text></svg>");}
 let D;try{D=JSON.parse(localStorage.getItem(STORE)||'{}');}catch(e){D={};}
 D.text=D.text||{}; D.media=D.media||{};
-const persist=()=>localStorage.setItem(STORE,JSON.stringify(D));
+function persist(){ try{localStorage.setItem(STORE,JSON.stringify(D));}catch(e){} scheduleCloudSave(); }
+
+/* 클라우드 동기화 — Storage에 목록(JSON) 저장/불러오기 (기기 간 공유) */
+const MANIFEST_PATH='송희/_deck/song-v3.json';
+let _cloudTimer=null;
+function cstat(msg){const e=document.getElementById('cloudstat');if(!e)return;e.textContent=msg;e.style.display='inline-block';clearTimeout(e._t);e._t=setTimeout(()=>{e.style.display='none';},2500);}
+function scheduleCloudSave(){ if(!_storage)return; clearTimeout(_cloudTimer); _cloudTimer=setTimeout(saveCloud,800); }
+function saveCloud(){ if(!_storage)return; try{
+  const blob=new Blob([JSON.stringify({text:D.text,media:D.media})],{type:'application/json'});
+  _storage.ref(MANIFEST_PATH).put(blob).then(()=>{console.log('[cloud] 저장 완료');cstat('☁ 클라우드 저장됨');}).catch(e=>{console.error('[cloud] 저장 실패:',e);cstat('⚠ 저장 실패');});
+}catch(e){console.error('[cloud] 저장 예외:',e);} }
+function applyText(){ document.querySelectorAll('.ed').forEach(el=>{const k=el.dataset.k;if(k&&D.text[k]!=null)el.innerHTML=D.text[k];}); }
+async function loadCloud(){ if(!_storage)return; try{
+  const url=await _storage.ref(MANIFEST_PATH).getDownloadURL();
+  const res=await fetch(url,{cache:'no-store'}); const c=await res.json();
+  D.text=c.text||{}; D.media=c.media||{};
+  try{localStorage.setItem(STORE,JSON.stringify(D));}catch(e){}
+  applyText(); Object.keys(railEls).forEach(renderRail);
+  console.log('[cloud] 로드 완료'); cstat('☁ 클라우드에서 불러옴');
+}catch(e){
+  const hasLocal=Object.keys(D.text||{}).length||Object.keys(D.media||{}).length;
+  if(hasLocal){ console.log('[cloud] 매니페스트 없음 → 로컬 내용 업로드'); saveCloud(); }
+  else console.log('[cloud] 저장된 내용 없음(빈 상태)');
+} }
 
 /* Firebase Storage — 파일 직접 업로드 (gs://pour-app-new / 송희 폴더) */
 let _storage=null;
@@ -927,6 +951,7 @@ function renderRail(g){
   rail.ondrop=(e)=>{rail.style.outline='';if(!document.body.classList.contains('edit'))return;if(dragFrom){return;}e.preventDefault();const f=e.dataTransfer.files&&e.dataTransfer.files[0];if(f)uploadFile(g,f);};
 }
 Object.keys(railEls).forEach(renderRail);
+loadCloud();
 
 document.addEventListener('paste',e=>{
   if(!document.body.classList.contains('edit'))return;

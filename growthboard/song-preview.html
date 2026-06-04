@@ -907,19 +907,28 @@ function saveCloud(){ if(!_storage)return; try{
   _storage.ref(MANIFEST_PATH).put(blob).then(()=>{console.log('[cloud] 저장 완료');cstat('☁ 클라우드 저장됨');}).catch(e=>{console.error('[cloud] 저장 실패:',e);cstat('⚠ 저장 실패');});
 }catch(e){console.error('[cloud] 저장 예외:',e);} }
 function applyText(){ document.querySelectorAll('.ed').forEach(el=>{const k=el.dataset.k;if(k&&D.text[k]!=null)el.innerHTML=D.text[k];}); }
-/* path → 실제 다운로드 URL 변환 (Storage) */
+/* path → 실제 다운로드 URL 변환 (한글 파일명 정규화 NFC/NFD 모두 시도 + 토큰없는 URL 대체) */
+function publicURL(p){return 'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/'+encodeURIComponent(p)+'?alt=media';}
+function getURL(path){
+  const cands=[path, path.normalize&&path.normalize('NFC'), path.normalize&&path.normalize('NFD')].filter((v,i,a)=>v&&a.indexOf(v)===i);
+  let chain=Promise.reject();
+  cands.forEach(p=>{ chain=chain.catch(()=>_storage.ref(p).getDownloadURL()); });
+  // 마지막 대체: 토큰 없는 공개 URL (정규화별)
+  cands.forEach(p=>{ chain=chain.catch(()=>publicURL(p)); });
+  return chain;
+}
 async function resolveMedia(){ if(!_storage)return;
-  const tasks=[];
+  let ok=0, fail=0; const tasks=[];
   for(const g in D.media){ (D.media[g]||[]).forEach(it=>{
     if(!it.path)return;
-    if(it.type==='video'){ tasks.push(_storage.ref(it.path).getDownloadURL().then(u=>{it.href=u;if(!it.src)it.src=ph('▶ '+(it.cap||'영상'),'#0D1B2A');}).catch(e=>console.warn('[media] URL 실패:',it.path,e))); }
-    else { tasks.push(_storage.ref(it.path).getDownloadURL().then(u=>{it.src=u;}).catch(e=>console.warn('[media] URL 실패:',it.path,e))); }
+    tasks.push(getURL(it.path).then(u=>{ ok++; if(it.type==='video'){it.href=u;if(!it.src)it.src=ph('▶ '+(it.cap||'영상'),'#0D1B2A');} else {it.src=u;} })
+      .catch(e=>{ fail++; console.warn('[media] URL 실패:',it.path,e&&e.code||e); }));
   }); }
   if(tasks.length)cstat('미디어 불러오는 중…');
   await Promise.all(tasks);
   Object.keys(railEls).forEach(renderRail);
-  console.log('[media] '+tasks.length+'개 자료 로드');
-  if(tasks.length)cstat('✓ 사진·영상 '+tasks.length+'개 표시');
+  console.log('[media] 성공 '+ok+' / 실패 '+fail);
+  cstat(fail? ('⚠ '+ok+'개 표시 · '+fail+'개 실패') : ('✓ 사진·영상 '+ok+'개 표시'));
 }
 async function loadCloud(){ if(!_storage)return; try{
   const url=await _storage.ref(MANIFEST_PATH).getDownloadURL();

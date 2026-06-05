@@ -846,51 +846,50 @@ function ph(label,color){return 'data:image/svg+xml,'+encodeURIComponent("<svg x
 let D;try{D=JSON.parse(localStorage.getItem(STORE)||'{}');}catch(e){D={};}
 D.text=D.text||{}; D.media=D.media||{};
 
-/* === 고정 미디어 매핑 (gs://pour-app-new/송희) — 어느 기기에서나 동일 표시 ===
-   path만 박아두고, 실행 시 getDownloadURL로 URL을 받아 렌더링 */
-const M='송희/';
+/* === 고정 미디어 매핑 — 'm'(파일명 키워드)로 송희 폴더에서 실제 파일을 찾아 표시 ===
+   어느 기기에서나 동일. path 대신 키워드 매칭이라 한글 정규화/타임스탬프 무관 */
 const DEFAULT_MEDIA={
   'md-analysis':[
-    {type:'img',path:M+'1780450397482_모여라딜_타사업체_사업구조_비교표.jpg',cap:'국내·해외 판매구조 비교표'},
-    {type:'img',path:M+'1780456347228_화면_캡처_2026-06-03_121205.jpg',cap:'핀둬둬 분석 ①'},
-    {type:'img',path:M+'1780456353779_화면_캡처_2026-06-03_121136.jpg',cap:'핀둬둬 분석 ②'},
-    {type:'img',path:M+'1780456207694_화면_캡처_2026-06-03_121000.jpg',cap:'핀둬둬 분석 ③'}
+    {type:'img',m:'타사업체',cap:'국내·해외 판매구조 비교표'},
+    {type:'img',m:'121205',cap:'핀둬둬 분석 ①'},
+    {type:'img',m:'121136',cap:'핀둬둬 분석 ②'},
+    {type:'img',m:'121000',cap:'핀둬둬 분석 ③'}
   ],
-  'md-bma':[{type:'img',path:M+'1780501245129_모여라딜_BMA.jpg',cap:'BMA 8개 구조'}],
-  'md-prompt':[{type:'video',path:M+'1780501662655_모여라딜_마스터프롬프트.mp4',cap:'모여라딜 마스터프롬프트'}],
-  'md-result':[{type:'video',path:M+'1780455264414_공급사_유입.mp4',cap:'공급사 인바운드 유입'}],
-  'mde-r1':[{type:'img',path:M+'1780502980526_상품진열_증진.jpg',cap:'상품진열 증진'}],
+  'md-bma':[{type:'img',m:'BMA',cap:'BMA 8개 구조'}],
+  'md-prompt':[{type:'video',m:'모여라딜_마스터프롬프트',cap:'모여라딜 마스터프롬프트'}],
+  'md-result':[{type:'video',m:'공급사_유입',cap:'공급사 인바운드 유입'}],
+  'mde-r1':[{type:'img',m:'상품진열',cap:'상품진열 증진'}],
   'mde-r2':[
-    {type:'img',path:M+'1780503617015_셀러_컨택-인포크링크.jpg',cap:'셀러 컨택·인포크링크'},
-    {type:'img',path:M+'1780502987826_인스타그램_모여라딜_오피셜계정_활성화.jpg',cap:'인스타그램 오피셜계정 활성화'}
+    {type:'img',m:'셀러_컨택',cap:'셀러 컨택·인포크링크'},
+    {type:'img',m:'인스타그램',cap:'인스타그램 오피셜계정 활성화'}
   ],
   'mde-r3':[
-    {type:'video',path:M+'1780503195156_모여라딜_공급사_상품_맞춤제안서.mp4',cap:'공급사 맞춤 제안서 사이트'},
-    {type:'video',path:M+'1780503378660_모여라딜_셀러마진_계산기.mp4',cap:'셀러 마진 계산기'}
+    {type:'video',m:'맞춤제안서',cap:'공급사 맞춤 제안서 사이트'},
+    {type:'video',m:'셀러마진',cap:'셀러 마진 계산기'}
   ],
-  'psm-r1':[{type:'video',path:M+'1780504634532_POUR스토어_마스터프롬프트.mp4',cap:'POUR스토어 마스터프롬프트'}],
+  'psm-r1':[{type:'video',m:'POUR스토어_마스터프롬프트',cap:'POUR스토어 마스터프롬프트'}],
   'psm-r2':[
-    {type:'img',path:M+'1780504966459_POUR스토어_영업앱1.jpg',cap:'영업앱 화면 ①'},
-    {type:'img',path:M+'1780504968826_POUR스토어_영업앱2.jpg',cap:'영업앱 화면 ②'}
+    {type:'img',m:'영업앱1',cap:'영업앱 화면 ①'},
+    {type:'img',m:'영업앱2',cap:'영업앱 화면 ②'}
   ],
-  'psm-r3':[{type:'img',path:M+'1780505348229_POUR스토어_KPI.jpg',cap:'KPI 체계 v6'}],
+  'psm-r3':[{type:'img',m:'KPI',cap:'KPI 체계 v6'}],
   'psm-r4':[
-    {type:'img',path:M+'1780505566584_POUR스토어_거래코드.jpg',cap:'고객·거래 코드'},
-    {type:'img',path:M+'1780505569848_POUR스토어_업무분장.jpg',cap:'업무분장'}
+    {type:'img',m:'거래코드',cap:'고객·거래 코드'},
+    {type:'img',m:'업무분장',cap:'업무분장'}
   ],
-  'pr-r1':[{type:'video',path:M+'1780507200063_POUR스토어_자사몰리뉴얼.mp4',cap:'자사몰 리뉴얼'}],
+  'pr-r1':[{type:'video',m:'자사몰리뉴얼',cap:'자사몰 리뉴얼'}],
   'pr-r2':[
-    {type:'img',path:M+'1780507556778_POUR스토어_로고시안.jpg',cap:'로고 시안'},
-    {type:'img',path:M+'1780507563513_POUR스토어_마스코트_후보.jpg',cap:'비버 마스코트 후보 ①'},
-    {type:'img',path:M+'1780507567696_POUR스토어_마스코트_후보2.jpg',cap:'비버 마스코트 후보 ②'}
+    {type:'img',m:'로고시안',cap:'로고 시안'},
+    {type:'img',m:'마스코트_후보.',cap:'비버 마스코트 후보 ①'},
+    {type:'img',m:'마스코트_후보2',cap:'비버 마스코트 후보 ②'}
   ],
   'ps-exec':[
-    {type:'img',path:M+'1780505289030_POUR스토어_영업앱_공법선택.jpg',cap:'① 공법 선택'},
-    {type:'img',path:M+'1780505294446_POUR스토어_영업앱_하자사진_솔루션_안내.jpg',cap:'② 하자진단·솔루션 안내'},
-    {type:'img',path:M+'1780505297781_POUR스토어_영업앱_고객DB추출.jpg',cap:'④ 고객 DB 추출'},
-    {type:'img',path:M+'1780505301567_POUR스토어_영업앱_문자전송.jpg',cap:'⑤ 문자 전송'}
+    {type:'img',m:'공법선택',cap:'① 공법 선택'},
+    {type:'img',m:'하자사진_솔루션',cap:'② 하자진단·솔루션 안내'},
+    {type:'img',m:'고객DB',cap:'④ 고객 DB 추출'},
+    {type:'img',m:'문자전송',cap:'⑤ 문자 전송'}
   ],
-  'ps-hazard':[{type:'img',path:M+'1780509432846_POUR스토어_현장_하자컨텐츠_관리센터.jpg',cap:'하자사진 분류·관리센터'}]
+  'ps-hazard':[{type:'img',m:'관리센터',cap:'하자사진 분류·관리센터'}]
 };
 // 고정 매핑을 항상 적용 (기기 간 동일 보장)
 for(const g in DEFAULT_MEDIA){ D.media[g]=DEFAULT_MEDIA[g].map(x=>Object.assign({},x)); }
@@ -907,22 +906,22 @@ function saveCloud(){ if(!_storage)return; try{
   _storage.ref(MANIFEST_PATH).put(blob).then(()=>{console.log('[cloud] 저장 완료');cstat('☁ 클라우드 저장됨');}).catch(e=>{console.error('[cloud] 저장 실패:',e);cstat('⚠ 저장 실패');});
 }catch(e){console.error('[cloud] 저장 예외:',e);} }
 function applyText(){ document.querySelectorAll('.ed').forEach(el=>{const k=el.dataset.k;if(k&&D.text[k]!=null)el.innerHTML=D.text[k];}); }
-/* path → 실제 다운로드 URL 변환 (한글 파일명 정규화 NFC/NFD 모두 시도 + 토큰없는 URL 대체) */
-function publicURL(p){return 'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/'+encodeURIComponent(p)+'?alt=media';}
-function getURL(path){
-  const cands=[path, path.normalize&&path.normalize('NFC'), path.normalize&&path.normalize('NFD')].filter((v,i,a)=>v&&a.indexOf(v)===i);
-  let chain=Promise.reject();
-  cands.forEach(p=>{ chain=chain.catch(()=>_storage.ref(p).getDownloadURL()); });
-  // 마지막 대체: 토큰 없는 공개 URL (정규화별)
-  cands.forEach(p=>{ chain=chain.catch(()=>publicURL(p)); });
-  return chain;
-}
+/* 송희 폴더 목록을 읽어 키워드(m)로 실제 파일을 찾아 URL 표시 */
+const NRM=s=>s&&s.normalize?s.normalize('NFC'):s;
 async function resolveMedia(){ if(!_storage)return;
-  let ok=0, fail=0; const tasks=[];
+  let items=[];
+  try{ const res=await _storage.ref('송희').listAll(); items=res.items||[]; }
+  catch(e){ console.error('[media] 폴더 목록 조회 실패:',e); cstat('⚠ 폴더 조회 실패'); return; }
+  console.log('[media] 송희 폴더 파일 '+items.length+'개');
+  const used=new Set(); let ok=0, fail=0; const tasks=[];
   for(const g in D.media){ (D.media[g]||[]).forEach(it=>{
-    if(!it.path)return;
-    tasks.push(getURL(it.path).then(u=>{ ok++; if(it.type==='video'){it.href=u;if(!it.src)it.src=ph('▶ '+(it.cap||'영상'),'#0D1B2A');} else {it.src=u;} })
-      .catch(e=>{ fail++; console.warn('[media] URL 실패:',it.path,e&&e.code||e); }));
+    if(!it.m)return;
+    const key=NRM(it.m);
+    const ref=items.find(r=>!used.has(r.fullPath)&&NRM(r.name).indexOf(key)>=0);
+    if(!ref){ fail++; console.warn('[media] 매칭 파일 없음:',it.m); return; }
+    used.add(ref.fullPath);
+    tasks.push(ref.getDownloadURL().then(u=>{ ok++; if(it.type==='video'){it.href=u;if(!it.src)it.src=ph('▶ '+(it.cap||'영상'),'#0D1B2A');} else {it.src=u;} })
+      .catch(e=>{ fail++; console.warn('[media] URL 실패:',ref.name,e); }));
   }); }
   if(tasks.length)cstat('미디어 불러오는 중…');
   await Promise.all(tasks);

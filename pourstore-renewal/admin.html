@@ -5325,7 +5325,7 @@ async function generateRecurringForToday({ recurring, tasks, staffId, audit }) {
       pulledToday: true,
       recurringId: r.id,
       performedDate: todayKey,
-      notes: [],
+      notes: '',
       attachments: [],
       status: 'active',
       time: r.time || '',
@@ -5425,7 +5425,7 @@ function DashboardPage({ onToast, onNav }) {
         isFixed: false,
         pulledToday: targetDay === todayDay0,
         performedDate: targetDay === todayDay0 ? dayKey : null,
-        notes: [],
+        notes: '',
         attachments: [],
         status: 'active',
         ...audit.create(),
@@ -5491,7 +5491,7 @@ function DashboardPage({ onToast, onNav }) {
         staffId: activeStaff.id, title: t, done: false, priority: 'mid', projectId: null, projectName: null,
         weekDay: day, weekSlot: slot, dueDate: '', isFixed: false,
         pulledToday: day === todayDay, performedDate: day === todayDay ? todayKey : null,
-        notes: [], attachments: [], status: 'active', ...audit.create(),
+        notes: '', attachments: [], status: 'active', ...audit.create(),
       });
       onToast({ message: `📆 ${day}요일 ${slot}순위에 새 업무 배치`, type: 'success' });
     } catch (e) { onToast({ message: '추가 실패: ' + e.message, type: 'error' }); }
@@ -5741,7 +5741,7 @@ function SlotAssignModal({ day, slot, current, tasks, projects, onAssign, onClea
 // 파일: Firebase Storage `task-attachments/{taskId}/{filename}`
 // ============================================================
 function TaskNotesModal({ task, audit, onClose, onToast }) {
-  const [notes, setNotes] = useState(task.notes || '');
+  const [notes, setNotes] = useState(typeof task.notes === 'string' ? task.notes : '');
   const [attachments, setAttachments] = useState(Array.isArray(task.attachments) ? task.attachments : []);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -6104,7 +6104,7 @@ function TodayTaskTable({ tasks, projects, audit, activeStaff, onAdd, onToast })
                 </td>
                 <td style={{ ...td, textAlign:'center', position:'relative' }}>
                   {(() => {
-                    const hasNotes = !!(t.notes && t.notes.trim());
+                    const hasNotes = typeof t.notes === 'string' && t.notes.trim().length > 0;
                     const attCount = Array.isArray(t.attachments) ? t.attachments.length : 0;
                     const has = hasNotes || attCount > 0;
                     return (
@@ -7551,7 +7551,7 @@ function ProjectsPage({ onToast }) {
             isFixed: false,
             pulledToday: false,
             performedDate: null,
-            notes: [],
+            notes: '',
             attachments: [],
             status: 'active',
             ...audit.create(),

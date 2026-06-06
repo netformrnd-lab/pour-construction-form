@@ -1,0 +1,112 @@
+{
+  "_meta": {
+    "source": "pourstore-renewal/admin.html (OKR_SEED + WORKMGMT_PROJECTS_SEED)",
+    "exportedAt": "2026-06-06",
+    "note": "구조/시드 데이터. 실시간 진척도·KPI 실적·작성된 task는 Firestore pour-app-new에서 별도 export 필요.",
+    "firebase": {
+      "projectId": "pour-app-new",
+      "storageBucket": "pour-app-new.firebasestorage.app",
+      "auth": "미사용 (앱 PIN/SHA-256 localStorage)"
+    },
+    "staffKeyMap": {
+      "songhee": "송희",
+      "minji": "민지",
+      "ran": "란",
+      "chaerim": "채림"
+    },
+    "priorityValues": ["high", "mid", "low"]
+  },
+  "okr": {
+    "objective": { "title": "2026년 매출 10억 달성", "target": 1000000000, "unit": "원", "year": 2026 },
+    "keyResults": [
+      {
+        "krKey": "KR1", "title": "POUR 직판 매출 5억", "target": 500000000, "unit": "원", "channel": "inbound",
+        "kpis": [
+          { "name": "🛒 자사몰 매출 (OWN)", "target": 300000000, "unit": "원", "source": "manual", "baseline": 0, "channelCode": "OWN" },
+          { "name": "🏬 마켓플레이스 매출 (MK)", "target": 150000000, "unit": "원", "source": "manual", "baseline": 0, "channelCode": "MK" },
+          { "name": "🎪 쇼룸·전화·박람회 매출 (SHOW)", "target": 50000000, "unit": "원", "source": "manual", "baseline": 0, "channelCode": "SHOW" },
+          { "name": "📊 KR1 진척도 (프로젝트 평균)", "target": 100, "unit": "%", "source": "auto-progress", "baseline": 0 }
+        ]
+      },
+      {
+        "krKey": "KR2", "title": "B2B 종합 매출 5억", "target": 500000000, "unit": "원", "channel": "outbound",
+        "kpis": [
+          { "name": "🤝 P4 파트너사 매출", "target": 300000000, "unit": "원", "source": "manual", "baseline": 0, "channelCode": "P4" },
+          { "name": "🏪 P3 대리점·오프라인몰 매출", "target": 80000000, "unit": "원", "source": "manual", "baseline": 0, "channelCode": "P3" },
+          { "name": "🔧 H 이관 매출 (공법·솔루션)", "target": 50000000, "unit": "원", "source": "manual", "baseline": 0, "channelCode": "H" },
+          { "name": "🎯 P5 위탁·브로커 매출", "target": 40000000, "unit": "원", "source": "manual", "baseline": 0, "channelCode": "P5" },
+          { "name": "🌐 P6 온라인 도매 매출", "target": 30000000, "unit": "원", "source": "manual", "baseline": 0, "channelCode": "P6" },
+          { "name": "🛠️ M 시공매칭 매출", "target": 0, "unit": "원", "source": "manual", "baseline": 0, "channelCode": "M" },
+          { "name": "🏛️ G 조달청·관급 매출 (벤처나라)", "target": 0, "unit": "원", "source": "manual", "baseline": 0, "channelCode": "G" },
+          { "name": "📊 KR2 진척도 (프로젝트 평균)", "target": 100, "unit": "%", "source": "auto-progress", "baseline": 0 }
+        ]
+      },
+      {
+        "krKey": "KR3", "title": "운영 시스템 4모듈 구축", "target": 4, "unit": "모듈", "channel": "ops",
+        "kpis": [
+          { "name": "💼 CRM 시스템 구축", "target": 100, "unit": "%", "source": "auto-progress", "baseline": 0 },
+          { "name": "💰 매출관리 시스템 구축", "target": 100, "unit": "%", "source": "auto-progress", "baseline": 0 },
+          { "name": "⚙️ 어드민센터 구축", "target": 100, "unit": "%", "source": "auto-progress", "baseline": 0 },
+          { "name": "📚 매뉴얼 33건 (7카테고리)", "target": 33, "unit": "건", "source": "manual", "baseline": 0 }
+        ]
+      }
+    ]
+  },
+  "projects": [
+    { "code": "p001", "krKey": "KR1", "group": "자사몰 구축·운영", "name": "자사몰 페이지 디자인 전면 재구축", "ownerKey": "songhee", "priority": "high", "kpis": [{ "name": "페이지 디자인 완성도", "unit": "%" }], "tasks": ["메인 페이지 와이어프레임 확정", "제품 상세 페이지 리뉴얼", "결제 페이지 UI 개선"] },
+    { "code": "p002", "krKey": "KR1", "group": "자사몰 구축·운영", "name": "자사몰 프로젝트 정교화 진행", "ownerKey": "songhee", "priority": "high", "kpis": [{ "name": "정교화 단계 진행률", "unit": "%" }], "tasks": ["요구사항 정리", "마일스톤 정의", "주간 진행 점검"] },
+    { "code": "p003", "krKey": "KR1", "group": "자사몰 구축·운영", "name": "자사몰 KPI 설정 (페이지별 측정)", "ownerKey": "songhee", "priority": "high", "kpis": [{ "name": "페이지별 전환율", "unit": "%" }, { "name": "장바구니 이탈률", "unit": "%" }], "tasks": ["GA4 이벤트 설계", "페이지별 목표 전환율 설정", "주간 리포트 자동화"] },
+    { "code": "p004", "krKey": "KR1", "group": "자사몰 구축·운영", "name": "신규 SKU 세팅 (썸네일·상페·통디자인)", "ownerKey": "minji", "priority": "high", "kpis": [{ "name": "주간 신규 SKU 세팅 수", "unit": "건" }], "tasks": ["주간 신규 SKU 리스트 확인", "썸네일·상세페이지 제작", "마켓 등록 준비"] },
+    { "code": "p005", "krKey": "KR1", "group": "자사몰 구축·운영", "name": "상품 등록 (자사몰·마켓·도매처)", "ownerKey": "minji", "priority": "high", "kpis": [{ "name": "채널별 등록 정확도", "unit": "%" }], "tasks": ["자사몰 등록", "마켓 8채널 등록", "도매처 등록·승인"] },
+    { "code": "p006", "krKey": "KR1", "group": "자사몰 구축·운영", "name": "자사몰 운영·매거진 페이지", "ownerKey": "minji", "priority": "mid", "kpis": [{ "name": "매거진 신규 콘텐츠 수", "unit": "편/주" }], "tasks": ["주간 매거진 기획", "콘텐츠 작성·발행"] },
+    { "code": "p007", "krKey": "KR1", "group": "자사몰 구축·운영", "name": "미디어 콘텐츠 제작 (포스팅·숏폼)", "ownerKey": "minji", "priority": "mid", "kpis": [{ "name": "주간 콘텐츠 발행 수", "unit": "편" }, { "name": "평균 도달", "unit": "명" }], "tasks": ["숏폼 기획", "촬영·편집", "인스타·릴스 업로드"] },
+    { "code": "p010", "krKey": "KR1", "group": "SKU 유지관리", "name": "SKU 유지보수 (단가·썸네일·품절·재개)", "ownerKey": "chaerim", "priority": "mid", "kpis": [{ "name": "SKU 정확도", "unit": "%" }], "tasks": ["주간 SKU 점검", "단가·재고 갱신", "품절/재개 처리"] },
+    { "code": "p011", "krKey": "KR1", "group": "SKU 유지관리", "name": "팝업배너 (발주·휴무 이슈)", "ownerKey": "minji", "priority": "low", "kpis": [{ "name": "팝업 노출 적시성", "unit": "%" }], "tasks": ["휴무 일정 확인", "팝업 디자인·등록"] },
+    { "code": "p012", "krKey": "KR1", "group": "SKU 유지관리", "name": "챗봇 AI (POUR길잡이) 관리 운영", "ownerKey": "minji", "collabKeys": ["songhee"], "priority": "mid", "kpis": [{ "name": "챗봇 응답 만족도", "unit": "점" }, { "name": "미해결률", "unit": "%" }], "tasks": ["미해결 케이스 리뷰", "답변 시나리오 보강", "정책 업데이트"] },
+    { "code": "p013", "krKey": "KR1", "group": "SKU 유지관리", "name": "B2C CS 2차 응대", "ownerKey": "minji", "priority": "mid", "kpis": [{ "name": "2차 응대 평균 처리시간", "unit": "h" }], "tasks": ["에스컬레이션 응대", "정책 외 케이스 결정"] },
+    { "code": "p014", "krKey": "KR1", "group": "SKU 유지관리", "name": "B2C CS 1차 응대 (~5/22까지)", "ownerKey": "songhee", "priority": "low", "kpis": [{ "name": "평균 응답시간", "unit": "h" }], "tasks": ["카카오톡·이메일 1차 응답"] },
+    { "code": "p015", "krKey": "KR1", "group": "SKU 유지관리", "name": "B2C CS 1차 응대 (5/22 이후)", "ownerKey": "minji", "priority": "mid", "kpis": [{ "name": "평균 응답시간", "unit": "h" }, { "name": "1차 해결률", "unit": "%" }], "tasks": ["1차 응대", "케이스 분류·기록"] },
+    { "code": "p020", "krKey": "KR1", "group": "사후 관리", "name": "후기 이벤트 운영", "ownerKey": "chaerim", "priority": "mid", "kpis": [{ "name": "주간 신규 후기 수", "unit": "건" }], "tasks": ["이벤트 기획·공지", "당첨자 추첨·발송"] },
+    { "code": "p021", "krKey": "KR1", "group": "사후 관리", "name": "B2C NPS 정기 조사 발송", "ownerKey": "chaerim", "priority": "low", "kpis": [{ "name": "응답률", "unit": "%" }, { "name": "NPS", "unit": "점" }], "tasks": ["NPS 설문 발송", "월간 결과 집계"] },
+    { "code": "p022", "krKey": "KR1", "group": "사후 관리", "name": "패키지상품 안내문자", "ownerKey": "chaerim", "priority": "low", "kpis": [{ "name": "안내문자 발송 수", "unit": "건/주" }], "tasks": ["타겟 추출", "문자 발송"] },
+    { "code": "p030", "krKey": "KR1", "group": "광고·키워드", "name": "광고 운영 전체 (네이버·메타·CPC)", "ownerKey": "ran", "collabKeys": ["songhee"], "priority": "high", "kpis": [{ "name": "ROAS", "unit": "%" }, { "name": "주간 광고비", "unit": "원" }], "tasks": ["주간 예산 배분", "캠페인 최적화", "성과 리포트"] },
+    { "code": "p031", "krKey": "KR1", "group": "광고·키워드", "name": "SEO·키워드 최적화", "ownerKey": "ran", "priority": "mid", "kpis": [{ "name": "타겟 키워드 노출 순위 평균", "unit": "순위" }], "tasks": ["키워드 리서치", "메타·alt 텍스트 보강"] },
+    { "code": "p032", "krKey": "KR1", "group": "광고·키워드", "name": "인플루언서 컨텐츠 기획", "ownerKey": "ran", "collabKeys": ["minji"], "priority": "mid", "kpis": [{ "name": "주간 협업 인플루언서 수", "unit": "명" }], "tasks": ["인플루언서 발굴", "기획안 작성", "컨텐츠 검수"] },
+    { "code": "p033", "krKey": "KR1", "group": "광고·키워드", "name": "공동구매 판매 운영", "ownerKey": "ran", "collabKeys": ["minji"], "priority": "mid", "kpis": [{ "name": "공동구매 매출", "unit": "원" }], "tasks": ["공구 기획", "채널별 홍보", "정산"] },
+    { "code": "p100", "krKey": "KR2", "group": "B2B 종합", "name": "대리점 정책 구축 및 진행", "ownerKey": "songhee", "priority": "high", "kpis": [{ "name": "대리점 활성화율", "unit": "%" }], "tasks": ["대리점 정책 문서화", "계약 양식 표준화"] },
+    { "code": "p101", "krKey": "KR2", "group": "B2B 종합", "name": "B2B 협약 협상", "ownerKey": "songhee", "priority": "high", "kpis": [{ "name": "협약 진행 단계 평균", "unit": "단계" }], "tasks": ["협상 일정 정리", "협약서 검토"] },
+    { "code": "p102", "krKey": "KR2", "group": "B2B 종합", "name": "OEM/ODM 소싱·협상", "ownerKey": "songhee", "priority": "high", "kpis": [{ "name": "신규 소싱 라인 수", "unit": "건" }], "tasks": ["공급처 발굴", "샘플·견적 협상", "계약"] },
+    { "code": "p103", "krKey": "KR2", "group": "B2B 종합", "name": "도매꾹·나비엠알오 프로모션·박스(MOQ) 운영", "ownerKey": "ran", "collabKeys": ["minji"], "priority": "mid", "kpis": [{ "name": "주간 박스 거래액", "unit": "원" }], "tasks": ["MOQ 박스 기획", "프로모션 실행"] },
+    { "code": "p104", "krKey": "KR2", "group": "B2B 종합", "name": "인플루언서·유튜버 마케팅 협업", "ownerKey": "ran", "collabKeys": ["minji"], "priority": "mid", "kpis": [{ "name": "협업 콘텐츠 수", "unit": "건" }, { "name": "협업 매출 기여", "unit": "원" }], "tasks": ["협업 후보 발굴", "기획안 협의", "매출 추적"] },
+    { "code": "p113", "krKey": "KR2", "group": "B2B 종합", "name": "온라인 위탁 판매처 제안 (셀러 발굴·온보딩)", "ownerKey": "minji", "collabKeys": ["songhee"], "priority": "high", "kpis": [{ "name": "주간 셀러 제안 건수", "unit": "건" }, { "name": "온보딩 성공률", "unit": "%" }], "tasks": ["타겟 판매처 리스트", "제안서 발송", "계약 온보딩"] },
+    { "code": "p114", "krKey": "KR2", "group": "B2B 종합", "name": "온라인 위탁 판매처 매출 추적·정산", "ownerKey": "minji", "collabKeys": ["ran"], "priority": "high", "kpis": [{ "name": "위탁 판매처 매출", "unit": "원" }, { "name": "정산 정확도", "unit": "%" }], "tasks": ["판매 데이터 수집", "월간 정산", "클레임 대응"] },
+    { "code": "p105", "krKey": "KR2", "group": "B2B 종합", "name": "대리점·파트너 고객/운영관리", "ownerKey": "ran", "collabKeys": ["songhee"], "priority": "mid", "kpis": [{ "name": "활성 대리점 수", "unit": "곳" }], "tasks": ["주간 응대", "운영 이슈 조정"] },
+    { "code": "p106", "krKey": "KR2", "group": "B2B 종합", "name": "시공매칭 실행", "ownerKey": "ran", "collabKeys": ["songhee"], "priority": "high", "kpis": [{ "name": "매칭 성사 건수", "unit": "건/주" }], "tasks": ["리드 검토·배정", "시공사 매칭", "후속 관리"] },
+    { "code": "p107", "krKey": "KR2", "group": "B2B 종합", "name": "박람회 참여관리", "ownerKey": "ran", "collabKeys": ["minji"], "priority": "mid", "kpis": [{ "name": "박람회 리드 수", "unit": "명/회" }], "tasks": ["박람회 일정 관리", "부스 준비", "리드 후속"] },
+    { "code": "p108", "krKey": "KR2", "group": "B2B 종합", "name": "신규 SKU 대리점 추가입고 제안", "ownerKey": "ran", "collabKeys": ["minji"], "priority": "mid", "kpis": [{ "name": "추가입고 채택률", "unit": "%" }], "tasks": ["신규 SKU 자료 제작", "대리점 제안"] },
+    { "code": "p109", "krKey": "KR2", "group": "B2B 종합", "name": "B2B CS (1차+2차)", "ownerKey": "chaerim", "priority": "mid", "kpis": [{ "name": "B2B 응답시간", "unit": "h" }], "tasks": ["문의 접수", "1·2차 응대"] },
+    { "code": "p110", "krKey": "KR2", "group": "B2B 종합", "name": "B2B NPS 정기 조사 발송", "ownerKey": "chaerim", "priority": "low", "kpis": [{ "name": "B2B NPS 응답률", "unit": "%" }], "tasks": ["설문 발송", "월간 결과 정리"] },
+    { "code": "p111", "krKey": "KR2", "group": "B2B 종합", "name": "B2C·B2B 기프티콘 발송", "ownerKey": "chaerim", "priority": "low", "kpis": [{ "name": "기프티콘 발송 건수", "unit": "건/주" }], "tasks": ["대상자 추출", "발송·이력 기록"] },
+    { "code": "p400", "krKey": "KR2", "group": "조달청·관급 (G)", "name": "벤처나라 등록 후속 운영 (페이지·문의·발주 응대)", "ownerKey": "minji", "collabKeys": ["songhee"], "priority": "high", "kpis": [{ "name": "주간 문의 건수", "unit": "건" }, { "name": "견적·계약 전환률", "unit": "%" }], "tasks": ["상세 페이지 보강", "문의 응대", "발주 응대"] },
+    { "code": "p401", "krKey": "KR2", "group": "조달청·관급 (G)", "name": "건축사 협회·학회 광고 운영", "ownerKey": "ran", "collabKeys": ["minji"], "priority": "high", "kpis": [{ "name": "협회지 노출 횟수", "unit": "회" }, { "name": "광고비", "unit": "원" }], "tasks": ["협회·학회 매체 리서치", "광고 콘텐츠 제작", "집행·결과 추적"] },
+    { "code": "p402", "krKey": "KR2", "group": "조달청·관급 (G)", "name": "시방서 스펙 영업 (코트재 인서트 제안)", "ownerKey": "songhee", "collabKeys": ["ran"], "priority": "high", "kpis": [{ "name": "스펙 인서트 협의 건수", "unit": "건" }], "tasks": ["건축사 명단 정리", "스펙 시트 제작", "직접 협상"] },
+    { "code": "p403", "krKey": "KR2", "group": "조달청·관급 (G)", "name": "조달청 도면 인서트 세미나 참여", "ownerKey": "songhee", "priority": "mid", "kpis": [{ "name": "세미나 참여 건수", "unit": "회" }], "tasks": ["세미나 일정 확보", "발표 자료 준비", "참석"] },
+    { "code": "p404", "krKey": "KR2", "group": "조달청·관급 (G)", "name": "나라장터 견적서 발송", "ownerKey": "ran", "collabKeys": ["songhee"], "priority": "high", "kpis": [{ "name": "주간 견적 발송 수", "unit": "건" }, { "name": "견적→계약 전환률", "unit": "%" }], "tasks": ["키워드 모니터링", "견적서 발송", "후속 콜"] },
+    { "code": "p405", "krKey": "KR2", "group": "조달청·관급 (G)", "name": "시공사 공무팀 콜드아웃", "ownerKey": "ran", "priority": "mid", "kpis": [{ "name": "주간 콜드아웃 콘택트", "unit": "건" }], "tasks": ["시공사 리스트 정리", "수의계약 안내 콜"] },
+    { "code": "p406", "krKey": "KR2", "group": "조달청·관급 (G)", "name": "관리소장 직판 영업", "ownerKey": "ran", "collabKeys": ["songhee"], "priority": "mid", "kpis": [{ "name": "관리소장 콘택트 수", "unit": "명/주" }], "tasks": ["관리소장 리스트", "수의계약 안내"] },
+    { "code": "p407", "krKey": "KR2", "group": "조달청·관급 (G)", "name": "관급 스펙 카피라이팅", "ownerKey": "minji", "collabKeys": ["songhee"], "priority": "mid", "kpis": [{ "name": "스펙 카피 완료 건수", "unit": "건" }], "tasks": ["시험성적서 정리", "카피 작성", "검수"] },
+    { "code": "p200", "krKey": "KR3", "group": "운영 시스템", "name": "AI 챗봇 개발", "ownerKey": "songhee", "priority": "high", "kpis": [{ "name": "챗봇 구축률", "unit": "%" }], "tasks": ["요구사항 정리", "시나리오 작성", "LLM 연동"] },
+    { "code": "p201", "krKey": "KR3", "group": "운영 시스템", "name": "어드민센터 개발", "ownerKey": "songhee", "priority": "high", "kpis": [{ "name": "어드민 모듈 구축률", "unit": "%" }], "tasks": ["주간 페이지 개발", "버그 수정", "신규 기능"] },
+    { "code": "p202", "krKey": "KR3", "group": "운영 시스템", "name": "CRM 센터 개발", "ownerKey": "ran", "priority": "high", "kpis": [{ "name": "CRM 구축률", "unit": "%" }], "tasks": ["요구사항 정리", "데이터 모델 정의", "UI 개발"] },
+    { "code": "p203", "krKey": "KR3", "group": "운영 시스템", "name": "매출관리 센터 개발", "ownerKey": "ran", "priority": "high", "kpis": [{ "name": "매출관리 구축률", "unit": "%" }], "tasks": ["주문 흐름 정리", "정산 모듈 개발"] },
+    { "code": "p204", "krKey": "KR3", "group": "운영 시스템", "name": "파트너사 자동매칭 개발", "ownerKey": "ran", "priority": "mid", "kpis": [{ "name": "매칭 정확도", "unit": "%" }], "tasks": ["매칭 룰 정의", "테스트·정확도 측정"] },
+    { "code": "p205", "krKey": "KR3", "group": "운영 시스템", "name": "디자인 자동 생성 시스템", "ownerKey": "songhee", "collabKeys": ["minji"], "priority": "mid", "kpis": [{ "name": "자동 생성 활용률", "unit": "%" }], "tasks": ["템플릿 정의", "생성 파이프라인 구축"] },
+    { "code": "p206", "krKey": "KR3", "group": "운영 시스템", "name": "시스템 정책 관리 및 업무환경 개선", "ownerKey": "songhee", "priority": "mid", "kpis": [{ "name": "정책 문서화율", "unit": "%" }], "tasks": ["정책 문서 작성", "주간 업무환경 점검"] },
+    { "code": "p207", "krKey": "KR3", "group": "운영 시스템", "name": "광고 예산 설정·승인", "ownerKey": "songhee", "priority": "mid", "kpis": [{ "name": "주간 광고 예산 집행률", "unit": "%" }], "tasks": ["주간 예산 검토·승인"] },
+    { "code": "p208", "krKey": "KR3", "group": "운영 시스템", "name": "전략기획·신규 프로젝트", "ownerKey": "songhee", "priority": "high", "kpis": [{ "name": "신규 프로젝트 착수 수", "unit": "건" }], "tasks": ["신규 아이디어 검토", "우선순위 결정", "킥오프"] },
+    { "code": "p209", "krKey": "KR3", "group": "운영 시스템", "name": "리뉴얼·병목 시 직접 투입", "ownerKey": "songhee", "priority": "mid", "kpis": [{ "name": "병목 해소 건수", "unit": "건/주" }], "tasks": ["이슈 식별", "직접 해소"] },
+    { "code": "p300", "krKey": null, "group": "운영 인프라", "name": "주문·발주 (그로홈 + POUR스토어)", "ownerKey": "chaerim", "priority": "high", "kpis": [{ "name": "발주 정확도", "unit": "%" }, { "name": "평균 처리시간", "unit": "h" }], "tasks": ["일간 주문 확인", "벤더 발주", "지연 모니터링"] },
+    { "code": "p301", "krKey": null, "group": "운영 인프라", "name": "재고관리", "ownerKey": "chaerim", "priority": "high", "kpis": [{ "name": "재고 정확도", "unit": "%" }], "tasks": ["주간 실사", "품절·재개 처리"] },
+    { "code": "p302", "krKey": null, "group": "운영 인프라", "name": "반품 CS", "ownerKey": "chaerim", "priority": "mid", "kpis": [{ "name": "평균 반품 처리시간", "unit": "h" }, { "name": "반품률", "unit": "%" }], "tasks": ["반품 접수", "처리·환불"] }
+  ]
+}

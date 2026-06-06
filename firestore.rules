@@ -124,6 +124,25 @@ service cloud.firestore {
     match /work-channels/{doc}      { allow read, write: if true; }
 
     // ─────────────────────────────────────────────
+    // KPI Flow 신규 스키마 (pour-firebase.js / pour-migrate.js)
+    // staff→users, pour-objectives→goals, pour-keyresults→mainKPIs,
+    // pour-kpis(result)→subKPIs, pour-projects→projects, pour-tasks→tasks,
+    // pour-meetings→events, 그 외 activityKPIs/personalGoals/retros/aiReviews
+    // ─────────────────────────────────────────────
+    match /users/{doc}              { allow read, write: if true; }
+    match /goals/{doc}              { allow read, write: if true; }
+    match /mainKPIs/{doc}           { allow read, write: if true; }
+    match /subKPIs/{doc}            { allow read, write: if true; }
+    match /projects/{doc}           { allow read, write: if true; }
+    match /tasks/{doc}              { allow read, write: if true; }
+    match /events/{doc}             { allow read, write: if true; }
+    match /events/{doc}/actions/{a} { allow read, write: if true; }  // 회의 액션 서브컬렉션
+    match /activityKPIs/{doc}       { allow read, write: if true; }
+    match /personalGoals/{doc}      { allow read, write: if true; }
+    match /retros/{doc}             { allow read, write: if true; }
+    match /aiReviews/{doc}          { allow read, write: if true; }
+
+    // ─────────────────────────────────────────────
     // 기본 정책: 명시되지 않은 컬렉션은 차단
     // ─────────────────────────────────────────────
     match /{document=**} {

@@ -1,0 +1,84 @@
+name: KPI Flow — Migrate & Deploy
+
+# 폰에서 GitHub → Actions → 이 워크플로우 → "Run workflow" 로 수동 실행
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: '실행할 작업'
+        type: choice
+        required: true
+        default: dry-run
+        options:
+          - dry-run        # 백업 + 마이그레이션 미리보기 (쓰기 없음) ← 먼저 이걸로 확인
+          - deploy-only    # firestore 규칙·인덱스 배포만
+          - full-migrate   # 배포 + 백업 + 실제 마이그레이션 (운영 데이터에 씀)
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install firebase-admin@^12 firebase-tools@^13
+
+      # 서비스계정 키를 임시 파일로 저장 → firebase deploy(ADC)·migration 공용
+      - name: Prepare service account
+        env:
+          SERVICE_ACCOUNT_KEY: ${{ secrets.SERVICE_ACCOUNT_KEY }}
+        run: |
+          if [ -z "$SERVICE_ACCOUNT_KEY" ]; then
+            echo "❌ SERVICE_ACCOUNT_KEY 시크릿이 비어 있습니다. Settings → Secrets에 등록하세요."; exit 1;
+          fi
+          printf '%s' "$SERVICE_ACCOUNT_KEY" > "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+          echo "✅ 서비스계정 준비 완료"
+
+      # 규칙·인덱스 배포 (dry-run 제외). FIREBASE_TOKEN 있으면 토큰, 없으면 서비스계정(ADC)
+      - name: Deploy Firestore rules & indexes
+        if: ${{ github.event.inputs.action != 'dry-run' }}
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          if [ -n "$FIREBASE_TOKEN" ]; then
+            echo "🔑 FIREBASE_TOKEN 으로 배포"
+            npx firebase deploy --only firestore:rules,firestore:indexes --project pour-app-new --token "$FIREBASE_TOKEN" --non-interactive
+          else
+            echo "🔑 서비스계정(ADC) 으로 배포 (토큰 없음 — 폰 전용 권장 경로)"
+            npx firebase deploy --only firestore:rules,firestore:indexes --project pour-app-new --non-interactive
+          fi
+
+      # 마이그레이션 직전 전체 백업 (항상). artifact로 다운로드 가능
+      - name: Backup Firestore (before migration)
+        env:
+          SERVICE_ACCOUNT_KEY: ${{ secrets.SERVICE_ACCOUNT_KEY }}
+        run: node workers/pour-backup.js
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: firestore-backup-${{ github.run_id }}
+          path: backup-output/
+          retention-days: 30
+
+      # 미리보기 (쓰기 없음)
+      - name: Migration — DRY RUN (preview)
+        if: ${{ github.event.inputs.action == 'dry-run' }}
+        env:
+          SERVICE_ACCOUNT_KEY: ${{ secrets.SERVICE_ACCOUNT_KEY }}
+        run: node workers/pour-migrate.js --dry-run
+
+      # 실제 마이그레이션 (full-migrate 일 때만)
+      - name: Migration — LIVE
+        if: ${{ github.event.inputs.action == 'full-migrate' }}
+        env:
+          SERVICE_ACCOUNT_KEY: ${{ secrets.SERVICE_ACCOUNT_KEY }}
+        run: node workers/pour-migrate.js

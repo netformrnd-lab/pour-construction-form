@@ -131,6 +131,18 @@ service cloud.firestore {
     }
   }
 }
+    match /users/{doc}              { allow read, write: if true; }
+    match /goals/{doc}              { allow read, write: if true; }
+    match /mainKPIs/{doc}           { allow read, write: if true; }
+    match /subKPIs/{doc}            { allow read, write: if true; }
+    match /projects/{doc}           { allow read, write: if true; }
+    match /tasks/{doc}              { allow read, write: if true; }
+    match /events/{doc}             { allow read, write: if true; }
+    match /events/{doc}/actions/{a} { allow read, write: if true; }
+    match /personalGoals/{doc}      { allow read, write: if true; }
+    match /retros/{doc}             { allow read, write: if true; }
+    match /aiReviews/{doc}          { allow read, write: if true; }
+    match /activityKPIs/{doc}       { allow read, write: if true; }
 
 // ⚠️ MVP 단계 보안 정책 안내
 // ────────────────────────────────────────────────

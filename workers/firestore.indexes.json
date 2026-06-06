@@ -1,0 +1,17 @@
+{
+ "indexes": [
+   { "collectionGroup": "mainKPIs",      "fields": [{"fieldPath":"goalId","order":"ASCENDING"},{"fieldPath":"order","order":"ASCENDING"}] },
+   { "collectionGroup": "subKPIs",       "fields": [{"fieldPath":"mainKPIId","order":"ASCENDING"},{"fieldPath":"order","order":"ASCENDING"}] },
+   { "collectionGroup": "projects",      "fields": [{"fieldPath":"mainKPIId","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}] },
+   { "collectionGroup": "projects",      "fields": [{"fieldPath":"subKPIId","order":"ASCENDING"},{"fieldPath":"status","order":"ASCENDING"}] },
+   { "collectionGroup": "projects",      "fields": [{"fieldPath":"assigneeId","order":"ASCENDING"},{"fieldPath":"status","order":"ASCENDING"}] },
+   { "collectionGroup": "tasks",         "fields": [{"fieldPath":"assigneeId","order":"ASCENDING"},{"fieldPath":"weekDay","order":"ASCENDING"},{"fieldPath":"isFixed","order":"ASCENDING"}] },
+   { "collectionGroup": "tasks",         "fields": [{"fieldPath":"assigneeId","order":"ASCENDING"},{"fieldPath":"isFixed","order":"ASCENDING"}] },
+   { "collectionGroup": "tasks",         "fields": [{"fieldPath":"projectId","order":"ASCENDING"},{"fieldPath":"status","order":"ASCENDING"}] },
+   { "collectionGroup": "personalGoals", "fields": [{"fieldPath":"userId","order":"ASCENDING"},{"fieldPath":"month","order":"DESCENDING"}] },
+   { "collectionGroup": "retros",        "fields": [{"fieldPath":"userId","order":"ASCENDING"},{"fieldPath":"month","order":"DESCENDING"}] },
+   { "collectionGroup": "events",        "fields": [{"fieldPath":"date","order":"ASCENDING"}] },
+   { "collectionGroup": "aiReviews",     "fields": [{"fieldPath":"userId","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"}] }
+ ],
+ "fieldOverrides": []
+}

@@ -1,4 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { STATE_DOC, onSnapshot, setDoc } from "./firebase.js";
+
+// Firestore 단일 문서에 저장할 공유 데이터 키 (currentUser는 기기별 로컬이라 제외)
+const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events"];
+const LOCAL_USER_KEY = "pour-os-current-user";
+const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 
 const C = {
   primary:"#3182F6", primaryL:"#EBF3FF",
@@ -238,6 +244,44 @@ export default function App(){
   const [page,setPage]=useState("today");
   const [more,setMore]=useState(false);
   const [uSheet,setUSheet]=useState(false);
+  // ── Firestore 단일 문서 영속화 (4명 실시간 공유) ──
+  const [loaded,setLoaded]=useState(false);
+  const lastSyncedRef=useRef(null);   // 마지막으로 동기화된 공유데이터 JSON (에코 쓰기 방지)
+  const loadedRef=useRef(false);
+  // 구독: 원격 변경 수신 + 최초 시드
+  useEffect(()=>{
+    const savedUser=localStorage.getItem(LOCAL_USER_KEY);
+    if(savedUser) setD(p=>({...p,currentUser:savedUser}));
+    const unsub=onSnapshot(STATE_DOC,(snap)=>{
+      if(snap.metadata.hasPendingWrites) return;          // 내 쓰기 에코는 무시
+      if(!snap.exists()){                                  // 최초 실행 → INIT으로 시드
+        const shared=JSON.parse(JSON.stringify(pickShared(INIT)));
+        lastSyncedRef.current=JSON.stringify(shared);
+        setDoc(STATE_DOC,{...shared,_updatedAt:Date.now()}).catch(e=>console.error("[pour-os] 시드 저장 실패:",e));
+        console.log("[pour-os] 신규 상태 문서 생성(시드)");
+        loadedRef.current=true; setLoaded(true); return;
+      }
+      const shared=pickShared(snap.data());
+      lastSyncedRef.current=JSON.stringify(shared);
+      setD(p=>({...p,...shared}));                          // currentUser·UI 상태는 보존
+      console.log(`[pour-os] 원격 동기화: projects ${shared.projects?.length||0} / tasks ${shared.tasks?.length||0}`);
+      loadedRef.current=true; setLoaded(true);
+    },(err)=>{ console.error("[pour-os] 구독 실패:",err); setLoaded(true); });
+    return ()=>unsub();
+  },[]);
+  // currentUser는 기기별 로컬에만 저장
+  useEffect(()=>{ if(D.currentUser) localStorage.setItem(LOCAL_USER_KEY,D.currentUser); },[D.currentUser]);
+  // 변경 시 디바운스 저장 (공유데이터가 마지막 동기화본과 다를 때만)
+  useEffect(()=>{
+    if(!loaded) return;
+    const json=JSON.stringify(pickShared(D));
+    if(json===lastSyncedRef.current) return;               // 변화 없음(=원격 수신 직후) → 저장 스킵
+    const t=setTimeout(()=>{
+      lastSyncedRef.current=json;
+      setDoc(STATE_DOC,{...JSON.parse(json),_updatedAt:Date.now()}).catch(e=>console.error("[pour-os] 저장 실패:",e));
+    },700);
+    return ()=>clearTimeout(t);
+  },[D,loaded]);
   const cu=D.users.find(u=>u.id===D.currentUser);
   const lead=cu?.role==="lead";
   const set=(k,v)=>setD(p=>({...p,[k]:v}));
@@ -247,6 +291,12 @@ export default function App(){
   const nav=(id)=>{setPage(id);setMore(false);};
   const allPages=[...TABS.filter(t=>t.id!=="more"),...MORE];
   const pi=allPages.find(p=>p.id===page);
+  if(!loaded) return(
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",gap:14,fontFamily:"'Pretendard',sans-serif",color:"#9CA3AF"}}>
+      <div style={{width:36,height:36,borderRadius:11,background:"linear-gradient(135deg,#F97316,#EA580C)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:"#fff",fontWeight:900}}>P</div>
+      <p style={{margin:0,fontSize:13,fontWeight:700}}>데이터 불러오는 중…</p>
+    </div>
+  );
   return(
     <div style={{display:"flex",flexDirection:"column",height:"100vh",backgroundColor:"#F9FAFB",fontFamily:"'Pretendard','Apple SD Gothic Neo',sans-serif",overflow:"hidden",maxWidth:480,margin:"0 auto"}}>
       <div style={{backgroundColor:"#FFFFFF",borderBottom:"1px solid #F2F4F6",padding:"12px 18px 10px",flexShrink:0}}>

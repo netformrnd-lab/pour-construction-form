@@ -143,6 +143,12 @@ service cloud.firestore {
     match /aiReviews/{doc}          { allow read, write: if true; }
 
     // ─────────────────────────────────────────────
+    // POUR OS (pourstore-renewal/os) — 단일 공유 상태 문서
+    // 앱 상태 전체를 pour-os/state 한 문서에 저장, 4명 실시간 협업.
+    // ─────────────────────────────────────────────
+    match /pour-os/{doc}            { allow read, write: if true; }
+
+    // ─────────────────────────────────────────────
     // 기본 정책: 명시되지 않은 컬렉션은 차단
     // ─────────────────────────────────────────────
     match /{document=**} {

@@ -1329,14 +1329,14 @@ show('entry');
       <!-- 검색창 우측 마스코트 요정 — 클릭 시 진단 헬퍼 펼침 -->
       <button type="button" class="psm1-fairy" data-psm1-fairy aria-label="POUR닥터에게 물어보기">
         <span class="psm1-fairy-glow"></span>
-        <img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fbeaver_search_fairy_nukki.png?alt=media&token=5f4d8a9a-13e1-49d2-b007-56a98286ed24" alt="POUR닥터" loading="lazy"/>
+        <img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/%EB%A7%88%EC%8A%A4%EC%BD%94%ED%8A%B8%2Fbeaver_search_fairy_nukki.png?alt=media&token=fb1415e6-cc88-48eb-9627-3d214b1ebaa8" alt="POUR닥터" loading="lazy"/>
         <span class="psm1-fairy-spark">✨</span>
         <span class="psm1-fairy-tip">무엇이든 물어보세요!</span>
       </button>
       <!-- 검색 포커스 시 펼쳐지는 POUR닥터 헬퍼 (캐릭터 + 말풍선 + 추천 칩) -->
       <div class="psm1-helper" data-psm1-helper>
         <div class="psm1-helper-char">
-          <img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fbeaver_search_fairy_nukki.png?alt=media&token=5f4d8a9a-13e1-49d2-b007-56a98286ed24" alt="POUR닥터" loading="lazy"/>
+          <img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/%EB%A7%88%EC%8A%A4%EC%BD%94%ED%8A%B8%2Fbeaver_quickbanner_gown_circle_noborder.png?alt=media&token=1b20bea5-1fde-44aa-87bd-18a116b1eeee" alt="POUR닥터" loading="lazy"/>
         </div>
         <div class="psm1-helper-bubble">
           <div class="psm1-helper-msg">어떤 <b>어려움</b>이 있으세요?<br/>편하게 말씀해 주세요. <b>사진</b>으로도 가능해요!</div>
@@ -1371,7 +1371,7 @@ show('entry');
       <input type="text" placeholder="어떤 어려움이 있으세요? (예: 옥상 누수)" aria-label="통합검색" readonly/>
       <button class="psm1-mb-doctor" data-psm1-fairy aria-label="POUR닥터에게 물어보기">
         <span class="psm1-mb-doctor-glow"></span>
-        <img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fbeaver_search_fairy_nukki.png?alt=media&token=5f4d8a9a-13e1-49d2-b007-56a98286ed24" alt="POUR닥터" loading="lazy"/>
+        <img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/%EB%A7%88%EC%8A%A4%EC%BD%94%ED%8A%B8%2Fbeaver_search_fairy_nukki.png?alt=media&token=fb1415e6-cc88-48eb-9627-3d214b1ebaa8" alt="POUR닥터" loading="lazy"/>
         <span class="psm1-mb-doctor-spark">✨</span>
       </button>
     </div>
@@ -1818,7 +1818,7 @@ show('entry');
 <a class="pdq-card" href="./pour-doctor.html">
   <div class="pdq-char">
     <div class="pdq-char-spot"></div>
-    <img class="pdq-char-img" src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4_%EB%A6%AC%EB%89%B4%EC%96%BC%2F%EC%9E%90%EC%82%AC%EB%AA%B0%2F%EB%A9%94%EC%9D%B8%ED%8E%98%EC%9D%B4%EC%A7%80%2Fbeaver_consulting_transparent.png?alt=media&token=aae66b52-2850-4804-8492-fb8b602282ac" alt="POUR닥터" loading="lazy"/>
+    <img class="pdq-char-img" src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/%EB%A7%88%EC%8A%A4%EC%BD%94%ED%8A%B8%2Fbeaver_quickbanner_gown_circle_noborder.png?alt=media&token=1b20bea5-1fde-44aa-87bd-18a116b1eeee" alt="POUR닥터" loading="lazy"/>
   </div>
   <div class="pdq-bubble">
     <div class="pdq-msg">
@@ -1888,7 +1888,7 @@ show('entry');
   <a class="pdfab-btn" href="./pour-doctor.html" aria-label="POUR닥터 무료 진단">
     <span class="pdfab-ring"></span>
     <span class="pdfab-ico">
-      <img src="./assets/pour-doctor-3d.png" alt="POUR닥터" loading="lazy"/>
+      <img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/%EB%A7%88%EC%8A%A4%EC%BD%94%ED%8A%B8%2Fbeaver_doctor_gown.png?alt=media&token=7a037402-fe11-46fc-b66c-3f8226aabd86" alt="POUR닥터" loading="lazy"/>
     </span>
     <span class="pdfab-text-wrap">
       <span class="pdfab-text-top">POUR DOCTOR</span>
@@ -8538,6 +8538,32 @@ show('entry');
         });
       });
       s.migrations.logoMarqueeV1 = true;
+    }
+    // 마스코트 이미지 재연결 — 스토리지 '마스코트' 폴더로 이동된 비버 캐릭터 4종 경로 갱신
+    // (1 검색요정 nukki / 2 검색 헬퍼·3 퀵배너 gown-circle / 4 플로팅 FAB doctor-gown)
+    if (!s.migrations.mascotRelinkV1) {
+      const nowMR = new Date().toISOString();
+      const reswapMR = (matchClass, html, reason) => {
+        s.pages.forEach(pg => {
+          if (!Array.isArray(pg.sections)) return;
+          pg.sections.forEach(sec => {
+            if ((sec.html || '').indexOf(matchClass) !== -1) {
+              const key = pg.id + ':' + sec.id;
+              s.history[key] = s.history[key] || [];
+              s.history[key].unshift({
+                name: sec.name, html: sec.html, note: sec.note || '',
+                reason, kind: 'auto-migration', savedAt: nowMR,
+              });
+              sec.html = html;
+              sec.statusAt = nowMR;
+            }
+          });
+        });
+      };
+      reswapMR('class="psm1"', OHOUSE_V1_SECTION_HTML, '마스코트 재연결 — 검색바 요정/헬퍼 캐릭터 이미지 경로를 스토리지 마스코트 폴더로 갱신');
+      reswapMR('class="pdq"', POUR_DR_QUICK_BANNER_HTML, '마스코트 재연결 — POUR닥터 퀵배너 캐릭터 이미지 경로를 스토리지 마스코트 폴더로 갱신');
+      reswapMR('class="pdfab"', POUR_DR_FAB_HTML, '마스코트 재연결 — POUR닥터 플로팅 FAB 캐릭터 이미지 경로를 스토리지 마스코트 폴더로 갱신');
+      s.migrations.mascotRelinkV1 = true;
     }
     return s;
   }

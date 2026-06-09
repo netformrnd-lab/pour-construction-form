@@ -321,6 +321,7 @@ const NAV = [
 
   // ─ KPI 업무관리센터 (매일 진입) — 자주 사용 ─
   { type: 'divider', label: 'KPI 업무관리센터', group: 'kpi-main', collapsible: true, defaultCollapsed: false },
+  { id: 'pour-os',      icon: '🚀', label: '업무관리 앱 (POUR OS)', group: 'kpi-main' },
   { id: 'dashboard-os', icon: '🏠', label: '오늘 업무',         group: 'kpi-main' },
   // 업무일지 메뉴 폐지 (2026-06): 진척도는 프로젝트 페이지 슬라이더로 직접 조정.
   // JournalsPage 컴포넌트·useJournals 훅·pour-journals 컬렉션은 보존 (복구 필요 시 이 줄 복원).
@@ -4784,6 +4785,76 @@ function PreviewPage() {
 }
 
 // ============================================================
+// PourOsPage — 업무관리 앱 (pourstore-renewal/os.html iframe 임베드)
+// 최종목표→메인KPI→서브KPI→프로젝트→업무. 단일 공유 문서(pour-os/state) 실시간 협업.
+// ============================================================
+function PourOsPage() {
+  const { activeStaff, staffMembers } = useActiveStaffContext();
+  const iframeRef = useRef(null);
+  // 활동 담당자 + staff 목록을 pour-os iframe으로 전달 (postMessage)
+  // pour-os는 kpiMemberId(또는 이름)로 매칭해 currentUser를 자동 선택한다.
+  const sendActiveStaff = useMemo(() => () => {
+    const win = iframeRef.current?.contentWindow;
+    if (!win) return;
+    const activeList = (staffMembers || []).filter(s => s.active !== false);
+    win.postMessage({
+      type: 'admin-staff-active',
+      payload: {
+        activeStaff: activeStaff ? {
+          id: activeStaff.id,
+          name: activeStaff.name,
+          kpiMemberId: activeStaff.kpiMemberId || null,
+          color: activeStaff.kpiColor || null,
+        } : null,
+        staffList: activeList.map(s => ({
+          id: s.id, name: s.name,
+          kpiMemberId: s.kpiMemberId || null,
+          kpiColor: s.kpiColor || null,
+        })),
+      },
+    }, '*');
+  }, [activeStaff?.id, activeStaff?.name, activeStaff?.kpiMemberId, staffMembers]);
+
+  // iframe 로드 + 활동 담당자 변경 시 자동 송신
+  useEffect(() => { sendActiveStaff(); }, [sendActiveStaff]);
+  // pour-os가 "ready" 신호 보내면 즉시 재전송 (load 타이밍 안전망)
+  useEffect(() => {
+    const onMsg = (e) => { if (e.data && e.data.type === 'pour-os-ready') sendActiveStaff(); };
+    window.addEventListener('message', onMsg);
+    return () => window.removeEventListener('message', onMsg);
+  }, [sendActiveStaff]);
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', height:'100vh', background:'var(--bg)' }}>
+      <div style={{
+        padding:'14px 20px', borderBottom:'1px solid var(--border)', background:'#fff',
+        display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap'
+      }}>
+        <div>
+          <h1 style={{ fontSize:16, fontWeight:900, color:'var(--navy)', marginBottom:2 }}>🚀 업무관리 앱 (POUR OS)</h1>
+          <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700 }}>
+            최종목표 → 메인KPI → 서브KPI → 프로젝트 → 업무 · 4인 실시간 공유 · 활동 담당자 자동 연결
+          </div>
+        </div>
+        <a href="./os.html" target="_blank" rel="noopener noreferrer" style={{
+          padding:'7px 14px', fontSize:11.5, fontWeight:800, color:'var(--or-d)',
+          border:'1px solid var(--or-l)', borderRadius:7, background:'#fff', display:'inline-flex', alignItems:'center', gap:6
+        }}>
+          새창에서 열기 <span style={{ fontSize:10 }}>↗</span>
+        </a>
+      </div>
+      <iframe
+        ref={iframeRef}
+        src="./os.html"
+        title="업무관리 앱 (POUR OS)"
+        onLoad={sendActiveStaff}
+        style={{ flex:1, width:'100%', border:0, background:'#fff' }}
+      />
+    </div>
+  );
+}
+
+// ============================================================
 // StaffPage — 담당자 마스터 (staff 컬렉션 CRUD)
 // ============================================================
 function StaffPage({ onToast }) {
@@ -8949,6 +9020,7 @@ async function buildWeekSnapshot(activeStaff) {
       { id: 'recurring', name: '고정업무(반복)', purpose: '매일/매주/매월 반복 → 오늘 자동 생성' },
       { id: 'okr', name: 'OKR · 결과지표', purpose: 'Objective→KR→결과지표 KPI(매출 수동·진척도 자동) 트리' },
       { id: 'projects', name: '프로젝트', purpose: '프로젝트 CRUD + 담당자 + 📈활동지표(선행 행동량, 주간 입력)' },
+      { id: 'pour-os', name: '업무관리 앱 (POUR OS)', purpose: 'os.html iframe — 목표→KPI→프로젝트→업무, pour-os/state 단일문서 실시간 공유' },
       { id: 'workmgmt', name: 'KPI 보고 보드 (read-only)', purpose: '외부 보고용 시각화' },
       { id: 'channels', name: '거래코드·채널', purpose: '거래코드 마스터 + 인쇄 포스터' },
       { id: 'ai-review', name: 'AI 주간 점검 (Friday Review)', purpose: '이번 주 분석 (← 이 페이지)' },
@@ -8960,7 +9032,7 @@ async function buildWeekSnapshot(activeStaff) {
       { id: 'crm', name: 'CRM센터', purpose: '준비 중 (matching/partners/rules/inquiries)' },
       { id: 'sales', name: '매출관리센터', purpose: '준비 중 (dealers/po/orders/settlement)' },
     ],
-    collections: ['staff', 'pour-tasks', 'pour-recurring', 'pour-projects', 'pour-objectives', 'pour-keyresults', 'pour-kpis', 'pour-journals', 'work-channels', 'work-mgmt', 'pour-ai-reviews'],
+    collections: ['staff', 'pour-tasks', 'pour-recurring', 'pour-projects', 'pour-objectives', 'pour-keyresults', 'pour-kpis', 'pour-journals', 'work-channels', 'work-mgmt', 'pour-ai-reviews', 'pour-os'],
     aiReviewHistory: 0,  // 이전 분석 수 (인보크 시점에 갱신)
     techStack: 'React 18 (Babel standalone) · Firebase Firestore + Storage · Cloudflare Pages · 단일 HTML 파일',
     knownGaps: [
@@ -9576,6 +9648,7 @@ function App() {
         {active === 'settlement' && <Settlement orders={orders} dealers={dealers} onToast={setToast} />}
         {active === 'inquiries' && <Inquiries inquiries={inquiries} onUpdate={loadAll} onToast={setToast} />}
         {active === 'workmgmt' && <WorkMgmtPage />}
+        {active === 'pour-os' && <PourOsPage />}
         {active === 'dashboard-os' && <DashboardPage onToast={setToast} onNav={setActive} />}
         {active === 'recurring' && <RecurringTasksPage onToast={setToast} />}
         {active === 'okr' && <OKRPage onToast={setToast} />}

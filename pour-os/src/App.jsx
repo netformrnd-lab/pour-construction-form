@@ -271,6 +271,23 @@ export default function App(){
   },[]);
   // currentUser는 기기별 로컬에만 저장
   useEffect(()=>{ if(D.currentUser) localStorage.setItem(LOCAL_USER_KEY,D.currentUser); },[D.currentUser]);
+  // 어드민(상위 프레임)에 임베드된 경우: 활동 담당자 수신 → currentUser 자동 선택
+  useEffect(()=>{
+    const onMsg=(e)=>{
+      const m=e.data;
+      if(!m||m.type!=="admin-staff-active") return;
+      const as=m.payload&&m.payload.activeStaff;
+      if(!as) return;
+      setD(p=>{
+        const match=p.users.find(u=>u.id===as.kpiMemberId)||p.users.find(u=>u.name===as.name);
+        return (match&&match.id!==p.currentUser)?{...p,currentUser:match.id}:p;
+      });
+    };
+    window.addEventListener("message",onMsg);
+    // 부모(어드민)에 준비 완료 신호 → 어드민이 활동 담당자를 즉시 재전송
+    try{ if(window.parent&&window.parent!==window) window.parent.postMessage({type:"pour-os-ready"},"*"); }catch(_){}
+    return ()=>window.removeEventListener("message",onMsg);
+  },[]);
   // 변경 시 디바운스 저장 (공유데이터가 마지막 동기화본과 다를 때만)
   useEffect(()=>{
     if(!loaded) return;

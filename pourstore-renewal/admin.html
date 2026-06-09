@@ -4789,6 +4789,41 @@ function PreviewPage() {
 // 최종목표→메인KPI→서브KPI→프로젝트→업무. 단일 공유 문서(pour-os/state) 실시간 협업.
 // ============================================================
 function PourOsPage() {
+  const { activeStaff, staffMembers } = useActiveStaffContext();
+  const iframeRef = useRef(null);
+  // 활동 담당자 + staff 목록을 pour-os iframe으로 전달 (postMessage)
+  // pour-os는 kpiMemberId(또는 이름)로 매칭해 currentUser를 자동 선택한다.
+  const sendActiveStaff = useMemo(() => () => {
+    const win = iframeRef.current?.contentWindow;
+    if (!win) return;
+    const activeList = (staffMembers || []).filter(s => s.active !== false);
+    win.postMessage({
+      type: 'admin-staff-active',
+      payload: {
+        activeStaff: activeStaff ? {
+          id: activeStaff.id,
+          name: activeStaff.name,
+          kpiMemberId: activeStaff.kpiMemberId || null,
+          color: activeStaff.kpiColor || null,
+        } : null,
+        staffList: activeList.map(s => ({
+          id: s.id, name: s.name,
+          kpiMemberId: s.kpiMemberId || null,
+          kpiColor: s.kpiColor || null,
+        })),
+      },
+    }, '*');
+  }, [activeStaff?.id, activeStaff?.name, activeStaff?.kpiMemberId, staffMembers]);
+
+  // iframe 로드 + 활동 담당자 변경 시 자동 송신
+  useEffect(() => { sendActiveStaff(); }, [sendActiveStaff]);
+  // pour-os가 "ready" 신호 보내면 즉시 재전송 (load 타이밍 안전망)
+  useEffect(() => {
+    const onMsg = (e) => { if (e.data && e.data.type === 'pour-os-ready') sendActiveStaff(); };
+    window.addEventListener('message', onMsg);
+    return () => window.removeEventListener('message', onMsg);
+  }, [sendActiveStaff]);
+
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100vh', background:'var(--bg)' }}>
       <div style={{
@@ -4798,7 +4833,7 @@ function PourOsPage() {
         <div>
           <h1 style={{ fontSize:16, fontWeight:900, color:'var(--navy)', marginBottom:2 }}>🚀 업무관리 앱 (POUR OS)</h1>
           <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700 }}>
-            최종목표 → 메인KPI → 서브KPI → 프로젝트 → 업무 · 4인 실시간 공유 · 모바일 최적화
+            최종목표 → 메인KPI → 서브KPI → 프로젝트 → 업무 · 4인 실시간 공유 · 활동 담당자 자동 연결
           </div>
         </div>
         <a href="./os.html" target="_blank" rel="noopener noreferrer" style={{
@@ -4809,8 +4844,10 @@ function PourOsPage() {
         </a>
       </div>
       <iframe
+        ref={iframeRef}
         src="./os.html"
         title="업무관리 앱 (POUR OS)"
+        onLoad={sendActiveStaff}
         style={{ flex:1, width:'100%', border:0, background:'#fff' }}
       />
     </div>

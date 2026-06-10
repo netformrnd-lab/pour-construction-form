@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { STATE_DOC, onSnapshot, setDoc } from "./firebase.js";
+import { STATE_DOC, onSnapshot, setDoc, uploadTaskPhoto, deleteTaskPhoto } from "./firebase.js";
 
 // Firestore 단일 문서에 저장할 공유 데이터 키 (currentUser는 기기별 로컬이라 제외)
 const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events"];
@@ -187,10 +187,21 @@ const Confirm=({open,title,desc,onOk,onCancel})=>{
   );
 };
 const EditTaskSheet=({open,onClose,task,onSave,D})=>{
-  const [form,setForm]=useState({title:"",status:"todo",dueDate:"",memo:"",projectId:""});
+  const [form,setForm]=useState({title:"",status:"todo",dueDate:"",memo:"",projectId:"",attachments:[]});
   const [prevId,setPrevId]=useState(null);
-  if(task&&task.id!==prevId){setPrevId(task.id);setForm({title:task.title||"",status:task.status||"todo",dueDate:task.dueDate||"",memo:task.memo||"",projectId:task.projectId||""});}
-  if(!task&&prevId!==null){setPrevId(null);setForm({title:"",status:"todo",dueDate:"",memo:"",projectId:""});}
+  const [uploading,setUploading]=useState(false);
+  if(task&&task.id!==prevId){setPrevId(task.id);setForm({title:task.title||"",status:task.status||"todo",dueDate:task.dueDate||"",memo:task.memo||"",projectId:task.projectId||"",attachments:Array.isArray(task.attachments)?task.attachments:[]});}
+  if(!task&&prevId!==null){setPrevId(null);setForm({title:"",status:"todo",dueDate:"",memo:"",projectId:"",attachments:[]});}
+  const onPick=async(files)=>{
+    const list=Array.from(files||[]).filter(f=>f.type.startsWith("image/"));
+    if(!list.length||!task)return;
+    setUploading(true);
+    try{ const added=[]; for(const f of list){ if(f.size>5*1024*1024){alert(`${f.name}: 5MB 초과`);continue;} added.push(await uploadTaskPhoto(task.id,f)); }
+      setForm(p=>({...p,attachments:[...(p.attachments||[]),...added]})); }
+    catch(e){ alert("업로드 실패: "+e.message); }
+    setUploading(false);
+  };
+  const rmPhoto=async(att)=>{ if(att.path)await deleteTaskPhoto(att.path); setForm(p=>({...p,attachments:(p.attachments||[]).filter(a=>a.url!==att.url)})); };
   return(
     <Sheet open={open} onClose={onClose} title="업무 수정" h="78vh">
       <div style={{marginTop:12}}>
@@ -218,11 +229,27 @@ const EditTaskSheet=({open,onClose,task,onSave,D})=>{
           <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>마감일</label>
           <input type="date" value={form.dueDate} onChange={e=>setForm({...form,dueDate:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
         </div>
-        <div style={{marginBottom:20}}>
+        <div style={{marginBottom:16}}>
           <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>메모</label>
           <textarea value={form.memo} onChange={e=>setForm({...form,memo:e.target.value})} placeholder="메모..." style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",resize:"vertical",minHeight:72,fontFamily:"inherit",boxSizing:"border-box",outline:"none"}}/>
         </div>
-        <button onClick={()=>{if(form.title.trim()){onSave(form);onClose();}}} disabled={!form.title.trim()} style={{width:"100%",padding:"14px 0",borderRadius:14,border:"none",backgroundColor:form.title.trim()?"#F97316":"#E5E8EB",color:form.title.trim()?"#FFFFFF":"#9CA3AF",fontSize:15,fontWeight:700,cursor:form.title.trim()?"pointer":"not-allowed",fontFamily:"inherit"}}>저장하기</button>
+        <div style={{marginBottom:20}}>
+          <label style={{display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:12,fontWeight:700,color:"#374151",marginBottom:7}}><span>📎 사진 첨부 ({(form.attachments||[]).length})</span>{uploading&&<span style={{fontSize:11,color:"#F97316",fontWeight:700}}>업로드 중…</span>}</label>
+          <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+            {(form.attachments||[]).map((att,i)=>(
+              <div key={att.url||i} style={{position:"relative",width:72,height:72,borderRadius:10,overflow:"hidden",border:"1px solid #E5E8EB"}}>
+                <a href={att.url} target="_blank" rel="noopener noreferrer"><img src={att.url} alt={att.name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/></a>
+                <button onClick={()=>rmPhoto(att)} style={{position:"absolute",top:3,right:3,width:20,height:20,borderRadius:"50%",border:"none",background:"rgba(0,0,0,0.6)",color:"#fff",fontSize:12,cursor:"pointer",lineHeight:1,padding:0}}>×</button>
+              </div>
+            ))}
+            <label style={{width:72,height:72,borderRadius:10,border:"1.5px dashed #D1D5DB",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:task?"pointer":"not-allowed",color:"#9CA3AF",opacity:task?1:0.5}}>
+              <span style={{fontSize:22}}>＋</span><span style={{fontSize:9,fontWeight:700}}>사진</span>
+              <input type="file" accept="image/*" multiple disabled={!task||uploading} onChange={e=>onPick(e.target.files)} style={{display:"none"}}/>
+            </label>
+          </div>
+          <p style={{margin:"6px 2px 0",fontSize:10,color:"#9CA3AF"}}>이미지 · 각 5MB 이내 · 저장하면 task에 기록됩니다</p>
+        </div>
+        <button onClick={()=>{if(form.title.trim()){onSave(form);onClose();}}} disabled={!form.title.trim()||uploading} style={{width:"100%",padding:"14px 0",borderRadius:14,border:"none",backgroundColor:form.title.trim()&&!uploading?"#F97316":"#E5E8EB",color:form.title.trim()&&!uploading?"#FFFFFF":"#9CA3AF",fontSize:15,fontWeight:700,cursor:form.title.trim()&&!uploading?"pointer":"not-allowed",fontFamily:"inherit"}}>저장하기</button>
       </div>
     </Sheet>
   );
@@ -596,7 +623,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           </div>
         </Sheet>
       )}
-      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId})}/>
+      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,attachments:f.attachments})}/>
       <Confirm open={!!confirmTaskId} title="업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmTaskId)?.title}" 업무를 삭제할까요?`} onOk={()=>{rm("tasks",confirmTaskId);setConfirmTaskId(null);}} onCancel={()=>setConfirmTaskId(null)}/>
     </div>
   );
@@ -1630,7 +1657,7 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
           <Btn full variant="orange" onClick={doAdd} disabled={!form.title.trim()}>추가하기</Btn>
         </div>
       </Sheet>
-      <EditTaskSheet open={!!editTarget} onClose={()=>setEditTarget(null)} task={editTarget} D={D} onSave={f=>up("tasks",editTarget.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId})}/>
+      <EditTaskSheet open={!!editTarget} onClose={()=>setEditTarget(null)} task={editTarget} D={D} onSave={f=>up("tasks",editTarget.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,attachments:f.attachments})}/>
       <Confirm open={!!confirmId} title="고정업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmId)?.title}" 업무를 삭제할까요?`} onOk={()=>{rm("tasks",confirmId);setConfirmId(null);}} onCancel={()=>setConfirmId(null)}/>
     </div>
   );

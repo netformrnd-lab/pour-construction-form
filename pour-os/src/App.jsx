@@ -1032,6 +1032,13 @@ function ProjectsPage({D,cu,up,add,rm}){
   const [confirmTaskId,setConfirmTaskId]=useState(null);
   const [editTask,setEditTask]=useState(null);
   const [addProjSheet,setAddProjSheet]=useState(false);
+  const [search,setSearch]=useState("");
+  const [asgFilter,setAsgFilter]=useState("all");
+  const [actForm,setActForm]=useState({name:"",unit:"건",target:""});
+  const [actHist,setActHist]=useState(null);   // 활동지표 이력 {proj,ak}
+  const actAddIndicator=(proj)=>{ if(!actForm.name.trim())return; const list=[...(proj.activityKPIs||[]),{id:"ak"+Date.now(),name:actForm.name.trim(),unit:actForm.unit||"건",target:Number(actForm.target)||0,current:0,history:[]}]; up("projects",proj.id,{activityKPIs:list}); setActForm({name:"",unit:"건",target:""}); };
+  const actRecord=(proj,ak,raw)=>{ const v=Number(raw); if(isNaN(v))return; const at=new Date().toISOString(); const week=weekKey(); const list=(proj.activityKPIs||[]).map(x=>x.id===ak.id?{...x,current:v,week,by:cu?.id||null,byName:cu?.name||"",history:[...(x.history||[]),{week,value:v,by:cu?.id||null,byName:cu?.name||"",at}]}:x); up("projects",proj.id,{activityKPIs:list}); };
+  const actRemove=(proj,ak)=>up("projects",proj.id,{activityKPIs:(proj.activityKPIs||[]).filter(x=>x.id!==ak.id)});
   const [projForm,setProjForm]=useState({title:"",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high"});
   const doAddProj=()=>{
     if(!projForm.title.trim()) return;
@@ -1043,7 +1050,14 @@ function ProjectsPage({D,cu,up,add,rm}){
   const toggleColab=(uid)=>{const list=projForm.collaboratorIds;setProjForm({...projForm,collaboratorIds:list.includes(uid)?list.filter(x=>x!==uid):[...list,uid]});};
   const projs=filter==="all"?D.projects:D.projects.filter(p=>p.assigneeId===cu.id);
   const groups=[...new Set(projs.map(p=>p.group))];
-  const filtered=groupFilter==="all"?projs:projs.filter(p=>p.group===groupFilter);
+  const filtered=projs.filter(p=>(groupFilter==="all"||p.group===groupFilter)&&(asgFilter==="all"||p.assigneeId===asgFilter)&&(!search.trim()||(p.title||"").toLowerCase().includes(search.trim().toLowerCase())));
+  const exportCSV=()=>{
+    const rows=[["제목","그룹","담당자","메인KPI","서브KPI","우선순위","상태","진척도%","매출(원)"]];
+    filtered.forEach(p=>{const a=D.users.find(u=>u.id===p.assigneeId);const mk=D.mainKPIs.find(m=>m.id===p.mainKPIId);const sk=D.subKPIs.find(s=>s.id===p.subKPIId);rows.push([p.title,p.group||"",a?.name||"",mk?.title||"",sk?.title||"",p.priority||"",p.status||"",p.progress||0,p.resultValue||0]);});
+    const csv="﻿"+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));
+    const a=document.createElement("a");a.href=url;a.download=`프로젝트_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);
+  };
   const projTasks=projDetail?D.tasks.filter(t=>t.projectId===projDetail.id&&!t.isFixed):[];
   const statusGroups={inprogress:projTasks.filter(t=>t.status==="inprogress"),todo:projTasks.filter(t=>t.status==="todo"),hold:projTasks.filter(t=>t.status==="hold"),done:projTasks.filter(t=>t.status==="done")};
   const doAddTask=()=>{
@@ -1059,6 +1073,11 @@ function ProjectsPage({D,cu,up,add,rm}){
           <button key={f.k} onClick={()=>setFilter(f.k)} style={{padding:"8px 16px",borderRadius:20,border:"none",cursor:"pointer",backgroundColor:filter===f.k?"#0F1F5C":"#F2F4F6",color:filter===f.k?"#FFFFFF":"#374151",fontWeight:700,fontSize:12.5,fontFamily:"inherit"}}>{f.l}</button>
         ))}
         <button onClick={()=>setAddProjSheet(true)} style={{marginLeft:"auto",flexShrink:0,padding:"8px 14px",borderRadius:20,border:"none",cursor:"pointer",backgroundColor:"#F97316",color:"#FFFFFF",fontWeight:700,fontSize:12.5,fontFamily:"inherit"}}>+ 프로젝트</button>
+      </div>
+      <div style={{display:"flex",gap:8,marginBottom:10,alignItems:"center"}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 프로젝트 검색" style={{flex:1,minWidth:0,padding:"8px 12px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:12.5,outline:"none",fontFamily:"inherit",backgroundColor:"#F9FAFB",boxSizing:"border-box"}}/>
+        <select value={asgFilter} onChange={e=>setAsgFilter(e.target.value)} style={{flexShrink:0,padding:"8px 10px",borderRadius:9,border:`1.5px solid ${asgFilter!=="all"?"#F97316":"#E5E8EB"}`,fontSize:12,fontFamily:"inherit",backgroundColor:asgFilter!=="all"?"#FFEDD5":"#F9FAFB",color:asgFilter!=="all"?"#0F1F5C":"#6B7280",WebkitAppearance:"none",outline:"none"}}><option value="all">👤 전체</option>{D.users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>
+        <button onClick={exportCSV} title="CSV 내보내기" style={{flexShrink:0,padding:"8px 12px",borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",cursor:"pointer",fontSize:12,fontWeight:700,color:"#4B5563",fontFamily:"inherit"}}>⬇ CSV</button>
       </div>
       <div style={{display:"flex",gap:6,marginBottom:14,overflowX:"auto",paddingBottom:4}}>
         <button onClick={()=>setGroupFilter("all")} style={{flexShrink:0,padding:"5px 12px",borderRadius:20,border:"none",cursor:"pointer",backgroundColor:groupFilter==="all"?"#F97316":"#F2F4F6",color:groupFilter==="all"?"#FFFFFF":"#374151",fontWeight:600,fontSize:11,fontFamily:"inherit"}}>전체</button>
@@ -1113,7 +1132,31 @@ function ProjectsPage({D,cu,up,add,rm}){
                     <span style={{fontSize:12,fontWeight:800,color:"#4B5563",flexShrink:0}}>🏷 거래처유형</span>
                     <select value={proj.dealerType||""} onChange={e=>up("projects",proj.id,{dealerType:e.target.value})} style={{flex:1,padding:"7px 10px",borderRadius:8,fontSize:12,fontWeight:700,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",color:proj.dealerType?(DT[proj.dealerType]?.color||"#111827"):"#9CA3AF",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="">미지정</option>{DEALER_TYPES.map(d=><option key={d.code} value={d.code}>{d.code} · {d.label} ({d.price})</option>)}</select>
                   </div>
-                  <div style={{padding:"10px 16px 0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div style={{padding:"12px 16px 0"}}>
+                    <span style={{fontSize:12,fontWeight:800,color:"#4B5563"}}>📈 주간 활동지표 (선행지표)</span>
+                    {(proj.activityKPIs||[]).map(ak=>{const p2=pct(ak.current||0,ak.target||0);return(
+                      <div key={ak.id} style={{backgroundColor:"#FFFFFF",borderRadius:10,padding:"9px 11px",marginTop:7,border:"1px solid #E5E8EB"}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5,gap:8}}>
+                          <span style={{fontSize:12,fontWeight:700,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ak.name}</span>
+                          <span style={{fontSize:11,fontWeight:800,color:"#8B5CF6",flexShrink:0}}>{fmt(ak.current||0,ak.unit)} / {fmt(ak.target||0,ak.unit)} <span style={{color:"#9CA3AF",fontWeight:600}}>/주</span></span>
+                        </div>
+                        <PBar value={p2} color="#8B5CF6" h={5}/>
+                        <div style={{display:"flex",gap:6,marginTop:7,alignItems:"center"}}>
+                          <input type="number" placeholder={`이번주(${weekLabel(weekKey())}) 값`} onKeyDown={e=>{if(e.key==="Enter"&&e.target.value!==""){actRecord(proj,ak,e.target.value);e.target.value="";}}} onBlur={e=>{if(e.target.value!==""){actRecord(proj,ak,e.target.value);e.target.value="";}}} style={{flex:1,minWidth:0,padding:"6px 9px",borderRadius:8,border:"1.5px solid #E5E8EB",fontSize:11.5,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
+                          {ak.history&&ak.history.length>0&&<button onClick={()=>setActHist({proj,ak})} style={{flexShrink:0,padding:"5px 8px",borderRadius:7,border:"1px solid #E5E8EB",background:"#fff",fontSize:10.5,fontWeight:700,color:"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>📜 {ak.history.length}</button>}
+                          <button onClick={()=>actRemove(proj,ak)} style={{flexShrink:0,background:"none",border:"none",fontSize:13,color:"#D1D5DB",cursor:"pointer",padding:2}}>🗑</button>
+                        </div>
+                        {ak.byName&&<p style={{margin:"5px 0 0",fontSize:10,color:"#9CA3AF"}}>👤 {ak.byName} · {weekLabel(ak.week||weekKey())} 입력</p>}
+                      </div>
+                    );})}
+                    <div style={{display:"flex",gap:5,marginTop:8}}>
+                      <input value={actForm.name} onChange={e=>setActForm({...actForm,name:e.target.value})} placeholder="지표명 (예: 주간 견적 발송)" style={{flex:1,minWidth:0,padding:"7px 9px",borderRadius:8,border:"1.5px solid #E5E8EB",fontSize:11.5,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
+                      <input value={actForm.unit} onChange={e=>setActForm({...actForm,unit:e.target.value})} placeholder="단위" style={{width:48,padding:"7px 6px",borderRadius:8,border:"1.5px solid #E5E8EB",fontSize:11.5,outline:"none",fontFamily:"inherit",boxSizing:"border-box",textAlign:"center"}}/>
+                      <input type="number" value={actForm.target} onChange={e=>setActForm({...actForm,target:e.target.value})} placeholder="주목표" style={{width:60,padding:"7px 6px",borderRadius:8,border:"1.5px solid #E5E8EB",fontSize:11.5,outline:"none",fontFamily:"inherit",boxSizing:"border-box",textAlign:"center"}}/>
+                      <button onClick={()=>actAddIndicator(proj)} disabled={!actForm.name.trim()} style={{flexShrink:0,width:34,borderRadius:8,border:"none",backgroundColor:actForm.name.trim()?"#8B5CF6":"#E5E8EB",color:"#fff",fontSize:17,fontWeight:900,cursor:actForm.name.trim()?"pointer":"not-allowed"}}>+</button>
+                    </div>
+                  </div>
+                  <div style={{padding:"14px 16px 0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <span style={{fontSize:12,fontWeight:800,color:"#4B5563"}}>업무 목록 ({tasks.length}건)</span>
                     <button onClick={()=>setAddTaskSheet(true)} style={{padding:"6px 12px",borderRadius:10,border:"none",backgroundColor:"#F97316",color:"#FFFFFF",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>+ 업무 추가</button>
                   </div>
@@ -1189,8 +1232,22 @@ function ProjectsPage({D,cu,up,add,rm}){
           <button onClick={doAddProj} disabled={!projForm.title.trim()} style={{width:"100%",padding:"14px 0",borderRadius:14,border:"none",backgroundColor:projForm.title.trim()?"#F97316":"#E5E8EB",color:projForm.title.trim()?"#FFFFFF":"#9CA3AF",fontSize:15,fontWeight:700,cursor:projForm.title.trim()?"pointer":"not-allowed",fontFamily:"inherit"}}>프로젝트 추가하기</button>
         </div>
       </Sheet>
-      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId})}/>
+      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,attachments:f.attachments})}/>
       <Confirm open={!!confirmTaskId} title="업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmTaskId)?.title}" 업무를 삭제할까요?`} onOk={()=>{rm("tasks",confirmTaskId);setConfirmTaskId(null);}} onCancel={()=>setConfirmTaskId(null)}/>
+      <Sheet open={!!actHist} onClose={()=>setActHist(null)} title="📜 활동지표 주차별 이력">
+        {actHist&&(<div style={{marginTop:8}}>
+          <p style={{margin:"0 0 12px",fontSize:13,fontWeight:900,color:"#0F1F5C"}}>{actHist.ak.name} <span style={{fontSize:11,color:"#9CA3AF",fontWeight:600}}>· 주목표 {fmt(actHist.ak.target||0,actHist.ak.unit)}</span></p>
+          {[...((actHist.proj.activityKPIs||[]).find(x=>x.id===actHist.ak.id)?.history||[])].reverse().map((h,i)=>(
+            <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:"1px solid #F2F4F6"}}>
+              <Ava name={h.byName} size={26}/>
+              <div style={{flex:1}}>
+                <p style={{margin:0,fontSize:13,fontWeight:800,color:"#8B5CF6"}}>{weekLabel(h.week)} · {fmt(h.value||0,actHist.ak.unit)}</p>
+                <p style={{margin:"2px 0 0",fontSize:11,color:"#9CA3AF"}}>{h.byName||"—"} · {(h.at||"").slice(0,16).replace("T"," ")}</p>
+              </div>
+            </div>
+          ))}
+        </div>)}
+      </Sheet>
     </div>
   );
 }

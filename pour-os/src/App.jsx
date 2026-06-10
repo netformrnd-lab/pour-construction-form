@@ -21,6 +21,7 @@ const C = {
 };
 const WEEK_DAYS=["월","화","수","목","금"];
 const ALL_DAYS=["일","월","화","수","목","금","토"];
+const GOAL_TYPE={revenue:{l:"💰 매출",c:"#EA580C",bg:"#FFEDD5"},metric:{l:"🎯 목표",c:"#7C3AED",bg:"#F3EFFE"},journey:{l:"🔁 여정",c:"#0891B2",bg:"#E0F2FE"}};
 const STATUS_MAP={
   todo:{label:"할일",color:"#6B7280",bg:"#F2F4F6"},
   inprogress:{label:"진행중",color:"#3182F6",bg:"#EBF3FF"},
@@ -1123,14 +1124,19 @@ function ProjectsPage({D,cu,up,add,rm}){
   const [editProjId,setEditProjId]=useState(null);
   const [projDel,setProjDel]=useState(null);
   const [showAdv,setShowAdv]=useState(false);
-  const [projForm,setProjForm]=useState({title:"",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high"});
-  const resetProjForm=()=>setProjForm({title:"",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high"});
-  const openEditProj=(p)=>{ setProjForm({title:p.title||"",mainKPIId:p.mainKPIId||"",subKPIId:p.subKPIId||"",dealerType:p.dealerType||"",assigneeId:p.assigneeId||cu.id,collaboratorIds:p.collaboratorIds||[],group:p.group||"",priority:p.priority||"mid"}); setEditProjId(p.id); setShowAdv(true); setAddProjSheet(true); };
+  const [projForm,setProjForm]=useState({title:"",goalType:"journey",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high"});
+  const [metric,setMetric]=useState({name:"",target:"",unit:"개"});
+  const resetProjForm=()=>{setProjForm({title:"",goalType:"journey",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high"});setMetric({name:"",target:"",unit:"개"});};
+  const openEditProj=(p)=>{ setProjForm({title:p.title||"",goalType:p.goalType||(p.mainKPIId==="mk2"||p.resultValue?"revenue":"journey"),mainKPIId:p.mainKPIId||"",subKPIId:p.subKPIId||"",dealerType:p.dealerType||"",assigneeId:p.assigneeId||cu.id,collaboratorIds:p.collaboratorIds||[],group:p.group||"",priority:p.priority||"mid"}); setMetric({name:"",target:"",unit:"개"}); setEditProjId(p.id); setShowAdv(true); setAddProjSheet(true); };
   const doAddProj=()=>{
     if(!projForm.title.trim()) return;
     if(editProjId){ up("projects",editProjId,{...projForm}); }
-    else { add("projects",{id:"p"+Date.now(),...projForm,status:"active",progress:0,resultValue:0}); }
-    resetProjForm(); setEditProjId(null); setAddProjSheet(false);
+    else {
+      const proj={id:"p"+Date.now(),...projForm,status:"active",progress:0,resultValue:0};
+      if(projForm.goalType==="metric"&&metric.name.trim()) proj.activityKPIs=[{id:"ak"+Date.now(),name:metric.name.trim(),unit:metric.unit||"개",target:numF(metric.target),current:0,history:[]}];
+      add("projects",proj);
+    }
+    resetProjForm(); setEditProjId(null); setShowAdv(false); setAddProjSheet(false);
   };
   const availSKs=D.subKPIs.filter(sk=>sk.mainKPIId===projForm.mainKPIId);
   const toggleColab=(uid)=>{const list=projForm.collaboratorIds;setProjForm({...projForm,collaboratorIds:list.includes(uid)?list.filter(x=>x!==uid):[...list,uid]});};
@@ -1189,6 +1195,7 @@ function ProjectsPage({D,cu,up,add,rm}){
                     <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4,flexWrap:"wrap"}}>
                       {sk&&<Badge color={col} bg={col+"18"}>{mk?.krKey} · {sk.channelCode}</Badge>}
                       {!sk&&mk&&<Badge color="#3182F6" bg="#EBF3FF">{mk.krKey}</Badge>}
+                      {proj.goalType&&GOAL_TYPE[proj.goalType]&&<Badge color={GOAL_TYPE[proj.goalType].c} bg={GOAL_TYPE[proj.goalType].bg}>{GOAL_TYPE[proj.goalType].l}</Badge>}
                       {proj.dealerType&&DT[proj.dealerType]&&<Badge color={DT[proj.dealerType].color} bg={DT[proj.dealerType].color+"18"}>🏷 {proj.dealerType}</Badge>}
                       <Badge color={pColor} bg={pColor+"18"}>{proj.priority==="high"?"🔴 높음":proj.priority==="mid"?"🟡 중간":"🟢 낮음"}</Badge>
                     </div>
@@ -1311,6 +1318,30 @@ function ProjectsPage({D,cu,up,add,rm}){
         <div style={{marginTop:10}}>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>프로젝트명 *</label><input value={projForm.title} onChange={e=>setProjForm({...projForm,title:e.target.value})} placeholder="프로젝트 이름" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>담당자</label><select value={projForm.assigneeId} onChange={e=>setProjForm({...projForm,assigneeId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}>{D.users.map(u=><option key={u.id} value={u.id}>{u.name} ({u.dept})</option>)}</select></div>
+          <div style={{marginBottom:14}}>
+            <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>이 프로젝트의 성과는? <span style={{color:"#9CA3AF",fontWeight:600}}>(측정 방식)</span></label>
+            <div style={{display:"flex",gap:6}}>
+              {[["revenue","💰 매출","돈을 번다"],["metric","🎯 수치목표","상품등록 100개"],["journey","🔁 여정·구축","진행도로"]].map(([k,l,d])=>(
+                <button key={k} onClick={()=>{setProjForm({...projForm,goalType:k});if(k==="revenue")setShowAdv(true);}} style={{flex:1,padding:"10px 4px",borderRadius:11,border:`1.5px solid ${projForm.goalType===k?"#F97316":"#E5E8EB"}`,background:projForm.goalType===k?"#FFEDD5":"#fff",cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
+                  <p style={{margin:0,fontSize:12,fontWeight:800,color:projForm.goalType===k?"#EA580C":"#374151"}}>{l}</p>
+                  <p style={{margin:"2px 0 0",fontSize:9,color:"#9CA3AF",lineHeight:1.3}}>{d}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+          {projForm.goalType==="revenue"&&<p style={{margin:"-4px 2px 14px",fontSize:11,color:"#9A3412",fontWeight:600,background:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:8,padding:"8px 10px"}}>💰 아래 <b>상세 설정</b>에서 메인·서브 KPI를 연결하면, 이 프로젝트 매출이 KPI·최종목표에 자동 집계됩니다.</p>}
+          {projForm.goalType==="journey"&&<p style={{margin:"-4px 2px 14px",fontSize:11,color:"#6B7280",fontWeight:600}}>🔁 등록 후 상세에서 <b>진척 −/＋</b>로 진행도를 관리하고, 실제 일은 <b>업무</b>로 남기세요.</p>}
+          {projForm.goalType==="metric"&&!editProjId&&(
+            <div style={{marginBottom:14,padding:"12px",background:"#F5F3FF",borderRadius:12,border:"1px solid #DDD6FE"}}>
+              <p style={{margin:"0 0 8px",fontSize:11.5,fontWeight:800,color:"#7C3AED"}}>🎯 목표 지표 — 예: 상품등록 / 100 / 개</p>
+              <div style={{display:"flex",gap:6}}>
+                <input value={metric.name} onChange={e=>setMetric({...metric,name:e.target.value})} placeholder="지표명 (상품등록)" style={{flex:1,minWidth:0,padding:"9px 10px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:12.5,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
+                <input type="number" value={metric.target} onChange={e=>setMetric({...metric,target:e.target.value})} placeholder="목표" style={{width:62,padding:"9px 8px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:12.5,outline:"none",fontFamily:"inherit",boxSizing:"border-box",textAlign:"center"}}/>
+                <input value={metric.unit} onChange={e=>setMetric({...metric,unit:e.target.value})} placeholder="단위" style={{width:48,padding:"9px 6px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:12.5,outline:"none",fontFamily:"inherit",boxSizing:"border-box",textAlign:"center"}}/>
+              </div>
+              <p style={{margin:"6px 0 0",fontSize:10,color:"#9CA3AF"}}>등록 후 상세에서 진행을 누적 입력 (지표는 나중에 추가·수정 가능)</p>
+            </div>
+          )}
           <button onClick={()=>setShowAdv(!showAdv)} style={{width:"100%",padding:"11px 0",borderRadius:12,border:"1.5px dashed #D1D5DB",background:"#F9FAFB",color:"#6B7280",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"inherit",marginBottom:14}}>{showAdv?"▲ 상세 설정 접기":"＋ 상세 설정 (KPI 연결·거래처유형·그룹·우선순위) — 선택"}</button>
           {showAdv&&(<>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>메인 KPI <span style={{color:"#9CA3AF",fontWeight:600}}>(어느 목표에 기여)</span></label><select value={projForm.mainKPIId} onChange={e=>setProjForm({...projForm,mainKPIId:e.target.value,subKPIId:""})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="">없음 (운영 인프라)</option>{D.mainKPIs.map(mk=><option key={mk.id} value={mk.id}>{mk.krKey} · {mk.title}</option>)}</select></div>

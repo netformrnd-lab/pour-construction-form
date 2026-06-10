@@ -154,6 +154,35 @@ const fmt=(n,u)=>{
   if(u==="원"&&n>=10000) return Math.round(n/10000).toLocaleString()+"만";
   return n.toLocaleString()+(u||"");
 };
+// 금액 → 한글 정확 읽기 ("1억 2,300만원") — 0 개수 실수 방지용
+const fmtKorWon=(n)=>{ n=Math.round(numF(n)); if(n<=0) return "0원"; const eok=Math.floor(n/100000000); const man=Math.floor((n%100000000)/10000); const won=n%10000; let s=""; if(eok)s+=eok.toLocaleString()+"억 "; if(man)s+=man.toLocaleString()+"만 "; if(won)s+=won.toLocaleString(); return s.trim()+"원"; };
+// 금액 입력기 — 숫자 + [원|만|억] 단위 토글 + 빠른칩 + 한글 실시간 표기 (초등학생도 정확 입력)
+function MoneyInput({value,onCommit,compact,live}){
+  const M={"원":1,"만":10000,"억":100000000};
+  const [unit,setUnit]=useState("만");
+  const [raw,setRaw]=useState("");
+  useEffect(()=>{ const v=numF(value); if(v<=0){setRaw("");return;} let u="만"; if(v>=100000000)u="억"; else if(v<10000)u="원"; setUnit(u); const r=v/M[u]; setRaw(String(Math.round(r*100)/100)); /* eslint-disable-next-line */ },[]);
+  const total=Math.round((Number(raw)||0)*M[unit]);
+  const commit=(r,u)=>{ const n=Math.round((Number(r)||0)*M[u]); onCommit(n); };
+  const chips=[["+1만",10000],["+10만",100000],["+100만",1000000],["+1천만",10000000],["+1억",100000000]];
+  return(
+    <div>
+      <div style={{display:"flex",gap:6,alignItems:"stretch"}}>
+        <input type="number" inputMode="decimal" value={raw} onChange={e=>{setRaw(e.target.value);if(live)commit(e.target.value,unit);}} onBlur={e=>commit(e.target.value,unit)} placeholder="0" style={{flex:1,minWidth:0,padding:compact?"8px 10px":"11px 12px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:compact?14:15,fontWeight:800,textAlign:"right",fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+        <div style={{display:"inline-flex",borderRadius:10,border:"1.5px solid #E5E8EB",overflow:"hidden",flexShrink:0}}>
+          {["원","만","억"].map(u=>(<button key={u} onClick={()=>{setUnit(u);commit(raw,u);}} style={{padding:compact?"0 9px":"0 11px",fontSize:12.5,fontWeight:800,border:"none",cursor:"pointer",backgroundColor:unit===u?"#F97316":"#fff",color:unit===u?"#fff":"#9CA3AF",fontFamily:"inherit"}}>{u}</button>))}
+        </div>
+      </div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginTop:5,flexWrap:"wrap"}}>
+        <span style={{fontSize:11.5,fontWeight:800,color:total>0?"#EA580C":"#C4C9D0"}}>= {fmtKorWon(total)}</span>
+        <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+          {chips.map(([l,d])=>(<button key={l} onClick={()=>{const n=Math.max(0,total+d);setUnit("원");setRaw(String(n));onCommit(n);}} style={{padding:"3px 7px",borderRadius:7,border:"1px solid #E5E8EB",background:"#F9FAFB",fontSize:10.5,fontWeight:700,color:"#4B5563",cursor:"pointer",fontFamily:"inherit"}}>{l}</button>))}
+          {total>0&&<button onClick={()=>{setRaw("");onCommit(0);}} style={{padding:"3px 7px",borderRadius:7,border:"1px solid #FFE2E5",background:"#FFF0F1",fontSize:10.5,fontWeight:700,color:"#F04452",cursor:"pointer",fontFamily:"inherit"}}>지움</button>}
+        </div>
+      </div>
+    </div>
+  );
+}
 const todayDay=()=>ALL_DAYS[new Date().getDay()];
 const nowMonth=()=>new Date().toISOString().slice(0,7);
 const PBar=({value,color="#3182F6",h=5})=>(
@@ -914,7 +943,7 @@ function KPIPage({D,lead,up,cu,add,rm}){
                             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginTop:6,flexWrap:"wrap"}} onClick={e=>e.stopPropagation()}>
                               <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
                                 {sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride&&<span style={{fontSize:10,fontWeight:800,color:"#3182F6",backgroundColor:"#EBF3FF",padding:"2px 7px",borderRadius:6}}>📊 자동 집계(매출)</span>}
-                                {sk.unit==="%"&&!sk.manualOverride&&projs.length>0&&<span style={{fontSize:10,fontWeight:800,color:"#00C073",backgroundColor:"#E8FAF1",padding:"2px 7px",borderRadius:6}}>📊 자동(프로젝트 진척 평균)</span>}
+                                {sk.unit==="%"&&!sk.manualOverride&&projs.length>0&&<span style={{fontSize:10,fontWeight:800,color:"#00C073",backgroundColor:"#E8FAF1",padding:"2px 7px",borderRadius:6}}>📊 자동(업무 진행률 평균)</span>}
                                 {sk.manualOverride&&<span style={{fontSize:10,fontWeight:800,color:"#EA580C",backgroundColor:"#FFF1E7",padding:"2px 7px",borderRadius:6}}>✏️ 수동 수정됨</span>}
                                 {sk.valueByName&&<span style={{fontSize:10.5,color:"#9CA3AF"}}>👤 {sk.valueByName} · {(sk.valueAt||"").slice(5,10)}</span>}
                               </div>
@@ -1169,7 +1198,7 @@ function KPIPage({D,lead,up,cu,add,rm}){
       <Sheet open={salesOpen} onClose={()=>setSalesOpen(false)} title="💵 B2B 매출 입력" h="88vh">
         <div style={{marginTop:6}}>
           <p style={{margin:"0 0 12px",fontSize:12,color:"#6B7280",lineHeight:1.5}}>거래처유형별로 발생한 매출을 입력하세요. 입력하면 메인KPI·단가·거래처유형에 자동 반영돼요.</p>
-          {D.subKPIs.filter(s=>s.mainKPIId==="mk2").map(sk=>{const ps=D.projects.filter(p=>p.subKPIId===sk.id);if(!ps.length)return null;const sub=ps.reduce((a,p)=>a+(p.resultValue||0),0);return(<div key={sk.id} style={{marginBottom:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:7}}><span style={{fontSize:12.5,fontWeight:900,color:"#8B5CF6"}}>{sk.channelCode} · {sk.title}</span><span style={{fontSize:11.5,fontWeight:800,color:"#374151"}}>{fmt(sub,"원")} / {fmt(sk.targetValue,"원")}</span></div>{ps.map(p=>{const dt=DT[p.dealerType];const sh=p.salesHistory||[];return(<div key={p.id} style={{padding:"7px 0",borderBottom:"1px solid #F2F4F6"}}><div style={{display:"flex",alignItems:"center",gap:8}}>{dt&&<span style={{fontSize:9.5,fontWeight:800,color:dt.color,backgroundColor:dt.color+"18",borderRadius:6,padding:"2px 6px",flexShrink:0,fontFamily:"'IBM Plex Mono',monospace"}}>{p.dealerType}</span>}<span style={{fontSize:12.5,fontWeight:600,color:"#1F2937",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span><input type="number" defaultValue={p.resultValue||""} placeholder="0" onBlur={e=>setSale(p,e.target.value)} style={{width:104,padding:"8px 10px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:13,fontWeight:700,textAlign:"right",fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/><span style={{fontSize:11,color:"#9CA3AF",flexShrink:0}}>원</span></div>{(p.salesByName||sh.length>0)&&<div style={{display:"flex",alignItems:"center",gap:6,marginTop:3,paddingLeft:dt?44:0}}><span style={{fontSize:10,color:"#9CA3AF",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.salesByName?`${p.salesByName} · ${(p.salesAt||"").slice(0,10)}`:""}</span>{sh.length>0&&<button onClick={()=>setSalesHist(p)} style={{fontSize:10,fontWeight:800,color:"#8B5CF6",background:"#F3EFFE",border:"none",borderRadius:6,padding:"2px 7px",cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>📜 이력 {sh.length}</button>}</div>}</div>);})}</div>);})}
+          {D.subKPIs.filter(s=>s.mainKPIId==="mk2").map(sk=>{const ps=D.projects.filter(p=>p.subKPIId===sk.id);if(!ps.length)return null;const sub=ps.reduce((a,p)=>a+(p.resultValue||0),0);return(<div key={sk.id} style={{marginBottom:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:7}}><span style={{fontSize:12.5,fontWeight:900,color:"#8B5CF6"}}>{sk.channelCode} · {sk.title}</span><span style={{fontSize:11.5,fontWeight:800,color:"#374151"}}>{fmt(sub,"원")} / {fmt(sk.targetValue,"원")}</span></div>{ps.map(p=>{const dt=DT[p.dealerType];const sh=p.salesHistory||[];return(<div key={p.id} style={{padding:"9px 0",borderBottom:"1px solid #F2F4F6"}}><div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>{dt&&<span style={{fontSize:9.5,fontWeight:800,color:dt.color,backgroundColor:dt.color+"18",borderRadius:6,padding:"2px 6px",flexShrink:0,fontFamily:"'IBM Plex Mono',monospace"}}>{p.dealerType}</span>}<span style={{fontSize:12.5,fontWeight:700,color:"#1F2937",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span></div><MoneyInput value={p.resultValue} compact onCommit={n=>setSale(p,n)}/>{(p.salesByName||sh.length>0)&&<div style={{display:"flex",alignItems:"center",gap:6,marginTop:3,paddingLeft:dt?44:0}}><span style={{fontSize:10,color:"#9CA3AF",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.salesByName?`${p.salesByName} · ${(p.salesAt||"").slice(0,10)}`:""}</span>{sh.length>0&&<button onClick={()=>setSalesHist(p)} style={{fontSize:10,fontWeight:800,color:"#8B5CF6",background:"#F3EFFE",border:"none",borderRadius:6,padding:"2px 7px",cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>📜 이력 {sh.length}</button>}</div>}</div>);})}</div>);})}
           <button onClick={()=>setSalesOpen(false)} style={{width:"100%",marginTop:10,padding:"14px 0",borderRadius:14,border:"none",backgroundColor:"#F97316",color:"#FFFFFF",fontSize:15,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>완료</button>
         </div>
       </Sheet>
@@ -1234,7 +1263,7 @@ function KPIPage({D,lead,up,cu,add,rm}){
               ))}
             </div>
             <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>{valMode==="delta"?"이번 주 실적":"누계 총값"} ({it.unit})</label>
-            <input type="number" value={valAmt} onChange={e=>setValAmt(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&valAmt!=="")applyVal();}} placeholder="0 (Enter로 저장)" autoFocus style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:16,fontWeight:800,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+            {it.unit==="원"?<MoneyInput value={valAmt===""?0:Number(valAmt)} live onCommit={n=>setValAmt(String(n))}/>:<input type="number" value={valAmt} onChange={e=>setValAmt(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&valAmt!=="")applyVal();}} placeholder="0 (Enter로 저장)" autoFocus style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:16,fontWeight:800,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>}
             <div style={{margin:"12px 0 16px",padding:"11px 14px",borderRadius:12,background:"#F9FAFB",border:"1px solid #F2F4F6",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
               <span style={{fontSize:12,color:"#6B7280",fontWeight:700}}>저장 후 누계</span>
               <span style={{fontSize:14,fontWeight:900,color:"#0F1F5C"}}>{fmt(prev,it.unit)} → <span style={{color:"#F97316"}}>{fmt(preview,it.unit)}</span> ({pct(preview,it.targetValue)}%)</span>
@@ -1401,7 +1430,7 @@ function ProjectsPage({D,cu,up,add,rm,pc}){
                   </div>
                   <div style={{padding:"12px 16px 0"}}>
                     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
-                      <span style={{fontSize:12,fontWeight:800,color:"#4B5563"}}>🎯 목표 지표 (수치 목표 · 매출 아닌 산출)</span>
+                      <span style={{fontSize:12,fontWeight:800,color:"#4B5563"}}>🎯 숫자로 세는 목표 <span style={{fontWeight:600,color:"#9CA3AF"}}>(매출 빼고)</span></span>
                       <div style={{display:"inline-flex",borderRadius:7,border:"1px solid #E5E8EB",overflow:"hidden"}}>{[["delta","➕추가"],["total","=총값"]].map(([k,l])=>(<button key={k} onClick={()=>setActMode(k)} style={{padding:"3px 8px",fontSize:10.5,fontWeight:700,border:"none",cursor:"pointer",backgroundColor:actMode===k?"#8B5CF6":"#fff",color:actMode===k?"#fff":"#9CA3AF",fontFamily:"inherit"}}>{l}</button>))}</div>
                     </div>
                     {(proj.activityKPIs||[]).map(ak=>{const p2=pct(ak.current||0,ak.target||0);return(
@@ -1419,8 +1448,14 @@ function ProjectsPage({D,cu,up,add,rm,pc}){
                         {ak.byName&&<p style={{margin:"5px 0 0",fontSize:10,color:"#9CA3AF"}}>👤 {ak.byName} · {weekLabel(ak.week||weekKey())} 입력</p>}
                       </div>
                     );})}
-                    <div style={{display:"flex",gap:5,marginTop:8}}>
-                      <input value={actForm.name} onChange={e=>setActForm({...actForm,name:e.target.value})} placeholder="지표명 (예: 상품등록·견적발송)" style={{flex:1,minWidth:0,padding:"7px 9px",borderRadius:8,border:"1.5px solid #E5E8EB",fontSize:11.5,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
+                    <div style={{display:"flex",gap:4,marginTop:10,flexWrap:"wrap"}}>
+                      <span style={{fontSize:10.5,color:"#9CA3AF",fontWeight:700,alignSelf:"center"}}>예시 ▸</span>
+                      {[["상품등록","개",100],["견적발송","건",50],["콘텐츠","개",30],["전화상담","건",40],["입점제안","건",20]].map(([nm,un,tg])=>(
+                        <button key={nm} onClick={()=>setActForm({name:nm,unit:un,target:String(tg)})} style={{padding:"4px 9px",borderRadius:14,border:"1px solid #EDE9FE",background:"#F5F3FF",fontSize:10.5,fontWeight:700,color:"#7C3AED",cursor:"pointer",fontFamily:"inherit"}}>{nm} {tg}{un}</button>
+                      ))}
+                    </div>
+                    <div style={{display:"flex",gap:5,marginTop:7}}>
+                      <input value={actForm.name} onChange={e=>setActForm({...actForm,name:e.target.value})} placeholder="무엇을 셀까요? (예: 상품등록)" style={{flex:1,minWidth:0,padding:"7px 9px",borderRadius:8,border:"1.5px solid #E5E8EB",fontSize:11.5,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
                       <input value={actForm.unit} onChange={e=>setActForm({...actForm,unit:e.target.value})} placeholder="단위" style={{width:48,padding:"7px 6px",borderRadius:8,border:"1.5px solid #E5E8EB",fontSize:11.5,outline:"none",fontFamily:"inherit",boxSizing:"border-box",textAlign:"center"}}/>
                       <input type="number" value={actForm.target} onChange={e=>setActForm({...actForm,target:e.target.value})} placeholder="목표" style={{width:60,padding:"7px 6px",borderRadius:8,border:"1.5px solid #E5E8EB",fontSize:11.5,outline:"none",fontFamily:"inherit",boxSizing:"border-box",textAlign:"center"}}/>
                       <button onClick={()=>actAddIndicator(proj)} disabled={!actForm.name.trim()} style={{flexShrink:0,width:34,borderRadius:8,border:"none",backgroundColor:actForm.name.trim()?"#8B5CF6":"#E5E8EB",color:"#fff",fontSize:17,fontWeight:900,cursor:actForm.name.trim()?"pointer":"not-allowed"}}>+</button>
@@ -1507,9 +1542,14 @@ function ProjectsPage({D,cu,up,add,rm,pc}){
           {projForm.goalType==="journey"&&<p style={{margin:"-4px 2px 14px",fontSize:11,color:"#6B7280",fontWeight:600}}>🔁 등록 후 상세에서 <b>진척 −/＋</b>로 진행도를 관리하고, 실제 일은 <b>업무</b>로 남기세요.</p>}
           {projForm.goalType==="metric"&&!editProjId&&(
             <div style={{marginBottom:14,padding:"12px",background:"#F5F3FF",borderRadius:12,border:"1px solid #DDD6FE"}}>
-              <p style={{margin:"0 0 8px",fontSize:11.5,fontWeight:800,color:"#7C3AED"}}>🎯 목표 지표 — 예: 상품등록 / 100 / 개</p>
+              <p style={{margin:"0 0 8px",fontSize:11.5,fontWeight:800,color:"#7C3AED"}}>🎯 무엇을 몇 개 만들까요?</p>
+              <div style={{display:"flex",gap:4,marginBottom:8,flexWrap:"wrap"}}>
+                {[["상품등록","개",100],["견적발송","건",50],["콘텐츠","개",30],["전화상담","건",40]].map(([nm,un,tg])=>(
+                  <button key={nm} onClick={()=>setMetric({name:nm,unit:un,target:String(tg)})} style={{padding:"4px 9px",borderRadius:14,border:"1px solid #DDD6FE",background:"#fff",fontSize:10.5,fontWeight:700,color:"#7C3AED",cursor:"pointer",fontFamily:"inherit"}}>{nm} {tg}{un}</button>
+                ))}
+              </div>
               <div style={{display:"flex",gap:6}}>
-                <input value={metric.name} onChange={e=>setMetric({...metric,name:e.target.value})} placeholder="지표명 (상품등록)" style={{flex:1,minWidth:0,padding:"9px 10px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:12.5,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
+                <input value={metric.name} onChange={e=>setMetric({...metric,name:e.target.value})} placeholder="무엇을 셀까요?" style={{flex:1,minWidth:0,padding:"9px 10px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:12.5,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
                 <input type="number" value={metric.target} onChange={e=>setMetric({...metric,target:e.target.value})} placeholder="목표" style={{width:62,padding:"9px 8px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:12.5,outline:"none",fontFamily:"inherit",boxSizing:"border-box",textAlign:"center"}}/>
                 <input value={metric.unit} onChange={e=>setMetric({...metric,unit:e.target.value})} placeholder="단위" style={{width:48,padding:"9px 6px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:12.5,outline:"none",fontFamily:"inherit",boxSizing:"border-box",textAlign:"center"}}/>
               </div>

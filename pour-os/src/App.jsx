@@ -1827,10 +1827,20 @@ function AIPage({D,cu,add}){
     const projs=D.projects.filter(p=>p.assigneeId===cu.id).map(p=>`  ${p.title}: ${p.progress}%`).join("\n");
     return `=== POUR스토어 KPI 현황 ===\n목표: ${goal?.title} (${totalPct}% 달성)\n\n[메인KPI]\n${krs}\n\n[채널별 KPI]\n${subs}\n\n[${cu.name} 담당 프로젝트]\n${projs}`;
   };
+  const weeklyCtx=()=>{
+    const wk=weekKey();
+    const goal=D.goals[0];
+    const goalCur=D.mainKPIs.filter(mk=>mk.unit==="원").reduce((s,mk)=>s+mkCur(mk,D.subKPIs,D.projects),0);
+    const krs=D.mainKPIs.map(mk=>{const mc=mkCur(mk,D.subKPIs,D.projects);return `${mk.krKey} ${mk.title}: ${fmt(mc,mk.unit)}/${fmt(mk.targetValue,mk.unit)} (${pct(mc,mk.targetValue)}%)`;}).join("\n");
+    const wkEntries=[];
+    [...D.subKPIs,...D.mainKPIs].forEach(it=>{(it.valueHistory||[]).filter(h=>h.week===wk).forEach(h=>wkEntries.push(`${it.title}: ${h.mode==="delta"?"+":""}${fmt(h.mode==="delta"?h.amount:h.value,it.unit)} (${h.byName||"-"})`));});
+    const byUser=D.users.map(u=>{const t=D.tasks.filter(x=>x.assigneeId===u.id);const done=t.filter(x=>x.status==="done").length;const ap=D.projects.filter(p=>p.assigneeId===u.id);const avg=ap.length?Math.round(ap.reduce((s,p)=>s+(p.progress||0),0)/ap.length):0;return `${u.name}: 업무 ${done}/${t.length} 완료, 담당 프로젝트 ${ap.length}개 평균 ${avg}%`;}).join("\n");
+    return `=== 주간 팀 점검 (${weekLabel(wk)}) ===\n최종목표: ${goal?.title} ${pct(goalCur,goal?.targetValue||1)}%\n\n[메인KPI]\n${krs}\n\n[이번 주 입력 실적]\n${wkEntries.length?wkEntries.join("\n"):"(이번 주 입력 없음)"}\n\n[팀원별 현황]\n${byUser}`;
+  };
   const run=async()=>{
     setLoading(true);setResult(null);setSaved(false);
-    const c=ctx();
-    const prompt=type==="kpi"?`${c}\n\nPOUR스토어 KPI 현황 분석:\n1. 달성률 낮은 채널과 원인\n2. 즉시 개선 액션 3가지\n3. 이번 주 집중해야 할 것\n한국어로 간결하게.`:type==="ab"?`${c}\n\nAB테스트 관점:\n1. 직판 vs B2B 실행력 비교\n2. 채널별 효율 분석\n3. 리소스 재배분 제안\n한국어로.`:`${c}\n\n질문: ${q}\n한국어로 답변.`;
+    const c=type==="weekly"?weeklyCtx():ctx();
+    const prompt=type==="kpi"?`${c}\n\nPOUR스토어 KPI 현황 분석:\n1. 달성률 낮은 채널과 원인\n2. 즉시 개선 액션 3가지\n3. 이번 주 집중해야 할 것\n한국어로 간결하게.`:type==="ab"?`${c}\n\nAB테스트 관점:\n1. 직판 vs B2B 실행력 비교\n2. 채널별 효율 분석\n3. 리소스 재배분 제안\n한국어로.`:type==="weekly"?`${c}\n\n팀 리드 관점에서 이번 주 점검을 해줘:\n1. 이번 주 성과 (잘된 점)\n2. 우려·지연 (막힌 곳)\n3. 다음 주 팀이 집중할 액션 3가지\n한국어로 간결하게.`:`${c}\n\n질문: ${q}\n한국어로 답변.`;
     try{
       const res=await fetch("/api/coach",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:prompt}]})});
       const d=await res.json();
@@ -1840,10 +1850,10 @@ function AIPage({D,cu,add}){
   };
   const saveResult=()=>{
     if(!result||saved) return;
-    add("aiReviews",{id:"ai"+Date.now(),userId:cu.id,type,question:type==="custom"?q:"",result,model:"claude-sonnet-4-20250514",savedAt:new Date().toISOString(),label:type==="kpi"?"KPI 분석":type==="ab"?"메인KPI 비교":"질문: "+q.slice(0,30)});
+    add("aiReviews",{id:"ai"+Date.now(),userId:cu.id,type,question:type==="custom"?q:"",result,model:"claude-sonnet-4-20250514",savedAt:new Date().toISOString(),label:type==="kpi"?"KPI 분석":type==="ab"?"메인KPI 비교":type==="weekly"?"주간점검 "+weekLabel(weekKey()):"질문: "+q.slice(0,30)});
     setSaved(true);
   };
-  const TYPE_LABELS={kpi:"📊 KPI 분석",ab:"🧪 메인KPI 비교",custom:"💬 질문"};
+  const TYPE_LABELS={kpi:"📊 KPI 분석",ab:"🧪 메인KPI 비교",weekly:"📅 주간점검",custom:"💬 질문"};
   return(
     <div style={{padding:"14px 16px 20px"}}>
       <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"16px",marginBottom:14,border:"1px solid #F2F4F6"}}>
@@ -1853,7 +1863,7 @@ function AIPage({D,cu,add}){
           <button onClick={()=>setShowHistory(!showHistory)} style={{padding:"6px 12px",borderRadius:10,border:"1px solid #E5E8EB",backgroundColor:showHistory?"#0F1F5C":"#FFFFFF",color:showHistory?"#FFFFFF":"#4B5563",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>📋 {myReviews.length}건</button>
         </div>
         <div style={{display:"flex",gap:4,marginBottom:14,backgroundColor:"#F9FAFB",borderRadius:12,padding:4}}>
-          {[{k:"kpi",l:"📊 KPI"},{k:"ab",l:"🧪 KR비교"},{k:"custom",l:"💬 질문"}].map(t=><button key={t.k} onClick={()=>setType(t.k)} style={{flex:1,padding:"8px 0",borderRadius:9,border:"none",cursor:"pointer",backgroundColor:type===t.k?"#FFFFFF":"transparent",color:type===t.k?"#0F1F5C":"#6B7280",fontWeight:type===t.k?800:500,fontSize:12,fontFamily:"inherit",boxShadow:type===t.k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{t.l}</button>)}
+          {[{k:"kpi",l:"📊 KPI"},{k:"weekly",l:"📅 주간점검"},{k:"ab",l:"🧪 KR비교"},{k:"custom",l:"💬 질문"}].map(t=><button key={t.k} onClick={()=>setType(t.k)} style={{flex:1,padding:"8px 0",borderRadius:9,border:"none",cursor:"pointer",backgroundColor:type===t.k?"#FFFFFF":"transparent",color:type===t.k?"#0F1F5C":"#6B7280",fontWeight:type===t.k?800:500,fontSize:11,fontFamily:"inherit",boxShadow:type===t.k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{t.l}</button>)}
         </div>
         {type==="custom"&&<textarea value={q} onChange={e=>setQ(e.target.value)} placeholder="POUR 데이터 기반 질문을 입력하세요..." style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",resize:"none",height:90,fontFamily:"inherit",boxSizing:"border-box",outline:"none",marginBottom:12}}/>}
         <button onClick={run} disabled={loading||(type==="custom"&&!q.trim())} style={{width:"100%",padding:"14px 0",borderRadius:14,border:"none",backgroundColor:(loading||(type==="custom"&&!q.trim()))?"#E5E8EB":"#F97316",color:(loading||(type==="custom"&&!q.trim()))?"#9CA3AF":"#FFFFFF",fontSize:15,fontWeight:700,cursor:(loading||(type==="custom"&&!q.trim()))?"not-allowed":"pointer",fontFamily:"inherit"}}>

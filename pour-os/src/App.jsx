@@ -124,6 +124,9 @@ const INIT={
   ],
 };
 const pct=(c,t)=>t===0||t==null?0:Math.min(100,Math.round((c/t)*100));
+// 주차 헬퍼 (월요일 시작)
+const weekKey=(d=new Date())=>{const x=new Date(d);const off=(x.getDay()+6)%7;x.setDate(x.getDate()-off);x.setHours(0,0,0,0);return x.toISOString().slice(0,10);};
+const weekLabel=(key)=>{const m=new Date(key);const su=new Date(m);su.setDate(su.getDate()+6);const f=z=>`${z.getMonth()+1}/${z.getDate()}`;return `${f(m)}~${f(su)}`;};
 // 메인KPI2(B2B): 서브KPI 현재값 = 자식 프로젝트 매출 성과(resultValue) 합계 / 메인KPI1·3: 수동값
 const skCur=(sk,projects)=>(sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride)?(projects||[]).filter(p=>p.subKPIId===sk.id).reduce((a,p)=>a+(p.resultValue||0),0):(sk.currentValue||0);
 const mkCur=(mk,subKPIs,projects)=>mk.unit==="원"?subKPIs.filter(s=>s.mainKPIId===mk.id).reduce((a,s)=>a+skCur(s,projects),0):(mk.currentValue||0);
@@ -605,15 +608,24 @@ function KPIPage({D,lead,up,cu}){
   const [openProj,setOpenProj]=useState(null);
   const [salesOpen,setSalesOpen]=useState(false);
   const [histItem,setHistItem]=useState(null);   // 수치 이력 보기 대상 (subKPI/mainKPI)
+  const [valSheet,setValSheet]=useState(null);   // 수치 입력 시트 {coll,item}
+  const [valMode,setValMode]=useState("delta");  // delta(이번주 추가) | total(누계 직접)
+  const [valAmt,setValAmt]=useState("");
+  const [valWeek,setValWeek]=useState(weekKey());
   const krColors={mk1:"#3182F6",mk2:"#8B5CF6",mk3:"#00C073"};
-  // 수치 수동 수정 — 이력(누가·언제·이전→현재) 기록 + 작성자 표시
-  const editVal=(coll,item,raw)=>{
-    const v=Number(raw);
-    if(isNaN(v)) return;
+  // 수치 입력 시트 열기 — 매주 실적(추가값/총값) 기록
+  const openVal=(coll,item)=>{ setValMode("delta"); setValAmt(""); setValWeek(weekKey()); setValSheet({coll,item}); };
+  const shiftWeek=(d)=>{ const m=new Date(valWeek); m.setDate(m.getDate()+d*7); setValWeek(m.toISOString().slice(0,10)); };
+  const applyVal=()=>{
+    if(!valSheet) return;
+    const {coll,item}=valSheet;
     const prev=Number(item.currentValue||0);
+    const amt=Number(valAmt)||0;
+    const value=valMode==="delta"?prev+amt:amt;
     const at=new Date().toISOString();
-    const entry={value:v,prev,by:cu?.id||null,byName:cu?.name||"",at};
-    up(coll,item.id,{currentValue:v,manualOverride:true,valueBy:cu?.id||null,valueByName:cu?.name||"",valueAt:at,valueHistory:[...(item.valueHistory||[]),entry]});
+    const entry={week:valWeek,mode:valMode,amount:amt,value,prev,by:cu?.id||null,byName:cu?.name||"",at};
+    up(coll,item.id,{currentValue:value,manualOverride:true,valueBy:cu?.id||null,valueByName:cu?.name||"",valueAt:at,valueHistory:[...(item.valueHistory||[]),entry]});
+    setValSheet(null);
   };
   const resetAuto=(sk)=>up("subKPIs",sk.id,{manualOverride:false});
   const getContrib=(sk)=>{
@@ -674,7 +686,7 @@ function KPIPage({D,lead,up,cu}){
                 </div>
                 {open&&(
                   <div style={{borderTop:"1px solid #F2F4F6",padding:"12px 16px 14px"}}>
-                    {mk.unit==="원"&&mk.id!=="mk2"&&(<div style={{marginBottom:12,padding:"9px 12px",backgroundColor:"#EBF3FF",borderRadius:10}}><p style={{margin:0,fontSize:11.5,color:"#3182F6",fontWeight:600}}>📊 채널별 매출 합계로 자동 집계 — 아래 채널 현재값 입력</p></div>)}{mk.id==="mk2"&&(<div style={{marginBottom:12,padding:"11px 13px",backgroundColor:"#FFF7ED",borderRadius:10,border:"1px solid #FED7AA"}}><p style={{margin:"0 0 4px",fontSize:12,color:"#EA580C",fontWeight:800}}>💡 매출 입력은 여기서!</p><p style={{margin:0,fontSize:11.5,color:"#9A3412",fontWeight:600,lineHeight:1.55}}>아래 <b>거래처유형별 매출</b>의 <b>✏️ 입력</b> 버튼 → 한 화면에서 거래처유형별로 바로 입력 → 단가·메인KPI에 자동 반영</p></div>)}{lead&&mk.unit!=="원"&&(<div style={{marginBottom:12}}><input type="number" placeholder={`현재값 입력/수정 — 현재: ${fmt(mk.currentValue,mk.unit)}`} onBlur={e=>{if(e.target.value!==""){editVal("mainKPIs",mk,e.target.value);e.target.value="";}}} style={{width:"100%",padding:"9px 12px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:13,fontFamily:"inherit",boxSizing:"border-box",outline:"none"}}/>{(mk.valueByName||(mk.valueHistory&&mk.valueHistory.length))&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:6,gap:8}}>{mk.valueByName&&<span style={{fontSize:10.5,color:"#9CA3AF"}}>👤 {mk.valueByName} · {(mk.valueAt||"").slice(5,10)}</span>}{mk.valueHistory&&mk.valueHistory.length>0&&<button onClick={()=>setHistItem(mk)} style={{padding:"3px 9px",borderRadius:7,border:"1px solid #E5E8EB",background:"#fff",fontSize:10.5,fontWeight:700,color:"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>📜 이력 {mk.valueHistory.length}</button>}</div>}</div>)}
+                    {mk.unit==="원"&&mk.id!=="mk2"&&(<div style={{marginBottom:12,padding:"9px 12px",backgroundColor:"#EBF3FF",borderRadius:10}}><p style={{margin:0,fontSize:11.5,color:"#3182F6",fontWeight:600}}>📊 채널별 매출 합계로 자동 집계 — 아래 채널 현재값 입력</p></div>)}{mk.id==="mk2"&&(<div style={{marginBottom:12,padding:"11px 13px",backgroundColor:"#FFF7ED",borderRadius:10,border:"1px solid #FED7AA"}}><p style={{margin:"0 0 4px",fontSize:12,color:"#EA580C",fontWeight:800}}>💡 매출 입력은 여기서!</p><p style={{margin:0,fontSize:11.5,color:"#9A3412",fontWeight:600,lineHeight:1.55}}>아래 <b>거래처유형별 매출</b>의 <b>✏️ 입력</b> 버튼 → 한 화면에서 거래처유형별로 바로 입력 → 단가·메인KPI에 자동 반영</p></div>)}{lead&&mk.unit!=="원"&&(<div style={{marginBottom:12}}><button onClick={()=>openVal("mainKPIs",mk)} style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #F97316",background:"#FFF7ED",color:"#EA580C",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>📊 이번 주 실적 입력 · 현재 {fmt(mk.currentValue,mk.unit)}</button>{(mk.valueByName||(mk.valueHistory&&mk.valueHistory.length))&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:6,gap:8}}>{mk.valueByName&&<span style={{fontSize:10.5,color:"#9CA3AF"}}>👤 {mk.valueByName} · {(mk.valueAt||"").slice(5,10)}</span>}{mk.valueHistory&&mk.valueHistory.length>0&&<button onClick={()=>setHistItem(mk)} style={{padding:"3px 9px",borderRadius:7,border:"1px solid #E5E8EB",background:"#fff",fontSize:10.5,fontWeight:700,color:"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>📜 이력 {mk.valueHistory.length}</button>}</div>}</div>)}
                     {mk.id==="mk2"&&(()=>{const b2b=D.projects.filter(p=>p.mainKPIId==="mk2"&&p.dealerType);if(!b2b.length)return null;const byType={};b2b.forEach(p=>{const k=p.dealerType;if(!byType[k])byType[k]={sum:0,cnt:0};byType[k].sum+=(p.resultValue||0);byType[k].cnt+=1;});const rows=Object.keys(byType).map(code=>({code,sum:byType[code].sum,cnt:byType[code].cnt,dt:DT[code]})).sort((a,b)=>b.sum-a.sum);const tot=rows.reduce((s,r)=>s+r.sum,0);const mx=Math.max(...rows.map(r=>r.sum),1);return(<div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px 16px",marginBottom:10,border:"1px solid #F2F4F6"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}><h3 style={{margin:0,fontSize:15,fontWeight:900,color:"#0F1F5C"}}>💰 거래처유형별 매출 (B2B)</h3><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:13,fontWeight:800,color:"#F97316"}}>{fmt(tot,"원")}</span><button onClick={()=>setSalesOpen(true)} style={{padding:"6px 12px",borderRadius:9,border:"none",backgroundColor:"#F97316",color:"#FFFFFF",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>✏️ 입력</button></div></div><p style={{margin:"0 0 10px",fontSize:10.5,color:"#9CA3AF"}}>누가 샀나 · 거래처유형(13종) 자동 집계 — 입력은 ✏️ 버튼</p>{rows.map(r=>{const w=Math.round(r.sum/mx*100);const c=r.dt?.color||"#9CA3AF";return(<div key={r.code} style={{marginBottom:9}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3,gap:8}}><div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}><span style={{fontSize:10.5,fontWeight:800,color:c,backgroundColor:c+"18",borderRadius:6,padding:"2px 6px",flexShrink:0,fontFamily:"'IBM Plex Mono',monospace"}}>{r.code}</span><span style={{fontSize:12,fontWeight:700,color:"#374151",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.dt?.label||r.code}</span><span style={{fontSize:10.5,color:"#9CA3AF",flexShrink:0}}>·{r.cnt}건</span></div><span style={{fontSize:12,fontWeight:800,color:"#374151",flexShrink:0}}>{fmt(r.sum,"원")}</span></div><div style={{height:6,borderRadius:6,backgroundColor:"#F2F4F6",overflow:"hidden"}}><div style={{width:`${w}%`,height:"100%",backgroundColor:c,borderRadius:6}}/></div></div>);})}</div>);})()}<p style={{margin:"0 0 8px",fontSize:12,fontWeight:800,color:"#6B7280"}}>{mk.id==="mk2"?"얼마 단가에 — 단가별 매출 (자동 집계)":mk.id==="mk1"?"채널별 매출":"구축 항목"}</p>{(()=>{const orphan=D.projects.filter(pj=>pj.mainKPIId===mk.id&&!pj.subKPIId);if(!orphan.length)return null;return(<div style={{marginBottom:10,padding:"10px 12px",backgroundColor:"#FFF7ED",borderRadius:10,border:"1px solid #FED7AA"}}><p style={{margin:"0 0 6px",fontSize:11.5,fontWeight:800,color:"#EA580C"}}>⚠️ 채널 미지정 {orphan.length}건</p>{orphan.map(pj=>{const as=D.users.find(u=>u.id===pj.assigneeId);return(<div key={pj.id} style={{display:"flex",alignItems:"center",gap:6,padding:"3px 0"}}><Ava name={as?.name} color={as?.color} size={18}/><span style={{fontSize:12,fontWeight:600,color:"#1F2937",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pj.title}</span><span style={{fontSize:11,fontWeight:700,color:"#EA580C"}}>{pj.progress}%</span></div>);})}</div>);})()}
                     {subs.map(sk=>{
                       const sp=pct(skCur(sk,D.projects),sk.targetValue);
@@ -699,7 +711,7 @@ function KPIPage({D,lead,up,cu}){
                               <span style={{fontSize:11,color:"#9CA3AF"}}>{fmt(skCur(sk,D.projects),sk.unit)} / {fmt(sk.targetValue,sk.unit)}</span>
                               <span style={{fontSize:11,color:"#9CA3AF"}}>프로젝트 {projs.length}개</span>
                             </div>
-                            {lead&&<input type="number" placeholder="현재값 입력/수정" onClick={e=>e.stopPropagation()} onBlur={e=>{if(e.target.value!==""){editVal("subKPIs",sk,e.target.value);e.target.value="";}}} style={{width:"100%",marginTop:8,padding:"7px 10px",borderRadius:8,border:"1.5px solid #E5E8EB",fontSize:12,fontFamily:"inherit",boxSizing:"border-box",outline:"none"}}/>}
+                            {lead&&<button onClick={e=>{e.stopPropagation();openVal("subKPIs",sk);}} style={{width:"100%",marginTop:8,padding:"8px 10px",borderRadius:8,border:"1.5px solid #F97316",background:"#FFF7ED",color:"#EA580C",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>📊 이번 주 실적 입력</button>}
                             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginTop:6,flexWrap:"wrap"}} onClick={e=>e.stopPropagation()}>
                               <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
                                 {sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride&&<span style={{fontSize:10,fontWeight:800,color:"#3182F6",backgroundColor:"#EBF3FF",padding:"2px 7px",borderRadius:6}}>📊 자동 집계</span>}
@@ -959,21 +971,54 @@ function KPIPage({D,lead,up,cu}){
           <button onClick={()=>setSalesOpen(false)} style={{width:"100%",marginTop:10,padding:"14px 0",borderRadius:14,border:"none",backgroundColor:"#F97316",color:"#FFFFFF",fontSize:15,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>완료</button>
         </div>
       </Sheet>
-      <Sheet open={!!histItem} onClose={()=>setHistItem(null)} title="📜 수치 수정 이력">
+      <Sheet open={!!histItem} onClose={()=>setHistItem(null)} title="📜 주차별 실적 이력">
         {histItem&&(<div style={{marginTop:8}}>
           <p style={{margin:"0 0 4px",fontSize:13,fontWeight:900,color:"#0F1F5C"}}>{histItem.title}</p>
-          <p style={{margin:"0 0 12px",fontSize:11.5,color:"#9CA3AF"}}>현재 {fmt(histItem.currentValue||0,histItem.unit)} · 총 {(histItem.valueHistory||[]).length}회 수정</p>
+          <p style={{margin:"0 0 12px",fontSize:11.5,color:"#9CA3AF"}}>현재 {fmt(histItem.currentValue||0,histItem.unit)} · 총 {(histItem.valueHistory||[]).length}회 입력</p>
           {[...(histItem.valueHistory||[])].reverse().map((h,i)=>(
             <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:"1px solid #F2F4F6"}}>
               <Ava name={h.byName} size={28}/>
               <div style={{flex:1,minWidth:0}}>
-                <p style={{margin:0,fontSize:13,fontWeight:700,color:"#111827"}}>{fmt(h.prev||0,histItem.unit)} → <span style={{color:"#EA580C",fontWeight:900}}>{fmt(h.value||0,histItem.unit)}</span></p>
+                <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                  {h.week&&<span style={{fontSize:10,fontWeight:800,color:"#3182F6",background:"#EBF3FF",padding:"1px 6px",borderRadius:6}}>{weekLabel(h.week)}</span>}
+                  <span style={{fontSize:10,fontWeight:800,color:h.mode==="total"?"#8B5CF6":"#EA580C",background:h.mode==="total"?"#F3EFFE":"#FFF1E7",padding:"1px 6px",borderRadius:6}}>{h.mode==="total"?"총값":"추가"}{h.mode==="delta"&&h.amount!=null?` +${fmt(h.amount,histItem.unit)}`:""}</span>
+                </div>
+                <p style={{margin:"3px 0 0",fontSize:13,fontWeight:700,color:"#111827"}}>{fmt(h.prev||0,histItem.unit)} → <span style={{color:"#EA580C",fontWeight:900}}>{fmt(h.value||0,histItem.unit)}</span></p>
                 <p style={{margin:"2px 0 0",fontSize:11,color:"#9CA3AF"}}>{h.byName||"—"} · {(h.at||"").slice(0,16).replace("T"," ")}</p>
               </div>
             </div>
           ))}
-          {(!histItem.valueHistory||histItem.valueHistory.length===0)&&<p style={{padding:"20px 0",textAlign:"center",fontSize:13,color:"#9CA3AF"}}>아직 수정 이력이 없어요</p>}
+          {(!histItem.valueHistory||histItem.valueHistory.length===0)&&<p style={{padding:"20px 0",textAlign:"center",fontSize:13,color:"#9CA3AF"}}>아직 입력 이력이 없어요</p>}
         </div>)}
+      </Sheet>
+      <Sheet open={!!valSheet} onClose={()=>setValSheet(null)} title="📊 이번 주 실적 입력">
+        {valSheet&&(()=>{const it=valSheet.item;const prev=Number(it.currentValue||0);const amt=Number(valAmt)||0;const preview=valMode==="delta"?prev+amt:amt;return(
+          <div style={{marginTop:8}}>
+            <p style={{margin:"0 0 2px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}>{it.title}</p>
+            <p style={{margin:"0 0 14px",fontSize:11.5,color:"#9CA3AF"}}>현재 누계 {fmt(prev,it.unit)} / 목표 {fmt(it.targetValue,it.unit)}</p>
+            <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>주차</label>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+              <button onClick={()=>shiftWeek(-1)} style={{width:34,height:34,borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",cursor:"pointer",fontSize:15}}>◀</button>
+              <div style={{flex:1,textAlign:"center",padding:"9px 0",borderRadius:10,background:"#F9FAFB",border:"1.5px solid #E5E8EB",fontSize:13.5,fontWeight:800,color:"#0F1F5C"}}>{weekLabel(valWeek)}{valWeek===weekKey()?" · 이번 주":""}</div>
+              <button onClick={()=>shiftWeek(1)} disabled={valWeek>=weekKey()} style={{width:34,height:34,borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",cursor:valWeek>=weekKey()?"not-allowed":"pointer",opacity:valWeek>=weekKey()?0.4:1,fontSize:15}}>▶</button>
+            </div>
+            <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>입력 방식</label>
+            <div style={{display:"flex",gap:8,marginBottom:14}}>
+              {[["delta","➕ 이번 주 추가값","이번 주 실적만 입력 → 누계에 더함"],["total","= 총값(누계)","현재 누계를 이 값으로 덮어씀"]].map(([k,l,d])=>(
+                <button key={k} onClick={()=>setValMode(k)} style={{flex:1,padding:"11px 8px",borderRadius:11,border:`1.5px solid ${valMode===k?"#F97316":"#E5E8EB"}`,background:valMode===k?"#FFEDD5":"#fff",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                  <p style={{margin:0,fontSize:12.5,fontWeight:800,color:valMode===k?"#EA580C":"#374151"}}>{l}</p>
+                  <p style={{margin:"2px 0 0",fontSize:10,color:"#9CA3AF",lineHeight:1.3}}>{d}</p>
+                </button>
+              ))}
+            </div>
+            <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>{valMode==="delta"?"이번 주 실적":"누계 총값"} ({it.unit})</label>
+            <input type="number" value={valAmt} onChange={e=>setValAmt(e.target.value)} placeholder="0" autoFocus style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:16,fontWeight:800,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+            <div style={{margin:"12px 0 16px",padding:"11px 14px",borderRadius:12,background:"#F9FAFB",border:"1px solid #F2F4F6",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <span style={{fontSize:12,color:"#6B7280",fontWeight:700}}>저장 후 누계</span>
+              <span style={{fontSize:14,fontWeight:900,color:"#0F1F5C"}}>{fmt(prev,it.unit)} → <span style={{color:"#F97316"}}>{fmt(preview,it.unit)}</span> ({pct(preview,it.targetValue)}%)</span>
+            </div>
+            <Btn full variant="orange" onClick={applyVal} disabled={valAmt===""}>저장</Btn>
+          </div>);})()}
       </Sheet>
     </div>
   );

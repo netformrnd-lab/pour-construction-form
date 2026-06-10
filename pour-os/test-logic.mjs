@@ -133,6 +133,22 @@ for(let i=0;i<100;i++){
   check("csv-quote-escaped", (inner.match(/"/g)||[]).length%2===0, {c,cell});
 }
 
+// 9) 게임화 — levelOf 단조성·calcStreak 경계
+const LEVELS=[{lv:1,min:0},{lv:2,min:100},{lv:3,min:250},{lv:4,min:500},{lv:5,min:900},{lv:6,min:1400},{lv:7,min:2100},{lv:8,min:3000},{lv:9,min:4200},{lv:10,min:6000}];
+const levelOf=(xp)=>{ let r=LEVELS[0]; for(const l of LEVELS) if(xp>=l.min) r=l; return r; };
+const calcStreak=(days)=>{ if(!days.length)return 0; const set=new Set(days); const iso=x=>x.toISOString().slice(0,10); let d=new Date(); d.setHours(0,0,0,0); if(!set.has(iso(d))) d.setDate(d.getDate()-1); let s=0; while(set.has(iso(d))){ s++; d.setDate(d.getDate()-1); } return s; };
+let prevLv=0;
+for(let i=0;i<300;i++){ const xp=pick([...dirty,rnd(-100,7000)]); const lv=levelOf(numF(xp)); check("level-num", typeof lv.lv==="number"&&lv.lv>=1&&lv.lv<=10, {xp,lv}); }
+for(let xp=0;xp<=6500;xp+=137){ const lv=levelOf(xp).lv; check("level-monotone", lv>=prevLv, {xp,lv,prevLv}); prevLv=lv; }
+for(let i=0;i<150;i++){
+  const n=rnd(0,8); const days=[]; const base=new Date(2026,5,10); base.setHours(0,0,0,0);
+  for(let j=0;j<n;j++){ const d=new Date(base); d.setDate(d.getDate()-rnd(0,12)); days.push(d.toISOString().slice(0,10)); }
+  const r=calcStreak(days);
+  check("streak-num", typeof r==="number"&&r>=0&&!Number.isNaN(r), {days,r});
+  check("streak-le-uniq", r<=new Set(days).size, {days,r});
+}
+check("streak-empty", calcStreak([])===0, {});
+
 console.log(`\n총 ${total}건 테스트 · 실패 ${fail}건`);
 if(fail){ console.log("─ 실패 샘플 ─"); fails.forEach(f=>console.log("  "+f)); process.exit(1); }
 else console.log("✅ 모든 불변식 통과 (NaN/크래시/이상값 없음)");

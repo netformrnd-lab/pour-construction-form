@@ -233,6 +233,66 @@ const Confirm=({open,title,desc,onOk,onCancel})=>{
     </div>
   );
 };
+// ───────────────────────── 게임화 엔진 (실제 기록에서만 점수 산출 · 추가 쓰기 없음) ─────────────────────────
+const XP={task:10,sales:30,kpi:15,act:15,retro:5};
+const XP_LABEL={task:"업무 완료",sales:"매출 입력",kpi:"KPI 실적",act:"목표지표",retro:"회고"};
+const LEVELS=[{lv:1,t:"새싹",ic:"🌱",min:0},{lv:2,t:"수습",ic:"🐣",min:100},{lv:3,t:"실무자",ic:"🔧",min:250},{lv:4,t:"능숙",ic:"⚡",min:500},{lv:5,t:"베테랑",ic:"🎯",min:900},{lv:6,t:"전문가",ic:"💎",min:1400},{lv:7,t:"리더",ic:"🚀",min:2100},{lv:8,t:"마스터",ic:"👑",min:3000},{lv:9,t:"그랜드마스터",ic:"🏆",min:4200},{lv:10,t:"레전드",ic:"🔥",min:6000}];
+const levelOf=(xp)=>{ let r=LEVELS[0]; for(const l of LEVELS) if(xp>=l.min) r=l; return r; };
+const nextLevel=(xp)=>LEVELS.find(l=>l.min>xp)||null;
+const BADGES=[
+  {id:"first_sale",ic:"💰",t:"첫 매출",d:"매출 1건 입력",cond:s=>s.counts.sales>=1},
+  {id:"task10",ic:"✅",t:"성실왕",d:"업무 10건 완료",cond:s=>s.counts.task>=10},
+  {id:"task50",ic:"🏅",t:"일잘러",d:"업무 50건 완료",cond:s=>s.counts.task>=50},
+  {id:"streak3",ic:"🔥",t:"불꽃 3일",d:"3일 연속 기록",cond:s=>s.streak>=3},
+  {id:"streak7",ic:"🔥",t:"불꽃 7일",d:"7일 연속 기록",cond:s=>s.streak>=7},
+  {id:"kpi10",ic:"📊",t:"숫자 장인",d:"KPI 실적 10회",cond:s=>s.counts.kpi>=10},
+  {id:"allround",ic:"🌟",t:"올라운더",d:"업무·매출·KPI·목표지표 모두 기록",cond:s=>s.counts.task>0&&s.counts.sales>0&&s.counts.kpi>0&&s.counts.act>0},
+  {id:"lv5",ic:"🎖️",t:"베테랑 등극",d:"레벨 5 달성",cond:s=>s.level.lv>=5},
+];
+// 사용자별 활동 이벤트 수집 (담당자 id 우선, 이름 fallback)
+const gameEvents=(D)=>{
+  const ev=[];
+  const matchUid=(id,name)=>{ if(id&&(D.users||[]).find(u=>u.id===id))return id; if(name){const u=(D.users||[]).find(u=>u.name===name);if(u)return u.id;} return null; };
+  (D.tasks||[]).forEach(t=>{ if(!t.isFixed&&t.status==="done"&&t.doneAt){ const uid=matchUid(t.doneBy,t.doneByName)||t.assigneeId; if(uid) ev.push({uid,kind:"task",at:t.doneAt}); } });
+  (D.projects||[]).forEach(p=>{
+    (p.salesHistory||[]).forEach(h=>{const uid=matchUid(h.by,h.byName);if(uid)ev.push({uid,kind:"sales",at:h.at});});
+    (p.activityKPIs||[]).forEach(ak=>(ak.history||[]).forEach(h=>{const uid=matchUid(h.by,h.byName);if(uid)ev.push({uid,kind:"act",at:h.at});}));
+  });
+  (D.subKPIs||[]).forEach(s=>(s.valueHistory||[]).forEach(h=>{const uid=matchUid(h.by,h.byName);if(uid)ev.push({uid,kind:"kpi",at:h.at});}));
+  (D.mainKPIs||[]).forEach(m=>(m.valueHistory||[]).forEach(h=>{const uid=matchUid(h.by,h.byName);if(uid)ev.push({uid,kind:"kpi",at:h.at});}));
+  (D.retros||[]).forEach(r=>{const uid=matchUid(r.by,r.byName)||r.userId;if(uid)ev.push({uid,kind:"retro",at:r.createdAt||r.at||""});});
+  return ev;
+};
+const calcStreak=(days)=>{ if(!days.length)return 0; const set=new Set(days); const iso=x=>x.toISOString().slice(0,10); let d=new Date(); d.setHours(0,0,0,0); if(!set.has(iso(d))) d.setDate(d.getDate()-1); let s=0; while(set.has(iso(d))){ s++; d.setDate(d.getDate()-1); } return s; };
+// 전 사용자 게임 스탯 (정렬·리더보드용)
+const gameStats=(D)=>{
+  const ev=gameEvents(D); const wk=weekKey(); const today=new Date().toISOString().slice(0,10);
+  return (D.users||[]).map(u=>{
+    const mine=ev.filter(e=>e.uid===u.id);
+    const xp=mine.reduce((a,e)=>a+(XP[e.kind]||0),0);
+    const weekXp=mine.filter(e=>e.at&&weekKey(new Date(e.at))===wk).reduce((a,e)=>a+(XP[e.kind]||0),0);
+    const counts={task:0,sales:0,kpi:0,act:0,retro:0}; mine.forEach(e=>{if(counts[e.kind]!=null)counts[e.kind]++;});
+    const wkCounts={task:0,sales:0,kpi:0,act:0,retro:0}; mine.forEach(e=>{if(e.at&&weekKey(new Date(e.at))===wk&&wkCounts[e.kind]!=null)wkCounts[e.kind]++;});
+    const todayCounts={task:0,act:0}; mine.forEach(e=>{const d=(e.at||"").slice(0,10); if(d===today){ if(e.kind==="task")todayCounts.task++; todayCounts.act++; }});
+    const days=[...new Set(mine.map(e=>(e.at||"").slice(0,10)).filter(Boolean))];
+    const streak=calcStreak(days);
+    const s={user:u,xp,weekXp,counts,wkCounts,todayCounts,streak,total:mine.length,level:levelOf(xp),next:nextLevel(xp)};
+    s.badges=BADGES.filter(b=>b.cond(s));
+    return s;
+  }).sort((a,b)=>b.xp-a.xp);
+};
+const questList=(s)=>{
+  const daily=[
+    {id:"d_task",ic:"✅",t:"오늘 업무 1개 완료",done:s.todayCounts.task>=1,now:s.todayCounts.task,goal:1,xp:10},
+    {id:"d_act",ic:"✍️",t:"오늘 활동 1건 기록",done:s.todayCounts.act>=1,now:s.todayCounts.act,goal:1,xp:5},
+  ];
+  const weekly=[
+    {id:"w_task",ic:"🗂️",t:"이번 주 업무 5개 완료",done:s.wkCounts.task>=5,now:s.wkCounts.task,goal:5,xp:30},
+    {id:"w_sales",ic:"💰",t:"이번 주 매출 1건 입력",done:s.wkCounts.sales>=1,now:s.wkCounts.sales,goal:1,xp:30},
+    {id:"w_kpi",ic:"📊",t:"이번 주 KPI 3개 갱신",done:s.wkCounts.kpi>=3,now:s.wkCounts.kpi,goal:3,xp:20},
+  ];
+  return {daily,weekly};
+};
 const EditTaskSheet=({open,onClose,task,onSave,D})=>{
   const [form,setForm]=useState({title:"",status:"todo",dueDate:"",memo:"",projectId:"",attachments:[]});
   const [prevId,setPrevId]=useState(null);
@@ -302,7 +362,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D})=>{
   );
 };
 const TABS=[{id:"today",icon:"🏠",label:"오늘"},{id:"kpi",icon:"◎",label:"KPI"},{id:"projects",icon:"▦",label:"프로젝트"},{id:"calendar",icon:"▤",label:"캘린더"},{id:"more",icon:"⋯",label:"더보기"}];
-const MORE=[{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"}];
+const MORE=[{id:"game",icon:"🎮",label:"성장"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"}];
 export default function App(){
   const [D,setD]=useState(INIT);
   const [page,setPage]=useState("today");
@@ -315,6 +375,7 @@ export default function App(){
   // ── Firestore 단일 문서 영속화 (4명 실시간 공유) ──
   const [loaded,setLoaded]=useState(false);
   const [syncToast,setSyncToast]=useState(false);   // 다른 기기 변경 안내
+  const [levelUp,setLevelUp]=useState(null);         // 레벨업 축하 (게임화)
   const lastSyncedRef=useRef(null);   // 마지막으로 동기화된 공유데이터 JSON (에코 쓰기 방지)
   const loadedRef=useRef(false);
   const syncTimerRef=useRef(null);
@@ -381,6 +442,16 @@ export default function App(){
   },[D,loaded]);
   const cu=D.users.find(u=>u.id===D.currentUser)||D.users[0];   // 잘못된 currentUser여도 크래시 방지
   const lead=cu?.role==="lead";
+  // 레벨업 감지 — 기기별 기준선(localStorage)과 비교, 오를 때만 축하 (공유 쓰기 없음)
+  useEffect(()=>{
+    if(!loaded||!cu) return;
+    const st=gameStats(D).find(s=>s.user.id===cu.id);
+    if(!st) return;
+    const key="pour-os-lv-"+cu.id;
+    const prev=Number(localStorage.getItem(key)||"0");
+    if(prev>0&&st.level.lv>prev) setLevelUp(st.level);
+    localStorage.setItem(key,String(st.level.lv));
+  },[D,loaded,cu?.id]);
   const set=(k,v)=>setD(p=>({...p,[k]:v}));
   // 업무 변동 시 프로젝트 진척 자동 재산출(수동지정 progressManual 제외, 업무 없으면 기존값 유지)
   const recalcProg=(state)=>{
@@ -419,6 +490,7 @@ export default function App(){
     {page==="kpi"&&<KPIPage D={D} lead={lead} up={up} cu={cu} add={add} rm={rm} pc={viewMode==="pc"}/>}
     {page==="projects"&&<ProjectsPage D={D} cu={cu} up={up} add={add} rm={rm} pc={viewMode==="pc"}/>}
     {page==="calendar"&&<CalendarPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
+    {page==="game"&&<GamePage D={D} cu={cu}/>}
     {page==="mindmap"&&<MindMapPage D={D} cu={cu}/>}
     {page==="fixed"&&<FixedPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="retro"&&<RetroPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
@@ -426,6 +498,15 @@ export default function App(){
   </>);
   const sheets=(<>
     {syncToast&&<div style={{position:"fixed",top:"calc(env(safe-area-inset-top,0px) + 12px)",left:"50%",transform:"translateX(-50%)",zIndex:5000,background:"#0F1F5C",color:"#fff",padding:"8px 16px",borderRadius:999,fontSize:12,fontWeight:700,boxShadow:"0 6px 20px rgba(0,0,0,0.25)",whiteSpace:"nowrap",pointerEvents:"none"}}>🔄 다른 기기에서 업데이트됨</div>}
+    {levelUp&&<div onClick={()=>setLevelUp(null)} style={{position:"fixed",inset:0,zIndex:6000,background:"rgba(15,31,92,0.55)",display:"flex",alignItems:"center",justifyContent:"center",padding:"0 32px"}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:24,padding:"30px 26px",width:"100%",maxWidth:320,textAlign:"center",boxShadow:"0 16px 50px rgba(0,0,0,0.3)"}}>
+        <p style={{margin:0,fontSize:12,fontWeight:900,letterSpacing:3,color:"#F97316"}}>LEVEL UP!</p>
+        <div style={{fontSize:64,margin:"10px 0 4px"}}>{levelUp.ic}</div>
+        <p style={{margin:0,fontSize:22,fontWeight:900,color:"#0F1F5C"}}>Lv.{levelUp.lv} {levelUp.t}</p>
+        <p style={{margin:"6px 0 18px",fontSize:13,color:"#6B7280",lineHeight:1.5}}>축하해요! 꾸준한 기록이 성장으로 이어졌어요 🎉</p>
+        <button onClick={()=>setLevelUp(null)} style={{width:"100%",padding:"13px 0",borderRadius:14,border:"none",background:"linear-gradient(135deg,#F97316,#EA580C)",color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>계속 성장하기</button>
+      </div>
+    </div>}
     <Sheet open={more} onClose={()=>setMore(false)} title="더보기">
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:12}}>
         {MORE.map(m=>(
@@ -578,8 +659,20 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   };
   const doneToday=todayT.filter(t=>t.status==="done").length;
   const doneFixed=fixed.filter(fixedDone).length;
+  const myStat=gameStats(D).find(s=>s.user.id===cu.id);
+  const myQuests=myStat?questList(myStat):{daily:[],weekly:[]};
+  const questDone=[...myQuests.daily,...myQuests.weekly].filter(q=>q.done).length;
+  const questTot=myQuests.daily.length+myQuests.weekly.length;
   return(
     <div style={{padding:"14px 16px 20px"}}>
+      {myStat&&<div onClick={()=>nav("game")} style={{display:"flex",alignItems:"center",gap:11,background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"12px 14px",marginBottom:12,cursor:"pointer",color:"#fff"}}>
+        <div style={{width:40,height:40,borderRadius:12,background:"rgba(255,255,255,0.13)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{myStat.level.ic}</div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:13.5,fontWeight:900}}>Lv.{myStat.level.lv} {myStat.level.t}</span>{myStat.streak>0&&<span style={{fontSize:10.5,fontWeight:900,color:"#FFD7A8"}}>🔥{myStat.streak}일</span>}</div>
+          <p style={{margin:"2px 0 0",fontSize:11,opacity:0.8}}>퀘스트 {questDone}/{questTot} 완료 · 누적 {myStat.xp.toLocaleString()} XP</p>
+        </div>
+        <span style={{fontSize:11,fontWeight:800,background:"rgba(249,115,22,0.3)",color:"#FFD7A8",padding:"4px 10px",borderRadius:10,flexShrink:0}}>🎮 성장 ›</span>
+      </div>}
       <div style={{display:"flex",gap:8,marginBottom:14,overflowX:"auto",paddingBottom:2}}>
         {[{label:"오늘 업무",val:`${doneToday}/${todayT.length}`,color:"#3182F6"},{label:"고정업무",val:`${doneFixed}/${fixed.length}`,color:"#F97316"},{label:"내 프로젝트",val:D.projects.filter(p=>p.assigneeId===cu.id).length+"건",color:"#8B5CF6"}].map((s,i)=>(
           <div key={i} style={{flexShrink:0,backgroundColor:"#FFFFFF",borderRadius:12,padding:"10px 14px",border:"1px solid #F2F4F6"}}>
@@ -2160,6 +2253,96 @@ function RetroPage({D,cu,add,up,rm}){
           <div onClick={()=>setGForm({...gForm,inverse:!gForm.inverse})} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 14px",borderRadius:12,border:`1.5px solid ${gForm.inverse?"#F97316":"#E5E8EB"}`,backgroundColor:gForm.inverse?"#FFEDD5":"#F9FAFB",marginBottom:16,cursor:"pointer"}}><div><p style={{margin:0,fontSize:13,fontWeight:700,color:"#374151"}}>낮을수록 좋은 목표</p><p style={{margin:"3px 0 0",fontSize:11,color:"#9CA3AF"}}>처리시간 N일 이내 · 반품률 N% 이하 등</p></div><div style={{width:44,height:26,borderRadius:13,backgroundColor:gForm.inverse?"#F97316":"#D1D5DB",position:"relative",flexShrink:0}}><div style={{width:20,height:20,borderRadius:"50%",backgroundColor:"#FFFFFF",position:"absolute",top:3,left:gForm.inverse?21:3,transition:"left .15s"}}/></div></div><button onClick={()=>{if(!gForm.title.trim()||!gForm.targetValue) return;add("personalGoals",{id:"pg"+Date.now(),userId:cu.id,month,title:gForm.title.trim(),targetValue:Number(gForm.targetValue),currentValue:0,unit:gForm.unit,inverse:gForm.inverse});setGForm({title:"",targetValue:"",unit:"",inverse:false});setGoalModal(false);}} disabled={!gForm.title.trim()||!gForm.targetValue} style={{width:"100%",padding:"14px 0",borderRadius:14,border:"none",backgroundColor:(gForm.title.trim()&&gForm.targetValue)?"#F97316":"#E5E8EB",color:(gForm.title.trim()&&gForm.targetValue)?"#FFFFFF":"#9CA3AF",fontSize:15,fontWeight:700,cursor:(gForm.title.trim()&&gForm.targetValue)?"pointer":"not-allowed",fontFamily:"inherit"}}>추가하기</button>
         </div>
       </Sheet>
+    </div>
+  );
+}
+function GamePage({D,cu}){
+  const all=gameStats(D);
+  const me=all.find(s=>s.user.id===cu.id)||all[0];
+  if(!me) return <div style={{padding:"40px 16px",textAlign:"center",color:"#9CA3AF"}}>담당자를 먼저 선택하세요</div>;
+  const {daily,weekly}=questList(me);
+  const xpInLv=me.xp-me.level.min;
+  const span=me.next?me.next.min-me.level.min:1;
+  const lvPct=me.next?Math.min(100,Math.round(xpInLv/span*100)):100;
+  const myRank=all.findIndex(s=>s.user.id===cu.id)+1;
+  const exportGrowth=()=>{
+    const rows=[["담당자","레벨","칭호","총XP","이번주XP","연속기록일","업무완료","매출입력","KPI실적","목표지표","회고","획득배지"]];
+    all.forEach(s=>rows.push([s.user.name,s.level.lv,s.level.t,s.xp,s.weekXp,s.streak,s.counts.task,s.counts.sales,s.counts.kpi,s.counts.act,s.counts.retro,s.badges.map(b=>b.t).join("·")]));
+    const csv="﻿"+rows.map(r=>r.map(c=>`"${String(c==null?"":c).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));
+    const a=document.createElement("a");a.href=url;a.download=`성장리포트_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);
+  };
+  const QuestRow=({q})=>(
+    <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:12,background:q.done?"#E8FAF1":"#F9FAFB",border:`1px solid ${q.done?"rgba(0,192,115,0.25)":"#F2F4F6"}`,marginBottom:7}}>
+      <span style={{fontSize:18,flexShrink:0,opacity:q.done?1:0.5}}>{q.done?"✅":q.ic}</span>
+      <div style={{flex:1,minWidth:0}}>
+        <p style={{margin:0,fontSize:12.5,fontWeight:800,color:q.done?"#00A050":"#374151",textDecoration:q.done?"line-through":"none"}}>{q.t}</p>
+        <div style={{height:4,borderRadius:4,background:"#E5E8EB",overflow:"hidden",marginTop:5}}><div style={{width:`${Math.min(100,Math.round(q.now/q.goal*100))}%`,height:"100%",background:q.done?"#00C073":"#F97316",borderRadius:4}}/></div>
+      </div>
+      <span style={{fontSize:11,fontWeight:900,color:q.done?"#00C073":"#9CA3AF",flexShrink:0}}>{Math.min(q.now,q.goal)}/{q.goal}</span>
+      <span style={{fontSize:10.5,fontWeight:800,color:"#F97316",background:"#FFF7ED",padding:"2px 7px",borderRadius:8,flexShrink:0}}>+{q.xp}</span>
+    </div>
+  );
+  return(
+    <div style={{padding:"14px 16px 20px"}}>
+      <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:20,padding:"18px",marginBottom:14,color:"#fff"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <div style={{width:54,height:54,borderRadius:16,background:"rgba(255,255,255,0.12)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:30,flexShrink:0}}>{me.level.ic}</div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{display:"flex",alignItems:"center",gap:7,flexWrap:"wrap"}}>
+              <span style={{fontSize:11,fontWeight:800,opacity:0.7,letterSpacing:1}}>Lv.{me.level.lv}</span>
+              <span style={{fontSize:17,fontWeight:900}}>{me.level.t}</span>
+              {me.streak>0&&<span style={{fontSize:11,fontWeight:900,color:"#FFD7A8",background:"rgba(249,115,22,0.25)",padding:"2px 8px",borderRadius:10}}>🔥 {me.streak}일 연속</span>}
+            </div>
+            <p style={{margin:"2px 0 0",fontSize:12,opacity:0.75}}>{me.user.name} · 팀 {myRank}위 · 누적 {me.xp.toLocaleString()} XP</p>
+          </div>
+        </div>
+        <div style={{marginTop:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:10.5,opacity:0.8,marginBottom:4}}>
+            <span>{me.next?`다음: ${me.next.ic} ${me.next.t}`:"최고 레벨 달성 🎉"}</span>
+            <span>{me.next?`${xpInLv}/${span} XP`:`${me.xp} XP`}</span>
+          </div>
+          <div style={{height:8,borderRadius:8,background:"rgba(255,255,255,0.15)",overflow:"hidden"}}><div style={{width:`${lvPct}%`,height:"100%",background:"linear-gradient(90deg,#F97316,#FBBF24)",borderRadius:8}}/></div>
+        </div>
+      </div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",margin:"0 2px 8px"}}>
+        <h3 style={{margin:0,fontSize:15,fontWeight:900,color:"#0F1F5C"}}>🗓️ 오늘의 퀘스트</h3>
+        <span style={{fontSize:11,fontWeight:800,color:"#00C073"}}>{daily.filter(q=>q.done).length}/{daily.length} 완료</span>
+      </div>
+      {daily.map(q=><QuestRow key={q.id} q={q}/>)}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",margin:"14px 2px 8px"}}>
+        <h3 style={{margin:0,fontSize:15,fontWeight:900,color:"#0F1F5C"}}>🎯 이번 주 퀘스트</h3>
+        <span style={{fontSize:11,fontWeight:800,color:"#00C073"}}>{weekly.filter(q=>q.done).length}/{weekly.length} 완료</span>
+      </div>
+      {weekly.map(q=><QuestRow key={q.id} q={q}/>)}
+      <p style={{margin:"6px 2px 0",fontSize:10.5,color:"#9CA3AF",lineHeight:1.5}}>퀘스트는 업무를 완료하거나 매출·KPI를 입력하면 <b>자동으로 채워져요</b>. 따로 누를 필요 없어요.</p>
+      <h3 style={{margin:"18px 2px 8px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>🏆 업적 배지 <span style={{fontSize:11,color:"#9CA3AF",fontWeight:700}}>{me.badges.length}/{BADGES.length}</span></h3>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+        {BADGES.map(b=>{const got=me.badges.some(x=>x.id===b.id);return(
+          <div key={b.id} title={b.d} style={{background:got?"#FFF7ED":"#F9FAFB",border:`1px solid ${got?"#FED7AA":"#F2F4F6"}`,borderRadius:12,padding:"10px 4px",textAlign:"center",opacity:got?1:0.5}}>
+            <div style={{fontSize:22,filter:got?"none":"grayscale(1)"}}>{b.ic}</div>
+            <p style={{margin:"3px 0 0",fontSize:9.5,fontWeight:800,color:got?"#EA580C":"#9CA3AF",lineHeight:1.2}}>{b.t}</p>
+          </div>
+        );})}
+      </div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",margin:"18px 2px 8px"}}>
+        <h3 style={{margin:0,fontSize:15,fontWeight:900,color:"#0F1F5C"}}>👑 팀 랭킹 <span style={{fontSize:11,color:"#9CA3AF",fontWeight:700}}>이번 주 XP</span></h3>
+        <button onClick={exportGrowth} style={{padding:"5px 11px",borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",cursor:"pointer",fontSize:11,fontWeight:700,color:"#4B5563",fontFamily:"inherit"}}>⬇ 성장 리포트</button>
+      </div>
+      {[...all].sort((a,b)=>b.weekXp-a.weekXp).map((s,i)=>{const medal=["🥇","🥈","🥉"][i]||`${i+1}`;const isMe=s.user.id===cu.id;return(
+        <div key={s.user.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:12,background:isMe?"#EBF3FF":"#FFFFFF",border:`1px solid ${isMe?"#BFDBFE":"#F2F4F6"}`,marginBottom:6}}>
+          <span style={{fontSize:15,fontWeight:900,width:24,textAlign:"center",flexShrink:0}}>{medal}</span>
+          <Ava name={s.user.name} color={s.user.color} size={30}/>
+          <div style={{flex:1,minWidth:0}}>
+            <p style={{margin:0,fontSize:13,fontWeight:800,color:"#1F2937"}}>{s.user.name} {isMe&&<span style={{fontSize:10,color:"#3182F6"}}>(나)</span>}</p>
+            <p style={{margin:"1px 0 0",fontSize:10.5,color:"#9CA3AF"}}>{s.level.ic} Lv.{s.level.lv} {s.level.t} · 🔥{s.streak}일</p>
+          </div>
+          <div style={{textAlign:"right",flexShrink:0}}>
+            <p style={{margin:0,fontSize:15,fontWeight:900,color:"#F97316",fontFamily:"'IBM Plex Mono',monospace"}}>{s.weekXp}</p>
+            <p style={{margin:0,fontSize:9.5,color:"#9CA3AF"}}>XP</p>
+          </div>
+        </div>
+      );})}
     </div>
   );
 }

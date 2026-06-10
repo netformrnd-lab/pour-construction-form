@@ -3,11 +3,12 @@
 const ALL_DAYS=["일","월","화","수","목","금","토"];
 
 // ── 실제 App.jsx 구현 (복사) ──
-const pct=(c,t)=>t===0||t==null?0:Math.min(100,Math.round((c/t)*100));
+const pct=(c,t)=>t===0||t==null?0:Math.max(0,Math.min(100,Math.round((c/t)*100)));
 const weekKey=(d=new Date())=>{const x=new Date(d);const off=(x.getDay()+6)%7;x.setDate(x.getDate()-off);x.setHours(0,0,0,0);return x.toISOString().slice(0,10);};
 const weekLabel=(key)=>{const m=new Date(key);const su=new Date(m);su.setDate(su.getDate()+6);const f=z=>`${z.getMonth()+1}/${z.getDate()}`;return `${f(m)}~${f(su)}`;};
-const skCur=(sk,projects)=>(sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride)?(projects||[]).filter(p=>p.subKPIId===sk.id).reduce((a,p)=>a+(Number(p.resultValue)||0),0):(Number(sk.currentValue)||0);
-const mkCur=(mk,subKPIs,projects)=>mk.unit==="원"?subKPIs.filter(s=>s.mainKPIId===mk.id).reduce((a,s)=>a+skCur(s,projects),0):(Number(mk.currentValue)||0);
+const numF=(x)=>{const n=Number(x);return isFinite(n)?n:0;};
+const skCur=(sk,projects)=>(sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride)?(projects||[]).filter(p=>p.subKPIId===sk.id).reduce((a,p)=>a+numF(p.resultValue),0):numF(sk.currentValue);
+const mkCur=(mk,subKPIs,projects)=>mk.unit==="원"?subKPIs.filter(s=>s.mainKPIId===mk.id).reduce((a,s)=>a+skCur(s,projects),0):numF(mk.currentValue);
 const fmt=(n,u)=>{
   if(!n||isNaN(n)) return "0"+(u||"");
   if(u==="원"&&n>=100000000) return (n/100000000).toFixed(1)+"억";
@@ -17,7 +18,7 @@ const fmt=(n,u)=>{
 // 반복주기 dueToday (TodayPage)
 const fixedDueToday=(t,today,todayDate)=>{const rt=t.recurType||"daily";if(rt==="weekly")return t.weekDay===today;if(rt==="monthly")return Number(t.monthDay||1)===todayDate;return true;};
 // applyVal 결과 (KPI 추가값/총값)
-const applyValResult=(prev,mode,amount)=>mode==="delta"?(Number(prev)||0)+(Number(amount)||0):(Number(amount)||0);
+const applyValResult=(prev,mode,amount)=>{const v=mode==="delta"?(Number(prev)||0)+(Number(amount)||0):(Number(amount)||0);return isFinite(v)?v:0;};
 // 마감 임박 (urgent) D-3
 const isUrgent=(dueDate,now)=>{const dd=Math.ceil((new Date(dueDate)-now)/86400000);return dd>=0&&dd<=3;};
 // CSV 셀 이스케이프 (exportCSV)

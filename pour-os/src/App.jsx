@@ -123,13 +123,14 @@ const INIT={
     {id:"e4",title:"여름 프로모션 런칭",date:"2026-06-20",type:"promotion",projectId:null,description:"자사몰+마켓 동시"},
   ],
 };
-const pct=(c,t)=>t===0||t==null?0:Math.min(100,Math.round((c/t)*100));
+const pct=(c,t)=>t===0||t==null?0:Math.max(0,Math.min(100,Math.round((c/t)*100)));
 // 주차 헬퍼 (월요일 시작)
 const weekKey=(d=new Date())=>{const x=new Date(d);const off=(x.getDay()+6)%7;x.setDate(x.getDate()-off);x.setHours(0,0,0,0);return x.toISOString().slice(0,10);};
 const weekLabel=(key)=>{const m=new Date(key);const su=new Date(m);su.setDate(su.getDate()+6);const f=z=>`${z.getMonth()+1}/${z.getDate()}`;return `${f(m)}~${f(su)}`;};
 // 메인KPI2(B2B): 서브KPI 현재값 = 자식 프로젝트 매출 성과(resultValue) 합계 / 메인KPI1·3: 수동값
-const skCur=(sk,projects)=>(sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride)?(projects||[]).filter(p=>p.subKPIId===sk.id).reduce((a,p)=>a+(Number(p.resultValue)||0),0):(Number(sk.currentValue)||0);
-const mkCur=(mk,subKPIs,projects)=>mk.unit==="원"?subKPIs.filter(s=>s.mainKPIId===mk.id).reduce((a,s)=>a+skCur(s,projects),0):(Number(mk.currentValue)||0);
+const numF=(x)=>{const n=Number(x);return isFinite(n)?n:0;};   // 문자열·NaN·Infinity → 0 (집계 방탄)
+const skCur=(sk,projects)=>(sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride)?(projects||[]).filter(p=>p.subKPIId===sk.id).reduce((a,p)=>a+numF(p.resultValue),0):numF(sk.currentValue);
+const mkCur=(mk,subKPIs,projects)=>mk.unit==="원"?subKPIs.filter(s=>s.mainKPIId===mk.id).reduce((a,s)=>a+skCur(s,projects),0):numF(mk.currentValue);
 const fmt=(n,u)=>{
   if(!n||isNaN(n)) return "0"+(u||"");
   if(u==="원"&&n>=100000000) return (n/100000000).toFixed(1)+"억";
@@ -459,14 +460,18 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const [quickProj,setQuickProj]=useState("");
   const [confirmTaskId,setConfirmTaskId]=useState(null);
   const [editTask,setEditTask]=useState(null);
+  const todayKey=new Date().toISOString().slice(0,10);
   const toggle=t=>up("tasks",t.id,{status:t.status==="done"?"todo":"done"});
+  // 고정(반복)업무는 날짜별 완료 — 오늘 체크는 오늘만 유지(매일 리셋)
+  const fixedDone=t=>t.doneDate===todayKey;
+  const toggleFixed=t=>up("tasks",t.id,{doneDate:fixedDone(t)?null:todayKey});
   const doQuick=()=>{
     if(!quick.trim()) return;
     add("tasks",{id:"t"+Date.now(),title:quick.trim(),projectId:quickProj,assigneeId:cu.id,type:"general",status:"todo",weekDay:today,weekSlot:null,isFixed:false,dueDate:"",memo:"",attachments:[]});
     setQuick("");setQuickProj("");
   };
   const doneToday=todayT.filter(t=>t.status==="done").length;
-  const doneFixed=fixed.filter(t=>t.status==="done").length;
+  const doneFixed=fixed.filter(fixedDone).length;
   return(
     <div style={{padding:"14px 16px 20px"}}>
       <div style={{display:"flex",gap:8,marginBottom:14,overflowX:"auto",paddingBottom:2}}>
@@ -585,13 +590,14 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           <div style={{display:"flex",flexDirection:"column",gap:7}}>
             {fixed.map(t=>{
               const proj=D.projects.find(p=>p.id===t.projectId);
+              const dn=fixedDone(t);
               return(
-                <div key={t.id} onClick={()=>toggle(t)} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 12px",borderRadius:12,backgroundColor:t.status==="done"?"rgba(232,250,241,0.34)":"#F9FAFB",border:`1px solid ${t.status==="done"?"rgba(0,192,115,0.2)":"#E5E8EB"}`,cursor:"pointer"}}>
-                  <button onClick={e=>{e.stopPropagation();toggle(t);}} style={{width:22,height:22,borderRadius:6,border:`2px solid ${t.status==="done"?"#00C073":"#D1D5DB"}`,backgroundColor:t.status==="done"?"#00C073":"#FFFFFF",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,padding:0}}>
-                    {t.status==="done"&&<span style={{color:"#FFFFFF",fontSize:12,fontWeight:900}}>✓</span>}
+                <div key={t.id} onClick={()=>toggleFixed(t)} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 12px",borderRadius:12,backgroundColor:dn?"rgba(232,250,241,0.34)":"#F9FAFB",border:`1px solid ${dn?"rgba(0,192,115,0.2)":"#E5E8EB"}`,cursor:"pointer"}}>
+                  <button onClick={e=>{e.stopPropagation();toggleFixed(t);}} style={{width:22,height:22,borderRadius:6,border:`2px solid ${dn?"#00C073":"#D1D5DB"}`,backgroundColor:dn?"#00C073":"#FFFFFF",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,padding:0}}>
+                    {dn&&<span style={{color:"#FFFFFF",fontSize:12,fontWeight:900}}>✓</span>}
                   </button>
                   <div style={{flex:1,minWidth:0}}>
-                    <p style={{margin:0,fontSize:13.5,fontWeight:700,color:t.status==="done"?"#9CA3AF":"#111827",textDecoration:t.status==="done"?"line-through":"none"}}>{t.title}</p>
+                    <p style={{margin:0,fontSize:13.5,fontWeight:700,color:dn?"#9CA3AF":"#111827",textDecoration:dn?"line-through":"none"}}>{t.title}</p>
                     {proj&&<p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>📁 {proj.title}</p>}
                   </div>
                   <span style={{fontSize:10,color:"#F97316",fontWeight:800,flexShrink:0}}>🔄</span>
@@ -649,6 +655,7 @@ function KPIPage({D,lead,up,cu}){
     const prev=Number(item.currentValue||0);
     const amt=Number(valAmt)||0;
     const value=valMode==="delta"?prev+amt:amt;
+    if(!isFinite(value)){ setValSheet(null); return; }   // NaN/Infinity 방어 — 잘못된 값 저장 금지
     const at=new Date().toISOString();
     const entry={week:valWeek,mode:valMode,amount:amt,value,prev,by:cu?.id||null,byName:cu?.name||"",at};
     up(coll,item.id,{currentValue:value,manualOverride:true,valueBy:cu?.id||null,valueByName:cu?.name||"",valueAt:at,valueHistory:[...(item.valueHistory||[]),entry]});
@@ -673,6 +680,10 @@ function KPIPage({D,lead,up,cu}){
       </div>
       {kpiView==="dashboard"&&(
         <div>
+          <div style={{backgroundColor:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:12,padding:"11px 13px",marginBottom:12}}>
+            <p style={{margin:"0 0 4px",fontSize:12,fontWeight:900,color:"#EA580C"}}>💡 매주 금요일, 내 KPI에 이번 주 실적을 넣으세요</p>
+            <p style={{margin:0,fontSize:11,color:"#9A3412",fontWeight:600,lineHeight:1.55}}>· <b>직판·운영</b> KPI → 항목 펼쳐 <b>📊 이번 주 실적 입력</b><br/>· <b>B2B(메인2)</b> → 펼친 뒤 <b>거래처유형별 매출 ✏️입력</b>(프로젝트 매출) = 자동 집계<br/>· 추가값=이번 주만 / 총값=누계 덮어쓰기 · 누가 넣었는지·주차별 이력 자동 기록</p>
+          </div>
           {D.goals.map(g=>{
             const cur=D.mainKPIs.filter(mk=>mk.unit==="원").reduce((s,mk)=>s+mkCur(mk,D.subKPIs,D.projects),0);
             const p=pct(cur,g.targetValue);
@@ -713,7 +724,7 @@ function KPIPage({D,lead,up,cu}){
                 </div>
                 {open&&(
                   <div style={{borderTop:"1px solid #F2F4F6",padding:"12px 16px 14px"}}>
-                    {mk.unit==="원"&&mk.id!=="mk2"&&(<div style={{marginBottom:12,padding:"9px 12px",backgroundColor:"#EBF3FF",borderRadius:10}}><p style={{margin:0,fontSize:11.5,color:"#3182F6",fontWeight:600}}>📊 채널별 매출 합계로 자동 집계 — 아래 채널 현재값 입력</p></div>)}{mk.id==="mk2"&&(<div style={{marginBottom:12,padding:"11px 13px",backgroundColor:"#FFF7ED",borderRadius:10,border:"1px solid #FED7AA"}}><p style={{margin:"0 0 4px",fontSize:12,color:"#EA580C",fontWeight:800}}>💡 매출 입력은 여기서!</p><p style={{margin:0,fontSize:11.5,color:"#9A3412",fontWeight:600,lineHeight:1.55}}>아래 <b>거래처유형별 매출</b>의 <b>✏️ 입력</b> 버튼 → 한 화면에서 거래처유형별로 바로 입력 → 단가·메인KPI에 자동 반영</p></div>)}{lead&&mk.unit!=="원"&&(<div style={{marginBottom:12}}><button onClick={()=>openVal("mainKPIs",mk)} style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #F97316",background:"#FFF7ED",color:"#EA580C",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>📊 이번 주 실적 입력 · 현재 {fmt(mk.currentValue,mk.unit)}</button>{(mk.valueByName||(mk.valueHistory&&mk.valueHistory.length))&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:6,gap:8}}>{mk.valueByName&&<span style={{fontSize:10.5,color:"#9CA3AF"}}>👤 {mk.valueByName} · {(mk.valueAt||"").slice(5,10)}</span>}{mk.valueHistory&&mk.valueHistory.length>0&&<button onClick={()=>setHistItem(mk)} style={{padding:"3px 9px",borderRadius:7,border:"1px solid #E5E8EB",background:"#fff",fontSize:10.5,fontWeight:700,color:"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>📜 이력 {mk.valueHistory.length}</button>}</div>}</div>)}
+                    {mk.unit==="원"&&mk.id!=="mk2"&&(<div style={{marginBottom:12,padding:"9px 12px",backgroundColor:"#EBF3FF",borderRadius:10}}><p style={{margin:0,fontSize:11.5,color:"#3182F6",fontWeight:600}}>📊 채널별 매출 합계로 자동 집계 — 아래 채널 현재값 입력</p></div>)}{mk.id==="mk2"&&(<div style={{marginBottom:12,padding:"11px 13px",backgroundColor:"#FFF7ED",borderRadius:10,border:"1px solid #FED7AA"}}><p style={{margin:"0 0 4px",fontSize:12,color:"#EA580C",fontWeight:800}}>💡 매출 입력은 여기서!</p><p style={{margin:0,fontSize:11.5,color:"#9A3412",fontWeight:600,lineHeight:1.55}}>아래 <b>거래처유형별 매출</b>의 <b>✏️ 입력</b> 버튼 → 한 화면에서 거래처유형별로 바로 입력 → 단가·메인KPI에 자동 반영</p></div>)}{mk.unit!=="원"&&(<div style={{marginBottom:12}}><button onClick={()=>openVal("mainKPIs",mk)} style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #F97316",background:"#FFF7ED",color:"#EA580C",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>📊 이번 주 실적 입력 · 현재 {fmt(mk.currentValue,mk.unit)}</button>{(mk.valueByName||(mk.valueHistory&&mk.valueHistory.length))&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:6,gap:8}}>{mk.valueByName&&<span style={{fontSize:10.5,color:"#9CA3AF"}}>👤 {mk.valueByName} · {(mk.valueAt||"").slice(5,10)}</span>}{mk.valueHistory&&mk.valueHistory.length>0&&<button onClick={()=>setHistItem(mk)} style={{padding:"3px 9px",borderRadius:7,border:"1px solid #E5E8EB",background:"#fff",fontSize:10.5,fontWeight:700,color:"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>📜 이력 {mk.valueHistory.length}</button>}</div>}</div>)}
                     {mk.id==="mk2"&&(()=>{const b2b=D.projects.filter(p=>p.mainKPIId==="mk2"&&p.dealerType);if(!b2b.length)return null;const byType={};b2b.forEach(p=>{const k=p.dealerType;if(!byType[k])byType[k]={sum:0,cnt:0};byType[k].sum+=(p.resultValue||0);byType[k].cnt+=1;});const rows=Object.keys(byType).map(code=>({code,sum:byType[code].sum,cnt:byType[code].cnt,dt:DT[code]})).sort((a,b)=>b.sum-a.sum);const tot=rows.reduce((s,r)=>s+r.sum,0);const mx=Math.max(...rows.map(r=>r.sum),1);return(<div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px 16px",marginBottom:10,border:"1px solid #F2F4F6"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}><h3 style={{margin:0,fontSize:15,fontWeight:900,color:"#0F1F5C"}}>💰 거래처유형별 매출 (B2B)</h3><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:13,fontWeight:800,color:"#F97316"}}>{fmt(tot,"원")}</span><button onClick={()=>setSalesOpen(true)} style={{padding:"6px 12px",borderRadius:9,border:"none",backgroundColor:"#F97316",color:"#FFFFFF",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>✏️ 입력</button></div></div><p style={{margin:"0 0 10px",fontSize:10.5,color:"#9CA3AF"}}>누가 샀나 · 거래처유형(13종) 자동 집계 — 입력은 ✏️ 버튼</p>{rows.map(r=>{const w=Math.round(r.sum/mx*100);const c=r.dt?.color||"#9CA3AF";return(<div key={r.code} style={{marginBottom:9}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3,gap:8}}><div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}><span style={{fontSize:10.5,fontWeight:800,color:c,backgroundColor:c+"18",borderRadius:6,padding:"2px 6px",flexShrink:0,fontFamily:"'IBM Plex Mono',monospace"}}>{r.code}</span><span style={{fontSize:12,fontWeight:700,color:"#374151",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.dt?.label||r.code}</span><span style={{fontSize:10.5,color:"#9CA3AF",flexShrink:0}}>·{r.cnt}건</span></div><span style={{fontSize:12,fontWeight:800,color:"#374151",flexShrink:0}}>{fmt(r.sum,"원")}</span></div><div style={{height:6,borderRadius:6,backgroundColor:"#F2F4F6",overflow:"hidden"}}><div style={{width:`${w}%`,height:"100%",backgroundColor:c,borderRadius:6}}/></div></div>);})}</div>);})()}<p style={{margin:"0 0 8px",fontSize:12,fontWeight:800,color:"#6B7280"}}>{mk.id==="mk2"?"얼마 단가에 — 단가별 매출 (자동 집계)":mk.id==="mk1"?"채널별 매출":"구축 항목"}</p>{(()=>{const orphan=D.projects.filter(pj=>pj.mainKPIId===mk.id&&!pj.subKPIId);if(!orphan.length)return null;return(<div style={{marginBottom:10,padding:"10px 12px",backgroundColor:"#FFF7ED",borderRadius:10,border:"1px solid #FED7AA"}}><p style={{margin:"0 0 6px",fontSize:11.5,fontWeight:800,color:"#EA580C"}}>⚠️ 채널 미지정 {orphan.length}건</p>{orphan.map(pj=>{const as=D.users.find(u=>u.id===pj.assigneeId);return(<div key={pj.id} style={{display:"flex",alignItems:"center",gap:6,padding:"3px 0"}}><Ava name={as?.name} color={as?.color} size={18}/><span style={{fontSize:12,fontWeight:600,color:"#1F2937",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pj.title}</span><span style={{fontSize:11,fontWeight:700,color:"#EA580C"}}>{pj.progress}%</span></div>);})}</div>);})()}
                     {subs.map(sk=>{
                       const sp=pct(skCur(sk,D.projects),sk.targetValue);
@@ -738,7 +749,7 @@ function KPIPage({D,lead,up,cu}){
                               <span style={{fontSize:11,color:"#9CA3AF"}}>{fmt(skCur(sk,D.projects),sk.unit)} / {fmt(sk.targetValue,sk.unit)}</span>
                               <span style={{fontSize:11,color:"#9CA3AF"}}>프로젝트 {projs.length}개</span>
                             </div>
-                            {lead&&<button onClick={e=>{e.stopPropagation();openVal("subKPIs",sk);}} style={{width:"100%",marginTop:8,padding:"8px 10px",borderRadius:8,border:"1.5px solid #F97316",background:"#FFF7ED",color:"#EA580C",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>📊 이번 주 실적 입력</button>}
+                            <button onClick={e=>{e.stopPropagation();openVal("subKPIs",sk);}} style={{width:"100%",marginTop:8,padding:"8px 10px",borderRadius:8,border:"1.5px solid #F97316",background:"#FFF7ED",color:"#EA580C",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>📊 이번 주 실적 입력</button>
                             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginTop:6,flexWrap:"wrap"}} onClick={e=>e.stopPropagation()}>
                               <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
                                 {sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride&&<span style={{fontSize:10,fontWeight:800,color:"#3182F6",backgroundColor:"#EBF3FF",padding:"2px 7px",borderRadius:6}}>📊 자동 집계</span>}
@@ -1062,9 +1073,10 @@ function ProjectsPage({D,cu,up,add,rm}){
   const [search,setSearch]=useState("");
   const [asgFilter,setAsgFilter]=useState("all");
   const [actForm,setActForm]=useState({name:"",unit:"건",target:""});
+  const [actMode,setActMode]=useState("delta");   // delta(이번주 추가) | total(누계 직접)
   const [actHist,setActHist]=useState(null);   // 활동지표 이력 {proj,ak}
   const actAddIndicator=(proj)=>{ if(!actForm.name.trim())return; const list=[...(proj.activityKPIs||[]),{id:"ak"+Date.now(),name:actForm.name.trim(),unit:actForm.unit||"건",target:Number(actForm.target)||0,current:0,history:[]}]; up("projects",proj.id,{activityKPIs:list}); setActForm({name:"",unit:"건",target:""}); };
-  const actRecord=(proj,ak,raw)=>{ const v=Number(raw); if(isNaN(v))return; const at=new Date().toISOString(); const week=weekKey(); const list=(proj.activityKPIs||[]).map(x=>x.id===ak.id?{...x,current:v,week,by:cu?.id||null,byName:cu?.name||"",history:[...(x.history||[]),{week,value:v,by:cu?.id||null,byName:cu?.name||"",at}]}:x); up("projects",proj.id,{activityKPIs:list}); };
+  const actRecord=(proj,ak,raw)=>{ const amt=Number(raw); if(isNaN(amt))return; const prev=Number(ak.current||0); const v=actMode==="delta"?prev+amt:amt; const at=new Date().toISOString(); const week=weekKey(); const list=(proj.activityKPIs||[]).map(x=>x.id===ak.id?{...x,current:v,week,by:cu?.id||null,byName:cu?.name||"",history:[...(x.history||[]),{week,value:v,amount:amt,mode:actMode,by:cu?.id||null,byName:cu?.name||"",at}]}:x); up("projects",proj.id,{activityKPIs:list}); };
   const actRemove=(proj,ak)=>up("projects",proj.id,{activityKPIs:(proj.activityKPIs||[]).filter(x=>x.id!==ak.id)});
   const [projForm,setProjForm]=useState({title:"",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high"});
   const doAddProj=()=>{
@@ -1160,7 +1172,10 @@ function ProjectsPage({D,cu,up,add,rm}){
                     <select value={proj.dealerType||""} onChange={e=>up("projects",proj.id,{dealerType:e.target.value})} style={{flex:1,padding:"7px 10px",borderRadius:8,fontSize:12,fontWeight:700,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",color:proj.dealerType?(DT[proj.dealerType]?.color||"#111827"):"#9CA3AF",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="">미지정</option>{DEALER_TYPES.map(d=><option key={d.code} value={d.code}>{d.code} · {d.label} ({d.price})</option>)}</select>
                   </div>
                   <div style={{padding:"12px 16px 0"}}>
-                    <span style={{fontSize:12,fontWeight:800,color:"#4B5563"}}>📈 주간 활동지표 (선행지표)</span>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+                      <span style={{fontSize:12,fontWeight:800,color:"#4B5563"}}>📈 주간 활동지표 (선행지표)</span>
+                      <div style={{display:"inline-flex",borderRadius:7,border:"1px solid #E5E8EB",overflow:"hidden"}}>{[["delta","➕추가"],["total","=총값"]].map(([k,l])=>(<button key={k} onClick={()=>setActMode(k)} style={{padding:"3px 8px",fontSize:10.5,fontWeight:700,border:"none",cursor:"pointer",backgroundColor:actMode===k?"#8B5CF6":"#fff",color:actMode===k?"#fff":"#9CA3AF",fontFamily:"inherit"}}>{l}</button>))}</div>
+                    </div>
                     {(proj.activityKPIs||[]).map(ak=>{const p2=pct(ak.current||0,ak.target||0);return(
                       <div key={ak.id} style={{backgroundColor:"#FFFFFF",borderRadius:10,padding:"9px 11px",marginTop:7,border:"1px solid #E5E8EB"}}>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5,gap:8}}>

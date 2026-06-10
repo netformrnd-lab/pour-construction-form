@@ -338,13 +338,13 @@ export default function App(){
   const navAll=[...TABS.filter(t=>t.id!=="more"),...MORE];
   const pageContent=(<>
     {page==="today"&&<TodayPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
-    {page==="kpi"&&<KPIPage D={D} lead={lead} up={up} cu={cu}/>}
+    {page==="kpi"&&<KPIPage D={D} lead={lead} up={up} cu={cu} add={add} rm={rm}/>}
     {page==="projects"&&<ProjectsPage D={D} cu={cu} up={up} add={add} rm={rm}/>}
     {page==="calendar"&&<CalendarPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
     {page==="mindmap"&&<MindMapPage D={D} cu={cu}/>}
     {page==="fixed"&&<FixedPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="retro"&&<RetroPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
-    {page==="ai"&&<AIPage D={D} cu={cu} add={add}/>}
+    {page==="ai"&&<AIPage D={D} cu={cu} add={add} rm={rm}/>}
   </>);
   const sheets=(<>
     <Sheet open={more} onClose={()=>setMore(false)} title="더보기">
@@ -634,7 +634,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
     </div>
   );
 }
-function KPIPage({D,lead,up,cu}){
+function KPIPage({D,lead,up,cu,add,rm}){
   const [kpiView,setKpiView]=useState("dashboard");
   const [openMK,setOpenMK]=useState("mk1");
   const [openSK,setOpenSK]=useState(null);
@@ -645,20 +645,29 @@ function KPIPage({D,lead,up,cu}){
   const [valMode,setValMode]=useState("delta");  // delta(이번주 추가) | total(누계 직접)
   const [valAmt,setValAmt]=useState("");
   const [valWeek,setValWeek]=useState(weekKey());
-  const [cfg,setCfg]=useState(null);   // 이름·목표 설정 시트 {coll,item,kind}
+  const [cfg,setCfg]=useState(null);   // 이름·목표 설정 시트 {coll,item,kind,mainKPIId,goalId}
   const [cfgForm,setCfgForm]=useState({title:"",target:"",unit:"",current:""});
+  const [kpiDel,setKpiDel]=useState(null);   // 삭제 확인 {coll,item,kind}
   const krColors={mk1:"#3182F6",mk2:"#8B5CF6",mk3:"#00C073"};
   const openCfg=(coll,item,kind)=>{ setCfgForm({title:item.title||"",target:String(item.targetValue??""),unit:item.unit||"",current:String(item.currentValue??"")}); setCfg({coll,item,kind}); };
+  const openNewSub=(mkId)=>{ setCfgForm({title:"",target:"",unit:"원",current:""}); setCfg({coll:"subKPIs",item:null,kind:"sub",mainKPIId:mkId}); };
+  const openNewMain=()=>{ setCfgForm({title:"",target:"",unit:"원",current:""}); setCfg({coll:"mainKPIs",item:null,kind:"main",goalId:D.goals[0]?.id}); };
   const saveCfg=()=>{
     if(!cfg) return;
-    const {coll,item,kind}=cfg;
+    const {coll,item,kind,mainKPIId,goalId}=cfg;
+    if(!item){ // 신규 추가
+      if(!cfgForm.title.trim()){ return; }
+      if(kind==="sub") add("subKPIs",{id:"sk"+Date.now(),mainKPIId,title:cfgForm.title.trim(),targetValue:numF(cfgForm.target),currentValue:0,unit:cfgForm.unit||"원",order:99,channelCode:""});
+      else if(kind==="main") add("mainKPIs",{id:"mk"+Date.now(),goalId:goalId||(D.goals[0]&&D.goals[0].id),title:cfgForm.title.trim(),targetValue:numF(cfgForm.target),currentValue:0,unit:cfgForm.unit||"원",order:99,krKey:cfgForm.title.trim().slice(0,6)});
+      setCfg(null); return;
+    }
     const patch={title:cfgForm.title.trim()||item.title,targetValue:numF(cfgForm.target)};
     if(kind!=="goal") patch.unit=cfgForm.unit||item.unit;
-    // 현재값 직접 수정(선택) — B2B 단가는 override로 표시
     if(kind!=="goal"&&cfgForm.current!==""&&isFinite(Number(cfgForm.current))){ patch.currentValue=Number(cfgForm.current); if(item.mainKPIId==="mk2"&&item.unit==="원") patch.manualOverride=true; }
     up(coll,item.id,patch);
     setCfg(null);
   };
+  const doKpiDel=()=>{ if(!kpiDel)return; rm(kpiDel.coll,kpiDel.item.id); setKpiDel(null); setCfg(null); };
   // 수치 입력 시트 열기 — 매주 실적(추가값/총값) 기록
   const openVal=(coll,item)=>{ setValMode("delta"); setValAmt(""); setValWeek(weekKey()); setValSheet({coll,item}); };
   const shiftWeek=(d)=>{ const m=new Date(valWeek); m.setDate(m.getDate()+d*7); setValWeek(m.toISOString().slice(0,10)); };
@@ -869,11 +878,13 @@ function KPIPage({D,lead,up,cu}){
                         </div>
                       );
                     })}
+                    <button onClick={()=>openNewSub(mk.id)} style={{width:"100%",marginTop:8,padding:"9px 0",borderRadius:9,border:"1.5px dashed #C4B5FD",background:"#F5F3FF",color:"#7C3AED",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 지표·채널 추가</button>
                   </div>
                 )}
               </div>
             );
           })}
+          <button onClick={openNewMain} style={{width:"100%",padding:"12px 0",borderRadius:12,border:"1.5px dashed #93C5FD",background:"#EFF6FF",color:"#2563EB",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 메인KPI 추가</button>
         </div>
       )}
       {kpiView==="mindmap"&&(
@@ -1073,20 +1084,22 @@ function KPIPage({D,lead,up,cu}){
             <Btn full variant="orange" onClick={applyVal} disabled={valAmt===""}>저장</Btn>
           </div>);})()}
       </Sheet>
-      <Sheet open={!!cfg} onClose={()=>setCfg(null)} title="⚙ 이름·목표 수정">
-        {cfg&&(()=>{const isB2Bsub=cfg.kind==="sub"&&cfg.item.mainKPIId==="mk2"&&cfg.item.unit==="원";return(
+      <Sheet open={!!cfg} onClose={()=>setCfg(null)} title={cfg&&!cfg.item?(cfg.kind==="main"?"+ 메인KPI 추가":"+ 지표·채널 추가"):"⚙ 이름·목표 수정"}>
+        {cfg&&(()=>{const isNew=!cfg.item;const isB2Bsub=!isNew&&cfg.kind==="sub"&&cfg.item.mainKPIId==="mk2"&&cfg.item.unit==="원";return(
           <div style={{marginTop:8}}>
             <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>이름</label>
-            <input value={cfgForm.title} onChange={e=>setCfgForm({...cfgForm,title:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:14}}/>
-            <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>목표값 {cfg.kind!=="goal"&&`(${cfgForm.unit||cfg.item.unit||""})`}</label>
+            <input value={cfgForm.title} onChange={e=>setCfgForm({...cfgForm,title:e.target.value})} placeholder={cfg.kind==="sub"?"예: 신규채널 매출":"이름"} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:14}}/>
+            <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>목표값 {cfg.kind!=="goal"&&`(${cfgForm.unit||(cfg.item&&cfg.item.unit)||""})`}</label>
             <input type="number" value={cfgForm.target} onChange={e=>setCfgForm({...cfgForm,target:e.target.value})} placeholder="예: 500000000" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:15,fontWeight:800,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:6}}/>
-            <p style={{margin:"0 0 14px",fontSize:11,color:"#9CA3AF"}}>현재 입력: {fmt(numF(cfgForm.target),cfg.kind==="goal"?cfg.item.unit:cfgForm.unit)}</p>
+            <p style={{margin:"0 0 14px",fontSize:11,color:"#9CA3AF"}}>현재 입력: {fmt(numF(cfgForm.target),cfg.kind==="goal"?(cfg.item&&cfg.item.unit):cfgForm.unit)}</p>
             {cfg.kind!=="goal"&&<div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>단위</label><input value={cfgForm.unit} onChange={e=>setCfgForm({...cfgForm,unit:e.target.value})} placeholder="원 / % / 건 / 모듈" style={{width:"100%",padding:"10px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>}
-            {cfg.kind!=="goal"&&!isB2Bsub&&<div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>현재값 직접 수정 (선택)</label><input type="number" value={cfgForm.current} onChange={e=>setCfgForm({...cfgForm,current:e.target.value})} placeholder="비워두면 그대로" style={{width:"100%",padding:"10px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/><p style={{margin:"5px 0 0",fontSize:10.5,color:"#9CA3AF"}}>임의로 들어간 현재값을 직접 고칠 때 사용 (이력엔 안 남음 — 주차별로 남기려면 📊 실적 입력)</p></div>}
+            {!isNew&&cfg.kind!=="goal"&&!isB2Bsub&&<div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>현재값 직접 수정 (선택)</label><input type="number" value={cfgForm.current} onChange={e=>setCfgForm({...cfgForm,current:e.target.value})} placeholder="비워두면 그대로" style={{width:"100%",padding:"10px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/><p style={{margin:"5px 0 0",fontSize:10.5,color:"#9CA3AF"}}>임의로 들어간 현재값을 직접 고칠 때 사용 (이력엔 안 남음 — 주차별로 남기려면 📊 실적 입력)</p></div>}
             {isB2Bsub&&<p style={{margin:"0 0 14px",fontSize:11,color:"#9A3412",fontWeight:600,backgroundColor:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:8,padding:"8px 10px"}}>※ 이 항목의 현재값은 <b>프로젝트 매출 합계로 자동</b>입니다. 값을 고치려면 거래처유형별 매출 ✏️입력에서 프로젝트 금액을 수정하세요.</p>}
-            <Btn full variant="orange" onClick={saveCfg} disabled={!cfgForm.title.trim()}>저장</Btn>
+            <Btn full variant="orange" onClick={saveCfg} disabled={!cfgForm.title.trim()}>{isNew?"추가":"저장"}</Btn>
+            {!isNew&&cfg.kind!=="goal"&&<button onClick={()=>setKpiDel({coll:cfg.coll,item:cfg.item,kind:cfg.kind})} style={{width:"100%",marginTop:10,padding:"12px 0",borderRadius:12,border:"1px solid #FFE2E5",background:"#FFF0F1",color:"#F04452",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🗑 이 {cfg.kind==="main"?"메인KPI":"지표"} 삭제</button>}
           </div>);})()}
       </Sheet>
+      <Confirm open={!!kpiDel} title={(kpiDel&&kpiDel.kind==="main")?"메인KPI 삭제":"지표 삭제"} desc={kpiDel?`"${kpiDel.item.title}" 삭제할까요?${kpiDel.kind==="main"?" 하위 지표·프로젝트의 연결이 끊어집니다.":" 연결된 프로젝트의 지표 연결이 끊어집니다."}`:""} onOk={doKpiDel} onCancel={()=>setKpiDel(null)}/>
     </div>
   );
 }
@@ -1854,6 +1867,7 @@ function RetroPage({D,cu,add,up,rm}){
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
                 <div><p style={{margin:0,fontSize:10,fontWeight:800,color:"#3182F6",letterSpacing:1}}>MONTHLY RETRO</p><h3 style={{margin:"3px 0 0",fontSize:16,fontWeight:900,color:"#0F1F5C"}}>{retro.month}</h3></div>
                 {retro.month===month&&<button onClick={openRetro} style={{background:"none",border:"none",fontSize:15,cursor:"pointer",color:"#9CA3AF"}}>✎</button>}
+                <button onClick={()=>rm("retros",retro.id)} title="삭제" style={{background:"none",border:"none",fontSize:14,cursor:"pointer",color:"#D1D5DB",padding:2}}>🗑</button>
               </div>
               {[{key:"pain",icon:"😣",label:"어려움과 고통",color:"#F04452"},{key:"effort",icon:"💪",label:"노력한 실행",color:"#3182F6"},{key:"learned",icon:"📚",label:"배운 것",color:"#00C073"},{key:"next",icon:"🚀",label:"다음에 해볼 것",color:"#8B5CF6"}].map(item=>(
                 <div key={item.key} style={{backgroundColor:"#F9FAFB",borderRadius:12,padding:"11px 14px",marginBottom:8}}>
@@ -1887,7 +1901,7 @@ function RetroPage({D,cu,add,up,rm}){
     </div>
   );
 }
-function AIPage({D,cu,add}){
+function AIPage({D,cu,add,rm}){
   const [loading,setLoading]=useState(false);
   const [result,setResult]=useState(null);
   const [type,setType]=useState("kpi");
@@ -1966,6 +1980,7 @@ function AIPage({D,cu,add}){
             <div key={r.id||i} style={{backgroundColor:"#FFFFFF",borderRadius:14,padding:"14px 16px",marginBottom:10,border:"1px solid #F2F4F6"}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
                 <div style={{display:"flex",alignItems:"center",gap:6}}><Badge color="#3182F6" bg="#EBF3FF">{TYPE_LABELS[r.type]||r.type}</Badge><span style={{fontSize:12,color:"#9CA3AF"}}>{r.savedAt?.slice(0,10)||""}</span></div>
+                <button onClick={()=>rm("aiReviews",r.id)} title="삭제" style={{background:"none",border:"none",fontSize:14,cursor:"pointer",color:"#D1D5DB",padding:2}}>🗑</button>
               </div>
               {r.question&&<p style={{margin:"0 0 6px",fontSize:12,fontWeight:700,color:"#4B5563"}}>Q: {r.question}</p>}
               <p style={{margin:0,fontSize:13,color:"#374151",lineHeight:1.7,whiteSpace:"pre-wrap",maxHeight:120,overflow:"hidden"}}>{r.result}</p>

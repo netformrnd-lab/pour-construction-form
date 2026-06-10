@@ -269,8 +269,10 @@ export default function App(){
   useEffect(()=>{ localStorage.setItem("pour-os-view",viewMode); },[viewMode]);
   // ── Firestore 단일 문서 영속화 (4명 실시간 공유) ──
   const [loaded,setLoaded]=useState(false);
+  const [syncToast,setSyncToast]=useState(false);   // 다른 기기 변경 안내
   const lastSyncedRef=useRef(null);   // 마지막으로 동기화된 공유데이터 JSON (에코 쓰기 방지)
   const loadedRef=useRef(false);
+  const syncTimerRef=useRef(null);
   // 구독: 원격 변경 수신 + 최초 시드
   useEffect(()=>{
     const savedUser=localStorage.getItem(LOCAL_USER_KEY);
@@ -285,10 +287,13 @@ export default function App(){
         loadedRef.current=true; setLoaded(true); return;
       }
       const shared=pickShared(snap.data());
-      lastSyncedRef.current=JSON.stringify(shared);
+      const sharedJson=JSON.stringify(shared);
+      const isRemoteChange=loadedRef.current&&sharedJson!==lastSyncedRef.current;   // 내 쓰기/동일본이 아닌 진짜 원격 변경
+      lastSyncedRef.current=sharedJson;
       setD(p=>({...p,...shared}));                          // currentUser·UI 상태는 보존
       console.log(`[pour-os] 원격 동기화: projects ${shared.projects?.length||0} / tasks ${shared.tasks?.length||0}`);
       loadedRef.current=true; setLoaded(true);
+      if(isRemoteChange){ setSyncToast(true); clearTimeout(syncTimerRef.current); syncTimerRef.current=setTimeout(()=>setSyncToast(false),2600); }
     },(err)=>{ console.error("[pour-os] 구독 실패:",err); setLoaded(true); });
     return ()=>unsub();
   },[]);
@@ -349,6 +354,7 @@ export default function App(){
     {page==="ai"&&<AIPage D={D} cu={cu} add={add} rm={rm}/>}
   </>);
   const sheets=(<>
+    {syncToast&&<div style={{position:"fixed",top:"calc(env(safe-area-inset-top,0px) + 12px)",left:"50%",transform:"translateX(-50%)",zIndex:5000,background:"#0F1F5C",color:"#fff",padding:"8px 16px",borderRadius:999,fontSize:12,fontWeight:700,boxShadow:"0 6px 20px rgba(0,0,0,0.25)",whiteSpace:"nowrap",pointerEvents:"none"}}>🔄 다른 기기에서 업데이트됨</div>}
     <Sheet open={more} onClose={()=>setMore(false)} title="더보기">
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:12}}>
         {MORE.map(m=>(

@@ -321,7 +321,7 @@ export default function App(){
     },700);
     return ()=>clearTimeout(t);
   },[D,loaded]);
-  const cu=D.users.find(u=>u.id===D.currentUser);
+  const cu=D.users.find(u=>u.id===D.currentUser)||D.users[0];   // 잘못된 currentUser여도 크래시 방지
   const lead=cu?.role==="lead";
   const set=(k,v)=>setD(p=>({...p,[k]:v}));
   const add=(k,item)=>setD(p=>({...p,[k]:[...p[k],item]}));
@@ -1193,14 +1193,14 @@ function ProjectsPage({D,cu,up,add,rm}){
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4,flexWrap:"wrap"}}>
-                      {sk&&<Badge color={col} bg={col+"18"}>{mk?.krKey} · {sk.channelCode}</Badge>}
+                      {sk&&<Badge color={col} bg={col+"18"}>{mk?.krKey?mk.krKey+" · ":""}{sk.channelCode}</Badge>}
                       {!sk&&mk&&<Badge color="#3182F6" bg="#EBF3FF">{mk.krKey}</Badge>}
                       {proj.goalType&&GOAL_TYPE[proj.goalType]&&<Badge color={GOAL_TYPE[proj.goalType].c} bg={GOAL_TYPE[proj.goalType].bg}>{GOAL_TYPE[proj.goalType].l}</Badge>}
                       {proj.dealerType&&DT[proj.dealerType]&&<Badge color={DT[proj.dealerType].color} bg={DT[proj.dealerType].color+"18"}>🏷 {proj.dealerType}</Badge>}
                       <Badge color={pColor} bg={pColor+"18"}>{proj.priority==="high"?"🔴 높음":proj.priority==="mid"?"🟡 중간":"🟢 낮음"}</Badge>
                     </div>
                     <h4 style={{margin:"0 0 2px",fontSize:14,fontWeight:800,color:"#0F1F5C"}}>{proj.title}</h4>
-                    {sk&&<p style={{margin:"0 0 2px",fontSize:11,color:"#6B7280"}}>{mk?.title} › {sk.title}</p>}
+                    {sk&&<p style={{margin:"0 0 2px",fontSize:11,color:"#6B7280"}}>{mk?.title?mk.title+" › ":""}{sk.title}</p>}
                     <p style={{margin:0,fontSize:11,color:"#9CA3AF"}}>{proj.group}</p>
                   </div>
                   <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6,flexShrink:0}}>
@@ -1379,7 +1379,7 @@ function ProjectsPage({D,cu,up,add,rm}){
   );
 }
 function CalendarPage({D,cu,add,up,rm}){
-  const [cm,setCm]=useState(new Date(2026,5,1));
+  const [cm,setCm]=useState(new Date(new Date().getFullYear(),new Date().getMonth(),1));
   const [detail,setDetail]=useState(null);
   const [actionForm,setActionForm]=useState({type:"task",title:"",projectId:"",status:"todo"});
   const [actionDone,setActionDone]=useState([]);

@@ -269,8 +269,10 @@ export default function App(){
   useEffect(()=>{ localStorage.setItem("pour-os-view",viewMode); },[viewMode]);
   // ── Firestore 단일 문서 영속화 (4명 실시간 공유) ──
   const [loaded,setLoaded]=useState(false);
+  const [syncToast,setSyncToast]=useState(false);   // 다른 기기 변경 안내
   const lastSyncedRef=useRef(null);   // 마지막으로 동기화된 공유데이터 JSON (에코 쓰기 방지)
   const loadedRef=useRef(false);
+  const syncTimerRef=useRef(null);
   // 구독: 원격 변경 수신 + 최초 시드
   useEffect(()=>{
     const savedUser=localStorage.getItem(LOCAL_USER_KEY);
@@ -285,10 +287,13 @@ export default function App(){
         loadedRef.current=true; setLoaded(true); return;
       }
       const shared=pickShared(snap.data());
-      lastSyncedRef.current=JSON.stringify(shared);
+      const sharedJson=JSON.stringify(shared);
+      const isRemoteChange=loadedRef.current&&sharedJson!==lastSyncedRef.current;   // 내 쓰기/동일본이 아닌 진짜 원격 변경
+      lastSyncedRef.current=sharedJson;
       setD(p=>({...p,...shared}));                          // currentUser·UI 상태는 보존
       console.log(`[pour-os] 원격 동기화: projects ${shared.projects?.length||0} / tasks ${shared.tasks?.length||0}`);
       loadedRef.current=true; setLoaded(true);
+      if(isRemoteChange){ setSyncToast(true); clearTimeout(syncTimerRef.current); syncTimerRef.current=setTimeout(()=>setSyncToast(false),2600); }
     },(err)=>{ console.error("[pour-os] 구독 실패:",err); setLoaded(true); });
     return ()=>unsub();
   },[]);
@@ -349,6 +354,7 @@ export default function App(){
     {page==="ai"&&<AIPage D={D} cu={cu} add={add} rm={rm}/>}
   </>);
   const sheets=(<>
+    {syncToast&&<div style={{position:"fixed",top:"calc(env(safe-area-inset-top,0px) + 12px)",left:"50%",transform:"translateX(-50%)",zIndex:5000,background:"#0F1F5C",color:"#fff",padding:"8px 16px",borderRadius:999,fontSize:12,fontWeight:700,boxShadow:"0 6px 20px rgba(0,0,0,0.25)",whiteSpace:"nowrap",pointerEvents:"none"}}>🔄 다른 기기에서 업데이트됨</div>}
     <Sheet open={more} onClose={()=>setMore(false)} title="더보기">
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:12}}>
         {MORE.map(m=>(
@@ -367,11 +373,11 @@ export default function App(){
               <Ava name={u.name} color={u.color} size={40}/>
               <div>
                 <p style={{margin:0,fontSize:14,fontWeight:800,color:"#111827"}}>{u.name}</p>
-                <p style={{margin:0,fontSize:12,color:"#9CA3AF"}}>{u.dept||"부서 미설정"}{u.role==="lead"?" · 리드":""}</p>
+                <p style={{margin:0,fontSize:12,color:"#9CA3AF"}}>{u.role==="lead"?"리드":"팀원"}</p>
               </div>
               {D.currentUser===u.id&&<span style={{marginLeft:8,fontSize:16,color:"#F97316"}}>✓</span>}
             </button>
-            <button onClick={()=>setEditUser({id:u.id,name:u.name||"",dept:u.dept||"",color:u.color||"#3182F6"})} title="이름·부서 수정" style={{flexShrink:0,width:38,height:38,borderRadius:10,border:"1px solid #E5E8EB",background:"#fff",cursor:"pointer",fontSize:15,color:"#6B7280"}}>✎</button>
+            <button onClick={()=>setEditUser({id:u.id,name:u.name||"",color:u.color||"#3182F6"})} title="이름·색상 수정" style={{flexShrink:0,width:38,height:38,borderRadius:10,border:"1px solid #E5E8EB",background:"#fff",cursor:"pointer",fontSize:15,color:"#6B7280"}}>✎</button>
           </div>
         ))}
       </div>
@@ -380,11 +386,9 @@ export default function App(){
       {editUser&&(<div style={{marginTop:8}}>
         <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>이름</label>
         <input value={editUser.name} onChange={e=>setEditUser({...editUser,name:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:14}}/>
-        <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>담당 <span style={{color:"#9CA3AF",fontWeight:600}}>(이름 옆 괄호 · 비우면 표시 안 함)</span></label>
-        <input value={editUser.dept} onChange={e=>setEditUser({...editUser,dept:e.target.value})} placeholder="예: 전략·자사몰" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:14}}/>
         <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:8}}>색상</label>
         <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:18}}>{["#3182F6","#8B5CF6","#00C073","#F97316","#F04452","#0891B2","#EAB308","#EC4899"].map(c=>(<button key={c} onClick={()=>setEditUser({...editUser,color:c})} style={{width:34,height:34,borderRadius:"50%",background:c,border:editUser.color===c?"3px solid #0F1F5C":"2px solid #fff",boxShadow:"0 0 0 1px #E5E8EB",cursor:"pointer"}}/>))}</div>
-        <Btn full variant="orange" onClick={()=>{up("users",editUser.id,{name:editUser.name.trim()||"이름",dept:editUser.dept.trim(),color:editUser.color});setEditUser(null);}} disabled={!editUser.name.trim()}>저장</Btn>
+        <Btn full variant="orange" onClick={()=>{up("users",editUser.id,{name:editUser.name.trim()||"이름",color:editUser.color});setEditUser(null);}} disabled={!editUser.name.trim()}>저장</Btn>
       </div>)}
     </Sheet>
   </>);
@@ -413,7 +417,7 @@ export default function App(){
         <div style={{padding:"10px 12px",borderTop:"1px solid #F4F4F5",display:"flex",flexDirection:"column",gap:9}}>
           <button onClick={()=>setUSheet(true)} style={{display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:10,border:"1px solid #E5E8EB",backgroundColor:"#F9FAFB",cursor:"pointer",fontFamily:"inherit"}}>
             <Ava name={cu?.name} color={cu?.color} size={28}/>
-            <div style={{textAlign:"left",overflow:"hidden"}}><p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#111827",whiteSpace:"nowrap"}}>{cu?.name}</p><p style={{margin:0,fontSize:10,color:"#9CA3AF",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{cu?.dept}</p></div>
+            <div style={{textAlign:"left",overflow:"hidden"}}><p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#111827",whiteSpace:"nowrap"}}>{cu?.name}</p><p style={{margin:0,fontSize:10,color:"#9CA3AF",whiteSpace:"nowrap"}}>{cu?.role==="lead"?"리드":"팀원"}</p></div>
           </button>
           {viewToggle}
         </div>
@@ -421,7 +425,7 @@ export default function App(){
       <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
         <div style={{backgroundColor:"#FFFFFF",borderBottom:"1px solid #F2F4F6",padding:"13px 24px",flexShrink:0}}>
           <h1 style={{margin:0,fontSize:17,fontWeight:900,color:"#0F1F5C",lineHeight:1.1}}>{pi?.icon} {pi?.label}</h1>
-          <p style={{margin:"3px 0 0",fontSize:11,color:"#9CA3AF"}}>{new Date().toLocaleDateString("ko-KR",{month:"long",day:"numeric",weekday:"short"})} · {cu?.name}{cu?.dept?` (${cu.dept})`:""}</p>
+          <p style={{margin:"3px 0 0",fontSize:11,color:"#9CA3AF"}}>{new Date().toLocaleDateString("ko-KR",{month:"long",day:"numeric",weekday:"short"})} · {cu?.name}</p>
         </div>
         <div style={{flex:1,overflowY:"auto"}}><div style={{maxWidth:900,margin:"0 auto"}}>{pageContent}</div></div>
       </div>
@@ -445,7 +449,7 @@ export default function App(){
             <button onClick={()=>setUSheet(true)} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><Ava name={cu?.name} color={cu?.color} size={30}/></button>
           </div>
         </div>
-        <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF",paddingLeft:36}}>{new Date().toLocaleDateString("ko-KR",{month:"long",day:"numeric",weekday:"short"})} · {cu?.name}{cu?.dept?` (${cu.dept})`:""}</p>
+        <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF",paddingLeft:36}}>{new Date().toLocaleDateString("ko-KR",{month:"long",day:"numeric",weekday:"short"})} · {cu?.name}</p>
       </div>
       <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>{pageContent}</div>
       <div style={{backgroundColor:"#FFFFFF",borderTop:"1px solid #F2F4F6",display:"flex",flexShrink:0,paddingBottom:"env(safe-area-inset-bottom,0px)"}}>
@@ -571,8 +575,8 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                   <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                     {t.weekSlot&&<span style={{fontSize:10,fontWeight:800,color:"#9CA3AF"}}>{t.weekSlot}순위</span>}
                     <span style={{fontSize:11,fontWeight:700,color:st.color,backgroundColor:st.bg,padding:"2px 8px",borderRadius:6}}>{st.label}</span>
-                    <button onClick={()=>setEditTask(t)} style={{background:"none",border:"none",fontSize:13,cursor:"pointer",color:"#9CA3AF",padding:2}}>✎</button>
-                    <button onClick={()=>setConfirmTaskId(t.id)} style={{background:"none",border:"none",fontSize:13,cursor:"pointer",color:"#D1D5DB",padding:2}}>✕</button>
+                    <button onClick={()=>setEditTask(t)} style={{background:"none",border:"none",fontSize:13,cursor:"pointer",color:"#9CA3AF",padding:8}}>✎</button>
+                    <button onClick={()=>setConfirmTaskId(t.id)} style={{background:"none",border:"none",fontSize:13,cursor:"pointer",color:"#D1D5DB",padding:8}}>✕</button>
                   </div>
                 </div>
               );
@@ -753,7 +757,7 @@ function KPIPage({D,lead,up,cu,add,rm}){
                       <span style={{fontSize:14,fontWeight:800,color:"#0F1F5C"}}>{mk.title}</span>
                     </div>
                     <div style={{display:"flex",alignItems:"center",gap:8}}>
-                      <button onClick={e=>{e.stopPropagation();openCfg("mainKPIs",mk,"main");}} title="이름·목표 수정" style={{background:"none",border:"none",cursor:"pointer",fontSize:13,color:"#9CA3AF",padding:2}}>⚙</button>
+                      <button onClick={e=>{e.stopPropagation();openCfg("mainKPIs",mk,"main");}} title="이름·목표 수정" style={{background:"none",border:"none",cursor:"pointer",fontSize:13,color:"#9CA3AF",padding:8}}>⚙</button>
                       <span style={{fontSize:16,fontWeight:900,color:col}}>{p}%</span>
                       <span style={{fontSize:12,color:"#9CA3AF"}}>{open?"▲":"▼"}</span>
                     </div>
@@ -779,7 +783,7 @@ function KPIPage({D,lead,up,cu,add,rm}){
                                 <span style={{fontSize:12.5,fontWeight:700,color:"#1F2937"}}>{sk.title}</span>
                               </div>
                               <div style={{display:"flex",alignItems:"center",gap:6}}>
-                                <button onClick={e=>{e.stopPropagation();openCfg("subKPIs",sk,"sub");}} title="이름·목표 수정" style={{background:"none",border:"none",cursor:"pointer",fontSize:12,color:"#9CA3AF",padding:2}}>⚙</button>
+                                <button onClick={e=>{e.stopPropagation();openCfg("subKPIs",sk,"sub");}} title="이름·목표 수정" style={{background:"none",border:"none",cursor:"pointer",fontSize:12,color:"#9CA3AF",padding:8}}>⚙</button>
                                 <span style={{fontSize:13,fontWeight:900,color:sp>=50?"#00C073":"#FF9500"}}>{sp}%</span>
                                 <span style={{fontSize:11,color:"#9CA3AF"}}>{skOpen?"▲":"▼"}</span>
                               </div>
@@ -1255,7 +1259,7 @@ function ProjectsPage({D,cu,up,add,rm}){
                         <div style={{display:"flex",gap:6,marginTop:7,alignItems:"center"}}>
                           <input type="number" placeholder={actMode==="delta"?"한 값 입력 → 누적+":"누적 총값 입력"} onKeyDown={e=>{if(e.key==="Enter"&&e.target.value!==""){actRecord(proj,ak,e.target.value);e.target.value="";}}} onBlur={e=>{if(e.target.value!==""){actRecord(proj,ak,e.target.value);e.target.value="";}}} style={{flex:1,minWidth:0,padding:"6px 9px",borderRadius:8,border:"1.5px solid #E5E8EB",fontSize:11.5,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
                           {ak.history&&ak.history.length>0&&<button onClick={()=>setActHist({proj,ak})} style={{flexShrink:0,padding:"5px 8px",borderRadius:7,border:"1px solid #E5E8EB",background:"#fff",fontSize:10.5,fontWeight:700,color:"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>📜 {ak.history.length}</button>}
-                          <button onClick={()=>actRemove(proj,ak)} style={{flexShrink:0,background:"none",border:"none",fontSize:13,color:"#D1D5DB",cursor:"pointer",padding:2}}>🗑</button>
+                          <button onClick={()=>actRemove(proj,ak)} style={{flexShrink:0,background:"none",border:"none",fontSize:13,color:"#D1D5DB",cursor:"pointer",padding:8}}>🗑</button>
                         </div>
                         {ak.byName&&<p style={{margin:"5px 0 0",fontSize:10,color:"#9CA3AF"}}>👤 {ak.byName} · {weekLabel(ak.week||weekKey())} 입력</p>}
                       </div>
@@ -1332,7 +1336,7 @@ function ProjectsPage({D,cu,up,add,rm}){
       <Sheet open={addProjSheet} onClose={()=>{setAddProjSheet(false);setEditProjId(null);setShowAdv(false);resetProjForm();}} title={editProjId?"프로젝트 수정":"프로젝트 추가"} h="92vh">
         <div style={{marginTop:10}}>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>프로젝트명 *</label><input value={projForm.title} onChange={e=>setProjForm({...projForm,title:e.target.value})} placeholder="프로젝트 이름" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
-          <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>담당자</label><select value={projForm.assigneeId} onChange={e=>setProjForm({...projForm,assigneeId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}>{D.users.map(u=><option key={u.id} value={u.id}>{u.name}{u.dept?` (${u.dept})`:""}</option>)}</select></div>
+          <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>담당자</label><select value={projForm.assigneeId} onChange={e=>setProjForm({...projForm,assigneeId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}>{D.users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></div>
           <div style={{marginBottom:14}}>
             <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>이 프로젝트의 성과는? <span style={{color:"#9CA3AF",fontWeight:600}}>(측정 방식)</span></label>
             <div style={{display:"flex",gap:6}}>
@@ -1529,7 +1533,7 @@ function MindMapPage({D,cu}){
         ))}
       </div>
       <select value={sel} onChange={e=>setSel(e.target.value)} style={{width:"100%",padding:"11px 14px",borderRadius:12,border:"1.5px solid #E5E8EB",fontSize:14,fontFamily:"inherit",backgroundColor:"#FFFFFF",outline:"none",marginBottom:14,WebkitAppearance:"none"}}>
-        {D.users.map(u=><option key={u.id} value={u.id}>{u.name}{u.dept?` (${u.dept})`:""}</option>)}
+        {D.users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}
       </select>
       {boardView==="tree"&&(
         <div>
@@ -1781,8 +1785,8 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
                       {viewAll&&user&&<Badge color={user.color} bg={user.color+"22"}>👤 {user.name}</Badge>}
                     </div>
                   </div>
-                  <button onClick={()=>setEditTarget(t)} style={{background:"none",border:"none",cursor:"pointer",color:"#9CA3AF",fontSize:16,padding:4,flexShrink:0}}>✎</button>
-                  <button onClick={()=>setConfirmId(t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#D1D5DB",fontSize:20,padding:4,flexShrink:0}}>🗑</button>
+                  <button onClick={()=>setEditTarget(t)} style={{background:"none",border:"none",cursor:"pointer",color:"#9CA3AF",fontSize:16,padding:8,flexShrink:0}}>✎</button>
+                  <button onClick={()=>setConfirmId(t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#D1D5DB",fontSize:20,padding:8,flexShrink:0}}>🗑</button>
                 </div>
               </div>
             );
@@ -1794,7 +1798,7 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>업무명 *</label><input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="ex. 벤처나라 문의 확인" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>연결 프로젝트</label><select value={form.projectId} onChange={e=>setForm({...form,projectId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="">없음</option>{D.projects.map(p=><option key={p.id} value={p.id}>{p.title}</option>)}</select></div>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>반복 주기</label><div style={{display:"flex",gap:6}}>{[["daily","매일"],["weekly","매주"],["monthly","매월"]].map(([k,l])=>(<button key={k} onClick={()=>setForm({...form,recurType:k})} style={{flex:1,padding:"10px 0",borderRadius:10,border:`1.5px solid ${form.recurType===k?"#F97316":"#E5E8EB"}`,backgroundColor:form.recurType===k?"#FFEDD5":"#FFFFFF",color:form.recurType===k?"#EA580C":"#6B7280",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>))}</div>{form.recurType==="weekly"&&<select value={form.weekDay} onChange={e=>setForm({...form,weekDay:e.target.value})} style={{width:"100%",marginTop:8,padding:"10px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}>{ALL_DAYS.map(d=><option key={d} value={d}>{d}요일</option>)}</select>}{form.recurType==="monthly"&&<select value={form.monthDay} onChange={e=>setForm({...form,monthDay:Number(e.target.value)})} style={{width:"100%",marginTop:8,padding:"10px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}>{Array.from({length:31},(_,i)=>i+1).map(d=><option key={d} value={d}>매월 {d}일</option>)}</select>}</div>
-          {lead&&<div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>담당자</label><select value={form.assigneeId} onChange={e=>setForm({...form,assigneeId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="all">⭐ 전체 (전원에게 생성)</option>{D.users.map(u=><option key={u.id} value={u.id}>{u.name}{u.dept?` (${u.dept})`:""}</option>)}</select>{form.assigneeId==="all"&&<p style={{margin:"6px 2px 0",fontSize:11,color:"#EA580C",fontWeight:700}}>전 담당자 {D.users.length}명에게 각각 생성됩니다</p>}</div>}
+          {lead&&<div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>담당자</label><select value={form.assigneeId} onChange={e=>setForm({...form,assigneeId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="all">⭐ 전체 (전원에게 생성)</option>{D.users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>{form.assigneeId==="all"&&<p style={{margin:"6px 2px 0",fontSize:11,color:"#EA580C",fontWeight:700}}>전 담당자 {D.users.length}명에게 각각 생성됩니다</p>}</div>}
           <Btn full variant="orange" onClick={doAdd} disabled={!form.title.trim()}>추가하기</Btn>
         </div>
       </Sheet>
@@ -1863,7 +1867,7 @@ function RetroPage({D,cu,add,up,rm}){
                   <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                     <span style={{fontSize:20,fontWeight:900,color}}>{p}%</span>
                     {p>=100&&<span>🎉</span>}
-                    <button onClick={()=>rm("personalGoals",g.id)} style={{background:"none",border:"none",fontSize:15,cursor:"pointer",color:"#D1D5DB",padding:2}}>✕</button>
+                    <button onClick={()=>rm("personalGoals",g.id)} style={{background:"none",border:"none",fontSize:15,cursor:"pointer",color:"#D1D5DB",padding:8}}>✕</button>
                   </div>
                 </div>
                 <PBar value={p} color={color} h={8}/>
@@ -1918,7 +1922,7 @@ function RetroPage({D,cu,add,up,rm}){
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
                 <div><p style={{margin:0,fontSize:10,fontWeight:800,color:"#3182F6",letterSpacing:1}}>MONTHLY RETRO</p><h3 style={{margin:"3px 0 0",fontSize:16,fontWeight:900,color:"#0F1F5C"}}>{retro.month}</h3></div>
                 {retro.month===month&&<button onClick={openRetro} style={{background:"none",border:"none",fontSize:15,cursor:"pointer",color:"#9CA3AF"}}>✎</button>}
-                <button onClick={()=>rm("retros",retro.id)} title="삭제" style={{background:"none",border:"none",fontSize:14,cursor:"pointer",color:"#D1D5DB",padding:2}}>🗑</button>
+                <button onClick={()=>rm("retros",retro.id)} title="삭제" style={{background:"none",border:"none",fontSize:14,cursor:"pointer",color:"#D1D5DB",padding:8}}>🗑</button>
               </div>
               {[{key:"pain",icon:"😣",label:"어려움과 고통",color:"#F04452"},{key:"effort",icon:"💪",label:"노력한 실행",color:"#3182F6"},{key:"learned",icon:"📚",label:"배운 것",color:"#00C073"},{key:"next",icon:"🚀",label:"다음에 해볼 것",color:"#8B5CF6"}].map(item=>(
                 <div key={item.key} style={{backgroundColor:"#F9FAFB",borderRadius:12,padding:"11px 14px",marginBottom:8}}>
@@ -2031,7 +2035,7 @@ function AIPage({D,cu,add,rm}){
             <div key={r.id||i} style={{backgroundColor:"#FFFFFF",borderRadius:14,padding:"14px 16px",marginBottom:10,border:"1px solid #F2F4F6"}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
                 <div style={{display:"flex",alignItems:"center",gap:6}}><Badge color="#3182F6" bg="#EBF3FF">{TYPE_LABELS[r.type]||r.type}</Badge><span style={{fontSize:12,color:"#9CA3AF"}}>{r.savedAt?.slice(0,10)||""}</span></div>
-                <button onClick={()=>rm("aiReviews",r.id)} title="삭제" style={{background:"none",border:"none",fontSize:14,cursor:"pointer",color:"#D1D5DB",padding:2}}>🗑</button>
+                <button onClick={()=>rm("aiReviews",r.id)} title="삭제" style={{background:"none",border:"none",fontSize:14,cursor:"pointer",color:"#D1D5DB",padding:8}}>🗑</button>
               </div>
               {r.question&&<p style={{margin:"0 0 6px",fontSize:12,fontWeight:700,color:"#4B5563"}}>Q: {r.question}</p>}
               <p style={{margin:0,fontSize:13,color:"#374151",lineHeight:1.7,whiteSpace:"pre-wrap",maxHeight:120,overflow:"hidden"}}>{r.result}</p>

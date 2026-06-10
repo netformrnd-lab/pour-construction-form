@@ -569,8 +569,8 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                   <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                     {t.weekSlot&&<span style={{fontSize:10,fontWeight:800,color:"#9CA3AF"}}>{t.weekSlot}순위</span>}
                     <span style={{fontSize:11,fontWeight:700,color:st.color,backgroundColor:st.bg,padding:"2px 8px",borderRadius:6}}>{st.label}</span>
-                    <button onClick={()=>setEditTask(t)} style={{background:"none",border:"none",fontSize:13,cursor:"pointer",color:"#9CA3AF",padding:2}}>✎</button>
-                    <button onClick={()=>setConfirmTaskId(t.id)} style={{background:"none",border:"none",fontSize:13,cursor:"pointer",color:"#D1D5DB",padding:2}}>✕</button>
+                    <button onClick={()=>setEditTask(t)} style={{background:"none",border:"none",fontSize:13,cursor:"pointer",color:"#9CA3AF",padding:8}}>✎</button>
+                    <button onClick={()=>setConfirmTaskId(t.id)} style={{background:"none",border:"none",fontSize:13,cursor:"pointer",color:"#D1D5DB",padding:8}}>✕</button>
                   </div>
                 </div>
               );
@@ -751,7 +751,7 @@ function KPIPage({D,lead,up,cu,add,rm}){
                       <span style={{fontSize:14,fontWeight:800,color:"#0F1F5C"}}>{mk.title}</span>
                     </div>
                     <div style={{display:"flex",alignItems:"center",gap:8}}>
-                      <button onClick={e=>{e.stopPropagation();openCfg("mainKPIs",mk,"main");}} title="이름·목표 수정" style={{background:"none",border:"none",cursor:"pointer",fontSize:13,color:"#9CA3AF",padding:2}}>⚙</button>
+                      <button onClick={e=>{e.stopPropagation();openCfg("mainKPIs",mk,"main");}} title="이름·목표 수정" style={{background:"none",border:"none",cursor:"pointer",fontSize:13,color:"#9CA3AF",padding:8}}>⚙</button>
                       <span style={{fontSize:16,fontWeight:900,color:col}}>{p}%</span>
                       <span style={{fontSize:12,color:"#9CA3AF"}}>{open?"▲":"▼"}</span>
                     </div>
@@ -777,7 +777,7 @@ function KPIPage({D,lead,up,cu,add,rm}){
                                 <span style={{fontSize:12.5,fontWeight:700,color:"#1F2937"}}>{sk.title}</span>
                               </div>
                               <div style={{display:"flex",alignItems:"center",gap:6}}>
-                                <button onClick={e=>{e.stopPropagation();openCfg("subKPIs",sk,"sub");}} title="이름·목표 수정" style={{background:"none",border:"none",cursor:"pointer",fontSize:12,color:"#9CA3AF",padding:2}}>⚙</button>
+                                <button onClick={e=>{e.stopPropagation();openCfg("subKPIs",sk,"sub");}} title="이름·목표 수정" style={{background:"none",border:"none",cursor:"pointer",fontSize:12,color:"#9CA3AF",padding:8}}>⚙</button>
                                 <span style={{fontSize:13,fontWeight:900,color:sp>=50?"#00C073":"#FF9500"}}>{sp}%</span>
                                 <span style={{fontSize:11,color:"#9CA3AF"}}>{skOpen?"▲":"▼"}</span>
                               </div>
@@ -1253,7 +1253,7 @@ function ProjectsPage({D,cu,up,add,rm}){
                         <div style={{display:"flex",gap:6,marginTop:7,alignItems:"center"}}>
                           <input type="number" placeholder={actMode==="delta"?"한 값 입력 → 누적+":"누적 총값 입력"} onKeyDown={e=>{if(e.key==="Enter"&&e.target.value!==""){actRecord(proj,ak,e.target.value);e.target.value="";}}} onBlur={e=>{if(e.target.value!==""){actRecord(proj,ak,e.target.value);e.target.value="";}}} style={{flex:1,minWidth:0,padding:"6px 9px",borderRadius:8,border:"1.5px solid #E5E8EB",fontSize:11.5,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
                           {ak.history&&ak.history.length>0&&<button onClick={()=>setActHist({proj,ak})} style={{flexShrink:0,padding:"5px 8px",borderRadius:7,border:"1px solid #E5E8EB",background:"#fff",fontSize:10.5,fontWeight:700,color:"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>📜 {ak.history.length}</button>}
-                          <button onClick={()=>actRemove(proj,ak)} style={{flexShrink:0,background:"none",border:"none",fontSize:13,color:"#D1D5DB",cursor:"pointer",padding:2}}>🗑</button>
+                          <button onClick={()=>actRemove(proj,ak)} style={{flexShrink:0,background:"none",border:"none",fontSize:13,color:"#D1D5DB",cursor:"pointer",padding:8}}>🗑</button>
                         </div>
                         {ak.byName&&<p style={{margin:"5px 0 0",fontSize:10,color:"#9CA3AF"}}>👤 {ak.byName} · {weekLabel(ak.week||weekKey())} 입력</p>}
                       </div>
@@ -1779,8 +1779,8 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
                       {viewAll&&user&&<Badge color={user.color} bg={user.color+"22"}>👤 {user.name}</Badge>}
                     </div>
                   </div>
-                  <button onClick={()=>setEditTarget(t)} style={{background:"none",border:"none",cursor:"pointer",color:"#9CA3AF",fontSize:16,padding:4,flexShrink:0}}>✎</button>
-                  <button onClick={()=>setConfirmId(t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#D1D5DB",fontSize:20,padding:4,flexShrink:0}}>🗑</button>
+                  <button onClick={()=>setEditTarget(t)} style={{background:"none",border:"none",cursor:"pointer",color:"#9CA3AF",fontSize:16,padding:8,flexShrink:0}}>✎</button>
+                  <button onClick={()=>setConfirmId(t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#D1D5DB",fontSize:20,padding:8,flexShrink:0}}>🗑</button>
                 </div>
               </div>
             );
@@ -1861,7 +1861,7 @@ function RetroPage({D,cu,add,up,rm}){
                   <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                     <span style={{fontSize:20,fontWeight:900,color}}>{p}%</span>
                     {p>=100&&<span>🎉</span>}
-                    <button onClick={()=>rm("personalGoals",g.id)} style={{background:"none",border:"none",fontSize:15,cursor:"pointer",color:"#D1D5DB",padding:2}}>✕</button>
+                    <button onClick={()=>rm("personalGoals",g.id)} style={{background:"none",border:"none",fontSize:15,cursor:"pointer",color:"#D1D5DB",padding:8}}>✕</button>
                   </div>
                 </div>
                 <PBar value={p} color={color} h={8}/>
@@ -1916,7 +1916,7 @@ function RetroPage({D,cu,add,up,rm}){
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
                 <div><p style={{margin:0,fontSize:10,fontWeight:800,color:"#3182F6",letterSpacing:1}}>MONTHLY RETRO</p><h3 style={{margin:"3px 0 0",fontSize:16,fontWeight:900,color:"#0F1F5C"}}>{retro.month}</h3></div>
                 {retro.month===month&&<button onClick={openRetro} style={{background:"none",border:"none",fontSize:15,cursor:"pointer",color:"#9CA3AF"}}>✎</button>}
-                <button onClick={()=>rm("retros",retro.id)} title="삭제" style={{background:"none",border:"none",fontSize:14,cursor:"pointer",color:"#D1D5DB",padding:2}}>🗑</button>
+                <button onClick={()=>rm("retros",retro.id)} title="삭제" style={{background:"none",border:"none",fontSize:14,cursor:"pointer",color:"#D1D5DB",padding:8}}>🗑</button>
               </div>
               {[{key:"pain",icon:"😣",label:"어려움과 고통",color:"#F04452"},{key:"effort",icon:"💪",label:"노력한 실행",color:"#3182F6"},{key:"learned",icon:"📚",label:"배운 것",color:"#00C073"},{key:"next",icon:"🚀",label:"다음에 해볼 것",color:"#8B5CF6"}].map(item=>(
                 <div key={item.key} style={{backgroundColor:"#F9FAFB",borderRadius:12,padding:"11px 14px",marginBottom:8}}>
@@ -2029,7 +2029,7 @@ function AIPage({D,cu,add,rm}){
             <div key={r.id||i} style={{backgroundColor:"#FFFFFF",borderRadius:14,padding:"14px 16px",marginBottom:10,border:"1px solid #F2F4F6"}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
                 <div style={{display:"flex",alignItems:"center",gap:6}}><Badge color="#3182F6" bg="#EBF3FF">{TYPE_LABELS[r.type]||r.type}</Badge><span style={{fontSize:12,color:"#9CA3AF"}}>{r.savedAt?.slice(0,10)||""}</span></div>
-                <button onClick={()=>rm("aiReviews",r.id)} title="삭제" style={{background:"none",border:"none",fontSize:14,cursor:"pointer",color:"#D1D5DB",padding:2}}>🗑</button>
+                <button onClick={()=>rm("aiReviews",r.id)} title="삭제" style={{background:"none",border:"none",fontSize:14,cursor:"pointer",color:"#D1D5DB",padding:8}}>🗑</button>
               </div>
               {r.question&&<p style={{margin:"0 0 6px",fontSize:12,fontWeight:700,color:"#4B5563"}}>Q: {r.question}</p>}
               <p style={{margin:0,fontSize:13,color:"#374151",lineHeight:1.7,whiteSpace:"pre-wrap",maxHeight:120,overflow:"hidden"}}>{r.result}</p>

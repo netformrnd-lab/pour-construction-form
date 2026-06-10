@@ -130,8 +130,24 @@ const weekKey=(d=new Date())=>{const x=new Date(d);const off=(x.getDay()+6)%7;x.
 const weekLabel=(key)=>{const m=new Date(key);const su=new Date(m);su.setDate(su.getDate()+6);const f=z=>`${z.getMonth()+1}/${z.getDate()}`;return `${f(m)}~${f(su)}`;};
 // 메인KPI2(B2B): 서브KPI 현재값 = 자식 프로젝트 매출 성과(resultValue) 합계 / 메인KPI1·3: 수동값
 const numF=(x)=>{const n=Number(x);return isFinite(n)?n:0;};   // 문자열·NaN·Infinity → 0 (집계 방탄)
-const skCur=(sk,projects)=>(sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride)?(projects||[]).filter(p=>p.subKPIId===sk.id).reduce((a,p)=>a+numF(p.resultValue),0):numF(sk.currentValue);
-const mkCur=(mk,subKPIs,projects)=>mk.unit==="원"?subKPIs.filter(s=>s.mainKPIId===mk.id).reduce((a,s)=>a+skCur(s,projects),0):numF(mk.currentValue);
+// 서브KPI 현재값:
+//  · 메인2(원) 자동 → 자식 프로젝트 매출(resultValue) 합계
+//  · 운영(%) 자동 → 자식 프로젝트 진척(progress) 평균  ← 업무→진척→운영KPI 롤업
+//  · 그 외/수동지정 → currentValue
+const skCur=(sk,projects)=>{
+  if(sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride) return (projects||[]).filter(p=>p.subKPIId===sk.id).reduce((a,p)=>a+numF(p.resultValue),0);
+  if(sk.unit==="%"&&!sk.manualOverride){ const ch=(projects||[]).filter(p=>p.subKPIId===sk.id); if(ch.length) return Math.round(ch.reduce((a,p)=>a+numF(p.progress),0)/ch.length); }
+  return numF(sk.currentValue);
+};
+// 메인KPI 현재값:
+//  · 원 → 자식 서브KPI 합계
+//  · 운영(원 아님) 자동 → 자식 서브KPI 완료비율 합(= 환산 달성 단위), 자식 없으면 currentValue
+//  · 수동지정(manualOverride) → currentValue
+const mkCur=(mk,subKPIs,projects)=>{
+  if(mk.unit==="원") return subKPIs.filter(s=>s.mainKPIId===mk.id).reduce((a,s)=>a+skCur(s,projects),0);
+  if(!mk.manualOverride){ const subs=subKPIs.filter(s=>s.mainKPIId===mk.id); if(subs.length){ const eq=subs.reduce((a,s)=>{const t=numF(s.targetValue); return a+(t>0?Math.min(1,skCur(s,projects)/t):0);},0); return Math.round(eq*10)/10; } }
+  return numF(mk.currentValue);
+};
 const fmt=(n,u)=>{
   if(!n||isNaN(n)) return "0"+(u||"");
   if(u==="원"&&n>=100000000) return (n/100000000).toFixed(1)+"억";
@@ -299,6 +315,13 @@ export default function App(){
   },[]);
   // currentUser는 기기별 로컬에만 저장
   useEffect(()=>{ if(D.currentUser) localStorage.setItem(LOCAL_USER_KEY,D.currentUser); },[D.currentUser]);
+  // 최초 로드 후 1회: 업무 기준 자동 진척으로 정합화(수동지정 제외, 업무 없으면 유지)
+  const progReconciledRef=useRef(false);
+  useEffect(()=>{
+    if(!loaded||progReconciledRef.current) return;
+    progReconciledRef.current=true;
+    setD(p=>recalcProg(p));
+  },[loaded]);
   // 어드민(상위 프레임)에 임베드된 경우: 활동 담당자 수신 → currentUser 자동 선택
   useEffect(()=>{
     const onMsg=(e)=>{
@@ -330,9 +353,28 @@ export default function App(){
   const cu=D.users.find(u=>u.id===D.currentUser)||D.users[0];   // 잘못된 currentUser여도 크래시 방지
   const lead=cu?.role==="lead";
   const set=(k,v)=>setD(p=>({...p,[k]:v}));
-  const add=(k,item)=>setD(p=>({...p,[k]:[...p[k],item]}));
-  const up=(k,id,c)=>setD(p=>({...p,[k]:p[k].map(i=>i.id===id?{...i,...c}:i)}));
-  const rm=(k,id)=>setD(p=>({...p,[k]:p[k].filter(i=>i.id!==id)}));
+  // 업무 변동 시 프로젝트 진척 자동 재산출(수동지정 progressManual 제외, 업무 없으면 기존값 유지)
+  const recalcProg=(state)=>{
+    const tasks=state.tasks||[];
+    let changed=false;
+    const projects=(state.projects||[]).map(pr=>{
+      if(pr.progressManual) return pr;
+      const real=tasks.filter(t=>t.projectId===pr.id&&!t.isFixed);
+      if(real.length===0) return pr;
+      const auto=Math.round(real.filter(t=>t.status==="done").length/real.length*100);
+      if(auto===(pr.progress||0)) return pr;
+      changed=true; return {...pr,progress:auto};
+    });
+    return changed?{...state,projects}:state;
+  };
+  const add=(k,item)=>setD(p=>{const n={...p,[k]:[...p[k],item]};return k==="tasks"?recalcProg(n):n;});
+  const up=(k,id,c)=>setD(p=>{
+    // 업무 완료 전환 시 완료시각·완료자 기록(주간 활동로그용)
+    const list=p[k].map(i=>{ if(i.id!==id) return i; let patch=c; if(k==="tasks"&&c.status&&c.status!==i.status&&c.status==="done") patch={...c,doneAt:new Date().toISOString(),doneBy:cu?.id||null,doneByName:cu?.name||""}; return {...i,...patch}; });
+    const n={...p,[k]:list};
+    return k==="tasks"?recalcProg(n):n;
+  });
+  const rm=(k,id)=>setD(p=>{const n={...p,[k]:p[k].filter(i=>i.id!==id)};return k==="tasks"?recalcProg(n):n;});
   const nav=(id)=>{setPage(id);setMore(false);};
   const allPages=[...TABS.filter(t=>t.id!=="more"),...MORE];
   const pi=allPages.find(p=>p.id===page);
@@ -480,7 +522,22 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const [quickProj,setQuickProj]=useState("");
   const [confirmTaskId,setConfirmTaskId]=useState(null);
   const [editTask,setEditTask]=useState(null);
+  const [feedOpen,setFeedOpen]=useState(false);
   const todayKey=new Date().toISOString().slice(0,10);
+  // 이번 주 팀 활동로그 — 완료업무·매출·KPI실적·목표지표를 한 흐름으로 집계
+  const wkNow=weekKey();
+  const actFeed=(()=>{
+    const f=[];
+    D.tasks.forEach(t=>{ if(!t.isFixed&&t.status==="done"&&t.doneAt&&weekKey(new Date(t.doneAt))===wkNow) f.push({at:t.doneAt,who:t.doneByName||"",icon:"✅",text:`업무 완료 · ${t.title}`}); });
+    D.projects.forEach(p=>{
+      (p.salesHistory||[]).forEach(h=>{ if(h.week===wkNow) f.push({at:h.at,who:h.byName||"",icon:"💰",text:`매출 ${fmt(numF(h.value),"원")} · ${p.title}`}); });
+      (p.activityKPIs||[]).forEach(ak=>(ak.history||[]).forEach(h=>{ if(h.week===wkNow) f.push({at:h.at,who:h.byName||"",icon:"🎯",text:`${ak.name} ${fmt(numF(h.value),ak.unit)} · ${p.title}`}); }));
+    });
+    D.subKPIs.forEach(s=>(s.valueHistory||[]).forEach(h=>{ if(h.week===wkNow) f.push({at:h.at,who:h.byName||"",icon:"📊",text:`${s.title} ${fmt(numF(h.value),s.unit)}`}); }));
+    D.mainKPIs.forEach(m=>(m.valueHistory||[]).forEach(h=>{ if(h.week===wkNow) f.push({at:h.at,who:h.byName||"",icon:"📊",text:`${m.title} ${fmt(numF(h.value),m.unit)}`}); }));
+    f.sort((a,b)=>(b.at||"").localeCompare(a.at||""));
+    return f;
+  })();
   const toggle=t=>up("tasks",t.id,{status:t.status==="done"?"todo":"done"});
   // 고정(반복)업무는 날짜별 완료 — 오늘 체크는 오늘만 유지(매일 리셋)
   const fixedDone=t=>t.doneDate===todayKey;
@@ -518,6 +575,30 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           </div>
         </div>
       )}
+      <div style={{backgroundColor:"#FFFFFF",borderRadius:16,marginBottom:14,border:"1px solid #F2F4F6",overflow:"hidden"}}>
+        <div onClick={()=>setFeedOpen(o=>!o)} style={{padding:"13px 14px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#0F1F5C"}}>📋 이번 주 팀 활동</h3>
+            <span style={{fontSize:11,fontWeight:800,color:"#fff",background:actFeed.length>0?"#00C073":"#D1D5DB",padding:"2px 8px",borderRadius:10}}>{actFeed.length}건</span>
+          </div>
+          <span style={{fontSize:12,color:"#9CA3AF"}}>{weekLabel(wkNow)} {feedOpen?"▲":"▼"}</span>
+        </div>
+        {feedOpen&&(
+          <div style={{borderTop:"1px solid #F2F4F6",padding:"6px 14px 12px"}}>
+            {actFeed.length===0&&<p style={{padding:"16px 0",textAlign:"center",fontSize:12.5,color:"#9CA3AF"}}>이번 주 기록된 활동이 없어요 · 기록되지 않은 업무는 자산이 되지 않아요</p>}
+            {actFeed.slice(0,30).map((e,i)=>(
+              <div key={i} style={{display:"flex",alignItems:"center",gap:9,padding:"8px 0",borderBottom:i<Math.min(actFeed.length,30)-1?"1px solid #F6F7F9":"none"}}>
+                <span style={{fontSize:14,flexShrink:0}}>{e.icon}</span>
+                <div style={{flex:1,minWidth:0}}>
+                  <p style={{margin:0,fontSize:12.5,fontWeight:600,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.text}</p>
+                  <p style={{margin:"1px 0 0",fontSize:10.5,color:"#9CA3AF"}}>{e.who||"—"} · {(e.at||"").slice(5,16).replace("T"," ")}</p>
+                </div>
+              </div>
+            ))}
+            {actFeed.length>30&&<p style={{margin:"8px 0 0",textAlign:"center",fontSize:11,color:"#9CA3AF"}}>외 {actFeed.length-30}건 더…</p>}
+          </div>
+        )}
+      </div>
       <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",marginBottom:14,border:"1px solid #F2F4F6"}}>
         <h3 style={{margin:"0 0 4px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}>📅 주간 업무 배치</h3>
         <p style={{margin:"0 0 10px",fontSize:10.5,color:"#9CA3AF"}}>월~금 · 1~5순위 슬롯 · 탭해서 배치</p>
@@ -660,6 +741,7 @@ function KPIPage({D,lead,up,cu,add,rm}){
   const [openSK,setOpenSK]=useState(null);
   const [openProj,setOpenProj]=useState(null);
   const [salesOpen,setSalesOpen]=useState(false);
+  const [salesHist,setSalesHist]=useState(null); // 매출 이력 보기 대상 (project)
   const [histItem,setHistItem]=useState(null);   // 수치 이력 보기 대상 (subKPI/mainKPI)
   const [valSheet,setValSheet]=useState(null);   // 수치 입력 시트 {coll,item}
   const [valMode,setValMode]=useState("delta");  // delta(이번주 추가) | total(누계 직접)
@@ -704,6 +786,16 @@ function KPIPage({D,lead,up,cu,add,rm}){
     setValSheet(null);
   };
   const resetAuto=(sk)=>up("subKPIs",sk.id,{manualOverride:false});
+  // 매출 입력 — resultValue 덮어쓰기 + 이력 기록(누가·언제·증감)
+  const setSale=(p,raw)=>{
+    const v=raw===""?0:(Number(raw)||0);
+    if(!isFinite(v)) return;                       // NaN/Infinity 방어
+    const prev=numF(p.resultValue);
+    if(v===prev) return;                            // 변화 없으면 기록 안 함
+    const at=new Date().toISOString();
+    const entry={week:weekKey(),value:v,prev,delta:v-prev,by:cu?.id||null,byName:cu?.name||"",at};
+    up("projects",p.id,{resultValue:v,salesBy:cu?.id||null,salesByName:cu?.name||"",salesAt:at,salesHistory:[...(p.salesHistory||[]),entry]});
+  };
   const getContrib=(sk)=>{
     const projs=D.projects.filter(p=>p.subKPIId===sk.id);
     return projs.map(proj=>{
@@ -742,6 +834,31 @@ function KPIPage({D,lead,up,cu,add,rm}){
               </div>
             );
           })}
+          {(()=>{
+            // 수치목표 롤업 — 전 프로젝트 목표지표(activityKPIs)를 지표명으로 합산(매출 아님)
+            const agg={};
+            D.projects.forEach(pr=>(pr.activityKPIs||[]).forEach(ak=>{const k=ak.name||"기타";if(!agg[k])agg[k]={name:k,unit:ak.unit||"",cur:0,tgt:0,cnt:0,projs:[]};agg[k].cur+=numF(ak.current);agg[k].tgt+=numF(ak.target);agg[k].cnt++;agg[k].projs.push(pr.title);}));
+            const rows=Object.values(agg).sort((a,b)=>b.cur-a.cur);
+            if(rows.length===0) return null;
+            return(
+              <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px 16px",marginBottom:14,border:"1px solid #F2F4F6"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                  <h3 style={{margin:0,fontSize:15,fontWeight:900,color:"#0F1F5C"}}>🎯 수치목표 롤업</h3>
+                  <span style={{fontSize:10.5,color:"#9CA3AF"}}>{rows.length}개 지표 · {rows.reduce((s,r)=>s+r.cnt,0)}개 프로젝트</span>
+                </div>
+                <p style={{margin:"0 0 10px",fontSize:10.5,color:"#9CA3AF"}}>프로젝트별 목표지표를 지표명으로 합산 — 운영·활동 성과(매출 아님)</p>
+                {rows.map(r=>{const pr2=pct(r.cur,r.tgt);return(
+                  <div key={r.name} style={{marginBottom:10}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3,gap:8}}>
+                      <span style={{fontSize:12.5,fontWeight:700,color:"#374151",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}<span style={{fontSize:10,color:"#9CA3AF",marginLeft:5}}>·{r.cnt}건</span></span>
+                      <span style={{fontSize:12,fontWeight:800,color:pr2>=70?"#00C073":"#8B5CF6",flexShrink:0}}>{fmt(r.cur,r.unit)} / {fmt(r.tgt,r.unit)}{r.tgt>0?` · ${pr2}%`:""}</span>
+                    </div>
+                    <div style={{height:6,borderRadius:6,backgroundColor:"#F2F4F6",overflow:"hidden"}}><div style={{width:`${pr2}%`,height:"100%",backgroundColor:pr2>=70?"#00C073":"#8B5CF6",borderRadius:6}}/></div>
+                  </div>
+                );})}
+              </div>
+            );
+          })()}
           <h3 style={{margin:"0 0 10px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>메인 KPI</h3>
           {D.mainKPIs.map(mk=>{
             const p=pct(mkCur(mk,D.subKPIs,D.projects),mk.targetValue);
@@ -767,7 +884,7 @@ function KPIPage({D,lead,up,cu,add,rm}){
                 </div>
                 {open&&(
                   <div style={{borderTop:"1px solid #F2F4F6",padding:"12px 16px 14px"}}>
-                    {mk.unit==="원"&&mk.id!=="mk2"&&(<div style={{marginBottom:12,padding:"9px 12px",backgroundColor:"#EBF3FF",borderRadius:10}}><p style={{margin:0,fontSize:11.5,color:"#3182F6",fontWeight:600}}>📊 채널별 매출 합계로 자동 집계 — 아래 채널 현재값 입력</p></div>)}{mk.id==="mk2"&&(<div style={{marginBottom:12,padding:"11px 13px",backgroundColor:"#FFF7ED",borderRadius:10,border:"1px solid #FED7AA"}}><p style={{margin:"0 0 4px",fontSize:12,color:"#EA580C",fontWeight:800}}>💡 매출 입력은 여기서!</p><p style={{margin:0,fontSize:11.5,color:"#9A3412",fontWeight:600,lineHeight:1.55}}>아래 <b>거래처유형별 매출</b>의 <b>✏️ 입력</b> 버튼 → 한 화면에서 거래처유형별로 바로 입력 → 단가·메인KPI에 자동 반영</p></div>)}{mk.unit!=="원"&&(<div style={{marginBottom:12}}><button onClick={()=>openVal("mainKPIs",mk)} style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #F97316",background:"#FFF7ED",color:"#EA580C",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>📊 이번 주 실적 입력 · 현재 {fmt(mk.currentValue,mk.unit)}</button>{(mk.valueByName||(mk.valueHistory&&mk.valueHistory.length))&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:6,gap:8}}>{mk.valueByName&&<span style={{fontSize:10.5,color:"#9CA3AF"}}>👤 {mk.valueByName} · {(mk.valueAt||"").slice(5,10)}</span>}{mk.valueHistory&&mk.valueHistory.length>0&&<button onClick={()=>setHistItem(mk)} style={{padding:"3px 9px",borderRadius:7,border:"1px solid #E5E8EB",background:"#fff",fontSize:10.5,fontWeight:700,color:"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>📜 이력 {mk.valueHistory.length}</button>}</div>}</div>)}
+                    {mk.unit==="원"&&mk.id!=="mk2"&&(<div style={{marginBottom:12,padding:"9px 12px",backgroundColor:"#EBF3FF",borderRadius:10}}><p style={{margin:0,fontSize:11.5,color:"#3182F6",fontWeight:600}}>📊 채널별 매출 합계로 자동 집계 — 아래 채널 현재값 입력</p></div>)}{mk.id==="mk2"&&(<div style={{marginBottom:12,padding:"11px 13px",backgroundColor:"#FFF7ED",borderRadius:10,border:"1px solid #FED7AA"}}><p style={{margin:"0 0 4px",fontSize:12,color:"#EA580C",fontWeight:800}}>💡 매출 입력은 여기서!</p><p style={{margin:0,fontSize:11.5,color:"#9A3412",fontWeight:600,lineHeight:1.55}}>아래 <b>거래처유형별 매출</b>의 <b>✏️ 입력</b> 버튼 → 한 화면에서 거래처유형별로 바로 입력 → 단가·메인KPI에 자동 반영</p></div>)}{mk.unit!=="원"&&(()=>{const hasAutoSrc=subs.length>0;const isAuto=hasAutoSrc&&!mk.manualOverride;const eff=mkCur(mk,D.subKPIs,D.projects);return(<div style={{marginBottom:12}}>{isAuto&&<div style={{marginBottom:8,padding:"9px 12px",backgroundColor:"#E8FAF1",borderRadius:10}}><p style={{margin:0,fontSize:11.5,color:"#00A050",fontWeight:700,lineHeight:1.5}}>📊 하위 항목 달성도로 자동 롤업 · 환산 {fmt(eff,mk.unit)} / {fmt(mk.targetValue,mk.unit)}</p></div>}<button onClick={()=>openVal("mainKPIs",mk)} style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #F97316",background:"#FFF7ED",color:"#EA580C",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{isAuto?"✏️ 직접 입력으로 전환":"📊 이번 주 실적 입력"} · 현재 {fmt(eff,mk.unit)}</button>{(mk.valueByName||(mk.valueHistory&&mk.valueHistory.length)||(mk.manualOverride&&hasAutoSrc))&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:6,gap:8}}>{mk.valueByName&&<span style={{fontSize:10.5,color:"#9CA3AF"}}>👤 {mk.valueByName} · {(mk.valueAt||"").slice(5,10)}</span>}<div style={{display:"flex",gap:6,marginLeft:"auto"}}>{mk.valueHistory&&mk.valueHistory.length>0&&<button onClick={()=>setHistItem(mk)} style={{padding:"3px 9px",borderRadius:7,border:"1px solid #E5E8EB",background:"#fff",fontSize:10.5,fontWeight:700,color:"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>📜 이력 {mk.valueHistory.length}</button>}{mk.manualOverride&&hasAutoSrc&&<button onClick={()=>up("mainKPIs",mk.id,{manualOverride:false})} style={{padding:"3px 9px",borderRadius:7,border:"1px solid #FED7AA",background:"#FFF7ED",fontSize:10.5,fontWeight:700,color:"#EA580C",cursor:"pointer",fontFamily:"inherit"}}>↺ 자동으로</button>}</div></div>}</div>);})()}
                     {mk.id==="mk2"&&(()=>{const b2b=D.projects.filter(p=>p.mainKPIId==="mk2"&&p.dealerType);if(!b2b.length)return null;const byType={};b2b.forEach(p=>{const k=p.dealerType;if(!byType[k])byType[k]={sum:0,cnt:0};byType[k].sum+=(p.resultValue||0);byType[k].cnt+=1;});const rows=Object.keys(byType).map(code=>({code,sum:byType[code].sum,cnt:byType[code].cnt,dt:DT[code]})).sort((a,b)=>b.sum-a.sum);const tot=rows.reduce((s,r)=>s+r.sum,0);const mx=Math.max(...rows.map(r=>r.sum),1);return(<div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px 16px",marginBottom:10,border:"1px solid #F2F4F6"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}><h3 style={{margin:0,fontSize:15,fontWeight:900,color:"#0F1F5C"}}>💰 거래처유형별 매출 (B2B)</h3><div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:13,fontWeight:800,color:"#F97316"}}>{fmt(tot,"원")}</span><button onClick={()=>setSalesOpen(true)} style={{padding:"6px 12px",borderRadius:9,border:"none",backgroundColor:"#F97316",color:"#FFFFFF",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>✏️ 입력</button></div></div><p style={{margin:"0 0 10px",fontSize:10.5,color:"#9CA3AF"}}>누가 샀나 · 거래처유형(13종) 자동 집계 — 입력은 ✏️ 버튼</p>{rows.map(r=>{const w=Math.round(r.sum/mx*100);const c=r.dt?.color||"#9CA3AF";return(<div key={r.code} style={{marginBottom:9}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3,gap:8}}><div style={{display:"flex",alignItems:"center",gap:6,flex:1,minWidth:0}}><span style={{fontSize:10.5,fontWeight:800,color:c,backgroundColor:c+"18",borderRadius:6,padding:"2px 6px",flexShrink:0,fontFamily:"'IBM Plex Mono',monospace"}}>{r.code}</span><span style={{fontSize:12,fontWeight:700,color:"#374151",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.dt?.label||r.code}</span><span style={{fontSize:10.5,color:"#9CA3AF",flexShrink:0}}>·{r.cnt}건</span></div><span style={{fontSize:12,fontWeight:800,color:"#374151",flexShrink:0}}>{fmt(r.sum,"원")}</span></div><div style={{height:6,borderRadius:6,backgroundColor:"#F2F4F6",overflow:"hidden"}}><div style={{width:`${w}%`,height:"100%",backgroundColor:c,borderRadius:6}}/></div></div>);})}</div>);})()}<p style={{margin:"0 0 8px",fontSize:12,fontWeight:800,color:"#6B7280"}}>{mk.id==="mk2"?"얼마 단가에 — 단가별 매출 (자동 집계)":mk.id==="mk1"?"채널별 매출":"구축 항목"}</p>{(()=>{const orphan=D.projects.filter(pj=>pj.mainKPIId===mk.id&&!pj.subKPIId);if(!orphan.length)return null;return(<div style={{marginBottom:10,padding:"10px 12px",backgroundColor:"#FFF7ED",borderRadius:10,border:"1px solid #FED7AA"}}><p style={{margin:"0 0 6px",fontSize:11.5,fontWeight:800,color:"#EA580C"}}>⚠️ 채널 미지정 {orphan.length}건</p>{orphan.map(pj=>{const as=D.users.find(u=>u.id===pj.assigneeId);return(<div key={pj.id} style={{display:"flex",alignItems:"center",gap:6,padding:"3px 0"}}><Ava name={as?.name} color={as?.color} size={18}/><span style={{fontSize:12,fontWeight:600,color:"#1F2937",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pj.title}</span><span style={{fontSize:11,fontWeight:700,color:"#EA580C"}}>{pj.progress}%</span></div>);})}</div>);})()}
                     {subs.map(sk=>{
                       const sp=pct(skCur(sk,D.projects),sk.targetValue);
@@ -796,13 +913,14 @@ function KPIPage({D,lead,up,cu,add,rm}){
                             <button onClick={e=>{e.stopPropagation();openVal("subKPIs",sk);}} style={{width:"100%",marginTop:8,padding:"8px 10px",borderRadius:8,border:"1.5px solid #F97316",background:"#FFF7ED",color:"#EA580C",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>📊 이번 주 실적 입력</button>
                             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginTop:6,flexWrap:"wrap"}} onClick={e=>e.stopPropagation()}>
                               <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-                                {sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride&&<span style={{fontSize:10,fontWeight:800,color:"#3182F6",backgroundColor:"#EBF3FF",padding:"2px 7px",borderRadius:6}}>📊 자동 집계</span>}
+                                {sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride&&<span style={{fontSize:10,fontWeight:800,color:"#3182F6",backgroundColor:"#EBF3FF",padding:"2px 7px",borderRadius:6}}>📊 자동 집계(매출)</span>}
+                                {sk.unit==="%"&&!sk.manualOverride&&projs.length>0&&<span style={{fontSize:10,fontWeight:800,color:"#00C073",backgroundColor:"#E8FAF1",padding:"2px 7px",borderRadius:6}}>📊 자동(프로젝트 진척 평균)</span>}
                                 {sk.manualOverride&&<span style={{fontSize:10,fontWeight:800,color:"#EA580C",backgroundColor:"#FFF1E7",padding:"2px 7px",borderRadius:6}}>✏️ 수동 수정됨</span>}
                                 {sk.valueByName&&<span style={{fontSize:10.5,color:"#9CA3AF"}}>👤 {sk.valueByName} · {(sk.valueAt||"").slice(5,10)}</span>}
                               </div>
                               <div style={{display:"flex",gap:6}}>
                                 {sk.valueHistory&&sk.valueHistory.length>0&&<button onClick={()=>setHistItem(sk)} style={{padding:"3px 9px",borderRadius:7,border:"1px solid #E5E8EB",background:"#fff",fontSize:10.5,fontWeight:700,color:"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>📜 이력 {sk.valueHistory.length}</button>}
-                                {sk.mainKPIId==="mk2"&&sk.unit==="원"&&sk.manualOverride&&<button onClick={()=>resetAuto(sk)} style={{padding:"3px 9px",borderRadius:7,border:"1px solid #FED7AA",background:"#FFF7ED",fontSize:10.5,fontWeight:700,color:"#EA580C",cursor:"pointer",fontFamily:"inherit"}}>↺ 자동으로</button>}
+                                {sk.manualOverride&&((sk.mainKPIId==="mk2"&&sk.unit==="원")||(sk.unit==="%"&&projs.length>0))&&<button onClick={()=>resetAuto(sk)} style={{padding:"3px 9px",borderRadius:7,border:"1px solid #FED7AA",background:"#FFF7ED",fontSize:10.5,fontWeight:700,color:"#EA580C",cursor:"pointer",fontFamily:"inherit"}}>↺ 자동으로</button>}
                               </div>
                             </div>
                           </div>
@@ -1051,9 +1169,29 @@ function KPIPage({D,lead,up,cu,add,rm}){
       <Sheet open={salesOpen} onClose={()=>setSalesOpen(false)} title="💵 B2B 매출 입력" h="88vh">
         <div style={{marginTop:6}}>
           <p style={{margin:"0 0 12px",fontSize:12,color:"#6B7280",lineHeight:1.5}}>거래처유형별로 발생한 매출을 입력하세요. 입력하면 메인KPI·단가·거래처유형에 자동 반영돼요.</p>
-          {D.subKPIs.filter(s=>s.mainKPIId==="mk2").map(sk=>{const ps=D.projects.filter(p=>p.subKPIId===sk.id);if(!ps.length)return null;const sub=ps.reduce((a,p)=>a+(p.resultValue||0),0);return(<div key={sk.id} style={{marginBottom:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:7}}><span style={{fontSize:12.5,fontWeight:900,color:"#8B5CF6"}}>{sk.channelCode} · {sk.title}</span><span style={{fontSize:11.5,fontWeight:800,color:"#374151"}}>{fmt(sub,"원")} / {fmt(sk.targetValue,"원")}</span></div>{ps.map(p=>{const dt=DT[p.dealerType];return(<div key={p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:"1px solid #F2F4F6"}}>{dt&&<span style={{fontSize:9.5,fontWeight:800,color:dt.color,backgroundColor:dt.color+"18",borderRadius:6,padding:"2px 6px",flexShrink:0,fontFamily:"'IBM Plex Mono',monospace"}}>{p.dealerType}</span>}<span style={{fontSize:12.5,fontWeight:600,color:"#1F2937",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span><input type="number" defaultValue={p.resultValue||""} placeholder="0" onBlur={e=>{const v=e.target.value;up("projects",p.id,{resultValue:v===""?0:(Number(v)||0)});}} style={{width:104,padding:"8px 10px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:13,fontWeight:700,textAlign:"right",fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/><span style={{fontSize:11,color:"#9CA3AF",flexShrink:0}}>원</span></div>);})}</div>);})}
+          {D.subKPIs.filter(s=>s.mainKPIId==="mk2").map(sk=>{const ps=D.projects.filter(p=>p.subKPIId===sk.id);if(!ps.length)return null;const sub=ps.reduce((a,p)=>a+(p.resultValue||0),0);return(<div key={sk.id} style={{marginBottom:16}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:7}}><span style={{fontSize:12.5,fontWeight:900,color:"#8B5CF6"}}>{sk.channelCode} · {sk.title}</span><span style={{fontSize:11.5,fontWeight:800,color:"#374151"}}>{fmt(sub,"원")} / {fmt(sk.targetValue,"원")}</span></div>{ps.map(p=>{const dt=DT[p.dealerType];const sh=p.salesHistory||[];return(<div key={p.id} style={{padding:"7px 0",borderBottom:"1px solid #F2F4F6"}}><div style={{display:"flex",alignItems:"center",gap:8}}>{dt&&<span style={{fontSize:9.5,fontWeight:800,color:dt.color,backgroundColor:dt.color+"18",borderRadius:6,padding:"2px 6px",flexShrink:0,fontFamily:"'IBM Plex Mono',monospace"}}>{p.dealerType}</span>}<span style={{fontSize:12.5,fontWeight:600,color:"#1F2937",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span><input type="number" defaultValue={p.resultValue||""} placeholder="0" onBlur={e=>setSale(p,e.target.value)} style={{width:104,padding:"8px 10px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:13,fontWeight:700,textAlign:"right",fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/><span style={{fontSize:11,color:"#9CA3AF",flexShrink:0}}>원</span></div>{(p.salesByName||sh.length>0)&&<div style={{display:"flex",alignItems:"center",gap:6,marginTop:3,paddingLeft:dt?44:0}}><span style={{fontSize:10,color:"#9CA3AF",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.salesByName?`${p.salesByName} · ${(p.salesAt||"").slice(0,10)}`:""}</span>{sh.length>0&&<button onClick={()=>setSalesHist(p)} style={{fontSize:10,fontWeight:800,color:"#8B5CF6",background:"#F3EFFE",border:"none",borderRadius:6,padding:"2px 7px",cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>📜 이력 {sh.length}</button>}</div>}</div>);})}</div>);})}
           <button onClick={()=>setSalesOpen(false)} style={{width:"100%",marginTop:10,padding:"14px 0",borderRadius:14,border:"none",backgroundColor:"#F97316",color:"#FFFFFF",fontSize:15,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>완료</button>
         </div>
+      </Sheet>
+      <Sheet open={!!salesHist} onClose={()=>setSalesHist(null)} title="📜 매출 입력 이력">
+        {salesHist&&(<div style={{marginTop:8}}>
+          <p style={{margin:"0 0 4px",fontSize:13,fontWeight:900,color:"#0F1F5C"}}>{salesHist.title}</p>
+          <p style={{margin:"0 0 12px",fontSize:11.5,color:"#9CA3AF"}}>현재 매출 {fmt(numF(salesHist.resultValue),"원")} · 총 {(salesHist.salesHistory||[]).length}회 기록</p>
+          {[...(salesHist.salesHistory||[])].reverse().map((h,i)=>(
+            <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:"1px solid #F2F4F6"}}>
+              <Ava name={h.byName} size={28}/>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                  {h.week&&<span style={{fontSize:10,fontWeight:800,color:"#3182F6",background:"#EBF3FF",padding:"1px 6px",borderRadius:6}}>{weekLabel(h.week)}</span>}
+                  <span style={{fontSize:10,fontWeight:800,color:h.delta>=0?"#EA580C":"#DC2626",background:h.delta>=0?"#FFF1E7":"#FEECEC",padding:"1px 6px",borderRadius:6}}>{h.delta>=0?"▲":"▼"} {fmt(Math.abs(h.delta||0),"원")}</span>
+                </div>
+                <p style={{margin:"3px 0 0",fontSize:13,fontWeight:700,color:"#111827"}}>{fmt(h.prev||0,"원")} → <span style={{color:"#EA580C",fontWeight:900}}>{fmt(h.value||0,"원")}</span></p>
+                <p style={{margin:"2px 0 0",fontSize:11,color:"#9CA3AF"}}>{h.byName||"—"} · {(h.at||"").slice(0,16).replace("T"," ")}</p>
+              </div>
+            </div>
+          ))}
+          {(!salesHist.salesHistory||salesHist.salesHistory.length===0)&&<p style={{padding:"20px 0",textAlign:"center",fontSize:13,color:"#9CA3AF"}}>아직 매출 입력 이력이 없어요</p>}
+        </div>)}
       </Sheet>
       <Sheet open={!!histItem} onClose={()=>setHistItem(null)} title="📜 주차별 실적 이력">
         {histItem&&(<div style={{marginTop:8}}>
@@ -1162,12 +1300,27 @@ function ProjectsPage({D,cu,up,add,rm,pc}){
   const projs=filter==="all"?D.projects:D.projects.filter(p=>p.assigneeId===cu.id);
   const groups=[...new Set(projs.map(p=>p.group))];
   const filtered=projs.filter(p=>(groupFilter==="all"||p.group===groupFilter)&&(asgFilter==="all"||p.assigneeId===asgFilter)&&(!search.trim()||(p.title||"").toLowerCase().includes(search.trim().toLowerCase())));
-  const exportCSV=()=>{
-    const rows=[["제목","그룹","담당자","메인KPI","서브KPI","우선순위","상태","진척도%","매출(원)"]];
-    filtered.forEach(p=>{const a=D.users.find(u=>u.id===p.assigneeId);const mk=D.mainKPIs.find(m=>m.id===p.mainKPIId);const sk=D.subKPIs.find(s=>s.id===p.subKPIId);rows.push([p.title,p.group||"",a?.name||"",mk?.title||"",sk?.title||"",p.priority||"",p.status||"",p.progress||0,p.resultValue||0]);});
-    const csv="﻿"+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const dlCSV=(rows,name)=>{
+    const csv="﻿"+rows.map(r=>r.map(c=>`"${String(c==null?"":c).replace(/"/g,'""')}"`).join(",")).join("\n");
     const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));
-    const a=document.createElement("a");a.href=url;a.download=`프로젝트_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);
+    const a=document.createElement("a");a.href=url;a.download=`${name}_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);
+  };
+  const exportCSV=()=>{
+    const goalTypeL={revenue:"매출",metric:"수치목표",journey:"여정"};
+    const rows=[["제목","그룹","담당자","목표유형","거래처유형","메인KPI","서브KPI","우선순위","상태","진척도%","진척방식","업무(완료/전체)","매출(원)","매출입력자","매출최종일","매출입력횟수","목표지표"]];
+    filtered.forEach(p=>{
+      const a=D.users.find(u=>u.id===p.assigneeId);const mk=D.mainKPIs.find(m=>m.id===p.mainKPIId);const sk=D.subKPIs.find(s=>s.id===p.subKPIId);
+      const ts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);const dn=ts.filter(t=>t.status==="done").length;
+      const aks=(p.activityKPIs||[]).map(ak=>`${ak.name} ${numF(ak.current)}/${numF(ak.target)}${ak.unit||""}`).join(" · ");
+      rows.push([p.title,p.group||"",a?.name||"",goalTypeL[p.goalType]||"",p.dealerType||"",mk?.title||"",sk?.title||"",p.priority||"",p.status||"",p.progress||0,p.progressManual?"수동":"자동",`${dn}/${ts.length}`,p.resultValue||0,p.salesByName||"",(p.salesAt||"").slice(0,10),(p.salesHistory||[]).length,aks]);
+    });
+    dlCSV(rows,"프로젝트");
+  };
+  const exportSalesCSV=()=>{
+    const rows=[["일시","주차","프로젝트","거래처유형","메인KPI","서브KPI","이전매출","변동","매출(원)","입력자"]];
+    filtered.forEach(p=>{const mk=D.mainKPIs.find(m=>m.id===p.mainKPIId);const sk=D.subKPIs.find(s=>s.id===p.subKPIId);(p.salesHistory||[]).forEach(h=>{rows.push([(h.at||"").slice(0,16).replace("T"," "),h.week||"",p.title,p.dealerType||"",mk?.title||"",sk?.title||"",numF(h.prev),numF(h.delta),numF(h.value),h.byName||""]);});});
+    if(rows.length===1){ alert("매출 입력 이력이 없어요"); return; }
+    dlCSV(rows,"매출이력");
   };
   const projTasks=projDetail?D.tasks.filter(t=>t.projectId===projDetail.id&&!t.isFixed):[];
   const statusGroups={inprogress:projTasks.filter(t=>t.status==="inprogress"),todo:projTasks.filter(t=>t.status==="todo"),hold:projTasks.filter(t=>t.status==="hold"),done:projTasks.filter(t=>t.status==="done")};
@@ -1188,7 +1341,8 @@ function ProjectsPage({D,cu,up,add,rm,pc}){
       <div style={{display:"flex",gap:8,marginBottom:10,alignItems:"center"}}>
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 프로젝트 검색" style={{flex:1,minWidth:0,padding:"8px 12px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:12.5,outline:"none",fontFamily:"inherit",backgroundColor:"#F9FAFB",boxSizing:"border-box"}}/>
         <select value={asgFilter} onChange={e=>setAsgFilter(e.target.value)} style={{flexShrink:0,padding:"8px 10px",borderRadius:9,border:`1.5px solid ${asgFilter!=="all"?"#F97316":"#E5E8EB"}`,fontSize:12,fontFamily:"inherit",backgroundColor:asgFilter!=="all"?"#FFEDD5":"#F9FAFB",color:asgFilter!=="all"?"#0F1F5C":"#6B7280",WebkitAppearance:"none",outline:"none"}}><option value="all">👤 전체</option>{D.users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>
-        <button onClick={exportCSV} title="CSV 내보내기" style={{flexShrink:0,padding:"8px 12px",borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",cursor:"pointer",fontSize:12,fontWeight:700,color:"#4B5563",fontFamily:"inherit"}}>⬇ CSV</button>
+        <button onClick={exportCSV} title="프로젝트 전체를 CSV로 내보내기" style={{flexShrink:0,padding:"8px 12px",borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",cursor:"pointer",fontSize:12,fontWeight:700,color:"#4B5563",fontFamily:"inherit"}}>⬇ CSV</button>
+        <button onClick={exportSalesCSV} title="매출 입력 이력을 CSV로 내보내기" style={{flexShrink:0,padding:"8px 12px",borderRadius:9,border:"1.5px solid #FED7AA",background:"#FFF7ED",cursor:"pointer",fontSize:12,fontWeight:700,color:"#EA580C",fontFamily:"inherit"}}>⬇ 매출이력</button>
       </div>
       <div style={{display:"flex",gap:6,marginBottom:14,overflowX:"auto",paddingBottom:4}}>
         <button onClick={()=>setGroupFilter("all")} style={{flexShrink:0,padding:"5px 12px",borderRadius:20,border:"none",cursor:"pointer",backgroundColor:groupFilter==="all"?"#F97316":"#F2F4F6",color:groupFilter==="all"?"#FFFFFF":"#374151",fontWeight:600,fontSize:11,fontFamily:"inherit"}}>전체</button>
@@ -1310,10 +1464,10 @@ function ProjectsPage({D,cu,up,add,rm,pc}){
                       })}
                     </div>
                   ))}
-                  <div style={{padding:"10px 16px 14px",borderTop:"1px solid #E5E8EB",display:"flex",alignItems:"center",gap:8}}><div style={{display:"flex",alignItems:"center",gap:6,marginRight:"auto"}}><span style={{fontSize:11,fontWeight:700,color:"#6B7280"}}>진척</span><button onClick={()=>up("projects",proj.id,{progress:Math.max(0,(proj.progress||0)-10)})} style={{width:28,height:28,borderRadius:8,border:"1px solid #E5E8EB",backgroundColor:"#F9FAFB",fontSize:15,fontWeight:900,color:"#4B5563",cursor:"pointer",padding:0}}>−</button><span style={{fontSize:13,fontWeight:800,color:"#3182F6",minWidth:40,textAlign:"center"}}>{proj.progress}%</span><button onClick={()=>up("projects",proj.id,{progress:Math.min(100,(proj.progress||0)+10)})} style={{width:28,height:28,borderRadius:8,border:"1px solid #E5E8EB",backgroundColor:"#F9FAFB",fontSize:15,fontWeight:900,color:"#4B5563",cursor:"pointer",padding:0}}>＋</button></div>
+                  <div style={{padding:"10px 16px 14px",borderTop:"1px solid #E5E8EB",display:"flex",alignItems:"center",gap:8}}><div style={{display:"flex",alignItems:"center",gap:6,marginRight:"auto",flexWrap:"wrap"}}><span style={{fontSize:11,fontWeight:700,color:"#6B7280"}}>진척</span>{proj.progressManual?(<><button onClick={()=>up("projects",proj.id,{progress:Math.max(0,(proj.progress||0)-10),progressManual:true})} style={{width:28,height:28,borderRadius:8,border:"1px solid #E5E8EB",backgroundColor:"#F9FAFB",fontSize:15,fontWeight:900,color:"#4B5563",cursor:"pointer",padding:0}}>−</button><span style={{fontSize:13,fontWeight:800,color:"#3182F6",minWidth:40,textAlign:"center"}}>{proj.progress}%</span><button onClick={()=>up("projects",proj.id,{progress:Math.min(100,(proj.progress||0)+10),progressManual:true})} style={{width:28,height:28,borderRadius:8,border:"1px solid #E5E8EB",backgroundColor:"#F9FAFB",fontSize:15,fontWeight:900,color:"#4B5563",cursor:"pointer",padding:0}}>＋</button><button onClick={()=>{const auto=tasks.length?Math.round(done.length/tasks.length*100):(proj.progress||0);up("projects",proj.id,{progressManual:false,progress:auto});}} title="업무 완료율로 자동 산출" style={{padding:"4px 8px",borderRadius:7,border:"1px solid #E5E8EB",background:"#fff",fontSize:10.5,fontWeight:700,color:"#8B5CF6",cursor:"pointer",fontFamily:"inherit"}}>🔄 자동전환</button></>):(<><span style={{fontSize:13,fontWeight:800,color:"#3182F6",minWidth:40,textAlign:"center"}}>{proj.progress}%</span><span style={{fontSize:10,fontWeight:700,color:"#00C073",background:"#E8FAF1",padding:"3px 7px",borderRadius:7}}>🔄 자동 · 업무 {done.length}/{tasks.length}</span><button onClick={()=>up("projects",proj.id,{progressManual:true})} title="진척을 직접 조정" style={{padding:"4px 8px",borderRadius:7,border:"1px solid #E5E8EB",background:"#fff",fontSize:10.5,fontWeight:700,color:"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>✎ 수동</button></>)}</div>
                     <button onClick={()=>openEditProj(proj)} style={{padding:"6px 12px",borderRadius:10,border:"1px solid #E5E8EB",backgroundColor:"#FFFFFF",color:"#4B5563",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>✎ 편집</button>
                     {proj.status!=="active"&&<button onClick={()=>up("projects",proj.id,{status:"active"})} style={{padding:"6px 12px",borderRadius:10,border:"1px solid #3182F6",backgroundColor:"#EBF3FF",color:"#3182F6",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>▶ 재개</button>}
-                    {proj.status!=="completed"&&<button onClick={()=>up("projects",proj.id,{status:"completed",progress:100})} style={{padding:"6px 12px",borderRadius:10,border:"1px solid #00C073",backgroundColor:"#E8FAF1",color:"#00C073",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>✓ 완료</button>}
+                    {proj.status!=="completed"&&<button onClick={()=>up("projects",proj.id,{status:"completed",progress:100,progressManual:true})} style={{padding:"6px 12px",borderRadius:10,border:"1px solid #00C073",backgroundColor:"#E8FAF1",color:"#00C073",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>✓ 완료</button>}
                     {proj.status!=="paused"&&<button onClick={()=>up("projects",proj.id,{status:"paused"})} style={{padding:"6px 12px",borderRadius:10,border:"1px solid #E5E8EB",backgroundColor:"#F2F4F6",color:"#4B5563",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>⏸ 보류</button>}
                     <button onClick={()=>setProjDel(proj.id)} title="프로젝트 삭제" style={{padding:"6px 10px",borderRadius:10,border:"1px solid #FFE2E5",backgroundColor:"#FFF0F1",color:"#F04452",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🗑</button>
                   </div>

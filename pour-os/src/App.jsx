@@ -645,7 +645,20 @@ function KPIPage({D,lead,up,cu}){
   const [valMode,setValMode]=useState("delta");  // delta(이번주 추가) | total(누계 직접)
   const [valAmt,setValAmt]=useState("");
   const [valWeek,setValWeek]=useState(weekKey());
+  const [cfg,setCfg]=useState(null);   // 이름·목표 설정 시트 {coll,item,kind}
+  const [cfgForm,setCfgForm]=useState({title:"",target:"",unit:"",current:""});
   const krColors={mk1:"#3182F6",mk2:"#8B5CF6",mk3:"#00C073"};
+  const openCfg=(coll,item,kind)=>{ setCfgForm({title:item.title||"",target:String(item.targetValue??""),unit:item.unit||"",current:String(item.currentValue??"")}); setCfg({coll,item,kind}); };
+  const saveCfg=()=>{
+    if(!cfg) return;
+    const {coll,item,kind}=cfg;
+    const patch={title:cfgForm.title.trim()||item.title,targetValue:numF(cfgForm.target)};
+    if(kind!=="goal") patch.unit=cfgForm.unit||item.unit;
+    // 현재값 직접 수정(선택) — B2B 단가는 override로 표시
+    if(kind!=="goal"&&cfgForm.current!==""&&isFinite(Number(cfgForm.current))){ patch.currentValue=Number(cfgForm.current); if(item.mainKPIId==="mk2"&&item.unit==="원") patch.manualOverride=true; }
+    up(coll,item.id,patch);
+    setCfg(null);
+  };
   // 수치 입력 시트 열기 — 매주 실적(추가값/총값) 기록
   const openVal=(coll,item)=>{ setValMode("delta"); setValAmt(""); setValWeek(weekKey()); setValSheet({coll,item}); };
   const shiftWeek=(d)=>{ const m=new Date(valWeek); m.setDate(m.getDate()+d*7); setValWeek(m.toISOString().slice(0,10)); };
@@ -689,7 +702,7 @@ function KPIPage({D,lead,up,cu}){
             const p=pct(cur,g.targetValue);
             return(
               <div key={g.id} style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:18,padding:"18px",marginBottom:14,color:"#FFFFFF"}}>
-                <p style={{margin:"0 0 2px",fontSize:10,fontWeight:700,opacity:0.6,letterSpacing:2}}>최종 목표</p>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><p style={{margin:"0 0 2px",fontSize:10,fontWeight:700,opacity:0.6,letterSpacing:2}}>최종 목표</p><button onClick={()=>openCfg("goals",g,"goal")} title="이름·목표 수정" style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:7,cursor:"pointer",fontSize:12,color:"#fff",padding:"3px 8px",fontWeight:700}}>⚙ 수정</button></div>
                 <p style={{margin:"0 0 12px",fontSize:16,fontWeight:900}}>{g.title}</p>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
                   <span style={{fontSize:13,opacity:0.8}}>{fmt(cur,g.unit)} / {fmt(g.targetValue,g.unit)}</span>
@@ -715,6 +728,7 @@ function KPIPage({D,lead,up,cu}){
                       <span style={{fontSize:14,fontWeight:800,color:"#0F1F5C"}}>{mk.title}</span>
                     </div>
                     <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <button onClick={e=>{e.stopPropagation();openCfg("mainKPIs",mk,"main");}} title="이름·목표 수정" style={{background:"none",border:"none",cursor:"pointer",fontSize:13,color:"#9CA3AF",padding:2}}>⚙</button>
                       <span style={{fontSize:16,fontWeight:900,color:col}}>{p}%</span>
                       <span style={{fontSize:12,color:"#9CA3AF"}}>{open?"▲":"▼"}</span>
                     </div>
@@ -740,6 +754,7 @@ function KPIPage({D,lead,up,cu}){
                                 <span style={{fontSize:12.5,fontWeight:700,color:"#1F2937"}}>{sk.title}</span>
                               </div>
                               <div style={{display:"flex",alignItems:"center",gap:6}}>
+                                <button onClick={e=>{e.stopPropagation();openCfg("subKPIs",sk,"sub");}} title="이름·목표 수정" style={{background:"none",border:"none",cursor:"pointer",fontSize:12,color:"#9CA3AF",padding:2}}>⚙</button>
                                 <span style={{fontSize:13,fontWeight:900,color:sp>=50?"#00C073":"#FF9500"}}>{sp}%</span>
                                 <span style={{fontSize:11,color:"#9CA3AF"}}>{skOpen?"▲":"▼"}</span>
                               </div>
@@ -1056,6 +1071,20 @@ function KPIPage({D,lead,up,cu}){
               <span style={{fontSize:14,fontWeight:900,color:"#0F1F5C"}}>{fmt(prev,it.unit)} → <span style={{color:"#F97316"}}>{fmt(preview,it.unit)}</span> ({pct(preview,it.targetValue)}%)</span>
             </div>
             <Btn full variant="orange" onClick={applyVal} disabled={valAmt===""}>저장</Btn>
+          </div>);})()}
+      </Sheet>
+      <Sheet open={!!cfg} onClose={()=>setCfg(null)} title="⚙ 이름·목표 수정">
+        {cfg&&(()=>{const isB2Bsub=cfg.kind==="sub"&&cfg.item.mainKPIId==="mk2"&&cfg.item.unit==="원";return(
+          <div style={{marginTop:8}}>
+            <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>이름</label>
+            <input value={cfgForm.title} onChange={e=>setCfgForm({...cfgForm,title:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:14}}/>
+            <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>목표값 {cfg.kind!=="goal"&&`(${cfgForm.unit||cfg.item.unit||""})`}</label>
+            <input type="number" value={cfgForm.target} onChange={e=>setCfgForm({...cfgForm,target:e.target.value})} placeholder="예: 500000000" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:15,fontWeight:800,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:6}}/>
+            <p style={{margin:"0 0 14px",fontSize:11,color:"#9CA3AF"}}>현재 입력: {fmt(numF(cfgForm.target),cfg.kind==="goal"?cfg.item.unit:cfgForm.unit)}</p>
+            {cfg.kind!=="goal"&&<div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>단위</label><input value={cfgForm.unit} onChange={e=>setCfgForm({...cfgForm,unit:e.target.value})} placeholder="원 / % / 건 / 모듈" style={{width:"100%",padding:"10px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>}
+            {cfg.kind!=="goal"&&!isB2Bsub&&<div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>현재값 직접 수정 (선택)</label><input type="number" value={cfgForm.current} onChange={e=>setCfgForm({...cfgForm,current:e.target.value})} placeholder="비워두면 그대로" style={{width:"100%",padding:"10px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/><p style={{margin:"5px 0 0",fontSize:10.5,color:"#9CA3AF"}}>임의로 들어간 현재값을 직접 고칠 때 사용 (이력엔 안 남음 — 주차별로 남기려면 📊 실적 입력)</p></div>}
+            {isB2Bsub&&<p style={{margin:"0 0 14px",fontSize:11,color:"#9A3412",fontWeight:600,backgroundColor:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:8,padding:"8px 10px"}}>※ 이 항목의 현재값은 <b>프로젝트 매출 합계로 자동</b>입니다. 값을 고치려면 거래처유형별 매출 ✏️입력에서 프로젝트 금액을 수정하세요.</p>}
+            <Btn full variant="orange" onClick={saveCfg} disabled={!cfgForm.title.trim()}>저장</Btn>
           </div>);})()}
       </Sheet>
     </div>

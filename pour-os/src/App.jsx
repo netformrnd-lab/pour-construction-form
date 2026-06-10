@@ -416,9 +416,12 @@ export default function App(){
 }
 function TodayPage({D,cu,lead,add,up,rm,nav}){
   const today=todayDay();
+  const todayDate=new Date().getDate();
   const myT=D.tasks.filter(t=>t.assigneeId===cu.id);
-  const fixed=myT.filter(t=>t.isFixed);
+  const fixedDueToday=(t)=>{const rt=t.recurType||"daily";if(rt==="weekly")return t.weekDay===today;if(rt==="monthly")return Number(t.monthDay||1)===todayDate;return true;};
+  const fixed=myT.filter(t=>t.isFixed&&fixedDueToday(t));
   const todayT=myT.filter(t=>!t.isFixed&&t.weekDay===today);
+  const urgent=myT.filter(t=>t.status!=="done"&&t.dueDate&&(()=>{const dd=Math.ceil((new Date(t.dueDate)-new Date())/86400000);return dd>=0&&dd<=3;})());
   const slotMap={};
   WEEK_DAYS.forEach(d=>{slotMap[d]={};[1,2,3,4,5].forEach(s=>{slotMap[d][s]=myT.find(t=>!t.isFixed&&t.weekDay===d&&t.weekSlot===s)||null;});});
   const [slotSheet,setSlotSheet]=useState(null);
@@ -444,6 +447,22 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           </div>
         ))}
       </div>
+      {urgent.length>0&&(
+        <div style={{backgroundColor:"#FFF0F1",border:"1px solid #FFD5D8",borderRadius:14,padding:"11px 14px",marginBottom:14}}>
+          <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:7}}>
+            <span style={{fontSize:15}}>🚨</span>
+            <span style={{fontSize:12.5,fontWeight:900,color:"#F04452"}}>마감 임박 · D-3 이내 {urgent.length}건</span>
+          </div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+            {urgent.map(t=>{const dd=Math.ceil((new Date(t.dueDate)-new Date())/86400000);return(
+              <button key={t.id} onClick={()=>setEditTask(t)} style={{display:"inline-flex",alignItems:"center",gap:5,padding:"4px 9px",borderRadius:999,border:"1px solid #FFD5D8",backgroundColor:"#FFFFFF",cursor:"pointer",fontFamily:"inherit"}}>
+                <span style={{fontSize:11.5,fontWeight:700,color:"#1F2937",maxWidth:150,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}</span>
+                <span style={{fontSize:10,fontWeight:900,color:"#F04452"}}>{dd===0?"D-day":"D-"+dd}</span>
+              </button>
+            );})}
+          </div>
+        </div>
+      )}
       <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",marginBottom:14,border:"1px solid #F2F4F6"}}>
         <h3 style={{margin:"0 0 4px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}>📅 주간 업무 배치</h3>
         <p style={{margin:"0 0 10px",fontSize:10.5,color:"#9CA3AF"}}>월~금 · 1~5순위 슬롯 · 탭해서 배치</p>
@@ -1443,7 +1462,7 @@ function MindMapPage({D,cu}){
   );
 }
 function FixedPage({D,cu,lead,add,up,rm,nav}){
-  const [form,setForm]=useState({title:"",projectId:"",assigneeId:cu.id});
+  const [form,setForm]=useState({title:"",projectId:"",assigneeId:cu.id,recurType:"daily",weekDay:"월",monthDay:1});
   const [modal,setModal]=useState(false);
   const [viewAll,setViewAll]=useState(false);
   const [confirmId,setConfirmId]=useState(null);
@@ -1451,13 +1470,13 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
   const fixed=D.tasks.filter(t=>t.isFixed&&(viewAll&&lead?true:t.assigneeId===cu.id));
   const doAdd=()=>{
     if(!form.title.trim()) return;
-    const base={title:form.title.trim(),projectId:form.projectId,type:"fixed",status:"todo",weekDay:null,weekSlot:null,isFixed:true,dueDate:"",memo:"",attachments:[]};
+    const base={title:form.title.trim(),projectId:form.projectId,type:"fixed",status:"todo",weekSlot:null,isFixed:true,dueDate:"",memo:"",attachments:[],recurType:form.recurType,weekDay:form.recurType==="weekly"?form.weekDay:null,monthDay:form.recurType==="monthly"?Number(form.monthDay):null};
     if(form.assigneeId==="all"){           // 전체 선택 → 전원에게 각각 생성
       D.users.forEach((u,i)=>add("tasks",{id:"t"+Date.now()+"_"+i,...base,assigneeId:u.id}));
     }else{
       add("tasks",{id:"t"+Date.now(),...base,assigneeId:form.assigneeId});
     }
-    setForm({title:"",projectId:"",assigneeId:cu.id});setModal(false);
+    setForm({title:"",projectId:"",assigneeId:cu.id,recurType:form.recurType,weekDay:form.weekDay,monthDay:form.monthDay});setModal(false);
   };
   return(
     <div style={{padding:"14px 16px 20px"}}>
@@ -1488,7 +1507,7 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
                     <p style={{margin:0,fontSize:14,fontWeight:800,color:"#111827"}}>{t.title}</p>
                     <div style={{display:"flex",gap:6,marginTop:5,flexWrap:"wrap",alignItems:"center"}}>
                       {proj&&<Badge color="#8B5CF6" bg="#F3EFFE">📁 {proj.title}</Badge>}
-                      <Badge color="#F97316" bg="#FFEDD5">🔄 매일</Badge>
+                      <Badge color="#F97316" bg="#FFEDD5">🔄 {t.recurType==="weekly"?(t.weekDay||"월")+"요일":t.recurType==="monthly"?"매월 "+(t.monthDay||1)+"일":"매일"}</Badge>
                       {viewAll&&user&&<Badge color={user.color} bg={user.color+"22"}>👤 {user.name}</Badge>}
                     </div>
                   </div>
@@ -1504,6 +1523,7 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
         <div style={{marginTop:12}}>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>업무명 *</label><input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="ex. 벤처나라 문의 확인" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>연결 프로젝트</label><select value={form.projectId} onChange={e=>setForm({...form,projectId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="">없음</option>{D.projects.map(p=><option key={p.id} value={p.id}>{p.title}</option>)}</select></div>
+          <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>반복 주기</label><div style={{display:"flex",gap:6}}>{[["daily","매일"],["weekly","매주"],["monthly","매월"]].map(([k,l])=>(<button key={k} onClick={()=>setForm({...form,recurType:k})} style={{flex:1,padding:"10px 0",borderRadius:10,border:`1.5px solid ${form.recurType===k?"#F97316":"#E5E8EB"}`,backgroundColor:form.recurType===k?"#FFEDD5":"#FFFFFF",color:form.recurType===k?"#EA580C":"#6B7280",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>))}</div>{form.recurType==="weekly"&&<select value={form.weekDay} onChange={e=>setForm({...form,weekDay:e.target.value})} style={{width:"100%",marginTop:8,padding:"10px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}>{ALL_DAYS.map(d=><option key={d} value={d}>{d}요일</option>)}</select>}{form.recurType==="monthly"&&<select value={form.monthDay} onChange={e=>setForm({...form,monthDay:Number(e.target.value)})} style={{width:"100%",marginTop:8,padding:"10px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}>{Array.from({length:31},(_,i)=>i+1).map(d=><option key={d} value={d}>매월 {d}일</option>)}</select>}</div>
           {lead&&<div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>담당자</label><select value={form.assigneeId} onChange={e=>setForm({...form,assigneeId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="all">⭐ 전체 (전원에게 생성)</option>{D.users.map(u=><option key={u.id} value={u.id}>{u.name} ({u.dept})</option>)}</select>{form.assigneeId==="all"&&<p style={{margin:"6px 2px 0",fontSize:11,color:"#EA580C",fontWeight:700}}>전 담당자 {D.users.length}명에게 각각 생성됩니다</p>}</div>}
           <Btn full variant="orange" onClick={doAdd} disabled={!form.title.trim()}>추가하기</Btn>
         </div>

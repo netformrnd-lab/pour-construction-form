@@ -340,7 +340,7 @@ export default function App(){
     {page==="today"&&<TodayPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="kpi"&&<KPIPage D={D} lead={lead} up={up} cu={cu}/>}
     {page==="projects"&&<ProjectsPage D={D} cu={cu} up={up} add={add} rm={rm}/>}
-    {page==="calendar"&&<CalendarPage D={D} cu={cu} add={add}/>}
+    {page==="calendar"&&<CalendarPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
     {page==="mindmap"&&<MindMapPage D={D} cu={cu}/>}
     {page==="fixed"&&<FixedPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="retro"&&<RetroPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
@@ -1107,12 +1107,16 @@ function ProjectsPage({D,cu,up,add,rm}){
   const actAddIndicator=(proj)=>{ if(!actForm.name.trim())return; const list=[...(proj.activityKPIs||[]),{id:"ak"+Date.now(),name:actForm.name.trim(),unit:actForm.unit||"건",target:Number(actForm.target)||0,current:0,history:[]}]; up("projects",proj.id,{activityKPIs:list}); setActForm({name:"",unit:"건",target:""}); };
   const actRecord=(proj,ak,raw)=>{ const amt=Number(raw); if(isNaN(amt))return; const prev=Number(ak.current||0); const v=actMode==="delta"?prev+amt:amt; const at=new Date().toISOString(); const week=weekKey(); const list=(proj.activityKPIs||[]).map(x=>x.id===ak.id?{...x,current:v,week,by:cu?.id||null,byName:cu?.name||"",history:[...(x.history||[]),{week,value:v,amount:amt,mode:actMode,by:cu?.id||null,byName:cu?.name||"",at}]}:x); up("projects",proj.id,{activityKPIs:list}); };
   const actRemove=(proj,ak)=>up("projects",proj.id,{activityKPIs:(proj.activityKPIs||[]).filter(x=>x.id!==ak.id)});
+  const [editProjId,setEditProjId]=useState(null);
+  const [projDel,setProjDel]=useState(null);
   const [projForm,setProjForm]=useState({title:"",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high"});
+  const resetProjForm=()=>setProjForm({title:"",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high"});
+  const openEditProj=(p)=>{ setProjForm({title:p.title||"",mainKPIId:p.mainKPIId||"",subKPIId:p.subKPIId||"",dealerType:p.dealerType||"",assigneeId:p.assigneeId||cu.id,collaboratorIds:p.collaboratorIds||[],group:p.group||"",priority:p.priority||"mid"}); setEditProjId(p.id); setAddProjSheet(true); };
   const doAddProj=()=>{
     if(!projForm.title.trim()) return;
-    add("projects",{id:"p"+Date.now(),...projForm,status:"active",progress:0,resultValue:0});
-    setProjForm({title:"",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high"});
-    setAddProjSheet(false);
+    if(editProjId){ up("projects",editProjId,{...projForm}); }
+    else { add("projects",{id:"p"+Date.now(),...projForm,status:"active",progress:0,resultValue:0}); }
+    resetProjForm(); setEditProjId(null); setAddProjSheet(false);
   };
   const availSKs=D.subKPIs.filter(sk=>sk.mainKPIId===projForm.mainKPIId);
   const toggleColab=(uid)=>{const list=projForm.collaboratorIds;setProjForm({...projForm,collaboratorIds:list.includes(uid)?list.filter(x=>x!==uid):[...list,uid]});};
@@ -1266,8 +1270,11 @@ function ProjectsPage({D,cu,up,add,rm}){
                     </div>
                   ))}
                   <div style={{padding:"10px 16px 14px",borderTop:"1px solid #E5E8EB",display:"flex",alignItems:"center",gap:8}}><div style={{display:"flex",alignItems:"center",gap:6,marginRight:"auto"}}><span style={{fontSize:11,fontWeight:700,color:"#6B7280"}}>진척</span><button onClick={()=>up("projects",proj.id,{progress:Math.max(0,(proj.progress||0)-10)})} style={{width:28,height:28,borderRadius:8,border:"1px solid #E5E8EB",backgroundColor:"#F9FAFB",fontSize:15,fontWeight:900,color:"#4B5563",cursor:"pointer",padding:0}}>−</button><span style={{fontSize:13,fontWeight:800,color:"#3182F6",minWidth:40,textAlign:"center"}}>{proj.progress}%</span><button onClick={()=>up("projects",proj.id,{progress:Math.min(100,(proj.progress||0)+10)})} style={{width:28,height:28,borderRadius:8,border:"1px solid #E5E8EB",backgroundColor:"#F9FAFB",fontSize:15,fontWeight:900,color:"#4B5563",cursor:"pointer",padding:0}}>＋</button></div>
-                    <button onClick={()=>up("projects",proj.id,{status:"completed",progress:100})} style={{padding:"6px 14px",borderRadius:10,border:"1px solid #00C073",backgroundColor:"#E8FAF1",color:"#00C073",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>✓ 완료</button>
-                    <button onClick={()=>up("projects",proj.id,{status:"paused"})} style={{padding:"6px 14px",borderRadius:10,border:"1px solid #E5E8EB",backgroundColor:"#F2F4F6",color:"#4B5563",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>⏸ 보류</button>
+                    <button onClick={()=>openEditProj(proj)} style={{padding:"6px 12px",borderRadius:10,border:"1px solid #E5E8EB",backgroundColor:"#FFFFFF",color:"#4B5563",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>✎ 편집</button>
+                    {proj.status!=="active"&&<button onClick={()=>up("projects",proj.id,{status:"active"})} style={{padding:"6px 12px",borderRadius:10,border:"1px solid #3182F6",backgroundColor:"#EBF3FF",color:"#3182F6",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>▶ 재개</button>}
+                    {proj.status!=="completed"&&<button onClick={()=>up("projects",proj.id,{status:"completed",progress:100})} style={{padding:"6px 12px",borderRadius:10,border:"1px solid #00C073",backgroundColor:"#E8FAF1",color:"#00C073",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>✓ 완료</button>}
+                    {proj.status!=="paused"&&<button onClick={()=>up("projects",proj.id,{status:"paused"})} style={{padding:"6px 12px",borderRadius:10,border:"1px solid #E5E8EB",backgroundColor:"#F2F4F6",color:"#4B5563",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>⏸ 보류</button>}
+                    <button onClick={()=>setProjDel(proj.id)} title="프로젝트 삭제" style={{padding:"6px 10px",borderRadius:10,border:"1px solid #FFE2E5",backgroundColor:"#FFF0F1",color:"#F04452",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🗑</button>
                   </div>
                 </div>
               )}
@@ -1286,7 +1293,7 @@ function ProjectsPage({D,cu,up,add,rm}){
           <button onClick={doAddTask} disabled={!taskForm.title.trim()} style={{width:"100%",padding:"14px 0",borderRadius:14,border:"none",backgroundColor:taskForm.title.trim()?"#F97316":"#E5E8EB",color:taskForm.title.trim()?"#FFFFFF":"#9CA3AF",fontSize:15,fontWeight:700,cursor:taskForm.title.trim()?"pointer":"not-allowed",fontFamily:"inherit"}}>추가하기</button>
         </div>
       </Sheet>
-      <Sheet open={addProjSheet} onClose={()=>setAddProjSheet(false)} title="프로젝트 추가" h="92vh">
+      <Sheet open={addProjSheet} onClose={()=>{setAddProjSheet(false);setEditProjId(null);resetProjForm();}} title={editProjId?"프로젝트 수정":"프로젝트 추가"} h="92vh">
         <div style={{marginTop:10}}>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>프로젝트명 *</label><input value={projForm.title} onChange={e=>setProjForm({...projForm,title:e.target.value})} placeholder="프로젝트 이름" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>메인 KPI</label><select value={projForm.mainKPIId} onChange={e=>setProjForm({...projForm,mainKPIId:e.target.value,subKPIId:""})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="">없음 (운영 인프라)</option>{D.mainKPIs.map(mk=><option key={mk.id} value={mk.id}>{mk.krKey} · {mk.title}</option>)}</select></div>
@@ -1300,11 +1307,12 @@ function ProjectsPage({D,cu,up,add,rm}){
             <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>{[...new Set(D.projects.map(p=>p.group).filter(Boolean))].map(g=><button key={g} onClick={()=>setProjForm({...projForm,group:g})} style={{padding:"4px 10px",borderRadius:16,border:"1px solid #E5E8EB",backgroundColor:projForm.group===g?"#0F1F5C":"#F9FAFB",color:projForm.group===g?"#FFFFFF":"#4B5563",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{g}</button>)}</div>
           </div>
           <div style={{marginBottom:20}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:8}}>우선순위</label><div style={{display:"flex",gap:8}}>{[{k:"high",l:"🔴 높음"},{k:"mid",l:"🟡 중간"},{k:"low",l:"🟢 낮음"}].map(p=><button key={p.k} onClick={()=>setProjForm({...projForm,priority:p.k})} style={{flex:1,padding:"9px 0",borderRadius:12,border:`1.5px solid ${projForm.priority===p.k?"#0F1F5C":"#E5E8EB"}`,backgroundColor:projForm.priority===p.k?"#0F1F5C":"#FFFFFF",color:projForm.priority===p.k?"#FFFFFF":"#4B5563",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{p.l}</button>)}</div></div>
-          <button onClick={doAddProj} disabled={!projForm.title.trim()} style={{width:"100%",padding:"14px 0",borderRadius:14,border:"none",backgroundColor:projForm.title.trim()?"#F97316":"#E5E8EB",color:projForm.title.trim()?"#FFFFFF":"#9CA3AF",fontSize:15,fontWeight:700,cursor:projForm.title.trim()?"pointer":"not-allowed",fontFamily:"inherit"}}>프로젝트 추가하기</button>
+          <button onClick={doAddProj} disabled={!projForm.title.trim()} style={{width:"100%",padding:"14px 0",borderRadius:14,border:"none",backgroundColor:projForm.title.trim()?"#F97316":"#E5E8EB",color:projForm.title.trim()?"#FFFFFF":"#9CA3AF",fontSize:15,fontWeight:700,cursor:projForm.title.trim()?"pointer":"not-allowed",fontFamily:"inherit"}}>{editProjId?"수정 저장":"프로젝트 추가하기"}</button>
         </div>
       </Sheet>
       <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,attachments:f.attachments})}/>
       <Confirm open={!!confirmTaskId} title="업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmTaskId)?.title}" 업무를 삭제할까요?`} onOk={()=>{rm("tasks",confirmTaskId);setConfirmTaskId(null);}} onCancel={()=>setConfirmTaskId(null)}/>
+      <Confirm open={!!projDel} title="프로젝트 삭제" desc={`"${D.projects.find(p=>p.id===projDel)?.title}" 프로젝트를 삭제할까요? 연결된 업무는 남습니다.`} onOk={()=>{rm("projects",projDel);setProjDel(null);setProjDetail(null);}} onCancel={()=>setProjDel(null)}/>
       <Sheet open={!!actHist} onClose={()=>setActHist(null)} title="📜 활동지표 주차별 이력">
         {actHist&&(<div style={{marginTop:8}}>
           <p style={{margin:"0 0 12px",fontSize:13,fontWeight:900,color:"#0F1F5C"}}>{actHist.ak.name} <span style={{fontSize:11,color:"#9CA3AF",fontWeight:600}}>· 주목표 {fmt(actHist.ak.target||0,actHist.ak.unit)}</span></p>
@@ -1322,12 +1330,17 @@ function ProjectsPage({D,cu,up,add,rm}){
     </div>
   );
 }
-function CalendarPage({D,cu,add}){
+function CalendarPage({D,cu,add,up,rm}){
   const [cm,setCm]=useState(new Date(2026,5,1));
   const [detail,setDetail]=useState(null);
   const [actionForm,setActionForm]=useState({type:"task",title:"",projectId:"",status:"todo"});
   const [actionDone,setActionDone]=useState([]);
+  const [evSheet,setEvSheet]=useState(false);
+  const [evForm,setEvForm]=useState({id:null,title:"",date:"",type:"internal",description:""});
   const y=cm.getFullYear(),m=cm.getMonth();
+  const openNewEvent=(date)=>{ setEvForm({id:null,title:"",date:date||`${y}-${String(m+1).padStart(2,"0")}-01`,type:"internal",description:""}); setDetail(null); setEvSheet(true); };
+  const openEditEvent=(ev)=>{ setEvForm({id:ev.id,title:ev.title||"",date:ev.date||"",type:ev.type||"internal",description:ev.description||""}); setDetail(null); setEvSheet(true); };
+  const saveEvent=()=>{ if(!evForm.title.trim()||!evForm.date) return; if(evForm.id){ up("events",evForm.id,{title:evForm.title.trim(),date:evForm.date,type:evForm.type,description:evForm.description}); } else { add("events",{id:"e"+Date.now(),title:evForm.title.trim(),date:evForm.date,type:evForm.type,projectId:null,description:evForm.description}); } setEvSheet(false); };
   const fd=new Date(y,m,1).getDay();
   const dim=new Date(y,m+1,0).getDate();
   const ET={internal:{label:"내부미팅",color:"#3182F6",bg:"#EBF3FF"},external:{label:"외부미팅",color:"#8B5CF6",bg:"#F3EFFE"},promotion:{label:"프로모션",color:"#FF9500",bg:"#FFF3E0"},seminar:{label:"세미나",color:"#00C073",bg:"#E8FAF1"},fair:{label:"박람회",color:"#F04452",bg:"#FFF0F1"}};
@@ -1349,7 +1362,10 @@ function CalendarPage({D,cu,add}){
           <h2 style={{margin:0,fontSize:16,fontWeight:900,color:"#0F1F5C"}}>{y}년 {m+1}월</h2>
           <button onClick={()=>setCm(new Date(y,m+1,1))} style={{width:34,height:34,borderRadius:10,backgroundColor:"#F2F4F6",border:"none",cursor:"pointer",fontSize:14}}>▶</button>
         </div>
-        <Badge color="#F97316" bg="#FFEDD5">{mEvts.length}건</Badge>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <Badge color="#F97316" bg="#FFEDD5">{mEvts.length}건</Badge>
+          <button onClick={()=>openNewEvent()} style={{padding:"7px 12px",borderRadius:20,border:"none",cursor:"pointer",backgroundColor:"#F97316",color:"#FFFFFF",fontWeight:700,fontSize:12,fontFamily:"inherit"}}>+ 일정</button>
+        </div>
       </div>
       <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"12px",marginBottom:14,border:"1px solid #F2F4F6"}}>
         <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1}}>
@@ -1361,7 +1377,7 @@ function CalendarPage({D,cu,add}){
             const isT=new Date().getDate()===day&&new Date().getMonth()===m&&new Date().getFullYear()===y;
             return(
               <div key={day} style={{padding:"3px",minHeight:44}}>
-                <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:22,height:22,borderRadius:"50%",fontSize:11.5,fontWeight:isT?900:400,backgroundColor:isT?"#3182F6":"transparent",color:isT?"#FFFFFF":"#374151"}}>{day}</span>
+                <span onClick={()=>openNewEvent(`${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`)} title="이 날 일정 추가" style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:22,height:22,borderRadius:"50%",fontSize:11.5,fontWeight:isT?900:400,backgroundColor:isT?"#3182F6":"transparent",color:isT?"#FFFFFF":"#374151",cursor:"pointer"}}>{day}</span>
                 {evts.map(ev=>{const et=ET[ev.type]||ET.internal;return <div key={ev.id} onClick={()=>{setDetail(ev);setActionForm({type:"task",title:"",projectId:"",status:"todo"});setActionDone([]);}} style={{marginTop:1,padding:"1px 4px",borderRadius:4,fontSize:9,fontWeight:700,backgroundColor:et.bg,color:et.color,cursor:"pointer",overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>{ev.title}</div>;})}
               </div>
             );
@@ -1400,6 +1416,10 @@ function CalendarPage({D,cu,add}){
               {detail.description&&<p style={{margin:"6px 0 0",fontSize:13.5,color:"#374151",lineHeight:1.6}}>{detail.description}</p>}
               {detail.projectId&&D.projects.find(p=>p.id===detail.projectId)&&<div style={{marginTop:10,padding:"8px 10px",backgroundColor:"#EBF3FF",borderRadius:10}}><p style={{margin:0,fontSize:11.5,color:"#3182F6",fontWeight:700}}>📁 {D.projects.find(p=>p.id===detail.projectId).title}</p></div>}
             </div>
+            <div style={{display:"flex",gap:8,marginBottom:14}}>
+              <button onClick={()=>openEditEvent(detail)} style={{flex:1,padding:"10px 0",borderRadius:10,border:"1px solid #E5E8EB",background:"#fff",color:"#4B5563",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>✎ 일정 수정</button>
+              <button onClick={()=>{rm("events",detail.id);setDetail(null);}} style={{flex:1,padding:"10px 0",borderRadius:10,border:"1px solid #FFE2E5",background:"#FFF0F1",color:"#F04452",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🗑 일정 삭제</button>
+            </div>
             <div style={{backgroundColor:"#FFFFFF",borderRadius:14,padding:"14px",border:"1px solid #F2F4F6",marginBottom:14}}>
               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}><span style={{fontSize:18}}>⚡</span><div><p style={{margin:0,fontSize:14,fontWeight:900,color:"#0F1F5C"}}>2차 액션 바로 추가</p><p style={{margin:0,fontSize:11,color:"#9CA3AF"}}>미팅 후속 업무·프로젝트 즉시 생성</p></div></div>
               <div style={{display:"flex",gap:6,marginBottom:12,backgroundColor:"#F9FAFB",borderRadius:10,padding:3}}>
@@ -1412,6 +1432,19 @@ function CalendarPage({D,cu,add}){
             {actionDone.length>0&&<div style={{backgroundColor:"#E8FAF1",borderRadius:12,padding:"10px 14px",border:"1px solid rgba(0,192,115,0.2)"}}><p style={{margin:"0 0 6px",fontSize:12,fontWeight:800,color:"#00C073"}}>✅ 생성된 액션 {actionDone.length}건</p>{actionDone.map((a,i)=><p key={i} style={{margin:"2px 0",fontSize:12.5,color:"#374151",fontWeight:600}}>· [{a.type==="task"?"업무":"프로젝트"}] {a.title}</p>)}</div>}
           </div>
         )}
+      </Sheet>
+      <Sheet open={evSheet} onClose={()=>setEvSheet(false)} title={evForm.id?"일정 수정":"일정 추가"}>
+        <div style={{marginTop:10}}>
+          <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>일정명 *</label>
+          <input value={evForm.title} onChange={e=>setEvForm({...evForm,title:e.target.value})} placeholder="예: 주간 팀 미팅" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:14}}/>
+          <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>날짜 *</label>
+          <input type="date" value={evForm.date} onChange={e=>setEvForm({...evForm,date:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:14}}/>
+          <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>유형</label>
+          <select value={evForm.type} onChange={e=>setEvForm({...evForm,type:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none",marginBottom:14}}>{Object.entries(ET).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>
+          <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>설명</label>
+          <textarea value={evForm.description} onChange={e=>setEvForm({...evForm,description:e.target.value})} placeholder="장소·안건 등" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",resize:"vertical",minHeight:64,fontFamily:"inherit",boxSizing:"border-box",outline:"none",marginBottom:16}}/>
+          <Btn full variant="orange" onClick={saveEvent} disabled={!evForm.title.trim()||!evForm.date}>{evForm.id?"수정 저장":"일정 추가"}</Btn>
+        </div>
       </Sheet>
     </div>
   );

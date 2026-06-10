@@ -1404,11 +1404,12 @@ function CalendarPage({D,cu,add,up,rm}){
   const [actionForm,setActionForm]=useState({type:"task",title:"",projectId:"",status:"todo"});
   const [actionDone,setActionDone]=useState([]);
   const [evSheet,setEvSheet]=useState(false);
-  const [evForm,setEvForm]=useState({id:null,title:"",date:"",type:"internal",description:""});
+  const [evForm,setEvForm]=useState({id:null,title:"",date:"",type:"internal",place:"",attendeeIds:[],externalAttendees:"",description:""});
   const y=cm.getFullYear(),m=cm.getMonth();
-  const openNewEvent=(date)=>{ setEvForm({id:null,title:"",date:date||`${y}-${String(m+1).padStart(2,"0")}-01`,type:"internal",description:""}); setDetail(null); setEvSheet(true); };
-  const openEditEvent=(ev)=>{ setEvForm({id:ev.id,title:ev.title||"",date:ev.date||"",type:ev.type||"internal",description:ev.description||""}); setDetail(null); setEvSheet(true); };
-  const saveEvent=()=>{ if(!evForm.title.trim()||!evForm.date) return; if(evForm.id){ up("events",evForm.id,{title:evForm.title.trim(),date:evForm.date,type:evForm.type,description:evForm.description}); } else { add("events",{id:"e"+Date.now(),title:evForm.title.trim(),date:evForm.date,type:evForm.type,projectId:null,description:evForm.description}); } setEvSheet(false); };
+  const openNewEvent=(date)=>{ setEvForm({id:null,title:"",date:date||`${y}-${String(m+1).padStart(2,"0")}-01`,type:"internal",place:"",attendeeIds:[],externalAttendees:"",description:""}); setDetail(null); setEvSheet(true); };
+  const openEditEvent=(ev)=>{ setEvForm({id:ev.id,title:ev.title||"",date:ev.date||"",type:ev.type||"internal",place:ev.place||"",attendeeIds:ev.attendeeIds||[],externalAttendees:ev.externalAttendees||"",description:ev.description||""}); setDetail(null); setEvSheet(true); };
+  const evToggleAtt=(uid)=>setEvForm(f=>({...f,attendeeIds:f.attendeeIds.includes(uid)?f.attendeeIds.filter(x=>x!==uid):[...f.attendeeIds,uid]}));
+  const saveEvent=()=>{ if(!evForm.title.trim()||!evForm.date) return; const data={title:evForm.title.trim(),date:evForm.date,type:evForm.type,place:evForm.place.trim(),attendeeIds:evForm.attendeeIds,externalAttendees:evForm.externalAttendees.trim(),description:evForm.description}; if(evForm.id){ up("events",evForm.id,data); } else { add("events",{id:"e"+Date.now(),...data,projectId:null}); } setEvSheet(false); };
   const fd=new Date(y,m,1).getDay();
   const dim=new Date(y,m+1,0).getDate();
   const ET={internal:{label:"내부미팅",color:"#3182F6",bg:"#EBF3FF"},external:{label:"외부미팅",color:"#8B5CF6",bg:"#F3EFFE"},promotion:{label:"프로모션",color:"#FF9500",bg:"#FFF3E0"},seminar:{label:"세미나",color:"#00C073",bg:"#E8FAF1"},fair:{label:"박람회",color:"#F04452",bg:"#FFF0F1"}};
@@ -1481,8 +1482,13 @@ function CalendarPage({D,cu,add,up,rm}){
             <div style={{backgroundColor:"#F9FAFB",borderRadius:14,padding:"14px",marginBottom:16}}>
               <Badge color={(ET[detail.type]||ET.internal).color} bg={(ET[detail.type]||ET.internal).bg}>{(ET[detail.type]||ET.internal).label}</Badge>
               <h3 style={{margin:"8px 0 4px",fontSize:17,fontWeight:900,color:"#0F1F5C"}}>{detail.title}</h3>
-              <p style={{margin:0,fontSize:13,color:"#6B7280"}}>{detail.date}</p>
-              {detail.description&&<p style={{margin:"6px 0 0",fontSize:13.5,color:"#374151",lineHeight:1.6}}>{detail.description}</p>}
+              <p style={{margin:0,fontSize:13,color:"#6B7280"}}>{detail.date}{detail.place?` · 📍 ${detail.place}`:""}</p>
+              {((detail.attendeeIds&&detail.attendeeIds.length)||detail.externalAttendees)&&<div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginTop:8}}>
+                <span style={{fontSize:11,fontWeight:700,color:"#9CA3AF"}}>👥 참여</span>
+                {(detail.attendeeIds||[]).map(id=>{const u=D.users.find(x=>x.id===id);return u?<span key={id} style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:11.5,fontWeight:700,color:u.color,background:u.color+"18",padding:"2px 8px",borderRadius:999}}><Ava name={u.name} color={u.color} size={16}/>{u.name}</span>:null;})}
+                {detail.externalAttendees&&detail.externalAttendees.split(",").map((nm,i)=>nm.trim()&&<span key={"x"+i} style={{fontSize:11.5,fontWeight:700,color:"#6B7280",background:"#F2F4F6",padding:"3px 9px",borderRadius:999}}>👤 {nm.trim()}</span>)}
+              </div>}
+              {detail.description&&<p style={{margin:"8px 0 0",fontSize:13.5,color:"#374151",lineHeight:1.6}}>{detail.description}</p>}
               {detail.projectId&&D.projects.find(p=>p.id===detail.projectId)&&<div style={{marginTop:10,padding:"8px 10px",backgroundColor:"#EBF3FF",borderRadius:10}}><p style={{margin:0,fontSize:11.5,color:"#3182F6",fontWeight:700}}>📁 {D.projects.find(p=>p.id===detail.projectId).title}</p></div>}
             </div>
             <div style={{display:"flex",gap:8,marginBottom:14}}>
@@ -1510,8 +1516,14 @@ function CalendarPage({D,cu,add,up,rm}){
           <input type="date" value={evForm.date} onChange={e=>setEvForm({...evForm,date:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:14}}/>
           <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>유형</label>
           <select value={evForm.type} onChange={e=>setEvForm({...evForm,type:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none",marginBottom:14}}>{Object.entries(ET).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>
-          <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>설명</label>
-          <textarea value={evForm.description} onChange={e=>setEvForm({...evForm,description:e.target.value})} placeholder="장소·안건 등" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",resize:"vertical",minHeight:64,fontFamily:"inherit",boxSizing:"border-box",outline:"none",marginBottom:16}}/>
+          <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>미팅 장소 <span style={{color:"#9CA3AF",fontWeight:600}}>(선택)</span></label>
+          <input value={evForm.place} onChange={e=>setEvForm({...evForm,place:e.target.value})} placeholder="예: 본사 3층 회의실 / 줌 / 고객사" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:14}}/>
+          <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:8}}>참여자 — 팀원</label>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>{D.users.map(u=>{const sel=evForm.attendeeIds.includes(u.id);return(<button key={u.id} onClick={()=>evToggleAtt(u.id)} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 12px",borderRadius:20,border:`1.5px solid ${sel?u.color:"#E5E8EB"}`,backgroundColor:sel?u.color+"18":"#FFFFFF",cursor:"pointer",fontFamily:"inherit"}}><Ava name={u.name} color={u.color} size={20}/><span style={{fontSize:12,fontWeight:700,color:sel?u.color:"#4B5563"}}>{u.name}</span>{sel&&<span style={{fontSize:12,color:u.color}}>✓</span>}</button>);})}</div>
+          <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>참여자 — 외부인 <span style={{color:"#9CA3AF",fontWeight:600}}>(쉼표로 구분, 수기)</span></label>
+          <input value={evForm.externalAttendees} onChange={e=>setEvForm({...evForm,externalAttendees:e.target.value})} placeholder="예: 강남제비스코 박부장, 조달청 김주무관" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:14}}/>
+          <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>안건·메모</label>
+          <textarea value={evForm.description} onChange={e=>setEvForm({...evForm,description:e.target.value})} placeholder="논의할 안건·메모" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",resize:"vertical",minHeight:64,fontFamily:"inherit",boxSizing:"border-box",outline:"none",marginBottom:16}}/>
           <Btn full variant="orange" onClick={saveEvent} disabled={!evForm.title.trim()||!evForm.date}>{evForm.id?"수정 저장":"일정 추가"}</Btn>
         </div>
       </Sheet>

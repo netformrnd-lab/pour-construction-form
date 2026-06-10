@@ -345,8 +345,8 @@ export default function App(){
   const navAll=[...TABS.filter(t=>t.id!=="more"),...MORE];
   const pageContent=(<>
     {page==="today"&&<TodayPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
-    {page==="kpi"&&<KPIPage D={D} lead={lead} up={up} cu={cu} add={add} rm={rm}/>}
-    {page==="projects"&&<ProjectsPage D={D} cu={cu} up={up} add={add} rm={rm}/>}
+    {page==="kpi"&&<KPIPage D={D} lead={lead} up={up} cu={cu} add={add} rm={rm} pc={viewMode==="pc"}/>}
+    {page==="projects"&&<ProjectsPage D={D} cu={cu} up={up} add={add} rm={rm} pc={viewMode==="pc"}/>}
     {page==="calendar"&&<CalendarPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
     {page==="mindmap"&&<MindMapPage D={D} cu={cu}/>}
     {page==="fixed"&&<FixedPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
@@ -427,7 +427,7 @@ export default function App(){
           <h1 style={{margin:0,fontSize:17,fontWeight:900,color:"#0F1F5C",lineHeight:1.1}}>{pi?.icon} {pi?.label}</h1>
           <p style={{margin:"3px 0 0",fontSize:11,color:"#9CA3AF"}}>{new Date().toLocaleDateString("ko-KR",{month:"long",day:"numeric",weekday:"short"})} · {cu?.name}</p>
         </div>
-        <div style={{flex:1,overflowY:"auto"}}><div style={{maxWidth:900,margin:"0 auto"}}>{pageContent}</div></div>
+        <div style={{flex:1,overflowY:"auto"}}><div style={{maxWidth:1040,margin:"0 auto"}}>{pageContent}</div></div>
       </div>
       {sheets}
     </div>
@@ -1096,7 +1096,7 @@ function KPIPage({D,lead,up,cu,add,rm}){
               ))}
             </div>
             <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>{valMode==="delta"?"이번 주 실적":"누계 총값"} ({it.unit})</label>
-            <input type="number" value={valAmt} onChange={e=>setValAmt(e.target.value)} placeholder="0" autoFocus style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:16,fontWeight:800,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+            <input type="number" value={valAmt} onChange={e=>setValAmt(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&valAmt!=="")applyVal();}} placeholder="0 (Enter로 저장)" autoFocus style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:16,fontWeight:800,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
             <div style={{margin:"12px 0 16px",padding:"11px 14px",borderRadius:12,background:"#F9FAFB",border:"1px solid #F2F4F6",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
               <span style={{fontSize:12,color:"#6B7280",fontWeight:700}}>저장 후 누계</span>
               <span style={{fontSize:14,fontWeight:900,color:"#0F1F5C"}}>{fmt(prev,it.unit)} → <span style={{color:"#F97316"}}>{fmt(preview,it.unit)}</span> ({pct(preview,it.targetValue)}%)</span>
@@ -1123,7 +1123,7 @@ function KPIPage({D,lead,up,cu,add,rm}){
     </div>
   );
 }
-function ProjectsPage({D,cu,up,add,rm}){
+function ProjectsPage({D,cu,up,add,rm,pc}){
   const [filter,setFilter]=useState("mine");
   const [groupFilter,setGroupFilter]=useState("all");
   const [projDetail,setProjDetail]=useState(null);
@@ -1194,8 +1194,9 @@ function ProjectsPage({D,cu,up,add,rm}){
         <button onClick={()=>setGroupFilter("all")} style={{flexShrink:0,padding:"5px 12px",borderRadius:20,border:"none",cursor:"pointer",backgroundColor:groupFilter==="all"?"#F97316":"#F2F4F6",color:groupFilter==="all"?"#FFFFFF":"#374151",fontWeight:600,fontSize:11,fontFamily:"inherit"}}>전체</button>
         {groups.map(g=><button key={g} onClick={()=>{setGroupFilter(g);setProjDetail(null);}} style={{flexShrink:0,padding:"5px 12px",borderRadius:20,border:"none",cursor:"pointer",backgroundColor:groupFilter===g?"#F97316":"#F2F4F6",color:groupFilter===g?"#FFFFFF":"#374151",fontWeight:600,fontSize:11,fontFamily:"inherit"}}>{g}</button>)}
       </div>
-      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+      <div style={{display:"flex",flexDirection:pc?"row":"column",flexWrap:pc?"wrap":"nowrap",gap:12,alignItems:"flex-start"}}>
         {filtered.map(proj=>{
+          const expanded=projDetail?.id===proj.id;
           const assignee=D.users.find(u=>u.id===proj.assigneeId);
           const mk=D.mainKPIs.find(m=>m.id===proj.mainKPIId);
           const sk=D.subKPIs.find(s=>s.id===proj.subKPIId);
@@ -1207,7 +1208,7 @@ function ProjectsPage({D,cu,up,add,rm}){
           const hold=tasks.filter(t=>t.status==="hold");
           const pColor=proj.priority==="high"?"#F04452":proj.priority==="mid"?"#FF9500":"#9CA3AF";
           return(
-            <div key={proj.id} style={{backgroundColor:"#FFFFFF",borderRadius:16,border:"1px solid #F2F4F6",overflow:"hidden"}}>
+            <div key={proj.id} style={{backgroundColor:"#FFFFFF",borderRadius:16,border:"1px solid #F2F4F6",overflow:"hidden",width:pc?(expanded?"100%":"calc(50% - 6px)"):"100%",boxSizing:"border-box"}}>
               <div onClick={()=>setProjDetail(projDetail?.id===proj.id?null:proj)} style={{padding:"15px 16px",cursor:"pointer"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                   <div style={{flex:1,minWidth:0}}>

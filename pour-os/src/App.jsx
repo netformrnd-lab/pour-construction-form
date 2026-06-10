@@ -367,11 +367,11 @@ export default function App(){
               <Ava name={u.name} color={u.color} size={40}/>
               <div>
                 <p style={{margin:0,fontSize:14,fontWeight:800,color:"#111827"}}>{u.name}</p>
-                <p style={{margin:0,fontSize:12,color:"#9CA3AF"}}>{u.dept||"부서 미설정"}{u.role==="lead"?" · 리드":""}</p>
+                <p style={{margin:0,fontSize:12,color:"#9CA3AF"}}>{u.role==="lead"?"리드":"팀원"}</p>
               </div>
               {D.currentUser===u.id&&<span style={{marginLeft:8,fontSize:16,color:"#F97316"}}>✓</span>}
             </button>
-            <button onClick={()=>setEditUser({id:u.id,name:u.name||"",dept:u.dept||"",color:u.color||"#3182F6"})} title="이름·부서 수정" style={{flexShrink:0,width:38,height:38,borderRadius:10,border:"1px solid #E5E8EB",background:"#fff",cursor:"pointer",fontSize:15,color:"#6B7280"}}>✎</button>
+            <button onClick={()=>setEditUser({id:u.id,name:u.name||"",color:u.color||"#3182F6"})} title="이름·색상 수정" style={{flexShrink:0,width:38,height:38,borderRadius:10,border:"1px solid #E5E8EB",background:"#fff",cursor:"pointer",fontSize:15,color:"#6B7280"}}>✎</button>
           </div>
         ))}
       </div>
@@ -380,11 +380,9 @@ export default function App(){
       {editUser&&(<div style={{marginTop:8}}>
         <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>이름</label>
         <input value={editUser.name} onChange={e=>setEditUser({...editUser,name:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:14}}/>
-        <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>담당 <span style={{color:"#9CA3AF",fontWeight:600}}>(이름 옆 괄호 · 비우면 표시 안 함)</span></label>
-        <input value={editUser.dept} onChange={e=>setEditUser({...editUser,dept:e.target.value})} placeholder="예: 전략·자사몰" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:14}}/>
         <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:8}}>색상</label>
         <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:18}}>{["#3182F6","#8B5CF6","#00C073","#F97316","#F04452","#0891B2","#EAB308","#EC4899"].map(c=>(<button key={c} onClick={()=>setEditUser({...editUser,color:c})} style={{width:34,height:34,borderRadius:"50%",background:c,border:editUser.color===c?"3px solid #0F1F5C":"2px solid #fff",boxShadow:"0 0 0 1px #E5E8EB",cursor:"pointer"}}/>))}</div>
-        <Btn full variant="orange" onClick={()=>{up("users",editUser.id,{name:editUser.name.trim()||"이름",dept:editUser.dept.trim(),color:editUser.color});setEditUser(null);}} disabled={!editUser.name.trim()}>저장</Btn>
+        <Btn full variant="orange" onClick={()=>{up("users",editUser.id,{name:editUser.name.trim()||"이름",color:editUser.color});setEditUser(null);}} disabled={!editUser.name.trim()}>저장</Btn>
       </div>)}
     </Sheet>
   </>);
@@ -413,7 +411,7 @@ export default function App(){
         <div style={{padding:"10px 12px",borderTop:"1px solid #F4F4F5",display:"flex",flexDirection:"column",gap:9}}>
           <button onClick={()=>setUSheet(true)} style={{display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:10,border:"1px solid #E5E8EB",backgroundColor:"#F9FAFB",cursor:"pointer",fontFamily:"inherit"}}>
             <Ava name={cu?.name} color={cu?.color} size={28}/>
-            <div style={{textAlign:"left",overflow:"hidden"}}><p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#111827",whiteSpace:"nowrap"}}>{cu?.name}</p><p style={{margin:0,fontSize:10,color:"#9CA3AF",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{cu?.dept}</p></div>
+            <div style={{textAlign:"left",overflow:"hidden"}}><p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#111827",whiteSpace:"nowrap"}}>{cu?.name}</p><p style={{margin:0,fontSize:10,color:"#9CA3AF",whiteSpace:"nowrap"}}>{cu?.role==="lead"?"리드":"팀원"}</p></div>
           </button>
           {viewToggle}
         </div>
@@ -421,7 +419,7 @@ export default function App(){
       <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
         <div style={{backgroundColor:"#FFFFFF",borderBottom:"1px solid #F2F4F6",padding:"13px 24px",flexShrink:0}}>
           <h1 style={{margin:0,fontSize:17,fontWeight:900,color:"#0F1F5C",lineHeight:1.1}}>{pi?.icon} {pi?.label}</h1>
-          <p style={{margin:"3px 0 0",fontSize:11,color:"#9CA3AF"}}>{new Date().toLocaleDateString("ko-KR",{month:"long",day:"numeric",weekday:"short"})} · {cu?.name}{cu?.dept?` (${cu.dept})`:""}</p>
+          <p style={{margin:"3px 0 0",fontSize:11,color:"#9CA3AF"}}>{new Date().toLocaleDateString("ko-KR",{month:"long",day:"numeric",weekday:"short"})} · {cu?.name}</p>
         </div>
         <div style={{flex:1,overflowY:"auto"}}><div style={{maxWidth:900,margin:"0 auto"}}>{pageContent}</div></div>
       </div>
@@ -445,7 +443,7 @@ export default function App(){
             <button onClick={()=>setUSheet(true)} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><Ava name={cu?.name} color={cu?.color} size={30}/></button>
           </div>
         </div>
-        <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF",paddingLeft:36}}>{new Date().toLocaleDateString("ko-KR",{month:"long",day:"numeric",weekday:"short"})} · {cu?.name}{cu?.dept?` (${cu.dept})`:""}</p>
+        <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF",paddingLeft:36}}>{new Date().toLocaleDateString("ko-KR",{month:"long",day:"numeric",weekday:"short"})} · {cu?.name}</p>
       </div>
       <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>{pageContent}</div>
       <div style={{backgroundColor:"#FFFFFF",borderTop:"1px solid #F2F4F6",display:"flex",flexShrink:0,paddingBottom:"env(safe-area-inset-bottom,0px)"}}>
@@ -1332,7 +1330,7 @@ function ProjectsPage({D,cu,up,add,rm}){
       <Sheet open={addProjSheet} onClose={()=>{setAddProjSheet(false);setEditProjId(null);setShowAdv(false);resetProjForm();}} title={editProjId?"프로젝트 수정":"프로젝트 추가"} h="92vh">
         <div style={{marginTop:10}}>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>프로젝트명 *</label><input value={projForm.title} onChange={e=>setProjForm({...projForm,title:e.target.value})} placeholder="프로젝트 이름" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
-          <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>담당자</label><select value={projForm.assigneeId} onChange={e=>setProjForm({...projForm,assigneeId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}>{D.users.map(u=><option key={u.id} value={u.id}>{u.name}{u.dept?` (${u.dept})`:""}</option>)}</select></div>
+          <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>담당자</label><select value={projForm.assigneeId} onChange={e=>setProjForm({...projForm,assigneeId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}>{D.users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></div>
           <div style={{marginBottom:14}}>
             <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>이 프로젝트의 성과는? <span style={{color:"#9CA3AF",fontWeight:600}}>(측정 방식)</span></label>
             <div style={{display:"flex",gap:6}}>
@@ -1529,7 +1527,7 @@ function MindMapPage({D,cu}){
         ))}
       </div>
       <select value={sel} onChange={e=>setSel(e.target.value)} style={{width:"100%",padding:"11px 14px",borderRadius:12,border:"1.5px solid #E5E8EB",fontSize:14,fontFamily:"inherit",backgroundColor:"#FFFFFF",outline:"none",marginBottom:14,WebkitAppearance:"none"}}>
-        {D.users.map(u=><option key={u.id} value={u.id}>{u.name}{u.dept?` (${u.dept})`:""}</option>)}
+        {D.users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}
       </select>
       {boardView==="tree"&&(
         <div>
@@ -1794,7 +1792,7 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>업무명 *</label><input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="ex. 벤처나라 문의 확인" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>연결 프로젝트</label><select value={form.projectId} onChange={e=>setForm({...form,projectId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="">없음</option>{D.projects.map(p=><option key={p.id} value={p.id}>{p.title}</option>)}</select></div>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>반복 주기</label><div style={{display:"flex",gap:6}}>{[["daily","매일"],["weekly","매주"],["monthly","매월"]].map(([k,l])=>(<button key={k} onClick={()=>setForm({...form,recurType:k})} style={{flex:1,padding:"10px 0",borderRadius:10,border:`1.5px solid ${form.recurType===k?"#F97316":"#E5E8EB"}`,backgroundColor:form.recurType===k?"#FFEDD5":"#FFFFFF",color:form.recurType===k?"#EA580C":"#6B7280",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>))}</div>{form.recurType==="weekly"&&<select value={form.weekDay} onChange={e=>setForm({...form,weekDay:e.target.value})} style={{width:"100%",marginTop:8,padding:"10px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}>{ALL_DAYS.map(d=><option key={d} value={d}>{d}요일</option>)}</select>}{form.recurType==="monthly"&&<select value={form.monthDay} onChange={e=>setForm({...form,monthDay:Number(e.target.value)})} style={{width:"100%",marginTop:8,padding:"10px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}>{Array.from({length:31},(_,i)=>i+1).map(d=><option key={d} value={d}>매월 {d}일</option>)}</select>}</div>
-          {lead&&<div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>담당자</label><select value={form.assigneeId} onChange={e=>setForm({...form,assigneeId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="all">⭐ 전체 (전원에게 생성)</option>{D.users.map(u=><option key={u.id} value={u.id}>{u.name}{u.dept?` (${u.dept})`:""}</option>)}</select>{form.assigneeId==="all"&&<p style={{margin:"6px 2px 0",fontSize:11,color:"#EA580C",fontWeight:700}}>전 담당자 {D.users.length}명에게 각각 생성됩니다</p>}</div>}
+          {lead&&<div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>담당자</label><select value={form.assigneeId} onChange={e=>setForm({...form,assigneeId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="all">⭐ 전체 (전원에게 생성)</option>{D.users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>{form.assigneeId==="all"&&<p style={{margin:"6px 2px 0",fontSize:11,color:"#EA580C",fontWeight:700}}>전 담당자 {D.users.length}명에게 각각 생성됩니다</p>}</div>}
           <Btn full variant="orange" onClick={doAdd} disabled={!form.title.trim()}>추가하기</Btn>
         </div>
       </Sheet>

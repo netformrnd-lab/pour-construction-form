@@ -133,21 +133,33 @@ for(let i=0;i<100;i++){
   check("csv-quote-escaped", (inner.match(/"/g)||[]).length%2===0, {c,cell});
 }
 
-// 9) 게임화 — levelOf 단조성·calcStreak 경계
-const LEVELS=[{lv:1,min:0},{lv:2,min:100},{lv:3,min:250},{lv:4,min:500},{lv:5,min:900},{lv:6,min:1400},{lv:7,min:2100},{lv:8,min:3000},{lv:9,min:4200},{lv:10,min:6000}];
-const levelOf=(xp)=>{ let r=LEVELS[0]; for(const l of LEVELS) if(xp>=l.min) r=l; return r; };
-const calcStreak=(days)=>{ if(!days.length)return 0; const set=new Set(days); const iso=x=>x.toISOString().slice(0,10); let d=new Date(); d.setHours(0,0,0,0); if(!set.has(iso(d))) d.setDate(d.getDate()-1); let s=0; while(set.has(iso(d))){ s++; d.setDate(d.getDate()-1); } return s; };
-let prevLv=0;
-for(let i=0;i<300;i++){ const xp=pick([...dirty,rnd(-100,7000)]); const lv=levelOf(numF(xp)); check("level-num", typeof lv.lv==="number"&&lv.lv>=1&&lv.lv<=10, {xp,lv}); }
-for(let xp=0;xp<=6500;xp+=137){ const lv=levelOf(xp).lv; check("level-monotone", lv>=prevLv, {xp,lv,prevLv}); prevLv=lv; }
-for(let i=0;i<150;i++){
-  const n=rnd(0,8); const days=[]; const base=new Date(2026,5,10); base.setHours(0,0,0,0);
-  for(let j=0;j<n;j++){ const d=new Date(base); d.setDate(d.getDate()-rnd(0,12)); days.push(d.toISOString().slice(0,10)); }
-  const r=calcStreak(days);
-  check("streak-num", typeof r==="number"&&r>=0&&!Number.isNaN(r), {days,r});
-  check("streak-le-uniq", r<=new Set(days).size, {days,r});
+// 9) 기여도 — projContrib 합계 불변식 / 주간목표 진행도
+const inWeek=(at,wk)=>at&&weekKey(new Date(at))===wk;
+const matchUid=(users,id,name)=>{ if(id&&users.find(u=>u.id===id))return id; if(name){const u=users.find(u=>u.name===name);if(u)return u.id;} return null; };
+const projContrib=(users,tasks,proj)=>{
+  const wk=weekKey(); const map={};
+  const bump=(uid,k,at)=>{ if(!uid)return; const m=map[uid]||(map[uid]={task:0,sales:0,act:0,total:0,wk:0}); m[k]++; m.total++; if(inWeek(at,wk))m.wk++; };
+  (tasks||[]).filter(t=>t.projectId===proj.id&&!t.isFixed&&t.status==="done").forEach(t=>bump(matchUid(users,t.doneBy,t.doneByName)||t.assigneeId,"task",t.doneAt));
+  (proj.salesHistory||[]).forEach(h=>bump(matchUid(users,h.by,h.byName),"sales",h.at));
+  (proj.activityKPIs||[]).forEach(ak=>(ak.history||[]).forEach(h=>bump(matchUid(users,h.by,h.byName),"act",h.at)));
+  return Object.entries(map).map(([uid,m])=>({uid,...m})).sort((a,b)=>b.total-a.total);
+};
+const myWeekTarget=(proj,uid)=>{ const wk=weekKey(); const t=(proj.weekTargets||[]).find(x=>x.userId===uid&&x.week===wk); return t?Math.max(0,numF(t.target)):0; };
+const users=[{id:"u1",name:"송희"},{id:"u2",name:"란"},{id:"u3",name:"민지"}];
+for(let i=0;i<250;i++){
+  const proj={id:"p1",salesHistory:Array.from({length:rnd(0,4)},()=>({by:pick(["u1","u2",null,"xx"]),byName:pick(["송희","란",null]),at:new Date(2026,5,rnd(1,28)).toISOString()})),activityKPIs:[{history:Array.from({length:rnd(0,3)},()=>({by:pick(["u1","u3",null]),at:new Date(2026,5,rnd(1,28)).toISOString()}))}],weekTargets:[{userId:"u1",week:weekKey(),target:pick(dirty)}]};
+  const tasks=Array.from({length:rnd(0,6)},(_,j)=>({id:"t"+j,projectId:pick(["p1","pX"]),isFixed:pick([true,false]),status:pick(["todo","done"]),doneBy:pick(["u1","u2",null]),doneByName:pick(["송희",null]),doneAt:new Date(2026,5,rnd(1,28)).toISOString(),assigneeId:pick(["u1","u3"])}));
+  const rows=projContrib(users,tasks,proj);
+  rows.forEach(r=>{
+    check("contrib-total", r.total===r.task+r.sales+r.act, {r});
+    check("contrib-num", [r.task,r.sales,r.act,r.wk].every(x=>typeof x==="number"&&!Number.isNaN(x)&&x>=0), {r});
+    check("contrib-wk-le-total", r.wk<=r.total, {r});
+  });
+  // 정렬 단조 감소
+  for(let k=1;k<rows.length;k++) check("contrib-sorted", rows[k-1].total>=rows[k].total, {a:rows[k-1].total,b:rows[k].total});
+  const tg=myWeekTarget(proj,"u1");
+  check("weektarget-num", typeof tg==="number"&&!Number.isNaN(tg)&&tg>=0, {tg});
 }
-check("streak-empty", calcStreak([])===0, {});
 
 console.log(`\n총 ${total}건 테스트 · 실패 ${fail}건`);
 if(fail){ console.log("─ 실패 샘플 ─"); fails.forEach(f=>console.log("  "+f)); process.exit(1); }

@@ -249,6 +249,14 @@ const projContrib=(D,proj)=>{
 const myWeekDone=(D,proj,uid)=>{ const wk=weekKey(); return (D.tasks||[]).filter(t=>t.projectId===proj.id&&!t.isFixed&&t.status==="done"&&inWeek(t.doneAt,wk)&&((matchUid(D,t.doneBy,t.doneByName)||t.assigneeId)===uid)).length; };
 // 이번 주 내 목표값 (project.weekTargets: [{userId,week,target}])
 const myWeekTarget=(proj,uid)=>{ const wk=weekKey(); const t=(proj.weekTargets||[]).find(x=>x.userId===uid&&x.week===wk); return t?Math.max(0,numF(t.target)):0; };
+// 과거 주차 목표 정리(최근 8주만 유지) — 단일 문서 비대 방지
+const pruneWeekTargets=(list)=>{ const cut=weekKey(new Date(Date.now()-8*7*86400000)); return (list||[]).filter(t=>t&&t.week&&t.week>=cut); };
+// CSV 다운로드 공용 (BOM + 안전 이스케이프)
+const downloadCSV=(rows,name)=>{
+  const csv="﻿"+rows.map(r=>r.map(c=>`"${String(c==null?"":c).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));
+  const a=document.createElement("a");a.href=url;a.download=`${name}_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);
+};
 const EditTaskSheet=({open,onClose,task,onSave,D})=>{
   const [form,setForm]=useState({title:"",status:"todo",dueDate:"",memo:"",projectId:"",attachments:[]});
   const [prevId,setPrevId]=useState(null);
@@ -553,6 +561,59 @@ export default function App(){
     </div>
   );
 }
+// 이번 주 마감 입력 — 매출·KPI 주차실적·목표지표를 한 화면에서 (입력 분산 해소)
+function WeeklyInputSheet({open,onClose,D,cu,up}){
+  const [tab,setTab]=useState("sales");
+  if(!open) return null;
+  const at=()=>new Date().toISOString();
+  // 매출(메인2) — setSale과 동일 shape
+  const wkSale=(p,raw)=>{const v=raw===""?0:(Number(raw)||0);if(!isFinite(v))return;const prev=numF(p.resultValue);if(v===prev)return;const t=at();const entry={week:weekKey(),value:v,prev,delta:v-prev,by:cu?.id||null,byName:cu?.name||"",at:t};up("projects",p.id,{resultValue:v,salesBy:cu?.id||null,salesByName:cu?.name||"",salesAt:t,salesHistory:[...(p.salesHistory||[]),entry]});};
+  // KPI 주차실적(추가값) — applyVal과 동일 shape
+  const wkVal=(coll,item,amt)=>{const a=Number(amt)||0;if(a===0)return;const prev=numF(item.currentValue);const value=prev+a;if(!isFinite(value))return;const t=at();const entry={week:weekKey(),mode:"delta",amount:a,value,prev,by:cu?.id||null,byName:cu?.name||"",at:t};up(coll,item.id,{currentValue:value,manualOverride:true,valueBy:cu?.id||null,valueByName:cu?.name||"",valueAt:t,valueHistory:[...(item.valueHistory||[]),entry]});};
+  // 목표지표(추가값) — actRecord와 동일 shape
+  const wkAct=(p,ak,amt)=>{const a=Number(amt);if(isNaN(a)||a===0)return;const prev=numF(ak.current);const v=prev+a;const t=at();const week=weekKey();const list=(p.activityKPIs||[]).map(x=>x.id===ak.id?{...x,current:v,week,by:cu?.id||null,byName:cu?.name||"",history:[...(x.history||[]),{week,value:v,amount:a,mode:"delta",by:cu?.id||null,byName:cu?.name||"",at:t}]}:x);up("projects",p.id,{activityKPIs:list});};
+  const salesProjs=D.projects.filter(p=>p.mainKPIId==="mk2");
+  const kpiItems=D.subKPIs.filter(s=>s.mainKPIId!=="mk2"); // 직판 채널(mk1)+운영(mk3)
+  const actProjs=D.projects.filter(p=>(p.activityKPIs||[]).length>0);
+  const NumAdd=({onAdd,ph})=>{const[v,setV]=useState("");return(<div style={{display:"flex",gap:6}}><input type="number" inputMode="numeric" value={v} onChange={e=>setV(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&v!==""){onAdd(v);setV("");}}} placeholder={ph||"이번 주 추가값"} style={{flex:1,minWidth:0,padding:"8px 10px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:13,fontWeight:700,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/><button onClick={()=>{if(v!==""){onAdd(v);setV("");}}} disabled={v===""} style={{flexShrink:0,padding:"0 14px",borderRadius:9,border:"none",background:v===""?"#E5E8EB":"#8B5CF6",color:"#fff",fontSize:13,fontWeight:800,cursor:v===""?"default":"pointer",fontFamily:"inherit"}}>추가</button></div>);};
+  const MoneyAdd=({onAdd})=>{const[v,setV]=useState("");const[u,setU]=useState("만");const M={"원":1,"만":10000,"억":100000000};const tot=Math.round((Number(v)||0)*M[u]);return(<div><div style={{display:"flex",gap:6}}><input type="number" inputMode="decimal" value={v} onChange={e=>setV(e.target.value)} placeholder="이번 주 매출 추가" style={{flex:1,minWidth:0,padding:"8px 10px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:13,fontWeight:800,textAlign:"right",outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/><div style={{display:"inline-flex",borderRadius:9,border:"1.5px solid #E5E8EB",overflow:"hidden",flexShrink:0}}>{["원","만","억"].map(x=>(<button key={x} onClick={()=>setU(x)} style={{padding:"0 9px",fontSize:12,fontWeight:800,border:"none",cursor:"pointer",background:u===x?"#F97316":"#fff",color:u===x?"#fff":"#9CA3AF",fontFamily:"inherit"}}>{x}</button>))}</div><button onClick={()=>{if(tot>0){onAdd(tot);setV("");}}} disabled={tot<=0} style={{flexShrink:0,padding:"0 12px",borderRadius:9,border:"none",background:tot<=0?"#E5E8EB":"#8B5CF6",color:"#fff",fontSize:13,fontWeight:800,cursor:tot<=0?"default":"pointer",fontFamily:"inherit"}}>추가</button></div>{tot>0&&<p style={{margin:"4px 0 0",fontSize:10.5,fontWeight:800,color:"#EA580C"}}>= {fmtKorWon(tot)}</p>}</div>);};
+  const TABS_W=[["sales","💰 매출",salesProjs.length],["kpi","📊 KPI 실적",kpiItems.length],["act","🎯 목표지표",actProjs.reduce((a,p)=>a+(p.activityKPIs||[]).length,0)]];
+  return(
+    <Sheet open={open} onClose={onClose} title="🗓️ 이번 주 마감 입력" h="90vh">
+      <div style={{marginTop:4}}>
+        <p style={{margin:"0 0 12px",fontSize:11.5,color:"#9CA3AF",lineHeight:1.5}}>{weekLabel(weekKey())} · 한 화면에서 이번 주 실적을 모두 넣어요. 입력하면 KPI·목표에 자동 반영됩니다.</p>
+        <div style={{display:"flex",background:"#F2F4F6",borderRadius:12,padding:4,marginBottom:14}}>
+          {TABS_W.map(([k,l,n])=>(<button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:"8px 2px",borderRadius:9,border:"none",cursor:"pointer",background:tab===k?"#fff":"transparent",color:tab===k?"#0F1F5C":"#9CA3AF",fontWeight:tab===k?800:600,fontSize:12,fontFamily:"inherit",boxShadow:tab===k?"0 1px 4px rgba(0,0,0,0.08)":"none"}}>{l}<span style={{fontSize:10,opacity:0.6,marginLeft:3}}>{n}</span></button>))}
+        </div>
+        {tab==="sales"&&(salesProjs.length===0?<Empty t="B2B 매출 프로젝트가 없어요"/>:salesProjs.map(p=>{const dt=DT[p.dealerType];return(
+          <div key={p.id} style={{padding:"10px 0",borderBottom:"1px solid #F2F4F6"}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>{dt&&<span style={{fontSize:9.5,fontWeight:800,color:dt.color,backgroundColor:dt.color+"18",borderRadius:6,padding:"2px 6px",flexShrink:0,fontFamily:"'IBM Plex Mono',monospace"}}>{p.dealerType}</span>}<span style={{fontSize:12.5,fontWeight:700,color:"#1F2937",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span><span style={{fontSize:11,fontWeight:800,color:"#EA580C",flexShrink:0}}>{fmt(numF(p.resultValue),"원")}</span></div>
+            <MoneyInput value={p.resultValue} compact onCommit={n=>wkSale(p,n)}/>
+          </div>
+        );}))}
+        {tab==="kpi"&&(kpiItems.length===0?<Empty t="입력할 KPI 항목이 없어요"/>:kpiItems.map(sk=>{const mk=D.mainKPIs.find(m=>m.id===sk.mainKPIId);return(
+          <div key={sk.id} style={{padding:"10px 0",borderBottom:"1px solid #F2F4F6"}}>
+            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}><span style={{fontSize:9.5,fontWeight:800,color:"#3182F6",background:"#EBF3FF",borderRadius:6,padding:"2px 6px",flexShrink:0}}>{mk?.krKey||""}</span><span style={{fontSize:12.5,fontWeight:700,color:"#1F2937",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sk.channelCode?sk.channelCode+" · ":""}{sk.title}</span><span style={{fontSize:11,fontWeight:800,color:"#374151",flexShrink:0}}>{fmt(numF(sk.currentValue),sk.unit)} / {fmt(numF(sk.targetValue),sk.unit)}</span></div>
+            {sk.unit==="원"?<MoneyAdd onAdd={n=>wkVal("subKPIs",sk,n)}/>:<NumAdd ph={`이번 주 ${sk.unit||""} 추가`} onAdd={v=>wkVal("subKPIs",sk,v)}/>}
+          </div>
+        );}))}
+        {tab==="act"&&(actProjs.length===0?<Empty t="등록된 목표지표가 없어요 · 프로젝트에서 추가하세요"/>:actProjs.map(p=>(
+          <div key={p.id} style={{marginBottom:12}}>
+            <p style={{margin:"0 0 6px",fontSize:11.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📁 {p.title}</p>
+            {(p.activityKPIs||[]).map(ak=>(
+              <div key={ak.id} style={{padding:"8px 0",borderBottom:"1px solid #F6F7F9"}}>
+                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}><span style={{fontSize:12,fontWeight:700,color:"#374151",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ak.name}</span><span style={{fontSize:11,fontWeight:800,color:"#8B5CF6",flexShrink:0}}>{fmt(numF(ak.current),ak.unit)} / {fmt(numF(ak.target),ak.unit)}</span></div>
+                <NumAdd ph={`이번 주 ${ak.unit||"개"} 추가`} onAdd={v=>wkAct(p,ak,v)}/>
+              </div>
+            ))}
+          </div>
+        )))}
+        <button onClick={onClose} style={{width:"100%",marginTop:14,padding:"14px 0",borderRadius:14,border:"none",backgroundColor:"#0F1F5C",color:"#fff",fontSize:15,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>완료</button>
+      </div>
+    </Sheet>
+  );
+}
+const Empty=({t})=><div style={{padding:"30px 10px",textAlign:"center",fontSize:13,color:"#C4C9D0"}}>{t}</div>;
 function TodayPage({D,cu,lead,add,up,rm,nav}){
   const today=todayDay();
   const todayDate=new Date().getDate();
@@ -569,6 +630,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const [confirmTaskId,setConfirmTaskId]=useState(null);
   const [editTask,setEditTask]=useState(null);
   const [feedOpen,setFeedOpen]=useState(false);
+  const [weeklyOpen,setWeeklyOpen]=useState(false);
   const todayKey=new Date().toISOString().slice(0,10);
   // 이번 주 팀 활동로그 — 완료업무·매출·KPI실적·목표지표를 한 흐름으로 집계
   const wkNow=weekKey();
@@ -609,6 +671,8 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
         </div>
         <span style={{fontSize:11,fontWeight:800,background:"rgba(255,255,255,0.2)",color:"#fff",padding:"4px 10px",borderRadius:10,flexShrink:0}}>내 주간 ›</span>
       </div>
+      <button onClick={()=>setWeeklyOpen(true)} style={{width:"100%",marginBottom:14,padding:"13px 0",borderRadius:14,border:"none",background:"linear-gradient(135deg,#F97316,#EA580C)",color:"#fff",fontSize:14.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🗓️ 이번 주 마감 입력 — 매출·KPI·목표지표 한 번에</button>
+      <WeeklyInputSheet open={weeklyOpen} onClose={()=>setWeeklyOpen(false)} D={D} cu={cu} up={up}/>
       <div style={{display:"flex",gap:8,marginBottom:14,overflowX:"auto",paddingBottom:2}}>
         {[{label:"오늘 업무",val:`${doneToday}/${todayT.length}`,color:"#3182F6"},{label:"고정업무",val:`${doneFixed}/${fixed.length}`,color:"#F97316"},{label:"내 프로젝트",val:D.projects.filter(p=>p.assigneeId===cu.id).length+"건",color:"#8B5CF6"}].map((s,i)=>(
           <div key={i} style={{flexShrink:0,backgroundColor:"#FFFFFF",borderRadius:12,padding:"10px 14px",border:"1px solid #F2F4F6"}}>
@@ -1081,6 +1145,7 @@ function KPIPage({D,lead,up,cu,add,rm}){
             );
           })}
           <button onClick={openNewMain} style={{width:"100%",padding:"12px 0",borderRadius:12,border:"1.5px dashed #93C5FD",background:"#EFF6FF",color:"#2563EB",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 메인KPI 추가</button>
+          <ExportPanel D={D}/>
         </div>
       )}
       {kpiView==="mindmap"&&(
@@ -1453,7 +1518,7 @@ function ProjectsPage({D,cu,up,add,rm,pc}){
               </div>
               {projDetail?.id===proj.id&&(
                 <div style={{borderTop:"1px solid #F2F4F6",backgroundColor:"#F9FAFB"}}>
-                  {(()=>{const wk=weekKey();const tgt=myWeekTarget(proj,cu.id);const dn=myWeekDone(D,proj,cu.id);const ok=tgt>0&&dn>=tgt;const pcv=tgt>0?Math.min(100,Math.round(dn/tgt*100)):0;const setTgt=(n)=>{const list=(proj.weekTargets||[]).filter(t=>!(t.userId===cu.id&&t.week===wk));if(n>0)list.push({userId:cu.id,week:wk,target:n});up("projects",proj.id,{weekTargets:list});};const rows=projContrib(D,proj);const max=Math.max(...rows.map(r=>r.total),1);return(
+                  {(()=>{const wk=weekKey();const tgt=myWeekTarget(proj,cu.id);const dn=myWeekDone(D,proj,cu.id);const ok=tgt>0&&dn>=tgt;const pcv=tgt>0?Math.min(100,Math.round(dn/tgt*100)):0;const setTgt=(n)=>{let list=(proj.weekTargets||[]).filter(t=>!(t.userId===cu.id&&t.week===wk));if(n>0)list.push({userId:cu.id,week:wk,target:n});up("projects",proj.id,{weekTargets:pruneWeekTargets(list)});};const rows=projContrib(D,proj);const max=Math.max(...rows.map(r=>r.total),1);return(
                     <div style={{padding:"12px 16px 0"}}>
                       <div style={{background:ok?"#E8FAF1":"#fff",border:`1px solid ${ok?"rgba(0,192,115,0.3)":"#E5E8EB"}`,borderRadius:12,padding:"10px 12px"}}>
                         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginBottom:tgt>0?7:6}}>
@@ -2229,7 +2294,7 @@ function GamePage({D,cu,up,nav}){
   let wTask=0,wSales=0,wAct=0;
   (D.tasks||[]).forEach(t=>{ if(!t.isFixed&&t.status==="done"&&inWeek(t.doneAt,wk)&&(matchUid(D,t.doneBy,t.doneByName)||t.assigneeId)===cu.id) wTask++; });
   (D.projects||[]).forEach(p=>{ (p.salesHistory||[]).forEach(h=>{if(inWeek(h.at,wk)&&matchUid(D,h.by,h.byName)===cu.id)wSales++;}); (p.activityKPIs||[]).forEach(ak=>(ak.history||[]).forEach(h=>{if(inWeek(h.at,wk)&&matchUid(D,h.by,h.byName)===cu.id)wAct++;})); });
-  const setTarget=(proj,n)=>{ const list=(proj.weekTargets||[]).filter(t=>!(t.userId===cu.id&&t.week===wk)); if(n>0)list.push({userId:cu.id,week:wk,target:n}); up("projects",proj.id,{weekTargets:list}); };
+  const setTarget=(proj,n)=>{ let list=(proj.weekTargets||[]).filter(t=>!(t.userId===cu.id&&t.week===wk)); if(n>0)list.push({userId:cu.id,week:wk,target:n}); up("projects",proj.id,{weekTargets:pruneWeekTargets(list)}); };
   return(
     <div style={{padding:"14px 16px 20px"}}>
       {/* 이번 주 요약 헤더 */}
@@ -2282,6 +2347,58 @@ function GamePage({D,cu,up,nav}){
           );})}
         </div>
       );})}
+    </div>
+  );
+}
+// 모든 데이터 자산을 CSV로 추출 (추출 사각 제거)
+function ExportPanel({D}){
+  const uname=(id)=>D.users.find(u=>u.id===id)?.name||"";
+  const goalTypeL={revenue:"매출",metric:"수치목표",journey:"여정"};
+  const expProjects=()=>{
+    const rows=[["제목","그룹","담당자","목표유형","거래처유형","메인KPI","서브KPI","우선순위","상태","진척도%","진척방식","업무(완료/전체)","매출(원)","매출입력자","매출최종일","목표지표"]];
+    (D.projects||[]).forEach(p=>{const mk=D.mainKPIs.find(m=>m.id===p.mainKPIId);const sk=D.subKPIs.find(s=>s.id===p.subKPIId);const ts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);const dn=ts.filter(t=>t.status==="done").length;const aks=(p.activityKPIs||[]).map(ak=>`${ak.name} ${numF(ak.current)}/${numF(ak.target)}${ak.unit||""}`).join(" · ");rows.push([p.title,p.group||"",uname(p.assigneeId),goalTypeL[p.goalType]||"",p.dealerType||"",mk?.title||"",sk?.title||"",p.priority||"",p.status||"",p.progress||0,p.progressManual?"수동":"자동",`${dn}/${ts.length}`,numF(p.resultValue),p.salesByName||"",(p.salesAt||"").slice(0,10),aks]);});
+    downloadCSV(rows,"프로젝트");
+  };
+  const expSales=()=>{
+    const rows=[["일시","주차","프로젝트","거래처유형","서브KPI","이전매출","변동","매출(원)","입력자"]];
+    (D.projects||[]).forEach(p=>{const sk=D.subKPIs.find(s=>s.id===p.subKPIId);(p.salesHistory||[]).forEach(h=>rows.push([(h.at||"").slice(0,16).replace("T"," "),h.week||"",p.title,p.dealerType||"",sk?.title||"",numF(h.prev),numF(h.delta),numF(h.value),h.byName||""]));});
+    if(rows.length===1)return alert("매출 입력 이력이 없어요");
+    downloadCSV(rows,"매출이력");
+  };
+  const expKpi=()=>{
+    const rows=[["구분","KPI명","단위","주차","입력방식","이전","값","입력자","일시"]];
+    const add=(kind,item)=>(item.valueHistory||[]).forEach(h=>rows.push([kind,item.title,item.unit||"",h.week||"",h.mode==="total"?"총값":"추가",numF(h.prev),numF(h.value),h.byName||"",(h.at||"").slice(0,16).replace("T"," ")]));
+    (D.mainKPIs||[]).forEach(m=>add("메인KPI",m));(D.subKPIs||[]).forEach(s=>add("서브KPI",s));
+    if(rows.length===1)return alert("KPI 주차 실적 이력이 없어요");
+    downloadCSV(rows,"KPI주차실적");
+  };
+  const expContrib=()=>{
+    const rows=[["프로젝트","담당자","완료업무","매출입력","목표지표","합계","이번주"]];
+    (D.projects||[]).forEach(p=>projContrib(D,p).forEach(r=>rows.push([p.title,uname(r.uid),r.task,r.sales,r.act,r.total,r.wk])));
+    if(rows.length===1)return alert("기여 기록이 없어요");
+    downloadCSV(rows,"기여도");
+  };
+  const expIndicators=()=>{
+    const rows=[["프로젝트","지표명","단위","현재","목표","달성%","최종입력자"]];
+    (D.projects||[]).forEach(p=>(p.activityKPIs||[]).forEach(ak=>rows.push([p.title,ak.name,ak.unit||"",numF(ak.current),numF(ak.target),pct(numF(ak.current),numF(ak.target)),ak.byName||""])));
+    if(rows.length===1)return alert("목표지표가 없어요");
+    downloadCSV(rows,"목표지표");
+  };
+  const expWeekGoals=()=>{
+    const rows=[["프로젝트","담당자","주차","목표(완료업무)","이번주완료","달성"]];
+    const wk=weekKey();
+    (D.projects||[]).forEach(p=>(p.weekTargets||[]).forEach(t=>{const dn=t.week===wk?myWeekDone(D,p,t.userId):"";const ok=t.week===wk?(dn>=numF(t.target)?"O":"X"):"";rows.push([p.title,uname(t.userId),t.week,numF(t.target),dn,ok]);}));
+    if(rows.length===1)return alert("주간 목표 기록이 없어요");
+    downloadCSV(rows,"주간목표");
+  };
+  const items=[["📁 프로젝트 전체",expProjects],["💰 매출 이력",expSales],["📊 KPI 주차 실적",expKpi],["👥 기여도",expContrib],["🎯 목표지표",expIndicators],["🗓️ 주간목표",expWeekGoals]];
+  return(
+    <div style={{background:"#FFFFFF",borderRadius:16,padding:"14px 16px",marginTop:14,border:"1px solid #F2F4F6"}}>
+      <h3 style={{margin:"0 0 3px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>📤 데이터 추출</h3>
+      <p style={{margin:"0 0 10px",fontSize:10.5,color:"#9CA3AF"}}>모든 자산을 엑셀(CSV)로 — 버튼 하나로 내려받아요</p>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>
+        {items.map(([l,fn])=>(<button key={l} onClick={fn} style={{padding:"11px 8px",borderRadius:11,border:"1.5px solid #E5E8EB",background:"#F9FAFB",fontSize:12,fontWeight:700,color:"#374151",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>⬇ {l}</button>))}
+      </div>
     </div>
   );
 }

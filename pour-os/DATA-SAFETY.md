@@ -46,6 +46,17 @@ Repo ▸ Settings ▸ Secrets and variables ▸ Actions 에 등록:
 > 서비스 계정 키: Firebase 콘솔 ▸ pour-app-new ▸ 프로젝트 설정 ▸ 서비스 계정 ▸ 새 비공개 키 생성.
 > 미설정 시 워크플로는 "필수 시크릿 누락" 으로 즉시 실패하여 알려준다(데이터에는 영향 없음).
 
+## Firestore 규칙 자동배포 (firestore-rules-deploy.yml)
+`firestore.rules` 변경을 pour-app-new 에 배포하는 워크플로.
+- **수동**: Actions ▸ "Firestore 규칙 배포" ▸ Run workflow (버튼 한 번)
+- **자동**: main 의 `firestore.rules`(또는 firebase.json/.firebaserc) 변경 시 배포
+- 인증: 위 `POUR_OS_FIREBASE_*` 시크릿 재사용(새 시크릿 불필요).
+
+> ⚠️ 권한: 이 서비스 계정에 **Firebase Rules Admin**(`roles/firebaserules.admin`) 또는
+> 편집자(Editor) 역할이 필요하다(규칙 배포 권한). 백업만 할 거면 읽기 권한으로 충분하지만
+> 규칙 배포까지 하려면 위 역할을 부여해야 한다.
+> 콘솔: GCP IAM ▸ 해당 서비스계정 ▸ 역할 추가.
+
 ## 복구 절차
 - **개별 기기에서 임시 유실 의심**: 새로고침 전에 전체 백업(JSON) 내려받기 → 보관.
 - **원격 손상/되돌리기**: `backup/firestore-snapshots` 브랜치의 `backups/prod/latest/pour-os.json` 에서 해당 `state-*` 문서의 `items` 를 Firestore에 복원.

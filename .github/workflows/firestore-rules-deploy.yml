@@ -1,0 +1,68 @@
+name: Firestore 규칙 배포 (pour-app-new)
+
+# firestore.rules 를 pour-app-new 에 배포.
+# - 수동: Actions 탭에서 "Run workflow" 버튼 한 번
+# - 자동: main 의 firestore.rules 가 바뀌면 배포
+# 인증: 백업과 동일한 서비스계정 시크릿(POUR_OS_FIREBASE_*) 재사용 — 새 시크릿 불필요.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'firestore.rules'
+      - 'firebase.json'
+      - '.firebaserc'
+
+jobs:
+  deploy-rules:
+    name: Firestore 규칙 배포
+    runs-on: ubuntu-latest
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 필수 시크릿 확인
+        env:
+          CE: ${{ secrets.POUR_OS_FIREBASE_CLIENT_EMAIL }}
+          PK: ${{ secrets.POUR_OS_FIREBASE_PRIVATE_KEY }}
+        run: |
+          MISSING=""
+          [ -z "$CE" ] && MISSING="$MISSING POUR_OS_FIREBASE_CLIENT_EMAIL"
+          [ -z "$PK" ] && MISSING="$MISSING POUR_OS_FIREBASE_PRIVATE_KEY"
+          if [ -n "$MISSING" ]; then
+            echo "::error::필수 시크릿 누락:$MISSING — Settings ▸ Secrets and variables ▸ Actions 에서 등록하세요."
+            exit 1
+          fi
+          echo "시크릿 확인 완료"
+
+      - name: 서비스계정 키 구성
+        env:
+          SA_EMAIL: ${{ secrets.POUR_OS_FIREBASE_CLIENT_EMAIL }}
+          SA_KEY: ${{ secrets.POUR_OS_FIREBASE_PRIVATE_KEY }}
+        run: |
+          node -e '
+            const fs=require("fs");
+            const sa={
+              type:"service_account",
+              project_id:"pour-app-new",
+              private_key:(process.env.SA_KEY||"").replace(/\\n/g,"\n"),
+              client_email:process.env.SA_EMAIL,
+              token_uri:"https://oauth2.googleapis.com/token"
+            };
+            fs.writeFileSync("/tmp/sa.json",JSON.stringify(sa));
+            console.log("서비스계정 키 파일 생성 완료");
+          '
+          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json" >> "$GITHUB_ENV"
+
+      - name: 규칙 배포
+        run: npx --yes firebase-tools@13 deploy --only firestore:rules --project pour-app-new --non-interactive
+
+      - name: 키 파일 정리
+        if: always()
+        run: rm -f /tmp/sa.json

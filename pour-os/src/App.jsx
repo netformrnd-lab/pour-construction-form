@@ -4,6 +4,9 @@ import { STATE_DOC, onSnapshot, setDoc, uploadTaskPhoto, deleteTaskPhoto } from 
 // Firestore 단일 문서에 저장할 공유 데이터 키 (currentUser는 기기별 로컬이라 제외)
 const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events"];
 const LOCAL_USER_KEY = "pour-os-current-user";
+const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
+const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
+const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 
 const C = {
@@ -255,6 +258,13 @@ const pruneWeekTargets=(list)=>{ const cut=weekKey(new Date(Date.now()-8*7*86400
 const extOf=(name="")=>{const m=String(name).match(/\.([a-z0-9]+)$/i);return m?m[1].toUpperCase():"파일";};
 const isImgAtt=(att)=>((att?.type||"").startsWith("image/"))||/\.(png|jpe?g|gif|webp|heic|heif|bmp|svg)$/i.test(att?.name||att?.url||"");
 const fileIcon=(name="")=>{const e=extOf(name).toLowerCase();if(["pdf"].includes(e))return"📕";if(["doc","docx","hwp","hwpx","txt"].includes(e))return"📝";if(["xls","xlsx","csv"].includes(e))return"📊";if(["ppt","pptx"].includes(e))return"📺";if(["zip","rar","7z"].includes(e))return"🗜️";return"📄";};
+// 전체 상태 백업(JSON) 다운로드 — 오프디바이스 2차 보관용
+const downloadStateBackup=(D)=>{
+  const shared=pickShared(D);
+  const blob=new Blob([JSON.stringify({_app:"pour-os",_backupAt:new Date().toISOString(),...shared},null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;a.download=`pour-os-backup_${new Date().toISOString().slice(0,19).replace(/[:T]/g,"-")}.json`;a.click();URL.revokeObjectURL(url);
+};
 // CSV 다운로드 공용 (BOM + 안전 이스케이프)
 const downloadCSV=(rows,name)=>{
   const csv="﻿"+rows.map(r=>r.map(c=>`"${String(c==null?"":c).replace(/"/g,'""')}"`).join(",")).join("\n");
@@ -350,9 +360,11 @@ export default function App(){
   // ── Firestore 단일 문서 영속화 (4명 실시간 공유) ──
   const [loaded,setLoaded]=useState(false);
   const [syncToast,setSyncToast]=useState(false);   // 다른 기기 변경 안내
+  const [saveErr,setSaveErr]=useState(null);        // {level:'warn'|'error', msg, bytes} | null — 저장 상태 가시화
   const lastSyncedRef=useRef(null);   // 마지막으로 동기화된 공유데이터 JSON (에코 쓰기 방지)
   const loadedRef=useRef(false);
   const syncTimerRef=useRef(null);
+  const pendingJsonRef=useRef(null);  // 디바운스 대기 중인 최신 JSON (탭 종료 시 flush용)
   // 구독: 원격 변경 수신 + 최초 시드
   useEffect(()=>{
     const savedUser=localStorage.getItem(LOCAL_USER_KEY);
@@ -408,12 +420,31 @@ export default function App(){
     if(!loaded) return;
     const json=JSON.stringify(pickShared(D));
     if(json===lastSyncedRef.current) return;               // 변화 없음(=원격 수신 직후) → 저장 스킵
+    pendingJsonRef.current=json;                            // 탭 종료 flush 대비
     const t=setTimeout(()=>{
-      lastSyncedRef.current=json;
-      setDoc(STATE_DOC,{...JSON.parse(json),_updatedAt:Date.now()}).catch(e=>console.error("[pour-os] 저장 실패:",e));
+      // ① 2차 안전: 무조건 이 기기에 먼저 거울 저장 (Firestore가 실패해도 데이터는 남는다)
+      try{ localStorage.setItem(MIRROR_KEY,json); localStorage.setItem(MIRROR_AT_KEY,new Date().toISOString()); }catch(_){}
+      const bytes=new Blob([json]).size;
+      // ② 1 MiB 한도 임박 사전 경고 (터지기 전에 알린다)
+      if(bytes>DOC_LIMIT){ setSaveErr({level:"error",msg:`데이터 용량(${(bytes/1024).toFixed(0)}KB)이 한도(1024KB)를 넘어 저장이 막혔습니다. 백업 후 정리가 필요합니다. (이 기기엔 임시 보관됨)`,bytes}); return; }
+      // ③ Firestore 저장 — 성공해야만 동기화본 갱신(실패 시 다음 변경 때 전체본으로 자동 재시도)
+      setDoc(STATE_DOC,{...JSON.parse(json),_updatedAt:Date.now()})
+        .then(()=>{ lastSyncedRef.current=json; pendingJsonRef.current=null;
+          setSaveErr(bytes>DOC_LIMIT*0.85?{level:"warn",msg:`저장 용량 ${(bytes/1024).toFixed(0)}KB / 1024KB — 한도 임박. 곧 정리·백업 권장.`,bytes}:null); })
+        .catch(e=>{ console.error("[pour-os] 저장 실패:",e);
+          setSaveErr({level:"error",msg:`저장 실패(${e.code||e.message}). 변경분은 이 기기에 임시 보관됨 — 새로고침 전에 '전체 백업(JSON)'으로 내려받으세요.`,bytes}); });
     },700);
     return ()=>clearTimeout(t);
   },[D,loaded]);
+  // 탭 종료/숨김 시: 디바운스 대기 중이던 변경을 즉시 거울 저장 + 베스트에포트 원격 저장
+  useEffect(()=>{
+    const flush=()=>{ const j=pendingJsonRef.current; if(!j) return;
+      try{ localStorage.setItem(MIRROR_KEY,j); localStorage.setItem(MIRROR_AT_KEY,new Date().toISOString()); }catch(_){}
+      if(new Blob([j]).size<=DOC_LIMIT){ try{ setDoc(STATE_DOC,{...JSON.parse(j),_updatedAt:Date.now()}); }catch(_){} } };
+    window.addEventListener("beforeunload",flush);
+    window.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden") flush(); });
+    return ()=>window.removeEventListener("beforeunload",flush);
+  },[]);
   const cu=D.users.find(u=>u.id===D.currentUser)||D.users[0];   // 잘못된 currentUser여도 크래시 방지
   const lead=cu?.role==="lead";
   const set=(k,v)=>setD(p=>({...p,[k]:v}));
@@ -462,6 +493,12 @@ export default function App(){
   </>);
   const sheets=(<>
     {syncToast&&<div style={{position:"fixed",top:"calc(env(safe-area-inset-top,0px) + 12px)",left:"50%",transform:"translateX(-50%)",zIndex:5000,background:"#0F1F5C",color:"#fff",padding:"8px 16px",borderRadius:999,fontSize:12,fontWeight:700,boxShadow:"0 6px 20px rgba(0,0,0,0.25)",whiteSpace:"nowrap",pointerEvents:"none"}}>🔄 다른 기기에서 업데이트됨</div>}
+    {saveErr&&<div style={{position:"fixed",top:"calc(env(safe-area-inset-top,0px) + 8px)",left:8,right:8,zIndex:5001,background:saveErr.level==="error"?"#FEF2F2":"#FFFBEB",border:`1.5px solid ${saveErr.level==="error"?"#FCA5A5":"#FCD34D"}`,color:saveErr.level==="error"?"#991B1B":"#92400E",padding:"10px 12px",borderRadius:12,fontSize:11.5,fontWeight:700,lineHeight:1.45,boxShadow:"0 6px 20px rgba(0,0,0,0.15)",display:"flex",alignItems:"flex-start",gap:8}}>
+      <span style={{flexShrink:0,fontSize:14}}>{saveErr.level==="error"?"⚠️":"📊"}</span>
+      <span style={{flex:1}}>{saveErr.msg}</span>
+      <button onClick={()=>downloadStateBackup(D)} style={{flexShrink:0,padding:"5px 8px",borderRadius:8,border:"none",background:saveErr.level==="error"?"#DC2626":"#D97706",color:"#fff",fontSize:10.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>백업</button>
+      {saveErr.level!=="error"&&<button onClick={()=>setSaveErr(null)} style={{flexShrink:0,padding:"5px 7px",borderRadius:8,border:"none",background:"transparent",color:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}}>×</button>}
+    </div>}
     <Sheet open={more} onClose={()=>setMore(false)} title="더보기">
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:12}}>
         {MORE.map(m=>(
@@ -2403,10 +2440,26 @@ function ExportPanel({D}){
     downloadCSV(rows,"주간목표");
   };
   const items=[["📁 프로젝트 전체",expProjects],["💰 매출 이력",expSales],["📊 KPI 주차 실적",expKpi],["👥 기여도",expContrib],["🎯 목표지표",expIndicators],["🗓️ 주간목표",expWeekGoals]];
+  const bytes=new Blob([JSON.stringify(pickShared(D))]).size;
+  const pctUsed=Math.min(100,Math.round(bytes/DOC_LIMIT*100));
+  const barColor=pctUsed>=85?"#DC2626":pctUsed>=60?"#D97706":"#059669";
+  const mirrorAt=(()=>{try{return localStorage.getItem(MIRROR_AT_KEY);}catch(_){return null;}})();
   return(
     <div style={{background:"#FFFFFF",borderRadius:16,padding:"14px 16px",marginTop:14,border:"1px solid #F2F4F6"}}>
-      <h3 style={{margin:"0 0 3px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>📤 데이터 추출</h3>
-      <p style={{margin:"0 0 10px",fontSize:10.5,color:"#9CA3AF"}}>모든 자산을 엑셀(CSV)로 — 버튼 하나로 내려받아요</p>
+      <h3 style={{margin:"0 0 3px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>💾 백업 · 데이터 추출</h3>
+      <p style={{margin:"0 0 10px",fontSize:10.5,color:"#9CA3AF"}}>정기적으로 <b>전체 백업(JSON)</b>을 내려받아 안전하게 보관하세요</p>
+      {/* 저장 용량 게이지 — 1MiB 한도 대비 */}
+      <div style={{marginBottom:10,padding:"10px 12px",background:"#F9FAFB",borderRadius:11,border:"1px solid #F2F4F6"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+          <span style={{fontSize:11,fontWeight:800,color:"#374151"}}>저장 용량 {(bytes/1024).toFixed(0)}KB / 1024KB</span>
+          <span style={{fontSize:11,fontWeight:800,color:barColor}}>{pctUsed}%</span>
+        </div>
+        <div style={{height:7,borderRadius:4,background:"#E5E8EB",overflow:"hidden"}}><div style={{width:`${pctUsed}%`,height:"100%",background:barColor,transition:"width .3s"}}/></div>
+        {pctUsed>=60&&<p style={{margin:"6px 0 0",fontSize:10,fontWeight:700,color:barColor}}>{pctUsed>=85?"⚠️ 한도 임박 — 백업 후 오래된 데이터 정리 필요":"용량이 늘고 있어요 — 정기 백업 권장"}</p>}
+        {mirrorAt&&<p style={{margin:"4px 0 0",fontSize:9.5,color:"#9CA3AF"}}>🛟 이 기기 자동 거울저장: {mirrorAt.slice(0,16).replace("T"," ")}</p>}
+      </div>
+      <button onClick={()=>downloadStateBackup(D)} style={{width:"100%",padding:"12px 0",borderRadius:12,border:"none",background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",color:"#fff",fontSize:13.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit",marginBottom:12}}>💾 전체 백업(JSON) 내려받기</button>
+      <p style={{margin:"0 0 8px",fontSize:11,fontWeight:800,color:"#6B7280"}}>항목별 추출 (엑셀/CSV)</p>
       <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>
         {items.map(([l,fn])=>(<button key={l} onClick={fn} style={{padding:"11px 8px",borderRadius:11,border:"1.5px solid #E5E8EB",background:"#F9FAFB",fontSize:12,fontWeight:700,color:"#374151",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>⬇ {l}</button>))}
       </div>

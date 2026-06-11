@@ -143,10 +143,11 @@ service cloud.firestore {
     match /aiReviews/{doc}          { allow read, write: if true; }
 
     // ─────────────────────────────────────────────
-    // POUR OS (pourstore-renewal/os) — 단일 공유 상태 문서
-    // 앱 상태 전체를 pour-os/state 한 문서에 저장, 4명 실시간 협업.
+    // POUR OS (pourstore-renewal/os) — 컬렉션별 분할 문서 (v2)
+    // 앱 상태를 pour-os/state-<collection> 문서들로 분할 저장(+레거시 pour-os/state).
+    // {doc=**} 로 state·state-* 형제 문서 및 향후 서브컬렉션까지 모두 허용.
     // ─────────────────────────────────────────────
-    match /pour-os/{doc}            { allow read, write: if true; }
+    match /pour-os/{doc=**}         { allow read, write: if true; }
 
     // ─────────────────────────────────────────────
     // 기본 정책: 명시되지 않은 컬렉션은 차단
@@ -156,18 +157,6 @@ service cloud.firestore {
     }
   }
 }
-    match /users/{doc}              { allow read, write: if true; }
-    match /goals/{doc}              { allow read, write: if true; }
-    match /mainKPIs/{doc}           { allow read, write: if true; }
-    match /subKPIs/{doc}            { allow read, write: if true; }
-    match /projects/{doc}           { allow read, write: if true; }
-    match /tasks/{doc}              { allow read, write: if true; }
-    match /events/{doc}             { allow read, write: if true; }
-    match /events/{doc}/actions/{a} { allow read, write: if true; }
-    match /personalGoals/{doc}      { allow read, write: if true; }
-    match /retros/{doc}             { allow read, write: if true; }
-    match /aiReviews/{doc}          { allow read, write: if true; }
-    match /activityKPIs/{doc}       { allow read, write: if true; }
 
 // ⚠️ MVP 단계 보안 정책 안내
 // ────────────────────────────────────────────────

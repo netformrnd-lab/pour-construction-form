@@ -1,0 +1,61 @@
+name: POUR OS 자동 백업 (pour-app-new)
+
+# pour-os 앱 데이터(Firestore 컬렉션 pour-os/state-*)를 매일 GitHub에 백업.
+# 기기 분실·문서 손상·실수 삭제에도 복구 가능한 오프디바이스 2차 보관.
+# 관리센터(admin) 백업과 다른 Firebase 프로젝트(pour-app-new)라 전용 잡으로 분리.
+
+on:
+  # 매일 00:05 KST (UTC 15:05) — admin 백업(00:00)과 5분 차이로 백업 브랜치 커밋 충돌 회피
+  schedule:
+    - cron: '5 15 * * *'
+  # 수동 실행
+  workflow_dispatch:
+
+jobs:
+  backup-pour-os:
+    name: pour-os Firestore 백업
+    runs-on: ubuntu-latest
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backup/package.json
+
+      - name: 의존성 설치
+        run: npm install
+        working-directory: backup
+
+      - name: 필수 시크릿 확인
+        env:
+          CE: ${{ secrets.POUR_OS_FIREBASE_CLIENT_EMAIL }}
+          PK: ${{ secrets.POUR_OS_FIREBASE_PRIVATE_KEY }}
+          GT: ${{ secrets.BACKUP_GITHUB_TOKEN }}
+        run: |
+          MISSING=""
+          [ -z "$CE" ] && MISSING="$MISSING POUR_OS_FIREBASE_CLIENT_EMAIL"
+          [ -z "$PK" ] && MISSING="$MISSING POUR_OS_FIREBASE_PRIVATE_KEY"
+          [ -z "$GT" ] && MISSING="$MISSING BACKUP_GITHUB_TOKEN"
+          if [ -n "$MISSING" ]; then
+            echo "::error::필수 시크릿 누락:$MISSING — Settings ▸ Secrets and variables ▸ Actions 에서 등록하세요."
+            exit 1
+          fi
+          echo "시크릿 확인 완료"
+
+      - name: pour-os 백업 실행
+        env:
+          NODE_ENV: production
+          # pour-os 앱의 Firebase 프로젝트 (클라이언트 config와 동일, 민감정보 아님)
+          FIREBASE_PROJECT_ID: pour-app-new
+          FIREBASE_CLIENT_EMAIL: ${{ secrets.POUR_OS_FIREBASE_CLIENT_EMAIL }}
+          FIREBASE_PRIVATE_KEY: ${{ secrets.POUR_OS_FIREBASE_PRIVATE_KEY }}
+          GITHUB_TOKEN: ${{ secrets.BACKUP_GITHUB_TOKEN }}
+          GITHUB_REPO: ${{ github.repository }}
+          # pour-os 컬렉션 한 곳(분할 문서 state-* + 레거시 state + 메타가 모두 이 컬렉션에 있음)
+          BACKUP_COLLECTIONS: pour-os
+        run: node firestore-backup.js
+        working-directory: backup

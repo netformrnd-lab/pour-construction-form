@@ -1,9 +1,13 @@
 import { useState, useEffect, useRef } from "react";
-import { STATE_DOC, onSnapshot, setDoc, uploadTaskPhoto, deleteTaskPhoto } from "./firebase.js";
+import { STATE_DOC, colDoc, META_DOC, getDoc, onSnapshot, setDoc, uploadTaskPhoto, deleteTaskPhoto } from "./firebase.js";
 
 // Firestore 단일 문서에 저장할 공유 데이터 키 (currentUser는 기기별 로컬이라 제외)
 const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events"];
+const COL_LABEL = {users:"담당자",goals:"최종목표",mainKPIs:"메인KPI",subKPIs:"서브KPI",projects:"프로젝트",tasks:"업무",personalGoals:"개인목표",retros:"회고",aiReviews:"AI점검",events:"일정"};
 const LOCAL_USER_KEY = "pour-os-current-user";
+const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
+const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
+const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 
 const C = {
@@ -251,6 +255,17 @@ const myWeekDone=(D,proj,uid)=>{ const wk=weekKey(); return (D.tasks||[]).filter
 const myWeekTarget=(proj,uid)=>{ const wk=weekKey(); const t=(proj.weekTargets||[]).find(x=>x.userId===uid&&x.week===wk); return t?Math.max(0,numF(t.target)):0; };
 // 과거 주차 목표 정리(최근 8주만 유지) — 단일 문서 비대 방지
 const pruneWeekTargets=(list)=>{ const cut=weekKey(new Date(Date.now()-8*7*86400000)); return (list||[]).filter(t=>t&&t.week&&t.week>=cut); };
+// 첨부 파일 표시 헬퍼
+const extOf=(name="")=>{const m=String(name).match(/\.([a-z0-9]+)$/i);return m?m[1].toUpperCase():"파일";};
+const isImgAtt=(att)=>((att?.type||"").startsWith("image/"))||/\.(png|jpe?g|gif|webp|heic|heif|bmp|svg)$/i.test(att?.name||att?.url||"");
+const fileIcon=(name="")=>{const e=extOf(name).toLowerCase();if(["pdf"].includes(e))return"📕";if(["doc","docx","hwp","hwpx","txt"].includes(e))return"📝";if(["xls","xlsx","csv"].includes(e))return"📊";if(["ppt","pptx"].includes(e))return"📺";if(["zip","rar","7z"].includes(e))return"🗜️";return"📄";};
+// 전체 상태 백업(JSON) 다운로드 — 오프디바이스 2차 보관용
+const downloadStateBackup=(D)=>{
+  const shared=pickShared(D);
+  const blob=new Blob([JSON.stringify({_app:"pour-os",_backupAt:new Date().toISOString(),...shared},null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;a.download=`pour-os-backup_${new Date().toISOString().slice(0,19).replace(/[:T]/g,"-")}.json`;a.click();URL.revokeObjectURL(url);
+};
 // CSV 다운로드 공용 (BOM + 안전 이스케이프)
 const downloadCSV=(rows,name)=>{
   const csv="﻿"+rows.map(r=>r.map(c=>`"${String(c==null?"":c).replace(/"/g,'""')}"`).join(",")).join("\n");
@@ -264,10 +279,10 @@ const EditTaskSheet=({open,onClose,task,onSave,D})=>{
   if(task&&task.id!==prevId){setPrevId(task.id);setForm({title:task.title||"",status:task.status||"todo",dueDate:task.dueDate||"",memo:task.memo||"",projectId:task.projectId||"",attachments:Array.isArray(task.attachments)?task.attachments:[]});}
   if(!task&&prevId!==null){setPrevId(null);setForm({title:"",status:"todo",dueDate:"",memo:"",projectId:"",attachments:[]});}
   const onPick=async(files)=>{
-    const list=Array.from(files||[]).filter(f=>f.type.startsWith("image/"));
+    const list=Array.from(files||[]);
     if(!list.length||!task)return;
     setUploading(true);
-    try{ const added=[]; for(const f of list){ if(f.size>5*1024*1024){alert(`${f.name}: 5MB 초과`);continue;} added.push(await uploadTaskPhoto(task.id,f)); }
+    try{ const added=[]; for(const f of list){ if(f.size>20*1024*1024){alert(`${f.name}: 20MB 초과`);continue;} added.push(await uploadTaskPhoto(task.id,f)); }
       setForm(p=>({...p,attachments:[...(p.attachments||[]),...added]})); }
     catch(e){ alert("업로드 실패: "+e.message); }
     setUploading(false);
@@ -305,20 +320,27 @@ const EditTaskSheet=({open,onClose,task,onSave,D})=>{
           <textarea value={form.memo} onChange={e=>setForm({...form,memo:e.target.value})} placeholder="메모..." style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",resize:"vertical",minHeight:72,fontFamily:"inherit",boxSizing:"border-box",outline:"none"}}/>
         </div>
         <div style={{marginBottom:20}}>
-          <label style={{display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:12,fontWeight:700,color:"#374151",marginBottom:7}}><span>📎 사진 첨부 ({(form.attachments||[]).length})</span>{uploading&&<span style={{fontSize:11,color:"#F97316",fontWeight:700}}>업로드 중…</span>}</label>
+          <label style={{display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:12,fontWeight:700,color:"#374151",marginBottom:7}}><span>📎 파일 첨부 ({(form.attachments||[]).length})</span>{uploading&&<span style={{fontSize:11,color:"#F97316",fontWeight:700}}>업로드 중…</span>}</label>
           <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
-            {(form.attachments||[]).map((att,i)=>(
-              <div key={att.url||i} style={{position:"relative",width:72,height:72,borderRadius:10,overflow:"hidden",border:"1px solid #E5E8EB"}}>
-                <a href={att.url} target="_blank" rel="noopener noreferrer"><img src={att.url} alt={att.name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/></a>
+            {(form.attachments||[]).map((att,i)=>{const img=isImgAtt(att);return(
+              <div key={att.url||i} style={{position:"relative",width:72,height:72,borderRadius:10,overflow:"hidden",border:"1px solid #E5E8EB",background:img?"#000":"#F9FAFB"}}>
+                <a href={att.url} target="_blank" rel="noopener noreferrer" title={att.name} style={{display:"block",width:"100%",height:"100%",textDecoration:"none"}}>
+                  {img?<img src={att.url} alt={att.name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>:
+                    <div style={{width:"100%",height:"100%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:4,boxSizing:"border-box"}}>
+                      <span style={{fontSize:22}}>{fileIcon(att.name)}</span>
+                      <span style={{fontSize:8.5,fontWeight:800,color:"#6B7280",marginTop:2}}>{extOf(att.name)}</span>
+                      <span style={{fontSize:7.5,color:"#9CA3AF",marginTop:1,maxWidth:"100%",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{att.name}</span>
+                    </div>}
+                </a>
                 <button onClick={()=>rmPhoto(att)} style={{position:"absolute",top:3,right:3,width:20,height:20,borderRadius:"50%",border:"none",background:"rgba(0,0,0,0.6)",color:"#fff",fontSize:12,cursor:"pointer",lineHeight:1,padding:0}}>×</button>
               </div>
-            ))}
+            );})}
             <label style={{width:72,height:72,borderRadius:10,border:"1.5px dashed #D1D5DB",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:task?"pointer":"not-allowed",color:"#9CA3AF",opacity:task?1:0.5}}>
-              <span style={{fontSize:22}}>＋</span><span style={{fontSize:9,fontWeight:700}}>사진</span>
-              <input type="file" accept="image/*" multiple disabled={!task||uploading} onChange={e=>onPick(e.target.files)} style={{display:"none"}}/>
+              <span style={{fontSize:22}}>＋</span><span style={{fontSize:9,fontWeight:700}}>파일</span>
+              <input type="file" accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.hwp,.hwpx,.txt,.csv,.zip" multiple disabled={!task||uploading} onChange={e=>onPick(e.target.files)} style={{display:"none"}}/>
             </label>
           </div>
-          <p style={{margin:"6px 2px 0",fontSize:10,color:"#9CA3AF"}}>이미지 · 각 5MB 이내 · 저장하면 task에 기록됩니다</p>
+          <p style={{margin:"6px 2px 0",fontSize:10,color:"#9CA3AF"}}>사진·PDF·문서(워드/엑셀/한글 등) · 각 20MB 이내 · 저장하면 task에 기록됩니다</p>
         </div>
         <button onClick={()=>{if(form.title.trim()){onSave(form);onClose();}}} disabled={!form.title.trim()||uploading} style={{width:"100%",padding:"14px 0",borderRadius:14,border:"none",backgroundColor:form.title.trim()&&!uploading?"#F97316":"#E5E8EB",color:form.title.trim()&&!uploading?"#FFFFFF":"#9CA3AF",fontSize:15,fontWeight:700,cursor:form.title.trim()&&!uploading?"pointer":"not-allowed",fontFamily:"inherit"}}>저장하기</button>
       </div>
@@ -336,35 +358,47 @@ export default function App(){
   // 화면 모드 (PC / 모바일) — 기본은 화면폭 자동, 토글로 전환, localStorage 기억
   const [viewMode,setViewMode]=useState(()=>localStorage.getItem("pour-os-view")||((typeof window!=="undefined"&&window.innerWidth>=1024)?"pc":"mobile"));
   useEffect(()=>{ localStorage.setItem("pour-os-view",viewMode); },[viewMode]);
-  // ── Firestore 단일 문서 영속화 (4명 실시간 공유) ──
+  // ── Firestore 분할 문서 영속화 v2 (컬렉션별 pour-os/state-<key>, 4명 실시간 공유) ──
   const [loaded,setLoaded]=useState(false);
   const [syncToast,setSyncToast]=useState(false);   // 다른 기기 변경 안내
-  const lastSyncedRef=useRef(null);   // 마지막으로 동기화된 공유데이터 JSON (에코 쓰기 방지)
+  const [saveErr,setSaveErr]=useState(null);        // {level:'warn'|'error', msg, bytes} | null — 저장 상태 가시화
+  const lastColJsonRef=useRef({});    // {컬렉션:JSON} 마지막 동기화본 (에코·변경 판별)
   const loadedRef=useRef(false);
   const syncTimerRef=useRef(null);
-  // 구독: 원격 변경 수신 + 최초 시드
+  const pendingSharedRef=useRef(null);// 디바운스 대기 중인 최신 shared 객체 (탭 종료 flush용)
+  // 마이그레이션(레거시 단일문서 → 분할) + 컬렉션별 구독
   useEffect(()=>{
     const savedUser=localStorage.getItem(LOCAL_USER_KEY);
     if(savedUser) setD(p=>({...p,currentUser:savedUser}));
-    const unsub=onSnapshot(STATE_DOC,(snap)=>{
-      if(snap.metadata.hasPendingWrites) return;          // 내 쓰기 에코는 무시
-      if(!snap.exists()){                                  // 최초 실행 → INIT으로 시드
-        const shared=JSON.parse(JSON.stringify(pickShared(INIT)));
-        lastSyncedRef.current=JSON.stringify(shared);
-        setDoc(STATE_DOC,{...shared,_updatedAt:Date.now()}).catch(e=>console.error("[pour-os] 시드 저장 실패:",e));
-        console.log("[pour-os] 신규 상태 문서 생성(시드)");
-        loadedRef.current=true; setLoaded(true); return;
-      }
-      const shared=pickShared(snap.data());
-      const sharedJson=JSON.stringify(shared);
-      const isRemoteChange=loadedRef.current&&sharedJson!==lastSyncedRef.current;   // 내 쓰기/동일본이 아닌 진짜 원격 변경
-      lastSyncedRef.current=sharedJson;
-      setD(p=>({...p,...shared}));                          // currentUser·UI 상태는 보존
-      console.log(`[pour-os] 원격 동기화: projects ${shared.projects?.length||0} / tasks ${shared.tasks?.length||0}`);
-      loadedRef.current=true; setLoaded(true);
-      if(isRemoteChange){ setSyncToast(true); clearTimeout(syncTimerRef.current); syncTimerRef.current=setTimeout(()=>setSyncToast(false),2600); }
-    },(err)=>{ console.error("[pour-os] 구독 실패:",err); setLoaded(true); });
-    return ()=>unsub();
+    let cancelled=false; let unsubs=[];
+    (async()=>{
+      // 1) v2 분할 마이그레이션 (멱등 — 메타문서 v:2 로 1회만)
+      try{
+        const meta=await getDoc(META_DOC);
+        if(!meta.exists()||meta.data().v!==2){
+          const legacy=await getDoc(STATE_DOC);
+          const src=legacy.exists()?pickShared(legacy.data()):pickShared(INIT);
+          await Promise.all(SHARED_KEYS.map(k=>setDoc(colDoc(k),{items:Array.isArray(src[k])?src[k]:[],_updatedAt:Date.now()})));
+          await setDoc(META_DOC,{v:2,migratedAt:Date.now()});
+          console.log("[pour-os] v2 분할 마이그레이션 완료(레거시 보존)");
+        }
+      }catch(e){ console.error("[pour-os] 마이그레이션 실패(구독은 계속):",e); }
+      if(cancelled) return;
+      // 2) 컬렉션별 실시간 구독
+      const firstPending=new Set(SHARED_KEYS);
+      const markFirst=(k)=>{ if(firstPending.size){ firstPending.delete(k); if(firstPending.size===0){ loadedRef.current=true; setLoaded(true); console.log("[pour-os] v2 로드 완료"); } } };
+      unsubs=SHARED_KEYS.map(k=>onSnapshot(colDoc(k),(snap)=>{
+        if(snap.metadata.hasPendingWrites) return;        // 내 쓰기 에코 무시
+        const items=snap.exists()&&Array.isArray(snap.data().items)?snap.data().items:[];
+        const js=JSON.stringify(items);
+        const remoteChange=loadedRef.current&&js!==lastColJsonRef.current[k];
+        lastColJsonRef.current[k]=js;
+        setD(p=>({...p,[k]:items}));                       // currentUser·UI 상태 보존
+        if(remoteChange){ setSyncToast(true); clearTimeout(syncTimerRef.current); syncTimerRef.current=setTimeout(()=>setSyncToast(false),2600); }
+        markFirst(k);
+      },(err)=>{ console.error(`[pour-os] ${k} 구독 실패:`,err); markFirst(k); }));
+    })();
+    return ()=>{ cancelled=true; unsubs.forEach(u=>{try{u&&u();}catch(_){}}); };
   },[]);
   // currentUser는 기기별 로컬에만 저장
   useEffect(()=>{ if(D.currentUser) localStorage.setItem(LOCAL_USER_KEY,D.currentUser); },[D.currentUser]);
@@ -392,17 +426,42 @@ export default function App(){
     try{ if(window.parent&&window.parent!==window) window.parent.postMessage({type:"pour-os-ready"},"*"); }catch(_){}
     return ()=>window.removeEventListener("message",onMsg);
   },[]);
-  // 변경 시 디바운스 저장 (공유데이터가 마지막 동기화본과 다를 때만)
+  // 변경 시 디바운스 저장 — 바뀐 컬렉션 문서만 저장(diff). 다른 컬렉션 동시편집 충돌 제거.
   useEffect(()=>{
     if(!loaded) return;
-    const json=JSON.stringify(pickShared(D));
-    if(json===lastSyncedRef.current) return;               // 변화 없음(=원격 수신 직후) → 저장 스킵
-    const t=setTimeout(()=>{
-      lastSyncedRef.current=json;
-      setDoc(STATE_DOC,{...JSON.parse(json),_updatedAt:Date.now()}).catch(e=>console.error("[pour-os] 저장 실패:",e));
+    const shared=pickShared(D);
+    pendingSharedRef.current=shared;                       // 탭 종료 flush 대비
+    const t=setTimeout(async()=>{
+      // ① 2차 안전: 전체 상태를 이 기기에 거울 저장 (원격 실패해도 데이터 생존)
+      try{ localStorage.setItem(MIRROR_KEY,JSON.stringify(shared)); localStorage.setItem(MIRROR_AT_KEY,new Date().toISOString()); }catch(_){}
+      // ② 변경된 컬렉션만 추출
+      const changed=[];
+      for(const k of SHARED_KEYS){ const js=JSON.stringify(shared[k]||[]); if(js!==lastColJsonRef.current[k]) changed.push([k,shared[k]||[],js]); }
+      if(!changed.length) return;
+      // ③ 컬렉션별 1MiB 한도 가드 (초과 컬렉션이 있으면 그 컬렉션만 차단·경고)
+      for(const [k,,js] of changed){ const b=new Blob([js]).size; if(b>DOC_LIMIT){ setSaveErr({level:"error",msg:`'${COL_LABEL[k]||k}' 데이터(${(b/1024).toFixed(0)}KB)가 한도(1024KB)를 넘어 저장이 막혔습니다. 백업 후 정리 필요(이 기기엔 보관됨).`,bytes:b}); return; } }
+      // ④ 변경 컬렉션 동시 저장 — 성공해야 동기화본 갱신(실패 시 다음 변경 때 자동 재시도)
+      try{
+        await Promise.all(changed.map(([k,arr])=>setDoc(colDoc(k),{items:arr,_updatedAt:Date.now()})));
+        for(const [k,,js] of changed) lastColJsonRef.current[k]=js;
+        pendingSharedRef.current=null;
+        let maxB=0; for(const k of SHARED_KEYS){ const b=new Blob([JSON.stringify(shared[k]||[])]).size; if(b>maxB)maxB=b; }
+        setSaveErr(maxB>DOC_LIMIT*0.85?{level:"warn",msg:`일부 데이터가 한도의 ${Math.round(maxB/DOC_LIMIT*100)}%입니다 — 백업·정리 권장.`,bytes:maxB}:null);
+      }catch(e){ console.error("[pour-os] 저장 실패:",e);
+        setSaveErr({level:"error",msg:`저장 실패(${e.code||e.message}). 변경분은 이 기기에 임시 보관됨 — 새로고침 전에 '전체 백업(JSON)'으로 내려받으세요.`}); }
     },700);
     return ()=>clearTimeout(t);
   },[D,loaded]);
+  // 탭 종료/숨김 시: 대기 중이던 변경을 즉시 거울 저장 + 베스트에포트 원격 저장(바뀐 컬렉션만)
+  useEffect(()=>{
+    const flush=()=>{ const shared=pendingSharedRef.current; if(!shared) return;
+      try{ localStorage.setItem(MIRROR_KEY,JSON.stringify(shared)); localStorage.setItem(MIRROR_AT_KEY,new Date().toISOString()); }catch(_){}
+      for(const k of SHARED_KEYS){ const js=JSON.stringify(shared[k]||[]); if(js!==lastColJsonRef.current[k]&&new Blob([js]).size<=DOC_LIMIT){ try{ setDoc(colDoc(k),{items:shared[k]||[],_updatedAt:Date.now()}); }catch(_){} } } };
+    window.addEventListener("beforeunload",flush);
+    const onVis=()=>{ if(document.visibilityState==="hidden") flush(); };
+    window.addEventListener("visibilitychange",onVis);
+    return ()=>{ window.removeEventListener("beforeunload",flush); window.removeEventListener("visibilitychange",onVis); };
+  },[]);
   const cu=D.users.find(u=>u.id===D.currentUser)||D.users[0];   // 잘못된 currentUser여도 크래시 방지
   const lead=cu?.role==="lead";
   const set=(k,v)=>setD(p=>({...p,[k]:v}));
@@ -451,6 +510,12 @@ export default function App(){
   </>);
   const sheets=(<>
     {syncToast&&<div style={{position:"fixed",top:"calc(env(safe-area-inset-top,0px) + 12px)",left:"50%",transform:"translateX(-50%)",zIndex:5000,background:"#0F1F5C",color:"#fff",padding:"8px 16px",borderRadius:999,fontSize:12,fontWeight:700,boxShadow:"0 6px 20px rgba(0,0,0,0.25)",whiteSpace:"nowrap",pointerEvents:"none"}}>🔄 다른 기기에서 업데이트됨</div>}
+    {saveErr&&<div style={{position:"fixed",top:"calc(env(safe-area-inset-top,0px) + 8px)",left:8,right:8,zIndex:5001,background:saveErr.level==="error"?"#FEF2F2":"#FFFBEB",border:`1.5px solid ${saveErr.level==="error"?"#FCA5A5":"#FCD34D"}`,color:saveErr.level==="error"?"#991B1B":"#92400E",padding:"10px 12px",borderRadius:12,fontSize:11.5,fontWeight:700,lineHeight:1.45,boxShadow:"0 6px 20px rgba(0,0,0,0.15)",display:"flex",alignItems:"flex-start",gap:8}}>
+      <span style={{flexShrink:0,fontSize:14}}>{saveErr.level==="error"?"⚠️":"📊"}</span>
+      <span style={{flex:1}}>{saveErr.msg}</span>
+      <button onClick={()=>downloadStateBackup(D)} style={{flexShrink:0,padding:"5px 8px",borderRadius:8,border:"none",background:saveErr.level==="error"?"#DC2626":"#D97706",color:"#fff",fontSize:10.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>백업</button>
+      {saveErr.level!=="error"&&<button onClick={()=>setSaveErr(null)} style={{flexShrink:0,padding:"5px 7px",borderRadius:8,border:"none",background:"transparent",color:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}}>×</button>}
+    </div>}
     <Sheet open={more} onClose={()=>setMore(false)} title="더보기">
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:12}}>
         {MORE.map(m=>(
@@ -2392,10 +2457,30 @@ function ExportPanel({D}){
     downloadCSV(rows,"주간목표");
   };
   const items=[["📁 프로젝트 전체",expProjects],["💰 매출 이력",expSales],["📊 KPI 주차 실적",expKpi],["👥 기여도",expContrib],["🎯 목표지표",expIndicators],["🗓️ 주간목표",expWeekGoals]];
+  // 분할 저장 → 한도는 컬렉션별로 적용. 가장 큰 컬렉션이 실질 제약.
+  const colSizes=SHARED_KEYS.map(k=>[k,new Blob([JSON.stringify(pickShared(D)[k]||[])]).size]).sort((a,b)=>b[1]-a[1]);
+  const [maxKey,maxBytes]=colSizes[0]||["",0];
+  const totalBytes=colSizes.reduce((s,[,b])=>s+b,0);
+  const pctUsed=Math.min(100,Math.round(maxBytes/DOC_LIMIT*100));
+  const barColor=pctUsed>=85?"#DC2626":pctUsed>=60?"#D97706":"#059669";
+  const mirrorAt=(()=>{try{return localStorage.getItem(MIRROR_AT_KEY);}catch(_){return null;}})();
   return(
     <div style={{background:"#FFFFFF",borderRadius:16,padding:"14px 16px",marginTop:14,border:"1px solid #F2F4F6"}}>
-      <h3 style={{margin:"0 0 3px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>📤 데이터 추출</h3>
-      <p style={{margin:"0 0 10px",fontSize:10.5,color:"#9CA3AF"}}>모든 자산을 엑셀(CSV)로 — 버튼 하나로 내려받아요</p>
+      <h3 style={{margin:"0 0 3px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>💾 백업 · 데이터 추출</h3>
+      <p style={{margin:"0 0 10px",fontSize:10.5,color:"#9CA3AF"}}>정기적으로 <b>전체 백업(JSON)</b>을 내려받아 안전하게 보관하세요</p>
+      {/* 저장 용량 게이지 — 1MiB 한도 대비 */}
+      <div style={{marginBottom:10,padding:"10px 12px",background:"#F9FAFB",borderRadius:11,border:"1px solid #F2F4F6"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+          <span style={{fontSize:11,fontWeight:800,color:"#374151"}}>최대 컬렉션 「{COL_LABEL[maxKey]||maxKey}」 {(maxBytes/1024).toFixed(0)}KB / 1024KB</span>
+          <span style={{fontSize:11,fontWeight:800,color:barColor}}>{pctUsed}%</span>
+        </div>
+        <div style={{height:7,borderRadius:4,background:"#E5E8EB",overflow:"hidden"}}><div style={{width:`${pctUsed}%`,height:"100%",background:barColor,transition:"width .3s"}}/></div>
+        <p style={{margin:"6px 0 0",fontSize:9.5,color:"#9CA3AF"}}>전체 {(totalBytes/1024).toFixed(0)}KB · 컬렉션별로 1024KB 한도가 따로 적용돼요(분할 저장)</p>
+        {pctUsed>=60&&<p style={{margin:"4px 0 0",fontSize:10,fontWeight:700,color:barColor}}>{pctUsed>=85?"⚠️ 한도 임박 — 백업 후 오래된 데이터 정리 필요":"용량이 늘고 있어요 — 정기 백업 권장"}</p>}
+        {mirrorAt&&<p style={{margin:"4px 0 0",fontSize:9.5,color:"#9CA3AF"}}>🛟 이 기기 자동 거울저장: {mirrorAt.slice(0,16).replace("T"," ")}</p>}
+      </div>
+      <button onClick={()=>downloadStateBackup(D)} style={{width:"100%",padding:"12px 0",borderRadius:12,border:"none",background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",color:"#fff",fontSize:13.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit",marginBottom:12}}>💾 전체 백업(JSON) 내려받기</button>
+      <p style={{margin:"0 0 8px",fontSize:11,fontWeight:800,color:"#6B7280"}}>항목별 추출 (엑셀/CSV)</p>
       <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>
         {items.map(([l,fn])=>(<button key={l} onClick={fn} style={{padding:"11px 8px",borderRadius:11,border:"1.5px solid #E5E8EB",background:"#F9FAFB",fontSize:12,fontWeight:700,color:"#374151",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>⬇ {l}</button>))}
       </div>

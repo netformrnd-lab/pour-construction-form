@@ -1,7 +1,8 @@
 // Firebase (모듈러 SDK) — pour-app-new
-// 단일 공유 문서(pour-os/state)에 앱 상태를 실시간 저장/구독한다.
+// v2: 앱 상태를 컬렉션별 문서(pour-os/state-<collection>)로 분할 저장 → 1MiB 한도·동시편집 충돌 완화.
+// (레거시 단일 문서 pour-os/state 는 마이그레이션 소스 + 비상 백업으로 보존)
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, onSnapshot, setDoc } from "firebase/firestore";
+import { getFirestore, doc, onSnapshot, setDoc, getDoc } from "firebase/firestore";
 import { getStorage, ref as sref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 
 const app = initializeApp({
@@ -15,9 +16,12 @@ const app = initializeApp({
 
 const db = getFirestore(app);
 
-// 단일 공유 상태 문서
+// 레거시 단일 상태 문서 (마이그레이션 소스 + 비상 백업)
 export const STATE_DOC = doc(db, "pour-os", "state");
-export { onSnapshot, setDoc };
+// v2: 컬렉션별 분할 문서 — 기존 보안규칙 `match /pour-os/{doc}` 으로 이미 허용되어 규칙 변경 불필요
+export const colDoc = (key) => doc(db, "pour-os", "state-" + key);
+export const META_DOC = doc(db, "pour-os", "state-meta");
+export { onSnapshot, setDoc, getDoc };
 
 // Storage — task 사진 첨부 (경로: task-attachments/{taskId}/{filename})
 const storage = getStorage(app);
@@ -26,7 +30,7 @@ export async function uploadTaskPhoto(taskId, file) {
   const r = sref(storage, path);
   await uploadBytes(r, file);
   const url = await getDownloadURL(r);
-  return { name: file.name||"photo", url, path, size: file.size||0, uploadedAt: new Date().toISOString() };
+  return { name: file.name||"photo", url, path, size: file.size||0, type: file.type||"", uploadedAt: new Date().toISOString() };
 }
 export async function deleteTaskPhoto(path) {
   try { await deleteObject(sref(storage, path)); } catch(e) { console.warn("[pour-os] 첨부 삭제 실패(무시):", e.message); }

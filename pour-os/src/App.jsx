@@ -251,6 +251,10 @@ const myWeekDone=(D,proj,uid)=>{ const wk=weekKey(); return (D.tasks||[]).filter
 const myWeekTarget=(proj,uid)=>{ const wk=weekKey(); const t=(proj.weekTargets||[]).find(x=>x.userId===uid&&x.week===wk); return t?Math.max(0,numF(t.target)):0; };
 // 과거 주차 목표 정리(최근 8주만 유지) — 단일 문서 비대 방지
 const pruneWeekTargets=(list)=>{ const cut=weekKey(new Date(Date.now()-8*7*86400000)); return (list||[]).filter(t=>t&&t.week&&t.week>=cut); };
+// 첨부 파일 표시 헬퍼
+const extOf=(name="")=>{const m=String(name).match(/\.([a-z0-9]+)$/i);return m?m[1].toUpperCase():"파일";};
+const isImgAtt=(att)=>((att?.type||"").startsWith("image/"))||/\.(png|jpe?g|gif|webp|heic|heif|bmp|svg)$/i.test(att?.name||att?.url||"");
+const fileIcon=(name="")=>{const e=extOf(name).toLowerCase();if(["pdf"].includes(e))return"📕";if(["doc","docx","hwp","hwpx","txt"].includes(e))return"📝";if(["xls","xlsx","csv"].includes(e))return"📊";if(["ppt","pptx"].includes(e))return"📺";if(["zip","rar","7z"].includes(e))return"🗜️";return"📄";};
 // CSV 다운로드 공용 (BOM + 안전 이스케이프)
 const downloadCSV=(rows,name)=>{
   const csv="﻿"+rows.map(r=>r.map(c=>`"${String(c==null?"":c).replace(/"/g,'""')}"`).join(",")).join("\n");
@@ -264,10 +268,10 @@ const EditTaskSheet=({open,onClose,task,onSave,D})=>{
   if(task&&task.id!==prevId){setPrevId(task.id);setForm({title:task.title||"",status:task.status||"todo",dueDate:task.dueDate||"",memo:task.memo||"",projectId:task.projectId||"",attachments:Array.isArray(task.attachments)?task.attachments:[]});}
   if(!task&&prevId!==null){setPrevId(null);setForm({title:"",status:"todo",dueDate:"",memo:"",projectId:"",attachments:[]});}
   const onPick=async(files)=>{
-    const list=Array.from(files||[]).filter(f=>f.type.startsWith("image/"));
+    const list=Array.from(files||[]);
     if(!list.length||!task)return;
     setUploading(true);
-    try{ const added=[]; for(const f of list){ if(f.size>5*1024*1024){alert(`${f.name}: 5MB 초과`);continue;} added.push(await uploadTaskPhoto(task.id,f)); }
+    try{ const added=[]; for(const f of list){ if(f.size>20*1024*1024){alert(`${f.name}: 20MB 초과`);continue;} added.push(await uploadTaskPhoto(task.id,f)); }
       setForm(p=>({...p,attachments:[...(p.attachments||[]),...added]})); }
     catch(e){ alert("업로드 실패: "+e.message); }
     setUploading(false);
@@ -305,20 +309,27 @@ const EditTaskSheet=({open,onClose,task,onSave,D})=>{
           <textarea value={form.memo} onChange={e=>setForm({...form,memo:e.target.value})} placeholder="메모..." style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",resize:"vertical",minHeight:72,fontFamily:"inherit",boxSizing:"border-box",outline:"none"}}/>
         </div>
         <div style={{marginBottom:20}}>
-          <label style={{display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:12,fontWeight:700,color:"#374151",marginBottom:7}}><span>📎 사진 첨부 ({(form.attachments||[]).length})</span>{uploading&&<span style={{fontSize:11,color:"#F97316",fontWeight:700}}>업로드 중…</span>}</label>
+          <label style={{display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:12,fontWeight:700,color:"#374151",marginBottom:7}}><span>📎 파일 첨부 ({(form.attachments||[]).length})</span>{uploading&&<span style={{fontSize:11,color:"#F97316",fontWeight:700}}>업로드 중…</span>}</label>
           <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
-            {(form.attachments||[]).map((att,i)=>(
-              <div key={att.url||i} style={{position:"relative",width:72,height:72,borderRadius:10,overflow:"hidden",border:"1px solid #E5E8EB"}}>
-                <a href={att.url} target="_blank" rel="noopener noreferrer"><img src={att.url} alt={att.name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/></a>
+            {(form.attachments||[]).map((att,i)=>{const img=isImgAtt(att);return(
+              <div key={att.url||i} style={{position:"relative",width:72,height:72,borderRadius:10,overflow:"hidden",border:"1px solid #E5E8EB",background:img?"#000":"#F9FAFB"}}>
+                <a href={att.url} target="_blank" rel="noopener noreferrer" title={att.name} style={{display:"block",width:"100%",height:"100%",textDecoration:"none"}}>
+                  {img?<img src={att.url} alt={att.name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>:
+                    <div style={{width:"100%",height:"100%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:4,boxSizing:"border-box"}}>
+                      <span style={{fontSize:22}}>{fileIcon(att.name)}</span>
+                      <span style={{fontSize:8.5,fontWeight:800,color:"#6B7280",marginTop:2}}>{extOf(att.name)}</span>
+                      <span style={{fontSize:7.5,color:"#9CA3AF",marginTop:1,maxWidth:"100%",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{att.name}</span>
+                    </div>}
+                </a>
                 <button onClick={()=>rmPhoto(att)} style={{position:"absolute",top:3,right:3,width:20,height:20,borderRadius:"50%",border:"none",background:"rgba(0,0,0,0.6)",color:"#fff",fontSize:12,cursor:"pointer",lineHeight:1,padding:0}}>×</button>
               </div>
-            ))}
+            );})}
             <label style={{width:72,height:72,borderRadius:10,border:"1.5px dashed #D1D5DB",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:task?"pointer":"not-allowed",color:"#9CA3AF",opacity:task?1:0.5}}>
-              <span style={{fontSize:22}}>＋</span><span style={{fontSize:9,fontWeight:700}}>사진</span>
-              <input type="file" accept="image/*" multiple disabled={!task||uploading} onChange={e=>onPick(e.target.files)} style={{display:"none"}}/>
+              <span style={{fontSize:22}}>＋</span><span style={{fontSize:9,fontWeight:700}}>파일</span>
+              <input type="file" accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.hwp,.hwpx,.txt,.csv,.zip" multiple disabled={!task||uploading} onChange={e=>onPick(e.target.files)} style={{display:"none"}}/>
             </label>
           </div>
-          <p style={{margin:"6px 2px 0",fontSize:10,color:"#9CA3AF"}}>이미지 · 각 5MB 이내 · 저장하면 task에 기록됩니다</p>
+          <p style={{margin:"6px 2px 0",fontSize:10,color:"#9CA3AF"}}>사진·PDF·문서(워드/엑셀/한글 등) · 각 20MB 이내 · 저장하면 task에 기록됩니다</p>
         </div>
         <button onClick={()=>{if(form.title.trim()){onSave(form);onClose();}}} disabled={!form.title.trim()||uploading} style={{width:"100%",padding:"14px 0",borderRadius:14,border:"none",backgroundColor:form.title.trim()&&!uploading?"#F97316":"#E5E8EB",color:form.title.trim()&&!uploading?"#FFFFFF":"#9CA3AF",fontSize:15,fontWeight:700,cursor:form.title.trim()&&!uploading?"pointer":"not-allowed",fontFamily:"inherit"}}>저장하기</button>
       </div>

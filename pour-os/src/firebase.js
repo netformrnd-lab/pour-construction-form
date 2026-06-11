@@ -26,7 +26,7 @@ export async function uploadTaskPhoto(taskId, file) {
   const r = sref(storage, path);
   await uploadBytes(r, file);
   const url = await getDownloadURL(r);
-  return { name: file.name||"photo", url, path, size: file.size||0, uploadedAt: new Date().toISOString() };
+  return { name: file.name||"photo", url, path, size: file.size||0, type: file.type||"", uploadedAt: new Date().toISOString() };
 }
 export async function deleteTaskPhoto(path) {
   try { await deleteObject(sref(storage, path)); } catch(e) { console.warn("[pour-os] 첨부 삭제 실패(무시):", e.message); }

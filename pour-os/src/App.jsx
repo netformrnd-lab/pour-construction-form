@@ -82,6 +82,7 @@ const INIT={
     {id:"sk10",mainKPIId:"mk3",title:"매출관리 시스템 구축",targetValue:100,currentValue:60,unit:"%",order:2,channelCode:"REV"},
     {id:"sk11",mainKPIId:"mk3",title:"어드민센터 구축",targetValue:100,currentValue:72,unit:"%",order:3,channelCode:"ADM"},
     {id:"sk12",mainKPIId:"mk3",title:"매뉴얼 33건",targetValue:33,currentValue:8,unit:"건",order:4,channelCode:"MAN"},
+    {id:"sk_launch",mainKPIId:"mk3",title:"신규 SKU 출시 수",targetValue:30,currentValue:0,unit:"개",order:5,channelCode:"SKU",launchCount:true},
   ],
   projects:[
     {id:"p001",mainKPIId:"mk1",subKPIId:"sk1",title:"자사몰 페이지 디자인 전면 재구축",assigneeId:"songhee",collaboratorIds:["minji"],group:"자사몰 구축·운영",priority:"high",status:"active",progress:40,resultValue:0,dealerType:"C-IND"},
@@ -158,6 +159,7 @@ const numF=(x)=>{const n=Number(x);return isFinite(n)?n:0;};   // 문자열·NaN
 //  · 운영(%) 자동 → 자식 프로젝트 진척(progress) 평균  ← 업무→진척→운영KPI 롤업
 //  · 그 외/수동지정 → currentValue
 const skCur=(sk,projects)=>{
+  if(sk.launchCount) return (projects||[]).filter(p=>p.templateId&&(p.progress||0)>=100).length;   // 출시 완료(progress 100%) SKU 자동 집계
   if(sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride) return (projects||[]).filter(p=>p.subKPIId===sk.id).reduce((a,p)=>a+numF(p.resultValue),0);
   if(sk.unit==="%"&&!sk.manualOverride){ const ch=(projects||[]).filter(p=>p.subKPIId===sk.id); if(ch.length) return Math.round(ch.reduce((a,p)=>a+numF(p.progress),0)/ch.length); }
   return numF(sk.currentValue);
@@ -755,6 +757,8 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const myGoals=myWeekGoals(D,cu.id);
   const goalDone=myGoals.filter(wgAchieved).length;
   const allDone=myGoals.length>0&&goalDone===myGoals.length;
+  // 출시 인계 — 앞 단계가 끝나 내 차례가 된 출시 단계
+  const myReadyLaunch=(()=>{ const arr=[]; D.projects.filter(p=>p.templateId).forEach(p=>{ const ts=launchProjTasks(D,p); ts.forEach(t=>{ if(t.assigneeId===cu.id&&launchStageStatus(t,ts)==="ready") arr.push({proj:p,task:t}); }); }); return arr; })();
   return(
     <div style={{padding:"14px 16px 20px"}}>
       <div onClick={()=>nav("game")} style={{display:"flex",alignItems:"center",gap:11,background:allDone?"linear-gradient(135deg,#059669,#00C073)":"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"12px 14px",marginBottom:12,cursor:"pointer",color:"#fff"}}>
@@ -894,6 +898,25 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           </div>
         </div>
       </div>
+      {myReadyLaunch.length>0&&(
+        <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #FED7AA",marginBottom:14}}>
+          <div onClick={()=>nav("launch")} style={{marginBottom:12,cursor:"pointer"}}>
+            <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#EA580C"}}>🔔 출시 인계 — 내 차례 ({myReadyLaunch.length})</h3>
+            <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>앞 단계가 끝나 내게 넘어온 출시 단계예요 · 완료하면 다음 담당자에게 인계됩니다</p>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:7}}>
+            {myReadyLaunch.map(({proj,task})=>(
+              <div key={task.id} style={{padding:"11px 12px",borderRadius:12,backgroundColor:"#FFF7ED",border:"1px solid #FED7AA",display:"flex",alignItems:"center",gap:9}}>
+                <button onClick={()=>toggle(task)} style={{flexShrink:0,width:24,height:24,borderRadius:"50%",border:"2px solid #F97316",backgroundColor:"#fff",color:"#F97316",fontSize:12,fontWeight:900,cursor:"pointer"}}>✓</button>
+                <div style={{flex:1,minWidth:0}}>
+                  <p style={{margin:0,fontSize:13.5,fontWeight:700,color:"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{task.title}</p>
+                  <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>📦 {proj.productName||proj.title}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {(()=>{const orphans=myT.filter(t=>!t.isFixed&&!t.weekDay&&t.status!=="done");if(!orphans.length)return null;return(<div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #FED7AA",marginBottom:14}}><div style={{marginBottom:12}}><h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#EA580C"}}>📥 미배치 업무 ({orphans.length})</h3><p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>요일 미지정 — 배치하거나 프로젝트를 연결하세요</p></div><div style={{display:"flex",flexDirection:"column",gap:7}}>{orphans.map(t=>{const proj=D.projects.find(p=>p.id===t.projectId);return(<div key={t.id} style={{padding:"11px 12px",borderRadius:12,backgroundColor:"#FFF7ED",border:"1px solid #FED7AA"}}><div style={{display:"flex",alignItems:"center",gap:8}}><div style={{flex:1,minWidth:0}}><p style={{margin:0,fontSize:13.5,fontWeight:700,color:"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}</p>{proj?<p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>📁 {proj.title}</p>:<p style={{margin:"2px 0 0",fontSize:10.5,color:"#F04452",fontWeight:600}}>⚠️ 프로젝트 미연결</p>}</div><button onClick={()=>setEditTask(t)} style={{padding:"6px 10px",borderRadius:8,border:"1px solid #E5E8EB",backgroundColor:"#FFFFFF",fontSize:12,fontWeight:700,color:"#4B5563",cursor:"pointer",flexShrink:0}}>✎</button><button onClick={()=>setConfirmTaskId(t.id)} style={{padding:"6px 10px",borderRadius:8,border:"1px solid #FFE2E5",backgroundColor:"#FFF0F1",fontSize:12,fontWeight:700,color:"#F04452",cursor:"pointer",flexShrink:0}}>🗑</button></div><button onClick={()=>up("tasks",t.id,{weekDay:today})} style={{width:"100%",marginTop:8,padding:"8px 0",borderRadius:9,border:"none",backgroundColor:"#F97316",color:"#FFFFFF",fontSize:12,fontWeight:700,cursor:"pointer"}}>📍 오늘({today}) 배치</button></div>);})}</div></div>);})()}
       <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #F2F4F6"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
@@ -1955,15 +1978,28 @@ const instantiateLaunch=({tpl,productName,mainKPIId,subKPIId,dealerType,add})=>{
 const NODE_W=144, NODE_H=56;
 function LaunchPage({D,cu,lead,add,up,rm,nav}){
   const [tab,setTab]=useState("status");
-  const tpl=(D.launchTemplates||[])[0];
+  const tpls=D.launchTemplates||[];
+  const [tplId,setTplId]=useState("");
+  const tpl=tpls.find(t=>t.id===tplId)||tpls[0];
   const launchProjs=D.projects.filter(p=>p.templateId);
   const uName=(id)=>D.users.find(u=>u.id===id)?.name||"미배정";
   const uColor=(id)=>D.users.find(u=>u.id===id)?.color||"#9CA3AF";
+  // ── 출시 건수 KPI 집계 ──
+  const countSK=D.subKPIs.find(s=>s.launchCount);
+  const doneCount=launchProjs.filter(p=>(p.progress||0)>=100).length;
+  const seedCountSK=()=>add("subKPIs",{id:"sk_launch",mainKPIId:"mk3",title:"신규 SKU 출시 수",targetValue:30,currentValue:0,unit:"개",order:5,channelCode:"SKU",launchCount:true});
   // ── 신규 SKU 출시 시트 ──
   const [skuOpen,setSkuOpen]=useState(false);
-  const [sku,setSku]=useState({name:"",mainKPIId:"",subKPIId:"",dealerType:""});
+  const [sku,setSku]=useState({name:"",mainKPIId:"",subKPIId:"",dealerType:"",tplId:""});
   const skSKs=D.subKPIs.filter(s=>s.mainKPIId===sku.mainKPIId);
-  const doLaunch=()=>{ if(!tpl||!sku.name.trim())return; instantiateLaunch({tpl,productName:sku.name.trim(),mainKPIId:sku.mainKPIId,subKPIId:sku.subKPIId,dealerType:sku.dealerType,add}); setSku({name:"",mainKPIId:"",subKPIId:"",dealerType:""}); setSkuOpen(false); setTab("status"); };
+  const openSku=()=>{ setSku({name:"",mainKPIId:"",subKPIId:"",dealerType:"",tplId:tpl?tpl.id:""}); setSkuOpen(true); };
+  const doLaunch=()=>{ const launchTpl=tpls.find(t=>t.id===sku.tplId)||tpl; if(!launchTpl||!sku.name.trim())return; instantiateLaunch({tpl:launchTpl,productName:sku.name.trim(),mainKPIId:sku.mainKPIId,subKPIId:sku.subKPIId,dealerType:sku.dealerType,add}); setSkuOpen(false); setTab("status"); };
+  // ── 템플릿 복제·이름·삭제 ──
+  const [renameOpen,setRenameOpen]=useState(false);
+  const [renameVal,setRenameVal]=useState("");
+  const dupTpl=()=>{ const nid="tpl"+Date.now(); add("launchTemplates",{...tpl,id:nid,name:tpl.name+" (복사)",createdAt:new Date().toISOString(),nodes:tpl.nodes.map(n=>({...n})),edges:tpl.edges.map(e=>({...e}))}); setTplId(nid); };
+  const doRename=()=>{ if(renameVal.trim()) up("launchTemplates",tpl.id,{name:renameVal.trim()}); setRenameOpen(false); };
+  const delTpl=()=>{ if(tpls.length<=1){ window.alert("템플릿이 하나뿐이라 삭제할 수 없어요."); return; } if(window.confirm(`'${tpl.name}' 템플릿을 삭제할까요? (이미 만든 출시 건은 영향 없음)`)){ const next=tpls.find(t=>t.id!==tpl.id); rm("launchTemplates",tpl.id); setTplId(next?next.id:""); } };
   // ── 내 차례(ready) 집계 ──
   const myReady=[];
   launchProjs.forEach(p=>{ const ts=launchProjTasks(D,p); ts.forEach(t=>{ if(t.assigneeId===cu.id&&launchStageStatus(t,ts)==="ready") myReady.push({proj:p,task:t}); }); });
@@ -2031,7 +2067,23 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
       </div>
 
       {tab==="status"&&(<>
-        <Btn full variant="orange" onClick={()=>setSkuOpen(true)} style={{marginBottom:14}}>🚀 신규 SKU 출시</Btn>
+        <Btn full variant="orange" onClick={openSku} style={{marginBottom:14}}>🚀 신규 SKU 출시</Btn>
+        {countSK?(
+          <div style={{display:"flex",alignItems:"center",gap:10,backgroundColor:"#F0F7FF",border:"1px solid #D5E6FB",borderRadius:12,padding:"11px 13px",marginBottom:14}}>
+            <span style={{fontSize:18}}>📊</span>
+            <div style={{flex:1,minWidth:0}}>
+              <p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#0F1F5C"}}>{countSK.title}</p>
+              <p style={{margin:"2px 0 0",fontSize:10.5,color:"#6B7280"}}>출시 완료 {doneCount}건이 KPI에 자동 집계 중 · 목표 {countSK.targetValue}{countSK.unit}</p>
+            </div>
+            <span style={{fontSize:15,fontWeight:900,color:"#3182F6",flexShrink:0}}>{doneCount}<span style={{fontSize:11,color:"#9CA3AF"}}>/{countSK.targetValue}</span></span>
+          </div>
+        ):(
+          <button onClick={seedCountSK} style={{width:"100%",display:"flex",alignItems:"center",gap:8,backgroundColor:"#F9FAFB",border:"1px dashed #CBD5E1",borderRadius:12,padding:"11px 13px",marginBottom:14,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+            <span style={{fontSize:16}}>📊</span>
+            <span style={{flex:1,fontSize:12,fontWeight:700,color:"#475569"}}>출시 완료 건수를 KPI(신규 SKU 출시 수)에 자동 집계 — 켜기</span>
+            <span style={{fontSize:12,fontWeight:800,color:"#3182F6"}}>＋</span>
+          </button>
+        )}
         {myReady.length>0&&(
           <div style={{backgroundColor:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:14,padding:"12px 14px",marginBottom:14}}>
             <p style={{margin:"0 0 8px",fontSize:13,fontWeight:900,color:"#EA580C"}}>🔔 내 차례 ({myReady.length})</p>
@@ -2084,9 +2136,19 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
 
       {tab==="template"&&(<>
         {!tpl?<Empty t="템플릿이 없습니다"/>:(<>
+          {tpls.length>1&&(
+            <select value={tpl.id} onChange={e=>setTplId(e.target.value)} style={{width:"100%",padding:"11px 13px",borderRadius:11,border:"1.5px solid #E5E8EB",fontSize:13.5,fontWeight:800,fontFamily:"inherit",backgroundColor:"#fff",outline:"none",WebkitAppearance:"none",color:"#0F1F5C",marginBottom:10}}>
+              {tpls.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          )}
+          <div style={{display:"flex",gap:7,marginBottom:12}}>
+            <button onClick={dupTpl} style={{flex:1,padding:"9px 0",borderRadius:10,border:"1.5px solid #E5E8EB",backgroundColor:"#fff",fontSize:12.5,fontWeight:800,color:"#374151",cursor:"pointer",fontFamily:"inherit"}}>⧉ 복제</button>
+            <button onClick={()=>{setRenameVal(tpl.name);setRenameOpen(true);}} style={{flex:1,padding:"9px 0",borderRadius:10,border:"1.5px solid #E5E8EB",backgroundColor:"#fff",fontSize:12.5,fontWeight:800,color:"#374151",cursor:"pointer",fontFamily:"inherit"}}>✎ 이름</button>
+            <button onClick={delTpl} style={{flex:1,padding:"9px 0",borderRadius:10,border:"1.5px solid #FFE2E5",backgroundColor:"#fff",fontSize:12.5,fontWeight:800,color:"#F04452",cursor:"pointer",fontFamily:"inherit"}}>🗑 삭제</button>
+          </div>
           <div style={{backgroundColor:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:12,padding:"10px 13px",marginBottom:12}}>
             <p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#9A3412"}}>🧩 {tpl.name}</p>
-            <p style={{margin:"3px 0 0",fontSize:11,color:"#B45309",lineHeight:1.5}}>이 흐름을 한 번 만들어두면 신상마다 그대로 찍어냅니다. 노드를 끌어 옮기고, 탭하면 수정돼요.</p>
+            <p style={{margin:"3px 0 0",fontSize:11,color:"#B45309",lineHeight:1.5}}>제품군마다 흐름이 다르면 <b>복제</b>해서 단계를 바꿔 쓰세요. 노드를 끌어 옮기고, 탭하면 수정돼요.</p>
           </div>
           <div style={{display:"flex",gap:8,marginBottom:10}}>
             <button onClick={addNode} style={{flex:1,padding:"9px 0",borderRadius:10,border:"1.5px solid #E5E8EB",backgroundColor:"#fff",fontSize:12.5,fontWeight:800,color:"#374151",cursor:"pointer",fontFamily:"inherit"}}>＋ 단계 추가</button>
@@ -2126,7 +2188,11 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
       {/* 신규 SKU 출시 시트 */}
       <Sheet open={skuOpen} onClose={()=>setSkuOpen(false)} title="🚀 신규 SKU 출시" h="88vh">
         <div style={{marginTop:8}}>
-          <p style={{margin:"0 0 14px",fontSize:12,color:"#6B7280",lineHeight:1.6,backgroundColor:"#F9FAFB",borderRadius:10,padding:"10px 12px"}}>제품명만 입력하면 <b>{tpl?tpl.nodes.length:5}단계</b>가 담당자까지 자동 생성됩니다.</p>
+          <p style={{margin:"0 0 14px",fontSize:12,color:"#6B7280",lineHeight:1.6,backgroundColor:"#F9FAFB",borderRadius:10,padding:"10px 12px"}}>제품명만 입력하면 <b>{(tpls.find(t=>t.id===sku.tplId)||tpl)?.nodes.length||5}단계</b>가 담당자까지 자동 생성됩니다.</p>
+          {tpls.length>1&&(
+            <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>출시 프로세스 템플릿</label>
+              <select value={sku.tplId} onChange={e=>setSku({...sku,tplId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#fff",fontFamily:"inherit",WebkitAppearance:"none"}}>{tpls.map(t=><option key={t.id} value={t.id}>{t.name} ({t.nodes.length}단계)</option>)}</select></div>
+          )}
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>제품명 *</label>
             <input value={sku.name} onChange={e=>setSku({...sku,name:e.target.value})} onKeyDown={e=>{if(e.key==="Enter")doLaunch();}} placeholder="예: 써밋비드 엠보 신상" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>메인 KPI <span style={{color:"#9CA3AF",fontWeight:600}}>(매출 집계 연결 · 선택)</span></label>
@@ -2140,6 +2206,14 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
       {/* 노드 수정 시트 */}
       <Sheet open={!!editNode} onClose={()=>setEditNode(null)} title="단계 수정">
         {editNode&&(<NodeEditForm node={editNode} users={D.users} onSave={saveNode} onDelete={deleteNode}/>)}
+      </Sheet>
+
+      {/* 템플릿 이름 변경 시트 */}
+      <Sheet open={renameOpen} onClose={()=>setRenameOpen(false)} title="템플릿 이름">
+        <div style={{marginTop:8}}>
+          <input value={renameVal} onChange={e=>setRenameVal(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")doRename();}} placeholder="예: 부자재 출시 프로세스" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:16}}/>
+          <Btn full variant="orange" onClick={doRename} disabled={!renameVal.trim()}>저장</Btn>
+        </div>
       </Sheet>
     </div>
   );

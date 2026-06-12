@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { STATE_DOC, colDoc, META_DOC, getDoc, onSnapshot, setDoc, uploadTaskPhoto, deleteTaskPhoto } from "./firebase.js";
 
 // Firestore 단일 문서에 저장할 공유 데이터 키 (currentUser는 기기별 로컬이라 제외)
-const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","weekGoals"];
-const COL_LABEL = {users:"담당자",goals:"최종목표",mainKPIs:"메인KPI",subKPIs:"서브KPI",projects:"프로젝트",tasks:"업무",personalGoals:"개인목표",retros:"회고",aiReviews:"AI점검",events:"일정",weekGoals:"주간목표"};
+const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","weekGoals","launchTemplates"];
+const COL_LABEL = {users:"담당자",goals:"최종목표",mainKPIs:"메인KPI",subKPIs:"서브KPI",projects:"프로젝트",tasks:"업무",personalGoals:"개인목표",retros:"회고",aiReviews:"AI점검",events:"일정",weekGoals:"주간목표",launchTemplates:"출시템플릿"};
 const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
@@ -128,6 +128,24 @@ const INIT={
     {id:"e4",title:"여름 프로모션 런칭",date:"2026-06-20",type:"promotion",projectId:null,description:"자사몰+마켓 동시"},
   ],
   weekGoals:[],
+  // 출시 프로세스 템플릿(마인드맵) — 신상 SKU를 찍어내는 표준 흐름. 동일 프로세스 1개 기본 제공.
+  launchTemplates:[
+    {id:"tpl_launch", name:"신상 출시 표준 프로세스", createdAt:"2026-06-12T00:00:00.000Z",
+      nodes:[
+        {id:"n1", title:"소싱·원가·납기 확정", roleLabel:"MD",    assigneeId:"songhee", x:24,  y:24},
+        {id:"n2", title:"제품 교육·지식 전파",  roleLabel:"본부장", assigneeId:"songhee", x:172, y:118},
+        {id:"n3", title:"소스 확보 → 상품 등록", roleLabel:"",     assigneeId:"minji",   x:30,  y:214},
+        {id:"n4", title:"출시 배너 → 주문 세팅", roleLabel:"",     assigneeId:"chaerim", x:178, y:310},
+        {id:"n5", title:"B2B 안내·실사용 콘텐츠", roleLabel:"",     assigneeId:"ran",     x:36,  y:406},
+      ],
+      edges:[
+        {id:"e1", from:"n1", to:"n2"},
+        {id:"e2", from:"n2", to:"n3"},
+        {id:"e3", from:"n3", to:"n4"},
+        {id:"e4", from:"n4", to:"n5"},
+      ],
+    },
+  ],
 };
 const pct=(c,t)=>t===0||t==null?0:Math.max(0,Math.min(100,Math.round((c/t)*100)));
 // 주차 헬퍼 (월요일 시작)
@@ -346,7 +364,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D})=>{
   );
 };
 const TABS=[{id:"today",icon:"🏠",label:"오늘"},{id:"kpi",icon:"◎",label:"KPI"},{id:"projects",icon:"▦",label:"프로젝트"},{id:"calendar",icon:"▤",label:"캘린더"},{id:"more",icon:"⋯",label:"더보기"}];
-const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"}];
+const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"launch",icon:"🚀",label:"출시"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"}];
 export default function App(){
   const [D,setD]=useState(INIT);
   const [page,setPage]=useState("today");
@@ -501,6 +519,7 @@ export default function App(){
     {page==="projects"&&<ProjectsPage D={D} cu={cu} up={up} add={add} rm={rm} pc={viewMode==="pc"}/>}
     {page==="calendar"&&<CalendarPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
     {page==="game"&&<GamePage D={D} cu={cu} up={up} add={add} rm={rm} nav={nav}/>}
+    {page==="launch"&&<LaunchPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="mindmap"&&<MindMapPage D={D} cu={cu}/>}
     {page==="fixed"&&<FixedPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="retro"&&<RetroPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
@@ -1904,6 +1923,241 @@ function CalendarPage({D,cu,add,up,rm}){
           <Btn full variant="orange" onClick={saveEvent} disabled={!evForm.title.trim()||!evForm.date}>{evForm.id?"수정 저장":"일정 추가"}</Btn>
         </div>
       </Sheet>
+    </div>
+  );
+}
+// ───────────────────────── 출시 파이프라인 (템플릿 → SKU 프로젝트 자동 생성 + 인계) ─────────────────────────
+// 출시 단계 상태: done(완료) / ready(선행 끝나 내 차례) / wait(선행 대기)
+const launchStageStatus=(task,allTasks)=>{
+  if(!task) return "wait";
+  if(task.status==="done") return "done";
+  const deps=task.deps||[];
+  const ready=deps.every(id=>{const d=allTasks.find(t=>t.id===id);return d?d.status==="done":true;});
+  return ready?"ready":"wait";
+};
+const launchProjTasks=(D,proj)=>D.tasks.filter(t=>t.projectId===proj.id&&t.launchNode).sort((a,b)=>(a.step||0)-(b.step||0));
+const ST_COLOR={done:"#00C073",ready:"#F97316",wait:"#9CA3AF"};
+// 템플릿 1개 → 신규 SKU 프로젝트 + 단계별 업무(선행연결·담당자배정) 자동 생성
+const instantiateLaunch=({tpl,productName,mainKPIId,subKPIId,dealerType,add})=>{
+  const ts=Date.now();
+  const projId="p"+ts;
+  const taskIdByNode={};
+  tpl.nodes.forEach((n,i)=>{taskIdByNode[n.id]="t"+ts+"_"+i;});
+  const predsOf=(nodeId)=>tpl.edges.filter(e=>e.to===nodeId).map(e=>e.from);
+  const assignees=[...new Set(tpl.nodes.map(n=>n.assigneeId).filter(Boolean))];
+  const owner=tpl.nodes[0]?.assigneeId||assignees[0]||null;
+  add("projects",{id:projId,mainKPIId:mainKPIId||null,subKPIId:subKPIId||null,title:`${productName} 출시`,productName,templateId:tpl.id,assigneeId:owner,collaboratorIds:assignees.filter(a=>a!==owner),group:"신상 출시",priority:"high",status:"active",progress:0,resultValue:0,dealerType:dealerType||""});
+  tpl.nodes.forEach((n,i)=>{
+    const deps=predsOf(n.id).map(pid=>taskIdByNode[pid]).filter(Boolean);
+    add("tasks",{id:taskIdByNode[n.id],title:n.roleLabel?`[${n.roleLabel}] ${n.title}`:n.title,projectId:projId,assigneeId:n.assigneeId||owner,type:"general",status:"todo",weekDay:null,weekSlot:null,isFixed:false,dueDate:"",memo:"",attachments:[],launchNode:n.id,step:i,deps});
+  });
+};
+const NODE_W=144, NODE_H=56;
+function LaunchPage({D,cu,lead,add,up,rm,nav}){
+  const [tab,setTab]=useState("status");
+  const tpl=(D.launchTemplates||[])[0];
+  const launchProjs=D.projects.filter(p=>p.templateId);
+  const uName=(id)=>D.users.find(u=>u.id===id)?.name||"미배정";
+  const uColor=(id)=>D.users.find(u=>u.id===id)?.color||"#9CA3AF";
+  // ── 신규 SKU 출시 시트 ──
+  const [skuOpen,setSkuOpen]=useState(false);
+  const [sku,setSku]=useState({name:"",mainKPIId:"",subKPIId:"",dealerType:""});
+  const skSKs=D.subKPIs.filter(s=>s.mainKPIId===sku.mainKPIId);
+  const doLaunch=()=>{ if(!tpl||!sku.name.trim())return; instantiateLaunch({tpl,productName:sku.name.trim(),mainKPIId:sku.mainKPIId,subKPIId:sku.subKPIId,dealerType:sku.dealerType,add}); setSku({name:"",mainKPIId:"",subKPIId:"",dealerType:""}); setSkuOpen(false); setTab("status"); };
+  // ── 내 차례(ready) 집계 ──
+  const myReady=[];
+  launchProjs.forEach(p=>{ const ts=launchProjTasks(D,p); ts.forEach(t=>{ if(t.assigneeId===cu.id&&launchStageStatus(t,ts)==="ready") myReady.push({proj:p,task:t}); }); });
+  const toggleStage=(t,st)=>{ if(st==="wait")return; up("tasks",t.id,{status:t.status==="done"?"todo":"done"}); };
+  // ── 템플릿 캔버스 편집 ──
+  const canvasRef=useRef(null);
+  const draggingRef=useRef(null);
+  const [draftNodes,setDraftNodes]=useState(tpl?tpl.nodes:[]);
+  const [connectMode,setConnectMode]=useState(false);
+  const [connectFrom,setConnectFrom]=useState(null);
+  const [editNode,setEditNode]=useState(null);
+  const [delEdge,setDelEdge]=useState(null);
+  useEffect(()=>{ if(!draggingRef.current&&tpl) setDraftNodes(tpl.nodes); },[tpl]);
+  const maxY=draftNodes.reduce((m,n)=>Math.max(m,n.y),0);
+  const canvasH=Math.max(520,maxY+NODE_H+120);
+  const nodeById=(id)=>draftNodes.find(n=>n.id===id);
+  const onNodeDown=(e,n)=>{
+    if(connectMode){ e.stopPropagation(); handleConnect(n); return; }
+    e.stopPropagation();
+    const r=canvasRef.current.getBoundingClientRect();
+    draggingRef.current={id:n.id,offX:e.clientX-r.left-n.x,offY:e.clientY-r.top-n.y,moved:false};
+    try{e.currentTarget.setPointerCapture(e.pointerId);}catch(_){}
+  };
+  const onNodeMove=(e)=>{
+    const d=draggingRef.current; if(!d)return;
+    const r=canvasRef.current.getBoundingClientRect();
+    const nx=Math.max(0,Math.min(r.width-NODE_W,Math.round(e.clientX-r.left-d.offX)));
+    const ny=Math.max(0,Math.round(e.clientY-r.top-d.offY));
+    d.moved=true;
+    setDraftNodes(ns=>ns.map(n=>n.id===d.id?{...n,x:nx,y:ny}:n));
+  };
+  const onNodeUp=(e,n)=>{
+    const d=draggingRef.current; draggingRef.current=null;
+    if(!d) return;
+    if(d.moved){ up("launchTemplates",tpl.id,{nodes:draftNodes.map(x=>x.id===n.id?{...x}:x)}); }
+    else { setEditNode(n); }
+  };
+  const handleConnect=(n)=>{
+    if(!connectFrom){ setConnectFrom(n.id); return; }
+    if(connectFrom===n.id){ setConnectFrom(null); return; }
+    const exists=tpl.edges.some(e=>(e.from===connectFrom&&e.to===n.id)||(e.from===n.id&&e.to===connectFrom));
+    if(!exists) up("launchTemplates",tpl.id,{edges:[...tpl.edges,{id:"e"+Date.now(),from:connectFrom,to:n.id}]});
+    setConnectFrom(null);
+  };
+  const addNode=()=>{ const id="n"+Date.now(); up("launchTemplates",tpl.id,{nodes:[...tpl.nodes,{id,title:"새 단계",roleLabel:"",assigneeId:cu.id,x:24,y:maxY+NODE_H+24}]}); };
+  const saveNode=(patch)=>{ up("launchTemplates",tpl.id,{nodes:tpl.nodes.map(n=>n.id===editNode.id?{...n,...patch}:n)}); setEditNode(null); };
+  const deleteNode=()=>{ up("launchTemplates",tpl.id,{nodes:tpl.nodes.filter(n=>n.id!==editNode.id),edges:tpl.edges.filter(e=>e.from!==editNode.id&&e.to!==editNode.id)}); setEditNode(null); };
+  const removeEdge=(eid)=>{ up("launchTemplates",tpl.id,{edges:tpl.edges.filter(e=>e.id!==eid)}); setDelEdge(null); };
+  // 기존(마이그레이션 완료) 환경: 템플릿 컬렉션이 비어있으면 기본 프로세스 시드
+  const seedTpl=()=>add("launchTemplates",{...INIT.launchTemplates[0],createdAt:new Date().toISOString()});
+  if(!tpl) return(
+    <div style={{padding:"48px 24px",textAlign:"center"}}>
+      <p style={{fontSize:42,margin:0}}>🚀</p>
+      <p style={{margin:"12px 0 4px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>출시 프로세스 준비</p>
+      <p style={{margin:"0 0 20px",fontSize:12.5,color:"#6B7280",lineHeight:1.6}}>신상 SKU를 찍어낼 표준 5단계 흐름을 만들어 시작하세요.<br/>한 번 만들면 신상마다 그대로 자동 생성됩니다.</p>
+      <Btn variant="orange" size="lg" onClick={seedTpl}>기본 출시 프로세스 만들기</Btn>
+    </div>
+  );
+  return(
+    <div style={{padding:"14px 16px 24px"}}>
+      <div style={{display:"flex",backgroundColor:"#F2F4F6",borderRadius:14,padding:4,marginBottom:14}}>
+        {[{k:"status",l:`🚀 출시현황 ${launchProjs.length}`},{k:"template",l:"🧩 템플릿"}].map(v=>(
+          <button key={v.k} onClick={()=>setTab(v.k)} style={{flex:1,padding:"9px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:tab===v.k?"#FFFFFF":"transparent",color:tab===v.k?"#0F1F5C":"#6B7280",fontWeight:tab===v.k?800:500,fontSize:13,fontFamily:"inherit",boxShadow:tab===v.k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{v.l}</button>
+        ))}
+      </div>
+
+      {tab==="status"&&(<>
+        <Btn full variant="orange" onClick={()=>setSkuOpen(true)} style={{marginBottom:14}}>🚀 신규 SKU 출시</Btn>
+        {myReady.length>0&&(
+          <div style={{backgroundColor:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:14,padding:"12px 14px",marginBottom:14}}>
+            <p style={{margin:"0 0 8px",fontSize:13,fontWeight:900,color:"#EA580C"}}>🔔 내 차례 ({myReady.length})</p>
+            <div style={{display:"flex",flexDirection:"column",gap:7}}>
+              {myReady.map(({proj,task})=>(
+                <button key={task.id} onClick={()=>toggleStage(task,"ready")} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 11px",borderRadius:10,border:"1px solid #FED7AA",backgroundColor:"#FFFFFF",cursor:"pointer",textAlign:"left",fontFamily:"inherit"}}>
+                  <span style={{flexShrink:0,width:22,height:22,borderRadius:"50%",border:"2px solid #F97316",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#F97316"}}>✓</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <p style={{margin:0,fontSize:13,fontWeight:700,color:"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{task.title}</p>
+                    <p style={{margin:"1px 0 0",fontSize:10.5,color:"#9CA3AF"}}>📦 {proj.productName} · 완료 표시하면 다음 담당자에게 인계</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {launchProjs.length===0?<Empty t="출시 중인 SKU가 없어요 · 신규 SKU 출시를 눌러 시작하세요"/>:launchProjs.map(p=>{
+          const ts=launchProjTasks(D,p);
+          const doneN=ts.filter(t=>t.status==="done").length;
+          return(
+            <div key={p.id} style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",marginBottom:12,border:"1px solid #F2F4F6"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <div style={{minWidth:0}}>
+                  <p style={{margin:0,fontSize:14.5,fontWeight:900,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📦 {p.productName||p.title}</p>
+                  <p style={{margin:"2px 0 0",fontSize:11,color:"#9CA3AF"}}>{doneN}/{ts.length} 단계 완료</p>
+                </div>
+                <span style={{fontSize:15,fontWeight:900,color:p.progress>=100?"#00C073":"#F97316",flexShrink:0}}>{p.progress||0}%</span>
+              </div>
+              <div style={{marginBottom:12}}><PBar value={p.progress||0} color={p.progress>=100?"#00C073":"#F97316"} h={5}/></div>
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                {ts.map((t,i)=>{
+                  const st=launchStageStatus(t,ts);
+                  const mine=t.assigneeId===cu.id;
+                  return(
+                    <button key={t.id} onClick={()=>toggleStage(t,st)} disabled={st==="wait"} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 11px",borderRadius:10,border:`1px solid ${st==="ready"&&mine?"#FED7AA":"#F2F4F6"}`,backgroundColor:st==="ready"&&mine?"#FFF7ED":"#FAFBFC",cursor:st==="wait"?"default":"pointer",textAlign:"left",fontFamily:"inherit",opacity:st==="wait"?0.7:1}}>
+                      <span style={{flexShrink:0,width:22,height:22,borderRadius:"50%",backgroundColor:st==="done"?ST_COLOR.done:"transparent",border:st==="done"?"none":`2px solid ${ST_COLOR[st]}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,color:st==="done"?"#fff":ST_COLOR[st]}}>{st==="done"?"✓":i+1}</span>
+                      <div style={{flex:1,minWidth:0}}>
+                        <p style={{margin:0,fontSize:12.5,fontWeight:700,color:st==="wait"?"#9CA3AF":"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}</p>
+                      </div>
+                      <span style={{flexShrink:0,display:"flex",alignItems:"center",gap:4,fontSize:10.5,fontWeight:700,color:uColor(t.assigneeId)}}><Ava name={uName(t.assigneeId)} color={uColor(t.assigneeId)} size={18}/>{st==="ready"&&mine?"내 차례":""}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <button onClick={()=>{ if(window.confirm(`'${p.productName||p.title}' 출시 건을 삭제할까요? (단계 업무 포함)`)){ launchProjTasks(D,p).forEach(t=>rm("tasks",t.id)); rm("projects",p.id); } }} style={{marginTop:10,fontSize:11,fontWeight:700,color:"#C4C9D0",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
+            </div>
+          );
+        })}
+      </>)}
+
+      {tab==="template"&&(<>
+        {!tpl?<Empty t="템플릿이 없습니다"/>:(<>
+          <div style={{backgroundColor:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:12,padding:"10px 13px",marginBottom:12}}>
+            <p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#9A3412"}}>🧩 {tpl.name}</p>
+            <p style={{margin:"3px 0 0",fontSize:11,color:"#B45309",lineHeight:1.5}}>이 흐름을 한 번 만들어두면 신상마다 그대로 찍어냅니다. 노드를 끌어 옮기고, 탭하면 수정돼요.</p>
+          </div>
+          <div style={{display:"flex",gap:8,marginBottom:10}}>
+            <button onClick={addNode} style={{flex:1,padding:"9px 0",borderRadius:10,border:"1.5px solid #E5E8EB",backgroundColor:"#fff",fontSize:12.5,fontWeight:800,color:"#374151",cursor:"pointer",fontFamily:"inherit"}}>＋ 단계 추가</button>
+            <button onClick={()=>{setConnectMode(!connectMode);setConnectFrom(null);}} style={{flex:1,padding:"9px 0",borderRadius:10,border:`1.5px solid ${connectMode?"#F97316":"#E5E8EB"}`,backgroundColor:connectMode?"#FFEDD5":"#fff",fontSize:12.5,fontWeight:800,color:connectMode?"#EA580C":"#374151",cursor:"pointer",fontFamily:"inherit"}}>🔗 {connectMode?"연결 중…":"선 연결"}</button>
+          </div>
+          {connectMode&&<p style={{margin:"0 0 10px",fontSize:11,fontWeight:700,color:"#EA580C",textAlign:"center"}}>{connectFrom?"→ 도착 단계를 탭하세요 (다시 누르면 취소)":"시작 단계를 탭하세요"}</p>}
+          <div ref={canvasRef} style={{position:"relative",width:"100%",height:canvasH,backgroundColor:"#FAFBFC",backgroundImage:"radial-gradient(#E5E8EB 1px,transparent 1px)",backgroundSize:"18px 18px",borderRadius:16,border:"1px solid #EDF0F3",overflow:"hidden",touchAction:"none"}}>
+            <svg width="100%" height={canvasH} style={{position:"absolute",inset:0,pointerEvents:"none"}}>
+              {tpl.edges.map(e=>{ const a=nodeById(e.from),b=nodeById(e.to); if(!a||!b)return null;
+                const x1=a.x+NODE_W/2,y1=a.y+NODE_H,x2=b.x+NODE_W/2,y2=b.y;
+                return <path key={e.id} d={`M ${x1} ${y1} C ${x1} ${y1+44}, ${x2} ${y2-44}, ${x2} ${y2}`} stroke="#F97316" strokeWidth={2.5} fill="none" opacity={0.55}/>;
+              })}
+            </svg>
+            {connectMode&&tpl.edges.map(e=>{ const a=nodeById(e.from),b=nodeById(e.to); if(!a||!b)return null;
+              const mx=(a.x+b.x)/2+NODE_W/2-10,my=(a.y+NODE_H+b.y)/2-10;
+              return <button key={e.id} onClick={()=>removeEdge(e.id)} style={{position:"absolute",left:mx,top:my,width:20,height:20,borderRadius:"50%",border:"none",backgroundColor:"#F04452",color:"#fff",fontSize:12,fontWeight:900,cursor:"pointer",lineHeight:1,zIndex:5}}>×</button>;
+            })}
+            {draftNodes.map((n,i)=>{
+              const sel=connectFrom===n.id;
+              const col=uColor(n.assigneeId);
+              return(
+                <div key={n.id} onPointerDown={e=>onNodeDown(e,n)} onPointerMove={onNodeMove} onPointerUp={e=>onNodeUp(e,n)}
+                  style={{position:"absolute",left:n.x,top:n.y,width:NODE_W,minHeight:NODE_H,boxSizing:"border-box",padding:"8px 10px",borderRadius:12,backgroundColor:"#FFFFFF",border:`2px solid ${sel?"#F97316":col+"55"}`,boxShadow:sel?"0 0 0 3px #F9731633":"0 2px 8px rgba(0,0,0,0.08)",cursor:connectMode?"pointer":"grab",touchAction:"none",userSelect:"none",zIndex:sel?4:2}}>
+                  <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4}}>
+                    <span style={{flexShrink:0,width:18,height:18,borderRadius:"50%",backgroundColor:col,color:"#fff",fontSize:10,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{i+1}</span>
+                    <span style={{fontSize:10,fontWeight:800,color:col,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.roleLabel||uName(n.assigneeId)}</span>
+                  </div>
+                  <p style={{margin:0,fontSize:11.5,fontWeight:700,color:"#1F2937",lineHeight:1.3}}>{n.title}</p>
+                </div>
+              );
+            })}
+          </div>
+          <p style={{margin:"10px 2px 0",fontSize:11,color:"#9CA3AF",lineHeight:1.6}}>●&nbsp;노드를 끌어 위치 정리&nbsp;·&nbsp;탭하면 단계명·담당자 수정&nbsp;·&nbsp;<b>선 연결</b>로 선행(인계) 순서를 잇습니다.</p>
+        </>)}
+      </>)}
+
+      {/* 신규 SKU 출시 시트 */}
+      <Sheet open={skuOpen} onClose={()=>setSkuOpen(false)} title="🚀 신규 SKU 출시" h="88vh">
+        <div style={{marginTop:8}}>
+          <p style={{margin:"0 0 14px",fontSize:12,color:"#6B7280",lineHeight:1.6,backgroundColor:"#F9FAFB",borderRadius:10,padding:"10px 12px"}}>제품명만 입력하면 <b>{tpl?tpl.nodes.length:5}단계</b>가 담당자까지 자동 생성됩니다.</p>
+          <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>제품명 *</label>
+            <input value={sku.name} onChange={e=>setSku({...sku,name:e.target.value})} onKeyDown={e=>{if(e.key==="Enter")doLaunch();}} placeholder="예: 써밋비드 엠보 신상" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
+          <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>메인 KPI <span style={{color:"#9CA3AF",fontWeight:600}}>(매출 집계 연결 · 선택)</span></label>
+            <select value={sku.mainKPIId} onChange={e=>setSku({...sku,mainKPIId:e.target.value,subKPIId:""})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#fff",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="">없음</option>{D.mainKPIs.map(mk=><option key={mk.id} value={mk.id}>{mk.krKey} · {mk.title}</option>)}</select></div>
+          {sku.mainKPIId&&<div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>서브 KPI</label>
+            <select value={sku.subKPIId} onChange={e=>setSku({...sku,subKPIId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#fff",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="">선택 안함</option>{skSKs.map(s=><option key={s.id} value={s.id}>{s.channelCode} · {s.title}</option>)}</select></div>}
+          <Btn full variant="orange" size="lg" onClick={doLaunch} disabled={!sku.name.trim()}>출시 시작 — {tpl?tpl.nodes.length:5}단계 생성</Btn>
+        </div>
+      </Sheet>
+
+      {/* 노드 수정 시트 */}
+      <Sheet open={!!editNode} onClose={()=>setEditNode(null)} title="단계 수정">
+        {editNode&&(<NodeEditForm node={editNode} users={D.users} onSave={saveNode} onDelete={deleteNode}/>)}
+      </Sheet>
+    </div>
+  );
+}
+function NodeEditForm({node,users,onSave,onDelete}){
+  const [f,setF]=useState({title:node.title||"",roleLabel:node.roleLabel||"",assigneeId:node.assigneeId||users[0]?.id});
+  return(
+    <div style={{marginTop:8}}>
+      <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>단계명 *</label>
+      <input value={f.title} onChange={e=>setF({...f,title:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:14}}/>
+      <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>역할 라벨 <span style={{color:"#9CA3AF",fontWeight:600}}>(예: MD·본부장 · 비우면 담당자명 표시)</span></label>
+      <input value={f.roleLabel} onChange={e=>setF({...f,roleLabel:e.target.value})} placeholder="" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:14}}/>
+      <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>담당자</label>
+      <select value={f.assigneeId} onChange={e=>setF({...f,assigneeId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#fff",fontFamily:"inherit",WebkitAppearance:"none",marginBottom:18}}>{users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>
+      <div style={{display:"flex",gap:8}}>
+        <button onClick={onDelete} style={{flex:"0 0 auto",padding:"13px 16px",borderRadius:12,border:"1.5px solid #FFE2E5",backgroundColor:"#FFF0F1",color:"#F04452",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
+        <Btn full variant="orange" onClick={()=>f.title.trim()&&onSave({title:f.title.trim(),roleLabel:f.roleLabel.trim(),assigneeId:f.assigneeId})} disabled={!f.title.trim()} style={{flex:1}}>저장</Btn>
+      </div>
     </div>
   );
 }

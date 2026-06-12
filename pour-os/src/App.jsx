@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { STATE_DOC, colDoc, META_DOC, getDoc, onSnapshot, setDoc, uploadTaskPhoto, deleteTaskPhoto } from "./firebase.js";
 
 // Firestore 단일 문서에 저장할 공유 데이터 키 (currentUser는 기기별 로컬이라 제외)
-const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events"];
-const COL_LABEL = {users:"담당자",goals:"최종목표",mainKPIs:"메인KPI",subKPIs:"서브KPI",projects:"프로젝트",tasks:"업무",personalGoals:"개인목표",retros:"회고",aiReviews:"AI점검",events:"일정"};
+const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","weekGoals","launchTemplates"];
+const COL_LABEL = {users:"담당자",goals:"최종목표",mainKPIs:"메인KPI",subKPIs:"서브KPI",projects:"프로젝트",tasks:"업무",personalGoals:"개인목표",retros:"회고",aiReviews:"AI점검",events:"일정",weekGoals:"주간목표",launchTemplates:"출시템플릿"};
 const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
@@ -82,6 +82,7 @@ const INIT={
     {id:"sk10",mainKPIId:"mk3",title:"매출관리 시스템 구축",targetValue:100,currentValue:60,unit:"%",order:2,channelCode:"REV"},
     {id:"sk11",mainKPIId:"mk3",title:"어드민센터 구축",targetValue:100,currentValue:72,unit:"%",order:3,channelCode:"ADM"},
     {id:"sk12",mainKPIId:"mk3",title:"매뉴얼 33건",targetValue:33,currentValue:8,unit:"건",order:4,channelCode:"MAN"},
+    {id:"sk_launch",mainKPIId:"mk3",title:"신규 SKU 출시 수",targetValue:30,currentValue:0,unit:"개",order:5,channelCode:"SKU",launchCount:true},
   ],
   projects:[
     {id:"p001",mainKPIId:"mk1",subKPIId:"sk1",title:"자사몰 페이지 디자인 전면 재구축",assigneeId:"songhee",collaboratorIds:["minji"],group:"자사몰 구축·운영",priority:"high",status:"active",progress:40,resultValue:0,dealerType:"C-IND"},
@@ -127,6 +128,25 @@ const INIT={
     {id:"e3",title:"건축박람회 참가",date:"2026-06-18",type:"fair",projectId:null,description:"코엑스 B홀"},
     {id:"e4",title:"여름 프로모션 런칭",date:"2026-06-20",type:"promotion",projectId:null,description:"자사몰+마켓 동시"},
   ],
+  weekGoals:[],
+  // 출시 프로세스 템플릿(마인드맵) — 신상 SKU를 찍어내는 표준 흐름. 동일 프로세스 1개 기본 제공.
+  launchTemplates:[
+    {id:"tpl_launch", name:"신상 출시 표준 프로세스", createdAt:"2026-06-12T00:00:00.000Z",
+      nodes:[
+        {id:"n1", title:"소싱·원가·납기 확정", roleLabel:"MD",    assigneeId:"songhee", x:24,  y:24},
+        {id:"n2", title:"제품 교육·지식 전파",  roleLabel:"본부장", assigneeId:"songhee", x:172, y:118},
+        {id:"n3", title:"소스 확보 → 상품 등록", roleLabel:"",     assigneeId:"minji",   x:30,  y:214},
+        {id:"n4", title:"출시 배너 → 주문 세팅", roleLabel:"",     assigneeId:"chaerim", x:178, y:310},
+        {id:"n5", title:"B2B 안내·실사용 콘텐츠", roleLabel:"",     assigneeId:"ran",     x:36,  y:406},
+      ],
+      edges:[
+        {id:"e1", from:"n1", to:"n2"},
+        {id:"e2", from:"n2", to:"n3"},
+        {id:"e3", from:"n3", to:"n4"},
+        {id:"e4", from:"n4", to:"n5"},
+      ],
+    },
+  ],
 };
 const pct=(c,t)=>t===0||t==null?0:Math.max(0,Math.min(100,Math.round((c/t)*100)));
 // 주차 헬퍼 (월요일 시작)
@@ -139,6 +159,7 @@ const numF=(x)=>{const n=Number(x);return isFinite(n)?n:0;};   // 문자열·NaN
 //  · 운영(%) 자동 → 자식 프로젝트 진척(progress) 평균  ← 업무→진척→운영KPI 롤업
 //  · 그 외/수동지정 → currentValue
 const skCur=(sk,projects)=>{
+  if(sk.launchCount) return (projects||[]).filter(p=>p.templateId&&(p.progress||0)>=100).length;   // 출시 완료(progress 100%) SKU 자동 집계
   if(sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride) return (projects||[]).filter(p=>p.subKPIId===sk.id).reduce((a,p)=>a+numF(p.resultValue),0);
   if(sk.unit==="%"&&!sk.manualOverride){ const ch=(projects||[]).filter(p=>p.subKPIId===sk.id); if(ch.length) return Math.round(ch.reduce((a,p)=>a+numF(p.progress),0)/ch.length); }
   return numF(sk.currentValue);
@@ -148,8 +169,8 @@ const skCur=(sk,projects)=>{
 //  · 운영(원 아님) 자동 → 자식 서브KPI 완료비율 합(= 환산 달성 단위), 자식 없으면 currentValue
 //  · 수동지정(manualOverride) → currentValue
 const mkCur=(mk,subKPIs,projects)=>{
-  if(mk.unit==="원") return subKPIs.filter(s=>s.mainKPIId===mk.id).reduce((a,s)=>a+skCur(s,projects),0);
-  if(!mk.manualOverride){ const subs=subKPIs.filter(s=>s.mainKPIId===mk.id); if(subs.length){ const eq=subs.reduce((a,s)=>{const t=numF(s.targetValue); return a+(t>0?Math.min(1,skCur(s,projects)/t):0);},0); return Math.round(eq*10)/10; } }
+  if(mk.unit==="원") return subKPIs.filter(s=>s.mainKPIId===mk.id&&!s.launchCount).reduce((a,s)=>a+skCur(s,projects),0);
+  if(!mk.manualOverride){ const subs=subKPIs.filter(s=>s.mainKPIId===mk.id&&!s.launchCount); if(subs.length){ const eq=subs.reduce((a,s)=>{const t=numF(s.targetValue); return a+(t>0?Math.min(1,skCur(s,projects)/t):0);},0); return Math.round(eq*10)/10; } }
   return numF(mk.currentValue);
 };
 const fmt=(n,u)=>{
@@ -249,12 +270,9 @@ const projContrib=(D,proj)=>{
   (proj.activityKPIs||[]).forEach(ak=>(ak.history||[]).forEach(h=>bump(matchUid(D,h.by,h.byName),"act",h.at)));
   return Object.entries(map).map(([uid,m])=>({uid,...m})).sort((a,b)=>b.total-a.total);
 };
-// 이번 주 내가 이 프로젝트에서 완료한 업무 수 (개인 주간목표 진행도)
-const myWeekDone=(D,proj,uid)=>{ const wk=weekKey(); return (D.tasks||[]).filter(t=>t.projectId===proj.id&&!t.isFixed&&t.status==="done"&&inWeek(t.doneAt,wk)&&((matchUid(D,t.doneBy,t.doneByName)||t.assigneeId)===uid)).length; };
-// 이번 주 내 목표값 (project.weekTargets: [{userId,week,target}])
-const myWeekTarget=(proj,uid)=>{ const wk=weekKey(); const t=(proj.weekTargets||[]).find(x=>x.userId===uid&&x.week===wk); return t?Math.max(0,numF(t.target)):0; };
-// 과거 주차 목표 정리(최근 8주만 유지) — 단일 문서 비대 방지
-const pruneWeekTargets=(list)=>{ const cut=weekKey(new Date(Date.now()-8*7*86400000)); return (list||[]).filter(t=>t&&t.week&&t.week>=cut); };
+// 이번 주 내 주간목표 (weekGoals: [{id,userId,week,title,target,current,unit,projectId}])
+const myWeekGoals=(D,uid)=>{ const wk=weekKey(); return (D.weekGoals||[]).filter(g=>g.userId===uid&&g.week===wk); };
+const wgAchieved=(g)=> numF(g.target)>0 && numF(g.current)>=numF(g.target);
 // 첨부 파일 표시 헬퍼
 const extOf=(name="")=>{const m=String(name).match(/\.([a-z0-9]+)$/i);return m?m[1].toUpperCase():"파일";};
 const isImgAtt=(att)=>((att?.type||"").startsWith("image/"))||/\.(png|jpe?g|gif|webp|heic|heif|bmp|svg)$/i.test(att?.name||att?.url||"");
@@ -348,7 +366,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D})=>{
   );
 };
 const TABS=[{id:"today",icon:"🏠",label:"오늘"},{id:"kpi",icon:"◎",label:"KPI"},{id:"projects",icon:"▦",label:"프로젝트"},{id:"calendar",icon:"▤",label:"캘린더"},{id:"more",icon:"⋯",label:"더보기"}];
-const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"}];
+const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"launch",icon:"🚀",label:"출시"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"}];
 export default function App(){
   const [D,setD]=useState(INIT);
   const [page,setPage]=useState("today");
@@ -502,7 +520,8 @@ export default function App(){
     {page==="kpi"&&<KPIPage D={D} lead={lead} up={up} cu={cu} add={add} rm={rm} pc={viewMode==="pc"}/>}
     {page==="projects"&&<ProjectsPage D={D} cu={cu} up={up} add={add} rm={rm} pc={viewMode==="pc"}/>}
     {page==="calendar"&&<CalendarPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
-    {page==="game"&&<GamePage D={D} cu={cu} up={up} nav={nav}/>}
+    {page==="game"&&<GamePage D={D} cu={cu} up={up} add={add} rm={rm} nav={nav}/>}
+    {page==="launch"&&<LaunchPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="mindmap"&&<MindMapPage D={D} cu={cu}/>}
     {page==="fixed"&&<FixedPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="retro"&&<RetroPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
@@ -638,11 +657,13 @@ function WeeklyInputSheet({open,onClose,D,cu,up}){
   // 목표지표(추가값) — actRecord와 동일 shape
   const wkAct=(p,ak,amt)=>{const a=Number(amt);if(isNaN(a)||a===0)return;const prev=numF(ak.current);const v=prev+a;const t=at();const week=weekKey();const list=(p.activityKPIs||[]).map(x=>x.id===ak.id?{...x,current:v,week,by:cu?.id||null,byName:cu?.name||"",history:[...(x.history||[]),{week,value:v,amount:a,mode:"delta",by:cu?.id||null,byName:cu?.name||"",at:t}]}:x);up("projects",p.id,{activityKPIs:list});};
   const salesProjs=D.projects.filter(p=>p.mainKPIId==="mk2");
-  const kpiItems=D.subKPIs.filter(s=>s.mainKPIId!=="mk2"); // 직판 채널(mk1)+운영(mk3)
+  const salesChannels=D.subKPIs.filter(s=>s.mainKPIId!=="mk2"&&s.unit==="원"); // 직판 채널 매출(메인1)
+  const kpiItems=D.subKPIs.filter(s=>s.mainKPIId!=="mk2"&&s.unit!=="원");      // 운영지표(건·%·모듈)
   const actProjs=D.projects.filter(p=>(p.activityKPIs||[]).length>0);
   const NumAdd=({onAdd,ph})=>{const[v,setV]=useState("");return(<div style={{display:"flex",gap:6}}><input type="number" inputMode="numeric" value={v} onChange={e=>setV(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&v!==""){onAdd(v);setV("");}}} placeholder={ph||"이번 주 추가값"} style={{flex:1,minWidth:0,padding:"8px 10px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:13,fontWeight:700,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/><button onClick={()=>{if(v!==""){onAdd(v);setV("");}}} disabled={v===""} style={{flexShrink:0,padding:"0 14px",borderRadius:9,border:"none",background:v===""?"#E5E8EB":"#8B5CF6",color:"#fff",fontSize:13,fontWeight:800,cursor:v===""?"default":"pointer",fontFamily:"inherit"}}>추가</button></div>);};
   const MoneyAdd=({onAdd})=>{const[v,setV]=useState("");const[u,setU]=useState("만");const M={"원":1,"만":10000,"억":100000000};const tot=Math.round((Number(v)||0)*M[u]);return(<div><div style={{display:"flex",gap:6}}><input type="number" inputMode="decimal" value={v} onChange={e=>setV(e.target.value)} placeholder="이번 주 매출 추가" style={{flex:1,minWidth:0,padding:"8px 10px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:13,fontWeight:800,textAlign:"right",outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/><div style={{display:"inline-flex",borderRadius:9,border:"1.5px solid #E5E8EB",overflow:"hidden",flexShrink:0}}>{["원","만","억"].map(x=>(<button key={x} onClick={()=>setU(x)} style={{padding:"0 9px",fontSize:12,fontWeight:800,border:"none",cursor:"pointer",background:u===x?"#F97316":"#fff",color:u===x?"#fff":"#9CA3AF",fontFamily:"inherit"}}>{x}</button>))}</div><button onClick={()=>{if(tot>0){onAdd(tot);setV("");}}} disabled={tot<=0} style={{flexShrink:0,padding:"0 12px",borderRadius:9,border:"none",background:tot<=0?"#E5E8EB":"#8B5CF6",color:"#fff",fontSize:13,fontWeight:800,cursor:tot<=0?"default":"pointer",fontFamily:"inherit"}}>추가</button></div>{tot>0&&<p style={{margin:"4px 0 0",fontSize:10.5,fontWeight:800,color:"#EA580C"}}>= {fmtKorWon(tot)}</p>}</div>);};
-  const TABS_W=[["sales","💰 매출",salesProjs.length],["kpi","📊 KPI 실적",kpiItems.length],["act","🎯 목표지표",actProjs.reduce((a,p)=>a+(p.activityKPIs||[]).length,0)]];
+  const subHd={margin:"4px 2px 8px",fontSize:11,fontWeight:900,color:"#9CA3AF",letterSpacing:"-0.2px"};
+  const TABS_W=[["sales","💰 매출",salesProjs.length+salesChannels.length],["kpi","📊 운영지표",kpiItems.length],["act","🎯 목표지표",actProjs.reduce((a,p)=>a+(p.activityKPIs||[]).length,0)]];
   return(
     <Sheet open={open} onClose={onClose} title="🗓️ 이번 주 마감 입력" h="90vh">
       <div style={{marginTop:4}}>
@@ -650,16 +671,26 @@ function WeeklyInputSheet({open,onClose,D,cu,up}){
         <div style={{display:"flex",background:"#F2F4F6",borderRadius:12,padding:4,marginBottom:14}}>
           {TABS_W.map(([k,l,n])=>(<button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:"8px 2px",borderRadius:9,border:"none",cursor:"pointer",background:tab===k?"#fff":"transparent",color:tab===k?"#0F1F5C":"#9CA3AF",fontWeight:tab===k?800:600,fontSize:12,fontFamily:"inherit",boxShadow:tab===k?"0 1px 4px rgba(0,0,0,0.08)":"none"}}>{l}<span style={{fontSize:10,opacity:0.6,marginLeft:3}}>{n}</span></button>))}
         </div>
-        {tab==="sales"&&(salesProjs.length===0?<Empty t="B2B 매출 프로젝트가 없어요"/>:salesProjs.map(p=>{const dt=DT[p.dealerType];return(
-          <div key={p.id} style={{padding:"10px 0",borderBottom:"1px solid #F2F4F6"}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>{dt&&<span style={{fontSize:9.5,fontWeight:800,color:dt.color,backgroundColor:dt.color+"18",borderRadius:6,padding:"2px 6px",flexShrink:0,fontFamily:"'IBM Plex Mono',monospace"}}>{p.dealerType}</span>}<span style={{fontSize:12.5,fontWeight:700,color:"#1F2937",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span><span style={{fontSize:11,fontWeight:800,color:"#EA580C",flexShrink:0}}>{fmt(numF(p.resultValue),"원")}</span></div>
-            <MoneyInput value={p.resultValue} compact onCommit={n=>wkSale(p,n)}/>
-          </div>
-        );}))}
-        {tab==="kpi"&&(kpiItems.length===0?<Empty t="입력할 KPI 항목이 없어요"/>:kpiItems.map(sk=>{const mk=D.mainKPIs.find(m=>m.id===sk.mainKPIId);return(
+        {tab==="sales"&&((salesProjs.length+salesChannels.length)===0?<Empty t="매출 항목이 없어요"/>:<>
+          {salesProjs.length>0&&<p style={subHd}>거래처유형별 (B2B)</p>}
+          {salesProjs.map(p=>{const dt=DT[p.dealerType];return(
+            <div key={p.id} style={{padding:"10px 0",borderBottom:"1px solid #F2F4F6"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>{dt&&<span style={{fontSize:9.5,fontWeight:800,color:dt.color,backgroundColor:dt.color+"18",borderRadius:6,padding:"2px 6px",flexShrink:0,fontFamily:"'IBM Plex Mono',monospace"}}>{p.dealerType}</span>}<span style={{fontSize:12.5,fontWeight:700,color:"#1F2937",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span><span style={{fontSize:11,fontWeight:800,color:"#EA580C",flexShrink:0}}>{fmt(numF(p.resultValue),"원")}</span></div>
+              <MoneyInput value={p.resultValue} compact onCommit={n=>wkSale(p,n)}/>
+            </div>
+          );})}
+          {salesChannels.length>0&&<p style={{...subHd,marginTop:14}}>직판 채널 (자사몰·마켓·쇼룸)</p>}
+          {salesChannels.map(sk=>(
+            <div key={sk.id} style={{padding:"10px 0",borderBottom:"1px solid #F2F4F6"}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}><span style={{fontSize:11,fontWeight:800,color:"#1F2937"}}>{sk.channelCode?sk.channelCode+" · ":""}{sk.title}</span><span style={{marginLeft:"auto",fontSize:11,fontWeight:800,color:"#EA580C"}}>{fmt(numF(sk.currentValue),"원")} / {fmt(numF(sk.targetValue),"원")}</span></div>
+              <MoneyAdd onAdd={n=>wkVal("subKPIs",sk,n)}/>
+            </div>
+          ))}
+        </>)}
+        {tab==="kpi"&&(kpiItems.length===0?<Empty t="운영지표가 없어요"/>:kpiItems.map(sk=>{const mk=D.mainKPIs.find(m=>m.id===sk.mainKPIId);return(
           <div key={sk.id} style={{padding:"10px 0",borderBottom:"1px solid #F2F4F6"}}>
             <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}><span style={{fontSize:9.5,fontWeight:800,color:"#3182F6",background:"#EBF3FF",borderRadius:6,padding:"2px 6px",flexShrink:0}}>{mk?.krKey||""}</span><span style={{fontSize:12.5,fontWeight:700,color:"#1F2937",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sk.channelCode?sk.channelCode+" · ":""}{sk.title}</span><span style={{fontSize:11,fontWeight:800,color:"#374151",flexShrink:0}}>{fmt(numF(sk.currentValue),sk.unit)} / {fmt(numF(sk.targetValue),sk.unit)}</span></div>
-            {sk.unit==="원"?<MoneyAdd onAdd={n=>wkVal("subKPIs",sk,n)}/>:<NumAdd ph={`이번 주 ${sk.unit||""} 추가`} onAdd={v=>wkVal("subKPIs",sk,v)}/>}
+            <NumAdd ph={`이번 주 ${sk.unit||""} 추가`} onAdd={v=>wkVal("subKPIs",sk,v)}/>
           </div>
         );}))}
         {tab==="act"&&(actProjs.length===0?<Empty t="등록된 목표지표가 없어요 · 프로젝트에서 추가하세요"/>:actProjs.map(p=>(
@@ -723,16 +754,18 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const doneToday=todayT.filter(t=>t.status==="done").length;
   const doneFixed=fixed.filter(fixedDone).length;
   const myProjs=D.projects.filter(p=>p.assigneeId===cu.id||(p.collaboratorIds||[]).includes(cu.id));
-  const myGoals=myProjs.map(p=>({p,tgt:myWeekTarget(p,cu.id),done:myWeekDone(D,p,cu.id)})).filter(g=>g.tgt>0);
-  const goalDone=myGoals.filter(g=>g.done>=g.tgt).length;
+  const myGoals=myWeekGoals(D,cu.id);
+  const goalDone=myGoals.filter(wgAchieved).length;
   const allDone=myGoals.length>0&&goalDone===myGoals.length;
+  // 출시 인계 — 앞 단계가 끝나 내 차례가 된 출시 단계
+  const myReadyLaunch=(()=>{ const arr=[]; D.projects.filter(p=>p.templateId).forEach(p=>{ const ts=launchProjTasks(D,p); ts.forEach(t=>{ if(t.assigneeId===cu.id&&launchStageStatus(t,ts)==="ready") arr.push({proj:p,task:t}); }); }); return arr; })();
   return(
     <div style={{padding:"14px 16px 20px"}}>
       <div onClick={()=>nav("game")} style={{display:"flex",alignItems:"center",gap:11,background:allDone?"linear-gradient(135deg,#059669,#00C073)":"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"12px 14px",marginBottom:12,cursor:"pointer",color:"#fff"}}>
         <div style={{width:40,height:40,borderRadius:12,background:"rgba(255,255,255,0.13)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{allDone?"🎉":"🎯"}</div>
         <div style={{flex:1,minWidth:0}}>
           <span style={{fontSize:13.5,fontWeight:900}}>이번 주 내 목표</span>
-          <p style={{margin:"2px 0 0",fontSize:11,opacity:0.85}}>{myGoals.length===0?"아직 없어요 · 프로젝트에서 이번 주 목표를 정해보세요":allDone?`${myGoals.length}개 목표 전부 달성! 멋져요 👏`:`${myGoals.length}개 중 ${goalDone}개 달성 중`}</p>
+          <p style={{margin:"2px 0 0",fontSize:11,opacity:0.85}}>{myGoals.length===0?"아직 없어요 · 눌러서 이번 주 목표를 정해보세요":allDone?`${myGoals.length}개 목표 전부 달성! 멋져요 👏`:`${myGoals.length}개 중 ${goalDone}개 달성 중`}</p>
         </div>
         <span style={{fontSize:11,fontWeight:800,background:"rgba(255,255,255,0.2)",color:"#fff",padding:"4px 10px",borderRadius:10,flexShrink:0}}>내 주간 ›</span>
       </div>
@@ -865,6 +898,25 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           </div>
         </div>
       </div>
+      {myReadyLaunch.length>0&&(
+        <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #FED7AA",marginBottom:14}}>
+          <div onClick={()=>nav("launch")} style={{marginBottom:12,cursor:"pointer"}}>
+            <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#EA580C"}}>🔔 출시 인계 — 내 차례 ({myReadyLaunch.length})</h3>
+            <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>앞 단계가 끝나 내게 넘어온 출시 단계예요 · 완료하면 다음 담당자에게 인계됩니다</p>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:7}}>
+            {myReadyLaunch.map(({proj,task})=>(
+              <div key={task.id} style={{padding:"11px 12px",borderRadius:12,backgroundColor:"#FFF7ED",border:"1px solid #FED7AA",display:"flex",alignItems:"center",gap:9}}>
+                <button onClick={()=>toggle(task)} style={{flexShrink:0,width:24,height:24,borderRadius:"50%",border:"2px solid #F97316",backgroundColor:"#fff",color:"#F97316",fontSize:12,fontWeight:900,cursor:"pointer"}}>✓</button>
+                <div style={{flex:1,minWidth:0}}>
+                  <p style={{margin:0,fontSize:13.5,fontWeight:700,color:"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{task.title}</p>
+                  <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>📦 {proj.productName||proj.title}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {(()=>{const orphans=myT.filter(t=>!t.isFixed&&!t.weekDay&&t.status!=="done");if(!orphans.length)return null;return(<div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #FED7AA",marginBottom:14}}><div style={{marginBottom:12}}><h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#EA580C"}}>📥 미배치 업무 ({orphans.length})</h3><p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>요일 미지정 — 배치하거나 프로젝트를 연결하세요</p></div><div style={{display:"flex",flexDirection:"column",gap:7}}>{orphans.map(t=>{const proj=D.projects.find(p=>p.id===t.projectId);return(<div key={t.id} style={{padding:"11px 12px",borderRadius:12,backgroundColor:"#FFF7ED",border:"1px solid #FED7AA"}}><div style={{display:"flex",alignItems:"center",gap:8}}><div style={{flex:1,minWidth:0}}><p style={{margin:0,fontSize:13.5,fontWeight:700,color:"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}</p>{proj?<p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>📁 {proj.title}</p>:<p style={{margin:"2px 0 0",fontSize:10.5,color:"#F04452",fontWeight:600}}>⚠️ 프로젝트 미연결</p>}</div><button onClick={()=>setEditTask(t)} style={{padding:"6px 10px",borderRadius:8,border:"1px solid #E5E8EB",backgroundColor:"#FFFFFF",fontSize:12,fontWeight:700,color:"#4B5563",cursor:"pointer",flexShrink:0}}>✎</button><button onClick={()=>setConfirmTaskId(t.id)} style={{padding:"6px 10px",borderRadius:8,border:"1px solid #FFE2E5",backgroundColor:"#FFF0F1",fontSize:12,fontWeight:700,color:"#F04452",cursor:"pointer",flexShrink:0}}>🗑</button></div><button onClick={()=>up("tasks",t.id,{weekDay:today})} style={{width:"100%",marginTop:8,padding:"8px 0",borderRadius:9,border:"none",backgroundColor:"#F97316",color:"#FFFFFF",fontSize:12,fontWeight:700,cursor:"pointer"}}>📍 오늘({today}) 배치</button></div>);})}</div></div>);})()}
       <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #F2F4F6"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
@@ -1583,20 +1635,9 @@ function ProjectsPage({D,cu,up,add,rm,pc}){
               </div>
               {projDetail?.id===proj.id&&(
                 <div style={{borderTop:"1px solid #F2F4F6",backgroundColor:"#F9FAFB"}}>
-                  {(()=>{const wk=weekKey();const tgt=myWeekTarget(proj,cu.id);const dn=myWeekDone(D,proj,cu.id);const ok=tgt>0&&dn>=tgt;const pcv=tgt>0?Math.min(100,Math.round(dn/tgt*100)):0;const setTgt=(n)=>{let list=(proj.weekTargets||[]).filter(t=>!(t.userId===cu.id&&t.week===wk));if(n>0)list.push({userId:cu.id,week:wk,target:n});up("projects",proj.id,{weekTargets:pruneWeekTargets(list)});};const rows=projContrib(D,proj);const max=Math.max(...rows.map(r=>r.total),1);return(
+                  {(()=>{const rows=projContrib(D,proj);const max=Math.max(...rows.map(r=>r.total),1);return(
                     <div style={{padding:"12px 16px 0"}}>
-                      <div style={{background:ok?"#E8FAF1":"#fff",border:`1px solid ${ok?"rgba(0,192,115,0.3)":"#E5E8EB"}`,borderRadius:12,padding:"10px 12px"}}>
-                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginBottom:tgt>0?7:6}}>
-                          <span style={{fontSize:12,fontWeight:800,color:"#0F1F5C"}}>🎯 이번 주 내 목표 <span style={{fontWeight:600,color:"#9CA3AF"}}>({cu.name})</span></span>
-                          {ok&&<span style={{fontSize:10.5,fontWeight:900,color:"#fff",background:"#00C073",padding:"3px 9px",borderRadius:10}}>✓ 달성!</span>}
-                        </div>
-                        {tgt>0&&<div style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:4}}><span style={{color:"#9CA3AF"}}>이번 주 완료 업무</span><span style={{fontWeight:900,color:ok?"#00C073":"#F97316"}}>{dn}/{tgt}건 · {pcv}%</span></div><div style={{height:6,borderRadius:6,background:"#F2F4F6",overflow:"hidden"}}><div style={{width:`${pcv}%`,height:"100%",background:ok?"#00C073":"#F97316",borderRadius:6}}/></div></div>}
-                        <div style={{display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}>
-                          <span style={{fontSize:10.5,color:"#9CA3AF",fontWeight:700}}>목표 ▸</span>
-                          {[1,3,5,8,10].map(n=>(<button key={n} onClick={()=>setTgt(n)} style={{padding:"3px 9px",borderRadius:13,border:`1.5px solid ${tgt===n?"#F97316":"#E5E8EB"}`,background:tgt===n?"#FFEDD5":"#fff",fontSize:11,fontWeight:800,color:tgt===n?"#EA580C":"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>{n}건</button>))}
-                          {tgt>0&&<button onClick={()=>setTgt(0)} style={{padding:"3px 8px",borderRadius:13,border:"1px solid #FFE2E5",background:"#FFF0F1",fontSize:10,fontWeight:700,color:"#F04452",cursor:"pointer",fontFamily:"inherit"}}>해제</button>}
-                        </div>
-                      </div>
+                      <ProjWeekGoals D={D} cu={cu} proj={proj} add={add} up={up} rm={rm}/>
                       {rows.length>0&&<div style={{marginTop:8}}>
                         <p style={{margin:"0 0 6px",fontSize:11.5,fontWeight:800,color:"#4B5563"}}>👥 기여 현황 <span style={{fontWeight:600,color:"#9CA3AF"}}>(완료 업무·매출·지표 기록 기준)</span></p>
                         {rows.map(r=>{const u=D.users.find(x=>x.id===r.uid);const w=Math.round(r.total/max*100);const isMe=r.uid===cu.id;return(
@@ -1905,6 +1946,292 @@ function CalendarPage({D,cu,add,up,rm}){
           <Btn full variant="orange" onClick={saveEvent} disabled={!evForm.title.trim()||!evForm.date}>{evForm.id?"수정 저장":"일정 추가"}</Btn>
         </div>
       </Sheet>
+    </div>
+  );
+}
+// ───────────────────────── 출시 파이프라인 (템플릿 → SKU 프로젝트 자동 생성 + 인계) ─────────────────────────
+// 출시 단계 상태: done(완료) / ready(선행 끝나 내 차례) / wait(선행 대기)
+const launchStageStatus=(task,allTasks)=>{
+  if(!task) return "wait";
+  if(task.status==="done") return "done";
+  const deps=task.deps||[];
+  const ready=deps.every(id=>{const d=allTasks.find(t=>t.id===id);return d?d.status==="done":true;});
+  return ready?"ready":"wait";
+};
+const launchProjTasks=(D,proj)=>D.tasks.filter(t=>t.projectId===proj.id&&t.launchNode).sort((a,b)=>(a.step||0)-(b.step||0));
+const ST_COLOR={done:"#00C073",ready:"#F97316",wait:"#9CA3AF"};
+// 템플릿 1개 → 신규 SKU 프로젝트 + 단계별 업무(선행연결·담당자배정) 자동 생성
+const instantiateLaunch=({tpl,productName,mainKPIId,subKPIId,dealerType,add})=>{
+  const ts=Date.now();
+  const projId="p"+ts;
+  const taskIdByNode={};
+  tpl.nodes.forEach((n,i)=>{taskIdByNode[n.id]="t"+ts+"_"+i;});
+  const predsOf=(nodeId)=>tpl.edges.filter(e=>e.to===nodeId).map(e=>e.from);
+  const assignees=[...new Set(tpl.nodes.map(n=>n.assigneeId).filter(Boolean))];
+  const owner=tpl.nodes[0]?.assigneeId||assignees[0]||null;
+  add("projects",{id:projId,mainKPIId:mainKPIId||null,subKPIId:subKPIId||null,title:`${productName} 출시`,productName,templateId:tpl.id,assigneeId:owner,collaboratorIds:assignees.filter(a=>a!==owner),group:"신상 출시",priority:"high",status:"active",progress:0,resultValue:0,dealerType:dealerType||""});
+  tpl.nodes.forEach((n,i)=>{
+    const deps=predsOf(n.id).map(pid=>taskIdByNode[pid]).filter(Boolean);
+    add("tasks",{id:taskIdByNode[n.id],title:n.roleLabel?`[${n.roleLabel}] ${n.title}`:n.title,projectId:projId,assigneeId:n.assigneeId||owner,type:"general",status:"todo",weekDay:null,weekSlot:null,isFixed:false,dueDate:"",memo:"",attachments:[],launchNode:n.id,step:i,deps});
+  });
+};
+const NODE_W=144, NODE_H=56;
+function LaunchPage({D,cu,lead,add,up,rm,nav}){
+  const [tab,setTab]=useState("status");
+  const tpls=D.launchTemplates||[];
+  const [tplId,setTplId]=useState("");
+  const tpl=tpls.find(t=>t.id===tplId)||tpls[0];
+  const launchProjs=D.projects.filter(p=>p.templateId);
+  const uName=(id)=>D.users.find(u=>u.id===id)?.name||"미배정";
+  const uColor=(id)=>D.users.find(u=>u.id===id)?.color||"#9CA3AF";
+  // ── 출시 건수 KPI 집계 ──
+  const countSK=D.subKPIs.find(s=>s.launchCount);
+  const doneCount=launchProjs.filter(p=>(p.progress||0)>=100).length;
+  const seedCountSK=()=>add("subKPIs",{id:"sk_launch",mainKPIId:"mk3",title:"신규 SKU 출시 수",targetValue:30,currentValue:0,unit:"개",order:5,channelCode:"SKU",launchCount:true});
+  // ── 신규 SKU 출시 시트 ──
+  const [skuOpen,setSkuOpen]=useState(false);
+  const [sku,setSku]=useState({name:"",mainKPIId:"",subKPIId:"",dealerType:"",tplId:""});
+  const skSKs=D.subKPIs.filter(s=>s.mainKPIId===sku.mainKPIId);
+  const openSku=()=>{ setSku({name:"",mainKPIId:"",subKPIId:"",dealerType:"",tplId:tpl?tpl.id:""}); setSkuOpen(true); };
+  const doLaunch=()=>{ const launchTpl=tpls.find(t=>t.id===sku.tplId)||tpl; if(!launchTpl||!sku.name.trim())return; instantiateLaunch({tpl:launchTpl,productName:sku.name.trim(),mainKPIId:sku.mainKPIId,subKPIId:sku.subKPIId,dealerType:sku.dealerType,add}); setSkuOpen(false); setTab("status"); };
+  // ── 템플릿 복제·이름·삭제 ──
+  const [renameOpen,setRenameOpen]=useState(false);
+  const [renameVal,setRenameVal]=useState("");
+  const dupTpl=()=>{ const nid="tpl"+Date.now(); add("launchTemplates",{...tpl,id:nid,name:tpl.name+" (복사)",createdAt:new Date().toISOString(),nodes:tpl.nodes.map(n=>({...n})),edges:tpl.edges.map(e=>({...e}))}); setTplId(nid); };
+  const doRename=()=>{ if(renameVal.trim()) up("launchTemplates",tpl.id,{name:renameVal.trim()}); setRenameOpen(false); };
+  const delTpl=()=>{ if(tpls.length<=1){ window.alert("템플릿이 하나뿐이라 삭제할 수 없어요."); return; } if(window.confirm(`'${tpl.name}' 템플릿을 삭제할까요? (이미 만든 출시 건은 영향 없음)`)){ const next=tpls.find(t=>t.id!==tpl.id); rm("launchTemplates",tpl.id); setTplId(next?next.id:""); } };
+  // ── 내 차례(ready) 집계 ──
+  const myReady=[];
+  launchProjs.forEach(p=>{ const ts=launchProjTasks(D,p); ts.forEach(t=>{ if(t.assigneeId===cu.id&&launchStageStatus(t,ts)==="ready") myReady.push({proj:p,task:t}); }); });
+  const toggleStage=(t,st)=>{ if(st==="wait")return; up("tasks",t.id,{status:t.status==="done"?"todo":"done"}); };
+  // ── 템플릿 캔버스 편집 ──
+  const canvasRef=useRef(null);
+  const draggingRef=useRef(null);
+  const [draftNodes,setDraftNodes]=useState(tpl?tpl.nodes:[]);
+  const [connectMode,setConnectMode]=useState(false);
+  const [connectFrom,setConnectFrom]=useState(null);
+  const [editNode,setEditNode]=useState(null);
+  const [delEdge,setDelEdge]=useState(null);
+  useEffect(()=>{ if(!draggingRef.current&&tpl) setDraftNodes(tpl.nodes); },[tpl]);
+  const maxY=draftNodes.reduce((m,n)=>Math.max(m,n.y),0);
+  const canvasH=Math.max(520,maxY+NODE_H+120);
+  const nodeById=(id)=>draftNodes.find(n=>n.id===id);
+  const onNodeDown=(e,n)=>{
+    if(connectMode){ e.stopPropagation(); handleConnect(n); return; }
+    e.stopPropagation();
+    const r=canvasRef.current.getBoundingClientRect();
+    draggingRef.current={id:n.id,offX:e.clientX-r.left-n.x,offY:e.clientY-r.top-n.y,moved:false};
+    try{e.currentTarget.setPointerCapture(e.pointerId);}catch(_){}
+  };
+  const onNodeMove=(e)=>{
+    const d=draggingRef.current; if(!d)return;
+    const r=canvasRef.current.getBoundingClientRect();
+    const nx=Math.max(0,Math.min(r.width-NODE_W,Math.round(e.clientX-r.left-d.offX)));
+    const ny=Math.max(0,Math.round(e.clientY-r.top-d.offY));
+    d.moved=true;
+    setDraftNodes(ns=>ns.map(n=>n.id===d.id?{...n,x:nx,y:ny}:n));
+  };
+  const onNodeUp=(e,n)=>{
+    const d=draggingRef.current; draggingRef.current=null;
+    if(!d) return;
+    if(d.moved){ up("launchTemplates",tpl.id,{nodes:draftNodes.map(x=>x.id===n.id?{...x}:x)}); }
+    else { setEditNode(n); }
+  };
+  const handleConnect=(n)=>{
+    if(!connectFrom){ setConnectFrom(n.id); return; }
+    if(connectFrom===n.id){ setConnectFrom(null); return; }
+    const exists=tpl.edges.some(e=>(e.from===connectFrom&&e.to===n.id)||(e.from===n.id&&e.to===connectFrom));
+    if(!exists) up("launchTemplates",tpl.id,{edges:[...tpl.edges,{id:"e"+Date.now(),from:connectFrom,to:n.id}]});
+    setConnectFrom(null);
+  };
+  const addNode=()=>{ const id="n"+Date.now(); up("launchTemplates",tpl.id,{nodes:[...tpl.nodes,{id,title:"새 단계",roleLabel:"",assigneeId:cu.id,x:24,y:maxY+NODE_H+24}]}); };
+  const saveNode=(patch)=>{ up("launchTemplates",tpl.id,{nodes:tpl.nodes.map(n=>n.id===editNode.id?{...n,...patch}:n)}); setEditNode(null); };
+  const deleteNode=()=>{ up("launchTemplates",tpl.id,{nodes:tpl.nodes.filter(n=>n.id!==editNode.id),edges:tpl.edges.filter(e=>e.from!==editNode.id&&e.to!==editNode.id)}); setEditNode(null); };
+  const removeEdge=(eid)=>{ up("launchTemplates",tpl.id,{edges:tpl.edges.filter(e=>e.id!==eid)}); setDelEdge(null); };
+  // 기존(마이그레이션 완료) 환경: 템플릿 컬렉션이 비어있으면 기본 프로세스 시드
+  const seedTpl=()=>add("launchTemplates",{...INIT.launchTemplates[0],createdAt:new Date().toISOString()});
+  if(!tpl) return(
+    <div style={{padding:"48px 24px",textAlign:"center"}}>
+      <p style={{fontSize:42,margin:0}}>🚀</p>
+      <p style={{margin:"12px 0 4px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>출시 프로세스 준비</p>
+      <p style={{margin:"0 0 20px",fontSize:12.5,color:"#6B7280",lineHeight:1.6}}>신상 SKU를 찍어낼 표준 5단계 흐름을 만들어 시작하세요.<br/>한 번 만들면 신상마다 그대로 자동 생성됩니다.</p>
+      <Btn variant="orange" size="lg" onClick={seedTpl}>기본 출시 프로세스 만들기</Btn>
+    </div>
+  );
+  return(
+    <div style={{padding:"14px 16px 24px"}}>
+      <div style={{display:"flex",backgroundColor:"#F2F4F6",borderRadius:14,padding:4,marginBottom:14}}>
+        {[{k:"status",l:`🚀 출시현황 ${launchProjs.length}`},{k:"template",l:"🧩 템플릿"}].map(v=>(
+          <button key={v.k} onClick={()=>setTab(v.k)} style={{flex:1,padding:"9px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:tab===v.k?"#FFFFFF":"transparent",color:tab===v.k?"#0F1F5C":"#6B7280",fontWeight:tab===v.k?800:500,fontSize:13,fontFamily:"inherit",boxShadow:tab===v.k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{v.l}</button>
+        ))}
+      </div>
+
+      {tab==="status"&&(<>
+        <Btn full variant="orange" onClick={openSku} style={{marginBottom:14}}>🚀 신규 SKU 출시</Btn>
+        {countSK?(
+          <div style={{display:"flex",alignItems:"center",gap:10,backgroundColor:"#F0F7FF",border:"1px solid #D5E6FB",borderRadius:12,padding:"11px 13px",marginBottom:14}}>
+            <span style={{fontSize:18}}>📊</span>
+            <div style={{flex:1,minWidth:0}}>
+              <p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#0F1F5C"}}>{countSK.title}</p>
+              <p style={{margin:"2px 0 0",fontSize:10.5,color:"#6B7280"}}>출시 완료 {doneCount}건이 KPI에 자동 집계 중 · 목표 {countSK.targetValue}{countSK.unit}</p>
+            </div>
+            <span style={{fontSize:15,fontWeight:900,color:"#3182F6",flexShrink:0}}>{doneCount}<span style={{fontSize:11,color:"#9CA3AF"}}>/{countSK.targetValue}</span></span>
+          </div>
+        ):(
+          <button onClick={seedCountSK} style={{width:"100%",display:"flex",alignItems:"center",gap:8,backgroundColor:"#F9FAFB",border:"1px dashed #CBD5E1",borderRadius:12,padding:"11px 13px",marginBottom:14,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+            <span style={{fontSize:16}}>📊</span>
+            <span style={{flex:1,fontSize:12,fontWeight:700,color:"#475569"}}>출시 완료 건수를 KPI(신규 SKU 출시 수)에 자동 집계 — 켜기</span>
+            <span style={{fontSize:12,fontWeight:800,color:"#3182F6"}}>＋</span>
+          </button>
+        )}
+        {myReady.length>0&&(
+          <div style={{backgroundColor:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:14,padding:"12px 14px",marginBottom:14}}>
+            <p style={{margin:"0 0 8px",fontSize:13,fontWeight:900,color:"#EA580C"}}>🔔 내 차례 ({myReady.length})</p>
+            <div style={{display:"flex",flexDirection:"column",gap:7}}>
+              {myReady.map(({proj,task})=>(
+                <button key={task.id} onClick={()=>toggleStage(task,"ready")} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 11px",borderRadius:10,border:"1px solid #FED7AA",backgroundColor:"#FFFFFF",cursor:"pointer",textAlign:"left",fontFamily:"inherit"}}>
+                  <span style={{flexShrink:0,width:22,height:22,borderRadius:"50%",border:"2px solid #F97316",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:"#F97316"}}>✓</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <p style={{margin:0,fontSize:13,fontWeight:700,color:"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{task.title}</p>
+                    <p style={{margin:"1px 0 0",fontSize:10.5,color:"#9CA3AF"}}>📦 {proj.productName} · 완료 표시하면 다음 담당자에게 인계</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {launchProjs.length===0?<Empty t="출시 중인 SKU가 없어요 · 신규 SKU 출시를 눌러 시작하세요"/>:launchProjs.map(p=>{
+          const ts=launchProjTasks(D,p);
+          const doneN=ts.filter(t=>t.status==="done").length;
+          return(
+            <div key={p.id} style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",marginBottom:12,border:"1px solid #F2F4F6"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <div style={{minWidth:0}}>
+                  <p style={{margin:0,fontSize:14.5,fontWeight:900,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📦 {p.productName||p.title}</p>
+                  <p style={{margin:"2px 0 0",fontSize:11,color:"#9CA3AF"}}>{doneN}/{ts.length} 단계 완료</p>
+                </div>
+                <span style={{fontSize:15,fontWeight:900,color:p.progress>=100?"#00C073":"#F97316",flexShrink:0}}>{p.progress||0}%</span>
+              </div>
+              <div style={{marginBottom:12}}><PBar value={p.progress||0} color={p.progress>=100?"#00C073":"#F97316"} h={5}/></div>
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                {ts.map((t,i)=>{
+                  const st=launchStageStatus(t,ts);
+                  const mine=t.assigneeId===cu.id;
+                  return(
+                    <button key={t.id} onClick={()=>toggleStage(t,st)} disabled={st==="wait"} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 11px",borderRadius:10,border:`1px solid ${st==="ready"&&mine?"#FED7AA":"#F2F4F6"}`,backgroundColor:st==="ready"&&mine?"#FFF7ED":"#FAFBFC",cursor:st==="wait"?"default":"pointer",textAlign:"left",fontFamily:"inherit",opacity:st==="wait"?0.7:1}}>
+                      <span style={{flexShrink:0,width:22,height:22,borderRadius:"50%",backgroundColor:st==="done"?ST_COLOR.done:"transparent",border:st==="done"?"none":`2px solid ${ST_COLOR[st]}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,color:st==="done"?"#fff":ST_COLOR[st]}}>{st==="done"?"✓":i+1}</span>
+                      <div style={{flex:1,minWidth:0}}>
+                        <p style={{margin:0,fontSize:12.5,fontWeight:700,color:st==="wait"?"#9CA3AF":"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}</p>
+                      </div>
+                      <span style={{flexShrink:0,display:"flex",alignItems:"center",gap:4,fontSize:10.5,fontWeight:700,color:uColor(t.assigneeId)}}><Ava name={uName(t.assigneeId)} color={uColor(t.assigneeId)} size={18}/>{st==="ready"&&mine?"내 차례":""}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <button onClick={()=>{ if(window.confirm(`'${p.productName||p.title}' 출시 건을 삭제할까요? (단계 업무 포함)`)){ launchProjTasks(D,p).forEach(t=>rm("tasks",t.id)); rm("projects",p.id); } }} style={{marginTop:10,fontSize:11,fontWeight:700,color:"#C4C9D0",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
+            </div>
+          );
+        })}
+      </>)}
+
+      {tab==="template"&&(<>
+        {!tpl?<Empty t="템플릿이 없습니다"/>:(<>
+          {tpls.length>1&&(
+            <select value={tpl.id} onChange={e=>setTplId(e.target.value)} style={{width:"100%",padding:"11px 13px",borderRadius:11,border:"1.5px solid #E5E8EB",fontSize:13.5,fontWeight:800,fontFamily:"inherit",backgroundColor:"#fff",outline:"none",WebkitAppearance:"none",color:"#0F1F5C",marginBottom:10}}>
+              {tpls.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          )}
+          <div style={{display:"flex",gap:7,marginBottom:12}}>
+            <button onClick={dupTpl} style={{flex:1,padding:"9px 0",borderRadius:10,border:"1.5px solid #E5E8EB",backgroundColor:"#fff",fontSize:12.5,fontWeight:800,color:"#374151",cursor:"pointer",fontFamily:"inherit"}}>⧉ 복제</button>
+            <button onClick={()=>{setRenameVal(tpl.name);setRenameOpen(true);}} style={{flex:1,padding:"9px 0",borderRadius:10,border:"1.5px solid #E5E8EB",backgroundColor:"#fff",fontSize:12.5,fontWeight:800,color:"#374151",cursor:"pointer",fontFamily:"inherit"}}>✎ 이름</button>
+            <button onClick={delTpl} style={{flex:1,padding:"9px 0",borderRadius:10,border:"1.5px solid #FFE2E5",backgroundColor:"#fff",fontSize:12.5,fontWeight:800,color:"#F04452",cursor:"pointer",fontFamily:"inherit"}}>🗑 삭제</button>
+          </div>
+          <div style={{backgroundColor:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:12,padding:"10px 13px",marginBottom:12}}>
+            <p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#9A3412"}}>🧩 {tpl.name}</p>
+            <p style={{margin:"3px 0 0",fontSize:11,color:"#B45309",lineHeight:1.5}}>제품군마다 흐름이 다르면 <b>복제</b>해서 단계를 바꿔 쓰세요. 노드를 끌어 옮기고, 탭하면 수정돼요.</p>
+          </div>
+          <div style={{display:"flex",gap:8,marginBottom:10}}>
+            <button onClick={addNode} style={{flex:1,padding:"9px 0",borderRadius:10,border:"1.5px solid #E5E8EB",backgroundColor:"#fff",fontSize:12.5,fontWeight:800,color:"#374151",cursor:"pointer",fontFamily:"inherit"}}>＋ 단계 추가</button>
+            <button onClick={()=>{setConnectMode(!connectMode);setConnectFrom(null);}} style={{flex:1,padding:"9px 0",borderRadius:10,border:`1.5px solid ${connectMode?"#F97316":"#E5E8EB"}`,backgroundColor:connectMode?"#FFEDD5":"#fff",fontSize:12.5,fontWeight:800,color:connectMode?"#EA580C":"#374151",cursor:"pointer",fontFamily:"inherit"}}>🔗 {connectMode?"연결 중…":"선 연결"}</button>
+          </div>
+          {connectMode&&<p style={{margin:"0 0 10px",fontSize:11,fontWeight:700,color:"#EA580C",textAlign:"center"}}>{connectFrom?"→ 도착 단계를 탭하세요 (다시 누르면 취소)":"시작 단계를 탭하세요"}</p>}
+          <div ref={canvasRef} style={{position:"relative",width:"100%",height:canvasH,backgroundColor:"#FAFBFC",backgroundImage:"radial-gradient(#E5E8EB 1px,transparent 1px)",backgroundSize:"18px 18px",borderRadius:16,border:"1px solid #EDF0F3",overflow:"hidden",touchAction:"none"}}>
+            <svg width="100%" height={canvasH} style={{position:"absolute",inset:0,pointerEvents:"none"}}>
+              {tpl.edges.map(e=>{ const a=nodeById(e.from),b=nodeById(e.to); if(!a||!b)return null;
+                const x1=a.x+NODE_W/2,y1=a.y+NODE_H,x2=b.x+NODE_W/2,y2=b.y;
+                return <path key={e.id} d={`M ${x1} ${y1} C ${x1} ${y1+44}, ${x2} ${y2-44}, ${x2} ${y2}`} stroke="#F97316" strokeWidth={2.5} fill="none" opacity={0.55}/>;
+              })}
+            </svg>
+            {connectMode&&tpl.edges.map(e=>{ const a=nodeById(e.from),b=nodeById(e.to); if(!a||!b)return null;
+              const mx=(a.x+b.x)/2+NODE_W/2-10,my=(a.y+NODE_H+b.y)/2-10;
+              return <button key={e.id} onClick={()=>removeEdge(e.id)} style={{position:"absolute",left:mx,top:my,width:20,height:20,borderRadius:"50%",border:"none",backgroundColor:"#F04452",color:"#fff",fontSize:12,fontWeight:900,cursor:"pointer",lineHeight:1,zIndex:5}}>×</button>;
+            })}
+            {draftNodes.map((n,i)=>{
+              const sel=connectFrom===n.id;
+              const col=uColor(n.assigneeId);
+              return(
+                <div key={n.id} onPointerDown={e=>onNodeDown(e,n)} onPointerMove={onNodeMove} onPointerUp={e=>onNodeUp(e,n)}
+                  style={{position:"absolute",left:n.x,top:n.y,width:NODE_W,minHeight:NODE_H,boxSizing:"border-box",padding:"8px 10px",borderRadius:12,backgroundColor:"#FFFFFF",border:`2px solid ${sel?"#F97316":col+"55"}`,boxShadow:sel?"0 0 0 3px #F9731633":"0 2px 8px rgba(0,0,0,0.08)",cursor:connectMode?"pointer":"grab",touchAction:"none",userSelect:"none",zIndex:sel?4:2}}>
+                  <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4}}>
+                    <span style={{flexShrink:0,width:18,height:18,borderRadius:"50%",backgroundColor:col,color:"#fff",fontSize:10,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{i+1}</span>
+                    <span style={{fontSize:10,fontWeight:800,color:col,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.roleLabel||uName(n.assigneeId)}</span>
+                  </div>
+                  <p style={{margin:0,fontSize:11.5,fontWeight:700,color:"#1F2937",lineHeight:1.3}}>{n.title}</p>
+                </div>
+              );
+            })}
+          </div>
+          <p style={{margin:"10px 2px 0",fontSize:11,color:"#9CA3AF",lineHeight:1.6}}>●&nbsp;노드를 끌어 위치 정리&nbsp;·&nbsp;탭하면 단계명·담당자 수정&nbsp;·&nbsp;<b>선 연결</b>로 선행(인계) 순서를 잇습니다.</p>
+        </>)}
+      </>)}
+
+      {/* 신규 SKU 출시 시트 */}
+      <Sheet open={skuOpen} onClose={()=>setSkuOpen(false)} title="🚀 신규 SKU 출시" h="88vh">
+        <div style={{marginTop:8}}>
+          <p style={{margin:"0 0 14px",fontSize:12,color:"#6B7280",lineHeight:1.6,backgroundColor:"#F9FAFB",borderRadius:10,padding:"10px 12px"}}>제품명만 입력하면 <b>{(tpls.find(t=>t.id===sku.tplId)||tpl)?.nodes.length||5}단계</b>가 담당자까지 자동 생성됩니다.</p>
+          {tpls.length>1&&(
+            <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>출시 프로세스 템플릿</label>
+              <select value={sku.tplId} onChange={e=>setSku({...sku,tplId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#fff",fontFamily:"inherit",WebkitAppearance:"none"}}>{tpls.map(t=><option key={t.id} value={t.id}>{t.name} ({t.nodes.length}단계)</option>)}</select></div>
+          )}
+          <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>제품명 *</label>
+            <input value={sku.name} onChange={e=>setSku({...sku,name:e.target.value})} onKeyDown={e=>{if(e.key==="Enter")doLaunch();}} placeholder="예: 써밋비드 엠보 신상" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
+          <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>메인 KPI <span style={{color:"#9CA3AF",fontWeight:600}}>(매출 집계 연결 · 선택)</span></label>
+            <select value={sku.mainKPIId} onChange={e=>setSku({...sku,mainKPIId:e.target.value,subKPIId:""})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#fff",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="">없음</option>{D.mainKPIs.map(mk=><option key={mk.id} value={mk.id}>{mk.krKey} · {mk.title}</option>)}</select></div>
+          {sku.mainKPIId&&<div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>서브 KPI</label>
+            <select value={sku.subKPIId} onChange={e=>setSku({...sku,subKPIId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#fff",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="">선택 안함</option>{skSKs.map(s=><option key={s.id} value={s.id}>{s.channelCode} · {s.title}</option>)}</select></div>}
+          <Btn full variant="orange" size="lg" onClick={doLaunch} disabled={!sku.name.trim()}>출시 시작 — {tpl?tpl.nodes.length:5}단계 생성</Btn>
+        </div>
+      </Sheet>
+
+      {/* 노드 수정 시트 */}
+      <Sheet open={!!editNode} onClose={()=>setEditNode(null)} title="단계 수정">
+        {editNode&&(<NodeEditForm node={editNode} users={D.users} onSave={saveNode} onDelete={deleteNode}/>)}
+      </Sheet>
+
+      {/* 템플릿 이름 변경 시트 */}
+      <Sheet open={renameOpen} onClose={()=>setRenameOpen(false)} title="템플릿 이름">
+        <div style={{marginTop:8}}>
+          <input value={renameVal} onChange={e=>setRenameVal(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")doRename();}} placeholder="예: 부자재 출시 프로세스" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:16}}/>
+          <Btn full variant="orange" onClick={doRename} disabled={!renameVal.trim()}>저장</Btn>
+        </div>
+      </Sheet>
+    </div>
+  );
+}
+function NodeEditForm({node,users,onSave,onDelete}){
+  const [f,setF]=useState({title:node.title||"",roleLabel:node.roleLabel||"",assigneeId:node.assigneeId||users[0]?.id});
+  return(
+    <div style={{marginTop:8}}>
+      <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>단계명 *</label>
+      <input value={f.title} onChange={e=>setF({...f,title:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:14}}/>
+      <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>역할 라벨 <span style={{color:"#9CA3AF",fontWeight:600}}>(예: MD·본부장 · 비우면 담당자명 표시)</span></label>
+      <input value={f.roleLabel} onChange={e=>setF({...f,roleLabel:e.target.value})} placeholder="" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:14}}/>
+      <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>담당자</label>
+      <select value={f.assigneeId} onChange={e=>setF({...f,assigneeId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#fff",fontFamily:"inherit",WebkitAppearance:"none",marginBottom:18}}>{users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>
+      <div style={{display:"flex",gap:8}}>
+        <button onClick={onDelete} style={{flex:"0 0 auto",padding:"13px 16px",borderRadius:12,border:"1.5px solid #FFE2E5",backgroundColor:"#FFF0F1",color:"#F04452",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
+        <Btn full variant="orange" onClick={()=>f.title.trim()&&onSave({title:f.title.trim(),roleLabel:f.roleLabel.trim(),assigneeId:f.assigneeId})} disabled={!f.title.trim()} style={{flex:1}}>저장</Btn>
+      </div>
     </div>
   );
 }
@@ -2347,25 +2674,67 @@ function RetroPage({D,cu,add,up,rm}){
     </div>
   );
 }
-function GamePage({D,cu,up,nav}){
+// 프로젝트에 연결된 이번 주 내 목표 (자유입력 + 진행) — 프로젝트 상세에서 사용
+function ProjWeekGoals({D,cu,proj,add,up,rm}){
+  const wk=weekKey();
+  const [t,setT]=useState(""); const [n,setN]=useState(""); const [u,setU]=useState("건");
+  const goals=(D.weekGoals||[]).filter(g=>g.userId===cu.id&&g.week===wk&&g.projectId===proj.id);
+  const addG=()=>{ const tt=t.trim(); const tg=Math.max(0,numF(n)); if(!tt||tg<=0)return;
+    add("weekGoals",{id:"wg"+Date.now(),userId:cu.id,week:wk,title:tt,target:tg,current:0,unit:(u||"").trim()||"건",projectId:proj.id,createdAt:new Date().toISOString()});
+    setT("");setN(""); };
+  const bump=(g,d)=>up("weekGoals",g.id,{current:Math.max(0,numF(g.current)+d)});
+  return(
+    <div style={{background:"#fff",border:"1px solid #E5E8EB",borderRadius:12,padding:"10px 12px"}}>
+      <div style={{fontSize:12,fontWeight:800,color:"#0F1F5C",marginBottom:8}}>🎯 이번 주 내 목표 <span style={{fontWeight:600,color:"#9CA3AF"}}>({cu.name})</span></div>
+      {goals.map(g=>{const cur=numF(g.current),tg=numF(g.target),ok=wgAchieved(g),pc=tg>0?Math.min(100,Math.round(cur/tg*100)):0;return(
+        <div key={g.id} style={{marginBottom:9,padding:"8px 10px",background:ok?"#E8FAF1":"#F9FAFB",borderRadius:10,border:`1px solid ${ok?"rgba(0,192,115,0.3)":"#F2F4F6"}`}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
+            <span style={{fontSize:12,fontWeight:700,color:"#1F2937",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.title}</span>
+            {ok&&<span style={{fontSize:9.5,fontWeight:900,color:"#fff",background:"#00C073",padding:"2px 7px",borderRadius:9}}>✓</span>}
+            <span style={{fontSize:10.5,fontWeight:900,color:ok?"#00C073":"#F97316"}}>{cur}/{tg}{g.unit||"건"}</span>
+            <button onClick={()=>rm("weekGoals",g.id)} style={{background:"none",border:"none",fontSize:12,cursor:"pointer",color:"#D1D5DB",padding:3}}>✕</button>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            <button onClick={()=>bump(g,-1)} style={{width:28,height:28,borderRadius:8,border:"1.5px solid #E5E8EB",background:"#fff",fontSize:15,fontWeight:800,color:"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>−</button>
+            <div style={{flex:1,height:6,borderRadius:6,background:"#F2F4F6",overflow:"hidden"}}><div style={{width:`${pc}%`,height:"100%",background:ok?"#00C073":"#F97316",borderRadius:6}}/></div>
+            <button onClick={()=>bump(g,1)} style={{width:28,height:28,borderRadius:8,border:"none",background:"#F97316",fontSize:15,fontWeight:800,color:"#fff",cursor:"pointer",fontFamily:"inherit"}}>＋</button>
+          </div>
+        </div>
+      );})}
+      <div style={{display:"flex",gap:5}}>
+        <input value={t} onChange={e=>setT(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addG();}} placeholder="목표명" style={{flex:1,minWidth:0,padding:"8px 9px",borderRadius:8,border:"1.5px solid #E5E8EB",fontSize:12,fontWeight:700,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+        <input type="number" inputMode="numeric" value={n} onChange={e=>setN(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addG();}} placeholder="수치" style={{width:54,flexShrink:0,padding:"8px 6px",borderRadius:8,border:"1.5px solid #E5E8EB",fontSize:12,fontWeight:800,textAlign:"center",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+        <input value={u} onChange={e=>setU(e.target.value)} placeholder="단위" style={{width:42,flexShrink:0,padding:"8px 4px",borderRadius:8,border:"1.5px solid #E5E8EB",fontSize:11,fontWeight:700,textAlign:"center",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+        <button onClick={addG} disabled={!t.trim()||numF(n)<=0} style={{flexShrink:0,padding:"0 11px",borderRadius:8,border:"none",background:t.trim()&&numF(n)>0?"#F97316":"#E5E8EB",color:t.trim()&&numF(n)>0?"#fff":"#9CA3AF",fontSize:12,fontWeight:800,cursor:t.trim()&&numF(n)>0?"pointer":"not-allowed",fontFamily:"inherit"}}>추가</button>
+      </div>
+    </div>
+  );
+}
+function GamePage({D,cu,up,add,rm,nav}){
+  const [gTitle,setGTitle]=useState("");
+  const [gTarget,setGTarget]=useState("");
+  const [gUnit,setGUnit]=useState("건");
+  const [gProj,setGProj]=useState("");
   if(!cu) return <div style={{padding:"40px 16px",textAlign:"center",color:"#9CA3AF"}}>담당자를 먼저 선택하세요</div>;
   const wk=weekKey();
   const myProjs=D.projects.filter(p=>p.assigneeId===cu.id||(p.collaboratorIds||[]).includes(cu.id));
-  const goals=myProjs.map(p=>({p,tgt:myWeekTarget(p,cu.id),done:myWeekDone(D,p,cu.id)}));
-  const withGoal=goals.filter(g=>g.tgt>0);
-  const achieved=withGoal.filter(g=>g.done>=g.tgt).length;
-  const allDone=withGoal.length>0&&achieved===withGoal.length;
+  const wgoals=myWeekGoals(D,cu.id);
+  const achieved=wgoals.filter(wgAchieved).length;
+  const allDone=wgoals.length>0&&achieved===wgoals.length;
   // 이번 주 내가 한 일 (개인 카운트 · 비교 없음)
   let wTask=0,wSales=0,wAct=0;
   (D.tasks||[]).forEach(t=>{ if(!t.isFixed&&t.status==="done"&&inWeek(t.doneAt,wk)&&(matchUid(D,t.doneBy,t.doneByName)||t.assigneeId)===cu.id) wTask++; });
   (D.projects||[]).forEach(p=>{ (p.salesHistory||[]).forEach(h=>{if(inWeek(h.at,wk)&&matchUid(D,h.by,h.byName)===cu.id)wSales++;}); (p.activityKPIs||[]).forEach(ak=>(ak.history||[]).forEach(h=>{if(inWeek(h.at,wk)&&matchUid(D,h.by,h.byName)===cu.id)wAct++;})); });
-  const setTarget=(proj,n)=>{ let list=(proj.weekTargets||[]).filter(t=>!(t.userId===cu.id&&t.week===wk)); if(n>0)list.push({userId:cu.id,week:wk,target:n}); up("projects",proj.id,{weekTargets:pruneWeekTargets(list)}); };
+  const addGoal=()=>{ const tt=gTitle.trim(); const tg=Math.max(0,numF(gTarget)); if(!tt||tg<=0)return;
+    add("weekGoals",{id:"wg"+Date.now(),userId:cu.id,week:wk,title:tt,target:tg,current:0,unit:(gUnit||"").trim()||"건",projectId:gProj||null,createdAt:new Date().toISOString()});
+    setGTitle("");setGTarget("");setGProj(""); };
+  const bump=(g,d)=>up("weekGoals",g.id,{current:Math.max(0,numF(g.current)+d)});
   return(
     <div style={{padding:"14px 16px 20px"}}>
       {/* 이번 주 요약 헤더 */}
       <div style={{background:allDone?"linear-gradient(135deg,#059669,#00C073)":"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:20,padding:"18px",marginBottom:14,color:"#fff"}}>
         <p style={{margin:0,fontSize:11,fontWeight:800,opacity:0.7,letterSpacing:2}}>{weekLabel(wk)} · 내 주간</p>
-        <p style={{margin:"6px 0 0",fontSize:21,fontWeight:900}}>{withGoal.length===0?"이번 주 목표를 정해볼까요?":allDone?"이번 주 목표 전부 달성! 🎉":`${withGoal.length}개 중 ${achieved}개 달성 중`}</p>
+        <p style={{margin:"6px 0 0",fontSize:21,fontWeight:900}}>{wgoals.length===0?"이번 주 목표를 정해볼까요?":allDone?"이번 주 목표 전부 달성! 🎉":`${wgoals.length}개 중 ${achieved}개 달성 중`}</p>
         <div style={{display:"flex",gap:8,marginTop:14}}>
           {[["완료 업무",wTask,"✅"],["매출 입력",wSales,"💰"],["목표지표",wAct,"🎯"]].map(([l,v,ic])=>(
             <div key={l} style={{flex:1,background:"rgba(255,255,255,0.12)",borderRadius:12,padding:"9px 6px",textAlign:"center"}}>
@@ -2375,23 +2744,38 @@ function GamePage({D,cu,up,nav}){
           ))}
         </div>
       </div>
-      <h3 style={{margin:"0 2px 8px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>🎯 프로젝트별 이번 주 내 목표</h3>
-      <p style={{margin:"0 2px 10px",fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>내가 맡은 프로젝트에 이번 주 <b>완료할 업무 수</b>를 정해보세요. 채우면 ✓ 달성! 남과 비교 없어요.</p>
-      {myProjs.length===0&&<div style={{padding:"30px 20px",textAlign:"center",background:"#F9FAFB",borderRadius:14,border:"1px solid #F2F4F6"}}><p style={{margin:0,fontSize:13,color:"#9CA3AF"}}>내가 맡은 프로젝트가 없어요</p></div>}
-      {myProjs.map(p=>{const tgt=myWeekTarget(p,cu.id);const done=myWeekDone(D,p,cu.id);const ok=tgt>0&&done>=tgt;const pc=tgt>0?Math.min(100,Math.round(done/tgt*100)):0;return(
-        <div key={p.id} style={{background:"#fff",borderRadius:14,border:`1px solid ${ok?"rgba(0,192,115,0.3)":"#F2F4F6"}`,padding:"12px 14px",marginBottom:8}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-            <span style={{fontSize:13,fontWeight:800,color:"#0F1F5C",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span>
+      <h3 style={{margin:"0 2px 8px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>🎯 이번 주 내 목표</h3>
+      <p style={{margin:"0 2px 10px",fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>목표명과 수치를 직접 적고, 원하면 <b>프로젝트에 연결</b>하세요. 채우면 ✓ 달성! 남과 비교 없어요.</p>
+      {/* 목표 추가 폼 */}
+      <div style={{background:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"12px 14px",marginBottom:12}}>
+        <input value={gTitle} onChange={e=>setGTitle(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addGoal();}} placeholder="목표명 (예: 상세페이지 3개 완성)" style={{width:"100%",padding:"11px 12px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:13.5,fontWeight:700,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+        <div style={{display:"flex",gap:6,marginTop:8}}>
+          <input type="number" inputMode="numeric" value={gTarget} onChange={e=>setGTarget(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addGoal();}} placeholder="목표 수치" style={{flex:1,minWidth:0,padding:"10px 12px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:13.5,fontWeight:800,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+          <input value={gUnit} onChange={e=>setGUnit(e.target.value)} placeholder="단위" style={{width:64,flexShrink:0,padding:"10px 8px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:13,fontWeight:700,textAlign:"center",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+        </div>
+        <select value={gProj} onChange={e=>setGProj(e.target.value)} style={{width:"100%",marginTop:8,padding:"10px 12px",borderRadius:10,border:`1.5px solid ${gProj?"#F97316":"#E5E8EB"}`,fontSize:12.5,fontWeight:700,color:gProj?"#0F1F5C":"#9CA3AF",background:gProj?"#FFEDD5":"#fff",outline:"none",fontFamily:"inherit",WebkitAppearance:"none",appearance:"none"}}>
+          <option value="">📁 프로젝트 연결 (선택)</option>
+          {D.projects.map(p=><option key={p.id} value={p.id}>{p.group?`[${p.group}] `:""}{p.title}</option>)}
+        </select>
+        <button onClick={addGoal} disabled={!gTitle.trim()||numF(gTarget)<=0} style={{width:"100%",marginTop:8,padding:"12px 0",borderRadius:11,border:"none",background:gTitle.trim()&&numF(gTarget)>0?"linear-gradient(135deg,#F97316,#EA580C)":"#E5E8EB",color:gTitle.trim()&&numF(gTarget)>0?"#fff":"#9CA3AF",fontSize:13.5,fontWeight:800,cursor:gTitle.trim()&&numF(gTarget)>0?"pointer":"not-allowed",fontFamily:"inherit"}}>＋ 목표 추가</button>
+      </div>
+      {wgoals.length===0&&<div style={{padding:"24px 20px",textAlign:"center",background:"#F9FAFB",borderRadius:14,border:"1px solid #F2F4F6",marginBottom:8}}><p style={{margin:0,fontSize:13,color:"#9CA3AF"}}>아직 이번 주 목표가 없어요 · 위에서 추가하세요</p></div>}
+      {wgoals.map(g=>{const cur=numF(g.current);const tg=numF(g.target);const ok=wgAchieved(g);const pc=tg>0?Math.min(100,Math.round(cur/tg*100)):0;const proj=g.projectId?D.projects.find(p=>p.id===g.projectId):null;return(
+        <div key={g.id} style={{background:"#fff",borderRadius:14,border:`1px solid ${ok?"rgba(0,192,115,0.35)":"#F2F4F6"}`,padding:"12px 14px",marginBottom:8}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
+            <span style={{fontSize:13.5,fontWeight:800,color:"#0F1F5C",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.title}</span>
             {ok&&<span style={{fontSize:10.5,fontWeight:900,color:"#fff",background:"#00C073",padding:"3px 9px",borderRadius:10,flexShrink:0}}>✓ 달성!</span>}
+            <button onClick={()=>rm("weekGoals",g.id)} style={{background:"none",border:"none",fontSize:14,cursor:"pointer",color:"#D1D5DB",padding:4,flexShrink:0}}>✕</button>
           </div>
-          {tgt>0&&<div style={{marginBottom:9}}>
-            <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:4}}><span style={{color:"#9CA3AF"}}>이번 주 완료 업무</span><span style={{fontWeight:900,color:ok?"#00C073":"#F97316"}}>{done} / {tgt}건 · {pc}%</span></div>
+          {proj&&<span style={{display:"inline-block",marginBottom:8,fontSize:10,fontWeight:700,color:"#8B5CF6",background:"#F5F3FF",borderRadius:7,padding:"3px 8px"}}>📁 {proj.title}</span>}
+          <div style={{marginBottom:9}}>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:4}}><span style={{color:"#9CA3AF"}}>진행</span><span style={{fontWeight:900,color:ok?"#00C073":"#F97316"}}>{numF(cur)} / {tg}{g.unit||"건"} · {pc}%</span></div>
             <div style={{height:7,borderRadius:7,background:"#F2F4F6",overflow:"hidden"}}><div style={{width:`${pc}%`,height:"100%",background:ok?"#00C073":"linear-gradient(90deg,#F97316,#FBBF24)",borderRadius:7}}/></div>
-          </div>}
-          <div style={{display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}>
-            <span style={{fontSize:10.5,color:"#9CA3AF",fontWeight:700}}>목표 ▸</span>
-            {[1,3,5,8,10].map(n=>(<button key={n} onClick={()=>setTarget(p,n)} style={{padding:"4px 10px",borderRadius:14,border:`1.5px solid ${tgt===n?"#F97316":"#E5E8EB"}`,background:tgt===n?"#FFEDD5":"#fff",fontSize:11.5,fontWeight:800,color:tgt===n?"#EA580C":"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>{n}건</button>))}
-            {tgt>0&&<button onClick={()=>setTarget(p,0)} style={{padding:"4px 9px",borderRadius:14,border:"1px solid #FFE2E5",background:"#FFF0F1",fontSize:10.5,fontWeight:700,color:"#F04452",cursor:"pointer",fontFamily:"inherit"}}>해제</button>}
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <button onClick={()=>bump(g,-1)} style={{width:34,height:34,borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",fontSize:18,fontWeight:800,color:"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>−</button>
+            <input type="number" inputMode="numeric" value={cur} onChange={e=>up("weekGoals",g.id,{current:Math.max(0,numF(e.target.value))})} style={{flex:1,minWidth:0,padding:"8px 10px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:14,fontWeight:800,textAlign:"center",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+            <button onClick={()=>bump(g,1)} style={{width:34,height:34,borderRadius:9,border:"none",background:"#F97316",fontSize:18,fontWeight:800,color:"#fff",cursor:"pointer",fontFamily:"inherit"}}>＋</button>
           </div>
         </div>
       );})}
@@ -2450,9 +2834,9 @@ function ExportPanel({D}){
     downloadCSV(rows,"목표지표");
   };
   const expWeekGoals=()=>{
-    const rows=[["프로젝트","담당자","주차","목표(완료업무)","이번주완료","달성"]];
-    const wk=weekKey();
-    (D.projects||[]).forEach(p=>(p.weekTargets||[]).forEach(t=>{const dn=t.week===wk?myWeekDone(D,p,t.userId):"";const ok=t.week===wk?(dn>=numF(t.target)?"O":"X"):"";rows.push([p.title,uname(t.userId),t.week,numF(t.target),dn,ok]);}));
+    const rows=[["주차","담당자","목표명","연결 프로젝트","현재","목표","단위","달성"]];
+    const pname=(id)=>id?(D.projects.find(p=>p.id===id)?.title||""):"";
+    (D.weekGoals||[]).forEach(g=>rows.push([g.week,uname(g.userId),g.title,pname(g.projectId),numF(g.current),numF(g.target),g.unit||"건",wgAchieved(g)?"O":"X"]));
     if(rows.length===1)return alert("주간 목표 기록이 없어요");
     downloadCSV(rows,"주간목표");
   };

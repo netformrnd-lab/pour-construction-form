@@ -2534,7 +2534,54 @@ function ProcessEditorPage({D}){
     </div>
   );
 }
+// 업무 보드 — 팀 전체 현황 뷰 (담당자별 진행률·업무 상태·내 차례)
+function TeamBoard({D,cu}){
+  const mem=D.users.map(u=>{
+    const projs=D.projects.filter(p=>p.assigneeId===u.id);
+    const tasks=D.tasks.filter(t=>!t.isFixed&&t.assigneeId===u.id);
+    const done=tasks.filter(t=>t.status==="done").length;
+    const inprog=tasks.filter(t=>t.status==="inprogress").length;
+    let ready=0; D.projects.filter(p=>p.templateId).forEach(p=>{const ts=launchProjTasks(D,p);ts.forEach(t=>{if(t.assigneeId===u.id&&launchStageStatus(t,ts)==="ready")ready++;});});
+    return {u,projN:projs.length,done,total:tasks.length,inprog,ready,prog:tasks.length?Math.round(done/tasks.length*100):0};
+  });
+  const allT=D.tasks.filter(t=>!t.isFixed), allDone=allT.filter(t=>t.status==="done").length;
+  const teamProg=allT.length?Math.round(allDone/allT.length*100):0;
+  return(
+    <div>
+      <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"16px",marginBottom:14,color:"#fff"}}>
+        <p style={{margin:0,fontSize:12,fontWeight:800,opacity:0.8}}>팀 전체 현황</p>
+        <p style={{margin:"4px 0 10px",fontSize:22,fontWeight:900}}>업무 {allDone}/{allT.length} · {teamProg}%</p>
+        <div style={{height:8,borderRadius:8,background:"rgba(255,255,255,0.2)",overflow:"hidden"}}><div style={{width:teamProg+"%",height:"100%",background:"#F97316",borderRadius:8}}/></div>
+        <p style={{margin:"8px 0 0",fontSize:11,opacity:0.8}}>프로젝트 {D.projects.length}개 · 팀원 {D.users.length}명</p>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {mem.map(m=>(
+          <div key={m.u.id} style={{backgroundColor:"#fff",borderRadius:14,border:`1px solid ${m.u.id===cu.id?"#FED7AA":"#F2F4F6"}`,padding:"13px 14px"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:9}}>
+              <Ava name={m.u.name} color={m.u.color} size={38}/>
+              <div style={{flex:1,minWidth:0}}>
+                <p style={{margin:0,fontSize:14,fontWeight:900,color:"#111827"}}>{m.u.name}{m.u.id===cu.id&&<span style={{fontSize:10,color:"#EA580C",fontWeight:700}}> (나)</span>}</p>
+                <p style={{margin:"1px 0 0",fontSize:10.5,color:"#9CA3AF"}}>{m.u.dept} · 프로젝트 {m.projN}개</p>
+              </div>
+              {m.ready>0&&<span style={{fontSize:10.5,fontWeight:800,color:"#fff",background:"#F97316",borderRadius:8,padding:"3px 8px",flexShrink:0}}>🔔 내 차례 {m.ready}</span>}
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
+              <div style={{flex:1,height:6,borderRadius:6,background:"#F2F4F6",overflow:"hidden"}}><div style={{width:m.prog+"%",height:"100%",background:m.prog>=70?"#00C073":m.u.color,borderRadius:6}}/></div>
+              <span style={{fontSize:12,fontWeight:900,color:m.u.color,flexShrink:0}}>{m.prog}%</span>
+            </div>
+            <div style={{display:"flex",gap:6}}>
+              <span style={{fontSize:10.5,fontWeight:700,color:"#3182F6",background:"#EBF3FF",borderRadius:6,padding:"2px 8px"}}>진행중 {m.inprog}</span>
+              <span style={{fontSize:10.5,fontWeight:700,color:"#00C073",background:"#E8FAF1",borderRadius:6,padding:"2px 8px"}}>완료 {m.done}</span>
+              <span style={{fontSize:10.5,fontWeight:700,color:"#6B7280",background:"#F2F4F6",borderRadius:6,padding:"2px 8px"}}>전체 {m.total}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 function MindMapPage({D,cu}){
+  const [scope,setScope]=useState("person");   // person(개인 트리·주간맵) | team(전체현황)
   const [boardView,setBoardView]=useState("tree");
   const [sel,setSel]=useState(cu.id);
   const user=D.users.find(u=>u.id===sel);
@@ -2544,6 +2591,13 @@ function MindMapPage({D,cu}){
   const isThisWeek=task=>!!(task.weekDay&&WEEK_DAYS.includes(task.weekDay));
   return(
     <div style={{padding:"14px 16px 20px"}}>
+      <div style={{display:"flex",gap:6,marginBottom:14}}>
+        {[["person","🙋 개인"],["team","👥 팀"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setScope(k)} style={{flex:1,padding:"10px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:scope===k?"#0F1F5C":"#F2F4F6",color:scope===k?"#fff":"#374151",fontWeight:800,fontSize:13.5,fontFamily:"inherit"}}>{l}</button>
+        ))}
+      </div>
+      {scope==="team"&&<TeamBoard D={D} cu={cu}/>}
+      {scope==="person"&&(<>
       <div style={{display:"flex",backgroundColor:"#F2F4F6",borderRadius:14,padding:4,marginBottom:14}}>
         {[{k:"tree",l:"◈ 담당자 트리"},{k:"weekly",l:"🗓 주간 맵"}].map(v=>(
           <button key={v.k} onClick={()=>setBoardView(v.k)} style={{flex:1,padding:"9px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:boardView===v.k?"#FFFFFF":"transparent",color:boardView===v.k?"#0F1F5C":"#6B7280",fontWeight:boardView===v.k?800:500,fontSize:13,fontFamily:"inherit",boxShadow:boardView===v.k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{v.l}</button>
@@ -2749,6 +2803,7 @@ function MindMapPage({D,cu}){
           })}
         </div>
       )}
+      </>)}
     </div>
   );
 }

@@ -1545,7 +1545,7 @@ function KPIPage({D,lead,up,cu,add,rm}){
 }
 // 프로젝트 프로세스 편집기 — 업무를 계층 트리로 편집(Enter/Space/◂▸), 저장 시 실제 task에 반영(parentId·seq)
 function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
-  const team=(proj.collaboratorIds||[]).length>0;
+  const team=proj.projType?proj.projType==="team":(proj.collaboratorIds||[]).length>0;
   const MEM=[{id:"",name:"미배정",color:"#9CA3AF"},...(D.users||[])];
   const Mof=id=>MEM.find(m=>m.id===id)||MEM[0];
   const load=()=>{
@@ -1676,10 +1676,10 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
   const [editProjId,setEditProjId]=useState(null);
   const [projDel,setProjDel]=useState(null);
   const [showAdv,setShowAdv]=useState(false);
-  const [projForm,setProjForm]=useState({title:"",goalType:"journey",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high"});
+  const [projForm,setProjForm]=useState({title:"",goalType:"journey",projType:"team",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high"});
   const [metric,setMetric]=useState({name:"",target:"",unit:"개"});
-  const resetProjForm=()=>{setProjForm({title:"",goalType:"journey",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high"});setMetric({name:"",target:"",unit:"개"});};
-  const openEditProj=(p)=>{ setProjForm({title:p.title||"",goalType:p.goalType||(p.mainKPIId==="mk2"||p.resultValue?"revenue":"journey"),mainKPIId:p.mainKPIId||"",subKPIId:p.subKPIId||"",dealerType:p.dealerType||"",assigneeId:p.assigneeId||cu.id,collaboratorIds:p.collaboratorIds||[],group:p.group||"",priority:p.priority||"mid"}); setMetric({name:"",target:"",unit:"개"}); setEditProjId(p.id); setShowAdv(true); setAddProjSheet(true); };
+  const resetProjForm=()=>{setProjForm({title:"",goalType:"journey",projType:"team",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high"});setMetric({name:"",target:"",unit:"개"});};
+  const openEditProj=(p)=>{ setProjForm({title:p.title||"",goalType:p.goalType||(p.mainKPIId==="mk2"||p.resultValue?"revenue":"journey"),projType:p.projType||((p.collaboratorIds||[]).length>0?"team":"solo"),mainKPIId:p.mainKPIId||"",subKPIId:p.subKPIId||"",dealerType:p.dealerType||"",assigneeId:p.assigneeId||cu.id,collaboratorIds:p.collaboratorIds||[],group:p.group||"",priority:p.priority||"mid"}); setMetric({name:"",target:"",unit:"개"}); setEditProjId(p.id); setShowAdv(true); setAddProjSheet(true); };
   const doAddProj=()=>{
     if(!projForm.title.trim()) return;
     if(editProjId){ up("projects",editProjId,{...projForm}); }
@@ -1967,6 +1967,16 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
         <div style={{marginTop:10}}>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>프로젝트명 *</label><input value={projForm.title} onChange={e=>setProjForm({...projForm,title:e.target.value})} onKeyDown={e=>{if(e.key==="Enter"&&projForm.title.trim())doAddProj();}} placeholder="프로젝트 이름 (Enter로 빠른 추가)" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>담당자</label><select value={projForm.assigneeId} onChange={e=>setProjForm({...projForm,assigneeId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}>{D.users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></div>
+          <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>프로젝트 유형</label>
+            <div style={{display:"flex",gap:6}}>
+              {[["team","👥 팀 협업","담당자 인계·마인드맵"],["solo","🙋 개인","계층형 체크리스트"]].map(([k,l,d])=>(
+                <button key={k} onClick={()=>setProjForm({...projForm,projType:k})} style={{flex:1,padding:"10px 4px",borderRadius:11,border:`1.5px solid ${projForm.projType===k?"#F97316":"#E5E8EB"}`,background:projForm.projType===k?"#FFEDD5":"#fff",cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
+                  <p style={{margin:0,fontSize:12.5,fontWeight:800,color:projForm.projType===k?"#EA580C":"#374151"}}>{l}</p>
+                  <p style={{margin:"2px 0 0",fontSize:9,color:"#9CA3AF"}}>{d}</p>
+                </button>
+              ))}
+            </div>
+          </div>
           <div style={{marginBottom:14}}>
             <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>이 프로젝트의 성과는? <span style={{color:"#9CA3AF",fontWeight:600}}>(측정 방식)</span></label>
             <div style={{display:"flex",gap:6}}>

@@ -512,10 +512,11 @@ export default function App(){
   // 업무 변동 시 프로젝트 진척 자동 재산출(수동지정 progressManual 제외, 업무 없으면 기존값 유지)
   const recalcProg=(state)=>{
     const tasks=state.tasks||[];
+    const parentIds=new Set(tasks.filter(t=>t.parentId).map(t=>t.parentId));   // 하위를 가진 업무(상위)는 진행률 집계 제외
     let changed=false;
     const projects=(state.projects||[]).map(pr=>{
       if(pr.progressManual) return pr;
-      const real=tasks.filter(t=>t.projectId===pr.id&&!t.isFixed);
+      const real=tasks.filter(t=>t.projectId===pr.id&&!t.isFixed&&!parentIds.has(t.id));
       if(real.length===0) return pr;
       const auto=Math.round(real.filter(t=>t.status==="done").length/real.length*100);
       if(auto===(pr.progress||0)) return pr;
@@ -1570,18 +1571,24 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
     else if(e.key===" "&&e.target.value===""){e.preventDefault();indent(i,1);focusRef.current={id:it.id};}
     else if(e.key==="Backspace"&&e.target.value===""&&items.length>1){e.preventDefault();const p=items[i-1]||items[0];setItems(a=>a.filter((_,k)=>k!==i));setSelId(p.id);focusRef.current={id:p.id};}
   };
-  const doneN=items.filter(x=>x.done&&x.text.trim()).length, totN=items.filter(x=>x.text.trim()).length, prog=totN?Math.round(doneN/totN*100):0;
+  const isP=(arr,i)=>i+1<arr.length&&arr[i+1].depth>arr[i].depth;   // 하위가 있으면 상위(단계)
+  const computeDD=(arr)=>{const dd=new Array(arr.length);const lastIdx=(i)=>{let k=i+1;while(k<arr.length&&arr[k].depth>arr[i].depth)k++;return k-1;};const kidsOf=(i)=>{const o=[];const e=lastIdx(i);for(let k=i+1;k<=e;k++)if(arr[k].depth===arr[i].depth+1)o.push(k);return o;};for(let i=arr.length-1;i>=0;i--){if(isP(arr,i)){const ks=kidsOf(i);dd[i]=ks.length>0&&ks.every(k=>dd[k]);}else dd[i]=!!arr[i].done;}return {dd,kidsOf};};
+  const {dd,kidsOf}=computeDD(items);   // 상위는 하위 전부 완료 시 자동 완료(롤업)
+  const leafIdx=items.map((_,i)=>i).filter(i=>!isP(items,i)&&items[i].text.trim());   // 말단 업무만
+  const doneN=leafIdx.filter(i=>items[i].done).length, totN=leafIdx.length, prog=totN?Math.round(doneN/totN*100):0;
   const save=()=>{
     const existing=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed);
+    const {dd:dd2}=computeDD(items);
     const present=new Set(), idMap={};
     items.forEach((it,i)=>{ if(!it.text.trim()&&!it.tid) return;
       let parentId=null; for(let k=i-1;k>=0;k--){ if(items[k].depth===it.depth-1){parentId=idMap[k]||null;break;} if(items[k].depth<it.depth-1)break; }
+      const dn=isP(items,i)?dd2[i]:it.done;   // 상위는 하위 롤업으로 완료 판정
       if(it.tid){ const t=existing.find(x=>x.id===it.tid); idMap[i]=it.tid; present.add(it.tid);
         const p={title:it.text.trim(),assigneeId:it.who,parentId,seq:i};
-        if(it.done&&t&&t.status!=="done")p.status="done"; if(!it.done&&t&&t.status==="done")p.status="todo";
+        if(dn&&t&&t.status!=="done")p.status="done"; if(!dn&&t&&t.status==="done")p.status="todo";
         up("tasks",it.tid,p);
       } else { const nid="t"+Date.now()+"_"+i; idMap[i]=nid; present.add(nid);
-        add("tasks",{id:nid,title:it.text.trim(),projectId:proj.id,parentId,assigneeId:it.who,type:"general",status:it.done?"done":"todo",weekDay:null,weekSlot:null,isFixed:false,dueDate:"",memo:"",attachments:[],seq:i});
+        add("tasks",{id:nid,title:it.text.trim(),projectId:proj.id,parentId,assigneeId:it.who,type:"general",status:dn?"done":"todo",weekDay:null,weekSlot:null,isFixed:false,dueDate:"",memo:"",attachments:[],seq:i});
       }
     });
     existing.forEach(t=>{ if(!present.has(t.id)) rm("tasks",t.id); });
@@ -1605,13 +1612,15 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
           <span style={{fontSize:13,fontWeight:900,color:prog>=100?"#00C073":"#F97316"}}>{doneN}/{totN} · {prog}%</span>
         </div>
         <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"12px 10px"}} ref={outRef}>
-          {items.map((it,i)=>{const m=Mof(it.who);return(
+          {items.map((it,i)=>{const m=Mof(it.who);const parent=isP(items,i);const rdone=parent?dd[i]:it.done;return(
             <div key={it.id} style={{display:"flex",alignItems:"center",gap:6,marginLeft:it.depth*20,padding:"3px 6px",borderRadius:9,backgroundColor:it.id===selId?"#FFF7ED":"transparent"}}>
               <button onClick={()=>indent(i,-1)} style={{border:"none",background:"none",color:"#C4C9D0",fontSize:13,cursor:"pointer",padding:"2px 2px"}}>◂</button>
               <button onClick={()=>indent(i,1)} style={{border:"none",background:"none",color:"#C4C9D0",fontSize:13,cursor:"pointer",padding:"2px 2px"}}>▸</button>
-              <button onClick={()=>toggleDone(it.id)} style={{width:19,height:19,borderRadius:6,border:`2px solid ${it.done?"#00C073":"#D1D5DB"}`,background:it.done?"#00C073":"#fff",color:"#fff",fontSize:11,fontWeight:900,cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>{it.done?"✓":""}</button>
+              {parent
+                ? (()=>{const ks=kidsOf(i);const cdn=ks.filter(k=>dd[k]).length;return(<span title="하위 진행(자동 완료)" style={{minWidth:19,height:19,borderRadius:6,background:rdone?"#00C073":"#EEF1F3",color:rdone?"#fff":"#6B7280",fontSize:9.5,fontWeight:800,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 4px",boxSizing:"border-box"}}>{rdone?"✓":cdn+"/"+ks.length}</span>);})()
+                : <button onClick={()=>toggleDone(it.id)} style={{width:19,height:19,borderRadius:6,border:`2px solid ${it.done?"#00C073":"#D1D5DB"}`,background:it.done?"#00C073":"#fff",color:"#fff",fontSize:11,fontWeight:900,cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>{it.done?"✓":""}</button>}
               {team&&<button onClick={()=>setSelId(it.id)} title={m.name} style={{width:18,height:18,borderRadius:"50%",backgroundColor:m.color,color:"#fff",fontSize:9,fontWeight:800,border:"none",cursor:"pointer",flexShrink:0}}>{m.name[0]}</button>}
-              <input data-id={it.id} value={it.text} placeholder="업무 입력..." onChange={e=>patch(it.id,{text:e.target.value})} onFocus={()=>setSelId(it.id)} onKeyDown={e=>onKey(e,i)} style={{flex:1,minWidth:0,border:"none",background:"none",fontSize:13.5,fontWeight:600,color:it.done?"#9CA3AF":"#1F2937",textDecoration:it.done?"line-through":"none",outline:"none",fontFamily:"inherit",padding:"5px 2px"}}/>
+              <input data-id={it.id} value={it.text} placeholder={parent?"단계명...":"업무 입력..."} onChange={e=>patch(it.id,{text:e.target.value})} onFocus={()=>setSelId(it.id)} onKeyDown={e=>onKey(e,i)} style={{flex:1,minWidth:0,border:"none",background:"none",fontSize:13.5,fontWeight:parent?800:600,color:rdone?"#9CA3AF":"#1F2937",textDecoration:rdone?"line-through":"none",outline:"none",fontFamily:"inherit",padding:"5px 2px"}}/>
             </div>
           );})}
         </div>

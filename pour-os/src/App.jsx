@@ -1539,6 +1539,16 @@ function ProjectsPage({D,cu,up,add,rm,pc}){
   };
   const availSKs=D.subKPIs.filter(sk=>sk.mainKPIId===projForm.mainKPIId);
   const toggleColab=(uid)=>{const list=projForm.collaboratorIds;setProjForm({...projForm,collaboratorIds:list.includes(uid)?list.filter(x=>x!==uid):[...list,uid]});};
+  // 예시(데모) 프로젝트 — 초기 시드는 id가 p+짧은숫자(p001 등), 직접 만든 건 p+타임스탬프(13자리)라 구분 가능
+  const demoProjs=D.projects.filter(p=>/^p\d{1,4}$/.test(p.id));
+  const cleanupDemo=()=>{
+    if(!demoProjs.length) return;
+    if(!window.confirm(`예시(데모) 프로젝트 ${demoProjs.length}개와 그 업무를 삭제할까요?\n내가 직접 만든 프로젝트는 그대로 남습니다.\n(되돌리려면 KPI ▸ 데이터 추출의 백업 사용)`)) return;
+    const ids=new Set(demoProjs.map(p=>p.id));
+    D.tasks.filter(t=>ids.has(t.projectId)).forEach(t=>rm("tasks",t.id));
+    demoProjs.forEach(p=>rm("projects",p.id));
+    setProjDetail(null);
+  };
   const projs=filter==="all"?D.projects:D.projects.filter(p=>p.assigneeId===cu.id);
   const groups=[...new Set(projs.map(p=>p.group))];
   const filtered=projs.filter(p=>(groupFilter==="all"||p.group===groupFilter)&&(asgFilter==="all"||p.assigneeId===asgFilter)&&(!search.trim()||(p.title||"").toLowerCase().includes(search.trim().toLowerCase())));
@@ -1574,6 +1584,16 @@ function ProjectsPage({D,cu,up,add,rm,pc}){
   const ST=STATUS_MAP;
   return(
     <div style={{padding:"14px 16px 20px"}}>
+      {demoProjs.length>0&&(
+        <div style={{display:"flex",alignItems:"center",gap:10,backgroundColor:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:12,padding:"11px 13px",marginBottom:12}}>
+          <span style={{fontSize:18}}>🧹</span>
+          <div style={{flex:1,minWidth:0}}>
+            <p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#9A3412"}}>예시(데모) 프로젝트 {demoProjs.length}개가 섞여 있어요</p>
+            <p style={{margin:"2px 0 0",fontSize:10.5,color:"#B45309"}}>내가 직접 만든 프로젝트는 유지됩니다</p>
+          </div>
+          <button onClick={cleanupDemo} style={{flexShrink:0,padding:"8px 13px",borderRadius:9,border:"none",backgroundColor:"#EA580C",color:"#fff",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>예시 전부 삭제</button>
+        </div>
+      )}
       <div style={{display:"flex",gap:8,marginBottom:10,alignItems:"center"}}>
         {[{k:"mine",l:"내 프로젝트"},{k:"all",l:"전체 ("+D.projects.length+")"}].map(f=>(
           <button key={f.k} onClick={()=>setFilter(f.k)} style={{padding:"8px 16px",borderRadius:20,border:"none",cursor:"pointer",backgroundColor:filter===f.k?"#0F1F5C":"#F2F4F6",color:filter===f.k?"#FFFFFF":"#374151",fontWeight:700,fontSize:12.5,fontFamily:"inherit"}}>{f.l}</button>
@@ -1639,7 +1659,6 @@ function ProjectsPage({D,cu,up,add,rm,pc}){
                 <div style={{borderTop:"1px solid #F2F4F6",backgroundColor:"#F9FAFB"}}>
                   {(()=>{const rows=projContrib(D,proj);const max=Math.max(...rows.map(r=>r.total),1);return(
                     <div style={{padding:"12px 16px 0"}}>
-                      <ProjWeekGoals D={D} cu={cu} proj={proj} add={add} up={up} rm={rm}/>
                       {rows.length>0&&<div style={{marginTop:8}}>
                         <p style={{margin:"0 0 6px",fontSize:11.5,fontWeight:800,color:"#4B5563"}}>👥 기여 현황 <span style={{fontWeight:600,color:"#9CA3AF"}}>(완료 업무·매출·지표 기록 기준)</span></p>
                         {rows.map(r=>{const u=D.users.find(x=>x.id===r.uid);const w=Math.round(r.total/max*100);const isMe=r.uid===cu.id;return(

@@ -2709,8 +2709,57 @@ function TeamBoard({D,cu}){
     </div>
   );
 }
+// 팀 진단 — 업무 데이터로 막힘·적체·헛심을 읽고 프로세스 개선(평가 아님·진단용)
+function TeamDiagnose({D,cu}){
+  const parentIds=new Set((D.tasks||[]).filter(t=>t.parentId).map(t=>t.parentId));
+  const leaf=t=>!t.isFixed&&!parentIds.has(t.id);
+  const mem=D.users.map(u=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.assigneeId===u.id);const done=ts.filter(t=>t.status==="done").length;const open=ts.length-done;const rate=ts.length?Math.round(done/ts.length*100):0;return {u,total:ts.length,done,open,rate,stuck:open>=3&&rate<50};}).sort((a,b)=>b.open-a.open);
+  const projStuck=(D.projects||[]).map(p=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.projectId===p.id);const done=ts.filter(t=>t.status==="done").length;return {p,total:ts.length,open:ts.length-done};}).filter(x=>x.open>0).sort((a,b)=>b.open-a.open).slice(0,6);
+  const heotsim=(D.projects||[]).filter(p=>p.mainKPIId==="mk1"||p.mainKPIId==="mk2").map(p=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.projectId===p.id);return {p,done:ts.filter(t=>t.status==="done").length,rev:numF(p.resultValue)};}).filter(x=>x.done>=3&&x.rev===0).sort((a,b)=>b.done-a.done).slice(0,6);
+  const Card=({icon,title,desc,action,children})=>(
+    <div style={{background:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"14px 15px",marginBottom:12}}>
+      <p style={{margin:0,fontSize:13.5,fontWeight:900,color:"#0F1F5C"}}>{icon} {title}</p>
+      <p style={{margin:"3px 0 10px",fontSize:10.5,color:"#9CA3AF",lineHeight:1.5}}>{desc}</p>
+      {children}
+      <p style={{margin:"10px 0 0",fontSize:10.5,fontWeight:800,color:"#EA580C"}}>→ {action}</p>
+    </div>
+  );
+  return(
+    <div>
+      <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:14,padding:"13px 15px",marginBottom:14,color:"#fff"}}>
+        <p style={{margin:0,fontSize:14,fontWeight:900}}>🩺 팀 진단</p>
+        <p style={{margin:"3px 0 0",fontSize:10.5,opacity:0.82}}>업무 데이터로 막힘·적체·헛심을 읽고 프로세스를 개선합니다 (평가 아님 · 진단용)</p>
+      </div>
+      <Card icon="⚠️" title="막힘·과부하 (담당자)" desc="안고 있는 미완이 많고 완료율이 낮으면 막힘/과부하 신호" action="막힌 담당자 일 재분배·프로세스 재설계">
+        {mem.map(m=>(
+          <div key={m.u.id} style={{display:"flex",alignItems:"center",gap:9,padding:"7px 0",borderBottom:"1px solid #F6F7F9"}}>
+            <Ava name={m.u.name} color={m.u.color} size={26}/>
+            <span style={{flex:1,fontSize:12.5,fontWeight:700,color:"#1F2937"}}>{m.u.name}{m.stuck&&<span style={{marginLeft:6,fontSize:9.5,fontWeight:800,color:"#fff",background:"#F04452",borderRadius:6,padding:"1px 6px"}}>🔴 막힘</span>}</span>
+            <span style={{fontSize:11,color:"#6B7280",flexShrink:0}}>미완 {m.open} · 완료율 {m.rate}%</span>
+          </div>
+        ))}
+      </Card>
+      <Card icon="🧱" title="적체 프로젝트" desc="미완 말단 업무가 많이 쌓인 프로젝트" action="가장 막힌 프로젝트부터 단계 점검·정리">
+        {projStuck.length===0?<p style={{margin:0,fontSize:12,color:"#C4C9D0"}}>적체 없음</p>:projStuck.map(x=>(
+          <div key={x.p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid #F6F7F9"}}>
+            <span style={{flex:1,fontSize:12.5,fontWeight:600,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{x.p.title}</span>
+            <span style={{fontSize:11,fontWeight:800,color:"#EA580C",flexShrink:0}}>미완 {x.open}/{x.total}</span>
+          </div>
+        ))}
+      </Card>
+      <Card icon="💸" title="행동 대비 결과 낮음" desc="완료 업무는 쌓였는데 매출 0인 매출 프로젝트 = 헛심 후보" action="전략 재배치·불필요 행동 컷 검토">
+        {heotsim.length===0?<p style={{margin:0,fontSize:12,color:"#C4C9D0"}}>해당 없음</p>:heotsim.map(x=>(
+          <div key={x.p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid #F6F7F9"}}>
+            <span style={{flex:1,fontSize:12.5,fontWeight:600,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{x.p.title}</span>
+            <span style={{fontSize:11,fontWeight:700,color:"#9CA3AF",flexShrink:0}}>완료 {x.done} · 매출 0</span>
+          </div>
+        ))}
+      </Card>
+    </div>
+  );
+}
 function MindMapPage({D,cu}){
-  const [scope,setScope]=useState("person");   // person(개인 트리·주간맵) | team(전체현황)
+  const [scope,setScope]=useState("person");   // person | team | diag
   const [boardView,setBoardView]=useState("tree");
   const [sel,setSel]=useState(cu.id);
   const user=D.users.find(u=>u.id===sel);
@@ -2721,11 +2770,12 @@ function MindMapPage({D,cu}){
   return(
     <div style={{padding:"14px 16px 20px"}}>
       <div style={{display:"flex",gap:6,marginBottom:14}}>
-        {[["person","🙋 개인"],["team","👥 팀"]].map(([k,l])=>(
-          <button key={k} onClick={()=>setScope(k)} style={{flex:1,padding:"10px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:scope===k?"#0F1F5C":"#F2F4F6",color:scope===k?"#fff":"#374151",fontWeight:800,fontSize:13.5,fontFamily:"inherit"}}>{l}</button>
+        {[["person","🙋 개인"],["team","👥 팀"],["diag","🩺 진단"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setScope(k)} style={{flex:1,padding:"10px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:scope===k?"#0F1F5C":"#F2F4F6",color:scope===k?"#fff":"#374151",fontWeight:800,fontSize:13,fontFamily:"inherit"}}>{l}</button>
         ))}
       </div>
       {scope==="team"&&<TeamBoard D={D} cu={cu}/>}
+      {scope==="diag"&&<TeamDiagnose D={D} cu={cu}/>}
       {scope==="person"&&(<>
       <div style={{display:"flex",backgroundColor:"#F2F4F6",borderRadius:14,padding:4,marginBottom:14}}>
         {[{k:"tree",l:"◈ 담당자 트리"},{k:"weekly",l:"🗓 주간 맵"}].map(v=>(

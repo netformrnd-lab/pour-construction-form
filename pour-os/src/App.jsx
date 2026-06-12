@@ -1531,9 +1531,23 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
   const [actForm,setActForm]=useState({name:"",unit:"건",target:""});
   const [actMode,setActMode]=useState("delta");   // delta(이번주 추가) | total(누계 직접)
   const [actHist,setActHist]=useState(null);   // 활동지표 이력 {proj,ak}
+  const [actEdit,setActEdit]=useState(null);   // 목표지표 수정 {proj,ak}
   const actAddIndicator=(proj)=>{ if(!actForm.name.trim())return; const list=[...(proj.activityKPIs||[]),{id:"ak"+Date.now(),name:actForm.name.trim(),unit:actForm.unit||"건",target:Number(actForm.target)||0,current:0,history:[]}]; up("projects",proj.id,{activityKPIs:list}); setActForm({name:"",unit:"건",target:""}); };
   const actRecord=(proj,ak,raw)=>{ const amt=Number(raw); if(isNaN(amt))return; const prev=Number(ak.current||0); const v=actMode==="delta"?prev+amt:amt; const at=new Date().toISOString(); const week=weekKey(); const list=(proj.activityKPIs||[]).map(x=>x.id===ak.id?{...x,current:v,week,by:cu?.id||null,byName:cu?.name||"",history:[...(x.history||[]),{week,value:v,amount:amt,mode:actMode,by:cu?.id||null,byName:cu?.name||"",at}]}:x); up("projects",proj.id,{activityKPIs:list}); };
   const actRemove=(proj,ak)=>up("projects",proj.id,{activityKPIs:(proj.activityKPIs||[]).filter(x=>x.id!==ak.id)});
+  // 목표지표 수정(이름·단위·목표값) + 변경분 수정이력 기록
+  const actSaveEdit=(proj,ak,f)=>{
+    const name=(f.name||"").trim()||ak.name;
+    const unit=(f.unit||"").trim()||ak.unit||"건";
+    const tgt=f.target===""||isNaN(Number(f.target))?numF(ak.target):Number(f.target);
+    const at=new Date().toISOString(); const by=cu?.id||null,byName=cu?.name||"";
+    const edits=[...(ak.edits||[])];
+    if(name!==ak.name) edits.push({at,by,byName,field:"이름",from:ak.name,to:name});
+    if(unit!==(ak.unit||"건")) edits.push({at,by,byName,field:"단위",from:ak.unit||"건",to:unit});
+    if(tgt!==numF(ak.target)) edits.push({at,by,byName,field:"목표",from:numF(ak.target),to:tgt});
+    const list=(proj.activityKPIs||[]).map(x=>x.id===ak.id?{...x,name,unit,target:tgt,edits}:x);
+    up("projects",proj.id,{activityKPIs:list}); setActEdit(null);
+  };
   const [editProjId,setEditProjId]=useState(null);
   const [projDel,setProjDel]=useState(null);
   const [showAdv,setShowAdv]=useState(false);
@@ -1713,6 +1727,7 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
                         <div style={{display:"flex",gap:6,marginTop:7,alignItems:"center"}}>
                           <input type="number" placeholder={actMode==="delta"?"한 값 입력 → 누적+":"누적 총값 입력"} onKeyDown={e=>{if(e.key==="Enter"&&e.target.value!==""){actRecord(proj,ak,e.target.value);e.target.value="";}}} onBlur={e=>{if(e.target.value!==""){actRecord(proj,ak,e.target.value);e.target.value="";}}} style={{flex:1,minWidth:0,padding:"6px 9px",borderRadius:8,border:"1.5px solid #E5E8EB",fontSize:11.5,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
                           {ak.history&&ak.history.length>0&&<button onClick={()=>setActHist({proj,ak})} style={{flexShrink:0,padding:"5px 8px",borderRadius:7,border:"1px solid #E5E8EB",background:"#fff",fontSize:10.5,fontWeight:700,color:"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>📜 {ak.history.length}</button>}
+                          <button onClick={()=>setActEdit({proj,ak})} title="목표 수정" style={{flexShrink:0,background:"none",border:"none",fontSize:13,color:"#8B5CF6",cursor:"pointer",padding:8}}>✎</button>
                           <button onClick={()=>actRemove(proj,ak)} style={{flexShrink:0,background:"none",border:"none",fontSize:13,color:"#D1D5DB",cursor:"pointer",padding:8}}>🗑</button>
                         </div>
                         {ak.byName&&<p style={{margin:"5px 0 0",fontSize:10,color:"#9CA3AF"}}>👤 {ak.byName} · {weekLabel(ak.week||weekKey())} 입력</p>}
@@ -1873,6 +1888,45 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
           ))}
         </div>)}
       </Sheet>
+      <Sheet open={!!actEdit} onClose={()=>setActEdit(null)} title="🎯 목표지표 수정">
+        {actEdit&&(()=>{const ak=(actEdit.proj.activityKPIs||[]).find(x=>x.id===actEdit.ak.id)||actEdit.ak;return(
+          <ActIndicatorEditForm ak={ak} onSave={(f)=>actSaveEdit(actEdit.proj,ak,f)}/>
+        );})()}
+      </Sheet>
+    </div>
+  );
+}
+// 목표지표(activityKPI) 수정 폼 + 수정이력
+function ActIndicatorEditForm({ak,onSave}){
+  const [f,setF]=useState({name:ak.name||"",unit:ak.unit||"건",target:String(numF(ak.target))});
+  const edits=[...(ak.edits||[])].reverse();
+  return(
+    <div style={{marginTop:8}}>
+      <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>지표 이름</label>
+      <input value={f.name} onChange={e=>setF({...f,name:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:14}}/>
+      <div style={{display:"flex",gap:8,marginBottom:18}}>
+        <div style={{flex:1}}>
+          <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>목표값</label>
+          <input type="number" inputMode="numeric" value={f.target} onChange={e=>setF({...f,target:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,fontWeight:800,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+        </div>
+        <div style={{width:90}}>
+          <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>단위</label>
+          <input value={f.unit} onChange={e=>setF({...f,unit:e.target.value})} style={{width:"100%",padding:"12px 10px",borderRadius:12,fontSize:14,textAlign:"center",border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+        </div>
+      </div>
+      <Btn full variant="orange" onClick={()=>f.name.trim()&&onSave(f)} disabled={!f.name.trim()} style={{marginBottom:16}}>저장</Btn>
+      <p style={{margin:"0 2px 8px",fontSize:12,fontWeight:800,color:"#4B5563"}}>📜 수정 이력 {edits.length>0?`(${edits.length})`:""}</p>
+      {edits.length===0?(
+        <p style={{padding:"14px 0",textAlign:"center",fontSize:12,color:"#C4C9D0"}}>아직 수정 이력이 없어요</p>
+      ):edits.map((e,i)=>(
+        <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:"1px solid #F2F4F6"}}>
+          <Ava name={e.byName} size={26}/>
+          <div style={{flex:1,minWidth:0}}>
+            <p style={{margin:0,fontSize:12.5,fontWeight:700,color:"#1F2937"}}>{e.field} <span style={{color:"#9CA3AF",fontWeight:600}}>{String(e.from)}</span> → <span style={{color:"#8B5CF6",fontWeight:800}}>{String(e.to)}</span></p>
+            <p style={{margin:"2px 0 0",fontSize:11,color:"#9CA3AF"}}>{e.byName||"—"} · {(e.at||"").slice(0,16).replace("T"," ")}</p>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

@@ -1542,7 +1542,94 @@ function KPIPage({D,lead,up,cu,add,rm}){
     </div>
   );
 }
+// 프로젝트 프로세스 편집기 — 업무를 계층 트리로 편집(Enter/Space/◂▸), 저장 시 실제 task에 반영(parentId·seq)
+function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
+  const team=(proj.collaboratorIds||[]).length>0;
+  const MEM=[{id:"",name:"미배정",color:"#9CA3AF"},...(D.users||[])];
+  const Mof=id=>MEM.find(m=>m.id===id)||MEM[0];
+  const load=()=>{
+    const ts=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed);
+    const byP={}; ts.forEach(t=>{const k=t.parentId||"__root";(byP[k]=byP[k]||[]).push(t);});
+    Object.values(byP).forEach(a=>a.sort((x,y)=>(x.seq||0)-(y.seq||0)));
+    const out=[]; const walk=(pid,depth)=>{(byP[pid]||[]).forEach(t=>{out.push({id:t.id,tid:t.id,text:t.title,depth,who:t.assigneeId||"",done:t.status==="done"});walk(t.id,depth+1);});};
+    walk("__root",0);
+    if(out.length===0) out.push({id:"new0",text:"",depth:0,who:proj.assigneeId||"",done:false});
+    return out;
+  };
+  const [items,setItems]=useState(load);
+  const [selId,setSelId]=useState(null);
+  const focusRef=useRef(null),uidRef=useRef(0),outRef=useRef(null);
+  useEffect(()=>{ if(!focusRef.current)return; const {id,caret}=focusRef.current; focusRef.current=null; const inp=outRef.current&&outRef.current.querySelector(`input[data-id="${id}"]`); if(inp){inp.focus();const c=caret==null?inp.value.length:caret;try{inp.setSelectionRange(c,c);}catch(_){}}});
+  const newId=()=>"new"+(++uidRef.current);
+  const patch=(id,p)=>setItems(it=>it.map(x=>x.id===id?{...x,...p}:x));
+  const toggleDone=id=>setItems(it=>it.map(x=>x.id===id?{...x,done:!x.done}:x));
+  const indent=(i,dir)=>setItems(a0=>{const a=[...a0];const it=a[i];if(dir<0){if(it.depth>0)a[i]={...it,depth:it.depth-1};}else{const prev=a[i-1];if(prev&&it.depth<=prev.depth)a[i]={...it,depth:it.depth+1};}return a;});
+  const onKey=(e,i)=>{const it=items[i];
+    if(e.key==="Enter"){e.preventDefault();const nid=newId();setItems(a=>{const arr=[...a];arr.splice(i+1,0,{id:nid,text:"",depth:it.depth,who:it.who,done:false});return arr;});setSelId(nid);focusRef.current={id:nid};}
+    else if(e.key==="Tab"){e.preventDefault();indent(i,e.shiftKey?-1:1);focusRef.current={id:it.id,caret:e.target.selectionStart};}
+    else if(e.key===" "&&e.target.value===""){e.preventDefault();indent(i,1);focusRef.current={id:it.id};}
+    else if(e.key==="Backspace"&&e.target.value===""&&items.length>1){e.preventDefault();const p=items[i-1]||items[0];setItems(a=>a.filter((_,k)=>k!==i));setSelId(p.id);focusRef.current={id:p.id};}
+  };
+  const doneN=items.filter(x=>x.done&&x.text.trim()).length, totN=items.filter(x=>x.text.trim()).length, prog=totN?Math.round(doneN/totN*100):0;
+  const save=()=>{
+    const existing=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed);
+    const present=new Set(), idMap={};
+    items.forEach((it,i)=>{ if(!it.text.trim()&&!it.tid) return;
+      let parentId=null; for(let k=i-1;k>=0;k--){ if(items[k].depth===it.depth-1){parentId=idMap[k]||null;break;} if(items[k].depth<it.depth-1)break; }
+      if(it.tid){ const t=existing.find(x=>x.id===it.tid); idMap[i]=it.tid; present.add(it.tid);
+        const p={title:it.text.trim(),assigneeId:it.who,parentId,seq:i};
+        if(it.done&&t&&t.status!=="done")p.status="done"; if(!it.done&&t&&t.status==="done")p.status="todo";
+        up("tasks",it.tid,p);
+      } else { const nid="t"+Date.now()+"_"+i; idMap[i]=nid; present.add(nid);
+        add("tasks",{id:nid,title:it.text.trim(),projectId:proj.id,parentId,assigneeId:it.who,type:"general",status:it.done?"done":"todo",weekDay:null,weekSlot:null,isFixed:false,dueDate:"",memo:"",attachments:[],seq:i});
+      }
+    });
+    existing.forEach(t=>{ if(!present.has(t.id)) rm("tasks",t.id); });
+    onClose();
+  };
+  const sel=items.find(x=>x.id===selId);
+  return(
+    <div style={{position:"fixed",inset:0,zIndex:1500,background:"#F9FAFB",display:"flex",flexDirection:"column"}}>
+      <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",color:"#fff",padding:"13px 16px",display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
+        <button onClick={onClose} style={{background:"none",border:"none",color:"#fff",fontSize:22,cursor:"pointer",lineHeight:1}}>×</button>
+        <div style={{flex:1,minWidth:0}}>
+          <p style={{margin:0,fontSize:14,fontWeight:900,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>🧩 {proj.title}</p>
+          <p style={{margin:"2px 0 0",fontSize:10,opacity:0.82}}>{team?"팀 협업 (담당자 지정)":"개인 체크리스트"} · Enter 같은단계 · Space/▸ 하위</p>
+        </div>
+        <button onClick={save} style={{background:"#F97316",border:"none",color:"#fff",borderRadius:9,padding:"8px 16px",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>저장</button>
+      </div>
+      <div style={{flex:1,overflowY:"auto",padding:"14px 16px 30px",maxWidth:720,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+          <span style={{fontSize:11.5,fontWeight:800,color:"#4B5563"}}>진행률</span>
+          <div style={{flex:1,height:8,borderRadius:8,background:"#F2F4F6",overflow:"hidden"}}><div style={{width:prog+"%",height:"100%",background:prog>=100?"#00C073":"#F97316",borderRadius:8}}/></div>
+          <span style={{fontSize:13,fontWeight:900,color:prog>=100?"#00C073":"#F97316"}}>{doneN}/{totN} · {prog}%</span>
+        </div>
+        <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"12px 10px"}} ref={outRef}>
+          {items.map((it,i)=>{const m=Mof(it.who);return(
+            <div key={it.id} style={{display:"flex",alignItems:"center",gap:6,marginLeft:it.depth*20,padding:"3px 6px",borderRadius:9,backgroundColor:it.id===selId?"#FFF7ED":"transparent"}}>
+              <button onClick={()=>indent(i,-1)} style={{border:"none",background:"none",color:"#C4C9D0",fontSize:13,cursor:"pointer",padding:"2px 2px"}}>◂</button>
+              <button onClick={()=>indent(i,1)} style={{border:"none",background:"none",color:"#C4C9D0",fontSize:13,cursor:"pointer",padding:"2px 2px"}}>▸</button>
+              <button onClick={()=>toggleDone(it.id)} style={{width:19,height:19,borderRadius:6,border:`2px solid ${it.done?"#00C073":"#D1D5DB"}`,background:it.done?"#00C073":"#fff",color:"#fff",fontSize:11,fontWeight:900,cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>{it.done?"✓":""}</button>
+              {team&&<button onClick={()=>setSelId(it.id)} title={m.name} style={{width:18,height:18,borderRadius:"50%",backgroundColor:m.color,color:"#fff",fontSize:9,fontWeight:800,border:"none",cursor:"pointer",flexShrink:0}}>{m.name[0]}</button>}
+              <input data-id={it.id} value={it.text} placeholder="업무 입력..." onChange={e=>patch(it.id,{text:e.target.value})} onFocus={()=>setSelId(it.id)} onKeyDown={e=>onKey(e,i)} style={{flex:1,minWidth:0,border:"none",background:"none",fontSize:13.5,fontWeight:600,color:it.done?"#9CA3AF":"#1F2937",textDecoration:it.done?"line-through":"none",outline:"none",fontFamily:"inherit",padding:"5px 2px"}}/>
+            </div>
+          );})}
+        </div>
+        {team&&sel&&(
+          <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"12px 14px",marginTop:12}}>
+            <p style={{margin:"0 0 8px",fontSize:11,fontWeight:800,color:"#4B5563"}}>「{sel.text||"업무"}」 담당자</p>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {MEM.map(m=>{const on=sel.who===m.id;return(<button key={m.id||"none"} onClick={()=>patch(sel.id,{who:m.id})} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 11px",borderRadius:20,border:`1.5px solid ${on?m.color:"#E5E8EB"}`,background:on?m.color+"18":"#fff",cursor:"pointer",fontFamily:"inherit"}}><span style={{width:16,height:16,borderRadius:"50%",backgroundColor:m.color,color:"#fff",fontSize:8.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{m.name[0]}</span><span style={{fontSize:12,fontWeight:700,color:on?m.color:"#4B5563"}}>{m.name}</span></button>);})}
+            </div>
+          </div>
+        )}
+        <p style={{margin:"12px 4px 0",fontSize:10.5,color:"#9CA3AF",lineHeight:1.6}}>※ 여기 항목이 곧 프로젝트의 실제 업무입니다. 체크=완료(진행률 자동). <b>저장</b>하면 업무목록·오늘에 반영됩니다.</p>
+      </div>
+    </div>
+  );
+}
 function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
+  const [processProj,setProcessProj]=useState(null);
   const [filter,setFilter]=useState("mine");
   const [groupFilter,setGroupFilter]=useState("all");
   const [pview,setPview]=useState("list");   // list | launch (출시는 프로젝트 하위)
@@ -1782,7 +1869,10 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
                   </div>
                   <div style={{padding:"14px 16px 0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <span style={{fontSize:12,fontWeight:800,color:"#4B5563"}}>업무 목록 ({tasks.length}건)</span>
-                    <button onClick={()=>setAddTaskSheet(true)} style={{padding:"6px 12px",borderRadius:10,border:"none",backgroundColor:"#F97316",color:"#FFFFFF",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>+ 업무 추가</button>
+                    <div style={{display:"flex",gap:6}}>
+                      <button onClick={()=>setProcessProj(proj)} style={{padding:"6px 12px",borderRadius:10,border:"1.5px solid #DDD6FE",backgroundColor:"#FAF9FF",color:"#7C3AED",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🧩 프로세스</button>
+                      <button onClick={()=>setAddTaskSheet(true)} style={{padding:"6px 12px",borderRadius:10,border:"none",backgroundColor:"#F97316",color:"#FFFFFF",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>+ 업무 추가</button>
+                    </div>
                   </div>
                   {tasks.length===0&&<div style={{padding:"20px",textAlign:"center"}}><p style={{margin:0,fontSize:13,color:"#D1D5DB"}}>등록된 업무가 없어요</p></div>}
                   {[{key:"inprogress",label:"진행중",list:statusGroups.inprogress,st:ST.inprogress},{key:"todo",label:"할일",list:statusGroups.todo,st:ST.todo},{key:"hold",label:"보류",list:statusGroups.hold,st:ST.hold},{key:"done",label:"완료",list:statusGroups.done,st:ST.done}].map(({key,label,list,st})=>list.length===0?null:(
@@ -1833,6 +1923,7 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
         })}
         {filtered.length===0&&<div style={{padding:"40px 20px",textAlign:"center",backgroundColor:"#FFFFFF",borderRadius:16,border:"1px solid #F2F4F6"}}><p style={{fontSize:38,margin:"0 0 10px"}}>🗂️</p><p style={{fontSize:14,color:"#9CA3AF"}}>프로젝트가 없어요</p></div>}
       </div>
+      {processProj&&<ProjectProcessEditor D={D} proj={processProj} cu={cu} add={add} up={up} rm={rm} onClose={()=>setProcessProj(null)}/>}
       <Sheet open={!!stagePick} onClose={()=>setStagePick(null)} title="🔗 단계 흐름 적용">
         {stagePick&&(<div style={{marginTop:8}}>
           <p style={{margin:"0 0 14px",fontSize:12,color:"#6B7280",lineHeight:1.6,backgroundColor:"#F9FAFB",borderRadius:10,padding:"10px 12px"}}><b>{stagePick.title}</b>에 적용할 템플릿을 고르세요. 단계 업무가 담당자·인계 순서까지 자동 생성됩니다.</p>

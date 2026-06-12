@@ -794,7 +794,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const myProjs=D.projects.filter(p=>p.assigneeId===cu.id||(p.collaboratorIds||[]).includes(cu.id));
   const myGoals=myWeekGoals(D,cu.id);
   // 출시 인계 — 앞 단계가 끝나 내 차례가 된 출시 단계
-  const myReadyLaunch=(()=>{ const arr=[]; D.projects.filter(p=>p.templateId).forEach(p=>{ const ts=launchProjTasks(D,p); ts.forEach(t=>{ if(t.assigneeId===cu.id&&launchStageStatus(t,ts)==="ready") arr.push({proj:p,task:t}); }); }); return arr; })();
+  const myReadyLaunch=(()=>{ const arr=[]; D.projects.filter(p=>p.templateId).forEach(p=>{ const ts=launchProjTasks(D,p); ts.forEach(t=>{ if(t.assigneeId===cu.id&&launchStageStatus(t,ts)==="ready") arr.push({proj:p,task:t}); }); }); return [...arr,...myReadyProcess(D,cu.id)]; })();
   return(
     <div style={{padding:"14px 16px 20px"}}>
       <div onClick={()=>nav("game")} style={{display:"flex",alignItems:"center",gap:14,background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"16px 18px",marginBottom:12,cursor:"pointer",color:"#fff"}}>
@@ -1087,8 +1087,9 @@ function KPIPage({D,lead,up,cu,add,rm}){
   // 멤버별 기여(이 채널 프로젝트의 업무 기준) — 100% 분할 백분율
   const memberContrib=(sk)=>{
     const projIds=new Set(D.projects.filter(p=>p.subKPIId===sk.id).map(p=>p.id));
+    const parentIds=new Set((D.tasks||[]).filter(t=>t.parentId).map(t=>t.parentId));   // 상위(단계)는 그릇이라 제외
     const m={}; D.users.forEach(u=>m[u.id]={uid:u.id,user:u,effort:0,indirect:0});
-    (D.tasks||[]).forEach(t=>{ if(t.isFixed||!projIds.has(t.projectId))return;
+    (D.tasks||[]).forEach(t=>{ if(t.isFixed||!projIds.has(t.projectId)||parentIds.has(t.id))return;   // 말단 업무만
       if(m[t.assigneeId]) m[t.assigneeId].effort++;
       if(t.status==="done"){ const d=matchUid(D,t.doneBy,t.doneByName)||t.assigneeId; if(m[d]) m[d].indirect++; }
     });
@@ -2223,6 +2224,24 @@ const launchStageStatus=(task,allTasks)=>{
   return ready?"ready":"wait";
 };
 const launchProjTasks=(D,proj)=>D.tasks.filter(t=>t.projectId===proj.id&&t.launchNode).sort((a,b)=>(a.step||0)-(b.step||0));
+// 자유 프로세스 트리(parentId) — 형제 위→아래 인계: 앞 형제 완료 + 직전 형제가 남이면 "내 차례"
+const myReadyProcess=(D,uid)=>{
+  const out=[];
+  (D.projects||[]).forEach(p=>{
+    if(p.templateId) return;   // 템플릿(출시)은 별도 처리
+    const ts=(D.tasks||[]).filter(t=>t.projectId===p.id&&!t.isFixed);
+    if(!ts.length) return;
+    const kidsOf=(pid)=>ts.filter(t=>(t.parentId||null)===(pid||null)).sort((a,b)=>(a.seq||0)-(b.seq||0));
+    const dd=(t)=>{const ks=ts.filter(x=>x.parentId===t.id);return ks.length?ks.every(dd):t.status==="done";};
+    ts.forEach(t=>{
+      if(t.assigneeId!==uid||dd(t)) return;
+      const sibs=kidsOf(t.parentId||null);
+      const idx=sibs.findIndex(x=>x.id===t.id);
+      if(idx>0&&sibs.slice(0,idx).every(dd)&&sibs[idx-1].assigneeId!==uid) out.push({proj:p,task:t});
+    });
+  });
+  return out;
+};
 const ST_COLOR={done:"#00C073",ready:"#F97316",wait:"#9CA3AF"};
 // 템플릿 1개 → 신규 SKU 프로젝트 + 단계별 업무(선행연결·담당자배정) 자동 생성
 const instantiateLaunch=({tpl,productName,mainKPIId,subKPIId,dealerType,add})=>{

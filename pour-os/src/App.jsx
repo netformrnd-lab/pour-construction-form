@@ -1505,6 +1505,8 @@ function ProjectsPage({D,cu,up,add,rm,pc}){
   const [filter,setFilter]=useState("mine");
   const [groupFilter,setGroupFilter]=useState("all");
   const [projDetail,setProjDetail]=useState(null);
+  const [stagePick,setStagePick]=useState(null);   // 단계 흐름 적용 대상 프로젝트
+  const tpls=D.launchTemplates||[];
   const [taskForm,setTaskForm]=useState({title:"",status:"todo",dueDate:"",memo:""});
   const [addTaskSheet,setAddTaskSheet]=useState(false);
   const [confirmTaskId,setConfirmTaskId]=useState(null);
@@ -1649,6 +1651,7 @@ function ProjectsPage({D,cu,up,add,rm,pc}){
                       </div>}
                     </div>
                   );})()}
+                  <ProjStageFlow D={D} proj={proj} cu={cu} up={up} onPick={(p)=>setStagePick(p)}/>
                   <div style={{padding:"12px 16px 0",display:"flex",alignItems:"center",gap:8}}>
                     <span style={{fontSize:12,fontWeight:800,color:"#4B5563",flexShrink:0}}>🏷 거래처유형</span>
                     <select value={proj.dealerType||""} onChange={e=>up("projects",proj.id,{dealerType:e.target.value})} style={{flex:1,padding:"7px 10px",borderRadius:8,fontSize:12,fontWeight:700,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",color:proj.dealerType?(DT[proj.dealerType]?.color||"#111827"):"#9CA3AF",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="">미지정</option>{DEALER_TYPES.map(d=><option key={d.code} value={d.code}>{d.code} · {d.label} ({d.price})</option>)}</select>
@@ -1738,6 +1741,20 @@ function ProjectsPage({D,cu,up,add,rm,pc}){
         })}
         {filtered.length===0&&<div style={{padding:"40px 20px",textAlign:"center",backgroundColor:"#FFFFFF",borderRadius:16,border:"1px solid #F2F4F6"}}><p style={{fontSize:38,margin:"0 0 10px"}}>🗂️</p><p style={{fontSize:14,color:"#9CA3AF"}}>프로젝트가 없어요</p></div>}
       </div>
+      <Sheet open={!!stagePick} onClose={()=>setStagePick(null)} title="🔗 단계 흐름 적용">
+        {stagePick&&(<div style={{marginTop:8}}>
+          <p style={{margin:"0 0 14px",fontSize:12,color:"#6B7280",lineHeight:1.6,backgroundColor:"#F9FAFB",borderRadius:10,padding:"10px 12px"}}><b>{stagePick.title}</b>에 적용할 템플릿을 고르세요. 단계 업무가 담당자·인계 순서까지 자동 생성됩니다.</p>
+          {tpls.length===0?(
+            <Btn full variant="orange" onClick={()=>add("launchTemplates",{...INIT.launchTemplates[0],createdAt:new Date().toISOString()})}>기본 템플릿 먼저 만들기</Btn>
+          ):tpls.map(t=>(
+            <button key={t.id} onClick={()=>{applyTemplateToProject({tpl:t,proj:stagePick,add,up});setStagePick(null);}} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,padding:"13px 14px",borderRadius:12,border:"1.5px solid #E5E8EB",backgroundColor:"#fff",marginBottom:8,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+              <span style={{fontSize:13.5,fontWeight:800,color:"#0F1F5C"}}>🧩 {t.name}</span>
+              <span style={{fontSize:11.5,fontWeight:700,color:"#EA580C",flexShrink:0}}>{t.nodes.length}단계 →</span>
+            </button>
+          ))}
+          <p style={{margin:"6px 2px 0",fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>템플릿 편집·복제는 <b>🚀 출시 → 템플릿</b> 탭에서 합니다.</p>
+        </div>)}
+      </Sheet>
       <Sheet open={addTaskSheet} onClose={()=>setAddTaskSheet(false)} title="업무 추가" h="75vh">
         <div style={{marginTop:10}}>
           {projDetail&&<div style={{backgroundColor:"#EBF3FF",borderRadius:10,padding:"8px 12px",marginBottom:14}}><p style={{margin:0,fontSize:12,fontWeight:700,color:"#3182F6"}}>📁 {projDetail.title}</p></div>}
@@ -1975,6 +1992,46 @@ const instantiateLaunch=({tpl,productName,mainKPIId,subKPIId,dealerType,add})=>{
     add("tasks",{id:taskIdByNode[n.id],title:n.roleLabel?`[${n.roleLabel}] ${n.title}`:n.title,projectId:projId,assigneeId:n.assigneeId||owner,type:"general",status:"todo",weekDay:null,weekSlot:null,isFixed:false,dueDate:"",memo:"",attachments:[],launchNode:n.id,step:i,deps});
   });
 };
+// 템플릿을 "기존 프로젝트"에 적용 — 단계 업무(선행·담당자) 생성 + templateId 표시 (출시 외 일반 프로젝트도 단계 흐름 가능)
+const applyTemplateToProject=({tpl,proj,add,up})=>{
+  const ts=Date.now();
+  const taskIdByNode={};
+  tpl.nodes.forEach((n,i)=>{taskIdByNode[n.id]="t"+ts+"_"+i;});
+  const predsOf=(nodeId)=>tpl.edges.filter(e=>e.to===nodeId).map(e=>e.from);
+  tpl.nodes.forEach((n,i)=>{
+    const deps=predsOf(n.id).map(pid=>taskIdByNode[pid]).filter(Boolean);
+    add("tasks",{id:taskIdByNode[n.id],title:n.roleLabel?`[${n.roleLabel}] ${n.title}`:n.title,projectId:proj.id,assigneeId:n.assigneeId,type:"general",status:"todo",weekDay:null,weekSlot:null,isFixed:false,dueDate:"",memo:"",attachments:[],launchNode:n.id,step:i,deps});
+  });
+  const assignees=[...new Set(tpl.nodes.map(n=>n.assigneeId).filter(Boolean))];
+  const colab=[...new Set([...(proj.collaboratorIds||[]),...assignees.filter(a=>a!==proj.assigneeId)])];
+  up("projects",proj.id,{templateId:tpl.id,collaboratorIds:colab});
+};
+// 프로젝트 상세 안의 "단계 흐름(협업 인계)" 섹션 — 단계 없으면 적용 버튼, 있으면 인계 파이프라인
+function ProjStageFlow({D,proj,cu,up,onPick}){
+  const stageTasks=D.tasks.filter(t=>t.projectId===proj.id&&t.launchNode).sort((a,b)=>(a.step||0)-(b.step||0));
+  const uName=(id)=>D.users.find(u=>u.id===id)?.name||"미배정";
+  const uColor=(id)=>D.users.find(u=>u.id===id)?.color||"#9CA3AF";
+  if(stageTasks.length===0) return(
+    <div style={{padding:"12px 16px 0"}}>
+      <button onClick={()=>onPick(proj)} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:7,padding:"10px 0",borderRadius:10,border:"1.5px dashed #FDBA74",backgroundColor:"#FFF7ED",fontSize:12.5,fontWeight:800,color:"#EA580C",cursor:"pointer",fontFamily:"inherit"}}>🔗 단계 흐름(협업 인계) 적용</button>
+    </div>
+  );
+  const toggleStage=(t,st)=>{ if(st==="wait")return; up("tasks",t.id,{status:t.status==="done"?"todo":"done"}); };
+  return(
+    <div style={{padding:"12px 16px 0"}}>
+      <p style={{margin:"0 0 7px",fontSize:11.5,fontWeight:800,color:"#4B5563"}}>🔗 단계 흐름 <span style={{fontWeight:600,color:"#9CA3AF"}}>(앞 단계 끝나면 다음 담당자 차례)</span></p>
+      <div style={{display:"flex",flexDirection:"column",gap:6}}>
+        {stageTasks.map((t,i)=>{const st=launchStageStatus(t,stageTasks);const mine=t.assigneeId===cu.id;return(
+          <button key={t.id} onClick={()=>toggleStage(t,st)} disabled={st==="wait"} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 11px",borderRadius:10,border:`1px solid ${st==="ready"&&mine?"#FED7AA":"#EAECEF"}`,backgroundColor:st==="ready"&&mine?"#FFF7ED":"#FFFFFF",cursor:st==="wait"?"default":"pointer",textAlign:"left",fontFamily:"inherit",opacity:st==="wait"?0.65:1}}>
+            <span style={{flexShrink:0,width:22,height:22,borderRadius:"50%",backgroundColor:st==="done"?ST_COLOR.done:"transparent",border:st==="done"?"none":`2px solid ${ST_COLOR[st]}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:900,color:st==="done"?"#fff":ST_COLOR[st]}}>{st==="done"?"✓":i+1}</span>
+            <span style={{flex:1,minWidth:0,fontSize:12.5,fontWeight:700,color:st==="wait"?"#9CA3AF":"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}</span>
+            <span style={{flexShrink:0,display:"flex",alignItems:"center",gap:4,fontSize:10.5,fontWeight:700,color:uColor(t.assigneeId)}}><Ava name={uName(t.assigneeId)} color={uColor(t.assigneeId)} size={18}/>{st==="ready"&&mine?"내 차례":""}</span>
+          </button>
+        );})}
+      </div>
+    </div>
+  );
+}
 const NODE_W=144, NODE_H=56;
 function LaunchPage({D,cu,lead,add,up,rm,nav}){
   const [tab,setTab]=useState("status");

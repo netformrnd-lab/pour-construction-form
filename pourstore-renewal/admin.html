@@ -322,19 +322,20 @@ const NAV = [
   // ─ KPI 업무관리센터 (매일 진입) — 자주 사용 ─
   { type: 'divider', label: 'KPI 업무관리센터', group: 'kpi-main', collapsible: true, defaultCollapsed: false },
   { id: 'pour-os',      icon: '🚀', label: '업무관리 앱 (POUR OS)', group: 'kpi-main' },
-  { id: 'dashboard-os', icon: '🏠', label: '오늘 업무',         group: 'kpi-main' },
+  // ↓ POUR OS 앱이 동일 역할(오늘 업무·AI 점검·고정업무·OKR·프로젝트·보고보드)을 해 중복 → 숨김.
+  //   컴포넌트·데이터는 모두 보존. 복구하려면 주석만 해제하면 됨.
+  // { id: 'dashboard-os', icon: '🏠', label: '오늘 업무',         group: 'kpi-main' },
   // 업무일지 메뉴 폐지 (2026-06): 진척도는 프로젝트 페이지 슬라이더로 직접 조정.
   // JournalsPage 컴포넌트·useJournals 훅·pour-journals 컬렉션은 보존 (복구 필요 시 이 줄 복원).
   // { id: 'journals',     icon: '📝', label: '업무일지',         group: 'kpi-main' },
-  { id: 'ai-review',    icon: '🤖', label: 'AI 주간 점검',     group: 'kpi-main' },
+  // { id: 'ai-review',    icon: '🤖', label: 'AI 주간 점검',     group: 'kpi-main' },
 
-  // ─ 업무 DB · 설정 (마스터/룰 등록은 1회 또는 가끔, 평소엔 접어둠) ─
-  // 반복업무 = 오늘 업무의 "📌 고정업무" DB. 등록 후엔 매일 자동 노출되므로 DB·설정 그룹.
+  // ─ 업무 DB · 설정 (거래코드·채널만 유지, 나머지는 POUR OS 앱에서 관리) ─
   { type: 'divider', label: '업무 DB · 설정', group: 'kpi-db', collapsible: true, defaultCollapsed: true },
-  { id: 'recurring', icon: '📌', label: '고정업무 (반복)',   group: 'kpi-db' },
-  { id: 'okr',       icon: '🎯', label: 'OKR · 결과지표',    group: 'kpi-db' },
-  { id: 'projects',  icon: '🗂️', label: '프로젝트',          group: 'kpi-db' },
-  { id: 'workmgmt',  icon: '📊', label: 'KPI 보고 보드',      group: 'kpi-db' },
+  // { id: 'recurring', icon: '📌', label: '고정업무 (반복)',   group: 'kpi-db' },
+  // { id: 'okr',       icon: '🎯', label: 'OKR · 결과지표',    group: 'kpi-db' },
+  // { id: 'projects',  icon: '🗂️', label: '프로젝트',          group: 'kpi-db' },
+  // { id: 'workmgmt',  icon: '📊', label: 'KPI 보고 보드',      group: 'kpi-db' },
   { id: 'channels',  icon: '🏷️', label: '거래코드·채널',     group: 'kpi-db' },
   // 캘린더·회의록 → 추후 React 컴포넌트 흡수 예정
 

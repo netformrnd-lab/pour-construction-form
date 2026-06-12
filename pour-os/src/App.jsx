@@ -366,11 +366,11 @@ const EditTaskSheet=({open,onClose,task,onSave,D})=>{
   );
 };
 const TABS=[{id:"today",icon:"🏠",label:"오늘"},{id:"kpi",icon:"◎",label:"KPI"},{id:"projects",icon:"▦",label:"프로젝트"},{id:"calendar",icon:"▤",label:"캘린더"},{id:"more",icon:"⋯",label:"더보기"}];
-const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"launch",icon:"🚀",label:"출시"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"}];
-// 메뉴 그룹: 개인(나만 보는 내 것) vs 팀(모두 같이 보는 공유)
+const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"}];
+// 메뉴 그룹: 개인(나만 보는 내 것) vs 팀(모두 같이 보는 공유) — 출시는 프로젝트 하위 탭
 const NAV_GROUPS=[
   {label:"개인 · 나만", ids:["today","game","fixed","retro"]},
-  {label:"팀 · 공유",  ids:["kpi","projects","launch","mindmap","calendar","ai"]},
+  {label:"팀 · 공유",  ids:["kpi","projects","mindmap","calendar","ai"]},
 ];
 export default function App(){
   const [D,setD]=useState(INIT);
@@ -523,7 +523,7 @@ export default function App(){
   const pageContent=(<>
     {page==="today"&&<TodayPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="kpi"&&<KPIPage D={D} lead={lead} up={up} cu={cu} add={add} rm={rm} pc={viewMode==="pc"}/>}
-    {page==="projects"&&<ProjectsPage D={D} cu={cu} up={up} add={add} rm={rm} pc={viewMode==="pc"}/>}
+    {page==="projects"&&<ProjectsPage D={D} cu={cu} up={up} add={add} rm={rm} pc={viewMode==="pc"} lead={lead} nav={nav}/>}
     {page==="calendar"&&<CalendarPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
     {page==="game"&&<GamePage D={D} cu={cu} up={up} add={add} rm={rm} nav={nav}/>}
     {page==="launch"&&<LaunchPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
@@ -541,7 +541,7 @@ export default function App(){
       {saveErr.level!=="error"&&<button onClick={()=>setSaveErr(null)} style={{flexShrink:0,padding:"5px 7px",borderRadius:8,border:"none",background:"transparent",color:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}}>×</button>}
     </div>}
     <Sheet open={more} onClose={()=>setMore(false)} title="더보기">
-      {[{label:"개인 · 나만",ids:["game","fixed","retro"]},{label:"팀 · 공유",ids:["launch","mindmap","ai"]}].map(grp=>(
+      {[{label:"개인 · 나만",ids:["game","fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","ai"]}].map(grp=>(
         <div key={grp.label} style={{marginTop:14}}>
           <p style={{margin:"0 2px 8px",fontSize:11,fontWeight:800,color:"#9CA3AF",letterSpacing:0.5}}>{grp.label}</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -1514,9 +1514,10 @@ function KPIPage({D,lead,up,cu,add,rm}){
     </div>
   );
 }
-function ProjectsPage({D,cu,up,add,rm,pc}){
+function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
   const [filter,setFilter]=useState("mine");
   const [groupFilter,setGroupFilter]=useState("all");
+  const [pview,setPview]=useState("list");   // list | launch (출시는 프로젝트 하위)
   const [projDetail,setProjDetail]=useState(null);
   const [stagePick,setStagePick]=useState(null);   // 단계 흐름 적용 대상 프로젝트
   const tpls=D.launchTemplates||[];
@@ -1595,8 +1596,17 @@ function ProjectsPage({D,cu,up,add,rm,pc}){
     setTaskForm({title:"",status:"todo",dueDate:"",memo:""});setAddTaskSheet(false);
   };
   const ST=STATUS_MAP;
+  const pTabs=(
+    <div style={{display:"flex",gap:6,marginBottom:12}}>
+      {[["list","▦ 프로젝트"],["launch","🚀 출시"]].map(([k,l])=>(
+        <button key={k} onClick={()=>setPview(k)} style={{flex:1,padding:"9px 0",borderRadius:10,border:"none",cursor:"pointer",backgroundColor:pview===k?"#0F1F5C":"#F2F4F6",color:pview===k?"#fff":"#374151",fontWeight:800,fontSize:13,fontFamily:"inherit"}}>{l}</button>
+      ))}
+    </div>
+  );
+  if(pview==="launch") return(<div><div style={{padding:"14px 16px 0"}}>{pTabs}</div><LaunchPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/></div>);
   return(
     <div style={{padding:"14px 16px 20px"}}>
+      {pTabs}
       {demoProjs.length>0&&(
         <div style={{display:"flex",alignItems:"center",gap:10,backgroundColor:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:12,padding:"11px 13px",marginBottom:12}}>
           <span style={{fontSize:18}}>🧹</span>
@@ -2902,13 +2912,19 @@ function ExportPanel({D,up}){
     downloadCSV(rows,"목표지표");
   };
   const expWeekGoals=()=>{
-    const rows=[["주차","담당자","목표명","연결 프로젝트","현재","목표","단위","달성"]];
-    const pname=(id)=>id?(D.projects.find(p=>p.id===id)?.title||""):"";
-    (D.weekGoals||[]).forEach(g=>rows.push([g.week,uname(g.userId),g.title,pname(g.projectId),numF(g.current),numF(g.target),g.unit||"건",wgAchieved(g)?"O":"X"]));
-    if(rows.length===1)return alert("주간 목표 기록이 없어요");
-    downloadCSV(rows,"주간목표");
+    const rows=[["주차","담당자","메모"]];
+    (D.weekGoals||[]).forEach(g=>rows.push([g.week,uname(g.userId),g.title]));
+    if(rows.length===1)return alert("주간 메모가 없어요");
+    downloadCSV(rows,"주간메모");
   };
-  const items=[["📁 프로젝트 전체",expProjects],["💰 매출 이력",expSales],["📊 KPI 주차 실적",expKpi],["👥 기여도",expContrib],["🎯 목표지표",expIndicators],["🗓️ 주간목표",expWeekGoals]];
+  // 업무(task) 추출 — 일일 활동의 원본 자산 (데이터 자산화 핵심)
+  const expTasks=()=>{
+    const rows=[["업무","프로젝트","담당자","상태","완료일시","요일","고정","단계","마감","메모"]];
+    (D.tasks||[]).forEach(t=>{const p=D.projects.find(x=>x.id===t.projectId);rows.push([t.title,p?.title||"",uname(t.assigneeId),t.status||"",(t.doneAt||"").slice(0,16).replace("T"," "),t.weekDay||"",t.isFixed?"고정":"",t.launchNode?numF(t.step)+1:"",t.dueDate||"",(t.memo||"").replace(/\n/g," ")]);});
+    if(rows.length===1)return alert("업무 기록이 없어요");
+    downloadCSV(rows,"업무");
+  };
+  const items=[["✅ 업무 전체",expTasks],["📁 프로젝트 전체",expProjects],["💰 매출 이력",expSales],["📊 KPI 주차 실적",expKpi],["👥 기여도",expContrib],["🎯 목표지표",expIndicators],["📝 주간 메모",expWeekGoals]];
   // 분할 저장 → 한도는 컬렉션별로 적용. 가장 큰 컬렉션이 실질 제약.
   const colSizes=SHARED_KEYS.map(k=>[k,new Blob([JSON.stringify(pickShared(D)[k]||[])]).size]).sort((a,b)=>b[1]-a[1]);
   const [maxKey,maxBytes]=colSizes[0]||["",0];

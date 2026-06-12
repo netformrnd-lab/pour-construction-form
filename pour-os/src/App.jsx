@@ -367,6 +367,11 @@ const EditTaskSheet=({open,onClose,task,onSave,D})=>{
 };
 const TABS=[{id:"today",icon:"🏠",label:"오늘"},{id:"kpi",icon:"◎",label:"KPI"},{id:"projects",icon:"▦",label:"프로젝트"},{id:"calendar",icon:"▤",label:"캘린더"},{id:"more",icon:"⋯",label:"더보기"}];
 const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"launch",icon:"🚀",label:"출시"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"}];
+// 메뉴 그룹: 개인(나만 보는 내 것) vs 팀(모두 같이 보는 공유)
+const NAV_GROUPS=[
+  {label:"개인 · 나만", ids:["today","game","fixed","retro"]},
+  {label:"팀 · 공유",  ids:["kpi","projects","launch","mindmap","calendar","ai"]},
+];
 export default function App(){
   const [D,setD]=useState(INIT);
   const [page,setPage]=useState("today");
@@ -536,14 +541,19 @@ export default function App(){
       {saveErr.level!=="error"&&<button onClick={()=>setSaveErr(null)} style={{flexShrink:0,padding:"5px 7px",borderRadius:8,border:"none",background:"transparent",color:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}}>×</button>}
     </div>}
     <Sheet open={more} onClose={()=>setMore(false)} title="더보기">
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:12}}>
-        {MORE.map(m=>(
-          <button key={m.id} onClick={()=>nav(m.id)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:8,padding:"20px 12px",borderRadius:14,backgroundColor:"#F9FAFB",border:"1px solid #E5E8EB",cursor:"pointer"}}>
-            <span style={{fontSize:28}}>{m.icon}</span>
-            <span style={{fontSize:13,fontWeight:700,color:"#1F2937"}}>{m.label}</span>
-          </button>
-        ))}
-      </div>
+      {[{label:"개인 · 나만",ids:["game","fixed","retro"]},{label:"팀 · 공유",ids:["launch","mindmap","ai"]}].map(grp=>(
+        <div key={grp.label} style={{marginTop:14}}>
+          <p style={{margin:"0 2px 8px",fontSize:11,fontWeight:800,color:"#9CA3AF",letterSpacing:0.5}}>{grp.label}</p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            {grp.ids.map(id=>{const m=MORE.find(x=>x.id===id);if(!m)return null;return(
+              <button key={m.id} onClick={()=>nav(m.id)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:8,padding:"20px 12px",borderRadius:14,backgroundColor:"#F9FAFB",border:"1px solid #E5E8EB",cursor:"pointer"}}>
+                <span style={{fontSize:28}}>{m.icon}</span>
+                <span style={{fontSize:13,fontWeight:700,color:"#1F2937"}}>{m.label}</span>
+              </button>
+            );})}
+          </div>
+        </div>
+      ))}
     </Sheet>
     <Sheet open={uSheet} onClose={()=>setUSheet(false)} title="담당자 전환">
       <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:12}}>
@@ -588,11 +598,16 @@ export default function App(){
           <div><p style={{margin:0,fontSize:14.5,fontWeight:900,color:"#0F1F5C",lineHeight:1.1}}>POUR OS</p><p style={{margin:0,fontSize:9.5,color:"#F97316",fontWeight:800}}>업무관리</p></div>
         </div>
         <nav style={{flex:1,overflowY:"auto",padding:8}}>
-          {navAll.map(it=>{const act=page===it.id;return(
-            <button key={it.id} onClick={()=>nav(it.id)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:9,border:"none",cursor:"pointer",backgroundColor:act?"#FFF1E7":"transparent",color:act?"#EA580C":"#4B5563",fontWeight:act?800:600,fontSize:13,marginBottom:2,textAlign:"left",fontFamily:"inherit"}}>
-              <span style={{fontSize:16,width:20,textAlign:"center"}}>{it.icon}</span>{it.label}
-            </button>
-          );})}
+          {NAV_GROUPS.map(grp=>(
+            <div key={grp.label} style={{marginBottom:8}}>
+              <p style={{margin:"6px 12px 4px",fontSize:10,fontWeight:800,color:"#B0B8C1",letterSpacing:0.6}}>{grp.label}</p>
+              {grp.ids.map(id=>{const it=navAll.find(x=>x.id===id);if(!it)return null;const act=page===id;return(
+                <button key={id} onClick={()=>nav(id)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"9px 12px",borderRadius:9,border:"none",cursor:"pointer",backgroundColor:act?"#FFF1E7":"transparent",color:act?"#EA580C":"#4B5563",fontWeight:act?800:600,fontSize:13,marginBottom:2,textAlign:"left",fontFamily:"inherit"}}>
+                  <span style={{fontSize:16,width:20,textAlign:"center"}}>{it.icon}</span>{it.label}
+                </button>
+              );})}
+            </div>
+          ))}
         </nav>
         <div style={{padding:"10px 12px",borderTop:"1px solid #F4F4F5",display:"flex",flexDirection:"column",gap:9}}>
           <button onClick={()=>setUSheet(true)} style={{display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:10,border:"1px solid #E5E8EB",backgroundColor:"#F9FAFB",cursor:"pointer",fontFamily:"inherit"}}>
@@ -755,17 +770,15 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const doneFixed=fixed.filter(fixedDone).length;
   const myProjs=D.projects.filter(p=>p.assigneeId===cu.id||(p.collaboratorIds||[]).includes(cu.id));
   const myGoals=myWeekGoals(D,cu.id);
-  const goalDone=myGoals.filter(wgAchieved).length;
-  const allDone=myGoals.length>0&&goalDone===myGoals.length;
   // 출시 인계 — 앞 단계가 끝나 내 차례가 된 출시 단계
   const myReadyLaunch=(()=>{ const arr=[]; D.projects.filter(p=>p.templateId).forEach(p=>{ const ts=launchProjTasks(D,p); ts.forEach(t=>{ if(t.assigneeId===cu.id&&launchStageStatus(t,ts)==="ready") arr.push({proj:p,task:t}); }); }); return arr; })();
   return(
     <div style={{padding:"14px 16px 20px"}}>
-      <div onClick={()=>nav("game")} style={{display:"flex",alignItems:"center",gap:11,background:allDone?"linear-gradient(135deg,#059669,#00C073)":"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"12px 14px",marginBottom:12,cursor:"pointer",color:"#fff"}}>
-        <div style={{width:40,height:40,borderRadius:12,background:"rgba(255,255,255,0.13)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{allDone?"🎉":"🎯"}</div>
+      <div onClick={()=>nav("game")} style={{display:"flex",alignItems:"center",gap:11,background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"12px 14px",marginBottom:12,cursor:"pointer",color:"#fff"}}>
+        <div style={{width:40,height:40,borderRadius:12,background:"rgba(255,255,255,0.13)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>📝</div>
         <div style={{flex:1,minWidth:0}}>
-          <span style={{fontSize:13.5,fontWeight:900}}>이번 주 내 목표</span>
-          <p style={{margin:"2px 0 0",fontSize:11,opacity:0.85}}>{myGoals.length===0?"아직 없어요 · 눌러서 이번 주 목표를 정해보세요":allDone?`${myGoals.length}개 목표 전부 달성! 멋져요 👏`:`${myGoals.length}개 중 ${goalDone}개 달성 중`}</p>
+          <span style={{fontSize:13.5,fontWeight:900}}>이번 주 명심할 것</span>
+          <p style={{margin:"2px 0 0",fontSize:11,opacity:0.85,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{myGoals.length===0?"아직 없어요 · 눌러서 메모를 남기세요":myGoals.map(g=>g.title).join("  ·  ")}</p>
         </div>
         <span style={{fontSize:11,fontWeight:800,background:"rgba(255,255,255,0.2)",color:"#fff",padding:"4px 10px",borderRadius:10,flexShrink:0}}>내 주간 ›</span>
       </div>
@@ -1262,7 +1275,7 @@ function KPIPage({D,lead,up,cu,add,rm}){
             );
           })}
           <button onClick={openNewMain} style={{width:"100%",padding:"12px 0",borderRadius:12,border:"1.5px dashed #93C5FD",background:"#EFF6FF",color:"#2563EB",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 메인KPI 추가</button>
-          <ExportPanel D={D}/>
+          <ExportPanel D={D} up={up}/>
         </div>
       )}
       {kpiView==="mindmap"&&(
@@ -2788,29 +2801,21 @@ function ProjWeekGoals({D,cu,proj,add,up,rm}){
 }
 function GamePage({D,cu,up,add,rm,nav}){
   const [gTitle,setGTitle]=useState("");
-  const [gTarget,setGTarget]=useState("");
-  const [gUnit,setGUnit]=useState("건");
-  const [gProj,setGProj]=useState("");
   if(!cu) return <div style={{padding:"40px 16px",textAlign:"center",color:"#9CA3AF"}}>담당자를 먼저 선택하세요</div>;
   const wk=weekKey();
   const myProjs=D.projects.filter(p=>p.assigneeId===cu.id||(p.collaboratorIds||[]).includes(cu.id));
   const wgoals=myWeekGoals(D,cu.id);
-  const achieved=wgoals.filter(wgAchieved).length;
-  const allDone=wgoals.length>0&&achieved===wgoals.length;
   // 이번 주 내가 한 일 (개인 카운트 · 비교 없음)
   let wTask=0,wSales=0,wAct=0;
   (D.tasks||[]).forEach(t=>{ if(!t.isFixed&&t.status==="done"&&inWeek(t.doneAt,wk)&&(matchUid(D,t.doneBy,t.doneByName)||t.assigneeId)===cu.id) wTask++; });
   (D.projects||[]).forEach(p=>{ (p.salesHistory||[]).forEach(h=>{if(inWeek(h.at,wk)&&matchUid(D,h.by,h.byName)===cu.id)wSales++;}); (p.activityKPIs||[]).forEach(ak=>(ak.history||[]).forEach(h=>{if(inWeek(h.at,wk)&&matchUid(D,h.by,h.byName)===cu.id)wAct++;})); });
-  const addGoal=()=>{ const tt=gTitle.trim(); const tg=Math.max(0,numF(gTarget)); if(!tt||tg<=0)return;
-    add("weekGoals",{id:"wg"+Date.now(),userId:cu.id,week:wk,title:tt,target:tg,current:0,unit:(gUnit||"").trim()||"건",projectId:gProj||null,createdAt:new Date().toISOString()});
-    setGTitle("");setGTarget("");setGProj(""); };
-  const bump=(g,d)=>up("weekGoals",g.id,{current:Math.max(0,numF(g.current)+d)});
+  const addGoal=()=>{ const tt=gTitle.trim(); if(!tt)return; add("weekGoals",{id:"wg"+Date.now(),userId:cu.id,week:wk,title:tt,createdAt:new Date().toISOString()}); setGTitle(""); };
   return(
     <div style={{padding:"14px 16px 20px"}}>
       {/* 이번 주 요약 헤더 */}
-      <div style={{background:allDone?"linear-gradient(135deg,#059669,#00C073)":"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:20,padding:"18px",marginBottom:14,color:"#fff"}}>
+      <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:20,padding:"18px",marginBottom:14,color:"#fff"}}>
         <p style={{margin:0,fontSize:11,fontWeight:800,opacity:0.7,letterSpacing:2}}>{weekLabel(wk)} · 내 주간</p>
-        <p style={{margin:"6px 0 0",fontSize:21,fontWeight:900}}>{wgoals.length===0?"이번 주 목표를 정해볼까요?":allDone?"이번 주 목표 전부 달성! 🎉":`${wgoals.length}개 중 ${achieved}개 달성 중`}</p>
+        <p style={{margin:"6px 0 0",fontSize:21,fontWeight:900}}>이번 주 나의 한 주</p>
         <div style={{display:"flex",gap:8,marginTop:14}}>
           {[["완료 업무",wTask,"✅"],["매출 입력",wSales,"💰"],["목표지표",wAct,"🎯"]].map(([l,v,ic])=>(
             <div key={l} style={{flex:1,background:"rgba(255,255,255,0.12)",borderRadius:12,padding:"9px 6px",textAlign:"center"}}>
@@ -2820,41 +2825,20 @@ function GamePage({D,cu,up,add,rm,nav}){
           ))}
         </div>
       </div>
-      <h3 style={{margin:"0 2px 8px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>🎯 이번 주 내 목표</h3>
-      <p style={{margin:"0 2px 10px",fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>목표명과 수치를 직접 적고, 원하면 <b>프로젝트에 연결</b>하세요. 채우면 ✓ 달성! 남과 비교 없어요.</p>
-      {/* 목표 추가 폼 */}
-      <div style={{background:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"12px 14px",marginBottom:12}}>
-        <input value={gTitle} onChange={e=>setGTitle(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addGoal();}} placeholder="목표명 (예: 상세페이지 3개 완성)" style={{width:"100%",padding:"11px 12px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:13.5,fontWeight:700,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
-        <div style={{display:"flex",gap:6,marginTop:8}}>
-          <input type="number" inputMode="numeric" value={gTarget} onChange={e=>setGTarget(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addGoal();}} placeholder="목표 수치" style={{flex:1,minWidth:0,padding:"10px 12px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:13.5,fontWeight:800,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
-          <input value={gUnit} onChange={e=>setGUnit(e.target.value)} placeholder="단위" style={{width:64,flexShrink:0,padding:"10px 8px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:13,fontWeight:700,textAlign:"center",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
-        </div>
-        <select value={gProj} onChange={e=>setGProj(e.target.value)} style={{width:"100%",marginTop:8,padding:"10px 12px",borderRadius:10,border:`1.5px solid ${gProj?"#F97316":"#E5E8EB"}`,fontSize:12.5,fontWeight:700,color:gProj?"#0F1F5C":"#9CA3AF",background:gProj?"#FFEDD5":"#fff",outline:"none",fontFamily:"inherit",WebkitAppearance:"none",appearance:"none"}}>
-          <option value="">📁 프로젝트 연결 (선택)</option>
-          {D.projects.map(p=><option key={p.id} value={p.id}>{p.group?`[${p.group}] `:""}{p.title}</option>)}
-        </select>
-        <button onClick={addGoal} disabled={!gTitle.trim()||numF(gTarget)<=0} style={{width:"100%",marginTop:8,padding:"12px 0",borderRadius:11,border:"none",background:gTitle.trim()&&numF(gTarget)>0?"linear-gradient(135deg,#F97316,#EA580C)":"#E5E8EB",color:gTitle.trim()&&numF(gTarget)>0?"#fff":"#9CA3AF",fontSize:13.5,fontWeight:800,cursor:gTitle.trim()&&numF(gTarget)>0?"pointer":"not-allowed",fontFamily:"inherit"}}>＋ 목표 추가</button>
+      <h3 style={{margin:"0 2px 8px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>📝 이번 주 명심할 것</h3>
+      <p style={{margin:"0 2px 10px",fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>그냥 메모예요. 수치·달성 추적 없이, 이번 주 잊지 말 것만 적어두세요. (어디에도 집계 안 됨)</p>
+      <div style={{background:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"12px 14px",marginBottom:12,display:"flex",gap:7}}>
+        <input value={gTitle} onChange={e=>setGTitle(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addGoal();}} placeholder="예: 거래처 단가표 업데이트 잊지 말기" style={{flex:1,minWidth:0,padding:"11px 12px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:13.5,fontWeight:600,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+        <button onClick={addGoal} disabled={!gTitle.trim()} style={{flexShrink:0,padding:"0 16px",borderRadius:10,border:"none",background:gTitle.trim()?"#F97316":"#E5E8EB",color:gTitle.trim()?"#fff":"#9CA3AF",fontSize:14,fontWeight:800,cursor:gTitle.trim()?"pointer":"not-allowed",fontFamily:"inherit"}}>＋</button>
       </div>
-      {wgoals.length===0&&<div style={{padding:"24px 20px",textAlign:"center",background:"#F9FAFB",borderRadius:14,border:"1px solid #F2F4F6",marginBottom:8}}><p style={{margin:0,fontSize:13,color:"#9CA3AF"}}>아직 이번 주 목표가 없어요 · 위에서 추가하세요</p></div>}
-      {wgoals.map(g=>{const cur=numF(g.current);const tg=numF(g.target);const ok=wgAchieved(g);const pc=tg>0?Math.min(100,Math.round(cur/tg*100)):0;const proj=g.projectId?D.projects.find(p=>p.id===g.projectId):null;return(
-        <div key={g.id} style={{background:"#fff",borderRadius:14,border:`1px solid ${ok?"rgba(0,192,115,0.35)":"#F2F4F6"}`,padding:"12px 14px",marginBottom:8}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
-            <span style={{fontSize:13.5,fontWeight:800,color:"#0F1F5C",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.title}</span>
-            {ok&&<span style={{fontSize:10.5,fontWeight:900,color:"#fff",background:"#00C073",padding:"3px 9px",borderRadius:10,flexShrink:0}}>✓ 달성!</span>}
-            <button onClick={()=>rm("weekGoals",g.id)} style={{background:"none",border:"none",fontSize:14,cursor:"pointer",color:"#D1D5DB",padding:4,flexShrink:0}}>✕</button>
-          </div>
-          {proj&&<span style={{display:"inline-block",marginBottom:8,fontSize:10,fontWeight:700,color:"#8B5CF6",background:"#F5F3FF",borderRadius:7,padding:"3px 8px"}}>📁 {proj.title}</span>}
-          <div style={{marginBottom:9}}>
-            <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:4}}><span style={{color:"#9CA3AF"}}>진행</span><span style={{fontWeight:900,color:ok?"#00C073":"#F97316"}}>{numF(cur)} / {tg}{g.unit||"건"} · {pc}%</span></div>
-            <div style={{height:7,borderRadius:7,background:"#F2F4F6",overflow:"hidden"}}><div style={{width:`${pc}%`,height:"100%",background:ok?"#00C073":"linear-gradient(90deg,#F97316,#FBBF24)",borderRadius:7}}/></div>
-          </div>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <button onClick={()=>bump(g,-1)} style={{width:34,height:34,borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",fontSize:18,fontWeight:800,color:"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>−</button>
-            <input type="number" inputMode="numeric" value={cur} onChange={e=>up("weekGoals",g.id,{current:Math.max(0,numF(e.target.value))})} style={{flex:1,minWidth:0,padding:"8px 10px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:14,fontWeight:800,textAlign:"center",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
-            <button onClick={()=>bump(g,1)} style={{width:34,height:34,borderRadius:9,border:"none",background:"#F97316",fontSize:18,fontWeight:800,color:"#fff",cursor:"pointer",fontFamily:"inherit"}}>＋</button>
-          </div>
+      {wgoals.length===0&&<div style={{padding:"24px 20px",textAlign:"center",background:"#F9FAFB",borderRadius:14,border:"1px solid #F2F4F6",marginBottom:8}}><p style={{margin:0,fontSize:13,color:"#9CA3AF"}}>아직 메모가 없어요 · 위에 적어두세요</p></div>}
+      {wgoals.map(g=>(
+        <div key={g.id} style={{background:"#fff",borderRadius:12,border:"1px solid #F2F4F6",padding:"11px 13px",marginBottom:7,display:"flex",alignItems:"center",gap:9}}>
+          <span style={{flexShrink:0,color:"#F97316",fontSize:14}}>📌</span>
+          <span style={{flex:1,minWidth:0,fontSize:13.5,fontWeight:600,color:"#1F2937"}}>{g.title}</span>
+          <button onClick={()=>rm("weekGoals",g.id)} style={{flexShrink:0,background:"none",border:"none",fontSize:14,cursor:"pointer",color:"#D1D5DB",padding:4}}>✕</button>
         </div>
-      );})}
+      ))}
       <h3 style={{margin:"18px 2px 8px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>👥 프로젝트 기여 현황</h3>
       <p style={{margin:"0 2px 10px",fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>내가 맡은 프로젝트에 <b>누가 얼마나</b> 기여했는지(완료 업무·매출·목표지표 기록 기준)예요.</p>
       {myProjs.filter(p=>projContrib(D,p).length>0).map(p=>{const rows=projContrib(D,p);const max=Math.max(...rows.map(r=>r.total),1);return(
@@ -2876,8 +2860,16 @@ function GamePage({D,cu,up,add,rm,nav}){
   );
 }
 // 모든 데이터 자산을 CSV로 추출 (추출 사각 제거)
-function ExportPanel({D}){
+function ExportPanel({D,up}){
   const uname=(id)=>D.users.find(u=>u.id===id)?.name||"";
+  // 예시(데모) KPI·채널 수치 0으로 초기화 — 목표·구조는 유지, 현재 숫자만 비움
+  const resetNums=()=>{
+    if(!up) return;
+    if(!window.confirm("KPI·채널의 현재 수치를 모두 0으로 초기화할까요?\n목표·구조(직판/B2B/운영·채널)는 그대로 두고 예시 숫자만 비웁니다.\n(되돌리려면 아래 '전체 백업(JSON)'을 먼저 받아두세요)")) return;
+    (D.subKPIs||[]).forEach(s=>up("subKPIs",s.id,{currentValue:0,valueHistory:[]}));
+    (D.mainKPIs||[]).forEach(m=>up("mainKPIs",m.id,{currentValue:0,valueHistory:[]}));
+    (D.goals||[]).forEach(g=>up("goals",g.id,{currentValue:0}));
+  };
   const goalTypeL={revenue:"매출",metric:"수치목표",journey:"여정"};
   const expProjects=()=>{
     const rows=[["제목","그룹","담당자","목표유형","거래처유형","메인KPI","서브KPI","우선순위","상태","진척도%","진척방식","업무(완료/전체)","매출(원)","매출입력자","매출최종일","목표지표"]];
@@ -2928,6 +2920,11 @@ function ExportPanel({D}){
     <div style={{background:"#FFFFFF",borderRadius:16,padding:"14px 16px",marginTop:14,border:"1px solid #F2F4F6"}}>
       <h3 style={{margin:"0 0 3px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>💾 백업 · 데이터 추출</h3>
       <p style={{margin:"0 0 10px",fontSize:10.5,color:"#9CA3AF"}}>정기적으로 <b>전체 백업(JSON)</b>을 내려받아 안전하게 보관하세요</p>
+      <button onClick={resetNums} style={{width:"100%",display:"flex",alignItems:"center",gap:8,backgroundColor:"#FFF7ED",border:"1px dashed #FDBA74",borderRadius:11,padding:"10px 12px",marginBottom:10,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+        <span style={{fontSize:16}}>🧹</span>
+        <span style={{flex:1,fontSize:12,fontWeight:700,color:"#9A3412"}}>예시 KPI·채널 수치 0으로 초기화 <span style={{fontWeight:600,color:"#B45309"}}>(목표·구조는 유지)</span></span>
+        <span style={{fontSize:12,fontWeight:800,color:"#EA580C"}}>실행</span>
+      </button>
       {/* 저장 용량 게이지 — 1MiB 한도 대비 */}
       <div style={{marginBottom:10,padding:"10px 12px",background:"#F9FAFB",borderRadius:11,border:"1px solid #F2F4F6"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>

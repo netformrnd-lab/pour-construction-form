@@ -387,11 +387,11 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add})=>{
   );
 };
 const TABS=[{id:"today",icon:"🏠",label:"오늘"},{id:"kpi",icon:"◎",label:"KPI"},{id:"projects",icon:"▦",label:"프로젝트"},{id:"calendar",icon:"▤",label:"캘린더"},{id:"more",icon:"⋯",label:"더보기"}];
-const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"}];
+const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"proceditor",icon:"🧪",label:"프로세스 에디터"},{id:"ai",icon:"✦",label:"AI 코치"}];
 // 메뉴 그룹: 개인(나만 보는 내 것) vs 팀(모두 같이 보는 공유) — 출시는 프로젝트 하위 탭
 const NAV_GROUPS=[
   {label:"개인 · 나만", ids:["today","game","fixed","retro"]},
-  {label:"팀 · 공유",  ids:["kpi","projects","mindmap","calendar","ai"]},
+  {label:"팀 · 공유",  ids:["kpi","projects","mindmap","proceditor","calendar","ai"]},
 ];
 export default function App(){
   const [D,setD]=useState(INIT);
@@ -549,6 +549,7 @@ export default function App(){
     {page==="game"&&<GamePage D={D} cu={cu} up={up} add={add} rm={rm} nav={nav}/>}
     {page==="launch"&&<LaunchPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="mindmap"&&<MindMapPage D={D} cu={cu}/>}
+    {page==="proceditor"&&<ProcessEditorPage D={D}/>}
     {page==="fixed"&&<FixedPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="retro"&&<RetroPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
     {page==="ai"&&<AIPage D={D} cu={cu} add={add} rm={rm}/>}
@@ -562,7 +563,7 @@ export default function App(){
       {saveErr.level!=="error"&&<button onClick={()=>setSaveErr(null)} style={{flexShrink:0,padding:"5px 7px",borderRadius:8,border:"none",background:"transparent",color:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}}>×</button>}
     </div>}
     <Sheet open={more} onClose={()=>setMore(false)} title="더보기">
-      {[{label:"개인 · 나만",ids:["game","fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","ai"]}].map(grp=>(
+      {[{label:"개인 · 나만",ids:["game","fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","proceditor","ai"]}].map(grp=>(
         <div key={grp.label} style={{marginTop:14}}>
           <p style={{margin:"0 2px 8px",fontSize:11,fontWeight:800,color:"#9CA3AF",letterSpacing:0.5}}>{grp.label}</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -2425,6 +2426,102 @@ function NodeEditForm({node,users,onSave,onDelete}){
         <button onClick={onDelete} style={{flex:"0 0 auto",padding:"13px 16px",borderRadius:12,border:"1.5px solid #FFE2E5",backgroundColor:"#FFF0F1",color:"#F04452",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
         <Btn full variant="orange" onClick={()=>f.title.trim()&&onSave({title:f.title.trim(),roleLabel:f.roleLabel.trim(),assigneeId:f.assigneeId})} disabled={!f.title.trim()} style={{flex:1}}>저장</Btn>
       </div>
+    </div>
+  );
+}
+// ───────────── 프로세스 에디터 (미리보기) — 키보드 아웃라이너 + 실시간 마인드맵 + 세부업무 ─────────────
+function ProcessEditorPage({D}){
+  const MEM=[{id:"",name:"미배정",color:"#9CA3AF"},...(D.users||[])];
+  const Mof=(id)=>MEM.find(m=>m.id===id)||MEM[0];
+  const u=(n)=>D.users[n]?.id||"";
+  const [items,setItems]=useState([
+    {id:"s1",text:"소싱·원가·납기 확정",depth:0,who:u(0),memo:"",checks:[]},
+    {id:"s2",text:"제품 교육·지식 전파",depth:0,who:u(0),memo:"",checks:[]},
+    {id:"s3",text:"소스 확보 → 상품 등록",depth:0,who:u(1),memo:"",checks:[{t:"썸네일 제작",done:false},{t:"상세페이지",done:false},{t:"마켓 동시등록",done:false}]},
+    {id:"s4",text:"썸네일·상세 디자인",depth:1,who:u(1),memo:"",checks:[]},
+    {id:"s5",text:"출시 배너 · 주문 세팅",depth:0,who:u(3),memo:"",checks:[]},
+    {id:"s6",text:"B2B 안내 · 실사용 콘텐츠",depth:0,who:u(2),memo:"",checks:[]},
+  ]);
+  const [selId,setSelId]=useState("s3");
+  const focusRef=useRef(null), uidRef=useRef(0), outRef=useRef(null);
+  useEffect(()=>{ if(!focusRef.current)return; const {id,caret}=focusRef.current; focusRef.current=null; const inp=outRef.current&&outRef.current.querySelector(`input[data-id="${id}"]`); if(inp){inp.focus(); const c=caret==null?inp.value.length:caret; try{inp.setSelectionRange(c,c);}catch(_){}} });
+  const sel=items.find(x=>x.id===selId);
+  const newId=()=>"n"+Date.now()+(++uidRef.current);
+  const patch=(id,p)=>setItems(it=>it.map(x=>x.id===id?{...x,...p}:x));
+  const hasKid=(i)=>i+1<items.length&&items[i+1].depth>items[i].depth;
+  const parentIdx=(i)=>{for(let k=i-1;k>=0;k--){if(items[k].depth===items[i].depth-1)return k;if(items[k].depth<items[i].depth-1)return -1;}return -1;};
+  const indent=(i,dir)=>{const arr=[...items];const it=arr[i];if(dir<0){if(it.depth>0)arr[i]={...it,depth:it.depth-1};}else{const prev=arr[i-1];if(prev&&it.depth<=prev.depth)arr[i]={...it,depth:it.depth+1};}setItems(arr);};
+  const onKey=(e,i)=>{const it=items[i];
+    if(e.key==="Enter"){e.preventDefault();const nid=newId();const arr=[...items];arr.splice(i+1,0,{id:nid,text:"",depth:it.depth,who:it.who,memo:"",checks:[]});setItems(arr);setSelId(nid);focusRef.current={id:nid};}
+    else if(e.key==="Tab"){e.preventDefault();indent(i,e.shiftKey?-1:1);focusRef.current={id:it.id,caret:e.target.selectionStart};}
+    else if(e.key===" "&&e.target.value===""){e.preventDefault();indent(i,1);focusRef.current={id:it.id};}
+    else if(e.key==="Backspace"&&e.target.value===""&&items.length>1){e.preventDefault();const p=items[i-1]||items[0];setItems(items.filter((_,k)=>k!==i));setSelId(p.id);focusRef.current={id:p.id};}
+  };
+  // 마인드맵 자동 배치
+  const pos={}; {let yc=0;const colW=168,rowH=44,padX=14,padY=12;
+    const place=(i)=>{const kids=[];for(let k=i+1;k<items.length;k++){if(items[k].depth<=items[i].depth)break;if(items[k].depth===items[i].depth+1)kids.push(k);}if(!kids.length){pos[i]={x:padX+items[i].depth*colW,y:padY+yc*rowH};yc++;}else{const ys=[];kids.forEach(k=>{place(k);ys.push(pos[k].y);});pos[i]={x:padX+items[i].depth*colW,y:(Math.min(...ys)+Math.max(...ys))/2};}};
+    items.forEach((it,i)=>{if(it.depth===0)place(i);});}
+  let mx=0,my=0;Object.values(pos).forEach(p=>{mx=Math.max(mx,p.x);my=Math.max(my,p.y);});
+  const addCheck=()=>{const c=[...(sel.checks||[]),{t:"",done:false}];patch(sel.id,{checks:c});};
+  return(
+    <div style={{padding:"14px 16px 24px"}}>
+      <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",color:"#fff",borderRadius:14,padding:"14px 16px",marginBottom:14}}>
+        <p style={{margin:0,fontSize:15,fontWeight:900}}>📋 프로세스 만들기 <span style={{fontSize:10,fontWeight:800,background:"rgba(255,255,255,0.2)",padding:"2px 8px",borderRadius:8}}>미리보기</span></p>
+        <p style={{margin:"5px 0 0",fontSize:11,opacity:0.85,lineHeight:1.6}}>아래에서 타이핑하면 마인드맵이 실시간으로 그려집니다.<br/><b>Enter</b> 같은 단계 · <b>Space</b>(빈칸) 하위 · 행의 <b>◂ ▸</b> 상위·하위 · <b>Backspace</b>(빈칸) 삭제</p>
+      </div>
+
+      {/* 아웃라이너 */}
+      <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"12px 10px",marginBottom:14}} ref={outRef}>
+        {items.map((it,i)=>{const m=Mof(it.who);const isSel=it.id===selId;return(
+          <div key={it.id} style={{display:"flex",alignItems:"center",gap:6,marginLeft:it.depth*20,padding:"3px 6px",borderRadius:9,backgroundColor:isSel?"#FFF7ED":"transparent"}}>
+            <button onClick={()=>indent(i,-1)} style={{border:"none",background:"none",color:"#C4C9D0",fontSize:13,cursor:"pointer",padding:"2px 3px"}}>◂</button>
+            <button onClick={()=>indent(i,1)} style={{border:"none",background:"none",color:"#C4C9D0",fontSize:13,cursor:"pointer",padding:"2px 3px"}}>▸</button>
+            <span style={{width:hasKid(i)?9:7,height:hasKid(i)?9:7,borderRadius:"50%",backgroundColor:hasKid(i)?"#0F1F5C":"#F97316",flexShrink:0}}/>
+            <span style={{width:18,height:18,borderRadius:"50%",backgroundColor:m.color,color:"#fff",fontSize:9,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{m.name[0]}</span>
+            <input data-id={it.id} value={it.text} placeholder="단계 입력..." onChange={e=>patch(it.id,{text:e.target.value})} onFocus={()=>setSelId(it.id)} onKeyDown={e=>onKey(e,i)} style={{flex:1,minWidth:0,border:"none",background:"none",fontSize:13.5,fontWeight:600,color:"#1F2937",outline:"none",fontFamily:"inherit",padding:"5px 2px"}}/>
+            {it.checks&&it.checks.length>0&&<span onClick={()=>setSelId(it.id)} style={{fontSize:9.5,fontWeight:800,color:"#fff",background:"#8B5CF6",borderRadius:6,padding:"1px 6px",flexShrink:0,cursor:"pointer"}}>{it.checks.filter(c=>c.done).length}/{it.checks.length}</span>}
+          </div>
+        );})}
+      </div>
+
+      {/* 마인드맵 */}
+      <p style={{margin:"0 2px 6px",fontSize:12,fontWeight:900,color:"#0F1F5C"}}>🧠 마인드맵 <span style={{fontWeight:600,color:"#9CA3AF",fontSize:10.5}}>(자동 · 노드 탭하면 아래에서 편집)</span></p>
+      <div style={{overflowX:"auto",backgroundColor:"#FAFBFC",backgroundImage:"radial-gradient(#E5E8EB 1px,transparent 1px)",backgroundSize:"18px 18px",border:"1px solid #EDF0F3",borderRadius:14,marginBottom:14}}>
+        <div style={{position:"relative",width:mx+200,height:my+70}}>
+          <svg width={mx+200} height={my+70} style={{position:"absolute",inset:0,pointerEvents:"none",overflow:"visible"}}>
+            {items.map((it,i)=>{const pi=parentIdx(i);if(pi<0||!pos[pi]||!pos[i])return null;const x1=pos[pi].x+140,y1=pos[pi].y+15,x2=pos[i].x,y2=pos[i].y+15;return <path key={it.id} d={`M ${x1} ${y1} C ${x1+34} ${y1}, ${x2-34} ${y2}, ${x2} ${y2}`} stroke="#F9731688" strokeWidth={2} fill="none"/>;})}
+          </svg>
+          {items.map((it,i)=>{const m=Mof(it.who);const isSel=it.id===selId;return(
+            <div key={it.id} onClick={()=>setSelId(it.id)} style={{position:"absolute",left:pos[i].x,top:pos[i].y,display:"flex",alignItems:"center",gap:6,maxWidth:150,backgroundColor:"#fff",border:`2px solid ${isSel?"#F97316":"#E5E8EB"}`,borderRadius:11,padding:"6px 10px",boxShadow:isSel?"0 0 0 3px rgba(249,115,22,0.2)":"0 2px 8px rgba(0,0,0,0.07)",cursor:"pointer",fontSize:12,fontWeight:700,zIndex:isSel?3:2}}>
+              <span style={{width:16,height:16,borderRadius:"50%",backgroundColor:m.color,color:"#fff",fontSize:8.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{m.name[0]}</span>
+              <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{it.text||"단계"}</span>
+            </div>
+          );})}
+        </div>
+      </div>
+
+      {/* 세부 편집 */}
+      {sel&&(
+        <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"14px 16px"}}>
+          <p style={{margin:"0 0 10px",fontSize:12,fontWeight:900,color:"#0F1F5C"}}>✏️ 단계 세부</p>
+          <input value={sel.text} onChange={e=>patch(sel.id,{text:e.target.value})} style={{width:"100%",padding:"11px 13px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:14,fontWeight:700,outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:12}}/>
+          <p style={{margin:"0 0 6px",fontSize:11,fontWeight:800,color:"#4B5563"}}>담당자</p>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+            {MEM.map(m=>{const on=sel.who===m.id;return(<button key={m.id||"none"} onClick={()=>patch(sel.id,{who:m.id})} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 11px",borderRadius:20,border:`1.5px solid ${on?m.color:"#E5E8EB"}`,background:on?m.color+"18":"#fff",cursor:"pointer",fontFamily:"inherit"}}><span style={{width:16,height:16,borderRadius:"50%",backgroundColor:m.color,color:"#fff",fontSize:8.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{m.name[0]}</span><span style={{fontSize:12,fontWeight:700,color:on?m.color:"#4B5563"}}>{m.name}</span></button>);})}
+          </div>
+          <p style={{margin:"0 0 6px",fontSize:11,fontWeight:800,color:"#4B5563"}}>메모</p>
+          <textarea value={sel.memo} onChange={e=>patch(sel.id,{memo:e.target.value})} placeholder="이 단계 주의사항·참고..." style={{width:"100%",padding:"9px 11px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:13,resize:"vertical",minHeight:48,outline:"none",fontFamily:"inherit",boxSizing:"border-box",marginBottom:12}}/>
+          <p style={{margin:"0 0 6px",fontSize:11,fontWeight:800,color:"#4B5563"}}>세부 업무 (체크리스트)</p>
+          {(sel.checks||[]).map((c,ci)=>(
+            <div key={ci} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 9px",border:"1px solid #E5E8EB",borderRadius:9,marginBottom:6,backgroundColor:"#FAFBFC"}}>
+              <input type="checkbox" checked={c.done} onChange={e=>{const ch=[...sel.checks];ch[ci]={...c,done:e.target.checked};patch(sel.id,{checks:ch});}} style={{width:16,height:16,accentColor:"#F97316"}}/>
+              <input value={c.t} onChange={e=>{const ch=[...sel.checks];ch[ci]={...c,t:e.target.value};patch(sel.id,{checks:ch});}} placeholder="세부 업무..." style={{flex:1,minWidth:0,border:"none",background:"none",fontSize:12.5,outline:"none",fontFamily:"inherit"}}/>
+              <button onClick={()=>{patch(sel.id,{checks:sel.checks.filter((_,k)=>k!==ci)});}} style={{border:"none",background:"none",color:"#D1D5DB",fontSize:13,cursor:"pointer"}}>✕</button>
+            </div>
+          ))}
+          <button onClick={addCheck} style={{width:"100%",padding:"8px 0",borderRadius:9,border:"1.5px dashed #FDBA74",background:"#FFF7ED",fontSize:12,fontWeight:800,color:"#EA580C",cursor:"pointer",fontFamily:"inherit"}}>＋ 세부 업무 추가</button>
+        </div>
+      )}
     </div>
   );
 }

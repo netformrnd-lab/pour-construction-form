@@ -701,7 +701,7 @@ function WeeklyInputSheet({open,onClose,D,cu,up}){
   const NumAdd=({onAdd,ph})=>{const[v,setV]=useState("");return(<div style={{display:"flex",gap:6}}><input type="number" inputMode="numeric" value={v} onChange={e=>setV(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&v!==""){onAdd(v);setV("");}}} placeholder={ph||"이번 주 추가값"} style={{flex:1,minWidth:0,padding:"8px 10px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:13,fontWeight:700,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/><button onClick={()=>{if(v!==""){onAdd(v);setV("");}}} disabled={v===""} style={{flexShrink:0,padding:"0 14px",borderRadius:9,border:"none",background:v===""?"#E5E8EB":"#8B5CF6",color:"#fff",fontSize:13,fontWeight:800,cursor:v===""?"default":"pointer",fontFamily:"inherit"}}>추가</button></div>);};
   const MoneyAdd=({onAdd})=>{const[v,setV]=useState("");const[u,setU]=useState("만");const M={"원":1,"만":10000,"억":100000000};const tot=Math.round((Number(v)||0)*M[u]);return(<div><div style={{display:"flex",gap:6}}><input type="number" inputMode="decimal" value={v} onChange={e=>setV(e.target.value)} placeholder="이번 주 매출 추가" style={{flex:1,minWidth:0,padding:"8px 10px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:13,fontWeight:800,textAlign:"right",outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/><div style={{display:"inline-flex",borderRadius:9,border:"1.5px solid #E5E8EB",overflow:"hidden",flexShrink:0}}>{["원","만","억"].map(x=>(<button key={x} onClick={()=>setU(x)} style={{padding:"0 9px",fontSize:12,fontWeight:800,border:"none",cursor:"pointer",background:u===x?"#F97316":"#fff",color:u===x?"#fff":"#9CA3AF",fontFamily:"inherit"}}>{x}</button>))}</div><button onClick={()=>{if(tot>0){onAdd(tot);setV("");}}} disabled={tot<=0} style={{flexShrink:0,padding:"0 12px",borderRadius:9,border:"none",background:tot<=0?"#E5E8EB":"#8B5CF6",color:"#fff",fontSize:13,fontWeight:800,cursor:tot<=0?"default":"pointer",fontFamily:"inherit"}}>추가</button></div>{tot>0&&<p style={{margin:"4px 0 0",fontSize:10.5,fontWeight:800,color:"#EA580C"}}>= {fmtKorWon(tot)}</p>}</div>);};
   const subHd={margin:"4px 2px 8px",fontSize:11,fontWeight:900,color:"#9CA3AF",letterSpacing:"-0.2px"};
-  const TABS_W=[["sales","💰 매출",salesProjs.length+salesChannels.length],["kpi","📊 운영지표",kpiItems.length],["act","🎯 활동 목표",actProjs.reduce((a,p)=>a+(p.activityKPIs||[]).length,0)]];
+  const TABS_W=[["sales","💰 매출",salesProjs.length+salesChannels.length],["kpi","📊 운영지표",kpiItems.length],["act","🎯 활동지표",actProjs.reduce((a,p)=>a+(p.activityKPIs||[]).length,0)]];
   return(
     <Sheet open={open} onClose={onClose} title="🗓️ 이번 주 마감 입력" h="90vh">
       <div style={{marginTop:4}}>
@@ -731,7 +731,7 @@ function WeeklyInputSheet({open,onClose,D,cu,up}){
             <NumAdd ph={`이번 주 ${sk.unit||""} 추가`} onAdd={v=>wkVal("subKPIs",sk,v)}/>
           </div>
         );}))}
-        {tab==="act"&&(actProjs.length===0?<Empty t="등록된 활동 목표가 없어요 · 프로젝트에서 추가하세요"/>:actProjs.map(p=>(
+        {tab==="act"&&(actProjs.length===0?<Empty t="등록된 활동지표가 없어요 · 프로젝트에서 추가하세요"/>:actProjs.map(p=>(
           <div key={p.id} style={{marginBottom:12}}>
             <p style={{margin:"0 0 6px",fontSize:11.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📁 {p.title}</p>
             {(p.activityKPIs||[]).map(ak=>(
@@ -806,7 +806,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           <span style={{display:"inline-block",marginTop:4,fontSize:10,fontWeight:800,background:"rgba(255,255,255,0.2)",color:"#fff",padding:"3px 9px",borderRadius:10,whiteSpace:"nowrap"}}>내 주간 ›</span>
         </div>
       </div>
-      {isLastWorkingDayOfWeek()&&<button onClick={()=>setWeeklyOpen(true)} style={{width:"100%",marginBottom:14,padding:"13px 0",borderRadius:14,border:"none",background:"linear-gradient(135deg,#F97316,#EA580C)",color:"#fff",fontSize:14.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🗓️ 이번 주 마감 입력 — 매출·KPI·활동 목표 한 번에</button>}
+      {isLastWorkingDayOfWeek()&&<button onClick={()=>setWeeklyOpen(true)} style={{width:"100%",marginBottom:14,padding:"13px 0",borderRadius:14,border:"none",background:"linear-gradient(135deg,#F97316,#EA580C)",color:"#fff",fontSize:14.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🗓️ 이번 주 마감 입력 — 매출·KPI·활동지표 한 번에</button>}
       <WeeklyInputSheet open={weeklyOpen} onClose={()=>setWeeklyOpen(false)} D={D} cu={cu} up={up}/>
       <div style={{display:"flex",gap:8,marginBottom:14,overflowX:"auto",paddingBottom:2}}>
         {[{label:"오늘 업무",val:`${doneToday}/${todayT.length}`,color:"#3182F6"},{label:"고정업무",val:`${doneFixed}/${fixed.length}`,color:"#F97316"},{label:"내 프로젝트",val:D.projects.filter(p=>p.assigneeId===cu.id).length+"건",color:"#8B5CF6"}].map((s,i)=>(
@@ -1133,10 +1133,10 @@ function KPIPage({D,lead,up,cu,add,rm}){
             return(
               <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px 16px",marginBottom:14,border:"1px solid #F2F4F6"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                  <h3 style={{margin:0,fontSize:15,fontWeight:900,color:"#0F1F5C"}}>🎯 활동 목표 (전사 합산)</h3>
+                  <h3 style={{margin:0,fontSize:15,fontWeight:900,color:"#0F1F5C"}}>🎯 활동지표 (전사 합산)</h3>
                   <span style={{fontSize:10.5,color:"#9CA3AF"}}>{rows.length}개 지표 · {rows.reduce((s,r)=>s+r.cnt,0)}개 프로젝트</span>
                 </div>
-                <p style={{margin:"0 0 10px",fontSize:10.5,color:"#9CA3AF"}}>프로젝트별 활동 목표를 이름으로 합산 — 운영·활동 성과(매출 아님)</p>
+                <p style={{margin:"0 0 10px",fontSize:10.5,color:"#9CA3AF"}}>프로젝트별 활동지표를 이름으로 합산 — 운영·활동 성과(매출 아님)</p>
                 {rows.map(r=>{const pr2=pct(r.cur,r.tgt);return(
                   <div key={r.name} style={{marginBottom:10}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3,gap:8}}>
@@ -1712,8 +1712,8 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
     const a=document.createElement("a");a.href=url;a.download=`${name}_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);
   };
   const exportCSV=()=>{
-    const goalTypeL={revenue:"매출",metric:"활동목표",journey:"여정"};
-    const rows=[["제목","그룹","담당자","목표유형","거래처유형","메인KPI","서브KPI","우선순위","상태","진척도%","진척방식","업무(완료/전체)","매출(원)","매출입력자","매출최종일","매출입력횟수","활동목표"]];
+    const goalTypeL={revenue:"매출",metric:"활동지표",journey:"여정"};
+    const rows=[["제목","그룹","담당자","목표유형","거래처유형","메인KPI","서브KPI","우선순위","상태","진척도%","진척방식","업무(완료/전체)","매출(원)","매출입력자","매출최종일","매출입력횟수","활동지표"]];
     filtered.forEach(p=>{
       const a=D.users.find(u=>u.id===p.assigneeId);const mk=D.mainKPIs.find(m=>m.id===p.mainKPIId);const sk=D.subKPIs.find(s=>s.id===p.subKPIId);
       const ts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);const dn=ts.filter(t=>t.status==="done").length;
@@ -1840,7 +1840,7 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
                   </div>
                   <div style={{padding:"12px 16px 0"}}>
                     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
-                      <span style={{fontSize:12,fontWeight:800,color:"#4B5563"}}>🎯 활동 목표 <span style={{fontWeight:600,color:"#9CA3AF"}}>(매출 빼고)</span></span>
+                      <span style={{fontSize:12,fontWeight:800,color:"#4B5563"}}>🎯 활동지표 <span style={{fontWeight:600,color:"#9CA3AF"}}>(매출 빼고)</span></span>
                       <div style={{display:"inline-flex",borderRadius:7,border:"1px solid #E5E8EB",overflow:"hidden"}}>{[["delta","➕추가"],["total","=총값"]].map(([k,l])=>(<button key={k} onClick={()=>setActMode(k)} style={{padding:"3px 8px",fontSize:10.5,fontWeight:700,border:"none",cursor:"pointer",backgroundColor:actMode===k?"#8B5CF6":"#fff",color:actMode===k?"#fff":"#9CA3AF",fontFamily:"inherit"}}>{l}</button>))}</div>
                     </div>
                     {(proj.activityKPIs||[]).map(ak=>{const p2=pct(ak.current||0,ak.target||0);return(
@@ -1981,7 +1981,7 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
           <div style={{marginBottom:14}}>
             <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>이 프로젝트의 성과는? <span style={{color:"#9CA3AF",fontWeight:600}}>(측정 방식)</span></label>
             <div style={{display:"flex",gap:6}}>
-              {[["revenue","💰 매출","돈을 번다"],["metric","🎯 활동 목표","상품등록 100개"],["journey","🔁 여정·구축","진행도로"]].map(([k,l,d])=>(
+              {[["revenue","💰 매출","돈을 번다"],["metric","🎯 활동지표","상품등록 100개"],["journey","🔁 여정·구축","진행도로"]].map(([k,l,d])=>(
                 <button key={k} onClick={()=>{setProjForm({...projForm,goalType:k});if(k==="revenue")setShowAdv(true);}} style={{flex:1,padding:"10px 4px",borderRadius:11,border:`1.5px solid ${projForm.goalType===k?"#F97316":"#E5E8EB"}`,background:projForm.goalType===k?"#FFEDD5":"#fff",cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
                   <p style={{margin:0,fontSize:12,fontWeight:800,color:projForm.goalType===k?"#EA580C":"#374151"}}>{l}</p>
                   <p style={{margin:"2px 0 0",fontSize:9,color:"#9CA3AF",lineHeight:1.3}}>{d}</p>
@@ -2040,7 +2040,7 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
           ))}
         </div>)}
       </Sheet>
-      <Sheet open={!!actEdit} onClose={()=>setActEdit(null)} title="🎯 활동 목표 수정">
+      <Sheet open={!!actEdit} onClose={()=>setActEdit(null)} title="🎯 활동지표 수정">
         {actEdit&&(()=>{const ak=(actEdit.proj.activityKPIs||[]).find(x=>x.id===actEdit.ak.id)||actEdit.ak;return(
           <ActIndicatorEditForm ak={ak} onSave={(f)=>actSaveEdit(actEdit.proj,ak,f)}/>
         );})()}
@@ -3277,7 +3277,7 @@ function GamePage({D,cu,up,add,rm,nav}){
         <p style={{margin:0,fontSize:11,fontWeight:800,opacity:0.7,letterSpacing:2}}>{weekLabel(wk)} · 내 주간</p>
         <p style={{margin:"6px 0 0",fontSize:21,fontWeight:900}}>이번 주 나의 한 주</p>
         <div style={{display:"flex",gap:8,marginTop:14}}>
-          {[["완료 업무",wTask,"✅"],["매출 입력",wSales,"💰"],["활동목표",wAct,"🎯"]].map(([l,v,ic])=>(
+          {[["완료 업무",wTask,"✅"],["매출 입력",wSales,"💰"],["활동지표",wAct,"🎯"]].map(([l,v,ic])=>(
             <div key={l} style={{flex:1,background:"rgba(255,255,255,0.12)",borderRadius:12,padding:"9px 6px",textAlign:"center"}}>
               <p style={{margin:0,fontSize:17,fontWeight:900}}>{ic} {v}</p>
               <p style={{margin:"1px 0 0",fontSize:9.5,opacity:0.8}}>{l}</p>
@@ -3300,7 +3300,7 @@ function GamePage({D,cu,up,add,rm,nav}){
         </div>
       ))}
       <h3 style={{margin:"18px 2px 8px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>👥 프로젝트 기여 현황</h3>
-      <p style={{margin:"0 2px 10px",fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>내가 맡은 프로젝트에 <b>누가 얼마나</b> 기여했는지(완료 업무·매출·활동 목표 기록 기준)예요.</p>
+      <p style={{margin:"0 2px 10px",fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>내가 맡은 프로젝트에 <b>누가 얼마나</b> 기여했는지(완료 업무·매출·활동지표 기록 기준)예요.</p>
       {myProjs.filter(p=>projContrib(D,p).length>0).map(p=>{const rows=projContrib(D,p);const max=Math.max(...rows.map(r=>r.total),1);return(
         <div key={p.id} style={{background:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"12px 14px",marginBottom:8}}>
           <p style={{margin:"0 0 8px",fontSize:12.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</p>
@@ -3330,9 +3330,9 @@ function ExportPanel({D,up}){
     (D.mainKPIs||[]).forEach(m=>up("mainKPIs",m.id,{currentValue:0,valueHistory:[]}));
     (D.goals||[]).forEach(g=>up("goals",g.id,{currentValue:0}));
   };
-  const goalTypeL={revenue:"매출",metric:"활동목표",journey:"여정"};
+  const goalTypeL={revenue:"매출",metric:"활동지표",journey:"여정"};
   const expProjects=()=>{
-    const rows=[["제목","그룹","담당자","목표유형","거래처유형","메인KPI","서브KPI","우선순위","상태","진척도%","진척방식","업무(완료/전체)","매출(원)","매출입력자","매출최종일","활동목표"]];
+    const rows=[["제목","그룹","담당자","목표유형","거래처유형","메인KPI","서브KPI","우선순위","상태","진척도%","진척방식","업무(완료/전체)","매출(원)","매출입력자","매출최종일","활동지표"]];
     (D.projects||[]).forEach(p=>{const mk=D.mainKPIs.find(m=>m.id===p.mainKPIId);const sk=D.subKPIs.find(s=>s.id===p.subKPIId);const ts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);const dn=ts.filter(t=>t.status==="done").length;const aks=(p.activityKPIs||[]).map(ak=>`${ak.name} ${numF(ak.current)}/${numF(ak.target)}${ak.unit||""}`).join(" · ");rows.push([p.title,p.group||"",uname(p.assigneeId),goalTypeL[p.goalType]||"",p.dealerType||"",mk?.title||"",sk?.title||"",p.priority||"",p.status||"",p.progress||0,p.progressManual?"수동":"자동",`${dn}/${ts.length}`,numF(p.resultValue),p.salesByName||"",(p.salesAt||"").slice(0,10),aks]);});
     downloadCSV(rows,"프로젝트");
   };
@@ -3350,7 +3350,7 @@ function ExportPanel({D,up}){
     downloadCSV(rows,"KPI주차실적");
   };
   const expContrib=()=>{
-    const rows=[["프로젝트","담당자","완료업무","매출입력","활동목표","합계","이번주"]];
+    const rows=[["프로젝트","담당자","완료업무","매출입력","활동지표","합계","이번주"]];
     (D.projects||[]).forEach(p=>projContrib(D,p).forEach(r=>rows.push([p.title,uname(r.uid),r.task,r.sales,r.act,r.total,r.wk])));
     if(rows.length===1)return alert("기여 기록이 없어요");
     downloadCSV(rows,"기여도");
@@ -3358,8 +3358,8 @@ function ExportPanel({D,up}){
   const expIndicators=()=>{
     const rows=[["프로젝트","지표명","단위","현재","목표","달성%","최종입력자"]];
     (D.projects||[]).forEach(p=>(p.activityKPIs||[]).forEach(ak=>rows.push([p.title,ak.name,ak.unit||"",numF(ak.current),numF(ak.target),pct(numF(ak.current),numF(ak.target)),ak.byName||""])));
-    if(rows.length===1)return alert("활동 목표가 없어요");
-    downloadCSV(rows,"활동목표");
+    if(rows.length===1)return alert("활동지표가 없어요");
+    downloadCSV(rows,"활동지표");
   };
   const expWeekGoals=()=>{
     const rows=[["주차","담당자","메모"]];
@@ -3374,7 +3374,7 @@ function ExportPanel({D,up}){
     if(rows.length===1)return alert("업무 기록이 없어요");
     downloadCSV(rows,"업무");
   };
-  const items=[["✅ 업무 전체",expTasks],["📁 프로젝트 전체",expProjects],["💰 매출 이력",expSales],["📊 KPI 주차 실적",expKpi],["👥 기여도",expContrib],["🎯 활동 목표",expIndicators],["📝 주간 메모",expWeekGoals]];
+  const items=[["✅ 업무 전체",expTasks],["📁 프로젝트 전체",expProjects],["💰 매출 이력",expSales],["📊 KPI 주차 실적",expKpi],["👥 기여도",expContrib],["🎯 활동지표",expIndicators],["📝 주간 메모",expWeekGoals]];
   // 분할 저장 → 한도는 컬렉션별로 적용. 가장 큰 컬렉션이 실질 제약.
   const colSizes=SHARED_KEYS.map(k=>[k,new Blob([JSON.stringify(pickShared(D)[k]||[])]).size]).sort((a,b)=>b[1]-a[1]);
   const [maxKey,maxBytes]=colSizes[0]||["",0];

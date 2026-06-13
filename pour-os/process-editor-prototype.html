@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>프로세스 에디터 — 실체화 프로토타입</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net"/>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet"/>
+<style>
+  :root{ --or:#F97316; --or2:#EA580C; --navy:#0F1F5C; --bg:#F9FAFB; --bd:#E5E8EB; --muted:#9CA3AF; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Pretendard',sans-serif;background:var(--bg);color:#111827;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+  header{background:linear-gradient(135deg,var(--navy),#1a3a7a);color:#fff;padding:13px 20px;flex-shrink:0}
+  header h1{margin:0;font-size:16px;font-weight:900}
+  header p{margin:4px 0 0;font-size:11.5px;opacity:.8}
+  .keys{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+  .keys span{font-size:10.5px;font-weight:700;background:rgba(255,255,255,.14);padding:4px 9px;border-radius:7px}
+  .keys b{color:#FFD9B8}
+  main{flex:1;display:flex;min-height:0}
+  .pane{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+  .pane+.pane{border-left:1px solid var(--bd)}
+  .pane-h{padding:10px 16px;font-size:12px;font-weight:900;color:var(--navy);border-bottom:1px solid var(--bd);background:#fff;flex-shrink:0;display:flex;justify-content:space-between;align-items:center}
+  .pane-h .hint{font-size:10px;font-weight:600;color:var(--muted)}
+  /* OUTLINER */
+  #outline{flex:1;overflow:auto;padding:14px 16px}
+  .row{display:flex;align-items:center;gap:8px;margin:2px 0;border-radius:9px;padding:3px 6px}
+  .row:hover{background:#fff}
+  .row.sel{background:#FFF7ED;outline:1.5px solid #FED7AA}
+  .bullet{width:7px;height:7px;border-radius:50%;background:var(--or);flex-shrink:0}
+  .bullet.has{width:9px;height:9px;background:var(--navy)}
+  .dot{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;flex-shrink:0}
+  .row input{flex:1;border:none;background:transparent;font-family:inherit;font-size:13.5px;font-weight:600;color:#1F2937;outline:none;padding:5px 2px;min-width:0}
+  .row input::placeholder{color:#D1D5DB;font-weight:500}
+  .row .det{opacity:0;font-size:11px;color:var(--muted);cursor:pointer;border:none;background:none;flex-shrink:0}
+  .row:hover .det{opacity:1}
+  /* MINDMAP */
+  #mapwrap{flex:1;overflow:auto;position:relative;background:#FAFBFC;background-image:radial-gradient(#EAECEF 1px,transparent 1px);background-size:20px 20px}
+  #map{position:relative}
+  .node{position:absolute;display:flex;align-items:center;gap:7px;background:#fff;border:2px solid #E5E8EB;border-radius:11px;padding:7px 11px;box-shadow:0 2px 8px rgba(0,0,0,.07);cursor:pointer;white-space:nowrap;font-size:12.5px;font-weight:700;transition:border-color .15s}
+  .node.sel{border-color:var(--or);box-shadow:0 0 0 3px rgba(249,115,22,.2)}
+  .node small{font-size:9.5px;font-weight:800;padding:1px 5px;border-radius:5px;color:#fff}
+  svg.edges{position:absolute;inset:0;pointer-events:none;overflow:visible}
+  /* DETAIL DRAWER */
+  #detail{flex-shrink:0;border-top:1px solid var(--bd);background:#fff;padding:14px 18px;max-height:42vh;overflow:auto}
+  #detail.empty{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12.5px;min-height:64px}
+  .drow{margin-bottom:11px}
+  .drow label{display:block;font-size:11px;font-weight:800;color:#4B5563;margin-bottom:5px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{display:flex;align-items:center;gap:5px;padding:6px 11px;border-radius:20px;border:1.5px solid var(--bd);background:#fff;cursor:pointer;font-size:12px;font-weight:700;color:#4B5563}
+  .chip.on{border-color:var(--or);background:#FFEDD5;color:var(--or2)}
+  #detail textarea{width:100%;border:1.5px solid var(--bd);border-radius:10px;padding:9px 11px;font-family:inherit;font-size:13px;resize:vertical;min-height:48px;outline:none}
+  .check{display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--bd);border-radius:9px;margin-bottom:6px;background:#FAFBFC}
+  .check input[type=checkbox]{width:16px;height:16px;accent-color:var(--or)}
+  .check input[type=text]{flex:1;border:none;background:none;font-family:inherit;font-size:12.5px;outline:none}
+  .check .x{cursor:pointer;color:#D1D5DB;border:none;background:none;font-size:14px}
+  .addcheck{font-size:12px;font-weight:800;color:var(--or2);background:#FFF7ED;border:1.5px dashed #FDBA74;border-radius:9px;padding:8px 0;width:100%;cursor:pointer;font-family:inherit}
+  .badge{font-size:10px;font-weight:800;color:#fff;background:var(--or);padding:2px 7px;border-radius:6px}
+  .note{font-size:10.5px;color:var(--muted);margin-top:3px}
+</style>
+</head>
+<body>
+<header>
+  <h1>📋 <span id="pname">탑코트재 SKU 9종 출시</span> · 프로세스 만들기 <span class="badge">담당자가 직접</span></h1>
+  <p>이 프로젝트의 협업 흐름을 담당자가 직접 키보드로 만듭니다. 왼쪽에서 타이핑하면 오른쪽 마인드맵이 실시간으로 그려져요.</p>
+  <div class="keys">
+    <span><b>Enter</b> 같은 단계 추가</span>
+    <span><b>Tab</b> 하위 단계(들여쓰기)</span>
+    <span><b>Shift+Tab</b> 상위로</span>
+    <span><b>Space</b>(빈칸일 때) 하위 단계</span>
+    <span><b>Backspace</b>(빈칸) 삭제</span>
+  </div>
+</header>
+<main>
+  <div class="pane">
+    <div class="pane-h">✍️ 아웃라이너 <span class="hint">타이핑 → Enter/Tab</span></div>
+    <div id="outline"></div>
+  </div>
+  <div class="pane">
+    <div class="pane-h">🧠 마인드맵 (자동) <span class="hint">노드 클릭 → 아래에서 세부 편집</span></div>
+    <div id="mapwrap"><svg class="edges" id="edges"></svg><div id="map"></div></div>
+  </div>
+</main>
+<div id="detail" class="empty">단계를 클릭하면 담당자·메모·세부 업무를 여기서 정리합니다</div>
+
+<script>
+const MEMBERS=[
+  {id:'',name:'미배정',color:'#9CA3AF'},
+  {id:'md',name:'MD',color:'#0EA5E9'},
+  {id:'head',name:'본부장',color:'#6366F1'},
+  {id:'songhee',name:'김송희',color:'#3182F6'},
+  {id:'minji',name:'김민지',color:'#8B5CF6'},
+  {id:'ran',name:'이란',color:'#00C073'},
+  {id:'chaerim',name:'양채림',color:'#F97316'},
+];
+const M=id=>MEMBERS.find(m=>m.id===id)||MEMBERS[0];
+
+let uid=10;
+let items=[
+  {id:1,text:'소싱·원가·납기 확정',depth:0,who:'md',memo:'',checks:[]},
+  {id:2,text:'제품 교육·지식 전파',depth:0,who:'head',memo:'',checks:[]},
+  {id:3,text:'소스 확보 → 상품 등록',depth:0,who:'minji',memo:'',checks:[{t:'썸네일 제작',done:false},{t:'상세페이지',done:false},{t:'마켓 동시 등록',done:false}]},
+  {id:4,text:'썸네일·상세 디자인',depth:1,who:'minji',memo:'',checks:[]},
+  {id:5,text:'출시 배너 → 주문 세팅',depth:0,who:'chaerim',memo:'',checks:[]},
+  {id:6,text:'B2B 안내·실사용 콘텐츠',depth:0,who:'ran',memo:'',checks:[]},
+];
+let selId=3, focusId=null, focusCaret=null;
+
+const $=s=>document.querySelector(s);
+const idx=id=>items.findIndex(i=>i.id===id);
+
+function parentOf(i){ // nearest previous item with depth-1
+  for(let k=i-1;k>=0;k--){ if(items[k].depth===items[i].depth-1) return k; if(items[k].depth<items[i].depth-1) return -1; }
+  return -1;
+}
+function hasChild(i){ return i+1<items.length && items[i+1].depth>items[i].depth; }
+
+/* ---------- OUTLINER ---------- */
+function renderOutline(){
+  const el=$('#outline'); el.innerHTML='';
+  items.forEach((it,i)=>{
+    const m=M(it.who);
+    const row=document.createElement('div');
+    row.className='row'+(it.id===selId?' sel':'');
+    row.style.marginLeft=(it.depth*22)+'px';
+    row.innerHTML=`<span class="bullet ${hasChild(i)?'has':''}"></span>`+
+      `<span class="dot" style="background:${m.color}">${m.name[0]}</span>`+
+      `<input value="${it.text.replace(/"/g,'&quot;')}" placeholder="단계 입력..." data-id="${it.id}"/>`+
+      `<button class="det" data-id="${it.id}">세부 ▸</button>`;
+    const input=row.querySelector('input');
+    input.addEventListener('input',e=>{ it.text=e.target.value; renderMap(); });
+    input.addEventListener('focus',()=>{ selId=it.id; renderDetail(); highlight(); });
+    input.addEventListener('keydown',e=>onKey(e,it,i));
+    row.querySelector('.det').addEventListener('click',()=>{ selId=it.id; renderAll(); });
+    el.appendChild(row);
+  });
+  if(focusId!=null){ const inp=el.querySelector(`input[data-id="${focusId}"]`); if(inp){ inp.focus(); const c=focusCaret==null?inp.value.length:focusCaret; inp.setSelectionRange(c,c);} focusId=null; focusCaret=null; }
+}
+function onKey(e,it,i){
+  if(e.key==='Enter'){ e.preventDefault();
+    const n={id:++uid,text:'',depth:it.depth,who:it.who,memo:'',checks:[]};
+    items.splice(i+1,0,n); selId=n.id; focusId=n.id; renderAll();
+  } else if(e.key==='Tab'){ e.preventDefault();
+    if(e.shiftKey){ if(it.depth>0){ it.depth--; } }
+    else { const prev=items[i-1]; if(prev && it.depth<=prev.depth) it.depth++; }
+    focusId=it.id; focusCaret=e.target.selectionStart; renderAll();
+  } else if(e.key===' ' && e.target.value===''){ e.preventDefault();
+    const prev=items[i-1]; if(prev && it.depth<=prev.depth) it.depth++; focusId=it.id; renderAll();
+  } else if(e.key==='Backspace' && e.target.value==='' && items.length>1){ e.preventDefault();
+    items.splice(i,1); const p=items[i-1]||items[0]; selId=p.id; focusId=p.id; renderAll();
+  }
+}
+
+/* ---------- MINDMAP ---------- */
+function renderMap(){
+  const map=$('#map'), svg=$('#edges');
+  const colW=210, rowH=46, padX=24, padY=20;
+  // y layout: leaves sequential, parents centered
+  const pos={}; let yc=0;
+  function place(i){
+    const kids=[]; for(let k=i+1;k<items.length;k++){ if(items[k].depth<=items[i].depth) break; if(items[k].depth===items[i].depth+1) kids.push(k); }
+    if(!kids.length){ pos[i]={x:padX+items[i].depth*colW,y:padY+yc*rowH}; yc++; }
+    else{ const ys=[]; kids.forEach(k=>{place(k);ys.push(pos[k].y);}); pos[i]={x:padX+items[i].depth*colW,y:(Math.min(...ys)+Math.max(...ys))/2}; }
+  }
+  items.forEach((it,i)=>{ if(it.depth===0) place(i); });
+  let maxX=0,maxY=0; Object.values(pos).forEach(p=>{maxX=Math.max(maxX,p.x);maxY=Math.max(maxY,p.y);});
+  map.style.width=(maxX+240)+'px'; map.style.height=(maxY+80)+'px';
+  // edges
+  let paths='';
+  items.forEach((it,i)=>{ const pi=parentOf(i); if(pi>=0 && pos[pi] && pos[i]){
+    const x1=pos[pi].x+150,y1=pos[pi].y+16,x2=pos[i].x,y2=pos[i].y+16;
+    paths+=`<path d="M ${x1} ${y1} C ${x1+40} ${y1}, ${x2-40} ${y2}, ${x2} ${y2}" stroke="#F9731680" stroke-width="2" fill="none"/>`;
+  }});
+  svg.innerHTML=paths;
+  // nodes
+  map.querySelectorAll('.node').forEach(n=>n.remove());
+  items.forEach((it,i)=>{ const m=M(it.who); const n=document.createElement('div');
+    n.className='node'+(it.id===selId?' sel':''); n.style.left=pos[i].x+'px'; n.style.top=pos[i].y+'px';
+    n.innerHTML=`<span class="dot" style="background:${m.color}">${m.name[0]}</span>${it.text||'<i style="color:#ccc">단계</i>'}${it.checks&&it.checks.length?`<small style="background:#8B5CF6">${it.checks.filter(c=>c.done).length}/${it.checks.length}</small>`:''}`;
+    n.addEventListener('click',()=>{ selId=it.id; renderAll(); });
+    map.appendChild(n);
+  });
+}
+
+/* ---------- DETAIL ---------- */
+function renderDetail(){
+  const d=$('#detail'); const it=items.find(x=>x.id===selId);
+  if(!it){ d.className='empty'; d.textContent='단계를 클릭하면 세부 업무를 정리합니다'; return; }
+  d.className='';
+  d.innerHTML=`
+    <div class="drow"><label>단계명</label><input id="dtitle" value="${it.text.replace(/"/g,'&quot;')}" style="width:100%;border:1.5px solid var(--bd);border-radius:10px;padding:9px 11px;font-family:inherit;font-size:14px;font-weight:700;outline:none"/></div>
+    <div class="drow"><label>담당자</label><div class="chips" id="dwho"></div></div>
+    <div class="drow"><label>메모</label><textarea id="dmemo" placeholder="이 단계의 주의사항·참고...">${it.memo||''}</textarea></div>
+    <div class="drow"><label>세부 업무 (체크리스트) <span class="note" style="display:inline">— 디테일한 작업 정리</span></label><div id="dchecks"></div>
+      <button class="addcheck" id="addcheck">＋ 세부 업무 추가</button></div>`;
+  $('#dtitle').addEventListener('input',e=>{it.text=e.target.value;renderOutline();renderMap();});
+  $('#dmemo').addEventListener('input',e=>{it.memo=e.target.value;});
+  const wrap=$('#dwho'); MEMBERS.forEach(m=>{ const c=document.createElement('button'); c.className='chip'+(it.who===m.id?' on':''); c.innerHTML=`<span class="dot" style="background:${m.color}">${m.name[0]}</span>${m.name}`; c.onclick=()=>{it.who=m.id;renderAll();}; wrap.appendChild(c); });
+  const cw=$('#dchecks'); (it.checks||[]).forEach((c,ci)=>{ const r=document.createElement('div'); r.className='check';
+    r.innerHTML=`<input type="checkbox" ${c.done?'checked':''}/><input type="text" value="${c.t.replace(/"/g,'&quot;')}"/><button class="x">✕</button>`;
+    r.querySelector('input[type=checkbox]').onchange=e=>{c.done=e.target.checked;renderMap();};
+    r.querySelector('input[type=text]').oninput=e=>{c.t=e.target.value;};
+    r.querySelector('.x').onclick=()=>{it.checks.splice(ci,1);renderDetail();renderMap();};
+    cw.appendChild(r);
+  });
+  $('#addcheck').onclick=()=>{ it.checks=it.checks||[]; it.checks.push({t:'',done:false}); renderDetail(); renderMap(); };
+}
+function highlight(){ document.querySelectorAll('.row').forEach(r=>{}); renderMap(); document.querySelectorAll('.node').forEach(n=>{}); }
+function renderAll(){ renderOutline(); renderMap(); renderDetail(); }
+renderAll();
+</script>
+</body>
+</html>

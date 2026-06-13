@@ -387,11 +387,11 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add})=>{
   );
 };
 const TABS=[{id:"today",icon:"🏠",label:"오늘"},{id:"kpi",icon:"◎",label:"KPI"},{id:"projects",icon:"▦",label:"프로젝트"},{id:"calendar",icon:"▤",label:"캘린더"},{id:"more",icon:"⋯",label:"더보기"}];
-const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"}];
+const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"proceditor",icon:"🧪",label:"프로세스 에디터"},{id:"ai",icon:"✦",label:"AI 코치"}];
 // 메뉴 그룹: 개인(나만 보는 내 것) vs 팀(모두 같이 보는 공유) — 출시는 프로젝트 하위 탭
 const NAV_GROUPS=[
   {label:"개인 · 나만", ids:["today","game","fixed","retro"]},
-  {label:"팀 · 공유",  ids:["kpi","projects","mindmap","calendar","ai"]},
+  {label:"팀 · 공유",  ids:["kpi","projects","mindmap","proceditor","calendar","ai"]},
 ];
 export default function App(){
   const [D,setD]=useState(INIT);
@@ -512,10 +512,11 @@ export default function App(){
   // 업무 변동 시 프로젝트 진척 자동 재산출(수동지정 progressManual 제외, 업무 없으면 기존값 유지)
   const recalcProg=(state)=>{
     const tasks=state.tasks||[];
+    const parentIds=new Set(tasks.filter(t=>t.parentId).map(t=>t.parentId));   // 하위를 가진 업무(상위)는 진행률 집계 제외
     let changed=false;
     const projects=(state.projects||[]).map(pr=>{
       if(pr.progressManual) return pr;
-      const real=tasks.filter(t=>t.projectId===pr.id&&!t.isFixed);
+      const real=tasks.filter(t=>t.projectId===pr.id&&!t.isFixed&&!parentIds.has(t.id));
       if(real.length===0) return pr;
       const auto=Math.round(real.filter(t=>t.status==="done").length/real.length*100);
       if(auto===(pr.progress||0)) return pr;
@@ -549,6 +550,7 @@ export default function App(){
     {page==="game"&&<GamePage D={D} cu={cu} up={up} add={add} rm={rm} nav={nav}/>}
     {page==="launch"&&<LaunchPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="mindmap"&&<MindMapPage D={D} cu={cu}/>}
+    {page==="proceditor"&&<ProcessEditorPage D={D}/>}
     {page==="fixed"&&<FixedPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="retro"&&<RetroPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
     {page==="ai"&&<AIPage D={D} cu={cu} add={add} rm={rm}/>}
@@ -562,7 +564,7 @@ export default function App(){
       {saveErr.level!=="error"&&<button onClick={()=>setSaveErr(null)} style={{flexShrink:0,padding:"5px 7px",borderRadius:8,border:"none",background:"transparent",color:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}}>×</button>}
     </div>}
     <Sheet open={more} onClose={()=>setMore(false)} title="더보기">
-      {[{label:"개인 · 나만",ids:["game","fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","ai"]}].map(grp=>(
+      {[{label:"개인 · 나만",ids:["game","fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","proceditor","ai"]}].map(grp=>(
         <div key={grp.label} style={{marginTop:14}}>
           <p style={{margin:"0 2px 8px",fontSize:11,fontWeight:800,color:"#9CA3AF",letterSpacing:0.5}}>{grp.label}</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -792,7 +794,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const myProjs=D.projects.filter(p=>p.assigneeId===cu.id||(p.collaboratorIds||[]).includes(cu.id));
   const myGoals=myWeekGoals(D,cu.id);
   // 출시 인계 — 앞 단계가 끝나 내 차례가 된 출시 단계
-  const myReadyLaunch=(()=>{ const arr=[]; D.projects.filter(p=>p.templateId).forEach(p=>{ const ts=launchProjTasks(D,p); ts.forEach(t=>{ if(t.assigneeId===cu.id&&launchStageStatus(t,ts)==="ready") arr.push({proj:p,task:t}); }); }); return arr; })();
+  const myReadyLaunch=(()=>{ const arr=[]; D.projects.filter(p=>p.templateId).forEach(p=>{ const ts=launchProjTasks(D,p); ts.forEach(t=>{ if(t.assigneeId===cu.id&&launchStageStatus(t,ts)==="ready") arr.push({proj:p,task:t}); }); }); return [...arr,...myReadyProcess(D,cu.id)]; })();
   return(
     <div style={{padding:"14px 16px 20px"}}>
       <div onClick={()=>nav("game")} style={{display:"flex",alignItems:"center",gap:14,background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"16px 18px",marginBottom:12,cursor:"pointer",color:"#fff"}}>
@@ -1085,8 +1087,9 @@ function KPIPage({D,lead,up,cu,add,rm}){
   // 멤버별 기여(이 채널 프로젝트의 업무 기준) — 100% 분할 백분율
   const memberContrib=(sk)=>{
     const projIds=new Set(D.projects.filter(p=>p.subKPIId===sk.id).map(p=>p.id));
+    const parentIds=new Set((D.tasks||[]).filter(t=>t.parentId).map(t=>t.parentId));   // 상위(단계)는 그릇이라 제외
     const m={}; D.users.forEach(u=>m[u.id]={uid:u.id,user:u,effort:0,indirect:0});
-    (D.tasks||[]).forEach(t=>{ if(t.isFixed||!projIds.has(t.projectId))return;
+    (D.tasks||[]).forEach(t=>{ if(t.isFixed||!projIds.has(t.projectId)||parentIds.has(t.id))return;   // 말단 업무만
       if(m[t.assigneeId]) m[t.assigneeId].effort++;
       if(t.status==="done"){ const d=matchUid(D,t.doneBy,t.doneByName)||t.assigneeId; if(m[d]) m[d].indirect++; }
     });
@@ -1541,7 +1544,102 @@ function KPIPage({D,lead,up,cu,add,rm}){
     </div>
   );
 }
+// 프로젝트 프로세스 편집기 — 업무를 계층 트리로 편집(Enter/Space/◂▸), 저장 시 실제 task에 반영(parentId·seq)
+function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
+  const team=proj.projType?proj.projType==="team":(proj.collaboratorIds||[]).length>0;
+  const MEM=[{id:"",name:"미배정",color:"#9CA3AF"},...(D.users||[])];
+  const Mof=id=>MEM.find(m=>m.id===id)||MEM[0];
+  const load=()=>{
+    const ts=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed);
+    const byP={}; ts.forEach(t=>{const k=t.parentId||"__root";(byP[k]=byP[k]||[]).push(t);});
+    Object.values(byP).forEach(a=>a.sort((x,y)=>(x.seq||0)-(y.seq||0)));
+    const out=[]; const walk=(pid,depth)=>{(byP[pid]||[]).forEach(t=>{out.push({id:t.id,tid:t.id,text:t.title,depth,who:t.assigneeId||"",done:t.status==="done"});walk(t.id,depth+1);});};
+    walk("__root",0);
+    if(out.length===0) out.push({id:"new0",text:"",depth:0,who:proj.assigneeId||"",done:false});
+    return out;
+  };
+  const [items,setItems]=useState(load);
+  const [selId,setSelId]=useState(null);
+  const focusRef=useRef(null),uidRef=useRef(0),outRef=useRef(null);
+  useEffect(()=>{ if(!focusRef.current)return; const {id,caret}=focusRef.current; focusRef.current=null; const inp=outRef.current&&outRef.current.querySelector(`input[data-id="${id}"]`); if(inp){inp.focus();const c=caret==null?inp.value.length:caret;try{inp.setSelectionRange(c,c);}catch(_){}}});
+  const newId=()=>"new"+(++uidRef.current);
+  const patch=(id,p)=>setItems(it=>it.map(x=>x.id===id?{...x,...p}:x));
+  const toggleDone=id=>setItems(it=>it.map(x=>x.id===id?{...x,done:!x.done}:x));
+  const indent=(i,dir)=>setItems(a0=>{const a=[...a0];const it=a[i];if(dir<0){if(it.depth>0)a[i]={...it,depth:it.depth-1};}else{const prev=a[i-1];if(prev&&it.depth<=prev.depth)a[i]={...it,depth:it.depth+1};}return a;});
+  const onKey=(e,i)=>{const it=items[i];
+    if(e.key==="Enter"){e.preventDefault();const nid=newId();setItems(a=>{const arr=[...a];arr.splice(i+1,0,{id:nid,text:"",depth:it.depth,who:it.who,done:false});return arr;});setSelId(nid);focusRef.current={id:nid};}
+    else if(e.key==="Tab"){e.preventDefault();indent(i,e.shiftKey?-1:1);focusRef.current={id:it.id,caret:e.target.selectionStart};}
+    else if(e.key===" "&&e.target.value===""){e.preventDefault();indent(i,1);focusRef.current={id:it.id};}
+    else if(e.key==="Backspace"&&e.target.value===""&&items.length>1){e.preventDefault();const p=items[i-1]||items[0];setItems(a=>a.filter((_,k)=>k!==i));setSelId(p.id);focusRef.current={id:p.id};}
+  };
+  const isP=(arr,i)=>i+1<arr.length&&arr[i+1].depth>arr[i].depth;   // 하위가 있으면 상위(단계)
+  const computeDD=(arr)=>{const dd=new Array(arr.length);const lastIdx=(i)=>{let k=i+1;while(k<arr.length&&arr[k].depth>arr[i].depth)k++;return k-1;};const kidsOf=(i)=>{const o=[];const e=lastIdx(i);for(let k=i+1;k<=e;k++)if(arr[k].depth===arr[i].depth+1)o.push(k);return o;};for(let i=arr.length-1;i>=0;i--){if(isP(arr,i)){const ks=kidsOf(i);dd[i]=ks.length>0&&ks.every(k=>dd[k]);}else dd[i]=!!arr[i].done;}return {dd,kidsOf};};
+  const {dd,kidsOf}=computeDD(items);   // 상위는 하위 전부 완료 시 자동 완료(롤업)
+  const leafIdx=items.map((_,i)=>i).filter(i=>!isP(items,i)&&items[i].text.trim());   // 말단 업무만
+  const doneN=leafIdx.filter(i=>items[i].done).length, totN=leafIdx.length, prog=totN?Math.round(doneN/totN*100):0;
+  const save=()=>{
+    const existing=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed);
+    const {dd:dd2}=computeDD(items);
+    const present=new Set(), idMap={};
+    items.forEach((it,i)=>{ if(!it.text.trim()&&!it.tid) return;
+      let parentId=null; for(let k=i-1;k>=0;k--){ if(items[k].depth===it.depth-1){parentId=idMap[k]||null;break;} if(items[k].depth<it.depth-1)break; }
+      const dn=isP(items,i)?dd2[i]:it.done;   // 상위는 하위 롤업으로 완료 판정
+      if(it.tid){ const t=existing.find(x=>x.id===it.tid); idMap[i]=it.tid; present.add(it.tid);
+        const p={title:it.text.trim(),assigneeId:it.who,parentId,seq:i};
+        if(dn&&t&&t.status!=="done")p.status="done"; if(!dn&&t&&t.status==="done")p.status="todo";
+        up("tasks",it.tid,p);
+      } else { const nid="t"+Date.now()+"_"+i; idMap[i]=nid; present.add(nid);
+        add("tasks",{id:nid,title:it.text.trim(),projectId:proj.id,parentId,assigneeId:it.who,type:"general",status:dn?"done":"todo",weekDay:null,weekSlot:null,isFixed:false,dueDate:"",memo:"",attachments:[],seq:i});
+      }
+    });
+    existing.forEach(t=>{ if(!present.has(t.id)) rm("tasks",t.id); });
+    onClose();
+  };
+  const sel=items.find(x=>x.id===selId);
+  return(
+    <div style={{position:"fixed",inset:0,zIndex:1500,background:"#F9FAFB",display:"flex",flexDirection:"column"}}>
+      <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",color:"#fff",padding:"13px 16px",display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
+        <button onClick={onClose} style={{background:"none",border:"none",color:"#fff",fontSize:22,cursor:"pointer",lineHeight:1}}>×</button>
+        <div style={{flex:1,minWidth:0}}>
+          <p style={{margin:0,fontSize:14,fontWeight:900,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>🧩 {proj.title}</p>
+          <p style={{margin:"2px 0 0",fontSize:10,opacity:0.82}}>{team?"팀 협업 (담당자 지정)":"개인 체크리스트"} · Enter 같은단계 · Space/▸ 하위</p>
+        </div>
+        <button onClick={save} style={{background:"#F97316",border:"none",color:"#fff",borderRadius:9,padding:"8px 16px",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>저장</button>
+      </div>
+      <div style={{flex:1,overflowY:"auto",padding:"14px 16px 30px",maxWidth:720,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+          <span style={{fontSize:11.5,fontWeight:800,color:"#4B5563"}}>진행률</span>
+          <div style={{flex:1,height:8,borderRadius:8,background:"#F2F4F6",overflow:"hidden"}}><div style={{width:prog+"%",height:"100%",background:prog>=100?"#00C073":"#F97316",borderRadius:8}}/></div>
+          <span style={{fontSize:13,fontWeight:900,color:prog>=100?"#00C073":"#F97316"}}>{doneN}/{totN} · {prog}%</span>
+        </div>
+        <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"12px 10px"}} ref={outRef}>
+          {items.map((it,i)=>{const m=Mof(it.who);const parent=isP(items,i);const rdone=parent?dd[i]:it.done;return(
+            <div key={it.id} style={{display:"flex",alignItems:"center",gap:6,marginLeft:it.depth*20,padding:"3px 6px",borderRadius:9,backgroundColor:it.id===selId?"#FFF7ED":"transparent"}}>
+              <button onClick={()=>indent(i,-1)} style={{border:"none",background:"none",color:"#C4C9D0",fontSize:13,cursor:"pointer",padding:"2px 2px"}}>◂</button>
+              <button onClick={()=>indent(i,1)} style={{border:"none",background:"none",color:"#C4C9D0",fontSize:13,cursor:"pointer",padding:"2px 2px"}}>▸</button>
+              {parent
+                ? (()=>{const ks=kidsOf(i);const cdn=ks.filter(k=>dd[k]).length;return(<span title="하위 진행(자동 완료)" style={{minWidth:19,height:19,borderRadius:6,background:rdone?"#00C073":"#EEF1F3",color:rdone?"#fff":"#6B7280",fontSize:9.5,fontWeight:800,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 4px",boxSizing:"border-box"}}>{rdone?"✓":cdn+"/"+ks.length}</span>);})()
+                : <button onClick={()=>toggleDone(it.id)} style={{width:19,height:19,borderRadius:6,border:`2px solid ${it.done?"#00C073":"#D1D5DB"}`,background:it.done?"#00C073":"#fff",color:"#fff",fontSize:11,fontWeight:900,cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>{it.done?"✓":""}</button>}
+              {team&&<button onClick={()=>setSelId(it.id)} title={m.name} style={{width:18,height:18,borderRadius:"50%",backgroundColor:m.color,color:"#fff",fontSize:9,fontWeight:800,border:"none",cursor:"pointer",flexShrink:0}}>{m.name[0]}</button>}
+              <input data-id={it.id} value={it.text} placeholder={parent?"단계명...":"업무 입력..."} onChange={e=>patch(it.id,{text:e.target.value})} onFocus={()=>setSelId(it.id)} onKeyDown={e=>onKey(e,i)} style={{flex:1,minWidth:0,border:"none",background:"none",fontSize:13.5,fontWeight:parent?800:600,color:rdone?"#9CA3AF":"#1F2937",textDecoration:rdone?"line-through":"none",outline:"none",fontFamily:"inherit",padding:"5px 2px"}}/>
+            </div>
+          );})}
+        </div>
+        {team&&sel&&(
+          <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"12px 14px",marginTop:12}}>
+            <p style={{margin:"0 0 8px",fontSize:11,fontWeight:800,color:"#4B5563"}}>「{sel.text||"업무"}」 담당자</p>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {MEM.map(m=>{const on=sel.who===m.id;return(<button key={m.id||"none"} onClick={()=>patch(sel.id,{who:m.id})} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 11px",borderRadius:20,border:`1.5px solid ${on?m.color:"#E5E8EB"}`,background:on?m.color+"18":"#fff",cursor:"pointer",fontFamily:"inherit"}}><span style={{width:16,height:16,borderRadius:"50%",backgroundColor:m.color,color:"#fff",fontSize:8.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{m.name[0]}</span><span style={{fontSize:12,fontWeight:700,color:on?m.color:"#4B5563"}}>{m.name}</span></button>);})}
+            </div>
+          </div>
+        )}
+        <p style={{margin:"12px 4px 0",fontSize:10.5,color:"#9CA3AF",lineHeight:1.6}}>※ 여기 항목이 곧 프로젝트의 실제 업무입니다. 체크=완료(진행률 자동). <b>저장</b>하면 업무목록·오늘에 반영됩니다.</p>
+      </div>
+    </div>
+  );
+}
 function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
+  const [processProj,setProcessProj]=useState(null);
   const [filter,setFilter]=useState("mine");
   const [groupFilter,setGroupFilter]=useState("all");
   const [pview,setPview]=useState("list");   // list | launch (출시는 프로젝트 하위)
@@ -1579,10 +1677,10 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
   const [editProjId,setEditProjId]=useState(null);
   const [projDel,setProjDel]=useState(null);
   const [showAdv,setShowAdv]=useState(false);
-  const [projForm,setProjForm]=useState({title:"",goalType:"journey",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high"});
+  const [projForm,setProjForm]=useState({title:"",goalType:"journey",projType:"team",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high"});
   const [metric,setMetric]=useState({name:"",target:"",unit:"개"});
-  const resetProjForm=()=>{setProjForm({title:"",goalType:"journey",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high"});setMetric({name:"",target:"",unit:"개"});};
-  const openEditProj=(p)=>{ setProjForm({title:p.title||"",goalType:p.goalType||(p.mainKPIId==="mk2"||p.resultValue?"revenue":"journey"),mainKPIId:p.mainKPIId||"",subKPIId:p.subKPIId||"",dealerType:p.dealerType||"",assigneeId:p.assigneeId||cu.id,collaboratorIds:p.collaboratorIds||[],group:p.group||"",priority:p.priority||"mid"}); setMetric({name:"",target:"",unit:"개"}); setEditProjId(p.id); setShowAdv(true); setAddProjSheet(true); };
+  const resetProjForm=()=>{setProjForm({title:"",goalType:"journey",projType:"team",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high"});setMetric({name:"",target:"",unit:"개"});};
+  const openEditProj=(p)=>{ setProjForm({title:p.title||"",goalType:p.goalType||(p.mainKPIId==="mk2"||p.resultValue?"revenue":"journey"),projType:p.projType||((p.collaboratorIds||[]).length>0?"team":"solo"),mainKPIId:p.mainKPIId||"",subKPIId:p.subKPIId||"",dealerType:p.dealerType||"",assigneeId:p.assigneeId||cu.id,collaboratorIds:p.collaboratorIds||[],group:p.group||"",priority:p.priority||"mid"}); setMetric({name:"",target:"",unit:"개"}); setEditProjId(p.id); setShowAdv(true); setAddProjSheet(true); };
   const doAddProj=()=>{
     if(!projForm.title.trim()) return;
     if(editProjId){ up("projects",editProjId,{...projForm}); }
@@ -1781,7 +1879,10 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
                   </div>
                   <div style={{padding:"14px 16px 0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                     <span style={{fontSize:12,fontWeight:800,color:"#4B5563"}}>업무 목록 ({tasks.length}건)</span>
-                    <button onClick={()=>setAddTaskSheet(true)} style={{padding:"6px 12px",borderRadius:10,border:"none",backgroundColor:"#F97316",color:"#FFFFFF",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>+ 업무 추가</button>
+                    <div style={{display:"flex",gap:6}}>
+                      <button onClick={()=>setProcessProj(proj)} style={{padding:"6px 12px",borderRadius:10,border:"1.5px solid #DDD6FE",backgroundColor:"#FAF9FF",color:"#7C3AED",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🧩 프로세스</button>
+                      <button onClick={()=>setAddTaskSheet(true)} style={{padding:"6px 12px",borderRadius:10,border:"none",backgroundColor:"#F97316",color:"#FFFFFF",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>+ 업무 추가</button>
+                    </div>
                   </div>
                   {tasks.length===0&&<div style={{padding:"20px",textAlign:"center"}}><p style={{margin:0,fontSize:13,color:"#D1D5DB"}}>등록된 업무가 없어요</p></div>}
                   {[{key:"inprogress",label:"진행중",list:statusGroups.inprogress,st:ST.inprogress},{key:"todo",label:"할일",list:statusGroups.todo,st:ST.todo},{key:"hold",label:"보류",list:statusGroups.hold,st:ST.hold},{key:"done",label:"완료",list:statusGroups.done,st:ST.done}].map(({key,label,list,st})=>list.length===0?null:(
@@ -1832,6 +1933,7 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
         })}
         {filtered.length===0&&<div style={{padding:"40px 20px",textAlign:"center",backgroundColor:"#FFFFFF",borderRadius:16,border:"1px solid #F2F4F6"}}><p style={{fontSize:38,margin:"0 0 10px"}}>🗂️</p><p style={{fontSize:14,color:"#9CA3AF"}}>프로젝트가 없어요</p></div>}
       </div>
+      {processProj&&<ProjectProcessEditor D={D} proj={processProj} cu={cu} add={add} up={up} rm={rm} onClose={()=>setProcessProj(null)}/>}
       <Sheet open={!!stagePick} onClose={()=>setStagePick(null)} title="🔗 단계 흐름 적용">
         {stagePick&&(<div style={{marginTop:8}}>
           <p style={{margin:"0 0 14px",fontSize:12,color:"#6B7280",lineHeight:1.6,backgroundColor:"#F9FAFB",borderRadius:10,padding:"10px 12px"}}><b>{stagePick.title}</b>에 적용할 템플릿을 고르세요. 단계 업무가 담당자·인계 순서까지 자동 생성됩니다.</p>
@@ -1866,6 +1968,16 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
         <div style={{marginTop:10}}>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>프로젝트명 *</label><input value={projForm.title} onChange={e=>setProjForm({...projForm,title:e.target.value})} onKeyDown={e=>{if(e.key==="Enter"&&projForm.title.trim())doAddProj();}} placeholder="프로젝트 이름 (Enter로 빠른 추가)" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>담당자</label><select value={projForm.assigneeId} onChange={e=>setProjForm({...projForm,assigneeId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}>{D.users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></div>
+          <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>프로젝트 유형</label>
+            <div style={{display:"flex",gap:6}}>
+              {[["team","👥 팀 협업","담당자 인계·마인드맵"],["solo","🙋 개인","계층형 체크리스트"]].map(([k,l,d])=>(
+                <button key={k} onClick={()=>setProjForm({...projForm,projType:k})} style={{flex:1,padding:"10px 4px",borderRadius:11,border:`1.5px solid ${projForm.projType===k?"#F97316":"#E5E8EB"}`,background:projForm.projType===k?"#FFEDD5":"#fff",cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
+                  <p style={{margin:0,fontSize:12.5,fontWeight:800,color:projForm.projType===k?"#EA580C":"#374151"}}>{l}</p>
+                  <p style={{margin:"2px 0 0",fontSize:9,color:"#9CA3AF"}}>{d}</p>
+                </button>
+              ))}
+            </div>
+          </div>
           <div style={{marginBottom:14}}>
             <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>이 프로젝트의 성과는? <span style={{color:"#9CA3AF",fontWeight:600}}>(측정 방식)</span></label>
             <div style={{display:"flex",gap:6}}>
@@ -2112,6 +2224,24 @@ const launchStageStatus=(task,allTasks)=>{
   return ready?"ready":"wait";
 };
 const launchProjTasks=(D,proj)=>D.tasks.filter(t=>t.projectId===proj.id&&t.launchNode).sort((a,b)=>(a.step||0)-(b.step||0));
+// 자유 프로세스 트리(parentId) — 형제 위→아래 인계: 앞 형제 완료 + 직전 형제가 남이면 "내 차례"
+const myReadyProcess=(D,uid)=>{
+  const out=[];
+  (D.projects||[]).forEach(p=>{
+    if(p.templateId) return;   // 템플릿(출시)은 별도 처리
+    const ts=(D.tasks||[]).filter(t=>t.projectId===p.id&&!t.isFixed);
+    if(!ts.length) return;
+    const kidsOf=(pid)=>ts.filter(t=>(t.parentId||null)===(pid||null)).sort((a,b)=>(a.seq||0)-(b.seq||0));
+    const dd=(t)=>{const ks=ts.filter(x=>x.parentId===t.id);return ks.length?ks.every(dd):t.status==="done";};
+    ts.forEach(t=>{
+      if(t.assigneeId!==uid||dd(t)) return;
+      const sibs=kidsOf(t.parentId||null);
+      const idx=sibs.findIndex(x=>x.id===t.id);
+      if(idx>0&&sibs.slice(0,idx).every(dd)&&sibs[idx-1].assigneeId!==uid) out.push({proj:p,task:t});
+    });
+  });
+  return out;
+};
 const ST_COLOR={done:"#00C073",ready:"#F97316",wait:"#9CA3AF"};
 // 템플릿 1개 → 신규 SKU 프로젝트 + 단계별 업무(선행연결·담당자배정) 자동 생성
 const instantiateLaunch=({tpl,productName,mainKPIId,subKPIId,dealerType,add})=>{
@@ -2428,7 +2558,208 @@ function NodeEditForm({node,users,onSave,onDelete}){
     </div>
   );
 }
+// ───────────── 프로세스 에디터 (미리보기) — 키보드 아웃라이너 + 실시간 마인드맵 + 세부업무 ─────────────
+function ProcessEditorPage({D}){
+  const MEM=[{id:"",name:"미배정",color:"#9CA3AF"},...(D.users||[])];
+  const Mof=(id)=>MEM.find(m=>m.id===id)||MEM[0];
+  const u=(n)=>D.users[n]?.id||"";
+  const [mode,setMode]=useState("team");   // team(협업) | solo(개인)
+  const [items,setItems]=useState([
+    {id:"s1",text:"소싱·원가·납기 확정",depth:0,who:u(0),done:true,memo:""},
+    {id:"s2",text:"제품 교육·지식 전파",depth:0,who:u(0),done:false,memo:""},
+    {id:"s3",text:"소스 확보 → 상품 등록",depth:0,who:u(1),done:false,memo:""},
+    {id:"s4",text:"썸네일·상세 디자인",depth:1,who:u(1),done:true,memo:""},
+    {id:"s5",text:"마켓 동시 등록",depth:1,who:u(1),done:false,memo:""},
+    {id:"s6",text:"출시 배너·주문 세팅",depth:0,who:u(3),done:false,memo:""},
+    {id:"s7",text:"B2B 안내·실사용 콘텐츠",depth:0,who:u(2),done:false,memo:""},
+  ]);
+  const [selId,setSelId]=useState("s3");
+  const focusRef=useRef(null), uidRef=useRef(0), outRef=useRef(null);
+  useEffect(()=>{ if(!focusRef.current)return; const {id,caret}=focusRef.current; focusRef.current=null; const inp=outRef.current&&outRef.current.querySelector(`input[data-id="${id}"]`); if(inp){inp.focus(); const c=caret==null?inp.value.length:caret; try{inp.setSelectionRange(c,c);}catch(_){}} });
+  const sel=items.find(x=>x.id===selId);
+  const newId=()=>"n"+Date.now()+(++uidRef.current);
+  const patch=(id,p)=>setItems(it=>it.map(x=>x.id===id?{...x,...p}:x));
+  const toggleDone=(id)=>setItems(it=>it.map(x=>x.id===id?{...x,done:!x.done}:x));
+  const hasKid=(i)=>i+1<items.length&&items[i+1].depth>items[i].depth;
+  const parentIdx=(i)=>{for(let k=i-1;k>=0;k--){if(items[k].depth===items[i].depth-1)return k;if(items[k].depth<items[i].depth-1)return -1;}return -1;};
+  const indent=(i,dir)=>{const arr=[...items];const it=arr[i];if(dir<0){if(it.depth>0)arr[i]={...it,depth:it.depth-1};}else{const prev=arr[i-1];if(prev&&it.depth<=prev.depth)arr[i]={...it,depth:it.depth+1};}setItems(arr);};
+  const onKey=(e,i)=>{const it=items[i];
+    if(e.key==="Enter"){e.preventDefault();const nid=newId();const arr=[...items];arr.splice(i+1,0,{id:nid,text:"",depth:it.depth,who:it.who,done:false,memo:""});setItems(arr);setSelId(nid);focusRef.current={id:nid};}
+    else if(e.key==="Tab"){e.preventDefault();indent(i,e.shiftKey?-1:1);focusRef.current={id:it.id,caret:e.target.selectionStart};}
+    else if(e.key===" "&&e.target.value===""){e.preventDefault();indent(i,1);focusRef.current={id:it.id};}
+    else if(e.key==="Backspace"&&e.target.value===""&&items.length>1){e.preventDefault();const p=items[i-1]||items[0];setItems(items.filter((_,k)=>k!==i));setSelId(p.id);focusRef.current={id:p.id};}
+  };
+  const team=mode==="team";
+  const doneN=items.filter(x=>x.done).length, prog=items.length?Math.round(doneN/items.length*100):0;
+  // 마인드맵 자동 배치
+  const pos={}; {let yc=0;const colW=168,rowH=44,padX=14,padY=12;
+    const place=(i)=>{const kids=[];for(let k=i+1;k<items.length;k++){if(items[k].depth<=items[i].depth)break;if(items[k].depth===items[i].depth+1)kids.push(k);}if(!kids.length){pos[i]={x:padX+items[i].depth*colW,y:padY+yc*rowH};yc++;}else{const ys=[];kids.forEach(k=>{place(k);ys.push(pos[k].y);});pos[i]={x:padX+items[i].depth*colW,y:(Math.min(...ys)+Math.max(...ys))/2};}};
+    items.forEach((it,i)=>{if(it.depth===0)place(i);});}
+  let mx=0,my=0;Object.values(pos).forEach(p=>{mx=Math.max(mx,p.x);my=Math.max(my,p.y);});
+  return(
+    <div style={{padding:"14px 16px 24px"}}>
+      <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",color:"#fff",borderRadius:14,padding:"14px 16px",marginBottom:12}}>
+        <p style={{margin:0,fontSize:15,fontWeight:900}}>📋 프로세스 만들기 <span style={{fontSize:10,fontWeight:800,background:"rgba(255,255,255,0.2)",padding:"2px 8px",borderRadius:8}}>미리보기</span></p>
+        <div style={{display:"flex",gap:6,marginTop:10}}>
+          {[["team","👥 팀 협업"],["solo","🙋 개인"]].map(([k,l])=>(
+            <button key={k} onClick={()=>setMode(k)} style={{flex:1,padding:"8px 0",borderRadius:9,border:"none",cursor:"pointer",background:mode===k?"#fff":"rgba(255,255,255,0.14)",color:mode===k?"#0F1F5C":"#fff",fontWeight:800,fontSize:12.5,fontFamily:"inherit"}}>{l}</button>
+          ))}
+        </div>
+        <p style={{margin:"9px 0 0",fontSize:10.5,opacity:0.85,lineHeight:1.6}}>{team?"단계마다 담당자 지정 → 인계(앞 단계 끝나면 다음 차례). 체크=진행률, 기여도는 단계 단위.":"혼자 하는 계층형 체크리스트. 담당자·인계 없이 체크만."}<br/><b>Enter</b> 같은 단계 · <b>Space</b>(빈칸) 하위 · 행 <b>◂▸</b> 상위·하위 · <b>Backspace</b>(빈칸) 삭제</p>
+      </div>
+
+      {/* 진행률 */}
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+        <span style={{fontSize:11.5,fontWeight:800,color:"#4B5563",flexShrink:0}}>진행률</span>
+        <div style={{flex:1,height:8,borderRadius:8,background:"#F2F4F6",overflow:"hidden"}}><div style={{width:prog+"%",height:"100%",background:prog>=100?"#00C073":"#F97316",borderRadius:8}}/></div>
+        <span style={{fontSize:13,fontWeight:900,color:prog>=100?"#00C073":"#F97316",flexShrink:0}}>{doneN}/{items.length} · {prog}%</span>
+      </div>
+
+      {/* 아웃라이너 (= 업무 트리, 체크 가능) */}
+      <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"12px 10px",marginBottom:14}} ref={outRef}>
+        {items.map((it,i)=>{const m=Mof(it.who);const isSel=it.id===selId;return(
+          <div key={it.id} style={{display:"flex",alignItems:"center",gap:6,marginLeft:it.depth*20,padding:"3px 6px",borderRadius:9,backgroundColor:isSel?"#FFF7ED":"transparent"}}>
+            <button onClick={()=>indent(i,-1)} style={{border:"none",background:"none",color:"#C4C9D0",fontSize:13,cursor:"pointer",padding:"2px 2px"}}>◂</button>
+            <button onClick={()=>indent(i,1)} style={{border:"none",background:"none",color:"#C4C9D0",fontSize:13,cursor:"pointer",padding:"2px 2px"}}>▸</button>
+            <button onClick={()=>toggleDone(it.id)} style={{width:19,height:19,borderRadius:6,border:`2px solid ${it.done?"#00C073":"#D1D5DB"}`,background:it.done?"#00C073":"#fff",color:"#fff",fontSize:11,fontWeight:900,cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>{it.done?"✓":""}</button>
+            {team&&<span style={{width:18,height:18,borderRadius:"50%",backgroundColor:m.color,color:"#fff",fontSize:9,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{m.name[0]}</span>}
+            <input data-id={it.id} value={it.text} placeholder={hasKid(i)?"단계명...":"업무 입력..."} onChange={e=>patch(it.id,{text:e.target.value})} onFocus={()=>setSelId(it.id)} onKeyDown={e=>onKey(e,i)} style={{flex:1,minWidth:0,border:"none",background:"none",fontSize:13.5,fontWeight:hasKid(i)?800:600,color:it.done?"#9CA3AF":"#1F2937",textDecoration:it.done?"line-through":"none",outline:"none",fontFamily:"inherit",padding:"5px 2px"}}/>
+          </div>
+        );})}
+      </div>
+
+      {/* 마인드맵 */}
+      <p style={{margin:"0 2px 6px",fontSize:12,fontWeight:900,color:"#0F1F5C"}}>🧠 {team?"협업 흐름 지도":"내 작업 지도"} <span style={{fontWeight:600,color:"#9CA3AF",fontSize:10.5}}>(자동 · 노드 탭하면 아래 편집)</span></p>
+      <div style={{overflowX:"auto",backgroundColor:"#FAFBFC",backgroundImage:"radial-gradient(#E5E8EB 1px,transparent 1px)",backgroundSize:"18px 18px",border:"1px solid #EDF0F3",borderRadius:14,marginBottom:14}}>
+        <div style={{position:"relative",width:mx+200,height:my+70}}>
+          <svg width={mx+200} height={my+70} style={{position:"absolute",inset:0,pointerEvents:"none",overflow:"visible"}}>
+            {items.map((it,i)=>{const pi=parentIdx(i);if(pi<0||!pos[pi]||!pos[i])return null;const x1=pos[pi].x+140,y1=pos[pi].y+15,x2=pos[i].x,y2=pos[i].y+15;return <path key={it.id} d={`M ${x1} ${y1} C ${x1+34} ${y1}, ${x2-34} ${y2}, ${x2} ${y2}`} stroke="#F9731688" strokeWidth={2} fill="none"/>;})}
+          </svg>
+          {items.map((it,i)=>{const m=Mof(it.who);const isSel=it.id===selId;return(
+            <div key={it.id} onClick={()=>setSelId(it.id)} style={{position:"absolute",left:pos[i].x,top:pos[i].y,display:"flex",alignItems:"center",gap:6,maxWidth:150,backgroundColor:it.done?"#E8FAF1":"#fff",border:`2px solid ${isSel?"#F97316":it.done?"#00C073":"#E5E8EB"}`,borderRadius:11,padding:"6px 10px",boxShadow:isSel?"0 0 0 3px rgba(249,115,22,0.2)":"0 2px 8px rgba(0,0,0,0.07)",cursor:"pointer",fontSize:12,fontWeight:700,zIndex:isSel?3:2}}>
+              {it.done?<span style={{color:"#00C073",fontWeight:900,flexShrink:0}}>✓</span>:team&&<span style={{width:16,height:16,borderRadius:"50%",backgroundColor:m.color,color:"#fff",fontSize:8.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{m.name[0]}</span>}
+              <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:it.done?"#059669":"#1F2937"}}>{it.text||"단계"}</span>
+            </div>
+          );})}
+        </div>
+      </div>
+
+      {/* 세부 편집 */}
+      {sel&&(
+        <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"14px 16px"}}>
+          <p style={{margin:"0 0 10px",fontSize:12,fontWeight:900,color:"#0F1F5C"}}>✏️ {hasKid(items.indexOf(sel))?"단계":"업무"} 세부</p>
+          <input value={sel.text} onChange={e=>patch(sel.id,{text:e.target.value})} style={{width:"100%",padding:"11px 13px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:14,fontWeight:700,outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:12}}/>
+          {team&&(<>
+            <p style={{margin:"0 0 6px",fontSize:11,fontWeight:800,color:"#4B5563"}}>담당자 <span style={{fontWeight:600,color:"#9CA3AF"}}>(인계 대상)</span></p>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+              {MEM.map(m=>{const on=sel.who===m.id;return(<button key={m.id||"none"} onClick={()=>patch(sel.id,{who:m.id})} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 11px",borderRadius:20,border:`1.5px solid ${on?m.color:"#E5E8EB"}`,background:on?m.color+"18":"#fff",cursor:"pointer",fontFamily:"inherit"}}><span style={{width:16,height:16,borderRadius:"50%",backgroundColor:m.color,color:"#fff",fontSize:8.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{m.name[0]}</span><span style={{fontSize:12,fontWeight:700,color:on?m.color:"#4B5563"}}>{m.name}</span></button>);})}
+            </div>
+          </>)}
+          <p style={{margin:"0 0 6px",fontSize:11,fontWeight:800,color:"#4B5563"}}>메모</p>
+          <textarea value={sel.memo} onChange={e=>patch(sel.id,{memo:e.target.value})} placeholder="주의사항·참고..." style={{width:"100%",padding:"9px 11px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:13,resize:"vertical",minHeight:46,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
+          <p style={{margin:"10px 2px 0",fontSize:10.5,color:"#9CA3AF",lineHeight:1.6}}>※ 하위로 만든 항목이 이 단계의 <b>세부 업무(체크리스트)</b>입니다. 별도 데이터 아님 — <b>체크=진행률</b>{team?", 기여도는 단계 단위로 집계":""}.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+// 업무 보드 — 팀 전체 현황 뷰 (담당자별 진행률·업무 상태·내 차례)
+function TeamBoard({D,cu}){
+  const mem=D.users.map(u=>{
+    const projs=D.projects.filter(p=>p.assigneeId===u.id);
+    const tasks=D.tasks.filter(t=>!t.isFixed&&t.assigneeId===u.id);
+    const done=tasks.filter(t=>t.status==="done").length;
+    const inprog=tasks.filter(t=>t.status==="inprogress").length;
+    let ready=0; D.projects.filter(p=>p.templateId).forEach(p=>{const ts=launchProjTasks(D,p);ts.forEach(t=>{if(t.assigneeId===u.id&&launchStageStatus(t,ts)==="ready")ready++;});});
+    return {u,projN:projs.length,done,total:tasks.length,inprog,ready,prog:tasks.length?Math.round(done/tasks.length*100):0};
+  });
+  const allT=D.tasks.filter(t=>!t.isFixed), allDone=allT.filter(t=>t.status==="done").length;
+  const teamProg=allT.length?Math.round(allDone/allT.length*100):0;
+  return(
+    <div>
+      <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"16px",marginBottom:14,color:"#fff"}}>
+        <p style={{margin:0,fontSize:12,fontWeight:800,opacity:0.8}}>팀 전체 현황</p>
+        <p style={{margin:"4px 0 10px",fontSize:22,fontWeight:900}}>업무 {allDone}/{allT.length} · {teamProg}%</p>
+        <div style={{height:8,borderRadius:8,background:"rgba(255,255,255,0.2)",overflow:"hidden"}}><div style={{width:teamProg+"%",height:"100%",background:"#F97316",borderRadius:8}}/></div>
+        <p style={{margin:"8px 0 0",fontSize:11,opacity:0.8}}>프로젝트 {D.projects.length}개 · 팀원 {D.users.length}명</p>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {mem.map(m=>(
+          <div key={m.u.id} style={{backgroundColor:"#fff",borderRadius:14,border:`1px solid ${m.u.id===cu.id?"#FED7AA":"#F2F4F6"}`,padding:"13px 14px"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:9}}>
+              <Ava name={m.u.name} color={m.u.color} size={38}/>
+              <div style={{flex:1,minWidth:0}}>
+                <p style={{margin:0,fontSize:14,fontWeight:900,color:"#111827"}}>{m.u.name}{m.u.id===cu.id&&<span style={{fontSize:10,color:"#EA580C",fontWeight:700}}> (나)</span>}</p>
+                <p style={{margin:"1px 0 0",fontSize:10.5,color:"#9CA3AF"}}>{m.u.dept} · 프로젝트 {m.projN}개</p>
+              </div>
+              {m.ready>0&&<span style={{fontSize:10.5,fontWeight:800,color:"#fff",background:"#F97316",borderRadius:8,padding:"3px 8px",flexShrink:0}}>🔔 내 차례 {m.ready}</span>}
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
+              <div style={{flex:1,height:6,borderRadius:6,background:"#F2F4F6",overflow:"hidden"}}><div style={{width:m.prog+"%",height:"100%",background:m.prog>=70?"#00C073":m.u.color,borderRadius:6}}/></div>
+              <span style={{fontSize:12,fontWeight:900,color:m.u.color,flexShrink:0}}>{m.prog}%</span>
+            </div>
+            <div style={{display:"flex",gap:6}}>
+              <span style={{fontSize:10.5,fontWeight:700,color:"#3182F6",background:"#EBF3FF",borderRadius:6,padding:"2px 8px"}}>진행중 {m.inprog}</span>
+              <span style={{fontSize:10.5,fontWeight:700,color:"#00C073",background:"#E8FAF1",borderRadius:6,padding:"2px 8px"}}>완료 {m.done}</span>
+              <span style={{fontSize:10.5,fontWeight:700,color:"#6B7280",background:"#F2F4F6",borderRadius:6,padding:"2px 8px"}}>전체 {m.total}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+// 팀 진단 — 업무 데이터로 막힘·적체·헛심을 읽고 프로세스 개선(평가 아님·진단용)
+function TeamDiagnose({D,cu}){
+  const parentIds=new Set((D.tasks||[]).filter(t=>t.parentId).map(t=>t.parentId));
+  const leaf=t=>!t.isFixed&&!parentIds.has(t.id);
+  const mem=D.users.map(u=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.assigneeId===u.id);const done=ts.filter(t=>t.status==="done").length;const open=ts.length-done;const rate=ts.length?Math.round(done/ts.length*100):0;return {u,total:ts.length,done,open,rate,stuck:open>=3&&rate<50};}).sort((a,b)=>b.open-a.open);
+  const projStuck=(D.projects||[]).map(p=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.projectId===p.id);const done=ts.filter(t=>t.status==="done").length;return {p,total:ts.length,open:ts.length-done};}).filter(x=>x.open>0).sort((a,b)=>b.open-a.open).slice(0,6);
+  const heotsim=(D.projects||[]).filter(p=>p.mainKPIId==="mk1"||p.mainKPIId==="mk2").map(p=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.projectId===p.id);return {p,done:ts.filter(t=>t.status==="done").length,rev:numF(p.resultValue)};}).filter(x=>x.done>=3&&x.rev===0).sort((a,b)=>b.done-a.done).slice(0,6);
+  const Card=({icon,title,desc,action,children})=>(
+    <div style={{background:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"14px 15px",marginBottom:12}}>
+      <p style={{margin:0,fontSize:13.5,fontWeight:900,color:"#0F1F5C"}}>{icon} {title}</p>
+      <p style={{margin:"3px 0 10px",fontSize:10.5,color:"#9CA3AF",lineHeight:1.5}}>{desc}</p>
+      {children}
+      <p style={{margin:"10px 0 0",fontSize:10.5,fontWeight:800,color:"#EA580C"}}>→ {action}</p>
+    </div>
+  );
+  return(
+    <div>
+      <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:14,padding:"13px 15px",marginBottom:14,color:"#fff"}}>
+        <p style={{margin:0,fontSize:14,fontWeight:900}}>🩺 팀 진단</p>
+        <p style={{margin:"3px 0 0",fontSize:10.5,opacity:0.82}}>업무 데이터로 막힘·적체·헛심을 읽고 프로세스를 개선합니다 (평가 아님 · 진단용)</p>
+      </div>
+      <Card icon="⚠️" title="막힘·과부하 (담당자)" desc="안고 있는 미완이 많고 완료율이 낮으면 막힘/과부하 신호" action="막힌 담당자 일 재분배·프로세스 재설계">
+        {mem.map(m=>(
+          <div key={m.u.id} style={{display:"flex",alignItems:"center",gap:9,padding:"7px 0",borderBottom:"1px solid #F6F7F9"}}>
+            <Ava name={m.u.name} color={m.u.color} size={26}/>
+            <span style={{flex:1,fontSize:12.5,fontWeight:700,color:"#1F2937"}}>{m.u.name}{m.stuck&&<span style={{marginLeft:6,fontSize:9.5,fontWeight:800,color:"#fff",background:"#F04452",borderRadius:6,padding:"1px 6px"}}>🔴 막힘</span>}</span>
+            <span style={{fontSize:11,color:"#6B7280",flexShrink:0}}>미완 {m.open} · 완료율 {m.rate}%</span>
+          </div>
+        ))}
+      </Card>
+      <Card icon="🧱" title="적체 프로젝트" desc="미완 말단 업무가 많이 쌓인 프로젝트" action="가장 막힌 프로젝트부터 단계 점검·정리">
+        {projStuck.length===0?<p style={{margin:0,fontSize:12,color:"#C4C9D0"}}>적체 없음</p>:projStuck.map(x=>(
+          <div key={x.p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid #F6F7F9"}}>
+            <span style={{flex:1,fontSize:12.5,fontWeight:600,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{x.p.title}</span>
+            <span style={{fontSize:11,fontWeight:800,color:"#EA580C",flexShrink:0}}>미완 {x.open}/{x.total}</span>
+          </div>
+        ))}
+      </Card>
+      <Card icon="💸" title="행동 대비 결과 낮음" desc="완료 업무는 쌓였는데 매출 0인 매출 프로젝트 = 헛심 후보" action="전략 재배치·불필요 행동 컷 검토">
+        {heotsim.length===0?<p style={{margin:0,fontSize:12,color:"#C4C9D0"}}>해당 없음</p>:heotsim.map(x=>(
+          <div key={x.p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid #F6F7F9"}}>
+            <span style={{flex:1,fontSize:12.5,fontWeight:600,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{x.p.title}</span>
+            <span style={{fontSize:11,fontWeight:700,color:"#9CA3AF",flexShrink:0}}>완료 {x.done} · 매출 0</span>
+          </div>
+        ))}
+      </Card>
+    </div>
+  );
+}
 function MindMapPage({D,cu}){
+  const [scope,setScope]=useState("person");   // person | team | diag
   const [boardView,setBoardView]=useState("tree");
   const [sel,setSel]=useState(cu.id);
   const user=D.users.find(u=>u.id===sel);
@@ -2438,6 +2769,13 @@ function MindMapPage({D,cu}){
   const isThisWeek=task=>!!(task.weekDay&&WEEK_DAYS.includes(task.weekDay));
   return(
     <div style={{padding:"14px 16px 20px"}}>
+      <div style={{display:"flex",gap:6,marginBottom:14}}>
+        {[["person","🙋 개인"],["team","👥 팀"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setScope(k)} style={{flex:1,padding:"10px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:scope===k?"#0F1F5C":"#F2F4F6",color:scope===k?"#fff":"#374151",fontWeight:800,fontSize:13.5,fontFamily:"inherit"}}>{l}</button>
+        ))}
+      </div>
+      {scope==="team"&&<TeamBoard D={D} cu={cu}/>}
+      {scope==="person"&&(<>
       <div style={{display:"flex",backgroundColor:"#F2F4F6",borderRadius:14,padding:4,marginBottom:14}}>
         {[{k:"tree",l:"◈ 담당자 트리"},{k:"weekly",l:"🗓 주간 맵"}].map(v=>(
           <button key={v.k} onClick={()=>setBoardView(v.k)} style={{flex:1,padding:"9px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:boardView===v.k?"#FFFFFF":"transparent",color:boardView===v.k?"#0F1F5C":"#6B7280",fontWeight:boardView===v.k?800:500,fontSize:13,fontFamily:"inherit",boxShadow:boardView===v.k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{v.l}</button>
@@ -2643,6 +2981,7 @@ function MindMapPage({D,cu}){
           })}
         </div>
       )}
+      </>)}
     </div>
   );
 }
@@ -2746,8 +3085,9 @@ function RetroPage({D,cu,add,up,rm}){
   return(
     <div style={{padding:"14px 16px 20px"}}>
       <div style={{display:"flex",backgroundColor:"#F2F4F6",borderRadius:14,padding:4,marginBottom:14}}>
-        {[{k:"goal",l:"📊 월간 목표"},{k:"retro",l:"📔 월말 회고"}].map(t=><button key={t.k} onClick={()=>setTab(t.k)} style={{flex:1,padding:"10px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:tab===t.k?"#FFFFFF":"transparent",color:tab===t.k?"#0F1F5C":"#6B7280",fontWeight:tab===t.k?800:500,fontSize:13.5,fontFamily:"inherit",boxShadow:tab===t.k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{t.l}</button>)}
+        {[{k:"goal",l:"📊 월간 목표"},{k:"retro",l:"📔 월말 회고"},{k:"diag",l:"🩺 진단"}].map(t=><button key={t.k} onClick={()=>setTab(t.k)} style={{flex:1,padding:"10px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:tab===t.k?"#FFFFFF":"transparent",color:tab===t.k?"#0F1F5C":"#6B7280",fontWeight:tab===t.k?800:500,fontSize:13,fontFamily:"inherit",boxShadow:tab===t.k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{t.l}</button>)}
       </div>
+      {tab==="diag"&&<TeamDiagnose D={D} cu={cu}/>}
       {tab==="goal"&&(
         <div>
           <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"16px 18px",marginBottom:14,color:"#FFFFFF"}}>

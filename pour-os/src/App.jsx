@@ -387,11 +387,12 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add})=>{
   );
 };
 const TABS=[{id:"today",icon:"🏠",label:"오늘"},{id:"kpi",icon:"◎",label:"KPI"},{id:"projects",icon:"▦",label:"프로젝트"},{id:"calendar",icon:"▤",label:"캘린더"},{id:"more",icon:"⋯",label:"더보기"}];
-const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"proceditor",icon:"🧪",label:"프로세스 에디터"},{id:"ai",icon:"✦",label:"AI 코치"}];
+const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"proceditor",icon:"🧪",label:"프로세스 에디터"},{id:"ai",icon:"✦",label:"AI 코치"},{id:"guide",icon:"📖",label:"가이드"}];
 // 메뉴 그룹: 개인(나만 보는 내 것) vs 팀(모두 같이 보는 공유) — 출시는 프로젝트 하위 탭
 const NAV_GROUPS=[
   {label:"개인 · 나만", ids:["today","game","fixed","retro"]},
   {label:"팀 · 공유",  ids:["kpi","projects","mindmap","proceditor","calendar","ai"]},
+  {label:"도움말",     ids:["guide"]},
 ];
 export default function App(){
   const [D,setD]=useState(INIT);
@@ -551,6 +552,7 @@ export default function App(){
     {page==="launch"&&<LaunchPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="mindmap"&&<MindMapPage D={D} cu={cu}/>}
     {page==="proceditor"&&<ProcessEditorPage D={D}/>}
+    {page==="guide"&&<GuidePage D={D}/>}
     {page==="fixed"&&<FixedPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="retro"&&<RetroPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
     {page==="ai"&&<AIPage D={D} cu={cu} add={add} rm={rm}/>}
@@ -564,7 +566,7 @@ export default function App(){
       {saveErr.level!=="error"&&<button onClick={()=>setSaveErr(null)} style={{flexShrink:0,padding:"5px 7px",borderRadius:8,border:"none",background:"transparent",color:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}}>×</button>}
     </div>}
     <Sheet open={more} onClose={()=>setMore(false)} title="더보기">
-      {[{label:"개인 · 나만",ids:["game","fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","proceditor","ai"]}].map(grp=>(
+      {[{label:"개인 · 나만",ids:["game","fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","proceditor","ai"]},{label:"도움말",ids:["guide"]}].map(grp=>(
         <div key={grp.label} style={{marginTop:14}}>
           <p style={{margin:"0 2px 8px",fontSize:11,fontWeight:800,color:"#9CA3AF",letterSpacing:0.5}}>{grp.label}</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -2771,6 +2773,69 @@ function TeamDiagnose({D,cu}){
           </div>
         ))}
       </Card>
+    </div>
+  );
+}
+// 가이드 — KPI 구조·데이터 흐름·사용법 설명
+function GuidePage({D}){
+  const Sec=({n,title,children})=>(
+    <div style={{backgroundColor:"#fff",borderRadius:16,border:"1px solid #F2F4F6",padding:"16px 16px 14px",marginBottom:12}}>
+      <p style={{margin:"0 0 10px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}><span style={{color:"#F97316"}}>{n}</span> {title}</p>
+      {children}
+    </div>
+  );
+  const Row=({l,d,c})=>(
+    <div style={{display:"flex",gap:9,padding:"7px 0",borderBottom:"1px solid #F6F7F9"}}>
+      <span style={{flexShrink:0,fontSize:12.5,fontWeight:800,color:c||"#1F2937",minWidth:78}}>{l}</span>
+      <span style={{flex:1,fontSize:12,color:"#4B5563",lineHeight:1.55}}>{d}</span>
+    </div>
+  );
+  return(
+    <div style={{padding:"14px 16px 30px",maxWidth:720,margin:"0 auto"}}>
+      <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",color:"#fff",borderRadius:16,padding:"18px",marginBottom:14}}>
+        <p style={{margin:0,fontSize:17,fontWeight:900}}>📖 이 앱 사용법</p>
+        <p style={{margin:"6px 0 0",fontSize:12,opacity:0.85,lineHeight:1.6}}>팀 최종목표(2026 매출 10억)를 <b>매일의 업무 실행</b>과 연결하고, 누가 무슨 활동으로 얼마를 벌었는지까지 자동 집계·기록합니다.<br/><b>"기록되지 않은 업무 = 하지 않은 것."</b></p>
+      </div>
+
+      <Sec n="1." title="목표 구조 — 무엇으로 관리하나 (3+1)">
+        <Row l="💰 매출" c="#EA580C" d="직판 5억 + B2B 5억 = 돈. 프로젝트 매출을 입력하면 채널·메인KPI·최종목표로 자동 집계."/>
+        <Row l="📊 운영" c="#3182F6" d="CRM·어드민 등 전략 모듈의 구축 완성도(%). 직판·B2B와 나란한 3대 전략 축 (잔손 아님)."/>
+        <Row l="🎯 활동지표" c="#8B5CF6" d="상품등록 100개·견적 50건 같은 반복 수량. 프로젝트 안에서 입력 → 전사 합산."/>
+        <Row l="📅 월간 개인목표" c="#00C073" d="개인이 한 달 단위로 정하는 목표. (목표·회고 메뉴)"/>
+        <div style={{marginTop:10,padding:"9px 11px",background:"#FFF7ED",borderRadius:10,border:"1px solid #FED7AA"}}>
+          <p style={{margin:0,fontSize:11,fontWeight:700,color:"#9A3412",lineHeight:1.6}}>⚖️ 운영 vs 활동지표 경계 — <b>큰 구축물(완성도 %) = 운영</b> / <b>반복 수량(개·건) = 활동지표</b></p>
+        </div>
+      </Sec>
+
+      <Sec n="2." title="데이터 흐름 — 한 방향으로 흐른다">
+        <div style={{background:"#FAFBFC",border:"1px solid #EDF0F3",borderRadius:10,padding:"11px 13px",fontFamily:"'IBM Plex Mono',monospace",fontSize:11,color:"#374151",lineHeight:1.9}}>
+          업무 체크 → <b>진척률</b> 자동<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ <b>기여</b>(누가 했나) → <b>진단</b>(막힘·헛심) → <b>회고</b><br/>
+          매출 입력(프로젝트) → 채널·단가 → 메인KPI → <b>최종목표</b>
+        </div>
+        <p style={{margin:"9px 2px 0",fontSize:11,color:"#9CA3AF",lineHeight:1.6}}>· 매출은 <b>메인KPI2 프로젝트 한 곳</b>에서만 입력 → 나머지는 전부 파생(단일 소스).<br/>· 업무를 체크하면 진척·기여·진단·회고가 자동으로 채워집니다.</p>
+      </Sec>
+
+      <Sec n="3." title="어디서 뭘 하나 — 메뉴 가이드">
+        <p style={{margin:"0 0 5px",fontSize:11,fontWeight:800,color:"#9CA3AF"}}>개인 · 나만</p>
+        <Row l="🏠 오늘" d="내 업무 체크 · 인계받은 '내 차례' · 이번 주 메모"/>
+        <Row l="🎯 내 주간" d="이번 주 명심할 메모 + 내가 한 일 집계"/>
+        <Row l="📌 고정업무" d="매일·매주 반복 업무(반복 등록)"/>
+        <Row l="◷ 목표·회고" d="월간 개인목표 · 월말 회고 · 🩺 진단(막힘·적체·헛심)"/>
+        <p style={{margin:"10px 0 5px",fontSize:11,fontWeight:800,color:"#9CA3AF"}}>팀 · 공유</p>
+        <Row l="◎ KPI" d="목표 트리(매출·운영·활동지표) · 매출 입력"/>
+        <Row l="▦ 프로젝트" d="프로젝트별 🧩프로세스(업무 트리)·업무·활동지표 / 🚀출시 탭"/>
+        <Row l="◈ 업무 보드" d="개인 상세(담당자 트리·주간맵) / 팀 전체 현황"/>
+        <Row l="▤ 캘린더" d="일정·미팅"/>
+      </Sec>
+
+      <Sec n="4." title="언제 뭘 하나 — 루틴">
+        <Row l="매일" c="#3182F6" d="오늘 화면에서 내 업무·인계 체크 (팀 프로젝트는 🧩프로세스로 진행)"/>
+        <Row l="주 마지막날" c="#EA580C" d="오늘 화면 '이번 주 마감 입력' → 매출·KPI·활동지표 한 번에"/>
+        <Row l="월말" c="#8B5CF6" d="목표·회고 → 진단 자동요약 보고 회고 작성 → 다음 달 개선"/>
+      </Sec>
+
+      <p style={{margin:"4px 2px 0",fontSize:10.5,color:"#C4C9D0",textAlign:"center"}}>POUR OS · 브랜드커머스팀 업무관리</p>
     </div>
   );
 }

@@ -2770,12 +2770,11 @@ function MindMapPage({D,cu}){
   return(
     <div style={{padding:"14px 16px 20px"}}>
       <div style={{display:"flex",gap:6,marginBottom:14}}>
-        {[["person","🙋 개인"],["team","👥 팀"],["diag","🩺 진단"]].map(([k,l])=>(
-          <button key={k} onClick={()=>setScope(k)} style={{flex:1,padding:"10px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:scope===k?"#0F1F5C":"#F2F4F6",color:scope===k?"#fff":"#374151",fontWeight:800,fontSize:13,fontFamily:"inherit"}}>{l}</button>
+        {[["person","🙋 개인"],["team","👥 팀"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setScope(k)} style={{flex:1,padding:"10px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:scope===k?"#0F1F5C":"#F2F4F6",color:scope===k?"#fff":"#374151",fontWeight:800,fontSize:13.5,fontFamily:"inherit"}}>{l}</button>
         ))}
       </div>
       {scope==="team"&&<TeamBoard D={D} cu={cu}/>}
-      {scope==="diag"&&<TeamDiagnose D={D} cu={cu}/>}
       {scope==="person"&&(<>
       <div style={{display:"flex",backgroundColor:"#F2F4F6",borderRadius:14,padding:4,marginBottom:14}}>
         {[{k:"tree",l:"◈ 담당자 트리"},{k:"weekly",l:"🗓 주간 맵"}].map(v=>(
@@ -3086,8 +3085,9 @@ function RetroPage({D,cu,add,up,rm}){
   return(
     <div style={{padding:"14px 16px 20px"}}>
       <div style={{display:"flex",backgroundColor:"#F2F4F6",borderRadius:14,padding:4,marginBottom:14}}>
-        {[{k:"goal",l:"📊 월간 목표"},{k:"retro",l:"📔 월말 회고"}].map(t=><button key={t.k} onClick={()=>setTab(t.k)} style={{flex:1,padding:"10px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:tab===t.k?"#FFFFFF":"transparent",color:tab===t.k?"#0F1F5C":"#6B7280",fontWeight:tab===t.k?800:500,fontSize:13.5,fontFamily:"inherit",boxShadow:tab===t.k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{t.l}</button>)}
+        {[{k:"goal",l:"📊 월간 목표"},{k:"retro",l:"📔 월말 회고"},{k:"diag",l:"🩺 진단"}].map(t=><button key={t.k} onClick={()=>setTab(t.k)} style={{flex:1,padding:"10px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:tab===t.k?"#FFFFFF":"transparent",color:tab===t.k?"#0F1F5C":"#6B7280",fontWeight:tab===t.k?800:500,fontSize:13,fontFamily:"inherit",boxShadow:tab===t.k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{t.l}</button>)}
       </div>
+      {tab==="diag"&&<TeamDiagnose D={D} cu={cu}/>}
       {tab==="goal"&&(
         <div>
           <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"16px 18px",marginBottom:14,color:"#FFFFFF"}}>

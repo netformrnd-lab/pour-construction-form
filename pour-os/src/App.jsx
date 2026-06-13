@@ -387,11 +387,11 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add})=>{
   );
 };
 const TABS=[{id:"today",icon:"🏠",label:"오늘"},{id:"kpi",icon:"◎",label:"KPI"},{id:"projects",icon:"▦",label:"프로젝트"},{id:"calendar",icon:"▤",label:"캘린더"},{id:"more",icon:"⋯",label:"더보기"}];
-const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"proceditor",icon:"🧪",label:"프로세스 에디터"},{id:"ai",icon:"✦",label:"AI 코치"},{id:"guide",icon:"📖",label:"가이드"}];
-// 메뉴 그룹: 개인(나만 보는 내 것) vs 팀(모두 같이 보는 공유) — 출시는 프로젝트 하위 탭
+const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"},{id:"guide",icon:"📖",label:"가이드"}];
+// 메뉴 그룹: 개인(나만 보는 내 것) vs 팀(모두 같이 보는 공유) — 출시·프로세스는 프로젝트 하위
 const NAV_GROUPS=[
   {label:"개인 · 나만", ids:["today","game","fixed","retro"]},
-  {label:"팀 · 공유",  ids:["kpi","projects","mindmap","proceditor","calendar","ai"]},
+  {label:"팀 · 공유",  ids:["kpi","projects","mindmap","calendar","ai"]},
   {label:"도움말",     ids:["guide"]},
 ];
 export default function App(){
@@ -551,7 +551,6 @@ export default function App(){
     {page==="game"&&<GamePage D={D} cu={cu} up={up} add={add} rm={rm} nav={nav}/>}
     {page==="launch"&&<LaunchPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="mindmap"&&<MindMapPage D={D} cu={cu}/>}
-    {page==="proceditor"&&<ProcessEditorPage D={D}/>}
     {page==="guide"&&<GuidePage D={D}/>}
     {page==="fixed"&&<FixedPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="retro"&&<RetroPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
@@ -566,7 +565,7 @@ export default function App(){
       {saveErr.level!=="error"&&<button onClick={()=>setSaveErr(null)} style={{flexShrink:0,padding:"5px 7px",borderRadius:8,border:"none",background:"transparent",color:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}}>×</button>}
     </div>}
     <Sheet open={more} onClose={()=>setMore(false)} title="더보기">
-      {[{label:"개인 · 나만",ids:["game","fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","proceditor","ai"]},{label:"도움말",ids:["guide"]}].map(grp=>(
+      {[{label:"개인 · 나만",ids:["game","fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","ai"]},{label:"도움말",ids:["guide"]}].map(grp=>(
         <div key={grp.label} style={{marginTop:14}}>
           <p style={{margin:"0 2px 8px",fontSize:11,fontWeight:800,color:"#9CA3AF",letterSpacing:0.5}}>{grp.label}</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>

@@ -2709,13 +2709,29 @@ function TeamBoard({D,cu}){
     </div>
   );
 }
-// 팀 진단 — 업무 데이터로 막힘·적체·헛심을 읽고 프로세스 개선(평가 아님·진단용)
-function TeamDiagnose({D,cu}){
+// 진단 데이터(이번 달 기준) — 완료는 이번 달, 미완은 현재
+const diagData=(D,month)=>{
   const parentIds=new Set((D.tasks||[]).filter(t=>t.parentId).map(t=>t.parentId));
   const leaf=t=>!t.isFixed&&!parentIds.has(t.id);
-  const mem=D.users.map(u=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.assigneeId===u.id);const done=ts.filter(t=>t.status==="done").length;const open=ts.length-done;const rate=ts.length?Math.round(done/ts.length*100):0;return {u,total:ts.length,done,open,rate,stuck:open>=3&&rate<50};}).sort((a,b)=>b.open-a.open);
-  const projStuck=(D.projects||[]).map(p=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.projectId===p.id);const done=ts.filter(t=>t.status==="done").length;return {p,total:ts.length,open:ts.length-done};}).filter(x=>x.open>0).sort((a,b)=>b.open-a.open).slice(0,6);
-  const heotsim=(D.projects||[]).filter(p=>p.mainKPIId==="mk1"||p.mainKPIId==="mk2").map(p=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.projectId===p.id);return {p,done:ts.filter(t=>t.status==="done").length,rev:numF(p.resultValue)};}).filter(x=>x.done>=3&&x.rev===0).sort((a,b)=>b.done-a.done).slice(0,6);
+  const inMonth=t=>(t.doneAt||"").slice(0,7)===month;
+  const mem=(D.users||[]).map(u=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.assigneeId===u.id);const open=ts.filter(t=>t.status!=="done").length;const doneM=ts.filter(t=>t.status==="done"&&inMonth(t)).length;const rate=(doneM+open)?Math.round(doneM/(doneM+open)*100):0;return {u,open,doneM,rate,stuck:open>=3&&rate<50};}).sort((a,b)=>b.open-a.open);
+  const projStuck=(D.projects||[]).map(p=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.projectId===p.id);const open=ts.filter(t=>t.status!=="done").length;return {p,total:ts.length,open};}).filter(x=>x.open>0).sort((a,b)=>b.open-a.open).slice(0,6);
+  const heotsim=(D.projects||[]).filter(p=>p.mainKPIId==="mk1"||p.mainKPIId==="mk2").map(p=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.projectId===p.id);return {p,doneM:ts.filter(t=>t.status==="done"&&inMonth(t)).length,rev:numF(p.resultValue)};}).filter(x=>x.doneM>=3&&x.rev===0).sort((a,b)=>b.doneM-a.doneM).slice(0,6);
+  return {mem,projStuck,heotsim};
+};
+// 회고용 진단 자동요약 텍스트
+const diagSummary=(D,month)=>{
+  const {mem,projStuck,heotsim}=diagData(D,month);
+  const lines=[]; const stuck=mem.filter(m=>m.stuck);
+  if(stuck.length) lines.push("· 막힘: "+stuck.map(m=>`${m.u.name}(미완 ${m.open}·완료율 ${m.rate}%)`).join(", "));
+  if(projStuck.length) lines.push("· 적체: "+projStuck.slice(0,3).map(x=>`${x.p.title}(미완 ${x.open}/${x.total})`).join(", "));
+  if(heotsim.length) lines.push("· 헛심(완료>매출0): "+heotsim.slice(0,3).map(x=>`${x.p.title}(완료 ${x.doneM})`).join(", "));
+  return lines.length?`[${month} 진단 자동요약]\n${lines.join("\n")}\n`:`[${month} 진단] 특이 신호 없음 (또는 데이터 부족)\n`;
+};
+// 팀 진단 — 업무 데이터로 막힘·적체·헛심을 읽고 프로세스 개선(평가 아님·진단용)
+function TeamDiagnose({D,cu}){
+  const month=nowMonth();
+  const {mem,projStuck,heotsim}=diagData(D,month);
   const Card=({icon,title,desc,action,children})=>(
     <div style={{background:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"14px 15px",marginBottom:12}}>
       <p style={{margin:0,fontSize:13.5,fontWeight:900,color:"#0F1F5C"}}>{icon} {title}</p>
@@ -2728,7 +2744,7 @@ function TeamDiagnose({D,cu}){
     <div>
       <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:14,padding:"13px 15px",marginBottom:14,color:"#fff"}}>
         <p style={{margin:0,fontSize:14,fontWeight:900}}>🩺 팀 진단</p>
-        <p style={{margin:"3px 0 0",fontSize:10.5,opacity:0.82}}>업무 데이터로 막힘·적체·헛심을 읽고 프로세스를 개선합니다 (평가 아님 · 진단용)</p>
+        <p style={{margin:"3px 0 0",fontSize:10.5,opacity:0.82}}>{month} 기준 · 막힘·적체·헛심을 읽고 개선 (완료=이번 달 / 미완=현재 · 평가 아님)</p>
       </div>
       <Card icon="⚠️" title="막힘·과부하 (담당자)" desc="안고 있는 미완이 많고 완료율이 낮으면 막힘/과부하 신호" action="막힌 담당자 일 재분배·프로세스 재설계">
         {mem.map(m=>(
@@ -2751,7 +2767,7 @@ function TeamDiagnose({D,cu}){
         {heotsim.length===0?<p style={{margin:0,fontSize:12,color:"#C4C9D0"}}>해당 없음</p>:heotsim.map(x=>(
           <div key={x.p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid #F6F7F9"}}>
             <span style={{flex:1,fontSize:12.5,fontWeight:600,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{x.p.title}</span>
-            <span style={{fontSize:11,fontWeight:700,color:"#9CA3AF",flexShrink:0}}>완료 {x.done} · 매출 0</span>
+            <span style={{fontSize:11,fontWeight:700,color:"#9CA3AF",flexShrink:0}}>완료 {x.doneM} · 매출 0</span>
           </div>
         ))}
       </Card>
@@ -3074,7 +3090,7 @@ function RetroPage({D,cu,add,up,rm}){
   const overallPct=myGoals.length===0?0:Math.round(myGoals.reduce((s,g)=>s+gp(g,g.currentValue),0)/myGoals.length);
   const openRetro=()=>{
     const gs=myGoals.length>0?myGoals.map(g=>`· ${g.title}: ${g.currentValue}${g.unit}/${g.targetValue}${g.unit} (${gp(g,g.currentValue)}%)`).join("\n"):"";
-    setRForm(thisMonth?{...thisMonth}:{pain:"",effort:gs,learned:"",next:""});setRetroModal(true);
+    setRForm(thisMonth?{...thisMonth}:{pain:diagSummary(D,month),effort:gs,learned:"",next:""});setRetroModal(true);
   };
   const saveRetro=()=>{
     if(!rForm.pain&&!rForm.effort&&!rForm.learned&&!rForm.next) return;

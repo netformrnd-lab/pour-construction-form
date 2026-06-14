@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { STATE_DOC, colDoc, META_DOC, getDoc, onSnapshot, setDoc, uploadTaskPhoto, deleteTaskPhoto } from "./firebase.js";
 
 // Firestore 단일 문서에 저장할 공유 데이터 키 (currentUser는 기기별 로컬이라 제외)
-const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","weekGoals","launchTemplates"];
-const COL_LABEL = {users:"담당자",goals:"최종목표",mainKPIs:"메인KPI",subKPIs:"서브KPI",projects:"프로젝트",tasks:"업무",personalGoals:"개인목표",retros:"회고",aiReviews:"AI점검",events:"일정",weekGoals:"주간목표",launchTemplates:"출시템플릿"};
+const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","weekGoals","launchTemplates","manuals"];
+const COL_LABEL = {users:"담당자",goals:"최종목표",mainKPIs:"메인KPI",subKPIs:"서브KPI",projects:"프로젝트",tasks:"업무",personalGoals:"개인목표",retros:"회고",aiReviews:"AI점검",events:"일정",weekGoals:"주간목표",launchTemplates:"출시템플릿",manuals:"매뉴얼"};
 const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
@@ -129,6 +129,8 @@ const INIT={
     {id:"e4",title:"여름 프로모션 런칭",date:"2026-06-20",type:"promotion",projectId:null,description:"자사몰+마켓 동시"},
   ],
   weekGoals:[],
+  // 매뉴얼 — 잘 된 여정(국면+프로세스)을 굳혀 재사용하는 표준 작업서. 새 프로젝트를 여기서 시작.
+  manuals:[],
   // 출시 프로세스 템플릿(마인드맵) — 신상 SKU를 찍어내는 표준 흐름. 동일 프로세스 1개 기본 제공.
   launchTemplates:[
     {id:"tpl_launch", name:"신상 출시 표준 프로세스", createdAt:"2026-06-12T00:00:00.000Z",
@@ -1640,7 +1642,31 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
   );
 }
 // 프로젝트 여정(로드맵) — 최상위 국면을 예상기간 타임라인으로 + 국면별 담당/논의 + 프로세스 연결
-function ProjectRoadmap({D,proj,up,onClose,onOpenProcess}){
+// 프로젝트의 여정(국면+프로세스 트리)을 재사용용 매뉴얼 트리로 추출
+function buildManualTree(D,projId){
+  const ts=D.tasks.filter(t=>t.projectId===projId&&!t.isFixed);
+  const byParent={};
+  ts.forEach(t=>{const k=t.parentId||"_root";(byParent[k]=byParent[k]||[]).push(t);});
+  const walk=(key)=>(byParent[key]||[]).slice().sort((a,b)=>(a.seq||0)-(b.seq||0)).map(t=>({
+    title:t.title||"",assigneeId:t.assigneeId||"",estDays:t.estDays||0,discuss:t.discuss||"",kids:walk(t.id)
+  }));
+  return walk("_root");
+}
+// 매뉴얼 트리 → 새 프로젝트의 업무로 복제(계층·순서·예상기간·논의 보존, 상태는 todo로 초기화)
+function cloneManualToProject(manual,projId,projType,add){
+  let i=0;
+  const walk=(nodes,parentId)=>(nodes||[]).forEach((n,idx)=>{
+    const id="t"+Date.now()+"_"+(i++);
+    add("tasks",{id,projectId:projId,parentId:parentId||null,seq:idx,
+      title:n.title||"",status:"todo",isFixed:false,weekDay:null,weekSlot:null,
+      assigneeId:projType==="team"?(n.assigneeId||""):"",
+      estDays:parentId?0:(n.estDays||0),discuss:parentId?"":(n.discuss||""),
+      memo:"",dueDate:"",attachments:[]});
+    walk(n.kids,id);
+  });
+  walk(manual.stages,null);
+}
+function ProjectRoadmap({D,proj,up,add,onClose,onOpenProcess}){
   const team=proj.projType?proj.projType==="team":(proj.collaboratorIds||[]).length>0;
   const MEM=[{id:"",name:"미배정",color:"#9CA3AF"},...(D.users||[])];
   const Mof=id=>MEM.find(m=>m.id===id)||MEM[0];
@@ -1653,6 +1679,15 @@ function ProjectRoadmap({D,proj,up,onClose,onOpenProcess}){
   const sel=stages.find(s=>s.id===selId);
   const cpct=sid=>{const ks=D.tasks.filter(t=>t.parentId===sid&&!t.isFixed);if(ks.length)return Math.round(ks.filter(t=>t.status==="done").length/ks.length*100);return (stages.find(s=>s.id===sid)?.status==="done")?100:0;};
   const setEst=(s,v)=>up("tasks",s.id,{estDays:Math.max(0,Math.round((Number(v)||0)*perDay))});
+  const saveManual=()=>{
+    const tree=buildManualTree(D,proj.id);
+    if(!tree.length){window.alert("저장할 국면이 없어요 · 먼저 프로세스에서 국면을 만들어 주세요");return;}
+    const name=window.prompt("📋 매뉴얼 이름 (이 여정을 표준으로 저장)",proj.title||"");
+    if(name===null) return;
+    add("manuals",{id:"man"+Date.now(),name:(name.trim()||proj.title||"매뉴얼"),projType:team?"team":"solo",
+      stages:tree,createdAt:new Date().toISOString(),createdBy:proj.assigneeId||""});
+    window.alert("📋 매뉴얼로 저장됐어요\n새 프로젝트 만들 때 '매뉴얼에서 시작'으로 불러올 수 있어요");
+  };
   return(
     <div style={{position:"fixed",inset:0,zIndex:1500,background:"#F9FAFB",display:"flex",flexDirection:"column"}}>
       <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",color:"#fff",padding:"13px 16px",display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
@@ -1677,6 +1712,7 @@ function ProjectRoadmap({D,proj,up,onClose,onOpenProcess}){
               </button>
             );})}
           </div>
+          <button onClick={saveManual} style={{width:"100%",padding:"11px 0",borderRadius:11,border:"1.5px solid #FBD9B5",background:"#FFF7ED",fontSize:12.5,fontWeight:800,color:"#EA580C",cursor:"pointer",fontFamily:"inherit",marginBottom:14}}>📋 이 여정을 매뉴얼로 저장 (다음에 재사용)</button>
           {sel&&(
             <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"14px 15px"}}>
               <label style={{display:"block",fontSize:11,fontWeight:800,color:"#4B5563",marginBottom:5}}>국면명</label>
@@ -1742,17 +1778,23 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
   const [editProjId,setEditProjId]=useState(null);
   const [projDel,setProjDel]=useState(null);
   const [showAdv,setShowAdv]=useState(false);
-  const [projForm,setProjForm]=useState({title:"",goalType:"journey",projType:"team",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high"});
+  const [projForm,setProjForm]=useState({title:"",goalType:"journey",projType:"team",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high",manualId:""});
   const [metric,setMetric]=useState({name:"",target:"",unit:"개"});
-  const resetProjForm=()=>{setProjForm({title:"",goalType:"journey",projType:"team",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high"});setMetric({name:"",target:"",unit:"개"});};
-  const openEditProj=(p)=>{ setProjForm({title:p.title||"",goalType:p.goalType||(p.mainKPIId==="mk2"||p.resultValue?"revenue":"journey"),projType:p.projType||((p.collaboratorIds||[]).length>0?"team":"solo"),mainKPIId:p.mainKPIId||"",subKPIId:p.subKPIId||"",dealerType:p.dealerType||"",assigneeId:p.assigneeId||cu.id,collaboratorIds:p.collaboratorIds||[],group:p.group||"",priority:p.priority||"mid"}); setMetric({name:"",target:"",unit:"개"}); setEditProjId(p.id); setShowAdv(true); setAddProjSheet(true); };
+  const resetProjForm=()=>{setProjForm({title:"",goalType:"journey",projType:"team",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high",manualId:""});setMetric({name:"",target:"",unit:"개"});};
+  const openEditProj=(p)=>{ setProjForm({title:p.title||"",goalType:p.goalType||(p.mainKPIId==="mk2"||p.resultValue?"revenue":"journey"),projType:p.projType||((p.collaboratorIds||[]).length>0?"team":"solo"),mainKPIId:p.mainKPIId||"",subKPIId:p.subKPIId||"",dealerType:p.dealerType||"",assigneeId:p.assigneeId||cu.id,collaboratorIds:p.collaboratorIds||[],group:p.group||"",priority:p.priority||"mid",manualId:""}); setMetric({name:"",target:"",unit:"개"}); setEditProjId(p.id); setShowAdv(true); setAddProjSheet(true); };
+  // 매뉴얼에서 새 프로젝트 시작 — 추가 시트를 매뉴얼 정보로 프리필
+  const startFromManual=(m)=>{ resetProjForm(); setEditProjId(null); setShowAdv(true); setProjForm(f=>({...f,title:m.name||"",projType:m.projType||"team",goalType:"journey",assigneeId:cu.id,manualId:m.id})); setAddProjSheet(true); };
   const doAddProj=()=>{
     if(!projForm.title.trim()) return;
-    if(editProjId){ up("projects",editProjId,{...projForm}); }
+    if(editProjId){ const {manualId,...rest}=projForm; up("projects",editProjId,{...rest}); }
     else {
-      const proj={id:"p"+Date.now(),...projForm,status:"active",progress:0,resultValue:0};
+      const {manualId,...rest}=projForm;
+      const projId="p"+Date.now();
+      const proj={id:projId,...rest,status:"active",progress:0,resultValue:0};
       if(projForm.goalType==="metric"&&metric.name.trim()) proj.activityKPIs=[{id:"ak"+Date.now(),name:metric.name.trim(),unit:metric.unit||"개",target:numF(metric.target),current:0,history:[]}];
       add("projects",proj);
+      const man=manualId&&(D.manuals||[]).find(m=>m.id===manualId);
+      if(man) cloneManualToProject(man,projId,projForm.projType,add);
     }
     resetProjForm(); setEditProjId(null); setShowAdv(false); setAddProjSheet(false);
   };
@@ -1813,6 +1855,27 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
     <div style={{padding:"14px 16px 24px"}}>
       {pTabs}
       <p style={{margin:"0 2px 12px",fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>프로젝트별 여정(로드맵) · 국면을 타임라인으로 보고 · 각 국면의 방안은 프로세스</p>
+      {(D.manuals||[]).length>0&&(
+        <div style={{marginBottom:16,background:"#FFFBF5",border:"1px solid #FBE5C8",borderRadius:14,padding:"12px 13px"}}>
+          <p style={{margin:"0 0 9px",fontSize:12,fontWeight:900,color:"#EA580C"}}>📋 매뉴얼 <span style={{fontWeight:700,color:"#C08A4A"}}>· 저장된 표준 여정 (새 프로젝트로 재사용)</span></p>
+          <div style={{display:"flex",flexDirection:"column",gap:7}}>
+            {(D.manuals||[]).map(m=>{
+              const sc=(m.stages||[]).length;
+              const cnt=(()=>{let n=0;const w=a=>(a||[]).forEach(x=>{n++;w(x.kids);});w(m.stages);return n;})();
+              return(
+                <div key={m.id} style={{display:"flex",alignItems:"center",gap:8,background:"#fff",borderRadius:10,border:"1px solid #F2E6D5",padding:"9px 11px"}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.name}</p>
+                    <p style={{margin:"2px 0 0",fontSize:10,color:"#9CA3AF"}}>{m.projType==="team"?"팀":"개인"} · 국면 {sc} · 업무 {cnt}</p>
+                  </div>
+                  <button onClick={()=>startFromManual(m)} style={{flexShrink:0,padding:"6px 10px",borderRadius:9,border:"none",background:"#F97316",color:"#fff",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 새 프로젝트</button>
+                  <button onClick={()=>{if(window.confirm(`'${m.name}' 매뉴얼을 삭제할까요? (이미 만든 프로젝트는 영향 없음)`))rm("manuals",m.id);}} style={{flexShrink:0,padding:"6px 8px",borderRadius:9,border:"1px solid #FFE2E5",background:"#FFF0F1",color:"#F04452",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
       {(()=>{
         const list=D.projects.filter(p=>D.tasks.some(t=>t.projectId===p.id&&!t.isFixed));
         if(!list.length) return <Empty t="아직 여정이 없어요 · 프로젝트에서 🧩프로세스로 국면을 만들어보세요"/>;
@@ -1847,7 +1910,7 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
           </div>
         );
       })()}
-      {roadmapProj&&<ProjectRoadmap D={D} proj={roadmapProj} up={up} onClose={()=>setRoadmapProj(null)} onOpenProcess={(p)=>{setRoadmapProj(null);setProcessProj(p);}}/>}
+      {roadmapProj&&<ProjectRoadmap D={D} proj={roadmapProj} up={up} add={add} onClose={()=>setRoadmapProj(null)} onOpenProcess={(p)=>{setRoadmapProj(null);setProcessProj(p);}}/>}
       {processProj&&<ProjectProcessEditor D={D} proj={processProj} cu={cu} add={add} up={up} rm={rm} onClose={()=>setProcessProj(null)}/>}
     </div>
   );
@@ -2073,6 +2136,13 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
       </Sheet>
       <Sheet open={addProjSheet} onClose={()=>{setAddProjSheet(false);setEditProjId(null);setShowAdv(false);resetProjForm();}} title={editProjId?"프로젝트 수정":"프로젝트 추가"} h="92vh">
         <div style={{marginTop:10}}>
+          {!editProjId&&projForm.manualId&&(()=>{const m=(D.manuals||[]).find(x=>x.id===projForm.manualId);if(!m)return null;return(
+            <div style={{display:"flex",alignItems:"center",gap:8,background:"#FFF7ED",border:"1.5px solid #FBD9B5",borderRadius:11,padding:"10px 12px",marginBottom:14}}>
+              <span style={{fontSize:15}}>📋</span>
+              <div style={{flex:1,minWidth:0}}><p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#EA580C"}}>'{m.name}' 매뉴얼에서 생성</p><p style={{margin:"2px 0 0",fontSize:10.5,color:"#C08A4A"}}>국면 {(m.stages||[]).length}개와 프로세스가 함께 만들어져요</p></div>
+              <button onClick={()=>setProjForm(f=>({...f,manualId:""}))} style={{flexShrink:0,padding:"5px 9px",borderRadius:8,border:"1px solid #FBD9B5",background:"#fff",color:"#EA580C",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>해제</button>
+            </div>
+          );})()}
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>프로젝트명 *</label><input value={projForm.title} onChange={e=>setProjForm({...projForm,title:e.target.value})} onKeyDown={e=>{if(e.key==="Enter"&&projForm.title.trim())doAddProj();}} placeholder="프로젝트 이름 (Enter로 빠른 추가)" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>담당자</label><select value={projForm.assigneeId} onChange={e=>setProjForm({...projForm,assigneeId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}>{D.users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></div>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>프로젝트 유형</label>

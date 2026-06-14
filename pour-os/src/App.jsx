@@ -162,6 +162,8 @@ const numF=(x)=>{const n=Number(x);return isFinite(n)?n:0;};   // 문자열·NaN
 //  · 그 외/수동지정 → currentValue
 const skCur=(sk,projects)=>{
   if(sk.launchCount) return (projects||[]).filter(p=>p.templateId&&(p.progress||0)>=100).length;   // 출시 완료(progress 100%) SKU 자동 집계
+  // 매뉴얼 완료 집계(옵션): 이 지표를 가리키는 프로젝트가 완료(100%)되면 +1 자동 집계 (원/% 지표는 제외 — 매출·진척 롤업 보호)
+  if(sk.unit!=="원"&&sk.unit!=="%"){ const cc=(projects||[]).filter(p=>p.countKPIId===sk.id); if(cc.length) return cc.filter(p=>(p.progress||0)>=100).length; }
   if(sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride) return (projects||[]).filter(p=>p.subKPIId===sk.id).reduce((a,p)=>a+numF(p.resultValue),0);
   if(sk.unit==="%"&&!sk.manualOverride){ const ch=(projects||[]).filter(p=>p.subKPIId===sk.id); if(ch.length) return Math.round(ch.reduce((a,p)=>a+numF(p.progress),0)/ch.length); }
   return numF(sk.currentValue);
@@ -1563,6 +1565,7 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
   };
   const [items,setItems]=useState(load);
   const [selId,setSelId]=useState(null);
+  const [view,setView]=useState("tree");   // tree(편집) | map(마인드맵 보기, 선택사항)
   const focusRef=useRef(null),uidRef=useRef(0),outRef=useRef(null);
   useEffect(()=>{ if(!focusRef.current)return; const {id,caret}=focusRef.current; focusRef.current=null; const inp=outRef.current&&outRef.current.querySelector(`input[data-id="${id}"]`); if(inp){inp.focus();const c=caret==null?inp.value.length:caret;try{inp.setSelectionRange(c,c);}catch(_){}}});
   const newId=()=>"new"+(++uidRef.current);
@@ -1610,11 +1613,41 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
         <button onClick={save} style={{background:"#F97316",border:"none",color:"#fff",borderRadius:9,padding:"8px 16px",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>저장</button>
       </div>
       <div style={{flex:1,overflowY:"auto",padding:"14px 16px 30px",maxWidth:720,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
           <span style={{fontSize:11.5,fontWeight:800,color:"#4B5563"}}>진행률</span>
           <div style={{flex:1,height:8,borderRadius:8,background:"#F2F4F6",overflow:"hidden"}}><div style={{width:prog+"%",height:"100%",background:prog>=100?"#00C073":"#F97316",borderRadius:8}}/></div>
           <span style={{fontSize:13,fontWeight:900,color:prog>=100?"#00C073":"#F97316"}}>{doneN}/{totN} · {prog}%</span>
         </div>
+        <div style={{display:"inline-flex",borderRadius:9,overflow:"hidden",border:"1px solid #E5E8EB",marginBottom:12}}>
+          {[["tree","☰ 트리(편집)"],["map","🗺 마인드맵"]].map(([k,l])=>(
+            <button key={k} onClick={()=>setView(k)} style={{padding:"7px 13px",fontSize:11.5,fontWeight:800,border:"none",cursor:"pointer",background:view===k?"#0F1F5C":"#fff",color:view===k?"#fff":"#6B7280",fontFamily:"inherit"}}>{l}</button>
+          ))}
+        </div>
+        {view==="map"?(()=>{
+          const COLW=148,ROWH=46,NW=126,NH=36,PADX=12,PADY=12;
+          const rows=items.map((it,i)=>({it,i})).filter(r=>r.it.text.trim()||r.it.tid);
+          const yOf={}; rows.forEach((r,ri)=>{yOf[r.i]=PADY+ri*ROWH;});
+          const parentIdx=(i)=>{for(let k=i-1;k>=0;k--){if(items[k].depth===items[i].depth-1)return k;if(items[k].depth<items[i].depth-1)return -1;}return -1;};
+          const maxDepth=rows.reduce((m,r)=>Math.max(m,r.it.depth),0);
+          const svgW=PADX*2+maxDepth*COLW+NW, svgH=PADY*2+Math.max(1,rows.length)*ROWH;
+          return(
+            <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:8,overflowX:"auto"}}>
+              {rows.length===0?<p style={{margin:"24px 0",textAlign:"center",fontSize:12,color:"#9CA3AF"}}>업무를 먼저 입력하세요</p>:(
+              <div style={{position:"relative",width:svgW,height:svgH}}>
+                <svg width={svgW} height={svgH} style={{position:"absolute",top:0,left:0,pointerEvents:"none"}}>
+                  {rows.map(({it,i})=>{const p=parentIdx(i);if(p<0)return null;const px=PADX+items[p].depth*COLW+NW,py=yOf[p]+NH/2,cx=PADX+it.depth*COLW,cy=yOf[i]+NH/2;return(<path key={"e"+i} d={`M ${px} ${py} C ${px+26} ${py}, ${cx-26} ${cy}, ${cx} ${cy}`} stroke="#D7C4A8" strokeWidth={2} fill="none"/>);})}
+                </svg>
+                {rows.map(({it,i})=>{const m=Mof(it.who);const parent=isP(items,i);const rdone=parent?dd[i]:it.done;const x=PADX+it.depth*COLW,y=yOf[i];return(
+                  <button key={it.id} onClick={()=>setSelId(it.id)} style={{position:"absolute",left:x,top:y,width:NW,height:NH,display:"flex",alignItems:"center",gap:5,padding:"0 8px",borderRadius:9,border:`1.5px solid ${it.id===selId?"#0F1F5C":(rdone?"#BFE9CF":"#E8DCC8")}`,background:rdone?"#F0FBF4":(parent?"#FFFBF5":"#fff"),cursor:"pointer",fontFamily:"inherit",boxSizing:"border-box",textAlign:"left"}}>
+                    <span style={{width:13,height:13,borderRadius:parent?4:"50%",flexShrink:0,background:rdone?"#00C073":"#EEF1F3",color:"#fff",fontSize:9,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{rdone?"✓":""}</span>
+                    {team&&<span style={{width:13,height:13,borderRadius:"50%",flexShrink:0,backgroundColor:m.color,color:"#fff",fontSize:7.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{m.name[0]}</span>}
+                    <span style={{flex:1,minWidth:0,fontSize:11,fontWeight:parent?800:600,color:rdone?"#9CA3AF":"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{it.text||"(빈 항목)"}</span>
+                  </button>
+                );})}
+              </div>)}
+            </div>
+          );
+        })():(
         <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"12px 10px"}} ref={outRef}>
           {items.map((it,i)=>{const m=Mof(it.who);const parent=isP(items,i);const rdone=parent?dd[i]:it.done;return(
             <div key={it.id} style={{display:"flex",alignItems:"center",gap:6,marginLeft:it.depth*20,padding:"3px 6px",borderRadius:9,backgroundColor:it.id===selId?"#FFF7ED":"transparent"}}>
@@ -1628,6 +1661,7 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
             </div>
           );})}
         </div>
+        )}
         {team&&sel&&(
           <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"12px 14px",marginTop:12}}>
             <p style={{margin:"0 0 8px",fontSize:11,fontWeight:800,color:"#4B5563"}}>「{sel.text||"업무"}」 담당자</p>
@@ -1790,10 +1824,11 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
     else {
       const {manualId,...rest}=projForm;
       const projId="p"+Date.now();
+      const man=manualId&&(D.manuals||[]).find(m=>m.id===manualId);
       const proj={id:projId,...rest,status:"active",progress:0,resultValue:0};
+      if(man&&man.countKPIId) proj.countKPIId=man.countKPIId;   // 매뉴얼 완료 집계 옵션 상속
       if(projForm.goalType==="metric"&&metric.name.trim()) proj.activityKPIs=[{id:"ak"+Date.now(),name:metric.name.trim(),unit:metric.unit||"개",target:numF(metric.target),current:0,history:[]}];
       add("projects",proj);
-      const man=manualId&&(D.manuals||[]).find(m=>m.id===manualId);
       if(man) cloneManualToProject(man,projId,projForm.projType,add);
     }
     resetProjForm(); setEditProjId(null); setShowAdv(false); setAddProjSheet(false);
@@ -1862,14 +1897,26 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
             {(D.manuals||[]).map(m=>{
               const sc=(m.stages||[]).length;
               const cnt=(()=>{let n=0;const w=a=>(a||[]).forEach(x=>{n++;w(x.kids);});w(m.stages);return n;})();
+              const mk3SKs=D.subKPIs.filter(s=>s.mainKPIId==="mk3"&&s.unit!=="원"&&s.unit!=="%");
               return(
-                <div key={m.id} style={{display:"flex",alignItems:"center",gap:8,background:"#fff",borderRadius:10,border:"1px solid #F2E6D5",padding:"9px 11px"}}>
-                  <div style={{flex:1,minWidth:0}}>
-                    <p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.name}</p>
-                    <p style={{margin:"2px 0 0",fontSize:10,color:"#9CA3AF"}}>{m.projType==="team"?"팀":"개인"} · 국면 {sc} · 업무 {cnt}</p>
+                <div key={m.id} style={{background:"#fff",borderRadius:10,border:"1px solid #F2E6D5",padding:"9px 11px"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.name}</p>
+                      <p style={{margin:"2px 0 0",fontSize:10,color:"#9CA3AF"}}>{m.projType==="team"?"팀":"개인"} · 국면 {sc} · 업무 {cnt}</p>
+                    </div>
+                    <button onClick={()=>startFromManual(m)} style={{flexShrink:0,padding:"6px 10px",borderRadius:9,border:"none",background:"#F97316",color:"#fff",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 새 프로젝트</button>
+                    <button onClick={()=>{if(window.confirm(`'${m.name}' 매뉴얼을 삭제할까요? (이미 만든 프로젝트는 영향 없음)`))rm("manuals",m.id);}} style={{flexShrink:0,padding:"6px 8px",borderRadius:9,border:"1px solid #FFE2E5",background:"#FFF0F1",color:"#F04452",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
                   </div>
-                  <button onClick={()=>startFromManual(m)} style={{flexShrink:0,padding:"6px 10px",borderRadius:9,border:"none",background:"#F97316",color:"#fff",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 새 프로젝트</button>
-                  <button onClick={()=>{if(window.confirm(`'${m.name}' 매뉴얼을 삭제할까요? (이미 만든 프로젝트는 영향 없음)`))rm("manuals",m.id);}} style={{flexShrink:0,padding:"6px 8px",borderRadius:9,border:"1px solid #FFE2E5",background:"#FFF0F1",color:"#F04452",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
+                  {mk3SKs.length>0&&(
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginTop:8,paddingTop:8,borderTop:"1px dashed #F2E6D5"}}>
+                      <span style={{fontSize:10.5,fontWeight:800,color:"#6B7280",flexShrink:0}}>📊 완료 시 집계</span>
+                      <select value={m.countKPIId||""} onChange={e=>up("manuals",m.id,{countKPIId:e.target.value})} style={{flex:1,minWidth:0,padding:"6px 8px",borderRadius:8,border:"1px solid #E5E8EB",fontSize:11,fontWeight:700,color:"#374151",background:"#fff",fontFamily:"inherit",WebkitAppearance:"none"}}>
+                        <option value="">집계 안 함</option>
+                        {mk3SKs.map(s=><option key={s.id} value={s.id}>{s.title}</option>)}
+                      </select>
+                    </div>
+                  )}
                 </div>
               );
             })}

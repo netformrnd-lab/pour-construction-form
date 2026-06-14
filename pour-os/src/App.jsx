@@ -1855,9 +1855,9 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
     <div style={{padding:"14px 16px 24px"}}>
       {pTabs}
       <p style={{margin:"0 2px 12px",fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>프로젝트별 여정(로드맵) · 국면을 타임라인으로 보고 · 각 국면의 방안은 프로세스</p>
-      {(D.manuals||[]).length>0&&(
+      {((D.manuals||[]).length>0||(D.launchTemplates||[]).length>0)&&(
         <div style={{marginBottom:16,background:"#FFFBF5",border:"1px solid #FBE5C8",borderRadius:14,padding:"12px 13px"}}>
-          <p style={{margin:"0 0 9px",fontSize:12,fontWeight:900,color:"#EA580C"}}>📋 매뉴얼 <span style={{fontWeight:700,color:"#C08A4A"}}>· 저장된 표준 여정 (새 프로젝트로 재사용)</span></p>
+          <p style={{margin:"0 0 9px",fontSize:12,fontWeight:900,color:"#EA580C"}}>📋 매뉴얼 <span style={{fontWeight:700,color:"#C08A4A"}}>· 저장된 표준 작업서 (새 프로젝트로 재사용)</span></p>
           <div style={{display:"flex",flexDirection:"column",gap:7}}>
             {(D.manuals||[]).map(m=>{
               const sc=(m.stages||[]).length;
@@ -1873,7 +1873,17 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
                 </div>
               );
             })}
+            {(D.launchTemplates||[]).map(t=>(
+              <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,background:"#fff",borderRadius:10,border:"1px solid #F2E6D5",padding:"9px 11px"}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name}</p>
+                  <p style={{margin:"2px 0 0",fontSize:10,color:"#9CA3AF"}}><span style={{color:"#7C3AED",fontWeight:800}}>출시</span> · 마인드맵 · 단계 {(t.nodes||[]).length}</p>
+                </div>
+                <button onClick={()=>setPview("launch")} style={{flexShrink:0,padding:"6px 10px",borderRadius:9,border:"1.5px solid #DDD6FE",background:"#FAF9FF",color:"#7C3AED",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🚀 출시 탭에서</button>
+              </div>
+            ))}
           </div>
+          <p style={{margin:"8px 2px 0",fontSize:10,color:"#C08A4A",lineHeight:1.5}}>출시 매뉴얼은 SKU를 찍어내고 운영지표에 자동 집계돼 <b>🚀 출시</b> 탭에서 다룹니다.</p>
         </div>
       )}
       {(()=>{

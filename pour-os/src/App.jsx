@@ -488,15 +488,18 @@ export default function App(){
       const changed=[];
       for(const k of SHARED_KEYS){ const js=JSON.stringify(shared[k]||[]); if(js!==lastColJsonRef.current[k]) changed.push([k,shared[k]||[],js]); }
       if(!changed.length) return;
-      // ③ 컬렉션별 1MiB 한도 가드 (초과 컬렉션이 있으면 그 컬렉션만 차단·경고)
-      for(const [k,,js] of changed){ const b=new Blob([js]).size; if(b>DOC_LIMIT){ setSaveErr({level:"error",msg:`'${COL_LABEL[k]||k}' 데이터(${(b/1024).toFixed(0)}KB)가 한도(1024KB)를 넘어 저장이 막혔습니다. 백업 후 정리 필요(이 기기엔 보관됨).`,bytes:b}); return; } }
-      // ④ 변경 컬렉션 동시 저장 — 성공해야 동기화본 갱신(실패 시 다음 변경 때 자동 재시도)
+      // ③ 컬렉션별 1MiB 한도 가드 — 초과한 컬렉션만 건너뛰고 나머지는 정상 저장(전체 차단 금지: 한 컬렉션 때문에 다른 데이터가 안 막히도록)
+      const over=changed.filter(([,,js])=>new Blob([js]).size>DOC_LIMIT);
+      const savable=changed.filter(([,,js])=>new Blob([js]).size<=DOC_LIMIT);
+      if(over.length){ const [k,,js]=over[0]; const b=new Blob([js]).size; setSaveErr({level:"error",msg:`'${COL_LABEL[k]||k}' 데이터(${(b/1024).toFixed(0)}KB)가 한도(1024KB)를 넘어 이 항목만 저장이 막혔습니다(나머지는 정상 저장됨). 백업 후 정리 필요 — 이 기기엔 전부 보관됨.`,bytes:b}); }
+      if(!savable.length) return;
+      // ④ 한도 내 컬렉션만 동시 저장 — 성공해야 동기화본 갱신(실패 시 다음 변경 때 자동 재시도)
       try{
-        await Promise.all(changed.map(([k,arr])=>setDoc(colDoc(k),{items:arr,_updatedAt:Date.now()})));
-        for(const [k,,js] of changed) lastColJsonRef.current[k]=js;
-        pendingSharedRef.current=null;
+        await Promise.all(savable.map(([k,arr])=>setDoc(colDoc(k),{items:arr,_updatedAt:Date.now()})));
+        for(const [k,,js] of savable) lastColJsonRef.current[k]=js;
+        if(!over.length) pendingSharedRef.current=null;   // 초과분이 남아있으면 종료 flush가 재시도하도록 pending 유지
         let maxB=0; for(const k of SHARED_KEYS){ const b=new Blob([JSON.stringify(shared[k]||[])]).size; if(b>maxB)maxB=b; }
-        setSaveErr(maxB>DOC_LIMIT*0.85?{level:"warn",msg:`일부 데이터가 한도의 ${Math.round(maxB/DOC_LIMIT*100)}%입니다 — 백업·정리 권장.`,bytes:maxB}:null);
+        if(!over.length) setSaveErr(maxB>DOC_LIMIT*0.85?{level:"warn",msg:`일부 데이터가 한도의 ${Math.round(maxB/DOC_LIMIT*100)}%입니다 — 백업·정리 권장.`,bytes:maxB}:null);   // 초과 에러는 덮어쓰지 않음
       }catch(e){ console.error("[pour-os] 저장 실패:",e);
         setSaveErr({level:"error",msg:`저장 실패(${e.code||e.message}). 변경분은 이 기기에 임시 보관됨 — 새로고침 전에 '전체 백업(JSON)'으로 내려받으세요.`}); }
     },700);
@@ -545,12 +548,29 @@ export default function App(){
     const n={...p,[k]:(p[k]||[]).filter(i=>i.id!==id),trash:[...(p.trash||[]),...entry]};
     return k==="tasks"?recalcProg(n):n;
   });
-  // 휴지통 → 원래 컬렉션으로 복구(원본 id·내용 그대로, 이미 존재하면 중복 생성 안 함)
+  // 레코드 *안의* 항목 삭제(예: 프로젝트의 활동지표)도 영구 제거가 아니라 휴지통 이동. 부모 맥락을 함께 보관해 제자리로 복구.
+  const rmNested=(parentCol,parentId,field,itemId,typeLabel)=>setD(p=>{
+    const parent=(p[parentCol]||[]).find(x=>x.id===parentId); if(!parent) return p;
+    const arr=parent[field]||[]; const item=arr.find(x=>x.id===itemId); if(!item) return p;
+    const entry={...item,_col:"_nested",_typeLabel:typeLabel||field,_parentCol:parentCol,_parentId:parentId,_field:field,
+      _tid:"trash"+Date.now()+"_"+Math.random().toString(36).slice(2,6),_deletedAt:new Date().toISOString(),_deletedBy:cu?.id||null,_deletedByName:cu?.name||""};
+    const newParent={...parent,[field]:arr.filter(x=>x.id!==itemId)};
+    return {...p,[parentCol]:(p[parentCol]||[]).map(x=>x.id===parentId?newParent:x),trash:[...(p.trash||[]),entry]};
+  });
+  // 휴지통 → 원래 자리로 복구(원본 id·내용 그대로, 이미 존재하면 중복 생성 안 함)
   const restore=(tid)=>setD(p=>{
     const entry=(p.trash||[]).find(t=>t._tid===tid); if(!entry) return p;
+    const trashLeft=(p.trash||[]).filter(t=>t._tid!==tid);
+    if(entry._col==="_nested"){   // 중첩 항목 복구: 부모[field] 배열로 되돌림(부모가 없으면 휴지통에 그대로 둠 → 부모 먼저 복구)
+      const {_col,_typeLabel,_parentCol,_parentId,_field,_tid:_a,_deletedAt:_b,_deletedBy:_c,_deletedByName:_d,...item}=entry;
+      const parent=(p[_parentCol]||[]).find(x=>x.id===_parentId); if(!parent) return p;
+      const arr=parent[_field]||[]; const exists=arr.some(x=>x.id===item.id);
+      const newParent={...parent,[_field]:exists?arr:[...arr,item]};
+      return {...p,[_parentCol]:(p[_parentCol]||[]).map(x=>x.id===_parentId?newParent:x),trash:trashLeft};
+    }
     const {_col,_tid,_deletedAt,_deletedBy,_deletedByName,...orig}=entry;
     const exists=(p[_col]||[]).some(i=>i.id===orig.id);
-    const n={...p,[_col]:exists?(p[_col]||[]):[...(p[_col]||[]),orig],trash:(p.trash||[]).filter(t=>t._tid!==tid)};
+    const n={...p,[_col]:exists?(p[_col]||[]):[...(p[_col]||[]),orig],trash:trashLeft};
     return _col==="tasks"?recalcProg(n):n;
   });
   const nav=(id)=>{setPage(id);setMore(false);};
@@ -566,7 +586,7 @@ export default function App(){
   const pageContent=(<>
     {page==="today"&&<TodayPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="kpi"&&<KPIPage D={D} lead={lead} up={up} cu={cu} add={add} rm={rm} pc={viewMode==="pc"}/>}
-    {page==="projects"&&<ProjectsPage D={D} cu={cu} up={up} add={add} rm={rm} pc={viewMode==="pc"} lead={lead} nav={nav}/>}
+    {page==="projects"&&<ProjectsPage D={D} cu={cu} up={up} add={add} rm={rm} rmNested={rmNested} pc={viewMode==="pc"} lead={lead} nav={nav}/>}
     {page==="calendar"&&<CalendarPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
     {page==="game"&&<GamePage D={D} cu={cu} up={up} add={add} rm={rm} nav={nav}/>}
     {page==="launch"&&<LaunchPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
@@ -1859,7 +1879,7 @@ function ProjectRoadmap({D,proj,up,add,onClose,onOpenProcess}){
     </div>
   );
 }
-function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
+function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
   const [roadmapProj,setRoadmapProj]=useState(null);
   const [processProj,setProcessProj]=useState(null);
   const [filter,setFilter]=useState("mine");
@@ -1882,7 +1902,7 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
   const [actAddOpen,setActAddOpen]=useState(null);   // 지표 추가폼 펼친 프로젝트
   const actAddIndicator=(proj)=>{ if(!actForm.name.trim())return; const list=[...(proj.activityKPIs||[]),{id:"ak"+Date.now(),name:actForm.name.trim(),unit:actForm.unit||"건",target:Number(actForm.target)||0,current:0,history:[]}]; up("projects",proj.id,{activityKPIs:list}); setActForm({name:"",unit:"건",target:""}); };
   const actRecord=(proj,ak,raw)=>{ const amt=Number(raw); if(isNaN(amt))return; const prev=Number(ak.current||0); const v=actMode==="delta"?prev+amt:amt; const at=new Date().toISOString(); const week=weekKey(); const list=(proj.activityKPIs||[]).map(x=>x.id===ak.id?{...x,current:v,week,by:cu?.id||null,byName:cu?.name||"",history:[...(x.history||[]),{week,value:v,amount:amt,mode:actMode,by:cu?.id||null,byName:cu?.name||"",at}]}:x); up("projects",proj.id,{activityKPIs:list}); };
-  const actRemove=(proj,ak)=>up("projects",proj.id,{activityKPIs:(proj.activityKPIs||[]).filter(x=>x.id!==ak.id)});
+  const actRemove=(proj,ak)=>rmNested("projects",proj.id,"activityKPIs",ak.id,"활동지표");   // 삭제해도 휴지통에 보관·복구 가능
   // 목표지표 수정(이름·단위·목표값) + 변경분 수정이력 기록
   const actSaveEdit=(proj,ak,f)=>{
     const name=(f.name||"").trim()||ak.name;
@@ -3684,9 +3704,9 @@ function ExportPanel({D,up,restore}){
   // 예시(데모) KPI·채널 수치 0으로 초기화 — 목표·구조는 유지, 현재 숫자만 비움
   const resetNums=()=>{
     if(!up) return;
-    if(!window.confirm("KPI·채널의 현재 수치를 모두 0으로 초기화할까요?\n목표·구조(직판/B2B/운영·채널)는 그대로 두고 예시 숫자만 비웁니다.\n(되돌리려면 아래 '전체 백업(JSON)'을 먼저 받아두세요)")) return;
-    (D.subKPIs||[]).forEach(s=>up("subKPIs",s.id,{currentValue:0,valueHistory:[]}));
-    (D.mainKPIs||[]).forEach(m=>up("mainKPIs",m.id,{currentValue:0,valueHistory:[]}));
+    if(!window.confirm("KPI·채널의 현재 수치를 모두 0으로 초기화할까요?\n목표·구조(직판/B2B/운영·채널)는 그대로 두고 현재 숫자만 0으로 만듭니다.\n입력 이력(📜)은 자산으로 보존됩니다. (전체 백업(JSON) 권장)")) return;
+    (D.subKPIs||[]).forEach(s=>up("subKPIs",s.id,{currentValue:0}));    // 이력(valueHistory)은 지우지 않음 — 데이터 자산화
+    (D.mainKPIs||[]).forEach(m=>up("mainKPIs",m.id,{currentValue:0}));
     (D.goals||[]).forEach(g=>up("goals",g.id,{currentValue:0}));
   };
   const goalTypeL={revenue:"매출",metric:"활동지표",journey:"여정"};
@@ -3754,7 +3774,7 @@ function ExportPanel({D,up,restore}){
         <div style={{display:"flex",flexDirection:"column",gap:6}}>
           {[...trash].reverse().slice(0,60).map(t=>(
             <div key={t._tid} style={{display:"flex",alignItems:"center",gap:8,background:"#F9FAFB",borderRadius:10,padding:"8px 10px"}}>
-              <span style={{flexShrink:0,fontSize:9.5,fontWeight:800,color:"#6B7280",background:"#EEF1F4",borderRadius:5,padding:"2px 6px"}}>{COL_LABEL[t._col]||t._col}</span>
+              <span style={{flexShrink:0,fontSize:9.5,fontWeight:800,color:"#6B7280",background:"#EEF1F4",borderRadius:5,padding:"2px 6px"}}>{COL_LABEL[t._col]||t._typeLabel||t._col}</span>
               <span style={{flex:1,minWidth:0,fontSize:12,fontWeight:700,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title||t.name||t.companyName||t.targetName||t.week||t.id||"(제목 없음)"}</span>
               <span style={{flexShrink:0,fontSize:9.5,color:"#9CA3AF"}}>{(t._deletedAt||"").slice(5,10)}{t._deletedByName?" · "+t._deletedByName:""}</span>
               <button onClick={()=>restore(t._tid)} style={{flexShrink:0,padding:"5px 10px",borderRadius:8,border:"1px solid #DBE3FF",background:"#fff",color:"#3182F6",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>복구</button>

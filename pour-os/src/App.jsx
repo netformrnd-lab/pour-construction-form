@@ -1749,7 +1749,8 @@ function ManualCard({m,D,up,rm,startFromManual}){
 }
 function ProjectRoadmap({D,proj,up,add,onClose,onOpenProcess}){
   const team=proj.projType?proj.projType==="team":(proj.collaboratorIds||[]).length>0;
-  const srcMan=proj.sourceManualId&&(D.manuals||[]).find(m=>m.id===proj.sourceManualId);   // 역링크: 이 프로젝트가 기반한 매뉴얼
+  const srcMan=proj.sourceManualId&&(D.manuals||[]).find(m=>m.id===proj.sourceManualId);   // 역링크: 살아있는 매뉴얼(있으면 갱신 가능)
+  const srcGone=!srcMan&&proj.sourceManualName;   // 매뉴얼이 삭제됐어도 박제된 이름으로 기록 유지
   const MEM=[{id:"",name:"미배정",color:"#9CA3AF"},...(D.users||[])];
   const Mof=id=>MEM.find(m=>m.id===id)||MEM[0];
   const stages=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed&&!t.parentId).sort((a,b)=>(a.seq||0)-(b.seq||0));
@@ -1780,10 +1781,10 @@ function ProjectRoadmap({D,proj,up,add,onClose,onOpenProcess}){
     }
     const name=window.prompt("📋 매뉴얼 이름 (이 여정을 표준으로 저장)",proj.title||"");
     if(name===null) return;
-    const id="man"+Date.now();
-    add("manuals",{id,name:(name.trim()||proj.title||"매뉴얼"),projType:team?"team":"solo",
+    const id="man"+Date.now(), mname=(name.trim()||proj.title||"매뉴얼");
+    add("manuals",{id,name:mname,projType:team?"team":"solo",
       stages:tree,version:1,versions:[],createdAt:now,createdBy:by});
-    up("projects",proj.id,{sourceManualId:id});   // 이 프로젝트를 매뉴얼에 연결 → 이후 '갱신' 가능
+    up("projects",proj.id,{sourceManualId:id,sourceManualName:mname,sourceManualVersion:1});   // 매뉴얼 연결 + 이름 박제(이후 '갱신' 가능, 삭제돼도 기록 유지)
     window.alert("📋 매뉴얼로 저장됐어요\n이 프로젝트는 매뉴얼에 연결돼, 다음에 고치면 '갱신'할 수 있어요");
   };
   return(
@@ -1810,10 +1811,10 @@ function ProjectRoadmap({D,proj,up,add,onClose,onOpenProcess}){
               </button>
             );})}
           </div>
-          {srcMan&&(
-            <div style={{display:"flex",alignItems:"center",gap:8,background:"#FFFBF5",border:"1px solid #F2E6D5",borderRadius:11,padding:"9px 12px",marginBottom:9}}>
-              <span style={{fontSize:11.5,fontWeight:800,color:"#A16207",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📋 ‘{srcMan.name}’ 매뉴얼 v{srcMan.version||1} 기반</span>
-              <span style={{fontSize:10,fontWeight:700,color:"#B98A3E",flexShrink:0}}>저장 시 갱신/이력</span>
+          {(srcMan||srcGone)&&(
+            <div style={{display:"flex",alignItems:"center",gap:8,background:srcGone?"#F8F9FA":"#FFFBF5",border:"1px solid "+(srcGone?"#EAEDF0":"#F2E6D5"),borderRadius:11,padding:"9px 12px",marginBottom:9}}>
+              <span style={{fontSize:11.5,fontWeight:800,color:srcGone?"#9CA3AF":"#A16207",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📋 ‘{srcMan?srcMan.name:proj.sourceManualName}’ 매뉴얼 v{srcMan?(srcMan.version||1):(proj.sourceManualVersion||1)} 기반</span>
+              <span style={{fontSize:10,fontWeight:700,color:srcGone?"#B0B8C1":"#B98A3E",flexShrink:0}}>{srcGone?"매뉴얼 삭제됨 · 기록 유지":"저장 시 갱신/이력"}</span>
             </div>
           )}
           <button onClick={saveManual} style={{width:"100%",padding:"11px 0",borderRadius:11,border:"1.5px solid #FBD9B5",background:"#FFF7ED",fontSize:12.5,fontWeight:800,color:"#EA580C",cursor:"pointer",fontFamily:"inherit",marginBottom:14}}>{srcMan?"📋 매뉴얼 갱신 / 새 매뉴얼로 저장":"📋 이 여정을 매뉴얼로 저장 (다음에 재사용)"}</button>
@@ -1896,7 +1897,7 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
       const projId="p"+Date.now();
       const man=manualId&&(D.manuals||[]).find(m=>m.id===manualId);
       const proj={id:projId,...rest,status:"active",progress:0,resultValue:0};
-      if(man){ proj.sourceManualId=man.id; if(man.countKPIId) proj.countKPIId=man.countKPIId; }   // 매뉴얼 역링크 + 완료집계 옵션 상속
+      if(man){ proj.sourceManualId=man.id; proj.sourceManualName=man.name||""; proj.sourceManualVersion=man.version||1; if(man.countKPIId) proj.countKPIId=man.countKPIId; }   // 매뉴얼 역링크 + 이름 박제(삭제돼도 기록 유지) + 완료집계 상속
       if(projForm.goalType==="metric"&&metric.name.trim()) proj.activityKPIs=[{id:"ak"+Date.now(),name:metric.name.trim(),unit:metric.unit||"개",target:numF(metric.target),current:0,history:[]}];
       add("projects",proj);
       if(man) cloneManualToProject(man,projId,projForm.projType,add);

@@ -1700,6 +1700,53 @@ function cloneManualToProject(manual,projId,projType,add){
   });
   walk(manual.stages,null);
 }
+// 매뉴얼 카드 — 버전(v) 표시·이력 되돌리기 + 완료집계 지표 선택(연결 프로젝트에 소급 적용)
+function ManualCard({m,D,up,rm,startFromManual}){
+  const [showV,setShowV]=useState(false);
+  const sc=(m.stages||[]).length;
+  const cnt=(()=>{let n=0;const w=a=>(a||[]).forEach(x=>{n++;w(x.kids);});w(m.stages);return n;})();
+  const mk3SKs=D.subKPIs.filter(s=>s.mainKPIId==="mk3"&&s.unit!=="원"&&s.unit!=="%"&&!s.launchCount);
+  const cdone=m.countKPIId?(D.projects||[]).filter(p=>p.countKPIId===m.countKPIId&&(p.progress||0)>=100).length:0;
+  const vers=m.versions||[]; const ver=m.version||1;
+  const setCount=(val)=>{ up("manuals",m.id,{countKPIId:val}); (D.projects||[]).filter(p=>p.sourceManualId===m.id).forEach(p=>up("projects",p.id,{countKPIId:val})); };
+  const restore=(v)=>{ if(!window.confirm(`v${v.v}로 되돌릴까요? 현재본(v${ver})은 이력으로 보관돼요.`))return; up("manuals",m.id,{stages:v.stages||[],version:ver+1,versions:[...vers,{v:ver,stages:m.stages||[],savedAt:m.updatedAt||m.createdAt||"",savedBy:m.updatedBy||m.createdBy||""}]}); setShowV(false); };
+  return(
+    <div style={{background:"#fff",borderRadius:10,border:"1px solid #F2E6D5",padding:"9px 11px"}}>
+      <div style={{display:"flex",alignItems:"center",gap:8}}>
+        <div style={{flex:1,minWidth:0}}>
+          <p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.name} <span style={{fontSize:9.5,fontWeight:800,color:"#A16207",background:"#FEF3C7",borderRadius:5,padding:"1px 5px"}}>v{ver}</span></p>
+          <p style={{margin:"2px 0 0",fontSize:10,color:"#9CA3AF"}}>{m.projType==="team"?"팀":"개인"} · 국면 {sc} · 업무 {cnt}{vers.length?` · 이력 ${vers.length}`:""}</p>
+        </div>
+        <button onClick={()=>startFromManual(m)} style={{flexShrink:0,padding:"6px 10px",borderRadius:9,border:"none",background:"#F97316",color:"#fff",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 새 프로젝트</button>
+        <button onClick={()=>{if(window.confirm(`'${m.name}' 매뉴얼을 삭제할까요? (이미 만든 프로젝트는 영향 없음)`))rm("manuals",m.id);}} style={{flexShrink:0,padding:"6px 8px",borderRadius:9,border:"1px solid #FFE2E5",background:"#FFF0F1",color:"#F04452",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
+      </div>
+      {(mk3SKs.length>0||vers.length>0)&&(
+        <div style={{display:"flex",alignItems:"center",gap:6,marginTop:8,paddingTop:8,borderTop:"1px dashed #F2E6D5"}}>
+          {mk3SKs.length>0&&(<>
+            <span style={{fontSize:10.5,fontWeight:800,color:"#6B7280",flexShrink:0}}>📊 완료 시 집계</span>
+            <select value={m.countKPIId||""} onChange={e=>setCount(e.target.value)} style={{flex:1,minWidth:0,padding:"6px 8px",borderRadius:8,border:"1px solid #E5E8EB",fontSize:11,fontWeight:700,color:"#374151",background:"#fff",fontFamily:"inherit",WebkitAppearance:"none"}}>
+              <option value="">집계 안 함</option>
+              {mk3SKs.map(s=><option key={s.id} value={s.id}>{s.title}</option>)}
+            </select>
+            {m.countKPIId&&<span style={{fontSize:10,fontWeight:800,color:"#00A862",flexShrink:0}}>완료 {cdone}</span>}
+          </>)}
+          {vers.length>0&&<button onClick={()=>setShowV(s=>!s)} style={{flexShrink:0,padding:"5px 8px",borderRadius:8,border:"1px solid #E5E8EB",background:showV?"#EEF2FF":"#fff",color:"#4B5563",fontSize:10.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>📜 이력</button>}
+        </div>
+      )}
+      {showV&&vers.length>0&&(
+        <div style={{marginTop:8,display:"flex",flexDirection:"column",gap:5}}>
+          {vers.slice().reverse().map(v=>(
+            <div key={v.v} style={{display:"flex",alignItems:"center",gap:8,background:"#F9FAFB",borderRadius:8,padding:"6px 9px"}}>
+              <span style={{fontSize:10.5,fontWeight:800,color:"#6B7280",flexShrink:0}}>v{v.v}</span>
+              <span style={{flex:1,minWidth:0,fontSize:10,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>국면 {(v.stages||[]).length} · {(v.savedAt||"").slice(0,10)||"날짜없음"}</span>
+              <button onClick={()=>restore(v)} style={{flexShrink:0,padding:"4px 8px",borderRadius:7,border:"1px solid #DBE3FF",background:"#fff",color:"#3182F6",fontSize:10,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>되돌리기</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 function ProjectRoadmap({D,proj,up,add,onClose,onOpenProcess}){
   const team=proj.projType?proj.projType==="team":(proj.collaboratorIds||[]).length>0;
   const MEM=[{id:"",name:"미배정",color:"#9CA3AF"},...(D.users||[])];
@@ -1716,11 +1763,26 @@ function ProjectRoadmap({D,proj,up,add,onClose,onOpenProcess}){
   const saveManual=()=>{
     const tree=buildManualTree(D,proj.id);
     if(!tree.length){window.alert("저장할 국면이 없어요 · 먼저 프로세스에서 국면을 만들어 주세요");return;}
+    const now=new Date().toISOString(), by=proj.assigneeId||"";
+    const src=proj.sourceManualId&&(D.manuals||[]).find(m=>m.id===proj.sourceManualId);
+    if(src){
+      const ok=window.confirm(`이 프로젝트는 '${src.name}' 매뉴얼 기반이에요.\n\n[확인] 기존 매뉴얼 갱신 (이전판은 이력 보관)\n[취소] 새 매뉴얼로 저장`);
+      if(ok){
+        const curV=src.version||1;
+        up("manuals",src.id,{stages:tree,version:curV+1,
+          versions:[...(src.versions||[]),{v:curV,stages:src.stages||[],savedAt:src.updatedAt||src.createdAt||"",savedBy:src.updatedBy||src.createdBy||""}],
+          updatedAt:now,updatedBy:by});
+        window.alert(`📋 '${src.name}' 매뉴얼을 v${curV+1}로 갱신했어요 (이전 v${curV}는 이력 보관)`);
+        return;
+      }
+    }
     const name=window.prompt("📋 매뉴얼 이름 (이 여정을 표준으로 저장)",proj.title||"");
     if(name===null) return;
-    add("manuals",{id:"man"+Date.now(),name:(name.trim()||proj.title||"매뉴얼"),projType:team?"team":"solo",
-      stages:tree,createdAt:new Date().toISOString(),createdBy:proj.assigneeId||""});
-    window.alert("📋 매뉴얼로 저장됐어요\n새 프로젝트 만들 때 '매뉴얼에서 시작'으로 불러올 수 있어요");
+    const id="man"+Date.now();
+    add("manuals",{id,name:(name.trim()||proj.title||"매뉴얼"),projType:team?"team":"solo",
+      stages:tree,version:1,versions:[],createdAt:now,createdBy:by});
+    up("projects",proj.id,{sourceManualId:id});   // 이 프로젝트를 매뉴얼에 연결 → 이후 '갱신' 가능
+    window.alert("📋 매뉴얼로 저장됐어요\n이 프로젝트는 매뉴얼에 연결돼, 다음에 고치면 '갱신'할 수 있어요");
   };
   return(
     <div style={{position:"fixed",inset:0,zIndex:1500,background:"#F9FAFB",display:"flex",flexDirection:"column"}}>
@@ -1826,7 +1888,7 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
       const projId="p"+Date.now();
       const man=manualId&&(D.manuals||[]).find(m=>m.id===manualId);
       const proj={id:projId,...rest,status:"active",progress:0,resultValue:0};
-      if(man&&man.countKPIId) proj.countKPIId=man.countKPIId;   // 매뉴얼 완료 집계 옵션 상속
+      if(man){ proj.sourceManualId=man.id; if(man.countKPIId) proj.countKPIId=man.countKPIId; }   // 매뉴얼 역링크 + 완료집계 옵션 상속
       if(projForm.goalType==="metric"&&metric.name.trim()) proj.activityKPIs=[{id:"ak"+Date.now(),name:metric.name.trim(),unit:metric.unit||"개",target:numF(metric.target),current:0,history:[]}];
       add("projects",proj);
       if(man) cloneManualToProject(man,projId,projForm.projType,add);
@@ -1894,34 +1956,7 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
         <div style={{marginBottom:16,background:"#FFFBF5",border:"1px solid #FBE5C8",borderRadius:14,padding:"12px 13px"}}>
           <p style={{margin:"0 0 9px",fontSize:12,fontWeight:900,color:"#EA580C"}}>📋 매뉴얼 <span style={{fontWeight:700,color:"#C08A4A"}}>· 저장된 표준 작업서 (새 프로젝트로 재사용)</span></p>
           <div style={{display:"flex",flexDirection:"column",gap:7}}>
-            {(D.manuals||[]).map(m=>{
-              const sc=(m.stages||[]).length;
-              const cnt=(()=>{let n=0;const w=a=>(a||[]).forEach(x=>{n++;w(x.kids);});w(m.stages);return n;})();
-              const mk3SKs=D.subKPIs.filter(s=>s.mainKPIId==="mk3"&&s.unit!=="원"&&s.unit!=="%"&&!s.launchCount);
-              const cdone=m.countKPIId?(D.projects||[]).filter(p=>p.countKPIId===m.countKPIId&&(p.progress||0)>=100).length:0;
-              return(
-                <div key={m.id} style={{background:"#fff",borderRadius:10,border:"1px solid #F2E6D5",padding:"9px 11px"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8}}>
-                    <div style={{flex:1,minWidth:0}}>
-                      <p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.name}</p>
-                      <p style={{margin:"2px 0 0",fontSize:10,color:"#9CA3AF"}}>{m.projType==="team"?"팀":"개인"} · 국면 {sc} · 업무 {cnt}</p>
-                    </div>
-                    <button onClick={()=>startFromManual(m)} style={{flexShrink:0,padding:"6px 10px",borderRadius:9,border:"none",background:"#F97316",color:"#fff",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 새 프로젝트</button>
-                    <button onClick={()=>{if(window.confirm(`'${m.name}' 매뉴얼을 삭제할까요? (이미 만든 프로젝트는 영향 없음)`))rm("manuals",m.id);}} style={{flexShrink:0,padding:"6px 8px",borderRadius:9,border:"1px solid #FFE2E5",background:"#FFF0F1",color:"#F04452",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
-                  </div>
-                  {mk3SKs.length>0&&(
-                    <div style={{display:"flex",alignItems:"center",gap:6,marginTop:8,paddingTop:8,borderTop:"1px dashed #F2E6D5"}}>
-                      <span style={{fontSize:10.5,fontWeight:800,color:"#6B7280",flexShrink:0}}>📊 완료 시 집계</span>
-                      <select value={m.countKPIId||""} onChange={e=>up("manuals",m.id,{countKPIId:e.target.value})} style={{flex:1,minWidth:0,padding:"6px 8px",borderRadius:8,border:"1px solid #E5E8EB",fontSize:11,fontWeight:700,color:"#374151",background:"#fff",fontFamily:"inherit",WebkitAppearance:"none"}}>
-                        <option value="">집계 안 함</option>
-                        {mk3SKs.map(s=><option key={s.id} value={s.id}>{s.title}</option>)}
-                      </select>
-                      {m.countKPIId&&<span style={{fontSize:10,fontWeight:800,color:"#00A862",flexShrink:0}}>완료 {cdone}</span>}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            {(D.manuals||[]).map(m=><ManualCard key={m.id} m={m} D={D} up={up} rm={rm} startFromManual={startFromManual}/>)}
             {(D.launchTemplates||[]).map(t=>(
               <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,background:"#fff",borderRadius:10,border:"1px solid #F2E6D5",padding:"9px 11px"}}>
                 <div style={{flex:1,minWidth:0}}>

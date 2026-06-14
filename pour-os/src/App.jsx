@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { STATE_DOC, colDoc, META_DOC, getDoc, onSnapshot, setDoc, uploadTaskPhoto, deleteTaskPhoto } from "./firebase.js";
 
 // Firestore 단일 문서에 저장할 공유 데이터 키 (currentUser는 기기별 로컬이라 제외)
-const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","weekGoals","launchTemplates","manuals"];
-const COL_LABEL = {users:"담당자",goals:"최종목표",mainKPIs:"메인KPI",subKPIs:"서브KPI",projects:"프로젝트",tasks:"업무",personalGoals:"개인목표",retros:"회고",aiReviews:"AI점검",events:"일정",weekGoals:"주간목표",launchTemplates:"출시템플릿",manuals:"매뉴얼"};
+const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","weekGoals","launchTemplates","manuals","trash"];
+const COL_LABEL = {users:"담당자",goals:"최종목표",mainKPIs:"메인KPI",subKPIs:"서브KPI",projects:"프로젝트",tasks:"업무",personalGoals:"개인목표",retros:"회고",aiReviews:"AI점검",events:"일정",weekGoals:"주간목표",launchTemplates:"출시템플릿",manuals:"매뉴얼",trash:"휴지통"};
 const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
@@ -131,6 +131,7 @@ const INIT={
   weekGoals:[],
   // 매뉴얼 — 잘 된 여정(국면+프로세스)을 굳혀 재사용하는 표준 작업서. 새 프로젝트를 여기서 시작.
   manuals:[],
+  trash:[],   // 소프트 삭제 보관소 — 삭제된 모든 데이터는 여기 남고 복구 가능(데이터 자산화)
   // 출시 프로세스 템플릿(마인드맵) — 신상 SKU를 찍어내는 표준 흐름. 동일 프로세스 1개 기본 제공.
   launchTemplates:[
     {id:"tpl_launch", name:"신상 출시 표준 프로세스", createdAt:"2026-06-12T00:00:00.000Z",
@@ -536,7 +537,22 @@ export default function App(){
     const n={...p,[k]:list};
     return k==="tasks"?recalcProg(n):n;
   });
-  const rm=(k,id)=>setD(p=>{const n={...p,[k]:p[k].filter(i=>i.id!==id)};return k==="tasks"?recalcProg(n):n;});
+  // 삭제 = 영구 제거가 아니라 휴지통 이동. 어떤 데이터도 사라지지 않는다(데이터 자산화 · 복구 가능).
+  const rm=(k,id)=>setD(p=>{
+    if(k==="trash") return p;   // 휴지통 자체는 rm으로 못 지움(복구로만 비워짐)
+    const item=(p[k]||[]).find(i=>i.id===id);
+    const entry=item?[{...item,_col:k,_tid:"trash"+Date.now()+"_"+Math.random().toString(36).slice(2,6),_deletedAt:new Date().toISOString(),_deletedBy:cu?.id||null,_deletedByName:cu?.name||""}]:[];
+    const n={...p,[k]:(p[k]||[]).filter(i=>i.id!==id),trash:[...(p.trash||[]),...entry]};
+    return k==="tasks"?recalcProg(n):n;
+  });
+  // 휴지통 → 원래 컬렉션으로 복구(원본 id·내용 그대로, 이미 존재하면 중복 생성 안 함)
+  const restore=(tid)=>setD(p=>{
+    const entry=(p.trash||[]).find(t=>t._tid===tid); if(!entry) return p;
+    const {_col,_tid,_deletedAt,_deletedBy,_deletedByName,...orig}=entry;
+    const exists=(p[_col]||[]).some(i=>i.id===orig.id);
+    const n={...p,[_col]:exists?(p[_col]||[]):[...(p[_col]||[]),orig],trash:(p.trash||[]).filter(t=>t._tid!==tid)};
+    return _col==="tasks"?recalcProg(n):n;
+  });
   const nav=(id)=>{setPage(id);setMore(false);};
   const allPages=[...TABS.filter(t=>t.id!=="more"),...MORE];
   const pi=allPages.find(p=>p.id===page);
@@ -1310,7 +1326,7 @@ function KPIPage({D,lead,up,cu,add,rm}){
             );
           })}
           <button onClick={openNewMain} style={{width:"100%",padding:"12px 0",borderRadius:12,border:"1.5px dashed #93C5FD",background:"#EFF6FF",color:"#2563EB",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 메인KPI 추가</button>
-          <ExportPanel D={D} up={up}/>
+          <ExportPanel D={D} up={up} restore={restore}/>
         </div>
       )}
       {kpiView==="mindmap"&&(
@@ -1910,7 +1926,7 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
   const demoProjs=D.projects.filter(p=>/^p\d{1,4}$/.test(p.id));
   const cleanupDemo=()=>{
     if(!demoProjs.length) return;
-    if(!window.confirm(`예시(데모) 프로젝트 ${demoProjs.length}개와 그 업무를 삭제할까요?\n내가 직접 만든 프로젝트는 그대로 남습니다.\n(되돌리려면 KPI ▸ 데이터 추출의 백업 사용)`)) return;
+    if(!window.confirm(`예시(데모) 프로젝트 ${demoProjs.length}개와 그 업무를 삭제할까요?\n내가 직접 만든 프로젝트는 그대로 남습니다.\n(삭제해도 휴지통에 보관 — KPI ▸ 데이터에서 언제든 복구 가능)`)) return;
     const ids=new Set(demoProjs.map(p=>p.id));
     D.tasks.filter(t=>ids.has(t.projectId)).forEach(t=>rm("tasks",t.id));
     demoProjs.forEach(p=>rm("projects",p.id));
@@ -3663,7 +3679,7 @@ function GamePage({D,cu,up,add,rm,nav}){
   );
 }
 // 모든 데이터 자산을 CSV로 추출 (추출 사각 제거)
-function ExportPanel({D,up}){
+function ExportPanel({D,up,restore}){
   const uname=(id)=>D.users.find(u=>u.id===id)?.name||"";
   // 예시(데모) KPI·채널 수치 0으로 초기화 — 목표·구조는 유지, 현재 숫자만 비움
   const resetNums=()=>{
@@ -3725,7 +3741,29 @@ function ExportPanel({D,up}){
   const pctUsed=Math.min(100,Math.round(maxBytes/DOC_LIMIT*100));
   const barColor=pctUsed>=85?"#DC2626":pctUsed>=60?"#D97706":"#059669";
   const mirrorAt=(()=>{try{return localStorage.getItem(MIRROR_AT_KEY);}catch(_){return null;}})();
+  const trash=D.trash||[];
   return(
+    <>
+    {/* 휴지통 — 삭제된 모든 데이터는 사라지지 않고 보관됨(복구 가능). 데이터 자산화 원칙. */}
+    <div style={{background:"#FFFFFF",borderRadius:16,padding:"14px 16px",marginTop:14,border:"1px solid #F2F4F6"}}>
+      <h3 style={{margin:"0 0 3px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>🗑 휴지통 {trash.length>0&&<span style={{fontSize:12,fontWeight:800,color:"#EA580C"}}>({trash.length})</span>}</h3>
+      <p style={{margin:"0 0 10px",fontSize:10.5,color:"#9CA3AF"}}>삭제한 업무·KPI·프로젝트는 <b>사라지지 않고 여기 보관</b>돼요 — 언제든 복구할 수 있어요</p>
+      {trash.length===0?(
+        <p style={{margin:0,fontSize:11.5,color:"#B0B8C1",textAlign:"center",padding:"14px 0"}}>삭제된 데이터가 없어요</p>
+      ):(
+        <div style={{display:"flex",flexDirection:"column",gap:6}}>
+          {[...trash].reverse().slice(0,60).map(t=>(
+            <div key={t._tid} style={{display:"flex",alignItems:"center",gap:8,background:"#F9FAFB",borderRadius:10,padding:"8px 10px"}}>
+              <span style={{flexShrink:0,fontSize:9.5,fontWeight:800,color:"#6B7280",background:"#EEF1F4",borderRadius:5,padding:"2px 6px"}}>{COL_LABEL[t._col]||t._col}</span>
+              <span style={{flex:1,minWidth:0,fontSize:12,fontWeight:700,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title||t.name||t.companyName||t.targetName||t.week||t.id||"(제목 없음)"}</span>
+              <span style={{flexShrink:0,fontSize:9.5,color:"#9CA3AF"}}>{(t._deletedAt||"").slice(5,10)}{t._deletedByName?" · "+t._deletedByName:""}</span>
+              <button onClick={()=>restore(t._tid)} style={{flexShrink:0,padding:"5px 10px",borderRadius:8,border:"1px solid #DBE3FF",background:"#fff",color:"#3182F6",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>복구</button>
+            </div>
+          ))}
+          {trash.length>60&&<p style={{margin:"4px 0 0",fontSize:10,color:"#9CA3AF",textAlign:"center"}}>최근 60건 표시 · 전체 {trash.length}건은 백업(JSON)에 모두 보존됩니다</p>}
+        </div>
+      )}
+    </div>
     <div style={{background:"#FFFFFF",borderRadius:16,padding:"14px 16px",marginTop:14,border:"1px solid #F2F4F6"}}>
       <h3 style={{margin:"0 0 3px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>💾 백업 · 데이터 추출</h3>
       <p style={{margin:"0 0 10px",fontSize:10.5,color:"#9CA3AF"}}>정기적으로 <b>전체 백업(JSON)</b>을 내려받아 안전하게 보관하세요</p>
@@ -3751,6 +3789,7 @@ function ExportPanel({D,up}){
         {items.map(([l,fn])=>(<button key={l} onClick={fn} style={{padding:"11px 8px",borderRadius:11,border:"1.5px solid #E5E8EB",background:"#F9FAFB",fontSize:12,fontWeight:700,color:"#374151",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>⬇ {l}</button>))}
       </div>
     </div>
+    </>
   );
 }
 function AIPage({D,cu,add,rm}){

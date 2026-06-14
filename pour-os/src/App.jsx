@@ -321,7 +321,19 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add})=>{
     catch(e){ alert("업로드 실패: "+e.message); }
     setUploading(false);
   };
-  const rmPhoto=async(att)=>{ if(att.path)await deleteTaskPhoto(att.path); setForm(p=>({...p,attachments:(p.attachments||[]).filter(a=>a.url!==att.url)})); };
+  // 첨부 제거 = 폼에서 분리만(스토리지 파일은 보존 — 데이터 영구 보존). 실제 삭제 반영·휴지통 기록은 저장 시점에.
+  const rmPhoto=(att)=>setForm(p=>({...p,attachments:(p.attachments||[]).filter(a=>a.url!==att.url)}));
+  const doSave=()=>{
+    if(!form.title.trim())return;
+    if(task&&task.id&&add){   // 저장 시 제거된 첨부를 휴지통에 보관(파일은 그대로 — 복구 가능)
+      const keep=new Set((form.attachments||[]).map(a=>a.url));
+      const removed=(task.attachments||[]).filter(a=>a.url&&!keep.has(a.url));
+      if(removed.length){ const u=D.users.find(x=>x.id===D.currentUser);
+        removed.forEach((att,i)=>add("trash",{...att,_col:"_nested",_typeLabel:"사진",_label:att.name||"사진 첨부",_parentCol:"tasks",_parentId:task.id,_field:"attachments",
+          _tid:"trash"+Date.now()+"_"+i+"_"+Math.random().toString(36).slice(2,5),_deletedAt:new Date().toISOString(),_deletedBy:u?.id||null,_deletedByName:u?.name||""})); }
+    }
+    onSave(form); onClose();
+  };
   return(
     <Sheet open={open} onClose={onClose} title="업무 수정" h="78vh">
       <div style={{marginTop:12}}>
@@ -386,7 +398,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add})=>{
           </div>
           <p style={{margin:"6px 2px 0",fontSize:10,color:"#9CA3AF"}}>사진·PDF·문서(워드/엑셀/한글 등) · 각 20MB 이내 · 저장하면 task에 기록됩니다</p>
         </div>
-        <button onClick={()=>{if(form.title.trim()){onSave(form);onClose();}}} disabled={!form.title.trim()||uploading} style={{width:"100%",padding:"14px 0",borderRadius:14,border:"none",backgroundColor:form.title.trim()&&!uploading?"#F97316":"#E5E8EB",color:form.title.trim()&&!uploading?"#FFFFFF":"#9CA3AF",fontSize:15,fontWeight:700,cursor:form.title.trim()&&!uploading?"pointer":"not-allowed",fontFamily:"inherit"}}>저장하기</button>
+        <button onClick={doSave} disabled={!form.title.trim()||uploading} style={{width:"100%",padding:"14px 0",borderRadius:14,border:"none",backgroundColor:form.title.trim()&&!uploading?"#F97316":"#E5E8EB",color:form.title.trim()&&!uploading?"#FFFFFF":"#9CA3AF",fontSize:15,fontWeight:700,cursor:form.title.trim()&&!uploading?"pointer":"not-allowed",fontFamily:"inherit"}}>저장하기</button>
       </div>
     </Sheet>
   );
@@ -564,7 +576,7 @@ export default function App(){
     if(entry._col==="_nested"){   // 중첩 항목 복구: 부모[field] 배열로 되돌림(부모가 없으면 휴지통에 그대로 둠 → 부모 먼저 복구)
       const {_col,_typeLabel,_parentCol,_parentId,_field,_tid:_a,_deletedAt:_b,_deletedBy:_c,_deletedByName:_d,...item}=entry;
       const parent=(p[_parentCol]||[]).find(x=>x.id===_parentId); if(!parent) return p;
-      const arr=parent[_field]||[]; const exists=arr.some(x=>x.id===item.id);
+      const arr=parent[_field]||[]; const exists=arr.some(x=>(item.id&&x.id===item.id)||(item.url&&x.url===item.url));
       const newParent={...parent,[_field]:exists?arr:[...arr,item]};
       return {...p,[_parentCol]:(p[_parentCol]||[]).map(x=>x.id===_parentId?newParent:x),trash:trashLeft};
     }
@@ -3775,7 +3787,7 @@ function ExportPanel({D,up,restore}){
           {[...trash].reverse().slice(0,60).map(t=>(
             <div key={t._tid} style={{display:"flex",alignItems:"center",gap:8,background:"#F9FAFB",borderRadius:10,padding:"8px 10px"}}>
               <span style={{flexShrink:0,fontSize:9.5,fontWeight:800,color:"#6B7280",background:"#EEF1F4",borderRadius:5,padding:"2px 6px"}}>{COL_LABEL[t._col]||t._typeLabel||t._col}</span>
-              <span style={{flex:1,minWidth:0,fontSize:12,fontWeight:700,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title||t.name||t.companyName||t.targetName||t.week||t.id||"(제목 없음)"}</span>
+              <span style={{flex:1,minWidth:0,fontSize:12,fontWeight:700,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title||t.name||t.companyName||t.targetName||t.week||t._label||t.id||"(제목 없음)"}</span>
               <span style={{flexShrink:0,fontSize:9.5,color:"#9CA3AF"}}>{(t._deletedAt||"").slice(5,10)}{t._deletedByName?" · "+t._deletedByName:""}</span>
               <button onClick={()=>restore(t._tid)} style={{flexShrink:0,padding:"5px 10px",borderRadius:8,border:"1px solid #DBE3FF",background:"#fff",color:"#3182F6",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>복구</button>
             </div>

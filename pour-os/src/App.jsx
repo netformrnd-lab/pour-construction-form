@@ -1709,7 +1709,7 @@ function ManualCard({m,D,up,rm,startFromManual}){
   const cdone=m.countKPIId?(D.projects||[]).filter(p=>p.countKPIId===m.countKPIId&&(p.progress||0)>=100).length:0;
   const vers=m.versions||[]; const ver=m.version||1;
   const setCount=(val)=>{ up("manuals",m.id,{countKPIId:val}); (D.projects||[]).filter(p=>p.sourceManualId===m.id).forEach(p=>up("projects",p.id,{countKPIId:val})); };
-  const restore=(v)=>{ if(!window.confirm(`v${v.v}로 되돌릴까요? 현재본(v${ver})은 이력으로 보관돼요.`))return; up("manuals",m.id,{stages:v.stages||[],version:ver+1,versions:[...vers,{v:ver,stages:m.stages||[],savedAt:m.updatedAt||m.createdAt||"",savedBy:m.updatedBy||m.createdBy||""}]}); setShowV(false); };
+  const restore=(v)=>{ if(!window.confirm(`v${v.v}로 되돌릴까요? 현재본(v${ver})은 이력으로 보관돼요.`))return; up("manuals",m.id,{stages:v.stages||[],version:ver+1,versions:[...vers,{v:ver,stages:m.stages||[],savedAt:m.updatedAt||m.createdAt||"",savedBy:m.updatedBy||m.createdBy||"",note:`v${v.v}로 되돌림`}]}); setShowV(false); };
   return(
     <div style={{background:"#fff",borderRadius:10,border:"1px solid #F2E6D5",padding:"9px 11px"}}>
       <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -1738,7 +1738,7 @@ function ManualCard({m,D,up,rm,startFromManual}){
           {vers.slice().reverse().map(v=>(
             <div key={v.v} style={{display:"flex",alignItems:"center",gap:8,background:"#F9FAFB",borderRadius:8,padding:"6px 9px"}}>
               <span style={{fontSize:10.5,fontWeight:800,color:"#6B7280",flexShrink:0}}>v{v.v}</span>
-              <span style={{flex:1,minWidth:0,fontSize:10,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>국면 {(v.stages||[]).length} · {(v.savedAt||"").slice(0,10)||"날짜없음"}</span>
+              <span style={{flex:1,minWidth:0,fontSize:10,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{v.note?`✏️ ${v.note}`:`국면 ${(v.stages||[]).length} · ${(v.savedAt||"").slice(0,10)||"날짜없음"}`}</span>
               <button onClick={()=>restore(v)} style={{flexShrink:0,padding:"4px 8px",borderRadius:7,border:"1px solid #DBE3FF",background:"#fff",color:"#3182F6",fontSize:10,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>되돌리기</button>
             </div>
           ))}
@@ -1749,6 +1749,7 @@ function ManualCard({m,D,up,rm,startFromManual}){
 }
 function ProjectRoadmap({D,proj,up,add,onClose,onOpenProcess}){
   const team=proj.projType?proj.projType==="team":(proj.collaboratorIds||[]).length>0;
+  const srcMan=proj.sourceManualId&&(D.manuals||[]).find(m=>m.id===proj.sourceManualId);   // 역링크: 이 프로젝트가 기반한 매뉴얼
   const MEM=[{id:"",name:"미배정",color:"#9CA3AF"},...(D.users||[])];
   const Mof=id=>MEM.find(m=>m.id===id)||MEM[0];
   const stages=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed&&!t.parentId).sort((a,b)=>(a.seq||0)-(b.seq||0));
@@ -1769,8 +1770,9 @@ function ProjectRoadmap({D,proj,up,add,onClose,onOpenProcess}){
       const ok=window.confirm(`이 프로젝트는 '${src.name}' 매뉴얼 기반이에요.\n\n[확인] 기존 매뉴얼 갱신 (이전판은 이력 보관)\n[취소] 새 매뉴얼로 저장`);
       if(ok){
         const curV=src.version||1;
+        const note=(window.prompt(`v${curV}→v${curV+1} 변경 메모 (선택 · 무엇이 바뀌었나요?)`,"")||"").trim();
         up("manuals",src.id,{stages:tree,version:curV+1,
-          versions:[...(src.versions||[]),{v:curV,stages:src.stages||[],savedAt:src.updatedAt||src.createdAt||"",savedBy:src.updatedBy||src.createdBy||""}],
+          versions:[...(src.versions||[]),{v:curV,stages:src.stages||[],savedAt:src.updatedAt||src.createdAt||"",savedBy:src.updatedBy||src.createdBy||"",note}],
           updatedAt:now,updatedBy:by});
         window.alert(`📋 '${src.name}' 매뉴얼을 v${curV+1}로 갱신했어요 (이전 v${curV}는 이력 보관)`);
         return;
@@ -1808,7 +1810,13 @@ function ProjectRoadmap({D,proj,up,add,onClose,onOpenProcess}){
               </button>
             );})}
           </div>
-          <button onClick={saveManual} style={{width:"100%",padding:"11px 0",borderRadius:11,border:"1.5px solid #FBD9B5",background:"#FFF7ED",fontSize:12.5,fontWeight:800,color:"#EA580C",cursor:"pointer",fontFamily:"inherit",marginBottom:14}}>📋 이 여정을 매뉴얼로 저장 (다음에 재사용)</button>
+          {srcMan&&(
+            <div style={{display:"flex",alignItems:"center",gap:8,background:"#FFFBF5",border:"1px solid #F2E6D5",borderRadius:11,padding:"9px 12px",marginBottom:9}}>
+              <span style={{fontSize:11.5,fontWeight:800,color:"#A16207",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📋 ‘{srcMan.name}’ 매뉴얼 v{srcMan.version||1} 기반</span>
+              <span style={{fontSize:10,fontWeight:700,color:"#B98A3E",flexShrink:0}}>저장 시 갱신/이력</span>
+            </div>
+          )}
+          <button onClick={saveManual} style={{width:"100%",padding:"11px 0",borderRadius:11,border:"1.5px solid #FBD9B5",background:"#FFF7ED",fontSize:12.5,fontWeight:800,color:"#EA580C",cursor:"pointer",fontFamily:"inherit",marginBottom:14}}>{srcMan?"📋 매뉴얼 갱신 / 새 매뉴얼로 저장":"📋 이 여정을 매뉴얼로 저장 (다음에 재사용)"}</button>
           {sel&&(
             <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"14px 15px"}}>
               <label style={{display:"block",fontSize:11,fontWeight:800,color:"#4B5563",marginBottom:5}}>국면명</label>

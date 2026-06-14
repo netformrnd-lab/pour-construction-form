@@ -162,8 +162,8 @@ const numF=(x)=>{const n=Number(x);return isFinite(n)?n:0;};   // 문자열·NaN
 //  · 그 외/수동지정 → currentValue
 const skCur=(sk,projects)=>{
   if(sk.launchCount) return (projects||[]).filter(p=>p.templateId&&(p.progress||0)>=100).length;   // 출시 완료(progress 100%) SKU 자동 집계
-  // 매뉴얼 완료 집계(옵션): 이 지표를 가리키는 프로젝트가 완료(100%)되면 +1 자동 집계 (원/% 지표는 제외 — 매출·진척 롤업 보호)
-  if(sk.unit!=="원"&&sk.unit!=="%"){ const cc=(projects||[]).filter(p=>p.countKPIId===sk.id); if(cc.length) return cc.filter(p=>(p.progress||0)>=100).length; }
+  // 매뉴얼 완료 집계(옵션): 이 지표를 가리키는 프로젝트가 완료(100%)되면 기존 누적분에 +1 (원/%·출시집계 지표 제외 — 매출·진척·출시 롤업 보호)
+  if(sk.unit!=="원"&&sk.unit!=="%"&&!sk.launchCount){ const cc=(projects||[]).filter(p=>p.countKPIId===sk.id); if(cc.length) return numF(sk.currentValue)+cc.filter(p=>(p.progress||0)>=100).length; }
   if(sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride) return (projects||[]).filter(p=>p.subKPIId===sk.id).reduce((a,p)=>a+numF(p.resultValue),0);
   if(sk.unit==="%"&&!sk.manualOverride){ const ch=(projects||[]).filter(p=>p.subKPIId===sk.id); if(ch.length) return Math.round(ch.reduce((a,p)=>a+numF(p.progress),0)/ch.length); }
   return numF(sk.currentValue);
@@ -1635,7 +1635,7 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
               {rows.length===0?<p style={{margin:"24px 0",textAlign:"center",fontSize:12,color:"#9CA3AF"}}>업무를 먼저 입력하세요</p>:(
               <div style={{position:"relative",width:svgW,height:svgH}}>
                 <svg width={svgW} height={svgH} style={{position:"absolute",top:0,left:0,pointerEvents:"none"}}>
-                  {rows.map(({it,i})=>{const p=parentIdx(i);if(p<0)return null;const px=PADX+items[p].depth*COLW+NW,py=yOf[p]+NH/2,cx=PADX+it.depth*COLW,cy=yOf[i]+NH/2;return(<path key={"e"+i} d={`M ${px} ${py} C ${px+26} ${py}, ${cx-26} ${cy}, ${cx} ${cy}`} stroke="#D7C4A8" strokeWidth={2} fill="none"/>);})}
+                  {rows.map(({it,i})=>{const p=parentIdx(i);if(p<0||yOf[p]==null)return null;const px=PADX+items[p].depth*COLW+NW,py=yOf[p]+NH/2,cx=PADX+it.depth*COLW,cy=yOf[i]+NH/2;return(<path key={"e"+i} d={`M ${px} ${py} C ${px+26} ${py}, ${cx-26} ${cy}, ${cx} ${cy}`} stroke="#D7C4A8" strokeWidth={2} fill="none"/>);})}
                 </svg>
                 {rows.map(({it,i})=>{const m=Mof(it.who);const parent=isP(items,i);const rdone=parent?dd[i]:it.done;const x=PADX+it.depth*COLW,y=yOf[i];return(
                   <button key={it.id} onClick={()=>setSelId(it.id)} style={{position:"absolute",left:x,top:y,width:NW,height:NH,display:"flex",alignItems:"center",gap:5,padding:"0 8px",borderRadius:9,border:`1.5px solid ${it.id===selId?"#0F1F5C":(rdone?"#BFE9CF":"#E8DCC8")}`,background:rdone?"#F0FBF4":(parent?"#FFFBF5":"#fff"),cursor:"pointer",fontFamily:"inherit",boxSizing:"border-box",textAlign:"left"}}>
@@ -1897,7 +1897,8 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
             {(D.manuals||[]).map(m=>{
               const sc=(m.stages||[]).length;
               const cnt=(()=>{let n=0;const w=a=>(a||[]).forEach(x=>{n++;w(x.kids);});w(m.stages);return n;})();
-              const mk3SKs=D.subKPIs.filter(s=>s.mainKPIId==="mk3"&&s.unit!=="원"&&s.unit!=="%");
+              const mk3SKs=D.subKPIs.filter(s=>s.mainKPIId==="mk3"&&s.unit!=="원"&&s.unit!=="%"&&!s.launchCount);
+              const cdone=m.countKPIId?(D.projects||[]).filter(p=>p.countKPIId===m.countKPIId&&(p.progress||0)>=100).length:0;
               return(
                 <div key={m.id} style={{background:"#fff",borderRadius:10,border:"1px solid #F2E6D5",padding:"9px 11px"}}>
                   <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -1915,6 +1916,7 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
                         <option value="">집계 안 함</option>
                         {mk3SKs.map(s=><option key={s.id} value={s.id}>{s.title}</option>)}
                       </select>
+                      {m.countKPIId&&<span style={{fontSize:10,fontWeight:800,color:"#00A862",flexShrink:0}}>완료 {cdone}</span>}
                     </div>
                   )}
                 </div>

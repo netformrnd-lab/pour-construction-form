@@ -1639,7 +1639,71 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
     </div>
   );
 }
+// 프로젝트 여정(로드맵) — 최상위 국면을 예상기간 타임라인으로 + 국면별 담당/논의 + 프로세스 연결
+function ProjectRoadmap({D,proj,up,onClose,onOpenProcess}){
+  const team=proj.projType?proj.projType==="team":(proj.collaboratorIds||[]).length>0;
+  const MEM=[{id:"",name:"미배정",color:"#9CA3AF"},...(D.users||[])];
+  const Mof=id=>MEM.find(m=>m.id===id)||MEM[0];
+  const stages=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed&&!t.parentId).sort((a,b)=>(a.seq||0)-(b.seq||0));
+  const [unit,setUnit]=useState("주");
+  const [selId,setSelId]=useState(stages[0]?.id||null);
+  const perDay=unit==="월"?30:7;
+  const toU=d=>Math.round((d||0)/perDay*10)/10;
+  const totalDays=stages.reduce((a,s)=>a+(s.estDays||0),0);
+  const sel=stages.find(s=>s.id===selId);
+  const cpct=sid=>{const ks=D.tasks.filter(t=>t.parentId===sid&&!t.isFixed);if(ks.length)return Math.round(ks.filter(t=>t.status==="done").length/ks.length*100);return (stages.find(s=>s.id===sid)?.status==="done")?100:0;};
+  const setEst=(s,v)=>up("tasks",s.id,{estDays:Math.max(0,Math.round((Number(v)||0)*perDay))});
+  return(
+    <div style={{position:"fixed",inset:0,zIndex:1500,background:"#F9FAFB",display:"flex",flexDirection:"column"}}>
+      <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",color:"#fff",padding:"13px 16px",display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
+        <button onClick={onClose} style={{background:"none",border:"none",color:"#fff",fontSize:22,cursor:"pointer",lineHeight:1}}>×</button>
+        <div style={{flex:1,minWidth:0}}>
+          <p style={{margin:0,fontSize:14,fontWeight:900,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>🗺 {proj.title} · 여정</p>
+          <p style={{margin:"2px 0 0",fontSize:10,opacity:0.82}}>{team?"팀 (담당자 인계)":"개인"} · 총 예상 {toU(totalDays)}{unit}</p>
+        </div>
+        <div style={{display:"inline-flex",borderRadius:8,overflow:"hidden",border:"1px solid rgba(255,255,255,0.3)",flexShrink:0}}>
+          {["주","월"].map(u=><button key={u} onClick={()=>setUnit(u)} style={{padding:"5px 12px",fontSize:12,fontWeight:800,border:"none",cursor:"pointer",background:unit===u?"#fff":"transparent",color:unit===u?"#0F1F5C":"#fff",fontFamily:"inherit"}}>{u}</button>)}
+        </div>
+      </div>
+      <div style={{flex:1,overflowY:"auto",padding:"14px 16px 30px",maxWidth:760,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
+        {stages.length===0?<Empty t="국면이 없어요 · 프로세스 편집에서 최상위 단계를 만들면 여정 국면이 됩니다"/>:(<>
+          <p style={{margin:"0 2px 8px",fontSize:11,color:"#9CA3AF"}}>국면(여정 단계)을 예상기간 막대로 · 막대 누르면 아래에서 기간·담당·논의 편집</p>
+          <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:6,marginBottom:14}}>
+            {stages.map(s=>{const m=Mof(s.assigneeId);const c=team?m.color:"#9CA3AF";const isS=s.id===selId;return(
+              <button key={s.id} onClick={()=>setSelId(s.id)} style={{flex:`${(s.estDays||7)} 0 96px`,minWidth:96,textAlign:"left",borderRadius:10,border:isS?"2.5px solid #0F1F5C":"2.5px solid transparent",background:c,color:"#fff",padding:"9px 11px",cursor:"pointer",fontFamily:"inherit"}}>
+                <p style={{margin:0,fontSize:12.5,fontWeight:800,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.title||"국면"}</p>
+                <p style={{margin:"3px 0 0",fontSize:10,opacity:0.95,fontWeight:700}}>{team?m.name+" · ":""}예상 {toU(s.estDays)}{unit}</p>
+                <p style={{margin:"2px 0 0",fontSize:9.5,opacity:0.85}}>🧩 {cpct(s.id)}%</p>
+              </button>
+            );})}
+          </div>
+          {sel&&(
+            <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"14px 15px"}}>
+              <label style={{display:"block",fontSize:11,fontWeight:800,color:"#4B5563",marginBottom:5}}>국면명</label>
+              <input key={sel.id+"t"} defaultValue={sel.title||""} onBlur={e=>up("tasks",sel.id,{title:e.target.value})} style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:14,fontWeight:700,outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:12}}/>
+              <div style={{display:"flex",gap:10,marginBottom:12,alignItems:"flex-end"}}>
+                <div style={{flex:"0 0 130px"}}><label style={{display:"block",fontSize:11,fontWeight:800,color:"#4B5563",marginBottom:5}}>예상 소요 ({unit})</label>
+                  <input key={sel.id+unit} type="number" inputMode="decimal" defaultValue={toU(sel.estDays)} onBlur={e=>setEst(sel,e.target.value)} style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:14,fontWeight:800,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
+              </div>
+              {team&&(<>
+                <label style={{display:"block",fontSize:11,fontWeight:800,color:"#4B5563",marginBottom:6}}>담당자 (인계)</label>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+                  {MEM.map(m=>{const on=sel.assigneeId===m.id;return(<button key={m.id||"n"} onClick={()=>up("tasks",sel.id,{assigneeId:m.id})} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 11px",borderRadius:20,border:`1.5px solid ${on?m.color:"#E5E8EB"}`,background:on?m.color+"18":"#fff",cursor:"pointer",fontFamily:"inherit"}}><span style={{width:16,height:16,borderRadius:"50%",backgroundColor:m.color,color:"#fff",fontSize:8.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{m.name[0]}</span><span style={{fontSize:12,fontWeight:700,color:on?m.color:"#4B5563"}}>{m.name}</span></button>);})}
+                </div>
+              </>)}
+              <label style={{display:"block",fontSize:11,fontWeight:800,color:"#4B5563",marginBottom:5}}>💬 논의 · 개선 <span style={{fontWeight:600,color:"#9CA3AF"}}>(이 여정의 방식·문제·외주/자동화 등)</span></label>
+              <textarea key={sel.id+"d"} defaultValue={sel.discuss||""} onBlur={e=>up("tasks",sel.id,{discuss:e.target.value})} placeholder="예: 전환율 낮음 → 카피 방식 변경 / 반복 작업 → 자동화 개발 검토" style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:13,resize:"vertical",minHeight:60,outline:"none",fontFamily:"inherit",boxSizing:"border-box",marginBottom:12}}/>
+              <button onClick={()=>onOpenProcess(proj)} style={{width:"100%",padding:"11px 0",borderRadius:11,border:"1.5px solid #DDD6FE",background:"#FAF9FF",fontSize:13,fontWeight:800,color:"#7C3AED",cursor:"pointer",fontFamily:"inherit"}}>🧩 이 여정의 프로세스 편집 (실행 업무)</button>
+              <p style={{margin:"10px 2px 0",fontSize:10.5,color:"#9CA3AF",lineHeight:1.6}}>※ 예상기간=계획값(현황 아님) · 🧩%는 그 국면 하위 업무 실제 진행 · 국면=프로세스의 최상위 단계</p>
+            </div>
+          )}
+        </>)}
+      </div>
+    </div>
+  );
+}
 function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
+  const [roadmapProj,setRoadmapProj]=useState(null);
   const [processProj,setProcessProj]=useState(null);
   const [filter,setFilter]=useState("mine");
   const [groupFilter,setGroupFilter]=useState("all");
@@ -1739,7 +1803,7 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
   const ST=STATUS_MAP;
   const pTabs=(
     <div style={{display:"flex",gap:6,marginBottom:12}}>
-      {[["list","▦ 프로젝트"],["process","🧩 프로세스"],["launch","🚀 출시"]].map(([k,l])=>(
+      {[["list","▦ 프로젝트"],["process","🗺 여정"],["launch","🚀 출시"]].map(([k,l])=>(
         <button key={k} onClick={()=>setPview(k)} style={{flex:1,padding:"9px 0",borderRadius:10,border:"none",cursor:"pointer",backgroundColor:pview===k?"#0F1F5C":"#F2F4F6",color:pview===k?"#fff":"#374151",fontWeight:800,fontSize:12.5,fontFamily:"inherit"}}>{l}</button>
       ))}
     </div>
@@ -1748,24 +1812,27 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
   if(pview==="process") return(
     <div style={{padding:"14px 16px 24px"}}>
       {pTabs}
-      <p style={{margin:"0 2px 12px",fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>프로세스(업무 트리)가 있는 프로젝트 모음 · 카드를 누르면 바로 편집</p>
+      <p style={{margin:"0 2px 12px",fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>프로젝트별 여정(로드맵) · 국면을 타임라인으로 보고 · 각 국면의 방안은 프로세스</p>
       {(()=>{
         const list=D.projects.filter(p=>D.tasks.some(t=>t.projectId===p.id&&!t.isFixed));
-        if(!list.length) return <Empty t="아직 프로세스가 없어요 · 프로젝트에서 🧩프로세스로 만들어보세요"/>;
+        if(!list.length) return <Empty t="아직 여정이 없어요 · 프로젝트에서 🧩프로세스로 국면을 만들어보세요"/>;
         const pIds=new Set(D.tasks.filter(t=>t.parentId).map(t=>t.parentId));
         return(
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             {list.map(p=>{
               const ts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);
+              const stages=ts.filter(t=>!t.parentId);
               const leaves=ts.filter(t=>!pIds.has(t.id));
               const done=leaves.filter(t=>t.status==="done").length;
               const prog=leaves.length?Math.round(done/leaves.length*100):0;
+              const totalDays=stages.reduce((a,s)=>a+(s.estDays||0),0);
+              const wk=Math.round(totalDays/7*10)/10;
               const team=p.projType?p.projType==="team":(p.collaboratorIds||[]).length>0;
               const who=D.users.find(u=>u.id===p.assigneeId);
               return(
-                <button key={p.id} onClick={()=>setProcessProj(p)} style={{textAlign:"left",backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"13px 14px",cursor:"pointer",fontFamily:"inherit"}}>
+                <button key={p.id} onClick={()=>setRoadmapProj(p)} style={{textAlign:"left",backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"13px 14px",cursor:"pointer",fontFamily:"inherit"}}>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-                    <span style={{fontSize:14}}>🧩</span>
+                    <span style={{fontSize:14}}>🗺</span>
                     <span style={{flex:1,minWidth:0,fontSize:13.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span>
                     <span style={{fontSize:9.5,fontWeight:800,color:team?"#EA580C":"#3182F6",background:team?"#FFEDD5":"#EBF3FF",borderRadius:6,padding:"2px 7px",flexShrink:0}}>{team?"팀":"개인"}</span>
                   </div>
@@ -1773,13 +1840,14 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
                     <div style={{flex:1,height:6,borderRadius:6,background:"#F2F4F6",overflow:"hidden"}}><div style={{width:prog+"%",height:"100%",background:prog>=100?"#00C073":"#F97316",borderRadius:6}}/></div>
                     <span style={{fontSize:12,fontWeight:900,color:prog>=100?"#00C073":"#F97316",flexShrink:0}}>{prog}%</span>
                   </div>
-                  <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>업무 {done}/{leaves.length}{p.group?` · ${p.group}`:""}{who?` · ${who.name}`:""}</p>
+                  <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>국면 {stages.length}개{totalDays?` · 예상 ${wk}주`:""} · 업무 {done}/{leaves.length}{who?` · ${who.name}`:""}</p>
                 </button>
               );
             })}
           </div>
         );
       })()}
+      {roadmapProj&&<ProjectRoadmap D={D} proj={roadmapProj} up={up} onClose={()=>setRoadmapProj(null)} onOpenProcess={(p)=>{setRoadmapProj(null);setProcessProj(p);}}/>}
       {processProj&&<ProjectProcessEditor D={D} proj={processProj} cu={cu} add={add} up={up} rm={rm} onClose={()=>setProcessProj(null)}/>}
     </div>
   );

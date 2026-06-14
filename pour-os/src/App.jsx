@@ -423,6 +423,7 @@ export default function App(){
   // ── Firestore 분할 문서 영속화 v2 (컬렉션별 pour-os/state-<key>, 4명 실시간 공유) ──
   const [loaded,setLoaded]=useState(false);
   const [syncToast,setSyncToast]=useState(false);   // 다른 기기 변경 안내
+  const [undo,setUndo]=useState(null);               // 삭제 직후 되돌리기 토스트
   const [saveErr,setSaveErr]=useState(null);        // {level:'warn'|'error', msg, bytes} | null — 저장 상태 가시화
   const lastColJsonRef=useRef({});    // {컬렉션:JSON} 마지막 동기화본 (에코·변경 판별)
   const loadedRef=useRef(false);
@@ -552,23 +553,28 @@ export default function App(){
     const n={...p,[k]:list};
     return k==="tasks"?recalcProg(n):n;
   });
-  // 삭제 = 영구 제거가 아니라 휴지통 이동. 어떤 데이터도 사라지지 않는다(데이터 자산화 · 복구 가능).
-  const rm=(k,id)=>setD(p=>{
-    if(k==="trash") return p;   // 휴지통 자체는 rm으로 못 지움(복구로만 비워짐)
-    const item=(p[k]||[]).find(i=>i.id===id);
-    const entry=item?[{...item,_col:k,_tid:"trash"+Date.now()+"_"+Math.random().toString(36).slice(2,6),_deletedAt:new Date().toISOString(),_deletedBy:cu?.id||null,_deletedByName:cu?.name||""}]:[];
-    const n={...p,[k]:(p[k]||[]).filter(i=>i.id!==id),trash:[...(p.trash||[]),...entry]};
-    return k==="tasks"?recalcProg(n):n;
-  });
-  // 레코드 *안의* 항목 삭제(예: 프로젝트의 활동지표)도 영구 제거가 아니라 휴지통 이동. 부모 맥락을 함께 보관해 제자리로 복구.
-  const rmNested=(parentCol,parentId,field,itemId,typeLabel)=>setD(p=>{
-    const parent=(p[parentCol]||[]).find(x=>x.id===parentId); if(!parent) return p;
-    const arr=parent[field]||[]; const item=arr.find(x=>x.id===itemId); if(!item) return p;
-    const entry={...item,_col:"_nested",_typeLabel:typeLabel||field,_parentCol:parentCol,_parentId:parentId,_field:field,
-      _tid:"trash"+Date.now()+"_"+Math.random().toString(36).slice(2,6),_deletedAt:new Date().toISOString(),_deletedBy:cu?.id||null,_deletedByName:cu?.name||""};
-    const newParent={...parent,[field]:arr.filter(x=>x.id!==itemId)};
-    return {...p,[parentCol]:(p[parentCol]||[]).map(x=>x.id===parentId?newParent:x),trash:[...(p.trash||[]),entry]};
-  });
+  const newTid=()=>"trash"+Date.now()+"_"+Math.random().toString(36).slice(2,6);
+  const delMeta=()=>({_deletedAt:new Date().toISOString(),_deletedBy:cu?.id||null,_deletedByName:cu?.name||""});
+  // 삭제 = 영구 제거가 아니라 휴지통 이동. 어떤 데이터도 사라지지 않는다(데이터 자산화 · 복구 가능). silent=대량삭제 시 토스트 생략.
+  const rm=(k,id,silent)=>{
+    if(k==="trash") return;   // 휴지통 자체는 rm으로 못 지움(복구로만 비워짐)
+    const item=(D[k]||[]).find(i=>i.id===id); if(!item) return;
+    const _tid=newTid();
+    const entry={...item,_col:k,_tid,...delMeta()};
+    setD(p=>{const n={...p,[k]:(p[k]||[]).filter(i=>i.id!==id),trash:[...(p.trash||[]),entry]};return k==="tasks"?recalcProg(n):n;});
+    if(!silent) setUndo({tid:_tid,label:`${COL_LABEL[k]||"항목"} 삭제됨`});
+  };
+  // 레코드 *안의* 항목 삭제(예: 프로젝트의 활동지표)도 휴지통 이동. 부모 맥락을 함께 보관해 제자리로 복구.
+  const rmNested=(parentCol,parentId,field,itemId,typeLabel)=>{
+    const parent=(D[parentCol]||[]).find(x=>x.id===parentId); if(!parent) return;
+    const item=(parent[field]||[]).find(x=>x.id===itemId); if(!item) return;
+    const _tid=newTid();
+    const entry={...item,_col:"_nested",_typeLabel:typeLabel||field,_parentCol:parentCol,_parentId:parentId,_field:field,_tid,...delMeta()};
+    setD(p=>{const par=(p[parentCol]||[]).find(x=>x.id===parentId); if(!par) return p;
+      const newParent={...par,[field]:(par[field]||[]).filter(x=>x.id!==itemId)};
+      return {...p,[parentCol]:(p[parentCol]||[]).map(x=>x.id===parentId?newParent:x),trash:[...(p.trash||[]),entry]};});
+    setUndo({tid:_tid,label:`${typeLabel||"항목"} 삭제됨`});
+  };
   // 휴지통 → 원래 자리로 복구(원본 id·내용 그대로, 이미 존재하면 중복 생성 안 함)
   const restore=(tid)=>setD(p=>{
     const entry=(p.trash||[]).find(t=>t._tid===tid); if(!entry) return p;
@@ -585,6 +591,7 @@ export default function App(){
     const n={...p,[_col]:exists?(p[_col]||[]):[...(p[_col]||[]),orig],trash:trashLeft};
     return _col==="tasks"?recalcProg(n):n;
   });
+  useEffect(()=>{ if(!undo) return; const t=setTimeout(()=>setUndo(null),5500); return ()=>clearTimeout(t); },[undo]);   // 되돌리기 토스트 5.5초 후 자동 소멸
   const nav=(id)=>{setPage(id);setMore(false);};
   const allPages=[...TABS.filter(t=>t.id!=="more"),...MORE];
   const pi=allPages.find(p=>p.id===page);
@@ -610,6 +617,7 @@ export default function App(){
   </>);
   const sheets=(<>
     {syncToast&&<div style={{position:"fixed",top:"calc(env(safe-area-inset-top,0px) + 12px)",left:"50%",transform:"translateX(-50%)",zIndex:5000,background:"#0F1F5C",color:"#fff",padding:"8px 16px",borderRadius:999,fontSize:12,fontWeight:700,boxShadow:"0 6px 20px rgba(0,0,0,0.25)",whiteSpace:"nowrap",pointerEvents:"none"}}>🔄 다른 기기에서 업데이트됨</div>}
+    {undo&&<div style={{position:"fixed",bottom:"calc(env(safe-area-inset-bottom,0px) + 80px)",left:"50%",transform:"translateX(-50%)",zIndex:5200,background:"#0F1F5C",color:"#fff",padding:"10px 12px 10px 16px",borderRadius:12,fontSize:12.5,fontWeight:700,boxShadow:"0 8px 26px rgba(0,0,0,0.3)",display:"flex",alignItems:"center",gap:14,whiteSpace:"nowrap",maxWidth:"calc(100% - 32px)"}}><span style={{overflow:"hidden",textOverflow:"ellipsis"}}>🗑 {undo.label}</span><button onClick={()=>{restore(undo.tid);setUndo(null);}} style={{flexShrink:0,background:"#F97316",color:"#fff",border:"none",borderRadius:8,padding:"6px 13px",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>되돌리기</button></div>}
     {saveErr&&<div style={{position:"fixed",top:"calc(env(safe-area-inset-top,0px) + 8px)",left:8,right:8,zIndex:5001,background:saveErr.level==="error"?"#FEF2F2":"#FFFBEB",border:`1.5px solid ${saveErr.level==="error"?"#FCA5A5":"#FCD34D"}`,color:saveErr.level==="error"?"#991B1B":"#92400E",padding:"10px 12px",borderRadius:12,fontSize:11.5,fontWeight:700,lineHeight:1.45,boxShadow:"0 6px 20px rgba(0,0,0,0.15)",display:"flex",alignItems:"flex-start",gap:8}}>
       <span style={{flexShrink:0,fontSize:14}}>{saveErr.level==="error"?"⚠️":"📊"}</span>
       <span style={{flex:1}}>{saveErr.msg}</span>
@@ -1062,7 +1070,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
         </Sheet>
       )}
       <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments})}/>
-      <Confirm open={!!confirmTaskId} title="업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmTaskId)?.title}" 업무를 삭제할까요?`} onOk={()=>{rm("tasks",confirmTaskId);setConfirmTaskId(null);}} onCancel={()=>setConfirmTaskId(null)}/>
+      <Confirm open={!!confirmTaskId} title="업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmTaskId)?.title}" 업무를 삭제할까요?\n휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmTaskId);setConfirmTaskId(null);}} onCancel={()=>setConfirmTaskId(null)}/>
     </div>
   );
 }
@@ -1766,7 +1774,7 @@ function ManualCard({m,D,up,rm,startFromManual}){
           <p style={{margin:"2px 0 0",fontSize:10,color:"#9CA3AF"}}>{m.projType==="team"?"팀":"개인"} · 국면 {sc} · 업무 {cnt}{vers.length?` · 이력 ${vers.length}`:""}</p>
         </div>
         <button onClick={()=>startFromManual(m)} style={{flexShrink:0,padding:"6px 10px",borderRadius:9,border:"none",background:"#F97316",color:"#fff",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 새 프로젝트</button>
-        <button onClick={()=>{if(window.confirm(`'${m.name}' 매뉴얼을 삭제할까요? (이미 만든 프로젝트는 영향 없음)`))rm("manuals",m.id);}} style={{flexShrink:0,padding:"6px 8px",borderRadius:9,border:"1px solid #FFE2E5",background:"#FFF0F1",color:"#F04452",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
+        <button onClick={()=>{if(window.confirm(`'${m.name}' 매뉴얼을 삭제할까요? (이미 만든 프로젝트는 영향 없음)\n휴지통에서 복구할 수 있어요.`))rm("manuals",m.id);}} style={{flexShrink:0,padding:"6px 8px",borderRadius:9,border:"1px solid #FFE2E5",background:"#FFF0F1",color:"#F04452",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
       </div>
       {(mk3SKs.length>0||vers.length>0)&&(
         <div style={{display:"flex",alignItems:"center",gap:6,marginTop:8,paddingTop:8,borderTop:"1px dashed #F2E6D5"}}>
@@ -1960,8 +1968,8 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
     if(!demoProjs.length) return;
     if(!window.confirm(`예시(데모) 프로젝트 ${demoProjs.length}개와 그 업무를 삭제할까요?\n내가 직접 만든 프로젝트는 그대로 남습니다.\n(삭제해도 휴지통에 보관 — KPI ▸ 데이터에서 언제든 복구 가능)`)) return;
     const ids=new Set(demoProjs.map(p=>p.id));
-    D.tasks.filter(t=>ids.has(t.projectId)).forEach(t=>rm("tasks",t.id));
-    demoProjs.forEach(p=>rm("projects",p.id));
+    D.tasks.filter(t=>ids.has(t.projectId)).forEach(t=>rm("tasks",t.id,true));
+    demoProjs.forEach(p=>rm("projects",p.id,true));
     setProjDetail(null);
   };
   const projs=filter==="all"?D.projects:D.projects.filter(p=>p.assigneeId===cu.id);
@@ -2352,8 +2360,8 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
         </div>
       </Sheet>
       <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments})}/>
-      <Confirm open={!!confirmTaskId} title="업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmTaskId)?.title}" 업무를 삭제할까요?`} onOk={()=>{rm("tasks",confirmTaskId);setConfirmTaskId(null);}} onCancel={()=>setConfirmTaskId(null)}/>
-      <Confirm open={!!projDel} title="프로젝트 삭제" desc={`"${D.projects.find(p=>p.id===projDel)?.title}" 프로젝트를 삭제할까요? 연결된 업무는 남습니다.`} onOk={()=>{rm("projects",projDel);setProjDel(null);setProjDetail(null);}} onCancel={()=>setProjDel(null)}/>
+      <Confirm open={!!confirmTaskId} title="업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmTaskId)?.title}" 업무를 삭제할까요?\n휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmTaskId);setConfirmTaskId(null);}} onCancel={()=>setConfirmTaskId(null)}/>
+      <Confirm open={!!projDel} title="프로젝트 삭제" desc={`"${D.projects.find(p=>p.id===projDel)?.title}" 프로젝트를 삭제할까요? 연결된 업무는 남습니다.\n휴지통에서 복구할 수 있어요.`} onOk={()=>{rm("projects",projDel);setProjDel(null);setProjDetail(null);}} onCancel={()=>setProjDel(null)}/>
       <Sheet open={!!actHist} onClose={()=>setActHist(null)} title="📜 활동지표 주차별 이력">
         {actHist&&(<div style={{marginTop:8}}>
           <p style={{margin:"0 0 12px",fontSize:13,fontWeight:900,color:"#0F1F5C"}}>{actHist.ak.name} <span style={{fontSize:11,color:"#9CA3AF",fontWeight:600}}>· 주목표 {fmt(actHist.ak.target||0,actHist.ak.unit)}</span></p>
@@ -2779,7 +2787,7 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
                   );
                 })}
               </div>
-              <button onClick={()=>{ if(window.confirm(`'${p.productName||p.title}' 출시 건을 삭제할까요? (단계 업무 포함)`)){ launchProjTasks(D,p).forEach(t=>rm("tasks",t.id)); rm("projects",p.id); } }} style={{marginTop:10,fontSize:11,fontWeight:700,color:"#C4C9D0",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
+              <button onClick={()=>{ if(window.confirm(`'${p.productName||p.title}' 출시 건을 삭제할까요? (단계 업무 포함)\n휴지통에서 복구할 수 있어요.`)){ launchProjTasks(D,p).forEach(t=>rm("tasks",t.id,true)); rm("projects",p.id,true); } }} style={{marginTop:10,fontSize:11,fontWeight:700,color:"#C4C9D0",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
             </div>
           );
         })}
@@ -3460,7 +3468,7 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
         </div>
       </Sheet>
       <EditTaskSheet open={!!editTarget} onClose={()=>setEditTarget(null)} task={editTarget} D={D} add={add} onSave={f=>up("tasks",editTarget.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments})}/>
-      <Confirm open={!!confirmId} title="고정업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmId)?.title}" 업무를 삭제할까요?`} onOk={()=>{rm("tasks",confirmId);setConfirmId(null);}} onCancel={()=>setConfirmId(null)}/>
+      <Confirm open={!!confirmId} title="고정업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmId)?.title}" 업무를 삭제할까요?\n휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmId);setConfirmId(null);}} onCancel={()=>setConfirmId(null)}/>
     </div>
   );
 }
@@ -3789,7 +3797,7 @@ function ExportPanel({D,up,restore}){
               <span style={{flexShrink:0,fontSize:9.5,fontWeight:800,color:"#6B7280",background:"#EEF1F4",borderRadius:5,padding:"2px 6px"}}>{COL_LABEL[t._col]||t._typeLabel||t._col}</span>
               <span style={{flex:1,minWidth:0,fontSize:12,fontWeight:700,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title||t.name||t.companyName||t.targetName||t.week||t._label||t.id||"(제목 없음)"}</span>
               <span style={{flexShrink:0,fontSize:9.5,color:"#9CA3AF"}}>{(t._deletedAt||"").slice(5,10)}{t._deletedByName?" · "+t._deletedByName:""}</span>
-              <button onClick={()=>restore(t._tid)} style={{flexShrink:0,padding:"5px 10px",borderRadius:8,border:"1px solid #DBE3FF",background:"#fff",color:"#3182F6",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>복구</button>
+              <button onClick={()=>{ if(t._col==="_nested"&&!(D[t._parentCol]||[]).some(x=>x.id===t._parentId)){ window.alert(`먼저 상위 '${COL_LABEL[t._parentCol]||t._parentCol}'을(를) 복구한 뒤에 이 항목을 복구할 수 있어요.`); return; } restore(t._tid); }} style={{flexShrink:0,padding:"5px 10px",borderRadius:8,border:"1px solid #DBE3FF",background:"#fff",color:"#3182F6",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>복구</button>
             </div>
           ))}
           {trash.length>60&&<p style={{margin:"4px 0 0",fontSize:10,color:"#9CA3AF",textAlign:"center"}}>최근 60건 표시 · 전체 {trash.length}건은 백업(JSON)에 모두 보존됩니다</p>}

@@ -1739,12 +1739,50 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
   const ST=STATUS_MAP;
   const pTabs=(
     <div style={{display:"flex",gap:6,marginBottom:12}}>
-      {[["list","▦ 프로젝트"],["launch","🚀 출시"]].map(([k,l])=>(
-        <button key={k} onClick={()=>setPview(k)} style={{flex:1,padding:"9px 0",borderRadius:10,border:"none",cursor:"pointer",backgroundColor:pview===k?"#0F1F5C":"#F2F4F6",color:pview===k?"#fff":"#374151",fontWeight:800,fontSize:13,fontFamily:"inherit"}}>{l}</button>
+      {[["list","▦ 프로젝트"],["process","🧩 프로세스"],["launch","🚀 출시"]].map(([k,l])=>(
+        <button key={k} onClick={()=>setPview(k)} style={{flex:1,padding:"9px 0",borderRadius:10,border:"none",cursor:"pointer",backgroundColor:pview===k?"#0F1F5C":"#F2F4F6",color:pview===k?"#fff":"#374151",fontWeight:800,fontSize:12.5,fontFamily:"inherit"}}>{l}</button>
       ))}
     </div>
   );
   if(pview==="launch") return(<div><div style={{padding:"14px 16px 0"}}>{pTabs}</div><LaunchPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/></div>);
+  if(pview==="process") return(
+    <div style={{padding:"14px 16px 24px"}}>
+      {pTabs}
+      <p style={{margin:"0 2px 12px",fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>프로세스(업무 트리)가 있는 프로젝트 모음 · 카드를 누르면 바로 편집</p>
+      {(()=>{
+        const list=D.projects.filter(p=>D.tasks.some(t=>t.projectId===p.id&&!t.isFixed));
+        if(!list.length) return <Empty t="아직 프로세스가 없어요 · 프로젝트에서 🧩프로세스로 만들어보세요"/>;
+        const pIds=new Set(D.tasks.filter(t=>t.parentId).map(t=>t.parentId));
+        return(
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {list.map(p=>{
+              const ts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);
+              const leaves=ts.filter(t=>!pIds.has(t.id));
+              const done=leaves.filter(t=>t.status==="done").length;
+              const prog=leaves.length?Math.round(done/leaves.length*100):0;
+              const team=p.projType?p.projType==="team":(p.collaboratorIds||[]).length>0;
+              const who=D.users.find(u=>u.id===p.assigneeId);
+              return(
+                <button key={p.id} onClick={()=>setProcessProj(p)} style={{textAlign:"left",backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"13px 14px",cursor:"pointer",fontFamily:"inherit"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                    <span style={{fontSize:14}}>🧩</span>
+                    <span style={{flex:1,minWidth:0,fontSize:13.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span>
+                    <span style={{fontSize:9.5,fontWeight:800,color:team?"#EA580C":"#3182F6",background:team?"#FFEDD5":"#EBF3FF",borderRadius:6,padding:"2px 7px",flexShrink:0}}>{team?"팀":"개인"}</span>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+                    <div style={{flex:1,height:6,borderRadius:6,background:"#F2F4F6",overflow:"hidden"}}><div style={{width:prog+"%",height:"100%",background:prog>=100?"#00C073":"#F97316",borderRadius:6}}/></div>
+                    <span style={{fontSize:12,fontWeight:900,color:prog>=100?"#00C073":"#F97316",flexShrink:0}}>{prog}%</span>
+                  </div>
+                  <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>업무 {done}/{leaves.length}{p.group?` · ${p.group}`:""}{who?` · ${who.name}`:""}</p>
+                </button>
+              );
+            })}
+          </div>
+        );
+      })()}
+      {processProj&&<ProjectProcessEditor D={D} proj={processProj} cu={cu} add={add} up={up} rm={rm} onClose={()=>setProcessProj(null)}/>}
+    </div>
+  );
   return(
     <div style={{padding:"14px 16px 20px"}}>
       {pTabs}

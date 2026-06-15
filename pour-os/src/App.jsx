@@ -852,6 +852,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const [feedOpen,setFeedOpen]=useState(false);
   const [weeklyOpen,setWeeklyOpen]=useState(false);
   const [showHeld,setShowHeld]=useState(false);
+  const [taskFilter,setTaskFilter]=useState("todo");   // 내 업무 상태 필터: todo|inprogress|done|hold
   const todayKey=new Date().toISOString().slice(0,10);
   // 이번 주 팀 활동로그 — 완료업무·매출·KPI실적·목표지표를 한 흐름으로 집계
   const wkNow=weekKey();
@@ -1115,7 +1116,54 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           </div>
         </div>
       )}
-      {(()=>{const orphans=myT.filter(t=>!t.isFixed&&!t.weekDay&&t.status!=="done");if(!orphans.length)return null;return(<div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #FED7AA",marginBottom:14}}><div style={{marginBottom:12}}><h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#EA580C"}}>📥 미배치 업무 ({orphans.length})</h3><p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>요일 미지정 — 배치하거나 프로젝트를 연결하세요</p></div><div style={{display:"flex",flexDirection:"column",gap:7}}>{orphans.map(t=>{const proj=D.projects.find(p=>p.id===t.projectId);return(<div key={t.id} style={{padding:"11px 12px",borderRadius:12,backgroundColor:"#FFF7ED",border:"1px solid #FED7AA"}}><div style={{display:"flex",alignItems:"center",gap:8}}><div style={{flex:1,minWidth:0}}><p style={{margin:0,fontSize:13.5,fontWeight:700,color:"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}</p>{proj?<p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>📁 {proj.title}</p>:<p style={{margin:"2px 0 0",fontSize:10.5,color:"#F04452",fontWeight:600}}>⚠️ 프로젝트 미연결</p>}</div><button onClick={()=>setEditTask(t)} style={{padding:"6px 10px",borderRadius:8,border:"1px solid #E5E8EB",backgroundColor:"#FFFFFF",fontSize:12,fontWeight:700,color:"#4B5563",cursor:"pointer",flexShrink:0}}>✎</button><button onClick={()=>setConfirmTaskId(t.id)} style={{padding:"6px 10px",borderRadius:8,border:"1px solid #FFE2E5",backgroundColor:"#FFF0F1",fontSize:12,fontWeight:700,color:"#F04452",cursor:"pointer",flexShrink:0}}>🗑</button></div><button onClick={()=>up("tasks",t.id,{weekDay:today})} style={{width:"100%",marginTop:8,padding:"8px 0",borderRadius:9,border:"none",backgroundColor:"#F97316",color:"#FFFFFF",fontSize:12,fontWeight:700,cursor:"pointer"}}>📍 오늘({today}) 배치</button></div>);})}</div></div>);})()}
+      {(()=>{
+        const FILTERS=[["todo","미완료","#EA580C"],["inprogress","진행중","#3182F6"],["done","완료","#00C073"],["hold","보류","#FF9500"]];
+        const mine=myT.filter(t=>!t.isFixed);
+        const cnt=(s)=>mine.filter(t=>t.status===s).length;
+        const list=mine.filter(t=>t.status===taskFilter).sort((a,b)=>(a.weekDay?1:0)-(b.weekDay?1:0));   // 미배치(요일없음) 먼저
+        const cur=FILTERS.find(f=>f[0]===taskFilter);
+        return(
+          <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #F2F4F6",marginBottom:14}}>
+            <div style={{marginBottom:10}}>
+              <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#0F1F5C"}}>📋 내 업무</h3>
+              <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>상태별로 모아 보기 · 미배치는 오늘로 배치할 수 있어요</p>
+            </div>
+            <div style={{display:"flex",gap:6,marginBottom:12}}>
+              {FILTERS.map(([k,l,c])=>{const on=taskFilter===k;const n=cnt(k);return(
+                <button key={k} onClick={()=>setTaskFilter(k)} style={{flex:1,padding:"7px 4px",borderRadius:9,border:`1.5px solid ${on?c:"#E5E8EB"}`,background:on?c+"14":"#fff",cursor:"pointer",fontFamily:"inherit",display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
+                  <span style={{fontSize:11.5,fontWeight:800,color:on?c:"#9CA3AF"}}>{l}</span>
+                  <span style={{fontSize:13,fontWeight:900,color:on?c:"#C4C9D0"}}>{n}</span>
+                </button>);})}
+            </div>
+            {list.length===0?(
+              <p style={{margin:0,padding:"16px 0",textAlign:"center",fontSize:12.5,color:"#B0B8C1"}}>{cur[1]} 업무가 없어요</p>
+            ):(
+              <div style={{display:"flex",flexDirection:"column",gap:7}}>
+                {list.map(t=>{const proj=D.projects.find(p=>p.id===t.projectId);const placed=!!t.weekDay;const st=STATUS_MAP[t.status];return(
+                  <div key={t.id} style={{padding:"11px 12px",borderRadius:12,backgroundColor:placed?"#F9FAFB":"#FFF7ED",border:`1px solid ${placed?"#EEF1F4":"#FED7AA"}`}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <div style={{flex:1,minWidth:0}}>
+                        <p style={{margin:0,fontSize:13.5,fontWeight:700,color:t.status==="done"?"#9CA3AF":"#111827",textDecoration:t.status==="done"?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.eventId?"📅 ":""}{t.title}</p>
+                        <div style={{display:"flex",alignItems:"center",gap:6,marginTop:3,flexWrap:"wrap"}}>
+                          <span style={{fontSize:9.5,fontWeight:800,color:st.color,background:st.bg,borderRadius:5,padding:"1px 6px"}}>{st.label}</span>
+                          <span style={{fontSize:10.5,color:placed?"#6B7280":"#EA580C",fontWeight:placed?600:700}}>{placed?`${t.weekDay}요일${t.weekSlot?` ${t.weekSlot}순위`:""}`:"미배치"}</span>
+                          {proj?<span style={{fontSize:10.5,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>· 📁 {proj.title}</span>:<span style={{fontSize:10.5,color:"#F04452",fontWeight:600}}>· ⚠️ 미연결</span>}
+                        </div>
+                      </div>
+                      <button onClick={()=>setEditTask(t)} style={{padding:"6px 9px",borderRadius:8,border:"1px solid #E5E8EB",backgroundColor:"#FFFFFF",fontSize:12,fontWeight:700,color:"#4B5563",cursor:"pointer",flexShrink:0}}>✎</button>
+                      <button onClick={()=>setConfirmTaskId(t.id)} style={{padding:"6px 9px",borderRadius:8,border:"1px solid #FFE2E5",backgroundColor:"#FFF0F1",fontSize:12,fontWeight:700,color:"#F04452",cursor:"pointer",flexShrink:0}}>🗑</button>
+                    </div>
+                    {(taskFilter==="hold")?(
+                      <button onClick={()=>bringToday(t)} style={{width:"100%",marginTop:8,padding:"8px 0",borderRadius:9,border:"none",backgroundColor:"#F97316",color:"#FFFFFF",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>📍 오늘로 재개</button>
+                    ):(!placed&&t.status!=="done")&&(
+                      <button onClick={()=>up("tasks",t.id,{weekDay:today})} style={{width:"100%",marginTop:8,padding:"8px 0",borderRadius:9,border:"none",backgroundColor:"#F97316",color:"#FFFFFF",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>📍 오늘({today}) 배치</button>
+                    )}
+                  </div>);})}
+              </div>
+            )}
+          </div>
+        );
+      })()}
       {slotSheet&&(
         <Sheet open={true} onClose={()=>setSlotSheet(null)} title={`${slotSheet.day}요일 ${slotSheet.slot}순위 슬롯`} h="70vh">
           <div style={{marginTop:12}}>

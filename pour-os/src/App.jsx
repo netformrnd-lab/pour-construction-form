@@ -1771,11 +1771,15 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
   const [selId,setSelId]=useState(null);
   const [view,setView]=useState("tree");   // tree(편집) | map(마인드맵 보기, 선택사항)
   const focusRef=useRef(null),uidRef=useRef(0),outRef=useRef(null);
-  useEffect(()=>{ if(!focusRef.current)return; const {id,caret}=focusRef.current; focusRef.current=null; const inp=outRef.current&&outRef.current.querySelector(`input[data-id="${id}"]`); if(inp){inp.focus();const c=caret==null?inp.value.length:caret;try{inp.setSelectionRange(c,c);}catch(_){}}});
+  useEffect(()=>{ if(!focusRef.current)return; const {id,caret}=focusRef.current; focusRef.current=null; const inp=document.querySelector(`input[data-id="${id}"]`); if(inp){inp.focus();const c=caret==null?inp.value.length:caret;try{inp.setSelectionRange(c,c);}catch(_){}}});   // 트리·마인드맵 양쪽 입력 포커스
   const newId=()=>"new"+(++uidRef.current);
   const patch=(id,p)=>setItems(it=>it.map(x=>x.id===id?{...x,...p}:x));
   const toggleDone=id=>setItems(it=>it.map(x=>x.id===id?{...x,done:!x.done}:x));
   const indent=(i,dir)=>setItems(a0=>{const a=[...a0];const it=a[i];if(dir<0){if(it.depth>0)a[i]={...it,depth:it.depth-1};}else{const prev=a[i-1];if(prev&&it.depth<=prev.depth)a[i]={...it,depth:it.depth+1};}return a;});
+  // 마인드맵/트리에서 탭으로 추가 — 하위(child)·다음(sibling)·첫 단계(root)
+  const addChild=(i)=>{const nid=newId();setItems(a=>{const arr=[...a];const d=(arr[i]?.depth??0)+1;arr.splice(i+1,0,{id:nid,text:"",depth:d,who:arr[i]?.who||"",done:false});return arr;});setSelId(nid);focusRef.current={id:nid};};
+  const addSibling=(i)=>{const nid=newId();setItems(a=>{const arr=[...a];const d=arr[i]?.depth??0;arr.splice(i+1,0,{id:nid,text:"",depth:d,who:arr[i]?.who||"",done:false});return arr;});setSelId(nid);focusRef.current={id:nid};};
+  const addRoot=()=>{const nid=newId();setItems(a=>[...a,{id:nid,text:"",depth:0,who:proj.assigneeId||"",done:false}]);setSelId(nid);focusRef.current={id:nid};};
   const onKey=(e,i)=>{const it=items[i];
     if(e.key==="Enter"){e.preventDefault();const nid=newId();setItems(a=>{const arr=[...a];arr.splice(i+1,0,{id:nid,text:"",depth:it.depth,who:it.who,done:false});return arr;});setSelId(nid);focusRef.current={id:nid};}
     else if(e.key==="Tab"){e.preventDefault();indent(i,e.shiftKey?-1:1);focusRef.current={id:it.id,caret:e.target.selectionStart};}
@@ -1829,28 +1833,42 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
         </div>
         {view==="map"?(()=>{
           const COLW=148,ROWH=46,NW=126,NH=36,PADX=12,PADY=12;
-          const rows=items.map((it,i)=>({it,i})).filter(r=>r.it.text.trim()||r.it.tid);
+          const rows=items.map((it,i)=>({it,i})).filter(r=>r.it.text.trim()||r.it.tid||r.it.id===selId);
           const yOf={}; rows.forEach((r,ri)=>{yOf[r.i]=PADY+ri*ROWH;});
           const parentIdx=(i)=>{for(let k=i-1;k>=0;k--){if(items[k].depth===items[i].depth-1)return k;if(items[k].depth<items[i].depth-1)return -1;}return -1;};
           const maxDepth=rows.reduce((m,r)=>Math.max(m,r.it.depth),0);
           const svgW=PADX*2+maxDepth*COLW+NW, svgH=PADY*2+Math.max(1,rows.length)*ROWH;
-          return(
+          return(<>
             <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:8,overflowX:"auto"}}>
-              {rows.length===0?<p style={{margin:"24px 0",textAlign:"center",fontSize:12,color:"#9CA3AF"}}>업무를 먼저 입력하세요</p>:(
+              {rows.length===0?<div style={{margin:"24px 0",textAlign:"center"}}><p style={{margin:"0 0 10px",fontSize:12,color:"#9CA3AF"}}>아직 단계가 없어요</p><button onClick={addRoot} style={{padding:"9px 16px",borderRadius:10,border:"1.5px dashed #FDBA74",background:"#FFF7ED",color:"#EA580C",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 첫 단계 추가</button></div>:(
               <div style={{position:"relative",width:svgW,height:svgH}}>
                 <svg width={svgW} height={svgH} style={{position:"absolute",top:0,left:0,pointerEvents:"none"}}>
                   {rows.map(({it,i})=>{const p=parentIdx(i);if(p<0||yOf[p]==null)return null;const px=PADX+items[p].depth*COLW+NW,py=yOf[p]+NH/2,cx=PADX+it.depth*COLW,cy=yOf[i]+NH/2;return(<path key={"e"+i} d={`M ${px} ${py} C ${px+26} ${py}, ${cx-26} ${cy}, ${cx} ${cy}`} stroke="#D7C4A8" strokeWidth={2} fill="none"/>);})}
                 </svg>
-                {rows.map(({it,i})=>{const m=Mof(it.who);const parent=isP(items,i);const rdone=parent?dd[i]:it.done;const x=PADX+it.depth*COLW,y=yOf[i];return(
-                  <button key={it.id} onClick={()=>setSelId(it.id)} style={{position:"absolute",left:x,top:y,width:NW,height:NH,display:"flex",alignItems:"center",gap:5,padding:"0 8px",borderRadius:9,border:`1.5px solid ${it.id===selId?"#0F1F5C":(rdone?"#BFE9CF":"#E8DCC8")}`,background:rdone?"#F0FBF4":(parent?"#FFFBF5":"#fff"),cursor:"pointer",fontFamily:"inherit",boxSizing:"border-box",textAlign:"left"}}>
+                {rows.map(({it,i})=>{const m=Mof(it.who);const parent=isP(items,i);const rdone=parent?dd[i]:it.done;const x=PADX+it.depth*COLW,y=yOf[i];const onSel=it.id===selId;return(
+                  onSel?(
+                  <div key={it.id} style={{position:"absolute",left:x,top:y,width:NW,height:NH,display:"flex",alignItems:"center",gap:5,padding:"0 7px",borderRadius:9,border:"1.5px solid #0F1F5C",background:"#fff",boxSizing:"border-box"}}>
+                    {team&&<span style={{width:13,height:13,borderRadius:"50%",flexShrink:0,backgroundColor:m.color,color:"#fff",fontSize:7.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{m.name[0]}</span>}
+                    <input data-id={it.id} value={it.text} placeholder={parent?"단계명…":"업무…"} onChange={e=>patch(it.id,{text:e.target.value})} onKeyDown={e=>onKey(e,i)} style={{flex:1,minWidth:0,border:"none",background:"none",fontSize:11,fontWeight:parent?800:600,color:"#1F2937",outline:"none",fontFamily:"inherit",padding:0}}/>
+                  </div>
+                  ):(
+                  <button key={it.id} onClick={()=>setSelId(it.id)} style={{position:"absolute",left:x,top:y,width:NW,height:NH,display:"flex",alignItems:"center",gap:5,padding:"0 8px",borderRadius:9,border:`1.5px solid ${rdone?"#BFE9CF":"#E8DCC8"}`,background:rdone?"#F0FBF4":(parent?"#FFFBF5":"#fff"),cursor:"pointer",fontFamily:"inherit",boxSizing:"border-box",textAlign:"left"}}>
                     <span style={{width:13,height:13,borderRadius:parent?4:"50%",flexShrink:0,background:rdone?"#00C073":"#EEF1F3",color:"#fff",fontSize:9,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{rdone?"✓":""}</span>
                     {team&&<span style={{width:13,height:13,borderRadius:"50%",flexShrink:0,backgroundColor:m.color,color:"#fff",fontSize:7.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{m.name[0]}</span>}
                     <span style={{flex:1,minWidth:0,fontSize:11,fontWeight:parent?800:600,color:rdone?"#9CA3AF":"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{it.text||"(빈 항목)"}</span>
-                  </button>
+                  </button>)
                 );})}
               </div>)}
             </div>
-          );
+            {sel&&(()=>{const si=items.findIndex(x=>x.id===selId);if(si<0)return null;return(
+              <div style={{marginTop:10,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",background:"#fff",borderRadius:12,border:"1px solid #F2F4F6",padding:"10px 12px"}}>
+                <span style={{fontSize:11.5,fontWeight:800,color:"#4B5563",flex:1,minWidth:60,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>선택: 「{sel.text||"새 항목"}」</span>
+                <button onClick={()=>addChild(si)} style={{padding:"7px 12px",borderRadius:9,border:"1.5px solid #DDD6FE",background:"#FAF9FF",color:"#7C3AED",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>＋ 하위</button>
+                <button onClick={()=>addSibling(si)} style={{padding:"7px 12px",borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",color:"#4B5563",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>＋ 다음</button>
+                {items.length>1&&<button onClick={()=>{const pv=items[si-1]||items[0];setItems(a=>a.filter((_,k)=>k!==si));setSelId(pv&&pv.id!==selId?pv.id:null);}} title="삭제" style={{padding:"7px 10px",borderRadius:9,border:"1px solid #FFE2E5",background:"#FFF0F1",color:"#F04452",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>⌫</button>}
+              </div>
+            );})()}
+          </>);
         })():(
         <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"12px 10px"}} ref={outRef}>
           {items.map((it,i)=>{const m=Mof(it.who);const parent=isP(items,i);const rdone=parent?dd[i]:it.done;return(

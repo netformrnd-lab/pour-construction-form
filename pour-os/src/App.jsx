@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { STATE_DOC, colDoc, META_DOC, getDoc, onSnapshot, setDoc, uploadTaskPhoto, deleteTaskPhoto } from "./firebase.js";
 
 // Firestore 단일 문서에 저장할 공유 데이터 키 (currentUser는 기기별 로컬이라 제외)
-const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","weekGoals","launchTemplates"];
-const COL_LABEL = {users:"담당자",goals:"최종목표",mainKPIs:"메인KPI",subKPIs:"서브KPI",projects:"프로젝트",tasks:"업무",personalGoals:"개인목표",retros:"회고",aiReviews:"AI점검",events:"일정",weekGoals:"주간목표",launchTemplates:"출시템플릿"};
+const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","weekGoals","launchTemplates","manuals","trash"];
+const COL_LABEL = {users:"담당자",goals:"최종목표",mainKPIs:"메인KPI",subKPIs:"서브KPI",projects:"프로젝트",tasks:"업무",personalGoals:"개인목표",retros:"회고",aiReviews:"AI점검",events:"일정",weekGoals:"주간목표",launchTemplates:"출시템플릿",manuals:"매뉴얼",trash:"휴지통"};
 const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
@@ -129,6 +129,9 @@ const INIT={
     {id:"e4",title:"여름 프로모션 런칭",date:"2026-06-20",type:"promotion",projectId:null,description:"자사몰+마켓 동시"},
   ],
   weekGoals:[],
+  // 매뉴얼 — 잘 된 여정(국면+프로세스)을 굳혀 재사용하는 표준 작업서. 새 프로젝트를 여기서 시작.
+  manuals:[],
+  trash:[],   // 소프트 삭제 보관소 — 삭제된 모든 데이터는 여기 남고 복구 가능(데이터 자산화)
   // 출시 프로세스 템플릿(마인드맵) — 신상 SKU를 찍어내는 표준 흐름. 동일 프로세스 1개 기본 제공.
   launchTemplates:[
     {id:"tpl_launch", name:"신상 출시 표준 프로세스", createdAt:"2026-06-12T00:00:00.000Z",
@@ -160,6 +163,8 @@ const numF=(x)=>{const n=Number(x);return isFinite(n)?n:0;};   // 문자열·NaN
 //  · 그 외/수동지정 → currentValue
 const skCur=(sk,projects)=>{
   if(sk.launchCount) return (projects||[]).filter(p=>p.templateId&&(p.progress||0)>=100).length;   // 출시 완료(progress 100%) SKU 자동 집계
+  // 매뉴얼 완료 집계(옵션): 이 지표를 가리키는 프로젝트가 완료(100%)되면 기존 누적분에 +1 (원/%·출시집계 지표 제외 — 매출·진척·출시 롤업 보호)
+  if(sk.unit!=="원"&&sk.unit!=="%"&&!sk.launchCount){ const cc=(projects||[]).filter(p=>p.countKPIId===sk.id); if(cc.length) return numF(sk.currentValue)+cc.filter(p=>(p.progress||0)>=100).length; }
   if(sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride) return (projects||[]).filter(p=>p.subKPIId===sk.id).reduce((a,p)=>a+numF(p.resultValue),0);
   if(sk.unit==="%"&&!sk.manualOverride){ const ch=(projects||[]).filter(p=>p.subKPIId===sk.id); if(ch.length) return Math.round(ch.reduce((a,p)=>a+numF(p.progress),0)/ch.length); }
   return numF(sk.currentValue);
@@ -316,7 +321,19 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add})=>{
     catch(e){ alert("업로드 실패: "+e.message); }
     setUploading(false);
   };
-  const rmPhoto=async(att)=>{ if(att.path)await deleteTaskPhoto(att.path); setForm(p=>({...p,attachments:(p.attachments||[]).filter(a=>a.url!==att.url)})); };
+  // 첨부 제거 = 폼에서 분리만(스토리지 파일은 보존 — 데이터 영구 보존). 실제 삭제 반영·휴지통 기록은 저장 시점에.
+  const rmPhoto=(att)=>setForm(p=>({...p,attachments:(p.attachments||[]).filter(a=>a.url!==att.url)}));
+  const doSave=()=>{
+    if(!form.title.trim())return;
+    if(task&&task.id&&add){   // 저장 시 제거된 첨부를 휴지통에 보관(파일은 그대로 — 복구 가능)
+      const keep=new Set((form.attachments||[]).map(a=>a.url));
+      const removed=(task.attachments||[]).filter(a=>a.url&&!keep.has(a.url));
+      if(removed.length){ const u=D.users.find(x=>x.id===D.currentUser);
+        removed.forEach((att,i)=>add("trash",{...att,_col:"_nested",_typeLabel:"사진",_label:att.name||"사진 첨부",_parentCol:"tasks",_parentId:task.id,_field:"attachments",
+          _tid:"trash"+Date.now()+"_"+i+"_"+Math.random().toString(36).slice(2,5),_deletedAt:new Date().toISOString(),_deletedBy:u?.id||null,_deletedByName:u?.name||""})); }
+    }
+    onSave(form); onClose();
+  };
   return(
     <Sheet open={open} onClose={onClose} title="업무 수정" h="78vh">
       <div style={{marginTop:12}}>
@@ -381,17 +398,18 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add})=>{
           </div>
           <p style={{margin:"6px 2px 0",fontSize:10,color:"#9CA3AF"}}>사진·PDF·문서(워드/엑셀/한글 등) · 각 20MB 이내 · 저장하면 task에 기록됩니다</p>
         </div>
-        <button onClick={()=>{if(form.title.trim()){onSave(form);onClose();}}} disabled={!form.title.trim()||uploading} style={{width:"100%",padding:"14px 0",borderRadius:14,border:"none",backgroundColor:form.title.trim()&&!uploading?"#F97316":"#E5E8EB",color:form.title.trim()&&!uploading?"#FFFFFF":"#9CA3AF",fontSize:15,fontWeight:700,cursor:form.title.trim()&&!uploading?"pointer":"not-allowed",fontFamily:"inherit"}}>저장하기</button>
+        <button onClick={doSave} disabled={!form.title.trim()||uploading} style={{width:"100%",padding:"14px 0",borderRadius:14,border:"none",backgroundColor:form.title.trim()&&!uploading?"#F97316":"#E5E8EB",color:form.title.trim()&&!uploading?"#FFFFFF":"#9CA3AF",fontSize:15,fontWeight:700,cursor:form.title.trim()&&!uploading?"pointer":"not-allowed",fontFamily:"inherit"}}>저장하기</button>
       </div>
     </Sheet>
   );
 };
 const TABS=[{id:"today",icon:"🏠",label:"오늘"},{id:"kpi",icon:"◎",label:"KPI"},{id:"projects",icon:"▦",label:"프로젝트"},{id:"calendar",icon:"▤",label:"캘린더"},{id:"more",icon:"⋯",label:"더보기"}];
-const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"proceditor",icon:"🧪",label:"프로세스 에디터"},{id:"ai",icon:"✦",label:"AI 코치"}];
-// 메뉴 그룹: 개인(나만 보는 내 것) vs 팀(모두 같이 보는 공유) — 출시는 프로젝트 하위 탭
+const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"},{id:"guide",icon:"📖",label:"가이드"}];
+// 메뉴 그룹: 개인(나만 보는 내 것) vs 팀(모두 같이 보는 공유) — 출시·프로세스는 프로젝트 하위
 const NAV_GROUPS=[
   {label:"개인 · 나만", ids:["today","game","fixed","retro"]},
-  {label:"팀 · 공유",  ids:["kpi","projects","mindmap","proceditor","calendar","ai"]},
+  {label:"팀 · 공유",  ids:["kpi","projects","mindmap","calendar","ai"]},
+  {label:"도움말",     ids:["guide"]},
 ];
 export default function App(){
   const [D,setD]=useState(INIT);
@@ -405,6 +423,7 @@ export default function App(){
   // ── Firestore 분할 문서 영속화 v2 (컬렉션별 pour-os/state-<key>, 4명 실시간 공유) ──
   const [loaded,setLoaded]=useState(false);
   const [syncToast,setSyncToast]=useState(false);   // 다른 기기 변경 안내
+  const [undo,setUndo]=useState(null);               // 삭제 직후 되돌리기 토스트
   const [saveErr,setSaveErr]=useState(null);        // {level:'warn'|'error', msg, bytes} | null — 저장 상태 가시화
   const lastColJsonRef=useRef({});    // {컬렉션:JSON} 마지막 동기화본 (에코·변경 판별)
   const loadedRef=useRef(false);
@@ -482,15 +501,18 @@ export default function App(){
       const changed=[];
       for(const k of SHARED_KEYS){ const js=JSON.stringify(shared[k]||[]); if(js!==lastColJsonRef.current[k]) changed.push([k,shared[k]||[],js]); }
       if(!changed.length) return;
-      // ③ 컬렉션별 1MiB 한도 가드 (초과 컬렉션이 있으면 그 컬렉션만 차단·경고)
-      for(const [k,,js] of changed){ const b=new Blob([js]).size; if(b>DOC_LIMIT){ setSaveErr({level:"error",msg:`'${COL_LABEL[k]||k}' 데이터(${(b/1024).toFixed(0)}KB)가 한도(1024KB)를 넘어 저장이 막혔습니다. 백업 후 정리 필요(이 기기엔 보관됨).`,bytes:b}); return; } }
-      // ④ 변경 컬렉션 동시 저장 — 성공해야 동기화본 갱신(실패 시 다음 변경 때 자동 재시도)
+      // ③ 컬렉션별 1MiB 한도 가드 — 초과한 컬렉션만 건너뛰고 나머지는 정상 저장(전체 차단 금지: 한 컬렉션 때문에 다른 데이터가 안 막히도록)
+      const over=changed.filter(([,,js])=>new Blob([js]).size>DOC_LIMIT);
+      const savable=changed.filter(([,,js])=>new Blob([js]).size<=DOC_LIMIT);
+      if(over.length){ const [k,,js]=over[0]; const b=new Blob([js]).size; setSaveErr({level:"error",msg:`'${COL_LABEL[k]||k}' 데이터(${(b/1024).toFixed(0)}KB)가 한도(1024KB)를 넘어 이 항목만 저장이 막혔습니다(나머지는 정상 저장됨). 백업 후 정리 필요 — 이 기기엔 전부 보관됨.`,bytes:b}); }
+      if(!savable.length) return;
+      // ④ 한도 내 컬렉션만 동시 저장 — 성공해야 동기화본 갱신(실패 시 다음 변경 때 자동 재시도)
       try{
-        await Promise.all(changed.map(([k,arr])=>setDoc(colDoc(k),{items:arr,_updatedAt:Date.now()})));
-        for(const [k,,js] of changed) lastColJsonRef.current[k]=js;
-        pendingSharedRef.current=null;
+        await Promise.all(savable.map(([k,arr])=>setDoc(colDoc(k),{items:arr,_updatedAt:Date.now()})));
+        for(const [k,,js] of savable) lastColJsonRef.current[k]=js;
+        if(!over.length) pendingSharedRef.current=null;   // 초과분이 남아있으면 종료 flush가 재시도하도록 pending 유지
         let maxB=0; for(const k of SHARED_KEYS){ const b=new Blob([JSON.stringify(shared[k]||[])]).size; if(b>maxB)maxB=b; }
-        setSaveErr(maxB>DOC_LIMIT*0.85?{level:"warn",msg:`일부 데이터가 한도의 ${Math.round(maxB/DOC_LIMIT*100)}%입니다 — 백업·정리 권장.`,bytes:maxB}:null);
+        if(!over.length) setSaveErr(maxB>DOC_LIMIT*0.85?{level:"warn",msg:`일부 데이터가 한도의 ${Math.round(maxB/DOC_LIMIT*100)}%입니다 — 백업·정리 권장.`,bytes:maxB}:null);   // 초과 에러는 덮어쓰지 않음
       }catch(e){ console.error("[pour-os] 저장 실패:",e);
         setSaveErr({level:"error",msg:`저장 실패(${e.code||e.message}). 변경분은 이 기기에 임시 보관됨 — 새로고침 전에 '전체 백업(JSON)'으로 내려받으세요.`}); }
     },700);
@@ -531,7 +553,45 @@ export default function App(){
     const n={...p,[k]:list};
     return k==="tasks"?recalcProg(n):n;
   });
-  const rm=(k,id)=>setD(p=>{const n={...p,[k]:p[k].filter(i=>i.id!==id)};return k==="tasks"?recalcProg(n):n;});
+  const newTid=()=>"trash"+Date.now()+"_"+Math.random().toString(36).slice(2,6);
+  const delMeta=()=>({_deletedAt:new Date().toISOString(),_deletedBy:cu?.id||null,_deletedByName:cu?.name||""});
+  // 삭제 = 영구 제거가 아니라 휴지통 이동. 어떤 데이터도 사라지지 않는다(데이터 자산화 · 복구 가능). silent=대량삭제 시 토스트 생략.
+  const rm=(k,id,silent)=>{
+    if(k==="trash") return;   // 휴지통 자체는 rm으로 못 지움(복구로만 비워짐)
+    const item=(D[k]||[]).find(i=>i.id===id); if(!item) return;
+    const _tid=newTid();
+    const entry={...item,_col:k,_tid,...delMeta()};
+    setD(p=>{const n={...p,[k]:(p[k]||[]).filter(i=>i.id!==id),trash:[...(p.trash||[]),entry]};return k==="tasks"?recalcProg(n):n;});
+    if(!silent) setUndo({tid:_tid,label:`${COL_LABEL[k]||"항목"} 삭제됨`});
+  };
+  // 레코드 *안의* 항목 삭제(예: 프로젝트의 활동지표)도 휴지통 이동. 부모 맥락을 함께 보관해 제자리로 복구.
+  const rmNested=(parentCol,parentId,field,itemId,typeLabel)=>{
+    const parent=(D[parentCol]||[]).find(x=>x.id===parentId); if(!parent) return;
+    const item=(parent[field]||[]).find(x=>x.id===itemId); if(!item) return;
+    const _tid=newTid();
+    const entry={...item,_col:"_nested",_typeLabel:typeLabel||field,_parentCol:parentCol,_parentId:parentId,_field:field,_tid,...delMeta()};
+    setD(p=>{const par=(p[parentCol]||[]).find(x=>x.id===parentId); if(!par) return p;
+      const newParent={...par,[field]:(par[field]||[]).filter(x=>x.id!==itemId)};
+      return {...p,[parentCol]:(p[parentCol]||[]).map(x=>x.id===parentId?newParent:x),trash:[...(p.trash||[]),entry]};});
+    setUndo({tid:_tid,label:`${typeLabel||"항목"} 삭제됨`});
+  };
+  // 휴지통 → 원래 자리로 복구(원본 id·내용 그대로, 이미 존재하면 중복 생성 안 함)
+  const restore=(tid)=>setD(p=>{
+    const entry=(p.trash||[]).find(t=>t._tid===tid); if(!entry) return p;
+    const trashLeft=(p.trash||[]).filter(t=>t._tid!==tid);
+    if(entry._col==="_nested"){   // 중첩 항목 복구: 부모[field] 배열로 되돌림(부모가 없으면 휴지통에 그대로 둠 → 부모 먼저 복구)
+      const {_col,_typeLabel,_parentCol,_parentId,_field,_tid:_a,_deletedAt:_b,_deletedBy:_c,_deletedByName:_d,...item}=entry;
+      const parent=(p[_parentCol]||[]).find(x=>x.id===_parentId); if(!parent) return p;
+      const arr=parent[_field]||[]; const exists=arr.some(x=>(item.id&&x.id===item.id)||(item.url&&x.url===item.url));
+      const newParent={...parent,[_field]:exists?arr:[...arr,item]};
+      return {...p,[_parentCol]:(p[_parentCol]||[]).map(x=>x.id===_parentId?newParent:x),trash:trashLeft};
+    }
+    const {_col,_tid,_deletedAt,_deletedBy,_deletedByName,...orig}=entry;
+    const exists=(p[_col]||[]).some(i=>i.id===orig.id);
+    const n={...p,[_col]:exists?(p[_col]||[]):[...(p[_col]||[]),orig],trash:trashLeft};
+    return _col==="tasks"?recalcProg(n):n;
+  });
+  useEffect(()=>{ if(!undo) return; const t=setTimeout(()=>setUndo(null),5500); return ()=>clearTimeout(t); },[undo]);   // 되돌리기 토스트 5.5초 후 자동 소멸
   const nav=(id)=>{setPage(id);setMore(false);};
   const allPages=[...TABS.filter(t=>t.id!=="more"),...MORE];
   const pi=allPages.find(p=>p.id===page);
@@ -544,19 +604,20 @@ export default function App(){
   const navAll=[...TABS.filter(t=>t.id!=="more"),...MORE];
   const pageContent=(<>
     {page==="today"&&<TodayPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
-    {page==="kpi"&&<KPIPage D={D} lead={lead} up={up} cu={cu} add={add} rm={rm} pc={viewMode==="pc"}/>}
-    {page==="projects"&&<ProjectsPage D={D} cu={cu} up={up} add={add} rm={rm} pc={viewMode==="pc"} lead={lead} nav={nav}/>}
+    {page==="kpi"&&<KPIPage D={D} lead={lead} up={up} cu={cu} add={add} rm={rm} restore={restore} pc={viewMode==="pc"}/>}
+    {page==="projects"&&<ProjectsPage D={D} cu={cu} up={up} add={add} rm={rm} rmNested={rmNested} pc={viewMode==="pc"} lead={lead} nav={nav}/>}
     {page==="calendar"&&<CalendarPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
     {page==="game"&&<GamePage D={D} cu={cu} up={up} add={add} rm={rm} nav={nav}/>}
     {page==="launch"&&<LaunchPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="mindmap"&&<MindMapPage D={D} cu={cu}/>}
-    {page==="proceditor"&&<ProcessEditorPage D={D}/>}
+    {page==="guide"&&<GuidePage D={D}/>}
     {page==="fixed"&&<FixedPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="retro"&&<RetroPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
     {page==="ai"&&<AIPage D={D} cu={cu} add={add} rm={rm}/>}
   </>);
   const sheets=(<>
     {syncToast&&<div style={{position:"fixed",top:"calc(env(safe-area-inset-top,0px) + 12px)",left:"50%",transform:"translateX(-50%)",zIndex:5000,background:"#0F1F5C",color:"#fff",padding:"8px 16px",borderRadius:999,fontSize:12,fontWeight:700,boxShadow:"0 6px 20px rgba(0,0,0,0.25)",whiteSpace:"nowrap",pointerEvents:"none"}}>🔄 다른 기기에서 업데이트됨</div>}
+    {undo&&<div style={{position:"fixed",bottom:"calc(env(safe-area-inset-bottom,0px) + 80px)",left:"50%",transform:"translateX(-50%)",zIndex:5200,background:"#0F1F5C",color:"#fff",padding:"10px 12px 10px 16px",borderRadius:12,fontSize:12.5,fontWeight:700,boxShadow:"0 8px 26px rgba(0,0,0,0.3)",display:"flex",alignItems:"center",gap:14,whiteSpace:"nowrap",maxWidth:"calc(100% - 32px)"}}><span style={{overflow:"hidden",textOverflow:"ellipsis"}}>🗑 {undo.label}</span><button onClick={()=>{restore(undo.tid);setUndo(null);}} style={{flexShrink:0,background:"#F97316",color:"#fff",border:"none",borderRadius:8,padding:"6px 13px",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>되돌리기</button></div>}
     {saveErr&&<div style={{position:"fixed",top:"calc(env(safe-area-inset-top,0px) + 8px)",left:8,right:8,zIndex:5001,background:saveErr.level==="error"?"#FEF2F2":"#FFFBEB",border:`1.5px solid ${saveErr.level==="error"?"#FCA5A5":"#FCD34D"}`,color:saveErr.level==="error"?"#991B1B":"#92400E",padding:"10px 12px",borderRadius:12,fontSize:11.5,fontWeight:700,lineHeight:1.45,boxShadow:"0 6px 20px rgba(0,0,0,0.15)",display:"flex",alignItems:"flex-start",gap:8}}>
       <span style={{flexShrink:0,fontSize:14}}>{saveErr.level==="error"?"⚠️":"📊"}</span>
       <span style={{flex:1}}>{saveErr.msg}</span>
@@ -564,7 +625,7 @@ export default function App(){
       {saveErr.level!=="error"&&<button onClick={()=>setSaveErr(null)} style={{flexShrink:0,padding:"5px 7px",borderRadius:8,border:"none",background:"transparent",color:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}}>×</button>}
     </div>}
     <Sheet open={more} onClose={()=>setMore(false)} title="더보기">
-      {[{label:"개인 · 나만",ids:["game","fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","proceditor","ai"]}].map(grp=>(
+      {[{label:"개인 · 나만",ids:["game","fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","ai"]},{label:"도움말",ids:["guide"]}].map(grp=>(
         <div key={grp.label} style={{marginTop:14}}>
           <p style={{margin:"0 2px 8px",fontSize:11,fontWeight:800,color:"#9CA3AF",letterSpacing:0.5}}>{grp.label}</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -701,7 +762,7 @@ function WeeklyInputSheet({open,onClose,D,cu,up}){
   const NumAdd=({onAdd,ph})=>{const[v,setV]=useState("");return(<div style={{display:"flex",gap:6}}><input type="number" inputMode="numeric" value={v} onChange={e=>setV(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&v!==""){onAdd(v);setV("");}}} placeholder={ph||"이번 주 추가값"} style={{flex:1,minWidth:0,padding:"8px 10px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:13,fontWeight:700,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/><button onClick={()=>{if(v!==""){onAdd(v);setV("");}}} disabled={v===""} style={{flexShrink:0,padding:"0 14px",borderRadius:9,border:"none",background:v===""?"#E5E8EB":"#8B5CF6",color:"#fff",fontSize:13,fontWeight:800,cursor:v===""?"default":"pointer",fontFamily:"inherit"}}>추가</button></div>);};
   const MoneyAdd=({onAdd})=>{const[v,setV]=useState("");const[u,setU]=useState("만");const M={"원":1,"만":10000,"억":100000000};const tot=Math.round((Number(v)||0)*M[u]);return(<div><div style={{display:"flex",gap:6}}><input type="number" inputMode="decimal" value={v} onChange={e=>setV(e.target.value)} placeholder="이번 주 매출 추가" style={{flex:1,minWidth:0,padding:"8px 10px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:13,fontWeight:800,textAlign:"right",outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/><div style={{display:"inline-flex",borderRadius:9,border:"1.5px solid #E5E8EB",overflow:"hidden",flexShrink:0}}>{["원","만","억"].map(x=>(<button key={x} onClick={()=>setU(x)} style={{padding:"0 9px",fontSize:12,fontWeight:800,border:"none",cursor:"pointer",background:u===x?"#F97316":"#fff",color:u===x?"#fff":"#9CA3AF",fontFamily:"inherit"}}>{x}</button>))}</div><button onClick={()=>{if(tot>0){onAdd(tot);setV("");}}} disabled={tot<=0} style={{flexShrink:0,padding:"0 12px",borderRadius:9,border:"none",background:tot<=0?"#E5E8EB":"#8B5CF6",color:"#fff",fontSize:13,fontWeight:800,cursor:tot<=0?"default":"pointer",fontFamily:"inherit"}}>추가</button></div>{tot>0&&<p style={{margin:"4px 0 0",fontSize:10.5,fontWeight:800,color:"#EA580C"}}>= {fmtKorWon(tot)}</p>}</div>);};
   const subHd={margin:"4px 2px 8px",fontSize:11,fontWeight:900,color:"#9CA3AF",letterSpacing:"-0.2px"};
-  const TABS_W=[["sales","💰 매출",salesProjs.length+salesChannels.length],["kpi","📊 운영지표",kpiItems.length],["act","🎯 목표지표",actProjs.reduce((a,p)=>a+(p.activityKPIs||[]).length,0)]];
+  const TABS_W=[["sales","💰 매출",salesProjs.length+salesChannels.length],["kpi","📊 운영지표",kpiItems.length],["act","🎯 활동지표",actProjs.reduce((a,p)=>a+(p.activityKPIs||[]).length,0)]];
   return(
     <Sheet open={open} onClose={onClose} title="🗓️ 이번 주 마감 입력" h="90vh">
       <div style={{marginTop:4}}>
@@ -731,7 +792,7 @@ function WeeklyInputSheet({open,onClose,D,cu,up}){
             <NumAdd ph={`이번 주 ${sk.unit||""} 추가`} onAdd={v=>wkVal("subKPIs",sk,v)}/>
           </div>
         );}))}
-        {tab==="act"&&(actProjs.length===0?<Empty t="등록된 목표지표가 없어요 · 프로젝트에서 추가하세요"/>:actProjs.map(p=>(
+        {tab==="act"&&(actProjs.length===0?<Empty t="등록된 활동지표가 없어요 · 프로젝트에서 추가하세요"/>:actProjs.map(p=>(
           <div key={p.id} style={{marginBottom:12}}>
             <p style={{margin:"0 0 6px",fontSize:11.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📁 {p.title}</p>
             {(p.activityKPIs||[]).map(ak=>(
@@ -806,7 +867,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           <span style={{display:"inline-block",marginTop:4,fontSize:10,fontWeight:800,background:"rgba(255,255,255,0.2)",color:"#fff",padding:"3px 9px",borderRadius:10,whiteSpace:"nowrap"}}>내 주간 ›</span>
         </div>
       </div>
-      {isLastWorkingDayOfWeek()&&<button onClick={()=>setWeeklyOpen(true)} style={{width:"100%",marginBottom:14,padding:"13px 0",borderRadius:14,border:"none",background:"linear-gradient(135deg,#F97316,#EA580C)",color:"#fff",fontSize:14.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🗓️ 이번 주 마감 입력 — 매출·KPI·목표지표 한 번에</button>}
+      {isLastWorkingDayOfWeek()&&<button onClick={()=>setWeeklyOpen(true)} style={{width:"100%",marginBottom:14,padding:"13px 0",borderRadius:14,border:"none",background:"linear-gradient(135deg,#F97316,#EA580C)",color:"#fff",fontSize:14.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🗓️ 이번 주 마감 입력 — 매출·KPI·활동지표 한 번에</button>}
       <WeeklyInputSheet open={weeklyOpen} onClose={()=>setWeeklyOpen(false)} D={D} cu={cu} up={up}/>
       <div style={{display:"flex",gap:8,marginBottom:14,overflowX:"auto",paddingBottom:2}}>
         {[{label:"오늘 업무",val:`${doneToday}/${todayT.length}`,color:"#3182F6"},{label:"고정업무",val:`${doneFixed}/${fixed.length}`,color:"#F97316"},{label:"내 프로젝트",val:D.projects.filter(p=>p.assigneeId===cu.id).length+"건",color:"#8B5CF6"}].map((s,i)=>(
@@ -1009,11 +1070,11 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
         </Sheet>
       )}
       <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments})}/>
-      <Confirm open={!!confirmTaskId} title="업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmTaskId)?.title}" 업무를 삭제할까요?`} onOk={()=>{rm("tasks",confirmTaskId);setConfirmTaskId(null);}} onCancel={()=>setConfirmTaskId(null)}/>
+      <Confirm open={!!confirmTaskId} title="업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmTaskId)?.title}" 업무를 삭제할까요?\n휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmTaskId);setConfirmTaskId(null);}} onCancel={()=>setConfirmTaskId(null)}/>
     </div>
   );
 }
-function KPIPage({D,lead,up,cu,add,rm}){
+function KPIPage({D,lead,up,cu,add,rm,restore}){
   const [kpiView,setKpiView]=useState("dashboard");
   const [openMK,setOpenMK]=useState("mk1");
   const [openSK,setOpenSK]=useState(null);
@@ -1133,10 +1194,10 @@ function KPIPage({D,lead,up,cu,add,rm}){
             return(
               <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px 16px",marginBottom:14,border:"1px solid #F2F4F6"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                  <h3 style={{margin:0,fontSize:15,fontWeight:900,color:"#0F1F5C"}}>🎯 수치목표 롤업</h3>
+                  <h3 style={{margin:0,fontSize:15,fontWeight:900,color:"#0F1F5C"}}>🎯 활동지표 (전사 합산)</h3>
                   <span style={{fontSize:10.5,color:"#9CA3AF"}}>{rows.length}개 지표 · {rows.reduce((s,r)=>s+r.cnt,0)}개 프로젝트</span>
                 </div>
-                <p style={{margin:"0 0 10px",fontSize:10.5,color:"#9CA3AF"}}>프로젝트별 목표지표를 지표명으로 합산 — 운영·활동 성과(매출 아님)</p>
+                <p style={{margin:"0 0 10px",fontSize:10.5,color:"#9CA3AF"}}>프로젝트별 활동지표를 이름으로 합산 — 운영·활동 성과(매출 아님)</p>
                 {rows.map(r=>{const pr2=pct(r.cur,r.tgt);return(
                   <div key={r.name} style={{marginBottom:10}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3,gap:8}}>
@@ -1305,7 +1366,7 @@ function KPIPage({D,lead,up,cu,add,rm}){
             );
           })}
           <button onClick={openNewMain} style={{width:"100%",padding:"12px 0",borderRadius:12,border:"1.5px dashed #93C5FD",background:"#EFF6FF",color:"#2563EB",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 메인KPI 추가</button>
-          <ExportPanel D={D} up={up}/>
+          <ExportPanel D={D} up={up} restore={restore}/>
         </div>
       )}
       {kpiView==="mindmap"&&(
@@ -1560,6 +1621,7 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
   };
   const [items,setItems]=useState(load);
   const [selId,setSelId]=useState(null);
+  const [view,setView]=useState("tree");   // tree(편집) | map(마인드맵 보기, 선택사항)
   const focusRef=useRef(null),uidRef=useRef(0),outRef=useRef(null);
   useEffect(()=>{ if(!focusRef.current)return; const {id,caret}=focusRef.current; focusRef.current=null; const inp=outRef.current&&outRef.current.querySelector(`input[data-id="${id}"]`); if(inp){inp.focus();const c=caret==null?inp.value.length:caret;try{inp.setSelectionRange(c,c);}catch(_){}}});
   const newId=()=>"new"+(++uidRef.current);
@@ -1607,11 +1669,41 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
         <button onClick={save} style={{background:"#F97316",border:"none",color:"#fff",borderRadius:9,padding:"8px 16px",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>저장</button>
       </div>
       <div style={{flex:1,overflowY:"auto",padding:"14px 16px 30px",maxWidth:720,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
           <span style={{fontSize:11.5,fontWeight:800,color:"#4B5563"}}>진행률</span>
           <div style={{flex:1,height:8,borderRadius:8,background:"#F2F4F6",overflow:"hidden"}}><div style={{width:prog+"%",height:"100%",background:prog>=100?"#00C073":"#F97316",borderRadius:8}}/></div>
           <span style={{fontSize:13,fontWeight:900,color:prog>=100?"#00C073":"#F97316"}}>{doneN}/{totN} · {prog}%</span>
         </div>
+        <div style={{display:"inline-flex",borderRadius:9,overflow:"hidden",border:"1px solid #E5E8EB",marginBottom:12}}>
+          {[["tree","☰ 트리(편집)"],["map","🗺 마인드맵"]].map(([k,l])=>(
+            <button key={k} onClick={()=>setView(k)} style={{padding:"7px 13px",fontSize:11.5,fontWeight:800,border:"none",cursor:"pointer",background:view===k?"#0F1F5C":"#fff",color:view===k?"#fff":"#6B7280",fontFamily:"inherit"}}>{l}</button>
+          ))}
+        </div>
+        {view==="map"?(()=>{
+          const COLW=148,ROWH=46,NW=126,NH=36,PADX=12,PADY=12;
+          const rows=items.map((it,i)=>({it,i})).filter(r=>r.it.text.trim()||r.it.tid);
+          const yOf={}; rows.forEach((r,ri)=>{yOf[r.i]=PADY+ri*ROWH;});
+          const parentIdx=(i)=>{for(let k=i-1;k>=0;k--){if(items[k].depth===items[i].depth-1)return k;if(items[k].depth<items[i].depth-1)return -1;}return -1;};
+          const maxDepth=rows.reduce((m,r)=>Math.max(m,r.it.depth),0);
+          const svgW=PADX*2+maxDepth*COLW+NW, svgH=PADY*2+Math.max(1,rows.length)*ROWH;
+          return(
+            <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:8,overflowX:"auto"}}>
+              {rows.length===0?<p style={{margin:"24px 0",textAlign:"center",fontSize:12,color:"#9CA3AF"}}>업무를 먼저 입력하세요</p>:(
+              <div style={{position:"relative",width:svgW,height:svgH}}>
+                <svg width={svgW} height={svgH} style={{position:"absolute",top:0,left:0,pointerEvents:"none"}}>
+                  {rows.map(({it,i})=>{const p=parentIdx(i);if(p<0||yOf[p]==null)return null;const px=PADX+items[p].depth*COLW+NW,py=yOf[p]+NH/2,cx=PADX+it.depth*COLW,cy=yOf[i]+NH/2;return(<path key={"e"+i} d={`M ${px} ${py} C ${px+26} ${py}, ${cx-26} ${cy}, ${cx} ${cy}`} stroke="#D7C4A8" strokeWidth={2} fill="none"/>);})}
+                </svg>
+                {rows.map(({it,i})=>{const m=Mof(it.who);const parent=isP(items,i);const rdone=parent?dd[i]:it.done;const x=PADX+it.depth*COLW,y=yOf[i];return(
+                  <button key={it.id} onClick={()=>setSelId(it.id)} style={{position:"absolute",left:x,top:y,width:NW,height:NH,display:"flex",alignItems:"center",gap:5,padding:"0 8px",borderRadius:9,border:`1.5px solid ${it.id===selId?"#0F1F5C":(rdone?"#BFE9CF":"#E8DCC8")}`,background:rdone?"#F0FBF4":(parent?"#FFFBF5":"#fff"),cursor:"pointer",fontFamily:"inherit",boxSizing:"border-box",textAlign:"left"}}>
+                    <span style={{width:13,height:13,borderRadius:parent?4:"50%",flexShrink:0,background:rdone?"#00C073":"#EEF1F3",color:"#fff",fontSize:9,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{rdone?"✓":""}</span>
+                    {team&&<span style={{width:13,height:13,borderRadius:"50%",flexShrink:0,backgroundColor:m.color,color:"#fff",fontSize:7.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{m.name[0]}</span>}
+                    <span style={{flex:1,minWidth:0,fontSize:11,fontWeight:parent?800:600,color:rdone?"#9CA3AF":"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{it.text||"(빈 항목)"}</span>
+                  </button>
+                );})}
+              </div>)}
+            </div>
+          );
+        })():(
         <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"12px 10px"}} ref={outRef}>
           {items.map((it,i)=>{const m=Mof(it.who);const parent=isP(items,i);const rdone=parent?dd[i]:it.done;return(
             <div key={it.id} style={{display:"flex",alignItems:"center",gap:6,marginLeft:it.depth*20,padding:"3px 6px",borderRadius:9,backgroundColor:it.id===selId?"#FFF7ED":"transparent"}}>
@@ -1625,6 +1717,7 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
             </div>
           );})}
         </div>
+        )}
         {team&&sel&&(
           <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"12px 14px",marginTop:12}}>
             <p style={{margin:"0 0 8px",fontSize:11,fontWeight:800,color:"#4B5563"}}>「{sel.text||"업무"}」 담당자</p>
@@ -1638,7 +1731,176 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
     </div>
   );
 }
-function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
+// 프로젝트 여정(로드맵) — 최상위 국면을 예상기간 타임라인으로 + 국면별 담당/논의 + 프로세스 연결
+// 프로젝트의 여정(국면+프로세스 트리)을 재사용용 매뉴얼 트리로 추출
+function buildManualTree(D,projId){
+  const ts=D.tasks.filter(t=>t.projectId===projId&&!t.isFixed);
+  const byParent={};
+  ts.forEach(t=>{const k=t.parentId||"_root";(byParent[k]=byParent[k]||[]).push(t);});
+  const walk=(key)=>(byParent[key]||[]).slice().sort((a,b)=>(a.seq||0)-(b.seq||0)).map(t=>({
+    title:t.title||"",assigneeId:t.assigneeId||"",estDays:t.estDays||0,discuss:t.discuss||"",kids:walk(t.id)
+  }));
+  return walk("_root");
+}
+// 매뉴얼 트리 → 새 프로젝트의 업무로 복제(계층·순서·예상기간·논의 보존, 상태는 todo로 초기화)
+function cloneManualToProject(manual,projId,projType,add){
+  let i=0;
+  const walk=(nodes,parentId)=>(nodes||[]).forEach((n,idx)=>{
+    const id="t"+Date.now()+"_"+(i++);
+    add("tasks",{id,projectId:projId,parentId:parentId||null,seq:idx,
+      title:n.title||"",status:"todo",isFixed:false,weekDay:null,weekSlot:null,
+      assigneeId:projType==="team"?(n.assigneeId||""):"",
+      estDays:parentId?0:(n.estDays||0),discuss:parentId?"":(n.discuss||""),
+      memo:"",dueDate:"",attachments:[]});
+    walk(n.kids,id);
+  });
+  walk(manual.stages,null);
+}
+// 매뉴얼 카드 — 버전(v) 표시·이력 되돌리기 + 완료집계 지표 선택(연결 프로젝트에 소급 적용)
+function ManualCard({m,D,up,rm,startFromManual}){
+  const [showV,setShowV]=useState(false);
+  const sc=(m.stages||[]).length;
+  const cnt=(()=>{let n=0;const w=a=>(a||[]).forEach(x=>{n++;w(x.kids);});w(m.stages);return n;})();
+  const mk3SKs=D.subKPIs.filter(s=>s.mainKPIId==="mk3"&&s.unit!=="원"&&s.unit!=="%"&&!s.launchCount);
+  const cdone=m.countKPIId?(D.projects||[]).filter(p=>p.countKPIId===m.countKPIId&&(p.progress||0)>=100).length:0;
+  const vers=m.versions||[]; const ver=m.version||1;
+  const setCount=(val)=>{ up("manuals",m.id,{countKPIId:val}); (D.projects||[]).filter(p=>p.sourceManualId===m.id).forEach(p=>up("projects",p.id,{countKPIId:val})); };
+  const restore=(v)=>{ if(!window.confirm(`v${v.v}로 되돌릴까요? 현재본(v${ver})은 이력으로 보관돼요.`))return; up("manuals",m.id,{stages:v.stages||[],version:ver+1,versions:[...vers,{v:ver,stages:m.stages||[],savedAt:m.updatedAt||m.createdAt||"",savedBy:m.updatedBy||m.createdBy||"",note:`v${v.v}로 되돌림`}]}); setShowV(false); };
+  return(
+    <div style={{background:"#fff",borderRadius:10,border:"1px solid #F2E6D5",padding:"9px 11px"}}>
+      <div style={{display:"flex",alignItems:"center",gap:8}}>
+        <div style={{flex:1,minWidth:0}}>
+          <p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.name} <span style={{fontSize:9.5,fontWeight:800,color:"#A16207",background:"#FEF3C7",borderRadius:5,padding:"1px 5px"}}>v{ver}</span></p>
+          <p style={{margin:"2px 0 0",fontSize:10,color:"#9CA3AF"}}>{m.projType==="team"?"팀":"개인"} · 국면 {sc} · 업무 {cnt}{vers.length?` · 이력 ${vers.length}`:""}</p>
+        </div>
+        <button onClick={()=>startFromManual(m)} style={{flexShrink:0,padding:"6px 10px",borderRadius:9,border:"none",background:"#F97316",color:"#fff",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 새 프로젝트</button>
+        <button onClick={()=>{if(window.confirm(`'${m.name}' 매뉴얼을 삭제할까요? (이미 만든 프로젝트는 영향 없음)\n휴지통에서 복구할 수 있어요.`))rm("manuals",m.id);}} style={{flexShrink:0,padding:"6px 8px",borderRadius:9,border:"1px solid #FFE2E5",background:"#FFF0F1",color:"#F04452",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
+      </div>
+      {(mk3SKs.length>0||vers.length>0)&&(
+        <div style={{display:"flex",alignItems:"center",gap:6,marginTop:8,paddingTop:8,borderTop:"1px dashed #F2E6D5"}}>
+          {mk3SKs.length>0&&(<>
+            <span style={{fontSize:10.5,fontWeight:800,color:"#6B7280",flexShrink:0}}>📊 완료 시 집계</span>
+            <select value={m.countKPIId||""} onChange={e=>setCount(e.target.value)} style={{flex:1,minWidth:0,padding:"6px 8px",borderRadius:8,border:"1px solid #E5E8EB",fontSize:11,fontWeight:700,color:"#374151",background:"#fff",fontFamily:"inherit",WebkitAppearance:"none"}}>
+              <option value="">집계 안 함</option>
+              {mk3SKs.map(s=><option key={s.id} value={s.id}>{s.title}</option>)}
+            </select>
+            {m.countKPIId&&<span style={{fontSize:10,fontWeight:800,color:"#00A862",flexShrink:0}}>완료 {cdone}</span>}
+          </>)}
+          {vers.length>0&&<button onClick={()=>setShowV(s=>!s)} style={{flexShrink:0,padding:"5px 8px",borderRadius:8,border:"1px solid #E5E8EB",background:showV?"#EEF2FF":"#fff",color:"#4B5563",fontSize:10.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>📜 이력</button>}
+        </div>
+      )}
+      {showV&&vers.length>0&&(
+        <div style={{marginTop:8,display:"flex",flexDirection:"column",gap:5}}>
+          {vers.slice().reverse().map(v=>(
+            <div key={v.v} style={{display:"flex",alignItems:"center",gap:8,background:"#F9FAFB",borderRadius:8,padding:"6px 9px"}}>
+              <span style={{fontSize:10.5,fontWeight:800,color:"#6B7280",flexShrink:0}}>v{v.v}</span>
+              <span style={{flex:1,minWidth:0,fontSize:10,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{v.note?`✏️ ${v.note}`:`국면 ${(v.stages||[]).length} · ${(v.savedAt||"").slice(0,10)||"날짜없음"}`}</span>
+              <button onClick={()=>restore(v)} style={{flexShrink:0,padding:"4px 8px",borderRadius:7,border:"1px solid #DBE3FF",background:"#fff",color:"#3182F6",fontSize:10,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>되돌리기</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+function ProjectRoadmap({D,proj,up,add,onClose,onOpenProcess}){
+  const team=proj.projType?proj.projType==="team":(proj.collaboratorIds||[]).length>0;
+  const srcMan=proj.sourceManualId&&(D.manuals||[]).find(m=>m.id===proj.sourceManualId);   // 역링크: 살아있는 매뉴얼(있으면 갱신 가능)
+  const srcGone=!srcMan&&proj.sourceManualName;   // 매뉴얼이 삭제됐어도 박제된 이름으로 기록 유지
+  const MEM=[{id:"",name:"미배정",color:"#9CA3AF"},...(D.users||[])];
+  const Mof=id=>MEM.find(m=>m.id===id)||MEM[0];
+  const stages=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed&&!t.parentId).sort((a,b)=>(a.seq||0)-(b.seq||0));
+  const [unit,setUnit]=useState("주");
+  const [selId,setSelId]=useState(stages[0]?.id||null);
+  const perDay=unit==="월"?30:7;
+  const toU=d=>Math.round((d||0)/perDay*10)/10;
+  const totalDays=stages.reduce((a,s)=>a+(s.estDays||0),0);
+  const sel=stages.find(s=>s.id===selId);
+  const cpct=sid=>{const ks=D.tasks.filter(t=>t.parentId===sid&&!t.isFixed);if(ks.length)return Math.round(ks.filter(t=>t.status==="done").length/ks.length*100);return (stages.find(s=>s.id===sid)?.status==="done")?100:0;};
+  const setEst=(s,v)=>up("tasks",s.id,{estDays:Math.max(0,Math.round((Number(v)||0)*perDay))});
+  const saveManual=()=>{
+    const tree=buildManualTree(D,proj.id);
+    if(!tree.length){window.alert("저장할 국면이 없어요 · 먼저 프로세스에서 국면을 만들어 주세요");return;}
+    const now=new Date().toISOString(), by=proj.assigneeId||"";
+    const src=proj.sourceManualId&&(D.manuals||[]).find(m=>m.id===proj.sourceManualId);
+    if(src){
+      const ok=window.confirm(`이 프로젝트는 '${src.name}' 매뉴얼 기반이에요.\n\n[확인] 기존 매뉴얼 갱신 (이전판은 이력 보관)\n[취소] 새 매뉴얼로 저장`);
+      if(ok){
+        const curV=src.version||1;
+        const note=(window.prompt(`v${curV}→v${curV+1} 변경 메모 (선택 · 무엇이 바뀌었나요?)`,"")||"").trim();
+        up("manuals",src.id,{stages:tree,version:curV+1,
+          versions:[...(src.versions||[]),{v:curV,stages:src.stages||[],savedAt:src.updatedAt||src.createdAt||"",savedBy:src.updatedBy||src.createdBy||"",note}],
+          updatedAt:now,updatedBy:by});
+        window.alert(`📋 '${src.name}' 매뉴얼을 v${curV+1}로 갱신했어요 (이전 v${curV}는 이력 보관)`);
+        return;
+      }
+    }
+    const name=window.prompt("📋 매뉴얼 이름 (이 여정을 표준으로 저장)",proj.title||"");
+    if(name===null) return;
+    const id="man"+Date.now(), mname=(name.trim()||proj.title||"매뉴얼");
+    add("manuals",{id,name:mname,projType:team?"team":"solo",
+      stages:tree,version:1,versions:[],createdAt:now,createdBy:by});
+    up("projects",proj.id,{sourceManualId:id,sourceManualName:mname,sourceManualVersion:1});   // 매뉴얼 연결 + 이름 박제(이후 '갱신' 가능, 삭제돼도 기록 유지)
+    window.alert("📋 매뉴얼로 저장됐어요\n이 프로젝트는 매뉴얼에 연결돼, 다음에 고치면 '갱신'할 수 있어요");
+  };
+  return(
+    <div style={{position:"fixed",inset:0,zIndex:1500,background:"#F9FAFB",display:"flex",flexDirection:"column"}}>
+      <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",color:"#fff",padding:"13px 16px",display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
+        <button onClick={onClose} style={{background:"none",border:"none",color:"#fff",fontSize:22,cursor:"pointer",lineHeight:1}}>×</button>
+        <div style={{flex:1,minWidth:0}}>
+          <p style={{margin:0,fontSize:14,fontWeight:900,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>🗺 {proj.title} · 여정</p>
+          <p style={{margin:"2px 0 0",fontSize:10,opacity:0.82}}>{team?"팀 (담당자 인계)":"개인"} · 총 예상 {toU(totalDays)}{unit}</p>
+        </div>
+        <div style={{display:"inline-flex",borderRadius:8,overflow:"hidden",border:"1px solid rgba(255,255,255,0.3)",flexShrink:0}}>
+          {["주","월"].map(u=><button key={u} onClick={()=>setUnit(u)} style={{padding:"5px 12px",fontSize:12,fontWeight:800,border:"none",cursor:"pointer",background:unit===u?"#fff":"transparent",color:unit===u?"#0F1F5C":"#fff",fontFamily:"inherit"}}>{u}</button>)}
+        </div>
+      </div>
+      <div style={{flex:1,overflowY:"auto",padding:"14px 16px 30px",maxWidth:760,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
+        {stages.length===0?<Empty t="국면이 없어요 · 프로세스 편집에서 최상위 단계를 만들면 여정 국면이 됩니다"/>:(<>
+          <p style={{margin:"0 2px 8px",fontSize:11,color:"#9CA3AF"}}>국면(여정 단계)을 예상기간 막대로 · 막대 누르면 아래에서 기간·담당·논의 편집</p>
+          <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:6,marginBottom:14}}>
+            {stages.map(s=>{const m=Mof(s.assigneeId);const c=team?m.color:"#9CA3AF";const isS=s.id===selId;return(
+              <button key={s.id} onClick={()=>setSelId(s.id)} style={{flex:`${(s.estDays||7)} 0 96px`,minWidth:96,textAlign:"left",borderRadius:10,border:isS?"2.5px solid #0F1F5C":"2.5px solid transparent",background:c,color:"#fff",padding:"9px 11px",cursor:"pointer",fontFamily:"inherit"}}>
+                <p style={{margin:0,fontSize:12.5,fontWeight:800,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.title||"국면"}</p>
+                <p style={{margin:"3px 0 0",fontSize:10,opacity:0.95,fontWeight:700}}>{team?m.name+" · ":""}예상 {toU(s.estDays)}{unit}</p>
+                <p style={{margin:"2px 0 0",fontSize:9.5,opacity:0.85}}>🧩 {cpct(s.id)}%</p>
+              </button>
+            );})}
+          </div>
+          {(srcMan||srcGone)&&(
+            <div style={{display:"flex",alignItems:"center",gap:8,background:srcGone?"#F8F9FA":"#FFFBF5",border:"1px solid "+(srcGone?"#EAEDF0":"#F2E6D5"),borderRadius:11,padding:"9px 12px",marginBottom:9}}>
+              <span style={{fontSize:11.5,fontWeight:800,color:srcGone?"#9CA3AF":"#A16207",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📋 ‘{srcMan?srcMan.name:proj.sourceManualName}’ 매뉴얼 v{srcMan?(srcMan.version||1):(proj.sourceManualVersion||1)} 기반</span>
+              <span style={{fontSize:10,fontWeight:700,color:srcGone?"#B0B8C1":"#B98A3E",flexShrink:0}}>{srcGone?"매뉴얼 삭제됨 · 기록 유지":"저장 시 갱신/이력"}</span>
+            </div>
+          )}
+          <button onClick={saveManual} style={{width:"100%",padding:"11px 0",borderRadius:11,border:"1.5px solid #FBD9B5",background:"#FFF7ED",fontSize:12.5,fontWeight:800,color:"#EA580C",cursor:"pointer",fontFamily:"inherit",marginBottom:14}}>{srcMan?"📋 매뉴얼 갱신 / 새 매뉴얼로 저장":"📋 이 여정을 매뉴얼로 저장 (다음에 재사용)"}</button>
+          {sel&&(
+            <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"14px 15px"}}>
+              <label style={{display:"block",fontSize:11,fontWeight:800,color:"#4B5563",marginBottom:5}}>국면명</label>
+              <input key={sel.id+"t"} defaultValue={sel.title||""} onBlur={e=>up("tasks",sel.id,{title:e.target.value})} style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:14,fontWeight:700,outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:12}}/>
+              <div style={{display:"flex",gap:10,marginBottom:12,alignItems:"flex-end"}}>
+                <div style={{flex:"0 0 130px"}}><label style={{display:"block",fontSize:11,fontWeight:800,color:"#4B5563",marginBottom:5}}>예상 소요 ({unit})</label>
+                  <input key={sel.id+unit} type="number" inputMode="decimal" defaultValue={toU(sel.estDays)} onBlur={e=>setEst(sel,e.target.value)} style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:14,fontWeight:800,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
+              </div>
+              {team&&(<>
+                <label style={{display:"block",fontSize:11,fontWeight:800,color:"#4B5563",marginBottom:6}}>담당자 (인계)</label>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+                  {MEM.map(m=>{const on=sel.assigneeId===m.id;return(<button key={m.id||"n"} onClick={()=>up("tasks",sel.id,{assigneeId:m.id})} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 11px",borderRadius:20,border:`1.5px solid ${on?m.color:"#E5E8EB"}`,background:on?m.color+"18":"#fff",cursor:"pointer",fontFamily:"inherit"}}><span style={{width:16,height:16,borderRadius:"50%",backgroundColor:m.color,color:"#fff",fontSize:8.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{m.name[0]}</span><span style={{fontSize:12,fontWeight:700,color:on?m.color:"#4B5563"}}>{m.name}</span></button>);})}
+                </div>
+              </>)}
+              <label style={{display:"block",fontSize:11,fontWeight:800,color:"#4B5563",marginBottom:5}}>💬 논의 · 개선 <span style={{fontWeight:600,color:"#9CA3AF"}}>(이 여정의 방식·문제·외주/자동화 등)</span></label>
+              <textarea key={sel.id+"d"} defaultValue={sel.discuss||""} onBlur={e=>up("tasks",sel.id,{discuss:e.target.value})} placeholder="예: 전환율 낮음 → 카피 방식 변경 / 반복 작업 → 자동화 개발 검토" style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:13,resize:"vertical",minHeight:60,outline:"none",fontFamily:"inherit",boxSizing:"border-box",marginBottom:12}}/>
+              <button onClick={()=>onOpenProcess(proj)} style={{width:"100%",padding:"11px 0",borderRadius:11,border:"1.5px solid #DDD6FE",background:"#FAF9FF",fontSize:13,fontWeight:800,color:"#7C3AED",cursor:"pointer",fontFamily:"inherit"}}>🧩 이 여정의 프로세스 편집 (실행 업무)</button>
+              <p style={{margin:"10px 2px 0",fontSize:10.5,color:"#9CA3AF",lineHeight:1.6}}>※ 예상기간=계획값(현황 아님) · 🧩%는 그 국면 하위 업무 실제 진행 · 국면=프로세스의 최상위 단계</p>
+            </div>
+          )}
+        </>)}
+      </div>
+    </div>
+  );
+}
+function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
+  const [roadmapProj,setRoadmapProj]=useState(null);
   const [processProj,setProcessProj]=useState(null);
   const [filter,setFilter]=useState("mine");
   const [groupFilter,setGroupFilter]=useState("all");
@@ -1660,7 +1922,7 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
   const [actAddOpen,setActAddOpen]=useState(null);   // 지표 추가폼 펼친 프로젝트
   const actAddIndicator=(proj)=>{ if(!actForm.name.trim())return; const list=[...(proj.activityKPIs||[]),{id:"ak"+Date.now(),name:actForm.name.trim(),unit:actForm.unit||"건",target:Number(actForm.target)||0,current:0,history:[]}]; up("projects",proj.id,{activityKPIs:list}); setActForm({name:"",unit:"건",target:""}); };
   const actRecord=(proj,ak,raw)=>{ const amt=Number(raw); if(isNaN(amt))return; const prev=Number(ak.current||0); const v=actMode==="delta"?prev+amt:amt; const at=new Date().toISOString(); const week=weekKey(); const list=(proj.activityKPIs||[]).map(x=>x.id===ak.id?{...x,current:v,week,by:cu?.id||null,byName:cu?.name||"",history:[...(x.history||[]),{week,value:v,amount:amt,mode:actMode,by:cu?.id||null,byName:cu?.name||"",at}]}:x); up("projects",proj.id,{activityKPIs:list}); };
-  const actRemove=(proj,ak)=>up("projects",proj.id,{activityKPIs:(proj.activityKPIs||[]).filter(x=>x.id!==ak.id)});
+  const actRemove=(proj,ak)=>rmNested("projects",proj.id,"activityKPIs",ak.id,"활동지표");   // 삭제해도 휴지통에 보관·복구 가능
   // 목표지표 수정(이름·단위·목표값) + 변경분 수정이력 기록
   const actSaveEdit=(proj,ak,f)=>{
     const name=(f.name||"").trim()||ak.name;
@@ -1677,17 +1939,24 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
   const [editProjId,setEditProjId]=useState(null);
   const [projDel,setProjDel]=useState(null);
   const [showAdv,setShowAdv]=useState(false);
-  const [projForm,setProjForm]=useState({title:"",goalType:"journey",projType:"team",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high"});
+  const [projForm,setProjForm]=useState({title:"",goalType:"journey",projType:"team",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high",manualId:""});
   const [metric,setMetric]=useState({name:"",target:"",unit:"개"});
-  const resetProjForm=()=>{setProjForm({title:"",goalType:"journey",projType:"team",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high"});setMetric({name:"",target:"",unit:"개"});};
-  const openEditProj=(p)=>{ setProjForm({title:p.title||"",goalType:p.goalType||(p.mainKPIId==="mk2"||p.resultValue?"revenue":"journey"),projType:p.projType||((p.collaboratorIds||[]).length>0?"team":"solo"),mainKPIId:p.mainKPIId||"",subKPIId:p.subKPIId||"",dealerType:p.dealerType||"",assigneeId:p.assigneeId||cu.id,collaboratorIds:p.collaboratorIds||[],group:p.group||"",priority:p.priority||"mid"}); setMetric({name:"",target:"",unit:"개"}); setEditProjId(p.id); setShowAdv(true); setAddProjSheet(true); };
+  const resetProjForm=()=>{setProjForm({title:"",goalType:"journey",projType:"team",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high",manualId:""});setMetric({name:"",target:"",unit:"개"});};
+  const openEditProj=(p)=>{ setProjForm({title:p.title||"",goalType:p.goalType||(p.mainKPIId==="mk2"||p.resultValue?"revenue":"journey"),projType:p.projType||((p.collaboratorIds||[]).length>0?"team":"solo"),mainKPIId:p.mainKPIId||"",subKPIId:p.subKPIId||"",dealerType:p.dealerType||"",assigneeId:p.assigneeId||cu.id,collaboratorIds:p.collaboratorIds||[],group:p.group||"",priority:p.priority||"mid",manualId:""}); setMetric({name:"",target:"",unit:"개"}); setEditProjId(p.id); setShowAdv(true); setAddProjSheet(true); };
+  // 매뉴얼에서 새 프로젝트 시작 — 추가 시트를 매뉴얼 정보로 프리필
+  const startFromManual=(m)=>{ resetProjForm(); setEditProjId(null); setShowAdv(true); setProjForm(f=>({...f,title:m.name||"",projType:m.projType||"team",goalType:"journey",assigneeId:cu.id,manualId:m.id})); setAddProjSheet(true); };
   const doAddProj=()=>{
     if(!projForm.title.trim()) return;
-    if(editProjId){ up("projects",editProjId,{...projForm}); }
+    if(editProjId){ const {manualId,...rest}=projForm; up("projects",editProjId,{...rest}); }
     else {
-      const proj={id:"p"+Date.now(),...projForm,status:"active",progress:0,resultValue:0};
+      const {manualId,...rest}=projForm;
+      const projId="p"+Date.now();
+      const man=manualId&&(D.manuals||[]).find(m=>m.id===manualId);
+      const proj={id:projId,...rest,status:"active",progress:0,resultValue:0};
+      if(man){ proj.sourceManualId=man.id; proj.sourceManualName=man.name||""; proj.sourceManualVersion=man.version||1; if(man.countKPIId) proj.countKPIId=man.countKPIId; }   // 매뉴얼 역링크 + 이름 박제(삭제돼도 기록 유지) + 완료집계 상속
       if(projForm.goalType==="metric"&&metric.name.trim()) proj.activityKPIs=[{id:"ak"+Date.now(),name:metric.name.trim(),unit:metric.unit||"개",target:numF(metric.target),current:0,history:[]}];
       add("projects",proj);
+      if(man) cloneManualToProject(man,projId,projForm.projType,add);
     }
     resetProjForm(); setEditProjId(null); setShowAdv(false); setAddProjSheet(false);
   };
@@ -1697,10 +1966,10 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
   const demoProjs=D.projects.filter(p=>/^p\d{1,4}$/.test(p.id));
   const cleanupDemo=()=>{
     if(!demoProjs.length) return;
-    if(!window.confirm(`예시(데모) 프로젝트 ${demoProjs.length}개와 그 업무를 삭제할까요?\n내가 직접 만든 프로젝트는 그대로 남습니다.\n(되돌리려면 KPI ▸ 데이터 추출의 백업 사용)`)) return;
+    if(!window.confirm(`예시(데모) 프로젝트 ${demoProjs.length}개와 그 업무를 삭제할까요?\n내가 직접 만든 프로젝트는 그대로 남습니다.\n(삭제해도 휴지통에 보관 — KPI ▸ 데이터에서 언제든 복구 가능)`)) return;
     const ids=new Set(demoProjs.map(p=>p.id));
-    D.tasks.filter(t=>ids.has(t.projectId)).forEach(t=>rm("tasks",t.id));
-    demoProjs.forEach(p=>rm("projects",p.id));
+    D.tasks.filter(t=>ids.has(t.projectId)).forEach(t=>rm("tasks",t.id,true));
+    demoProjs.forEach(p=>rm("projects",p.id,true));
     setProjDetail(null);
   };
   const projs=filter==="all"?D.projects:D.projects.filter(p=>p.assigneeId===cu.id);
@@ -1712,8 +1981,8 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
     const a=document.createElement("a");a.href=url;a.download=`${name}_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);
   };
   const exportCSV=()=>{
-    const goalTypeL={revenue:"매출",metric:"수치목표",journey:"여정"};
-    const rows=[["제목","그룹","담당자","목표유형","거래처유형","메인KPI","서브KPI","우선순위","상태","진척도%","진척방식","업무(완료/전체)","매출(원)","매출입력자","매출최종일","매출입력횟수","목표지표"]];
+    const goalTypeL={revenue:"매출",metric:"활동지표",journey:"여정"};
+    const rows=[["제목","그룹","담당자","목표유형","거래처유형","메인KPI","서브KPI","우선순위","상태","진척도%","진척방식","업무(완료/전체)","매출(원)","매출입력자","매출최종일","매출입력횟수","활동지표"]];
     filtered.forEach(p=>{
       const a=D.users.find(u=>u.id===p.assigneeId);const mk=D.mainKPIs.find(m=>m.id===p.mainKPIId);const sk=D.subKPIs.find(s=>s.id===p.subKPIId);
       const ts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);const dn=ts.filter(t=>t.status==="done").length;
@@ -1738,12 +2007,72 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
   const ST=STATUS_MAP;
   const pTabs=(
     <div style={{display:"flex",gap:6,marginBottom:12}}>
-      {[["list","▦ 프로젝트"],["launch","🚀 출시"]].map(([k,l])=>(
-        <button key={k} onClick={()=>setPview(k)} style={{flex:1,padding:"9px 0",borderRadius:10,border:"none",cursor:"pointer",backgroundColor:pview===k?"#0F1F5C":"#F2F4F6",color:pview===k?"#fff":"#374151",fontWeight:800,fontSize:13,fontFamily:"inherit"}}>{l}</button>
+      {[["list","▦ 프로젝트"],["process","🗺 여정"],["launch","🚀 출시"]].map(([k,l])=>(
+        <button key={k} onClick={()=>setPview(k)} style={{flex:1,padding:"9px 0",borderRadius:10,border:"none",cursor:"pointer",backgroundColor:pview===k?"#0F1F5C":"#F2F4F6",color:pview===k?"#fff":"#374151",fontWeight:800,fontSize:12.5,fontFamily:"inherit"}}>{l}</button>
       ))}
     </div>
   );
   if(pview==="launch") return(<div><div style={{padding:"14px 16px 0"}}>{pTabs}</div><LaunchPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/></div>);
+  if(pview==="process") return(
+    <div style={{padding:"14px 16px 24px"}}>
+      {pTabs}
+      <p style={{margin:"0 2px 12px",fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>프로젝트별 여정(로드맵) · 국면을 타임라인으로 보고 · 각 국면의 방안은 프로세스</p>
+      {((D.manuals||[]).length>0||(D.launchTemplates||[]).length>0)&&(
+        <div style={{marginBottom:16,background:"#FFFBF5",border:"1px solid #FBE5C8",borderRadius:14,padding:"12px 13px"}}>
+          <p style={{margin:"0 0 9px",fontSize:12,fontWeight:900,color:"#EA580C"}}>📋 매뉴얼 <span style={{fontWeight:700,color:"#C08A4A"}}>· 저장된 표준 작업서 (새 프로젝트로 재사용)</span></p>
+          <div style={{display:"flex",flexDirection:"column",gap:7}}>
+            {(D.manuals||[]).map(m=><ManualCard key={m.id} m={m} D={D} up={up} rm={rm} startFromManual={startFromManual}/>)}
+            {(D.launchTemplates||[]).map(t=>(
+              <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,background:"#fff",borderRadius:10,border:"1px solid #F2E6D5",padding:"9px 11px"}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name}</p>
+                  <p style={{margin:"2px 0 0",fontSize:10,color:"#9CA3AF"}}><span style={{color:"#7C3AED",fontWeight:800}}>출시</span> · 마인드맵 · 단계 {(t.nodes||[]).length}</p>
+                </div>
+                <button onClick={()=>setPview("launch")} style={{flexShrink:0,padding:"6px 10px",borderRadius:9,border:"1.5px solid #DDD6FE",background:"#FAF9FF",color:"#7C3AED",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🚀 출시 탭에서</button>
+              </div>
+            ))}
+          </div>
+          <p style={{margin:"8px 2px 0",fontSize:10,color:"#C08A4A",lineHeight:1.5}}>출시 매뉴얼은 SKU를 찍어내고 운영지표에 자동 집계돼 <b>🚀 출시</b> 탭에서 다룹니다.</p>
+        </div>
+      )}
+      {(()=>{
+        const list=D.projects.filter(p=>D.tasks.some(t=>t.projectId===p.id&&!t.isFixed));
+        if(!list.length) return <Empty t="아직 여정이 없어요 · 프로젝트에서 🧩프로세스로 국면을 만들어보세요"/>;
+        const pIds=new Set(D.tasks.filter(t=>t.parentId).map(t=>t.parentId));
+        return(
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {list.map(p=>{
+              const ts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);
+              const stages=ts.filter(t=>!t.parentId);
+              const leaves=ts.filter(t=>!pIds.has(t.id));
+              const done=leaves.filter(t=>t.status==="done").length;
+              const prog=leaves.length?Math.round(done/leaves.length*100):0;
+              const totalDays=stages.reduce((a,s)=>a+(s.estDays||0),0);
+              const wk=Math.round(totalDays/7*10)/10;
+              const team=p.projType?p.projType==="team":(p.collaboratorIds||[]).length>0;
+              const who=D.users.find(u=>u.id===p.assigneeId);
+              return(
+                <button key={p.id} onClick={()=>setRoadmapProj(p)} style={{textAlign:"left",backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"13px 14px",cursor:"pointer",fontFamily:"inherit"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                    <span style={{fontSize:14}}>🗺</span>
+                    <span style={{flex:1,minWidth:0,fontSize:13.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span>
+                    <span style={{fontSize:9.5,fontWeight:800,color:team?"#EA580C":"#3182F6",background:team?"#FFEDD5":"#EBF3FF",borderRadius:6,padding:"2px 7px",flexShrink:0}}>{team?"팀":"개인"}</span>
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+                    <div style={{flex:1,height:6,borderRadius:6,background:"#F2F4F6",overflow:"hidden"}}><div style={{width:prog+"%",height:"100%",background:prog>=100?"#00C073":"#F97316",borderRadius:6}}/></div>
+                    <span style={{fontSize:12,fontWeight:900,color:prog>=100?"#00C073":"#F97316",flexShrink:0}}>{prog}%</span>
+                  </div>
+                  <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>국면 {stages.length}개{totalDays?` · 예상 ${wk}주`:""} · 업무 {done}/{leaves.length}{who?` · ${who.name}`:""}</p>
+                </button>
+              );
+            })}
+          </div>
+        );
+      })()}
+      {roadmapProj&&<ProjectRoadmap D={D} proj={roadmapProj} up={up} add={add} onClose={()=>setRoadmapProj(null)} onOpenProcess={(p)=>{setRoadmapProj(null);setProcessProj(p);}}/>}
+      {processProj&&<ProjectProcessEditor D={D} proj={processProj} cu={cu} add={add} up={up} rm={rm} onClose={()=>setProcessProj(null)}/>}
+    </div>
+  );
   return(
     <div style={{padding:"14px 16px 20px"}}>
       {pTabs}
@@ -1840,7 +2169,7 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
                   </div>
                   <div style={{padding:"12px 16px 0"}}>
                     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
-                      <span style={{fontSize:12,fontWeight:800,color:"#4B5563"}}>🎯 숫자로 세는 목표 <span style={{fontWeight:600,color:"#9CA3AF"}}>(매출 빼고)</span></span>
+                      <span style={{fontSize:12,fontWeight:800,color:"#4B5563"}}>🎯 활동지표 <span style={{fontWeight:600,color:"#9CA3AF"}}>(매출 빼고)</span></span>
                       <div style={{display:"inline-flex",borderRadius:7,border:"1px solid #E5E8EB",overflow:"hidden"}}>{[["delta","➕추가"],["total","=총값"]].map(([k,l])=>(<button key={k} onClick={()=>setActMode(k)} style={{padding:"3px 8px",fontSize:10.5,fontWeight:700,border:"none",cursor:"pointer",backgroundColor:actMode===k?"#8B5CF6":"#fff",color:actMode===k?"#fff":"#9CA3AF",fontFamily:"inherit"}}>{l}</button>))}</div>
                     </div>
                     {(proj.activityKPIs||[]).map(ak=>{const p2=pct(ak.current||0,ak.target||0);return(
@@ -1966,6 +2295,13 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
       </Sheet>
       <Sheet open={addProjSheet} onClose={()=>{setAddProjSheet(false);setEditProjId(null);setShowAdv(false);resetProjForm();}} title={editProjId?"프로젝트 수정":"프로젝트 추가"} h="92vh">
         <div style={{marginTop:10}}>
+          {!editProjId&&projForm.manualId&&(()=>{const m=(D.manuals||[]).find(x=>x.id===projForm.manualId);if(!m)return null;return(
+            <div style={{display:"flex",alignItems:"center",gap:8,background:"#FFF7ED",border:"1.5px solid #FBD9B5",borderRadius:11,padding:"10px 12px",marginBottom:14}}>
+              <span style={{fontSize:15}}>📋</span>
+              <div style={{flex:1,minWidth:0}}><p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#EA580C"}}>'{m.name}' 매뉴얼에서 생성</p><p style={{margin:"2px 0 0",fontSize:10.5,color:"#C08A4A"}}>국면 {(m.stages||[]).length}개와 프로세스가 함께 만들어져요</p></div>
+              <button onClick={()=>setProjForm(f=>({...f,manualId:""}))} style={{flexShrink:0,padding:"5px 9px",borderRadius:8,border:"1px solid #FBD9B5",background:"#fff",color:"#EA580C",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>해제</button>
+            </div>
+          );})()}
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>프로젝트명 *</label><input value={projForm.title} onChange={e=>setProjForm({...projForm,title:e.target.value})} onKeyDown={e=>{if(e.key==="Enter"&&projForm.title.trim())doAddProj();}} placeholder="프로젝트 이름 (Enter로 빠른 추가)" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>담당자</label><select value={projForm.assigneeId} onChange={e=>setProjForm({...projForm,assigneeId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}>{D.users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></div>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>프로젝트 유형</label>
@@ -1981,7 +2317,7 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
           <div style={{marginBottom:14}}>
             <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>이 프로젝트의 성과는? <span style={{color:"#9CA3AF",fontWeight:600}}>(측정 방식)</span></label>
             <div style={{display:"flex",gap:6}}>
-              {[["revenue","💰 매출","돈을 번다"],["metric","🎯 수치목표","상품등록 100개"],["journey","🔁 여정·구축","진행도로"]].map(([k,l,d])=>(
+              {[["revenue","💰 매출","돈을 번다"],["metric","🎯 활동지표","상품등록 100개"],["journey","🔁 여정·구축","진행도로"]].map(([k,l,d])=>(
                 <button key={k} onClick={()=>{setProjForm({...projForm,goalType:k});if(k==="revenue")setShowAdv(true);}} style={{flex:1,padding:"10px 4px",borderRadius:11,border:`1.5px solid ${projForm.goalType===k?"#F97316":"#E5E8EB"}`,background:projForm.goalType===k?"#FFEDD5":"#fff",cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
                   <p style={{margin:0,fontSize:12,fontWeight:800,color:projForm.goalType===k?"#EA580C":"#374151"}}>{l}</p>
                   <p style={{margin:"2px 0 0",fontSize:9,color:"#9CA3AF",lineHeight:1.3}}>{d}</p>
@@ -2024,8 +2360,8 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
         </div>
       </Sheet>
       <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments})}/>
-      <Confirm open={!!confirmTaskId} title="업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmTaskId)?.title}" 업무를 삭제할까요?`} onOk={()=>{rm("tasks",confirmTaskId);setConfirmTaskId(null);}} onCancel={()=>setConfirmTaskId(null)}/>
-      <Confirm open={!!projDel} title="프로젝트 삭제" desc={`"${D.projects.find(p=>p.id===projDel)?.title}" 프로젝트를 삭제할까요? 연결된 업무는 남습니다.`} onOk={()=>{rm("projects",projDel);setProjDel(null);setProjDetail(null);}} onCancel={()=>setProjDel(null)}/>
+      <Confirm open={!!confirmTaskId} title="업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmTaskId)?.title}" 업무를 삭제할까요?\n휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmTaskId);setConfirmTaskId(null);}} onCancel={()=>setConfirmTaskId(null)}/>
+      <Confirm open={!!projDel} title="프로젝트 삭제" desc={`"${D.projects.find(p=>p.id===projDel)?.title}" 프로젝트를 삭제할까요? 연결된 업무는 남습니다.\n휴지통에서 복구할 수 있어요.`} onOk={()=>{rm("projects",projDel);setProjDel(null);setProjDetail(null);}} onCancel={()=>setProjDel(null)}/>
       <Sheet open={!!actHist} onClose={()=>setActHist(null)} title="📜 활동지표 주차별 이력">
         {actHist&&(<div style={{marginTop:8}}>
           <p style={{margin:"0 0 12px",fontSize:13,fontWeight:900,color:"#0F1F5C"}}>{actHist.ak.name} <span style={{fontSize:11,color:"#9CA3AF",fontWeight:600}}>· 주목표 {fmt(actHist.ak.target||0,actHist.ak.unit)}</span></p>
@@ -2040,7 +2376,7 @@ function ProjectsPage({D,cu,up,add,rm,pc,lead,nav}){
           ))}
         </div>)}
       </Sheet>
-      <Sheet open={!!actEdit} onClose={()=>setActEdit(null)} title="🎯 목표지표 수정">
+      <Sheet open={!!actEdit} onClose={()=>setActEdit(null)} title="🎯 활동지표 수정">
         {actEdit&&(()=>{const ak=(actEdit.proj.activityKPIs||[]).find(x=>x.id===actEdit.ak.id)||actEdit.ak;return(
           <ActIndicatorEditForm ak={ak} onSave={(f)=>actSaveEdit(actEdit.proj,ak,f)}/>
         );})()}
@@ -2451,7 +2787,7 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
                   );
                 })}
               </div>
-              <button onClick={()=>{ if(window.confirm(`'${p.productName||p.title}' 출시 건을 삭제할까요? (단계 업무 포함)`)){ launchProjTasks(D,p).forEach(t=>rm("tasks",t.id)); rm("projects",p.id); } }} style={{marginTop:10,fontSize:11,fontWeight:700,color:"#C4C9D0",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
+              <button onClick={()=>{ if(window.confirm(`'${p.productName||p.title}' 출시 건을 삭제할까요? (단계 업무 포함)\n휴지통에서 복구할 수 있어요.`)){ launchProjTasks(D,p).forEach(t=>rm("tasks",t.id,true)); rm("projects",p.id,true); } }} style={{marginTop:10,fontSize:11,fontWeight:700,color:"#C4C9D0",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
             </div>
           );
         })}
@@ -2709,13 +3045,29 @@ function TeamBoard({D,cu}){
     </div>
   );
 }
-// 팀 진단 — 업무 데이터로 막힘·적체·헛심을 읽고 프로세스 개선(평가 아님·진단용)
-function TeamDiagnose({D,cu}){
+// 진단 데이터(이번 달 기준) — 완료는 이번 달, 미완은 현재
+const diagData=(D,month)=>{
   const parentIds=new Set((D.tasks||[]).filter(t=>t.parentId).map(t=>t.parentId));
   const leaf=t=>!t.isFixed&&!parentIds.has(t.id);
-  const mem=D.users.map(u=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.assigneeId===u.id);const done=ts.filter(t=>t.status==="done").length;const open=ts.length-done;const rate=ts.length?Math.round(done/ts.length*100):0;return {u,total:ts.length,done,open,rate,stuck:open>=3&&rate<50};}).sort((a,b)=>b.open-a.open);
-  const projStuck=(D.projects||[]).map(p=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.projectId===p.id);const done=ts.filter(t=>t.status==="done").length;return {p,total:ts.length,open:ts.length-done};}).filter(x=>x.open>0).sort((a,b)=>b.open-a.open).slice(0,6);
-  const heotsim=(D.projects||[]).filter(p=>p.mainKPIId==="mk1"||p.mainKPIId==="mk2").map(p=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.projectId===p.id);return {p,done:ts.filter(t=>t.status==="done").length,rev:numF(p.resultValue)};}).filter(x=>x.done>=3&&x.rev===0).sort((a,b)=>b.done-a.done).slice(0,6);
+  const inMonth=t=>(t.doneAt||"").slice(0,7)===month;
+  const mem=(D.users||[]).map(u=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.assigneeId===u.id);const open=ts.filter(t=>t.status!=="done").length;const doneM=ts.filter(t=>t.status==="done"&&inMonth(t)).length;const rate=(doneM+open)?Math.round(doneM/(doneM+open)*100):0;return {u,open,doneM,rate,stuck:open>=3&&rate<50};}).sort((a,b)=>b.open-a.open);
+  const projStuck=(D.projects||[]).map(p=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.projectId===p.id);const open=ts.filter(t=>t.status!=="done").length;return {p,total:ts.length,open};}).filter(x=>x.open>0).sort((a,b)=>b.open-a.open).slice(0,6);
+  const heotsim=(D.projects||[]).filter(p=>p.mainKPIId==="mk1"||p.mainKPIId==="mk2").map(p=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.projectId===p.id);return {p,doneM:ts.filter(t=>t.status==="done"&&inMonth(t)).length,rev:numF(p.resultValue)};}).filter(x=>x.doneM>=3&&x.rev===0).sort((a,b)=>b.doneM-a.doneM).slice(0,6);
+  return {mem,projStuck,heotsim};
+};
+// 회고용 진단 자동요약 텍스트
+const diagSummary=(D,month)=>{
+  const {mem,projStuck,heotsim}=diagData(D,month);
+  const lines=[]; const stuck=mem.filter(m=>m.stuck);
+  if(stuck.length) lines.push("· 막힘: "+stuck.map(m=>`${m.u.name}(미완 ${m.open}·완료율 ${m.rate}%)`).join(", "));
+  if(projStuck.length) lines.push("· 적체: "+projStuck.slice(0,3).map(x=>`${x.p.title}(미완 ${x.open}/${x.total})`).join(", "));
+  if(heotsim.length) lines.push("· 헛심(완료>매출0): "+heotsim.slice(0,3).map(x=>`${x.p.title}(완료 ${x.doneM})`).join(", "));
+  return lines.length?`[${month} 진단 자동요약]\n${lines.join("\n")}\n`:`[${month} 진단] 특이 신호 없음 (또는 데이터 부족)\n`;
+};
+// 팀 진단 — 업무 데이터로 막힘·적체·헛심을 읽고 프로세스 개선(평가 아님·진단용)
+function TeamDiagnose({D,cu}){
+  const month=nowMonth();
+  const {mem,projStuck,heotsim}=diagData(D,month);
   const Card=({icon,title,desc,action,children})=>(
     <div style={{background:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"14px 15px",marginBottom:12}}>
       <p style={{margin:0,fontSize:13.5,fontWeight:900,color:"#0F1F5C"}}>{icon} {title}</p>
@@ -2728,7 +3080,7 @@ function TeamDiagnose({D,cu}){
     <div>
       <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:14,padding:"13px 15px",marginBottom:14,color:"#fff"}}>
         <p style={{margin:0,fontSize:14,fontWeight:900}}>🩺 팀 진단</p>
-        <p style={{margin:"3px 0 0",fontSize:10.5,opacity:0.82}}>업무 데이터로 막힘·적체·헛심을 읽고 프로세스를 개선합니다 (평가 아님 · 진단용)</p>
+        <p style={{margin:"3px 0 0",fontSize:10.5,opacity:0.82}}>{month} 기준 · 막힘·적체·헛심을 읽고 개선 (완료=이번 달 / 미완=현재 · 평가 아님)</p>
       </div>
       <Card icon="⚠️" title="막힘·과부하 (담당자)" desc="안고 있는 미완이 많고 완료율이 낮으면 막힘/과부하 신호" action="막힌 담당자 일 재분배·프로세스 재설계">
         {mem.map(m=>(
@@ -2751,10 +3103,73 @@ function TeamDiagnose({D,cu}){
         {heotsim.length===0?<p style={{margin:0,fontSize:12,color:"#C4C9D0"}}>해당 없음</p>:heotsim.map(x=>(
           <div key={x.p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid #F6F7F9"}}>
             <span style={{flex:1,fontSize:12.5,fontWeight:600,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{x.p.title}</span>
-            <span style={{fontSize:11,fontWeight:700,color:"#9CA3AF",flexShrink:0}}>완료 {x.done} · 매출 0</span>
+            <span style={{fontSize:11,fontWeight:700,color:"#9CA3AF",flexShrink:0}}>완료 {x.doneM} · 매출 0</span>
           </div>
         ))}
       </Card>
+    </div>
+  );
+}
+// 가이드 — KPI 구조·데이터 흐름·사용법 설명
+function GuidePage({D}){
+  const Sec=({n,title,children})=>(
+    <div style={{backgroundColor:"#fff",borderRadius:16,border:"1px solid #F2F4F6",padding:"16px 16px 14px",marginBottom:12}}>
+      <p style={{margin:"0 0 10px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}><span style={{color:"#F97316"}}>{n}</span> {title}</p>
+      {children}
+    </div>
+  );
+  const Row=({l,d,c})=>(
+    <div style={{display:"flex",gap:9,padding:"7px 0",borderBottom:"1px solid #F6F7F9"}}>
+      <span style={{flexShrink:0,fontSize:12.5,fontWeight:800,color:c||"#1F2937",minWidth:78}}>{l}</span>
+      <span style={{flex:1,fontSize:12,color:"#4B5563",lineHeight:1.55}}>{d}</span>
+    </div>
+  );
+  return(
+    <div style={{padding:"14px 16px 30px",maxWidth:720,margin:"0 auto"}}>
+      <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",color:"#fff",borderRadius:16,padding:"18px",marginBottom:14}}>
+        <p style={{margin:0,fontSize:17,fontWeight:900}}>📖 이 앱 사용법</p>
+        <p style={{margin:"6px 0 0",fontSize:12,opacity:0.85,lineHeight:1.6}}>팀 최종목표(2026 매출 10억)를 <b>매일의 업무 실행</b>과 연결하고, 누가 무슨 활동으로 얼마를 벌었는지까지 자동 집계·기록합니다.<br/><b>"기록되지 않은 업무 = 하지 않은 것."</b></p>
+      </div>
+
+      <Sec n="1." title="목표 구조 — 무엇으로 관리하나 (3+1)">
+        <Row l="💰 매출" c="#EA580C" d="직판 5억 + B2B 5억 = 돈. 프로젝트 매출을 입력하면 채널·메인KPI·최종목표로 자동 집계."/>
+        <Row l="📊 운영" c="#3182F6" d="CRM·어드민 등 전략 모듈의 구축 완성도(%). 직판·B2B와 나란한 3대 전략 축 (잔손 아님)."/>
+        <Row l="🎯 활동지표" c="#8B5CF6" d="상품등록 100개·견적 50건 같은 반복 수량. 프로젝트 안에서 입력 → 전사 합산."/>
+        <Row l="📅 월간 개인목표" c="#00C073" d="개인이 한 달 단위로 정하는 목표. (목표·회고 메뉴)"/>
+        <div style={{marginTop:10,padding:"9px 11px",background:"#FFF7ED",borderRadius:10,border:"1px solid #FED7AA"}}>
+          <p style={{margin:0,fontSize:11,fontWeight:700,color:"#9A3412",lineHeight:1.6}}>⚖️ 운영 vs 활동지표 경계 — <b>큰 구축물(완성도 %) = 운영</b> / <b>반복 수량(개·건) = 활동지표</b></p>
+        </div>
+      </Sec>
+
+      <Sec n="2." title="데이터 흐름 — 한 방향으로 흐른다">
+        <div style={{background:"#FAFBFC",border:"1px solid #EDF0F3",borderRadius:10,padding:"11px 13px",fontFamily:"'IBM Plex Mono',monospace",fontSize:11,color:"#374151",lineHeight:1.9}}>
+          업무 체크 → <b>진척률</b> 자동<br/>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ <b>기여</b>(누가 했나) → <b>진단</b>(막힘·헛심) → <b>회고</b><br/>
+          매출 입력(프로젝트) → 채널·단가 → 메인KPI → <b>최종목표</b>
+        </div>
+        <p style={{margin:"9px 2px 0",fontSize:11,color:"#9CA3AF",lineHeight:1.6}}>· 매출은 <b>메인KPI2 프로젝트 한 곳</b>에서만 입력 → 나머지는 전부 파생(단일 소스).<br/>· 업무를 체크하면 진척·기여·진단·회고가 자동으로 채워집니다.</p>
+      </Sec>
+
+      <Sec n="3." title="어디서 뭘 하나 — 메뉴 가이드">
+        <p style={{margin:"0 0 5px",fontSize:11,fontWeight:800,color:"#9CA3AF"}}>개인 · 나만</p>
+        <Row l="🏠 오늘" d="내 업무 체크 · 인계받은 '내 차례' · 이번 주 메모"/>
+        <Row l="🎯 내 주간" d="이번 주 명심할 메모 + 내가 한 일 집계"/>
+        <Row l="📌 고정업무" d="매일·매주 반복 업무(반복 등록)"/>
+        <Row l="◷ 목표·회고" d="월간 개인목표 · 월말 회고 · 🩺 진단(막힘·적체·헛심)"/>
+        <p style={{margin:"10px 0 5px",fontSize:11,fontWeight:800,color:"#9CA3AF"}}>팀 · 공유</p>
+        <Row l="◎ KPI" d="목표 트리(매출·운영·활동지표) · 매출 입력"/>
+        <Row l="▦ 프로젝트" d="프로젝트별 🧩프로세스(업무 트리)·업무·활동지표 / 🚀출시 탭"/>
+        <Row l="◈ 업무 보드" d="개인 상세(담당자 트리·주간맵) / 팀 전체 현황"/>
+        <Row l="▤ 캘린더" d="일정·미팅"/>
+      </Sec>
+
+      <Sec n="4." title="언제 뭘 하나 — 루틴">
+        <Row l="매일" c="#3182F6" d="오늘 화면에서 내 업무·인계 체크 (팀 프로젝트는 🧩프로세스로 진행)"/>
+        <Row l="주 마지막날" c="#EA580C" d="오늘 화면 '이번 주 마감 입력' → 매출·KPI·활동지표 한 번에"/>
+        <Row l="월말" c="#8B5CF6" d="목표·회고 → 진단 자동요약 보고 회고 작성 → 다음 달 개선"/>
+      </Sec>
+
+      <p style={{margin:"4px 2px 0",fontSize:10.5,color:"#C4C9D0",textAlign:"center"}}>POUR OS · 브랜드커머스팀 업무관리</p>
     </div>
   );
 }
@@ -3053,7 +3468,7 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
         </div>
       </Sheet>
       <EditTaskSheet open={!!editTarget} onClose={()=>setEditTarget(null)} task={editTarget} D={D} add={add} onSave={f=>up("tasks",editTarget.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments})}/>
-      <Confirm open={!!confirmId} title="고정업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmId)?.title}" 업무를 삭제할까요?`} onOk={()=>{rm("tasks",confirmId);setConfirmId(null);}} onCancel={()=>setConfirmId(null)}/>
+      <Confirm open={!!confirmId} title="고정업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmId)?.title}" 업무를 삭제할까요?\n휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmId);setConfirmId(null);}} onCancel={()=>setConfirmId(null)}/>
     </div>
   );
 }
@@ -3074,7 +3489,7 @@ function RetroPage({D,cu,add,up,rm}){
   const overallPct=myGoals.length===0?0:Math.round(myGoals.reduce((s,g)=>s+gp(g,g.currentValue),0)/myGoals.length);
   const openRetro=()=>{
     const gs=myGoals.length>0?myGoals.map(g=>`· ${g.title}: ${g.currentValue}${g.unit}/${g.targetValue}${g.unit} (${gp(g,g.currentValue)}%)`).join("\n"):"";
-    setRForm(thisMonth?{...thisMonth}:{pain:"",effort:gs,learned:"",next:""});setRetroModal(true);
+    setRForm(thisMonth?{...thisMonth}:{pain:diagSummary(D,month),effort:gs,learned:"",next:""});setRetroModal(true);
   };
   const saveRetro=()=>{
     if(!rForm.pain&&!rForm.effort&&!rForm.learned&&!rForm.next) return;
@@ -3261,7 +3676,7 @@ function GamePage({D,cu,up,add,rm,nav}){
         <p style={{margin:0,fontSize:11,fontWeight:800,opacity:0.7,letterSpacing:2}}>{weekLabel(wk)} · 내 주간</p>
         <p style={{margin:"6px 0 0",fontSize:21,fontWeight:900}}>이번 주 나의 한 주</p>
         <div style={{display:"flex",gap:8,marginTop:14}}>
-          {[["완료 업무",wTask,"✅"],["매출 입력",wSales,"💰"],["목표지표",wAct,"🎯"]].map(([l,v,ic])=>(
+          {[["완료 업무",wTask,"✅"],["매출 입력",wSales,"💰"],["활동지표",wAct,"🎯"]].map(([l,v,ic])=>(
             <div key={l} style={{flex:1,background:"rgba(255,255,255,0.12)",borderRadius:12,padding:"9px 6px",textAlign:"center"}}>
               <p style={{margin:0,fontSize:17,fontWeight:900}}>{ic} {v}</p>
               <p style={{margin:"1px 0 0",fontSize:9.5,opacity:0.8}}>{l}</p>
@@ -3284,7 +3699,7 @@ function GamePage({D,cu,up,add,rm,nav}){
         </div>
       ))}
       <h3 style={{margin:"18px 2px 8px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>👥 프로젝트 기여 현황</h3>
-      <p style={{margin:"0 2px 10px",fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>내가 맡은 프로젝트에 <b>누가 얼마나</b> 기여했는지(완료 업무·매출·목표지표 기록 기준)예요.</p>
+      <p style={{margin:"0 2px 10px",fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>내가 맡은 프로젝트에 <b>누가 얼마나</b> 기여했는지(완료 업무·매출·활동지표 기록 기준)예요.</p>
       {myProjs.filter(p=>projContrib(D,p).length>0).map(p=>{const rows=projContrib(D,p);const max=Math.max(...rows.map(r=>r.total),1);return(
         <div key={p.id} style={{background:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"12px 14px",marginBottom:8}}>
           <p style={{margin:"0 0 8px",fontSize:12.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</p>
@@ -3304,19 +3719,19 @@ function GamePage({D,cu,up,add,rm,nav}){
   );
 }
 // 모든 데이터 자산을 CSV로 추출 (추출 사각 제거)
-function ExportPanel({D,up}){
+function ExportPanel({D,up,restore}){
   const uname=(id)=>D.users.find(u=>u.id===id)?.name||"";
   // 예시(데모) KPI·채널 수치 0으로 초기화 — 목표·구조는 유지, 현재 숫자만 비움
   const resetNums=()=>{
     if(!up) return;
-    if(!window.confirm("KPI·채널의 현재 수치를 모두 0으로 초기화할까요?\n목표·구조(직판/B2B/운영·채널)는 그대로 두고 예시 숫자만 비웁니다.\n(되돌리려면 아래 '전체 백업(JSON)'을 먼저 받아두세요)")) return;
-    (D.subKPIs||[]).forEach(s=>up("subKPIs",s.id,{currentValue:0,valueHistory:[]}));
-    (D.mainKPIs||[]).forEach(m=>up("mainKPIs",m.id,{currentValue:0,valueHistory:[]}));
+    if(!window.confirm("KPI·채널의 현재 수치를 모두 0으로 초기화할까요?\n목표·구조(직판/B2B/운영·채널)는 그대로 두고 현재 숫자만 0으로 만듭니다.\n입력 이력(📜)은 자산으로 보존됩니다. (전체 백업(JSON) 권장)")) return;
+    (D.subKPIs||[]).forEach(s=>up("subKPIs",s.id,{currentValue:0}));    // 이력(valueHistory)은 지우지 않음 — 데이터 자산화
+    (D.mainKPIs||[]).forEach(m=>up("mainKPIs",m.id,{currentValue:0}));
     (D.goals||[]).forEach(g=>up("goals",g.id,{currentValue:0}));
   };
-  const goalTypeL={revenue:"매출",metric:"수치목표",journey:"여정"};
+  const goalTypeL={revenue:"매출",metric:"활동지표",journey:"여정"};
   const expProjects=()=>{
-    const rows=[["제목","그룹","담당자","목표유형","거래처유형","메인KPI","서브KPI","우선순위","상태","진척도%","진척방식","업무(완료/전체)","매출(원)","매출입력자","매출최종일","목표지표"]];
+    const rows=[["제목","그룹","담당자","목표유형","거래처유형","메인KPI","서브KPI","우선순위","상태","진척도%","진척방식","업무(완료/전체)","매출(원)","매출입력자","매출최종일","활동지표"]];
     (D.projects||[]).forEach(p=>{const mk=D.mainKPIs.find(m=>m.id===p.mainKPIId);const sk=D.subKPIs.find(s=>s.id===p.subKPIId);const ts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);const dn=ts.filter(t=>t.status==="done").length;const aks=(p.activityKPIs||[]).map(ak=>`${ak.name} ${numF(ak.current)}/${numF(ak.target)}${ak.unit||""}`).join(" · ");rows.push([p.title,p.group||"",uname(p.assigneeId),goalTypeL[p.goalType]||"",p.dealerType||"",mk?.title||"",sk?.title||"",p.priority||"",p.status||"",p.progress||0,p.progressManual?"수동":"자동",`${dn}/${ts.length}`,numF(p.resultValue),p.salesByName||"",(p.salesAt||"").slice(0,10),aks]);});
     downloadCSV(rows,"프로젝트");
   };
@@ -3334,7 +3749,7 @@ function ExportPanel({D,up}){
     downloadCSV(rows,"KPI주차실적");
   };
   const expContrib=()=>{
-    const rows=[["프로젝트","담당자","완료업무","매출입력","목표지표","합계","이번주"]];
+    const rows=[["프로젝트","담당자","완료업무","매출입력","활동지표","합계","이번주"]];
     (D.projects||[]).forEach(p=>projContrib(D,p).forEach(r=>rows.push([p.title,uname(r.uid),r.task,r.sales,r.act,r.total,r.wk])));
     if(rows.length===1)return alert("기여 기록이 없어요");
     downloadCSV(rows,"기여도");
@@ -3342,8 +3757,8 @@ function ExportPanel({D,up}){
   const expIndicators=()=>{
     const rows=[["프로젝트","지표명","단위","현재","목표","달성%","최종입력자"]];
     (D.projects||[]).forEach(p=>(p.activityKPIs||[]).forEach(ak=>rows.push([p.title,ak.name,ak.unit||"",numF(ak.current),numF(ak.target),pct(numF(ak.current),numF(ak.target)),ak.byName||""])));
-    if(rows.length===1)return alert("목표지표가 없어요");
-    downloadCSV(rows,"목표지표");
+    if(rows.length===1)return alert("활동지표가 없어요");
+    downloadCSV(rows,"활동지표");
   };
   const expWeekGoals=()=>{
     const rows=[["주차","담당자","메모"]];
@@ -3358,7 +3773,7 @@ function ExportPanel({D,up}){
     if(rows.length===1)return alert("업무 기록이 없어요");
     downloadCSV(rows,"업무");
   };
-  const items=[["✅ 업무 전체",expTasks],["📁 프로젝트 전체",expProjects],["💰 매출 이력",expSales],["📊 KPI 주차 실적",expKpi],["👥 기여도",expContrib],["🎯 목표지표",expIndicators],["📝 주간 메모",expWeekGoals]];
+  const items=[["✅ 업무 전체",expTasks],["📁 프로젝트 전체",expProjects],["💰 매출 이력",expSales],["📊 KPI 주차 실적",expKpi],["👥 기여도",expContrib],["🎯 활동지표",expIndicators],["📝 주간 메모",expWeekGoals]];
   // 분할 저장 → 한도는 컬렉션별로 적용. 가장 큰 컬렉션이 실질 제약.
   const colSizes=SHARED_KEYS.map(k=>[k,new Blob([JSON.stringify(pickShared(D)[k]||[])]).size]).sort((a,b)=>b[1]-a[1]);
   const [maxKey,maxBytes]=colSizes[0]||["",0];
@@ -3366,7 +3781,29 @@ function ExportPanel({D,up}){
   const pctUsed=Math.min(100,Math.round(maxBytes/DOC_LIMIT*100));
   const barColor=pctUsed>=85?"#DC2626":pctUsed>=60?"#D97706":"#059669";
   const mirrorAt=(()=>{try{return localStorage.getItem(MIRROR_AT_KEY);}catch(_){return null;}})();
+  const trash=D.trash||[];
   return(
+    <>
+    {/* 휴지통 — 삭제된 모든 데이터는 사라지지 않고 보관됨(복구 가능). 데이터 자산화 원칙. */}
+    <div style={{background:"#FFFFFF",borderRadius:16,padding:"14px 16px",marginTop:14,border:"1px solid #F2F4F6"}}>
+      <h3 style={{margin:"0 0 3px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>🗑 휴지통 {trash.length>0&&<span style={{fontSize:12,fontWeight:800,color:"#EA580C"}}>({trash.length})</span>}</h3>
+      <p style={{margin:"0 0 10px",fontSize:10.5,color:"#9CA3AF"}}>삭제한 업무·KPI·프로젝트는 <b>사라지지 않고 여기 보관</b>돼요 — 언제든 복구할 수 있어요</p>
+      {trash.length===0?(
+        <p style={{margin:0,fontSize:11.5,color:"#B0B8C1",textAlign:"center",padding:"14px 0"}}>삭제된 데이터가 없어요</p>
+      ):(
+        <div style={{display:"flex",flexDirection:"column",gap:6}}>
+          {[...trash].reverse().slice(0,60).map(t=>(
+            <div key={t._tid} style={{display:"flex",alignItems:"center",gap:8,background:"#F9FAFB",borderRadius:10,padding:"8px 10px"}}>
+              <span style={{flexShrink:0,fontSize:9.5,fontWeight:800,color:"#6B7280",background:"#EEF1F4",borderRadius:5,padding:"2px 6px"}}>{COL_LABEL[t._col]||t._typeLabel||t._col}</span>
+              <span style={{flex:1,minWidth:0,fontSize:12,fontWeight:700,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title||t.name||t.companyName||t.targetName||t.week||t._label||t.id||"(제목 없음)"}</span>
+              <span style={{flexShrink:0,fontSize:9.5,color:"#9CA3AF"}}>{(t._deletedAt||"").slice(5,10)}{t._deletedByName?" · "+t._deletedByName:""}</span>
+              <button onClick={()=>{ if(t._col==="_nested"&&!(D[t._parentCol]||[]).some(x=>x.id===t._parentId)){ window.alert(`먼저 상위 '${COL_LABEL[t._parentCol]||t._parentCol}'을(를) 복구한 뒤에 이 항목을 복구할 수 있어요.`); return; } restore(t._tid); }} style={{flexShrink:0,padding:"5px 10px",borderRadius:8,border:"1px solid #DBE3FF",background:"#fff",color:"#3182F6",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>복구</button>
+            </div>
+          ))}
+          {trash.length>60&&<p style={{margin:"4px 0 0",fontSize:10,color:"#9CA3AF",textAlign:"center"}}>최근 60건 표시 · 전체 {trash.length}건은 백업(JSON)에 모두 보존됩니다</p>}
+        </div>
+      )}
+    </div>
     <div style={{background:"#FFFFFF",borderRadius:16,padding:"14px 16px",marginTop:14,border:"1px solid #F2F4F6"}}>
       <h3 style={{margin:"0 0 3px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>💾 백업 · 데이터 추출</h3>
       <p style={{margin:"0 0 10px",fontSize:10.5,color:"#9CA3AF"}}>정기적으로 <b>전체 백업(JSON)</b>을 내려받아 안전하게 보관하세요</p>
@@ -3392,6 +3829,7 @@ function ExportPanel({D,up}){
         {items.map(([l,fn])=>(<button key={l} onClick={fn} style={{padding:"11px 8px",borderRadius:11,border:"1.5px solid #E5E8EB",background:"#F9FAFB",fontSize:12,fontWeight:700,color:"#374151",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>⬇ {l}</button>))}
       </div>
     </div>
+    </>
   );
 }
 function AIPage({D,cu,add,rm}){

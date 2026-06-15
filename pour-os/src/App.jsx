@@ -2232,6 +2232,9 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
                   </div>
                   <PBar value={proj.progress} color={proj.progress>=70?"#00C073":"#3182F6"} h={7}/>{proj.mainKPIId==="mk2"&&<div style={{marginTop:7,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 10px",backgroundColor:proj.resultValue>0?"#FFF7ED":"#F9FAFB",borderRadius:8}}><span style={{fontSize:10.5,fontWeight:700,color:"#9CA3AF"}}>💵 매출 성과 (결과)</span><span style={{fontSize:12.5,fontWeight:900,color:proj.resultValue>0?"#EA580C":"#D1D5DB"}}>{fmt(proj.resultValue||0,"원")}</span></div>}
                 </div>
+                <div style={{marginTop:10}}>
+                  <button onClick={e=>{e.stopPropagation();setProcessProj(proj);}} style={{padding:"7px 13px",borderRadius:9,border:"1.5px solid #DDD6FE",background:"#FAF9FF",color:"#7C3AED",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🧩 {tasks.length?"프로세스 편집":"프로세스 만들기"}</button>
+                </div>
               </div>
               {projDetail?.id===proj.id&&(
                 <div style={{borderTop:"1px solid #F2F4F6",backgroundColor:"#F9FAFB"}}>

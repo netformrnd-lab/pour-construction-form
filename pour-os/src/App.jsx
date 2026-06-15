@@ -309,11 +309,11 @@ const downloadCSV=(rows,name)=>{
   const a=document.createElement("a");a.href=url;a.download=`${name}_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);
 };
 const EditTaskSheet=({open,onClose,task,onSave,D,add})=>{
-  const [form,setForm]=useState({title:"",status:"todo",dueDate:"",memo:"",projectId:"",assigneeId:"",attachments:[]});
+  const [form,setForm]=useState({title:"",status:"todo",dueDate:"",memo:"",projectId:"",assigneeId:"",attachments:[],weekDay:"",weekSlot:null});
   const [prevId,setPrevId]=useState(null);
   const [uploading,setUploading]=useState(false);
-  if(task&&task.id!==prevId){setPrevId(task.id);setForm({title:task.title||"",status:task.status||"todo",dueDate:task.dueDate||"",memo:task.memo||"",projectId:task.projectId||"",assigneeId:task.assigneeId||"",attachments:Array.isArray(task.attachments)?task.attachments:[]});}
-  if(!task&&prevId!==null){setPrevId(null);setForm({title:"",status:"todo",dueDate:"",memo:"",projectId:"",assigneeId:"",attachments:[]});}
+  if(task&&task.id!==prevId){setPrevId(task.id);setForm({title:task.title||"",status:task.status||"todo",dueDate:task.dueDate||"",memo:task.memo||"",projectId:task.projectId||"",assigneeId:task.assigneeId||"",attachments:Array.isArray(task.attachments)?task.attachments:[],weekDay:task.weekDay||"",weekSlot:task.weekSlot??null});}
+  if(!task&&prevId!==null){setPrevId(null);setForm({title:"",status:"todo",dueDate:"",memo:"",projectId:"",assigneeId:"",attachments:[],weekDay:"",weekSlot:null});}
   const onPick=async(files)=>{
     const list=Array.from(files||[]);
     if(!list.length||!task)return;
@@ -344,10 +344,24 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add})=>{
           <input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
         </div>
         <div style={{marginBottom:14}}>
-          <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>상태</label>
-          <select value={form.status} onChange={e=>setForm({...form,status:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}>
-            {Object.entries(STATUS_MAP).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
-          </select>
+          <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>상태</label>
+          <div style={{display:"flex",gap:6}}>
+            {Object.entries(STATUS_MAP).map(([k,v])=>{const on=form.status===k;return(
+              <button key={k} type="button" onClick={()=>setForm({...form,status:k})} style={{flex:1,padding:"9px 4px",borderRadius:10,border:`1.5px solid ${on?v.color:"#E5E8EB"}`,background:on?v.color+"16":"#fff",color:on?v.color:"#9CA3AF",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{v.label}</button>
+            );})}
+          </div>
+        </div>
+        <div style={{marginBottom:14}}>
+          <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>요일 배치 <span style={{color:"#9CA3AF",fontWeight:600}}>(오늘/요일에 두거나 미배치)</span></label>
+          <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+            {(()=>{const td=todayDay();const on=form.weekDay===td&&WEEK_DAYS.includes(td);return(
+              <button type="button" onClick={()=>setForm({...form,weekDay:td,weekSlot:null})} style={{padding:"8px 12px",borderRadius:10,border:`1.5px solid ${on?"#F97316":"#FDBA74"}`,background:on?"#F97316":"#FFF7ED",color:on?"#fff":"#EA580C",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>📍 오늘({td})</button>
+            );})()}
+            {WEEK_DAYS.map(d=>{const on=form.weekDay===d;return(
+              <button key={d} type="button" onClick={()=>setForm({...form,weekDay:d,weekSlot:form.weekDay===d?form.weekSlot:null})} style={{padding:"8px 10px",borderRadius:10,border:`1.5px solid ${on?"#3182F6":"#E5E8EB"}`,background:on?"#EBF3FF":"#fff",color:on?"#3182F6":"#6B7280",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{d}</button>
+            );})}
+            <button type="button" onClick={()=>setForm({...form,weekDay:"",weekSlot:null})} style={{padding:"8px 10px",borderRadius:10,border:`1.5px solid ${!form.weekDay?"#9CA3AF":"#E5E8EB"}`,background:!form.weekDay?"#F2F4F6":"#fff",color:!form.weekDay?"#4B5563":"#9CA3AF",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>미배치</button>
+          </div>
         </div>
         <div style={{marginBottom:14}}>
           <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>담당자 <span style={{color:"#9CA3AF",fontWeight:600}}>(선택 · 기본 미배정)</span></label>
@@ -1203,7 +1217,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           </div>
         </Sheet>
       )}
-      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments})}/>
+      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null})}/>
       <Confirm open={!!confirmTaskId} title="업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmTaskId)?.title}" 업무를 삭제할까요?\n휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmTaskId);setConfirmTaskId(null);}} onCancel={()=>setConfirmTaskId(null)}/>
     </div>
   );
@@ -2496,7 +2510,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
           <button onClick={doAddProj} disabled={!projForm.title.trim()} style={{width:"100%",padding:"14px 0",borderRadius:14,border:"none",backgroundColor:projForm.title.trim()?"#F97316":"#E5E8EB",color:projForm.title.trim()?"#FFFFFF":"#9CA3AF",fontSize:15,fontWeight:700,cursor:projForm.title.trim()?"pointer":"not-allowed",fontFamily:"inherit"}}>{editProjId?"수정 저장":"프로젝트 추가하기"}</button>
         </div>
       </Sheet>
-      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments})}/>
+      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null})}/>
       <Confirm open={!!confirmTaskId} title="업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmTaskId)?.title}" 업무를 삭제할까요?\n휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmTaskId);setConfirmTaskId(null);}} onCancel={()=>setConfirmTaskId(null)}/>
       <Confirm open={!!projDel} title="프로젝트 삭제" desc={`"${D.projects.find(p=>p.id===projDel)?.title}" 프로젝트를 삭제할까요? 연결된 업무는 남습니다.\n휴지통에서 복구할 수 있어요.`} onOk={()=>{rm("projects",projDel);setProjDel(null);setProjDetail(null);}} onCancel={()=>setProjDel(null)}/>
       <Sheet open={!!actHist} onClose={()=>setActHist(null)} title="📜 활동지표 주차별 이력">
@@ -3604,7 +3618,7 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
           <Btn full variant="orange" onClick={doAdd} disabled={!form.title.trim()}>추가하기</Btn>
         </div>
       </Sheet>
-      <EditTaskSheet open={!!editTarget} onClose={()=>setEditTarget(null)} task={editTarget} D={D} add={add} onSave={f=>up("tasks",editTarget.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments})}/>
+      <EditTaskSheet open={!!editTarget} onClose={()=>setEditTarget(null)} task={editTarget} D={D} add={add} onSave={f=>up("tasks",editTarget.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null})}/>
       <Confirm open={!!confirmId} title="고정업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmId)?.title}" 업무를 삭제할까요?\n휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmId);setConfirmId(null);}} onCancel={()=>setConfirmId(null)}/>
     </div>
   );

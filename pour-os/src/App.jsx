@@ -1178,6 +1178,43 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           </div>
         );
       })()}
+      {myProjs.length>0&&(()=>{
+        const readyProjIds=new Set(myReadyLaunch.map(r=>r.proj.id));
+        const CC=[["todo","미완료","#EA580C"],["inprogress","진행중","#3182F6"],["done","완료","#00A862"],["hold","보류","#FF9500"]];
+        const projRank=(pr)=>{const ts=D.tasks.filter(t=>t.projectId===pr.id&&!t.isFixed);if(readyProjIds.has(pr.id))return 0;if(ts.some(t=>t.assigneeId===cu.id&&t.status!=="done"&&t.status!=="hold"))return 1;if(ts.length>0&&ts.every(t=>t.status==="done"))return 3;return 2;};
+        const sortedProjs=[...myProjs].sort((a,b)=>projRank(a)-projRank(b)||(b.progress||0)-(a.progress||0));
+        return(
+          <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #F2F4F6",marginBottom:14}}>
+            <div style={{marginBottom:10}}>
+              <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#0F1F5C"}}>📁 내 프로젝트 현황 ({myProjs.length})</h3>
+              <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>대기/내 차례 · 상태별 업무 현황 (탭하면 프로젝트로 이동)</p>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {sortedProjs.map(pr=>{
+                const ts=D.tasks.filter(t=>t.projectId===pr.id&&!t.isFixed);
+                const c={todo:0,inprogress:0,done:0,hold:0}; ts.forEach(t=>{if(c[t.status]!=null)c[t.status]++;});
+                const mineTurn=readyProjIds.has(pr.id);
+                const allDone=ts.length>0&&ts.every(t=>t.status==="done");
+                const myOpen=ts.some(t=>t.assigneeId===cu.id&&t.status!=="done"&&t.status!=="hold");
+                const bd=mineTurn?{l:"내 차례",c:"#EA580C",bg:"#FFF7ED"}:allDone?{l:"완료",c:"#00A862",bg:"#E8FAF1"}:myOpen?{l:"진행 중",c:"#3182F6",bg:"#EBF3FF"}:{l:"대기",c:"#9CA3AF",bg:"#F2F4F6"};
+                return(
+                  <div key={pr.id} onClick={()=>nav("projects")} style={{padding:"11px 12px",borderRadius:12,border:`1px solid ${mineTurn?"#FED7AA":"#EEF1F4"}`,backgroundColor:mineTurn?"#FFFBF5":"#F9FAFB",cursor:"pointer"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
+                      <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pr.title}</span>
+                      <span style={{flexShrink:0,fontSize:10,fontWeight:800,color:bd.c,background:bd.bg,borderRadius:6,padding:"2px 8px"}}>{bd.l}</span>
+                      <span style={{flexShrink:0,fontSize:12,fontWeight:900,color:(pr.progress||0)>=70?"#00C073":"#3182F6"}}>{pr.progress||0}%</span>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7,flexWrap:"wrap"}}>
+                      {CC.map(([k,l,col])=>(<span key={k} style={{fontSize:10.5,fontWeight:700,color:c[k]>0?col:"#C4C9D0"}}>{l} {c[k]}</span>))}
+                    </div>
+                    <PBar value={pr.progress||0} color={(pr.progress||0)>=70?"#00C073":"#3182F6"} h={5}/>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
       {slotSheet&&(
         <Sheet open={true} onClose={()=>setSlotSheet(null)} title={`${slotSheet.day}요일 ${slotSheet.slot}순위 슬롯`} h="70vh">
           <div style={{marginTop:12}}>

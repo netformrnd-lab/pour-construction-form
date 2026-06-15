@@ -452,7 +452,8 @@ export default function App(){
       const markFirst=(k)=>{ if(firstPending.size){ firstPending.delete(k); if(firstPending.size===0){ loadedRef.current=true; setLoaded(true); console.log("[pour-os] v2 로드 완료"); } } };
       unsubs=SHARED_KEYS.map(k=>onSnapshot(colDoc(k),(snap)=>{
         if(snap.metadata.hasPendingWrites) return;        // 내 쓰기 에코 무시
-        const items=snap.exists()&&Array.isArray(snap.data().items)?snap.data().items:[];
+        if(!snap.exists()){ markFirst(k); return; }       // 원격 문서 없음(최초 실행/오프라인) → 로컬 시드 유지, 빈 값으로 덮어쓰지 않음(백지 크래시 방지)
+        const items=Array.isArray(snap.data().items)?snap.data().items:[];
         const js=JSON.stringify(items);
         const remoteChange=loadedRef.current&&js!==lastColJsonRef.current[k];
         lastColJsonRef.current[k]=js;
@@ -538,7 +539,7 @@ export default function App(){
     let changed=false;
     const projects=(state.projects||[]).map(pr=>{
       if(pr.progressManual) return pr;
-      const real=tasks.filter(t=>t.projectId===pr.id&&!t.isFixed&&!parentIds.has(t.id));
+      const real=tasks.filter(t=>t.projectId===pr.id&&!t.isFixed&&!parentIds.has(t.id)&&t.status!=="hold");   // 보류 업무는 진척 계산에서 제외
       if(real.length===0) return pr;
       const auto=Math.round(real.filter(t=>t.status==="done").length/real.length*100);
       if(auto===(pr.progress||0)) return pr;
@@ -599,6 +600,14 @@ export default function App(){
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",gap:14,fontFamily:"'Pretendard',sans-serif",color:"#9CA3AF"}}>
       <div style={{width:36,height:36,borderRadius:11,background:"linear-gradient(135deg,#F97316,#EA580C)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:"#fff",fontWeight:900}}>P</div>
       <p style={{margin:0,fontSize:13,fontWeight:700}}>데이터 불러오는 중…</p>
+    </div>
+  );
+  if(!cu) return(   // 데이터가 비어 사용자 정보를 못 읽음(로드 실패 등) → 백지 크래시 대신 안전 안내
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100vh",gap:14,padding:"0 32px",textAlign:"center",fontFamily:"'Pretendard',sans-serif"}}>
+      <div style={{width:42,height:42,borderRadius:12,background:"#FFF3E0",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>⚠️</div>
+      <p style={{margin:0,fontSize:15,fontWeight:800,color:"#111827"}}>데이터를 불러오지 못했어요</p>
+      <p style={{margin:0,fontSize:12.5,fontWeight:600,color:"#9CA3AF",lineHeight:1.6}}>네트워크 연결을 확인한 뒤 새로고침해 주세요.<br/>입력하신 데이터는 안전하게 보관돼 있어요.</p>
+      <button onClick={()=>location.reload()} style={{marginTop:4,padding:"11px 22px",borderRadius:11,border:"none",background:"#F97316",color:"#fff",fontSize:13.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>새로고침</button>
     </div>
   );
   const navAll=[...TABS.filter(t=>t.id!=="more"),...MORE];
@@ -815,8 +824,15 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const myT=D.tasks.filter(t=>t.assigneeId===cu.id);
   const fixedDueToday=(t)=>{const rt=t.recurType||"daily";if(rt==="weekly")return t.weekDay===today;if(rt==="monthly")return Number(t.monthDay||1)===todayDate;return true;};
   const fixed=myT.filter(t=>t.isFixed&&fixedDueToday(t));
-  const todayT=myT.filter(t=>!t.isFixed&&t.weekDay===today);
-  const urgent=myT.filter(t=>t.status!=="done"&&t.dueDate&&(()=>{const dd=Math.ceil((new Date(t.dueDate)-new Date())/86400000);return dd>=0&&dd<=3;})());
+  const todayT=myT.filter(t=>!t.isFixed&&t.weekDay===today&&t.status!=="hold");
+  const urgent=myT.filter(t=>t.status!=="done"&&t.status!=="hold"&&t.dueDate&&(()=>{const dd=Math.ceil((new Date(t.dueDate)-new Date())/86400000);return dd>=0&&dd<=3;})());
+  // 밀린 업무(이월): 지난 요일에 배치됐는데 아직 미완료·미보류인 내 업무 (주말이면 월~금 전체가 지난 것)
+  const todayIdx=WEEK_DAYS.indexOf(today);
+  const carry=myT.filter(t=>!t.isFixed&&t.status!=="done"&&t.status!=="hold"&&t.weekDay&&t.weekDay!==today&&(()=>{const i=WEEK_DAYS.indexOf(t.weekDay);return i>=0&&(todayIdx<0||i<todayIdx);})())
+    .sort((a,b)=>WEEK_DAYS.indexOf(a.weekDay)-WEEK_DAYS.indexOf(b.weekDay));
+  const held=myT.filter(t=>!t.isFixed&&t.status==="hold");
+  const bringToday=t=>up("tasks",t.id,{weekDay:today,weekSlot:null,status:"todo"});   // 오늘로 가져오기(보류 해제 포함)
+  const holdTask=t=>up("tasks",t.id,{status:"hold"});
   const slotMap={};
   WEEK_DAYS.forEach(d=>{slotMap[d]={};[1,2,3,4,5].forEach(s=>{slotMap[d][s]=myT.find(t=>!t.isFixed&&t.weekDay===d&&t.weekSlot===s)||null;});});
   const [slotSheet,setSlotSheet]=useState(null);
@@ -826,6 +842,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const [editTask,setEditTask]=useState(null);
   const [feedOpen,setFeedOpen]=useState(false);
   const [weeklyOpen,setWeeklyOpen]=useState(false);
+  const [showHeld,setShowHeld]=useState(false);
   const todayKey=new Date().toISOString().slice(0,10);
   // 이번 주 팀 활동로그 — 완료업무·매출·KPI실적·목표지표를 한 흐름으로 집계
   const wkNow=weekKey();
@@ -917,6 +934,48 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           </div>
         )}
       </div>
+      {(carry.length>0||held.length>0)&&(
+        <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",marginBottom:14,border:"1px solid "+(carry.length>0?"#FED7AA":"#F2F4F6")}}>
+          {carry.length>0&&(<>
+            <div style={{marginBottom:10}}>
+              <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#EA580C"}}>⏰ 밀린 업무 ({carry.length})</h3>
+              <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>지난 요일에 못 끝낸 내 업무 · 오늘로 가져오거나 보류하세요</p>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:7}}>
+              {carry.map(t=>{const proj=D.projects.find(p=>p.id===t.projectId);return(
+                <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",borderRadius:12,backgroundColor:"#FFF7ED",border:"1px solid #FED7AA"}}>
+                  <span style={{flexShrink:0,fontSize:9.5,fontWeight:900,color:"#EA580C",background:"#FFE4C7",borderRadius:6,padding:"2px 6px"}}>{t.weekDay}</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <p style={{margin:0,fontSize:13,fontWeight:700,color:"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}</p>
+                    {proj&&<p style={{margin:"2px 0 0",fontSize:10,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📁 {proj.title}</p>}
+                  </div>
+                  <button onClick={()=>bringToday(t)} style={{flexShrink:0,padding:"6px 9px",borderRadius:8,border:"none",background:"#F97316",color:"#fff",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>📍 오늘로</button>
+                  <button onClick={()=>holdTask(t)} style={{flexShrink:0,padding:"6px 9px",borderRadius:8,border:"1px solid #FFD9A6",background:"#fff",color:"#EA580C",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>⏸ 보류</button>
+                </div>);})}
+            </div>
+          </>)}
+          {held.length>0&&(
+            <div style={{marginTop:carry.length>0?12:0,paddingTop:carry.length>0?12:0,borderTop:carry.length>0?"1px dashed #F2E6D5":"none"}}>
+              <button onClick={()=>setShowHeld(s=>!s)} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",padding:0}}>
+                <span style={{fontSize:12.5,fontWeight:800,color:"#FF9500"}}>⏸ 보류 중 ({held.length})</span>
+                <span style={{fontSize:11,color:"#9CA3AF"}}>{showHeld?"접기 ▲":"펼치기 ▼"}</span>
+              </button>
+              {showHeld&&(
+                <div style={{display:"flex",flexDirection:"column",gap:6,marginTop:9}}>
+                  {held.map(t=>{const proj=D.projects.find(p=>p.id===t.projectId);return(
+                    <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 11px",borderRadius:10,backgroundColor:"#FFF3E0",border:"1px solid #FFE0B2"}}>
+                      <div style={{flex:1,minWidth:0}}>
+                        <p style={{margin:0,fontSize:12.5,fontWeight:700,color:"#7C4A03",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}</p>
+                        {proj&&<p style={{margin:"2px 0 0",fontSize:10,color:"#B98A3E",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📁 {proj.title}{t.weekDay?` · ${t.weekDay}`:""}</p>}
+                      </div>
+                      <button onClick={()=>bringToday(t)} style={{flexShrink:0,padding:"6px 10px",borderRadius:8,border:"none",background:"#F97316",color:"#fff",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>📍 오늘로 재개</button>
+                    </div>);})}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
       <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",marginBottom:14,border:"1px solid #F2F4F6"}}>
         <h3 style={{margin:"0 0 4px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}>📅 주간 업무 배치</h3>
         <p style={{margin:"0 0 10px",fontSize:10.5,color:"#9CA3AF"}}>월~금 · 1~5순위 슬롯 · 탭해서 배치</p>
@@ -975,6 +1034,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                   <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                     {t.weekSlot&&<span style={{fontSize:10,fontWeight:800,color:"#9CA3AF"}}>{t.weekSlot}순위</span>}
                     <span style={{fontSize:11,fontWeight:700,color:st.color,backgroundColor:st.bg,padding:"2px 8px",borderRadius:6}}>{st.label}</span>
+                    {t.status!=="done"&&<button onClick={()=>holdTask(t)} title="보류" style={{background:"none",border:"none",fontSize:13,cursor:"pointer",color:"#FF9500",padding:8}}>⏸</button>}
                     <button onClick={()=>setEditTask(t)} style={{background:"none",border:"none",fontSize:13,cursor:"pointer",color:"#9CA3AF",padding:8}}>✎</button>
                     <button onClick={()=>setConfirmTaskId(t.id)} style={{background:"none",border:"none",fontSize:13,cursor:"pointer",color:"#D1D5DB",padding:8}}>✕</button>
                   </div>

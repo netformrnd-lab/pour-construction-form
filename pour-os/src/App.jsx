@@ -604,7 +604,7 @@ export default function App(){
   const navAll=[...TABS.filter(t=>t.id!=="more"),...MORE];
   const pageContent=(<>
     {page==="today"&&<TodayPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
-    {page==="kpi"&&<KPIPage D={D} lead={lead} up={up} cu={cu} add={add} rm={rm} pc={viewMode==="pc"}/>}
+    {page==="kpi"&&<KPIPage D={D} lead={lead} up={up} cu={cu} add={add} rm={rm} restore={restore} pc={viewMode==="pc"}/>}
     {page==="projects"&&<ProjectsPage D={D} cu={cu} up={up} add={add} rm={rm} rmNested={rmNested} pc={viewMode==="pc"} lead={lead} nav={nav}/>}
     {page==="calendar"&&<CalendarPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
     {page==="game"&&<GamePage D={D} cu={cu} up={up} add={add} rm={rm} nav={nav}/>}
@@ -1074,7 +1074,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
     </div>
   );
 }
-function KPIPage({D,lead,up,cu,add,rm}){
+function KPIPage({D,lead,up,cu,add,rm,restore}){
   const [kpiView,setKpiView]=useState("dashboard");
   const [openMK,setOpenMK]=useState("mk1");
   const [openSK,setOpenSK]=useState(null);

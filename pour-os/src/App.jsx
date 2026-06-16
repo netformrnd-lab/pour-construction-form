@@ -3401,11 +3401,11 @@ function TeamBoard({D,cu}){
     <div style={{maxWidth:760,margin:"0 auto"}}>
       <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"16px",marginBottom:14,color:"#fff"}}>
         <p style={{margin:0,fontSize:12,fontWeight:800,opacity:0.8}}>🎯 최종목표 · {goal?.title||"매출 10억"}</p>
-        <p style={{margin:"4px 0 10px",fontSize:24,fontWeight:900}}>{goalPct}% <span style={{fontSize:13,fontWeight:700,opacity:0.85}}>달성</span></p>
+        <p style={{margin:"4px 0 10px",fontSize:24,fontWeight:900}}>{goalPct}% <span style={{fontSize:13,fontWeight:700,opacity:0.85}}>목표 달성률</span></p>
         <div style={{height:9,borderRadius:8,background:"rgba(255,255,255,0.2)",overflow:"hidden"}}><div style={{width:goalPct+"%",height:"100%",background:"#F97316",borderRadius:8}}/></div>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"9px 0 0",flexWrap:"wrap",gap:6}}>
           <p style={{margin:0,fontSize:11.5,fontWeight:700,opacity:0.92}}>매출 {fmt(goalCur,"원")} / {fmt(goal?.targetValue||0,"원")}</p>
-          <p style={{margin:0,fontSize:11,opacity:0.78}}>업무 완료 {allDone}/{allT.length}({teamProg}%) · 프로젝트 {D.projects.length} · 팀원 {D.users.length}</p>
+          <p style={{margin:0,fontSize:11,opacity:0.78}}>업무 {allDone}/{allT.length} 완료 · 프로젝트 {D.projects.length} · 팀원 {D.users.length}</p>
         </div>
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -3447,12 +3447,9 @@ function TeamWeeklyMap({D,cu}){
   const [picked,setPicked]=useState(null);
   const [diagOpen,setDiagOpen]=useState(false);
   const prange=periodRange(period);
-  const wrange=periodRange("week");
   const pprev=prevPeriodRange(period);
   const inP=(ds)=>{if(!ds)return false;const d=new Date(ds);return !isNaN(d)&&d>=prange[0]&&d<=prange[1];};
   const inPrev=(ds)=>{if(!ds)return false;const d=new Date(ds);return !isNaN(d)&&d>=pprev[0]&&d<=pprev[1];};
-  const inWeek=(ds)=>{if(!ds)return false;const d=new Date(ds);return !isNaN(d)&&d>=wrange[0]&&d<=wrange[1];};
-  const dayOf=(t)=>{ if(t.weekDay&&WEEK_DAYS.includes(t.weekDay)) return t.weekDay; if(t.workDate){const d=new Date(t.workDate); if(!isNaN(d)){const wd=(d.getDay()+6)%7; return WEEK_DAYS[wd]||null;}} return null; };
   const activeInP=(t)=>inP(t.workDate)||inP(t.doneAt)||(period==="week"&&!!(t.weekDay&&WEEK_DAYS.includes(t.weekDay)));
   const krColors={mk1:"#3182F6",mk2:"#8B5CF6",mk3:"#00C073"};
   const doneInP=(ts)=>ts.filter(t=>t.status==="done"&&inP(t.doneAt)).length;
@@ -3469,9 +3466,7 @@ function TeamWeeklyMap({D,cu}){
     const doneP=doneInP(tasks);
     const donePrev=tasks.filter(t=>t.status==="done"&&inPrev(t.doneAt)).length;
     const inprog=tasks.filter(t=>t.status==="inprogress").length;
-    const actCnt=tasks.filter(activeInP).length;
-    const weekTasks=tasks.filter(t=>dayOf(t)&&(t.weekDay||inWeek(t.workDate)));
-    return {u,tasks,projN:projs.length,rev,active,doneP,donePrev,inprog,actCnt,weekTasks,stuck:signals.stuckMembers.has(u.id)};
+    return {u,tasks,projN:projs.length,rev,active,doneP,donePrev,inprog,stuck:signals.stuckMembers.has(u.id)};
   });
   const mem=allMem.filter(m=>!activeOnly||m.active);
   // 요약 KPI는 필터(KR·멤버)는 반영하되 '활동만 보기'(표시 declutter)에는 영향받지 않도록 allMem 기준
@@ -3487,7 +3482,7 @@ function TeamWeeklyMap({D,cu}){
   // 팀 진단 요약 (이번 달 기준) — 막힘·적체·헛심
   const diag=diagData(D,nowMonth());
   const stuckMem=diag.mem.filter(m=>m.stuck);
-  const jamN=diag.projStuck.length, heotN=diag.heotsim.length;
+  const jamN=diag.jamN, heotN=diag.heotN;   // 전체 카운트(상위6 슬라이스 아님)
   const diagTotal=stuckMem.length+jamN+heotN;
   return(
     <div style={{maxWidth:760,margin:"0 auto"}}>
@@ -3593,9 +3588,10 @@ const diagData=(D,month)=>{
   const leaf=t=>!t.isFixed&&!parentIds.has(t.id);
   const inMonth=t=>(t.doneAt||"").slice(0,7)===month;
   const mem=(D.users||[]).map(u=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.assigneeId===u.id);const open=ts.filter(t=>t.status!=="done").length;const doneM=ts.filter(t=>t.status==="done"&&inMonth(t)).length;const rate=(doneM+open)?Math.round(doneM/(doneM+open)*100):0;return {u,open,doneM,rate,stuck:open>=3&&rate<50};}).sort((a,b)=>b.open-a.open);
-  const projStuck=(D.projects||[]).map(p=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.projectId===p.id);const open=ts.filter(t=>t.status!=="done").length;return {p,total:ts.length,open};}).filter(x=>x.open>0).sort((a,b)=>b.open-a.open).slice(0,6);
-  const heotsim=(D.projects||[]).filter(p=>p.mainKPIId==="mk1"||p.mainKPIId==="mk2").map(p=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.projectId===p.id);return {p,doneM:ts.filter(t=>t.status==="done"&&inMonth(t)).length,rev:numF(p.resultValue)};}).filter(x=>x.doneM>=3&&x.rev===0).sort((a,b)=>b.doneM-a.doneM).slice(0,6);
-  return {mem,projStuck,heotsim};
+  const projStuckAll=(D.projects||[]).map(p=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.projectId===p.id);const open=ts.filter(t=>t.status!=="done").length;return {p,total:ts.length,open};}).filter(x=>x.open>0).sort((a,b)=>b.open-a.open);
+  const heotsimAll=(D.projects||[]).filter(p=>p.mainKPIId==="mk1"||p.mainKPIId==="mk2").map(p=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.projectId===p.id);return {p,doneM:ts.filter(t=>t.status==="done"&&inMonth(t)).length,rev:numF(p.resultValue)};}).filter(x=>x.doneM>=3&&x.rev===0).sort((a,b)=>b.doneM-a.doneM);
+  // 리스트는 상위 6개만 표시, 카운트(jamN/heotN)는 전체 — 요약 배지 언더카운트 방지
+  return {mem,projStuck:projStuckAll.slice(0,6),heotsim:heotsimAll.slice(0,6),jamN:projStuckAll.length,heotN:heotsimAll.length};
 };
 // 진단 신호를 맵 노드에 얹기 위한 빠른 룩업(이번 달 기준) — 막힘(멤버)·적체/헛심(프로젝트)
 const diagSignals=(D)=>{

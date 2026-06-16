@@ -2114,7 +2114,7 @@ function buildManualTree(D,projId){
   const byParent={};
   ts.forEach(t=>{const k=t.parentId||"_root";(byParent[k]=byParent[k]||[]).push(t);});
   const walk=(key)=>(byParent[key]||[]).slice().sort((a,b)=>(a.seq||0)-(b.seq||0)).map(t=>({
-    title:t.title||"",assigneeId:t.assigneeId||"",estDays:t.estDays||0,discuss:t.discuss||"",kids:walk(t.id)
+    title:t.title||"",assigneeId:t.assigneeId||"",estDays:t.estDays||0,discuss:t.discuss||"",custJourney:t.custJourney||"",kids:walk(t.id)
   }));
   return walk("_root");
 }
@@ -2126,7 +2126,7 @@ function cloneManualToProject(manual,projId,projType,add){
     add("tasks",{id,projectId:projId,parentId:parentId||null,seq:idx,
       title:n.title||"",status:"todo",isFixed:false,weekDay:null,weekSlot:null,
       assigneeId:projType==="team"?(n.assigneeId||""):"",
-      estDays:parentId?0:(n.estDays||0),discuss:parentId?"":(n.discuss||""),
+      estDays:parentId?0:(n.estDays||0),discuss:parentId?"":(n.discuss||""),custJourney:parentId?"":(n.custJourney||""),
       memo:"",dueDate:"",attachments:[]});
     walk(n.kids,id);
   });
@@ -2193,6 +2193,8 @@ function ProjectRoadmap({D,proj,up,add,onClose,onOpenProcess}){
   const totalDays=stages.reduce((a,s)=>a+(s.estDays||0),0);
   const sel=stages.find(s=>s.id===selId);
   const cpct=sid=>{const ks=D.tasks.filter(t=>t.parentId===sid&&!t.isFixed);if(ks.length)return Math.round(ks.filter(t=>t.status==="done").length/ks.length*100);return (stages.find(s=>s.id===sid)?.status==="done")?100:0;};
+  const kidsOf=(pid)=>D.tasks.filter(t=>t.parentId===pid&&!t.isFixed).sort((a,b)=>(a.seq||0)-(b.seq||0));
+  const addStage=()=>{add("tasks",{id:"t"+Date.now(),projectId:proj.id,parentId:null,seq:stages.length,title:"새 국면",status:"todo",isFixed:false,assigneeId:"",estDays:0,discuss:"",custJourney:"",painPoint:"",satisfaction:null,memo:"",dueDate:"",attachments:[]});};
   const setEst=(s,v)=>up("tasks",s.id,{estDays:Math.max(0,Math.round((Number(v)||0)*perDay))});
   const saveManual=()=>{
     const tree=buildManualTree(D,proj.id);
@@ -2232,45 +2234,106 @@ function ProjectRoadmap({D,proj,up,add,onClose,onOpenProcess}){
         </div>
       </div>
       <div style={{flex:1,overflowY:"auto",padding:"14px 16px 30px",maxWidth:760,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
-        {stages.length===0?<Empty t="국면이 없어요 · 프로세스 편집에서 최상위 단계를 만들면 로드맵 국면이 됩니다"/>:(<>
-          <p style={{margin:"0 2px 8px",fontSize:11,color:"#9CA3AF"}}>국면(로드맵 단계)을 예상기간 막대로 · 막대 누르면 아래에서 기간·담당·논의 편집</p>
-          <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:6,marginBottom:14}}>
-            {stages.map(s=>{const m=Mof(s.assigneeId);const c=team?m.color:"#9CA3AF";const isS=s.id===selId;return(
-              <button key={s.id} onClick={()=>setSelId(s.id)} style={{flex:`${(s.estDays||7)} 0 96px`,minWidth:96,textAlign:"left",borderRadius:10,border:isS?"2.5px solid #0F1F5C":"2.5px solid transparent",background:c,color:"#fff",padding:"9px 11px",cursor:"pointer",fontFamily:"inherit"}}>
-                <p style={{margin:0,fontSize:12.5,fontWeight:800,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.title||"국면"}</p>
-                <p style={{margin:"3px 0 0",fontSize:10,opacity:0.95,fontWeight:700}}>{team?m.name+" · ":""}예상 {toU(s.estDays)}{unit}</p>
-                <p style={{margin:"2px 0 0",fontSize:9.5,opacity:0.85}}>🧩 {cpct(s.id)}%</p>
-              </button>
-            );})}
+        <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:10,flexWrap:"wrap"}}>
+          <p style={{margin:0,fontSize:11,color:"#9CA3AF",flex:1,minWidth:140,lineHeight:1.5}}>국면(단계)을 계층형으로 · 각 국면에 🧑 고객여정 ‖ 🛠 업무여정 + 만족도·불편점</p>
+          <Btn size="sm" variant="orange" onClick={addStage}>+ 국면</Btn>
+        </div>
+        {(srcMan||srcGone)&&(
+          <div style={{display:"flex",alignItems:"center",gap:8,background:srcGone?"#F8F9FA":"#FFFBF5",border:"1px solid "+(srcGone?"#EAEDF0":"#F2E6D5"),borderRadius:11,padding:"9px 12px",marginBottom:9}}>
+            <span style={{fontSize:11.5,fontWeight:800,color:srcGone?"#9CA3AF":"#A16207",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📋 ‘{srcMan?srcMan.name:proj.sourceManualName}’ 매뉴얼 v{srcMan?(srcMan.version||1):(proj.sourceManualVersion||1)} 기반</span>
+            <span style={{fontSize:10,fontWeight:700,color:srcGone?"#B0B8C1":"#B98A3E",flexShrink:0}}>{srcGone?"매뉴얼 삭제됨 · 기록 유지":"저장 시 갱신/이력"}</span>
           </div>
-          {(srcMan||srcGone)&&(
-            <div style={{display:"flex",alignItems:"center",gap:8,background:srcGone?"#F8F9FA":"#FFFBF5",border:"1px solid "+(srcGone?"#EAEDF0":"#F2E6D5"),borderRadius:11,padding:"9px 12px",marginBottom:9}}>
-              <span style={{fontSize:11.5,fontWeight:800,color:srcGone?"#9CA3AF":"#A16207",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📋 ‘{srcMan?srcMan.name:proj.sourceManualName}’ 매뉴얼 v{srcMan?(srcMan.version||1):(proj.sourceManualVersion||1)} 기반</span>
-              <span style={{fontSize:10,fontWeight:700,color:srcGone?"#B0B8C1":"#B98A3E",flexShrink:0}}>{srcGone?"매뉴얼 삭제됨 · 기록 유지":"저장 시 갱신/이력"}</span>
-            </div>
-          )}
-          <button onClick={saveManual} style={{width:"100%",padding:"11px 0",borderRadius:11,border:"1.5px solid #FBD9B5",background:"#FFF7ED",fontSize:12.5,fontWeight:800,color:"#EA580C",cursor:"pointer",fontFamily:"inherit",marginBottom:14}}>{srcMan?"📋 매뉴얼 갱신 / 새 매뉴얼로 저장":"📋 이 로드맵을 매뉴얼로 저장 (다음에 재사용)"}</button>
-          {sel&&(
-            <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"14px 15px"}}>
-              <label style={{display:"block",fontSize:11,fontWeight:800,color:"#4B5563",marginBottom:5}}>국면명</label>
-              <input key={sel.id+"t"} defaultValue={sel.title||""} onBlur={e=>up("tasks",sel.id,{title:e.target.value})} style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:14,fontWeight:700,outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:12}}/>
-              <div style={{display:"flex",gap:10,marginBottom:12,alignItems:"flex-end"}}>
-                <div style={{flex:"0 0 130px"}}><label style={{display:"block",fontSize:11,fontWeight:800,color:"#4B5563",marginBottom:5}}>예상 소요 ({unit})</label>
-                  <input key={sel.id+unit} type="number" inputMode="decimal" defaultValue={toU(sel.estDays)} onBlur={e=>setEst(sel,e.target.value)} style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:14,fontWeight:800,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
-              </div>
-              {team&&(<>
-                <label style={{display:"block",fontSize:11,fontWeight:800,color:"#4B5563",marginBottom:6}}>담당자 (인계)</label>
-                <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
-                  {MEM.map(m=>{const on=sel.assigneeId===m.id;return(<button key={m.id||"n"} onClick={()=>up("tasks",sel.id,{assigneeId:m.id})} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 11px",borderRadius:20,border:`1.5px solid ${on?m.color:"#E5E8EB"}`,background:on?m.color+"18":"#fff",cursor:"pointer",fontFamily:"inherit"}}><span style={{width:16,height:16,borderRadius:"50%",backgroundColor:m.color,color:"#fff",fontSize:8.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{gname(m.name)}</span><span style={{fontSize:12,fontWeight:700,color:on?m.color:"#4B5563"}}>{m.name}</span></button>);})}
+        )}
+        <button onClick={saveManual} style={{width:"100%",padding:"11px 0",borderRadius:11,border:"1.5px solid #FBD9B5",background:"#FFF7ED",fontSize:12.5,fontWeight:800,color:"#EA580C",cursor:"pointer",fontFamily:"inherit",marginBottom:14}}>{srcMan?"📋 매뉴얼 갱신 / 새 매뉴얼로 저장":"📋 이 로드맵을 매뉴얼로 저장 (다음에 재사용)"}</button>
+        {stages.length===0?<Empty t="국면이 없어요 · [+ 국면]으로 만들거나 🧩프로세스 편집에서 최상위 단계를 만들면 로드맵 국면이 됩니다"/>:(
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            {stages.map((s,idx)=>{
+              const m=Mof(s.assigneeId);const col=team?m.color:"#0891B2";const pct=cpct(s.id);
+              const open=s.id===selId;const kids=kidsOf(s.id);const sat=s.satisfaction||0;
+              return(
+                <div key={s.id} style={{background:"#fff",borderRadius:14,border:`1px solid ${open?col+"66":"#EEF1F4"}`,overflow:"hidden"}}>
+                  {/* 국면 헤더 */}
+                  <div onClick={()=>setSelId(open?null:s.id)} style={{display:"flex",alignItems:"center",gap:9,padding:"12px 13px",cursor:"pointer",borderLeft:`4px solid ${col}`}}>
+                    <span style={{flexShrink:0,width:22,height:22,borderRadius:7,background:col,color:"#fff",fontSize:11,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{idx+1}</span>
+                    <div style={{flex:1,minWidth:0}}>
+                      <p style={{margin:0,fontSize:13.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.title||"국면"}</p>
+                      <div style={{display:"flex",alignItems:"center",gap:6,marginTop:3,flexWrap:"wrap"}}>
+                        {team&&<span style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:10,fontWeight:700,color:m.color}}><span style={{width:13,height:13,borderRadius:"50%",background:m.color,color:"#fff",fontSize:7.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{gname(m.name)}</span>{m.name}</span>}
+                        <span style={{fontSize:10,color:"#9CA3AF",fontWeight:700}}>예상 {toU(s.estDays)}{unit}</span>
+                        <span style={{fontSize:10,color:"#9CA3AF",fontWeight:700}}>🛠 {kids.filter(k=>k.status==="done").length}/{kids.length}</span>
+                        {sat>0&&<span style={{fontSize:10,fontWeight:800,color:"#D97706"}}>{"★".repeat(sat)}<span style={{color:"#E5E8EB"}}>{"★".repeat(5-sat)}</span></span>}
+                        {s.painPoint&&<span style={{fontSize:9.5,fontWeight:800,color:"#B42318",background:"#FEE4E2",borderRadius:5,padding:"1px 5px"}}>⚠️ 불편점</span>}
+                      </div>
+                    </div>
+                    <div style={{flexShrink:0,textAlign:"right"}}>
+                      <span style={{fontSize:13,fontWeight:900,color:pct>=70?"#00C073":col}}>{pct}%</span>
+                      <p style={{margin:"1px 0 0",fontSize:14,color:"#C4C9D0"}}>{open?"▴":"▾"}</p>
+                    </div>
+                  </div>
+                  {/* 두 트랙 요약 (접힘 상태) */}
+                  {!open&&(
+                    <div style={{display:"flex",borderTop:"1px solid #F4F4F5"}}>
+                      <div style={{flex:1,padding:"8px 12px",borderRight:"1px solid #F4F4F5",minWidth:0}}><p style={{margin:0,fontSize:9.5,fontWeight:800,color:"#0891B2"}}>🧑 고객여정</p><p style={{margin:"2px 0 0",fontSize:11,color:s.custJourney?"#374151":"#C4C9D0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.custJourney||"미입력"}</p></div>
+                      <div style={{flex:1,padding:"8px 12px",minWidth:0}}><p style={{margin:0,fontSize:9.5,fontWeight:800,color:"#7C3AED"}}>🛠 업무여정</p><p style={{margin:"2px 0 0",fontSize:11,color:kids.length?"#374151":"#C4C9D0",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{kids.length?kids.map(k=>k.title).join(" → "):"실행 업무 없음"}</p></div>
+                    </div>
+                  )}
+                  {/* 펼침: 편집 + 업무여정 트리 */}
+                  {open&&(
+                    <div style={{padding:"4px 13px 14px",borderTop:"1px solid #F4F4F5"}}>
+                      <div style={{display:"flex",gap:8,margin:"10px 0",alignItems:"flex-end",flexWrap:"wrap"}}>
+                        <div style={{flex:"1 1 150px",minWidth:120}}><label style={{display:"block",fontSize:10.5,fontWeight:800,color:"#4B5563",marginBottom:4}}>국면명</label>
+                          <input key={s.id+"t"} defaultValue={s.title||""} onBlur={e=>up("tasks",s.id,{title:e.target.value})} style={{width:"100%",padding:"9px 11px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:13,fontWeight:700,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
+                        <div style={{flex:"0 0 110px"}}><label style={{display:"block",fontSize:10.5,fontWeight:800,color:"#4B5563",marginBottom:4}}>예상({unit})</label>
+                          <input key={s.id+unit} type="number" inputMode="decimal" defaultValue={toU(s.estDays)} onBlur={e=>setEst(s,e.target.value)} style={{width:"100%",padding:"9px 11px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:13,fontWeight:800,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
+                      </div>
+                      {team&&(<>
+                        <label style={{display:"block",fontSize:10.5,fontWeight:800,color:"#4B5563",marginBottom:5}}>담당자 (인계)</label>
+                        <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:12}}>
+                          {MEM.map(mm=>{const on=s.assigneeId===mm.id;return(<button key={mm.id||"n"} onClick={()=>up("tasks",s.id,{assigneeId:mm.id})} style={{display:"flex",alignItems:"center",gap:4,padding:"5px 9px",borderRadius:20,border:`1.5px solid ${on?mm.color:"#E5E8EB"}`,background:on?mm.color+"18":"#fff",cursor:"pointer",fontFamily:"inherit"}}><span style={{width:15,height:15,borderRadius:"50%",backgroundColor:mm.color,color:"#fff",fontSize:8,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{gname(mm.name)}</span><span style={{fontSize:11,fontWeight:700,color:on?mm.color:"#4B5563"}}>{mm.name}</span></button>);})}
+                        </div>
+                      </>)}
+                      {/* 두 트랙 입력 */}
+                      <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
+                        <div style={{flex:"1 1 200px",minWidth:160}}>
+                          <label style={{display:"block",fontSize:10.5,fontWeight:800,color:"#0891B2",marginBottom:4}}>🧑 고객여정 <span style={{fontWeight:600,color:"#9CA3AF"}}>(고객이 겪는 것)</span></label>
+                          <textarea key={s.id+"cj"} defaultValue={s.custJourney||""} onBlur={e=>up("tasks",s.id,{custJourney:e.target.value})} placeholder="예: 상세페이지에서 사이즈 정보를 못 찾아 이탈" style={{width:"100%",padding:"9px 11px",borderRadius:9,border:"1.5px solid #CDEAF2",background:"#F7FCFE",fontSize:12.5,resize:"vertical",minHeight:54,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
+                        </div>
+                        <div style={{flex:"1 1 200px",minWidth:160}}>
+                          <label style={{display:"block",fontSize:10.5,fontWeight:800,color:"#7C3AED",marginBottom:4}}>🛠 업무여정 <span style={{fontWeight:600,color:"#9CA3AF"}}>(우리가 하는 실행)</span></label>
+                          <div style={{padding:"7px 9px",borderRadius:9,border:"1.5px solid #E7E1FB",background:"#FBFAFF",minHeight:54,boxSizing:"border-box"}}>
+                            {kids.length===0?<p style={{margin:"6px 2px",fontSize:11,color:"#C4C9D0"}}>실행 업무 없음 · 아래 🧩프로세스 편집에서 추가</p>:kids.map(k=>{const st=STATUS_MAP[k.status]||STATUS_MAP.todo;const ka=Mof(k.assigneeId);const gk=kidsOf(k.id);return(
+                              <div key={k.id} style={{padding:"2px 0"}}>
+                                <div style={{display:"flex",alignItems:"center",gap:5}}>
+                                  <span style={{width:5,height:5,borderRadius:"50%",background:st.color,flexShrink:0}}/>
+                                  <span style={{flex:1,minWidth:0,fontSize:11.5,fontWeight:600,color:k.status==="done"?"#9CA3AF":"#1F2937",textDecoration:k.status==="done"?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{k.title||"업무"}</span>
+                                  {team&&k.assigneeId&&<span style={{width:13,height:13,borderRadius:"50%",background:ka.color,color:"#fff",fontSize:7.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{gname(ka.name)}</span>}
+                                  <span style={{fontSize:8.5,fontWeight:700,color:st.color,background:st.bg,borderRadius:4,padding:"0px 4px",flexShrink:0}}>{st.label}</span>
+                                </div>
+                                {gk.length>0&&<div style={{marginLeft:10,borderLeft:"1.5px dashed #E5E8EB",paddingLeft:7}}>{gk.map(g=>{const gs=STATUS_MAP[g.status]||STATUS_MAP.todo;return(<div key={g.id} style={{display:"flex",alignItems:"center",gap:4,padding:"1px 0"}}><span style={{width:4,height:4,borderRadius:"50%",background:gs.color,flexShrink:0}}/><span style={{flex:1,minWidth:0,fontSize:10.5,color:g.status==="done"?"#B0B8C1":"#4B5563",textDecoration:g.status==="done"?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.title}</span></div>);})}</div>}
+                              </div>
+                            );})}
+                          </div>
+                        </div>
+                      </div>
+                      {/* 만족도 · 불편점 (개선 루프) */}
+                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10,flexWrap:"wrap"}}>
+                        <span style={{fontSize:10.5,fontWeight:800,color:"#4B5563"}}>만족도</span>
+                        {[1,2,3,4,5].map(n=><button key={n} onClick={()=>up("tasks",s.id,{satisfaction:sat===n?null:n})} style={{background:"none",border:"none",cursor:"pointer",fontSize:18,padding:0,lineHeight:1,color:n<=sat?"#F59E0B":"#E5E8EB"}}>★</button>)}
+                        {sat>0&&<span style={{fontSize:10,color:"#9CA3AF"}}>{sat}/5</span>}
+                      </div>
+                      <label style={{display:"block",fontSize:10.5,fontWeight:800,color:"#B42318",marginBottom:4}}>⚠️ 불편점 <span style={{fontWeight:600,color:"#9CA3AF"}}>(개선 대상 — 버전업의 근거)</span></label>
+                      <textarea key={s.id+"pp"} defaultValue={s.painPoint||""} onBlur={e=>up("tasks",s.id,{painPoint:e.target.value})} placeholder="예: 사이즈 정보 위치 모호 → 상단 고정 / 반복 세팅 → 자동화" style={{width:"100%",padding:"9px 11px",borderRadius:9,border:"1.5px solid #FBD5D2",background:"#FFFBFA",fontSize:12.5,resize:"vertical",minHeight:48,outline:"none",fontFamily:"inherit",boxSizing:"border-box",marginBottom:10}}/>
+                      <label style={{display:"block",fontSize:10.5,fontWeight:800,color:"#4B5563",marginBottom:4}}>💬 업무 개선 메모</label>
+                      <textarea key={s.id+"d"} defaultValue={s.discuss||""} onBlur={e=>up("tasks",s.id,{discuss:e.target.value})} placeholder="예: 전환율 낮음 → 카피 방식 변경 / 외주·자동화 검토" style={{width:"100%",padding:"9px 11px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:12.5,resize:"vertical",minHeight:44,outline:"none",fontFamily:"inherit",boxSizing:"border-box",marginBottom:12}}/>
+                      <button onClick={()=>onOpenProcess(proj)} style={{width:"100%",padding:"10px 0",borderRadius:10,border:"1.5px solid #DDD6FE",background:"#FAF9FF",fontSize:12.5,fontWeight:800,color:"#7C3AED",cursor:"pointer",fontFamily:"inherit"}}>🧩 프로세스 편집 (실행 업무 추가·인계)</button>
+                    </div>
+                  )}
                 </div>
-              </>)}
-              <label style={{display:"block",fontSize:11,fontWeight:800,color:"#4B5563",marginBottom:5}}>💬 논의 · 개선 <span style={{fontWeight:600,color:"#9CA3AF"}}>(이 로드맵의 방식·문제·외주/자동화 등)</span></label>
-              <textarea key={sel.id+"d"} defaultValue={sel.discuss||""} onBlur={e=>up("tasks",sel.id,{discuss:e.target.value})} placeholder="예: 전환율 낮음 → 카피 방식 변경 / 반복 작업 → 자동화 개발 검토" style={{width:"100%",padding:"10px 12px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:13,resize:"vertical",minHeight:60,outline:"none",fontFamily:"inherit",boxSizing:"border-box",marginBottom:12}}/>
-              <button onClick={()=>onOpenProcess(proj)} style={{width:"100%",padding:"11px 0",borderRadius:11,border:"1.5px solid #DDD6FE",background:"#FAF9FF",fontSize:13,fontWeight:800,color:"#7C3AED",cursor:"pointer",fontFamily:"inherit"}}>🧩 이 로드맵의 프로세스 편집 (실행 업무)</button>
-              <p style={{margin:"10px 2px 0",fontSize:10.5,color:"#9CA3AF",lineHeight:1.6}}>※ 예상기간=계획값(현황 아님) · 🧩%는 그 국면 하위 업무 실제 진행 · 국면=프로세스의 최상위 단계</p>
-            </div>
-          )}
-        </>)}
+              );
+            })}
+            <p style={{margin:"2px 2px 0",fontSize:10.5,color:"#9CA3AF",lineHeight:1.6}}>※ 국면=프로세스 최상위 단계 · 🧩%=하위 업무 실제 진행 · 고객여정·불편점은 개선(버전업)의 근거로 누적됩니다</p>
+          </div>
+        )}
       </div>
     </div>
   );

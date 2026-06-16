@@ -240,6 +240,17 @@ const Badge=({color,bg,children})=>(
 const gname=(n)=>{const s=(n||"").trim();return s.length>=2?s.slice(1):(s||"?");};
 // ISO → HH:MM (시:분)
 const hhmm=(iso)=>{if(!iso)return"";try{const d=new Date(iso);if(isNaN(d))return"";return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");}catch(_){return"";}};
+// 기간 범위 [start,end] — 올해/상반기/하반기/이번달/이번주
+const periodRange=(key,base=new Date())=>{
+  const y=base.getFullYear(),m=base.getMonth();
+  const mk=(yy,mm,dd,end)=>{const x=new Date(yy,mm,dd);x.setHours(end?23:0,end?59:0,end?59:0,end?999:0);return x;};
+  if(key==="year")  return [mk(y,0,1),mk(y,11,31,true)];
+  if(key==="h1")    return [mk(y,0,1),mk(y,5,30,true)];
+  if(key==="h2")    return [mk(y,6,1),mk(y,11,31,true)];
+  if(key==="month") return [mk(y,m,1),mk(y,m+1,0,true)];
+  const wd=(base.getDay()+6)%7;const mon=new Date(base);mon.setDate(base.getDate()-wd);mon.setHours(0,0,0,0);const sun=new Date(mon);sun.setDate(mon.getDate()+6);sun.setHours(23,59,59,999);return [mon,sun];
+};
+const PERIODS=[["year","올해"],["h1","상반기"],["h2","하반기"],["month","이번 달"],["week","이번 주"]];
 const Ava=({name,color,size=32})=>{
   const cols=["#3182F6","#8B5CF6","#00C073","#FF9500","#F04452"];
   const c=color||cols[(name?.charCodeAt(0)||0)%cols.length];
@@ -3694,12 +3705,19 @@ function TeamDashPage({D,cu,nav}){
 function MindMapPage({D,cu}){
   const [scope,setScope]=useState("person");   // person | team | diag
   const [boardView,setBoardView]=useState("tree");
+  const [period,setPeriod]=useState("week");
+  const prange=periodRange(period);
+  const inP=(ds)=>{if(!ds)return false;const d=new Date(ds);return !isNaN(d)&&d>=prange[0]&&d<=prange[1];};
+  // 활동: 선택 기간에 진행예정(workDate)·완료(doneAt)가 있으면. (주간은 요일배치도 폴백)
+  const activeInP=(t)=>inP(t.workDate)||inP(t.doneAt)||(period==="week"&&!!(t.weekDay&&WEEK_DAYS.includes(t.weekDay)));
+  // 성과: 기간 내 완료 업무 수
+  const doneInP=(ts)=>ts.filter(t=>t.status==="done"&&inP(t.doneAt)).length;
   const [sel,setSel]=useState(cu.id);
   const user=D.users.find(u=>u.id===sel);
   const myP=D.projects.filter(p=>p.assigneeId===sel);
   const myMK=[...new Set(myP.filter(p=>p.mainKPIId).map(p=>p.mainKPIId))].map(id=>D.mainKPIs.find(m=>m.id===id)).filter(Boolean);
   const krColors={mk1:"#3182F6",mk2:"#8B5CF6",mk3:"#00C073"};
-  const isThisWeek=task=>!!(task.weekDay&&WEEK_DAYS.includes(task.weekDay));
+  const isThisWeek=activeInP;   // 활동 판정을 선택 기간 기준으로
   return(
     <div style={{padding:"14px 16px 20px"}}>
       <div style={{display:"flex",gap:6,marginBottom:14}}>
@@ -3786,15 +3804,20 @@ function MindMapPage({D,cu}){
       )}
       {boardView==="weekly"&&(
         <div>
-          <div style={{display:"flex",gap:14,marginBottom:14,padding:"8px 14px",backgroundColor:"#FFFFFF",borderRadius:10,border:"1px solid #F2F4F6"}}>
-            <div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:8,height:8,borderRadius:"50%",backgroundColor:"#F97316"}}/><span style={{fontSize:11,color:"#4B5563",fontWeight:600}}>이번 주 업무</span></div>
-            <div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:8,height:8,borderRadius:"50%",backgroundColor:"#D1D5DB"}}/><span style={{fontSize:11,color:"#9CA3AF",fontWeight:600}}>이전 업무</span></div>
+          <div style={{display:"flex",gap:5,marginBottom:10,flexWrap:"wrap"}}>
+            {PERIODS.map(([k,l])=>{const on=period===k;return(<button key={k} onClick={()=>setPeriod(k)} style={{flex:"1 0 auto",padding:"7px 10px",borderRadius:9,border:`1.5px solid ${on?"#0F1F5C":"#E5E8EB"}`,background:on?"#0F1F5C":"#fff",color:on?"#fff":"#6B7280",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>);})}
+          </div>
+          <div style={{display:"flex",gap:14,marginBottom:14,padding:"8px 14px",backgroundColor:"#FFFFFF",borderRadius:10,border:"1px solid #F2F4F6",flexWrap:"wrap"}}>
+            <div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:8,height:8,borderRadius:"50%",backgroundColor:"#F97316"}}/><span style={{fontSize:11,color:"#4B5563",fontWeight:600}}>활동(이 기간)</span></div>
+            <div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:8,height:8,borderRadius:"50%",backgroundColor:"#D1D5DB"}}/><span style={{fontSize:11,color:"#9CA3AF",fontWeight:600}}>비활동</span></div>
+            <div style={{display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:10.5,fontWeight:800,color:"#00A862",background:"#E8FAF1",borderRadius:5,padding:"1px 6px"}}>✅성과</span><span style={{fontSize:11,color:"#9CA3AF",fontWeight:600}}>기간 내 완료·매출</span></div>
           </div>
           {D.mainKPIs.map(mk=>{
             const mkProjs=D.projects.filter(p=>p.mainKPIId===mk.id&&p.assigneeId===sel);
             if(mkProjs.length===0) return null;
             const allMkTasks=mkProjs.flatMap(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===sel));
             const thisWeekCount=allMkTasks.filter(t=>isThisWeek(t)).length;
+            const mkDone=doneInP(allMkTasks); const mkRev=mkProjs.reduce((a,p)=>a+numF(p.resultValue),0);
             const col=krColors[mk.id]||"#3182F6";
             const mkActive=thisWeekCount>0;
             const skIds=[...new Set(mkProjs.map(p=>p.subKPIId).filter(Boolean))];
@@ -3811,7 +3834,11 @@ function MindMapPage({D,cu}){
                         <span style={{fontSize:10,fontWeight:900,color:mkActive?col:"#9CA3AF",backgroundColor:mkActive?"rgba(255,255,255,0.9)":"rgba(255,255,255,0.7)",padding:"1px 6px",borderRadius:10}}>{mk.krKey}</span>
                         <span style={{fontSize:13,fontWeight:900,color:mkActive?"#FFFFFF":"#6B7280"}}>{mk.title}</span>
                       </div>
-                      {mkActive&&<span style={{fontSize:10,fontWeight:800,color:"rgba(255,255,255,0.95)",backgroundColor:"rgba(255,255,255,0.2)",padding:"2px 7px",borderRadius:10}}>이번주 {thisWeekCount}건</span>}
+                      <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+                        {mkActive&&<span style={{fontSize:10,fontWeight:800,color:"rgba(255,255,255,0.95)",backgroundColor:"rgba(255,255,255,0.2)",padding:"2px 7px",borderRadius:10}}>활동 {thisWeekCount}</span>}
+                        {mkDone>0&&<span style={{fontSize:10,fontWeight:800,color:"#0F5132",background:"#D1F5E0",padding:"2px 7px",borderRadius:10}}>✅{mkDone}</span>}
+                        {mkRev>0&&<span style={{fontSize:10,fontWeight:800,color:"#7A3E00",background:"#FFE6C7",padding:"2px 7px",borderRadius:10}}>💰{fmt(mkRev,"원")}</span>}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -3848,6 +3875,7 @@ function MindMapPage({D,cu}){
                                   <div style={{backgroundColor:"#FFFFFF",borderRadius:8,padding:"5px 10px",border:`1px solid ${projActive?col+"44":"#E5E8EB"}`,flex:1,display:"flex",alignItems:"center",gap:6}}>
                                     <Ava name={assignee?.name} color={assignee?.color} size={18}/>
                                     <span style={{fontSize:11.5,fontWeight:700,color:projActive?"#0F1F5C":"#9CA3AF",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{proj.title}</span>
+                                    {doneInP(projTasks)>0&&<span style={{fontSize:9,fontWeight:800,color:"#0F5132",background:"#D1F5E0",borderRadius:5,padding:"1px 5px",flexShrink:0}}>✅{doneInP(projTasks)}</span>}
                                     <span style={{fontSize:10,fontWeight:700,color:projActive?col:"#9CA3AF",flexShrink:0}}>{proj.progress}%</span>
                                   </div>
                                 </div>

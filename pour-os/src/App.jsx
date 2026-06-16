@@ -3416,6 +3416,7 @@ function TeamBoard({D,cu}){
 // 업무 보드 — 팀 주간 맵 (기간 필터 · 멤버별 활동색 + 성과). 개인 주간 맵과 동일한 색·배지 언어.
 function TeamWeeklyMap({D,cu}){
   const [period,setPeriod]=useState("week");
+  const [mapStyle,setMapStyle]=useState("tree");   // tree(계층형) | mind(마인드맵)
   const prange=periodRange(period);
   const wrange=periodRange("week");
   const inP=(ds)=>{if(!ds)return false;const d=new Date(ds);return !isNaN(d)&&d>=prange[0]&&d<=prange[1];};
@@ -3458,6 +3459,13 @@ function TeamWeeklyMap({D,cu}){
           <span style={{fontSize:11,fontWeight:800,color:"#FFE6C7",background:"rgba(249,115,22,0.25)",borderRadius:8,padding:"2px 8px"}}>💰{fmt(teamRev,"원")}</span>
         </div>
       </div>
+      <div style={{display:"flex",backgroundColor:"#F2F4F6",borderRadius:11,padding:3,marginBottom:14}}>
+        {[{k:"tree",l:"≡ 계층형"},{k:"mind",l:"🧠 마인드맵"}].map(v=>(
+          <button key={v.k} onClick={()=>setMapStyle(v.k)} style={{flex:1,padding:"7px 0",borderRadius:9,border:"none",cursor:"pointer",backgroundColor:mapStyle===v.k?"#FFFFFF":"transparent",color:mapStyle===v.k?"#0F1F5C":"#6B7280",fontWeight:mapStyle===v.k?800:500,fontSize:12.5,fontFamily:"inherit",boxShadow:mapStyle===v.k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{v.l}</button>
+        ))}
+      </div>
+      {mapStyle==="mind"&&<MapCanvas items={buildTeamMapItems(D,activeInP,doneInP)}/>}
+      {mapStyle==="tree"&&(
       <div style={{display:"flex",flexDirection:"column",gap:10}}>
         {mem.map(m=>{
           const col=m.u.color||"#3182F6";
@@ -3509,6 +3517,7 @@ function TeamWeeklyMap({D,cu}){
           );
         })}
       </div>
+      )}
     </div>
   );
 }
@@ -3801,10 +3810,86 @@ function TeamDashPage({D,cu,nav}){
     </div>
   );
 }
+// 주간 맵 — 마인드맵(노드·연결선) 렌더러. items: [{id,depth,label,color,active,leftTag,chips:[{t,c,bg}]}] (depth0=루트)
+function MapCanvas({items}){
+  if(!items||!items.length) return <p style={{textAlign:"center",color:"#D1D5DB",fontSize:13,padding:"24px 0"}}>표시할 항목이 없어요</p>;
+  const colW=178,rowH=46,padX=12,padY=14,nodeW=158;
+  const pos={};let yc=0;
+  const kidsOf=(i)=>{const r=[];for(let k=i+1;k<items.length;k++){if(items[k].depth<=items[i].depth)break;if(items[k].depth===items[i].depth+1)r.push(k);}return r;};
+  const place=(i)=>{const kids=kidsOf(i);if(!kids.length){pos[i]={x:padX+items[i].depth*colW,y:padY+yc*rowH};yc++;}else{const ys=[];kids.forEach(k=>{place(k);ys.push(pos[k].y);});pos[i]={x:padX+items[i].depth*colW,y:(Math.min(...ys)+Math.max(...ys))/2};}};
+  items.forEach((it,i)=>{if(it.depth===0)place(i);});
+  let mx=0,my=0;Object.values(pos).forEach(p=>{mx=Math.max(mx,p.x);my=Math.max(my,p.y);});
+  const parentIdx=(i)=>{for(let k=i-1;k>=0;k--){if(items[k].depth<items[i].depth)return k;}return -1;};
+  return(
+    <div style={{overflowX:"auto",backgroundColor:"#FAFBFC",backgroundImage:"radial-gradient(#E5E8EB 1px,transparent 1px)",backgroundSize:"18px 18px",border:"1px solid #EDF0F3",borderRadius:14}}>
+      <div style={{position:"relative",width:mx+nodeW+24,height:my+58}}>
+        <svg width={mx+nodeW+24} height={my+58} style={{position:"absolute",inset:0,pointerEvents:"none",overflow:"visible"}}>
+          {items.map((it,i)=>{const pi=parentIdx(i);if(pi<0||!pos[pi]||!pos[i])return null;const x1=pos[pi].x+nodeW,y1=pos[pi].y+16,x2=pos[i].x,y2=pos[i].y+16;const c=it.active?(it.color+"99"):"#D9DEE3";return <path key={it.id} d={`M ${x1} ${y1} C ${x1+30} ${y1}, ${x2-30} ${y2}, ${x2} ${y2}`} stroke={c} strokeWidth={2} fill="none"/>;})}
+        </svg>
+        {items.map((it,i)=>{if(!pos[i])return null;const root=it.depth===0;return(
+          <div key={it.id} style={{position:"absolute",left:pos[i].x,top:pos[i].y,width:nodeW,boxSizing:"border-box",display:"flex",alignItems:"center",gap:5,background:root?(it.active?it.color:"#9CA3AF"):"#fff",border:`2px solid ${it.active?it.color:"#E5E8EB"}`,borderRadius:11,padding:"6px 9px",boxShadow:"0 2px 8px rgba(0,0,0,0.06)",zIndex:2}}>
+            {!root&&<div style={{width:8,height:8,borderRadius:"50%",background:it.active?it.color:"#D1D5DB",flexShrink:0}}/>}
+            {it.leftTag&&<span style={{fontSize:8.5,fontWeight:900,color:it.active?it.color:"#9CA3AF",background:it.active?it.color+"1A":"#F2F4F6",padding:"1px 5px",borderRadius:6,flexShrink:0}}>{it.leftTag}</span>}
+            <span style={{flex:1,minWidth:0,fontSize:11,fontWeight:root?900:700,color:root?"#fff":(it.active?"#1F2937":"#9CA3AF"),overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{it.label}</span>
+            {(it.chips||[]).map((c,ci)=>(<span key={ci} style={{fontSize:8.5,fontWeight:800,color:c.c,background:c.bg,padding:"1px 5px",borderRadius:6,flexShrink:0}}>{c.t}</span>))}
+          </div>
+        );})}
+      </div>
+    </div>
+  );
+}
+// 개인 주간 맵 → 마인드맵 items 평탄화 (KR→서브KR→프로젝트→업무)
+function buildPersonMapItems(D,sel,isThisWeek,doneInP,krColors){
+  const items=[];const user=D.users.find(u=>u.id===sel);
+  const myP=D.projects.filter(p=>p.assigneeId===sel);
+  items.push({id:"root",depth:0,label:user?.name||"나",color:"#0F1F5C",active:true});
+  const pushProj=(proj,depth,col)=>{
+    const projTasks=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed&&t.assigneeId===sel);
+    const actT=projTasks.filter(isThisWeek);const dP=doneInP(projTasks);
+    const chips=[];chips.push({t:(proj.progress||0)+"%",c:actT.length?col:"#9CA3AF",bg:actT.length?col+"1A":"#F2F4F6"});
+    if(dP>0)chips.push({t:"✅"+dP,c:"#0F5132",bg:"#D1F5E0"});
+    items.push({id:proj.id,depth,label:proj.title,color:col,active:actT.length>0,chips});
+    actT.forEach(t=>{const st=STATUS_MAP[t.status]||STATUS_MAP.todo;items.push({id:t.id,depth:depth+1,label:t.title,color:st.color,active:true,leftTag:t.weekDay||null,chips:[{t:st.label,c:st.color,bg:st.bg}]});});
+  };
+  D.mainKPIs.forEach(mk=>{
+    const mkProjs=myP.filter(p=>p.mainKPIId===mk.id);if(!mkProjs.length)return;
+    const col=krColors[mk.id]||"#3182F6";
+    const allT=mkProjs.flatMap(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===sel));
+    const mkAct=allT.some(isThisWeek);const mkDone=doneInP(allT);const rev=mkProjs.reduce((a,p)=>a+numF(p.resultValue),0);
+    const chips=[];if(mkDone>0)chips.push({t:"✅"+mkDone,c:"#0F5132",bg:"#D1F5E0"});if(rev>0)chips.push({t:"💰"+fmt(rev,"원"),c:"#7A3E00",bg:"#FFE6C7"});
+    items.push({id:mk.id,depth:1,label:mk.title,leftTag:mk.krKey,color:col,active:mkAct,chips});
+    const skIds=[...new Set(mkProjs.map(p=>p.subKPIId).filter(Boolean))];
+    skIds.forEach(skid=>{const sk=D.subKPIs.find(s=>s.id===skid);if(!sk)return;const skProjs=mkProjs.filter(p=>p.subKPIId===skid);const skT=skProjs.flatMap(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===sel));items.push({id:mk.id+"/"+skid,depth:2,label:sk.title,leftTag:sk.channelCode,color:col,active:skT.some(isThisWeek)});skProjs.forEach(p=>pushProj(p,3,col));});
+    mkProjs.filter(p=>!p.subKPIId).forEach(p=>pushProj(p,2,col));
+  });
+  const infra=myP.filter(p=>!p.mainKPIId);
+  if(infra.length){const iAct=infra.some(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===sel).some(isThisWeek));items.push({id:"infra",depth:1,label:"⚙️ 운영 인프라",color:"#6B7280",active:iAct});infra.forEach(p=>pushProj(p,2,"#6B7280"));}
+  return items;
+}
+// 팀 주간 맵 → 마인드맵 items 평탄화 (팀→멤버→기간 활동 프로젝트)
+function buildTeamMapItems(D,activeInP,doneInP){
+  const items=[{id:"team",depth:0,label:"팀 전체",color:"#0F1F5C",active:true}];
+  D.users.forEach(u=>{
+    const tasks=D.tasks.filter(t=>!t.isFixed&&t.assigneeId===u.id);
+    const projs=D.projects.filter(p=>p.assigneeId===u.id);
+    const col=u.color||"#3182F6";const active=tasks.some(activeInP);const dP=doneInP(tasks);
+    const rev=projs.reduce((a,p)=>a+numF(p.resultValue),0);
+    const chips=[];if(dP>0)chips.push({t:"✅"+dP,c:"#0F5132",bg:"#D1F5E0"});if(rev>0)chips.push({t:"💰"+fmt(rev,"원"),c:"#7A3E00",bg:"#FFE6C7"});
+    items.push({id:u.id,depth:1,label:u.name,color:col,active,chips});
+    projs.forEach(p=>{
+      const pts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===u.id);
+      const actT=pts.filter(activeInP);if(!actT.length)return;   // 기간 활동 있는 프로젝트만 (노이즈 감소)
+      const pdone=doneInP(pts);const pchips=[{t:(p.progress||0)+"%",c:col,bg:col+"1A"}];if(pdone>0)pchips.push({t:"✅"+pdone,c:"#0F5132",bg:"#D1F5E0"});
+      items.push({id:u.id+"/"+p.id,depth:2,label:p.title,color:col,active:true,chips:pchips});
+    });
+  });
+  return items;
+}
 function MindMapPage({D,cu}){
   const [scope,setScope]=useState("person");   // person | team | diag
   const [boardView,setBoardView]=useState("tree");
   const [teamView,setTeamView]=useState("members");   // members(멤버 현황) | weekly(주간 맵)
+  const [mapStyle,setMapStyle]=useState("tree");   // tree(계층형) | mind(마인드맵)
   const [period,setPeriod]=useState("week");
   const prange=periodRange(period);
   const inP=(ds)=>{if(!ds)return false;const d=new Date(ds);return !isNaN(d)&&d>=prange[0]&&d<=prange[1];};
@@ -3920,7 +4005,13 @@ function MindMapPage({D,cu}){
             <div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:8,height:8,borderRadius:"50%",backgroundColor:"#D1D5DB"}}/><span style={{fontSize:11,color:"#9CA3AF",fontWeight:600}}>비활동</span></div>
             <div style={{display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:10.5,fontWeight:800,color:"#00A862",background:"#E8FAF1",borderRadius:5,padding:"1px 6px"}}>✅성과</span><span style={{fontSize:11,color:"#9CA3AF",fontWeight:600}}>기간 내 완료·매출</span></div>
           </div>
-          {D.mainKPIs.map(mk=>{
+          <div style={{display:"flex",backgroundColor:"#F2F4F6",borderRadius:11,padding:3,marginBottom:14}}>
+            {[{k:"tree",l:"≡ 계층형"},{k:"mind",l:"🧠 마인드맵"}].map(v=>(
+              <button key={v.k} onClick={()=>setMapStyle(v.k)} style={{flex:1,padding:"7px 0",borderRadius:9,border:"none",cursor:"pointer",backgroundColor:mapStyle===v.k?"#FFFFFF":"transparent",color:mapStyle===v.k?"#0F1F5C":"#6B7280",fontWeight:mapStyle===v.k?800:500,fontSize:12.5,fontFamily:"inherit",boxShadow:mapStyle===v.k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{v.l}</button>
+            ))}
+          </div>
+          {mapStyle==="mind"&&<MapCanvas items={buildPersonMapItems(D,sel,isThisWeek,doneInP,krColors)}/>}
+          {mapStyle==="tree"&&D.mainKPIs.map(mk=>{
             const mkProjs=D.projects.filter(p=>p.mainKPIId===mk.id&&p.assigneeId===sel);
             if(mkProjs.length===0) return null;
             const allMkTasks=mkProjs.flatMap(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===sel));

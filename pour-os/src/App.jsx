@@ -1880,7 +1880,7 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
           const svgW=PADX*2+maxDepth*COLW+NW, svgH=PADY*2+Math.max(1,rows.length)*ROWH;
           return(<>
             <div style={{display:"flex",gap:12,marginBottom:8,fontSize:10,fontWeight:700,flexWrap:"wrap"}}>
-              <span style={{color:"#00A862"}}>● 완료</span><span style={{color:"#EA580C"}}>▶ 진행 가능(내 차례)</span><span style={{color:"#9CA3AF"}}>○ 대기(앞 단계 진행 중)</span>
+              <span style={{color:"#00A862"}}>● 완료</span><span style={{color:"#EA580C"}}>▶ 진행 가능(지금)</span><span style={{color:"#9CA3AF"}}>○ 대기(앞 단계 진행 중)</span>
             </div>
             <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:8,overflowX:"auto"}}>
               {rows.length===0?<div style={{margin:"24px 0",textAlign:"center"}}><p style={{margin:"0 0 10px",fontSize:12,color:"#9CA3AF"}}>아직 단계가 없어요</p><button onClick={addRoot} style={{padding:"9px 16px",borderRadius:10,border:"1.5px dashed #FDBA74",background:"#FFF7ED",color:"#EA580C",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 첫 단계 추가</button></div>:(

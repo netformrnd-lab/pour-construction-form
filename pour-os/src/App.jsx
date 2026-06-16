@@ -1897,6 +1897,15 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
   const patch=(id,p)=>setItems(it=>it.map(x=>x.id===id?{...x,...p}:x));
   const toggleDone=id=>setItems(it=>it.map(x=>x.id===id?{...x,done:!x.done}:x));
   const indent=(i,dir)=>setItems(a0=>{const a=[...a0];const it=a[i];if(dir<0){if(it.depth>0)a[i]={...it,depth:it.depth-1};}else{const prev=a[i-1];if(prev&&it.depth<=prev.depth)a[i]={...it,depth:it.depth+1};}return a;});
+  // 형제 간 위/아래 이동(하위 트리 통째로). 같은 부모·같은 단계 형제와 자리 바꿈.
+  const subEnd=(a,i)=>{let k=i+1;while(k<a.length&&a[k].depth>a[i].depth)k++;return k;};
+  const moveItem=(i,dir)=>setItems(a0=>{
+    const a=[...a0]; const d=a[i].depth; const end=subEnd(a,i); const block=a.slice(i,end);
+    if(dir<0){ let j=i-1; while(j>=0&&a[j].depth>d) j--; if(j<0||a[j].depth<d) return a0; a.splice(i,block.length); a.splice(j,0,...block); }
+    else{ if(end>=a.length||a[end].depth<d) return a0; const nEnd=subEnd(a,end); const nLen=nEnd-end; a.splice(i,block.length); a.splice(i+nLen,0,...block); }
+    return a;
+  });
+  const hasSib=(i,dir)=>{const d=items[i].depth; if(dir<0){let j=i-1;while(j>=0&&items[j].depth>d)j--;return j>=0&&items[j].depth===d;} const end=subEnd(items,i);return end<items.length&&items[end].depth===d;};
   // 마인드맵/트리에서 탭으로 추가 — 하위(child)·다음(sibling)·첫 단계(root)
   const addChild=(i)=>{const nid=newId();setItems(a=>{const arr=[...a];const d=(arr[i]?.depth??0)+1;arr.splice(i+1,0,{id:nid,text:"",depth:d,who:arr[i]?.who||"",done:false});return arr;});setSelId(nid);focusRef.current={id:nid};};
   const addSibling=(i)=>{const nid=newId();setItems(a=>{const arr=[...a];const d=arr[i]?.depth??0;arr.splice(i+1,0,{id:nid,text:"",depth:d,who:arr[i]?.who||"",done:false});return arr;});setSelId(nid);focusRef.current={id:nid};};
@@ -2000,8 +2009,12 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
         <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"12px 10px"}} ref={outRef}>
           {items.map((it,i)=>{const m=Mof(it.who);const parent=isP(items,i);const rdone=parent?dd[i]:it.done;return(
             <div key={it.id} style={{display:"flex",alignItems:"center",gap:6,marginLeft:it.depth*20,padding:"3px 6px",borderRadius:9,backgroundColor:it.id===selId?"#FFF7ED":"transparent"}}>
-              <button onClick={()=>indent(i,-1)} style={{border:"none",background:"none",color:"#C4C9D0",fontSize:13,cursor:"pointer",padding:"2px 2px"}}>◂</button>
-              <button onClick={()=>indent(i,1)} style={{border:"none",background:"none",color:"#C4C9D0",fontSize:13,cursor:"pointer",padding:"2px 2px"}}>▸</button>
+              <span style={{display:"flex",flexDirection:"column",flexShrink:0}}>
+                <button onClick={()=>moveItem(i,-1)} disabled={!hasSib(i,-1)} title="위로" style={{border:"none",background:"none",color:hasSib(i,-1)?"#9CA3AF":"#E5E8EB",fontSize:9,cursor:hasSib(i,-1)?"pointer":"default",padding:0,lineHeight:1,height:11}}>▲</button>
+                <button onClick={()=>moveItem(i,1)} disabled={!hasSib(i,1)} title="아래로" style={{border:"none",background:"none",color:hasSib(i,1)?"#9CA3AF":"#E5E8EB",fontSize:9,cursor:hasSib(i,1)?"pointer":"default",padding:0,lineHeight:1,height:11}}>▼</button>
+              </span>
+              <button onClick={()=>indent(i,-1)} title="내어쓰기" style={{border:"none",background:"none",color:"#C4C9D0",fontSize:13,cursor:"pointer",padding:"2px 2px"}}>◂</button>
+              <button onClick={()=>indent(i,1)} title="들여쓰기" style={{border:"none",background:"none",color:"#C4C9D0",fontSize:13,cursor:"pointer",padding:"2px 2px"}}>▸</button>
               {parent
                 ? (()=>{const ks=kidsOf(i);const cdn=ks.filter(k=>dd[k]).length;return(<span title="하위 진행(자동 완료)" style={{minWidth:19,height:19,borderRadius:6,background:rdone?"#00C073":"#EEF1F3",color:rdone?"#fff":"#6B7280",fontSize:9.5,fontWeight:800,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 4px",boxSizing:"border-box"}}>{rdone?"✓":cdn+"/"+ks.length}</span>);})()
                 : <button onClick={()=>toggleDone(it.id)} style={{width:19,height:19,borderRadius:6,border:`2px solid ${it.done?"#00C073":"#D1D5DB"}`,background:it.done?"#00C073":"#fff",color:"#fff",fontSize:11,fontWeight:900,cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>{it.done?"✓":""}</button>}

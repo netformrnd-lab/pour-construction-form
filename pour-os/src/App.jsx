@@ -131,7 +131,7 @@ const INIT={
     {id:"e4",title:"여름 프로모션 런칭",date:"2026-06-20",type:"promotion",projectId:null,description:"자사몰+마켓 동시"},
   ],
   weekGoals:[],
-  // 매뉴얼 — 잘 된 여정(국면+프로세스)을 굳혀 재사용하는 표준 작업서. 새 프로젝트를 여기서 시작.
+  // 매뉴얼 — 잘 된 여정(로드단계+프로세스)을 굳혀 재사용하는 표준 작업서. 새 프로젝트를 여기서 시작.
   manuals:[],
   trash:[],   // 소프트 삭제 보관소 — 삭제된 모든 데이터는 여기 남고 복구 가능(데이터 자산화)
   // 출시 프로세스 템플릿(마인드맵) — 신상 SKU를 찍어내는 표준 흐름. 동일 프로세스 1개 기본 제공.
@@ -2107,8 +2107,8 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
     </div>
   );
 }
-// 프로젝트 여정(로드맵) — 최상위 국면을 예상기간 타임라인으로 + 국면별 담당/논의 + 프로세스 연결
-// 프로젝트의 여정(국면+프로세스 트리)을 재사용용 매뉴얼 트리로 추출
+// 프로젝트 로드맵 — 최상위 로드단계 + 로드단계별 담당/논의 + 프로세스 연결
+// 프로젝트의 여정(로드단계+프로세스 트리)을 재사용용 매뉴얼 트리로 추출
 function buildManualTree(D,projId){
   const ts=D.tasks.filter(t=>t.projectId===projId&&!t.isFixed);
   const byParent={};
@@ -2149,7 +2149,7 @@ function ManualCard({m,D,up,rm,startFromManual}){
       <div style={{display:"flex",alignItems:"center",gap:8}}>
         <div style={{flex:1,minWidth:0}}>
           <p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.name} <span style={{fontSize:9.5,fontWeight:800,color:"#A16207",background:"#FEF3C7",borderRadius:5,padding:"1px 5px"}}>v{ver}</span></p>
-          <p style={{margin:"2px 0 0",fontSize:10,color:"#9CA3AF"}}>{m.projType==="team"?"팀":"개인"} · 국면 {sc} · 업무 {cnt}{vers.length?` · 이력 ${vers.length}`:""}</p>
+          <p style={{margin:"2px 0 0",fontSize:10,color:"#9CA3AF"}}>{m.projType==="team"?"팀":"개인"} · 로드단계 {sc} · 업무 {cnt}{vers.length?` · 이력 ${vers.length}`:""}</p>
         </div>
         <button onClick={()=>startFromManual(m)} style={{flexShrink:0,padding:"6px 10px",borderRadius:9,border:"none",background:"#F97316",color:"#fff",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 새 프로젝트</button>
         <button onClick={()=>{if(window.confirm(`'${m.name}' 매뉴얼을 삭제할까요? (이미 만든 프로젝트는 영향 없음)\n휴지통에서 복구할 수 있어요.`))rm("manuals",m.id);}} style={{flexShrink:0,padding:"6px 8px",borderRadius:9,border:"1px solid #FFE2E5",background:"#FFF0F1",color:"#F04452",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
@@ -2172,7 +2172,7 @@ function ManualCard({m,D,up,rm,startFromManual}){
           {vers.slice().reverse().map(v=>(
             <div key={v.v} style={{display:"flex",alignItems:"center",gap:8,background:"#F9FAFB",borderRadius:8,padding:"6px 9px"}}>
               <span style={{fontSize:10.5,fontWeight:800,color:"#6B7280",flexShrink:0}}>v{v.v}</span>
-              <span style={{flex:1,minWidth:0,fontSize:10,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{v.note?`✏️ ${v.note}`:`국면 ${(v.stages||[]).length} · ${(v.savedAt||"").slice(0,10)||"날짜없음"}`}</span>
+              <span style={{flex:1,minWidth:0,fontSize:10,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{v.note?`✏️ ${v.note}`:`로드단계 ${(v.stages||[]).length} · ${(v.savedAt||"").slice(0,10)||"날짜없음"}`}</span>
               <button onClick={()=>restore(v)} style={{flexShrink:0,padding:"4px 8px",borderRadius:7,border:"1px solid #DBE3FF",background:"#fff",color:"#3182F6",fontSize:10,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>되돌리기</button>
             </div>
           ))}
@@ -2196,8 +2196,8 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
   const sel=stages.find(s=>s.id===selId);
   const cpct=sid=>{const ks=D.tasks.filter(t=>t.parentId===sid&&!t.isFixed);if(ks.length)return Math.round(ks.filter(t=>t.status==="done").length/ks.length*100);return (stages.find(s=>s.id===sid)?.status==="done")?100:0;};
   const kidsOf=(pid)=>D.tasks.filter(t=>t.parentId===pid&&!t.isFixed).sort((a,b)=>(a.seq||0)-(b.seq||0));
-  const addStage=()=>{add("tasks",{id:"t"+Date.now(),projectId:proj.id,parentId:null,seq:stages.length,title:"새 국면",status:"todo",isFixed:false,assigneeId:"",estDays:0,discuss:"",custJourney:"",painPoint:"",satisfaction:null,memo:"",dueDate:"",attachments:[]});};
-  // 국면에 프로세스 모듈 장착 — 모듈 단계를 그 국면의 업무로 인스턴스화(인계 순서) + 국면에 모듈·버전 기록
+  const addStage=()=>{add("tasks",{id:"t"+Date.now(),projectId:proj.id,parentId:null,seq:stages.length,title:"새 로드단계",status:"todo",isFixed:false,assigneeId:"",estDays:0,discuss:"",custJourney:"",painPoint:"",satisfaction:null,memo:"",dueDate:"",attachments:[]});};
+  // 로드단계에 프로세스 모듈 장착 — 모듈 단계를 그 로드단계의 업무로 인스턴스화(인계 순서) + 로드단계에 모듈·버전 기록
   const tpls=D.launchTemplates||[];
   const attachProcessToStage=(stageId,tpl)=>{
     if(!tpl) return;
@@ -2241,7 +2241,7 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
   const setEst=(s,v)=>up("tasks",s.id,{estDays:Math.max(0,Math.round((Number(v)||0)*perDay))});
   const saveManual=()=>{
     const tree=buildManualTree(D,proj.id);
-    if(!tree.length){window.alert("저장할 국면이 없어요 · 먼저 프로세스에서 국면을 만들어 주세요");return;}
+    if(!tree.length){window.alert("저장할 로드단계가 없어요 · 먼저 프로세스에서 로드단계를 만들어 주세요");return;}
     const now=new Date().toISOString(), by=proj.assigneeId||"";
     const src=proj.sourceManualId&&(D.manuals||[]).find(m=>m.id===proj.sourceManualId);
     if(src){
@@ -2278,8 +2278,8 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
       </div>
       <div style={{flex:1,overflowY:"auto",padding:"14px 16px 30px",maxWidth:760,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
         <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:10,flexWrap:"wrap"}}>
-          <p style={{margin:0,fontSize:11,color:"#9CA3AF",flex:1,minWidth:140,lineHeight:1.5}}>국면(단계)을 계층형으로 · 각 국면에 🧑 고객여정 ‖ 🛠 업무여정 + 만족도·불편점</p>
-          <Btn size="sm" variant="orange" onClick={addStage}>+ 국면</Btn>
+          <p style={{margin:0,fontSize:11,color:"#9CA3AF",flex:1,minWidth:140,lineHeight:1.5}}>로드단계를 계층형으로 · 각 로드단계에 🧑 고객여정 ‖ 🛠 업무여정 + 만족도·불편점</p>
+          <Btn size="sm" variant="orange" onClick={addStage}>+ 로드단계</Btn>
         </div>
         {(srcMan||srcGone)&&(
           <div style={{display:"flex",alignItems:"center",gap:8,background:srcGone?"#F8F9FA":"#FFFBF5",border:"1px solid "+(srcGone?"#EAEDF0":"#F2E6D5"),borderRadius:11,padding:"9px 12px",marginBottom:9}}>
@@ -2288,18 +2288,18 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
           </div>
         )}
         <button onClick={saveManual} style={{width:"100%",padding:"11px 0",borderRadius:11,border:"1.5px solid #FBD9B5",background:"#FFF7ED",fontSize:12.5,fontWeight:800,color:"#EA580C",cursor:"pointer",fontFamily:"inherit",marginBottom:14}}>{srcMan?"📋 매뉴얼 갱신 / 새 매뉴얼로 저장":"📋 이 로드맵을 매뉴얼로 저장 (다음에 재사용)"}</button>
-        {stages.length===0?<Empty t="국면이 없어요 · [+ 국면]으로 만들거나 🧩프로세스 편집에서 최상위 단계를 만들면 로드맵 국면이 됩니다"/>:(
+        {stages.length===0?<Empty t="로드단계가 없어요 · [+ 로드단계]로 만들거나 🧩프로세스 편집에서 최상위 단계를 만들면 로드단계가 됩니다"/>:(
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
             {stages.map((s,idx)=>{
               const m=Mof(s.assigneeId);const col=team?m.color:"#0891B2";const pct=cpct(s.id);
               const open=s.id===selId;const kids=kidsOf(s.id);const sat=s.satisfaction||0;
               return(
                 <div key={s.id} style={{background:"#fff",borderRadius:14,border:`1px solid ${open?col+"66":"#EEF1F4"}`,overflow:"hidden"}}>
-                  {/* 국면 헤더 */}
+                  {/* 로드단계 헤더 */}
                   <div onClick={()=>setSelId(open?null:s.id)} style={{display:"flex",alignItems:"center",gap:9,padding:"12px 13px",cursor:"pointer",borderLeft:`4px solid ${col}`}}>
                     <span style={{flexShrink:0,width:22,height:22,borderRadius:7,background:col,color:"#fff",fontSize:11,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{idx+1}</span>
                     <div style={{flex:1,minWidth:0}}>
-                      <p style={{margin:0,fontSize:13.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.title||"국면"}</p>
+                      <p style={{margin:0,fontSize:13.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.title||"로드단계"}</p>
                       <div style={{display:"flex",alignItems:"center",gap:6,marginTop:3,flexWrap:"wrap"}}>
                         {team&&<span style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:10,fontWeight:700,color:m.color}}><span style={{width:13,height:13,borderRadius:"50%",background:m.color,color:"#fff",fontSize:7.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{gname(m.name)}</span>{m.name}</span>}
                         <span style={{fontSize:10,color:"#9CA3AF",fontWeight:700}}>예상 {toU(s.estDays)}{unit}</span>
@@ -2326,10 +2326,10 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
                       <div style={{display:"flex",gap:5,justifyContent:"flex-end",marginTop:8}}>
                         <button onClick={()=>moveSib(s,-1)} disabled={idx<=0} style={{...arrowBtn,opacity:idx<=0?0.25:1,fontSize:12}}>▲ 위</button>
                         <button onClick={()=>moveSib(s,1)} disabled={idx>=stages.length-1} style={{...arrowBtn,opacity:idx>=stages.length-1?0.25:1,fontSize:12}}>▼ 아래</button>
-                        <button onClick={()=>{delTask(s);setSelId(null);}} style={{...arrowBtn,fontSize:11,color:"#F04452",fontWeight:700}}>🗑 국면 삭제</button>
+                        <button onClick={()=>{delTask(s);setSelId(null);}} style={{...arrowBtn,fontSize:11,color:"#F04452",fontWeight:700}}>🗑 로드단계 삭제</button>
                       </div>
                       <div style={{display:"flex",gap:8,margin:"6px 0 10px",alignItems:"flex-end",flexWrap:"wrap"}}>
-                        <div style={{flex:"1 1 150px",minWidth:120}}><label style={{display:"block",fontSize:10.5,fontWeight:800,color:"#4B5563",marginBottom:4}}>국면명</label>
+                        <div style={{flex:"1 1 150px",minWidth:120}}><label style={{display:"block",fontSize:10.5,fontWeight:800,color:"#4B5563",marginBottom:4}}>로드단계명</label>
                           <input key={s.id+"t"} defaultValue={s.title||""} onBlur={e=>up("tasks",s.id,{title:e.target.value})} style={{width:"100%",padding:"9px 11px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:13,fontWeight:700,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
                         <div style={{flex:"0 0 110px"}}><label style={{display:"block",fontSize:10.5,fontWeight:800,color:"#4B5563",marginBottom:4}}>예상({unit})</label>
                           <input key={s.id+unit} type="number" inputMode="decimal" defaultValue={toU(s.estDays)} onBlur={e=>setEst(s,e.target.value)} style={{width:"100%",padding:"9px 11px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:13,fontWeight:800,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
@@ -2347,7 +2347,7 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
                       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:5,gap:6,flexWrap:"wrap"}}>
                         <label style={{fontSize:10.5,fontWeight:800,color:"#7C3AED"}}>🛠 업무여정 <span style={{fontWeight:600,color:"#9CA3AF"}}>(실행 — 계층형 편집)</span></label>
                         <div style={{display:"flex",gap:5,flexShrink:0}}>
-                          {tpls.length>0&&<select value="" onChange={e=>{const tpl=tpls.find(t=>t.id===e.target.value);if(!tpl)return;if(kids.length&&!window.confirm(`'${tpl.name}' 프로세스(${(tpl.nodes||[]).length}단계)를 이 국면 업무로 추가할까요?`))return;attachProcessToStage(s.id,tpl);}} style={{padding:"4px 8px",borderRadius:8,border:"1.5px solid #DDD6FE",background:"#FAF9FF",color:"#7C3AED",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="">🧩 프로세스 장착…</option>{tpls.map(t=><option key={t.id} value={t.id}>{t.name} v{t.version||1}</option>)}</select>}
+                          {tpls.length>0&&<select value="" onChange={e=>{const tpl=tpls.find(t=>t.id===e.target.value);if(!tpl)return;if(kids.length&&!window.confirm(`'${tpl.name}' 프로세스(${(tpl.nodes||[]).length}단계)를 이 로드단계 업무로 추가할까요?`))return;attachProcessToStage(s.id,tpl);}} style={{padding:"4px 8px",borderRadius:8,border:"1.5px solid #DDD6FE",background:"#FAF9FF",color:"#7C3AED",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="">🧩 프로세스 장착…</option>{tpls.map(t=><option key={t.id} value={t.id}>{t.name} v{t.version||1}</option>)}</select>}
                           <button onClick={()=>addKid(s.id)} style={{flexShrink:0,padding:"4px 10px",borderRadius:8,border:"1.5px solid #DDD6FE",background:"#FAF9FF",color:"#7C3AED",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>＋ 업무</button>
                         </div>
                       </div>
@@ -2371,7 +2371,7 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
                 </div>
               );
             })}
-            <p style={{margin:"2px 2px 0",fontSize:10.5,color:"#9CA3AF",lineHeight:1.6}}>※ 국면=프로세스 최상위 단계 · 🧩%=하위 업무 실제 진행 · 고객여정·불편점은 개선(버전업)의 근거로 누적됩니다</p>
+            <p style={{margin:"2px 2px 0",fontSize:10.5,color:"#9CA3AF",lineHeight:1.6}}>※ 로드단계=프로세스 최상위 단계 · 🧩%=하위 업무 실제 진행 · 고객여정·불편점은 개선(버전업)의 근거로 누적됩니다</p>
           </div>
         )}
       </div>
@@ -2495,7 +2495,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
   if(pview==="process") return(
     <div style={{padding:"14px 16px 24px"}}>
       {pTabs}
-      <p style={{margin:"0 2px 12px",fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>프로젝트별 로드맵 · 국면을 타임라인으로 보고 · 각 국면의 방안은 프로세스</p>
+      <p style={{margin:"0 2px 12px",fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>프로젝트별 로드맵 · 로드단계를 계층형으로 보고 · 각 로드단계의 방안은 프로세스</p>
       {((D.manuals||[]).length>0||(D.launchTemplates||[]).length>0)&&(
         <div style={{marginBottom:16,background:"#FFFBF5",border:"1px solid #FBE5C8",borderRadius:14,padding:"12px 13px"}}>
           <p style={{margin:"0 0 9px",fontSize:12,fontWeight:900,color:"#EA580C"}}>📋 매뉴얼 <span style={{fontWeight:700,color:"#C08A4A"}}>· 저장된 표준 작업서 (새 프로젝트로 재사용)</span></p>
@@ -2516,7 +2516,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
       )}
       {(()=>{
         const list=D.projects.filter(p=>D.tasks.some(t=>t.projectId===p.id&&!t.isFixed));
-        if(!list.length) return <Empty t="아직 로드맵이 없어요 · 프로젝트에서 🧩프로세스로 국면을 만들어보세요"/>;
+        if(!list.length) return <Empty t="아직 로드맵이 없어요 · 프로젝트에서 🧩프로세스로 로드단계를 만들어보세요"/>;
         const pIds=new Set(D.tasks.filter(t=>t.parentId).map(t=>t.parentId));
         return(
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -2541,7 +2541,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
                     <div style={{flex:1,height:6,borderRadius:6,background:"#F2F4F6",overflow:"hidden"}}><div style={{width:prog+"%",height:"100%",background:prog>=100?"#00C073":"#F97316",borderRadius:6}}/></div>
                     <span style={{fontSize:12,fontWeight:900,color:prog>=100?"#00C073":"#F97316",flexShrink:0}}>{prog}%</span>
                   </div>
-                  <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>국면 {stages.length}개{totalDays?` · 예상 ${wk}주`:""} · 업무 {done}/{leaves.length}{who?` · ${who.name}`:""}</p>
+                  <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>로드단계 {stages.length}개{totalDays?` · 예상 ${wk}주`:""} · 업무 {done}/{leaves.length}{who?` · ${who.name}`:""}</p>
                 </button>
               );
             })}
@@ -2780,7 +2780,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
           {!editProjId&&projForm.manualId&&(()=>{const m=(D.manuals||[]).find(x=>x.id===projForm.manualId);if(!m)return null;return(
             <div style={{display:"flex",alignItems:"center",gap:8,background:"#FFF7ED",border:"1.5px solid #FBD9B5",borderRadius:11,padding:"10px 12px",marginBottom:14}}>
               <span style={{fontSize:15}}>📋</span>
-              <div style={{flex:1,minWidth:0}}><p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#EA580C"}}>'{m.name}' 매뉴얼에서 생성</p><p style={{margin:"2px 0 0",fontSize:10.5,color:"#C08A4A"}}>국면 {(m.stages||[]).length}개와 프로세스가 함께 만들어져요</p></div>
+              <div style={{flex:1,minWidth:0}}><p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#EA580C"}}>'{m.name}' 매뉴얼에서 생성</p><p style={{margin:"2px 0 0",fontSize:10.5,color:"#C08A4A"}}>로드단계 {(m.stages||[]).length}개와 프로세스가 함께 만들어져요</p></div>
               <button onClick={()=>setProjForm(f=>({...f,manualId:""}))} style={{flexShrink:0,padding:"5px 9px",borderRadius:8,border:"1px solid #FBD9B5",background:"#fff",color:"#EA580C",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>해제</button>
             </div>
           );})()}

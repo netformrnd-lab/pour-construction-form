@@ -3441,6 +3441,7 @@ function TeamWeeklyMap({D,cu}){
   const inWeek=(ds)=>{if(!ds)return false;const d=new Date(ds);return !isNaN(d)&&d>=wrange[0]&&d<=wrange[1];};
   const dayOf=(t)=>{ if(t.weekDay&&WEEK_DAYS.includes(t.weekDay)) return t.weekDay; if(t.workDate){const d=new Date(t.workDate); if(!isNaN(d)){const wd=(d.getDay()+6)%7; return WEEK_DAYS[wd]||null;}} return null; };
   const activeInP=(t)=>inP(t.workDate)||inP(t.doneAt)||(period==="week"&&!!(t.weekDay&&WEEK_DAYS.includes(t.weekDay)));
+  const krColors={mk1:"#3182F6",mk2:"#8B5CF6",mk3:"#00C073"};
   const doneInP=(ts)=>ts.filter(t=>t.status==="done"&&inP(t.doneAt)).length;
   const signals=diagSignals(D);
   const PLABEL=PERIOD_LABEL;
@@ -3507,12 +3508,13 @@ function TeamWeeklyMap({D,cu}){
         <MapCanvas items={buildTeamMapItems(D,activeInP,doneInP,{krF,activeOnly,members:memSel,signals})} onPick={setPicked}/>
       </>)}
       {mapStyle==="tree"&&(
-      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+      <div style={{display:"flex",flexDirection:"column",gap:14}}>
         {mem.map(m=>{
           const col=m.u.color||"#3182F6";
+          const hasContent=D.projects.some(p=>p.assigneeId===m.u.id&&(krF==="all"||p.mainKPIId===krF));
           return(
-            <div key={m.u.id} style={{backgroundColor:"#fff",borderRadius:14,border:`1px solid ${m.active?col+"55":"#F2F4F6"}`,padding:"12px 13px",opacity:m.active?1:0.72}}>
-              <div onClick={()=>setPicked({ref:{kind:"member",id:m.u.id}})} style={{display:"flex",alignItems:"center",gap:10,marginBottom:9,cursor:"pointer"}}>
+            <div key={m.u.id} style={{backgroundColor:"#fff",borderRadius:14,border:`1px solid ${m.active?col+"55":"#F2F4F6"}`,padding:"12px 13px"}}>
+              <div onClick={()=>setPicked({ref:{kind:"member",id:m.u.id}})} style={{display:"flex",alignItems:"center",gap:10,marginBottom:hasContent?12:4,cursor:"pointer"}}>
                 <div style={{position:"relative",flexShrink:0}}>
                   <Ava name={m.u.name} color={m.u.color} size={36}/>
                   <div style={{position:"absolute",right:-1,bottom:-1,width:11,height:11,borderRadius:"50%",border:"2px solid #fff",backgroundColor:m.active?col:"#D1D5DB"}}/>
@@ -3527,32 +3529,12 @@ function TeamWeeklyMap({D,cu}){
                   {m.rev>0&&<span style={{fontSize:10,fontWeight:800,color:"#7A3E00",background:"#FFE6C7",borderRadius:8,padding:"2px 7px"}}>💰{fmt(m.rev,"원")}</span>}
                 </div>
               </div>
-              {period==="week"?(
-                <div style={{display:"flex",gap:4}}>
-                  {WEEK_DAYS.map(day=>{
-                    const dts=m.weekTasks.filter(t=>dayOf(t)===day);
-                    const on=dts.length>0;
-                    return(
-                      <div key={day} style={{flex:1,minWidth:0,borderRadius:9,border:`1px solid ${on?col+"44":"#F2F4F6"}`,background:on?col+"0D":"#FAFBFC",padding:"5px 4px",minHeight:46}}>
-                        <p style={{margin:"0 0 3px",fontSize:9.5,fontWeight:800,textAlign:"center",color:on?col:"#C4C9D0"}}>{day}</p>
-                        <div style={{display:"flex",flexDirection:"column",gap:2}}>
-                          {dts.slice(0,3).map(t=>{const st=STATUS_MAP[t.status]||STATUS_MAP.todo;return(
-                            <div key={t.id} title={t.title} style={{display:"flex",alignItems:"center",gap:2}}>
-                              <div style={{width:5,height:5,borderRadius:"50%",backgroundColor:st.color,flexShrink:0}}/>
-                              <span style={{fontSize:8.5,color:"#4B5563",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontWeight:600}}>{t.title}</span>
-                            </div>
-                          );})}
-                          {dts.length>3&&<span style={{fontSize:8.5,color:"#9CA3AF",fontWeight:700,textAlign:"center"}}>+{dts.length-3}</span>}
-                        </div>
-                      </div>
-                    );
-                  })}
+              {hasContent?(
+                <div style={{borderTop:"1px solid #F2F4F6",paddingTop:12}}>
+                  <WeeklyTree D={D} sel={m.u.id} isThisWeek={activeInP} doneInP={doneInP} krColors={krColors} krF={krF} activeOnly={activeOnly} signals={signals} onPick={setPicked}/>
                 </div>
               ):(
-                <div style={{display:"flex",alignItems:"center",gap:8,padding:"7px 11px",borderRadius:10,background:m.active?col+"0D":"#FAFBFC",border:`1px solid ${m.active?col+"33":"#F2F4F6"}`}}>
-                  <span style={{fontSize:11,fontWeight:800,color:m.active?col:"#9CA3AF"}}>{m.active?`이 기간 활동 ${m.actCnt}건`:"이 기간 활동 없음"}</span>
-                  {m.doneP>0&&<span style={{fontSize:10.5,color:"#6B7280",fontWeight:600}}>· 완료 {m.doneP}</span>}
-                </div>
+                <p style={{margin:"2px 2px 0",fontSize:11.5,color:"#C4C9D0",fontWeight:600}}>담당 KR 프로젝트가 없어요</p>
               )}
             </div>
           );
@@ -3919,43 +3901,48 @@ function exportMapPNG(items,title){
   catch(e){console.error("[map export] 실패:",e);window.alert("이미지 저장 실패: "+(e.message||e));}
 }
 // 개인 주간 맵 → 마인드맵 items 평탄화 (KR→서브KR→프로젝트→업무). opts:{krF,activeOnly,signals}
-function buildPersonMapItems(D,sel,isThisWeek,doneInP,krColors,opts={}){
-  const {krF="all",activeOnly=false,signals=null}=opts;
-  const items=[];const user=D.users.find(u=>u.id===sel);
-  const myP=D.projects.filter(p=>p.assigneeId===sel);
-  items.push({id:"root",depth:0,label:user?.name||"나",color:"#0F1F5C",active:true,ref:{kind:"member",id:sel}});
+// 한 담당자의 KR→서브KR→프로젝트→업무 서브트리를 items에 push (개인·팀 마인드맵 공용). baseDepth=KR이 놓일 깊이, pfx=id 충돌 방지 접두사
+function pushKRSubtree(items,D,uid,isThisWeek,doneInP,krColors,baseDepth,opts={}){
+  const {krF="all",activeOnly=false,signals=null,pfx=""}=opts;
+  const myP=D.projects.filter(p=>p.assigneeId===uid);
   const pushProj=(proj,depth,col)=>{
-    const projTasks=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed&&t.assigneeId===sel);
+    const projTasks=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed&&t.assigneeId===uid);
     const actT=projTasks.filter(isThisWeek);if(activeOnly&&!actT.length)return;
     const dP=doneInP(projTasks);
-    const chips=[];chips.push({t:(proj.progress||0)+"%",c:actT.length?col:"#9CA3AF",bg:actT.length?col+"1A":"#F2F4F6"});
+    const chips=[{t:(proj.progress||0)+"%",c:actT.length?col:"#9CA3AF",bg:actT.length?col+"1A":"#F2F4F6"}];
     if(dP>0)chips.push({t:"✅"+dP,c:"#0F5132",bg:"#D1F5E0"});
     const sig=signals?(signals.heotsimProjects.has(proj.id)?"heotsim":(signals.jamProjects.has(proj.id)?"jam":null)):null;
-    items.push({id:proj.id,depth,label:proj.title,color:col,active:actT.length>0,chips,signal:sig,ref:{kind:"proj",id:proj.id}});
-    actT.forEach(t=>{const st=STATUS_MAP[t.status]||STATUS_MAP.todo;items.push({id:t.id,depth:depth+1,label:t.title,color:st.color,active:true,leftTag:t.weekDay||null,chips:[{t:st.label,c:st.color,bg:st.bg}],ref:{kind:"task",id:t.id}});});
+    items.push({id:pfx+proj.id,depth,label:proj.title,color:col,active:actT.length>0,chips,signal:sig,ref:{kind:"proj",id:proj.id}});
+    actT.forEach(t=>{const st=STATUS_MAP[t.status]||STATUS_MAP.todo;items.push({id:pfx+t.id,depth:depth+1,label:t.title,color:st.color,active:true,leftTag:t.weekDay||null,chips:[{t:st.label,c:st.color,bg:st.bg}],ref:{kind:"task",id:t.id}});});
   };
   D.mainKPIs.filter(mk=>krF==="all"||mk.id===krF).forEach(mk=>{
     const mkProjs=myP.filter(p=>p.mainKPIId===mk.id);if(!mkProjs.length)return;
     const col=krColors[mk.id]||"#3182F6";
-    const allT=mkProjs.flatMap(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===sel));
+    const allT=mkProjs.flatMap(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===uid));
     const mkAct=allT.some(isThisWeek);if(activeOnly&&!mkAct)return;
     const mkDone=doneInP(allT);const rev=mkProjs.reduce((a,p)=>a+numF(p.resultValue),0);
     const tgt=pct(mkCur(mk,D.subKPIs,D.projects),mk.targetValue);
     const chips=[{t:"🎯"+tgt+"%",c:col,bg:col+"1A"}];if(mkDone>0)chips.push({t:"✅"+mkDone,c:"#0F5132",bg:"#D1F5E0"});if(rev>0)chips.push({t:"💰"+fmt(rev,"원"),c:"#7A3E00",bg:"#FFE6C7"});
-    items.push({id:mk.id,depth:1,label:mk.title,leftTag:mk.krKey,color:col,active:mkAct,chips,ref:{kind:"mk",id:mk.id}});
+    items.push({id:pfx+mk.id,depth:baseDepth,label:mk.title,leftTag:mk.krKey,color:col,active:mkAct,chips,ref:{kind:"mk",id:mk.id}});
     const skIds=[...new Set(mkProjs.map(p=>p.subKPIId).filter(Boolean))];
-    skIds.forEach(skid=>{const sk=D.subKPIs.find(s=>s.id===skid);if(!sk)return;const skProjs=mkProjs.filter(p=>p.subKPIId===skid);const skT=skProjs.flatMap(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===sel));const skAct=skT.some(isThisWeek);if(activeOnly&&!skAct)return;items.push({id:mk.id+"/"+skid,depth:2,label:sk.title,leftTag:sk.channelCode,color:col,active:skAct,ref:{kind:"sk",id:sk.id}});skProjs.forEach(p=>pushProj(p,3,col));});
-    mkProjs.filter(p=>!p.subKPIId).forEach(p=>pushProj(p,2,col));
+    skIds.forEach(skid=>{const sk=D.subKPIs.find(s=>s.id===skid);if(!sk)return;const skProjs=mkProjs.filter(p=>p.subKPIId===skid);const skT=skProjs.flatMap(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===uid));const skAct=skT.some(isThisWeek);if(activeOnly&&!skAct)return;items.push({id:pfx+mk.id+"/"+skid,depth:baseDepth+1,label:sk.title,leftTag:sk.channelCode,color:col,active:skAct,ref:{kind:"sk",id:sk.id}});skProjs.forEach(p=>pushProj(p,baseDepth+2,col));});
+    mkProjs.filter(p=>!p.subKPIId).forEach(p=>pushProj(p,baseDepth+1,col));
   });
   if(krF==="all"){
     const infra=myP.filter(p=>!p.mainKPIId);
-    if(infra.length){const iAct=infra.some(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===sel).some(isThisWeek));if(!(activeOnly&&!iAct)){items.push({id:"infra",depth:1,label:"⚙️ 운영 인프라",color:"#6B7280",active:iAct});infra.forEach(p=>pushProj(p,2,"#6B7280"));}}
+    if(infra.length){const iAct=infra.some(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===uid).some(isThisWeek));if(!(activeOnly&&!iAct)){items.push({id:pfx+"infra",depth:baseDepth,label:"⚙️ 운영 인프라",color:"#6B7280",active:iAct});infra.forEach(p=>pushProj(p,baseDepth+1,"#6B7280"));}}
   }
+}
+function buildPersonMapItems(D,sel,isThisWeek,doneInP,krColors,opts={}){
+  const items=[];const user=D.users.find(u=>u.id===sel);
+  items.push({id:"root",depth:0,label:user?.name||"나",color:"#0F1F5C",active:true,ref:{kind:"member",id:sel}});
+  pushKRSubtree(items,D,sel,isThisWeek,doneInP,krColors,1,{...opts,pfx:""});
   return items;
 }
-// 팀 주간 맵 → 마인드맵 items 평탄화 (팀→멤버→기간 활동 프로젝트). opts:{krF,activeOnly,members,signals}
+// 팀 주간 맵 → 마인드맵 items 평탄화 (팀→멤버→KR→서브KR→프로젝트→업무 끝까지). opts:{krF,activeOnly,members,signals}
 function buildTeamMapItems(D,activeInP,doneInP,opts={}){
   const {krF="all",activeOnly=false,members=null,signals=null}=opts;
+  const krColors={mk1:"#3182F6",mk2:"#8B5CF6",mk3:"#00C073"};
   const items=[{id:"team",depth:0,label:"팀 전체",color:"#0F1F5C",active:true}];
   D.users.filter(u=>!members||members.has(u.id)).forEach(u=>{
     const projs=D.projects.filter(p=>p.assigneeId===u.id&&(krF==="all"||p.mainKPIId===krF));
@@ -3966,14 +3953,8 @@ function buildTeamMapItems(D,activeInP,doneInP,opts={}){
     const dP=doneInP(tasks);const rev=projs.reduce((a,p)=>a+numF(p.resultValue),0);
     const chips=[];if(dP>0)chips.push({t:"✅"+dP,c:"#0F5132",bg:"#D1F5E0"});if(rev>0)chips.push({t:"💰"+fmt(rev,"원"),c:"#7A3E00",bg:"#FFE6C7"});
     const sig=signals&&signals.stuckMembers.has(u.id)?"stuck":null;
-    items.push({id:u.id,depth:1,label:u.name,color:col,active,chips,signal:sig,ref:{kind:"member",id:u.id}});
-    projs.forEach(p=>{
-      const pts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===u.id);
-      const actT=pts.filter(activeInP);if(!actT.length)return;   // 기간 활동 있는 프로젝트만 (노이즈 감소)
-      const pdone=doneInP(pts);const pchips=[{t:(p.progress||0)+"%",c:col,bg:col+"1A"}];if(pdone>0)pchips.push({t:"✅"+pdone,c:"#0F5132",bg:"#D1F5E0"});
-      const psig=signals?(signals.heotsimProjects.has(p.id)?"heotsim":(signals.jamProjects.has(p.id)?"jam":null)):null;
-      items.push({id:u.id+"/"+p.id,depth:2,label:p.title,color:col,active:true,chips:pchips,signal:psig,ref:{kind:"proj",id:p.id}});
-    });
+    items.push({id:"m_"+u.id,depth:1,label:u.name,color:col,active,chips,signal:sig,ref:{kind:"member",id:u.id}});
+    pushKRSubtree(items,D,u.id,activeInP,doneInP,krColors,2,{krF,activeOnly,signals,pfx:u.id+"_"});   // 멤버 아래 KR→…→업무 끝까지
   });
   return items;
 }
@@ -4038,6 +4019,178 @@ function NodeDetail({D,node,period,onClose}){
       </div>
     </Sheet>
   );
+}
+// 주간 맵 — 계층형 트리(한 담당자 KR→서브KR→프로젝트→업무). 개인·팀(멤버별) 공용.
+function WeeklyTree({D,sel,isThisWeek,doneInP,krColors,krF,activeOnly,signals,onPick}){
+  return(<>
+    {D.mainKPIs.filter(mk=>krF==="all"||mk.id===krF).map(mk=>{
+      const mkProjs=D.projects.filter(p=>p.mainKPIId===mk.id&&p.assigneeId===sel);
+      if(mkProjs.length===0) return null;
+      const allMkTasks=mkProjs.flatMap(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===sel));
+      const thisWeekCount=allMkTasks.filter(t=>isThisWeek(t)).length;
+      const mkDone=doneInP(allMkTasks); const mkRev=mkProjs.reduce((a,p)=>a+numF(p.resultValue),0);
+      const col=krColors[mk.id]||"#3182F6";
+      const mkActive=thisWeekCount>0;
+      const mkTgt=pct(mkCur(mk,D.subKPIs,D.projects),mk.targetValue);
+      if(activeOnly&&!mkActive) return null;
+      const skIds=[...new Set(mkProjs.map(p=>p.subKPIId).filter(Boolean))];
+      const sks=skIds.map(id=>D.subKPIs.find(s=>s.id===id)).filter(Boolean);
+      const noSkProjs=mkProjs.filter(p=>!p.subKPIId);
+      return(
+        <div key={mk.id} style={{marginBottom:20}}>
+          <div style={{display:"flex",alignItems:"center",gap:0,marginBottom:6}}>
+            <div style={{width:14,height:14,borderRadius:"50%",backgroundColor:mkActive?col:"#D1D5DB",flexShrink:0}}/>
+            <div style={{height:2,width:10,backgroundColor:mkActive?col+"88":"#E5E8EB"}}/>
+            <div onClick={()=>onPick({ref:{kind:"mk",id:mk.id}})} style={{backgroundColor:mkActive?col:"#E5E8EB",borderRadius:10,padding:"6px 12px",flex:1,cursor:"pointer"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <span style={{fontSize:10,fontWeight:900,color:mkActive?col:"#9CA3AF",backgroundColor:mkActive?"rgba(255,255,255,0.9)":"rgba(255,255,255,0.7)",padding:"1px 6px",borderRadius:10}}>{mk.krKey}</span>
+                  <span style={{fontSize:13,fontWeight:900,color:mkActive?"#FFFFFF":"#6B7280"}}>{mk.title}</span>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+                  <span style={{fontSize:10,fontWeight:800,color:mkActive?"#FFFFFF":"#9CA3AF",backgroundColor:mkActive?"rgba(255,255,255,0.22)":"#F2F4F6",padding:"2px 7px",borderRadius:10}}>🎯{mkTgt}%</span>
+                  {mkActive&&<span style={{fontSize:10,fontWeight:800,color:"rgba(255,255,255,0.95)",backgroundColor:"rgba(255,255,255,0.2)",padding:"2px 7px",borderRadius:10}}>활동 {thisWeekCount}</span>}
+                  {mkDone>0&&<span style={{fontSize:10,fontWeight:800,color:"#0F5132",background:"#D1F5E0",padding:"2px 7px",borderRadius:10}}>✅{mkDone}</span>}
+                  {mkRev>0&&<span style={{fontSize:10,fontWeight:800,color:"#7A3E00",background:"#FFE6C7",padding:"2px 7px",borderRadius:10}}>💰{fmt(mkRev,"원")}</span>}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style={{marginLeft:6,borderLeft:`2px solid ${mkActive?col+"55":"#E5E8EB"}`}}>
+            {sks.map((sk,skIdx)=>{
+              const skProjs=mkProjs.filter(p=>p.subKPIId===sk.id);
+              const skTasks=skProjs.flatMap(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===sel));
+              const skActive=skTasks.some(t=>isThisWeek(t));
+              const isLastSk=skIdx===sks.length-1&&noSkProjs.length===0;
+              if(activeOnly&&!skActive) return null;
+              return(
+                <div key={sk.id} style={{position:"relative",paddingLeft:20,marginBottom:10}}>
+                  <div style={{position:"absolute",left:0,top:10,width:16,height:2,backgroundColor:skActive?col+"77":"#D1D5DB"}}/>
+                  <div style={{position:"absolute",left:0,top:0,width:2,height:isLastSk?"12px":"100%",backgroundColor:mkActive?col+"44":"#E5E8EB"}}/>
+                  <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+                    <div style={{width:10,height:10,borderRadius:"50%",flexShrink:0,backgroundColor:skActive?col:"#9CA3AF",border:`2px solid ${skActive?col:"#9CA3AF"}`}}/>
+                    <div onClick={()=>onPick({ref:{kind:"sk",id:sk.id}})} style={{backgroundColor:skActive?col+"18":"#F2F4F6",borderRadius:8,padding:"4px 10px",border:`1px solid ${skActive?col+"55":"#E5E8EB"}`,cursor:"pointer"}}>
+                      <span style={{fontSize:11,fontWeight:800,color:skActive?col:"#6B7280"}}>{sk.channelCode} · {sk.title}</span>
+                    </div>
+                  </div>
+                  <div style={{marginLeft:5,borderLeft:`1.5px solid ${skActive?col+"33":"#E5E8EB"}`}}>
+                    {skProjs.map((proj,pIdx)=>{
+                      const projTasks=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed&&t.assigneeId===sel);
+                      const thisWeekPT=projTasks.filter(t=>isThisWeek(t));
+                      const prevPT=projTasks.filter(t=>!isThisWeek(t));
+                      const projActive=thisWeekPT.length>0;
+                      const assignee=D.users.find(u=>u.id===proj.assigneeId);
+                      const isLastP=pIdx===skProjs.length-1;
+                      if(activeOnly&&!projActive) return null;
+                      const psig=signals.heotsimProjects.has(proj.id)?"heotsim":(signals.jamProjects.has(proj.id)?"jam":null);
+                      return(
+                        <div key={proj.id} style={{position:"relative",paddingLeft:18,marginBottom:8}}>
+                          <div style={{position:"absolute",left:0,top:9,width:14,height:1.5,backgroundColor:projActive?col+"44":"#E5E8EB"}}/>
+                          <div style={{position:"absolute",left:0,top:0,width:1.5,height:isLastP?"11px":"100%",backgroundColor:skActive?col+"33":"#F2F4F6"}}/>
+                          <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:projTasks.length>0?5:0}}>
+                            <div style={{width:8,height:8,borderRadius:"50%",backgroundColor:projActive?col+"22":"#F2F4F6",border:`2px solid ${projActive?col:"#D1D5DB"}`,flexShrink:0}}/>
+                            <div onClick={()=>onPick({ref:{kind:"proj",id:proj.id}})} style={{backgroundColor:"#FFFFFF",borderRadius:8,padding:"5px 10px",border:`1px solid ${psig?"#F0445255":(projActive?col+"44":"#E5E8EB")}`,flex:1,display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
+                              {psig&&<span title={SIGNAL_LABEL[psig]} style={{fontSize:11,flexShrink:0}}>{SIGNAL_ICON[psig]}</span>}
+                              <Ava name={assignee?.name} color={assignee?.color} size={18}/>
+                              <span style={{fontSize:11.5,fontWeight:700,color:projActive?"#0F1F5C":"#9CA3AF",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{proj.title}</span>
+                              {doneInP(projTasks)>0&&<span style={{fontSize:9,fontWeight:800,color:"#0F5132",background:"#D1F5E0",borderRadius:5,padding:"1px 5px",flexShrink:0}}>✅{doneInP(projTasks)}</span>}
+                              <span style={{fontSize:10,fontWeight:700,color:projActive?col:"#9CA3AF",flexShrink:0}}>{proj.progress}%</span>
+                            </div>
+                          </div>
+                          {projTasks.length>0&&(
+                            <div style={{marginLeft:23,borderLeft:"1.5px dashed #E5E8EB"}}>
+                              {thisWeekPT.map((task,tIdx)=>{const st=STATUS_MAP[task.status]||STATUS_MAP.todo;return(
+                                <div key={task.id} onClick={()=>onPick({ref:{kind:"task",id:task.id}})} style={{position:"relative",paddingLeft:14,marginBottom:3,cursor:"pointer"}}>
+                                  <div style={{position:"absolute",left:0,top:8,width:10,height:1.5,backgroundColor:col+"99"}}/>
+                                  <div style={{position:"absolute",left:0,top:0,width:1.5,height:tIdx===thisWeekPT.length-1&&prevPT.length===0?"10px":"100%",backgroundColor:"#E5E8EB"}}/>
+                                  <div style={{display:"flex",alignItems:"center",gap:5,padding:"5px 9px",borderRadius:8,backgroundColor:col+"10",border:`1.5px solid ${col}44`}}>
+                                    <div style={{width:6,height:6,borderRadius:"50%",backgroundColor:col,flexShrink:0}}/>
+                                    <span style={{fontSize:11.5,fontWeight:700,color:"#111827",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{task.title}</span>
+                                    <div style={{display:"flex",alignItems:"center",gap:3,flexShrink:0}}>
+                                      {task.weekDay&&<span style={{fontSize:9,color:col,fontWeight:900}}>{task.weekDay}</span>}
+                                      <span style={{fontSize:9,fontWeight:700,color:st.color,backgroundColor:st.bg,padding:"1px 5px",borderRadius:4}}>{st.label}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              );})}
+                              {prevPT.map((task,tIdx)=>(
+                                <div key={task.id} onClick={()=>onPick({ref:{kind:"task",id:task.id}})} style={{position:"relative",paddingLeft:14,marginBottom:3,cursor:"pointer"}}>
+                                  <div style={{position:"absolute",left:0,top:7,width:10,height:1,backgroundColor:"#E5E8EB"}}/>
+                                  <div style={{position:"absolute",left:0,top:0,width:1.5,height:tIdx===prevPT.length-1?"9px":"100%",backgroundColor:"#F2F4F6"}}/>
+                                  <div style={{display:"flex",alignItems:"center",gap:5,padding:"4px 8px",borderRadius:7,opacity:0.45}}>
+                                    <div style={{width:5,height:5,borderRadius:"50%",backgroundColor:"#D1D5DB",flexShrink:0}}/>
+                                    <span style={{fontSize:10.5,color:"#9CA3AF",flex:1,textDecoration:task.status==="done"?"line-through":"none"}}>{task.title}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+            {noSkProjs.map((proj,pIdx)=>{
+              const projTasks=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed&&t.assigneeId===sel);
+              const thisWeekPT=projTasks.filter(t=>isThisWeek(t));
+              const prevPT=projTasks.filter(t=>!isThisWeek(t));
+              const projActive=thisWeekPT.length>0;
+              const assignee=D.users.find(u=>u.id===proj.assigneeId);
+              const isLastP=pIdx===noSkProjs.length-1;
+              if(activeOnly&&!projActive) return null;
+              const psig=signals.heotsimProjects.has(proj.id)?"heotsim":(signals.jamProjects.has(proj.id)?"jam":null);
+              return(
+                <div key={proj.id} style={{position:"relative",paddingLeft:20,marginBottom:8}}>
+                  <div style={{position:"absolute",left:0,top:9,width:16,height:1.5,backgroundColor:projActive?col+"55":"#E5E8EB"}}/>
+                  <div style={{position:"absolute",left:0,top:0,width:2,height:isLastP?"11px":"100%",backgroundColor:mkActive?col+"44":"#E5E8EB"}}/>
+                  <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:projTasks.length>0?5:0}}>
+                    <div style={{width:8,height:8,borderRadius:"50%",backgroundColor:"#FFFFFF",border:`2px solid ${projActive?col:"#D1D5DB"}`,flexShrink:0}}/>
+                    <div onClick={()=>onPick({ref:{kind:"proj",id:proj.id}})} style={{backgroundColor:"#FFFFFF",borderRadius:8,padding:"5px 10px",border:`1px solid ${psig?"#F0445255":(projActive?col+"44":"#E5E8EB")}`,flex:1,display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
+                      {psig&&<span title={SIGNAL_LABEL[psig]} style={{fontSize:11,flexShrink:0}}>{SIGNAL_ICON[psig]}</span>}
+                      <Ava name={assignee?.name} color={assignee?.color} size={18}/>
+                      <span style={{fontSize:11.5,fontWeight:700,color:projActive?"#0F1F5C":"#9CA3AF",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{proj.title}</span>
+                      {doneInP(projTasks)>0&&<span style={{fontSize:9,fontWeight:800,color:"#0F5132",background:"#D1F5E0",borderRadius:5,padding:"1px 5px",flexShrink:0}}>✅{doneInP(projTasks)}</span>}
+                      <span style={{fontSize:10,fontWeight:700,color:projActive?col:"#9CA3AF",flexShrink:0}}>{proj.progress}%</span>
+                    </div>
+                  </div>
+                  {projTasks.length>0&&(
+                    <div style={{marginLeft:23,borderLeft:"1.5px dashed #E5E8EB"}}>
+                      {thisWeekPT.map((task,tIdx)=>{const st=STATUS_MAP[task.status]||STATUS_MAP.todo;return(
+                        <div key={task.id} onClick={()=>onPick({ref:{kind:"task",id:task.id}})} style={{position:"relative",paddingLeft:14,marginBottom:3,cursor:"pointer"}}>
+                          <div style={{position:"absolute",left:0,top:8,width:10,height:1.5,backgroundColor:col+"99"}}/>
+                          <div style={{position:"absolute",left:0,top:0,width:1.5,height:tIdx===thisWeekPT.length-1&&prevPT.length===0?"10px":"100%",backgroundColor:"#E5E8EB"}}/>
+                          <div style={{display:"flex",alignItems:"center",gap:5,padding:"5px 9px",borderRadius:8,backgroundColor:col+"10",border:`1.5px solid ${col}44`}}>
+                            <div style={{width:6,height:6,borderRadius:"50%",backgroundColor:col,flexShrink:0}}/>
+                            <span style={{fontSize:11.5,fontWeight:700,color:"#111827",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{task.title}</span>
+                            <div style={{display:"flex",alignItems:"center",gap:3,flexShrink:0}}>
+                              {task.weekDay&&<span style={{fontSize:9,color:col,fontWeight:900}}>{task.weekDay}</span>}
+                              <span style={{fontSize:9,fontWeight:700,color:st.color,backgroundColor:st.bg,padding:"1px 5px",borderRadius:4}}>{st.label}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );})}
+                      {prevPT.map((task,tIdx)=>(
+                        <div key={task.id} onClick={()=>onPick({ref:{kind:"task",id:task.id}})} style={{position:"relative",paddingLeft:14,marginBottom:3,cursor:"pointer"}}>
+                          <div style={{position:"absolute",left:0,top:7,width:10,height:1,backgroundColor:"#E5E8EB"}}/>
+                          <div style={{position:"absolute",left:0,top:0,width:1.5,height:tIdx===prevPT.length-1?"9px":"100%",backgroundColor:"#F2F4F6"}}/>
+                          <div style={{display:"flex",alignItems:"center",gap:5,padding:"4px 8px",borderRadius:7,opacity:0.45}}>
+                            <div style={{width:5,height:5,borderRadius:"50%",backgroundColor:"#D1D5DB",flexShrink:0}}/>
+                            <span style={{fontSize:10.5,color:"#9CA3AF",flex:1,textDecoration:task.status==="done"?"line-through":"none"}}>{task.title}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    })}
+  </>);
 }
 function MindMapPage({D,cu}){
   const [scope,setScope]=useState("person");   // person | team | diag
@@ -4189,144 +4342,7 @@ function MindMapPage({D,cu}){
             </div>
             <MapCanvas items={buildPersonMapItems(D,sel,isThisWeek,doneInP,krColors,{krF,activeOnly,signals})} onPick={setPicked}/>
           </>)}
-          {mapStyle==="tree"&&D.mainKPIs.filter(mk=>krF==="all"||mk.id===krF).map(mk=>{
-            const mkProjs=D.projects.filter(p=>p.mainKPIId===mk.id&&p.assigneeId===sel);
-            if(mkProjs.length===0) return null;
-            const allMkTasks=mkProjs.flatMap(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===sel));
-            const thisWeekCount=allMkTasks.filter(t=>isThisWeek(t)).length;
-            const mkDone=doneInP(allMkTasks); const mkRev=mkProjs.reduce((a,p)=>a+numF(p.resultValue),0);
-            const col=krColors[mk.id]||"#3182F6";
-            const mkActive=thisWeekCount>0;
-            const mkTgt=pct(mkCur(mk,D.subKPIs,D.projects),mk.targetValue);
-            if(activeOnly&&!mkActive) return null;
-            const skIds=[...new Set(mkProjs.map(p=>p.subKPIId).filter(Boolean))];
-            const sks=skIds.map(id=>D.subKPIs.find(s=>s.id===id)).filter(Boolean);
-            const noSkProjs=mkProjs.filter(p=>!p.subKPIId);
-            return(
-              <div key={mk.id} style={{marginBottom:20}}>
-                <div style={{display:"flex",alignItems:"center",gap:0,marginBottom:6}}>
-                  <div style={{width:14,height:14,borderRadius:"50%",backgroundColor:mkActive?col:"#D1D5DB",flexShrink:0}}/>
-                  <div style={{height:2,width:10,backgroundColor:mkActive?col+"88":"#E5E8EB"}}/>
-                  <div onClick={()=>setPicked({ref:{kind:"mk",id:mk.id}})} style={{backgroundColor:mkActive?col:"#E5E8EB",borderRadius:10,padding:"6px 12px",flex:1,cursor:"pointer"}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                      <div style={{display:"flex",alignItems:"center",gap:6}}>
-                        <span style={{fontSize:10,fontWeight:900,color:mkActive?col:"#9CA3AF",backgroundColor:mkActive?"rgba(255,255,255,0.9)":"rgba(255,255,255,0.7)",padding:"1px 6px",borderRadius:10}}>{mk.krKey}</span>
-                        <span style={{fontSize:13,fontWeight:900,color:mkActive?"#FFFFFF":"#6B7280"}}>{mk.title}</span>
-                      </div>
-                      <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
-                        <span style={{fontSize:10,fontWeight:800,color:mkActive?"#FFFFFF":"#9CA3AF",backgroundColor:mkActive?"rgba(255,255,255,0.22)":"#F2F4F6",padding:"2px 7px",borderRadius:10}}>🎯{mkTgt}%</span>
-                        {mkActive&&<span style={{fontSize:10,fontWeight:800,color:"rgba(255,255,255,0.95)",backgroundColor:"rgba(255,255,255,0.2)",padding:"2px 7px",borderRadius:10}}>활동 {thisWeekCount}</span>}
-                        {mkDone>0&&<span style={{fontSize:10,fontWeight:800,color:"#0F5132",background:"#D1F5E0",padding:"2px 7px",borderRadius:10}}>✅{mkDone}</span>}
-                        {mkRev>0&&<span style={{fontSize:10,fontWeight:800,color:"#7A3E00",background:"#FFE6C7",padding:"2px 7px",borderRadius:10}}>💰{fmt(mkRev,"원")}</span>}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div style={{marginLeft:6,borderLeft:`2px solid ${mkActive?col+"55":"#E5E8EB"}`}}>
-                  {sks.map((sk,skIdx)=>{
-                    const skProjs=mkProjs.filter(p=>p.subKPIId===sk.id);
-                    const skTasks=skProjs.flatMap(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===sel));
-                    const skActive=skTasks.some(t=>isThisWeek(t));
-                    const isLastSk=skIdx===sks.length-1&&noSkProjs.length===0;
-                    if(activeOnly&&!skActive) return null;
-                    return(
-                      <div key={sk.id} style={{position:"relative",paddingLeft:20,marginBottom:10}}>
-                        <div style={{position:"absolute",left:0,top:10,width:16,height:2,backgroundColor:skActive?col+"77":"#D1D5DB"}}/>
-                        <div style={{position:"absolute",left:0,top:0,width:2,height:isLastSk?"12px":"100%",backgroundColor:mkActive?col+"44":"#E5E8EB"}}/>
-                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
-                          <div style={{width:10,height:10,borderRadius:"50%",flexShrink:0,backgroundColor:skActive?col:"#9CA3AF",border:`2px solid ${skActive?col:"#9CA3AF"}`}}/>
-                          <div style={{backgroundColor:skActive?col+"18":"#F2F4F6",borderRadius:8,padding:"4px 10px",border:`1px solid ${skActive?col+"55":"#E5E8EB"}`}}>
-                            <span style={{fontSize:11,fontWeight:800,color:skActive?col:"#6B7280"}}>{sk.channelCode} · {sk.title}</span>
-                          </div>
-                        </div>
-                        <div style={{marginLeft:5,borderLeft:`1.5px solid ${skActive?col+"33":"#E5E8EB"}`}}>
-                          {skProjs.map((proj,pIdx)=>{
-                            const projTasks=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed&&t.assigneeId===sel);
-                            const thisWeekPT=projTasks.filter(t=>isThisWeek(t));
-                            const prevPT=projTasks.filter(t=>!isThisWeek(t));
-                            const projActive=thisWeekPT.length>0;
-                            const assignee=D.users.find(u=>u.id===proj.assigneeId);
-                            const isLastP=pIdx===skProjs.length-1;
-                            if(activeOnly&&!projActive) return null;
-                            const psig=signals.heotsimProjects.has(proj.id)?"heotsim":(signals.jamProjects.has(proj.id)?"jam":null);
-                            return(
-                              <div key={proj.id} style={{position:"relative",paddingLeft:18,marginBottom:8}}>
-                                <div style={{position:"absolute",left:0,top:9,width:14,height:1.5,backgroundColor:projActive?col+"44":"#E5E8EB"}}/>
-                                <div style={{position:"absolute",left:0,top:0,width:1.5,height:isLastP?"11px":"100%",backgroundColor:skActive?col+"33":"#F2F4F6"}}/>
-                                <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:projTasks.length>0?5:0}}>
-                                  <div style={{width:8,height:8,borderRadius:"50%",backgroundColor:projActive?col+"22":"#F2F4F6",border:`2px solid ${projActive?col:"#D1D5DB"}`,flexShrink:0}}/>
-                                  <div onClick={()=>setPicked({ref:{kind:"proj",id:proj.id}})} style={{backgroundColor:"#FFFFFF",borderRadius:8,padding:"5px 10px",border:`1px solid ${psig?"#F0445255":(projActive?col+"44":"#E5E8EB")}`,flex:1,display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
-                                    {psig&&<span title={SIGNAL_LABEL[psig]} style={{fontSize:11,flexShrink:0}}>{SIGNAL_ICON[psig]}</span>}
-                                    <Ava name={assignee?.name} color={assignee?.color} size={18}/>
-                                    <span style={{fontSize:11.5,fontWeight:700,color:projActive?"#0F1F5C":"#9CA3AF",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{proj.title}</span>
-                                    {doneInP(projTasks)>0&&<span style={{fontSize:9,fontWeight:800,color:"#0F5132",background:"#D1F5E0",borderRadius:5,padding:"1px 5px",flexShrink:0}}>✅{doneInP(projTasks)}</span>}
-                                    <span style={{fontSize:10,fontWeight:700,color:projActive?col:"#9CA3AF",flexShrink:0}}>{proj.progress}%</span>
-                                  </div>
-                                </div>
-                                {projTasks.length>0&&(
-                                  <div style={{marginLeft:23,borderLeft:"1.5px dashed #E5E8EB"}}>
-                                    {thisWeekPT.map((task,tIdx)=>{const st=STATUS_MAP[task.status];return(
-                                      <div key={task.id} style={{position:"relative",paddingLeft:14,marginBottom:3}}>
-                                        <div style={{position:"absolute",left:0,top:8,width:10,height:1.5,backgroundColor:col+"99"}}/>
-                                        <div style={{position:"absolute",left:0,top:0,width:1.5,height:tIdx===thisWeekPT.length-1&&prevPT.length===0?"10px":"100%",backgroundColor:"#E5E8EB"}}/>
-                                        <div style={{display:"flex",alignItems:"center",gap:5,padding:"5px 9px",borderRadius:8,backgroundColor:col+"10",border:`1.5px solid ${col}44`}}>
-                                          <div style={{width:6,height:6,borderRadius:"50%",backgroundColor:col,flexShrink:0}}/>
-                                          <span style={{fontSize:11.5,fontWeight:700,color:"#111827",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{task.title}</span>
-                                          <div style={{display:"flex",alignItems:"center",gap:3,flexShrink:0}}>
-                                            {task.weekDay&&<span style={{fontSize:9,color:col,fontWeight:900}}>{task.weekDay}</span>}
-                                            <span style={{fontSize:9,fontWeight:700,color:st.color,backgroundColor:st.bg,padding:"1px 5px",borderRadius:4}}>{st.label}</span>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    );})}
-                                    {prevPT.map((task,tIdx)=>(
-                                      <div key={task.id} style={{position:"relative",paddingLeft:14,marginBottom:3}}>
-                                        <div style={{position:"absolute",left:0,top:7,width:10,height:1,backgroundColor:"#E5E8EB"}}/>
-                                        <div style={{position:"absolute",left:0,top:0,width:1.5,height:tIdx===prevPT.length-1?"9px":"100%",backgroundColor:"#F2F4F6"}}/>
-                                        <div style={{display:"flex",alignItems:"center",gap:5,padding:"4px 8px",borderRadius:7,opacity:0.45}}>
-                                          <div style={{width:5,height:5,borderRadius:"50%",backgroundColor:"#D1D5DB",flexShrink:0}}/>
-                                          <span style={{fontSize:10.5,color:"#9CA3AF",flex:1,textDecoration:task.status==="done"?"line-through":"none"}}>{task.title}</span>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {noSkProjs.map((proj,pIdx)=>{
-                    const projTasks=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed&&t.assigneeId===sel);
-                    const thisWeekPT=projTasks.filter(t=>isThisWeek(t));
-                    const prevPT=projTasks.filter(t=>!isThisWeek(t));
-                    const projActive=thisWeekPT.length>0;
-                    const assignee=D.users.find(u=>u.id===proj.assigneeId);
-                    const isLastP=pIdx===noSkProjs.length-1;
-                    if(activeOnly&&!projActive) return null;
-                    const psig=signals.heotsimProjects.has(proj.id)?"heotsim":(signals.jamProjects.has(proj.id)?"jam":null);
-                    return(
-                      <div key={proj.id} style={{position:"relative",paddingLeft:20,marginBottom:8}}>
-                        <div style={{position:"absolute",left:0,top:9,width:16,height:1.5,backgroundColor:projActive?col+"55":"#E5E8EB"}}/>
-                        <div style={{position:"absolute",left:0,top:0,width:2,height:isLastP?"11px":"100%",backgroundColor:mkActive?col+"44":"#E5E8EB"}}/>
-                        <div style={{display:"flex",alignItems:"center",gap:5}}>
-                          <div style={{width:8,height:8,borderRadius:"50%",backgroundColor:"#FFFFFF",border:`2px solid ${projActive?col:"#D1D5DB"}`,flexShrink:0}}/>
-                          <div onClick={()=>setPicked({ref:{kind:"proj",id:proj.id}})} style={{backgroundColor:"#FFFFFF",borderRadius:8,padding:"5px 10px",border:`1px solid ${psig?"#F0445255":(projActive?col+"44":"#E5E8EB")}`,flex:1,display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
-                            {psig&&<span title={SIGNAL_LABEL[psig]} style={{fontSize:11,flexShrink:0}}>{SIGNAL_ICON[psig]}</span>}
-                            <Ava name={assignee?.name} color={assignee?.color} size={18}/>
-                            <span style={{fontSize:11.5,fontWeight:700,color:projActive?"#0F1F5C":"#9CA3AF",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{proj.title}</span>
-                            <span style={{fontSize:10,fontWeight:700,color:projActive?col:"#9CA3AF",flexShrink:0}}>{proj.progress}%</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
+          {mapStyle==="tree"&&<WeeklyTree D={D} sel={sel} isThisWeek={isThisWeek} doneInP={doneInP} krColors={krColors} krF={krF} activeOnly={activeOnly} signals={signals} onPick={setPicked}/>}
         </div>
       )}
       </>)}

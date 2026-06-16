@@ -883,6 +883,13 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
     up("tasks",dr.id,{weekDay:day,weekSlot:slot});
     if(target) up("tasks",target.id,{weekDay:dr.weekDay||null,weekSlot:dr.weekSlot??null});   // 점유 슬롯과 자리 교환
   };
+  // 모바일용 — 슬롯 위/아래 이동(드래그 대신 화살표). 인접 슬롯과 자리 교환(빈칸이면 그냥 이동)
+  const moveSlot=(t,dir)=>{
+    const ns=(t.weekSlot||1)+dir; if(ns<1||ns>5) return;
+    const occ=(slotMap[t.weekDay]||{})[ns];
+    up("tasks",t.id,{weekSlot:ns});
+    if(occ&&occ.id!==t.id) up("tasks",occ.id,{weekSlot:t.weekSlot});
+  };
   const [quick,setQuick]=useState("");
   const [quickProj,setQuickProj]=useState("");
   const [confirmTaskId,setConfirmTaskId]=useState(null);
@@ -1084,6 +1091,10 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                       <div key={slot} draggable={!!t} onDragStart={t?(e)=>{dragRef.current=t;try{e.dataTransfer.effectAllowed="move";}catch(_){}}:undefined} onDragEnd={()=>{dragRef.current=null;setDragOver(null);}} onDragOver={(e)=>{e.preventDefault();const k=d+"_"+slot;if(dragOver!==k)setDragOver(k);}} onDragLeave={()=>{if(dragOver===d+"_"+slot)setDragOver(null);}} onDrop={(e)=>{e.preventDefault();dropSlot(d,slot);}} onClick={()=>setSlotSheet({day:d,slot,current:t})} style={{display:"flex",alignItems:"center",gap:4,padding:"5px 7px",marginBottom:4,borderRadius:8,border:dragOver===d+"_"+slot?"2px solid #F97316":(t?"1px solid #E5E8EB":"1px dashed #E5E8EB"),background:dragOver===d+"_"+slot?"#FFF7ED":(t?(t.status==="done"?"#E8FAF1":"#FFFFFF"):"transparent"),cursor:t?"grab":"pointer",minHeight:28}}>
                         <span style={{fontSize:9,fontWeight:900,color:"#9CA3AF",minWidth:10}}>{slot}</span>
                         {t?<span style={{fontSize:10,fontWeight:700,color:t.status==="done"?"#9CA3AF":"#1F2937",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:t.status==="done"?"line-through":"none"}}>{t.eventId?"📅":""}{t.title}</span>:<span style={{fontSize:9.5,color:"#D1D5DB",fontStyle:"italic"}}>+배치</span>}
+                        {t&&<span onClick={e=>e.stopPropagation()} style={{display:"flex",flexDirection:"column",flexShrink:0,gap:1}}>
+                          <button onClick={()=>moveSlot(t,-1)} disabled={slot===1} title="위로" style={{width:15,height:11,border:"none",background:"none",cursor:slot===1?"default":"pointer",color:slot===1?"#E5E8EB":"#9CA3AF",fontSize:8,lineHeight:1,padding:0}}>▲</button>
+                          <button onClick={()=>moveSlot(t,1)} disabled={slot===5} title="아래로" style={{width:15,height:11,border:"none",background:"none",cursor:slot===5?"default":"pointer",color:slot===5?"#E5E8EB":"#9CA3AF",fontSize:8,lineHeight:1,padding:0}}>▼</button>
+                        </span>}
                       </div>
                     );
                   })}

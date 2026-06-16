@@ -442,7 +442,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add})=>{
   );
 };
 const TABS=[{id:"today",icon:"🏠",label:"오늘"},{id:"kpi",icon:"◎",label:"KPI"},{id:"projects",icon:"▦",label:"프로젝트"},{id:"calendar",icon:"▤",label:"캘린더"},{id:"more",icon:"⋯",label:"더보기"}];
-const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"team",icon:"👥",label:"담당자"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"},{id:"guide",icon:"📖",label:"가이드"}];
+const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"teamdash",icon:"👥",label:"팀 현황"},{id:"team",icon:"👤",label:"담당자"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"},{id:"guide",icon:"📖",label:"가이드"}];
 // 메뉴 그룹: 개인(나만 보는 내 것) vs 팀(모두 같이 보는 공유) — 출시·프로세스는 프로젝트 하위
 const NAV_GROUPS=[
   {label:"개인 · 나만", ids:["today","game","fixed","retro"]},
@@ -659,6 +659,7 @@ export default function App(){
     {page==="mindmap"&&<MindMapPage D={D} cu={cu}/>}
     {page==="guide"&&<GuidePage D={D}/>}
     {page==="fixed"&&<FixedPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
+    {page==="teamdash"&&<TeamDashPage D={D} cu={cu} nav={nav}/>}
     {page==="team"&&<TeamPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm}/>}
     {page==="retro"&&<RetroPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
     {page==="ai"&&<AIPage D={D} cu={cu} add={add} rm={rm}/>}
@@ -673,7 +674,7 @@ export default function App(){
       {saveErr.level!=="error"&&<button onClick={()=>setSaveErr(null)} style={{flexShrink:0,padding:"5px 7px",borderRadius:8,border:"none",background:"transparent",color:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}}>×</button>}
     </div>}
     <Sheet open={more} onClose={()=>setMore(false)} title="더보기">
-      {[{label:"개인 · 나만",ids:["game","fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","team","ai"]},{label:"도움말",ids:["guide"]}].map(grp=>(
+      {[{label:"개인 · 나만",ids:["game","fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","team","ai"]},...(lead?[{label:"관리자",ids:["teamdash"]}]:[]),{label:"도움말",ids:["guide"]}].map(grp=>(
         <div key={grp.label} style={{marginTop:14}}>
           <p style={{margin:"0 2px 8px",fontSize:11,fontWeight:800,color:"#9CA3AF",letterSpacing:0.5}}>{grp.label}</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -977,41 +978,6 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           </div>
         </div>
       )}
-      {lead&&(()=>{
-        const todayIdx=WEEK_DAYS.indexOf(today);
-        const statFor=(uid)=>{const ts=D.tasks.filter(t=>t.assigneeId===uid&&!t.isFixed);const c={todo:0,inprogress:0,done:0,hold:0};ts.forEach(t=>{if(c[t.status]!=null)c[t.status]++;});return c;};
-        const carryFor=(uid)=>D.tasks.filter(t=>t.assigneeId===uid&&!t.isFixed&&t.status!=="done"&&t.status!=="hold"&&t.weekDay&&t.weekDay!==today&&(()=>{const i=WEEK_DAYS.indexOf(t.weekDay);return i>=0&&(todayIdx<0||i<todayIdx);})()).length;
-        const readyFor=(uid)=>{let n=0;D.projects.filter(p=>p.templateId).forEach(p=>{const ts=launchProjTasks(D,p);ts.forEach(t=>{if(t.assigneeId===uid&&launchStageStatus(t,ts)==="ready")n++;});});return n+myReadyProcess(D,uid).length;};
-        return(
-          <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",marginBottom:14,border:"1px solid #DBE3FF"}}>
-            <div style={{marginBottom:10}}>
-              <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#0F1F5C"}}>👥 팀 전체 현황 <span style={{fontSize:10,fontWeight:800,color:"#3182F6",background:"#EBF3FF",borderRadius:6,padding:"2px 7px"}}>관리자</span></h3>
-              <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>멤버별 진행·밀린·내 차례 — 누가 바쁜지·막혔는지 한눈에</p>
-            </div>
-            <div style={{display:"flex",flexDirection:"column",gap:7}}>
-              {(D.users||[]).map(u=>{const c=statFor(u.id);const carry=carryFor(u.id);const ready=readyFor(u.id);const open=c.todo+c.inprogress;return(
-                <div key={u.id} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 11px",borderRadius:11,background:"#F9FAFB",border:"1px solid #EEF1F4"}}>
-                  <Ava name={u.name} color={u.color} size={26}/>
-                  <div style={{flex:1,minWidth:0}}>
-                    <p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#0F1F5C"}}>{u.name}{u.role==="lead"?" · 리드":""}</p>
-                    <div style={{display:"flex",alignItems:"center",gap:7,marginTop:2,flexWrap:"wrap"}}>
-                      <span style={{fontSize:10.5,fontWeight:700,color:c.inprogress>0?"#3182F6":"#C4C9D0"}}>진행중 {c.inprogress}</span>
-                      <span style={{fontSize:10.5,fontWeight:700,color:c.todo>0?"#6B7280":"#C4C9D0"}}>할일 {c.todo}</span>
-                      <span style={{fontSize:10.5,fontWeight:700,color:c.hold>0?"#FF9500":"#C4C9D0"}}>보류 {c.hold}</span>
-                      <span style={{fontSize:10.5,fontWeight:700,color:"#00A862"}}>완료 {c.done}</span>
-                    </div>
-                  </div>
-                  <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3,flexShrink:0}}>
-                    {ready>0&&<span style={{fontSize:10,fontWeight:800,color:"#EA580C",background:"#FFF7ED",borderRadius:6,padding:"2px 7px"}}>🔔 내 차례 {ready}</span>}
-                    {carry>0&&<span style={{fontSize:10,fontWeight:800,color:"#F04452",background:"#FFF0F1",borderRadius:6,padding:"2px 7px"}}>⏰ 밀림 {carry}</span>}
-                    {ready===0&&carry===0&&<span style={{fontSize:10,fontWeight:700,color:"#9CA3AF"}}>{open>0?"진행 중":"여유"}</span>}
-                  </div>
-                </div>
-              );})}
-            </div>
-          </div>
-        );
-      })()}
       <div style={{backgroundColor:"#FFFFFF",borderRadius:16,marginBottom:14,border:"1px solid #F2F4F6",overflow:"hidden"}}>
         <div onClick={()=>setFeedOpen(o=>!o)} style={{padding:"13px 14px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -3657,6 +3623,71 @@ function TeamPage({D,cu,lead,add,up,rm}){
         })}
       </div>
       <p style={{margin:"14px 2px 0",fontSize:10.5,color:"#9CA3AF",lineHeight:1.6}}>※ 삭제해도 휴지통(KPI▸데이터)에서 복구할 수 있어요. 이름이 중복되면 정리하세요.</p>
+    </div>
+  );
+}
+// 팀 현황 (관리자) — 멤버별 부하·밀림·내 차례 + 팀 전체 프로젝트 진행. 별도 메뉴(리드 전용).
+function TeamDashPage({D,cu,nav}){
+  const today=todayDay(); const todayIdx=WEEK_DAYS.indexOf(today);
+  const statFor=(uid)=>{const ts=D.tasks.filter(t=>t.assigneeId===uid&&!t.isFixed);const c={todo:0,inprogress:0,done:0,hold:0};ts.forEach(t=>{if(c[t.status]!=null)c[t.status]++;});return c;};
+  const carryFor=(uid)=>D.tasks.filter(t=>t.assigneeId===uid&&!t.isFixed&&t.status!=="done"&&t.status!=="hold"&&t.weekDay&&t.weekDay!==today&&(()=>{const i=WEEK_DAYS.indexOf(t.weekDay);return i>=0&&(todayIdx<0||i<todayIdx);})()).length;
+  const readyFor=(uid)=>{let n=0;D.projects.filter(p=>p.templateId).forEach(p=>{const ts=launchProjTasks(D,p);ts.forEach(t=>{if(t.assigneeId===uid&&launchStageStatus(t,ts)==="ready")n++;});});return n+myReadyProcess(D,uid).length;};
+  const CC=[["todo","미완료","#EA580C"],["inprogress","진행중","#3182F6"],["done","완료","#00A862"],["hold","보류","#FF9500"]];
+  const projs=D.projects.filter(p=>D.tasks.some(t=>t.projectId===p.id&&!t.isFixed))
+    .map(p=>{const ts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);const c={todo:0,inprogress:0,done:0,hold:0};ts.forEach(t=>{if(c[t.status]!=null)c[t.status]++;});const allDone=ts.length>0&&ts.every(t=>t.status==="done");return{p,c,allDone,open:c.todo+c.inprogress};})
+    .sort((a,b)=>(a.allDone?1:0)-(b.allDone?1:0)||b.open-a.open||(b.p.progress||0)-(a.p.progress||0));
+  return(
+    <div style={{padding:"14px 16px 24px",maxWidth:480,margin:"0 auto"}}>
+      <div style={{marginBottom:14}}>
+        <h2 style={{margin:0,fontSize:18,fontWeight:900,color:"#0F1F5C"}}>👥 팀 현황 <span style={{fontSize:11,fontWeight:800,color:"#3182F6",background:"#EBF3FF",borderRadius:6,padding:"2px 8px"}}>관리자</span></h2>
+        <p style={{margin:"4px 0 0",fontSize:11.5,color:"#9CA3AF",lineHeight:1.6}}>멤버별 부하·밀림·내 차례 + 팀 전체 프로젝트 진행을 한눈에</p>
+      </div>
+      {/* 멤버별 현황 */}
+      <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",marginBottom:14,border:"1px solid #DBE3FF"}}>
+        <h3 style={{margin:"0 0 10px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}>🙋 멤버별 현황</h3>
+        <div style={{display:"flex",flexDirection:"column",gap:7}}>
+          {(D.users||[]).map(u=>{const c=statFor(u.id);const carry=carryFor(u.id);const ready=readyFor(u.id);const open=c.todo+c.inprogress;return(
+            <div key={u.id} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 11px",borderRadius:11,background:"#F9FAFB",border:"1px solid #EEF1F4"}}>
+              <Ava name={u.name} color={u.color} size={28}/>
+              <div style={{flex:1,minWidth:0}}>
+                <p style={{margin:0,fontSize:13,fontWeight:800,color:"#0F1F5C"}}>{u.name}{u.role==="lead"?" · 리드":""}</p>
+                <div style={{display:"flex",alignItems:"center",gap:7,marginTop:2,flexWrap:"wrap"}}>
+                  <span style={{fontSize:10.5,fontWeight:700,color:c.inprogress>0?"#3182F6":"#C4C9D0"}}>진행중 {c.inprogress}</span>
+                  <span style={{fontSize:10.5,fontWeight:700,color:c.todo>0?"#6B7280":"#C4C9D0"}}>할일 {c.todo}</span>
+                  <span style={{fontSize:10.5,fontWeight:700,color:c.hold>0?"#FF9500":"#C4C9D0"}}>보류 {c.hold}</span>
+                  <span style={{fontSize:10.5,fontWeight:700,color:"#00A862"}}>완료 {c.done}</span>
+                </div>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3,flexShrink:0}}>
+                {ready>0&&<span style={{fontSize:10,fontWeight:800,color:"#EA580C",background:"#FFF7ED",borderRadius:6,padding:"2px 7px"}}>🔔 내 차례 {ready}</span>}
+                {carry>0&&<span style={{fontSize:10,fontWeight:800,color:"#F04452",background:"#FFF0F1",borderRadius:6,padding:"2px 7px"}}>⏰ 밀림 {carry}</span>}
+                {ready===0&&carry===0&&<span style={{fontSize:10,fontWeight:700,color:"#9CA3AF"}}>{open>0?"진행 중":"여유"}</span>}
+              </div>
+            </div>
+          );})}
+        </div>
+      </div>
+      {/* 팀 전체 프로젝트 현황 */}
+      <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",marginBottom:14,border:"1px solid #F2F4F6"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+          <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#0F1F5C"}}>📁 팀 프로젝트 현황 ({projs.length})</h3>
+          <button onClick={()=>nav("projects")} style={{padding:"5px 10px",borderRadius:8,border:"1px solid #E5E8EB",background:"#fff",fontSize:11,fontWeight:700,color:"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>전체 →</button>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {projs.length===0?<p style={{margin:0,padding:"10px 0",textAlign:"center",fontSize:12,color:"#B0B8C1"}}>진행 중인 프로젝트가 없어요</p>:projs.map(({p,c,allDone})=>{const asg=D.users.find(u=>u.id===p.assigneeId);const prog=p.progress||0;return(
+            <div key={p.id} style={{padding:"11px 12px",borderRadius:12,border:"1px solid #EEF1F4",background:"#F9FAFB"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
+                <Ava name={asg?.name} color={asg?.color} size={22}/>
+                <span style={{flex:1,minWidth:0,fontSize:12.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span>
+                <span style={{flexShrink:0,fontSize:10,fontWeight:800,color:allDone?"#00A862":"#3182F6",background:allDone?"#E8FAF1":"#EBF3FF",borderRadius:6,padding:"2px 7px"}}>{allDone?"완료":"진행"}</span>
+                <span style={{flexShrink:0,fontSize:12,fontWeight:900,color:prog>=70?"#00C073":"#3182F6"}}>{prog}%</span>
+              </div>
+              <div style={{display:"flex",gap:8,marginBottom:7,flexWrap:"wrap"}}>{CC.map(([k,l,col])=><span key={k} style={{fontSize:10.5,fontWeight:700,color:c[k]>0?col:"#C4C9D0"}}>{l} {c[k]}</span>)}</div>
+              <PBar value={prog} color={prog>=70?"#00C073":"#3182F6"} h={5}/>
+            </div>
+          );})}
+        </div>
+      </div>
     </div>
   );
 }

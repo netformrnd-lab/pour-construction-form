@@ -25,7 +25,7 @@ const C = {
 };
 const WEEK_DAYS=["월","화","수","목","금"];
 const ALL_DAYS=["일","월","화","수","목","금","토"];
-const GOAL_TYPE={revenue:{l:"💰 매출",c:"#EA580C",bg:"#FFEDD5"},metric:{l:"🎯 목표",c:"#7C3AED",bg:"#F3EFFE"},journey:{l:"🔁 여정",c:"#0891B2",bg:"#E0F2FE"}};
+const GOAL_TYPE={revenue:{l:"💰 매출",c:"#EA580C",bg:"#FFEDD5"},metric:{l:"🎯 목표",c:"#7C3AED",bg:"#F3EFFE"},journey:{l:"🔁 구축",c:"#0891B2",bg:"#E0F2FE"}};
 const STATUS_MAP={
   todo:{label:"할일",color:"#6B7280",bg:"#F2F4F6"},
   inprogress:{label:"진행중",color:"#3182F6",bg:"#EBF3FF"},
@@ -2114,7 +2114,7 @@ function buildManualTree(D,projId){
   const byParent={};
   ts.forEach(t=>{const k=t.parentId||"_root";(byParent[k]=byParent[k]||[]).push(t);});
   const walk=(key)=>(byParent[key]||[]).slice().sort((a,b)=>(a.seq||0)-(b.seq||0)).map(t=>({
-    title:t.title||"",assigneeId:t.assigneeId||"",estDays:t.estDays||0,discuss:t.discuss||"",custJourney:t.custJourney||"",
+    title:t.title||"",assigneeId:t.assigneeId||"",discuss:t.discuss||"",custJourney:t.custJourney||"",handoffNote:t.handoffNote||"",
     processId:t.processId||null,processName:t.processName||null,processVersion:t.processVersion||null,kids:walk(t.id)
   }));
   return walk("_root");
@@ -2127,7 +2127,7 @@ function cloneManualToProject(manual,projId,projType,add){
     add("tasks",{id,projectId:projId,parentId:parentId||null,seq:idx,
       title:n.title||"",status:"todo",isFixed:false,weekDay:null,weekSlot:null,
       assigneeId:projType==="team"?(n.assigneeId||""):"",
-      estDays:parentId?0:(n.estDays||0),discuss:parentId?"":(n.discuss||""),custJourney:parentId?"":(n.custJourney||""),
+      discuss:parentId?"":(n.discuss||""),custJourney:parentId?"":(n.custJourney||""),handoffNote:parentId?"":(n.handoffNote||""),
       processId:parentId?null:(n.processId||null),processName:parentId?null:(n.processName||null),processVersion:parentId?null:(n.processVersion||null),
       memo:"",dueDate:"",attachments:[]});
     walk(n.kids,id);
@@ -2323,6 +2323,11 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
                       <p style={{margin:"1px 0 0",fontSize:14,color:"#C4C9D0"}}>{open?"▴":"▾"}</p>
                     </div>
                   </div>
+                  {/* 인계 받는 쪽 — 이전 로드단계의 인계메모 / 곧 내 차례 예고 */}
+                  {team&&(()=>{const prev=stages[idx-1];if(!prev||(prev.assigneeId||"")===(s.assigneeId||""))return null;const pn=Mof(prev.assigneeId).name;
+                    if(prev.handoffNote&&prev.status!=="todo") return <div style={{display:"flex",gap:6,alignItems:"flex-start",padding:"7px 12px",background:"#FFF7ED",borderTop:"1px solid #FBE3C7"}}><span style={{fontSize:10.5,fontWeight:800,color:"#EA580C",flexShrink:0}}>📩 {pn} 인계</span><span style={{fontSize:11,color:"#9A3412",lineHeight:1.45}}>{prev.handoffNote}</span></div>;
+                    if(prev.status!=="done"&&prev.dueDate) return <div style={{padding:"6px 12px",background:"#F5F8FF",borderTop:"1px solid #E0E7FF"}}><span style={{fontSize:10.5,fontWeight:800,color:"#3730A3"}}>⏭ 곧 내 차례 · {pn} {fmtD(prev.dueDate)} 마감 예정 뒤</span></div>;
+                    return null;})()}
                   {/* 두 트랙 요약 (접힘 상태) */}
                   {!open&&(
                     <div style={{display:"flex",borderTop:"1px solid #F4F4F5"}}>
@@ -2377,6 +2382,8 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
                       <textarea key={s.id+"pp"} defaultValue={s.painPoint||""} onBlur={e=>up("tasks",s.id,{painPoint:e.target.value})} placeholder="예: 사이즈 정보 위치 모호 → 상단 고정 / 반복 세팅 → 자동화" style={{width:"100%",padding:"9px 11px",borderRadius:9,border:"1.5px solid #FBD5D2",background:"#FFFBFA",fontSize:12.5,resize:"vertical",minHeight:48,outline:"none",fontFamily:"inherit",boxSizing:"border-box",marginBottom:10}}/>
                       <label style={{display:"block",fontSize:10.5,fontWeight:800,color:"#4B5563",marginBottom:4}}>💬 업무 개선 메모</label>
                       <textarea key={s.id+"d"} defaultValue={s.discuss||""} onBlur={e=>up("tasks",s.id,{discuss:e.target.value})} placeholder="예: 전환율 낮음 → 카피 방식 변경 / 외주·자동화 검토" style={{width:"100%",padding:"9px 11px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:12.5,resize:"vertical",minHeight:44,outline:"none",fontFamily:"inherit",boxSizing:"border-box",marginBottom:12}}/>
+                      {team&&(<><label style={{display:"block",fontSize:10.5,fontWeight:800,color:"#EA580C",marginBottom:4}}>📩 인계 메모 <span style={{fontWeight:600,color:"#9CA3AF"}}>(다음 담당자에게 — 완료 시 다음 로드단계에 표시)</span></label>
+                      <textarea key={s.id+"h"} defaultValue={s.handoffNote||""} onBlur={e=>up("tasks",s.id,{handoffNote:e.target.value})} placeholder="예: 시안 2안으로 확정·원본은 드라이브 / 주의: 사이즈표 누락 확인" style={{width:"100%",padding:"9px 11px",borderRadius:9,border:"1.5px solid #FBD9B5",background:"#FFFBF5",fontSize:12.5,resize:"vertical",minHeight:40,outline:"none",fontFamily:"inherit",boxSizing:"border-box",marginBottom:12}}/></>)}
                       <button onClick={()=>onOpenProcess(proj)} style={{width:"100%",padding:"10px 0",borderRadius:10,border:"1.5px solid #DDD6FE",background:"#FAF9FF",fontSize:12.5,fontWeight:800,color:"#7C3AED",cursor:"pointer",fontFamily:"inherit"}}>🧩 프로세스 편집 (실행 업무 추가·인계)</button>
                     </div>
                   )}
@@ -2472,7 +2479,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
     const a=document.createElement("a");a.href=url;a.download=`${name}_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);
   };
   const exportCSV=()=>{
-    const goalTypeL={revenue:"매출",metric:"활동지표",journey:"여정"};
+    const goalTypeL={revenue:"매출",metric:"활동지표",journey:"구축"};
     const rows=[["제목","그룹","담당자","목표유형","거래처유형","메인KPI","서브KPI","우선순위","상태","진척도%","진척방식","업무(완료/전체)","매출(원)","매출입력자","매출최종일","매출입력횟수","활동지표"]];
     filtered.forEach(p=>{
       const a=D.users.find(u=>u.id===p.assigneeId);const mk=D.mainKPIs.find(m=>m.id===p.mainKPIId);const sk=D.subKPIs.find(s=>s.id===p.subKPIId);
@@ -2811,7 +2818,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
           <div style={{marginBottom:14}}>
             <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>이 프로젝트의 성과는? <span style={{color:"#9CA3AF",fontWeight:600}}>(측정 방식)</span></label>
             <div style={{display:"flex",gap:6}}>
-              {[["revenue","💰 매출","돈을 번다"],["metric","🎯 활동지표","상품등록 100개"],["journey","🔁 여정·구축","진행도로"]].map(([k,l,d])=>(
+              {[["revenue","💰 매출","돈을 번다"],["metric","🎯 활동지표","상품등록 100개"],["journey","🔁 구축·운영","CRM·어드민 등 구축"]].map(([k,l,d])=>(
                 <button key={k} onClick={()=>{setProjForm({...projForm,goalType:k});if(k==="revenue")setShowAdv(true);}} style={{flex:1,padding:"10px 4px",borderRadius:11,border:`1.5px solid ${projForm.goalType===k?"#F97316":"#E5E8EB"}`,background:projForm.goalType===k?"#FFEDD5":"#fff",cursor:"pointer",fontFamily:"inherit",textAlign:"center"}}>
                   <p style={{margin:0,fontSize:12,fontWeight:800,color:projForm.goalType===k?"#EA580C":"#374151"}}>{l}</p>
                   <p style={{margin:"2px 0 0",fontSize:9,color:"#9CA3AF",lineHeight:1.3}}>{d}</p>
@@ -4818,7 +4825,7 @@ function ExportPanel({D,up,restore}){
     (D.mainKPIs||[]).forEach(m=>up("mainKPIs",m.id,{currentValue:0}));
     (D.goals||[]).forEach(g=>up("goals",g.id,{currentValue:0}));
   };
-  const goalTypeL={revenue:"매출",metric:"활동지표",journey:"여정"};
+  const goalTypeL={revenue:"매출",metric:"활동지표",journey:"구축"};
   const expProjects=()=>{
     const rows=[["제목","그룹","담당자","목표유형","거래처유형","메인KPI","서브KPI","우선순위","상태","진척도%","진척방식","업무(완료/전체)","매출(원)","매출입력자","매출최종일","활동지표"]];
     (D.projects||[]).forEach(p=>{const mk=D.mainKPIs.find(m=>m.id===p.mainKPIId);const sk=D.subKPIs.find(s=>s.id===p.subKPIId);const ts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);const dn=ts.filter(t=>t.status==="done").length;const aks=(p.activityKPIs||[]).map(ak=>`${ak.name} ${numF(ak.current)}/${numF(ak.target)}${ak.unit||""}`).join(" · ");rows.push([p.title,p.group||"",uname(p.assigneeId),goalTypeL[p.goalType]||"",p.dealerType||"",mk?.title||"",sk?.title||"",p.priority||"",p.status||"",p.progress||0,p.progressManual?"수동":"자동",`${dn}/${ts.length}`,numF(p.resultValue),p.salesByName||"",(p.salesAt||"").slice(0,10),aks]);});

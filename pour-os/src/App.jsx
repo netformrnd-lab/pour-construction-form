@@ -3100,6 +3100,10 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
   const [renameVal,setRenameVal]=useState("");
   const dupTpl=()=>{ const nid="tpl"+Date.now(); add("launchTemplates",{...tpl,id:nid,name:tpl.name+" (복사)",createdAt:new Date().toISOString(),nodes:tpl.nodes.map(n=>({...n})),edges:tpl.edges.map(e=>({...e}))}); setTplId(nid); };
   const doRename=()=>{ if(renameVal.trim()) up("launchTemplates",tpl.id,{name:renameVal.trim()}); setRenameOpen(false); };
+  // ── 프로세스 템플릿 버전관리 (매뉴얼 v 패턴과 동일) ──
+  const [showVer,setShowVer]=useState(false);
+  const saveVersion=()=>{ if(!tpl)return; const curV=tpl.version||1; const note=(window.prompt(`v${curV}→v${curV+1} 변경 메모 (무엇이 개선됐나요?)`,"")||"").trim(); up("launchTemplates",tpl.id,{version:curV+1,versions:[...(tpl.versions||[]),{v:curV,nodes:(tpl.nodes||[]).map(n=>({...n})),edges:(tpl.edges||[]).map(e=>({...e})),savedAt:tpl.updatedAt||tpl.createdAt||"",note}],updatedAt:new Date().toISOString()}); window.alert(`📌 v${curV+1}로 저장했어요 (이전 v${curV}는 이력 보관)`); };
+  const restoreVersion=(v)=>{ if(!tpl||!window.confirm(`v${v.v}로 되돌릴까요? 현재본(v${tpl.version||1})은 이력으로 보관돼요.`))return; const curV=tpl.version||1; up("launchTemplates",tpl.id,{nodes:(v.nodes||[]).map(n=>({...n})),edges:(v.edges||[]).map(e=>({...e})),version:curV+1,versions:[...(tpl.versions||[]),{v:curV,nodes:(tpl.nodes||[]).map(n=>({...n})),edges:(tpl.edges||[]).map(e=>({...e})),savedAt:tpl.updatedAt||tpl.createdAt||"",note:`v${v.v}로 되돌림`}],updatedAt:new Date().toISOString()}); setShowVer(false); };
   const delTpl=()=>{ if(tpls.length<=1){ window.alert("템플릿이 하나뿐이라 삭제할 수 없어요."); return; } if(window.confirm(`'${tpl.name}' 템플릿을 삭제할까요? (이미 만든 출시 건은 영향 없음)`)){ const next=tpls.find(t=>t.id!==tpl.id); rm("launchTemplates",tpl.id); setTplId(next?next.id:""); } };
   // ── 내 차례(ready) 집계 ──
   const myReady=[];
@@ -3247,6 +3251,23 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
             <button onClick={()=>{setRenameVal(tpl.name);setRenameOpen(true);}} style={{flex:1,padding:"9px 0",borderRadius:10,border:"1.5px solid #E5E8EB",backgroundColor:"#fff",fontSize:12.5,fontWeight:800,color:"#374151",cursor:"pointer",fontFamily:"inherit"}}>✎ 이름</button>
             <button onClick={delTpl} style={{flex:1,padding:"9px 0",borderRadius:10,border:"1.5px solid #FFE2E5",backgroundColor:"#fff",fontSize:12.5,fontWeight:800,color:"#F04452",cursor:"pointer",fontFamily:"inherit"}}>🗑 삭제</button>
           </div>
+          <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:12,padding:"8px 11px",borderRadius:11,background:"#F5F8FF",border:"1px solid #DBE3FF"}}>
+            <span style={{fontSize:11,fontWeight:900,color:"#3730A3",background:"#E0E7FF",borderRadius:6,padding:"2px 7px",flexShrink:0}}>v{tpl.version||1}</span>
+            <span style={{flex:1,minWidth:0,fontSize:10.5,color:"#6B7280",fontWeight:600}}>단계 {(tpl.nodes||[]).length}{(tpl.versions||[]).length?` · 이력 ${(tpl.versions||[]).length}`:""}</span>
+            <button onClick={saveVersion} style={{flexShrink:0,padding:"6px 10px",borderRadius:9,border:"none",background:"#3182F6",color:"#fff",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>📌 버전 저장</button>
+            {(tpl.versions||[]).length>0&&<button onClick={()=>setShowVer(s=>!s)} style={{flexShrink:0,padding:"6px 9px",borderRadius:9,border:"1px solid #DBE3FF",background:showVer?"#E0E7FF":"#fff",color:"#4B5563",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>📜 이력</button>}
+          </div>
+          {showVer&&(tpl.versions||[]).length>0&&(
+            <div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:12}}>
+              {(tpl.versions||[]).slice().reverse().map(v=>(
+                <div key={v.v} style={{display:"flex",alignItems:"center",gap:8,background:"#F9FAFB",borderRadius:9,padding:"7px 10px"}}>
+                  <span style={{fontSize:10.5,fontWeight:800,color:"#6B7280",flexShrink:0}}>v{v.v}</span>
+                  <span style={{flex:1,minWidth:0,fontSize:10,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{v.note?`✏️ ${v.note}`:`단계 ${(v.nodes||[]).length} · ${(v.savedAt||"").slice(0,10)||"날짜없음"}`}</span>
+                  <button onClick={()=>restoreVersion(v)} style={{flexShrink:0,padding:"4px 8px",borderRadius:7,border:"1px solid #DBE3FF",background:"#fff",color:"#3182F6",fontSize:10,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>되돌리기</button>
+                </div>
+              ))}
+            </div>
+          )}
           <div style={{backgroundColor:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:12,padding:"10px 13px",marginBottom:12}}>
             <p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#9A3412"}}>🧩 {tpl.name}</p>
             <p style={{margin:"3px 0 0",fontSize:11,color:"#B45309",lineHeight:1.5}}>제품군마다 흐름이 다르면 <b>복제</b>해서 단계를 바꿔 쓰세요. 노드를 끌어 옮기고, 탭하면 수정돼요.</p>

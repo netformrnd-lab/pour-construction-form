@@ -3,7 +3,7 @@ import { STATE_DOC, colDoc, META_DOC, extDoc, extCol, getDoc, getDocs, onSnapsho
 
 // Firestore 단일 문서에 저장할 공유 데이터 키 (currentUser는 기기별 로컬이라 제외)
 const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","weekGoals","launchTemplates","manuals","trash"];
-const COL_LABEL = {users:"담당자",goals:"최종목표",mainKPIs:"메인KPI",subKPIs:"서브KPI",projects:"프로젝트",tasks:"업무",personalGoals:"개인목표",retros:"회고",aiReviews:"AI점검",events:"일정",weekGoals:"주간목표",launchTemplates:"프로세스템플릿",manuals:"매뉴얼",trash:"휴지통"};
+const COL_LABEL = {users:"담당자",goals:"최종목표",mainKPIs:"메인KPI",subKPIs:"서브KPI",projects:"프로젝트",tasks:"업무",personalGoals:"개인목표",retros:"회고",aiReviews:"AI점검",events:"일정",weekGoals:"주간목표",launchTemplates:"프로세스템플릿",manuals:"로드맵 템플릿",trash:"휴지통"};
 const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
@@ -83,7 +83,7 @@ const INIT={
     {id:"sk9",mainKPIId:"mk3",title:"CRM 시스템 구축",targetValue:100,currentValue:35,unit:"%",order:1,channelCode:"CRM"},
     {id:"sk10",mainKPIId:"mk3",title:"매출관리 시스템 구축",targetValue:100,currentValue:60,unit:"%",order:2,channelCode:"REV"},
     {id:"sk11",mainKPIId:"mk3",title:"어드민센터 구축",targetValue:100,currentValue:72,unit:"%",order:3,channelCode:"ADM"},
-    {id:"sk12",mainKPIId:"mk3",title:"매뉴얼 33건",targetValue:33,currentValue:8,unit:"건",order:4,channelCode:"MAN"},
+    {id:"sk12",mainKPIId:"mk3",title:"로드맵 33건",targetValue:33,currentValue:8,unit:"건",order:4,channelCode:"MAN"},
     {id:"sk_launch",mainKPIId:"mk3",title:"신규 SKU 출시 수",targetValue:30,currentValue:0,unit:"개",order:5,channelCode:"SKU",launchCount:true},
   ],
   projects:[
@@ -131,7 +131,7 @@ const INIT={
     {id:"e4",title:"여름 프로모션 런칭",date:"2026-06-20",type:"promotion",projectId:null,description:"자사몰+마켓 동시"},
   ],
   weekGoals:[],
-  // 매뉴얼 — 잘 된 여정(로드단계+프로세스)을 굳혀 재사용하는 표준 작업서. 새 프로젝트를 여기서 시작.
+  // 로드맵 템플릿 — 잘 된 로드맵(로드단계+프로세스)을 굳혀 재사용하는 표준. 새 프로젝트를 여기서 시작.
   manuals:[],
   trash:[],   // 소프트 삭제 보관소 — 삭제된 모든 데이터는 여기 남고 복구 가능(데이터 자산화)
   // 출시 프로세스 템플릿(마인드맵) — 신상 SKU를 찍어내는 표준 흐름. 동일 프로세스 1개 기본 제공.
@@ -165,7 +165,7 @@ const numF=(x)=>{const n=Number(x);return isFinite(n)?n:0;};   // 문자열·NaN
 //  · 그 외/수동지정 → currentValue
 const skCur=(sk,projects)=>{
   if(sk.launchCount) return (projects||[]).filter(p=>p.templateId&&(p.progress||0)>=100).length;   // 출시 완료(progress 100%) SKU 자동 집계
-  // 매뉴얼 완료 집계(옵션): 이 지표를 가리키는 프로젝트가 완료(100%)되면 기존 누적분에 +1 (원/%·출시집계 지표 제외 — 매출·진척·출시 롤업 보호)
+  // 로드맵 템플릿 완료 집계(옵션): 이 지표를 가리키는 프로젝트가 완료(100%)되면 기존 누적분에 +1 (원/%·출시집계 지표 제외 — 매출·진척·출시 롤업 보호)
   if(sk.unit!=="원"&&sk.unit!=="%"&&!sk.launchCount){ const cc=(projects||[]).filter(p=>p.countKPIId===sk.id); if(cc.length) return numF(sk.currentValue)+cc.filter(p=>(p.progress||0)>=100).length; }
   if(sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride) return (projects||[]).filter(p=>p.subKPIId===sk.id).reduce((a,p)=>a+numF(p.resultValue),0);
   if(sk.unit==="%"&&!sk.manualOverride){ const ch=(projects||[]).filter(p=>p.subKPIId===sk.id); if(ch.length) return Math.round(ch.reduce((a,p)=>a+numF(p.progress),0)/ch.length); }
@@ -2108,7 +2108,7 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
   );
 }
 // 프로젝트 로드맵 — 최상위 로드단계 + 로드단계별 담당/논의 + 프로세스 연결
-// 프로젝트의 여정(로드단계+프로세스 트리)을 재사용용 매뉴얼 트리로 추출
+// 프로젝트의 여정(로드단계+프로세스 트리)을 재사용용 로드맵 템플릿 트리로 추출
 function buildManualTree(D,projId){
   const ts=D.tasks.filter(t=>t.projectId===projId&&!t.isFixed);
   const byParent={};
@@ -2119,7 +2119,7 @@ function buildManualTree(D,projId){
   }));
   return walk("_root");
 }
-// 매뉴얼 트리 → 새 프로젝트의 업무로 복제(계층·순서·예상기간·논의 보존, 상태는 todo로 초기화)
+// 로드맵 템플릿 트리 → 새 프로젝트의 업무로 복제(계층·순서·예상기간·논의 보존, 상태는 todo로 초기화)
 function cloneManualToProject(manual,projId,projType,add){
   let i=0;
   const walk=(nodes,parentId)=>(nodes||[]).forEach((n,idx)=>{
@@ -2134,7 +2134,7 @@ function cloneManualToProject(manual,projId,projType,add){
   });
   walk(manual.stages,null);
 }
-// 매뉴얼 카드 — 버전(v) 표시·이력 되돌리기 + 완료집계 지표 선택(연결 프로젝트에 소급 적용)
+// 로드맵 템플릿 카드 — 버전(v) 표시·이력 되돌리기 + 완료집계 지표 선택(연결 프로젝트에 소급 적용)
 function ManualCard({m,D,up,rm,startFromManual}){
   const [showV,setShowV]=useState(false);
   const sc=(m.stages||[]).length;
@@ -2152,7 +2152,7 @@ function ManualCard({m,D,up,rm,startFromManual}){
           <p style={{margin:"2px 0 0",fontSize:10,color:"#9CA3AF"}}>{m.projType==="team"?"팀":"개인"} · 로드단계 {sc} · 업무 {cnt}{vers.length?` · 이력 ${vers.length}`:""}</p>
         </div>
         <button onClick={()=>startFromManual(m)} style={{flexShrink:0,padding:"6px 10px",borderRadius:9,border:"none",background:"#F97316",color:"#fff",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 새 프로젝트</button>
-        <button onClick={()=>{if(window.confirm(`'${m.name}' 매뉴얼을 삭제할까요? (이미 만든 프로젝트는 영향 없음)\n휴지통에서 복구할 수 있어요.`))rm("manuals",m.id);}} style={{flexShrink:0,padding:"6px 8px",borderRadius:9,border:"1px solid #FFE2E5",background:"#FFF0F1",color:"#F04452",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
+        <button onClick={()=>{if(window.confirm(`'${m.name}' 로드맵 템플릿을 삭제할까요? (이미 만든 프로젝트는 영향 없음)\n휴지통에서 복구할 수 있어요.`))rm("manuals",m.id);}} style={{flexShrink:0,padding:"6px 8px",borderRadius:9,border:"1px solid #FFE2E5",background:"#FFF0F1",color:"#F04452",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
       </div>
       {(mk3SKs.length>0||vers.length>0)&&(
         <div style={{display:"flex",alignItems:"center",gap:6,marginTop:8,paddingTop:8,borderTop:"1px dashed #F2E6D5"}}>
@@ -2183,8 +2183,8 @@ function ManualCard({m,D,up,rm,startFromManual}){
 }
 function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
   const team=proj.projType?proj.projType==="team":(proj.collaboratorIds||[]).length>0;
-  const srcMan=proj.sourceManualId&&(D.manuals||[]).find(m=>m.id===proj.sourceManualId);   // 역링크: 살아있는 매뉴얼(있으면 갱신 가능)
-  const srcGone=!srcMan&&proj.sourceManualName;   // 매뉴얼이 삭제됐어도 박제된 이름으로 기록 유지
+  const srcMan=proj.sourceManualId&&(D.manuals||[]).find(m=>m.id===proj.sourceManualId);   // 역링크: 살아있는 로드맵 템플릿(있으면 갱신 가능)
+  const srcGone=!srcMan&&proj.sourceManualName;   // 로드맵 템플릿이 삭제됐어도 박제된 이름으로 기록 유지
   const MEM=[{id:"",name:"미배정",color:"#9CA3AF"},...(D.users||[])];
   const Mof=id=>MEM.find(m=>m.id===id)||MEM[0];
   const stages=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed&&!t.parentId).sort((a,b)=>(a.seq||0)-(b.seq||0));
@@ -2245,24 +2245,24 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
     const now=new Date().toISOString(), by=proj.assigneeId||"";
     const src=proj.sourceManualId&&(D.manuals||[]).find(m=>m.id===proj.sourceManualId);
     if(src){
-      const ok=window.confirm(`이 프로젝트는 '${src.name}' 매뉴얼 기반이에요.\n\n[확인] 기존 매뉴얼 갱신 (이전판은 이력 보관)\n[취소] 새 매뉴얼로 저장`);
+      const ok=window.confirm(`이 프로젝트는 '${src.name}' 로드맵 템플릿 기반이에요.\n\n[확인] 기존 템플릿 갱신 (이전판은 이력 보관)\n[취소] 새 템플릿으로 저장`);
       if(ok){
         const curV=src.version||1;
         const note=(window.prompt(`v${curV}→v${curV+1} 변경 메모 (선택 · 무엇이 바뀌었나요?)`,"")||"").trim();
         up("manuals",src.id,{stages:tree,version:curV+1,
           versions:[...(src.versions||[]),{v:curV,stages:src.stages||[],savedAt:src.updatedAt||src.createdAt||"",savedBy:src.updatedBy||src.createdBy||"",note}],
           updatedAt:now,updatedBy:by});
-        window.alert(`📋 '${src.name}' 매뉴얼을 v${curV+1}로 갱신했어요 (이전 v${curV}는 이력 보관)`);
+        window.alert(`📋 '${src.name}' 로드맵 템플릿을 v${curV+1}로 갱신했어요 (이전 v${curV}는 이력 보관)`);
         return;
       }
     }
-    const name=window.prompt("📋 매뉴얼 이름 (이 로드맵을 표준으로 저장)",proj.title||"");
+    const name=window.prompt("📋 로드맵 템플릿 이름 (이 로드맵을 표준으로 저장)",proj.title||"");
     if(name===null) return;
-    const id="man"+Date.now(), mname=(name.trim()||proj.title||"매뉴얼");
+    const id="man"+Date.now(), mname=(name.trim()||proj.title||"로드맵");
     add("manuals",{id,name:mname,projType:team?"team":"solo",
       stages:tree,version:1,versions:[],createdAt:now,createdBy:by});
-    up("projects",proj.id,{sourceManualId:id,sourceManualName:mname,sourceManualVersion:1});   // 매뉴얼 연결 + 이름 박제(이후 '갱신' 가능, 삭제돼도 기록 유지)
-    window.alert("📋 매뉴얼로 저장됐어요\n이 프로젝트는 매뉴얼에 연결돼, 다음에 고치면 '갱신'할 수 있어요");
+    up("projects",proj.id,{sourceManualId:id,sourceManualName:mname,sourceManualVersion:1});   // 로드맵 템플릿 연결 + 이름 박제(이후 '갱신' 가능, 삭제돼도 기록 유지)
+    window.alert("📋 로드맵 템플릿으로 저장됐어요\n이 프로젝트는 템플릿에 연결돼, 다음에 고치면 '갱신'할 수 있어요");
   };
   return(
     <div style={{position:"fixed",inset:0,zIndex:1500,background:"#F9FAFB",display:"flex",flexDirection:"column"}}>
@@ -2283,11 +2283,11 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
         </div>
         {(srcMan||srcGone)&&(
           <div style={{display:"flex",alignItems:"center",gap:8,background:srcGone?"#F8F9FA":"#FFFBF5",border:"1px solid "+(srcGone?"#EAEDF0":"#F2E6D5"),borderRadius:11,padding:"9px 12px",marginBottom:9}}>
-            <span style={{fontSize:11.5,fontWeight:800,color:srcGone?"#9CA3AF":"#A16207",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📋 ‘{srcMan?srcMan.name:proj.sourceManualName}’ 매뉴얼 v{srcMan?(srcMan.version||1):(proj.sourceManualVersion||1)} 기반</span>
-            <span style={{fontSize:10,fontWeight:700,color:srcGone?"#B0B8C1":"#B98A3E",flexShrink:0}}>{srcGone?"매뉴얼 삭제됨 · 기록 유지":"저장 시 갱신/이력"}</span>
+            <span style={{fontSize:11.5,fontWeight:800,color:srcGone?"#9CA3AF":"#A16207",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📋 ‘{srcMan?srcMan.name:proj.sourceManualName}’ 로드맵 템플릿 v{srcMan?(srcMan.version||1):(proj.sourceManualVersion||1)} 기반</span>
+            <span style={{fontSize:10,fontWeight:700,color:srcGone?"#B0B8C1":"#B98A3E",flexShrink:0}}>{srcGone?"로드맵 템플릿 삭제됨 · 기록 유지":"저장 시 갱신/이력"}</span>
           </div>
         )}
-        <button onClick={saveManual} style={{width:"100%",padding:"11px 0",borderRadius:11,border:"1.5px solid #FBD9B5",background:"#FFF7ED",fontSize:12.5,fontWeight:800,color:"#EA580C",cursor:"pointer",fontFamily:"inherit",marginBottom:14}}>{srcMan?"📋 매뉴얼 갱신 / 새 매뉴얼로 저장":"📋 이 로드맵을 매뉴얼로 저장 (다음에 재사용)"}</button>
+        <button onClick={saveManual} style={{width:"100%",padding:"11px 0",borderRadius:11,border:"1.5px solid #FBD9B5",background:"#FFF7ED",fontSize:12.5,fontWeight:800,color:"#EA580C",cursor:"pointer",fontFamily:"inherit",marginBottom:14}}>{srcMan?"📋 템플릿 갱신 / 새 템플릿으로 저장":"📋 로드맵 템플릿으로 저장 (다음에 재사용)"}</button>
         {stages.length===0?<Empty t="로드단계가 없어요 · [+ 로드단계]로 만들거나 🧩프로세스 편집에서 최상위 단계를 만들면 로드단계가 됩니다"/>:(
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
             {stages.map((s,idx)=>{
@@ -2422,7 +2422,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
   const [metric,setMetric]=useState({name:"",target:"",unit:"개"});
   const resetProjForm=()=>{setProjForm({title:"",goalType:"journey",projType:"team",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high",manualId:""});setMetric({name:"",target:"",unit:"개"});};
   const openEditProj=(p)=>{ setProjForm({title:p.title||"",goalType:p.goalType||(p.mainKPIId==="mk2"||p.resultValue?"revenue":"journey"),projType:p.projType||((p.collaboratorIds||[]).length>0?"team":"solo"),mainKPIId:p.mainKPIId||"",subKPIId:p.subKPIId||"",dealerType:p.dealerType||"",assigneeId:p.assigneeId||cu.id,collaboratorIds:p.collaboratorIds||[],group:p.group||"",priority:p.priority||"mid",manualId:""}); setMetric({name:"",target:"",unit:"개"}); setEditProjId(p.id); setShowAdv(true); setAddProjSheet(true); };
-  // 매뉴얼에서 새 프로젝트 시작 — 추가 시트를 매뉴얼 정보로 프리필
+  // 로드맵 템플릿에서 새 프로젝트 시작 — 추가 시트를 템플릿 정보로 프리필
   const startFromManual=(m)=>{ resetProjForm(); setEditProjId(null); setShowAdv(true); setProjForm(f=>({...f,title:m.name||"",projType:m.projType||"team",goalType:"journey",assigneeId:cu.id,manualId:m.id})); setAddProjSheet(true); };
   const doAddProj=()=>{
     if(!projForm.title.trim()) return;
@@ -2432,7 +2432,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
       const projId="p"+Date.now();
       const man=manualId&&(D.manuals||[]).find(m=>m.id===manualId);
       const proj={id:projId,...rest,status:"active",progress:0,resultValue:0};
-      if(man){ proj.sourceManualId=man.id; proj.sourceManualName=man.name||""; proj.sourceManualVersion=man.version||1; if(man.countKPIId) proj.countKPIId=man.countKPIId; }   // 매뉴얼 역링크 + 이름 박제(삭제돼도 기록 유지) + 완료집계 상속
+      if(man){ proj.sourceManualId=man.id; proj.sourceManualName=man.name||""; proj.sourceManualVersion=man.version||1; if(man.countKPIId) proj.countKPIId=man.countKPIId; }   // 로드맵 템플릿 역링크 + 이름 박제(삭제돼도 기록 유지) + 완료집계 상속
       if(projForm.goalType==="metric"&&metric.name.trim()) proj.activityKPIs=[{id:"ak"+Date.now(),name:metric.name.trim(),unit:metric.unit||"개",target:numF(metric.target),current:0,history:[]}];
       add("projects",proj);
       if(man) cloneManualToProject(man,projId,projForm.projType,add);
@@ -2498,7 +2498,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
       <p style={{margin:"0 2px 12px",fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>프로젝트별 로드맵 · 로드단계를 계층형으로 보고 · 각 로드단계의 방안은 프로세스</p>
       {((D.manuals||[]).length>0||(D.launchTemplates||[]).length>0)&&(
         <div style={{marginBottom:16,background:"#FFFBF5",border:"1px solid #FBE5C8",borderRadius:14,padding:"12px 13px"}}>
-          <p style={{margin:"0 0 9px",fontSize:12,fontWeight:900,color:"#EA580C"}}>📋 매뉴얼 <span style={{fontWeight:700,color:"#C08A4A"}}>· 저장된 표준 작업서 (새 프로젝트로 재사용)</span></p>
+          <p style={{margin:"0 0 9px",fontSize:12,fontWeight:900,color:"#EA580C"}}>🗺 로드맵 템플릿 <span style={{fontWeight:700,color:"#C08A4A"}}>· 저장된 표준 (새 프로젝트로 재사용)</span></p>
           <div style={{display:"flex",flexDirection:"column",gap:7}}>
             {(D.manuals||[]).map(m=><ManualCard key={m.id} m={m} D={D} up={up} rm={rm} startFromManual={startFromManual}/>)}
             {(D.launchTemplates||[]).map(t=>(
@@ -2511,7 +2511,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
               </div>
             ))}
           </div>
-          <p style={{margin:"8px 2px 0",fontSize:10,color:"#C08A4A",lineHeight:1.5}}>출시 매뉴얼은 SKU를 찍어내고 운영지표에 자동 집계돼 <b>🚀 출시</b> 탭에서 다룹니다.</p>
+          <p style={{margin:"8px 2px 0",fontSize:10,color:"#C08A4A",lineHeight:1.5}}>출시 프로세스는 SKU를 찍어내고 운영지표에 자동 집계돼 <b>🚀 프로세스</b> 탭에서 다룹니다.</p>
         </div>
       )}
       {(()=>{
@@ -2780,7 +2780,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
           {!editProjId&&projForm.manualId&&(()=>{const m=(D.manuals||[]).find(x=>x.id===projForm.manualId);if(!m)return null;return(
             <div style={{display:"flex",alignItems:"center",gap:8,background:"#FFF7ED",border:"1.5px solid #FBD9B5",borderRadius:11,padding:"10px 12px",marginBottom:14}}>
               <span style={{fontSize:15}}>📋</span>
-              <div style={{flex:1,minWidth:0}}><p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#EA580C"}}>'{m.name}' 매뉴얼에서 생성</p><p style={{margin:"2px 0 0",fontSize:10.5,color:"#C08A4A"}}>로드단계 {(m.stages||[]).length}개와 프로세스가 함께 만들어져요</p></div>
+              <div style={{flex:1,minWidth:0}}><p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#EA580C"}}>'{m.name}' 로드맵 템플릿에서 생성</p><p style={{margin:"2px 0 0",fontSize:10.5,color:"#C08A4A"}}>로드단계 {(m.stages||[]).length}개와 프로세스가 함께 만들어져요</p></div>
               <button onClick={()=>setProjForm(f=>({...f,manualId:""}))} style={{flexShrink:0,padding:"5px 9px",borderRadius:8,border:"1px solid #FBD9B5",background:"#fff",color:"#EA580C",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>해제</button>
             </div>
           );})()}
@@ -3140,7 +3140,7 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
   const [renameVal,setRenameVal]=useState("");
   const dupTpl=()=>{ const nid="tpl"+Date.now(); add("launchTemplates",{...tpl,id:nid,name:tpl.name+" (복사)",createdAt:new Date().toISOString(),nodes:tpl.nodes.map(n=>({...n})),edges:tpl.edges.map(e=>({...e}))}); setTplId(nid); };
   const doRename=()=>{ if(renameVal.trim()) up("launchTemplates",tpl.id,{name:renameVal.trim()}); setRenameOpen(false); };
-  // ── 프로세스 템플릿 버전관리 (매뉴얼 v 패턴과 동일) ──
+  // ── 프로세스 템플릿 버전관리 (로드맵 템플릿 v 패턴과 동일) ──
   const [showVer,setShowVer]=useState(false);
   const saveVersion=()=>{ if(!tpl)return; const curV=tpl.version||1; const note=(window.prompt(`v${curV}→v${curV+1} 변경 메모 (무엇이 개선됐나요?)`,"")||"").trim(); up("launchTemplates",tpl.id,{version:curV+1,versions:[...(tpl.versions||[]),{v:curV,nodes:(tpl.nodes||[]).map(n=>({...n})),edges:(tpl.edges||[]).map(e=>({...e})),savedAt:tpl.updatedAt||tpl.createdAt||"",note}],updatedAt:new Date().toISOString()}); window.alert(`📌 v${curV+1}로 저장했어요 (이전 v${curV}는 이력 보관)`); };
   const restoreVersion=(v)=>{ if(!tpl||!window.confirm(`v${v.v}로 되돌릴까요? 현재본(v${tpl.version||1})은 이력으로 보관돼요.`))return; const curV=tpl.version||1; up("launchTemplates",tpl.id,{nodes:(v.nodes||[]).map(n=>({...n})),edges:(v.edges||[]).map(e=>({...e})),version:curV+1,versions:[...(tpl.versions||[]),{v:curV,nodes:(tpl.nodes||[]).map(n=>({...n})),edges:(tpl.edges||[]).map(e=>({...e})),savedAt:tpl.updatedAt||tpl.createdAt||"",note:`v${v.v}로 되돌림`}],updatedAt:new Date().toISOString()}); setShowVer(false); };

@@ -3114,11 +3114,7 @@ function ProjStageFlow({D,proj,cu,up,onPick}){
   const stageTasks=D.tasks.filter(t=>t.projectId===proj.id&&t.launchNode).sort((a,b)=>(a.step||0)-(b.step||0));
   const uName=(id)=>D.users.find(u=>u.id===id)?.name||"미배정";
   const uColor=(id)=>D.users.find(u=>u.id===id)?.color||"#9CA3AF";
-  if(stageTasks.length===0) return(
-    <div style={{padding:"12px 16px 0"}}>
-      <button onClick={()=>onPick(proj)} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:7,padding:"10px 0",borderRadius:10,border:"1.5px dashed #FDBA74",backgroundColor:"#FFF7ED",fontSize:12.5,fontWeight:800,color:"#EA580C",cursor:"pointer",fontFamily:"inherit"}}>🔗 단계 흐름(협업 인계) 적용</button>
-    </div>
-  );
+  if(stageTasks.length===0) return null;   // 정리: 단계 흐름 적용 진입점 제거 — 일반 프로젝트는 🗺 로드맵의 로드단계·프로세스로 관리(중복 제거). 출시 SKU(launchNode)만 아래 파이프라인 표시
   const toggleStage=(t,st)=>{ if(st==="wait")return; up("tasks",t.id,{status:t.status==="done"?"todo":"done"}); };
   return(
     <div style={{padding:"12px 16px 0"}}>
@@ -3217,15 +3213,15 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
   if(!tpl) return(
     <div style={{padding:"48px 24px",textAlign:"center"}}>
       <p style={{fontSize:42,margin:0}}>🚀</p>
-      <p style={{margin:"12px 0 4px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>출시 프로세스 준비</p>
-      <p style={{margin:"0 0 20px",fontSize:12.5,color:"#6B7280",lineHeight:1.6}}>신상 SKU를 찍어낼 표준 5단계 흐름을 만들어 시작하세요.<br/>한 번 만들면 신상마다 그대로 자동 생성됩니다.</p>
-      <Btn variant="orange" size="lg" onClick={seedTpl}>기본 출시 프로세스 만들기</Btn>
+      <p style={{margin:"12px 0 4px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>프로세스 준비</p>
+      <p style={{margin:"0 0 20px",fontSize:12.5,color:"#6B7280",lineHeight:1.6}}>표준 단계 흐름을 만들어 두면 신상마다 그대로 자동 생성됩니다.<br/>한 번 만들면 신상마다 그대로 자동 생성됩니다.</p>
+      <Btn variant="orange" size="lg" onClick={seedTpl}>기본 프로세스 만들기</Btn>
     </div>
   );
   return(
     <div style={{padding:"14px 16px 24px"}}>
       <div style={{display:"flex",backgroundColor:"#F2F4F6",borderRadius:14,padding:4,marginBottom:14}}>
-        {[{k:"status",l:`🚀 출시현황 ${launchProjs.length}`},{k:"template",l:"🧩 템플릿"}].map(v=>(
+        {[{k:"status",l:`🚀 진행 ${launchProjs.length}`},{k:"template",l:"🧩 템플릿"}].map(v=>(
           <button key={v.k} onClick={()=>setTab(v.k)} style={{flex:1,padding:"9px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:tab===v.k?"#FFFFFF":"transparent",color:tab===v.k?"#0F1F5C":"#6B7280",fontWeight:tab===v.k?800:500,fontSize:13,fontFamily:"inherit",boxShadow:tab===v.k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{v.l}</button>
         ))}
       </div>
@@ -3264,7 +3260,7 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
             </div>
           </div>
         )}
-        {launchProjs.length===0?<Empty t="출시 중인 SKU가 없어요 · 신규 SKU 출시를 눌러 시작하세요"/>:launchProjs.map(p=>{
+        {launchProjs.length===0?<Empty t="진행 중인 SKU가 없어요 · 신규 SKU 출시를 눌러 시작하세요"/>:launchProjs.map(p=>{
           const ts=launchProjTasks(D,p);
           const doneN=ts.filter(t=>t.status==="done").length;
           return(

@@ -8,13 +8,15 @@ const weekKey=(d=new Date())=>{const x=new Date(d);const off=(x.getDay()+6)%7;x.
 const weekLabel=(key)=>{const m=new Date(key);const su=new Date(m);su.setDate(su.getDate()+6);const f=z=>`${z.getMonth()+1}/${z.getDate()}`;return `${f(m)}~${f(su)}`;};
 const numF=(x)=>{const n=Number(x);return isFinite(n)?n:0;};
 const skCur=(sk,projects)=>{
+  if(sk.launchCount) return (projects||[]).filter(p=>p.templateId&&(p.progress||0)>=100).length;
+  if(sk.unit!=="원"&&sk.unit!=="%"&&!sk.launchCount){ const cc=(projects||[]).filter(p=>p.countKPIId===sk.id); if(cc.length) return numF(sk.currentValue)+cc.filter(p=>(p.progress||0)>=100).length; }
   if(sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride) return (projects||[]).filter(p=>p.subKPIId===sk.id).reduce((a,p)=>a+numF(p.resultValue),0);
   if(sk.unit==="%"&&!sk.manualOverride){ const ch=(projects||[]).filter(p=>p.subKPIId===sk.id); if(ch.length) return Math.round(ch.reduce((a,p)=>a+numF(p.progress),0)/ch.length); }
   return numF(sk.currentValue);
 };
 const mkCur=(mk,subKPIs,projects)=>{
-  if(mk.unit==="원") return subKPIs.filter(s=>s.mainKPIId===mk.id).reduce((a,s)=>a+skCur(s,projects),0);
-  if(!mk.manualOverride){ const subs=subKPIs.filter(s=>s.mainKPIId===mk.id); if(subs.length){ const eq=subs.reduce((a,s)=>{const t=numF(s.targetValue); return a+(t>0?Math.min(1,skCur(s,projects)/t):0);},0); return Math.round(eq*10)/10; } }
+  if(mk.unit==="원") return subKPIs.filter(s=>s.mainKPIId===mk.id&&!s.launchCount).reduce((a,s)=>a+skCur(s,projects),0);
+  if(!mk.manualOverride){ const subs=subKPIs.filter(s=>s.mainKPIId===mk.id&&!s.launchCount); if(subs.length){ const eq=subs.reduce((a,s)=>{const t=numF(s.targetValue); return a+(t>0?Math.min(1,skCur(s,projects)/t):0);},0); return Math.round(eq*10)/10; } }
   return numF(mk.currentValue);
 };
 // 진척 자동산출 (recalcProg)
@@ -159,6 +161,35 @@ for(let i=0;i<250;i++){
   for(let k=1;k<rows.length;k++) check("contrib-sorted", rows[k-1].total>=rows[k].total, {a:rows[k-1].total,b:rows[k].total});
   const tg=myWeekTarget(proj,"u1");
   check("weektarget-num", typeof tg==="number"&&!Number.isNaN(tg)&&tg>=0, {tg});
+}
+
+// ── KPI 집계 체인 정밀 검증 (skCur/mkCur — 매출·운영·출시·카운트 전 분기) ──
+for(let i=0;i<400;i++){
+  const projs=Array.from({length:rnd(0,5)},(_,j)=>({id:"p"+j,subKPIId:pick(["s_rev",null]),countKPIId:pick(["s_cnt",null]),templateId:pick(["tpl",null]),progress:pick([0,30,60,100,...dirty]),resultValue:pick([0,1000,5000000,...dirty])}));
+  // mk2 원 자동집계 subKPI
+  const sRev={id:"s_rev",mainKPIId:"mk2",unit:"원",targetValue:5000000};
+  const expRev=projs.filter(p=>p.subKPIId==="s_rev").reduce((a,p)=>a+(isFinite(+p.resultValue)?+p.resultValue:0),0);
+  check("skCur-mk2-rev=Σresult", skCur(sRev,projs)===expRev, {got:skCur(sRev,projs),expRev});
+  // 출시 수(launchCount) = templateId && progress>=100 개수
+  const sLaunch={id:"s_l",mainKPIId:"mk3",unit:"개",launchCount:true,currentValue:99};
+  const expL=projs.filter(p=>p.templateId&&(p.progress||0)>=100).length;
+  check("skCur-launchCount", skCur(sLaunch,projs)===expL, {got:skCur(sLaunch,projs),expL});
+  // 카운트업(countKPIId) = seed + 완료(progress>=100) 개수
+  const seed=rnd(0,10), sCnt={id:"s_cnt",mainKPIId:"mk3",unit:"건",currentValue:seed};
+  const cc=projs.filter(p=>p.countKPIId==="s_cnt");
+  const expC=cc.length?seed+cc.filter(p=>(p.progress||0)>=100).length:seed;
+  check("skCur-countup", skCur(sCnt,projs)===expC, {got:skCur(sCnt,projs),expC,seed});
+  // mkCur(원)=Σ subKPIs(launchCount 제외) · goal=Σ mainKPI(원) — 이중집계·NaN 없음
+  const subs=[sRev,{id:"s_man",mainKPIId:"mk2",unit:"원",currentValue:2000000,manualOverride:true},sLaunch];
+  const mk2={id:"mk2",unit:"원"};
+  const expMk2=skCur(sRev,projs)+2000000;   // launchCount(sLaunch)는 제외돼야 함
+  check("mkCur-원=Σsub(제외 launchCount)", mkCur(mk2,subs,projs)===expMk2, {got:mkCur(mk2,subs,projs),expMk2});
+  check("mkCur-num", Number.isFinite(mkCur(mk2,subs,projs)), {});
+  check("skCur-num-all", [skCur(sRev,projs),skCur(sLaunch,projs),skCur(sCnt,projs)].every(Number.isFinite), {});
+  // 운영(%) 롤업 = 자식 progress 평균 (0~100, NaN 없음)
+  const sPct={id:"s_pct",mainKPIId:"mk3",unit:"%",targetValue:100};
+  const pc=skCur({...sPct,id:"s_rev"},projs); // %는 subKPIId 매칭 자식 평균
+  check("skCur-%-num", Number.isFinite(skCur(sPct,projs)), {});
 }
 
 console.log(`\n총 ${total}건 테스트 · 실패 ${fail}건`);

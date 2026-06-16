@@ -908,20 +908,20 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const [slotSheet,setSlotSheet]=useState(null);
   const dragRef=useRef(null);   // 주간 그리드 드래그 중인 업무
   const [dragOver,setDragOver]=useState(null);   // "day_slot" 하이라이트
-  const dropSlot=(day,slot)=>{
+  const dropDayCol=(d)=>{   // 다른 요일 칸으로 드롭 — 그 요일 끝에 추가(요일만 바꾸고 순서는 끝으로)
     const dr=dragRef.current; dragRef.current=null; setDragOver(null);
-    if(!dr) return;
-    const target=(slotMap[day]||{})[slot];
-    if(target&&target.id===dr.id) return;
-    up("tasks",dr.id,{weekDay:day,weekSlot:slot});
-    if(target) up("tasks",target.id,{weekDay:dr.weekDay||null,weekSlot:dr.weekSlot??null});   // 점유 슬롯과 자리 교환
+    if(!dr||dr.weekDay===d) return;
+    up("tasks",dr.id,{weekDay:d,weekSlot:nextSlot(d)});
   };
-  // 모바일용 — 슬롯 위/아래 이동(드래그 대신 화살표). 인접 슬롯과 자리 교환(빈칸이면 그냥 이동)
-  const moveSlot=(t,dir)=>{
-    const ns=(t.weekSlot||1)+dir; if(ns<1||ns>5) return;
-    const occ=(slotMap[t.weekDay]||{})[ns];
-    up("tasks",t.id,{weekSlot:ns});
-    if(occ&&occ.id!==t.id) up("tasks",occ.id,{weekSlot:t.weekSlot});
+  // 요일별 정렬 목록 — 진행날짜/요일이 있으면 슬롯이 없어도 그 요일 칸에 자동 노출(순서: weekSlot, 없으면 뒤로)
+  const dayOrdered=(d)=>myT.filter(t=>!t.isFixed&&t.weekDay===d)
+    .sort((a,b)=>{const sa=a.weekSlot??9999,sb=b.weekSlot??9999;return sa!==sb?sa-sb:String(a.id).localeCompare(String(b.id));});
+  const nextSlot=(d)=>Math.max(0,...dayOrdered(d).map(t=>t.weekSlot||0))+1;
+  // 같은 요일 안에서 순서만 변경 — 통째로 1..N 재번호(순위 명확화)
+  const reorderDay=(d,from,to)=>{
+    const arr=dayOrdered(d); if(to<0||to>=arr.length||from===to) return;
+    const [m]=arr.splice(from,1); arr.splice(to,0,m);
+    arr.forEach((t,i)=>{ if((t.weekSlot||0)!==i+1) up("tasks",t.id,{weekSlot:i+1}); });
   };
   const [quick,setQuick]=useState("");
   const [quickProj,setQuickProj]=useState("");
@@ -933,6 +933,9 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const [weeklyOpen,setWeeklyOpen]=useState(false);
   const [showHeld,setShowHeld]=useState(false);
   const [showGrid,setShowGrid]=useState(false);   // 주간 배치 그리드 접기(기본 접힘 — 오늘 업무가 먼저 보이도록)
+  const [isNarrow,setIsNarrow]=useState(typeof window!=="undefined"?window.innerWidth<640:true);   // 모바일=하루씩, 넓은 화면=요일 5열
+  useEffect(()=>{const h=()=>setIsNarrow(window.innerWidth<640);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[]);
+  const [viewDay,setViewDay]=useState(WEEK_DAYS.includes(today)?today:"월");   // 모바일 단일요일 보기(오늘 기준 시작)
   const [taskFilter,setTaskFilter]=useState("todo");   // 내 업무 상태 필터: todo|inprogress|done|hold
   const todayKey=new Date().toISOString().slice(0,10);
   // 이번 주 팀 활동로그 — 완료업무·매출·KPI실적·목표지표를 한 흐름으로 집계
@@ -964,6 +967,40 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const myGoals=myWeekGoals(D,cu.id);
   // 출시 인계 — 앞 단계가 끝나 내 차례가 된 출시 단계
   const myReadyLaunch=(()=>{ const arr=[]; D.projects.filter(p=>p.templateId).forEach(p=>{ const ts=launchProjTasks(D,p); ts.forEach(t=>{ if(t.assigneeId===cu.id&&launchStageStatus(t,ts)==="ready") arr.push({proj:p,task:t}); }); }); return [...arr,...myReadyProcess(D,cu.id)]; })();
+  // 주간 배치 — 요일 칸 1개 렌더(모바일=전체폭 크게, 데스크탑=5열 중 하나). 진행날짜/요일 있는 업무 자동 노출 + 순서만 조정
+  const renderDayCol=(d,mobile)=>{
+    const list=dayOrdered(d); const isT=d===today; const dk="col_"+d;
+    return(
+      <div key={d} onDragOver={mobile?undefined:e=>{e.preventDefault();if(dragOver!==dk)setDragOver(dk);}} onDragLeave={mobile?undefined:()=>{if(dragOver===dk)setDragOver(null);}} onDrop={mobile?undefined:e=>{e.preventDefault();dropDayCol(d);}}
+        style={{flex:mobile?"none":1,minWidth:0,backgroundColor:dragOver===dk?"#FFF7ED":(isT?"rgba(255,237,213,0.5)":"#F9FAFB"),border:`1.5px solid ${dragOver===dk?"#F97316":(isT?"#FBBF77":"#E5E8EB")}`,borderRadius:12,padding:mobile?"6px 8px 8px":"10px 8px"}}>
+        {!mobile&&(
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:7}}>
+            <span style={{fontSize:11,fontWeight:900,color:isT?"#EA580C":"#4B5563"}}>{d}요일</span>
+            {isT&&<span style={{fontSize:9,fontWeight:900,color:"#FFFFFF",background:"#F97316",padding:"1px 5px",borderRadius:10}}>오늘</span>}
+          </div>
+        )}
+        {list.length===0&&<p style={{margin:"6px 2px",fontSize:mobile?12:9.5,color:"#C4C9D0",textAlign:"center",fontStyle:"italic"}}>{mobile?"이 요일 업무가 없어요 · 아래 ＋배치":"+배치"}</p>}
+        {list.map((t,i)=>{
+          const st=STATUS_MAP[t.status]||{}; const done=t.status==="done";
+          return(
+            <div key={t.id} draggable={!mobile} onDragStart={mobile?undefined:e=>{dragRef.current=t;try{e.dataTransfer.effectAllowed="move";}catch(_){}}} onDragEnd={mobile?undefined:()=>{dragRef.current=null;setDragOver(null);}}
+              onClick={()=>setEditTask(t)}
+              style={{display:"flex",alignItems:"center",gap:mobile?8:4,padding:mobile?"9px 10px":"5px 7px",marginBottom:mobile?6:4,borderRadius:mobile?10:8,border:`1px solid ${done?"rgba(0,192,115,0.25)":"#E5E8EB"}`,background:done?"#E8FAF1":"#FFFFFF",cursor:mobile?"pointer":"grab",minHeight:mobile?40:28}}>
+              <span style={{flexShrink:0,fontSize:mobile?11:9,fontWeight:900,color:isT?"#EA580C":"#9CA3AF",minWidth:mobile?16:10,textAlign:"center"}}>{i+1}</span>
+              <span style={{flex:1,minWidth:0,fontSize:mobile?13:10,fontWeight:700,color:done?"#9CA3AF":"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:done?"line-through":"none"}}>{t.eventId?"📅":""}{t.title}</span>
+              {mobile&&st.label&&<span style={{flexShrink:0,fontSize:10,fontWeight:700,color:st.color,backgroundColor:st.bg,padding:"2px 7px",borderRadius:6}}>{st.label}</span>}
+              <span onClick={e=>e.stopPropagation()} style={{display:"flex",flexDirection:"column",flexShrink:0,gap:1}}>
+                <button onClick={()=>reorderDay(d,i,i-1)} disabled={i===0} title="위로" style={{width:mobile?22:15,height:mobile?15:11,border:"none",background:"none",cursor:i===0?"default":"pointer",color:i===0?"#E5E8EB":"#9CA3AF",fontSize:mobile?11:8,lineHeight:1,padding:0}}>▲</button>
+                <button onClick={()=>reorderDay(d,i,i+1)} disabled={i===list.length-1} title="아래로" style={{width:mobile?22:15,height:mobile?15:11,border:"none",background:"none",cursor:i===list.length-1?"default":"pointer",color:i===list.length-1?"#E5E8EB":"#9CA3AF",fontSize:mobile?11:8,lineHeight:1,padding:0}}>▼</button>
+              </span>
+            </div>
+          );
+        })}
+        <button onClick={()=>setSlotSheet({day:d,slot:nextSlot(d),current:null})} style={{width:"100%",marginTop:2,padding:mobile?"9px 0":"5px 0",borderRadius:8,border:"1px dashed #E5E8EB",background:"#fff",color:"#9CA3AF",fontSize:mobile?12:9.5,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>＋ 배치</button>
+      </div>
+    );
+  };
+  const vdIdx=WEEK_DAYS.indexOf(viewDay);
   return(
     <div style={{padding:"14px 16px 20px"}}>
       <div onClick={()=>nav("game")} style={{display:"flex",alignItems:"center",gap:14,background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"16px 18px",marginBottom:12,cursor:"pointer",color:"#fff"}}>
@@ -1071,38 +1108,33 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
         <div onClick={()=>setShowGrid(s=>!s)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}}>
           <div>
             <h3 style={{margin:"0 0 4px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}>📅 주간 업무 배치</h3>
-            <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>{showGrid?"월~금 · 1~5순위 · 탭 배치 · 드래그로 이동·순서변경":"요일별 슬롯에 업무 배치 · 드래그로 이동 (펼치기)"}</p>
+            <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>{showGrid?(isNarrow?"하루씩 ◀▶ · 진행날짜 업무 자동 노출 · ▲▼로 순서":"요일별 자동 노출 · 드래그로 요일 이동 · ▲▼로 순서"):"진행날짜·요일 정한 업무가 자동 배치 (펼치기)"}</p>
           </div>
           <span style={{fontSize:13,color:"#9CA3AF",flexShrink:0}}>{showGrid?"▲":"▼"}</span>
         </div>
-        {showGrid&&<div style={{paddingBottom:4,marginTop:10}}>
-          <div style={{display:"flex",gap:10}}>
-            {WEEK_DAYS.map(d=>{
-              const isT=d===today;
-              return(
-                <div key={d} style={{flex:1,minWidth:0,backgroundColor:isT?"rgba(255,237,213,0.53)":"#F9FAFB",border:`1.5px solid ${isT?"#F97316":"#E5E8EB"}`,borderRadius:12,padding:"10px 8px"}}>
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:7}}>
-                    <span style={{fontSize:11,fontWeight:900,color:isT?"#EA580C":"#4B5563"}}>{d}요일</span>
-                    {isT&&<span style={{fontSize:9,fontWeight:900,color:"#FFFFFF",background:"#F97316",padding:"1px 5px",borderRadius:10}}>오늘</span>}
-                  </div>
-                  {[1,2,3,4,5].map(slot=>{
-                    const t=slotMap[d][slot];
-                    return(
-                      <div key={slot} draggable={!!t} onDragStart={t?(e)=>{dragRef.current=t;try{e.dataTransfer.effectAllowed="move";}catch(_){}}:undefined} onDragEnd={()=>{dragRef.current=null;setDragOver(null);}} onDragOver={(e)=>{e.preventDefault();const k=d+"_"+slot;if(dragOver!==k)setDragOver(k);}} onDragLeave={()=>{if(dragOver===d+"_"+slot)setDragOver(null);}} onDrop={(e)=>{e.preventDefault();dropSlot(d,slot);}} onClick={()=>setSlotSheet({day:d,slot,current:t})} style={{display:"flex",alignItems:"center",gap:4,padding:"5px 7px",marginBottom:4,borderRadius:8,border:dragOver===d+"_"+slot?"2px solid #F97316":(t?"1px solid #E5E8EB":"1px dashed #E5E8EB"),background:dragOver===d+"_"+slot?"#FFF7ED":(t?(t.status==="done"?"#E8FAF1":"#FFFFFF"):"transparent"),cursor:t?"grab":"pointer",minHeight:28}}>
-                        <span style={{fontSize:9,fontWeight:900,color:"#9CA3AF",minWidth:10}}>{slot}</span>
-                        {t?<span style={{fontSize:10,fontWeight:700,color:t.status==="done"?"#9CA3AF":"#1F2937",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:t.status==="done"?"line-through":"none"}}>{t.eventId?"📅":""}{t.title}</span>:<span style={{fontSize:9.5,color:"#D1D5DB",fontStyle:"italic"}}>+배치</span>}
-                        {t&&<span onClick={e=>e.stopPropagation()} style={{display:"flex",flexDirection:"column",flexShrink:0,gap:1}}>
-                          <button onClick={()=>moveSlot(t,-1)} disabled={slot===1} title="위로" style={{width:15,height:11,border:"none",background:"none",cursor:slot===1?"default":"pointer",color:slot===1?"#E5E8EB":"#9CA3AF",fontSize:8,lineHeight:1,padding:0}}>▲</button>
-                          <button onClick={()=>moveSlot(t,1)} disabled={slot===5} title="아래로" style={{width:15,height:11,border:"none",background:"none",cursor:slot===5?"default":"pointer",color:slot===5?"#E5E8EB":"#9CA3AF",fontSize:8,lineHeight:1,padding:0}}>▼</button>
-                        </span>}
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
+        {showGrid&&(isNarrow?(
+          <div style={{marginTop:10}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+              <button onClick={()=>setViewDay(WEEK_DAYS[Math.max(0,vdIdx-1)])} disabled={vdIdx<=0} style={{width:38,height:38,borderRadius:10,border:"1.5px solid #E5E8EB",background:vdIdx<=0?"#F9FAFB":"#fff",color:vdIdx<=0?"#D1D5DB":"#4B5563",fontSize:15,fontWeight:900,cursor:vdIdx<=0?"default":"pointer",flexShrink:0,fontFamily:"inherit"}}>◀</button>
+              <div style={{flex:1,textAlign:"center"}}>
+                <span style={{fontSize:15,fontWeight:900,color:viewDay===today?"#EA580C":"#0F1F5C"}}>{viewDay}요일</span>
+                {viewDay===today&&<span style={{marginLeft:6,fontSize:9.5,fontWeight:900,color:"#fff",background:"#F97316",padding:"2px 6px",borderRadius:10}}>오늘</span>}
+                <span style={{marginLeft:6,fontSize:11.5,fontWeight:700,color:"#9CA3AF"}}>{dayOrdered(viewDay).length}건</span>
+              </div>
+              <button onClick={()=>setViewDay(WEEK_DAYS[Math.min(WEEK_DAYS.length-1,vdIdx+1)])} disabled={vdIdx>=WEEK_DAYS.length-1} style={{width:38,height:38,borderRadius:10,border:"1.5px solid #E5E8EB",background:vdIdx>=WEEK_DAYS.length-1?"#F9FAFB":"#fff",color:vdIdx>=WEEK_DAYS.length-1?"#D1D5DB":"#4B5563",fontSize:15,fontWeight:900,cursor:vdIdx>=WEEK_DAYS.length-1?"default":"pointer",flexShrink:0,fontFamily:"inherit"}}>▶</button>
+            </div>
+            {renderDayCol(viewDay,true)}
+            <div style={{display:"flex",gap:5,marginTop:9}}>
+              {WEEK_DAYS.map(d=>{const n=dayOrdered(d).length;const on=d===viewDay;const isT=d===today;return(
+                <button key={d} onClick={()=>setViewDay(d)} style={{flex:1,padding:"6px 0",borderRadius:9,border:`1.5px solid ${on?"#0F1F5C":(isT?"#FBBF77":"#E5E8EB")}`,background:on?"#0F1F5C":(isT?"#FFF7ED":"#fff"),color:on?"#fff":(isT?"#EA580C":"#9CA3AF"),fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{d}{n>0&&<span style={{display:"block",fontSize:9,fontWeight:900,opacity:on?0.9:0.7}}>{n}</span>}</button>
+              );})}
+            </div>
           </div>
-        </div>}
+        ):(
+          <div style={{paddingBottom:4,marginTop:10}}>
+            <div style={{display:"flex",gap:10}}>{WEEK_DAYS.map(d=>renderDayCol(d,false))}</div>
+          </div>
+        ))}
       </div>
       <div style={{display:"flex",gap:14,alignItems:"flex-start",marginBottom:12,flexWrap:"wrap"}}>
       <div style={{flex:"1 1 380px",minWidth:0,backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #F2F4F6",boxSizing:"border-box"}}>
@@ -1298,7 +1330,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
         );
       })()}
       {slotSheet&&(
-        <Sheet open={true} onClose={()=>setSlotSheet(null)} title={`${slotSheet.day}요일 ${slotSheet.slot}순위 슬롯`} h="70vh">
+        <Sheet open={true} onClose={()=>setSlotSheet(null)} title={`${slotSheet.day}요일에 업무 배치`} h="70vh">
           <div style={{marginTop:12}}>
             {slotSheet.current&&(
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 12px",backgroundColor:"#F9FAFB",borderRadius:12,marginBottom:14}}>

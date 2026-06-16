@@ -2114,7 +2114,8 @@ function buildManualTree(D,projId){
   const byParent={};
   ts.forEach(t=>{const k=t.parentId||"_root";(byParent[k]=byParent[k]||[]).push(t);});
   const walk=(key)=>(byParent[key]||[]).slice().sort((a,b)=>(a.seq||0)-(b.seq||0)).map(t=>({
-    title:t.title||"",assigneeId:t.assigneeId||"",estDays:t.estDays||0,discuss:t.discuss||"",custJourney:t.custJourney||"",kids:walk(t.id)
+    title:t.title||"",assigneeId:t.assigneeId||"",estDays:t.estDays||0,discuss:t.discuss||"",custJourney:t.custJourney||"",
+    processId:t.processId||null,processName:t.processName||null,processVersion:t.processVersion||null,kids:walk(t.id)
   }));
   return walk("_root");
 }
@@ -2127,6 +2128,7 @@ function cloneManualToProject(manual,projId,projType,add){
       title:n.title||"",status:"todo",isFixed:false,weekDay:null,weekSlot:null,
       assigneeId:projType==="team"?(n.assigneeId||""):"",
       estDays:parentId?0:(n.estDays||0),discuss:parentId?"":(n.discuss||""),custJourney:parentId?"":(n.custJourney||""),
+      processId:parentId?null:(n.processId||null),processName:parentId?null:(n.processName||null),processVersion:parentId?null:(n.processVersion||null),
       memo:"",dueDate:"",attachments:[]});
     walk(n.kids,id);
   });
@@ -2195,6 +2197,20 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
   const cpct=sid=>{const ks=D.tasks.filter(t=>t.parentId===sid&&!t.isFixed);if(ks.length)return Math.round(ks.filter(t=>t.status==="done").length/ks.length*100);return (stages.find(s=>s.id===sid)?.status==="done")?100:0;};
   const kidsOf=(pid)=>D.tasks.filter(t=>t.parentId===pid&&!t.isFixed).sort((a,b)=>(a.seq||0)-(b.seq||0));
   const addStage=()=>{add("tasks",{id:"t"+Date.now(),projectId:proj.id,parentId:null,seq:stages.length,title:"새 국면",status:"todo",isFixed:false,assigneeId:"",estDays:0,discuss:"",custJourney:"",painPoint:"",satisfaction:null,memo:"",dueDate:"",attachments:[]});};
+  // 국면에 프로세스 모듈 장착 — 모듈 단계를 그 국면의 업무로 인스턴스화(인계 순서) + 국면에 모듈·버전 기록
+  const tpls=D.launchTemplates||[];
+  const attachProcessToStage=(stageId,tpl)=>{
+    if(!tpl) return;
+    const nodes=tpl.nodes||[], edges=tpl.edges||[];
+    const indeg={};nodes.forEach(n=>indeg[n.id]=0);edges.forEach(e=>{if(indeg[e.to]!=null)indeg[e.to]++;});
+    const adj={};edges.forEach(e=>{(adj[e.from]=adj[e.from]||[]).push(e.to);});
+    const q=nodes.filter(n=>indeg[n.id]===0).map(n=>n.id),seen=new Set(),order=[];
+    while(q.length){const id=q.shift();if(seen.has(id))continue;seen.add(id);order.push(id);(adj[id]||[]).forEach(to=>{indeg[to]--;if(indeg[to]<=0)q.push(to);});}
+    nodes.forEach(n=>{if(!seen.has(n.id))order.push(n.id);});   // 순환·고립 노드는 뒤에
+    const base=kidsOf(stageId).length, ts=Date.now();
+    order.forEach((nid2,i)=>{const n=nodes.find(x=>x.id===nid2);if(!n)return;add("tasks",{id:"t"+ts+"_"+i,projectId:proj.id,parentId:stageId,seq:base+i,title:n.roleLabel?`[${n.roleLabel}] ${n.title}`:n.title,status:"todo",isFixed:false,assigneeId:team?(n.assigneeId||""):"",memo:"",dueDate:"",attachments:[]});});
+    up("tasks",stageId,{processId:tpl.id,processName:tpl.name,processVersion:tpl.version||1});
+  };
   // 계층형 안에서 바로 수정 — 업무 추가·상태·담당·정렬·삭제
   const nid=()=>"t"+Date.now()+Math.random().toString(36).slice(2,5);
   const addKid=(parentId)=>add("tasks",{id:nid(),projectId:proj.id,parentId,seq:kidsOf(parentId).length,title:"새 업무",status:"todo",isFixed:false,assigneeId:"",memo:"",dueDate:"",attachments:[]});
@@ -2328,10 +2344,14 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
                       <label style={{display:"block",fontSize:10.5,fontWeight:800,color:"#0891B2",marginBottom:4}}>🧑 고객여정 <span style={{fontWeight:600,color:"#9CA3AF"}}>(고객이 겪는 것)</span></label>
                       <textarea key={s.id+"cj"} defaultValue={s.custJourney||""} onBlur={e=>up("tasks",s.id,{custJourney:e.target.value})} placeholder="예: 상세페이지에서 사이즈 정보를 못 찾아 이탈" style={{width:"100%",padding:"9px 11px",borderRadius:9,border:"1.5px solid #CDEAF2",background:"#F7FCFE",fontSize:12.5,resize:"vertical",minHeight:48,outline:"none",fontFamily:"inherit",boxSizing:"border-box",marginBottom:12}}/>
                       {/* 트랙2 — 업무여정 (계층형 인라인 편집) */}
-                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:5,gap:8}}>
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:5,gap:6,flexWrap:"wrap"}}>
                         <label style={{fontSize:10.5,fontWeight:800,color:"#7C3AED"}}>🛠 업무여정 <span style={{fontWeight:600,color:"#9CA3AF"}}>(실행 — 계층형 편집)</span></label>
-                        <button onClick={()=>addKid(s.id)} style={{flexShrink:0,padding:"4px 10px",borderRadius:8,border:"1.5px solid #DDD6FE",background:"#FAF9FF",color:"#7C3AED",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>＋ 업무</button>
+                        <div style={{display:"flex",gap:5,flexShrink:0}}>
+                          {tpls.length>0&&<select value="" onChange={e=>{const tpl=tpls.find(t=>t.id===e.target.value);if(!tpl)return;if(kids.length&&!window.confirm(`'${tpl.name}' 프로세스(${(tpl.nodes||[]).length}단계)를 이 국면 업무로 추가할까요?`))return;attachProcessToStage(s.id,tpl);}} style={{padding:"4px 8px",borderRadius:8,border:"1.5px solid #DDD6FE",background:"#FAF9FF",color:"#7C3AED",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="">🧩 프로세스 장착…</option>{tpls.map(t=><option key={t.id} value={t.id}>{t.name} v{t.version||1}</option>)}</select>}
+                          <button onClick={()=>addKid(s.id)} style={{flexShrink:0,padding:"4px 10px",borderRadius:8,border:"1.5px solid #DDD6FE",background:"#FAF9FF",color:"#7C3AED",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>＋ 업무</button>
+                        </div>
                       </div>
+                      {s.processId&&<div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6,padding:"5px 9px",borderRadius:8,background:"#F3EFFE",border:"1px solid #E7E1FB"}}><span style={{fontSize:10,fontWeight:800,color:"#7C3AED"}}>🧩 {s.processName||"프로세스"} <span style={{color:"#A78BFA"}}>v{s.processVersion||1}</span> 기반</span><span style={{flex:1,fontSize:9.5,color:"#9CA3AF"}}>개선은 🚀프로세스 탭에서 버전업</span><button onClick={()=>up("tasks",s.id,{processId:null,processName:null,processVersion:null})} style={{background:"none",border:"none",color:"#C4C9D0",fontSize:10,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>해제</button></div>}
                       <div style={{padding:"7px 9px",borderRadius:9,border:"1.5px solid #E7E1FB",background:"#FBFAFF",minHeight:48,boxSizing:"border-box",marginBottom:12}}>
                         {kids.length===0?<p style={{margin:"6px 2px",fontSize:11,color:"#C4C9D0"}}>실행 업무 없음 · [＋ 업무]로 추가하세요</p>:kids.map(k=>renderTask(k,0))}
                       </div>

@@ -465,7 +465,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add})=>{
   );
 };
 const TABS=[{id:"today",icon:"🏠",label:"오늘"},{id:"kpi",icon:"◎",label:"KPI"},{id:"projects",icon:"▦",label:"프로젝트"},{id:"calendar",icon:"▤",label:"캘린더"},{id:"more",icon:"⋯",label:"더보기"}];
-const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"teamdash",icon:"👥",label:"팀 현황"},{id:"team",icon:"👤",label:"담당자"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"},{id:"guide",icon:"📖",label:"가이드"}];
+const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"team",icon:"👤",label:"담당자"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"},{id:"guide",icon:"📖",label:"가이드"}];
 // 메뉴 그룹: 개인(나만 보는 내 것) vs 팀(모두 같이 보는 공유) — 출시·프로세스는 프로젝트 하위
 const NAV_GROUPS=[
   {label:"개인 · 나만", ids:["today","game","fixed","retro"]},
@@ -679,10 +679,9 @@ export default function App(){
     {page==="calendar"&&<CalendarPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
     {page==="game"&&<GamePage D={D} cu={cu} up={up} add={add} rm={rm} nav={nav}/>}
     {page==="launch"&&<LaunchPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
-    {page==="mindmap"&&<MindMapPage D={D} cu={cu}/>}
+    {page==="mindmap"&&<MindMapPage D={D} cu={cu} nav={nav}/>}
     {page==="guide"&&<GuidePage D={D}/>}
     {page==="fixed"&&<FixedPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
-    {page==="teamdash"&&<TeamDashPage D={D} cu={cu} nav={nav}/>}
     {page==="team"&&<TeamPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm}/>}
     {page==="retro"&&<RetroPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
     {page==="ai"&&<AIPage D={D} cu={cu} add={add} rm={rm}/>}
@@ -697,7 +696,7 @@ export default function App(){
       {saveErr.level!=="error"&&<button onClick={()=>setSaveErr(null)} style={{flexShrink:0,padding:"5px 7px",borderRadius:8,border:"none",background:"transparent",color:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}}>×</button>}
     </div>}
     <Sheet open={more} onClose={()=>setMore(false)} title="더보기">
-      {[{label:"개인 · 나만",ids:["game","fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","team","ai"]},...(lead?[{label:"관리자",ids:["teamdash"]}]:[]),{label:"도움말",ids:["guide"]}].map(grp=>(
+      {[{label:"개인 · 나만",ids:["game","fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","team","ai"]},{label:"도움말",ids:["guide"]}].map(grp=>(
         <div key={grp.label} style={{marginTop:14}}>
           <p style={{margin:"0 2px 8px",fontSize:11,fontWeight:800,color:"#9CA3AF",letterSpacing:0.5}}>{grp.label}</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -3380,35 +3379,56 @@ function ProcessEditorPage({D}){
   );
 }
 // 업무 보드 — 팀 전체 현황 뷰 (담당자별 진행률·업무 상태·내 차례)
-function TeamBoard({D,cu}){
+function TeamBoard({D,cu,nav}){
+  const sig=diagSignals(D);
+  const today=todayDay(); const todayIdx=WEEK_DAYS.indexOf(today);
   const mem=D.users.map(u=>{
     const projs=D.projects.filter(p=>p.assigneeId===u.id);
     const tasks=D.tasks.filter(t=>!t.isFixed&&t.assigneeId===u.id);
     const done=tasks.filter(t=>t.status==="done").length;
     const inprog=tasks.filter(t=>t.status==="inprogress").length;
+    const rev=projs.reduce((a,p)=>a+numF(p.resultValue),0);
     let ready=0; D.projects.filter(p=>p.templateId).forEach(p=>{const ts=launchProjTasks(D,p);ts.forEach(t=>{if(t.assigneeId===u.id&&launchStageStatus(t,ts)==="ready")ready++;});});
-    return {u,projN:projs.length,done,total:tasks.length,inprog,ready,prog:tasks.length?Math.round(done/tasks.length*100):0};
+    ready+=myReadyProcess(D,u.id).length;   // 출시 인계 + 프로세스 인계 모두
+    const carry=D.tasks.filter(t=>t.assigneeId===u.id&&!t.isFixed&&t.status!=="done"&&t.status!=="hold"&&t.weekDay&&t.weekDay!==today&&(()=>{const i=WEEK_DAYS.indexOf(t.weekDay);return i>=0&&(todayIdx<0||i<todayIdx);})()).length;   // 밀림: 이번 주 앞 요일 배치인데 미완
+    return {u,projN:projs.length,done,total:tasks.length,inprog,ready,carry,rev,stuck:sig.stuckMembers.has(u.id),prog:tasks.length?Math.round(done/tasks.length*100):0};
   });
   const allT=D.tasks.filter(t=>!t.isFixed), allDone=allT.filter(t=>t.status==="done").length;
   const teamProg=allT.length?Math.round(allDone/allT.length*100):0;
+  // 최종목표(매출 10억) 대비 — 미팅 오프닝 앵커
+  const goal=D.goals&&D.goals[0];
+  const goalCur=D.mainKPIs.filter(mk=>mk.unit==="원").reduce((s,mk)=>s+mkCur(mk,D.subKPIs,D.projects),0);
+  const goalPct=pct(goalCur,goal?.targetValue||1);
+  // 팀 프로젝트 횡단 현황 (적체순) — 팀 현황 메뉴에서 흡수
+  const CC=[["todo","미완료","#EA580C"],["inprogress","진행중","#3182F6"],["done","완료","#00A862"],["hold","보류","#FF9500"]];
+  const projsList=D.projects.filter(p=>D.tasks.some(t=>t.projectId===p.id&&!t.isFixed))
+    .map(p=>{const ts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);const c={todo:0,inprogress:0,done:0,hold:0};ts.forEach(t=>{if(c[t.status]!=null)c[t.status]++;});const allDoneP=ts.length>0&&ts.every(t=>t.status==="done");return{p,c,allDone:allDoneP,open:c.todo+c.inprogress};})
+    .sort((a,b)=>(a.allDone?1:0)-(b.allDone?1:0)||b.open-a.open||(b.p.progress||0)-(a.p.progress||0));
   return(
-    <div>
+    <div style={{maxWidth:760,margin:"0 auto"}}>
       <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"16px",marginBottom:14,color:"#fff"}}>
-        <p style={{margin:0,fontSize:12,fontWeight:800,opacity:0.8}}>팀 전체 현황</p>
-        <p style={{margin:"4px 0 10px",fontSize:22,fontWeight:900}}>업무 {allDone}/{allT.length} · {teamProg}%</p>
-        <div style={{height:8,borderRadius:8,background:"rgba(255,255,255,0.2)",overflow:"hidden"}}><div style={{width:teamProg+"%",height:"100%",background:"#F97316",borderRadius:8}}/></div>
-        <p style={{margin:"8px 0 0",fontSize:11,opacity:0.8}}>프로젝트 {D.projects.length}개 · 팀원 {D.users.length}명</p>
+        <p style={{margin:0,fontSize:12,fontWeight:800,opacity:0.8}}>🎯 최종목표 · {goal?.title||"매출 10억"}</p>
+        <p style={{margin:"4px 0 10px",fontSize:24,fontWeight:900}}>{goalPct}% <span style={{fontSize:13,fontWeight:700,opacity:0.85}}>목표 달성률</span></p>
+        <div style={{height:9,borderRadius:8,background:"rgba(255,255,255,0.2)",overflow:"hidden"}}><div style={{width:goalPct+"%",height:"100%",background:"#F97316",borderRadius:8}}/></div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"9px 0 0",flexWrap:"wrap",gap:6}}>
+          <p style={{margin:0,fontSize:11.5,fontWeight:700,opacity:0.92}}>매출 {fmt(goalCur,"원")} / {fmt(goal?.targetValue||0,"원")}</p>
+          <p style={{margin:0,fontSize:11,opacity:0.78}}>업무 {allDone}/{allT.length} 완료 · 프로젝트 {D.projects.length} · 팀원 {D.users.length}</p>
+        </div>
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:10}}>
         {mem.map(m=>(
-          <div key={m.u.id} style={{backgroundColor:"#fff",borderRadius:14,border:`1px solid ${m.u.id===cu.id?"#FED7AA":"#F2F4F6"}`,padding:"13px 14px"}}>
+          <div key={m.u.id} style={{backgroundColor:"#fff",borderRadius:14,border:`1px solid ${m.stuck?"#FFD7DC":m.u.id===cu.id?"#FED7AA":"#F2F4F6"}`,padding:"13px 14px"}}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:9}}>
               <Ava name={m.u.name} color={m.u.color} size={38}/>
               <div style={{flex:1,minWidth:0}}>
-                <p style={{margin:0,fontSize:14,fontWeight:900,color:"#111827"}}>{m.u.name}{m.u.id===cu.id&&<span style={{fontSize:10,color:"#EA580C",fontWeight:700}}> (나)</span>}</p>
+                <p style={{margin:0,fontSize:14,fontWeight:900,color:"#111827"}}>{m.u.name}{m.u.id===cu.id&&<span style={{fontSize:10,color:"#EA580C",fontWeight:700}}> (나)</span>}{m.stuck&&<span title={SIGNAL_LABEL.stuck} style={{marginLeft:5,fontSize:11}}>🔴</span>}</p>
                 <p style={{margin:"1px 0 0",fontSize:10.5,color:"#9CA3AF"}}>{m.u.dept} · 프로젝트 {m.projN}개</p>
               </div>
-              {m.ready>0&&<span style={{fontSize:10.5,fontWeight:800,color:"#fff",background:"#F97316",borderRadius:8,padding:"3px 8px",flexShrink:0}}>🔔 내 차례 {m.ready}</span>}
+              <div style={{display:"flex",gap:4,flexShrink:0,alignItems:"center",flexWrap:"wrap",justifyContent:"flex-end"}}>
+                {m.rev>0&&<span style={{fontSize:10.5,fontWeight:800,color:"#7A3E00",background:"#FFE6C7",borderRadius:8,padding:"3px 8px"}}>💰{fmt(m.rev,"원")}</span>}
+                {m.carry>0&&<span title="밀림(앞 요일 배치 미완)" style={{fontSize:10.5,fontWeight:800,color:"#F04452",background:"#FFF0F1",borderRadius:8,padding:"3px 8px"}}>⏰ 밀림 {m.carry}</span>}
+                {m.ready>0&&<span style={{fontSize:10.5,fontWeight:800,color:"#fff",background:"#F97316",borderRadius:8,padding:"3px 8px"}}>🔔 내 차례 {m.ready}</span>}
+              </div>
             </div>
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
               <div style={{flex:1,height:6,borderRadius:6,background:"#F2F4F6",overflow:"hidden"}}><div style={{width:m.prog+"%",height:"100%",background:m.prog>=70?"#00C073":m.u.color,borderRadius:6}}/></div>
@@ -3422,10 +3442,30 @@ function TeamBoard({D,cu}){
           </div>
         ))}
       </div>
+      <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",margin:"14px 0 0",border:"1px solid #F2F4F6"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+          <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#0F1F5C"}}>📁 팀 프로젝트 현황 ({projsList.length})</h3>
+          {nav&&<button onClick={()=>nav("projects")} style={{padding:"5px 10px",borderRadius:8,border:"1px solid #E5E8EB",background:"#fff",fontSize:11,fontWeight:700,color:"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>전체 →</button>}
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {projsList.length===0?<p style={{margin:0,padding:"10px 0",textAlign:"center",fontSize:12,color:"#B0B8C1"}}>진행 중인 프로젝트가 없어요</p>:projsList.map(({p,c,allDone:ad})=>{const asg=D.users.find(u=>u.id===p.assigneeId);const prog=p.progress||0;return(
+            <div key={p.id} style={{padding:"11px 12px",borderRadius:12,border:"1px solid #EEF1F4",background:"#F9FAFB"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
+                <Ava name={asg?.name} color={asg?.color} size={22}/>
+                <span style={{flex:1,minWidth:0,fontSize:12.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span>
+                <span style={{flexShrink:0,fontSize:10,fontWeight:800,color:ad?"#00A862":"#3182F6",background:ad?"#E8FAF1":"#EBF3FF",borderRadius:6,padding:"2px 7px"}}>{ad?"완료":"진행"}</span>
+                <span style={{flexShrink:0,fontSize:12,fontWeight:900,color:prog>=70?"#00C073":"#3182F6"}}>{prog}%</span>
+              </div>
+              <div style={{display:"flex",gap:8,marginBottom:7,flexWrap:"wrap"}}>{CC.map(([k,l,col])=><span key={k} style={{fontSize:10.5,fontWeight:700,color:c[k]>0?col:"#C4C9D0"}}>{l} {c[k]}</span>)}</div>
+              <PBar value={prog} color={prog>=70?"#00C073":"#3182F6"} h={5}/>
+            </div>
+          );})}
+        </div>
+      </div>
     </div>
   );
 }
-// 업무 보드 — 팀 주간 맵 (기간 필터 · 멤버별 활동색 + 성과). 개인 주간 맵과 동일한 색·배지 언어.
+// 업무 보드 — 팀 그로스보드 (기간 필터 · 멤버별 활동색 + 성과). 개인 그로스보드과 동일한 색·배지 언어.
 function TeamWeeklyMap({D,cu}){
   const [period,setPeriod]=useState("week");
   const [mapStyle,setMapStyle]=useState("tree");   // tree(계층형) | mind(마인드맵)
@@ -3433,14 +3473,13 @@ function TeamWeeklyMap({D,cu}){
   const [activeOnly,setActiveOnly]=useState(false);
   const [memSel,setMemSel]=useState(null);   // null=전체 / Set=선택 멤버
   const [picked,setPicked]=useState(null);
+  const [diagOpen,setDiagOpen]=useState(false);
   const prange=periodRange(period);
-  const wrange=periodRange("week");
   const pprev=prevPeriodRange(period);
   const inP=(ds)=>{if(!ds)return false;const d=new Date(ds);return !isNaN(d)&&d>=prange[0]&&d<=prange[1];};
   const inPrev=(ds)=>{if(!ds)return false;const d=new Date(ds);return !isNaN(d)&&d>=pprev[0]&&d<=pprev[1];};
-  const inWeek=(ds)=>{if(!ds)return false;const d=new Date(ds);return !isNaN(d)&&d>=wrange[0]&&d<=wrange[1];};
-  const dayOf=(t)=>{ if(t.weekDay&&WEEK_DAYS.includes(t.weekDay)) return t.weekDay; if(t.workDate){const d=new Date(t.workDate); if(!isNaN(d)){const wd=(d.getDay()+6)%7; return WEEK_DAYS[wd]||null;}} return null; };
   const activeInP=(t)=>inP(t.workDate)||inP(t.doneAt)||(period==="week"&&!!(t.weekDay&&WEEK_DAYS.includes(t.weekDay)));
+  const krColors={mk1:"#3182F6",mk2:"#8B5CF6",mk3:"#00C073"};
   const doneInP=(ts)=>ts.filter(t=>t.status==="done"&&inP(t.doneAt)).length;
   const signals=diagSignals(D);
   const PLABEL=PERIOD_LABEL;
@@ -3455,9 +3494,7 @@ function TeamWeeklyMap({D,cu}){
     const doneP=doneInP(tasks);
     const donePrev=tasks.filter(t=>t.status==="done"&&inPrev(t.doneAt)).length;
     const inprog=tasks.filter(t=>t.status==="inprogress").length;
-    const actCnt=tasks.filter(activeInP).length;
-    const weekTasks=tasks.filter(t=>dayOf(t)&&(t.weekDay||inWeek(t.workDate)));
-    return {u,tasks,projN:projs.length,rev,active,doneP,donePrev,inprog,actCnt,weekTasks,stuck:signals.stuckMembers.has(u.id)};
+    return {u,tasks,projN:projs.length,rev,active,doneP,donePrev,inprog,stuck:signals.stuckMembers.has(u.id)};
   });
   const mem=allMem.filter(m=>!activeOnly||m.active);
   // 요약 KPI는 필터(KR·멤버)는 반영하되 '활동만 보기'(표시 declutter)에는 영향받지 않도록 allMem 기준
@@ -3466,8 +3503,17 @@ function TeamWeeklyMap({D,cu}){
   const teamDonePrev=allMem.reduce((a,m)=>a+m.donePrev,0);
   const teamDelta=teamDone-teamDonePrev;
   const teamRev=allMem.reduce((a,m)=>a+m.rev,0);
+  // 최종목표(매출 10억) 대비 — 미팅 앵커 (필터 무관 절대값)
+  const goal=D.goals&&D.goals[0];
+  const goalCur=D.mainKPIs.filter(mk=>mk.unit==="원").reduce((s,mk)=>s+mkCur(mk,D.subKPIs,D.projects),0);
+  const goalPct=pct(goalCur,goal?.targetValue||1);
+  // 팀 진단 요약 (이번 달 기준) — 막힘·적체·헛심
+  const diag=diagData(D,nowMonth());
+  const stuckMem=diag.mem.filter(m=>m.stuck);
+  const jamN=diag.jamN, heotN=diag.heotN;   // 전체 카운트(상위6 슬라이스 아님)
+  const diagTotal=stuckMem.length+jamN+heotN;
   return(
-    <div>
+    <div style={{maxWidth:760,margin:"0 auto"}}>
       <div style={{display:"flex",gap:5,marginBottom:10,flexWrap:"wrap"}}>
         {PERIODS.map(([k,l])=>{const on=period===k;return(<button key={k} onClick={()=>setPeriod(k)} style={{flex:"1 0 auto",padding:"7px 10px",borderRadius:9,border:`1.5px solid ${on?"#0F1F5C":"#E5E8EB"}`,background:on?"#0F1F5C":"#fff",color:on?"#fff":"#6B7280",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>);})}
       </div>
@@ -3478,13 +3524,31 @@ function TeamWeeklyMap({D,cu}){
         <div style={{display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:11}}>🔴🧱💸</span><span style={{fontSize:11,color:"#9CA3AF",fontWeight:600}}>막힘·적체·헛심</span></div>
       </div>
       <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"15px 16px",marginBottom:12,color:"#fff"}}>
-        <p style={{margin:0,fontSize:12,fontWeight:800,opacity:0.82}}>팀 주간 맵 · {PLABEL[period]}</p>
-        <div style={{display:"flex",alignItems:"baseline",gap:8,margin:"5px 0 0",flexWrap:"wrap"}}>
-          <span style={{fontSize:20,fontWeight:900}}>활동 멤버 {activeMembers}/{allMem.length}</span>
-          <span style={{fontSize:11,fontWeight:800,color:"#D1F5E0",background:"rgba(0,200,115,0.22)",borderRadius:8,padding:"2px 8px"}}>✅완료 {teamDone}</span>
-          <span style={{fontSize:11,fontWeight:800,color:teamDelta>0?"#D1F5E0":teamDelta<0?"#FFD7DC":"rgba(255,255,255,0.7)",background:"rgba(255,255,255,0.14)",borderRadius:8,padding:"2px 8px"}}>{teamDelta>0?`▲${teamDelta}`:teamDelta<0?`▼${-teamDelta}`:"–"} vs {PREV_LABEL[period]}</span>
-          <span style={{fontSize:11,fontWeight:800,color:"#FFE6C7",background:"rgba(249,115,22,0.25)",borderRadius:8,padding:"2px 8px"}}>💰{fmt(teamRev,"원")}</span>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}>
+          <span style={{fontSize:12,fontWeight:800,opacity:0.82}}>🎯 최종목표 · {goal?.title||"매출 10억"}</span>
+          <span style={{fontSize:18,fontWeight:900}}>{goalPct}%</span>
         </div>
+        <div style={{height:8,borderRadius:8,background:"rgba(255,255,255,0.2)",overflow:"hidden",marginBottom:4}}><div style={{width:goalPct+"%",height:"100%",background:"#F97316",borderRadius:8}}/></div>
+        <p style={{margin:"0 0 11px",fontSize:11,fontWeight:700,opacity:0.85}}>매출 {fmt(goalCur,"원")} / {fmt(goal?.targetValue||0,"원")}</p>
+        <div style={{borderTop:"1px solid rgba(255,255,255,0.16)",paddingTop:10}}>
+          <p style={{margin:"0 0 5px",fontSize:11,fontWeight:800,opacity:0.7}}>이 기간({PLABEL[period]})</p>
+          <div style={{display:"flex",alignItems:"baseline",gap:7,flexWrap:"wrap"}}>
+            <span style={{fontSize:16,fontWeight:900}}>활동 멤버 {activeMembers}/{allMem.length}</span>
+            <span style={{fontSize:11,fontWeight:800,color:"#D1F5E0",background:"rgba(0,200,115,0.22)",borderRadius:8,padding:"2px 8px"}}>✅완료 {teamDone}</span>
+            <span style={{fontSize:11,fontWeight:800,color:teamDelta>0?"#D1F5E0":teamDelta<0?"#FFD7DC":"rgba(255,255,255,0.7)",background:"rgba(255,255,255,0.14)",borderRadius:8,padding:"2px 8px"}}>{teamDelta>0?`▲${teamDelta}`:teamDelta<0?`▼${-teamDelta}`:"–"} vs {PREV_LABEL[period]}</span>
+            <span style={{fontSize:11,fontWeight:800,color:"#FFE6C7",background:"rgba(249,115,22,0.25)",borderRadius:8,padding:"2px 8px"}}>💰{fmt(teamRev,"원")}</span>
+          </div>
+        </div>
+      </div>
+      <div onClick={()=>setDiagOpen(true)} style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,padding:"11px 14px",borderRadius:12,cursor:"pointer",background:diagTotal>0?"#FFF7F7":"#F6FBF8",border:`1px solid ${diagTotal>0?"#FFD7DC":"#CFEFDD"}`}}>
+        <span style={{fontSize:16,flexShrink:0}}>🩺</span>
+        <div style={{flex:1,minWidth:0}}>
+          <p style={{margin:0,fontSize:12.5,fontWeight:900,color:"#0F1F5C"}}>팀 진단 {diagTotal>0?<span style={{color:"#F04452"}}>· 점검 {diagTotal}</span>:<span style={{color:"#00A862"}}>· 특이신호 없음</span>}</p>
+          <p style={{margin:"2px 0 0",fontSize:10.5,color:"#6B7280",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+            🔴 막힘 {stuckMem.length}{stuckMem.length?`(${stuckMem.map(m=>m.u.name).join("·")})`:""} · 🧱 적체 {jamN} · 💸 헛심 {heotN}
+          </p>
+        </div>
+        <span style={{fontSize:11,fontWeight:800,color:"#9CA3AF",flexShrink:0}}>자세히 ›</span>
       </div>
       <div style={{display:"flex",gap:5,marginBottom:8,flexWrap:"wrap"}}>
         {[["all","전체"],...D.mainKPIs.map(m=>[m.id,m.krKey])].map(([k,l])=>{const on=krF===k;return(<button key={k} onClick={()=>setKrF(k)} style={{padding:"5px 11px",borderRadius:20,border:`1.5px solid ${on?"#0F1F5C":"#E5E8EB"}`,background:on?"#0F1F5C":"#fff",color:on?"#fff":"#6B7280",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>);})}
@@ -3502,17 +3566,18 @@ function TeamWeeklyMap({D,cu}){
       </div>
       {mapStyle==="mind"&&(<>
         <div style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}>
-          <button onClick={()=>exportMapPNG(buildTeamMapItems(D,activeInP,doneInP,{krF,activeOnly,members:memSel,signals}),`팀_주간맵_${PLABEL[period]}`)} style={{padding:"6px 12px",borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",color:"#4B5563",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🖼 이미지 저장</button>
+          <button onClick={()=>exportMapPNG(buildTeamMapItems(D,activeInP,doneInP,{krF,activeOnly,members:memSel,signals}),`팀_그로스보드_${PLABEL[period]}`)} style={{padding:"6px 12px",borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",color:"#4B5563",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🖼 이미지 저장</button>
         </div>
         <MapCanvas items={buildTeamMapItems(D,activeInP,doneInP,{krF,activeOnly,members:memSel,signals})} onPick={setPicked}/>
       </>)}
       {mapStyle==="tree"&&(
-      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+      <div style={{display:"flex",flexDirection:"column",gap:14}}>
         {mem.map(m=>{
           const col=m.u.color||"#3182F6";
+          const hasContent=D.projects.some(p=>p.assigneeId===m.u.id&&(krF==="all"||p.mainKPIId===krF));
           return(
-            <div key={m.u.id} style={{backgroundColor:"#fff",borderRadius:14,border:`1px solid ${m.active?col+"55":"#F2F4F6"}`,padding:"12px 13px",opacity:m.active?1:0.72}}>
-              <div onClick={()=>setPicked({ref:{kind:"member",id:m.u.id}})} style={{display:"flex",alignItems:"center",gap:10,marginBottom:9,cursor:"pointer"}}>
+            <div key={m.u.id} style={{backgroundColor:"#fff",borderRadius:14,border:`1px solid ${m.active?col+"55":"#F2F4F6"}`,padding:"12px 13px"}}>
+              <div onClick={()=>setPicked({ref:{kind:"member",id:m.u.id}})} style={{display:"flex",alignItems:"center",gap:10,marginBottom:hasContent?12:4,cursor:"pointer"}}>
                 <div style={{position:"relative",flexShrink:0}}>
                   <Ava name={m.u.name} color={m.u.color} size={36}/>
                   <div style={{position:"absolute",right:-1,bottom:-1,width:11,height:11,borderRadius:"50%",border:"2px solid #fff",backgroundColor:m.active?col:"#D1D5DB"}}/>
@@ -3527,32 +3592,12 @@ function TeamWeeklyMap({D,cu}){
                   {m.rev>0&&<span style={{fontSize:10,fontWeight:800,color:"#7A3E00",background:"#FFE6C7",borderRadius:8,padding:"2px 7px"}}>💰{fmt(m.rev,"원")}</span>}
                 </div>
               </div>
-              {period==="week"?(
-                <div style={{display:"flex",gap:4}}>
-                  {WEEK_DAYS.map(day=>{
-                    const dts=m.weekTasks.filter(t=>dayOf(t)===day);
-                    const on=dts.length>0;
-                    return(
-                      <div key={day} style={{flex:1,minWidth:0,borderRadius:9,border:`1px solid ${on?col+"44":"#F2F4F6"}`,background:on?col+"0D":"#FAFBFC",padding:"5px 4px",minHeight:46}}>
-                        <p style={{margin:"0 0 3px",fontSize:9.5,fontWeight:800,textAlign:"center",color:on?col:"#C4C9D0"}}>{day}</p>
-                        <div style={{display:"flex",flexDirection:"column",gap:2}}>
-                          {dts.slice(0,3).map(t=>{const st=STATUS_MAP[t.status]||STATUS_MAP.todo;return(
-                            <div key={t.id} title={t.title} style={{display:"flex",alignItems:"center",gap:2}}>
-                              <div style={{width:5,height:5,borderRadius:"50%",backgroundColor:st.color,flexShrink:0}}/>
-                              <span style={{fontSize:8.5,color:"#4B5563",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontWeight:600}}>{t.title}</span>
-                            </div>
-                          );})}
-                          {dts.length>3&&<span style={{fontSize:8.5,color:"#9CA3AF",fontWeight:700,textAlign:"center"}}>+{dts.length-3}</span>}
-                        </div>
-                      </div>
-                    );
-                  })}
+              {hasContent?(
+                <div style={{borderTop:"1px solid #F2F4F6",paddingTop:12}}>
+                  <WeeklyTree D={D} sel={m.u.id} isThisWeek={activeInP} doneInP={doneInP} krColors={krColors} krF={krF} activeOnly={activeOnly} signals={signals} onPick={setPicked}/>
                 </div>
               ):(
-                <div style={{display:"flex",alignItems:"center",gap:8,padding:"7px 11px",borderRadius:10,background:m.active?col+"0D":"#FAFBFC",border:`1px solid ${m.active?col+"33":"#F2F4F6"}`}}>
-                  <span style={{fontSize:11,fontWeight:800,color:m.active?col:"#9CA3AF"}}>{m.active?`이 기간 활동 ${m.actCnt}건`:"이 기간 활동 없음"}</span>
-                  {m.doneP>0&&<span style={{fontSize:10.5,color:"#6B7280",fontWeight:600}}>· 완료 {m.doneP}</span>}
-                </div>
+                <p style={{margin:"2px 2px 0",fontSize:11.5,color:"#C4C9D0",fontWeight:600}}>담당 KR 프로젝트가 없어요</p>
               )}
             </div>
           );
@@ -3561,6 +3606,7 @@ function TeamWeeklyMap({D,cu}){
       )}
       {mem.length===0&&<p style={{textAlign:"center",color:"#D1D5DB",fontSize:13,padding:"24px 0"}}>표시할 멤버가 없어요 (필터 조정)</p>}
       <NodeDetail D={D} node={picked} period={period} onClose={()=>setPicked(null)}/>
+      <Sheet open={diagOpen} onClose={()=>setDiagOpen(false)} title="🩺 팀 진단" h="88vh"><div style={{marginTop:4}}><TeamDiagnose D={D} cu={cu}/></div></Sheet>
     </div>
   );
 }
@@ -3570,9 +3616,10 @@ const diagData=(D,month)=>{
   const leaf=t=>!t.isFixed&&!parentIds.has(t.id);
   const inMonth=t=>(t.doneAt||"").slice(0,7)===month;
   const mem=(D.users||[]).map(u=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.assigneeId===u.id);const open=ts.filter(t=>t.status!=="done").length;const doneM=ts.filter(t=>t.status==="done"&&inMonth(t)).length;const rate=(doneM+open)?Math.round(doneM/(doneM+open)*100):0;return {u,open,doneM,rate,stuck:open>=3&&rate<50};}).sort((a,b)=>b.open-a.open);
-  const projStuck=(D.projects||[]).map(p=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.projectId===p.id);const open=ts.filter(t=>t.status!=="done").length;return {p,total:ts.length,open};}).filter(x=>x.open>0).sort((a,b)=>b.open-a.open).slice(0,6);
-  const heotsim=(D.projects||[]).filter(p=>p.mainKPIId==="mk1"||p.mainKPIId==="mk2").map(p=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.projectId===p.id);return {p,doneM:ts.filter(t=>t.status==="done"&&inMonth(t)).length,rev:numF(p.resultValue)};}).filter(x=>x.doneM>=3&&x.rev===0).sort((a,b)=>b.doneM-a.doneM).slice(0,6);
-  return {mem,projStuck,heotsim};
+  const projStuckAll=(D.projects||[]).map(p=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.projectId===p.id);const open=ts.filter(t=>t.status!=="done").length;return {p,total:ts.length,open};}).filter(x=>x.open>0).sort((a,b)=>b.open-a.open);
+  const heotsimAll=(D.projects||[]).filter(p=>p.mainKPIId==="mk1"||p.mainKPIId==="mk2").map(p=>{const ts=(D.tasks||[]).filter(t=>leaf(t)&&t.projectId===p.id);return {p,doneM:ts.filter(t=>t.status==="done"&&inMonth(t)).length,rev:numF(p.resultValue)};}).filter(x=>x.doneM>=3&&x.rev===0).sort((a,b)=>b.doneM-a.doneM);
+  // 리스트는 상위 6개만 표시, 카운트(jamN/heotN)는 전체 — 요약 배지 언더카운트 방지
+  return {mem,projStuck:projStuckAll.slice(0,6),heotsim:heotsimAll.slice(0,6),jamN:projStuckAll.length,heotN:heotsimAll.length};
 };
 // 진단 신호를 맵 노드에 얹기 위한 빠른 룩업(이번 달 기준) — 막힘(멤버)·적체/헛심(프로젝트)
 const diagSignals=(D)=>{
@@ -3689,7 +3736,7 @@ function GuidePage({D}){
         <p style={{margin:"10px 0 5px",fontSize:11,fontWeight:800,color:"#9CA3AF"}}>팀 · 공유</p>
         <Row l="◎ KPI" d="목표 트리(매출·운영·활동지표) · 매출 입력"/>
         <Row l="▦ 프로젝트" d="프로젝트별 🧩프로세스(업무 트리)·업무·활동지표 / 🚀출시 탭"/>
-        <Row l="◈ 업무 보드" d="개인 상세(담당자 트리·주간맵) / 팀 전체 현황"/>
+        <Row l="◈ 업무 보드" d="개인 상세(담당자 트리·그로스보드) / 팀 전체 현황"/>
         <Row l="▤ 캘린더" d="일정·미팅"/>
       </Sec>
 
@@ -3799,72 +3846,7 @@ function TeamPage({D,cu,lead,add,up,rm}){
     </div>
   );
 }
-// 팀 현황 (관리자) — 멤버별 부하·밀림·내 차례 + 팀 전체 프로젝트 진행. 별도 메뉴(리드 전용).
-function TeamDashPage({D,cu,nav}){
-  const today=todayDay(); const todayIdx=WEEK_DAYS.indexOf(today);
-  const statFor=(uid)=>{const ts=D.tasks.filter(t=>t.assigneeId===uid&&!t.isFixed);const c={todo:0,inprogress:0,done:0,hold:0};ts.forEach(t=>{if(c[t.status]!=null)c[t.status]++;});return c;};
-  const carryFor=(uid)=>D.tasks.filter(t=>t.assigneeId===uid&&!t.isFixed&&t.status!=="done"&&t.status!=="hold"&&t.weekDay&&t.weekDay!==today&&(()=>{const i=WEEK_DAYS.indexOf(t.weekDay);return i>=0&&(todayIdx<0||i<todayIdx);})()).length;
-  const readyFor=(uid)=>{let n=0;D.projects.filter(p=>p.templateId).forEach(p=>{const ts=launchProjTasks(D,p);ts.forEach(t=>{if(t.assigneeId===uid&&launchStageStatus(t,ts)==="ready")n++;});});return n+myReadyProcess(D,uid).length;};
-  const CC=[["todo","미완료","#EA580C"],["inprogress","진행중","#3182F6"],["done","완료","#00A862"],["hold","보류","#FF9500"]];
-  const projs=D.projects.filter(p=>D.tasks.some(t=>t.projectId===p.id&&!t.isFixed))
-    .map(p=>{const ts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);const c={todo:0,inprogress:0,done:0,hold:0};ts.forEach(t=>{if(c[t.status]!=null)c[t.status]++;});const allDone=ts.length>0&&ts.every(t=>t.status==="done");return{p,c,allDone,open:c.todo+c.inprogress};})
-    .sort((a,b)=>(a.allDone?1:0)-(b.allDone?1:0)||b.open-a.open||(b.p.progress||0)-(a.p.progress||0));
-  return(
-    <div style={{padding:"14px 16px 24px",maxWidth:480,margin:"0 auto"}}>
-      <div style={{marginBottom:14}}>
-        <h2 style={{margin:0,fontSize:18,fontWeight:900,color:"#0F1F5C"}}>👥 팀 현황 <span style={{fontSize:11,fontWeight:800,color:"#3182F6",background:"#EBF3FF",borderRadius:6,padding:"2px 8px"}}>관리자</span></h2>
-        <p style={{margin:"4px 0 0",fontSize:11.5,color:"#9CA3AF",lineHeight:1.6}}>멤버별 부하·밀림·내 차례 + 팀 전체 프로젝트 진행을 한눈에</p>
-      </div>
-      {/* 멤버별 현황 */}
-      <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",marginBottom:14,border:"1px solid #DBE3FF"}}>
-        <h3 style={{margin:"0 0 10px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}>🙋 멤버별 현황</h3>
-        <div style={{display:"flex",flexDirection:"column",gap:7}}>
-          {(D.users||[]).map(u=>{const c=statFor(u.id);const carry=carryFor(u.id);const ready=readyFor(u.id);const open=c.todo+c.inprogress;return(
-            <div key={u.id} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 11px",borderRadius:11,background:"#F9FAFB",border:"1px solid #EEF1F4"}}>
-              <Ava name={u.name} color={u.color} size={28}/>
-              <div style={{flex:1,minWidth:0}}>
-                <p style={{margin:0,fontSize:13,fontWeight:800,color:"#0F1F5C"}}>{u.name}{u.role==="lead"?" · 리드":""}</p>
-                <div style={{display:"flex",alignItems:"center",gap:7,marginTop:2,flexWrap:"wrap"}}>
-                  <span style={{fontSize:10.5,fontWeight:700,color:c.inprogress>0?"#3182F6":"#C4C9D0"}}>진행중 {c.inprogress}</span>
-                  <span style={{fontSize:10.5,fontWeight:700,color:c.todo>0?"#6B7280":"#C4C9D0"}}>할일 {c.todo}</span>
-                  <span style={{fontSize:10.5,fontWeight:700,color:c.hold>0?"#FF9500":"#C4C9D0"}}>보류 {c.hold}</span>
-                  <span style={{fontSize:10.5,fontWeight:700,color:"#00A862"}}>완료 {c.done}</span>
-                </div>
-              </div>
-              <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3,flexShrink:0}}>
-                {ready>0&&<span style={{fontSize:10,fontWeight:800,color:"#EA580C",background:"#FFF7ED",borderRadius:6,padding:"2px 7px"}}>🔔 내 차례 {ready}</span>}
-                {carry>0&&<span style={{fontSize:10,fontWeight:800,color:"#F04452",background:"#FFF0F1",borderRadius:6,padding:"2px 7px"}}>⏰ 밀림 {carry}</span>}
-                {ready===0&&carry===0&&<span style={{fontSize:10,fontWeight:700,color:"#9CA3AF"}}>{open>0?"진행 중":"여유"}</span>}
-              </div>
-            </div>
-          );})}
-        </div>
-      </div>
-      {/* 팀 전체 프로젝트 현황 */}
-      <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",marginBottom:14,border:"1px solid #F2F4F6"}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-          <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#0F1F5C"}}>📁 팀 프로젝트 현황 ({projs.length})</h3>
-          <button onClick={()=>nav("projects")} style={{padding:"5px 10px",borderRadius:8,border:"1px solid #E5E8EB",background:"#fff",fontSize:11,fontWeight:700,color:"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>전체 →</button>
-        </div>
-        <div style={{display:"flex",flexDirection:"column",gap:8}}>
-          {projs.length===0?<p style={{margin:0,padding:"10px 0",textAlign:"center",fontSize:12,color:"#B0B8C1"}}>진행 중인 프로젝트가 없어요</p>:projs.map(({p,c,allDone})=>{const asg=D.users.find(u=>u.id===p.assigneeId);const prog=p.progress||0;return(
-            <div key={p.id} style={{padding:"11px 12px",borderRadius:12,border:"1px solid #EEF1F4",background:"#F9FAFB"}}>
-              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
-                <Ava name={asg?.name} color={asg?.color} size={22}/>
-                <span style={{flex:1,minWidth:0,fontSize:12.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span>
-                <span style={{flexShrink:0,fontSize:10,fontWeight:800,color:allDone?"#00A862":"#3182F6",background:allDone?"#E8FAF1":"#EBF3FF",borderRadius:6,padding:"2px 7px"}}>{allDone?"완료":"진행"}</span>
-                <span style={{flexShrink:0,fontSize:12,fontWeight:900,color:prog>=70?"#00C073":"#3182F6"}}>{prog}%</span>
-              </div>
-              <div style={{display:"flex",gap:8,marginBottom:7,flexWrap:"wrap"}}>{CC.map(([k,l,col])=><span key={k} style={{fontSize:10.5,fontWeight:700,color:c[k]>0?col:"#C4C9D0"}}>{l} {c[k]}</span>)}</div>
-              <PBar value={prog} color={prog>=70?"#00C073":"#3182F6"} h={5}/>
-            </div>
-          );})}
-        </div>
-      </div>
-    </div>
-  );
-}
-// 주간 맵 — 마인드맵(노드·연결선) 렌더러. items: [{id,depth,label,color,active,leftTag,chips:[{t,c,bg}]}] (depth0=루트)
+// 그로스보드 — 마인드맵(노드·연결선) 렌더러. items: [{id,depth,label,color,active,leftTag,chips:[{t,c,bg}]}] (depth0=루트)
 // 맵 레이아웃 계산 (마인드맵 좌표) — 화면·PNG 공용
 const MAP_GEO={colW:178,rowH:46,padX:12,padY:14,nodeW:158,nodeH:30};
 function mapLayout(items){
@@ -3915,47 +3897,52 @@ function exportMapPNG(items,title){
     const txt=(it.signal?SIGNAL_ICON[it.signal]+" ":"")+(it.leftTag?"["+it.leftTag+"] ":"")+it.label+(chipsT?"  "+chipsT:"");
     g.fillText(txt,tx,p.y+nodeH/2+0.5);g.restore();
   });
-  try{const a=document.createElement("a");a.href=cv.toDataURL("image/png");a.download=(title||"주간맵")+".png";a.click();}
+  try{const a=document.createElement("a");a.href=cv.toDataURL("image/png");a.download=(title||"그로스보드")+".png";a.click();}
   catch(e){console.error("[map export] 실패:",e);window.alert("이미지 저장 실패: "+(e.message||e));}
 }
-// 개인 주간 맵 → 마인드맵 items 평탄화 (KR→서브KR→프로젝트→업무). opts:{krF,activeOnly,signals}
-function buildPersonMapItems(D,sel,isThisWeek,doneInP,krColors,opts={}){
-  const {krF="all",activeOnly=false,signals=null}=opts;
-  const items=[];const user=D.users.find(u=>u.id===sel);
-  const myP=D.projects.filter(p=>p.assigneeId===sel);
-  items.push({id:"root",depth:0,label:user?.name||"나",color:"#0F1F5C",active:true,ref:{kind:"member",id:sel}});
+// 개인 그로스보드 → 마인드맵 items 평탄화 (KR→서브KR→프로젝트→업무). opts:{krF,activeOnly,signals}
+// 한 담당자의 KR→서브KR→프로젝트→업무 서브트리를 items에 push (개인·팀 마인드맵 공용). baseDepth=KR이 놓일 깊이, pfx=id 충돌 방지 접두사
+function pushKRSubtree(items,D,uid,isThisWeek,doneInP,krColors,baseDepth,opts={}){
+  const {krF="all",activeOnly=false,signals=null,pfx=""}=opts;
+  const myP=D.projects.filter(p=>p.assigneeId===uid);
   const pushProj=(proj,depth,col)=>{
-    const projTasks=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed&&t.assigneeId===sel);
+    const projTasks=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed&&t.assigneeId===uid);
     const actT=projTasks.filter(isThisWeek);if(activeOnly&&!actT.length)return;
     const dP=doneInP(projTasks);
-    const chips=[];chips.push({t:(proj.progress||0)+"%",c:actT.length?col:"#9CA3AF",bg:actT.length?col+"1A":"#F2F4F6"});
+    const chips=[{t:(proj.progress||0)+"%",c:actT.length?col:"#9CA3AF",bg:actT.length?col+"1A":"#F2F4F6"}];
     if(dP>0)chips.push({t:"✅"+dP,c:"#0F5132",bg:"#D1F5E0"});
     const sig=signals?(signals.heotsimProjects.has(proj.id)?"heotsim":(signals.jamProjects.has(proj.id)?"jam":null)):null;
-    items.push({id:proj.id,depth,label:proj.title,color:col,active:actT.length>0,chips,signal:sig,ref:{kind:"proj",id:proj.id}});
-    actT.forEach(t=>{const st=STATUS_MAP[t.status]||STATUS_MAP.todo;items.push({id:t.id,depth:depth+1,label:t.title,color:st.color,active:true,leftTag:t.weekDay||null,chips:[{t:st.label,c:st.color,bg:st.bg}],ref:{kind:"task",id:t.id}});});
+    items.push({id:pfx+proj.id,depth,label:proj.title,color:col,active:actT.length>0,chips,signal:sig,ref:{kind:"proj",id:proj.id}});
+    actT.forEach(t=>{const st=STATUS_MAP[t.status]||STATUS_MAP.todo;items.push({id:pfx+t.id,depth:depth+1,label:t.title,color:st.color,active:true,leftTag:t.weekDay||null,chips:[{t:st.label,c:st.color,bg:st.bg}],ref:{kind:"task",id:t.id}});});
   };
   D.mainKPIs.filter(mk=>krF==="all"||mk.id===krF).forEach(mk=>{
     const mkProjs=myP.filter(p=>p.mainKPIId===mk.id);if(!mkProjs.length)return;
     const col=krColors[mk.id]||"#3182F6";
-    const allT=mkProjs.flatMap(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===sel));
+    const allT=mkProjs.flatMap(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===uid));
     const mkAct=allT.some(isThisWeek);if(activeOnly&&!mkAct)return;
     const mkDone=doneInP(allT);const rev=mkProjs.reduce((a,p)=>a+numF(p.resultValue),0);
     const tgt=pct(mkCur(mk,D.subKPIs,D.projects),mk.targetValue);
     const chips=[{t:"🎯"+tgt+"%",c:col,bg:col+"1A"}];if(mkDone>0)chips.push({t:"✅"+mkDone,c:"#0F5132",bg:"#D1F5E0"});if(rev>0)chips.push({t:"💰"+fmt(rev,"원"),c:"#7A3E00",bg:"#FFE6C7"});
-    items.push({id:mk.id,depth:1,label:mk.title,leftTag:mk.krKey,color:col,active:mkAct,chips,ref:{kind:"mk",id:mk.id}});
+    items.push({id:pfx+mk.id,depth:baseDepth,label:mk.title,leftTag:mk.krKey,color:col,active:mkAct,chips,ref:{kind:"mk",id:mk.id}});
     const skIds=[...new Set(mkProjs.map(p=>p.subKPIId).filter(Boolean))];
-    skIds.forEach(skid=>{const sk=D.subKPIs.find(s=>s.id===skid);if(!sk)return;const skProjs=mkProjs.filter(p=>p.subKPIId===skid);const skT=skProjs.flatMap(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===sel));const skAct=skT.some(isThisWeek);if(activeOnly&&!skAct)return;items.push({id:mk.id+"/"+skid,depth:2,label:sk.title,leftTag:sk.channelCode,color:col,active:skAct,ref:{kind:"sk",id:sk.id}});skProjs.forEach(p=>pushProj(p,3,col));});
-    mkProjs.filter(p=>!p.subKPIId).forEach(p=>pushProj(p,2,col));
+    skIds.forEach(skid=>{const sk=D.subKPIs.find(s=>s.id===skid);if(!sk)return;const skProjs=mkProjs.filter(p=>p.subKPIId===skid);const skT=skProjs.flatMap(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===uid));const skAct=skT.some(isThisWeek);if(activeOnly&&!skAct)return;items.push({id:pfx+mk.id+"/"+skid,depth:baseDepth+1,label:sk.title,leftTag:sk.channelCode,color:col,active:skAct,ref:{kind:"sk",id:sk.id}});skProjs.forEach(p=>pushProj(p,baseDepth+2,col));});
+    mkProjs.filter(p=>!p.subKPIId).forEach(p=>pushProj(p,baseDepth+1,col));
   });
   if(krF==="all"){
     const infra=myP.filter(p=>!p.mainKPIId);
-    if(infra.length){const iAct=infra.some(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===sel).some(isThisWeek));if(!(activeOnly&&!iAct)){items.push({id:"infra",depth:1,label:"⚙️ 운영 인프라",color:"#6B7280",active:iAct});infra.forEach(p=>pushProj(p,2,"#6B7280"));}}
+    if(infra.length){const iAct=infra.some(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===uid).some(isThisWeek));if(!(activeOnly&&!iAct)){items.push({id:pfx+"infra",depth:baseDepth,label:"⚙️ 운영 인프라",color:"#6B7280",active:iAct});infra.forEach(p=>pushProj(p,baseDepth+1,"#6B7280"));}}
   }
+}
+function buildPersonMapItems(D,sel,isThisWeek,doneInP,krColors,opts={}){
+  const items=[];const user=D.users.find(u=>u.id===sel);
+  items.push({id:"root",depth:0,label:user?.name||"나",color:"#0F1F5C",active:true,ref:{kind:"member",id:sel}});
+  pushKRSubtree(items,D,sel,isThisWeek,doneInP,krColors,1,{...opts,pfx:""});
   return items;
 }
-// 팀 주간 맵 → 마인드맵 items 평탄화 (팀→멤버→기간 활동 프로젝트). opts:{krF,activeOnly,members,signals}
+// 팀 그로스보드 → 마인드맵 items 평탄화 (팀→멤버→KR→서브KR→프로젝트→업무 끝까지). opts:{krF,activeOnly,members,signals}
 function buildTeamMapItems(D,activeInP,doneInP,opts={}){
   const {krF="all",activeOnly=false,members=null,signals=null}=opts;
+  const krColors={mk1:"#3182F6",mk2:"#8B5CF6",mk3:"#00C073"};
   const items=[{id:"team",depth:0,label:"팀 전체",color:"#0F1F5C",active:true}];
   D.users.filter(u=>!members||members.has(u.id)).forEach(u=>{
     const projs=D.projects.filter(p=>p.assigneeId===u.id&&(krF==="all"||p.mainKPIId===krF));
@@ -3966,18 +3953,12 @@ function buildTeamMapItems(D,activeInP,doneInP,opts={}){
     const dP=doneInP(tasks);const rev=projs.reduce((a,p)=>a+numF(p.resultValue),0);
     const chips=[];if(dP>0)chips.push({t:"✅"+dP,c:"#0F5132",bg:"#D1F5E0"});if(rev>0)chips.push({t:"💰"+fmt(rev,"원"),c:"#7A3E00",bg:"#FFE6C7"});
     const sig=signals&&signals.stuckMembers.has(u.id)?"stuck":null;
-    items.push({id:u.id,depth:1,label:u.name,color:col,active,chips,signal:sig,ref:{kind:"member",id:u.id}});
-    projs.forEach(p=>{
-      const pts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===u.id);
-      const actT=pts.filter(activeInP);if(!actT.length)return;   // 기간 활동 있는 프로젝트만 (노이즈 감소)
-      const pdone=doneInP(pts);const pchips=[{t:(p.progress||0)+"%",c:col,bg:col+"1A"}];if(pdone>0)pchips.push({t:"✅"+pdone,c:"#0F5132",bg:"#D1F5E0"});
-      const psig=signals?(signals.heotsimProjects.has(p.id)?"heotsim":(signals.jamProjects.has(p.id)?"jam":null)):null;
-      items.push({id:u.id+"/"+p.id,depth:2,label:p.title,color:col,active:true,chips:pchips,signal:psig,ref:{kind:"proj",id:p.id}});
-    });
+    items.push({id:"m_"+u.id,depth:1,label:u.name,color:col,active,chips,signal:sig,ref:{kind:"member",id:u.id}});
+    pushKRSubtree(items,D,u.id,activeInP,doneInP,krColors,2,{krF,activeOnly,signals,pfx:u.id+"_"});   // 멤버 아래 KR→…→업무 끝까지
   });
   return items;
 }
-// 주간 맵 노드 상세 (읽기 전용 — 편집 불가). ref:{kind:mk|sk|proj|task|member, id}
+// 그로스보드 노드 상세 (읽기 전용 — 편집 불가). ref:{kind:mk|sk|proj|task|member, id}
 function NodeDetail({D,node,period,onClose}){
   if(!node||!node.ref) return null;
   const {kind,id}=node.ref;
@@ -4039,10 +4020,182 @@ function NodeDetail({D,node,period,onClose}){
     </Sheet>
   );
 }
-function MindMapPage({D,cu}){
+// 그로스보드 — 계층형 트리(한 담당자 KR→서브KR→프로젝트→업무). 개인·팀(멤버별) 공용.
+function WeeklyTree({D,sel,isThisWeek,doneInP,krColors,krF,activeOnly,signals,onPick}){
+  return(<>
+    {D.mainKPIs.filter(mk=>krF==="all"||mk.id===krF).map(mk=>{
+      const mkProjs=D.projects.filter(p=>p.mainKPIId===mk.id&&p.assigneeId===sel);
+      if(mkProjs.length===0) return null;
+      const allMkTasks=mkProjs.flatMap(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===sel));
+      const thisWeekCount=allMkTasks.filter(t=>isThisWeek(t)).length;
+      const mkDone=doneInP(allMkTasks); const mkRev=mkProjs.reduce((a,p)=>a+numF(p.resultValue),0);
+      const col=krColors[mk.id]||"#3182F6";
+      const mkActive=thisWeekCount>0;
+      const mkTgt=pct(mkCur(mk,D.subKPIs,D.projects),mk.targetValue);
+      if(activeOnly&&!mkActive) return null;
+      const skIds=[...new Set(mkProjs.map(p=>p.subKPIId).filter(Boolean))];
+      const sks=skIds.map(id=>D.subKPIs.find(s=>s.id===id)).filter(Boolean);
+      const noSkProjs=mkProjs.filter(p=>!p.subKPIId);
+      return(
+        <div key={mk.id} style={{marginBottom:20}}>
+          <div style={{display:"flex",alignItems:"center",gap:0,marginBottom:6}}>
+            <div style={{width:14,height:14,borderRadius:"50%",backgroundColor:mkActive?col:"#D1D5DB",flexShrink:0}}/>
+            <div style={{height:2,width:10,backgroundColor:mkActive?col+"88":"#E5E8EB"}}/>
+            <div onClick={()=>onPick({ref:{kind:"mk",id:mk.id}})} style={{backgroundColor:mkActive?col:"#E5E8EB",borderRadius:10,padding:"6px 12px",flex:1,cursor:"pointer"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <span style={{fontSize:10,fontWeight:900,color:mkActive?col:"#9CA3AF",backgroundColor:mkActive?"rgba(255,255,255,0.9)":"rgba(255,255,255,0.7)",padding:"1px 6px",borderRadius:10}}>{mk.krKey}</span>
+                  <span style={{fontSize:13,fontWeight:900,color:mkActive?"#FFFFFF":"#6B7280"}}>{mk.title}</span>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+                  <span style={{fontSize:10,fontWeight:800,color:mkActive?"#FFFFFF":"#9CA3AF",backgroundColor:mkActive?"rgba(255,255,255,0.22)":"#F2F4F6",padding:"2px 7px",borderRadius:10}}>🎯{mkTgt}%</span>
+                  {mkActive&&<span style={{fontSize:10,fontWeight:800,color:"rgba(255,255,255,0.95)",backgroundColor:"rgba(255,255,255,0.2)",padding:"2px 7px",borderRadius:10}}>활동 {thisWeekCount}</span>}
+                  {mkDone>0&&<span style={{fontSize:10,fontWeight:800,color:"#0F5132",background:"#D1F5E0",padding:"2px 7px",borderRadius:10}}>✅{mkDone}</span>}
+                  {mkRev>0&&<span style={{fontSize:10,fontWeight:800,color:"#7A3E00",background:"#FFE6C7",padding:"2px 7px",borderRadius:10}}>💰{fmt(mkRev,"원")}</span>}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style={{marginLeft:6,borderLeft:`2px solid ${mkActive?col+"55":"#E5E8EB"}`}}>
+            {sks.map((sk,skIdx)=>{
+              const skProjs=mkProjs.filter(p=>p.subKPIId===sk.id);
+              const skTasks=skProjs.flatMap(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===sel));
+              const skActive=skTasks.some(t=>isThisWeek(t));
+              const isLastSk=skIdx===sks.length-1&&noSkProjs.length===0;
+              if(activeOnly&&!skActive) return null;
+              return(
+                <div key={sk.id} style={{position:"relative",paddingLeft:20,marginBottom:10}}>
+                  <div style={{position:"absolute",left:0,top:10,width:16,height:2,backgroundColor:skActive?col+"77":"#D1D5DB"}}/>
+                  <div style={{position:"absolute",left:0,top:0,width:2,height:isLastSk?"12px":"100%",backgroundColor:mkActive?col+"44":"#E5E8EB"}}/>
+                  <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+                    <div style={{width:10,height:10,borderRadius:"50%",flexShrink:0,backgroundColor:skActive?col:"#9CA3AF",border:`2px solid ${skActive?col:"#9CA3AF"}`}}/>
+                    <div onClick={()=>onPick({ref:{kind:"sk",id:sk.id}})} style={{backgroundColor:skActive?col+"18":"#F2F4F6",borderRadius:8,padding:"4px 10px",border:`1px solid ${skActive?col+"55":"#E5E8EB"}`,cursor:"pointer"}}>
+                      <span style={{fontSize:11,fontWeight:800,color:skActive?col:"#6B7280"}}>{sk.channelCode} · {sk.title}</span>
+                    </div>
+                  </div>
+                  <div style={{marginLeft:5,borderLeft:`1.5px solid ${skActive?col+"33":"#E5E8EB"}`}}>
+                    {skProjs.map((proj,pIdx)=>{
+                      const projTasks=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed&&t.assigneeId===sel);
+                      const thisWeekPT=projTasks.filter(t=>isThisWeek(t));
+                      const prevPT=projTasks.filter(t=>!isThisWeek(t));
+                      const projActive=thisWeekPT.length>0;
+                      const assignee=D.users.find(u=>u.id===proj.assigneeId);
+                      const isLastP=pIdx===skProjs.length-1;
+                      if(activeOnly&&!projActive) return null;
+                      const psig=signals.heotsimProjects.has(proj.id)?"heotsim":(signals.jamProjects.has(proj.id)?"jam":null);
+                      return(
+                        <div key={proj.id} style={{position:"relative",paddingLeft:18,marginBottom:8}}>
+                          <div style={{position:"absolute",left:0,top:9,width:14,height:1.5,backgroundColor:projActive?col+"44":"#E5E8EB"}}/>
+                          <div style={{position:"absolute",left:0,top:0,width:1.5,height:isLastP?"11px":"100%",backgroundColor:skActive?col+"33":"#F2F4F6"}}/>
+                          <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:projTasks.length>0?5:0}}>
+                            <div style={{width:8,height:8,borderRadius:"50%",backgroundColor:projActive?col+"22":"#F2F4F6",border:`2px solid ${projActive?col:"#D1D5DB"}`,flexShrink:0}}/>
+                            <div onClick={()=>onPick({ref:{kind:"proj",id:proj.id}})} style={{backgroundColor:"#FFFFFF",borderRadius:8,padding:"5px 10px",border:`1px solid ${psig?"#F0445255":(projActive?col+"44":"#E5E8EB")}`,flex:1,display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
+                              {psig&&<span title={SIGNAL_LABEL[psig]} style={{fontSize:11,flexShrink:0}}>{SIGNAL_ICON[psig]}</span>}
+                              <Ava name={assignee?.name} color={assignee?.color} size={18}/>
+                              <span style={{fontSize:11.5,fontWeight:700,color:projActive?"#0F1F5C":"#9CA3AF",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{proj.title}</span>
+                              {doneInP(projTasks)>0&&<span style={{fontSize:9,fontWeight:800,color:"#0F5132",background:"#D1F5E0",borderRadius:5,padding:"1px 5px",flexShrink:0}}>✅{doneInP(projTasks)}</span>}
+                              <span style={{fontSize:10,fontWeight:700,color:projActive?col:"#9CA3AF",flexShrink:0}}>{proj.progress}%</span>
+                            </div>
+                          </div>
+                          {projTasks.length>0&&(
+                            <div style={{marginLeft:23,borderLeft:"1.5px dashed #E5E8EB"}}>
+                              {thisWeekPT.map((task,tIdx)=>{const st=STATUS_MAP[task.status]||STATUS_MAP.todo;return(
+                                <div key={task.id} onClick={()=>onPick({ref:{kind:"task",id:task.id}})} style={{position:"relative",paddingLeft:14,marginBottom:3,cursor:"pointer"}}>
+                                  <div style={{position:"absolute",left:0,top:8,width:10,height:1.5,backgroundColor:col+"99"}}/>
+                                  <div style={{position:"absolute",left:0,top:0,width:1.5,height:tIdx===thisWeekPT.length-1&&prevPT.length===0?"10px":"100%",backgroundColor:"#E5E8EB"}}/>
+                                  <div style={{display:"flex",alignItems:"center",gap:5,padding:"5px 9px",borderRadius:8,backgroundColor:col+"10",border:`1.5px solid ${col}44`}}>
+                                    <div style={{width:6,height:6,borderRadius:"50%",backgroundColor:col,flexShrink:0}}/>
+                                    <span style={{fontSize:11.5,fontWeight:700,color:"#111827",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{task.title}</span>
+                                    <div style={{display:"flex",alignItems:"center",gap:3,flexShrink:0}}>
+                                      {task.weekDay&&<span style={{fontSize:9,color:col,fontWeight:900}}>{task.weekDay}</span>}
+                                      <span style={{fontSize:9,fontWeight:700,color:st.color,backgroundColor:st.bg,padding:"1px 5px",borderRadius:4}}>{st.label}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              );})}
+                              {prevPT.map((task,tIdx)=>(
+                                <div key={task.id} onClick={()=>onPick({ref:{kind:"task",id:task.id}})} style={{position:"relative",paddingLeft:14,marginBottom:3,cursor:"pointer"}}>
+                                  <div style={{position:"absolute",left:0,top:7,width:10,height:1,backgroundColor:"#E5E8EB"}}/>
+                                  <div style={{position:"absolute",left:0,top:0,width:1.5,height:tIdx===prevPT.length-1?"9px":"100%",backgroundColor:"#F2F4F6"}}/>
+                                  <div style={{display:"flex",alignItems:"center",gap:5,padding:"4px 8px",borderRadius:7,opacity:0.45}}>
+                                    <div style={{width:5,height:5,borderRadius:"50%",backgroundColor:"#D1D5DB",flexShrink:0}}/>
+                                    <span style={{fontSize:10.5,color:"#9CA3AF",flex:1,textDecoration:task.status==="done"?"line-through":"none"}}>{task.title}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+            {noSkProjs.map((proj,pIdx)=>{
+              const projTasks=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed&&t.assigneeId===sel);
+              const thisWeekPT=projTasks.filter(t=>isThisWeek(t));
+              const prevPT=projTasks.filter(t=>!isThisWeek(t));
+              const projActive=thisWeekPT.length>0;
+              const assignee=D.users.find(u=>u.id===proj.assigneeId);
+              const isLastP=pIdx===noSkProjs.length-1;
+              if(activeOnly&&!projActive) return null;
+              const psig=signals.heotsimProjects.has(proj.id)?"heotsim":(signals.jamProjects.has(proj.id)?"jam":null);
+              return(
+                <div key={proj.id} style={{position:"relative",paddingLeft:20,marginBottom:8}}>
+                  <div style={{position:"absolute",left:0,top:9,width:16,height:1.5,backgroundColor:projActive?col+"55":"#E5E8EB"}}/>
+                  <div style={{position:"absolute",left:0,top:0,width:2,height:isLastP?"11px":"100%",backgroundColor:mkActive?col+"44":"#E5E8EB"}}/>
+                  <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:projTasks.length>0?5:0}}>
+                    <div style={{width:8,height:8,borderRadius:"50%",backgroundColor:"#FFFFFF",border:`2px solid ${projActive?col:"#D1D5DB"}`,flexShrink:0}}/>
+                    <div onClick={()=>onPick({ref:{kind:"proj",id:proj.id}})} style={{backgroundColor:"#FFFFFF",borderRadius:8,padding:"5px 10px",border:`1px solid ${psig?"#F0445255":(projActive?col+"44":"#E5E8EB")}`,flex:1,display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
+                      {psig&&<span title={SIGNAL_LABEL[psig]} style={{fontSize:11,flexShrink:0}}>{SIGNAL_ICON[psig]}</span>}
+                      <Ava name={assignee?.name} color={assignee?.color} size={18}/>
+                      <span style={{fontSize:11.5,fontWeight:700,color:projActive?"#0F1F5C":"#9CA3AF",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{proj.title}</span>
+                      {doneInP(projTasks)>0&&<span style={{fontSize:9,fontWeight:800,color:"#0F5132",background:"#D1F5E0",borderRadius:5,padding:"1px 5px",flexShrink:0}}>✅{doneInP(projTasks)}</span>}
+                      <span style={{fontSize:10,fontWeight:700,color:projActive?col:"#9CA3AF",flexShrink:0}}>{proj.progress}%</span>
+                    </div>
+                  </div>
+                  {projTasks.length>0&&(
+                    <div style={{marginLeft:23,borderLeft:"1.5px dashed #E5E8EB"}}>
+                      {thisWeekPT.map((task,tIdx)=>{const st=STATUS_MAP[task.status]||STATUS_MAP.todo;return(
+                        <div key={task.id} onClick={()=>onPick({ref:{kind:"task",id:task.id}})} style={{position:"relative",paddingLeft:14,marginBottom:3,cursor:"pointer"}}>
+                          <div style={{position:"absolute",left:0,top:8,width:10,height:1.5,backgroundColor:col+"99"}}/>
+                          <div style={{position:"absolute",left:0,top:0,width:1.5,height:tIdx===thisWeekPT.length-1&&prevPT.length===0?"10px":"100%",backgroundColor:"#E5E8EB"}}/>
+                          <div style={{display:"flex",alignItems:"center",gap:5,padding:"5px 9px",borderRadius:8,backgroundColor:col+"10",border:`1.5px solid ${col}44`}}>
+                            <div style={{width:6,height:6,borderRadius:"50%",backgroundColor:col,flexShrink:0}}/>
+                            <span style={{fontSize:11.5,fontWeight:700,color:"#111827",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{task.title}</span>
+                            <div style={{display:"flex",alignItems:"center",gap:3,flexShrink:0}}>
+                              {task.weekDay&&<span style={{fontSize:9,color:col,fontWeight:900}}>{task.weekDay}</span>}
+                              <span style={{fontSize:9,fontWeight:700,color:st.color,backgroundColor:st.bg,padding:"1px 5px",borderRadius:4}}>{st.label}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );})}
+                      {prevPT.map((task,tIdx)=>(
+                        <div key={task.id} onClick={()=>onPick({ref:{kind:"task",id:task.id}})} style={{position:"relative",paddingLeft:14,marginBottom:3,cursor:"pointer"}}>
+                          <div style={{position:"absolute",left:0,top:7,width:10,height:1,backgroundColor:"#E5E8EB"}}/>
+                          <div style={{position:"absolute",left:0,top:0,width:1.5,height:tIdx===prevPT.length-1?"9px":"100%",backgroundColor:"#F2F4F6"}}/>
+                          <div style={{display:"flex",alignItems:"center",gap:5,padding:"4px 8px",borderRadius:7,opacity:0.45}}>
+                            <div style={{width:5,height:5,borderRadius:"50%",backgroundColor:"#D1D5DB",flexShrink:0}}/>
+                            <span style={{fontSize:10.5,color:"#9CA3AF",flex:1,textDecoration:task.status==="done"?"line-through":"none"}}>{task.title}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    })}
+  </>);
+}
+function MindMapPage({D,cu,nav}){
   const [scope,setScope]=useState("person");   // person | team | diag
   const [boardView,setBoardView]=useState("tree");
-  const [teamView,setTeamView]=useState("members");   // members(멤버 현황) | weekly(주간 맵)
+  const [teamView,setTeamView]=useState("members");   // members(멤버 현황) | weekly(그로스보드)
   const [mapStyle,setMapStyle]=useState("tree");   // tree(계층형) | mind(마인드맵)
   const [period,setPeriod]=useState("week");
   const prange=periodRange(period);
@@ -4075,16 +4228,16 @@ function MindMapPage({D,cu}){
       </div>
       {scope==="team"&&(<>
         <div style={{display:"flex",backgroundColor:"#F2F4F6",borderRadius:14,padding:4,marginBottom:14}}>
-          {[{k:"members",l:"👥 멤버 현황"},{k:"weekly",l:"🗓 주간 맵"}].map(v=>(
+          {[{k:"members",l:"👥 팀 현황"},{k:"weekly",l:"📈 그로스보드"}].map(v=>(
             <button key={v.k} onClick={()=>setTeamView(v.k)} style={{flex:1,padding:"9px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:teamView===v.k?"#FFFFFF":"transparent",color:teamView===v.k?"#0F1F5C":"#6B7280",fontWeight:teamView===v.k?800:500,fontSize:13,fontFamily:"inherit",boxShadow:teamView===v.k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{v.l}</button>
           ))}
         </div>
-        {teamView==="members"&&<TeamBoard D={D} cu={cu}/>}
+        {teamView==="members"&&<TeamBoard D={D} cu={cu} nav={nav}/>}
         {teamView==="weekly"&&<TeamWeeklyMap D={D} cu={cu}/>}
       </>)}
       {scope==="person"&&(<>
       <div style={{display:"flex",backgroundColor:"#F2F4F6",borderRadius:14,padding:4,marginBottom:14}}>
-        {[{k:"tree",l:"◈ 담당자 트리"},{k:"weekly",l:"🗓 주간 맵"}].map(v=>(
+        {[{k:"tree",l:"◈ 담당자 트리"},{k:"weekly",l:"📈 그로스보드"}].map(v=>(
           <button key={v.k} onClick={()=>setBoardView(v.k)} style={{flex:1,padding:"9px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:boardView===v.k?"#FFFFFF":"transparent",color:boardView===v.k?"#0F1F5C":"#6B7280",fontWeight:boardView===v.k?800:500,fontSize:13,fontFamily:"inherit",boxShadow:boardView===v.k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{v.l}</button>
         ))}
       </div>
@@ -4185,148 +4338,11 @@ function MindMapPage({D,cu}){
           </div>
           {mapStyle==="mind"&&(<>
             <div style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}>
-              <button onClick={()=>exportMapPNG(buildPersonMapItems(D,sel,isThisWeek,doneInP,krColors,{krF,activeOnly,signals}),`${user?.name||"개인"}_주간맵_${PERIOD_LABEL[period]}`)} style={{padding:"6px 12px",borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",color:"#4B5563",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🖼 이미지 저장</button>
+              <button onClick={()=>exportMapPNG(buildPersonMapItems(D,sel,isThisWeek,doneInP,krColors,{krF,activeOnly,signals}),`${user?.name||"개인"}_그로스보드_${PERIOD_LABEL[period]}`)} style={{padding:"6px 12px",borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",color:"#4B5563",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🖼 이미지 저장</button>
             </div>
             <MapCanvas items={buildPersonMapItems(D,sel,isThisWeek,doneInP,krColors,{krF,activeOnly,signals})} onPick={setPicked}/>
           </>)}
-          {mapStyle==="tree"&&D.mainKPIs.filter(mk=>krF==="all"||mk.id===krF).map(mk=>{
-            const mkProjs=D.projects.filter(p=>p.mainKPIId===mk.id&&p.assigneeId===sel);
-            if(mkProjs.length===0) return null;
-            const allMkTasks=mkProjs.flatMap(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===sel));
-            const thisWeekCount=allMkTasks.filter(t=>isThisWeek(t)).length;
-            const mkDone=doneInP(allMkTasks); const mkRev=mkProjs.reduce((a,p)=>a+numF(p.resultValue),0);
-            const col=krColors[mk.id]||"#3182F6";
-            const mkActive=thisWeekCount>0;
-            const mkTgt=pct(mkCur(mk,D.subKPIs,D.projects),mk.targetValue);
-            if(activeOnly&&!mkActive) return null;
-            const skIds=[...new Set(mkProjs.map(p=>p.subKPIId).filter(Boolean))];
-            const sks=skIds.map(id=>D.subKPIs.find(s=>s.id===id)).filter(Boolean);
-            const noSkProjs=mkProjs.filter(p=>!p.subKPIId);
-            return(
-              <div key={mk.id} style={{marginBottom:20}}>
-                <div style={{display:"flex",alignItems:"center",gap:0,marginBottom:6}}>
-                  <div style={{width:14,height:14,borderRadius:"50%",backgroundColor:mkActive?col:"#D1D5DB",flexShrink:0}}/>
-                  <div style={{height:2,width:10,backgroundColor:mkActive?col+"88":"#E5E8EB"}}/>
-                  <div onClick={()=>setPicked({ref:{kind:"mk",id:mk.id}})} style={{backgroundColor:mkActive?col:"#E5E8EB",borderRadius:10,padding:"6px 12px",flex:1,cursor:"pointer"}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                      <div style={{display:"flex",alignItems:"center",gap:6}}>
-                        <span style={{fontSize:10,fontWeight:900,color:mkActive?col:"#9CA3AF",backgroundColor:mkActive?"rgba(255,255,255,0.9)":"rgba(255,255,255,0.7)",padding:"1px 6px",borderRadius:10}}>{mk.krKey}</span>
-                        <span style={{fontSize:13,fontWeight:900,color:mkActive?"#FFFFFF":"#6B7280"}}>{mk.title}</span>
-                      </div>
-                      <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
-                        <span style={{fontSize:10,fontWeight:800,color:mkActive?"#FFFFFF":"#9CA3AF",backgroundColor:mkActive?"rgba(255,255,255,0.22)":"#F2F4F6",padding:"2px 7px",borderRadius:10}}>🎯{mkTgt}%</span>
-                        {mkActive&&<span style={{fontSize:10,fontWeight:800,color:"rgba(255,255,255,0.95)",backgroundColor:"rgba(255,255,255,0.2)",padding:"2px 7px",borderRadius:10}}>활동 {thisWeekCount}</span>}
-                        {mkDone>0&&<span style={{fontSize:10,fontWeight:800,color:"#0F5132",background:"#D1F5E0",padding:"2px 7px",borderRadius:10}}>✅{mkDone}</span>}
-                        {mkRev>0&&<span style={{fontSize:10,fontWeight:800,color:"#7A3E00",background:"#FFE6C7",padding:"2px 7px",borderRadius:10}}>💰{fmt(mkRev,"원")}</span>}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div style={{marginLeft:6,borderLeft:`2px solid ${mkActive?col+"55":"#E5E8EB"}`}}>
-                  {sks.map((sk,skIdx)=>{
-                    const skProjs=mkProjs.filter(p=>p.subKPIId===sk.id);
-                    const skTasks=skProjs.flatMap(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===sel));
-                    const skActive=skTasks.some(t=>isThisWeek(t));
-                    const isLastSk=skIdx===sks.length-1&&noSkProjs.length===0;
-                    if(activeOnly&&!skActive) return null;
-                    return(
-                      <div key={sk.id} style={{position:"relative",paddingLeft:20,marginBottom:10}}>
-                        <div style={{position:"absolute",left:0,top:10,width:16,height:2,backgroundColor:skActive?col+"77":"#D1D5DB"}}/>
-                        <div style={{position:"absolute",left:0,top:0,width:2,height:isLastSk?"12px":"100%",backgroundColor:mkActive?col+"44":"#E5E8EB"}}/>
-                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
-                          <div style={{width:10,height:10,borderRadius:"50%",flexShrink:0,backgroundColor:skActive?col:"#9CA3AF",border:`2px solid ${skActive?col:"#9CA3AF"}`}}/>
-                          <div style={{backgroundColor:skActive?col+"18":"#F2F4F6",borderRadius:8,padding:"4px 10px",border:`1px solid ${skActive?col+"55":"#E5E8EB"}`}}>
-                            <span style={{fontSize:11,fontWeight:800,color:skActive?col:"#6B7280"}}>{sk.channelCode} · {sk.title}</span>
-                          </div>
-                        </div>
-                        <div style={{marginLeft:5,borderLeft:`1.5px solid ${skActive?col+"33":"#E5E8EB"}`}}>
-                          {skProjs.map((proj,pIdx)=>{
-                            const projTasks=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed&&t.assigneeId===sel);
-                            const thisWeekPT=projTasks.filter(t=>isThisWeek(t));
-                            const prevPT=projTasks.filter(t=>!isThisWeek(t));
-                            const projActive=thisWeekPT.length>0;
-                            const assignee=D.users.find(u=>u.id===proj.assigneeId);
-                            const isLastP=pIdx===skProjs.length-1;
-                            if(activeOnly&&!projActive) return null;
-                            const psig=signals.heotsimProjects.has(proj.id)?"heotsim":(signals.jamProjects.has(proj.id)?"jam":null);
-                            return(
-                              <div key={proj.id} style={{position:"relative",paddingLeft:18,marginBottom:8}}>
-                                <div style={{position:"absolute",left:0,top:9,width:14,height:1.5,backgroundColor:projActive?col+"44":"#E5E8EB"}}/>
-                                <div style={{position:"absolute",left:0,top:0,width:1.5,height:isLastP?"11px":"100%",backgroundColor:skActive?col+"33":"#F2F4F6"}}/>
-                                <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:projTasks.length>0?5:0}}>
-                                  <div style={{width:8,height:8,borderRadius:"50%",backgroundColor:projActive?col+"22":"#F2F4F6",border:`2px solid ${projActive?col:"#D1D5DB"}`,flexShrink:0}}/>
-                                  <div onClick={()=>setPicked({ref:{kind:"proj",id:proj.id}})} style={{backgroundColor:"#FFFFFF",borderRadius:8,padding:"5px 10px",border:`1px solid ${psig?"#F0445255":(projActive?col+"44":"#E5E8EB")}`,flex:1,display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
-                                    {psig&&<span title={SIGNAL_LABEL[psig]} style={{fontSize:11,flexShrink:0}}>{SIGNAL_ICON[psig]}</span>}
-                                    <Ava name={assignee?.name} color={assignee?.color} size={18}/>
-                                    <span style={{fontSize:11.5,fontWeight:700,color:projActive?"#0F1F5C":"#9CA3AF",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{proj.title}</span>
-                                    {doneInP(projTasks)>0&&<span style={{fontSize:9,fontWeight:800,color:"#0F5132",background:"#D1F5E0",borderRadius:5,padding:"1px 5px",flexShrink:0}}>✅{doneInP(projTasks)}</span>}
-                                    <span style={{fontSize:10,fontWeight:700,color:projActive?col:"#9CA3AF",flexShrink:0}}>{proj.progress}%</span>
-                                  </div>
-                                </div>
-                                {projTasks.length>0&&(
-                                  <div style={{marginLeft:23,borderLeft:"1.5px dashed #E5E8EB"}}>
-                                    {thisWeekPT.map((task,tIdx)=>{const st=STATUS_MAP[task.status];return(
-                                      <div key={task.id} style={{position:"relative",paddingLeft:14,marginBottom:3}}>
-                                        <div style={{position:"absolute",left:0,top:8,width:10,height:1.5,backgroundColor:col+"99"}}/>
-                                        <div style={{position:"absolute",left:0,top:0,width:1.5,height:tIdx===thisWeekPT.length-1&&prevPT.length===0?"10px":"100%",backgroundColor:"#E5E8EB"}}/>
-                                        <div style={{display:"flex",alignItems:"center",gap:5,padding:"5px 9px",borderRadius:8,backgroundColor:col+"10",border:`1.5px solid ${col}44`}}>
-                                          <div style={{width:6,height:6,borderRadius:"50%",backgroundColor:col,flexShrink:0}}/>
-                                          <span style={{fontSize:11.5,fontWeight:700,color:"#111827",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{task.title}</span>
-                                          <div style={{display:"flex",alignItems:"center",gap:3,flexShrink:0}}>
-                                            {task.weekDay&&<span style={{fontSize:9,color:col,fontWeight:900}}>{task.weekDay}</span>}
-                                            <span style={{fontSize:9,fontWeight:700,color:st.color,backgroundColor:st.bg,padding:"1px 5px",borderRadius:4}}>{st.label}</span>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    );})}
-                                    {prevPT.map((task,tIdx)=>(
-                                      <div key={task.id} style={{position:"relative",paddingLeft:14,marginBottom:3}}>
-                                        <div style={{position:"absolute",left:0,top:7,width:10,height:1,backgroundColor:"#E5E8EB"}}/>
-                                        <div style={{position:"absolute",left:0,top:0,width:1.5,height:tIdx===prevPT.length-1?"9px":"100%",backgroundColor:"#F2F4F6"}}/>
-                                        <div style={{display:"flex",alignItems:"center",gap:5,padding:"4px 8px",borderRadius:7,opacity:0.45}}>
-                                          <div style={{width:5,height:5,borderRadius:"50%",backgroundColor:"#D1D5DB",flexShrink:0}}/>
-                                          <span style={{fontSize:10.5,color:"#9CA3AF",flex:1,textDecoration:task.status==="done"?"line-through":"none"}}>{task.title}</span>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {noSkProjs.map((proj,pIdx)=>{
-                    const projTasks=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed&&t.assigneeId===sel);
-                    const thisWeekPT=projTasks.filter(t=>isThisWeek(t));
-                    const prevPT=projTasks.filter(t=>!isThisWeek(t));
-                    const projActive=thisWeekPT.length>0;
-                    const assignee=D.users.find(u=>u.id===proj.assigneeId);
-                    const isLastP=pIdx===noSkProjs.length-1;
-                    if(activeOnly&&!projActive) return null;
-                    const psig=signals.heotsimProjects.has(proj.id)?"heotsim":(signals.jamProjects.has(proj.id)?"jam":null);
-                    return(
-                      <div key={proj.id} style={{position:"relative",paddingLeft:20,marginBottom:8}}>
-                        <div style={{position:"absolute",left:0,top:9,width:16,height:1.5,backgroundColor:projActive?col+"55":"#E5E8EB"}}/>
-                        <div style={{position:"absolute",left:0,top:0,width:2,height:isLastP?"11px":"100%",backgroundColor:mkActive?col+"44":"#E5E8EB"}}/>
-                        <div style={{display:"flex",alignItems:"center",gap:5}}>
-                          <div style={{width:8,height:8,borderRadius:"50%",backgroundColor:"#FFFFFF",border:`2px solid ${projActive?col:"#D1D5DB"}`,flexShrink:0}}/>
-                          <div onClick={()=>setPicked({ref:{kind:"proj",id:proj.id}})} style={{backgroundColor:"#FFFFFF",borderRadius:8,padding:"5px 10px",border:`1px solid ${psig?"#F0445255":(projActive?col+"44":"#E5E8EB")}`,flex:1,display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
-                            {psig&&<span title={SIGNAL_LABEL[psig]} style={{fontSize:11,flexShrink:0}}>{SIGNAL_ICON[psig]}</span>}
-                            <Ava name={assignee?.name} color={assignee?.color} size={18}/>
-                            <span style={{fontSize:11.5,fontWeight:700,color:projActive?"#0F1F5C":"#9CA3AF",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{proj.title}</span>
-                            <span style={{fontSize:10,fontWeight:700,color:projActive?col:"#9CA3AF",flexShrink:0}}>{proj.progress}%</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
+          {mapStyle==="tree"&&<WeeklyTree D={D} sel={sel} isThisWeek={isThisWeek} doneInP={doneInP} krColors={krColors} krF={krF} activeOnly={activeOnly} signals={signals} onPick={setPicked}/>}
         </div>
       )}
       </>)}

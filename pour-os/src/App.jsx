@@ -313,11 +313,19 @@ const downloadCSV=(rows,name)=>{
   const a=document.createElement("a");a.href=url;a.download=`${name}_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);
 };
 const EditTaskSheet=({open,onClose,task,onSave,D,add})=>{
-  const [form,setForm]=useState({title:"",status:"todo",dueDate:"",memo:"",projectId:"",assigneeId:"",attachments:[],weekDay:"",weekSlot:null});
+  const [form,setForm]=useState({title:"",status:"todo",dueDate:"",memo:"",projectId:"",assigneeId:"",attachments:[],weekDay:"",weekSlot:null,workDate:""});
   const [prevId,setPrevId]=useState(null);
   const [uploading,setUploading]=useState(false);
-  if(task&&task.id!==prevId){setPrevId(task.id);setForm({title:task.title||"",status:task.status||"todo",dueDate:task.dueDate||"",memo:task.memo||"",projectId:task.projectId||"",assigneeId:task.assigneeId||"",attachments:Array.isArray(task.attachments)?task.attachments:[],weekDay:task.weekDay||"",weekSlot:task.weekSlot??null});}
-  if(!task&&prevId!==null){setPrevId(null);setForm({title:"",status:"todo",dueDate:"",memo:"",projectId:"",assigneeId:"",attachments:[],weekDay:"",weekSlot:null});}
+  if(task&&task.id!==prevId){setPrevId(task.id);setForm({title:task.title||"",status:task.status||"todo",dueDate:task.dueDate||"",memo:task.memo||"",projectId:task.projectId||"",assigneeId:task.assigneeId||"",attachments:Array.isArray(task.attachments)?task.attachments:[],weekDay:task.weekDay||"",weekSlot:task.weekSlot??null,workDate:task.workDate||""});}
+  if(!task&&prevId!==null){setPrevId(null);setForm({title:"",status:"todo",dueDate:"",memo:"",projectId:"",assigneeId:"",attachments:[],weekDay:"",weekSlot:null,workDate:""});}
+  // 날짜 선택 → 요일·슬롯 자동 배정(담당자의 그 요일 빈 슬롯 중 가장 앞, 없으면 슬롯 없이 그날에)
+  const placeOn=(f,ds)=>{
+    if(!ds) return {...f,workDate:"",weekDay:"",weekSlot:null};
+    const d=new Date(ds+"T00:00:00"); const wd=ALL_DAYS[d.getDay()];
+    let slot=null;
+    if(WEEK_DAYS.includes(wd)){ const used=new Set((D.tasks||[]).filter(t=>!t.isFixed&&t.assigneeId===(f.assigneeId||"")&&t.weekDay===wd&&t.id!==(task&&task.id)&&t.weekSlot).map(t=>t.weekSlot)); slot=[1,2,3,4,5].find(s=>!used.has(s))||null; }
+    return {...f,workDate:ds,weekDay:wd,weekSlot:slot};
+  };
   const onPick=async(files)=>{
     const list=Array.from(files||[]);
     if(!list.length||!task)return;
@@ -356,16 +364,17 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add})=>{
           </div>
         </div>
         <div style={{marginBottom:14}}>
-          <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>요일 배치 <span style={{color:"#9CA3AF",fontWeight:600}}>(오늘/요일에 두거나 미배치)</span></label>
-          <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-            {(()=>{const td=todayDay();const on=form.weekDay===td&&WEEK_DAYS.includes(td);return(
-              <button type="button" onClick={()=>setForm({...form,weekDay:td,weekSlot:null})} style={{padding:"8px 12px",borderRadius:10,border:`1.5px solid ${on?"#F97316":"#FDBA74"}`,background:on?"#F97316":"#FFF7ED",color:on?"#fff":"#EA580C",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>📍 오늘({td})</button>
-            );})()}
-            {WEEK_DAYS.map(d=>{const on=form.weekDay===d;return(
-              <button key={d} type="button" onClick={()=>setForm({...form,weekDay:d,weekSlot:form.weekDay===d?form.weekSlot:null})} style={{padding:"8px 10px",borderRadius:10,border:`1.5px solid ${on?"#3182F6":"#E5E8EB"}`,background:on?"#EBF3FF":"#fff",color:on?"#3182F6":"#6B7280",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{d}</button>
+          <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>📅 진행 날짜 <span style={{color:"#9CA3AF",fontWeight:600}}>(언제 할지 — 주간 배치에 자동 노출)</span></label>
+          <div style={{display:"flex",gap:6,marginBottom:7,flexWrap:"wrap"}}>
+            {[["오늘",0],["내일",1]].map(([lbl,off])=>{const dt=new Date();dt.setDate(dt.getDate()+off);const ds=dt.toISOString().slice(0,10);const on=form.workDate===ds;return(
+              <button key={lbl} type="button" onClick={()=>setForm(f=>placeOn(f,ds))} style={{padding:"8px 13px",borderRadius:10,border:`1.5px solid ${on?"#F97316":"#FDBA74"}`,background:on?"#F97316":"#FFF7ED",color:on?"#fff":"#EA580C",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{lbl}</button>
             );})}
-            <button type="button" onClick={()=>setForm({...form,weekDay:"",weekSlot:null})} style={{padding:"8px 10px",borderRadius:10,border:`1.5px solid ${!form.weekDay?"#9CA3AF":"#E5E8EB"}`,background:!form.weekDay?"#F2F4F6":"#fff",color:!form.weekDay?"#4B5563":"#9CA3AF",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>미배치</button>
+            <input type="date" value={form.workDate||""} onChange={e=>setForm(f=>placeOn(f,e.target.value))} style={{flex:1,minWidth:130,padding:"8px 11px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:13,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
+            <button type="button" onClick={()=>setForm(f=>({...f,workDate:"",weekDay:"",weekSlot:null}))} style={{padding:"8px 11px",borderRadius:10,border:`1.5px solid ${!form.weekDay?"#9CA3AF":"#E5E8EB"}`,background:!form.weekDay?"#F2F4F6":"#fff",color:!form.weekDay?"#4B5563":"#9CA3AF",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>미배치</button>
           </div>
+          {form.weekDay&&WEEK_DAYS.includes(form.weekDay)
+            ? <p style={{margin:0,fontSize:11,color:"#3182F6",fontWeight:700}}>→ {form.weekDay}요일 {form.weekSlot?form.weekSlot+"순위":"(순위는 그리드에서 자동)"}에 배치 · 드래그로 조정 가능</p>
+            : form.workDate?<p style={{margin:0,fontSize:11,color:"#9CA3AF",fontWeight:600}}>주말이라 주간 그리드(월~금)엔 안 보여요 · 날짜는 기록됩니다</p>:null}
         </div>
         <div style={{marginBottom:14}}>
           <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>담당자 <span style={{color:"#9CA3AF",fontWeight:600}}>(선택 · 기본 미배정)</span></label>
@@ -864,6 +873,16 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const slotMap={};
   WEEK_DAYS.forEach(d=>{slotMap[d]={};[1,2,3,4,5].forEach(s=>{slotMap[d][s]=myT.find(t=>!t.isFixed&&t.weekDay===d&&t.weekSlot===s)||null;});});
   const [slotSheet,setSlotSheet]=useState(null);
+  const dragRef=useRef(null);   // 주간 그리드 드래그 중인 업무
+  const [dragOver,setDragOver]=useState(null);   // "day_slot" 하이라이트
+  const dropSlot=(day,slot)=>{
+    const dr=dragRef.current; dragRef.current=null; setDragOver(null);
+    if(!dr) return;
+    const target=(slotMap[day]||{})[slot];
+    if(target&&target.id===dr.id) return;
+    up("tasks",dr.id,{weekDay:day,weekSlot:slot});
+    if(target) up("tasks",target.id,{weekDay:dr.weekDay||null,weekSlot:dr.weekSlot??null});   // 점유 슬롯과 자리 교환
+  };
   const [quick,setQuick]=useState("");
   const [quickProj,setQuickProj]=useState("");
   const [confirmTaskId,setConfirmTaskId]=useState(null);
@@ -1045,7 +1064,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
         <div onClick={()=>setShowGrid(s=>!s)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}}>
           <div>
             <h3 style={{margin:"0 0 4px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}>📅 주간 업무 배치</h3>
-            <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>{showGrid?"월~금 · 1~5순위 슬롯 · 탭해서 배치":"요일별 슬롯에 업무 배치 (펼치기)"}</p>
+            <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>{showGrid?"월~금 · 1~5순위 · 탭 배치 · 드래그로 이동·순서변경":"요일별 슬롯에 업무 배치 · 드래그로 이동 (펼치기)"}</p>
           </div>
           <span style={{fontSize:13,color:"#9CA3AF",flexShrink:0}}>{showGrid?"▲":"▼"}</span>
         </div>
@@ -1062,7 +1081,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                   {[1,2,3,4,5].map(slot=>{
                     const t=slotMap[d][slot];
                     return(
-                      <div key={slot} onClick={()=>setSlotSheet({day:d,slot,current:t})} style={{display:"flex",alignItems:"center",gap:4,padding:"5px 7px",marginBottom:4,borderRadius:8,border:t?"1px solid #E5E8EB":"1px dashed #E5E8EB",background:t?(t.status==="done"?"#E8FAF1":"#FFFFFF"):"transparent",cursor:"pointer",minHeight:28}}>
+                      <div key={slot} draggable={!!t} onDragStart={t?(e)=>{dragRef.current=t;try{e.dataTransfer.effectAllowed="move";}catch(_){}}:undefined} onDragEnd={()=>{dragRef.current=null;setDragOver(null);}} onDragOver={(e)=>{e.preventDefault();const k=d+"_"+slot;if(dragOver!==k)setDragOver(k);}} onDragLeave={()=>{if(dragOver===d+"_"+slot)setDragOver(null);}} onDrop={(e)=>{e.preventDefault();dropSlot(d,slot);}} onClick={()=>setSlotSheet({day:d,slot,current:t})} style={{display:"flex",alignItems:"center",gap:4,padding:"5px 7px",marginBottom:4,borderRadius:8,border:dragOver===d+"_"+slot?"2px solid #F97316":(t?"1px solid #E5E8EB":"1px dashed #E5E8EB"),background:dragOver===d+"_"+slot?"#FFF7ED":(t?(t.status==="done"?"#E8FAF1":"#FFFFFF"):"transparent"),cursor:t?"grab":"pointer",minHeight:28}}>
                         <span style={{fontSize:9,fontWeight:900,color:"#9CA3AF",minWidth:10}}>{slot}</span>
                         {t?<span style={{fontSize:10,fontWeight:700,color:t.status==="done"?"#9CA3AF":"#1F2937",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:t.status==="done"?"line-through":"none"}}>{t.eventId?"📅":""}{t.title}</span>:<span style={{fontSize:9.5,color:"#D1D5DB",fontStyle:"italic"}}>+배치</span>}
                       </div>
@@ -1306,7 +1325,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           </div>
         </Sheet>
       )}
-      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null})}/>
+      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null})}/>
       <Confirm open={!!confirmTaskId} title="업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmTaskId)?.title}" 업무를 삭제할까요?\n휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmTaskId);setConfirmTaskId(null);}} onCancel={()=>setConfirmTaskId(null)}/>
     </div>
   );
@@ -2623,7 +2642,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
           <button onClick={doAddProj} disabled={!projForm.title.trim()} style={{width:"100%",padding:"14px 0",borderRadius:14,border:"none",backgroundColor:projForm.title.trim()?"#F97316":"#E5E8EB",color:projForm.title.trim()?"#FFFFFF":"#9CA3AF",fontSize:15,fontWeight:700,cursor:projForm.title.trim()?"pointer":"not-allowed",fontFamily:"inherit"}}>{editProjId?"수정 저장":"프로젝트 추가하기"}</button>
         </div>
       </Sheet>
-      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null})}/>
+      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null})}/>
       <Confirm open={!!confirmTaskId} title="업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmTaskId)?.title}" 업무를 삭제할까요?\n휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmTaskId);setConfirmTaskId(null);}} onCancel={()=>setConfirmTaskId(null)}/>
       <Confirm open={!!projDel} title="프로젝트 삭제" desc={`"${D.projects.find(p=>p.id===projDel)?.title}" 프로젝트를 삭제할까요? 연결된 업무는 남습니다.\n휴지통에서 복구할 수 있어요.`} onOk={()=>{rm("projects",projDel);setProjDel(null);setProjDetail(null);}} onCancel={()=>setProjDel(null)}/>
       <Sheet open={!!actHist} onClose={()=>setActHist(null)} title="📜 활동지표 주차별 이력">
@@ -3825,7 +3844,7 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
           <Btn full variant="orange" onClick={doAdd} disabled={!form.title.trim()}>추가하기</Btn>
         </div>
       </Sheet>
-      <EditTaskSheet open={!!editTarget} onClose={()=>setEditTarget(null)} task={editTarget} D={D} add={add} onSave={f=>up("tasks",editTarget.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null})}/>
+      <EditTaskSheet open={!!editTarget} onClose={()=>setEditTarget(null)} task={editTarget} D={D} add={add} onSave={f=>up("tasks",editTarget.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null})}/>
       <Confirm open={!!confirmId} title="고정업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmId)?.title}" 업무를 삭제할까요?\n휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmId);setConfirmId(null);}} onCancel={()=>setConfirmId(null)}/>
     </div>
   );

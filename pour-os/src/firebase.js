@@ -21,6 +21,8 @@ export const STATE_DOC = doc(db, "pour-os", "state");
 // v2: 컬렉션별 분할 문서 — 기존 보안규칙 `match /pour-os/{doc}` 으로 이미 허용되어 규칙 변경 불필요
 export const colDoc = (key) => doc(db, "pour-os", "state-" + key);
 export const META_DOC = doc(db, "pour-os", "state-meta");
+// 임의 컬렉션/문서 참조 — 외부 마스터(예: config/staffList = 담당자 관리) 읽기용
+export const extDoc = (col, id) => doc(db, col, id);
 export { onSnapshot, setDoc, getDoc };
 
 // Storage — task 사진 첨부 (경로: task-attachments/{taskId}/{filename})

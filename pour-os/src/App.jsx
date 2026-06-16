@@ -238,6 +238,8 @@ const Badge=({color,bg,children})=>(
 );
 // 아바타 표시용 이름 — 성(첫 글자) 제외한 이름. 김송희→송희, 이란→란 (1글자면 그대로)
 const gname=(n)=>{const s=(n||"").trim();return s.length>=2?s.slice(1):(s||"?");};
+// ISO → HH:MM (시:분)
+const hhmm=(iso)=>{if(!iso)return"";try{const d=new Date(iso);if(isNaN(d))return"";return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");}catch(_){return"";}};
 const Ava=({name,color,size=32})=>{
   const cols=["#3182F6","#8B5CF6","#00C073","#FF9500","#F04452"];
   const c=color||cols[(name?.charCodeAt(0)||0)%cols.length];
@@ -313,11 +315,19 @@ const downloadCSV=(rows,name)=>{
   const a=document.createElement("a");a.href=url;a.download=`${name}_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);
 };
 const EditTaskSheet=({open,onClose,task,onSave,D,add})=>{
-  const [form,setForm]=useState({title:"",status:"todo",dueDate:"",memo:"",projectId:"",assigneeId:"",attachments:[],weekDay:"",weekSlot:null});
+  const [form,setForm]=useState({title:"",status:"todo",dueDate:"",memo:"",projectId:"",assigneeId:"",attachments:[],weekDay:"",weekSlot:null,workDate:"",fixedTime:""});
   const [prevId,setPrevId]=useState(null);
   const [uploading,setUploading]=useState(false);
-  if(task&&task.id!==prevId){setPrevId(task.id);setForm({title:task.title||"",status:task.status||"todo",dueDate:task.dueDate||"",memo:task.memo||"",projectId:task.projectId||"",assigneeId:task.assigneeId||"",attachments:Array.isArray(task.attachments)?task.attachments:[],weekDay:task.weekDay||"",weekSlot:task.weekSlot??null});}
-  if(!task&&prevId!==null){setPrevId(null);setForm({title:"",status:"todo",dueDate:"",memo:"",projectId:"",assigneeId:"",attachments:[],weekDay:"",weekSlot:null});}
+  if(task&&task.id!==prevId){setPrevId(task.id);setForm({title:task.title||"",status:task.status||"todo",dueDate:task.dueDate||"",memo:task.memo||"",projectId:task.projectId||"",assigneeId:task.assigneeId||"",attachments:Array.isArray(task.attachments)?task.attachments:[],weekDay:task.weekDay||"",weekSlot:task.weekSlot??null,workDate:task.workDate||"",fixedTime:task.fixedTime||""});}
+  if(!task&&prevId!==null){setPrevId(null);setForm({title:"",status:"todo",dueDate:"",memo:"",projectId:"",assigneeId:"",attachments:[],weekDay:"",weekSlot:null,workDate:"",fixedTime:""});}
+  // 날짜 선택 → 요일·슬롯 자동 배정(담당자의 그 요일 빈 슬롯 중 가장 앞, 없으면 슬롯 없이 그날에)
+  const placeOn=(f,ds)=>{
+    if(!ds) return {...f,workDate:"",weekDay:"",weekSlot:null};
+    const d=new Date(ds+"T00:00:00"); const wd=ALL_DAYS[d.getDay()];
+    let slot=null;
+    if(WEEK_DAYS.includes(wd)){ const used=new Set((D.tasks||[]).filter(t=>!t.isFixed&&t.assigneeId===(f.assigneeId||"")&&t.weekDay===wd&&t.id!==(task&&task.id)&&t.weekSlot).map(t=>t.weekSlot)); slot=[1,2,3,4,5].find(s=>!used.has(s))||null; }
+    return {...f,workDate:ds,weekDay:wd,weekSlot:slot};
+  };
   const onPick=async(files)=>{
     const list=Array.from(files||[]);
     if(!list.length||!task)return;
@@ -355,18 +365,26 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add})=>{
             );})}
           </div>
         </div>
+        {task&&task.isFixed?(
         <div style={{marginBottom:14}}>
-          <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>요일 배치 <span style={{color:"#9CA3AF",fontWeight:600}}>(오늘/요일에 두거나 미배치)</span></label>
-          <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-            {(()=>{const td=todayDay();const on=form.weekDay===td&&WEEK_DAYS.includes(td);return(
-              <button type="button" onClick={()=>setForm({...form,weekDay:td,weekSlot:null})} style={{padding:"8px 12px",borderRadius:10,border:`1.5px solid ${on?"#F97316":"#FDBA74"}`,background:on?"#F97316":"#FFF7ED",color:on?"#fff":"#EA580C",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>📍 오늘({td})</button>
-            );})()}
-            {WEEK_DAYS.map(d=>{const on=form.weekDay===d;return(
-              <button key={d} type="button" onClick={()=>setForm({...form,weekDay:d,weekSlot:form.weekDay===d?form.weekSlot:null})} style={{padding:"8px 10px",borderRadius:10,border:`1.5px solid ${on?"#3182F6":"#E5E8EB"}`,background:on?"#EBF3FF":"#fff",color:on?"#3182F6":"#6B7280",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{d}</button>
-            );})}
-            <button type="button" onClick={()=>setForm({...form,weekDay:"",weekSlot:null})} style={{padding:"8px 10px",borderRadius:10,border:`1.5px solid ${!form.weekDay?"#9CA3AF":"#E5E8EB"}`,background:!form.weekDay?"#F2F4F6":"#fff",color:!form.weekDay?"#4B5563":"#9CA3AF",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>미배치</button>
-          </div>
+          <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>🕐 시간 <span style={{color:"#9CA3AF",fontWeight:600}}>(반복 시각 — 선택)</span></label>
+          <input type="time" value={form.fixedTime||""} onChange={e=>setForm({...form,fixedTime:e.target.value})} style={{width:"100%",padding:"11px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
         </div>
+        ):(
+        <div style={{marginBottom:14}}>
+          <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>📅 진행 날짜 <span style={{color:"#9CA3AF",fontWeight:600}}>(언제 할지 — 주간 배치에 자동 노출)</span></label>
+          <div style={{display:"flex",gap:6,marginBottom:7,flexWrap:"wrap"}}>
+            {[["오늘",0],["내일",1]].map(([lbl,off])=>{const dt=new Date();dt.setDate(dt.getDate()+off);const ds=dt.toISOString().slice(0,10);const on=form.workDate===ds;return(
+              <button key={lbl} type="button" onClick={()=>setForm(f=>placeOn(f,ds))} style={{padding:"8px 13px",borderRadius:10,border:`1.5px solid ${on?"#F97316":"#FDBA74"}`,background:on?"#F97316":"#FFF7ED",color:on?"#fff":"#EA580C",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{lbl}</button>
+            );})}
+            <input type="date" value={form.workDate||""} onChange={e=>setForm(f=>placeOn(f,e.target.value))} style={{flex:1,minWidth:130,padding:"8px 11px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:13,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
+            <button type="button" onClick={()=>setForm(f=>({...f,workDate:"",weekDay:"",weekSlot:null}))} style={{padding:"8px 11px",borderRadius:10,border:`1.5px solid ${!form.weekDay?"#9CA3AF":"#E5E8EB"}`,background:!form.weekDay?"#F2F4F6":"#fff",color:!form.weekDay?"#4B5563":"#9CA3AF",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>미배치</button>
+          </div>
+          {form.weekDay&&WEEK_DAYS.includes(form.weekDay)
+            ? <p style={{margin:0,fontSize:11,color:"#3182F6",fontWeight:700}}>→ {form.weekDay}요일 {form.weekSlot?form.weekSlot+"순위":"(순위는 그리드에서 자동)"}에 배치 · 드래그로 조정 가능</p>
+            : form.workDate?<p style={{margin:0,fontSize:11,color:"#9CA3AF",fontWeight:600}}>주말이라 주간 그리드(월~금)엔 안 보여요 · 날짜는 기록됩니다</p>:null}
+        </div>
+        )}
         <div style={{marginBottom:14}}>
           <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>담당자 <span style={{color:"#9CA3AF",fontWeight:600}}>(선택 · 기본 미배정)</span></label>
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -864,6 +882,23 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const slotMap={};
   WEEK_DAYS.forEach(d=>{slotMap[d]={};[1,2,3,4,5].forEach(s=>{slotMap[d][s]=myT.find(t=>!t.isFixed&&t.weekDay===d&&t.weekSlot===s)||null;});});
   const [slotSheet,setSlotSheet]=useState(null);
+  const dragRef=useRef(null);   // 주간 그리드 드래그 중인 업무
+  const [dragOver,setDragOver]=useState(null);   // "day_slot" 하이라이트
+  const dropSlot=(day,slot)=>{
+    const dr=dragRef.current; dragRef.current=null; setDragOver(null);
+    if(!dr) return;
+    const target=(slotMap[day]||{})[slot];
+    if(target&&target.id===dr.id) return;
+    up("tasks",dr.id,{weekDay:day,weekSlot:slot});
+    if(target) up("tasks",target.id,{weekDay:dr.weekDay||null,weekSlot:dr.weekSlot??null});   // 점유 슬롯과 자리 교환
+  };
+  // 모바일용 — 슬롯 위/아래 이동(드래그 대신 화살표). 인접 슬롯과 자리 교환(빈칸이면 그냥 이동)
+  const moveSlot=(t,dir)=>{
+    const ns=(t.weekSlot||1)+dir; if(ns<1||ns>5) return;
+    const occ=(slotMap[t.weekDay]||{})[ns];
+    up("tasks",t.id,{weekSlot:ns});
+    if(occ&&occ.id!==t.id) up("tasks",occ.id,{weekSlot:t.weekSlot});
+  };
   const [quick,setQuick]=useState("");
   const [quickProj,setQuickProj]=useState("");
   const [confirmTaskId,setConfirmTaskId]=useState(null);
@@ -891,7 +926,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const toggle=t=>up("tasks",t.id,{status:t.status==="done"?"todo":"done"});
   // 고정(반복)업무는 날짜별 완료 — 오늘 체크는 오늘만 유지(매일 리셋)
   const fixedDone=t=>t.doneDate===todayKey;
-  const toggleFixed=t=>up("tasks",t.id,{doneDate:fixedDone(t)?null:todayKey});
+  const toggleFixed=t=>up("tasks",t.id,fixedDone(t)?{doneDate:null}:{doneDate:todayKey,doneAt:new Date().toISOString(),doneByName:cu?.name||""});
   const doQuick=()=>{
     if(!quick.trim()) return;
     add("tasks",{id:"t"+Date.now(),title:quick.trim(),projectId:quickProj,assigneeId:cu.id,type:"general",status:"todo",weekDay:today,weekSlot:null,isFixed:false,dueDate:"",memo:"",attachments:[]});
@@ -1045,7 +1080,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
         <div onClick={()=>setShowGrid(s=>!s)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}}>
           <div>
             <h3 style={{margin:"0 0 4px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}>📅 주간 업무 배치</h3>
-            <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>{showGrid?"월~금 · 1~5순위 슬롯 · 탭해서 배치":"요일별 슬롯에 업무 배치 (펼치기)"}</p>
+            <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>{showGrid?"월~금 · 1~5순위 · 탭 배치 · 드래그로 이동·순서변경":"요일별 슬롯에 업무 배치 · 드래그로 이동 (펼치기)"}</p>
           </div>
           <span style={{fontSize:13,color:"#9CA3AF",flexShrink:0}}>{showGrid?"▲":"▼"}</span>
         </div>
@@ -1062,9 +1097,13 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                   {[1,2,3,4,5].map(slot=>{
                     const t=slotMap[d][slot];
                     return(
-                      <div key={slot} onClick={()=>setSlotSheet({day:d,slot,current:t})} style={{display:"flex",alignItems:"center",gap:4,padding:"5px 7px",marginBottom:4,borderRadius:8,border:t?"1px solid #E5E8EB":"1px dashed #E5E8EB",background:t?(t.status==="done"?"#E8FAF1":"#FFFFFF"):"transparent",cursor:"pointer",minHeight:28}}>
+                      <div key={slot} draggable={!!t} onDragStart={t?(e)=>{dragRef.current=t;try{e.dataTransfer.effectAllowed="move";}catch(_){}}:undefined} onDragEnd={()=>{dragRef.current=null;setDragOver(null);}} onDragOver={(e)=>{e.preventDefault();const k=d+"_"+slot;if(dragOver!==k)setDragOver(k);}} onDragLeave={()=>{if(dragOver===d+"_"+slot)setDragOver(null);}} onDrop={(e)=>{e.preventDefault();dropSlot(d,slot);}} onClick={()=>setSlotSheet({day:d,slot,current:t})} style={{display:"flex",alignItems:"center",gap:4,padding:"5px 7px",marginBottom:4,borderRadius:8,border:dragOver===d+"_"+slot?"2px solid #F97316":(t?"1px solid #E5E8EB":"1px dashed #E5E8EB"),background:dragOver===d+"_"+slot?"#FFF7ED":(t?(t.status==="done"?"#E8FAF1":"#FFFFFF"):"transparent"),cursor:t?"grab":"pointer",minHeight:28}}>
                         <span style={{fontSize:9,fontWeight:900,color:"#9CA3AF",minWidth:10}}>{slot}</span>
                         {t?<span style={{fontSize:10,fontWeight:700,color:t.status==="done"?"#9CA3AF":"#1F2937",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:t.status==="done"?"line-through":"none"}}>{t.eventId?"📅":""}{t.title}</span>:<span style={{fontSize:9.5,color:"#D1D5DB",fontStyle:"italic"}}>+배치</span>}
+                        {t&&<span onClick={e=>e.stopPropagation()} style={{display:"flex",flexDirection:"column",flexShrink:0,gap:1}}>
+                          <button onClick={()=>moveSlot(t,-1)} disabled={slot===1} title="위로" style={{width:15,height:11,border:"none",background:"none",cursor:slot===1?"default":"pointer",color:slot===1?"#E5E8EB":"#9CA3AF",fontSize:8,lineHeight:1,padding:0}}>▲</button>
+                          <button onClick={()=>moveSlot(t,1)} disabled={slot===5} title="아래로" style={{width:15,height:11,border:"none",background:"none",cursor:slot===5?"default":"pointer",color:slot===5?"#E5E8EB":"#9CA3AF",fontSize:8,lineHeight:1,padding:0}}>▼</button>
+                        </span>}
                       </div>
                     );
                   })}
@@ -1099,7 +1138,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                   </button>
                   <div style={{flex:1,minWidth:0}}>
                     <p style={{margin:0,fontSize:13.5,fontWeight:700,color:t.status==="done"?"#9CA3AF":"#111827",textDecoration:t.status==="done"?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.eventId?"📅 ":""}{t.title}</p>
-                    {proj&&<p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>📁 {proj.title}</p>}
+                    {(proj||(t.status==="done"&&t.doneAt))&&<p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>{t.status==="done"&&t.doneAt?<span style={{color:"#00A862",fontWeight:700}}>✓ {hhmm(t.doneAt)} 완료{proj?" · ":""}</span>:null}{proj?`📁 ${proj.title}`:""}</p>}
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                     {t.weekSlot&&<span style={{fontSize:10,fontWeight:800,color:"#9CA3AF"}}>{t.weekSlot}순위</span>}
@@ -1146,8 +1185,8 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                     {dn&&<span style={{color:"#FFFFFF",fontSize:12,fontWeight:900}}>✓</span>}
                   </button>
                   <div style={{flex:1,minWidth:0}}>
-                    <p style={{margin:0,fontSize:13.5,fontWeight:700,color:dn?"#9CA3AF":"#111827",textDecoration:dn?"line-through":"none"}}>{t.title}</p>
-                    {proj&&<p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>📁 {proj.title}</p>}
+                    <p style={{margin:0,fontSize:13.5,fontWeight:700,color:dn?"#9CA3AF":"#111827",textDecoration:dn?"line-through":"none"}}>{t.fixedTime?<span style={{color:dn?"#9CA3AF":"#EA580C",fontWeight:800,marginRight:5}}>🕐{t.fixedTime}</span>:null}{t.title}</p>
+                    <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>{dn&&t.doneAt?<span style={{color:"#00A862",fontWeight:700}}>✓ {hhmm(t.doneAt)} 완료 · </span>:null}{proj?`📁 ${proj.title}`:"반복 업무"}</p>
                   </div>
                   <span style={{fontSize:10,color:"#F97316",fontWeight:800,flexShrink:0}}>🔄</span>
                 </div>
@@ -1306,7 +1345,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           </div>
         </Sheet>
       )}
-      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null})}/>
+      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null})}/>
       <Confirm open={!!confirmTaskId} title="업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmTaskId)?.title}" 업무를 삭제할까요?\n휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmTaskId);setConfirmTaskId(null);}} onCancel={()=>setConfirmTaskId(null)}/>
     </div>
   );
@@ -1865,6 +1904,15 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
   const patch=(id,p)=>setItems(it=>it.map(x=>x.id===id?{...x,...p}:x));
   const toggleDone=id=>setItems(it=>it.map(x=>x.id===id?{...x,done:!x.done}:x));
   const indent=(i,dir)=>setItems(a0=>{const a=[...a0];const it=a[i];if(dir<0){if(it.depth>0)a[i]={...it,depth:it.depth-1};}else{const prev=a[i-1];if(prev&&it.depth<=prev.depth)a[i]={...it,depth:it.depth+1};}return a;});
+  // 형제 간 위/아래 이동(하위 트리 통째로). 같은 부모·같은 단계 형제와 자리 바꿈.
+  const subEnd=(a,i)=>{let k=i+1;while(k<a.length&&a[k].depth>a[i].depth)k++;return k;};
+  const moveItem=(i,dir)=>setItems(a0=>{
+    const a=[...a0]; const d=a[i].depth; const end=subEnd(a,i); const block=a.slice(i,end);
+    if(dir<0){ let j=i-1; while(j>=0&&a[j].depth>d) j--; if(j<0||a[j].depth<d) return a0; a.splice(i,block.length); a.splice(j,0,...block); }
+    else{ if(end>=a.length||a[end].depth<d) return a0; const nEnd=subEnd(a,end); const nLen=nEnd-end; a.splice(i,block.length); a.splice(i+nLen,0,...block); }
+    return a;
+  });
+  const hasSib=(i,dir)=>{const d=items[i].depth; if(dir<0){let j=i-1;while(j>=0&&items[j].depth>d)j--;return j>=0&&items[j].depth===d;} const end=subEnd(items,i);return end<items.length&&items[end].depth===d;};
   // 마인드맵/트리에서 탭으로 추가 — 하위(child)·다음(sibling)·첫 단계(root)
   const addChild=(i)=>{const nid=newId();setItems(a=>{const arr=[...a];const d=(arr[i]?.depth??0)+1;arr.splice(i+1,0,{id:nid,text:"",depth:d,who:arr[i]?.who||"",done:false});return arr;});setSelId(nid);focusRef.current={id:nid};};
   const addSibling=(i)=>{const nid=newId();setItems(a=>{const arr=[...a];const d=arr[i]?.depth??0;arr.splice(i+1,0,{id:nid,text:"",depth:d,who:arr[i]?.who||"",done:false});return arr;});setSelId(nid);focusRef.current={id:nid};};
@@ -1957,7 +2005,9 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
             </div>
             {sel&&(()=>{const si=items.findIndex(x=>x.id===selId);if(si<0)return null;return(
               <div style={{marginTop:10,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",background:"#fff",borderRadius:12,border:"1px solid #F2F4F6",padding:"10px 12px"}}>
-                <span style={{fontSize:11.5,fontWeight:800,color:"#4B5563",flex:1,minWidth:60,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>선택: 「{sel.text||"새 항목"}」</span>
+                <span style={{fontSize:11.5,fontWeight:800,color:"#4B5563",flex:1,minWidth:50,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>선택: 「{sel.text||"새 항목"}」</span>
+                <button onClick={()=>moveItem(si,-1)} disabled={!hasSib(si,-1)} title="위로" style={{padding:"7px 10px",borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",color:hasSib(si,-1)?"#4B5563":"#D1D5DB",fontSize:12,fontWeight:800,cursor:hasSib(si,-1)?"pointer":"default",fontFamily:"inherit"}}>▲</button>
+                <button onClick={()=>moveItem(si,1)} disabled={!hasSib(si,1)} title="아래로" style={{padding:"7px 10px",borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",color:hasSib(si,1)?"#4B5563":"#D1D5DB",fontSize:12,fontWeight:800,cursor:hasSib(si,1)?"pointer":"default",fontFamily:"inherit"}}>▼</button>
                 <button onClick={()=>addChild(si)} style={{padding:"7px 12px",borderRadius:9,border:"1.5px solid #DDD6FE",background:"#FAF9FF",color:"#7C3AED",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>＋ 하위</button>
                 <button onClick={()=>addSibling(si)} style={{padding:"7px 12px",borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",color:"#4B5563",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>＋ 다음</button>
                 {items.length>1&&<button onClick={()=>{const pv=items[si-1]||items[0];setItems(a=>a.filter((_,k)=>k!==si));setSelId(pv&&pv.id!==selId?pv.id:null);}} title="삭제" style={{padding:"7px 10px",borderRadius:9,border:"1px solid #FFE2E5",background:"#FFF0F1",color:"#F04452",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>⌫</button>}
@@ -1968,8 +2018,12 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
         <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"12px 10px"}} ref={outRef}>
           {items.map((it,i)=>{const m=Mof(it.who);const parent=isP(items,i);const rdone=parent?dd[i]:it.done;return(
             <div key={it.id} style={{display:"flex",alignItems:"center",gap:6,marginLeft:it.depth*20,padding:"3px 6px",borderRadius:9,backgroundColor:it.id===selId?"#FFF7ED":"transparent"}}>
-              <button onClick={()=>indent(i,-1)} style={{border:"none",background:"none",color:"#C4C9D0",fontSize:13,cursor:"pointer",padding:"2px 2px"}}>◂</button>
-              <button onClick={()=>indent(i,1)} style={{border:"none",background:"none",color:"#C4C9D0",fontSize:13,cursor:"pointer",padding:"2px 2px"}}>▸</button>
+              <span style={{display:"flex",flexDirection:"column",flexShrink:0}}>
+                <button onClick={()=>moveItem(i,-1)} disabled={!hasSib(i,-1)} title="위로" style={{border:"none",background:"none",color:hasSib(i,-1)?"#9CA3AF":"#E5E8EB",fontSize:9,cursor:hasSib(i,-1)?"pointer":"default",padding:0,lineHeight:1,height:11}}>▲</button>
+                <button onClick={()=>moveItem(i,1)} disabled={!hasSib(i,1)} title="아래로" style={{border:"none",background:"none",color:hasSib(i,1)?"#9CA3AF":"#E5E8EB",fontSize:9,cursor:hasSib(i,1)?"pointer":"default",padding:0,lineHeight:1,height:11}}>▼</button>
+              </span>
+              <button onClick={()=>indent(i,-1)} title="내어쓰기" style={{border:"none",background:"none",color:"#C4C9D0",fontSize:13,cursor:"pointer",padding:"2px 2px"}}>◂</button>
+              <button onClick={()=>indent(i,1)} title="들여쓰기" style={{border:"none",background:"none",color:"#C4C9D0",fontSize:13,cursor:"pointer",padding:"2px 2px"}}>▸</button>
               {parent
                 ? (()=>{const ks=kidsOf(i);const cdn=ks.filter(k=>dd[k]).length;return(<span title="하위 진행(자동 완료)" style={{minWidth:19,height:19,borderRadius:6,background:rdone?"#00C073":"#EEF1F3",color:rdone?"#fff":"#6B7280",fontSize:9.5,fontWeight:800,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 4px",boxSizing:"border-box"}}>{rdone?"✓":cdn+"/"+ks.length}</span>);})()
                 : <button onClick={()=>toggleDone(it.id)} style={{width:19,height:19,borderRadius:6,border:`2px solid ${it.done?"#00C073":"#D1D5DB"}`,background:it.done?"#00C073":"#fff",color:"#fff",fontSize:11,fontWeight:900,cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>{it.done?"✓":""}</button>}
@@ -2623,7 +2677,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
           <button onClick={doAddProj} disabled={!projForm.title.trim()} style={{width:"100%",padding:"14px 0",borderRadius:14,border:"none",backgroundColor:projForm.title.trim()?"#F97316":"#E5E8EB",color:projForm.title.trim()?"#FFFFFF":"#9CA3AF",fontSize:15,fontWeight:700,cursor:projForm.title.trim()?"pointer":"not-allowed",fontFamily:"inherit"}}>{editProjId?"수정 저장":"프로젝트 추가하기"}</button>
         </div>
       </Sheet>
-      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null})}/>
+      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null})}/>
       <Confirm open={!!confirmTaskId} title="업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmTaskId)?.title}" 업무를 삭제할까요?\n휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmTaskId);setConfirmTaskId(null);}} onCancel={()=>setConfirmTaskId(null)}/>
       <Confirm open={!!projDel} title="프로젝트 삭제" desc={`"${D.projects.find(p=>p.id===projDel)?.title}" 프로젝트를 삭제할까요? 연결된 업무는 남습니다.\n휴지통에서 복구할 수 있어요.`} onOk={()=>{rm("projects",projDel);setProjDel(null);setProjDetail(null);}} onCancel={()=>setProjDel(null)}/>
       <Sheet open={!!actHist} onClose={()=>setActHist(null)} title="📜 활동지표 주차별 이력">
@@ -3759,7 +3813,7 @@ function MindMapPage({D,cu}){
   );
 }
 function FixedPage({D,cu,lead,add,up,rm,nav}){
-  const [form,setForm]=useState({title:"",projectId:"",assigneeId:cu.id,recurType:"daily",weekDay:"월",monthDay:1});
+  const [form,setForm]=useState({title:"",projectId:"",assigneeId:cu.id,recurType:"daily",weekDay:"월",monthDay:1,fixedTime:""});
   const [modal,setModal]=useState(false);
   const [viewAll,setViewAll]=useState(false);
   const [confirmId,setConfirmId]=useState(null);
@@ -3767,13 +3821,13 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
   const fixed=D.tasks.filter(t=>t.isFixed&&(viewAll&&lead?true:t.assigneeId===cu.id));
   const doAdd=()=>{
     if(!form.title.trim()) return;
-    const base={title:form.title.trim(),projectId:form.projectId,type:"fixed",status:"todo",weekSlot:null,isFixed:true,dueDate:"",memo:"",attachments:[],recurType:form.recurType,weekDay:form.recurType==="weekly"?form.weekDay:null,monthDay:form.recurType==="monthly"?Number(form.monthDay):null};
+    const base={title:form.title.trim(),projectId:form.projectId,type:"fixed",status:"todo",weekSlot:null,isFixed:true,dueDate:"",memo:"",attachments:[],recurType:form.recurType,weekDay:form.recurType==="weekly"?form.weekDay:null,monthDay:form.recurType==="monthly"?Number(form.monthDay):null,fixedTime:form.fixedTime||""};
     if(form.assigneeId==="all"){           // 전체 선택 → 전원에게 각각 생성
       D.users.forEach((u,i)=>add("tasks",{id:"t"+Date.now()+"_"+i,...base,assigneeId:u.id}));
     }else{
       add("tasks",{id:"t"+Date.now(),...base,assigneeId:form.assigneeId});
     }
-    setForm({title:"",projectId:"",assigneeId:cu.id,recurType:form.recurType,weekDay:form.weekDay,monthDay:form.monthDay});setModal(false);
+    setForm({title:"",projectId:"",assigneeId:cu.id,recurType:form.recurType,weekDay:form.weekDay,monthDay:form.monthDay,fixedTime:form.fixedTime});setModal(false);
   };
   return(
     <div style={{padding:"14px 16px 20px"}}>
@@ -3805,6 +3859,8 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
                     <div style={{display:"flex",gap:6,marginTop:5,flexWrap:"wrap",alignItems:"center"}}>
                       {proj&&<Badge color="#8B5CF6" bg="#F3EFFE">📁 {proj.title}</Badge>}
                       <Badge color="#F97316" bg="#FFEDD5">🔄 {t.recurType==="weekly"?(t.weekDay||"월")+"요일":t.recurType==="monthly"?"매월 "+(t.monthDay||1)+"일":"매일"}</Badge>
+                      {t.fixedTime&&<Badge color="#0891B2" bg="#E0F2FE">🕐 {t.fixedTime}</Badge>}
+                      {t.doneDate&&t.doneAt&&<Badge color="#00A862" bg="#E8FAF1">✓ {hhmm(t.doneAt)} 체크</Badge>}
                       {viewAll&&user&&<Badge color={user.color} bg={user.color+"22"}>👤 {user.name}</Badge>}
                     </div>
                   </div>
@@ -3820,12 +3876,13 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
         <div style={{marginTop:12}}>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>업무명 *</label><input value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="ex. 벤처나라 문의 확인" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>연결 프로젝트</label><select value={form.projectId} onChange={e=>setForm({...form,projectId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="">없음</option>{D.projects.map(p=><option key={p.id} value={p.id}>{p.title}</option>)}</select></div>
+          <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>🕐 시간 <span style={{color:"#9CA3AF",fontWeight:600}}>(선택 · 예: 09:00)</span></label><input type="time" value={form.fixedTime||""} onChange={e=>setForm({...form,fixedTime:e.target.value})} style={{width:"100%",padding:"11px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>반복 주기</label><div style={{display:"flex",gap:6}}>{[["daily","매일"],["weekly","매주"],["monthly","매월"]].map(([k,l])=>(<button key={k} onClick={()=>setForm({...form,recurType:k})} style={{flex:1,padding:"10px 0",borderRadius:10,border:`1.5px solid ${form.recurType===k?"#F97316":"#E5E8EB"}`,backgroundColor:form.recurType===k?"#FFEDD5":"#FFFFFF",color:form.recurType===k?"#EA580C":"#6B7280",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>))}</div>{form.recurType==="weekly"&&<select value={form.weekDay} onChange={e=>setForm({...form,weekDay:e.target.value})} style={{width:"100%",marginTop:8,padding:"10px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}>{ALL_DAYS.map(d=><option key={d} value={d}>{d}요일</option>)}</select>}{form.recurType==="monthly"&&<select value={form.monthDay} onChange={e=>setForm({...form,monthDay:Number(e.target.value)})} style={{width:"100%",marginTop:8,padding:"10px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}>{Array.from({length:31},(_,i)=>i+1).map(d=><option key={d} value={d}>매월 {d}일</option>)}</select>}</div>
           {lead&&<div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>담당자</label><select value={form.assigneeId} onChange={e=>setForm({...form,assigneeId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="all">⭐ 전체 (전원에게 생성)</option>{D.users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>{form.assigneeId==="all"&&<p style={{margin:"6px 2px 0",fontSize:11,color:"#EA580C",fontWeight:700}}>전 담당자 {D.users.length}명에게 각각 생성됩니다</p>}</div>}
           <Btn full variant="orange" onClick={doAdd} disabled={!form.title.trim()}>추가하기</Btn>
         </div>
       </Sheet>
-      <EditTaskSheet open={!!editTarget} onClose={()=>setEditTarget(null)} task={editTarget} D={D} add={add} onSave={f=>up("tasks",editTarget.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null})}/>
+      <EditTaskSheet open={!!editTarget} onClose={()=>setEditTarget(null)} task={editTarget} D={D} add={add} onSave={f=>up("tasks",editTarget.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null})}/>
       <Confirm open={!!confirmId} title="고정업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmId)?.title}" 업무를 삭제할까요?\n휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmId);setConfirmId(null);}} onCancel={()=>setConfirmId(null)}/>
     </div>
   );

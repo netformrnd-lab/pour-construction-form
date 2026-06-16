@@ -2179,7 +2179,7 @@ function ManualCard({m,D,up,rm,startFromManual}){
     </div>
   );
 }
-function ProjectRoadmap({D,proj,up,add,onClose,onOpenProcess}){
+function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
   const team=proj.projType?proj.projType==="team":(proj.collaboratorIds||[]).length>0;
   const srcMan=proj.sourceManualId&&(D.manuals||[]).find(m=>m.id===proj.sourceManualId);   // 역링크: 살아있는 매뉴얼(있으면 갱신 가능)
   const srcGone=!srcMan&&proj.sourceManualName;   // 매뉴얼이 삭제됐어도 박제된 이름으로 기록 유지
@@ -2195,6 +2195,33 @@ function ProjectRoadmap({D,proj,up,add,onClose,onOpenProcess}){
   const cpct=sid=>{const ks=D.tasks.filter(t=>t.parentId===sid&&!t.isFixed);if(ks.length)return Math.round(ks.filter(t=>t.status==="done").length/ks.length*100);return (stages.find(s=>s.id===sid)?.status==="done")?100:0;};
   const kidsOf=(pid)=>D.tasks.filter(t=>t.parentId===pid&&!t.isFixed).sort((a,b)=>(a.seq||0)-(b.seq||0));
   const addStage=()=>{add("tasks",{id:"t"+Date.now(),projectId:proj.id,parentId:null,seq:stages.length,title:"새 국면",status:"todo",isFixed:false,assigneeId:"",estDays:0,discuss:"",custJourney:"",painPoint:"",satisfaction:null,memo:"",dueDate:"",attachments:[]});};
+  // 계층형 안에서 바로 수정 — 업무 추가·상태·담당·정렬·삭제
+  const nid=()=>"t"+Date.now()+Math.random().toString(36).slice(2,5);
+  const addKid=(parentId)=>add("tasks",{id:nid(),projectId:proj.id,parentId,seq:kidsOf(parentId).length,title:"새 업무",status:"todo",isFixed:false,assigneeId:"",memo:"",dueDate:"",attachments:[]});
+  const STATUS_ORDER=["todo","inprogress","done"];
+  const cycleStatus=(t)=>{const nx=STATUS_ORDER[(STATUS_ORDER.indexOf(t.status)+1)%STATUS_ORDER.length];up("tasks",t.id,nx==="done"?{status:nx,doneAt:new Date().toISOString(),doneByName:(D.users.find(u=>u.id===t.assigneeId)||{}).name||""}:{status:nx});};
+  const cycleAssignee=(t)=>{const ids=MEM.map(m=>m.id);up("tasks",t.id,{assigneeId:ids[(ids.indexOf(t.assigneeId||"")+1)%ids.length]});};
+  const moveSib=(t,dir)=>{const sibs=t.parentId?kidsOf(t.parentId):stages;const i=sibs.findIndex(x=>x.id===t.id);const j=i+dir;if(j<0||j>=sibs.length)return;const arr=sibs.slice();[arr[i],arr[j]]=[arr[j],arr[i]];arr.forEach((x,k)=>up("tasks",x.id,{seq:k}));};
+  const delTask=(t)=>{const has=kidsOf(t.id).length;if(!window.confirm(`'${t.title||"업무"}'${has?` 및 하위 ${has}개`:""}를 삭제할까요?`))return;const ids=[];const g=(id)=>{ids.push(id);kidsOf(id).forEach(c=>g(c.id));};g(t.id);ids.forEach(id=>rm&&rm("tasks",id,true));};
+  const arrowBtn={background:"none",border:"none",cursor:"pointer",fontSize:11,color:"#9CA3AF",padding:"0 2px",lineHeight:1,flexShrink:0,fontFamily:"inherit"};
+  const renderTask=(t,depth)=>{
+    const ks=kidsOf(t.id);const st=STATUS_MAP[t.status]||STATUS_MAP.todo;const a=Mof(t.assigneeId);
+    const sibs=kidsOf(t.parentId);const i=sibs.findIndex(x=>x.id===t.id);
+    return(
+      <div key={t.id} style={{marginLeft:depth*11}}>
+        <div style={{display:"flex",alignItems:"center",gap:4,padding:"2px 0"}}>
+          <button onClick={()=>cycleStatus(t)} title={st.label} style={{width:16,height:16,borderRadius:5,border:`2px solid ${st.color}`,background:t.status==="done"?st.color:"#fff",color:"#fff",fontSize:9,fontWeight:900,cursor:"pointer",flexShrink:0,padding:0,lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center"}}>{t.status==="done"?"✓":t.status==="inprogress"?"·":""}</button>
+          <input key={t.id+"ti"} defaultValue={t.title||""} onBlur={e=>up("tasks",t.id,{title:e.target.value})} placeholder="업무명" style={{flex:1,minWidth:0,border:"none",fontSize:12,fontWeight:600,color:t.status==="done"?"#9CA3AF":"#1F2937",textDecoration:t.status==="done"?"line-through":"none",outline:"none",fontFamily:"inherit",background:"transparent",padding:"3px 0"}}/>
+          {team&&<button onClick={()=>cycleAssignee(t)} title="담당자 변경" style={{flexShrink:0,width:16,height:16,borderRadius:"50%",background:t.assigneeId?a.color:"#E5E8EB",color:"#fff",fontSize:7.5,fontWeight:800,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>{t.assigneeId?gname(a.name):"+"}</button>}
+          <button onClick={()=>moveSib(t,-1)} disabled={i<=0} style={{...arrowBtn,opacity:i<=0?0.25:1}}>▲</button>
+          <button onClick={()=>moveSib(t,1)} disabled={i>=sibs.length-1} style={{...arrowBtn,opacity:i>=sibs.length-1?0.25:1}}>▼</button>
+          <button onClick={()=>addKid(t.id)} title="하위 추가" style={arrowBtn}>＋</button>
+          <button onClick={()=>delTask(t)} title="삭제" style={{...arrowBtn,color:"#F0445299"}}>🗑</button>
+        </div>
+        {ks.map(k=>renderTask(k,depth+1))}
+      </div>
+    );
+  };
   const setEst=(s,v)=>up("tasks",s.id,{estDays:Math.max(0,Math.round((Number(v)||0)*perDay))});
   const saveManual=()=>{
     const tree=buildManualTree(D,proj.id);
@@ -2280,7 +2307,12 @@ function ProjectRoadmap({D,proj,up,add,onClose,onOpenProcess}){
                   {/* 펼침: 편집 + 업무여정 트리 */}
                   {open&&(
                     <div style={{padding:"4px 13px 14px",borderTop:"1px solid #F4F4F5"}}>
-                      <div style={{display:"flex",gap:8,margin:"10px 0",alignItems:"flex-end",flexWrap:"wrap"}}>
+                      <div style={{display:"flex",gap:5,justifyContent:"flex-end",marginTop:8}}>
+                        <button onClick={()=>moveSib(s,-1)} disabled={idx<=0} style={{...arrowBtn,opacity:idx<=0?0.25:1,fontSize:12}}>▲ 위</button>
+                        <button onClick={()=>moveSib(s,1)} disabled={idx>=stages.length-1} style={{...arrowBtn,opacity:idx>=stages.length-1?0.25:1,fontSize:12}}>▼ 아래</button>
+                        <button onClick={()=>{delTask(s);setSelId(null);}} style={{...arrowBtn,fontSize:11,color:"#F04452",fontWeight:700}}>🗑 국면 삭제</button>
+                      </div>
+                      <div style={{display:"flex",gap:8,margin:"6px 0 10px",alignItems:"flex-end",flexWrap:"wrap"}}>
                         <div style={{flex:"1 1 150px",minWidth:120}}><label style={{display:"block",fontSize:10.5,fontWeight:800,color:"#4B5563",marginBottom:4}}>국면명</label>
                           <input key={s.id+"t"} defaultValue={s.title||""} onBlur={e=>up("tasks",s.id,{title:e.target.value})} style={{width:"100%",padding:"9px 11px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:13,fontWeight:700,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
                         <div style={{flex:"0 0 110px"}}><label style={{display:"block",fontSize:10.5,fontWeight:800,color:"#4B5563",marginBottom:4}}>예상({unit})</label>
@@ -2292,28 +2324,16 @@ function ProjectRoadmap({D,proj,up,add,onClose,onOpenProcess}){
                           {MEM.map(mm=>{const on=s.assigneeId===mm.id;return(<button key={mm.id||"n"} onClick={()=>up("tasks",s.id,{assigneeId:mm.id})} style={{display:"flex",alignItems:"center",gap:4,padding:"5px 9px",borderRadius:20,border:`1.5px solid ${on?mm.color:"#E5E8EB"}`,background:on?mm.color+"18":"#fff",cursor:"pointer",fontFamily:"inherit"}}><span style={{width:15,height:15,borderRadius:"50%",backgroundColor:mm.color,color:"#fff",fontSize:8,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{gname(mm.name)}</span><span style={{fontSize:11,fontWeight:700,color:on?mm.color:"#4B5563"}}>{mm.name}</span></button>);})}
                         </div>
                       </>)}
-                      {/* 두 트랙 입력 */}
-                      <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
-                        <div style={{flex:"1 1 200px",minWidth:160}}>
-                          <label style={{display:"block",fontSize:10.5,fontWeight:800,color:"#0891B2",marginBottom:4}}>🧑 고객여정 <span style={{fontWeight:600,color:"#9CA3AF"}}>(고객이 겪는 것)</span></label>
-                          <textarea key={s.id+"cj"} defaultValue={s.custJourney||""} onBlur={e=>up("tasks",s.id,{custJourney:e.target.value})} placeholder="예: 상세페이지에서 사이즈 정보를 못 찾아 이탈" style={{width:"100%",padding:"9px 11px",borderRadius:9,border:"1.5px solid #CDEAF2",background:"#F7FCFE",fontSize:12.5,resize:"vertical",minHeight:54,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
-                        </div>
-                        <div style={{flex:"1 1 200px",minWidth:160}}>
-                          <label style={{display:"block",fontSize:10.5,fontWeight:800,color:"#7C3AED",marginBottom:4}}>🛠 업무여정 <span style={{fontWeight:600,color:"#9CA3AF"}}>(우리가 하는 실행)</span></label>
-                          <div style={{padding:"7px 9px",borderRadius:9,border:"1.5px solid #E7E1FB",background:"#FBFAFF",minHeight:54,boxSizing:"border-box"}}>
-                            {kids.length===0?<p style={{margin:"6px 2px",fontSize:11,color:"#C4C9D0"}}>실행 업무 없음 · 아래 🧩프로세스 편집에서 추가</p>:kids.map(k=>{const st=STATUS_MAP[k.status]||STATUS_MAP.todo;const ka=Mof(k.assigneeId);const gk=kidsOf(k.id);return(
-                              <div key={k.id} style={{padding:"2px 0"}}>
-                                <div style={{display:"flex",alignItems:"center",gap:5}}>
-                                  <span style={{width:5,height:5,borderRadius:"50%",background:st.color,flexShrink:0}}/>
-                                  <span style={{flex:1,minWidth:0,fontSize:11.5,fontWeight:600,color:k.status==="done"?"#9CA3AF":"#1F2937",textDecoration:k.status==="done"?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{k.title||"업무"}</span>
-                                  {team&&k.assigneeId&&<span style={{width:13,height:13,borderRadius:"50%",background:ka.color,color:"#fff",fontSize:7.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{gname(ka.name)}</span>}
-                                  <span style={{fontSize:8.5,fontWeight:700,color:st.color,background:st.bg,borderRadius:4,padding:"0px 4px",flexShrink:0}}>{st.label}</span>
-                                </div>
-                                {gk.length>0&&<div style={{marginLeft:10,borderLeft:"1.5px dashed #E5E8EB",paddingLeft:7}}>{gk.map(g=>{const gs=STATUS_MAP[g.status]||STATUS_MAP.todo;return(<div key={g.id} style={{display:"flex",alignItems:"center",gap:4,padding:"1px 0"}}><span style={{width:4,height:4,borderRadius:"50%",background:gs.color,flexShrink:0}}/><span style={{flex:1,minWidth:0,fontSize:10.5,color:g.status==="done"?"#B0B8C1":"#4B5563",textDecoration:g.status==="done"?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.title}</span></div>);})}</div>}
-                              </div>
-                            );})}
-                          </div>
-                        </div>
+                      {/* 트랙1 — 고객여정 */}
+                      <label style={{display:"block",fontSize:10.5,fontWeight:800,color:"#0891B2",marginBottom:4}}>🧑 고객여정 <span style={{fontWeight:600,color:"#9CA3AF"}}>(고객이 겪는 것)</span></label>
+                      <textarea key={s.id+"cj"} defaultValue={s.custJourney||""} onBlur={e=>up("tasks",s.id,{custJourney:e.target.value})} placeholder="예: 상세페이지에서 사이즈 정보를 못 찾아 이탈" style={{width:"100%",padding:"9px 11px",borderRadius:9,border:"1.5px solid #CDEAF2",background:"#F7FCFE",fontSize:12.5,resize:"vertical",minHeight:48,outline:"none",fontFamily:"inherit",boxSizing:"border-box",marginBottom:12}}/>
+                      {/* 트랙2 — 업무여정 (계층형 인라인 편집) */}
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:5,gap:8}}>
+                        <label style={{fontSize:10.5,fontWeight:800,color:"#7C3AED"}}>🛠 업무여정 <span style={{fontWeight:600,color:"#9CA3AF"}}>(실행 — 계층형 편집)</span></label>
+                        <button onClick={()=>addKid(s.id)} style={{flexShrink:0,padding:"4px 10px",borderRadius:8,border:"1.5px solid #DDD6FE",background:"#FAF9FF",color:"#7C3AED",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>＋ 업무</button>
+                      </div>
+                      <div style={{padding:"7px 9px",borderRadius:9,border:"1.5px solid #E7E1FB",background:"#FBFAFF",minHeight:48,boxSizing:"border-box",marginBottom:12}}>
+                        {kids.length===0?<p style={{margin:"6px 2px",fontSize:11,color:"#C4C9D0"}}>실행 업무 없음 · [＋ 업무]로 추가하세요</p>:kids.map(k=>renderTask(k,0))}
                       </div>
                       {/* 만족도 · 불편점 (개선 루프) */}
                       <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10,flexWrap:"wrap"}}>
@@ -2508,7 +2528,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
           </div>
         );
       })()}
-      {roadmapProj&&<ProjectRoadmap D={D} proj={roadmapProj} up={up} add={add} onClose={()=>setRoadmapProj(null)} onOpenProcess={(p)=>{setRoadmapProj(null);setProcessProj(p);}}/>}
+      {roadmapProj&&<ProjectRoadmap D={D} proj={roadmapProj} up={up} add={add} rm={rm} onClose={()=>setRoadmapProj(null)} onOpenProcess={(p)=>{setRoadmapProj(null);setProcessProj(p);}}/>}
       {processProj&&<ProjectProcessEditor D={D} proj={processProj} cu={cu} add={add} up={up} rm={rm} onClose={()=>setProcessProj(null)}/>}
     </div>
   );

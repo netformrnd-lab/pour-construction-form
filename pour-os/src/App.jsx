@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { STATE_DOC, colDoc, META_DOC, extDoc, getDoc, onSnapshot, setDoc, uploadTaskPhoto, deleteTaskPhoto } from "./firebase.js";
+import { STATE_DOC, colDoc, META_DOC, extDoc, extCol, getDoc, getDocs, onSnapshot, setDoc, uploadTaskPhoto, deleteTaskPhoto } from "./firebase.js";
 
 // Firestore 단일 문서에 저장할 공유 데이터 키 (currentUser는 기기별 로컬이라 제외)
 const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","weekGoals","launchTemplates","manuals","trash"];
@@ -903,6 +903,8 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const [quickProj,setQuickProj]=useState("");
   const [confirmTaskId,setConfirmTaskId]=useState(null);
   const [editTask,setEditTask]=useState(null);
+  const [projModal,setProjModal]=useState(null);     // 오늘에서 프로젝트 상세·수정 모달
+  const [processProj,setProcessProj]=useState(null); // 모달에서 프로세스 편집 진입
   const [feedOpen,setFeedOpen]=useState(false);
   const [weeklyOpen,setWeeklyOpen]=useState(false);
   const [showHeld,setShowHeld]=useState(false);
@@ -1287,7 +1289,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                 const myTodo=ts.some(t=>t.assigneeId===cu.id&&t.status==="todo");
                 const bd=mineTurn?{l:"내 차례",c:"#EA580C",bg:"#FFF7ED"}:allDone?{l:"완료",c:"#00A862",bg:"#E8FAF1"}:myInprog?{l:"진행 중",c:"#3182F6",bg:"#EBF3FF"}:myTodo?{l:"할 일",c:"#6B7280",bg:"#F2F4F6"}:{l:"대기",c:"#9CA3AF",bg:"#F2F4F6"};
                 return(
-                  <div key={pr.id} onClick={()=>nav("projects")} style={{padding:"11px 12px",borderRadius:12,border:`1px solid ${mineTurn?"#FED7AA":"#EEF1F4"}`,backgroundColor:mineTurn?"#FFFBF5":"#F9FAFB",cursor:"pointer"}}>
+                  <div key={pr.id} onClick={()=>setProjModal(pr)} style={{padding:"11px 12px",borderRadius:12,border:`1px solid ${mineTurn?"#FED7AA":"#EEF1F4"}`,backgroundColor:mineTurn?"#FFFBF5":"#F9FAFB",cursor:"pointer"}}>
                     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
                       <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pr.title}</span>
                       <span style={{flexShrink:0,fontSize:10,fontWeight:800,color:bd.c,background:bd.bg,borderRadius:6,padding:"2px 8px"}}>{bd.l}</span>
@@ -1347,6 +1349,77 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
       )}
       <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null})}/>
       <Confirm open={!!confirmTaskId} title="업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmTaskId)?.title}" 업무를 삭제할까요?\n휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmTaskId);setConfirmTaskId(null);}} onCancel={()=>setConfirmTaskId(null)}/>
+      {projModal&&(()=>{
+        const pm=D.projects.find(p=>p.id===projModal.id)||projModal;
+        const pts=D.tasks.filter(t=>t.projectId===pm.id&&!t.isFixed);
+        const cc={todo:0,inprogress:0,done:0,hold:0}; pts.forEach(t=>{if(cc[t.status]!=null)cc[t.status]++;});
+        const mk=D.mainKPIs.find(m=>m.id===pm.mainKPIId); const sk=D.subKPIs.find(s=>s.id===pm.subKPIId);
+        const asg=D.users.find(u=>u.id===pm.assigneeId);
+        const pColor=pm.priority==="high"?"#F04452":pm.priority==="mid"?"#FF9500":"#9CA3AF";
+        const STC=[["todo","미완료","#EA580C"],["inprogress","진행중","#3182F6"],["done","완료","#00A862"],["hold","보류","#FF9500"]];
+        const prog=pm.progress||0;
+        return(
+        <Sheet open={true} onClose={()=>setProjModal(null)} title="프로젝트 상세 · 수정" h="92vh">
+          <div style={{marginTop:6}}>
+            <input key={pm.id+"t"} defaultValue={pm.title} onBlur={e=>e.target.value.trim()&&up("projects",pm.id,{title:e.target.value.trim()})} style={{width:"100%",padding:"11px 13px",borderRadius:11,fontSize:15,fontWeight:800,color:"#0F1F5C",border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:10}}/>
+            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:12,flexWrap:"wrap"}}>
+              {sk&&<Badge color="#8B5CF6" bg="#F3EFFE">{mk?.krKey?mk.krKey+" · ":""}{sk.channelCode}</Badge>}
+              {pm.goalType&&GOAL_TYPE[pm.goalType]&&<Badge color={GOAL_TYPE[pm.goalType].c} bg={GOAL_TYPE[pm.goalType].bg}>{GOAL_TYPE[pm.goalType].l}</Badge>}
+              {pm.dealerType&&DT[pm.dealerType]&&<Badge color={DT[pm.dealerType].color} bg={DT[pm.dealerType].color+"18"}>🏷 {pm.dealerType}</Badge>}
+              {pm.group&&<span style={{fontSize:11,color:"#9CA3AF"}}>· {pm.group}</span>}
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+              <span style={{fontSize:11.5,fontWeight:800,color:"#4B5563"}}>담당</span>
+              <Ava name={asg?.name} color={asg?.color} size={24}/><span style={{fontSize:12,fontWeight:700,color:"#374151"}}>{asg?.name||"미배정"}</span>
+              {(pm.collaboratorIds||[]).map(cid=>{const u=D.users.find(x=>x.id===cid);return u?<Ava key={cid} name={u.name} color={u.color} size={20}/>:null;})}
+            </div>
+            {/* 진행률 */}
+            <div style={{padding:"11px 13px",borderRadius:12,background:"#F9FAFB",border:"1px solid #F2F4F6",marginBottom:12}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
+                <span style={{fontSize:12,fontWeight:800,color:"#4B5563"}}>진척</span>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  {pm.progressManual?(<>
+                    <button onClick={()=>up("projects",pm.id,{progress:Math.max(0,prog-10),progressManual:true})} style={{width:26,height:26,borderRadius:8,border:"1px solid #E5E8EB",background:"#fff",fontSize:15,fontWeight:900,color:"#4B5563",cursor:"pointer",padding:0}}>−</button>
+                    <span style={{fontSize:14,fontWeight:900,color:"#3182F6",minWidth:42,textAlign:"center"}}>{prog}%</span>
+                    <button onClick={()=>up("projects",pm.id,{progress:Math.min(100,prog+10),progressManual:true})} style={{width:26,height:26,borderRadius:8,border:"1px solid #E5E8EB",background:"#fff",fontSize:15,fontWeight:900,color:"#4B5563",cursor:"pointer",padding:0}}>＋</button>
+                    <button onClick={()=>{const auto=pts.length?Math.round(pts.filter(t=>t.status==="done").length/pts.length*100):prog;up("projects",pm.id,{progressManual:false,progress:auto});}} style={{padding:"4px 8px",borderRadius:7,border:"1px solid #E5E8EB",background:"#fff",fontSize:10.5,fontWeight:700,color:"#8B5CF6",cursor:"pointer",fontFamily:"inherit"}}>🔄 자동</button>
+                  </>):(<>
+                    <span style={{fontSize:14,fontWeight:900,color:prog>=70?"#00C073":"#3182F6"}}>{prog}%</span>
+                    <span style={{fontSize:10,fontWeight:700,color:"#00C073",background:"#E8FAF1",padding:"3px 7px",borderRadius:7}}>자동 {pts.filter(t=>t.status==="done").length}/{pts.length}</span>
+                    <button onClick={()=>up("projects",pm.id,{progressManual:true})} style={{padding:"4px 8px",borderRadius:7,border:"1px solid #E5E8EB",background:"#fff",fontSize:10.5,fontWeight:700,color:"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>✎ 수동</button>
+                  </>)}
+                </div>
+              </div>
+              <PBar value={prog} color={prog>=70?"#00C073":"#3182F6"} h={6}/>
+              <div style={{display:"flex",gap:9,marginTop:9,flexWrap:"wrap"}}>{STC.map(([k,l,col])=><span key={k} style={{fontSize:10.5,fontWeight:700,color:cc[k]>0?col:"#C4C9D0"}}>{l} {cc[k]}</span>)}</div>
+            </div>
+            {/* 우선순위 */}
+            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:10}}>
+              <span style={{fontSize:11.5,fontWeight:800,color:"#4B5563",flexShrink:0}}>우선순위</span>
+              {[["high","🔴 높음","#F04452"],["mid","🟡 중간","#FF9500"],["low","🟢 낮음","#9CA3AF"]].map(([k,l,c])=>{const on=(pm.priority||"mid")===k;return(<button key={k} onClick={()=>up("projects",pm.id,{priority:k})} style={{padding:"6px 10px",borderRadius:9,border:`1.5px solid ${on?c:"#E5E8EB"}`,background:on?c+"18":"#fff",color:on?c:"#9CA3AF",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>);})}
+            </div>
+            {/* 거래처유형 */}
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+              <span style={{fontSize:11.5,fontWeight:800,color:"#4B5563",flexShrink:0}}>🏷 거래처유형</span>
+              <select value={pm.dealerType||""} onChange={e=>up("projects",pm.id,{dealerType:e.target.value})} style={{flex:1,padding:"8px 10px",borderRadius:9,fontSize:12,fontWeight:700,border:"1.5px solid #E5E8EB",outline:"none",background:"#fff",color:pm.dealerType?(DT[pm.dealerType]?.color||"#111827"):"#9CA3AF",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="">미지정</option>{DEALER_TYPES.map(d=><option key={d.code} value={d.code}>{d.code} · {d.label}</option>)}</select>
+            </div>
+            {/* 업무 목록 */}
+            <p style={{margin:"0 0 7px",fontSize:12,fontWeight:800,color:"#6B7280"}}>업무 {pts.length} <span style={{fontWeight:600,color:"#9CA3AF"}}>(탭하면 수정)</span></p>
+            <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:14}}>
+              {pts.length===0?<p style={{margin:0,padding:"10px 0",textAlign:"center",fontSize:11.5,color:"#B0B8C1"}}>업무가 없어요 · 아래 프로세스로 만들 수 있어요</p>:pts.map(t=>{const st=STATUS_MAP[t.status];const tu=D.users.find(u=>u.id===t.assigneeId);return(
+                <div key={t.id} onClick={()=>{setProjModal(null);setEditTask(t);}} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 11px",borderRadius:10,background:"#F9FAFB",border:"1px solid #EEF1F4",cursor:"pointer"}}>
+                  <span style={{flexShrink:0,fontSize:9.5,fontWeight:800,color:st.color,background:st.bg,borderRadius:5,padding:"2px 6px"}}>{st.label}</span>
+                  <span style={{flex:1,minWidth:0,fontSize:12.5,fontWeight:700,color:t.status==="done"?"#9CA3AF":"#1F2937",textDecoration:t.status==="done"?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}</span>
+                  {tu&&<Ava name={tu.name} color={tu.color} size={18}/>}
+                </div>);})}
+            </div>
+            <button onClick={()=>{setProcessProj(pm);setProjModal(null);}} style={{width:"100%",padding:"11px 0",borderRadius:11,border:"1.5px solid #DDD6FE",background:"#FAF9FF",color:"#7C3AED",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit",marginBottom:8}}>🧩 프로세스 편집 (단계·담당자·인계)</button>
+            <button onClick={()=>{setProjModal(null);nav("projects");}} style={{width:"100%",padding:"10px 0",borderRadius:11,border:"1px solid #E5E8EB",background:"#fff",color:"#6B7280",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>📋 프로젝트 탭에서 전체 관리</button>
+          </div>
+        </Sheet>
+        );
+      })()}
+      {processProj&&<ProjectProcessEditor D={D} proj={processProj} cu={cu} add={add} up={up} rm={rm} onClose={()=>setProcessProj(null)}/>}
     </div>
   );
 }
@@ -3506,26 +3579,28 @@ function TeamPage({D,cu,lead,add,up,rm}){
     setName("");
   };
   const [syncing,setSyncing]=useState(false);
-  // 외부 마스터(admin 담당자 관리 = config/staffList)에서 이름 매칭 후 미등록자만 가져옴(읽기전용 — 기존 배정 안전)
+  // 외부 마스터(어드민센터 담당자 관리 = staff 컬렉션)에서 이름 매칭 후 미등록자만 가져옴(읽기전용 — 기존 배정 안전)
   const norm=(s)=>(s||"").replace(/\s/g,"");
   const syncStaff=async()=>{
     setSyncing(true);
     try{
-      const snap=await getDoc(extDoc("config","staffList"));
-      const d=snap.exists()?snap.data():{};
-      const list=Array.isArray(d.list)?d.list:Array.isArray(d.staff)?d.staff:Array.isArray(d)?d:[];
-      console.log(`[staffList] ${list.length}건`);
-      if(!list.length){ window.alert("외부 담당자 관리(config/staffList)에 데이터가 없어요."); setSyncing(false); return; }
+      // 어드민센터 담당자 마스터 = 'staff' 컬렉션(각 담당자 1문서). pour-os 멤버는 kpiMemberId(또는 이름)로 매칭.
+      const snap=await getDocs(extCol("staff"));
+      const list=snap.docs.map(d=>({id:d.id,...d.data()}));
+      console.log(`[staff] ${list.length}명 로드`);
+      if(!list.length){ window.alert("어드민센터 담당자 관리(staff)에 데이터가 없어요."); setSyncing(false); return; }
       const active=list.filter(s=>s.active!==false&&(s.name||"").trim());
-      const toAdd=active.filter(s=>{const nm=norm(s.name);return nm&&!users.some(u=>{const un=norm(u.name);return un===nm||un.includes(nm)||nm.includes(un);});});
-      if(!toAdd.length){ window.alert(`외부 담당자 ${active.length}명 모두 이미 등록돼 있어요.`); setSyncing(false); return; }
-      if(window.confirm(`외부 담당자 관리에서 ${toAdd.length}명을 가져올까요?\n\n${toAdd.map(s=>"· "+s.name).join("\n")}`)){
+      const matched=(s)=>{const sid=(s.kpiMemberId||s.id||"").trim();const nm=norm(s.name);return users.some(u=>(sid&&u.id===sid)||(nm&&(()=>{const un=norm(u.name);return un===nm||un.includes(nm)||nm.includes(un);})()));};
+      const toAdd=active.filter(s=>!matched(s));
+      if(!toAdd.length){ window.alert(`어드민 담당자 ${active.length}명 모두 이미 등록돼 있어요.`); setSyncing(false); return; }
+      if(window.confirm(`어드민센터 담당자 관리(staff)에서 ${toAdd.length}명을 가져올까요?\n\n${toAdd.map(s=>"· "+s.name).join("\n")}`)){
         const used=new Set(users.map(u=>u.color));
-        toAdd.forEach((s,i)=>{ const col=USER_PALETTE.find(c=>!used.has(c))||USER_PALETTE[(users.length+i)%USER_PALETTE.length]; used.add(col);
-          add("users",{id:"u"+Date.now()+"_"+i,name:s.name.trim(),color:col,role:s.isMaster||s.role==="lead"?"member":"member",staffKey:s.key||s.id||"",email:s.email||"",phone:s.phone||""}); });
+        toAdd.forEach((s,i)=>{ const col=s.kpiColor||USER_PALETTE.find(c=>!used.has(c))||USER_PALETTE[(users.length+i)%USER_PALETTE.length]; used.add(col);
+          const uid=(s.kpiMemberId||s.id||("u"+Date.now()+"_"+i)).trim();   // kpiMemberId = pour-os 멤버 id (어드민과 자동 연결)
+          add("users",{id:uid,name:s.name.trim(),color:col,role:"member",staffId:s.id,email:s.email||"",phone:s.phone||""}); });
         window.alert(`${toAdd.length}명을 가져왔어요. 이제 모든 담당자 선택지에 노출됩니다.`);
       }
-    }catch(e){ console.error("[staffList sync] 실패:",e); window.alert("가져오기 실패 — 외부 담당자 관리에 접근할 수 없어요.\n("+(e.code||e.message||e)+")"); }
+    }catch(e){ console.error("[staff sync] 실패:",e); window.alert("가져오기 실패 — 어드민센터 담당자(staff)에 접근할 수 없어요.\n("+(e.code||e.message||e)+")"); }
     setSyncing(false);
   };
   const startEdit=(u)=>{setEditId(u.id);setEditName(u.name);};
@@ -3545,7 +3620,7 @@ function TeamPage({D,cu,lead,add,up,rm}){
         <input value={name} onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addUser()} placeholder="새 담당자 이름 (예: 김하늘)" style={{flex:1,padding:"11px 13px",borderRadius:11,border:"1.5px solid #E5E8EB",fontSize:13.5,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
         <button onClick={addUser} disabled={!name.trim()} style={{flexShrink:0,padding:"0 16px",borderRadius:11,border:"none",background:name.trim()?"#F97316":"#E5E8EB",color:name.trim()?"#fff":"#9CA3AF",fontSize:13.5,fontWeight:800,cursor:name.trim()?"pointer":"not-allowed",fontFamily:"inherit"}}>+ 추가</button>
       </div>
-      <button onClick={syncStaff} disabled={syncing} style={{width:"100%",marginBottom:14,padding:"10px 0",borderRadius:11,border:"1.5px solid #DBE3FF",background:"#F5F8FF",color:"#3182F6",fontSize:12.5,fontWeight:800,cursor:syncing?"default":"pointer",fontFamily:"inherit"}}>{syncing?"가져오는 중…":"🔄 외부 담당자 관리에서 가져오기 (config/staffList)"}</button>
+      <button onClick={syncStaff} disabled={syncing} style={{width:"100%",marginBottom:14,padding:"10px 0",borderRadius:11,border:"1.5px solid #DBE3FF",background:"#F5F8FF",color:"#3182F6",fontSize:12.5,fontWeight:800,cursor:syncing?"default":"pointer",fontFamily:"inherit"}}>{syncing?"가져오는 중…":"🔄 어드민센터 담당자 관리에서 가져오기 (staff)"}</button>
       <p style={{margin:"0 0 8px",fontSize:11,fontWeight:800,color:"#6B7280"}}>전체 {users.length}명</p>
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         {users.map(u=>{

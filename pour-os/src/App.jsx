@@ -1114,8 +1114,8 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
       {myReadyLaunch.length>0&&(
         <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #FED7AA",marginBottom:14}}>
           <div onClick={()=>nav("launch")} style={{marginBottom:12,cursor:"pointer"}}>
-            <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#EA580C"}}>🔔 출시 인계 — 내 차례 ({myReadyLaunch.length})</h3>
-            <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>앞 단계가 끝나 내게 넘어온 출시 단계예요 · 완료하면 다음 담당자에게 인계됩니다</p>
+            <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#EA580C"}}>🔔 인계 — 내 차례 ({myReadyLaunch.length})</h3>
+            <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>앞 단계가 끝나 내게 넘어온 단계예요 · 완료하면 다음 담당자에게 인계됩니다</p>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:7}}>
             {myReadyLaunch.map(({proj,task})=>(
@@ -1175,6 +1175,43 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                   </div>);})}
               </div>
             )}
+          </div>
+        );
+      })()}
+      {myProjs.length>0&&(()=>{
+        const readyProjIds=new Set(myReadyLaunch.map(r=>r.proj.id));
+        const CC=[["todo","미완료","#EA580C"],["inprogress","진행중","#3182F6"],["done","완료","#00A862"],["hold","보류","#FF9500"]];
+        const projRank=(pr)=>{const ts=D.tasks.filter(t=>t.projectId===pr.id&&!t.isFixed);if(readyProjIds.has(pr.id))return 0;if(ts.some(t=>t.assigneeId===cu.id&&t.status!=="done"&&t.status!=="hold"))return 1;if(ts.length>0&&ts.every(t=>t.status==="done"))return 3;return 2;};
+        const sortedProjs=[...myProjs].sort((a,b)=>projRank(a)-projRank(b)||(b.progress||0)-(a.progress||0));
+        return(
+          <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #F2F4F6",marginBottom:14}}>
+            <div style={{marginBottom:10}}>
+              <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#0F1F5C"}}>📁 내 프로젝트 현황 ({myProjs.length})</h3>
+              <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>대기/내 차례 · 상태별 업무 현황 (탭하면 프로젝트로 이동)</p>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {sortedProjs.map(pr=>{
+                const ts=D.tasks.filter(t=>t.projectId===pr.id&&!t.isFixed);
+                const c={todo:0,inprogress:0,done:0,hold:0}; ts.forEach(t=>{if(c[t.status]!=null)c[t.status]++;});
+                const mineTurn=readyProjIds.has(pr.id);
+                const allDone=ts.length>0&&ts.every(t=>t.status==="done");
+                const myOpen=ts.some(t=>t.assigneeId===cu.id&&t.status!=="done"&&t.status!=="hold");
+                const bd=mineTurn?{l:"내 차례",c:"#EA580C",bg:"#FFF7ED"}:allDone?{l:"완료",c:"#00A862",bg:"#E8FAF1"}:myOpen?{l:"진행 중",c:"#3182F6",bg:"#EBF3FF"}:{l:"대기",c:"#9CA3AF",bg:"#F2F4F6"};
+                return(
+                  <div key={pr.id} onClick={()=>nav("projects")} style={{padding:"11px 12px",borderRadius:12,border:`1px solid ${mineTurn?"#FED7AA":"#EEF1F4"}`,backgroundColor:mineTurn?"#FFFBF5":"#F9FAFB",cursor:"pointer"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
+                      <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pr.title}</span>
+                      <span style={{flexShrink:0,fontSize:10,fontWeight:800,color:bd.c,background:bd.bg,borderRadius:6,padding:"2px 8px"}}>{bd.l}</span>
+                      <span style={{flexShrink:0,fontSize:12,fontWeight:900,color:(pr.progress||0)>=70?"#00C073":"#3182F6"}}>{pr.progress||0}%</span>
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7,flexWrap:"wrap"}}>
+                      {CC.map(([k,l,col])=>(<span key={k} style={{fontSize:10.5,fontWeight:700,color:c[k]>0?col:"#C4C9D0"}}>{l} {c[k]}</span>))}
+                    </div>
+                    <PBar value={pr.progress||0} color={(pr.progress||0)>=70?"#00C073":"#3182F6"} h={5}/>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         );
       })()}
@@ -1836,24 +1873,30 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
           const rows=items.map((it,i)=>({it,i})).filter(r=>r.it.text.trim()||r.it.tid||r.it.id===selId);
           const yOf={}; rows.forEach((r,ri)=>{yOf[r.i]=PADY+ri*ROWH;});
           const parentIdx=(i)=>{for(let k=i-1;k>=0;k--){if(items[k].depth===items[i].depth-1)return k;if(items[k].depth<items[i].depth-1)return -1;}return -1;};
+          // 인계 상태: 형제(같은 부모·레벨) 순서로 앞이 다 끝나면 ready, 아니면 wait, 끝났으면 done
+          const doneOf=(j)=>isP(items,j)?dd[j]:items[j].done;
+          const flowOf=(i)=>{ if(doneOf(i)) return "done"; const par=parentIdx(i); for(let j=0;j<i;j++){ if(!(items[j].text.trim()||items[j].tid)) continue; if(items[j].depth===items[i].depth&&parentIdx(j)===par&&!doneOf(j)) return "wait"; } return "ready"; };
           const maxDepth=rows.reduce((m,r)=>Math.max(m,r.it.depth),0);
           const svgW=PADX*2+maxDepth*COLW+NW, svgH=PADY*2+Math.max(1,rows.length)*ROWH;
           return(<>
+            <div style={{display:"flex",gap:12,marginBottom:8,fontSize:10,fontWeight:700,flexWrap:"wrap"}}>
+              <span style={{color:"#00A862"}}>● 완료</span><span style={{color:"#EA580C"}}>▶ 진행 가능(내 차례)</span><span style={{color:"#9CA3AF"}}>○ 대기(앞 단계 진행 중)</span>
+            </div>
             <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:8,overflowX:"auto"}}>
               {rows.length===0?<div style={{margin:"24px 0",textAlign:"center"}}><p style={{margin:"0 0 10px",fontSize:12,color:"#9CA3AF"}}>아직 단계가 없어요</p><button onClick={addRoot} style={{padding:"9px 16px",borderRadius:10,border:"1.5px dashed #FDBA74",background:"#FFF7ED",color:"#EA580C",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 첫 단계 추가</button></div>:(
               <div style={{position:"relative",width:svgW,height:svgH}}>
                 <svg width={svgW} height={svgH} style={{position:"absolute",top:0,left:0,pointerEvents:"none"}}>
                   {rows.map(({it,i})=>{const p=parentIdx(i);if(p<0||yOf[p]==null)return null;const px=PADX+items[p].depth*COLW+NW,py=yOf[p]+NH/2,cx=PADX+it.depth*COLW,cy=yOf[i]+NH/2;return(<path key={"e"+i} d={`M ${px} ${py} C ${px+26} ${py}, ${cx-26} ${cy}, ${cx} ${cy}`} stroke="#D7C4A8" strokeWidth={2} fill="none"/>);})}
                 </svg>
-                {rows.map(({it,i})=>{const m=Mof(it.who);const parent=isP(items,i);const rdone=parent?dd[i]:it.done;const x=PADX+it.depth*COLW,y=yOf[i];const onSel=it.id===selId;return(
+                {rows.map(({it,i})=>{const m=Mof(it.who);const parent=isP(items,i);const rdone=parent?dd[i]:it.done;const x=PADX+it.depth*COLW,y=yOf[i];const onSel=it.id===selId;const fs=flowOf(i);return(
                   onSel?(
                   <div key={it.id} style={{position:"absolute",left:x,top:y,width:NW,height:NH,display:"flex",alignItems:"center",gap:5,padding:"0 7px",borderRadius:9,border:"1.5px solid #0F1F5C",background:"#fff",boxSizing:"border-box"}}>
                     {team&&<span style={{width:13,height:13,borderRadius:"50%",flexShrink:0,backgroundColor:m.color,color:"#fff",fontSize:7.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{m.name[0]}</span>}
                     <input data-id={it.id} value={it.text} placeholder={parent?"단계명…":"업무…"} onChange={e=>patch(it.id,{text:e.target.value})} onKeyDown={e=>onKey(e,i)} style={{flex:1,minWidth:0,border:"none",background:"none",fontSize:11,fontWeight:parent?800:600,color:"#1F2937",outline:"none",fontFamily:"inherit",padding:0}}/>
                   </div>
                   ):(
-                  <button key={it.id} onClick={()=>setSelId(it.id)} style={{position:"absolute",left:x,top:y,width:NW,height:NH,display:"flex",alignItems:"center",gap:5,padding:"0 8px",borderRadius:9,border:`1.5px solid ${rdone?"#BFE9CF":"#E8DCC8"}`,background:rdone?"#F0FBF4":(parent?"#FFFBF5":"#fff"),cursor:"pointer",fontFamily:"inherit",boxSizing:"border-box",textAlign:"left"}}>
-                    <span style={{width:13,height:13,borderRadius:parent?4:"50%",flexShrink:0,background:rdone?"#00C073":"#EEF1F3",color:"#fff",fontSize:9,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{rdone?"✓":""}</span>
+                  <button key={it.id} onClick={()=>setSelId(it.id)} style={{position:"absolute",left:x,top:y,width:NW,height:NH,display:"flex",alignItems:"center",gap:5,padding:"0 8px",borderRadius:9,border:`1.5px solid ${fs==="done"?"#BFE9CF":fs==="ready"?"#F59E42":"#E8DCC8"}`,background:fs==="done"?"#F0FBF4":fs==="ready"?"#FFF7ED":(parent?"#FFFBF5":"#fff"),opacity:fs==="wait"?0.6:1,cursor:"pointer",fontFamily:"inherit",boxSizing:"border-box",textAlign:"left"}}>
+                    <span style={{width:13,height:13,borderRadius:parent?4:"50%",flexShrink:0,background:fs==="done"?"#00C073":fs==="ready"?"#F97316":"#EEF1F3",color:"#fff",fontSize:9,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{fs==="done"?"✓":fs==="ready"?"▶":""}</span>
                     {team&&<span style={{width:13,height:13,borderRadius:"50%",flexShrink:0,backgroundColor:m.color,color:"#fff",fontSize:7.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{m.name[0]}</span>}
                     <span style={{flex:1,minWidth:0,fontSize:11,fontWeight:parent?800:600,color:rdone?"#9CA3AF":"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{it.text||"(빈 항목)"}</span>
                   </button>)

@@ -775,10 +775,12 @@ export default function App(){
       </aside>
       <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
         <div style={{backgroundColor:"#FFFFFF",borderBottom:"1px solid #F2F4F6",padding:"13px 24px",flexShrink:0}}>
-          <h1 style={{margin:0,fontSize:17,fontWeight:900,color:"#0F1F5C",lineHeight:1.1}}>{pi?.icon} {pi?.label}</h1>
-          <p style={{margin:"3px 0 0",fontSize:11,color:"#9CA3AF"}}>{new Date().toLocaleDateString("ko-KR",{month:"long",day:"numeric",weekday:"short"})} · {cu?.name}</p>
+          <div style={{maxWidth:1280,margin:"0 auto",width:"100%"}}>
+            <h1 style={{margin:0,fontSize:17,fontWeight:900,color:"#0F1F5C",lineHeight:1.1}}>{pi?.icon} {pi?.label}</h1>
+            <p style={{margin:"3px 0 0",fontSize:11,color:"#9CA3AF"}}>{new Date().toLocaleDateString("ko-KR",{month:"long",day:"numeric",weekday:"short"})} · {cu?.name}</p>
+          </div>
         </div>
-        <div style={{flex:1,overflowY:"auto"}}><div style={{width:"100%"}}>{pageContent}</div></div>
+        <div style={{flex:1,overflowY:"auto"}}><div style={{width:"100%",maxWidth:1280,margin:"0 auto"}}>{pageContent}</div></div>
       </div>
       {sheets}
     </div>

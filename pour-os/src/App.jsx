@@ -465,7 +465,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add})=>{
   );
 };
 const TABS=[{id:"today",icon:"🏠",label:"오늘"},{id:"kpi",icon:"◎",label:"KPI"},{id:"projects",icon:"▦",label:"프로젝트"},{id:"calendar",icon:"▤",label:"캘린더"},{id:"more",icon:"⋯",label:"더보기"}];
-const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"teamdash",icon:"👥",label:"팀 현황"},{id:"team",icon:"👤",label:"담당자"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"},{id:"guide",icon:"📖",label:"가이드"}];
+const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"team",icon:"👤",label:"담당자"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"},{id:"guide",icon:"📖",label:"가이드"}];
 // 메뉴 그룹: 개인(나만 보는 내 것) vs 팀(모두 같이 보는 공유) — 출시·프로세스는 프로젝트 하위
 const NAV_GROUPS=[
   {label:"개인 · 나만", ids:["today","game","fixed","retro"]},
@@ -679,10 +679,9 @@ export default function App(){
     {page==="calendar"&&<CalendarPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
     {page==="game"&&<GamePage D={D} cu={cu} up={up} add={add} rm={rm} nav={nav}/>}
     {page==="launch"&&<LaunchPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
-    {page==="mindmap"&&<MindMapPage D={D} cu={cu}/>}
+    {page==="mindmap"&&<MindMapPage D={D} cu={cu} nav={nav}/>}
     {page==="guide"&&<GuidePage D={D}/>}
     {page==="fixed"&&<FixedPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
-    {page==="teamdash"&&<TeamDashPage D={D} cu={cu} nav={nav}/>}
     {page==="team"&&<TeamPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm}/>}
     {page==="retro"&&<RetroPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
     {page==="ai"&&<AIPage D={D} cu={cu} add={add} rm={rm}/>}
@@ -697,7 +696,7 @@ export default function App(){
       {saveErr.level!=="error"&&<button onClick={()=>setSaveErr(null)} style={{flexShrink:0,padding:"5px 7px",borderRadius:8,border:"none",background:"transparent",color:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}}>×</button>}
     </div>}
     <Sheet open={more} onClose={()=>setMore(false)} title="더보기">
-      {[{label:"개인 · 나만",ids:["game","fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","team","ai"]},...(lead?[{label:"관리자",ids:["teamdash"]}]:[]),{label:"도움말",ids:["guide"]}].map(grp=>(
+      {[{label:"개인 · 나만",ids:["game","fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","team","ai"]},{label:"도움말",ids:["guide"]}].map(grp=>(
         <div key={grp.label} style={{marginTop:14}}>
           <p style={{margin:"0 2px 8px",fontSize:11,fontWeight:800,color:"#9CA3AF",letterSpacing:0.5}}>{grp.label}</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -3380,8 +3379,9 @@ function ProcessEditorPage({D}){
   );
 }
 // 업무 보드 — 팀 전체 현황 뷰 (담당자별 진행률·업무 상태·내 차례)
-function TeamBoard({D,cu}){
+function TeamBoard({D,cu,nav}){
   const sig=diagSignals(D);
+  const today=todayDay(); const todayIdx=WEEK_DAYS.indexOf(today);
   const mem=D.users.map(u=>{
     const projs=D.projects.filter(p=>p.assigneeId===u.id);
     const tasks=D.tasks.filter(t=>!t.isFixed&&t.assigneeId===u.id);
@@ -3389,7 +3389,9 @@ function TeamBoard({D,cu}){
     const inprog=tasks.filter(t=>t.status==="inprogress").length;
     const rev=projs.reduce((a,p)=>a+numF(p.resultValue),0);
     let ready=0; D.projects.filter(p=>p.templateId).forEach(p=>{const ts=launchProjTasks(D,p);ts.forEach(t=>{if(t.assigneeId===u.id&&launchStageStatus(t,ts)==="ready")ready++;});});
-    return {u,projN:projs.length,done,total:tasks.length,inprog,ready,rev,stuck:sig.stuckMembers.has(u.id),prog:tasks.length?Math.round(done/tasks.length*100):0};
+    ready+=myReadyProcess(D,u.id).length;   // 출시 인계 + 프로세스 인계 모두
+    const carry=D.tasks.filter(t=>t.assigneeId===u.id&&!t.isFixed&&t.status!=="done"&&t.status!=="hold"&&t.weekDay&&t.weekDay!==today&&(()=>{const i=WEEK_DAYS.indexOf(t.weekDay);return i>=0&&(todayIdx<0||i<todayIdx);})()).length;   // 밀림: 이번 주 앞 요일 배치인데 미완
+    return {u,projN:projs.length,done,total:tasks.length,inprog,ready,carry,rev,stuck:sig.stuckMembers.has(u.id),prog:tasks.length?Math.round(done/tasks.length*100):0};
   });
   const allT=D.tasks.filter(t=>!t.isFixed), allDone=allT.filter(t=>t.status==="done").length;
   const teamProg=allT.length?Math.round(allDone/allT.length*100):0;
@@ -3397,6 +3399,11 @@ function TeamBoard({D,cu}){
   const goal=D.goals&&D.goals[0];
   const goalCur=D.mainKPIs.filter(mk=>mk.unit==="원").reduce((s,mk)=>s+mkCur(mk,D.subKPIs,D.projects),0);
   const goalPct=pct(goalCur,goal?.targetValue||1);
+  // 팀 프로젝트 횡단 현황 (적체순) — 팀 현황 메뉴에서 흡수
+  const CC=[["todo","미완료","#EA580C"],["inprogress","진행중","#3182F6"],["done","완료","#00A862"],["hold","보류","#FF9500"]];
+  const projsList=D.projects.filter(p=>D.tasks.some(t=>t.projectId===p.id&&!t.isFixed))
+    .map(p=>{const ts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);const c={todo:0,inprogress:0,done:0,hold:0};ts.forEach(t=>{if(c[t.status]!=null)c[t.status]++;});const allDoneP=ts.length>0&&ts.every(t=>t.status==="done");return{p,c,allDone:allDoneP,open:c.todo+c.inprogress};})
+    .sort((a,b)=>(a.allDone?1:0)-(b.allDone?1:0)||b.open-a.open||(b.p.progress||0)-(a.p.progress||0));
   return(
     <div style={{maxWidth:760,margin:"0 auto"}}>
       <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"16px",marginBottom:14,color:"#fff"}}>
@@ -3417,8 +3424,9 @@ function TeamBoard({D,cu}){
                 <p style={{margin:0,fontSize:14,fontWeight:900,color:"#111827"}}>{m.u.name}{m.u.id===cu.id&&<span style={{fontSize:10,color:"#EA580C",fontWeight:700}}> (나)</span>}{m.stuck&&<span title={SIGNAL_LABEL.stuck} style={{marginLeft:5,fontSize:11}}>🔴</span>}</p>
                 <p style={{margin:"1px 0 0",fontSize:10.5,color:"#9CA3AF"}}>{m.u.dept} · 프로젝트 {m.projN}개</p>
               </div>
-              <div style={{display:"flex",gap:4,flexShrink:0,alignItems:"center"}}>
+              <div style={{display:"flex",gap:4,flexShrink:0,alignItems:"center",flexWrap:"wrap",justifyContent:"flex-end"}}>
                 {m.rev>0&&<span style={{fontSize:10.5,fontWeight:800,color:"#7A3E00",background:"#FFE6C7",borderRadius:8,padding:"3px 8px"}}>💰{fmt(m.rev,"원")}</span>}
+                {m.carry>0&&<span title="밀림(앞 요일 배치 미완)" style={{fontSize:10.5,fontWeight:800,color:"#F04452",background:"#FFF0F1",borderRadius:8,padding:"3px 8px"}}>⏰ 밀림 {m.carry}</span>}
                 {m.ready>0&&<span style={{fontSize:10.5,fontWeight:800,color:"#fff",background:"#F97316",borderRadius:8,padding:"3px 8px"}}>🔔 내 차례 {m.ready}</span>}
               </div>
             </div>
@@ -3434,10 +3442,30 @@ function TeamBoard({D,cu}){
           </div>
         ))}
       </div>
+      <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",margin:"14px 0 0",border:"1px solid #F2F4F6"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+          <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#0F1F5C"}}>📁 팀 프로젝트 현황 ({projsList.length})</h3>
+          {nav&&<button onClick={()=>nav("projects")} style={{padding:"5px 10px",borderRadius:8,border:"1px solid #E5E8EB",background:"#fff",fontSize:11,fontWeight:700,color:"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>전체 →</button>}
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {projsList.length===0?<p style={{margin:0,padding:"10px 0",textAlign:"center",fontSize:12,color:"#B0B8C1"}}>진행 중인 프로젝트가 없어요</p>:projsList.map(({p,c,allDone:ad})=>{const asg=D.users.find(u=>u.id===p.assigneeId);const prog=p.progress||0;return(
+            <div key={p.id} style={{padding:"11px 12px",borderRadius:12,border:"1px solid #EEF1F4",background:"#F9FAFB"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
+                <Ava name={asg?.name} color={asg?.color} size={22}/>
+                <span style={{flex:1,minWidth:0,fontSize:12.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span>
+                <span style={{flexShrink:0,fontSize:10,fontWeight:800,color:ad?"#00A862":"#3182F6",background:ad?"#E8FAF1":"#EBF3FF",borderRadius:6,padding:"2px 7px"}}>{ad?"완료":"진행"}</span>
+                <span style={{flexShrink:0,fontSize:12,fontWeight:900,color:prog>=70?"#00C073":"#3182F6"}}>{prog}%</span>
+              </div>
+              <div style={{display:"flex",gap:8,marginBottom:7,flexWrap:"wrap"}}>{CC.map(([k,l,col])=><span key={k} style={{fontSize:10.5,fontWeight:700,color:c[k]>0?col:"#C4C9D0"}}>{l} {c[k]}</span>)}</div>
+              <PBar value={prog} color={prog>=70?"#00C073":"#3182F6"} h={5}/>
+            </div>
+          );})}
+        </div>
+      </div>
     </div>
   );
 }
-// 업무 보드 — 팀 주간 맵 (기간 필터 · 멤버별 활동색 + 성과). 개인 주간 맵과 동일한 색·배지 언어.
+// 업무 보드 — 팀 그로스보드 (기간 필터 · 멤버별 활동색 + 성과). 개인 그로스보드과 동일한 색·배지 언어.
 function TeamWeeklyMap({D,cu}){
   const [period,setPeriod]=useState("week");
   const [mapStyle,setMapStyle]=useState("tree");   // tree(계층형) | mind(마인드맵)
@@ -3538,7 +3566,7 @@ function TeamWeeklyMap({D,cu}){
       </div>
       {mapStyle==="mind"&&(<>
         <div style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}>
-          <button onClick={()=>exportMapPNG(buildTeamMapItems(D,activeInP,doneInP,{krF,activeOnly,members:memSel,signals}),`팀_주간맵_${PLABEL[period]}`)} style={{padding:"6px 12px",borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",color:"#4B5563",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🖼 이미지 저장</button>
+          <button onClick={()=>exportMapPNG(buildTeamMapItems(D,activeInP,doneInP,{krF,activeOnly,members:memSel,signals}),`팀_그로스보드_${PLABEL[period]}`)} style={{padding:"6px 12px",borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",color:"#4B5563",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🖼 이미지 저장</button>
         </div>
         <MapCanvas items={buildTeamMapItems(D,activeInP,doneInP,{krF,activeOnly,members:memSel,signals})} onPick={setPicked}/>
       </>)}
@@ -3708,7 +3736,7 @@ function GuidePage({D}){
         <p style={{margin:"10px 0 5px",fontSize:11,fontWeight:800,color:"#9CA3AF"}}>팀 · 공유</p>
         <Row l="◎ KPI" d="목표 트리(매출·운영·활동지표) · 매출 입력"/>
         <Row l="▦ 프로젝트" d="프로젝트별 🧩프로세스(업무 트리)·업무·활동지표 / 🚀출시 탭"/>
-        <Row l="◈ 업무 보드" d="개인 상세(담당자 트리·주간맵) / 팀 전체 현황"/>
+        <Row l="◈ 업무 보드" d="개인 상세(담당자 트리·그로스보드) / 팀 전체 현황"/>
         <Row l="▤ 캘린더" d="일정·미팅"/>
       </Sec>
 
@@ -3818,72 +3846,7 @@ function TeamPage({D,cu,lead,add,up,rm}){
     </div>
   );
 }
-// 팀 현황 (관리자) — 멤버별 부하·밀림·내 차례 + 팀 전체 프로젝트 진행. 별도 메뉴(리드 전용).
-function TeamDashPage({D,cu,nav}){
-  const today=todayDay(); const todayIdx=WEEK_DAYS.indexOf(today);
-  const statFor=(uid)=>{const ts=D.tasks.filter(t=>t.assigneeId===uid&&!t.isFixed);const c={todo:0,inprogress:0,done:0,hold:0};ts.forEach(t=>{if(c[t.status]!=null)c[t.status]++;});return c;};
-  const carryFor=(uid)=>D.tasks.filter(t=>t.assigneeId===uid&&!t.isFixed&&t.status!=="done"&&t.status!=="hold"&&t.weekDay&&t.weekDay!==today&&(()=>{const i=WEEK_DAYS.indexOf(t.weekDay);return i>=0&&(todayIdx<0||i<todayIdx);})()).length;
-  const readyFor=(uid)=>{let n=0;D.projects.filter(p=>p.templateId).forEach(p=>{const ts=launchProjTasks(D,p);ts.forEach(t=>{if(t.assigneeId===uid&&launchStageStatus(t,ts)==="ready")n++;});});return n+myReadyProcess(D,uid).length;};
-  const CC=[["todo","미완료","#EA580C"],["inprogress","진행중","#3182F6"],["done","완료","#00A862"],["hold","보류","#FF9500"]];
-  const projs=D.projects.filter(p=>D.tasks.some(t=>t.projectId===p.id&&!t.isFixed))
-    .map(p=>{const ts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);const c={todo:0,inprogress:0,done:0,hold:0};ts.forEach(t=>{if(c[t.status]!=null)c[t.status]++;});const allDone=ts.length>0&&ts.every(t=>t.status==="done");return{p,c,allDone,open:c.todo+c.inprogress};})
-    .sort((a,b)=>(a.allDone?1:0)-(b.allDone?1:0)||b.open-a.open||(b.p.progress||0)-(a.p.progress||0));
-  return(
-    <div style={{padding:"14px 16px 24px",maxWidth:480,margin:"0 auto"}}>
-      <div style={{marginBottom:14}}>
-        <h2 style={{margin:0,fontSize:18,fontWeight:900,color:"#0F1F5C"}}>👥 팀 현황 <span style={{fontSize:11,fontWeight:800,color:"#3182F6",background:"#EBF3FF",borderRadius:6,padding:"2px 8px"}}>관리자</span></h2>
-        <p style={{margin:"4px 0 0",fontSize:11.5,color:"#9CA3AF",lineHeight:1.6}}>멤버별 부하·밀림·내 차례 + 팀 전체 프로젝트 진행을 한눈에</p>
-      </div>
-      {/* 멤버별 현황 */}
-      <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",marginBottom:14,border:"1px solid #DBE3FF"}}>
-        <h3 style={{margin:"0 0 10px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}>🙋 멤버별 현황</h3>
-        <div style={{display:"flex",flexDirection:"column",gap:7}}>
-          {(D.users||[]).map(u=>{const c=statFor(u.id);const carry=carryFor(u.id);const ready=readyFor(u.id);const open=c.todo+c.inprogress;return(
-            <div key={u.id} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 11px",borderRadius:11,background:"#F9FAFB",border:"1px solid #EEF1F4"}}>
-              <Ava name={u.name} color={u.color} size={28}/>
-              <div style={{flex:1,minWidth:0}}>
-                <p style={{margin:0,fontSize:13,fontWeight:800,color:"#0F1F5C"}}>{u.name}{u.role==="lead"?" · 리드":""}</p>
-                <div style={{display:"flex",alignItems:"center",gap:7,marginTop:2,flexWrap:"wrap"}}>
-                  <span style={{fontSize:10.5,fontWeight:700,color:c.inprogress>0?"#3182F6":"#C4C9D0"}}>진행중 {c.inprogress}</span>
-                  <span style={{fontSize:10.5,fontWeight:700,color:c.todo>0?"#6B7280":"#C4C9D0"}}>할일 {c.todo}</span>
-                  <span style={{fontSize:10.5,fontWeight:700,color:c.hold>0?"#FF9500":"#C4C9D0"}}>보류 {c.hold}</span>
-                  <span style={{fontSize:10.5,fontWeight:700,color:"#00A862"}}>완료 {c.done}</span>
-                </div>
-              </div>
-              <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3,flexShrink:0}}>
-                {ready>0&&<span style={{fontSize:10,fontWeight:800,color:"#EA580C",background:"#FFF7ED",borderRadius:6,padding:"2px 7px"}}>🔔 내 차례 {ready}</span>}
-                {carry>0&&<span style={{fontSize:10,fontWeight:800,color:"#F04452",background:"#FFF0F1",borderRadius:6,padding:"2px 7px"}}>⏰ 밀림 {carry}</span>}
-                {ready===0&&carry===0&&<span style={{fontSize:10,fontWeight:700,color:"#9CA3AF"}}>{open>0?"진행 중":"여유"}</span>}
-              </div>
-            </div>
-          );})}
-        </div>
-      </div>
-      {/* 팀 전체 프로젝트 현황 */}
-      <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",marginBottom:14,border:"1px solid #F2F4F6"}}>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-          <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#0F1F5C"}}>📁 팀 프로젝트 현황 ({projs.length})</h3>
-          <button onClick={()=>nav("projects")} style={{padding:"5px 10px",borderRadius:8,border:"1px solid #E5E8EB",background:"#fff",fontSize:11,fontWeight:700,color:"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>전체 →</button>
-        </div>
-        <div style={{display:"flex",flexDirection:"column",gap:8}}>
-          {projs.length===0?<p style={{margin:0,padding:"10px 0",textAlign:"center",fontSize:12,color:"#B0B8C1"}}>진행 중인 프로젝트가 없어요</p>:projs.map(({p,c,allDone})=>{const asg=D.users.find(u=>u.id===p.assigneeId);const prog=p.progress||0;return(
-            <div key={p.id} style={{padding:"11px 12px",borderRadius:12,border:"1px solid #EEF1F4",background:"#F9FAFB"}}>
-              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
-                <Ava name={asg?.name} color={asg?.color} size={22}/>
-                <span style={{flex:1,minWidth:0,fontSize:12.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span>
-                <span style={{flexShrink:0,fontSize:10,fontWeight:800,color:allDone?"#00A862":"#3182F6",background:allDone?"#E8FAF1":"#EBF3FF",borderRadius:6,padding:"2px 7px"}}>{allDone?"완료":"진행"}</span>
-                <span style={{flexShrink:0,fontSize:12,fontWeight:900,color:prog>=70?"#00C073":"#3182F6"}}>{prog}%</span>
-              </div>
-              <div style={{display:"flex",gap:8,marginBottom:7,flexWrap:"wrap"}}>{CC.map(([k,l,col])=><span key={k} style={{fontSize:10.5,fontWeight:700,color:c[k]>0?col:"#C4C9D0"}}>{l} {c[k]}</span>)}</div>
-              <PBar value={prog} color={prog>=70?"#00C073":"#3182F6"} h={5}/>
-            </div>
-          );})}
-        </div>
-      </div>
-    </div>
-  );
-}
-// 주간 맵 — 마인드맵(노드·연결선) 렌더러. items: [{id,depth,label,color,active,leftTag,chips:[{t,c,bg}]}] (depth0=루트)
+// 그로스보드 — 마인드맵(노드·연결선) 렌더러. items: [{id,depth,label,color,active,leftTag,chips:[{t,c,bg}]}] (depth0=루트)
 // 맵 레이아웃 계산 (마인드맵 좌표) — 화면·PNG 공용
 const MAP_GEO={colW:178,rowH:46,padX:12,padY:14,nodeW:158,nodeH:30};
 function mapLayout(items){
@@ -3934,10 +3897,10 @@ function exportMapPNG(items,title){
     const txt=(it.signal?SIGNAL_ICON[it.signal]+" ":"")+(it.leftTag?"["+it.leftTag+"] ":"")+it.label+(chipsT?"  "+chipsT:"");
     g.fillText(txt,tx,p.y+nodeH/2+0.5);g.restore();
   });
-  try{const a=document.createElement("a");a.href=cv.toDataURL("image/png");a.download=(title||"주간맵")+".png";a.click();}
+  try{const a=document.createElement("a");a.href=cv.toDataURL("image/png");a.download=(title||"그로스보드")+".png";a.click();}
   catch(e){console.error("[map export] 실패:",e);window.alert("이미지 저장 실패: "+(e.message||e));}
 }
-// 개인 주간 맵 → 마인드맵 items 평탄화 (KR→서브KR→프로젝트→업무). opts:{krF,activeOnly,signals}
+// 개인 그로스보드 → 마인드맵 items 평탄화 (KR→서브KR→프로젝트→업무). opts:{krF,activeOnly,signals}
 // 한 담당자의 KR→서브KR→프로젝트→업무 서브트리를 items에 push (개인·팀 마인드맵 공용). baseDepth=KR이 놓일 깊이, pfx=id 충돌 방지 접두사
 function pushKRSubtree(items,D,uid,isThisWeek,doneInP,krColors,baseDepth,opts={}){
   const {krF="all",activeOnly=false,signals=null,pfx=""}=opts;
@@ -3976,7 +3939,7 @@ function buildPersonMapItems(D,sel,isThisWeek,doneInP,krColors,opts={}){
   pushKRSubtree(items,D,sel,isThisWeek,doneInP,krColors,1,{...opts,pfx:""});
   return items;
 }
-// 팀 주간 맵 → 마인드맵 items 평탄화 (팀→멤버→KR→서브KR→프로젝트→업무 끝까지). opts:{krF,activeOnly,members,signals}
+// 팀 그로스보드 → 마인드맵 items 평탄화 (팀→멤버→KR→서브KR→프로젝트→업무 끝까지). opts:{krF,activeOnly,members,signals}
 function buildTeamMapItems(D,activeInP,doneInP,opts={}){
   const {krF="all",activeOnly=false,members=null,signals=null}=opts;
   const krColors={mk1:"#3182F6",mk2:"#8B5CF6",mk3:"#00C073"};
@@ -3995,7 +3958,7 @@ function buildTeamMapItems(D,activeInP,doneInP,opts={}){
   });
   return items;
 }
-// 주간 맵 노드 상세 (읽기 전용 — 편집 불가). ref:{kind:mk|sk|proj|task|member, id}
+// 그로스보드 노드 상세 (읽기 전용 — 편집 불가). ref:{kind:mk|sk|proj|task|member, id}
 function NodeDetail({D,node,period,onClose}){
   if(!node||!node.ref) return null;
   const {kind,id}=node.ref;
@@ -4057,7 +4020,7 @@ function NodeDetail({D,node,period,onClose}){
     </Sheet>
   );
 }
-// 주간 맵 — 계층형 트리(한 담당자 KR→서브KR→프로젝트→업무). 개인·팀(멤버별) 공용.
+// 그로스보드 — 계층형 트리(한 담당자 KR→서브KR→프로젝트→업무). 개인·팀(멤버별) 공용.
 function WeeklyTree({D,sel,isThisWeek,doneInP,krColors,krF,activeOnly,signals,onPick}){
   return(<>
     {D.mainKPIs.filter(mk=>krF==="all"||mk.id===krF).map(mk=>{
@@ -4229,10 +4192,10 @@ function WeeklyTree({D,sel,isThisWeek,doneInP,krColors,krF,activeOnly,signals,on
     })}
   </>);
 }
-function MindMapPage({D,cu}){
+function MindMapPage({D,cu,nav}){
   const [scope,setScope]=useState("person");   // person | team | diag
   const [boardView,setBoardView]=useState("tree");
-  const [teamView,setTeamView]=useState("members");   // members(멤버 현황) | weekly(주간 맵)
+  const [teamView,setTeamView]=useState("members");   // members(멤버 현황) | weekly(그로스보드)
   const [mapStyle,setMapStyle]=useState("tree");   // tree(계층형) | mind(마인드맵)
   const [period,setPeriod]=useState("week");
   const prange=periodRange(period);
@@ -4265,16 +4228,16 @@ function MindMapPage({D,cu}){
       </div>
       {scope==="team"&&(<>
         <div style={{display:"flex",backgroundColor:"#F2F4F6",borderRadius:14,padding:4,marginBottom:14}}>
-          {[{k:"members",l:"👥 멤버 현황"},{k:"weekly",l:"🗓 주간 맵"}].map(v=>(
+          {[{k:"members",l:"👥 팀 현황"},{k:"weekly",l:"📈 그로스보드"}].map(v=>(
             <button key={v.k} onClick={()=>setTeamView(v.k)} style={{flex:1,padding:"9px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:teamView===v.k?"#FFFFFF":"transparent",color:teamView===v.k?"#0F1F5C":"#6B7280",fontWeight:teamView===v.k?800:500,fontSize:13,fontFamily:"inherit",boxShadow:teamView===v.k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{v.l}</button>
           ))}
         </div>
-        {teamView==="members"&&<TeamBoard D={D} cu={cu}/>}
+        {teamView==="members"&&<TeamBoard D={D} cu={cu} nav={nav}/>}
         {teamView==="weekly"&&<TeamWeeklyMap D={D} cu={cu}/>}
       </>)}
       {scope==="person"&&(<>
       <div style={{display:"flex",backgroundColor:"#F2F4F6",borderRadius:14,padding:4,marginBottom:14}}>
-        {[{k:"tree",l:"◈ 담당자 트리"},{k:"weekly",l:"🗓 주간 맵"}].map(v=>(
+        {[{k:"tree",l:"◈ 담당자 트리"},{k:"weekly",l:"📈 그로스보드"}].map(v=>(
           <button key={v.k} onClick={()=>setBoardView(v.k)} style={{flex:1,padding:"9px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:boardView===v.k?"#FFFFFF":"transparent",color:boardView===v.k?"#0F1F5C":"#6B7280",fontWeight:boardView===v.k?800:500,fontSize:13,fontFamily:"inherit",boxShadow:boardView===v.k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{v.l}</button>
         ))}
       </div>
@@ -4375,7 +4338,7 @@ function MindMapPage({D,cu}){
           </div>
           {mapStyle==="mind"&&(<>
             <div style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}>
-              <button onClick={()=>exportMapPNG(buildPersonMapItems(D,sel,isThisWeek,doneInP,krColors,{krF,activeOnly,signals}),`${user?.name||"개인"}_주간맵_${PERIOD_LABEL[period]}`)} style={{padding:"6px 12px",borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",color:"#4B5563",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🖼 이미지 저장</button>
+              <button onClick={()=>exportMapPNG(buildPersonMapItems(D,sel,isThisWeek,doneInP,krColors,{krF,activeOnly,signals}),`${user?.name||"개인"}_그로스보드_${PERIOD_LABEL[period]}`)} style={{padding:"6px 12px",borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",color:"#4B5563",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🖼 이미지 저장</button>
             </div>
             <MapCanvas items={buildPersonMapItems(D,sel,isThisWeek,doneInP,krColors,{krF,activeOnly,signals})} onPick={setPicked}/>
           </>)}

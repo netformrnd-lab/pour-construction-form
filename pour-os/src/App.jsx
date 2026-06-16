@@ -420,7 +420,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add})=>{
   );
 };
 const TABS=[{id:"today",icon:"🏠",label:"오늘"},{id:"kpi",icon:"◎",label:"KPI"},{id:"projects",icon:"▦",label:"프로젝트"},{id:"calendar",icon:"▤",label:"캘린더"},{id:"more",icon:"⋯",label:"더보기"}];
-const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"},{id:"guide",icon:"📖",label:"가이드"}];
+const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"team",icon:"👥",label:"담당자"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"},{id:"guide",icon:"📖",label:"가이드"}];
 // 메뉴 그룹: 개인(나만 보는 내 것) vs 팀(모두 같이 보는 공유) — 출시·프로세스는 프로젝트 하위
 const NAV_GROUPS=[
   {label:"개인 · 나만", ids:["today","game","fixed","retro"]},
@@ -637,6 +637,7 @@ export default function App(){
     {page==="mindmap"&&<MindMapPage D={D} cu={cu}/>}
     {page==="guide"&&<GuidePage D={D}/>}
     {page==="fixed"&&<FixedPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
+    {page==="team"&&<TeamPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm}/>}
     {page==="retro"&&<RetroPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
     {page==="ai"&&<AIPage D={D} cu={cu} add={add} rm={rm}/>}
   </>);
@@ -650,7 +651,7 @@ export default function App(){
       {saveErr.level!=="error"&&<button onClick={()=>setSaveErr(null)} style={{flexShrink:0,padding:"5px 7px",borderRadius:8,border:"none",background:"transparent",color:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}}>×</button>}
     </div>}
     <Sheet open={more} onClose={()=>setMore(false)} title="더보기">
-      {[{label:"개인 · 나만",ids:["game","fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","ai"]},{label:"도움말",ids:["guide"]}].map(grp=>(
+      {[{label:"개인 · 나만",ids:["game","fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","team","ai"]},{label:"도움말",ids:["guide"]}].map(grp=>(
         <div key={grp.label} style={{marginTop:14}}>
           <p style={{margin:"0 2px 8px",fontSize:11,fontWeight:800,color:"#9CA3AF",letterSpacing:0.5}}>{grp.label}</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -3429,6 +3430,76 @@ function GuidePage({D}){
       </Sec>
 
       <p style={{margin:"4px 2px 0",fontSize:10.5,color:"#C4C9D0",textAlign:"center"}}>POUR OS · 브랜드커머스팀 업무관리</p>
+    </div>
+  );
+}
+// 담당자 관리 — 앱 전체 담당자의 단일 마스터(추가/수정/색상/삭제). 모든 담당자 선택지가 D.users를 참조하므로 여기 변경이 전체 반영.
+const USER_PALETTE=["#3182F6","#8B5CF6","#00C073","#F97316","#EA580C","#0891B2","#D946EF","#65A30D","#DC2626","#0D9488","#DB2777","#4F46E5"];
+function TeamPage({D,cu,lead,add,up,rm}){
+  const [name,setName]=useState("");
+  const [editId,setEditId]=useState(null);
+  const [editName,setEditName]=useState("");
+  const users=D.users||[];
+  const nextColor=()=>{const used=new Set(users.map(u=>u.color));return USER_PALETTE.find(c=>!used.has(c))||USER_PALETTE[users.length%USER_PALETTE.length];};
+  const addUser=()=>{
+    const nm=name.trim(); if(!nm) return;
+    if(users.some(u=>u.name===nm)&&!window.confirm(`'${nm}' 이름이 이미 있어요. 그래도 추가할까요?`)) return;
+    add("users",{id:"u"+Date.now(),name:nm,color:nextColor(),role:"member"});
+    setName("");
+  };
+  const startEdit=(u)=>{setEditId(u.id);setEditName(u.name);};
+  const saveEdit=()=>{if(editName.trim())up("users",editId,{name:editName.trim()});setEditId(null);};
+  const removeUser=(u)=>{
+    const cnt=(D.tasks||[]).filter(t=>t.assigneeId===u.id||(t.parentId&&false)).length+(D.projects||[]).filter(p=>p.assigneeId===u.id||(p.collaboratorIds||[]).includes(u.id)).length;
+    if(u.id===D.currentUser){window.alert("현재 로그인 중인 담당자는 삭제할 수 없어요. 다른 담당자로 전환 후 삭제하세요.");return;}
+    if(window.confirm(`'${u.name}' 담당자를 삭제할까요?${cnt?`\n연결된 업무·프로젝트 ${cnt}건의 담당자가 빈칸이 됩니다.`:""}\n휴지통으로 이동하며 복구할 수 있어요.`)) rm("users",u.id);
+  };
+  return(
+    <div style={{padding:"16px",maxWidth:480,margin:"0 auto"}}>
+      <div style={{marginBottom:14}}>
+        <h2 style={{margin:0,fontSize:18,fontWeight:900,color:"#0F1F5C"}}>👥 담당자 관리</h2>
+        <p style={{margin:"4px 0 0",fontSize:11.5,color:"#9CA3AF",lineHeight:1.6}}>여기 담당자가 앱 전체(업무·프로젝트·일정·프로세스)의 <b>담당자 선택지</b>로 노출돼요. 추가하면 모든 곳에 바로 반영됩니다.</p>
+      </div>
+      <div style={{display:"flex",gap:7,marginBottom:14}}>
+        <input value={name} onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addUser()} placeholder="새 담당자 이름 (예: 김하늘)" style={{flex:1,padding:"11px 13px",borderRadius:11,border:"1.5px solid #E5E8EB",fontSize:13.5,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
+        <button onClick={addUser} disabled={!name.trim()} style={{flexShrink:0,padding:"0 16px",borderRadius:11,border:"none",background:name.trim()?"#F97316":"#E5E8EB",color:name.trim()?"#fff":"#9CA3AF",fontSize:13.5,fontWeight:800,cursor:name.trim()?"pointer":"not-allowed",fontFamily:"inherit"}}>+ 추가</button>
+      </div>
+      <p style={{margin:"0 0 8px",fontSize:11,fontWeight:800,color:"#6B7280"}}>전체 {users.length}명</p>
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {users.map(u=>{
+          const tcnt=(D.tasks||[]).filter(t=>t.assigneeId===u.id&&!t.isFixed).length;
+          const pcnt=(D.projects||[]).filter(p=>p.assigneeId===u.id||(p.collaboratorIds||[]).includes(u.id)).length;
+          const me=u.id===D.currentUser;
+          return(
+            <div key={u.id} style={{background:"#fff",borderRadius:13,border:`1px solid ${me?"#DBE3FF":"#F2F4F6"}`,padding:"11px 13px"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <Ava name={u.name} color={u.color} size={34}/>
+                <div style={{flex:1,minWidth:0}}>
+                  {editId===u.id?(
+                    <div style={{display:"flex",gap:6}}>
+                      <input value={editName} onChange={e=>setEditName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&saveEdit()} autoFocus style={{flex:1,minWidth:0,padding:"6px 9px",borderRadius:8,border:"1.5px solid #F97316",fontSize:13,fontWeight:700,outline:"none",fontFamily:"inherit"}}/>
+                      <button onClick={saveEdit} style={{padding:"6px 11px",borderRadius:8,border:"none",background:"#F97316",color:"#fff",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>저장</button>
+                    </div>
+                  ):(
+                    <>
+                      <p style={{margin:0,fontSize:14,fontWeight:800,color:"#0F1F5C"}}>{u.name}{u.role==="lead"?" · 리드":""}{me?" (나)":""}</p>
+                      <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>업무 {tcnt} · 프로젝트 {pcnt}</p>
+                    </>
+                  )}
+                </div>
+                {editId!==u.id&&<div style={{display:"flex",gap:6,flexShrink:0}}>
+                  <button onClick={()=>startEdit(u)} style={{padding:"6px 9px",borderRadius:8,border:"1px solid #E5E8EB",background:"#fff",fontSize:12,fontWeight:700,color:"#4B5563",cursor:"pointer",fontFamily:"inherit"}}>✎</button>
+                  <button onClick={()=>removeUser(u)} style={{padding:"6px 9px",borderRadius:8,border:"1px solid #FFE2E5",background:"#FFF0F1",fontSize:12,fontWeight:700,color:"#F04452",cursor:"pointer",fontFamily:"inherit"}}>🗑</button>
+                </div>}
+              </div>
+              <div style={{display:"flex",gap:5,marginTop:9,flexWrap:"wrap"}}>
+                {USER_PALETTE.map(c=>(<button key={c} onClick={()=>up("users",u.id,{color:c})} style={{width:20,height:20,borderRadius:"50%",background:c,border:u.color===c?"2.5px solid #0F1F5C":"2px solid #fff",boxShadow:"0 0 0 1px #E5E8EB",cursor:"pointer",padding:0}}/>))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <p style={{margin:"14px 2px 0",fontSize:10.5,color:"#9CA3AF",lineHeight:1.6}}>※ 삭제해도 휴지통(KPI▸데이터)에서 복구할 수 있어요. 이름이 중복되면 정리하세요.</p>
     </div>
   );
 }

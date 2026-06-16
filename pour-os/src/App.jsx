@@ -236,10 +236,14 @@ const PBar=({value,color="#3182F6",h=5})=>(
 const Badge=({color,bg,children})=>(
   <span style={{display:"inline-flex",alignItems:"center",padding:"2px 8px",borderRadius:20,fontSize:11,fontWeight:700,color,backgroundColor:bg}}>{children}</span>
 );
+// 아바타 표시용 이름 — 성(첫 글자) 제외한 이름. 김송희→송희, 이란→란 (1글자면 그대로)
+const gname=(n)=>{const s=(n||"").trim();return s.length>=2?s.slice(1):(s||"?");};
 const Ava=({name,color,size=32})=>{
   const cols=["#3182F6","#8B5CF6","#00C073","#FF9500","#F04452"];
   const c=color||cols[(name?.charCodeAt(0)||0)%cols.length];
-  return <div style={{width:size,height:size,borderRadius:"50%",backgroundColor:c+"22",color:c,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.38,fontWeight:800,flexShrink:0}}>{name?.[0]||"?"}</div>;
+  const g=gname(name);
+  const fs=g.length>=2?size*0.33:size*0.42;
+  return <div style={{width:size,height:size,borderRadius:"50%",backgroundColor:c+"22",color:c,display:"flex",alignItems:"center",justifyContent:"center",fontSize:fs,fontWeight:800,flexShrink:0,letterSpacing:g.length>=2?-0.5:0,lineHeight:1,overflow:"hidden"}}>{g}</div>;
 };
 const Sheet=({open,onClose,title,children,h="85vh"})=>{
   if(!open) return null;
@@ -1939,13 +1943,13 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
                 {rows.map(({it,i})=>{const m=Mof(it.who);const parent=isP(items,i);const rdone=parent?dd[i]:it.done;const x=PADX+it.depth*COLW,y=yOf[i];const onSel=it.id===selId;const fs=flowOf(i);return(
                   onSel?(
                   <div key={it.id} style={{position:"absolute",left:x,top:y,width:NW,height:NH,display:"flex",alignItems:"center",gap:5,padding:"0 7px",borderRadius:9,border:"1.5px solid #0F1F5C",background:"#fff",boxSizing:"border-box"}}>
-                    {team&&<span style={{width:13,height:13,borderRadius:"50%",flexShrink:0,backgroundColor:m.color,color:"#fff",fontSize:7.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{m.name[0]}</span>}
+                    {team&&<span style={{width:13,height:13,borderRadius:"50%",flexShrink:0,backgroundColor:m.color,color:"#fff",fontSize:7.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{gname(m.name)}</span>}
                     <input data-id={it.id} value={it.text} placeholder={parent?"단계명…":"업무…"} onChange={e=>patch(it.id,{text:e.target.value})} onKeyDown={e=>onKey(e,i)} style={{flex:1,minWidth:0,border:"none",background:"none",fontSize:11,fontWeight:parent?800:600,color:"#1F2937",outline:"none",fontFamily:"inherit",padding:0}}/>
                   </div>
                   ):(
                   <button key={it.id} onClick={()=>setSelId(it.id)} style={{position:"absolute",left:x,top:y,width:NW,height:NH,display:"flex",alignItems:"center",gap:5,padding:"0 8px",borderRadius:9,border:`1.5px solid ${fs==="done"?"#BFE9CF":fs==="ready"?"#F59E42":"#E8DCC8"}`,background:fs==="done"?"#F0FBF4":fs==="ready"?"#FFF7ED":(parent?"#FFFBF5":"#fff"),opacity:fs==="wait"?0.6:1,cursor:"pointer",fontFamily:"inherit",boxSizing:"border-box",textAlign:"left"}}>
                     <span style={{width:13,height:13,borderRadius:parent?4:"50%",flexShrink:0,background:fs==="done"?"#00C073":fs==="ready"?"#F97316":"#EEF1F3",color:"#fff",fontSize:9,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{fs==="done"?"✓":fs==="ready"?"▶":""}</span>
-                    {team&&<span style={{width:13,height:13,borderRadius:"50%",flexShrink:0,backgroundColor:m.color,color:"#fff",fontSize:7.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{m.name[0]}</span>}
+                    {team&&<span style={{width:13,height:13,borderRadius:"50%",flexShrink:0,backgroundColor:m.color,color:"#fff",fontSize:7.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{gname(m.name)}</span>}
                     <span style={{flex:1,minWidth:0,fontSize:11,fontWeight:parent?800:600,color:rdone?"#9CA3AF":"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{it.text||"(빈 항목)"}</span>
                   </button>)
                 );})}
@@ -1969,7 +1973,7 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
               {parent
                 ? (()=>{const ks=kidsOf(i);const cdn=ks.filter(k=>dd[k]).length;return(<span title="하위 진행(자동 완료)" style={{minWidth:19,height:19,borderRadius:6,background:rdone?"#00C073":"#EEF1F3",color:rdone?"#fff":"#6B7280",fontSize:9.5,fontWeight:800,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 4px",boxSizing:"border-box"}}>{rdone?"✓":cdn+"/"+ks.length}</span>);})()
                 : <button onClick={()=>toggleDone(it.id)} style={{width:19,height:19,borderRadius:6,border:`2px solid ${it.done?"#00C073":"#D1D5DB"}`,background:it.done?"#00C073":"#fff",color:"#fff",fontSize:11,fontWeight:900,cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>{it.done?"✓":""}</button>}
-              {team&&<button onClick={()=>setSelId(it.id)} title={m.name} style={{width:18,height:18,borderRadius:"50%",backgroundColor:m.color,color:"#fff",fontSize:9,fontWeight:800,border:"none",cursor:"pointer",flexShrink:0}}>{m.name[0]}</button>}
+              {team&&<button onClick={()=>setSelId(it.id)} title={m.name} style={{width:18,height:18,borderRadius:"50%",backgroundColor:m.color,color:"#fff",fontSize:9,fontWeight:800,border:"none",cursor:"pointer",flexShrink:0}}>{gname(m.name)}</button>}
               <input data-id={it.id} value={it.text} placeholder={parent?"단계명...":"업무 입력..."} onChange={e=>patch(it.id,{text:e.target.value})} onFocus={()=>setSelId(it.id)} onKeyDown={e=>onKey(e,i)} style={{flex:1,minWidth:0,border:"none",background:"none",fontSize:13.5,fontWeight:parent?800:600,color:rdone?"#9CA3AF":"#1F2937",textDecoration:rdone?"line-through":"none",outline:"none",fontFamily:"inherit",padding:"5px 2px"}}/>
             </div>
           );})}
@@ -1979,7 +1983,7 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
           <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"12px 14px",marginTop:12}}>
             <p style={{margin:"0 0 8px",fontSize:11,fontWeight:800,color:"#4B5563"}}>「{sel.text||"업무"}」 담당자</p>
             <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-              {MEM.map(m=>{const on=sel.who===m.id;return(<button key={m.id||"none"} onClick={()=>patch(sel.id,{who:m.id})} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 11px",borderRadius:20,border:`1.5px solid ${on?m.color:"#E5E8EB"}`,background:on?m.color+"18":"#fff",cursor:"pointer",fontFamily:"inherit"}}><span style={{width:16,height:16,borderRadius:"50%",backgroundColor:m.color,color:"#fff",fontSize:8.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{m.name[0]}</span><span style={{fontSize:12,fontWeight:700,color:on?m.color:"#4B5563"}}>{m.name}</span></button>);})}
+              {MEM.map(m=>{const on=sel.who===m.id;return(<button key={m.id||"none"} onClick={()=>patch(sel.id,{who:m.id})} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 11px",borderRadius:20,border:`1.5px solid ${on?m.color:"#E5E8EB"}`,background:on?m.color+"18":"#fff",cursor:"pointer",fontFamily:"inherit"}}><span style={{width:16,height:16,borderRadius:"50%",backgroundColor:m.color,color:"#fff",fontSize:8.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{gname(m.name)}</span><span style={{fontSize:12,fontWeight:700,color:on?m.color:"#4B5563"}}>{m.name}</span></button>);})}
             </div>
           </div>
         )}
@@ -2142,7 +2146,7 @@ function ProjectRoadmap({D,proj,up,add,onClose,onOpenProcess}){
               {team&&(<>
                 <label style={{display:"block",fontSize:11,fontWeight:800,color:"#4B5563",marginBottom:6}}>담당자 (인계)</label>
                 <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
-                  {MEM.map(m=>{const on=sel.assigneeId===m.id;return(<button key={m.id||"n"} onClick={()=>up("tasks",sel.id,{assigneeId:m.id})} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 11px",borderRadius:20,border:`1.5px solid ${on?m.color:"#E5E8EB"}`,background:on?m.color+"18":"#fff",cursor:"pointer",fontFamily:"inherit"}}><span style={{width:16,height:16,borderRadius:"50%",backgroundColor:m.color,color:"#fff",fontSize:8.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{m.name[0]}</span><span style={{fontSize:12,fontWeight:700,color:on?m.color:"#4B5563"}}>{m.name}</span></button>);})}
+                  {MEM.map(m=>{const on=sel.assigneeId===m.id;return(<button key={m.id||"n"} onClick={()=>up("tasks",sel.id,{assigneeId:m.id})} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 11px",borderRadius:20,border:`1.5px solid ${on?m.color:"#E5E8EB"}`,background:on?m.color+"18":"#fff",cursor:"pointer",fontFamily:"inherit"}}><span style={{width:16,height:16,borderRadius:"50%",backgroundColor:m.color,color:"#fff",fontSize:8.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{gname(m.name)}</span><span style={{fontSize:12,fontWeight:700,color:on?m.color:"#4B5563"}}>{m.name}</span></button>);})}
                 </div>
               </>)}
               <label style={{display:"block",fontSize:11,fontWeight:800,color:"#4B5563",marginBottom:5}}>💬 논의 · 개선 <span style={{fontWeight:600,color:"#9CA3AF"}}>(이 여정의 방식·문제·외주/자동화 등)</span></label>
@@ -3218,7 +3222,7 @@ function ProcessEditorPage({D}){
             <button onClick={()=>indent(i,-1)} style={{border:"none",background:"none",color:"#C4C9D0",fontSize:13,cursor:"pointer",padding:"2px 2px"}}>◂</button>
             <button onClick={()=>indent(i,1)} style={{border:"none",background:"none",color:"#C4C9D0",fontSize:13,cursor:"pointer",padding:"2px 2px"}}>▸</button>
             <button onClick={()=>toggleDone(it.id)} style={{width:19,height:19,borderRadius:6,border:`2px solid ${it.done?"#00C073":"#D1D5DB"}`,background:it.done?"#00C073":"#fff",color:"#fff",fontSize:11,fontWeight:900,cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>{it.done?"✓":""}</button>
-            {team&&<span style={{width:18,height:18,borderRadius:"50%",backgroundColor:m.color,color:"#fff",fontSize:9,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{m.name[0]}</span>}
+            {team&&<span style={{width:18,height:18,borderRadius:"50%",backgroundColor:m.color,color:"#fff",fontSize:9,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{gname(m.name)}</span>}
             <input data-id={it.id} value={it.text} placeholder={hasKid(i)?"단계명...":"업무 입력..."} onChange={e=>patch(it.id,{text:e.target.value})} onFocus={()=>setSelId(it.id)} onKeyDown={e=>onKey(e,i)} style={{flex:1,minWidth:0,border:"none",background:"none",fontSize:13.5,fontWeight:hasKid(i)?800:600,color:it.done?"#9CA3AF":"#1F2937",textDecoration:it.done?"line-through":"none",outline:"none",fontFamily:"inherit",padding:"5px 2px"}}/>
           </div>
         );})}
@@ -3233,7 +3237,7 @@ function ProcessEditorPage({D}){
           </svg>
           {items.map((it,i)=>{const m=Mof(it.who);const isSel=it.id===selId;return(
             <div key={it.id} onClick={()=>setSelId(it.id)} style={{position:"absolute",left:pos[i].x,top:pos[i].y,display:"flex",alignItems:"center",gap:6,maxWidth:150,backgroundColor:it.done?"#E8FAF1":"#fff",border:`2px solid ${isSel?"#F97316":it.done?"#00C073":"#E5E8EB"}`,borderRadius:11,padding:"6px 10px",boxShadow:isSel?"0 0 0 3px rgba(249,115,22,0.2)":"0 2px 8px rgba(0,0,0,0.07)",cursor:"pointer",fontSize:12,fontWeight:700,zIndex:isSel?3:2}}>
-              {it.done?<span style={{color:"#00C073",fontWeight:900,flexShrink:0}}>✓</span>:team&&<span style={{width:16,height:16,borderRadius:"50%",backgroundColor:m.color,color:"#fff",fontSize:8.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{m.name[0]}</span>}
+              {it.done?<span style={{color:"#00C073",fontWeight:900,flexShrink:0}}>✓</span>:team&&<span style={{width:16,height:16,borderRadius:"50%",backgroundColor:m.color,color:"#fff",fontSize:8.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{gname(m.name)}</span>}
               <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:it.done?"#059669":"#1F2937"}}>{it.text||"단계"}</span>
             </div>
           );})}
@@ -3248,7 +3252,7 @@ function ProcessEditorPage({D}){
           {team&&(<>
             <p style={{margin:"0 0 6px",fontSize:11,fontWeight:800,color:"#4B5563"}}>담당자 <span style={{fontWeight:600,color:"#9CA3AF"}}>(인계 대상)</span></p>
             <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
-              {MEM.map(m=>{const on=sel.who===m.id;return(<button key={m.id||"none"} onClick={()=>patch(sel.id,{who:m.id})} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 11px",borderRadius:20,border:`1.5px solid ${on?m.color:"#E5E8EB"}`,background:on?m.color+"18":"#fff",cursor:"pointer",fontFamily:"inherit"}}><span style={{width:16,height:16,borderRadius:"50%",backgroundColor:m.color,color:"#fff",fontSize:8.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{m.name[0]}</span><span style={{fontSize:12,fontWeight:700,color:on?m.color:"#4B5563"}}>{m.name}</span></button>);})}
+              {MEM.map(m=>{const on=sel.who===m.id;return(<button key={m.id||"none"} onClick={()=>patch(sel.id,{who:m.id})} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 11px",borderRadius:20,border:`1.5px solid ${on?m.color:"#E5E8EB"}`,background:on?m.color+"18":"#fff",cursor:"pointer",fontFamily:"inherit"}}><span style={{width:16,height:16,borderRadius:"50%",backgroundColor:m.color,color:"#fff",fontSize:8.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{gname(m.name)}</span><span style={{fontSize:12,fontWeight:700,color:on?m.color:"#4B5563"}}>{m.name}</span></button>);})}
             </div>
           </>)}
           <p style={{margin:"0 0 6px",fontSize:11,fontWeight:800,color:"#4B5563"}}>메모</p>

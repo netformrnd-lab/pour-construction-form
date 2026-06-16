@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { STATE_DOC, colDoc, META_DOC, getDoc, onSnapshot, setDoc, uploadTaskPhoto, deleteTaskPhoto } from "./firebase.js";
+import { STATE_DOC, colDoc, META_DOC, extDoc, getDoc, onSnapshot, setDoc, uploadTaskPhoto, deleteTaskPhoto } from "./firebase.js";
 
 // Firestore 단일 문서에 저장할 공유 데이터 키 (currentUser는 기기별 로컬이라 제외)
 const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","weekGoals","launchTemplates","manuals","trash"];
@@ -3447,6 +3447,29 @@ function TeamPage({D,cu,lead,add,up,rm}){
     add("users",{id:"u"+Date.now(),name:nm,color:nextColor(),role:"member"});
     setName("");
   };
+  const [syncing,setSyncing]=useState(false);
+  // 외부 마스터(admin 담당자 관리 = config/staffList)에서 이름 매칭 후 미등록자만 가져옴(읽기전용 — 기존 배정 안전)
+  const norm=(s)=>(s||"").replace(/\s/g,"");
+  const syncStaff=async()=>{
+    setSyncing(true);
+    try{
+      const snap=await getDoc(extDoc("config","staffList"));
+      const d=snap.exists()?snap.data():{};
+      const list=Array.isArray(d.list)?d.list:Array.isArray(d.staff)?d.staff:Array.isArray(d)?d:[];
+      console.log(`[staffList] ${list.length}건`);
+      if(!list.length){ window.alert("외부 담당자 관리(config/staffList)에 데이터가 없어요."); setSyncing(false); return; }
+      const active=list.filter(s=>s.active!==false&&(s.name||"").trim());
+      const toAdd=active.filter(s=>{const nm=norm(s.name);return nm&&!users.some(u=>{const un=norm(u.name);return un===nm||un.includes(nm)||nm.includes(un);});});
+      if(!toAdd.length){ window.alert(`외부 담당자 ${active.length}명 모두 이미 등록돼 있어요.`); setSyncing(false); return; }
+      if(window.confirm(`외부 담당자 관리에서 ${toAdd.length}명을 가져올까요?\n\n${toAdd.map(s=>"· "+s.name).join("\n")}`)){
+        const used=new Set(users.map(u=>u.color));
+        toAdd.forEach((s,i)=>{ const col=USER_PALETTE.find(c=>!used.has(c))||USER_PALETTE[(users.length+i)%USER_PALETTE.length]; used.add(col);
+          add("users",{id:"u"+Date.now()+"_"+i,name:s.name.trim(),color:col,role:s.isMaster||s.role==="lead"?"member":"member",staffKey:s.key||s.id||"",email:s.email||"",phone:s.phone||""}); });
+        window.alert(`${toAdd.length}명을 가져왔어요. 이제 모든 담당자 선택지에 노출됩니다.`);
+      }
+    }catch(e){ console.error("[staffList sync] 실패:",e); window.alert("가져오기 실패 — 외부 담당자 관리에 접근할 수 없어요.\n("+(e.code||e.message||e)+")"); }
+    setSyncing(false);
+  };
   const startEdit=(u)=>{setEditId(u.id);setEditName(u.name);};
   const saveEdit=()=>{if(editName.trim())up("users",editId,{name:editName.trim()});setEditId(null);};
   const removeUser=(u)=>{
@@ -3464,6 +3487,7 @@ function TeamPage({D,cu,lead,add,up,rm}){
         <input value={name} onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addUser()} placeholder="새 담당자 이름 (예: 김하늘)" style={{flex:1,padding:"11px 13px",borderRadius:11,border:"1.5px solid #E5E8EB",fontSize:13.5,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
         <button onClick={addUser} disabled={!name.trim()} style={{flexShrink:0,padding:"0 16px",borderRadius:11,border:"none",background:name.trim()?"#F97316":"#E5E8EB",color:name.trim()?"#fff":"#9CA3AF",fontSize:13.5,fontWeight:800,cursor:name.trim()?"pointer":"not-allowed",fontFamily:"inherit"}}>+ 추가</button>
       </div>
+      <button onClick={syncStaff} disabled={syncing} style={{width:"100%",marginBottom:14,padding:"10px 0",borderRadius:11,border:"1.5px solid #DBE3FF",background:"#F5F8FF",color:"#3182F6",fontSize:12.5,fontWeight:800,cursor:syncing?"default":"pointer",fontFamily:"inherit"}}>{syncing?"가져오는 중…":"🔄 외부 담당자 관리에서 가져오기 (config/staffList)"}</button>
       <p style={{margin:"0 0 8px",fontSize:11,fontWeight:800,color:"#6B7280"}}>전체 {users.length}명</p>
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         {users.map(u=>{

@@ -3381,34 +3381,46 @@ function ProcessEditorPage({D}){
 }
 // 업무 보드 — 팀 전체 현황 뷰 (담당자별 진행률·업무 상태·내 차례)
 function TeamBoard({D,cu}){
+  const sig=diagSignals(D);
   const mem=D.users.map(u=>{
     const projs=D.projects.filter(p=>p.assigneeId===u.id);
     const tasks=D.tasks.filter(t=>!t.isFixed&&t.assigneeId===u.id);
     const done=tasks.filter(t=>t.status==="done").length;
     const inprog=tasks.filter(t=>t.status==="inprogress").length;
+    const rev=projs.reduce((a,p)=>a+numF(p.resultValue),0);
     let ready=0; D.projects.filter(p=>p.templateId).forEach(p=>{const ts=launchProjTasks(D,p);ts.forEach(t=>{if(t.assigneeId===u.id&&launchStageStatus(t,ts)==="ready")ready++;});});
-    return {u,projN:projs.length,done,total:tasks.length,inprog,ready,prog:tasks.length?Math.round(done/tasks.length*100):0};
+    return {u,projN:projs.length,done,total:tasks.length,inprog,ready,rev,stuck:sig.stuckMembers.has(u.id),prog:tasks.length?Math.round(done/tasks.length*100):0};
   });
   const allT=D.tasks.filter(t=>!t.isFixed), allDone=allT.filter(t=>t.status==="done").length;
   const teamProg=allT.length?Math.round(allDone/allT.length*100):0;
+  // 최종목표(매출 10억) 대비 — 미팅 오프닝 앵커
+  const goal=D.goals&&D.goals[0];
+  const goalCur=D.mainKPIs.filter(mk=>mk.unit==="원").reduce((s,mk)=>s+mkCur(mk,D.subKPIs,D.projects),0);
+  const goalPct=pct(goalCur,goal?.targetValue||1);
   return(
-    <div>
+    <div style={{maxWidth:760,margin:"0 auto"}}>
       <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"16px",marginBottom:14,color:"#fff"}}>
-        <p style={{margin:0,fontSize:12,fontWeight:800,opacity:0.8}}>팀 전체 현황</p>
-        <p style={{margin:"4px 0 10px",fontSize:22,fontWeight:900}}>업무 {allDone}/{allT.length} · {teamProg}%</p>
-        <div style={{height:8,borderRadius:8,background:"rgba(255,255,255,0.2)",overflow:"hidden"}}><div style={{width:teamProg+"%",height:"100%",background:"#F97316",borderRadius:8}}/></div>
-        <p style={{margin:"8px 0 0",fontSize:11,opacity:0.8}}>프로젝트 {D.projects.length}개 · 팀원 {D.users.length}명</p>
+        <p style={{margin:0,fontSize:12,fontWeight:800,opacity:0.8}}>🎯 최종목표 · {goal?.title||"매출 10억"}</p>
+        <p style={{margin:"4px 0 10px",fontSize:24,fontWeight:900}}>{goalPct}% <span style={{fontSize:13,fontWeight:700,opacity:0.85}}>달성</span></p>
+        <div style={{height:9,borderRadius:8,background:"rgba(255,255,255,0.2)",overflow:"hidden"}}><div style={{width:goalPct+"%",height:"100%",background:"#F97316",borderRadius:8}}/></div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"9px 0 0",flexWrap:"wrap",gap:6}}>
+          <p style={{margin:0,fontSize:11.5,fontWeight:700,opacity:0.92}}>매출 {fmt(goalCur,"원")} / {fmt(goal?.targetValue||0,"원")}</p>
+          <p style={{margin:0,fontSize:11,opacity:0.78}}>업무 완료 {allDone}/{allT.length}({teamProg}%) · 프로젝트 {D.projects.length} · 팀원 {D.users.length}</p>
+        </div>
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:10}}>
         {mem.map(m=>(
-          <div key={m.u.id} style={{backgroundColor:"#fff",borderRadius:14,border:`1px solid ${m.u.id===cu.id?"#FED7AA":"#F2F4F6"}`,padding:"13px 14px"}}>
+          <div key={m.u.id} style={{backgroundColor:"#fff",borderRadius:14,border:`1px solid ${m.stuck?"#FFD7DC":m.u.id===cu.id?"#FED7AA":"#F2F4F6"}`,padding:"13px 14px"}}>
             <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:9}}>
               <Ava name={m.u.name} color={m.u.color} size={38}/>
               <div style={{flex:1,minWidth:0}}>
-                <p style={{margin:0,fontSize:14,fontWeight:900,color:"#111827"}}>{m.u.name}{m.u.id===cu.id&&<span style={{fontSize:10,color:"#EA580C",fontWeight:700}}> (나)</span>}</p>
+                <p style={{margin:0,fontSize:14,fontWeight:900,color:"#111827"}}>{m.u.name}{m.u.id===cu.id&&<span style={{fontSize:10,color:"#EA580C",fontWeight:700}}> (나)</span>}{m.stuck&&<span title={SIGNAL_LABEL.stuck} style={{marginLeft:5,fontSize:11}}>🔴</span>}</p>
                 <p style={{margin:"1px 0 0",fontSize:10.5,color:"#9CA3AF"}}>{m.u.dept} · 프로젝트 {m.projN}개</p>
               </div>
-              {m.ready>0&&<span style={{fontSize:10.5,fontWeight:800,color:"#fff",background:"#F97316",borderRadius:8,padding:"3px 8px",flexShrink:0}}>🔔 내 차례 {m.ready}</span>}
+              <div style={{display:"flex",gap:4,flexShrink:0,alignItems:"center"}}>
+                {m.rev>0&&<span style={{fontSize:10.5,fontWeight:800,color:"#7A3E00",background:"#FFE6C7",borderRadius:8,padding:"3px 8px"}}>💰{fmt(m.rev,"원")}</span>}
+                {m.ready>0&&<span style={{fontSize:10.5,fontWeight:800,color:"#fff",background:"#F97316",borderRadius:8,padding:"3px 8px"}}>🔔 내 차례 {m.ready}</span>}
+              </div>
             </div>
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
               <div style={{flex:1,height:6,borderRadius:6,background:"#F2F4F6",overflow:"hidden"}}><div style={{width:m.prog+"%",height:"100%",background:m.prog>=70?"#00C073":m.u.color,borderRadius:6}}/></div>
@@ -3433,6 +3445,7 @@ function TeamWeeklyMap({D,cu}){
   const [activeOnly,setActiveOnly]=useState(false);
   const [memSel,setMemSel]=useState(null);   // null=전체 / Set=선택 멤버
   const [picked,setPicked]=useState(null);
+  const [diagOpen,setDiagOpen]=useState(false);
   const prange=periodRange(period);
   const wrange=periodRange("week");
   const pprev=prevPeriodRange(period);
@@ -3467,8 +3480,17 @@ function TeamWeeklyMap({D,cu}){
   const teamDonePrev=allMem.reduce((a,m)=>a+m.donePrev,0);
   const teamDelta=teamDone-teamDonePrev;
   const teamRev=allMem.reduce((a,m)=>a+m.rev,0);
+  // 최종목표(매출 10억) 대비 — 미팅 앵커 (필터 무관 절대값)
+  const goal=D.goals&&D.goals[0];
+  const goalCur=D.mainKPIs.filter(mk=>mk.unit==="원").reduce((s,mk)=>s+mkCur(mk,D.subKPIs,D.projects),0);
+  const goalPct=pct(goalCur,goal?.targetValue||1);
+  // 팀 진단 요약 (이번 달 기준) — 막힘·적체·헛심
+  const diag=diagData(D,nowMonth());
+  const stuckMem=diag.mem.filter(m=>m.stuck);
+  const jamN=diag.projStuck.length, heotN=diag.heotsim.length;
+  const diagTotal=stuckMem.length+jamN+heotN;
   return(
-    <div>
+    <div style={{maxWidth:760,margin:"0 auto"}}>
       <div style={{display:"flex",gap:5,marginBottom:10,flexWrap:"wrap"}}>
         {PERIODS.map(([k,l])=>{const on=period===k;return(<button key={k} onClick={()=>setPeriod(k)} style={{flex:"1 0 auto",padding:"7px 10px",borderRadius:9,border:`1.5px solid ${on?"#0F1F5C":"#E5E8EB"}`,background:on?"#0F1F5C":"#fff",color:on?"#fff":"#6B7280",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>);})}
       </div>
@@ -3479,13 +3501,31 @@ function TeamWeeklyMap({D,cu}){
         <div style={{display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:11}}>🔴🧱💸</span><span style={{fontSize:11,color:"#9CA3AF",fontWeight:600}}>막힘·적체·헛심</span></div>
       </div>
       <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"15px 16px",marginBottom:12,color:"#fff"}}>
-        <p style={{margin:0,fontSize:12,fontWeight:800,opacity:0.82}}>팀 주간 맵 · {PLABEL[period]}</p>
-        <div style={{display:"flex",alignItems:"baseline",gap:8,margin:"5px 0 0",flexWrap:"wrap"}}>
-          <span style={{fontSize:20,fontWeight:900}}>활동 멤버 {activeMembers}/{allMem.length}</span>
-          <span style={{fontSize:11,fontWeight:800,color:"#D1F5E0",background:"rgba(0,200,115,0.22)",borderRadius:8,padding:"2px 8px"}}>✅완료 {teamDone}</span>
-          <span style={{fontSize:11,fontWeight:800,color:teamDelta>0?"#D1F5E0":teamDelta<0?"#FFD7DC":"rgba(255,255,255,0.7)",background:"rgba(255,255,255,0.14)",borderRadius:8,padding:"2px 8px"}}>{teamDelta>0?`▲${teamDelta}`:teamDelta<0?`▼${-teamDelta}`:"–"} vs {PREV_LABEL[period]}</span>
-          <span style={{fontSize:11,fontWeight:800,color:"#FFE6C7",background:"rgba(249,115,22,0.25)",borderRadius:8,padding:"2px 8px"}}>💰{fmt(teamRev,"원")}</span>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}>
+          <span style={{fontSize:12,fontWeight:800,opacity:0.82}}>🎯 최종목표 · {goal?.title||"매출 10억"}</span>
+          <span style={{fontSize:18,fontWeight:900}}>{goalPct}%</span>
         </div>
+        <div style={{height:8,borderRadius:8,background:"rgba(255,255,255,0.2)",overflow:"hidden",marginBottom:4}}><div style={{width:goalPct+"%",height:"100%",background:"#F97316",borderRadius:8}}/></div>
+        <p style={{margin:"0 0 11px",fontSize:11,fontWeight:700,opacity:0.85}}>매출 {fmt(goalCur,"원")} / {fmt(goal?.targetValue||0,"원")}</p>
+        <div style={{borderTop:"1px solid rgba(255,255,255,0.16)",paddingTop:10}}>
+          <p style={{margin:"0 0 5px",fontSize:11,fontWeight:800,opacity:0.7}}>이 기간({PLABEL[period]})</p>
+          <div style={{display:"flex",alignItems:"baseline",gap:7,flexWrap:"wrap"}}>
+            <span style={{fontSize:16,fontWeight:900}}>활동 멤버 {activeMembers}/{allMem.length}</span>
+            <span style={{fontSize:11,fontWeight:800,color:"#D1F5E0",background:"rgba(0,200,115,0.22)",borderRadius:8,padding:"2px 8px"}}>✅완료 {teamDone}</span>
+            <span style={{fontSize:11,fontWeight:800,color:teamDelta>0?"#D1F5E0":teamDelta<0?"#FFD7DC":"rgba(255,255,255,0.7)",background:"rgba(255,255,255,0.14)",borderRadius:8,padding:"2px 8px"}}>{teamDelta>0?`▲${teamDelta}`:teamDelta<0?`▼${-teamDelta}`:"–"} vs {PREV_LABEL[period]}</span>
+            <span style={{fontSize:11,fontWeight:800,color:"#FFE6C7",background:"rgba(249,115,22,0.25)",borderRadius:8,padding:"2px 8px"}}>💰{fmt(teamRev,"원")}</span>
+          </div>
+        </div>
+      </div>
+      <div onClick={()=>setDiagOpen(true)} style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,padding:"11px 14px",borderRadius:12,cursor:"pointer",background:diagTotal>0?"#FFF7F7":"#F6FBF8",border:`1px solid ${diagTotal>0?"#FFD7DC":"#CFEFDD"}`}}>
+        <span style={{fontSize:16,flexShrink:0}}>🩺</span>
+        <div style={{flex:1,minWidth:0}}>
+          <p style={{margin:0,fontSize:12.5,fontWeight:900,color:"#0F1F5C"}}>팀 진단 {diagTotal>0?<span style={{color:"#F04452"}}>· 점검 {diagTotal}</span>:<span style={{color:"#00A862"}}>· 특이신호 없음</span>}</p>
+          <p style={{margin:"2px 0 0",fontSize:10.5,color:"#6B7280",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+            🔴 막힘 {stuckMem.length}{stuckMem.length?`(${stuckMem.map(m=>m.u.name).join("·")})`:""} · 🧱 적체 {jamN} · 💸 헛심 {heotN}
+          </p>
+        </div>
+        <span style={{fontSize:11,fontWeight:800,color:"#9CA3AF",flexShrink:0}}>자세히 ›</span>
       </div>
       <div style={{display:"flex",gap:5,marginBottom:8,flexWrap:"wrap"}}>
         {[["all","전체"],...D.mainKPIs.map(m=>[m.id,m.krKey])].map(([k,l])=>{const on=krF===k;return(<button key={k} onClick={()=>setKrF(k)} style={{padding:"5px 11px",borderRadius:20,border:`1.5px solid ${on?"#0F1F5C":"#E5E8EB"}`,background:on?"#0F1F5C":"#fff",color:on?"#fff":"#6B7280",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>);})}
@@ -3543,6 +3583,7 @@ function TeamWeeklyMap({D,cu}){
       )}
       {mem.length===0&&<p style={{textAlign:"center",color:"#D1D5DB",fontSize:13,padding:"24px 0"}}>표시할 멤버가 없어요 (필터 조정)</p>}
       <NodeDetail D={D} node={picked} period={period} onClose={()=>setPicked(null)}/>
+      <Sheet open={diagOpen} onClose={()=>setDiagOpen(false)} title="🩺 팀 진단" h="88vh"><div style={{marginTop:4}}><TeamDiagnose D={D} cu={cu}/></div></Sheet>
     </div>
   );
 }

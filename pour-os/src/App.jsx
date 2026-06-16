@@ -3413,6 +3413,105 @@ function TeamBoard({D,cu}){
     </div>
   );
 }
+// 업무 보드 — 팀 주간 맵 (기간 필터 · 멤버별 활동색 + 성과). 개인 주간 맵과 동일한 색·배지 언어.
+function TeamWeeklyMap({D,cu}){
+  const [period,setPeriod]=useState("week");
+  const prange=periodRange(period);
+  const wrange=periodRange("week");
+  const inP=(ds)=>{if(!ds)return false;const d=new Date(ds);return !isNaN(d)&&d>=prange[0]&&d<=prange[1];};
+  const inWeek=(ds)=>{if(!ds)return false;const d=new Date(ds);return !isNaN(d)&&d>=wrange[0]&&d<=wrange[1];};
+  // 업무의 요일 위치(주간 맵 칸): weekDay 우선, 없으면 workDate에서 환산
+  const dayOf=(t)=>{ if(t.weekDay&&WEEK_DAYS.includes(t.weekDay)) return t.weekDay; if(t.workDate){const d=new Date(t.workDate); if(!isNaN(d)){const wd=(d.getDay()+6)%7; return WEEK_DAYS[wd]||null;}} return null; };
+  const activeInP=(t)=>inP(t.workDate)||inP(t.doneAt)||(period==="week"&&!!(t.weekDay&&WEEK_DAYS.includes(t.weekDay)));
+  const doneInP=(ts)=>ts.filter(t=>t.status==="done"&&inP(t.doneAt)).length;
+  const PLABEL=Object.fromEntries(PERIODS);
+  const mem=D.users.map(u=>{
+    const tasks=D.tasks.filter(t=>!t.isFixed&&t.assigneeId===u.id);
+    const projs=D.projects.filter(p=>p.assigneeId===u.id);
+    const rev=projs.reduce((a,p)=>a+numF(p.resultValue),0);
+    const active=tasks.some(activeInP);
+    const doneP=doneInP(tasks);
+    const inprog=tasks.filter(t=>t.status==="inprogress").length;
+    const actCnt=tasks.filter(activeInP).length;
+    // 이번 주 요일 배치(주간 칸): weekDay가 있거나 workDate가 이번 주인 업무
+    const weekTasks=tasks.filter(t=>dayOf(t)&&(t.weekDay||inWeek(t.workDate)));
+    return {u,tasks,projN:projs.length,rev,active,doneP,inprog,actCnt,weekTasks};
+  });
+  const activeMembers=mem.filter(m=>m.active).length;
+  const teamDone=mem.reduce((a,m)=>a+m.doneP,0);
+  const teamRev=D.projects.reduce((a,p)=>a+numF(p.resultValue),0);
+  return(
+    <div>
+      <div style={{display:"flex",gap:5,marginBottom:10,flexWrap:"wrap"}}>
+        {PERIODS.map(([k,l])=>{const on=period===k;return(<button key={k} onClick={()=>setPeriod(k)} style={{flex:"1 0 auto",padding:"7px 10px",borderRadius:9,border:`1.5px solid ${on?"#0F1F5C":"#E5E8EB"}`,background:on?"#0F1F5C":"#fff",color:on?"#fff":"#6B7280",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>);})}
+      </div>
+      <div style={{display:"flex",gap:14,marginBottom:14,padding:"8px 14px",backgroundColor:"#FFFFFF",borderRadius:10,border:"1px solid #F2F4F6",flexWrap:"wrap"}}>
+        <div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:8,height:8,borderRadius:"50%",backgroundColor:"#F97316"}}/><span style={{fontSize:11,color:"#4B5563",fontWeight:600}}>활동(이 기간)</span></div>
+        <div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:8,height:8,borderRadius:"50%",backgroundColor:"#D1D5DB"}}/><span style={{fontSize:11,color:"#9CA3AF",fontWeight:600}}>비활동</span></div>
+        <div style={{display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:10.5,fontWeight:800,color:"#00A862",background:"#E8FAF1",borderRadius:5,padding:"1px 6px"}}>✅성과</span><span style={{fontSize:11,color:"#9CA3AF",fontWeight:600}}>기간 내 완료·매출</span></div>
+      </div>
+      <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"15px 16px",marginBottom:14,color:"#fff"}}>
+        <p style={{margin:0,fontSize:12,fontWeight:800,opacity:0.82}}>팀 주간 맵 · {PLABEL[period]}</p>
+        <div style={{display:"flex",alignItems:"baseline",gap:8,margin:"5px 0 0",flexWrap:"wrap"}}>
+          <span style={{fontSize:20,fontWeight:900}}>활동 멤버 {activeMembers}/{mem.length}</span>
+          <span style={{fontSize:11,fontWeight:800,color:"#D1F5E0",background:"rgba(0,200,115,0.22)",borderRadius:8,padding:"2px 8px"}}>✅완료 {teamDone}</span>
+          <span style={{fontSize:11,fontWeight:800,color:"#FFE6C7",background:"rgba(249,115,22,0.25)",borderRadius:8,padding:"2px 8px"}}>💰{fmt(teamRev,"원")}</span>
+        </div>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {mem.map(m=>{
+          const col=m.u.color||"#3182F6";
+          return(
+            <div key={m.u.id} style={{backgroundColor:"#fff",borderRadius:14,border:`1px solid ${m.active?col+"55":"#F2F4F6"}`,padding:"12px 13px",opacity:m.active?1:0.72}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:9}}>
+                <div style={{position:"relative",flexShrink:0}}>
+                  <Ava name={m.u.name} color={m.u.color} size={36}/>
+                  <div style={{position:"absolute",right:-1,bottom:-1,width:11,height:11,borderRadius:"50%",border:"2px solid #fff",backgroundColor:m.active?col:"#D1D5DB"}}/>
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <p style={{margin:0,fontSize:13.5,fontWeight:900,color:"#111827"}}>{m.u.name}{m.u.id===cu.id&&<span style={{fontSize:10,color:"#EA580C",fontWeight:700}}> (나)</span>}</p>
+                  <p style={{margin:"1px 0 0",fontSize:10.5,color:"#9CA3AF"}}>{m.u.dept} · 프로젝트 {m.projN}개</p>
+                </div>
+                <div style={{display:"flex",gap:4,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
+                  {m.inprog>0&&<span style={{fontSize:10,fontWeight:800,color:"#3182F6",background:"#EBF3FF",borderRadius:8,padding:"2px 7px"}}>진행 {m.inprog}</span>}
+                  {m.doneP>0&&<span style={{fontSize:10,fontWeight:800,color:"#0F5132",background:"#D1F5E0",borderRadius:8,padding:"2px 7px"}}>✅{m.doneP}</span>}
+                  {m.rev>0&&<span style={{fontSize:10,fontWeight:800,color:"#7A3E00",background:"#FFE6C7",borderRadius:8,padding:"2px 7px"}}>💰{fmt(m.rev,"원")}</span>}
+                </div>
+              </div>
+              {period==="week"?(
+                <div style={{display:"flex",gap:4}}>
+                  {WEEK_DAYS.map(day=>{
+                    const dts=m.weekTasks.filter(t=>dayOf(t)===day);
+                    const on=dts.length>0;
+                    return(
+                      <div key={day} style={{flex:1,minWidth:0,borderRadius:9,border:`1px solid ${on?col+"44":"#F2F4F6"}`,background:on?col+"0D":"#FAFBFC",padding:"5px 4px",minHeight:46}}>
+                        <p style={{margin:"0 0 3px",fontSize:9.5,fontWeight:800,textAlign:"center",color:on?col:"#C4C9D0"}}>{day}</p>
+                        <div style={{display:"flex",flexDirection:"column",gap:2}}>
+                          {dts.slice(0,3).map(t=>{const st=STATUS_MAP[t.status]||STATUS_MAP.todo;return(
+                            <div key={t.id} title={t.title} style={{display:"flex",alignItems:"center",gap:2}}>
+                              <div style={{width:5,height:5,borderRadius:"50%",backgroundColor:st.color,flexShrink:0}}/>
+                              <span style={{fontSize:8.5,color:"#4B5563",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontWeight:600}}>{t.title}</span>
+                            </div>
+                          );})}
+                          {dts.length>3&&<span style={{fontSize:8.5,color:"#9CA3AF",fontWeight:700,textAlign:"center"}}>+{dts.length-3}</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ):(
+                <div style={{display:"flex",alignItems:"center",gap:8,padding:"7px 11px",borderRadius:10,background:m.active?col+"0D":"#FAFBFC",border:`1px solid ${m.active?col+"33":"#F2F4F6"}`}}>
+                  <span style={{fontSize:11,fontWeight:800,color:m.active?col:"#9CA3AF"}}>{m.active?`이 기간 활동 ${m.actCnt}건`:"이 기간 활동 없음"}</span>
+                  {m.doneP>0&&<span style={{fontSize:10.5,color:"#6B7280",fontWeight:600}}>· 완료 {m.doneP}</span>}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 // 진단 데이터(이번 달 기준) — 완료는 이번 달, 미완은 현재
 const diagData=(D,month)=>{
   const parentIds=new Set((D.tasks||[]).filter(t=>t.parentId).map(t=>t.parentId));
@@ -3705,6 +3804,7 @@ function TeamDashPage({D,cu,nav}){
 function MindMapPage({D,cu}){
   const [scope,setScope]=useState("person");   // person | team | diag
   const [boardView,setBoardView]=useState("tree");
+  const [teamView,setTeamView]=useState("members");   // members(멤버 현황) | weekly(주간 맵)
   const [period,setPeriod]=useState("week");
   const prange=periodRange(period);
   const inP=(ds)=>{if(!ds)return false;const d=new Date(ds);return !isNaN(d)&&d>=prange[0]&&d<=prange[1];};
@@ -3725,7 +3825,15 @@ function MindMapPage({D,cu}){
           <button key={k} onClick={()=>setScope(k)} style={{flex:1,padding:"10px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:scope===k?"#0F1F5C":"#F2F4F6",color:scope===k?"#fff":"#374151",fontWeight:800,fontSize:13.5,fontFamily:"inherit"}}>{l}</button>
         ))}
       </div>
-      {scope==="team"&&<TeamBoard D={D} cu={cu}/>}
+      {scope==="team"&&(<>
+        <div style={{display:"flex",backgroundColor:"#F2F4F6",borderRadius:14,padding:4,marginBottom:14}}>
+          {[{k:"members",l:"👥 멤버 현황"},{k:"weekly",l:"🗓 주간 맵"}].map(v=>(
+            <button key={v.k} onClick={()=>setTeamView(v.k)} style={{flex:1,padding:"9px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:teamView===v.k?"#FFFFFF":"transparent",color:teamView===v.k?"#0F1F5C":"#6B7280",fontWeight:teamView===v.k?800:500,fontSize:13,fontFamily:"inherit",boxShadow:teamView===v.k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{v.l}</button>
+          ))}
+        </div>
+        {teamView==="members"&&<TeamBoard D={D} cu={cu}/>}
+        {teamView==="weekly"&&<TeamWeeklyMap D={D} cu={cu}/>}
+      </>)}
       {scope==="person"&&(<>
       <div style={{display:"flex",backgroundColor:"#F2F4F6",borderRadius:14,padding:4,marginBottom:14}}>
         {[{k:"tree",l:"◈ 담당자 트리"},{k:"weekly",l:"🗓 주간 맵"}].map(v=>(

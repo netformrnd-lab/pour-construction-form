@@ -1598,7 +1598,7 @@ function KPIPage({D,lead,up,cu,add,rm,restore}){
                               <span style={{fontSize:11,color:"#9CA3AF"}}>{fmt(skCur(sk,D.projects),sk.unit)} / {fmt(sk.targetValue,sk.unit)}</span>
                               <span style={{fontSize:11,color:"#9CA3AF"}}>프로젝트 {projs.length}개</span>
                             </div>
-                            <button onClick={e=>{e.stopPropagation();openVal("subKPIs",sk);}} style={{width:"100%",marginTop:8,padding:"8px 10px",borderRadius:8,border:"1.5px solid #F97316",background:"#FFF7ED",color:"#EA580C",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>📊 이번 주 실적 입력</button>
+                            {!((sk.mainKPIId==="mk2"&&sk.unit==="원")||(sk.unit==="%"&&projs.length>0)||sk.launchCount)&&<button onClick={e=>{e.stopPropagation();openVal("subKPIs",sk);}} style={{width:"100%",marginTop:8,padding:"8px 10px",borderRadius:8,border:"1.5px solid #F97316",background:"#FFF7ED",color:"#EA580C",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>📊 이번 주 실적 입력</button>}
                             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginTop:6,flexWrap:"wrap"}} onClick={e=>e.stopPropagation()}>
                               <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
                                 {sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride&&<span style={{fontSize:10,fontWeight:800,color:"#3182F6",backgroundColor:"#EBF3FF",padding:"2px 7px",borderRadius:6}}>📊 자동 집계(매출)</span>}
@@ -2196,7 +2196,7 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
   const sel=stages.find(s=>s.id===selId);
   const cpct=sid=>{const ks=D.tasks.filter(t=>t.parentId===sid&&!t.isFixed);if(ks.length)return Math.round(ks.filter(t=>t.status==="done").length/ks.length*100);return (stages.find(s=>s.id===sid)?.status==="done")?100:0;};
   const kidsOf=(pid)=>D.tasks.filter(t=>t.parentId===pid&&!t.isFixed).sort((a,b)=>(a.seq||0)-(b.seq||0));
-  const addStage=()=>{add("tasks",{id:"t"+Date.now(),projectId:proj.id,parentId:null,seq:stages.length,title:"새 로드단계",status:"todo",isFixed:false,assigneeId:"",estDays:0,discuss:"",custJourney:"",painPoint:"",satisfaction:null,memo:"",startDate:"",dueDate:"",attachments:[]});};
+  const addStage=()=>{add("tasks",{id:"t"+Date.now(),projectId:proj.id,parentId:null,seq:stages.length,title:"새 로드단계",status:"todo",isFixed:false,assigneeId:"",discuss:"",custJourney:"",painPoint:"",satisfaction:null,handoffNote:"",memo:"",startDate:"",dueDate:"",attachments:[]});};
   // 로드단계에 프로세스 모듈 장착 — 모듈 단계를 그 로드단계의 업무로 인스턴스화(인계 순서) + 로드단계에 모듈·버전 기록
   const tpls=D.launchTemplates||[];
   const attachProcessToStage=(stageId,tpl)=>{
@@ -2404,7 +2404,6 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
   const [groupFilter,setGroupFilter]=useState("all");
   const [pview,setPview]=useState("list");   // list | launch (출시는 프로젝트 하위)
   const [projDetail,setProjDetail]=useState(null);
-  const [stagePick,setStagePick]=useState(null);   // 단계 흐름 적용 대상 프로젝트
   const tpls=D.launchTemplates||[];
   const [taskForm,setTaskForm]=useState({title:"",status:"todo",dueDate:"",memo:"",assigneeId:""});
   const [addTaskSheet,setAddTaskSheet]=useState(false);
@@ -2545,8 +2544,6 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
               const leaves=ts.filter(t=>!pIds.has(t.id));
               const done=leaves.filter(t=>t.status==="done").length;
               const prog=leaves.length?Math.round(done/leaves.length*100):0;
-              const totalDays=stages.reduce((a,s)=>a+(s.estDays||0),0);
-              const wk=Math.round(totalDays/7*10)/10;
               const team=p.projType?p.projType==="team":(p.collaboratorIds||[]).length>0;
               const who=D.users.find(u=>u.id===p.assigneeId);
               return(
@@ -2560,7 +2557,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
                     <div style={{flex:1,height:6,borderRadius:6,background:"#F2F4F6",overflow:"hidden"}}><div style={{width:prog+"%",height:"100%",background:prog>=100?"#00C073":"#F97316",borderRadius:6}}/></div>
                     <span style={{fontSize:12,fontWeight:900,color:prog>=100?"#00C073":"#F97316",flexShrink:0}}>{prog}%</span>
                   </div>
-                  <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>로드단계 {stages.length}개{totalDays?` · 예상 ${wk}주`:""} · 업무 {done}/{leaves.length}{who?` · ${who.name}`:""}</p>
+                  <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>로드단계 {stages.length}개 · 업무 {done}/{leaves.length}{who?` · ${who.name}`:""}</p>
                 </button>
               );
             })}
@@ -2663,7 +2660,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
                       </div>}
                     </div>
                   );})()}
-                  <ProjStageFlow D={D} proj={proj} cu={cu} up={up} onPick={(p)=>setStagePick(p)}/>
+                  <ProjStageFlow D={D} proj={proj} cu={cu} up={up}/>
                   <div style={{padding:"12px 16px 0",display:"flex",alignItems:"center",gap:8}}>
                     <span style={{fontSize:12,fontWeight:800,color:"#4B5563",flexShrink:0}}>🏷 거래처유형</span>
                     <select value={proj.dealerType||""} onChange={e=>up("projects",proj.id,{dealerType:e.target.value})} style={{flex:1,padding:"7px 10px",borderRadius:8,fontSize:12,fontWeight:700,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",color:proj.dealerType?(DT[proj.dealerType]?.color||"#111827"):"#9CA3AF",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="">미지정</option>{DEALER_TYPES.map(d=><option key={d.code} value={d.code}>{d.code} · {d.label} ({d.price})</option>)}</select>
@@ -2764,20 +2761,6 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
         {filtered.length===0&&<div style={{padding:"40px 20px",textAlign:"center",backgroundColor:"#FFFFFF",borderRadius:16,border:"1px solid #F2F4F6"}}><p style={{fontSize:38,margin:"0 0 10px"}}>🗂️</p><p style={{fontSize:14,color:"#9CA3AF"}}>프로젝트가 없어요</p></div>}
       </div>
       {processProj&&<ProjectProcessEditor D={D} proj={processProj} cu={cu} add={add} up={up} rm={rm} onClose={()=>setProcessProj(null)}/>}
-      <Sheet open={!!stagePick} onClose={()=>setStagePick(null)} title="🔗 단계 흐름 적용">
-        {stagePick&&(<div style={{marginTop:8}}>
-          <p style={{margin:"0 0 14px",fontSize:12,color:"#6B7280",lineHeight:1.6,backgroundColor:"#F9FAFB",borderRadius:10,padding:"10px 12px"}}><b>{stagePick.title}</b>에 적용할 템플릿을 고르세요. 단계 업무가 담당자·인계 순서까지 자동 생성됩니다.</p>
-          {tpls.length===0?(
-            <Btn full variant="orange" onClick={()=>add("launchTemplates",{...INIT.launchTemplates[0],createdAt:new Date().toISOString()})}>기본 템플릿 먼저 만들기</Btn>
-          ):tpls.map(t=>(
-            <button key={t.id} onClick={()=>{applyTemplateToProject({tpl:t,proj:stagePick,add,up});setStagePick(null);}} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,padding:"13px 14px",borderRadius:12,border:"1.5px solid #E5E8EB",backgroundColor:"#fff",marginBottom:8,cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
-              <span style={{fontSize:13.5,fontWeight:800,color:"#0F1F5C"}}>🧩 {t.name}</span>
-              <span style={{fontSize:11.5,fontWeight:700,color:"#EA580C",flexShrink:0}}>{t.nodes.length}단계 →</span>
-            </button>
-          ))}
-          <p style={{margin:"6px 2px 0",fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>템플릿 편집·복제는 <b>🚀 프로세스 → 템플릿</b> 탭에서 합니다.</p>
-        </div>)}
-      </Sheet>
       <Sheet open={addTaskSheet} onClose={()=>setAddTaskSheet(false)} title="업무 추가" h="75vh">
         <div style={{marginTop:10}}>
           {projDetail&&<div style={{backgroundColor:"#EBF3FF",borderRadius:10,padding:"8px 12px",marginBottom:14}}><p style={{margin:0,fontSize:12,fontWeight:700,color:"#3182F6"}}>📁 {projDetail.title}</p></div>}
@@ -3095,22 +3078,8 @@ const instantiateLaunch=({tpl,productName,mainKPIId,subKPIId,dealerType,add})=>{
     add("tasks",{id:taskIdByNode[n.id],title:n.roleLabel?`[${n.roleLabel}] ${n.title}`:n.title,projectId:projId,assigneeId:n.assigneeId||owner,type:"general",status:"todo",weekDay:null,weekSlot:null,isFixed:false,dueDate:"",memo:"",attachments:[],launchNode:n.id,step:i,deps});
   });
 };
-// 템플릿을 "기존 프로젝트"에 적용 — 단계 업무(선행·담당자) 생성 + templateId 표시 (출시 외 일반 프로젝트도 단계 흐름 가능)
-const applyTemplateToProject=({tpl,proj,add,up})=>{
-  const ts=Date.now();
-  const taskIdByNode={};
-  tpl.nodes.forEach((n,i)=>{taskIdByNode[n.id]="t"+ts+"_"+i;});
-  const predsOf=(nodeId)=>tpl.edges.filter(e=>e.to===nodeId).map(e=>e.from);
-  tpl.nodes.forEach((n,i)=>{
-    const deps=predsOf(n.id).map(pid=>taskIdByNode[pid]).filter(Boolean);
-    add("tasks",{id:taskIdByNode[n.id],title:n.roleLabel?`[${n.roleLabel}] ${n.title}`:n.title,projectId:proj.id,assigneeId:n.assigneeId,type:"general",status:"todo",weekDay:null,weekSlot:null,isFixed:false,dueDate:"",memo:"",attachments:[],launchNode:n.id,step:i,deps});
-  });
-  const assignees=[...new Set(tpl.nodes.map(n=>n.assigneeId).filter(Boolean))];
-  const colab=[...new Set([...(proj.collaboratorIds||[]),...assignees.filter(a=>a!==proj.assigneeId)])];
-  up("projects",proj.id,{templateId:tpl.id,collaboratorIds:colab});
-};
-// 프로젝트 상세 안의 "단계 흐름(협업 인계)" 섹션 — 단계 없으면 적용 버튼, 있으면 인계 파이프라인
-function ProjStageFlow({D,proj,cu,up,onPick}){
+// 프로젝트 상세 안의 "단계 흐름(협업 인계)" 섹션 — 출시 SKU(launchNode) 인계 파이프라인. 일반 프로젝트는 로드맵에서 관리(중복 제거).
+function ProjStageFlow({D,proj,cu,up}){
   const stageTasks=D.tasks.filter(t=>t.projectId===proj.id&&t.launchNode).sort((a,b)=>(a.step||0)-(b.step||0));
   const uName=(id)=>D.users.find(u=>u.id===id)?.name||"미배정";
   const uColor=(id)=>D.users.find(u=>u.id===id)?.color||"#9CA3AF";
@@ -4332,7 +4301,7 @@ function WeeklyTree({D,sel,isThisWeek,doneInP,krColors,krF,activeOnly,signals,on
   </>);
 }
 function MindMapPage({D,cu,nav}){
-  const [scope,setScope]=useState("person");   // person | team | diag
+  const [scope,setScope]=useState("person");   // person | team
   const [boardView,setBoardView]=useState("tree");
   const [teamView,setTeamView]=useState("members");   // members(멤버 현황) | weekly(그로스보드)
   const [mapStyle,setMapStyle]=useState("tree");   // tree(계층형) | mind(마인드맵)

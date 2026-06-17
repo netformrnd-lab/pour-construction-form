@@ -403,7 +403,28 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add})=>{
               <button key={k} type="button" onClick={()=>setForm({...form,status:k})} style={{flex:1,padding:"9px 4px",borderRadius:10,border:`1.5px solid ${on?v.color:"#E5E8EB"}`,background:on?v.color+"16":"#fff",color:on?v.color:"#9CA3AF",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{v.label}</button>
             );})}
           </div>
+          {form.status!==(task&&task.status)&&<p style={{margin:"6px 2px 0",fontSize:10.5,color:"#EA580C",fontWeight:700}}>저장하면 이 상태 변경이 진행 이력에 날짜와 함께 기록돼요</p>}
         </div>
+        {task&&((task.statusLog&&task.statusLog.length)||task.doneAt)&&(
+          <div style={{marginBottom:14,padding:"10px 12px",background:"#F9FAFB",borderRadius:12,border:"1px solid #F2F4F6"}}>
+            <p style={{margin:"0 0 8px",fontSize:11.5,fontWeight:800,color:"#374151"}}>🧭 진행 이력 <span style={{fontWeight:600,color:"#9CA3AF"}}>(상태가 바뀔 때마다 자동 기록)</span></p>
+            <div style={{display:"flex",flexDirection:"column",gap:0}}>
+              {(task.statusLog&&task.statusLog.length?task.statusLog:(task.doneAt?[{status:"done",at:task.doneAt,byName:task.doneByName}]:[])).map((e,i,arr)=>{const st=STATUS_MAP[e.status]||{};const isLast=i===arr.length-1;return(
+                <div key={i} style={{display:"flex",alignItems:"flex-start",gap:9}}>
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"center",flexShrink:0}}>
+                    <span style={{width:9,height:9,borderRadius:"50%",background:st.color||"#9CA3AF",marginTop:4}}/>
+                    {!isLast&&<span style={{width:2,flex:1,minHeight:14,background:"#E5E8EB"}}/>}
+                  </div>
+                  <div style={{flex:1,minWidth:0,paddingBottom:isLast?0:8}}>
+                    <span style={{fontSize:11,fontWeight:800,color:st.color||"#6B7280"}}>{st.label||e.status}</span>
+                    <span style={{marginLeft:7,fontSize:10.5,color:"#9CA3AF"}}>{(e.at||"").slice(0,16).replace("T"," ")}{e.byName?` · ${e.byName}`:""}</span>
+                  </div>
+                </div>
+              );})}
+            </div>
+            {task.doneAt&&<p style={{margin:"6px 0 0",fontSize:10.5,fontWeight:800,color:"#00A862"}}>✅ 완료일: {task.doneAt.slice(0,16).replace("T"," ")}</p>}
+          </div>
+        )}
         {task&&task.isFixed?(
         <div style={{marginBottom:14}}>
           <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>🕐 시간 <span style={{color:"#9CA3AF",fontWeight:600}}>(반복 시각 — 선택)</span></label>
@@ -647,10 +668,18 @@ export default function App(){
     });
     return changed?{...state,projects}:state;
   };
-  const add=(k,item)=>setD(p=>{const n={...p,[k]:[...p[k],item]};return k==="tasks"?recalcProg(n):n;});
+  const add=(k,item)=>setD(p=>{
+    let it=item;   // 업무는 생성 시점을 진행 이력의 첫 항목으로 기록(여정 시작점)
+    if(k==="tasks"&&!Array.isArray(item.statusLog)) it={...item,statusLog:[{status:item.status||"todo",at:new Date().toISOString(),by:cu?.id||null,byName:cu?.name||""}]};
+    const n={...p,[k]:[...p[k],it]};return k==="tasks"?recalcProg(n):n;});
   const up=(k,id,c)=>setD(p=>{
-    // 업무 완료 전환 시 완료시각·완료자 기록(주간 활동로그용)
-    const list=p[k].map(i=>{ if(i.id!==id) return i; let patch=c; if(k==="tasks"&&c.status&&c.status!==i.status&&c.status==="done") patch={...c,doneAt:new Date().toISOString(),doneBy:cu?.id||null,doneByName:cu?.name||""}; return {...i,...patch}; });
+    // 업무 상태 전이 시 진행 이력(statusLog) 누적 — 할일→진행중→보류→진행중→완료 여정 전체 보존. 완료 전환 시 완료시각·완료자도 기록.
+    const list=p[k].map(i=>{ if(i.id!==id) return i; let patch=c;
+      if(k==="tasks"&&c.status&&c.status!==i.status){ const at=new Date().toISOString();
+        patch={...c,statusLog:[...(Array.isArray(i.statusLog)?i.statusLog:[]),{status:c.status,at,by:cu?.id||null,byName:cu?.name||""}]};
+        if(c.status==="done") patch={...patch,doneAt:at,doneBy:cu?.id||null,doneByName:cu?.name||""};
+      }
+      return {...i,...patch}; });
     const n={...p,[k]:list};
     return k==="tasks"?recalcProg(n):n;
   });

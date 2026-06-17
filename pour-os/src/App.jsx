@@ -218,6 +218,7 @@ function MoneyInput({value,onCommit,compact,live}){
   );
 }
 const todayDay=()=>ALL_DAYS[new Date().getDay()];
+const ymdLocal=(dt)=>`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`;   // 로컬 기준 YYYY-MM-DD (workDate 저장·비교 통일)
 // 공휴일(편집 가능) — 주 마지막 근무일 계산용. 필요 시 날짜 추가/삭제.
 const KR_HOLIDAYS=new Set(["2026-01-01","2026-02-16","2026-02-17","2026-02-18","2026-03-01","2026-03-02","2026-05-05","2026-05-24","2026-05-25","2026-06-06","2026-08-15","2026-08-17","2026-09-24","2026-09-25","2026-09-26","2026-10-03","2026-10-05","2026-10-09","2026-12-25"]);
 const dkeyLocal=(d)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
@@ -434,7 +435,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add})=>{
         <div style={{marginBottom:14}}>
           <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>📅 진행 날짜 <span style={{color:"#9CA3AF",fontWeight:600}}>(언제 할지 — 주간 배치에 자동 노출)</span></label>
           <div style={{display:"flex",gap:6,marginBottom:7,flexWrap:"wrap"}}>
-            {[["오늘",0],["내일",1]].map(([lbl,off])=>{const dt=new Date();dt.setDate(dt.getDate()+off);const ds=dt.toISOString().slice(0,10);const on=form.workDate===ds;return(
+            {[["오늘",0],["내일",1]].map(([lbl,off])=>{const dt=new Date();dt.setDate(dt.getDate()+off);const ds=ymdLocal(dt);const on=form.workDate===ds;return(
               <button key={lbl} type="button" onClick={()=>setForm(f=>placeOn(f,ds))} style={{padding:"8px 13px",borderRadius:10,border:`1.5px solid ${on?"#F97316":"#FDBA74"}`,background:on?"#F97316":"#FFF7ED",color:on?"#fff":"#EA580C",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{lbl}</button>
             );})}
             <input type="date" value={form.workDate||""} onChange={e=>setForm(f=>placeOn(f,e.target.value))} style={{flex:1,minWidth:130,padding:"8px 11px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:13,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
@@ -979,38 +980,50 @@ const Empty=({t})=><div style={{padding:"30px 10px",textAlign:"center",fontSize:
 function TodayPage({D,cu,lead,add,up,rm,nav}){
   const today=todayDay();
   const todayDate=new Date().getDate();
+  const todayStr=ymdLocal(new Date());
+  const [weekOffset,setWeekOffset]=useState(0);   // 주간배치 주 이동(0=이번주, -1=저번주, +1=다음주)
+  const weekMon=(()=>{const x=new Date();const off=(x.getDay()+6)%7;x.setDate(x.getDate()-off);x.setHours(0,0,0,0);return x;})();   // 이번 주 월요일
+  const selMon=(()=>{const m=new Date(weekMon);m.setDate(m.getDate()+weekOffset*7);return m;})();   // 선택된 주의 월요일
+  const dateOfDay=(d)=>{const i=WEEK_DAYS.indexOf(d);if(i<0)return"";const dt=new Date(selMon);dt.setDate(dt.getDate()+i);return ymdLocal(dt);};   // 선택 주의 그 요일 실제 날짜
+  const wdDate=(d)=>{const ds=dateOfDay(d);return ds?ds.slice(5).replace("-","/"):"";};   // MM/DD
+  const isThisWeek=weekOffset===0;
   const myT=D.tasks.filter(t=>t.assigneeId===cu.id);
   const fixedDueToday=(t)=>{const rt=t.recurType||"daily";if(rt==="weekly")return t.weekDay===today;if(rt==="monthly")return Number(t.monthDay||1)===todayDate;return true;};
   const fixed=D.tasks.filter(t=>t.isFixed&&fixedIsMine(t,cu.id)&&fixedDueToday(t));
-  const todayT=myT.filter(t=>!t.isFixed&&t.weekDay===today&&t.status!=="hold");
+  // 오늘 업무 = 진행날짜가 오늘 / 또는 날짜 없이 오늘 요일에 배치된 것(주 구분 위해 날짜 우선) · 보류 제외
+  const todayT=myT.filter(t=>!t.isFixed&&t.status!=="hold"&&(t.workDate===todayStr||(!t.workDate&&t.weekDay===today)));
   const urgent=myT.filter(t=>t.status!=="done"&&t.status!=="hold"&&t.dueDate&&(()=>{const dd=Math.ceil((new Date(t.dueDate)-new Date())/86400000);return dd>=0&&dd<=3;})());
-  // 밀린 업무(이월): 지난 요일에 배치됐는데 아직 미완료·미보류인 내 업무 (주말이면 월~금 전체가 지난 것)
+  // 밀린 업무(이월): 진행날짜가 오늘 이전인데 아직 미완료·미보류 (미래 주 배치는 제외)
   const todayIdx=WEEK_DAYS.indexOf(today);
-  const carry=myT.filter(t=>!t.isFixed&&t.status!=="done"&&t.status!=="hold"&&t.weekDay&&t.weekDay!==today&&(()=>{const i=WEEK_DAYS.indexOf(t.weekDay);return i>=0&&(todayIdx<0||i<todayIdx);})())
-    .sort((a,b)=>WEEK_DAYS.indexOf(a.weekDay)-WEEK_DAYS.indexOf(b.weekDay));
+  const carry=myT.filter(t=>!t.isFixed&&t.status!=="done"&&t.status!=="hold"&&(
+      (t.workDate&&t.workDate<todayStr) ||
+      (!t.workDate&&t.weekDay&&t.weekDay!==today&&(()=>{const i=WEEK_DAYS.indexOf(t.weekDay);return i>=0&&(todayIdx<0||i<todayIdx);})())
+    ))
+    .sort((a,b)=>String(a.workDate||"9999").localeCompare(String(b.workDate||"9999"))||(WEEK_DAYS.indexOf(a.weekDay)-WEEK_DAYS.indexOf(b.weekDay)));
   const held=myT.filter(t=>!t.isFixed&&t.status==="hold");
-  const bringToday=t=>up("tasks",t.id,{weekDay:today,weekSlot:null,status:"todo"});   // 오늘로 가져오기(보류 해제 포함)
+  const bringToday=t=>up("tasks",t.id,{weekDay:today,workDate:todayStr,weekSlot:null,status:"todo"});   // 오늘로 가져오기(보류 해제 포함)
   const holdTask=t=>up("tasks",t.id,{status:"hold"});
   // 캘린더 일정(미팅·외근)을 주간 슬롯에 배치 — 일정 연결 업무 생성(eventId로 추적, 캘린더 원본은 그대로)
   const placeEvent=(ev,day,slot)=>{
     const prev=slotMap[day]?.[slot]; if(prev)up("tasks",prev.id,{weekDay:null,weekSlot:null});
     const et=EVENT_TYPES[ev.type]||{};
     add("tasks",{id:"t"+Date.now(),title:ev.title,projectId:ev.projectId||"",assigneeId:cu.id,type:"event",eventId:ev.id,
-      status:"todo",isFixed:false,weekDay:day,weekSlot:slot,dueDate:ev.date||"",memo:`📅 ${et.label||"일정"}${ev.place?" · "+ev.place:""}`,attachments:[]});
+      status:"todo",isFixed:false,weekDay:day,workDate:dateOfDay(day),weekSlot:slot,dueDate:ev.date||"",memo:`📅 ${et.label||"일정"}${ev.place?" · "+ev.place:""}`,attachments:[]});
   };
   const slotMap={};
   WEEK_DAYS.forEach(d=>{slotMap[d]={};[1,2,3,4,5].forEach(s=>{slotMap[d][s]=myT.find(t=>!t.isFixed&&t.weekDay===d&&t.weekSlot===s)||null;});});
   const [slotSheet,setSlotSheet]=useState(null);
   const dragRef=useRef(null);   // 주간 그리드 드래그 중인 업무
   const [dragOver,setDragOver]=useState(null);   // "day_slot" 하이라이트
-  const dropDayCol=(d)=>{   // 다른 요일 칸으로 드롭 — 그 요일 끝에 추가(요일만 바꾸고 순서는 끝으로)
+  const dropDayCol=(d)=>{   // 다른 요일/주 칸으로 드롭 — 그 날짜(선택 주)로 진행날짜 앵커 + 끝 순서
     const dr=dragRef.current; dragRef.current=null; setDragOver(null);
-    if(!dr||dr.weekDay===d) return;
-    up("tasks",dr.id,{weekDay:d,weekSlot:nextSlot(d)});
+    if(!dr) return; const ds=dateOfDay(d);
+    if(dr.weekDay===d&&dr.workDate===ds) return;
+    up("tasks",dr.id,{weekDay:d,workDate:ds,weekSlot:nextSlot(d)});
   };
-  // 요일별 정렬 목록 — 진행날짜/요일이 있으면 슬롯이 없어도 그 요일 칸에 자동 노출(순서: weekSlot, 없으면 뒤로)
-  const dayOrdered=(d)=>myT.filter(t=>!t.isFixed&&t.weekDay===d)
-    .sort((a,b)=>{const sa=a.weekSlot??9999,sb=b.weekSlot??9999;return sa!==sb?sa-sb:String(a.id).localeCompare(String(b.id));});
+  // 요일별 정렬 목록 — 선택 주의 그 날짜(workDate) 업무 + (이번 주에 한해) 날짜 없이 요일만 배치된 것도 노출
+  const dayOrdered=(d)=>{const ds=dateOfDay(d);return myT.filter(t=>!t.isFixed&&(t.workDate===ds||(isThisWeek&&!t.workDate&&t.weekDay===d)))
+    .sort((a,b)=>{const sa=a.weekSlot??9999,sb=b.weekSlot??9999;return sa!==sb?sa-sb:String(a.id).localeCompare(String(b.id));});};
   const nextSlot=(d)=>Math.max(0,...dayOrdered(d).map(t=>t.weekSlot||0))+1;
   // 같은 요일 안에서 순서만 변경 — 통째로 1..N 재번호(순위 명확화)
   const reorderDay=(d,from,to)=>{
@@ -1071,12 +1084,9 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const myGoals=myWeekGoals(D,cu.id);
   // 출시 인계 — 앞 단계가 끝나 내 차례가 된 출시 단계
   const myReadyLaunch=(()=>{ const arr=[]; D.projects.filter(p=>p.templateId).forEach(p=>{ const ts=launchProjTasks(D,p); ts.forEach(t=>{ if(t.assigneeId===cu.id&&launchStageStatus(t,ts)==="ready") arr.push({proj:p,task:t}); }); }); return [...arr,...myReadyProcess(D,cu.id)]; })();
-  // 이번 주 각 요일의 실제 일자(MM/DD) — 월요일 시작 기준
-  const weekMon=(()=>{const x=new Date();const off=(x.getDay()+6)%7;x.setDate(x.getDate()-off);x.setHours(0,0,0,0);return x;})();
-  const wdDate=(d)=>{const i=WEEK_DAYS.indexOf(d);if(i<0)return"";const dt=new Date(weekMon);dt.setDate(dt.getDate()+i);return String(dt.getMonth()+1).padStart(2,"0")+"/"+String(dt.getDate()).padStart(2,"0");};
   // 주간 배치 — 요일 칸 1개 렌더(모바일=전체폭 크게, 데스크탑=5열 중 하나). 진행날짜/요일 있는 업무 자동 노출 + 순서만 조정
   const renderDayCol=(d,mobile)=>{
-    const list=dayOrdered(d); const isT=d===today; const dk="col_"+d;
+    const list=dayOrdered(d); const isT=d===today&&isThisWeek; const dk="col_"+d;
     return(
       <div key={d} onDragOver={mobile?undefined:e=>{e.preventDefault();if(dragOver!==dk)setDragOver(dk);}} onDragLeave={mobile?undefined:()=>{if(dragOver===dk)setDragOver(null);}} onDrop={mobile?undefined:e=>{e.preventDefault();dropDayCol(d);}}
         style={{flex:mobile?"none":1,minWidth:0,backgroundColor:dragOver===dk?"#FFF7ED":(isT?"rgba(255,237,213,0.5)":"#F9FAFB"),border:`1.5px solid ${dragOver===dk?"#F97316":(isT?"#FBBF77":"#E5E8EB")}`,borderRadius:12,padding:mobile?"6px 8px 8px":"10px 8px"}}>
@@ -1248,23 +1258,32 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
       <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",marginBottom:14,border:"1px solid #F2F4F6"}}>
         <div style={{marginBottom:2}}>
           <h3 style={{margin:"0 0 4px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}>📅 주간 업무 배치</h3>
-          <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>{isNarrow?"하루씩 ◀▶ · 진행날짜 업무 자동 노출 · ▲▼로 순서":"요일별 자동 노출 · 드래그로 요일 이동 · ▲▼로 순서"}</p>
+          <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>{isNarrow?"하루씩 ◀▶ · ‹ › 로 주 이동 · ▲▼ 순서":"‹ › 로 주 이동(저번/다음 주) · 드래그로 날짜 이동 · ▲▼ 순서"}</p>
+        </div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,margin:"9px 0 2px"}}>
+          <button onClick={()=>setWeekOffset(o=>o-1)} style={{padding:"6px 11px",borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",color:"#4B5563",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>‹ 저번주</button>
+          <div style={{textAlign:"center",minWidth:0,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",justifyContent:"center"}}>
+            <span style={{fontSize:12.5,fontWeight:900,color:isThisWeek?"#EA580C":"#0F1F5C"}}>{isThisWeek?"이번 주":weekOffset===-1?"저번 주":weekOffset===1?"다음 주":(weekOffset>0?`${weekOffset}주 후`:`${-weekOffset}주 전`)}</span>
+            <span style={{fontSize:11,fontWeight:700,color:"#9CA3AF"}}>{wdDate("월")}~{wdDate("금")}</span>
+            {!isThisWeek&&<button onClick={()=>setWeekOffset(0)} style={{padding:"2px 8px",borderRadius:7,fontSize:10,fontWeight:800,color:"#3182F6",background:"#EFF6FF",border:"none",cursor:"pointer",fontFamily:"inherit"}}>이번 주로</button>}
+          </div>
+          <button onClick={()=>setWeekOffset(o=>o+1)} style={{padding:"6px 11px",borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",color:"#4B5563",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>다음주 ›</button>
         </div>
         {(isNarrow?(
           <div style={{marginTop:10}}>
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-              <button onClick={()=>setViewDay(WEEK_DAYS[Math.max(0,vdIdx-1)])} disabled={vdIdx<=0} style={{width:38,height:38,borderRadius:10,border:"1.5px solid #E5E8EB",background:vdIdx<=0?"#F9FAFB":"#fff",color:vdIdx<=0?"#D1D5DB":"#4B5563",fontSize:15,fontWeight:900,cursor:vdIdx<=0?"default":"pointer",flexShrink:0,fontFamily:"inherit"}}>◀</button>
+              <button onClick={()=>{if(vdIdx>0)setViewDay(WEEK_DAYS[vdIdx-1]);else{setWeekOffset(o=>o-1);setViewDay(WEEK_DAYS[WEEK_DAYS.length-1]);}}} style={{width:38,height:38,borderRadius:10,border:"1.5px solid #E5E8EB",background:"#fff",color:"#4B5563",fontSize:15,fontWeight:900,cursor:"pointer",flexShrink:0,fontFamily:"inherit"}}>◀</button>
               <div style={{flex:1,textAlign:"center"}}>
-                <span style={{fontSize:15,fontWeight:900,color:viewDay===today?"#EA580C":"#0F1F5C"}}>{viewDay}요일</span>
+                <span style={{fontSize:15,fontWeight:900,color:(viewDay===today&&isThisWeek)?"#EA580C":"#0F1F5C"}}>{viewDay}요일</span>
                 <span style={{marginLeft:5,fontSize:12,fontWeight:800,color:"#9CA3AF"}}>{wdDate(viewDay)}</span>
-                {viewDay===today&&<span style={{marginLeft:6,fontSize:9.5,fontWeight:900,color:"#fff",background:"#F97316",padding:"2px 6px",borderRadius:10}}>오늘</span>}
+                {viewDay===today&&isThisWeek&&<span style={{marginLeft:6,fontSize:9.5,fontWeight:900,color:"#fff",background:"#F97316",padding:"2px 6px",borderRadius:10}}>오늘</span>}
                 <span style={{marginLeft:6,fontSize:11.5,fontWeight:700,color:"#9CA3AF"}}>{dayOrdered(viewDay).length}건</span>
               </div>
-              <button onClick={()=>setViewDay(WEEK_DAYS[Math.min(WEEK_DAYS.length-1,vdIdx+1)])} disabled={vdIdx>=WEEK_DAYS.length-1} style={{width:38,height:38,borderRadius:10,border:"1.5px solid #E5E8EB",background:vdIdx>=WEEK_DAYS.length-1?"#F9FAFB":"#fff",color:vdIdx>=WEEK_DAYS.length-1?"#D1D5DB":"#4B5563",fontSize:15,fontWeight:900,cursor:vdIdx>=WEEK_DAYS.length-1?"default":"pointer",flexShrink:0,fontFamily:"inherit"}}>▶</button>
+              <button onClick={()=>{if(vdIdx<WEEK_DAYS.length-1)setViewDay(WEEK_DAYS[vdIdx+1]);else{setWeekOffset(o=>o+1);setViewDay(WEEK_DAYS[0]);}}} style={{width:38,height:38,borderRadius:10,border:"1.5px solid #E5E8EB",background:"#fff",color:"#4B5563",fontSize:15,fontWeight:900,cursor:"pointer",flexShrink:0,fontFamily:"inherit"}}>▶</button>
             </div>
             {renderDayCol(viewDay,true)}
             <div style={{display:"flex",gap:5,marginTop:9}}>
-              {WEEK_DAYS.map(d=>{const n=dayOrdered(d).length;const on=d===viewDay;const isT=d===today;return(
+              {WEEK_DAYS.map(d=>{const n=dayOrdered(d).length;const on=d===viewDay;const isT=d===today&&isThisWeek;return(
                 <button key={d} onClick={()=>setViewDay(d)} style={{flex:1,padding:"6px 0",borderRadius:9,border:`1.5px solid ${on?"#0F1F5C":(isT?"#FBBF77":"#E5E8EB")}`,background:on?"#0F1F5C":(isT?"#FFF7ED":"#fff"),color:on?"#fff":(isT?"#EA580C":"#9CA3AF"),fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{d}{n>0&&<span style={{display:"block",fontSize:9,fontWeight:900,opacity:on?0.9:0.7}}>{n}</span>}</button>
               );})}
             </div>
@@ -1397,7 +1416,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
               </div>
               <div style={{display:"flex",gap:5,marginTop:8,flexWrap:"wrap",alignItems:"center"}}>
                 <span style={{fontSize:10,fontWeight:800,color:"#9A3412",marginRight:1}}>📅</span>
-                {[["미정",""],["오늘",0],["내일",1]].map(([lbl,off])=>{const ds=off===""?"":(()=>{const d=new Date();d.setDate(d.getDate()+off);return d.toISOString().slice(0,10);})();const on=off===""?!qa.workDate:qa.workDate===ds;return(
+                {[["미정",""],["오늘",0],["내일",1]].map(([lbl,off])=>{const ds=off===""?"":(()=>{const d=new Date();d.setDate(d.getDate()+off);return ymdLocal(d);})();const on=off===""?!qa.workDate:qa.workDate===ds;return(
                   <button key={lbl} onClick={()=>setQa({...qa,...qaPlace(ds)})} style={{padding:"5px 10px",borderRadius:8,border:`1.5px solid ${on?"#F97316":"#E5E8EB"}`,background:on?"#F97316":"#fff",color:on?"#fff":"#9CA3AF",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{lbl}</button>
                 );})}
                 <input type="date" value={qa.workDate||""} onChange={e=>setQa({...qa,...qaPlace(e.target.value)})} style={{padding:"4px 7px",borderRadius:8,border:"1.5px solid #E5E8EB",fontSize:11,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
@@ -1506,7 +1525,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
             )}
             <p style={{margin:"0 0 8px",fontSize:12,fontWeight:700,color:"#6B7280"}}>배치할 업무 선택</p>
             {myT.filter(t=>!t.isFixed&&!(t.weekDay===slotSheet.day&&t.weekSlot===slotSheet.slot)&&t.status!=="done").map(t=>(
-              <button key={t.id} onClick={()=>{const prev=slotMap[slotSheet.day][slotSheet.slot];if(prev)up("tasks",prev.id,{weekDay:null,weekSlot:null});up("tasks",t.id,{weekDay:slotSheet.day,weekSlot:slotSheet.slot});setSlotSheet(null);}} style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",marginBottom:7,borderRadius:12,border:"1px solid #E5E8EB",backgroundColor:"#FFFFFF",textAlign:"left",cursor:"pointer",width:"100%"}}>
+              <button key={t.id} onClick={()=>{up("tasks",t.id,{weekDay:slotSheet.day,workDate:dateOfDay(slotSheet.day),weekSlot:slotSheet.slot});setSlotSheet(null);}} style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",marginBottom:7,borderRadius:12,border:"1px solid #E5E8EB",backgroundColor:"#FFFFFF",textAlign:"left",cursor:"pointer",width:"100%"}}>
                 <div style={{flex:1}}>
                   <p style={{margin:0,fontSize:13.5,fontWeight:700,color:"#111827"}}>{t.title}</p>
                   {D.projects.find(p=>p.id===t.projectId)&&<p style={{margin:"2px 0 0",fontSize:11,color:"#9CA3AF"}}>📁 {D.projects.find(p=>p.id===t.projectId).title}</p>}

@@ -8,6 +8,7 @@ const COL_LABEL = {users:"담당자",goals:"최종목표",mainKPIs:"메인KPI",s
 const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
+const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 
@@ -693,6 +694,30 @@ export default function App(){
   });
   // 로컬 보관(IndexedDB 미러/스냅샷·localStorage)에서 전체 상태 복구 — 명시적 사용자 동작에서만(확인 후). 컬렉션만 교체, currentUser·UI 보존.
   const restoreLocal=(shared)=>{ if(!shared||typeof shared!=="object") return 0; let n=0; setD(p=>{ const out={...p}; for(const k of SHARED_KEYS){ if(Array.isArray(shared[k])){ out[k]=shared[k]; n+=shared[k].length; } } return recalcProg(out); }); return n; };
+  // 외부(GitHub) 백업 — 전체 상태 JSON을 Cloudflare Function(/api/backup)으로 보내 커밋. 토큰은 서버에만.
+  const pushExternalBackup=async(reason)=>{
+    try{
+      const shared=pickShared(D);
+      const content=JSON.stringify({_app:"pour-os",_backupAt:new Date().toISOString(),_reason:reason||"manual",...shared},null,2);
+      const res=await fetch("/api/backup",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({content,reason:reason||"manual"})});
+      const j=await res.json().catch(()=>({ok:false,error:"응답 파싱 실패"}));
+      if(j.ok){ try{ localStorage.setItem(EXT_BACKUP_AT_KEY,new Date().toISOString()); }catch(_){} }
+      return j;
+    }catch(e){ return {ok:false,error:e&&e.message||String(e)}; }
+  };
+  // 한도 80% 임박 시 자동으로 외부 백업(12시간에 1회). 분당 1회만 용량 점검(thrash 방지).
+  const extCheckRef=useRef(0);
+  useEffect(()=>{
+    if(!loaded) return;
+    if(Date.now()-extCheckRef.current<60000) return;
+    extCheckRef.current=Date.now();
+    let maxB=0; try{ for(const k of SHARED_KEYS){ const b=new Blob([JSON.stringify(D[k]||[])]).size; if(b>maxB)maxB=b; } }catch(_){ return; }
+    if(maxB<DOC_LIMIT*0.8) return;
+    let last=0; try{ last=Date.parse(localStorage.getItem(EXT_BACKUP_AT_KEY)||"")||0; }catch(_){}
+    if(Date.now()-last<12*3600*1000) return;
+    try{ localStorage.setItem(EXT_BACKUP_AT_KEY,new Date().toISOString()); }catch(_){}   // 선점(중복 방지) — 실패 시 다음 점검에서 재시도
+    pushExternalBackup("auto-threshold").then(j=>{ if(!j||!j.ok){ try{ localStorage.removeItem(EXT_BACKUP_AT_KEY); }catch(_){} } }).catch(()=>{});
+  },[D,loaded]);
   useEffect(()=>{ if(!undo) return; const t=setTimeout(()=>setUndo(null),5500); return ()=>clearTimeout(t); },[undo]);   // 되돌리기 토스트 5.5초 후 자동 소멸
   const nav=(id)=>{setPage(id);setMore(false);};
   const allPages=[...TABS.filter(t=>t.id!=="more"),...MORE];
@@ -714,7 +739,7 @@ export default function App(){
   const navAll=[...TABS.filter(t=>t.id!=="more"),...MORE];
   const pageContent=(<>
     {page==="today"&&<TodayPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
-    {page==="kpi"&&<KPIPage D={D} lead={lead} up={up} cu={cu} add={add} rm={rm} restore={restore} restoreLocal={restoreLocal} pc={viewMode==="pc"}/>}
+    {page==="kpi"&&<KPIPage D={D} lead={lead} up={up} cu={cu} add={add} rm={rm} restore={restore} restoreLocal={restoreLocal} pushExternalBackup={pushExternalBackup} pc={viewMode==="pc"}/>}
     {page==="projects"&&<ProjectsPage D={D} cu={cu} up={up} add={add} rm={rm} rmNested={rmNested} pc={viewMode==="pc"} lead={lead} nav={nav}/>}
     {page==="calendar"&&<CalendarPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
     {page==="game"&&<GamePage D={D} cu={cu} up={up} add={add} rm={rm} nav={nav}/>}
@@ -1556,7 +1581,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
     </div>
   );
 }
-function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal}){
+function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup}){
   const [kpiView,setKpiView]=useState("dashboard");
   const [openMK,setOpenMK]=useState("mk1");
   const [openSK,setOpenSK]=useState(null);
@@ -1848,7 +1873,7 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal}){
             );
           })}
           <button onClick={openNewMain} style={{width:"100%",padding:"12px 0",borderRadius:12,border:"1.5px dashed #93C5FD",background:"#EFF6FF",color:"#2563EB",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 메인KPI 추가</button>
-          <ExportPanel D={D} up={up} restore={restore} restoreLocal={restoreLocal}/>
+          <ExportPanel D={D} up={up} restore={restore} restoreLocal={restoreLocal} pushExternalBackup={pushExternalBackup}/>
         </div>
       )}
       {kpiView==="mindmap"&&(
@@ -4970,8 +4995,20 @@ function GamePage({D,cu,up,add,rm,nav}){
   );
 }
 // 모든 데이터 자산을 CSV로 추출 (추출 사각 제거)
-function ExportPanel({D,up,restore,restoreLocal}){
+function ExportPanel({D,up,restore,restoreLocal,pushExternalBackup}){
   const uname=(id)=>D.users.find(u=>u.id===id)?.name||"";
+  // 외부(GitHub) 자동 백업 상태 + 즉시 백업
+  const [ext,setExt]=useState({configured:null,repo:null,busy:false,msg:""});
+  const extAt=(()=>{try{return localStorage.getItem(EXT_BACKUP_AT_KEY);}catch(_){return null;}})();
+  useEffect(()=>{ let on=true; fetch("/api/backup").then(r=>r.json()).then(j=>{ if(on)setExt(e=>({...e,configured:!!j.configured,repo:j.repo||null})); }).catch(()=>{ if(on)setExt(e=>({...e,configured:false})); }); return ()=>{on=false;}; },[]);
+  const doExtBackup=async()=>{
+    if(!pushExternalBackup) return;
+    setExt(e=>({...e,busy:true,msg:""}));
+    const j=await pushExternalBackup("manual");
+    if(j&&j.ok){ setExt(e=>({...e,busy:false,configured:true,msg:`✅ GitHub 백업 완료 (${(j.path||"").split("/").pop()})`})); }
+    else if(j&&j.configured===false){ setExt(e=>({...e,busy:false,configured:false,msg:"⚙️ 외부 백업 미설정 — 아래 안내대로 환경변수를 추가하세요."})); }
+    else{ setExt(e=>({...e,busy:false,msg:"❌ "+((j&&j.error)||"실패")})); }
+  };
   // 이 기기 영구 보관(IndexedDB) 상태 + 로컬 복구
   const [idbStat,setIdbStat]=useState({mirrorAt:null,snaps:[]});
   const refreshIdb=()=>{ (async()=>{ try{ const m=await idbLoadMirror(); const s=await idbListSnapshots(); setIdbStat({mirrorAt:m&&m.at||null,snaps:s||[]}); }catch(_){} })(); };
@@ -5115,6 +5152,22 @@ function ExportPanel({D,up,restore,restoreLocal}){
             ))}
           </div>
         </>)}
+      </div>
+      {/* 외부(GitHub) 자동 백업 — 한도 80% 임박 시 자동 + 즉시 백업 */}
+      <div style={{marginTop:10,padding:"11px 12px",background:"#F6F8FA",border:"1px solid #E1E4E8",borderRadius:11}}>
+        <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:3}}>
+          <p style={{margin:0,fontSize:12.5,fontWeight:900,color:"#0F1F5C"}}>🐙 외부 자동 백업 (GitHub)</p>
+          {ext.configured===true&&<span style={{fontSize:9.5,fontWeight:800,color:"#fff",background:"#00A862",borderRadius:6,padding:"2px 6px"}}>설정됨</span>}
+          {ext.configured===false&&<span style={{fontSize:9.5,fontWeight:800,color:"#fff",background:"#9CA3AF",borderRadius:6,padding:"2px 6px"}}>미설정</span>}
+        </div>
+        <p style={{margin:"0 0 8px",fontSize:10,color:"#6B7280",lineHeight:1.5}}>저장 용량이 <b>한도의 80%</b>를 넘으면 전체 데이터를 <b>자동</b>으로 GitHub에 커밋해 둡니다(12시간 1회). 매일 정기 백업(Actions)과 별개로 즉시 보관.</p>
+        <p style={{margin:"0 0 8px",fontSize:9.5,color:"#9CA3AF"}}>마지막 외부 백업: <b style={{color:"#374151"}}>{extAt?extAt.slice(0,16).replace("T"," "):"아직 없음"}</b>{ext.repo?` · ${ext.repo}`:""}</p>
+        <button onClick={doExtBackup} disabled={ext.busy} style={{width:"100%",padding:"10px 0",borderRadius:9,border:"none",background:ext.busy?"#9CA3AF":"#24292F",color:"#fff",fontSize:12.5,fontWeight:800,cursor:ext.busy?"default":"pointer",fontFamily:"inherit"}}>{ext.busy?"백업 중…":"🐙 지금 GitHub에 백업"}</button>
+        {ext.msg&&<p style={{margin:"7px 0 0",fontSize:11,fontWeight:700,color:ext.msg.startsWith("✅")?"#00A862":ext.msg.startsWith("⚙️")?"#D97706":"#F04452"}}>{ext.msg}</p>}
+        {ext.configured===false&&<div style={{marginTop:8,padding:"9px 10px",background:"#fff",border:"1px dashed #D1D5DB",borderRadius:8}}>
+          <p style={{margin:"0 0 4px",fontSize:10,fontWeight:800,color:"#374151"}}>설정 방법 (Cloudflare Pages ▸ Settings ▸ Environment variables)</p>
+          <p style={{margin:0,fontSize:9.5,color:"#6B7280",lineHeight:1.6,fontFamily:"'IBM Plex Mono',monospace"}}>GITHUB_TOKEN = (contents 쓰기 권한 PAT)<br/>GITHUB_BACKUP_REPO = netformrnd-lab/pour-construction-form</p>
+        </div>}
       </div>
       <p style={{margin:"0 0 8px",fontSize:11,fontWeight:800,color:"#6B7280"}}>항목별 추출 (엑셀/CSV)</p>
       <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>

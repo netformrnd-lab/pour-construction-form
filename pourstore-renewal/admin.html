@@ -91,6 +91,7 @@ input::placeholder, textarea::placeholder { color: var(--text-xs); }
 <body>
 <div id="root"></div>
 <script type="text/babel">
+/* @jsxRuntime classic */  // React UMD 전역 사용 — 자동 JSX 런타임(import 주입) 비활성화
 const { useState, useEffect, useMemo, useRef, createContext, useContext } = React;
 
 // ============================================================
@@ -4858,8 +4859,6 @@ function PourOsPage() {
 // ============================================================
 // StaffPage — 담당자 마스터 (staff 컬렉션 CRUD)
 // ============================================================
-</script>
-<script type="text/babel">
 function StaffPage({ onToast }) {
   const { activeStaff, audit } = useActiveStaffContext();
   const [list, setList] = useState([]);

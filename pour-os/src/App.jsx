@@ -337,12 +337,16 @@ const downloadCSV=(rows,name)=>{
   const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));
   const a=document.createElement("a");a.href=url;a.download=`${name}_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);
 };
+// 고정업무 다중 담당자 — forAll(전체) | assigneeIds[](다중) | 레거시 assigneeId(단일). 완료는 담당자별 doneDates 맵(없으면 레거시 doneDate)
+const fixedAssigneeIds=(t)=> Array.isArray(t.assigneeIds)&&t.assigneeIds.length ? t.assigneeIds : (t.assigneeId?[t.assigneeId]:[]);
+const fixedIsMine=(t,uid)=> t.forAll ? true : fixedAssigneeIds(t).includes(uid);
+const fixedDoneOn=(t,uid)=> (t.doneDates&&Object.prototype.hasOwnProperty.call(t.doneDates,uid)) ? t.doneDates[uid] : (t.assigneeId===uid?t.doneDate:null);
 const EditTaskSheet=({open,onClose,task,onSave,D,add})=>{
-  const [form,setForm]=useState({title:"",status:"todo",dueDate:"",memo:"",projectId:"",assigneeId:"",attachments:[],weekDay:"",weekSlot:null,workDate:"",fixedTime:""});
+  const [form,setForm]=useState({title:"",status:"todo",dueDate:"",memo:"",projectId:"",assigneeId:"",assigneeIds:[],forAll:false,attachments:[],weekDay:"",weekSlot:null,workDate:"",fixedTime:""});
   const [prevId,setPrevId]=useState(null);
   const [uploading,setUploading]=useState(false);
-  if(task&&task.id!==prevId){setPrevId(task.id);setForm({title:task.title||"",status:task.status||"todo",dueDate:task.dueDate||"",memo:task.memo||"",projectId:task.projectId||"",assigneeId:task.assigneeId||"",attachments:Array.isArray(task.attachments)?task.attachments:[],weekDay:task.weekDay||"",weekSlot:task.weekSlot??null,workDate:task.workDate||"",fixedTime:task.fixedTime||""});}
-  if(!task&&prevId!==null){setPrevId(null);setForm({title:"",status:"todo",dueDate:"",memo:"",projectId:"",assigneeId:"",attachments:[],weekDay:"",weekSlot:null,workDate:"",fixedTime:""});}
+  if(task&&task.id!==prevId){setPrevId(task.id);setForm({title:task.title||"",status:task.status||"todo",dueDate:task.dueDate||"",memo:task.memo||"",projectId:task.projectId||"",assigneeId:task.assigneeId||"",assigneeIds:Array.isArray(task.assigneeIds)&&task.assigneeIds.length?task.assigneeIds:(task.assigneeId?[task.assigneeId]:[]),forAll:!!task.forAll,attachments:Array.isArray(task.attachments)?task.attachments:[],weekDay:task.weekDay||"",weekSlot:task.weekSlot??null,workDate:task.workDate||"",fixedTime:task.fixedTime||""});}
+  if(!task&&prevId!==null){setPrevId(null);setForm({title:"",status:"todo",dueDate:"",memo:"",projectId:"",assigneeId:"",assigneeIds:[],forAll:false,attachments:[],weekDay:"",weekSlot:null,workDate:"",fixedTime:""});}
   // 날짜 선택 → 요일·슬롯 자동 배정(담당자의 그 요일 빈 슬롯 중 가장 앞, 없으면 슬롯 없이 그날에)
   const placeOn=(f,ds)=>{
     if(!ds) return {...f,workDate:"",weekDay:"",weekSlot:null};
@@ -409,14 +413,24 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add})=>{
         </div>
         )}
         <div style={{marginBottom:14}}>
-          <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>담당자 <span style={{color:"#9CA3AF",fontWeight:600}}>(선택 · 기본 미배정)</span></label>
+          <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>담당자 <span style={{color:"#9CA3AF",fontWeight:600}}>{task&&task.isFixed?"(여러 명 선택 · 전체 가능)":"(선택 · 기본 미배정)"}</span></label>
+          {task&&task.isFixed?(
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-            <button onClick={()=>setForm({...form,assigneeId:""})} style={{padding:"7px 12px",borderRadius:20,border:`1.5px solid ${!form.assigneeId?"#F97316":"#E5E8EB"}`,background:!form.assigneeId?"#FFEDD5":"#fff",fontSize:12,fontWeight:700,color:!form.assigneeId?"#EA580C":"#9CA3AF",cursor:"pointer",fontFamily:"inherit"}}>미배정</button>
-            {D&&D.users.map(u=>{const sel=form.assigneeId===u.id;return(
-              <button key={u.id} onClick={()=>setForm({...form,assigneeId:u.id})} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:20,border:`1.5px solid ${sel?u.color:"#E5E8EB"}`,background:sel?u.color+"18":"#fff",cursor:"pointer",fontFamily:"inherit"}}><Ava name={u.name} color={u.color} size={18}/><span style={{fontSize:12,fontWeight:700,color:sel?u.color:"#4B5563"}}>{u.name}</span></button>
+            <button onClick={()=>setForm({...form,forAll:false,assigneeIds:[]})} style={{padding:"7px 12px",borderRadius:20,border:`1.5px solid ${!form.forAll&&form.assigneeIds.length===0?"#F97316":"#E5E8EB"}`,background:!form.forAll&&form.assigneeIds.length===0?"#FFEDD5":"#fff",fontSize:12,fontWeight:700,color:!form.forAll&&form.assigneeIds.length===0?"#EA580C":"#9CA3AF",cursor:"pointer",fontFamily:"inherit"}}>미배정</button>
+            <button onClick={()=>setForm({...form,forAll:!form.forAll,assigneeIds:[]})} style={{padding:"7px 12px",borderRadius:20,border:`1.5px solid ${form.forAll?"#0F1F5C":"#E5E8EB"}`,background:form.forAll?"#0F1F5C":"#fff",fontSize:12,fontWeight:800,color:form.forAll?"#fff":"#4B5563",cursor:"pointer",fontFamily:"inherit"}}>⭐ 전체</button>
+            {D&&D.users.map(u=>{const sel=form.forAll||form.assigneeIds.includes(u.id);return(
+              <button key={u.id} onClick={()=>setForm(f=>{const has=f.assigneeIds.includes(u.id);return{...f,forAll:false,assigneeIds:f.forAll?[u.id]:(has?f.assigneeIds.filter(x=>x!==u.id):[...f.assigneeIds,u.id])};})} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:20,border:`1.5px solid ${sel?u.color:"#E5E8EB"}`,background:sel?u.color+"18":"#fff",cursor:"pointer",fontFamily:"inherit"}}><Ava name={u.name} color={u.color} size={18}/><span style={{fontSize:12,fontWeight:700,color:sel?u.color:"#4B5563"}}>{u.name}</span>{sel&&!form.forAll&&<span style={{fontSize:11,fontWeight:900,color:u.color}}>✓</span>}</button>
             );})}
           </div>
-          {task&&task.isFixed&&add&&<button onClick={()=>{if(!window.confirm(`이 고정업무를 전체 담당자(${D.users.length}명)에게 복제할까요?\n각자 자기 고정업무로 따로 체크합니다.`))return;D.users.filter(u=>u.id!==form.assigneeId).forEach((u,i)=>add("tasks",{id:"t"+Date.now()+"_a"+i,title:(form.title||task.title||"").trim(),projectId:form.projectId||"",type:"fixed",status:"todo",weekSlot:null,isFixed:true,dueDate:"",memo:form.memo||"",attachments:[],recurType:task.recurType||"daily",weekDay:task.weekDay||null,monthDay:task.monthDay||null,assigneeId:u.id}));onClose();}} style={{marginTop:8,width:"100%",padding:"9px 0",borderRadius:10,border:"1.5px dashed #FDBA74",background:"#FFF7ED",fontSize:12,fontWeight:800,color:"#EA580C",cursor:"pointer",fontFamily:"inherit"}}>👥 이 고정업무를 전체 담당자에게 복제</button>}
+          ):(
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            <button onClick={()=>setForm({...form,assigneeId:"",assigneeIds:[],forAll:false})} style={{padding:"7px 12px",borderRadius:20,border:`1.5px solid ${!form.assigneeId?"#F97316":"#E5E8EB"}`,background:!form.assigneeId?"#FFEDD5":"#fff",fontSize:12,fontWeight:700,color:!form.assigneeId?"#EA580C":"#9CA3AF",cursor:"pointer",fontFamily:"inherit"}}>미배정</button>
+            {D&&D.users.map(u=>{const sel=form.assigneeId===u.id;return(
+              <button key={u.id} onClick={()=>setForm({...form,assigneeId:u.id,assigneeIds:[u.id],forAll:false})} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:20,border:`1.5px solid ${sel?u.color:"#E5E8EB"}`,background:sel?u.color+"18":"#fff",cursor:"pointer",fontFamily:"inherit"}}><Ava name={u.name} color={u.color} size={18}/><span style={{fontSize:12,fontWeight:700,color:sel?u.color:"#4B5563"}}>{u.name}</span></button>
+            );})}
+          </div>
+          )}
+          {task&&task.isFixed&&<p style={{margin:"7px 2px 0",fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>선택한 담당자(또는 전체) 각자 자기 오늘 화면에 표시되고 따로 체크합니다.</p>}
         </div>
         <div style={{marginBottom:14}}>
           <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>프로젝트 연결</label>
@@ -888,7 +902,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const todayDate=new Date().getDate();
   const myT=D.tasks.filter(t=>t.assigneeId===cu.id);
   const fixedDueToday=(t)=>{const rt=t.recurType||"daily";if(rt==="weekly")return t.weekDay===today;if(rt==="monthly")return Number(t.monthDay||1)===todayDate;return true;};
-  const fixed=myT.filter(t=>t.isFixed&&fixedDueToday(t));
+  const fixed=D.tasks.filter(t=>t.isFixed&&fixedIsMine(t,cu.id)&&fixedDueToday(t));
   const todayT=myT.filter(t=>!t.isFixed&&t.weekDay===today&&t.status!=="hold");
   const urgent=myT.filter(t=>t.status!=="done"&&t.status!=="hold"&&t.dueDate&&(()=>{const dd=Math.ceil((new Date(t.dueDate)-new Date())/86400000);return dd>=0&&dd<=3;})());
   // 밀린 업무(이월): 지난 요일에 배치됐는데 아직 미완료·미보류인 내 업무 (주말이면 월~금 전체가 지난 것)
@@ -932,9 +946,9 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const [projModal,setProjModal]=useState(null);     // 오늘에서 프로젝트 상세·수정 모달
   const [processProj,setProcessProj]=useState(null); // 모달에서 프로세스 편집 진입
   const [feedOpen,setFeedOpen]=useState(false);
+  const [expandedMember,setExpandedMember]=useState(null);   // 팀 활동 — 팀원별 상세 펼침
   const [weeklyOpen,setWeeklyOpen]=useState(false);
   const [showHeld,setShowHeld]=useState(false);
-  const [showGrid,setShowGrid]=useState(false);   // 주간 배치 그리드 접기(기본 접힘 — 오늘 업무가 먼저 보이도록)
   const [isNarrow,setIsNarrow]=useState(typeof window!=="undefined"?window.innerWidth<640:true);   // 모바일=하루씩, 넓은 화면=요일 5열
   useEffect(()=>{const h=()=>setIsNarrow(window.innerWidth<640);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[]);
   const [viewDay,setViewDay]=useState(WEEK_DAYS.includes(today)?today:"월");   // 모바일 단일요일 보기(오늘 기준 시작)
@@ -956,8 +970,8 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   })();
   const toggle=t=>up("tasks",t.id,{status:t.status==="done"?"todo":"done"});
   // 고정(반복)업무는 날짜별 완료 — 오늘 체크는 오늘만 유지(매일 리셋)
-  const fixedDone=t=>t.doneDate===todayKey;
-  const toggleFixed=t=>up("tasks",t.id,fixedDone(t)?{doneDate:null}:{doneDate:todayKey,doneAt:new Date().toISOString(),doneByName:cu?.name||""});
+  const fixedDone=t=>fixedDoneOn(t,cu.id)===todayKey;
+  const toggleFixed=t=>up("tasks",t.id,{doneDates:{...(t.doneDates||{}),[cu.id]:fixedDone(t)?null:todayKey},doneAt:new Date().toISOString(),doneByName:cu?.name||""});
   const doQuick=()=>{
     if(!quick.trim()) return;
     add("tasks",{id:"t"+Date.now(),title:quick.trim(),projectId:quickProj,assigneeId:cu.id,type:"general",status:"todo",weekDay:today,weekSlot:null,isFixed:false,dueDate:"",memo:"",attachments:[]});
@@ -969,6 +983,9 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const myGoals=myWeekGoals(D,cu.id);
   // 출시 인계 — 앞 단계가 끝나 내 차례가 된 출시 단계
   const myReadyLaunch=(()=>{ const arr=[]; D.projects.filter(p=>p.templateId).forEach(p=>{ const ts=launchProjTasks(D,p); ts.forEach(t=>{ if(t.assigneeId===cu.id&&launchStageStatus(t,ts)==="ready") arr.push({proj:p,task:t}); }); }); return [...arr,...myReadyProcess(D,cu.id)]; })();
+  // 이번 주 각 요일의 실제 일자(MM/DD) — 월요일 시작 기준
+  const weekMon=(()=>{const x=new Date();const off=(x.getDay()+6)%7;x.setDate(x.getDate()-off);x.setHours(0,0,0,0);return x;})();
+  const wdDate=(d)=>{const i=WEEK_DAYS.indexOf(d);if(i<0)return"";const dt=new Date(weekMon);dt.setDate(dt.getDate()+i);return String(dt.getMonth()+1).padStart(2,"0")+"/"+String(dt.getDate()).padStart(2,"0");};
   // 주간 배치 — 요일 칸 1개 렌더(모바일=전체폭 크게, 데스크탑=5열 중 하나). 진행날짜/요일 있는 업무 자동 노출 + 순서만 조정
   const renderDayCol=(d,mobile)=>{
     const list=dayOrdered(d); const isT=d===today; const dk="col_"+d;
@@ -977,7 +994,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
         style={{flex:mobile?"none":1,minWidth:0,backgroundColor:dragOver===dk?"#FFF7ED":(isT?"rgba(255,237,213,0.5)":"#F9FAFB"),border:`1.5px solid ${dragOver===dk?"#F97316":(isT?"#FBBF77":"#E5E8EB")}`,borderRadius:12,padding:mobile?"6px 8px 8px":"10px 8px"}}>
         {!mobile&&(
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:7}}>
-            <span style={{fontSize:11,fontWeight:900,color:isT?"#EA580C":"#4B5563"}}>{d}요일</span>
+            <span style={{fontSize:11,fontWeight:900,color:isT?"#EA580C":"#4B5563"}}>{d}요일 <span style={{fontWeight:700,color:isT?"#F59E5B":"#B0B8C1"}}>{wdDate(d)}</span></span>
             {isT&&<span style={{fontSize:9,fontWeight:900,color:"#FFFFFF",background:"#F97316",padding:"1px 5px",borderRadius:10}}>오늘</span>}
           </div>
         )}
@@ -1003,19 +1020,42 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
     );
   };
   const vdIdx=WEEK_DAYS.indexOf(viewDay);
+  // 상단 분할: 이번 주 명심(좌) + 마감 임박(우) — PC는 나란히, 모바일은 세로
+  const memoBanner=(
+    <div onClick={()=>nav("game")} style={{display:"flex",alignItems:"center",gap:14,background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"16px 18px",cursor:"pointer",color:"#fff",flex:1,minWidth:0,boxSizing:"border-box"}}>
+      <div style={{flex:1,minWidth:0}}>
+        <p style={{margin:0,fontSize:19,fontWeight:900,lineHeight:1.4,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{myGoals.length===0?"이번 주 메모를 남겨보세요 ✍️":myGoals.map(g=>g.title).join("   ·   ")}</p>
+      </div>
+      <div style={{flexShrink:0,textAlign:"right",opacity:0.72}}>
+        <p style={{margin:0,fontSize:9.5,fontWeight:700,whiteSpace:"nowrap"}}>📝 이번 주 명심할 것</p>
+        <span style={{display:"inline-block",marginTop:4,fontSize:10,fontWeight:800,background:"rgba(255,255,255,0.2)",color:"#fff",padding:"3px 9px",borderRadius:10,whiteSpace:"nowrap"}}>내 주간 ›</span>
+      </div>
+    </div>
+  );
+  const urgentCard=urgent.length>0?(
+    <div style={{backgroundColor:"#FFF0F1",border:"1px solid #FFD5D8",borderRadius:14,padding:"13px 14px",flex:1,minWidth:0,boxSizing:"border-box"}}>
+      <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:8}}>
+        <span style={{fontSize:15}}>🚨</span>
+        <span style={{fontSize:12.5,fontWeight:900,color:"#F04452"}}>마감 임박 · D-3 이내 {urgent.length}건</span>
+      </div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+        {urgent.map(t=>{const dd=Math.ceil((new Date(t.dueDate)-new Date())/86400000);return(
+          <button key={t.id} onClick={()=>setEditTask(t)} style={{display:"inline-flex",alignItems:"center",gap:5,padding:"4px 9px",borderRadius:999,border:"1px solid #FFD5D8",backgroundColor:"#FFFFFF",cursor:"pointer",fontFamily:"inherit"}}>
+            <span style={{fontSize:11.5,fontWeight:700,color:"#1F2937",maxWidth:150,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}</span>
+            <span style={{fontSize:10,fontWeight:900,color:"#F04452"}}>{dd===0?"D-day":"D-"+dd}</span>
+          </button>
+        );})}
+      </div>
+    </div>
+  ):null;
   return(
     <div style={{padding:"14px 16px 20px"}}>
-      <div onClick={()=>nav("game")} style={{display:"flex",alignItems:"center",gap:14,background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"16px 18px",marginBottom:12,cursor:"pointer",color:"#fff"}}>
-        <div style={{flex:1,minWidth:0}}>
-          <p style={{margin:0,fontSize:19,fontWeight:900,lineHeight:1.4,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{myGoals.length===0?"이번 주 메모를 남겨보세요 ✍️":myGoals.map(g=>g.title).join("   ·   ")}</p>
-        </div>
-        <div style={{flexShrink:0,textAlign:"right",opacity:0.72}}>
-          <p style={{margin:0,fontSize:9.5,fontWeight:700,whiteSpace:"nowrap"}}>📝 이번 주 명심할 것</p>
-          <span style={{display:"inline-block",marginTop:4,fontSize:10,fontWeight:800,background:"rgba(255,255,255,0.2)",color:"#fff",padding:"3px 9px",borderRadius:10,whiteSpace:"nowrap"}}>내 주간 ›</span>
-        </div>
-      </div>
-      {isLastWorkingDayOfWeek()&&<button onClick={()=>setWeeklyOpen(true)} style={{width:"100%",marginBottom:14,padding:"13px 0",borderRadius:14,border:"none",background:"linear-gradient(135deg,#F97316,#EA580C)",color:"#fff",fontSize:14.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🗓️ 이번 주 마감 입력 — 매출·KPI·활동지표 한 번에</button>}
-      <WeeklyInputSheet open={weeklyOpen} onClose={()=>setWeeklyOpen(false)} D={D} cu={cu} up={up}/>
+      {(!isNarrow&&urgentCard)?(
+        <div style={{display:"flex",gap:12,marginBottom:12,alignItems:"stretch"}}>{memoBanner}{urgentCard}</div>
+      ):(<>
+        <div style={{marginBottom:urgentCard?12:14}}>{memoBanner}</div>
+        {urgentCard&&<div style={{marginBottom:14}}>{urgentCard}</div>}
+      </>)}
       <div style={{display:"flex",gap:8,marginBottom:14,overflowX:"auto",paddingBottom:2}}>
         {[{label:"오늘 업무",val:`${doneToday}/${todayT.length}`,color:"#3182F6"},{label:"고정업무",val:`${doneFixed}/${fixed.length}`,color:"#F97316"},{label:"내 프로젝트",val:D.projects.filter(p=>p.assigneeId===cu.id).length+"건",color:"#8B5CF6"}].map((s,i)=>(
           <div key={i} style={{flexShrink:0,backgroundColor:"#FFFFFF",borderRadius:12,padding:"10px 14px",border:"1px solid #F2F4F6"}}>
@@ -1024,22 +1064,8 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           </div>
         ))}
       </div>
-      {urgent.length>0&&(
-        <div style={{backgroundColor:"#FFF0F1",border:"1px solid #FFD5D8",borderRadius:14,padding:"11px 14px",marginBottom:14}}>
-          <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:7}}>
-            <span style={{fontSize:15}}>🚨</span>
-            <span style={{fontSize:12.5,fontWeight:900,color:"#F04452"}}>마감 임박 · D-3 이내 {urgent.length}건</span>
-          </div>
-          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-            {urgent.map(t=>{const dd=Math.ceil((new Date(t.dueDate)-new Date())/86400000);return(
-              <button key={t.id} onClick={()=>setEditTask(t)} style={{display:"inline-flex",alignItems:"center",gap:5,padding:"4px 9px",borderRadius:999,border:"1px solid #FFD5D8",backgroundColor:"#FFFFFF",cursor:"pointer",fontFamily:"inherit"}}>
-                <span style={{fontSize:11.5,fontWeight:700,color:"#1F2937",maxWidth:150,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}</span>
-                <span style={{fontSize:10,fontWeight:900,color:"#F04452"}}>{dd===0?"D-day":"D-"+dd}</span>
-              </button>
-            );})}
-          </div>
-        </div>
-      )}
+      {isLastWorkingDayOfWeek()&&<button onClick={()=>setWeeklyOpen(true)} style={{width:"100%",marginBottom:14,padding:"13px 0",borderRadius:14,border:"none",background:"linear-gradient(135deg,#F97316,#EA580C)",color:"#fff",fontSize:14.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🗓️ 이번 주 마감 입력 — 매출·KPI·활동지표 한 번에</button>}
+      <WeeklyInputSheet open={weeklyOpen} onClose={()=>setWeeklyOpen(false)} D={D} cu={cu} up={up}/>
       <div style={{backgroundColor:"#FFFFFF",borderRadius:16,marginBottom:14,border:"1px solid #F2F4F6",overflow:"hidden"}}>
         <div onClick={()=>setFeedOpen(o=>!o)} style={{padding:"13px 14px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -1049,18 +1075,43 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           <span style={{fontSize:12,color:"#9CA3AF"}}>{weekLabel(wkNow)} {feedOpen?"▲":"▼"}</span>
         </div>
         {feedOpen&&(
-          <div style={{borderTop:"1px solid #F2F4F6",padding:"6px 14px 12px"}}>
-            {actFeed.length===0&&<p style={{padding:"16px 0",textAlign:"center",fontSize:12.5,color:"#9CA3AF"}}>이번 주 기록된 활동이 없어요 · 기록되지 않은 업무는 자산이 되지 않아요</p>}
-            {actFeed.slice(0,30).map((e,i)=>(
-              <div key={i} style={{display:"flex",alignItems:"center",gap:9,padding:"8px 0",borderBottom:i<Math.min(actFeed.length,30)-1?"1px solid #F6F7F9":"none"}}>
-                <span style={{fontSize:14,flexShrink:0}}>{e.icon}</span>
-                <div style={{flex:1,minWidth:0}}>
-                  <p style={{margin:0,fontSize:12.5,fontWeight:600,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.text}</p>
-                  <p style={{margin:"1px 0 0",fontSize:10.5,color:"#9CA3AF"}}>{e.who||"—"} · {(e.at||"").slice(5,16).replace("T"," ")}</p>
-                </div>
-              </div>
-            ))}
-            {actFeed.length>30&&<p style={{margin:"8px 0 0",textAlign:"center",fontSize:11,color:"#9CA3AF"}}>외 {actFeed.length-30}건 더…</p>}
+          <div style={{borderTop:"1px solid #F2F4F6",padding:"4px 12px 10px"}}>
+            {actFeed.length===0?<p style={{padding:"16px 0",textAlign:"center",fontSize:12.5,color:"#9CA3AF"}}>이번 주 기록된 활동이 없어요 · 기록되지 않은 업무는 자산이 되지 않아요</p>:(()=>{
+              const groups={}; actFeed.forEach(e=>{const k=e.who||"기타";(groups[k]=groups[k]||[]).push(e);});
+              const names=Object.keys(groups).sort((a,b)=>{const da=groups[a].filter(x=>x.icon==="✅").length,db=groups[b].filter(x=>x.icon==="✅").length;return db-da||groups[b].length-groups[a].length;});
+              return names.map(name=>{
+                const items=groups[name];
+                const done=items.filter(x=>x.icon==="✅").length;
+                const sales=items.filter(x=>x.icon==="💰").length;
+                const kpi=items.filter(x=>x.icon==="🎯"||x.icon==="📊").length;
+                const u=D.users.find(x=>x.name===name); const col=u?.color||"#9CA3AF"; const open=expandedMember===name;
+                return(
+                  <div key={name} style={{borderBottom:"1px solid #F4F5F7"}}>
+                    <button onClick={()=>setExpandedMember(open?null:name)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 2px",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                      <Ava name={name} color={col} size={28}/>
+                      <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:800,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{name}</span>
+                      <span style={{flexShrink:0,fontSize:11.5,fontWeight:800,color:"#00A862",background:"#E8FAF1",borderRadius:8,padding:"3px 9px"}}>✅ {done} 완료</span>
+                      {sales>0&&<span style={{flexShrink:0,fontSize:11,fontWeight:800,color:"#EA580C",background:"#FFF1E7",borderRadius:8,padding:"3px 8px"}}>💰 {sales}</span>}
+                      {kpi>0&&<span style={{flexShrink:0,fontSize:11,fontWeight:800,color:"#7C3AED",background:"#F3EFFE",borderRadius:8,padding:"3px 8px"}}>🎯 {kpi}</span>}
+                      <span style={{flexShrink:0,fontSize:11,color:"#C4C9D0"}}>{open?"▲":"▼"}</span>
+                    </button>
+                    {open&&(
+                      <div style={{padding:"0 0 10px 38px"}}>
+                        {items.map((e,i)=>(
+                          <div key={i} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"6px 0"}}>
+                            <span style={{fontSize:13,flexShrink:0}}>{e.icon}</span>
+                            <div style={{flex:1,minWidth:0}}>
+                              <p style={{margin:0,fontSize:12,fontWeight:600,color:"#374151",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.text}</p>
+                              <p style={{margin:"1px 0 0",fontSize:10,color:"#9CA3AF"}}>{(e.at||"").slice(5,16).replace("T"," ")}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              });
+            })()}
           </div>
         )}
       </div>
@@ -1107,19 +1158,17 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
         </div>
       )}
       <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",marginBottom:14,border:"1px solid #F2F4F6"}}>
-        <div onClick={()=>setShowGrid(s=>!s)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}}>
-          <div>
-            <h3 style={{margin:"0 0 4px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}>📅 주간 업무 배치</h3>
-            <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>{showGrid?(isNarrow?"하루씩 ◀▶ · 진행날짜 업무 자동 노출 · ▲▼로 순서":"요일별 자동 노출 · 드래그로 요일 이동 · ▲▼로 순서"):"진행날짜·요일 정한 업무가 자동 배치 (펼치기)"}</p>
-          </div>
-          <span style={{fontSize:13,color:"#9CA3AF",flexShrink:0}}>{showGrid?"▲":"▼"}</span>
+        <div style={{marginBottom:2}}>
+          <h3 style={{margin:"0 0 4px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}>📅 주간 업무 배치</h3>
+          <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>{isNarrow?"하루씩 ◀▶ · 진행날짜 업무 자동 노출 · ▲▼로 순서":"요일별 자동 노출 · 드래그로 요일 이동 · ▲▼로 순서"}</p>
         </div>
-        {showGrid&&(isNarrow?(
+        {(isNarrow?(
           <div style={{marginTop:10}}>
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
               <button onClick={()=>setViewDay(WEEK_DAYS[Math.max(0,vdIdx-1)])} disabled={vdIdx<=0} style={{width:38,height:38,borderRadius:10,border:"1.5px solid #E5E8EB",background:vdIdx<=0?"#F9FAFB":"#fff",color:vdIdx<=0?"#D1D5DB":"#4B5563",fontSize:15,fontWeight:900,cursor:vdIdx<=0?"default":"pointer",flexShrink:0,fontFamily:"inherit"}}>◀</button>
               <div style={{flex:1,textAlign:"center"}}>
                 <span style={{fontSize:15,fontWeight:900,color:viewDay===today?"#EA580C":"#0F1F5C"}}>{viewDay}요일</span>
+                <span style={{marginLeft:5,fontSize:12,fontWeight:800,color:"#9CA3AF"}}>{wdDate(viewDay)}</span>
                 {viewDay===today&&<span style={{marginLeft:6,fontSize:9.5,fontWeight:900,color:"#fff",background:"#F97316",padding:"2px 6px",borderRadius:10}}>오늘</span>}
                 <span style={{marginLeft:6,fontSize:11.5,fontWeight:700,color:"#9CA3AF"}}>{dayOrdered(viewDay).length}건</span>
               </div>
@@ -1137,6 +1186,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
             <div style={{display:"flex",gap:10}}>{WEEK_DAYS.map(d=>renderDayCol(d,false))}</div>
           </div>
         ))}
+      {/* 주간 업무 배치: 항상 펼친 상태 고정 */}
       </div>
       <div style={{display:"flex",gap:14,alignItems:"flex-start",marginBottom:12,flexWrap:"wrap"}}>
       <div style={{flex:"1 1 380px",minWidth:0,backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #F2F4F6",boxSizing:"border-box"}}>
@@ -1370,7 +1420,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           </div>
         </Sheet>
       )}
-      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null})}/>
+      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:(f.forAll?"":((f.assigneeIds||[])[0]||"")),assigneeIds:f.assigneeIds||[],forAll:!!f.forAll,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null})}/>
       <Confirm open={!!confirmTaskId} title="업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmTaskId)?.title}" 업무를 삭제할까요?\n휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmTaskId);setConfirmTaskId(null);}} onCancel={()=>setConfirmTaskId(null)}/>
       {projModal&&(()=>{
         const pm=D.projects.find(p=>p.id===projModal.id)||projModal;
@@ -2881,7 +2931,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
           <button onClick={doAddProj} disabled={!projForm.title.trim()} style={{width:"100%",padding:"14px 0",borderRadius:14,border:"none",backgroundColor:projForm.title.trim()?"#F97316":"#E5E8EB",color:projForm.title.trim()?"#FFFFFF":"#9CA3AF",fontSize:15,fontWeight:700,cursor:projForm.title.trim()?"pointer":"not-allowed",fontFamily:"inherit"}}>{editProjId?"수정 저장":"프로젝트 추가하기"}</button>
         </div>
       </Sheet>
-      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null})}/>
+      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:(f.forAll?"":((f.assigneeIds||[])[0]||"")),assigneeIds:f.assigneeIds||[],forAll:!!f.forAll,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null})}/>
       <Confirm open={!!confirmTaskId} title="업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmTaskId)?.title}" 업무를 삭제할까요?\n휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmTaskId);setConfirmTaskId(null);}} onCancel={()=>setConfirmTaskId(null)}/>
       <Confirm open={!!projDel} title="프로젝트 삭제" desc={`"${D.projects.find(p=>p.id===projDel)?.title}" 프로젝트를 삭제할까요? 연결된 업무는 남습니다.\n휴지통에서 복구할 수 있어요.`} onOk={()=>{rm("projects",projDel);setProjDel(null);setProjDetail(null);}} onCancel={()=>setProjDel(null)}/>
       <Sheet open={!!actHist} onClose={()=>setActHist(null)} title="📜 활동지표 주차별 이력">
@@ -4534,21 +4584,18 @@ function MindMapPage({D,cu,nav}){
   );
 }
 function FixedPage({D,cu,lead,add,up,rm,nav}){
-  const [form,setForm]=useState({title:"",projectId:"",assigneeId:cu.id,recurType:"daily",weekDay:"월",monthDay:1,fixedTime:""});
+  const todayKey=new Date().toISOString().slice(0,10);
+  const [form,setForm]=useState({title:"",projectId:"",assigneeIds:[cu.id],forAll:false,recurType:"daily",weekDay:"월",monthDay:1,fixedTime:""});
   const [modal,setModal]=useState(false);
   const [viewAll,setViewAll]=useState(false);
   const [confirmId,setConfirmId]=useState(null);
   const [editTarget,setEditTarget]=useState(null);
-  const fixed=D.tasks.filter(t=>t.isFixed&&(viewAll&&lead?true:t.assigneeId===cu.id));
+  const fixed=D.tasks.filter(t=>t.isFixed&&(viewAll&&lead?true:fixedIsMine(t,cu.id)));
   const doAdd=()=>{
     if(!form.title.trim()) return;
-    const base={title:form.title.trim(),projectId:form.projectId,type:"fixed",status:"todo",weekSlot:null,isFixed:true,dueDate:"",memo:"",attachments:[],recurType:form.recurType,weekDay:form.recurType==="weekly"?form.weekDay:null,monthDay:form.recurType==="monthly"?Number(form.monthDay):null,fixedTime:form.fixedTime||""};
-    if(form.assigneeId==="all"){           // 전체 선택 → 전원에게 각각 생성
-      D.users.forEach((u,i)=>add("tasks",{id:"t"+Date.now()+"_"+i,...base,assigneeId:u.id}));
-    }else{
-      add("tasks",{id:"t"+Date.now(),...base,assigneeId:form.assigneeId});
-    }
-    setForm({title:"",projectId:"",assigneeId:cu.id,recurType:form.recurType,weekDay:form.weekDay,monthDay:form.monthDay,fixedTime:form.fixedTime});setModal(false);
+    add("tasks",{id:"t"+Date.now(),title:form.title.trim(),projectId:form.projectId,type:"fixed",status:"todo",weekSlot:null,isFixed:true,dueDate:"",memo:"",attachments:[],recurType:form.recurType,weekDay:form.recurType==="weekly"?form.weekDay:null,monthDay:form.recurType==="monthly"?Number(form.monthDay):null,fixedTime:form.fixedTime||"",
+      forAll:!!form.forAll,assigneeIds:form.forAll?[]:form.assigneeIds,assigneeId:form.forAll?"":(form.assigneeIds[0]||"")});
+    setForm({title:"",projectId:"",assigneeIds:[cu.id],forAll:false,recurType:form.recurType,weekDay:form.weekDay,monthDay:form.monthDay,fixedTime:form.fixedTime});setModal(false);
   };
   return(
     <div style={{padding:"14px 16px 20px"}}>
@@ -4570,7 +4617,7 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
         <div style={{display:"flex",flexDirection:"column",gap:10}}>
           {fixed.map(t=>{
             const proj=D.projects.find(p=>p.id===t.projectId);
-            const user=D.users.find(u=>u.id===t.assigneeId);
+            const assignees=t.forAll?D.users:fixedAssigneeIds(t).map(id=>D.users.find(u=>u.id===id)).filter(Boolean);
             return(
               <div key={t.id} style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px 16px",border:"1px solid #F2F4F6"}}>
                 <div style={{display:"flex",alignItems:"center",gap:12}}>
@@ -4581,8 +4628,8 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
                       {proj&&<Badge color="#8B5CF6" bg="#F3EFFE">📁 {proj.title}</Badge>}
                       <Badge color="#F97316" bg="#FFEDD5">🔄 {t.recurType==="weekly"?(t.weekDay||"월")+"요일":t.recurType==="monthly"?"매월 "+(t.monthDay||1)+"일":"매일"}</Badge>
                       {t.fixedTime&&<Badge color="#0891B2" bg="#E0F2FE">🕐 {t.fixedTime}</Badge>}
-                      {t.doneDate&&t.doneAt&&<Badge color="#00A862" bg="#E8FAF1">✓ {hhmm(t.doneAt)} 체크</Badge>}
-                      {viewAll&&user&&<Badge color={user.color} bg={user.color+"22"}>👤 {user.name}</Badge>}
+                      {fixedDoneOn(t,cu.id)===todayKey&&<Badge color="#00A862" bg="#E8FAF1">✓ 오늘 체크</Badge>}
+                      {t.forAll?<Badge color="#0F1F5C" bg="#E5E9F5">👥 전체</Badge>:assignees.map(u=><Badge key={u.id} color={u.color} bg={u.color+"22"}>👤 {u.name}</Badge>)}
                     </div>
                   </div>
                   <button onClick={()=>setEditTarget(t)} style={{background:"none",border:"none",cursor:"pointer",color:"#9CA3AF",fontSize:16,padding:8,flexShrink:0}}>✎</button>
@@ -4599,11 +4646,18 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>연결 프로젝트</label><select value={form.projectId} onChange={e=>setForm({...form,projectId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="">없음</option>{D.projects.map(p=><option key={p.id} value={p.id}>{p.title}</option>)}</select></div>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>🕐 시간 <span style={{color:"#9CA3AF",fontWeight:600}}>(선택 · 예: 09:00)</span></label><input type="time" value={form.fixedTime||""} onChange={e=>setForm({...form,fixedTime:e.target.value})} style={{width:"100%",padding:"11px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/></div>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>반복 주기</label><div style={{display:"flex",gap:6}}>{[["daily","매일"],["weekly","매주"],["monthly","매월"]].map(([k,l])=>(<button key={k} onClick={()=>setForm({...form,recurType:k})} style={{flex:1,padding:"10px 0",borderRadius:10,border:`1.5px solid ${form.recurType===k?"#F97316":"#E5E8EB"}`,backgroundColor:form.recurType===k?"#FFEDD5":"#FFFFFF",color:form.recurType===k?"#EA580C":"#6B7280",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>))}</div>{form.recurType==="weekly"&&<select value={form.weekDay} onChange={e=>setForm({...form,weekDay:e.target.value})} style={{width:"100%",marginTop:8,padding:"10px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}>{ALL_DAYS.map(d=><option key={d} value={d}>{d}요일</option>)}</select>}{form.recurType==="monthly"&&<select value={form.monthDay} onChange={e=>setForm({...form,monthDay:Number(e.target.value)})} style={{width:"100%",marginTop:8,padding:"10px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}>{Array.from({length:31},(_,i)=>i+1).map(d=><option key={d} value={d}>매월 {d}일</option>)}</select>}</div>
-          {lead&&<div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>담당자</label><select value={form.assigneeId} onChange={e=>setForm({...form,assigneeId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="all">⭐ 전체 (전원에게 생성)</option>{D.users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>{form.assigneeId==="all"&&<p style={{margin:"6px 2px 0",fontSize:11,color:"#EA580C",fontWeight:700}}>전 담당자 {D.users.length}명에게 각각 생성됩니다</p>}</div>}
+          {lead&&<div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>담당자 <span style={{color:"#9CA3AF",fontWeight:600}}>(여러 명 선택 · 전체 가능)</span></label>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              <button type="button" onClick={()=>setForm({...form,forAll:!form.forAll,assigneeIds:[]})} style={{padding:"7px 12px",borderRadius:20,border:`1.5px solid ${form.forAll?"#0F1F5C":"#E5E8EB"}`,background:form.forAll?"#0F1F5C":"#fff",fontSize:12,fontWeight:800,color:form.forAll?"#fff":"#4B5563",cursor:"pointer",fontFamily:"inherit"}}>⭐ 전체</button>
+              {D.users.map(u=>{const sel=form.forAll||form.assigneeIds.includes(u.id);return(
+                <button key={u.id} type="button" onClick={()=>setForm(f=>{const has=f.assigneeIds.includes(u.id);return{...f,forAll:false,assigneeIds:f.forAll?[u.id]:(has?f.assigneeIds.filter(x=>x!==u.id):[...f.assigneeIds,u.id])};})} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:20,border:`1.5px solid ${sel?u.color:"#E5E8EB"}`,background:sel?u.color+"18":"#fff",cursor:"pointer",fontFamily:"inherit"}}><Ava name={u.name} color={u.color} size={18}/><span style={{fontSize:12,fontWeight:700,color:sel?u.color:"#4B5563"}}>{u.name}</span>{sel&&!form.forAll&&<span style={{fontSize:11,fontWeight:900,color:u.color}}>✓</span>}</button>
+              );})}
+            </div>
+            <p style={{margin:"6px 2px 0",fontSize:11,color:"#9CA3AF"}}>{form.forAll?`전 담당자 ${D.users.length}명에게 표시됩니다`:form.assigneeIds.length>1?`${form.assigneeIds.length}명에게 표시 · 각자 따로 체크`:"담당자 각자 오늘 화면에 표시"}</p></div>}
           <Btn full variant="orange" onClick={doAdd} disabled={!form.title.trim()}>추가하기</Btn>
         </div>
       </Sheet>
-      <EditTaskSheet open={!!editTarget} onClose={()=>setEditTarget(null)} task={editTarget} D={D} add={add} onSave={f=>up("tasks",editTarget.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:f.assigneeId,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null})}/>
+      <EditTaskSheet open={!!editTarget} onClose={()=>setEditTarget(null)} task={editTarget} D={D} add={add} onSave={f=>up("tasks",editTarget.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:(f.forAll?"":((f.assigneeIds||[])[0]||"")),assigneeIds:f.assigneeIds||[],forAll:!!f.forAll,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null})}/>
       <Confirm open={!!confirmId} title="고정업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmId)?.title}" 업무를 삭제할까요?\n휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmId);setConfirmId(null);}} onCancel={()=>setConfirmId(null)}/>
     </div>
   );

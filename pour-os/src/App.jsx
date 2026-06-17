@@ -948,7 +948,6 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const [feedOpen,setFeedOpen]=useState(false);
   const [weeklyOpen,setWeeklyOpen]=useState(false);
   const [showHeld,setShowHeld]=useState(false);
-  const [showGrid,setShowGrid]=useState(false);   // 주간 배치 그리드 접기(기본 접힘 — 오늘 업무가 먼저 보이도록)
   const [isNarrow,setIsNarrow]=useState(typeof window!=="undefined"?window.innerWidth<640:true);   // 모바일=하루씩, 넓은 화면=요일 5열
   useEffect(()=>{const h=()=>setIsNarrow(window.innerWidth<640);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[]);
   const [viewDay,setViewDay]=useState(WEEK_DAYS.includes(today)?today:"월");   // 모바일 단일요일 보기(오늘 기준 시작)
@@ -1017,19 +1016,42 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
     );
   };
   const vdIdx=WEEK_DAYS.indexOf(viewDay);
+  // 상단 분할: 이번 주 명심(좌) + 마감 임박(우) — PC는 나란히, 모바일은 세로
+  const memoBanner=(
+    <div onClick={()=>nav("game")} style={{display:"flex",alignItems:"center",gap:14,background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"16px 18px",cursor:"pointer",color:"#fff",flex:1,minWidth:0,boxSizing:"border-box"}}>
+      <div style={{flex:1,minWidth:0}}>
+        <p style={{margin:0,fontSize:19,fontWeight:900,lineHeight:1.4,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{myGoals.length===0?"이번 주 메모를 남겨보세요 ✍️":myGoals.map(g=>g.title).join("   ·   ")}</p>
+      </div>
+      <div style={{flexShrink:0,textAlign:"right",opacity:0.72}}>
+        <p style={{margin:0,fontSize:9.5,fontWeight:700,whiteSpace:"nowrap"}}>📝 이번 주 명심할 것</p>
+        <span style={{display:"inline-block",marginTop:4,fontSize:10,fontWeight:800,background:"rgba(255,255,255,0.2)",color:"#fff",padding:"3px 9px",borderRadius:10,whiteSpace:"nowrap"}}>내 주간 ›</span>
+      </div>
+    </div>
+  );
+  const urgentCard=urgent.length>0?(
+    <div style={{backgroundColor:"#FFF0F1",border:"1px solid #FFD5D8",borderRadius:14,padding:"13px 14px",flex:1,minWidth:0,boxSizing:"border-box"}}>
+      <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:8}}>
+        <span style={{fontSize:15}}>🚨</span>
+        <span style={{fontSize:12.5,fontWeight:900,color:"#F04452"}}>마감 임박 · D-3 이내 {urgent.length}건</span>
+      </div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+        {urgent.map(t=>{const dd=Math.ceil((new Date(t.dueDate)-new Date())/86400000);return(
+          <button key={t.id} onClick={()=>setEditTask(t)} style={{display:"inline-flex",alignItems:"center",gap:5,padding:"4px 9px",borderRadius:999,border:"1px solid #FFD5D8",backgroundColor:"#FFFFFF",cursor:"pointer",fontFamily:"inherit"}}>
+            <span style={{fontSize:11.5,fontWeight:700,color:"#1F2937",maxWidth:150,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}</span>
+            <span style={{fontSize:10,fontWeight:900,color:"#F04452"}}>{dd===0?"D-day":"D-"+dd}</span>
+          </button>
+        );})}
+      </div>
+    </div>
+  ):null;
   return(
     <div style={{padding:"14px 16px 20px"}}>
-      <div onClick={()=>nav("game")} style={{display:"flex",alignItems:"center",gap:14,background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"16px 18px",marginBottom:12,cursor:"pointer",color:"#fff"}}>
-        <div style={{flex:1,minWidth:0}}>
-          <p style={{margin:0,fontSize:19,fontWeight:900,lineHeight:1.4,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{myGoals.length===0?"이번 주 메모를 남겨보세요 ✍️":myGoals.map(g=>g.title).join("   ·   ")}</p>
-        </div>
-        <div style={{flexShrink:0,textAlign:"right",opacity:0.72}}>
-          <p style={{margin:0,fontSize:9.5,fontWeight:700,whiteSpace:"nowrap"}}>📝 이번 주 명심할 것</p>
-          <span style={{display:"inline-block",marginTop:4,fontSize:10,fontWeight:800,background:"rgba(255,255,255,0.2)",color:"#fff",padding:"3px 9px",borderRadius:10,whiteSpace:"nowrap"}}>내 주간 ›</span>
-        </div>
-      </div>
-      {isLastWorkingDayOfWeek()&&<button onClick={()=>setWeeklyOpen(true)} style={{width:"100%",marginBottom:14,padding:"13px 0",borderRadius:14,border:"none",background:"linear-gradient(135deg,#F97316,#EA580C)",color:"#fff",fontSize:14.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🗓️ 이번 주 마감 입력 — 매출·KPI·활동지표 한 번에</button>}
-      <WeeklyInputSheet open={weeklyOpen} onClose={()=>setWeeklyOpen(false)} D={D} cu={cu} up={up}/>
+      {(!isNarrow&&urgentCard)?(
+        <div style={{display:"flex",gap:12,marginBottom:12,alignItems:"stretch"}}>{memoBanner}{urgentCard}</div>
+      ):(<>
+        <div style={{marginBottom:urgentCard?12:14}}>{memoBanner}</div>
+        {urgentCard&&<div style={{marginBottom:14}}>{urgentCard}</div>}
+      </>)}
       <div style={{display:"flex",gap:8,marginBottom:14,overflowX:"auto",paddingBottom:2}}>
         {[{label:"오늘 업무",val:`${doneToday}/${todayT.length}`,color:"#3182F6"},{label:"고정업무",val:`${doneFixed}/${fixed.length}`,color:"#F97316"},{label:"내 프로젝트",val:D.projects.filter(p=>p.assigneeId===cu.id).length+"건",color:"#8B5CF6"}].map((s,i)=>(
           <div key={i} style={{flexShrink:0,backgroundColor:"#FFFFFF",borderRadius:12,padding:"10px 14px",border:"1px solid #F2F4F6"}}>
@@ -1038,22 +1060,8 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           </div>
         ))}
       </div>
-      {urgent.length>0&&(
-        <div style={{backgroundColor:"#FFF0F1",border:"1px solid #FFD5D8",borderRadius:14,padding:"11px 14px",marginBottom:14}}>
-          <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:7}}>
-            <span style={{fontSize:15}}>🚨</span>
-            <span style={{fontSize:12.5,fontWeight:900,color:"#F04452"}}>마감 임박 · D-3 이내 {urgent.length}건</span>
-          </div>
-          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-            {urgent.map(t=>{const dd=Math.ceil((new Date(t.dueDate)-new Date())/86400000);return(
-              <button key={t.id} onClick={()=>setEditTask(t)} style={{display:"inline-flex",alignItems:"center",gap:5,padding:"4px 9px",borderRadius:999,border:"1px solid #FFD5D8",backgroundColor:"#FFFFFF",cursor:"pointer",fontFamily:"inherit"}}>
-                <span style={{fontSize:11.5,fontWeight:700,color:"#1F2937",maxWidth:150,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}</span>
-                <span style={{fontSize:10,fontWeight:900,color:"#F04452"}}>{dd===0?"D-day":"D-"+dd}</span>
-              </button>
-            );})}
-          </div>
-        </div>
-      )}
+      {isLastWorkingDayOfWeek()&&<button onClick={()=>setWeeklyOpen(true)} style={{width:"100%",marginBottom:14,padding:"13px 0",borderRadius:14,border:"none",background:"linear-gradient(135deg,#F97316,#EA580C)",color:"#fff",fontSize:14.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🗓️ 이번 주 마감 입력 — 매출·KPI·활동지표 한 번에</button>}
+      <WeeklyInputSheet open={weeklyOpen} onClose={()=>setWeeklyOpen(false)} D={D} cu={cu} up={up}/>
       <div style={{backgroundColor:"#FFFFFF",borderRadius:16,marginBottom:14,border:"1px solid #F2F4F6",overflow:"hidden"}}>
         <div onClick={()=>setFeedOpen(o=>!o)} style={{padding:"13px 14px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -1121,14 +1129,11 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
         </div>
       )}
       <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",marginBottom:14,border:"1px solid #F2F4F6"}}>
-        <div onClick={()=>setShowGrid(s=>!s)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}}>
-          <div>
-            <h3 style={{margin:"0 0 4px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}>📅 주간 업무 배치</h3>
-            <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>{showGrid?(isNarrow?"하루씩 ◀▶ · 진행날짜 업무 자동 노출 · ▲▼로 순서":"요일별 자동 노출 · 드래그로 요일 이동 · ▲▼로 순서"):"진행날짜·요일 정한 업무가 자동 배치 (펼치기)"}</p>
-          </div>
-          <span style={{fontSize:13,color:"#9CA3AF",flexShrink:0}}>{showGrid?"▲":"▼"}</span>
+        <div style={{marginBottom:2}}>
+          <h3 style={{margin:"0 0 4px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}>📅 주간 업무 배치</h3>
+          <p style={{margin:0,fontSize:10.5,color:"#9CA3AF"}}>{isNarrow?"하루씩 ◀▶ · 진행날짜 업무 자동 노출 · ▲▼로 순서":"요일별 자동 노출 · 드래그로 요일 이동 · ▲▼로 순서"}</p>
         </div>
-        {showGrid&&(isNarrow?(
+        {(isNarrow?(
           <div style={{marginTop:10}}>
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
               <button onClick={()=>setViewDay(WEEK_DAYS[Math.max(0,vdIdx-1)])} disabled={vdIdx<=0} style={{width:38,height:38,borderRadius:10,border:"1.5px solid #E5E8EB",background:vdIdx<=0?"#F9FAFB":"#fff",color:vdIdx<=0?"#D1D5DB":"#4B5563",fontSize:15,fontWeight:900,cursor:vdIdx<=0?"default":"pointer",flexShrink:0,fontFamily:"inherit"}}>◀</button>
@@ -1151,6 +1156,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
             <div style={{display:"flex",gap:10}}>{WEEK_DAYS.map(d=>renderDayCol(d,false))}</div>
           </div>
         ))}
+      {/* 주간 업무 배치: 항상 펼친 상태 고정 */}
       </div>
       <div style={{display:"flex",gap:14,alignItems:"flex-start",marginBottom:12,flexWrap:"wrap"}}>
       <div style={{flex:"1 1 380px",minWidth:0,backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #F2F4F6",boxSizing:"border-box"}}>

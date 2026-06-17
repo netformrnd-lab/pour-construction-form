@@ -346,6 +346,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add})=>{
   const [form,setForm]=useState({title:"",status:"todo",dueDate:"",memo:"",projectId:"",assigneeId:"",assigneeIds:[],forAll:false,attachments:[],weekDay:"",weekSlot:null,workDate:"",fixedTime:""});
   const [prevId,setPrevId]=useState(null);
   const [uploading,setUploading]=useState(false);
+  const [dropOver,setDropOver]=useState(false);
   if(task&&task.id!==prevId){setPrevId(task.id);setForm({title:task.title||"",status:task.status||"todo",dueDate:task.dueDate||"",memo:task.memo||"",projectId:task.projectId||"",assigneeId:task.assigneeId||"",assigneeIds:Array.isArray(task.assigneeIds)&&task.assigneeIds.length?task.assigneeIds:(task.assigneeId?[task.assigneeId]:[]),forAll:!!task.forAll,attachments:Array.isArray(task.attachments)?task.attachments:[],weekDay:task.weekDay||"",weekSlot:task.weekSlot??null,workDate:task.workDate||"",fixedTime:task.fixedTime||""});}
   if(!task&&prevId!==null){setPrevId(null);setForm({title:"",status:"todo",dueDate:"",memo:"",projectId:"",assigneeId:"",assigneeIds:[],forAll:false,attachments:[],weekDay:"",weekSlot:null,workDate:"",fixedTime:""});}
   // 날짜 선택 → 요일·슬롯 자동 배정(담당자의 그 요일 빈 슬롯 중 가장 앞, 없으면 슬롯 없이 그날에)
@@ -367,6 +368,15 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add})=>{
   };
   // 첨부 제거 = 폼에서 분리만(스토리지 파일은 보존 — 데이터 영구 보존). 실제 삭제 반영·휴지통 기록은 저장 시점에.
   const rmPhoto=(att)=>setForm(p=>({...p,attachments:(p.attachments||[]).filter(a=>a.url!==att.url)}));
+  // 붙여넣기(Ctrl/⌘+V)로 클립보드 이미지·파일 바로 첨부 — 시트 열려있고 기존 task일 때만
+  useEffect(()=>{
+    if(!open||!task) return;
+    const onPaste=(e)=>{ const items=e.clipboardData&&e.clipboardData.items; if(!items) return;
+      const files=[]; for(const it of items){ if(it.kind==="file"){ const f=it.getAsFile(); if(f) files.push(f); } }
+      if(files.length){ e.preventDefault(); onPick(files); } };
+    document.addEventListener("paste",onPaste);
+    return ()=>document.removeEventListener("paste",onPaste);
+  },[open,task]);
   const doSave=()=>{
     if(!form.title.trim())return;
     if(task&&task.id&&add){   // 저장 시 제거된 첨부를 휴지통에 보관(파일은 그대로 — 복구 가능)
@@ -453,7 +463,11 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add})=>{
         </div>
         <div style={{marginBottom:20}}>
           <label style={{display:"flex",alignItems:"center",justifyContent:"space-between",fontSize:12,fontWeight:700,color:"#374151",marginBottom:7}}><span>📎 파일 첨부 ({(form.attachments||[]).length})</span>{uploading&&<span style={{fontSize:11,color:"#F97316",fontWeight:700}}>업로드 중…</span>}</label>
-          <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+          <div
+            onDragOver={task&&!uploading?(e)=>{e.preventDefault();if(!dropOver)setDropOver(true);}:undefined}
+            onDragLeave={(e)=>{if(dropOver)setDropOver(false);}}
+            onDrop={task&&!uploading?(e)=>{e.preventDefault();setDropOver(false);const fs=e.dataTransfer&&e.dataTransfer.files;if(fs&&fs.length)onPick(fs);}:undefined}
+            style={{display:"flex",flexWrap:"wrap",gap:8,padding:dropOver?9:0,borderRadius:12,border:`2px dashed ${dropOver?"#F97316":"transparent"}`,background:dropOver?"#FFF7ED":"transparent",transition:"padding .1s, background .1s"}}>
             {(form.attachments||[]).map((att,i)=>{const img=isImgAtt(att);return(
               <div key={att.url||i} style={{position:"relative",width:72,height:72,borderRadius:10,overflow:"hidden",border:"1px solid #E5E8EB",background:img?"#000":"#F9FAFB"}}>
                 <a href={att.url} target="_blank" rel="noopener noreferrer" title={att.name} style={{display:"block",width:"100%",height:"100%",textDecoration:"none"}}>
@@ -472,7 +486,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add})=>{
               <input type="file" accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.hwp,.hwpx,.txt,.csv,.zip" multiple disabled={!task||uploading} onChange={e=>onPick(e.target.files)} style={{display:"none"}}/>
             </label>
           </div>
-          <p style={{margin:"6px 2px 0",fontSize:10,color:"#9CA3AF"}}>사진·PDF·문서(워드/엑셀/한글 등) · 각 20MB 이내 · 저장하면 task에 기록됩니다</p>
+          <p style={{margin:"6px 2px 0",fontSize:10,color:"#9CA3AF"}}>{task?"끌어다 놓기(드래그&드롭) · 사진은 붙여넣기(⌘/Ctrl+V)로 바로 첨부 · 클릭 선택도 가능":"먼저 저장하면 첨부할 수 있어요"} · 사진·PDF·문서(워드/엑셀/한글) 각 20MB 이내</p>
         </div>
         <button onClick={doSave} disabled={!form.title.trim()||uploading} style={{width:"100%",padding:"14px 0",borderRadius:14,border:"none",backgroundColor:form.title.trim()&&!uploading?"#F97316":"#E5E8EB",color:form.title.trim()&&!uploading?"#FFFFFF":"#9CA3AF",fontSize:15,fontWeight:700,cursor:form.title.trim()&&!uploading?"pointer":"not-allowed",fontFamily:"inherit"}}>저장하기</button>
       </div>

@@ -90,8 +90,7 @@ input::placeholder, textarea::placeholder { color: var(--text-xs); }
 </head>
 <body>
 <div id="root"></div>
-<script type="text/babel">
-/* @jsxRuntime classic */  // React UMD 전역 사용 — 자동 JSX 런타임(import 주입) 비활성화
+<script type="text/babel-src" id="appsrc">
 const { useState, useEffect, useMemo, useRef, createContext, useContext } = React;
 
 // ============================================================
@@ -9674,6 +9673,22 @@ function App() {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+<script>
+// 인브라우저 Babel 자동변환 비활성화 → classic 런타임으로 직접 변환(자동 JSX 런타임 import 주입 방지)
+(function(){
+  try{
+    var src = document.getElementById('appsrc').textContent;
+    var out = Babel.transform(src, { presets: [['react', { runtime: 'classic' }]], filename: 'admin.jsx' }).code;
+    var s = document.createElement('script');
+    s.text = out;
+    document.body.appendChild(s);
+  }catch(e){
+    console.error('[admin] Babel 변환 실패:', e);
+    var r = document.getElementById('root');
+    if(r) r.innerHTML = '<div style="padding:40px;font-family:Pretendard,sans-serif;color:#b91c1c;font-size:14px">앱 로딩 오류: ' + (e&&e.message||e) + '</div>';
+  }
+})();
 </script>
 </body>
 </html>

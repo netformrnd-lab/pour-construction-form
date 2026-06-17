@@ -775,10 +775,12 @@ export default function App(){
       </aside>
       <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
         <div style={{backgroundColor:"#FFFFFF",borderBottom:"1px solid #F2F4F6",padding:"13px 24px",flexShrink:0}}>
-          <h1 style={{margin:0,fontSize:17,fontWeight:900,color:"#0F1F5C",lineHeight:1.1}}>{pi?.icon} {pi?.label}</h1>
-          <p style={{margin:"3px 0 0",fontSize:11,color:"#9CA3AF"}}>{new Date().toLocaleDateString("ko-KR",{month:"long",day:"numeric",weekday:"short"})} · {cu?.name}</p>
+          <div style={{maxWidth:1280,margin:"0 auto",width:"100%"}}>
+            <h1 style={{margin:0,fontSize:17,fontWeight:900,color:"#0F1F5C",lineHeight:1.1}}>{pi?.icon} {pi?.label}</h1>
+            <p style={{margin:"3px 0 0",fontSize:11,color:"#9CA3AF"}}>{new Date().toLocaleDateString("ko-KR",{month:"long",day:"numeric",weekday:"short"})} · {cu?.name}</p>
+          </div>
         </div>
-        <div style={{flex:1,overflowY:"auto"}}><div style={{width:"100%"}}>{pageContent}</div></div>
+        <div style={{flex:1,overflowY:"auto"}}><div style={{width:"100%",maxWidth:1280,margin:"0 auto"}}>{pageContent}</div></div>
       </div>
       {sheets}
     </div>
@@ -3138,7 +3140,8 @@ function ProjStageFlow({D,proj,cu,up}){
 }
 const NODE_W=144, NODE_H=56;
 function LaunchPage({D,cu,lead,add,up,rm,nav}){
-  const [tab,setTab]=useState("status");
+  const [tab,setTab]=useState("template");
+  const [libDetail,setLibDetail]=useState(false);   // 라이브러리: false=카드목록, true=선택 프로세스 편집
   const tpls=D.launchTemplates||[];
   const [tplId,setTplId]=useState("");
   const tpl=tpls.find(t=>t.id===tplId)||tpls[0];
@@ -3159,6 +3162,8 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
   const [renameOpen,setRenameOpen]=useState(false);
   const [renameVal,setRenameVal]=useState("");
   const dupTpl=()=>{ const nid="tpl"+Date.now(); add("launchTemplates",{...tpl,id:nid,name:tpl.name+" (복사)",createdAt:new Date().toISOString(),nodes:tpl.nodes.map(n=>({...n})),edges:tpl.edges.map(e=>({...e}))}); setTplId(nid); };
+  // 새 프로세스(종류 무관) — 빈 캔버스에 시작 단계 1개
+  const addTemplate=()=>{ const nid="tpl"+Date.now(); const n0={id:"n"+(Date.now()+1),title:"1단계",roleLabel:"",assigneeId:cu.id,x:24,y:24}; add("launchTemplates",{id:nid,name:"새 프로세스",nodes:[n0],edges:[],version:1,createdAt:new Date().toISOString()}); setTplId(nid); setLibDetail(true); };
   const doRename=()=>{ if(renameVal.trim()) up("launchTemplates",tpl.id,{name:renameVal.trim()}); setRenameOpen(false); };
   // ── 프로세스 템플릿 버전관리 (로드맵 템플릿 v 패턴과 동일) ──
   const [showVer,setShowVer]=useState(false);
@@ -3213,20 +3218,10 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
   const saveNode=(patch)=>{ up("launchTemplates",tpl.id,{nodes:tpl.nodes.map(n=>n.id===editNode.id?{...n,...patch}:n)}); setEditNode(null); };
   const deleteNode=()=>{ up("launchTemplates",tpl.id,{nodes:tpl.nodes.filter(n=>n.id!==editNode.id),edges:tpl.edges.filter(e=>e.from!==editNode.id&&e.to!==editNode.id)}); setEditNode(null); };
   const removeEdge=(eid)=>{ up("launchTemplates",tpl.id,{edges:tpl.edges.filter(e=>e.id!==eid)}); setDelEdge(null); };
-  // 기존(마이그레이션 완료) 환경: 템플릿 컬렉션이 비어있으면 기본 프로세스 시드
-  const seedTpl=()=>add("launchTemplates",{...INIT.launchTemplates[0],createdAt:new Date().toISOString()});
-  if(!tpl) return(
-    <div style={{padding:"48px 24px",textAlign:"center"}}>
-      <p style={{fontSize:42,margin:0}}>🚀</p>
-      <p style={{margin:"12px 0 4px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>프로세스 준비</p>
-      <p style={{margin:"0 0 20px",fontSize:12.5,color:"#6B7280",lineHeight:1.6}}>표준 단계 흐름을 만들어 두면 신상마다 그대로 자동 생성됩니다.<br/>한 번 만들면 신상마다 그대로 자동 생성됩니다.</p>
-      <Btn variant="orange" size="lg" onClick={seedTpl}>기본 프로세스 만들기</Btn>
-    </div>
-  );
   return(
     <div style={{padding:"14px 16px 24px"}}>
       <div style={{display:"flex",backgroundColor:"#F2F4F6",borderRadius:14,padding:4,marginBottom:14}}>
-        {[{k:"status",l:`🚀 진행 ${launchProjs.length}`},{k:"template",l:"🧩 템플릿"}].map(v=>(
+        {[{k:"template",l:`🧩 프로세스 ${tpls.length}`},{k:"status",l:`🚀 진행 ${launchProjs.length}`}].map(v=>(
           <button key={v.k} onClick={()=>setTab(v.k)} style={{flex:1,padding:"9px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:tab===v.k?"#FFFFFF":"transparent",color:tab===v.k?"#0F1F5C":"#6B7280",fontWeight:tab===v.k?800:500,fontSize:13,fontFamily:"inherit",boxShadow:tab===v.k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{v.l}</button>
         ))}
       </div>
@@ -3299,13 +3294,51 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
         })}
       </>)}
 
-      {tab==="template"&&(<>
-        {!tpl?<Empty t="템플릿이 없습니다"/>:(<>
-          {tpls.length>1&&(
-            <select value={tpl.id} onChange={e=>setTplId(e.target.value)} style={{width:"100%",padding:"11px 13px",borderRadius:11,border:"1.5px solid #E5E8EB",fontSize:13.5,fontWeight:800,fontFamily:"inherit",backgroundColor:"#fff",outline:"none",WebkitAppearance:"none",color:"#0F1F5C",marginBottom:10}}>
-              {tpls.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}
-            </select>
-          )}
+      {tab==="template"&&!libDetail&&(<>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginBottom:6}}>
+          <div>
+            <h3 style={{margin:0,fontSize:15,fontWeight:900,color:"#0F1F5C"}}>🧩 프로세스 라이브러리</h3>
+            <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>출시·영업·디자인·주문발주·소싱·반품… 표준 업무 흐름을 만들어 두고 재사용</p>
+          </div>
+          <button onClick={addTemplate} style={{flexShrink:0,padding:"9px 13px",borderRadius:10,border:"none",background:"#F97316",color:"#fff",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>＋ 새 프로세스</button>
+        </div>
+        <p style={{margin:"0 0 12px",fontSize:10.5,color:"#9CA3AF",lineHeight:1.5,background:"#F9FAFB",borderRadius:10,padding:"9px 12px"}}>만든 프로세스는 <b>로드맵 › 로드단계</b>에서 <b>🧩 프로세스 장착</b>으로 그 프로젝트의 실제 업무로 펼쳐집니다. (출시 프로세스는 <b>🚀 진행</b> 탭에서 SKU 단위로 실행)</p>
+        {tpls.length===0?(
+          <div style={{padding:"40px 24px",textAlign:"center"}}>
+            <p style={{fontSize:36,margin:0}}>🧩</p>
+            <p style={{margin:"10px 0 16px",fontSize:13,color:"#6B7280",lineHeight:1.6}}>아직 프로세스가 없어요.<br/>표준 단계 흐름을 만들어 팀이 재사용하세요.</p>
+            <Btn variant="orange" onClick={addTemplate}>＋ 첫 프로세스 만들기</Btn>
+          </div>
+        ):(
+          <div style={{display:"flex",flexDirection:"column",gap:9}}>
+            {tpls.map(t=>{
+              const stageUse=D.tasks.filter(x=>x.processId===t.id).length;
+              const instUse=D.projects.filter(p=>p.templateId===t.id).length;
+              const owners=[...new Set((t.nodes||[]).map(n=>n.roleLabel||uName(n.assigneeId)).filter(Boolean))].slice(0,3);
+              return(
+                <button key={t.id} onClick={()=>{setTplId(t.id);setLibDetail(true);}} style={{display:"block",width:"100%",textAlign:"left",background:"#fff",border:"1px solid #EAECEF",borderRadius:14,padding:"13px 14px",cursor:"pointer",fontFamily:"inherit"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                    <span style={{fontSize:15}}>🧩</span>
+                    <span style={{flex:1,minWidth:0,fontSize:14,fontWeight:900,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name}</span>
+                    <span style={{flexShrink:0,fontSize:10,fontWeight:900,color:"#3730A3",background:"#E0E7FF",borderRadius:6,padding:"2px 7px"}}>v{t.version||1}</span>
+                    <span style={{flexShrink:0,fontSize:14,color:"#C4C9D0"}}>›</span>
+                  </div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:6,alignItems:"center"}}>
+                    <span style={{fontSize:11,fontWeight:700,color:"#6B7280"}}>단계 {(t.nodes||[]).length}</span>
+                    {stageUse>0&&<span style={{fontSize:10.5,fontWeight:800,color:"#7C3AED",background:"#F3EFFE",borderRadius:6,padding:"2px 7px"}}>로드단계 장착 {stageUse}</span>}
+                    {instUse>0&&<span style={{fontSize:10.5,fontWeight:800,color:"#EA580C",background:"#FFF1E7",borderRadius:6,padding:"2px 7px"}}>실행 {instUse}</span>}
+                    {owners.length>0&&<span style={{fontSize:10.5,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>· {owners.join(" → ")}{(t.nodes||[]).length>owners.length?" …":""}</span>}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </>)}
+
+      {tab==="template"&&libDetail&&tpl&&(<>
+          <button onClick={()=>setLibDetail(false)} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 2px",marginBottom:8,background:"none",border:"none",color:"#6B7280",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>‹ 프로세스 목록</button>
+          <h3 style={{margin:"0 0 10px",fontSize:15,fontWeight:900,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>🧩 {tpl.name}</h3>
           <div style={{display:"flex",gap:7,marginBottom:12}}>
             <button onClick={dupTpl} style={{flex:1,padding:"9px 0",borderRadius:10,border:"1.5px solid #E5E8EB",backgroundColor:"#fff",fontSize:12.5,fontWeight:800,color:"#374151",cursor:"pointer",fontFamily:"inherit"}}>⧉ 복제</button>
             <button onClick={()=>{setRenameVal(tpl.name);setRenameOpen(true);}} style={{flex:1,padding:"9px 0",borderRadius:10,border:"1.5px solid #E5E8EB",backgroundColor:"#fff",fontSize:12.5,fontWeight:800,color:"#374151",cursor:"pointer",fontFamily:"inherit"}}>✎ 이름</button>
@@ -3329,8 +3362,7 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
             </div>
           )}
           <div style={{backgroundColor:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:12,padding:"10px 13px",marginBottom:12}}>
-            <p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#9A3412"}}>🧩 {tpl.name}</p>
-            <p style={{margin:"3px 0 0",fontSize:11,color:"#B45309",lineHeight:1.5}}>제품군마다 흐름이 다르면 <b>복제</b>해서 단계를 바꿔 쓰세요. 노드를 끌어 옮기고, 탭하면 수정돼요.</p>
+            <p style={{margin:0,fontSize:11,color:"#B45309",lineHeight:1.5}}>케이스마다 흐름이 다르면 <b>복제</b>해서 단계를 바꿔 쓰세요. 노드를 끌어 옮기고, 탭하면 단계명·담당자가 수정돼요. <b>선 연결</b>로 인계 순서를 잇습니다.</p>
           </div>
           <div style={{display:"flex",gap:8,marginBottom:10}}>
             <button onClick={addNode} style={{flex:1,padding:"9px 0",borderRadius:10,border:"1.5px solid #E5E8EB",backgroundColor:"#fff",fontSize:12.5,fontWeight:800,color:"#374151",cursor:"pointer",fontFamily:"inherit"}}>＋ 단계 추가</button>
@@ -3364,7 +3396,6 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
             })}
           </div>
           <p style={{margin:"10px 2px 0",fontSize:11,color:"#9CA3AF",lineHeight:1.6}}>●&nbsp;노드를 끌어 위치 정리&nbsp;·&nbsp;탭하면 단계명·담당자 수정&nbsp;·&nbsp;<b>선 연결</b>로 선행(인계) 순서를 잇습니다.</p>
-        </>)}
       </>)}
 
       {/* 신규 SKU 출시 시트 */}

@@ -26,7 +26,8 @@
 - `npm run dev` — UI 개발 (localhost:5173)
 - `npm run build` → `dist/` (정적). `npm run cf:dev` — Cloudflare Functions 포함 로컬(AI 코치 테스트).
 - **배포**: Cloudflare Pages. Build `npm run build`, Output `dist`. 환경변수 `ANTHROPIC_API_KEY`.
-- **상태**: 현재 `useState(INIT)` **인메모리** — 새로고침 시 초기화됨. (영속화 미구현 = 우선 작업 후보)
+- **상태 영속화(구현됨, 3중 안전망)**: Firestore(`pour-os/state-{컬렉션}` 분할 문서, 실시간 구독) **+** localStorage 미러 **+** IndexedDB 영구 미러·시점 스냅샷(`src/durable.js`). 삭제는 **소프트삭제(휴지통 `trash`)** 로만 — `rm`은 영구삭제 금지, 복구 가능. 빈 원격 문서로 로컬을 덮어쓰지 않음(백지 가드). 컬렉션별 1MiB 한도 가드. KPI▸데이터에 휴지통·전체 백업(JSON)·로컬(IndexedDB) 복구 UI.
+  - ⚠️ 데이터 영구삭제 경로를 새로 만들지 말 것. 삭제는 항상 `rm`/`rmNested`(휴지통 경유).
 
 ## 파일 구조
 - `src/App.jsx` — 앱 전체(현재 단일 파일 ~1,600줄). 모든 컴포넌트·데이터·헬퍼가 여기 있음.

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { STATE_DOC, colDoc, META_DOC, extDoc, extCol, getDoc, getDocs, onSnapshot, setDoc, uploadTaskPhoto, deleteTaskPhoto } from "./firebase.js";
+import { idbSaveMirror, idbLoadMirror, idbPushSnapshot, idbListSnapshots, idbGetSnapshot } from "./durable.js";
 
 // Firestore 단일 문서에 저장할 공유 데이터 키 (currentUser는 기기별 로컬이라 제외)
 const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","weekGoals","launchTemplates","manuals","trash"];
@@ -505,6 +506,8 @@ export default function App(){
   const loadedRef=useRef(false);
   const syncTimerRef=useRef(null);
   const pendingSharedRef=useRef(null);// 디바운스 대기 중인 최신 shared 객체 (탭 종료 flush용)
+  const lastSnapRef=useRef(0);        // 마지막 IndexedDB 스냅샷 시각(throttle)
+  const idbInitRef=useRef(false);     // 로드 직후 1회 거울·스냅샷
   // 마이그레이션(레거시 단일문서 → 분할) + 컬렉션별 구독
   useEffect(()=>{
     const savedUser=localStorage.getItem(LOCAL_USER_KEY);
@@ -549,6 +552,8 @@ export default function App(){
     progReconciledRef.current=true;
     setD(p=>recalcProg(p));
   },[loaded]);
+  // 로드 직후 1회: 막 불러온 정상 상태를 IndexedDB 거울+스냅샷으로 즉시 보관(대용량 영구 보관 시작점)
+  useEffect(()=>{ if(!loaded||idbInitRef.current) return; idbInitRef.current=true; const sh=pickShared(D); idbSaveMirror(sh).catch(()=>{}); idbPushSnapshot(sh).then(()=>{lastSnapRef.current=Date.now();}).catch(()=>{}); },[loaded,D]);
   // 어드민(상위 프레임)에 임베드된 경우: 활동 담당자 수신 → currentUser 자동 선택
   useEffect(()=>{
     const onMsg=(e)=>{
@@ -574,6 +579,9 @@ export default function App(){
     const t=setTimeout(async()=>{
       // ① 2차 안전: 전체 상태를 이 기기에 거울 저장 (원격 실패해도 데이터 생존)
       try{ localStorage.setItem(MIRROR_KEY,JSON.stringify(shared)); localStorage.setItem(MIRROR_AT_KEY,new Date().toISOString()); }catch(_){}
+      // ①-b 3차 안전: IndexedDB 대용량 영구 거울(+ 15분마다 시점 스냅샷). localStorage 한도(~5MB)를 넘어도 보관.
+      idbSaveMirror(shared).catch(()=>{});
+      if(Date.now()-lastSnapRef.current>15*60*1000){ lastSnapRef.current=Date.now(); idbPushSnapshot(shared).catch(()=>{}); }
       // ② 변경된 컬렉션만 추출
       const changed=[];
       for(const k of SHARED_KEYS){ const js=JSON.stringify(shared[k]||[]); if(js!==lastColJsonRef.current[k]) changed.push([k,shared[k]||[],js]); }
@@ -599,6 +607,7 @@ export default function App(){
   useEffect(()=>{
     const flush=()=>{ const shared=pendingSharedRef.current; if(!shared) return;
       try{ localStorage.setItem(MIRROR_KEY,JSON.stringify(shared)); localStorage.setItem(MIRROR_AT_KEY,new Date().toISOString()); }catch(_){}
+      idbSaveMirror(shared).catch(()=>{});
       for(const k of SHARED_KEYS){ const js=JSON.stringify(shared[k]||[]); if(js!==lastColJsonRef.current[k]&&new Blob([js]).size<=DOC_LIMIT){ try{ setDoc(colDoc(k),{items:shared[k]||[],_updatedAt:Date.now()}); }catch(_){} } } };
     window.addEventListener("beforeunload",flush);
     const onVis=()=>{ if(document.visibilityState==="hidden") flush(); };
@@ -668,6 +677,8 @@ export default function App(){
     const n={...p,[_col]:exists?(p[_col]||[]):[...(p[_col]||[]),orig],trash:trashLeft};
     return _col==="tasks"?recalcProg(n):n;
   });
+  // 로컬 보관(IndexedDB 미러/스냅샷·localStorage)에서 전체 상태 복구 — 명시적 사용자 동작에서만(확인 후). 컬렉션만 교체, currentUser·UI 보존.
+  const restoreLocal=(shared)=>{ if(!shared||typeof shared!=="object") return 0; let n=0; setD(p=>{ const out={...p}; for(const k of SHARED_KEYS){ if(Array.isArray(shared[k])){ out[k]=shared[k]; n+=shared[k].length; } } return recalcProg(out); }); return n; };
   useEffect(()=>{ if(!undo) return; const t=setTimeout(()=>setUndo(null),5500); return ()=>clearTimeout(t); },[undo]);   // 되돌리기 토스트 5.5초 후 자동 소멸
   const nav=(id)=>{setPage(id);setMore(false);};
   const allPages=[...TABS.filter(t=>t.id!=="more"),...MORE];
@@ -689,7 +700,7 @@ export default function App(){
   const navAll=[...TABS.filter(t=>t.id!=="more"),...MORE];
   const pageContent=(<>
     {page==="today"&&<TodayPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
-    {page==="kpi"&&<KPIPage D={D} lead={lead} up={up} cu={cu} add={add} rm={rm} restore={restore} pc={viewMode==="pc"}/>}
+    {page==="kpi"&&<KPIPage D={D} lead={lead} up={up} cu={cu} add={add} rm={rm} restore={restore} restoreLocal={restoreLocal} pc={viewMode==="pc"}/>}
     {page==="projects"&&<ProjectsPage D={D} cu={cu} up={up} add={add} rm={rm} rmNested={rmNested} pc={viewMode==="pc"} lead={lead} nav={nav}/>}
     {page==="calendar"&&<CalendarPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
     {page==="game"&&<GamePage D={D} cu={cu} up={up} add={add} rm={rm} nav={nav}/>}
@@ -1531,7 +1542,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
     </div>
   );
 }
-function KPIPage({D,lead,up,cu,add,rm,restore}){
+function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal}){
   const [kpiView,setKpiView]=useState("dashboard");
   const [openMK,setOpenMK]=useState("mk1");
   const [openSK,setOpenSK]=useState(null);
@@ -1823,7 +1834,7 @@ function KPIPage({D,lead,up,cu,add,rm,restore}){
             );
           })}
           <button onClick={openNewMain} style={{width:"100%",padding:"12px 0",borderRadius:12,border:"1.5px dashed #93C5FD",background:"#EFF6FF",color:"#2563EB",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 메인KPI 추가</button>
-          <ExportPanel D={D} up={up} restore={restore}/>
+          <ExportPanel D={D} up={up} restore={restore} restoreLocal={restoreLocal}/>
         </div>
       )}
       {kpiView==="mindmap"&&(
@@ -4945,8 +4956,28 @@ function GamePage({D,cu,up,add,rm,nav}){
   );
 }
 // 모든 데이터 자산을 CSV로 추출 (추출 사각 제거)
-function ExportPanel({D,up,restore}){
+function ExportPanel({D,up,restore,restoreLocal}){
   const uname=(id)=>D.users.find(u=>u.id===id)?.name||"";
+  // 이 기기 영구 보관(IndexedDB) 상태 + 로컬 복구
+  const [idbStat,setIdbStat]=useState({mirrorAt:null,snaps:[]});
+  const refreshIdb=()=>{ (async()=>{ try{ const m=await idbLoadMirror(); const s=await idbListSnapshots(); setIdbStat({mirrorAt:m&&m.at||null,snaps:s||[]}); }catch(_){} })(); };
+  useEffect(()=>{ refreshIdb(); },[]);
+  const doRestoreMirror=async()=>{
+    if(!restoreLocal) return;
+    try{ const m=await idbLoadMirror();
+      if(!m||!m.data){ window.alert("이 기기에 저장된 로컬 미러가 아직 없어요. (자동 보관은 데이터 변경 시 시작됩니다)"); return; }
+      if(!window.confirm(`이 기기 로컬 미러(${(m.at||"").slice(0,16).replace("T"," ")})로 현재 데이터를 덮어쓸까요?\n현재 화면의 모든 항목이 이 백업 시점으로 되돌아갑니다.\n(덮어쓰기 전 '전체 백업(JSON)'을 먼저 받아두는 걸 권장)`)) return;
+      const n=restoreLocal(m.data); window.alert(`✅ 로컬 미러에서 복구했어요 (총 ${n}건). 잠시 후 클라우드에도 자동 반영됩니다.`);
+    }catch(e){ window.alert("복구 실패: "+(e&&e.message||e)); }
+  };
+  const doRestoreSnap=async(key,at)=>{
+    if(!restoreLocal) return;
+    try{ const s=await idbGetSnapshot(key);
+      if(!s||!s.data){ window.alert("스냅샷을 읽지 못했어요."); return; }
+      if(!window.confirm(`${(at||"").slice(0,16).replace("T"," ")} 시점 스냅샷으로 되돌릴까요?\n현재 데이터를 이 시점으로 덮어씁니다.`)) return;
+      const n=restoreLocal(s.data); window.alert(`✅ ${(at||"").slice(5,16).replace("T"," ")} 스냅샷으로 복구 (총 ${n}건).`);
+    }catch(e){ window.alert("복구 실패: "+(e&&e.message||e)); }
+  };
   // 예시(데모) KPI·채널 수치 0으로 초기화 — 목표·구조는 유지, 현재 숫자만 비움
   const resetNums=()=>{
     if(!up) return;
@@ -5050,6 +5081,27 @@ function ExportPanel({D,up,restore}){
         {mirrorAt&&<p style={{margin:"4px 0 0",fontSize:9.5,color:"#9CA3AF"}}>🛟 이 기기 자동 거울저장: {mirrorAt.slice(0,16).replace("T"," ")}</p>}
       </div>
       <button onClick={()=>downloadStateBackup(D)} style={{width:"100%",padding:"12px 0",borderRadius:12,border:"none",background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",color:"#fff",fontSize:13.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit",marginBottom:12}}>💾 전체 백업(JSON) 내려받기</button>
+      {/* 이 기기 영구 보관(IndexedDB) — 클라우드와 별개 3차 안전망 + 시점 복구 */}
+      <div style={{marginBottom:4,padding:"11px 12px",background:"#F0F7FF",border:"1px solid #D5E6FB",borderRadius:11}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,marginBottom:3}}>
+          <p style={{margin:0,fontSize:12.5,fontWeight:900,color:"#0F1F5C"}}>🛟 이 기기 영구 보관</p>
+          <button onClick={refreshIdb} style={{padding:"3px 8px",borderRadius:7,border:"1px solid #DBE3FF",background:"#fff",color:"#3182F6",fontSize:10,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>새로고침</button>
+        </div>
+        <p style={{margin:"0 0 8px",fontSize:10,color:"#6B7280",lineHeight:1.5}}>클라우드와 <b>별개로</b> 이 기기에 대용량 자동 보관(IndexedDB) + 15분마다 시점 스냅샷. 클라우드에 문제가 생겨도 여기서 되돌릴 수 있어요.</p>
+        <p style={{margin:"0 0 8px",fontSize:9.5,color:"#9CA3AF"}}>최근 자동 보관: <b style={{color:"#374151"}}>{idbStat.mirrorAt?idbStat.mirrorAt.slice(0,16).replace("T"," "):"아직 없음"}</b> · 스냅샷 {idbStat.snaps.length}개</p>
+        <button onClick={doRestoreMirror} style={{width:"100%",padding:"9px 0",borderRadius:9,border:"1.5px solid #BFDBFE",background:"#fff",color:"#1D4ED8",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit",marginBottom:idbStat.snaps.length?8:0}}>↩ 이 기기 최신 백업에서 복구</button>
+        {idbStat.snaps.length>0&&(<>
+          <p style={{margin:"2px 0 5px",fontSize:10,fontWeight:800,color:"#6B7280"}}>시점 스냅샷에서 복구</p>
+          <div style={{display:"flex",flexDirection:"column",gap:4,maxHeight:150,overflowY:"auto"}}>
+            {idbStat.snaps.slice(0,12).map(s=>(
+              <button key={s.key} onClick={()=>doRestoreSnap(s.key,s.at)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,padding:"6px 10px",borderRadius:8,border:"1px solid #E5E8EB",background:"#fff",cursor:"pointer",fontFamily:"inherit"}}>
+                <span style={{fontSize:11,fontWeight:700,color:"#374151"}}>{(s.at||"").slice(0,16).replace("T"," ")}</span>
+                <span style={{fontSize:10,fontWeight:800,color:"#3182F6"}}>되돌리기</span>
+              </button>
+            ))}
+          </div>
+        </>)}
+      </div>
       <p style={{margin:"0 0 8px",fontSize:11,fontWeight:800,color:"#6B7280"}}>항목별 추출 (엑셀/CSV)</p>
       <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>
         {items.map(([l,fn])=>(<button key={l} onClick={fn} style={{padding:"11px 8px",borderRadius:11,border:"1.5px solid #E5E8EB",background:"#F9FAFB",fontSize:12,fontWeight:700,color:"#374151",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>⬇ {l}</button>))}

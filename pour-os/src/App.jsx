@@ -946,6 +946,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const [projModal,setProjModal]=useState(null);     // 오늘에서 프로젝트 상세·수정 모달
   const [processProj,setProcessProj]=useState(null); // 모달에서 프로세스 편집 진입
   const [feedOpen,setFeedOpen]=useState(false);
+  const [expandedMember,setExpandedMember]=useState(null);   // 팀 활동 — 팀원별 상세 펼침
   const [weeklyOpen,setWeeklyOpen]=useState(false);
   const [showHeld,setShowHeld]=useState(false);
   const [isNarrow,setIsNarrow]=useState(typeof window!=="undefined"?window.innerWidth<640:true);   // 모바일=하루씩, 넓은 화면=요일 5열
@@ -982,6 +983,9 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const myGoals=myWeekGoals(D,cu.id);
   // 출시 인계 — 앞 단계가 끝나 내 차례가 된 출시 단계
   const myReadyLaunch=(()=>{ const arr=[]; D.projects.filter(p=>p.templateId).forEach(p=>{ const ts=launchProjTasks(D,p); ts.forEach(t=>{ if(t.assigneeId===cu.id&&launchStageStatus(t,ts)==="ready") arr.push({proj:p,task:t}); }); }); return [...arr,...myReadyProcess(D,cu.id)]; })();
+  // 이번 주 각 요일의 실제 일자(MM/DD) — 월요일 시작 기준
+  const weekMon=(()=>{const x=new Date();const off=(x.getDay()+6)%7;x.setDate(x.getDate()-off);x.setHours(0,0,0,0);return x;})();
+  const wdDate=(d)=>{const i=WEEK_DAYS.indexOf(d);if(i<0)return"";const dt=new Date(weekMon);dt.setDate(dt.getDate()+i);return String(dt.getMonth()+1).padStart(2,"0")+"/"+String(dt.getDate()).padStart(2,"0");};
   // 주간 배치 — 요일 칸 1개 렌더(모바일=전체폭 크게, 데스크탑=5열 중 하나). 진행날짜/요일 있는 업무 자동 노출 + 순서만 조정
   const renderDayCol=(d,mobile)=>{
     const list=dayOrdered(d); const isT=d===today; const dk="col_"+d;
@@ -990,7 +994,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
         style={{flex:mobile?"none":1,minWidth:0,backgroundColor:dragOver===dk?"#FFF7ED":(isT?"rgba(255,237,213,0.5)":"#F9FAFB"),border:`1.5px solid ${dragOver===dk?"#F97316":(isT?"#FBBF77":"#E5E8EB")}`,borderRadius:12,padding:mobile?"6px 8px 8px":"10px 8px"}}>
         {!mobile&&(
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:7}}>
-            <span style={{fontSize:11,fontWeight:900,color:isT?"#EA580C":"#4B5563"}}>{d}요일</span>
+            <span style={{fontSize:11,fontWeight:900,color:isT?"#EA580C":"#4B5563"}}>{d}요일 <span style={{fontWeight:700,color:isT?"#F59E5B":"#B0B8C1"}}>{wdDate(d)}</span></span>
             {isT&&<span style={{fontSize:9,fontWeight:900,color:"#FFFFFF",background:"#F97316",padding:"1px 5px",borderRadius:10}}>오늘</span>}
           </div>
         )}
@@ -1071,18 +1075,43 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           <span style={{fontSize:12,color:"#9CA3AF"}}>{weekLabel(wkNow)} {feedOpen?"▲":"▼"}</span>
         </div>
         {feedOpen&&(
-          <div style={{borderTop:"1px solid #F2F4F6",padding:"6px 14px 12px"}}>
-            {actFeed.length===0&&<p style={{padding:"16px 0",textAlign:"center",fontSize:12.5,color:"#9CA3AF"}}>이번 주 기록된 활동이 없어요 · 기록되지 않은 업무는 자산이 되지 않아요</p>}
-            {actFeed.slice(0,30).map((e,i)=>(
-              <div key={i} style={{display:"flex",alignItems:"center",gap:9,padding:"8px 0",borderBottom:i<Math.min(actFeed.length,30)-1?"1px solid #F6F7F9":"none"}}>
-                <span style={{fontSize:14,flexShrink:0}}>{e.icon}</span>
-                <div style={{flex:1,minWidth:0}}>
-                  <p style={{margin:0,fontSize:12.5,fontWeight:600,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.text}</p>
-                  <p style={{margin:"1px 0 0",fontSize:10.5,color:"#9CA3AF"}}>{e.who||"—"} · {(e.at||"").slice(5,16).replace("T"," ")}</p>
-                </div>
-              </div>
-            ))}
-            {actFeed.length>30&&<p style={{margin:"8px 0 0",textAlign:"center",fontSize:11,color:"#9CA3AF"}}>외 {actFeed.length-30}건 더…</p>}
+          <div style={{borderTop:"1px solid #F2F4F6",padding:"4px 12px 10px"}}>
+            {actFeed.length===0?<p style={{padding:"16px 0",textAlign:"center",fontSize:12.5,color:"#9CA3AF"}}>이번 주 기록된 활동이 없어요 · 기록되지 않은 업무는 자산이 되지 않아요</p>:(()=>{
+              const groups={}; actFeed.forEach(e=>{const k=e.who||"기타";(groups[k]=groups[k]||[]).push(e);});
+              const names=Object.keys(groups).sort((a,b)=>{const da=groups[a].filter(x=>x.icon==="✅").length,db=groups[b].filter(x=>x.icon==="✅").length;return db-da||groups[b].length-groups[a].length;});
+              return names.map(name=>{
+                const items=groups[name];
+                const done=items.filter(x=>x.icon==="✅").length;
+                const sales=items.filter(x=>x.icon==="💰").length;
+                const kpi=items.filter(x=>x.icon==="🎯"||x.icon==="📊").length;
+                const u=D.users.find(x=>x.name===name); const col=u?.color||"#9CA3AF"; const open=expandedMember===name;
+                return(
+                  <div key={name} style={{borderBottom:"1px solid #F4F5F7"}}>
+                    <button onClick={()=>setExpandedMember(open?null:name)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 2px",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                      <Ava name={name} color={col} size={28}/>
+                      <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:800,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{name}</span>
+                      <span style={{flexShrink:0,fontSize:11.5,fontWeight:800,color:"#00A862",background:"#E8FAF1",borderRadius:8,padding:"3px 9px"}}>✅ {done} 완료</span>
+                      {sales>0&&<span style={{flexShrink:0,fontSize:11,fontWeight:800,color:"#EA580C",background:"#FFF1E7",borderRadius:8,padding:"3px 8px"}}>💰 {sales}</span>}
+                      {kpi>0&&<span style={{flexShrink:0,fontSize:11,fontWeight:800,color:"#7C3AED",background:"#F3EFFE",borderRadius:8,padding:"3px 8px"}}>🎯 {kpi}</span>}
+                      <span style={{flexShrink:0,fontSize:11,color:"#C4C9D0"}}>{open?"▲":"▼"}</span>
+                    </button>
+                    {open&&(
+                      <div style={{padding:"0 0 10px 38px"}}>
+                        {items.map((e,i)=>(
+                          <div key={i} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"6px 0"}}>
+                            <span style={{fontSize:13,flexShrink:0}}>{e.icon}</span>
+                            <div style={{flex:1,minWidth:0}}>
+                              <p style={{margin:0,fontSize:12,fontWeight:600,color:"#374151",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.text}</p>
+                              <p style={{margin:"1px 0 0",fontSize:10,color:"#9CA3AF"}}>{(e.at||"").slice(5,16).replace("T"," ")}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              });
+            })()}
           </div>
         )}
       </div>
@@ -1139,6 +1168,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
               <button onClick={()=>setViewDay(WEEK_DAYS[Math.max(0,vdIdx-1)])} disabled={vdIdx<=0} style={{width:38,height:38,borderRadius:10,border:"1.5px solid #E5E8EB",background:vdIdx<=0?"#F9FAFB":"#fff",color:vdIdx<=0?"#D1D5DB":"#4B5563",fontSize:15,fontWeight:900,cursor:vdIdx<=0?"default":"pointer",flexShrink:0,fontFamily:"inherit"}}>◀</button>
               <div style={{flex:1,textAlign:"center"}}>
                 <span style={{fontSize:15,fontWeight:900,color:viewDay===today?"#EA580C":"#0F1F5C"}}>{viewDay}요일</span>
+                <span style={{marginLeft:5,fontSize:12,fontWeight:800,color:"#9CA3AF"}}>{wdDate(viewDay)}</span>
                 {viewDay===today&&<span style={{marginLeft:6,fontSize:9.5,fontWeight:900,color:"#fff",background:"#F97316",padding:"2px 6px",borderRadius:10}}>오늘</span>}
                 <span style={{marginLeft:6,fontSize:11.5,fontWeight:700,color:"#9CA3AF"}}>{dayOrdered(viewDay).length}건</span>
               </div>

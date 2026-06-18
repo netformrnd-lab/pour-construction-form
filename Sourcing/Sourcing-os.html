@@ -566,6 +566,9 @@
   .rp-note{font-size:11px;color:var(--muted);margin-top:7px;line-height:1.5}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 </head>
 <body>
 
@@ -827,13 +830,13 @@
 <div class="overlay" id="docOverlay">
   <div class="modal" style="max-width:480px">
     <h3 id="docTitle">서류 첨부</h3>
-    <div class="msub">MSDS·TDS·기타 서류를 링크 또는 파일로 첨부합니다. 실제 PDF는 드라이브 링크를 권장해요.</div>
+    <div class="msub">MSDS·TDS·기타 서류를 링크 또는 파일로 첨부합니다. 파일은 클라우드(소싱-os)에 업로드돼요.</div>
     <div class="frow"><label>종류</label>
       <select id="dc_type"><option>MSDS</option><option>TDS</option><option>추가서류</option></select>
     </div>
     <div class="frow"><label>서류명</label><input type="text" id="dc_name" placeholder="예) MSDS / 제품 TDS / 시험성적서"></div>
     <div class="frow"><label>링크(URL) <span class="opt">(드라이브·서버 링크 권장)</span></label><input type="text" id="dc_url" placeholder="https://..."></div>
-    <div class="frow"><label>또는 파일 첨부 <span class="opt">(작은 파일만 · ~1.5MB)</span></label><input type="file" id="dc_file"></div>
+    <div class="frow"><label>또는 파일 첨부 <span class="opt">(PDF·이미지 등 · 클라우드 저장)</span></label><input type="file" id="dc_file"></div>
     <div class="mact">
       <button class="del" id="dc_del" style="display:none">삭제</button>
       <button class="cancel" data-close>취소</button>
@@ -915,12 +918,101 @@
 
 <script>
 const KEY='pour_sourcing_v1';
-let mem=null;
+let mem=null,localFull=false;
 const store={
-  read(){ try{const r=localStorage.getItem(KEY);return r?JSON.parse(r):null}catch(e){return mem} },
-  write(d){ try{localStorage.setItem(KEY,JSON.stringify(d))}catch(e){mem=d} flash(); }
+  read(){ try{const r=localStorage.getItem(KEY);return r?JSON.parse(r):mem}catch(e){console.error('[store] 로컬 읽기 실패:',e);return mem} },
+  write(d){ mem=d; try{localStorage.setItem(KEY,JSON.stringify(d));localFull=false;}catch(e){localFull=true;console.error('[store] 로컬 저장 실패(용량/권한). 메모리 보관:',e);} flash(); }
 };
-function flash(){const t=document.getElementById('saveTxt');t.textContent='저장됨 ✓';clearTimeout(flash._t);flash._t=setTimeout(()=>t.textContent='저장됨',1400);}
+
+/* ================= Firebase Storage 동기화 ================= */
+/* 버킷: gs://pour-app-new.firebasestorage.app  ·  루트 폴더: 소싱-os
+   - 사진:  소싱-os/products/{productId}/photos/{photoId}.jpg
+   - 서류:  소싱-os/products/{productId}/docs/{docId}-{파일명}
+   - 텍스트(전체 상태): 소싱-os/state/state.json
+   동기화: 클라우드 우선 + 로컬 폴백. */
+const FB_CFG={apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",storageBucket:"pour-app-new.firebasestorage.app",messagingSenderId:"411031141847",appId:"1:411031141847:web:e658174fd4b9652cdadf92"};
+const CLOUD_ROOT='소싱-os';
+let fbStore=null, cloudOK=false;
+try{ if(window.firebase&&firebase.apps&&!firebase.apps.length)firebase.initializeApp(FB_CFG); fbStore=firebase.storage(); }
+catch(e){ console.error('[cloud] Firebase 초기화 실패:',e); fbStore=null; }
+
+function setSync(txt,color){const t=document.getElementById('saveTxt');if(!t)return;t.textContent=txt;const dot=t.parentElement&&t.parentElement.querySelector('.dot');if(dot&&color)dot.style.background=color;}
+function flash(){
+  if(fbStore)return; // 클라우드 사용 시 동기화 상태가 표시를 담당
+  const t=document.getElementById('saveTxt');if(!t)return;
+  t.textContent=localFull?'⚠ 로컬 저장공간 부족':'저장됨 ✓';
+  clearTimeout(flash._t);flash._t=setTimeout(()=>t.textContent='저장됨',1400);
+}
+async function cloudAuth(){
+  if(!fbStore||!firebase.auth)return;
+  try{ if(!firebase.auth().currentUser) await firebase.auth().signInAnonymously(); }
+  catch(e){ console.warn('[cloud] 익명 인증 불가(스토리지 규칙 확인 필요):',e&&(e.code||e.message)); }
+}
+function stRef(path){return fbStore.ref(CLOUD_ROOT+'/'+path);}
+async function uploadPhoto(pid,photo){
+  const ref=stRef('products/'+pid+'/photos/'+photo.id+'.jpg');
+  const snap=await ref.putString(photo.data,'data_url');
+  const url=await snap.ref.getDownloadURL();
+  return {id:photo.id,path:ref.fullPath,url};
+}
+/* 사진 배열을 클라우드 업로드해 {id,path,url} 형태로 정규화. 실패 시 base64 로컬 보관(폴백). */
+async function ensurePhotos(pid,photos){
+  const out=[];
+  for(const ph of (photos||[])){
+    if(ph&&ph.url){out.push({id:ph.id,path:ph.path||'',url:ph.url});continue;}
+    if(!ph||!ph.data){continue;}
+    if(fbStore){
+      try{out.push(await uploadPhoto(pid,ph));continue;}
+      catch(e){console.error('[cloud] 사진 업로드 실패, 로컬 보관:',e);}
+    }
+    out.push({id:ph.id,data:ph.data});
+  }
+  return out;
+}
+async function uploadDocFile(pid,docId,file){
+  const safe=(file.name||'file').replace(/[^\w.\-가-힣]+/g,'_').slice(0,80);
+  const ref=stRef('products/'+pid+'/docs/'+docId+'-'+safe);
+  const snap=await ref.put(file,{contentType:file.type||'application/octet-stream'});
+  const url=await snap.ref.getDownloadURL();
+  return {path:ref.fullPath,url};
+}
+let _syncT=null,_syncing=false,_pending=false;
+function queueCloudSync(){
+  if(!fbStore)return;
+  setSync('동기화 중…','var(--amber)');
+  clearTimeout(_syncT);
+  _syncT=setTimeout(runCloudSync,1000);
+}
+async function runCloudSync(){
+  if(!fbStore)return;
+  if(_syncing){_pending=true;return;}
+  _syncing=true;setSync('동기화 중…','var(--amber)');
+  try{
+    const blob=new Blob([JSON.stringify(state)],{type:'application/json; charset=utf-8'});
+    await stRef('state/state.json').put(blob,{contentType:'application/json; charset=utf-8'});
+    cloudOK=true;setSync(localFull?'클라우드 저장됨 ✓ (로컬 부족)':'클라우드 저장됨 ✓','var(--green)');
+  }catch(e){
+    cloudOK=false;console.error('[cloud] 상태 동기화 실패:',e);
+    setSync('오프라인 · 로컬 저장','var(--red)');
+  }finally{
+    _syncing=false;
+    if(_pending){_pending=false;runCloudSync();}
+  }
+}
+async function cloudLoadState(){
+  if(!fbStore)return null;
+  try{
+    const url=await stRef('state/state.json').getDownloadURL();
+    const res=await fetch(url,{cache:'no-store'});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    console.log('[cloud] state.json 로드:',(data.products||[]).length,'제품');
+    return data;
+  }catch(e){
+    if(e&&e.code==='storage/object-not-found'){console.log('[cloud] state.json 없음(최초 실행)');return null;}
+    console.error('[cloud] state.json 로드 실패:',e);return null;
+  }
+}
 const uid=()=>Math.random().toString(36).slice(2,9);
 const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const $=s=>document.querySelector(s);
@@ -929,18 +1021,21 @@ const CERT_SUGG=['시험성적서','친환경(HB)','KS인증','방수성능','�
 const today=()=>new Date().toISOString().slice(0,10);
 
 let state=store.read()||{products:[],sel:null};
-if(!state.products)state.products=[];
-if(!state.makers)state.makers=[];
-if(!state.priceCfg)state.priceCfg={pg:4,om:15,ship:5000,mkt:5000,channel:'open',raise:true};
-if(!state.calc)state.calc={buy:'',moq:'',sell:'',tm:40};
-if(!state.viewMode||state.viewMode==='mobile'||state.viewMode==='pc')state.viewMode='card';
-if(!state.tab)state.tab='products';
-if(state.tab==='pricing'){state.tab='makers';state.adminSub='pricing';}
-if(!state.adminSub)state.adminSub='makers';
-if(!state.meetings)state.meetings=[];
-if(!state.activity)state.activity=[];
-state.products.forEach(p=>{if(!p.tests)p.tests=[];if(!p.certs)p.certs=[];if(!p.fill)p.fill=[];if(!p.docs)p.docs=[];if(!p.type)p.type='단품';if(p.concept===undefined)p.concept='';if(p.spec===undefined)p.spec='';if(!p.sample)p.sample='대기';if(p.memo===undefined)p.memo='';if(p.goods===undefined)p.goods='';if(!p.history)p.history=[];if(!p.bundle)p.bundle=[];if(p.baseId===undefined)p.baseId='';if(p.stage==='완료')p.stage='출시완료';(p.tests||[]).forEach(t=>{if(!t.photos)t.photos=[];});if(p.maker&&!state.makers.includes(p.maker))state.makers.push(p.maker);});
-state.makers.sort((a,b)=>a.localeCompare(b,'ko'));
+function normalizeState(){
+  if(!state.products)state.products=[];
+  if(!state.makers)state.makers=[];
+  if(!state.priceCfg)state.priceCfg={pg:4,om:15,ship:5000,mkt:5000,channel:'open',raise:true};
+  if(!state.calc)state.calc={buy:'',moq:'',sell:'',tm:40};
+  if(!state.viewMode||state.viewMode==='mobile'||state.viewMode==='pc')state.viewMode='card';
+  if(!state.tab)state.tab='products';
+  if(state.tab==='pricing'){state.tab='makers';state.adminSub='pricing';}
+  if(!state.adminSub)state.adminSub='makers';
+  if(!state.meetings)state.meetings=[];
+  if(!state.activity)state.activity=[];
+  state.products.forEach(p=>{if(!p.tests)p.tests=[];if(!p.certs)p.certs=[];if(!p.fill)p.fill=[];if(!p.docs)p.docs=[];if(!p.type)p.type='단품';if(p.concept===undefined)p.concept='';if(p.spec===undefined)p.spec='';if(!p.sample)p.sample='대기';if(p.memo===undefined)p.memo='';if(p.goods===undefined)p.goods='';if(!p.history)p.history=[];if(!p.bundle)p.bundle=[];if(p.baseId===undefined)p.baseId='';if(p.stage==='완료')p.stage='출시완료';(p.tests||[]).forEach(t=>{if(!t.photos)t.photos=[];});if(p.maker&&!state.makers.includes(p.maker))state.makers.push(p.maker);});
+  state.makers.sort((a,b)=>a.localeCompare(b,'ko'));
+}
+normalizeState();
 let query='';
 let makerQuery='';
 let makerSel=null;
@@ -953,7 +1048,7 @@ const dn=p=>(p&&p.goods)?(p.name+'('+p.goods+')'):(p?p.name:'');
 const cma=v=>(v===''||v==null)?'':Number(v).toLocaleString('ko-KR');
 function fmtCur(el){const raw=el.value.replace(/[^\d]/g,'');el.value=raw?Number(raw).toLocaleString('ko-KR'):'';return raw===''?'':Number(raw);}
 function statusIdx(p){const s=p.stage||'후보';return s==='후보'?0:((s==='완료'||s==='출시완료')?2:1);}
-function save(){store.write(state);}
+function save(){state.updatedAt=Date.now();store.write(state);queueCloudSync();}
 const cur=()=>state.products.find(p=>p.id===state.sel);
 
 function render(){renderFilterBar();renderList();renderMain();syncEmpty();}
@@ -1279,9 +1374,9 @@ function renderMain(){
       const it=document.createElement('div');it.className='titem '+r;
       it.innerHTML=`<div class="tr1"><span class="tt">${esc(t.title)}</span><span class="rbadge ${r}">${r}</span></div>
         <div class="tmemo ${t.memo?'':'empty'}">${t.memo?esc(t.memo):'결과 메모 없음 — 눌러서 작성'}</div>
-        ${phs.length?'<div class="tthumbs">'+phs.map(ph=>`<div class="thumb"><img src="${ph.data}"></div>`).join('')+'</div>':''}
+        ${phs.length?'<div class="tthumbs">'+phs.map(ph=>`<div class="thumb"><img src="${ph.url||ph.data}"></div>`).join('')+'</div>':''}
         <div class="tdate" style="margin-top:7px">${esc(t.date||'')}</div>`;
-      it.querySelectorAll('.tthumbs img').forEach((im,idx)=>im.onclick=e=>{e.stopPropagation();openLightbox(phs[idx].data);});
+      it.querySelectorAll('.tthumbs img').forEach((im,idx)=>im.onclick=e=>{e.stopPropagation();openLightbox(phs[idx].url||phs[idx].data);});
       it.onclick=()=>openTest(t.id);
       list.appendChild(it);
     });
@@ -1411,10 +1506,15 @@ function openTest(id){
   $('#t_del').style.display='block';
   openOverlay('testOverlay');
 }
-$('#t_save').onclick=()=>{
+$('#t_save').onclick=async()=>{
   const p=cur();const title=$('#t_title').value.trim();if(!title){$('#t_title').focus();return;}
-  Object.assign(p.tests.find(t=>t.id===editingTest),{title,result:$('#t_result').value,date:$('#t_date').value||today(),memo:$('#t_memo').value.trim(),photos:tmpPhotos.slice()});
-  save();closeOverlay();render();
+  const btn=$('#t_save');btn.disabled=true;const lbl=btn.textContent;btn.textContent='저장 중…';
+  try{
+    const photos=await ensurePhotos(p.id,tmpPhotos.slice());
+    const t=p.tests.find(t=>t.id===editingTest);if(!t)return;
+    Object.assign(t,{title,result:$('#t_result').value,date:$('#t_date').value||today(),memo:$('#t_memo').value.trim(),photos});
+    save();closeOverlay();render();
+  }finally{btn.disabled=false;btn.textContent=lbl;}
 };
 $('#t_del').onclick=()=>{
   if(!confirm('이 테스트 기록을 삭제할까요?'))return;
@@ -1443,20 +1543,29 @@ function openDocModal(id){
   $('#dc_del').style.display=id?'block':'none';
   openOverlay('docOverlay');
 }
-$('#dc_save').onclick=()=>{
+$('#dc_save').onclick=async()=>{
   const p=cur();const type=$('#dc_type').value;let name=$('#dc_name').value.trim();
   const url=$('#dc_url').value.trim();
-  const finalize=(href,isFile)=>{
+  const docId=editingDoc||uid();
+  const finalize=(href,isFile,path)=>{
     if(!name)name=type==='추가서류'?'서류':type;
-    if(editingDoc){Object.assign(p.docs.find(d=>d.id===editingDoc),{type,name,href,isFile});}
-    else{p.docs.push({id:uid(),type,name,href,isFile});}
+    if(editingDoc){Object.assign(p.docs.find(d=>d.id===editingDoc),{type,name,href,isFile,path:path||''});}
+    else{p.docs.push({id:docId,type,name,href,isFile,path:path||''});}
     save();closeOverlay();render();
   };
   if(pendingFile){
-    if(pendingFile.size>1.5*1024*1024){alert('1.5MB가 넘는 파일은 링크로 첨부해주세요. (앱 저장 용량 제한)');return;}
-    const fr=new FileReader();fr.onload=()=>finalize(fr.result,true);fr.readAsDataURL(pendingFile);
-  }else if(url){finalize(url,false);}
-  else if(editingDoc){const d=p.docs.find(x=>x.id===editingDoc);finalize(d.href,d.isFile);}
+    const btn=$('#dc_save');btn.disabled=true;const lbl=btn.textContent;btn.textContent='업로드 중…';
+    try{
+      if(fbStore){
+        try{ const r=await uploadDocFile(p.id,docId,pendingFile); if(!name)name=pendingFile.name; finalize(r.url,true,r.path); return; }
+        catch(e){ console.error('[cloud] 서류 업로드 실패:',e); }
+      }
+      // 폴백: 작은 파일만 로컬(base64)
+      if(pendingFile.size>1.5*1024*1024){alert('클라우드 업로드에 실패했고 파일이 커서(1.5MB↑) 로컬 저장도 어려워요.\n네트워크를 확인 후 다시 시도하거나 링크(URL)로 첨부해주세요.');return;}
+      await new Promise(res=>{const fr=new FileReader();fr.onload=()=>{if(!name)name=pendingFile.name;finalize(fr.result,true,'');res();};fr.onerror=()=>{alert('파일을 읽지 못했어요.');res();};fr.readAsDataURL(pendingFile);});
+    }finally{btn.disabled=false;btn.textContent=lbl;}
+  }else if(url){finalize(url,false,'');}
+  else if(editingDoc){const d=p.docs.find(x=>x.id===editingDoc);finalize(d.href,d.isFile,d.path);}
   else{alert('링크를 입력하거나 파일을 선택하세요.');}
 };
 $('#dc_del').onclick=()=>{
@@ -1487,8 +1596,8 @@ function renderTmpThumbs(){
   const w=$('#t_thumbs');if(!w)return;w.innerHTML='';
   tmpPhotos.forEach((ph,i)=>{
     const d=document.createElement('div');d.className='thumb';
-    d.innerHTML=`<img src="${ph.data}"><button type="button" class="rm">×</button>`;
-    d.querySelector('img').onclick=()=>openLightbox(ph.data);
+    d.innerHTML=`<img src="${ph.url||ph.data}"><button type="button" class="rm">×</button>`;
+    d.querySelector('img').onclick=()=>openLightbox(ph.url||ph.data);
     d.querySelector('.rm').onclick=()=>{tmpPhotos.splice(i,1);renderTmpThumbs();};
     w.appendChild(d);
   });
@@ -1759,8 +1868,8 @@ function renderCapThumbs(){
   const w=$('#cap_thumbs');if(!w)return;w.innerHTML='';
   capPhotos.forEach((ph,i)=>{
     const d=document.createElement('div');d.className='thumb';
-    d.innerHTML=`<img src="${ph.data}"><button type="button" class="rm">×</button>`;
-    d.querySelector('img').onclick=()=>openLightbox(ph.data);
+    d.innerHTML=`<img src="${ph.url||ph.data}"><button type="button" class="rm">×</button>`;
+    d.querySelector('img').onclick=()=>openLightbox(ph.url||ph.data);
     d.querySelector('.rm').onclick=()=>{capPhotos.splice(i,1);renderCapThumbs();};
     w.appendChild(d);
   });
@@ -1790,13 +1899,17 @@ document.addEventListener('paste',e=>{
   for(const it of items){if(it.type&&it.type.indexOf('image')===0){const f=it.getAsFile();if(f){addCapPhoto(f);used=true;}}}
   if(used)e.preventDefault();
 });
-$('#cap_save').onclick=()=>{
+$('#cap_save').onclick=async()=>{
   const p=state.products.find(x=>x.id===$('#cap_prod').value);
   if(!p){alert('테스트 제품을 선택하세요.');return;}
   let title=$('#cap_title').value.trim();
   if(!title){ if(capPhotos.length)title='현장 사진 기록'; else {$('#cap_title').focus();return;} }
-  p.tests.push({id:uid(),title,result:$('#cap_result').value,memo:$('#cap_memo').value.trim(),date:$('#cap_date').value||today(),photos:capPhotos.slice()});
-  state.sel=p.id;capPhotos=[];save();closeOverlay();switchTab('products');
+  const btn=$('#cap_save');btn.disabled=true;const lbl=btn.textContent;btn.textContent='저장 중…';
+  try{
+    const photos=await ensurePhotos(p.id,capPhotos.slice());
+    p.tests.push({id:uid(),title,result:$('#cap_result').value,memo:$('#cap_memo').value.trim(),date:$('#cap_date').value||today(),photos});
+    state.sel=p.id;capPhotos=[];save();closeOverlay();switchTab('products');
+  }finally{btn.disabled=false;btn.textContent=lbl;}
 };
 $('#camFab').onclick=openCapture;
 
@@ -2052,8 +2165,38 @@ const upM=$('#up_maker'),upP=$('#up_product');
 if(upM)upM.onchange=e=>{const f=e.target.files[0];if(f){flagMsg('읽는 중…','');readRows(f,importMakers);}e.target.value='';};
 if(upP)upP.onchange=e=>{const f=e.target.files[0];if(f){flagMsg('읽는 중…','');readRows(f,importProducts);}e.target.value='';};
 
-render();
-switchTab(state.tab||'products');
+/* ---- 부트스트랩: 로컬 먼저 렌더 → 클라우드 우선 동기화 ---- */
+function adoptState(data){
+  state=data;
+  normalizeState();
+  makerSel=null;query='';makerQuery='';statusFilter='전체';stageFilter=null;
+  store.write(state); // 로컬 캐시만 갱신(클라우드 재업로드 X)
+  render();
+  switchTab(state.tab||'products');
+}
+async function bootstrap(){
+  render();
+  switchTab(state.tab||'products');
+  if(!fbStore){setSync('로컬 전용 (클라우드 미연결)','var(--amber)');return;}
+  setSync('동기화 중…','var(--amber)');
+  await cloudAuth();
+  const cloud=await cloudLoadState();
+  if(cloud){
+    const localT=state.updatedAt||0, cloudT=cloud.updatedAt||0;
+    if(cloudT>localT || (state.products.length===0 && (cloud.products||[]).length>0)){
+      adoptState(cloud);cloudOK=true;setSync('클라우드 저장됨 ✓','var(--green)');
+    }else if(localT>cloudT){
+      queueCloudSync(); // 로컬이 더 최신 → 클라우드로 반영
+    }else{
+      cloudOK=true;setSync('클라우드 저장됨 ✓','var(--green)');
+    }
+  }else{
+    // 클라우드에 데이터 없음 → 로컬에 내용 있으면 올림
+    if(state.products.length||state.makers.length||state.meetings.length)queueCloudSync();
+    else setSync('클라우드 연결됨','var(--green)');
+  }
+}
+bootstrap();
 </script>
 </body>
 </html>

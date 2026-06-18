@@ -573,6 +573,8 @@
   .rtr-title{font-size:13px;font-weight:700;color:var(--ink);line-height:1.35}
   .rtr-meta{font-size:11px;color:var(--muted);font-weight:600;margin-top:4px}
   .rtr-memo{font-size:12.5px;color:var(--ink2);line-height:1.5;margin-top:5px;white-space:pre-wrap;word-break:break-word}
+  .thumb.vidthumb{display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--navy);color:#fff;cursor:pointer;gap:1px}
+  .thumb.vidthumb span{font-size:17px;line-height:1} .thumb.vidthumb small{font-size:8px;font-weight:800}
   .ovwrap{display:flex;gap:16px;flex-wrap:wrap}
   .ovleft{flex:1 1 250px;min-width:0} .ovright{flex:1 1 200px;min-width:0}
   .ovright .k{font-size:10.5px;margin-bottom:2px} .ovright .v{font-size:12.5px;line-height:1.45}
@@ -925,6 +927,27 @@
   </div>
 </div>
 
+<!-- video recorder modal -->
+<div class="overlay" id="vrecOverlay">
+  <div class="modal" style="max-width:480px">
+    <h3>영상 촬영</h3>
+    <div class="msub">녹화 중 <b>일시정지/재개</b>로 필요한 장면만 이어붙여 길이를 줄일 수 있어요.</div>
+    <div style="background:#000;border-radius:12px;overflow:hidden;position:relative">
+      <video id="vrec_preview" autoplay muted playsinline style="width:100%;display:block;max-height:50vh;object-fit:contain;background:#000"></video>
+      <div id="vrec_time" style="position:absolute;top:8px;left:10px;background:rgba(0,0,0,.55);color:#fff;font-size:12px;font-weight:800;padding:3px 9px;border-radius:8px">00:00</div>
+    </div>
+    <div id="vrec_err" style="display:none;font-size:12.5px;color:var(--red);font-weight:700;margin-top:10px"></div>
+    <div class="cap-btns" style="margin-top:12px">
+      <button type="button" id="vrec_start" class="cap-cam">● 녹화 시작</button>
+      <button type="button" id="vrec_pause" class="cap-alb" disabled>⏸ 일시정지</button>
+    </div>
+    <div class="mact" style="margin-top:10px">
+      <button class="cancel" id="vrec_cancel">취소</button>
+      <button class="save" id="vrec_done" disabled>완료(첨부)</button>
+    </div>
+  </div>
+</div>
+
 <div id="lightbox" class="lb"><img id="lbImg" alt=""></div>
 
 <!-- attachment viewer (PDF/파일) -->
@@ -945,9 +968,14 @@
       <div class="dropzone" id="cap_drop">
         <input type="file" id="cap_cam" accept="image/*" capture="environment" hidden>
         <input type="file" id="cap_file" accept="image/*" multiple hidden>
+        <input type="file" id="cap_vfile" accept="video/*" hidden>
         <div class="cap-btns">
           <button type="button" id="cap_shoot" class="cap-cam"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3.2"></circle></svg>사진 촬영</button>
           <button type="button" id="cap_pick" class="cap-alb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.6"></circle><path d="m21 15-5-5L5 21"></path></svg>앨범·파일</button>
+        </div>
+        <div class="cap-btns">
+          <button type="button" id="cap_vrec" class="cap-cam" style="background:var(--navy)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>영상 촬영(중단·재개)</button>
+          <button type="button" id="cap_vpick" class="cap-alb">영상 선택</button>
         </div>
         <div class="dz-hint" style="margin-top:6px">또는 사진을 끌어다 놓거나 <b>붙여넣기(Ctrl+V)</b></div>
         <div class="dz-thumbs" id="cap_thumbs"></div>
@@ -1055,8 +1083,17 @@ async function uploadPhoto(pid,photo){
 async function ensurePhotos(pid,photos){
   const out=[];
   for(const ph of (photos||[])){
-    if(ph&&ph.url){out.push({id:ph.id,path:ph.path||'',url:ph.url});continue;}
-    if(!ph||!ph.data){continue;}
+    if(!ph)continue;
+    if(ph.kind==='video'){
+      if(ph.url){out.push({id:ph.id,kind:'video',url:ph.url,path:ph.path||'',name:ph.name||''});continue;}
+      if(ph.blob&&fbStore){
+        try{const ext=(ph.mime&&ph.mime.indexOf('mp4')>=0)?'mp4':'webm';const ref=stRef('products/'+pid+'/videos/'+ph.id+'.'+ext);const snap=await ref.put(ph.blob,{contentType:ph.mime||'video/webm'});const url=await snap.ref.getDownloadURL();out.push({id:ph.id,kind:'video',url,path:ref.fullPath,name:ph.name||''});continue;}
+        catch(e){console.error('[cloud] 영상 업로드 실패:',e);alert('영상 업로드에 실패했어요(네트워크 확인). 이 영상은 제외됩니다.');continue;}
+      }
+      alert('영상 첨부는 클라우드 연결이 필요해요. 이 영상은 제외됩니다.');continue;
+    }
+    if(ph.url){out.push({id:ph.id,path:ph.path||'',url:ph.url});continue;}
+    if(!ph.data){continue;}
     if(fbStore){
       try{out.push(await uploadPhoto(pid,ph));continue;}
       catch(e){console.error('[cloud] 사진 업로드 실패, 로컬 보관:',e);}
@@ -1583,9 +1620,10 @@ function renderMain(){
       const it=document.createElement('div');it.className='titem '+r;
       it.innerHTML=`<div class="tr1"><span class="tt">${esc(t.title)}</span><span class="rbadge ${r}">${r}</span></div>
         <div class="tmemo ${t.memo?'':'empty'}">${t.memo?esc(t.memo):'결과 메모 없음 — 눌러서 작성'}</div>
-        ${phs.length?'<div class="tthumbs">'+phs.map(ph=>`<div class="thumb"><img src="${ph.url||ph.data}"></div>`).join('')+'</div>':''}
+        ${phs.length?'<div class="tthumbs">'+phs.map(photoThumbHTML).join('')+'</div>':''}
         <div class="tdate" style="margin-top:7px">🕒 ${esc(t.ts?fmtDT(t.ts):(t.date||''))}</div>`;
-      it.querySelectorAll('.tthumbs img').forEach((im,idx)=>im.onclick=e=>{e.stopPropagation();openLightbox(phs[idx].url||phs[idx].data);});
+      it.querySelectorAll('.tthumbs img[data-full]').forEach(im=>im.onclick=e=>{e.stopPropagation();openLightbox(im.dataset.full);});
+      it.querySelectorAll('.tthumbs [data-vid]').forEach(el=>el.onclick=e=>{e.stopPropagation();openVideo(el.dataset.vid);});
       it.onclick=()=>openTest(t.id);
       list.appendChild(it);
     });
@@ -1808,9 +1846,9 @@ function addTestPhoto(file){processImage(file,data=>{tmpPhotos.push({id:uid(),da
 function renderTmpThumbs(){
   const w=$('#t_thumbs');if(!w)return;w.innerHTML='';
   tmpPhotos.forEach((ph,i)=>{
-    const d=document.createElement('div');d.className='thumb';
-    d.innerHTML=`<img src="${ph.url||ph.data}"><button type="button" class="rm">×</button>`;
-    d.querySelector('img').onclick=()=>openLightbox(ph.url||ph.data);
+    const d=document.createElement('div');d.className='thumb'+(ph.kind==='video'?' vidthumb':'');
+    d.innerHTML=ph.kind==='video'?`<span>🎬</span><small>영상</small><button type="button" class="rm">×</button>`:`<img src="${ph.url||ph.data}"><button type="button" class="rm">×</button>`;
+    if(ph.kind!=='video')d.querySelector('img').onclick=()=>openLightbox(ph.url||ph.data);
     d.querySelector('.rm').onclick=()=>{tmpPhotos.splice(i,1);renderTmpThumbs();};
     w.appendChild(d);
   });
@@ -1831,6 +1869,59 @@ document.addEventListener('paste',e=>{
 });
 function openLightbox(src){$('#lbImg').src=src;$('#lightbox').classList.add('on');}
 $('#lightbox').addEventListener('click',()=>$('#lightbox').classList.remove('on'));
+function openVideo(url){if(!url)return;$('#viewerBody').innerHTML=`<video src="${url}" controls autoplay playsinline style="width:100%;max-height:80vh;border-radius:10px;background:#000"></video>`;openOverlay('viewerOverlay');}
+function photoThumbHTML(ph){const src=ph.url||ph.data;if(ph.kind==='video'){return `<div class="thumb vidthumb" data-vid="${ph.url||''}"><span>🎬</span><small>영상</small></div>`;}return src?`<div class="thumb"><img src="${src}" data-full="${src}"></div>`:'';}
+
+/* ---- 영상 촬영(MediaRecorder · 일시정지/재개) ---- */
+let vrecStream=null,vrecRec=null,vrecChunks=[],vrecCb=null,vrecSec=0,vrecTimer=null,vrecMime='';
+function vrecFmt(s){const m=Math.floor(s/60),x=s%60;return String(m).padStart(2,'0')+':'+String(x).padStart(2,'0');}
+function vrecTick(on){clearInterval(vrecTimer);if(on)vrecTimer=setInterval(()=>{vrecSec++;const e=$('#vrec_time');if(e)e.textContent=vrecFmt(vrecSec);},1000);}
+function vrecPickMime(){const c=['video/mp4','video/webm;codecs=vp8,opus','video/webm'];for(const m of c){try{if(window.MediaRecorder&&MediaRecorder.isTypeSupported(m))return m;}catch(e){}}return '';}
+function vrecCleanup(){vrecTick(false);if(vrecRec&&vrecRec.state&&vrecRec.state!=='inactive'){try{vrecRec.stop();}catch(e){}}if(vrecStream){vrecStream.getTracks().forEach(t=>t.stop());vrecStream=null;}vrecRec=null;}
+async function openVRec(cb){
+  vrecCb=cb;vrecChunks=[];vrecSec=0;vrecRec=null;
+  $('#vrec_time').textContent='00:00';$('#vrec_err').style.display='none';
+  $('#vrec_start').disabled=false;$('#vrec_start').textContent='● 녹화 시작';
+  $('#vrec_pause').disabled=true;$('#vrec_pause').textContent='⏸ 일시정지';
+  $('#vrec_done').disabled=true;
+  openOverlay('vrecOverlay');
+  try{
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||typeof MediaRecorder==='undefined')throw new Error('NO_SUPPORT');
+    vrecStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:true});
+    $('#vrec_preview').srcObject=vrecStream;
+  }catch(e){
+    console.error('[vrec] 카메라 사용 불가:',e);
+    $('#vrec_err').style.display='';$('#vrec_err').textContent='이 기기/브라우저에서 앱 내 녹화를 쓸 수 없어요. 아래 취소 후 ‘영상 선택’으로 첨부해주세요.';
+    $('#vrec_start').disabled=true;
+  }
+}
+$('#vrec_start').onclick=()=>{
+  if(!vrecStream)return;
+  if(!vrecRec){
+    vrecMime=vrecPickMime();
+    try{vrecRec=vrecMime?new MediaRecorder(vrecStream,{mimeType:vrecMime}):new MediaRecorder(vrecStream);}catch(e){try{vrecRec=new MediaRecorder(vrecStream);}catch(e2){$('#vrec_err').style.display='';$('#vrec_err').textContent='녹화를 시작할 수 없어요.';return;}}
+    vrecRec.ondataavailable=e=>{if(e.data&&e.data.size)vrecChunks.push(e.data);};
+    vrecRec.start();vrecTick(true);
+    $('#vrec_start').textContent='■ 정지';
+    $('#vrec_pause').disabled=false;$('#vrec_done').disabled=false;
+  }else{
+    try{vrecRec.stop();}catch(e){}
+    vrecTick(false);
+    $('#vrec_start').disabled=true;$('#vrec_pause').disabled=true;
+  }
+};
+$('#vrec_pause').onclick=()=>{
+  if(!vrecRec)return;
+  if(vrecRec.state==='recording'){try{vrecRec.pause();}catch(e){}vrecTick(false);$('#vrec_pause').textContent='▶ 재개';}
+  else if(vrecRec.state==='paused'){try{vrecRec.resume();}catch(e){}vrecTick(true);$('#vrec_pause').textContent='⏸ 일시정지';}
+};
+$('#vrec_done').onclick=()=>{
+  const finalize=()=>{const blob=new Blob(vrecChunks,{type:vrecMime||'video/webm'});const sec=vrecSec;vrecChunks=[];vrecCleanup();if(blob.size&&vrecCb)vrecCb(blob,vrecMime||'video/webm',sec);closeOverlay();};
+  if(vrecRec&&vrecRec.state&&vrecRec.state!=='inactive'){vrecRec.onstop=finalize;try{vrecRec.stop();}catch(e){finalize();}}
+  else finalize();
+};
+$('#vrec_cancel').onclick=()=>{vrecChunks=[];vrecCleanup();closeOverlay();};
+function videoEntryFromBlob(blob,mime,sec){const ext=(mime&&mime.indexOf('mp4')>=0)?'mp4':'webm';return {id:uid(),kind:'video',blob,mime,name:`영상_${vrecFmt(sec||0)}.${ext}`};}
 
 /* ---- 제품 개요 자료(카탈로그·링크) 첨부 ---- */
 function fileToDataURL(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(file);});}
@@ -1950,7 +2041,7 @@ function removeNote(pid,id){const p=state.products.find(x=>x.id===pid);if(!p)ret
 /* 상세 모달 열림 + 다른 입력 모달 없음일 때 붙여넣기 → 제품 개요 자료로 추가 */
 document.addEventListener('paste',e=>{
   const det=$('#detailOverlay');if(!det||!det.classList.contains('on'))return;
-  if(['testOverlay','captureOverlay','prodOverlay','docOverlay','priceOverlay','viewerOverlay','linkOverlay','bulkEditOverlay'].some(id=>$('#'+id)&&$('#'+id).classList.contains('on')))return;
+  if(['testOverlay','captureOverlay','prodOverlay','docOverlay','priceOverlay','viewerOverlay','linkOverlay','bulkEditOverlay','vrecOverlay'].some(id=>$('#'+id)&&$('#'+id).classList.contains('on')))return;
   const p=cur();if(!p)return;
   const items=(e.clipboardData&&e.clipboardData.items)||[];const fs=[];
   for(const it of items){if(it.type&&(it.type.indexOf('image')===0||it.type==='application/pdf')){const f=it.getAsFile();if(f)fs.push(f);}}
@@ -2259,14 +2350,15 @@ function fillCapProd(sel){
 function renderCapThumbs(){
   const w=$('#cap_thumbs');if(!w)return;w.innerHTML='';
   capPhotos.forEach((ph,i)=>{
-    const d=document.createElement('div');d.className='thumb';
-    d.innerHTML=`<img src="${ph.url||ph.data}"><button type="button" class="rm">×</button>`;
-    d.querySelector('img').onclick=()=>openLightbox(ph.url||ph.data);
+    const d=document.createElement('div');d.className='thumb'+(ph.kind==='video'?' vidthumb':'');
+    d.innerHTML=ph.kind==='video'?`<span>🎬</span><small>영상</small><button type="button" class="rm">×</button>`:`<img src="${ph.url||ph.data}"><button type="button" class="rm">×</button>`;
+    if(ph.kind!=='video')d.querySelector('img').onclick=()=>openLightbox(ph.url||ph.data);
     d.querySelector('.rm').onclick=()=>{capPhotos.splice(i,1);renderCapThumbs();};
     w.appendChild(d);
   });
 }
 function addCapPhoto(file){processImage(file,data=>{capPhotos.push({id:uid(),data});renderCapThumbs();});}
+function addCapVideo(file){capPhotos.push({id:uid(),kind:'video',blob:file,mime:file.type||'video/mp4',name:file.name||'영상'});renderCapThumbs();}
 function openCapture(){
   if(!state.products.length){alert('먼저 소싱 제품을 등록한 뒤 테스트를 기록할 수 있어요.');switchTab('products');return;}
   capPhotos=[];
@@ -2284,6 +2376,9 @@ function openCapture(){
   $('#cap_pick').onclick=()=>$('#cap_file').click();
   $('#cap_cam').onchange=e=>{[...e.target.files].forEach(f=>{if(f.type.indexOf('image')===0)addCapPhoto(f);});e.target.value='';};
   $('#cap_file').onchange=e=>{[...e.target.files].forEach(f=>{if(f.type.indexOf('image')===0)addCapPhoto(f);});e.target.value='';};
+  $('#cap_vrec').onclick=()=>openVRec((blob,mime,sec)=>{capPhotos.push(videoEntryFromBlob(blob,mime,sec));renderCapThumbs();});
+  $('#cap_vpick').onclick=()=>$('#cap_vfile').click();
+  $('#cap_vfile').onchange=e=>{const f=e.target.files[0];if(f)addCapVideo(f);e.target.value='';};
 })();
 document.addEventListener('paste',e=>{
   if(!$('#captureOverlay').classList.contains('on'))return;
@@ -2308,6 +2403,9 @@ $('#camFab').onclick=openCapture;
 /* ---- overlay ---- */
 function openOverlay(id){document.getElementById(id).classList.add('on');document.body.style.overflow='hidden';}
 function closeOverlay(){
+  // 닫히는 오버레이 정리: 카메라 스트림 중지 / 동영상 플레이어 정리
+  if(document.getElementById('vrecOverlay').classList.contains('on'))vrecCleanup();
+  if(document.getElementById('viewerOverlay').classList.contains('on')){const vb=$('#viewerBody');if(vb)vb.innerHTML='';}
   const subs=[...document.querySelectorAll('.overlay.on')].filter(o=>o.id!=='detailOverlay');
   if(subs.length){
     subs.forEach(o=>o.classList.remove('on'));
@@ -2367,6 +2465,7 @@ function renderReport(){
   $('#rp_text').value=r.text;
   segSet('#rp_seg','rv',v);
   $('#rp_body').querySelectorAll('img[data-full]').forEach(im=>im.onclick=()=>openLightbox(im.dataset.full));
+  $('#rp_body').querySelectorAll('[data-vid]').forEach(el=>el.onclick=()=>openVideo(el.dataset.vid));
 }
 document.querySelectorAll('#rp_seg button').forEach(b=>b.onclick=()=>{reportView=b.dataset.rv;renderReport();});
 /* ── 보기1: 진행현황 ── */
@@ -2453,7 +2552,7 @@ function reportTests(){
   html+=withTests.map(p=>{
     const ts=(p.tests||[]).slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
     const recs=ts.map(t=>{const r=t.result||'진행중';const phs=(t.photos||[]);
-      const thumbs=phs.length?`<div class="tthumbs">`+phs.map(ph=>{const src=ph.url||ph.data;return src?`<div class="thumb"><img src="${src}" data-full="${src}"></div>`:'';}).join('')+`</div>`:'';
+      const thumbs=phs.length?`<div class="tthumbs">`+phs.map(photoThumbHTML).join('')+`</div>`:'';
       return `<div class="rtrec ${r}"><div class="rtr-top"><span class="rtr-title">${esc(t.title||'(제목 없음)')}</span><span class="rbadge ${r}">${r}</span></div><div class="rtr-meta">🕒 ${esc(t.ts?fmtDT(t.ts):(t.date||''))}</div>${t.memo?`<div class="rtr-memo">${esc(t.memo)}</div>`:''}${thumbs}</div>`;
     }).join('');
     return `<div class="rp-rcard"><div class="rp-rtop"><div class="rp-rname">${esc(dn(p))}</div><div class="rp-rright"><span class="rp-rstage">${esc(p.stage||'후보')}</span><span class="rp-rpct">${ts.length}건</span></div></div>${recs}</div>`;

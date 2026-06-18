@@ -3408,11 +3408,15 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
   const [connectFrom,setConnectFrom]=useState(null);
   const [editNode,setEditNode]=useState(null);
   const [delEdge,setDelEdge]=useState(null);
+  // 노드 편집은 PC 전용(요청). 모바일/태블릿에선 보기만 — 드래그·탭편집·선연결·단계추가 비활성.
+  const [isPC,setIsPC]=useState(typeof window!=="undefined"?window.innerWidth>=1024:true);
+  useEffect(()=>{const h=()=>setIsPC(window.innerWidth>=1024);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[]);
   useEffect(()=>{ if(!draggingRef.current&&tpl) setDraftNodes(tpl.nodes); },[tpl]);
   const maxY=draftNodes.reduce((m,n)=>Math.max(m,n.y),0);
   const canvasH=Math.max(520,maxY+NODE_H+120);
   const nodeById=(id)=>draftNodes.find(n=>n.id===id);
   const onNodeDown=(e,n)=>{
+    if(!isPC) return;   // 모바일: 노드 편집 불가(보기 전용) — 드래그·탭편집 차단
     if(connectMode){ e.stopPropagation(); handleConnect(n); return; }
     e.stopPropagation();
     const r=canvasRef.current.getBoundingClientRect();
@@ -3587,13 +3591,22 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
               ))}
             </div>
           )}
-          <div style={{backgroundColor:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:12,padding:"10px 13px",marginBottom:12}}>
-            <p style={{margin:0,fontSize:11,color:"#B45309",lineHeight:1.5}}>케이스마다 흐름이 다르면 <b>복제</b>해서 단계를 바꿔 쓰세요. 노드를 끌어 옮기고, 탭하면 단계명·담당자가 수정돼요. <b>선 연결</b>로 인계 순서를 잇습니다.</p>
-          </div>
+          {isPC?(
+            <div style={{backgroundColor:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:12,padding:"10px 13px",marginBottom:12}}>
+              <p style={{margin:0,fontSize:11,color:"#B45309",lineHeight:1.5}}>케이스마다 흐름이 다르면 <b>복제</b>해서 단계를 바꿔 쓰세요. 노드를 끌어 옮기고, 탭하면 단계명·담당자·<b>⚡자동화</b>가 수정돼요. <b>선 연결</b>로 인계 순서를 잇습니다.</p>
+            </div>
+          ):(
+            <div style={{backgroundColor:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:12,padding:"11px 13px",marginBottom:12,display:"flex",alignItems:"center",gap:8}}>
+              <span style={{fontSize:15}}>💻</span>
+              <p style={{margin:0,fontSize:11.5,color:"#1E40AF",fontWeight:700,lineHeight:1.5}}>노드 편집은 <b>PC에서</b> 할 수 있어요. 여기선 흐름을 <b>보기</b>만 됩니다.</p>
+            </div>
+          )}
+          {isPC&&(
           <div style={{display:"flex",gap:8,marginBottom:10}}>
             <button onClick={addNode} style={{flex:1,padding:"9px 0",borderRadius:10,border:"1.5px solid #E5E8EB",backgroundColor:"#fff",fontSize:12.5,fontWeight:800,color:"#374151",cursor:"pointer",fontFamily:"inherit"}}>＋ 단계 추가</button>
             <button onClick={()=>{setConnectMode(!connectMode);setConnectFrom(null);}} style={{flex:1,padding:"9px 0",borderRadius:10,border:`1.5px solid ${connectMode?"#F97316":"#E5E8EB"}`,backgroundColor:connectMode?"#FFEDD5":"#fff",fontSize:12.5,fontWeight:800,color:connectMode?"#EA580C":"#374151",cursor:"pointer",fontFamily:"inherit"}}>🔗 {connectMode?"연결 중…":"선 연결"}</button>
           </div>
+          )}
           {connectMode&&<p style={{margin:"0 0 10px",fontSize:11,fontWeight:700,color:"#EA580C",textAlign:"center"}}>{connectFrom?"→ 도착 단계를 탭하세요 (다시 누르면 취소)":"시작 단계를 탭하세요"}</p>}
           <div ref={canvasRef} style={{position:"relative",width:"100%",height:canvasH,backgroundColor:"#FAFBFC",backgroundImage:"radial-gradient(#E5E8EB 1px,transparent 1px)",backgroundSize:"18px 18px",borderRadius:16,border:"1px solid #EDF0F3",overflow:"hidden",touchAction:"none"}}>
             <svg width="100%" height={canvasH} style={{position:"absolute",inset:0,pointerEvents:"none"}}>
@@ -3622,7 +3635,7 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
               );
             })}
           </div>
-          <p style={{margin:"10px 2px 0",fontSize:11,color:"#9CA3AF",lineHeight:1.6}}>●&nbsp;노드를 끌어 위치 정리&nbsp;·&nbsp;탭하면 단계명·담당자 수정&nbsp;·&nbsp;<b>선 연결</b>로 선행(인계) 순서를 잇습니다.</p>
+          {isPC&&<p style={{margin:"10px 2px 0",fontSize:11,color:"#9CA3AF",lineHeight:1.6}}>●&nbsp;노드를 끌어 위치 정리&nbsp;·&nbsp;탭하면 단계명·담당자·⚡자동화 수정&nbsp;·&nbsp;<b>선 연결</b>로 선행(인계) 순서를 잇습니다.</p>}
       </>)}
 
       {/* 신규 SKU 출시 시트 */}

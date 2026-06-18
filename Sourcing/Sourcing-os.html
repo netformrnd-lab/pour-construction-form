@@ -1034,9 +1034,9 @@ async function uploadDocFile(pid,docId,file){
   const url=await snap.ref.getDownloadURL();
   return {path:ref.fullPath,url};
 }
-let _syncT=null,_syncing=false,_pending=false;
+let _syncT=null,_syncing=false,_pending=false,booting=true;
 function queueCloudSync(){
-  if(!fbStore)return;
+  if(!fbStore||booting)return; // 부팅 중에는 빈/임시 상태가 클라우드를 덮어쓰지 않도록 차단
   setSync('동기화 중…','var(--amber)');
   clearTimeout(_syncT);
   _syncT=setTimeout(runCloudSync,1000);
@@ -2607,33 +2607,38 @@ if(upP)upP.onchange=e=>{const f=e.target.files[0];if(f){flagMsg('읽는 중…',
 if(upPE)upPE.onchange=e=>{const f=e.target.files[0];if(f){flagMsg('읽는 중…','');readRows(f,importProducts);}e.target.value='';};
 
 /* ---- 부트스트랩: 로컬 먼저 렌더 → 클라우드 우선 동기화 ---- */
-function adoptState(data){
-  state=data;
-  normalizeState();
-  makerSel=null;query='';makerQuery='';statusFilter='전체';stageFilter=null;
-  store.write(state); // 로컬 캐시만 갱신(클라우드 재업로드 X)
-  render();
-  switchTab(state.tab||'products');
-}
 async function bootstrap(){
+  // 1) 클라우드를 '먼저' 읽어 최신본을 채택한 뒤 렌더 (빈 로컬이 클라우드를 덮어쓰지 않도록 booting 동안 업로드 차단)
+  let adopted=false;
+  if(fbStore){
+    setSync('불러오는 중…','var(--amber)');
+    try{
+      const cloud=await cloudLoadState();
+      if(cloud){
+        const localT=state.updatedAt||0, cloudT=cloud.updatedAt||0;
+        const cloudHas=(cloud.products||[]).length>0, localHas=(state.products||[]).length>0;
+        if(localHas && !cloudHas){
+          adopted=false; // 로컬 보호: 빈 클라우드가 데이터를 덮어쓰지 않음 → 부팅 후 로컬을 클라우드로 복원
+        }else if(cloudHas && !localHas){
+          state=cloud; normalizeState(); adopted=true; // 빈 기기 → 클라우드 채택
+        }else if(cloudHas && localHas){
+          if(cloudT>=localT){ state=cloud; normalizeState(); adopted=true; } // 더 최신본 채택
+        }
+      }
+    }catch(e){console.error('[cloud] 부트 동기화 실패:',e);}
+  }
+  // 2) 렌더 (switchTab의 save는 booting=true라 클라우드 업로드 안 함 → 로컬 캐시만 갱신)
   render();
   switchTab(state.tab||'products');
+  booting=false;
+  // 3) 상태표시 + 필요한 경우에만 업로드
   if(!fbStore){setSync('로컬 전용 (클라우드 미연결)','var(--amber)');return;}
-  setSync('동기화 중…','var(--amber)');
-  const cloud=await cloudLoadState();
-  if(cloud){
-    const localT=state.updatedAt||0, cloudT=cloud.updatedAt||0;
-    if(cloudT>localT || (state.products.length===0 && (cloud.products||[]).length>0)){
-      adoptState(cloud);cloudOK=true;setSync('클라우드 저장됨 ✓','var(--green)');
-    }else if(localT>cloudT){
-      queueCloudSync(); // 로컬이 더 최신 → 클라우드로 반영
-    }else{
-      cloudOK=true;setSync('클라우드 저장됨 ✓','var(--green)');
-    }
+  if(adopted){
+    cloudOK=true;setSync('클라우드 저장됨 ✓','var(--green)');
+  }else if((state.products||[]).length||(state.makers||[]).length||(state.meetings||[]).length){
+    queueCloudSync(); // 로컬이 더 최신/클라우드 비어있음 → 클라우드로 반영
   }else{
-    // 클라우드에 데이터 없음 → 로컬에 내용 있으면 올림
-    if(state.products.length||state.makers.length||state.meetings.length)queueCloudSync();
-    else setSync('클라우드 연결됨','var(--green)');
+    setSync('클라우드 연결됨','var(--green)');
   }
 }
 bootstrap();

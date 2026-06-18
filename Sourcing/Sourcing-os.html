@@ -2459,20 +2459,34 @@ function reportRevenue(){
   const STAT=['진행 전','진행 중','완료'];
   const calcFor=list=>{let rev=0,profit=0,n=0;list.forEach(p=>{if(p.pricing&&p.pricing.sell){const c=calcPricing(p);rev+=c.sell*c.totalQty;profit+=c.nTotal;n++;}});return{rev,profit,n};};
   const tot={'진행 전':{rev:0,profit:0,n:0},'진행 중':{rev:0,profit:0,n:0},'완료':{rev:0,profit:0,n:0}};
-  let html=`<div class="rp-note" style="margin:2px 0 12px">예상 매출 = 판매가 × 총 발주수량(옵션별 MOQ 합) · 순이익 = 개당순익 × 수량. 판매가 설정된 제품만 집계.</div>`;
-  makers.forEach(n=>{
+  const makerData=makers.map(n=>{
     const ps=makerProducts(n);
     const cells=STAT.map(s=>{const r=calcFor(ps.filter(p=>STATUS[statusIdx(p)]===s));tot[s].rev+=r.rev;tot[s].profit+=r.profit;tot[s].n+=r.n;return {s,r};});
+    return {n,ps,cells};
+  });
+  const expRev=tot['진행 전'].rev+tot['진행 중'].rev, expProfit=tot['진행 전'].profit+tot['진행 중'].profit;
+  const actRev=tot['완료'].rev, actProfit=tot['완료'].profit;
+  const rowHTML=(s,r,dark)=>{const isDone=s==='완료';const rl=isDone?'실매출':'예상매출',pl=isDone?'실순익':'예상순익';
+    const lab=dark?'color:#aeb6bf':'color:var(--ink2)',sub=dark?'color:#8a929b':'color:var(--muted)',val=dark?'color:#fff':'',gr=dark?'color:#6ee7a8':'color:var(--green)',bd=dark?'rgba(255,255,255,.1)':'var(--border)';
+    return `<div style="display:flex;justify-content:space-between;gap:8px;font-size:${dark?'13':'12.5'}px;padding:${dark?'6':'4'}px 0;border-top:1px solid ${bd}"><span style="${lab};font-weight:700">${s} <span style="${sub};font-weight:600">${r.n}종</span></span><span style="text-align:right;${val}">${rl} <b>${won(r.rev)}</b> · ${pl} <b style="${gr}">${won(r.profit)}</b></span></div>`;};
+  let html=`<div class="rp-sum"><div class="lbl">매출 요약</div><div class="rp-sum-grid">
+    <div class="rp-cell"><div class="k">예상매출 (진행 전·중)</div><div class="v b">${won(expRev)}<small>원</small></div></div>
+    <div class="rp-cell"><div class="k">예상순익 (진행 전·중)</div><div class="v">${won(expProfit)}<small>원</small></div></div>
+    <div class="rp-cell"><div class="k">실제발생매출 (완료)</div><div class="v">${won(actRev)}<small>원</small></div></div>
+  </div></div>`;
+  html+=`<div class="rp-note" style="margin:8px 0 12px">예상매출 = 판매가 × 총 발주수량(옵션별 MOQ 합) · 예상순익 = 개당순익 × 수량. 판매가 설정된 제품만 집계.</div>`;
+  makerData.forEach(({n,ps,cells})=>{
     html+=`<div class="rp-rcard"><div class="rp-rtop"><div class="rp-rname">${esc(n)}</div><div class="rp-rright"><span class="rp-rstage">제품 ${ps.length}</span></div></div>`;
-    html+=cells.map(({s,r})=>`<div style="display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:4px 0;border-top:1px solid var(--border)"><span style="color:var(--ink2);font-weight:700">${s} <span style="color:var(--muted);font-weight:600">${r.n}종</span></span><span style="text-align:right">매출 <b>${won(r.rev)}</b> · 순익 <b style="color:var(--green)">${won(r.profit)}</b></span></div>`).join('');
+    html+=cells.map(({s,r})=>rowHTML(s,r,false)).join('');
     html+=`</div>`;
   });
   if(!makers.length)html+='<div class="tempty">집계할 제조사가 없어요.</div>';
-  html+=`<div class="rp-sum" style="margin-top:8px"><div class="lbl">전체 합계</div>`+STAT.map(s=>`<div style="display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:6px 0;border-top:1px solid rgba(255,255,255,.1)"><span style="color:#aeb6bf;font-weight:700">${s} <span style="color:#8a929b">${tot[s].n}종</span></span><span style="text-align:right;color:#fff">매출 <b>${won(tot[s].rev)}</b> · 순익 <b style="color:#6ee7a8">${won(tot[s].profit)}</b></span></div>`).join('')+`</div>`;
-  html+=`<div class="rp-note">※ ‘완료(판매중)’ 실매출은 어드민센터 판매데이터 연동 예정입니다. 현재는 앱에 입력된 판매가 기준 추정치예요.</div>`;
-  const T=[];T.push(`[제조사별 예상매출·순이익]`);
-  makers.forEach(n=>{const ps=makerProducts(n);T.push(`■ ${n} (제품 ${ps.length})`);STAT.forEach(s=>{const r=calcFor(ps.filter(p=>STATUS[statusIdx(p)]===s));T.push(`  - ${s}: 매출 ${won(r.rev)} · 순익 ${won(r.profit)} (${r.n}종)`);});});
-  T.push(`[합계]`);STAT.forEach(s=>T.push(` - ${s}: 매출 ${won(tot[s].rev)} · 순익 ${won(tot[s].profit)}`));
+  html+=`<div class="rp-sum" style="margin-top:8px"><div class="lbl">전체 합계</div>`+STAT.map(s=>rowHTML(s,tot[s],true)).join('')+`</div>`;
+  html+=`<div class="rp-note">※ ‘완료(진행 후·판매중)’ 실제발생매출은 어드민센터 판매데이터 연동 예정입니다. 현재는 앱에 입력된 판매가 기준 추정치예요.</div>`;
+  const T=[];T.push(`[제조사별 예상매출·예상순익]`);
+  T.push(`예상(진행 전·중): 예상매출 ${won(expRev)} · 예상순익 ${won(expProfit)}`);
+  T.push(`실제발생(완료): 매출 ${won(actRev)} · 순익 ${won(actProfit)}`);
+  makerData.forEach(({n,ps,cells})=>{T.push(`■ ${n} (제품 ${ps.length})`);cells.forEach(({s,r})=>{const isDone=s==='완료';T.push(`  - ${s}: ${isDone?'실매출':'예상매출'} ${won(r.rev)} · ${isDone?'실순익':'예상순익'} ${won(r.profit)} (${r.n}종)`);});});
   return {title:'제조사별 예상매출 보고', html, text:T.join('\n')};
 }
 $('#openReport').onclick=report;

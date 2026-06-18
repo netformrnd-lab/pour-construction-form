@@ -949,12 +949,20 @@
       <div class="frow"><label>매입가 (4kg)</label><div class="inwrap"><input type="text" id="pr_buy" inputmode="numeric"><span class="unit">원</span></div></div>
       <div class="frow"><label>일반 판매가</label><div class="inwrap"><input type="text" id="pr_sell" inputmode="numeric"><span class="unit">원</span></div></div>
     </div>
+    <div class="frow"><label>마진율로 판매가 설정 <span class="opt">(목표 마진율 입력 → 적용)</span></label>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div class="inwrap" style="flex:0 0 110px"><input type="number" id="pr_tm" inputmode="decimal" placeholder="40"><span class="unit">%</span></div>
+        <button type="button" class="mini or" id="pr_applyTm" style="flex:0 0 auto">이 마진율로 판매가 설정</button>
+        <span id="pr_tmRec" style="font-size:12px;color:var(--muted);font-weight:700"></span>
+      </div>
+    </div>
     <div class="ftwo">
-      <div class="frow"><label>MOQ <span class="opt">(색상당)</span></label><div class="inwrap"><input type="text" id="pr_moq" inputmode="numeric"><span class="unit">개</span></div></div>
+      <div class="frow"><label>MOQ <span class="opt">(옵션 1종당)</span></label><div class="inwrap"><input type="text" id="pr_moq" inputmode="numeric"><span class="unit">개</span></div></div>
       <div class="frow"><label>온라인 최저가 <span class="opt">(참고)</span></label><div class="inwrap"><input type="text" id="pr_ref" inputmode="numeric"><span class="unit">원</span></div></div>
     </div>
-    <div class="frow"><label>색상(SKU) <span class="opt">(없으면 1종으로 계산)</span></label>
-      <div class="chipfield" id="pr_colorField"><input type="text" id="pr_colorInput" placeholder="색상 입력 후 Enter"></div>
+    <div class="frow"><label>옵션 (색상·규격) <span class="opt">(엔터로 추가 · 옵션마다 MOQ가 붙어요)</span></label>
+      <div class="chipfield" id="pr_colorField"><input type="text" id="pr_colorInput" placeholder="예: 회색 / 4kg / 18L … 입력 후 Enter"></div>
+      <div id="pr_optSum" style="font-size:12px;color:var(--ink2);font-weight:700;margin-top:8px"></div>
     </div>
 
     <div class="mh">계산 결과</div>
@@ -1333,7 +1341,7 @@ function refBadge(c){
 function priceReadout(c){
   if(!c.valid)return `<div class="readout"><div class="tempty" style="padding:6px 2px;text-align:left">일반 판매가를 입력하면 순익·마진이 계산됩니다.${c.ref?' (시장 최저가 참고 '+won(c.ref)+'원)':''}</div></div>`;
   return `<div class="readout">
-    <div class="ro-top"><span class="ro-cost">총발생비 <b>${won(c.cost)}원</b> /개 · 색상 ${c.colorN}종 · MOQ ${won(c.moq)}</span>${refBadge(c)}</div>
+    <div class="ro-top"><span class="ro-cost">총발생비 <b>${won(c.cost)}원</b> /개 · 옵션 ${c.colorN}종 · MOQ ${won(c.moq)} · 총 ${won(c.moq*c.colorN)}개</span>${refBadge(c)}</div>
     <div class="ro-cols">
       <div class="ro-col normal"><span class="tag">일반가</span>
         <div class="ro-row"><span class="rk">판매가</span><span class="rv">${won(c.sell)}원</span></div>
@@ -2036,7 +2044,7 @@ function renderPricing(){
   $('#pd_normal').innerHTML=won(nSum)+'<small>원</small>';
   $('#pd_raised').innerHTML=won(rSum)+'<small>원</small>';
   const ch=cfg.channel==='open'?('오픈마켓(PG+오픈마켓 '+(Number(cfg.pg)+Number(cfg.om))+'%)'):('자사몰(PG '+cfg.pg+'%)');
-  $('#pd_foot').textContent='채널 '+ch+' · 색상 1종 = 1회 발주(MOQ) 기준 · 15%인상 '+(cfg.raise?'적용':'미적용');
+  $('#pd_foot').textContent='채널 '+ch+' · 옵션 1종 = 1회 발주(MOQ) 기준 · 15%인상 '+(cfg.raise?'적용':'미적용');
   renderQuickCalc();
 }
 function renderQuickCalc(){
@@ -2098,7 +2106,19 @@ function renderPrColors(){
     f.insertBefore(chip,input);
   });
 }
-function prPreview(){ $('#pr_readout').innerHTML=priceReadout(calcRaw(prData,prCfg,prColors)); }
+function prRecFromMargin(){
+  const rate=(prCfg.channel==='open'?(Number(prCfg.pg)+Number(prCfg.om)):Number(prCfg.pg))/100;
+  const buy=Number(prData.buy)||0,fixed=buy+Number(prCfg.ship||0)+Number(prCfg.mkt||0);
+  const t=(Number(($('#pr_tm')||{}).value)||0)/100,denom=1-rate-t;
+  return (fixed>0&&denom>0)?Math.round(fixed/denom):null;
+}
+function prUpdateTmRec(){const el=$('#pr_tmRec');if(!el)return;const rec=prRecFromMargin();el.textContent=rec?('추천 판매가 '+won(rec)+'원'):'';const b=$('#pr_applyTm');if(b){b.disabled=!rec;b.style.opacity=rec?'1':'.5';}}
+function prUpdateOptSum(){
+  const el=$('#pr_optSum');if(!el)return;
+  const n=prColors.length||1,moq=Number(prData.moq)||0,tot=moq*n;
+  el.innerHTML=prColors.length?`옵션 <b>${n}종</b> · 총 발주수량 = MOQ ${won(moq)} × ${n} = <b style="color:var(--blue)">${won(tot)}개</b>`:`옵션 없음 → 1종으로 계산 (총 발주수량 ${won(moq)}개)`;
+}
+function prPreview(){ $('#pr_readout').innerHTML=priceReadout(calcRaw(prData,prCfg,prColors)); prUpdateTmRec(); prUpdateOptSum(); }
 function openPrice(id){
   const p=state.products.find(x=>x.id===id);if(!p)return;
   prTarget=id; prCfg={...state.priceCfg};
@@ -2110,16 +2130,19 @@ function openPrice(id){
   $('#pr_buy').value=cma(prData.buy);$('#pr_sell').value=cma(prData.sell);$('#pr_moq').value=cma(prData.moq);$('#pr_ref').value=cma(prData.ref);
   segSet('#pr_ch','ch',prCfg.channel);segSet('#pr_raise','raise',prCfg.raise?'on':'off');
   $('#pr_clear').style.display=(pr&&pr.sell)?'block':'none';
+  $('#pr_tm').value=(state.calc&&state.calc.tm)||40;
   $('#pr_colorInput').value='';renderPrColors();prPreview();
   openOverlay('priceOverlay');
 }
+$('#pr_tm').addEventListener('input',prUpdateTmRec);
+$('#pr_applyTm').onclick=()=>{const rec=prRecFromMargin();if(!rec)return;prData.sell=rec;$('#pr_sell').value=cma(rec);prPreview();};
 ['pg','om'].forEach(k=>$('#pr_'+k).oninput=e=>{prCfg[k]=e.target.value===''?'':Number(e.target.value);prPreview();});
 ['ship','mkt'].forEach(k=>$('#pr_'+k).oninput=e=>{prCfg[k]=fmtCur(e.target);prPreview();});
 ['buy','sell','moq','ref'].forEach(k=>$('#pr_'+k).oninput=e=>{prData[k]=fmtCur(e.target);prPreview();});
 document.querySelectorAll('#pr_ch button').forEach(b=>b.onclick=()=>{prCfg.channel=b.dataset.ch;segSet('#pr_ch','ch',prCfg.channel);prPreview();});
 document.querySelectorAll('#pr_raise button').forEach(b=>b.onclick=()=>{prCfg.raise=(b.dataset.raise==='on');segSet('#pr_raise','raise',prCfg.raise?'on':'off');prPreview();});
 $('#pr_colorInput').addEventListener('keydown',e=>{
-  if(e.key==='Enter'){e.preventDefault();const v=e.target.value.trim();if(!v)return;v.split(/[,\s]+/).filter(Boolean).forEach(c=>{if(!prColors.includes(c))prColors.push(c);});e.target.value='';renderPrColors();prPreview();}
+  if(e.key==='Enter'){e.preventDefault();const v=e.target.value.trim();if(!v)return;v.split(/[,\n]+/).map(s=>s.trim()).filter(Boolean).forEach(c=>{if(!prColors.includes(c))prColors.push(c);});e.target.value='';renderPrColors();prPreview();}
   else if(e.key==='Backspace'&&!e.target.value&&prColors.length){prColors.pop();renderPrColors();prPreview();}
 });
 $('#pr_save').onclick=()=>{

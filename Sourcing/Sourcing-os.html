@@ -1810,11 +1810,40 @@ function mpCardHTML(p){
   </div>`;
 }
 
+let makerRevFilter='진행 중';
 function renderMakerDetail(root,name){
   const prods=makerProducts(name),meets=makerMeetings(name);
+  // 예상 매출 (진행 전/중: 판매가 설정 제품 합계 · 완료: 어드민센터 연동 예정)
+  const STAT=['진행 전','진행 중','완료'];
+  const byStat=s=>prods.filter(p=>STATUS[statusIdx(p)]===s);
+  const f=makerRevFilter;
+  const chips=`<div class="fchips" style="margin:2px 0 12px">`+STAT.map(s=>`<button class="fchip ${f===s?'on':''}" data-rf="${s}">${s}<span class="n">${byStat(s).length}</span></button>`).join('')+`</div>`;
+  let revCard='';
+  if(f==='완료'){
+    revCard=`<div class="rp-sum"><div class="lbl">예상 매출 · 완료(판매중)</div><div style="font-size:12.5px;color:#aeb6bf;line-height:1.6;padding:4px 0">판매중 매출은 어드민센터(판매 데이터) 연동 예정이에요. 연동되면 여기에 표시됩니다.</div></div>`;
+  }else{
+    const inF=byStat(f),priced=inF.filter(p=>p.pricing&&p.pricing.sell);
+    let rev=0,profit=0;
+    const rows=priced.map(p=>{const c=calcPricing(p);const r=c.sell*c.moq*c.colorN;rev+=r;profit+=c.nTotal;return{p,c,r};}).sort((a,b)=>b.r-a.r);
+    const noP=inF.length-priced.length;
+    revCard=`<div class="rp-sum"><div class="lbl">예상 매출 · ${f} · 1회 발주(MOQ) 기준</div>
+      <div class="rp-sum-grid">
+        <div class="rp-cell"><div class="k">대상(판매가 설정)</div><div class="v">${priced.length}<small>종</small></div></div>
+        <div class="rp-cell"><div class="k">예상 매출</div><div class="v b">${won(rev)}<small>원</small></div></div>
+        <div class="rp-cell"><div class="k">예상 순이익</div><div class="v">${won(profit)}<small>원</small></div></div>
+      </div></div>`;
+    if(rows.length){
+      revCard+=`<div id="mkRevList" style="margin-top:8px">`+rows.map(({p,c,r})=>`<div class="prow" data-pid="${p.id}"><div class="pn"><div class="nm">${esc(dn(p))}</div><div class="mt">${esc(p.stage||'후보')} · 판매가 ${won(c.sell)}원 · MOQ ${won(c.moq)}${c.colorN>1?' · 색상 '+c.colorN+'종':''}</div></div><div class="pp"><div class="s">${won(r)}원</div><div class="m pos">순익 ${won(c.nTotal)}</div></div><svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></div>`).join('')+`</div>`;
+    }else{
+      revCard+=`<div class="tempty" style="margin-top:8px">${inF.length?'이 단계에 판매가가 설정된 제품이 없어요.':'이 단계의 제품이 없어요.'}</div>`;
+    }
+    if(noP)revCard+=`<div class="rp-note">판매가 미설정 ${noP}종은 매출 합계에서 제외됐어요.</div>`;
+  }
   let html=`<button class="backbtn" id="mkBack">← 제조사 목록</button>
     <div class="mk-deth"><div><div class="mk-dname">${esc(name)}</div><div class="mk-dmeta">소싱 제품 ${prods.length}개 · 미팅 ${meets.length}건</div></div><button class="del" id="mkDel">삭제</button></div>
-    <div class="mh">소싱 제품 ${prods.length}</div>`;
+    <div class="mh">예상 매출 <span style="font-weight:600;color:var(--muted)">· 진행단계 필터</span></div>
+    ${chips}${revCard}
+    <div class="mh" style="margin-top:24px">소싱 제품 ${prods.length}</div>`;
   html+=prods.length?('<div class="mp-list">'+prods.map(mpCardHTML).join('')+'</div>'):'<div class="tempty">이 제조사의 소싱 제품이 없어요.</div>';
   html+=`<div class="mh" style="margin-top:24px">미팅 내역 ${meets.length}</div>
     <div class="meetadd">
@@ -1824,6 +1853,8 @@ function renderMakerDetail(root,name){
     </div>`;
   html+=meets.length?('<div class="meetlist">'+meets.map(m=>`<div class="meet"><div class="meet-h"><span class="meet-date">${esc(m.date||'')}</span><button class="meet-del" data-mid="${m.id}">삭제</button></div><div class="meet-title">${esc(m.title||'(제목 없음)')}</div>${m.note?`<div class="meet-note">${esc(m.note)}</div>`:''}</div>`).join('')+'</div>'):'<div class="tempty">아직 미팅 기록이 없어요.</div>';
   root.innerHTML=html;
+  root.querySelectorAll('[data-rf]').forEach(b=>b.onclick=()=>{makerRevFilter=b.dataset.rf;renderMakerDetail(root,name);});
+  const rl=$('#mkRevList');if(rl)rl.querySelectorAll('.prow').forEach(r=>r.onclick=()=>{state.sel=r.dataset.pid;save();switchTab('products');});
   $('#mkBack').onclick=()=>{makerSel=null;renderMakerList();window.scrollTo(0,0);};
   $('#mkDel').onclick=()=>{if(!confirm('"'+name+'" 제조사를 목록에서 삭제할까요?\n(제품의 제조사명·미팅 기록은 유지됩니다)'))return;state.makers=state.makers.filter(x=>x!==name);logMaker('delete',name);save();makerSel=null;renderMakerList();};
   root.querySelectorAll('.mp-card').forEach(c=>c.onclick=()=>{state.sel=c.dataset.pid;save();switchTab('products');});

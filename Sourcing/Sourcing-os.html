@@ -846,6 +846,14 @@
 
 <div id="lightbox" class="lb"><img id="lbImg" alt=""></div>
 
+<!-- attachment viewer (PDF/파일) -->
+<div class="overlay" id="viewerOverlay">
+  <div class="modal" style="max-width:900px;width:100%;padding:18px;position:relative">
+    <button class="modal-x" data-close aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+    <div id="viewerBody"></div>
+  </div>
+</div>
+
 <!-- capture (photo + test record) modal -->
 <div class="overlay" id="captureOverlay">
   <div class="modal" style="max-width:560px">
@@ -1026,7 +1034,7 @@ function normalizeState(){
   if(!state.adminSub)state.adminSub='makers';
   if(!state.meetings)state.meetings=[];
   if(!state.activity)state.activity=[];
-  state.products.forEach(p=>{if(!p.tests)p.tests=[];if(!p.certs)p.certs=[];if(!p.fill)p.fill=[];if(!p.docs)p.docs=[];if(!p.type)p.type='단품';if(p.concept===undefined)p.concept='';if(p.spec===undefined)p.spec='';if(!p.sample)p.sample='대기';if(p.memo===undefined)p.memo='';if(p.goods===undefined)p.goods='';if(!p.history)p.history=[];if(!p.bundle)p.bundle=[];if(p.baseId===undefined)p.baseId='';if(p.stage==='완료')p.stage='출시완료';(p.tests||[]).forEach(t=>{if(!t.photos)t.photos=[];});if(p.maker&&!state.makers.includes(p.maker))state.makers.push(p.maker);});
+  state.products.forEach(p=>{if(!p.tests)p.tests=[];if(!p.certs)p.certs=[];if(!p.fill)p.fill=[];if(!p.docs)p.docs=[];if(!p.attachments)p.attachments=[];if(!p.type)p.type='단품';if(p.concept===undefined)p.concept='';if(p.spec===undefined)p.spec='';if(!p.sample)p.sample='대기';if(p.memo===undefined)p.memo='';if(p.goods===undefined)p.goods='';if(!p.history)p.history=[];if(!p.bundle)p.bundle=[];if(p.baseId===undefined)p.baseId='';if(p.stage==='완료')p.stage='출시완료';(p.tests||[]).forEach(t=>{if(!t.photos)t.photos=[];});if(p.maker&&!state.makers.includes(p.maker))state.makers.push(p.maker);});
   state.makers.sort((a,b)=>a.localeCompare(b,'ko'));
 }
 normalizeState();
@@ -1269,6 +1277,19 @@ function renderMain(){
         <div><div class="k">샘플 수령</div>${val(p.sample||'대기')}</div>
         <div><div class="k">유형</div>${val(p.type||'단품')}</div>
       </div>
+      <div style="margin-top:16px">
+        <div class="k" style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px">제품 자료 <span style="font-weight:600">· 카탈로그(PDF·사진) · 링크</span></div>
+        <div class="dropzone" id="ov_drop">
+          <input type="file" id="ov_input" accept="image/*,application/pdf" multiple hidden>
+          <div class="dz-hint">카탈로그(PDF)·사진을 끌어다 놓거나 <b>붙여넣기(Ctrl+V)</b> · <button type="button" id="ov_pick" class="dz-pick">파일 선택</button></div>
+          <div class="dz-thumbs" id="ov_thumbs"></div>
+        </div>
+        <div class="mkrow" style="margin-top:10px">
+          <input type="text" id="ov_linkUrl" placeholder="상품 관련 링크(URL) 붙여넣기">
+          <button type="button" id="ov_linkAdd">링크 추가</button>
+        </div>
+        <div id="ov_links" style="margin-top:10px"></div>
+      </div>
     </div>
 
     ${typeSectionHTML(p)}
@@ -1335,6 +1356,7 @@ function renderMain(){
   $('#editInfo').onclick=()=>openProd(p.id);
   $('#editFill').onclick=()=>openProd(p.id);
   $('#editOv').onclick=()=>openProd(p.id);
+  wireOverviewAttach(p);
   $('#openPrice').onclick=()=>openPrice(p.id);
   const eb=$('#editBundle');if(eb)eb.onclick=()=>openProd(p.id);
   const ad=$('#addDeriv');if(ad)ad.onclick=()=>derivAdd(p.id);
@@ -1480,8 +1502,11 @@ $('#p_save').onclick=()=>{
   save();closeOverlay();render();
 };
 $('#p_del').onclick=()=>{
-  if(!confirm('이 소싱 제품과 테스트 기록 전부 삭제할까요?'))return;
-  const tgt=state.products.find(p=>p.id===editingProd);const snap=JSON.parse(JSON.stringify(tgt));
+  const tgt=state.products.find(p=>p.id===editingProd);if(!tgt)return;
+  const ans=prompt('이 소싱 제품과 테스트·자료 기록을 모두 삭제합니다.\n(활동 여정에서 되살리기로 복구 가능)\n\n삭제하려면 아래에 "삭제" 라고 입력하세요.');
+  if(ans===null)return;
+  if(ans.trim()!=='삭제'){alert('"삭제" 라고 정확히 입력해야 삭제됩니다. 취소되었어요.');return;}
+  const snap=JSON.parse(JSON.stringify(tgt));
   state.products=state.products.filter(p=>p.id!==editingProd);
   state.sel=state.products[0]?state.products[0].id:null;
   logAct('delete',snap,snap);
@@ -1612,6 +1637,115 @@ document.addEventListener('paste',e=>{
 });
 function openLightbox(src){$('#lbImg').src=src;$('#lightbox').classList.add('on');}
 $('#lightbox').addEventListener('click',()=>$('#lightbox').classList.remove('on'));
+
+/* ---- 제품 개요 자료(카탈로그·링크) 첨부 ---- */
+function fileToDataURL(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(file);});}
+function resizeImage(file){return new Promise(res=>{let done=false;const fin=v=>{if(!done){done=true;res(v);}};try{processImage(file,fin);}catch(e){fin(null);}setTimeout(()=>fin(null),8000);});}
+async function addOverviewFiles(pid,files){
+  const p=state.products.find(x=>x.id===pid);if(!p)return;
+  let any=false;
+  for(const f of files){
+    if(!f)continue;
+    const id=uid();const isImg=(f.type||'').indexOf('image')===0;
+    const isPdf=(f.type==='application/pdf')||/\.pdf$/i.test(f.name||'');
+    try{
+      if(isImg){
+        const dataUrl=await resizeImage(f);if(!dataUrl)continue;
+        const att={id,kind:'image',name:f.name||'사진.jpg',mime:'image/jpeg'};
+        if(fbStore){try{const ref=stRef('products/'+pid+'/overview/'+id+'.jpg');const snap=await ref.putString(dataUrl,'data_url');att.url=await snap.ref.getDownloadURL();att.path=ref.fullPath;}catch(e){console.error('[cloud] 자료 업로드 실패, 로컬 보관:',e);att.data=dataUrl;}}
+        else att.data=dataUrl;
+        p.attachments.push(att);any=true;
+      }else{
+        const att={id,kind:isPdf?'pdf':'file',name:f.name||'파일',mime:f.type||''};
+        if(fbStore){
+          try{const r=await uploadDocFile(pid,id,f);att.url=r.url;att.path=r.path;}
+          catch(e){console.error('[cloud] 자료 업로드 실패:',e);
+            if(f.size<=1.5*1024*1024)att.data=await fileToDataURL(f);
+            else{alert('업로드 실패: '+(f.name||'')+'\n네트워크 확인 후 다시 시도해주세요.');continue;}}
+        }else{
+          if(f.size<=1.5*1024*1024)att.data=await fileToDataURL(f);
+          else{alert('클라우드 미연결 상태에서 큰 파일은 첨부할 수 없어요: '+(f.name||''));continue;}
+        }
+        p.attachments.push(att);any=true;
+      }
+    }catch(e){console.error('[자료] 첨부 처리 실패:',e);}
+  }
+  if(any){save();renderMain();}
+}
+function addOverviewLink(pid,url){
+  const p=state.products.find(x=>x.id===pid);if(!p)return;
+  url=(url||'').trim();if(!url)return;
+  if(!/^https?:\/\//i.test(url))url='https://'+url;
+  p.attachments.push({id:uid(),kind:'link',name:url,url});
+  save();renderMain();
+}
+function removeAttachment(pid,aid){
+  const p=state.products.find(x=>x.id===pid);if(!p)return;
+  if(!confirm('이 자료를 목록에서 삭제할까요?'))return;
+  p.attachments=p.attachments.filter(a=>a.id!==aid);
+  save();renderMain();
+}
+function openAtt(att){
+  const src=att.url||att.data;if(!src&&att.kind!=='link')return;
+  if(att.kind==='image'){openLightbox(src);}
+  else if(att.kind==='link'){window.open(att.url,'_blank','noopener');}
+  else{openViewer(att);}
+}
+function openViewer(att){
+  const src=att.url||att.data;
+  const body=$('#viewerBody');if(!body)return;
+  if(att.kind==='pdf'){
+    body.innerHTML=`<div style="font-size:14px;font-weight:700;margin:2px 0 10px;padding-right:40px;word-break:break-all">${esc(att.name||'PDF')}</div>
+      <iframe src="${src}" style="width:100%;height:78vh;border:1px solid var(--border);border-radius:10px;background:#fff"></iframe>
+      <div style="margin-top:10px;text-align:right"><a href="${src}" target="_blank" rel="noopener" class="dz-pick" style="text-decoration:none">새 탭에서 열기 ↗</a></div>`;
+  }else if(att.kind==='image'){
+    body.innerHTML=`<img src="${src}" style="max-width:100%;border-radius:10px;display:block;margin:0 auto">`;
+  }else{
+    body.innerHTML=`<div style="font-size:14px;font-weight:700;margin:2px 0 12px;padding-right:40px;word-break:break-all">${esc(att.name||'파일')}</div>
+      <a href="${src}" target="_blank" rel="noopener" download="${esc(att.name||'file')}" class="btn-add" style="text-decoration:none">파일 열기 / 내려받기 ↓</a>`;
+  }
+  openOverlay('viewerOverlay');
+}
+const ATT_ICON={pdf:'PDF',file:'파일'};
+function wireOverviewAttach(p){
+  const dz=$('#ov_drop');if(!dz)return;
+  // 썸네일(이미지·PDF·파일)
+  const tw=$('#ov_thumbs');
+  const files=(p.attachments||[]).filter(a=>a.kind!=='link');
+  tw.innerHTML=files.map(a=>{
+    if(a.kind==='image')return `<div class="thumb" data-aid="${a.id}"><img src="${a.url||a.data}"><button type="button" class="rm" data-rm="${a.id}">×</button></div>`;
+    return `<div class="thumb" data-aid="${a.id}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--cream);cursor:pointer" title="${esc(a.name||'')}"><span style="font-size:11px;font-weight:800;color:${a.kind==='pdf'?'var(--red)':'var(--ink2)'}">${ATT_ICON[a.kind]||'파일'}</span><span style="font-size:9px;color:var(--muted);max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:3px;padding:0 4px">${esc(a.name||'')}</span><button type="button" class="rm" data-rm="${a.id}">×</button></div>`;
+  }).join('');
+  tw.querySelectorAll('[data-aid]').forEach(el=>el.addEventListener('click',e=>{
+    if(e.target.closest('[data-rm]'))return;
+    const a=p.attachments.find(x=>x.id===el.dataset.aid);if(a)openAtt(a);
+  }));
+  tw.querySelectorAll('[data-rm]').forEach(b=>b.onclick=e=>{e.stopPropagation();removeAttachment(p.id,b.dataset.rm);});
+  // 링크 목록
+  const lw=$('#ov_links');
+  const links=(p.attachments||[]).filter(a=>a.kind==='link');
+  lw.innerHTML=links.map(a=>`<div class="doc"><span class="dtype" style="background:var(--blue-pale);color:#1b64da">(상품관련링크)</span><span class="dn" title="${esc(a.url)}">${esc(a.name||a.url)}</span><button class="dopen" data-open="${a.id}">열기</button><button class="dedit" data-rm="${a.id}">삭제</button></div>`).join('');
+  lw.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{const a=p.attachments.find(x=>x.id===b.dataset.open);if(a)window.open(a.url,'_blank','noopener');});
+  lw.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>removeAttachment(p.id,b.dataset.rm));
+  // 드롭존
+  dz.ondragover=e=>{e.preventDefault();dz.classList.add('over');};
+  dz.ondragleave=()=>dz.classList.remove('over');
+  dz.ondrop=e=>{e.preventDefault();dz.classList.remove('over');const fs=[...(e.dataTransfer.files||[])];if(fs.length)addOverviewFiles(p.id,fs);};
+  $('#ov_pick').onclick=()=>$('#ov_input').click();
+  $('#ov_input').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)addOverviewFiles(p.id,fs);};
+  const addL=()=>{const u=$('#ov_linkUrl').value;if(!u.trim())return;addOverviewLink(p.id,u);};
+  $('#ov_linkAdd').onclick=addL;
+  $('#ov_linkUrl').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addL();}};
+}
+/* 상세 모달 열림 + 다른 입력 모달 없음일 때 붙여넣기 → 제품 개요 자료로 추가 */
+document.addEventListener('paste',e=>{
+  const det=$('#detailOverlay');if(!det||!det.classList.contains('on'))return;
+  if(['testOverlay','captureOverlay','prodOverlay','docOverlay','priceOverlay','viewerOverlay'].some(id=>$('#'+id)&&$('#'+id).classList.contains('on')))return;
+  const p=cur();if(!p)return;
+  const items=(e.clipboardData&&e.clipboardData.items)||[];const fs=[];
+  for(const it of items){if(it.type&&(it.type.indexOf('image')===0||it.type==='application/pdf')){const f=it.getAsFile();if(f)fs.push(f);}}
+  if(fs.length){e.preventDefault();addOverviewFiles(p.id,fs);}
+});
 
 /* ---- makers (등록·선택) ---- */
 function addMaker(name){name=(name||'').trim();if(!name)return;if(!state.makers.includes(name)){state.makers.push(name);state.makers.sort((a,b)=>a.localeCompare(b,'ko'));save();}}

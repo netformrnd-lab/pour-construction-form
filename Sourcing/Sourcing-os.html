@@ -594,8 +594,21 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 </head>
 <body>
+
+<div id="loginGate" style="position:fixed;inset:0;z-index:200;background:var(--navy);display:none;align-items:center;justify-content:center;padding:24px">
+  <div style="width:100%;max-width:360px;background:#fff;border-radius:18px;padding:28px 24px;box-shadow:0 20px 48px rgba(0,0,0,.3)">
+    <h2 style="font-size:20px;font-weight:800;color:var(--navy);letter-spacing:-.02em">소싱관리 앱</h2>
+    <p style="font-size:13px;color:var(--muted);margin:6px 0 20px">단가·매출 보호를 위해 로그인 후 이용합니다.</p>
+    <div class="frow"><label>이메일</label><input type="email" id="lg_email" autocomplete="username" placeholder="앱 로그인 이메일"></div>
+    <div class="frow"><label>비밀번호</label><input type="password" id="lg_pw" autocomplete="current-password" placeholder="비밀번호"></div>
+    <label style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink2);font-weight:600;margin:4px 0 14px"><input type="checkbox" id="lg_keep" checked style="accent-color:var(--blue)">이 기기에서 1개월 로그인 유지</label>
+    <div id="lg_err" style="display:none;font-size:12.5px;color:var(--red);font-weight:700;margin-bottom:12px"></div>
+    <button id="lg_btn" class="save" style="width:100%;padding:13px;border-radius:12px;background:var(--blue);color:#fff;font-size:14px;font-weight:800;border:none">로그인</button>
+  </div>
+</div>
 
 <div class="top">
   <div class="top-in">
@@ -736,6 +749,9 @@
     <div class="mh">활동 여정</div>
     <div class="drawer-sub" style="padding:0 0 12px">제품·제조사 추가·수정·삭제 기록입니다. 삭제·수정·추가는 ‘되살리기/되돌리기’로 복구할 수 있어요.</div>
     <div id="actList"></div>
+    <div class="mh">계정</div>
+    <div id="lg_who" style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:10px"></div>
+    <button id="lg_logout" class="btn-ghost" style="width:100%">로그아웃</button>
   </div>
 </aside>
 
@@ -1057,13 +1073,16 @@ const store={
    동기화: 클라우드 우선 + 로컬 폴백 + onSnapshot 실시간. */
 const FB_CFG={apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",storageBucket:"pour-app-new.firebasestorage.app",messagingSenderId:"411031141847",appId:"1:411031141847:web:e658174fd4b9652cdadf92"};
 const CLOUD_ROOT='소싱-os';
-const FS_COLL='pour-os', FS_ID='sourcing-os-state';
+const FS_COLL='sourcing-os', FS_ID='state';          // 단가 잠금용 전용 컬렉션
+const FS_OLD_COLL='pour-os', FS_OLD_ID='sourcing-os-state'; // 기존 데이터(마이그레이션 원본)
 const CLIENT=Math.random().toString(36).slice(2);
-let fbStore=null, FS=null, fsDoc=null, cloudOK=false;
+const LOGIN_DAYS=30;
+let fbStore=null, FS=null, fsDoc=null, fsDocOld=null, FA=null, cloudOK=false, appStarted=false;
 try{ if(window.firebase&&firebase.apps&&!firebase.apps.length)firebase.initializeApp(FB_CFG); fbStore=firebase.storage(); }
 catch(e){ console.error('[cloud] Storage 초기화 실패:',e); fbStore=null; }
-try{ FS=firebase.firestore(); fsDoc=FS.collection(FS_COLL).doc(FS_ID); }
+try{ FS=firebase.firestore(); fsDoc=FS.collection(FS_COLL).doc(FS_ID); fsDocOld=FS.collection(FS_OLD_COLL).doc(FS_OLD_ID); }
 catch(e){ console.error('[cloud] Firestore 초기화 실패:',e); FS=null; fsDoc=null; }
+try{ FA=firebase.auth(); }catch(e){ console.error('[cloud] Auth 초기화 실패:',e); FA=null; }
 
 function setSync(txt,color){const t=document.getElementById('saveTxt');if(!t)return;t.textContent=txt;const dot=t.parentElement&&t.parentElement.querySelector('.dot');if(dot&&color)dot.style.background=color;}
 function flash(){
@@ -1136,11 +1155,13 @@ async function cloudLoadState(){
   if(!fsDoc)return null;
   try{
     const snap=await fsDoc.get();
-    if(!snap.exists){console.log('[cloud] Firestore 문서 없음(최초 실행)');return null;}
-    const data=snap.data();
-    console.log('[cloud] Firestore 로드:',(data.products||[]).length,'제품');
-    return data;
-  }catch(e){ console.error('[cloud] Firestore 로드 실패:',e);return null; }
+    if(snap.exists){const data=snap.data();console.log('[cloud] Firestore 로드:',(data.products||[]).length,'제품');return data;}
+  }catch(e){ console.error('[cloud] Firestore 로드 실패:',e); }
+  // 신규 경로에 없으면 기존(pour-os) 데이터 1회 마이그레이션
+  try{
+    if(fsDocOld){const old=await fsDocOld.get();if(old.exists){const d=old.data();console.log('[cloud] 기존 경로에서 마이그레이션:',(d.products||[]).length,'제품');return d;}}
+  }catch(e){ console.warn('[cloud] 기존 경로 읽기 실패(무시):',e&&(e.code||e.message)); }
+  console.log('[cloud] Firestore 문서 없음(최초 실행)');return null;
 }
 /* 실시간 동기화: 다른 기기 변경을 즉시 반영. 현재 기기의 화면/탭은 유지하고 데이터만 갱신. */
 let applyingRemote=false;
@@ -2908,7 +2929,53 @@ async function bootstrap(){
   }
   startRealtime(); // 다른 기기 변경 실시간 반영
 }
-bootstrap();
+
+/* ---- 로그인 게이트 (Firebase Auth · 1개월 유지) ---- */
+function showLogin(){const g=$('#loginGate');if(g)g.style.display='flex';document.body.style.overflow='hidden';}
+function hideLogin(){const g=$('#loginGate');if(g)g.style.display='none';document.body.style.overflow='';}
+function lgErr(msg){const e=$('#lg_err');if(!e)return;e.style.display='';e.textContent=msg;}
+function lgMap(code){
+  return ({'auth/invalid-email':'이메일 형식이 올바르지 않아요.',
+    'auth/user-not-found':'등록되지 않은 계정이에요. (콘솔에서 계정 생성 필요)',
+    'auth/wrong-password':'비밀번호가 틀렸어요.',
+    'auth/invalid-credential':'이메일 또는 비밀번호가 올바르지 않아요.',
+    'auth/too-many-requests':'시도가 많아 잠시 후 다시 해주세요.',
+    'auth/operation-not-allowed':'콘솔에서 이메일/비밀번호 로그인을 켜야 해요.',
+    'auth/network-request-failed':'네트워크 오류예요. 연결을 확인해주세요.'}[code])||('로그인 실패: '+code);
+}
+function doLogin(){
+  if(!FA){lgErr('인증 모듈을 불러오지 못했어요. 새로고침 해주세요.');return;}
+  const email=($('#lg_email').value||'').trim(), pw=$('#lg_pw').value||'';
+  if(!email||!pw){lgErr('이메일과 비밀번호를 입력하세요.');return;}
+  const keep=$('#lg_keep').checked;
+  const P=firebase.auth.Auth.Persistence;
+  const btn=$('#lg_btn');btn.disabled=true;btn.textContent='로그인 중…';
+  FA.setPersistence(keep?P.LOCAL:P.SESSION)
+    .then(()=>FA.signInWithEmailAndPassword(email,pw))
+    .then(()=>{localStorage.setItem('sos_loginAt',String(Date.now()));$('#lg_pw').value='';$('#lg_err').style.display='none';})
+    .catch(err=>{console.error('[auth] 로그인 실패:',err);lgErr(lgMap(err&&err.code));})
+    .finally(()=>{btn.disabled=false;btn.textContent='로그인';});
+}
+function logout(){localStorage.removeItem('sos_loginAt');if(FA)FA.signOut();}
+if(FA){
+  $('#lg_btn').onclick=doLogin;
+  $('#lg_pw').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();doLogin();}});
+  $('#lg_email').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#lg_pw').focus();}});
+  const lo=$('#lg_logout');if(lo)lo.onclick=()=>{if(confirm('로그아웃 할까요?'))logout();};
+  FA.onAuthStateChanged(user=>{
+    const who=$('#lg_who');if(who)who.textContent=user?('로그인: '+(user.email||'')):'';
+    if(user){
+      const t=Number(localStorage.getItem('sos_loginAt')||0);
+      if(t&&Date.now()-t>LOGIN_DAYS*864e5){logout();showLogin();return;} // 1개월 경과 → 재로그인
+      if(!t)localStorage.setItem('sos_loginAt',String(Date.now()));
+      hideLogin();
+      if(!appStarted){appStarted=true;bootstrap();}
+    }else{ showLogin(); }
+  });
+}else{
+  // 인증 모듈 없으면(오프라인 등) 게이트 없이 로컬로 동작
+  bootstrap();
+}
 </script>
 </body>
 </html>

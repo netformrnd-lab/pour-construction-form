@@ -692,7 +692,7 @@
       <div class="xlsx-msg" id="xlsxMsg"></div>
     </div>
     <div class="mh">활동 여정</div>
-    <div class="drawer-sub" style="padding:0 0 12px">제품 추가·수정·삭제 기록입니다. 삭제·수정은 ‘되살리기’로 복구할 수 있어요.</div>
+    <div class="drawer-sub" style="padding:0 0 12px">제품·제조사 추가·수정·삭제 기록입니다. 삭제·수정·추가는 ‘되살리기/되돌리기’로 복구할 수 있어요.</div>
     <div id="actList"></div>
   </div>
 </aside>
@@ -1646,7 +1646,7 @@ function renderMakerList(){
     }).join('')+'</div>';
   }
   root.innerHTML=html;
-  $('#mk_add2').onclick=()=>{const v=$('#mk_new2').value.trim();if(!v)return;addMaker(v);renderMakerList();};
+  $('#mk_add2').onclick=()=>{const v=$('#mk_new2').value.trim();if(!v)return;const isNew=!state.makers.includes(v);addMaker(v);if(isNew){logMaker('add',v);save();}renderMakerList();};
   $('#mk_new2').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#mk_add2').click();}});
   root.querySelectorAll('.mk-card').forEach(c=>c.onclick=()=>{makerSel=c.dataset.maker;renderMakerList();window.scrollTo(0,0);});
 }
@@ -1687,7 +1687,7 @@ function renderMakerDetail(root,name){
   html+=meets.length?('<div class="meetlist">'+meets.map(m=>`<div class="meet"><div class="meet-h"><span class="meet-date">${esc(m.date||'')}</span><button class="meet-del" data-mid="${m.id}">삭제</button></div><div class="meet-title">${esc(m.title||'(제목 없음)')}</div>${m.note?`<div class="meet-note">${esc(m.note)}</div>`:''}</div>`).join('')+'</div>'):'<div class="tempty">아직 미팅 기록이 없어요.</div>';
   root.innerHTML=html;
   $('#mkBack').onclick=()=>{makerSel=null;renderMakerList();window.scrollTo(0,0);};
-  $('#mkDel').onclick=()=>{if(!confirm('"'+name+'" 제조사를 목록에서 삭제할까요?\n(제품의 제조사명·미팅 기록은 유지됩니다)'))return;state.makers=state.makers.filter(x=>x!==name);save();makerSel=null;renderMakerList();};
+  $('#mkDel').onclick=()=>{if(!confirm('"'+name+'" 제조사를 목록에서 삭제할까요?\n(제품의 제조사명·미팅 기록은 유지됩니다)'))return;state.makers=state.makers.filter(x=>x!==name);logMaker('delete',name);save();makerSel=null;renderMakerList();};
   root.querySelectorAll('.mp-card').forEach(c=>c.onclick=()=>{state.sel=c.dataset.pid;save();switchTab('products');});
   $('#mt_date').value=today();
   $('#mt_add').onclick=()=>{
@@ -2034,6 +2034,10 @@ function logAct(type,p,snap){
   state.activity.unshift({id:uid(),type,pid:p?p.id:null,name:p?dn(p):'',date:today(),ts:Date.now(),snap:snap?JSON.parse(JSON.stringify(snap)):null});
   if(state.activity.length>200)state.activity.length=200;
 }
+function logMaker(type,name,makers){
+  state.activity.unshift({id:uid(),type,kind:'maker',name:(makers?`제조사 일괄등록 ${makers.length}곳`:name+' (제조사)'),date:today(),ts:Date.now(),maker:name||null,makers:makers||null});
+  if(state.activity.length>200)state.activity.length=200;
+}
 function renderActivity(){
   const el=$('#actList');if(!el)return;
   if(!state.activity.length){el.innerHTML='<div class="tempty" style="margin-top:18px">아직 활동 기록이 없어요.</div>';return;}
@@ -2043,12 +2047,29 @@ function renderActivity(){
     if(a.type==='delete')undo=a.restored?'<button class="act-undo done" disabled>되살림</button>':`<button class="act-undo" data-undo="${a.id}">되살리기</button>`;
     else if(a.type==='edit'&&a.snap)undo=a.reverted?'<button class="act-undo done" disabled>되돌림</button>':`<button class="act-undo" data-undo="${a.id}">되돌리기</button>`;
     else if(a.type==='bulkadd')undo=a.reverted?'<button class="act-undo done" disabled>되돌림</button>':`<button class="act-undo" data-undo="${a.id}">되돌리기</button>`;
+    else if(a.type==='add'&&a.kind==='maker')undo=a.reverted?'<button class="act-undo done" disabled>되돌림</button>':`<button class="act-undo" data-undo="${a.id}">되돌리기</button>`;
     return `<div class="act"><div class="act-ic ${a.type==='bulkadd'?'add':a.type}">${IC[a.type]||'·'}</div><div class="act-main"><div class="act-name">${esc(a.name||'(제품)')}</div><div class="act-meta">${LBL[a.type]||a.type} · ${a.date}</div></div>${undo}</div>`;
   }).join('');
   el.querySelectorAll('.act-undo[data-undo]').forEach(b=>b.onclick=()=>undoAct(b.dataset.undo));
 }
 function undoAct(aid){
   const a=state.activity.find(x=>x.id===aid);if(!a)return;
+  if(a.kind==='maker'){
+    if(a.type==='delete'){
+      if(a.maker&&!state.makers.includes(a.maker))state.makers.push(a.maker);
+      state.makers.sort((x,y)=>x.localeCompare(y,'ko'));a.restored=true;
+      state.activity.unshift({id:uid(),type:'restore',kind:'maker',name:a.name,date:today(),ts:Date.now()});
+    }else if(a.type==='add'){
+      if(a.maker)state.makers=state.makers.filter(x=>x!==a.maker);
+      a.reverted=true;
+      state.activity.unshift({id:uid(),type:'restore',kind:'maker',name:'제조사 추가 취소 · '+(a.maker||''),date:today(),ts:Date.now()});
+    }else if(a.type==='bulkadd'&&a.makers){
+      state.makers=state.makers.filter(x=>!a.makers.includes(x));
+      a.reverted=true;
+      state.activity.unshift({id:uid(),type:'restore',kind:'maker',name:`제조사 일괄등록 ${a.makers.length}곳 취소`,date:today(),ts:Date.now()});
+    }else return;
+    save();render();if(state.tab==='makers'){makerSel=null;renderMakerList();}renderActivity();return;
+  }
   if(a.type==='bulkadd'&&a.ids){
     state.products=state.products.filter(p=>!a.ids.includes(p.id));
     if(!state.products.some(p=>p.id===state.sel))state.sel=state.products[0]?state.products[0].id:null;
@@ -2125,8 +2146,9 @@ function readRows(file,cb){
 function importMakers(rows){
   if(!rows.length){flagMsg('데이터가 없어요.','err');return;}
   let head=rows[0].map(x=>String(x).trim());const start=head[0]&&head[0].includes('제조사')?1:0;
-  let added=0;for(let i=start;i<rows.length;i++){const n=String(rows[i][0]||'').trim();if(!n)continue;if(!state.makers.includes(n)){addMaker(n);added++;}}
-  save();render();if(state.tab==='makers')renderMakerList();flagMsg(`제조사 ${added}곳 등록 완료.`,'ok');
+  let added=0;const addedNames=[];for(let i=start;i<rows.length;i++){const n=String(rows[i][0]||'').trim();if(!n)continue;if(!state.makers.includes(n)){addMaker(n);added++;addedNames.push(n);}}
+  if(added)logMaker('bulkadd',null,addedNames);
+  save();render();if(state.tab==='makers')renderMakerList();renderActivity();flagMsg(`제조사 ${added}곳 등록 완료.`,'ok');
 }
 function importProducts(rows){
   if(rows.length<2){flagMsg('데이터가 없어요. 양식을 확인해주세요.','err');return;}

@@ -567,6 +567,15 @@
   .rp-mk{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;font-size:12.5px}
   .rp-mk .nm{font-weight:700;color:var(--ink)} .rp-mk .mt{color:var(--muted);font-weight:600}
   .rp-note{font-size:11px;color:var(--muted);margin-top:7px;line-height:1.5}
+  .ovwrap{display:flex;gap:16px;flex-wrap:wrap}
+  .ovleft{flex:1 1 250px;min-width:0} .ovright{flex:1 1 200px;min-width:0}
+  .ovsub{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px}
+  .note-legacy{font-size:12.5px;color:var(--ink2);background:var(--cream);border:1px solid var(--border);border-radius:10px;padding:9px 11px;margin-bottom:8px;white-space:pre-wrap;line-height:1.5}
+  .noteitem{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:9px 11px;margin-bottom:7px}
+  .noteitem .nt{font-size:13px;color:var(--ink);line-height:1.5;white-space:pre-wrap;word-break:break-word}
+  .noteitem .nm{display:flex;align-items:center;justify-content:space-between;margin-top:6px;gap:8px}
+  .noteitem .nd{font-size:11px;color:var(--muted);font-weight:700}
+  .noteitem .nx{font-size:11px;color:var(--red);font-weight:700;padding:2px 6px;flex:0 0 auto}
   .selbox{width:20px;height:20px;border-radius:6px;border:2px solid var(--border2);background:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;flex:0 0 auto}
   .selbox.on{background:var(--blue);border-color:var(--blue)}
   .jcard.selon,.lrow.selon{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue) inset}
@@ -725,7 +734,12 @@
 <div class="overlay" id="reportOverlay">
   <div class="modal" style="max-width:640px">
     <h3 id="rp_title">이번달 진행 보고</h3>
-    <div class="msub">테스트·제조사·출시 진행 현황 요약입니다. 아래 “보고서 복사”로 그대로 공유하세요.</div>
+    <div class="msub">보기 형식을 골라 확인하고, 아래 “보고서 복사”로 그대로 공유하세요.</div>
+    <div class="subseg" id="rp_seg">
+      <button type="button" data-rv="progress">진행현황</button>
+      <button type="button" data-rv="tests">테스트</button>
+      <button type="button" data-rv="revenue">제조사 매출</button>
+    </div>
     <div id="rp_body"></div>
     <div class="mh">복사용 텍스트</div>
     <textarea id="rp_text" class="memo-edit" style="min-height:150px" readonly></textarea>
@@ -1104,6 +1118,7 @@ const $=s=>document.querySelector(s);
 const STAGES=['후보','샘플','테스트','협의','발주준비','출시완료'];
 const CERT_SUGG=['시험성적서','친환경(HB)','KS인증','방수성능','부착강도','VOC저감','벤처나라 등록'];
 const today=()=>new Date().toISOString().slice(0,10);
+const fmtDT=ts=>{if(!ts)return '';const d=new Date(ts);if(isNaN(d))return '';const p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;};
 
 let state=store.read()||{products:[],sel:null};
 function normalizeState(){
@@ -1117,7 +1132,7 @@ function normalizeState(){
   if(!state.adminSub)state.adminSub='makers';
   if(!state.meetings)state.meetings=[];
   if(!state.activity)state.activity=[];
-  state.products.forEach(p=>{if(!p.tests)p.tests=[];if(!p.certs)p.certs=[];if(!p.fill)p.fill=[];if(!p.docs)p.docs=[];if(!p.attachments)p.attachments=[];if(p.fav===undefined)p.fav=false;if(!p.type)p.type='단품';if(p.concept===undefined)p.concept='';if(p.spec===undefined)p.spec='';if(!p.sample)p.sample='대기';if(p.memo===undefined)p.memo='';if(p.goods===undefined)p.goods='';if(!p.history)p.history=[];if(!p.bundle)p.bundle=[];if(p.baseId===undefined)p.baseId='';if(p.stage==='완료')p.stage='출시완료';if(p.pricing&&Array.isArray(p.pricing.colors))p.pricing.colors=p.pricing.colors.map(c=>typeof c==='string'?{name:c,moq:0}:{name:(c&&c.name)||'',moq:Number(c&&c.moq)||0}).filter(c=>c.name);(p.tests||[]).forEach(t=>{if(!t.photos)t.photos=[];});if(p.maker&&!state.makers.includes(p.maker))state.makers.push(p.maker);});
+  state.products.forEach(p=>{if(!p.tests)p.tests=[];if(!p.certs)p.certs=[];if(!p.fill)p.fill=[];if(!p.docs)p.docs=[];if(!p.attachments)p.attachments=[];if(!p.notes)p.notes=[];if(p.fav===undefined)p.fav=false;if(!p.type)p.type='단품';if(p.concept===undefined)p.concept='';if(p.spec===undefined)p.spec='';if(!p.sample)p.sample='대기';if(p.memo===undefined)p.memo='';if(p.goods===undefined)p.goods='';if(!p.history)p.history=[];if(!p.bundle)p.bundle=[];if(p.baseId===undefined)p.baseId='';if(p.stage==='완료')p.stage='출시완료';if(p.pricing&&Array.isArray(p.pricing.colors))p.pricing.colors=p.pricing.colors.map(c=>typeof c==='string'?{name:c,moq:0}:{name:(c&&c.name)||'',moq:Number(c&&c.moq)||0}).filter(c=>c.name);(p.tests||[]).forEach(t=>{if(!t.photos)t.photos=[];});if(p.maker&&!state.makers.includes(p.maker))state.makers.push(p.maker);});
   state.makers.sort((a,b)=>a.localeCompare(b,'ko'));
 }
 normalizeState();
@@ -1432,24 +1447,32 @@ function renderMain(){
 
     <div class="sec">
       <div class="sec-h"><div class="t">제품 개요</div><button class="mini" id="editOv">수정</button></div>
-      <div class="kv">
-        <div class="full"><div class="k">컨셉</div>${val(p.concept)}</div>
-        <div class="full"><div class="k">제품 스펙</div>${val(p.spec)}</div>
-        <div><div class="k">샘플 수령</div>${val(p.sample||'대기')}</div>
-        <div><div class="k">유형</div>${val(p.type||'단품')}</div>
-      </div>
-      <div style="margin-top:16px">
-        <div class="k" style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px">제품 자료 <span style="font-weight:600">· 카탈로그(PDF·사진) · 링크</span></div>
-        <div class="dropzone" id="ov_drop">
-          <input type="file" id="ov_input" accept="image/*,application/pdf" multiple hidden>
-          <div class="dz-hint">카탈로그(PDF)·사진을 끌어다 놓거나 <b>붙여넣기(Ctrl+V)</b> · <button type="button" id="ov_pick" class="dz-pick">파일 선택</button></div>
-          <div class="dz-thumbs" id="ov_thumbs"></div>
+      <div class="ovwrap">
+        <div class="ovleft">
+          <div class="ovsub">제품 자료 · 카탈로그(PDF·사진) · 링크</div>
+          <div class="dropzone" id="ov_drop">
+            <input type="file" id="ov_input" accept="image/*,application/pdf" multiple hidden>
+            <div class="dz-hint">카탈로그(PDF)·사진을 끌어다 놓거나 <b>붙여넣기(Ctrl+V)</b> · <button type="button" id="ov_pick" class="dz-pick">파일 선택</button></div>
+            <div class="dz-thumbs" id="ov_thumbs"></div>
+          </div>
+          <div class="mkrow" style="margin-top:10px">
+            <input type="text" id="ov_linkUrl" placeholder="상품 관련 링크(URL) 붙여넣기">
+            <button type="button" id="ov_linkAdd">링크 추가</button>
+          </div>
+          <div id="ov_links" style="margin-top:10px"></div>
+          <div class="ovsub" style="margin-top:16px">제품 메모 · 댓글(일자·시간 자동)</div>
+          ${p.memo?`<div class="note-legacy">이전 메모: ${esc(p.memo)}</div>`:''}
+          <div id="ov_notes"></div>
+          <div class="mkrow" style="margin-top:8px"><input type="text" id="ov_noteInput" placeholder="메모 입력 후 추가 (Enter)"><button type="button" id="ov_noteAdd">추가</button></div>
         </div>
-        <div class="mkrow" style="margin-top:10px">
-          <input type="text" id="ov_linkUrl" placeholder="상품 관련 링크(URL) 붙여넣기">
-          <button type="button" id="ov_linkAdd">링크 추가</button>
+        <div class="ovright">
+          <div class="k">컨셉</div>${val(p.concept)}
+          <div class="k" style="margin-top:11px">제품 스펙</div>${val(p.spec)}
+          <div style="display:flex;gap:20px;margin-top:11px">
+            <div><div class="k">샘플 수령</div>${val(p.sample||'대기')}</div>
+            <div><div class="k">유형</div>${val(p.type||'단품')}</div>
+          </div>
         </div>
-        <div id="ov_links" style="margin-top:10px"></div>
       </div>
     </div>
 
@@ -1505,11 +1528,6 @@ function renderMain(){
         <div><div class="k">IBC탱크 회수</div>${val(p.ibc)}</div>
         <div><div class="k">스티커 라벨</div>${val(p.label)}</div>
       </div>
-    </div>
-
-    <div class="sec">
-      <div class="sec-h"><div class="t">제품 메모</div></div>
-      <textarea class="memo-edit" id="p_memoInline" placeholder="협의 포인트·이슈·아이디어 등 자유롭게 — 입력하면 자동 저장돼요">${esc(p.memo||'')}</textarea>
     </div>`;
 
   $('#editProd').onclick=()=>openProd(p.id);
@@ -1522,7 +1540,6 @@ function renderMain(){
   const eb=$('#editBundle');if(eb)eb.onclick=()=>openProd(p.id);
   const ad=$('#addDeriv');if(ad)ad.onclick=()=>derivAdd(p.id);
   document.querySelectorAll('#main .bcomp').forEach(b=>b.onclick=()=>openDetail(b.dataset.pid));
-  const mi=$('#p_memoInline');if(mi)mi.addEventListener('input',()=>{p.memo=mi.value;save();});
   // price body
   const pb=$('#priceBody');
   if(p.pricing&&p.pricing.sell){
@@ -1552,7 +1569,7 @@ function renderMain(){
       it.innerHTML=`<div class="tr1"><span class="tt">${esc(t.title)}</span><span class="rbadge ${r}">${r}</span></div>
         <div class="tmemo ${t.memo?'':'empty'}">${t.memo?esc(t.memo):'결과 메모 없음 — 눌러서 작성'}</div>
         ${phs.length?'<div class="tthumbs">'+phs.map(ph=>`<div class="thumb"><img src="${ph.url||ph.data}"></div>`).join('')+'</div>':''}
-        <div class="tdate" style="margin-top:7px">${esc(t.date||'')}</div>`;
+        <div class="tdate" style="margin-top:7px">🕒 ${esc(t.ts?fmtDT(t.ts):(t.date||''))}</div>`;
       it.querySelectorAll('.tthumbs img').forEach((im,idx)=>im.onclick=e=>{e.stopPropagation();openLightbox(phs[idx].url||phs[idx].data);});
       it.onclick=()=>openTest(t.id);
       list.appendChild(it);
@@ -1579,7 +1596,7 @@ function renderMain(){
 function quickTest(){
   const p=cur();if(!p)return;
   const v=$('#t_quick').value.trim();if(!v){$('#t_quick').focus();return;}
-  p.tests.push({id:uid(),title:v,result:'진행중',memo:'',date:today(),photos:[]});
+  p.tests.push({id:uid(),title:v,result:'진행중',memo:'',date:today(),ts:Date.now(),photos:[]});
   save();render();
 }
 
@@ -1693,6 +1710,7 @@ $('#t_save').onclick=async()=>{
     const photos=await ensurePhotos(p.id,tmpPhotos.slice());
     const t=p.tests.find(t=>t.id===editingTest);if(!t)return;
     Object.assign(t,{title,result:$('#t_result').value,date:$('#t_date').value||today(),memo:$('#t_memo').value.trim(),photos});
+    if(!t.ts)t.ts=Date.now();
     save();closeOverlay();render();
   }finally{btn.disabled=false;btn.textContent=lbl;}
 };
@@ -1900,7 +1918,17 @@ function wireOverviewAttach(p){
   const addL=()=>{const u=$('#ov_linkUrl').value;if(!u.trim())return;addOverviewLink(p.id,u);};
   $('#ov_linkAdd').onclick=addL;
   $('#ov_linkUrl').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addL();}};
+  // 제품 메모(댓글)
+  const nw=$('#ov_notes');
+  const notes=(p.notes||[]).slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
+  nw.innerHTML=notes.length?notes.map(n=>`<div class="noteitem"><div class="nt">${esc(n.text)}</div><div class="nm"><span class="nd">${fmtDT(n.ts)}</span><button class="nx" data-noterm="${n.id}">삭제</button></div></div>`).join(''):'<div class="tempty" style="text-align:left;padding:4px 2px">아직 메모가 없어요.</div>';
+  nw.querySelectorAll('[data-noterm]').forEach(b=>b.onclick=()=>removeNote(p.id,b.dataset.noterm));
+  const addN=()=>{const v=$('#ov_noteInput').value.trim();if(!v)return;$('#ov_noteInput').value='';addNote(p.id,v);};
+  $('#ov_noteAdd').onclick=addN;
+  $('#ov_noteInput').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addN();}};
 }
+function addNote(pid,text){const p=state.products.find(x=>x.id===pid);if(!p)return;(p.notes=p.notes||[]).push({id:uid(),text,ts:Date.now()});save();renderMain();}
+function removeNote(pid,id){const p=state.products.find(x=>x.id===pid);if(!p)return;if(!confirm('이 메모를 삭제할까요?'))return;p.notes=(p.notes||[]).filter(n=>n.id!==id);save();renderMain();}
 /* 상세 모달 열림 + 다른 입력 모달 없음일 때 붙여넣기 → 제품 개요 자료로 추가 */
 document.addEventListener('paste',e=>{
   const det=$('#detailOverlay');if(!det||!det.classList.contains('on'))return;
@@ -2253,7 +2281,7 @@ $('#cap_save').onclick=async()=>{
   const btn=$('#cap_save');btn.disabled=true;const lbl=btn.textContent;btn.textContent='저장 중…';
   try{
     const photos=await ensurePhotos(p.id,capPhotos.slice());
-    p.tests.push({id:uid(),title,result:$('#cap_result').value,memo:$('#cap_memo').value.trim(),date:$('#cap_date').value||today(),photos});
+    p.tests.push({id:uid(),title,result:$('#cap_result').value,memo:$('#cap_memo').value.trim(),date:$('#cap_date').value||today(),ts:Date.now(),photos});
     state.sel=p.id;capPhotos=[];save();closeOverlay();switchTab('products');
   }finally{btn.disabled=false;btn.textContent=lbl;}
 };
@@ -2311,7 +2339,19 @@ function readiness(p){
   const done=items.filter(i=>i[1]).length;
   return {done,total:items.length,pct:Math.round(done/items.length*100),missing:items.filter(i=>!i[1]).map(i=>i[0])};
 }
-function report(){
+let reportView='progress';
+function report(){ openOverlay('reportOverlay'); renderReport(); }
+function renderReport(){
+  const v=reportView;
+  const r=(v==='tests')?reportTests():(v==='revenue')?reportRevenue():reportProgress();
+  $('#rp_title').textContent=r.title;
+  $('#rp_body').innerHTML=r.html;
+  $('#rp_text').value=r.text;
+  segSet('#rp_seg','rv',v);
+}
+document.querySelectorAll('#rp_seg button').forEach(b=>b.onclick=()=>{reportView=b.dataset.rv;renderReport();});
+/* ── 보기1: 진행현황 ── */
+function reportProgress(){
   const ym=curYM(),y=ym.slice(0,4),mo=Number(ym.slice(5)),prods=state.products;
   const dist={};STAGES.forEach(s=>dist[s]=0);
   prods.forEach(p=>{dist[STAGES.includes(p.stage)?p.stage:'후보']++;});
@@ -2367,11 +2407,61 @@ function report(){
   T.push(`블로커: 판매가 미설정 ${noPrice} · 인증 확인중 ${certChk} · 샘플 대기 ${sampWait} · 서류 미수령 ${noDoc}`);
   T.push(`[제품별 준비도]`);
   withR.forEach(({p,r})=>T.push(` - ${dn(p)} [${p.stage||'후보'}] ${r.pct}%`+(r.missing.length?` · 남은것: ${r.missing.join(', ')}`:` · 준비완료`)));
-
-  $('#rp_title').textContent=`이번달 진행 보고 · ${y}년 ${mo}월`;
-  $('#rp_body').innerHTML=html;
-  $('#rp_text').value=T.join('\n');
-  openOverlay('reportOverlay');
+  return {title:`이번달 진행 보고 · ${y}년 ${mo}월`, html, text:T.join('\n')};
+}
+/* ── 보기2: 테스트 기준 ── */
+function reportTests(){
+  const ym=curYM(),y=ym.slice(0,4),mo=Number(ym.slice(5)),prods=state.products;
+  const tym=t=>t.ts?fmtDT(t.ts).slice(0,7):(t.date||'').slice(0,7);
+  const all=[];prods.forEach(p=>(p.tests||[]).forEach(t=>all.push({p,t})));
+  const cnt=r=>all.filter(x=>(x.t.result||'진행중')===r).length;
+  const pass=cnt('합격'),hold=cnt('보류'),fail=cnt('실패'),prog=cnt('진행중');
+  const monthList=all.filter(({t})=>tym(t)===ym).sort((a,b)=>(b.t.ts||0)-(a.t.ts||0));
+  const rows=prods.map(p=>{const ts=p.tests||[];const last=ts.slice().sort((a,b)=>(b.ts||0)-(a.ts||0))[0];return {p,n:ts.length,done:ts.filter(t=>t.result&&t.result!=='진행중').length,pass:ts.filter(t=>t.result==='합격').length,fail:ts.filter(t=>t.result==='실패').length,last};}).sort((a,b)=>b.n-a.n);
+  const noTest=prods.filter(p=>!(p.tests||[]).length);
+  const RC={'합격':'var(--green)','보류':'var(--amber)','실패':'var(--red)','진행중':'var(--muted)'};
+  let html=`<div class="rp-sum"><div class="lbl">테스트 요약 · ${y}년 ${mo}월</div><div class="rp-sum-grid">
+    <div class="rp-cell"><div class="k">전체 테스트</div><div class="v">${all.length}<small>건</small></div></div>
+    <div class="rp-cell"><div class="k">이번달 테스트</div><div class="v b">${monthList.length}<small>건</small></div></div>
+    <div class="rp-cell"><div class="k">합격</div><div class="v">${pass}<small>건</small></div></div>
+    <div class="rp-cell"><div class="k">보류</div><div class="v">${hold}<small>건</small></div></div>
+    <div class="rp-cell"><div class="k">실패</div><div class="v">${fail}<small>건</small></div></div>
+    <div class="rp-cell"><div class="k">진행중</div><div class="v">${prog}<small>건</small></div></div>
+  </div></div>`;
+  html+=`<div class="rp-sec-h">제품별 테스트 현황</div>`;
+  html+=rows.map(({p,n,done,pass,fail,last})=>`<div class="rp-rcard"><div class="rp-rtop"><div class="rp-rname">${esc(dn(p))}</div><div class="rp-rright"><span class="rp-rstage">${esc(p.stage||'후보')}</span><span class="rp-rpct">${n}건</span></div></div><div class="rp-rmiss">${n?`완료 ${done} · <span class="ok">합격 ${pass}</span> · 실패 ${fail}${last?` · 최근 ${esc(last.ts?fmtDT(last.ts):(last.date||''))}`:''}`:'<b>테스트 미실시</b>'}</div></div>`).join('');
+  html+=`<div class="rp-sec-h">이번달 테스트 타임라인</div>`;
+  html+=monthList.length?monthList.map(({p,t})=>{const r=t.result||'진행중';return `<div class="rp-rcard"><div class="rp-rtop"><div class="rp-rname">${esc(t.title||'(제목 없음)')}</div><div class="rp-rright"><span class="rp-rstage" style="background:transparent;color:${RC[r]}">${r}</span></div></div><div class="rp-rmiss">${esc(dn(p))} · 🕒 ${esc(t.ts?fmtDT(t.ts):(t.date||''))}${t.memo?' · '+esc(t.memo):''}</div></div>`;}).join(''):'<div class="tempty">이번달 등록된 테스트가 없어요.</div>';
+  if(noTest.length)html+=`<div class="rp-sec-h">테스트 미실시</div><div class="rp-chips">`+noTest.map(p=>`<span class="rp-chip">${esc(dn(p))}</span>`).join('')+`</div>`;
+  html+=`<div class="rp-note">※ 테스트 일시는 등록 시 자동 기록된 시간 기준입니다.</div>`;
+  const T=[];T.push(`[소싱 테스트 보고] ${y}년 ${mo}월`);
+  T.push(`전체 테스트 ${all.length}건 · 이번달 ${monthList.length}건 · 합격 ${pass}/보류 ${hold}/실패 ${fail}/진행중 ${prog}`);
+  T.push(`[제품별]`);rows.forEach(({p,n,done,pass,fail})=>T.push(` - ${dn(p)}: ${n}건 (완료 ${done}/합격 ${pass}/실패 ${fail})`));
+  if(monthList.length){T.push(`[이번달 테스트]`);monthList.forEach(({p,t})=>T.push(` - ${t.ts?fmtDT(t.ts):(t.date||'')} ${dn(p)} · ${t.title} [${t.result||'진행중'}]`));}
+  return {title:`테스트 보고 · ${y}년 ${mo}월`, html, text:T.join('\n')};
+}
+/* ── 보기3: 제조사별 진행단계 예상매출·순이익 ── */
+function reportRevenue(){
+  const prods=state.products;
+  const makers=Array.from(new Set([...state.makers,...prods.map(p=>p.maker).filter(Boolean)])).filter(n=>makerProducts(n).length);
+  const STAT=['진행 전','진행 중','완료'];
+  const calcFor=list=>{let rev=0,profit=0,n=0;list.forEach(p=>{if(p.pricing&&p.pricing.sell){const c=calcPricing(p);rev+=c.sell*c.totalQty;profit+=c.nTotal;n++;}});return{rev,profit,n};};
+  const tot={'진행 전':{rev:0,profit:0,n:0},'진행 중':{rev:0,profit:0,n:0},'완료':{rev:0,profit:0,n:0}};
+  let html=`<div class="rp-note" style="margin:2px 0 12px">예상 매출 = 판매가 × 총 발주수량(옵션별 MOQ 합) · 순이익 = 개당순익 × 수량. 판매가 설정된 제품만 집계.</div>`;
+  makers.forEach(n=>{
+    const ps=makerProducts(n);
+    const cells=STAT.map(s=>{const r=calcFor(ps.filter(p=>STATUS[statusIdx(p)]===s));tot[s].rev+=r.rev;tot[s].profit+=r.profit;tot[s].n+=r.n;return {s,r};});
+    html+=`<div class="rp-rcard"><div class="rp-rtop"><div class="rp-rname">${esc(n)}</div><div class="rp-rright"><span class="rp-rstage">제품 ${ps.length}</span></div></div>`;
+    html+=cells.map(({s,r})=>`<div style="display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:4px 0;border-top:1px solid var(--border)"><span style="color:var(--ink2);font-weight:700">${s} <span style="color:var(--muted);font-weight:600">${r.n}종</span></span><span style="text-align:right">매출 <b>${won(r.rev)}</b> · 순익 <b style="color:var(--green)">${won(r.profit)}</b></span></div>`).join('');
+    html+=`</div>`;
+  });
+  if(!makers.length)html+='<div class="tempty">집계할 제조사가 없어요.</div>';
+  html+=`<div class="rp-sum" style="margin-top:8px"><div class="lbl">전체 합계</div>`+STAT.map(s=>`<div style="display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:6px 0;border-top:1px solid rgba(255,255,255,.1)"><span style="color:#aeb6bf;font-weight:700">${s} <span style="color:#8a929b">${tot[s].n}종</span></span><span style="text-align:right;color:#fff">매출 <b>${won(tot[s].rev)}</b> · 순익 <b style="color:#6ee7a8">${won(tot[s].profit)}</b></span></div>`).join('')+`</div>`;
+  html+=`<div class="rp-note">※ ‘완료(판매중)’ 실매출은 어드민센터 판매데이터 연동 예정입니다. 현재는 앱에 입력된 판매가 기준 추정치예요.</div>`;
+  const T=[];T.push(`[제조사별 예상매출·순이익]`);
+  makers.forEach(n=>{const ps=makerProducts(n);T.push(`■ ${n} (제품 ${ps.length})`);STAT.forEach(s=>{const r=calcFor(ps.filter(p=>STATUS[statusIdx(p)]===s));T.push(`  - ${s}: 매출 ${won(r.rev)} · 순익 ${won(r.profit)} (${r.n}종)`);});});
+  T.push(`[합계]`);STAT.forEach(s=>T.push(` - ${s}: 매출 ${won(tot[s].rev)} · 순익 ${won(tot[s].profit)}`));
+  return {title:'제조사별 예상매출 보고', html, text:T.join('\n')};
 }
 $('#openReport').onclick=report;
 $('#rp_copy').onclick=async function(){

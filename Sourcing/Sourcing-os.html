@@ -567,6 +567,12 @@
   .rp-mk{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;font-size:12.5px}
   .rp-mk .nm{font-weight:700;color:var(--ink)} .rp-mk .mt{color:var(--muted);font-weight:600}
   .rp-note{font-size:11px;color:var(--muted);margin-top:7px;line-height:1.5}
+  .rtrec{border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-top:8px;border-left:3px solid var(--border2)}
+  .rtrec.합격{border-left-color:var(--green)} .rtrec.보류{border-left-color:var(--amber)} .rtrec.실패{border-left-color:var(--red)} .rtrec.진행중{border-left-color:var(--muted)}
+  .rtr-top{display:flex;justify-content:space-between;gap:8px;align-items:center}
+  .rtr-title{font-size:13px;font-weight:700;color:var(--ink);line-height:1.35}
+  .rtr-meta{font-size:11px;color:var(--muted);font-weight:600;margin-top:4px}
+  .rtr-memo{font-size:12.5px;color:var(--ink2);line-height:1.5;margin-top:5px;white-space:pre-wrap;word-break:break-word}
   .ovwrap{display:flex;gap:16px;flex-wrap:wrap}
   .ovleft{flex:1 1 250px;min-width:0} .ovright{flex:1 1 200px;min-width:0}
   .ovright .k{font-size:10.5px;margin-bottom:2px} .ovright .v{font-size:12.5px;line-height:1.45}
@@ -2360,6 +2366,7 @@ function renderReport(){
   $('#rp_body').innerHTML=r.html;
   $('#rp_text').value=r.text;
   segSet('#rp_seg','rv',v);
+  $('#rp_body').querySelectorAll('img[data-full]').forEach(im=>im.onclick=()=>openLightbox(im.dataset.full));
 }
 document.querySelectorAll('#rp_seg button').forEach(b=>b.onclick=()=>{reportView=b.dataset.rv;renderReport();});
 /* ── 보기1: 진행현황 ── */
@@ -2440,10 +2447,17 @@ function reportTests(){
     <div class="rp-cell"><div class="k">실패</div><div class="v">${fail}<small>건</small></div></div>
     <div class="rp-cell"><div class="k">진행중</div><div class="v">${prog}<small>건</small></div></div>
   </div></div>`;
-  html+=`<div class="rp-sec-h">제품별 테스트 현황</div>`;
-  html+=rows.map(({p,n,done,pass,fail,last})=>`<div class="rp-rcard"><div class="rp-rtop"><div class="rp-rname">${esc(dn(p))}</div><div class="rp-rright"><span class="rp-rstage">${esc(p.stage||'후보')}</span><span class="rp-rpct">${n}건</span></div></div><div class="rp-rmiss">${n?`완료 ${done} · <span class="ok">합격 ${pass}</span> · 실패 ${fail}${last?` · 최근 ${esc(last.ts?fmtDT(last.ts):(last.date||''))}`:''}`:'<b>테스트 미실시</b>'}</div></div>`).join('');
-  html+=`<div class="rp-sec-h">이번달 테스트 타임라인</div>`;
-  html+=monthList.length?monthList.map(({p,t})=>{const r=t.result||'진행중';return `<div class="rp-rcard"><div class="rp-rtop"><div class="rp-rname">${esc(t.title||'(제목 없음)')}</div><div class="rp-rright"><span class="rp-rstage" style="background:transparent;color:${RC[r]}">${r}</span></div></div><div class="rp-rmiss">${esc(dn(p))} · 🕒 ${esc(t.ts?fmtDT(t.ts):(t.date||''))}${t.memo?' · '+esc(t.memo):''}</div></div>`;}).join(''):'<div class="tempty">이번달 등록된 테스트가 없어요.</div>';
+  html+=`<div class="rp-sec-h">테스트 기록 (제품별)</div>`;
+  const withTests=prods.filter(p=>(p.tests||[]).length).sort((a,b)=>(b.tests.length)-(a.tests.length));
+  if(!withTests.length)html+='<div class="tempty">아직 등록된 테스트가 없어요.</div>';
+  html+=withTests.map(p=>{
+    const ts=(p.tests||[]).slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
+    const recs=ts.map(t=>{const r=t.result||'진행중';const phs=(t.photos||[]);
+      const thumbs=phs.length?`<div class="tthumbs">`+phs.map(ph=>{const src=ph.url||ph.data;return src?`<div class="thumb"><img src="${src}" data-full="${src}"></div>`:'';}).join('')+`</div>`:'';
+      return `<div class="rtrec ${r}"><div class="rtr-top"><span class="rtr-title">${esc(t.title||'(제목 없음)')}</span><span class="rbadge ${r}">${r}</span></div><div class="rtr-meta">🕒 ${esc(t.ts?fmtDT(t.ts):(t.date||''))}</div>${t.memo?`<div class="rtr-memo">${esc(t.memo)}</div>`:''}${thumbs}</div>`;
+    }).join('');
+    return `<div class="rp-rcard"><div class="rp-rtop"><div class="rp-rname">${esc(dn(p))}</div><div class="rp-rright"><span class="rp-rstage">${esc(p.stage||'후보')}</span><span class="rp-rpct">${ts.length}건</span></div></div>${recs}</div>`;
+  }).join('');
   if(noTest.length)html+=`<div class="rp-sec-h">테스트 미실시</div><div class="rp-chips">`+noTest.map(p=>`<span class="rp-chip">${esc(dn(p))}</span>`).join('')+`</div>`;
   html+=`<div class="rp-note">※ 테스트 일시는 등록 시 자동 기록된 시간 기준입니다.</div>`;
   const T=[];T.push(`[소싱 테스트 보고] ${y}년 ${mo}월`);

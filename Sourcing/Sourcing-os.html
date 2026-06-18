@@ -340,17 +340,20 @@
   .bases{display:flex;flex-direction:column;gap:10px;overflow:visible;padding-bottom:0;margin-bottom:22px}
   .bases.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:10px}
   .bases.rows{display:flex;flex-direction:column;gap:7px}
-  .jcard{aspect-ratio:1/1;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow);border-radius:16px;padding:13px;cursor:pointer;transition:.13s;border-left:3px solid var(--border2);overflow:hidden}
+  .jcard{min-height:150px;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow);border-radius:16px;padding:13px;cursor:pointer;transition:.13s;border-left:3px solid var(--border2);overflow:hidden}
+  .jc-star,.lr-star{flex:0 0 auto;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1;color:#D4DAE0;margin-left:auto}
+  .jc-star.on,.lr-star.on{color:#F5A623}
+  .jc-star:active,.lr-star:active{transform:scale(.85)}
   .jcard:hover{box-shadow:0 6px 22px rgba(17,24,39,.09)}
   .jcard.active{border-color:var(--blue);border-left-color:var(--blue)}
   .jcard.st1{border-left-color:var(--blue)} .jcard.st2{border-left-color:var(--green)}
-  .jc-top{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:9px}
+  .jc-top{display:flex;align-items:center;gap:6px;margin-bottom:9px}
   .jc-status{font-size:10px;font-weight:800;padding:3px 8px;border-radius:7px;flex:0 0 auto}
   .jc-status.s0{background:var(--surface);color:var(--muted)}
   .jc-status.s1{background:var(--blue-pale);color:#1b64da}
   .jc-status.s2{background:var(--green-pale);color:var(--green)}
-  .jc-name{font-size:14.5px;font-weight:800;letter-spacing:-.01em;color:var(--ink);line-height:1.32;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-  .jc-maker{font-size:11.5px;color:var(--muted);font-weight:600;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .jc-name{font-size:12.5px;font-weight:800;letter-spacing:-.01em;color:var(--ink);line-height:1.3;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+  .jc-maker{font-size:11px;color:var(--muted);font-weight:600;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .jc-meta{font-size:10.5px;color:var(--muted);font-weight:600;margin-top:5px}
   .jc-cur{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:9px 11px;border-radius:11px;background:var(--surface)}
   .jc-cur.s1{background:var(--blue-pale)} .jc-cur.s2{background:var(--green-pale)}
@@ -1087,7 +1090,7 @@ function normalizeState(){
   if(!state.adminSub)state.adminSub='makers';
   if(!state.meetings)state.meetings=[];
   if(!state.activity)state.activity=[];
-  state.products.forEach(p=>{if(!p.tests)p.tests=[];if(!p.certs)p.certs=[];if(!p.fill)p.fill=[];if(!p.docs)p.docs=[];if(!p.attachments)p.attachments=[];if(!p.type)p.type='단품';if(p.concept===undefined)p.concept='';if(p.spec===undefined)p.spec='';if(!p.sample)p.sample='대기';if(p.memo===undefined)p.memo='';if(p.goods===undefined)p.goods='';if(!p.history)p.history=[];if(!p.bundle)p.bundle=[];if(p.baseId===undefined)p.baseId='';if(p.stage==='완료')p.stage='출시완료';(p.tests||[]).forEach(t=>{if(!t.photos)t.photos=[];});if(p.maker&&!state.makers.includes(p.maker))state.makers.push(p.maker);});
+  state.products.forEach(p=>{if(!p.tests)p.tests=[];if(!p.certs)p.certs=[];if(!p.fill)p.fill=[];if(!p.docs)p.docs=[];if(!p.attachments)p.attachments=[];if(p.fav===undefined)p.fav=false;if(!p.type)p.type='단품';if(p.concept===undefined)p.concept='';if(p.spec===undefined)p.spec='';if(!p.sample)p.sample='대기';if(p.memo===undefined)p.memo='';if(p.goods===undefined)p.goods='';if(!p.history)p.history=[];if(!p.bundle)p.bundle=[];if(p.baseId===undefined)p.baseId='';if(p.stage==='완료')p.stage='출시완료';(p.tests||[]).forEach(t=>{if(!t.photos)t.photos=[];});if(p.maker&&!state.makers.includes(p.maker))state.makers.push(p.maker);});
   state.makers.sort((a,b)=>a.localeCompare(b,'ko'));
 }
 normalizeState();
@@ -1192,10 +1195,12 @@ function renderFilterBar(){
 
 function renderList(){
   const list=filtered();
+  list.sort((a,b)=>(b.fav?1:0)-(a.fav?1:0)); // ★ 즐겨찾기 상단 고정(상대순서 유지)
   const el=$('#bases');el.style.display='';
   el.className='bases '+(state.viewMode==='list'?'rows':'cards');
   if(state.viewMode==='list')renderRows(list);else renderCards(list);
 }
+function toggleFav(id){const p=state.products.find(x=>x.id===id);if(!p)return;p.fav=!p.fav;save();renderList();}
 
 function journeyHTML(p){
   const idx=STAGES.indexOf(p.stage||'후보');
@@ -1221,11 +1226,12 @@ function jcardEl(p){
   const card=document.createElement('div');
   const sel=selected.has(p.id);
   card.className='jcard'+(!selectMode&&p.id===state.sel?' active':'')+(si?' st'+si:'')+(selectMode&&sel?' selon':'');
-  card.innerHTML=`<div class="jc-top"><span class="tybadge ${p.type||'단품'}">${p.type||'단품'}</span>${selectMode?`<span class="selbox${sel?' on':''}">${sel?'✓':''}</span>`:''}<span class="jc-status s${si}">${STATUS[si]}</span></div>
+  card.innerHTML=`<div class="jc-top"><span class="tybadge ${p.type||'단품'}">${p.type||'단품'}</span>${selectMode?`<span class="selbox${sel?' on':''}">${sel?'✓':''}</span>`:''}<button class="jc-star${p.fav?' on':''}" data-fav="${p.id}" aria-label="즐겨찾기">★</button><span class="jc-status s${si}">${STATUS[si]}</span></div>
     <div class="jc-name">${esc(dn(p))}</div>
     <div class="jc-maker">${p.maker?esc(p.maker):'제조사 미입력'}</div>
     <div class="jc-meta">테스트 ${p.tests.length} · 판매가 ${priced?'✓':'–'}</div>
     <div class="jc-cur s${si}"><span class="jc-stage">${esc(p.stage||'후보')}</span><span class="jc-step">${idx+1}/${STAGES.length}</span></div>`;
+  card.querySelector('.jc-star').onclick=e=>{e.stopPropagation();toggleFav(p.id);};
   card.onclick=()=>selectMode?toggleSelect(p.id):openDetail(p.id);
   return card;
 }
@@ -1245,7 +1251,9 @@ function lrowEl(p){
   r.innerHTML=`${selectMode?`<span class="selbox${sel?' on':''}">${sel?'✓':''}</span>`:`<span class="lr-bar s${si}"></span>`}
     <div class="lr-main"><div class="lr-name">${esc(dn(p))}</div><div class="lr-sub">${p.maker?esc(p.maker):'제조사 미입력'} · 테스트 ${p.tests.length} · 판매가 ${priced?'✓':'–'}</div></div>
     <span class="lr-stage">${esc(p.stage||'후보')}</span>
-    <span class="lr-status s${si}">${STATUS[si]}</span>`;
+    <span class="lr-status s${si}">${STATUS[si]}</span>
+    <button class="lr-star${p.fav?' on':''}" data-fav="${p.id}" style="margin-left:0" aria-label="즐겨찾기">★</button>`;
+  r.querySelector('.lr-star').onclick=e=>{e.stopPropagation();toggleFav(p.id);};
   r.onclick=()=>selectMode?toggleSelect(p.id):openDetail(p.id);
   return r;
 }

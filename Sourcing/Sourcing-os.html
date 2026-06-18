@@ -964,8 +964,9 @@
       <div class="frow"><label>MOQ <span class="opt">(옵션 1종당)</span></label><div class="inwrap"><input type="text" id="pr_moq" inputmode="numeric"><span class="unit">개</span></div></div>
       <div class="frow"><label>온라인 최저가 <span class="opt">(참고)</span></label><div class="inwrap"><input type="text" id="pr_ref" inputmode="numeric"><span class="unit">원</span></div></div>
     </div>
-    <div class="frow"><label>옵션 (색상·규격) <span class="opt">(엔터로 추가 · 옵션마다 MOQ가 붙어요)</span></label>
-      <div class="chipfield" id="pr_colorField"><input type="text" id="pr_colorInput" placeholder="예: 회색 / 4kg / 18L … 입력 후 Enter"></div>
+    <div class="frow"><label>옵션 (색상·규격) <span class="opt">(옵션마다 MOQ를 따로 지정 가능 · 비우면 위 기본 MOQ)</span></label>
+      <div class="mkrow"><input type="text" id="pr_colorInput" placeholder="옵션명 (예: 파랑색) 입력 후 추가"><button type="button" id="pr_optAdd">추가</button></div>
+      <div id="pr_optList" style="margin-top:8px;display:flex;flex-direction:column;gap:6px"></div>
       <div id="pr_optSum" style="font-size:12px;color:var(--ink2);font-weight:700;margin-top:8px"></div>
     </div>
 
@@ -1116,7 +1117,7 @@ function normalizeState(){
   if(!state.adminSub)state.adminSub='makers';
   if(!state.meetings)state.meetings=[];
   if(!state.activity)state.activity=[];
-  state.products.forEach(p=>{if(!p.tests)p.tests=[];if(!p.certs)p.certs=[];if(!p.fill)p.fill=[];if(!p.docs)p.docs=[];if(!p.attachments)p.attachments=[];if(p.fav===undefined)p.fav=false;if(!p.type)p.type='단품';if(p.concept===undefined)p.concept='';if(p.spec===undefined)p.spec='';if(!p.sample)p.sample='대기';if(p.memo===undefined)p.memo='';if(p.goods===undefined)p.goods='';if(!p.history)p.history=[];if(!p.bundle)p.bundle=[];if(p.baseId===undefined)p.baseId='';if(p.stage==='완료')p.stage='출시완료';(p.tests||[]).forEach(t=>{if(!t.photos)t.photos=[];});if(p.maker&&!state.makers.includes(p.maker))state.makers.push(p.maker);});
+  state.products.forEach(p=>{if(!p.tests)p.tests=[];if(!p.certs)p.certs=[];if(!p.fill)p.fill=[];if(!p.docs)p.docs=[];if(!p.attachments)p.attachments=[];if(p.fav===undefined)p.fav=false;if(!p.type)p.type='단품';if(p.concept===undefined)p.concept='';if(p.spec===undefined)p.spec='';if(!p.sample)p.sample='대기';if(p.memo===undefined)p.memo='';if(p.goods===undefined)p.goods='';if(!p.history)p.history=[];if(!p.bundle)p.bundle=[];if(p.baseId===undefined)p.baseId='';if(p.stage==='완료')p.stage='출시완료';if(p.pricing&&Array.isArray(p.pricing.colors))p.pricing.colors=p.pricing.colors.map(c=>typeof c==='string'?{name:c,moq:0}:{name:(c&&c.name)||'',moq:Number(c&&c.moq)||0}).filter(c=>c.name);(p.tests||[]).forEach(t=>{if(!t.photos)t.photos=[];});if(p.maker&&!state.makers.includes(p.maker))state.makers.push(p.maker);});
   state.makers.sort((a,b)=>a.localeCompare(b,'ko'));
 }
 normalizeState();
@@ -1362,8 +1363,11 @@ function calcRaw(d,cfg,colors){
   const sell=Number(d.sell)||0,buy=Number(d.buy)||0,moq=Number(d.moq)||0;
   const raised=Math.round(sell*1.15),basis=cfg.raise?raised:sell;
   const fee=Math.round(basis*rate),cost=buy+Number(cfg.ship||0)+Number(cfg.mkt||0)+fee;
-  const colorN=(colors&&colors.length)?colors.length:1,nP=sell-cost,rP=raised-cost;
-  return {sell,buy,moq,raised,fee,cost,colorN,nProfit:nP,rProfit:rP,nMargin:sell?nP/sell:0,rMargin:raised?rP/raised:0,nTotal:nP*moq*colorN,rTotal:rP*moq*colorN,ref:Number(d.ref)||0,valid:sell>0};
+  // 옵션별 MOQ 지원: 옵션에 자체 MOQ 있으면 사용, 없으면(0) 기본 MOQ. 옵션 없으면 1종=기본 MOQ
+  const list=(colors&&colors.length)?colors.map(c=>{const m=Number((c&&typeof c==='object')?c.moq:0)||0;return m>0?m:moq;}):[moq];
+  const colorN=list.length,totalQty=list.reduce((a,b)=>a+(Number(b)||0),0);
+  const nP=sell-cost,rP=raised-cost;
+  return {sell,buy,moq,raised,fee,cost,colorN,totalQty,nProfit:nP,rProfit:rP,nMargin:sell?nP/sell:0,rMargin:raised?rP/raised:0,nTotal:nP*totalQty,rTotal:rP*totalQty,ref:Number(d.ref)||0,valid:sell>0};
 }
 function calcPricing(p){return calcRaw(p.pricing||{},state.priceCfg,(p.pricing||{}).colors||[]);}
 function refBadge(c){
@@ -1375,7 +1379,7 @@ function refBadge(c){
 function priceReadout(c){
   if(!c.valid)return `<div class="readout"><div class="tempty" style="padding:6px 2px;text-align:left">일반 판매가를 입력하면 순익·마진이 계산됩니다.${c.ref?' (시장 최저가 참고 '+won(c.ref)+'원)':''}</div></div>`;
   return `<div class="readout">
-    <div class="ro-top"><span class="ro-cost">총발생비 <b>${won(c.cost)}원</b> /개 · 옵션 ${c.colorN}종 · MOQ ${won(c.moq)} · 총 ${won(c.moq*c.colorN)}개</span>${refBadge(c)}</div>
+    <div class="ro-top"><span class="ro-cost">총발생비 <b>${won(c.cost)}원</b> /개 · 옵션 ${c.colorN}종 · 총 발주 ${won(c.totalQty)}개</span>${refBadge(c)}</div>
     <div class="ro-cols">
       <div class="ro-col normal"><span class="tag">일반가</span>
         <div class="ro-row"><span class="rk">판매가</span><span class="rv">${won(c.sell)}원</span></div>
@@ -1980,7 +1984,7 @@ function renderMakerDetail(root,name){
   }else{
     const inF=byStat(f),priced=inF.filter(p=>p.pricing&&p.pricing.sell);
     let rev=0,profit=0;
-    const rows=priced.map(p=>{const c=calcPricing(p);const r=c.sell*c.moq*c.colorN;rev+=r;profit+=c.nTotal;return{p,c,r};}).sort((a,b)=>b.r-a.r);
+    const rows=priced.map(p=>{const c=calcPricing(p);const r=c.sell*c.totalQty;rev+=r;profit+=c.nTotal;return{p,c,r};}).sort((a,b)=>b.r-a.r);
     const noP=inF.length-priced.length;
     revCard=`<div class="rp-sum"><div class="lbl">예상 매출 · ${f} · 1회 발주(MOQ) 기준</div>
       <div class="rp-sum-grid">
@@ -1989,7 +1993,7 @@ function renderMakerDetail(root,name){
         <div class="rp-cell"><div class="k">예상 순이익</div><div class="v">${won(profit)}<small>원</small></div></div>
       </div></div>`;
     if(rows.length){
-      revCard+=`<div id="mkRevList" style="margin-top:8px">`+rows.map(({p,c,r})=>`<div class="prow" data-pid="${p.id}"><div class="pn"><div class="nm">${esc(dn(p))}</div><div class="mt">${esc(p.stage||'후보')} · 판매가 ${won(c.sell)}원 · MOQ ${won(c.moq)}${c.colorN>1?' · 색상 '+c.colorN+'종':''}</div></div><div class="pp"><div class="s">${won(r)}원</div><div class="m pos">순익 ${won(c.nTotal)}</div></div><svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></div>`).join('')+`</div>`;
+      revCard+=`<div id="mkRevList" style="margin-top:8px">`+rows.map(({p,c,r})=>`<div class="prow" data-pid="${p.id}"><div class="pn"><div class="nm">${esc(dn(p))}</div><div class="mt">${esc(p.stage||'후보')} · 판매가 ${won(c.sell)}원 · 총 ${won(c.totalQty)}개${c.colorN>1?' · 옵션 '+c.colorN+'종':''}</div></div><div class="pp"><div class="s">${won(r)}원</div><div class="m pos">순익 ${won(c.nTotal)}</div></div><svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></div>`).join('')+`</div>`;
     }else{
       revCard+=`<div class="tempty" style="margin-top:8px">${inF.length?'이 단계에 판매가가 설정된 제품이 없어요.':'이 단계의 제품이 없어요.'}</div>`;
     }
@@ -2131,14 +2135,20 @@ let prTarget=null,prData=null,prCfg=null,prColors=[];
 function parseWon(s){const m=(s||'').replace(/,/g,'').match(/\d+/);return m?Number(m[0]):'';}
 function segSet(sel,attr,val){document.querySelectorAll(sel+' button').forEach(b=>b.classList.toggle('on',b.dataset[attr]===val));}
 function renderPrColors(){
-  const f=$('#pr_colorField');f.querySelectorAll('.tagchip').forEach(n=>n.remove());
-  const input=$('#pr_colorInput');
-  prColors.forEach((c,i)=>{
-    const chip=document.createElement('span');chip.className='tagchip';
-    chip.innerHTML=esc(c)+'<button type="button">×</button>';
-    chip.querySelector('button').onclick=()=>{prColors.splice(i,1);renderPrColors();prPreview();};
-    f.insertBefore(chip,input);
-  });
+  const wrap=$('#pr_optList');if(!wrap)return;
+  const base=won(Number(prData.moq)||0);
+  wrap.innerHTML=prColors.map((c,i)=>`<div style="display:flex;align-items:center;gap:8px">
+    <span style="flex:1;min-width:0;font-size:13px;font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.name)}</span>
+    <div class="inwrap" style="flex:0 0 130px"><input type="number" inputmode="numeric" data-omoq="${i}" value="${c.moq||''}" placeholder="기본 ${base}"><span class="unit">개</span></div>
+    <button type="button" class="mini" data-orm="${i}" style="flex:0 0 auto">삭제</button>
+  </div>`).join('');
+  wrap.querySelectorAll('[data-omoq]').forEach(inp=>inp.oninput=e=>{const i=+e.target.dataset.omoq;prColors[i].moq=e.target.value===''?0:(Number(e.target.value)||0);prPreview();});
+  wrap.querySelectorAll('[data-orm]').forEach(b=>b.onclick=()=>{prColors.splice(+b.dataset.orm,1);renderPrColors();prPreview();});
+}
+function prAddOpt(){
+  const inp=$('#pr_colorInput');const v=inp.value.trim();if(!v)return;
+  v.split(/[,\n]+/).map(s=>s.trim()).filter(Boolean).forEach(name=>{if(!prColors.some(c=>c.name===name))prColors.push({name,moq:0});});
+  inp.value='';renderPrColors();prPreview();
 }
 function prRecFromMargin(){
   const rate=(prCfg.channel==='open'?(Number(prCfg.pg)+Number(prCfg.om)):Number(prCfg.pg))/100;
@@ -2149,8 +2159,11 @@ function prRecFromMargin(){
 function prUpdateTmRec(){const el=$('#pr_tmRec');if(!el)return;const rec=prRecFromMargin();el.textContent=rec?('추천 판매가 '+won(rec)+'원'):'';const b=$('#pr_applyTm');if(b){b.disabled=!rec;b.style.opacity=rec?'1':'.5';}}
 function prUpdateOptSum(){
   const el=$('#pr_optSum');if(!el)return;
-  const n=prColors.length||1,moq=Number(prData.moq)||0,tot=moq*n;
-  el.innerHTML=prColors.length?`옵션 <b>${n}종</b> · 총 발주수량 = MOQ ${won(moq)} × ${n} = <b style="color:var(--blue)">${won(tot)}개</b>`:`옵션 없음 → 1종으로 계산 (총 발주수량 ${won(moq)}개)`;
+  const base=Number(prData.moq)||0;
+  if(!prColors.length){el.innerHTML=`옵션 없음 → 1종으로 계산 (총 발주수량 ${won(base)}개)`;return;}
+  const list=prColors.map(c=>(Number(c.moq)||0)>0?Number(c.moq):base);
+  const tot=list.reduce((a,b)=>a+b,0);
+  el.innerHTML=`옵션 <b>${prColors.length}종</b> · 총 발주수량 = <b style="color:var(--blue)">${won(tot)}개</b> <span style="color:var(--muted);font-weight:600">(${prColors.map((c,i)=>esc(c.name)+' '+won(list[i])).join(' · ')})</span>`;
 }
 function prPreview(){ $('#pr_readout').innerHTML=priceReadout(calcRaw(prData,prCfg,prColors)); prUpdateTmRec(); prUpdateOptSum(); }
 function openPrice(id){
@@ -2158,7 +2171,7 @@ function openPrice(id){
   prTarget=id; prCfg={...state.priceCfg};
   const pr=p.pricing||{};
   prData={buy:(pr.buy!==undefined&&pr.buy!=='')?pr.buy:parseWon(p.cost),sell:pr.sell||'',moq:pr.moq||50,ref:(pr.ref!==undefined?pr.ref:'')};
-  prColors=(pr.colors||[]).slice();
+  prColors=(pr.colors||[]).map(c=>typeof c==='string'?{name:c,moq:0}:{name:c.name||'',moq:Number(c.moq)||0}).filter(c=>c.name);
   $('#pr_title').textContent='판매가 설정 — '+(p.name||'');
   $('#pr_pg').value=prCfg.pg;$('#pr_om').value=prCfg.om;$('#pr_ship').value=cma(prCfg.ship);$('#pr_mkt').value=cma(prCfg.mkt);
   $('#pr_buy').value=cma(prData.buy);$('#pr_sell').value=cma(prData.sell);$('#pr_moq').value=cma(prData.moq);$('#pr_ref').value=cma(prData.ref);
@@ -2172,17 +2185,15 @@ $('#pr_tm').addEventListener('input',prUpdateTmRec);
 $('#pr_applyTm').onclick=()=>{const rec=prRecFromMargin();if(!rec)return;prData.sell=rec;$('#pr_sell').value=cma(rec);prPreview();};
 ['pg','om'].forEach(k=>$('#pr_'+k).oninput=e=>{prCfg[k]=e.target.value===''?'':Number(e.target.value);prPreview();});
 ['ship','mkt'].forEach(k=>$('#pr_'+k).oninput=e=>{prCfg[k]=fmtCur(e.target);prPreview();});
-['buy','sell','moq','ref'].forEach(k=>$('#pr_'+k).oninput=e=>{prData[k]=fmtCur(e.target);prPreview();});
+['buy','sell','moq','ref'].forEach(k=>$('#pr_'+k).oninput=e=>{prData[k]=fmtCur(e.target);if(k==='moq')renderPrColors();prPreview();});
 document.querySelectorAll('#pr_ch button').forEach(b=>b.onclick=()=>{prCfg.channel=b.dataset.ch;segSet('#pr_ch','ch',prCfg.channel);prPreview();});
 document.querySelectorAll('#pr_raise button').forEach(b=>b.onclick=()=>{prCfg.raise=(b.dataset.raise==='on');segSet('#pr_raise','raise',prCfg.raise?'on':'off');prPreview();});
-$('#pr_colorInput').addEventListener('keydown',e=>{
-  if(e.key==='Enter'){e.preventDefault();const v=e.target.value.trim();if(!v)return;v.split(/[,\n]+/).map(s=>s.trim()).filter(Boolean).forEach(c=>{if(!prColors.includes(c))prColors.push(c);});e.target.value='';renderPrColors();prPreview();}
-  else if(e.key==='Backspace'&&!e.target.value&&prColors.length){prColors.pop();renderPrColors();prPreview();}
-});
+$('#pr_optAdd').onclick=prAddOpt;
+$('#pr_colorInput').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();prAddOpt();} });
 $('#pr_save').onclick=()=>{
   const p=state.products.find(x=>x.id===prTarget);if(!p)return;
   state.priceCfg={...prCfg};
-  p.pricing={buy:prData.buy===''?'':Number(prData.buy),sell:Number(prData.sell)||0,moq:Number(prData.moq)||0,ref:prData.ref===''?'':Number(prData.ref),colors:prColors.slice()};
+  p.pricing={buy:prData.buy===''?'':Number(prData.buy),sell:Number(prData.sell)||0,moq:Number(prData.moq)||0,ref:prData.ref===''?'':Number(prData.ref),colors:prColors.map(c=>({name:c.name,moq:Number(c.moq)||0}))};
   save();closeOverlay();render();renderPricing();
 };
 $('#pr_clear').onclick=()=>{
@@ -2461,7 +2472,7 @@ const PCOLS=[
   ['매입가(판매계산)','pbuy'],['일반판매가','psell'],['판매MOQ(색상당)','pmoq'],['온라인최저가','pref'],['색상(SKU)','pcolors'],
   ['메모','memo']
 ];
-const PEX1={name:'탄성 방수 코트재',goods:'코트재',maker:'강남제비스코',type:'단품',concept:'셀프시공 1세대용',spec:'4kg/1액형/2회도포',source:'국내 제조사',market:'89,000원대',cost:'8,500원/통',moq:'500통',pricevar:'컬러·규격별',lead:'초도 30일',customs:'',sample:'대기',stage:'테스트',cert:'확인중',patent:'출원중',certs:'시험성적서, 친환경(HB)',patentinfo:'제10-XXXXXXX호 출원',fill:'통, 튜브',fillmaker:'제조사 충진 가능',container:'공급처 보유',ibc:'해당없음',label:'통라벨 부착',pbuy:'13000',psell:'',pmoq:'50',pref:'',pcolors:'회색, 백색',memo:'우선 협의'};
+const PEX1={name:'탄성 방수 코트재',goods:'코트재',maker:'강남제비스코',type:'단품',concept:'셀프시공 1세대용',spec:'4kg/1액형/2회도포',source:'국내 제조사',market:'89,000원대',cost:'8,500원/통',moq:'500통',pricevar:'컬러·규격별',lead:'초도 30일',customs:'',sample:'대기',stage:'테스트',cert:'확인중',patent:'출원중',certs:'시험성적서, 친환경(HB)',patentinfo:'제10-XXXXXXX호 출원',fill:'통, 튜브',fillmaker:'제조사 충진 가능',container:'공급처 보유',ibc:'해당없음',label:'통라벨 부착',pbuy:'13000',psell:'',pmoq:'50',pref:'',pcolors:'회색, 백색, 파랑색:75',memo:'우선 협의'};
 const PEX2={name:'벽돌 발수제',maker:'KCC',type:'단품',concept:'벽돌 백화 케어',source:'국내 제조사',cost:'9,200원',moq:'300',sample:'수령',stage:'후보',cert:'보유',patent:'확인중',fill:'말통',fillmaker:'확인중',container:'확인중',ibc:'해당없음',pbuy:'9200',psell:'19900',pmoq:'100',memo:''};
 const FILL_OPT=['통','튜브','말통'],FM_OPT=['확인중','제조사 충진 가능','불가 → 충진처 외주(IBC)'],CON_OPT=['확인중','공급처 보유','우리 구매·발송'],IBC_OPT=['해당없음','회수','미회수','확인중'];
 function parseField(key,raw){
@@ -2469,7 +2480,7 @@ function parseField(key,raw){
   switch(key){
     case 'fill': return raw?raw.split(/[,/]+|\s{2,}/).map(s=>s.trim()).filter(s=>FILL_OPT.includes(s)):[];
     case 'certs': return raw?raw.split(/[,]+/).map(s=>s.trim()).filter(Boolean):[];
-    case 'pcolors': return raw?raw.split(/[,/]+/).map(s=>s.trim()).filter(Boolean):[];
+    case 'pcolors': return raw?raw.split(/[,\n]+/).map(s=>s.trim()).filter(Boolean).map(tok=>{const i=tok.lastIndexOf(':');if(i>0){const nm=tok.slice(0,i).trim(),mq=Number(tok.slice(i+1).replace(/[^\d.]/g,''))||0;return {name:nm,moq:mq};}return {name:tok,moq:0};}).filter(c=>c.name):[];
     case 'type': return ['단품','패키지','파생'].includes(raw)?raw:'단품';
     case 'sample': return ['대기','수령','해당없음'].includes(raw)?raw:'대기';
     case 'stage': {let s=raw==='완료'?'출시완료':raw;return STAGES.includes(s)?s:'후보';}
@@ -2490,7 +2501,7 @@ function cellFor(p,key){
     case 'id': return p.id;
     case 'fill': return (p.fill||[]).join(', ');
     case 'certs': return (p.certs||[]).join(', ');
-    case 'pcolors': return (pr.colors||[]).join(', ');
+    case 'pcolors': return (pr.colors||[]).map(c=>typeof c==='string'?c:((c.moq?c.name+':'+c.moq:c.name))).join(', ');
     case 'pbuy': return (pr.buy===''||pr.buy==null)?'':pr.buy;
     case 'psell': return pr.sell?pr.sell:'';
     case 'pmoq': return pr.moq?pr.moq:'';
@@ -2526,7 +2537,7 @@ function writeProductSheet(aoa,fname){
     ['용기조달','확인중 / 공급처 보유 / 우리 구매·발송'],
     ['IBC회수','해당없음 / 회수 / 미회수 / 확인중'],
     ['매입가·일반판매가·판매MOQ·온라인최저가','숫자만 (판매가 계산용). 비우면 미설정'],
-    ['색상(SKU)','콤마로 구분 (예: 회색, 백색)'],
+    ['색상(SKU)','콤마로 구분. 옵션별 MOQ 다르면 이름:수량 (예: 회색, 백색, 파랑색:75). 비우면 기본 판매MOQ 적용'],
     ['공급단가(원)','자유 텍스트 (예: 8,500원/통)'],
     ['※ 신규','제품명만 필수. 나머지는 선택(공란이면 공란).'],
     ['※ 수정','제품ID가 있는 행은 입력한 칸만 덮어쓰기(빈칸은 기존값 유지).']];

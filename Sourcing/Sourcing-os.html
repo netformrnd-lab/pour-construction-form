@@ -575,6 +575,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -989,19 +990,23 @@ const store={
 
 /* ================= Firebase Storage 동기화 ================= */
 /* 버킷: gs://pour-app-new.firebasestorage.app  ·  루트 폴더: 소싱-os
-   - 사진:  소싱-os/products/{productId}/photos/{photoId}.jpg
-   - 서류:  소싱-os/products/{productId}/docs/{docId}-{파일명}
-   - 텍스트(전체 상태): 소싱-os/state/state.json
-   동기화: 클라우드 우선 + 로컬 폴백. */
+   - 사진:  소싱-os/products/{productId}/photos/{photoId}.jpg  (Storage)
+   - 서류:  소싱-os/products/{productId}/docs/{docId}-{파일명}   (Storage)
+   - 텍스트(전체 상태): Firestore 문서 pour-os/sourcing-os-state (실시간 동기화)
+   동기화: 클라우드 우선 + 로컬 폴백 + onSnapshot 실시간. */
 const FB_CFG={apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",storageBucket:"pour-app-new.firebasestorage.app",messagingSenderId:"411031141847",appId:"1:411031141847:web:e658174fd4b9652cdadf92"};
 const CLOUD_ROOT='소싱-os';
-let fbStore=null, cloudOK=false;
+const FS_COLL='pour-os', FS_ID='sourcing-os-state';
+const CLIENT=Math.random().toString(36).slice(2);
+let fbStore=null, FS=null, fsDoc=null, cloudOK=false;
 try{ if(window.firebase&&firebase.apps&&!firebase.apps.length)firebase.initializeApp(FB_CFG); fbStore=firebase.storage(); }
-catch(e){ console.error('[cloud] Firebase 초기화 실패:',e); fbStore=null; }
+catch(e){ console.error('[cloud] Storage 초기화 실패:',e); fbStore=null; }
+try{ FS=firebase.firestore(); fsDoc=FS.collection(FS_COLL).doc(FS_ID); }
+catch(e){ console.error('[cloud] Firestore 초기화 실패:',e); FS=null; fsDoc=null; }
 
 function setSync(txt,color){const t=document.getElementById('saveTxt');if(!t)return;t.textContent=txt;const dot=t.parentElement&&t.parentElement.querySelector('.dot');if(dot&&color)dot.style.background=color;}
 function flash(){
-  if(fbStore)return; // 클라우드 사용 시 동기화 상태가 표시를 담당
+  if(FS||fbStore)return; // 클라우드 사용 시 동기화 상태가 표시를 담당
   const t=document.getElementById('saveTxt');if(!t)return;
   t.textContent=localFull?'⚠ 로컬 저장공간 부족':'저장됨 ✓';
   clearTimeout(flash._t);flash._t=setTimeout(()=>t.textContent='저장됨',1400);
@@ -1036,21 +1041,21 @@ async function uploadDocFile(pid,docId,file){
 }
 let _syncT=null,_syncing=false,_pending=false,booting=true;
 function queueCloudSync(){
-  if(!fbStore||booting)return; // 부팅 중에는 빈/임시 상태가 클라우드를 덮어쓰지 않도록 차단
+  if(!fsDoc||booting||applyingRemote)return; // 부팅/원격반영 중에는 업로드 차단(에코 방지)
   setSync('동기화 중…','var(--amber)');
   clearTimeout(_syncT);
-  _syncT=setTimeout(runCloudSync,1000);
+  _syncT=setTimeout(runCloudSync,800);
 }
 async function runCloudSync(){
-  if(!fbStore)return;
+  if(!fsDoc)return;
   if(_syncing){_pending=true;return;}
   _syncing=true;setSync('동기화 중…','var(--amber)');
   try{
-    const blob=new Blob([JSON.stringify(state)],{type:'application/json; charset=utf-8'});
-    await stRef('state/state.json').put(blob,{contentType:'application/json; charset=utf-8'});
+    const payload=JSON.parse(JSON.stringify(Object.assign({},state,{_w:CLIENT}))); // undefined 제거(Firestore 안전)
+    await fsDoc.set(payload);
     cloudOK=true;setSync(localFull?'클라우드 저장됨 ✓ (로컬 부족)':'클라우드 저장됨 ✓','var(--green)');
   }catch(e){
-    cloudOK=false;console.error('[cloud] 상태 동기화 실패:',e);
+    cloudOK=false;console.error('[cloud] Firestore 동기화 실패:',e);
     setSync('오프라인 · 로컬 저장','var(--red)');
   }finally{
     _syncing=false;
@@ -1058,18 +1063,39 @@ async function runCloudSync(){
   }
 }
 async function cloudLoadState(){
-  if(!fbStore)return null;
+  if(!fsDoc)return null;
   try{
-    const url=await stRef('state/state.json').getDownloadURL();
-    const res=await fetch(url,{cache:'no-store'});
-    if(!res.ok)throw new Error('HTTP '+res.status);
-    const data=await res.json();
-    console.log('[cloud] state.json 로드:',(data.products||[]).length,'제품');
+    const snap=await fsDoc.get();
+    if(!snap.exists){console.log('[cloud] Firestore 문서 없음(최초 실행)');return null;}
+    const data=snap.data();
+    console.log('[cloud] Firestore 로드:',(data.products||[]).length,'제품');
     return data;
-  }catch(e){
-    if(e&&e.code==='storage/object-not-found'){console.log('[cloud] state.json 없음(최초 실행)');return null;}
-    console.error('[cloud] state.json 로드 실패:',e);return null;
-  }
+  }catch(e){ console.error('[cloud] Firestore 로드 실패:',e);return null; }
+}
+/* 실시간 동기화: 다른 기기 변경을 즉시 반영. 현재 기기의 화면/탭은 유지하고 데이터만 갱신. */
+let applyingRemote=false;
+function startRealtime(){
+  if(!fsDoc)return;
+  fsDoc.onSnapshot(snap=>{
+    if(!snap.exists||snap.metadata.hasPendingWrites)return;
+    const data=snap.data();if(!data)return;
+    const rT=data.updatedAt||0,lT=state.updatedAt||0;
+    if(data._w===CLIENT&&rT<=lT)return;        // 내 변경 → 무시
+    if(rT<=lT)return;                           // 오래된 변경 → 무시
+    const remoteHas=(data.products||[]).length>0,localHas=(state.products||[]).length>0;
+    if(localHas&&!remoteHas)return;             // 빈 원격이 데이터를 덮지 않음
+    if(document.querySelector('.overlay.on'))return; // 편집 중이면 보류(다음 변경 때 반영)
+    const keep={tab:state.tab,sel:state.sel,viewMode:state.viewMode,adminSub:state.adminSub};
+    applyingRemote=true;
+    state=data;normalizeState();
+    state.tab=keep.tab;state.sel=keep.sel;state.viewMode=keep.viewMode;state.adminSub=keep.adminSub;
+    store.write(state); // 로컬 캐시만 (업로드 X)
+    if(state.tab==='makers'){ if((state.adminSub||'makers')==='pricing')renderPricing(); else {makerSel=null;renderMakerList();} }
+    else render();
+    applyingRemote=false;
+    cloudOK=true;setSync('실시간 동기화됨 ✓','var(--green)');
+    console.log('[cloud] 실시간 반영:',(state.products||[]).length,'제품');
+  },err=>console.error('[cloud] onSnapshot 오류:',err));
 }
 const uid=()=>Math.random().toString(36).slice(2,9);
 const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -2610,7 +2636,7 @@ if(upPE)upPE.onchange=e=>{const f=e.target.files[0];if(f){flagMsg('읽는 중…
 async function bootstrap(){
   // 1) 클라우드를 '먼저' 읽어 최신본을 채택한 뒤 렌더 (빈 로컬이 클라우드를 덮어쓰지 않도록 booting 동안 업로드 차단)
   let adopted=false;
-  if(fbStore){
+  if(fsDoc){
     setSync('불러오는 중…','var(--amber)');
     try{
       const cloud=await cloudLoadState();
@@ -2632,14 +2658,15 @@ async function bootstrap(){
   switchTab(state.tab||'products');
   booting=false;
   // 3) 상태표시 + 필요한 경우에만 업로드
-  if(!fbStore){setSync('로컬 전용 (클라우드 미연결)','var(--amber)');return;}
+  if(!fsDoc){setSync('로컬 전용 (클라우드 미연결)','var(--amber)');return;}
   if(adopted){
     cloudOK=true;setSync('클라우드 저장됨 ✓','var(--green)');
   }else if((state.products||[]).length||(state.makers||[]).length||(state.meetings||[]).length){
-    queueCloudSync(); // 로컬이 더 최신/클라우드 비어있음 → 클라우드로 반영
+    queueCloudSync(); // 로컬이 더 최신/클라우드 비어있음 → 클라우드로 복원
   }else{
     setSync('클라우드 연결됨','var(--green)');
   }
+  startRealtime(); // 다른 기기 변경 실시간 반영
 }
 bootstrap();
 </script>

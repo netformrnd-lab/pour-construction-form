@@ -925,6 +925,15 @@
       <div class="frow"><label><input type="checkbox" id="be_cert_on" style="margin-right:6px">인증 여부</label><select id="be_cert"><option>확인중</option><option>보유</option><option>미보유</option></select></div>
       <div class="frow"><label><input type="checkbox" id="be_patent_on" style="margin-right:6px">특허 여부</label><select id="be_patent"><option>확인중</option><option>보유</option><option>출원중</option><option>미보유</option></select></div>
     </div>
+    <div class="frow" style="border-top:1px solid var(--border);padding-top:14px">
+      <label><input type="checkbox" id="be_price_on" style="margin-right:6px">판매가 일괄 조정</label>
+      <div class="seg" id="be_price_mode" style="margin-top:6px">
+        <button type="button" data-pm="margin" class="on">목표 마진율로 재설정</button>
+        <button type="button" data-pm="add">현재가에서 ±%</button>
+      </div>
+      <div class="inwrap" style="margin-top:8px"><input type="number" id="be_price_val" inputmode="decimal" placeholder="예: 40"><span class="unit" id="be_price_unit">% 마진</span></div>
+      <div id="be_price_hint" style="font-size:11.5px;color:var(--muted);font-weight:600;margin-top:6px">매입가 기준으로 목표 마진율을 만족하는 판매가로 재설정해요. (매입가 없는 제품은 건너뜀)</div>
+    </div>
     <div class="mact">
       <button class="cancel" data-close>취소</button>
       <button class="save" id="be_save">선택 항목에 적용</button>
@@ -1402,9 +1411,16 @@ function openBulkEdit(){
   $('#be_stage').innerHTML=STAGES.map(s=>`<option>${s}</option>`).join('');
   const ms=$('#be_maker');ms.innerHTML=state.makers.map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join('')+'<option value="__new__">+ 새 제조사 입력…</option>';
   $('#be_makerNew').style.display='none';$('#be_makerNew').value='';
-  ['stage','maker','sample','source','cert','patent'].forEach(k=>{const cb=$('#be_'+k+'_on');if(cb)cb.checked=false;});
+  ['stage','maker','sample','source','cert','patent','price'].forEach(k=>{const cb=$('#be_'+k+'_on');if(cb)cb.checked=false;});
+  $('#be_price_val').value='';bePriceMode('margin');
   openOverlay('bulkEditOverlay');
 }
+function bePriceMode(m){
+  document.querySelectorAll('#be_price_mode button').forEach(b=>b.classList.toggle('on',b.dataset.pm===m));
+  $('#be_price_unit').textContent=(m==='margin')?'% 마진':'% (현재가 대비)';
+  $('#be_price_hint').textContent=(m==='margin')?'매입가 기준으로 목표 마진율을 만족하는 판매가로 재설정해요. (매입가 없는 제품은 건너뜀)':'현재 판매가에서 입력한 %만큼 올리거나(+) 내립니다(−, 음수 가능). 판매가 미설정 제품은 건너뜀.';
+}
+document.querySelectorAll('#be_price_mode button').forEach(b=>b.onclick=()=>bePriceMode(b.dataset.pm));
 function applyBulkEdit(){
   const ids=[...selected];if(!ids.length)return;
   const changes={};
@@ -1415,18 +1431,37 @@ function applyBulkEdit(){
   if($('#be_patent_on').checked)changes.patent=$('#be_patent').value;
   let maker=null;
   if($('#be_maker_on').checked){maker=$('#be_maker').value==='__new__'?$('#be_makerNew').value.trim():$('#be_maker').value;if(maker){changes.maker=maker;}}
-  if(!Object.keys(changes).length){alert('변경할 항목을 한 개 이상 체크하세요.');return;}
+  // 판매가 일괄 조정
+  const priceOn=$('#be_price_on').checked;
+  const pmode=(document.querySelector('#be_price_mode button.on')||{}).dataset?(document.querySelector('#be_price_mode button.on').dataset.pm):'margin';
+  const pvalRaw=$('#be_price_val').value;
+  const pval=Number(pvalRaw);
+  if(priceOn&&(pvalRaw===''||isNaN(pval))){alert('판매가 조정 %를 입력하세요.');return;}
+  if(!Object.keys(changes).length&&!priceOn){alert('변경할 항목을 한 개 이상 체크하세요.');return;}
   if(changes.maker)addMaker(changes.maker);
-  const snaps=[];
+  const cfg=state.priceCfg, rate=(cfg.channel==='open'?(Number(cfg.pg)+Number(cfg.om)):Number(cfg.pg))/100;
+  const snaps=[];let pDone=0,pSkip=0;
   ids.forEach(id=>{
     const p=state.products.find(x=>x.id===id);if(!p)return;
     snaps.push({id,prev:JSON.parse(JSON.stringify(p))});
     if(changes.stage&&p.stage!==changes.stage){p.stage=changes.stage;(p.history=p.history||[]).push({stage:changes.stage,date:today()});}
     ['sample','source','cert','patent','maker'].forEach(k=>{if(changes[k]!=null)p[k]=changes[k];});
+    if(priceOn){
+      if(pmode==='margin'){
+        const pr=p.pricing||{}, buy=Number(pr.buy)||0;
+        const fixed=buy+Number(cfg.ship||0)+Number(cfg.mkt||0), t=pval/100, denom=1-rate-t;
+        if(buy>0&&denom>0){const sell=Math.round(fixed/denom);p.pricing=Object.assign({buy:buy,sell:0,moq:50,ref:'',colors:[]},pr,{sell});pDone++;}
+        else pSkip++;
+      }else{ // 현재가에서 ±%
+        if(p.pricing&&p.pricing.sell){p.pricing.sell=Math.max(0,Math.round(p.pricing.sell*(1+pval/100)));pDone++;}
+        else pSkip++;
+      }
+    }
   });
-  state.activity.unshift({id:uid(),type:'bulkedit',pid:null,name:`일괄수정 (제품 ${snaps.length}건)`,date:today(),ts:Date.now(),snaps});
+  state.activity.unshift({id:uid(),type:'bulkedit',pid:null,name:`일괄수정 (제품 ${snaps.length}건${priceOn?` · 판매가 ${pDone}건`:''})`,date:today(),ts:Date.now(),snaps});
   if(state.activity.length>200)state.activity.length=200;
   save();closeOverlay();setSelectMode(false);render();renderActivity();
+  if(priceOn)setTimeout(()=>alert(`판매가 조정 완료: ${pDone}건 적용${pSkip?` · ${pSkip}건 건너뜀(${pmode==='margin'?'매입가 없음':'판매가 미설정'})`:''}`),50);
 }
 function bulkDelete(){
   const ids=[...selected];if(!ids.length)return;

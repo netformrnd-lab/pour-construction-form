@@ -682,7 +682,9 @@ export default function App(){
       }
       return {...i,...patch}; });
     const n={...p,[k]:list};
-    return k==="tasks"?recalcProg(n):n;
+    // 자동화: 업무가 완료로 전이되면 후속 액션 평가(설정 없으면 무동작). recalcProg는 마지막에 한 번.
+    const n2=(k==="tasks"&&c.status==="done")?applyAutomation(n,id,cu):n;
+    return k==="tasks"?recalcProg(n2):n2;
   });
   const newTid=()=>"trash"+Date.now()+"_"+Math.random().toString(36).slice(2,6);
   const delMeta=()=>({_deletedAt:new Date().toISOString(),_deletedBy:cu?.id||null,_deletedByName:cu?.name||""});
@@ -3285,6 +3287,46 @@ const myReadyProcess=(D,uid)=>{
   return out;
 };
 const ST_COLOR={done:"#00C073",ready:"#F97316",wait:"#9CA3AF"};
+// ───────────── 자동화 실행 엔진 (기존 동작에 "얹기"만 — auto 설정이 없으면 완전 무동작) ─────────────
+// 트리거: 업무 status==="done" 전이. 그 업무의 auto.onDone 액션 실행 + autoComplete 후속 단계 연쇄 완료.
+// 순수 함수(state→state). visited 가드로 무한루프 차단. 자동 변경은 byName:"자동화"로 이력에 남김.
+const AUTO_ACTOR={id:null,name:"자동화"};
+const applyAutomation=(state,doneId,actor)=>{
+  if(!Array.isArray(state.tasks)) return state;
+  let tasks=state.tasks.slice();
+  const created=[];
+  const visited=new Set();
+  const genId=()=>"t"+Date.now()+Math.random().toString(36).slice(2,6);
+  const cascade=(tid)=>{
+    if(visited.has(tid)) return;   // 같은 업무 두 번 처리 금지(루프 가드)
+    visited.add(tid);
+    const t=tasks.find(x=>x.id===tid);
+    if(!t) return;
+    // ① 완료 시 자동 생성 업무(onDone createTask)
+    const acts=(t.auto&&Array.isArray(t.auto.onDone))?t.auto.onDone:[];
+    acts.forEach(a=>{
+      if(a&&a.kind==="createTask"&&(a.title||"").trim()){
+        const at=new Date().toISOString();
+        created.push({id:genId(),title:a.title.trim(),projectId:t.projectId||"",assigneeId:a.assigneeId||t.assigneeId||"",
+          type:"general",status:"todo",isFixed:false,weekDay:null,weekSlot:null,dueDate:"",
+          memo:`⚡ 자동 생성 · '${t.title}' 완료 시`,attachments:[],auto:null,autoFrom:tid,
+          statusLog:[{status:"todo",at,by:actor?.id||null,byName:AUTO_ACTOR.name}]});
+      }
+    });
+    // ② autoComplete 후속 단계: 선행(deps)이 모두 done이면 자동 완료 → 연쇄
+    tasks.filter(x=>Array.isArray(x.deps)&&x.deps.includes(tid)).forEach(dep=>{
+      if(dep.status==="done"||!dep.autoComplete) return;
+      const allDone=dep.deps.every(d=>{const dt=tasks.find(z=>z.id===d);return dt?dt.status==="done":true;});
+      if(!allDone) return;
+      const at=new Date().toISOString();
+      tasks=tasks.map(x=>x.id===dep.id?{...x,status:"done",doneAt:at,doneBy:actor?.id||null,doneByName:AUTO_ACTOR.name,
+        statusLog:[...(Array.isArray(x.statusLog)?x.statusLog:[]),{status:"done",at,by:actor?.id||null,byName:AUTO_ACTOR.name}]}:x);
+      cascade(dep.id);   // 완료된 후속이 또 다른 후속을 깨움
+    });
+  };
+  cascade(doneId);
+  return created.length?{...state,tasks:[...tasks,...created]}:{...state,tasks};
+};
 // 템플릿 1개 → 신규 SKU 프로젝트 + 단계별 업무(선행연결·담당자배정) 자동 생성
 const instantiateLaunch=({tpl,productName,mainKPIId,subKPIId,dealerType,add})=>{
   const ts=Date.now();
@@ -3297,7 +3339,7 @@ const instantiateLaunch=({tpl,productName,mainKPIId,subKPIId,dealerType,add})=>{
   add("projects",{id:projId,mainKPIId:mainKPIId||null,subKPIId:subKPIId||null,title:`${productName} 출시`,productName,templateId:tpl.id,assigneeId:owner,collaboratorIds:assignees.filter(a=>a!==owner),group:"신상 출시",priority:"high",status:"active",progress:0,resultValue:0,dealerType:dealerType||""});
   tpl.nodes.forEach((n,i)=>{
     const deps=predsOf(n.id).map(pid=>taskIdByNode[pid]).filter(Boolean);
-    add("tasks",{id:taskIdByNode[n.id],title:n.roleLabel?`[${n.roleLabel}] ${n.title}`:n.title,projectId:projId,assigneeId:n.assigneeId||owner,type:"general",status:"todo",weekDay:null,weekSlot:null,isFixed:false,dueDate:"",memo:"",attachments:[],launchNode:n.id,step:i,deps});
+    add("tasks",{id:taskIdByNode[n.id],title:n.roleLabel?`[${n.roleLabel}] ${n.title}`:n.title,projectId:projId,assigneeId:n.assigneeId||owner,type:"general",status:"todo",weekDay:null,weekSlot:null,isFixed:false,dueDate:"",memo:"",attachments:[],auto:n.auto||null,autoComplete:!!n.autoComplete,launchNode:n.id,step:i,deps});
   });
 };
 // 프로젝트 상세 안의 "단계 흐름(협업 인계)" 섹션 — 출시 SKU(launchNode) 인계 파이프라인. 일반 프로젝트는 로드맵에서 관리(중복 제거).
@@ -3573,6 +3615,7 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
                   <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4}}>
                     <span style={{flexShrink:0,width:18,height:18,borderRadius:"50%",backgroundColor:col,color:"#fff",fontSize:10,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{i+1}</span>
                     <span style={{fontSize:10,fontWeight:800,color:col,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.roleLabel||uName(n.assigneeId)}</span>
+                    {(n.autoComplete||(n.auto&&Array.isArray(n.auto.onDone)&&n.auto.onDone.length>0))&&<span title="자동화" style={{marginLeft:"auto",flexShrink:0,fontSize:10,fontWeight:900,color:"#EA580C"}}>⚡</span>}
                   </div>
                   <p style={{margin:0,fontSize:11.5,fontWeight:700,color:"#1F2937",lineHeight:1.3}}>{n.title}</p>
                 </div>
@@ -3616,18 +3659,44 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
   );
 }
 function NodeEditForm({node,users,onSave,onDelete}){
-  const [f,setF]=useState({title:node.title||"",roleLabel:node.roleLabel||"",assigneeId:node.assigneeId||users[0]?.id});
+  const [f,setF]=useState({title:node.title||"",roleLabel:node.roleLabel||"",assigneeId:node.assigneeId||users[0]?.id,
+    autoComplete:!!node.autoComplete,
+    onDone:Array.isArray(node.auto&&node.auto.onDone)?node.auto.onDone.map(a=>({...a})):[]});
+  const addAction=()=>setF({...f,onDone:[...f.onDone,{id:"a"+Date.now(),kind:"createTask",title:"",assigneeId:""}]});
+  const upAction=(i,p)=>setF({...f,onDone:f.onDone.map((a,k)=>k===i?{...a,...p}:a)});
+  const rmAction=(i)=>setF({...f,onDone:f.onDone.filter((_,k)=>k!==i)});
+  const lbl={display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5};
+  const inp={width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"};
   return(
     <div style={{marginTop:8}}>
-      <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>단계명 *</label>
-      <input value={f.title} onChange={e=>setF({...f,title:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:14}}/>
-      <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>역할 라벨 <span style={{color:"#9CA3AF",fontWeight:600}}>(예: MD·본부장 · 비우면 담당자명 표시)</span></label>
-      <input value={f.roleLabel} onChange={e=>setF({...f,roleLabel:e.target.value})} placeholder="" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:14}}/>
-      <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>담당자</label>
-      <select value={f.assigneeId} onChange={e=>setF({...f,assigneeId:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#fff",fontFamily:"inherit",WebkitAppearance:"none",marginBottom:18}}>{users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>
+      <label style={lbl}>단계명 *</label>
+      <input value={f.title} onChange={e=>setF({...f,title:e.target.value})} style={{...inp,marginBottom:14}}/>
+      <label style={lbl}>역할 라벨 <span style={{color:"#9CA3AF",fontWeight:600}}>(예: MD·본부장 · 비우면 담당자명 표시)</span></label>
+      <input value={f.roleLabel} onChange={e=>setF({...f,roleLabel:e.target.value})} placeholder="" style={{...inp,marginBottom:14}}/>
+      <label style={lbl}>담당자</label>
+      <select value={f.assigneeId} onChange={e=>setF({...f,assigneeId:e.target.value})} style={{...inp,backgroundColor:"#fff",WebkitAppearance:"none",marginBottom:18}}>{users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>
+
+      {/* ⚡ 자동화 — 설정 없으면 동작 안 함(기존과 동일). 있으면 완료 전이 시 엔진이 실행. */}
+      <div style={{borderTop:"1px dashed #E5E8EB",paddingTop:14,marginBottom:6}}>
+        <p style={{margin:"0 0 10px",fontSize:12.5,fontWeight:900,color:"#EA580C"}}>⚡ 자동화 <span style={{fontWeight:600,color:"#9CA3AF"}}>(선택)</span></p>
+        <label onClick={()=>setF({...f,autoComplete:!f.autoComplete})} style={{display:"flex",alignItems:"center",gap:9,padding:"10px 12px",borderRadius:11,border:`1.5px solid ${f.autoComplete?"#FED7AA":"#E5E8EB"}`,backgroundColor:f.autoComplete?"#FFF7ED":"#fff",cursor:"pointer",marginBottom:12}}>
+          <span style={{flexShrink:0,width:18,height:18,borderRadius:6,border:`2px solid ${f.autoComplete?"#F97316":"#CBD3DD"}`,backgroundColor:f.autoComplete?"#F97316":"#fff",color:"#fff",fontSize:12,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{f.autoComplete?"✓":""}</span>
+          <span style={{fontSize:12.5,fontWeight:700,color:"#374151",lineHeight:1.4}}>🤖 자동 단계 <span style={{color:"#9CA3AF",fontWeight:600}}>— 앞 단계가 모두 끝나면 사람 없이 자동 완료</span></span>
+        </label>
+        <label style={lbl}>완료 시 자동 생성 업무 <span style={{color:"#9CA3AF",fontWeight:600}}>(이 단계가 끝나면 만들 업무)</span></label>
+        {f.onDone.map((a,i)=>(
+          <div key={a.id||i} style={{display:"flex",gap:6,marginBottom:8,alignItems:"center"}}>
+            <input value={a.title} onChange={e=>upAction(i,{title:e.target.value})} placeholder="예: 민지 검수" style={{...inp,flex:1,padding:"10px 12px",fontSize:13}}/>
+            <select value={a.assigneeId||""} onChange={e=>upAction(i,{assigneeId:e.target.value})} style={{...inp,width:"auto",padding:"10px 10px",fontSize:13,backgroundColor:"#fff",WebkitAppearance:"none"}}><option value="">담당자</option>{users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>
+            <button onClick={()=>rmAction(i)} style={{flexShrink:0,width:34,height:38,borderRadius:10,border:"1.5px solid #FFE2E5",backgroundColor:"#FFF0F1",color:"#F04452",fontSize:15,fontWeight:700,cursor:"pointer"}}>×</button>
+          </div>
+        ))}
+        <button onClick={addAction} style={{width:"100%",padding:"10px 0",borderRadius:11,border:"1.5px dashed #BFDBFE",backgroundColor:"#EFF6FF",color:"#2563EB",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit",marginBottom:18}}>＋ 액션 추가</button>
+      </div>
+
       <div style={{display:"flex",gap:8}}>
         <button onClick={onDelete} style={{flex:"0 0 auto",padding:"13px 16px",borderRadius:12,border:"1.5px solid #FFE2E5",backgroundColor:"#FFF0F1",color:"#F04452",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
-        <Btn full variant="orange" onClick={()=>f.title.trim()&&onSave({title:f.title.trim(),roleLabel:f.roleLabel.trim(),assigneeId:f.assigneeId})} disabled={!f.title.trim()} style={{flex:1}}>저장</Btn>
+        <Btn full variant="orange" onClick={()=>f.title.trim()&&onSave({title:f.title.trim(),roleLabel:f.roleLabel.trim(),assigneeId:f.assigneeId,autoComplete:f.autoComplete,auto:{onDone:f.onDone.filter(a=>(a.title||"").trim()).map(a=>({id:a.id,kind:"createTask",title:a.title.trim(),assigneeId:a.assigneeId||""}))}})} disabled={!f.title.trim()} style={{flex:1}}>저장</Btn>
       </div>
     </div>
   );

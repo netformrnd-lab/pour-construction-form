@@ -688,7 +688,8 @@
     <div class="mh" style="margin-top:4px">엑셀 일괄등록</div>
     <div class="xlsx-blk">
       <div class="xlsx-row"><span class="xl-lbl">제조사</span><button class="xl-btn dl" data-tpl="maker">양식</button><label class="xl-btn up">업로드<input type="file" id="up_maker" accept=".xlsx,.xls,.csv" hidden></label></div>
-      <div class="xlsx-row"><span class="xl-lbl">제품</span><button class="xl-btn dl" data-tpl="product">양식</button><label class="xl-btn up">업로드<input type="file" id="up_product" accept=".xlsx,.xls,.csv" hidden></label></div>
+      <div class="xlsx-row"><span class="xl-lbl">제품 신규</span><button class="xl-btn dl" data-tpl="product">양식</button><label class="xl-btn up">업로드<input type="file" id="up_product" accept=".xlsx,.xls,.csv" hidden></label></div>
+      <div class="xlsx-row"><span class="xl-lbl">제품 수정</span><button class="xl-btn dl" id="dl_products">현재자료</button><label class="xl-btn up">수정 업로드<input type="file" id="up_product_edit" accept=".xlsx,.xls,.csv" hidden></label></div>
       <div class="xlsx-msg" id="xlsxMsg"></div>
     </div>
     <div class="mh">활동 여정</div>
@@ -1641,11 +1642,13 @@ $('#lightbox').addEventListener('click',()=>$('#lightbox').classList.remove('on'
 /* ---- 제품 개요 자료(카탈로그·링크) 첨부 ---- */
 function fileToDataURL(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>res(fr.result);fr.onerror=rej;fr.readAsDataURL(file);});}
 function resizeImage(file){return new Promise(res=>{let done=false;const fin=v=>{if(!done){done=true;res(v);}};try{processImage(file,fin);}catch(e){fin(null);}setTimeout(()=>fin(null),8000);});}
+function ovProgress(txt){const hint=document.querySelector('#ov_drop .dz-hint');if(hint)hint.innerHTML=txt;}
 async function addOverviewFiles(pid,files){
   const p=state.products.find(x=>x.id===pid);if(!p)return;
-  let any=false;
+  let any=false;const total=files.length;let n=0;
   for(const f of files){
-    if(!f)continue;
+    if(!f)continue;n++;
+    ovProgress(`업로드 중… (${n}/${total}) <b>${esc(f.name||'')}</b>`);
     const id=uid();const isImg=(f.type||'').indexOf('image')===0;
     const isPdf=(f.type==='application/pdf')||/\.pdf$/i.test(f.name||'');
     try{
@@ -1670,7 +1673,8 @@ async function addOverviewFiles(pid,files){
       }
     }catch(e){console.error('[자료] 첨부 처리 실패:',e);}
   }
-  if(any){save();renderMain();}
+  if(any)save();
+  renderMain(); // 진행표시 초기화 + 썸네일 갱신
 }
 function addOverviewLink(pid,url){
   const p=state.products.find(x=>x.id===pid);if(!p)return;
@@ -2233,9 +2237,51 @@ $('#topAdd').onclick=()=>openProd(null);
 $('#p_type').onchange=syncTypeRows;
 
 /* ---- excel/csv bulk register ---- */
-const PCOLS=[['제품명','name'],['상품명','goods'],['제조사','maker'],['유형','type'],['컨셉','concept'],['제품스펙','spec'],['소싱처','source'],['시장최저가/마켓','market'],['공급단가(원)','cost'],['MOQ','moq'],['리드타임','lead'],['샘플','sample'],['단계','stage'],['인증','cert'],['특허','patent'],['메모','memo']];
-const PEX1=['탄성 방수 코트재','코트재','강남제비스코','단품','셀프시공 1세대용','4kg/1액형/2회도포','국내 제조사','89,000원','8500','500','초도 30일','대기','테스트','확인중','출원중','우선 협의 진행'];
-const PEX2=['벽돌 발수제','','KCC','단품','벽돌 백화 케어','','국내 제조사','','9200','300','','수령','후보','보유','확인중',''];
+const PCOLS=[
+  ['제품ID','id'],['제품명','name'],['상품명','goods'],['제조사','maker'],['유형','type'],['컨셉','concept'],['제품스펙','spec'],['소싱처','source'],
+  ['시장최저가/마켓','market'],['공급단가(원)','cost'],['MOQ','moq'],['단가변동요인','pricevar'],['리드타임','lead'],['통관물류','customs'],
+  ['샘플','sample'],['단계','stage'],['인증','cert'],['특허','patent'],['보유인증항목','certs'],['특허정보','patentinfo'],
+  ['충진가능용기','fill'],['제조사충진','fillmaker'],['용기조달','container'],['IBC회수','ibc'],['스티커라벨','label'],
+  ['매입가(판매계산)','pbuy'],['일반판매가','psell'],['판매MOQ(색상당)','pmoq'],['온라인최저가','pref'],['색상(SKU)','pcolors'],
+  ['메모','memo']
+];
+const PEX1={name:'탄성 방수 코트재',goods:'코트재',maker:'강남제비스코',type:'단품',concept:'셀프시공 1세대용',spec:'4kg/1액형/2회도포',source:'국내 제조사',market:'89,000원대',cost:'8,500원/통',moq:'500통',pricevar:'컬러·규격별',lead:'초도 30일',customs:'',sample:'대기',stage:'테스트',cert:'확인중',patent:'출원중',certs:'시험성적서, 친환경(HB)',patentinfo:'제10-XXXXXXX호 출원',fill:'통, 튜브',fillmaker:'제조사 충진 가능',container:'공급처 보유',ibc:'해당없음',label:'통라벨 부착',pbuy:'13000',psell:'',pmoq:'50',pref:'',pcolors:'회색, 백색',memo:'우선 협의'};
+const PEX2={name:'벽돌 발수제',maker:'KCC',type:'단품',concept:'벽돌 백화 케어',source:'국내 제조사',cost:'9,200원',moq:'300',sample:'수령',stage:'후보',cert:'보유',patent:'확인중',fill:'말통',fillmaker:'확인중',container:'확인중',ibc:'해당없음',pbuy:'9200',psell:'19900',pmoq:'100',memo:''};
+const FILL_OPT=['통','튜브','말통'],FM_OPT=['확인중','제조사 충진 가능','불가 → 충진처 외주(IBC)'],CON_OPT=['확인중','공급처 보유','우리 구매·발송'],IBC_OPT=['해당없음','회수','미회수','확인중'];
+function parseField(key,raw){
+  raw=String(raw==null?'':raw).trim();
+  switch(key){
+    case 'fill': return raw?raw.split(/[,/]+|\s{2,}/).map(s=>s.trim()).filter(s=>FILL_OPT.includes(s)):[];
+    case 'certs': return raw?raw.split(/[,]+/).map(s=>s.trim()).filter(Boolean):[];
+    case 'pcolors': return raw?raw.split(/[,/]+/).map(s=>s.trim()).filter(Boolean):[];
+    case 'type': return ['단품','패키지','파생'].includes(raw)?raw:'단품';
+    case 'sample': return ['대기','수령','해당없음'].includes(raw)?raw:'대기';
+    case 'stage': {let s=raw==='완료'?'출시완료':raw;return STAGES.includes(s)?s:'후보';}
+    case 'cert': return ['확인중','보유','미보유'].includes(raw)?raw:'확인중';
+    case 'patent': return ['확인중','보유','출원중','미보유'].includes(raw)?raw:'확인중';
+    case 'fillmaker': return FM_OPT.includes(raw)?raw:'확인중';
+    case 'container': return CON_OPT.includes(raw)?raw:'확인중';
+    case 'ibc': return IBC_OPT.includes(raw)?raw:'해당없음';
+    case 'pbuy': case 'pref': return raw===''?'':(Number(raw.replace(/[^\d.]/g,''))||0);
+    case 'psell': case 'pmoq': return raw===''?0:(Number(raw.replace(/[^\d.]/g,''))||0);
+    default: return raw;
+  }
+}
+const PRICE_KEYS=['pbuy','psell','pmoq','pref','pcolors'];
+function cellFor(p,key){
+  const pr=p.pricing||{};
+  switch(key){
+    case 'id': return p.id;
+    case 'fill': return (p.fill||[]).join(', ');
+    case 'certs': return (p.certs||[]).join(', ');
+    case 'pcolors': return (pr.colors||[]).join(', ');
+    case 'pbuy': return (pr.buy===''||pr.buy==null)?'':pr.buy;
+    case 'psell': return pr.sell?pr.sell:'';
+    case 'pmoq': return pr.moq?pr.moq:'';
+    case 'pref': return (pr.ref===''||pr.ref==null)?'':pr.ref;
+    default: return p[key]==null?'':p[key];
+  }
+}
 function dlBlob(name,blob){const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);}
 function hasXLSX(){return typeof XLSX!=='undefined';}
 function csvCell(v){v=(v==null?'':String(v));return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
@@ -2247,17 +2293,42 @@ function dlTemplate(kind){
     flagMsg('제조사 양식을 내려받았어요. 채운 뒤 [업로드]하세요.','ok');return;
   }
   const headers=PCOLS.map(c=>c[0]);
-  const aoa=[headers,PEX1,PEX2];
+  const exRow=ex=>PCOLS.map(([l,k])=>k==='id'?'':(ex[k]!=null?ex[k]:''));
+  const aoa=[headers,exRow(PEX1),exRow(PEX2)];
+  writeProductSheet(aoa,'제품_일괄등록_양식');
+  flagMsg('제품 양식을 내려받았어요. 충진·용기·판매가까지 한 번에 입력 가능해요(선택). 예시 줄은 지우고 작성 후 [업로드]하세요.','ok');return;
+}
+function writeProductSheet(aoa,fname){
+  const guide=[['컬럼','입력값 안내'],
+    ['제품ID','비우면 신규 등록. 값이 있으면 해당 제품 수정(‘현재자료’ 받아서 편집)'],
+    ['유형','단품 / 패키지 / 파생'],['샘플','대기 / 수령 / 해당없음'],
+    ['단계','후보 / 샘플 / 테스트 / 협의 / 발주준비 / 출시완료'],
+    ['인증','확인중 / 보유 / 미보유'],['특허','확인중 / 보유 / 출원중 / 미보유'],
+    ['보유인증항목','콤마로 구분 (예: 시험성적서, 친환경(HB))'],
+    ['충진가능용기','통 / 튜브 / 말통 — 콤마로 여러 개'],
+    ['제조사충진','확인중 / 제조사 충진 가능 / 불가 → 충진처 외주(IBC)'],
+    ['용기조달','확인중 / 공급처 보유 / 우리 구매·발송'],
+    ['IBC회수','해당없음 / 회수 / 미회수 / 확인중'],
+    ['매입가·일반판매가·판매MOQ·온라인최저가','숫자만 (판매가 계산용). 비우면 미설정'],
+    ['색상(SKU)','콤마로 구분 (예: 회색, 백색)'],
+    ['공급단가(원)','자유 텍스트 (예: 8,500원/통)'],
+    ['※ 신규','제품명만 필수. 나머지는 선택(공란이면 공란).'],
+    ['※ 수정','제품ID가 있는 행은 입력한 칸만 덮어쓰기(빈칸은 기존값 유지).']];
   if(hasXLSX()){
     const wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoa),'제품');
-    const guide=[['컬럼','입력값 안내'],['유형','단품 / 패키지 / 파생'],['샘플','대기 / 수령 / 해당없음'],['단계','후보 / 샘플 / 테스트 / 협의 / 발주준비 / 출시완료'],['인증','확인중 / 보유 / 미보유'],['특허','확인중 / 보유 / 출원중 / 미보유'],['공급단가(원)','숫자만 또는 콤마 포함 (예: 8,500)'],['※','제품명만 필수. 예시 2줄은 지우고 작성하세요.']];
     XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(guide),'입력안내');
-    XLSX.writeFile(wb,'제품_일괄등록_양식.xlsx');
+    XLSX.writeFile(wb,fname+'.xlsx');
   }else{
-    dlBlob('제품_일괄등록_양식.csv',new Blob(['\uFEFF'+aoa.map(r=>r.map(csvCell).join(',')).join('\r\n')],{type:'text/csv'}));
+    dlBlob(fname+'.csv',new Blob(['﻿'+aoa.map(r=>r.map(csvCell).join(',')).join('\r\n')],{type:'text/csv'}));
   }
-  flagMsg('제품 양식을 내려받았어요. 예시 줄은 지우고 작성 후 [업로드]하세요.','ok');
+}
+function exportProducts(){
+  if(!state.products.length){flagMsg('내보낼 제품이 없어요.','err');return;}
+  const headers=PCOLS.map(c=>c[0]);
+  const aoa=[headers,...state.products.map(p=>PCOLS.map(([l,k])=>cellFor(p,k)))];
+  writeProductSheet(aoa,'제품_수정양식_'+today());
+  flagMsg(`현재 제품 ${state.products.length}건을 받았어요. 셀을 수정 후 [수정 업로드]하면 제품ID 기준으로 반영돼요.`,'ok');
 }
 function flagMsg(t,cls){const m=$('#xlsxMsg');if(!m)return;m.className='xlsx-msg '+(cls||'');m.textContent=t;}
 function csvParse(text){
@@ -2284,36 +2355,66 @@ function importMakers(rows){
   if(added)logMaker('bulkadd',null,addedNames);
   save();render();if(state.tab==='makers')renderMakerList();renderActivity();flagMsg(`제조사 ${added}곳 등록 완료.`,'ok');
 }
+// 행 데이터(g)를 제품 p에 반영. isNew=true면 모든 매핑칸 적용(공란=기본/공란), false(수정)면 입력칸만 덮어쓰기
+function applyProductRow(p,g,idx,isNew){
+  const TEXT=['name','goods','maker','concept','spec','source','market','cost','moq','pricevar','lead','customs','patentinfo','label'];
+  const ENUM=['type','sample','stage','cert','patent','fillmaker','container','ibc'];
+  const ARR=['fill','certs'];
+  const setF=(key)=>{ if(idx[key]==null)return; const raw=g(key); if(isNew){p[key]=parseField(key,raw);} else if(String(raw).trim()!==''){p[key]=parseField(key,raw);} };
+  TEXT.forEach(setF); ENUM.forEach(setF); ARR.forEach(setF);
+  if(p.maker)addMaker(p.maker);
+  // 판매가
+  const provided=k=>idx[k]!=null&&String(g(k)).trim()!=='';
+  if(isNew){
+    if(PRICE_KEYS.some(provided)){
+      p.pricing={buy:parseField('pbuy',g('pbuy')),sell:parseField('psell',g('psell')),moq:parseField('pmoq',g('pmoq')),ref:parseField('pref',g('pref')),colors:parseField('pcolors',g('pcolors'))};
+    }
+  }else if(PRICE_KEYS.some(provided)){
+    const pr=Object.assign({buy:'',sell:0,moq:0,ref:'',colors:[]},p.pricing||{});
+    if(provided('pbuy'))pr.buy=parseField('pbuy',g('pbuy'));
+    if(provided('psell'))pr.sell=parseField('psell',g('psell'));
+    if(provided('pmoq'))pr.moq=parseField('pmoq',g('pmoq'));
+    if(provided('pref'))pr.ref=parseField('pref',g('pref'));
+    if(provided('pcolors'))pr.colors=parseField('pcolors',g('pcolors'));
+    p.pricing=pr;
+  }
+}
 function importProducts(rows){
   if(rows.length<2){flagMsg('데이터가 없어요. 양식을 확인해주세요.','err');return;}
   const head=rows[0].map(x=>String(x).trim());
   const idx={};PCOLS.forEach(([label,key])=>{const i=head.findIndex(h=>h===label||h.replace(/\(.*?\)/g,'')===label.replace(/\(.*?\)/g,''));if(i>=0)idx[key]=i;});
-  if(idx.name==null){flagMsg('‘제품명’ 컬럼을 찾지 못했어요. 양식을 사용해주세요.','err');return;}
-  const TYPE=['단품','패키지','파생'],SAMP=['대기','수령','해당없음'],CERTV=['확인중','보유','미보유'],PATV=['확인중','보유','출원중','미보유'];
-  const ids=[];let skip=0;
+  if(idx.name==null&&idx.id==null){flagMsg('‘제품명’ 컬럼을 찾지 못했어요. 양식을 사용해주세요.','err');return;}
+  const ids=[];let skip=0,updated=0;
   for(let i=1;i<rows.length;i++){
     const r=rows[i];const g=k=>idx[k]!=null?String(r[idx[k]]==null?'':r[idx[k]]).trim():'';
+    const rid=idx.id!=null?g('id'):'';
+    if(rid){
+      const tgt=state.products.find(x=>x.id===rid);
+      if(tgt){const prev=JSON.parse(JSON.stringify(tgt));applyProductRow(tgt,g,idx,false);logAct('edit',tgt,prev);updated++;continue;}
+      // ID가 있는데 못 찾으면 신규로 처리
+    }
     const name=g('name');if(!name){skip++;continue;}
-    const type=TYPE.includes(g('type'))?g('type'):'단품';
-    const sample=SAMP.includes(g('sample'))?g('sample'):'대기';
-    let stage=g('stage');if(stage==='완료')stage='출시완료';if(!STAGES.includes(stage))stage='후보';
-    const cert=CERTV.includes(g('cert'))?g('cert'):'확인중';
-    const patent=PATV.includes(g('patent'))?g('patent'):'확인중';
-    const maker=g('maker');if(maker)addMaker(maker);
     const id=uid();
-    state.products.push({id,name,goods:g('goods'),maker,type,bundle:[],baseId:'',concept:g('concept'),spec:g('spec'),sample,memo:g('memo'),source:g('source')||'국내 제조사',market:g('market'),cost:g('cost'),moq:g('moq'),pricevar:'',lead:g('lead'),customs:'',fill:[],fillmaker:'확인중',container:'확인중',ibc:'해당없음',label:'',cert,patent,certs:[],patentinfo:'',tests:[],docs:[],stage,history:[{stage,date:today()}]});
-    ids.push(id);
+    const np={id,name,goods:'',maker:'',type:'단품',bundle:[],baseId:'',concept:'',spec:'',sample:'대기',memo:'',source:'국내 제조사',market:'',cost:'',moq:'',pricevar:'',lead:'',customs:'',fill:[],fillmaker:'확인중',container:'확인중',ibc:'해당없음',label:'',cert:'확인중',patent:'확인중',certs:[],patentinfo:'',attachments:[],tests:[],docs:[],stage:'후보',history:[]};
+    applyProductRow(np,g,idx,true);
+    if(!np.source)np.source='국내 제조사';
+    np.history=[{stage:np.stage,date:today()}];
+    state.products.push(np);ids.push(id);
   }
-  if(!ids.length){flagMsg('등록할 제품이 없어요. (제품명 비어있음)','err');return;}
-  state.activity.unshift({id:uid(),type:'bulkadd',pid:null,name:`엑셀 일괄등록 (제품 ${ids.length}건)`,date:today(),ts:Date.now(),ids,snap:'bulk'});
-  if(state.activity.length>200)state.activity.length=200;
+  if(!ids.length&&!updated){flagMsg('반영할 제품이 없어요. (제품명/제품ID 확인)','err');return;}
+  if(ids.length){
+    state.activity.unshift({id:uid(),type:'bulkadd',pid:null,name:`엑셀 일괄등록 (제품 ${ids.length}건)`,date:today(),ts:Date.now(),ids,snap:'bulk'});
+    if(state.activity.length>200)state.activity.length=200;
+  }
   save();render();renderActivity();
-  flagMsg(`제품 ${ids.length}건 등록 완료${skip?` · ${skip}건 건너뜀(제품명 없음)`:''}.`,'ok');
+  flagMsg(`완료 · 신규 ${ids.length}건 · 수정 ${updated}건${skip?` · ${skip}건 건너뜀(제품명 없음)`:''}.`,'ok');
 }
-$('#xlsxMsg')&&document.querySelectorAll('.xl-btn.dl').forEach(b=>b.onclick=()=>dlTemplate(b.dataset.tpl));
-const upM=$('#up_maker'),upP=$('#up_product');
+document.querySelectorAll('.xl-btn.dl[data-tpl]').forEach(b=>b.onclick=()=>dlTemplate(b.dataset.tpl));
+const dlP=$('#dl_products');if(dlP)dlP.onclick=exportProducts;
+const upM=$('#up_maker'),upP=$('#up_product'),upPE=$('#up_product_edit');
 if(upM)upM.onchange=e=>{const f=e.target.files[0];if(f){flagMsg('읽는 중…','');readRows(f,importMakers);}e.target.value='';};
 if(upP)upP.onchange=e=>{const f=e.target.files[0];if(f){flagMsg('읽는 중…','');readRows(f,importProducts);}e.target.value='';};
+if(upPE)upPE.onchange=e=>{const f=e.target.files[0];if(f){flagMsg('읽는 중…','');readRows(f,importProducts);}e.target.value='';};
 
 /* ---- 부트스트랩: 로컬 먼저 렌더 → 클라우드 우선 동기화 ---- */
 function adoptState(data){

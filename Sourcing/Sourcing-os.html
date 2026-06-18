@@ -564,6 +564,10 @@
   .rp-mk{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;font-size:12.5px}
   .rp-mk .nm{font-weight:700;color:var(--ink)} .rp-mk .mt{color:var(--muted);font-weight:600}
   .rp-note{font-size:11px;color:var(--muted);margin-top:7px;line-height:1.5}
+  .selbox{width:20px;height:20px;border-radius:6px;border:2px solid var(--border2);background:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;flex:0 0 auto}
+  .selbox.on{background:var(--blue);border-color:var(--blue)}
+  .jcard.selon,.lrow.selon{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue) inset}
+  .lrow .selbox{margin-right:1px}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -594,9 +598,12 @@
     <button class="pbtn add" id="topAdd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>제품 추가</button>
     <button class="pbtn report" id="openReport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="14" x2="9" y2="17"></line><line x1="13" y1="11" x2="13" y2="17"></line><line x1="17" y1="13" x2="17" y2="17"></line></svg>이번달 보고</button>
   </div>
-  <div class="vtoggle vtop" id="vtoggle">
-    <button data-view="card">카드</button>
-    <button data-view="list">목록</button>
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px">
+    <div class="vtoggle" id="vtoggle">
+      <button data-view="card">카드</button>
+      <button data-view="list">목록</button>
+    </div>
+    <button class="tbtn" id="selToggle">선택</button>
   </div>
   <div class="filterbar">
     <div class="fchips" id="statusChips"></div>
@@ -605,6 +612,18 @@
   <div class="bases" id="bases"></div>
   <div id="prodEmpty" style="display:none"></div>
   </div>
+
+<!-- bulk action bar -->
+<div id="bulkBar" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:46;background:var(--navy);color:#fff;box-shadow:0 -4px 20px rgba(17,24,39,.18)">
+  <div style="max-width:1080px;margin:0 auto;padding:12px 16px calc(12px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span id="bulkCount" style="font-size:13.5px;font-weight:800">0개 선택</span>
+    <button class="tbtn" id="bulkAll" style="background:rgba(255,255,255,.14);border-color:transparent;color:#fff">전체선택</button>
+    <span style="flex:1"></span>
+    <button class="tbtn" id="bulkEdit" style="background:var(--blue);border-color:transparent;color:#fff">일괄수정</button>
+    <button class="tbtn" id="bulkDel" style="background:#fff;border-color:#FAD2D6;color:var(--red)">삭제</button>
+    <button class="tbtn" id="bulkCancel" style="background:rgba(255,255,255,.14);border-color:transparent;color:#fff">취소</button>
+  </div>
+</div>
 
   <div id="view-makers" style="display:none">
     <div class="view-h">제조사 · 판매가</div>
@@ -845,6 +864,31 @@
   </div>
 </div>
 
+<!-- bulk edit modal -->
+<div class="overlay" id="bulkEditOverlay">
+  <div class="modal" style="max-width:520px">
+    <h3>선택 항목 일괄수정</h3>
+    <div class="msub" id="bulkEditSub">선택한 제품의 값을 한 번에 변경합니다. <b>체크한 항목만</b> 적용돼요.</div>
+    <div class="frow"><label><input type="checkbox" id="be_stage_on" style="margin-right:6px">단계</label><select id="be_stage"></select></div>
+    <div class="frow"><label><input type="checkbox" id="be_maker_on" style="margin-right:6px">제조사</label>
+      <select id="be_maker"></select>
+      <input type="text" id="be_makerNew" placeholder="새 제조사명 입력" style="margin-top:8px;display:none">
+    </div>
+    <div class="ftwo">
+      <div class="frow"><label><input type="checkbox" id="be_sample_on" style="margin-right:6px">샘플</label><select id="be_sample"><option>대기</option><option>수령</option><option>해당없음</option></select></div>
+      <div class="frow"><label><input type="checkbox" id="be_source_on" style="margin-right:6px">소싱처</label><select id="be_source"><option>국내 제조사</option><option>1688</option><option>알리바바</option><option>기타</option></select></div>
+    </div>
+    <div class="ftwo">
+      <div class="frow"><label><input type="checkbox" id="be_cert_on" style="margin-right:6px">인증 여부</label><select id="be_cert"><option>확인중</option><option>보유</option><option>미보유</option></select></div>
+      <div class="frow"><label><input type="checkbox" id="be_patent_on" style="margin-right:6px">특허 여부</label><select id="be_patent"><option>확인중</option><option>보유</option><option>출원중</option><option>미보유</option></select></div>
+    </div>
+    <div class="mact">
+      <button class="cancel" data-close>취소</button>
+      <button class="save" id="be_save">선택 항목에 적용</button>
+    </div>
+  </div>
+</div>
+
 <div id="lightbox" class="lb"><img id="lbImg" alt=""></div>
 
 <!-- attachment viewer (PDF/파일) -->
@@ -905,12 +949,20 @@
       <div class="frow"><label>매입가 (4kg)</label><div class="inwrap"><input type="text" id="pr_buy" inputmode="numeric"><span class="unit">원</span></div></div>
       <div class="frow"><label>일반 판매가</label><div class="inwrap"><input type="text" id="pr_sell" inputmode="numeric"><span class="unit">원</span></div></div>
     </div>
+    <div class="frow"><label>마진율로 판매가 설정 <span class="opt">(목표 마진율 입력 → 적용)</span></label>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div class="inwrap" style="flex:0 0 110px"><input type="number" id="pr_tm" inputmode="decimal" placeholder="40"><span class="unit">%</span></div>
+        <button type="button" class="mini or" id="pr_applyTm" style="flex:0 0 auto">이 마진율로 판매가 설정</button>
+        <span id="pr_tmRec" style="font-size:12px;color:var(--muted);font-weight:700"></span>
+      </div>
+    </div>
     <div class="ftwo">
-      <div class="frow"><label>MOQ <span class="opt">(색상당)</span></label><div class="inwrap"><input type="text" id="pr_moq" inputmode="numeric"><span class="unit">개</span></div></div>
+      <div class="frow"><label>MOQ <span class="opt">(옵션 1종당)</span></label><div class="inwrap"><input type="text" id="pr_moq" inputmode="numeric"><span class="unit">개</span></div></div>
       <div class="frow"><label>온라인 최저가 <span class="opt">(참고)</span></label><div class="inwrap"><input type="text" id="pr_ref" inputmode="numeric"><span class="unit">원</span></div></div>
     </div>
-    <div class="frow"><label>색상(SKU) <span class="opt">(없으면 1종으로 계산)</span></label>
-      <div class="chipfield" id="pr_colorField"><input type="text" id="pr_colorInput" placeholder="색상 입력 후 Enter"></div>
+    <div class="frow"><label>옵션 (색상·규격) <span class="opt">(엔터로 추가 · 옵션마다 MOQ가 붙어요)</span></label>
+      <div class="chipfield" id="pr_colorField"><input type="text" id="pr_colorInput" placeholder="예: 회색 / 4kg / 18L … 입력 후 Enter"></div>
+      <div id="pr_optSum" style="font-size:12px;color:var(--ink2);font-weight:700;margin-top:8px"></div>
     </div>
 
     <div class="mh">계산 결과</div>
@@ -1044,6 +1096,8 @@ let makerQuery='';
 let makerSel=null;
 let statusFilter='전체';
 let stageFilter=null;
+let selectMode=false;
+const selected=new Set();
 const PROG_STAGES=['샘플','테스트','협의','발주준비'];
 const STATUS=['진행 전','진행 중','완료'];
 const won=n=>Math.round(Number(n)||0).toLocaleString('ko-KR');
@@ -1165,13 +1219,14 @@ function jcardEl(p){
   const idx=STAGES.indexOf(p.stage||'후보');
   const priced=!!(p.pricing&&p.pricing.sell);
   const card=document.createElement('div');
-  card.className='jcard'+(p.id===state.sel?' active':'')+(si?' st'+si:'');
-  card.innerHTML=`<div class="jc-top"><span class="tybadge ${p.type||'단품'}">${p.type||'단품'}</span><span class="jc-status s${si}">${STATUS[si]}</span></div>
+  const sel=selected.has(p.id);
+  card.className='jcard'+(!selectMode&&p.id===state.sel?' active':'')+(si?' st'+si:'')+(selectMode&&sel?' selon':'');
+  card.innerHTML=`<div class="jc-top"><span class="tybadge ${p.type||'단품'}">${p.type||'단품'}</span>${selectMode?`<span class="selbox${sel?' on':''}">${sel?'✓':''}</span>`:''}<span class="jc-status s${si}">${STATUS[si]}</span></div>
     <div class="jc-name">${esc(dn(p))}</div>
     <div class="jc-maker">${p.maker?esc(p.maker):'제조사 미입력'}</div>
     <div class="jc-meta">테스트 ${p.tests.length} · 판매가 ${priced?'✓':'–'}</div>
     <div class="jc-cur s${si}"><span class="jc-stage">${esc(p.stage||'후보')}</span><span class="jc-step">${idx+1}/${STAGES.length}</span></div>`;
-  card.onclick=()=>openDetail(p.id);
+  card.onclick=()=>selectMode?toggleSelect(p.id):openDetail(p.id);
   return card;
 }
 
@@ -1179,26 +1234,93 @@ function renderCards(list){
   const el=$('#bases');el.innerHTML='';
   if(list.length===0){el.innerHTML='<div class="tempty" style="grid-column:1/-1">'+(query?'검색 결과 없음':'해당 상태의 제품이 없어요.')+'</div>';}
   list.forEach(p=>el.appendChild(jcardEl(p)));
-  const add=document.createElement('div');add.className='jcard addcard';add.textContent='+ 소싱 제품 추가';add.onclick=()=>openProd(null);el.appendChild(add);
+  if(!selectMode){const add=document.createElement('div');add.className='jcard addcard';add.textContent='+ 소싱 제품 추가';add.onclick=()=>openProd(null);el.appendChild(add);}
 }
 function lrowEl(p){
   const si=statusIdx(p);
   const r=document.createElement('div');
-  r.className='lrow'+(p.id===state.sel?' active':'');
+  const sel=selected.has(p.id);
+  r.className='lrow'+(!selectMode&&p.id===state.sel?' active':'')+(selectMode&&sel?' selon':'');
   const priced=!!(p.pricing&&p.pricing.sell);
-  r.innerHTML=`<span class="lr-bar s${si}"></span>
+  r.innerHTML=`${selectMode?`<span class="selbox${sel?' on':''}">${sel?'✓':''}</span>`:`<span class="lr-bar s${si}"></span>`}
     <div class="lr-main"><div class="lr-name">${esc(dn(p))}</div><div class="lr-sub">${p.maker?esc(p.maker):'제조사 미입력'} · 테스트 ${p.tests.length} · 판매가 ${priced?'✓':'–'}</div></div>
     <span class="lr-stage">${esc(p.stage||'후보')}</span>
     <span class="lr-status s${si}">${STATUS[si]}</span>`;
-  r.onclick=()=>openDetail(p.id);
+  r.onclick=()=>selectMode?toggleSelect(p.id):openDetail(p.id);
   return r;
 }
 function renderRows(list){
   const el=$('#bases');el.innerHTML='';
   if(list.length===0){el.innerHTML='<div class="tempty">'+(query?'검색 결과 없음':'해당 상태의 제품이 없어요.')+'</div>';}
   list.forEach(p=>el.appendChild(lrowEl(p)));
-  const add=document.createElement('div');add.className='lrow addrow';add.textContent='+ 소싱 제품 추가';add.onclick=()=>openProd(null);el.appendChild(add);
+  if(!selectMode){const add=document.createElement('div');add.className='lrow addrow';add.textContent='+ 소싱 제품 추가';add.onclick=()=>openProd(null);el.appendChild(add);}
 }
+
+/* ---- 선택 / 일괄수정 ---- */
+function setSelectMode(on){
+  selectMode=on;if(!on)selected.clear();
+  const bb=$('#bulkBar'),st=$('#selToggle');
+  if(bb)bb.style.display=on?'':'none';
+  if(st)st.textContent=on?'선택 취소':'선택';
+  document.querySelector('.wrap').style.paddingBottom=on?'160px':'';
+  renderList();updateBulkBar();
+}
+function toggleSelect(id){if(selected.has(id))selected.delete(id);else selected.add(id);renderList();updateBulkBar();}
+function updateBulkBar(){
+  const n=selected.size,c=$('#bulkCount');if(c)c.textContent=n+'개 선택';
+  ['bulkEdit','bulkDel'].forEach(id=>{const b=$('#'+id);if(b){b.disabled=!n;b.style.opacity=n?'1':'.5';}});
+}
+function openBulkEdit(){
+  if(!selected.size){alert('수정할 제품을 먼저 선택하세요.');return;}
+  $('#bulkEditSub').innerHTML=`선택한 <b>${selected.size}개</b> 제품의 값을 한 번에 변경합니다. <b>체크한 항목만</b> 적용돼요.`;
+  $('#be_stage').innerHTML=STAGES.map(s=>`<option>${s}</option>`).join('');
+  const ms=$('#be_maker');ms.innerHTML=state.makers.map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join('')+'<option value="__new__">+ 새 제조사 입력…</option>';
+  $('#be_makerNew').style.display='none';$('#be_makerNew').value='';
+  ['stage','maker','sample','source','cert','patent'].forEach(k=>{const cb=$('#be_'+k+'_on');if(cb)cb.checked=false;});
+  openOverlay('bulkEditOverlay');
+}
+function applyBulkEdit(){
+  const ids=[...selected];if(!ids.length)return;
+  const changes={};
+  if($('#be_stage_on').checked)changes.stage=$('#be_stage').value;
+  if($('#be_sample_on').checked)changes.sample=$('#be_sample').value;
+  if($('#be_source_on').checked)changes.source=$('#be_source').value;
+  if($('#be_cert_on').checked)changes.cert=$('#be_cert').value;
+  if($('#be_patent_on').checked)changes.patent=$('#be_patent').value;
+  let maker=null;
+  if($('#be_maker_on').checked){maker=$('#be_maker').value==='__new__'?$('#be_makerNew').value.trim():$('#be_maker').value;if(maker){changes.maker=maker;}}
+  if(!Object.keys(changes).length){alert('변경할 항목을 한 개 이상 체크하세요.');return;}
+  if(changes.maker)addMaker(changes.maker);
+  const snaps=[];
+  ids.forEach(id=>{
+    const p=state.products.find(x=>x.id===id);if(!p)return;
+    snaps.push({id,prev:JSON.parse(JSON.stringify(p))});
+    if(changes.stage&&p.stage!==changes.stage){p.stage=changes.stage;(p.history=p.history||[]).push({stage:changes.stage,date:today()});}
+    ['sample','source','cert','patent','maker'].forEach(k=>{if(changes[k]!=null)p[k]=changes[k];});
+  });
+  state.activity.unshift({id:uid(),type:'bulkedit',pid:null,name:`일괄수정 (제품 ${snaps.length}건)`,date:today(),ts:Date.now(),snaps});
+  if(state.activity.length>200)state.activity.length=200;
+  save();closeOverlay();setSelectMode(false);render();renderActivity();
+}
+function bulkDelete(){
+  const ids=[...selected];if(!ids.length)return;
+  const ans=prompt(`선택한 ${ids.length}개 제품을 삭제합니다.\n(활동 여정에서 되살리기로 복구 가능)\n\n삭제하려면 "삭제" 라고 입력하세요.`);
+  if(ans===null)return;
+  if(ans.trim()!=='삭제'){alert('"삭제" 라고 정확히 입력해야 삭제됩니다. 취소되었어요.');return;}
+  const snaps=ids.map(id=>state.products.find(p=>p.id===id)).filter(Boolean).map(p=>JSON.parse(JSON.stringify(p)));
+  state.products=state.products.filter(p=>!selected.has(p.id));
+  if(!state.products.some(p=>p.id===state.sel))state.sel=state.products[0]?state.products[0].id:null;
+  state.activity.unshift({id:uid(),type:'bulkdelete',pid:null,name:`일괄삭제 (제품 ${snaps.length}건)`,date:today(),ts:Date.now(),snaps});
+  if(state.activity.length>200)state.activity.length=200;
+  save();setSelectMode(false);render();renderActivity();
+}
+$('#selToggle').onclick=()=>setSelectMode(!selectMode);
+$('#bulkCancel').onclick=()=>setSelectMode(false);
+$('#bulkAll').onclick=()=>{const list=filtered();const allSel=list.every(p=>selected.has(p.id));if(allSel)list.forEach(p=>selected.delete(p.id));else list.forEach(p=>selected.add(p.id));renderList();updateBulkBar();};
+$('#bulkEdit').onclick=openBulkEdit;
+$('#bulkDel').onclick=bulkDelete;
+$('#be_maker').addEventListener('change',()=>{const nw=$('#be_makerNew');if($('#be_maker').value==='__new__'){nw.style.display='block';nw.focus();}else nw.style.display='none';});
+$('#be_save').onclick=applyBulkEdit;
 
 /* ---- pricing calc ---- */
 function calcRaw(d,cfg,colors){
@@ -1219,7 +1341,7 @@ function refBadge(c){
 function priceReadout(c){
   if(!c.valid)return `<div class="readout"><div class="tempty" style="padding:6px 2px;text-align:left">일반 판매가를 입력하면 순익·마진이 계산됩니다.${c.ref?' (시장 최저가 참고 '+won(c.ref)+'원)':''}</div></div>`;
   return `<div class="readout">
-    <div class="ro-top"><span class="ro-cost">총발생비 <b>${won(c.cost)}원</b> /개 · 색상 ${c.colorN}종 · MOQ ${won(c.moq)}</span>${refBadge(c)}</div>
+    <div class="ro-top"><span class="ro-cost">총발생비 <b>${won(c.cost)}원</b> /개 · 옵션 ${c.colorN}종 · MOQ ${won(c.moq)} · 총 ${won(c.moq*c.colorN)}개</span>${refBadge(c)}</div>
     <div class="ro-cols">
       <div class="ro-col normal"><span class="tag">일반가</span>
         <div class="ro-row"><span class="rk">판매가</span><span class="rv">${won(c.sell)}원</span></div>
@@ -1877,6 +1999,7 @@ document.querySelectorAll('#vtoggle button').forEach(b=>b.onclick=()=>{state.vie
 const TAB_SUB={products:'공급사 → 샘플 → 테스트 → 인증·특허 → 원가·발주',makers:'제조사 등록 · 판매가 대시보드'};
 function switchTab(t){
   if(t!=='products'&&t!=='makers')t='makers';
+  if(t!=='products'&&selectMode)setSelectMode(false);
   state.tab=t;save();
   $('#view-products').style.display=(t==='products')?'':'none';
   $('#view-makers').style.display=(t==='makers')?'':'none';
@@ -1921,7 +2044,7 @@ function renderPricing(){
   $('#pd_normal').innerHTML=won(nSum)+'<small>원</small>';
   $('#pd_raised').innerHTML=won(rSum)+'<small>원</small>';
   const ch=cfg.channel==='open'?('오픈마켓(PG+오픈마켓 '+(Number(cfg.pg)+Number(cfg.om))+'%)'):('자사몰(PG '+cfg.pg+'%)');
-  $('#pd_foot').textContent='채널 '+ch+' · 색상 1종 = 1회 발주(MOQ) 기준 · 15%인상 '+(cfg.raise?'적용':'미적용');
+  $('#pd_foot').textContent='채널 '+ch+' · 옵션 1종 = 1회 발주(MOQ) 기준 · 15%인상 '+(cfg.raise?'적용':'미적용');
   renderQuickCalc();
 }
 function renderQuickCalc(){
@@ -1983,7 +2106,19 @@ function renderPrColors(){
     f.insertBefore(chip,input);
   });
 }
-function prPreview(){ $('#pr_readout').innerHTML=priceReadout(calcRaw(prData,prCfg,prColors)); }
+function prRecFromMargin(){
+  const rate=(prCfg.channel==='open'?(Number(prCfg.pg)+Number(prCfg.om)):Number(prCfg.pg))/100;
+  const buy=Number(prData.buy)||0,fixed=buy+Number(prCfg.ship||0)+Number(prCfg.mkt||0);
+  const t=(Number(($('#pr_tm')||{}).value)||0)/100,denom=1-rate-t;
+  return (fixed>0&&denom>0)?Math.round(fixed/denom):null;
+}
+function prUpdateTmRec(){const el=$('#pr_tmRec');if(!el)return;const rec=prRecFromMargin();el.textContent=rec?('추천 판매가 '+won(rec)+'원'):'';const b=$('#pr_applyTm');if(b){b.disabled=!rec;b.style.opacity=rec?'1':'.5';}}
+function prUpdateOptSum(){
+  const el=$('#pr_optSum');if(!el)return;
+  const n=prColors.length||1,moq=Number(prData.moq)||0,tot=moq*n;
+  el.innerHTML=prColors.length?`옵션 <b>${n}종</b> · 총 발주수량 = MOQ ${won(moq)} × ${n} = <b style="color:var(--blue)">${won(tot)}개</b>`:`옵션 없음 → 1종으로 계산 (총 발주수량 ${won(moq)}개)`;
+}
+function prPreview(){ $('#pr_readout').innerHTML=priceReadout(calcRaw(prData,prCfg,prColors)); prUpdateTmRec(); prUpdateOptSum(); }
 function openPrice(id){
   const p=state.products.find(x=>x.id===id);if(!p)return;
   prTarget=id; prCfg={...state.priceCfg};
@@ -1995,16 +2130,19 @@ function openPrice(id){
   $('#pr_buy').value=cma(prData.buy);$('#pr_sell').value=cma(prData.sell);$('#pr_moq').value=cma(prData.moq);$('#pr_ref').value=cma(prData.ref);
   segSet('#pr_ch','ch',prCfg.channel);segSet('#pr_raise','raise',prCfg.raise?'on':'off');
   $('#pr_clear').style.display=(pr&&pr.sell)?'block':'none';
+  $('#pr_tm').value=(state.calc&&state.calc.tm)||40;
   $('#pr_colorInput').value='';renderPrColors();prPreview();
   openOverlay('priceOverlay');
 }
+$('#pr_tm').addEventListener('input',prUpdateTmRec);
+$('#pr_applyTm').onclick=()=>{const rec=prRecFromMargin();if(!rec)return;prData.sell=rec;$('#pr_sell').value=cma(rec);prPreview();};
 ['pg','om'].forEach(k=>$('#pr_'+k).oninput=e=>{prCfg[k]=e.target.value===''?'':Number(e.target.value);prPreview();});
 ['ship','mkt'].forEach(k=>$('#pr_'+k).oninput=e=>{prCfg[k]=fmtCur(e.target);prPreview();});
 ['buy','sell','moq','ref'].forEach(k=>$('#pr_'+k).oninput=e=>{prData[k]=fmtCur(e.target);prPreview();});
 document.querySelectorAll('#pr_ch button').forEach(b=>b.onclick=()=>{prCfg.channel=b.dataset.ch;segSet('#pr_ch','ch',prCfg.channel);prPreview();});
 document.querySelectorAll('#pr_raise button').forEach(b=>b.onclick=()=>{prCfg.raise=(b.dataset.raise==='on');segSet('#pr_raise','raise',prCfg.raise?'on':'off');prPreview();});
 $('#pr_colorInput').addEventListener('keydown',e=>{
-  if(e.key==='Enter'){e.preventDefault();const v=e.target.value.trim();if(!v)return;v.split(/[,\s]+/).filter(Boolean).forEach(c=>{if(!prColors.includes(c))prColors.push(c);});e.target.value='';renderPrColors();prPreview();}
+  if(e.key==='Enter'){e.preventDefault();const v=e.target.value.trim();if(!v)return;v.split(/[,\n]+/).map(s=>s.trim()).filter(Boolean).forEach(c=>{if(!prColors.includes(c))prColors.push(c);});e.target.value='';renderPrColors();prPreview();}
   else if(e.key==='Backspace'&&!e.target.value&&prColors.length){prColors.pop();renderPrColors();prPreview();}
 });
 $('#pr_save').onclick=()=>{
@@ -2210,19 +2348,32 @@ function logMaker(type,name,makers){
 function renderActivity(){
   const el=$('#actList');if(!el)return;
   if(!state.activity.length){el.innerHTML='<div class="tempty" style="margin-top:18px">아직 활동 기록이 없어요.</div>';return;}
-  const LBL={add:'추가',edit:'수정',delete:'삭제',restore:'복구',bulkadd:'일괄등록'},IC={add:'+',edit:'✎',delete:'✕',restore:'↩',bulkadd:'⇈'};
+  const LBL={add:'추가',edit:'수정',delete:'삭제',restore:'복구',bulkadd:'일괄등록',bulkedit:'일괄수정',bulkdelete:'일괄삭제'},IC={add:'+',edit:'✎',delete:'✕',restore:'↩',bulkadd:'⇈',bulkedit:'✎',bulkdelete:'✕'};
   el.innerHTML=state.activity.map(a=>{
     let undo='';
-    if(a.type==='delete')undo=a.restored?'<button class="act-undo done" disabled>되살림</button>':`<button class="act-undo" data-undo="${a.id}">되살리기</button>`;
+    if(a.type==='delete'||a.type==='bulkdelete')undo=a.restored?'<button class="act-undo done" disabled>되살림</button>':`<button class="act-undo" data-undo="${a.id}">되살리기</button>`;
     else if(a.type==='edit'&&a.snap)undo=a.reverted?'<button class="act-undo done" disabled>되돌림</button>':`<button class="act-undo" data-undo="${a.id}">되돌리기</button>`;
-    else if(a.type==='bulkadd')undo=a.reverted?'<button class="act-undo done" disabled>되돌림</button>':`<button class="act-undo" data-undo="${a.id}">되돌리기</button>`;
+    else if(a.type==='bulkadd'||a.type==='bulkedit')undo=a.reverted?'<button class="act-undo done" disabled>되돌림</button>':`<button class="act-undo" data-undo="${a.id}">되돌리기</button>`;
     else if(a.type==='add'&&a.kind==='maker')undo=a.reverted?'<button class="act-undo done" disabled>되돌림</button>':`<button class="act-undo" data-undo="${a.id}">되돌리기</button>`;
-    return `<div class="act"><div class="act-ic ${a.type==='bulkadd'?'add':a.type}">${IC[a.type]||'·'}</div><div class="act-main"><div class="act-name">${esc(a.name||'(제품)')}</div><div class="act-meta">${LBL[a.type]||a.type} · ${a.date}</div></div>${undo}</div>`;
+    const icCls=(a.type==='bulkadd')?'add':(a.type==='bulkedit')?'edit':(a.type==='bulkdelete')?'delete':a.type;
+    return `<div class="act"><div class="act-ic ${icCls}">${IC[a.type]||'·'}</div><div class="act-main"><div class="act-name">${esc(a.name||'(제품)')}</div><div class="act-meta">${LBL[a.type]||a.type} · ${a.date}</div></div>${undo}</div>`;
   }).join('');
   el.querySelectorAll('.act-undo[data-undo]').forEach(b=>b.onclick=()=>undoAct(b.dataset.undo));
 }
 function undoAct(aid){
   const a=state.activity.find(x=>x.id===aid);if(!a)return;
+  if(a.type==='bulkedit'&&a.snaps){
+    a.snaps.forEach(s=>{const i=state.products.findIndex(x=>x.id===s.id);if(i>=0)state.products[i]=JSON.parse(JSON.stringify(s.prev));});
+    a.reverted=true;
+    state.activity.unshift({id:uid(),type:'restore',pid:null,name:`일괄수정 ${a.snaps.length}건 되돌림`,date:today(),ts:Date.now(),snap:null});
+    save();render();renderActivity();return;
+  }
+  if(a.type==='bulkdelete'&&a.snaps){
+    a.snaps.forEach(s=>{if(!state.products.some(p=>p.id===s.id))state.products.push(JSON.parse(JSON.stringify(s)));});
+    a.restored=true;
+    state.activity.unshift({id:uid(),type:'restore',pid:null,name:`일괄삭제 ${a.snaps.length}건 복구`,date:today(),ts:Date.now(),snap:null});
+    save();render();renderActivity();return;
+  }
   if(a.kind==='maker'){
     if(a.type==='delete'){
       if(a.maker&&!state.makers.includes(a.maker))state.makers.push(a.maker);

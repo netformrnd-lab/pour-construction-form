@@ -569,6 +569,7 @@
   .rp-note{font-size:11px;color:var(--muted);margin-top:7px;line-height:1.5}
   .ovwrap{display:flex;gap:16px;flex-wrap:wrap}
   .ovleft{flex:1 1 250px;min-width:0} .ovright{flex:1 1 200px;min-width:0}
+  .ovright .k{font-size:10.5px;margin-bottom:2px} .ovright .v{font-size:12.5px;line-height:1.45}
   .ovsub{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px}
   .note-legacy{font-size:12.5px;color:var(--ink2);background:var(--cream);border:1px solid var(--border);border-radius:10px;padding:9px 11px;margin-bottom:8px;white-space:pre-wrap;line-height:1.5}
   .noteitem{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:9px 11px;margin-bottom:7px}
@@ -904,6 +905,17 @@
       <button class="cancel" data-close>취소</button>
       <button class="save" id="be_save">선택 항목에 적용</button>
     </div>
+  </div>
+</div>
+
+<!-- link add modal -->
+<div class="overlay" id="linkOverlay">
+  <div class="modal" style="max-width:440px">
+    <h3>상품 관련 링크 추가</h3>
+    <div class="msub">제품과 관련된 링크(URL)를 입력하세요. 목록에서 누르면 바로 열립니다.</div>
+    <div class="frow"><label>표시 이름 <span class="opt">(선택)</span></label><input type="text" id="lk_name" placeholder="예: 1688 상세페이지"></div>
+    <div class="frow"><label>링크 (URL)</label><input type="text" id="lk_url" placeholder="https://..."></div>
+    <div class="mact"><button class="cancel" data-close>취소</button><button class="save" id="lk_save">추가</button></div>
   </div>
 </div>
 
@@ -1455,10 +1467,7 @@ function renderMain(){
             <div class="dz-hint">카탈로그(PDF)·사진을 끌어다 놓거나 <b>붙여넣기(Ctrl+V)</b> · <button type="button" id="ov_pick" class="dz-pick">파일 선택</button></div>
             <div class="dz-thumbs" id="ov_thumbs"></div>
           </div>
-          <div class="mkrow" style="margin-top:10px">
-            <input type="text" id="ov_linkUrl" placeholder="상품 관련 링크(URL) 붙여넣기">
-            <button type="button" id="ov_linkAdd">링크 추가</button>
-          </div>
+          <button type="button" class="mini" id="ov_linkBtn" style="margin-top:10px">+ 상품 관련 링크 추가</button>
           <div id="ov_links" style="margin-top:10px"></div>
           <div class="ovsub" style="margin-top:16px">제품 메모 · 댓글(일자·시간 자동)</div>
           ${p.memo?`<div class="note-legacy">이전 메모: ${esc(p.memo)}</div>`:''}
@@ -1854,13 +1863,18 @@ async function addOverviewFiles(pid,files){
   if(any)save();
   renderMain(); // 진행표시 초기화 + 썸네일 갱신
 }
-function addOverviewLink(pid,url){
+function addOverviewLink(pid,url,name){
   const p=state.products.find(x=>x.id===pid);if(!p)return;
   url=(url||'').trim();if(!url)return;
   if(!/^https?:\/\//i.test(url))url='https://'+url;
-  p.attachments.push({id:uid(),kind:'link',name:url,url});
+  p.attachments.push({id:uid(),kind:'link',name:(name&&name.trim())||url,url});
   save();renderMain();
 }
+let linkTargetPid=null;
+function openLinkModal(pid){linkTargetPid=pid;$('#lk_name').value='';$('#lk_url').value='';openOverlay('linkOverlay');setTimeout(()=>$('#lk_url').focus(),50);}
+$('#lk_save').onclick=()=>{const u=$('#lk_url').value.trim();if(!u){$('#lk_url').focus();return;}addOverviewLink(linkTargetPid,u,$('#lk_name').value);closeOverlay();};
+$('#lk_url').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#lk_save').click();}});
+$('#lk_name').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#lk_url').focus();}});
 function removeAttachment(pid,aid){
   const p=state.products.find(x=>x.id===pid);if(!p)return;
   if(!confirm('이 자료를 목록에서 삭제할까요?'))return;
@@ -1906,18 +1920,16 @@ function wireOverviewAttach(p){
   // 링크 목록
   const lw=$('#ov_links');
   const links=(p.attachments||[]).filter(a=>a.kind==='link');
-  lw.innerHTML=links.map(a=>`<div class="doc"><span class="dtype" style="background:var(--blue-pale);color:#1b64da">(상품관련링크)</span><span class="dn" title="${esc(a.url)}">${esc(a.name||a.url)}</span><button class="dopen" data-open="${a.id}">열기</button><button class="dedit" data-rm="${a.id}">삭제</button></div>`).join('');
-  lw.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>{const a=p.attachments.find(x=>x.id===b.dataset.open);if(a)window.open(a.url,'_blank','noopener');});
-  lw.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>removeAttachment(p.id,b.dataset.rm));
+  lw.innerHTML=links.map(a=>`<div class="doc" data-lopen="${a.id}" style="cursor:pointer"><span class="dtype" style="background:var(--blue-pale);color:#1b64da">(상품관련링크)</span><span class="dn" title="${esc(a.url)}">${esc(a.name||a.url)}</span><button class="dedit" data-rm="${a.id}">삭제</button></div>`).join('');
+  lw.querySelectorAll('[data-lopen]').forEach(el=>el.onclick=e=>{if(e.target.closest('[data-rm]'))return;const a=p.attachments.find(x=>x.id===el.dataset.lopen);if(a)window.open(a.url,'_blank','noopener');});
+  lw.querySelectorAll('[data-rm]').forEach(b=>b.onclick=e=>{e.stopPropagation();removeAttachment(p.id,b.dataset.rm);});
   // 드롭존
   dz.ondragover=e=>{e.preventDefault();dz.classList.add('over');};
   dz.ondragleave=()=>dz.classList.remove('over');
   dz.ondrop=e=>{e.preventDefault();dz.classList.remove('over');const fs=[...(e.dataTransfer.files||[])];if(fs.length)addOverviewFiles(p.id,fs);};
   $('#ov_pick').onclick=()=>$('#ov_input').click();
   $('#ov_input').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)addOverviewFiles(p.id,fs);};
-  const addL=()=>{const u=$('#ov_linkUrl').value;if(!u.trim())return;addOverviewLink(p.id,u);};
-  $('#ov_linkAdd').onclick=addL;
-  $('#ov_linkUrl').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addL();}};
+  $('#ov_linkBtn').onclick=()=>openLinkModal(p.id);
   // 제품 메모(댓글)
   const nw=$('#ov_notes');
   const notes=(p.notes||[]).slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
@@ -1932,7 +1944,7 @@ function removeNote(pid,id){const p=state.products.find(x=>x.id===pid);if(!p)ret
 /* 상세 모달 열림 + 다른 입력 모달 없음일 때 붙여넣기 → 제품 개요 자료로 추가 */
 document.addEventListener('paste',e=>{
   const det=$('#detailOverlay');if(!det||!det.classList.contains('on'))return;
-  if(['testOverlay','captureOverlay','prodOverlay','docOverlay','priceOverlay','viewerOverlay'].some(id=>$('#'+id)&&$('#'+id).classList.contains('on')))return;
+  if(['testOverlay','captureOverlay','prodOverlay','docOverlay','priceOverlay','viewerOverlay','linkOverlay','bulkEditOverlay'].some(id=>$('#'+id)&&$('#'+id).classList.contains('on')))return;
   const p=cur();if(!p)return;
   const items=(e.clipboardData&&e.clipboardData.items)||[];const fs=[];
   for(const it of items){if(it.type&&(it.type.indexOf('image')===0||it.type==='application/pdf')){const f=it.getAsFile();if(f)fs.push(f);}}

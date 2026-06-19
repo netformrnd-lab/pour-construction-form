@@ -965,6 +965,7 @@ const COLLECTIONS = {
   KB: 'chatbot-kb',
   SESSIONS: 'chatbot-sessions',
   LEADS: 'chatbot-leads',
+  RECO: 'chatbot-reco',   // 진단→솔루션→상품추천 플로우 트리 (doc: 'tree')
 };
 const ADMIN_PIN_KEY = 'pourStoreAdminPin';   // admin.html과 PIN 공유
 const DEFAULT_PIN = '1234';
@@ -1139,21 +1140,70 @@ function buildKbBlock(kb, bot, userText, maxChars = 3200) {
   }
   return out;
 }
-function buildSystemPrompt(bot, kbBlock) {
+function buildSystemPrompt(bot, kbBlock, recoBlock) {
   const lines = [];
   lines.push(bot.systemPrompt || PERSONA_SEED[bot.audience] || '');
   if ((bot.guardrails || []).length) {
     lines.push('\n## 반드시 지킬 규칙');
     bot.guardrails.forEach(g => lines.push('- ' + g));
   }
+  if (recoBlock) {
+    lines.push('\n## 상품 추천 규칙 (진단→솔루션→상품추천 플로우)');
+    lines.push('고객의 건물유형과 증상을 먼저 파악한 뒤, 아래 정의된 증상이면 반드시 해당 공법·상품으로 안내한다. 정의에 없는 증상은 일반 지식으로 유연하게 안내하되 임의의 상품을 지어내지 않는다.');
+    lines.push(recoBlock);
+  }
   if (kbBlock) {
     lines.push('\n## 참고 지식 (아래 내용만 사실 근거로 사용. 여기 없는 수치·약속은 지어내지 말 것)');
     lines.push(kbBlock);
-  } else {
+  } else if (!recoBlock) {
     lines.push('\n(참고 지식 없음 — 일반 안내만 하고, 구체 수치·금액·보증은 약속하지 말 것)');
   }
   lines.push('\n답변은 한국어로 간결하게. 모르면 모른다고 말하고 담당자 연결을 안내하세요.');
   return lines.join('\n');
+}
+
+// 추천 플로우 트리 → 시스템 프롬프트용 텍스트
+const RECO_BASE_URL = 'https://www.poursolution.net';
+function buildRecoBlock(tree) {
+  if (!tree || !Array.isArray(tree.buildings) || !tree.buildings.length) return '';
+  const out = [];
+  tree.buildings.forEach(b => {
+    const probs = (b.problems || []).filter(p => p.label);
+    if (!probs.length) return;
+    out.push(`[${b.label}]`);
+    probs.forEach(p => {
+      const parts = [`- ${p.label} → ${p.method || '(공법 미지정)'}`];
+      if (p.methodLink) parts.push(`(시방서 ${p.methodLink.startsWith('http') ? p.methodLink : RECO_BASE_URL + p.methodLink})`);
+      const prods = (p.products || []).filter(x => x.name);
+      if (prods.length) parts.push('· 추천상품: ' + prods.map(x => x.link ? `${x.name}(${x.link})` : x.name).join(', '));
+      if (p.guide) parts.push('· 가이드: ' + p.guide);
+      if (p.note) parts.push('· ' + p.note);
+      out.push(parts.join(' '));
+    });
+  });
+  return out.join('\n');
+}
+// CLAUDE.md 문제→공법 매핑 기반 초기 시드
+function recoSeed() {
+  const mk = (label, method, methodLink) => ({ id: genId(), label, method, methodLink, products: [], guide: '', note: '' });
+  return {
+    buildings: [{
+      id: genId(), label: '공통(전체)',
+      problems: [
+        mk('아스팔트슁글 지붕 누수', '아스팔트슁글 방수공법', '/128'),
+        mk('옥상 슬라브 누수', '슬라브 듀얼강화방수공법', '/132'),
+        mk('금속기와 지붕 누수', '금속기와 방수공법', '/130'),
+        mk('일반 옥상 누수', '우레탄 방수공법', '/124'),
+        mk('지하 누수', 'PVC 방수공법', '/136'),
+        mk('지하·수조 배면 누수', '아크릴배면차수공법', '/137'),
+        mk('지하주차장 바닥 열화', '에폭시 도장공법', '/125'),
+        mk('외벽 균열+재도장(고급)', '바인더+플러스', '/139'),
+        mk('콘크리트 단면 파손', '탄성강화 보강(단면복구)', '/144'),
+        mk('균열 보수', '복합시트 균열보수', '/145'),
+      ],
+    }],
+    updatedAt: nowIso(),
+  };
 }
 
 // ============================================================
@@ -1256,6 +1306,7 @@ const NAV = [
   { id: 'dashboard',  icon: '📈', label: '대시보드' },
   { id: 'studio',     icon: '🤖', label: '봇 스튜디오' },
   { id: 'knowledge',  icon: '📚', label: '지식베이스' },
+  { id: 'reco',       icon: '🧭', label: '추천 플로우' },
   { id: 'playground', icon: '💬', label: '플레이그라운드' },
   { id: 'logs',       icon: '🗂️', label: '대화 로그' },
   { id: 'settings',   icon: '⚙️', label: '설정' },
@@ -1901,6 +1952,8 @@ function KbImportModal({ onClose, onDone, onToast }) {
 function PlaygroundPage({ onToast, cfg, presetBotId, onNeedSettings }) {
   const { data: bots } = useCollection(COLLECTIONS.BOTS);
   const { data: kb } = useCollection(COLLECTIONS.KB);
+  const [reco, setReco] = useState(null); // 추천 플로우 트리
+  useEffect(() => { db.collection(COLLECTIONS.RECO).doc('tree').get().then(d => { if (d.exists) setReco(d.data()); }).catch(e => console.error('[reco]', e)); }, []);
   const [botId, setBotId] = useState(presetBotId || '');
   const [msgs, setMsgs] = useState([]); // {role, content, ts}
   const [input, setInput] = useState('');
@@ -1963,7 +2016,8 @@ function PlaygroundPage({ onToast, cfg, presetBotId, onNeedSettings }) {
     setMsgs(base); setSending(true);
     try {
       const kbBlock = buildKbBlock(kb, bot, content);
-      const system = buildSystemPrompt(bot, kbBlock);
+      const recoBlock = bot.audience === 'store' ? buildRecoBlock(reco) : '';
+      const system = buildSystemPrompt(bot, kbBlock, recoBlock);
       // 대화 맥락은 최근 12개로 제한(토큰 절약)
       const history = base.filter(m => m.role === 'user' || m.role === 'assistant').slice(-12).map(m => ({ role: m.role, content: m.content }));
       const r = await callClaude(cfg, { system, messages: history, maxTokens: bot.maxTokens || cfg.maxTokens });
@@ -2159,6 +2213,163 @@ function LogsPage({ onToast }) {
       </div>
       {promote && <KbEditModal entry={promote} onClose={() => setPromote(null)} onSave={savePromote} />}
     </>
+  );
+}
+
+// ============================================================
+// 4-B) 추천 플로우 빌더 — 진단→솔루션→상품추천 트리 (자사몰 진단·추천봇)
+// ============================================================
+function RecoFlowPage({ onToast }) {
+  const [tree, setTree] = useState({ buildings: [] });
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(null); // { buildingId, problem }
+
+  const load = async () => {
+    setLoading(true);
+    try { const d = await db.collection(COLLECTIONS.RECO).doc('tree').get(); if (d.exists) setTree(d.data()); }
+    catch (e) { console.error('[reco] 로드 실패:', e); }
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+
+  const persist = async (next) => {
+    setTree(next);
+    try { await db.collection(COLLECTIONS.RECO).doc('tree').set({ ...next, updatedAt: nowIso() }); }
+    catch (e) { onToast({ message: '저장 실패: ' + e.message, type: 'error' }); }
+  };
+  const seed = async () => {
+    if (tree.buildings && tree.buildings.length && !confirm('기존 플로우를 CLAUDE.md 기본 매핑으로 덮어쓸까요?')) return;
+    await persist(recoSeed()); onToast({ message: '기본 추천 플로우 생성됨', type: 'success' });
+  };
+  const addBuilding = async () => {
+    const label = prompt('건물유형 이름 (예: 아파트 / 관공서 / 일반건물)');
+    if (!label) return;
+    await persist({ ...tree, buildings: [...(tree.buildings || []), { id: genId(), label: label.trim(), problems: [] }] });
+  };
+  const renameBuilding = async (b) => {
+    const label = prompt('건물유형 이름 변경', b.label); if (!label) return;
+    await persist({ ...tree, buildings: tree.buildings.map(x => x.id === b.id ? { ...x, label: label.trim() } : x) });
+  };
+  const delBuilding = async (b) => {
+    if (!confirm(`'${b.label}' 건물유형과 하위 증상을 삭제할까요?`)) return;
+    await persist({ ...tree, buildings: tree.buildings.filter(x => x.id !== b.id) });
+  };
+  const delProblem = async (bId, pId) => {
+    if (!confirm('이 증상 추천을 삭제할까요?')) return;
+    await persist({ ...tree, buildings: tree.buildings.map(b => b.id === bId ? { ...b, problems: (b.problems || []).filter(p => p.id !== pId) } : b) });
+  };
+  const saveProblem = async (bId, problem) => {
+    const has = problem.id;
+    const p = has ? problem : { ...problem, id: genId() };
+    await persist({ ...tree, buildings: tree.buildings.map(b => {
+      if (b.id !== bId) return b;
+      const problems = has ? (b.problems || []).map(x => x.id === p.id ? p : x) : [...(b.problems || []), p];
+      return { ...b, problems };
+    }) });
+    setEditing(null); onToast({ message: '저장됨', type: 'success' });
+  };
+
+  const empty = !loading && (!tree.buildings || !tree.buildings.length);
+
+  return (
+    <>
+      <Header title="추천 플로우" subtitle="진단→솔루션→상품추천 루트를 트리로 설정. 정의된 증상은 봇이 그대로 추천하고(일관성), 없는 건 LLM이 유연하게 받습니다(하이브리드)."
+        actions={<>
+          <button onClick={seed} style={btnGhost()}>🌱 기본 매핑 시드</button>
+          <button onClick={addBuilding} style={btnPrimary()}>+ 건물유형</button>
+        </>} />
+      <div className="cb-scroll" style={{ padding:'24px 32px', overflowY:'auto', height:'calc(100vh - 92px)' }}>
+        <div style={{ fontSize:11.5, color:'var(--text-xs)', fontWeight:600, marginBottom:18, lineHeight:1.6, background:'var(--or-pale)', border:'1px solid var(--or-l)', borderRadius:8, padding:'10px 12px' }}>
+          이 플로우는 <b>자사몰 진단·추천봇(store)</b>에 자동 주입됩니다. 시방서 링크는 <code>/132</code> 처럼 경로만 적어도 되고(자동으로 poursolution.net 붙음), 전체 URL도 됩니다.
+        </div>
+        {loading ? <div style={{ color:'var(--text-sm)', padding:40, textAlign:'center' }}>불러오는 중…</div>
+        : empty ? (
+          <div style={{ textAlign:'center', padding:'56px 20px', color:'var(--text-sm)' }}>
+            <div style={{ fontSize:40, marginBottom:12 }}>🧭</div>
+            <div style={{ fontWeight:800, color:'var(--text-md)', marginBottom:6 }}>추천 플로우가 비어 있습니다</div>
+            <div style={{ fontSize:12.5, marginBottom:18 }}>CLAUDE.md 문제→공법 매핑으로 기본 트리를 만들고 상품만 채우세요.</div>
+            <button onClick={seed} style={btnPrimary()}>🌱 기본 매핑 시드</button>
+          </div>
+        ) : (
+          <div style={{ display:'grid', gap:18 }}>
+            {tree.buildings.map(b => (
+              <div key={b.id} style={{ background:'#fff', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'16px 18px', boxShadow:'var(--shadow)' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12 }}>
+                  <span style={{ fontSize:15, fontWeight:900, color:'var(--navy)' }}>🏢 {b.label}</span>
+                  <button onClick={() => renameBuilding(b)} style={btnGhost({ padding:'4px 8px', fontSize:11 })}>이름변경</button>
+                  <button onClick={() => delBuilding(b)} style={btnGhost({ padding:'4px 8px', fontSize:11, color:'var(--red)' })}>삭제</button>
+                  <button onClick={() => setEditing({ buildingId: b.id, problem: { label:'', method:'', methodLink:'', products:[], guide:'', note:'' } })} style={{ ...btnPrimary({ padding:'5px 12px', fontSize:12 }), marginLeft:'auto' }}>+ 증상 추가</button>
+                </div>
+                {(b.problems || []).length === 0 ? <div style={{ fontSize:12.5, color:'var(--text-sm)', padding:'8px 0' }}>증상이 없습니다. [+ 증상 추가]로 진단 루트를 만드세요.</div>
+                : <div style={{ display:'grid', gap:10 }}>
+                  {b.problems.map(p => {
+                    const prods = (p.products || []).filter(x => x.name);
+                    return (
+                      <div key={p.id} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                        <div className="cb-scroll" style={{ flex:1, minWidth:0, overflowX:'auto', background:'var(--or-pale)', border:'1px solid var(--border-s)', borderRadius:10, padding:'8px 10px' }}>
+                          <div style={{ display:'flex', alignItems:'center', width:'max-content', minWidth:'100%' }}>
+                            <FlowNode icon="🔎" title={p.label} sub="증상" accent="var(--navy)" />
+                            <FlowConn color="var(--or)" />
+                            <FlowNode icon="🛠" title={p.method || '공법 미지정'} sub={p.methodLink ? ('시방서 ' + p.methodLink) : ''} accent="var(--or-l)" />
+                            <FlowConn color="var(--or)" />
+                            <FlowNode icon="📦" title={prods.length ? `상품 ${prods.length}개` : '상품 미지정'} sub={prods.map(x => x.name).join(', ')} accent={prods.length ? 'var(--green-m)' : 'var(--border)'} />
+                          </div>
+                        </div>
+                        <div style={{ display:'flex', flexDirection:'column', gap:4, flexShrink:0 }}>
+                          <button onClick={() => setEditing({ buildingId: b.id, problem: p })} style={btnGhost({ padding:'5px 9px', fontSize:11 })}>✏️</button>
+                          <button onClick={() => delProblem(b.id, p.id)} style={btnGhost({ padding:'5px 9px', fontSize:11, color:'var(--red)' })}>🗑</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {editing && <RecoProblemModal editing={editing} onClose={() => setEditing(null)} onSave={(p) => saveProblem(editing.buildingId, p)} />}
+    </>
+  );
+}
+function RecoProblemModal({ editing, onClose, onSave }) {
+  const [f, setF] = useState({ ...editing.problem, products: [...(editing.problem.products || [])] });
+  const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+  const setProd = (i, k, v) => setF(p => ({ ...p, products: p.products.map((x, j) => j === i ? { ...x, [k]: v } : x) }));
+  const addProd = () => setF(p => ({ ...p, products: [...p.products, { name: '', link: '' }] }));
+  const delProd = (i) => setF(p => ({ ...p, products: p.products.filter((_, j) => j !== i) }));
+  return (
+    <Modal open onClose={onClose} title={editing.problem.id ? '증상 추천 편집' : '증상 추천 추가'} width={680}>
+      <div style={{ display:'grid', gap:14 }}>
+        <div><label style={labelSty}>증상 (고객이 말하는 문제)</label><input style={inputSty} value={f.label} onChange={e => set('label', e.target.value)} placeholder="예: 옥상 슬라브 누수" /></div>
+        <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:14 }}>
+          <div><label style={labelSty}>추천 공법</label><input style={inputSty} value={f.method} onChange={e => set('method', e.target.value)} placeholder="예: 슬라브 듀얼강화방수공법" /></div>
+          <div><label style={labelSty}>시방서 링크</label><input style={inputSty} value={f.methodLink} onChange={e => set('methodLink', e.target.value)} placeholder="/132 또는 전체 URL" /></div>
+        </div>
+        <div>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+            <label style={{ ...labelSty, marginBottom:0 }}>추천 상품</label>
+            <button onClick={addProd} style={btnGhost({ padding:'4px 10px', fontSize:11.5 })}>+ 상품 추가</button>
+          </div>
+          {(f.products || []).length === 0 ? <div style={{ fontSize:11.5, color:'var(--text-xs)' }}>상품을 추가하면 봇이 이 증상에 그 상품을 추천합니다 (자사몰 상품명·링크).</div>
+          : f.products.map((pr, i) => (
+            <div key={i} style={{ display:'flex', gap:8, marginBottom:6 }}>
+              <input style={{ ...inputSty, flex:1 }} value={pr.name} onChange={e => setProd(i, 'name', e.target.value)} placeholder="상품명 (예: 옥상 누수 패키지)" />
+              <input style={{ ...inputSty, flex:1 }} value={pr.link} onChange={e => setProd(i, 'link', e.target.value)} placeholder="상품/구매 링크 (선택)" />
+              <button onClick={() => delProd(i)} style={btnGhost({ padding:'0 10px', color:'var(--red)' })}>✕</button>
+            </div>
+          ))}
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+          <div><label style={labelSty}>시공가이드 (선택)</label><input style={inputSty} value={f.guide} onChange={e => set('guide', e.target.value)} placeholder="가이드 영상/링크 등" /></div>
+          <div><label style={labelSty}>메모 (선택)</label><input style={inputSty} value={f.note} onChange={e => set('note', e.target.value)} placeholder="봇에게 줄 추가 안내" /></div>
+        </div>
+        <div style={{ display:'flex', justifyContent:'flex-end', gap:8 }}>
+          <button onClick={onClose} style={btnGhost()}>취소</button>
+          <button onClick={() => { if (!f.label.trim()) return alert('증상을 입력하세요'); onSave(f); }} style={btnPrimary()}>저장</button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 
@@ -2452,6 +2663,7 @@ function App() {
         {active === 'dashboard' && <DashboardPage cfg={cfg} />}
         {active === 'studio' && <BotStudioPage onToast={setToast} onTest={goTest} />}
         {active === 'knowledge' && <KnowledgePage onToast={setToast} />}
+        {active === 'reco' && <RecoFlowPage onToast={setToast} />}
         {active === 'playground' && <PlaygroundPage onToast={setToast} cfg={cfg} presetBotId={presetBotId} onNeedSettings={() => setActive('settings')} />}
         {active === 'logs' && <LogsPage onToast={setToast} />}
         {active === 'settings' && <SettingsPage cfg={cfg} onSave={saveCfg} onToast={setToast} />}

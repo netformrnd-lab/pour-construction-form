@@ -3363,6 +3363,21 @@ function ProjStageFlow({D,proj,cu,up}){
   );
 }
 const NODE_W=144, NODE_H=56;
+// ── 통합 캔버스: 엣지 기반 가로 레이어 자동배치 (depth=열, row=같은 열 순번) ──
+const COL_STEP=212, ROW_STEP=238, PAD_X=26, PAD_Y=30;
+function flowLayout(nodes,edges){
+  const ids=(nodes||[]).map(n=>n.id), has=new Set(ids);
+  const adj={}, indeg={}; ids.forEach(id=>{adj[id]=[];indeg[id]=0;});
+  (edges||[]).forEach(e=>{ if(has.has(e.from)&&has.has(e.to)){ adj[e.from].push(e.to); indeg[e.to]++; }});
+  const depth={}, indeg2={...indeg}; const queue=ids.filter(id=>!indeg[id]); queue.forEach(id=>depth[id]=0);
+  for(let h=0;h<queue.length;h++){ const id=queue[h]; adj[id].forEach(t=>{ depth[t]=Math.max(depth[t]||0,(depth[id]||0)+1); if(--indeg2[t]===0)queue.push(t); }); }
+  ids.forEach(id=>{ if(depth[id]==null)depth[id]=0; });
+  const cols={}; ids.forEach(id=>{ (cols[depth[id]]=cols[depth[id]]||[]).push(id); });
+  const pos={}; Object.keys(cols).forEach(d=>cols[d].forEach((id,r)=>{ pos[id]={col:+d,row:r,x:PAD_X+(+d)*COL_STEP,y:PAD_Y+r*ROW_STEP}; }));
+  const maxCol=ids.length?Math.max(...ids.map(id=>depth[id])):0;
+  const maxRow=Math.max(0,...Object.values(cols).map(a=>a.length-1));
+  return {pos,maxCol,maxRow};
+}
 function LaunchPage({D,cu,lead,add,up,rm,nav}){
   const [tab,setTab]=useState("template");
   const [libDetail,setLibDetail]=useState(false);   // 라이브러리: false=카드목록, true=선택 프로세스 편집
@@ -3412,8 +3427,19 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
   useEffect(()=>{const h=()=>setIsPC(window.innerWidth>=1024);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[]);
   useEffect(()=>{ if(!draggingRef.current&&tpl) setDraftNodes(tpl.nodes); },[tpl]);
   const maxY=draftNodes.reduce((m,n)=>Math.max(m,n.y),0);
-  const editY=editNode?(nodeById(editNode.id)?.y||0):0;
-  const canvasH=Math.max(520,maxY+NODE_H+120,editNode?editY+560:0);   // 인라인 편집 카드 공간 확보
+  // ── 통합 캔버스 자동배치(가로 흐름) + 매달린 액션/트리거 카드 계산 ──
+  const LAY=flowLayout(draftNodes,tpl?tpl.edges:[]);
+  const XY=(id)=>LAY.pos[id]||{x:PAD_X,y:PAD_Y};
+  const canvasW=Math.max(560,PAD_X*2+(LAY.maxCol+1)*COL_STEP);
+  const CW=152,CH=46,CGAP=11,CARD_TOP=30;
+  const hangCards=[];
+  draftNodes.forEach(n=>{ const acts=(n.auto&&Array.isArray(n.auto.onDone))?n.auto.onDone:[]; if(!acts.length)return;
+    const b=XY(n.id); let cy=b.y+NODE_H+CARD_TOP;
+    hangCards.push({id:n.id+"_t",nodeId:n.id,x:b.x,y:cy,kind:"trigger"}); cy+=CH+CGAP;
+    acts.forEach((a,k)=>{ hangCards.push({id:n.id+"_a"+k,nodeId:n.id,x:b.x,y:cy,kind:"action",a}); cy+=CH+CGAP; }); });
+  const maxHangY=hangCards.reduce((m,h)=>Math.max(m,h.y+CH),0);
+  const editY=editNode?XY(editNode.id).y:0;
+  const canvasH=Math.max(360,PAD_Y*2+(LAY.maxRow+1)*ROW_STEP,maxHangY+34,editNode?editY+460:0);   // 가로 레이어 + 매달린 카드 + 편집 공간
   const nodeById=(id)=>draftNodes.find(n=>n.id===id);
   const onNodeDown=(e,n)=>{
     if(!isPC) return;   // 모바일: 노드 편집 불가(보기 전용) — 드래그·탭편집 차단
@@ -3610,41 +3636,46 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
             <button onClick={()=>{setConnectMode(!connectMode);setConnectFrom(null);}} style={{flex:1,padding:"9px 0",borderRadius:10,border:`1.5px solid ${connectMode?"#F97316":"#E5E8EB"}`,backgroundColor:connectMode?"#FFEDD5":"#fff",fontSize:12.5,fontWeight:800,color:connectMode?"#EA580C":"#374151",cursor:"pointer",fontFamily:"inherit"}}>🔗 {connectMode?"연결 중…":"선 연결"}</button>
           </div>
           {connectMode&&<p style={{margin:"0 0 10px",fontSize:11,fontWeight:700,color:"#EA580C",textAlign:"center"}}>{connectFrom?"→ 도착 단계를 탭하세요 (다시 누르면 취소)":"시작 단계를 탭하세요"}</p>}
-          <div ref={canvasRef} style={{position:"relative",width:"100%",height:canvasH,backgroundColor:"#FAFBFC",backgroundImage:"radial-gradient(#E5E8EB 1px,transparent 1px)",backgroundSize:"18px 18px",borderRadius:16,border:"1px solid #EDF0F3",overflow:"hidden",touchAction:isPC?"none":"pan-y"}}>
-            <svg width="100%" height={canvasH} style={{position:"absolute",inset:0,pointerEvents:"none"}}>
-              {tpl.edges.map(e=>{ const a=nodeById(e.from),b=nodeById(e.to); if(!a||!b)return null;
-                const x1=a.x+NODE_W/2,y1=a.y+NODE_H,x2=b.x+NODE_W/2,y2=b.y;
-                return <path key={e.id} d={`M ${x1} ${y1} C ${x1} ${y1+44}, ${x2} ${y2-44}, ${x2} ${y2}`} stroke="#F97316" strokeWidth={2.5} fill="none" opacity={0.55}/>;
+          <div style={{display:"flex",flexDirection:isPC?"row":"column",gap:16,alignItems:"flex-start"}}>
+          <div style={{flex:1,minWidth:0,width:"100%"}}>
+          <div style={{overflowX:"auto",borderRadius:16,border:"1px solid #EDF0F3",WebkitOverflowScrolling:"touch"}}>
+          <div ref={canvasRef} style={{position:"relative",width:canvasW,height:canvasH,backgroundColor:"#FAFBFC",backgroundImage:"radial-gradient(#E5E8EB 1px,transparent 1px)",backgroundSize:"18px 18px"}}>
+            <svg width={canvasW} height={canvasH} style={{position:"absolute",inset:0,pointerEvents:"none"}}>
+              {tpl.edges.map(e=>{ if(!LAY.pos[e.from]||!LAY.pos[e.to])return null; const a=XY(e.from),b=XY(e.to);
+                const x1=a.x+NODE_W,y1=a.y+NODE_H/2,x2=b.x,y2=b.y+NODE_H/2;
+                return <path key={e.id} d={`M ${x1} ${y1} C ${x1+44} ${y1}, ${x2-44} ${y2}, ${x2} ${y2}`} stroke="#C7CFDB" strokeWidth={2} fill="none"/>;
+              })}
+              {hangCards.map(h=>{ const b=XY(h.nodeId); const x1=b.x+NODE_W/2,y1=b.y+NODE_H,x2=h.x+CW/2,y2=h.y; const isT=h.kind==="trigger";
+                return <path key={h.id+"_p"} d={`M ${x1} ${y1} C ${x1} ${y1+28}, ${x2} ${y2-24}, ${x2} ${y2}`} stroke={isT?"#3B82F6":"#10B981"} strokeWidth={2} fill="none" strokeDasharray={isT?"5 4":"0"} opacity={0.85}/>;
               })}
             </svg>
-            {connectMode&&tpl.edges.map(e=>{ const a=nodeById(e.from),b=nodeById(e.to); if(!a||!b)return null;
-              const mx=(a.x+b.x)/2+NODE_W/2-10,my=(a.y+NODE_H+b.y)/2-10;
-              return <button key={e.id} onClick={()=>removeEdge(e.id)} style={{position:"absolute",left:mx,top:my,width:20,height:20,borderRadius:"50%",border:"none",backgroundColor:"#F04452",color:"#fff",fontSize:12,fontWeight:900,cursor:"pointer",lineHeight:1,zIndex:5}}>×</button>;
+            {connectMode&&tpl.edges.map(e=>{ if(!LAY.pos[e.from]||!LAY.pos[e.to])return null; const a=XY(e.from),b=XY(e.to);
+              const mx=(a.x+NODE_W+b.x)/2-10,my=(a.y+b.y)/2+NODE_H/2-10;
+              return <button key={e.id} onClick={()=>removeEdge(e.id)} style={{position:"absolute",left:mx,top:my,width:20,height:20,borderRadius:"50%",border:"none",backgroundColor:"#F04452",color:"#fff",fontSize:12,fontWeight:900,cursor:"pointer",lineHeight:1,zIndex:6}}>×</button>;
             })}
             {segments.map(s=>{
               const ns=(s.nodeIds||[]).map(nid=>draftNodes.find(n=>n.id===nid)).filter(Boolean);
               if(!ns.length) return null;
-              const pad=11;
-              const left=Math.min(...ns.map(n=>n.x))-pad;
-              const top=Math.max(0,Math.min(...ns.map(n=>n.y))-pad-13);
-              const w=Math.max(...ns.map(n=>n.x+NODE_W))+pad-left;
-              const h=Math.max(...ns.map(n=>n.y+NODE_H))+pad-top;
+              const pad=12;
+              const left=Math.min(...ns.map(n=>XY(n.id).x))-pad;
+              const top=Math.max(0,Math.min(...ns.map(n=>XY(n.id).y))-pad-13);
+              const right=Math.max(...ns.map(n=>XY(n.id).x+NODE_W))+pad;
+              const bot=Math.max(...ns.map(n=>XY(n.id).y+NODE_H))+pad;
               const nums=ns.map(n=>circled(draftNodes.findIndex(d=>d.id===n.id)+1)).join("");
               const act=segSel===s.id;
-              return(
-                <div key={s.id} onClick={()=>setSegSel(s.id)} style={{position:"absolute",left,top,width:w,height:h,borderRadius:14,border:`2px dashed ${act?"#F97316":"#F59E0B"}`,backgroundColor:act?"rgba(249,115,22,0.06)":"rgba(245,158,11,0.045)",zIndex:1,cursor:"pointer"}}>
+              return [
+                (<div key={s.id} onClick={()=>setSegSel(s.id)} style={{position:"absolute",left,top,width:right-left,height:bot-top,borderRadius:14,border:`2px dashed ${act?"#F97316":"#F59E0B"}`,backgroundColor:act?"rgba(249,115,22,0.06)":"rgba(245,158,11,0.045)",zIndex:1,cursor:"pointer"}}>
                   <span style={{position:"absolute",top:-12,left:14,background:"#fff",padding:"1px 8px",borderRadius:7,border:`1.5px solid ${act?"#F97316":"#F59E0B"}`,fontSize:10.5,fontWeight:800,color:act?"#EA580C":"#B45309",whiteSpace:"nowrap"}}>구간: {s.name}{nums?` (${nums})`:""}</span>
-                </div>
-              );
+                </div>),
+                s.kpiId?(<div key={s.id+"_b"} onClick={()=>setSegSel(s.id)} style={{position:"absolute",left:right+12,top:Math.max(0,top),zIndex:2,display:"flex",alignItems:"center",gap:6,padding:"6px 10px",borderRadius:9,background:"#0F1F5C",color:"#fff",fontSize:10.5,fontWeight:800,whiteSpace:"nowrap",boxShadow:"0 4px 12px rgba(15,31,92,.18)",cursor:"pointer"}}>📊 구간 100% → {segKpiName(s.kpiId)} +1</div>):null
+              ];
             })}
             {draftNodes.map((n,i)=>{
-              const sel=connectFrom===n.id;
-              const col=uColor(n.assigneeId);
+              const p=XY(n.id); const sel=connectFrom===n.id; const col=uColor(n.assigneeId);
               const editing=editNode&&editNode.id===n.id;
-              // EdrawMind식: 선택 노드는 그 자리에서 편집 카드로 펼쳐짐
               if(editing){
                 return(
-                  <div key={n.id} style={{position:"absolute",left:n.x,top:n.y,width:300,maxWidth:`calc(100% - ${n.x+6}px)`,boxSizing:"border-box",borderRadius:14,backgroundColor:"#FFFFFF",border:"2px solid #F97316",boxShadow:"0 14px 36px rgba(249,115,22,0.22)",padding:12,zIndex:40}}>
+                  <div key={n.id} style={{position:"absolute",left:p.x,top:p.y,width:300,boxSizing:"border-box",borderRadius:14,backgroundColor:"#FFFFFF",border:"2px solid #F97316",boxShadow:"0 14px 36px rgba(249,115,22,0.22)",padding:12,zIndex:40}}>
                     <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
                       <span style={{flexShrink:0,width:20,height:20,borderRadius:"50%",backgroundColor:col,color:"#fff",fontSize:10,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{i+1}</span>
                       <span style={{fontSize:11.5,fontWeight:900,color:"#EA580C"}}>단계 편집</span>
@@ -3655,37 +3686,38 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
                 );
               }
               const tap=()=>{ if(connectMode){handleConnect(n);return;} setEditNode(n); };
-              const handlers=isPC?{onPointerDown:e=>onNodeDown(e,n),onPointerMove:onNodeMove,onPointerUp:e=>onNodeUp(e,n)}:{onClick:tap};   // 모바일=탭 편집, PC=드래그+탭
               const acts=(n.auto&&Array.isArray(n.auto.onDone))?n.auto.onDone:[];
               const hasAuto=n.autoComplete||acts.length>0;
-              const aPill=(icon,text,fg,bg,bd,key)=>(<span key={key} style={{display:"inline-block",maxWidth:"100%",boxSizing:"border-box",padding:"2px 7px",borderRadius:7,fontSize:9.5,fontWeight:800,lineHeight:1.45,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",border:`1px solid ${bd}`,backgroundColor:bg,color:fg}}>{icon} {text}</span>);
-              return [
-                (<div key={n.id} {...handlers}
-                  style={{position:"absolute",left:n.x,top:n.y,width:NODE_W,minHeight:NODE_H,boxSizing:"border-box",padding:"8px 10px",borderRadius:12,backgroundColor:"#FFFFFF",border:`2px solid ${sel?"#F97316":col+"55"}`,boxShadow:sel?"0 0 0 3px #F9731633":"0 2px 8px rgba(0,0,0,0.08)",cursor:connectMode?"pointer":(isPC?"grab":"pointer"),touchAction:isPC?"none":"manipulation",userSelect:"none",zIndex:sel?4:2}}>
-                  <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4}}>
-                    <span style={{flexShrink:0,width:18,height:18,borderRadius:"50%",backgroundColor:col,color:"#fff",fontSize:10,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{i+1}</span>
-                    <span style={{fontSize:10,fontWeight:800,color:col,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.roleLabel||uName(n.assigneeId)}</span>
-                    {hasAuto&&<span title="자동화" style={{marginLeft:"auto",flexShrink:0,fontSize:10,fontWeight:900,color:"#EA580C"}}>⚡</span>}
+              return(
+                <div key={n.id} onClick={tap}
+                  style={{position:"absolute",left:p.x,top:p.y,width:NODE_W,minHeight:NODE_H,boxSizing:"border-box",padding:"9px 11px 8px",borderRadius:13,backgroundColor:"#FFFFFF",border:`2px solid ${sel?"#F97316":col+"55"}`,boxShadow:sel?"0 0 0 3px #F9731633":"0 3px 10px rgba(15,31,92,0.08)",cursor:"pointer",userSelect:"none",zIndex:sel?5:3}}>
+                  <span style={{position:"absolute",top:-9,left:11,background:"#EEF2FF",color:"#4338CA",fontSize:8.5,fontWeight:800,padding:"1px 6px",borderRadius:5,letterSpacing:0.2}}>로드단계</span>
+                  <div style={{display:"flex",alignItems:"center",gap:6}}>
+                    <span style={{flexShrink:0,width:20,height:20,borderRadius:"50%",backgroundColor:col,color:"#fff",fontSize:10.5,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{i+1}</span>
+                    <span style={{flex:1,minWidth:0,fontSize:12,fontWeight:800,color:"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.title}</span>
+                    {hasAuto&&<span title="자동화" style={{flexShrink:0,fontSize:11,fontWeight:900,color:"#EA580C"}}>⚡</span>}
                   </div>
-                  <p style={{margin:0,fontSize:11.5,fontWeight:700,color:"#1F2937",lineHeight:1.3}}>{n.title}</p>
-                </div>),
-                hasAuto&&(<div key={n.id+"_a"} style={{position:"absolute",left:n.x+11,top:n.y+NODE_H+6,width:NODE_W-12,zIndex:1,pointerEvents:"none",display:"flex",flexDirection:"column",gap:3,alignItems:"flex-start"}}>
-                  <div style={{position:"absolute",left:NODE_W/2-12,top:-6,height:6,borderLeft:"1.5px dashed #FDBA74"}}/>
-                  {acts.length>0&&aPill("⏱","이 단계 완료 시","#EA580C","#FFF7ED","#FED7AA")}
-                  {acts.map((a,k)=>a.kind==="advance"
-                    ? aPill("⏭","다음 단계로 진행","#6B7280","#F3F4F6","#E5E8EB",k)
-                    : a.kind==="notify"
-                      ? aPill("🔔",(a.title||"알림"),"#B45309","#FFFBEB","#FDE68A",k)
-                      : aPill("📋",(a.title||"업무")+(a.assigneeId?` · ${uName(a.assigneeId)}`:""),"#2563EB","#EFF6FF","#BFDBFE",k))}
-                  {n.autoComplete&&aPill("🤖","자동 완료 단계","#6D28D9","#F5F3FF","#EDE9FE")}
-                </div>)
-              ];
+                  <div style={{marginTop:3,marginLeft:26,fontSize:9.5,fontWeight:700,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.roleLabel||uName(n.assigneeId)}{n.autoComplete?" · 🤖 자동 단계":""}</div>
+                </div>
+              );
+            })}
+            {hangCards.map(h=>{
+              const isT=h.kind==="trigger";
+              let main; if(isT){ main="이 단계 완료 시"; } else { const a=h.a; main=a.kind==="advance"?"⏭ 다음 단계로 진행":a.kind==="notify"?`🔔 ${a.title||"알림"}`:`${a.title||"업무"}${a.assigneeId?` → ${uName(a.assigneeId)}`:""}`; }
+              return(
+                <div key={h.id} style={{position:"absolute",left:h.x,top:h.y,width:CW,boxSizing:"border-box",borderRadius:11,background:"#fff",border:`1px solid ${isT?"#DBEAFE":"#EEF0F2"}`,boxShadow:"0 4px 12px rgba(15,31,92,.07)",padding:"7px 9px",zIndex:4}}>
+                  <div style={{fontSize:9,fontWeight:900,color:isT?"#DC2626":"#EA580C",marginBottom:2}}>{isT?"⏰ 트리거":"⚡ 액션"}</div>
+                  <div style={{fontSize:10.5,fontWeight:700,color:"#374151",lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{main}</div>
+                </div>
+              );
             })}
           </div>
-          <p style={{margin:"10px 2px 0",fontSize:11,color:"#9CA3AF",lineHeight:1.6}}>● <b>노드를 탭</b>하면 편집&nbsp;·&nbsp;<b>＋ 하위 단계</b>로 잇기&nbsp;·&nbsp;단계 아래 <b style={{color:"#EA580C"}}>⚡매달린 카드</b>는 완료 시 자동 실행될 트리거·액션{isPC?<>&nbsp;·&nbsp;PC 드래그로 정리·<b>선 연결</b></>:null}.</p>
+          </div>
+          <p style={{margin:"10px 2px 0",fontSize:11,color:"#9CA3AF",lineHeight:1.6}}>● <b>노드를 탭</b>하면 편집&nbsp;·&nbsp;<b>＋ 하위 단계</b>로 잇기&nbsp;·&nbsp;단계 아래 <b style={{color:"#10B981"}}>⚡액션</b>·<b style={{color:"#3B82F6"}}>⏰트리거</b> 카드는 완료 시 자동 실행{isPC?<>&nbsp;·&nbsp;가로 스크롤로 전체 흐름</>:null}.</p>
+          </div>
 
           {/* ── 구간 KPI 설정 패널 (시안 v0.8 우측 카드) — 로드단계 묶음 → 카운트 KPI 연결 ── */}
-          <div style={{marginTop:16,borderRadius:16,border:"1px solid #EEF0F2",background:"#fff",padding:14}}>
+          <div style={{width:isPC?348:"100%",flexShrink:0,boxSizing:"border-box",borderRadius:16,border:"1px solid #EEF0F2",background:"#fff",padding:14}}>
             <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:4}}>
               <span style={{fontSize:13.5,fontWeight:900,color:"#EA580C"}}>📊 구간 KPI</span>
               <span style={{fontSize:11,fontWeight:600,color:"#9CA3AF"}}>로드단계를 묶어 카운트 KPI에 연결</span>
@@ -3738,6 +3770,7 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
                   </div>
                   );})()}
               </>)}
+          </div>
           </div>
       </>)}
 

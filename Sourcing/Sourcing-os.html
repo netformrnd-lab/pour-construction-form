@@ -680,7 +680,7 @@
   <div class="fchips schips" id="stageChips" style="display:none"></div>
   <div class="fchips schips" id="typeChips" style="margin-top:8px"></div>
   <div id="baseFilterWrap" style="display:none;margin:8px 0 2px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-    <span style="font-size:12px;font-weight:700;color:var(--muted)">원본 선택</span>
+    <span style="font-size:12px;font-weight:700;color:var(--muted)">제품 선택</span>
     <select id="baseFilter" style="flex:1;min-width:140px;padding:9px 11px;border:1px solid var(--border2);border-radius:10px;background:var(--cream);font-size:13px;font-weight:600"></select>
   </div>
   <div class="bases" id="bases"></div>
@@ -1428,8 +1428,13 @@ function renderFilterBar(){
   const bw=$('#baseFilterWrap');
   if(showBase){
     bw.style.display='flex';
-    bw.querySelector('span').textContent='원본 선택';
-    $('#baseFilter').innerHTML='<option value="">전체 원본</option>'+bases.map(b=>`<option value="${b.id}">${esc(dn(b))}</option>`).join('');
+    bw.querySelector('span').textContent='제품 선택';
+    $('#baseFilter').innerHTML='<option value="">전체 제품</option>'+bases.map(b=>{
+      const kids=state.products.filter(x=>x.baseId===b.id&&x.id!==b.id);
+      const dN=kids.filter(x=>x.type==='파생').length, sN=kids.filter(x=>x.type==='패키지').length;
+      const cnt='파생 '+dN+(sN?' · 세트 '+sN:'');
+      return `<option value="${b.id}">${esc(dn(b))} (${cnt})</option>`;
+    }).join('');
     $('#baseFilter').value=baseFilter;
     $('#baseFilter').onchange=e=>{baseFilter=e.target.value;render();};
   }else{bw.style.display='none';}

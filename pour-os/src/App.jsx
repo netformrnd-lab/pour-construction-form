@@ -318,6 +318,7 @@ const taskKidsOf=(D,id)=>(D.tasks||[]).filter(t=>t.parentId===id&&!t.isFixed).so
 const taskParentChain=(D,t)=>{const out=[];let p=t&&t.parentId?(D.tasks||[]).find(x=>x.id===t.parentId):null;let g=0;while(p&&g++<30){out.unshift(p);p=p.parentId?(D.tasks||[]).find(x=>x.id===p.parentId):null;}return out;};
 const taskDescCount=(D,id)=>{let n=0;taskKidsOf(D,id).forEach(c=>{n+=1+taskDescCount(D,c.id);});return n;};
 const taskDescFlat=(D,id,depth=1,out=[])=>{taskKidsOf(D,id).forEach(c=>{out.push({t:c,depth});taskDescFlat(D,c.id,depth+1,out);});return out;};
+const taskRollup=(D,id)=>{const f=taskDescFlat(D,id);return {total:f.length,done:f.filter(x=>x.t.status==="done").length};};   // 하위 자손 완료 롤업
 // 이번 주 내 주간목표 (weekGoals: [{id,userId,week,title,target,current,unit,projectId}])
 const myWeekGoals=(D,uid)=>{ const wk=weekKey(); return (D.weekGoals||[]).filter(g=>g.userId===uid&&g.week===wk); };
 const wgAchieved=(g)=> numF(g.target)>0 && numF(g.current)>=numF(g.target);
@@ -343,11 +344,11 @@ const fixedAssigneeIds=(t)=> Array.isArray(t.assigneeIds)&&t.assigneeIds.length 
 const fixedIsMine=(t,uid)=> t.forAll ? true : fixedAssigneeIds(t).includes(uid);
 const fixedDoneOn=(t,uid)=> (t.doneDates&&Object.prototype.hasOwnProperty.call(t.doneDates,uid)) ? t.doneDates[uid] : (t.assigneeId===uid?t.doneDate:null);
 const EditTaskSheet=({open,onClose,task,onSave,D,add,up})=>{
-  const [form,setForm]=useState({title:"",status:"todo",dueDate:"",memo:"",projectId:"",assigneeId:"",assigneeIds:[],forAll:false,attachments:[],weekDay:"",weekSlot:null,workDate:"",fixedTime:""});
+  const [form,setForm]=useState({title:"",status:"todo",dueDate:"",memo:"",projectId:"",assigneeId:"",assigneeIds:[],forAll:false,parentId:"",attachments:[],weekDay:"",weekSlot:null,workDate:"",fixedTime:""});
   const [prevId,setPrevId]=useState(null);
   const [uploading,setUploading]=useState(false);
   const [dropOver,setDropOver]=useState(false);
-  if(task&&task.id!==prevId){setPrevId(task.id);setForm({title:task.title||"",status:task.status||"todo",dueDate:task.dueDate||"",memo:task.memo||"",projectId:task.projectId||"",assigneeId:task.assigneeId||"",assigneeIds:Array.isArray(task.assigneeIds)&&task.assigneeIds.length?task.assigneeIds:(task.assigneeId?[task.assigneeId]:[]),forAll:!!task.forAll,attachments:Array.isArray(task.attachments)?task.attachments:[],weekDay:task.weekDay||"",weekSlot:task.weekSlot??null,workDate:task.workDate||"",fixedTime:task.fixedTime||""});}
+  if(task&&task.id!==prevId){setPrevId(task.id);setForm({title:task.title||"",status:task.status||"todo",dueDate:task.dueDate||"",memo:task.memo||"",projectId:task.projectId||"",assigneeId:task.assigneeId||"",assigneeIds:Array.isArray(task.assigneeIds)&&task.assigneeIds.length?task.assigneeIds:(task.assigneeId?[task.assigneeId]:[]),forAll:!!task.forAll,parentId:task.parentId||"",attachments:Array.isArray(task.attachments)?task.attachments:[],weekDay:task.weekDay||"",weekSlot:task.weekSlot??null,workDate:task.workDate||"",fixedTime:task.fixedTime||""});}
   if(!task&&prevId!==null){setPrevId(null);setForm({title:"",status:"todo",dueDate:"",memo:"",projectId:"",assigneeId:"",assigneeIds:[],forAll:false,attachments:[],weekDay:"",weekSlot:null,workDate:"",fixedTime:""});}
   // 날짜 선택 → 요일·슬롯 자동 배정(담당자의 그 요일 빈 슬롯 중 가장 앞, 없으면 슬롯 없이 그날에)
   const placeOn=(f,ds)=>{
@@ -404,6 +405,15 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up})=>{
             <div style={{marginBottom:14,padding:"11px 12px",background:"#F9FAFB",borderRadius:12,border:"1px solid #F2F4F6"}}>
               <p style={{margin:"0 0 7px",fontSize:11.5,fontWeight:800,color:"#374151"}}>🧩 프로세스 위치 <span style={{fontWeight:600,color:"#9CA3AF"}}>(상위 경로 · 하위 업무 {desc.length})</span></p>
               {(proj||chain.length>0)&&<p style={{margin:"0 0 8px",fontSize:11,color:"#6B7280",lineHeight:1.55}}>{[proj&&("📁 "+proj.title),...chain.map(c=>c.title)].filter(Boolean).join("  ▸  ")}{"  ▸  "}<b style={{color:"#0F1F5C"}}>{form.title||task.title}</b></p>}
+              {(()=>{ const exclude=new Set([task.id,...taskDescFlat(D,task.id).map(x=>x.t.id)]); const cands=(D.tasks||[]).filter(x=>!x.isFixed&&x.projectId===form.projectId&&!exclude.has(x.id)); return(
+                <div style={{marginBottom:8}}>
+                  <span style={{fontSize:10.5,fontWeight:700,color:"#6B7280"}}>상위 업무(부모) — 어느 단계의 하위로?</span>
+                  <select value={form.parentId||""} onChange={e=>setForm(f=>({...f,parentId:e.target.value}))} style={{width:"100%",marginTop:4,padding:"9px 11px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:12.5,fontWeight:600,outline:"none",boxSizing:"border-box",fontFamily:"inherit",background:"#fff",WebkitAppearance:"none"}}>
+                    <option value="">— 최상위(로드단계)로 —</option>
+                    {cands.map(c=><option key={c.id} value={c.id}>{c.title}</option>)}
+                  </select>
+                </div>
+              );})()}
               {desc.length>0?(
                 <div style={{display:"flex",flexDirection:"column",gap:3}}>
                   {desc.map(({t,depth})=>{const st=STATUS_MAP[t.status]||STATUS_MAP.todo;const kc=taskKidsOf(D,t.id).length;return(
@@ -1354,7 +1364,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                   </button>
                   <div style={{flex:1,minWidth:0}}>
                     <p style={{margin:0,fontSize:13.5,fontWeight:700,color:t.status==="done"?"#9CA3AF":"#111827",textDecoration:t.status==="done"?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.eventId?"📅 ":""}{t.title}</p>
-                    {(()=>{const chain=taskParentChain(D,t);const dc=taskDescCount(D,t.id);const pathTxt=[proj&&`📁 ${proj.title}`,...chain.map(c=>c.title)].filter(Boolean).join(" ▸ ");return (proj||chain.length>0||dc>0||(t.status==="done"&&t.doneAt))?(<p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.status==="done"&&t.doneAt?<span style={{color:"#00A862",fontWeight:700}}>✓ {hhmm(t.doneAt)} 완료{(pathTxt||dc)?" · ":""}</span>:null}{pathTxt}{dc>0?<span style={{marginLeft:pathTxt?6:0,fontWeight:800,color:"#7C3AED"}}>{pathTxt?"· ":""}하위 {dc}</span>:null}</p>):null;})()}
+                    {(()=>{const chain=taskParentChain(D,t);const ru=taskRollup(D,t.id);const pathTxt=[proj&&`📁 ${proj.title}`,...chain.map(c=>c.title)].filter(Boolean).join(" ▸ ");return (proj||chain.length>0||ru.total>0||(t.status==="done"&&t.doneAt))?(<p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.status==="done"&&t.doneAt?<span style={{color:"#00A862",fontWeight:700}}>✓ {hhmm(t.doneAt)} 완료{(pathTxt||ru.total)?" · ":""}</span>:null}{pathTxt}{ru.total>0?<span style={{marginLeft:pathTxt?6:0,fontWeight:800,color:ru.done>=ru.total?"#00A862":"#7C3AED"}}>{pathTxt?"· ":""}하위 {ru.done}/{ru.total}</span>:null}</p>):null;})()}
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                     {t.weekSlot&&<span style={{fontSize:10,fontWeight:800,color:"#9CA3AF"}}>{t.weekSlot}순위</span>}
@@ -1489,7 +1499,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                           <span style={{fontSize:9.5,fontWeight:800,color:st.color,background:st.bg,borderRadius:5,padding:"1px 6px"}}>{st.label}</span>
                           <span style={{fontSize:10.5,color:placed?"#6B7280":"#EA580C",fontWeight:placed?600:700}}>{placed?`${t.weekDay}요일${t.weekSlot?` ${t.weekSlot}순위`:""}`:"미배치"}</span>
                           {proj?<span style={{fontSize:10.5,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>· 📁 {proj.title}</span>:<span style={{fontSize:10.5,color:"#F04452",fontWeight:600}}>· ⚠️ 미연결</span>}
-                          {(()=>{const dc=taskDescCount(D,t.id);return dc>0?<span style={{fontSize:10,fontWeight:800,color:"#7C3AED",flexShrink:0}}>· 하위 {dc}</span>:null;})()}
+                          {(()=>{const ru=taskRollup(D,t.id);return ru.total>0?<span style={{fontSize:10,fontWeight:800,color:ru.done>=ru.total?"#00A862":"#7C3AED",flexShrink:0}}>· 하위 {ru.done}/{ru.total}</span>:null;})()}
                         </div>
                       </div>
                       <button onClick={()=>setEditTask(t)} style={{padding:"6px 9px",borderRadius:8,border:"1px solid #E5E8EB",backgroundColor:"#FFFFFF",fontSize:12,fontWeight:700,color:"#4B5563",cursor:"pointer",flexShrink:0}}>✎</button>
@@ -1588,7 +1598,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           </div>
         </Sheet>
       )}
-      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} up={up} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:(f.forAll?"":((f.assigneeIds||[])[0]||"")),assigneeIds:f.assigneeIds||[],forAll:!!f.forAll,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null})}/>
+      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} up={up} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,parentId:f.parentId||null,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:(f.forAll?"":((f.assigneeIds||[])[0]||"")),assigneeIds:f.assigneeIds||[],forAll:!!f.forAll,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null})}/>
       <Confirm open={!!confirmTaskId} title="업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmTaskId)?.title}" 업무를 삭제할까요?\n휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmTaskId);setConfirmTaskId(null);}} onCancel={()=>setConfirmTaskId(null)}/>
       {projModal&&(()=>{
         const pm=D.projects.find(p=>p.id===projModal.id)||projModal;
@@ -3205,7 +3215,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
           <button onClick={doAddProj} disabled={!projForm.title.trim()} style={{width:"100%",padding:"14px 0",borderRadius:14,border:"none",backgroundColor:projForm.title.trim()?"#F97316":"#E5E8EB",color:projForm.title.trim()?"#FFFFFF":"#9CA3AF",fontSize:15,fontWeight:700,cursor:projForm.title.trim()?"pointer":"not-allowed",fontFamily:"inherit"}}>{editProjId?"수정 저장":"프로젝트 추가하기"}</button>
         </div>
       </Sheet>
-      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} up={up} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:(f.forAll?"":((f.assigneeIds||[])[0]||"")),assigneeIds:f.assigneeIds||[],forAll:!!f.forAll,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null})}/>
+      <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} up={up} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,parentId:f.parentId||null,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:(f.forAll?"":((f.assigneeIds||[])[0]||"")),assigneeIds:f.assigneeIds||[],forAll:!!f.forAll,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null})}/>
       <Confirm open={!!confirmTaskId} title="업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmTaskId)?.title}" 업무를 삭제할까요?\n휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmTaskId);setConfirmTaskId(null);}} onCancel={()=>setConfirmTaskId(null)}/>
       <Confirm open={!!projDel} title="프로젝트 삭제" desc={`"${D.projects.find(p=>p.id===projDel)?.title}" 프로젝트를 삭제할까요? 연결된 업무는 남습니다.\n휴지통에서 복구할 수 있어요.`} onOk={()=>{rm("projects",projDel);setProjDel(null);setProjDetail(null);}} onCancel={()=>setProjDel(null)}/>
       <Sheet open={!!actHist} onClose={()=>setActHist(null)} title="📜 활동지표 주차별 이력">
@@ -4187,6 +4197,10 @@ function TeamBoard({D,cu,nav}){
   const projsList=D.projects.filter(p=>D.tasks.some(t=>t.projectId===p.id&&!t.isFixed))
     .map(p=>{const ts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);const c={todo:0,inprogress:0,done:0,hold:0};ts.forEach(t=>{if(c[t.status]!=null)c[t.status]++;});const allDoneP=ts.length>0&&ts.every(t=>t.status==="done");return{p,c,allDone:allDoneP,open:c.todo+c.inprogress};})
     .sort((a,b)=>(a.allDone?1:0)-(b.allDone?1:0)||b.open-a.open||(b.p.progress||0)-(a.p.progress||0));
+  const [tbView,setTbView]=useState("members");   // 팀보드 보기: members(팀원별) | kpi(KPI별 — 누가 무엇을 겹쳐서)
+  const uName=(id)=>D.users.find(u=>u.id===id)?.name||"미배정";
+  const uColor=(id)=>D.users.find(u=>u.id===id)?.color||"#9CA3AF";
+  const kpiPivot=D.mainKPIs.map(mk=>{ const projs=D.projects.filter(p=>p.mainKPIId===mk.id); const byU={}; projs.forEach(p=>{const u=p.assigneeId||"";(byU[u]=byU[u]||[]).push(p);}); return {mk,projs,byU,kp:pct(mkCur(mk,D.subKPIs,D.projects),mk.targetValue),col:({mk1:"#3182F6",mk2:"#8B5CF6",mk3:"#00C073"}[mk.id]||"#3182F6")}; }).filter(x=>x.projs.length);
   return(
     <div style={{maxWidth:760,margin:"0 auto"}}>
       <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"16px",marginBottom:14,color:"#fff"}}>
@@ -4198,6 +4212,39 @@ function TeamBoard({D,cu,nav}){
           <p style={{margin:0,fontSize:11,opacity:0.78}}>업무 {allDone}/{allT.length} 완료 · 프로젝트 {D.projects.length} · 팀원 {D.users.length}</p>
         </div>
       </div>
+      <div style={{display:"flex",background:"#F2F4F6",borderRadius:12,padding:3,marginBottom:14}}>
+        {[["members","👥 팀원별"],["kpi","🎯 KPI별 (누가 무엇을)"]].map(([k,l])=>(<button key={k} onClick={()=>setTbView(k)} style={{flex:1,padding:"8px 0",borderRadius:9,border:"none",cursor:"pointer",background:tbView===k?"#fff":"transparent",color:tbView===k?"#0F1F5C":"#6B7280",fontWeight:tbView===k?800:600,fontSize:12.5,fontFamily:"inherit",boxShadow:tbView===k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{l}</button>))}
+      </div>
+      {tbView==="kpi"&&(
+        <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:4}}>
+          {kpiPivot.length===0?<p style={{textAlign:"center",color:"#B0B8C1",fontSize:12,padding:"16px 0"}}>연결된 KPI가 없어요</p>:kpiPivot.map(({mk,byU,col,kp})=>(
+            <div key={mk.id} style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"13px 14px"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                <span style={{fontSize:10,fontWeight:900,color:"#fff",background:col,padding:"2px 8px",borderRadius:20}}>{mk.krKey}</span>
+                <span style={{flex:1,minWidth:0,fontSize:13.5,fontWeight:900,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{mk.title}</span>
+                <span style={{fontSize:10.5,fontWeight:800,color:"#6B7280"}}>팀원 {Object.keys(byU).length}</span>
+                <span style={{fontSize:13,fontWeight:900,color:col}}>{kp}%</span>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {Object.keys(byU).map(uid=>{const ps=byU[uid];const c=uColor(uid);return(
+                  <div key={uid||"none"} style={{display:"flex",gap:9,padding:"8px 10px",borderRadius:10,background:"#F9FAFB",border:"1px solid #EEF1F4"}}>
+                    <Ava name={uName(uid)} color={c} size={26}/>
+                    <div style={{flex:1,minWidth:0}}>
+                      <p style={{margin:"0 0 5px",fontSize:12,fontWeight:800,color:"#111827"}}>{uName(uid)} <span style={{fontWeight:600,color:"#9CA3AF"}}>· {ps.length}건</span></p>
+                      <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                        {ps.map(p=>{const ts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);const dn=ts.filter(t=>t.status==="done").length;return(
+                          <span key={p.id} style={{fontSize:10.5,fontWeight:700,color:"#374151",background:"#fff",border:`1px solid ${c}33`,borderRadius:7,padding:"3px 8px",maxWidth:"100%",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}{ts.length?` · ${dn}/${ts.length}`:""}{numF(p.resultValue)>0?` · 💰${fmt(p.resultValue,"원")}`:""}</span>
+                        );})}
+                      </div>
+                    </div>
+                  </div>
+                );})}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {tbView==="members"&&(<>
       <div style={{display:"flex",flexDirection:"column",gap:10}}>
         {mem.map(m=>(
           <div key={m.u.id} style={{backgroundColor:"#fff",borderRadius:14,border:`1px solid ${m.stuck?"#FFD7DC":m.u.id===cu.id?"#FED7AA":"#F2F4F6"}`,padding:"13px 14px"}}>
@@ -4225,6 +4272,7 @@ function TeamBoard({D,cu,nav}){
           </div>
         ))}
       </div>
+      </>)}
       <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",margin:"14px 0 0",border:"1px solid #F2F4F6"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
           <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#0F1F5C"}}>📁 팀 프로젝트 현황 ({projsList.length})</h3>
@@ -5240,7 +5288,7 @@ function FixedPage({D,cu,lead,add,up,rm,nav}){
           <Btn full variant="orange" onClick={doAdd} disabled={!form.title.trim()}>추가하기</Btn>
         </div>
       </Sheet>
-      <EditTaskSheet open={!!editTarget} onClose={()=>setEditTarget(null)} task={editTarget} D={D} add={add} up={up} onSave={f=>up("tasks",editTarget.id,{title:f.title,status:f.status,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:(f.forAll?"":((f.assigneeIds||[])[0]||"")),assigneeIds:f.assigneeIds||[],forAll:!!f.forAll,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null})}/>
+      <EditTaskSheet open={!!editTarget} onClose={()=>setEditTarget(null)} task={editTarget} D={D} add={add} up={up} onSave={f=>up("tasks",editTarget.id,{title:f.title,status:f.status,parentId:f.parentId||null,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:(f.forAll?"":((f.assigneeIds||[])[0]||"")),assigneeIds:f.assigneeIds||[],forAll:!!f.forAll,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null})}/>
       <Confirm open={!!confirmId} title="고정업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmId)?.title}" 업무를 삭제할까요?\n휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmId);setConfirmId(null);}} onCancel={()=>setConfirmId(null)}/>
     </div>
   );

@@ -26,7 +26,7 @@ export const skCur=(sk,projects)=>{
   // 카운트형 집계: 이 지표를 가리키는 프로젝트 완료(+1) / 구간 완료(+1). (원/%·출시집계 제외 — 매출·진척·출시 롤업 보호)
   if(sk.unit!=="원"&&sk.unit!=="%"&&!sk.launchCount){
     const cc=(projects||[]).filter(p=>p.countKPIId===sk.id&&(p.progress||0)>=100).length;          // 완료된 연결 프로젝트 수
-    const seg=(projects||[]).reduce((a,p)=>a+numF(p.segDoneByKpi&&p.segDoneByKpi[sk.id]),0);        // 완료된 연결 구간 수(없으면 0)
+    const seg=(projects||[]).filter(p=>p.countKPIId!==sk.id).reduce((a,p)=>a+numF(p.segDoneByKpi&&p.segDoneByKpi[sk.id]),0);   // 완료된 연결 구간 수 — countKPIId로 이미 +된 프로젝트는 제외(이중 카운트 방지)
     if(cc||seg) return numF(sk.currentValue)+cc+seg;
   }
   if(sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride) return (projects||[]).filter(p=>p.subKPIId===sk.id).reduce((a,p)=>a+numF(p.resultValue),0);

@@ -2327,10 +2327,10 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
       const dn=isP(items,i)?dd2[i]:it.done;   // 상위는 하위 롤업으로 완료 판정
       if(it.tid){ const t=existing.find(x=>x.id===it.tid); idMap[i]=it.tid; present.add(it.tid);
         const p={title:it.text.trim(),assigneeId:it.who,parentId,seq:i};
-        if(dn&&t&&t.status!=="done")p.status="done"; if(!dn&&t&&t.status==="done")p.status="todo";
+        if(dn&&t&&t.status!=="done")Object.assign(p,statusPatch(D,t,"done")); else if(!dn&&t&&t.status==="done")Object.assign(p,statusPatch(D,t,"todo"));   // 완료 전이 시 doneAt·이력 함께 기록(데이터 누락 방지)
         up("tasks",it.tid,p);
-      } else { const nid="t"+Date.now()+"_"+i; idMap[i]=nid; present.add(nid);
-        add("tasks",{id:nid,title:it.text.trim(),projectId:proj.id,parentId,assigneeId:it.who,type:"general",status:dn?"done":"todo",weekDay:null,weekSlot:null,isFixed:false,dueDate:"",memo:"",attachments:[],seq:i});
+      } else { const nid="t"+Date.now()+"_"+i; idMap[i]=nid; present.add(nid); const _u=_curUser(D);
+        add("tasks",{id:nid,title:it.text.trim(),projectId:proj.id,parentId,assigneeId:it.who,type:"general",status:dn?"done":"todo",weekDay:null,weekSlot:null,isFixed:false,dueDate:"",memo:"",attachments:[],seq:i,...(dn?{doneAt:new Date().toISOString(),doneBy:_u?.id||null,doneByName:_u?.name||""}:{})});
       }
     });
     existing.forEach(t=>{ if(!present.has(t.id)) rm("tasks",t.id); });
@@ -3318,7 +3318,7 @@ function CalendarPage({D,cu,add,up,rm}){
   const doAction=()=>{
     if(!actionForm.title.trim()) return;
     const nid="t"+Date.now();
-    if(actionForm.type==="task"){add("tasks",{id:nid,title:actionForm.title,projectId:actionForm.projectId,assigneeId:cu.id,status:actionForm.status,type:"general",isFixed:false,weekDay:null,weekSlot:null,dueDate:detail?.date||"",memo:`📅 미팅: ${detail?.title}`,attachments:[]});}
+    if(actionForm.type==="task"){add("tasks",{id:nid,title:actionForm.title,projectId:actionForm.projectId,assigneeId:cu.id,status:actionForm.status,type:"general",isFixed:false,weekDay:null,weekSlot:null,dueDate:detail?.date||"",memo:`📅 미팅: ${detail?.title}`,attachments:[],...(actionForm.status==="done"?{doneAt:new Date().toISOString(),doneBy:cu?.id||null,doneByName:cu?.name||""}:{})});}
     else{add("projects",{id:"p"+Date.now(),title:actionForm.title,mainKPIId:null,subKPIId:"",assigneeId:cu.id,collaboratorIds:[],group:"기타",priority:"mid",status:"active",progress:0,resultValue:0});}
     setActionDone(prev=>[...prev,{id:nid,title:actionForm.title,type:actionForm.type}]);
     setActionForm({type:"task",title:"",projectId:"",status:"todo"});
@@ -3393,7 +3393,7 @@ function CalendarPage({D,cu,add,up,rm}){
             </div>
             <div style={{display:"flex",gap:8,marginBottom:14}}>
               <button onClick={()=>openEditEvent(detail)} style={{flex:1,padding:"10px 0",borderRadius:10,border:"1px solid #E5E8EB",background:"#fff",color:"#4B5563",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>✎ 일정 수정</button>
-              <button onClick={()=>{rm("events",detail.id);setDetail(null);}} style={{flex:1,padding:"10px 0",borderRadius:10,border:"1px solid #FFE2E5",background:"#FFF0F1",color:"#F04452",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🗑 일정 삭제</button>
+              <button onClick={()=>{(D.tasks||[]).filter(x=>x.eventId===detail.id).forEach(x=>rm("tasks",x.id,true));rm("events",detail.id);setDetail(null);}} style={{flex:1,padding:"10px 0",borderRadius:10,border:"1px solid #FFE2E5",background:"#FFF0F1",color:"#F04452",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🗑 일정 삭제</button>
             </div>
             <div style={{backgroundColor:"#FFFFFF",borderRadius:14,padding:"14px",border:"1px solid #F2F4F6",marginBottom:14}}>
               <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}><span style={{fontSize:18}}>⚡</span><div><p style={{margin:0,fontSize:14,fontWeight:900,color:"#0F1F5C"}}>2차 액션 바로 추가</p><p style={{margin:0,fontSize:11,color:"#9CA3AF"}}>미팅 후속 업무·프로젝트 즉시 생성</p></div></div>

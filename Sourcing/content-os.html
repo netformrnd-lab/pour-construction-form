@@ -207,6 +207,27 @@ function normalize(){
   if(!state.products)state.products=[];
   if(!state.sellers)state.sellers=[];
   if(!state.assets)state.assets=[];
+  if(!state.settings)state.settings={defaultLanding:'',defaultCampaign:'',defaultMedium:'sponsor'};
+}
+const UTM_MEDIUMS=['sponsor','instagram','youtube','blog','sns','tiktok','naver'];
+/* 셀러별 UTM 추적 링크 생성 — utm_source 는 셀러명(slug) 자동 */
+function buildUTM(s){
+  const url=((s&&s.landingUrl)||(state.settings&&state.settings.defaultLanding)||'').trim();
+  if(!url)return '';
+  const src=((s&&s.utmSource)||'').trim()||slug(s.name);
+  const med=((s&&s.utmMedium)||(state.settings&&state.settings.defaultMedium)||'sponsor').trim();
+  const camp=((s&&s.utmCampaign)||(state.settings&&state.settings.defaultCampaign)||'').trim();
+  const ps=['utm_source='+encodeURIComponent(src)];
+  if(med)ps.push('utm_medium='+encodeURIComponent(med));
+  if(camp)ps.push('utm_campaign='+encodeURIComponent(camp));
+  if(s&&s.utmContent)ps.push('utm_content='+encodeURIComponent(s.utmContent.trim()));
+  return url+(url.includes('?')?'&':'?')+ps.join('&');
+}
+function copyUTM(sid){
+  const s=state.sellers.find(x=>x.id===sid);if(!s)return;
+  const url=buildUTM(s);
+  if(!url){toast('랜딩 URL을 먼저 입력하세요 (셀러 수정)','red');openSellerEdit(sid);return;}
+  navigator.clipboard?.writeText(url).then(()=>toast('UTM 링크 복사됨 — 셀러에게 전달하세요','green'),()=>prompt('UTM 링크를 복사하세요',url));
 }
 normalize();
 let inbox=[]; // sourcing-os/content-uploads/items (셀러 업로드)
@@ -304,7 +325,7 @@ function renderProducts(){
   const list=state.products.filter(p=>!q||(p.name||'').includes(q)||(p.code||'').includes(q));
   let html=`<div class="bar">
     <div class="searchbox"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><input id="search" placeholder="제품명 검색" value="${esc(query)}"></div>
-    <button class="btn ghost" id="importBtn">소싱앱에서 가져오기</button>
+    <button class="btn ghost" id="importBtn">🔗 상품 연결</button>
     <button class="btn or" id="addProduct">+ 제품 추가</button>
   </div>`;
   if(!list.length){
@@ -344,7 +365,7 @@ function renderSellers(){
       return `<div class="scard" data-sid="${s.id}">
         <div class="sc-top"><span class="sc-nm">${esc(s.name)}</span><span class="countpill"><b>${n}</b> 컨텐츠</span></div>
         <div class="sc-meta">${prod?'🔗 '+esc(prod.name):'제품 미지정'}</div>
-        <div class="sc-act"><button class="linkbtn" data-copy="${s.id}">🔗 업로드 링크 복사</button></div>
+        <div class="sc-act"><button class="linkbtn" data-copy="${s.id}">🔗 업로드 링크</button><button class="linkbtn" data-utm="${s.id}" style="background:var(--green-pale);color:var(--green)">📈 UTM 복사</button></div>
       </div>`;
     }).join('')+'</div>';
   }
@@ -353,6 +374,7 @@ function renderSellers(){
   $('#addSeller')&&($('#addSeller').onclick=()=>openSellerEdit(null));
   document.querySelectorAll('.scard').forEach(c=>c.onclick=e=>{if(e.target.dataset.copy)return;openSellerDetail(c.dataset.sid);});
   document.querySelectorAll('[data-copy]').forEach(b=>b.onclick=e=>{e.stopPropagation();copySellerLink(b.dataset.copy);});
+  document.querySelectorAll('[data-utm]').forEach(b=>b.onclick=e=>{e.stopPropagation();copyUTM(b.dataset.utm);});
 }
 
 function renderInbox(){
@@ -405,25 +427,74 @@ function openProductEdit(pid){
   if(p)$('#pe_del').onclick=()=>{if(confirm('제품을 삭제할까요? (업로드된 파일은 유지됩니다)')){state.products=state.products.filter(x=>x.id!==pid);closeSheet();save();}};
 }
 
-/* 소싱앱 가져오기 */
-async function openImport(){
-  openSheet(`<h2>소싱앱에서 가져오기</h2><div class="sub">불러오는 중…</div>`);
-  const arr=await fetchSourcingProducts();
-  const exist=new Set(state.products.map(p=>p.sourceId||p.id));
-  const pickable=arr.filter(p=>!exist.has(p.id));
-  if(!pickable.length){openSheet(`<h2>소싱앱에서 가져오기</h2><div class="sub">가져올 새 제품이 없어요. (이미 전부 추가됨)</div><div class="sheet-act"><button class="btn ghost" id="im_close">닫기</button></div>`);$('#im_close').onclick=closeSheet;return;}
-  const sel=new Set();
-  openSheet(`<h2>소싱앱에서 가져오기</h2><div class="sub">컨텐츠를 관리할 제품을 선택하세요 (${pickable.length}개)</div>
-    <div class="imp-list" id="im_list">${pickable.map(p=>`<div class="imp-item" data-id="${p.id}"><div><div class="nm">${esc(p.name)}</div><div class="mt">${esc(p.code||'—')}</div></div></div>`).join('')}</div>
-    <div class="sheet-act"><button class="btn ghost" id="im_cancel">취소</button><button class="btn or" id="im_add">선택 추가</button></div>`);
-  document.querySelectorAll('#im_list .imp-item').forEach(el=>el.onclick=()=>{const id=el.dataset.id;if(sel.has(id)){sel.delete(id);el.classList.remove('sel');}else{sel.add(id);el.classList.add('sel');}});
-  $('#im_cancel').onclick=closeSheet;
-  $('#im_add').onclick=()=>{
-    if(!sel.size){toast('제품을 선택하세요','red');return;}
-    pickable.filter(p=>sel.has(p.id)).forEach(p=>state.products.push({id:uid(),sourceId:p.id,name:p.name,code:p.code,thumb:p.thumb,createdAt:new Date().toISOString()}));
-    closeSheet();save();toast(`${sel.size}개 제품 추가`,'green');
-  };
+/* 상품 연결 / 가져오기 — 다중 소스 */
+const PRODUCT_SOURCES=[{key:'sourcing',label:'소싱앱'},{key:'products',label:'상품관리(8채널)'},{key:'manual',label:'직접 ID 연결'}];
+let importSrc='sourcing';
+/* products 컬렉션(상품관리) 문서 → 공통 형태로 매핑 (스키마 방어적) */
+function mapProductDoc(id,x){
+  x=x||{};
+  return {id, name:x.name||x.productName||x['상품명']||x.title||id,
+    code:x.imwebId||(x.channels&&x.channels.imweb)||x.code||x.sku||'',
+    thumb:x.thumbnail||x.imageUrl||x.thumb||((x.detailImages&&x.detailImages[0]&&x.detailImages[0].url)||'')};
 }
+async function fetchSource(src){
+  if(src==='sourcing')return fetchSourcingProducts();
+  if(src==='products'){
+    try{const snap=await FS.collection('products').get();console.log(`[products] ${snap.size}건 로드`);return snap.docs.map(d=>mapProductDoc(d.id,d.data()));}
+    catch(e){console.error('[products] 로드 실패:',e);return[];}
+  }
+  return [];
+}
+function isLinked(src,pid){return state.products.some(p=>(p.sourceColl||'sourcing')===src&&(p.sourceId||p.id)===pid);}
+async function openImport(){importSrc='sourcing';renderImport();$('#overlay').classList.add('on');}
+async function renderImport(){
+  const segs=PRODUCT_SOURCES.map(s=>`<button data-src="${s.key}" class="${s.key===importSrc?'on':''}">${s.label}</button>`).join('');
+  const head=`<h2>상품 연결 · 가져오기</h2><div class="sub">다른 페이지에서 관리하는 상품을 상품ID로 연결해 컨텐츠를 관리하세요.</div><div class="seg" id="imSeg">${segs}</div>`;
+  // 직접 ID 연결
+  if(importSrc==='manual'){
+    $('#sheet').innerHTML=head+`
+      <div class="frow"><label>상품 ID</label><input id="im_id" placeholder="다른 페이지의 상품 문서 ID"></div>
+      <button class="btn ghost" id="im_lookup" style="margin-bottom:14px;width:100%">🔎 상품관리에서 정보 불러오기</button>
+      <div class="frow"><label>상품명</label><input id="im_name" placeholder="상품명"></div>
+      <div class="frow"><label>대표 이미지 URL <span style="color:var(--muted)">(선택)</span></label><input id="im_thumb" placeholder="https://..."></div>
+      <div class="sheet-act"><button class="btn ghost" id="im_cancel">취소</button><button class="btn or" id="im_addone">상품 연결</button></div>`;
+    bindImSeg();$('#im_cancel').onclick=closeSheet;
+    $('#im_lookup').onclick=async()=>{
+      const id=($('#im_id').value||'').trim();if(!id){toast('상품 ID를 입력하세요','red');return;}
+      try{const d=await FS.collection('products').doc(id).get();if(d.exists){const m=mapProductDoc(id,d.data());$('#im_name').value=m.name;$('#im_thumb').value=m.thumb;toast('상품 정보 불러옴','green');}else toast('해당 ID 상품 없음 — 직접 입력하세요','amber');}
+      catch(e){console.error('[products] 조회 실패:',e);toast('조회 실패','red');}
+    };
+    $('#im_addone').onclick=()=>{
+      const id=($('#im_id').value||'').trim(),name=($('#im_name').value||'').trim();
+      if(!id||!name){toast('상품 ID와 상품명을 입력하세요','red');return;}
+      if(isLinked('products',id)){toast('이미 연결된 상품이에요','amber');return;}
+      state.products.push({id:uid(),sourceColl:'products',sourceId:id,name,code:id,thumb:($('#im_thumb').value||'').trim(),createdAt:new Date().toISOString()});
+      closeSheet();save();toast('상품 연결됨','green');
+    };
+    return;
+  }
+  // 목록형 (소싱앱 / 상품관리)
+  $('#sheet').innerHTML=head+`<div class="sub" style="padding:20px 0">불러오는 중…</div>`;bindImSeg();
+  const reqSrc=importSrc;
+  const arr=await fetchSource(reqSrc);
+  if(reqSrc!==importSrc)return; // 탭 전환됨
+  const pickable=arr.filter(p=>!isLinked(reqSrc,p.id));
+  const sel=new Set();
+  const body=pickable.length
+    ? `<div class="imp-list" id="im_list">${pickable.map(p=>`<div class="imp-item" data-id="${esc(p.id)}">${p.thumb?`<img src="${esc(p.thumb)}" style="width:36px;height:36px;border-radius:8px;object-fit:cover;flex:0 0 auto">`:''}<div style="min-width:0"><div class="nm">${esc(p.name)}</div><div class="mt">${esc(p.code||p.id)}</div></div></div>`).join('')}</div><div class="sheet-act"><button class="btn ghost" id="im_cancel">취소</button><button class="btn or" id="im_add">선택 추가 (<span id="im_n">0</span>)</button></div>`
+    : `<div class="empty" style="padding:34px 0"><p>가져올 새 상품이 없어요.<br>(이미 전부 연결됨)</p></div><div class="sheet-act"><button class="btn ghost" id="im_cancel">닫기</button></div>`;
+  $('#sheet').innerHTML=head+body;bindImSeg();
+  $('#im_cancel').onclick=closeSheet;
+  if(pickable.length){
+    document.querySelectorAll('#im_list .imp-item').forEach(el=>el.onclick=()=>{const id=el.dataset.id;if(sel.has(id)){sel.delete(id);el.classList.remove('sel');}else{sel.add(id);el.classList.add('sel');}$('#im_n').textContent=sel.size;});
+    $('#im_add').onclick=()=>{
+      if(!sel.size){toast('상품을 선택하세요','red');return;}
+      pickable.filter(p=>sel.has(p.id)).forEach(p=>state.products.push({id:uid(),sourceColl:reqSrc,sourceId:p.id,name:p.name,code:p.code,thumb:p.thumb,createdAt:new Date().toISOString()}));
+      closeSheet();save();toast(`${sel.size}개 상품 연결`,'green');
+    };
+  }
+}
+function bindImSeg(){document.querySelectorAll('#imSeg button').forEach(b=>b.onclick=()=>{importSrc=b.dataset.src;renderImport();});}
 
 /* 제품 상세 (에셋 그리드) */
 function openProductDetail(pid){
@@ -505,16 +576,30 @@ async function handleUpload(fileList){
 function openSellerEdit(sid){
   const s=sid?state.sellers.find(x=>x.id===sid):null;
   const prodOpts='<option value="">제품 미지정</option>'+state.products.map(p=>`<option value="${p.id}" ${s&&s.productId===p.id?'selected':''}>${esc(p.name)}</option>`).join('');
-  openSheet(`<h2>${s?'셀러 수정':'셀러 추가'}</h2><div class="sub">전용 업로드 링크가 자동 생성돼요.</div>
+  const land=s&&s.landingUrl!==undefined?s.landingUrl:(state.settings.defaultLanding||'');
+  const camp=s&&s.utmCampaign!==undefined?s.utmCampaign:(state.settings.defaultCampaign||'');
+  const med=(s&&s.utmMedium)||state.settings.defaultMedium||'sponsor';
+  const medOpts=UTM_MEDIUMS.map(m=>`<option value="${m}" ${m===med?'selected':''}>${m}</option>`).join('');
+  openSheet(`<h2>${s?'셀러 수정':'셀러 추가'}</h2><div class="sub">전용 업로드 링크 + UTM 추적 링크가 자동 생성돼요.</div>
     <div class="frow"><label>셀러명</label><input id="se_name" value="${esc(s?s.name:'')}" placeholder="예) 홍길동스토어"></div>
     <div class="frow"><label>연결 제품 <span style="color:var(--muted)">(선택)</span></label><select id="se_prod">${prodOpts}</select></div>
     <div class="frow"><label>메모 <span style="color:var(--muted)">(선택)</span></label><input id="se_note" value="${esc(s?s.note:'')}" placeholder="협찬 조건 등"></div>
+    <div style="height:1px;background:var(--border);margin:4px 0 16px"></div>
+    <div class="sub" style="margin-bottom:12px">📈 <b>UTM 추적 링크</b> — utm_source 는 셀러명으로 자동 들어가요.</div>
+    <div class="frow"><label>랜딩 URL (목적지)</label><input id="se_land" value="${esc(land)}" placeholder="예) https://grohome.co.kr/product/123"></div>
+    <div class="frow" style="display:flex;gap:10px"><div style="flex:1"><label>매체 (utm_medium)</label><select id="se_med">${medOpts}</select></div><div style="flex:1"><label>캠페인 (utm_campaign)</label><input id="se_camp" value="${esc(camp)}" placeholder="예) 2026spring"></div></div>
+    <div class="frow"><label>utm_content <span style="color:var(--muted)">(선택)</span></label><input id="se_cont" value="${esc((s&&s.utmContent)||'')}" placeholder="예) reels_a"></div>
     <div class="sheet-act">${s?`<button class="btn ghost" id="se_del" style="flex:0 0 auto;color:var(--red)">삭제</button>`:''}<button class="btn ghost" id="se_cancel">취소</button><button class="btn or" id="se_save">저장</button></div>`);
   $('#se_cancel').onclick=closeSheet;
   $('#se_save').onclick=()=>{
     const name=($('#se_name').value||'').trim();if(!name){toast('셀러명을 입력하세요','red');return;}
-    if(s){s.name=name;s.productId=$('#se_prod').value;s.note=$('#se_note').value.trim();}
-    else state.sellers.push({id:uid(),name,token:uid()+uid(),productId:$('#se_prod').value,note:$('#se_note').value.trim(),createdAt:new Date().toISOString()});
+    const utm={landingUrl:($('#se_land').value||'').trim(),utmCampaign:($('#se_camp').value||'').trim(),utmMedium:$('#se_med').value,utmContent:($('#se_cont').value||'').trim()};
+    // 다음 셀러부터 자동 채움
+    if(utm.landingUrl)state.settings.defaultLanding=utm.landingUrl;
+    if(utm.utmCampaign)state.settings.defaultCampaign=utm.utmCampaign;
+    if(utm.utmMedium)state.settings.defaultMedium=utm.utmMedium;
+    if(s){Object.assign(s,{name,productId:$('#se_prod').value,note:$('#se_note').value.trim()},utm);}
+    else state.sellers.push(Object.assign({id:uid(),name,token:uid()+uid(),productId:$('#se_prod').value,note:$('#se_note').value.trim(),createdAt:new Date().toISOString()},utm));
     closeSheet();save();
   };
   if(s)$('#se_del').onclick=()=>{if(confirm('셀러를 삭제할까요? (업로드된 파일은 유지됩니다)')){state.sellers=state.sellers.filter(x=>x.id!==sid);closeSheet();save();}};
@@ -534,12 +619,15 @@ function renderSellerSheet(){
   const inboxA=inbox.filter(x=>x.sellerId===s.id||x.sellerName===s.name).map(x=>({id:x._id,kind:x.kind,url:x.url,src:'sponsor',sellerName:s.name,_inbox:true}));
   const assets=[...inboxA,...teamA];
   const url=sellerLink(s);
+  const utmUrl=buildUTM(s);
   $('#sheet').innerHTML=`<h2>${esc(s.name)}</h2><div class="sub">컨텐츠 ${assets.length}개${s.productId?' · 🔗 '+esc((state.products.find(p=>p.id===s.productId)||{}).name||''):''}</div>
     <div class="frow"><label>전용 업로드 링크</label><input id="sd_link" value="${esc(url)}" readonly onclick="this.select()"></div>
-    <div class="seg" style="gap:10px;margin-bottom:14px"><button class="btn or" style="flex:1" id="sd_copy">🔗 링크 복사</button><button class="btn ghost" style="flex:1" id="sd_up">+ 직접 업로드</button></div>
+    <div class="frow"><label>📈 UTM 추적 링크 <span style="color:var(--muted)">(광고·협찬 성과 추적)</span></label><input id="sd_utm" value="${esc(utmUrl)}" placeholder="셀러 수정에서 랜딩 URL을 입력하세요" readonly onclick="this.select()"></div>
+    <div class="seg" style="gap:8px;margin-bottom:14px"><button class="btn or" style="flex:1" id="sd_copy">🔗 업로드</button><button class="btn ghost" style="flex:1;background:var(--green-pale);color:var(--green)" id="sd_utmcopy">📈 UTM</button><button class="btn ghost" style="flex:1" id="sd_up">+ 업로드</button></div>
     <div class="agrid" id="agrid">${assets.length?assets.map(renderAssetCell).join(''):'<div class="empty" style="grid-column:1/-1;padding:30px 0"><p>아직 올라온 컨텐츠가 없어요.<br>위 링크를 셀러에게 전달하세요.</p></div>'}</div>
     <div class="sheet-act" style="margin-top:18px"><button class="btn ghost" id="sd_edit">셀러 정보 수정</button><button class="btn ghost" id="sd_close">닫기</button></div>`;
   $('#sd_copy').onclick=()=>copySellerLink(s.id);
+  $('#sd_utmcopy').onclick=()=>copyUTM(s.id);
   $('#sd_up').onclick=()=>{uploadCtx={sellerId:s.id,purpose:'sponsor'};$('#fileAlbum').click();};
   $('#sd_close').onclick=closeSheet;
   $('#sd_edit').onclick=()=>openSellerEdit(s.id);

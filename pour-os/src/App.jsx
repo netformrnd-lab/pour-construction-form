@@ -3411,7 +3411,8 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
   useEffect(()=>{const h=()=>setIsPC(window.innerWidth>=1024);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[]);
   useEffect(()=>{ if(!draggingRef.current&&tpl) setDraftNodes(tpl.nodes); },[tpl]);
   const maxY=draftNodes.reduce((m,n)=>Math.max(m,n.y),0);
-  const canvasH=Math.max(520,maxY+NODE_H+120);
+  const editY=editNode?(nodeById(editNode.id)?.y||0):0;
+  const canvasH=Math.max(520,maxY+NODE_H+120,editNode?editY+560:0);   // 인라인 편집 카드 공간 확보
   const nodeById=(id)=>draftNodes.find(n=>n.id===id);
   const onNodeDown=(e,n)=>{
     if(!isPC) return;   // 모바일: 노드 편집 불가(보기 전용) — 드래그·탭편집 차단
@@ -3442,7 +3443,9 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
     if(!exists) up("launchTemplates",tpl.id,{edges:[...tpl.edges,{id:"e"+Date.now(),from:connectFrom,to:n.id}]});
     setConnectFrom(null);
   };
-  const addNode=()=>{ const id="n"+Date.now(); up("launchTemplates",tpl.id,{nodes:[...tpl.nodes,{id,title:"새 단계",roleLabel:"",assigneeId:cu.id,x:24,y:maxY+NODE_H+24}]}); };
+  const addNode=()=>{ const id="n"+Date.now(); const nn={id,title:"새 단계",roleLabel:"",assigneeId:cu.id,x:24,y:maxY+NODE_H+24}; up("launchTemplates",tpl.id,{nodes:[...tpl.nodes,nn]}); setEditNode(nn); };
+  // EdrawMind식: 선택 노드에서 하위 단계 추가 → 부모 편집 내용 저장 + 선행연결 + 새 노드 즉시 편집(한 번의 up으로 처리해 덮어쓰기 방지)
+  const addChildWithPatch=(parent,patch)=>{ const id="n"+Date.now(); const child={id,title:"새 단계",roleLabel:"",assigneeId:parent.assigneeId||cu.id,x:parent.x,y:parent.y+NODE_H+44}; const nodes=tpl.nodes.map(x=>x.id===parent.id?{...x,...(patch||{})}:x).concat(child); up("launchTemplates",tpl.id,{nodes,edges:[...tpl.edges,{id:"e"+Date.now(),from:parent.id,to:id}]}); setEditNode(child); };
   const saveNode=(patch)=>{ up("launchTemplates",tpl.id,{nodes:tpl.nodes.map(n=>n.id===editNode.id?{...n,...patch}:n)}); setEditNode(null); };
   const deleteNode=()=>{ up("launchTemplates",tpl.id,{nodes:tpl.nodes.filter(n=>n.id!==editNode.id),edges:tpl.edges.filter(e=>e.from!==editNode.id&&e.to!==editNode.id)}); setEditNode(null); };
   const removeEdge=(eid)=>{ up("launchTemplates",tpl.id,{edges:tpl.edges.filter(e=>e.id!==eid)}); setDelEdge(null); };
@@ -3589,24 +3592,15 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
               ))}
             </div>
           )}
-          {isPC?(
-            <div style={{backgroundColor:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:12,padding:"10px 13px",marginBottom:12}}>
-              <p style={{margin:0,fontSize:11,color:"#B45309",lineHeight:1.5}}>케이스마다 흐름이 다르면 <b>복제</b>해서 단계를 바꿔 쓰세요. 노드를 끌어 옮기고, 탭하면 단계명·담당자·<b>⚡자동화</b>가 수정돼요. <b>선 연결</b>로 인계 순서를 잇습니다.</p>
-            </div>
-          ):(
-            <div style={{backgroundColor:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:12,padding:"11px 13px",marginBottom:12,display:"flex",alignItems:"center",gap:8}}>
-              <span style={{fontSize:15}}>💻</span>
-              <p style={{margin:0,fontSize:11.5,color:"#1E40AF",fontWeight:700,lineHeight:1.5}}>노드 편집은 <b>PC에서</b> 할 수 있어요. 여기선 흐름을 <b>보기</b>만 됩니다.</p>
-            </div>
-          )}
-          {isPC&&(
+          <div style={{backgroundColor:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:12,padding:"10px 13px",marginBottom:12}}>
+            <p style={{margin:0,fontSize:11,color:"#B45309",lineHeight:1.5}}><b>노드를 탭</b>하면 그 자리에서 단계명·담당자·<b>⚡액션</b>을 바로 수정해요. 편집 카드의 <b>＋ 하위 단계</b>로 다음 단계를 잇고, 케이스가 다르면 <b>복제</b>해서 바꿔 쓰세요.</p>
+          </div>
           <div style={{display:"flex",gap:8,marginBottom:10}}>
             <button onClick={addNode} style={{flex:1,padding:"9px 0",borderRadius:10,border:"1.5px solid #E5E8EB",backgroundColor:"#fff",fontSize:12.5,fontWeight:800,color:"#374151",cursor:"pointer",fontFamily:"inherit"}}>＋ 단계 추가</button>
             <button onClick={()=>{setConnectMode(!connectMode);setConnectFrom(null);}} style={{flex:1,padding:"9px 0",borderRadius:10,border:`1.5px solid ${connectMode?"#F97316":"#E5E8EB"}`,backgroundColor:connectMode?"#FFEDD5":"#fff",fontSize:12.5,fontWeight:800,color:connectMode?"#EA580C":"#374151",cursor:"pointer",fontFamily:"inherit"}}>🔗 {connectMode?"연결 중…":"선 연결"}</button>
           </div>
-          )}
           {connectMode&&<p style={{margin:"0 0 10px",fontSize:11,fontWeight:700,color:"#EA580C",textAlign:"center"}}>{connectFrom?"→ 도착 단계를 탭하세요 (다시 누르면 취소)":"시작 단계를 탭하세요"}</p>}
-          <div ref={canvasRef} style={{position:"relative",width:"100%",height:canvasH,backgroundColor:"#FAFBFC",backgroundImage:"radial-gradient(#E5E8EB 1px,transparent 1px)",backgroundSize:"18px 18px",borderRadius:16,border:"1px solid #EDF0F3",overflow:"hidden",touchAction:"none"}}>
+          <div ref={canvasRef} style={{position:"relative",width:"100%",height:canvasH,backgroundColor:"#FAFBFC",backgroundImage:"radial-gradient(#E5E8EB 1px,transparent 1px)",backgroundSize:"18px 18px",borderRadius:16,border:"1px solid #EDF0F3",overflow:"hidden",touchAction:isPC?"none":"pan-y"}}>
             <svg width="100%" height={canvasH} style={{position:"absolute",inset:0,pointerEvents:"none"}}>
               {tpl.edges.map(e=>{ const a=nodeById(e.from),b=nodeById(e.to); if(!a||!b)return null;
                 const x1=a.x+NODE_W/2,y1=a.y+NODE_H,x2=b.x+NODE_W/2,y2=b.y;
@@ -3620,9 +3614,25 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
             {draftNodes.map((n,i)=>{
               const sel=connectFrom===n.id;
               const col=uColor(n.assigneeId);
+              const editing=editNode&&editNode.id===n.id;
+              // EdrawMind식: 선택 노드는 그 자리에서 편집 카드로 펼쳐짐
+              if(editing){
+                return(
+                  <div key={n.id} style={{position:"absolute",left:n.x,top:n.y,width:300,maxWidth:`calc(100% - ${n.x+6}px)`,boxSizing:"border-box",borderRadius:14,backgroundColor:"#FFFFFF",border:"2px solid #F97316",boxShadow:"0 14px 36px rgba(249,115,22,0.22)",padding:12,zIndex:40}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+                      <span style={{flexShrink:0,width:20,height:20,borderRadius:"50%",backgroundColor:col,color:"#fff",fontSize:10,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{i+1}</span>
+                      <span style={{fontSize:11.5,fontWeight:900,color:"#EA580C"}}>단계 편집</span>
+                      <button onClick={()=>setEditNode(null)} style={{marginLeft:"auto",width:26,height:26,borderRadius:8,border:"1px solid #E5E8EB",background:"#fff",color:"#6B7280",fontSize:14,fontWeight:700,cursor:"pointer",lineHeight:1}}>✕</button>
+                    </div>
+                    <NodeEditForm node={editNode} users={D.users} onSave={saveNode} onDelete={deleteNode} onAddChild={(patch)=>addChildWithPatch(n,patch)}/>
+                  </div>
+                );
+              }
+              const tap=()=>{ if(connectMode){handleConnect(n);return;} setEditNode(n); };
+              const handlers=isPC?{onPointerDown:e=>onNodeDown(e,n),onPointerMove:onNodeMove,onPointerUp:e=>onNodeUp(e,n)}:{onClick:tap};   // 모바일=탭 편집, PC=드래그+탭
               return(
-                <div key={n.id} onPointerDown={e=>onNodeDown(e,n)} onPointerMove={onNodeMove} onPointerUp={e=>onNodeUp(e,n)}
-                  style={{position:"absolute",left:n.x,top:n.y,width:NODE_W,minHeight:NODE_H,boxSizing:"border-box",padding:"8px 10px",borderRadius:12,backgroundColor:"#FFFFFF",border:`2px solid ${sel?"#F97316":col+"55"}`,boxShadow:sel?"0 0 0 3px #F9731633":"0 2px 8px rgba(0,0,0,0.08)",cursor:connectMode?"pointer":"grab",touchAction:"none",userSelect:"none",zIndex:sel?4:2}}>
+                <div key={n.id} {...handlers}
+                  style={{position:"absolute",left:n.x,top:n.y,width:NODE_W,minHeight:NODE_H,boxSizing:"border-box",padding:"8px 10px",borderRadius:12,backgroundColor:"#FFFFFF",border:`2px solid ${sel?"#F97316":col+"55"}`,boxShadow:sel?"0 0 0 3px #F9731633":"0 2px 8px rgba(0,0,0,0.08)",cursor:connectMode?"pointer":(isPC?"grab":"pointer"),touchAction:isPC?"none":"manipulation",userSelect:"none",zIndex:sel?4:2}}>
                   <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4}}>
                     <span style={{flexShrink:0,width:18,height:18,borderRadius:"50%",backgroundColor:col,color:"#fff",fontSize:10,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{i+1}</span>
                     <span style={{fontSize:10,fontWeight:800,color:col,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.roleLabel||uName(n.assigneeId)}</span>
@@ -3633,7 +3643,7 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
               );
             })}
           </div>
-          {isPC&&<p style={{margin:"10px 2px 0",fontSize:11,color:"#9CA3AF",lineHeight:1.6}}>●&nbsp;노드를 끌어 위치 정리&nbsp;·&nbsp;탭하면 단계명·담당자·⚡자동화 수정&nbsp;·&nbsp;<b>선 연결</b>로 선행(인계) 순서를 잇습니다.</p>}
+          <p style={{margin:"10px 2px 0",fontSize:11,color:"#9CA3AF",lineHeight:1.6}}>● <b>노드를 탭</b>하면 그 자리에서 바로 편집&nbsp;·&nbsp;편집 카드의 <b>＋ 하위 단계</b>로 다음 단계를 잇습니다{isPC?<>&nbsp;·&nbsp;PC에선 드래그로 위치 정리·<b>선 연결</b></>:null}.</p>
       </>)}
 
       {/* 신규 SKU 출시 시트 */}
@@ -3654,10 +3664,7 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
         </div>
       </Sheet>
 
-      {/* 노드 수정 시트 */}
-      <Sheet open={!!editNode} onClose={()=>setEditNode(null)} title="단계 수정">
-        {editNode&&(<NodeEditForm node={editNode} users={D.users} onSave={saveNode} onDelete={deleteNode}/>)}
-      </Sheet>
+      {/* 노드 수정은 캔버스 인라인 카드로 처리(EdrawMind식) — 시트 제거 */}
 
       {/* 템플릿 이름 변경 시트 */}
       <Sheet open={renameOpen} onClose={()=>setRenameOpen(false)} title="템플릿 이름">
@@ -3669,13 +3676,14 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
     </div>
   );
 }
-function NodeEditForm({node,users,onSave,onDelete}){
+function NodeEditForm({node,users,onSave,onDelete,onAddChild}){
   const [f,setF]=useState({title:node.title||"",roleLabel:node.roleLabel||"",assigneeId:node.assigneeId||users[0]?.id,
     autoComplete:!!node.autoComplete,
     onDone:Array.isArray(node.auto&&node.auto.onDone)?node.auto.onDone.map(a=>({...a})):[]});
   const addAction=()=>setF({...f,onDone:[...f.onDone,{id:"a"+Date.now(),kind:"createTask",title:"",assigneeId:""}]});
   const upAction=(i,p)=>setF({...f,onDone:f.onDone.map((a,k)=>k===i?{...a,...p}:a)});
   const rmAction=(i)=>setF({...f,onDone:f.onDone.filter((_,k)=>k!==i)});
+  const curPatch=()=>({title:f.title.trim()||node.title||"새 단계",roleLabel:f.roleLabel.trim(),assigneeId:f.assigneeId,autoComplete:f.autoComplete,auto:{onDone:f.onDone.filter(a=>a.kind==="advance"||(a.title||"").trim()).map(a=>({id:a.id,kind:a.kind||"createTask",title:(a.title||"").trim(),assigneeId:a.assigneeId||""}))}});
   const lbl={display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5};
   const inp={width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"};
   return(
@@ -3720,9 +3728,10 @@ function NodeEditForm({node,users,onSave,onDelete}){
         <p style={{margin:"0 0 8px",fontSize:10.5,color:"#9CA3AF",lineHeight:1.5}}>💡 매주·매월 같은 <b>시간 트리거</b>는 [📌 고정업무]에서 설정해요.</p>
       </div>
 
+      {onAddChild&&<button onClick={()=>onAddChild(curPatch())} style={{width:"100%",padding:"11px 0",borderRadius:11,border:"1.5px solid #FDBA74",background:"#FFF7ED",color:"#EA580C",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit",marginBottom:8}}>＋ 하위 단계 잇기</button>}
       <div style={{display:"flex",gap:8}}>
         <button onClick={onDelete} style={{flex:"0 0 auto",padding:"13px 16px",borderRadius:12,border:"1.5px solid #FFE2E5",backgroundColor:"#FFF0F1",color:"#F04452",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
-        <Btn full variant="orange" onClick={()=>f.title.trim()&&onSave({title:f.title.trim(),roleLabel:f.roleLabel.trim(),assigneeId:f.assigneeId,autoComplete:f.autoComplete,auto:{onDone:f.onDone.filter(a=>a.kind==="advance"||(a.title||"").trim()).map(a=>({id:a.id,kind:a.kind||"createTask",title:(a.title||"").trim(),assigneeId:a.assigneeId||""}))}})} disabled={!f.title.trim()} style={{flex:1}}>저장</Btn>
+        <Btn full variant="orange" onClick={()=>f.title.trim()&&onSave(curPatch())} disabled={!f.title.trim()} style={{flex:1}}>저장</Btn>
       </div>
     </div>
   );

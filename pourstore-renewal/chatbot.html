@@ -341,11 +341,11 @@ function PinScreen({ onUnlock, onToast }) {
 // 사이드바
 // ============================================================
 const NAV = [
+  { id: 'dashboard',  icon: '📈', label: '대시보드' },
   { id: 'studio',     icon: '🤖', label: '봇 스튜디오' },
   { id: 'knowledge',  icon: '📚', label: '지식베이스' },
   { id: 'playground', icon: '💬', label: '플레이그라운드' },
   { id: 'logs',       icon: '🗂️', label: '대화 로그' },
-  { id: 'analytics',  icon: '📊', label: '분석' },
   { id: 'settings',   icon: '⚙️', label: '설정' },
 ];
 function Sidebar({ active, onNav, onLogout, cfgValid }) {
@@ -1039,66 +1039,201 @@ function LogsPage({ onToast }) {
 }
 
 // ============================================================
-// 5) 분석
+// 5) 대시보드 — 비용(내부/고객용) · 봇별 사용량·비용 · 인기 질문
 // ============================================================
-function AnalyticsPage({ cfg }) {
+const CUSTOMER_AUDIENCES = ['b2c', 'b2b', 'store'];
+function isCustomer(aud) { return CUSTOMER_AUDIENCES.includes(aud); }
+function won(usd) { return Math.round((usd || 0) * USD_KRW).toLocaleString(); }
+
+function DashboardPage({ cfg }) {
   const { data: sessions, loading } = useCollection(COLLECTIONS.SESSIONS);
   const { data: bots } = useCollection(COLLECTIONS.BOTS);
   const { data: kb } = useCollection(COLLECTIONS.KB);
+  const [period, setPeriod] = useState('month'); // month | 30d | all
+
+  const now = new Date();
+  const periodLabel = { month: '이번 달', '30d': '최근 30일', all: '전체' }[period];
 
   const stats = useMemo(() => {
-    const total = sessions.length;
-    const turns = sessions.reduce((s, x) => s + (x.turns || 0), 0);
-    const tin = sessions.reduce((s, x) => s + (x.tokensIn || 0), 0);
-    const tout = sessions.reduce((s, x) => s + (x.tokensOut || 0), 0);
-    const unresolved = sessions.filter(s => s.resolved === false).length;
-    const down = sessions.filter(s => s.rating === 'down').length;
-    const up = sessions.filter(s => s.rating === 'up').length;
-    const byBot = {};
-    sessions.forEach(s => { byBot[s.botName || '?'] = (byBot[s.botName || '?'] || 0) + 1; });
-    let costUSD = 0;
-    sessions.forEach(s => { costUSD += estCostUSD(s.model || cfg.model, s.tokensIn, s.tokensOut); });
-    return { total, turns, tin, tout, unresolved, down, up, byBot, costUSD, avgTurns: total ? (turns/total).toFixed(1) : 0 };
-  }, [sessions]);
+    const inPeriod = (iso) => {
+      if (period === 'all') return true;
+      const d = new Date(iso); if (isNaN(d)) return false;
+      if (period === 'month') return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+      return (now.getTime() - d.getTime()) <= 30 * 24 * 3600 * 1000;
+    };
+    const list = sessions.filter(s => inPeriod(s.startedAt || s.updatedAt));
+    const cost = (s) => estCostUSD(s.model || cfg.model, s.tokensIn, s.tokensOut);
 
-  const card = (label, val, sub, color) => (
-    <div style={{ background:'#fff', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'18px 20px', boxShadow:'var(--shadow)' }}>
-      <div style={{ fontSize:12, color:'var(--text-sm)', fontWeight:700, marginBottom:8 }}>{label}</div>
-      <div style={{ fontSize:26, fontWeight:900, color: color||'var(--navy)', letterSpacing:-0.5 }}>{val}</div>
-      {sub && <div style={{ fontSize:11, color:'var(--text-xs)', fontWeight:700, marginTop:4 }}>{sub}</div>}
+    let usdInternal = 0, usdCustomer = 0, usdTotal = 0, tin = 0, tout = 0;
+    let unresolved = 0, up = 0, down = 0, turns = 0;
+    const byBot = {};
+    list.forEach(s => {
+      const c = cost(s); usdTotal += c;
+      const aud = s.audience || 'internal';
+      if (isCustomer(aud)) usdCustomer += c; else usdInternal += c;
+      tin += s.tokensIn || 0; tout += s.tokensOut || 0; turns += s.turns || 0;
+      if (s.resolved === false) unresolved++;
+      if (s.rating === 'up') up++; if (s.rating === 'down') down++;
+      const key = s.botId || s.botName || '?';
+      const b = byBot[key] || (byBot[key] = { name: s.botName || '(삭제된 봇)', audience: aud, convos: 0, tin: 0, tout: 0, usd: 0, turns: 0, up: 0, down: 0, unresolved: 0 });
+      b.convos++; b.tin += s.tokensIn || 0; b.tout += s.tokensOut || 0; b.usd += c; b.turns += s.turns || 0;
+      if (s.rating === 'up') b.up++; if (s.rating === 'down') b.down++; if (s.resolved === false) b.unresolved++;
+    });
+
+    // 인기 질문 — 고객이 보낸 user 메시지 빈도
+    const qCount = {};
+    list.forEach(s => (s.messages || []).forEach(m => {
+      if (m.role !== 'user') return;
+      const raw = (m.content || '').trim().replace(/\s+/g, ' ');
+      if (raw.length < 2) return;
+      const key = raw.length > 70 ? raw.slice(0, 70) + '…' : raw;
+      const e = qCount[key] || (qCount[key] = { count: 0, internal: 0, customer: 0 });
+      e.count++; if (isCustomer(s.audience)) e.customer++; else e.internal++;
+    }));
+    const topQuestions = Object.entries(qCount).map(([q, v]) => ({ q, ...v })).sort((a, b) => b.count - a.count).slice(0, 12);
+
+    // 이번 달 월말 예상 (현재 추세 단순 외삽)
+    let projInternal = usdInternal, projCustomer = usdCustomer, projTotal = usdTotal;
+    if (period === 'month') {
+      const day = now.getDate();
+      const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      const f = day > 0 ? daysInMonth / day : 1;
+      projInternal = usdInternal * f; projCustomer = usdCustomer * f; projTotal = usdTotal * f;
+    }
+
+    const botRows = Object.values(byBot).sort((a, b) => b.convos - a.convos);
+    return { count: list.length, usdInternal, usdCustomer, usdTotal, projInternal, projCustomer, projTotal,
+      tin, tout, unresolved, up, down, turns, botRows, topQuestions, avgTurns: list.length ? (turns / list.length).toFixed(1) : 0 };
+  }, [sessions, period, cfg.model]);
+
+  const periodBtn = (id, label) => (
+    <button onClick={() => setPeriod(id)} style={{ padding:'7px 14px', borderRadius:8, fontSize:12.5, fontWeight:800,
+      background: period === id ? 'var(--navy)' : 'var(--bg)', color: period === id ? '#fff' : 'var(--text-md)',
+      border: `1px solid ${period === id ? 'var(--navy)' : 'var(--border)'}` }}>{label}</button>
+  );
+
+  // 비용 카드 (내부/고객용/합계)
+  const costCard = (title, icon, usd, proj, accent) => (
+    <div style={{ background:'#fff', border:`1px solid var(--border)`, borderLeft:`4px solid ${accent}`, borderRadius:'var(--r)', padding:'18px 20px', boxShadow:'var(--shadow)' }}>
+      <div style={{ fontSize:12.5, color:'var(--text-md)', fontWeight:800, marginBottom:10, display:'flex', alignItems:'center', gap:6 }}>{icon} {title}</div>
+      <div style={{ fontSize:28, fontWeight:900, color: accent, letterSpacing:-0.5 }}>₩{won(usd)}</div>
+      <div style={{ fontSize:11.5, color:'var(--text-sm)', fontWeight:700, marginTop:3 }}>${usd.toFixed(3)} · {periodLabel} 누적</div>
+      {period === 'month' && (
+        <div style={{ fontSize:11, color:'var(--text-xs)', fontWeight:700, marginTop:8, paddingTop:8, borderTop:'1px dashed var(--border)' }}>
+          📈 월말 예상 <b style={{ color: accent }}>₩{won(proj)}</b> <span style={{ opacity:.7 }}>(현재 추세)</span>
+        </div>
+      )}
     </div>
   );
 
+  const miniCard = (label, val, sub, color) => (
+    <div style={{ background:'#fff', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'14px 16px', boxShadow:'var(--shadow)' }}>
+      <div style={{ fontSize:11.5, color:'var(--text-sm)', fontWeight:700, marginBottom:6 }}>{label}</div>
+      <div style={{ fontSize:20, fontWeight:900, color: color || 'var(--navy)', letterSpacing:-0.4 }}>{val}</div>
+      {sub && <div style={{ fontSize:10.5, color:'var(--text-xs)', fontWeight:700, marginTop:3 }}>{sub}</div>}
+    </div>
+  );
+
+  const maxConvos = Math.max(1, ...stats.botRows.map(b => b.convos));
+  const maxQ = Math.max(1, ...stats.topQuestions.map(q => q.count));
+
   return (
     <>
-      <Header title="분석" subtitle="대화 데이터 요약. 미해결·👎가 많은 봇/주제를 찾아 지식베이스를 보강하세요." />
-      <div style={{ padding:'24px 32px' }}>
+      <Header title="대시보드" subtitle="비용(내부/고객용)·봇별 사용량·인기 질문을 한눈에. 데이터가 쌓일수록 정확해집니다."
+        actions={<div style={{ display:'flex', gap:6 }}>{periodBtn('month', '이번 달')}{periodBtn('30d', '최근 30일')}{periodBtn('all', '전체')}</div>} />
+      <div className="cb-scroll" style={{ padding:'24px 32px', overflowY:'auto', height:'calc(100vh - 92px)' }}>
         {loading ? <div style={{ color:'var(--text-sm)', padding:40, textAlign:'center' }}>집계 중…</div> : (
           <>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(180px, 1fr))', gap:14, marginBottom:24 }}>
-              {card('총 대화 수', stats.total.toLocaleString(), `평균 ${stats.avgTurns}턴`)}
-              {card('미해결', stats.unresolved.toLocaleString(), '지식베이스 보강 대상', stats.unresolved ? 'var(--red)' : 'var(--green)')}
-              {card('만족도', `👍 ${stats.up} / 👎 ${stats.down}`, '플레이그라운드 평가 기준')}
-              {card('봇 수', bots.length, `게시 ${bots.filter(b=>b.status==='published').length}`)}
-              {card('지식 항목', kb.length, 'FAQ·문서')}
-              {card('누적 토큰', (stats.tin + stats.tout).toLocaleString(), `${stats.tin}↓ ${stats.tout}↑`)}
-              {card('추정 비용', `$${stats.costUSD.toFixed(3)}`, `약 ₩${Math.round(stats.costUSD*USD_KRW).toLocaleString()} (참고)`, 'var(--or-d)')}
+            {/* 비용 — 내부 / 고객용 / 합계 */}
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(240px, 1fr))', gap:14, marginBottom:18 }}>
+              {costCard('내부용 (CS팀 봇)', '🧑‍💼', stats.usdInternal, stats.projInternal, 'var(--navy)')}
+              {costCard('고객용 (B2C·B2B·자사몰)', '🛒', stats.usdCustomer, stats.projCustomer, 'var(--or-d)')}
+              {costCard('합계', '💰', stats.usdTotal, stats.projTotal, 'var(--green)')}
             </div>
+            <div style={{ fontSize:11, color:'var(--text-xs)', fontWeight:600, marginBottom:22, lineHeight:1.6 }}>
+              ※ 비용은 모델 토큰 단가 기반 추정치입니다(환율 ₩{USD_KRW.toLocaleString()}/$ 가정). 실제 청구액은 Anthropic 콘솔 기준이며, 한국어는 토큰을 더 써서 1.2~1.3배 높게 나올 수 있습니다.
+            </div>
+
+            {/* 요약 미니 카드 */}
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(150px, 1fr))', gap:12, marginBottom:26 }}>
+              {miniCard('대화 수', stats.count.toLocaleString(), `평균 ${stats.avgTurns}턴`)}
+              {miniCard('미해결', stats.unresolved.toLocaleString(), '지식베이스 보강 대상', stats.unresolved ? 'var(--red)' : 'var(--green)')}
+              {miniCard('만족도', `👍${stats.up} / 👎${stats.down}`, '플레이그라운드 평가')}
+              {miniCard('누적 토큰', (stats.tin + stats.tout).toLocaleString(), `${stats.tin}↓ ${stats.tout}↑`)}
+              {miniCard('게시 봇', `${bots.filter(b => b.status === 'published').length} / ${bots.length}`, '게시 / 전체')}
+              {miniCard('지식 항목', kb.length.toLocaleString(), 'FAQ·문서')}
+            </div>
+
+            {/* 봇별 사용량·비용 랭킹 */}
+            <div style={{ background:'#fff', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'18px 20px', boxShadow:'var(--shadow)', marginBottom:22 }}>
+              <div style={{ fontSize:13.5, fontWeight:900, color:'var(--navy)', marginBottom:4 }}>🏆 봇별 사용량 · 비용</div>
+              <div style={{ fontSize:11, color:'var(--text-xs)', fontWeight:600, marginBottom:14 }}>가장 많이 쓰인 봇과 봇별 추정비용 ({periodLabel})</div>
+              {stats.botRows.length === 0 ? <div style={{ fontSize:12.5, color:'var(--text-sm)', padding:'16px 0' }}>아직 데이터가 없습니다. 플레이그라운드에서 봇과 대화하면 쌓입니다.</div>
+              : (
+                <div style={{ overflowX:'auto' }}>
+                  <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12.5 }}>
+                    <thead>
+                      <tr style={{ color:'var(--text-sm)', fontWeight:800, textAlign:'left', borderBottom:'1px solid var(--border)' }}>
+                        <th style={{ padding:'8px 6px' }}>봇</th>
+                        <th style={{ padding:'8px 6px' }}>대상</th>
+                        <th style={{ padding:'8px 6px', textAlign:'right' }}>대화수</th>
+                        <th style={{ padding:'8px 6px', textAlign:'right' }}>평균턴</th>
+                        <th style={{ padding:'8px 6px', textAlign:'right' }}>토큰</th>
+                        <th style={{ padding:'8px 6px', textAlign:'right' }}>추정비용</th>
+                        <th style={{ padding:'8px 6px', textAlign:'right' }}>만족</th>
+                        <th style={{ padding:'8px 6px', textAlign:'right' }}>미해결</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {stats.botRows.map((b, i) => {
+                        const a = AUDIENCES[b.audience] || AUDIENCES.internal;
+                        return (
+                          <tr key={i} style={{ borderBottom:'1px solid var(--border-s)' }}>
+                            <td style={{ padding:'9px 6px', fontWeight:800, color:'var(--navy)' }}>
+                              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                                <span style={{ flex:1, minWidth:90, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{b.name}</span>
+                                <div style={{ width:50, height:6, background:'var(--bg)', borderRadius:4, overflow:'hidden', flexShrink:0 }}>
+                                  <div style={{ width:`${(b.convos / maxConvos) * 100}%`, height:'100%', background:'linear-gradient(90deg, var(--or), var(--or-d))' }} />
+                                </div>
+                              </div>
+                            </td>
+                            <td style={{ padding:'9px 6px' }}><span style={{ fontSize:11, color:a.color }}>{a.icon} {isCustomer(b.audience) ? '고객' : '내부'}</span></td>
+                            <td style={{ padding:'9px 6px', textAlign:'right', fontWeight:800 }}>{b.convos}</td>
+                            <td style={{ padding:'9px 6px', textAlign:'right', color:'var(--text-md)' }}>{b.convos ? (b.turns / b.convos).toFixed(1) : 0}</td>
+                            <td style={{ padding:'9px 6px', textAlign:'right', color:'var(--text-sm)' }}>{(b.tin + b.tout).toLocaleString()}</td>
+                            <td style={{ padding:'9px 6px', textAlign:'right', fontWeight:800, color:'var(--or-d)' }}>₩{won(b.usd)}</td>
+                            <td style={{ padding:'9px 6px', textAlign:'right' }}>{b.up || b.down ? `👍${b.up} 👎${b.down}` : '-'}</td>
+                            <td style={{ padding:'9px 6px', textAlign:'right', color: b.unresolved ? 'var(--red)' : 'var(--text-xs)', fontWeight: b.unresolved ? 800 : 400 }}>{b.unresolved || '-'}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* 인기 질문 */}
             <div style={{ background:'#fff', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'18px 20px', boxShadow:'var(--shadow)' }}>
-              <div style={{ fontSize:13, fontWeight:900, color:'var(--navy)', marginBottom:14 }}>봇별 대화 수</div>
-              {Object.keys(stats.byBot).length === 0 ? <div style={{ fontSize:12.5, color:'var(--text-sm)' }}>데이터 없음</div>
-              : Object.entries(stats.byBot).sort((a,b) => b[1]-a[1]).map(([name, n]) => {
-                const max = Math.max(...Object.values(stats.byBot));
-                return (
-                  <div key={name} style={{ display:'flex', alignItems:'center', gap:12, marginBottom:8 }}>
-                    <div style={{ width:140, fontSize:12.5, fontWeight:700, color:'var(--text-md)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{name}</div>
-                    <div style={{ flex:1, height:18, background:'var(--bg)', borderRadius:6, overflow:'hidden' }}>
-                      <div style={{ width:`${(n/max)*100}%`, height:'100%', background:'linear-gradient(90deg, var(--or), var(--or-d))', borderRadius:6 }} />
+              <div style={{ fontSize:13.5, fontWeight:900, color:'var(--navy)', marginBottom:4 }}>💬 많이 한 질문 TOP {stats.topQuestions.length || ''}</div>
+              <div style={{ fontSize:11, color:'var(--text-xs)', fontWeight:600, marginBottom:14 }}>자주 묻는 주제 → 지식베이스/FAQ로 승격하면 봇이 정확해집니다 ({periodLabel})</div>
+              {stats.topQuestions.length === 0 ? <div style={{ fontSize:12.5, color:'var(--text-sm)', padding:'16px 0' }}>아직 질문 데이터가 없습니다.</div>
+              : stats.topQuestions.map((q, i) => (
+                <div key={i} style={{ display:'flex', alignItems:'center', gap:12, marginBottom:9 }}>
+                  <div style={{ width:22, fontSize:12, fontWeight:900, color:'var(--text-xs)', textAlign:'right' }}>{i + 1}</div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:12.5, fontWeight:700, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{q.q}</div>
+                    <div style={{ height:5, background:'var(--bg)', borderRadius:4, overflow:'hidden', marginTop:4 }}>
+                      <div style={{ width:`${(q.count / maxQ) * 100}%`, height:'100%', background:'linear-gradient(90deg, var(--navy), var(--blue))' }} />
                     </div>
-                    <div style={{ width:40, fontSize:12, fontWeight:800, color:'var(--navy)', textAlign:'right' }}>{n}</div>
                   </div>
-                );
-              })}
+                  <div style={{ display:'flex', gap:5, alignItems:'center', flexShrink:0 }}>
+                    {q.customer > 0 && <span title="고객" style={{ fontSize:10 }}>🛒{q.customer}</span>}
+                    {q.internal > 0 && <span title="내부" style={{ fontSize:10 }}>🧑‍💼{q.internal}</span>}
+                    <span style={{ fontSize:12, fontWeight:900, color:'var(--navy)', minWidth:24, textAlign:'right' }}>{q.count}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </>
         )}
@@ -1171,7 +1306,7 @@ function SettingsPage({ cfg, onSave, onToast }) {
 // ============================================================
 function App() {
   const [unlocked, setUnlocked] = useState(false);
-  const [active, setActive] = useState('studio');
+  const [active, setActive] = useState('dashboard');
   const [toast, setToast] = useState(null);
   const [cfg, setCfg] = useState(loadAiConfig);
   const [presetBotId, setPresetBotId] = useState(null);
@@ -1190,11 +1325,11 @@ function App() {
     <div style={{ display:'flex', minHeight:'100vh' }}>
       <Sidebar active={active} onNav={(id) => { setPresetBotId(null); setActive(id); }} onLogout={() => setUnlocked(false)} cfgValid={aiConfigValid(cfg)} />
       <main style={{ flex:1, minWidth:0, background:'var(--bg)' }}>
+        {active === 'dashboard' && <DashboardPage cfg={cfg} />}
         {active === 'studio' && <BotStudioPage onToast={setToast} onTest={goTest} />}
         {active === 'knowledge' && <KnowledgePage onToast={setToast} />}
         {active === 'playground' && <PlaygroundPage onToast={setToast} cfg={cfg} presetBotId={presetBotId} onNeedSettings={() => setActive('settings')} />}
         {active === 'logs' && <LogsPage onToast={setToast} />}
-        {active === 'analytics' && <AnalyticsPage cfg={cfg} />}
         {active === 'settings' && <SettingsPage cfg={cfg} onSave={saveCfg} onToast={setToast} />}
       </main>
       {toast && <Toast {...toast} onDone={() => setToast(null)} />}

@@ -39,7 +39,7 @@ export const skCur=(sk,projects)=>{
 //  · 운영(원 아님) 자동 → 자식 서브KPI 완료비율 합(= 환산 달성 단위), 자식 없으면 currentValue
 //  · 수동지정(manualOverride) → currentValue
 export const mkCur=(mk,subKPIs,projects)=>{
-  if(mk.unit==="원") return subKPIs.filter(s=>s.mainKPIId===mk.id&&!s.launchCount).reduce((a,s)=>a+skCur(s,projects),0);
+  if(mk.unit==="원") return subKPIs.filter(s=>s.mainKPIId===mk.id&&s.unit==="원").reduce((a,s)=>a+skCur(s,projects),0);   // 매출(원) = 원 단위 서브KPI만 합산(카운트형 섞임 방지 — 단위 오염 차단)
   if(!mk.manualOverride){ const subs=subKPIs.filter(s=>s.mainKPIId===mk.id&&!s.launchCount); if(subs.length){ const eq=subs.reduce((a,s)=>{const t=numF(s.targetValue); return a+(t>0?Math.min(1,skCur(s,projects)/t):0);},0); return Math.round(eq*10)/10; } }
   return numF(mk.currentValue);
 };

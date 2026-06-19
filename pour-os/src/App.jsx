@@ -3959,7 +3959,8 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
                       <div style={{marginTop:8,padding:11,borderRadius:12,border:"1.5px solid #BFDBFE",background:"#F5F9FF"}}>
                         <p style={{margin:"0 0 8px",fontSize:11,fontWeight:800,color:"#2563EB"}}>＋ 새 하위 KPI <span style={{fontWeight:600,color:"#9CA3AF"}}>· 카운트(건수)형 — 이 구간 100% 완료 시 +1</span></p>
                         <label style={lb}>상위 메인 KPI</label>
-                        <select value={newKpi.mainKPIId} onChange={e=>setNewKpi({...newKpi,mainKPIId:e.target.value})} style={{...fld,background:"#fff",WebkitAppearance:"none"}}>{D.mainKPIs.map(mk=><option key={mk.id} value={mk.id}>{mk.krKey} · {mk.title}{mk.unit==="원"?" (매출형·비권장)":""}</option>)}</select>
+                        <select value={newKpi.mainKPIId} onChange={e=>setNewKpi({...newKpi,mainKPIId:e.target.value})} style={{...fld,background:"#fff",WebkitAppearance:"none"}}>{D.mainKPIs.filter(mk=>mk.unit!=="원").map(mk=><option key={mk.id} value={mk.id}>{mk.krKey} · {mk.title}</option>)}</select>
+                        <p style={{margin:"5px 2px 0",fontSize:10,color:"#9CA3AF",lineHeight:1.4}}>※ 카운트형 KPI는 매출(원) 메인엔 연결할 수 없어요(매출 집계 오염 방지). 운영·건수형 메인에 연결됩니다.</p>
                         <label style={lb}>지표 이름</label>
                         <input value={newKpi.title} onChange={e=>setNewKpi({...newKpi,title:e.target.value})} placeholder="예: 신규 입점처 수" style={fld}/>
                         <label style={lb}>목표 (건)</label>

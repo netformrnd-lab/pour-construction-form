@@ -435,7 +435,7 @@ function openProductEdit(pid){
 }
 
 /* 상품 연결 / 가져오기 — 다중 소스 */
-const PRODUCT_SOURCES=[{key:'sourcing',label:'소싱앱'},{key:'products',label:'상품관리(8채널)'},{key:'manual',label:'직접 ID 연결'}];
+const PRODUCT_SOURCES=[{key:'csv',label:'엑셀/CSV 붙여넣기'},{key:'manual',label:'ID 직접 입력'},{key:'sourcing',label:'소싱앱'},{key:'products',label:'상품관리(8채널)'}];
 let importSrc='sourcing';
 /* products 컬렉션(상품관리) 문서 → 공통 형태로 매핑 (스키마 방어적) */
 function mapProductDoc(id,x){
@@ -453,29 +453,52 @@ async function fetchSource(src){
   return [];
 }
 function isLinked(src,pid){return state.products.some(p=>(p.sourceColl||'sourcing')===src&&(p.sourceId||p.id)===pid);}
-async function openImport(){importSrc='sourcing';renderImport();$('#overlay').classList.add('on');}
+async function openImport(){importSrc='csv';renderImport();$('#overlay').classList.add('on');}
 async function renderImport(){
   const segs=PRODUCT_SOURCES.map(s=>`<button data-src="${s.key}" class="${s.key===importSrc?'on':''}">${s.label}</button>`).join('');
   const head=`<h2>상품 연결 · 가져오기</h2><div class="sub">다른 페이지에서 관리하는 상품을 상품ID로 연결해 컨텐츠를 관리하세요.</div><div class="seg" id="imSeg">${segs}</div>`;
-  // 직접 ID 연결
+  // 엑셀/CSV 붙여넣기 (pour-crm 제품 마스터 일괄 가져오기)
+  if(importSrc==='csv'){
+    $('#sheet').innerHTML=head+`
+      <div class="sub" style="margin-bottom:10px">pour-crm 제품 마스터에서 <b>상품ID · 상품명 · 이미지URL</b> 열을 복사해 붙여넣으세요.<br>한 줄에 한 제품 · 콤마(,) 또는 탭 구분. 상품ID는 자사몰 상품번호로도 쓰여요.</div>
+      <div class="frow"><textarea id="csv_in" style="min-height:170px;font-family:ui-monospace,monospace;font-size:12.5px" placeholder="12345, 써밋페인트 플러스, https://...
+12346, 코트재(백색) 1.3kg
+12347, 코트재(회색) 5L"></textarea></div>
+      <div class="sub" id="csv_prev" style="margin-bottom:10px"></div>
+      <div class="sheet-act"><button class="btn ghost" id="im_cancel">취소</button><button class="btn or" id="csv_add">가져오기</button></div>`;
+    bindImSeg();$('#im_cancel').onclick=closeSheet;
+    const parse=()=>{
+      const rows=[];
+      ($('#csv_in').value||'').split(/\r?\n/).forEach(ln=>{
+        const cells=ln.split(/\t|,/).map(c=>c.trim());
+        const id=cells[0];if(!id)return;
+        if(/^(id|상품id|상품번호|product\s*id)$/i.test(id))return; // 헤더 skip
+        rows.push({id,name:cells[1]||id,thumb:cells[2]||''});
+      });
+      return rows;
+    };
+    $('#csv_in').oninput=()=>{const r=parse();const dup=r.filter(x=>isLinked('pour-crm',x.id)).length;$('#csv_prev').innerHTML=r.length?`인식 ${r.length}개${dup?` · 이미 연결됨 ${dup}개 제외`:''}`:'';};
+    $('#csv_add').onclick=()=>{
+      const rows=parse().filter(x=>!isLinked('pour-crm',x.id));
+      if(!rows.length){toast('가져올 새 상품이 없어요','amber');return;}
+      rows.forEach(x=>state.products.push({id:uid(),sourceColl:'pour-crm',sourceId:x.id,name:x.name,code:x.id,thumb:x.thumb,createdAt:new Date().toISOString()}));
+      closeSheet();save();toast(`${rows.length}개 상품 가져옴`,'green');
+    };
+    return;
+  }
+  // ID 직접 입력 (pour-crm 상품 1건 연결)
   if(importSrc==='manual'){
     $('#sheet').innerHTML=head+`
-      <div class="frow"><label>상품 ID</label><input id="im_id" placeholder="다른 페이지의 상품 문서 ID"></div>
-      <button class="btn ghost" id="im_lookup" style="margin-bottom:14px;width:100%">🔎 상품관리에서 정보 불러오기</button>
+      <div class="frow"><label>상품 ID <span style="color:var(--muted)">(pour-crm 상품 마스터의 ID 코드)</span></label><input id="im_id" placeholder="예) 12345"></div>
       <div class="frow"><label>상품명</label><input id="im_name" placeholder="상품명"></div>
       <div class="frow"><label>대표 이미지 URL <span style="color:var(--muted)">(선택)</span></label><input id="im_thumb" placeholder="https://..."></div>
       <div class="sheet-act"><button class="btn ghost" id="im_cancel">취소</button><button class="btn or" id="im_addone">상품 연결</button></div>`;
     bindImSeg();$('#im_cancel').onclick=closeSheet;
-    $('#im_lookup').onclick=async()=>{
-      const id=($('#im_id').value||'').trim();if(!id){toast('상품 ID를 입력하세요','red');return;}
-      try{const d=await FS.collection('products').doc(id).get();if(d.exists){const m=mapProductDoc(id,d.data());$('#im_name').value=m.name;$('#im_thumb').value=m.thumb;toast('상품 정보 불러옴','green');}else toast('해당 ID 상품 없음 — 직접 입력하세요','amber');}
-      catch(e){console.error('[products] 조회 실패:',e);toast('조회 실패','red');}
-    };
     $('#im_addone').onclick=()=>{
       const id=($('#im_id').value||'').trim(),name=($('#im_name').value||'').trim();
       if(!id||!name){toast('상품 ID와 상품명을 입력하세요','red');return;}
-      if(isLinked('products',id)){toast('이미 연결된 상품이에요','amber');return;}
-      state.products.push({id:uid(),sourceColl:'products',sourceId:id,name,code:id,thumb:($('#im_thumb').value||'').trim(),createdAt:new Date().toISOString()});
+      if(isLinked('pour-crm',id)){toast('이미 연결된 상품이에요','amber');return;}
+      state.products.push({id:uid(),sourceColl:'pour-crm',sourceId:id,name,code:id,thumb:($('#im_thumb').value||'').trim(),createdAt:new Date().toISOString()});
       closeSheet();save();toast('상품 연결됨','green');
     };
     return;

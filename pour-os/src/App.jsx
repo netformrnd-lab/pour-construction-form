@@ -2165,7 +2165,7 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup}){
 }
 // 프로젝트 프로세스 편집기 — 업무를 계층 트리로 편집(Enter/Space/◂▸), 저장 시 실제 task에 반영(parentId·seq)
 function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
-  const team=proj.projType?proj.projType==="team":(proj.collaboratorIds||[]).length>0;
+  const team=isTeamProj(D,proj);
   const MEM=[{id:"",name:"미배정",color:"#9CA3AF"},...(D.users||[])];
   const Mof=id=>MEM.find(m=>m.id===id)||MEM[0];
   const load=()=>{
@@ -2403,7 +2403,7 @@ function ManualCard({m,D,up,rm,startFromManual}){
   );
 }
 function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
-  const team=proj.projType?proj.projType==="team":(proj.collaboratorIds||[]).length>0;
+  const team=isTeamProj(D,proj);
   const srcMan=proj.sourceManualId&&(D.manuals||[]).find(m=>m.id===proj.sourceManualId);   // 역링크: 살아있는 로드맵 템플릿(있으면 갱신 가능)
   const srcGone=!srcMan&&proj.sourceManualName;   // 로드맵 템플릿이 삭제됐어도 박제된 이름으로 기록 유지
   const MEM=[{id:"",name:"미배정",color:"#9CA3AF"},...(D.users||[])];
@@ -2771,7 +2771,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
               const leaves=ts.filter(t=>!pIds.has(t.id));
               const done=leaves.filter(t=>t.status==="done").length;
               const prog=leaves.length?Math.round(done/leaves.length*100):0;
-              const team=p.projType?p.projType==="team":(p.collaboratorIds||[]).length>0;
+              const team=isTeamProj(D,p);
               const who=D.users.find(u=>u.id===p.assigneeId);
               return(
                 <button key={p.id} onClick={()=>setRoadmapProj(p)} style={{textAlign:"left",backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"13px 14px",cursor:"pointer",fontFamily:"inherit"}}>
@@ -3262,6 +3262,9 @@ function CalendarPage({D,cu,add,up,rm}){
 }
 // ───────────────────────── 출시 파이프라인 (템플릿 → SKU 프로젝트 자동 생성 + 인계) ─────────────────────────
 // 출시 단계 상태: done(완료) / ready(선행 끝나 내 차례) / wait(선행 대기)
+// 팀/개인 자동 판정 — 프로젝트에 실제로 관여한 사람(담당자+협업자+로드단계/업무 담당자) 수로 결정. projType 있으면 수동 우선.
+function projPeople(D,proj){const s=new Set();if(proj.assigneeId)s.add(proj.assigneeId);(proj.collaboratorIds||[]).forEach(i=>i&&s.add(i));(D.tasks||[]).forEach(t=>{if(t.projectId===proj.id&&!t.isFixed&&t.assigneeId)s.add(t.assigneeId);});return s;}
+function isTeamProj(D,proj){if(proj&&proj.projType)return proj.projType==="team";return projPeople(D,proj).size>=2;}
 const launchStageStatus=(task,allTasks)=>{
   if(!task) return "wait";
   if(task.status==="done") return "done";
@@ -3555,6 +3558,8 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
   const segRm=(id)=>{ up("launchTemplates",tpl.id,{segments:segments.filter(s=>s.id!==id)}); setSegSel(null); };
   const segToggleNode=(id,nid)=>{ const s=segments.find(x=>x.id===id); if(!s)return; const has=(s.nodeIds||[]).includes(nid); segPatch(id,{nodeIds:has?(s.nodeIds||[]).filter(x=>x!==nid):[...(s.nodeIds||[]),nid]}); };
   const [flowMode,setFlowMode]=useState("flow");   // 진행 탭 인스턴스 보기: flow(노드 캔버스) | list(목록)
+  const [newKpi,setNewKpi]=useState(null);   // 구간 패널에서 신규 하위KPI(카운트형) 인라인 생성: {seg,mainKPIId,title,target}
+  const createKpiAndLink=(seg)=>{ if(!newKpi||!newKpi.title.trim()||!newKpi.mainKPIId)return; const id="sk_c"+Date.now(); const order=(D.subKPIs.filter(k=>k.mainKPIId===newKpi.mainKPIId).reduce((m,k)=>Math.max(m,k.order||0),0))+1; add("subKPIs",{id,mainKPIId:newKpi.mainKPIId,title:newKpi.title.trim(),targetValue:numF(newKpi.target)||0,currentValue:0,unit:"건",order,channelCode:""}); segPatch(seg.id,{kpiId:id}); setNewKpi(null); };
   // 출시 인스턴스 → FlowView 노드/엣지. 템플릿 노드 좌표가 있으면 그 배치, 없으면 step 순 세로 자동배치.
   const instFlow=(p)=>{
     const ts=launchProjTasks(D,p);
@@ -3776,10 +3781,28 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
                       );})}
                     </div>
                     <label style={lb}>연결 KPI</label>
-                    <select value={s.kpiId||""} onChange={e=>segPatch(s.id,{kpiId:e.target.value})} style={{...fld,background:"#fff",WebkitAppearance:"none"}}>
-                      <option value="">선택</option>
-                      {countKPIs.map(k=>{const mk=D.mainKPIs.find(m=>m.id===k.mainKPIId);return <option key={k.id} value={k.id}>{k.title}{mk?` (${mk.krKey})`:""}</option>;})}
-                    </select>
+                    <div style={{display:"flex",gap:6,alignItems:"stretch"}}>
+                      <select value={s.kpiId||""} onChange={e=>segPatch(s.id,{kpiId:e.target.value})} style={{...fld,flex:1,minWidth:0,background:"#fff",WebkitAppearance:"none"}}>
+                        <option value="">선택</option>
+                        {countKPIs.map(k=>{const mk=D.mainKPIs.find(m=>m.id===k.mainKPIId);return <option key={k.id} value={k.id}>{k.title}{mk?` (${mk.krKey})`:""}</option>;})}
+                      </select>
+                      <button onClick={()=>setNewKpi(newKpi&&newKpi.seg===s.id?null:{seg:s.id,mainKPIId:(D.mainKPIs.find(m=>m.unit!=="원")||D.mainKPIs[0]||{}).id||"",title:"",target:""})} style={{flexShrink:0,padding:"0 12px",borderRadius:10,border:"1.5px dashed #FDBA74",background:"#FFFBF5",color:"#EA580C",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>＋ 새 KPI</button>
+                    </div>
+                    {newKpi&&newKpi.seg===s.id&&(
+                      <div style={{marginTop:8,padding:11,borderRadius:12,border:"1.5px solid #BFDBFE",background:"#F5F9FF"}}>
+                        <p style={{margin:"0 0 8px",fontSize:11,fontWeight:800,color:"#2563EB"}}>＋ 새 하위 KPI <span style={{fontWeight:600,color:"#9CA3AF"}}>· 카운트(건수)형 — 이 구간 100% 완료 시 +1</span></p>
+                        <label style={lb}>상위 메인 KPI</label>
+                        <select value={newKpi.mainKPIId} onChange={e=>setNewKpi({...newKpi,mainKPIId:e.target.value})} style={{...fld,background:"#fff",WebkitAppearance:"none"}}>{D.mainKPIs.map(mk=><option key={mk.id} value={mk.id}>{mk.krKey} · {mk.title}{mk.unit==="원"?" (매출형·비권장)":""}</option>)}</select>
+                        <label style={lb}>지표 이름</label>
+                        <input value={newKpi.title} onChange={e=>setNewKpi({...newKpi,title:e.target.value})} placeholder="예: 신규 입점처 수" style={fld}/>
+                        <label style={lb}>목표 (건)</label>
+                        <input value={newKpi.target} onChange={e=>setNewKpi({...newKpi,target:e.target.value.replace(/[^0-9]/g,"")})} inputMode="numeric" placeholder="예: 30" style={fld}/>
+                        <div style={{display:"flex",gap:7,marginTop:10}}>
+                          <button onClick={()=>setNewKpi(null)} style={{flex:"0 0 auto",padding:"9px 14px",borderRadius:10,border:"1.5px solid #E5E8EB",background:"#fff",color:"#6B7280",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>취소</button>
+                          <button onClick={()=>createKpiAndLink(s)} disabled={!newKpi.title.trim()||!newKpi.mainKPIId} style={{flex:1,padding:"9px 0",borderRadius:10,border:"none",background:(newKpi.title.trim()&&newKpi.mainKPIId)?"#2563EB":"#E5E8EB",color:(newKpi.title.trim()&&newKpi.mainKPIId)?"#fff":"#9CA3AF",fontSize:13,fontWeight:800,cursor:(newKpi.title.trim()&&newKpi.mainKPIId)?"pointer":"not-allowed",fontFamily:"inherit"}}>만들고 연결</button>
+                        </div>
+                      </div>
+                    )}
                     <label style={lb}>집계 방식</label>
                     <div style={{display:"flex",gap:7}}>
                       <button onClick={()=>segPatch(s.id,{mode:"count"})} style={{flex:1,padding:"9px 0",borderRadius:10,border:"none",background:(s.mode||"count")==="count"?"#0F1F5C":"#EEF0F2",color:(s.mode||"count")==="count"?"#fff":"#9CA3AF",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>완료 시 +1</button>

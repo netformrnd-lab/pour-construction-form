@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>구간 KPI 미리보기 — 프로세스 탭</title>
+<style>
+  *{box-sizing:border-box;font-family:'Pretendard',-apple-system,system-ui,sans-serif}
+  body{margin:0;background:#F1F3F5;padding:18px 0;color:#111827}
+  .phone{max-width:480px;margin:0 auto;background:#fff;border-radius:22px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.12)}
+  .pad{padding:16px}
+  .h{font-size:15px;font-weight:900;color:#0F1F5C}
+  .sub{font-size:11.5px;color:#9CA3AF;font-weight:600}
+  .mono{font-family:'IBM Plex Mono',monospace}
+  .canvas{position:relative;height:330px;background:
+    radial-gradient(circle, #E5E8EB 1px, transparent 1px) 0 0/18px 18px,#FBFCFD;
+    border:1px solid #EEF0F2;border-radius:16px;margin-top:10px;overflow:hidden}
+  .node{position:absolute;width:144px;height:56px;border-radius:13px;background:#fff;border:1.5px solid #E5E8EB;
+    box-shadow:0 4px 12px rgba(15,31,92,.06);padding:8px 10px;z-index:2}
+  .node .n{position:absolute;top:8px;left:9px;width:20px;height:20px;border-radius:50%;color:#fff;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center}
+  .node .t{margin-left:25px;font-size:11.5px;font-weight:800;line-height:1.25;color:#111827}
+  .node .who{margin-left:25px;font-size:9.5px;color:#9CA3AF;font-weight:700;margin-top:3px}
+  .seg{position:absolute;border-radius:14px;border:2px dashed #F97316;background:rgba(249,115,22,.06);z-index:1}
+  .seglb{position:absolute;top:-12px;left:14px;background:#fff;padding:1px 8px;border-radius:7px;border:1.5px solid #F97316;
+    font-size:10.5px;font-weight:800;color:#EA580C;white-space:nowrap}
+  .panel{margin-top:16px;border-radius:16px;border:1px solid #EEF0F2;background:#fff;padding:14px}
+  .chip{padding:6px 11px;border-radius:9px;font-size:12px;font-weight:800;cursor:pointer;border:1.5px solid #E5E8EB;background:#fff;color:#4B5563}
+  .chip.on{border-color:#F97316;background:#FFF7ED;color:#EA580C}
+  .chip.add{border:1.5px dashed #FDBA74;background:#FFFBF5;color:#EA580C}
+  .box{margin-top:10px;padding:12px;border-radius:14px;border:1.5px solid #FED7AA;background:#FFFBF5}
+  label{display:block;font-size:11px;font-weight:800;color:#6B7280;margin:12px 0 5px}
+  .fld{width:100%;padding:9px 11px;border-radius:10px;border:1.5px solid #E5E8EB;font-size:13px;background:#fff}
+  .ntog{padding:6px 10px;border-radius:8px;font-size:11.5px;font-weight:700;cursor:pointer;border:1.5px solid #E5E8EB;background:#fff;color:#6B7280}
+  .ntog.on{border-color:#F97316;background:#FFEDD5;color:#EA580C}
+  .mtog{flex:1;padding:9px 0;border-radius:10px;font-size:12.5px;font-weight:800;text-align:center;cursor:pointer}
+  .mtog.on{background:#0F1F5C;color:#fff;border:none}
+  .mtog.off{background:#fff;color:#CBD3DD;border:1.5px solid #E5E8EB;cursor:not-allowed}
+  .badge{margin-top:11px;display:flex;align-items:center;gap:7px;padding:9px 11px;border-radius:10px;background:#EAFBF1;border:1px solid #BBF7D0;font-size:11.5px;font-weight:800;color:#15803D}
+  .safe{margin-top:8px;padding:9px 11px;border-radius:10px;background:#F0FDF4;border:1px solid #DCFCE7;font-size:11px;color:#16653A;line-height:1.55}
+  .flex{display:flex;flex-wrap:wrap;gap:6px}
+</style></head>
+<body><div class="phone"><div class="pad">
+  <div class="h">🚀 탑코트재 출시 — 프로세스</div>
+  <div class="sub" style="margin-top:3px">로드단계를 잇고, 구간으로 묶어 KPI에 연결</div>
+
+  <!-- 캔버스 -->
+  <div class="canvas">
+    <!-- 구간 박스 (②③④ 감싸기) -->
+    <div class="seg" style="left:13px;top:74px;width:300px;height:210px;">
+      <span class="seglb">구간: 출시 준비 (②③④)</span>
+    </div>
+    <!-- 노드 -->
+    <div class="node" style="left:24px;top:14px;">
+      <span class="n" style="background:#F97316">1</span>
+      <div class="t">기획·컨셉 확정</div><div class="who">송희</div>
+    </div>
+    <div class="node" style="left:150px;top:96px;">
+      <span class="n" style="background:#2563EB">2</span>
+      <div class="t">제품 시험·인증</div><div class="who">란</div>
+    </div>
+    <div class="node" style="left:30px;top:168px;">
+      <span class="n" style="background:#7C3AED">3</span>
+      <div class="t">상세페이지 제작</div><div class="who">민지</div>
+    </div>
+    <div class="node" style="left:156px;top:236px;">
+      <span class="n" style="background:#059669">4</span>
+      <div class="t">채널 입점·등록</div><div class="who">채림</div>
+    </div>
+  </div>
+  <p style="margin:10px 2px 0;font-size:11px;color:#9CA3AF;line-height:1.6">● <b>노드를 탭</b>하면 그 자리에서 바로 편집 · <b>＋ 하위 단계</b>로 다음 단계를 잇습니다.</p>
+
+  <!-- 구간 설정 패널 -->
+  <div class="panel">
+    <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
+      <span style="font-size:13.5px;font-weight:900;color:#EA580C">📊 구간 KPI</span>
+      <span class="sub">로드단계를 묶어 카운트 KPI에 연결</span>
+    </div>
+    <div class="flex" style="margin:8px 0 4px">
+      <button class="chip on">출시 준비 · 3단계</button>
+      <button class="chip">상시운영 · 0단계</button>
+      <button class="chip add">＋ 구간 추가</button>
+    </div>
+
+    <div class="box">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:12.5px;font-weight:900;color:#9A3412">선택 구간 설정</span>
+        <button style="padding:4px 9px;border-radius:8px;border:1.5px solid #FFE2E5;background:#FFF0F1;color:#F04452;font-size:11px;font-weight:800;cursor:pointer">삭제</button>
+      </div>
+
+      <label style="margin-top:8px">구간 이름</label>
+      <input class="fld" value="출시 준비">
+
+      <label>포함 단계 · 탭해서 묶기 (3)</label>
+      <div class="flex">
+        <button class="ntog">① 기획·컨셉 확정</button>
+        <button class="ntog on">② 제품 시험·인증</button>
+        <button class="ntog on">③ 상세페이지 제작</button>
+        <button class="ntog on">④ 채널 입점·등록</button>
+      </div>
+
+      <label>연결 KPI</label>
+      <select class="fld"><option>신규 SKU 출시 수 (메인3)</option></select>
+
+      <label>집계 방식</label>
+      <div style="display:flex;gap:7px">
+        <div class="mtog on">완료 시 +1</div>
+        <div class="mtog off">진척률 <span style="font-size:9px">(준비중)</span></div>
+      </div>
+
+      <label>언제 추출</label>
+      <div class="fld" style="color:#374151;font-weight:700">구간 100% — 묶은 단계가 모두 완료되면</div>
+
+      <div class="badge">📊 구간 100% → 신규 SKU 출시 수 +1</div>
+      <div class="safe">♡ <b>기존 KPI 안전</b> — 구간 KPI는 같은 파생 카운트로만 <b>+</b>됩니다. 매출 등 기존 집계는 한 줄도 안 건드려요(구간 없으면 결과 동일).</div>
+    </div>
+  </div>
+</div></div></body></html>

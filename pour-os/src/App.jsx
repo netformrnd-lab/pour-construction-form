@@ -3656,20 +3656,33 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
               }
               const tap=()=>{ if(connectMode){handleConnect(n);return;} setEditNode(n); };
               const handlers=isPC?{onPointerDown:e=>onNodeDown(e,n),onPointerMove:onNodeMove,onPointerUp:e=>onNodeUp(e,n)}:{onClick:tap};   // 모바일=탭 편집, PC=드래그+탭
-              return(
-                <div key={n.id} {...handlers}
+              const acts=(n.auto&&Array.isArray(n.auto.onDone))?n.auto.onDone:[];
+              const hasAuto=n.autoComplete||acts.length>0;
+              const aPill=(icon,text,fg,bg,bd,key)=>(<span key={key} style={{display:"inline-block",maxWidth:"100%",boxSizing:"border-box",padding:"2px 7px",borderRadius:7,fontSize:9.5,fontWeight:800,lineHeight:1.45,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",border:`1px solid ${bd}`,backgroundColor:bg,color:fg}}>{icon} {text}</span>);
+              return [
+                (<div key={n.id} {...handlers}
                   style={{position:"absolute",left:n.x,top:n.y,width:NODE_W,minHeight:NODE_H,boxSizing:"border-box",padding:"8px 10px",borderRadius:12,backgroundColor:"#FFFFFF",border:`2px solid ${sel?"#F97316":col+"55"}`,boxShadow:sel?"0 0 0 3px #F9731633":"0 2px 8px rgba(0,0,0,0.08)",cursor:connectMode?"pointer":(isPC?"grab":"pointer"),touchAction:isPC?"none":"manipulation",userSelect:"none",zIndex:sel?4:2}}>
                   <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4}}>
                     <span style={{flexShrink:0,width:18,height:18,borderRadius:"50%",backgroundColor:col,color:"#fff",fontSize:10,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{i+1}</span>
                     <span style={{fontSize:10,fontWeight:800,color:col,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.roleLabel||uName(n.assigneeId)}</span>
-                    {(n.autoComplete||(n.auto&&Array.isArray(n.auto.onDone)&&n.auto.onDone.length>0))&&<span title="자동화" style={{marginLeft:"auto",flexShrink:0,fontSize:10,fontWeight:900,color:"#EA580C"}}>⚡</span>}
+                    {hasAuto&&<span title="자동화" style={{marginLeft:"auto",flexShrink:0,fontSize:10,fontWeight:900,color:"#EA580C"}}>⚡</span>}
                   </div>
                   <p style={{margin:0,fontSize:11.5,fontWeight:700,color:"#1F2937",lineHeight:1.3}}>{n.title}</p>
-                </div>
-              );
+                </div>),
+                hasAuto&&(<div key={n.id+"_a"} style={{position:"absolute",left:n.x+11,top:n.y+NODE_H+6,width:NODE_W-12,zIndex:1,pointerEvents:"none",display:"flex",flexDirection:"column",gap:3,alignItems:"flex-start"}}>
+                  <div style={{position:"absolute",left:NODE_W/2-12,top:-6,height:6,borderLeft:"1.5px dashed #FDBA74"}}/>
+                  {acts.length>0&&aPill("⏱","이 단계 완료 시","#EA580C","#FFF7ED","#FED7AA")}
+                  {acts.map((a,k)=>a.kind==="advance"
+                    ? aPill("⏭","다음 단계로 진행","#6B7280","#F3F4F6","#E5E8EB",k)
+                    : a.kind==="notify"
+                      ? aPill("🔔",(a.title||"알림"),"#B45309","#FFFBEB","#FDE68A",k)
+                      : aPill("📋",(a.title||"업무")+(a.assigneeId?` · ${uName(a.assigneeId)}`:""),"#2563EB","#EFF6FF","#BFDBFE",k))}
+                  {n.autoComplete&&aPill("🤖","자동 완료 단계","#6D28D9","#F5F3FF","#EDE9FE")}
+                </div>)
+              ];
             })}
           </div>
-          <p style={{margin:"10px 2px 0",fontSize:11,color:"#9CA3AF",lineHeight:1.6}}>● <b>노드를 탭</b>하면 그 자리에서 바로 편집&nbsp;·&nbsp;편집 카드의 <b>＋ 하위 단계</b>로 다음 단계를 잇습니다{isPC?<>&nbsp;·&nbsp;PC에선 드래그로 위치 정리·<b>선 연결</b></>:null}.</p>
+          <p style={{margin:"10px 2px 0",fontSize:11,color:"#9CA3AF",lineHeight:1.6}}>● <b>노드를 탭</b>하면 편집&nbsp;·&nbsp;<b>＋ 하위 단계</b>로 잇기&nbsp;·&nbsp;단계 아래 <b style={{color:"#EA580C"}}>⚡매달린 카드</b>는 완료 시 자동 실행될 트리거·액션{isPC?<>&nbsp;·&nbsp;PC 드래그로 정리·<b>선 연결</b></>:null}.</p>
 
           {/* ── 구간 KPI 설정 패널 (시안 v0.8 우측 카드) — 로드단계 묶음 → 카운트 KPI 연결 ── */}
           <div style={{marginTop:16,borderRadius:16,border:"1px solid #EEF0F2",background:"#fff",padding:14}}>

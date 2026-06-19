@@ -21,6 +21,10 @@
   .seg{position:absolute;border-radius:14px;border:2px dashed #F97316;background:rgba(249,115,22,.06);z-index:1}
   .seglb{position:absolute;top:-12px;left:14px;background:#fff;padding:1px 8px;border-radius:7px;border:1.5px solid #F97316;
     font-size:10.5px;font-weight:800;color:#EA580C;white-space:nowrap}
+  .hang{position:absolute;z-index:1;display:flex;flex-direction:column;gap:3px;align-items:flex-start}
+  .hang .conn{position:absolute;top:-6px;height:6px;border-left:1.5px dashed #FDBA74}
+  .apill{box-sizing:border-box;max-width:100%;padding:2px 7px;border-radius:7px;font-size:9.5px;font-weight:800;line-height:1.45;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .panel{margin-top:16px;border-radius:16px;border:1px solid #EEF0F2;background:#fff;padding:14px}
   .chip{padding:6px 11px;border-radius:9px;font-size:12px;font-weight:800;cursor:pointer;border:1.5px solid #E5E8EB;background:#fff;color:#4B5563}
   .chip.on{border-color:#F97316;background:#FFF7ED;color:#EA580C}
@@ -50,11 +54,24 @@
     <!-- 노드 -->
     <div class="node" style="left:24px;top:14px;">
       <span class="n" style="background:#F97316">1</span>
-      <div class="t">기획·컨셉 확정</div><div class="who">송희</div>
+      <div class="t">기획·컨셉 확정</div><div class="who">송희 ⚡</div>
+    </div>
+    <!-- 노드1 매달린 트리거·액션 -->
+    <div class="hang" style="left:35px;top:76px;width:132px">
+      <div class="conn" style="left:60px"></div>
+      <span class="apill" style="background:#FFF7ED;color:#EA580C;border:1px solid #FED7AA">⏱ 이 단계 완료 시</span>
+      <span class="apill" style="background:#EFF6FF;color:#2563EB;border:1px solid #BFDBFE">📋 원가·마진표 검수 · 송희</span>
     </div>
     <div class="node" style="left:150px;top:96px;">
       <span class="n" style="background:#2563EB">2</span>
-      <div class="t">제품 시험·인증</div><div class="who">란</div>
+      <div class="t">제품 시험·인증</div><div class="who">란 ⚡</div>
+    </div>
+    <!-- 노드2 매달린 액션 -->
+    <div class="hang" style="left:161px;top:158px;width:132px">
+      <div class="conn" style="left:60px"></div>
+      <span class="apill" style="background:#FFF7ED;color:#EA580C;border:1px solid #FED7AA">⏱ 이 단계 완료 시</span>
+      <span class="apill" style="background:#FFFBEB;color:#B45309;border:1px solid #FDE68A">🔔 인증서 수령 알림</span>
+      <span class="apill" style="background:#F5F3FF;color:#6D28D9;border:1px solid #EDE9FE">🤖 자동 완료 단계</span>
     </div>
     <div class="node" style="left:30px;top:168px;">
       <span class="n" style="background:#7C3AED">3</span>

@@ -33,6 +33,7 @@ eq("skCur 매출(원) 합계",      skCur(skSales,projects), 5000000);
 eq("skCur 운영(%) 평균",       skCur(skOps,projects),   60);          // (40+80)/2
 eq("skCur 카운트(누적5+완료1)", skCur(skCnt,projects),   6);
 eq("skCur 출시집계(완료1)",     skCur(skLaunch,projects),1);
+eq("skCur 출시집계+구간(완료1+구간2)", skCur(skLaunch,[...projects,{id:"pz",segDoneByKpi:{sk_l:2}}]),3);   // 구간 연결 시 가산, 무연결이면 위 케이스대로 불변
 eq("skCur 수동지정",           skCur(skManual,projects),777);
 eq("numF 방탄",                [numF("abc"),numF(Infinity),numF("12")], [0,0,12]);
 

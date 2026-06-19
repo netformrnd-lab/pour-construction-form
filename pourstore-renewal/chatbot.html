@@ -979,6 +979,16 @@ const AUDIENCES = {
 };
 const AUDIENCE_KEYS = Object.keys(AUDIENCES);
 
+// 송출 채널 / 노출 위치 — 이 봇이 어디에 어떻게 노출되는지 (확정 구조)
+const DEPLOY_TARGETS = {
+  'internal-center': { label: '챗봇센터(내부)', icon: '🏢', where: '챗봇센터 → 플레이그라운드', how: '팀원이 로그인해서 직접 사용', status: '운영중', statusColor: 'var(--green)', statusBg: 'var(--green-l)', statusBorder: 'var(--green-m)' },
+  'channeltalk':     { label: '채널톡 브리지', icon: '💬', where: 'Cafe24 자사몰 채널톡 위젯', how: '채널톡 Webhook → 워커 → Claude → 회신 (못 풀면 상담원 전환)', status: '예정(3차)', statusColor: 'var(--amber)', statusBg: 'var(--amber-l)', statusBorder: 'var(--amber-m)' },
+  'site-widget':     { label: '자사몰 임베드 위젯', icon: '🔍', where: 'Cafe24 자사몰 페이지·퀵배너', how: 'chat-widget.html 스크립트/iframe 삽입', status: '예정(3차)', statusColor: 'var(--amber)', statusBg: 'var(--amber-l)', statusBorder: 'var(--amber-m)' },
+};
+const DEPLOY_KEYS = Object.keys(DEPLOY_TARGETS);
+const DEPLOY_DEFAULT = { internal: 'internal-center', b2c: 'channeltalk', b2b: 'channeltalk', store: 'channeltalk' };
+function botDeploy(bot) { return DEPLOY_TARGETS[bot.deploy || DEPLOY_DEFAULT[bot.audience] || 'internal-center']; }
+
 // Claude 모델 (2026 현행) — 무료한도 단계에선 haiku 권장
 const MODELS = [
   { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5 — 저렴·빠름 (권장)', priceIn: 1.0, priceOut: 5.0 },
@@ -1313,6 +1323,7 @@ function emptyBot(audience = 'internal') {
     greeting: GREETING_SEED[audience],
     quickReplies: [...QUICKREPLY_SEED[audience]],
     model: DEFAULT_MODEL, maxTokens: 1024,
+    deploy: DEPLOY_DEFAULT[audience] || 'internal-center',
     status: 'draft',
   };
 }
@@ -1392,6 +1403,16 @@ function BotStudioPage({ onToast, onTest }) {
                   </button>
                 </div>
                 <div style={{ fontSize:12, color:'var(--text-sm)', lineHeight:1.5, height:54, overflow:'hidden', marginBottom:12 }}>{bot.systemPrompt}</div>
+                {(() => { const d = botDeploy(bot); return (
+                  <div style={{ background:'var(--bg)', border:'1px solid var(--border-s)', borderRadius:8, padding:'9px 11px', marginBottom:12 }}>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:6, marginBottom:4 }}>
+                      <span style={{ fontSize:11.5, fontWeight:900, color:'var(--navy)' }}>📡 송출: {d.icon} {d.label}</span>
+                      <span style={{ fontSize:9.5, fontWeight:800, color:d.statusColor, background:d.statusBg, border:`1px solid ${d.statusBorder}`, padding:'1px 6px', borderRadius:5, whiteSpace:'nowrap' }}>{d.status}</span>
+                    </div>
+                    <div style={{ fontSize:10.5, color:'var(--text-sm)', fontWeight:700, lineHeight:1.5 }}>📍 {d.where}</div>
+                    <div style={{ fontSize:10, color:'var(--text-xs)', fontWeight:600, lineHeight:1.5, marginTop:2 }}>⚙️ {d.how}</div>
+                  </div>
+                ); })()}
                 <div style={{ display:'flex', gap:6, fontSize:10.5, color:'var(--text-xs)', fontWeight:700, marginBottom:14, flexWrap:'wrap' }}>
                   <span style={{ background:'var(--bg)', padding:'2px 7px', borderRadius:5 }}>{modelMeta(bot.model).label.split(' —')[0]}</span>
                   <span style={{ background:'var(--bg)', padding:'2px 7px', borderRadius:5 }}>가드레일 {(bot.guardrails||[]).length}</span>
@@ -1416,8 +1437,9 @@ function BotEditModal({ bot, onClose, onSave }) {
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
   const applyAudienceSeed = (aud) => {
     if (!confirm('이 대상의 기본 페르소나·가드레일·인사말로 초기화할까요? (현재 입력 내용 덮어씀)')) return;
-    setF(p => ({ ...p, audience: aud, systemPrompt: PERSONA_SEED[aud], guardrails: [...GUARDRAIL_SEED[aud]], greeting: GREETING_SEED[aud], quickReplies: [...QUICKREPLY_SEED[aud]] }));
+    setF(p => ({ ...p, audience: aud, deploy: DEPLOY_DEFAULT[aud] || 'internal-center', systemPrompt: PERSONA_SEED[aud], guardrails: [...GUARDRAIL_SEED[aud]], greeting: GREETING_SEED[aud], quickReplies: [...QUICKREPLY_SEED[aud]] }));
   };
+  const dep = DEPLOY_TARGETS[f.deploy || DEPLOY_DEFAULT[f.audience] || 'internal-center'];
   return (
     <Modal open onClose={onClose} title={bot.id ? '봇 편집' : '새 봇 만들기'} width={760}>
       <div style={{ display:'grid', gap:16 }}>
@@ -1432,6 +1454,18 @@ function BotEditModal({ bot, onClose, onSave }) {
               {AUDIENCE_KEYS.map(a => <option key={a} value={a}>{AUDIENCES[a].icon} {AUDIENCES[a].label}</option>)}
             </select>
           </div>
+        </div>
+        <div>
+          <label style={labelSty}>📡 송출 채널 / 노출 위치 — 이 봇이 어디에 어떻게 노출되나</label>
+          <select style={inputSty} value={f.deploy || DEPLOY_DEFAULT[f.audience] || 'internal-center'} onChange={e => set('deploy', e.target.value)}>
+            {DEPLOY_KEYS.map(k => <option key={k} value={k}>{DEPLOY_TARGETS[k].icon} {DEPLOY_TARGETS[k].label} — {DEPLOY_TARGETS[k].status}</option>)}
+          </select>
+          {dep && (
+            <div style={{ marginTop:8, background:'var(--bg)', border:'1px solid var(--border-s)', borderRadius:8, padding:'10px 12px', fontSize:11.5, lineHeight:1.6, color:'var(--text-md)' }}>
+              📍 <b>노출 위치</b>: {dep.where}<br/>
+              ⚙️ <b>송출 방식</b>: {dep.how}
+            </div>
+          )}
         </div>
         <div>
           <label style={labelSty}>페르소나 (시스템 프롬프트)</label>

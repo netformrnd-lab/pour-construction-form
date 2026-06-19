@@ -153,6 +153,10 @@
   .thumb{position:relative;width:74px;height:74px;border-radius:10px;overflow:hidden;border:1px solid var(--border2)}
   .thumb img{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in}
   .thumb .rm{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center}
+  .thumb.isthumb{border:2px solid var(--or)}
+  .thumb .star{position:absolute;bottom:3px;left:3px;width:21px;height:21px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:12px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .thumb .star.on{background:var(--or)}
+  .thumb .repbadge{position:absolute;top:3px;left:3px;background:var(--or);color:#fff;font-size:8.5px;font-weight:800;padding:1px 5px;border-radius:6px;pointer-events:none}
   .tthumbs .thumb{width:58px;height:58px}
   .lb{position:fixed;inset:0;background:rgba(0,0,0,.86);display:none;align-items:center;justify-content:center;z-index:60;padding:20px;cursor:zoom-out}
   .lb.on{display:flex}
@@ -361,7 +365,8 @@
   .jc-thumb .jc-selbox{position:absolute;top:7px;right:7px}
   .jc-body{padding:11px 12px 12px;display:flex;flex-direction:column;flex:1}
   .jc-top{display:flex;align-items:center;gap:6px;margin-bottom:7px}
-  .jc-name{font-size:12.5px;font-weight:800;letter-spacing:-.01em;color:var(--ink);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+  .jc-name{font-size:13.5px;font-weight:800;letter-spacing:-.01em;color:var(--ink);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+  .jc-goods{font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
   .jc-maker{font-size:11px;color:var(--muted);font-weight:600;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .jc-foot{margin-top:auto;padding-top:9px;display:flex;align-items:center;gap:6px}
   .jc-stagechip{font-size:11px;font-weight:800;padding:3px 8px;border-radius:7px;background:var(--surface);color:var(--ink2)}
@@ -381,7 +386,8 @@
   .lr-bar{flex:0 0 auto;width:4px;height:32px;border-radius:3px;background:var(--border2)}
   .lr-bar.s1{background:var(--blue)} .lr-bar.s2{background:var(--green)}
   .lr-main{flex:1;min-width:0}
-  .lr-name{font-size:14px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lr-name{font-size:14px;font-weight:800;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lr-goods{font-size:12.5px;font-weight:600;color:var(--muted);margin-left:5px}
   .lr-sub{font-size:11.5px;color:var(--muted);font-weight:600;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .lr-stage{flex:0 0 auto;font-size:11px;font-weight:700;color:var(--ink2)}
   .lr-status{flex:0 0 auto;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:7px}
@@ -1227,7 +1233,7 @@ function normalizeState(){
   if(!state.adminSub)state.adminSub='makers';
   if(!state.meetings)state.meetings=[];
   if(!state.activity)state.activity=[];
-  state.products.forEach(p=>{if(!p.tests)p.tests=[];if(!p.certs)p.certs=[];if(!p.fill)p.fill=[];if(!p.docs)p.docs=[];if(!p.attachments)p.attachments=[];if(!p.notes)p.notes=[];if(p.fav===undefined)p.fav=false;if(!p.type)p.type='단품';if(p.concept===undefined)p.concept='';if(p.spec===undefined)p.spec='';if(!p.sample)p.sample='대기';if(p.memo===undefined)p.memo='';if(p.goods===undefined)p.goods='';if(!p.history)p.history=[];if(!p.bundle)p.bundle=[];if(p.baseId===undefined)p.baseId='';if(p.stage==='완료')p.stage='출시완료';if(p.pricing&&Array.isArray(p.pricing.colors))p.pricing.colors=p.pricing.colors.map(c=>typeof c==='string'?{name:c,moq:0}:{name:(c&&c.name)||'',moq:Number(c&&c.moq)||0}).filter(c=>c.name);(p.tests||[]).forEach(t=>{if(!t.photos)t.photos=[];});if(p.maker&&!state.makers.includes(p.maker))state.makers.push(p.maker);});
+  state.products.forEach(p=>{if(!p.tests)p.tests=[];if(!p.certs)p.certs=[];if(!p.fill)p.fill=[];if(!p.docs)p.docs=[];if(!p.attachments)p.attachments=[];if(!p.notes)p.notes=[];if(p.fav===undefined)p.fav=false;if(!p.type)p.type='단품';if(p.concept===undefined)p.concept='';if(p.spec===undefined)p.spec='';if(!p.sample)p.sample='대기';if(p.memo===undefined)p.memo='';if(p.goods===undefined)p.goods='';if(!p.history)p.history=[];if(!p.bundle)p.bundle=[];if(p.baseId===undefined)p.baseId='';if(p.thumbId===undefined)p.thumbId='';if(p.stage==='완료')p.stage='출시완료';if(p.pricing&&Array.isArray(p.pricing.colors))p.pricing.colors=p.pricing.colors.map(c=>typeof c==='string'?{name:c,moq:0}:{name:(c&&c.name)||'',moq:Number(c&&c.moq)||0}).filter(c=>c.name);(p.tests||[]).forEach(t=>{if(!t.photos)t.photos=[];});if(p.maker&&!state.makers.includes(p.maker))state.makers.push(p.maker);});
   state.makers.sort((a,b)=>a.localeCompare(b,'ko'));
 }
 normalizeState();
@@ -1411,10 +1417,17 @@ function flagsHTML(p){
   </div>`;
 }
 const THUMB_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22" x2="12" y2="12"></line></svg>';
-function prodThumb(p){
+function prodThumb(p,_seen){
+  if(!p)return '';
+  // ① 대표 이미지로 지정한 첨부
+  if(p.thumbId){const t=(p.attachments||[]).find(x=>x.id===p.thumbId&&x.kind==='image'&&(x.url||x.data));if(t)return t.url||t.data;}
+  // ② 첫 이미지 첨부
   const a=(p.attachments||[]).find(x=>x.kind==='image'&&(x.url||x.data));
   if(a)return a.url||a.data;
+  // ③ 테스트 사진
   for(const t of (p.tests||[])){const ph=(t.photos||[]).find(x=>x&&x.kind!=='video'&&(x.url||x.data));if(ph)return ph.url||ph.data;}
+  // ④ 파생/세트면 원본 썸네일 승계
+  if(p.baseId&&!(_seen&&_seen.has(p.id))){const seen=_seen||new Set();seen.add(p.id);const base=state.products.find(x=>x.id===p.baseId);if(base)return prodThumb(base,seen);}
   return '';
 }
 function jcardEl(p){
@@ -1428,7 +1441,8 @@ function jcardEl(p){
   card.innerHTML=`<div class="jc-thumb">${th?`<img src="${th}" alt="">`:THUMB_SVG}${selectMode?`<span class="selbox jc-selbox${sel?' on':''}">${sel?'✓':''}</span>`:''}</div>
     <div class="jc-body">
       <div class="jc-top"><span class="tybadge ${p.type||'단품'}">${p.type||'단품'}</span><button class="jc-star${p.fav?' on':''}" data-fav="${p.id}" aria-label="즐겨찾기">★</button></div>
-      <div class="jc-name">${esc(dn(p))}</div>
+      <div class="jc-name">${esc(p.name||'')}</div>
+      ${p.goods?`<div class="jc-goods">${esc(p.goods)}</div>`:''}
       <div class="jc-maker">${p.maker?esc(p.maker):'제조사 미입력'}</div>
       <div class="jc-foot"><span class="jc-stagechip s${si}">${stat}·${esc(p.stage||'후보')}</span><small>${idx+1}/${STAGES.length}${priced?' · 판매가 ✓':''}</small></div>
     </div>`;
@@ -1451,7 +1465,7 @@ function lrowEl(p){
   const priced=!!(p.pricing&&p.pricing.sell);const th=prodThumb(p);
   const idx=STAGES.indexOf(p.stage||'후보');const stat=STATUS[si].replace(' ','');
   r.innerHTML=`${selectMode?`<span class="selbox${sel?' on':''}">${sel?'✓':''}</span>`:`<span class="lr-thumb">${th?`<img src="${th}" alt="">`:THUMB_SVG}</span>`}
-    <div class="lr-main"><div class="lr-name">${esc(dn(p))}</div><div class="lr-sub">${p.maker?esc(p.maker):'제조사 미입력'} · ${p.type||'단품'}</div>
+    <div class="lr-main"><div class="lr-name">${esc(p.name||'')}${p.goods?` <span class="lr-goods">${esc(p.goods)}</span>`:''}</div><div class="lr-sub">${p.maker?esc(p.maker):'제조사 미입력'} · ${p.type==='패키지'?'세트':p.type||'단품'}</div>
       <div class="lr-line s${si}">${stat}·${esc(p.stage||'후보')} <b>(${idx+1}/${STAGES.length})${priced?' · 판매가 ✓':''} · 테스트 ${p.tests.length}</b></div></div>
     <button class="lr-star${p.fav?' on':''}" data-fav="${p.id}" style="margin-left:0" aria-label="즐겨찾기">★</button>`;
   r.querySelector('.lr-star').onclick=e=>{e.stopPropagation();toggleFav(p.id);};
@@ -2109,7 +2123,14 @@ function removeAttachment(pid,aid){
   const p=state.products.find(x=>x.id===pid);if(!p)return;
   if(!confirm('이 자료를 목록에서 삭제할까요?'))return;
   p.attachments=p.attachments.filter(a=>a.id!==aid);
-  save();renderMain();
+  if(p.thumbId===aid)p.thumbId='';
+  save();renderMain();renderList();
+}
+// 카드 대표 이미지 지정/해제(토글)
+function setThumb(pid,aid){
+  const p=state.products.find(x=>x.id===pid);if(!p)return;
+  p.thumbId=(p.thumbId===aid)?'':aid;
+  save();renderMain();renderList();
 }
 function openAtt(att){
   const src=att.url||att.data;if(!src&&att.kind!=='link')return;
@@ -2152,14 +2173,17 @@ function wireOverviewAttach(p){
   // 썸네일(이미지·PDF·파일)
   const tw=$('#ov_thumbs');
   const files=(p.attachments||[]).filter(a=>a.kind!=='link');
+  const firstImg=(p.attachments||[]).find(x=>x.kind==='image'&&(x.url||x.data));
+  const repId=(p.thumbId&&files.some(x=>x.id===p.thumbId&&x.kind==='image'))?p.thumbId:(firstImg?firstImg.id:'');
   tw.innerHTML=files.map(a=>{
-    if(a.kind==='image')return `<div class="thumb" data-aid="${a.id}"><img src="${a.url||a.data}"><button type="button" class="rm" data-rm="${a.id}">×</button></div>`;
+    if(a.kind==='image'){const rep=a.id===repId;return `<div class="thumb${rep?' isthumb':''}" data-aid="${a.id}"><img src="${a.url||a.data}">${rep?'<span class="repbadge">대표</span>':''}<button type="button" class="star${rep?' on':''}" data-thumb="${a.id}" title="카드 대표 이미지로 지정">★</button><button type="button" class="rm" data-rm="${a.id}">×</button></div>`;}
     return `<div class="thumb" data-aid="${a.id}" style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--cream);cursor:pointer" title="${esc(a.name||'')}"><span style="font-size:11px;font-weight:800;color:${a.kind==='pdf'?'var(--red)':'var(--ink2)'}">${ATT_ICON[a.kind]||'파일'}</span><span style="font-size:9px;color:var(--muted);max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:3px;padding:0 4px">${esc(a.name||'')}</span><button type="button" class="rm" data-rm="${a.id}">×</button></div>`;
   }).join('');
   tw.querySelectorAll('[data-aid]').forEach(el=>el.addEventListener('click',e=>{
-    if(e.target.closest('[data-rm]'))return;
+    if(e.target.closest('[data-rm]')||e.target.closest('[data-thumb]'))return;
     const a=p.attachments.find(x=>x.id===el.dataset.aid);if(a)openAtt(a);
   }));
+  tw.querySelectorAll('[data-thumb]').forEach(b=>b.onclick=e=>{e.stopPropagation();setThumb(p.id,b.dataset.thumb);});
   tw.querySelectorAll('[data-rm]').forEach(b=>b.onclick=e=>{e.stopPropagation();removeAttachment(p.id,b.dataset.rm);});
   // 링크 목록
   const lw=$('#ov_links');

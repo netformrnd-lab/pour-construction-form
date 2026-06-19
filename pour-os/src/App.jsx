@@ -3651,8 +3651,17 @@ function NodeEditForm({node,users,onSave,onDelete}){
         <label style={lbl}>무엇을(액션) <span style={{color:"#9CA3AF",fontWeight:600}}>· 완료되면 자동 생성할 업무</span></label>
         {f.onDone.map((a,i)=>(
           <div key={a.id||i} style={{display:"flex",gap:6,marginBottom:8,alignItems:"center"}}>
-            <input value={a.title} onChange={e=>upAction(i,{title:e.target.value})} placeholder="예: 민지 검수" style={{...inp,flex:1,padding:"10px 12px",fontSize:13}}/>
-            <select value={a.assigneeId||""} onChange={e=>upAction(i,{assigneeId:e.target.value})} style={{...inp,width:"auto",padding:"10px 10px",fontSize:13,backgroundColor:"#fff",WebkitAppearance:"none"}}><option value="">담당자</option>{users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>
+            <select value={a.kind||"createTask"} onChange={e=>upAction(i,{kind:e.target.value})} style={{...inp,width:"auto",flexShrink:0,padding:"10px 8px",fontSize:12,fontWeight:700,backgroundColor:"#fff",WebkitAppearance:"none"}}>
+              <option value="createTask">업무 생성</option>
+              <option value="notify">🔔 알림</option>
+              <option value="advance">⏭ 다음 단계로</option>
+            </select>
+            {a.kind==="advance"
+              ? <span style={{flex:1,fontSize:11.5,color:"#9CA3AF",fontWeight:600,paddingLeft:2}}>앞 단계 끝나면 다음 단계 자동 진행</span>
+              : <>
+                  <input value={a.title} onChange={e=>upAction(i,{title:e.target.value})} placeholder={a.kind==="notify"?"예: 승인 요청 알림":"예: 민지 검수"} style={{...inp,flex:1,minWidth:0,padding:"10px 12px",fontSize:13}}/>
+                  <select value={a.assigneeId||""} onChange={e=>upAction(i,{assigneeId:e.target.value})} style={{...inp,width:"auto",flexShrink:0,padding:"10px 10px",fontSize:13,backgroundColor:"#fff",WebkitAppearance:"none"}}><option value="">담당자</option>{users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>
+                </>}
             <button onClick={()=>rmAction(i)} style={{flexShrink:0,width:34,height:38,borderRadius:10,border:"1.5px solid #FFE2E5",backgroundColor:"#FFF0F1",color:"#F04452",fontSize:15,fontWeight:700,cursor:"pointer"}}>×</button>
           </div>
         ))}
@@ -3662,7 +3671,7 @@ function NodeEditForm({node,users,onSave,onDelete}){
 
       <div style={{display:"flex",gap:8}}>
         <button onClick={onDelete} style={{flex:"0 0 auto",padding:"13px 16px",borderRadius:12,border:"1.5px solid #FFE2E5",backgroundColor:"#FFF0F1",color:"#F04452",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
-        <Btn full variant="orange" onClick={()=>f.title.trim()&&onSave({title:f.title.trim(),roleLabel:f.roleLabel.trim(),assigneeId:f.assigneeId,autoComplete:f.autoComplete,auto:{onDone:f.onDone.filter(a=>(a.title||"").trim()).map(a=>({id:a.id,kind:"createTask",title:a.title.trim(),assigneeId:a.assigneeId||""}))}})} disabled={!f.title.trim()} style={{flex:1}}>저장</Btn>
+        <Btn full variant="orange" onClick={()=>f.title.trim()&&onSave({title:f.title.trim(),roleLabel:f.roleLabel.trim(),assigneeId:f.assigneeId,autoComplete:f.autoComplete,auto:{onDone:f.onDone.filter(a=>a.kind==="advance"||(a.title||"").trim()).map(a=>({id:a.id,kind:a.kind||"createTask",title:(a.title||"").trim(),assigneeId:a.assigneeId||""}))}})} disabled={!f.title.trim()} style={{flex:1}}>저장</Btn>
       </div>
     </div>
   );

@@ -1481,6 +1481,74 @@ function BotEditModal({ bot, onClose, onSave }) {
 // ============================================================
 // 2) 지식베이스
 // ============================================================
+// 댓글형 퀵 캡처 — 떠오를 때 한 줄 메모/Q&A를 즉시 지식으로 누적
+function QuickCapture({ onAdded, onToast }) {
+  const [mode, setMode] = useState('memo'); // memo | qa
+  const [text, setText] = useState('');
+  const [ans, setAns] = useState('');
+  const [tags, setTags] = useState('');
+  const [aud, setAud] = useState([]); // 빈 배열 = 전체
+  const [busy, setBusy] = useState(false);
+  const toggleAud = (a) => setAud(p => p.includes(a) ? p.filter(x => x !== a) : [...p, a]);
+
+  const submit = async () => {
+    const t = text.trim();
+    if (!t || busy) return;
+    if (mode === 'qa' && !ans.trim()) { onToast({ message: '답변도 입력하세요', type: 'error' }); return; }
+    setBusy(true);
+    try {
+      const entry = mode === 'qa'
+        ? { type: 'faq', q: t, a: ans.trim() }
+        : { type: 'doc', q: (t.length > 40 ? t.slice(0, 40) + '…' : t), a: t };
+      await db.collection(COLLECTIONS.KB).add({
+        ...entry,
+        tags: tags.split(',').map(s => s.trim()).filter(Boolean),
+        audience: aud, status: 'active', source: 'quick',
+        createdAt: nowIso(), updatedAt: nowIso(),
+      });
+      setText(''); setAns(''); setTags('');
+      onToast({ message: '지식 추가됨 👍', type: 'success' });
+      onAdded();
+    } catch (e) { onToast({ message: '추가 실패: ' + e.message, type: 'error' }); }
+    setBusy(false);
+  };
+
+  const tab = (id, label) => (
+    <button onClick={() => setMode(id)} style={{ padding:'5px 12px', borderRadius:7, fontSize:12, fontWeight:800,
+      background: mode === id ? 'var(--navy)' : 'transparent', color: mode === id ? '#fff' : 'var(--text-sm)' }}>{label}</button>
+  );
+
+  return (
+    <div style={{ background:'#fff', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'14px 16px', boxShadow:'var(--shadow)', marginBottom:16 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
+        <div style={{ fontSize:13, fontWeight:900, color:'var(--navy)' }}>⚡ 빠른 지식 추가</div>
+        <div style={{ display:'flex', gap:2, background:'var(--bg)', borderRadius:8, padding:2 }}>{tab('memo', '메모')}{tab('qa', 'Q&A')}</div>
+        <span style={{ fontSize:11, color:'var(--text-xs)', fontWeight:600 }}>떠오를 때 툭 남기면 봇이 바로 학습합니다</span>
+      </div>
+      {mode === 'qa' ? (
+        <div style={{ display:'grid', gap:8, marginBottom:10 }}>
+          <input style={inputSty} value={text} onChange={e => setText(e.target.value)} placeholder="질문 — 예: 반품 기한이 어떻게 되나요?" />
+          <textarea style={{ ...inputSty, minHeight:60, resize:'vertical' }} value={ans} onChange={e => setAns(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submit(); }} placeholder="답변 (Ctrl/⌘+Enter 전송)" />
+        </div>
+      ) : (
+        <textarea style={{ ...inputSty, minHeight:60, resize:'vertical', marginBottom:10 }} value={text} onChange={e => setText(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); } }}
+          placeholder="알아두면 좋은 사실·정책·노하우를 한 줄로 (Enter 전송, Shift+Enter 줄바꿈)" />
+      )}
+      <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+        <span style={{ fontSize:11, color:'var(--text-xs)', fontWeight:700 }}>대상:</span>
+        <button onClick={() => setAud([])} style={{ fontSize:11, fontWeight:800, padding:'4px 9px', borderRadius:6, border:`1px solid ${aud.length===0?'var(--navy)':'var(--border)'}`, background: aud.length===0?'var(--navy)':'var(--bg)', color: aud.length===0?'#fff':'var(--text-sm)' }}>전체</button>
+        {AUDIENCE_KEYS.map(a => (
+          <button key={a} onClick={() => toggleAud(a)} style={{ fontSize:11, fontWeight:800, padding:'4px 9px', borderRadius:6, border:`1px solid ${aud.includes(a)?AUDIENCES[a].border:'var(--border)'}`, background: aud.includes(a)?AUDIENCES[a].bg:'var(--bg)', color: aud.includes(a)?AUDIENCES[a].color:'var(--text-sm)' }}>{AUDIENCES[a].icon}</button>
+        ))}
+        <input style={{ ...inputSty, flex:1, minWidth:120, maxWidth:200, padding:'6px 10px' }} value={tags} onChange={e => setTags(e.target.value)} placeholder="태그 (쉼표, 선택)" />
+        <button onClick={submit} disabled={busy || !text.trim()} style={btnPrimary({ opacity: busy||!text.trim()?.5:1, padding:'8px 18px' })}>{busy ? '저장…' : '추가'}</button>
+      </div>
+    </div>
+  );
+}
+
 function KnowledgePage({ onToast }) {
   const { data: kb, loading, reload } = useCollection(COLLECTIONS.KB);
   const [editing, setEditing] = useState(null);
@@ -1555,7 +1623,10 @@ function KnowledgePage({ onToast }) {
           <button onClick={() => setImporting(true)} style={btnGhost()}>📥 매뉴얼 임포트</button>
           <button onClick={() => setEditing({ type:'faq', q:'', a:'', tags:[], audience:[], status:'active' })} style={btnPrimary()}>+ 지식 추가</button>
         </>} />
-      <div style={{ padding:'18px 32px', display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
+      <div style={{ padding:'18px 32px 0' }}>
+        <QuickCapture onAdded={reload} onToast={onToast} />
+      </div>
+      <div style={{ padding:'0 32px 0', display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
         <input style={{ ...inputSty, maxWidth:280 }} placeholder="🔍 검색 (질문·답변·태그)" value={q} onChange={e => setQ(e.target.value)} />
         <select style={{ ...inputSty, maxWidth:180 }} value={audFilter} onChange={e => setAudFilter(e.target.value)}>
           <option value="all">전체 대상</option>

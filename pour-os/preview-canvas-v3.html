@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>POUR OS — 로드맵·프로세스 단일 캔버스 시안 v0.3</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.min.css"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:Pretendard,sans-serif;}
+  body{background:#EEF1F5;color:#111827;padding:18px;}
+  .wrap{max-width:1180px;margin:0 auto;}
+  .titlebar{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+  .titlebar h1{font-size:16px;font-weight:900;color:#0F1F5C;}
+  .titlebar .v{font-size:10px;font-weight:800;color:#7C3AED;background:#EDE9FE;padding:2px 8px;border-radius:7px;}
+  .sub{font-size:11px;color:#6B7280;margin-bottom:12px;}
+  /* 헤더 바 */
+  .hdr{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#0F1F5C,#1a3a7a);color:#fff;border-radius:14px 14px 0 0;padding:12px 16px;}
+  .hdr .nm{font-size:14px;font-weight:900;}
+  .hdr .badge{font-size:10px;font-weight:800;background:#FFEDD5;color:#EA580C;border-radius:6px;padding:2px 8px;}
+  .hdr .meta{font-size:10px;opacity:.82;}
+  .hdr .sp{flex:1;}
+  .toolbtn{font-size:11.5px;font-weight:800;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;border-radius:9px;padding:7px 11px;cursor:pointer;}
+  .toolbtn.run{background:#F97316;border-color:#F97316;}
+  /* 본문: 캔버스 + 우측 패널 */
+  .body{display:flex;gap:0;background:#fff;border-radius:0 0 14px 14px;overflow:hidden;border:1px solid #E5E8EB;border-top:none;}
+  .canvas{position:relative;flex:1;height:560px;overflow:hidden;
+    background:#FAFBFC;background-image:radial-gradient(#E2E6EB 1px,transparent 1px);background-size:18px 18px;}
+  /* 노드 */
+  .node{position:absolute;width:170px;background:#fff;border-radius:13px;border:2px solid #E5E8EB;
+    box-shadow:0 3px 10px rgba(15,31,92,.08);padding:9px 11px;}
+  .node .roletag{position:absolute;top:-9px;left:11px;background:#EEF2FF;color:#4338CA;font-size:8.5px;font-weight:800;padding:1px 6px;border-radius:5px;}
+  .node .row{display:flex;align-items:center;gap:6px;}
+  .node .num{flex:none;width:20px;height:20px;border-radius:50%;color:#fff;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center;}
+  .node .ttl{flex:1;font-size:12px;font-weight:800;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .node .who{margin-top:3px;margin-left:26px;font-size:9.5px;font-weight:700;color:#9CA3AF;}
+  .node .auto{font-size:11px;font-weight:900;color:#EA580C;}
+  /* 핸들 */
+  .h{position:absolute;width:11px;height:11px;border-radius:50%;background:#fff;border:2px solid #CBD5E1;}
+  .h.in{top:-6px;left:50%;margin-left:-5px;}
+  .h.out{bottom:-7px;left:50%;margin-left:-7px;width:14px;height:14px;border-color:#F97316;cursor:crosshair;}
+  /* 상태색 */
+  .done{border-color:#00C073;background:#F0FBF5;} .done .num{background:#00C073;}
+  .prog{border-color:#3182F6;} .prog .num{background:#3182F6;}
+  .wait .num{background:#9CA3AF;}
+  .sel{border-color:#F97316;box-shadow:0 0 0 3px rgba(249,115,22,.18),0 8px 22px rgba(249,115,22,.22);}
+  /* 매달린 카드 */
+  .hang{position:absolute;width:158px;border-radius:11px;background:#fff;box-shadow:0 4px 12px rgba(15,31,92,.08);padding:7px 10px;}
+  .hang .k{font-size:9px;font-weight:900;margin-bottom:2px;}
+  .hang .m{font-size:10.5px;font-weight:700;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hang.act{border:1px solid #C7F0DA;} .hang.act .k{color:#059669;}
+  .hang.trg{border:1px solid #DBEAFE;} .hang.trg .k{color:#DC2626;}
+  /* 미니맵 */
+  .mini{position:absolute;left:12px;bottom:12px;width:150px;height:84px;background:rgba(255,255,255,.92);border:1px solid #E5E8EB;border-radius:10px;padding:8px;}
+  .mini .mn{position:absolute;border-radius:3px;background:#C7CFDB;}
+  .mini .vp{position:absolute;border:1.5px solid #F97316;border-radius:4px;}
+  /* 줌 */
+  .zoom{position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;gap:6px;align-items:flex-end;}
+  .zbtn{width:30px;height:30px;border-radius:9px;border:1px solid #E5E8EB;background:#fff;font-size:16px;font-weight:800;color:#374151;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.08);}
+  .zlabel{font-size:10px;font-weight:700;color:#8B95A1;background:rgba(255,255,255,.9);padding:2px 6px;border-radius:6px;}
+  /* 우측 패널 */
+  .panel{width:330px;flex:none;border-left:1px solid #EEF0F2;padding:14px;background:#fff;}
+  .panel .ph{display:flex;align-items:center;gap:7px;margin-bottom:4px;}
+  .panel .pttl{font-size:14px;font-weight:900;color:#0F1F5C;}
+  .panel .ptag{font-size:9.5px;font-weight:800;color:#EA580C;background:#FFEDD5;border-radius:6px;padding:2px 7px;}
+  .lb{font-size:11px;font-weight:800;color:#6B7280;margin:13px 0 6px;}
+  .seg{display:flex;background:#F2F4F6;border-radius:10px;padding:3px;}
+  .seg button{flex:1;border:none;border-radius:8px;padding:8px 0;font-size:12px;font-weight:800;cursor:pointer;background:transparent;color:#6B7280;}
+  .seg button.on{background:#fff;color:#0F1F5C;box-shadow:0 1px 4px rgba(0,0,0,.1);}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:800;border-radius:9px;padding:7px 11px;}
+  .chip.trg{background:#FFF7ED;border:1.5px solid #FED7AA;color:#EA580C;}
+  .actrow{display:flex;align-items:center;gap:8px;border:1px solid #EEF0F2;border-radius:10px;padding:9px 11px;margin-bottom:7px;background:#FBFCFE;}
+  .actrow .ic{width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;flex:none;}
+  .actrow .at{flex:1;font-size:12px;font-weight:700;color:#374151;}
+  .addact{width:100%;border:1.5px dashed #BFDBFE;background:#EFF6FF;color:#2563EB;border-radius:10px;padding:9px 0;font-size:12px;font-weight:800;cursor:pointer;}
+  .selbox{border:1px solid #E5E8EB;border-radius:10px;padding:10px 12px;font-size:13px;font-weight:700;color:#374151;background:#fff;}
+  .note{font-size:10px;color:#9CA3AF;line-height:1.5;margin-top:12px;}
+  .legend{display:flex;gap:12px;margin-top:12px;flex-wrap:wrap;font-size:11px;color:#6B7280;}
+  .legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:middle;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="titlebar"><h1>🧩 로드맵 = 자동화 캔버스</h1><span class="v">시안 v0.3 (미리보기)</span></div>
+  <p class="sub">프로젝트 메뉴 → 🧩 로드맵·프로세스 → 카드 열기 시 보일 “완전 편집형 단일 캔버스” 목업입니다. (실데이터 아님 · 동작 없음)</p>
+
+  <!-- 헤더 -->
+  <div class="hdr">
+    <span class="nm">🗺 탑코트재 SKU 9종 출시 · 로드맵</span>
+    <span class="badge">팀 · 자동판정</span>
+    <span class="meta">로드단계 4 · 담당자 인계</span>
+    <span class="sp"></span>
+    <button class="toolbtn">＋ 노드</button>
+    <button class="toolbtn">⌗ 정렬</button>
+    <button class="toolbtn run">▶ 테스트 실행</button>
+  </div>
+
+  <!-- 본문 -->
+  <div class="body">
+    <!-- 캔버스 -->
+    <div class="canvas">
+      <svg width="100%" height="560" style="position:absolute;inset:0;pointer-events:none;overflow:visible">
+        <defs>
+          <marker id="arr" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#F97316"/></marker>
+        </defs>
+        <!-- 로드단계 가로 흐름 -->
+        <path d="M 218 96 C 250 96, 258 96, 290 96" stroke="#F97316" stroke-width="2.5" fill="none" opacity=".62" marker-end="url(#arr)"/>
+        <path d="M 478 96 C 510 96, 518 96, 550 96" stroke="#94A3B8" stroke-width="2.5" fill="none" opacity=".62" marker-end="url(#arr)"/>
+        <path d="M 738 96 C 770 96, 778 96, 810 96" stroke="#94A3B8" stroke-width="2.5" fill="none" opacity=".62" marker-end="url(#arr)"/>
+        <!-- 매달린 액션/트리거 (점선) -->
+        <path d="M 385 124 C 385 170, 350 175, 350 205" stroke="#10B981" stroke-width="2" fill="none" stroke-dasharray="5 4" opacity=".8"/>
+        <path d="M 385 124 C 385 200, 520 210, 520 250" stroke="#10B981" stroke-width="2" fill="none" stroke-dasharray="5 4" opacity=".8"/>
+        <path d="M 160 330 C 200 330, 330 150, 360 124" stroke="#3B82F6" stroke-width="2" fill="none" stroke-dasharray="5 4" opacity=".75"/>
+      </svg>
+
+      <!-- 로드단계 노드 -->
+      <div class="node done" style="left:48px;top:72px;">
+        <span class="h in"></span>
+        <span class="roletag">로드단계</span>
+        <div class="row"><span class="num">✓</span><span class="ttl">기획·시안 확정</span></div>
+        <div class="who">송희</div>
+        <span class="h out" style="border-color:#00C073"></span>
+      </div>
+
+      <div class="node prog sel" style="left:300px;top:72px;">
+        <span class="h in"></span>
+        <span class="roletag">로드단계</span>
+        <div class="row"><span class="num">2</span><span class="ttl">상세페이지</span><span class="auto">⚡</span></div>
+        <div class="who">민지 · 진행중</div>
+        <span class="h out"></span>
+      </div>
+
+      <div class="node wait" style="left:560px;top:72px;">
+        <span class="h in"></span>
+        <span class="roletag">로드단계</span>
+        <div class="row"><span class="num">3</span><span class="ttl">접수·승인</span></div>
+        <div class="who">송희 · 대기</div>
+        <span class="h out"></span>
+      </div>
+
+      <div class="node wait" style="left:820px;top:72px;">
+        <span class="h in"></span>
+        <span class="roletag">로드단계</span>
+        <div class="row"><span class="num">4</span><span class="ttl">발주 세팅</span></div>
+        <div class="who">채림 · 대기</div>
+        <span class="h out"></span>
+      </div>
+
+      <!-- 매달린 액션/트리거 카드 -->
+      <div class="hang act" style="left:271px;top:206px;">
+        <div class="k">⚡ 액션</div><div class="m">🟢 사방넷 상품 자동 등록</div>
+      </div>
+      <div class="hang act" style="left:442px;top:250px;">
+        <div class="k">⚡ 액션</div><div class="m">🔔 민지에게 SMS 인계</div>
+      </div>
+      <div class="hang trg" style="left:60px;top:306px;">
+        <div class="k">⏰ 트리거</div><div class="m">매주 월 09:00 · 전역 규칙</div>
+      </div>
+
+      <!-- 미니맵 -->
+      <div class="mini">
+        <div class="mn" style="left:12px;top:24px;width:22px;height:9px;"></div>
+        <div class="mn" style="left:46px;top:24px;width:22px;height:9px;background:#3182F6;"></div>
+        <div class="mn" style="left:80px;top:24px;width:22px;height:9px;"></div>
+        <div class="mn" style="left:114px;top:24px;width:22px;height:9px;"></div>
+        <div class="mn" style="left:44px;top:44px;width:16px;height:7px;background:#A7F3D0;"></div>
+        <div class="vp" style="left:8px;top:16px;width:104px;height:44px;"></div>
+      </div>
+
+      <!-- 줌 -->
+      <div class="zoom">
+        <button class="zbtn">＋</button>
+        <button class="zbtn">－</button>
+        <button class="zbtn" style="font-size:13px">⤢</button>
+        <span class="zlabel">80% · 빈곳 드래그=이동 · ●드래그=연결</span>
+      </div>
+    </div>
+
+    <!-- 우측 노드 설정 패널 -->
+    <div class="panel">
+      <div class="ph"><span class="pttl">상세페이지</span><span class="ptag">선택 노드</span></div>
+      <p style="font-size:11px;color:#9CA3AF;font-weight:600;">로드단계 · 담당 민지</p>
+
+      <div class="lb">실행 방식</div>
+      <div class="seg"><button>🙋 직접</button><button class="on">🤖 자동</button></div>
+
+      <div class="lb">완료 트리거 (언제)</div>
+      <span class="chip trg">⏱ 앞 단계 완료 + 외부 등록 완료</span>
+
+      <div class="lb">완료 시 액션 (무엇을)</div>
+      <div class="actrow"><span class="ic" style="background:#E8FAF1;color:#059669">🟢</span><span class="at">사방넷 상품 등록</span><span style="color:#C4C9D0">⋮</span></div>
+      <div class="actrow"><span class="ic" style="background:#FFFBEB;color:#B45309">🔔</span><span class="at">민지에게 SMS</span><span style="color:#C4C9D0">⋮</span></div>
+      <button class="addact">＋ 액션 추가</button>
+
+      <div class="lb">담당자</div>
+      <div class="selbox">시스템(무인) · 실패 시 민지 ▾</div>
+
+      <div class="lb">KPI 추출 (이 단계 묶음 → 카운트)</div>
+      <div class="selbox">📊 ‘상세 완성’ 구간 100% → 신규 SKU 수 +1 ▾</div>
+
+      <div class="legend">
+        <span><i style="background:#00C073"></i>완료</span>
+        <span><i style="background:#3182F6"></i>진행</span>
+        <span><i style="background:#9CA3AF"></i>대기</span>
+        <span><i style="background:#10B981"></i>액션</span>
+        <span><i style="background:#3B82F6"></i>트리거</span>
+      </div>
+      <p class="note">※ 큰 노드 = 로드단계, 노드 아래 가지 = 프로세스(하위 업무) · 노드에 매달린 카드 = 완료 시 자동 실행될 트리거·액션. 개인/팀은 단계 담당자 분포로 자동 표시.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

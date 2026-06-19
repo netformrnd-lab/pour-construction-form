@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { STATE_DOC, colDoc, META_DOC, extDoc, extCol, getDoc, getDocs, onSnapshot, setDoc, uploadTaskPhoto, deleteTaskPhoto } from "./firebase.js";
+import { STATE_DOC, colDoc, META_DOC, LOCK_DOC, db, runTransaction, extDoc, extCol, getDoc, getDocs, onSnapshot, setDoc, uploadTaskPhoto, deleteTaskPhoto } from "./firebase.js";
 import { idbSaveMirror, idbLoadMirror, idbPushSnapshot, idbListSnapshots, idbGetSnapshot } from "./durable.js";
 import { numF, skCur, mkCur, calcSegDone } from "./kpi.js";
 import { applyAutomation, instantiateLaunch } from "./launch.js";
@@ -579,6 +579,7 @@ export default function App(){
   const [syncToast,setSyncToast]=useState(false);   // 다른 기기 변경 안내
   const [undo,setUndo]=useState(null);               // 삭제 직후 되돌리기 토스트
   const [saveErr,setSaveErr]=useState(null);        // {level:'warn'|'error', msg, bytes} | null — 저장 상태 가시화
+  const [saveWait,setSaveWait]=useState(null);      // 다른 기기 저장 중일 때 표시(이름) — best-effort 락 대기
   const lastColJsonRef=useRef({});    // {컬렉션:JSON} 마지막 동기화본 (에코·변경 판별)
   const loadedRef=useRef(false);
   const syncTimerRef=useRef(null);
@@ -668,7 +669,14 @@ export default function App(){
       const savable=changed.filter(([,,js])=>new Blob([js]).size<=DOC_LIMIT);
       if(over.length){ const [k,,js]=over[0]; const b=new Blob([js]).size; setSaveErr({level:"error",msg:`'${COL_LABEL[k]||k}' 데이터(${(b/1024).toFixed(0)}KB)가 한도(1024KB)를 넘어 이 항목만 저장이 막혔습니다(나머지는 정상 저장됨). 백업 후 정리 필요 — 이 기기엔 전부 보관됨.`,bytes:b}); }
       if(!savable.length) return;
-      // ④ 한도 내 컬렉션만 동시 저장 — 성공해야 동기화본 갱신(실패 시 다음 변경 때 자동 재시도)
+      // ④ 저장 잠금(best-effort) — 다른 기기가 저장 중이면 잠깐 대기 후 재시도. 단, 락은 저장을 '영구히' 막지 않음
+      //    (최대 ~5초 대기 후 그냥 진행 = 현행 마지막쓰기우선과 동일. 로컬·미러는 이미 위에서 저장됨 → 데이터 손실 없음).
+      const meId=D.currentUser||null, meName=(D.users.find(u=>u.id===D.currentUser)||{}).name||"";
+      const tryAcquire=async()=>{ try{ return await runTransaction(db,async(tx)=>{ const s=await tx.get(LOCK_DOC); const now=Date.now(); const d=s.exists()?s.data():null; const busy=d&&d.at&&(now-d.at)<8000&&d.holder&&d.holder!==meId; if(busy) return {ok:false,holder:d.name||"다른 기기"}; tx.set(LOCK_DOC,{holder:meId,name:meName,at:now}); return {ok:true,held:true}; }); }catch(_){ return {ok:true,held:false}; } };   // 락 오류=그냥 진행(저장 안 막음)
+      let lk=await tryAcquire(); let tries=0;
+      while(!lk.ok&&tries<4){ tries++; setSaveWait(lk.holder||"다른 기기"); await new Promise(r=>setTimeout(r,1200)); lk=await tryAcquire(); }   // 점유 중이면 대기 후 자동 재시도
+      setSaveWait(null);
+      // ⑤ 한도 내 컬렉션만 동시 저장 — 성공해야 동기화본 갱신(실패 시 다음 변경 때 자동 재시도)
       try{
         await Promise.all(savable.map(([k,arr])=>setDoc(colDoc(k),{items:arr,_updatedAt:Date.now()})));
         for(const [k,,js] of savable) lastColJsonRef.current[k]=js;
@@ -677,6 +685,7 @@ export default function App(){
         if(!over.length) setSaveErr(maxB>DOC_LIMIT*0.85?{level:"warn",msg:`일부 데이터가 한도의 ${Math.round(maxB/DOC_LIMIT*100)}%입니다 — 백업·정리 권장.`,bytes:maxB}:null);   // 초과 에러는 덮어쓰지 않음
       }catch(e){ console.error("[pour-os] 저장 실패:",e);
         setSaveErr({level:"error",msg:`저장 실패(${e.code||e.message}). 변경분은 이 기기에 임시 보관됨 — 새로고침 전에 '전체 백업(JSON)'으로 내려받으세요.`}); }
+      finally{ if(lk.held){ try{ await setDoc(LOCK_DOC,{holder:null,at:0}); }catch(_){} } }   // 내가 잡은 락만 해제
     },700);
     return ()=>clearTimeout(t);
   },[D,loaded]);
@@ -833,6 +842,8 @@ export default function App(){
   </>);
   const sheets=(<>
     {syncToast&&<div style={{position:"fixed",top:"calc(env(safe-area-inset-top,0px) + 12px)",left:"50%",transform:"translateX(-50%)",zIndex:5000,background:"#0F1F5C",color:"#fff",padding:"8px 16px",borderRadius:999,fontSize:12,fontWeight:700,boxShadow:"0 6px 20px rgba(0,0,0,0.25)",whiteSpace:"nowrap",pointerEvents:"none"}}>🔄 다른 기기에서 업데이트됨</div>}
+    {saveWait&&<div style={{position:"fixed",top:"calc(env(safe-area-inset-top,0px) + 12px)",left:"50%",transform:"translateX(-50%)",zIndex:5002,background:"#EA580C",color:"#fff",padding:"9px 16px",borderRadius:999,fontSize:12,fontWeight:800,boxShadow:"0 6px 20px rgba(0,0,0,0.25)",whiteSpace:"nowrap",pointerEvents:"none",display:"flex",alignItems:"center",gap:8}}><span style={{display:"inline-block",width:13,height:13,border:"2px solid rgba(255,255,255,0.4)",borderTopColor:"#fff",borderRadius:"50%",animation:"pourspin 0.7s linear infinite"}}/>{saveWait} 저장 중… 잠시 후 저장돼요</div>}
+    <style>{"@keyframes pourspin{to{transform:rotate(360deg)}}"}</style>
     {undo&&<div style={{position:"fixed",bottom:"calc(env(safe-area-inset-bottom,0px) + 80px)",left:"50%",transform:"translateX(-50%)",zIndex:5200,background:"#0F1F5C",color:"#fff",padding:"10px 12px 10px 16px",borderRadius:12,fontSize:12.5,fontWeight:700,boxShadow:"0 8px 26px rgba(0,0,0,0.3)",display:"flex",alignItems:"center",gap:14,whiteSpace:"nowrap",maxWidth:"calc(100% - 32px)"}}><span style={{overflow:"hidden",textOverflow:"ellipsis"}}>🗑 {undo.label}</span><button onClick={()=>{restore(undo.tid);setUndo(null);}} style={{flexShrink:0,background:"#F97316",color:"#fff",border:"none",borderRadius:8,padding:"6px 13px",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>되돌리기</button></div>}
     {saveErr&&<div style={{position:"fixed",top:"calc(env(safe-area-inset-top,0px) + 8px)",left:8,right:8,zIndex:5001,background:saveErr.level==="error"?"#FEF2F2":"#FFFBEB",border:`1.5px solid ${saveErr.level==="error"?"#FCA5A5":"#FCD34D"}`,color:saveErr.level==="error"?"#991B1B":"#92400E",padding:"10px 12px",borderRadius:12,fontSize:11.5,fontWeight:700,lineHeight:1.45,boxShadow:"0 6px 20px rgba(0,0,0,0.15)",display:"flex",alignItems:"flex-start",gap:8}}>
       <span style={{flexShrink:0,fontSize:14}}>{saveErr.level==="error"?"⚠️":"📊"}</span>

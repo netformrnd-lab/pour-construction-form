@@ -2355,9 +2355,10 @@ function mpCardHTML(p){
 let makerRevFilter='진행 중';
 function renderMakerDetail(root,name){
   const prods=makerProducts(name),meets=makerMeetings(name);
+  const sellProds=prods.filter(isSellable); // 판매가 대시보드: 상품(파생/세트)만 표시
   // 예상 매출 (진행 전/중: 판매가 설정 제품 합계 · 완료: 어드민센터 연동 예정)
   const STAT=['진행 전','진행 중','완료'];
-  const byStat=s=>prods.filter(p=>STATUS[statusIdx(p)]===s);
+  const byStat=s=>sellProds.filter(p=>STATUS[statusIdx(p)]===s);
   const f=makerRevFilter;
   const chips=`<div class="fchips" style="margin:2px 0 12px">`+STAT.map(s=>`<button class="fchip ${f===s?'on':''}" data-rf="${s}">${s}<span class="n">${byStat(s).length}</span></button>`).join('')+`</div>`;
   let revCard='';
@@ -2382,11 +2383,11 @@ function renderMakerDetail(root,name){
     if(noP)revCard+=`<div class="rp-note">상품(파생/세트) 중 판매가 미설정 ${noP}종은 매출에서 제외됐어요. (단품 원본은 매출 집계 대상 아님)</div>`;
   }
   let html=`<button class="backbtn" id="mkBack">← 제조사 목록</button>
-    <div class="mk-deth"><div><div class="mk-dname">${esc(name)}</div><div class="mk-dmeta">소싱 제품 ${prods.length}개 · 미팅 ${meets.length}건</div></div><button class="del" id="mkDel">삭제</button></div>
+    <div class="mk-deth"><div><div class="mk-dname">${esc(name)}</div><div class="mk-dmeta">상품 ${sellProds.length}개 · 미팅 ${meets.length}건</div></div><button class="del" id="mkDel">삭제</button></div>
     <div class="mh">예상 매출 <span style="font-weight:600;color:var(--muted)">· 진행단계 필터</span></div>
     ${chips}${revCard}
-    <div class="mh" style="margin-top:24px">소싱 제품 ${prods.length}</div>`;
-  html+=prods.length?('<div class="mp-list">'+prods.map(mpCardHTML).join('')+'</div>'):'<div class="tempty">이 제조사의 소싱 제품이 없어요.</div>';
+    <div class="mh" style="margin-top:24px">상품(파생/세트) ${sellProds.length}</div>`;
+  html+=sellProds.length?('<div class="mp-list">'+sellProds.map(mpCardHTML).join('')+'</div>'):'<div class="tempty">이 제조사의 상품(파생/세트)이 없어요. (제품 탭에서 파생·세트를 만들면 여기에 표시돼요)</div>';
   html+=`<div class="mh" style="margin-top:24px">미팅 내역 ${meets.length}</div>
     <div class="meetadd">
       <div class="meetadd-row"><input type="date" id="mt_date"><input type="text" id="mt_title" placeholder="미팅 주제 (예: 단가·MOQ 협의)"></div>

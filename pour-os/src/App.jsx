@@ -4494,10 +4494,10 @@ function pushKRSubtree(items,D,uid,isThisWeek,doneInP,krColors,baseDepth,opts={}
     if(dP>0)chips.push({t:"✅"+dP,c:"#0F5132",bg:"#D1F5E0"});
     const sig=signals?(signals.heotsimProjects.has(proj.id)?"heotsim":(signals.jamProjects.has(proj.id)?"jam":null)):null;
     items.push({id:pfx+proj.id,depth,label:proj.title,color:col,active:actT.length>0,chips,signal:sig,ref:{kind:"proj",id:proj.id}});
-    // 완료 업무는 개별 노드, 미완료(할일)는 "할일 N건" 한 노드로 묶어 표시
-    const doneT=actT.filter(t=>t.status==="done");
-    const todoT=actT.filter(t=>t.status!=="done");
-    doneT.forEach(t=>{const st=STATUS_MAP[t.status]||STATUS_MAP.todo;items.push({id:pfx+t.id,depth:depth+1,label:t.title,color:st.color,active:true,leftTag:t.weekDay||null,chips:[{t:st.label,c:st.color,bg:st.bg}],ref:{kind:"task",id:t.id}});});
+    // 완료·진행중·보류는 개별 노드로 모두 노출, 순수 '할일(todo)'만 'N건'으로 묶음
+    const shownT=actT.filter(t=>t.status!=="todo");
+    const todoT=actT.filter(t=>t.status==="todo");
+    shownT.forEach(t=>{const st=STATUS_MAP[t.status]||STATUS_MAP.todo;items.push({id:pfx+t.id,depth:depth+1,label:t.title,color:st.color,active:true,leftTag:t.weekDay||null,chips:[{t:st.label,c:st.color,bg:st.bg}],ref:{kind:"task",id:t.id}});});
     if(todoT.length){const st=STATUS_MAP.todo;items.push({id:pfx+proj.id+"__todo",depth:depth+1,label:`할일 ${todoT.length}건`,color:st.color,active:true});}
   };
   D.mainKPIs.filter(mk=>krF==="all"||mk.id===krF).forEach(mk=>{

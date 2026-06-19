@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { STATE_DOC, colDoc, META_DOC, extDoc, extCol, getDoc, getDocs, onSnapshot, setDoc, uploadTaskPhoto, deleteTaskPhoto } from "./firebase.js";
 import { idbSaveMirror, idbLoadMirror, idbPushSnapshot, idbListSnapshots, idbGetSnapshot } from "./durable.js";
+import { numF, skCur, mkCur, calcSegDone } from "./kpi.js";
 
 // Firestore 단일 문서에 저장할 공유 데이터 키 (currentUser는 기기별 로컬이라 제외)
 const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","weekGoals","launchTemplates","manuals","trash"];
@@ -160,28 +161,7 @@ const pct=(c,t)=>t===0||t==null?0:Math.max(0,Math.min(100,Math.round((c/t)*100))
 const weekKey=(d=new Date())=>{const x=new Date(d);const off=(x.getDay()+6)%7;x.setDate(x.getDate()-off);x.setHours(0,0,0,0);return x.toISOString().slice(0,10);};
 const weekLabel=(key)=>{const m=new Date(key);const su=new Date(m);su.setDate(su.getDate()+6);const f=z=>`${z.getMonth()+1}/${z.getDate()}`;return `${f(m)}~${f(su)}`;};
 // 메인KPI2(B2B): 서브KPI 현재값 = 자식 프로젝트 매출 성과(resultValue) 합계 / 메인KPI1·3: 수동값
-const numF=(x)=>{const n=Number(x);return isFinite(n)?n:0;};   // 문자열·NaN·Infinity → 0 (집계 방탄)
-// 서브KPI 현재값:
-//  · 메인2(원) 자동 → 자식 프로젝트 매출(resultValue) 합계
-//  · 운영(%) 자동 → 자식 프로젝트 진척(progress) 평균  ← 업무→진척→운영KPI 롤업
-//  · 그 외/수동지정 → currentValue
-const skCur=(sk,projects)=>{
-  if(sk.launchCount) return (projects||[]).filter(p=>p.templateId&&(p.progress||0)>=100).length;   // 출시 완료(progress 100%) SKU 자동 집계
-  // 로드맵 템플릿 완료 집계(옵션): 이 지표를 가리키는 프로젝트가 완료(100%)되면 기존 누적분에 +1 (원/%·출시집계 지표 제외 — 매출·진척·출시 롤업 보호)
-  if(sk.unit!=="원"&&sk.unit!=="%"&&!sk.launchCount){ const cc=(projects||[]).filter(p=>p.countKPIId===sk.id); if(cc.length) return numF(sk.currentValue)+cc.filter(p=>(p.progress||0)>=100).length; }
-  if(sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride) return (projects||[]).filter(p=>p.subKPIId===sk.id).reduce((a,p)=>a+numF(p.resultValue),0);
-  if(sk.unit==="%"&&!sk.manualOverride){ const ch=(projects||[]).filter(p=>p.subKPIId===sk.id); if(ch.length) return Math.round(ch.reduce((a,p)=>a+numF(p.progress),0)/ch.length); }
-  return numF(sk.currentValue);
-};
-// 메인KPI 현재값:
-//  · 원 → 자식 서브KPI 합계
-//  · 운영(원 아님) 자동 → 자식 서브KPI 완료비율 합(= 환산 달성 단위), 자식 없으면 currentValue
-//  · 수동지정(manualOverride) → currentValue
-const mkCur=(mk,subKPIs,projects)=>{
-  if(mk.unit==="원") return subKPIs.filter(s=>s.mainKPIId===mk.id&&!s.launchCount).reduce((a,s)=>a+skCur(s,projects),0);
-  if(!mk.manualOverride){ const subs=subKPIs.filter(s=>s.mainKPIId===mk.id&&!s.launchCount); if(subs.length){ const eq=subs.reduce((a,s)=>{const t=numF(s.targetValue); return a+(t>0?Math.min(1,skCur(s,projects)/t):0);},0); return Math.round(eq*10)/10; } }
-  return numF(mk.currentValue);
-};
+// KPI 집계 헬퍼는 ./kpi.js로 추출(동작 동일 + 테스트 가능). numF·skCur·mkCur·calcSegDone import.
 const fmt=(n,u)=>{
   if(!n||isNaN(n)) return "0"+(u||"");
   if(u==="원"&&n>=100000000) return (n/100000000).toFixed(1)+"억";
@@ -658,14 +638,22 @@ export default function App(){
   const recalcProg=(state)=>{
     const tasks=state.tasks||[];
     const parentIds=new Set(tasks.filter(t=>t.parentId).map(t=>t.parentId));   // 하위를 가진 업무(상위)는 진행률 집계 제외
+    const doneIds=new Set(tasks.filter(t=>t.status==="done").map(t=>t.id));     // 완료 업무 id(구간 완료 판정용)
     let changed=false;
     const projects=(state.projects||[]).map(pr=>{
-      if(pr.progressManual) return pr;
-      const real=tasks.filter(t=>t.projectId===pr.id&&!t.isFixed&&!parentIds.has(t.id)&&t.status!=="hold");   // 보류 업무는 진척 계산에서 제외
-      if(real.length===0) return pr;
-      const auto=Math.round(real.filter(t=>t.status==="done").length/real.length*100);
-      if(auto===(pr.progress||0)) return pr;
-      changed=true; return {...pr,progress:auto};
+      let np=pr;
+      // ① 진척 자동 산출(기존 동작 동일 — 수동지정/업무없음/동일값이면 유지)
+      if(!pr.progressManual){
+        const real=tasks.filter(t=>t.projectId===pr.id&&!t.isFixed&&!parentIds.has(t.id)&&t.status!=="hold");   // 보류 업무는 진척 계산에서 제외
+        if(real.length>0){
+          const auto=Math.round(real.filter(t=>t.status==="done").length/real.length*100);
+          if(auto!==(pr.progress||0)){ np={...np,progress:auto}; changed=true; }
+        }
+      }
+      // ② 구간(세그먼트) 완료 집계(추가) — segments 없으면 calcSegDone가 null → 무동작(기존과 동일)
+      const seg=calcSegDone(np,doneIds);
+      if(seg!==null){ np={...np,segDoneByKpi:seg}; changed=true; }
+      return np;
     });
     return changed?{...state,projects}:state;
   };

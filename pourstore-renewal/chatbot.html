@@ -1350,13 +1350,22 @@ function FlowConn({ color }) {
   );
 }
 function DeployFlow({ bot }) {
+  const [open, setOpen] = useState(false);
   const a = AUDIENCES[bot.audience] || AUDIENCES.internal;
   const d = botDeploy(bot);
   const c = d.statusBorder;
   const isCT = (bot.deploy || DEPLOY_DEFAULT[bot.audience]) === 'channeltalk';
   return (
-    <div style={{ marginBottom:12, background:'var(--or-pale)', border:'1px solid var(--border-s)', borderRadius:10, padding:'10px 10px 12px' }}>
-      <div style={{ fontSize:9.5, color:'var(--text-sm)', fontWeight:800, marginBottom:8 }}>📡 송출·노출 구조</div>
+    <div style={{ marginBottom:12, background:'var(--or-pale)', border:'1px solid var(--border-s)', borderRadius:10, padding: open ? '10px 10px 12px' : '8px 11px' }}>
+      <button onClick={() => setOpen(o => !o)} style={{ width:'100%', display:'flex', alignItems:'center', gap:6, textAlign:'left' }}>
+        <span style={{ fontSize:9, fontWeight:800, color:'var(--text-sm)', width:10 }}>{open ? '▾' : '▸'}</span>
+        <span style={{ fontSize:10, fontWeight:800, color:'var(--text-sm)' }}>📡 송출</span>
+        <span style={{ fontSize:10.5, fontWeight:900, color:'var(--navy)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d.icon} {d.label}</span>
+        <span style={{ marginLeft:'auto', fontSize:8.5, fontWeight:800, color:d.statusColor, background:d.statusBg, border:`1px solid ${d.statusBorder}`, padding:'1px 6px', borderRadius:5, whiteSpace:'nowrap' }}>{d.status}</span>
+      </button>
+      {!open && <div style={{ fontSize:9.5, color:'var(--text-xs)', fontWeight:600, marginTop:3, marginLeft:16, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>📍 {d.where}</div>}
+      {open && (<>
+      <div style={{ fontSize:9.5, color:'var(--text-sm)', fontWeight:800, margin:'8px 0' }}>송출·노출 구조</div>
       <div className="cb-scroll" style={{ overflowX:'auto', paddingBottom:2 }}>
         <div style={{ display:'flex', alignItems:'center', width:'max-content', minWidth:'100%' }}>
           <FlowNode icon={a.icon} title={bot.name || '봇'} sub={a.label} accent={a.border} />
@@ -1376,6 +1385,7 @@ function DeployFlow({ bot }) {
           </div>
         </div>
       )}
+      </>)}
     </div>
   );
 }

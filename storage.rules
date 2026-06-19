@@ -76,6 +76,7 @@ service firebase.storage {
     match /method-content/{allPaths=**}    { allow read, write: if true; }
     match /sales-docs/{allPaths=**}        { allow read, write: if true; }
     match /Proposal/{allPaths=**}          { allow read, write: if true; }
+    match /소싱-os/{allPaths=**}            { allow read, write: if true; }  // 소싱-OS 제품 사진·카탈로그·서류
 
     // ─────────────────────────────────────────────
     // 그 외 — 명시되지 않은 경로는 모두 막음

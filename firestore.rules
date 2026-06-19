@@ -150,6 +150,12 @@ service cloud.firestore {
     match /pour-os/{doc=**}         { allow read, write: if true; }
 
     // ─────────────────────────────────────────────
+    // 소싱-OS (Sourcing/Sourcing-os.html) — 단가·매출 대시보드
+    // 앱 상태를 sourcing-os/state 문서에 저장(+레거시 pour-os/sourcing-os-state 마이그레이션).
+    // ─────────────────────────────────────────────
+    match /sourcing-os/{doc=**}     { allow read, write: if true; }
+
+    // ─────────────────────────────────────────────
     // 기본 정책: 명시되지 않은 컬렉션은 차단
     // ─────────────────────────────────────────────
     match /{document=**} {

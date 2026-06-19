@@ -139,19 +139,31 @@ const INIT={
   trash:[],   // 소프트 삭제 보관소 — 삭제된 모든 데이터는 여기 남고 복구 가능(데이터 자산화)
   // 출시 프로세스 템플릿(마인드맵) — 신상 SKU를 찍어내는 표준 흐름. 동일 프로세스 1개 기본 제공.
   launchTemplates:[
-    {id:"tpl_launch", name:"신상 출시 표준 프로세스", createdAt:"2026-06-12T00:00:00.000Z",
+    {id:"tpl_launch", name:"신상 출시 표준 프로세스", version:2, createdAt:"2026-06-12T00:00:00.000Z",
+      // 로드단계(7) + 단계별 액션(완료 시 자동 생성 업무) + 담당자(부서 매핑). 인스턴스 생성 시 각 노드→업무, 출시 완료는 sk_launch(신규 SKU 출시 수)로 자동 집계.
       nodes:[
-        {id:"n1", title:"소싱·원가·납기 확정", roleLabel:"MD",    assigneeId:"songhee", x:24,  y:24},
-        {id:"n2", title:"제품 교육·지식 전파",  roleLabel:"본부장", assigneeId:"songhee", x:172, y:118},
-        {id:"n3", title:"소스 확보 → 상품 등록", roleLabel:"",     assigneeId:"minji",   x:30,  y:214},
-        {id:"n4", title:"출시 배너 → 주문 세팅", roleLabel:"",     assigneeId:"chaerim", x:178, y:310},
-        {id:"n5", title:"B2B 안내·실사용 콘텐츠", roleLabel:"",     assigneeId:"ran",     x:36,  y:406},
+        {id:"n1", title:"소싱·원가·납기 확정",   roleLabel:"MD",    assigneeId:"songhee", x:24,  y:24,
+          auto:{onDone:[{id:"n1a1",kind:"createTask",title:"원가·마진표 검수",assigneeId:"songhee"}]}, autoComplete:false},
+        {id:"n2", title:"제품 교육·지식 전파",    roleLabel:"본부장", assigneeId:"songhee", x:178, y:120,
+          auto:{onDone:[{id:"n2a1",kind:"createTask",title:"판매 포인트·셀링 카피 정리",assigneeId:"minji"}]}, autoComplete:false},
+        {id:"n3", title:"썸네일·상세 디자인",     roleLabel:"디자인", assigneeId:"minji",   x:30,  y:216,
+          auto:{onDone:[{id:"n3a1",kind:"createTask",title:"상세 카피·표시사항 검수",assigneeId:"songhee"}]}, autoComplete:false},
+        {id:"n4", title:"상품 등록·자사몰 노출",  roleLabel:"등록",   assigneeId:"minji",   x:184, y:312,
+          auto:{onDone:[{id:"n4a1",kind:"createTask",title:"자사몰 노출·가격 확인",assigneeId:"minji"}]}, autoComplete:false},
+        {id:"n5", title:"마켓 동시 등록",         roleLabel:"등록",   assigneeId:"minji",   x:36,  y:408,
+          auto:{onDone:[{id:"n5a1",kind:"createTask",title:"마켓 노출·옵션·가격 검수",assigneeId:"minji"}]}, autoComplete:false},
+        {id:"n6", title:"출시 배너·주문 세팅",    roleLabel:"운영",   assigneeId:"chaerim", x:190, y:504,
+          auto:{onDone:[{id:"n6a1",kind:"createTask",title:"주문·결제·배송 테스트",assigneeId:"chaerim"}]}, autoComplete:false},
+        {id:"n7", title:"B2B 안내·실사용 콘텐츠", roleLabel:"영업",   assigneeId:"ran",     x:42,  y:600,
+          auto:{onDone:[{id:"n7a1",kind:"createTask",title:"B2B 안내 발송·반응 체크",assigneeId:"ran"}]}, autoComplete:false},
       ],
       edges:[
         {id:"e1", from:"n1", to:"n2"},
         {id:"e2", from:"n2", to:"n3"},
         {id:"e3", from:"n3", to:"n4"},
         {id:"e4", from:"n4", to:"n5"},
+        {id:"e5", from:"n5", to:"n6"},
+        {id:"e6", from:"n6", to:"n7"},
       ],
     },
   ],

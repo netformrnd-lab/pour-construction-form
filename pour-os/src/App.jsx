@@ -2889,6 +2889,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
                     </div>
                   );})()}
                   <ProjStageFlow D={D} proj={proj} cu={cu} up={up}/>
+                  <SegmentEditor D={D} proj={proj} up={up}/>
                   <div style={{padding:"12px 16px 0",display:"flex",alignItems:"center",gap:8}}>
                     <span style={{fontSize:12,fontWeight:800,color:"#4B5563",flexShrink:0}}>🏷 거래처유형</span>
                     <select value={proj.dealerType||""} onChange={e=>up("projects",proj.id,{dealerType:e.target.value})} style={{flex:1,padding:"7px 10px",borderRadius:8,fontSize:12,fontWeight:700,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",color:proj.dealerType?(DT[proj.dealerType]?.color||"#111827"):"#9CA3AF",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="">미지정</option>{DEALER_TYPES.map(d=><option key={d.code} value={d.code}>{d.code} · {d.label} ({d.price})</option>)}</select>
@@ -3289,6 +3290,56 @@ const myReadyProcess=(D,uid)=>{
 };
 const ST_COLOR={done:"#00C073",ready:"#F97316",wait:"#9CA3AF"};
 // 자동화 실행 엔진 + 출시 인스턴스 생성은 ./launch.js로 추출(동작 동일 + 테스트 가능). applyAutomation·instantiateLaunch·AUTO_ACTOR import.
+// 프로젝트 상세 — "구간(세그먼트) KPI": 로드단계(업무) 여러 개를 묶어 카운트형 KPI에 연결. 묶음 단계가 모두 done이면 그 KPI에 +1(집계는 recalcProg→skCur).
+function SegmentEditor({D,proj,up}){
+  const segs=Array.isArray(proj.segments)?proj.segments:[];
+  const tasks=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed);
+  const countKPIs=D.subKPIs.filter(s=>s.unit!=="원"&&s.unit!=="%"&&!s.launchCount);   // 카운트형 KPI(원/%·출시집계 제외)
+  const [open,setOpen]=useState(false);
+  const [name,setName]=useState("");
+  const [picked,setPicked]=useState([]);
+  const [kpiId,setKpiId]=useState(countKPIs[0]?.id||"");
+  if(countKPIs.length===0||tasks.length===0) return null;   // 연결할 KPI나 단계가 없으면 숨김
+  const doneIds=new Set(tasks.filter(t=>t.status==="done").map(t=>t.id));
+  const kpiName=(id)=>D.subKPIs.find(s=>s.id===id)?.title||"미연결";
+  const toggle=(id)=>setPicked(p=>p.includes(id)?p.filter(x=>x!==id):[...p,id]);
+  const addSeg=()=>{ if(!name.trim()||!picked.length||!kpiId)return; up("projects",proj.id,{segments:[...segs,{id:"seg"+Date.now(),name:name.trim(),stageIds:picked,kpiId}]}); setName(""); setPicked([]); setOpen(false); };
+  const rmSeg=(id)=>up("projects",proj.id,{segments:segs.filter(s=>s.id!==id)});
+  const cln=(t)=>t.replace(/^\[[^\]]+\]\s*/,"");
+  const inp={width:"100%",padding:"9px 11px",borderRadius:9,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",fontSize:13};
+  return(
+    <div style={{padding:"14px 16px 0"}}>
+      <p style={{margin:"0 0 8px",fontSize:12,fontWeight:800,color:"#4B5563"}}>📊 구간 KPI <span style={{fontWeight:600,color:"#9CA3AF"}}>· 로드단계를 묶어 KPI 카운트</span></p>
+      {segs.map(s=>{ const comp=Array.isArray(s.stageIds)&&s.stageIds.length>0&&s.stageIds.every(id=>doneIds.has(id)); const dn=(s.stageIds||[]).filter(id=>doneIds.has(id)).length; return(
+        <div key={s.id} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 11px",borderRadius:10,border:`1px solid ${comp?"#BBF7D0":"#EEF0F2"}`,background:comp?"#F0FDF4":"#fff",marginBottom:6}}>
+          <span style={{flexShrink:0,fontSize:10,fontWeight:800,color:comp?"#16A34A":"#9CA3AF",background:comp?"#DCFCE7":"#F3F4F6",padding:"2px 7px",borderRadius:6}}>{comp?"✓ 완료":`${dn}/${(s.stageIds||[]).length}`}</span>
+          <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:700,color:"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.name}</div><div style={{fontSize:10.5,color:"#9CA3AF"}}>단계 {(s.stageIds||[]).length} → {kpiName(s.kpiId)}</div></div>
+          <button onClick={()=>rmSeg(s.id)} style={{flexShrink:0,width:28,height:28,borderRadius:8,border:"1.5px solid #FFE2E5",background:"#FFF0F1",color:"#F04452",fontSize:14,fontWeight:700,cursor:"pointer"}}>×</button>
+        </div>);})}
+      {open?(
+        <div style={{padding:12,borderRadius:12,border:"1.5px solid #FED7AA",background:"#FFFBF5",marginTop:2}}>
+          <input value={name} onChange={e=>setName(e.target.value)} placeholder="구간명 예: 소싱·등록 완료" style={{...inp,marginBottom:9}}/>
+          <p style={{margin:"0 0 6px",fontSize:11,fontWeight:700,color:"#6B7280"}}>묶을 단계 선택 ({picked.length})</p>
+          <div style={{maxHeight:150,overflowY:"auto",marginBottom:9}}>
+            {tasks.map(t=>{const on=picked.includes(t.id);return(
+              <label key={t.id} onClick={()=>toggle(t.id)} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 9px",borderRadius:8,border:`1.5px solid ${on?"#FDBA74":"#EEF0F2"}`,background:on?"#FFF7ED":"#fff",cursor:"pointer",marginBottom:4}}>
+                <span style={{flexShrink:0,width:16,height:16,borderRadius:5,border:`2px solid ${on?"#F97316":"#CBD3DD"}`,background:on?"#F97316":"#fff",color:"#fff",fontSize:10,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{on?"✓":""}</span>
+                <span style={{fontSize:12.5,fontWeight:600,color:"#374151",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cln(t.title)}</span>
+              </label>);})}
+          </div>
+          <p style={{margin:"0 0 6px",fontSize:11,fontWeight:700,color:"#6B7280"}}>연결할 KPI</p>
+          <select value={kpiId} onChange={e=>setKpiId(e.target.value)} style={{...inp,backgroundColor:"#fff",WebkitAppearance:"none",marginBottom:10}}>{countKPIs.map(s=><option key={s.id} value={s.id}>{s.title}</option>)}</select>
+          <div style={{display:"flex",gap:7}}>
+            <button onClick={()=>{setOpen(false);setName("");setPicked([]);}} style={{flex:"0 0 auto",padding:"9px 14px",borderRadius:10,border:"1.5px solid #E5E8EB",background:"#fff",color:"#6B7280",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>취소</button>
+            <button onClick={addSeg} disabled={!name.trim()||!picked.length} style={{flex:1,padding:"9px 0",borderRadius:10,border:"none",background:(name.trim()&&picked.length)?"#F97316":"#E5E8EB",color:(name.trim()&&picked.length)?"#fff":"#9CA3AF",fontSize:13,fontWeight:800,cursor:(name.trim()&&picked.length)?"pointer":"not-allowed",fontFamily:"inherit"}}>구간 추가</button>
+          </div>
+        </div>
+      ):(
+        <button onClick={()=>setOpen(true)} style={{width:"100%",padding:"9px 0",borderRadius:10,border:"1.5px dashed #FDBA74",background:"#FFF7ED",color:"#EA580C",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>＋ 구간 추가</button>
+      )}
+    </div>
+  );
+}
 // 프로젝트 상세 안의 "단계 흐름(협업 인계)" 섹션 — 출시 SKU(launchNode) 인계 파이프라인. 일반 프로젝트는 로드맵에서 관리(중복 제거).
 function ProjStageFlow({D,proj,cu,up}){
   const stageTasks=D.tasks.filter(t=>t.projectId===proj.id&&t.launchNode).sort((a,b)=>(a.step||0)-(b.step||0));

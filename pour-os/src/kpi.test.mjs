@@ -58,5 +58,20 @@ const projSeg=[
 ];
 eq("skCur 누적5+프로젝트1+구간2", skCur(skCnt,projSeg), 8);
 
+console.log("── ④ 구간 정의→단계 완료→집계→KPI 통합 경로 ──");
+// 프로젝트에 구간 2개 정의(편집 UI가 저장하는 모양). 단계 완료 상태에 따라 calcSegDone→스탬프→skCur 반영
+const skCnt2={id:"sk12",unit:"건",currentValue:8};   // 로드맵 33건류 카운트 KPI
+let projA={id:"pa",segments:[
+  {id:"seg1",name:"소싱·등록 완료",stageIds:["t1","t2"],kpiId:"sk12"},
+  {id:"seg2",name:"출시 완료",stageIds:["t3","t4"],kpiId:"sk12"},
+]};
+const stamp=(proj,doneArr)=>{ const m=calcSegDone(proj,new Set(doneArr)); return m===null?proj:{...proj,segDoneByKpi:m}; };
+let pA=stamp(projA,["t1","t2"]);                 // seg1만 완료
+eq("구간1만 완료 → 스탬프 {sk12:1}", pA.segDoneByKpi, {sk12:1});
+eq("skCur 누적8+구간1 = 9", skCur(skCnt2,[pA]), 9);
+pA=stamp(projA,["t1","t2","t3","t4"]);           // 둘 다 완료
+eq("두 구간 완료 → 스탬프 {sk12:2}", pA.segDoneByKpi, {sk12:2});
+eq("skCur 누적8+구간2 = 10", skCur(skCnt2,[pA]), 10);
+
 console.log(`\n${fail===0?"🟢 전체 통과":"🔴 실패 있음"} — pass ${pass} / fail ${fail}`);
 process.exit(fail===0?0:1);

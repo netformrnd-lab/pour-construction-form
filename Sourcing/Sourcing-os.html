@@ -638,6 +638,11 @@
     <div class="fchips" id="statusChips"></div>
   </div>
   <div class="fchips schips" id="stageChips" style="display:none"></div>
+  <div class="fchips schips" id="typeChips" style="margin-top:8px"></div>
+  <div id="baseFilterWrap" style="display:none;margin:8px 0 2px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <span style="font-size:12px;font-weight:700;color:var(--muted)">원본 선택</span>
+    <select id="baseFilter" style="flex:1;min-width:140px;padding:9px 11px;border:1px solid var(--border2);border-radius:10px;background:var(--cream);font-size:13px;font-weight:600"></select>
+  </div>
   <div class="bases" id="bases"></div>
   <div id="prodEmpty" style="display:none"></div>
   </div>
@@ -764,6 +769,18 @@
 </div>
 
 <!-- product modal -->
+<!-- 파생/세트 만들기 modal -->
+<div class="overlay" id="variantOverlay">
+  <div class="modal" style="max-width:480px">
+    <h3 id="vt_title">파생 상품 만들기</h3>
+    <div class="msub" id="vt_sub">원본을 복제해 상품명·컨셉만 다르게 만듭니다.</div>
+    <div class="frow"><label>상품명 <span class="opt">(필수)</span></label><input type="text" id="vt_goods" placeholder="예: 강낭콩(코트재)"></div>
+    <div class="frow"><label>컨셉 <span class="opt">(어떻게 팔지)</span></label><input type="text" id="vt_concept" placeholder="예: 셀프시공 1세대용"></div>
+    <div class="frow" id="vt_bundleRow" style="display:none"><label>세트 구성 <span class="opt">(묶을 제품 선택)</span></label><div id="vt_bundle" class="bundlepick"></div></div>
+    <div class="mact"><button class="cancel" data-close>취소</button><button class="save" id="vt_save">만들기</button></div>
+  </div>
+</div>
+
 <div class="overlay" id="prodOverlay">
   <div class="modal">
     <h3 id="prodTitle">소싱 제품 추가</h3>
@@ -771,10 +788,10 @@
 
     <div class="mh">기본</div>
     <div class="frow"><label>제품명 <span class="opt">(필수)</span></label><input type="text" id="p_name" placeholder="예) 탄성 방수 코트재"></div>
-    <div class="frow"><label>상품명 <span class="opt">(판매·표기명, 있으면)</span></label><input type="text" id="p_goods" placeholder="예) 코트재 →  강낭콩(코트재) 로 표기"></div>
-    <div class="frow"><label>유형</label><select id="p_type"><option>단품</option><option>패키지</option><option>파생</option></select></div>
-    <div class="frow" id="baseRow" style="display:none"><label>원본 제품 <span class="opt">(파생 기준 · 컨셉만 다르게)</span></label><select id="p_base"></select></div>
-    <div class="frow" id="bundleRow" style="display:none"><label>패키지 구성 <span class="opt">(묶을 제품 선택)</span></label><div id="p_bundle" class="bundlepick"></div></div>
+    <div class="frow" id="goodsRow" style="display:none"><label>상품명 <span class="opt">(판매·표기명)</span></label><input type="text" id="p_goods" placeholder="예) 강낭콩(코트재)"></div>
+    <div class="frow" id="typeRow" style="display:none"><label>유형</label><select id="p_type"><option>단품</option><option>패키지</option><option>파생</option></select></div>
+    <div class="frow" id="baseRow" style="display:none"><label>원본 제품</label><select id="p_base"></select></div>
+    <div class="frow" id="bundleRow" style="display:none"><label>패키지 구성</label><div id="p_bundle" class="bundlepick"></div></div>
     <div class="ftwo">
       <div class="frow"><label>컨셉 <span class="opt">(어떻게 팔지)</span></label><input type="text" id="p_concept" placeholder="예) 셀프시공 1세대용 · 누수 응급키트"></div>
       <div class="frow"><label>샘플 수령</label><select id="p_sample"><option>대기</option><option>수령</option><option>해당없음</option></select></div>
@@ -1212,6 +1229,8 @@ let makerQuery='';
 let makerSel=null;
 let statusFilter='전체';
 let stageFilter=null;
+let typeFilter='전체';
+let baseFilter='';
 let selectMode=false;
 const selected=new Set();
 const PROG_STAGES=['샘플','테스트','협의','발주준비'];
@@ -1232,6 +1251,8 @@ function syncEmpty(){
   if(pa)pa.style.display=empty?'none':'';
   if(fb)fb.style.display=empty?'none':'';
   if(sc&&empty)sc.style.display='none';
+  if(empty){const tc=$('#typeChips');if(tc)tc.style.display='none';const bw=$('#baseFilterWrap');if(bw)bw.style.display='none';}
+  else{const tc=$('#typeChips');if(tc)tc.style.display='';}
   if(bs)bs.style.display=empty?'none':'';
   if(empty&&pe){
     pe.innerHTML=`<div class="empty"><h3>소싱 중인 제품이 없어요</h3><p>국내·해외에서 소싱하는 제품을 등록하고,<br>샘플 테스트와 인증·특허를 단계별로 관리하세요.</p><div class="row"><button class="btn-add" id="firstAdd">+ 소싱 제품 추가</button><button class="btn-ghost" id="seed">예시로 시작</button></div></div>`;
@@ -1240,45 +1261,77 @@ function syncEmpty(){
 }
 function openDetail(id){state.sel=id;save();renderMain();renderList();openOverlay('detailOverlay');$('#detailOverlay').scrollTop=0;}
 function syncTypeRows(){const t=$('#p_type').value;$('#bundleRow').style.display=(t==='패키지')?'':'none';$('#baseRow').style.display=(t==='파생')?'':'none';}
-function derivAdd(baseId){
-  const base=state.products.find(p=>p.id===baseId);if(!base)return;
-  const c=JSON.parse(JSON.stringify(base));const id=uid();
-  const np={...c,id,type:'파생',baseId:base.id,goods:'',concept:'',bundle:[],stage:'후보',tests:[],docs:[],history:[{stage:'후보',date:today()}]};
-  state.products.push(np);state.sel=id;logAct('add',np,null);save();render();openProd(id);
+let vtMode='파생',vtBase=null,vtEdit=null;
+function openVariant(mode,baseId,editId){
+  vtMode=mode;vtBase=baseId;vtEdit=editId||null;
+  const cur=editId?state.products.find(p=>p.id===editId):null;
+  const base=state.products.find(p=>p.id===baseId);
+  $('#vt_title').textContent=(editId?'수정 — ':'')+(mode==='파생'?'파생 상품 만들기':'세트(패키지) 만들기');
+  $('#vt_sub').textContent=mode==='파생'?'원본을 복제해 상품명·컨셉만 다르게 만듭니다. (별도 카드로 생성)':'여러 제품을 묶어 세트 상품을 만듭니다. (별도 카드로 생성)';
+  $('#vt_goods').value=cur?(cur.goods||''):'';
+  $('#vt_concept').value=cur?(cur.concept||''):'';
+  if(mode==='세트'){
+    $('#vt_bundleRow').style.display='';
+    const others=state.products.filter(x=>x.type!=='패키지'&&x.id!==editId);
+    $('#vt_bundle').innerHTML=others.length?others.map(x=>`<label class="bpick"><input type="checkbox" value="${x.id}" ${(cur&&(cur.bundle||[]).includes(x.id))?'checked':''}><span>${esc(dn(x))} <em>${esc(x.stage||'후보')}</em></span></label>`).join(''):'<div class="tempty" style="padding:4px">묶을 제품이 없어요.</div>';
+  }else $('#vt_bundleRow').style.display='none';
+  openOverlay('variantOverlay');
 }
+$('#vt_save').onclick=()=>{
+  const goods=$('#vt_goods').value.trim();if(!goods){$('#vt_goods').focus();return;}
+  const concept=$('#vt_concept').value.trim();
+  if(vtEdit){
+    const p=state.products.find(x=>x.id===vtEdit);if(!p)return;const prev=JSON.parse(JSON.stringify(p));
+    p.goods=goods;p.concept=concept;
+    if(vtMode==='세트')p.bundle=[...document.querySelectorAll('#vt_bundle input:checked')].map(c=>c.value);
+    logAct('edit',p,prev);save();closeOverlay();render();openDetail(p.id);return;
+  }
+  const base=state.products.find(x=>x.id===vtBase);if(!base)return;
+  const id=uid();let np;
+  if(vtMode==='파생'){
+    const c=JSON.parse(JSON.stringify(base));
+    np={...c,id,type:'파생',baseId:base.id,goods,concept,bundle:[],fav:false,stage:'후보',tests:[],docs:[],attachments:[],notes:[],history:[{stage:'후보',date:today()}]};
+  }else{
+    const bundle=[...document.querySelectorAll('#vt_bundle input:checked')].map(c=>c.value);
+    np={id,name:base.name,goods,maker:base.maker||'',type:'패키지',baseId:base.id,bundle,concept,spec:'',sample:'대기',memo:'',source:base.source||'국내 제조사',market:'',cost:'',moq:'',pricevar:'',lead:'',customs:'',fill:[],fillmaker:'확인중',container:'확인중',ibc:'해당없음',label:'',cert:'확인중',patent:'확인중',certs:[],patentinfo:'',attachments:[],notes:[],fav:false,tests:[],docs:[],stage:'후보',history:[{stage:'후보',date:today()}]};
+  }
+  state.products.push(np);state.sel=id;logAct('add',np,null);save();render();openDetail(id);
+};
+function bcompRow(c,metaTxt){const si=statusIdx(c);return `<div class="bcomp" data-pid="${c.id}"><div class="bc-main"><div class="bc-name"><span class="tybadge ${c.type||'단품'}" style="padding:1px 6px;margin-right:5px">${c.type==='패키지'?'세트':c.type||'단품'}</span>${esc(dn(c))}</div><div class="bc-meta">${esc(metaTxt||c.maker||'')}</div></div><span class="bc-stage s${si}">${esc(c.stage||'후보')}</span><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="9 18 15 12 9 6"></polyline></svg></div>`;}
 function typeSectionHTML(p){
   let h='';
+  // 파생/세트면 원본 표시
+  if((p.type==='파생'||p.type==='패키지')&&p.baseId){
+    const base=state.products.find(x=>x.id===p.baseId);
+    if(base)h+=`<div class="sec"><div class="sec-h"><div class="t">원본 제품</div></div>${bcompRow(base,'이 '+(p.type==='파생'?'파생':'세트')+'의 원본')}</div>`;
+  }
+  // 세트면 구성품
   if(p.type==='패키지'){
     const comps=(p.bundle||[]).map(id=>state.products.find(x=>x.id===id)).filter(Boolean);
     const doneN=comps.filter(c=>statusIdx(c)===2).length;
-    h+=`<div class="sec"><div class="sec-h"><div class="t">패키지 구성 현황</div><button class="mini" id="editBundle">구성 편집</button></div>`;
-    if(!comps.length)h+='<div class="tempty">묶을 제품을 선택해 패키지를 구성하세요. (정보 수정 → 패키지 구성)</div>';
-    else{
-      h+=`<div class="bsum">구성품 ${comps.length}개 · 출시완료 ${doneN}/${comps.length}${doneN===comps.length?' · <b style="color:var(--green)">출시 준비 완료</b>':''}</div><div class="bcomp-list">`;
-      h+=comps.map(c=>{const si=statusIdx(c);return `<div class="bcomp" data-pid="${c.id}"><div class="bc-main"><div class="bc-name">${esc(dn(c))}</div><div class="bc-meta">${esc(c.maker||'제조사 미입력')}</div></div><span class="bc-stage s${si}">${esc(c.stage||'후보')}</span><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="9 18 15 12 9 6"></polyline></svg></div>`;}).join('');
-      h+='</div>';
-    }
+    h+=`<div class="sec"><div class="sec-h"><div class="t">세트 구성</div><button class="mini" id="editBundle">구성 편집</button></div>`;
+    if(!comps.length)h+='<div class="tempty">구성 편집에서 묶을 제품을 선택하세요.</div>';
+    else{h+=`<div class="bsum">구성품 ${comps.length}개 · 출시완료 ${doneN}/${comps.length}${doneN===comps.length?' · <b style="color:var(--green)">출시 준비 완료</b>':''}</div><div class="bcomp-list">`+comps.map(c=>bcompRow(c)).join('')+'</div>';}
     h+='</div>';
   }
-  if(p.type==='파생'&&p.baseId){
-    const base=state.products.find(x=>x.id===p.baseId);
-    h+=`<div class="sec"><div class="sec-h"><div class="t">파생 원본</div></div>${base?`<div class="bcomp" data-pid="${base.id}"><div class="bc-main"><div class="bc-name">${esc(dn(base))}</div><div class="bc-meta">이 제품의 원본 · 컨셉만 다르게 운영</div></div><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="9 18 15 12 9 6"></polyline></svg></div>`:'<div class="tempty">원본 제품이 삭제되었어요.</div>'}</div>`;
-  }
-  const derivs=state.products.filter(x=>x.baseId===p.id&&x.id!==p.id);
-  if(p.type!=='파생'||derivs.length){
-    h+=`<div class="sec"><div class="sec-h"><div class="t">파생 상품 ${derivs.length}</div><button class="mini or" id="addDeriv">+ 파생 추가</button></div>`;
-    if(!derivs.length)h+='<div class="tempty">같은 제품을 컨셉만 다르게 여러 상품으로 빠르게 만들 수 있어요.</div>';
-    else h+='<div class="bcomp-list">'+derivs.map(d=>{const si=statusIdx(d);return `<div class="bcomp" data-pid="${d.id}"><div class="bc-main"><div class="bc-name">${esc(dn(d))}</div><div class="bc-meta">${d.concept?esc(d.concept):'컨셉 미설정'}</div></div><span class="bc-stage s${si}">${esc(d.stage||'후보')}</span><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><polyline points="9 18 15 12 9 6"></polyline></svg></div>`;}).join('')+'</div>';
-    h+='</div>';
-  }
+  // 이 제품으로 만든 파생/세트
+  const kids=state.products.filter(x=>x.baseId===p.id&&x.id!==p.id);
+  h+=`<div class="sec"><div class="sec-h"><div class="t">파생 / 세트 ${kids.length}</div><div style="display:flex;gap:6px"><button class="mini or" id="addDeriv">+ 파생</button><button class="mini" id="addSet">+ 세트</button></div></div>`;
+  if(!kids.length)h+='<div class="tempty">이 제품으로 파생 상품이나 세트를 만들 수 있어요. (별도 카드로 생성)</div>';
+  else h+='<div class="bcomp-list">'+kids.map(d=>bcompRow(d,d.concept||'')).join('')+'</div>';
+  h+='</div>';
   return h;
 }
 
+const TYPE_FILTERS=['전체','단품','파생','세트'];
+function typeMatch(p){if(typeFilter==='전체')return true;if(typeFilter==='세트')return p.type==='패키지';return (p.type||'단품')===typeFilter;}
 function filtered(){
   const q=query.toLowerCase();
   return state.products.filter(p=>{
     if(statusFilter!=='전체'&&STATUS[statusIdx(p)]!==statusFilter)return false;
     if(statusFilter==='진행 중'&&stageFilter&&p.stage!==stageFilter)return false;
+    if(!typeMatch(p))return false;
+    if(baseFilter&&!(p.id===baseFilter||p.baseId===baseFilter))return false; // 원본 + 그 파생/세트
     if(q&&!((p.name||'').toLowerCase().includes(q)||(p.goods||'').toLowerCase().includes(q)||(p.maker||'').toLowerCase().includes(q)))return false;
     return true;
   });
@@ -1290,6 +1343,7 @@ function setStatusFilter(s){
   render();
 }
 function setStageFilter(st){stageFilter=(stageFilter===st?null:st);render();}
+function setTypeFilter(t){typeFilter=t;if(t!=='파생'&&t!=='세트')baseFilter='';render();}
 
 function renderFilterBar(){
   const c={'전체':state.products.length,'진행 전':0,'진행 중':0,'완료':0};
@@ -1303,6 +1357,23 @@ function renderFilterBar(){
     sc.innerHTML=PROG_STAGES.map(s=>`<button class="fchip sm ${stageFilter===s?'on':''}" data-stage="${s}">${s}<span class="n">${cc[s]}</span></button>`).join('');
     sc.querySelectorAll('.fchip').forEach(b=>b.onclick=()=>setStageFilter(b.dataset.stage));
   }else{sc.style.display='none';sc.innerHTML='';}
+  // 유형 필터(전체/단품/파생/세트)
+  const tc={'전체':state.products.length,'단품':0,'파생':0,'세트':0};
+  state.products.forEach(p=>{const t=p.type==='패키지'?'세트':(p.type||'단품');if(tc[t]!=null)tc[t]++;});
+  $('#typeChips').innerHTML=TYPE_FILTERS.map(t=>`<button class="fchip sm ${typeFilter===t?'on':''}" data-type="${t}">${t}<span class="n">${tc[t]}</span></button>`).join('');
+  $('#typeChips').querySelectorAll('.fchip').forEach(b=>b.onclick=()=>setTypeFilter(b.dataset.type));
+  // 원본 선택(파생/세트 볼 때) — 원본 후보 = 파생/세트를 가진 제품
+  const baseIds=new Set(state.products.filter(p=>p.baseId).map(p=>p.baseId));
+  const bases=state.products.filter(p=>baseIds.has(p.id));
+  const showBase=(typeFilter==='파생'||typeFilter==='세트'||baseFilter)&&bases.length;
+  const bw=$('#baseFilterWrap');
+  if(showBase){
+    bw.style.display='flex';
+    bw.querySelector('span').textContent='원본 선택';
+    $('#baseFilter').innerHTML='<option value="">전체 원본</option>'+bases.map(b=>`<option value="${b.id}">${esc(dn(b))}</option>`).join('');
+    $('#baseFilter').value=baseFilter;
+    $('#baseFilter').onchange=e=>{baseFilter=e.target.value;render();};
+  }else{bw.style.display='none';}
   document.querySelectorAll('#vtoggle button').forEach(b=>b.classList.toggle('on',b.dataset.view===state.viewMode));
 }
 
@@ -1641,8 +1712,9 @@ function renderMain(){
   $('#editOv').onclick=()=>openProd(p.id);
   wireOverviewAttach(p);
   $('#openPrice').onclick=()=>openPrice(p.id);
-  const eb=$('#editBundle');if(eb)eb.onclick=()=>openProd(p.id);
-  const ad=$('#addDeriv');if(ad)ad.onclick=()=>derivAdd(p.id);
+  const eb=$('#editBundle');if(eb)eb.onclick=()=>openVariant('세트',p.baseId||p.id,p.id);
+  const ad=$('#addDeriv');if(ad)ad.onclick=()=>openVariant('파생',p.id);
+  const as=$('#addSet');if(as)as.onclick=()=>openVariant('세트',p.id);
   document.querySelectorAll('#main .bcomp').forEach(b=>b.onclick=()=>openDetail(b.dataset.pid));
   // price body
   const pb=$('#priceBody');
@@ -1735,12 +1807,10 @@ function openProd(id){
   $('#prodTitle').textContent=id?'소싱 제품 수정':'소싱 제품 추가';
   $('#p_name').value=p?p.name:'';
   $('#p_goods').value=p?(p.goods||''):'';
-  $('#p_type').value=p?(p.type||'단품'):'단품';
-  const others=state.products.filter(x=>x.id!==id);
-  $('#p_base').innerHTML='<option value="">(선택)</option>'+others.filter(x=>x.type!=='파생').map(x=>`<option value="${x.id}">${esc(dn(x))}</option>`).join('');
-  $('#p_base').value=p?(p.baseId||''):'';
-  $('#p_bundle').innerHTML=others.length?others.map(x=>`<label class="bpick"><input type="checkbox" value="${x.id}" ${(p&&(p.bundle||[]).includes(x.id))?'checked':''}><span>${esc(dn(x))} <em>${esc(x.stage||'후보')}</em></span></label>`).join(''):'<div class="tempty" style="padding:4px">묶을 다른 제품이 아직 없어요.</div>';
-  syncTypeRows();
+  // 등록은 기본(원본)만 — 유형/원본/구성은 상세의 파생·세트 만들기로 관리
+  $('#goodsRow').style.display=id?'':'none';
+  $('#typeRow').style.display='none';$('#baseRow').style.display='none';$('#bundleRow').style.display='none';
+  $('#prodTitle').textContent=id?(p&&p.type==='파생'?'파생 상품 수정':p&&p.type==='패키지'?'세트 상품 수정':'제품 수정'):'제품 등록';
   $('#p_concept').value=p?(p.concept||''):'';
   $('#p_spec').value=p?(p.spec||''):'';
   $('#p_sample').value=p?(p.sample||'대기'):'대기';
@@ -1773,15 +1843,12 @@ $('#p_save').onclick=()=>{
   if(maker==='__new__')maker=$('#p_makerNew').value.trim();
   if(maker)addMaker(maker);
   const fill=[...document.querySelectorAll('#p_fill input:checked')].map(c=>c.value);
-  const ptype=$('#p_type').value;
-  const bundle=ptype==='패키지'?[...document.querySelectorAll('#p_bundle input:checked')].map(c=>c.value):[];
-  const baseId=ptype==='파생'?$('#p_base').value:'';
-  const data={name,goods:$('#p_goods').value.trim(),maker,type:ptype,bundle,baseId,concept:$('#p_concept').value.trim(),spec:$('#p_spec').value.trim(),sample:$('#p_sample').value,memo:$('#p_memo').value.trim(),source:$('#p_source').value,market:$('#p_market').value.trim(),
+  const data={name,goods:$('#p_goods').value.trim(),maker,concept:$('#p_concept').value.trim(),spec:$('#p_spec').value.trim(),sample:$('#p_sample').value,memo:$('#p_memo').value.trim(),source:$('#p_source').value,market:$('#p_market').value.trim(),
     cost:$('#p_cost').value.trim(),moq:$('#p_moq').value.trim(),pricevar:$('#p_pricevar').value.trim(),lead:$('#p_lead').value.trim(),customs:$('#p_customs').value.trim(),
     fill,fillmaker:$('#p_fillmaker').value,container:$('#p_container').value,ibc:$('#p_ibc').value,label:$('#p_label').value.trim(),
     cert:$('#p_cert').value,patent:$('#p_patent').value,certs:tmpCerts.slice(),patentinfo:$('#p_patentinfo').value.trim()};
-  if(editingProd){const tgt=state.products.find(p=>p.id===editingProd);const prev=JSON.parse(JSON.stringify(tgt));Object.assign(tgt,data);logAct('edit',tgt,prev);}
-  else{const id=uid();const np={id,...data,stage:'후보',tests:[],docs:[],history:[{stage:'후보',date:today()}]};state.products.push(np);state.sel=id;logAct('add',np,null);}
+  if(editingProd){const tgt=state.products.find(p=>p.id===editingProd);const prev=JSON.parse(JSON.stringify(tgt));Object.assign(tgt,data);logAct('edit',tgt,prev);} // 유형/원본/구성은 유지
+  else{const id=uid();const np={id,...data,type:'단품',bundle:[],baseId:'',attachments:[],notes:[],fav:false,stage:'후보',tests:[],docs:[],history:[{stage:'후보',date:today()}]};state.products.push(np);state.sel=id;logAct('add',np,null);}
   save();closeOverlay();render();
 };
 $('#p_del').onclick=()=>{

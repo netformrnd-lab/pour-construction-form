@@ -3689,14 +3689,19 @@ function NodeEditForm({node,users,onSave,onDelete}){
       <label style={lbl}>담당자</label>
       <select value={f.assigneeId} onChange={e=>setF({...f,assigneeId:e.target.value})} style={{...inp,backgroundColor:"#fff",WebkitAppearance:"none",marginBottom:18}}>{users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>
 
-      {/* ⚡ 자동화 — 설정 없으면 동작 안 함(기존과 동일). 있으면 완료 전이 시 엔진이 실행. */}
+      {/* ⚡ 자동화 — 설정 없으면 동작 안 함(기존과 동일). 있으면 완료 전이 시 엔진이 실행. 라벨로 트리거→액션 구조를 명시(동작 동일). */}
       <div style={{borderTop:"1px dashed #E5E8EB",paddingTop:14,marginBottom:6}}>
-        <p style={{margin:"0 0 10px",fontSize:12.5,fontWeight:900,color:"#EA580C"}}>⚡ 자동화 <span style={{fontWeight:600,color:"#9CA3AF"}}>(선택)</span></p>
+        <p style={{margin:"0 0 10px",fontSize:12.5,fontWeight:900,color:"#EA580C"}}>⚡ 자동화 <span style={{fontWeight:600,color:"#9CA3AF"}}>(선택 · 안 켜면 수동 그대로)</span></p>
+        {/* 트리거(언제) — 현재는 완료 트리거. 시간 트리거는 고정업무로 안내 */}
+        <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:11}}>
+          <span style={{flexShrink:0,fontSize:10,fontWeight:900,color:"#9CA3AF",letterSpacing:0.3}}>언제(트리거)</span>
+          <span style={{padding:"6px 11px",borderRadius:9,backgroundColor:"#FFF7ED",border:"1.5px solid #FED7AA",color:"#EA580C",fontSize:12,fontWeight:800}}>⏱ 이 단계가 완료되면</span>
+        </div>
         <label onClick={()=>setF({...f,autoComplete:!f.autoComplete})} style={{display:"flex",alignItems:"center",gap:9,padding:"10px 12px",borderRadius:11,border:`1.5px solid ${f.autoComplete?"#FED7AA":"#E5E8EB"}`,backgroundColor:f.autoComplete?"#FFF7ED":"#fff",cursor:"pointer",marginBottom:12}}>
           <span style={{flexShrink:0,width:18,height:18,borderRadius:6,border:`2px solid ${f.autoComplete?"#F97316":"#CBD3DD"}`,backgroundColor:f.autoComplete?"#F97316":"#fff",color:"#fff",fontSize:12,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{f.autoComplete?"✓":""}</span>
           <span style={{fontSize:12.5,fontWeight:700,color:"#374151",lineHeight:1.4}}>🤖 자동 단계 <span style={{color:"#9CA3AF",fontWeight:600}}>— 앞 단계가 모두 끝나면 사람 없이 자동 완료</span></span>
         </label>
-        <label style={lbl}>완료 시 자동 생성 업무 <span style={{color:"#9CA3AF",fontWeight:600}}>(이 단계가 끝나면 만들 업무)</span></label>
+        <label style={lbl}>무엇을(액션) <span style={{color:"#9CA3AF",fontWeight:600}}>· 완료되면 자동 생성할 업무</span></label>
         {f.onDone.map((a,i)=>(
           <div key={a.id||i} style={{display:"flex",gap:6,marginBottom:8,alignItems:"center"}}>
             <input value={a.title} onChange={e=>upAction(i,{title:e.target.value})} placeholder="예: 민지 검수" style={{...inp,flex:1,padding:"10px 12px",fontSize:13}}/>
@@ -3704,7 +3709,8 @@ function NodeEditForm({node,users,onSave,onDelete}){
             <button onClick={()=>rmAction(i)} style={{flexShrink:0,width:34,height:38,borderRadius:10,border:"1.5px solid #FFE2E5",backgroundColor:"#FFF0F1",color:"#F04452",fontSize:15,fontWeight:700,cursor:"pointer"}}>×</button>
           </div>
         ))}
-        <button onClick={addAction} style={{width:"100%",padding:"10px 0",borderRadius:11,border:"1.5px dashed #BFDBFE",backgroundColor:"#EFF6FF",color:"#2563EB",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit",marginBottom:18}}>＋ 액션 추가</button>
+        <button onClick={addAction} style={{width:"100%",padding:"10px 0",borderRadius:11,border:"1.5px dashed #BFDBFE",backgroundColor:"#EFF6FF",color:"#2563EB",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit",marginBottom:10}}>＋ 액션 추가</button>
+        <p style={{margin:"0 0 8px",fontSize:10.5,color:"#9CA3AF",lineHeight:1.5}}>💡 매주·매월 같은 <b>시간 트리거</b>는 [📌 고정업무]에서 설정해요.</p>
       </div>
 
       <div style={{display:"flex",gap:8}}>

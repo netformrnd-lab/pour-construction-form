@@ -1647,12 +1647,12 @@ function priceReadout(c){
   return `<div class="readout">
     <div class="ro-top"><span class="ro-cost">총발생비 <b>${won(c.cost)}원</b> /개 · 옵션 ${c.colorN}종 · 총 발주 ${won(c.totalQty)}개</span>${refBadge(c)}</div>
     <div class="ro-cols">
-      <div class="ro-col normal"><span class="tag">일반가</span>
+      <div class="ro-col normal">
         <div class="ro-row"><span class="rk">판매가</span><span class="rv">${won(c.sell)}원</span></div>
         <div class="ro-row big"><span class="rk">개당</span><span class="rv ${c.nProfit>=0?'pos':'neg'}">${won(c.nProfit)}원<span class="mg">${(c.nMargin*100).toFixed(1)}%</span></span></div>
         <div class="ro-row"><span class="rk">총순익</span><span class="rv ${c.nTotal>=0?'pos':'neg'}">${won(c.nTotal)}원</span></div>
       </div>
-      <div class="ro-col raised"><span class="tag">15%인상가</span>
+      <div class="ro-col raised">
         <div class="ro-row"><span class="rk">판매가</span><span class="rv">${won(c.raised)}원</span></div>
         <div class="ro-row big"><span class="rk">개당</span><span class="rv ${c.rProfit>=0?'pos':'neg'}">${won(c.rProfit)}원<span class="mg">${(c.rMargin*100).toFixed(1)}%</span></span></div>
         <div class="ro-row"><span class="rk">총순익</span><span class="rv ${c.rTotal>=0?'pos':'neg'}">${won(c.rTotal)}원</span></div>

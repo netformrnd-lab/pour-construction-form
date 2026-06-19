@@ -2453,6 +2453,7 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
   const stages=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed&&!t.parentId).sort((a,b)=>(a.seq||0)-(b.seq||0));
   const [selId,setSelId]=useState(stages[0]?.id||null);
   const [canvasOpen,setCanvasOpen]=useState(true);   // 통합 캔버스(로드단계+프로세스 가지치기) 펼침
+  const [canvasEdit,setCanvasEdit]=useState(null);   // 캔버스에서 탭한 노드 편집
   const [dateOpen,setDateOpen]=useState(null);   // 인라인 날짜 편집 중인 업무 id
   const [moreOpen,setMoreOpen]=useState(null);   // 행 컨트롤(⋯) 펼친 업무 id
   const todayISO=new Date().toISOString().slice(0,10);
@@ -2565,18 +2566,26 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
           if(!ts.length) return null;
           const idset=new Set(ts.map(t=>t.id));
           const edges0=ts.filter(t=>t.parentId&&idset.has(t.parentId)).map(t=>({id:"e_"+t.id,from:t.parentId,to:t.id}));
-          const LAY=flowLayout(ts.map(t=>({id:t.id})),edges0);
+          const need=ts.some(t=>t.x==null||t.y==null);
+          const LAY=need?flowLayout(ts.map(t=>({id:t.id})),edges0):{pos:{},maxRow:0};
           const kids=new Set(ts.filter(t=>t.parentId).map(t=>t.parentId));
           const stOf=(t)=>{ if(kids.has(t.id)){ const cs=ts.filter(x=>x.parentId===t.id); return cs.length&&cs.every(c=>c.status==="done")?"done":undefined; } return t.status==="done"?"done":(t.status==="inprogress"?"ready":"wait"); };
-          const nodes=ts.map(t=>{const pos=LAY.pos[t.id]||{x:0,y:0};const m=Mof(t.assigneeId);return {id:t.id,x:pos.x,y:pos.y,title:t.title,sub:m.name,color:m.color,status:stOf(t)};});
+          const nodes=ts.map(t=>{const pos=(t.x!=null&&t.y!=null)?{x:t.x,y:t.y}:(LAY.pos[t.id]||{x:24,y:24});const m=Mof(t.assigneeId);return {id:t.id,x:pos.x,y:pos.y,title:t.title,sub:m.name,color:m.color,status:stOf(t)};});
+          const maxY=nodes.reduce((mx,n)=>Math.max(mx,n.y),0);
+          const ancestors=(id)=>{const out=new Set();let p=ts.find(t=>t.id===id)?.parentId;while(p){out.add(p);p=ts.find(t=>t.id===p)?.parentId;}return out;};
           return(
             <div style={{marginBottom:14}}>
               <button onClick={()=>setCanvasOpen(o=>!o)} style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"10px 13px",borderRadius:12,border:"1px solid #E5E8EB",background:"#fff",cursor:"pointer",fontFamily:"inherit",marginBottom:canvasOpen?8:0}}>
                 <span style={{fontSize:13,fontWeight:900,color:"#0F1F5C"}}>🧩 통합 캔버스</span>
-                <span style={{flex:1,minWidth:0,textAlign:"left",fontSize:10.5,fontWeight:600,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>로드단계 → 프로세스 가지치기 한 화면 · 노드 탭 = 완료 토글</span>
+                <span style={{flex:1,minWidth:0,textAlign:"left",fontSize:10.5,fontWeight:600,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>드래그=이동 · 노드 아래 ●드래그=하위(프로세스)로 잇기 · 탭=편집</span>
                 <span style={{fontSize:12,color:"#9CA3AF"}}>{canvasOpen?"▲":"▼"}</span>
               </button>
-              {canvasOpen&&<FlowView mode="progress" height={Math.max(300,Math.min(620,(LAY.maxRow+1)*ROW_STEP+90))} nodes={nodes} edges={edges0} onNodeTap={node=>{const t=ts.find(x=>x.id===node.id);if(!t||kids.has(t.id))return;up("tasks",t.id,{status:t.status==="done"?"todo":"done"});}}/>}
+              {canvasOpen&&<FlowView mode="edit" height={Math.max(320,Math.min(680,maxY+NODE_H+120))} nodes={nodes} edges={edges0}
+                selectedId={canvasEdit?canvasEdit.id:null}
+                onNodeTap={node=>setCanvasEdit(ts.find(x=>x.id===node.id)||null)}
+                onNodeDragEnd={(id,x,y)=>up("tasks",id,{x,y})}
+                onConnect={(from,to)=>{ if(from===to||ancestors(from).has(to))return; up("tasks",to,{parentId:from,seq:kidsOf(from).length}); }}
+                onDeleteEdge={eid=>{ const cid=eid.slice(2); up("tasks",cid,{parentId:null,seq:stages.length}); }}/>}
             </div>
           );
         })()}
@@ -2684,6 +2693,23 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
           </div>
         )}
       </div>
+      <Sheet open={!!canvasEdit} onClose={()=>setCanvasEdit(null)} title="🧩 단계·업무 편집">
+        {canvasEdit&&(()=>{ const t=D.tasks.find(x=>x.id===canvasEdit.id); if(!t) return null; const inp={width:"100%",padding:"11px 13px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:14,fontWeight:600,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}; const lb={display:"block",fontSize:12,fontWeight:700,color:"#374151",margin:"12px 0 5px"}; return(
+          <div style={{marginTop:8}}>
+            <label style={lb}>이름</label>
+            <input key={t.id} defaultValue={t.title||""} onBlur={e=>up("tasks",t.id,{title:e.target.value})} style={inp}/>
+            {team&&(<><label style={lb}>담당자 <span style={{fontWeight:600,color:"#9CA3AF"}}>(이 단계를 누가)</span></label>
+              <select value={t.assigneeId||""} onChange={e=>up("tasks",t.id,{assigneeId:e.target.value})} style={{...inp,background:"#fff",WebkitAppearance:"none"}}>{MEM.map(m=><option key={m.id||"none"} value={m.id}>{m.name}</option>)}</select></>)}
+            <label style={lb}>상태</label>
+            <div style={{display:"flex",gap:7}}>
+              {[["todo","할일"],["inprogress","진행중"],["done","완료"]].map(([s,l])=>{const on=t.status===s;const c=STATUS_MAP[s].color;return(<button key={s} onClick={()=>up("tasks",t.id,s==="done"?{status:s,doneAt:new Date().toISOString(),doneByName:(D.users.find(u=>u.id===t.assigneeId)||{}).name||""}:{status:s})} style={{flex:1,padding:"9px 0",borderRadius:10,border:`1.5px solid ${on?c:"#E5E8EB"}`,background:on?c+"18":"#fff",color:on?c:"#6B7280",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>);})}
+            </div>
+            <button onClick={()=>addKid(t.id)} style={{width:"100%",marginTop:14,padding:"11px 0",borderRadius:11,border:"1.5px solid #FDBA74",background:"#FFF7ED",color:"#EA580C",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>＋ 하위 업무(프로세스) 추가</button>
+            <p style={{margin:"8px 2px 0",fontSize:10.5,color:"#9CA3AF",lineHeight:1.5}}>※ 캔버스에서 노드 아래 ●을 다른 노드로 끌면 그 노드의 하위(프로세스)로 이어집니다.</p>
+            <button onClick={()=>{delTask(t);setCanvasEdit(null);}} style={{width:"100%",marginTop:10,padding:"11px 0",borderRadius:11,border:"1.5px solid #FFE2E5",background:"#FFF0F1",color:"#F04452",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🗑 삭제</button>
+          </div>
+        );})()}
+      </Sheet>
     </div>
   );
 }
@@ -2692,7 +2718,9 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
   const [processProj,setProcessProj]=useState(null);
   const [filter,setFilter]=useState("mine");
   const [groupFilter,setGroupFilter]=useState("all");
-  const [pview,setPview]=useState(()=>{const v=_projInitView;_projInitView=null;return v||"list";});   // list | process | launch
+  const _iv=_projInitView;_projInitView=null;   // 오늘 인계카드 진입값 1회 소비
+  const [pview,setPview]=useState((_iv==="launch"||_iv==="process")?"canvas":(_iv||"list"));   // list | canvas
+  const [canvasSub,setCanvasSub]=useState(_iv==="launch"?"template":"roadmap");   // 캔버스 내부: roadmap(로드맵·프로세스) | template(프로세스 템플릿)
   const [projDetail,setProjDetail]=useState(null);
   const tpls=D.launchTemplates||[];
   const [taskForm,setTaskForm]=useState({title:"",status:"todo",dueDate:"",memo:"",assigneeId:""});
@@ -2794,16 +2822,22 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
   const ST=STATUS_MAP;
   const pTabs=(
     <div style={{display:"flex",gap:6,marginBottom:12}}>
-      {[["list","▦ 프로젝트"],["process","🗺 로드맵"],["launch","🚀 프로세스"]].map(([k,l])=>(
+      {[["list","▦ 프로젝트"],["canvas","🧩 로드맵·프로세스"]].map(([k,l])=>(
         <button key={k} onClick={()=>setPview(k)} style={{flex:1,padding:"9px 0",borderRadius:10,border:"none",cursor:"pointer",backgroundColor:pview===k?"#0F1F5C":"#F2F4F6",color:pview===k?"#fff":"#374151",fontWeight:800,fontSize:12.5,fontFamily:"inherit"}}>{l}</button>
       ))}
     </div>
   );
-  if(pview==="launch") return(<div><div style={{padding:"14px 16px 0"}}>{pTabs}</div><LaunchPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/></div>);
-  if(pview==="process") return(
+  if(pview==="canvas") return(
     <div style={{padding:"14px 16px 24px"}}>
       {pTabs}
-      <p style={{margin:"0 2px 12px",fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>프로젝트별 로드맵 · 로드단계를 계층형으로 보고 · 각 로드단계의 방안은 프로세스</p>
+      <div style={{display:"flex",background:"#F2F4F6",borderRadius:12,padding:3,marginBottom:14}}>
+        {[["roadmap","🗺 프로젝트 로드맵"],["template","🚀 프로세스 템플릿"]].map(([k,l])=>(
+          <button key={k} onClick={()=>setCanvasSub(k)} style={{flex:1,padding:"8px 0",borderRadius:9,border:"none",cursor:"pointer",background:canvasSub===k?"#fff":"transparent",color:canvasSub===k?"#0F1F5C":"#6B7280",fontWeight:canvasSub===k?800:600,fontSize:12.5,fontFamily:"inherit",boxShadow:canvasSub===k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{l}</button>
+        ))}
+      </div>
+      {canvasSub==="template"&&<LaunchPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
+      {canvasSub==="roadmap"&&(<>
+      <p style={{margin:"0 2px 12px",fontSize:11,color:"#9CA3AF",lineHeight:1.5}}>프로젝트별 로드맵·프로세스를 한 캔버스에서 · 카드를 열면 완전 편집형 캔버스</p>
       {((D.manuals||[]).length>0||(D.launchTemplates||[]).length>0)&&(
         <div style={{marginBottom:16,background:"#FFFBF5",border:"1px solid #FBE5C8",borderRadius:14,padding:"12px 13px"}}>
           <p style={{margin:"0 0 9px",fontSize:12,fontWeight:900,color:"#EA580C"}}>🗺 로드맵 템플릿 <span style={{fontWeight:700,color:"#C08A4A"}}>· 저장된 표준 (새 프로젝트로 재사용)</span></p>
@@ -2815,7 +2849,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
                   <p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.name}</p>
                   <p style={{margin:"2px 0 0",fontSize:10,color:"#9CA3AF"}}><span style={{color:"#7C3AED",fontWeight:800}}>프로세스</span> · 마인드맵 · 단계 {(t.nodes||[]).length}</p>
                 </div>
-                <button onClick={()=>setPview("launch")} style={{flexShrink:0,padding:"6px 10px",borderRadius:9,border:"1.5px solid #DDD6FE",background:"#FAF9FF",color:"#7C3AED",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🚀 프로세스 탭에서</button>
+                <button onClick={()=>setCanvasSub("template")} style={{flexShrink:0,padding:"6px 10px",borderRadius:9,border:"1.5px solid #DDD6FE",background:"#FAF9FF",color:"#7C3AED",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🚀 템플릿 보기</button>
               </div>
             ))}
           </div>
@@ -2856,6 +2890,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
       })()}
       {roadmapProj&&<ProjectRoadmap D={D} proj={roadmapProj} up={up} add={add} rm={rm} onClose={()=>setRoadmapProj(null)} onOpenProcess={(p)=>{setRoadmapProj(null);setProcessProj(p);}}/>}
       {processProj&&<ProjectProcessEditor D={D} proj={processProj} cu={cu} add={add} up={up} rm={rm} onClose={()=>setProcessProj(null)}/>}
+      </>)}
     </div>
   );
   return(

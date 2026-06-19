@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { STATE_DOC, colDoc, META_DOC, extDoc, extCol, getDoc, getDocs, onSnapshot, setDoc, uploadTaskPhoto, deleteTaskPhoto } from "./firebase.js";
 import { idbSaveMirror, idbLoadMirror, idbPushSnapshot, idbListSnapshots, idbGetSnapshot } from "./durable.js";
+import { numF, skCur, mkCur, calcSegDone } from "./kpi.js";
+import { applyAutomation, instantiateLaunch } from "./launch.js";
 
 // Firestore 단일 문서에 저장할 공유 데이터 키 (currentUser는 기기별 로컬이라 제외)
 const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","weekGoals","launchTemplates","manuals","trash"];
@@ -138,19 +140,31 @@ const INIT={
   trash:[],   // 소프트 삭제 보관소 — 삭제된 모든 데이터는 여기 남고 복구 가능(데이터 자산화)
   // 출시 프로세스 템플릿(마인드맵) — 신상 SKU를 찍어내는 표준 흐름. 동일 프로세스 1개 기본 제공.
   launchTemplates:[
-    {id:"tpl_launch", name:"신상 출시 표준 프로세스", createdAt:"2026-06-12T00:00:00.000Z",
+    {id:"tpl_launch", name:"신상 출시 표준 프로세스", version:2, createdAt:"2026-06-12T00:00:00.000Z",
+      // 로드단계(7) + 단계별 액션(완료 시 자동 생성 업무) + 담당자(부서 매핑). 인스턴스 생성 시 각 노드→업무, 출시 완료는 sk_launch(신규 SKU 출시 수)로 자동 집계.
       nodes:[
-        {id:"n1", title:"소싱·원가·납기 확정", roleLabel:"MD",    assigneeId:"songhee", x:24,  y:24},
-        {id:"n2", title:"제품 교육·지식 전파",  roleLabel:"본부장", assigneeId:"songhee", x:172, y:118},
-        {id:"n3", title:"소스 확보 → 상품 등록", roleLabel:"",     assigneeId:"minji",   x:30,  y:214},
-        {id:"n4", title:"출시 배너 → 주문 세팅", roleLabel:"",     assigneeId:"chaerim", x:178, y:310},
-        {id:"n5", title:"B2B 안내·실사용 콘텐츠", roleLabel:"",     assigneeId:"ran",     x:36,  y:406},
+        {id:"n1", title:"소싱·원가·납기 확정",   roleLabel:"MD",    assigneeId:"songhee", x:24,  y:24,
+          auto:{onDone:[{id:"n1a1",kind:"createTask",title:"원가·마진표 검수",assigneeId:"songhee"}]}, autoComplete:false},
+        {id:"n2", title:"제품 교육·지식 전파",    roleLabel:"MD",    assigneeId:"songhee", x:178, y:120,
+          auto:{onDone:[{id:"n2a1",kind:"createTask",title:"판매 포인트·셀링 카피 정리",assigneeId:"minji"}]}, autoComplete:false},
+        {id:"n3", title:"썸네일·상세 디자인",     roleLabel:"디자인", assigneeId:"minji",   x:30,  y:216,
+          auto:{onDone:[{id:"n3a1",kind:"createTask",title:"상세 카피·표시사항 검수",assigneeId:"songhee"}]}, autoComplete:false},
+        {id:"n4", title:"상품 등록·자사몰 노출",  roleLabel:"등록",   assigneeId:"minji",   x:184, y:312,
+          auto:{onDone:[{id:"n4a1",kind:"createTask",title:"자사몰 노출·가격 확인",assigneeId:"minji"}]}, autoComplete:false},
+        {id:"n5", title:"마켓 동시 등록",         roleLabel:"등록",   assigneeId:"minji",   x:36,  y:408,
+          auto:{onDone:[{id:"n5a1",kind:"createTask",title:"마켓 노출·옵션·가격 검수",assigneeId:"minji"}]}, autoComplete:false},
+        {id:"n6", title:"출시 배너·주문 세팅",    roleLabel:"운영",   assigneeId:"chaerim", x:190, y:504,
+          auto:{onDone:[{id:"n6a1",kind:"createTask",title:"주문·결제·배송 테스트",assigneeId:"chaerim"}]}, autoComplete:false},
+        {id:"n7", title:"B2B 안내·실사용 콘텐츠", roleLabel:"영업",   assigneeId:"ran",     x:42,  y:600,
+          auto:{onDone:[{id:"n7a1",kind:"createTask",title:"B2B 안내 발송·반응 체크",assigneeId:"ran"}]}, autoComplete:false},
       ],
       edges:[
         {id:"e1", from:"n1", to:"n2"},
         {id:"e2", from:"n2", to:"n3"},
         {id:"e3", from:"n3", to:"n4"},
         {id:"e4", from:"n4", to:"n5"},
+        {id:"e5", from:"n5", to:"n6"},
+        {id:"e6", from:"n6", to:"n7"},
       ],
     },
   ],
@@ -160,28 +174,7 @@ const pct=(c,t)=>t===0||t==null?0:Math.max(0,Math.min(100,Math.round((c/t)*100))
 const weekKey=(d=new Date())=>{const x=new Date(d);const off=(x.getDay()+6)%7;x.setDate(x.getDate()-off);x.setHours(0,0,0,0);return x.toISOString().slice(0,10);};
 const weekLabel=(key)=>{const m=new Date(key);const su=new Date(m);su.setDate(su.getDate()+6);const f=z=>`${z.getMonth()+1}/${z.getDate()}`;return `${f(m)}~${f(su)}`;};
 // 메인KPI2(B2B): 서브KPI 현재값 = 자식 프로젝트 매출 성과(resultValue) 합계 / 메인KPI1·3: 수동값
-const numF=(x)=>{const n=Number(x);return isFinite(n)?n:0;};   // 문자열·NaN·Infinity → 0 (집계 방탄)
-// 서브KPI 현재값:
-//  · 메인2(원) 자동 → 자식 프로젝트 매출(resultValue) 합계
-//  · 운영(%) 자동 → 자식 프로젝트 진척(progress) 평균  ← 업무→진척→운영KPI 롤업
-//  · 그 외/수동지정 → currentValue
-const skCur=(sk,projects)=>{
-  if(sk.launchCount) return (projects||[]).filter(p=>p.templateId&&(p.progress||0)>=100).length;   // 출시 완료(progress 100%) SKU 자동 집계
-  // 로드맵 템플릿 완료 집계(옵션): 이 지표를 가리키는 프로젝트가 완료(100%)되면 기존 누적분에 +1 (원/%·출시집계 지표 제외 — 매출·진척·출시 롤업 보호)
-  if(sk.unit!=="원"&&sk.unit!=="%"&&!sk.launchCount){ const cc=(projects||[]).filter(p=>p.countKPIId===sk.id); if(cc.length) return numF(sk.currentValue)+cc.filter(p=>(p.progress||0)>=100).length; }
-  if(sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride) return (projects||[]).filter(p=>p.subKPIId===sk.id).reduce((a,p)=>a+numF(p.resultValue),0);
-  if(sk.unit==="%"&&!sk.manualOverride){ const ch=(projects||[]).filter(p=>p.subKPIId===sk.id); if(ch.length) return Math.round(ch.reduce((a,p)=>a+numF(p.progress),0)/ch.length); }
-  return numF(sk.currentValue);
-};
-// 메인KPI 현재값:
-//  · 원 → 자식 서브KPI 합계
-//  · 운영(원 아님) 자동 → 자식 서브KPI 완료비율 합(= 환산 달성 단위), 자식 없으면 currentValue
-//  · 수동지정(manualOverride) → currentValue
-const mkCur=(mk,subKPIs,projects)=>{
-  if(mk.unit==="원") return subKPIs.filter(s=>s.mainKPIId===mk.id&&!s.launchCount).reduce((a,s)=>a+skCur(s,projects),0);
-  if(!mk.manualOverride){ const subs=subKPIs.filter(s=>s.mainKPIId===mk.id&&!s.launchCount); if(subs.length){ const eq=subs.reduce((a,s)=>{const t=numF(s.targetValue); return a+(t>0?Math.min(1,skCur(s,projects)/t):0);},0); return Math.round(eq*10)/10; } }
-  return numF(mk.currentValue);
-};
+// KPI 집계 헬퍼는 ./kpi.js로 추출(동작 동일 + 테스트 가능). numF·skCur·mkCur·calcSegDone import.
 const fmt=(n,u)=>{
   if(!n||isNaN(n)) return "0"+(u||"");
   if(u==="원"&&n>=100000000) return (n/100000000).toFixed(1)+"억";
@@ -658,14 +651,22 @@ export default function App(){
   const recalcProg=(state)=>{
     const tasks=state.tasks||[];
     const parentIds=new Set(tasks.filter(t=>t.parentId).map(t=>t.parentId));   // 하위를 가진 업무(상위)는 진행률 집계 제외
+    const doneIds=new Set(tasks.filter(t=>t.status==="done").map(t=>t.id));     // 완료 업무 id(구간 완료 판정용)
     let changed=false;
     const projects=(state.projects||[]).map(pr=>{
-      if(pr.progressManual) return pr;
-      const real=tasks.filter(t=>t.projectId===pr.id&&!t.isFixed&&!parentIds.has(t.id)&&t.status!=="hold");   // 보류 업무는 진척 계산에서 제외
-      if(real.length===0) return pr;
-      const auto=Math.round(real.filter(t=>t.status==="done").length/real.length*100);
-      if(auto===(pr.progress||0)) return pr;
-      changed=true; return {...pr,progress:auto};
+      let np=pr;
+      // ① 진척 자동 산출(기존 동작 동일 — 수동지정/업무없음/동일값이면 유지)
+      if(!pr.progressManual){
+        const real=tasks.filter(t=>t.projectId===pr.id&&!t.isFixed&&!parentIds.has(t.id)&&t.status!=="hold");   // 보류 업무는 진척 계산에서 제외
+        if(real.length>0){
+          const auto=Math.round(real.filter(t=>t.status==="done").length/real.length*100);
+          if(auto!==(pr.progress||0)){ np={...np,progress:auto}; changed=true; }
+        }
+      }
+      // ② 구간(세그먼트) 완료 집계(추가) — segments 없으면 calcSegDone가 null → 무동작(기존과 동일)
+      const seg=calcSegDone(np,doneIds);
+      if(seg!==null){ np={...np,segDoneByKpi:seg}; changed=true; }
+      return np;
     });
     return changed?{...state,projects}:state;
   };
@@ -2888,6 +2889,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
                     </div>
                   );})()}
                   <ProjStageFlow D={D} proj={proj} cu={cu} up={up}/>
+                  <SegmentEditor D={D} proj={proj} up={up}/>
                   <div style={{padding:"12px 16px 0",display:"flex",alignItems:"center",gap:8}}>
                     <span style={{fontSize:12,fontWeight:800,color:"#4B5563",flexShrink:0}}>🏷 거래처유형</span>
                     <select value={proj.dealerType||""} onChange={e=>up("projects",proj.id,{dealerType:e.target.value})} style={{flex:1,padding:"7px 10px",borderRadius:8,fontSize:12,fontWeight:700,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",color:proj.dealerType?(DT[proj.dealerType]?.color||"#111827"):"#9CA3AF",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="">미지정</option>{DEALER_TYPES.map(d=><option key={d.code} value={d.code}>{d.code} · {d.label} ({d.price})</option>)}</select>
@@ -3287,61 +3289,57 @@ const myReadyProcess=(D,uid)=>{
   return out;
 };
 const ST_COLOR={done:"#00C073",ready:"#F97316",wait:"#9CA3AF"};
-// ───────────── 자동화 실행 엔진 (기존 동작에 "얹기"만 — auto 설정이 없으면 완전 무동작) ─────────────
-// 트리거: 업무 status==="done" 전이. 그 업무의 auto.onDone 액션 실행 + autoComplete 후속 단계 연쇄 완료.
-// 순수 함수(state→state). visited 가드로 무한루프 차단. 자동 변경은 byName:"자동화"로 이력에 남김.
-const AUTO_ACTOR={id:null,name:"자동화"};
-const applyAutomation=(state,doneId,actor)=>{
-  if(!Array.isArray(state.tasks)) return state;
-  let tasks=state.tasks.slice();
-  const created=[];
-  const visited=new Set();
-  const genId=()=>"t"+Date.now()+Math.random().toString(36).slice(2,6);
-  const cascade=(tid)=>{
-    if(visited.has(tid)) return;   // 같은 업무 두 번 처리 금지(루프 가드)
-    visited.add(tid);
-    const t=tasks.find(x=>x.id===tid);
-    if(!t) return;
-    // ① 완료 시 자동 생성 업무(onDone createTask)
-    const acts=(t.auto&&Array.isArray(t.auto.onDone))?t.auto.onDone:[];
-    acts.forEach(a=>{
-      if(a&&a.kind==="createTask"&&(a.title||"").trim()){
-        const at=new Date().toISOString();
-        created.push({id:genId(),title:a.title.trim(),projectId:t.projectId||"",assigneeId:a.assigneeId||t.assigneeId||"",
-          type:"general",status:"todo",isFixed:false,weekDay:null,weekSlot:null,dueDate:"",
-          memo:`⚡ 자동 생성 · '${t.title}' 완료 시`,attachments:[],auto:null,autoFrom:tid,
-          statusLog:[{status:"todo",at,by:actor?.id||null,byName:AUTO_ACTOR.name}]});
-      }
-    });
-    // ② autoComplete 후속 단계: 선행(deps)이 모두 done이면 자동 완료 → 연쇄
-    tasks.filter(x=>Array.isArray(x.deps)&&x.deps.includes(tid)).forEach(dep=>{
-      if(dep.status==="done"||!dep.autoComplete) return;
-      const allDone=dep.deps.every(d=>{const dt=tasks.find(z=>z.id===d);return dt?dt.status==="done":true;});
-      if(!allDone) return;
-      const at=new Date().toISOString();
-      tasks=tasks.map(x=>x.id===dep.id?{...x,status:"done",doneAt:at,doneBy:actor?.id||null,doneByName:AUTO_ACTOR.name,
-        statusLog:[...(Array.isArray(x.statusLog)?x.statusLog:[]),{status:"done",at,by:actor?.id||null,byName:AUTO_ACTOR.name}]}:x);
-      cascade(dep.id);   // 완료된 후속이 또 다른 후속을 깨움
-    });
-  };
-  cascade(doneId);
-  return created.length?{...state,tasks:[...tasks,...created]}:{...state,tasks};
-};
-// 템플릿 1개 → 신규 SKU 프로젝트 + 단계별 업무(선행연결·담당자배정) 자동 생성
-const instantiateLaunch=({tpl,productName,mainKPIId,subKPIId,dealerType,add})=>{
-  const ts=Date.now();
-  const projId="p"+ts;
-  const taskIdByNode={};
-  tpl.nodes.forEach((n,i)=>{taskIdByNode[n.id]="t"+ts+"_"+i;});
-  const predsOf=(nodeId)=>tpl.edges.filter(e=>e.to===nodeId).map(e=>e.from);
-  const assignees=[...new Set(tpl.nodes.map(n=>n.assigneeId).filter(Boolean))];
-  const owner=tpl.nodes[0]?.assigneeId||assignees[0]||null;
-  add("projects",{id:projId,mainKPIId:mainKPIId||null,subKPIId:subKPIId||null,title:`${productName} 출시`,productName,templateId:tpl.id,assigneeId:owner,collaboratorIds:assignees.filter(a=>a!==owner),group:"신상 출시",priority:"high",status:"active",progress:0,resultValue:0,dealerType:dealerType||""});
-  tpl.nodes.forEach((n,i)=>{
-    const deps=predsOf(n.id).map(pid=>taskIdByNode[pid]).filter(Boolean);
-    add("tasks",{id:taskIdByNode[n.id],title:n.roleLabel?`[${n.roleLabel}] ${n.title}`:n.title,projectId:projId,assigneeId:n.assigneeId||owner,type:"general",status:"todo",weekDay:null,weekSlot:null,isFixed:false,dueDate:"",memo:"",attachments:[],auto:n.auto||null,autoComplete:!!n.autoComplete,launchNode:n.id,step:i,deps});
-  });
-};
+// 자동화 실행 엔진 + 출시 인스턴스 생성은 ./launch.js로 추출(동작 동일 + 테스트 가능). applyAutomation·instantiateLaunch·AUTO_ACTOR import.
+// 프로젝트 상세 — "구간(세그먼트) KPI": 로드단계(업무) 여러 개를 묶어 카운트형 KPI에 연결. 묶음 단계가 모두 done이면 그 KPI에 +1(집계는 recalcProg→skCur).
+function SegmentEditor({D,proj,up}){
+  const segs=Array.isArray(proj.segments)?proj.segments:[];
+  const tasks=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed);
+  const countKPIs=D.subKPIs.filter(s=>s.unit!=="원"&&s.unit!=="%"&&!s.launchCount);   // 카운트형 KPI(원/%·출시집계 제외)
+  const [open,setOpen]=useState(false);
+  const [name,setName]=useState("");
+  const [picked,setPicked]=useState([]);
+  const [kpiId,setKpiId]=useState(countKPIs[0]?.id||"");
+  if(countKPIs.length===0||tasks.length===0) return null;   // 연결할 KPI나 단계가 없으면 숨김
+  const doneIds=new Set(tasks.filter(t=>t.status==="done").map(t=>t.id));
+  const kpiName=(id)=>D.subKPIs.find(s=>s.id===id)?.title||"미연결";
+  const toggle=(id)=>setPicked(p=>p.includes(id)?p.filter(x=>x!==id):[...p,id]);
+  const addSeg=()=>{ if(!name.trim()||!picked.length||!kpiId)return; up("projects",proj.id,{segments:[...segs,{id:"seg"+Date.now(),name:name.trim(),stageIds:picked,kpiId}]}); setName(""); setPicked([]); setOpen(false); };
+  const rmSeg=(id)=>up("projects",proj.id,{segments:segs.filter(s=>s.id!==id)});
+  const cln=(t)=>t.replace(/^\[[^\]]+\]\s*/,"");
+  const inp={width:"100%",padding:"9px 11px",borderRadius:9,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",fontSize:13};
+  return(
+    <div style={{padding:"14px 16px 0"}}>
+      <p style={{margin:"0 0 8px",fontSize:12,fontWeight:800,color:"#4B5563"}}>📊 구간 KPI <span style={{fontWeight:600,color:"#9CA3AF"}}>· 로드단계를 묶어 KPI 카운트</span></p>
+      {segs.map(s=>{ const comp=Array.isArray(s.stageIds)&&s.stageIds.length>0&&s.stageIds.every(id=>doneIds.has(id)); const dn=(s.stageIds||[]).filter(id=>doneIds.has(id)).length; return(
+        <div key={s.id} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 11px",borderRadius:10,border:`1px solid ${comp?"#BBF7D0":"#EEF0F2"}`,background:comp?"#F0FDF4":"#fff",marginBottom:6}}>
+          <span style={{flexShrink:0,fontSize:10,fontWeight:800,color:comp?"#16A34A":"#9CA3AF",background:comp?"#DCFCE7":"#F3F4F6",padding:"2px 7px",borderRadius:6}}>{comp?"✓ 완료":`${dn}/${(s.stageIds||[]).length}`}</span>
+          <div style={{flex:1,minWidth:0}}><div style={{fontSize:13,fontWeight:700,color:"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.name}</div><div style={{fontSize:10.5,color:"#9CA3AF"}}>단계 {(s.stageIds||[]).length} → {kpiName(s.kpiId)}</div></div>
+          <button onClick={()=>rmSeg(s.id)} style={{flexShrink:0,width:28,height:28,borderRadius:8,border:"1.5px solid #FFE2E5",background:"#FFF0F1",color:"#F04452",fontSize:14,fontWeight:700,cursor:"pointer"}}>×</button>
+        </div>);})}
+      {open?(
+        <div style={{padding:12,borderRadius:12,border:"1.5px solid #FED7AA",background:"#FFFBF5",marginTop:2}}>
+          <input value={name} onChange={e=>setName(e.target.value)} placeholder="구간명 예: 소싱·등록 완료" style={{...inp,marginBottom:9}}/>
+          <p style={{margin:"0 0 6px",fontSize:11,fontWeight:700,color:"#6B7280"}}>묶을 단계 선택 ({picked.length})</p>
+          <div style={{maxHeight:150,overflowY:"auto",marginBottom:9}}>
+            {tasks.map(t=>{const on=picked.includes(t.id);return(
+              <label key={t.id} onClick={()=>toggle(t.id)} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 9px",borderRadius:8,border:`1.5px solid ${on?"#FDBA74":"#EEF0F2"}`,background:on?"#FFF7ED":"#fff",cursor:"pointer",marginBottom:4}}>
+                <span style={{flexShrink:0,width:16,height:16,borderRadius:5,border:`2px solid ${on?"#F97316":"#CBD3DD"}`,background:on?"#F97316":"#fff",color:"#fff",fontSize:10,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{on?"✓":""}</span>
+                <span style={{fontSize:12.5,fontWeight:600,color:"#374151",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cln(t.title)}</span>
+              </label>);})}
+          </div>
+          <p style={{margin:"0 0 6px",fontSize:11,fontWeight:700,color:"#6B7280"}}>연결할 KPI</p>
+          <select value={kpiId} onChange={e=>setKpiId(e.target.value)} style={{...inp,backgroundColor:"#fff",WebkitAppearance:"none",marginBottom:10}}>{countKPIs.map(s=><option key={s.id} value={s.id}>{s.title}</option>)}</select>
+          <div style={{display:"flex",gap:7}}>
+            <button onClick={()=>{setOpen(false);setName("");setPicked([]);}} style={{flex:"0 0 auto",padding:"9px 14px",borderRadius:10,border:"1.5px solid #E5E8EB",background:"#fff",color:"#6B7280",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>취소</button>
+            <button onClick={addSeg} disabled={!name.trim()||!picked.length} style={{flex:1,padding:"9px 0",borderRadius:10,border:"none",background:(name.trim()&&picked.length)?"#F97316":"#E5E8EB",color:(name.trim()&&picked.length)?"#fff":"#9CA3AF",fontSize:13,fontWeight:800,cursor:(name.trim()&&picked.length)?"pointer":"not-allowed",fontFamily:"inherit"}}>구간 추가</button>
+          </div>
+        </div>
+      ):(
+        <button onClick={()=>setOpen(true)} style={{width:"100%",padding:"9px 0",borderRadius:10,border:"1.5px dashed #FDBA74",background:"#FFF7ED",color:"#EA580C",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>＋ 구간 추가</button>
+      )}
+    </div>
+  );
+}
 // 프로젝트 상세 안의 "단계 흐름(협업 인계)" 섹션 — 출시 SKU(launchNode) 인계 파이프라인. 일반 프로젝트는 로드맵에서 관리(중복 제거).
 function ProjStageFlow({D,proj,cu,up}){
   const stageTasks=D.tasks.filter(t=>t.projectId===proj.id&&t.launchNode).sort((a,b)=>(a.step||0)-(b.step||0));
@@ -3413,7 +3411,8 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
   useEffect(()=>{const h=()=>setIsPC(window.innerWidth>=1024);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[]);
   useEffect(()=>{ if(!draggingRef.current&&tpl) setDraftNodes(tpl.nodes); },[tpl]);
   const maxY=draftNodes.reduce((m,n)=>Math.max(m,n.y),0);
-  const canvasH=Math.max(520,maxY+NODE_H+120);
+  const editY=editNode?(nodeById(editNode.id)?.y||0):0;
+  const canvasH=Math.max(520,maxY+NODE_H+120,editNode?editY+560:0);   // 인라인 편집 카드 공간 확보
   const nodeById=(id)=>draftNodes.find(n=>n.id===id);
   const onNodeDown=(e,n)=>{
     if(!isPC) return;   // 모바일: 노드 편집 불가(보기 전용) — 드래그·탭편집 차단
@@ -3444,7 +3443,9 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
     if(!exists) up("launchTemplates",tpl.id,{edges:[...tpl.edges,{id:"e"+Date.now(),from:connectFrom,to:n.id}]});
     setConnectFrom(null);
   };
-  const addNode=()=>{ const id="n"+Date.now(); up("launchTemplates",tpl.id,{nodes:[...tpl.nodes,{id,title:"새 단계",roleLabel:"",assigneeId:cu.id,x:24,y:maxY+NODE_H+24}]}); };
+  const addNode=()=>{ const id="n"+Date.now(); const nn={id,title:"새 단계",roleLabel:"",assigneeId:cu.id,x:24,y:maxY+NODE_H+24}; up("launchTemplates",tpl.id,{nodes:[...tpl.nodes,nn]}); setEditNode(nn); };
+  // EdrawMind식: 선택 노드에서 하위 단계 추가 → 부모 편집 내용 저장 + 선행연결 + 새 노드 즉시 편집(한 번의 up으로 처리해 덮어쓰기 방지)
+  const addChildWithPatch=(parent,patch)=>{ const id="n"+Date.now(); const child={id,title:"새 단계",roleLabel:"",assigneeId:parent.assigneeId||cu.id,x:parent.x,y:parent.y+NODE_H+44}; const nodes=tpl.nodes.map(x=>x.id===parent.id?{...x,...(patch||{})}:x).concat(child); up("launchTemplates",tpl.id,{nodes,edges:[...tpl.edges,{id:"e"+Date.now(),from:parent.id,to:id}]}); setEditNode(child); };
   const saveNode=(patch)=>{ up("launchTemplates",tpl.id,{nodes:tpl.nodes.map(n=>n.id===editNode.id?{...n,...patch}:n)}); setEditNode(null); };
   const deleteNode=()=>{ up("launchTemplates",tpl.id,{nodes:tpl.nodes.filter(n=>n.id!==editNode.id),edges:tpl.edges.filter(e=>e.from!==editNode.id&&e.to!==editNode.id)}); setEditNode(null); };
   const removeEdge=(eid)=>{ up("launchTemplates",tpl.id,{edges:tpl.edges.filter(e=>e.id!==eid)}); setDelEdge(null); };
@@ -3591,24 +3592,15 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
               ))}
             </div>
           )}
-          {isPC?(
-            <div style={{backgroundColor:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:12,padding:"10px 13px",marginBottom:12}}>
-              <p style={{margin:0,fontSize:11,color:"#B45309",lineHeight:1.5}}>케이스마다 흐름이 다르면 <b>복제</b>해서 단계를 바꿔 쓰세요. 노드를 끌어 옮기고, 탭하면 단계명·담당자·<b>⚡자동화</b>가 수정돼요. <b>선 연결</b>로 인계 순서를 잇습니다.</p>
-            </div>
-          ):(
-            <div style={{backgroundColor:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:12,padding:"11px 13px",marginBottom:12,display:"flex",alignItems:"center",gap:8}}>
-              <span style={{fontSize:15}}>💻</span>
-              <p style={{margin:0,fontSize:11.5,color:"#1E40AF",fontWeight:700,lineHeight:1.5}}>노드 편집은 <b>PC에서</b> 할 수 있어요. 여기선 흐름을 <b>보기</b>만 됩니다.</p>
-            </div>
-          )}
-          {isPC&&(
+          <div style={{backgroundColor:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:12,padding:"10px 13px",marginBottom:12}}>
+            <p style={{margin:0,fontSize:11,color:"#B45309",lineHeight:1.5}}><b>노드를 탭</b>하면 그 자리에서 단계명·담당자·<b>⚡액션</b>을 바로 수정해요. 편집 카드의 <b>＋ 하위 단계</b>로 다음 단계를 잇고, 케이스가 다르면 <b>복제</b>해서 바꿔 쓰세요.</p>
+          </div>
           <div style={{display:"flex",gap:8,marginBottom:10}}>
             <button onClick={addNode} style={{flex:1,padding:"9px 0",borderRadius:10,border:"1.5px solid #E5E8EB",backgroundColor:"#fff",fontSize:12.5,fontWeight:800,color:"#374151",cursor:"pointer",fontFamily:"inherit"}}>＋ 단계 추가</button>
             <button onClick={()=>{setConnectMode(!connectMode);setConnectFrom(null);}} style={{flex:1,padding:"9px 0",borderRadius:10,border:`1.5px solid ${connectMode?"#F97316":"#E5E8EB"}`,backgroundColor:connectMode?"#FFEDD5":"#fff",fontSize:12.5,fontWeight:800,color:connectMode?"#EA580C":"#374151",cursor:"pointer",fontFamily:"inherit"}}>🔗 {connectMode?"연결 중…":"선 연결"}</button>
           </div>
-          )}
           {connectMode&&<p style={{margin:"0 0 10px",fontSize:11,fontWeight:700,color:"#EA580C",textAlign:"center"}}>{connectFrom?"→ 도착 단계를 탭하세요 (다시 누르면 취소)":"시작 단계를 탭하세요"}</p>}
-          <div ref={canvasRef} style={{position:"relative",width:"100%",height:canvasH,backgroundColor:"#FAFBFC",backgroundImage:"radial-gradient(#E5E8EB 1px,transparent 1px)",backgroundSize:"18px 18px",borderRadius:16,border:"1px solid #EDF0F3",overflow:"hidden",touchAction:"none"}}>
+          <div ref={canvasRef} style={{position:"relative",width:"100%",height:canvasH,backgroundColor:"#FAFBFC",backgroundImage:"radial-gradient(#E5E8EB 1px,transparent 1px)",backgroundSize:"18px 18px",borderRadius:16,border:"1px solid #EDF0F3",overflow:"hidden",touchAction:isPC?"none":"pan-y"}}>
             <svg width="100%" height={canvasH} style={{position:"absolute",inset:0,pointerEvents:"none"}}>
               {tpl.edges.map(e=>{ const a=nodeById(e.from),b=nodeById(e.to); if(!a||!b)return null;
                 const x1=a.x+NODE_W/2,y1=a.y+NODE_H,x2=b.x+NODE_W/2,y2=b.y;
@@ -3622,9 +3614,25 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
             {draftNodes.map((n,i)=>{
               const sel=connectFrom===n.id;
               const col=uColor(n.assigneeId);
+              const editing=editNode&&editNode.id===n.id;
+              // EdrawMind식: 선택 노드는 그 자리에서 편집 카드로 펼쳐짐
+              if(editing){
+                return(
+                  <div key={n.id} style={{position:"absolute",left:n.x,top:n.y,width:300,maxWidth:`calc(100% - ${n.x+6}px)`,boxSizing:"border-box",borderRadius:14,backgroundColor:"#FFFFFF",border:"2px solid #F97316",boxShadow:"0 14px 36px rgba(249,115,22,0.22)",padding:12,zIndex:40}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+                      <span style={{flexShrink:0,width:20,height:20,borderRadius:"50%",backgroundColor:col,color:"#fff",fontSize:10,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{i+1}</span>
+                      <span style={{fontSize:11.5,fontWeight:900,color:"#EA580C"}}>단계 편집</span>
+                      <button onClick={()=>setEditNode(null)} style={{marginLeft:"auto",width:26,height:26,borderRadius:8,border:"1px solid #E5E8EB",background:"#fff",color:"#6B7280",fontSize:14,fontWeight:700,cursor:"pointer",lineHeight:1}}>✕</button>
+                    </div>
+                    <NodeEditForm node={editNode} users={D.users} onSave={saveNode} onDelete={deleteNode} onAddChild={(patch)=>addChildWithPatch(n,patch)}/>
+                  </div>
+                );
+              }
+              const tap=()=>{ if(connectMode){handleConnect(n);return;} setEditNode(n); };
+              const handlers=isPC?{onPointerDown:e=>onNodeDown(e,n),onPointerMove:onNodeMove,onPointerUp:e=>onNodeUp(e,n)}:{onClick:tap};   // 모바일=탭 편집, PC=드래그+탭
               return(
-                <div key={n.id} onPointerDown={e=>onNodeDown(e,n)} onPointerMove={onNodeMove} onPointerUp={e=>onNodeUp(e,n)}
-                  style={{position:"absolute",left:n.x,top:n.y,width:NODE_W,minHeight:NODE_H,boxSizing:"border-box",padding:"8px 10px",borderRadius:12,backgroundColor:"#FFFFFF",border:`2px solid ${sel?"#F97316":col+"55"}`,boxShadow:sel?"0 0 0 3px #F9731633":"0 2px 8px rgba(0,0,0,0.08)",cursor:connectMode?"pointer":"grab",touchAction:"none",userSelect:"none",zIndex:sel?4:2}}>
+                <div key={n.id} {...handlers}
+                  style={{position:"absolute",left:n.x,top:n.y,width:NODE_W,minHeight:NODE_H,boxSizing:"border-box",padding:"8px 10px",borderRadius:12,backgroundColor:"#FFFFFF",border:`2px solid ${sel?"#F97316":col+"55"}`,boxShadow:sel?"0 0 0 3px #F9731633":"0 2px 8px rgba(0,0,0,0.08)",cursor:connectMode?"pointer":(isPC?"grab":"pointer"),touchAction:isPC?"none":"manipulation",userSelect:"none",zIndex:sel?4:2}}>
                   <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4}}>
                     <span style={{flexShrink:0,width:18,height:18,borderRadius:"50%",backgroundColor:col,color:"#fff",fontSize:10,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{i+1}</span>
                     <span style={{fontSize:10,fontWeight:800,color:col,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.roleLabel||uName(n.assigneeId)}</span>
@@ -3635,7 +3643,7 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
               );
             })}
           </div>
-          {isPC&&<p style={{margin:"10px 2px 0",fontSize:11,color:"#9CA3AF",lineHeight:1.6}}>●&nbsp;노드를 끌어 위치 정리&nbsp;·&nbsp;탭하면 단계명·담당자·⚡자동화 수정&nbsp;·&nbsp;<b>선 연결</b>로 선행(인계) 순서를 잇습니다.</p>}
+          <p style={{margin:"10px 2px 0",fontSize:11,color:"#9CA3AF",lineHeight:1.6}}>● <b>노드를 탭</b>하면 그 자리에서 바로 편집&nbsp;·&nbsp;편집 카드의 <b>＋ 하위 단계</b>로 다음 단계를 잇습니다{isPC?<>&nbsp;·&nbsp;PC에선 드래그로 위치 정리·<b>선 연결</b></>:null}.</p>
       </>)}
 
       {/* 신규 SKU 출시 시트 */}
@@ -3656,10 +3664,7 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
         </div>
       </Sheet>
 
-      {/* 노드 수정 시트 */}
-      <Sheet open={!!editNode} onClose={()=>setEditNode(null)} title="단계 수정">
-        {editNode&&(<NodeEditForm node={editNode} users={D.users} onSave={saveNode} onDelete={deleteNode}/>)}
-      </Sheet>
+      {/* 노드 수정은 캔버스 인라인 카드로 처리(EdrawMind식) — 시트 제거 */}
 
       {/* 템플릿 이름 변경 시트 */}
       <Sheet open={renameOpen} onClose={()=>setRenameOpen(false)} title="템플릿 이름">
@@ -3671,13 +3676,14 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
     </div>
   );
 }
-function NodeEditForm({node,users,onSave,onDelete}){
+function NodeEditForm({node,users,onSave,onDelete,onAddChild}){
   const [f,setF]=useState({title:node.title||"",roleLabel:node.roleLabel||"",assigneeId:node.assigneeId||users[0]?.id,
     autoComplete:!!node.autoComplete,
     onDone:Array.isArray(node.auto&&node.auto.onDone)?node.auto.onDone.map(a=>({...a})):[]});
   const addAction=()=>setF({...f,onDone:[...f.onDone,{id:"a"+Date.now(),kind:"createTask",title:"",assigneeId:""}]});
   const upAction=(i,p)=>setF({...f,onDone:f.onDone.map((a,k)=>k===i?{...a,...p}:a)});
   const rmAction=(i)=>setF({...f,onDone:f.onDone.filter((_,k)=>k!==i)});
+  const curPatch=()=>({title:f.title.trim()||node.title||"새 단계",roleLabel:f.roleLabel.trim(),assigneeId:f.assigneeId,autoComplete:f.autoComplete,auto:{onDone:f.onDone.filter(a=>a.kind==="advance"||(a.title||"").trim()).map(a=>({id:a.id,kind:a.kind||"createTask",title:(a.title||"").trim(),assigneeId:a.assigneeId||""}))}});
   const lbl={display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5};
   const inp={width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"};
   return(
@@ -3689,27 +3695,43 @@ function NodeEditForm({node,users,onSave,onDelete}){
       <label style={lbl}>담당자</label>
       <select value={f.assigneeId} onChange={e=>setF({...f,assigneeId:e.target.value})} style={{...inp,backgroundColor:"#fff",WebkitAppearance:"none",marginBottom:18}}>{users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>
 
-      {/* ⚡ 자동화 — 설정 없으면 동작 안 함(기존과 동일). 있으면 완료 전이 시 엔진이 실행. */}
+      {/* ⚡ 자동화 — 설정 없으면 동작 안 함(기존과 동일). 있으면 완료 전이 시 엔진이 실행. 라벨로 트리거→액션 구조를 명시(동작 동일). */}
       <div style={{borderTop:"1px dashed #E5E8EB",paddingTop:14,marginBottom:6}}>
-        <p style={{margin:"0 0 10px",fontSize:12.5,fontWeight:900,color:"#EA580C"}}>⚡ 자동화 <span style={{fontWeight:600,color:"#9CA3AF"}}>(선택)</span></p>
+        <p style={{margin:"0 0 10px",fontSize:12.5,fontWeight:900,color:"#EA580C"}}>⚡ 자동화 <span style={{fontWeight:600,color:"#9CA3AF"}}>(선택 · 안 켜면 수동 그대로)</span></p>
+        {/* 트리거(언제) — 현재는 완료 트리거. 시간 트리거는 고정업무로 안내 */}
+        <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:11}}>
+          <span style={{flexShrink:0,fontSize:10,fontWeight:900,color:"#9CA3AF",letterSpacing:0.3}}>언제(트리거)</span>
+          <span style={{padding:"6px 11px",borderRadius:9,backgroundColor:"#FFF7ED",border:"1.5px solid #FED7AA",color:"#EA580C",fontSize:12,fontWeight:800}}>⏱ 이 단계가 완료되면</span>
+        </div>
         <label onClick={()=>setF({...f,autoComplete:!f.autoComplete})} style={{display:"flex",alignItems:"center",gap:9,padding:"10px 12px",borderRadius:11,border:`1.5px solid ${f.autoComplete?"#FED7AA":"#E5E8EB"}`,backgroundColor:f.autoComplete?"#FFF7ED":"#fff",cursor:"pointer",marginBottom:12}}>
           <span style={{flexShrink:0,width:18,height:18,borderRadius:6,border:`2px solid ${f.autoComplete?"#F97316":"#CBD3DD"}`,backgroundColor:f.autoComplete?"#F97316":"#fff",color:"#fff",fontSize:12,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{f.autoComplete?"✓":""}</span>
           <span style={{fontSize:12.5,fontWeight:700,color:"#374151",lineHeight:1.4}}>🤖 자동 단계 <span style={{color:"#9CA3AF",fontWeight:600}}>— 앞 단계가 모두 끝나면 사람 없이 자동 완료</span></span>
         </label>
-        <label style={lbl}>완료 시 자동 생성 업무 <span style={{color:"#9CA3AF",fontWeight:600}}>(이 단계가 끝나면 만들 업무)</span></label>
+        <label style={lbl}>무엇을(액션) <span style={{color:"#9CA3AF",fontWeight:600}}>· 완료되면 자동 생성할 업무</span></label>
         {f.onDone.map((a,i)=>(
           <div key={a.id||i} style={{display:"flex",gap:6,marginBottom:8,alignItems:"center"}}>
-            <input value={a.title} onChange={e=>upAction(i,{title:e.target.value})} placeholder="예: 민지 검수" style={{...inp,flex:1,padding:"10px 12px",fontSize:13}}/>
-            <select value={a.assigneeId||""} onChange={e=>upAction(i,{assigneeId:e.target.value})} style={{...inp,width:"auto",padding:"10px 10px",fontSize:13,backgroundColor:"#fff",WebkitAppearance:"none"}}><option value="">담당자</option>{users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>
+            <select value={a.kind||"createTask"} onChange={e=>upAction(i,{kind:e.target.value})} style={{...inp,width:"auto",flexShrink:0,padding:"10px 8px",fontSize:12,fontWeight:700,backgroundColor:"#fff",WebkitAppearance:"none"}}>
+              <option value="createTask">업무 생성</option>
+              <option value="notify">🔔 알림</option>
+              <option value="advance">⏭ 다음 단계로</option>
+            </select>
+            {a.kind==="advance"
+              ? <span style={{flex:1,fontSize:11.5,color:"#9CA3AF",fontWeight:600,paddingLeft:2}}>앞 단계 끝나면 다음 단계 자동 진행</span>
+              : <>
+                  <input value={a.title} onChange={e=>upAction(i,{title:e.target.value})} placeholder={a.kind==="notify"?"예: 승인 요청 알림":"예: 민지 검수"} style={{...inp,flex:1,minWidth:0,padding:"10px 12px",fontSize:13}}/>
+                  <select value={a.assigneeId||""} onChange={e=>upAction(i,{assigneeId:e.target.value})} style={{...inp,width:"auto",flexShrink:0,padding:"10px 10px",fontSize:13,backgroundColor:"#fff",WebkitAppearance:"none"}}><option value="">담당자</option>{users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select>
+                </>}
             <button onClick={()=>rmAction(i)} style={{flexShrink:0,width:34,height:38,borderRadius:10,border:"1.5px solid #FFE2E5",backgroundColor:"#FFF0F1",color:"#F04452",fontSize:15,fontWeight:700,cursor:"pointer"}}>×</button>
           </div>
         ))}
-        <button onClick={addAction} style={{width:"100%",padding:"10px 0",borderRadius:11,border:"1.5px dashed #BFDBFE",backgroundColor:"#EFF6FF",color:"#2563EB",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit",marginBottom:18}}>＋ 액션 추가</button>
+        <button onClick={addAction} style={{width:"100%",padding:"10px 0",borderRadius:11,border:"1.5px dashed #BFDBFE",backgroundColor:"#EFF6FF",color:"#2563EB",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit",marginBottom:10}}>＋ 액션 추가</button>
+        <p style={{margin:"0 0 8px",fontSize:10.5,color:"#9CA3AF",lineHeight:1.5}}>💡 매주·매월 같은 <b>시간 트리거</b>는 [📌 고정업무]에서 설정해요.</p>
       </div>
 
+      {onAddChild&&<button onClick={()=>onAddChild(curPatch())} style={{width:"100%",padding:"11px 0",borderRadius:11,border:"1.5px solid #FDBA74",background:"#FFF7ED",color:"#EA580C",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit",marginBottom:8}}>＋ 하위 단계 잇기</button>}
       <div style={{display:"flex",gap:8}}>
         <button onClick={onDelete} style={{flex:"0 0 auto",padding:"13px 16px",borderRadius:12,border:"1.5px solid #FFE2E5",backgroundColor:"#FFF0F1",color:"#F04452",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
-        <Btn full variant="orange" onClick={()=>f.title.trim()&&onSave({title:f.title.trim(),roleLabel:f.roleLabel.trim(),assigneeId:f.assigneeId,autoComplete:f.autoComplete,auto:{onDone:f.onDone.filter(a=>(a.title||"").trim()).map(a=>({id:a.id,kind:"createTask",title:a.title.trim(),assigneeId:a.assigneeId||""}))}})} disabled={!f.title.trim()} style={{flex:1}}>저장</Btn>
+        <Btn full variant="orange" onClick={()=>f.title.trim()&&onSave(curPatch())} disabled={!f.title.trim()} style={{flex:1}}>저장</Btn>
       </div>
     </div>
   );

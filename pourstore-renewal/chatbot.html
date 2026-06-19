@@ -1177,36 +1177,43 @@ function needKeywords(n) { return [...(n.building || []), ...(n.part || []), ...
 function buildRecoBlock(tree) {
   const needs = tree && Array.isArray(tree.needs) ? tree.needs : [];
   if (!needs.length) return '';
-  const out = ['형식: [고객 니즈 키워드] → ① 본질 원인·해결방안(솔루션) → ② 상품 안내(시공방안·공신력). 고객 말에서 아래 키워드가 매칭되면 그 항목으로 진단→솔루션→상품 순서로 안내한다.'];
+  const out = [
+    '진행 순서: 고객 니즈(키워드) 매칭 → ① 본질 원인·해결방안 → ② 시공방안(상품·공신력 안내). 고객 말에서 아래 키워드가 매칭되면 그 항목으로 안내한다.',
+    '톤 규칙(중요): 시공방안은 B2C·B2B 고객 모두에게 POUR스토어 톤으로 쉽고 친근하게 설명한다(전문 공법용어 나열 금지). 공법명·시방서는 기술 자료이므로 먼저 들이밀지 말고, 고객이 더 알고 싶어 하거나 요청할 때만 "원하시면 공법 자료/시방서를 보내드릴게요"로 안내·전달한다.',
+  ];
   needs.forEach(n => {
     const kw = needKeywords(n);
-    if (!kw.length && !n.solution && !n.method) return;
+    if (!kw.length && !n.solution && !n.storeMethod && !n.method) return;
     out.push(`\n■ 니즈: ${kw.join(' / ') || '(키워드 없음)'}`);
     if (n.cause) out.push(`  · 원인(본질): ${n.cause}`);
     if (n.solution) out.push(`  · 해결방안: ${n.solution}`);
     const l3 = [];
-    if (n.method) l3.push(`시공방안: ${n.method}${n.methodLink ? ` (시방서 ${n.methodLink.startsWith('http') ? n.methodLink : RECO_BASE_URL + n.methodLink})` : ''}`);
+    if (n.storeMethod) l3.push(`시공방안(친근 설명): ${n.storeMethod}`);
     const prods = (n.products || []).filter(x => x.name);
     if (prods.length) l3.push(`추천상품: ${prods.map(x => x.link ? `${x.name}(${x.link})` : x.name).join(', ')}`);
     if ((n.credibility || []).length) l3.push(`공신력: ${n.credibility.join(', ')}`);
     if (n.guide) l3.push(`가이드: ${n.guide}`);
     if (l3.length) out.push('  · ' + l3.join(' · '));
+    const extra = [];
+    if (n.method) extra.push(n.method);
+    if (n.methodLink) extra.push(`시방서 ${n.methodLink.startsWith('http') ? n.methodLink : RECO_BASE_URL + n.methodLink}`);
+    if (extra.length) out.push(`  · (요청 시 전달 자료: ${extra.join(' / ')})`);
     if (n.note) out.push('  · ' + n.note);
   });
   return out.join('\n');
 }
 // CLAUDE.md 매핑 기반 초기 니즈 시드
 function recoSeed() {
-  const mk = (building, part, material, problem, method, methodLink, cause, solution) =>
-    ({ id: genId(), building, part, material, problem, cause, solution, method, methodLink, credibility: ['POUR공법', '특허기술'], products: [], guide: '', note: '' });
+  const mk = (building, part, material, problem, storeMethod, method, methodLink, cause, solution) =>
+    ({ id: genId(), building, part, material, problem, cause, solution, storeMethod, method, methodLink, credibility: ['POUR공법', '특허기술'], products: [], guide: '', note: '' });
   return {
     needs: [
-      mk(['아파트'], ['옥상/지붕'], ['아스팔트슁글'], ['누수'], '아스팔트슁글 방수공법', '/128', '저층 목조용 슁글을 고층 아파트에 적용 → 강풍·후레싱 이음부 균열로 누수', '방수콘크리트 함침으로 슁글을 바탕면과 완전 일체화 + POUR HOOKER로 후레싱 고정'),
-      mk(['아파트'], ['옥상/지붕'], ['콘크리트'], ['누수'], '슬라브 듀얼강화방수공법', '/132', '옥상 슬라브 중성화·드레인 주변 취약부에서 누수', '모체강화함침+듀얼복합시트+코트재로 6중 방수, 배관방수트랩 적용'),
-      mk([], ['옥상/지붕'], ['금속기와'], ['누수'], '금속기와 방수공법', '/130', '기와 맞물림 풀림·강판 부식으로 누수·추락 위험', '바탕면과 방수층 완전 일체화 + 후커 보강 5차 방수'),
-      mk([], ['외벽'], ['콘크리트'], ['균열'], '바인더+플러스 재도장', '/139', '콘크리트 중성화·미세균열로 도막 열화', '600%급 고신율 퍼티+바인더로 균열 추종 재도장'),
-      mk([], ['지하주차장'], ['콘크리트'], ['들뜸/박리'], '에폭시 도장공법', '/125', '바닥 열화·마모·박리', '고강도 에폭시로 내마모·논슬립 마감'),
-      mk([], ['지하/수조'], ['콘크리트'], ['누수'], '아크릴배면차수공법', '/137', '배면 수압으로 지속 누수', '2액형 아크릴 방수재 초고압 주입으로 새 방수층 형성'),
+      mk(['아파트'], ['옥상/지붕'], ['아스팔트슁글'], ['누수'], '슁글을 바탕면과 한 몸처럼 굳혀 강풍에도 안 들뜨게 잡고, 이음부(후레싱)까지 단단히 고정해 누수를 막아드려요. 옥상 누수 전용 패키지 하나로 해결됩니다.', '아스팔트슁글 방수공법', '/128', '저층 목조용 슁글을 고층 아파트에 적용 → 강풍·후레싱 이음부 균열로 누수', '방수콘크리트 함침으로 슁글을 바탕면과 완전 일체화 + POUR HOOKER로 후레싱 고정'),
+      mk(['아파트'], ['옥상/지붕'], ['콘크리트'], ['누수'], '바탕 콘크리트를 먼저 강화한 뒤 6중으로 겹겹이 방수막을 입혀 물길을 완전히 차단해요. 드레인(배수구) 주변까지 꼼꼼히 잡아드립니다.', '슬라브 듀얼강화방수공법', '/132', '옥상 슬라브 중성화·드레인 주변 취약부에서 누수', '모체강화함침+듀얼복합시트+코트재로 6중 방수, 배관방수트랩 적용'),
+      mk([], ['옥상/지붕'], ['금속기와'], ['누수'], '풀린 기와와 바탕을 한 몸으로 단단히 붙이고 5중 방수로 누수와 기와 떨어짐을 함께 막아드려요.', '금속기와 방수공법', '/130', '기와 맞물림 풀림·강판 부식으로 누수·추락 위험', '바탕면과 방수층 완전 일체화 + 후커 보강 5차 방수'),
+      mk([], ['외벽'], ['콘크리트'], ['균열'], '잘 늘어나는 특수 퍼티로 균열을 메우고 그 위에 칼라를 입혀, 다시 갈라지지 않고 깔끔하게 마감해드려요.', '바인더+플러스 재도장', '/139', '콘크리트 중성화·미세균열로 도막 열화', '600%급 고신율 퍼티+바인더로 균열 추종 재도장'),
+      mk([], ['지하주차장'], ['콘크리트'], ['들뜸/박리'], '벗겨지고 닳은 바닥을 고강도 에폭시로 새것처럼 매끈하게 코팅하고 미끄럼까지 잡아드려요.', '에폭시 도장공법', '/125', '바닥 열화·마모·박리', '고강도 에폭시로 내마모·논슬립 마감'),
+      mk([], ['지하/수조'], ['콘크리트'], ['누수'], '벽 뒤쪽(배면)에서 새는 물을 특수 약품을 압력으로 밀어 넣어 새 방수층을 만들어 막아드려요.', '아크릴배면차수공법', '/137', '배면 수압으로 지속 누수', '2액형 아크릴 방수재 초고압 주입으로 새 방수층 형성'),
     ],
     updatedAt: nowIso(),
   };
@@ -2296,10 +2303,11 @@ function NeedCard({ need, onEdit, onDelete }) {
       ))}
       {stage('③', 'var(--green)', '📦', '상품 안내', (
         <div style={{ fontSize:11.5, color:'var(--text-md)', lineHeight:1.5 }}>
-          {need.method && <div><b style={{ color:'var(--text-sm)' }}>시공</b> {need.method}{need.methodLink ? ` · 시방서 ${need.methodLink}` : ''}</div>}
+          {need.storeMethod && <div><b style={{ color:'var(--text-sm)' }}>시공방안</b> {need.storeMethod}</div>}
           {prods.length > 0 && <div style={{ marginTop:3, display:'flex', gap:4, flexWrap:'wrap' }}>{prods.map((p, i) => <span key={i} style={{ fontSize:10.5, fontWeight:800, color:'var(--green)', background:'var(--green-l)', border:'1px solid var(--green-m)', borderRadius:6, padding:'1px 7px' }}>📦 {p.name}</span>)}</div>}
           {(need.credibility || []).length > 0 && <div style={{ marginTop:3, display:'flex', gap:4, flexWrap:'wrap' }}>{need.credibility.map((c, i) => <span key={i} style={{ fontSize:10, fontWeight:700, color:'var(--purple)', background:'#F5F3FF', border:'1px solid #DDD6FE', borderRadius:5, padding:'1px 6px' }}>🏅 {c}</span>)}</div>}
-          {!need.method && !prods.length && <span style={{ color:'var(--text-xs)' }}>미입력</span>}
+          {(need.method || need.methodLink) && <div style={{ marginTop:4, fontSize:10, color:'var(--text-xs)', fontWeight:600 }}>📄 요청 시 전달: {need.method}{need.methodLink ? ` · 시방서 ${need.methodLink}` : ''}</div>}
+          {!need.storeMethod && !need.method && !prods.length && <span style={{ color:'var(--text-xs)' }}>미입력</span>}
         </div>
       ))}
     </div>
@@ -2329,7 +2337,7 @@ function RecoFlowPage({ onToast }) {
       <Header title="추천 플로우 (니즈 → 솔루션 → 상품)" subtitle="고객 니즈를 키워드(건물×부위×외장재×문제)로 등록 → 본질 솔루션 → 상품·공신력. store 봇에 자동 주입(하이브리드)."
         actions={<>
           <button onClick={seed} style={btnGhost()}>🌱 기본 매핑 시드</button>
-          <button onClick={() => setEditing({ building:[], part:[], material:[], problem:[], cause:'', solution:'', method:'', methodLink:'', credibility:[], products:[], guide:'', note:'' })} style={btnPrimary()}>+ 니즈 등록</button>
+          <button onClick={() => setEditing({ building:[], part:[], material:[], problem:[], cause:'', solution:'', storeMethod:'', method:'', methodLink:'', credibility:[], products:[], guide:'', note:'' })} style={btnPrimary()}>+ 니즈 등록</button>
         </>} />
       <div className="cb-scroll" style={{ padding:'20px 32px', overflowY:'auto', height:'calc(100vh - 92px)' }}>
         <div style={{ fontSize:11.5, color:'var(--text-xs)', fontWeight:600, marginBottom:16, lineHeight:1.6, background:'var(--or-pale)', border:'1px solid var(--or-l)', borderRadius:8, padding:'10px 12px' }}>
@@ -2371,9 +2379,18 @@ function RecoNeedModal({ need, onClose, onSave }) {
         <div><label style={labelSty}>왜 문제가 발생하나 (본질 원인)</label><textarea style={{ ...inputSty, minHeight:54, resize:'vertical' }} value={f.cause} onChange={e => set('cause', e.target.value)} placeholder="예: 저층용 슁글을 고층에 적용 → 강풍·이음부 균열" /></div>
         <div><label style={labelSty}>해결방안 (본질 해결)</label><textarea style={{ ...inputSty, minHeight:54, resize:'vertical' }} value={f.solution} onChange={e => set('solution', e.target.value)} placeholder="예: 방수콘크리트 함침으로 바탕면 일체화 + 후레싱 보강" /></div>
         {sect('③ 상품 안내 (시공방안·공신력)')}
-        <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:14 }}>
-          <div><label style={labelSty}>시공방안(공법)</label><input style={inputSty} value={f.method} onChange={e => set('method', e.target.value)} placeholder="예: 슬라브 듀얼강화방수공법" /></div>
-          <div><label style={labelSty}>시방서 링크</label><input style={inputSty} value={f.methodLink} onChange={e => set('methodLink', e.target.value)} placeholder="/132 또는 URL" /></div>
+        <div>
+          <label style={labelSty}>시공방안 — POUR스토어 친근 설명 (B2C·B2B 공통, 봇이 이걸로 안내)</label>
+          <textarea style={{ ...inputSty, minHeight:60, resize:'vertical', lineHeight:1.6 }} value={f.storeMethod || ''} onChange={e => set('storeMethod', e.target.value)}
+            placeholder="고객이 이해하기 쉽게: 예) 바탕을 강화한 뒤 6중으로 방수막을 입혀 물길을 완전히 차단해드려요. 옥상 누수 패키지 하나로 해결됩니다." />
+          <div style={{ fontSize:11, color:'var(--text-xs)', marginTop:5 }}>전문 공법용어 대신 쉬운 말로. 공법명·시방서는 아래 "요청 시 전달 자료"로 분리됩니다.</div>
+        </div>
+        <div style={{ background:'var(--bg)', border:'1px dashed var(--border)', borderRadius:8, padding:'10px 12px' }}>
+          <div style={{ fontSize:11.5, fontWeight:800, color:'var(--text-md)', marginBottom:8 }}>📄 추가 기술자료 (원하는 고객에게만 전달)</div>
+          <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:14 }}>
+            <div><label style={labelSty}>공법명</label><input style={inputSty} value={f.method} onChange={e => set('method', e.target.value)} placeholder="예: 슬라브 듀얼강화방수공법" /></div>
+            <div><label style={labelSty}>시방서 링크</label><input style={inputSty} value={f.methodLink} onChange={e => set('methodLink', e.target.value)} placeholder="/132 또는 URL" /></div>
+          </div>
         </div>
         <div>
           <label style={labelSty}>공신력 (자체연구개발·공법·특허·시공누적·협력사 등)</label>

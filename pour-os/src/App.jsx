@@ -3406,6 +3406,7 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
   const [connectFrom,setConnectFrom]=useState(null);
   const [editNode,setEditNode]=useState(null);
   const [delEdge,setDelEdge]=useState(null);
+  const [segSel,setSegSel]=useState(null);   // 선택된 구간(세그먼트) id
   // 노드 편집은 PC 전용(요청). 모바일/태블릿에선 보기만 — 드래그·탭편집·선연결·단계추가 비활성.
   const [isPC,setIsPC]=useState(typeof window!=="undefined"?window.innerWidth>=1024:true);
   useEffect(()=>{const h=()=>setIsPC(window.innerWidth>=1024);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[]);
@@ -3449,6 +3450,15 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
   const saveNode=(patch)=>{ up("launchTemplates",tpl.id,{nodes:tpl.nodes.map(n=>n.id===editNode.id?{...n,...patch}:n)}); setEditNode(null); };
   const deleteNode=()=>{ up("launchTemplates",tpl.id,{nodes:tpl.nodes.filter(n=>n.id!==editNode.id),edges:tpl.edges.filter(e=>e.from!==editNode.id&&e.to!==editNode.id)}); setEditNode(null); };
   const removeEdge=(eid)=>{ up("launchTemplates",tpl.id,{edges:tpl.edges.filter(e=>e.id!==eid)}); setDelEdge(null); };
+  // ── 구간(세그먼트): 로드단계(노드) 묶음 → 카운트 KPI 연결. 템플릿에 저장 → 인스턴스 생성 시 task로 매핑되어 집계 ──
+  const segments=Array.isArray(tpl&&tpl.segments)?tpl.segments:[];
+  const countKPIs=D.subKPIs.filter(s=>s.launchCount||(s.unit!=="원"&&s.unit!=="%"));   // 카운트형(출시집계 포함, 원/% 제외)
+  const segKpiName=(id)=>D.subKPIs.find(k=>k.id===id)?.title||"미연결";
+  const circled=(n)=>(n>=1&&n<=20)?String.fromCharCode(0x2460+n-1):`(${n})`;
+  const segAdd=()=>{ if(!tpl)return; const id="sg"+Date.now(); up("launchTemplates",tpl.id,{segments:[...segments,{id,name:"새 구간",nodeIds:[],kpiId:countKPIs[0]?.id||"",mode:"count",extractAt:"all"}]}); setSegSel(id); };
+  const segPatch=(id,patch)=>up("launchTemplates",tpl.id,{segments:segments.map(s=>s.id===id?{...s,...patch}:s)});
+  const segRm=(id)=>{ up("launchTemplates",tpl.id,{segments:segments.filter(s=>s.id!==id)}); setSegSel(null); };
+  const segToggleNode=(id,nid)=>{ const s=segments.find(x=>x.id===id); if(!s)return; const has=(s.nodeIds||[]).includes(nid); segPatch(id,{nodeIds:has?(s.nodeIds||[]).filter(x=>x!==nid):[...(s.nodeIds||[]),nid]}); };
   return(
     <div style={{padding:"14px 16px 24px"}}>
       <div style={{display:"flex",backgroundColor:"#F2F4F6",borderRadius:14,padding:4,marginBottom:14}}>
@@ -3611,6 +3621,22 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
               const mx=(a.x+b.x)/2+NODE_W/2-10,my=(a.y+NODE_H+b.y)/2-10;
               return <button key={e.id} onClick={()=>removeEdge(e.id)} style={{position:"absolute",left:mx,top:my,width:20,height:20,borderRadius:"50%",border:"none",backgroundColor:"#F04452",color:"#fff",fontSize:12,fontWeight:900,cursor:"pointer",lineHeight:1,zIndex:5}}>×</button>;
             })}
+            {segments.map(s=>{
+              const ns=(s.nodeIds||[]).map(nid=>draftNodes.find(n=>n.id===nid)).filter(Boolean);
+              if(!ns.length) return null;
+              const pad=11;
+              const left=Math.min(...ns.map(n=>n.x))-pad;
+              const top=Math.max(0,Math.min(...ns.map(n=>n.y))-pad-13);
+              const w=Math.max(...ns.map(n=>n.x+NODE_W))+pad-left;
+              const h=Math.max(...ns.map(n=>n.y+NODE_H))+pad-top;
+              const nums=ns.map(n=>circled(draftNodes.findIndex(d=>d.id===n.id)+1)).join("");
+              const act=segSel===s.id;
+              return(
+                <div key={s.id} onClick={()=>setSegSel(s.id)} style={{position:"absolute",left,top,width:w,height:h,borderRadius:14,border:`2px dashed ${act?"#F97316":"#F59E0B"}`,backgroundColor:act?"rgba(249,115,22,0.06)":"rgba(245,158,11,0.045)",zIndex:1,cursor:"pointer"}}>
+                  <span style={{position:"absolute",top:-12,left:14,background:"#fff",padding:"1px 8px",borderRadius:7,border:`1.5px solid ${act?"#F97316":"#F59E0B"}`,fontSize:10.5,fontWeight:800,color:act?"#EA580C":"#B45309",whiteSpace:"nowrap"}}>구간: {s.name}{nums?` (${nums})`:""}</span>
+                </div>
+              );
+            })}
             {draftNodes.map((n,i)=>{
               const sel=connectFrom===n.id;
               const col=uColor(n.assigneeId);
@@ -3630,20 +3656,89 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
               }
               const tap=()=>{ if(connectMode){handleConnect(n);return;} setEditNode(n); };
               const handlers=isPC?{onPointerDown:e=>onNodeDown(e,n),onPointerMove:onNodeMove,onPointerUp:e=>onNodeUp(e,n)}:{onClick:tap};   // 모바일=탭 편집, PC=드래그+탭
-              return(
-                <div key={n.id} {...handlers}
+              const acts=(n.auto&&Array.isArray(n.auto.onDone))?n.auto.onDone:[];
+              const hasAuto=n.autoComplete||acts.length>0;
+              const aPill=(icon,text,fg,bg,bd,key)=>(<span key={key} style={{display:"inline-block",maxWidth:"100%",boxSizing:"border-box",padding:"2px 7px",borderRadius:7,fontSize:9.5,fontWeight:800,lineHeight:1.45,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",border:`1px solid ${bd}`,backgroundColor:bg,color:fg}}>{icon} {text}</span>);
+              return [
+                (<div key={n.id} {...handlers}
                   style={{position:"absolute",left:n.x,top:n.y,width:NODE_W,minHeight:NODE_H,boxSizing:"border-box",padding:"8px 10px",borderRadius:12,backgroundColor:"#FFFFFF",border:`2px solid ${sel?"#F97316":col+"55"}`,boxShadow:sel?"0 0 0 3px #F9731633":"0 2px 8px rgba(0,0,0,0.08)",cursor:connectMode?"pointer":(isPC?"grab":"pointer"),touchAction:isPC?"none":"manipulation",userSelect:"none",zIndex:sel?4:2}}>
                   <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4}}>
                     <span style={{flexShrink:0,width:18,height:18,borderRadius:"50%",backgroundColor:col,color:"#fff",fontSize:10,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{i+1}</span>
                     <span style={{fontSize:10,fontWeight:800,color:col,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.roleLabel||uName(n.assigneeId)}</span>
-                    {(n.autoComplete||(n.auto&&Array.isArray(n.auto.onDone)&&n.auto.onDone.length>0))&&<span title="자동화" style={{marginLeft:"auto",flexShrink:0,fontSize:10,fontWeight:900,color:"#EA580C"}}>⚡</span>}
+                    {hasAuto&&<span title="자동화" style={{marginLeft:"auto",flexShrink:0,fontSize:10,fontWeight:900,color:"#EA580C"}}>⚡</span>}
                   </div>
                   <p style={{margin:0,fontSize:11.5,fontWeight:700,color:"#1F2937",lineHeight:1.3}}>{n.title}</p>
-                </div>
-              );
+                </div>),
+                hasAuto&&(<div key={n.id+"_a"} style={{position:"absolute",left:n.x+11,top:n.y+NODE_H+6,width:NODE_W-12,zIndex:1,pointerEvents:"none",display:"flex",flexDirection:"column",gap:3,alignItems:"flex-start"}}>
+                  <div style={{position:"absolute",left:NODE_W/2-12,top:-6,height:6,borderLeft:"1.5px dashed #FDBA74"}}/>
+                  {acts.length>0&&aPill("⏱","이 단계 완료 시","#EA580C","#FFF7ED","#FED7AA")}
+                  {acts.map((a,k)=>a.kind==="advance"
+                    ? aPill("⏭","다음 단계로 진행","#6B7280","#F3F4F6","#E5E8EB",k)
+                    : a.kind==="notify"
+                      ? aPill("🔔",(a.title||"알림"),"#B45309","#FFFBEB","#FDE68A",k)
+                      : aPill("📋",(a.title||"업무")+(a.assigneeId?` · ${uName(a.assigneeId)}`:""),"#2563EB","#EFF6FF","#BFDBFE",k))}
+                  {n.autoComplete&&aPill("🤖","자동 완료 단계","#6D28D9","#F5F3FF","#EDE9FE")}
+                </div>)
+              ];
             })}
           </div>
-          <p style={{margin:"10px 2px 0",fontSize:11,color:"#9CA3AF",lineHeight:1.6}}>● <b>노드를 탭</b>하면 그 자리에서 바로 편집&nbsp;·&nbsp;편집 카드의 <b>＋ 하위 단계</b>로 다음 단계를 잇습니다{isPC?<>&nbsp;·&nbsp;PC에선 드래그로 위치 정리·<b>선 연결</b></>:null}.</p>
+          <p style={{margin:"10px 2px 0",fontSize:11,color:"#9CA3AF",lineHeight:1.6}}>● <b>노드를 탭</b>하면 편집&nbsp;·&nbsp;<b>＋ 하위 단계</b>로 잇기&nbsp;·&nbsp;단계 아래 <b style={{color:"#EA580C"}}>⚡매달린 카드</b>는 완료 시 자동 실행될 트리거·액션{isPC?<>&nbsp;·&nbsp;PC 드래그로 정리·<b>선 연결</b></>:null}.</p>
+
+          {/* ── 구간 KPI 설정 패널 (시안 v0.8 우측 카드) — 로드단계 묶음 → 카운트 KPI 연결 ── */}
+          <div style={{marginTop:16,borderRadius:16,border:"1px solid #EEF0F2",background:"#fff",padding:14}}>
+            <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:4}}>
+              <span style={{fontSize:13.5,fontWeight:900,color:"#EA580C"}}>📊 구간 KPI</span>
+              <span style={{fontSize:11,fontWeight:600,color:"#9CA3AF"}}>로드단계를 묶어 카운트 KPI에 연결</span>
+            </div>
+            {countKPIs.length===0
+              ? <p style={{margin:"6px 0 0",fontSize:11.5,color:"#9CA3AF"}}>연결할 카운트형 KPI가 없어요. (출시 수·건수형 지표 필요)</p>
+              : (<>
+                <div style={{display:"flex",flexWrap:"wrap",gap:6,margin:"8px 0 4px"}}>
+                  {segments.map(s=>{ const on=segSel===s.id; return(
+                    <button key={s.id} onClick={()=>setSegSel(on?null:s.id)} style={{padding:"6px 11px",borderRadius:9,border:`1.5px solid ${on?"#F97316":"#E5E8EB"}`,background:on?"#FFF7ED":"#fff",color:on?"#EA580C":"#4B5563",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{s.name} · {(s.nodeIds||[]).length}단계</button>
+                  );})}
+                  <button onClick={segAdd} style={{padding:"6px 11px",borderRadius:9,border:"1.5px dashed #FDBA74",background:"#FFFBF5",color:"#EA580C",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>＋ 구간 추가</button>
+                </div>
+                {(()=>{ const s=segments.find(x=>x.id===segSel); if(!s) return <p style={{margin:"8px 2px 0",fontSize:11.5,color:"#9CA3AF"}}>구간을 선택하거나 <b>＋ 구간 추가</b>로 로드단계를 묶어보세요.</p>;
+                  const fld={width:"100%",padding:"9px 11px",borderRadius:10,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",fontSize:13};
+                  const lb={display:"block",fontSize:11,fontWeight:800,color:"#6B7280",margin:"12px 0 5px"};
+                  return(
+                  <div style={{marginTop:10,padding:12,borderRadius:14,border:"1.5px solid #FED7AA",background:"#FFFBF5"}}>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+                      <span style={{fontSize:12.5,fontWeight:900,color:"#9A3412"}}>선택 구간 설정</span>
+                      <button onClick={()=>segRm(s.id)} style={{padding:"4px 9px",borderRadius:8,border:"1.5px solid #FFE2E5",background:"#FFF0F1",color:"#F04452",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
+                    </div>
+                    <label style={{...lb,marginTop:8}}>구간 이름</label>
+                    <input value={s.name} onChange={e=>segPatch(s.id,{name:e.target.value})} placeholder="예: 출시 준비 구간" style={fld}/>
+                    <label style={lb}>포함 단계 <span style={{color:"#9CA3AF",fontWeight:600}}>· 탭해서 묶기 ({(s.nodeIds||[]).length})</span></label>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                      {draftNodes.map((n,i)=>{ const on=(s.nodeIds||[]).includes(n.id); return(
+                        <button key={n.id} onClick={()=>segToggleNode(s.id,n.id)} style={{padding:"6px 10px",borderRadius:8,border:`1.5px solid ${on?"#F97316":"#E5E8EB"}`,background:on?"#FFEDD5":"#fff",color:on?"#EA580C":"#6B7280",fontSize:11.5,fontWeight:700,cursor:"pointer",fontFamily:"inherit",maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{circled(i+1)} {n.title}</button>
+                      );})}
+                    </div>
+                    <label style={lb}>연결 KPI</label>
+                    <select value={s.kpiId||""} onChange={e=>segPatch(s.id,{kpiId:e.target.value})} style={{...fld,background:"#fff",WebkitAppearance:"none"}}>
+                      <option value="">선택</option>
+                      {countKPIs.map(k=>{const mk=D.mainKPIs.find(m=>m.id===k.mainKPIId);return <option key={k.id} value={k.id}>{k.title}{mk?` (${mk.krKey})`:""}</option>;})}
+                    </select>
+                    <label style={lb}>집계 방식</label>
+                    <div style={{display:"flex",gap:7}}>
+                      <button onClick={()=>segPatch(s.id,{mode:"count"})} style={{flex:1,padding:"9px 0",borderRadius:10,border:"none",background:(s.mode||"count")==="count"?"#0F1F5C":"#EEF0F2",color:(s.mode||"count")==="count"?"#fff":"#9CA3AF",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>완료 시 +1</button>
+                      <button disabled title="다음 단계에서 지원" style={{flex:1,padding:"9px 0",borderRadius:10,border:"1.5px solid #E5E8EB",background:"#fff",color:"#CBD3DD",fontSize:12.5,fontWeight:800,cursor:"not-allowed",fontFamily:"inherit"}}>진척률 <span style={{fontSize:9}}>(준비중)</span></button>
+                    </div>
+                    <label style={lb}>언제 추출</label>
+                    <div style={{...fld,background:"#fff",color:"#374151",fontWeight:700}}>구간 100% — 묶은 단계가 모두 완료되면</div>
+                    <div style={{marginTop:11,display:"flex",alignItems:"center",gap:7,padding:"9px 11px",borderRadius:10,background:"#EAFBF1",border:"1px solid #BBF7D0"}}>
+                      <span style={{fontSize:13}}>📊</span>
+                      <span style={{fontSize:11.5,fontWeight:800,color:"#15803D"}}>구간 100% → {segKpiName(s.kpiId)} +1</span>
+                    </div>
+                    <div style={{marginTop:8,padding:"9px 11px",borderRadius:10,background:"#F0FDF4",border:"1px solid #DCFCE7"}}>
+                      <p style={{margin:0,fontSize:11,color:"#16653A",lineHeight:1.55}}>♡ <b>기존 KPI 안전</b> — 구간 KPI는 같은 파생 카운트로만 <b>+</b>됩니다. 매출 등 기존 집계는 한 줄도 안 건드려요(구간 없으면 결과 동일).</p>
+                    </div>
+                  </div>
+                  );})()}
+              </>)}
+          </div>
       </>)}
 
       {/* 신규 SKU 출시 시트 */}

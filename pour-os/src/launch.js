@@ -57,7 +57,9 @@ export const instantiateLaunch=({tpl,productName,mainKPIId,subKPIId,dealerType,a
   const predsOf=(nodeId)=>tpl.edges.filter(e=>e.to===nodeId).map(e=>e.from);
   const assignees=[...new Set(tpl.nodes.map(n=>n.assigneeId).filter(Boolean))];
   const owner=tpl.nodes[0]?.assigneeId||assignees[0]||null;
-  add("projects",{id:projId,mainKPIId:mainKPIId||null,subKPIId:subKPIId||null,title:`${productName} 출시`,productName,templateId:tpl.id,assigneeId:owner,collaboratorIds:assignees.filter(a=>a!==owner),group:"신상 출시",priority:"high",status:"active",progress:0,resultValue:0,dealerType:dealerType||""});
+  // 템플릿 구간(세그먼트) → 인스턴스 구간: nodeIds를 생성된 taskId로 매핑(집계는 recalcProg→calcSegDone→skCur)
+  const segs=(Array.isArray(tpl.segments)?tpl.segments:[]).map(s=>({id:s.id,name:s.name||"구간",kpiId:s.kpiId,mode:s.mode||"count",stageIds:(s.nodeIds||[]).map(nid=>taskIdByNode[nid]).filter(Boolean)})).filter(s=>s.kpiId&&s.stageIds.length);
+  add("projects",{id:projId,mainKPIId:mainKPIId||null,subKPIId:subKPIId||null,title:`${productName} 출시`,productName,templateId:tpl.id,assigneeId:owner,collaboratorIds:assignees.filter(a=>a!==owner),group:"신상 출시",priority:"high",status:"active",progress:0,resultValue:0,dealerType:dealerType||"",...(segs.length?{segments:segs}:{})});
   tpl.nodes.forEach((n,i)=>{
     const deps=predsOf(n.id).map(pid=>taskIdByNode[pid]).filter(Boolean);
     add("tasks",{id:taskIdByNode[n.id],title:n.roleLabel?`[${n.roleLabel}] ${n.title}`:n.title,projectId:projId,assigneeId:n.assigneeId||owner,type:"general",status:"todo",weekDay:null,weekSlot:null,isFixed:false,dueDate:"",memo:"",attachments:[],auto:n.auto||null,autoComplete:!!n.autoComplete,launchNode:n.id,step:i,deps});

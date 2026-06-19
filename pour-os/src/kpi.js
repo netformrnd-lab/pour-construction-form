@@ -18,7 +18,11 @@ export const numF=(x)=>{const n=Number(x);return isFinite(n)?n:0;};
 // ※ 구간(세그먼트) 완료 수는 recalcProg가 프로젝트에 스탬프한 p.segDoneByKpi[sk.id]에서 읽음.
 //   구간이 하나도 없으면 seg=0 → 기존 동작과 완전 동일(안전 불변식).
 export const skCur=(sk,projects)=>{
-  if(sk.launchCount) return (projects||[]).filter(p=>p.templateId&&(p.progress||0)>=100).length;   // 출시 완료(progress 100%) SKU 자동 집계
+  if(sk.launchCount){
+    const proj=(projects||[]).filter(p=>p.templateId&&(p.progress||0)>=100).length;            // 출시 완료(progress 100%) 프로젝트 수
+    const seg=(projects||[]).reduce((a,p)=>a+numF(p.segDoneByKpi&&p.segDoneByKpi[sk.id]),0);     // 완료된 연결 구간 수(없으면 0 → 기존과 동일)
+    return proj+seg;
+  }
   // 카운트형 집계: 이 지표를 가리키는 프로젝트 완료(+1) / 구간 완료(+1). (원/%·출시집계 제외 — 매출·진척·출시 롤업 보호)
   if(sk.unit!=="원"&&sk.unit!=="%"&&!sk.launchCount){
     const cc=(projects||[]).filter(p=>p.countKPIId===sk.id&&(p.progress||0)>=100).length;          // 완료된 연결 프로젝트 수

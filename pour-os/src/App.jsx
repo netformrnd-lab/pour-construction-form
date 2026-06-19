@@ -2452,6 +2452,7 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
   const Mof=id=>MEM.find(m=>m.id===id)||MEM[0];
   const stages=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed&&!t.parentId).sort((a,b)=>(a.seq||0)-(b.seq||0));
   const [selId,setSelId]=useState(stages[0]?.id||null);
+  const [canvasOpen,setCanvasOpen]=useState(true);   // 통합 캔버스(로드단계+프로세스 가지치기) 펼침
   const [dateOpen,setDateOpen]=useState(null);   // 인라인 날짜 편집 중인 업무 id
   const [moreOpen,setMoreOpen]=useState(null);   // 행 컨트롤(⋯) 펼친 업무 id
   const todayISO=new Date().toISOString().slice(0,10);
@@ -2559,6 +2560,26 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
           <p style={{margin:0,fontSize:11,color:"#9CA3AF",flex:1,minWidth:140,lineHeight:1.5}}>로드단계를 계층형으로 · 각 로드단계에 🧑 고객여정 ‖ 🛠 업무여정 + 만족도·불편점</p>
           <Btn size="sm" variant="orange" onClick={addStage}>+ 로드단계</Btn>
         </div>
+        {(()=>{
+          const ts=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed);
+          if(!ts.length) return null;
+          const idset=new Set(ts.map(t=>t.id));
+          const edges0=ts.filter(t=>t.parentId&&idset.has(t.parentId)).map(t=>({id:"e_"+t.id,from:t.parentId,to:t.id}));
+          const LAY=flowLayout(ts.map(t=>({id:t.id})),edges0);
+          const kids=new Set(ts.filter(t=>t.parentId).map(t=>t.parentId));
+          const stOf=(t)=>{ if(kids.has(t.id)){ const cs=ts.filter(x=>x.parentId===t.id); return cs.length&&cs.every(c=>c.status==="done")?"done":undefined; } return t.status==="done"?"done":(t.status==="inprogress"?"ready":"wait"); };
+          const nodes=ts.map(t=>{const pos=LAY.pos[t.id]||{x:0,y:0};const m=Mof(t.assigneeId);return {id:t.id,x:pos.x,y:pos.y,title:t.title,sub:m.name,color:m.color,status:stOf(t)};});
+          return(
+            <div style={{marginBottom:14}}>
+              <button onClick={()=>setCanvasOpen(o=>!o)} style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"10px 13px",borderRadius:12,border:"1px solid #E5E8EB",background:"#fff",cursor:"pointer",fontFamily:"inherit",marginBottom:canvasOpen?8:0}}>
+                <span style={{fontSize:13,fontWeight:900,color:"#0F1F5C"}}>🧩 통합 캔버스</span>
+                <span style={{flex:1,minWidth:0,textAlign:"left",fontSize:10.5,fontWeight:600,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>로드단계 → 프로세스 가지치기 한 화면 · 노드 탭 = 완료 토글</span>
+                <span style={{fontSize:12,color:"#9CA3AF"}}>{canvasOpen?"▲":"▼"}</span>
+              </button>
+              {canvasOpen&&<FlowView mode="progress" height={Math.max(300,Math.min(620,(LAY.maxRow+1)*ROW_STEP+90))} nodes={nodes} edges={edges0} onNodeTap={node=>{const t=ts.find(x=>x.id===node.id);if(!t||kids.has(t.id))return;up("tasks",t.id,{status:t.status==="done"?"todo":"done"});}}/>}
+            </div>
+          );
+        })()}
         {(srcMan||srcGone)&&(
           <div style={{display:"flex",alignItems:"center",gap:8,background:srcGone?"#F8F9FA":"#FFFBF5",border:"1px solid "+(srcGone?"#EAEDF0":"#F2E6D5"),borderRadius:11,padding:"9px 12px",marginBottom:9}}>
             <span style={{fontSize:11.5,fontWeight:800,color:srcGone?"#9CA3AF":"#A16207",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📋 ‘{srcMan?srcMan.name:proj.sourceManualName}’ 로드맵 템플릿 v{srcMan?(srcMan.version||1):(proj.sourceManualVersion||1)} 기반</span>

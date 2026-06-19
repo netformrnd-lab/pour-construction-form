@@ -2608,10 +2608,10 @@ $('#pr_clear').onclick=()=>{
 let capPhotos=[];
 function fillCapProd(sel){
   const s=$('#cap_prod');s.innerHTML='';
-  if(!state.products.length){const o=document.createElement('option');o.value='';o.textContent='';s.appendChild(o);$('#cap_prodSearch').value='';return;}
+  const ph=document.createElement('option');ph.value='';ph.textContent='';s.appendChild(ph);
   state.products.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=dn(p);s.appendChild(o);});
-  const id=sel||state.products[0].id;s.value=id;
-  const p=state.products.find(x=>x.id===id);$('#cap_prodSearch').value=p?dn(p):'';
+  if(sel){s.value=sel;const p=state.products.find(x=>x.id===sel);$('#cap_prodSearch').value=p?dn(p):'';}
+  else{s.value='';$('#cap_prodSearch').value='';} // 미리 채우지 않음 — 검색해서 선택
 }
 // 테스트 제품 검색 선택 — ★즐겨찾기 우선 정렬
 function capProdSorted(q){
@@ -2647,7 +2647,7 @@ function addCapVideo(file){capPhotos.push({id:uid(),kind:'video',blob:file,mime:
 function openCapture(){
   if(!state.products.length){alert('먼저 소싱 제품을 등록한 뒤 테스트를 기록할 수 있어요.');switchTab('products');return;}
   capPhotos=[];
-  fillCapProd(cur()?state.sel:state.products[0].id);
+  fillCapProd(null); // 검색칸 비워두고 직접 선택
   $('#cap_title').value='';$('#cap_result').value='진행중';$('#cap_memo').value='';$('#cap_date').value=today();
   renderCapThumbs();
   openOverlay('captureOverlay');

@@ -144,7 +144,7 @@ const INIT={
       nodes:[
         {id:"n1", title:"소싱·원가·납기 확정",   roleLabel:"MD",    assigneeId:"songhee", x:24,  y:24,
           auto:{onDone:[{id:"n1a1",kind:"createTask",title:"원가·마진표 검수",assigneeId:"songhee"}]}, autoComplete:false},
-        {id:"n2", title:"제품 교육·지식 전파",    roleLabel:"본부장", assigneeId:"songhee", x:178, y:120,
+        {id:"n2", title:"제품 교육·지식 전파",    roleLabel:"MD",    assigneeId:"songhee", x:178, y:120,
           auto:{onDone:[{id:"n2a1",kind:"createTask",title:"판매 포인트·셀링 카피 정리",assigneeId:"minji"}]}, autoComplete:false},
         {id:"n3", title:"썸네일·상세 디자인",     roleLabel:"디자인", assigneeId:"minji",   x:30,  y:216,
           auto:{onDone:[{id:"n3a1",kind:"createTask",title:"상세 카피·표시사항 검수",assigneeId:"songhee"}]}, autoComplete:false},

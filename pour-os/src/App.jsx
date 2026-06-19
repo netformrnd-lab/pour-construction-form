@@ -3363,6 +3363,75 @@ function ProjStageFlow({D,proj,cu,up}){
   );
 }
 const NODE_W=144, NODE_H=56;
+const FLOW_ARROW="flowArrowHead";
+const flowPath=(a,b,w,h)=>{const x1=a.x+w/2,y1=a.y+h,x2=b.x+w/2,y2=b.y;return `M ${x1} ${y1} C ${x1} ${y1+44}, ${x2} ${y2-44}, ${x2} ${y2}`;};
+// n8n식 노드 캔버스 — 팬(빈공간 드래그)·줌(버튼/Ctrl휠)·노드 드래그·핸들 드래그로 연결·화살표. 편집/진행 공용.
+// nodes:[{id,x,y,title,sub,color,status?,auto?,stepLabel?}] · edges:[{id,from,to}] · mode:"edit"|"progress"
+function FlowView({nodes,edges,mode="progress",height=520,nodeW=NODE_W,nodeH=NODE_H,selectedId,onNodeTap,onNodeDragEnd,onConnect,onDeleteEdge}){
+  const editable=mode==="edit";
+  const wrapRef=useRef(null);
+  const [view,setView]=useState({x:24,y:20,z:1});
+  const panRef=useRef(null), dragRef=useRef(null), connRef=useRef(null);
+  const [drag,setDrag]=useState(null);   // {id,x,y} 노드 이동 중
+  const [conn,setConn]=useState(null);   // {from,cx,cy} 연결 드래그 중
+  const [panning,setPanning]=useState(false);
+  const byId=(id)=>nodes.find(n=>n.id===id);
+  const liveNode=(n)=>(drag&&drag.id===n.id)?{...n,x:drag.x,y:drag.y}:n;
+  const toWorld=(cx,cy)=>{const r=wrapRef.current.getBoundingClientRect();return {x:(cx-r.left-view.x)/view.z,y:(cy-r.top-view.y)/view.z};};
+  const cap=(e)=>{try{wrapRef.current.setPointerCapture(e.pointerId);}catch(_){}};
+  const onBgDown=(e)=>{ panRef.current={sx:e.clientX,sy:e.clientY,vx:view.x,vy:view.y}; setPanning(true); cap(e); };
+  const onMove=(e)=>{
+    if(connRef.current){ const w=toWorld(e.clientX,e.clientY); setConn(c=>c&&{...c,cx:w.x,cy:w.y}); return; }
+    if(dragRef.current){ const w=toWorld(e.clientX,e.clientY); const d=dragRef.current; d.moved=true; setDrag({id:d.id,x:Math.max(0,Math.round(w.x-d.offX)),y:Math.max(0,Math.round(w.y-d.offY))}); return; }
+    const p=panRef.current; if(!p)return; setView(v=>({...v,x:p.vx+(e.clientX-p.sx),y:p.vy+(e.clientY-p.sy)}));
+  };
+  const onUp=(e)=>{
+    if(connRef.current){ const w=toWorld(e.clientX,e.clientY); const from=connRef.current.from; const t=nodes.find(n=>n.id!==from&&w.x>=n.x&&w.x<=n.x+nodeW&&w.y>=n.y&&w.y<=n.y+nodeH); connRef.current=null; setConn(null); if(t&&onConnect)onConnect(from,t.id); return; }
+    if(dragRef.current){ const d=dragRef.current, dd=drag; dragRef.current=null; setDrag(null); if(d.moved&&onNodeDragEnd&&dd)onNodeDragEnd(d.id,dd.x,dd.y); else if(!d.moved){const n=byId(d.id); if(n&&onNodeTap)onNodeTap(n);} return; }
+    panRef.current=null; setPanning(false);
+  };
+  const onNodeDown=(e,n)=>{
+    if(!editable){ e.stopPropagation(); if(onNodeTap)onNodeTap(n); return; }   // 진행 모드: 탭 = 토글(팬 시작 안 함)
+    e.stopPropagation(); const w=toWorld(e.clientX,e.clientY); dragRef.current={id:n.id,offX:w.x-n.x,offY:w.y-n.y,moved:false}; setDrag({id:n.id,x:n.x,y:n.y}); cap(e);
+  };
+  const onHandleDown=(e,n)=>{ if(!editable||!onConnect)return; e.stopPropagation(); const w=toWorld(e.clientX,e.clientY); connRef.current={from:n.id}; setConn({from:n.id,cx:w.x,cy:w.y}); cap(e); };
+  const zoomBy=(f)=>{ const r=wrapRef.current.getBoundingClientRect(); const cx=r.width/2,cy=r.height/2; setView(v=>{const z=Math.min(1.6,Math.max(0.4,+(v.z*f).toFixed(2))); const k=z/v.z; return {z,x:cx-(cx-v.x)*k,y:cy-(cy-v.y)*k};}); };
+  const ctrlBtn={width:30,height:30,borderRadius:9,border:"1px solid #E5E8EB",background:"#fff",color:"#374151",fontSize:15,fontWeight:800,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 1px 4px rgba(0,0,0,0.08)",display:"flex",alignItems:"center",justifyContent:"center"};
+  return(
+    <div ref={wrapRef} onPointerDown={onBgDown} onPointerMove={onMove} onPointerUp={onUp}
+      style={{position:"relative",width:"100%",height,overflow:"hidden",borderRadius:16,border:"1px solid #EDF0F3",background:"#FAFBFC",backgroundImage:"radial-gradient(#E2E6EB 1px,transparent 1px)",backgroundSize:`${18*view.z}px ${18*view.z}px`,backgroundPosition:`${view.x}px ${view.y}px`,touchAction:"none",cursor:panning?"grabbing":"grab",userSelect:"none"}}>
+      {nodes.length===0&&<p style={{position:"absolute",top:"45%",left:0,right:0,textAlign:"center",color:"#C4C9D0",fontSize:13,margin:0}}>표시할 단계가 없어요</p>}
+      <div style={{position:"absolute",left:0,top:0,transformOrigin:"0 0",transform:`translate(${view.x}px,${view.y}px) scale(${view.z})`}}>
+        <svg width={6000} height={6000} style={{position:"absolute",left:0,top:0,overflow:"visible",pointerEvents:"none"}}>
+          <defs><marker id={FLOW_ARROW} markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#F97316"/></marker></defs>
+          {edges.map(e=>{const a=byId(e.from),b=byId(e.to);if(!a||!b)return null;const A=liveNode(a),B=liveNode(b);const col=editable?"#F97316":(B.status?ST_COLOR[B.status]:"#94A3B8");return <path key={e.id} d={flowPath(A,B,nodeW,nodeH)} stroke={col} strokeWidth={2.5} fill="none" opacity={0.62} markerEnd={`url(#${FLOW_ARROW})`}/>;})}
+          {conn&&(()=>{const a=byId(conn.from);if(!a)return null;const A=liveNode(a);return <path d={`M ${A.x+nodeW/2} ${A.y+nodeH} C ${A.x+nodeW/2} ${A.y+nodeH+44}, ${conn.cx} ${conn.cy-44}, ${conn.cx} ${conn.cy}`} stroke="#F97316" strokeWidth={2.5} strokeDasharray="5 4" fill="none" opacity={0.8}/>;})()}
+        </svg>
+        {editable&&onDeleteEdge&&edges.map(e=>{const a=byId(e.from),b=byId(e.to);if(!a||!b)return null;const A=liveNode(a),B=liveNode(b);const mx=(A.x+B.x)/2+nodeW/2-9,my=(A.y+nodeH+B.y)/2-9;return <button key={e.id} onPointerDown={ev=>{ev.stopPropagation();onDeleteEdge(e.id);}} title="연결 삭제" style={{position:"absolute",left:mx,top:my,width:18,height:18,borderRadius:"50%",border:"none",background:"#fff",boxShadow:"0 1px 5px rgba(0,0,0,0.22)",color:"#F04452",fontSize:12,fontWeight:900,cursor:"pointer",lineHeight:1,zIndex:7}}>×</button>;})}
+        {nodes.map(n=>{const P=liveNode(n);const stc=n.status?ST_COLOR[n.status]:null;const seld=selectedId===n.id||(conn&&conn.from===n.id);const bd=seld?"#F97316":(stc||(n.color||"#94A3B8")+"66");return(
+          <div key={n.id} onPointerDown={e=>onNodeDown(e,P)} style={{position:"absolute",left:P.x,top:P.y,width:nodeW,minHeight:nodeH,boxSizing:"border-box",padding:"8px 10px",borderRadius:12,background:n.status==="done"?"#F0FBF5":"#fff",border:`2px solid ${bd}`,boxShadow:seld?"0 0 0 3px #F9731633":"0 2px 8px rgba(0,0,0,0.08)",cursor:editable?"grab":"pointer",zIndex:seld?5:2}}>
+            <span style={{position:"absolute",top:-6,left:nodeW/2-5,width:10,height:10,borderRadius:"50%",background:"#fff",border:`2px solid ${stc||"#CBD5E1"}`}}/>
+            <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4}}>
+              <span style={{flexShrink:0,width:18,height:18,borderRadius:"50%",background:stc||n.color||"#94A3B8",color:"#fff",fontSize:10,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{n.status==="done"?"✓":(n.stepLabel||"")}</span>
+              <span style={{fontSize:10,fontWeight:800,color:stc||n.color||"#64748B",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.sub}</span>
+              {n.auto&&<span title="자동화" style={{marginLeft:"auto",fontSize:10,fontWeight:900,color:"#EA580C"}}>⚡</span>}
+            </div>
+            <p style={{margin:0,fontSize:11.5,fontWeight:700,color:n.status==="wait"?"#9CA3AF":"#1F2937",lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{n.title}</p>
+            {editable&&onConnect
+              ? <span onPointerDown={e=>onHandleDown(e,P)} title="드래그해서 다음 단계로 연결" style={{position:"absolute",bottom:-7,left:nodeW/2-7,width:14,height:14,borderRadius:"50%",background:"#fff",border:"2px solid #F97316",cursor:"crosshair",zIndex:6}}/>
+              : <span style={{position:"absolute",bottom:-6,left:nodeW/2-5,width:10,height:10,borderRadius:"50%",background:"#fff",border:`2px solid ${stc||"#CBD5E1"}`}}/>}
+          </div>
+        );})}
+      </div>
+      <div style={{position:"absolute",right:10,bottom:10,display:"flex",flexDirection:"column",gap:6,zIndex:10}}>
+        <button onPointerDown={e=>e.stopPropagation()} onClick={()=>zoomBy(1.2)} style={ctrlBtn}>＋</button>
+        <button onPointerDown={e=>e.stopPropagation()} onClick={()=>zoomBy(1/1.2)} style={ctrlBtn}>－</button>
+        <button onPointerDown={e=>e.stopPropagation()} onClick={()=>setView({x:24,y:20,z:1})} title="원위치" style={{...ctrlBtn,fontSize:13}}>⤢</button>
+      </div>
+      <span style={{position:"absolute",left:10,bottom:10,fontSize:10,fontWeight:700,color:"#AEB6BE",zIndex:10}}>{Math.round(view.z*100)}%{editable?" · 빈곳 드래그=이동 · 노드 ●드래그=연결":" · 빈곳 드래그=이동"}</span>
+    </div>
+  );
+}
 // ── 통합 캔버스: 엣지 기반 가로 레이어 자동배치 (depth=열, row=같은 열 순번) ──
 const COL_STEP=212, ROW_STEP=238, PAD_X=26, PAD_Y=30;
 function flowLayout(nodes,edges){
@@ -3485,6 +3554,22 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
   const segPatch=(id,patch)=>up("launchTemplates",tpl.id,{segments:segments.map(s=>s.id===id?{...s,...patch}:s)});
   const segRm=(id)=>{ up("launchTemplates",tpl.id,{segments:segments.filter(s=>s.id!==id)}); setSegSel(null); };
   const segToggleNode=(id,nid)=>{ const s=segments.find(x=>x.id===id); if(!s)return; const has=(s.nodeIds||[]).includes(nid); segPatch(id,{nodeIds:has?(s.nodeIds||[]).filter(x=>x!==nid):[...(s.nodeIds||[]),nid]}); };
+  const [flowMode,setFlowMode]=useState("flow");   // 진행 탭 인스턴스 보기: flow(노드 캔버스) | list(목록)
+  // 출시 인스턴스 → FlowView 노드/엣지. 템플릿 노드 좌표가 있으면 그 배치, 없으면 step 순 세로 자동배치.
+  const instFlow=(p)=>{
+    const ts=launchProjTasks(D,p);
+    const itpl=(D.launchTemplates||[]).find(t=>t.id===p.templateId);
+    const taskByNode={}; ts.forEach(t=>{if(t.launchNode)taskByNode[t.launchNode]=t;});
+    if(itpl&&(itpl.nodes||[]).some(n=>taskByNode[n.id])){
+      const nodes=(itpl.nodes||[]).filter(n=>taskByNode[n.id]).map((n,i)=>{const t=taskByNode[n.id];return {id:t.id,x:n.x,y:n.y,title:t.title,sub:uName(t.assigneeId),color:uColor(t.assigneeId),status:launchStageStatus(t,ts),stepLabel:(t.step!=null?t.step+1:i+1),auto:t.autoComplete||((t.auto&&t.auto.onDone)||[]).length>0};});
+      const edges=(itpl.edges||[]).map(e=>({id:e.id,from:taskByNode[e.from]?.id,to:taskByNode[e.to]?.id})).filter(e=>e.from&&e.to);
+      return {nodes,edges};
+    }
+    const nodes=ts.map((t,i)=>({id:t.id,x:24,y:20+i*(NODE_H+40),title:t.title,sub:uName(t.assigneeId),color:uColor(t.assigneeId),status:launchStageStatus(t,ts),stepLabel:i+1,auto:t.autoComplete||((t.auto&&t.auto.onDone)||[]).length>0}));
+    const idset=new Set(ts.map(t=>t.id));
+    const edges=ts.flatMap(t=>(t.deps||[]).filter(d=>idset.has(d)).map(d=>({id:t.id+"_"+d,from:d,to:t.id})));
+    return {nodes,edges};
+  };
   return(
     <div style={{padding:"14px 16px 24px"}}>
       <div style={{display:"flex",backgroundColor:"#F2F4F6",borderRadius:14,padding:4,marginBottom:14}}>
@@ -3495,6 +3580,15 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
 
       {tab==="status"&&(<>
         <Btn full variant="orange" onClick={openSku} style={{marginBottom:14}}>🚀 신규 SKU 출시</Btn>
+        {launchProjs.length>0&&(
+          <div style={{display:"flex",justifyContent:"flex-end",marginBottom:10}}>
+            <div style={{display:"inline-flex",background:"#F2F4F6",borderRadius:10,padding:3}}>
+              {[{k:"flow",l:"🔀 흐름"},{k:"list",l:"📋 목록"}].map(v=>(
+                <button key={v.k} onClick={()=>setFlowMode(v.k)} style={{padding:"6px 13px",borderRadius:8,border:"none",cursor:"pointer",background:flowMode===v.k?"#fff":"transparent",color:flowMode===v.k?"#0F1F5C":"#6B7280",fontWeight:flowMode===v.k?800:600,fontSize:12,fontFamily:"inherit",boxShadow:flowMode===v.k?"0 1px 3px rgba(0,0,0,0.1)":"none"}}>{v.l}</button>
+              ))}
+            </div>
+          </div>
+        )}
         {countSK?(
           <div style={{display:"flex",alignItems:"center",gap:10,backgroundColor:"#F0F7FF",border:"1px solid #D5E6FB",borderRadius:12,padding:"11px 13px",marginBottom:14}}>
             <span style={{fontSize:18}}>📊</span>
@@ -3540,6 +3634,7 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
                 <span style={{fontSize:15,fontWeight:900,color:p.progress>=100?"#00C073":"#F97316",flexShrink:0}}>{p.progress||0}%</span>
               </div>
               <div style={{marginBottom:12}}><PBar value={p.progress||0} color={p.progress>=100?"#00C073":"#F97316"} h={5}/></div>
+              {flowMode==="flow"?(()=>{const fg=instFlow(p);return(<FlowView mode="progress" height={Math.max(280,Math.min(560,(fg.nodes.reduce((m,n)=>Math.max(m,n.y),0))+NODE_H+80))} nodes={fg.nodes} edges={fg.edges} onNodeTap={node=>{const t=ts.find(x=>x.id===node.id);if(t)toggleStage(t,launchStageStatus(t,ts));}}/>);})():(
               <div style={{display:"flex",flexDirection:"column",gap:6}}>
                 {ts.map((t,i)=>{
                   const st=launchStageStatus(t,ts);
@@ -3554,7 +3649,7 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
                     </button>
                   );
                 })}
-              </div>
+              </div>)}
               <button onClick={()=>{ if(window.confirm(`'${p.productName||p.title}' 출시 건을 삭제할까요? (단계 업무 포함)\n휴지통에서 복구할 수 있어요.`)){ launchProjTasks(D,p).forEach(t=>rm("tasks",t.id,true)); rm("projects",p.id,true); } }} style={{marginTop:10,fontSize:11,fontWeight:700,color:"#C4C9D0",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit"}}>삭제</button>
             </div>
           );
@@ -3633,87 +3728,19 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
           </div>
           <div style={{display:"flex",gap:8,marginBottom:10}}>
             <button onClick={addNode} style={{flex:1,padding:"9px 0",borderRadius:10,border:"1.5px solid #E5E8EB",backgroundColor:"#fff",fontSize:12.5,fontWeight:800,color:"#374151",cursor:"pointer",fontFamily:"inherit"}}>＋ 단계 추가</button>
-            <button onClick={()=>{setConnectMode(!connectMode);setConnectFrom(null);}} style={{flex:1,padding:"9px 0",borderRadius:10,border:`1.5px solid ${connectMode?"#F97316":"#E5E8EB"}`,backgroundColor:connectMode?"#FFEDD5":"#fff",fontSize:12.5,fontWeight:800,color:connectMode?"#EA580C":"#374151",cursor:"pointer",fontFamily:"inherit"}}>🔗 {connectMode?"연결 중…":"선 연결"}</button>
           </div>
-          {connectMode&&<p style={{margin:"0 0 10px",fontSize:11,fontWeight:700,color:"#EA580C",textAlign:"center"}}>{connectFrom?"→ 도착 단계를 탭하세요 (다시 누르면 취소)":"시작 단계를 탭하세요"}</p>}
           <div style={{display:"flex",flexDirection:isPC?"row":"column",gap:16,alignItems:"flex-start"}}>
           <div style={{flex:1,minWidth:0,width:"100%"}}>
-          <div style={{overflowX:"auto",borderRadius:16,border:"1px solid #EDF0F3",WebkitOverflowScrolling:"touch"}}>
-          <div ref={canvasRef} style={{position:"relative",width:canvasW,height:canvasH,backgroundColor:"#FAFBFC",backgroundImage:"radial-gradient(#E5E8EB 1px,transparent 1px)",backgroundSize:"18px 18px"}}>
-            <svg width={canvasW} height={canvasH} style={{position:"absolute",inset:0,pointerEvents:"none"}}>
-              {tpl.edges.map(e=>{ if(!LAY.pos[e.from]||!LAY.pos[e.to])return null; const a=XY(e.from),b=XY(e.to);
-                const x1=a.x+NODE_W,y1=a.y+NODE_H/2,x2=b.x,y2=b.y+NODE_H/2;
-                return <path key={e.id} d={`M ${x1} ${y1} C ${x1+44} ${y1}, ${x2-44} ${y2}, ${x2} ${y2}`} stroke="#C7CFDB" strokeWidth={2} fill="none"/>;
-              })}
-              {hangCards.map(h=>{ const b=XY(h.nodeId); const x1=b.x+NODE_W/2,y1=b.y+NODE_H,x2=h.x+CW/2,y2=h.y; const isT=h.kind==="trigger";
-                return <path key={h.id+"_p"} d={`M ${x1} ${y1} C ${x1} ${y1+28}, ${x2} ${y2-24}, ${x2} ${y2}`} stroke={isT?"#3B82F6":"#10B981"} strokeWidth={2} fill="none" strokeDasharray={isT?"5 4":"0"} opacity={0.85}/>;
-              })}
-            </svg>
-            {connectMode&&tpl.edges.map(e=>{ if(!LAY.pos[e.from]||!LAY.pos[e.to])return null; const a=XY(e.from),b=XY(e.to);
-              const mx=(a.x+NODE_W+b.x)/2-10,my=(a.y+b.y)/2+NODE_H/2-10;
-              return <button key={e.id} onClick={()=>removeEdge(e.id)} style={{position:"absolute",left:mx,top:my,width:20,height:20,borderRadius:"50%",border:"none",backgroundColor:"#F04452",color:"#fff",fontSize:12,fontWeight:900,cursor:"pointer",lineHeight:1,zIndex:6}}>×</button>;
-            })}
-            {segments.map(s=>{
-              const ns=(s.nodeIds||[]).map(nid=>draftNodes.find(n=>n.id===nid)).filter(Boolean);
-              if(!ns.length) return null;
-              const pad=12;
-              const left=Math.min(...ns.map(n=>XY(n.id).x))-pad;
-              const top=Math.max(0,Math.min(...ns.map(n=>XY(n.id).y))-pad-13);
-              const right=Math.max(...ns.map(n=>XY(n.id).x+NODE_W))+pad;
-              const bot=Math.max(...ns.map(n=>XY(n.id).y+NODE_H))+pad;
-              const nums=ns.map(n=>circled(draftNodes.findIndex(d=>d.id===n.id)+1)).join("");
-              const act=segSel===s.id;
-              return [
-                (<div key={s.id} onClick={()=>setSegSel(s.id)} style={{position:"absolute",left,top,width:right-left,height:bot-top,borderRadius:14,border:`2px dashed ${act?"#F97316":"#F59E0B"}`,backgroundColor:act?"rgba(249,115,22,0.06)":"rgba(245,158,11,0.045)",zIndex:1,cursor:"pointer"}}>
-                  <span style={{position:"absolute",top:-12,left:14,background:"#fff",padding:"1px 8px",borderRadius:7,border:`1.5px solid ${act?"#F97316":"#F59E0B"}`,fontSize:10.5,fontWeight:800,color:act?"#EA580C":"#B45309",whiteSpace:"nowrap"}}>구간: {s.name}{nums?` (${nums})`:""}</span>
-                </div>),
-                s.kpiId?(<div key={s.id+"_b"} onClick={()=>setSegSel(s.id)} style={{position:"absolute",left:right+12,top:Math.max(0,top),zIndex:2,display:"flex",alignItems:"center",gap:6,padding:"6px 10px",borderRadius:9,background:"#0F1F5C",color:"#fff",fontSize:10.5,fontWeight:800,whiteSpace:"nowrap",boxShadow:"0 4px 12px rgba(15,31,92,.18)",cursor:"pointer"}}>📊 구간 100% → {segKpiName(s.kpiId)} +1</div>):null
-              ];
-            })}
-            {draftNodes.map((n,i)=>{
-              const p=XY(n.id); const sel=connectFrom===n.id; const col=uColor(n.assigneeId);
-              const editing=editNode&&editNode.id===n.id;
-              if(editing){
-                return(
-                  <div key={n.id} style={{position:"absolute",left:p.x,top:p.y,width:300,boxSizing:"border-box",borderRadius:14,backgroundColor:"#FFFFFF",border:"2px solid #F97316",boxShadow:"0 14px 36px rgba(249,115,22,0.22)",padding:12,zIndex:40}}>
-                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
-                      <span style={{flexShrink:0,width:20,height:20,borderRadius:"50%",backgroundColor:col,color:"#fff",fontSize:10,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{i+1}</span>
-                      <span style={{fontSize:11.5,fontWeight:900,color:"#EA580C"}}>단계 편집</span>
-                      <button onClick={()=>setEditNode(null)} style={{marginLeft:"auto",width:26,height:26,borderRadius:8,border:"1px solid #E5E8EB",background:"#fff",color:"#6B7280",fontSize:14,fontWeight:700,cursor:"pointer",lineHeight:1}}>✕</button>
-                    </div>
-                    <NodeEditForm node={editNode} users={D.users} onSave={saveNode} onDelete={deleteNode} onAddChild={(patch)=>addChildWithPatch(n,patch)}/>
-                  </div>
-                );
-              }
-              const tap=()=>{ if(connectMode){handleConnect(n);return;} setEditNode(n); };
-              const acts=(n.auto&&Array.isArray(n.auto.onDone))?n.auto.onDone:[];
-              const hasAuto=n.autoComplete||acts.length>0;
-              return(
-                <div key={n.id} onClick={tap}
-                  style={{position:"absolute",left:p.x,top:p.y,width:NODE_W,minHeight:NODE_H,boxSizing:"border-box",padding:"9px 11px 8px",borderRadius:13,backgroundColor:"#FFFFFF",border:`2px solid ${sel?"#F97316":col+"55"}`,boxShadow:sel?"0 0 0 3px #F9731633":"0 3px 10px rgba(15,31,92,0.08)",cursor:"pointer",userSelect:"none",zIndex:sel?5:3}}>
-                  <span style={{position:"absolute",top:-9,left:11,background:"#EEF2FF",color:"#4338CA",fontSize:8.5,fontWeight:800,padding:"1px 6px",borderRadius:5,letterSpacing:0.2}}>로드단계</span>
-                  <div style={{display:"flex",alignItems:"center",gap:6}}>
-                    <span style={{flexShrink:0,width:20,height:20,borderRadius:"50%",backgroundColor:col,color:"#fff",fontSize:10.5,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{i+1}</span>
-                    <span style={{flex:1,minWidth:0,fontSize:12,fontWeight:800,color:"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.title}</span>
-                    {hasAuto&&<span title="자동화" style={{flexShrink:0,fontSize:11,fontWeight:900,color:"#EA580C"}}>⚡</span>}
-                  </div>
-                  <div style={{marginTop:3,marginLeft:26,fontSize:9.5,fontWeight:700,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.roleLabel||uName(n.assigneeId)}{n.autoComplete?" · 🤖 자동 단계":""}</div>
-                </div>
-              );
-            })}
-            {hangCards.map(h=>{
-              const isT=h.kind==="trigger";
-              let main; if(isT){ main="이 단계 완료 시"; } else { const a=h.a; main=a.kind==="advance"?"⏭ 다음 단계로 진행":a.kind==="notify"?`🔔 ${a.title||"알림"}`:`${a.title||"업무"}${a.assigneeId?` → ${uName(a.assigneeId)}`:""}`; }
-              return(
-                <div key={h.id} style={{position:"absolute",left:h.x,top:h.y,width:CW,boxSizing:"border-box",borderRadius:11,background:"#fff",border:`1px solid ${isT?"#DBEAFE":"#EEF0F2"}`,boxShadow:"0 4px 12px rgba(15,31,92,.07)",padding:"7px 9px",zIndex:4}}>
-                  <div style={{fontSize:9,fontWeight:900,color:isT?"#DC2626":"#EA580C",marginBottom:2}}>{isT?"⏰ 트리거":"⚡ 액션"}</div>
-                  <div style={{fontSize:10.5,fontWeight:700,color:"#374151",lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{main}</div>
-                </div>
-              );
-            })}
-          </div>
-          </div>
-          <p style={{margin:"10px 2px 0",fontSize:11,color:"#9CA3AF",lineHeight:1.6}}>● <b>노드를 탭</b>하면 편집&nbsp;·&nbsp;<b>＋ 하위 단계</b>로 잇기&nbsp;·&nbsp;단계 아래 <b style={{color:"#10B981"}}>⚡액션</b>·<b style={{color:"#3B82F6"}}>⏰트리거</b> 카드는 완료 시 자동 실행{isPC?<>&nbsp;·&nbsp;가로 스크롤로 전체 흐름</>:null}.</p>
+          <FlowView mode="edit"
+            height={Math.max(440,Math.min(680,(draftNodes.reduce((m,n)=>Math.max(m,n.y),0))+NODE_H+110))}
+            nodes={(tpl.nodes||[]).map((n,i)=>({id:n.id,x:n.x,y:n.y,title:n.title,sub:n.roleLabel||uName(n.assigneeId),color:uColor(n.assigneeId),auto:n.autoComplete||((n.auto&&n.auto.onDone)||[]).length>0,stepLabel:i+1}))}
+            edges={tpl.edges||[]}
+            selectedId={editNode?editNode.id:null}
+            onNodeTap={node=>setEditNode((tpl.nodes||[]).find(z=>z.id===node.id))}
+            onNodeDragEnd={(id,x,y)=>up("launchTemplates",tpl.id,{nodes:tpl.nodes.map(z=>z.id===id?{...z,x,y}:z)})}
+            onConnect={(from,to)=>{const exists=(tpl.edges||[]).some(e=>(e.from===from&&e.to===to)||(e.from===to&&e.to===from));if(!exists)up("launchTemplates",tpl.id,{edges:[...(tpl.edges||[]),{id:"e"+Date.now(),from,to}]});}}
+            onDeleteEdge={removeEdge}/>
+          <p style={{margin:"10px 2px 0",fontSize:11,color:"#9CA3AF",lineHeight:1.6}}>● <b>노드 아래 점(●)을 드래그</b>해서 다음 단계로 연결&nbsp;·&nbsp;<b>노드 탭</b>하면 단계·담당자·<b style={{color:"#EA580C"}}>⚡자동화</b> 편집&nbsp;·&nbsp;<b>빈 곳 드래그</b>로 이동, <b>＋/－</b>로 확대.</p>
           </div>
 
           {/* ── 구간 KPI 설정 패널 (시안 v0.8 우측 카드) — 로드단계 묶음 → 카운트 KPI 연결 ── */}
@@ -3792,7 +3819,10 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
         </div>
       </Sheet>
 
-      {/* 노드 수정은 캔버스 인라인 카드로 처리(EdrawMind식) — 시트 제거 */}
+      {/* 단계(노드) 편집 시트 — n8n식 캔버스에서 노드 탭 시 열림 */}
+      <Sheet open={!!editNode} onClose={()=>setEditNode(null)} title="🧩 단계 편집" h="92vh">
+        {editNode&&<NodeEditForm node={editNode} users={D.users} onSave={saveNode} onDelete={deleteNode} onAddChild={(patch)=>addChildWithPatch(editNode,patch)}/>}
+      </Sheet>
 
       {/* 템플릿 이름 변경 시트 */}
       <Sheet open={renameOpen} onClose={()=>setRenameOpen(false)} title="템플릿 이름">

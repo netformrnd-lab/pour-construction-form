@@ -1079,6 +1079,20 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const [quickProj,setQuickProj]=useState("");
   const [confirmTaskId,setConfirmTaskId]=useState(null);
   const [editTask,setEditTask]=useState(null);
+  const [expandedCards,setExpandedCards]=useState({});   // 카드에서 '하위 X/Y' 탭 → 그 자리 인라인 펼침
+  const CardSubtree=({tid})=>{const desc=taskDescFlat(D,tid);return(
+    <div style={{marginTop:8,paddingTop:8,borderTop:"1px dashed #E5E8EB",display:"flex",flexDirection:"column",gap:4}}>
+      {desc.length===0?<p style={{margin:0,fontSize:11,color:"#9CA3AF"}}>하위 업무가 없어요</p>:desc.map(({t:c,depth})=>{const cs=STATUS_MAP[c.status]||STATUS_MAP.todo;return(
+        <div key={c.id} style={{display:"flex",alignItems:"center",gap:7,marginLeft:(depth-1)*14}}>
+          {depth>1&&<span style={{color:"#D1D5DB",fontSize:11,flexShrink:0}}>↳</span>}
+          <button onClick={()=>up("tasks",c.id,c.status==="done"?{status:"todo"}:{status:"done",doneAt:new Date().toISOString(),doneByName:(D.users.find(u=>u.id===c.assigneeId)||{}).name||""})} title={cs.label} style={{width:16,height:16,borderRadius:5,border:`2px solid ${cs.color}`,background:c.status==="done"?cs.color:"#fff",color:"#fff",fontSize:9,fontWeight:900,cursor:"pointer",flexShrink:0,lineHeight:1,padding:0}}>{c.status==="done"?"✓":""}</button>
+          <span style={{flex:1,minWidth:0,fontSize:12,color:c.status==="done"?"#9CA3AF":"#1F2937",textDecoration:c.status==="done"?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.title}</span>
+          {(()=>{const k=taskKidsOf(D,c.id).length;return k?<span style={{fontSize:9,fontWeight:800,color:"#9CA3AF",flexShrink:0}}>하위 {k}</span>:null;})()}
+          <button onClick={()=>setEditTask(c)} style={{background:"none",border:"none",fontSize:11,cursor:"pointer",color:"#C4C9D0",padding:4,flexShrink:0}}>✎</button>
+        </div>
+      );})}
+    </div>
+  );};
   const [projModal,setProjModal]=useState(null);     // 오늘에서 프로젝트 상세·수정 모달
   const [processProj,setProcessProj]=useState(null); // 모달에서 프로세스 편집 진입
   const [feedOpen,setFeedOpen]=useState(false);
@@ -1358,13 +1372,14 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
               const proj=D.projects.find(p=>p.id===t.projectId);
               const st=STATUS_MAP[t.status];
               return(
-                <div key={t.id} style={{display:"flex",alignItems:"center",gap:10,padding:"11px 12px",borderRadius:12,backgroundColor:t.status==="done"?"rgba(232,250,241,0.34)":"#F9FAFB",border:`1px solid ${t.status==="done"?"rgba(0,192,115,0.2)":"#E5E8EB"}`}}>
+                <div key={t.id} style={{borderRadius:12,backgroundColor:t.status==="done"?"rgba(232,250,241,0.34)":"#F9FAFB",border:`1px solid ${t.status==="done"?"rgba(0,192,115,0.2)":"#E5E8EB"}`}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,padding:"11px 12px"}}>
                   <button onClick={()=>toggle(t)} style={{width:22,height:22,borderRadius:6,border:`2px solid ${t.status==="done"?"#00C073":"#D1D5DB"}`,backgroundColor:t.status==="done"?"#00C073":"#FFFFFF",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,padding:0}}>
                     {t.status==="done"&&<span style={{color:"#FFFFFF",fontSize:12,fontWeight:900}}>✓</span>}
                   </button>
                   <div style={{flex:1,minWidth:0}}>
                     <p style={{margin:0,fontSize:13.5,fontWeight:700,color:t.status==="done"?"#9CA3AF":"#111827",textDecoration:t.status==="done"?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.eventId?"📅 ":""}{t.title}</p>
-                    {(()=>{const chain=taskParentChain(D,t);const ru=taskRollup(D,t.id);const pathTxt=[proj&&`📁 ${proj.title}`,...chain.map(c=>c.title)].filter(Boolean).join(" ▸ ");return (proj||chain.length>0||ru.total>0||(t.status==="done"&&t.doneAt))?(<p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.status==="done"&&t.doneAt?<span style={{color:"#00A862",fontWeight:700}}>✓ {hhmm(t.doneAt)} 완료{(pathTxt||ru.total)?" · ":""}</span>:null}{pathTxt}{ru.total>0?<span style={{marginLeft:pathTxt?6:0,fontWeight:800,color:ru.done>=ru.total?"#00A862":"#7C3AED"}}>{pathTxt?"· ":""}하위 {ru.done}/{ru.total}</span>:null}</p>):null;})()}
+                    {(()=>{const chain=taskParentChain(D,t);const ru=taskRollup(D,t.id);const pathTxt=[proj&&`📁 ${proj.title}`,...chain.map(c=>c.title)].filter(Boolean).join(" ▸ ");return (proj||chain.length>0||ru.total>0||(t.status==="done"&&t.doneAt))?(<p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.status==="done"&&t.doneAt?<span style={{color:"#00A862",fontWeight:700}}>✓ {hhmm(t.doneAt)} 완료{(pathTxt||ru.total)?" · ":""}</span>:null}{pathTxt}{ru.total>0?<button onClick={()=>setExpandedCards(e=>({...e,[t.id]:!e[t.id]}))} style={{marginLeft:pathTxt?6:0,fontWeight:800,color:ru.done>=ru.total?"#00A862":"#7C3AED",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit",fontSize:10.5}}>{pathTxt?"· ":""}하위 {ru.done}/{ru.total} {expandedCards[t.id]?"▾":"▸"}</button>:null}</p>):null;})()}
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                     {t.weekSlot&&<span style={{fontSize:10,fontWeight:800,color:"#9CA3AF"}}>{t.weekSlot}순위</span>}
@@ -1373,6 +1388,8 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                     <button onClick={()=>setEditTask(t)} style={{background:"none",border:"none",fontSize:13,cursor:"pointer",color:"#9CA3AF",padding:8}}>✎</button>
                     <button onClick={()=>setConfirmTaskId(t.id)} style={{background:"none",border:"none",fontSize:13,cursor:"pointer",color:"#D1D5DB",padding:8}}>✕</button>
                   </div>
+                  </div>
+                  {expandedCards[t.id]&&<div style={{padding:"0 12px 11px"}}><CardSubtree tid={t.id}/></div>}
                 </div>
               );
             })}
@@ -1499,12 +1516,13 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                           <span style={{fontSize:9.5,fontWeight:800,color:st.color,background:st.bg,borderRadius:5,padding:"1px 6px"}}>{st.label}</span>
                           <span style={{fontSize:10.5,color:placed?"#6B7280":"#EA580C",fontWeight:placed?600:700}}>{placed?`${t.weekDay}요일${t.weekSlot?` ${t.weekSlot}순위`:""}`:"미배치"}</span>
                           {proj?<span style={{fontSize:10.5,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>· 📁 {proj.title}</span>:<span style={{fontSize:10.5,color:"#F04452",fontWeight:600}}>· ⚠️ 미연결</span>}
-                          {(()=>{const ru=taskRollup(D,t.id);return ru.total>0?<span style={{fontSize:10,fontWeight:800,color:ru.done>=ru.total?"#00A862":"#7C3AED",flexShrink:0}}>· 하위 {ru.done}/{ru.total}</span>:null;})()}
+                          {(()=>{const ru=taskRollup(D,t.id);return ru.total>0?<button onClick={()=>setExpandedCards(e=>({...e,[t.id]:!e[t.id]}))} style={{border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit",fontSize:10,fontWeight:800,color:ru.done>=ru.total?"#00A862":"#7C3AED",flexShrink:0}}>· 하위 {ru.done}/{ru.total} {expandedCards[t.id]?"▾":"▸"}</button>:null;})()}
                         </div>
                       </div>
                       <button onClick={()=>setEditTask(t)} style={{padding:"6px 9px",borderRadius:8,border:"1px solid #E5E8EB",backgroundColor:"#FFFFFF",fontSize:12,fontWeight:700,color:"#4B5563",cursor:"pointer",flexShrink:0}}>✎</button>
                       <button onClick={()=>setConfirmTaskId(t.id)} style={{padding:"6px 9px",borderRadius:8,border:"1px solid #FFE2E5",backgroundColor:"#FFF0F1",fontSize:12,fontWeight:700,color:"#F04452",cursor:"pointer",flexShrink:0}}>🗑</button>
                     </div>
+                    {expandedCards[t.id]&&<CardSubtree tid={t.id}/>}
                     {(taskFilter==="hold")?(
                       <button onClick={()=>bringToday(t)} style={{width:"100%",marginTop:8,padding:"8px 0",borderRadius:9,border:"none",backgroundColor:"#F97316",color:"#FFFFFF",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>📍 오늘로 재개</button>
                     ):(!placed&&t.status!=="done")&&(

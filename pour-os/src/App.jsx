@@ -3432,6 +3432,21 @@ function FlowView({nodes,edges,mode="progress",height=520,nodeW=NODE_W,nodeH=NOD
     </div>
   );
 }
+// ── 통합 캔버스: 엣지 기반 가로 레이어 자동배치 (depth=열, row=같은 열 순번) ──
+const COL_STEP=212, ROW_STEP=238, PAD_X=26, PAD_Y=30;
+function flowLayout(nodes,edges){
+  const ids=(nodes||[]).map(n=>n.id), has=new Set(ids);
+  const adj={}, indeg={}; ids.forEach(id=>{adj[id]=[];indeg[id]=0;});
+  (edges||[]).forEach(e=>{ if(has.has(e.from)&&has.has(e.to)){ adj[e.from].push(e.to); indeg[e.to]++; }});
+  const depth={}, indeg2={...indeg}; const queue=ids.filter(id=>!indeg[id]); queue.forEach(id=>depth[id]=0);
+  for(let h=0;h<queue.length;h++){ const id=queue[h]; adj[id].forEach(t=>{ depth[t]=Math.max(depth[t]||0,(depth[id]||0)+1); if(--indeg2[t]===0)queue.push(t); }); }
+  ids.forEach(id=>{ if(depth[id]==null)depth[id]=0; });
+  const cols={}; ids.forEach(id=>{ (cols[depth[id]]=cols[depth[id]]||[]).push(id); });
+  const pos={}; Object.keys(cols).forEach(d=>cols[d].forEach((id,r)=>{ pos[id]={col:+d,row:r,x:PAD_X+(+d)*COL_STEP,y:PAD_Y+r*ROW_STEP}; }));
+  const maxCol=ids.length?Math.max(...ids.map(id=>depth[id])):0;
+  const maxRow=Math.max(0,...Object.values(cols).map(a=>a.length-1));
+  return {pos,maxCol,maxRow};
+}
 function LaunchPage({D,cu,lead,add,up,rm,nav}){
   const [tab,setTab]=useState("template");
   const [libDetail,setLibDetail]=useState(false);   // 라이브러리: false=카드목록, true=선택 프로세스 편집
@@ -3481,8 +3496,19 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
   useEffect(()=>{const h=()=>setIsPC(window.innerWidth>=1024);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[]);
   useEffect(()=>{ if(!draggingRef.current&&tpl) setDraftNodes(tpl.nodes); },[tpl]);
   const maxY=draftNodes.reduce((m,n)=>Math.max(m,n.y),0);
-  const editY=editNode?(nodeById(editNode.id)?.y||0):0;
-  const canvasH=Math.max(520,maxY+NODE_H+120,editNode?editY+560:0);   // 인라인 편집 카드 공간 확보
+  // ── 통합 캔버스 자동배치(가로 흐름) + 매달린 액션/트리거 카드 계산 ──
+  const LAY=flowLayout(draftNodes,tpl?tpl.edges:[]);
+  const XY=(id)=>LAY.pos[id]||{x:PAD_X,y:PAD_Y};
+  const canvasW=Math.max(560,PAD_X*2+(LAY.maxCol+1)*COL_STEP);
+  const CW=152,CH=46,CGAP=11,CARD_TOP=30;
+  const hangCards=[];
+  draftNodes.forEach(n=>{ const acts=(n.auto&&Array.isArray(n.auto.onDone))?n.auto.onDone:[]; if(!acts.length)return;
+    const b=XY(n.id); let cy=b.y+NODE_H+CARD_TOP;
+    hangCards.push({id:n.id+"_t",nodeId:n.id,x:b.x,y:cy,kind:"trigger"}); cy+=CH+CGAP;
+    acts.forEach((a,k)=>{ hangCards.push({id:n.id+"_a"+k,nodeId:n.id,x:b.x,y:cy,kind:"action",a}); cy+=CH+CGAP; }); });
+  const maxHangY=hangCards.reduce((m,h)=>Math.max(m,h.y+CH),0);
+  const editY=editNode?XY(editNode.id).y:0;
+  const canvasH=Math.max(360,PAD_Y*2+(LAY.maxRow+1)*ROW_STEP,maxHangY+34,editNode?editY+460:0);   // 가로 레이어 + 매달린 카드 + 편집 공간
   const nodeById=(id)=>draftNodes.find(n=>n.id===id);
   const onNodeDown=(e,n)=>{
     if(!isPC) return;   // 모바일: 노드 편집 불가(보기 전용) — 드래그·탭편집 차단
@@ -3703,6 +3729,8 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
           <div style={{display:"flex",gap:8,marginBottom:10}}>
             <button onClick={addNode} style={{flex:1,padding:"9px 0",borderRadius:10,border:"1.5px solid #E5E8EB",backgroundColor:"#fff",fontSize:12.5,fontWeight:800,color:"#374151",cursor:"pointer",fontFamily:"inherit"}}>＋ 단계 추가</button>
           </div>
+          <div style={{display:"flex",flexDirection:isPC?"row":"column",gap:16,alignItems:"flex-start"}}>
+          <div style={{flex:1,minWidth:0,width:"100%"}}>
           <FlowView mode="edit"
             height={Math.max(440,Math.min(680,(draftNodes.reduce((m,n)=>Math.max(m,n.y),0))+NODE_H+110))}
             nodes={(tpl.nodes||[]).map((n,i)=>({id:n.id,x:n.x,y:n.y,title:n.title,sub:n.roleLabel||uName(n.assigneeId),color:uColor(n.assigneeId),auto:n.autoComplete||((n.auto&&n.auto.onDone)||[]).length>0,stepLabel:i+1}))}
@@ -3713,9 +3741,10 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
             onConnect={(from,to)=>{const exists=(tpl.edges||[]).some(e=>(e.from===from&&e.to===to)||(e.from===to&&e.to===from));if(!exists)up("launchTemplates",tpl.id,{edges:[...(tpl.edges||[]),{id:"e"+Date.now(),from,to}]});}}
             onDeleteEdge={removeEdge}/>
           <p style={{margin:"10px 2px 0",fontSize:11,color:"#9CA3AF",lineHeight:1.6}}>● <b>노드 아래 점(●)을 드래그</b>해서 다음 단계로 연결&nbsp;·&nbsp;<b>노드 탭</b>하면 단계·담당자·<b style={{color:"#EA580C"}}>⚡자동화</b> 편집&nbsp;·&nbsp;<b>빈 곳 드래그</b>로 이동, <b>＋/－</b>로 확대.</p>
+          </div>
 
           {/* ── 구간 KPI 설정 패널 (시안 v0.8 우측 카드) — 로드단계 묶음 → 카운트 KPI 연결 ── */}
-          <div style={{marginTop:16,borderRadius:16,border:"1px solid #EEF0F2",background:"#fff",padding:14}}>
+          <div style={{width:isPC?348:"100%",flexShrink:0,boxSizing:"border-box",borderRadius:16,border:"1px solid #EEF0F2",background:"#fff",padding:14}}>
             <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:4}}>
               <span style={{fontSize:13.5,fontWeight:900,color:"#EA580C"}}>📊 구간 KPI</span>
               <span style={{fontSize:11,fontWeight:600,color:"#9CA3AF"}}>로드단계를 묶어 카운트 KPI에 연결</span>
@@ -3768,6 +3797,7 @@ function LaunchPage({D,cu,lead,add,up,rm,nav}){
                   </div>
                   );})()}
               </>)}
+          </div>
           </div>
       </>)}
 

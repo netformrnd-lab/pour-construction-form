@@ -1818,8 +1818,23 @@ function PlaygroundPage({ onToast, cfg, presetBotId, onNeedSettings }) {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [usage, setUsage] = useState({ tin: 0, tout: 0 });
+  const [correcting, setCorrecting] = useState(null);
   const sessionRef = useRef(null);
   const scrollRef = useRef(null);
+
+  // 답변 교정 → 올바른 답을 지식베이스(FAQ)로 저장 → 다음부터 그에 맞춰 답변
+  const openCorrection = (i) => {
+    const botMsg = msgs[i];
+    const prevUser = msgs.slice(0, i).reverse().find(m => m.role === 'user');
+    setCorrecting({ type: 'faq', q: prevUser ? prevUser.content : '', a: botMsg.content, tags: [], audience: bot ? [bot.audience] : [], status: 'active' });
+  };
+  const saveCorrection = async (entry) => {
+    try {
+      await db.collection(COLLECTIONS.KB).add({ ...entry, source: 'correction', createdAt: nowIso(), updatedAt: nowIso() });
+      onToast({ message: '교정 저장됨 — 다음 답변부터 반영됩니다', type: 'success' });
+      setCorrecting(null);
+    } catch (e) { onToast({ message: '저장 실패: ' + e.message, type: 'error' }); }
+  };
 
   const bot = bots.find(b => b.id === botId);
   useEffect(() => { if (!botId && bots.length) setBotId(presetBotId && bots.find(b=>b.id===presetBotId) ? presetBotId : bots[0].id); }, [bots]);
@@ -1914,10 +1929,16 @@ function PlaygroundPage({ onToast, cfg, presetBotId, onNeedSettings }) {
           <div ref={scrollRef} className="cb-scroll" style={{ flex:1, overflowY:'auto', padding:'18px 18px', background:'var(--bg)' }}>
             {msgs.map((m, i) => (
               <div key={i} style={{ display:'flex', justifyContent: m.role==='user'?'flex-end':'flex-start', marginBottom:12 }}>
-                <div style={{ maxWidth:'74%', padding:'10px 14px', borderRadius: m.role==='user'?'14px 14px 4px 14px':'14px 14px 14px 4px',
-                  background: m.role==='user'?'linear-gradient(135deg, var(--navy), var(--navy2))': m.error?'var(--red-l)':'#fff',
-                  color: m.role==='user'?'#fff':'var(--text)', border: m.role==='user'?'none':'1px solid var(--border)',
-                  fontSize:13.5, lineHeight:1.6, whiteSpace:'pre-wrap', boxShadow:'var(--shadow)' }}>{m.content}</div>
+                <div style={{ maxWidth:'74%' }}>
+                  <div style={{ padding:'10px 14px', borderRadius: m.role==='user'?'14px 14px 4px 14px':'14px 14px 14px 4px',
+                    background: m.role==='user'?'linear-gradient(135deg, var(--navy), var(--navy2))': m.error?'var(--red-l)':'#fff',
+                    color: m.role==='user'?'#fff':'var(--text)', border: m.role==='user'?'none':'1px solid var(--border)',
+                    fontSize:13.5, lineHeight:1.6, whiteSpace:'pre-wrap', boxShadow:'var(--shadow)' }}>{m.content}</div>
+                  {m.role==='assistant' && !m.error && i > 0 && (
+                    <button onClick={() => openCorrection(i)} title="이 답변을 올바르게 교정해 지식베이스에 저장"
+                      style={{ fontSize:11, color:'var(--or-d)', fontWeight:800, marginTop:4, padding:'2px 4px' }}>✏️ 답변 교정</button>
+                  )}
+                </div>
               </div>
             ))}
             {sending && (
@@ -1949,6 +1970,7 @@ function PlaygroundPage({ onToast, cfg, presetBotId, onNeedSettings }) {
           )}
         </div>
       </div>
+      {correcting && <KbEditModal entry={correcting} onClose={() => setCorrecting(null)} onSave={saveCorrection} />}
     </>
   );
 }

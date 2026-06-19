@@ -2453,7 +2453,8 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
   const stages=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed&&!t.parentId).sort((a,b)=>(a.seq||0)-(b.seq||0));
   const [selId,setSelId]=useState(stages[0]?.id||null);
   const [canvasOpen,setCanvasOpen]=useState(true);   // 통합 캔버스(로드단계+프로세스 가지치기) 펼침
-  const [canvasEdit,setCanvasEdit]=useState(null);   // 캔버스에서 탭한 노드 편집
+  const [canvasEdit,setCanvasEdit]=useState(null);   // 캔버스에서 ✎ 누른 노드 편집
+  const [expanded,setExpanded]=useState({});   // 캔버스 펼침: {taskId:true} (로드단계 탭하면 하위 task 트리 펼침)
   const [dateOpen,setDateOpen]=useState(null);   // 인라인 날짜 편집 중인 업무 id
   const [moreOpen,setMoreOpen]=useState(null);   // 행 컨트롤(⋯) 펼친 업무 id
   const todayISO=new Date().toISOString().slice(0,10);
@@ -2564,28 +2565,33 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
         {(()=>{
           const ts=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed);
           if(!ts.length) return null;
-          const idset=new Set(ts.map(t=>t.id));
-          const edges0=ts.filter(t=>t.parentId&&idset.has(t.parentId)).map(t=>({id:"e_"+t.id,from:t.parentId,to:t.id}));
-          const need=ts.some(t=>t.x==null||t.y==null);
-          const LAY=need?flowLayout(ts.map(t=>({id:t.id})),edges0):{pos:{},maxRow:0};
-          const kids=new Set(ts.filter(t=>t.parentId).map(t=>t.parentId));
-          const stOf=(t)=>{ if(kids.has(t.id)){ const cs=ts.filter(x=>x.parentId===t.id); return cs.length&&cs.every(c=>c.status==="done")?"done":undefined; } return t.status==="done"?"done":(t.status==="inprogress"?"ready":"wait"); };
-          const nodes=ts.map(t=>{const pos=(t.x!=null&&t.y!=null)?{x:t.x,y:t.y}:(LAY.pos[t.id]||{x:24,y:24});const m=Mof(t.assigneeId);return {id:t.id,x:pos.x,y:pos.y,title:t.title,sub:m.name,color:m.color,status:stOf(t)};});
+          const childrenOf=(pid)=>ts.filter(t=>(t.parentId||null)===(pid||null)).sort((a,b)=>(a.seq||0)-(b.seq||0));
+          const roots=childrenOf(null);
+          // 펼친 노드의 자식만 노출 — 로드단계 탭 → 하위 task 트리가 아래로 펼쳐짐
+          const visible=[];
+          const walk=(t)=>{ visible.push(t); if(expanded[t.id]) childrenOf(t.id).forEach(walk); };
+          roots.forEach(walk);
+          const vset=new Set(visible.map(t=>t.id));
+          const edges0=visible.filter(t=>t.parentId&&vset.has(t.parentId)).map(t=>({id:"e_"+t.id,from:t.parentId,to:t.id}));
+          // 아래로 펼치는 트리 배치(부모 위·자식 아래, 부모는 자식 가운데 정렬)
+          const CW=NODE_W+22, RH=96; let cur=0; const pos={};
+          const place=(t,depth)=>{ const ch=expanded[t.id]?childrenOf(t.id):[]; if(!ch.length){ pos[t.id]={x:24+cur*CW,y:14+depth*RH}; cur++; } else { ch.forEach(c=>place(c,depth+1)); const xs=ch.map(c=>pos[c.id].x); pos[t.id]={x:(Math.min(...xs)+Math.max(...xs))/2,y:14+depth*RH}; } };
+          roots.forEach(r=>place(r,0));
+          const stOf=(t)=>{ const ch=childrenOf(t.id); if(ch.length){ return ch.every(c=>c.status==="done")?"done":undefined; } return t.status==="done"?"done":(t.status==="inprogress"?"ready":"wait"); };
+          const nodes=visible.map(t=>{const m=Mof(t.assigneeId);const kc=childrenOf(t.id).length;return {id:t.id,x:pos[t.id].x,y:pos[t.id].y,title:t.title,sub:(t.parentId?"":"로드단계 · ")+m.name,color:m.color,status:stOf(t),chev:kc?(expanded[t.id]?"▾":"▸"):null,kidCount:kc,chevOpen:!!expanded[t.id]};});
           const maxY=nodes.reduce((mx,n)=>Math.max(mx,n.y),0);
-          const ancestors=(id)=>{const out=new Set();let p=ts.find(t=>t.id===id)?.parentId;while(p){out.add(p);p=ts.find(t=>t.id===p)?.parentId;}return out;};
+          const toggle=(id)=>setExpanded(e=>({...e,[id]:!e[id]}));
           return(
             <div style={{marginBottom:14}}>
               <button onClick={()=>setCanvasOpen(o=>!o)} style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"10px 13px",borderRadius:12,border:"1px solid #E5E8EB",background:"#fff",cursor:"pointer",fontFamily:"inherit",marginBottom:canvasOpen?8:0}}>
                 <span style={{fontSize:13,fontWeight:900,color:"#0F1F5C"}}>🧩 통합 캔버스</span>
-                <span style={{flex:1,minWidth:0,textAlign:"left",fontSize:10.5,fontWeight:600,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>드래그=이동 · 노드 아래 ●드래그=하위(프로세스)로 잇기 · 탭=편집</span>
+                <span style={{flex:1,minWidth:0,textAlign:"left",fontSize:10.5,fontWeight:600,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>로드단계 탭 = 하위 프로세스 펼치기 · ✎ = 편집 · 빈곳 드래그·＋/－ 줌</span>
                 <span style={{fontSize:12,color:"#9CA3AF"}}>{canvasOpen?"▲":"▼"}</span>
               </button>
-              {canvasOpen&&<FlowView mode="edit" height={Math.max(320,Math.min(680,maxY+NODE_H+120))} nodes={nodes} edges={edges0}
+              {canvasOpen&&<FlowView mode="progress" height={Math.max(300,Math.min(700,maxY+NODE_H+120))} nodes={nodes} edges={edges0}
                 selectedId={canvasEdit?canvasEdit.id:null}
-                onNodeTap={node=>setCanvasEdit(ts.find(x=>x.id===node.id)||null)}
-                onNodeDragEnd={(id,x,y)=>up("tasks",id,{x,y})}
-                onConnect={(from,to)=>{ if(from===to||ancestors(from).has(to))return; up("tasks",to,{parentId:from,seq:kidsOf(from).length}); }}
-                onDeleteEdge={eid=>{ const cid=eid.slice(2); up("tasks",cid,{parentId:null,seq:stages.length}); }}/>}
+                onNodeTap={node=>{ const kc=childrenOf(node.id).length; if(kc) toggle(node.id); else setCanvasEdit(ts.find(x=>x.id===node.id)||null); }}
+                onNodeEdit={node=>setCanvasEdit(ts.find(x=>x.id===node.id)||null)}/>}
             </div>
           );
         })()}
@@ -2704,7 +2710,7 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
             <div style={{display:"flex",gap:7}}>
               {[["todo","할일"],["inprogress","진행중"],["done","완료"]].map(([s,l])=>{const on=t.status===s;const c=STATUS_MAP[s].color;return(<button key={s} onClick={()=>up("tasks",t.id,s==="done"?{status:s,doneAt:new Date().toISOString(),doneByName:(D.users.find(u=>u.id===t.assigneeId)||{}).name||""}:{status:s})} style={{flex:1,padding:"9px 0",borderRadius:10,border:`1.5px solid ${on?c:"#E5E8EB"}`,background:on?c+"18":"#fff",color:on?c:"#6B7280",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>);})}
             </div>
-            <button onClick={()=>addKid(t.id)} style={{width:"100%",marginTop:14,padding:"11px 0",borderRadius:11,border:"1.5px solid #FDBA74",background:"#FFF7ED",color:"#EA580C",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>＋ 하위 업무(프로세스) 추가</button>
+            <button onClick={()=>{addKid(t.id);setExpanded(e=>({...e,[t.id]:true}));}} style={{width:"100%",marginTop:14,padding:"11px 0",borderRadius:11,border:"1.5px solid #FDBA74",background:"#FFF7ED",color:"#EA580C",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>＋ 하위 업무(프로세스) 추가</button>
             <p style={{margin:"8px 2px 0",fontSize:10.5,color:"#9CA3AF",lineHeight:1.5}}>※ 캔버스에서 노드 아래 ●을 다른 노드로 끌면 그 노드의 하위(프로세스)로 이어집니다.</p>
             <button onClick={()=>{delTask(t);setCanvasEdit(null);}} style={{width:"100%",marginTop:10,padding:"11px 0",borderRadius:11,border:"1.5px solid #FFE2E5",background:"#FFF0F1",color:"#F04452",fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🗑 삭제</button>
           </div>
@@ -3468,7 +3474,7 @@ const FLOW_ARROW="flowArrowHead";
 const flowPath=(a,b,w,h)=>{const x1=a.x+w/2,y1=a.y+h,x2=b.x+w/2,y2=b.y;return `M ${x1} ${y1} C ${x1} ${y1+44}, ${x2} ${y2-44}, ${x2} ${y2}`;};
 // n8n식 노드 캔버스 — 팬(빈공간 드래그)·줌(버튼/Ctrl휠)·노드 드래그·핸들 드래그로 연결·화살표. 편집/진행 공용.
 // nodes:[{id,x,y,title,sub,color,status?,auto?,stepLabel?}] · edges:[{id,from,to}] · mode:"edit"|"progress"
-function FlowView({nodes,edges,mode="progress",height=520,nodeW=NODE_W,nodeH=NODE_H,selectedId,onNodeTap,onNodeDragEnd,onConnect,onDeleteEdge}){
+function FlowView({nodes,edges,mode="progress",height=520,nodeW=NODE_W,nodeH=NODE_H,selectedId,onNodeTap,onNodeDragEnd,onConnect,onDeleteEdge,onNodeEdit}){
   const editable=mode==="edit";
   const wrapRef=useRef(null);
   const [view,setView]=useState({x:24,y:20,z:1});
@@ -3512,12 +3518,15 @@ function FlowView({nodes,edges,mode="progress",height=520,nodeW=NODE_W,nodeH=NOD
         {nodes.map(n=>{const P=liveNode(n);const stc=n.status?ST_COLOR[n.status]:null;const seld=selectedId===n.id||(conn&&conn.from===n.id);const bd=seld?"#F97316":(stc||(n.color||"#94A3B8")+"66");return(
           <div key={n.id} onPointerDown={e=>onNodeDown(e,P)} style={{position:"absolute",left:P.x,top:P.y,width:nodeW,minHeight:nodeH,boxSizing:"border-box",padding:"8px 10px",borderRadius:12,background:n.status==="done"?"#F0FBF5":"#fff",border:`2px solid ${bd}`,boxShadow:seld?"0 0 0 3px #F9731633":"0 2px 8px rgba(0,0,0,0.08)",cursor:editable?"grab":"pointer",zIndex:seld?5:2}}>
             <span style={{position:"absolute",top:-6,left:nodeW/2-5,width:10,height:10,borderRadius:"50%",background:"#fff",border:`2px solid ${stc||"#CBD5E1"}`}}/>
+            {onNodeEdit&&<button onPointerDown={e=>{e.stopPropagation();onNodeEdit(n);}} title="편집" style={{position:"absolute",top:-9,right:-9,width:20,height:20,borderRadius:"50%",border:"1px solid #E5E8EB",background:"#fff",color:"#6B7280",fontSize:10,cursor:"pointer",lineHeight:1,boxShadow:"0 1px 4px rgba(0,0,0,0.12)",zIndex:8}}>✎</button>}
             <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4}}>
               <span style={{flexShrink:0,width:18,height:18,borderRadius:"50%",background:stc||n.color||"#94A3B8",color:"#fff",fontSize:10,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{n.status==="done"?"✓":(n.stepLabel||"")}</span>
-              <span style={{fontSize:10,fontWeight:800,color:stc||n.color||"#64748B",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.sub}</span>
-              {n.auto&&<span title="자동화" style={{marginLeft:"auto",fontSize:10,fontWeight:900,color:"#EA580C"}}>⚡</span>}
+              <span style={{flex:1,minWidth:0,fontSize:10,fontWeight:800,color:stc||n.color||"#64748B",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.sub}</span>
+              {n.auto&&<span title="자동화" style={{flexShrink:0,fontSize:10,fontWeight:900,color:"#EA580C"}}>⚡</span>}
+              {n.chev&&<span style={{flexShrink:0,fontSize:11,fontWeight:900,color:"#6B7280"}}>{n.chev}</span>}
             </div>
             <p style={{margin:0,fontSize:11.5,fontWeight:700,color:n.status==="wait"?"#9CA3AF":"#1F2937",lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{n.title}</p>
+            {n.kidCount>0&&!n.chevOpen&&<span style={{position:"absolute",bottom:-8,right:8,fontSize:8.5,fontWeight:800,color:"#fff",background:n.color||"#94A3B8",borderRadius:8,padding:"0 6px",lineHeight:"16px"}}>하위 {n.kidCount}</span>}
             {editable&&onConnect
               ? <span onPointerDown={e=>onHandleDown(e,P)} title="드래그해서 다음 단계로 연결" style={{position:"absolute",bottom:-7,left:nodeW/2-7,width:14,height:14,borderRadius:"50%",background:"#fff",border:"2px solid #F97316",cursor:"crosshair",zIndex:6}}/>
               : <span style={{position:"absolute",bottom:-6,left:nodeW/2-5,width:10,height:10,borderRadius:"50%",background:"#fff",border:`2px solid ${stc||"#CBD5E1"}`}}/>}

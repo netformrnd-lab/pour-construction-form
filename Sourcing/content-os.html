@@ -208,11 +208,18 @@ function normalize(){
   if(!state.sellers)state.sellers=[];
   if(!state.assets)state.assets=[];
   if(!state.settings)state.settings={defaultLanding:'',defaultCampaign:'',defaultMedium:'sponsor'};
+  if(state.settings.storeUrlPattern===undefined)state.settings.storeUrlPattern='https://www.pourstore.net/{id}'; // 자사몰 상품 URL 패턴 ({id}=상품번호)
 }
 const UTM_MEDIUMS=['sponsor','instagram','youtube','blog','sns','tiktok','naver'];
-/* 셀러별 UTM 추적 링크 생성 — utm_source 는 셀러명(slug) 자동 */
+/* 연결 제품의 자사몰 상품 URL (상품번호=code/sourceId) */
+function productLanding(productId){
+  const p=state.products.find(x=>x.id===productId);if(!p)return '';
+  const pat=(state.settings&&state.settings.storeUrlPattern)||'';const code=p.code||p.sourceId||'';
+  return (pat&&code&&pat.includes('{id}'))?pat.replace('{id}',encodeURIComponent(code)):'';
+}
+/* 셀러별 UTM 추적 링크 생성 — utm_source 는 셀러명(slug) 자동, 랜딩은 연결제품 자사몰 URL 우선 */
 function buildUTM(s){
-  const url=((s&&s.landingUrl)||(state.settings&&state.settings.defaultLanding)||'').trim();
+  const url=((s&&s.landingUrl)||productLanding(s&&s.productId)||(state.settings&&state.settings.defaultLanding)||'').trim();
   if(!url)return '';
   const src=((s&&s.utmSource)||'').trim()||slug(s.name);
   const med=((s&&s.utmMedium)||(state.settings&&state.settings.defaultMedium)||'sponsor').trim();
@@ -576,7 +583,7 @@ async function handleUpload(fileList){
 function openSellerEdit(sid){
   const s=sid?state.sellers.find(x=>x.id===sid):null;
   const prodOpts='<option value="">제품 미지정</option>'+state.products.map(p=>`<option value="${p.id}" ${s&&s.productId===p.id?'selected':''}>${esc(p.name)}</option>`).join('');
-  const land=s&&s.landingUrl!==undefined?s.landingUrl:(state.settings.defaultLanding||'');
+  const land=s&&s.landingUrl?s.landingUrl:(productLanding(s&&s.productId)||state.settings.defaultLanding||'');
   const camp=s&&s.utmCampaign!==undefined?s.utmCampaign:(state.settings.defaultCampaign||'');
   const med=(s&&s.utmMedium)||state.settings.defaultMedium||'sponsor';
   const medOpts=UTM_MEDIUMS.map(m=>`<option value="${m}" ${m===med?'selected':''}>${m}</option>`).join('');
@@ -586,7 +593,7 @@ function openSellerEdit(sid){
     <div class="frow"><label>메모 <span style="color:var(--muted)">(선택)</span></label><input id="se_note" value="${esc(s?s.note:'')}" placeholder="협찬 조건 등"></div>
     <div style="height:1px;background:var(--border);margin:4px 0 16px"></div>
     <div class="sub" style="margin-bottom:12px">📈 <b>UTM 추적 링크</b> — utm_source 는 셀러명으로 자동 들어가요.</div>
-    <div class="frow"><label>랜딩 URL (목적지)</label><input id="se_land" value="${esc(land)}" placeholder="예) https://grohome.co.kr/product/123"></div>
+    <div class="frow"><label>랜딩 URL (목적지) <span style="color:var(--muted)">· 비우면 연결 제품의 자사몰 URL 자동</span></label><input id="se_land" value="${esc(land)}" placeholder="예) https://www.pourstore.net/12345"></div>
     <div class="frow" style="display:flex;gap:10px"><div style="flex:1"><label>매체 (utm_medium)</label><select id="se_med">${medOpts}</select></div><div style="flex:1"><label>캠페인 (utm_campaign)</label><input id="se_camp" value="${esc(camp)}" placeholder="예) 2026spring"></div></div>
     <div class="frow"><label>utm_content <span style="color:var(--muted)">(선택)</span></label><input id="se_cont" value="${esc((s&&s.utmContent)||'')}" placeholder="예) reels_a"></div>
     <div class="sheet-act">${s?`<button class="btn ghost" id="se_del" style="flex:0 0 auto;color:var(--red)">삭제</button>`:''}<button class="btn ghost" id="se_cancel">취소</button><button class="btn or" id="se_save">저장</button></div>`);

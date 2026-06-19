@@ -4443,31 +4443,48 @@ function TeamPage({D,cu,lead,add,up,rm}){
 }
 // 그로스보드 — 마인드맵(노드·연결선) 렌더러. items: [{id,depth,label,color,active,leftTag,chips:[{t,c,bg}]}] (depth0=루트)
 // 맵 레이아웃 계산 (마인드맵 좌표) — 화면·PNG 공용
-const MAP_GEO={colW:178,rowH:46,padX:12,padY:14,nodeW:158,nodeH:30};
+const MAP_GEO={rowH:46,padX:12,padY:14,nodeH:30,colGap:24};
+// 노드 폭 자동 산정 — 라벨/태그/칩이 옆으로 잘리지 않도록 글자 폭을 대략 계산(한글·이모지=전각, 그 외=반각)
+const _glyphW=(ch,f)=>(ch.charCodeAt(0)>0x2000?f:f*0.56);
+function measureW(s,f){let w=0;for(const ch of String(s||"")){w+=_glyphW(ch,f);}return w;}
+function nodeWidth(it){
+  const parts=[];
+  if(it.signal)parts.push(13);
+  if(it.depth!==0&&!it.signal)parts.push(8);
+  if(it.leftTag)parts.push(measureW(it.leftTag,8.5)+10);
+  parts.push(measureW(it.label,11)+(it.depth===0?2:1));
+  (it.chips||[]).forEach(c=>parts.push(measureW(c.t,8.5)+10));
+  const gaps=Math.max(0,parts.length-1)*5;
+  return Math.ceil(18+gaps+parts.reduce((a,b)=>a+b,0))+6;   // 좌우 패딩 18 + 여유 6
+}
 function mapLayout(items){
-  const {colW,rowH,padX,padY}=MAP_GEO;const pos={};let yc=0;
+  const {rowH,padX,padY,colGap}=MAP_GEO;const pos={};let yc=0;
+  const wd=items.map(nodeWidth);
+  const maxDepth=items.reduce((m,it)=>Math.max(m,it.depth),0);
+  const colW=[];for(let d=0;d<=maxDepth;d++){let m=0;items.forEach((it,i)=>{if(it.depth===d&&wd[i]>m)m=wd[i];});colW[d]=m;}
+  const colX=[];let acc=padX;for(let d=0;d<=maxDepth;d++){colX[d]=acc;acc+=colW[d]+colGap;}   // 깊이별 컬럼 시작 x(가변 폭 누적)
   const kidsOf=(i)=>{const r=[];for(let k=i+1;k<items.length;k++){if(items[k].depth<=items[i].depth)break;if(items[k].depth===items[i].depth+1)r.push(k);}return r;};
-  const place=(i)=>{const kids=kidsOf(i);if(!kids.length){pos[i]={x:padX+items[i].depth*colW,y:padY+yc*rowH};yc++;}else{const ys=[];kids.forEach(k=>{place(k);ys.push(pos[k].y);});pos[i]={x:padX+items[i].depth*colW,y:(Math.min(...ys)+Math.max(...ys))/2};}};
+  const place=(i)=>{const kids=kidsOf(i);if(!kids.length){pos[i]={x:colX[items[i].depth],y:padY+yc*rowH};yc++;}else{const ys=[];kids.forEach(k=>{place(k);ys.push(pos[k].y);});pos[i]={x:colX[items[i].depth],y:(Math.min(...ys)+Math.max(...ys))/2};}};
   items.forEach((it,i)=>{if(it.depth===0)place(i);});
-  let mx=0,my=0;Object.values(pos).forEach(p=>{mx=Math.max(mx,p.x);my=Math.max(my,p.y);});
+  let mx=0,my=0;items.forEach((it,i)=>{if(pos[i]){if(pos[i].x+wd[i]>mx)mx=pos[i].x+wd[i];if(pos[i].y>my)my=pos[i].y;}});
   const parentIdx=(i)=>{for(let k=i-1;k>=0;k--){if(items[k].depth<items[i].depth)return k;}return -1;};
-  return {pos,mx,my,parentIdx};
+  return {pos,wd,mx,my,parentIdx};
 }
 function MapCanvas({items,onPick}){
   if(!items||!items.length) return <p style={{textAlign:"center",color:"#D1D5DB",fontSize:13,padding:"24px 0"}}>표시할 항목이 없어요</p>;
-  const {nodeW}=MAP_GEO;const {pos,mx,my,parentIdx}=mapLayout(items);
+  const {pos,wd,mx,my,parentIdx}=mapLayout(items);
   return(
     <div style={{overflowX:"auto",backgroundColor:"#FAFBFC",backgroundImage:"radial-gradient(#E5E8EB 1px,transparent 1px)",backgroundSize:"18px 18px",border:"1px solid #EDF0F3",borderRadius:14}}>
-      <div style={{position:"relative",width:mx+nodeW+24,height:my+58}}>
-        <svg width={mx+nodeW+24} height={my+58} style={{position:"absolute",inset:0,pointerEvents:"none",overflow:"visible"}}>
-          {items.map((it,i)=>{const pi=parentIdx(i);if(pi<0||!pos[pi]||!pos[i])return null;const x1=pos[pi].x+nodeW,y1=pos[pi].y+16,x2=pos[i].x,y2=pos[i].y+16;const c=it.active?(it.color+"99"):"#D9DEE3";return <path key={it.id} d={`M ${x1} ${y1} C ${x1+30} ${y1}, ${x2-30} ${y2}, ${x2} ${y2}`} stroke={c} strokeWidth={2} fill="none"/>;})}
+      <div style={{position:"relative",width:mx+24,height:my+58}}>
+        <svg width={mx+24} height={my+58} style={{position:"absolute",inset:0,pointerEvents:"none",overflow:"visible"}}>
+          {items.map((it,i)=>{const pi=parentIdx(i);if(pi<0||!pos[pi]||!pos[i])return null;const x1=pos[pi].x+wd[pi],y1=pos[pi].y+16,x2=pos[i].x,y2=pos[i].y+16;const c=it.active?(it.color+"99"):"#D9DEE3";return <path key={it.id} d={`M ${x1} ${y1} C ${x1+30} ${y1}, ${x2-30} ${y2}, ${x2} ${y2}`} stroke={c} strokeWidth={2} fill="none"/>;})}
         </svg>
         {items.map((it,i)=>{if(!pos[i])return null;const root=it.depth===0;const clickable=!!(it.ref&&onPick);return(
-          <div key={it.id} onClick={clickable?()=>onPick(it):undefined} style={{position:"absolute",left:pos[i].x,top:pos[i].y,width:nodeW,boxSizing:"border-box",display:"flex",alignItems:"center",gap:5,background:root?(it.active?it.color:"#9CA3AF"):"#fff",border:`2px solid ${it.signal?"#F0445299":(it.active?it.color:"#E5E8EB")}`,borderRadius:11,padding:"6px 9px",boxShadow:"0 2px 8px rgba(0,0,0,0.06)",zIndex:2,cursor:clickable?"pointer":"default"}}>
+          <div key={it.id} onClick={clickable?()=>onPick(it):undefined} style={{position:"absolute",left:pos[i].x,top:pos[i].y,width:wd[i],boxSizing:"border-box",display:"flex",alignItems:"center",gap:5,background:root?(it.active?it.color:"#9CA3AF"):"#fff",border:`2px solid ${it.signal?"#F0445299":(it.active?it.color:"#E5E8EB")}`,borderRadius:11,padding:"6px 9px",boxShadow:"0 2px 8px rgba(0,0,0,0.06)",zIndex:2,cursor:clickable?"pointer":"default"}}>
             {it.signal&&<span title={SIGNAL_LABEL[it.signal]} style={{fontSize:10,flexShrink:0}}>{SIGNAL_ICON[it.signal]}</span>}
             {!root&&!it.signal&&<div style={{width:8,height:8,borderRadius:"50%",background:it.active?it.color:"#D1D5DB",flexShrink:0}}/>}
             {it.leftTag&&<span style={{fontSize:8.5,fontWeight:900,color:it.active?it.color:"#9CA3AF",background:it.active?it.color+"1A":"#F2F4F6",padding:"1px 5px",borderRadius:6,flexShrink:0}}>{it.leftTag}</span>}
-            <span style={{flex:1,minWidth:0,fontSize:11,fontWeight:root?900:700,color:root?"#fff":(it.active?"#1F2937":"#9CA3AF"),overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{it.label}</span>
+            <span style={{flex:1,fontSize:11,fontWeight:root?900:700,color:root?"#fff":(it.active?"#1F2937":"#9CA3AF"),whiteSpace:"nowrap"}}>{it.label}</span>
             {(it.chips||[]).map((c,ci)=>(<span key={ci} style={{fontSize:8.5,fontWeight:800,color:c.c,background:c.bg,padding:"1px 5px",borderRadius:6,flexShrink:0}}>{c.t}</span>))}
           </div>
         );})}
@@ -4478,14 +4495,14 @@ function MapCanvas({items,onPick}){
 // 마인드맵 → PNG 저장 (외부 라이브러리 없이 Canvas로 직접 그림)
 function exportMapPNG(items,title){
   if(!items||!items.length) return;
-  const {nodeW,nodeH}=MAP_GEO;const {pos,mx,my,parentIdx}=mapLayout(items);
-  const W=mx+nodeW+24,H=my+58,S=2;
+  const {nodeH}=MAP_GEO;const {pos,wd,mx,my,parentIdx}=mapLayout(items);
+  const W=mx+24,H=my+58,S=2;
   const cv=document.createElement("canvas");cv.width=W*S;cv.height=H*S;const g=cv.getContext("2d");g.scale(S,S);
   g.fillStyle="#FFFFFF";g.fillRect(0,0,W,H);
-  items.forEach((it,i)=>{const pi=parentIdx(i);if(pi<0||!pos[pi]||!pos[i])return;const x1=pos[pi].x+nodeW,y1=pos[pi].y+16,x2=pos[i].x,y2=pos[i].y+16;g.strokeStyle=it.active?it.color:"#D9DEE3";g.lineWidth=2;g.beginPath();g.moveTo(x1,y1);g.bezierCurveTo(x1+30,y1,x2-30,y2,x2,y2);g.stroke();});
+  items.forEach((it,i)=>{const pi=parentIdx(i);if(pi<0||!pos[pi]||!pos[i])return;const x1=pos[pi].x+wd[pi],y1=pos[pi].y+16,x2=pos[i].x,y2=pos[i].y+16;g.strokeStyle=it.active?it.color:"#D9DEE3";g.lineWidth=2;g.beginPath();g.moveTo(x1,y1);g.bezierCurveTo(x1+30,y1,x2-30,y2,x2,y2);g.stroke();});
   const rr=(x,y,w,h,r)=>{g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();};
-  items.forEach((it,i)=>{const p=pos[i];if(!p)return;const root=it.depth===0;rr(p.x,p.y,nodeW,nodeH,10);g.fillStyle=root?(it.active?it.color:"#9CA3AF"):"#fff";g.fill();g.lineWidth=2;g.strokeStyle=it.signal?"#F04452":(it.active?it.color:"#E5E8EB");g.stroke();
-    g.save();rr(p.x,p.y,nodeW,nodeH,10);g.clip();let tx=p.x+9;
+  items.forEach((it,i)=>{const p=pos[i];if(!p)return;const root=it.depth===0;rr(p.x,p.y,wd[i],nodeH,10);g.fillStyle=root?(it.active?it.color:"#9CA3AF"):"#fff";g.fill();g.lineWidth=2;g.strokeStyle=it.signal?"#F04452":(it.active?it.color:"#E5E8EB");g.stroke();
+    g.save();rr(p.x,p.y,wd[i],nodeH,10);g.clip();let tx=p.x+9;
     if(!root){g.fillStyle=it.active?it.color:"#D1D5DB";g.beginPath();g.arc(tx+3,p.y+nodeH/2,3.5,0,Math.PI*2);g.fill();tx+=11;}
     g.font="700 11px Pretendard, sans-serif";g.fillStyle=root?"#fff":(it.active?"#1F2937":"#9CA3AF");g.textBaseline="middle";
     const chipsT=(it.chips||[]).map(c=>c.t).join(" ");
@@ -4499,7 +4516,9 @@ function exportMapPNG(items,title){
 // 한 담당자의 KR→서브KR→프로젝트→업무 서브트리를 items에 push (개인·팀 마인드맵 공용). baseDepth=KR이 놓일 깊이, pfx=id 충돌 방지 접두사
 function pushKRSubtree(items,D,uid,isThisWeek,doneInP,krColors,baseDepth,opts={}){
   const {krF="all",activeOnly=false,signals=null,pfx=""}=opts;
-  const myP=D.projects.filter(p=>p.assigneeId===uid);
+  // 담당(소유) 프로젝트 + 내가 업무를 맡은 프로젝트(타인 소유 포함) — 실제 한 일이 그로스보드에 반영되도록
+  const myTaskPids=new Set(D.tasks.filter(t=>!t.isFixed&&t.assigneeId===uid).map(t=>t.projectId));
+  const myP=D.projects.filter(p=>p.assigneeId===uid||myTaskPids.has(p.id));
   const pushProj=(proj,depth,col)=>{
     const projTasks=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed&&t.assigneeId===uid);
     const actT=projTasks.filter(isThisWeek);if(activeOnly&&!actT.length)return;
@@ -4508,14 +4527,18 @@ function pushKRSubtree(items,D,uid,isThisWeek,doneInP,krColors,baseDepth,opts={}
     if(dP>0)chips.push({t:"✅"+dP,c:"#0F5132",bg:"#D1F5E0"});
     const sig=signals?(signals.heotsimProjects.has(proj.id)?"heotsim":(signals.jamProjects.has(proj.id)?"jam":null)):null;
     items.push({id:pfx+proj.id,depth,label:proj.title,color:col,active:actT.length>0,chips,signal:sig,ref:{kind:"proj",id:proj.id}});
-    actT.forEach(t=>{const st=STATUS_MAP[t.status]||STATUS_MAP.todo;items.push({id:pfx+t.id,depth:depth+1,label:t.title,color:st.color,active:true,leftTag:t.weekDay||null,chips:[{t:st.label,c:st.color,bg:st.bg}],ref:{kind:"task",id:t.id}});});
+    // 완료 업무는 개별 노드, 미완료(할일)는 "할일 N건" 한 노드로 묶어 표시
+    const doneT=actT.filter(t=>t.status==="done");
+    const todoT=actT.filter(t=>t.status!=="done");
+    doneT.forEach(t=>{const st=STATUS_MAP[t.status]||STATUS_MAP.todo;items.push({id:pfx+t.id,depth:depth+1,label:t.title,color:st.color,active:true,leftTag:t.weekDay||null,chips:[{t:st.label,c:st.color,bg:st.bg}],ref:{kind:"task",id:t.id}});});
+    if(todoT.length){const st=STATUS_MAP.todo;items.push({id:pfx+proj.id+"__todo",depth:depth+1,label:`할일 ${todoT.length}건`,color:st.color,active:true});}
   };
   D.mainKPIs.filter(mk=>krF==="all"||mk.id===krF).forEach(mk=>{
     const mkProjs=myP.filter(p=>p.mainKPIId===mk.id);if(!mkProjs.length)return;
     const col=krColors[mk.id]||"#3182F6";
     const allT=mkProjs.flatMap(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===uid));
     const mkAct=allT.some(isThisWeek);if(activeOnly&&!mkAct)return;
-    const mkDone=doneInP(allT);const rev=mkProjs.reduce((a,p)=>a+numF(p.resultValue),0);
+    const mkDone=doneInP(allT);const rev=mkProjs.reduce((a,p)=>a+(p.assigneeId===uid?numF(p.resultValue):0),0);   // 매출은 소유 프로젝트만 집계(타인 매출 오귀속 방지)
     const tgt=pct(mkCur(mk,D.subKPIs,D.projects),mk.targetValue);
     const chips=[{t:"🎯"+tgt+"%",c:col,bg:col+"1A"}];if(mkDone>0)chips.push({t:"✅"+mkDone,c:"#0F5132",bg:"#D1F5E0"});if(rev>0)chips.push({t:"💰"+fmt(rev,"원"),c:"#7A3E00",bg:"#FFE6C7"});
     items.push({id:pfx+mk.id,depth:baseDepth,label:mk.title,leftTag:mk.krKey,color:col,active:mkAct,chips,ref:{kind:"mk",id:mk.id}});
@@ -4617,13 +4640,15 @@ function NodeDetail({D,node,period,onClose}){
 }
 // 그로스보드 — 계층형 트리(한 담당자 KR→서브KR→프로젝트→업무). 개인·팀(멤버별) 공용.
 function WeeklyTree({D,sel,isThisWeek,doneInP,krColors,krF,activeOnly,signals,onPick}){
+  // 담당(소유) 프로젝트 + 내가 업무를 맡은 프로젝트(타인 소유 포함)
+  const myTaskPids=new Set(D.tasks.filter(t=>!t.isFixed&&t.assigneeId===sel).map(t=>t.projectId));
   return(<>
     {D.mainKPIs.filter(mk=>krF==="all"||mk.id===krF).map(mk=>{
-      const mkProjs=D.projects.filter(p=>p.mainKPIId===mk.id&&p.assigneeId===sel);
+      const mkProjs=D.projects.filter(p=>p.mainKPIId===mk.id&&(p.assigneeId===sel||myTaskPids.has(p.id)));
       if(mkProjs.length===0) return null;
       const allMkTasks=mkProjs.flatMap(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===sel));
       const thisWeekCount=allMkTasks.filter(t=>isThisWeek(t)).length;
-      const mkDone=doneInP(allMkTasks); const mkRev=mkProjs.reduce((a,p)=>a+numF(p.resultValue),0);
+      const mkDone=doneInP(allMkTasks); const mkRev=mkProjs.reduce((a,p)=>a+(p.assigneeId===sel?numF(p.resultValue):0),0);   // 매출은 소유 프로젝트만
       const col=krColors[mk.id]||"#3182F6";
       const mkActive=thisWeekCount>0;
       const mkTgt=pct(mkCur(mk,D.subKPIs,D.projects),mk.targetValue);

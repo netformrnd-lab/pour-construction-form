@@ -135,6 +135,13 @@
   .doc .dopen{font-size:12px;font-weight:700;color:#1b64da;padding:6px 11px;border-radius:8px;background:var(--blue-pale);white-space:nowrap}
   .doc .dedit{font-size:12px;font-weight:600;color:var(--muted);padding:6px 8px;white-space:nowrap}
 
+  .attbar{display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:12px 14px;border:1px solid var(--border2);border-radius:12px;background:var(--cream);cursor:pointer;font-size:13px;font-weight:700;color:var(--ink2);transition:.13s}
+  .attbar:hover{border-color:var(--or);background:var(--or-pale)}
+  .attbar.has{border-color:var(--or)}
+  .attbar .att-ic{font-size:15px}
+  .attbar .att-label b{color:var(--or)}
+  .attbar .att-toggle{margin-left:auto;font-size:12px;color:var(--or);font-weight:800;white-space:nowrap}
+  .att-panel{margin-top:10px}
   .dropzone{border:1.5px dashed var(--border2);border-radius:12px;background:var(--cream);padding:16px;transition:.15s}
   .dropzone.over{border-color:var(--or);background:var(--or-pale)}
   .dz-hint{font-size:12.5px;color:var(--muted);text-align:center;line-height:1.7}
@@ -1280,7 +1287,7 @@ function syncEmpty(){
     $('#firstAdd').onclick=()=>openProd(null);$('#seed').onclick=loadSample;
   }
 }
-function openDetail(id){state.sel=id;save();renderMain();renderList();openOverlay('detailOverlay');$('#detailOverlay').scrollTop=0;}
+function openDetail(id){state.sel=id;ovAttOpen=false;save();renderMain();renderList();openOverlay('detailOverlay');$('#detailOverlay').scrollTop=0;}
 function syncTypeRows(){const t=$('#p_type').value;$('#bundleRow').style.display=(t==='패키지')?'':'none';$('#baseRow').style.display=(t==='파생')?'':'none';}
 let vtMode='파생',vtBase=null,vtEdit=null;
 function openVariant(mode,baseId,editId){
@@ -1649,13 +1656,20 @@ function renderMain(){
       <div class="ovwrap">
         <div class="ovleft">
           <div class="ovsub">제품 자료 · 카탈로그(PDF·사진) · 링크</div>
-          <div class="dropzone" id="ov_drop">
-            <input type="file" id="ov_input" accept="image/*,application/pdf" multiple hidden>
-            <div class="dz-hint">카탈로그(PDF)·사진을 끌어다 놓거나 <b>붙여넣기(Ctrl+V)</b> · <button type="button" id="ov_pick" class="dz-pick">파일 선택</button></div>
-            <div class="dz-thumbs" id="ov_thumbs"></div>
+          <button type="button" class="attbar" id="ov_attbar">
+            <span class="att-ic">📎</span>
+            <span class="att-label" id="ov_attlabel">첨부 없음</span>
+            <span class="att-toggle" id="ov_atttoggle">추가 ▾</span>
+          </button>
+          <div class="att-panel" id="ov_panel" style="display:none">
+            <div class="dropzone" id="ov_drop">
+              <input type="file" id="ov_input" accept="image/*,application/pdf" multiple hidden>
+              <div class="dz-hint">카탈로그(PDF)·사진을 끌어다 놓거나 <b>붙여넣기(Ctrl+V)</b> · <button type="button" id="ov_pick" class="dz-pick">파일 선택</button></div>
+              <div class="dz-thumbs" id="ov_thumbs"></div>
+            </div>
+            <button type="button" class="mini" id="ov_linkBtn" style="margin-top:10px">+ 상품 관련 링크 추가</button>
+            <div id="ov_links" style="margin-top:10px"></div>
           </div>
-          <button type="button" class="mini" id="ov_linkBtn" style="margin-top:10px">+ 상품 관련 링크 추가</button>
-          <div id="ov_links" style="margin-top:10px"></div>
           <div class="ovsub" style="margin-top:16px">제품 메모 · 댓글(일자·시간 자동)</div>
           ${p.memo?`<div class="note-legacy">이전 메모: ${esc(p.memo)}</div>`:''}
           <div id="ov_notes"></div>
@@ -2140,8 +2154,22 @@ function openViewer(att){
   openOverlay('viewerOverlay');
 }
 const ATT_ICON={pdf:'PDF',file:'파일'};
+let ovAttOpen=false;
 function wireOverviewAttach(p){
   const dz=$('#ov_drop');if(!dz)return;
+  // 첨부 접힘/펼침 — 표시만 → 누르면 목록 → 항목 누르면 상세
+  const all=(p.attachments||[]);
+  const imgN=all.filter(a=>a.kind==='image').length, fileN=all.filter(a=>a.kind==='pdf'||a.kind==='file').length, linkN=all.filter(a=>a.kind==='link').length;
+  const bar=$('#ov_attbar'),panel=$('#ov_panel'),label=$('#ov_attlabel'),toggle=$('#ov_atttoggle');
+  const parts=[];if(imgN)parts.push(`사진 ${imgN}`);if(fileN)parts.push(`파일 ${fileN}`);if(linkN)parts.push(`링크 ${linkN}`);
+  function applyOv(){
+    if(all.length){label.innerHTML=`첨부 <b>${all.length}</b>건 <span style="color:var(--muted);font-weight:600">(${parts.join(' · ')})</span>`;bar.classList.add('has');}
+    else{label.innerHTML='첨부 없음';bar.classList.remove('has');}
+    panel.style.display=ovAttOpen?'':'none';
+    toggle.textContent=ovAttOpen?'접기 ▴':(all.length?'자세히 ▾':'추가 ▾');
+  }
+  bar.onclick=()=>{ovAttOpen=!ovAttOpen;applyOv();};
+  applyOv();
   // 썸네일(이미지·PDF·파일)
   const tw=$('#ov_thumbs');
   const files=(p.attachments||[]).filter(a=>a.kind!=='link');

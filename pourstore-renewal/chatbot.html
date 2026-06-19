@@ -2355,11 +2355,35 @@ function RecoFlowPage({ onToast }) {
             <div style={{ fontSize:12.5, marginBottom:18 }}>기본 매핑으로 시작하거나, 키워드로 니즈를 바로 등록하세요.</div>
             <button onClick={seed} style={btnPrimary()}>🌱 기본 매핑 시드</button>
           </div>
-        ) : (
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(330px, 1fr))', gap:14 }}>
-            {needs.map(n => <NeedCard key={n.id} need={n} onEdit={() => setEditing(n)} onDelete={() => delNeed(n.id)} />)}
-          </div>
-        )}
+        ) : (() => {
+          // 건물유형별 그룹 (니즈에 건물 키워드 없으면 '공통(전체)')
+          const groups = {}; const order = [];
+          needs.forEach(n => {
+            const bs = (n.building && n.building.length) ? n.building : ['공통(전체)'];
+            bs.forEach(b => { if (!groups[b]) { groups[b] = []; order.push(b); } groups[b].push(n); });
+          });
+          const presetOrder = NEED_DIMS[0].presets;
+          order.sort((a, b) => {
+            if (a === '공통(전체)') return 1; if (b === '공통(전체)') return -1;
+            const ia = presetOrder.indexOf(a), ib = presetOrder.indexOf(b);
+            return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b);
+          });
+          return (
+            <div style={{ display:'grid', gap:22 }}>
+              {order.map(b => (
+                <div key={b}>
+                  <div style={{ display:'inline-flex', alignItems:'center', gap:8, background:'var(--navy)', color:'#fff', borderRadius:10, padding:'8px 16px', marginBottom:12, boxShadow:'var(--shadow)' }}>
+                    <span style={{ fontSize:14, fontWeight:900 }}>🏢 {b}</span>
+                    <span style={{ fontSize:10.5, fontWeight:800, background:'rgba(255,255,255,.18)', borderRadius:6, padding:'1px 7px' }}>{groups[b].length}</span>
+                  </div>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(330px, 1fr))', gap:14 }}>
+                    {groups[b].map(n => <NeedCard key={b + n.id} need={n} onEdit={() => setEditing(n)} onDelete={() => delNeed(n.id)} />)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
       </div>
       {editing && <RecoNeedModal need={editing} onClose={() => setEditing(null)} onSave={saveNeed} />}
     </>

@@ -5,8 +5,8 @@ import { numF, skCur, mkCur, calcSegDone } from "./kpi.js";
 import { applyAutomation, instantiateLaunch } from "./launch.js";
 
 // Firestore 단일 문서에 저장할 공유 데이터 키 (currentUser는 기기별 로컬이라 제외)
-const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","weekGoals","launchTemplates","manuals","trash"];
-const COL_LABEL = {users:"담당자",goals:"최종목표",mainKPIs:"메인KPI",subKPIs:"서브KPI",projects:"프로젝트",tasks:"업무",personalGoals:"개인목표",retros:"회고",aiReviews:"AI점검",events:"일정",weekGoals:"주간목표",launchTemplates:"프로세스템플릿",manuals:"로드맵 템플릿",trash:"휴지통"};
+const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","eventTypes","weekGoals","launchTemplates","manuals","trash"];
+const COL_LABEL = {users:"담당자",goals:"최종목표",mainKPIs:"메인KPI",subKPIs:"서브KPI",projects:"프로젝트",tasks:"업무",personalGoals:"개인목표",retros:"회고",aiReviews:"AI점검",events:"일정",eventTypes:"일정유형",weekGoals:"주간목표",launchTemplates:"프로세스템플릿",manuals:"로드맵 템플릿",trash:"휴지통"};
 const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
@@ -38,6 +38,10 @@ const STATUS_MAP={
 };
 // 캘린더 일정 유형 (CalendarPage의 ET와 동일 · 오늘 슬롯 배치에서도 사용)
 const EVENT_TYPES={internal:{label:"내부미팅",color:"#3182F6",bg:"#EBF3FF"},external:{label:"외부미팅",color:"#8B5CF6",bg:"#F3EFFE"},field:{label:"외근",color:"#0EA5E9",bg:"#E0F2FE"},promotion:{label:"프로모션",color:"#FF9500",bg:"#FFF3E0"},seminar:{label:"세미나",color:"#00C073",bg:"#E8FAF1"},fair:{label:"박람회",color:"#F04452",bg:"#FFF0F1"}};
+// 일정 유형 — 사용자 관리 컬렉션(eventTypes) 우선, 없으면 기본값. 삭제된 유형의 이벤트도 안전하게 렌더.
+const DEFAULT_EVENT_TYPES=Object.entries(EVENT_TYPES).map(([id,v],i)=>({id,...v,seq:i+1}));
+const evTypeList=(D)=>{const l=(D&&D.eventTypes&&D.eventTypes.length)?D.eventTypes:DEFAULT_EVENT_TYPES;return [...l].sort((a,b)=>(a.seq||0)-(b.seq||0));};
+const evType=(D,key)=>(D&&(D.eventTypes||[]).find(t=>t.id===key))||EVENT_TYPES[key]||{label:key||"일정",color:"#6B7280",bg:"#EEF1F4"};
 // ── 거래처유형 코드 체계 (SSOT) — 마스터프롬프트 v3.1 ──
 // 색상군: 개인=회색 / P4파트너=파랑 / P3대리점=주황 / 유통·셀러=보라 / G채널=초록
 const DEALER_TYPES=[
@@ -135,6 +139,15 @@ const INIT={
     {id:"e4",title:"여름 프로모션 런칭",date:"2026-06-20",type:"promotion",projectId:null,description:"자사몰+마켓 동시"},
   ],
   weekGoals:[],
+  // 일정 유형 — 사용자 편집 가능(추가/수정/삭제). id는 기존 이벤트의 type 키와 호환.
+  eventTypes:[
+    {id:"internal",label:"내부미팅",color:"#3182F6",bg:"#EBF3FF",seq:1},
+    {id:"external",label:"외부미팅",color:"#8B5CF6",bg:"#F3EFFE",seq:2},
+    {id:"field",label:"외근",color:"#0EA5E9",bg:"#E0F2FE",seq:3},
+    {id:"promotion",label:"프로모션",color:"#FF9500",bg:"#FFF3E0",seq:4},
+    {id:"seminar",label:"세미나",color:"#00C073",bg:"#E8FAF1",seq:5},
+    {id:"fair",label:"박람회",color:"#F04452",bg:"#FFF0F1",seq:6},
+  ],
   // 로드맵 템플릿 — 잘 된 로드맵(로드단계+프로세스)을 굳혀 재사용하는 표준. 새 프로젝트를 여기서 시작.
   manuals:[],
   trash:[],   // 소프트 삭제 보관소 — 삭제된 모든 데이터는 여기 남고 복구 가능(데이터 자산화)
@@ -1177,7 +1190,7 @@ function WorkCalendar({D,userId,up,onEditTask}){
   const [dayPick,setDayPick]=useState(null);   // 'YYYY-MM-DD' — 그 날 전체 항목 보기(+N 탭)
   const y=cm.getFullYear(),m=cm.getMonth();
   const fd=new Date(y,m,1).getDay(), dim=new Date(y,m+1,0).getDate();
-  const ET=EVENT_TYPES, team=!userId;
+  const team=!userId;
   const dsOf=(dd)=>`${y}-${String(m+1).padStart(2,"0")}-${String(dd).padStart(2,"0")}`;
   const taskDate=(t)=> t.workDate || (t.doneAt?String(t.doneAt).slice(0,10):"") || t.dueDate || "";
   const evMine=(e)=> (e.attendeeIds||[]).includes(userId) || (e.attendeeIds||[]).length===0;
@@ -1203,16 +1216,16 @@ function WorkCalendar({D,userId,up,onEditTask}){
       </div>
       <MonthCalendar y={y} m={m} todayStr={todayStr} onMore={(ds)=>setDayPick(ds)} items={(()=>{
         const list=[];
-        monthEvents.forEach(e=>{const et=ET[e.type]||ET.internal;list.push({id:"ev_"+e.id,start:e.date,end:e.endDate||e.date,color:et.color,bg:et.bg,label:e.title,onClick:()=>setEvPick(e)});});
+        monthEvents.forEach(e=>{const et=evType(D,e.type);list.push({id:"ev_"+e.id,start:e.date,end:e.endDate||e.date,color:et.color,bg:et.bg,label:e.title,onClick:()=>setEvPick(e)});});
         userTasks.forEach(t=>{const sp=taskSpan(t,todayStr);if(!sp)return;const st=STATUS_MAP[t.status]||STATUS_MAP.todo;const au=team?D.users.find(u=>u.id===t.assigneeId):null;list.push({id:"t_"+t.id,start:sp[0],end:sp[1],color:st.color,bg:st.bg,border:`1px solid ${st.color}55`,label:t.title,initial:au?au.name[0]:null,faded:t.status==="done",onClick:()=>onEditTask&&onEditTask(t)});});
         return list;
       })()}/>
       <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:10,padding:"0 2px"}}>
-        {Object.entries(ET).map(([k,v])=><span key={k} style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:9.5,fontWeight:700,color:"#6B7280"}}><span style={{width:8,height:8,borderRadius:2,background:v.color}}/>{v.label}</span>)}
+        {evTypeList(D).map(v=><span key={v.id} style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:9.5,fontWeight:700,color:"#6B7280"}}><span style={{width:8,height:8,borderRadius:2,background:v.color}}/>{v.label}</span>)}
         <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:9.5,fontWeight:700,color:"#6B7280"}}><span style={{width:8,height:8,borderRadius:"50%",border:"1.5px solid #9CA3AF"}}/>업무</span>
       </div>
       <Sheet open={!!evPick} onClose={()=>setEvPick(null)} title="일정" h="56vh">
-        {evPick&&(()=>{const et=ET[evPick.type]||ET.internal;return(
+        {evPick&&(()=>{const et=evType(D,evPick.type);return(
           <div style={{marginTop:10}}>
             <span style={{fontSize:11,fontWeight:800,color:et.color,background:et.bg,padding:"3px 10px",borderRadius:999}}>{et.label}</span>
             <h3 style={{margin:"10px 0 4px",fontSize:17,fontWeight:900,color:"#0F1F5C"}}>{evPick.title}</h3>
@@ -1231,7 +1244,7 @@ function WorkCalendar({D,userId,up,onEditTask}){
         {dayPick&&(()=>{const dd=Number(dayPick.slice(8,10));const evs=getEvts(dd);const tk=getTasks(dd);return(
           <div style={{marginTop:8,display:"flex",flexDirection:"column",gap:7}}>
             {evs.length===0&&tk.length===0&&<p style={{padding:"20px 0",textAlign:"center",fontSize:13,color:"#9CA3AF"}}>이 날 항목이 없어요</p>}
-            {evs.map(ev=>{const et=ET[ev.type]||ET.internal;return(
+            {evs.map(ev=>{const et=evType(D,ev.type);return(
               <button key={ev.id} onClick={()=>{setDayPick(null);setEvPick(ev);}} style={{display:"flex",alignItems:"center",gap:9,padding:"11px 12px",borderRadius:11,border:"1px solid #F2F4F6",background:"#fff",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
                 <span style={{fontSize:10,fontWeight:800,color:et.color,background:et.bg,padding:"3px 8px",borderRadius:6,flexShrink:0}}>{et.label}</span>
                 <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:700,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.title}</span>
@@ -1386,7 +1399,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   // 캘린더 일정(미팅·외근)을 주간 슬롯에 배치 — 일정 연결 업무 생성(eventId로 추적, 캘린더 원본은 그대로)
   const placeEvent=(ev,day,slot)=>{
     const prev=slotMap[day]?.[slot]; if(prev)up("tasks",prev.id,{weekDay:null,weekSlot:null});
-    const et=EVENT_TYPES[ev.type]||{};
+    const et=evType(D,ev.type);
     add("tasks",{id:"t"+Date.now(),title:ev.title,projectId:ev.projectId||"",assigneeId:cu.id,type:"event",eventId:ev.id,
       status:"todo",isFixed:false,weekDay:day,workDate:dateOfDay(day),weekSlot:slot,dueDate:ev.date||"",memo:`📅 ${et.label||"일정"}${ev.place?" · "+ev.place:""}`,attachments:[]});
   };
@@ -1961,7 +1974,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
               if(!evs.length) return null;
               return(<>
                 <p style={{margin:"16px 0 8px",fontSize:12,fontWeight:700,color:"#6B7280"}}>📅 캘린더 일정 (내 미팅·외근)</p>
-                {evs.map(ev=>{const et=EVENT_TYPES[ev.type]||EVENT_TYPES.internal;return(
+                {evs.map(ev=>{const et=evType(D,ev.type);return(
                   <button key={ev.id} onClick={()=>{placeEvent(ev,slotSheet.day,slotSheet.slot);setSlotSheet(null);}} style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",marginBottom:7,borderRadius:12,border:"1px solid "+et.bg,backgroundColor:"#FFFFFF",textAlign:"left",cursor:"pointer",width:"100%"}}>
                     <span style={{flexShrink:0,fontSize:10,fontWeight:800,color:et.color,background:et.bg,borderRadius:6,padding:"3px 7px"}}>{et.label}</span>
                     <div style={{flex:1,minWidth:0}}>
@@ -3659,6 +3672,8 @@ function CalendarPage({D,cu,add,up,rm}){
   const [actionForm,setActionForm]=useState({type:"task",title:"",projectId:"",status:"todo"});
   const [actionDone,setActionDone]=useState([]);
   const [evSheet,setEvSheet]=useState(false);
+  const [typeSheet,setTypeSheet]=useState(false);     // 일정 유형 관리
+  const [confirmTypeId,setConfirmTypeId]=useState(null);
   const [evForm,setEvForm]=useState({id:null,title:"",date:"",endDate:"",type:"internal",place:"",attendeeIds:[],externalAttendees:"",description:""});
   const y=cm.getFullYear(),m=cm.getMonth();
   const openNewEvent=(date)=>{ setEvForm({id:null,title:"",date:date||`${y}-${String(m+1).padStart(2,"0")}-01`,endDate:"",type:"internal",place:"",attendeeIds:[],externalAttendees:"",description:""}); setDetail(null); setEvSheet(true); };
@@ -3667,7 +3682,6 @@ function CalendarPage({D,cu,add,up,rm}){
   const saveEvent=()=>{ if(!evForm.title.trim()||!evForm.date) return; const end=(evForm.endDate&&evForm.endDate>evForm.date)?evForm.endDate:""; const data={title:evForm.title.trim(),date:evForm.date,endDate:end,type:evForm.type,place:evForm.place.trim(),attendeeIds:evForm.attendeeIds,externalAttendees:evForm.externalAttendees.trim(),description:evForm.description}; if(evForm.id){ up("events",evForm.id,data); } else { add("events",{id:"e"+Date.now(),...data,projectId:null}); } setEvSheet(false); };
   const fd=new Date(y,m,1).getDay();
   const dim=new Date(y,m+1,0).getDate();
-  const ET=EVENT_TYPES;
   const getEvts=d=>{const ds=`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;return D.events.filter(e=>e.date===ds);};
   const mEvts=D.events.filter(e=>{const d=new Date(e.date);return d.getFullYear()===y&&d.getMonth()===m;});
   const doAction=()=>{
@@ -3695,12 +3709,12 @@ function CalendarPage({D,cu,add,up,rm}){
         <MonthCalendar y={y} m={m} todayStr={ymdLocal(new Date())}
           onDayClick={(ds)=>openNewEvent(ds)}
           onMore={(ds)=>{const first=D.events.filter(e=>e.date<=ds&&(e.endDate||e.date)>=ds)[0];if(first){setDetail(first);setActionForm({type:"task",title:"",projectId:"",status:"todo"});setActionDone([]);}}}
-          items={mEvts.map(ev=>{const et=ET[ev.type]||ET.internal;return {id:"ev_"+ev.id,start:ev.date,end:ev.endDate||ev.date,color:et.color,bg:et.bg,label:ev.title,onClick:()=>{setDetail(ev);setActionForm({type:"task",title:"",projectId:"",status:"todo"});setActionDone([]);}};})}/>
+          items={mEvts.map(ev=>{const et=evType(D,ev.type);return {id:"ev_"+ev.id,start:ev.date,end:ev.endDate||ev.date,color:et.color,bg:et.bg,label:ev.title,onClick:()=>{setDetail(ev);setActionForm({type:"task",title:"",projectId:"",status:"todo"});setActionDone([]);}};})}/>
       </div>
       <h3 style={{margin:"0 0 10px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}>이번 달 일정</h3>
       {mEvts.length===0&&<div style={{padding:"28px 20px",textAlign:"center",backgroundColor:"#FFFFFF",borderRadius:16,border:"1px solid #F2F4F6"}}><p style={{margin:0,fontSize:13,color:"#9CA3AF"}}>이번 달 일정이 없어요</p><p style={{margin:"4px 0 0",fontSize:11.5,color:"#D1D5DB"}}>위 <b>+ 일정</b> 또는 날짜를 탭해 추가하세요</p></div>}
       {mEvts.sort((a,b)=>a.date.localeCompare(b.date)).map(ev=>{
-        const et=ET[ev.type]||ET.internal;
+        const et=evType(D,ev.type);
         const proj=ev.projectId?D.projects.find(p=>p.id===ev.projectId):null;
         return(
           <button key={ev.id} onClick={()=>{setDetail(ev);setActionForm({type:"task",title:"",projectId:"",status:"todo"});setActionDone([]);}} style={{display:"flex",alignItems:"center",gap:12,padding:"13px 14px",marginBottom:8,borderRadius:14,backgroundColor:"#FFFFFF",border:"1px solid #F2F4F6",textAlign:"left",cursor:"pointer",width:"100%"}}>
@@ -3724,7 +3738,7 @@ function CalendarPage({D,cu,add,up,rm}){
         {detail&&(
           <div style={{marginTop:12}}>
             <div style={{backgroundColor:"#F9FAFB",borderRadius:14,padding:"14px",marginBottom:16}}>
-              <Badge color={(ET[detail.type]||ET.internal).color} bg={(ET[detail.type]||ET.internal).bg}>{(ET[detail.type]||ET.internal).label}</Badge>
+              {(()=>{const et=evType(D,detail.type);return <Badge color={et.color} bg={et.bg}>{et.label}</Badge>;})()}
               <h3 style={{margin:"8px 0 4px",fontSize:17,fontWeight:900,color:"#0F1F5C"}}>{detail.title}</h3>
               <p style={{margin:0,fontSize:13,color:"#6B7280"}}>{detail.date}{detail.endDate&&detail.endDate>detail.date?` ~ ${detail.endDate}`:""}{detail.place?` · 📍 ${detail.place}`:""}</p>
               {((detail.attendeeIds&&detail.attendeeIds.length)||detail.externalAttendees)&&<div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginTop:8}}>
@@ -3766,8 +3780,11 @@ function CalendarPage({D,cu,add,up,rm}){
               <input type="date" value={evForm.endDate} min={evForm.date} onChange={e=>setEvForm({...evForm,endDate:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
             </div>
           </div>
-          <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>유형</label>
-          <select value={evForm.type} onChange={e=>setEvForm({...evForm,type:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none",marginBottom:14}}>{Object.entries(ET).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:5}}>
+            <label style={{fontSize:12,fontWeight:700,color:"#374151"}}>유형</label>
+            <button type="button" onClick={()=>setTypeSheet(true)} style={{background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:11.5,fontWeight:800,color:"#F97316",padding:"2px 4px"}}>⚙ 유형 관리</button>
+          </div>
+          <select value={evForm.type} onChange={e=>setEvForm({...evForm,type:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none",marginBottom:14}}>{evTypeList(D).map(v=><option key={v.id} value={v.id}>{v.label}</option>)}</select>
           <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>미팅 장소 <span style={{color:"#9CA3AF",fontWeight:600}}>(선택)</span></label>
           <input value={evForm.place} onChange={e=>setEvForm({...evForm,place:e.target.value})} placeholder="예: 본사 3층 회의실 / 줌 / 고객사" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:14}}/>
           <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:8}}>참여자 — 팀원</label>
@@ -3779,6 +3796,22 @@ function CalendarPage({D,cu,add,up,rm}){
           <Btn full variant="orange" onClick={saveEvent} disabled={!evForm.title.trim()||!evForm.date}>{evForm.id?"수정 저장":"일정 추가"}</Btn>
         </div>
       </Sheet>
+      <Sheet open={typeSheet} onClose={()=>setTypeSheet(false)} title="일정 유형 관리" h="78vh">
+        <div style={{marginTop:8}}>
+          <p style={{margin:"0 0 12px",fontSize:11.5,color:"#9CA3AF",lineHeight:1.6}}>이름·색을 바꾸거나 새 유형을 추가하세요. 삭제는 휴지통으로 이동(복구 가능)하며, 그 유형을 쓰던 일정은 회색으로 표시됩니다.</p>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {evTypeList(D).map(t=>(
+              <div key={t.id} style={{display:"flex",alignItems:"center",gap:9,padding:"9px 10px",borderRadius:12,border:"1px solid #F2F4F6",background:"#fff"}}>
+                <input type="color" value={(t.color||"#6B7280").slice(0,7)} onChange={e=>up("eventTypes",t.id,{color:e.target.value,bg:e.target.value+"1F"})} style={{width:30,height:30,border:"none",background:"none",padding:0,cursor:"pointer",flexShrink:0}}/>
+                <input defaultValue={t.label} key={t.id+"_"+t.label} onBlur={e=>{const v=e.target.value.trim();if(v&&v!==t.label)up("eventTypes",t.id,{label:v});else if(!v)e.target.value=t.label;}} onKeyDown={e=>{if(e.key==="Enter")e.currentTarget.blur();}} style={{flex:1,minWidth:0,padding:"9px 11px",borderRadius:9,fontSize:13.5,fontWeight:700,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+                <button onClick={()=>setConfirmTypeId(t.id)} style={{flexShrink:0,padding:"7px 10px",borderRadius:9,border:"1px solid #FFE2E5",background:"#FFF0F1",color:"#F04452",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🗑</button>
+              </div>
+            ))}
+          </div>
+          <button onClick={()=>{const seq=Math.max(0,...evTypeList(D).map(t=>t.seq||0))+1;add("eventTypes",{id:"et"+Date.now(),label:"새 유형",color:"#6B7280",bg:"#EEF1F4",seq});}} style={{width:"100%",marginTop:12,padding:"12px 0",borderRadius:12,border:"1.5px dashed #FDBA74",background:"#FFF7ED",color:"#EA580C",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>＋ 유형 추가</button>
+        </div>
+      </Sheet>
+      <ConfirmDelete open={!!confirmTypeId} title="일정 유형 삭제" desc={`"${(D.eventTypes||[]).find(t=>t.id===confirmTypeId)?.label}" 유형을 삭제합니다. 휴지통으로 이동하며 복구할 수 있어요.`} onOk={()=>{rm("eventTypes",confirmTypeId);setConfirmTypeId(null);}} onCancel={()=>setConfirmTypeId(null)}/>
     </div>
   );
 }

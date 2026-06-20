@@ -2376,13 +2376,7 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup}){
                                     {pOpen&&(
                                       <div style={{backgroundColor:"#FFFFFF",padding:"8px 12px"}}>
                                         {tasks.length===0&&<p style={{fontSize:12,color:"#D1D5DB",margin:0}}>등록된 업무가 없어요</p>}
-                                        {tasks.map(task=>{const st=STATUS_MAP[task.status];return(
-                                          <div key={task.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:"1px solid #F2F4F6"}}>
-                                            <div style={{width:8,height:8,borderRadius:"50%",backgroundColor:st.color,flexShrink:0}}/>
-                                            <span style={{fontSize:12,color:task.status==="done"?"#9CA3AF":"#1F2937",flex:1,textDecoration:task.status==="done"?"line-through":"none"}}>{task.title}</span>
-                                            <span style={{fontSize:10,fontWeight:700,color:st.color,backgroundColor:st.bg,padding:"1px 6px",borderRadius:6,flexShrink:0}}>{st.label}</span>
-                                          </div>
-                                        );})}
+                                        <TaskHierarchy D={D} tasks={tasks} showAssignee/>
                                       </div>
                                     )}
                                   </div>
@@ -2480,6 +2474,7 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup}){
                                     </div>
                                   )}
                                 </div>
+                                {tasks.length>0&&<div style={{marginLeft:14,marginTop:4,marginBottom:4,borderLeft:"1.5px dashed #E5E8EB",paddingLeft:4}}><TaskHierarchy D={D} tasks={tasks} color={col} showAssignee/></div>}
                               </div>
                             );
                           })}
@@ -2490,6 +2485,7 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup}){
                   {noSkProjs.map((proj,pIdx)=>{
                     const assignee=D.users.find(u=>u.id===proj.assigneeId);
                     const isLastP=pIdx===noSkProjs.length-1;
+                    const tasks=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed);
                     return(
                       <div key={proj.id} style={{position:"relative",paddingLeft:20,marginBottom:6}}>
                         <div style={{position:"absolute",left:0,top:10,width:16,height:1.5,backgroundColor:col+"44"}}/>
@@ -2497,6 +2493,7 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup}){
                         <div style={{backgroundColor:"#FFFFFF",borderRadius:9,padding:"7px 12px",border:"1px solid #E5E8EB"}}>
                           <div style={{display:"flex",alignItems:"center",gap:6}}><Ava name={assignee?.name} color={assignee?.color} size={20}/><span style={{fontSize:12,fontWeight:700,color:"#0F1F5C",flex:1}}>{proj.title}</span><span style={{fontSize:11,fontWeight:900,color:proj.progress>=70?"#00C073":col}}>{proj.progress}%</span></div>
                         </div>
+                        {tasks.length>0&&<div style={{marginLeft:14,marginTop:4,borderLeft:"1.5px dashed #E5E8EB",paddingLeft:4}}><TaskHierarchy D={D} tasks={tasks} color={col} showAssignee/></div>}
                       </div>
                     );
                   })}
@@ -2535,6 +2532,7 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup}){
                             <div style={{width:`${proj.progress}%`,height:"100%",backgroundColor:proj.progress>=70?"#00C073":"#9CA3AF",borderRadius:3}}/>
                           </div>
                         </div>
+                        {tasks.length>0&&<div style={{marginLeft:14,marginTop:4,borderLeft:"1.5px dashed #E5E8EB",paddingLeft:4}}><TaskHierarchy D={D} tasks={tasks} color="#6B7280" showAssignee/></div>}
                       </div>
                     );
                   })}
@@ -5296,6 +5294,32 @@ function NodeDetail({D,node,period,onClose}){
   );
 }
 // 그로스보드 — 계층형 트리(한 담당자 KR→서브KR→프로젝트→업무). 개인·팀(멤버별) 공용.
+// 업무 부모-자식 계층 렌더(공용) — 자식은 하위로 들여쓰기. activeFn 주면 활성 강조/비활성 흐림, showAssignee 주면 담당자 표시.
+function TaskHierarchy({D,tasks,onPick,color="#3182F6",activeFn=null,showAssignee=false}){
+  const inSet=new Set(tasks.map(t=>t.id));
+  const childrenOf=(pid)=>tasks.filter(t=>(t.parentId||null)===(pid||null)).sort((a,b)=>(a.seq||0)-(b.seq||0));
+  const roots=tasks.filter(t=>!t.parentId||!inSet.has(t.parentId)).sort((a,b)=>(a.seq||0)-(b.seq||0));
+  const node=(task)=>{
+    const st=STATUS_MAP[task.status]||STATUS_MAP.todo;
+    const kids=childrenOf(task.id);
+    const act=activeFn?activeFn(task):true;
+    const au=showAssignee?D.users.find(u=>u.id===task.assigneeId):null;
+    return(
+      <div key={task.id} style={{marginBottom:3}}>
+        <div onClick={onPick?()=>onPick({ref:{kind:"task",id:task.id}}):undefined} style={{display:"flex",alignItems:"center",gap:5,padding:"4px 9px",borderRadius:8,backgroundColor:act?color+"10":"#F9FAFB",border:`1px solid ${act?color+"44":"#EEF1F4"}`,cursor:onPick?"pointer":"default",opacity:act?1:0.55}}>
+          <div style={{width:6,height:6,borderRadius:"50%",backgroundColor:st.color,flexShrink:0}}/>
+          {au&&<Ava name={au.name} color={au.color} size={15}/>}
+          <span style={{fontSize:11.5,fontWeight:kids.length>0?800:600,color:task.status==="done"?"#9CA3AF":"#1F2937",textDecoration:task.status==="done"?"line-through":"none",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{task.title}</span>
+          {kids.length>0&&<span style={{fontSize:9,fontWeight:800,color:"#9CA3AF",flexShrink:0}}>하위 {kids.length}</span>}
+          {task.weekDay&&activeFn&&<span style={{fontSize:9,color:color,fontWeight:900,flexShrink:0}}>{task.weekDay}</span>}
+          <span style={{fontSize:9,fontWeight:700,color:st.color,backgroundColor:st.bg,padding:"1px 5px",borderRadius:4,flexShrink:0}}>{st.label}</span>
+        </div>
+        {kids.length>0&&<div style={{marginLeft:11,borderLeft:"1.5px dashed #E5E8EB",paddingLeft:3,marginTop:3}}>{kids.map(node)}</div>}
+      </div>
+    );
+  };
+  return <>{roots.map(node)}</>;
+}
 function WeeklyTree({D,sel,isThisWeek,doneInP,krColors,krF,activeOnly,signals,onPick}){
   // 담당(소유) 프로젝트 + 내가 업무를 맡은 프로젝트(타인 소유 포함)
   const myTaskPids=new Set(D.tasks.filter(t=>!t.isFixed&&t.assigneeId===sel).map(t=>t.projectId));
@@ -5313,25 +5337,12 @@ function WeeklyTree({D,sel,isThisWeek,doneInP,krColors,krF,activeOnly,signals,on
       const skIds=[...new Set(mkProjs.map(p=>p.subKPIId).filter(Boolean))];
       const sks=skIds.map(id=>D.subKPIs.find(s=>s.id===id)).filter(Boolean);
       const noSkProjs=mkProjs.filter(p=>!p.subKPIId);
-      // 프로젝트 업무를 부모-자식 계층으로 렌더(자식은 하위로 들여쓰기). 활성=강조, 비활성=흐리게.
-      const renderTasks=(projTasks)=>{
-        const inSet=new Set(projTasks.map(t=>t.id));
-        const childrenOf=(pid)=>projTasks.filter(t=>(t.parentId||null)===(pid||null)).sort((a,b)=>(a.seq||0)-(b.seq||0));
-        const roots=projTasks.filter(t=>!t.parentId||!inSet.has(t.parentId)).sort((a,b)=>(a.seq||0)-(b.seq||0));
-        const node=(task)=>{const st=STATUS_MAP[task.status]||STATUS_MAP.todo;const kids=childrenOf(task.id);const act=isThisWeek(task);return(
-          <div key={task.id} style={{marginBottom:3}}>
-            <div onClick={()=>onPick({ref:{kind:"task",id:task.id}})} style={{display:"flex",alignItems:"center",gap:5,padding:"4px 9px",borderRadius:8,backgroundColor:act?col+"10":"transparent",border:`1px solid ${act?col+"44":"transparent"}`,cursor:"pointer",opacity:act?1:0.55}}>
-              <div style={{width:6,height:6,borderRadius:"50%",backgroundColor:act?col:"#D1D5DB",flexShrink:0}}/>
-              <span style={{fontSize:11.5,fontWeight:kids.length>0?800:700,color:task.status==="done"?"#9CA3AF":"#111827",textDecoration:task.status==="done"?"line-through":"none",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{task.title}</span>
-              {kids.length>0&&<span style={{fontSize:9,fontWeight:800,color:"#9CA3AF",flexShrink:0}}>하위 {kids.length}</span>}
-              {task.weekDay&&<span style={{fontSize:9,color:col,fontWeight:900,flexShrink:0}}>{task.weekDay}</span>}
-              <span style={{fontSize:9,fontWeight:700,color:st.color,backgroundColor:st.bg,padding:"1px 5px",borderRadius:4,flexShrink:0}}>{st.label}</span>
-            </div>
-            {kids.length>0&&<div style={{marginLeft:11,borderLeft:"1.5px dashed #E5E8EB",paddingLeft:3,marginTop:3}}>{kids.map(node)}</div>}
-          </div>
-        );};
-        return <div style={{marginLeft:23,borderLeft:"1.5px dashed #E5E8EB",paddingLeft:3}}>{roots.map(node)}</div>;
-      };
+      // 프로젝트 업무를 부모-자식 계층으로 렌더(공용 TaskHierarchy 사용)
+      const renderTasks=(projTasks)=>(
+        <div style={{marginLeft:23,borderLeft:"1.5px dashed #E5E8EB",paddingLeft:3}}>
+          <TaskHierarchy D={D} tasks={projTasks} onPick={onPick} color={col} activeFn={isThisWeek}/>
+        </div>
+      );
       return(
         <div key={mk.id} style={{marginBottom:20}}>
           <div style={{display:"flex",alignItems:"center",gap:0,marginBottom:6}}>

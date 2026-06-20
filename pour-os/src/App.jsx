@@ -666,7 +666,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up,onDelete})=>{
     </Sheet>
   );
 };
-const TABS=[{id:"today",icon:"🏠",label:"오늘"},{id:"kpi",icon:"◎",label:"KPI"},{id:"projects",icon:"▦",label:"프로젝트"},{id:"calendar",icon:"▤",label:"캘린더"},{id:"more",icon:"⋯",label:"더보기"}];
+const TABS=[{id:"today",icon:"🏠",label:"오늘"},{id:"kpi",icon:"◎",label:"KPI"},{id:"projects",icon:"▦",label:"프로젝트"},{id:"calendar",icon:"▤",label:"일정"},{id:"more",icon:"⋯",label:"더보기"}];
 const SHARE_NAV=[{id:"kpi",icon:"◎",label:"KPI"},{id:"mindmap",icon:"◈",label:"그로스보드"}];   // 공유 보기 전용 네비
 const MORE=[{id:"mindmap",icon:"◈",label:"그로스보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"team",icon:"👤",label:"담당자"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"},{id:"guide",icon:"📖",label:"가이드"}];
 // 메뉴 그룹: 개인(나만 보는 내 것) vs 팀(모두 같이 보는 공유) — 출시·프로세스는 프로젝트 하위
@@ -3800,8 +3800,6 @@ function CalendarPage({D,cu,add,up,rm}){
   const dim=new Date(y,m+1,0).getDate();
   const getEvts=d=>{const ds=`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;return D.events.filter(e=>e.date===ds);};
   const mEvts=D.events.filter(e=>{const d=new Date(e.date);return d.getFullYear()===y&&d.getMonth()===m;});
-  // 프로젝트 마감일(팀 전체) — 캘린더에 흡수
-  const mDues=D.projects.filter(p=>p.dueDate&&(()=>{const d=new Date(p.dueDate+"T00:00:00");return !isNaN(d.getTime())&&d.getFullYear()===y&&d.getMonth()===m;})()).sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
   const doAction=()=>{
     if(!actionForm.title.trim()) return;
     const nid="t"+Date.now();
@@ -3812,6 +3810,10 @@ function CalendarPage({D,cu,add,up,rm}){
   };
   return(
     <div style={{padding:"14px 16px 20px"}}>
+      <div style={{display:"flex",alignItems:"center",gap:7,padding:"9px 12px",marginBottom:12,borderRadius:12,background:"#EFF6FF",border:"1px solid #DBEAFE"}}>
+        <span style={{fontSize:14}}>📣</span>
+        <span style={{fontSize:11.5,fontWeight:700,color:"#1D4ED8",lineHeight:1.4}}>팀 전사 <b>행사·외근·미팅</b> 일정. 내 업무 스케줄은 <b>오늘 ▸ 캘린더</b>에서 봐요.</span>
+      </div>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <button onClick={()=>setCm(new Date(y,m-1,1))} style={{width:34,height:34,borderRadius:10,backgroundColor:"#F2F4F6",border:"none",cursor:"pointer",fontSize:14}}>◀</button>
@@ -3827,7 +3829,7 @@ function CalendarPage({D,cu,add,up,rm}){
         <MonthCalendar y={y} m={m} todayStr={ymdLocal(new Date())}
           onDayClick={(ds)=>openNewEvent(ds)}
           onMore={(ds)=>{const first=D.events.filter(e=>e.date<=ds&&(e.endDate||e.date)>=ds)[0];if(first){setDetail(first);setActionForm({type:"task",title:"",projectId:"",status:"todo"});setActionDone([]);}}}
-          items={[...mEvts.map(ev=>{const et=evType(D,ev.type);return {id:"ev_"+ev.id,start:ev.date,end:ev.endDate||ev.date,color:et.color,bg:et.bg,label:ev.title,onClick:()=>{setDetail(ev);setActionForm({type:"task",title:"",projectId:"",status:"todo"});setActionDone([]);}};}),...mDues.map(p=>{const done=projStatus(p)==="completed";return {id:"due_"+p.id,start:p.dueDate,end:p.dueDate,color:"#EA580C",bg:"#FFEDD5",border:"1px solid #EA580C",label:"📅 "+p.title,faded:done,onClick:()=>{}};})]}/>
+          items={mEvts.map(ev=>{const et=evType(D,ev.type);return {id:"ev_"+ev.id,start:ev.date,end:ev.endDate||ev.date,color:et.color,bg:et.bg,label:ev.title,onClick:()=>{setDetail(ev);setActionForm({type:"task",title:"",projectId:"",status:"todo"});setActionDone([]);}};})}/>
       </div>
       <h3 style={{margin:"0 0 10px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}>이번 달 일정</h3>
       {mEvts.length===0&&<div style={{padding:"28px 20px",textAlign:"center",backgroundColor:"#FFFFFF",borderRadius:16,border:"1px solid #F2F4F6"}}><p style={{margin:0,fontSize:13,color:"#9CA3AF"}}>이번 달 일정이 없어요</p><p style={{margin:"4px 0 0",fontSize:11.5,color:"#D1D5DB"}}>위 <b>+ 일정</b> 또는 날짜를 탭해 추가하세요</p></div>}
@@ -3852,26 +3854,6 @@ function CalendarPage({D,cu,add,up,rm}){
           </button>
         );
       })}
-      {mDues.length>0&&(<>
-        <h3 style={{margin:"18px 0 10px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}>📅 이번 달 프로젝트 마감 ({mDues.length})</h3>
-        {mDues.map(p=>{const n=ddays(p.dueDate);const done=projStatus(p)==="completed";const a=D.users.find(u=>u.id===p.assigneeId);const s=PROJ_STATUS[projStatus(p)]||{};return(
-          <div key={p.id} style={{display:"flex",alignItems:"center",gap:12,padding:"13px 14px",marginBottom:8,borderRadius:14,backgroundColor:"#FFFBF5",border:"1px solid #FED7AA"}}>
-            <div style={{width:36,textAlign:"center",flexShrink:0}}>
-              <p style={{margin:0,fontSize:18,fontWeight:900,color:"#EA580C"}}>{new Date(p.dueDate+"T00:00:00").getDate()}</p>
-              <p style={{margin:0,fontSize:9.5,color:"#9CA3AF"}}>{["일","월","화","수","목","금","토"][new Date(p.dueDate+"T00:00:00").getDay()]}</p>
-            </div>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3,flexWrap:"wrap"}}>
-                <Badge color="#EA580C" bg="#FFEDD5">📅 마감</Badge>
-                {s.label&&<Badge color={s.color} bg={s.bg}>{s.icon} {s.label}</Badge>}
-                <span style={{fontSize:13.5,fontWeight:700,color:done?"#9CA3AF":"#111827",textDecoration:done?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span>
-              </div>
-              {a&&<p style={{margin:0,fontSize:11,color:"#9CA3AF"}}>👤 {a.name}</p>}
-            </div>
-            {!done&&<span style={{flexShrink:0,fontSize:11,fontWeight:900,color:n<0?"#F04452":n<=3?"#EA580C":"#6B7280"}}>{ddayLabel(n)}{n<0?" 지남":""}</span>}
-          </div>
-        );})}
-      </>)}
       <Sheet open={!!detail} onClose={()=>setDetail(null)} title="일정 상세" h="88vh">
         {detail&&(
           <div style={{marginTop:12}}>
@@ -5132,7 +5114,7 @@ function GuidePage({D}){
         <Row l="◎ KPI" d="목표 트리(매출·운영·활동지표) · 매출 입력"/>
         <Row l="▦ 프로젝트" d="프로젝트별 🧩프로세스(업무 트리)·업무·활동지표 / 🚀프로세스 탭"/>
         <Row l="◈ 그로스보드" d="개인 상세(담당자 트리·그로스보드) / 팀 전체 현황"/>
-        <Row l="▤ 캘린더" d="일정·미팅"/>
+        <Row l="▤ 일정" d="팀 전사 행사·외근·미팅"/>
       </Sec>
 
       <Sec n="4." title="언제 뭘 하나 — 루틴">

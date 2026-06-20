@@ -345,6 +345,12 @@ const inprogressStartDate=(t)=>{const at=inprogressStartAt(t);return at?ymdLocal
 const fmtStart=(at)=>{if(!at)return"";const d=new Date(at);if(isNaN(d))return"";return `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;};
 // 캘린더/주간 노출 — 진행중이면 시작일부터 오늘까지 매일 노출(미래·전체일 아님). 그 외엔 목표일/완료일.
 const taskInprogSpan=(t,ds,todayStr)=>{ if(t.status!=="inprogress")return false; const s=inprogressStartDate(t); return s?(ds>=s&&ds<=todayStr):false; };
+// 캘린더 막대용 [시작,끝] 날짜 — 진행중=시작일~오늘(여러 날=긴 막대), 완료=완료일, 할일/보류=목표일. 없으면 null
+const taskSpan=(t,todayStr)=>{
+  if(t.status==="inprogress"){ const s=inprogressStartDate(t)||t.workDate||todayStr; const e=todayStr<s?s:todayStr; return [s,e]; }
+  if(t.status==="done"){ const dd=(t.doneAt?ymdLocal(new Date(t.doneAt)):"")||t.workDate||""; return dd?[dd,dd]:null; }
+  return t.workDate?[t.workDate,t.workDate]:null;   // 할일·보류 = 목표일
+};
 // 소요시간 사람이 읽는 형식 — 일/시간/분
 const fmtDur=(ms)=>{
   if(!ms||ms<60000) return ms>0?"1분 미만":"";
@@ -1090,6 +1096,49 @@ function WeeklyInputSheet({open,onClose,D,cu,up}){
   );
 }
 const Empty=({t})=><div style={{padding:"30px 10px",textAlign:"center",fontSize:13,color:"#C4C9D0"}}>{t}</div>;
+// 월간 달력 — 여러 날 걸친 항목은 길게 이어지는 '막대(멀티데이 바)'로 표시. 레인 배치 + 넘치면 +N.
+// items: [{id,start:'YYYY-MM-DD',end,color,bg,label,initial?,border?,faded?,onClick}]
+function MonthCalendar({y,m,items,todayStr,onMore,onDayClick}){
+  const ymd=(dt)=>`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")}`;
+  const fd=new Date(y,m,1).getDay(), dim=new Date(y,m+1,0).getDate();
+  const cells=[]; for(let i=0;i<fd;i++)cells.push(null); for(let d=1;d<=dim;d++)cells.push(new Date(y,m,d)); while(cells.length%7)cells.push(null);
+  const weeks=[]; for(let i=0;i<cells.length;i+=7)weeks.push(cells.slice(i,i+7));
+  const DAYH=22, LANE_H=15, MAX_LANES=3, MORE_H=12, WEEKH=DAYH+MAX_LANES*LANE_H+MORE_H;
+  const dow=["일","월","화","수","목","금","토"];
+  return(
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)"}}>
+        {dow.map((d,i)=><div key={d} style={{textAlign:"center",fontSize:10.5,fontWeight:700,color:i===0?"#F04452":i===6?"#3182F6":"#6B7280",padding:"4px 0"}}>{d}</div>)}
+      </div>
+      {weeks.map((week,wi)=>{
+        const wd=week.map(c=>c?ymd(c):null);
+        const segs=[];
+        items.forEach(it=>{ let sc=-1,ec=-1; for(let i=0;i<7;i++){const ds=wd[i]; if(ds&&ds>=it.start&&ds<=it.end){ if(sc<0)sc=i; ec=i; }} if(sc>=0)segs.push({...it,sc,ec}); });
+        segs.sort((a,b)=>(a.sc-b.sc)||((b.ec-b.sc)-(a.ec-a.sc))||String(a.id).localeCompare(String(b.id)));
+        const lanes=[];
+        segs.forEach(s=>{ let lane=0; for(;;){ const occ=lanes[lane]||(lanes[lane]=[]); if(occ.some(o=>!(s.ec<o.sc||s.sc>o.ec))){lane++;continue;} occ.push(s); s.lane=lane; break; } });
+        const shown=segs.filter(s=>s.lane<MAX_LANES);
+        const moreByCol={}; segs.filter(s=>s.lane>=MAX_LANES).forEach(s=>{for(let i=s.sc;i<=s.ec;i++)moreByCol[i]=(moreByCol[i]||0)+1;});
+        return(
+          <div key={wi} style={{position:"relative",height:WEEKH,borderTop:"1px solid #F4F5F7"}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",position:"absolute",top:0,left:0,right:0}}>
+              {week.map((c,i)=>{ if(!c)return <div key={i}/>; const ds=wd[i]; const isT=ds===todayStr; const g=c.getDay(); return(
+                <div key={i} onClick={()=>onDayClick&&onDayClick(ds)} style={{textAlign:"center",padding:"2px 0",cursor:onDayClick?"pointer":"default"}}>
+                  <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:18,height:18,borderRadius:"50%",fontSize:10.5,fontWeight:isT?900:500,background:isT?"#3182F6":"transparent",color:isT?"#fff":(g===0?"#F04452":g===6?"#3182F6":"#374151")}}>{c.getDate()}</span>
+                </div>
+              );})}
+            </div>
+            {shown.map(s=>{
+              const roundL=s.start>=wd[s.sc], roundR=s.end<=wd[s.ec];
+              return <div key={s.id+"_"+wi} onClick={(e)=>{e.stopPropagation();s.onClick&&s.onClick();}} title={s.label} style={{position:"absolute",top:DAYH+s.lane*LANE_H,left:`calc(${s.sc/7*100}% + 1px)`,width:`calc(${(s.ec-s.sc+1)/7*100}% - 2px)`,height:LANE_H-2,background:s.bg,color:s.color,border:s.border||"none",borderRadius:`${roundL?5:0}px ${roundR?5:0}px ${roundR?5:0}px ${roundL?5:0}px`,fontSize:9,fontWeight:700,lineHeight:`${LANE_H-2}px`,padding:"0 5px",overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",cursor:"pointer",boxSizing:"border-box",opacity:s.faded?0.55:1}}>{s.initial?s.initial+" ":""}{roundL?s.label:"‹ "+s.label}</div>;
+            })}
+            {Object.entries(moreByCol).map(([col,n])=>{const i=Number(col);return <div key={"m"+col} onClick={(e)=>{e.stopPropagation();onMore&&onMore(wd[i]);}} style={{position:"absolute",top:DAYH+MAX_LANES*LANE_H,left:`${i/7*100}%`,width:`${100/7}%`,fontSize:8.5,fontWeight:800,color:"#6B7280",textAlign:"center",cursor:"pointer"}}>+{n}</div>;})}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 // 업무+일정 통합 캘린더 (오늘 화면 임베드용) — userId=특정담당자 / null=팀전체. 업무 탭→수정, 일정 탭→상세
 function WorkCalendar({D,userId,up,onEditTask}){
   const [cm,setCm]=useState(new Date(new Date().getFullYear(),new Date().getMonth(),1));
@@ -1106,7 +1155,7 @@ function WorkCalendar({D,userId,up,onEditTask}){
   const userTasks=D.tasks.filter(t=>!t.isFixed&&(team||t.assigneeId===userId));
   // 목표일(workDate)·완료일 기준 1일 노출 + 진행중이면 시작일~오늘 매일 노출
   const monthTasks=userTasks.filter(t=>{ const ds=taskDate(t); const planned=ds&&(()=>{const d=new Date(ds+"T00:00:00");return d.getFullYear()===y&&d.getMonth()===m;})(); const s=inprogressStartDate(t); const span=t.status==="inprogress"&&s&&s<=todayStr; return planned||span; });
-  const getEvts=d=>{const ds=dsOf(d);return monthEvents.filter(e=>e.date===ds);};
+  const getEvts=d=>{const ds=dsOf(d);return monthEvents.filter(e=>e.date<=ds&&(e.endDate||e.date)>=ds);};
   const getTasks=d=>{const ds=dsOf(d);return userTasks.filter(t=>taskDate(t)===ds||taskInprogSpan(t,ds,todayStr));};
   return(
     <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #F2F4F6",marginBottom:14}}>
@@ -1121,25 +1170,12 @@ function WorkCalendar({D,userId,up,onEditTask}){
           <button onClick={()=>setCm(new Date(y,m+1,1))} style={{width:30,height:30,borderRadius:9,backgroundColor:"#F2F4F6",border:"none",cursor:"pointer",fontSize:12}}>▶</button>
         </div>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1}}>
-        {["일","월","화","수","목","금","토"].map((d,i)=><div key={d} style={{padding:"6px 0",textAlign:"center",fontSize:10.5,fontWeight:700,color:i===0?"#F04452":"#6B7280"}}>{d}</div>)}
-        {Array.from({length:fd}).map((_,i)=><div key={"e"+i} style={{height:72}}/>)}
-        {Array.from({length:dim}).map((_,i)=>{
-          const day=i+1, evts=getEvts(day), tks=getTasks(day);
-          const isT=new Date().getDate()===day&&new Date().getMonth()===m&&new Date().getFullYear()===y;
-          const items=[...evts.map(ev=>({kind:"ev",o:ev})),...tks.map(t=>({kind:"t",o:t}))];
-          const shown=items.slice(0,2);   // 칸 높이 고정: 최대 2건 노출, 그 이상은 +N
-          const more=items.length-shown.length;
-          const chip={marginTop:1,height:15,lineHeight:"13px",borderRadius:4,fontSize:9,fontWeight:700,cursor:"pointer",overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",maxWidth:"100%",boxSizing:"border-box"};
-          return(
-            <div key={day} style={{padding:"3px",height:72,borderRadius:8,background:isT?"#F5F9FF":"transparent",minWidth:0,overflow:"hidden",boxSizing:"border-box"}}>
-              <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:20,height:20,borderRadius:"50%",fontSize:11,fontWeight:isT?900:500,backgroundColor:isT?"#3182F6":"transparent",color:isT?"#FFFFFF":"#374151"}}>{day}</span>
-              {shown.map(it=>it.kind==="ev"?(()=>{const ev=it.o;const et=ET[ev.type]||ET.internal;return <div key={ev.id} onClick={()=>setEvPick(ev)} title={ev.title} style={{...chip,padding:"0 4px",backgroundColor:et.bg,color:et.color}}>{ev.title}</div>;})():(()=>{const t=it.o;const st=STATUS_MAP[t.status]||STATUS_MAP.todo;const au=team?D.users.find(u=>u.id===t.assigneeId):null;return <div key={t.id} onClick={()=>onEditTask&&onEditTask(t)} title={t.title} style={{...chip,display:"flex",alignItems:"center",gap:2,padding:"0 3px",background:"#fff",border:`1px solid ${st.color}44`,color:t.status==="done"?"#9CA3AF":"#374151"}}><span style={{width:5,height:5,borderRadius:"50%",background:st.color,flexShrink:0}}/>{au?<span style={{color:au.color,fontWeight:800,flexShrink:0}}>{au.name[0]}</span>:null}<span style={{flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",textDecoration:t.status==="done"?"line-through":"none"}}>{t.title}</span></div>;})())}
-              {more>0&&<div onClick={()=>setDayPick(dsOf(day))} style={{marginTop:1,height:14,lineHeight:"14px",fontSize:9,fontWeight:800,color:"#6B7280",background:"#F2F4F6",borderRadius:4,textAlign:"center",cursor:"pointer"}}>+{more}</div>}
-            </div>
-          );
-        })}
-      </div>
+      <MonthCalendar y={y} m={m} todayStr={todayStr} onMore={(ds)=>setDayPick(ds)} items={(()=>{
+        const list=[];
+        monthEvents.forEach(e=>{const et=ET[e.type]||ET.internal;list.push({id:"ev_"+e.id,start:e.date,end:e.endDate||e.date,color:et.color,bg:et.bg,label:e.title,onClick:()=>setEvPick(e)});});
+        userTasks.forEach(t=>{const sp=taskSpan(t,todayStr);if(!sp)return;const st=STATUS_MAP[t.status]||STATUS_MAP.todo;const au=team?D.users.find(u=>u.id===t.assigneeId):null;list.push({id:"t_"+t.id,start:sp[0],end:sp[1],color:st.color,bg:st.bg,border:`1px solid ${st.color}55`,label:t.title,initial:au?au.name[0]:null,faded:t.status==="done",onClick:()=>onEditTask&&onEditTask(t)});});
+        return list;
+      })()}/>
       <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:10,padding:"0 2px"}}>
         {Object.entries(ET).map(([k,v])=><span key={k} style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:9.5,fontWeight:700,color:"#6B7280"}}><span style={{width:8,height:8,borderRadius:2,background:v.color}}/>{v.label}</span>)}
         <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:9.5,fontWeight:700,color:"#6B7280"}}><span style={{width:8,height:8,borderRadius:"50%",border:"1.5px solid #9CA3AF"}}/>업무</span>
@@ -1149,7 +1185,7 @@ function WorkCalendar({D,userId,up,onEditTask}){
           <div style={{marginTop:10}}>
             <span style={{fontSize:11,fontWeight:800,color:et.color,background:et.bg,padding:"3px 10px",borderRadius:999}}>{et.label}</span>
             <h3 style={{margin:"10px 0 4px",fontSize:17,fontWeight:900,color:"#0F1F5C"}}>{evPick.title}</h3>
-            <p style={{margin:0,fontSize:13,color:"#6B7280"}}>{evPick.date}{evPick.place?` · 📍 ${evPick.place}`:""}</p>
+            <p style={{margin:0,fontSize:13,color:"#6B7280"}}>{evPick.date}{evPick.endDate&&evPick.endDate>evPick.date?` ~ ${evPick.endDate}`:""}{evPick.place?` · 📍 ${evPick.place}`:""}</p>
             {((evPick.attendeeIds&&evPick.attendeeIds.length)||evPick.externalAttendees)&&<div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginTop:10}}>
               <span style={{fontSize:11,fontWeight:700,color:"#9CA3AF"}}>👥</span>
               {(evPick.attendeeIds||[]).map(id=>{const u=D.users.find(x=>x.id===id);return u?<span key={id} style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:11.5,fontWeight:700,color:u.color,background:u.color+"18",padding:"2px 8px",borderRadius:999}}><Ava name={u.name} color={u.color} size={16}/>{u.name}</span>:null;})}
@@ -3589,12 +3625,12 @@ function CalendarPage({D,cu,add,up,rm}){
   const [actionForm,setActionForm]=useState({type:"task",title:"",projectId:"",status:"todo"});
   const [actionDone,setActionDone]=useState([]);
   const [evSheet,setEvSheet]=useState(false);
-  const [evForm,setEvForm]=useState({id:null,title:"",date:"",type:"internal",place:"",attendeeIds:[],externalAttendees:"",description:""});
+  const [evForm,setEvForm]=useState({id:null,title:"",date:"",endDate:"",type:"internal",place:"",attendeeIds:[],externalAttendees:"",description:""});
   const y=cm.getFullYear(),m=cm.getMonth();
-  const openNewEvent=(date)=>{ setEvForm({id:null,title:"",date:date||`${y}-${String(m+1).padStart(2,"0")}-01`,type:"internal",place:"",attendeeIds:[],externalAttendees:"",description:""}); setDetail(null); setEvSheet(true); };
-  const openEditEvent=(ev)=>{ setEvForm({id:ev.id,title:ev.title||"",date:ev.date||"",type:ev.type||"internal",place:ev.place||"",attendeeIds:ev.attendeeIds||[],externalAttendees:ev.externalAttendees||"",description:ev.description||""}); setDetail(null); setEvSheet(true); };
+  const openNewEvent=(date)=>{ setEvForm({id:null,title:"",date:date||`${y}-${String(m+1).padStart(2,"0")}-01`,endDate:"",type:"internal",place:"",attendeeIds:[],externalAttendees:"",description:""}); setDetail(null); setEvSheet(true); };
+  const openEditEvent=(ev)=>{ setEvForm({id:ev.id,title:ev.title||"",date:ev.date||"",endDate:ev.endDate||"",type:ev.type||"internal",place:ev.place||"",attendeeIds:ev.attendeeIds||[],externalAttendees:ev.externalAttendees||"",description:ev.description||""}); setDetail(null); setEvSheet(true); };
   const evToggleAtt=(uid)=>setEvForm(f=>({...f,attendeeIds:f.attendeeIds.includes(uid)?f.attendeeIds.filter(x=>x!==uid):[...f.attendeeIds,uid]}));
-  const saveEvent=()=>{ if(!evForm.title.trim()||!evForm.date) return; const data={title:evForm.title.trim(),date:evForm.date,type:evForm.type,place:evForm.place.trim(),attendeeIds:evForm.attendeeIds,externalAttendees:evForm.externalAttendees.trim(),description:evForm.description}; if(evForm.id){ up("events",evForm.id,data); } else { add("events",{id:"e"+Date.now(),...data,projectId:null}); } setEvSheet(false); };
+  const saveEvent=()=>{ if(!evForm.title.trim()||!evForm.date) return; const end=(evForm.endDate&&evForm.endDate>evForm.date)?evForm.endDate:""; const data={title:evForm.title.trim(),date:evForm.date,endDate:end,type:evForm.type,place:evForm.place.trim(),attendeeIds:evForm.attendeeIds,externalAttendees:evForm.externalAttendees.trim(),description:evForm.description}; if(evForm.id){ up("events",evForm.id,data); } else { add("events",{id:"e"+Date.now(),...data,projectId:null}); } setEvSheet(false); };
   const fd=new Date(y,m,1).getDay();
   const dim=new Date(y,m+1,0).getDate();
   const ET=EVENT_TYPES;
@@ -3622,24 +3658,10 @@ function CalendarPage({D,cu,add,up,rm}){
         </div>
       </div>
       <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"12px",marginBottom:14,border:"1px solid #F2F4F6"}}>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1}}>
-          {["일","월","화","수","목","금","토"].map(d=><div key={d} style={{padding:"7px 0",textAlign:"center",fontSize:11,fontWeight:700,color:"#6B7280"}}>{d}</div>)}
-          {Array.from({length:fd}).map((_,i)=><div key={"e"+i} style={{height:72}}/>)}
-          {Array.from({length:dim}).map((_,i)=>{
-            const day=i+1;
-            const evts=getEvts(day);
-            const isT=new Date().getDate()===day&&new Date().getMonth()===m&&new Date().getFullYear()===y;
-            const shown=evts.slice(0,2);   // 칸 높이 고정: 최대 2건, 그 이상은 +N
-            const more=evts.length-shown.length;
-            return(
-              <div key={day} style={{padding:"3px",height:72,minWidth:0,overflow:"hidden",boxSizing:"border-box"}}>
-                <span onClick={()=>openNewEvent(`${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`)} title="이 날 일정 추가" style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:20,height:20,borderRadius:"50%",fontSize:11,fontWeight:isT?900:400,backgroundColor:isT?"#3182F6":"transparent",color:isT?"#FFFFFF":"#374151",cursor:"pointer"}}>{day}</span>
-                {shown.map(ev=>{const et=ET[ev.type]||ET.internal;return <div key={ev.id} onClick={()=>{setDetail(ev);setActionForm({type:"task",title:"",projectId:"",status:"todo"});setActionDone([]);}} title={ev.title} style={{marginTop:1,height:15,lineHeight:"13px",padding:"0 4px",borderRadius:4,fontSize:9,fontWeight:700,backgroundColor:et.bg,color:et.color,cursor:"pointer",overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",maxWidth:"100%",boxSizing:"border-box"}}>{ev.title}</div>;})}
-                {more>0&&<div onClick={()=>{const first=evts[shown.length];if(first){setDetail(first);setActionForm({type:"task",title:"",projectId:"",status:"todo"});setActionDone([]);}}} style={{marginTop:1,height:14,lineHeight:"14px",fontSize:9,fontWeight:800,color:"#6B7280",background:"#F2F4F6",borderRadius:4,textAlign:"center",cursor:"pointer"}}>+{more}</div>}
-              </div>
-            );
-          })}
-        </div>
+        <MonthCalendar y={y} m={m} todayStr={ymdLocal(new Date())}
+          onDayClick={(ds)=>openNewEvent(ds)}
+          onMore={(ds)=>{const first=D.events.filter(e=>e.date<=ds&&(e.endDate||e.date)>=ds)[0];if(first){setDetail(first);setActionForm({type:"task",title:"",projectId:"",status:"todo"});setActionDone([]);}}}
+          items={mEvts.map(ev=>{const et=ET[ev.type]||ET.internal;return {id:"ev_"+ev.id,start:ev.date,end:ev.endDate||ev.date,color:et.color,bg:et.bg,label:ev.title,onClick:()=>{setDetail(ev);setActionForm({type:"task",title:"",projectId:"",status:"todo"});setActionDone([]);}};})}/>
       </div>
       <h3 style={{margin:"0 0 10px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}>이번 달 일정</h3>
       {mEvts.length===0&&<div style={{padding:"28px 20px",textAlign:"center",backgroundColor:"#FFFFFF",borderRadius:16,border:"1px solid #F2F4F6"}}><p style={{margin:0,fontSize:13,color:"#9CA3AF"}}>이번 달 일정이 없어요</p><p style={{margin:"4px 0 0",fontSize:11.5,color:"#D1D5DB"}}>위 <b>+ 일정</b> 또는 날짜를 탭해 추가하세요</p></div>}
@@ -3670,7 +3692,7 @@ function CalendarPage({D,cu,add,up,rm}){
             <div style={{backgroundColor:"#F9FAFB",borderRadius:14,padding:"14px",marginBottom:16}}>
               <Badge color={(ET[detail.type]||ET.internal).color} bg={(ET[detail.type]||ET.internal).bg}>{(ET[detail.type]||ET.internal).label}</Badge>
               <h3 style={{margin:"8px 0 4px",fontSize:17,fontWeight:900,color:"#0F1F5C"}}>{detail.title}</h3>
-              <p style={{margin:0,fontSize:13,color:"#6B7280"}}>{detail.date}{detail.place?` · 📍 ${detail.place}`:""}</p>
+              <p style={{margin:0,fontSize:13,color:"#6B7280"}}>{detail.date}{detail.endDate&&detail.endDate>detail.date?` ~ ${detail.endDate}`:""}{detail.place?` · 📍 ${detail.place}`:""}</p>
               {((detail.attendeeIds&&detail.attendeeIds.length)||detail.externalAttendees)&&<div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginTop:8}}>
                 <span style={{fontSize:11,fontWeight:700,color:"#9CA3AF"}}>👥 참여</span>
                 {(detail.attendeeIds||[]).map(id=>{const u=D.users.find(x=>x.id===id);return u?<span key={id} style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:11.5,fontWeight:700,color:u.color,background:u.color+"18",padding:"2px 8px",borderRadius:999}}><Ava name={u.name} color={u.color} size={16}/>{u.name}</span>:null;})}
@@ -3700,8 +3722,16 @@ function CalendarPage({D,cu,add,up,rm}){
         <div style={{marginTop:10}}>
           <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>일정명 *</label>
           <input value={evForm.title} onChange={e=>setEvForm({...evForm,title:e.target.value})} onKeyDown={e=>{if(e.key==="Enter"&&evForm.title.trim()&&evForm.date)saveEvent();}} placeholder="예: 주간 팀 미팅" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:14}}/>
-          <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>날짜 *</label>
-          <input type="date" value={evForm.date} onChange={e=>setEvForm({...evForm,date:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit",marginBottom:14}}/>
+          <div style={{display:"flex",gap:8,marginBottom:14}}>
+            <div style={{flex:1}}>
+              <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>시작일 *</label>
+              <input type="date" value={evForm.date} onChange={e=>setEvForm({...evForm,date:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+            </div>
+            <div style={{flex:1}}>
+              <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>종료일 <span style={{color:"#9CA3AF",fontWeight:600}}>(선택·여러날)</span></label>
+              <input type="date" value={evForm.endDate} min={evForm.date} onChange={e=>setEvForm({...evForm,endDate:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+            </div>
+          </div>
           <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>유형</label>
           <select value={evForm.type} onChange={e=>setEvForm({...evForm,type:e.target.value})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none",marginBottom:14}}>{Object.entries(ET).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</select>
           <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>미팅 장소 <span style={{color:"#9CA3AF",fontWeight:600}}>(선택)</span></label>

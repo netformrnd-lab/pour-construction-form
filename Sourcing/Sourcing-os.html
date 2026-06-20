@@ -1282,7 +1282,7 @@ function normalizeState(){
   if(!state.adminSub)state.adminSub='makers';
   if(!state.meetings)state.meetings=[];
   if(!state.activity)state.activity=[];
-  state.products.forEach(p=>{if(!p.tests)p.tests=[];if(!p.certs)p.certs=[];if(!p.fill)p.fill=[];if(!p.docs)p.docs=[];if(!p.attachments)p.attachments=[];if(!p.notes)p.notes=[];if(p.fav===undefined)p.fav=false;if(!p.type)p.type='단품';if(p.concept===undefined)p.concept='';if(p.spec===undefined)p.spec='';if(!p.sample)p.sample='대기';if(p.memo===undefined)p.memo='';if(p.goods===undefined)p.goods='';if(!p.history)p.history=[];if(!p.bundle)p.bundle=[];if(p.baseId===undefined)p.baseId='';if(p.thumbId===undefined)p.thumbId='';if(!p.specs)p.specs=[];if(p.stage==='완료')p.stage='출시완료';if(p.pricing&&Array.isArray(p.pricing.colors))p.pricing.colors=p.pricing.colors.map(c=>typeof c==='string'?{name:c,moq:0}:{name:(c&&c.name)||'',moq:Number(c&&c.moq)||0}).filter(c=>c.name);(p.tests||[]).forEach(t=>{if(!t.photos)t.photos=[];});if(p.maker&&!state.makers.includes(p.maker))state.makers.push(p.maker);});
+  state.products.forEach(p=>{if(!p.tests)p.tests=[];if(!p.certs)p.certs=[];if(!p.fill)p.fill=[];if(!p.docs)p.docs=[];if(!p.attachments)p.attachments=[];if(!p.notes)p.notes=[];if(!p.ideas)p.ideas=[];if(p.fav===undefined)p.fav=false;if(!p.type)p.type='단품';if(p.concept===undefined)p.concept='';if(p.spec===undefined)p.spec='';if(!p.sample)p.sample='대기';if(p.memo===undefined)p.memo='';if(p.goods===undefined)p.goods='';if(!p.history)p.history=[];if(!p.bundle)p.bundle=[];if(p.baseId===undefined)p.baseId='';if(p.thumbId===undefined)p.thumbId='';if(!p.specs)p.specs=[];if(p.stage==='완료')p.stage='출시완료';if(p.pricing&&Array.isArray(p.pricing.colors))p.pricing.colors=p.pricing.colors.map(c=>typeof c==='string'?{name:c,moq:0}:{name:(c&&c.name)||'',moq:Number(c&&c.moq)||0}).filter(c=>c.name);(p.tests||[]).forEach(t=>{if(!t.photos)t.photos=[];});if(p.maker&&!state.makers.includes(p.maker))state.makers.push(p.maker);});
   state.makers.sort((a,b)=>a.localeCompare(b,'ko'));
 }
 normalizeState();
@@ -1293,6 +1293,7 @@ let statusFilter='전체';
 let stageFilter=null;
 let typeFilter='전체';
 let baseFilter='';
+let ideaPendingPhoto=null;
 let selectMode=false;
 const selected=new Set();
 const PROG_STAGES=['샘플','테스트','협의','발주준비'];
@@ -1754,6 +1755,18 @@ function renderMain(){
     ${typeSectionHTML(p)}
 
     <div class="sec">
+      <div class="sec-h"><div class="t">💡 아이디어 <b>${(p.ideas||[]).length}</b> <span style="font-weight:600;color:var(--muted);font-size:12px">· 추가옵션 · 파생/세트 기획</span></div></div>
+      <div style="background:var(--cream);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px">
+        <textarea id="idea_text" placeholder="추가옵션 아이디어 (예: 이 세트에 미니 롤러 동봉하면 좋을 듯)" style="width:100%;border:1px solid var(--border2);border-radius:10px;padding:10px 12px;background:#fff;min-height:48px;resize:vertical;font-size:14px"></textarea>
+        <input id="idea_link" placeholder="🔗 참고 링크 (선택)" style="width:100%;margin-top:8px;border:1px solid var(--border2);border-radius:10px;padding:10px 12px;background:#fff;font-size:14px">
+        <div id="idea_pending" style="margin-top:8px"></div>
+        <div style="display:flex;gap:8px;margin-top:10px"><button type="button" class="mini" id="idea_photo">📷 사진</button><button type="button" class="mini or" id="idea_add" style="flex:1">아이디어 추가</button></div>
+        <input type="file" id="idea_file" accept="image/*" hidden>
+      </div>
+      <div id="idealist"></div>
+    </div>
+
+    <div class="sec">
       <div class="sec-h"><div class="t">판매가 설정</div><button class="mini or" id="openPrice">${(p.pricing&&p.pricing.sell)?'수정':'설정하기'}</button></div>
       <div id="priceBody"></div>
     </div>
@@ -1811,6 +1824,7 @@ function renderMain(){
   $('#editFill').onclick=()=>openProd(p.id);
   $('#editOv').onclick=()=>openProd(p.id);
   wireOverviewAttach(p);
+  wireIdeas(p);
   $('#openPrice').onclick=()=>openPrice(p.id);
   const eb=$('#editBundle');if(eb)eb.onclick=()=>openVariant('세트',p.baseId||p.id,p.id);
   const ad=$('#addDeriv');if(ad)ad.onclick=()=>openVariant('파생',p.id);
@@ -2296,6 +2310,46 @@ function addSpec(pid,text,tag){const p=state.products.find(x=>x.id===pid);if(!p)
 function removeSpec(pid,id){const p=state.products.find(x=>x.id===pid);if(!p)return;if(!confirm('이 스펙 기록을 삭제할까요?'))return;p.specs=(p.specs||[]).filter(s=>s.id!==id);save();renderMain();}
 function addNote(pid,text){const p=state.products.find(x=>x.id===pid);if(!p)return;(p.notes=p.notes||[]).push({id:uid(),text,ts:Date.now()});save();renderMain();}
 function removeNote(pid,id){const p=state.products.find(x=>x.id===pid);if(!p)return;if(!confirm('이 메모를 삭제할까요?'))return;p.notes=(p.notes||[]).filter(n=>n.id!==id);save();renderMain();}
+/* 💡 아이디어 (추가옵션 · 파생/세트 기획) — 글 + 링크 + 사진 */
+function wireIdeas(p){
+  if(!$('#idea_add'))return;
+  renderIdeaPending();renderIdeaList(p);
+  $('#idea_photo').onclick=()=>$('#idea_file').click();
+  $('#idea_file').onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)await attachIdeaPhotoFile(p.id,f);};
+  $('#idea_add').onclick=()=>{
+    const text=($('#idea_text').value||'').trim(), link=($('#idea_link').value||'').trim();
+    if(!text&&!link&&!ideaPendingPhoto){alert('내용·링크·사진 중 하나는 넣어주세요');return;}
+    (p.ideas=p.ideas||[]).push({id:uid(),text,link,photo:ideaPendingPhoto,ts:Date.now()});
+    ideaPendingPhoto=null;save();renderMain();
+  };
+}
+function renderIdeaPending(){
+  const w=$('#idea_pending');if(!w)return;
+  w.innerHTML=ideaPendingPhoto?`<div style="display:inline-block;position:relative"><img src="${ideaPendingPhoto.url||ideaPendingPhoto.data}" style="width:64px;height:64px;border-radius:10px;object-fit:cover"><button type="button" id="idea_rmphoto" style="position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:12px;line-height:1;border:none;cursor:pointer">×</button></div>`:'';
+  const rm=$('#idea_rmphoto');if(rm)rm.onclick=()=>{ideaPendingPhoto=null;renderIdeaPending();};
+}
+async function attachIdeaPhotoFile(pid,f){
+  try{
+    const data=await fileToDataURL(f);
+    let res;try{res=await uploadPhoto(pid,{id:uid(),data});}catch(err){console.error('[idea] 사진 업로드 실패, 로컬보관:',err);res=null;}
+    ideaPendingPhoto=(res&&res.url)?{url:res.url,path:res.path||''}:{data};
+    renderIdeaPending();
+  }catch(e){console.error('[idea] 사진 처리 실패:',e);alert('사진을 처리하지 못했어요.');}
+}
+function renderIdeaList(p){
+  const w=$('#idealist');if(!w)return;
+  const list=(p.ideas||[]).slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
+  if(!list.length){w.innerHTML='<div class="tempty" style="text-align:left;padding:4px 2px">파생상품·세트에 넣을 추가옵션 아이디어를 모아보세요. 링크·사진도 함께요.</div>';return;}
+  w.innerHTML=list.map(it=>{
+    const src=it.photo&&(it.photo.url||it.photo.data);
+    const img=src?`<img src="${src}" data-ideafull="${src}" style="width:54px;height:54px;border-radius:9px;object-fit:cover;cursor:pointer;flex:0 0 54px">`:'';
+    const lk=it.link?`<div style="margin-top:5px"><a href="${esc(it.link)}" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px;font-weight:700;word-break:break-all">🔗 ${esc(it.link)}</a></div>`:'';
+    return `<div class="noteitem" style="display:flex;gap:10px;align-items:flex-start">${img}<div style="flex:1;min-width:0"><div class="nt" style="white-space:pre-wrap">${esc(it.text||'')}</div>${lk}<div class="nm"><span class="nd">${fmtDT(it.ts)}</span><button class="nx" data-idearm="${it.id}">삭제</button></div></div></div>`;
+  }).join('');
+  w.querySelectorAll('[data-ideafull]').forEach(im=>im.onclick=()=>openLightbox(im.dataset.ideafull));
+  w.querySelectorAll('[data-idearm]').forEach(b=>b.onclick=()=>removeIdea(p.id,b.dataset.idearm));
+}
+function removeIdea(pid,id){const p=state.products.find(x=>x.id===pid);if(!p)return;if(!confirm('이 아이디어를 삭제할까요?'))return;p.ideas=(p.ideas||[]).filter(x=>x.id!==id);save();renderMain();}
 /* 상세 모달 열림 + 다른 입력 모달 없음일 때 붙여넣기 → 제품 개요 자료로 추가 */
 document.addEventListener('paste',e=>{
   const det=$('#detailOverlay');if(!det||!det.classList.contains('on'))return;

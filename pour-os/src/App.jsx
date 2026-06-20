@@ -659,10 +659,10 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up,onDelete})=>{
   );
 };
 const TABS=[{id:"today",icon:"🏠",label:"오늘"},{id:"kpi",icon:"◎",label:"KPI"},{id:"projects",icon:"▦",label:"프로젝트"},{id:"calendar",icon:"▤",label:"캘린더"},{id:"more",icon:"⋯",label:"더보기"}];
-const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"mindmap",icon:"◈",label:"그로스보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"team",icon:"👤",label:"담당자"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"},{id:"guide",icon:"📖",label:"가이드"}];
+const MORE=[{id:"mindmap",icon:"◈",label:"그로스보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"team",icon:"👤",label:"담당자"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"},{id:"guide",icon:"📖",label:"가이드"}];
 // 메뉴 그룹: 개인(나만 보는 내 것) vs 팀(모두 같이 보는 공유) — 출시·프로세스는 프로젝트 하위
 const NAV_GROUPS=[
-  {label:"개인 · 나만", ids:["today","game","fixed","retro"]},
+  {label:"개인 · 나만", ids:["today","fixed","retro"]},
   {label:"팀 · 공유",  ids:["kpi","projects","mindmap","calendar","ai"]},
   {label:"도움말",     ids:["guide"]},
 ];
@@ -933,7 +933,6 @@ export default function App(){
     {page==="kpi"&&<KPIPage D={D} lead={lead} up={up} cu={cu} add={add} rm={rm} restore={restore} restoreLocal={restoreLocal} pushExternalBackup={pushExternalBackup} pc={viewMode==="pc"}/>}
     {page==="projects"&&<ProjectsPage D={D} cu={cu} up={up} add={add} rm={rm} rmNested={rmNested} pc={viewMode==="pc"} lead={lead} nav={nav}/>}
     {page==="calendar"&&<CalendarPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
-    {page==="game"&&<GamePage D={D} cu={cu} up={up} add={add} rm={rm} nav={nav}/>}
     {page==="launch"&&<LaunchPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
     {page==="mindmap"&&<MindMapPage D={D} cu={cu} nav={nav}/>}
     {page==="guide"&&<GuidePage D={D}/>}
@@ -954,7 +953,7 @@ export default function App(){
       {saveErr.level!=="error"&&<button onClick={()=>setSaveErr(null)} style={{flexShrink:0,padding:"5px 7px",borderRadius:8,border:"none",background:"transparent",color:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}}>×</button>}
     </div>}
     <Sheet open={more} onClose={()=>setMore(false)} title="더보기">
-      {[{label:"개인 · 나만",ids:["game","fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","team","ai"]},{label:"도움말",ids:["guide"]}].map(grp=>(
+      {[{label:"개인 · 나만",ids:["fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","team","ai"]},{label:"도움말",ids:["guide"]}].map(grp=>(
         <div key={grp.label} style={{marginTop:14}}>
           <p style={{margin:"0 2px 8px",fontSize:11,fontWeight:800,color:"#9CA3AF",letterSpacing:0.5}}>{grp.label}</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -1450,6 +1449,8 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const [showHeld,setShowHeld]=useState(false);
   const [showCarry,setShowCarry]=useState(false);   // 밀린 업무 펼침(기본 접힘)
   const [scope,setScope]=useState("me");   // 오늘 화면: me(나) | team(팀)
+  const [memoSheet,setMemoSheet]=useState(false);   // 이번 주 명심할 것 메모 편집
+  const [memoText,setMemoText]=useState("");
   const [isNarrow,setIsNarrow]=useState(typeof window!=="undefined"?window.innerWidth<640:true);   // 모바일=하루씩, 넓은 화면=요일 5열
   useEffect(()=>{const h=()=>setIsNarrow(window.innerWidth<640);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[]);
   const [viewDay,setViewDay]=useState(WEEK_DAYS.includes(today)?today:"월");   // 모바일 단일요일 보기(오늘 기준 시작)
@@ -1530,13 +1531,13 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const vdIdx=WEEK_DAYS.indexOf(viewDay);
   // 상단 분할: 이번 주 명심(좌) + 마감 임박(우) — PC는 나란히, 모바일은 세로
   const memoBanner=(
-    <div onClick={()=>nav("game")} style={{display:"flex",alignItems:"center",gap:14,background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"16px 18px",cursor:"pointer",color:"#fff",flex:1,minWidth:0,boxSizing:"border-box"}}>
+    <div onClick={()=>{setMemoText("");setMemoSheet(true);}} style={{display:"flex",alignItems:"center",gap:14,background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"16px 18px",cursor:"pointer",color:"#fff",flex:1,minWidth:0,boxSizing:"border-box"}}>
       <div style={{flex:1,minWidth:0}}>
         <p style={{margin:0,fontSize:19,fontWeight:900,lineHeight:1.4,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{myGoals.length===0?"이번 주 메모를 남겨보세요 ✍️":myGoals.map(g=>g.title).join("   ·   ")}</p>
       </div>
       <div style={{flexShrink:0,textAlign:"right",opacity:0.72}}>
         <p style={{margin:0,fontSize:9.5,fontWeight:700,whiteSpace:"nowrap"}}>📝 이번 주 명심할 것</p>
-        <span style={{display:"inline-block",marginTop:4,fontSize:10,fontWeight:800,background:"rgba(255,255,255,0.2)",color:"#fff",padding:"3px 9px",borderRadius:10,whiteSpace:"nowrap"}}>내 주간 ›</span>
+        <span style={{display:"inline-block",marginTop:4,fontSize:10,fontWeight:800,background:"rgba(255,255,255,0.2)",color:"#fff",padding:"3px 9px",borderRadius:10,whiteSpace:"nowrap"}}>✏️ 편집</span>
       </div>
     </div>
   );
@@ -1990,6 +1991,24 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
         </Sheet>
       )}
       </>}
+      <Sheet open={memoSheet} onClose={()=>setMemoSheet(false)} title="📝 이번 주 명심할 것" h="64vh">
+        <div style={{marginTop:8}}>
+          <p style={{margin:"0 0 10px",fontSize:11.5,color:"#9CA3AF",lineHeight:1.55}}>그냥 메모예요 — 수치·달성 추적 없이 이번 주 잊지 말 것만 적어두세요. (오늘 화면 상단 배너에 표시됩니다)</p>
+          <div style={{display:"flex",gap:7,marginBottom:12}}>
+            <input value={memoText} onChange={e=>setMemoText(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&memoText.trim()){add("weekGoals",{id:"wg"+Date.now(),userId:cu.id,week:wkNow,title:memoText.trim(),createdAt:new Date().toISOString()});setMemoText("");}}} placeholder="예: 거래처 단가표 업데이트 잊지 말기" style={{flex:1,minWidth:0,padding:"12px 14px",borderRadius:11,border:"1.5px solid #E5E8EB",fontSize:13.5,fontWeight:600,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+            <button onClick={()=>{if(memoText.trim()){add("weekGoals",{id:"wg"+Date.now(),userId:cu.id,week:wkNow,title:memoText.trim(),createdAt:new Date().toISOString()});setMemoText("");}}} disabled={!memoText.trim()} style={{flexShrink:0,padding:"0 18px",borderRadius:11,border:"none",background:memoText.trim()?"#F97316":"#E5E8EB",color:memoText.trim()?"#fff":"#9CA3AF",fontSize:15,fontWeight:800,cursor:memoText.trim()?"pointer":"not-allowed",fontFamily:"inherit"}}>＋</button>
+          </div>
+          {myGoals.length===0
+            ? <div style={{padding:"24px 20px",textAlign:"center",background:"#F9FAFB",borderRadius:12,border:"1px solid #F2F4F6"}}><p style={{margin:0,fontSize:13,color:"#9CA3AF"}}>아직 메모가 없어요 · 위에 적어두세요</p></div>
+            : myGoals.map(g=>(
+              <div key={g.id} style={{background:"#fff",borderRadius:11,border:"1px solid #F2F4F6",padding:"11px 13px",marginBottom:7,display:"flex",alignItems:"center",gap:9}}>
+                <span style={{flexShrink:0,color:"#F97316",fontSize:14}}>📌</span>
+                <span style={{flex:1,minWidth:0,fontSize:13.5,fontWeight:600,color:"#1F2937"}}>{g.title}</span>
+                <button onClick={()=>rm("weekGoals",g.id)} style={{flexShrink:0,background:"none",border:"none",fontSize:14,cursor:"pointer",color:"#D1D5DB",padding:4}}>✕</button>
+              </div>
+            ))}
+        </div>
+      </Sheet>
       <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} up={up} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,parentId:f.parentId||null,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:(f.forAll?"":((f.assigneeIds||[])[0]||"")),assigneeIds:f.assigneeIds||[],forAll:!!f.forAll,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null,...(f.statusLog?{statusLog:f.statusLog,doneAt:f.doneAt,doneBy:f.doneBy,doneByName:f.doneByName}:{})})} onDelete={(id)=>rm("tasks",id)}/>
       <ConfirmDelete open={!!confirmTaskId} title="업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmTaskId)?.title}" 업무를 삭제합니다. 휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmTaskId);setConfirmTaskId(null);}} onCancel={()=>setConfirmTaskId(null)}/>
       {projModal&&(()=>{
@@ -4986,8 +5005,7 @@ function GuidePage({D}){
 
       <Sec n="3." title="어디서 뭘 하나 — 메뉴 가이드">
         <p style={{margin:"0 0 5px",fontSize:11,fontWeight:800,color:"#9CA3AF"}}>개인 · 나만</p>
-        <Row l="🏠 오늘" d="내 업무 체크 · 인계받은 '내 차례' · 이번 주 메모"/>
-        <Row l="🎯 내 주간" d="이번 주 명심할 메모 + 내가 한 일 집계"/>
+        <Row l="🏠 오늘" d="내 업무 체크 · 인계받은 '내 차례' · 이번 주 명심할 메모"/>
         <Row l="📌 고정업무" d="매일·매주 반복 업무(반복 등록)"/>
         <Row l="◷ 목표·회고" d="월간 개인목표 · 월말 회고 · 🩺 진단(막힘·적체·헛심)"/>
         <p style={{margin:"10px 0 5px",fontSize:11,fontWeight:800,color:"#9CA3AF"}}>팀 · 공유</p>

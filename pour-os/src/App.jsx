@@ -789,7 +789,7 @@ export default function App(){
       setSaveWait(null);
       // ⑤ 한도 내 컬렉션만 동시 저장 — 성공해야 동기화본 갱신(실패 시 다음 변경 때 자동 재시도)
       try{
-        await Promise.all(savable.map(([k,arr])=>setDoc(colDoc(k),{items:arr,_updatedAt:Date.now()})));
+        await Promise.all(savable.map(([k,,js])=>setDoc(colDoc(k),{items:JSON.parse(js),_updatedAt:Date.now()})));   // js(=JSON.stringify)로 정화 — undefined/NaN 제거(Firestore invalid-argument 방지)
         for(const [k,,js] of savable) lastColJsonRef.current[k]=js;
         if(!over.length) pendingSharedRef.current=null;   // 초과분이 남아있으면 종료 flush가 재시도하도록 pending 유지
         let maxB=0; for(const k of SHARED_KEYS){ const b=new Blob([JSON.stringify(shared[k]||[])]).size; if(b>maxB)maxB=b; }
@@ -805,7 +805,7 @@ export default function App(){
     const flush=()=>{ const shared=pendingSharedRef.current; if(!shared) return;
       try{ localStorage.setItem(MIRROR_KEY,JSON.stringify(shared)); localStorage.setItem(MIRROR_AT_KEY,new Date().toISOString()); }catch(_){}
       idbSaveMirror(shared).catch(()=>{});
-      for(const k of SHARED_KEYS){ const js=JSON.stringify(shared[k]||[]); if(js!==lastColJsonRef.current[k]&&new Blob([js]).size<=DOC_LIMIT){ try{ setDoc(colDoc(k),{items:shared[k]||[],_updatedAt:Date.now()}); }catch(_){} } } };
+      for(const k of SHARED_KEYS){ const js=JSON.stringify(shared[k]||[]); if(js!==lastColJsonRef.current[k]&&new Blob([js]).size<=DOC_LIMIT){ try{ setDoc(colDoc(k),{items:JSON.parse(js),_updatedAt:Date.now()}); }catch(_){} } } };
     window.addEventListener("beforeunload",flush);
     const onVis=()=>{ if(document.visibilityState==="hidden") flush(); };
     window.addEventListener("visibilitychange",onVis);

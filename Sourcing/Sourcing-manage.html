@@ -326,7 +326,7 @@ function renderVisNote(){
   const off=[['name','제품명'],['price','단가'],['makerName','제조사명'],['contact','연락처'],['docs','서류'],['test','테스트상세']].filter(([k])=>!v[k]).map(x=>x[1]);
   $('#visNote').innerHTML=off.length?('가린 항목: <b>'+off.join(' · ')+'</b> (Sourcing-os 메뉴 → 공유 설정에서 변경)'):'모든 항목 노출 중';
 }
-function prodName(p){ if(!shareCfg.visible.name)return shareCfg.aliases[p.id]||'가명미지정'; const nm=dn(p); return (nm&&nm.trim())?nm:'미설정'; }
+function prodName(p){ if(!shareCfg.visible.name){const a=shareCfg.aliases[p.id]||'가명미지정';return p.goods?(a+' · '+p.goods):a;} const nm=dn(p); return (nm&&nm.trim())?nm:'미설정'; }
 function specText(p){ if(p.specs&&p.specs.length)return p.specs[p.specs.length-1].text||''; return p.spec||''; }
 function testSummary(p){
   const ts=p.tests||[]; if(!ts.length)return '없음';
@@ -337,7 +337,7 @@ function testSummary(p){
 function renderProducts(){
   const v=shareCfg.visible, grid=$('#pGrid'); if(!grid)return;
   let list=(state.products||[]).slice().sort((a,b)=>statusIdx(b)-statusIdx(a)||prodName(a).localeCompare(prodName(b)));
-  if(qp)list=list.filter(p=>{const hay=(prodName(p)+' '+(shareCfg.aliases[p.id]||'')+' '+(v.makerName?(p.maker||''):'')).toLowerCase();return hay.includes(qp);});
+  if(qp)list=list.filter(p=>{const hay=(prodName(p)+' '+(shareCfg.aliases[p.id]||'')+' '+(p.goods||'')+' '+(v.makerName?(p.maker||''):'')).toLowerCase();return hay.includes(qp);});
   if(!list.length){grid.innerHTML='<div class="empty">'+(qp?'검색 결과 없음':'상품이 없어요.')+'</div>';return;}
   grid.innerHTML=list.map(p=>{
     const ty=p.type==='패키지'?'세트':(p.type||'단품');

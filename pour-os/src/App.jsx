@@ -38,8 +38,8 @@ const STATUS_MAP={
   done:{label:"완료",color:"#00C073",bg:"#E8FAF1"},
   hold:{label:"보류",color:"#FF9500",bg:"#FFF3E0"},
 };
-// 프로젝트 진행 상태 4단계 (예정→진행중→보류→완료). 기존 데이터(status 없음)는 진행중으로 간주.
-const PROJ_STATUS={planned:{label:"예정",color:"#6B7280",bg:"#F2F4F6",icon:"📋"},active:{label:"진행중",color:"#3182F6",bg:"#EBF3FF",icon:"▶"},paused:{label:"보류",color:"#FF9500",bg:"#FFF3E0",icon:"⏸"},completed:{label:"완료",color:"#00C073",bg:"#E8FAF1",icon:"✓"}};
+// 프로젝트 진행 상태 4단계 (할일→진행중→보류→완료). 명칭은 업무 상태(STATUS_MAP)와 통일 — todo=할일. 기존 데이터(status 없음)는 진행중으로 간주.
+const PROJ_STATUS={planned:{label:"할일",color:"#6B7280",bg:"#F2F4F6",icon:"📋"},active:{label:"진행중",color:"#3182F6",bg:"#EBF3FF",icon:"▶"},paused:{label:"보류",color:"#FF9500",bg:"#FFF3E0",icon:"⏸"},completed:{label:"완료",color:"#00C073",bg:"#E8FAF1",icon:"✓"}};
 const projStatus=(p)=>(p&&p.status)||"active";
 // 마감일 D-day: 음수=지남, 0=오늘, 양수=남음. dueDate(YYYY-MM-DD) 없으면 null
 const ddays=(dueDate)=>{ if(!dueDate) return null; const d=new Date(dueDate+"T00:00:00"); if(isNaN(d.getTime())) return null; const now=new Date(); now.setHours(0,0,0,0); return Math.round((d-now)/86400000); };
@@ -1215,12 +1215,19 @@ function WorkCalendar({D,userId,up,onEditTask}){
   const monthTasks=userTasks.filter(t=>{ const ds=taskDate(t); const planned=ds&&(()=>{const d=new Date(ds+"T00:00:00");return d.getFullYear()===y&&d.getMonth()===m;})(); const s=inprogressStartDate(t); const span=t.status==="inprogress"&&s&&s<=todayStr; return planned||span; });
   const getEvts=d=>{const ds=dsOf(d);return monthEvents.filter(e=>e.date<=ds&&(e.endDate||e.date)>=ds);};
   const getTasks=d=>{const ds=dsOf(d);return userTasks.filter(t=>taskDate(t)===ds||taskInprogSpan(t,ds,todayStr));};
+  // 프로젝트 마감일 — 캘린더 흡수. team=전체 / 개인=담당·공동
+  const projMine=(p)=>team||p.assigneeId===userId||(p.collaboratorIds||[]).includes(userId);
+  const monthDues=D.projects.filter(p=>p.dueDate&&projMine(p)&&(()=>{const d=new Date(p.dueDate+"T00:00:00");return !isNaN(d.getTime())&&d.getFullYear()===y&&d.getMonth()===m;})());
+  const getDues=d=>{const ds=dsOf(d);return monthDues.filter(p=>p.dueDate===ds);};
+  // 업무 상태별 개수(이번 달) — 할일·진행중·보류·완료
+  const tCnt=(s)=>monthTasks.filter(t=>(t.status||"todo")===s).length;
+  const STAT_ORDER=[["todo","할일"],["inprogress","진행중"],["hold","보류"],["done","완료"]];
   return(
     <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #F2F4F6",marginBottom:14}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
         <div>
           <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#0F1F5C"}}>🗓️ {team?"팀 캘린더":"내 캘린더"}</h3>
-          <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>업무 {monthTasks.length} · 일정 {monthEvents.length} · 미팅·외근 포함</p>
+          <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>{STAT_ORDER.map(([k,l])=>`${l} ${tCnt(k)}`).join(" · ")} · 일정 {monthEvents.length}{monthDues.length>0?` · 마감 ${monthDues.length}`:""}</p>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:6}}>
           <button onClick={()=>setCm(new Date(y,m-1,1))} style={{width:30,height:30,borderRadius:9,backgroundColor:"#F2F4F6",border:"none",cursor:"pointer",fontSize:12}}>◀</button>
@@ -1232,11 +1239,13 @@ function WorkCalendar({D,userId,up,onEditTask}){
         const list=[];
         monthEvents.forEach(e=>{const et=evType(D,e.type);list.push({id:"ev_"+e.id,start:e.date,end:e.endDate||e.date,color:et.color,bg:et.bg,label:e.title,onClick:()=>setEvPick(e)});});
         userTasks.forEach(t=>{const sp=taskSpan(t,todayStr);if(!sp)return;const st=STATUS_MAP[t.status]||STATUS_MAP.todo;const au=team?D.users.find(u=>u.id===t.assigneeId):null;list.push({id:"t_"+t.id,start:sp[0],end:sp[1],color:st.color,bg:st.bg,border:`1px solid ${st.color}55`,label:t.title,initial:au?au.name[0]:null,faded:t.status==="done",onClick:()=>onEditTask&&onEditTask(t)});});
+        monthDues.forEach(p=>{const done=projStatus(p)==="completed";list.push({id:"due_"+p.id,start:p.dueDate,end:p.dueDate,color:"#EA580C",bg:"#FFEDD5",border:"1px solid #EA580C",label:"📅 "+p.title,faded:done,onClick:()=>setDayPick(p.dueDate)});});
         return list;
       })()}/>
       <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:10,padding:"0 2px"}}>
         {evTypeList(D).map(v=><span key={v.id} style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:9.5,fontWeight:700,color:"#6B7280"}}><span style={{width:8,height:8,borderRadius:2,background:v.color}}/>{v.label}</span>)}
-        <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:9.5,fontWeight:700,color:"#6B7280"}}><span style={{width:8,height:8,borderRadius:"50%",border:"1.5px solid #9CA3AF"}}/>업무</span>
+        {STAT_ORDER.map(([k,l])=>{const st=STATUS_MAP[k];return <span key={k} style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:9.5,fontWeight:700,color:"#6B7280"}}><span style={{width:8,height:8,borderRadius:"50%",background:st.color}}/>{l} {tCnt(k)}</span>;})}
+        <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:9.5,fontWeight:700,color:"#6B7280"}}><span style={{width:8,height:8,borderRadius:2,background:"#EA580C"}}/>📅 마감</span>
       </div>
       <Sheet open={!!evPick} onClose={()=>setEvPick(null)} title="일정" h="56vh">
         {evPick&&(()=>{const et=evType(D,evPick.type);return(
@@ -1255,9 +1264,17 @@ function WorkCalendar({D,userId,up,onEditTask}){
         );})()}
       </Sheet>
       <Sheet open={!!dayPick} onClose={()=>setDayPick(null)} title={dayPick?`${Number(dayPick.slice(5,7))}월 ${Number(dayPick.slice(8,10))}일`:""} h="70vh">
-        {dayPick&&(()=>{const dd=Number(dayPick.slice(8,10));const evs=getEvts(dd);const tk=getTasks(dd);return(
+        {dayPick&&(()=>{const dd=Number(dayPick.slice(8,10));const evs=getEvts(dd);const tk=getTasks(dd);const dus=getDues(dd);return(
           <div style={{marginTop:8,display:"flex",flexDirection:"column",gap:7}}>
-            {evs.length===0&&tk.length===0&&<p style={{padding:"20px 0",textAlign:"center",fontSize:13,color:"#9CA3AF"}}>이 날 항목이 없어요</p>}
+            {evs.length===0&&tk.length===0&&dus.length===0&&<p style={{padding:"20px 0",textAlign:"center",fontSize:13,color:"#9CA3AF"}}>이 날 항목이 없어요</p>}
+            {dus.map(p=>{const au=team?D.users.find(u=>u.id===p.assigneeId):null;const done=projStatus(p)==="completed";return(
+              <div key={p.id} style={{display:"flex",alignItems:"center",gap:9,padding:"11px 12px",borderRadius:11,border:"1px solid #FED7AA",background:"#FFFBF5"}}>
+                <span style={{fontSize:10,fontWeight:800,color:"#EA580C",background:"#FFEDD5",padding:"3px 8px",borderRadius:6,flexShrink:0}}>📅 마감</span>
+                {au&&<Ava name={au.name} color={au.color} size={18}/>}
+                <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:700,color:done?"#9CA3AF":"#1F2937",textDecoration:done?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span>
+                <span style={{flexShrink:0,fontSize:9.5,fontWeight:800,color:(PROJ_STATUS[projStatus(p)]||{}).color,background:(PROJ_STATUS[projStatus(p)]||{}).bg,padding:"2px 7px",borderRadius:6}}>{(PROJ_STATUS[projStatus(p)]||{}).label}</span>
+              </div>
+            );})}
             {evs.map(ev=>{const et=evType(D,ev.type);return(
               <button key={ev.id} onClick={()=>{setDayPick(null);setEvPick(ev);}} style={{display:"flex",alignItems:"center",gap:9,padding:"11px 12px",borderRadius:11,border:"1px solid #F2F4F6",background:"#fff",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
                 <span style={{fontSize:10,fontWeight:800,color:et.color,background:et.bg,padding:"3px 8px",borderRadius:6,flexShrink:0}}>{et.label}</span>
@@ -1556,32 +1573,12 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
       </div>
     </div>
   );
-  // 프로젝트 마감 — 내가 맡은(또는 공동) 미완료 프로젝트 중 '지연 + 이번 주 마감 예정'
-  const eow=(()=>{const d=new Date();d.setHours(0,0,0,0);const dow=(d.getDay()+6)%7;d.setDate(d.getDate()+(6-dow));return d;})();   // 이번 주 일요일
-  const dueProjs=D.projects
+  // 프로젝트 마감일 — 내가 맡은(또는 공동) 미완료 프로젝트 중 마감 '지남'(밀린 업무에 흡수). 미래 마감은 캘린더에 표시.
+  const overdueProjs=D.projects
     .filter(p=>p.dueDate&&projStatus(p)!=="completed"&&(p.assigneeId===cu.id||(p.collaboratorIds||[]).includes(cu.id)))
     .map(p=>({p,n:ddays(p.dueDate)}))
-    .filter(x=>x.n!=null&&new Date(x.p.dueDate+"T00:00:00")<=eow)
+    .filter(x=>x.n!=null&&x.n<0)
     .sort((a,b)=>a.n-b.n);
-  const projDeadlineCard=dueProjs.length>0?(
-    <div style={{backgroundColor:"#FFFBF5",border:"1px solid #FED7AA",borderRadius:14,padding:"13px 14px"}}>
-      <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:9}}>
-        <span style={{fontSize:15}}>📅</span>
-        <span style={{fontSize:12.5,fontWeight:900,color:"#EA580C"}}>프로젝트 마감 · 지연·이번 주 {dueProjs.length}건</span>
-      </div>
-      <div style={{display:"flex",flexDirection:"column",gap:7}}>
-        {dueProjs.map(({p,n})=>{const over=n<0;return(
-          <div key={p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:10,background:"#fff",border:`1px solid ${over?"#FFD5D8":"#F2E3CF"}`}}>
-            <button onClick={()=>nav&&nav("projects")} style={{flex:1,minWidth:0,textAlign:"left",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",padding:0}}>
-              <span style={{fontSize:12.5,fontWeight:700,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block"}}>{p.title}</span>
-            </button>
-            <span style={{flexShrink:0,fontSize:11,fontWeight:900,color:over?"#F04452":n<=3?"#EA580C":"#6B7280"}}>{ddayLabel(n)}{over?" 지남":""}</span>
-            <button onClick={()=>up("projects",p.id,{status:"completed",progress:100,progressManual:true})} title="완료 처리" style={{flexShrink:0,padding:"5px 10px",borderRadius:8,border:"1px solid #00C073",background:"#E8FAF1",color:"#00C073",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>✓ 완료</button>
-          </div>
-        );})}
-      </div>
-    </div>
-  ):null;
   const urgentCard=urgent.length>0?(
     <div style={{backgroundColor:"#FFF0F1",border:"1px solid #FFD5D8",borderRadius:14,padding:"13px 14px",flex:1,minWidth:0,boxSizing:"border-box"}}>
       <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:8}}>
@@ -1613,7 +1610,6 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
         <div style={{marginBottom:urgentCard?12:14}}>{memoBanner}</div>
         {urgentCard&&<div style={{marginBottom:14}}>{urgentCard}</div>}
       </>)}
-      {projDeadlineCard&&<div style={{marginBottom:14}}>{projDeadlineCard}</div>}
       <div style={{display:"flex",gap:8,marginBottom:14,overflowX:"auto",paddingBottom:2}}>
         {[{label:"오늘 업무",val:`${doneToday}/${todayT.length}`,color:"#3182F6"},{label:"고정업무",val:`${doneFixed}/${fixed.length}`,color:"#F97316"},{label:"내 프로젝트",val:D.projects.filter(p=>p.assigneeId===cu.id).length+"건",color:"#8B5CF6"}].map((s,i)=>(
           <div key={i} style={{flexShrink:0,backgroundColor:"#FFFFFF",borderRadius:12,padding:"10px 14px",border:"1px solid #F2F4F6"}}>
@@ -1673,8 +1669,26 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           </div>
         )}
       </div>
-      {(carry.length>0||held.length>0)&&(
-        <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",marginBottom:14,border:"1px solid "+(carry.length>0?"#FED7AA":"#F2F4F6")}}>
+      {(carry.length>0||held.length>0||overdueProjs.length>0)&&(
+        <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",marginBottom:14,border:"1px solid "+((carry.length>0||overdueProjs.length>0)?"#FED7AA":"#F2F4F6")}}>
+          {overdueProjs.length>0&&(
+            <div style={{marginBottom:(carry.length>0||held.length>0)?12:0,paddingBottom:(carry.length>0||held.length>0)?12:0,borderBottom:(carry.length>0||held.length>0)?"1px dashed #F2E6D5":"none"}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:9}}>
+                <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#EA580C"}}>📅 마감 지난 프로젝트 ({overdueProjs.length})</h3>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:7}}>
+                {overdueProjs.map(({p,n})=>(
+                  <div key={p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",borderRadius:12,backgroundColor:"#FFF7ED",border:"1px solid #FED7AA"}}>
+                    <span style={{flexShrink:0,fontSize:9.5,fontWeight:900,color:"#F04452",background:"#FFE1E3",borderRadius:6,padding:"2px 6px"}}>{ddayLabel(n)}</span>
+                    <button onClick={()=>nav&&nav("projects")} style={{flex:1,minWidth:0,textAlign:"left",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",padding:0}}>
+                      <span style={{fontSize:13,fontWeight:700,color:"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block"}}>📁 {p.title}</span>
+                    </button>
+                    <button onClick={()=>up("projects",p.id,{status:"completed",progress:100,progressManual:true})} title="완료 처리" style={{flexShrink:0,padding:"6px 9px",borderRadius:8,border:"1px solid #00C073",background:"#E8FAF1",color:"#00C073",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>✓ 완료</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {carry.length>0&&(<>
             <button onClick={()=>setShowCarry(s=>!s)} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",padding:0,marginBottom:showCarry?10:0}}>
               <div style={{textAlign:"left"}}>
@@ -3786,6 +3800,8 @@ function CalendarPage({D,cu,add,up,rm}){
   const dim=new Date(y,m+1,0).getDate();
   const getEvts=d=>{const ds=`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;return D.events.filter(e=>e.date===ds);};
   const mEvts=D.events.filter(e=>{const d=new Date(e.date);return d.getFullYear()===y&&d.getMonth()===m;});
+  // 프로젝트 마감일(팀 전체) — 캘린더에 흡수
+  const mDues=D.projects.filter(p=>p.dueDate&&(()=>{const d=new Date(p.dueDate+"T00:00:00");return !isNaN(d.getTime())&&d.getFullYear()===y&&d.getMonth()===m;})()).sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
   const doAction=()=>{
     if(!actionForm.title.trim()) return;
     const nid="t"+Date.now();
@@ -3811,7 +3827,7 @@ function CalendarPage({D,cu,add,up,rm}){
         <MonthCalendar y={y} m={m} todayStr={ymdLocal(new Date())}
           onDayClick={(ds)=>openNewEvent(ds)}
           onMore={(ds)=>{const first=D.events.filter(e=>e.date<=ds&&(e.endDate||e.date)>=ds)[0];if(first){setDetail(first);setActionForm({type:"task",title:"",projectId:"",status:"todo"});setActionDone([]);}}}
-          items={mEvts.map(ev=>{const et=evType(D,ev.type);return {id:"ev_"+ev.id,start:ev.date,end:ev.endDate||ev.date,color:et.color,bg:et.bg,label:ev.title,onClick:()=>{setDetail(ev);setActionForm({type:"task",title:"",projectId:"",status:"todo"});setActionDone([]);}};})}/>
+          items={[...mEvts.map(ev=>{const et=evType(D,ev.type);return {id:"ev_"+ev.id,start:ev.date,end:ev.endDate||ev.date,color:et.color,bg:et.bg,label:ev.title,onClick:()=>{setDetail(ev);setActionForm({type:"task",title:"",projectId:"",status:"todo"});setActionDone([]);}};}),...mDues.map(p=>{const done=projStatus(p)==="completed";return {id:"due_"+p.id,start:p.dueDate,end:p.dueDate,color:"#EA580C",bg:"#FFEDD5",border:"1px solid #EA580C",label:"📅 "+p.title,faded:done,onClick:()=>{}};})]}/>
       </div>
       <h3 style={{margin:"0 0 10px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}>이번 달 일정</h3>
       {mEvts.length===0&&<div style={{padding:"28px 20px",textAlign:"center",backgroundColor:"#FFFFFF",borderRadius:16,border:"1px solid #F2F4F6"}}><p style={{margin:0,fontSize:13,color:"#9CA3AF"}}>이번 달 일정이 없어요</p><p style={{margin:"4px 0 0",fontSize:11.5,color:"#D1D5DB"}}>위 <b>+ 일정</b> 또는 날짜를 탭해 추가하세요</p></div>}
@@ -3836,6 +3852,26 @@ function CalendarPage({D,cu,add,up,rm}){
           </button>
         );
       })}
+      {mDues.length>0&&(<>
+        <h3 style={{margin:"18px 0 10px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}>📅 이번 달 프로젝트 마감 ({mDues.length})</h3>
+        {mDues.map(p=>{const n=ddays(p.dueDate);const done=projStatus(p)==="completed";const a=D.users.find(u=>u.id===p.assigneeId);const s=PROJ_STATUS[projStatus(p)]||{};return(
+          <div key={p.id} style={{display:"flex",alignItems:"center",gap:12,padding:"13px 14px",marginBottom:8,borderRadius:14,backgroundColor:"#FFFBF5",border:"1px solid #FED7AA"}}>
+            <div style={{width:36,textAlign:"center",flexShrink:0}}>
+              <p style={{margin:0,fontSize:18,fontWeight:900,color:"#EA580C"}}>{new Date(p.dueDate+"T00:00:00").getDate()}</p>
+              <p style={{margin:0,fontSize:9.5,color:"#9CA3AF"}}>{["일","월","화","수","목","금","토"][new Date(p.dueDate+"T00:00:00").getDay()]}</p>
+            </div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3,flexWrap:"wrap"}}>
+                <Badge color="#EA580C" bg="#FFEDD5">📅 마감</Badge>
+                {s.label&&<Badge color={s.color} bg={s.bg}>{s.icon} {s.label}</Badge>}
+                <span style={{fontSize:13.5,fontWeight:700,color:done?"#9CA3AF":"#111827",textDecoration:done?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span>
+              </div>
+              {a&&<p style={{margin:0,fontSize:11,color:"#9CA3AF"}}>👤 {a.name}</p>}
+            </div>
+            {!done&&<span style={{flexShrink:0,fontSize:11,fontWeight:900,color:n<0?"#F04452":n<=3?"#EA580C":"#6B7280"}}>{ddayLabel(n)}{n<0?" 지남":""}</span>}
+          </div>
+        );})}
+      </>)}
       <Sheet open={!!detail} onClose={()=>setDetail(null)} title="일정 상세" h="88vh">
         {detail&&(
           <div style={{marginTop:12}}>

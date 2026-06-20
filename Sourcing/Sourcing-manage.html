@@ -176,7 +176,7 @@ try{ if(!firebase.apps.length)firebase.initializeApp(FB_CFG); FS=firebase.firest
 
 let state={products:[],makers:[]};   // sourcing-os/state (읽기 전용)
 let oc={makers:{}};                  // sourcing-os/order-contacts (이 페이지에서 관리)
-let shareCfg={visible:{price:false,makerName:false,contact:true,docs:true,test:true}}; // 노출 설정(Sourcing-os에서 제어)
+let shareCfg={visible:{name:true,price:false,makerName:false,contact:true,docs:true,test:true}}; // 노출 설정(Sourcing-os에서 제어)
 let sel=null;                        // 선택된 제조사명
 let q='';                            // 제조사 검색
 let qp='';                           // 상품 검색
@@ -323,10 +323,10 @@ function renderDetail(name){
 /* ---------- 상품 뷰 (노출 설정 반영) ---------- */
 function renderVisNote(){
   const v=shareCfg.visible;
-  const off=[['price','단가'],['makerName','제조사명'],['contact','연락처'],['docs','서류'],['test','테스트상세']].filter(([k])=>!v[k]).map(x=>x[1]);
+  const off=[['name','제품명'],['price','단가'],['makerName','제조사명'],['contact','연락처'],['docs','서류'],['test','테스트상세']].filter(([k])=>!v[k]).map(x=>x[1]);
   $('#visNote').innerHTML=off.length?('가린 항목: <b>'+off.join(' · ')+'</b> (Sourcing-os 메뉴 → 공유 설정에서 변경)'):'모든 항목 노출 중';
 }
-function prodName(p){ const nm=dn(p); return (nm&&nm.trim())?nm:'미설정'; }
+function prodName(p){ if(!shareCfg.visible.name)return '비공개'; const nm=dn(p); return (nm&&nm.trim())?nm:'미설정'; }
 function specText(p){ if(p.specs&&p.specs.length)return p.specs[p.specs.length-1].text||''; return p.spec||''; }
 function testSummary(p){
   const ts=p.tests||[]; if(!ts.length)return '없음';

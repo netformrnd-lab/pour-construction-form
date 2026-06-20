@@ -539,6 +539,14 @@
   .drawer-sub{font-size:12px;color:var(--muted);padding:0 18px 12px;line-height:1.5}
   .drawer-body{flex:1;overflow-y:auto;padding:0 16px 22px}
   .drawer-body .mh{font-size:13px;font-weight:800;color:var(--ink);margin:18px 0 10px}
+  .shtog{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--surface)}
+  .shtog .sl{font-size:13px;font-weight:700;color:var(--ink2)}
+  .shtog .pill{font-size:11px;font-weight:800;padding:5px 13px;border-radius:999px;border:1px solid var(--border2);cursor:pointer}
+  .shtog .pill.on{background:var(--green-pale);color:var(--green);border-color:transparent}
+  .shtog .pill.off{background:var(--surface);color:var(--muted)}
+  .alias-row{display:flex;align-items:center;gap:8px;padding:5px 0}
+  .alias-row .an{flex:1;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .alias-row input{width:128px;padding:6px 8px;border:1px solid var(--border2);border-radius:8px;font-size:12px}
   .xlsx-blk{background:var(--cream);border:1px solid var(--border);border-radius:13px;padding:12px}
   .xlsx-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
   .xlsx-row:last-of-type{margin-bottom:0}
@@ -791,6 +799,15 @@
       <div class="xlsx-row"><span class="xl-lbl">제품 수정</span><button class="xl-btn dl" id="dl_products">현재자료</button><label class="xl-btn up">수정 업로드<input type="file" id="up_product_edit" accept=".xlsx,.xls,.csv" hidden></label></div>
       <div class="xlsx-msg" id="xlsxMsg"></div>
     </div>
+    <div class="mh">공유 설정 <span style="font-weight:600;color:var(--muted);font-size:11px">· 관리센터(PC) 노출</span></div>
+    <div class="drawer-sub" style="padding:0 0 8px">내부 공유용 관리센터에 보일 항목을 켜고 끕니다. 끈 항목은 가려집니다.</div>
+    <div id="shareToggles"></div>
+    <div id="aliasWrap" style="display:none;margin-top:12px">
+      <div class="drawer-sub" style="padding:0 0 6px">제품명 가명(군대 음성문자) — 미노출 시 이 이름으로 소통</div>
+      <button id="aliasGen" class="btn-ghost" style="width:100%;margin-bottom:8px">빈 가명 자동 채우기</button>
+      <div id="aliasList"></div>
+    </div>
+    <a href="Sourcing-manage.html" target="_blank" class="btn-ghost" style="display:block;text-align:center;width:100%;margin-top:12px;text-decoration:none">관리센터(PC) 열기 ↗</a>
     <div class="mh">활동 여정</div>
     <div class="drawer-sub" style="padding:0 0 12px">제품·제조사 추가·수정·삭제 기록입니다. 삭제·수정·추가는 ‘되살리기/되돌리기’로 복구할 수 있어요.</div>
     <div id="actList"></div>
@@ -2973,7 +2990,42 @@ function undoAct(aid){
   }
   save();render();renderActivity();
 }
-function openActivity(){renderActivity();$('#actScrim').classList.add('on');$('#actDrawer').classList.add('on');document.body.style.overflow='hidden';}
+/* ---- 공유 설정(관리센터 노출 제어) — sourcing-os/share-config ---- */
+const SHARE_FIELDS=[['price','단가(판매가·원가)'],['makerName','제조사명'],['contact','제조사 담당자 연락처'],['name','제품명(끄면 가명)'],['docs','서류'],['test','테스트 상세']];
+const MIL_WORDS=['기러기','나폴리','도라지','로마','미나리','바가지','사이다','잉어','지게','차돌','키다리','통일','파고다','한강'];
+let shareCfg={visible:{price:false,makerName:false,contact:true,name:true,docs:true,test:true},aliases:{},aliasSeq:0};
+let shareLoaded=false;
+async function loadShareCfg(){
+  if(!FS)return;
+  try{
+    const s=await FS.collection('sourcing-os').doc('share-config').get();
+    if(s.exists){const d=s.data();shareCfg.visible=Object.assign({price:false,makerName:false,contact:true,name:true,docs:true,test:true},d.visible||{});shareCfg.aliases=d.aliases||{};shareCfg.aliasSeq=d.aliasSeq||0;}
+    shareLoaded=true;console.log('[share] 설정 로드 · 가명',Object.keys(shareCfg.aliases).length);
+  }catch(e){console.error('[share] 로드 실패:',e);}
+}
+async function saveShareCfg(){
+  if(!FS)return;
+  try{shareCfg.updatedAt=new Date().toISOString();await FS.collection('sourcing-os').doc('share-config').set(shareCfg);}
+  catch(e){console.error('[share] 저장 실패:',e);alert('공유 설정 저장 실패: '+(e&&(e.code||e.message)));}
+}
+function nextAlias(){const i=shareCfg.aliasSeq||0;shareCfg.aliasSeq=i+1;return MIL_WORDS[i%MIL_WORDS.length]+'-'+String(i+1).padStart(2,'0');}
+function fillAliases(){let n=0;state.products.forEach(p=>{if(!shareCfg.aliases[p.id]){shareCfg.aliases[p.id]=nextAlias();n++;}});saveShareCfg();renderAliasList();return n;}
+function renderShareToggles(){
+  const box=$('#shareToggles');if(!box)return;
+  box.innerHTML=SHARE_FIELDS.map(([k,lab])=>{const on=!!shareCfg.visible[k];return `<div class="shtog"><span class="sl">${lab}</span><button class="pill ${on?'on':'off'}" data-vk="${k}">${on?'노출':'미노출'}</button></div>`;}).join('');
+  box.querySelectorAll('[data-vk]').forEach(b=>b.onclick=()=>{const k=b.dataset.vk;shareCfg.visible[k]=!shareCfg.visible[k];saveShareCfg();renderShareToggles();syncAliasWrap();});
+  syncAliasWrap();
+}
+function syncAliasWrap(){const w=$('#aliasWrap');if(!w)return;const show=!shareCfg.visible.name;w.style.display=show?'':'none';if(show)renderAliasList();}
+function renderAliasList(){
+  const box=$('#aliasList');if(!box)return;
+  if(!state.products.length){box.innerHTML='<div class="drawer-sub" style="padding:0">제품이 없습니다.</div>';return;}
+  box.innerHTML=state.products.map(p=>`<div class="alias-row"><span class="an">${esc(p.name||'(이름없음)')}</span><input data-alias="${p.id}" value="${esc(shareCfg.aliases[p.id]||'')}" placeholder="가명"></div>`).join('');
+  box.querySelectorAll('[data-alias]').forEach(inp=>inp.onchange=()=>{const v=inp.value.trim();if(v)shareCfg.aliases[inp.dataset.alias]=v;else delete shareCfg.aliases[inp.dataset.alias];saveShareCfg();});
+}
+async function renderShare(){ if(!shareLoaded)await loadShareCfg(); renderShareToggles(); }
+const _aliasGenBtn=$('#aliasGen'); if(_aliasGenBtn)_aliasGenBtn.onclick=()=>{const n=fillAliases();alert(n?`${n}개 제품에 가명을 채웠어요.`:'채울 빈 가명이 없어요.');};
+function openActivity(){renderActivity();renderShare();$('#actScrim').classList.add('on');$('#actDrawer').classList.add('on');document.body.style.overflow='hidden';}
 function closeActivity(){$('#actScrim').classList.remove('on');$('#actDrawer').classList.remove('on');if(!document.querySelector('.overlay.on'))document.body.style.overflow='';}
 $('#openActivity').onclick=openActivity;
 $('#actClose').onclick=closeActivity;

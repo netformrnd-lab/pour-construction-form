@@ -965,6 +965,8 @@ const COLLECTIONS = {
   KB: 'chatbot-kb',
   SESSIONS: 'chatbot-sessions',
   LEADS: 'chatbot-leads',
+  RECO: 'chatbot-reco',   // 진단→솔루션→상품추천 플로우 트리 (doc: 'tree')
+  SKUS: 'chatbot-skus',   // 상품 SKU 카탈로그 (부위×패키지단계)
 };
 const ADMIN_PIN_KEY = 'pourStoreAdminPin';   // admin.html과 PIN 공유
 const DEFAULT_PIN = '1234';
@@ -978,6 +980,16 @@ const AUDIENCES = {
   store:    { label: '자사몰 진단·추천', icon: '🔍', desc: '문제진단→솔루션→상품추천', color: 'var(--or-d)', bg: 'var(--or-l)', border: '#FED7AA' },
 };
 const AUDIENCE_KEYS = Object.keys(AUDIENCES);
+
+// 송출 채널 / 노출 위치 — 이 봇이 어디에 어떻게 노출되는지 (확정 구조)
+const DEPLOY_TARGETS = {
+  'internal-center': { label: '챗봇센터(내부)', icon: '🏢', where: '챗봇센터 → 플레이그라운드', how: '팀원이 로그인해서 직접 사용', status: '운영중', statusColor: 'var(--green)', statusBg: 'var(--green-l)', statusBorder: 'var(--green-m)' },
+  'channeltalk':     { label: '채널톡 브리지', icon: '💬', where: 'Cafe24 자사몰 채널톡 위젯', how: '채널톡 Webhook → 워커 → Claude → 회신 (못 풀면 상담원 전환)', status: '예정(3차)', statusColor: 'var(--amber)', statusBg: 'var(--amber-l)', statusBorder: 'var(--amber-m)' },
+  'site-widget':     { label: '자사몰 임베드 위젯', icon: '🔍', where: 'Cafe24 자사몰 페이지·퀵배너', how: 'chat-widget.html 스크립트/iframe 삽입', status: '예정(3차)', statusColor: 'var(--amber)', statusBg: 'var(--amber-l)', statusBorder: 'var(--amber-m)' },
+};
+const DEPLOY_KEYS = Object.keys(DEPLOY_TARGETS);
+const DEPLOY_DEFAULT = { internal: 'internal-center', b2c: 'channeltalk', b2b: 'channeltalk', store: 'channeltalk' };
+function botDeploy(bot) { return DEPLOY_TARGETS[bot.deploy || DEPLOY_DEFAULT[bot.audience] || 'internal-center']; }
 
 // Claude 모델 (2026 현행) — 무료한도 단계에선 haiku 권장
 const MODELS = [
@@ -1129,21 +1141,83 @@ function buildKbBlock(kb, bot, userText, maxChars = 3200) {
   }
   return out;
 }
-function buildSystemPrompt(bot, kbBlock) {
+function buildSystemPrompt(bot, kbBlock, recoBlock) {
   const lines = [];
   lines.push(bot.systemPrompt || PERSONA_SEED[bot.audience] || '');
   if ((bot.guardrails || []).length) {
     lines.push('\n## 반드시 지킬 규칙');
     bot.guardrails.forEach(g => lines.push('- ' + g));
   }
+  if (recoBlock) {
+    lines.push('\n## 상품 추천 규칙 (진단→솔루션→상품추천 플로우)');
+    lines.push('고객의 건물유형과 증상을 먼저 파악한 뒤, 아래 정의된 증상이면 반드시 해당 공법·상품으로 안내한다. 정의에 없는 증상은 일반 지식으로 유연하게 안내하되 임의의 상품을 지어내지 않는다.');
+    lines.push(recoBlock);
+  }
   if (kbBlock) {
     lines.push('\n## 참고 지식 (아래 내용만 사실 근거로 사용. 여기 없는 수치·약속은 지어내지 말 것)');
     lines.push(kbBlock);
-  } else {
+  } else if (!recoBlock) {
     lines.push('\n(참고 지식 없음 — 일반 안내만 하고, 구체 수치·금액·보증은 약속하지 말 것)');
   }
   lines.push('\n답변은 한국어로 간결하게. 모르면 모른다고 말하고 담당자 연결을 안내하세요.');
   return lines.join('\n');
+}
+
+// 추천 플로우 트리 → 시스템 프롬프트용 텍스트
+const RECO_BASE_URL = 'https://www.poursolution.net';
+// 고객 니즈 = 키워드 조합(건물×부위×외장재×문제). 무수히 많아 키워드로 빠르게 등록.
+const NEED_DIMS = [
+  { key: 'building', label: '건물유형', icon: '🏢', presets: ['아파트', '관공서', '상가/오피스텔', '공장/창고', '학교/병원', '단독주택'] },
+  { key: 'part', label: '부위', icon: '📍', presets: ['옥상/지붕', '외벽', '지하주차장', '지하/수조', '발코니/베란다', '창틀/이음부', '배수로', '단지내 도로'] },
+  { key: 'material', label: '외장재', icon: '🧱', presets: ['아스팔트슁글', '금속기와', '칼라강판/징크', '콘크리트', '벽돌/조적', '우레탄', '시트방수'] },
+  { key: 'problem', label: '문제', icon: '⚠️', presets: ['누수', '균열', '들뜸/박리', '백화', '부식/녹', '곰팡이', '파손/탈락', '소음'] },
+];
+const CRED_PRESETS = ['자체 연구개발', 'POUR공법', '특허기술', '건설신기술 1026호', '누적 시공 240만 세대', '전국 250+ 협력사', 'KTR/KCL 공인시험', '강남제비스코 공동개발'];
+function needKeywords(n) { return [...(n.building || []), ...(n.part || []), ...(n.material || []), ...(n.problem || [])].filter(Boolean); }
+
+function buildRecoBlock(tree) {
+  const needs = tree && Array.isArray(tree.needs) ? tree.needs : [];
+  if (!needs.length) return '';
+  const out = [
+    '진행 순서: 고객 니즈(키워드) 매칭 → ① 본질 원인·해결방안 → ② 시공방안(상품·공신력 안내). 고객 말에서 아래 키워드가 매칭되면 그 항목으로 안내한다.',
+    '톤 규칙(중요): 시공방안은 B2C·B2B 고객 모두에게 POUR스토어 톤으로 쉽고 친근하게 설명한다(전문 공법용어 나열 금지). 공법명·시방서는 기술 자료이므로 먼저 들이밀지 말고, 고객이 더 알고 싶어 하거나 요청할 때만 "원하시면 공법 자료/시방서를 보내드릴게요"로 안내·전달한다.',
+  ];
+  needs.forEach(n => {
+    const kw = needKeywords(n);
+    if (!kw.length && !n.solution && !n.storeMethod && !n.method) return;
+    out.push(`\n■ 니즈: ${kw.join(' / ') || '(키워드 없음)'}`);
+    if (n.cause) out.push(`  · 원인(본질): ${n.cause}`);
+    if (n.solution) out.push(`  · 해결방안: ${n.solution}`);
+    const l3 = [];
+    if (n.storeMethod) l3.push(`시공방안(친근 설명): ${n.storeMethod}`);
+    const prods = (n.products || []).filter(x => x.name);
+    if (prods.length) l3.push(`추천상품: ${prods.map(x => x.link ? `${x.name}(${x.link})` : x.name).join(', ')}`);
+    if ((n.credibility || []).length) l3.push(`공신력: ${n.credibility.join(', ')}`);
+    if (n.guide) l3.push(`가이드: ${n.guide}`);
+    if (l3.length) out.push('  · ' + l3.join(' · '));
+    const extra = [];
+    if (n.method) extra.push(n.method);
+    if (n.methodLink) extra.push(`시방서 ${n.methodLink.startsWith('http') ? n.methodLink : RECO_BASE_URL + n.methodLink}`);
+    if (extra.length) out.push(`  · (요청 시 전달 자료: ${extra.join(' / ')})`);
+    if (n.note) out.push('  · ' + n.note);
+  });
+  return out.join('\n');
+}
+// CLAUDE.md 매핑 기반 초기 니즈 시드
+function recoSeed() {
+  const mk = (building, part, material, problem, storeMethod, method, methodLink, cause, solution) =>
+    ({ id: genId(), building, part, material, problem, cause, solution, storeMethod, method, methodLink, credibility: ['POUR공법', '특허기술'], products: [], guide: '', note: '' });
+  return {
+    needs: [
+      mk(['아파트'], ['옥상/지붕'], ['아스팔트슁글'], ['누수'], '슁글을 바탕면과 한 몸처럼 굳혀 강풍에도 안 들뜨게 잡고, 이음부(후레싱)까지 단단히 고정해 누수를 막아드려요. 옥상 누수 전용 패키지 하나로 해결됩니다.', '아스팔트슁글 방수공법', '/128', '저층 목조용 슁글을 고층 아파트에 적용 → 강풍·후레싱 이음부 균열로 누수', '방수콘크리트 함침으로 슁글을 바탕면과 완전 일체화 + POUR HOOKER로 후레싱 고정'),
+      mk(['아파트'], ['옥상/지붕'], ['콘크리트'], ['누수'], '바탕 콘크리트를 먼저 강화한 뒤 6중으로 겹겹이 방수막을 입혀 물길을 완전히 차단해요. 드레인(배수구) 주변까지 꼼꼼히 잡아드립니다.', '슬라브 듀얼강화방수공법', '/132', '옥상 슬라브 중성화·드레인 주변 취약부에서 누수', '모체강화함침+듀얼복합시트+코트재로 6중 방수, 배관방수트랩 적용'),
+      mk([], ['옥상/지붕'], ['금속기와'], ['누수'], '풀린 기와와 바탕을 한 몸으로 단단히 붙이고 5중 방수로 누수와 기와 떨어짐을 함께 막아드려요.', '금속기와 방수공법', '/130', '기와 맞물림 풀림·강판 부식으로 누수·추락 위험', '바탕면과 방수층 완전 일체화 + 후커 보강 5차 방수'),
+      mk([], ['외벽'], ['콘크리트'], ['균열'], '잘 늘어나는 특수 퍼티로 균열을 메우고 그 위에 칼라를 입혀, 다시 갈라지지 않고 깔끔하게 마감해드려요.', '바인더+플러스 재도장', '/139', '콘크리트 중성화·미세균열로 도막 열화', '600%급 고신율 퍼티+바인더로 균열 추종 재도장'),
+      mk([], ['지하주차장'], ['콘크리트'], ['들뜸/박리'], '벗겨지고 닳은 바닥을 고강도 에폭시로 새것처럼 매끈하게 코팅하고 미끄럼까지 잡아드려요.', '에폭시 도장공법', '/125', '바닥 열화·마모·박리', '고강도 에폭시로 내마모·논슬립 마감'),
+      mk([], ['지하/수조'], ['콘크리트'], ['누수'], '벽 뒤쪽(배면)에서 새는 물을 특수 약품을 압력으로 밀어 넣어 새 방수층을 만들어 막아드려요.', '아크릴배면차수공법', '/137', '배면 수압으로 지속 누수', '2액형 아크릴 방수재 초고압 주입으로 새 방수층 형성'),
+    ],
+    updatedAt: nowIso(),
+  };
 }
 
 // ============================================================
@@ -1246,6 +1320,8 @@ const NAV = [
   { id: 'dashboard',  icon: '📈', label: '대시보드' },
   { id: 'studio',     icon: '🤖', label: '봇 스튜디오' },
   { id: 'knowledge',  icon: '📚', label: '지식베이스' },
+  { id: 'reco',       icon: '🧭', label: '추천 플로우' },
+  { id: 'skus',       icon: '📦', label: '상품 SKU' },
   { id: 'playground', icon: '💬', label: '플레이그라운드' },
   { id: 'logs',       icon: '🗂️', label: '대화 로그' },
   { id: 'settings',   icon: '⚙️', label: '설정' },
@@ -1313,9 +1389,73 @@ function emptyBot(audience = 'internal') {
     greeting: GREETING_SEED[audience],
     quickReplies: [...QUICKREPLY_SEED[audience]],
     model: DEFAULT_MODEL, maxTokens: 1024,
+    deploy: DEPLOY_DEFAULT[audience] || 'internal-center',
     status: 'draft',
   };
 }
+// 송출/노출 구조를 노드 플로우 캔버스로 표현 (봇 → 송출채널 → 노출위치, 분기: 상담원 전환)
+function FlowNode({ icon, title, sub, pill, pillColor, pillBg, pillBorder, accent }) {
+  return (
+    <div style={{ width:108, flexShrink:0, background:'#fff', border:`1.5px solid ${accent || 'var(--border)'}`, borderRadius:10, padding:'7px 9px', boxShadow:'var(--shadow)' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:4 }}>
+        <span style={{ fontSize:13 }}>{icon}</span>
+        {pill && <span style={{ fontSize:8, fontWeight:800, color:pillColor, background:pillBg, border:`1px solid ${pillBorder}`, padding:'0 5px', borderRadius:4, whiteSpace:'nowrap' }}>{pill}</span>}
+      </div>
+      <div style={{ fontSize:10.5, fontWeight:900, color:'var(--navy)', marginTop:3, lineHeight:1.3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{title}</div>
+      {sub && <div style={{ fontSize:9, color:'var(--text-sm)', fontWeight:600, marginTop:1, lineHeight:1.35, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{sub}</div>}
+    </div>
+  );
+}
+function FlowConn({ color }) {
+  return (
+    <div style={{ flexShrink:0, display:'flex', alignItems:'center', width:20 }}>
+      <div style={{ height:2, background:color, flex:1 }} />
+      <div style={{ width:6, height:6, borderRadius:'50%', background:color }} />
+      <div style={{ height:2, background:color, flex:1 }} />
+    </div>
+  );
+}
+function DeployFlow({ bot }) {
+  const [open, setOpen] = useState(false);
+  const a = AUDIENCES[bot.audience] || AUDIENCES.internal;
+  const d = botDeploy(bot);
+  const c = d.statusBorder;
+  const isCT = (bot.deploy || DEPLOY_DEFAULT[bot.audience]) === 'channeltalk';
+  return (
+    <div style={{ marginBottom:12, background:'var(--or-pale)', border:'1px solid var(--border-s)', borderRadius:10, padding: open ? '10px 10px 12px' : '8px 11px' }}>
+      <button onClick={() => setOpen(o => !o)} style={{ width:'100%', display:'flex', alignItems:'center', gap:6, textAlign:'left' }}>
+        <span style={{ fontSize:9, fontWeight:800, color:'var(--text-sm)', width:10 }}>{open ? '▾' : '▸'}</span>
+        <span style={{ fontSize:10, fontWeight:800, color:'var(--text-sm)' }}>📡 송출</span>
+        <span style={{ fontSize:10.5, fontWeight:900, color:'var(--navy)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d.icon} {d.label}</span>
+        <span style={{ marginLeft:'auto', fontSize:8.5, fontWeight:800, color:d.statusColor, background:d.statusBg, border:`1px solid ${d.statusBorder}`, padding:'1px 6px', borderRadius:5, whiteSpace:'nowrap' }}>{d.status}</span>
+      </button>
+      {!open && <div style={{ fontSize:9.5, color:'var(--text-xs)', fontWeight:600, marginTop:3, marginLeft:16, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>📍 {d.where}</div>}
+      {open && (<>
+      <div style={{ fontSize:9.5, color:'var(--text-sm)', fontWeight:800, margin:'8px 0' }}>송출·노출 구조</div>
+      <div className="cb-scroll" style={{ overflowX:'auto', paddingBottom:2 }}>
+        <div style={{ display:'flex', alignItems:'center', width:'max-content', minWidth:'100%' }}>
+          <FlowNode icon={a.icon} title={bot.name || '봇'} sub={a.label} accent={a.border} />
+          <FlowConn color={c} />
+          <FlowNode icon={d.icon} title={d.label} sub={d.how} accent={d.statusBorder}
+            pill={d.status} pillColor={d.statusColor} pillBg={d.statusBg} pillBorder={d.statusBorder} />
+          <FlowConn color={c} />
+          <FlowNode icon="📍" title="노출 위치" sub={d.where} accent="var(--border)" />
+        </div>
+      </div>
+      {isCT && (
+        <div style={{ display:'flex', alignItems:'flex-start', marginTop:2, marginLeft:128 }}>
+          <div style={{ width:14, height:18, borderLeft:`2px dashed ${c}`, borderBottom:`2px dashed ${c}`, borderBottomLeftRadius:6, flexShrink:0 }} />
+          <div style={{ marginTop:11, marginLeft:6, background:'#fff', border:'1px dashed var(--amber-m)', borderRadius:8, padding:'4px 8px' }}>
+            <span style={{ fontSize:9.5, fontWeight:800, color:'var(--amber)' }}>👤 상담원 전환</span>
+            <span style={{ fontSize:8.5, color:'var(--text-sm)', fontWeight:600, marginLeft:4 }}>못 풀거나 요청 시</span>
+          </div>
+        </div>
+      )}
+      </>)}
+    </div>
+  );
+}
+
 function BotStudioPage({ onToast, onTest }) {
   const { data: bots, loading, reload } = useCollection(COLLECTIONS.BOTS);
   const [editing, setEditing] = useState(null);
@@ -1376,7 +1516,7 @@ function BotStudioPage({ onToast, onTest }) {
             <button onClick={seedDefaults} style={btnPrimary()}>🌱 기본 봇 4종 생성</button>
           </div>
         ) : (
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(320px, 1fr))', gap:16 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(360px, 1fr))', gap:16 }}>
             {bots.slice().sort((a,b) => AUDIENCE_KEYS.indexOf(a.audience) - AUDIENCE_KEYS.indexOf(b.audience)).map(bot => (
               <div key={bot.id} style={{ background:'#fff', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:18, boxShadow:'var(--shadow)' }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8, marginBottom:10 }}>
@@ -1392,6 +1532,7 @@ function BotStudioPage({ onToast, onTest }) {
                   </button>
                 </div>
                 <div style={{ fontSize:12, color:'var(--text-sm)', lineHeight:1.5, height:54, overflow:'hidden', marginBottom:12 }}>{bot.systemPrompt}</div>
+                <DeployFlow bot={bot} />
                 <div style={{ display:'flex', gap:6, fontSize:10.5, color:'var(--text-xs)', fontWeight:700, marginBottom:14, flexWrap:'wrap' }}>
                   <span style={{ background:'var(--bg)', padding:'2px 7px', borderRadius:5 }}>{modelMeta(bot.model).label.split(' —')[0]}</span>
                   <span style={{ background:'var(--bg)', padding:'2px 7px', borderRadius:5 }}>가드레일 {(bot.guardrails||[]).length}</span>
@@ -1416,8 +1557,9 @@ function BotEditModal({ bot, onClose, onSave }) {
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
   const applyAudienceSeed = (aud) => {
     if (!confirm('이 대상의 기본 페르소나·가드레일·인사말로 초기화할까요? (현재 입력 내용 덮어씀)')) return;
-    setF(p => ({ ...p, audience: aud, systemPrompt: PERSONA_SEED[aud], guardrails: [...GUARDRAIL_SEED[aud]], greeting: GREETING_SEED[aud], quickReplies: [...QUICKREPLY_SEED[aud]] }));
+    setF(p => ({ ...p, audience: aud, deploy: DEPLOY_DEFAULT[aud] || 'internal-center', systemPrompt: PERSONA_SEED[aud], guardrails: [...GUARDRAIL_SEED[aud]], greeting: GREETING_SEED[aud], quickReplies: [...QUICKREPLY_SEED[aud]] }));
   };
+  const dep = DEPLOY_TARGETS[f.deploy || DEPLOY_DEFAULT[f.audience] || 'internal-center'];
   return (
     <Modal open onClose={onClose} title={bot.id ? '봇 편집' : '새 봇 만들기'} width={760}>
       <div style={{ display:'grid', gap:16 }}>
@@ -1432,6 +1574,18 @@ function BotEditModal({ bot, onClose, onSave }) {
               {AUDIENCE_KEYS.map(a => <option key={a} value={a}>{AUDIENCES[a].icon} {AUDIENCES[a].label}</option>)}
             </select>
           </div>
+        </div>
+        <div>
+          <label style={labelSty}>📡 송출 채널 / 노출 위치 — 이 봇이 어디에 어떻게 노출되나</label>
+          <select style={inputSty} value={f.deploy || DEPLOY_DEFAULT[f.audience] || 'internal-center'} onChange={e => set('deploy', e.target.value)}>
+            {DEPLOY_KEYS.map(k => <option key={k} value={k}>{DEPLOY_TARGETS[k].icon} {DEPLOY_TARGETS[k].label} — {DEPLOY_TARGETS[k].status}</option>)}
+          </select>
+          {dep && (
+            <div style={{ marginTop:8, background:'var(--bg)', border:'1px solid var(--border-s)', borderRadius:8, padding:'10px 12px', fontSize:11.5, lineHeight:1.6, color:'var(--text-md)' }}>
+              📍 <b>노출 위치</b>: {dep.where}<br/>
+              ⚙️ <b>송출 방식</b>: {dep.how}
+            </div>
+          )}
         </div>
         <div>
           <label style={labelSty}>페르소나 (시스템 프롬프트)</label>
@@ -1813,6 +1967,8 @@ function KbImportModal({ onClose, onDone, onToast }) {
 function PlaygroundPage({ onToast, cfg, presetBotId, onNeedSettings }) {
   const { data: bots } = useCollection(COLLECTIONS.BOTS);
   const { data: kb } = useCollection(COLLECTIONS.KB);
+  const [reco, setReco] = useState(null); // 추천 플로우 트리
+  useEffect(() => { db.collection(COLLECTIONS.RECO).doc('tree').get().then(d => { if (d.exists) setReco(d.data()); }).catch(e => console.error('[reco]', e)); }, []);
   const [botId, setBotId] = useState(presetBotId || '');
   const [msgs, setMsgs] = useState([]); // {role, content, ts}
   const [input, setInput] = useState('');
@@ -1875,7 +2031,8 @@ function PlaygroundPage({ onToast, cfg, presetBotId, onNeedSettings }) {
     setMsgs(base); setSending(true);
     try {
       const kbBlock = buildKbBlock(kb, bot, content);
-      const system = buildSystemPrompt(bot, kbBlock);
+      const recoBlock = bot.audience === 'store' ? buildRecoBlock(reco) : '';
+      const system = buildSystemPrompt(bot, kbBlock, recoBlock);
       // 대화 맥락은 최근 12개로 제한(토큰 절약)
       const history = base.filter(m => m.role === 'user' || m.role === 'assistant').slice(-12).map(m => ({ role: m.role, content: m.content }));
       const r = await callClaude(cfg, { system, messages: history, maxTokens: bot.maxTokens || cfg.maxTokens });
@@ -2071,6 +2228,559 @@ function LogsPage({ onToast }) {
       </div>
       {promote && <KbEditModal entry={promote} onClose={() => setPromote(null)} onSave={savePromote} />}
     </>
+  );
+}
+
+// ============================================================
+// 4-B) 추천 플로우 빌더 — 진단→솔루션→상품추천 트리 (자사몰 진단·추천봇)
+// ============================================================
+function KeywordChips({ value, onRemove, color }) {
+  if (!value || !value.length) return null;
+  return (
+    <div style={{ display:'flex', gap:5, flexWrap:'wrap' }}>
+      {value.map(k => (
+        <span key={k} style={{ fontSize:11, fontWeight:800, color: color || 'var(--navy)', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, padding:'2px 6px 2px 8px', display:'inline-flex', alignItems:'center', gap:4 }}>
+          {k}{onRemove && <button onClick={() => onRemove(k)} style={{ color:'var(--text-xs)', fontSize:11 }}>✕</button>}
+        </span>
+      ))}
+    </div>
+  );
+}
+function KeywordPicker({ dim, value, onChange }) {
+  const [t, setT] = useState('');
+  const add = (k) => { k = (k || '').trim(); if (!k || value.includes(k)) return; onChange([...value, k]); setT(''); };
+  return (
+    <div>
+      <label style={{ ...labelSty, marginBottom:5 }}>{dim.icon} {dim.label}</label>
+      <div style={{ display:'flex', gap:6, alignItems:'center', flexWrap:'wrap', marginBottom:6 }}>
+        <KeywordChips value={value} onRemove={(k) => onChange(value.filter(x => x !== k))} />
+        <input value={t} onChange={e => setT(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(t); } }}
+          placeholder="키워드 입력 후 Enter" style={{ ...inputSty, flex:1, minWidth:120, padding:'6px 10px', fontSize:12 }} />
+      </div>
+      <div style={{ display:'flex', gap:5, flexWrap:'wrap' }}>
+        {dim.presets.filter(p => !value.includes(p)).map(p => (
+          <button key={p} onClick={() => add(p)} style={{ fontSize:10.5, fontWeight:700, color:'var(--text-sm)', background:'var(--bg)', border:'1px dashed var(--border)', borderRadius:6, padding:'2px 8px' }}>+ {p}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+function NeedCard({ need, onEdit, onDelete }) {
+  const stage = (num, color, icon, title, body) => (
+    <div style={{ display:'flex', gap:10 }}>
+      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', flexShrink:0 }}>
+        <div style={{ width:22, height:22, borderRadius:'50%', background:color, color:'#fff', fontSize:11, fontWeight:900, display:'grid', placeItems:'center' }}>{num}</div>
+        {num !== '③' && <div style={{ width:2, flex:1, background:'var(--border)', minHeight:10 }} />}
+      </div>
+      <div style={{ flex:1, minWidth:0, paddingBottom: num === '③' ? 0 : 10 }}>
+        <div style={{ fontSize:10.5, fontWeight:800, color, marginBottom:4 }}>{icon} {title}</div>
+        {body}
+      </div>
+    </div>
+  );
+  const prods = (need.products || []).filter(x => x.name);
+  return (
+    <div style={{ background:'#fff', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'14px 16px', boxShadow:'var(--shadow)' }}>
+      <div style={{ display:'flex', justifyContent:'flex-end', gap:6, marginBottom:6 }}>
+        <button onClick={onEdit} style={btnGhost({ padding:'4px 9px', fontSize:11 })}>✏️ 편집</button>
+        <button onClick={onDelete} style={btnGhost({ padding:'4px 9px', fontSize:11, color:'var(--red)' })}>🗑</button>
+      </div>
+      {stage('①', 'var(--navy)', '🔑', '고객 니즈', (
+        <div style={{ display:'grid', gap:5 }}>
+          {NEED_DIMS.map(d => (need[d.key] || []).length ? (
+            <div key={d.key} style={{ display:'flex', gap:5, flexWrap:'wrap', alignItems:'center' }}>
+              <span style={{ fontSize:10, width:14 }}>{d.icon}</span>
+              {need[d.key].map(k => <span key={k} style={{ fontSize:11, fontWeight:800, color:'var(--navy)', background:'var(--blue-l)', border:'1px solid var(--blue-m)', borderRadius:6, padding:'1px 7px' }}>{k}</span>)}
+            </div>
+          ) : null)}
+          {!needKeywords(need).length && <span style={{ fontSize:11.5, color:'var(--text-xs)' }}>키워드 없음</span>}
+        </div>
+      ))}
+      {stage('②', 'var(--or-d)', '💡', '솔루션 (본질)', (
+        <div style={{ fontSize:11.5, color:'var(--text-md)', lineHeight:1.5 }}>
+          {need.cause && <div><b style={{ color:'var(--text-sm)' }}>원인</b> {need.cause}</div>}
+          {need.solution && <div style={{ marginTop:2 }}><b style={{ color:'var(--text-sm)' }}>해결</b> {need.solution}</div>}
+          {!need.cause && !need.solution && <span style={{ color:'var(--text-xs)' }}>미입력</span>}
+        </div>
+      ))}
+      {stage('③', 'var(--green)', '📦', '상품 안내', (
+        <div style={{ fontSize:11.5, color:'var(--text-md)', lineHeight:1.5 }}>
+          {need.storeMethod && <div><b style={{ color:'var(--text-sm)' }}>시공방안</b> {need.storeMethod}</div>}
+          {prods.length > 0 && <div style={{ marginTop:3, display:'flex', gap:4, flexWrap:'wrap' }}>{prods.map((p, i) => <span key={i} style={{ fontSize:10.5, fontWeight:800, color:'var(--green)', background:'var(--green-l)', border:'1px solid var(--green-m)', borderRadius:6, padding:'1px 7px' }}>📦 {p.name}</span>)}</div>}
+          {(need.credibility || []).length > 0 && <div style={{ marginTop:3, display:'flex', gap:4, flexWrap:'wrap' }}>{need.credibility.map((c, i) => <span key={i} style={{ fontSize:10, fontWeight:700, color:'var(--purple)', background:'#F5F3FF', border:'1px solid #DDD6FE', borderRadius:5, padding:'1px 6px' }}>🏅 {c}</span>)}</div>}
+          {(need.method || need.methodLink) && <div style={{ marginTop:4, fontSize:10, color:'var(--text-xs)', fontWeight:600 }}>📄 요청 시 전달: {need.method}{need.methodLink ? ` · 시방서 ${need.methodLink}` : ''}</div>}
+          {!need.storeMethod && !need.method && !prods.length && <span style={{ color:'var(--text-xs)' }}>미입력</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
+function RecoFlowPage({ onToast }) {
+  const [data, setData] = useState({ needs: [] });
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(null);
+  const [q, setQ] = useState('');
+  const [view, setView] = useState('mindmap'); // mindmap | card
+  const [expanded, setExpanded] = useState(() => new Set());
+  const toggleExpand = (id) => setExpanded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const updateNeed = async (id, patch) => { const needs = (data.needs || []).map(n => n.id === id ? { ...n, ...patch } : n); await persist({ ...data, needs }); };
+  const emptyNeed = (label) => ({ building: label && label !== '공통(전체)' ? [label] : [], part:[], material:[], problem:[], cause:'', solution:'', storeMethod:'', method:'', methodLink:'', credibility:[], products:[], guide:'', note:'' });
+
+  const load = async () => { setLoading(true); try { const d = await db.collection(COLLECTIONS.RECO).doc('tree').get(); if (d.exists) setData(d.data()); } catch (e) { console.error('[reco]', e); } setLoading(false); };
+  useEffect(() => { load(); }, []);
+  const persist = async (next) => { setData(next); try { await db.collection(COLLECTIONS.RECO).doc('tree').set({ ...next, updatedAt: nowIso() }); } catch (e) { onToast({ message: '저장 실패: ' + e.message, type: 'error' }); } };
+  const seed = async () => { if ((data.needs || []).length && !confirm('기존 니즈를 기본 매핑으로 덮어쓸까요?')) return; await persist(recoSeed()); onToast({ message: '기본 니즈 생성됨', type: 'success' }); };
+  const saveNeed = async (need) => {
+    const has = need.id; const n = has ? need : { ...need, id: genId() };
+    const needs = has ? (data.needs || []).map(x => x.id === n.id ? n : x) : [...(data.needs || []), n];
+    await persist({ ...data, needs }); setEditing(null); onToast({ message: '저장됨', type: 'success' });
+  };
+  const delNeed = async (id) => { if (!confirm('이 니즈를 삭제할까요?')) return; await persist({ ...data, needs: (data.needs || []).filter(x => x.id !== id) }); };
+
+  const needs = (data.needs || []).filter(n => { if (!q) return true; const hay = (needKeywords(n).join(' ') + ' ' + (n.method || '') + ' ' + (n.solution || '') + ' ' + (n.cause || '')).toLowerCase(); return hay.includes(q.toLowerCase()); });
+  // 건물유형별 그룹 (니즈에 건물 키워드 없으면 '공통(전체)')
+  const groupList = (() => {
+    const map = {}; const order = [];
+    needs.forEach(n => { const bs = (n.building && n.building.length) ? n.building : ['공통(전체)']; bs.forEach(b => { if (!map[b]) { map[b] = []; order.push(b); } map[b].push(n); }); });
+    const po = NEED_DIMS[0].presets;
+    order.sort((a, b) => { if (a === '공통(전체)') return 1; if (b === '공통(전체)') return -1; const ia = po.indexOf(a), ib = po.indexOf(b); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b); });
+    return order.map(b => ({ key: b, label: b, needs: map[b] }));
+  })();
+  const addNeedFor = (label) => setEditing(emptyNeed(label));
+
+  return (
+    <>
+      <Header title="추천 플로우 (니즈 → 솔루션 → 상품)" subtitle="고객 니즈를 키워드(건물×부위×외장재×문제)로 등록 → 본질 솔루션 → 상품·공신력. store 봇에 자동 주입(하이브리드)."
+        actions={<>
+          <div style={{ display:'flex', gap:2, background:'var(--bg)', borderRadius:9, padding:3 }}>
+            {[['mindmap', '🧠 마인드맵'], ['card', '☰ 카드']].map(([v, label]) => (
+              <button key={v} onClick={() => setView(v)} style={{ padding:'6px 12px', borderRadius:7, fontSize:12, fontWeight:800, background: view === v ? 'var(--navy)' : 'transparent', color: view === v ? '#fff' : 'var(--text-sm)' }}>{label}</button>
+            ))}
+          </div>
+          <button onClick={seed} style={btnGhost()}>🌱 기본 매핑 시드</button>
+          <button onClick={() => addNeedFor()} style={btnPrimary()}>+ 니즈 등록</button>
+        </>} />
+      <div className="cb-scroll" style={{ padding:'20px 32px', overflowY:'auto', height:'calc(100vh - 92px)' }}>
+        <div style={{ fontSize:11.5, color:'var(--text-xs)', fontWeight:600, marginBottom:16, lineHeight:1.6, background:'var(--or-pale)', border:'1px solid var(--or-l)', borderRadius:8, padding:'10px 12px' }}>
+          ① 고객 니즈는 키워드 조합으로 등록(무수히 많아도 칩으로 빠르게) → ② 본질 원인·해결방안 → ③ 시공방안·공신력·상품. 정의된 니즈는 봇이 이 순서로 안내하고, 없는 건 LLM이 유연 대응합니다.
+        </div>
+        <div style={{ display:'flex', gap:10, marginBottom:16, alignItems:'center' }}>
+          <input style={{ ...inputSty, maxWidth:300 }} placeholder="🔍 니즈 검색 (키워드·공법·솔루션)" value={q} onChange={e => setQ(e.target.value)} />
+          <span style={{ fontSize:12, color:'var(--text-sm)', fontWeight:700 }}>{needs.length}건</span>
+        </div>
+        {loading ? <div style={{ color:'var(--text-sm)', padding:40, textAlign:'center' }}>불러오는 중…</div>
+        : (data.needs || []).length === 0 ? (
+          <div style={{ textAlign:'center', padding:'56px 20px', color:'var(--text-sm)' }}>
+            <div style={{ fontSize:40, marginBottom:12 }}>🧭</div>
+            <div style={{ fontWeight:800, color:'var(--text-md)', marginBottom:6 }}>등록된 니즈가 없습니다</div>
+            <div style={{ fontSize:12.5, marginBottom:18 }}>기본 매핑으로 시작하거나, 키워드로 니즈를 바로 등록하세요.</div>
+            <button onClick={seed} style={btnPrimary()}>🌱 기본 매핑 시드</button>
+          </div>
+        ) : view === 'mindmap' ? (
+          <MindmapView groups={groupList} expanded={expanded} onToggleExpand={toggleExpand} onEdit={(n) => setEditing(n)} onAddNeed={addNeedFor} onDelete={(n) => delNeed(n.id)} onUpdateNeed={updateNeed} />
+        ) : (
+          <div style={{ display:'grid', gap:22 }}>
+            {groupList.map(g => (
+              <div key={g.key}>
+                <div style={{ display:'inline-flex', alignItems:'center', gap:8, background:'var(--navy)', color:'#fff', borderRadius:10, padding:'8px 16px', marginBottom:12, boxShadow:'var(--shadow)' }}>
+                  <span style={{ fontSize:14, fontWeight:900 }}>🏢 {g.label}</span>
+                  <span style={{ fontSize:10.5, fontWeight:800, background:'rgba(255,255,255,.18)', borderRadius:6, padding:'1px 7px' }}>{g.needs.length}</span>
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(330px, 1fr))', gap:14 }}>
+                  {g.needs.map(n => <NeedCard key={g.key + n.id} need={n} onEdit={() => setEditing(n)} onDelete={() => delNeed(n.id)} />)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {editing && <RecoNeedModal need={editing} onClose={() => setEditing(null)} onSave={saveNeed} />}
+    </>
+  );
+}
+function RecoNeedModal({ need, onClose, onSave }) {
+  const [f, setF] = useState({ ...need, building:[...(need.building || [])], part:[...(need.part || [])], material:[...(need.material || [])], problem:[...(need.problem || [])], credibility:[...(need.credibility || [])], products:[...(need.products || [])] });
+  const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+  const setProd = (i, k, v) => setF(p => ({ ...p, products: p.products.map((x, j) => j === i ? { ...x, [k]: v } : x) }));
+  // SKU 카탈로그에서 상품 선택
+  const [skus, setSkus] = useState([]);
+  const [skuQ, setSkuQ] = useState('');
+  useEffect(() => { db.collection(COLLECTIONS.SKUS).get().then(s => setSkus(s.docs.map(d => ({ id: d.id, ...d.data() })))).catch(e => console.error('[skus]', e)); }, []);
+  const skuSuggest = skuQ.trim() ? skus.filter(s => ((s.name || '') + (s.code || '') + (s.surfaces || []).join(' ')).toLowerCase().includes(skuQ.toLowerCase())).slice(0, 6) : [];
+  const addSku = (s) => { if (f.products.some(p => p.skuId === s.id)) return; set('products', [...f.products, { name: s.name, link: s.link || '', skuId: s.id }]); setSkuQ(''); };
+  const sect = (t) => <div style={{ fontSize:12, fontWeight:900, color:'var(--navy)', margin:'4px 0 0', paddingTop:8, borderTop:'1px solid var(--border-s)' }}>{t}</div>;
+  return (
+    <Modal open onClose={onClose} title={need.id ? '니즈 편집' : '니즈 등록'} width={720}>
+      <div style={{ display:'grid', gap:14 }}>
+        {sect('① 고객 니즈 (키워드 조합)')}
+        {NEED_DIMS.map(d => <KeywordPicker key={d.key} dim={d} value={f[d.key]} onChange={v => set(d.key, v)} />)}
+        {sect('② 솔루션 (본질 원인·해결방안)')}
+        <div><label style={labelSty}>왜 문제가 발생하나 (본질 원인)</label><textarea style={{ ...inputSty, minHeight:54, resize:'vertical' }} value={f.cause} onChange={e => set('cause', e.target.value)} placeholder="예: 저층용 슁글을 고층에 적용 → 강풍·이음부 균열" /></div>
+        <div><label style={labelSty}>해결방안 (본질 해결)</label><textarea style={{ ...inputSty, minHeight:54, resize:'vertical' }} value={f.solution} onChange={e => set('solution', e.target.value)} placeholder="예: 방수콘크리트 함침으로 바탕면 일체화 + 후레싱 보강" /></div>
+        {sect('③ 상품 안내 (시공방안·공신력)')}
+        <div>
+          <label style={labelSty}>시공방안 — POUR스토어 친근 설명 (B2C·B2B 공통, 봇이 이걸로 안내)</label>
+          <textarea style={{ ...inputSty, minHeight:60, resize:'vertical', lineHeight:1.6 }} value={f.storeMethod || ''} onChange={e => set('storeMethod', e.target.value)}
+            placeholder="고객이 이해하기 쉽게: 예) 바탕을 강화한 뒤 6중으로 방수막을 입혀 물길을 완전히 차단해드려요. 옥상 누수 패키지 하나로 해결됩니다." />
+          <div style={{ fontSize:11, color:'var(--text-xs)', marginTop:5 }}>전문 공법용어 대신 쉬운 말로. 공법명·시방서는 아래 "요청 시 전달 자료"로 분리됩니다.</div>
+        </div>
+        <div style={{ background:'var(--bg)', border:'1px dashed var(--border)', borderRadius:8, padding:'10px 12px' }}>
+          <div style={{ fontSize:11.5, fontWeight:800, color:'var(--text-md)', marginBottom:8 }}>📄 추가 기술자료 (원하는 고객에게만 전달)</div>
+          <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:14 }}>
+            <div><label style={labelSty}>공법명</label><input style={inputSty} value={f.method} onChange={e => set('method', e.target.value)} placeholder="예: 슬라브 듀얼강화방수공법" /></div>
+            <div><label style={labelSty}>시방서 링크</label><input style={inputSty} value={f.methodLink} onChange={e => set('methodLink', e.target.value)} placeholder="/132 또는 URL" /></div>
+          </div>
+        </div>
+        <div>
+          <label style={labelSty}>공신력 (자체연구개발·공법·특허·시공누적·협력사 등)</label>
+          <KeywordChips value={f.credibility} onRemove={k => set('credibility', f.credibility.filter(x => x !== k))} color="var(--purple)" />
+          <div style={{ display:'flex', gap:5, flexWrap:'wrap', marginTop:6 }}>
+            {CRED_PRESETS.filter(p => !f.credibility.includes(p)).map(p => <button key={p} onClick={() => set('credibility', [...f.credibility, p])} style={{ fontSize:10.5, fontWeight:700, color:'var(--purple)', background:'#F5F3FF', border:'1px dashed #DDD6FE', borderRadius:6, padding:'2px 8px' }}>+ {p}</button>)}
+          </div>
+        </div>
+        <div>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+            <label style={{ ...labelSty, marginBottom:0 }}>추천 상품</label>
+            <button onClick={() => set('products', [...f.products, { name:'', link:'' }])} style={btnGhost({ padding:'4px 10px', fontSize:11.5 })}>+ 직접 입력</button>
+          </div>
+          <div style={{ position:'relative', marginBottom:8 }}>
+            <input style={{ ...inputSty, padding:'7px 11px' }} value={skuQ} onChange={e => setSkuQ(e.target.value)} placeholder="📦 SKU 카탈로그에서 검색해 추가 (이름·코드·부위)" />
+            {skuSuggest.length > 0 && (
+              <div style={{ position:'absolute', top:'100%', left:0, right:0, zIndex:10, background:'#fff', border:'1px solid var(--border)', borderRadius:8, boxShadow:'var(--shadow-lg)', marginTop:3, maxHeight:180, overflowY:'auto' }}>
+                {skuSuggest.map(s => (
+                  <button key={s.id} onClick={() => addSku(s)} style={{ display:'flex', width:'100%', gap:8, alignItems:'center', padding:'7px 10px', textAlign:'left', borderBottom:'1px solid var(--border-s)' }}>
+                    <span style={{ fontSize:13 }}>📦</span>
+                    <span style={{ flex:1, minWidth:0 }}>
+                      <span style={{ fontSize:12, fontWeight:800, color:'var(--navy)' }}>{s.name}</span>
+                      <span style={{ fontSize:10, color:'var(--text-xs)', marginLeft:6 }}>{tierMeta(s.tier).label} · {(s.surfaces || []).join('/')}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {f.products.length === 0 ? <div style={{ fontSize:11.5, color:'var(--text-xs)' }}>SKU 카탈로그에서 검색해 추가하거나(권장) 직접 상품명·링크를 입력하세요.</div>
+          : f.products.map((pr, i) => (
+            <div key={i} style={{ display:'flex', gap:8, marginBottom:6, alignItems:'center' }}>
+              {pr.skuId && <span title="SKU 카탈로그 연결" style={{ fontSize:11, fontWeight:800, color:'var(--green)', background:'var(--green-l)', border:'1px solid var(--green-m)', borderRadius:6, padding:'2px 7px', flexShrink:0 }}>📦 SKU</span>}
+              <input style={{ ...inputSty, flex:1 }} value={pr.name} onChange={e => setProd(i, 'name', e.target.value)} placeholder="상품명" />
+              <input style={{ ...inputSty, flex:1 }} value={pr.link} onChange={e => setProd(i, 'link', e.target.value)} placeholder="링크(선택)" />
+              <button onClick={() => set('products', f.products.filter((_, j) => j !== i))} style={btnGhost({ padding:'0 10px', color:'var(--red)' })}>✕</button>
+            </div>
+          ))}
+        </div>
+        <div><label style={labelSty}>시공가이드·메모 (선택)</label><input style={inputSty} value={f.guide} onChange={e => set('guide', e.target.value)} placeholder="가이드 영상/링크 등" /></div>
+        <div style={{ display:'flex', justifyContent:'flex-end', gap:8 }}>
+          <button onClick={onClose} style={btnGhost()}>취소</button>
+          <button onClick={() => { if (!needKeywords(f).length) return alert('니즈 키워드를 1개 이상 입력하세요'); onSave(f); }} style={btnPrimary()}>저장</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// ============================================================
+// 마인드맵 뷰 (EdrawMind 스타일) — 드래그 팬·노드 인라인편집·키보드·줌
+// ============================================================
+function MindmapView({ groups, expanded, onToggleExpand, onEdit, onAddNeed, onDelete, onUpdateNeed }) {
+  const [zoom, setZoom] = useState(1);
+  const [sel, setSel] = useState(null);
+  const scRef = useRef(null);
+  const pan = useRef(null);
+
+  const needById = {};
+  groups.forEach(g => g.needs.forEach(n => { needById[n.id] = n; }));
+
+  // 레이아웃
+  const ROOT_W = 138, NEED_W = 200, LEAF_W = 240;
+  const ROOT_X = 16, NEED_X = 316, LEAF_X = 616;
+  const ROW = 66, BLDGAP = 48;
+  const nodes = []; const links = [];
+  let y = 34;
+  groups.forEach(g => {
+    const needYs = [];
+    if (!g.needs.length) { const ny = y; nodes.push({ id: g.key + ':empty', x: NEED_X, y: ny, w: NEED_W, h: 40, type: 'empty', g }); needYs.push(ny); y += ROW; }
+    g.needs.forEach(n => {
+      const exp = expanded.has(n.id);
+      let center;
+      if (exp) {
+        const sY = y, pY = y + ROW;
+        nodes.push({ id: n.id + ':sol', x: LEAF_X, y: sY, w: LEAF_W, h: 54, type: 'sol', need: n });
+        nodes.push({ id: n.id + ':prod', x: LEAF_X, y: pY, w: LEAF_W, h: 54, type: 'prod', need: n });
+        center = (sY + pY) / 2; y += ROW * 2;
+        links.push({ a: n.id, b: n.id + ':sol' }, { a: n.id, b: n.id + ':prod' });
+      } else { center = y; y += ROW; }
+      nodes.push({ id: n.id, x: NEED_X, y: center, w: NEED_W, h: 52, type: 'need', need: n, g });
+      needYs.push(center);
+    });
+    const rootY = needYs.length ? (needYs[0] + needYs[needYs.length - 1]) / 2 : y;
+    nodes.push({ id: g.key, x: ROOT_X, y: rootY, w: ROOT_W, h: 46, type: 'building', g });
+    g.needs.forEach(n => links.push({ a: g.key, b: n.id }));
+    if (!g.needs.length) links.push({ a: g.key, b: g.key + ':empty' });
+    y += BLDGAP;
+  });
+  const W = LEAF_X + LEAF_W + 60, H = y + 20;
+  const byId = {}; nodes.forEach(n => byId[n.id] = n);
+  const selNode = sel ? nodes.find(n => n.id === sel && n.type === 'need') : null;
+
+  const pathD = (a, b) => { const x1 = a.x + a.w, y1 = a.y, x2 = b.x, y2 = b.y, mx = (x1 + x2) / 2; return `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`; };
+  const iconBtn = (label, onClick, color, sz = 24) => (
+    <button onClick={(e) => { e.stopPropagation(); onClick(); }} style={{ width:sz, height:sz, borderRadius:6, fontSize:12, fontWeight:800, color: color || 'var(--text-sm)', background:'#fff', border:'1px solid var(--border)', display:'grid', placeItems:'center', boxShadow:'var(--shadow)' }}>{label}</button>
+  );
+
+  // 드래그 팬
+  const onDown = (e) => { if (e.target.closest('[data-node]')) return; pan.current = { x: e.clientX, y: e.clientY, l: scRef.current.scrollLeft, t: scRef.current.scrollTop }; scRef.current.style.cursor = 'grabbing'; setSel(null); };
+  const onMove = (e) => { if (!pan.current) return; scRef.current.scrollLeft = pan.current.l - (e.clientX - pan.current.x); scRef.current.scrollTop = pan.current.t - (e.clientY - pan.current.y); };
+  const onUp = () => { pan.current = null; if (scRef.current) scRef.current.style.cursor = 'grab'; };
+  const onKey = (e) => {
+    if (e.key === 'Enter' && selNode) { e.preventDefault(); const b = selNode.need.building && selNode.need.building[0]; onAddNeed(b || (selNode.g && selNode.g.label)); }
+    if (e.key === 'Escape') setSel(null);
+  };
+
+  // 노드 인라인 키워드 편집 (선택된 니즈 옆 플로팅 패널)
+  const MiniDim = ({ icon, dimKey, value, presets }) => {
+    const [t, setT] = useState('');
+    const add = (k) => { k = (k || '').trim(); if (!k || value.includes(k)) return; onUpdateNeed(selNode.need.id, { [dimKey]: [...value, k] }); setT(''); };
+    return (
+      <div style={{ display:'flex', gap:4, alignItems:'center', flexWrap:'wrap', marginBottom:5 }}>
+        <span style={{ fontSize:11, width:14 }}>{icon}</span>
+        {value.map(k => <span key={k} style={{ fontSize:10, fontWeight:800, color:'var(--navy)', background:'var(--blue-l)', borderRadius:5, padding:'1px 4px 1px 6px', display:'inline-flex', alignItems:'center', gap:2 }}>{k}<button onClick={() => onUpdateNeed(selNode.need.id, { [dimKey]: value.filter(x => x !== k) })} style={{ fontSize:10, color:'var(--text-xs)' }}>×</button></span>)}
+        <input value={t} onChange={e => setT(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(t); } e.stopPropagation(); }} placeholder="+키워드" list={'dl-' + dimKey} style={{ width:62, fontSize:10, padding:'2px 5px', border:'1px solid var(--border)', borderRadius:5, outline:'none' }} />
+        <datalist id={'dl-' + dimKey}>{presets.map(p => <option key={p} value={p} />)}</datalist>
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ position:'relative', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'#fff', overflow:'hidden' }}>
+      <div style={{ position:'absolute', top:10, right:10, zIndex:30, display:'flex', gap:6, background:'#fff', border:'1px solid var(--border)', borderRadius:8, padding:4, boxShadow:'var(--shadow)' }}>
+        {iconBtn('－', () => setZoom(z => Math.max(0.5, +(z - 0.1).toFixed(2))), null, 26)}
+        <span style={{ fontSize:11, fontWeight:800, color:'var(--text-sm)', minWidth:34, textAlign:'center', alignSelf:'center' }}>{Math.round(zoom * 100)}%</span>
+        {iconBtn('＋', () => setZoom(z => Math.min(1.6, +(z + 0.1).toFixed(2))), null, 26)}
+        {iconBtn('⌂', () => setZoom(1), null, 26)}
+      </div>
+      <div style={{ position:'absolute', top:10, left:10, zIndex:30, fontSize:10.5, color:'var(--text-xs)', fontWeight:700, background:'rgba(255,255,255,.85)', borderRadius:6, padding:'4px 8px' }}>빈 공간 드래그=이동 · 니즈 선택 후 Enter=추가</div>
+      <div ref={scRef} className="cb-scroll" tabIndex={0} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onUp} onKeyDown={onKey}
+        style={{ overflow:'auto', height:'calc(100vh - 240px)', minHeight:380, cursor:'grab', outline:'none' }}>
+        <div style={{ position:'relative', width: W * zoom, height: H * zoom }}>
+          <div style={{ position:'absolute', top:0, left:0, width:W, height:H, transform:`scale(${zoom})`, transformOrigin:'0 0' }}>
+            <svg width={W} height={H} style={{ position:'absolute', top:0, left:0, pointerEvents:'none' }}>
+              {links.map((l, i) => { const a = byId[l.a], b = byId[l.b]; if (!a || !b) return null; return <path key={i} d={pathD(a, b)} fill="none" stroke="#CBD5E1" strokeWidth={2} />; })}
+            </svg>
+            {nodes.map(n => {
+              const top = n.y - n.h / 2;
+              if (n.type === 'building') return (
+                <div key={n.id} data-node onClick={() => onAddNeed(n.g.label)} title="클릭=니즈 추가" style={{ position:'absolute', left:n.x, top, width:n.w, minHeight:n.h, cursor:'pointer', background:'var(--navy)', color:'#fff', borderRadius:12, padding:'9px 13px', boxShadow:'var(--shadow-lg)', display:'flex', alignItems:'center', justifyContent:'space-between', gap:6 }}>
+                  <span style={{ fontSize:13, fontWeight:900 }}>🏢 {n.g.label}</span><span style={{ fontSize:15, fontWeight:900, opacity:.85 }}>＋</span>
+                </div>
+              );
+              if (n.type === 'empty') return <div key={n.id} data-node onClick={() => onAddNeed(n.g.label)} style={{ position:'absolute', left:n.x, top, width:n.w, height:n.h, cursor:'pointer', border:'1.5px dashed var(--border)', borderRadius:10, display:'grid', placeItems:'center', fontSize:11.5, fontWeight:700, color:'var(--text-sm)', background:'#fff' }}>＋ 니즈 추가</div>;
+              if (n.type === 'need') {
+                const kw = needKeywords(n.need); const exp = expanded.has(n.need.id); const isSel = sel === n.id;
+                return (
+                  <div key={n.id} data-node onClick={() => setSel(isSel ? null : n.id)} style={{ position:'absolute', left:n.x, top, width:n.w, cursor:'pointer', background:'#fff', border:`2px solid ${isSel ? 'var(--or)' : 'var(--blue-m)'}`, borderRadius:10, padding:'8px 10px', boxShadow: isSel ? 'var(--shadow-lg)' : 'var(--shadow)' }}>
+                    <div style={{ display:'flex', gap:4, flexWrap:'wrap', alignItems:'center', minHeight:18 }}>
+                      <span style={{ fontSize:10 }}>🔑</span>
+                      {kw.slice(0, 5).map(k => <span key={k} style={{ fontSize:10.5, fontWeight:800, color:'var(--navy)', background:'var(--blue-l)', borderRadius:5, padding:'1px 6px' }}>{k}</span>)}
+                      {!kw.length && <span style={{ fontSize:11, color:'var(--text-xs)' }}>키워드 없음</span>}
+                    </div>
+                    <div style={{ display:'flex', gap:6, marginTop:8, justifyContent:'flex-end' }}>
+                      {iconBtn(exp ? '－' : '＋', () => onToggleExpand(n.need.id), 'var(--navy)')}
+                      {iconBtn('✏️', () => onEdit(n.need))}
+                      {iconBtn('🗑', () => onDelete(n.need), 'var(--red)')}
+                    </div>
+                  </div>
+                );
+              }
+              const isSol = n.type === 'sol'; const need = n.need; const prods = (need.products || []).filter(x => x.name);
+              return (
+                <div key={n.id} data-node onClick={() => onEdit(need)} style={{ position:'absolute', left:n.x, top, width:n.w, cursor:'pointer', background: isSol ? 'var(--or-pale)' : 'var(--green-l)', border:`1.5px solid ${isSol ? '#FED7AA' : 'var(--green-m)'}`, borderRadius:10, padding:'7px 10px', boxShadow:'var(--shadow)' }}>
+                  <div style={{ fontSize:10, fontWeight:900, color: isSol ? 'var(--or-d)' : 'var(--green)', marginBottom:3 }}>{isSol ? '💡 솔루션' : '📦 상품 안내'}</div>
+                  {isSol ? <div style={{ fontSize:11, color:'var(--text-md)', lineHeight:1.4, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{need.solution || need.cause || '미입력'}</div>
+                    : <div style={{ fontSize:11, color:'var(--text-md)', lineHeight:1.4 }}><div style={{ display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{need.storeMethod || '시공방안 미입력'}</div>{prods.length > 0 && <div style={{ marginTop:3, fontWeight:800, color:'var(--green)' }}>📦 {prods.map(p => p.name).join(', ')}</div>}</div>}
+                </div>
+              );
+            })}
+            {/* 선택된 니즈 인라인 편집 패널 */}
+            {selNode && (() => {
+              const nd = needById[selNode.need.id] || selNode.need;
+              return (
+                <div data-node onClick={e => e.stopPropagation()} style={{ position:'absolute', left:selNode.x, top:selNode.y + selNode.h / 2 + 8, width:NEED_W, zIndex:25, background:'#fff', border:'2px solid var(--or)', borderRadius:10, padding:'9px 10px', boxShadow:'var(--shadow-lg)' }}>
+                  <div style={{ fontSize:9.5, fontWeight:800, color:'var(--or-d)', marginBottom:6 }}>✎ 키워드 인라인 편집</div>
+                  {NEED_DIMS.map(d => <MiniDim key={d.key} icon={d.icon} dimKey={d.key} value={nd[d.key] || []} presets={d.presets} />)}
+                  <div style={{ display:'flex', gap:6, marginTop:6 }}>
+                    <button onClick={() => onEdit(nd)} style={{ ...btnGhost({ flex:1, padding:'5px 0', fontSize:11 }), color:'var(--or-d)' }}>전체 편집(솔루션·상품)</button>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// 4-C) 상품 SKU 카탈로그 — 부위×패키지단계 매트릭스 (chatbot-skus)
+// ============================================================
+const SKU_TIERS = [
+  { id: 'full', label: '풀패키지', icon: '📦', color: 'var(--navy)', bg: '#EEF2FF', border: 'var(--blue-m)' },
+  { id: 'partial', label: '부분패키지', icon: '🧩', color: 'var(--or-d)', bg: 'var(--or-l)', border: '#FED7AA' },
+  { id: 'single', label: '단품·단순코팅', icon: '🔹', color: 'var(--green)', bg: 'var(--green-l)', border: 'var(--green-m)' },
+];
+const SKU_SURFACES = ['슬라브', '슁글', '기와', '칼라강판/징크', '균열', '재도장', '배수로/베란다', '지하주차장', '이음부', '외벽', '옥상', '콘크리트'];
+const SKU_PROBLEMS = ['누수', '균열', '탈락', '들뜸/박리', '부식/녹', '백화'];
+const SKU_COMPONENTS = ['코트재', '크랙시트', '이음부세트', '콘크리트강화재', '프라이머', '상도', '탑코트재'];
+function tierMeta(id) { return SKU_TIERS.find(t => t.id === id) || SKU_TIERS[0]; }
+function emptySku(surface, tier) {
+  return { code: '', name: '', line: '', surfaces: surface ? [surface] : [], problems: [], tier: tier || 'full', building: [], components: [], image: '', price: '', productRef: '', link: '', active: true };
+}
+function SkuCatalogPage({ onToast }) {
+  const { data: skus, loading, reload } = useCollection(COLLECTIONS.SKUS);
+  const [editing, setEditing] = useState(null);
+  const [view, setView] = useState('matrix'); // matrix | list
+  const [q, setQ] = useState('');
+
+  const save = async (s) => {
+    try {
+      const payload = { ...s, updatedAt: nowIso() };
+      if (s.id) { delete payload.id; await db.collection(COLLECTIONS.SKUS).doc(s.id).update(payload); }
+      else { payload.createdAt = nowIso(); await db.collection(COLLECTIONS.SKUS).add(payload); }
+      onToast({ message: '저장 완료', type: 'success' }); setEditing(null); reload();
+    } catch (e) { onToast({ message: '저장 실패: ' + e.message, type: 'error' }); }
+  };
+  const remove = async (s) => { if (!confirm(`'${s.name || s.code}' SKU를 삭제할까요?`)) return; try { await db.collection(COLLECTIONS.SKUS).doc(s.id).delete(); onToast({ message: '삭제됨', type: 'success' }); reload(); } catch (e) { onToast({ message: e.message, type: 'error' }); } };
+
+  const filtered = skus.filter(s => !q || ((s.name || '') + (s.code || '') + (s.line || '') + (s.surfaces || []).join(' ')).toLowerCase().includes(q.toLowerCase()));
+  const usedSurfaces = SKU_SURFACES.filter(sf => filtered.some(s => (s.surfaces || []).includes(sf)));
+  const cols = usedSurfaces.length ? usedSurfaces : SKU_SURFACES.slice(0, 6);
+
+  const miniCard = (s) => (
+    <div key={s.id} onClick={() => setEditing(s)} style={{ cursor:'pointer', background:'#fff', border:'1px solid var(--border)', borderRadius:8, padding:'6px 8px', marginBottom:6, boxShadow:'var(--shadow)' }}>
+      <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+        {s.image ? <img src={s.image} alt="" style={{ width:28, height:28, borderRadius:5, objectFit:'cover', flexShrink:0 }} /> : <div style={{ width:28, height:28, borderRadius:5, background:'var(--bg)', display:'grid', placeItems:'center', fontSize:13, flexShrink:0 }}>📦</div>}
+        <div style={{ minWidth:0 }}>
+          <div style={{ fontSize:11, fontWeight:800, color:'var(--navy)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{s.name || '(이름 없음)'}</div>
+          {s.code && <div style={{ fontSize:9, color:'var(--text-xs)', fontWeight:700 }}>{s.code}</div>}
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      <Header title="상품 SKU 카탈로그" subtitle="부위/외장재 × 패키지단계(풀/부분/단품)로 상품을 SKU 단위로 등록. 추천 플로우가 이 SKU를 추천합니다."
+        actions={<>
+          <button onClick={() => setView(view === 'matrix' ? 'list' : 'matrix')} style={btnGhost()}>{view === 'matrix' ? '☰ 목록' : '▦ 매트릭스'}</button>
+          <button onClick={() => setEditing(emptySku())} style={btnPrimary()}>+ SKU</button>
+        </>} />
+      <div className="cb-scroll" style={{ padding:'18px 32px', overflowY:'auto', height:'calc(100vh - 92px)' }}>
+        <div style={{ display:'flex', gap:10, marginBottom:14, alignItems:'center', flexWrap:'wrap' }}>
+          <input style={{ ...inputSty, maxWidth:280 }} placeholder="🔍 SKU 검색 (이름·코드·부위)" value={q} onChange={e => setQ(e.target.value)} />
+          <span style={{ fontSize:12, color:'var(--text-sm)', fontWeight:700 }}>{filtered.length}개</span>
+        </div>
+        {loading ? <div style={{ color:'var(--text-sm)', padding:40, textAlign:'center' }}>불러오는 중…</div>
+        : skus.length === 0 ? (
+          <div style={{ textAlign:'center', padding:'56px 20px', color:'var(--text-sm)' }}>
+            <div style={{ fontSize:40, marginBottom:12 }}>📦</div>
+            <div style={{ fontWeight:800, color:'var(--text-md)', marginBottom:6 }}>등록된 SKU가 없습니다</div>
+            <div style={{ fontSize:12.5, marginBottom:18 }}>부위·패키지단계별로 상품을 잘게 등록하세요.</div>
+            <button onClick={() => setEditing(emptySku())} style={btnPrimary()}>+ 첫 SKU 등록</button>
+          </div>
+        ) : view === 'matrix' ? (
+          <div className="cb-scroll" style={{ overflowX:'auto', paddingBottom:8 }}>
+            <div style={{ display:'grid', gridTemplateColumns:`130px repeat(${cols.length}, minmax(160px, 1fr))`, gap:8, minWidth:'max-content' }}>
+              <div />
+              {cols.map(sf => <div key={sf} style={{ fontSize:12, fontWeight:900, color:'var(--navy)', textAlign:'center', padding:'8px 6px', background:'var(--bg)', borderRadius:8 }}>{sf}</div>)}
+              {SKU_TIERS.map(t => (
+                <React.Fragment key={t.id}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:900, color:t.color, background:t.bg, border:`1px solid ${t.border}`, borderRadius:8, padding:'8px 6px', textAlign:'center' }}>{t.icon} {t.label}</div>
+                  {cols.map(sf => {
+                    const cell = filtered.filter(s => s.tier === t.id && (s.surfaces || []).includes(sf));
+                    return (
+                      <div key={t.id + sf} style={{ background:'var(--or-pale)', border:'1px dashed var(--border)', borderRadius:8, padding:6, minHeight:60 }}>
+                        {cell.map(miniCard)}
+                        <button onClick={() => setEditing(emptySku(sf, t.id))} style={{ width:'100%', fontSize:11, fontWeight:800, color:'var(--text-sm)', background:'#fff', border:'1px dashed var(--border)', borderRadius:6, padding:'5px 0' }}>+ 추가</button>
+                      </div>
+                    );
+                  })}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(260px, 1fr))', gap:12 }}>
+            {filtered.map(s => {
+              const t = tierMeta(s.tier);
+              return (
+                <div key={s.id} style={{ background:'#fff', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'12px 14px', boxShadow:'var(--shadow)' }}>
+                  <div style={{ display:'flex', gap:10 }}>
+                    {s.image ? <img src={s.image} alt="" style={{ width:48, height:48, borderRadius:8, objectFit:'cover', flexShrink:0 }} /> : <div style={{ width:48, height:48, borderRadius:8, background:'var(--bg)', display:'grid', placeItems:'center', fontSize:20, flexShrink:0 }}>📦</div>}
+                    <div style={{ minWidth:0, flex:1 }}>
+                      <div style={{ fontSize:13.5, fontWeight:900, color:'var(--navy)' }}>{s.name || '(이름 없음)'}</div>
+                      <div style={{ display:'flex', gap:5, flexWrap:'wrap', marginTop:4 }}>
+                        <span style={{ fontSize:9.5, fontWeight:800, color:t.color, background:t.bg, border:`1px solid ${t.border}`, borderRadius:5, padding:'1px 6px' }}>{t.icon} {t.label}</span>
+                        {(s.surfaces || []).slice(0, 3).map(x => <span key={x} style={{ fontSize:9.5, fontWeight:700, color:'var(--text-sm)', background:'var(--bg)', borderRadius:5, padding:'1px 6px' }}>{x}</span>)}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display:'flex', gap:6, marginTop:10 }}>
+                    <button onClick={() => setEditing(s)} style={btnGhost({ flex:1, padding:'6px 0', fontSize:12 })}>✏️ 편집</button>
+                    <button onClick={() => remove(s)} style={btnGhost({ padding:'6px 10px', fontSize:12, color:'var(--red)' })}>🗑</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      {editing && <SkuEditModal sku={editing} onClose={() => setEditing(null)} onSave={save} onDelete={editing.id ? () => { remove(editing); setEditing(null); } : null} />}
+    </>
+  );
+}
+function SkuEditModal({ sku, onClose, onSave, onDelete }) {
+  const [f, setF] = useState({ ...sku, surfaces:[...(sku.surfaces || [])], problems:[...(sku.problems || [])], building:[...(sku.building || [])], components:[...(sku.components || [])] });
+  const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+  return (
+    <Modal open onClose={onClose} title={sku.id ? 'SKU 편집' : 'SKU 등록'} width={720}>
+      <div style={{ display:'grid', gap:14 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:14 }}>
+          <div><label style={labelSty}>상품명</label><input style={inputSty} value={f.name} onChange={e => set('name', e.target.value)} placeholder="예: 아파트 옥상 풀패키지" /></div>
+          <div><label style={labelSty}>SKU 코드</label><input style={inputSty} value={f.code} onChange={e => set('code', e.target.value)} placeholder="예: TC-SLAB-FULL-APT" /></div>
+        </div>
+        <div>
+          <label style={labelSty}>패키지 단계</label>
+          <div style={{ display:'flex', gap:8 }}>
+            {SKU_TIERS.map(t => (
+              <button key={t.id} onClick={() => set('tier', t.id)} style={{ ...btnGhost({ flex:1 }), background: f.tier===t.id?t.bg:'var(--bg)', color: f.tier===t.id?t.color:'var(--text-sm)', borderColor: f.tier===t.id?t.border:'var(--border)', fontWeight:900 }}>{t.icon} {t.label}</button>
+            ))}
+          </div>
+        </div>
+        <KeywordPicker dim={{ label:'부위/외장재', icon:'🧱', presets:SKU_SURFACES }} value={f.surfaces} onChange={v => set('surfaces', v)} />
+        <KeywordPicker dim={{ label:'문제', icon:'⚠️', presets:SKU_PROBLEMS }} value={f.problems} onChange={v => set('problems', v)} />
+        <KeywordPicker dim={{ label:'구성품', icon:'🧩', presets:SKU_COMPONENTS }} value={f.components} onChange={v => set('components', v)} />
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+          <KeywordPicker dim={{ label:'적용 건물(선택)', icon:'🏢', presets:NEED_DIMS[0].presets }} value={f.building} onChange={v => set('building', v)} />
+          <div><label style={labelSty}>제품 라인(선택)</label><input style={inputSty} value={f.line} onChange={e => set('line', e.target.value)} placeholder="예: 탑코트재 파생" /></div>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+          <div><label style={labelSty}>대표 이미지 URL(선택)</label><input style={inputSty} value={f.image} onChange={e => set('image', e.target.value)} placeholder="https://…" /></div>
+          <div><label style={labelSty}>구매 링크(선택)</label><input style={inputSty} value={f.link} onChange={e => set('link', e.target.value)} placeholder="자사몰 상품 링크" /></div>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+          <div><label style={labelSty}>가격(선택)</label><input style={inputSty} value={f.price} onChange={e => set('price', e.target.value)} placeholder="예: 89000" /></div>
+          <div><label style={labelSty}>기존 상품 연결(products id/상품번호, 선택)</label><input style={inputSty} value={f.productRef} onChange={e => set('productRef', e.target.value)} placeholder="상품관리 연동용" /></div>
+        </div>
+        <div style={{ display:'flex', justifyContent:'space-between', gap:8, paddingTop:4 }}>
+          {onDelete ? <button onClick={onDelete} style={btnGhost({ color:'var(--red)' })}>삭제</button> : <span />}
+          <div style={{ display:'flex', gap:8 }}>
+            <button onClick={onClose} style={btnGhost()}>취소</button>
+            <button onClick={() => { if (!f.name.trim()) return alert('상품명을 입력하세요'); onSave(f); }} style={btnPrimary()}>저장</button>
+          </div>
+        </div>
+      </div>
+    </Modal>
   );
 }
 
@@ -2364,6 +3074,8 @@ function App() {
         {active === 'dashboard' && <DashboardPage cfg={cfg} />}
         {active === 'studio' && <BotStudioPage onToast={setToast} onTest={goTest} />}
         {active === 'knowledge' && <KnowledgePage onToast={setToast} />}
+        {active === 'reco' && <RecoFlowPage onToast={setToast} />}
+        {active === 'skus' && <SkuCatalogPage onToast={setToast} />}
         {active === 'playground' && <PlaygroundPage onToast={setToast} cfg={cfg} presetBotId={presetBotId} onNeedSettings={() => setActive('settings')} />}
         {active === 'logs' && <LogsPage onToast={setToast} />}
         {active === 'settings' && <SettingsPage cfg={cfg} onSave={saveCfg} onToast={setToast} />}

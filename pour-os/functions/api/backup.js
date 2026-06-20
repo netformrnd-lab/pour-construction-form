@@ -32,6 +32,13 @@ export async function onRequestPost({ request, env }) {
   if (!token || !repo) {
     return json({ ok: false, configured: false, error: "GITHUB_TOKEN / GITHUB_BACKUP_REPO 미설정 — Cloudflare Pages 환경변수에 추가하세요." });
   }
+  // 출처 제한(선택) — POUR_ALLOWED_ORIGINS 설정 시 그 출처만 레포 쓰기 허용(무단 커밋 차단)
+  const allow = (env.POUR_ALLOWED_ORIGINS || "").split(",").map((s) => s.trim()).filter(Boolean);
+  if (allow.length) {
+    const origin = request.headers.get("origin") || "";
+    const ref = request.headers.get("referer") || "";
+    if (!allow.some((a) => origin === a || ref.startsWith(a))) return json({ ok: false, error: "forbidden origin" }, 403);
+  }
   let body;
   try { body = await request.json(); } catch (_) { return json({ ok: false, error: "잘못된 요청(JSON)" }, 400); }
   const content = body && body.content;

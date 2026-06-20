@@ -26,7 +26,7 @@ export const skCur=(sk,projects)=>{
   // 카운트형 집계: 이 지표를 가리키는 프로젝트 완료(+1) / 구간 완료(+1). (원/%·출시집계 제외 — 매출·진척·출시 롤업 보호)
   if(sk.unit!=="원"&&sk.unit!=="%"&&!sk.launchCount){
     const cc=(projects||[]).filter(p=>p.countKPIId===sk.id&&(p.progress||0)>=100).length;          // 완료된 연결 프로젝트 수
-    const seg=(projects||[]).reduce((a,p)=>a+numF(p.segDoneByKpi&&p.segDoneByKpi[sk.id]),0);        // 완료된 연결 구간 수(없으면 0)
+    const seg=(projects||[]).filter(p=>p.countKPIId!==sk.id).reduce((a,p)=>a+numF(p.segDoneByKpi&&p.segDoneByKpi[sk.id]),0);   // 완료된 연결 구간 수 — countKPIId로 이미 +된 프로젝트는 제외(이중 카운트 방지)
     if(cc||seg) return numF(sk.currentValue)+cc+seg;
   }
   if(sk.mainKPIId==="mk2"&&sk.unit==="원"&&!sk.manualOverride) return (projects||[]).filter(p=>p.subKPIId===sk.id).reduce((a,p)=>a+numF(p.resultValue),0);
@@ -39,7 +39,7 @@ export const skCur=(sk,projects)=>{
 //  · 운영(원 아님) 자동 → 자식 서브KPI 완료비율 합(= 환산 달성 단위), 자식 없으면 currentValue
 //  · 수동지정(manualOverride) → currentValue
 export const mkCur=(mk,subKPIs,projects)=>{
-  if(mk.unit==="원") return subKPIs.filter(s=>s.mainKPIId===mk.id&&!s.launchCount).reduce((a,s)=>a+skCur(s,projects),0);
+  if(mk.unit==="원") return subKPIs.filter(s=>s.mainKPIId===mk.id&&s.unit==="원").reduce((a,s)=>a+skCur(s,projects),0);   // 매출(원) = 원 단위 서브KPI만 합산(카운트형 섞임 방지 — 단위 오염 차단)
   if(!mk.manualOverride){ const subs=subKPIs.filter(s=>s.mainKPIId===mk.id&&!s.launchCount); if(subs.length){ const eq=subs.reduce((a,s)=>{const t=numF(s.targetValue); return a+(t>0?Math.min(1,skCur(s,projects)/t):0);},0); return Math.round(eq*10)/10; } }
   return numF(mk.currentValue);
 };

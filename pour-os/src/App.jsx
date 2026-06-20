@@ -1087,6 +1087,7 @@ const Empty=({t})=><div style={{padding:"30px 10px",textAlign:"center",fontSize:
 function WorkCalendar({D,userId,up,onEditTask}){
   const [cm,setCm]=useState(new Date(new Date().getFullYear(),new Date().getMonth(),1));
   const [evPick,setEvPick]=useState(null);
+  const [dayPick,setDayPick]=useState(null);   // 'YYYY-MM-DD' — 그 날 전체 항목 보기(+N 탭)
   const y=cm.getFullYear(),m=cm.getMonth();
   const fd=new Date(y,m,1).getDay(), dim=new Date(y,m+1,0).getDate();
   const ET=EVENT_TYPES, team=!userId;
@@ -1112,17 +1113,19 @@ function WorkCalendar({D,userId,up,onEditTask}){
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1}}>
         {["일","월","화","수","목","금","토"].map((d,i)=><div key={d} style={{padding:"6px 0",textAlign:"center",fontSize:10.5,fontWeight:700,color:i===0?"#F04452":"#6B7280"}}>{d}</div>)}
-        {Array.from({length:fd}).map((_,i)=><div key={"e"+i} style={{minHeight:56}}/>)}
+        {Array.from({length:fd}).map((_,i)=><div key={"e"+i} style={{height:72}}/>)}
         {Array.from({length:dim}).map((_,i)=>{
           const day=i+1, evts=getEvts(day), tks=getTasks(day);
           const isT=new Date().getDate()===day&&new Date().getMonth()===m&&new Date().getFullYear()===y;
           const items=[...evts.map(ev=>({kind:"ev",o:ev})),...tks.map(t=>({kind:"t",o:t}))];
-          const shown=items.slice(0,3);
+          const shown=items.slice(0,2);   // 칸 높이 고정: 최대 2건 노출, 그 이상은 +N
+          const more=items.length-shown.length;
+          const chip={marginTop:1,height:15,lineHeight:"13px",borderRadius:4,fontSize:9,fontWeight:700,cursor:"pointer",overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",maxWidth:"100%",boxSizing:"border-box"};
           return(
-            <div key={day} style={{padding:"3px",minHeight:56,borderRadius:8,background:isT?"#F5F9FF":"transparent",minWidth:0,overflow:"hidden"}}>
-              <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:21,height:21,borderRadius:"50%",fontSize:11,fontWeight:isT?900:500,backgroundColor:isT?"#3182F6":"transparent",color:isT?"#FFFFFF":"#374151"}}>{day}</span>
-              {shown.map(it=>it.kind==="ev"?(()=>{const ev=it.o;const et=ET[ev.type]||ET.internal;return <div key={ev.id} onClick={()=>setEvPick(ev)} title={ev.title} style={{marginTop:1,padding:"1px 4px",borderRadius:4,fontSize:9,fontWeight:700,backgroundColor:et.bg,color:et.color,cursor:"pointer",overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",maxWidth:"100%",boxSizing:"border-box"}}>{ev.title}</div>;})():(()=>{const t=it.o;const st=STATUS_MAP[t.status]||STATUS_MAP.todo;const au=team?D.users.find(u=>u.id===t.assigneeId):null;return <div key={t.id} onClick={()=>onEditTask&&onEditTask(t)} title={t.title} style={{marginTop:1,display:"flex",alignItems:"center",gap:2,padding:"1px 3px",borderRadius:4,fontSize:9,fontWeight:700,background:"#fff",border:`1px solid ${st.color}44`,color:t.status==="done"?"#9CA3AF":"#374151",cursor:"pointer",overflow:"hidden",whiteSpace:"nowrap",maxWidth:"100%",boxSizing:"border-box"}}><span style={{width:5,height:5,borderRadius:"50%",background:st.color,flexShrink:0}}/>{au?<span style={{color:au.color,fontWeight:800,flexShrink:0}}>{au.name[0]}</span>:null}<span style={{flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",textDecoration:t.status==="done"?"line-through":"none"}}>{t.title}</span></div>;})())}
-              {items.length>3&&<div style={{marginTop:1,fontSize:8.5,fontWeight:800,color:"#B0B8C1",paddingLeft:3}}>+{items.length-3}</div>}
+            <div key={day} style={{padding:"3px",height:72,borderRadius:8,background:isT?"#F5F9FF":"transparent",minWidth:0,overflow:"hidden",boxSizing:"border-box"}}>
+              <span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:20,height:20,borderRadius:"50%",fontSize:11,fontWeight:isT?900:500,backgroundColor:isT?"#3182F6":"transparent",color:isT?"#FFFFFF":"#374151"}}>{day}</span>
+              {shown.map(it=>it.kind==="ev"?(()=>{const ev=it.o;const et=ET[ev.type]||ET.internal;return <div key={ev.id} onClick={()=>setEvPick(ev)} title={ev.title} style={{...chip,padding:"0 4px",backgroundColor:et.bg,color:et.color}}>{ev.title}</div>;})():(()=>{const t=it.o;const st=STATUS_MAP[t.status]||STATUS_MAP.todo;const au=team?D.users.find(u=>u.id===t.assigneeId):null;return <div key={t.id} onClick={()=>onEditTask&&onEditTask(t)} title={t.title} style={{...chip,display:"flex",alignItems:"center",gap:2,padding:"0 3px",background:"#fff",border:`1px solid ${st.color}44`,color:t.status==="done"?"#9CA3AF":"#374151"}}><span style={{width:5,height:5,borderRadius:"50%",background:st.color,flexShrink:0}}/>{au?<span style={{color:au.color,fontWeight:800,flexShrink:0}}>{au.name[0]}</span>:null}<span style={{flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",textDecoration:t.status==="done"?"line-through":"none"}}>{t.title}</span></div>;})())}
+              {more>0&&<div onClick={()=>setDayPick(dsOf(day))} style={{marginTop:1,height:14,lineHeight:"14px",fontSize:9,fontWeight:800,color:"#6B7280",background:"#F2F4F6",borderRadius:4,textAlign:"center",cursor:"pointer"}}>+{more}</div>}
             </div>
           );
         })}
@@ -1144,6 +1147,28 @@ function WorkCalendar({D,userId,up,onEditTask}){
             </div>}
             {evPick.description&&<p style={{margin:"10px 0 0",fontSize:13.5,color:"#374151",lineHeight:1.6,whiteSpace:"pre-wrap"}}>{evPick.description}</p>}
             <button onClick={()=>setEvPick(null)} style={{width:"100%",marginTop:16,padding:"12px 0",borderRadius:12,border:"none",background:"#F2F4F6",color:"#4B5563",fontSize:14,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>닫기</button>
+          </div>
+        );})()}
+      </Sheet>
+      <Sheet open={!!dayPick} onClose={()=>setDayPick(null)} title={dayPick?`${Number(dayPick.slice(5,7))}월 ${Number(dayPick.slice(8,10))}일`:""} h="70vh">
+        {dayPick&&(()=>{const dd=Number(dayPick.slice(8,10));const evs=getEvts(dd);const tk=getTasks(dd);return(
+          <div style={{marginTop:8,display:"flex",flexDirection:"column",gap:7}}>
+            {evs.length===0&&tk.length===0&&<p style={{padding:"20px 0",textAlign:"center",fontSize:13,color:"#9CA3AF"}}>이 날 항목이 없어요</p>}
+            {evs.map(ev=>{const et=ET[ev.type]||ET.internal;return(
+              <button key={ev.id} onClick={()=>{setDayPick(null);setEvPick(ev);}} style={{display:"flex",alignItems:"center",gap:9,padding:"11px 12px",borderRadius:11,border:"1px solid #F2F4F6",background:"#fff",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                <span style={{fontSize:10,fontWeight:800,color:et.color,background:et.bg,padding:"3px 8px",borderRadius:6,flexShrink:0}}>{et.label}</span>
+                <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:700,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.title}</span>
+              </button>
+            );})}
+            {tk.map(t=>{const st=STATUS_MAP[t.status]||STATUS_MAP.todo;const proj=D.projects.find(p=>p.id===t.projectId);const au=team?D.users.find(u=>u.id===t.assigneeId):null;const ms=taskTimeSpent(t);return(
+              <button key={t.id} onClick={()=>{setDayPick(null);onEditTask&&onEditTask(t);}} style={{display:"flex",alignItems:"center",gap:9,padding:"11px 12px",borderRadius:11,border:"1px solid #F2F4F6",background:"#F9FAFB",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                <span style={{width:9,height:9,borderRadius:"50%",background:st.color,flexShrink:0}}/>
+                {au&&<Ava name={au.name} color={au.color} size={18}/>}
+                <span style={{flex:1,minWidth:0,fontSize:13,fontWeight:600,color:t.status==="done"?"#9CA3AF":"#1F2937",textDecoration:t.status==="done"?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}{proj?<span style={{color:"#C4C9D0",fontWeight:500}}> · 📁{proj.title}</span>:""}</span>
+                {ms>0&&<span style={{flexShrink:0,fontSize:9.5,fontWeight:800,color:t.status==="inprogress"?"#3182F6":"#00A862"}}>⏱{fmtDur(ms)}</span>}
+                <span style={{flexShrink:0,fontSize:9.5,fontWeight:800,color:st.color,background:st.bg,padding:"2px 7px",borderRadius:6}}>{st.label}</span>
+              </button>
+            );})}
           </div>
         );})()}
       </Sheet>
@@ -1299,18 +1324,10 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
     if(dr.weekDay===d&&dr.workDate===ds) return;
     up("tasks",dr.id,{weekDay:d,workDate:ds,weekSlot:nextSlot(d)});
   };
-  // 요일별 정렬 목록 — 선택 주의 그 날짜(workDate) 업무 + (이번 주에 한해) 날짜 없이 요일만 배치 + '진행중 이월'(완료·보류 전까지 오늘 칸에 계속 노출)
-  const dayOrdered=(d)=>{const ds=dateOfDay(d);const isTodayCol=isThisWeek&&d===today;
-    return myT.filter(t=>{
-      if(t.isFixed)return false;
-      // 진행중인데 오늘보다 앞서 잡혔던 업무는 오늘 칸으로 모아 계속 보이게(과거 칸에서는 숨김)
-      const carryInprog=isThisWeek&&t.status==="inprogress"&&(
-        (t.workDate&&t.workDate<todayStr)||
-        (!t.workDate&&t.weekDay&&WEEK_DAYS.indexOf(t.weekDay)>=0&&WEEK_DAYS.indexOf(t.weekDay)<todayIdx)
-      );
-      if(carryInprog)return isTodayCol;
-      return t.workDate===ds||(isThisWeek&&!t.workDate&&t.weekDay===d);
-    }).sort((a,b)=>{const sa=a.weekSlot??9999,sb=b.weekSlot??9999;return sa!==sb?sa-sb:String(a.id).localeCompare(String(b.id));});};
+  // 요일별 정렬 목록 — 선택 주의 그 날짜(workDate) 업무 + (이번 주에 한해) 날짜 없이 요일만 배치된 것.
+  // (상태와 무관하게 잡힌 날짜에 그대로 노출 — 진행중도 완료·보류 전까지 그 날짜 칸에 계속 보임)
+  const dayOrdered=(d)=>{const ds=dateOfDay(d);return myT.filter(t=>!t.isFixed&&(t.workDate===ds||(isThisWeek&&!t.workDate&&t.weekDay===d)))
+    .sort((a,b)=>{const sa=a.weekSlot??9999,sb=b.weekSlot??9999;return sa!==sb?sa-sb:String(a.id).localeCompare(String(b.id));});};
   const nextSlot=(d)=>Math.max(0,...dayOrdered(d).map(t=>t.weekSlot||0))+1;
   // 같은 요일 안에서 순서만 변경 — 통째로 1..N 재번호(순위 명확화)
   const reorderDay=(d,from,to)=>{
@@ -3598,15 +3615,18 @@ function CalendarPage({D,cu,add,up,rm}){
       <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"12px",marginBottom:14,border:"1px solid #F2F4F6"}}>
         <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1}}>
           {["일","월","화","수","목","금","토"].map(d=><div key={d} style={{padding:"7px 0",textAlign:"center",fontSize:11,fontWeight:700,color:"#6B7280"}}>{d}</div>)}
-          {Array.from({length:fd}).map((_,i)=><div key={"e"+i} style={{minHeight:44}}/>)}
+          {Array.from({length:fd}).map((_,i)=><div key={"e"+i} style={{height:72}}/>)}
           {Array.from({length:dim}).map((_,i)=>{
             const day=i+1;
             const evts=getEvts(day);
             const isT=new Date().getDate()===day&&new Date().getMonth()===m&&new Date().getFullYear()===y;
+            const shown=evts.slice(0,2);   // 칸 높이 고정: 최대 2건, 그 이상은 +N
+            const more=evts.length-shown.length;
             return(
-              <div key={day} style={{padding:"3px",minHeight:44,minWidth:0,overflow:"hidden"}}>
-                <span onClick={()=>openNewEvent(`${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`)} title="이 날 일정 추가" style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:22,height:22,borderRadius:"50%",fontSize:11.5,fontWeight:isT?900:400,backgroundColor:isT?"#3182F6":"transparent",color:isT?"#FFFFFF":"#374151",cursor:"pointer"}}>{day}</span>
-                {evts.map(ev=>{const et=ET[ev.type]||ET.internal;return <div key={ev.id} onClick={()=>{setDetail(ev);setActionForm({type:"task",title:"",projectId:"",status:"todo"});setActionDone([]);}} title={ev.title} style={{marginTop:1,padding:"1px 4px",borderRadius:4,fontSize:9,fontWeight:700,backgroundColor:et.bg,color:et.color,cursor:"pointer",overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",maxWidth:"100%",boxSizing:"border-box"}}>{ev.title}</div>;})}
+              <div key={day} style={{padding:"3px",height:72,minWidth:0,overflow:"hidden",boxSizing:"border-box"}}>
+                <span onClick={()=>openNewEvent(`${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`)} title="이 날 일정 추가" style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:20,height:20,borderRadius:"50%",fontSize:11,fontWeight:isT?900:400,backgroundColor:isT?"#3182F6":"transparent",color:isT?"#FFFFFF":"#374151",cursor:"pointer"}}>{day}</span>
+                {shown.map(ev=>{const et=ET[ev.type]||ET.internal;return <div key={ev.id} onClick={()=>{setDetail(ev);setActionForm({type:"task",title:"",projectId:"",status:"todo"});setActionDone([]);}} title={ev.title} style={{marginTop:1,height:15,lineHeight:"13px",padding:"0 4px",borderRadius:4,fontSize:9,fontWeight:700,backgroundColor:et.bg,color:et.color,cursor:"pointer",overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",maxWidth:"100%",boxSizing:"border-box"}}>{ev.title}</div>;})}
+                {more>0&&<div onClick={()=>{const first=evts[shown.length];if(first){setDetail(first);setActionForm({type:"task",title:"",projectId:"",status:"todo"});setActionDone([]);}}} style={{marginTop:1,height:14,lineHeight:"14px",fontSize:9,fontWeight:800,color:"#6B7280",background:"#F2F4F6",borderRadius:4,textAlign:"center",cursor:"pointer"}}>+{more}</div>}
               </div>
             );
           })}

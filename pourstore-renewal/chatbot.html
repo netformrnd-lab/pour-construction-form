@@ -2321,6 +2321,9 @@ function RecoFlowPage({ onToast }) {
   const [editing, setEditing] = useState(null);
   const [q, setQ] = useState('');
   const [view, setView] = useState('mindmap'); // mindmap | card
+  const [expanded, setExpanded] = useState(() => new Set());
+  const toggleExpand = (id) => setExpanded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const updateNeed = async (id, patch) => { const needs = (data.needs || []).map(n => n.id === id ? { ...n, ...patch } : n); await persist({ ...data, needs }); };
   const emptyNeed = (label) => ({ building: label && label !== '공통(전체)' ? [label] : [], part:[], material:[], problem:[], cause:'', solution:'', storeMethod:'', method:'', methodLink:'', credibility:[], products:[], guide:'', note:'' });
 
   const load = async () => { setLoading(true); try { const d = await db.collection(COLLECTIONS.RECO).doc('tree').get(); if (d.exists) setData(d.data()); } catch (e) { console.error('[reco]', e); } setLoading(false); };
@@ -2374,7 +2377,7 @@ function RecoFlowPage({ onToast }) {
             <button onClick={seed} style={btnPrimary()}>🌱 기본 매핑 시드</button>
           </div>
         ) : view === 'mindmap' ? (
-          <MindmapView groups={groupList} onEdit={(n) => setEditing(n)} onAddNeed={addNeedFor} onDelete={(n) => delNeed(n.id)} />
+          <MindmapView groups={groupList} expanded={expanded} onToggleExpand={toggleExpand} onEdit={(n) => setEditing(n)} onAddNeed={addNeedFor} onDelete={(n) => delNeed(n.id)} onUpdateNeed={updateNeed} />
         ) : (
           <div style={{ display:'grid', gap:22 }}>
             {groupList.map(g => (
@@ -2477,24 +2480,26 @@ function RecoNeedModal({ need, onClose, onSave }) {
 }
 
 // ============================================================
-// 마인드맵 뷰 (EdrawMind 스타일) — 건물 → 니즈 → 솔루션/상품, 자동 레이아웃
+// 마인드맵 뷰 (EdrawMind 스타일) — 드래그 팬·노드 인라인편집·키보드·줌
 // ============================================================
-function MindmapView({ groups, onEdit, onAddNeed, onDelete }) {
+function MindmapView({ groups, expanded, onToggleExpand, onEdit, onAddNeed, onDelete, onUpdateNeed }) {
   const [zoom, setZoom] = useState(1);
-  const [expanded, setExpanded] = useState(() => new Set());
   const [sel, setSel] = useState(null);
-  const toggle = (id) => setExpanded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const scRef = useRef(null);
+  const pan = useRef(null);
 
-  const ROOT_W = 138, NEED_W = 196, LEAF_W = 240;
-  const ROOT_X = 16, NEED_X = 312, LEAF_X = 612;
-  const ROW = 64, BLDGAP = 46;
+  const needById = {};
+  groups.forEach(g => g.needs.forEach(n => { needById[n.id] = n; }));
+
+  // 레이아웃
+  const ROOT_W = 138, NEED_W = 200, LEAF_W = 240;
+  const ROOT_X = 16, NEED_X = 316, LEAF_X = 616;
+  const ROW = 66, BLDGAP = 48;
   const nodes = []; const links = [];
-  let y = 30;
+  let y = 34;
   groups.forEach(g => {
     const needYs = [];
-    if (!g.needs.length) {
-      const ny = y; nodes.push({ id: g.key + ':empty', x: NEED_X, y: ny, w: NEED_W, h: 40, type: 'empty', g }); needYs.push(ny); y += ROW;
-    }
+    if (!g.needs.length) { const ny = y; nodes.push({ id: g.key + ':empty', x: NEED_X, y: ny, w: NEED_W, h: 40, type: 'empty', g }); needYs.push(ny); y += ROW; }
     g.needs.forEach(n => {
       const exp = expanded.has(n.id);
       let center;
@@ -2505,7 +2510,7 @@ function MindmapView({ groups, onEdit, onAddNeed, onDelete }) {
         center = (sY + pY) / 2; y += ROW * 2;
         links.push({ a: n.id, b: n.id + ':sol' }, { a: n.id, b: n.id + ':prod' });
       } else { center = y; y += ROW; }
-      nodes.push({ id: n.id, x: NEED_X, y: center, w: NEED_W, h: 50, type: 'need', need: n });
+      nodes.push({ id: n.id, x: NEED_X, y: center, w: NEED_W, h: 52, type: 'need', need: n, g });
       needYs.push(center);
     });
     const rootY = needYs.length ? (needYs[0] + needYs[needYs.length - 1]) / 2 : y;
@@ -2514,81 +2519,101 @@ function MindmapView({ groups, onEdit, onAddNeed, onDelete }) {
     if (!g.needs.length) links.push({ a: g.key, b: g.key + ':empty' });
     y += BLDGAP;
   });
-  const W = LEAF_X + LEAF_W + 40, H = y + 20;
+  const W = LEAF_X + LEAF_W + 60, H = y + 20;
   const byId = {}; nodes.forEach(n => byId[n.id] = n);
+  const selNode = sel ? nodes.find(n => n.id === sel && n.type === 'need') : null;
 
-  const path = (a, b) => {
-    const x1 = a.x + a.w, y1 = a.y, x2 = b.x, y2 = b.y, mx = (x1 + x2) / 2;
-    return `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
-  };
-  const iconBtn = (label, onClick, color) => (
-    <button onClick={(e) => { e.stopPropagation(); onClick(); }} style={{ width:20, height:20, borderRadius:5, fontSize:11, fontWeight:800, color: color || 'var(--text-sm)', background:'#fff', border:'1px solid var(--border)', display:'grid', placeItems:'center', boxShadow:'var(--shadow)' }}>{label}</button>
+  const pathD = (a, b) => { const x1 = a.x + a.w, y1 = a.y, x2 = b.x, y2 = b.y, mx = (x1 + x2) / 2; return `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`; };
+  const iconBtn = (label, onClick, color, sz = 24) => (
+    <button onClick={(e) => { e.stopPropagation(); onClick(); }} style={{ width:sz, height:sz, borderRadius:6, fontSize:12, fontWeight:800, color: color || 'var(--text-sm)', background:'#fff', border:'1px solid var(--border)', display:'grid', placeItems:'center', boxShadow:'var(--shadow)' }}>{label}</button>
   );
 
-  return (
-    <div style={{ position:'relative', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'linear-gradient(0deg, #FBFBFD, #fff)', overflow:'hidden' }}>
-      <div style={{ position:'absolute', top:10, right:10, zIndex:20, display:'flex', gap:6, background:'#fff', border:'1px solid var(--border)', borderRadius:8, padding:4, boxShadow:'var(--shadow)' }}>
-        {iconBtn('－', () => setZoom(z => Math.max(0.5, +(z - 0.1).toFixed(2))))}
-        <span style={{ fontSize:11, fontWeight:800, color:'var(--text-sm)', minWidth:34, textAlign:'center', alignSelf:'center' }}>{Math.round(zoom * 100)}%</span>
-        {iconBtn('＋', () => setZoom(z => Math.min(1.6, +(z + 0.1).toFixed(2))))}
-        {iconBtn('⌂', () => setZoom(1))}
+  // 드래그 팬
+  const onDown = (e) => { if (e.target.closest('[data-node]')) return; pan.current = { x: e.clientX, y: e.clientY, l: scRef.current.scrollLeft, t: scRef.current.scrollTop }; scRef.current.style.cursor = 'grabbing'; setSel(null); };
+  const onMove = (e) => { if (!pan.current) return; scRef.current.scrollLeft = pan.current.l - (e.clientX - pan.current.x); scRef.current.scrollTop = pan.current.t - (e.clientY - pan.current.y); };
+  const onUp = () => { pan.current = null; if (scRef.current) scRef.current.style.cursor = 'grab'; };
+  const onKey = (e) => {
+    if (e.key === 'Enter' && selNode) { e.preventDefault(); const b = selNode.need.building && selNode.need.building[0]; onAddNeed(b || (selNode.g && selNode.g.label)); }
+    if (e.key === 'Escape') setSel(null);
+  };
+
+  // 노드 인라인 키워드 편집 (선택된 니즈 옆 플로팅 패널)
+  const MiniDim = ({ icon, dimKey, value, presets }) => {
+    const [t, setT] = useState('');
+    const add = (k) => { k = (k || '').trim(); if (!k || value.includes(k)) return; onUpdateNeed(selNode.need.id, { [dimKey]: [...value, k] }); setT(''); };
+    return (
+      <div style={{ display:'flex', gap:4, alignItems:'center', flexWrap:'wrap', marginBottom:5 }}>
+        <span style={{ fontSize:11, width:14 }}>{icon}</span>
+        {value.map(k => <span key={k} style={{ fontSize:10, fontWeight:800, color:'var(--navy)', background:'var(--blue-l)', borderRadius:5, padding:'1px 4px 1px 6px', display:'inline-flex', alignItems:'center', gap:2 }}>{k}<button onClick={() => onUpdateNeed(selNode.need.id, { [dimKey]: value.filter(x => x !== k) })} style={{ fontSize:10, color:'var(--text-xs)' }}>×</button></span>)}
+        <input value={t} onChange={e => setT(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(t); } e.stopPropagation(); }} placeholder="+키워드" list={'dl-' + dimKey} style={{ width:62, fontSize:10, padding:'2px 5px', border:'1px solid var(--border)', borderRadius:5, outline:'none' }} />
+        <datalist id={'dl-' + dimKey}>{presets.map(p => <option key={p} value={p} />)}</datalist>
       </div>
-      <div className="cb-scroll" style={{ overflow:'auto', height:'calc(100vh - 230px)', minHeight:360 }}>
+    );
+  };
+
+  return (
+    <div style={{ position:'relative', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'#fff', overflow:'hidden' }}>
+      <div style={{ position:'absolute', top:10, right:10, zIndex:30, display:'flex', gap:6, background:'#fff', border:'1px solid var(--border)', borderRadius:8, padding:4, boxShadow:'var(--shadow)' }}>
+        {iconBtn('－', () => setZoom(z => Math.max(0.5, +(z - 0.1).toFixed(2))), null, 26)}
+        <span style={{ fontSize:11, fontWeight:800, color:'var(--text-sm)', minWidth:34, textAlign:'center', alignSelf:'center' }}>{Math.round(zoom * 100)}%</span>
+        {iconBtn('＋', () => setZoom(z => Math.min(1.6, +(z + 0.1).toFixed(2))), null, 26)}
+        {iconBtn('⌂', () => setZoom(1), null, 26)}
+      </div>
+      <div style={{ position:'absolute', top:10, left:10, zIndex:30, fontSize:10.5, color:'var(--text-xs)', fontWeight:700, background:'rgba(255,255,255,.85)', borderRadius:6, padding:'4px 8px' }}>빈 공간 드래그=이동 · 니즈 선택 후 Enter=추가</div>
+      <div ref={scRef} className="cb-scroll" tabIndex={0} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerLeave={onUp} onKeyDown={onKey}
+        style={{ overflow:'auto', height:'calc(100vh - 240px)', minHeight:380, cursor:'grab', outline:'none' }}>
         <div style={{ position:'relative', width: W * zoom, height: H * zoom }}>
           <div style={{ position:'absolute', top:0, left:0, width:W, height:H, transform:`scale(${zoom})`, transformOrigin:'0 0' }}>
             <svg width={W} height={H} style={{ position:'absolute', top:0, left:0, pointerEvents:'none' }}>
-              {links.map((l, i) => { const a = byId[l.a], b = byId[l.b]; if (!a || !b) return null; return <path key={i} d={path(a, b)} fill="none" stroke="#CBD5E1" strokeWidth={2} />; })}
+              {links.map((l, i) => { const a = byId[l.a], b = byId[l.b]; if (!a || !b) return null; return <path key={i} d={pathD(a, b)} fill="none" stroke="#CBD5E1" strokeWidth={2} />; })}
             </svg>
             {nodes.map(n => {
               const top = n.y - n.h / 2;
-              if (n.type === 'building') {
-                return (
-                  <div key={n.id} onClick={() => onAddNeed(n.g.label)} title="클릭하면 이 건물에 니즈 추가" style={{ position:'absolute', left:n.x, top, width:n.w, minHeight:n.h, cursor:'pointer', background:'var(--navy)', color:'#fff', borderRadius:12, padding:'8px 12px', boxShadow:'var(--shadow-lg)', display:'flex', alignItems:'center', justifyContent:'space-between', gap:6 }}>
-                    <span style={{ fontSize:13, fontWeight:900 }}>🏢 {n.g.label}</span>
-                    <span style={{ fontSize:14, fontWeight:900, opacity:.85 }}>＋</span>
-                  </div>
-                );
-              }
-              if (n.type === 'empty') {
-                return <div key={n.id} onClick={() => onAddNeed(n.g.label)} style={{ position:'absolute', left:n.x, top, width:n.w, height:n.h, cursor:'pointer', border:'1.5px dashed var(--border)', borderRadius:10, display:'grid', placeItems:'center', fontSize:11.5, fontWeight:700, color:'var(--text-sm)', background:'#fff' }}>＋ 니즈 추가</div>;
-              }
+              if (n.type === 'building') return (
+                <div key={n.id} data-node onClick={() => onAddNeed(n.g.label)} title="클릭=니즈 추가" style={{ position:'absolute', left:n.x, top, width:n.w, minHeight:n.h, cursor:'pointer', background:'var(--navy)', color:'#fff', borderRadius:12, padding:'9px 13px', boxShadow:'var(--shadow-lg)', display:'flex', alignItems:'center', justifyContent:'space-between', gap:6 }}>
+                  <span style={{ fontSize:13, fontWeight:900 }}>🏢 {n.g.label}</span><span style={{ fontSize:15, fontWeight:900, opacity:.85 }}>＋</span>
+                </div>
+              );
+              if (n.type === 'empty') return <div key={n.id} data-node onClick={() => onAddNeed(n.g.label)} style={{ position:'absolute', left:n.x, top, width:n.w, height:n.h, cursor:'pointer', border:'1.5px dashed var(--border)', borderRadius:10, display:'grid', placeItems:'center', fontSize:11.5, fontWeight:700, color:'var(--text-sm)', background:'#fff' }}>＋ 니즈 추가</div>;
               if (n.type === 'need') {
-                const kw = needKeywords(n.need);
-                const exp = expanded.has(n.need.id);
-                const isSel = sel === n.id;
+                const kw = needKeywords(n.need); const exp = expanded.has(n.need.id); const isSel = sel === n.id;
                 return (
-                  <div key={n.id} onClick={() => setSel(isSel ? null : n.id)} style={{ position:'absolute', left:n.x, top, width:n.w, cursor:'pointer', background:'#fff', border:`2px solid ${isSel ? 'var(--or)' : 'var(--blue-m)'}`, borderRadius:10, padding:'7px 9px', boxShadow:'var(--shadow)' }}>
-                    <div style={{ display:'flex', gap:4, flexWrap:'wrap', alignItems:'center' }}>
+                  <div key={n.id} data-node onClick={() => setSel(isSel ? null : n.id)} style={{ position:'absolute', left:n.x, top, width:n.w, cursor:'pointer', background:'#fff', border:`2px solid ${isSel ? 'var(--or)' : 'var(--blue-m)'}`, borderRadius:10, padding:'8px 10px', boxShadow: isSel ? 'var(--shadow-lg)' : 'var(--shadow)' }}>
+                    <div style={{ display:'flex', gap:4, flexWrap:'wrap', alignItems:'center', minHeight:18 }}>
                       <span style={{ fontSize:10 }}>🔑</span>
-                      {kw.slice(0, 4).map(k => <span key={k} style={{ fontSize:10.5, fontWeight:800, color:'var(--navy)', background:'var(--blue-l)', borderRadius:5, padding:'1px 6px' }}>{k}</span>)}
+                      {kw.slice(0, 5).map(k => <span key={k} style={{ fontSize:10.5, fontWeight:800, color:'var(--navy)', background:'var(--blue-l)', borderRadius:5, padding:'1px 6px' }}>{k}</span>)}
                       {!kw.length && <span style={{ fontSize:11, color:'var(--text-xs)' }}>키워드 없음</span>}
                     </div>
-                    <div style={{ display:'flex', gap:5, marginTop:7, justifyContent:'flex-end' }}>
-                      {iconBtn(exp ? '－' : '＋', () => toggle(n.need.id), 'var(--navy)')}
+                    <div style={{ display:'flex', gap:6, marginTop:8, justifyContent:'flex-end' }}>
+                      {iconBtn(exp ? '－' : '＋', () => onToggleExpand(n.need.id), 'var(--navy)')}
                       {iconBtn('✏️', () => onEdit(n.need))}
                       {iconBtn('🗑', () => onDelete(n.need), 'var(--red)')}
                     </div>
                   </div>
                 );
               }
-              // sol / prod leaf
-              const isSol = n.type === 'sol';
-              const need = n.need;
-              const prods = (need.products || []).filter(x => x.name);
+              const isSol = n.type === 'sol'; const need = n.need; const prods = (need.products || []).filter(x => x.name);
               return (
-                <div key={n.id} onClick={() => onEdit(need)} style={{ position:'absolute', left:n.x, top, width:n.w, cursor:'pointer', background: isSol ? 'var(--or-pale)' : 'var(--green-l)', border:`1.5px solid ${isSol ? '#FED7AA' : 'var(--green-m)'}`, borderRadius:10, padding:'7px 10px', boxShadow:'var(--shadow)' }}>
+                <div key={n.id} data-node onClick={() => onEdit(need)} style={{ position:'absolute', left:n.x, top, width:n.w, cursor:'pointer', background: isSol ? 'var(--or-pale)' : 'var(--green-l)', border:`1.5px solid ${isSol ? '#FED7AA' : 'var(--green-m)'}`, borderRadius:10, padding:'7px 10px', boxShadow:'var(--shadow)' }}>
                   <div style={{ fontSize:10, fontWeight:900, color: isSol ? 'var(--or-d)' : 'var(--green)', marginBottom:3 }}>{isSol ? '💡 솔루션' : '📦 상품 안내'}</div>
-                  {isSol ? (
-                    <div style={{ fontSize:11, color:'var(--text-md)', lineHeight:1.4, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{need.solution || need.cause || '미입력'}</div>
-                  ) : (
-                    <div style={{ fontSize:11, color:'var(--text-md)', lineHeight:1.4 }}>
-                      <div style={{ display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{need.storeMethod || '시공방안 미입력'}</div>
-                      {prods.length > 0 && <div style={{ marginTop:3, fontWeight:800, color:'var(--green)' }}>📦 {prods.map(p => p.name).join(', ')}</div>}
-                    </div>
-                  )}
+                  {isSol ? <div style={{ fontSize:11, color:'var(--text-md)', lineHeight:1.4, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{need.solution || need.cause || '미입력'}</div>
+                    : <div style={{ fontSize:11, color:'var(--text-md)', lineHeight:1.4 }}><div style={{ display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{need.storeMethod || '시공방안 미입력'}</div>{prods.length > 0 && <div style={{ marginTop:3, fontWeight:800, color:'var(--green)' }}>📦 {prods.map(p => p.name).join(', ')}</div>}</div>}
                 </div>
               );
             })}
+            {/* 선택된 니즈 인라인 편집 패널 */}
+            {selNode && (() => {
+              const nd = needById[selNode.need.id] || selNode.need;
+              return (
+                <div data-node onClick={e => e.stopPropagation()} style={{ position:'absolute', left:selNode.x, top:selNode.y + selNode.h / 2 + 8, width:NEED_W, zIndex:25, background:'#fff', border:'2px solid var(--or)', borderRadius:10, padding:'9px 10px', boxShadow:'var(--shadow-lg)' }}>
+                  <div style={{ fontSize:9.5, fontWeight:800, color:'var(--or-d)', marginBottom:6 }}>✎ 키워드 인라인 편집</div>
+                  {NEED_DIMS.map(d => <MiniDim key={d.key} icon={d.icon} dimKey={d.key} value={nd[d.key] || []} presets={d.presets} />)}
+                  <div style={{ display:'flex', gap:6, marginTop:6 }}>
+                    <button onClick={() => onEdit(nd)} style={{ ...btnGhost({ flex:1, padding:'5px 0', fontSize:11 }), color:'var(--or-d)' }}>전체 편집(솔루션·상품)</button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>

@@ -13,6 +13,8 @@ const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
+// 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
+const SHARE = (typeof window!=="undefined") && new URLSearchParams(window.location.search).get("view")==="share";
 
 const C = {
   primary:"#3182F6", primaryL:"#EBF3FF",
@@ -659,6 +661,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up,onDelete})=>{
   );
 };
 const TABS=[{id:"today",icon:"🏠",label:"오늘"},{id:"kpi",icon:"◎",label:"KPI"},{id:"projects",icon:"▦",label:"프로젝트"},{id:"calendar",icon:"▤",label:"캘린더"},{id:"more",icon:"⋯",label:"더보기"}];
+const SHARE_NAV=[{id:"kpi",icon:"◎",label:"KPI"},{id:"mindmap",icon:"◈",label:"그로스보드"}];   // 공유 보기 전용 네비
 const MORE=[{id:"mindmap",icon:"◈",label:"그로스보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"team",icon:"👤",label:"담당자"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"},{id:"guide",icon:"📖",label:"가이드"}];
 // 메뉴 그룹: 개인(나만 보는 내 것) vs 팀(모두 같이 보는 공유) — 출시·프로세스는 프로젝트 하위
 const NAV_GROUPS=[
@@ -669,7 +672,7 @@ const NAV_GROUPS=[
 let _projInitView=null;   // 오늘 인계카드 → 프로젝트 '프로세스' 탭으로 진입 (마운트 시 1회 소비)
 export default function App(){
   const [D,setD]=useState(INIT);
-  const [page,setPage]=useState("today");
+  const [page,setPage]=useState(SHARE?"kpi":"today");
   const [more,setMore]=useState(false);
   const [uSheet,setUSheet]=useState(false);
   const [editUser,setEditUser]=useState(null);   // 담당자 수정 {id,name,dept,color}
@@ -828,11 +831,11 @@ export default function App(){
     });
     return changed?{...state,projects}:state;
   };
-  const add=(k,item)=>setD(p=>{
+  const add=(k,item)=>{ if(SHARE) return;  return setD(p=>{
     let it=item;   // 업무는 생성 시점을 진행 이력의 첫 항목으로 기록(여정 시작점)
     if(k==="tasks"&&!Array.isArray(item.statusLog)) it={...item,statusLog:[{status:item.status||"todo",at:new Date().toISOString(),by:cu?.id||null,byName:cu?.name||""}]};
-    const n={...p,[k]:[...p[k],it]};return k==="tasks"?recalcProg(n):n;});
-  const up=(k,id,c)=>setD(p=>{
+    const n={...p,[k]:[...p[k],it]};return k==="tasks"?recalcProg(n):n;});};
+  const up=(k,id,c)=>{ if(SHARE) return; return setD(p=>{
     // 업무 상태 전이 시 진행 이력(statusLog) 누적 — 할일→진행중→보류→진행중→완료 여정 전체 보존. 완료 전환 시 완료시각·완료자도 기록.
     const list=p[k].map(i=>{ if(i.id!==id) return i; let patch=c;
       if(k==="tasks"&&c.status&&c.status!==i.status){ const at=new Date().toISOString();
@@ -844,11 +847,12 @@ export default function App(){
     // 자동화: 업무가 완료로 전이되면 후속 액션 평가(설정 없으면 무동작). recalcProg는 마지막에 한 번.
     const n2=(k==="tasks"&&c.status==="done")?applyAutomation(n,id,cu):n;
     return k==="tasks"?recalcProg(n2):n2;
-  });
+  });};
   const newTid=()=>"trash"+Date.now()+"_"+Math.random().toString(36).slice(2,6);
   const delMeta=()=>({_deletedAt:new Date().toISOString(),_deletedBy:cu?.id||null,_deletedByName:cu?.name||""});
   // 삭제 = 영구 제거가 아니라 휴지통 이동. 어떤 데이터도 사라지지 않는다(데이터 자산화 · 복구 가능). silent=대량삭제 시 토스트 생략.
   const rm=(k,id,silent)=>{
+    if(SHARE) return;
     if(k==="trash") return;   // 휴지통 자체는 rm으로 못 지움(복구로만 비워짐)
     const item=(D[k]||[]).find(i=>i.id===id); if(!item) return;
     const _tid=newTid();
@@ -858,6 +862,7 @@ export default function App(){
   };
   // 레코드 *안의* 항목 삭제(예: 프로젝트의 활동지표)도 휴지통 이동. 부모 맥락을 함께 보관해 제자리로 복구.
   const rmNested=(parentCol,parentId,field,itemId,typeLabel)=>{
+    if(SHARE) return;
     const parent=(D[parentCol]||[]).find(x=>x.id===parentId); if(!parent) return;
     const item=(parent[field]||[]).find(x=>x.id===itemId); if(!item) return;
     const _tid=newTid();
@@ -930,7 +935,7 @@ export default function App(){
   const navAll=[...TABS.filter(t=>t.id!=="more"),...MORE];
   const pageContent=(<>
     {page==="today"&&<TodayPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
-    {page==="kpi"&&<KPIPage D={D} lead={lead} up={up} cu={cu} add={add} rm={rm} restore={restore} restoreLocal={restoreLocal} pushExternalBackup={pushExternalBackup} pc={viewMode==="pc"}/>}
+    {page==="kpi"&&<KPIPage D={D} lead={lead} up={up} cu={cu} add={add} rm={rm} restore={restore} restoreLocal={restoreLocal} pushExternalBackup={pushExternalBackup} pc={viewMode==="pc"} ro={SHARE}/>}
     {page==="projects"&&<ProjectsPage D={D} cu={cu} up={up} add={add} rm={rm} rmNested={rmNested} pc={viewMode==="pc"} lead={lead} nav={nav}/>}
     {page==="calendar"&&<CalendarPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
     {page==="launch"&&<LaunchPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm} nav={nav}/>}
@@ -1010,7 +1015,7 @@ export default function App(){
           <div><p style={{margin:0,fontSize:14.5,fontWeight:900,color:"#0F1F5C",lineHeight:1.1}}>POUR OS</p><p style={{margin:0,fontSize:9.5,color:"#F97316",fontWeight:800}}>업무관리</p></div>
         </div>
         <nav style={{flex:1,overflowY:"auto",padding:8}}>
-          {NAV_GROUPS.map(grp=>(
+          {(SHARE?[{label:"공유 보기",ids:["kpi","mindmap"]}]:NAV_GROUPS).map(grp=>(
             <div key={grp.label} style={{marginBottom:8}}>
               <p style={{margin:"6px 12px 4px",fontSize:10,fontWeight:800,color:"#B0B8C1",letterSpacing:0.6}}>{grp.label}</p>
               {grp.ids.map(id=>{const it=navAll.find(x=>x.id===id);if(!it)return null;const act=page===id;return(
@@ -1022,10 +1027,12 @@ export default function App(){
           ))}
         </nav>
         <div style={{padding:"10px 12px",borderTop:"1px solid #F4F4F5",display:"flex",flexDirection:"column",gap:9}}>
-          <button onClick={()=>setUSheet(true)} style={{display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:10,border:"1px solid #E5E8EB",backgroundColor:"#F9FAFB",cursor:"pointer",fontFamily:"inherit"}}>
+          {SHARE
+            ? <div style={{display:"flex",alignItems:"center",gap:7,padding:"8px 10px",borderRadius:10,background:"#EFF6FF",border:"1px solid #BFDBFE"}}><span style={{fontSize:14}}>🔗</span><span style={{fontSize:11.5,fontWeight:800,color:"#2563EB"}}>공유 보기 · 읽기 전용</span></div>
+            : <button onClick={()=>setUSheet(true)} style={{display:"flex",alignItems:"center",gap:9,padding:"8px 10px",borderRadius:10,border:"1px solid #E5E8EB",backgroundColor:"#F9FAFB",cursor:"pointer",fontFamily:"inherit"}}>
             <Ava name={cu?.name} color={cu?.color} size={28}/>
             <div style={{textAlign:"left",overflow:"hidden"}}><p style={{margin:0,fontSize:12.5,fontWeight:800,color:"#111827",whiteSpace:"nowrap"}}>{cu?.name}</p><p style={{margin:0,fontSize:10,color:"#9CA3AF",whiteSpace:"nowrap"}}>{cu?.role==="lead"?"리드":"팀원"}</p></div>
-          </button>
+          </button>}
           {viewToggle}
         </div>
       </aside>
@@ -1055,14 +1062,16 @@ export default function App(){
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
             {viewToggle}
-            <button onClick={()=>setUSheet(true)} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><Ava name={cu?.name} color={cu?.color} size={30}/></button>
+            {SHARE
+              ? <span style={{fontSize:10.5,fontWeight:800,color:"#2563EB",background:"#EFF6FF",border:"1px solid #BFDBFE",padding:"4px 9px",borderRadius:999,whiteSpace:"nowrap"}}>🔗 읽기 전용</span>
+              : <button onClick={()=>setUSheet(true)} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><Ava name={cu?.name} color={cu?.color} size={30}/></button>}
           </div>
         </div>
         <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF",paddingLeft:36}}>{new Date().toLocaleDateString("ko-KR",{month:"long",day:"numeric",weekday:"short"})} · {cu?.name}</p>
       </div>
       <div style={{flex:1,overflowY:"auto",WebkitOverflowScrolling:"touch"}}>{pageContent}</div>
       <div style={{backgroundColor:"#FFFFFF",borderTop:"1px solid #F2F4F6",display:"flex",flexShrink:0,paddingBottom:"env(safe-area-inset-bottom,0px)"}}>
-        {TABS.map(t=>{const act=t.id==="more"?more:page===t.id;return(
+        {(SHARE?SHARE_NAV:TABS).map(t=>{const act=t.id==="more"?more:page===t.id;return(
           <button key={t.id} onClick={()=>t.id==="more"?setMore(!more):nav(t.id)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"9px 4px 7px",background:"none",border:"none",cursor:"pointer",gap:2}}>
             <span style={{fontSize:20,lineHeight:1}}>{t.icon}</span>
             <span style={{fontSize:10,fontWeight:act?800:500,color:act?"#F97316":"#9CA3AF"}}>{t.label}</span>
@@ -2085,7 +2094,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
     </div>
   );
 }
-function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup}){
+function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro}){
   const [kpiView,setKpiView]=useState("dashboard");
   const [openMK,setOpenMK]=useState("mk1");
   const [openSK,setOpenSK]=useState(null);
@@ -2176,10 +2185,10 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup}){
       </div>
       {kpiView==="dashboard"&&(
         <div>
-          <div style={{backgroundColor:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:12,padding:"11px 13px",marginBottom:12}}>
+          {!ro&&<div style={{backgroundColor:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:12,padding:"11px 13px",marginBottom:12}}>
             <p style={{margin:"0 0 4px",fontSize:12,fontWeight:900,color:"#EA580C"}}>💡 매주 금요일, 내 KPI에 이번 주 실적을 넣으세요</p>
             <p style={{margin:0,fontSize:11,color:"#9A3412",fontWeight:600,lineHeight:1.55}}>· <b>직판·운영</b> KPI → 항목 펼쳐 <b>📊 이번 주 실적 입력</b><br/>· <b>B2B(메인2)</b> → 펼친 뒤 <b>거래처유형별 매출 ✏️입력</b>(프로젝트 매출) = 자동 집계<br/>· 추가값=이번 주만 / 총값=누계 덮어쓰기 · 누가 넣었는지·주차별 이력 자동 기록</p>
-          </div>
+          </div>}
           {D.goals.map(g=>{
             const cur=D.mainKPIs.filter(mk=>mk.unit==="원").reduce((s,mk)=>s+mkCur(mk,D.subKPIs,D.projects),0);
             const p=pct(cur,g.targetValue);
@@ -2412,9 +2421,9 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup}){
               </div>
             );
           })}
-          <button onClick={openNewMain} style={{width:"100%",padding:"12px 0",borderRadius:12,border:"1.5px dashed #93C5FD",background:"#EFF6FF",color:"#2563EB",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 메인KPI 추가</button>
+          {!ro&&<button onClick={openNewMain} style={{width:"100%",padding:"12px 0",borderRadius:12,border:"1.5px dashed #93C5FD",background:"#EFF6FF",color:"#2563EB",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 메인KPI 추가</button>}
           <div style={{marginTop:18,paddingTop:16,borderTop:"1px solid #F2F4F6"}}><TeamBoard D={D} cu={cu} embed/></div>
-          <ExportPanel D={D} up={up} restore={restore} restoreLocal={restoreLocal} pushExternalBackup={pushExternalBackup}/>
+          {!ro&&<ExportPanel D={D} up={up} restore={restore} restoreLocal={restoreLocal} pushExternalBackup={pushExternalBackup}/>}
         </div>
       )}
       {kpiView==="mindmap"&&(

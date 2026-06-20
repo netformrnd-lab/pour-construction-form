@@ -578,6 +578,14 @@
   .seg-pl button{padding:9px 13px;border:1px solid var(--border2);border-radius:10px;font-size:13px;font-weight:700;color:var(--muted);background:#fff}
   .seg-pl button.on{background:var(--navy);color:#fff;border-color:transparent}
   .pl-actions{display:flex;gap:10px;margin-top:8px}
+  .pl-comments{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;max-height:170px;overflow:auto}
+  .pl-cmt{background:var(--cream);border-radius:9px;padding:8px 10px}
+  .pl-cmt .m{font-size:12.5px;color:var(--ink2);line-height:1.45;white-space:pre-wrap;word-break:break-word}
+  .pl-cmt .meta{font-size:10.5px;color:var(--muted);margin-top:3px}
+  .pl-cadd{display:flex;gap:6px}
+  .pl-cadd input{flex:1;padding:9px 11px;border:1px solid var(--border2);border-radius:9px;background:var(--cream)}
+  .pl-cadd button{padding:9px 14px;border-radius:9px;background:var(--navy);color:#fff;font-weight:700;font-size:13px;white-space:nowrap}
+  .pl-approved{font-size:11.5px;color:var(--green);font-weight:700;margin:-2px 0 8px}
   .xlsx-blk{background:var(--cream);border:1px solid var(--border);border-radius:13px;padding:12px}
   .xlsx-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
   .xlsx-row:last-of-type{margin-bottom:0}
@@ -845,7 +853,14 @@
       <div class="frow"><label>후보 업체 메모 <span class="opt">(원료·제조·용기·충진 업체/연락)</span></label><textarea id="pl_vendor" rows="3" placeholder="예) 원료: A사 견적대기 · 용기: B사 010-... · 충진: 미확정"></textarea></div>
       <div class="frow"><label>진행 상태</label>
         <div class="pl-status seg-pl" id="pl_status"></div>
+        <div class="pl-approved" id="pl_approved" style="display:none"></div>
       </div>
+      <div class="frow" id="pl_commentsWrap" style="display:none">
+        <label>진행 메모 / 댓글 <span class="opt">(보고·검토 의견)</span></label>
+        <div id="pl_comments" class="pl-comments"></div>
+        <div class="pl-cadd"><input type="text" id="pl_cinput" placeholder="메모·결정사항 입력"><button type="button" id="pl_cadd">추가</button></div>
+      </div>
+      <button class="save" id="pl_toProduct" style="width:100%;background:var(--green);margin-bottom:10px;display:none">이 기획으로 제품 만들기 →</button>
       <div class="pl-actions">
         <button class="btn-ghost" id="pl_del" style="color:var(--red)">삭제</button>
         <button class="save" id="pl_save" style="flex:1">저장</button>
@@ -3263,9 +3278,11 @@ function renderPlanStatusSeg(){
   box.innerHTML=PLAN_STATUS.map(s=>`<button type="button" class="${tmpPlanStatus===s?'on':''}" data-pst="${s}">${PLAN_ST_LABEL[s]}</button>`).join('');
   box.querySelectorAll('[data-pst]').forEach(b=>b.onclick=()=>{tmpPlanStatus=b.dataset.pst;renderPlanStatusSeg();});
 }
+let curPlanObj=null;
+function curUser(){return (typeof FA!=='undefined'&&FA&&FA.currentUser&&FA.currentUser.email)||'소싱팀';}
 function openPlan(id){
   const p=id?plans.items.find(x=>x.id===id):null;
-  editingPlan=id||null;
+  editingPlan=id||null;curPlanObj=p||null;
   tmpPlanId=id||('plan_'+uid());
   tmpPlanPhotos=p?JSON.parse(JSON.stringify(p.photos||[])):[];
   tmpPlanNeeds=p?(p.needs||[]).slice():[];
@@ -3278,18 +3295,53 @@ function openPlan(id){
   $('#pl_refs').value=p?((p.refs||[]).join('\n')):'';
   $('#pl_vendor').value=p?(p.vendorMemo||''):'';
   $('#pl_del').style.display=id?'':'none';
-  renderPlanNeeds();renderPlanStatusSeg();renderPlanPhotos();
+  $('#pl_commentsWrap').style.display=id?'':'none';
+  $('#pl_toProduct').style.display=id?'':'none';
+  const ap=$('#pl_approved');
+  if(id&&p&&p.approvedAt){ap.style.display='';ap.textContent='✓ 승인됨 · '+esc(p.approvedBy||'')+' · '+(p.approvedAt||'').slice(0,10);}else ap.style.display='none';
+  if(id&&p&&p.productId&&state.products.some(x=>x.id===p.productId))$('#pl_toProduct').textContent='연결된 제품 보기 →';
+  else $('#pl_toProduct').textContent='이 기획으로 제품 만들기 →';
+  renderPlanNeeds();renderPlanStatusSeg();renderPlanPhotos();renderPlanComments();
   openOverlay('planOverlay');
 }
+function renderPlanComments(){
+  const box=$('#pl_comments');if(!box)return;
+  const cs=(curPlanObj&&curPlanObj.comments)||[];
+  box.innerHTML=cs.length?cs.slice().reverse().map(c=>`<div class="pl-cmt"><div class="m">${esc(c.text||'')}</div><div class="meta">${esc(c.by||'')} · ${esc((c.at||'').replace('T',' ').slice(0,16))}</div></div>`).join(''):'<div class="meta" style="color:var(--muted);font-size:11.5px">아직 메모가 없어요.</div>';
+}
+async function addPlanComment(){
+  if(!curPlanObj)return;
+  const inp=$('#pl_cinput');const t=(inp.value||'').trim();if(!t)return;
+  if(!curPlanObj.comments)curPlanObj.comments=[];
+  curPlanObj.comments.push({by:curUser(),text:t,at:new Date().toISOString()});
+  inp.value='';renderPlanComments();
+  await savePlans();renderPlans();
+}
+function planToProduct(){
+  const p=curPlanObj;if(!p)return;
+  if(p.productId&&state.products.some(x=>x.id===p.productId)){closeOverlay();state.sel=p.productId;save();switchTab('products');openDetail(p.productId);return;}
+  const id=uid();
+  const memo=[p.marketMemo&&('[시장분석] '+p.marketMemo),p.vendorMemo&&('[후보업체] '+p.vendorMemo),(p.needs&&p.needs.length)&&('[필요업체] '+p.needs.join(', ')),(p.refs&&p.refs.length)&&('[참고링크]\n'+p.refs.join('\n')),p.source&&('[기획출처] '+p.source)].filter(Boolean).join('\n\n');
+  const np={id,name:p.title||'(무제)',goods:'',maker:'',type:'단품',bundle:[],baseId:'',concept:p.category||'',spec:'',sample:'대기',memo,source:'국내 제조사',market:'',cost:'',moq:'',pricevar:'',lead:'',customs:'',fill:[],fillmaker:'확인중',container:'확인중',ibc:'해당없음',label:'',cert:'확인중',patent:'확인중',certs:[],patentinfo:'',attachments:[],notes:[],fav:false,tests:[],docs:[],stage:'후보',history:[{stage:'후보',date:today()}]};
+  state.products.push(np);state.sel=id;logAct('add',np,null);save();
+  p.productId=id;savePlans();
+  closeOverlay();switchTab('products');openDetail(id);
+}
+$('#pl_cadd').onclick=addPlanComment;
+$('#pl_cinput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addPlanComment();}});
+$('#pl_toProduct').onclick=planToProduct;
 async function savePlanItem(){
   const title=$('#pl_title').value.trim();
   if(!title){$('#pl_title').focus();alert('아이디어명을 입력하세요.');return;}
   const refs=$('#pl_refs').value.split('\n').map(s=>s.trim()).filter(Boolean);
   const now=new Date().toISOString();
   const data={title,source:$('#pl_source').value,category:$('#pl_cat').value.trim(),marketMemo:$('#pl_market').value.trim(),refs,photos:tmpPlanPhotos.slice(),needs:tmpPlanNeeds.slice(),vendorMemo:$('#pl_vendor').value.trim(),status:tmpPlanStatus,updatedAt:now};
+  // 승인 시 승인자/일시 기록(최초 1회)
+  const ex=editingPlan?plans.items.find(x=>x.id===editingPlan):null;
+  if(tmpPlanStatus==='승인'&&!(ex&&ex.approvedAt)){data.approvedBy=curUser();data.approvedAt=now;}
   const btn=$('#pl_save');btn.disabled=true;btn.textContent='저장 중…';
-  if(editingPlan){const p=plans.items.find(x=>x.id===editingPlan);if(p)Object.assign(p,data);}
-  else{plans.items.unshift(Object.assign({id:tmpPlanId,createdAt:now},data));}
+  if(editingPlan){if(ex)Object.assign(ex,data);}
+  else{plans.items.unshift(Object.assign({id:tmpPlanId,createdAt:now,comments:[]},data));}
   const ok=await savePlans();
   btn.disabled=false;btn.textContent='저장';
   if(ok){closeOverlay();renderPlans();}

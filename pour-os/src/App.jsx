@@ -353,6 +353,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up})=>{
   const [dropOver,setDropOver]=useState(false);
   const [advOpen,setAdvOpen]=useState(false);   // 프로세스 위치·하위 업무 편집 펼침(기본 접힘)
   const [histOpen,setHistOpen]=useState(false);  // 진행 이력 펼침(기본 접힘)
+  const [childName,setChildName]=useState("");   // 새 하위 업무명 즉시 입력
   if(task&&task.id!==prevId){setPrevId(task.id);setForm({title:task.title||"",status:task.status||"todo",dueDate:task.dueDate||"",memo:task.memo||"",projectId:task.projectId||"",assigneeId:task.assigneeId||"",assigneeIds:Array.isArray(task.assigneeIds)&&task.assigneeIds.length?task.assigneeIds:(task.assigneeId?[task.assigneeId]:[]),forAll:!!task.forAll,parentId:task.parentId||"",attachments:Array.isArray(task.attachments)?task.attachments:[],weekDay:task.weekDay||"",weekSlot:task.weekSlot??null,workDate:task.workDate||"",fixedTime:task.fixedTime||""});}
   if(!task&&prevId!==null){setPrevId(null);setForm({title:"",status:"todo",dueDate:"",memo:"",projectId:"",assigneeId:"",assigneeIds:[],forAll:false,attachments:[],weekDay:"",weekSlot:null,workDate:"",fixedTime:""});}
   // 날짜 선택 → 요일·슬롯 자동 배정(담당자의 그 요일 빈 슬롯 중 가장 앞, 없으면 슬롯 없이 그날에)
@@ -408,7 +409,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up})=>{
           const proj=task.projectId?(D.projects||[]).find(p=>p.id===task.projectId):null;
           const chain=taskParentChain(D,task);
           const desc=taskDescFlat(D,task.id);
-          const addChild=()=>{ if(!add)return; add("tasks",{id:"t"+Date.now()+Math.random().toString(36).slice(2,5),projectId:task.projectId||"",parentId:task.id,seq:taskKidsOf(D,task.id).length,title:"새 하위 업무",status:"todo",isFixed:false,assigneeId:task.assigneeId||"",memo:"",dueDate:"",attachments:[]}); };
+          const addChild=()=>{ if(!add)return; const nm=childName.trim()||"새 하위 업무"; add("tasks",{id:"t"+Date.now()+Math.random().toString(36).slice(2,5),projectId:task.projectId||"",parentId:task.id,seq:taskKidsOf(D,task.id).length,title:nm,status:"todo",isFixed:false,assigneeId:task.assigneeId||"",memo:"",dueDate:"",attachments:[]}); setChildName(""); };
           return(
             <div style={{marginBottom:14,padding:"11px 12px",background:"#F9FAFB",borderRadius:12,border:"1px solid #F2F4F6"}}>
               <button type="button" onClick={()=>setAdvOpen(o=>!o)} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>
@@ -432,14 +433,18 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up})=>{
                     <div key={t.id} style={{display:"flex",alignItems:"center",gap:7,marginLeft:(depth-1)*14}}>
                       {depth>1&&<span style={{color:"#D1D5DB",fontSize:11,flexShrink:0}}>↳</span>}
                       <button onClick={()=>up&&up("tasks",t.id,statusPatch(D,t,t.status==="done"?"todo":"done"))} title={st.label} style={{width:16,height:16,borderRadius:5,border:`2px solid ${st.color}`,background:t.status==="done"?st.color:"#fff",color:"#fff",fontSize:9,fontWeight:900,cursor:"pointer",flexShrink:0,lineHeight:1,padding:0}}>{t.status==="done"?"✓":""}</button>
-                      <span style={{flex:1,minWidth:0,fontSize:12,color:t.status==="done"?"#9CA3AF":"#1F2937",textDecoration:t.status==="done"?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}</span>
+                      <input key={t.id+"ti"} defaultValue={t.title||""} onBlur={e=>{const v=e.target.value.trim();if(v&&v!==t.title){up&&up("tasks",t.id,{title:v});}else if(!v){e.target.value=t.title||"";}}} onKeyDown={e=>{if(e.key==="Enter")e.currentTarget.blur();}} placeholder="하위 업무명" style={{flex:1,minWidth:0,border:"none",background:"none",fontSize:12,fontWeight:600,color:t.status==="done"?"#9CA3AF":"#1F2937",textDecoration:t.status==="done"?"line-through":"none",outline:"none",fontFamily:"inherit",padding:"2px 0"}}/>
                       {kc>0&&<span style={{flexShrink:0,fontSize:9,fontWeight:800,color:"#9CA3AF"}}>하위 {kc}</span>}
                       <span style={{flexShrink:0,fontSize:9.5,fontWeight:800,color:st.color}}>{st.label}</span>
                     </div>
                   );})}
                 </div>
               ):<p style={{margin:0,fontSize:11,color:"#9CA3AF"}}>하위 업무가 아직 없어요</p>}
-              <button onClick={addChild} style={{width:"100%",marginTop:8,padding:"8px 0",borderRadius:9,border:"1.5px dashed #FDBA74",background:"#FFF7ED",color:"#EA580C",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>＋ 하위 업무 추가</button>
+              <div style={{display:"flex",gap:6,marginTop:8}}>
+                <input value={childName} onChange={e=>setChildName(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();addChild();}}} placeholder="새 하위 업무명 입력 (Enter)" style={{flex:1,minWidth:0,padding:"8px 11px",borderRadius:9,border:"1.5px solid #FDBA74",background:"#fff",fontSize:12,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
+                <button onClick={addChild} style={{padding:"8px 14px",borderRadius:9,border:"none",background:"#F97316",color:"#fff",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit",flexShrink:0,whiteSpace:"nowrap"}}>＋ 추가</button>
+              </div>
+              <p style={{margin:"5px 2px 0",fontSize:10,color:"#9CA3AF"}}>이름을 비우고 추가하면 '새 하위 업무'로 생성돼요 · 목록의 이름은 바로 눌러 수정</p>
               </div>}
             </div>
           );

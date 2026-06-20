@@ -122,6 +122,34 @@
   .pcount{font-size:12.5px;color:var(--muted);font-weight:700}
   .pcard .gname{font-size:12.5px;color:var(--ink2);font-weight:700;margin-top:3px}
   .pcard .gname .mz{color:var(--muted);font-weight:600;font-style:italic}
+  .mkhdr{grid-column:1/-1;font-size:13.5px;font-weight:800;color:var(--navy);padding:9px 2px 5px;border-bottom:2px solid var(--line);margin-top:10px;display:flex;align-items:center;gap:8px}
+  .mkhdr:first-child{margin-top:0}
+  .mkhdr .mkhc{font-size:11.5px;font-weight:700;color:var(--muted)}
+  /* 기획 보드 */
+  .fchips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+  .fchip{font-size:12px;font-weight:700;padding:7px 12px;border-radius:999px;border:1px solid var(--line2);background:#fff;color:var(--muted);cursor:pointer}
+  .fchip.on{background:var(--navy);color:#fff;border-color:transparent}
+  #mgPlanList{display:flex;flex-direction:column;gap:12px;max-width:780px}
+  .plc{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:14px 15px;cursor:pointer}
+  .plc .t{font-weight:800;font-size:14.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .plc .bd{background:var(--cream);color:var(--ink2);font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:7px}
+  .plst{font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px;white-space:nowrap}
+  .plc .mk{font-size:12.5px;color:var(--muted);margin:5px 0;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .plc .ft{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .nc{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:7px;background:var(--blue-pale);color:var(--blue)}
+  .plc .th{display:flex;gap:5px;margin:6px 0 0}
+  .plc .th img{width:42px;height:42px;border-radius:7px;object-fit:cover;border:1px solid var(--line)}
+  .mgp-links a{display:block;font-size:12px;color:var(--blue);word-break:break-all;margin-bottom:3px}
+  .mgp-ph{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
+  .mgp-ph img{width:74px;height:74px;border-radius:9px;object-fit:cover;border:1px solid var(--line)}
+  .mgp-cmt{background:var(--cream);border-radius:9px;padding:8px 10px;margin-bottom:6px}
+  .mgp-cmt .m{font-size:12.5px;color:var(--ink2);white-space:pre-wrap;word-break:break-word;line-height:1.45}
+  .mgp-cmt .meta{font-size:10.5px;color:var(--muted);margin-top:3px}
+  .mgp-cadd{display:flex;gap:6px;margin-top:6px}
+  .mgp-cadd input{flex:1;padding:9px 11px;border:1px solid var(--line2);border-radius:9px}
+  .mgp-cadd button{padding:9px 13px;border-radius:9px;background:var(--navy);color:#fff;font-weight:700}
+  .mgp-kv{font-size:12.5px;color:var(--ink2);line-height:1.6;white-space:pre-wrap;word-break:break-word}
+  .mgp-lbl{font-size:11.5px;font-weight:800;color:var(--muted);margin:14px 0 5px}
   /* 발주담당자 모달 */
   .ocm-scrim{position:fixed;inset:0;background:rgba(15,27,45,.5);z-index:120;display:none;align-items:center;justify-content:center;padding:20px}
   .ocm-scrim.on{display:flex}
@@ -156,16 +184,30 @@
 </header>
 
 <div class="topbar">
+  <div class="seg2" id="mgSeg"><button data-mg="products" class="on">상품 정보</button><button data-mg="plans">기획 보고함 <span id="mgPlanCount"></span></button></div>
   <span class="visnote" id="visNote"></span>
 </div>
 
-<div class="wrapP">
+<div class="wrapP" id="mgProducts">
   <div class="ptools">
     <input class="psearch" id="pSearch" placeholder="검색 (제품명·상품명·가명·제조사·담당자)">
     <select class="pfilter" id="pMaker"><option value="">전체 제조사</option></select>
     <span class="pcount" id="pCount"></span>
   </div>
   <div class="pgrid" id="pGrid"></div>
+</div>
+
+<div class="wrapP hidden" id="mgPlans">
+  <div class="fchips" id="mgPlanChips"></div>
+  <div id="mgPlanList"></div>
+</div>
+
+<!-- 기획 상세/승인 모달 -->
+<div class="ocm-scrim" id="mgPlanModal">
+  <div class="ocm-box">
+    <div class="ocm-h"><h3 id="mgpTitle">기획</h3><button class="ocm-x" id="mgpClose">✕</button></div>
+    <div class="sec" id="mgpBody"></div>
+  </div>
 </div>
 
 <!-- 발주담당자 지정 모달 -->
@@ -190,7 +232,13 @@ let oc={makers:{}};                  // sourcing-os/order-contacts (이 페이�
 let shareCfg={visible:{name:true,price:false,makerName:false,contact:true,docs:true,test:true},aliases:{}}; // 노출 설정(Sourcing-os에서 제어)
 let qp='';                           // 상품 검색
 let mkFilter='';                     // 제조사 필터
+let plans={items:[]};                // sourcing-os/plans (기획 — 이 페이지에서 승인 가능)
+let mgView='products';               // products | plans
+let planFilter='전체';
 const won=n=>(Number(n)||0).toLocaleString('ko-KR');
+const PLAN_STATUS=['아이디어','검토중','승인','보류'];
+const PLAN_ST_LABEL={'아이디어':'아이디어','검토중':'검토중(보고)','승인':'승인(작업시작)','보류':'보류'};
+const PLAN_ST_COLOR={'아이디어':['#EFF6FF','#2563EB'],'검토중':['#FEF3C7','#B45309'],'승인':['#ECFDF5','#059669'],'보류':['#F3F4F6','#6B7280']};
 
 function setSync(txt,color){const t=$('#saveTxt');if(t)t.textContent=txt;const d=document.querySelector('header .dot');if(d&&color)d.style.background=color;}
 const dn=p=>(p&&p.goods)?(p.name+'('+p.goods+')'):(p?p.name:'');
@@ -218,11 +266,14 @@ async function loadAll(){
     if(!oc.makers)oc.makers={};
     const sc=await FS.collection('sourcing-os').doc('share-config').get();
     if(sc.exists){const d=sc.data();shareCfg.visible=Object.assign(shareCfg.visible,d.visible||{});shareCfg.aliases=d.aliases||{};}
-    console.log('[manage] 제품',state.products.length,'· 제조사',makersAll().length,'· 담당자설정',Object.keys(oc.makers).length);
+    const pl=await FS.collection('sourcing-os').doc('plans').get();
+    plans=pl.exists?pl.data():{items:[]};if(!Array.isArray(plans.items))plans.items=[];
+    console.log('[manage] 제품',state.products.length,'· 제조사',makersAll().length,'· 담당자설정',Object.keys(oc.makers).length,'· 기획',plans.items.length);
     setSync('불러옴 ✓','#059669');
     renderVisNote();
     populateMakerFilter();
     renderProducts();
+    renderMgPlans();
   }catch(e){ console.error('[manage] 로드 실패:',e); setSync('로드 실패','#DC2626'); }
 }
 async function saveOC(){
@@ -308,7 +359,19 @@ function renderProducts(){
   list.sort((a,b)=>(a.maker||'').localeCompare(b.maker||'')||statusIdx(b)-statusIdx(a)||headName(a).localeCompare(headName(b)));
   $('#pCount').textContent=list.length+'개';
   if(!list.length){grid.innerHTML='<div class="empty">'+(qp||mkFilter?'결과 없음':'상품이 없어요. 소싱앱에서 등록하면 표시됩니다.')+'</div>';return;}
-  grid.innerHTML=list.map(cardHtml).join('');
+  // 제조사별 그룹 헤더 + 카드
+  let html='',lastMk=null,gi=0;
+  list.forEach(p=>{
+    const mk=p.maker||'';
+    if(mk!==lastMk){
+      lastMk=mk;gi++;
+      const cnt=list.filter(x=>(x.maker||'')===mk).length;
+      const label=v.makerName?(mk?esc(mk):'제조사 미입력'):('비공개 제조사 '+gi);
+      html+=`<div class="mkhdr">${label} <span class="mkhc">${cnt}개</span></div>`;
+    }
+    html+=cardHtml(p);
+  });
+  grid.innerHTML=html;
   grid.querySelectorAll('[data-oc]').forEach(b=>b.onclick=()=>openOcModal(b.dataset.oc));
 }
 
@@ -349,6 +412,99 @@ function openOcModal(maker){
 function closeOcModal(){$('#ocModal').classList.remove('on');}
 $('#ocClose').onclick=closeOcModal;
 $('#ocModal').onclick=e=>{if(e.target.id==='ocModal')closeOcModal();};
+
+/* ---------- 기획 보고함 (열람 + 승인/보류 + 댓글) ---------- */
+async function savePlans(){
+  try{plans.updatedAt=new Date().toISOString();await FS.collection('sourcing-os').doc('plans').set(JSON.parse(JSON.stringify(plans)));setSync('저장됨 ✓','#059669');return true;}
+  catch(e){console.error('[plans] 저장 실패:',e);setSync('저장 실패','#DC2626');alert('저장 실패: '+(e&&(e.code||e.message)));return false;}
+}
+function setMgView(v){
+  mgView=v;
+  document.querySelectorAll('#mgSeg button').forEach(b=>b.classList.toggle('on',b.dataset.mg===v));
+  $('#mgProducts').classList.toggle('hidden',v!=='products');
+  $('#mgPlans').classList.toggle('hidden',v!=='plans');
+  $('#visNote').style.display=(v==='products')?'':'none';
+  if(v==='plans')renderMgPlans();
+}
+function renderMgPlanChips(){
+  const box=$('#mgPlanChips');if(!box)return;
+  const all=[['전체',plans.items.length]].concat(PLAN_STATUS.map(s=>[s,plans.items.filter(p=>p.status===s).length]));
+  box.innerHTML=all.map(([s,c])=>`<button class="fchip${planFilter===s?' on':''}" data-pf="${s}">${s==='전체'?'전체':PLAN_ST_LABEL[s]} ${c}</button>`).join('');
+  box.querySelectorAll('[data-pf]').forEach(b=>b.onclick=()=>{planFilter=b.dataset.pf;renderMgPlans();});
+}
+function renderMgPlans(){
+  const cnt=$('#mgPlanCount');if(cnt)cnt.textContent=plans.items.length?('· '+plans.items.filter(p=>p.status==='검토중').length+'건 검토'):'';
+  if(mgView!=='plans')return;
+  renderMgPlanChips();
+  const box=$('#mgPlanList');if(!box)return;
+  let list=plans.items.slice();
+  if(planFilter!=='전체')list=list.filter(p=>p.status===planFilter);
+  // 검토중 우선, 그다음 최신
+  const order={'검토중':0,'아이디어':1,'승인':2,'보류':3};
+  list.sort((a,b)=>(order[a.status]??9)-(order[b.status]??9)||(b.updatedAt||'').localeCompare(a.updatedAt||''));
+  if(!list.length){box.innerHTML='<div class="empty">'+(plans.items.length?'해당 상태의 기획이 없어요.':'아직 올라온 기획이 없어요. 소싱앱(기획 탭)에서 등록됩니다.')+'</div>';return;}
+  box.innerHTML=list.map(p=>{
+    const col=PLAN_ST_COLOR[p.status]||PLAN_ST_COLOR['아이디어'];
+    const photos=(p.photos||[]).filter(x=>x&&(x.url||x.data));
+    const thumbs=photos.slice(0,5).map(x=>`<img src="${esc(x.url||x.data)}">`).join('');
+    const needs=(p.needs||[]).map(n=>`<span class="nc">${esc(n)}</span>`).join('');
+    return `<div class="plc" data-pid="${esc(p.id)}">
+      <div class="t">${esc(p.title||'(제목 없음)')}<span class="bd">${esc(p.source||'기타')}</span><span class="plst" style="background:${col[0]};color:${col[1]}">${PLAN_ST_LABEL[p.status]||esc(p.status||'')}</span></div>
+      ${p.marketMemo?`<div class="mk">${esc(p.marketMemo)}</div>`:''}
+      ${thumbs?`<div class="th">${thumbs}</div>`:''}
+      <div class="ft" style="margin-top:7px">${needs}${(p.comments&&p.comments.length)?`<span style="font-size:11.5px;color:var(--muted);font-weight:600;margin-left:auto">💬 ${p.comments.length}</span>`:''}</div>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('[data-pid]').forEach(c=>c.onclick=()=>openMgPlan(c.dataset.pid));
+}
+function openMgPlan(id){
+  const p=plans.items.find(x=>x.id===id);if(!p)return;
+  $('#mgpTitle').textContent=p.title||'기획';
+  const photos=(p.photos||[]).filter(x=>x&&(x.url||x.data));
+  const refs=(p.refs||[]).filter(Boolean);
+  const body=$('#mgpBody');
+  body.innerHTML=`
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+      <span class="bd">${esc(p.source||'기타')}</span>${p.category?`<span class="bd">${esc(p.category)}</span>`:''}
+      ${(p.needs||[]).map(n=>`<span class="nc">${esc(n)}</span>`).join('')}
+    </div>
+    ${p.approvedAt?`<div style="font-size:11.5px;color:var(--green);font-weight:700;margin-bottom:8px">✓ 승인됨 · ${esc(p.approvedBy||'')} · ${esc((p.approvedAt||'').slice(0,10))}</div>`:''}
+    ${p.marketMemo?`<div class="mgp-lbl">시장분석</div><div class="mgp-kv">${esc(p.marketMemo)}</div>`:''}
+    ${p.vendorMemo?`<div class="mgp-lbl">후보 업체</div><div class="mgp-kv">${esc(p.vendorMemo)}</div>`:''}
+    ${refs.length?`<div class="mgp-lbl">참고 링크</div><div class="mgp-links">${refs.map(u=>`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(u)}</a>`).join('')}</div>`:''}
+    ${photos.length?`<div class="mgp-lbl">참고 사진</div><div class="mgp-ph">${photos.map(x=>`<img src="${esc(x.url||x.data)}">`).join('')}</div>`:''}
+    <div class="mgp-lbl">진행 상태</div>
+    <div class="seg" id="mgp_status">${PLAN_STATUS.map(s=>`<button data-s="${s}" class="${(p.status||'아이디어')===s?'on':''}">${PLAN_ST_LABEL[s]}</button>`).join('')}</div>
+    <button class="save-btn" id="mgp_save" style="margin-top:12px">상태 저장</button>
+    <div class="mgp-lbl">진행 메모 / 댓글</div>
+    <div id="mgp_comments"></div>
+    <div class="mgp-cadd"><input id="mgp_cinput" placeholder="검토 의견·결정사항 입력"><button id="mgp_cadd">추가</button></div>`;
+  let curStatus=p.status||'아이디어';
+  body.querySelectorAll('#mgp_status button').forEach(b=>b.onclick=()=>{curStatus=b.dataset.s;body.querySelectorAll('#mgp_status button').forEach(x=>x.classList.toggle('on',x.dataset.s===curStatus));});
+  function renderC(){
+    const cs=p.comments||[];
+    $('#mgp_comments').innerHTML=cs.length?cs.slice().reverse().map(c=>`<div class="mgp-cmt"><div class="m">${esc(c.text||'')}</div><div class="meta">${esc(c.by||'')} · ${esc((c.at||'').replace('T',' ').slice(0,16))}</div></div>`).join(''):'<div class="meta" style="font-size:11.5px;color:var(--muted)">아직 메모가 없어요.</div>';
+  }
+  renderC();
+  $('#mgp_save').onclick=async()=>{
+    const btn=$('#mgp_save');btn.disabled=true;btn.textContent='저장 중…';
+    p.status=curStatus;p.updatedAt=new Date().toISOString();
+    if(curStatus==='승인'&&!p.approvedAt){p.approvedBy='관리센터';p.approvedAt=new Date().toISOString();}
+    const ok=await savePlans();btn.disabled=false;btn.textContent='상태 저장';
+    if(ok){closeMgPlan();renderMgPlans();}
+  };
+  $('#mgp_cadd').onclick=async()=>{
+    const inp=$('#mgp_cinput');const t=(inp.value||'').trim();if(!t)return;
+    if(!p.comments)p.comments=[];p.comments.push({by:'관리센터',text:t,at:new Date().toISOString()});p.updatedAt=new Date().toISOString();
+    inp.value='';renderC();await savePlans();
+  };
+  $('#mgp_cinput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#mgp_cadd').click();}});
+  $('#mgPlanModal').classList.add('on');
+}
+function closeMgPlan(){$('#mgPlanModal').classList.remove('on');}
+$('#mgpClose').onclick=closeMgPlan;
+$('#mgPlanModal').onclick=e=>{if(e.target.id==='mgPlanModal')closeMgPlan();};
+document.querySelectorAll('#mgSeg button').forEach(b=>b.onclick=()=>setMgView(b.dataset.mg));
 
 /* ---------- 검색·필터 ---------- */
 $('#pSearch').oninput=e=>{qp=e.target.value.toLowerCase().trim();renderProducts();};

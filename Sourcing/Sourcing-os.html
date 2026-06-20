@@ -802,11 +802,8 @@
     <div class="mh">공유 설정 <span style="font-weight:600;color:var(--muted);font-size:11px">· 관리센터(PC) 노출</span></div>
     <div class="drawer-sub" style="padding:0 0 8px">내부 공유용 관리센터에 보일 항목을 켜고 끕니다. 끈 항목은 가려집니다.</div>
     <div id="shareToggles"></div>
-    <div id="aliasWrap" style="display:none;margin-top:12px">
-      <div class="drawer-sub" style="padding:0 0 6px">제품명 가명(군대 음성문자) — 미노출 시 이 이름으로 소통</div>
-      <button id="aliasGen" class="btn-ghost" style="width:100%;margin-bottom:8px">빈 가명 자동 채우기</button>
-      <div id="aliasList"></div>
-    </div>
+    <button id="setMgrPin" class="btn-ghost" style="width:100%;margin-top:12px">관리센터 입장 PIN 설정/변경</button>
+    <div class="drawer-sub" style="padding:6px 0 0">관리센터(PC)는 이 공용 PIN으로 로그인 없이 입장합니다. <span id="pinState" style="font-weight:700"></span></div>
     <a href="Sourcing-manage.html" target="_blank" class="btn-ghost" style="display:block;text-align:center;width:100%;margin-top:12px;text-decoration:none">관리센터(PC) 열기 ↗</a>
     <div class="mh">활동 여정</div>
     <div class="drawer-sub" style="padding:0 0 12px">제품·제조사 추가·수정·삭제 기록입니다. 삭제·수정·추가는 ‘되살리기/되돌리기’로 복구할 수 있어요.</div>
@@ -2991,16 +2988,16 @@ function undoAct(aid){
   save();render();renderActivity();
 }
 /* ---- 공유 설정(관리센터 노출 제어) — sourcing-os/share-config ---- */
-const SHARE_FIELDS=[['price','단가(판매가·원가)'],['makerName','제조사명'],['contact','제조사 담당자 연락처'],['name','제품명(끄면 가명)'],['docs','서류'],['test','테스트 상세']];
-const MIL_WORDS=['기러기','나폴리','도라지','로마','미나리','바가지','사이다','잉어','지게','차돌','키다리','통일','파고다','한강'];
-let shareCfg={visible:{price:false,makerName:false,contact:true,name:true,docs:true,test:true},aliases:{},aliasSeq:0};
+const SHARE_FIELDS=[['price','단가(판매가·원가)'],['makerName','제조사명'],['contact','제조사 담당자 연락처'],['docs','서류'],['test','테스트 상세']];
+const SHARE_DEFAULT={price:false,makerName:false,contact:true,docs:true,test:true};
+let shareCfg={visible:Object.assign({},SHARE_DEFAULT)};
 let shareLoaded=false;
 async function loadShareCfg(){
   if(!FS)return;
   try{
     const s=await FS.collection('sourcing-os').doc('share-config').get();
-    if(s.exists){const d=s.data();shareCfg.visible=Object.assign({price:false,makerName:false,contact:true,name:true,docs:true,test:true},d.visible||{});shareCfg.aliases=d.aliases||{};shareCfg.aliasSeq=d.aliasSeq||0;}
-    shareLoaded=true;console.log('[share] 설정 로드 · 가명',Object.keys(shareCfg.aliases).length);
+    if(s.exists){const d=s.data();shareCfg.visible=Object.assign({},SHARE_DEFAULT,d.visible||{});if(d.managePinHash)shareCfg.managePinHash=d.managePinHash;}
+    shareLoaded=true;console.log('[share] 설정 로드');
   }catch(e){console.error('[share] 로드 실패:',e);}
 }
 async function saveShareCfg(){
@@ -3008,23 +3005,23 @@ async function saveShareCfg(){
   try{shareCfg.updatedAt=new Date().toISOString();await FS.collection('sourcing-os').doc('share-config').set(shareCfg);}
   catch(e){console.error('[share] 저장 실패:',e);alert('공유 설정 저장 실패: '+(e&&(e.code||e.message)));}
 }
-function nextAlias(){const i=shareCfg.aliasSeq||0;shareCfg.aliasSeq=i+1;return MIL_WORDS[i%MIL_WORDS.length]+'-'+String(i+1).padStart(2,'0');}
-function fillAliases(){let n=0;state.products.forEach(p=>{if(!shareCfg.aliases[p.id]){shareCfg.aliases[p.id]=nextAlias();n++;}});saveShareCfg();renderAliasList();return n;}
 function renderShareToggles(){
   const box=$('#shareToggles');if(!box)return;
   box.innerHTML=SHARE_FIELDS.map(([k,lab])=>{const on=!!shareCfg.visible[k];return `<div class="shtog"><span class="sl">${lab}</span><button class="pill ${on?'on':'off'}" data-vk="${k}">${on?'노출':'미노출'}</button></div>`;}).join('');
-  box.querySelectorAll('[data-vk]').forEach(b=>b.onclick=()=>{const k=b.dataset.vk;shareCfg.visible[k]=!shareCfg.visible[k];saveShareCfg();renderShareToggles();syncAliasWrap();});
-  syncAliasWrap();
+  box.querySelectorAll('[data-vk]').forEach(b=>b.onclick=()=>{const k=b.dataset.vk;shareCfg.visible[k]=!shareCfg.visible[k];saveShareCfg();renderShareToggles();});
 }
-function syncAliasWrap(){const w=$('#aliasWrap');if(!w)return;const show=!shareCfg.visible.name;w.style.display=show?'':'none';if(show)renderAliasList();}
-function renderAliasList(){
-  const box=$('#aliasList');if(!box)return;
-  if(!state.products.length){box.innerHTML='<div class="drawer-sub" style="padding:0">제품이 없습니다.</div>';return;}
-  box.innerHTML=state.products.map(p=>`<div class="alias-row"><span class="an">${esc(p.name||'(이름없음)')}</span><input data-alias="${p.id}" value="${esc(shareCfg.aliases[p.id]||'')}" placeholder="가명"></div>`).join('');
-  box.querySelectorAll('[data-alias]').forEach(inp=>inp.onchange=()=>{const v=inp.value.trim();if(v)shareCfg.aliases[inp.dataset.alias]=v;else delete shareCfg.aliases[inp.dataset.alias];saveShareCfg();});
-}
-async function renderShare(){ if(!shareLoaded)await loadShareCfg(); renderShareToggles(); }
-const _aliasGenBtn=$('#aliasGen'); if(_aliasGenBtn)_aliasGenBtn.onclick=()=>{const n=fillAliases();alert(n?`${n}개 제품에 가명을 채웠어요.`:'채울 빈 가명이 없어요.');};
+async function shareHashPin(pin){const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pin));return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');}
+function renderPinState(){const el=$('#pinState');if(el)el.textContent=shareCfg.managePinHash?'(PIN 설정됨)':'(미설정 — 기본 PIN 1234)';}
+async function renderShare(){ if(!shareLoaded)await loadShareCfg(); renderShareToggles(); renderPinState(); }
+const _setPinBtn=$('#setMgrPin');
+if(_setPinBtn)_setPinBtn.onclick=async()=>{
+  const p=prompt('관리센터(PC) 입장용 공용 PIN을 입력하세요.\n(숫자/문자 4자리 이상 권장)');
+  if(p==null)return;const pin=p.trim();
+  if(pin.length<4){alert('PIN은 4자리 이상으로 해주세요.');return;}
+  shareCfg.managePinHash=await shareHashPin(pin);
+  await saveShareCfg();renderPinState();
+  alert('관리센터 입장 PIN이 설정되었어요.');
+};
 function openActivity(){renderActivity();renderShare();$('#actScrim').classList.add('on');$('#actDrawer').classList.add('on');document.body.style.overflow='hidden';}
 function closeActivity(){$('#actScrim').classList.remove('on');$('#actDrawer').classList.remove('on');if(!document.querySelector('.overlay.on'))document.body.style.overflow='';}
 $('#openActivity').onclick=openActivity;

@@ -1074,12 +1074,12 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const myT=D.tasks.filter(t=>t.assigneeId===cu.id);
   const fixedDueToday=(t)=>{const rt=t.recurType||"daily";if(rt==="weekly")return t.weekDay===today;if(rt==="monthly")return Number(t.monthDay||1)===todayDate;return true;};
   const fixed=D.tasks.filter(t=>t.isFixed&&fixedIsMine(t,cu.id)&&fixedDueToday(t));
-  // 오늘 업무 = 진행날짜가 오늘 / 또는 날짜 없이 오늘 요일에 배치된 것(주 구분 위해 날짜 우선) · 보류 제외
-  const todayT=myT.filter(t=>!t.isFixed&&t.status!=="hold"&&(t.workDate===todayStr||(!t.workDate&&t.weekDay===today)));
+  // 오늘 업무 = 진행날짜가 오늘 / 날짜 없이 오늘 요일 / 또는 '진행중'(완료·보류 전까지 매일 이어서 노출) · 보류 제외
+  const todayT=myT.filter(t=>!t.isFixed&&t.status!=="hold"&&(t.status==="inprogress"||t.workDate===todayStr||(!t.workDate&&t.weekDay===today)));
   const urgent=myT.filter(t=>t.status!=="done"&&t.status!=="hold"&&t.dueDate&&(()=>{const dd=Math.ceil((new Date(t.dueDate)-new Date())/86400000);return dd>=0&&dd<=3;})());
-  // 밀린 업무(이월): 진행날짜가 오늘 이전인데 아직 미완료·미보류 (미래 주 배치는 제외)
+  // 밀린 업무(이월): 진행날짜가 오늘 이전인데 아직 '할일'인 것 (진행중은 오늘 업무로 이어 노출하므로 제외 · 미래 주 배치 제외)
   const todayIdx=WEEK_DAYS.indexOf(today);
-  const carry=myT.filter(t=>!t.isFixed&&t.status!=="done"&&t.status!=="hold"&&(
+  const carry=myT.filter(t=>!t.isFixed&&t.status==="todo"&&(
       (t.workDate&&t.workDate<todayStr) ||
       (!t.workDate&&t.weekDay&&t.weekDay!==today&&(()=>{const i=WEEK_DAYS.indexOf(t.weekDay);return i>=0&&(todayIdx<0||i<todayIdx);})())
     ))
@@ -1105,9 +1105,18 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
     if(dr.weekDay===d&&dr.workDate===ds) return;
     up("tasks",dr.id,{weekDay:d,workDate:ds,weekSlot:nextSlot(d)});
   };
-  // 요일별 정렬 목록 — 선택 주의 그 날짜(workDate) 업무 + (이번 주에 한해) 날짜 없이 요일만 배치된 것도 노출
-  const dayOrdered=(d)=>{const ds=dateOfDay(d);return myT.filter(t=>!t.isFixed&&(t.workDate===ds||(isThisWeek&&!t.workDate&&t.weekDay===d)))
-    .sort((a,b)=>{const sa=a.weekSlot??9999,sb=b.weekSlot??9999;return sa!==sb?sa-sb:String(a.id).localeCompare(String(b.id));});};
+  // 요일별 정렬 목록 — 선택 주의 그 날짜(workDate) 업무 + (이번 주에 한해) 날짜 없이 요일만 배치 + '진행중 이월'(완료·보류 전까지 오늘 칸에 계속 노출)
+  const dayOrdered=(d)=>{const ds=dateOfDay(d);const isTodayCol=isThisWeek&&d===today;
+    return myT.filter(t=>{
+      if(t.isFixed)return false;
+      // 진행중인데 오늘보다 앞서 잡혔던 업무는 오늘 칸으로 모아 계속 보이게(과거 칸에서는 숨김)
+      const carryInprog=isThisWeek&&t.status==="inprogress"&&(
+        (t.workDate&&t.workDate<todayStr)||
+        (!t.workDate&&t.weekDay&&WEEK_DAYS.indexOf(t.weekDay)>=0&&WEEK_DAYS.indexOf(t.weekDay)<todayIdx)
+      );
+      if(carryInprog)return isTodayCol;
+      return t.workDate===ds||(isThisWeek&&!t.workDate&&t.weekDay===d);
+    }).sort((a,b)=>{const sa=a.weekSlot??9999,sb=b.weekSlot??9999;return sa!==sb?sa-sb:String(a.id).localeCompare(String(b.id));});};
   const nextSlot=(d)=>Math.max(0,...dayOrdered(d).map(t=>t.weekSlot||0))+1;
   // 같은 요일 안에서 순서만 변경 — 통째로 1..N 재번호(순위 명확화)
   const reorderDay=(d,from,to)=>{
@@ -4376,7 +4385,7 @@ function TeamWeeklyMap({D,cu}){
   const pprev=prevPeriodRange(period);
   const inP=(ds)=>{if(!ds)return false;const d=new Date(ds);return !isNaN(d)&&d>=prange[0]&&d<=prange[1];};
   const inPrev=(ds)=>{if(!ds)return false;const d=new Date(ds);return !isNaN(d)&&d>=pprev[0]&&d<=pprev[1];};
-  const activeInP=(t)=>inP(t.workDate)||inP(t.doneAt)||(period==="week"&&!!(t.weekDay&&WEEK_DAYS.includes(t.weekDay)));
+  const activeInP=(t)=>t.status==="inprogress"||inP(t.workDate)||inP(t.doneAt)||(period==="week"&&!!(t.weekDay&&WEEK_DAYS.includes(t.weekDay)));
   const krColors={mk1:"#3182F6",mk2:"#8B5CF6",mk3:"#00C073"};
   const doneInP=(ts)=>ts.filter(t=>t.status==="done"&&inP(t.doneAt)).length;
   const signals=diagSignals(D);
@@ -5127,7 +5136,7 @@ function MindMapPage({D,cu,nav}){
   const prange=periodRange(period);
   const inP=(ds)=>{if(!ds)return false;const d=new Date(ds);return !isNaN(d)&&d>=prange[0]&&d<=prange[1];};
   // 활동: 선택 기간에 진행예정(workDate)·완료(doneAt)가 있으면. (주간은 요일배치도 폴백)
-  const activeInP=(t)=>inP(t.workDate)||inP(t.doneAt)||(period==="week"&&!!(t.weekDay&&WEEK_DAYS.includes(t.weekDay)));
+  const activeInP=(t)=>t.status==="inprogress"||inP(t.workDate)||inP(t.doneAt)||(period==="week"&&!!(t.weekDay&&WEEK_DAYS.includes(t.weekDay)));
   // 성과: 기간 내 완료 업무 수
   const doneInP=(ts)=>ts.filter(t=>t.status==="done"&&inP(t.doneAt)).length;
   const [sel,setSel]=useState(cu.id);

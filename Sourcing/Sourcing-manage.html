@@ -115,6 +115,20 @@
   .kv .k{color:var(--muted);font-weight:700}
   .kv .v{color:var(--ink2);font-weight:600;word-break:break-word}
   .kv .v.hid{color:var(--muted);font-style:italic;font-weight:600}
+  .kv .v .mini{font-size:11px;font-weight:800;color:var(--blue);background:var(--blue-pale);padding:3px 9px;border-radius:7px;margin-left:6px;vertical-align:middle}
+  .ptools{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+  .psearch{flex:1;min-width:220px;max-width:440px;padding:11px 13px;border:1px solid var(--line2);border-radius:10px;background:#fff;margin:0}
+  .pfilter{padding:11px 13px;border:1px solid var(--line2);border-radius:10px;background:#fff;font-weight:600;color:var(--ink2)}
+  .pcount{font-size:12.5px;color:var(--muted);font-weight:700}
+  .pcard .gname{font-size:12.5px;color:var(--ink2);font-weight:700;margin-top:3px}
+  .pcard .gname .mz{color:var(--muted);font-weight:600;font-style:italic}
+  /* 발주담당자 모달 */
+  .ocm-scrim{position:fixed;inset:0;background:rgba(15,27,45,.5);z-index:120;display:none;align-items:center;justify-content:center;padding:20px}
+  .ocm-scrim.on{display:flex}
+  .ocm-box{background:#fff;border-radius:16px;max-width:440px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .ocm-h{display:flex;align-items:center;justify-content:space-between;padding:18px 18px 2px}
+  .ocm-h h3{font-size:16px;font-weight:800}
+  .ocm-x{width:30px;height:30px;border-radius:50%;background:var(--cream);font-size:14px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -142,27 +156,24 @@
 </header>
 
 <div class="topbar">
-  <div class="seg2"><button data-v="makers" class="on">제조사 · 발주담당자</button><button data-v="products">상품 · 정보</button></div>
   <span class="visnote" id="visNote"></span>
 </div>
 
-<div class="wrap" id="viewMakers">
-  <!-- 제조사 목록 -->
-  <div class="panel">
-    <div class="panel-h"><div class="t">제조사</div><div class="n" id="mkCount">0곳</div><div class="spacer"></div></div>
-    <input class="search" id="mkSearch" placeholder="제조사 검색">
-    <div id="mkList"></div>
+<div class="wrapP">
+  <div class="ptools">
+    <input class="psearch" id="pSearch" placeholder="검색 (제품명·상품명·가명·제조사·담당자)">
+    <select class="pfilter" id="pMaker"><option value="">전체 제조사</option></select>
+    <span class="pcount" id="pCount"></span>
   </div>
-  <!-- 상세 -->
-  <div class="panel">
-    <div class="panel-h"><div class="t" id="dTitle">제조사를 선택하세요</div><div class="spacer"></div></div>
-    <div id="detail"><div class="empty">왼쪽에서 제조사를 선택하면<br>발주담당자 지정과 출시상품을 관리할 수 있어요.</div></div>
-  </div>
+  <div class="pgrid" id="pGrid"></div>
 </div>
 
-<div class="wrapP hidden" id="viewProducts">
-  <input class="psearch" id="pSearch" placeholder="상품 검색 (이름·가명·제조사)">
-  <div class="pgrid" id="pGrid"></div>
+<!-- 발주담당자 지정 모달 -->
+<div class="ocm-scrim" id="ocModal">
+  <div class="ocm-box">
+    <div class="ocm-h"><h3 id="ocTitle">발주담당자 지정</h3><button class="ocm-x" id="ocClose">✕</button></div>
+    <div class="sec" id="ocBody"></div>
+  </div>
 </div>
 
 <script>
@@ -177,10 +188,8 @@ try{ if(!firebase.apps.length)firebase.initializeApp(FB_CFG); FS=firebase.firest
 let state={products:[],makers:[]};   // sourcing-os/state (읽기 전용)
 let oc={makers:{}};                  // sourcing-os/order-contacts (이 페이지에서 관리)
 let shareCfg={visible:{name:true,price:false,makerName:false,contact:true,docs:true,test:true},aliases:{}}; // 노출 설정(Sourcing-os에서 제어)
-let sel=null;                        // 선택된 제조사명
-let q='';                            // 제조사 검색
 let qp='';                           // 상품 검색
-let view='makers';
+let mkFilter='';                     // 제조사 필터
 const won=n=>(Number(n)||0).toLocaleString('ko-KR');
 
 function setSync(txt,color){const t=$('#saveTxt');if(t)t.textContent=txt;const d=document.querySelector('header .dot');if(d&&color)d.style.background=color;}
@@ -212,8 +221,7 @@ async function loadAll(){
     console.log('[manage] 제품',state.products.length,'· 제조사',makersAll().length,'· 담당자설정',Object.keys(oc.makers).length);
     setSync('불러옴 ✓','#059669');
     renderVisNote();
-    renderList();
-    if(sel)renderDetail(sel); else renderDetail(null);
+    populateMakerFilter();
     renderProducts();
   }catch(e){ console.error('[manage] 로드 실패:',e); setSync('로드 실패','#DC2626'); }
 }
@@ -227,106 +235,16 @@ async function saveOC(){
   }catch(e){ console.error('[manage] 저장 실패:',e); setSync('저장 실패','#DC2626'); alert('저장 실패: '+(e&&(e.code||e.message))); return false; }
 }
 
-/* ---------- 렌더: 제조사 목록 ---------- */
-function mgrSummary(name){
-  const m=oc.makers[name];
-  if(!m||!m.name)return {txt:'담당자 미지정',cls:'none',tag:''};
-  const tag=m.mode==='maker'?'<span class="tag mkr">제조사</span>':'<span class="tag int">내부</span>';
-  const pub=m.public?'<span class="tag pub">공개</span>':'<span class="tag sec">대외비</span>';
-  return {txt:esc(m.name),cls:'',tag:tag+' '+pub};
-}
-function renderList(){
-  const all=makersAll().filter(n=>!q||n.toLowerCase().includes(q));
-  $('#mkCount').textContent=makersAll().length+'곳';
-  const box=$('#mkList');
-  if(!all.length){box.innerHTML='<div class="empty">'+(q?'검색 결과 없음':'제조사가 없어요. 소싱앱에서 제품을 등록하면 표시됩니다.')+'</div>';return;}
-  box.innerHTML=all.map(n=>{
-    const sp=sellableOf(n),done=sp.filter(p=>statusIdx(p)===2).length;
-    const ms=mgrSummary(n);
-    return `<div class="mk-row${n===sel?' sel':''}" data-mk="${esc(n)}">
-      <div><div class="mk-name">${esc(n)}</div><div class="mk-meta">상품 ${sp.length} · 출시완료 ${done}</div></div>
-      <div class="mk-mgr ${ms.cls}">${ms.txt}</div>
-      <div style="text-align:right">${ms.tag||'<span class="tag sec">미지정</span>'}</div>
-    </div>`;
-  }).join('');
-  box.querySelectorAll('[data-mk]').forEach(el=>el.onclick=()=>{sel=el.dataset.mk;renderList();renderDetail(sel);});
-}
-
-/* ---------- 렌더: 상세(발주담당자 + 출시상품) ---------- */
-function renderDetail(name){
-  const d=$('#detail');
-  if(!name){$('#dTitle').textContent='제조사를 선택하세요';d.innerHTML='<div class="empty">왼쪽에서 제조사를 선택하면<br>발주담당자 지정과 출시상품을 관리할 수 있어요.</div>';return;}
-  $('#dTitle').textContent=name;
-  const m=Object.assign({mode:'internal',name:'',phone:'',memo:'',public:false},oc.makers[name]||{});
-  const sp=sellableOf(name);
-  d.innerHTML=`
-    <div class="sec">
-      <div class="lbl">발주담당자</div>
-      <div class="frow"><label>구분</label>
-        <div class="seg" id="d_mode">
-          <button data-mode="internal" class="${m.mode!=='maker'?'on':''}">내부 팀원</button>
-          <button data-mode="maker" class="${m.mode==='maker'?'on':''}">제조사 담당자</button>
-        </div>
-      </div>
-      <div class="ftwo">
-        <div class="frow"><label>담당자명</label><input id="d_name" value="${esc(m.name)}" placeholder="${m.mode==='maker'?'예) KP방수재 김과장':'예) 홍길동(내부)'}"></div>
-        <div class="frow"><label>연락처</label><input id="d_phone" value="${esc(m.phone)}" placeholder="010-0000-0000"></div>
-      </div>
-      <div class="frow"><label>메모 <span style="color:var(--muted);font-weight:600">(선택)</span></label><input id="d_memo" value="${esc(m.memo)}" placeholder="예) 발주 리드타임 7일 · 카톡 선호"></div>
-      <div class="toggle">
-        <div><div class="tt">외부 사이트 공개</div><div class="td" id="d_pubdesc"></div></div>
-        <div class="sw ${m.public?'on':''}" id="d_pub"></div>
-      </div>
-      <div class="note" id="d_note"></div>
-      <button class="save-btn" id="d_save">발주담당자 저장</button>
-    </div>
-    <div class="sec">
-      <div class="lbl">출시상품(파생·세트) ${sp.length}</div>
-      <div class="plist" id="d_plist"></div>
-    </div>`;
-  // 상품 목록
-  const pl=$('#d_plist');
-  if(!sp.length)pl.innerHTML='<div class="empty" style="padding:20px">이 제조사의 상품(파생/세트)이 없어요.<br>소싱앱에서 파생·세트를 만들면 표시됩니다.</div>';
-  else pl.innerHTML=sp.slice().sort((a,b)=>statusIdx(b)-statusIdx(a)).map(p=>{
-    const done=statusIdx(p)===2;
-    return `<div class="prow">
-      <div><div class="pn">${esc(p.name||'')}</div>${p.goods?`<div class="pgoods">${esc(p.goods)}</div>`:''}</div>
-      <span class="pty">${p.type==='패키지'?'세트':'파생'}</span>
-      <span class="pstage ${done?'done':''}">${done?'✓ ':''}${esc(p.stage||'후보')}</span>
-    </div>`;
-  }).join('');
-  // 인터랙션
-  let cur={mode:m.mode,public:!!m.public};
-  function syncNote(){
-    const pub=cur.public, internal=cur.mode!=='maker';
-    $('#d_pubdesc').textContent=pub?'외부 사이트에 발주 담당자로 노출됩니다.':'외부 미노출(대외비). 내부에서만 보입니다.';
-    $('#d_note').innerHTML = internal
-      ? '<b>내부 팀원</b>으로 지정 시, 외부엔 <b>제조사명을 숨기고</b> "이 상품 발주는 담당자에게 요청" 정도만 안내하는 걸 권장합니다.'+(pub?' 현재 <b>공개</b> 상태예요.':'')
-      : '<b>제조사 담당자</b> — 외부 공개 시 외부 사이트에서 이 담당자에게 직접 발주요청하도록 노출됩니다.';
-  }
-  d.querySelectorAll('#d_mode button').forEach(b=>b.onclick=()=>{
-    cur.mode=b.dataset.mode;
-    d.querySelectorAll('#d_mode button').forEach(x=>x.classList.toggle('on',x.dataset.mode===cur.mode));
-    syncNote();
-  });
-  $('#d_pub').onclick=()=>{cur.public=!cur.public;$('#d_pub').classList.toggle('on',cur.public);syncNote();};
-  syncNote();
-  $('#d_save').onclick=async()=>{
-    const btn=$('#d_save');btn.disabled=true;const lbl=btn.textContent;btn.textContent='저장 중…';
-    oc.makers[name]={mode:cur.mode,name:$('#d_name').value.trim(),phone:$('#d_phone').value.trim(),memo:$('#d_memo').value.trim(),public:cur.public};
-    const ok=await saveOC();
-    btn.disabled=false;btn.textContent=lbl;
-    if(ok){renderList();}
-  };
-}
-
-/* ---------- 상품 뷰 (노출 설정 반영) ---------- */
+/* ---------- 노출 설정 안내 ---------- */
 function renderVisNote(){
   const v=shareCfg.visible;
-  const off=[['name','제품명'],['price','단가'],['makerName','제조사명'],['contact','연락처'],['docs','서류'],['test','테스트상세']].filter(([k])=>!v[k]).map(x=>x[1]);
-  $('#visNote').innerHTML=off.length?('가린 항목: <b>'+off.join(' · ')+'</b> (Sourcing-os 메뉴 → 공유 설정에서 변경)'):'모든 항목 노출 중';
+  const off=[['name','제품명(가명대체)'],['price','단가'],['makerName','제조사명'],['contact','연락처'],['docs','서류'],['test','테스트상세']].filter(([k])=>!v[k]).map(x=>x[1]);
+  $('#visNote').innerHTML=off.length?('가린 항목: <b>'+off.join(' · ')+'</b> · 변경은 소싱앱(☰)→공유 설정'):'모든 항목 노출 중';
 }
-function prodName(p){ if(!shareCfg.visible.name){const a=shareCfg.aliases[p.id]||'가명미지정';return p.goods?(a+' · '+p.goods):a;} const nm=dn(p); return (nm&&nm.trim())?nm:'미설정'; }
+
+/* ---------- 표시 헬퍼 ---------- */
+// 제품명(가려질 수 있음): 노출이면 실제 제품명(없으면 '미설정'), 미노출이면 가명
+function headName(p){ if(!shareCfg.visible.name)return shareCfg.aliases[p.id]||'가명미지정'; return (p.name&&p.name.trim())?p.name:'미설정'; }
 function specText(p){ if(p.specs&&p.specs.length)return p.specs[p.specs.length-1].text||''; return p.spec||''; }
 function testSummary(p){
   const ts=p.tests||[]; if(!ts.length)return '없음';
@@ -334,49 +252,107 @@ function testSummary(p){
   let s=ts.length+'건';const parts=[];if(pass)parts.push('합격 '+pass);if(prog)parts.push('진행 '+prog);if(fail)parts.push('실패 '+fail);
   return parts.length?s+' ('+parts.join('·')+')':s;
 }
+function ocWho(maker){const m=maker&&oc.makers[maker];return (m&&m.name)||'';}
+
+/* ---------- 제조사 필터 ---------- */
+function populateMakerFilter(){
+  const sel=$('#pMaker');if(!sel)return;
+  sel.innerHTML='<option value="">전체 제조사</option>'+makersAll().map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
+  sel.value=mkFilter;
+}
+
+/* ---------- 상품 카드 (제품 단위 · 노출 설정 일관 적용) ---------- */
+function cardHtml(p){
+  const v=shareCfg.visible;
+  const ty=p.type==='패키지'?'세트':(p.type||'단품');
+  const maker=p.maker||'';
+  const mk=v.makerName?(maker?esc(maker):'미입력'):'<span class="hid">비공개</span>';
+  // 발주요청 담당자 (재고관리용) — 누구에게 발주하는가 + 변경/지정
+  let order;
+  if(!maker){ order='<span class="hid">제조사 미입력</span>'; }
+  else{
+    const m=oc.makers[maker];
+    if(m&&m.name){ order=(m.mode==='maker'?'제조사 ':'내부 ')+esc(m.name)+(v.contact&&m.phone?' · '+esc(m.phone):'')+` <button class="mini" data-oc="${esc(maker)}">변경</button>`; }
+    else{ order='<span class="hid">미지정</span>'+` <button class="mini" data-oc="${esc(maker)}">지정</button>`; }
+  }
+  const price=v.price?((p.pricing&&p.pricing.sell)?won(p.pricing.sell)+'원'+((p.pricing&&p.pricing.buy)?' (원가 '+won(p.pricing.buy)+')':''):'미설정'):'<span class="hid">비공개</span>';
+  const concept=p.concept?esc(p.concept):'<span class="hid">미입력</span>';
+  const spec=specText(p)?esc(specText(p)):'<span class="hid">미입력</span>';
+  const docs=v.docs?((p.docs&&p.docs.length)?p.docs.map(d=>esc(d.name||d.type||'서류')).join(', '):'없음'):'<span class="hid">비공개</span>';
+  let test=esc(testSummary(p));if(v.test){const ph=(p.tests||[]).reduce((a,t)=>a+((t.photos||[]).length),0);if(ph)test+=' · 사진 '+ph;}
+  const done=statusIdx(p)===2;
+  const goods=p.goods?esc(p.goods):'<span class="mz">(미기재)</span>';
+  return `<div class="pcard">
+    <div class="ph"><span class="pnm">${esc(headName(p))}</span><span class="pty2">${ty}</span></div>
+    <div class="gname">상품명: ${goods}</div>
+    <div class="chips"><span class="chip ${done?'g':'b'}">${esc(p.stage||'후보')}</span><span class="chip">테스트 ${test}</span></div>
+    <div class="kv">
+      <span class="k">제조사</span><span class="v">${mk}</span>
+      <span class="k">발주요청</span><span class="v">${order}</span>
+      <span class="k">단가</span><span class="v">${price}</span>
+      <span class="k">컨셉</span><span class="v">${concept}</span>
+      <span class="k">스펙</span><span class="v">${spec}</span>
+      <span class="k">서류</span><span class="v">${docs}</span>
+    </div>
+  </div>`;
+}
 function renderProducts(){
   const v=shareCfg.visible, grid=$('#pGrid'); if(!grid)return;
-  let list=(state.products||[]).slice().sort((a,b)=>statusIdx(b)-statusIdx(a)||prodName(a).localeCompare(prodName(b)));
-  if(qp)list=list.filter(p=>{const hay=(prodName(p)+' '+(shareCfg.aliases[p.id]||'')+' '+(p.goods||'')+' '+(v.makerName?(p.maker||''):'')).toLowerCase();return hay.includes(qp);});
-  if(!list.length){grid.innerHTML='<div class="empty">'+(qp?'검색 결과 없음':'상품이 없어요.')+'</div>';return;}
-  grid.innerHTML=list.map(p=>{
-    const ty=p.type==='패키지'?'세트':(p.type||'단품');
-    const mk=v.makerName?esc(p.maker||'미입력'):'<span class="hid">비공개</span>';
-    const ocm=oc.makers[p.maker];
-    let order='<span class="hid">미지정</span>';
-    if(ocm&&ocm.name){order=(ocm.mode==='maker'?'제조사 ':'내부 ')+esc(ocm.name)+(v.contact&&ocm.phone?' · '+esc(ocm.phone):'');}
-    const price=v.price?((p.pricing&&p.pricing.sell)?won(p.pricing.sell)+'원'+((p.pricing&&p.pricing.buy)?' (원가 '+won(p.pricing.buy)+')':''):'미설정'):'<span class="hid">비공개</span>';
-    const concept=p.concept?esc(p.concept):'<span class="hid">미입력</span>';
-    const spec=specText(p)?esc(specText(p)):'<span class="hid">미입력</span>';
-    const docs=v.docs?((p.docs&&p.docs.length)?p.docs.map(d=>esc(d.name||d.type||'서류')).join(', '):'없음'):'<span class="hid">비공개</span>';
-    let test=esc(testSummary(p));if(v.test){const ph=(p.tests||[]).reduce((a,t)=>a+((t.photos||[]).length),0);if(ph)test+=' · 사진 '+ph;}
-    const done=statusIdx(p)===2;
-    return `<div class="pcard">
-      <div class="ph"><span class="pnm">${esc(prodName(p))}</span><span class="pty2">${ty}</span></div>
-      <div class="chips"><span class="chip ${done?'g':'b'}">${esc(p.stage||'후보')}</span><span class="chip">테스트 ${test}</span></div>
-      <div class="kv">
-        <span class="k">제조사</span><span class="v">${mk}</span>
-        <span class="k">발주요청</span><span class="v">${order}</span>
-        <span class="k">단가</span><span class="v">${price}</span>
-        <span class="k">컨셉</span><span class="v">${concept}</span>
-        <span class="k">스펙</span><span class="v">${spec}</span>
-        <span class="k">서류</span><span class="v">${docs}</span>
-      </div>
-    </div>`;
-  }).join('');
+  // 제조사명 미노출이면 제조사 필터 숨김(이름 누출 방지)
+  const mkSel=$('#pMaker');
+  if(mkSel){ if(v.makerName){mkSel.style.display='';} else {mkSel.style.display='none';mkFilter='';} }
+  let list=(state.products||[]).slice();
+  if(mkFilter)list=list.filter(p=>(p.maker||'')===mkFilter);
+  if(qp)list=list.filter(p=>{const hay=(headName(p)+' '+(p.goods||'')+' '+(shareCfg.aliases[p.id]||'')+' '+(v.makerName?(p.maker||''):'')+' '+ocWho(p.maker)).toLowerCase();return hay.includes(qp);});
+  // 제조사로 묶이도록 정렬 → 같은 제조사 카드가 모임 → 단계 → 이름
+  list.sort((a,b)=>(a.maker||'').localeCompare(b.maker||'')||statusIdx(b)-statusIdx(a)||headName(a).localeCompare(headName(b)));
+  $('#pCount').textContent=list.length+'개';
+  if(!list.length){grid.innerHTML='<div class="empty">'+(qp||mkFilter?'결과 없음':'상품이 없어요. 소싱앱에서 등록하면 표시됩니다.')+'</div>';return;}
+  grid.innerHTML=list.map(cardHtml).join('');
+  grid.querySelectorAll('[data-oc]').forEach(b=>b.onclick=()=>openOcModal(b.dataset.oc));
 }
-function setView(v){
-  view=v;
-  document.querySelectorAll('.seg2 button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
-  $('#viewMakers').classList.toggle('hidden',v!=='makers');
-  $('#viewProducts').classList.toggle('hidden',v!=='products');
-  if(v==='products')renderProducts();
-}
-document.querySelectorAll('.seg2 button').forEach(b=>b.onclick=()=>setView(b.dataset.v));
-$('#pSearch').oninput=e=>{qp=e.target.value.toLowerCase().trim();renderProducts();};
 
-/* ---------- 검색 ---------- */
-$('#mkSearch').oninput=e=>{q=e.target.value.toLowerCase().trim();renderList();};
+/* ---------- 발주담당자 지정 모달 (제조사 단위) ---------- */
+function openOcModal(maker){
+  if(!maker)return;
+  const m=Object.assign({mode:'internal',name:'',phone:'',memo:'',public:false},oc.makers[maker]||{});
+  $('#ocTitle').textContent='발주담당자 · '+maker;
+  const body=$('#ocBody');
+  body.innerHTML=`
+    <div class="frow"><label>구분</label>
+      <div class="seg" id="oc_mode">
+        <button data-mode="internal" class="${m.mode!=='maker'?'on':''}">내부 팀원</button>
+        <button data-mode="maker" class="${m.mode==='maker'?'on':''}">제조사 담당자</button>
+      </div></div>
+    <div class="ftwo">
+      <div class="frow"><label>담당자명</label><input id="oc_name" value="${esc(m.name)}" placeholder="예) 홍길동"></div>
+      <div class="frow"><label>연락처</label><input id="oc_phone" value="${esc(m.phone)}" placeholder="010-0000-0000"></div>
+    </div>
+    <div class="frow"><label>메모 <span style="color:var(--muted);font-weight:600">(선택)</span></label><input id="oc_memo" value="${esc(m.memo)}" placeholder="예) 발주 리드타임 7일 · 카톡 선호"></div>
+    <div class="toggle"><div><div class="tt">외부 사이트 공개</div><div class="td" id="oc_pubdesc"></div></div><div class="sw ${m.public?'on':''}" id="oc_pub"></div></div>
+    <div class="note">이 제조사의 <b>모든 상품</b>에 적용됩니다. <b>내부 팀원</b>으로 지정하면 외부 사이트에선 제조사명을 숨기고 "담당자에게 발주요청"으로 안내하는 걸 권장합니다.</div>
+    <button class="save-btn" id="oc_save">저장</button>`;
+  let cur={mode:m.mode,public:!!m.public};
+  function note(){ $('#oc_pubdesc').textContent=cur.public?'외부 사이트에 노출됩니다.':'외부 미노출(대외비). 내부에서만 보입니다.'; }
+  body.querySelectorAll('#oc_mode button').forEach(b=>b.onclick=()=>{cur.mode=b.dataset.mode;body.querySelectorAll('#oc_mode button').forEach(x=>x.classList.toggle('on',x.dataset.mode===cur.mode));});
+  $('#oc_pub').onclick=()=>{cur.public=!cur.public;$('#oc_pub').classList.toggle('on',cur.public);note();};
+  note();
+  $('#oc_save').onclick=async()=>{
+    const btn=$('#oc_save');btn.disabled=true;btn.textContent='저장 중…';
+    oc.makers[maker]={mode:cur.mode,name:$('#oc_name').value.trim(),phone:$('#oc_phone').value.trim(),memo:$('#oc_memo').value.trim(),public:cur.public};
+    const ok=await saveOC();
+    btn.disabled=false;btn.textContent='저장';
+    if(ok){closeOcModal();renderProducts();}
+  };
+  $('#ocModal').classList.add('on');
+}
+function closeOcModal(){$('#ocModal').classList.remove('on');}
+$('#ocClose').onclick=closeOcModal;
+$('#ocModal').onclick=e=>{if(e.target.id==='ocModal')closeOcModal();};
+
+/* ---------- 검색·필터 ---------- */
+$('#pSearch').oninput=e=>{qp=e.target.value.toLowerCase().trim();renderProducts();};
+$('#pMaker').onchange=e=>{mkFilter=e.target.value;renderProducts();};
 
 /* ---------- PIN 로그인 (공용 PIN · Sourcing-os 공유설정에서 지정) ---------- */
 // Sourcing-os에서 PIN 미설정 시 사용하는 기본 PIN. 설정 후에는 share-config.managePinHash 사용.

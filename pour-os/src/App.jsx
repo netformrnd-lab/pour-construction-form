@@ -37,7 +37,7 @@ const STATUS_MAP={
   hold:{label:"보류",color:"#FF9500",bg:"#FFF3E0"},
 };
 // 캘린더 일정 유형 (CalendarPage의 ET와 동일 · 오늘 슬롯 배치에서도 사용)
-const EVENT_TYPES={internal:{label:"내부미팅",color:"#3182F6",bg:"#EBF3FF"},external:{label:"외부미팅",color:"#8B5CF6",bg:"#F3EFFE"},promotion:{label:"프로모션",color:"#FF9500",bg:"#FFF3E0"},seminar:{label:"세미나",color:"#00C073",bg:"#E8FAF1"},fair:{label:"박람회",color:"#F04452",bg:"#FFF0F1"}};
+const EVENT_TYPES={internal:{label:"내부미팅",color:"#3182F6",bg:"#EBF3FF"},external:{label:"외부미팅",color:"#8B5CF6",bg:"#F3EFFE"},field:{label:"외근",color:"#0EA5E9",bg:"#E0F2FE"},promotion:{label:"프로모션",color:"#FF9500",bg:"#FFF3E0"},seminar:{label:"세미나",color:"#00C073",bg:"#E8FAF1"},fair:{label:"박람회",color:"#F04452",bg:"#FFF0F1"}};
 // ── 거래처유형 코드 체계 (SSOT) — 마스터프롬프트 v3.1 ──
 // 색상군: 개인=회색 / P4파트너=파랑 / P3대리점=주황 / 유통·셀러=보라 / G채널=초록
 const DEALER_TYPES=[
@@ -325,6 +325,27 @@ const statusPatch=(D,task,newStatus)=>{const u=_curUser(D);const at=new Date().t
 // 이번 주 내 주간목표 (weekGoals: [{id,userId,week,title,target,current,unit,projectId}])
 const myWeekGoals=(D,uid)=>{ const wk=weekKey(); return (D.weekGoals||[]).filter(g=>g.userId===uid&&g.week===wk); };
 const wgAchieved=(g)=> numF(g.target)>0 && numF(g.current)>=numF(g.target);
+// 업무 소요시간 — statusLog의 '진행중' 구간 누적(ms). 현재 진행중이면 지금까지 라이브 합산.
+const taskTimeSpent=(t)=>{
+  const log=(Array.isArray(t.statusLog)?t.statusLog:[]).filter(e=>e&&e.at&&e.status);
+  if(!log.length) return 0;
+  const sorted=[...log].sort((a,b)=>String(a.at).localeCompare(String(b.at)));
+  let total=0,startedAt=null;
+  for(const e of sorted){
+    if(e.status==="inprogress"){ if(startedAt===null){const ms=new Date(e.at).getTime();if(!isNaN(ms))startedAt=ms;} }
+    else if(startedAt!==null){ const ms=new Date(e.at).getTime(); if(!isNaN(ms))total+=Math.max(0,ms-startedAt); startedAt=null; }
+  }
+  if(startedAt!==null) total+=Math.max(0,Date.now()-startedAt);   // 현재 진행중(라이브)
+  return total;
+};
+// 소요시간 사람이 읽는 형식 — 일/시간/분
+const fmtDur=(ms)=>{
+  if(!ms||ms<60000) return ms>0?"1분 미만":"";
+  const mins=Math.floor(ms/60000), d=Math.floor(mins/1440), h=Math.floor((mins%1440)/60), mm=mins%60;
+  if(d>0) return h>0?`${d}일 ${h}시간`:`${d}일`;
+  if(h>0) return mm>0?`${h}시간 ${mm}분`:`${h}시간`;
+  return `${mm}분`;
+};
 // 첨부 파일 표시 헬퍼
 const extOf=(name="")=>{const m=String(name).match(/\.([a-z0-9]+)$/i);return m?m[1].toUpperCase():"파일";};
 const isImgAtt=(att)=>((att?.type||"").startsWith("image/"))||/\.(png|jpe?g|gif|webp|heic|heif|bmp|svg)$/i.test(att?.name||att?.url||"");
@@ -457,6 +478,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up})=>{
             );})}
           </div>
           {form.status!==(task&&task.status)&&<p style={{margin:"6px 2px 0",fontSize:10.5,color:"#EA580C",fontWeight:700}}>저장하면 이 상태 변경이 진행 이력에 날짜와 함께 기록돼요</p>}
+          {task&&(()=>{const ms=taskTimeSpent(task);if(!ms)return null;const live=task.status==="inprogress";return(<div style={{margin:"8px 0 0",padding:"8px 11px",borderRadius:10,background:live?"#EBF3FF":"#E8FAF1",display:"flex",alignItems:"center",gap:7}}><span style={{fontSize:13}}>⏱</span><span style={{fontSize:12,fontWeight:800,color:live?"#3182F6":"#00A862"}}>{live?"진행 중 누적 소요":"총 소요시간"} · {fmtDur(ms)}</span></div>);})()}
         </div>
         {task&&((task.statusLog&&task.statusLog.length)||task.doneAt)&&(()=>{
           const log=(task.statusLog&&task.statusLog.length?task.statusLog:(task.doneAt?[{status:"done",at:task.doneAt,byName:task.doneByName}]:[]));
@@ -1061,6 +1083,78 @@ function WeeklyInputSheet({open,onClose,D,cu,up}){
   );
 }
 const Empty=({t})=><div style={{padding:"30px 10px",textAlign:"center",fontSize:13,color:"#C4C9D0"}}>{t}</div>;
+// 오늘 — 팀 버전: 팀원별 오늘 진행 현황(완료/진행중/밀림) 한눈에
+function TeamToday({D,cu,nav,onEdit}){
+  const [open,setOpen]=useState(null);   // 펼친 멤버 id
+  const today=todayDay(); const todayStr=ymdLocal(new Date()); const todayIdx=WEEK_DAYS.indexOf(today);
+  const isTodayTask=(t)=>!t.isFixed&&t.status!=="hold"&&(t.status==="inprogress"||t.workDate===todayStr||(!t.workDate&&t.weekDay===today));
+  const isOverdueTodo=(t)=>!t.isFixed&&t.status==="todo"&&((t.workDate&&t.workDate<todayStr)||(!t.workDate&&t.weekDay&&WEEK_DAYS.indexOf(t.weekDay)>=0&&WEEK_DAYS.indexOf(t.weekDay)<todayIdx));
+  const rows=D.users.map(u=>{
+    const mine=D.tasks.filter(t=>!t.isFixed&&t.assigneeId===u.id);
+    const todayTasks=mine.filter(isTodayTask);
+    const done=todayTasks.filter(t=>t.status==="done").length;
+    const inprog=todayTasks.filter(t=>t.status==="inprogress");
+    const carry=mine.filter(isOverdueTodo).length;
+    return {u,todayTasks,done,total:todayTasks.length,inprog,carry};
+  });
+  const tDone=rows.reduce((a,r)=>a+r.done,0), tTotal=rows.reduce((a,r)=>a+r.total,0), tInprog=rows.reduce((a,r)=>a+r.inprog.length,0);
+  const order=["todo","inprogress","done","hold"];
+  return(
+    <div>
+      <div style={{display:"flex",gap:8,marginBottom:14,overflowX:"auto",paddingBottom:2}}>
+        {[{label:"팀 오늘 완료",val:`${tDone}/${tTotal}`,color:"#00A862"},{label:"진행 중",val:`${tInprog}건`,color:"#3182F6"},{label:"팀원",val:`${D.users.length}명`,color:"#8B5CF6"}].map((s,i)=>(
+          <div key={i} style={{flexShrink:0,backgroundColor:"#FFFFFF",borderRadius:12,padding:"10px 14px",border:"1px solid #F2F4F6"}}>
+            <p style={{margin:0,fontSize:10,color:"#9CA3AF",fontWeight:600}}>{s.label}</p>
+            <p style={{margin:"2px 0 0",fontSize:18,fontWeight:900,color:s.color}}>{s.val}</p>
+          </div>
+        ))}
+      </div>
+      <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #F2F4F6",marginBottom:14}}>
+        <div style={{marginBottom:10}}>
+          <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#0F1F5C"}}>👥 오늘 팀 현황</h3>
+          <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>팀원별 오늘 업무 진행 · 탭하면 업무 목록이 펼쳐져요</p>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {rows.map(({u,todayTasks,done,total,inprog,carry})=>{
+            const pct=total>0?Math.round(done/total*100):0; const isOpen=open===u.id;
+            const sorted=[...todayTasks].sort((a,b)=>order.indexOf(a.status)-order.indexOf(b.status));
+            return(
+              <div key={u.id} style={{borderRadius:12,border:`1px solid ${u.id===cu.id?u.color+"55":"#EEF1F4"}`,overflow:"hidden",background:u.id===cu.id?u.color+"08":"#fff"}}>
+                <button onClick={()=>setOpen(isOpen?null:u.id)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"11px 12px",border:"none",background:"none",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                  <Ava name={u.name} color={u.color} size={30}/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <span style={{fontSize:13.5,fontWeight:800,color:"#1F2937"}}>{u.name}</span>
+                      {u.id===cu.id&&<span style={{fontSize:9,fontWeight:800,color:u.color,background:u.color+"18",padding:"1px 6px",borderRadius:6}}>나</span>}
+                      {inprog.length>0&&<span style={{fontSize:9.5,fontWeight:800,color:"#3182F6",background:"#EBF3FF",padding:"1px 6px",borderRadius:6}}>진행 {inprog.length}</span>}
+                      {carry>0&&<span style={{fontSize:9.5,fontWeight:800,color:"#EA580C",background:"#FFF1E7",padding:"1px 6px",borderRadius:6}}>밀림 {carry}</span>}
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:7,marginTop:5}}>
+                      <div style={{flex:1,height:6,borderRadius:6,background:"#F2F4F6",overflow:"hidden"}}><div style={{width:`${pct}%`,height:"100%",background:done>=total&&total>0?"#00A862":u.color,borderRadius:6}}/></div>
+                      <span style={{fontSize:10.5,fontWeight:800,color:"#9CA3AF",flexShrink:0}}>{done}/{total}</span>
+                    </div>
+                  </div>
+                  <span style={{fontSize:11,color:"#C4C9D0",flexShrink:0}}>{isOpen?"▴":"▾"}</span>
+                </button>
+                {isOpen&&<div style={{padding:"0 12px 11px",display:"flex",flexDirection:"column",gap:5}}>
+                  {sorted.length===0?<p style={{margin:0,padding:"6px 0",fontSize:11.5,color:"#B0B8C1"}}>오늘 잡힌 업무가 없어요</p>:sorted.map(t=>{const st=STATUS_MAP[t.status]||STATUS_MAP.todo;const proj=D.projects.find(p=>p.id===t.projectId);const ms=taskTimeSpent(t);return(
+                    <button key={t.id} onClick={()=>onEdit&&onEdit(t)} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:10,border:"1px solid #F2F4F6",background:"#F9FAFB",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                      <span style={{width:8,height:8,borderRadius:"50%",background:st.color,flexShrink:0}}/>
+                      <span style={{flex:1,minWidth:0,fontSize:12.5,fontWeight:600,color:t.status==="done"?"#9CA3AF":"#1F2937",textDecoration:t.status==="done"?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title}{proj?<span style={{color:"#C4C9D0",fontWeight:500}}> · 📁{proj.title}</span>:""}</span>
+                      {ms>0&&<span style={{flexShrink:0,fontSize:9.5,fontWeight:800,color:t.status==="inprogress"?"#3182F6":"#00A862"}}>⏱{fmtDur(ms)}</span>}
+                      <span style={{flexShrink:0,fontSize:9.5,fontWeight:800,color:st.color,background:st.bg,padding:"1px 6px",borderRadius:5}}>{st.label}</span>
+                    </button>
+                  );})}
+                </div>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <button onClick={()=>nav&&nav("team")} style={{width:"100%",padding:"12px 0",borderRadius:12,border:"1px solid #E5E8EB",background:"#fff",color:"#4B5563",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>👤 담당자별 전체 현황 보기 →</button>
+    </div>
+  );
+}
 function TodayPage({D,cu,lead,add,up,rm,nav}){
   const today=todayDay();
   const todayDate=new Date().getDate();
@@ -1148,6 +1242,8 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const [expandedMember,setExpandedMember]=useState(null);   // 팀 활동 — 팀원별 상세 펼침
   const [weeklyOpen,setWeeklyOpen]=useState(false);
   const [showHeld,setShowHeld]=useState(false);
+  const [showCarry,setShowCarry]=useState(false);   // 밀린 업무 펼침(기본 접힘)
+  const [scope,setScope]=useState("me");   // 오늘 화면: me(나) | team(팀)
   const [isNarrow,setIsNarrow]=useState(typeof window!=="undefined"?window.innerWidth<640:true);   // 모바일=하루씩, 넓은 화면=요일 5열
   useEffect(()=>{const h=()=>setIsNarrow(window.innerWidth<640);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[]);
   const [viewDay,setViewDay]=useState(WEEK_DAYS.includes(today)?today:"월");   // 모바일 단일요일 보기(오늘 기준 시작)
@@ -1256,6 +1352,13 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   ):null;
   return(
     <div style={{padding:"14px 16px 20px"}}>
+      <div style={{display:"flex",gap:4,background:"#F2F4F6",borderRadius:12,padding:4,marginBottom:14}}>
+        {[{k:"me",l:"🙋 나"},{k:"team",l:"👥 팀"}].map(v=>(
+          <button key={v.k} onClick={()=>setScope(v.k)} style={{flex:1,padding:"9px 0",borderRadius:9,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:13,fontWeight:800,background:scope===v.k?"#fff":"transparent",color:scope===v.k?"#0F1F5C":"#9CA3AF",boxShadow:scope===v.k?"0 1px 3px rgba(0,0,0,0.1)":"none"}}>{v.l}</button>
+        ))}
+      </div>
+      {scope==="team"&&<TeamToday D={D} cu={cu} nav={nav} onEdit={setEditTask}/>}
+      {scope==="me"&&<>
       {(!isNarrow&&urgentCard)?(
         <div style={{display:"flex",gap:12,marginBottom:12,alignItems:"stretch"}}>{memoBanner}{urgentCard}</div>
       ):(<>
@@ -1324,11 +1427,14 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
       {(carry.length>0||held.length>0)&&(
         <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",marginBottom:14,border:"1px solid "+(carry.length>0?"#FED7AA":"#F2F4F6")}}>
           {carry.length>0&&(<>
-            <div style={{marginBottom:10}}>
-              <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#EA580C"}}>⏰ 밀린 업무 ({carry.length})</h3>
-              <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>지난 요일에 못 끝낸 내 업무 · 오늘로 가져오거나 보류하세요</p>
-            </div>
-            <div style={{display:"flex",flexDirection:"column",gap:7}}>
+            <button onClick={()=>setShowCarry(s=>!s)} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",padding:0,marginBottom:showCarry?10:0}}>
+              <div style={{textAlign:"left"}}>
+                <h3 style={{margin:0,fontSize:14,fontWeight:900,color:"#EA580C"}}>⏰ 밀린 업무 ({carry.length})</h3>
+                {showCarry&&<p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>지난 요일에 못 끝낸 내 업무 · 오늘로 가져오거나 보류하세요</p>}
+              </div>
+              <span style={{fontSize:12,fontWeight:800,color:"#EA580C",flexShrink:0}}>{showCarry?"접기 ▴":"펼치기 ▾"}</span>
+            </button>
+            {showCarry&&<div style={{display:"flex",flexDirection:"column",gap:7}}>
               {carry.map(t=>{const proj=D.projects.find(p=>p.id===t.projectId);return(
                 <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",borderRadius:12,backgroundColor:"#FFF7ED",border:"1px solid #FED7AA"}}>
                   <span style={{flexShrink:0,fontSize:9.5,fontWeight:900,color:"#EA580C",background:"#FFE4C7",borderRadius:6,padding:"2px 6px"}}>{t.weekDay}</span>
@@ -1339,7 +1445,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                   <button onClick={()=>bringToday(t)} style={{flexShrink:0,padding:"6px 9px",borderRadius:8,border:"none",background:"#F97316",color:"#fff",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>📍 오늘로</button>
                   <button onClick={()=>holdTask(t)} style={{flexShrink:0,padding:"6px 9px",borderRadius:8,border:"1px solid #FFD9A6",background:"#fff",color:"#EA580C",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>⏸ 보류</button>
                 </div>);})}
-            </div>
+            </div>}
           </>)}
           {held.length>0&&(
             <div style={{marginTop:carry.length>0?12:0,paddingTop:carry.length>0?12:0,borderTop:carry.length>0?"1px dashed #F2E6D5":"none"}}>
@@ -1430,6 +1536,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                   <div style={{flex:1,minWidth:0}}>
                     <p style={{margin:0,fontSize:13.5,fontWeight:700,color:t.status==="done"?"#9CA3AF":"#111827",textDecoration:t.status==="done"?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.eventId?"📅 ":""}{t.title}</p>
                     {(()=>{const chain=taskParentChain(D,t);const ru=taskRollup(D,t.id);const pathTxt=[proj&&`📁 ${proj.title}`,...chain.map(c=>c.title)].filter(Boolean).join(" ▸ ");return (proj||chain.length>0||ru.total>0||(t.status==="done"&&t.doneAt))?(<p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.status==="done"&&t.doneAt?<span style={{color:"#00A862",fontWeight:700}}>✓ {hhmm(t.doneAt)} 완료{(pathTxt||ru.total)?" · ":""}</span>:null}{pathTxt}{ru.total>0?<button onClick={()=>setExpandedCards(e=>({...e,[t.id]:!e[t.id]}))} style={{marginLeft:pathTxt?6:0,fontWeight:800,color:ru.done>=ru.total?"#00A862":"#7C3AED",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit",fontSize:10.5}}>{pathTxt?"· ":""}하위 {ru.done}/{ru.total} {expandedCards[t.id]?"▾":"▸"}</button>:null}</p>):null;})()}
+                    {(()=>{const ms=taskTimeSpent(t);if(!ms)return null;const live=t.status==="inprogress";return(<p style={{margin:"2px 0 0",fontSize:10.5,fontWeight:800,color:live?"#3182F6":"#00A862"}}>⏱ {live?"진행 ":"총 "}{fmtDur(ms)}</p>);})()}
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                     {t.weekSlot&&<span style={{fontSize:10,fontWeight:800,color:"#9CA3AF"}}>{t.weekSlot}순위</span>}
@@ -1672,6 +1779,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           </div>
         </Sheet>
       )}
+      </>}
       <EditTaskSheet open={!!editTask} onClose={()=>setEditTask(null)} task={editTask} D={D} add={add} up={up} onSave={f=>up("tasks",editTask.id,{title:f.title,status:f.status,parentId:f.parentId||null,dueDate:f.dueDate,memo:f.memo,projectId:f.projectId,assigneeId:(f.forAll?"":((f.assigneeIds||[])[0]||"")),assigneeIds:f.assigneeIds||[],forAll:!!f.forAll,attachments:f.attachments,weekDay:f.weekDay||null,weekSlot:f.weekSlot??null,workDate:f.workDate||null,fixedTime:f.fixedTime||null,...(f.statusLog?{statusLog:f.statusLog,doneAt:f.doneAt,doneBy:f.doneBy,doneByName:f.doneByName}:{})})}/>
       <Confirm open={!!confirmTaskId} title="업무 삭제" desc={`"${D.tasks.find(t=>t.id===confirmTaskId)?.title}" 업무를 삭제할까요?\n휴지통으로 이동하며 언제든 복구할 수 있어요.`} onOk={()=>{rm("tasks",confirmTaskId);setConfirmTaskId(null);}} onCancel={()=>setConfirmTaskId(null)}/>
       {projModal&&(()=>{
@@ -3362,9 +3470,17 @@ function CalendarPage({D,cu,add,up,rm}){
   const saveEvent=()=>{ if(!evForm.title.trim()||!evForm.date) return; const data={title:evForm.title.trim(),date:evForm.date,type:evForm.type,place:evForm.place.trim(),attendeeIds:evForm.attendeeIds,externalAttendees:evForm.externalAttendees.trim(),description:evForm.description}; if(evForm.id){ up("events",evForm.id,data); } else { add("events",{id:"e"+Date.now(),...data,projectId:null}); } setEvSheet(false); };
   const fd=new Date(y,m,1).getDay();
   const dim=new Date(y,m+1,0).getDate();
-  const ET={internal:{label:"내부미팅",color:"#3182F6",bg:"#EBF3FF"},external:{label:"외부미팅",color:"#8B5CF6",bg:"#F3EFFE"},promotion:{label:"프로모션",color:"#FF9500",bg:"#FFF3E0"},seminar:{label:"세미나",color:"#00C073",bg:"#E8FAF1"},fair:{label:"박람회",color:"#F04452",bg:"#FFF0F1"}};
-  const getEvts=d=>{const ds=`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;return D.events.filter(e=>e.date===ds);};
-  const mEvts=D.events.filter(e=>{const d=new Date(e.date);return d.getFullYear()===y&&d.getMonth()===m;});
+  const ET=EVENT_TYPES;
+  // 나/팀 보기 — 나: 내가 참여하는 일정 + 내 업무 / 팀: 전체
+  const [scope,setScope]=useState("me");
+  const [taskDetail,setTaskDetail]=useState(null);   // 캘린더에서 업무 탭 → 상세·상태변경
+  const evMine=(e)=> (e.attendeeIds||[]).includes(cu.id) || (e.attendeeIds||[]).length===0;   // 참여자 지정 없으면 공통 일정으로 간주
+  const dsOf=(yy,mm,dd)=>`${yy}-${String(mm+1).padStart(2,"0")}-${String(dd).padStart(2,"0")}`;
+  const taskDate=(t)=> t.workDate || (t.doneAt?String(t.doneAt).slice(0,10):"") || t.dueDate || "";
+  const monthTasks=D.tasks.filter(t=>{ if(t.isFixed)return false; if(scope==="me"&&t.assigneeId!==cu.id)return false; const ds=taskDate(t); if(!ds)return false; const d=new Date(ds+"T00:00:00"); return d.getFullYear()===y&&d.getMonth()===m; });
+  const getEvts=d=>{const ds=dsOf(y,m,d);return D.events.filter(e=>e.date===ds&&(scope==="team"||evMine(e)));};
+  const getTasks=d=>{const ds=dsOf(y,m,d);return monthTasks.filter(t=>taskDate(t)===ds);};
+  const mEvts=D.events.filter(e=>{const d=new Date(e.date);return d.getFullYear()===y&&d.getMonth()===m&&(scope==="team"||evMine(e));});
   const doAction=()=>{
     if(!actionForm.title.trim()) return;
     const nid="t"+Date.now();
@@ -3382,26 +3498,39 @@ function CalendarPage({D,cu,add,up,rm}){
           <button onClick={()=>setCm(new Date(y,m+1,1))} style={{width:34,height:34,borderRadius:10,backgroundColor:"#F2F4F6",border:"none",cursor:"pointer",fontSize:14}}>▶</button>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <Badge color="#F97316" bg="#FFEDD5">{mEvts.length}건</Badge>
+          <Badge color="#F97316" bg="#FFEDD5">일정 {mEvts.length}</Badge>
+          <Badge color="#3182F6" bg="#EBF3FF">업무 {monthTasks.length}</Badge>
           <button onClick={()=>openNewEvent()} style={{padding:"7px 12px",borderRadius:20,border:"none",cursor:"pointer",backgroundColor:"#F97316",color:"#FFFFFF",fontWeight:700,fontSize:12,fontFamily:"inherit"}}>+ 일정</button>
         </div>
       </div>
-      <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"12px",marginBottom:14,border:"1px solid #F2F4F6"}}>
+      <div style={{display:"flex",gap:4,background:"#F2F4F6",borderRadius:12,padding:4,marginBottom:12}}>
+        {[{k:"me",l:"🙋 나"},{k:"team",l:"👥 팀"}].map(v=>(
+          <button key={v.k} onClick={()=>setScope(v.k)} style={{flex:1,padding:"8px 0",borderRadius:9,border:"none",cursor:"pointer",fontFamily:"inherit",fontSize:12.5,fontWeight:800,background:scope===v.k?"#fff":"transparent",color:scope===v.k?"#0F1F5C":"#9CA3AF",boxShadow:scope===v.k?"0 1px 3px rgba(0,0,0,0.1)":"none"}}>{v.l}</button>
+        ))}
+      </div>
+      <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"12px",marginBottom:10,border:"1px solid #F2F4F6"}}>
         <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1}}>
           {["일","월","화","수","목","금","토"].map(d=><div key={d} style={{padding:"7px 0",textAlign:"center",fontSize:11,fontWeight:700,color:"#6B7280"}}>{d}</div>)}
-          {Array.from({length:fd}).map((_,i)=><div key={"e"+i} style={{minHeight:44}}/>)}
+          {Array.from({length:fd}).map((_,i)=><div key={"e"+i} style={{minHeight:58}}/>)}
           {Array.from({length:dim}).map((_,i)=>{
             const day=i+1;
-            const evts=getEvts(day);
+            const evts=getEvts(day); const tks=getTasks(day);
             const isT=new Date().getDate()===day&&new Date().getMonth()===m&&new Date().getFullYear()===y;
+            const items=[...evts.map(ev=>({kind:"ev",o:ev})),...tks.map(t=>({kind:"t",o:t}))];
+            const shown=items.slice(0,3);
             return(
-              <div key={day} style={{padding:"3px",minHeight:44}}>
-                <span onClick={()=>openNewEvent(`${y}-${String(m+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`)} title="이 날 일정 추가" style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:22,height:22,borderRadius:"50%",fontSize:11.5,fontWeight:isT?900:400,backgroundColor:isT?"#3182F6":"transparent",color:isT?"#FFFFFF":"#374151",cursor:"pointer"}}>{day}</span>
-                {evts.map(ev=>{const et=ET[ev.type]||ET.internal;return <div key={ev.id} onClick={()=>{setDetail(ev);setActionForm({type:"task",title:"",projectId:"",status:"todo"});setActionDone([]);}} style={{marginTop:1,padding:"1px 4px",borderRadius:4,fontSize:9,fontWeight:700,backgroundColor:et.bg,color:et.color,cursor:"pointer",overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>{ev.title}</div>;})}
+              <div key={day} style={{padding:"3px",minHeight:58,borderRadius:8,background:isT?"#F5F9FF":"transparent"}}>
+                <span onClick={()=>openNewEvent(dsOf(y,m,day))} title="이 날 일정 추가" style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:22,height:22,borderRadius:"50%",fontSize:11.5,fontWeight:isT?900:400,backgroundColor:isT?"#3182F6":"transparent",color:isT?"#FFFFFF":"#374151",cursor:"pointer"}}>{day}</span>
+                {shown.map(it=>it.kind==="ev"?(()=>{const ev=it.o;const et=ET[ev.type]||ET.internal;return <div key={ev.id} onClick={()=>{setDetail(ev);setActionForm({type:"task",title:"",projectId:"",status:"todo"});setActionDone([]);}} style={{marginTop:1,padding:"1px 4px",borderRadius:4,fontSize:9,fontWeight:700,backgroundColor:et.bg,color:et.color,cursor:"pointer",overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>{ev.title}</div>;})():(()=>{const t=it.o;const st=STATUS_MAP[t.status]||STATUS_MAP.todo;const au=scope==="team"?D.users.find(u=>u.id===t.assigneeId):null;return <div key={t.id} onClick={()=>setTaskDetail(t)} style={{marginTop:1,display:"flex",alignItems:"center",gap:2,padding:"1px 3px",borderRadius:4,fontSize:9,fontWeight:700,background:"#fff",border:`1px solid ${st.color}44`,color:t.status==="done"?"#9CA3AF":"#374151",cursor:"pointer",overflow:"hidden",whiteSpace:"nowrap"}}><span style={{width:5,height:5,borderRadius:"50%",background:st.color,flexShrink:0}}/>{au?<span style={{color:au.color,fontWeight:800,flexShrink:0}}>{au.name[0]}</span>:null}<span style={{overflow:"hidden",textOverflow:"ellipsis",textDecoration:t.status==="done"?"line-through":"none"}}>{t.title}</span></div>;})())}
+                {items.length>3&&<div style={{marginTop:1,fontSize:8.5,fontWeight:800,color:"#B0B8C1",paddingLeft:3}}>+{items.length-3}</div>}
               </div>
             );
           })}
         </div>
+      </div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:14,padding:"0 2px"}}>
+        {Object.entries(ET).map(([k,v])=><span key={k} style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:9.5,fontWeight:700,color:"#6B7280"}}><span style={{width:8,height:8,borderRadius:2,background:v.color}}/>{v.label}</span>)}
+        <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:9.5,fontWeight:700,color:"#6B7280"}}><span style={{width:8,height:8,borderRadius:"50%",border:"1.5px solid #9CA3AF"}}/>업무</span>
       </div>
       <h3 style={{margin:"0 0 10px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}>이번 달 일정</h3>
       {mEvts.length===0&&<div style={{padding:"28px 20px",textAlign:"center",backgroundColor:"#FFFFFF",borderRadius:16,border:"1px solid #F2F4F6"}}><p style={{margin:0,fontSize:13,color:"#9CA3AF"}}>이번 달 일정이 없어요</p><p style={{margin:"4px 0 0",fontSize:11.5,color:"#D1D5DB"}}>위 <b>+ 일정</b> 또는 날짜를 탭해 추가하세요</p></div>}
@@ -3476,6 +3605,28 @@ function CalendarPage({D,cu,add,up,rm}){
           <textarea value={evForm.description} onChange={e=>setEvForm({...evForm,description:e.target.value})} placeholder="논의할 안건·메모" style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",resize:"vertical",minHeight:64,fontFamily:"inherit",boxSizing:"border-box",outline:"none",marginBottom:16}}/>
           <Btn full variant="orange" onClick={saveEvent} disabled={!evForm.title.trim()||!evForm.date}>{evForm.id?"수정 저장":"일정 추가"}</Btn>
         </div>
+      </Sheet>
+      <Sheet open={!!taskDetail} onClose={()=>setTaskDetail(null)} title="업무" h="62vh">
+        {taskDetail&&(()=>{const t=D.tasks.find(x=>x.id===taskDetail.id)||taskDetail;const proj=D.projects.find(p=>p.id===t.projectId);const asg=D.users.find(u=>u.id===t.assigneeId);const ms=taskTimeSpent(t);const live=t.status==="inprogress";return(
+          <div style={{marginTop:10}}>
+            <h3 style={{margin:"0 0 6px",fontSize:17,fontWeight:900,color:"#0F1F5C"}}>{t.title}</h3>
+            <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:14}}>
+              {asg&&<span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:11.5,fontWeight:700,color:asg.color,background:asg.color+"18",padding:"3px 9px",borderRadius:999}}><Ava name={asg.name} color={asg.color} size={16}/>{asg.name}</span>}
+              {proj&&<span style={{fontSize:11.5,fontWeight:700,color:"#3182F6",background:"#EBF3FF",padding:"3px 9px",borderRadius:999}}>📁 {proj.title}</span>}
+              {t.workDate&&<span style={{fontSize:11.5,fontWeight:700,color:"#6B7280",background:"#F2F4F6",padding:"3px 9px",borderRadius:999}}>📅 {t.workDate}</span>}
+              {t.dueDate&&<span style={{fontSize:11.5,fontWeight:700,color:"#EA580C",background:"#FFF1E7",padding:"3px 9px",borderRadius:999}}>마감 {t.dueDate}</span>}
+            </div>
+            {ms>0&&<div style={{margin:"0 0 14px",padding:"8px 11px",borderRadius:10,background:live?"#EBF3FF":"#E8FAF1",display:"flex",alignItems:"center",gap:7}}><span style={{fontSize:13}}>⏱</span><span style={{fontSize:12,fontWeight:800,color:live?"#3182F6":"#00A862"}}>{live?"진행 중 누적 소요":"총 소요시간"} · {fmtDur(ms)}</span></div>}
+            <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>상태 변경</label>
+            <div style={{display:"flex",gap:6,marginBottom:14}}>
+              {Object.entries(STATUS_MAP).map(([k,v])=>{const on=t.status===k;return(
+                <button key={k} onClick={()=>up("tasks",t.id,statusPatch(D,t,k))} style={{flex:1,padding:"10px 4px",borderRadius:10,border:`1.5px solid ${on?v.color:"#E5E8EB"}`,background:on?v.color+"16":"#fff",color:on?v.color:"#9CA3AF",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{v.label}</button>
+              );})}
+            </div>
+            {t.memo&&<p style={{margin:"0 0 12px",padding:"9px 11px",background:"#FAFBFC",borderRadius:9,fontSize:12.5,color:"#4B5563",lineHeight:1.6,whiteSpace:"pre-wrap"}}>{t.memo}</p>}
+            <button onClick={()=>setTaskDetail(null)} style={{width:"100%",padding:"12px 0",borderRadius:12,border:"none",background:"#F2F4F6",color:"#4B5563",fontSize:14,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>닫기</button>
+          </div>
+        );})()}
       </Sheet>
     </div>
   );

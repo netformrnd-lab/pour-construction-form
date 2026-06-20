@@ -339,6 +339,9 @@ const NAV = [
   { id: 'channels',  icon: '🏷️', label: '거래코드·채널',     group: 'kpi-db' },
   // 캘린더·회의록 → 추후 React 컴포넌트 흡수 예정
 
+  { type: 'divider', label: 'AI 챗봇센터', group: 'chatbot', collapsible: true, defaultCollapsed: false },
+  { id: 'chatbot', icon: '💬', label: '챗봇 관리센터', group: 'chatbot', external: './chatbot.html' },
+
   { type: 'divider', label: '디자인/개발 센터', group: 'design', collapsible: true, defaultCollapsed: false },
   { id: 'preview',         icon: '🎨', label: '자사몰 페이지 관리', group: 'design' },
   { id: 'products',        icon: '📦', label: '상품관리',           group: 'design' },

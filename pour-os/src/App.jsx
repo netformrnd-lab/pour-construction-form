@@ -41,6 +41,8 @@ const STATUS_MAP={
 // 프로젝트 진행 상태 4단계 (할일→진행중→보류→완료). 명칭은 업무 상태(STATUS_MAP)와 통일 — todo=할일. 기존 데이터(status 없음)는 진행중으로 간주.
 const PROJ_STATUS={planned:{label:"할일",color:"#6B7280",bg:"#F2F4F6",icon:"📋"},active:{label:"진행중",color:"#3182F6",bg:"#EBF3FF",icon:"▶"},paused:{label:"보류",color:"#FF9500",bg:"#FFF3E0",icon:"⏸"},completed:{label:"완료",color:"#00C073",bg:"#E8FAF1",icon:"✓"}};
 const projStatus=(p)=>(p&&p.status)||"active";
+// 프로젝트 '내 것' 판정 — 담당자 본인 또는 공동 기여자 포함
+const ownsProj=(p,uid)=>!!p&&(p.assigneeId===uid||(p.collaboratorIds||[]).includes(uid));
 // 마감일 D-day: 음수=지남, 0=오늘, 양수=남음. dueDate(YYYY-MM-DD) 없으면 null
 const ddays=(dueDate)=>{ if(!dueDate) return null; const d=new Date(dueDate+"T00:00:00"); if(isNaN(d.getTime())) return null; const now=new Date(); now.setHours(0,0,0,0); return Math.round((d-now)/86400000); };
 const ddayLabel=(n)=>n==null?"":n===0?"D-day":n>0?"D-"+n:"D+"+(-n);
@@ -1612,7 +1614,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
         {urgentCard&&<div style={{marginBottom:14}}>{urgentCard}</div>}
       </>)}
       <div style={{display:"flex",gap:8,marginBottom:14,overflowX:"auto",paddingBottom:2}}>
-        {[{label:"오늘 업무",val:`${doneToday}/${todayT.length}`,color:"#3182F6"},{label:"고정업무",val:`${doneFixed}/${fixed.length}`,color:"#F97316"},{label:"내 프로젝트",val:D.projects.filter(p=>p.assigneeId===cu.id).length+"건",color:"#8B5CF6"}].map((s,i)=>(
+        {[{label:"오늘 업무",val:`${doneToday}/${todayT.length}`,color:"#3182F6"},{label:"고정업무",val:`${doneFixed}/${fixed.length}`,color:"#F97316"},{label:"내 프로젝트",val:D.projects.filter(p=>ownsProj(p,cu.id)).length+"건",color:"#8B5CF6"}].map((s,i)=>(
           <div key={i} style={{flexShrink:0,backgroundColor:"#FFFFFF",borderRadius:12,padding:"10px 14px",border:"1px solid #F2F4F6"}}>
             <p style={{margin:0,fontSize:10,color:"#9CA3AF",fontWeight:600}}>{s.label}</p>
             <p style={{margin:"2px 0 0",fontSize:18,fontWeight:900,color:s.color}}>{s.val}</p>
@@ -3326,9 +3328,9 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
     demoProjs.forEach(p=>rm("projects",p.id,true));
     setProjDetail(null);
   };
-  const projs=filter==="all"?D.projects:D.projects.filter(p=>p.assigneeId===cu.id);
+  const projs=filter==="all"?D.projects:D.projects.filter(p=>ownsProj(p,cu.id));
   const groups=[...new Set(projs.map(p=>p.group))];
-  const filtered=projs.filter(p=>(groupFilter==="all"||p.group===groupFilter)&&(asgFilter==="all"||p.assigneeId===asgFilter)&&(!search.trim()||(p.title||"").toLowerCase().includes(search.trim().toLowerCase())));
+  const filtered=projs.filter(p=>(groupFilter==="all"||p.group===groupFilter)&&(asgFilter==="all"||ownsProj(p,asgFilter))&&(!search.trim()||(p.title||"").toLowerCase().includes(search.trim().toLowerCase())));
   const dlCSV=(rows,name)=>{
     const csv="﻿"+rows.map(r=>r.map(c=>`"${String(c==null?"":c).replace(/"/g,'""')}"`).join(",")).join("\n");
     const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));
@@ -5301,7 +5303,7 @@ function pushKRSubtree(items,D,uid,isThisWeek,doneInP,krColors,baseDepth,opts={}
   const {krF="all",activeOnly=false,signals=null,pfx=""}=opts;
   // 담당(소유) 프로젝트 + 내가 업무를 맡은 프로젝트(타인 소유 포함) — 실제 한 일이 그로스보드에 반영되도록
   const myTaskPids=new Set(D.tasks.filter(t=>!t.isFixed&&t.assigneeId===uid).map(t=>t.projectId));
-  const myP=D.projects.filter(p=>p.assigneeId===uid||myTaskPids.has(p.id));
+  const myP=D.projects.filter(p=>ownsProj(p,uid)||myTaskPids.has(p.id));
   const pushProj=(proj,depth,col)=>{
     const projTasks=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed&&t.assigneeId===uid);
     const actT=projTasks.filter(isThisWeek);if(activeOnly&&!actT.length)return;
@@ -5494,7 +5496,7 @@ function WeeklyTree({D,sel,isThisWeek,doneInP,krColors,krF,activeOnly,signals,on
   const myTaskPids=new Set(D.tasks.filter(t=>!t.isFixed&&t.assigneeId===sel).map(t=>t.projectId));
   return(<>
     {D.mainKPIs.filter(mk=>krF==="all"||mk.id===krF).map(mk=>{
-      const mkProjs=D.projects.filter(p=>p.mainKPIId===mk.id&&(p.assigneeId===sel||myTaskPids.has(p.id)));
+      const mkProjs=D.projects.filter(p=>p.mainKPIId===mk.id&&(ownsProj(p,sel)||myTaskPids.has(p.id)));
       if(mkProjs.length===0) return null;
       const allMkTasks=mkProjs.flatMap(p=>D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed&&t.assigneeId===sel));
       const thisWeekCount=allMkTasks.filter(t=>isThisWeek(t)).length;
@@ -5616,7 +5618,6 @@ function WeeklyTree({D,sel,isThisWeek,doneInP,krColors,krF,activeOnly,signals,on
 }
 function MindMapPage({D,cu,nav}){
   const [scope,setScope]=useState("person");   // person | team
-  const [boardView,setBoardView]=useState("tree");
   const [teamView,setTeamView]=useState("members");   // members(멤버 현황) | weekly(그로스보드)
   const [mapStyle,setMapStyle]=useState("tree");   // tree(계층형) | mind(마인드맵)
   const [period,setPeriod]=useState("week");
@@ -5628,8 +5629,6 @@ function MindMapPage({D,cu,nav}){
   const doneInP=(ts)=>ts.filter(t=>t.status==="done"&&inP(t.doneAt)).length;
   const [sel,setSel]=useState(cu.id);
   const user=D.users.find(u=>u.id===sel);
-  const myP=D.projects.filter(p=>p.assigneeId===sel);
-  const myMK=[...new Set(myP.filter(p=>p.mainKPIId).map(p=>p.mainKPIId))].map(id=>D.mainKPIs.find(m=>m.id===id)).filter(Boolean);
   const krColors={mk1:"#3182F6",mk2:"#8B5CF6",mk3:"#00C073"};
   const isThisWeek=activeInP;   // 활동 판정을 선택 기간 기준으로
   const [krF,setKrF]=useState("all");        // KR 필터 (all|mk.id)
@@ -5639,7 +5638,7 @@ function MindMapPage({D,cu,nav}){
   const signals=diagSignals(D);
   const pprev=prevPeriodRange(period);
   const doneInPrev=(ts)=>ts.filter(t=>{if(t.status!=="done"||!t.doneAt)return false;const d=new Date(t.doneAt);return !isNaN(d)&&d>=pprev[0]&&d<=pprev[1];}).length;
-  const krProjIds=new Set(D.projects.filter(p=>p.assigneeId===sel&&(krF==="all"||p.mainKPIId===krF)).map(p=>p.id));
+  const krProjIds=new Set(D.projects.filter(p=>ownsProj(p,sel)&&(krF==="all"||p.mainKPIId===krF)).map(p=>p.id));
   const myTasks=D.tasks.filter(t=>!t.isFixed&&t.assigneeId===sel&&(krF==="all"||krProjIds.has(t.projectId)));
   const doneNow=doneInP(myTasks),donePrev=doneInPrev(myTasks),delta=doneNow-donePrev;
   return(
@@ -5651,82 +5650,10 @@ function MindMapPage({D,cu,nav}){
       </div>
       {scope==="team"&&<TeamWeeklyMap D={D} cu={cu}/>}
       {scope==="person"&&(<>
-      <div style={{display:"flex",backgroundColor:"#F2F4F6",borderRadius:14,padding:4,marginBottom:14}}>
-        {[{k:"tree",l:"◈ 담당자 트리"},{k:"weekly",l:"📈 그로스보드"}].map(v=>(
-          <button key={v.k} onClick={()=>setBoardView(v.k)} style={{flex:1,padding:"9px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:boardView===v.k?"#FFFFFF":"transparent",color:boardView===v.k?"#0F1F5C":"#6B7280",fontWeight:boardView===v.k?800:500,fontSize:13,fontFamily:"inherit",boxShadow:boardView===v.k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{v.l}</button>
-        ))}
-      </div>
       <select value={sel} onChange={e=>setSel(e.target.value)} style={{width:"100%",padding:"11px 14px",borderRadius:12,border:"1.5px solid #E5E8EB",fontSize:14,fontFamily:"inherit",backgroundColor:"#FFFFFF",outline:"none",marginBottom:14,WebkitAppearance:"none"}}>
         {D.users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}
       </select>
-      {boardView==="tree"&&(
-        <div>
-          <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"16px",marginBottom:14,border:"1px solid #F2F4F6",display:"flex",flexDirection:"column",alignItems:"center"}}>
-            <Ava name={user?.name} color={user?.color} size={52}/>
-            <p style={{margin:"8px 0 2px",fontSize:15,fontWeight:900,color:"#111827"}}>{user?.name}</p>
-            <p style={{margin:"0 0 4px",fontSize:12,color:"#9CA3AF"}}>{user?.dept}</p>
-            <p style={{margin:0,fontSize:12,fontWeight:700,color:"#F97316"}}>프로젝트 {myP.length}개 담당</p>
-          </div>
-          {myMK.length===0?<p style={{textAlign:"center",color:"#D1D5DB",fontSize:13,padding:"20px 0"}}>연결된 KR이 없습니다</p>:myMK.map(mk=>{
-            const mkProjs=myP.filter(p=>p.mainKPIId===mk.id);
-            const col=krColors[mk.id]||"#3182F6";
-            return(
-              <div key={mk.id} style={{marginBottom:10}}>
-                <div style={{backgroundColor:col+"18",borderRadius:12,padding:"10px 14px",marginBottom:8,border:`1.5px solid ${col}33`}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      <span style={{fontSize:11,fontWeight:900,color:"#FFFFFF",backgroundColor:col,padding:"2px 8px",borderRadius:20}}>{mk.krKey}</span>
-                      <span style={{fontSize:13,fontWeight:900,color:col}}>{mk.title}</span>
-                    </div>
-                    <span style={{fontSize:12,fontWeight:800,color:col}}>{pct(mkCur(mk,D.subKPIs,D.projects),mk.targetValue)}%</span>
-                  </div>
-                </div>
-                {mkProjs.map(proj=>{
-                  const sk=D.subKPIs.find(s=>s.id===proj.subKPIId);
-                  const tasks=D.tasks.filter(t=>t.projectId===proj.id);
-                  const done=tasks.filter(t=>t.status==="done");
-                  return(
-                    <div key={proj.id} style={{marginLeft:16,marginBottom:8}}>
-                      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
-                        <div style={{width:2,height:28,backgroundColor:col+"44",borderRadius:1}}/>
-                        <div style={{flex:1,backgroundColor:"#FFFFFF",borderRadius:10,padding:"8px 12px",border:"1px solid #E5E8EB"}}>
-                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                            <div>
-                              <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:3}}>
-                                {sk&&<span style={{fontSize:9,fontWeight:900,color:col,backgroundColor:col+"18",padding:"1px 5px",borderRadius:6}}>{sk.channelCode}</span>}
-                                <span style={{fontSize:12.5,fontWeight:700,color:"#111827"}}>{proj.title}</span>
-                              </div>
-                              <span style={{fontSize:11,color:"#9CA3AF"}}>업무 {done.length}/{tasks.length}건</span>
-                            </div>
-                            <span style={{fontSize:13,fontWeight:900,color:proj.progress>=70?"#00C073":"#3182F6"}}>{proj.progress}%</span>
-                          </div>
-                          <div style={{marginTop:5}}><PBar value={proj.progress} color={proj.progress>=70?"#00C073":"#3182F6"} h={4}/></div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
-          {myP.filter(p=>!p.mainKPIId).length>0&&(
-            <div style={{marginBottom:10}}>
-              <div style={{backgroundColor:"#F2F4F6",borderRadius:12,padding:"10px 14px",marginBottom:8}}><span style={{fontSize:13,fontWeight:900,color:"#4B5563"}}>⚙️ 운영 인프라</span></div>
-              {myP.filter(p=>!p.mainKPIId).map(proj=>(
-                <div key={proj.id} style={{marginLeft:16,marginBottom:6}}>
-                  <div style={{display:"flex",alignItems:"center",gap:6}}>
-                    <div style={{width:2,height:24,backgroundColor:"#D1D5DB",borderRadius:1}}/>
-                    <div style={{flex:1,backgroundColor:"#FFFFFF",borderRadius:9,padding:"8px 12px",border:"1px solid #E5E8EB"}}>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:12.5,fontWeight:700,color:"#1F2937"}}>{proj.title}</span><span style={{fontSize:13,fontWeight:900,color:proj.progress>=70?"#00C073":"#3182F6"}}>{proj.progress}%</span></div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-      {boardView==="weekly"&&(
+      {(
         <div>
           <div style={{display:"flex",gap:5,marginBottom:10,flexWrap:"wrap",alignItems:"center"}}>
             {PERIODS.map(([k,l])=>{const on=period===k;return(<button key={k} onClick={()=>setPeriod(k)} style={{flex:"1 0 auto",padding:"7px 10px",borderRadius:9,border:`1.5px solid ${on?"#0F1F5C":"#E5E8EB"}`,background:on?"#0F1F5C":"#fff",color:on?"#fff":"#6B7280",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>);})}

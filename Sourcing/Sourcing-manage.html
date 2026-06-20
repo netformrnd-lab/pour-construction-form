@@ -122,6 +122,9 @@
   .pcount{font-size:12.5px;color:var(--muted);font-weight:700}
   .pcard .gname{font-size:12.5px;color:var(--ink2);font-weight:700;margin-top:3px}
   .pcard .gname .mz{color:var(--muted);font-weight:600;font-style:italic}
+  .mkhdr{grid-column:1/-1;font-size:13.5px;font-weight:800;color:var(--navy);padding:9px 2px 5px;border-bottom:2px solid var(--line);margin-top:10px;display:flex;align-items:center;gap:8px}
+  .mkhdr:first-child{margin-top:0}
+  .mkhdr .mkhc{font-size:11.5px;font-weight:700;color:var(--muted)}
   /* 발주담당자 모달 */
   .ocm-scrim{position:fixed;inset:0;background:rgba(15,27,45,.5);z-index:120;display:none;align-items:center;justify-content:center;padding:20px}
   .ocm-scrim.on{display:flex}
@@ -308,7 +311,19 @@ function renderProducts(){
   list.sort((a,b)=>(a.maker||'').localeCompare(b.maker||'')||statusIdx(b)-statusIdx(a)||headName(a).localeCompare(headName(b)));
   $('#pCount').textContent=list.length+'개';
   if(!list.length){grid.innerHTML='<div class="empty">'+(qp||mkFilter?'결과 없음':'상품이 없어요. 소싱앱에서 등록하면 표시됩니다.')+'</div>';return;}
-  grid.innerHTML=list.map(cardHtml).join('');
+  // 제조사별 그룹 헤더 + 카드
+  let html='',lastMk=null,gi=0;
+  list.forEach(p=>{
+    const mk=p.maker||'';
+    if(mk!==lastMk){
+      lastMk=mk;gi++;
+      const cnt=list.filter(x=>(x.maker||'')===mk).length;
+      const label=v.makerName?(mk?esc(mk):'제조사 미입력'):('비공개 제조사 '+gi);
+      html+=`<div class="mkhdr">${label} <span class="mkhc">${cnt}개</span></div>`;
+    }
+    html+=cardHtml(p);
+  });
+  grid.innerHTML=html;
   grid.querySelectorAll('[data-oc]').forEach(b=>b.onclick=()=>openOcModal(b.dataset.oc));
 }
 

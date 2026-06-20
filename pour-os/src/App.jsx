@@ -2335,7 +2335,8 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro
                       const mkProjIds=new Set(mkProjs.map(p=>p.id));
                       const parentIds=new Set((D.tasks||[]).filter(t=>t.parentId).map(t=>t.parentId));   // 상위(단계) 그릇 제외 — 말단 업무만
                       const agg={}; D.users.forEach(u=>{agg[u.id]={u,effort:0,done:0};});
-                      (D.tasks||[]).forEach(t=>{ if(t.isFixed||!mkProjIds.has(t.projectId)||parentIds.has(t.id))return; if(agg[t.assigneeId])agg[t.assigneeId].effort++; if(t.status==="done"){const d=matchUid(D,t.doneBy,t.doneByName)||t.assigneeId; if(agg[d])agg[d].done++;} });
+                      // 담당자 카드 — 행동·완료 모두 '담당자(assigneeId)' 기준으로 일관. (완료를 완료처리자(doneBy) 기준으로 잡으면 남이 체크 시 담당자에게 안 잡힘)
+                      (D.tasks||[]).forEach(t=>{ if(t.isFixed||!mkProjIds.has(t.projectId)||parentIds.has(t.id))return; if(agg[t.assigneeId])agg[t.assigneeId].effort++; if(t.status==="done"&&agg[t.assigneeId])agg[t.assigneeId].done++; });
                       const rows=Object.values(agg).filter(x=>x.effort>0||x.done>0);
                       const totE=rows.reduce((a,x)=>a+x.effort,0), totD=rows.reduce((a,x)=>a+x.done,0);
                       const totalRev=mkProjs.reduce((s,p)=>s+numF(p.resultValue),0);
@@ -2367,7 +2368,7 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro
                             <Mini title="⚡ 행동 — 업무 수" color="#3182F6" bg="#EBF3FF" fld="effort" tot={totE}/>
                             <Mini title="✅ 완료 — 완료 수" color="#00C073" bg="#E8FAF1" fld="done" tot={totD}/>
                           </div>
-                          <p style={{margin:"8px 2px 0",fontSize:10,color:"#9CA3AF",lineHeight:1.5}}>이 매출 KPI에 연결된 모든 프로젝트(선행지표)의 말단 업무 기준 · 행동=맡은 업무 수, 완료=실제 완료 수</p>
+                          <p style={{margin:"8px 2px 0",fontSize:10,color:"#9CA3AF",lineHeight:1.5}}>이 매출 KPI에 연결된 모든 프로젝트(선행지표)의 말단 업무 기준 · 담당자(assignee) 기준 · 행동=맡은 업무 수, 완료=맡은 업무 중 완료 수</p>
                         </div>
                       );
                     })()}

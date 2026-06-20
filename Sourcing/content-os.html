@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>컨텐츠 소스 관리 · POUR스토어</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/[email protected]/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<style>
+  :root{
+    --or:#3182F6; --or2:#2272EB; --or-pale:#E8F2FF;
+    --navy:#191F28; --navy2:#333D4B;
+    --ink:#191F28; --ink2:#4E5968; --muted:#8B95A1;
+    --cream:#F4F6F8; --surface:#F2F4F6; --card:#FFFFFF; --border:#EDEFF2; --border2:#E5E8EB;
+    --green:#13B877; --green-pale:#E7F7F0;
+    --amber:#E08600; --amber-pale:#FFF3E0;
+    --red:#F04452; --red-pale:#FEECEC;
+    --r:16px; --r-lg:20px;
+    --shadow:0 1px 2px rgba(17,24,39,.03),0 6px 20px rgba(17,24,39,.05);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Pretendard Variable',Pretendard,system-ui,sans-serif;background:#F7F8FA;color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+  button{font-family:inherit;cursor:pointer;border:none;background:none}
+  input,textarea,select{font-family:inherit;font-size:14px;color:var(--ink)}
+
+  .top{position:sticky;top:0;z-index:30;background:rgba(247,248,250,.85);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+  .top-in{max-width:1080px;margin:0 auto;padding:16px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .brand h1{font-size:20px;font-weight:800;letter-spacing:-.02em;color:var(--navy)}
+  .brand p{font-size:12px;color:var(--muted);margin-top:2px}
+  .save-state{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap}
+  .save-state .dot{width:7px;height:7px;border-radius:50%;background:var(--green)}
+
+  .wrap{max-width:1080px;margin:0 auto;padding:20px 22px 100px}
+
+  .tabs{display:flex;gap:8px;margin-bottom:20px}
+  .tab{padding:10px 18px;border-radius:999px;background:var(--card);border:1px solid var(--border2);font-size:13.5px;font-weight:700;color:var(--ink2);display:flex;align-items:center;gap:7px}
+  .tab .st{font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:6px;background:var(--surface);color:var(--muted)}
+  .tab.active{background:var(--navy);border-color:var(--navy);color:#fff}
+  .tab.active .st{background:rgba(255,255,255,.2);color:#fff}
+
+  .bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+  .searchbox{flex:1;min-width:180px;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:0 14px}
+  .searchbox:focus-within{border-color:var(--or)}
+  .searchbox svg{flex:0 0 auto;color:var(--muted)}
+  .searchbox input{flex:1;border:none;background:none;padding:11px 0;font-size:14px}
+  .searchbox input:focus{outline:none}
+  .btn{padding:11px 16px;border-radius:12px;font-size:13px;font-weight:700;white-space:nowrap}
+  .btn.or{background:var(--or);color:#fff}
+  .btn.or:hover{background:var(--or2)}
+  .btn.ghost{background:var(--surface);border:1px solid var(--border2);color:var(--ink2)}
+  .btn.ghost:hover{border-color:var(--navy);color:var(--navy)}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+  .pcard{background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;cursor:pointer;transition:.13s}
+  .pcard:hover{border-color:var(--border2);transform:translateY(-1px)}
+  .pcard .thumb{aspect-ratio:16/10;background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--muted);overflow:hidden}
+  .pcard .thumb img{width:100%;height:100%;object-fit:cover}
+  .pcard .pc-b{padding:13px 15px}
+  .pcard .pc-nm{font-size:14.5px;font-weight:800;letter-spacing:-.01em;line-height:1.3}
+  .pcard .pc-meta{font-size:12px;color:var(--muted);margin-top:4px}
+  .pcard .pc-counts{display:flex;gap:8px;margin-top:10px}
+  .countpill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px;background:var(--surface);color:var(--ink2)}
+  .countpill b{color:var(--or)}
+
+  .scard{background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);padding:16px 18px;cursor:pointer;transition:.13s}
+  .scard:hover{border-color:var(--border2)}
+  .scard .sc-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .scard .sc-nm{font-size:15px;font-weight:800}
+  .scard .sc-meta{font-size:12px;color:var(--muted);margin-top:4px}
+  .scard .sc-act{display:flex;gap:8px;margin-top:12px}
+  .linkbtn{font-size:11.5px;font-weight:700;padding:7px 12px;border-radius:9px;background:var(--or-pale);color:var(--or2)}
+  .linkbtn:hover{background:#d8e8ff}
+
+  .empty{text-align:center;padding:60px 20px;color:var(--muted)}
+  .empty h3{font-size:16px;font-weight:800;color:var(--ink2);margin-bottom:8px}
+  .empty p{font-size:13px;line-height:1.6;margin-bottom:18px}
+
+  /* asset grid */
+  .seg{display:flex;gap:6px;margin-bottom:16px}
+  .seg button{padding:9px 16px;border-radius:10px;background:var(--surface);font-size:13px;font-weight:700;color:var(--ink2)}
+  .seg button.on{background:var(--or);color:#fff}
+  .agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+  .aitem{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:1;background:var(--surface);border:1px solid var(--border)}
+  .aitem img,.aitem video{width:100%;height:100%;object-fit:cover;cursor:pointer}
+  .aitem .vbadge{position:absolute;left:6px;bottom:6px;font-size:10px;font-weight:800;color:#fff;background:rgba(0,0,0,.55);padding:2px 7px;border-radius:6px}
+  .aitem .src{position:absolute;left:6px;top:6px;font-size:9.5px;font-weight:800;color:#fff;padding:2px 7px;border-radius:6px}
+  .aitem .src.team{background:var(--navy2)}
+  .aitem .src.sponsor{background:var(--or)}
+  .aitem .del{position:absolute;top:5px;right:5px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;line-height:1;opacity:0;transition:.12s}
+  .aitem:hover .del{opacity:1}
+
+  /* overlay */
+  .overlay{position:fixed;inset:0;z-index:80;background:rgba(15,20,28,.5);display:none;align-items:flex-end;justify-content:center}
+  .overlay.on{display:flex}
+  @media(min-width:560px){.overlay.on{align-items:center}}
+  .sheet{width:100%;max-width:560px;max-height:92vh;overflow-y:auto;background:#fff;border-radius:20px 20px 0 0;padding:22px}
+  @media(min-width:560px){.sheet{border-radius:20px}}
+  .sheet h2{font-size:18px;font-weight:800;margin-bottom:4px}
+  .sheet .sub{font-size:12.5px;color:var(--muted);margin-bottom:18px}
+  .frow{margin-bottom:14px}
+  .frow label{display:block;font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:6px}
+  .frow input,.frow select,.frow textarea{width:100%;padding:12px 14px;border:1px solid var(--border2);border-radius:11px;background:var(--cream)}
+  .frow input:focus,.frow select:focus,.frow textarea:focus{outline:none;border-color:var(--or);background:#fff}
+  .sheet-act{display:flex;gap:10px;margin-top:8px}
+  .sheet-act .btn{flex:1;text-align:center;padding:14px}
+
+  .imp-list{display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto;margin-bottom:8px}
+  .imp-item{display:flex;align-items:center;gap:10px;padding:11px 13px;border:1px solid var(--border);border-radius:10px;cursor:pointer}
+  .imp-item.sel{border-color:var(--or);background:var(--or-pale)}
+  .imp-item .nm{font-size:13.5px;font-weight:700}
+  .imp-item .mt{font-size:11.5px;color:var(--muted)}
+
+  /* inbox */
+  .inbox-item{display:flex;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:12px;margin-bottom:10px}
+  .inbox-item .ithumb{flex:0 0 76px;width:76px;height:76px;border-radius:10px;overflow:hidden;background:var(--surface)}
+  .inbox-item .ithumb img,.inbox-item .ithumb video{width:100%;height:100%;object-fit:cover}
+  .inbox-item .ibody{flex:1;min-width:0}
+  .inbox-item .iname{font-size:13.5px;font-weight:700}
+  .inbox-item .imeta{font-size:11.5px;color:var(--muted);margin-top:3px}
+  .inbox-item .iact{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
+
+  .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:120;padding:12px 22px;border-radius:12px;font-size:13px;font-weight:700;color:#fff;box-shadow:0 6px 24px rgba(0,0,0,.25);white-space:nowrap}
+
+  #loginGate{position:fixed;inset:0;z-index:200;background:var(--navy);display:none;align-items:center;justify-content:center;padding:24px}
+  #loginGate .box{width:100%;max-width:360px;background:#fff;border-radius:18px;padding:28px 24px;box-shadow:0 20px 48px rgba(0,0,0,.3)}
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+
+<div id="loginGate">
+  <div class="box">
+    <h2 style="font-size:20px;font-weight:800;color:var(--navy)">컨텐츠 관리 앱</h2>
+    <p style="font-size:13px;color:var(--muted);margin:6px 0 20px">소싱 앱과 동일한 계정으로 로그인합니다.</p>
+    <div class="frow"><label>이메일</label><input type="email" id="lg_email" autocomplete="username"></div>
+    <div class="frow"><label>비밀번호</label><input type="password" id="lg_pw" autocomplete="current-password"></div>
+    <div id="lg_err" style="display:none;font-size:12.5px;color:var(--red);font-weight:700;margin-bottom:12px"></div>
+    <button id="lg_btn" style="width:100%;padding:13px;border-radius:12px;background:var(--or);color:#fff;font-size:14px;font-weight:800">로그인</button>
+  </div>
+</div>
+
+<div class="top">
+  <div class="top-in">
+    <div class="brand">
+      <h1>컨텐츠 소스 관리</h1>
+      <p>상품 상세·광고용 촬영물 · 협찬 셀러 컨텐츠</p>
+    </div>
+    <div class="save-state"><span class="dot" id="syncDot"></span><span id="saveTxt">저장됨</span></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="tabs">
+    <button class="tab active" data-tab="products">제품 컨텐츠 <span class="st" id="cntProducts">0</span></button>
+    <button class="tab" data-tab="sellers">협찬 셀러 <span class="st" id="cntSellers">0</span></button>
+    <button class="tab" data-tab="inbox">받은 업로드 <span class="st" id="cntInbox">0</span></button>
+  </div>
+  <div id="view"></div>
+</div>
+
+<!-- 공통 시트 -->
+<div class="overlay" id="overlay"><div class="sheet" id="sheet"></div></div>
+
+<!-- 파일 입력 (업로드) -->
+<input id="fileCapture" type="file" accept="image/*,video/*" capture="environment" multiple hidden>
+<input id="fileAlbum" type="file" accept="image/*,video/*" multiple hidden>
+<input id="fileIdea" type="file" accept="image/*,video/*" hidden>
+
+<script>
+/* ============================================================
+   컨텐츠 소스 관리 (내부) — Sourcing-os 인프라 재사용
+   Storage: 소싱-os/content/products/{pid}/{detail|ad}/...
+   Firestore: sourcing-os/content-state (앱 상태, 실시간 동기화)
+              sourcing-os/content-uploads/items (셀러 업로드 수신)
+   보안규칙 변경 없음.
+   ============================================================ */
+const FB_CFG={apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",storageBucket:"pour-app-new.firebasestorage.app",messagingSenderId:"411031141847",appId:"1:411031141847:web:e658174fd4b9652cdadf92"};
+const CLOUD_ROOT='소싱-os';
+const KEY='pour_content_v1';
+const STATE_DOC='content-state', UPLOADS_DOC='content-uploads';
+const CLIENT=Math.random().toString(36).slice(2);
+
+let fbStore=null,FS=null,fsDoc=null,FA=null,uploadsCol=null;
+try{ if(!firebase.apps.length)firebase.initializeApp(FB_CFG); fbStore=firebase.storage(); }catch(e){console.error('[cloud] Storage 초기화 실패:',e);}
+try{ FS=firebase.firestore(); fsDoc=FS.collection('sourcing-os').doc(STATE_DOC); uploadsCol=FS.collection('sourcing-os').doc(UPLOADS_DOC).collection('items'); }catch(e){console.error('[cloud] Firestore 초기화 실패:',e);}
+try{ FA=firebase.auth(); }catch(e){console.error('[cloud] Auth 초기화 실패:',e); FA=null;}
+
+const $=s=>document.querySelector(s);
+const uid=()=>Math.random().toString(36).slice(2,9);
+const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const today=()=>new Date().toISOString().slice(0,10);
+const slug=s=>(s||'무명').trim().replace(/[^\w.\-가-힣]+/g,'_').slice(0,60)||'무명';
+const fmtDT=ts=>{if(!ts)return'';const d=new Date(ts);if(isNaN(d))return'';const p=n=>String(n).padStart(2,'0');return `${d.getMonth()+1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;};
+
+/* ---- 로컬 저장 ---- */
+let mem={products:[],sellers:[],assets:[]},localFull=false;
+const store={
+  read(){try{const r=localStorage.getItem(KEY);return r?JSON.parse(r):mem;}catch(e){console.error('[store] 읽기 실패:',e);return mem;}},
+  write(d){mem=d;try{localStorage.setItem(KEY,JSON.stringify(d));localFull=false;}catch(e){localFull=true;console.error('[store] 저장 실패:',e);}}
+};
+function setSync(txt,color){const t=$('#saveTxt');if(t)t.textContent=txt;const d=$('#syncDot');if(d&&color)d.style.background=color;}
+
+let state=store.read();
+function normalize(){
+  if(!state.products)state.products=[];
+  if(!state.sellers)state.sellers=[];
+  if(!state.assets)state.assets=[];
+  if(!state.settings)state.settings={defaultLanding:'',defaultCampaign:'',defaultMedium:'sponsor'};
+  if(state.settings.storeUrlPattern===undefined)state.settings.storeUrlPattern='https://www.pourstore.net/{id}'; // 자사몰 상품 URL 패턴 ({id}=상품번호)
+}
+const UTM_MEDIUMS=['sponsor','instagram','youtube','blog','sns','tiktok','naver'];
+/* 연결 제품의 자사몰 상품 URL (상품번호=code/sourceId) */
+function productLanding(productId){
+  const p=state.products.find(x=>x.id===productId);if(!p)return '';
+  const pat=(state.settings&&state.settings.storeUrlPattern)||'';const code=p.code||p.sourceId||'';
+  return (pat&&code&&pat.includes('{id}'))?pat.replace('{id}',encodeURIComponent(code)):'';
+}
+/* 셀러별 UTM 추적 링크 생성 — utm_source 는 셀러명(slug) 자동, 랜딩은 연결제품 자사몰 URL 우선 */
+function buildUTM(s){
+  const url=((s&&s.landingUrl)||productLanding(s&&s.productId)||(state.settings&&state.settings.defaultLanding)||'').trim();
+  if(!url)return '';
+  const src=((s&&s.utmSource)||'').trim()||slug(s.name);
+  const med=((s&&s.utmMedium)||(state.settings&&state.settings.defaultMedium)||'sponsor').trim();
+  const camp=((s&&s.utmCampaign)||(state.settings&&state.settings.defaultCampaign)||'').trim();
+  const ps=['utm_source='+encodeURIComponent(src)];
+  if(med)ps.push('utm_medium='+encodeURIComponent(med));
+  if(camp)ps.push('utm_campaign='+encodeURIComponent(camp));
+  if(s&&s.utmContent)ps.push('utm_content='+encodeURIComponent(s.utmContent.trim()));
+  return url+(url.includes('?')?'&':'?')+ps.join('&');
+}
+function copyUTM(sid){
+  const s=state.sellers.find(x=>x.id===sid);if(!s)return;
+  const url=buildUTM(s);
+  if(!url){toast('랜딩 URL을 먼저 입력하세요 (셀러 수정)','red');openSellerEdit(sid);return;}
+  navigator.clipboard?.writeText(url).then(()=>toast('UTM 링크 복사됨 — 셀러에게 전달하세요','green'),()=>prompt('UTM 링크를 복사하세요',url));
+}
+normalize();
+let inbox=[]; // sourcing-os/content-uploads/items (셀러 업로드)
+
+/* ---- 클라우드 동기화 (Sourcing-os 패턴) ---- */
+let _syncT=null,_syncing=false,_pending=false,booting=true,applyingRemote=false;
+function queueSync(){
+  if(!fsDoc||booting||applyingRemote)return;
+  setSync('동기화 중…','var(--amber)');
+  clearTimeout(_syncT);_syncT=setTimeout(runSync,700);
+}
+async function runSync(){
+  if(!fsDoc)return;
+  if(_syncing){_pending=true;return;}
+  _syncing=true;
+  try{
+    const payload=JSON.parse(JSON.stringify(Object.assign({},state,{_w:CLIENT})));
+    await fsDoc.set(payload);
+    setSync('클라우드 저장됨 ✓','var(--green)');
+  }catch(e){console.error('[cloud] 동기화 실패:',e);setSync('오프라인 · 로컬 저장','var(--red)');}
+  finally{_syncing=false;if(_pending){_pending=false;runSync();}}
+}
+async function cloudLoad(){
+  if(!fsDoc)return null;
+  try{const snap=await fsDoc.get();if(snap.exists){const d=snap.data();console.log('[content-state] 로드 — 제품',(d.products||[]).length,'셀러',(d.sellers||[]).length,'에셋',(d.assets||[]).length);return d;}console.log('[content-state] 문서 없음(최초 실행)');}
+  catch(e){console.error('[content-state] 로드 실패:',e);}
+  return null;
+}
+function startRealtime(){
+  if(!fsDoc)return;
+  fsDoc.onSnapshot(snap=>{
+    if(!snap.exists||snap.metadata.hasPendingWrites)return;
+    const d=snap.data();if(!d)return;
+    const rT=d.updatedAt||0,lT=state.updatedAt||0;
+    if(d._w===CLIENT&&rT<=lT)return;
+    if(rT<=lT)return;
+    if($('#overlay').classList.contains('on'))return; // 편집 중 보류
+    applyingRemote=true;
+    state=d;normalize();store.write(state);
+    render();
+    applyingRemote=false;
+    setSync('실시간 동기화됨 ✓','var(--green)');
+  },err=>console.error('[cloud] onSnapshot 오류:',err));
+}
+async function loadInbox(){
+  if(!uploadsCol)return;
+  try{
+    const snap=await uploadsCol.get();
+    inbox=snap.docs.map(d=>({_id:d.id,...d.data()}));
+    inbox.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+    console.log(`[content-uploads] ${inbox.length}건 로드`);
+  }catch(e){console.error('[content-uploads] 로드 실패:',e);}
+}
+function save(){state.updatedAt=Date.now();store.write(state);queueSync();render();}
+
+/* ---- 소싱앱 제품 가져오기 ---- */
+async function fetchSourcingProducts(){
+  try{
+    const snap=await FS.collection('sourcing-os').doc('state').get();
+    let d=snap.exists?snap.data():null;
+    if(!d){const old=await FS.collection('pour-os').doc('sourcing-os-state').get();d=old.exists?old.data():null;}
+    const arr=(d&&d.products)||[];
+    console.log(`[sourcing/state] 제품 ${arr.length}건`);
+    return arr.map(p=>({id:p.id,name:p.goods?`${p.name}(${p.goods})`:p.name,code:p.maker||'',thumb:firstPhoto(p)}));
+  }catch(e){console.error('[sourcing/state] 로드 실패:',e);return[];}
+}
+function firstPhoto(p){
+  const ph=(p.photos||[]).find(x=>x&&x.url);
+  return ph?ph.url:'';
+}
+
+/* ================= 렌더 ================= */
+let tab='products';
+let query='';
+let curProduct=null, curSeller=null, curPurpose='detail';
+
+function render(){
+  $('#cntProducts').textContent=state.products.length;
+  $('#cntSellers').textContent=state.sellers.length;
+  $('#cntInbox').textContent=inbox.filter(x=>!x.filed).length;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  if(tab==='products')renderProducts();
+  else if(tab==='sellers')renderSellers();
+  else renderInbox();
+}
+
+function assetCount(pid,purpose){
+  const a=state.assets.filter(x=>x.productId===pid&&x.purpose===purpose).length;
+  const b=inbox.filter(x=>x.productId===pid&&(purpose==='sponsor')).length;
+  return a+(purpose==='sponsor'?b:0);
+}
+
+function renderProducts(){
+  const q=query.trim();
+  const list=state.products.filter(p=>!q||(p.name||'').includes(q)||(p.code||'').includes(q));
+  let html=`<div class="bar">
+    <div class="searchbox"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><input id="search" placeholder="제품명 검색" value="${esc(query)}"></div>
+    <button class="btn ghost" id="importBtn">🔗 상품 연결</button>
+    <button class="btn or" id="addProduct">+ 제품 추가</button>
+  </div>`;
+  if(!list.length){
+    html+=`<div class="empty"><h3>등록된 제품이 없어요</h3><p>상세페이지·광고용 촬영물을 관리할 제품을 추가하거나,<br>소싱앱에서 바로 가져오세요.</p></div>`;
+  }else{
+    html+='<div class="grid">'+list.map(p=>{
+      const d=assetCount(p.id,'detail'),ad=assetCount(p.id,'ad'),sp=assetCount(p.id,'sponsor');
+      return `<div class="pcard" data-pid="${p.id}">
+        <div class="thumb">${p.thumb?`<img src="${esc(p.thumb)}">`:'🖼'}</div>
+        <div class="pc-b">
+          <div class="pc-nm">${esc(p.name)}</div>
+          <div class="pc-meta">${esc(p.code||'—')}</div>
+          <div class="pc-counts"><span class="countpill">상세 <b>${d}</b></span><span class="countpill">광고 <b>${ad}</b></span><span class="countpill">협찬 <b>${sp}</b></span></div>
+        </div></div>`;
+    }).join('')+'</div>';
+  }
+  $('#view').innerHTML=html;
+  $('#search')&&($('#search').oninput=e=>{query=e.target.value;renderProducts();});
+  $('#addProduct')&&($('#addProduct').onclick=()=>openProductEdit(null));
+  $('#importBtn')&&($('#importBtn').onclick=openImport);
+  document.querySelectorAll('.pcard').forEach(c=>c.onclick=()=>openProductDetail(c.dataset.pid));
+}
+
+function renderSellers(){
+  const q=query.trim();
+  const list=state.sellers.filter(s=>!q||(s.name||'').includes(q));
+  let html=`<div class="bar">
+    <div class="searchbox"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><input id="search" placeholder="셀러명 검색" value="${esc(query)}"></div>
+    <button class="btn or" id="addSeller">+ 셀러 추가</button>
+  </div>`;
+  if(!list.length){
+    html+=`<div class="empty"><h3>등록된 협찬 셀러가 없어요</h3><p>셀러를 추가하면 전용 업로드 링크가 생성돼요.<br>셀러가 그 링크로 올리면 자동으로 해당 폴더에 정리됩니다.</p></div>`;
+  }else{
+    html+='<div class="grid">'+list.map(s=>{
+      const n=state.assets.filter(a=>a.sellerId===s.id).length+inbox.filter(x=>x.sellerId===s.id||x.sellerName===s.name).length;
+      const prod=state.products.find(p=>p.id===s.productId);
+      return `<div class="scard" data-sid="${s.id}">
+        <div class="sc-top"><span class="sc-nm">${esc(s.name)}</span><span class="countpill"><b>${n}</b> 컨텐츠</span></div>
+        <div class="sc-meta">${prod?'🔗 '+esc(prod.name):'제품 미지정'}</div>
+        <div class="sc-act"><button class="linkbtn" data-copy="${s.id}">🔗 업로드 링크</button><button class="linkbtn" data-utm="${s.id}" style="background:var(--green-pale);color:var(--green)">📈 UTM 복사</button></div>
+      </div>`;
+    }).join('')+'</div>';
+  }
+  $('#view').innerHTML=html;
+  $('#search')&&($('#search').oninput=e=>{query=e.target.value;renderSellers();});
+  $('#addSeller')&&($('#addSeller').onclick=()=>openSellerEdit(null));
+  document.querySelectorAll('.scard').forEach(c=>c.onclick=e=>{if(e.target.dataset.copy)return;openSellerDetail(c.dataset.sid);});
+  document.querySelectorAll('[data-copy]').forEach(b=>b.onclick=e=>{e.stopPropagation();copySellerLink(b.dataset.copy);});
+  document.querySelectorAll('[data-utm]').forEach(b=>b.onclick=e=>{e.stopPropagation();copyUTM(b.dataset.utm);});
+}
+
+function renderInbox(){
+  const pending=inbox.filter(x=>!x.filed);
+  let html=`<div class="bar"><div style="flex:1;font-size:13px;color:var(--ink2);font-weight:600;padding:10px 0">셀러·외주가 업로드 링크로 올린 컨텐츠예요. 제품/셀러로 정리하세요.</div><button class="btn ghost" id="reloadInbox">새로고침</button></div>`;
+  if(!pending.length){
+    html+=`<div class="empty"><h3>새로 들어온 업로드가 없어요</h3><p>셀러가 전용 링크로 올리면 여기에 표시됩니다.</p></div>`;
+  }else{
+    html+=pending.map(it=>{
+      const media=it.kind==='video'?`<video src="${esc(it.url)}" muted></video>`:`<img src="${esc(it.url)}">`;
+      const prod=state.products.find(p=>p.id===it.productId);
+      return `<div class="inbox-item">
+        <div class="ithumb">${media}</div>
+        <div class="ibody">
+          <div class="iname">${esc(it.sellerName||'무명')} ${it.kind==='video'?'· 🎬':''}</div>
+          <div class="imeta">${prod?'🔗 '+esc(prod.name)+' · ':''}${fmtDT(it.createdAt)}${it.memo?' · '+esc(it.memo):''}</div>
+          <div class="iact">
+            <button class="linkbtn" data-file="${it._id}">✓ 정리 완료</button>
+            <button class="linkbtn" style="background:var(--surface);color:var(--ink2)" data-open="${esc(it.url)}">열기</button>
+          </div>
+        </div></div>`;
+    }).join('');
+  }
+  $('#view').innerHTML=html;
+  $('#reloadInbox')&&($('#reloadInbox').onclick=async()=>{await loadInbox();render();toast('새로고침 완료','green');});
+  document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>window.open(b.dataset.open,'_blank'));
+  document.querySelectorAll('[data-file]').forEach(b=>b.onclick=()=>fileInboxItem(b.dataset.file));
+}
+
+/* ================= 시트(모달) ================= */
+function openSheet(html){const s=$('#sheet');s.innerHTML=html;$('#overlay').classList.add('on');}
+function closeSheet(){$('#overlay').classList.remove('on');curProduct=null;}
+$('#overlay').onclick=e=>{if(e.target.id==='overlay')closeSheet();};
+
+/* 제품 추가/수정 */
+function openProductEdit(pid){
+  const p=pid?state.products.find(x=>x.id===pid):null;
+  openSheet(`<h2>${p?'제품 수정':'제품 추가'}</h2><div class="sub">상세페이지·광고 촬영물을 묶을 제품이에요.</div>
+    <div class="frow"><label>제품명</label><input id="pe_name" value="${esc(p?p.name:'')}" placeholder="예) 옥상방수 셀프키트"></div>
+    <div class="frow"><label>관리코드 / 제조사 <span style="color:var(--muted)">(선택)</span></label><input id="pe_code" value="${esc(p?p.code:'')}" placeholder="예) POUR-WP-01"></div>
+    <div class="frow"><label>대표 이미지 URL <span style="color:var(--muted)">(선택)</span></label><input id="pe_thumb" value="${esc(p?p.thumb:'')}" placeholder="https://..."></div>
+    <div class="sheet-act">${p?`<button class="btn ghost" id="pe_del" style="flex:0 0 auto;color:var(--red)">삭제</button>`:''}<button class="btn ghost" id="pe_cancel">취소</button><button class="btn or" id="pe_save">저장</button></div>`);
+  $('#pe_cancel').onclick=closeSheet;
+  $('#pe_save').onclick=()=>{
+    const name=($('#pe_name').value||'').trim();if(!name){toast('제품명을 입력하세요','red');return;}
+    if(p){p.name=name;p.code=$('#pe_code').value.trim();p.thumb=$('#pe_thumb').value.trim();}
+    else state.products.push({id:uid(),name,code:$('#pe_code').value.trim(),thumb:$('#pe_thumb').value.trim(),createdAt:new Date().toISOString()});
+    closeSheet();save();
+  };
+  if(p)$('#pe_del').onclick=()=>{if(confirm('제품을 삭제할까요? (업로드된 파일은 유지됩니다)')){state.products=state.products.filter(x=>x.id!==pid);closeSheet();save();}};
+}
+
+/* 상품 연결 / 가져오기 — 다중 소스 */
+const PRODUCT_SOURCES=[{key:'csv',label:'엑셀/CSV 붙여넣기'},{key:'manual',label:'ID 직접 입력'},{key:'sourcing',label:'소싱앱'},{key:'products',label:'상품관리(8채널)'}];
+let importSrc='sourcing';
+/* products 컬렉션(상품관리) 문서 → 공통 형태로 매핑 (스키마 방어적) */
+function mapProductDoc(id,x){
+  x=x||{};
+  return {id, name:x.name||x.productName||x['상품명']||x.title||id,
+    code:x.imwebId||(x.channels&&x.channels.imweb)||x.code||x.sku||'',
+    thumb:x.thumbnail||x.imageUrl||x.thumb||((x.detailImages&&x.detailImages[0]&&x.detailImages[0].url)||'')};
+}
+async function fetchSource(src){
+  if(src==='sourcing')return fetchSourcingProducts();
+  if(src==='products'){
+    try{const snap=await FS.collection('products').get();console.log(`[products] ${snap.size}건 로드`);return snap.docs.map(d=>mapProductDoc(d.id,d.data()));}
+    catch(e){console.error('[products] 로드 실패:',e);return[];}
+  }
+  return [];
+}
+function isLinked(src,pid){return state.products.some(p=>(p.sourceColl||'sourcing')===src&&(p.sourceId||p.id)===pid);}
+async function openImport(){importSrc='csv';renderImport();$('#overlay').classList.add('on');}
+async function renderImport(){
+  const segs=PRODUCT_SOURCES.map(s=>`<button data-src="${s.key}" class="${s.key===importSrc?'on':''}">${s.label}</button>`).join('');
+  const head=`<h2>상품 연결 · 가져오기</h2><div class="sub">다른 페이지에서 관리하는 상품을 상품ID로 연결해 컨텐츠를 관리하세요.</div><div class="seg" id="imSeg">${segs}</div>`;
+  // 엑셀/CSV 붙여넣기 (pour-crm 제품 마스터 일괄 가져오기)
+  if(importSrc==='csv'){
+    $('#sheet').innerHTML=head+`
+      <div class="sub" style="margin-bottom:10px">pour-crm 제품 마스터에서 <b>상품ID · 상품명 · 이미지URL</b> 열을 복사해 붙여넣으세요.<br>한 줄에 한 제품 · 콤마(,) 또는 탭 구분. 상품ID는 자사몰 상품번호로도 쓰여요.</div>
+      <div class="frow"><textarea id="csv_in" style="min-height:170px;font-family:ui-monospace,monospace;font-size:12.5px" placeholder="12345, 써밋페인트 플러스, https://...
+12346, 코트재(백색) 1.3kg
+12347, 코트재(회색) 5L"></textarea></div>
+      <div class="sub" id="csv_prev" style="margin-bottom:6px"></div>
+      <div class="sub" style="color:var(--amber);background:var(--amber-pale);border-radius:8px;padding:8px 10px;margin-bottom:10px">⏳ pour-crm 직접 자동연동(Firebase 공유)은 <b>나중에</b> 지원 예정 — 지금은 CSV로 매핑</div>
+      <div class="sheet-act"><button class="btn ghost" id="im_cancel">취소</button><button class="btn or" id="csv_add">가져오기</button></div>`;
+    bindImSeg();$('#im_cancel').onclick=closeSheet;
+    const parse=()=>{
+      const rows=[];
+      ($('#csv_in').value||'').split(/\r?\n/).forEach(ln=>{
+        const cells=ln.split(/\t|,/).map(c=>c.trim());
+        const id=cells[0];if(!id)return;
+        if(/^(id|상품id|상품번호|product\s*id)$/i.test(id))return; // 헤더 skip
+        rows.push({id,name:cells[1]||id,thumb:cells[2]||''});
+      });
+      return rows;
+    };
+    $('#csv_in').oninput=()=>{const r=parse();const dup=r.filter(x=>isLinked('pour-crm',x.id)).length;$('#csv_prev').innerHTML=r.length?`인식 ${r.length}개${dup?` · 이미 연결됨 ${dup}개 제외`:''}`:'';};
+    $('#csv_add').onclick=()=>{
+      const rows=parse().filter(x=>!isLinked('pour-crm',x.id));
+      if(!rows.length){toast('가져올 새 상품이 없어요','amber');return;}
+      rows.forEach(x=>state.products.push({id:uid(),sourceColl:'pour-crm',sourceId:x.id,name:x.name,code:x.id,thumb:x.thumb,createdAt:new Date().toISOString()}));
+      closeSheet();save();toast(`${rows.length}개 상품 가져옴`,'green');
+    };
+    return;
+  }
+  // ID 직접 입력 (pour-crm 상품 1건 연결)
+  if(importSrc==='manual'){
+    $('#sheet').innerHTML=head+`
+      <div class="frow"><label>상품 ID <span style="color:var(--muted)">(pour-crm 상품 마스터의 ID 코드)</span></label><input id="im_id" placeholder="예) 12345"></div>
+      <div class="frow"><label>상품명</label><input id="im_name" placeholder="상품명"></div>
+      <div class="frow"><label>대표 이미지 URL <span style="color:var(--muted)">(선택)</span></label><input id="im_thumb" placeholder="https://..."></div>
+      <div class="sheet-act"><button class="btn ghost" id="im_cancel">취소</button><button class="btn or" id="im_addone">상품 연결</button></div>`;
+    bindImSeg();$('#im_cancel').onclick=closeSheet;
+    $('#im_addone').onclick=()=>{
+      const id=($('#im_id').value||'').trim(),name=($('#im_name').value||'').trim();
+      if(!id||!name){toast('상품 ID와 상품명을 입력하세요','red');return;}
+      if(isLinked('pour-crm',id)){toast('이미 연결된 상품이에요','amber');return;}
+      state.products.push({id:uid(),sourceColl:'pour-crm',sourceId:id,name,code:id,thumb:($('#im_thumb').value||'').trim(),createdAt:new Date().toISOString()});
+      closeSheet();save();toast('상품 연결됨','green');
+    };
+    return;
+  }
+  // 목록형 (소싱앱 / 상품관리)
+  $('#sheet').innerHTML=head+`<div class="sub" style="padding:20px 0">불러오는 중…</div>`;bindImSeg();
+  const reqSrc=importSrc;
+  const arr=await fetchSource(reqSrc);
+  if(reqSrc!==importSrc)return; // 탭 전환됨
+  const pickable=arr.filter(p=>!isLinked(reqSrc,p.id));
+  const sel=new Set();
+  const body=pickable.length
+    ? `<div class="imp-list" id="im_list">${pickable.map(p=>`<div class="imp-item" data-id="${esc(p.id)}">${p.thumb?`<img src="${esc(p.thumb)}" style="width:36px;height:36px;border-radius:8px;object-fit:cover;flex:0 0 auto">`:''}<div style="min-width:0"><div class="nm">${esc(p.name)}</div><div class="mt">${esc(p.code||p.id)}</div></div></div>`).join('')}</div><div class="sheet-act"><button class="btn ghost" id="im_cancel">취소</button><button class="btn or" id="im_add">선택 추가 (<span id="im_n">0</span>)</button></div>`
+    : `<div class="empty" style="padding:34px 0"><p>가져올 새 상품이 없어요.<br>(이미 전부 연결됨)</p></div><div class="sheet-act"><button class="btn ghost" id="im_cancel">닫기</button></div>`;
+  $('#sheet').innerHTML=head+body;bindImSeg();
+  $('#im_cancel').onclick=closeSheet;
+  if(pickable.length){
+    document.querySelectorAll('#im_list .imp-item').forEach(el=>el.onclick=()=>{const id=el.dataset.id;if(sel.has(id)){sel.delete(id);el.classList.remove('sel');}else{sel.add(id);el.classList.add('sel');}$('#im_n').textContent=sel.size;});
+    $('#im_add').onclick=()=>{
+      if(!sel.size){toast('상품을 선택하세요','red');return;}
+      pickable.filter(p=>sel.has(p.id)).forEach(p=>state.products.push({id:uid(),sourceColl:reqSrc,sourceId:p.id,name:p.name,code:p.code,thumb:p.thumb,createdAt:new Date().toISOString()}));
+      closeSheet();save();toast(`${sel.size}개 상품 연결`,'green');
+    };
+  }
+}
+function bindImSeg(){document.querySelectorAll('#imSeg button').forEach(b=>b.onclick=()=>{importSrc=b.dataset.src;renderImport();});}
+
+/* 제품 상세 (에셋 그리드) */
+let ideaDraft={text:'',link:'',photo:null}, ideaCtx=null;
+function openProductDetail(pid){
+  curProduct=pid;curPurpose='detail';ideaDraft={text:'',link:'',photo:null};
+  renderProductSheet();
+  $('#overlay').classList.add('on');
+}
+function renderProductSheet(){
+  const p=state.products.find(x=>x.id===curProduct);if(!p)return;
+  const lbl={detail:'상세페이지용',ad:'광고용',sponsor:'협찬 셀러',idea:'💡 아이디어'};
+  const segHtml=['detail','ad','sponsor','idea'].map(k=>`<button data-pur="${k}" class="${k===curPurpose?'on':''}">${lbl[k]}</button>`).join('');
+  const cntN=state.assets.filter(a=>a.productId===curProduct).length+inbox.filter(x=>x.productId===curProduct).length;
+  let mid;
+  if(curPurpose==='idea'){ mid=renderIdeaPanel(p); }
+  else{
+    const assets=mergedAssets(curProduct,curPurpose);
+    mid=`${curPurpose!=='sponsor'?`<div class="seg" style="gap:10px;margin-bottom:14px"><button class="btn or" style="flex:1" id="upCap">📷 촬영</button><button class="btn ghost" style="flex:1" id="upAlb">🖼 앨범에서</button></div>`:'<div class="sub" style="margin-bottom:12px">협찬 컨텐츠는 셀러가 업로드 링크로 올린 것이 자동 표시됩니다.</div>'}
+    <div class="agrid" id="agrid">${assets.length?assets.map(renderAssetCell).join(''):'<div class="empty" style="grid-column:1/-1;padding:30px 0"><p>아직 등록된 컨텐츠가 없어요.</p></div>'}</div>`;
+  }
+  $('#sheet').innerHTML=`<h2>${esc(p.name)}</h2><div class="sub">${esc(p.code||'')} · 촬영물 ${cntN}개 · 아이디어 ${(p.ideas||[]).length}</div>
+    <div class="seg" id="purSeg">${segHtml}</div>
+    ${mid}
+    <div class="sheet-act" style="margin-top:18px"><button class="btn ghost" id="pd_edit">제품 정보 수정</button><button class="btn ghost" id="pd_close">닫기</button></div>`;
+  document.querySelectorAll('#purSeg button').forEach(b=>b.onclick=()=>{curPurpose=b.dataset.pur;renderProductSheet();});
+  $('#pd_close').onclick=closeSheet;
+  $('#pd_edit').onclick=()=>openProductEdit(curProduct);
+  if(curPurpose==='idea'){ bindIdeaPanel(p); }
+  else{
+    $('#upCap')&&($('#upCap').onclick=()=>triggerUpload('capture'));
+    $('#upAlb')&&($('#upAlb').onclick=()=>triggerUpload('album'));
+    bindAssetDelete();
+  }
+}
+/* 💡 추가옵션 아이디어 (파생상품·패키지) — 링크/사진 함께 */
+function renderIdeaPanel(p){
+  const ideas=(p.ideas||[]).slice().reverse();
+  const draftPhoto=ideaDraft.photo?`<div style="margin-top:8px;position:relative;width:72px;height:72px;border-radius:10px;overflow:hidden"><img src="${esc(ideaDraft.photo.url)}" style="width:100%;height:100%;object-fit:cover"><button id="id_rmphoto" style="position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:13px;line-height:1">×</button></div>`:'';
+  return `<div style="background:var(--cream);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:14px">
+    <textarea id="id_text" placeholder="예) 이 패키지에 미니 롤러 추가하면 좋을 듯 / 사은품 아이디어" style="width:100%;border:1px solid var(--border2);border-radius:10px;padding:10px 12px;background:#fff;min-height:54px;resize:vertical">${esc(ideaDraft.text)}</textarea>
+    <input id="id_link" value="${esc(ideaDraft.link)}" placeholder="🔗 참고 링크 (선택)" style="width:100%;margin-top:8px;border:1px solid var(--border2);border-radius:10px;padding:10px 12px;background:#fff">
+    ${draftPhoto}
+    <div style="display:flex;gap:8px;margin-top:10px"><button class="btn ghost" id="id_photo" style="flex:0 0 auto">📷 사진/영상</button><button class="btn or" id="id_add" style="flex:1">아이디어 추가</button></div>
+  </div>
+  ${ideas.length?ideas.map(renderIdeaCard).join(''):'<div class="empty" style="padding:24px 0"><p>파생상품·패키지에 넣을 추가옵션 아이디어를 모아보세요.<br>링크나 사진을 같이 붙여 함께 쓰면 좋을지 테스트해보세요.</p></div>'}`;
+}
+function renderIdeaCard(it){
+  const ph=it.photo?(it.photo.kind==='video'?`<video src="${esc(it.photo.url)}" muted onclick="window.open('${esc(it.photo.url)}','_blank')" style="width:64px;height:64px;border-radius:10px;object-fit:cover;cursor:pointer;flex:0 0 64px"></video>`:`<img src="${esc(it.photo.url)}" onclick="window.open('${esc(it.photo.url)}','_blank')" style="width:64px;height:64px;border-radius:10px;object-fit:cover;cursor:pointer;flex:0 0 64px">`):'';
+  const lk=it.link?`<div style="margin-top:6px"><a href="${esc(it.link)}" target="_blank" style="color:var(--or);font-size:12px;font-weight:700;word-break:break-all">🔗 ${esc(it.link)}</a></div>`:'';
+  return `<div style="display:flex;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px">${ph}<div style="flex:1;min-width:0"><div style="font-size:13.5px;line-height:1.5;white-space:pre-wrap">${esc(it.text||'')}</div>${lk}</div><button data-idel="${it.id}" style="flex:0 0 auto;color:var(--red);font-size:12px;font-weight:700;align-self:flex-start">삭제</button></div>`;
+}
+function bindIdeaPanel(p){
+  const t=$('#id_text'),l=$('#id_link');
+  t&&(t.oninput=e=>ideaDraft.text=e.target.value);
+  l&&(l.oninput=e=>ideaDraft.link=e.target.value);
+  $('#id_rmphoto')&&($('#id_rmphoto').onclick=()=>{ideaDraft.photo=null;renderProductSheet();});
+  $('#id_photo')&&($('#id_photo').onclick=()=>{ideaCtx=curProduct;$('#fileIdea').click();});
+  $('#id_add')&&($('#id_add').onclick=()=>addIdea(p));
+  document.querySelectorAll('[data-idel]').forEach(b=>b.onclick=()=>{
+    if(!confirm('아이디어를 삭제할까요?'))return;
+    p.ideas=(p.ideas||[]).filter(x=>x.id!==b.dataset.idel);save();renderProductSheet();
+  });
+}
+function addIdea(p){
+  const text=(ideaDraft.text||'').trim();
+  if(!text&&!ideaDraft.link&&!ideaDraft.photo){toast('내용·링크·사진 중 하나는 넣어주세요','red');return;}
+  if(!p.ideas)p.ideas=[];
+  p.ideas.push({id:uid(),text,link:(ideaDraft.link||'').trim(),photo:ideaDraft.photo,createdAt:new Date().toISOString()});
+  ideaDraft={text:'',link:'',photo:null};
+  save();renderProductSheet();toast('아이디어 추가됨','green');
+}
+async function attachIdeaPhoto(file){
+  if(!file||!fbStore){toast('업로드 불가','red');return;}
+  toast('첨부 업로드 중…','amber');
+  try{
+    const id=uid(),kind=(file.type||'').startsWith('video')?'video':'photo';
+    const ext=(file.name.split('.').pop()||(kind==='video'?'mp4':'jpg')).toLowerCase().replace(/[^\w]/g,'')||'bin';
+    const ref=fbStore.ref(`${CLOUD_ROOT}/content/products/${slug(ideaCtx||curProduct)}/ideas/${id}.${ext}`);
+    const snap=await ref.put(file,{contentType:file.type||'application/octet-stream'});
+    const url=await snap.ref.getDownloadURL();
+    ideaDraft.photo={url,path:ref.fullPath,kind};
+    renderProductSheet();toast('첨부됨','green');
+  }catch(e){console.error('[idea] 첨부 업로드 실패:',e);toast('첨부 실패','red');}
+}
+function mergedAssets(pid,purpose){
+  if(purpose==='sponsor'){
+    return inbox.filter(x=>x.productId===pid).map(x=>({id:x._id,kind:x.kind,url:x.url,src:'sponsor',sellerName:x.sellerName,_inbox:true}));
+  }
+  return state.assets.filter(a=>a.productId===pid&&a.purpose===purpose).map(a=>({...a,src:'team'}));
+}
+function renderAssetCell(a){
+  const media=a.kind==='video'?`<video src="${esc(a.url)}" muted onclick="window.open('${esc(a.url)}','_blank')"></video><span class="vbadge">▶</span>`:`<img src="${esc(a.url)}" onclick="window.open('${esc(a.url)}','_blank')">`;
+  const src=a.src==='sponsor'?`<span class="src sponsor">${esc(a.sellerName||'협찬')}</span>`:'';
+  const del=a._inbox?'':`<button class="del" data-del="${a.id}">×</button>`;
+  return `<div class="aitem">${media}${src}${del}</div>`;
+}
+function bindAssetDelete(){
+  document.querySelectorAll('#agrid [data-del]').forEach(b=>b.onclick=()=>{
+    if(!confirm('이 컨텐츠를 목록에서 삭제할까요?'))return;
+    state.assets=state.assets.filter(a=>a.id!==b.dataset.del);save();renderProductSheet();
+  });
+}
+
+/* 업로드 (제품 컨텐츠) */
+let uploadCtx=null; // {productId,purpose} or {sellerId}
+function triggerUpload(kind){
+  uploadCtx={productId:curProduct,purpose:curPurpose};
+  $(kind==='capture'?'#fileCapture':'#fileAlbum').click();
+}
+$('#fileCapture').onchange=e=>{handleUpload(e.target.files);e.target.value='';};
+$('#fileAlbum').onchange=e=>{handleUpload(e.target.files);e.target.value='';};
+$('#fileIdea').onchange=e=>{const f=e.target.files&&e.target.files[0];if(f)attachIdeaPhoto(f);e.target.value='';};
+async function handleUpload(fileList){
+  const files=Array.from(fileList||[]);if(!files.length||!uploadCtx||!fbStore)return;
+  const {productId,purpose,sellerId}=uploadCtx;
+  toast(`${files.length}개 업로드 중…`,'amber');
+  let ok=0,fail=0;
+  for(const f of files){
+    try{
+      const id=uid();
+      const kind=(f.type||'').startsWith('video')?'video':'photo';
+      const ext=(f.name.split('.').pop()||(kind==='video'?'mp4':'jpg')).toLowerCase().replace(/[^\w]/g,'')||'bin';
+      let base;
+      if(sellerId){const sn=state.sellers.find(x=>x.id===sellerId);base=`content/sponsors/${slug(sn?sn.name:'무명')}/${today()}`;}
+      else base=`content/products/${slug(productId)}/${purpose}/${today()}`;
+      const ref=fbStore.ref(`${CLOUD_ROOT}/${base}/${id}.${ext}`);
+      const snap=await ref.put(f,{contentType:f.type||'application/octet-stream'});
+      const url=await snap.ref.getDownloadURL();
+      state.assets.push({id,kind,url,path:ref.fullPath,name:f.name||'',size:f.size||0,productId:productId||'',sellerId:sellerId||'',purpose:purpose||'sponsor',createdAt:new Date().toISOString()});
+      ok++;
+    }catch(err){console.error('[upload] 실패:',f.name,err);fail++;}
+  }
+  console.log(`[upload] 성공 ${ok} · 실패 ${fail}`);
+  save();
+  if($('#overlay').classList.contains('on')){ if(curProduct)renderProductSheet(); else if(curSeller)renderSellerSheet(); }
+  toast(fail?`${ok}개 완료 · ${fail}개 실패`:`${ok}개 업로드 완료`,fail?'amber':'green');
+}
+
+/* 셀러 추가/수정 */
+function openSellerEdit(sid){
+  const s=sid?state.sellers.find(x=>x.id===sid):null;
+  const prodOpts='<option value="">제품 미지정</option>'+state.products.map(p=>`<option value="${p.id}" ${s&&s.productId===p.id?'selected':''}>${esc(p.name)}</option>`).join('');
+  const land=s&&s.landingUrl?s.landingUrl:(productLanding(s&&s.productId)||state.settings.defaultLanding||'');
+  const camp=s&&s.utmCampaign!==undefined?s.utmCampaign:(state.settings.defaultCampaign||'');
+  const med=(s&&s.utmMedium)||state.settings.defaultMedium||'sponsor';
+  const medOpts=UTM_MEDIUMS.map(m=>`<option value="${m}" ${m===med?'selected':''}>${m}</option>`).join('');
+  openSheet(`<h2>${s?'셀러 수정':'셀러 추가'}</h2><div class="sub">전용 업로드 링크 + UTM 추적 링크가 자동 생성돼요.</div>
+    <div class="frow"><label>셀러명</label><input id="se_name" value="${esc(s?s.name:'')}" placeholder="예) 홍길동스토어"></div>
+    <div class="frow"><label>연결 제품 <span style="color:var(--muted)">(선택)</span></label><select id="se_prod">${prodOpts}</select></div>
+    <div class="frow"><label>메모 <span style="color:var(--muted)">(선택)</span></label><input id="se_note" value="${esc(s?s.note:'')}" placeholder="협찬 조건 등"></div>
+    <div style="height:1px;background:var(--border);margin:4px 0 16px"></div>
+    <div class="sub" style="margin-bottom:12px">📈 <b>UTM 추적 링크</b> — utm_source 는 셀러명으로 자동 들어가요.</div>
+    <div class="frow"><label>랜딩 URL (목적지) <span style="color:var(--muted)">· 비우면 연결 제품의 자사몰 URL 자동</span></label><input id="se_land" value="${esc(land)}" placeholder="예) https://www.pourstore.net/12345"></div>
+    <div class="frow" style="display:flex;gap:10px"><div style="flex:1"><label>매체 (utm_medium)</label><select id="se_med">${medOpts}</select></div><div style="flex:1"><label>캠페인 (utm_campaign)</label><input id="se_camp" value="${esc(camp)}" placeholder="예) 2026spring"></div></div>
+    <div class="frow"><label>utm_content <span style="color:var(--muted)">(선택)</span></label><input id="se_cont" value="${esc((s&&s.utmContent)||'')}" placeholder="예) reels_a"></div>
+    <div class="sheet-act">${s?`<button class="btn ghost" id="se_del" style="flex:0 0 auto;color:var(--red)">삭제</button>`:''}<button class="btn ghost" id="se_cancel">취소</button><button class="btn or" id="se_save">저장</button></div>`);
+  $('#se_cancel').onclick=closeSheet;
+  $('#se_save').onclick=()=>{
+    const name=($('#se_name').value||'').trim();if(!name){toast('셀러명을 입력하세요','red');return;}
+    const utm={landingUrl:($('#se_land').value||'').trim(),utmCampaign:($('#se_camp').value||'').trim(),utmMedium:$('#se_med').value,utmContent:($('#se_cont').value||'').trim()};
+    // 다음 셀러부터 자동 채움
+    if(utm.landingUrl)state.settings.defaultLanding=utm.landingUrl;
+    if(utm.utmCampaign)state.settings.defaultCampaign=utm.utmCampaign;
+    if(utm.utmMedium)state.settings.defaultMedium=utm.utmMedium;
+    if(s){Object.assign(s,{name,productId:$('#se_prod').value,note:$('#se_note').value.trim()},utm);}
+    else state.sellers.push(Object.assign({id:uid(),name,token:uid()+uid(),productId:$('#se_prod').value,note:$('#se_note').value.trim(),createdAt:new Date().toISOString()},utm));
+    closeSheet();save();
+  };
+  if(s)$('#se_del').onclick=()=>{if(confirm('셀러를 삭제할까요? (업로드된 파일은 유지됩니다)')){state.sellers=state.sellers.filter(x=>x.id!==sid);closeSheet();save();}};
+}
+function sellerLink(s){return new URL(`content-upload.html?s=${s.token}`,location.href).href;}
+function copySellerLink(sid){
+  const s=state.sellers.find(x=>x.id===sid);if(!s)return;
+  const url=sellerLink(s);
+  navigator.clipboard?.writeText(url).then(()=>toast('업로드 링크 복사됨 — 셀러에게 전달하세요','green'),()=>prompt('링크를 복사하세요',url));
+}
+
+/* 셀러 상세 */
+function openSellerDetail(sid){curSeller=sid;renderSellerSheet();$('#overlay').classList.add('on');}
+function renderSellerSheet(){
+  const s=state.sellers.find(x=>x.id===curSeller);if(!s)return;
+  const teamA=state.assets.filter(a=>a.sellerId===s.id).map(a=>({...a,src:'sponsor',sellerName:s.name}));
+  const inboxA=inbox.filter(x=>x.sellerId===s.id||x.sellerName===s.name).map(x=>({id:x._id,kind:x.kind,url:x.url,src:'sponsor',sellerName:s.name,_inbox:true}));
+  const assets=[...inboxA,...teamA];
+  const url=sellerLink(s);
+  const utmUrl=buildUTM(s);
+  $('#sheet').innerHTML=`<h2>${esc(s.name)}</h2><div class="sub">컨텐츠 ${assets.length}개${s.productId?' · 🔗 '+esc((state.products.find(p=>p.id===s.productId)||{}).name||''):''}</div>
+    <div class="frow"><label>전용 업로드 링크</label><input id="sd_link" value="${esc(url)}" readonly onclick="this.select()"></div>
+    <div class="frow"><label>📈 UTM 추적 링크 <span style="color:var(--muted)">(광고·협찬 성과 추적)</span></label><input id="sd_utm" value="${esc(utmUrl)}" placeholder="셀러 수정에서 랜딩 URL을 입력하세요" readonly onclick="this.select()"></div>
+    <div class="seg" style="gap:8px;margin-bottom:14px"><button class="btn or" style="flex:1" id="sd_copy">🔗 업로드</button><button class="btn ghost" style="flex:1;background:var(--green-pale);color:var(--green)" id="sd_utmcopy">📈 UTM</button><button class="btn ghost" style="flex:1" id="sd_up">+ 업로드</button></div>
+    <div class="agrid" id="agrid">${assets.length?assets.map(renderAssetCell).join(''):'<div class="empty" style="grid-column:1/-1;padding:30px 0"><p>아직 올라온 컨텐츠가 없어요.<br>위 링크를 셀러에게 전달하세요.</p></div>'}</div>
+    <div class="sheet-act" style="margin-top:18px"><button class="btn ghost" id="sd_edit">셀러 정보 수정</button><button class="btn ghost" id="sd_close">닫기</button></div>`;
+  $('#sd_copy').onclick=()=>copySellerLink(s.id);
+  $('#sd_utmcopy').onclick=()=>copyUTM(s.id);
+  $('#sd_up').onclick=()=>{uploadCtx={sellerId:s.id,purpose:'sponsor'};$('#fileAlbum').click();};
+  $('#sd_close').onclick=closeSheet;
+  $('#sd_edit').onclick=()=>openSellerEdit(s.id);
+  bindAssetDelete();
+}
+
+/* 받은 업로드 정리 */
+async function fileInboxItem(id){
+  const it=inbox.find(x=>x._id===id);if(!it)return;
+  try{ await uploadsCol.doc(id).update({filed:true,filedAt:new Date().toISOString()}); it.filed=true; render(); toast('정리 완료','green'); }
+  catch(e){console.error('[inbox] 정리 실패:',e);toast('정리 실패','red');}
+}
+
+/* 토스트 */
+function toast(msg,type){const c={red:'var(--red)',green:'var(--green)',amber:'var(--amber)'};const el=document.createElement('div');el.className='toast';el.style.background=c[type]||'var(--navy)';el.textContent=msg;document.body.appendChild(el);setTimeout(()=>el.remove(),2800);}
+
+/* 탭 */
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;query='';render();});
+
+/* 전역 노출 */
+window.removeFile=()=>{};
+
+/* ================= 부팅 ================= */
+async function boot(){
+  const cloud=await cloudLoad();
+  if(cloud){state=cloud;normalize();store.write(state);}
+  await loadInbox();
+  booting=false;
+  render();
+  startRealtime();
+  setSync(fsDoc?'클라우드 연결됨 ✓':'로컬 저장','var(--green)');
+}
+
+/* ================= 로그인 ================= */
+function showApp(){$('#loginGate').style.display='none';boot();}
+function showLogin(){$('#loginGate').style.display='flex';}
+$('#lg_btn').onclick=async()=>{
+  const email=($('#lg_email').value||'').trim(),pw=$('#lg_pw').value||'';
+  if(!email||!pw){$('#lg_err').textContent='이메일과 비밀번호를 입력하세요';$('#lg_err').style.display='block';return;}
+  try{
+    await FA.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+    await FA.signInWithEmailAndPassword(email,pw);
+    $('#lg_err').style.display='none';$('#lg_pw').value='';
+  }catch(e){console.error('[auth] 로그인 실패:',e);$('#lg_err').textContent='로그인 실패 — 이메일/비밀번호를 확인하세요';$('#lg_err').style.display='block';}
+};
+$('#lg_pw').addEventListener('keydown',e=>{if(e.key==='Enter')$('#lg_btn').click();});
+if(FA){
+  FA.onAuthStateChanged(u=>{ if(u){console.log('[auth] 로그인:',u.email);showApp();}else showLogin(); });
+}else{ showApp(); } // Auth 미초기화 시 폴백
+</script>
+</body>
+</html>

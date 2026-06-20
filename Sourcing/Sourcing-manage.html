@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>소싱 관리센터 — 제조사·출시상품·발주담당자</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<style>
+  :root{
+    --navy:#0F1B2D;--ink:#111827;--ink2:#374151;--muted:#6B7280;--line:#E5E7EB;--line2:#D1D5DB;
+    --bg:#F3F5F8;--card:#FFFFFF;--blue:#2563EB;--blue-pale:#EFF6FF;--green:#059669;--green-pale:#ECFDF5;
+    --red:#DC2626;--amber:#D97706;--cream:#F9FAFB;--r:12px;--shadow:0 1px 4px rgba(17,24,39,.06),0 1px 2px rgba(17,24,39,.04);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Pretendard,system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased}
+  button{font-family:inherit;cursor:pointer;border:none;background:none}
+  input,select,textarea{font-family:inherit;font-size:14px}
+  .hidden{display:none!important}
+  /* header */
+  header{position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;display:flex;align-items:center;gap:14px;padding:0 20px;height:56px}
+  header .logo{font-weight:800;font-size:16px;letter-spacing:-.01em}
+  header .sub{font-size:12px;color:#9fb0c7}
+  header .spacer{flex:1}
+  header .who{font-size:12px;color:#cdd7e5}
+  header .sync{font-size:12px;color:#cdd7e5;display:flex;align-items:center;gap:6px}
+  header .sync .dot{width:8px;height:8px;border-radius:50%;background:#9fb0c7}
+  header .lo{font-size:12px;font-weight:700;color:#fff;border:1px solid rgba(255,255,255,.25);padding:6px 12px;border-radius:8px}
+  /* layout */
+  .wrap{max-width:1280px;margin:0 auto;padding:20px;display:grid;grid-template-columns:minmax(380px,1fr) minmax(420px,1.1fr);gap:18px;align-items:start}
+  @media(max-width:980px){.wrap{grid-template-columns:1fr}}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+  .panel-h{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+  .panel-h .t{font-weight:800;font-size:15px}
+  .panel-h .n{font-size:12px;color:var(--muted);font-weight:600}
+  .panel-h .spacer{flex:1}
+  .search{width:100%;padding:11px 13px;border:1px solid var(--line2);border-radius:10px;background:var(--cream);margin:12px 16px;width:calc(100% - 32px)}
+  /* maker table */
+  .mk-row{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:12px 16px;border-top:1px solid var(--line);cursor:pointer;transition:.1s}
+  .mk-row:hover{background:var(--cream)}
+  .mk-row.sel{background:var(--blue-pale)}
+  .mk-name{font-weight:700;font-size:14px;color:var(--ink)}
+  .mk-meta{font-size:11.5px;color:var(--muted);margin-top:3px}
+  .mk-mgr{font-size:12px;font-weight:700;text-align:right;white-space:nowrap}
+  .mk-mgr.none{color:var(--muted);font-weight:600}
+  .tag{font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:7px;white-space:nowrap}
+  .tag.pub{background:var(--green-pale);color:var(--green)}
+  .tag.sec{background:#FEF2F2;color:var(--red)}
+  .tag.int{background:var(--blue-pale);color:var(--blue)}
+  .tag.mkr{background:#FFF7ED;color:var(--amber)}
+  /* detail */
+  .empty{padding:48px 20px;text-align:center;color:var(--muted);font-size:13px}
+  .sec{padding:16px}
+  .sec+.sec{border-top:1px solid var(--line)}
+  .lbl{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px}
+  .frow{margin-bottom:13px}
+  .frow label{display:block;font-size:12.5px;font-weight:700;color:var(--ink2);margin-bottom:6px}
+  .frow input,.frow textarea{width:100%;padding:10px 12px;border:1px solid var(--line2);border-radius:10px;background:#fff}
+  .ftwo{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .seg{display:flex;gap:6px}
+  .seg button{flex:1;padding:9px 10px;border:1px solid var(--line2);border-radius:9px;background:#fff;font-size:13px;font-weight:700;color:var(--muted)}
+  .seg button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 13px;border:1px solid var(--line2);border-radius:10px;background:var(--cream)}
+  .toggle .tt{font-size:13px;font-weight:700;color:var(--ink2)}
+  .toggle .td{font-size:11.5px;color:var(--muted);margin-top:3px}
+  .sw{width:46px;height:26px;border-radius:14px;background:#cbd5e1;position:relative;flex:0 0 auto;transition:.15s}
+  .sw.on{background:var(--green)}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+  .sw.on::after{left:23px}
+  .save-btn{width:100%;padding:13px;border-radius:11px;background:var(--blue);color:#fff;font-size:14px;font-weight:800;margin-top:4px}
+  .save-btn:disabled{opacity:.5}
+  .note{font-size:11.5px;color:var(--muted);line-height:1.6;margin-top:8px;background:var(--cream);border-radius:8px;padding:9px 11px}
+  .note b{color:var(--ink2)}
+  /* product list */
+  .plist{display:flex;flex-direction:column}
+  .prow{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
+  .prow:first-child{border-top:none}
+  .pn{font-size:13px;font-weight:700;color:var(--ink)}
+  .pgoods{font-size:11.5px;color:var(--muted);font-weight:600}
+  .pty{font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;background:#EEF2F7;color:var(--ink2)}
+  .pstage{font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap}
+  .pstage.done{color:var(--green)}
+  /* login */
+  #gate{position:fixed;inset:0;z-index:200;background:var(--navy);display:none;align-items:center;justify-content:center;padding:24px}
+  #gate.on{display:flex}
+  .gbox{background:#fff;border-radius:18px;padding:30px 26px;max-width:380px;width:100%}
+  .gbox h2{margin:0 0 6px;font-size:19px}
+  .gbox p{margin:0 0 20px;font-size:13px;color:var(--muted)}
+  .gbox label{display:block;font-size:12.5px;font-weight:700;color:var(--ink2);margin:0 0 6px}
+  .gbox input{width:100%;padding:12px;border:1px solid var(--line2);border-radius:10px;margin-bottom:14px}
+  .gbox .gerr{display:none;color:var(--red);font-size:12.5px;font-weight:700;margin-bottom:12px}
+  .gbox .gbtn{width:100%;padding:13px;border-radius:11px;background:var(--blue);color:#fff;font-weight:800}
+  .gbox .gkeep{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink2);margin-bottom:16px;font-weight:600}
+</style>
+</head>
+<body>
+<!-- 로그인 게이트 -->
+<div id="gate">
+  <div class="gbox">
+    <h2>소싱 관리센터</h2>
+    <p>제조사·출시상품·발주담당자 관리 (내부 전용)</p>
+    <label>이메일</label><input type="email" id="g_email" autocomplete="username" placeholder="관리 이메일">
+    <label>비밀번호</label><input type="password" id="g_pw" autocomplete="current-password" placeholder="비밀번호">
+    <label class="gkeep"><input type="checkbox" id="g_keep" checked> 이 기기에서 로그인 유지(1개월)</label>
+    <div class="gerr" id="g_err">이메일과 비밀번호를 입력하세요.</div>
+    <button class="gbtn" id="g_btn">로그인</button>
+  </div>
+</div>
+
+<header>
+  <div>
+    <div class="logo">소싱 관리센터</div>
+  </div>
+  <div class="sub">제조사 · 출시상품 · 발주담당자</div>
+  <div class="spacer"></div>
+  <div class="sync"><span class="dot"></span><span id="saveTxt">불러오는 중…</span></div>
+  <span class="who" id="who"></span>
+  <button class="lo" id="logout">로그아웃</button>
+</header>
+
+<div class="wrap">
+  <!-- 제조사 목록 -->
+  <div class="panel">
+    <div class="panel-h"><div class="t">제조사</div><div class="n" id="mkCount">0곳</div><div class="spacer"></div></div>
+    <input class="search" id="mkSearch" placeholder="제조사 검색">
+    <div id="mkList"></div>
+  </div>
+  <!-- 상세 -->
+  <div class="panel">
+    <div class="panel-h"><div class="t" id="dTitle">제조사를 선택하세요</div><div class="spacer"></div></div>
+    <div id="detail"><div class="empty">왼쪽에서 제조사를 선택하면<br>발주담당자 지정과 출시상품을 관리할 수 있어요.</div></div>
+  </div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const FB_CFG={apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",storageBucket:"pour-app-new.firebasestorage.app",messagingSenderId:"411031141847",appId:"1:411031141847:web:e658174fd4b9652cdadf92"};
+const LOGIN_DAYS=30;
+const STAGES=['후보','샘플','테스트','협의','발주준비','출시완료'];
+let FS=null,FA=null,started=false;
+try{ if(!firebase.apps.length)firebase.initializeApp(FB_CFG); FS=firebase.firestore(); }catch(e){ console.error('[init] firestore',e); }
+try{ FA=firebase.auth(); }catch(e){ console.error('[init] auth',e); }
+
+let state={products:[],makers:[]};   // sourcing-os/state (읽기 전용)
+let oc={makers:{}};                  // sourcing-os/order-contacts (이 페이지에서 관리)
+let sel=null;                        // 선택된 제조사명
+let q='';
+
+function setSync(txt,color){const t=$('#saveTxt');if(t)t.textContent=txt;const d=document.querySelector('header .dot');if(d&&color)d.style.background=color;}
+const dn=p=>(p&&p.goods)?(p.name+'('+p.goods+')'):(p?p.name:'');
+const isSellable=p=>!!p&&(p.type==='파생'||p.type==='패키지');
+const statusIdx=p=>{const i=STAGES.indexOf(p.stage||'후보');return i>=5?2:(i>=1?1:0);};
+
+function makersAll(){
+  const set=new Set();
+  (state.makers||[]).forEach(m=>m&&set.add(m));
+  (state.products||[]).forEach(p=>p.maker&&set.add(p.maker));
+  return [...set].sort((a,b)=>a.localeCompare(b));
+}
+function makerProducts(name){return (state.products||[]).filter(p=>p.maker===name);}
+function sellableOf(name){return makerProducts(name).filter(isSellable);}
+
+/* ---------- 데이터 로드 ---------- */
+async function loadAll(){
+  setSync('불러오는 중…','#D97706');
+  try{
+    const ss=await FS.collection('sourcing-os').doc('state').get();
+    state=ss.exists?ss.data():{products:[],makers:[]};
+    if(!state.products)state.products=[];if(!state.makers)state.makers=[];
+    const os=await FS.collection('sourcing-os').doc('order-contacts').get();
+    oc=os.exists?os.data():{makers:{}};
+    if(!oc.makers)oc.makers={};
+    console.log('[manage] 제품',state.products.length,'· 제조사',makersAll().length,'· 담당자설정',Object.keys(oc.makers).length);
+    setSync('불러옴 ✓','#059669');
+    renderList();
+    if(sel)renderDetail(sel); else renderDetail(null);
+  }catch(e){ console.error('[manage] 로드 실패:',e); setSync('로드 실패','#DC2626'); }
+}
+async function saveOC(){
+  try{
+    oc.updatedAt=new Date().toISOString();
+    oc.updatedBy=(FA&&FA.currentUser&&FA.currentUser.email)||'';
+    await FS.collection('sourcing-os').doc('order-contacts').set(oc);
+    setSync('저장됨 ✓','#059669');
+    return true;
+  }catch(e){ console.error('[manage] 저장 실패:',e); setSync('저장 실패','#DC2626'); alert('저장 실패: '+(e&&(e.code||e.message))); return false; }
+}
+
+/* ---------- 렌더: 제조사 목록 ---------- */
+function mgrSummary(name){
+  const m=oc.makers[name];
+  if(!m||!m.name)return {txt:'담당자 미지정',cls:'none',tag:''};
+  const tag=m.mode==='maker'?'<span class="tag mkr">제조사</span>':'<span class="tag int">내부</span>';
+  const pub=m.public?'<span class="tag pub">공개</span>':'<span class="tag sec">대외비</span>';
+  return {txt:esc(m.name),cls:'',tag:tag+' '+pub};
+}
+function renderList(){
+  const all=makersAll().filter(n=>!q||n.toLowerCase().includes(q));
+  $('#mkCount').textContent=makersAll().length+'곳';
+  const box=$('#mkList');
+  if(!all.length){box.innerHTML='<div class="empty">'+(q?'검색 결과 없음':'제조사가 없어요. 소싱앱에서 제품을 등록하면 표시됩니다.')+'</div>';return;}
+  box.innerHTML=all.map(n=>{
+    const sp=sellableOf(n),done=sp.filter(p=>statusIdx(p)===2).length;
+    const ms=mgrSummary(n);
+    return `<div class="mk-row${n===sel?' sel':''}" data-mk="${esc(n)}">
+      <div><div class="mk-name">${esc(n)}</div><div class="mk-meta">상품 ${sp.length} · 출시완료 ${done}</div></div>
+      <div class="mk-mgr ${ms.cls}">${ms.txt}</div>
+      <div style="text-align:right">${ms.tag||'<span class="tag sec">미지정</span>'}</div>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('[data-mk]').forEach(el=>el.onclick=()=>{sel=el.dataset.mk;renderList();renderDetail(sel);});
+}
+
+/* ---------- 렌더: 상세(발주담당자 + 출시상품) ---------- */
+function renderDetail(name){
+  const d=$('#detail');
+  if(!name){$('#dTitle').textContent='제조사를 선택하세요';d.innerHTML='<div class="empty">왼쪽에서 제조사를 선택하면<br>발주담당자 지정과 출시상품을 관리할 수 있어요.</div>';return;}
+  $('#dTitle').textContent=name;
+  const m=Object.assign({mode:'internal',name:'',phone:'',memo:'',public:false},oc.makers[name]||{});
+  const sp=sellableOf(name);
+  d.innerHTML=`
+    <div class="sec">
+      <div class="lbl">발주담당자</div>
+      <div class="frow"><label>구분</label>
+        <div class="seg" id="d_mode">
+          <button data-mode="internal" class="${m.mode!=='maker'?'on':''}">내부 팀원</button>
+          <button data-mode="maker" class="${m.mode==='maker'?'on':''}">제조사 담당자</button>
+        </div>
+      </div>
+      <div class="ftwo">
+        <div class="frow"><label>담당자명</label><input id="d_name" value="${esc(m.name)}" placeholder="${m.mode==='maker'?'예) KP방수재 김과장':'예) 홍길동(내부)'}"></div>
+        <div class="frow"><label>연락처</label><input id="d_phone" value="${esc(m.phone)}" placeholder="010-0000-0000"></div>
+      </div>
+      <div class="frow"><label>메모 <span style="color:var(--muted);font-weight:600">(선택)</span></label><input id="d_memo" value="${esc(m.memo)}" placeholder="예) 발주 리드타임 7일 · 카톡 선호"></div>
+      <div class="toggle">
+        <div><div class="tt">외부 사이트 공개</div><div class="td" id="d_pubdesc"></div></div>
+        <div class="sw ${m.public?'on':''}" id="d_pub"></div>
+      </div>
+      <div class="note" id="d_note"></div>
+      <button class="save-btn" id="d_save">발주담당자 저장</button>
+    </div>
+    <div class="sec">
+      <div class="lbl">출시상품(파생·세트) ${sp.length}</div>
+      <div class="plist" id="d_plist"></div>
+    </div>`;
+  // 상품 목록
+  const pl=$('#d_plist');
+  if(!sp.length)pl.innerHTML='<div class="empty" style="padding:20px">이 제조사의 상품(파생/세트)이 없어요.<br>소싱앱에서 파생·세트를 만들면 표시됩니다.</div>';
+  else pl.innerHTML=sp.slice().sort((a,b)=>statusIdx(b)-statusIdx(a)).map(p=>{
+    const done=statusIdx(p)===2;
+    return `<div class="prow">
+      <div><div class="pn">${esc(p.name||'')}</div>${p.goods?`<div class="pgoods">${esc(p.goods)}</div>`:''}</div>
+      <span class="pty">${p.type==='패키지'?'세트':'파생'}</span>
+      <span class="pstage ${done?'done':''}">${done?'✓ ':''}${esc(p.stage||'후보')}</span>
+    </div>`;
+  }).join('');
+  // 인터랙션
+  let cur={mode:m.mode,public:!!m.public};
+  function syncNote(){
+    const pub=cur.public, internal=cur.mode!=='maker';
+    $('#d_pubdesc').textContent=pub?'외부 사이트에 발주 담당자로 노출됩니다.':'외부 미노출(대외비). 내부에서만 보입니다.';
+    $('#d_note').innerHTML = internal
+      ? '<b>내부 팀원</b>으로 지정 시, 외부엔 <b>제조사명을 숨기고</b> "이 상품 발주는 담당자에게 요청" 정도만 안내하는 걸 권장합니다.'+(pub?' 현재 <b>공개</b> 상태예요.':'')
+      : '<b>제조사 담당자</b> — 외부 공개 시 외부 사이트에서 이 담당자에게 직접 발주요청하도록 노출됩니다.';
+  }
+  d.querySelectorAll('#d_mode button').forEach(b=>b.onclick=()=>{
+    cur.mode=b.dataset.mode;
+    d.querySelectorAll('#d_mode button').forEach(x=>x.classList.toggle('on',x.dataset.mode===cur.mode));
+    syncNote();
+  });
+  $('#d_pub').onclick=()=>{cur.public=!cur.public;$('#d_pub').classList.toggle('on',cur.public);syncNote();};
+  syncNote();
+  $('#d_save').onclick=async()=>{
+    const btn=$('#d_save');btn.disabled=true;const lbl=btn.textContent;btn.textContent='저장 중…';
+    oc.makers[name]={mode:cur.mode,name:$('#d_name').value.trim(),phone:$('#d_phone').value.trim(),memo:$('#d_memo').value.trim(),public:cur.public};
+    const ok=await saveOC();
+    btn.disabled=false;btn.textContent=lbl;
+    if(ok){renderList();}
+  };
+}
+
+/* ---------- 검색 ---------- */
+$('#mkSearch').oninput=e=>{q=e.target.value.toLowerCase().trim();renderList();};
+
+/* ---------- 로그인 ---------- */
+function showGate(){$('#gate').classList.add('on');}
+function hideGate(){$('#gate').classList.remove('on');}
+function gErr(m){const e=$('#g_err');e.style.display='';e.textContent=m;}
+function gMap(c){return ({'auth/invalid-email':'이메일 형식이 올바르지 않아요.','auth/user-not-found':'등록되지 않은 계정이에요.','auth/wrong-password':'비밀번호가 틀렸어요.','auth/invalid-credential':'이메일 또는 비밀번호가 올바르지 않아요.','auth/too-many-requests':'시도가 많아 잠시 후 다시.','auth/network-request-failed':'네트워크 오류입니다.'}[c])||('로그인 실패: '+c);}
+function doLogin(){
+  if(!FA){gErr('인증 모듈 로드 실패. 새로고침 해주세요.');return;}
+  const email=($('#g_email').value||'').trim(),pw=$('#g_pw').value||'';
+  if(!email||!pw){gErr('이메일과 비밀번호를 입력하세요.');return;}
+  const P=firebase.auth.Auth.Persistence,keep=$('#g_keep').checked;
+  const b=$('#g_btn');b.disabled=true;b.textContent='로그인 중…';
+  FA.setPersistence(keep?P.LOCAL:P.SESSION)
+    .then(()=>FA.signInWithEmailAndPassword(email,pw))
+    .then(()=>{localStorage.setItem('sosm_loginAt',String(Date.now()));$('#g_pw').value='';$('#g_err').style.display='none';})
+    .catch(err=>{console.error('[auth]',err);gErr(gMap(err&&err.code));})
+    .finally(()=>{b.disabled=false;b.textContent='로그인';});
+}
+$('#g_btn').onclick=doLogin;
+$('#g_pw').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();doLogin();}});
+$('#g_email').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#g_pw').focus();}});
+$('#logout').onclick=()=>{if(confirm('로그아웃 할까요?')){localStorage.removeItem('sosm_loginAt');if(FA)FA.signOut();}};
+
+if(FA){
+  FA.onAuthStateChanged(user=>{
+    $('#who').textContent=user?('로그인: '+(user.email||'')):'';
+    if(user){
+      const t=Number(localStorage.getItem('sosm_loginAt')||0);
+      if(t&&Date.now()-t>LOGIN_DAYS*864e5){localStorage.removeItem('sosm_loginAt');FA.signOut();showGate();return;}
+      if(!t)localStorage.setItem('sosm_loginAt',String(Date.now()));
+      hideGate();
+      if(!started){started=true;loadAll();}
+    }else{ showGate(); }
+  });
+}else{
+  // 인증 모듈 없으면(드묾) 게이트 없이 동작
+  hideGate();loadAll();
+}
+</script>
+</body>
+</html>

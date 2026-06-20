@@ -3023,7 +3023,7 @@ function syncAliasWrap(){const w=$('#aliasWrap');if(!w)return;const show=!shareC
 function renderAliasList(){
   const box=$('#aliasList');if(!box)return;
   if(!state.products.length){box.innerHTML='<div class="drawer-sub" style="padding:0">제품이 없습니다.</div>';return;}
-  box.innerHTML=state.products.map(p=>`<div class="alias-row"><span class="an">${esc(p.name||'(이름없음)')}</span><input data-alias="${p.id}" value="${esc(shareCfg.aliases[p.id]||'')}" placeholder="가명"></div>`).join('');
+  box.innerHTML=state.products.map(p=>`<div class="alias-row"><span class="an">${esc(p.name||'(이름없음)')}${p.goods?' · '+esc(p.goods):''}</span><input data-alias="${p.id}" value="${esc(shareCfg.aliases[p.id]||'')}" placeholder="가명"></div>`).join('');
   box.querySelectorAll('[data-alias]').forEach(inp=>inp.onchange=()=>{const v=inp.value.trim();if(v)shareCfg.aliases[inp.dataset.alias]=v;else delete shareCfg.aliases[inp.dataset.alias];saveShareCfg();});
 }
 const _aliasGenBtn=$('#aliasGen'); if(_aliasGenBtn)_aliasGenBtn.onclick=()=>{const n=fillAliases();alert(n?`${n}개 제품에 가명을 채웠어요.`:'채울 빈 가명이 없어요.');};

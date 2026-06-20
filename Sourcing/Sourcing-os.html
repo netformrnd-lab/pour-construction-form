@@ -802,6 +802,8 @@
     <div class="mh">공유 설정 <span style="font-weight:600;color:var(--muted);font-size:11px">· 관리센터(PC) 노출</span></div>
     <div class="drawer-sub" style="padding:0 0 8px">내부 공유용 관리센터에 보일 항목을 켜고 끕니다. 끈 항목은 가려집니다.</div>
     <div id="shareToggles"></div>
+    <button id="setMgrPin" class="btn-ghost" style="width:100%;margin-top:12px">관리센터 입장 PIN 설정/변경</button>
+    <div class="drawer-sub" style="padding:6px 0 0">관리센터(PC)는 이 공용 PIN으로 로그인 없이 입장합니다. <span id="pinState" style="font-weight:700"></span></div>
     <a href="Sourcing-manage.html" target="_blank" class="btn-ghost" style="display:block;text-align:center;width:100%;margin-top:12px;text-decoration:none">관리센터(PC) 열기 ↗</a>
     <div class="mh">활동 여정</div>
     <div class="drawer-sub" style="padding:0 0 12px">제품·제조사 추가·수정·삭제 기록입니다. 삭제·수정·추가는 ‘되살리기/되돌리기’로 복구할 수 있어요.</div>
@@ -2994,7 +2996,7 @@ async function loadShareCfg(){
   if(!FS)return;
   try{
     const s=await FS.collection('sourcing-os').doc('share-config').get();
-    if(s.exists){const d=s.data();shareCfg.visible=Object.assign({},SHARE_DEFAULT,d.visible||{});}
+    if(s.exists){const d=s.data();shareCfg.visible=Object.assign({},SHARE_DEFAULT,d.visible||{});if(d.managePinHash)shareCfg.managePinHash=d.managePinHash;}
     shareLoaded=true;console.log('[share] 설정 로드');
   }catch(e){console.error('[share] 로드 실패:',e);}
 }
@@ -3008,7 +3010,18 @@ function renderShareToggles(){
   box.innerHTML=SHARE_FIELDS.map(([k,lab])=>{const on=!!shareCfg.visible[k];return `<div class="shtog"><span class="sl">${lab}</span><button class="pill ${on?'on':'off'}" data-vk="${k}">${on?'노출':'미노출'}</button></div>`;}).join('');
   box.querySelectorAll('[data-vk]').forEach(b=>b.onclick=()=>{const k=b.dataset.vk;shareCfg.visible[k]=!shareCfg.visible[k];saveShareCfg();renderShareToggles();});
 }
-async function renderShare(){ if(!shareLoaded)await loadShareCfg(); renderShareToggles(); }
+async function shareHashPin(pin){const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pin));return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');}
+function renderPinState(){const el=$('#pinState');if(el)el.textContent=shareCfg.managePinHash?'(PIN 설정됨)':'(미설정 — 기본 PIN 1234)';}
+async function renderShare(){ if(!shareLoaded)await loadShareCfg(); renderShareToggles(); renderPinState(); }
+const _setPinBtn=$('#setMgrPin');
+if(_setPinBtn)_setPinBtn.onclick=async()=>{
+  const p=prompt('관리센터(PC) 입장용 공용 PIN을 입력하세요.\n(숫자/문자 4자리 이상 권장)');
+  if(p==null)return;const pin=p.trim();
+  if(pin.length<4){alert('PIN은 4자리 이상으로 해주세요.');return;}
+  shareCfg.managePinHash=await shareHashPin(pin);
+  await saveShareCfg();renderPinState();
+  alert('관리센터 입장 PIN이 설정되었어요.');
+};
 function openActivity(){renderActivity();renderShare();$('#actScrim').classList.add('on');$('#actDrawer').classList.add('on');document.body.style.overflow='hidden';}
 function closeActivity(){$('#actScrim').classList.remove('on');$('#actDrawer').classList.remove('on');if(!document.querySelector('.overlay.on'))document.body.style.overflow='';}
 $('#openActivity').onclick=openActivity;

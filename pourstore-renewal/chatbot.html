@@ -966,6 +966,7 @@ const COLLECTIONS = {
   SESSIONS: 'chatbot-sessions',
   LEADS: 'chatbot-leads',
   RECO: 'chatbot-reco',   // 진단→솔루션→상품추천 플로우 트리 (doc: 'tree')
+  SKUS: 'chatbot-skus',   // 상품 SKU 카탈로그 (부위×패키지단계)
 };
 const ADMIN_PIN_KEY = 'pourStoreAdminPin';   // admin.html과 PIN 공유
 const DEFAULT_PIN = '1234';
@@ -1320,6 +1321,7 @@ const NAV = [
   { id: 'studio',     icon: '🤖', label: '봇 스튜디오' },
   { id: 'knowledge',  icon: '📚', label: '지식베이스' },
   { id: 'reco',       icon: '🧭', label: '추천 플로우' },
+  { id: 'skus',       icon: '📦', label: '상품 SKU' },
   { id: 'playground', icon: '💬', label: '플레이그라운드' },
   { id: 'logs',       icon: '🗂️', label: '대화 로그' },
   { id: 'settings',   icon: '⚙️', label: '설정' },
@@ -2393,6 +2395,12 @@ function RecoNeedModal({ need, onClose, onSave }) {
   const [f, setF] = useState({ ...need, building:[...(need.building || [])], part:[...(need.part || [])], material:[...(need.material || [])], problem:[...(need.problem || [])], credibility:[...(need.credibility || [])], products:[...(need.products || [])] });
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
   const setProd = (i, k, v) => setF(p => ({ ...p, products: p.products.map((x, j) => j === i ? { ...x, [k]: v } : x) }));
+  // SKU 카탈로그에서 상품 선택
+  const [skus, setSkus] = useState([]);
+  const [skuQ, setSkuQ] = useState('');
+  useEffect(() => { db.collection(COLLECTIONS.SKUS).get().then(s => setSkus(s.docs.map(d => ({ id: d.id, ...d.data() })))).catch(e => console.error('[skus]', e)); }, []);
+  const skuSuggest = skuQ.trim() ? skus.filter(s => ((s.name || '') + (s.code || '') + (s.surfaces || []).join(' ')).toLowerCase().includes(skuQ.toLowerCase())).slice(0, 6) : [];
+  const addSku = (s) => { if (f.products.some(p => p.skuId === s.id)) return; set('products', [...f.products, { name: s.name, link: s.link || '', skuId: s.id }]); setSkuQ(''); };
   const sect = (t) => <div style={{ fontSize:12, fontWeight:900, color:'var(--navy)', margin:'4px 0 0', paddingTop:8, borderTop:'1px solid var(--border-s)' }}>{t}</div>;
   return (
     <Modal open onClose={onClose} title={need.id ? '니즈 편집' : '니즈 등록'} width={720}>
@@ -2426,11 +2434,28 @@ function RecoNeedModal({ need, onClose, onSave }) {
         <div>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
             <label style={{ ...labelSty, marginBottom:0 }}>추천 상품</label>
-            <button onClick={() => set('products', [...f.products, { name:'', link:'' }])} style={btnGhost({ padding:'4px 10px', fontSize:11.5 })}>+ 상품</button>
+            <button onClick={() => set('products', [...f.products, { name:'', link:'' }])} style={btnGhost({ padding:'4px 10px', fontSize:11.5 })}>+ 직접 입력</button>
           </div>
-          {f.products.length === 0 ? <div style={{ fontSize:11.5, color:'var(--text-xs)' }}>자사몰 상품명·링크를 추가하면 봇이 이 니즈에 그 상품을 추천합니다.</div>
+          <div style={{ position:'relative', marginBottom:8 }}>
+            <input style={{ ...inputSty, padding:'7px 11px' }} value={skuQ} onChange={e => setSkuQ(e.target.value)} placeholder="📦 SKU 카탈로그에서 검색해 추가 (이름·코드·부위)" />
+            {skuSuggest.length > 0 && (
+              <div style={{ position:'absolute', top:'100%', left:0, right:0, zIndex:10, background:'#fff', border:'1px solid var(--border)', borderRadius:8, boxShadow:'var(--shadow-lg)', marginTop:3, maxHeight:180, overflowY:'auto' }}>
+                {skuSuggest.map(s => (
+                  <button key={s.id} onClick={() => addSku(s)} style={{ display:'flex', width:'100%', gap:8, alignItems:'center', padding:'7px 10px', textAlign:'left', borderBottom:'1px solid var(--border-s)' }}>
+                    <span style={{ fontSize:13 }}>📦</span>
+                    <span style={{ flex:1, minWidth:0 }}>
+                      <span style={{ fontSize:12, fontWeight:800, color:'var(--navy)' }}>{s.name}</span>
+                      <span style={{ fontSize:10, color:'var(--text-xs)', marginLeft:6 }}>{tierMeta(s.tier).label} · {(s.surfaces || []).join('/')}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {f.products.length === 0 ? <div style={{ fontSize:11.5, color:'var(--text-xs)' }}>SKU 카탈로그에서 검색해 추가하거나(권장) 직접 상품명·링크를 입력하세요.</div>
           : f.products.map((pr, i) => (
-            <div key={i} style={{ display:'flex', gap:8, marginBottom:6 }}>
+            <div key={i} style={{ display:'flex', gap:8, marginBottom:6, alignItems:'center' }}>
+              {pr.skuId && <span title="SKU 카탈로그 연결" style={{ fontSize:11, fontWeight:800, color:'var(--green)', background:'var(--green-l)', border:'1px solid var(--green-m)', borderRadius:6, padding:'2px 7px', flexShrink:0 }}>📦 SKU</span>}
               <input style={{ ...inputSty, flex:1 }} value={pr.name} onChange={e => setProd(i, 'name', e.target.value)} placeholder="상품명" />
               <input style={{ ...inputSty, flex:1 }} value={pr.link} onChange={e => setProd(i, 'link', e.target.value)} placeholder="링크(선택)" />
               <button onClick={() => set('products', f.products.filter((_, j) => j !== i))} style={btnGhost({ padding:'0 10px', color:'var(--red)' })}>✕</button>
@@ -2441,6 +2466,169 @@ function RecoNeedModal({ need, onClose, onSave }) {
         <div style={{ display:'flex', justifyContent:'flex-end', gap:8 }}>
           <button onClick={onClose} style={btnGhost()}>취소</button>
           <button onClick={() => { if (!needKeywords(f).length) return alert('니즈 키워드를 1개 이상 입력하세요'); onSave(f); }} style={btnPrimary()}>저장</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// ============================================================
+// 4-C) 상품 SKU 카탈로그 — 부위×패키지단계 매트릭스 (chatbot-skus)
+// ============================================================
+const SKU_TIERS = [
+  { id: 'full', label: '풀패키지', icon: '📦', color: 'var(--navy)', bg: '#EEF2FF', border: 'var(--blue-m)' },
+  { id: 'partial', label: '부분패키지', icon: '🧩', color: 'var(--or-d)', bg: 'var(--or-l)', border: '#FED7AA' },
+  { id: 'single', label: '단품·단순코팅', icon: '🔹', color: 'var(--green)', bg: 'var(--green-l)', border: 'var(--green-m)' },
+];
+const SKU_SURFACES = ['슬라브', '슁글', '기와', '칼라강판/징크', '균열', '재도장', '배수로/베란다', '지하주차장', '이음부', '외벽', '옥상', '콘크리트'];
+const SKU_PROBLEMS = ['누수', '균열', '탈락', '들뜸/박리', '부식/녹', '백화'];
+const SKU_COMPONENTS = ['코트재', '크랙시트', '이음부세트', '콘크리트강화재', '프라이머', '상도', '탑코트재'];
+function tierMeta(id) { return SKU_TIERS.find(t => t.id === id) || SKU_TIERS[0]; }
+function emptySku(surface, tier) {
+  return { code: '', name: '', line: '', surfaces: surface ? [surface] : [], problems: [], tier: tier || 'full', building: [], components: [], image: '', price: '', productRef: '', link: '', active: true };
+}
+function SkuCatalogPage({ onToast }) {
+  const { data: skus, loading, reload } = useCollection(COLLECTIONS.SKUS);
+  const [editing, setEditing] = useState(null);
+  const [view, setView] = useState('matrix'); // matrix | list
+  const [q, setQ] = useState('');
+
+  const save = async (s) => {
+    try {
+      const payload = { ...s, updatedAt: nowIso() };
+      if (s.id) { delete payload.id; await db.collection(COLLECTIONS.SKUS).doc(s.id).update(payload); }
+      else { payload.createdAt = nowIso(); await db.collection(COLLECTIONS.SKUS).add(payload); }
+      onToast({ message: '저장 완료', type: 'success' }); setEditing(null); reload();
+    } catch (e) { onToast({ message: '저장 실패: ' + e.message, type: 'error' }); }
+  };
+  const remove = async (s) => { if (!confirm(`'${s.name || s.code}' SKU를 삭제할까요?`)) return; try { await db.collection(COLLECTIONS.SKUS).doc(s.id).delete(); onToast({ message: '삭제됨', type: 'success' }); reload(); } catch (e) { onToast({ message: e.message, type: 'error' }); } };
+
+  const filtered = skus.filter(s => !q || ((s.name || '') + (s.code || '') + (s.line || '') + (s.surfaces || []).join(' ')).toLowerCase().includes(q.toLowerCase()));
+  const usedSurfaces = SKU_SURFACES.filter(sf => filtered.some(s => (s.surfaces || []).includes(sf)));
+  const cols = usedSurfaces.length ? usedSurfaces : SKU_SURFACES.slice(0, 6);
+
+  const miniCard = (s) => (
+    <div key={s.id} onClick={() => setEditing(s)} style={{ cursor:'pointer', background:'#fff', border:'1px solid var(--border)', borderRadius:8, padding:'6px 8px', marginBottom:6, boxShadow:'var(--shadow)' }}>
+      <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+        {s.image ? <img src={s.image} alt="" style={{ width:28, height:28, borderRadius:5, objectFit:'cover', flexShrink:0 }} /> : <div style={{ width:28, height:28, borderRadius:5, background:'var(--bg)', display:'grid', placeItems:'center', fontSize:13, flexShrink:0 }}>📦</div>}
+        <div style={{ minWidth:0 }}>
+          <div style={{ fontSize:11, fontWeight:800, color:'var(--navy)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{s.name || '(이름 없음)'}</div>
+          {s.code && <div style={{ fontSize:9, color:'var(--text-xs)', fontWeight:700 }}>{s.code}</div>}
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      <Header title="상품 SKU 카탈로그" subtitle="부위/외장재 × 패키지단계(풀/부분/단품)로 상품을 SKU 단위로 등록. 추천 플로우가 이 SKU를 추천합니다."
+        actions={<>
+          <button onClick={() => setView(view === 'matrix' ? 'list' : 'matrix')} style={btnGhost()}>{view === 'matrix' ? '☰ 목록' : '▦ 매트릭스'}</button>
+          <button onClick={() => setEditing(emptySku())} style={btnPrimary()}>+ SKU</button>
+        </>} />
+      <div className="cb-scroll" style={{ padding:'18px 32px', overflowY:'auto', height:'calc(100vh - 92px)' }}>
+        <div style={{ display:'flex', gap:10, marginBottom:14, alignItems:'center', flexWrap:'wrap' }}>
+          <input style={{ ...inputSty, maxWidth:280 }} placeholder="🔍 SKU 검색 (이름·코드·부위)" value={q} onChange={e => setQ(e.target.value)} />
+          <span style={{ fontSize:12, color:'var(--text-sm)', fontWeight:700 }}>{filtered.length}개</span>
+        </div>
+        {loading ? <div style={{ color:'var(--text-sm)', padding:40, textAlign:'center' }}>불러오는 중…</div>
+        : skus.length === 0 ? (
+          <div style={{ textAlign:'center', padding:'56px 20px', color:'var(--text-sm)' }}>
+            <div style={{ fontSize:40, marginBottom:12 }}>📦</div>
+            <div style={{ fontWeight:800, color:'var(--text-md)', marginBottom:6 }}>등록된 SKU가 없습니다</div>
+            <div style={{ fontSize:12.5, marginBottom:18 }}>부위·패키지단계별로 상품을 잘게 등록하세요.</div>
+            <button onClick={() => setEditing(emptySku())} style={btnPrimary()}>+ 첫 SKU 등록</button>
+          </div>
+        ) : view === 'matrix' ? (
+          <div className="cb-scroll" style={{ overflowX:'auto', paddingBottom:8 }}>
+            <div style={{ display:'grid', gridTemplateColumns:`130px repeat(${cols.length}, minmax(160px, 1fr))`, gap:8, minWidth:'max-content' }}>
+              <div />
+              {cols.map(sf => <div key={sf} style={{ fontSize:12, fontWeight:900, color:'var(--navy)', textAlign:'center', padding:'8px 6px', background:'var(--bg)', borderRadius:8 }}>{sf}</div>)}
+              {SKU_TIERS.map(t => (
+                <React.Fragment key={t.id}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:900, color:t.color, background:t.bg, border:`1px solid ${t.border}`, borderRadius:8, padding:'8px 6px', textAlign:'center' }}>{t.icon} {t.label}</div>
+                  {cols.map(sf => {
+                    const cell = filtered.filter(s => s.tier === t.id && (s.surfaces || []).includes(sf));
+                    return (
+                      <div key={t.id + sf} style={{ background:'var(--or-pale)', border:'1px dashed var(--border)', borderRadius:8, padding:6, minHeight:60 }}>
+                        {cell.map(miniCard)}
+                        <button onClick={() => setEditing(emptySku(sf, t.id))} style={{ width:'100%', fontSize:11, fontWeight:800, color:'var(--text-sm)', background:'#fff', border:'1px dashed var(--border)', borderRadius:6, padding:'5px 0' }}>+ 추가</button>
+                      </div>
+                    );
+                  })}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(260px, 1fr))', gap:12 }}>
+            {filtered.map(s => {
+              const t = tierMeta(s.tier);
+              return (
+                <div key={s.id} style={{ background:'#fff', border:'1px solid var(--border)', borderRadius:'var(--r)', padding:'12px 14px', boxShadow:'var(--shadow)' }}>
+                  <div style={{ display:'flex', gap:10 }}>
+                    {s.image ? <img src={s.image} alt="" style={{ width:48, height:48, borderRadius:8, objectFit:'cover', flexShrink:0 }} /> : <div style={{ width:48, height:48, borderRadius:8, background:'var(--bg)', display:'grid', placeItems:'center', fontSize:20, flexShrink:0 }}>📦</div>}
+                    <div style={{ minWidth:0, flex:1 }}>
+                      <div style={{ fontSize:13.5, fontWeight:900, color:'var(--navy)' }}>{s.name || '(이름 없음)'}</div>
+                      <div style={{ display:'flex', gap:5, flexWrap:'wrap', marginTop:4 }}>
+                        <span style={{ fontSize:9.5, fontWeight:800, color:t.color, background:t.bg, border:`1px solid ${t.border}`, borderRadius:5, padding:'1px 6px' }}>{t.icon} {t.label}</span>
+                        {(s.surfaces || []).slice(0, 3).map(x => <span key={x} style={{ fontSize:9.5, fontWeight:700, color:'var(--text-sm)', background:'var(--bg)', borderRadius:5, padding:'1px 6px' }}>{x}</span>)}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display:'flex', gap:6, marginTop:10 }}>
+                    <button onClick={() => setEditing(s)} style={btnGhost({ flex:1, padding:'6px 0', fontSize:12 })}>✏️ 편집</button>
+                    <button onClick={() => remove(s)} style={btnGhost({ padding:'6px 10px', fontSize:12, color:'var(--red)' })}>🗑</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      {editing && <SkuEditModal sku={editing} onClose={() => setEditing(null)} onSave={save} onDelete={editing.id ? () => { remove(editing); setEditing(null); } : null} />}
+    </>
+  );
+}
+function SkuEditModal({ sku, onClose, onSave, onDelete }) {
+  const [f, setF] = useState({ ...sku, surfaces:[...(sku.surfaces || [])], problems:[...(sku.problems || [])], building:[...(sku.building || [])], components:[...(sku.components || [])] });
+  const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+  return (
+    <Modal open onClose={onClose} title={sku.id ? 'SKU 편집' : 'SKU 등록'} width={720}>
+      <div style={{ display:'grid', gap:14 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:14 }}>
+          <div><label style={labelSty}>상품명</label><input style={inputSty} value={f.name} onChange={e => set('name', e.target.value)} placeholder="예: 아파트 옥상 풀패키지" /></div>
+          <div><label style={labelSty}>SKU 코드</label><input style={inputSty} value={f.code} onChange={e => set('code', e.target.value)} placeholder="예: TC-SLAB-FULL-APT" /></div>
+        </div>
+        <div>
+          <label style={labelSty}>패키지 단계</label>
+          <div style={{ display:'flex', gap:8 }}>
+            {SKU_TIERS.map(t => (
+              <button key={t.id} onClick={() => set('tier', t.id)} style={{ ...btnGhost({ flex:1 }), background: f.tier===t.id?t.bg:'var(--bg)', color: f.tier===t.id?t.color:'var(--text-sm)', borderColor: f.tier===t.id?t.border:'var(--border)', fontWeight:900 }}>{t.icon} {t.label}</button>
+            ))}
+          </div>
+        </div>
+        <KeywordPicker dim={{ label:'부위/외장재', icon:'🧱', presets:SKU_SURFACES }} value={f.surfaces} onChange={v => set('surfaces', v)} />
+        <KeywordPicker dim={{ label:'문제', icon:'⚠️', presets:SKU_PROBLEMS }} value={f.problems} onChange={v => set('problems', v)} />
+        <KeywordPicker dim={{ label:'구성품', icon:'🧩', presets:SKU_COMPONENTS }} value={f.components} onChange={v => set('components', v)} />
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+          <KeywordPicker dim={{ label:'적용 건물(선택)', icon:'🏢', presets:NEED_DIMS[0].presets }} value={f.building} onChange={v => set('building', v)} />
+          <div><label style={labelSty}>제품 라인(선택)</label><input style={inputSty} value={f.line} onChange={e => set('line', e.target.value)} placeholder="예: 탑코트재 파생" /></div>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+          <div><label style={labelSty}>대표 이미지 URL(선택)</label><input style={inputSty} value={f.image} onChange={e => set('image', e.target.value)} placeholder="https://…" /></div>
+          <div><label style={labelSty}>구매 링크(선택)</label><input style={inputSty} value={f.link} onChange={e => set('link', e.target.value)} placeholder="자사몰 상품 링크" /></div>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+          <div><label style={labelSty}>가격(선택)</label><input style={inputSty} value={f.price} onChange={e => set('price', e.target.value)} placeholder="예: 89000" /></div>
+          <div><label style={labelSty}>기존 상품 연결(products id/상품번호, 선택)</label><input style={inputSty} value={f.productRef} onChange={e => set('productRef', e.target.value)} placeholder="상품관리 연동용" /></div>
+        </div>
+        <div style={{ display:'flex', justifyContent:'space-between', gap:8, paddingTop:4 }}>
+          {onDelete ? <button onClick={onDelete} style={btnGhost({ color:'var(--red)' })}>삭제</button> : <span />}
+          <div style={{ display:'flex', gap:8 }}>
+            <button onClick={onClose} style={btnGhost()}>취소</button>
+            <button onClick={() => { if (!f.name.trim()) return alert('상품명을 입력하세요'); onSave(f); }} style={btnPrimary()}>저장</button>
+          </div>
         </div>
       </div>
     </Modal>
@@ -2738,6 +2926,7 @@ function App() {
         {active === 'studio' && <BotStudioPage onToast={setToast} onTest={goTest} />}
         {active === 'knowledge' && <KnowledgePage onToast={setToast} />}
         {active === 'reco' && <RecoFlowPage onToast={setToast} />}
+        {active === 'skus' && <SkuCatalogPage onToast={setToast} />}
         {active === 'playground' && <PlaygroundPage onToast={setToast} cfg={cfg} presetBotId={presetBotId} onNeedSettings={() => setActive('settings')} />}
         {active === 'logs' && <LogsPage onToast={setToast} />}
         {active === 'settings' && <SettingsPage cfg={cfg} onSave={saveCfg} onToast={setToast} />}

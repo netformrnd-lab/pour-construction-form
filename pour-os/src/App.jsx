@@ -1188,6 +1188,7 @@ function MonthCalendar({y,m,items,todayStr,onMore,onDayClick}){
             </div>
             {shown.map(s=>{
               const roundL=s.start>=wd[s.sc], roundR=s.end<=wd[s.ec];
+              if(s.dot) return <div key={s.id+"_"+wi} onClick={(e)=>{e.stopPropagation();s.onClick&&s.onClick();}} title={s.label} style={{position:"absolute",top:DAYH+s.lane*LANE_H,left:`calc(${s.sc/7*100}% + 1px)`,width:`calc(${(s.ec-s.sc+1)/7*100}% - 2px)`,height:LANE_H-2,display:"flex",alignItems:"center",gap:3,fontSize:9,fontWeight:600,color:"#9CA3AF",padding:"0 3px",overflow:"hidden",whiteSpace:"nowrap",cursor:"pointer",boxSizing:"border-box",opacity:s.faded?0.55:1}}><span style={{width:6,height:6,borderRadius:"50%",background:s.color,flexShrink:0}}/><span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{roundL?s.label:"‹ "+s.label}</span></div>;
               return <div key={s.id+"_"+wi} onClick={(e)=>{e.stopPropagation();s.onClick&&s.onClick();}} title={s.label} style={{position:"absolute",top:DAYH+s.lane*LANE_H,left:`calc(${s.sc/7*100}% + 1px)`,width:`calc(${(s.ec-s.sc+1)/7*100}% - 2px)`,height:LANE_H-2,background:s.bg,color:s.color,border:s.border||"none",borderRadius:`${roundL?5:0}px ${roundR?5:0}px ${roundR?5:0}px ${roundL?5:0}px`,fontSize:9,fontWeight:700,lineHeight:`${LANE_H-2}px`,padding:"0 5px",overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",cursor:"pointer",boxSizing:"border-box",opacity:s.faded?0.55:1}}>{s.initial?s.initial+" ":""}{roundL?s.label:"‹ "+s.label}</div>;
             })}
             {Object.entries(moreByCol).map(([col,n])=>{const i=Number(col);return <div key={"m"+col} onClick={(e)=>{e.stopPropagation();onMore&&onMore(wd[i]);}} style={{position:"absolute",top:DAYH+MAX_LANES*LANE_H,left:`${i/7*100}%`,width:`${100/7}%`,fontSize:8.5,fontWeight:800,color:"#6B7280",textAlign:"center",cursor:"pointer"}}>+{n}</div>;})}
@@ -1237,14 +1238,14 @@ function WorkCalendar({D,userId,up,onEditTask}){
       </div>
       <MonthCalendar y={y} m={m} todayStr={todayStr} onMore={(ds)=>setDayPick(ds)} items={(()=>{
         const list=[];
-        monthEvents.forEach(e=>{const et=evType(D,e.type);list.push({id:"ev_"+e.id,start:e.date,end:e.endDate||e.date,color:et.color,bg:et.bg,label:e.title,onClick:()=>setEvPick(e)});});
+        monthEvents.forEach(e=>{const et=evType(D,e.type);list.push({id:"ev_"+e.id,start:e.date,end:e.endDate||e.date,color:et.color,bg:et.bg,label:e.title,dot:true,onClick:()=>setEvPick(e)});});
         userTasks.forEach(t=>{const sp=taskSpan(t,todayStr);if(!sp)return;const st=STATUS_MAP[t.status]||STATUS_MAP.todo;const au=team?D.users.find(u=>u.id===t.assigneeId):null;list.push({id:"t_"+t.id,start:sp[0],end:sp[1],color:st.color,bg:st.bg,border:`1px solid ${st.color}55`,label:t.title,initial:au?au.name[0]:null,faded:t.status==="done",onClick:()=>onEditTask&&onEditTask(t)});});
         monthDues.forEach(p=>{const done=projStatus(p)==="completed";list.push({id:"due_"+p.id,start:p.dueDate,end:p.dueDate,color:"#EA580C",bg:"#FFEDD5",border:"1px solid #EA580C",label:"📅 "+p.title,faded:done,onClick:()=>setDayPick(p.dueDate)});});
         return list;
       })()}/>
       <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:10,padding:"0 2px"}}>
-        {evTypeList(D).map(v=><span key={v.id} style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:9.5,fontWeight:700,color:"#6B7280"}}><span style={{width:8,height:8,borderRadius:2,background:v.color}}/>{v.label}</span>)}
-        {STAT_ORDER.map(([k,l])=>{const st=STATUS_MAP[k];return <span key={k} style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:9.5,fontWeight:700,color:"#6B7280"}}><span style={{width:8,height:8,borderRadius:"50%",background:st.color}}/>{l} {tCnt(k)}</span>;})}
+        {evTypeList(D).map(v=><span key={v.id} style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:9.5,fontWeight:600,color:"#9CA3AF"}}><span style={{width:6,height:6,borderRadius:"50%",background:v.color}}/>{v.label}</span>)}
+        {STAT_ORDER.map(([k,l])=>{const st=STATUS_MAP[k];return <span key={k} style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:9.5,fontWeight:700,color:"#6B7280"}}><span style={{width:9,height:9,borderRadius:3,background:st.color}}/>{l} {tCnt(k)}</span>;})}
         <span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:9.5,fontWeight:700,color:"#6B7280"}}><span style={{width:8,height:8,borderRadius:2,background:"#EA580C"}}/>📅 마감</span>
       </div>
       <Sheet open={!!evPick} onClose={()=>setEvPick(null)} title="일정" h="56vh">

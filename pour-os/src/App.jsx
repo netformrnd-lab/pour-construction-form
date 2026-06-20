@@ -338,6 +338,13 @@ const taskTimeSpent=(t)=>{
   if(startedAt!==null) total+=Math.max(0,Date.now()-startedAt);   // 현재 진행중(라이브)
   return total;
 };
+// 진행중 시작 시점 — statusLog의 첫 '진행중' 전환 시각(실제 행동 시작). 기록 없으면 null.
+const inprogressStartAt=(t)=>{const log=(Array.isArray(t.statusLog)?t.statusLog:[]).filter(e=>e&&e.at&&e.status==="inprogress").sort((a,b)=>String(a.at).localeCompare(String(b.at)));return log.length?log[0].at:null;};
+const inprogressStartDate=(t)=>{const at=inprogressStartAt(t);return at?ymdLocal(new Date(at)):null;};
+// 진행중 시작 시각 표기 (MM/DD HH:mm)
+const fmtStart=(at)=>{if(!at)return"";const d=new Date(at);if(isNaN(d))return"";return `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;};
+// 캘린더/주간 노출 — 진행중이면 시작일부터 오늘까지 매일 노출(미래·전체일 아님). 그 외엔 목표일/완료일.
+const taskInprogSpan=(t,ds,todayStr)=>{ if(t.status!=="inprogress")return false; const s=inprogressStartDate(t); return s?(ds>=s&&ds<=todayStr):false; };
 // 소요시간 사람이 읽는 형식 — 일/시간/분
 const fmtDur=(ms)=>{
   if(!ms||ms<60000) return ms>0?"1분 미만":"";
@@ -478,7 +485,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up})=>{
             );})}
           </div>
           {form.status!==(task&&task.status)&&<p style={{margin:"6px 2px 0",fontSize:10.5,color:"#EA580C",fontWeight:700}}>저장하면 이 상태 변경이 진행 이력에 날짜와 함께 기록돼요</p>}
-          {task&&(()=>{const ms=taskTimeSpent(task);if(!ms)return null;const live=task.status==="inprogress";return(<div style={{margin:"8px 0 0",padding:"8px 11px",borderRadius:10,background:live?"#EBF3FF":"#E8FAF1",display:"flex",alignItems:"center",gap:7}}><span style={{fontSize:13}}>⏱</span><span style={{fontSize:12,fontWeight:800,color:live?"#3182F6":"#00A862"}}>{live?"진행 중 누적 소요":"총 소요시간"} · {fmtDur(ms)}</span></div>);})()}
+          {task&&(()=>{const ms=taskTimeSpent(task);const sa=inprogressStartAt(task);if(!ms&&!sa)return null;const live=task.status==="inprogress";return(<div style={{margin:"8px 0 0",padding:"8px 11px",borderRadius:10,background:live?"#EBF3FF":"#E8FAF1",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}><span style={{fontSize:13}}>⏱</span>{ms>0&&<span style={{fontSize:12,fontWeight:800,color:live?"#3182F6":"#00A862"}}>{live?"진행 중 누적 소요":"총 소요시간"} · {fmtDur(ms)}</span>}{sa&&<span style={{fontSize:11,fontWeight:700,color:"#6B7280"}}>🔵 진행 시작 {fmtStart(sa)}</span>}</div>);})()}
         </div>
         {task&&((task.statusLog&&task.statusLog.length)||task.doneAt)&&(()=>{
           const log=(task.statusLog&&task.statusLog.length?task.statusLog:(task.doneAt?[{status:"done",at:task.doneAt,byName:task.doneByName}]:[]));
@@ -516,7 +523,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up})=>{
         </div>
         ):(
         <div style={{marginBottom:14}}>
-          <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>📅 진행 날짜 <span style={{color:"#9CA3AF",fontWeight:600}}>(언제 할지 — 주간 배치에 자동 노출)</span></label>
+          <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>📅 목표일 <span style={{color:"#9CA3AF",fontWeight:600}}>(이 일을 하려는 예정일 · 주간 배치에 노출)</span></label>
           <div style={{display:"flex",gap:6,marginBottom:7,flexWrap:"wrap"}}>
             {[["오늘",0],["내일",1]].map(([lbl,off])=>{const dt=new Date();dt.setDate(dt.getDate()+off);const ds=ymdLocal(dt);const on=form.workDate===ds;return(
               <button key={lbl} type="button" onClick={()=>setForm(f=>placeOn(f,ds))} style={{padding:"8px 13px",borderRadius:10,border:`1.5px solid ${on?"#F97316":"#FDBA74"}`,background:on?"#F97316":"#FFF7ED",color:on?"#fff":"#EA580C",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{lbl}</button>
@@ -1095,9 +1102,12 @@ function WorkCalendar({D,userId,up,onEditTask}){
   const taskDate=(t)=> t.workDate || (t.doneAt?String(t.doneAt).slice(0,10):"") || t.dueDate || "";
   const evMine=(e)=> (e.attendeeIds||[]).includes(userId) || (e.attendeeIds||[]).length===0;
   const monthEvents=D.events.filter(e=>{const d=new Date(e.date);return d.getFullYear()===y&&d.getMonth()===m&&(team||evMine(e));});
-  const monthTasks=D.tasks.filter(t=>{ if(t.isFixed)return false; if(!team&&t.assigneeId!==userId)return false; const ds=taskDate(t); if(!ds)return false; const d=new Date(ds+"T00:00:00"); return d.getFullYear()===y&&d.getMonth()===m; });
+  const todayStr=ymdLocal(new Date());
+  const userTasks=D.tasks.filter(t=>!t.isFixed&&(team||t.assigneeId===userId));
+  // 목표일(workDate)·완료일 기준 1일 노출 + 진행중이면 시작일~오늘 매일 노출
+  const monthTasks=userTasks.filter(t=>{ const ds=taskDate(t); const planned=ds&&(()=>{const d=new Date(ds+"T00:00:00");return d.getFullYear()===y&&d.getMonth()===m;})(); const s=inprogressStartDate(t); const span=t.status==="inprogress"&&s&&s<=todayStr; return planned||span; });
   const getEvts=d=>{const ds=dsOf(d);return monthEvents.filter(e=>e.date===ds);};
-  const getTasks=d=>{const ds=dsOf(d);return monthTasks.filter(t=>taskDate(t)===ds);};
+  const getTasks=d=>{const ds=dsOf(d);return userTasks.filter(t=>taskDate(t)===ds||taskInprogSpan(t,ds,todayStr));};
   return(
     <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px",border:"1px solid #F2F4F6",marginBottom:14}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
@@ -1324,9 +1334,8 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
     if(dr.weekDay===d&&dr.workDate===ds) return;
     up("tasks",dr.id,{weekDay:d,workDate:ds,weekSlot:nextSlot(d)});
   };
-  // 요일별 정렬 목록 — 선택 주의 그 날짜(workDate) 업무 + (이번 주에 한해) 날짜 없이 요일만 배치된 것.
-  // (상태와 무관하게 잡힌 날짜에 그대로 노출 — 진행중도 완료·보류 전까지 그 날짜 칸에 계속 보임)
-  const dayOrdered=(d)=>{const ds=dateOfDay(d);return myT.filter(t=>!t.isFixed&&(t.workDate===ds||(isThisWeek&&!t.workDate&&t.weekDay===d)))
+  // 요일별 정렬 목록 — 목표일(workDate)/요일 배치 + 진행중이면 시작일~오늘 매일 노출(완료·보류 전까지)
+  const dayOrdered=(d)=>{const ds=dateOfDay(d);return myT.filter(t=>!t.isFixed&&(t.workDate===ds||(isThisWeek&&!t.workDate&&t.weekDay===d)||taskInprogSpan(t,ds,todayStr)))
     .sort((a,b)=>{const sa=a.weekSlot??9999,sb=b.weekSlot??9999;return sa!==sb?sa-sb:String(a.id).localeCompare(String(b.id));});};
   const nextSlot=(d)=>Math.max(0,...dayOrdered(d).map(t=>t.weekSlot||0))+1;
   // 같은 요일 안에서 순서만 변경 — 통째로 1..N 재번호(순위 명확화)
@@ -1654,7 +1663,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                   <div style={{flex:1,minWidth:0}}>
                     <p style={{margin:0,fontSize:13.5,fontWeight:700,color:t.status==="done"?"#9CA3AF":"#111827",textDecoration:t.status==="done"?"line-through":"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.eventId?"📅 ":""}{t.title}</p>
                     {(()=>{const chain=taskParentChain(D,t);const ru=taskRollup(D,t.id);const pathTxt=[proj&&`📁 ${proj.title}`,...chain.map(c=>c.title)].filter(Boolean).join(" ▸ ");return (proj||chain.length>0||ru.total>0||(t.status==="done"&&t.doneAt))?(<p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.status==="done"&&t.doneAt?<span style={{color:"#00A862",fontWeight:700}}>✓ {hhmm(t.doneAt)} 완료{(pathTxt||ru.total)?" · ":""}</span>:null}{pathTxt}{ru.total>0?<button onClick={()=>setExpandedCards(e=>({...e,[t.id]:!e[t.id]}))} style={{marginLeft:pathTxt?6:0,fontWeight:800,color:ru.done>=ru.total?"#00A862":"#7C3AED",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit",fontSize:10.5}}>{pathTxt?"· ":""}하위 {ru.done}/{ru.total} {expandedCards[t.id]?"▾":"▸"}</button>:null}</p>):null;})()}
-                    {(()=>{const ms=taskTimeSpent(t);if(!ms)return null;const live=t.status==="inprogress";return(<p style={{margin:"2px 0 0",fontSize:10.5,fontWeight:800,color:live?"#3182F6":"#00A862"}}>⏱ {live?"진행 ":"총 "}{fmtDur(ms)}</p>);})()}
+                    {(()=>{const ms=taskTimeSpent(t);const sa=inprogressStartAt(t);if(!ms&&!sa)return null;const live=t.status==="inprogress";return(<p style={{margin:"2px 0 0",fontSize:10.5,fontWeight:800,color:live?"#3182F6":"#00A862"}}>{ms>0?`⏱ ${live?"진행 ":"총 "}${fmtDur(ms)}`:""}{sa&&live?`${ms>0?" · ":""}🔵 시작 ${fmtStart(sa)}`:""}</p>);})()}
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                     {t.weekSlot&&<span style={{fontSize:10,fontWeight:800,color:"#9CA3AF"}}>{t.weekSlot}순위</span>}
@@ -5159,7 +5168,8 @@ function NodeDetail({D,node,period,onClose}){
     <Field l="담당자" v={asg?asg.name:"미지정"} c={asg?.color}/>
     {pr&&<Field l="프로젝트" v={pr.title}/>}
     {t.weekDay&&<Field l="요일 배치" v={t.weekDay}/>}
-    {t.workDate&&<Field l="진행 날짜" v={t.workDate}/>}
+    {t.workDate&&<Field l="목표일" v={t.workDate}/>}
+    {inprogressStartAt(t)&&<Field l="진행 시작" v={fmtStart(inprogressStartAt(t))} c="#3182F6"/>}
     {t.doneAt&&<Field l="완료 시각" v={`${(t.doneAt||"").slice(0,10)} ${hhmm(t.doneAt)}`} c="#00A862"/>}
     {t.memo&&<div style={{marginTop:10,padding:"9px 11px",background:"#FAFBFC",borderRadius:9,fontSize:12.5,color:"#4B5563",lineHeight:1.6,whiteSpace:"pre-wrap"}}>{t.memo}</div>}
   </>);}}

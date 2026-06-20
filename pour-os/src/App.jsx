@@ -38,6 +38,12 @@ const STATUS_MAP={
   done:{label:"완료",color:"#00C073",bg:"#E8FAF1"},
   hold:{label:"보류",color:"#FF9500",bg:"#FFF3E0"},
 };
+// 프로젝트 진행 상태 4단계 (예정→진행중→보류→완료). 기존 데이터(status 없음)는 진행중으로 간주.
+const PROJ_STATUS={planned:{label:"예정",color:"#6B7280",bg:"#F2F4F6",icon:"📋"},active:{label:"진행중",color:"#3182F6",bg:"#EBF3FF",icon:"▶"},paused:{label:"보류",color:"#FF9500",bg:"#FFF3E0",icon:"⏸"},completed:{label:"완료",color:"#00C073",bg:"#E8FAF1",icon:"✓"}};
+const projStatus=(p)=>(p&&p.status)||"active";
+// 마감일 D-day: 음수=지남, 0=오늘, 양수=남음. dueDate(YYYY-MM-DD) 없으면 null
+const ddays=(dueDate)=>{ if(!dueDate) return null; const d=new Date(dueDate+"T00:00:00"); if(isNaN(d.getTime())) return null; const now=new Date(); now.setHours(0,0,0,0); return Math.round((d-now)/86400000); };
+const ddayLabel=(n)=>n==null?"":n===0?"D-day":n>0?"D-"+n:"D+"+(-n);
 // 캘린더 일정 유형 (CalendarPage의 ET와 동일 · 오늘 슬롯 배치에서도 사용)
 const EVENT_TYPES={internal:{label:"내부미팅",color:"#3182F6",bg:"#EBF3FF"},external:{label:"외부미팅",color:"#8B5CF6",bg:"#F3EFFE"},field:{label:"외근",color:"#0EA5E9",bg:"#E0F2FE"},promotion:{label:"프로모션",color:"#FF9500",bg:"#FFF3E0"},seminar:{label:"세미나",color:"#00C073",bg:"#E8FAF1"},fair:{label:"박람회",color:"#F04452",bg:"#FFF0F1"}};
 // 일정 유형 — 사용자 관리 컬렉션(eventTypes) 우선, 없으면 기본값. 삭제된 유형의 이벤트도 안전하게 렌더.
@@ -1550,6 +1556,32 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
       </div>
     </div>
   );
+  // 프로젝트 마감 — 내가 맡은(또는 공동) 미완료 프로젝트 중 '지연 + 이번 주 마감 예정'
+  const eow=(()=>{const d=new Date();d.setHours(0,0,0,0);const dow=(d.getDay()+6)%7;d.setDate(d.getDate()+(6-dow));return d;})();   // 이번 주 일요일
+  const dueProjs=D.projects
+    .filter(p=>p.dueDate&&projStatus(p)!=="completed"&&(p.assigneeId===cu.id||(p.collaboratorIds||[]).includes(cu.id)))
+    .map(p=>({p,n:ddays(p.dueDate)}))
+    .filter(x=>x.n!=null&&new Date(x.p.dueDate+"T00:00:00")<=eow)
+    .sort((a,b)=>a.n-b.n);
+  const projDeadlineCard=dueProjs.length>0?(
+    <div style={{backgroundColor:"#FFFBF5",border:"1px solid #FED7AA",borderRadius:14,padding:"13px 14px"}}>
+      <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:9}}>
+        <span style={{fontSize:15}}>📅</span>
+        <span style={{fontSize:12.5,fontWeight:900,color:"#EA580C"}}>프로젝트 마감 · 지연·이번 주 {dueProjs.length}건</span>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:7}}>
+        {dueProjs.map(({p,n})=>{const over=n<0;return(
+          <div key={p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:10,background:"#fff",border:`1px solid ${over?"#FFD5D8":"#F2E3CF"}`}}>
+            <button onClick={()=>nav&&nav("projects")} style={{flex:1,minWidth:0,textAlign:"left",background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",padding:0}}>
+              <span style={{fontSize:12.5,fontWeight:700,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block"}}>{p.title}</span>
+            </button>
+            <span style={{flexShrink:0,fontSize:11,fontWeight:900,color:over?"#F04452":n<=3?"#EA580C":"#6B7280"}}>{ddayLabel(n)}{over?" 지남":""}</span>
+            <button onClick={()=>up("projects",p.id,{status:"completed",progress:100,progressManual:true})} title="완료 처리" style={{flexShrink:0,padding:"5px 10px",borderRadius:8,border:"1px solid #00C073",background:"#E8FAF1",color:"#00C073",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>✓ 완료</button>
+          </div>
+        );})}
+      </div>
+    </div>
+  ):null;
   const urgentCard=urgent.length>0?(
     <div style={{backgroundColor:"#FFF0F1",border:"1px solid #FFD5D8",borderRadius:14,padding:"13px 14px",flex:1,minWidth:0,boxSizing:"border-box"}}>
       <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:8}}>
@@ -1581,6 +1613,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
         <div style={{marginBottom:urgentCard?12:14}}>{memoBanner}</div>
         {urgentCard&&<div style={{marginBottom:14}}>{urgentCard}</div>}
       </>)}
+      {projDeadlineCard&&<div style={{marginBottom:14}}>{projDeadlineCard}</div>}
       <div style={{display:"flex",gap:8,marginBottom:14,overflowX:"auto",paddingBottom:2}}>
         {[{label:"오늘 업무",val:`${doneToday}/${todayT.length}`,color:"#3182F6"},{label:"고정업무",val:`${doneFixed}/${fixed.length}`,color:"#F97316"},{label:"내 프로젝트",val:D.projects.filter(p=>p.assigneeId===cu.id).length+"건",color:"#8B5CF6"}].map((s,i)=>(
           <div key={i} style={{flexShrink:0,backgroundColor:"#FFFFFF",borderRadius:12,padding:"10px 14px",border:"1px solid #F2F4F6"}}>
@@ -2185,6 +2218,30 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro
       </div>
       {kpiView==="dashboard"&&(
         <div>
+          {(()=>{
+            // 팀 전체 프로젝트 마감 — 지연 + 이번 주 마감 예정 (완료 제외)
+            const eow=(()=>{const d=new Date();d.setHours(0,0,0,0);const dow=(d.getDay()+6)%7;d.setDate(d.getDate()+(6-dow));return d;})();
+            const rows=D.projects.filter(p=>p.dueDate&&projStatus(p)!=="completed").map(p=>({p,n:ddays(p.dueDate)})).filter(x=>x.n!=null&&new Date(x.p.dueDate+"T00:00:00")<=eow).sort((a,b)=>a.n-b.n);
+            if(rows.length===0) return null;
+            const over=rows.filter(x=>x.n<0).length;
+            return(
+              <div style={{backgroundColor:"#FFFBF5",border:"1px solid #FED7AA",borderRadius:14,padding:"13px 14px",marginBottom:12}}>
+                <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:9}}>
+                  <span style={{fontSize:15}}>📅</span>
+                  <span style={{fontSize:12.5,fontWeight:900,color:"#EA580C"}}>프로젝트 마감 · 지연·이번 주 {rows.length}건{over>0?` (지연 ${over})`:""}</span>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:7}}>
+                  {rows.map(({p,n})=>{const ov=n<0;const a=D.users.find(u=>u.id===p.assigneeId);return(
+                    <div key={p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:10,background:"#fff",border:`1px solid ${ov?"#FFD5D8":"#F2E3CF"}`}}>
+                      <span style={{flex:1,minWidth:0,fontSize:12.5,fontWeight:700,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}{a?<span style={{fontSize:10.5,color:"#9CA3AF",fontWeight:600}}> · {a.name}</span>:null}</span>
+                      <span style={{flexShrink:0,fontSize:11,fontWeight:900,color:ov?"#F04452":n<=3?"#EA580C":"#6B7280"}}>{ddayLabel(n)}{ov?" 지남":""}</span>
+                      {!ro&&<button onClick={()=>up("projects",p.id,{status:"completed",progress:100,progressManual:true})} title="완료 처리" style={{flexShrink:0,padding:"5px 10px",borderRadius:8,border:"1px solid #00C073",background:"#E8FAF1",color:"#00C073",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>✓ 완료</button>}
+                    </div>
+                  );})}
+                </div>
+              </div>
+            );
+          })()}
           {!ro&&<div style={{backgroundColor:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:12,padding:"11px 13px",marginBottom:12}}>
             <p style={{margin:"0 0 4px",fontSize:12,fontWeight:900,color:"#EA580C"}}>💡 매주 금요일, 내 KPI에 이번 주 실적을 넣으세요</p>
             <p style={{margin:0,fontSize:11,color:"#9A3412",fontWeight:600,lineHeight:1.55}}>· <b>직판·운영</b> KPI → 항목 펼쳐 <b>📊 이번 주 실적 입력</b><br/>· <b>B2B(메인2)</b> → 펼친 뒤 <b>거래처유형별 매출 ✏️입력</b>(프로젝트 매출) = 자동 집계<br/>· 추가값=이번 주만 / 총값=누계 덮어쓰기 · 누가 넣었는지·주차별 이력 자동 기록</p>
@@ -3221,10 +3278,10 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
   const [editProjId,setEditProjId]=useState(null);
   const [projDel,setProjDel]=useState(null);
   const [showAdv,setShowAdv]=useState(false);
-  const [projForm,setProjForm]=useState({title:"",goalType:"journey",projType:"team",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high",manualId:""});
+  const [projForm,setProjForm]=useState({title:"",goalType:"journey",projType:"team",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high",status:"active",dueDate:"",manualId:""});
   const [metric,setMetric]=useState({name:"",target:"",unit:"개"});
-  const resetProjForm=()=>{setProjForm({title:"",goalType:"journey",projType:"team",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high",manualId:""});setMetric({name:"",target:"",unit:"개"});};
-  const openEditProj=(p)=>{ setProjForm({title:p.title||"",goalType:p.goalType||(p.mainKPIId==="mk2"||p.resultValue?"revenue":"journey"),projType:p.projType||((p.collaboratorIds||[]).length>0?"team":"solo"),mainKPIId:p.mainKPIId||"",subKPIId:p.subKPIId||"",dealerType:p.dealerType||"",assigneeId:p.assigneeId||cu.id,collaboratorIds:p.collaboratorIds||[],group:p.group||"",priority:p.priority||"mid",manualId:""}); setMetric({name:"",target:"",unit:"개"}); setEditProjId(p.id); setShowAdv(true); setAddProjSheet(true); };
+  const resetProjForm=()=>{setProjForm({title:"",goalType:"journey",projType:"team",mainKPIId:"",subKPIId:"",dealerType:"",assigneeId:cu.id,collaboratorIds:[],group:"",priority:"high",status:"active",dueDate:"",manualId:""});setMetric({name:"",target:"",unit:"개"});};
+  const openEditProj=(p)=>{ setProjForm({title:p.title||"",goalType:p.goalType||(p.mainKPIId==="mk2"||p.resultValue?"revenue":"journey"),projType:p.projType||((p.collaboratorIds||[]).length>0?"team":"solo"),mainKPIId:p.mainKPIId||"",subKPIId:p.subKPIId||"",dealerType:p.dealerType||"",assigneeId:p.assigneeId||cu.id,collaboratorIds:p.collaboratorIds||[],group:p.group||"",priority:p.priority||"mid",status:projStatus(p),dueDate:p.dueDate||"",manualId:""}); setMetric({name:"",target:"",unit:"개"}); setEditProjId(p.id); setShowAdv(true); setAddProjSheet(true); };
   // 로드맵 템플릿에서 새 프로젝트 시작 — 추가 시트를 템플릿 정보로 프리필
   const startFromManual=(m)=>{ resetProjForm(); setEditProjId(null); setShowAdv(true); setProjForm(f=>({...f,title:m.name||"",projType:m.projType||"team",goalType:"journey",assigneeId:cu.id,manualId:m.id})); setAddProjSheet(true); };
   const doAddProj=()=>{
@@ -3234,7 +3291,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
       const {manualId,...rest}=projForm;
       const projId="p"+Date.now();
       const man=manualId&&(D.manuals||[]).find(m=>m.id===manualId);
-      const proj={id:projId,...rest,status:"active",progress:0,resultValue:0};
+      const proj={id:projId,...rest,status:rest.status||"active",progress:0,resultValue:0};
       if(man){ proj.sourceManualId=man.id; proj.sourceManualName=man.name||""; proj.sourceManualVersion=man.version||1; if(man.countKPIId) proj.countKPIId=man.countKPIId; }   // 로드맵 템플릿 역링크 + 이름 박제(삭제돼도 기록 유지) + 완료집계 상속
       if(projForm.goalType==="metric"&&metric.name.trim()) proj.activityKPIs=[{id:"ak"+Date.now(),name:metric.name.trim(),unit:metric.unit||"개",target:numF(metric.target),current:0,history:[]}];
       add("projects",proj);
@@ -3264,12 +3321,12 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
   };
   const exportCSV=()=>{
     const goalTypeL={revenue:"매출",metric:"활동지표",journey:"구축"};
-    const rows=[["제목","그룹","담당자","목표유형","거래처유형","메인KPI","서브KPI","우선순위","상태","진척도%","진척방식","업무(완료/전체)","매출(원)","매출입력자","매출최종일","매출입력횟수","활동지표"]];
+    const rows=[["제목","그룹","담당자","목표유형","거래처유형","메인KPI","서브KPI","우선순위","상태","마감일","진척도%","진척방식","업무(완료/전체)","매출(원)","매출입력자","매출최종일","매출입력횟수","활동지표"]];
     filtered.forEach(p=>{
       const a=D.users.find(u=>u.id===p.assigneeId);const mk=D.mainKPIs.find(m=>m.id===p.mainKPIId);const sk=D.subKPIs.find(s=>s.id===p.subKPIId);
       const ts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);const dn=ts.filter(t=>t.status==="done").length;
       const aks=(p.activityKPIs||[]).map(ak=>`${ak.name} ${numF(ak.current)}/${numF(ak.target)}${ak.unit||""}`).join(" · ");
-      rows.push([p.title,p.group||"",a?.name||"",goalTypeL[p.goalType]||"",p.dealerType||"",mk?.title||"",sk?.title||"",p.priority||"",p.status||"",p.progress||0,p.progressManual?"수동":"자동",`${dn}/${ts.length}`,p.resultValue||0,p.salesByName||"",(p.salesAt||"").slice(0,10),(p.salesHistory||[]).length,aks]);
+      rows.push([p.title,p.group||"",a?.name||"",goalTypeL[p.goalType]||"",p.dealerType||"",mk?.title||"",sk?.title||"",p.priority||"",(PROJ_STATUS[projStatus(p)]||{}).label||p.status||"",p.dueDate||"",p.progress||0,p.progressManual?"수동":"자동",`${dn}/${ts.length}`,p.resultValue||0,p.salesByName||"",(p.salesAt||"").slice(0,10),(p.salesHistory||[]).length,aks]);
     });
     dlCSV(rows,"프로젝트");
   };
@@ -3413,6 +3470,8 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
                       {proj.goalType&&GOAL_TYPE[proj.goalType]&&<Badge color={GOAL_TYPE[proj.goalType].c} bg={GOAL_TYPE[proj.goalType].bg}>{GOAL_TYPE[proj.goalType].l}</Badge>}
                       {proj.dealerType&&DT[proj.dealerType]&&<Badge color={DT[proj.dealerType].color} bg={DT[proj.dealerType].color+"18"}>🏷 {proj.dealerType}</Badge>}
                       <Badge color={pColor} bg={pColor+"18"}>{proj.priority==="high"?"🔴 높음":proj.priority==="mid"?"🟡 중간":"🟢 낮음"}</Badge>
+                      {(()=>{const s=PROJ_STATUS[projStatus(proj)];return s?<Badge color={s.color} bg={s.bg}>{s.icon} {s.label}</Badge>:null;})()}
+                      {(()=>{const n=ddays(proj.dueDate);if(n==null||projStatus(proj)==="completed")return null;const over=n<0,soon=n>=0&&n<=3;return <Badge color={over?"#F04452":soon?"#EA580C":"#6B7280"} bg={over?"#FFF0F1":soon?"#FFF7ED":"#F2F4F6"}>📅 {ddayLabel(n)}</Badge>;})()}
                     </div>
                     <h4 style={{margin:"0 0 2px",fontSize:14,fontWeight:800,color:"#0F1F5C"}}>{proj.title}</h4>
                     {sk&&<p style={{margin:"0 0 2px",fontSize:11,color:"#6B7280"}}>{mk?.title?mk.title+" › ":""}{sk.title}</p>}
@@ -3539,9 +3598,9 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
                   ))}
                   <div style={{padding:"10px 16px 14px",borderTop:"1px solid #E5E8EB",display:"flex",alignItems:"center",gap:8}}><div style={{display:"flex",alignItems:"center",gap:6,marginRight:"auto",flexWrap:"wrap"}}><span style={{fontSize:11,fontWeight:700,color:"#6B7280"}}>선행지표</span>{proj.progressManual?(<><button onClick={()=>up("projects",proj.id,{progress:Math.max(0,(proj.progress||0)-10),progressManual:true})} style={{width:28,height:28,borderRadius:8,border:"1px solid #E5E8EB",backgroundColor:"#F9FAFB",fontSize:15,fontWeight:900,color:"#4B5563",cursor:"pointer",padding:0}}>−</button><span style={{fontSize:13,fontWeight:800,color:"#3182F6",minWidth:40,textAlign:"center"}}>{proj.progress}%</span><button onClick={()=>up("projects",proj.id,{progress:Math.min(100,(proj.progress||0)+10),progressManual:true})} style={{width:28,height:28,borderRadius:8,border:"1px solid #E5E8EB",backgroundColor:"#F9FAFB",fontSize:15,fontWeight:900,color:"#4B5563",cursor:"pointer",padding:0}}>＋</button><button onClick={()=>{const auto=tasks.length?Math.round(done.length/tasks.length*100):(proj.progress||0);up("projects",proj.id,{progressManual:false,progress:auto});}} title="업무 완료율로 자동 산출" style={{padding:"4px 8px",borderRadius:7,border:"1px solid #E5E8EB",background:"#fff",fontSize:10.5,fontWeight:700,color:"#8B5CF6",cursor:"pointer",fontFamily:"inherit"}}>🔄 자동전환</button></>):(<><span style={{fontSize:13,fontWeight:800,color:"#3182F6",minWidth:40,textAlign:"center"}}>{proj.progress}%</span><span style={{fontSize:10,fontWeight:700,color:"#00C073",background:"#E8FAF1",padding:"3px 7px",borderRadius:7}}>🔄 자동 · 업무 {done.length}/{tasks.length}</span><button onClick={()=>up("projects",proj.id,{progressManual:true})} title="진척을 직접 조정" style={{padding:"4px 8px",borderRadius:7,border:"1px solid #E5E8EB",background:"#fff",fontSize:10.5,fontWeight:700,color:"#6B7280",cursor:"pointer",fontFamily:"inherit"}}>✎ 수동</button></>)}</div>
                     <button onClick={()=>openEditProj(proj)} style={{padding:"6px 12px",borderRadius:10,border:"1px solid #E5E8EB",backgroundColor:"#FFFFFF",color:"#4B5563",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>✎ 편집</button>
-                    {proj.status!=="active"&&<button onClick={()=>up("projects",proj.id,{status:"active"})} style={{padding:"6px 12px",borderRadius:10,border:"1px solid #3182F6",backgroundColor:"#EBF3FF",color:"#3182F6",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>▶ 재개</button>}
-                    {proj.status!=="completed"&&<button onClick={()=>up("projects",proj.id,{status:"completed",progress:100,progressManual:true})} style={{padding:"6px 12px",borderRadius:10,border:"1px solid #00C073",backgroundColor:"#E8FAF1",color:"#00C073",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>✓ 완료</button>}
-                    {proj.status!=="paused"&&<button onClick={()=>up("projects",proj.id,{status:"paused"})} style={{padding:"6px 12px",borderRadius:10,border:"1px solid #E5E8EB",backgroundColor:"#F2F4F6",color:"#4B5563",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>⏸ 보류</button>}
+                    {Object.entries(PROJ_STATUS).filter(([k])=>k!==projStatus(proj)).map(([k,s])=>(
+                      <button key={k} onClick={()=>up("projects",proj.id,k==="completed"?{status:"completed",progress:100,progressManual:true}:{status:k})} style={{padding:"6px 12px",borderRadius:10,border:`1px solid ${s.color}`,backgroundColor:s.bg,color:s.color,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{s.icon} {k==="active"?(projStatus(proj)==="planned"?"시작":"재개"):s.label}</button>
+                    ))}
                     <button onClick={()=>setProjDel(proj.id)} title="프로젝트 삭제" style={{padding:"6px 10px",borderRadius:10,border:"1px solid #FFE2E5",backgroundColor:"#FFF0F1",color:"#F04452",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🗑</button>
                   </div>
                 </div>
@@ -3618,6 +3677,22 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
               <p style={{margin:"6px 0 0",fontSize:10,color:"#9CA3AF"}}>등록 후 상세에서 진행을 누적 입력 (지표는 나중에 추가·수정 가능)</p>
             </div>
           )}
+          <div style={{marginBottom:14}}>
+            <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>진행 상태</label>
+            <div style={{display:"flex",gap:6}}>
+              {Object.entries(PROJ_STATUS).map(([k,s])=>{const sel=projForm.status===k;return(
+                <button key={k} onClick={()=>setProjForm({...projForm,status:k})} style={{flex:1,padding:"9px 0",borderRadius:11,border:`1.5px solid ${sel?s.color:"#E5E8EB"}`,background:sel?s.bg:"#fff",color:sel?s.color:"#9CA3AF",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{s.icon} {s.label}</button>
+              );})}
+            </div>
+          </div>
+          <div style={{marginBottom:14}}>
+            <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>마감일 <span style={{color:"#9CA3AF",fontWeight:600}}>(선택)</span></label>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <input type="date" value={projForm.dueDate} onChange={e=>setProjForm({...projForm,dueDate:e.target.value})} style={{flex:1,minWidth:0,padding:"11px 12px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",boxSizing:"border-box"}}/>
+              {projForm.dueDate&&<button onClick={()=>setProjForm({...projForm,dueDate:""})} style={{flexShrink:0,padding:"9px 12px",borderRadius:10,border:"1px solid #E5E8EB",background:"#F9FAFB",color:"#6B7280",fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>지우기</button>}
+            </div>
+            {(()=>{const n=ddays(projForm.dueDate);return n==null?null:<p style={{margin:"6px 2px 0",fontSize:11,fontWeight:800,color:n<0?"#F04452":n<=3?"#EA580C":"#9CA3AF"}}>{ddayLabel(n)}{n<0?" · 지남":n===0?" · 오늘 마감":" 남음"}</p>;})()}
+          </div>
           <button onClick={()=>setShowAdv(!showAdv)} style={{width:"100%",padding:"11px 0",borderRadius:12,border:"1.5px dashed #D1D5DB",background:"#F9FAFB",color:"#6B7280",fontSize:12.5,fontWeight:700,cursor:"pointer",fontFamily:"inherit",marginBottom:14}}>{showAdv?"▲ 상세 설정 접기":"＋ 상세 설정 (KPI 연결·거래처유형·그룹·우선순위) — 선택"}</button>
           {showAdv&&(<>
           <div style={{marginBottom:14}}><label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:5}}>메인 KPI <span style={{color:"#9CA3AF",fontWeight:600}}>(어느 목표에 기여)</span></label><select value={projForm.mainKPIId} onChange={e=>setProjForm({...projForm,mainKPIId:e.target.value,subKPIId:""})} style={{width:"100%",padding:"12px 14px",borderRadius:12,fontSize:14,border:"1.5px solid #E5E8EB",outline:"none",backgroundColor:"#FFFFFF",fontFamily:"inherit",WebkitAppearance:"none"}}><option value="">없음 (운영 인프라)</option>{D.mainKPIs.map(mk=><option key={mk.id} value={mk.id}>{mk.krKey} · {mk.title}</option>)}</select></div>

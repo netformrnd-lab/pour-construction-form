@@ -167,6 +167,7 @@
 <!-- 파일 입력 (업로드) -->
 <input id="fileCapture" type="file" accept="image/*,video/*" capture="environment" multiple hidden>
 <input id="fileAlbum" type="file" accept="image/*,video/*" multiple hidden>
+<input id="fileIdea" type="file" accept="image/*,video/*" hidden>
 
 <script>
 /* ============================================================
@@ -464,7 +465,8 @@ async function renderImport(){
       <div class="frow"><textarea id="csv_in" style="min-height:170px;font-family:ui-monospace,monospace;font-size:12.5px" placeholder="12345, 써밋페인트 플러스, https://...
 12346, 코트재(백색) 1.3kg
 12347, 코트재(회색) 5L"></textarea></div>
-      <div class="sub" id="csv_prev" style="margin-bottom:10px"></div>
+      <div class="sub" id="csv_prev" style="margin-bottom:6px"></div>
+      <div class="sub" style="color:var(--amber);background:var(--amber-pale);border-radius:8px;padding:8px 10px;margin-bottom:10px">⏳ pour-crm 직접 자동연동(Firebase 공유)은 <b>나중에</b> 지원 예정 — 지금은 CSV로 매핑</div>
       <div class="sheet-act"><button class="btn ghost" id="im_cancel">취소</button><button class="btn or" id="csv_add">가져오기</button></div>`;
     bindImSeg();$('#im_cancel').onclick=closeSheet;
     const parse=()=>{
@@ -527,27 +529,87 @@ async function renderImport(){
 function bindImSeg(){document.querySelectorAll('#imSeg button').forEach(b=>b.onclick=()=>{importSrc=b.dataset.src;renderImport();});}
 
 /* 제품 상세 (에셋 그리드) */
+let ideaDraft={text:'',link:'',photo:null}, ideaCtx=null;
 function openProductDetail(pid){
-  curProduct=pid;curPurpose='detail';
+  curProduct=pid;curPurpose='detail';ideaDraft={text:'',link:'',photo:null};
   renderProductSheet();
   $('#overlay').classList.add('on');
 }
 function renderProductSheet(){
   const p=state.products.find(x=>x.id===curProduct);if(!p)return;
-  const assets=mergedAssets(curProduct,curPurpose);
-  const lbl={detail:'상세페이지용',ad:'광고용',sponsor:'협찬 셀러'};
-  const s=$('#sheet');
-  s.innerHTML=`<h2>${esc(p.name)}</h2><div class="sub">${esc(p.code||'')} · 촬영물 ${state.assets.filter(a=>a.productId===curProduct).length+inbox.filter(x=>x.productId===curProduct).length}개</div>
-    <div class="seg" id="purSeg">${['detail','ad','sponsor'].map(k=>`<button data-pur="${k}" class="${k===curPurpose?'on':''}">${lbl[k]}</button>`).join('')}</div>
-    ${curPurpose!=='sponsor'?`<div class="seg" style="gap:10px;margin-bottom:14px"><button class="btn or" style="flex:1" id="upCap">📷 촬영</button><button class="btn ghost" style="flex:1" id="upAlb">🖼 앨범에서</button></div>`:'<div class="sub" style="margin-bottom:12px">협찬 컨텐츠는 셀러가 업로드 링크로 올린 것이 자동 표시됩니다.</div>'}
-    <div class="agrid" id="agrid">${assets.length?assets.map(renderAssetCell).join(''):'<div class="empty" style="grid-column:1/-1;padding:30px 0"><p>아직 등록된 컨텐츠가 없어요.</p></div>'}</div>
+  const lbl={detail:'상세페이지용',ad:'광고용',sponsor:'협찬 셀러',idea:'💡 아이디어'};
+  const segHtml=['detail','ad','sponsor','idea'].map(k=>`<button data-pur="${k}" class="${k===curPurpose?'on':''}">${lbl[k]}</button>`).join('');
+  const cntN=state.assets.filter(a=>a.productId===curProduct).length+inbox.filter(x=>x.productId===curProduct).length;
+  let mid;
+  if(curPurpose==='idea'){ mid=renderIdeaPanel(p); }
+  else{
+    const assets=mergedAssets(curProduct,curPurpose);
+    mid=`${curPurpose!=='sponsor'?`<div class="seg" style="gap:10px;margin-bottom:14px"><button class="btn or" style="flex:1" id="upCap">📷 촬영</button><button class="btn ghost" style="flex:1" id="upAlb">🖼 앨범에서</button></div>`:'<div class="sub" style="margin-bottom:12px">협찬 컨텐츠는 셀러가 업로드 링크로 올린 것이 자동 표시됩니다.</div>'}
+    <div class="agrid" id="agrid">${assets.length?assets.map(renderAssetCell).join(''):'<div class="empty" style="grid-column:1/-1;padding:30px 0"><p>아직 등록된 컨텐츠가 없어요.</p></div>'}</div>`;
+  }
+  $('#sheet').innerHTML=`<h2>${esc(p.name)}</h2><div class="sub">${esc(p.code||'')} · 촬영물 ${cntN}개 · 아이디어 ${(p.ideas||[]).length}</div>
+    <div class="seg" id="purSeg">${segHtml}</div>
+    ${mid}
     <div class="sheet-act" style="margin-top:18px"><button class="btn ghost" id="pd_edit">제품 정보 수정</button><button class="btn ghost" id="pd_close">닫기</button></div>`;
   document.querySelectorAll('#purSeg button').forEach(b=>b.onclick=()=>{curPurpose=b.dataset.pur;renderProductSheet();});
   $('#pd_close').onclick=closeSheet;
   $('#pd_edit').onclick=()=>openProductEdit(curProduct);
-  $('#upCap')&&($('#upCap').onclick=()=>triggerUpload('capture'));
-  $('#upAlb')&&($('#upAlb').onclick=()=>triggerUpload('album'));
-  bindAssetDelete();
+  if(curPurpose==='idea'){ bindIdeaPanel(p); }
+  else{
+    $('#upCap')&&($('#upCap').onclick=()=>triggerUpload('capture'));
+    $('#upAlb')&&($('#upAlb').onclick=()=>triggerUpload('album'));
+    bindAssetDelete();
+  }
+}
+/* 💡 추가옵션 아이디어 (파생상품·패키지) — 링크/사진 함께 */
+function renderIdeaPanel(p){
+  const ideas=(p.ideas||[]).slice().reverse();
+  const draftPhoto=ideaDraft.photo?`<div style="margin-top:8px;position:relative;width:72px;height:72px;border-radius:10px;overflow:hidden"><img src="${esc(ideaDraft.photo.url)}" style="width:100%;height:100%;object-fit:cover"><button id="id_rmphoto" style="position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:13px;line-height:1">×</button></div>`:'';
+  return `<div style="background:var(--cream);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:14px">
+    <textarea id="id_text" placeholder="예) 이 패키지에 미니 롤러 추가하면 좋을 듯 / 사은품 아이디어" style="width:100%;border:1px solid var(--border2);border-radius:10px;padding:10px 12px;background:#fff;min-height:54px;resize:vertical">${esc(ideaDraft.text)}</textarea>
+    <input id="id_link" value="${esc(ideaDraft.link)}" placeholder="🔗 참고 링크 (선택)" style="width:100%;margin-top:8px;border:1px solid var(--border2);border-radius:10px;padding:10px 12px;background:#fff">
+    ${draftPhoto}
+    <div style="display:flex;gap:8px;margin-top:10px"><button class="btn ghost" id="id_photo" style="flex:0 0 auto">📷 사진/영상</button><button class="btn or" id="id_add" style="flex:1">아이디어 추가</button></div>
+  </div>
+  ${ideas.length?ideas.map(renderIdeaCard).join(''):'<div class="empty" style="padding:24px 0"><p>파생상품·패키지에 넣을 추가옵션 아이디어를 모아보세요.<br>링크나 사진을 같이 붙여 함께 쓰면 좋을지 테스트해보세요.</p></div>'}`;
+}
+function renderIdeaCard(it){
+  const ph=it.photo?(it.photo.kind==='video'?`<video src="${esc(it.photo.url)}" muted onclick="window.open('${esc(it.photo.url)}','_blank')" style="width:64px;height:64px;border-radius:10px;object-fit:cover;cursor:pointer;flex:0 0 64px"></video>`:`<img src="${esc(it.photo.url)}" onclick="window.open('${esc(it.photo.url)}','_blank')" style="width:64px;height:64px;border-radius:10px;object-fit:cover;cursor:pointer;flex:0 0 64px">`):'';
+  const lk=it.link?`<div style="margin-top:6px"><a href="${esc(it.link)}" target="_blank" style="color:var(--or);font-size:12px;font-weight:700;word-break:break-all">🔗 ${esc(it.link)}</a></div>`:'';
+  return `<div style="display:flex;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px">${ph}<div style="flex:1;min-width:0"><div style="font-size:13.5px;line-height:1.5;white-space:pre-wrap">${esc(it.text||'')}</div>${lk}</div><button data-idel="${it.id}" style="flex:0 0 auto;color:var(--red);font-size:12px;font-weight:700;align-self:flex-start">삭제</button></div>`;
+}
+function bindIdeaPanel(p){
+  const t=$('#id_text'),l=$('#id_link');
+  t&&(t.oninput=e=>ideaDraft.text=e.target.value);
+  l&&(l.oninput=e=>ideaDraft.link=e.target.value);
+  $('#id_rmphoto')&&($('#id_rmphoto').onclick=()=>{ideaDraft.photo=null;renderProductSheet();});
+  $('#id_photo')&&($('#id_photo').onclick=()=>{ideaCtx=curProduct;$('#fileIdea').click();});
+  $('#id_add')&&($('#id_add').onclick=()=>addIdea(p));
+  document.querySelectorAll('[data-idel]').forEach(b=>b.onclick=()=>{
+    if(!confirm('아이디어를 삭제할까요?'))return;
+    p.ideas=(p.ideas||[]).filter(x=>x.id!==b.dataset.idel);save();renderProductSheet();
+  });
+}
+function addIdea(p){
+  const text=(ideaDraft.text||'').trim();
+  if(!text&&!ideaDraft.link&&!ideaDraft.photo){toast('내용·링크·사진 중 하나는 넣어주세요','red');return;}
+  if(!p.ideas)p.ideas=[];
+  p.ideas.push({id:uid(),text,link:(ideaDraft.link||'').trim(),photo:ideaDraft.photo,createdAt:new Date().toISOString()});
+  ideaDraft={text:'',link:'',photo:null};
+  save();renderProductSheet();toast('아이디어 추가됨','green');
+}
+async function attachIdeaPhoto(file){
+  if(!file||!fbStore){toast('업로드 불가','red');return;}
+  toast('첨부 업로드 중…','amber');
+  try{
+    const id=uid(),kind=(file.type||'').startsWith('video')?'video':'photo';
+    const ext=(file.name.split('.').pop()||(kind==='video'?'mp4':'jpg')).toLowerCase().replace(/[^\w]/g,'')||'bin';
+    const ref=fbStore.ref(`${CLOUD_ROOT}/content/products/${slug(ideaCtx||curProduct)}/ideas/${id}.${ext}`);
+    const snap=await ref.put(file,{contentType:file.type||'application/octet-stream'});
+    const url=await snap.ref.getDownloadURL();
+    ideaDraft.photo={url,path:ref.fullPath,kind};
+    renderProductSheet();toast('첨부됨','green');
+  }catch(e){console.error('[idea] 첨부 업로드 실패:',e);toast('첨부 실패','red');}
 }
 function mergedAssets(pid,purpose){
   if(purpose==='sponsor'){
@@ -576,6 +638,7 @@ function triggerUpload(kind){
 }
 $('#fileCapture').onchange=e=>{handleUpload(e.target.files);e.target.value='';};
 $('#fileAlbum').onchange=e=>{handleUpload(e.target.files);e.target.value='';};
+$('#fileIdea').onchange=e=>{const f=e.target.files&&e.target.files[0];if(f)attachIdeaPhoto(f);e.target.value='';};
 async function handleUpload(fileList){
   const files=Array.from(fileList||[]);if(!files.length||!uploadCtx||!fbStore)return;
   const {productId,purpose,sellerId}=uploadCtx;

@@ -312,7 +312,36 @@
   .vin{animation:vIn .22s ease}
   .pdsum-foot{font-size:11px;color:#8a929b;margin-top:13px;line-height:1.5}
 
-  .bn-spacer{flex:0 0 auto;width:50px;pointer-events:none}
+  .bn-spacer{flex:0 0 auto;width:34px;pointer-events:none}
+  .bn-btn{font-size:10.5px}
+  .bn-btn svg{width:22px;height:22px}
+
+  /* 테스트 전용 페이지 */
+  .pg-h{font-size:14px;font-weight:700;color:var(--ink2);margin:2px 0 14px}
+  .pg-h b{color:var(--blue)}
+  .tp-card{background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:14px 16px;margin-bottom:10px}
+  .tp-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .tp-nm{font-size:15px;font-weight:800;letter-spacing:-.01em}
+  .tp-cnt{flex:0 0 auto;font-size:11px;font-weight:800;padding:3px 9px;border-radius:7px;background:var(--surface);color:var(--ink2)}
+  .tp-maker{font-size:12px;color:var(--muted);margin-top:2px}
+  .tp-add{display:flex;gap:8px;margin:11px 0 9px}
+  .tp-add input{flex:1;min-width:0;padding:10px 12px;border:1px solid var(--border2);border-radius:10px;background:var(--cream);font-size:13.5px}
+  .tp-add input:focus{outline:none;border-color:var(--blue);background:#fff}
+  .tp-add button{flex:0 0 auto;padding:10px 16px;border-radius:10px;background:var(--or);color:#fff;font-weight:800;font-size:13px}
+  .tp-list{display:flex;flex-direction:column;gap:6px}
+  .tp-test{display:flex;align-items:center;gap:8px;padding:9px 11px;border:1px solid var(--border);border-radius:10px;cursor:pointer}
+  .tp-test:active{transform:scale(.99)}
+  .tp-tt{flex:1;min-width:0;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tp-dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto;background:var(--muted)}
+  .tp-dot.합격{background:var(--green)}.tp-dot.보류{background:var(--amber)}.tp-dot.실패{background:var(--red)}
+  .tp-empty{font-size:12px;color:var(--muted);padding:3px 2px}
+
+  /* 기획(아이디어 모아보기) 페이지 */
+  .pl-card{display:flex;gap:11px;background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:12px;margin-bottom:9px;cursor:pointer}
+  .pl-img{width:62px;height:62px;border-radius:10px;object-fit:cover;flex:0 0 62px}
+  .pl-prod{font-size:12px;font-weight:800;color:var(--blue)}
+  .pl-text{font-size:13.5px;line-height:1.5;white-space:pre-wrap;margin-top:2px}
+  .pl-date{font-size:11px;color:var(--muted);margin-top:6px}
   .bn-fab{flex:0 0 auto;align-self:center;margin-top:-24px;width:58px;height:58px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(49,130,246,.45);border:4px solid #fff;transition:.13s}
   .bn-fab svg{width:26px;height:26px}
   .bn-fab:active{transform:scale(.9)}
@@ -806,6 +835,8 @@
       <div id="priceList"></div>
     </div>
   </div>
+
+  <div id="view-test" style="display:none"></div>
 </div>
 
 <div id="view-plans" style="display:none">
@@ -820,11 +851,12 @@
 
 <nav class="bottomnav">
   <div class="bn-in">
-    <button class="bn-btn" data-tab="products"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22" x2="12" y2="12"></line></svg>제품</button>
     <button class="bn-btn" data-tab="plans"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>기획</button>
+    <button class="bn-btn" data-tab="test"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6.5L4.5 17a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L15 8.5V2"></path><line x1="8" y1="2" x2="16" y2="2"></line><line x1="7.5" y1="13" x2="16.5" y2="13"></line></svg>테스트</button>
     <span class="bn-spacer" aria-hidden="true"></span>
     <button class="bn-fab" id="camFab" aria-label="사진 촬영·테스트 기록"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3.2"></circle></svg></button>
     <span class="bn-spacer" aria-hidden="true"></span>
+    <button class="bn-btn" data-tab="products"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22" x2="12" y2="12"></line></svg>제품</button>
     <button class="bn-btn" data-tab="makers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V10l6 3.5V10l6 3.5V10l6 3.5V21z"></path><line x1="2.5" y1="21" x2="21.5" y2="21"></line></svg>제조사</button>
   </div>
 </nav>
@@ -1404,6 +1436,7 @@ let typeFilter='전체';
 let baseFilter='';
 let ideaPendingPhoto=null;
 let detailGrp='개요';
+let testQuery='';
 let selectMode=false;
 const selected=new Set();
 const PROG_STAGES=['샘플','테스트','협의','발주준비'];
@@ -2132,13 +2165,13 @@ $('#t_save').onclick=async()=>{
     const t=p.tests.find(t=>t.id===editingTest);if(!t)return;
     Object.assign(t,{title,result:$('#t_result').value,date:$('#t_date').value||today(),memo:$('#t_memo').value.trim(),photos});
     if(!t.ts)t.ts=Date.now();
-    save();closeOverlay();render();
+    save();closeOverlay();render();if(state.tab==='test')renderTestPage();
   }finally{btn.disabled=false;btn.textContent=lbl;}
 };
 $('#t_del').onclick=()=>{
   if(!confirm('이 테스트 기록을 삭제할까요?'))return;
   const p=cur();p.tests=p.tests.filter(t=>t.id!==editingTest);
-  save();closeOverlay();render();
+  save();closeOverlay();render();if(state.tab==='test')renderTestPage();
 };
 
 /* ---- doc modal ---- */
@@ -2484,6 +2517,39 @@ function renderIdeaList(p){
   w.querySelectorAll('[data-idearm]').forEach(b=>b.onclick=()=>removeIdea(p.id,b.dataset.idearm));
 }
 function removeIdea(pid,id){const p=state.products.find(x=>x.id===pid);if(!p)return;if(!confirm('이 아이디어를 삭제할까요?'))return;p.ideas=(p.ideas||[]).filter(x=>x.id!==id);save();renderMain();}
+
+/* ===== 테스트 전용 페이지 (제품 빠르게 골라 테스트 기록·정리) ===== */
+function addTestTo(pid,title){
+  const p=state.products.find(x=>x.id===pid);if(!p)return;
+  const v=(title||'').trim();if(!v)return;
+  (p.tests=p.tests||[]).push({id:uid(),title:v,result:'진행중',memo:'',date:today(),ts:Date.now(),photos:[]});
+  save();renderTestPage();
+}
+function renderTestPage(){
+  const w=$('#view-test');if(!w)return;
+  const q=(testQuery||'').trim();
+  const list=state.products.filter(p=>!q||(dn(p)||'').includes(q)||(p.maker||'').includes(q));
+  // 진행중 테스트 많은 제품 우선
+  list.sort((a,b)=>{const pa=(a.tests||[]).filter(t=>(t.result||'진행중')==='진행중').length,pb=(b.tests||[]).filter(t=>(t.result||'진행중')==='진행중').length;return pb-pa;});
+  let html=`<div class="pg-h">제품을 골라 <b>테스트</b>를 빠르게 기록하세요 · 제품 ${list.length}</div>`;
+  if(!list.length){html+='<div class="empty"><h3>제품이 없어요</h3><p>먼저 제품을 등록하면 여기서 테스트를 기록할 수 있어요.</p></div>';}
+  else html+=list.map(p=>{
+    const tests=(p.tests||[]).slice().reverse();
+    const done=tests.filter(t=>t.result&&t.result!=='진행중').length;
+    const rows=tests.length?tests.map(t=>{const r=t.result||'진행중';return `<div class="tp-test" data-pid="${p.id}" data-tid="${t.id}"><span class="tp-dot ${r}"></span><span class="tp-tt">${esc(t.title)}</span><span class="rbadge ${r}">${r}</span></div>`;}).join(''):'<div class="tp-empty">아직 테스트 없음 — 위에 입력해 추가하세요</div>';
+    return `<div class="tp-card">
+      <div class="tp-top"><div class="tp-nm">${esc(dn(p))}</div><span class="tp-cnt">${tests.length?done+'/'+tests.length:'0건'}</span></div>
+      <div class="tp-maker">${esc(p.maker||'제조사 미입력')}</div>
+      <div class="tp-add"><input data-addinput="${p.id}" placeholder="테스트 항목 입력 후 Enter (예: 24h 경화 확인)"><button data-addpid="${p.id}">+ 추가</button></div>
+      <div class="tp-list">${rows}</div>
+    </div>`;
+  }).join('');
+  w.innerHTML=html;
+  w.querySelectorAll('input[data-addinput]').forEach(inp=>inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addTestTo(inp.dataset.addinput,inp.value);}});
+  w.querySelectorAll('[data-addpid]').forEach(b=>b.onclick=()=>{const inp=w.querySelector('input[data-addinput="'+b.dataset.addpid+'"]');if(inp)addTestTo(b.dataset.addpid,inp.value);});
+  w.querySelectorAll('.tp-test').forEach(el=>el.onclick=()=>{state.sel=el.dataset.pid;openTest(el.dataset.tid);});
+}
+
 /* 상세 모달 열림 + 다른 입력 모달 없음일 때 붙여넣기 → 제품 개요 자료로 추가 */
 document.addEventListener('paste',e=>{
   const det=$('#detailOverlay');if(!det||!det.classList.contains('on'))return;
@@ -2619,27 +2685,33 @@ function renderMakerDetail(root,name){
 $('#search').addEventListener('input',()=>{
   const v=$('#search').value.trim();
   if(state.tab==='makers'){makerSel=null;makerQuery=v;renderMakerList();}
+  else if(state.tab==='test'){testQuery=v;renderTestPage();}
   else if(state.tab==='plans'){planQuery=v;renderPlans();}
   else{query=v;renderList();}
 });
 document.querySelectorAll('#vtoggle button').forEach(b=>b.onclick=()=>{state.viewMode=b.dataset.view;save();render();});
 
 /* ---- app tabs ---- */
-const TAB_SUB={products:'공급사 → 샘플 → 테스트 → 인증·특허 → 원가·발주',makers:'제조사 등록 · 판매가 대시보드',plans:'소싱 탐색 · 시장분석 · 업체 발굴 · 보고/승인'};
+const TAB_SUB={products:'공급사 → 샘플 → 테스트 → 인증·특허 → 원가·발주',makers:'제조사 등록 · 판매가 대시보드',plans:'소싱 탐색 · 시장분석 · 업체 발굴 · 보고/승인',test:'제품 선택 → 테스트 빠르게 기록·정리'};
 function switchTab(t){
-  if(t!=='products'&&t!=='makers'&&t!=='plans')t='makers';
+  if(!['products','makers','plans','test'].includes(t))t='products';
   if(t!=='products'&&selectMode)setSelectMode(false);
   state.tab=t;save();
   $('#view-products').style.display=(t==='products')?'':'none';
   $('#view-makers').style.display=(t==='makers')?'':'none';
   $('#view-plans').style.display=(t==='plans')?'':'none';
+  $('#view-test').style.display=(t==='test')?'':'none';
   const shown=$('#view-'+t);if(shown){shown.classList.remove('vin');void shown.offsetWidth;shown.classList.add('vin');}
   document.querySelectorAll('.bn-btn').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
   const sub=document.querySelector('.brand p');if(sub)sub.textContent=TAB_SUB[t];
-  const si=$('#search');if(si){si.value=(t==='makers'?makerQuery:(t==='plans'?planQuery:query));si.placeholder=(t==='makers'?'제조사 검색':(t==='plans'?'기획 검색':'제품 · 제조사 검색'));}
+  const si=$('#search');if(si){
+    const ph={makers:'제조사 검색',test:'테스트할 제품 검색',plans:'기획 검색'}[t]||'제품 · 제조사 검색';
+    const v={makers:makerQuery,test:testQuery,plans:planQuery}[t]; si.value=(v!==undefined?v:query); si.placeholder=ph;
+  }
   if(t==='products')render();
   if(t==='makers')showSub(state.adminSub||'makers');
   if(t==='plans')renderPlans();
+  if(t==='test')renderTestPage();
   window.scrollTo(0,0);
 }
 function showSub(s){

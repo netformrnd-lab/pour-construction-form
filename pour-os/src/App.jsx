@@ -1749,8 +1749,8 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                     {t.weekSlot&&<span style={{fontSize:10,fontWeight:800,color:"#9CA3AF"}}>{t.weekSlot}순위</span>}
                     {t.status==="todo"&&<button onClick={()=>up("tasks",t.id,statusPatch(D,t,"inprogress"))} style={{padding:"7px 13px",borderRadius:9,border:"none",background:"#3182F6",color:"#fff",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>▶ 진행 시작</button>}
                     {t.status==="inprogress"&&<>
-                      <button onClick={()=>up("tasks",t.id,statusPatch(D,t,"done"))} style={{padding:"7px 12px",borderRadius:9,border:"none",background:"#00C073",color:"#fff",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>✓ 완료</button>
-                      <button onClick={()=>holdTask(t)} style={{padding:"7px 10px",borderRadius:9,border:"1.5px solid #FDBA74",background:"#FFF7ED",color:"#EA580C",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>⏸ 보류</button>
+                      <button onClick={()=>up("tasks",t.id,statusPatch(D,t,"done"))} style={{padding:"4px 9px",borderRadius:7,border:"none",background:"#00C073",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>✓ 완료</button>
+                      <button onClick={()=>holdTask(t)} style={{padding:"4px 8px",borderRadius:7,border:"1px solid #E5E8EB",background:"#F8F9FA",color:"#9CA3AF",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>⏸ 보류</button>
                     </>}
                     {t.status==="done"&&<span style={{fontSize:11,fontWeight:800,color:"#00A862",backgroundColor:"#E8FAF1",padding:"3px 9px",borderRadius:6}}>완료</span>}
                     <button onClick={()=>setEditTask(t)} title="상세·수정" style={{background:"none",border:"none",fontSize:14,cursor:"pointer",color:"#9CA3AF",padding:8}}>✎</button>

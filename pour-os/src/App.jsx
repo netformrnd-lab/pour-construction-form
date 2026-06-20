@@ -2394,6 +2394,7 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup}){
             );
           })}
           <button onClick={openNewMain} style={{width:"100%",padding:"12px 0",borderRadius:12,border:"1.5px dashed #93C5FD",background:"#EFF6FF",color:"#2563EB",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 메인KPI 추가</button>
+          <div style={{marginTop:18,paddingTop:16,borderTop:"1px solid #F2F4F6"}}><TeamBoard D={D} cu={cu} embed/></div>
           <ExportPanel D={D} up={up} restore={restore} restoreLocal={restoreLocal} pushExternalBackup={pushExternalBackup}/>
         </div>
       )}
@@ -4580,7 +4581,7 @@ function ProcessEditorPage({D}){
   );
 }
 // 업무 보드 — 팀 전체 현황 뷰 (담당자별 진행률·업무 상태·내 차례)
-function TeamBoard({D,cu,nav}){
+function TeamBoard({D,cu,nav,embed}){
   const sig=diagSignals(D);
   const today=todayDay(); const todayIdx=WEEK_DAYS.indexOf(today);
   const mem=D.users.map(u=>{
@@ -4611,6 +4612,7 @@ function TeamBoard({D,cu,nav}){
   const kpiPivot=D.mainKPIs.map(mk=>{ const projs=D.projects.filter(p=>p.mainKPIId===mk.id); const byU={}; projs.forEach(p=>{const ids=[...new Set([p.assigneeId||"",...(p.collaboratorIds||[])])]; ids.forEach(u=>{(byU[u]=byU[u]||[]).push({p,role:u===(p.assigneeId||"")?"담당":"협업"});});}); return {mk,projs,byU,kp:pct(mkCur(mk,D.subKPIs,D.projects),mk.targetValue),col:({mk1:"#3182F6",mk2:"#8B5CF6",mk3:"#00C073"}[mk.id]||"#3182F6")}; }).filter(x=>x.projs.length);
   return(
     <div style={{maxWidth:760,margin:"0 auto"}}>
+      {!embed&&(<>
       <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:16,padding:"16px",marginBottom:14,color:"#fff"}}>
         <p style={{margin:0,fontSize:12,fontWeight:800,opacity:0.8}}>🎯 최종목표 · {goal?.title||"매출 10억"}</p>
         <p style={{margin:"4px 0 10px",fontSize:24,fontWeight:900}}>{goalPct}% <span style={{fontSize:13,fontWeight:700,opacity:0.85}}>목표 달성률</span></p>
@@ -4652,7 +4654,9 @@ function TeamBoard({D,cu,nav}){
           ))}
         </div>
       )}
-      {tbView==="members"&&(<>
+      </>)}
+      {embed&&<h3 style={{margin:"0 0 10px",fontSize:14,fontWeight:900,color:"#0F1F5C"}}>👥 팀원별 현황</h3>}
+      {(embed||tbView==="members")&&(<>
       <div style={{display:"flex",flexDirection:"column",gap:10}}>
         {mem.map(m=>(
           <div key={m.u.id} style={{backgroundColor:"#fff",borderRadius:14,border:`1px solid ${m.stuck?"#FFD7DC":m.u.id===cu.id?"#FED7AA":"#F2F4F6"}`,padding:"13px 14px"}}>
@@ -4708,6 +4712,7 @@ function TeamBoard({D,cu,nav}){
 function TeamWeeklyMap({D,cu}){
   const [period,setPeriod]=useState("week");
   const [mapStyle,setMapStyle]=useState("tree");   // tree(계층형) | mind(마인드맵)
+  const [mapAxis,setMapAxis]=useState("member");   // 마인드맵 축: member(멤버별) | kpi(KPI별 누가무엇을)
   const [krF,setKrF]=useState("all");
   const [activeOnly,setActiveOnly]=useState(false);
   const [memSel,setMemSel]=useState(null);   // null=전체 / Set=선택 멤버
@@ -4807,12 +4812,21 @@ function TeamWeeklyMap({D,cu}){
           <button key={v.k} onClick={()=>setMapStyle(v.k)} style={{flex:1,padding:"7px 0",borderRadius:9,border:"none",cursor:"pointer",backgroundColor:mapStyle===v.k?"#FFFFFF":"transparent",color:mapStyle===v.k?"#0F1F5C":"#6B7280",fontWeight:mapStyle===v.k?800:500,fontSize:12.5,fontFamily:"inherit",boxShadow:mapStyle===v.k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{v.l}</button>
         ))}
       </div>
-      {mapStyle==="mind"&&(<>
-        <div style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}>
-          <button onClick={()=>exportMapPNG(buildTeamMapItems(D,activeInP,doneInP,{krF,activeOnly,members:memSel,signals}),`팀_그로스보드_${PLABEL[period]}`)} style={{padding:"6px 12px",borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",color:"#4B5563",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🖼 이미지 저장</button>
+      {mapStyle==="mind"&&(()=>{
+        const items=mapAxis==="kpi"
+          ? buildKpiMapItems(D,activeInP,doneInP,{krF,activeOnly,members:memSel})
+          : buildTeamMapItems(D,activeInP,doneInP,{krF,activeOnly,members:memSel,signals});
+        return(<>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+          <div style={{display:"flex",background:"#F2F4F6",borderRadius:9,padding:3,flex:1}}>
+            {[["member","👥 멤버별"],["kpi","🎯 KPI별 (누가 무엇을)"]].map(([k,l])=>(
+              <button key={k} onClick={()=>setMapAxis(k)} style={{flex:1,padding:"6px 0",borderRadius:7,border:"none",cursor:"pointer",background:mapAxis===k?"#fff":"transparent",color:mapAxis===k?"#0F1F5C":"#6B7280",fontWeight:mapAxis===k?800:600,fontSize:11.5,fontFamily:"inherit",boxShadow:mapAxis===k?"0 1px 3px rgba(0,0,0,0.1)":"none"}}>{l}</button>
+            ))}
+          </div>
+          <button onClick={()=>exportMapPNG(items,`팀_그로스보드_${mapAxis==="kpi"?"KPI별_":""}${PLABEL[period]}`)} style={{flexShrink:0,padding:"6px 12px",borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",color:"#4B5563",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🖼 저장</button>
         </div>
-        <MapCanvas items={buildTeamMapItems(D,activeInP,doneInP,{krF,activeOnly,members:memSel,signals})} onPick={setPicked}/>
-      </>)}
+        <MapCanvas items={items} onPick={setPicked}/>
+      </>);})()}
       {mapStyle==="tree"&&(
       <div style={{display:"flex",flexDirection:"column",gap:14}}>
         {mem.map(m=>{
@@ -5230,7 +5244,41 @@ function buildTeamMapItems(D,activeInP,doneInP,opts={}){
   });
   return items;
 }
-// 그로스보드 노드 상세 (읽기 전용 — 편집 불가). ref:{kind:mk|sk|proj|task|member, id}
+// KPI 기준 팀 마인드맵 — 메인KPI → 팀원 → 업무 (누가 무엇을). 자식=상태별, 부모=할일.
+function buildKpiMapItems(D,activeInP,doneInP,opts={}){
+  const {krF="all",activeOnly=false,members=null}=opts;
+  const krColors={mk1:"#3182F6",mk2:"#8B5CF6",mk3:"#00C073"};
+  const items=[{id:"kteam",depth:0,label:"팀 · KPI별",color:"#0F1F5C",active:true}];
+  const hasKids=(t)=>D.tasks.some(x=>x.parentId===t.id&&!x.isFixed);
+  const stT=STATUS_MAP.todo;
+  D.mainKPIs.filter(mk=>krF==="all"||mk.id===krF).forEach(mk=>{
+    const col=krColors[mk.id]||"#3182F6";
+    const mkProjs=D.projects.filter(p=>p.mainKPIId===mk.id);
+    const projIds=new Set(mkProjs.map(p=>p.id));
+    const allT=D.tasks.filter(t=>!t.isFixed&&projIds.has(t.projectId));
+    const mkAct=allT.some(activeInP);if(activeOnly&&!mkAct)return;
+    const mkDone=doneInP(allT);const rev=mkProjs.reduce((a,p)=>a+numF(p.resultValue),0);
+    const tgt=pct(mkCur(mk,D.subKPIs,D.projects),mk.targetValue);
+    const chips=[{t:"🎯"+tgt+"%",c:col,bg:col+"1A"}];if(mkDone>0)chips.push({t:"✅"+mkDone,c:"#0F5132",bg:"#D1F5E0"});if(rev>0)chips.push({t:"💰"+fmt(rev,"원"),c:"#7A3E00",bg:"#FFE6C7"});
+    items.push({id:"k_"+mk.id,depth:1,label:mk.title,leftTag:mk.krKey,color:col,active:mkAct,chips,ref:{kind:"mk",id:mk.id}});
+    D.users.filter(u=>!members||members.has(u.id)).forEach(u=>{
+      const uT=allT.filter(t=>t.assigneeId===u.id);
+      const uAct=uT.filter(activeInP);
+      if(activeOnly?!uAct.length:!uT.length)return;
+      const shownList=activeOnly?uAct:uT;
+      const uDone=doneInP(uT);const uCol=u.color||"#3182F6";
+      const mchips=[];if(uDone>0)mchips.push({t:"✅"+uDone,c:"#0F5132",bg:"#D1F5E0"});
+      items.push({id:"k_"+mk.id+"_"+u.id,depth:2,label:u.name,color:uCol,active:uAct.length>0,chips:mchips,ref:{kind:"member",id:u.id}});
+      const leaves=shownList.filter(t=>!hasKids(t)),parents=shownList.filter(t=>hasKids(t));
+      const pf="k_"+mk.id+"_"+u.id+"_";
+      leaves.filter(t=>t.status!=="todo").forEach(t=>{const st=STATUS_MAP[t.status]||stT;items.push({id:pf+t.id,depth:3,label:t.title,color:st.color,active:true,leftTag:t.weekDay||null,chips:[{t:st.label,c:st.color,bg:st.bg}],ref:{kind:"task",id:t.id}});});
+      parents.forEach(t=>{const kc=taskKidsOf(D,t.id).length;items.push({id:pf+t.id,depth:3,label:t.title,color:stT.color,active:true,leftTag:t.weekDay||null,chips:[{t:"할일",c:stT.color,bg:stT.bg},{t:"하위 "+kc,c:"#6B7280",bg:"#F2F4F6"}],ref:{kind:"task",id:t.id}});});
+      const todoLeaves=leaves.filter(t=>t.status==="todo");
+      if(todoLeaves.length)items.push({id:pf+"__todo",depth:3,label:`할일 ${todoLeaves.length}건`,color:stT.color,active:true});
+    });
+  });
+  return items;
+}
 function NodeDetail({D,node,period,onClose}){
   if(!node||!node.ref) return null;
   const {kind,id}=node.ref;
@@ -5480,15 +5528,7 @@ function MindMapPage({D,cu,nav}){
           <button key={k} onClick={()=>setScope(k)} style={{flex:1,padding:"10px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:scope===k?"#0F1F5C":"#F2F4F6",color:scope===k?"#fff":"#374151",fontWeight:800,fontSize:13.5,fontFamily:"inherit"}}>{l}</button>
         ))}
       </div>
-      {scope==="team"&&(<>
-        <div style={{display:"flex",backgroundColor:"#F2F4F6",borderRadius:14,padding:4,marginBottom:14}}>
-          {[{k:"members",l:"👥 팀 현황"},{k:"weekly",l:"📈 그로스보드"}].map(v=>(
-            <button key={v.k} onClick={()=>setTeamView(v.k)} style={{flex:1,padding:"9px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:teamView===v.k?"#FFFFFF":"transparent",color:teamView===v.k?"#0F1F5C":"#6B7280",fontWeight:teamView===v.k?800:500,fontSize:13,fontFamily:"inherit",boxShadow:teamView===v.k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{v.l}</button>
-          ))}
-        </div>
-        {teamView==="members"&&<TeamBoard D={D} cu={cu} nav={nav}/>}
-        {teamView==="weekly"&&<TeamWeeklyMap D={D} cu={cu}/>}
-      </>)}
+      {scope==="team"&&<TeamWeeklyMap D={D} cu={cu}/>}
       {scope==="person"&&(<>
       <div style={{display:"flex",backgroundColor:"#F2F4F6",borderRadius:14,padding:4,marginBottom:14}}>
         {[{k:"tree",l:"◈ 담당자 트리"},{k:"weekly",l:"📈 그로스보드"}].map(v=>(

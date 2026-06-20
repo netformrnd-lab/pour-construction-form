@@ -335,6 +335,10 @@
   .tp-dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto;background:var(--muted)}
   .tp-dot.합격{background:var(--green)}.tp-dot.보류{background:var(--amber)}.tp-dot.실패{background:var(--red)}
   .tp-empty{font-size:12px;color:var(--muted);padding:3px 2px}
+  .tp-ph{flex:0 0 auto;font-size:10.5px;font-weight:800;color:var(--blue);background:var(--blue-pale);padding:2px 6px;border-radius:6px}
+  .tp-mini{flex:0 0 auto;width:30px;height:30px;border-radius:8px;background:var(--surface);border:1px solid var(--border2);display:inline-flex;align-items:center;justify-content:center;font-size:15px;line-height:1}
+  .tp-mini:active{transform:scale(.9)}
+  .tp-mini svg{width:16px;height:16px}
 
   /* 기획(아이디어 모아보기) 페이지 */
   .pl-card{display:flex;gap:11px;background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:12px;margin-bottom:9px;cursor:pointer}
@@ -844,10 +848,14 @@
     <div style="flex:1;font-size:12.5px;color:var(--muted);font-weight:600;line-height:1.5">인스타·틱톡·길거리·CS 데이터에서 발견한 아이디어를 기록 → 시장분석 → 필요한 업체(원료·제조·용기·충진) 탐색 → 보고·승인 후 상품작업.</div>
     <button class="pbtn add" id="planAdd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>새 기획</button>
   </div>
+  <div class="tp-add" style="margin-bottom:12px"><input id="planQuickInput" placeholder="기획 아이디어 입력 후 Enter (예: 무광 블랙 패키지)"><button id="planQuickAdd">+ 추가</button></div>
   <div class="fchips" id="planStatusChips" style="margin-bottom:12px"></div>
   <div id="planList"></div>
   <div id="planEmpty" style="display:none"></div>
 </div>
+
+<input id="testAttachFile" type="file" accept="image/*,video/*" hidden>
+<input id="testCamFile" type="file" accept="image/*,video/*" capture="environment" hidden>
 
 <nav class="bottomnav">
   <div class="bn-in">
@@ -1436,7 +1444,7 @@ let typeFilter='전체';
 let baseFilter='';
 let ideaPendingPhoto=null;
 let detailGrp='개요';
-let testQuery='';
+let testQuery='', testMediaTarget=null;
 let selectMode=false;
 const selected=new Set();
 const PROG_STAGES=['샘플','테스트','협의','발주준비'];
@@ -2536,7 +2544,8 @@ function renderTestPage(){
   else html+=list.map(p=>{
     const tests=(p.tests||[]).slice().reverse();
     const done=tests.filter(t=>t.result&&t.result!=='진행중').length;
-    const rows=tests.length?tests.map(t=>{const r=t.result||'진행중';return `<div class="tp-test" data-pid="${p.id}" data-tid="${t.id}"><span class="tp-dot ${r}"></span><span class="tp-tt">${esc(t.title)}</span><span class="rbadge ${r}">${r}</span></div>`;}).join(''):'<div class="tp-empty">아직 테스트 없음 — 위에 입력해 추가하세요</div>';
+    const rows=tests.length?tests.map(t=>{const r=t.result||'진행중';const phN=(t.photos||[]).filter(x=>x&&(x.url||x.data)).length;
+      return `<div class="tp-test" data-pid="${p.id}" data-tid="${t.id}"><span class="tp-dot ${r}"></span><span class="tp-tt">${esc(t.title)}</span>${phN?`<span class="tp-ph">📎${phN}</span>`:''}<span class="rbadge ${r}">${r}</span><button class="tp-mini" data-att data-pid="${p.id}" data-tid="${t.id}" title="첨부"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg></button><button class="tp-mini" data-cam data-pid="${p.id}" data-tid="${t.id}" title="촬영"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path><circle cx="12" cy="13" r="3.2"></circle></svg></button></div>`;}).join(''):'<div class="tp-empty">아직 테스트 없음 — 위에 입력해 추가하세요</div>';
     return `<div class="tp-card">
       <div class="tp-top"><div class="tp-nm">${esc(dn(p))}</div><span class="tp-cnt">${tests.length?done+'/'+tests.length:'0건'}</span></div>
       <div class="tp-maker">${esc(p.maker||'제조사 미입력')}</div>
@@ -2547,7 +2556,32 @@ function renderTestPage(){
   w.innerHTML=html;
   w.querySelectorAll('input[data-addinput]').forEach(inp=>inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addTestTo(inp.dataset.addinput,inp.value);}});
   w.querySelectorAll('[data-addpid]').forEach(b=>b.onclick=()=>{const inp=w.querySelector('input[data-addinput="'+b.dataset.addpid+'"]');if(inp)addTestTo(b.dataset.addpid,inp.value);});
-  w.querySelectorAll('.tp-test').forEach(el=>el.onclick=()=>{state.sel=el.dataset.pid;openTest(el.dataset.tid);});
+  w.querySelectorAll('.tp-test').forEach(el=>el.onclick=e=>{if(e.target.closest('.tp-mini'))return;state.sel=el.dataset.pid;openTest(el.dataset.tid);});
+  w.querySelectorAll('[data-att]').forEach(b=>b.onclick=e=>{e.stopPropagation();testMediaTarget={pid:b.dataset.pid,tid:b.dataset.tid};$('#testAttachFile').click();});
+  w.querySelectorAll('[data-cam]').forEach(b=>b.onclick=e=>{e.stopPropagation();testMediaTarget={pid:b.dataset.pid,tid:b.dataset.tid};$('#testCamFile').click();});
+}
+async function addTestMedia(pid,tid,file){
+  if(!file)return;
+  const p=state.products.find(x=>x.id===pid);if(!p)return;
+  const t=(p.tests||[]).find(x=>x.id===tid);if(!t)return;
+  const isVid=(file.type||'').startsWith('video');
+  flagMsg(isVid?'영상 업로드 중…':'사진 업로드 중…');
+  try{
+    const ph=isVid?{id:uid(),kind:'video',blob:file,mime:file.type,name:file.name||''}:{id:uid(),data:await fileToDataURL(file)};
+    const up=await ensurePhotos(pid,[ph]);
+    if(up&&up.length){(t.photos=t.photos||[]).push(...up);save();renderTestPage();flagMsg('첨부 완료','ok');}
+    else flagMsg('첨부 실패','err');
+  }catch(e){console.error('[test-media] 첨부 실패:',e);alert('첨부에 실패했어요.');}
+}
+/* 기획 빠른 등록 (테스트 메뉴처럼 인라인 입력) */
+async function addPlanQuick(title){
+  const v=(title||'').trim();if(!v)return;
+  if(!plansLoaded)await loadPlans();
+  const now=new Date().toISOString();
+  plans.items.unshift({id:'plan_'+uid(),title:v,status:'아이디어',source:'기타',marketMemo:'',vendorMemo:'',needs:[],photos:[],refs:[],comments:[],createdBy:curUser(),createdAt:now,updatedAt:now});
+  const inp=$('#planQuickInput');if(inp)inp.value='';
+  const ok=await savePlans();renderPlans();
+  if(ok)flagMsg('기획 추가됨','ok');
 }
 
 /* 상세 모달 열림 + 다른 입력 모달 없음일 때 붙여넣기 → 제품 개요 자료로 추가 */
@@ -2724,6 +2758,8 @@ function showSub(s){
 }
 document.querySelectorAll('#adminSeg button').forEach(b=>b.onclick=()=>showSub(b.dataset.sub));
 document.querySelectorAll('.bn-btn').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
+['testAttachFile','testCamFile'].forEach(id=>{const el=$('#'+id);if(el)el.onchange=e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f&&testMediaTarget)addTestMedia(testMediaTarget.pid,testMediaTarget.tid,f);};});
+(function(){const inp=$('#planQuickInput'),btn=$('#planQuickAdd');if(btn)btn.onclick=()=>addPlanQuick(inp.value);if(inp)inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addPlanQuick(inp.value);}};})();
 
 /* ---- pricing dashboard ---- */
 function renderPricing(){

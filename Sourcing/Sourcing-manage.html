@@ -163,7 +163,7 @@
 </div>
 
 <div class="wrapP hidden" id="viewProducts">
-  <input class="psearch" id="pSearch" placeholder="상품 검색 (이름·가명·제조사)">
+  <input class="psearch" id="pSearch" placeholder="상품 검색 (이름·제조사)">
   <div class="pgrid" id="pGrid"></div>
 </div>
 
@@ -179,7 +179,7 @@ try{ FA=firebase.auth(); }catch(e){ console.error('[init] auth',e); }
 
 let state={products:[],makers:[]};   // sourcing-os/state (읽기 전용)
 let oc={makers:{}};                  // sourcing-os/order-contacts (이 페이지에서 관리)
-let shareCfg={visible:{price:false,makerName:false,contact:true,name:true,docs:true,test:true},aliases:{}}; // 노출 설정(Sourcing-os에서 제어)
+let shareCfg={visible:{price:false,makerName:false,contact:true,docs:true,test:true}}; // 노출 설정(Sourcing-os에서 제어)
 let sel=null;                        // 선택된 제조사명
 let q='';                            // 제조사 검색
 let qp='';                           // 상품 검색
@@ -211,7 +211,7 @@ async function loadAll(){
     oc=os.exists?os.data():{makers:{}};
     if(!oc.makers)oc.makers={};
     const sc=await FS.collection('sourcing-os').doc('share-config').get();
-    if(sc.exists){const d=sc.data();shareCfg.visible=Object.assign(shareCfg.visible,d.visible||{});shareCfg.aliases=d.aliases||{};}
+    if(sc.exists){const d=sc.data();shareCfg.visible=Object.assign(shareCfg.visible,d.visible||{});}
     console.log('[manage] 제품',state.products.length,'· 제조사',makersAll().length,'· 담당자설정',Object.keys(oc.makers).length);
     setSync('불러옴 ✓','#059669');
     renderVisNote();
@@ -326,10 +326,10 @@ function renderDetail(name){
 /* ---------- 상품 뷰 (노출 설정 반영) ---------- */
 function renderVisNote(){
   const v=shareCfg.visible;
-  const off=[['price','단가'],['makerName','제조사명'],['contact','연락처'],['name','제품명'],['docs','서류'],['test','테스트상세']].filter(([k])=>!v[k]).map(x=>x[1]);
+  const off=[['price','단가'],['makerName','제조사명'],['contact','연락처'],['docs','서류'],['test','테스트상세']].filter(([k])=>!v[k]).map(x=>x[1]);
   $('#visNote').innerHTML=off.length?('가린 항목: <b>'+off.join(' · ')+'</b> (Sourcing-os 메뉴 → 공유 설정에서 변경)'):'모든 항목 노출 중';
 }
-function prodName(p){ return shareCfg.visible.name ? dn(p) : (shareCfg.aliases[p.id]||'비공개 상품'); }
+function prodName(p){ const nm=dn(p); return (nm&&nm.trim())?nm:'미설정'; }
 function specText(p){ if(p.specs&&p.specs.length)return p.specs[p.specs.length-1].text||''; return p.spec||''; }
 function testSummary(p){
   const ts=p.tests||[]; if(!ts.length)return '없음';
@@ -340,11 +340,10 @@ function testSummary(p){
 function renderProducts(){
   const v=shareCfg.visible, grid=$('#pGrid'); if(!grid)return;
   let list=(state.products||[]).slice().sort((a,b)=>statusIdx(b)-statusIdx(a)||prodName(a).localeCompare(prodName(b)));
-  if(qp)list=list.filter(p=>{const hay=(prodName(p)+' '+(shareCfg.aliases[p.id]||'')+' '+(v.makerName?(p.maker||''):'')).toLowerCase();return hay.includes(qp);});
+  if(qp)list=list.filter(p=>{const hay=(prodName(p)+' '+(v.makerName?(p.maker||''):'')).toLowerCase();return hay.includes(qp);});
   if(!list.length){grid.innerHTML='<div class="empty">'+(qp?'검색 결과 없음':'상품이 없어요.')+'</div>';return;}
   grid.innerHTML=list.map(p=>{
     const ty=p.type==='패키지'?'세트':(p.type||'단품');
-    const alias=!v.name?`<span class="alias">${esc(shareCfg.aliases[p.id]||'가명미지정')}</span>`:'';
     const mk=v.makerName?esc(p.maker||'미입력'):'<span class="hid">비공개</span>';
     const ocm=oc.makers[p.maker];
     let order='<span class="hid">미지정</span>';
@@ -356,7 +355,7 @@ function renderProducts(){
     let test=esc(testSummary(p));if(v.test){const ph=(p.tests||[]).reduce((a,t)=>a+((t.photos||[]).length),0);if(ph)test+=' · 사진 '+ph;}
     const done=statusIdx(p)===2;
     return `<div class="pcard">
-      <div class="ph"><span class="pnm">${esc(prodName(p))}</span>${alias}<span class="pty2">${ty}</span></div>
+      <div class="ph"><span class="pnm">${esc(prodName(p))}</span><span class="pty2">${ty}</span></div>
       <div class="chips"><span class="chip ${done?'g':'b'}">${esc(p.stage||'후보')}</span><span class="chip">테스트 ${test}</span></div>
       <div class="kv">
         <span class="k">제조사</span><span class="v">${mk}</span>

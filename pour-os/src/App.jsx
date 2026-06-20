@@ -659,7 +659,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up,onDelete})=>{
   );
 };
 const TABS=[{id:"today",icon:"🏠",label:"오늘"},{id:"kpi",icon:"◎",label:"KPI"},{id:"projects",icon:"▦",label:"프로젝트"},{id:"calendar",icon:"▤",label:"캘린더"},{id:"more",icon:"⋯",label:"더보기"}];
-const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"mindmap",icon:"◈",label:"업무 보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"team",icon:"👤",label:"담당자"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"},{id:"guide",icon:"📖",label:"가이드"}];
+const MORE=[{id:"game",icon:"🎯",label:"내 주간"},{id:"mindmap",icon:"◈",label:"그로스보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"team",icon:"👤",label:"담당자"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"},{id:"guide",icon:"📖",label:"가이드"}];
 // 메뉴 그룹: 개인(나만 보는 내 것) vs 팀(모두 같이 보는 공유) — 출시·프로세스는 프로젝트 하위
 const NAV_GROUPS=[
   {label:"개인 · 나만", ids:["today","game","fixed","retro"]},
@@ -4981,7 +4981,7 @@ function GuidePage({D}){
         <p style={{margin:"10px 0 5px",fontSize:11,fontWeight:800,color:"#9CA3AF"}}>팀 · 공유</p>
         <Row l="◎ KPI" d="목표 트리(매출·운영·활동지표) · 매출 입력"/>
         <Row l="▦ 프로젝트" d="프로젝트별 🧩프로세스(업무 트리)·업무·활동지표 / 🚀프로세스 탭"/>
-        <Row l="◈ 업무 보드" d="개인 상세(담당자 트리·그로스보드) / 팀 전체 현황"/>
+        <Row l="◈ 그로스보드" d="개인 상세(담당자 트리·그로스보드) / 팀 전체 현황"/>
         <Row l="▤ 캘린더" d="일정·미팅"/>
       </Sec>
 
@@ -5177,11 +5177,17 @@ function pushKRSubtree(items,D,uid,isThisWeek,doneInP,krColors,baseDepth,opts={}
     if(dP>0)chips.push({t:"✅"+dP,c:"#0F5132",bg:"#D1F5E0"});
     const sig=signals?(signals.heotsimProjects.has(proj.id)?"heotsim":(signals.jamProjects.has(proj.id)?"jam":null)):null;
     items.push({id:pfx+proj.id,depth,label:proj.title,color:col,active:actT.length>0,chips,signal:sig,ref:{kind:"proj",id:proj.id}});
-    // 완료·진행중·보류는 개별 노드로 모두 노출, 순수 '할일(todo)'만 'N건'으로 묶음
-    const shownT=actT.filter(t=>t.status!=="todo");
-    const todoT=actT.filter(t=>t.status==="todo");
+    // 자식(말단)은 상태(완료·진행중·보류)별 개별 노드, 부모(하위 있는)는 컨테이너이므로 '할일'로 별도 표시.
+    const hasKids=(t)=>D.tasks.some(x=>x.parentId===t.id&&!x.isFixed);
+    const leaves=actT.filter(t=>!hasKids(t)), parents=actT.filter(t=>hasKids(t));
+    const shownT=leaves.filter(t=>t.status!=="todo");
+    const todoLeaves=leaves.filter(t=>t.status==="todo");
+    const stT=STATUS_MAP.todo;
     shownT.forEach(t=>{const st=STATUS_MAP[t.status]||STATUS_MAP.todo;items.push({id:pfx+t.id,depth:depth+1,label:t.title,color:st.color,active:true,leftTag:t.weekDay||null,chips:[{t:st.label,c:st.color,bg:st.bg}],ref:{kind:"task",id:t.id}});});
-    if(todoT.length){const st=STATUS_MAP.todo;items.push({id:pfx+proj.id+"__todo",depth:depth+1,label:`할일 ${todoT.length}건`,color:st.color,active:true});}
+    // 부모 task = 할일(컨테이너)로 별도 노출 — 자식 진행 상태와 무관
+    parents.forEach(t=>{const kc=taskKidsOf(D,t.id).length;items.push({id:pfx+t.id,depth:depth+1,label:t.title,color:stT.color,active:true,leftTag:t.weekDay||null,chips:[{t:"할일",c:stT.color,bg:stT.bg},{t:"하위 "+kc,c:"#6B7280",bg:"#F2F4F6"}],ref:{kind:"task",id:t.id}});});
+    // 나머지 말단 할일은 'N건'으로 묶음
+    if(todoLeaves.length){items.push({id:pfx+proj.id+"__todo",depth:depth+1,label:`할일 ${todoLeaves.length}건`,color:stT.color,active:true});}
   };
   D.mainKPIs.filter(mk=>krF==="all"||mk.id===krF).forEach(mk=>{
     const mkProjs=myP.filter(p=>p.mainKPIId===mk.id);if(!mkProjs.length)return;
@@ -5307,6 +5313,25 @@ function WeeklyTree({D,sel,isThisWeek,doneInP,krColors,krF,activeOnly,signals,on
       const skIds=[...new Set(mkProjs.map(p=>p.subKPIId).filter(Boolean))];
       const sks=skIds.map(id=>D.subKPIs.find(s=>s.id===id)).filter(Boolean);
       const noSkProjs=mkProjs.filter(p=>!p.subKPIId);
+      // 프로젝트 업무를 부모-자식 계층으로 렌더(자식은 하위로 들여쓰기). 활성=강조, 비활성=흐리게.
+      const renderTasks=(projTasks)=>{
+        const inSet=new Set(projTasks.map(t=>t.id));
+        const childrenOf=(pid)=>projTasks.filter(t=>(t.parentId||null)===(pid||null)).sort((a,b)=>(a.seq||0)-(b.seq||0));
+        const roots=projTasks.filter(t=>!t.parentId||!inSet.has(t.parentId)).sort((a,b)=>(a.seq||0)-(b.seq||0));
+        const node=(task)=>{const st=STATUS_MAP[task.status]||STATUS_MAP.todo;const kids=childrenOf(task.id);const act=isThisWeek(task);return(
+          <div key={task.id} style={{marginBottom:3}}>
+            <div onClick={()=>onPick({ref:{kind:"task",id:task.id}})} style={{display:"flex",alignItems:"center",gap:5,padding:"4px 9px",borderRadius:8,backgroundColor:act?col+"10":"transparent",border:`1px solid ${act?col+"44":"transparent"}`,cursor:"pointer",opacity:act?1:0.55}}>
+              <div style={{width:6,height:6,borderRadius:"50%",backgroundColor:act?col:"#D1D5DB",flexShrink:0}}/>
+              <span style={{fontSize:11.5,fontWeight:kids.length>0?800:700,color:task.status==="done"?"#9CA3AF":"#111827",textDecoration:task.status==="done"?"line-through":"none",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{task.title}</span>
+              {kids.length>0&&<span style={{fontSize:9,fontWeight:800,color:"#9CA3AF",flexShrink:0}}>하위 {kids.length}</span>}
+              {task.weekDay&&<span style={{fontSize:9,color:col,fontWeight:900,flexShrink:0}}>{task.weekDay}</span>}
+              <span style={{fontSize:9,fontWeight:700,color:st.color,backgroundColor:st.bg,padding:"1px 5px",borderRadius:4,flexShrink:0}}>{st.label}</span>
+            </div>
+            {kids.length>0&&<div style={{marginLeft:11,borderLeft:"1.5px dashed #E5E8EB",paddingLeft:3,marginTop:3}}>{kids.map(node)}</div>}
+          </div>
+        );};
+        return <div style={{marginLeft:23,borderLeft:"1.5px dashed #E5E8EB",paddingLeft:3}}>{roots.map(node)}</div>;
+      };
       return(
         <div key={mk.id} style={{marginBottom:20}}>
           <div style={{display:"flex",alignItems:"center",gap:0,marginBottom:6}}>
@@ -5368,34 +5393,7 @@ function WeeklyTree({D,sel,isThisWeek,doneInP,krColors,krF,activeOnly,signals,on
                               <span style={{fontSize:10,fontWeight:700,color:projActive?col:"#9CA3AF",flexShrink:0}}>{proj.progress}%</span>
                             </div>
                           </div>
-                          {projTasks.length>0&&(
-                            <div style={{marginLeft:23,borderLeft:"1.5px dashed #E5E8EB"}}>
-                              {thisWeekPT.map((task,tIdx)=>{const st=STATUS_MAP[task.status]||STATUS_MAP.todo;return(
-                                <div key={task.id} onClick={()=>onPick({ref:{kind:"task",id:task.id}})} style={{position:"relative",paddingLeft:14,marginBottom:3,cursor:"pointer"}}>
-                                  <div style={{position:"absolute",left:0,top:8,width:10,height:1.5,backgroundColor:col+"99"}}/>
-                                  <div style={{position:"absolute",left:0,top:0,width:1.5,height:tIdx===thisWeekPT.length-1&&prevPT.length===0?"10px":"100%",backgroundColor:"#E5E8EB"}}/>
-                                  <div style={{display:"flex",alignItems:"center",gap:5,padding:"5px 9px",borderRadius:8,backgroundColor:col+"10",border:`1.5px solid ${col}44`}}>
-                                    <div style={{width:6,height:6,borderRadius:"50%",backgroundColor:col,flexShrink:0}}/>
-                                    <span style={{fontSize:11.5,fontWeight:700,color:"#111827",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{task.title}</span>
-                                    <div style={{display:"flex",alignItems:"center",gap:3,flexShrink:0}}>
-                                      {task.weekDay&&<span style={{fontSize:9,color:col,fontWeight:900}}>{task.weekDay}</span>}
-                                      <span style={{fontSize:9,fontWeight:700,color:st.color,backgroundColor:st.bg,padding:"1px 5px",borderRadius:4}}>{st.label}</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              );})}
-                              {prevPT.map((task,tIdx)=>(
-                                <div key={task.id} onClick={()=>onPick({ref:{kind:"task",id:task.id}})} style={{position:"relative",paddingLeft:14,marginBottom:3,cursor:"pointer"}}>
-                                  <div style={{position:"absolute",left:0,top:7,width:10,height:1,backgroundColor:"#E5E8EB"}}/>
-                                  <div style={{position:"absolute",left:0,top:0,width:1.5,height:tIdx===prevPT.length-1?"9px":"100%",backgroundColor:"#F2F4F6"}}/>
-                                  <div style={{display:"flex",alignItems:"center",gap:5,padding:"4px 8px",borderRadius:7,opacity:0.45}}>
-                                    <div style={{width:5,height:5,borderRadius:"50%",backgroundColor:"#D1D5DB",flexShrink:0}}/>
-                                    <span style={{fontSize:10.5,color:"#9CA3AF",flex:1,textDecoration:task.status==="done"?"line-through":"none"}}>{task.title}</span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                          {projTasks.length>0&&renderTasks(projTasks)}
                         </div>
                       );
                     })}
@@ -5426,34 +5424,7 @@ function WeeklyTree({D,sel,isThisWeek,doneInP,krColors,krF,activeOnly,signals,on
                       <span style={{fontSize:10,fontWeight:700,color:projActive?col:"#9CA3AF",flexShrink:0}}>{proj.progress}%</span>
                     </div>
                   </div>
-                  {projTasks.length>0&&(
-                    <div style={{marginLeft:23,borderLeft:"1.5px dashed #E5E8EB"}}>
-                      {thisWeekPT.map((task,tIdx)=>{const st=STATUS_MAP[task.status]||STATUS_MAP.todo;return(
-                        <div key={task.id} onClick={()=>onPick({ref:{kind:"task",id:task.id}})} style={{position:"relative",paddingLeft:14,marginBottom:3,cursor:"pointer"}}>
-                          <div style={{position:"absolute",left:0,top:8,width:10,height:1.5,backgroundColor:col+"99"}}/>
-                          <div style={{position:"absolute",left:0,top:0,width:1.5,height:tIdx===thisWeekPT.length-1&&prevPT.length===0?"10px":"100%",backgroundColor:"#E5E8EB"}}/>
-                          <div style={{display:"flex",alignItems:"center",gap:5,padding:"5px 9px",borderRadius:8,backgroundColor:col+"10",border:`1.5px solid ${col}44`}}>
-                            <div style={{width:6,height:6,borderRadius:"50%",backgroundColor:col,flexShrink:0}}/>
-                            <span style={{fontSize:11.5,fontWeight:700,color:"#111827",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{task.title}</span>
-                            <div style={{display:"flex",alignItems:"center",gap:3,flexShrink:0}}>
-                              {task.weekDay&&<span style={{fontSize:9,color:col,fontWeight:900}}>{task.weekDay}</span>}
-                              <span style={{fontSize:9,fontWeight:700,color:st.color,backgroundColor:st.bg,padding:"1px 5px",borderRadius:4}}>{st.label}</span>
-                            </div>
-                          </div>
-                        </div>
-                      );})}
-                      {prevPT.map((task,tIdx)=>(
-                        <div key={task.id} onClick={()=>onPick({ref:{kind:"task",id:task.id}})} style={{position:"relative",paddingLeft:14,marginBottom:3,cursor:"pointer"}}>
-                          <div style={{position:"absolute",left:0,top:7,width:10,height:1,backgroundColor:"#E5E8EB"}}/>
-                          <div style={{position:"absolute",left:0,top:0,width:1.5,height:tIdx===prevPT.length-1?"9px":"100%",backgroundColor:"#F2F4F6"}}/>
-                          <div style={{display:"flex",alignItems:"center",gap:5,padding:"4px 8px",borderRadius:7,opacity:0.45}}>
-                            <div style={{width:5,height:5,borderRadius:"50%",backgroundColor:"#D1D5DB",flexShrink:0}}/>
-                            <span style={{fontSize:10.5,color:"#9CA3AF",flex:1,textDecoration:task.status==="done"?"line-through":"none"}}>{task.title}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  {projTasks.length>0&&renderTasks(projTasks)}
                 </div>
               );
             })}

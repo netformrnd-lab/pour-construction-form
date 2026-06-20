@@ -2988,8 +2988,8 @@ function undoAct(aid){
   save();render();renderActivity();
 }
 /* ---- 공유 설정(관리센터 노출 제어) — sourcing-os/share-config ---- */
-const SHARE_FIELDS=[['price','단가(판매가·원가)'],['makerName','제조사명'],['contact','제조사 담당자 연락처'],['docs','서류'],['test','테스트 상세']];
-const SHARE_DEFAULT={price:false,makerName:false,contact:true,docs:true,test:true};
+const SHARE_FIELDS=[['name','제품명'],['price','단가(판매가·원가)'],['makerName','제조사명'],['contact','제조사 담당자 연락처'],['docs','서류'],['test','테스트 상세']];
+const SHARE_DEFAULT={name:true,price:false,makerName:false,contact:true,docs:true,test:true};
 let shareCfg={visible:Object.assign({},SHARE_DEFAULT)};
 let shareLoaded=false;
 async function loadShareCfg(){

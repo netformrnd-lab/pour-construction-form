@@ -8,7 +8,6 @@
 <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <style>
   :root{
     --navy:#0F1B2D;--ink:#111827;--ink2:#374151;--muted:#6B7280;--line:#E5E7EB;--line2:#D1D5DB;
@@ -119,16 +118,15 @@
 </style>
 </head>
 <body>
-<!-- 로그인 게이트 -->
+<!-- PIN 게이트 -->
 <div id="gate">
   <div class="gbox">
     <h2>소싱 관리센터</h2>
     <p>제조사·출시상품·발주담당자 관리 (내부 전용)</p>
-    <label>이메일</label><input type="email" id="g_email" autocomplete="username" placeholder="관리 이메일">
-    <label>비밀번호</label><input type="password" id="g_pw" autocomplete="current-password" placeholder="비밀번호">
+    <label>비밀번호(PIN)</label><input type="password" id="g_pw" inputmode="numeric" autocomplete="off" placeholder="공용 PIN 입력">
     <label class="gkeep"><input type="checkbox" id="g_keep" checked> 이 기기에서 로그인 유지(1개월)</label>
-    <div class="gerr" id="g_err">이메일과 비밀번호를 입력하세요.</div>
-    <button class="gbtn" id="g_btn">로그인</button>
+    <div class="gerr" id="g_err">PIN을 입력하세요.</div>
+    <button class="gbtn" id="g_btn">입장</button>
   </div>
 </div>
 
@@ -173,9 +171,8 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 const FB_CFG={apiKey:"AIzaSyBbct9tO8nCUCjz4s9GnXQLkHuHe2FFyyU",authDomain:"pour-app-new.firebaseapp.com",projectId:"pour-app-new",storageBucket:"pour-app-new.firebasestorage.app",messagingSenderId:"411031141847",appId:"1:411031141847:web:e658174fd4b9652cdadf92"};
 const LOGIN_DAYS=30;
 const STAGES=['후보','샘플','테스트','협의','발주준비','출시완료'];
-let FS=null,FA=null,started=false;
+let FS=null,started=false;
 try{ if(!firebase.apps.length)firebase.initializeApp(FB_CFG); FS=firebase.firestore(); }catch(e){ console.error('[init] firestore',e); }
-try{ FA=firebase.auth(); }catch(e){ console.error('[init] auth',e); }
 
 let state={products:[],makers:[]};   // sourcing-os/state (읽기 전용)
 let oc={makers:{}};                  // sourcing-os/order-contacts (이 페이지에서 관리)
@@ -223,7 +220,7 @@ async function loadAll(){
 async function saveOC(){
   try{
     oc.updatedAt=new Date().toISOString();
-    oc.updatedBy=(FA&&FA.currentUser&&FA.currentUser.email)||'';
+    oc.updatedBy='관리센터(PIN)';
     await FS.collection('sourcing-os').doc('order-contacts').set(oc);
     setSync('저장됨 ✓','#059669');
     return true;
@@ -381,43 +378,59 @@ $('#pSearch').oninput=e=>{qp=e.target.value.toLowerCase().trim();renderProducts(
 /* ---------- 검색 ---------- */
 $('#mkSearch').oninput=e=>{q=e.target.value.toLowerCase().trim();renderList();};
 
-/* ---------- 로그인 ---------- */
+/* ---------- PIN 로그인 (공용 PIN · Sourcing-os 공유설정에서 지정) ---------- */
+// Sourcing-os에서 PIN 미설정 시 사용하는 기본 PIN. 설정 후에는 share-config.managePinHash 사용.
+const DEFAULT_PIN='1234';
+let managePinHash='';
+async function hashPin(pin){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pin));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
 function showGate(){$('#gate').classList.add('on');}
 function hideGate(){$('#gate').classList.remove('on');}
 function gErr(m){const e=$('#g_err');e.style.display='';e.textContent=m;}
-function gMap(c){return ({'auth/invalid-email':'이메일 형식이 올바르지 않아요.','auth/user-not-found':'등록되지 않은 계정이에요.','auth/wrong-password':'비밀번호가 틀렸어요.','auth/invalid-credential':'이메일 또는 비밀번호가 올바르지 않아요.','auth/too-many-requests':'시도가 많아 잠시 후 다시.','auth/network-request-failed':'네트워크 오류입니다.'}[c])||('로그인 실패: '+c);}
-function doLogin(){
-  if(!FA){gErr('인증 모듈 로드 실패. 새로고침 해주세요.');return;}
-  const email=($('#g_email').value||'').trim(),pw=$('#g_pw').value||'';
-  if(!email||!pw){gErr('이메일과 비밀번호를 입력하세요.');return;}
-  const P=firebase.auth.Auth.Persistence,keep=$('#g_keep').checked;
-  const b=$('#g_btn');b.disabled=true;b.textContent='로그인 중…';
-  FA.setPersistence(keep?P.LOCAL:P.SESSION)
-    .then(()=>FA.signInWithEmailAndPassword(email,pw))
-    .then(()=>{localStorage.setItem('sosm_loginAt',String(Date.now()));$('#g_pw').value='';$('#g_err').style.display='none';})
-    .catch(err=>{console.error('[auth]',err);gErr(gMap(err&&err.code));})
-    .finally(()=>{b.disabled=false;b.textContent='로그인';});
+async function fetchPinHash(){
+  try{
+    const sc=await FS.collection('sourcing-os').doc('share-config').get();
+    managePinHash=(sc.exists&&sc.data().managePinHash)||'';
+  }catch(e){console.error('[pin] 설정 로드 실패:',e);managePinHash='';}
+  if(!managePinHash)managePinHash=await hashPin(DEFAULT_PIN);
+}
+async function doLogin(){
+  const pw=$('#g_pw').value||'';
+  if(!pw){gErr('PIN을 입력하세요.');return;}
+  const b=$('#g_btn');b.disabled=true;b.textContent='확인 중…';
+  try{
+    const h=await hashPin(pw);
+    if(h===managePinHash){
+      const keep=$('#g_keep').checked;
+      const exp=keep?(Date.now()+LOGIN_DAYS*864e5):0;
+      localStorage.setItem('sosm_pinAt',String(Date.now()));
+      localStorage.setItem('sosm_pinExp',String(exp));
+      localStorage.setItem('sosm_pinH',h);
+      $('#g_pw').value='';$('#g_err').style.display='none';
+      $('#who').textContent='입장됨';
+      hideGate();
+      if(!started){started=true;loadAll();}
+    }else{ gErr('PIN이 올바르지 않아요.'); }
+  }catch(e){ console.error('[pin]',e); gErr('확인 실패. 새로고침 해주세요.'); }
+  finally{ b.disabled=false;b.textContent='입장'; }
 }
 $('#g_btn').onclick=doLogin;
 $('#g_pw').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();doLogin();}});
-$('#g_email').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#g_pw').focus();}});
-$('#logout').onclick=()=>{if(confirm('로그아웃 할까요?')){localStorage.removeItem('sosm_loginAt');if(FA)FA.signOut();}};
+$('#logout').onclick=()=>{if(confirm('나가시겠어요?')){localStorage.removeItem('sosm_pinAt');localStorage.removeItem('sosm_pinExp');localStorage.removeItem('sosm_pinH');location.reload();}};
 
-if(FA){
-  FA.onAuthStateChanged(user=>{
-    $('#who').textContent=user?('로그인: '+(user.email||'')):'';
-    if(user){
-      const t=Number(localStorage.getItem('sosm_loginAt')||0);
-      if(t&&Date.now()-t>LOGIN_DAYS*864e5){localStorage.removeItem('sosm_loginAt');FA.signOut();showGate();return;}
-      if(!t)localStorage.setItem('sosm_loginAt',String(Date.now()));
-      hideGate();
-      if(!started){started=true;loadAll();}
-    }else{ showGate(); }
-  });
-}else{
-  // 인증 모듈 없으면(드묾) 게이트 없이 동작
-  hideGate();loadAll();
-}
+(async ()=>{
+  if(!FS){alert('Firestore 초기화 실패. 새로고침 해주세요.');return;}
+  await fetchPinHash();
+  // 저장된 입장 상태 검증: 만료 안 됐고, 저장된 해시가 현재 PIN과 일치할 때만 통과
+  const exp=Number(localStorage.getItem('sosm_pinExp')||0);
+  const savedH=localStorage.getItem('sosm_pinH')||'';
+  if(savedH&&savedH===managePinHash&&exp&&Date.now()<exp){
+    $('#who').textContent='입장됨';hideGate();
+    if(!started){started=true;loadAll();}
+  }else{ showGate();setTimeout(()=>{const i=$('#g_pw');if(i)i.focus();},100); }
+})();
 </script>
 </body>
 </html>

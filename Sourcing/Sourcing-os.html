@@ -82,6 +82,12 @@
   .step.done{background:var(--blue-pale);color:var(--blue)}
   .step.active{background:var(--blue);color:#fff}
 
+  /* 상세 내 섹션 탭 (스크롤 단축) */
+  .dtabs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 14px;margin-bottom:2px}
+  .dtabs::-webkit-scrollbar{height:0}
+  .dtab{flex:0 0 auto;padding:9px 15px;border-radius:999px;background:var(--surface);border:1px solid var(--border2);font-size:13px;font-weight:700;color:var(--ink2);white-space:nowrap}
+  .dtab.on{background:var(--navy);border-color:var(--navy);color:#fff}
+
   /* section card */
   .sec{background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow);border-radius:var(--r);padding:22px;margin-bottom:14px}
   .sec-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px}
@@ -1294,6 +1300,7 @@ let stageFilter=null;
 let typeFilter='전체';
 let baseFilter='';
 let ideaPendingPhoto=null;
+let detailGrp='개요';
 let selectMode=false;
 const selected=new Set();
 const PROG_STAGES=['샘플','테스트','협의','발주준비'];
@@ -1324,7 +1331,14 @@ function syncEmpty(){
     $('#firstAdd').onclick=()=>openProd(null);$('#seed').onclick=loadSample;
   }
 }
-function openDetail(id){state.sel=id;ovAttOpen=false;save();renderMain();renderList();openOverlay('detailOverlay');$('#detailOverlay').scrollTop=0;}
+function openDetail(id){state.sel=id;ovAttOpen=false;detailGrp='개요';save();renderMain();renderList();openOverlay('detailOverlay');$('#detailOverlay').scrollTop=0;}
+function applyDetailTabs(){
+  const tabs=document.querySelectorAll('#dtabs .dtab');if(!tabs.length)return;
+  const grps=[...document.querySelectorAll('#main .dgrp')];
+  if(!grps.some(g=>g.dataset.grp===detailGrp))detailGrp='개요';
+  grps.forEach(g=>{g.style.display=g.dataset.grp===detailGrp?'':'none';});
+  tabs.forEach(b=>{b.classList.toggle('on',b.dataset.grp===detailGrp);b.onclick=()=>{detailGrp=b.dataset.grp;applyDetailTabs();const d=$('#detailOverlay');if(d)d.scrollTop=0;};});
+}
 function syncTypeRows(){const t=$('#p_type').value;$('#bundleRow').style.display=(t==='패키지')?'':'none';$('#baseRow').style.display=(t==='파생')?'':'none';}
 let vtMode='파생',vtBase=null,vtEdit=null;
 function openVariant(mode,baseId,editId){
@@ -1710,6 +1724,14 @@ function renderMain(){
       <div class="stepper" id="stepper">${steps}</div>
     </div>
 
+    <div class="dtabs" id="dtabs">
+      <button class="dtab" data-grp="개요">개요</button>
+      <button class="dtab" data-grp="상품화">상품화 · 아이디어</button>
+      <button class="dtab" data-grp="검증">테스트 · 인증 · 서류</button>
+      <button class="dtab" data-grp="소싱">소싱 · 충진</button>
+    </div>
+
+    <div class="dgrp" data-grp="개요">
     <div class="sec">
       <div class="sec-h"><div class="t">제품 개요</div><button class="mini" id="editOv">수정</button></div>
       <div class="ovwrap">
@@ -1752,6 +1774,9 @@ function renderMain(){
       </div>
     </div>
 
+    </div>
+
+    <div class="dgrp" data-grp="상품화" style="display:none">
     ${typeSectionHTML(p)}
 
     <div class="sec">
@@ -1770,7 +1795,9 @@ function renderMain(){
       <div class="sec-h"><div class="t">판매가 설정</div><button class="mini or" id="openPrice">${(p.pricing&&p.pricing.sell)?'수정':'설정하기'}</button></div>
       <div id="priceBody"></div>
     </div>
+    </div>
 
+    <div class="dgrp" data-grp="검증" style="display:none">
     <div class="sec">
       <div class="sec-h"><div class="t">제품 테스트 <b>${p.tests.length}</b></div></div>
       <div class="testadd">
@@ -1794,7 +1821,9 @@ function renderMain(){
       <div class="sec-h"><div class="t">서류 <b>${p.docs.length}</b> <span style="font-weight:600;color:var(--muted);font-size:12px">· MSDS · TDS · 추가</span></div><button class="mini or" id="addDoc">+ 서류</button></div>
       <div id="doclist"></div>
     </div>
+    </div>
 
+    <div class="dgrp" data-grp="소싱" style="display:none">
     <div class="sec">
       <div class="sec-h"><div class="t">소싱 정보</div><button class="mini" id="editInfo">수정</button></div>
       <div class="kv">
@@ -1816,6 +1845,7 @@ function renderMain(){
         <div><div class="k">IBC탱크 회수</div>${val(p.ibc)}</div>
         <div><div class="k">스티커 라벨</div>${val(p.label)}</div>
       </div>
+    </div>
     </div>`;
 
   $('#editProd').onclick=()=>openProd(p.id);
@@ -1825,6 +1855,7 @@ function renderMain(){
   $('#editOv').onclick=()=>openProd(p.id);
   wireOverviewAttach(p);
   wireIdeas(p);
+  applyDetailTabs();
   $('#openPrice').onclick=()=>openPrice(p.id);
   const eb=$('#editBundle');if(eb)eb.onclick=()=>openVariant('세트',p.baseId||p.id,p.id);
   const ad=$('#addDeriv');if(ad)ad.onclick=()=>openVariant('파생',p.id);

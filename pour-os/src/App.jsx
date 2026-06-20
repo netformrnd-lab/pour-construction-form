@@ -351,6 +351,8 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up})=>{
   const [prevId,setPrevId]=useState(null);
   const [uploading,setUploading]=useState(false);
   const [dropOver,setDropOver]=useState(false);
+  const [advOpen,setAdvOpen]=useState(false);   // 프로세스 위치·하위 업무 편집 펼침(기본 접힘)
+  const [histOpen,setHistOpen]=useState(false);  // 진행 이력 펼침(기본 접힘)
   if(task&&task.id!==prevId){setPrevId(task.id);setForm({title:task.title||"",status:task.status||"todo",dueDate:task.dueDate||"",memo:task.memo||"",projectId:task.projectId||"",assigneeId:task.assigneeId||"",assigneeIds:Array.isArray(task.assigneeIds)&&task.assigneeIds.length?task.assigneeIds:(task.assigneeId?[task.assigneeId]:[]),forAll:!!task.forAll,parentId:task.parentId||"",attachments:Array.isArray(task.attachments)?task.attachments:[],weekDay:task.weekDay||"",weekSlot:task.weekSlot??null,workDate:task.workDate||"",fixedTime:task.fixedTime||""});}
   if(!task&&prevId!==null){setPrevId(null);setForm({title:"",status:"todo",dueDate:"",memo:"",projectId:"",assigneeId:"",assigneeIds:[],forAll:false,attachments:[],weekDay:"",weekSlot:null,workDate:"",fixedTime:""});}
   // 날짜 선택 → 요일·슬롯 자동 배정(담당자의 그 요일 빈 슬롯 중 가장 앞, 없으면 슬롯 없이 그날에)
@@ -409,8 +411,12 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up})=>{
           const addChild=()=>{ if(!add)return; add("tasks",{id:"t"+Date.now()+Math.random().toString(36).slice(2,5),projectId:task.projectId||"",parentId:task.id,seq:taskKidsOf(D,task.id).length,title:"새 하위 업무",status:"todo",isFixed:false,assigneeId:task.assigneeId||"",memo:"",dueDate:"",attachments:[]}); };
           return(
             <div style={{marginBottom:14,padding:"11px 12px",background:"#F9FAFB",borderRadius:12,border:"1px solid #F2F4F6"}}>
-              <p style={{margin:"0 0 7px",fontSize:11.5,fontWeight:800,color:"#374151"}}>🧩 프로세스 위치 <span style={{fontWeight:600,color:"#9CA3AF"}}>(상위 경로 · 하위 업무 {desc.length})</span></p>
-              {(proj||chain.length>0)&&<p style={{margin:"0 0 8px",fontSize:11,color:"#6B7280",lineHeight:1.55}}>{[proj&&("📁 "+proj.title),...chain.map(c=>c.title)].filter(Boolean).join("  ▸  ")}{"  ▸  "}<b style={{color:"#0F1F5C"}}>{form.title||task.title}</b></p>}
+              <button type="button" onClick={()=>setAdvOpen(o=>!o)} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>
+                <span style={{fontSize:11.5,fontWeight:800,color:"#374151"}}>🧩 프로세스 위치 <span style={{fontWeight:600,color:"#9CA3AF"}}>(하위 업무 {desc.length})</span></span>
+                <span style={{fontSize:11,fontWeight:800,color:"#9CA3AF"}}>{advOpen?"접기 ▴":"상위·하위 편집 ▾"}</span>
+              </button>
+              {(proj||chain.length>0)&&<p style={{margin:"7px 0 0",fontSize:11,color:"#6B7280",lineHeight:1.55}}>{[proj&&("📁 "+proj.title),...chain.map(c=>c.title)].filter(Boolean).join("  ▸  ")}{"  ▸  "}<b style={{color:"#0F1F5C"}}>{form.title||task.title}</b></p>}
+              {advOpen&&<div style={{marginTop:8}}>
               {(()=>{ const exclude=new Set([task.id,...taskDescFlat(D,task.id).map(x=>x.t.id)]); const cands=(D.tasks||[]).filter(x=>!x.isFixed&&x.projectId===form.projectId&&!exclude.has(x.id)); return(
                 <div style={{marginBottom:8}}>
                   <span style={{fontSize:10.5,fontWeight:700,color:"#6B7280"}}>상위 업무(부모) — 어느 단계의 하위로?</span>
@@ -434,6 +440,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up})=>{
                 </div>
               ):<p style={{margin:0,fontSize:11,color:"#9CA3AF"}}>하위 업무가 아직 없어요</p>}
               <button onClick={addChild} style={{width:"100%",marginTop:8,padding:"8px 0",borderRadius:9,border:"1.5px dashed #FDBA74",background:"#FFF7ED",color:"#EA580C",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>＋ 하위 업무 추가</button>
+              </div>}
             </div>
           );
         })()}
@@ -446,11 +453,18 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up})=>{
           </div>
           {form.status!==(task&&task.status)&&<p style={{margin:"6px 2px 0",fontSize:10.5,color:"#EA580C",fontWeight:700}}>저장하면 이 상태 변경이 진행 이력에 날짜와 함께 기록돼요</p>}
         </div>
-        {task&&((task.statusLog&&task.statusLog.length)||task.doneAt)&&(
+        {task&&((task.statusLog&&task.statusLog.length)||task.doneAt)&&(()=>{
+          const log=(task.statusLog&&task.statusLog.length?task.statusLog:(task.doneAt?[{status:"done",at:task.doneAt,byName:task.doneByName}]:[]));
+          const last=log[log.length-1]||{};const lst=STATUS_MAP[last.status]||{};
+          return(
           <div style={{marginBottom:14,padding:"10px 12px",background:"#F9FAFB",borderRadius:12,border:"1px solid #F2F4F6"}}>
-            <p style={{margin:"0 0 8px",fontSize:11.5,fontWeight:800,color:"#374151"}}>🧭 진행 이력 <span style={{fontWeight:600,color:"#9CA3AF"}}>(상태가 바뀔 때마다 자동 기록)</span></p>
+            <button type="button" onClick={()=>setHistOpen(o=>!o)} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>
+              <span style={{fontSize:11.5,fontWeight:800,color:"#374151"}}>🧭 진행 이력 <span style={{fontWeight:600,color:"#9CA3AF"}}>({log.length}건{histOpen?"":` · 최근 ${lst.label||last.status||""}`})</span></span>
+              <span style={{fontSize:11,fontWeight:800,color:"#9CA3AF"}}>{histOpen?"접기 ▴":"보기 ▾"}</span>
+            </button>
+            {histOpen&&<div style={{marginTop:8}}>
             <div style={{display:"flex",flexDirection:"column",gap:0}}>
-              {(task.statusLog&&task.statusLog.length?task.statusLog:(task.doneAt?[{status:"done",at:task.doneAt,byName:task.doneByName}]:[])).map((e,i,arr)=>{const st=STATUS_MAP[e.status]||{};const isLast=i===arr.length-1;return(
+              {log.map((e,i,arr)=>{const st=STATUS_MAP[e.status]||{};const isLast=i===arr.length-1;return(
                 <div key={i} style={{display:"flex",alignItems:"flex-start",gap:9}}>
                   <div style={{display:"flex",flexDirection:"column",alignItems:"center",flexShrink:0}}>
                     <span style={{width:9,height:9,borderRadius:"50%",background:st.color||"#9CA3AF",marginTop:4}}/>
@@ -464,8 +478,10 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up})=>{
               );})}
             </div>
             {task.doneAt&&<p style={{margin:"6px 0 0",fontSize:10.5,fontWeight:800,color:"#00A862"}}>✅ 완료일: {task.doneAt.slice(0,16).replace("T"," ")}</p>}
+            </div>}
           </div>
-        )}
+          );
+        })()}
         {task&&task.isFixed?(
         <div style={{marginBottom:14}}>
           <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>🕐 시간 <span style={{color:"#9CA3AF",fontWeight:600}}>(반복 시각 — 선택)</span></label>
@@ -551,7 +567,9 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up})=>{
           </div>
           <p style={{margin:"6px 2px 0",fontSize:10,color:"#9CA3AF"}}>{task?"끌어다 놓기(드래그&드롭) · 사진은 붙여넣기(⌘/Ctrl+V)로 바로 첨부 · 클릭 선택도 가능":"먼저 저장하면 첨부할 수 있어요"} · 사진·PDF·문서(워드/엑셀/한글) 각 20MB 이내</p>
         </div>
-        <button onClick={doSave} disabled={!form.title.trim()||uploading} style={{width:"100%",padding:"14px 0",borderRadius:14,border:"none",backgroundColor:form.title.trim()&&!uploading?"#F97316":"#E5E8EB",color:form.title.trim()&&!uploading?"#FFFFFF":"#9CA3AF",fontSize:15,fontWeight:700,cursor:form.title.trim()&&!uploading?"pointer":"not-allowed",fontFamily:"inherit"}}>저장하기</button>
+        <div style={{position:"sticky",bottom:0,zIndex:5,margin:"4px -18px 0",padding:"12px 18px",paddingBottom:"calc(12px + env(safe-area-inset-bottom))",background:"#fff",borderTop:"1px solid #EEF1F4",boxShadow:"0 -6px 18px rgba(0,0,0,0.05)"}}>
+          <button onClick={doSave} disabled={!form.title.trim()||uploading} style={{width:"100%",padding:"14px 0",borderRadius:14,border:"none",backgroundColor:form.title.trim()&&!uploading?"#F97316":"#E5E8EB",color:form.title.trim()&&!uploading?"#FFFFFF":"#9CA3AF",fontSize:15,fontWeight:700,cursor:form.title.trim()&&!uploading?"pointer":"not-allowed",fontFamily:"inherit"}}>저장하기</button>
+        </div>
       </div>
     </Sheet>
   );
@@ -1121,6 +1139,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const [viewDay,setViewDay]=useState(WEEK_DAYS.includes(today)?today:"월");   // 모바일 단일요일 보기(오늘 기준 시작)
   const [taskFilter,setTaskFilter]=useState("todo");   // 내 업무 상태 필터: todo|inprogress|done|hold
   const [qa,setQa]=useState({title:"",status:"todo",workDate:"",weekDay:"",weekSlot:null,projectId:""});   // 내 업무 빠른 등록
+  const [qaMore,setQaMore]=useState(false);   // 빠른 등록 추가옵션(상태·프로젝트) 펼침 — 기본 접힘
   const todayKey=new Date().toISOString().slice(0,10);
   // 이번 주 팀 활동로그 — 완료업무·매출·KPI실적·목표지표를 한 흐름으로 집계
   const wkNow=weekKey();
@@ -1498,7 +1517,9 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                   <button key={lbl} onClick={()=>setQa({...qa,...qaPlace(ds)})} style={{padding:"5px 10px",borderRadius:8,border:`1.5px solid ${on?"#F97316":"#E5E8EB"}`,background:on?"#F97316":"#fff",color:on?"#fff":"#9CA3AF",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{lbl}</button>
                 );})}
                 <input type="date" value={qa.workDate||""} onChange={e=>setQa({...qa,...qaPlace(e.target.value)})} style={{padding:"4px 7px",borderRadius:8,border:"1.5px solid #E5E8EB",fontSize:11,outline:"none",fontFamily:"inherit",boxSizing:"border-box"}}/>
+                <button onClick={()=>setQaMore(m=>!m)} style={{marginLeft:"auto",padding:"5px 9px",borderRadius:8,border:`1.5px solid ${qaMore?"#F97316":"#FDBA74"}`,background:qaMore?"#FFEDD5":"#fff",color:"#EA580C",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{qaMore?"옵션 접기 ▴":"상태·프로젝트 ▾"}</button>
               </div>
+              {qaMore&&<>
               <div style={{display:"flex",gap:5,marginTop:6,flexWrap:"wrap",alignItems:"center"}}>
                 <span style={{fontSize:10,fontWeight:800,color:"#9A3412",marginRight:1}}>🚦</span>
                 {Object.entries(STATUS_MAP).map(([k,v])=>{const on=qa.status===k;return(
@@ -1512,6 +1533,10 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
                 </select>
                 <span style={{position:"absolute",right:9,top:"50%",transform:"translateY(-50%)",pointerEvents:"none",fontSize:10,color:qa.projectId?"#F97316":"#9CA3AF"}}>▼</span>
               </div>
+              </>}
+              {!qaMore&&(qa.status!=="todo"||qa.projectId)&&(
+                <p style={{margin:"6px 2px 0",fontSize:10,fontWeight:700,color:"#9A3412"}}>{qa.status!=="todo"?`🚦 ${STATUS_MAP[qa.status].label}`:""}{qa.status!=="todo"&&qa.projectId?" · ":""}{qa.projectId?`📁 ${(D.projects.find(p=>p.id===qa.projectId)||{}).title||""}`:""}</p>
+              )}
             </div>
             <div style={{display:"flex",gap:6,marginBottom:12}}>
               {FILTERS.map(([k,l,c])=>{const on=taskFilter===k;const n=cnt(k);return(

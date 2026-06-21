@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { STATE_DOC, colDoc, META_DOC, LOCK_DOC, db, runTransaction, extDoc, extCol, getDoc, getDocs, onSnapshot, setDoc, uploadTaskPhoto, deleteTaskPhoto } from "./firebase.js";
 import { idbSaveMirror, idbLoadMirror, idbPushSnapshot, idbListSnapshots, idbGetSnapshot } from "./durable.js";
 import { numF, skCur, mkCur, calcSegDone } from "./kpi.js";
@@ -2825,7 +2826,7 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
     onClose();
   };
   const sel=items.find(x=>x.id===selId);
-  return(
+  return createPortal((
     <div style={{position:"fixed",inset:0,zIndex:1500,background:"#F9FAFB",display:"flex",flexDirection:"column"}}>
       <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",color:"#fff",padding:"13px 16px",display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
         <button onClick={onClose} style={{background:"none",border:"none",color:"#fff",fontSize:22,cursor:"pointer",lineHeight:1}}>×</button>
@@ -2922,7 +2923,7 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
         <p style={{margin:"12px 4px 0",fontSize:10.5,color:"#9CA3AF",lineHeight:1.6}}>※ 여기 항목이 곧 프로젝트의 실제 업무입니다. 체크=완료(진행률 자동). <b>저장</b>하면 업무목록·오늘에 반영됩니다.</p>
       </div>
     </div>
-  );
+  ),document.body);
 }
 // 프로젝트 로드맵 — 최상위 로드단계 + 로드단계별 담당/논의 + 프로세스 연결
 // 프로젝트의 여정(로드단계+프로세스 트리)을 재사용용 로드맵 템플릿 트리로 추출
@@ -3101,7 +3102,7 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
     up("projects",proj.id,{sourceManualId:id,sourceManualName:mname,sourceManualVersion:1});   // 로드맵 템플릿 연결 + 이름 박제(이후 '갱신' 가능, 삭제돼도 기록 유지)
     window.alert("📋 로드맵 템플릿으로 저장됐어요\n이 프로젝트는 템플릿에 연결돼, 다음에 고치면 '갱신'할 수 있어요");
   };
-  return(
+  return createPortal((
     <div style={{position:"fixed",inset:0,zIndex:1500,background:"#F9FAFB",display:"flex",flexDirection:"column"}}>
       <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",color:"#fff",padding:"13px 16px",display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
         <button onClick={onClose} style={{background:"none",border:"none",color:"#fff",fontSize:22,cursor:"pointer",lineHeight:1}}>×</button>
@@ -3271,7 +3272,7 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
         );})()}
       </Sheet>
     </div>
-  );
+  ),document.body);
 }
 function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
   const [roadmapProj,setRoadmapProj]=useState(null);

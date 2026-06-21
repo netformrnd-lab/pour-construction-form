@@ -157,6 +157,14 @@
   .ocm-h{display:flex;align-items:center;justify-content:space-between;padding:18px 18px 2px}
   .ocm-h h3{font-size:16px;font-weight:800}
   .ocm-x{width:30px;height:30px;border-radius:50%;background:var(--cream);font-size:14px;color:var(--muted)}
+  /* 컷 체크리스트 */
+  .cutlist{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 6px}
+  .cutitem{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:9px;border:1px solid var(--line);background:#fff;font-size:13px;font-weight:700;color:var(--ink2);cursor:pointer}
+  .cutitem .cbx{width:16px;height:16px;border-radius:5px;border:1.5px solid var(--line2);display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:#fff}
+  .cutitem.done{border-color:var(--green);background:var(--green-pale);color:var(--green)}
+  .cutitem.done .cbx{background:var(--green);border-color:var(--green)}
+  .cutitem .opt-tag{font-size:10px;font-weight:700;color:var(--muted);margin-left:2px}
+  .cutbadge{font-size:11px;font-weight:800;color:var(--blue);background:var(--blue-pale);padding:3px 8px;border-radius:7px;margin-left:auto}
 </style>
 </head>
 <body>
@@ -239,6 +247,11 @@ const won=n=>(Number(n)||0).toLocaleString('ko-KR');
 const PLAN_STATUS=['아이디어','검토중','승인','보류'];
 const PLAN_ST_LABEL={'아이디어':'아이디어','검토중':'검토중(보고)','승인':'승인(작업시작)','보류':'보류'};
 const PLAN_ST_COLOR={'아이디어':['#EFF6FF','#2563EB'],'검토중':['#FEF3C7','#B45309'],'승인':['#ECFDF5','#059669'],'보류':['#F3F4F6','#6B7280']};
+// 상품 컨텐츠 기획 — 기본 컷 체크리스트
+const CONTENT_CUTS=['대표컷','누끼컷','구성컷','디테일컷','연출/사용컷','옵션별컷','사이즈/스펙컷'];
+const CUT_OPTIONAL=new Set(['옵션별컷','사이즈/스펙컷']);
+function planCuts(p){const saved=(p.contentPlan&&Array.isArray(p.contentPlan.cuts))?p.contentPlan.cuts:[];return CONTENT_CUTS.map(k=>{const s=saved.find(c=>c.key===k);return {key:k,need:s?s.need!==false:!CUT_OPTIONAL.has(k),done:s?!!s.done:false};});}
+function cutCore(p){const need=planCuts(p).filter(c=>!CUT_OPTIONAL.has(c.key));return {done:need.filter(c=>c.done).length,total:need.length};}
 
 function setSync(txt,color){const t=$('#saveTxt');if(t)t.textContent=txt;const d=document.querySelector('header .dot');if(d&&color)d.style.background=color;}
 const dn=p=>(p&&p.goods)?(p.name+'('+p.goods+')'):(p?p.name:'');
@@ -448,11 +461,12 @@ function renderMgPlans(){
     const photos=(p.photos||[]).filter(x=>x&&(x.url||x.data));
     const thumbs=photos.slice(0,5).map(x=>`<img src="${esc(x.url||x.data)}">`).join('');
     const needs=(p.needs||[]).map(n=>`<span class="nc">${esc(n)}</span>`).join('');
+    const cp=cutCore(p);
     return `<div class="plc" data-pid="${esc(p.id)}">
       <div class="t">${esc(p.title||'(제목 없음)')}<span class="bd">${esc(p.source||'기타')}</span><span class="plst" style="background:${col[0]};color:${col[1]}">${PLAN_ST_LABEL[p.status]||esc(p.status||'')}</span></div>
       ${p.marketMemo?`<div class="mk">${esc(p.marketMemo)}</div>`:''}
       ${thumbs?`<div class="th">${thumbs}</div>`:''}
-      <div class="ft" style="margin-top:7px">${needs}${(p.comments&&p.comments.length)?`<span style="font-size:11.5px;color:var(--muted);font-weight:600;margin-left:auto">💬 ${p.comments.length}</span>`:''}</div>
+      <div class="ft" style="margin-top:7px">${needs}<span class="cutbadge">📸 컷 ${cp.done}/${cp.total}</span>${(p.comments&&p.comments.length)?`<span style="font-size:11.5px;color:var(--muted);font-weight:600;margin-left:8px">💬 ${p.comments.length}</span>`:''}</div>
     </div>`;
   }).join('');
   box.querySelectorAll('[data-pid]').forEach(c=>c.onclick=()=>openMgPlan(c.dataset.pid));
@@ -476,6 +490,8 @@ function openMgPlan(id){
     <div class="mgp-lbl">진행 상태</div>
     <div class="seg" id="mgp_status">${PLAN_STATUS.map(s=>`<button data-s="${s}" class="${(p.status||'아이디어')===s?'on':''}">${PLAN_ST_LABEL[s]}</button>`).join('')}</div>
     <button class="save-btn" id="mgp_save" style="margin-top:12px">상태 저장</button>
+    <div class="mgp-lbl">상품 컨텐츠 기획 · 컷 체크리스트 <span id="mgp_cutlbl" style="color:var(--muted);font-weight:600;font-size:11.5px"></span></div>
+    <div class="cutlist" id="mgp_cuts"></div>
     <div class="mgp-lbl">진행 메모 / 댓글</div>
     <div id="mgp_comments"></div>
     <div class="mgp-cadd"><input id="mgp_cinput" placeholder="검토 의견·결정사항 입력"><button id="mgp_cadd">추가</button></div>`;
@@ -486,6 +502,17 @@ function openMgPlan(id){
     $('#mgp_comments').innerHTML=cs.length?cs.slice().reverse().map(c=>`<div class="mgp-cmt"><div class="m">${esc(c.text||'')}</div><div class="meta">${esc(c.by||'')} · ${esc((c.at||'').replace('T',' ').slice(0,16))}</div></div>`).join(''):'<div class="meta" style="font-size:11.5px;color:var(--muted)">아직 메모가 없어요.</div>';
   }
   renderC();
+  function renderCuts(){
+    const box=$('#mgp_cuts');if(!box)return;
+    box.innerHTML=planCuts(p).map(c=>`<button type="button" class="cutitem${c.done?' done':''}" data-cut="${esc(c.key)}"><span class="cbx">${c.done?'✓':''}</span>${esc(c.key)}${CUT_OPTIONAL.has(c.key)?'<span class="opt-tag">선택</span>':''}</button>`).join('');
+    const pr=cutCore(p);const lbl=$('#mgp_cutlbl');if(lbl)lbl.textContent='확보 '+pr.done+'/'+pr.total;
+    box.querySelectorAll('[data-cut]').forEach(b=>b.onclick=async()=>{
+      const merged=planCuts(p);const t=merged.find(x=>x.key===b.dataset.cut);if(t)t.done=!t.done;
+      p.contentPlan={cuts:merged};p.updatedAt=new Date().toISOString();
+      renderCuts();renderMgPlans();await savePlans();
+    });
+  }
+  renderCuts();
   $('#mgp_save').onclick=async()=>{
     const btn=$('#mgp_save');btn.disabled=true;btn.textContent='저장 중…';
     p.status=curStatus;p.updatedAt=new Date().toISOString();

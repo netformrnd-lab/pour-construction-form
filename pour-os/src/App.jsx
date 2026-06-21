@@ -2147,7 +2147,7 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   );
 }
 function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro}){
-  const [kpiView,setKpiView]=useState("dashboard");
+  const [kpiView,setKpiView]=useState("lag");   // lag(후행지표) | lead(선행지표) | mindmap(전체 맵)
   const [openMK,setOpenMK]=useState("mk1");
   const [openSK,setOpenSK]=useState(null);
   const [openContrib,setOpenContrib]=useState(null);   // 채널별 기여분석 펼침
@@ -2231,11 +2231,11 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro
   return(
     <div style={{padding:"14px 16px 20px"}}>
       <div style={{display:"flex",backgroundColor:"#F2F4F6",borderRadius:14,padding:4,marginBottom:14}}>
-        {[{k:"dashboard",l:"◎ KPI 현황"},{k:"mindmap",l:"◈ 전체 맵"}].map(v=>(
+        {[{k:"lag",l:"🎯 후행지표"},{k:"lead",l:"⚡ 선행지표"},{k:"mindmap",l:"◈ 전체 맵"}].map(v=>(
           <button key={v.k} onClick={()=>setKpiView(v.k)} style={{flex:1,padding:"9px 0",borderRadius:11,border:"none",cursor:"pointer",backgroundColor:kpiView===v.k?"#FFFFFF":"transparent",color:kpiView===v.k?"#0F1F5C":"#6B7280",fontWeight:kpiView===v.k?800:500,fontSize:13,fontFamily:"inherit",boxShadow:kpiView===v.k?"0 1px 4px rgba(0,0,0,0.1)":"none"}}>{v.l}</button>
         ))}
       </div>
-      {kpiView==="dashboard"&&(
+      {kpiView==="lag"&&(
         <div>
           {(()=>{
             // 팀 전체 프로젝트 마감 — 지연 + 이번 주 마감 예정 (완료 제외)
@@ -2281,31 +2281,6 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro
               </div>
             );
           })}
-          {(()=>{
-            // 수치목표 롤업 — 전 프로젝트 목표지표(activityKPIs)를 지표명으로 합산(매출 아님)
-            const agg={};
-            D.projects.forEach(pr=>(pr.activityKPIs||[]).forEach(ak=>{const k=ak.name||"기타";if(!agg[k])agg[k]={name:k,unit:ak.unit||"",cur:0,tgt:0,cnt:0,projs:[]};agg[k].cur+=numF(ak.current);agg[k].tgt+=numF(ak.target);agg[k].cnt++;agg[k].projs.push(pr.title);}));
-            const rows=Object.values(agg).sort((a,b)=>b.cur-a.cur);
-            if(rows.length===0) return null;
-            return(
-              <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px 16px",marginBottom:14,border:"1px solid #F2F4F6"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                  <h3 style={{margin:0,fontSize:15,fontWeight:900,color:"#0F1F5C"}}>🎯 활동지표 (전사 합산)</h3>
-                  <span style={{fontSize:10.5,color:"#9CA3AF"}}>{rows.length}개 지표 · {rows.reduce((s,r)=>s+r.cnt,0)}개 프로젝트</span>
-                </div>
-                <p style={{margin:"0 0 10px",fontSize:10.5,color:"#9CA3AF"}}>프로젝트별 활동지표를 이름으로 합산 — 운영·활동 성과(매출 아님)</p>
-                {rows.map(r=>{const pr2=pct(r.cur,r.tgt);return(
-                  <div key={r.name} style={{marginBottom:10}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3,gap:8}}>
-                      <span style={{fontSize:12.5,fontWeight:700,color:"#374151",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}<span style={{fontSize:10,color:"#9CA3AF",marginLeft:5}}>·{r.cnt}건</span></span>
-                      <span style={{fontSize:12,fontWeight:800,color:pr2>=70?"#00C073":"#8B5CF6",flexShrink:0}}>{fmt(r.cur,r.unit)} / {fmt(r.tgt,r.unit)}{r.tgt>0?` · ${pr2}%`:""}</span>
-                    </div>
-                    <div style={{height:6,borderRadius:6,backgroundColor:"#F2F4F6",overflow:"hidden"}}><div style={{width:`${pr2}%`,height:"100%",backgroundColor:pr2>=70?"#00C073":"#8B5CF6",borderRadius:6}}/></div>
-                  </div>
-                );})}
-              </div>
-            );
-          })()}
           <h3 style={{margin:"0 0 10px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>메인 KPI</h3>
           {D.mainKPIs.map(mk=>{
             const p=pct(mkCur(mk,D.subKPIs,D.projects),mk.targetValue);
@@ -2504,6 +2479,39 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro
           {!ro&&<button onClick={openNewMain} style={{width:"100%",padding:"12px 0",borderRadius:12,border:"1.5px dashed #93C5FD",background:"#EFF6FF",color:"#2563EB",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 메인KPI 추가</button>}
           <div style={{marginTop:18,paddingTop:16,borderTop:"1px solid #F2F4F6"}}><TeamBoard D={D} cu={cu} embed/></div>
           {!ro&&<ExportPanel D={D} up={up} restore={restore} restoreLocal={restoreLocal} pushExternalBackup={pushExternalBackup}/>}
+        </div>
+      )}
+      {kpiView==="lead"&&(
+        <div>
+          <div style={{backgroundColor:"#F5F3FF",border:"1px solid #DDD6FE",borderRadius:14,padding:"12px 14px",marginBottom:14}}>
+            <p style={{margin:"0 0 3px",fontSize:12.5,fontWeight:900,color:"#6D28D9"}}>⚡ 선행지표 — 활동(미리 하는 일)</p>
+            <p style={{margin:0,fontSize:11,color:"#7C3AED",fontWeight:600,lineHeight:1.55}}>매출(후행)로 이어지는 <b>활동지표</b>를 전사 합산해서 봅니다. 프로젝트별 진척(선행지표 %)·기여도는 <b>후행지표</b> 탭의 각 프로젝트 안에서 보세요.</p>
+          </div>
+          {(()=>{
+            // 수치목표 롤업 — 전 프로젝트 목표지표(activityKPIs)를 지표명으로 합산(매출 아님)
+            const agg={};
+            D.projects.forEach(pr=>(pr.activityKPIs||[]).forEach(ak=>{const k=ak.name||"기타";if(!agg[k])agg[k]={name:k,unit:ak.unit||"",cur:0,tgt:0,cnt:0,projs:[]};agg[k].cur+=numF(ak.current);agg[k].tgt+=numF(ak.target);agg[k].cnt++;agg[k].projs.push(pr.title);}));
+            const rows=Object.values(agg).sort((a,b)=>b.cur-a.cur);
+            if(rows.length===0) return <Empty t="등록된 활동지표가 없어요 · 프로젝트에서 🎯 활동지표를 추가하세요"/>;
+            return(
+              <div style={{backgroundColor:"#FFFFFF",borderRadius:16,padding:"14px 16px",marginBottom:14,border:"1px solid #F2F4F6"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                  <h3 style={{margin:0,fontSize:15,fontWeight:900,color:"#0F1F5C"}}>🎯 활동지표 (전사 합산)</h3>
+                  <span style={{fontSize:10.5,color:"#9CA3AF"}}>{rows.length}개 지표 · {rows.reduce((s,r)=>s+r.cnt,0)}개 프로젝트</span>
+                </div>
+                <p style={{margin:"0 0 10px",fontSize:10.5,color:"#9CA3AF"}}>프로젝트별 활동지표를 이름으로 합산 — 운영·활동 성과(매출 아님)</p>
+                {rows.map(r=>{const pr2=pct(r.cur,r.tgt);return(
+                  <div key={r.name} style={{marginBottom:10}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3,gap:8}}>
+                      <span style={{fontSize:12.5,fontWeight:700,color:"#374151",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}<span style={{fontSize:10,color:"#9CA3AF",marginLeft:5}}>·{r.cnt}건</span></span>
+                      <span style={{fontSize:12,fontWeight:800,color:pr2>=70?"#00C073":"#8B5CF6",flexShrink:0}}>{fmt(r.cur,r.unit)} / {fmt(r.tgt,r.unit)}{r.tgt>0?` · ${pr2}%`:""}</span>
+                    </div>
+                    <div style={{height:6,borderRadius:6,backgroundColor:"#F2F4F6",overflow:"hidden"}}><div style={{width:`${pr2}%`,height:"100%",backgroundColor:pr2>=70?"#00C073":"#8B5CF6",borderRadius:6}}/></div>
+                  </div>
+                );})}
+              </div>
+            );
+          })()}
         </div>
       )}
       {kpiView==="mindmap"&&(

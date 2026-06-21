@@ -12,6 +12,7 @@ const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
 const EXT_BACKUP_AT_KEY = "pour-os-ext-backup-at";  // 마지막 외부(GitHub) 백업 시각(ISO)
+const BUILD_TAG = "0621-플로우맵";  // 배포 확인용 빌드 표식 — 화면 헤더에 표시(새 빌드면 이 값이 바뀜)
 const DOC_LIMIT = 1048576;                  // Firestore 문서 1 MiB 한도
 const pickShared = (d) => { const o = {}; for (const k of SHARED_KEYS) o[k] = d[k]; return o; };
 // 공유 보기 모드 — ?view=share 로 들어오면 로그인 없이 KPI·그로스보드만 읽기 전용으로 노출
@@ -1013,10 +1014,13 @@ export default function App(){
     </Sheet>
   </>);
   const viewToggle=(
-    <div style={{display:"inline-flex",borderRadius:8,border:"1px solid #E5E8EB",overflow:"hidden",flexShrink:0}}>
-      {[["mobile","📱"],["pc","🖥"]].map(([m,ic])=>(
-        <button key={m} onClick={()=>setViewMode(m)} title={m==="pc"?"PC 화면":"모바일 화면"} style={{padding:"3px 9px",fontSize:13,lineHeight:1,border:"none",cursor:"pointer",backgroundColor:viewMode===m?"#F97316":"#fff",color:viewMode===m?"#fff":"#9CA3AF"}}>{ic}</button>
-      ))}
+    <div style={{display:"inline-flex",alignItems:"center",gap:6,flexShrink:0}}>
+      <span title="배포 빌드 표식 — 새로고침 후 이 값이 바뀌면 최신본" style={{fontSize:9,fontWeight:800,color:"#C4C9D0",letterSpacing:0.2,fontFamily:"'IBM Plex Mono',monospace"}}>{BUILD_TAG}</span>
+      <div style={{display:"inline-flex",borderRadius:8,border:"1px solid #E5E8EB",overflow:"hidden"}}>
+        {[["mobile","📱"],["pc","🖥"]].map(([m,ic])=>(
+          <button key={m} onClick={()=>setViewMode(m)} title={m==="pc"?"PC 화면":"모바일 화면"} style={{padding:"3px 9px",fontSize:13,lineHeight:1,border:"none",cursor:"pointer",backgroundColor:viewMode===m?"#F97316":"#fff",color:viewMode===m?"#fff":"#9CA3AF"}}>{ic}</button>
+        ))}
+      </div>
     </div>
   );
   // ── PC 레이아웃 (좌측 사이드바 + 넓은 본문) ──

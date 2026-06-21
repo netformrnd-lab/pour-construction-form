@@ -5413,17 +5413,21 @@ function pushKRSubtree(items,D,uid,isThisWeek,doneInP,krColors,baseDepth,opts={}
     if(dP>0)chips.push({t:"✅"+dP,c:"#0F5132",bg:"#D1F5E0"});
     const sig=signals?(signals.heotsimProjects.has(proj.id)?"heotsim":(signals.jamProjects.has(proj.id)?"jam":null)):null;
     items.push({id:pfx+proj.id,depth,label:proj.title,color:col,active:actT.length>0,chips,signal:sig,ref:{kind:"proj",id:proj.id}});
-    // 자식(말단)은 상태(완료·진행중·보류)별 개별 노드, 부모(하위 있는)는 컨테이너이므로 '할일'로 별도 표시.
-    const hasKids=(t)=>D.tasks.some(x=>x.parentId===t.id&&!x.isFixed);
-    const leaves=actT.filter(t=>!hasKids(t)), parents=actT.filter(t=>hasKids(t));
-    const shownT=leaves.filter(t=>t.status!=="todo");
-    const todoLeaves=leaves.filter(t=>t.status==="todo");
+    // 업무 계층 — 하위업무의 하위, 그 아래까지 끝까지 펼쳐 연결(계층형과 동일, 깊이 제한 없음).
+    // '활동만 보기'일 때만 활동 없는 가지를 접고, 평소엔 전 단계 노출(완료=초록·진행중=주황·대기=회색).
     const stT=STATUS_MAP.todo;
-    shownT.forEach(t=>{const st=STATUS_MAP[t.status]||STATUS_MAP.todo;items.push({id:pfx+t.id,depth:depth+1,label:t.title,color:st.color,active:true,leftTag:t.weekDay||null,chips:[{t:st.label,c:st.color,bg:st.bg}],ref:{kind:"task",id:t.id}});});
-    // 부모 task = 할일(컨테이너)로 별도 노출 — 자식 진행 상태와 무관
-    parents.forEach(t=>{const kc=taskKidsOf(D,t.id).length;items.push({id:pfx+t.id,depth:depth+1,label:t.title,color:stT.color,active:true,leftTag:t.weekDay||null,chips:[{t:"할일",c:stT.color,bg:stT.bg},{t:"하위 "+kc,c:"#6B7280",bg:"#F2F4F6"}],ref:{kind:"task",id:t.id}});});
-    // 나머지 말단 할일은 'N건'으로 묶음
-    if(todoLeaves.length){items.push({id:pfx+proj.id+"__todo",depth:depth+1,label:`할일 ${todoLeaves.length}건`,color:stT.color,active:true});}
+    const inSet=new Set(projTasks.map(t=>t.id));
+    const kidsOf=(pid)=>projTasks.filter(t=>(t.parentId||null)===(pid||null)).sort((a,b)=>(a.seq||0)-(b.seq||0));
+    const rootsT=projTasks.filter(t=>!t.parentId||!inSet.has(t.parentId)).sort((a,b)=>(a.seq||0)-(b.seq||0));
+    const anyAct=(t)=>isThisWeek(t)||kidsOf(t.id).some(anyAct);
+    const pushTask=(t,d)=>{
+      if(activeOnly&&!anyAct(t))return;
+      const kids=kidsOf(t.id);const st=STATUS_MAP[t.status]||STATUS_MAP.todo;
+      const chips=kids.length?[{t:"할일",c:stT.color,bg:stT.bg},{t:"하위 "+kids.length,c:"#6B7280",bg:"#F2F4F6"}]:[{t:st.label,c:st.color,bg:st.bg}];
+      items.push({id:pfx+t.id,depth:d,label:t.title,color:kids.length?stT.color:st.color,active:anyAct(t),leftTag:t.weekDay||null,chips,ref:{kind:"task",id:t.id}});
+      kids.forEach(k=>pushTask(k,d+1));
+    };
+    rootsT.forEach(t=>pushTask(t,depth+1));
   };
   D.mainKPIs.filter(mk=>krF==="all"||mk.id===krF).forEach(mk=>{
     const mkProjs=myP.filter(p=>p.mainKPIId===mk.id);if(!mkProjs.length)return;
@@ -5494,12 +5498,20 @@ function buildKpiMapItems(D,activeInP,doneInP,opts={}){
       const uDone=doneInP(uT);const uCol=u.color||"#3182F6";
       const mchips=[];if(uDone>0)mchips.push({t:"✅"+uDone,c:"#0F5132",bg:"#D1F5E0"});
       items.push({id:"k_"+mk.id+"_"+u.id,depth:2,label:u.name,color:uCol,active:uAct.length>0,chips:mchips,ref:{kind:"member",id:u.id}});
-      const leaves=shownList.filter(t=>!hasKids(t)),parents=shownList.filter(t=>hasKids(t));
+      // 업무 계층 — 하위업무의 하위까지 끝까지 펼쳐 연결
       const pf="k_"+mk.id+"_"+u.id+"_";
-      leaves.filter(t=>t.status!=="todo").forEach(t=>{const st=STATUS_MAP[t.status]||stT;items.push({id:pf+t.id,depth:3,label:t.title,color:st.color,active:true,leftTag:t.weekDay||null,chips:[{t:st.label,c:st.color,bg:st.bg}],ref:{kind:"task",id:t.id}});});
-      parents.forEach(t=>{const kc=taskKidsOf(D,t.id).length;items.push({id:pf+t.id,depth:3,label:t.title,color:stT.color,active:true,leftTag:t.weekDay||null,chips:[{t:"할일",c:stT.color,bg:stT.bg},{t:"하위 "+kc,c:"#6B7280",bg:"#F2F4F6"}],ref:{kind:"task",id:t.id}});});
-      const todoLeaves=leaves.filter(t=>t.status==="todo");
-      if(todoLeaves.length)items.push({id:pf+"__todo",depth:3,label:`할일 ${todoLeaves.length}건`,color:stT.color,active:true});
+      const inSet=new Set(uT.map(t=>t.id));
+      const kidsOf=(pid)=>uT.filter(t=>(t.parentId||null)===(pid||null)).sort((a,b)=>(a.seq||0)-(b.seq||0));
+      const rootsT=uT.filter(t=>!t.parentId||!inSet.has(t.parentId)).sort((a,b)=>(a.seq||0)-(b.seq||0));
+      const anyAct=(t)=>activeInP(t)||kidsOf(t.id).some(anyAct);
+      const pushTask=(t,d)=>{
+        if(activeOnly&&!anyAct(t))return;
+        const kids=kidsOf(t.id);const st=STATUS_MAP[t.status]||stT;
+        const chips=kids.length?[{t:"할일",c:stT.color,bg:stT.bg},{t:"하위 "+kids.length,c:"#6B7280",bg:"#F2F4F6"}]:[{t:st.label,c:st.color,bg:st.bg}];
+        items.push({id:pf+t.id,depth:d,label:t.title,color:kids.length?stT.color:st.color,active:anyAct(t),leftTag:t.weekDay||null,chips,ref:{kind:"task",id:t.id}});
+        kids.forEach(k=>pushTask(k,d+1));
+      };
+      rootsT.forEach(t=>pushTask(t,3));
     });
   });
   return items;

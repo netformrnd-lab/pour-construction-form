@@ -2879,8 +2879,11 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
           // 인계 상태: 형제(같은 부모·레벨) 순서로 앞이 다 끝나면 ready, 아니면 wait, 끝났으면 done
           const doneOf=(j)=>isP(items,j)?dd[j]:items[j].done;
           const flowOf=(i)=>{ if(doneOf(i)) return "done"; const par=parentIdx(i); for(let j=0;j<i;j++){ if(!(items[j].text.trim()||items[j].tid)) continue; if(items[j].depth===items[i].depth&&parentIdx(j)===par&&!doneOf(j)) return "wait"; } return "ready"; };
-          const fNodes=rows.map((r,p)=>{const it=r.it,i=r.i;const m=Mof(it.who);const parent=isP(items,i);const kc=rKids(p).length;return {id:it.id,x:(pos[i]||{}).x||20,y:(pos[i]||{}).y||16,title:it.text||"(빈 항목)",sub:(parent?"단계":"업무")+(team&&it.who?" · "+m.name:""),color:m.color,status:flowOf(i),kidCount:kc};});
+          const fNodes=rows.map((r,p)=>{const it=r.it,i=r.i;const m=Mof(it.who);const isStage=it.depth===0;const kc=rKids(p).length;return {id:it.id,x:(pos[i]||{}).x||20,y:(pos[i]||{}).y||16,title:it.text||"(빈 항목)",sub:isStage?(team&&it.who?m.name:""):("업무"+(team&&it.who?" · "+m.name:"")),color:m.color,status:flowOf(i),kidCount:kc,isStage};});
           const fEdges=[]; rows.forEach((r,p)=>{const pr=rParent(p);if(pr>=0)fEdges.push({id:"fe"+r.i,from:rows[pr].it.id,to:r.it.id});});
+          // 단계(최상위)끼리 순서 연결선 — 소싱 → 상품등록 → B2B …
+          const stageRows=rows.filter(r=>r.it.depth===0);
+          for(let s=1;s<stageRows.length;s++) fEdges.push({id:"seq"+stageRows[s].i,from:stageRows[s-1].it.id,to:stageRows[s].it.id,seq:true});
           const maxY=rows.length?Math.max(...rows.map(r=>(pos[r.i]||{}).y||0)):0;
           return(<>
             <div style={{display:"flex",gap:12,marginBottom:8,fontSize:10,fontWeight:700,flexWrap:"wrap"}}>
@@ -4177,26 +4180,30 @@ function FlowView({nodes,edges,mode="progress",height=520,nodeW=NODE_W,nodeH=NOD
       {nodes.length===0&&<p style={{position:"absolute",top:"45%",left:0,right:0,textAlign:"center",color:"#C4C9D0",fontSize:13,margin:0}}>표시할 단계가 없어요</p>}
       <div style={{position:"absolute",left:0,top:0,transformOrigin:"0 0",transform:`translate(${view.x}px,${view.y}px) scale(${view.z})`}}>
         <svg width={6000} height={6000} style={{position:"absolute",left:0,top:0,overflow:"visible",pointerEvents:"none"}}>
-          <defs><marker id={FLOW_ARROW} markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#F97316"/></marker></defs>
-          {edges.map(e=>{const a=byId(e.from),b=byId(e.to);if(!a||!b)return null;const A=liveNode(a),B=liveNode(b);const col=editable?"#F97316":(B.status?ST_COLOR[B.status]:"#94A3B8");return <path key={e.id} d={flowPath(A,B,nodeW,nodeH)} stroke={col} strokeWidth={2.5} fill="none" opacity={0.62} markerEnd={`url(#${FLOW_ARROW})`}/>;})}
+          <defs><marker id={FLOW_ARROW} markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#F97316"/></marker>
+            <marker id={FLOW_ARROW+"_seq"} markerWidth="10" markerHeight="10" refX="6.5" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#0F1F5C"/></marker></defs>
+          {edges.map(e=>{const a=byId(e.from),b=byId(e.to);if(!a||!b)return null;const A=liveNode(a),B=liveNode(b);
+            if(e.seq){const x1=A.x+nodeW,y1=A.y+nodeH/2,x2=B.x,y2=B.y+nodeH/2,dx=Math.max(34,(x2-x1)/2);return <path key={e.id} d={`M ${x1} ${y1} C ${x1+dx} ${y1}, ${x2-dx} ${y2}, ${x2} ${y2}`} stroke="#0F1F5C" strokeWidth={3.5} fill="none" opacity={0.85} markerEnd={`url(#${FLOW_ARROW}_seq)`}/>;}
+            const col=editable?"#F97316":(B.status?ST_COLOR[B.status]:"#94A3B8");return <path key={e.id} d={flowPath(A,B,nodeW,nodeH)} stroke={col} strokeWidth={2.5} fill="none" opacity={0.62} markerEnd={`url(#${FLOW_ARROW})`}/>;})}
           {conn&&(()=>{const a=byId(conn.from);if(!a)return null;const A=liveNode(a);return <path d={`M ${A.x+nodeW/2} ${A.y+nodeH} C ${A.x+nodeW/2} ${A.y+nodeH+44}, ${conn.cx} ${conn.cy-44}, ${conn.cx} ${conn.cy}`} stroke="#F97316" strokeWidth={2.5} strokeDasharray="5 4" fill="none" opacity={0.8}/>;})()}
         </svg>
         {editable&&onDeleteEdge&&edges.map(e=>{const a=byId(e.from),b=byId(e.to);if(!a||!b)return null;const A=liveNode(a),B=liveNode(b);const mx=(A.x+B.x)/2+nodeW/2-9,my=(A.y+nodeH+B.y)/2-9;return <button key={e.id} onPointerDown={ev=>{ev.stopPropagation();onDeleteEdge(e.id);}} title="연결 삭제" style={{position:"absolute",left:mx,top:my,width:18,height:18,borderRadius:"50%",border:"none",background:"#fff",boxShadow:"0 1px 5px rgba(0,0,0,0.22)",color:"#F04452",fontSize:12,fontWeight:900,cursor:"pointer",lineHeight:1,zIndex:7}}>×</button>;})}
-        {nodes.map(n=>{const P=liveNode(n);const stc=n.status?ST_COLOR[n.status]:null;const seld=selectedId===n.id||(conn&&conn.from===n.id);const bd=seld?"#F97316":(stc||(n.color||"#94A3B8")+"66");return(
-          <div key={n.id} onPointerDown={e=>onNodeDown(e,P)} style={{position:"absolute",left:P.x,top:P.y,width:nodeW,minHeight:nodeH,boxSizing:"border-box",padding:"8px 10px",borderRadius:12,background:n.status==="done"?"#F0FBF5":"#fff",border:`2px solid ${bd}`,boxShadow:seld?"0 0 0 3px #F9731633":"0 2px 8px rgba(0,0,0,0.08)",cursor:editable?"grab":"pointer",zIndex:seld?5:2}}>
-            <span style={{position:"absolute",top:-6,left:nodeW/2-5,width:10,height:10,borderRadius:"50%",background:"#fff",border:`2px solid ${stc||"#CBD5E1"}`}}/>
+        {nodes.map(n=>{const P=liveNode(n);const isS=n.isStage;const stc=n.status?ST_COLOR[n.status]:null;const seld=selectedId===n.id||(conn&&conn.from===n.id);const bd=seld?"#F97316":(isS?"#0F1F5C":(stc||(n.color||"#94A3B8")+"66"));const cardBg=isS?"#0F1F5C":(n.status==="done"?"#F0FBF5":"#fff");return(
+          <div key={n.id} onPointerDown={e=>onNodeDown(e,P)} style={{position:"absolute",left:P.x,top:P.y,width:nodeW,minHeight:nodeH,boxSizing:"border-box",padding:"8px 10px",borderRadius:isS?14:12,background:cardBg,border:`${isS?2.5:2}px solid ${bd}`,boxShadow:seld?"0 0 0 3px #F9731633":(isS?"0 5px 16px rgba(15,31,92,0.30)":"0 2px 8px rgba(0,0,0,0.08)"),cursor:editable?"grab":"pointer",zIndex:seld?5:(isS?3:2)}}>
+            <span style={{position:"absolute",top:-6,left:nodeW/2-5,width:10,height:10,borderRadius:"50%",background:"#fff",border:`2px solid ${isS?"#0F1F5C":(stc||"#CBD5E1")}`}}/>
             {onNodeEdit&&<button onPointerDown={e=>{e.stopPropagation();onNodeEdit(n);}} title="편집" style={{position:"absolute",top:-9,right:-9,width:20,height:20,borderRadius:"50%",border:"1px solid #E5E8EB",background:"#fff",color:"#6B7280",fontSize:10,cursor:"pointer",lineHeight:1,boxShadow:"0 1px 4px rgba(0,0,0,0.12)",zIndex:8}}>✎</button>}
             <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:4}}>
               <span style={{flexShrink:0,width:18,height:18,borderRadius:"50%",background:stc||n.color||"#94A3B8",color:"#fff",fontSize:10,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{n.status==="done"?"✓":(n.stepLabel||"")}</span>
-              <span style={{flex:1,minWidth:0,fontSize:10,fontWeight:800,color:stc||n.color||"#64748B",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.sub}</span>
-              {n.auto&&<span title="자동화" style={{flexShrink:0,fontSize:10,fontWeight:900,color:"#EA580C"}}>⚡</span>}
-              {n.chev&&<span style={{flexShrink:0,fontSize:11,fontWeight:900,color:"#6B7280"}}>{n.chev}</span>}
+              {isS&&<span style={{flexShrink:0,fontSize:8.5,fontWeight:900,color:"#0F1F5C",background:"#fff",borderRadius:5,padding:"1px 6px",letterSpacing:0.3}}>단계</span>}
+              <span style={{flex:1,minWidth:0,fontSize:10,fontWeight:800,color:isS?"#C7D2FE":(stc||n.color||"#64748B"),overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{n.sub}</span>
+              {n.auto&&<span title="자동화" style={{flexShrink:0,fontSize:10,fontWeight:900,color:isS?"#FDBA74":"#EA580C"}}>⚡</span>}
+              {n.chev&&<span style={{flexShrink:0,fontSize:11,fontWeight:900,color:isS?"#fff":"#6B7280"}}>{n.chev}</span>}
             </div>
-            <p style={{margin:0,fontSize:11.5,fontWeight:700,color:n.status==="wait"?"#9CA3AF":"#1F2937",lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{n.title}</p>
-            {n.kidCount>0&&!n.chevOpen&&<span style={{position:"absolute",bottom:-8,right:8,fontSize:8.5,fontWeight:800,color:"#fff",background:n.color||"#94A3B8",borderRadius:8,padding:"0 6px",lineHeight:"16px"}}>하위 {n.kidCount}</span>}
+            <p style={{margin:0,fontSize:isS?12.5:11.5,fontWeight:isS?800:700,color:isS?"#fff":(n.status==="wait"?"#9CA3AF":"#1F2937"),lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{n.title}</p>
+            {n.kidCount>0&&!n.chevOpen&&<span style={{position:"absolute",bottom:-8,right:8,fontSize:8.5,fontWeight:800,color:isS?"#0F1F5C":"#fff",background:isS?"#fff":(n.color||"#94A3B8"),border:isS?"1px solid #0F1F5C":"none",borderRadius:8,padding:"0 6px",lineHeight:"16px"}}>하위 {n.kidCount}</span>}
             {editable&&onConnect
               ? <span onPointerDown={e=>onHandleDown(e,P)} title="드래그해서 다음 단계로 연결" style={{position:"absolute",bottom:-7,left:nodeW/2-7,width:14,height:14,borderRadius:"50%",background:"#fff",border:"2px solid #F97316",cursor:"crosshair",zIndex:6}}/>
-              : <span style={{position:"absolute",bottom:-6,left:nodeW/2-5,width:10,height:10,borderRadius:"50%",background:"#fff",border:`2px solid ${stc||"#CBD5E1"}`}}/>}
+              : <span style={{position:"absolute",bottom:-6,left:nodeW/2-5,width:10,height:10,borderRadius:"50%",background:"#fff",border:`2px solid ${isS?"#0F1F5C":(stc||"#CBD5E1")}`}}/>}
           </div>
         );})}
       </div>

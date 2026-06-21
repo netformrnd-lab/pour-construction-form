@@ -2868,49 +2868,32 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
           ))}
         </div>
         {view==="map"?(()=>{
-          const COLW=148,ROWH=46,NW=126,NH=36,PADX=12,PADY=12;
           const rows=items.map((it,i)=>({it,i})).filter(r=>r.it.text.trim()||r.it.tid||r.it.id===selId);
-          // 마인드맵 좌표: x=깊이(열), y=가지 펼침. 말단은 한 줄씩, 상위는 자식들 가운데 정렬 → 계단식 cascade 방지(진짜 마인드맵 모양)
-          const yOf={};
           const rParent=(p)=>{const d=rows[p].it.depth;for(let q=p-1;q>=0;q--){const dq=rows[q].it.depth;if(dq===d-1)return q;if(dq<d-1)return -1;}return -1;};
           const rKids=(p)=>{const o=[];for(let q=p+1;q<rows.length;q++){const dq=rows[q].it.depth;if(dq<=rows[p].it.depth)break;if(rParent(q)===p)o.push(q);}return o;};
-          let _slot=0;
-          const _assignY=(p)=>{const ks=rKids(p);if(!ks.length){const y=PADY+_slot*ROWH;_slot++;yOf[rows[p].i]=y;return y;}const ys=ks.map(_assignY);const y=(ys[0]+ys[ys.length-1])/2;yOf[rows[p].i]=y;return y;};
-          for(let p=0;p<rows.length;p++){ if(rParent(p)===-1) _assignY(p); }
+          // 큰 박스 캔버스(위→아래 트리): 말단은 가로로 한 칸씩, 상위는 자식들 가로 중앙 정렬
+          const CW=NODE_W+26, RH=NODE_H+48; let cur=0; const pos={};
+          const placeXY=(p,depth)=>{const ks=rKids(p);if(!ks.length){pos[rows[p].i]={x:20+cur*CW,y:16+depth*RH};cur++;}else{ks.forEach(q=>placeXY(q,depth+1));const xs=ks.map(q=>pos[rows[q].i].x);pos[rows[p].i]={x:(Math.min(...xs)+Math.max(...xs))/2,y:16+depth*RH};}};
+          for(let p=0;p<rows.length;p++){ if(rParent(p)===-1) placeXY(p,0); }
           const parentIdx=(i)=>{for(let k=i-1;k>=0;k--){if(items[k].depth===items[i].depth-1)return k;if(items[k].depth<items[i].depth-1)return -1;}return -1;};
           // 인계 상태: 형제(같은 부모·레벨) 순서로 앞이 다 끝나면 ready, 아니면 wait, 끝났으면 done
           const doneOf=(j)=>isP(items,j)?dd[j]:items[j].done;
           const flowOf=(i)=>{ if(doneOf(i)) return "done"; const par=parentIdx(i); for(let j=0;j<i;j++){ if(!(items[j].text.trim()||items[j].tid)) continue; if(items[j].depth===items[i].depth&&parentIdx(j)===par&&!doneOf(j)) return "wait"; } return "ready"; };
-          const maxDepth=rows.reduce((m,r)=>Math.max(m,r.it.depth),0);
-          const svgW=PADX*2+maxDepth*COLW+NW, svgH=PADY*2+Math.max(1,_slot)*ROWH;
+          const fNodes=rows.map((r,p)=>{const it=r.it,i=r.i;const m=Mof(it.who);const parent=isP(items,i);const kc=rKids(p).length;return {id:it.id,x:(pos[i]||{}).x||20,y:(pos[i]||{}).y||16,title:it.text||"(빈 항목)",sub:(parent?"단계":"업무")+(team&&it.who?" · "+m.name:""),color:m.color,status:flowOf(i),kidCount:kc};});
+          const fEdges=[]; rows.forEach((r,p)=>{const pr=rParent(p);if(pr>=0)fEdges.push({id:"fe"+r.i,from:rows[pr].it.id,to:r.it.id});});
+          const maxY=rows.length?Math.max(...rows.map(r=>(pos[r.i]||{}).y||0)):0;
           return(<>
             <div style={{display:"flex",gap:12,marginBottom:8,fontSize:10,fontWeight:700,flexWrap:"wrap"}}>
               <span style={{color:"#00A862"}}>● 완료</span><span style={{color:"#EA580C"}}>▶ 진행 가능(지금)</span><span style={{color:"#9CA3AF"}}>○ 대기(앞 단계 진행 중)</span>
             </div>
-            <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:8,overflowX:"auto"}}>
-              {rows.length===0?<div style={{margin:"24px 0",textAlign:"center"}}><p style={{margin:"0 0 10px",fontSize:12,color:"#9CA3AF"}}>아직 단계가 없어요</p><button onClick={addRoot} style={{padding:"9px 16px",borderRadius:10,border:"1.5px dashed #FDBA74",background:"#FFF7ED",color:"#EA580C",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>+ 첫 단계 추가</button></div>:(
-              <div style={{position:"relative",width:svgW,height:svgH}}>
-                <svg width={svgW} height={svgH} style={{position:"absolute",top:0,left:0,pointerEvents:"none"}}>
-                  {rows.map(({it,i})=>{const p=parentIdx(i);if(p<0||yOf[p]==null)return null;const px=PADX+items[p].depth*COLW+NW,py=yOf[p]+NH/2,cx=PADX+it.depth*COLW,cy=yOf[i]+NH/2;return(<path key={"e"+i} d={`M ${px} ${py} C ${px+26} ${py}, ${cx-26} ${cy}, ${cx} ${cy}`} stroke="#D7C4A8" strokeWidth={2} fill="none"/>);})}
-                </svg>
-                {rows.map(({it,i})=>{const m=Mof(it.who);const parent=isP(items,i);const rdone=parent?dd[i]:it.done;const x=PADX+it.depth*COLW,y=yOf[i];const onSel=it.id===selId;const fs=flowOf(i);return(
-                  onSel?(
-                  <div key={it.id} style={{position:"absolute",left:x,top:y,width:NW,height:NH,display:"flex",alignItems:"center",gap:5,padding:"0 7px",borderRadius:9,border:"1.5px solid #0F1F5C",background:"#fff",boxSizing:"border-box"}}>
-                    {team&&<span style={{width:13,height:13,borderRadius:"50%",flexShrink:0,backgroundColor:m.color,color:"#fff",fontSize:7.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{gname(m.name)}</span>}
-                    <input data-id={it.id} value={it.text} placeholder={parent?"단계명…":"업무…"} onChange={e=>patch(it.id,{text:e.target.value})} onKeyDown={e=>onKey(e,i)} style={{flex:1,minWidth:0,border:"none",background:"none",fontSize:11,fontWeight:parent?800:600,color:"#1F2937",outline:"none",fontFamily:"inherit",padding:0}}/>
-                  </div>
-                  ):(
-                  <button key={it.id} onClick={()=>setSelId(it.id)} style={{position:"absolute",left:x,top:y,width:NW,height:NH,display:"flex",alignItems:"center",gap:5,padding:"0 8px",borderRadius:9,border:`1.5px solid ${fs==="done"?"#BFE9CF":fs==="ready"?"#F59E42":"#E8DCC8"}`,background:fs==="done"?"#F0FBF4":fs==="ready"?"#FFF7ED":(parent?"#FFFBF5":"#fff"),opacity:fs==="wait"?0.6:1,cursor:"pointer",fontFamily:"inherit",boxSizing:"border-box",textAlign:"left"}}>
-                    <span style={{width:13,height:13,borderRadius:parent?4:"50%",flexShrink:0,background:fs==="done"?"#00C073":fs==="ready"?"#F97316":"#EEF1F3",color:"#fff",fontSize:9,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{fs==="done"?"✓":fs==="ready"?"▶":""}</span>
-                    {team&&<span style={{width:13,height:13,borderRadius:"50%",flexShrink:0,backgroundColor:m.color,color:"#fff",fontSize:7.5,fontWeight:800,display:"flex",alignItems:"center",justifyContent:"center"}}>{gname(m.name)}</span>}
-                    <span style={{flex:1,minWidth:0,fontSize:11,fontWeight:parent?800:600,color:rdone?"#9CA3AF":"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{it.text||"(빈 항목)"}</span>
-                  </button>)
-                );})}
-              </div>)}
-            </div>
+            {rows.length===0?(
+              <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:8,textAlign:"center"}}><p style={{margin:"24px 0 10px",fontSize:12,color:"#9CA3AF"}}>아직 단계가 없어요</p><button onClick={addRoot} style={{padding:"9px 16px",borderRadius:10,border:"1.5px dashed #FDBA74",background:"#FFF7ED",color:"#EA580C",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit",marginBottom:16}}>+ 첫 단계 추가</button></div>
+            ):(
+              <FlowView mode="progress" height={Math.max(320,Math.min(680,maxY+NODE_H+90))} nodes={fNodes} edges={fEdges} selectedId={selId} onNodeTap={node=>setSelId(node.id)}/>
+            )}
             {sel&&(()=>{const si=items.findIndex(x=>x.id===selId);if(si<0)return null;return(
               <div style={{marginTop:10,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",background:"#fff",borderRadius:12,border:"1px solid #F2F4F6",padding:"10px 12px"}}>
-                <span style={{fontSize:11.5,fontWeight:800,color:"#4B5563",flex:1,minWidth:50,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>선택: 「{sel.text||"새 항목"}」</span>
+                <input data-id={sel.id} value={sel.text} placeholder={isP(items,si)?"단계명…":"업무…"} onChange={e=>patch(sel.id,{text:e.target.value})} onKeyDown={e=>onKey(e,si)} style={{flex:1,minWidth:90,border:"1.5px solid #E5E8EB",borderRadius:9,fontSize:12.5,fontWeight:700,color:"#1F2937",outline:"none",fontFamily:"inherit",padding:"8px 10px"}}/>
                 <button onClick={()=>moveItem(si,-1)} disabled={!hasSib(si,-1)} title="위로" style={{padding:"7px 10px",borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",color:hasSib(si,-1)?"#4B5563":"#D1D5DB",fontSize:12,fontWeight:800,cursor:hasSib(si,-1)?"pointer":"default",fontFamily:"inherit"}}>▲</button>
                 <button onClick={()=>moveItem(si,1)} disabled={!hasSib(si,1)} title="아래로" style={{padding:"7px 10px",borderRadius:9,border:"1.5px solid #E5E8EB",background:"#fff",color:hasSib(si,1)?"#4B5563":"#D1D5DB",fontSize:12,fontWeight:800,cursor:hasSib(si,1)?"pointer":"default",fontFamily:"inherit"}}>▼</button>
                 <button onClick={()=>addChild(si)} style={{padding:"7px 12px",borderRadius:9,border:"1.5px solid #DDD6FE",background:"#FAF9FF",color:"#7C3AED",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>＋ 하위</button>

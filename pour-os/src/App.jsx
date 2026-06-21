@@ -3047,6 +3047,7 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
   const stages=D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed&&!t.parentId).sort((a,b)=>(a.seq||0)-(b.seq||0));
   const [selId,setSelId]=useState(stages[0]?.id||null);
   const [canvasOpen,setCanvasOpen]=useState(true);   // 통합 캔버스(로드단계+프로세스 가지치기) 펼침
+  const [canvasMode,setCanvasMode]=useState("map");  // 통합 캔버스 보기: map(마인드맵·노드) | tree(트리) — 같은 로드단계+프로세스 데이터
   const [canvasEdit,setCanvasEdit]=useState(null);   // 캔버스에서 ✎ 누른 노드 편집
   const [expanded,setExpanded]=useState({});   // 캔버스 펼침: {taskId:true} (로드단계 탭하면 하위 task 트리 펼침)
   const [dateOpen,setDateOpen]=useState(null);   // 인라인 날짜 편집 중인 업무 id
@@ -3175,17 +3176,49 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
           const nodes=visible.map(t=>{const m=Mof(t.assigneeId);const kc=childrenOf(t.id).length;return {id:t.id,x:pos[t.id].x,y:pos[t.id].y,title:t.title,sub:(t.parentId?"":"로드단계 · ")+m.name,color:m.color,status:stOf(t),chev:kc?(expanded[t.id]?"▾":"▸"):null,kidCount:kc,chevOpen:!!expanded[t.id]};});
           const maxY=nodes.reduce((mx,n)=>Math.max(mx,n.y),0);
           const toggle=(id)=>setExpanded(e=>({...e,[id]:!e[id]}));
+          // 트리 보기 — 마인드맵과 같은 로드단계+프로세스 데이터를 계층 트리로. 탭=펼치기/편집, ✎=편집 (동작 동일)
+          const renderTreeNode=(t,depth)=>{
+            const ch=childrenOf(t.id);const kc=ch.length;const op=!!expanded[t.id];
+            const m=Mof(t.assigneeId);const s=stOf(t);const sc=s?ST_COLOR[s]:null;const done=s==="done";
+            const bd=(canvasEdit&&canvasEdit.id===t.id)?"#F97316":(sc||(m.color+"66"));
+            return(
+              <div key={t.id} style={{marginLeft:depth?15:0,borderLeft:depth?"1.5px solid #E9ECF1":"none",paddingLeft:depth?11:0}}>
+                <div onClick={()=>{ if(kc) toggle(t.id); else setCanvasEdit(ts.find(x=>x.id===t.id)||null); }}
+                  style={{position:"relative",display:"flex",alignItems:"center",gap:8,padding:"9px 11px",margin:"4px 0",borderRadius:11,background:done?"#F0FBF5":"#fff",border:`1.5px solid ${bd}`,cursor:"pointer",boxShadow:"0 1px 4px rgba(0,0,0,0.05)"}}>
+                  <span style={{flexShrink:0,width:19,height:19,borderRadius:"50%",background:sc||m.color,color:"#fff",fontSize:10,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center"}}>{done?"✓":(kc?(op?"▾":"▸"):"")}</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <p style={{margin:0,fontSize:9.5,fontWeight:800,color:sc||m.color,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(t.parentId?"":"로드단계 · ")+m.name}</p>
+                    <p style={{margin:"1px 0 0",fontSize:12,fontWeight:700,color:(s==="wait")?"#9CA3AF":"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title||"무제"}</p>
+                  </div>
+                  {kc>0&&!op&&<span style={{flexShrink:0,fontSize:8.5,fontWeight:800,color:"#fff",background:m.color,borderRadius:8,padding:"1px 7px"}}>하위 {kc}</span>}
+                  <button onClick={e=>{e.stopPropagation();setCanvasEdit(ts.find(x=>x.id===t.id)||null);}} title="편집" style={{flexShrink:0,width:22,height:22,borderRadius:"50%",border:"1px solid #E5E8EB",background:"#fff",color:"#6B7280",fontSize:11,cursor:"pointer",lineHeight:1}}>✎</button>
+                </div>
+                {op&&ch.map(c=>renderTreeNode(c,depth+1))}
+              </div>
+            );
+          };
+          const tabBtn=(on)=>({flex:1,padding:"7px 0",borderRadius:8,border:"none",cursor:"pointer",background:on?"#fff":"transparent",color:on?"#0F1F5C":"#6B7280",fontWeight:on?800:600,fontSize:12,fontFamily:"inherit",boxShadow:on?"0 1px 4px rgba(0,0,0,0.1)":"none"});
           return(
             <div style={{marginBottom:14}}>
               <button onClick={()=>setCanvasOpen(o=>!o)} style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"10px 13px",borderRadius:12,border:"1px solid #E5E8EB",background:"#fff",cursor:"pointer",fontFamily:"inherit",marginBottom:canvasOpen?8:0}}>
                 <span style={{fontSize:13,fontWeight:900,color:"#0F1F5C"}}>🧩 통합 캔버스</span>
-                <span style={{flex:1,minWidth:0,textAlign:"left",fontSize:10.5,fontWeight:600,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>로드단계 탭 = 하위 프로세스 펼치기 · ✎ = 편집 · 빈곳 드래그·＋/－ 줌</span>
+                <span style={{flex:1,minWidth:0,textAlign:"left",fontSize:10.5,fontWeight:600,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>로드단계 탭 = 하위 프로세스 펼치기 · ✎ = 편집</span>
                 <span style={{fontSize:12,color:"#9CA3AF"}}>{canvasOpen?"▲":"▼"}</span>
               </button>
-              {canvasOpen&&<FlowView mode="progress" height={Math.max(300,Math.min(700,maxY+NODE_H+120))} nodes={nodes} edges={edges0}
-                selectedId={canvasEdit?canvasEdit.id:null}
-                onNodeTap={node=>{ const kc=childrenOf(node.id).length; if(kc) toggle(node.id); else setCanvasEdit(ts.find(x=>x.id===node.id)||null); }}
-                onNodeEdit={node=>setCanvasEdit(ts.find(x=>x.id===node.id)||null)}/>}
+              {canvasOpen&&(<>
+                <div style={{display:"flex",gap:4,padding:3,borderRadius:11,background:"#F2F4F6",marginBottom:8}}>
+                  <button onClick={()=>setCanvasMode("map")} style={tabBtn(canvasMode==="map")}>🗺 마인드맵</button>
+                  <button onClick={()=>setCanvasMode("tree")} style={tabBtn(canvasMode==="tree")}>☰ 트리</button>
+                </div>
+                {canvasMode==="map"
+                  ? <FlowView mode="progress" height={Math.max(300,Math.min(700,maxY+NODE_H+120))} nodes={nodes} edges={edges0}
+                      selectedId={canvasEdit?canvasEdit.id:null}
+                      onNodeTap={node=>{ const kc=childrenOf(node.id).length; if(kc) toggle(node.id); else setCanvasEdit(ts.find(x=>x.id===node.id)||null); }}
+                      onNodeEdit={node=>setCanvasEdit(ts.find(x=>x.id===node.id)||null)}/>
+                  : <div style={{border:"1px solid #EDF0F3",borderRadius:16,background:"#FAFBFC",padding:"10px 12px",maxHeight:640,overflowY:"auto"}}>
+                      {roots.length?roots.map(r=>renderTreeNode(r,0)):<p style={{textAlign:"center",color:"#C4C9D0",fontSize:13,margin:"30px 0"}}>표시할 단계가 없어요</p>}
+                    </div>}
+              </>)}
             </div>
           );
         })()}

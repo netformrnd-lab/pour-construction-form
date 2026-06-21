@@ -370,9 +370,11 @@
   .kc-empty{font-size:11px;color:var(--muted);padding:6px 2px}
 
   /* 기획 뷰 세로 여백 압축 */
-  #view-plans{margin-top:-14px}
   #view-plans .pl-srcrow{padding-bottom:6px;margin-bottom:0}
   #view-plans #planStatusChips{margin-bottom:8px}
+  .plan-card .pc-thumbs img{cursor:pointer}
+  .pc-reflink{font-size:11.5px;font-weight:800;color:var(--blue);background:var(--blue-pale);padding:5px 11px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+  .pc-reflink:active{transform:scale(.95)}
 
   /* 기획(아이디어 모아보기) 페이지 */
   .pl-card{display:flex;gap:11px;background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:12px;margin-bottom:9px;cursor:pointer}
@@ -875,9 +877,8 @@
   </div>
 
   <div id="view-test" style="display:none"></div>
-</div>
 
-<div id="view-plans" style="display:none">
+  <div id="view-plans" style="display:none">
   <div class="pl-srcrow" id="planSrcRow"></div>
   <div class="tp-add" style="margin:2px 0 8px"><input id="planQuickInput" placeholder="기획 아이디어 입력 후 Enter (예: 무광 블랙 패키지)"><button id="planQuickAdd">+ 추가</button></div>
   <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">
@@ -887,6 +888,7 @@
   <div class="fchips" id="planStatusChips" style="margin-bottom:12px"></div>
   <div id="planList"></div>
   <div id="planEmpty" style="display:none"></div>
+  </div>
 </div>
 
 <input id="testAttachFile" type="file" accept="image/*,video/*" hidden>
@@ -3435,18 +3437,20 @@ function renderPlans(){
   box.innerHTML=list.map(p=>{
     const col=PLAN_ST_COLOR[p.status]||PLAN_ST_COLOR['아이디어'];
     const photos=(p.photos||[]).filter(x=>x&&(x.url||x.data));
-    const thumbs=photos.slice(0,4).map(x=>`<img src="${esc(x.url||x.data)}" alt="">`).join('');
+    const thumbs=photos.slice(0,4).map(x=>`<img src="${esc(x.url||x.data)}" data-plimg="${esc(x.url||x.data)}" alt="">`).join('');
     const needs=(p.needs||[]).map(n=>`<span class="need-chip">${esc(n)}</span>`).join('');
-    const refsN=(p.refs||[]).filter(Boolean).length;
+    const refs=(p.refs||[]).filter(Boolean);const refsN=refs.length;
     return `<div class="plan-card" data-pid="${esc(p.id)}">
       <div class="pc-top"><span class="pc-title">${esc(p.title||'(제목 없음)')}</span><span class="plan-badge">${esc(p.source||'기타')}</span><span class="pl-st" style="background:${col[0]};color:${col[1]}">${PLAN_ST_LABEL[p.status]||esc(p.status||'')}</span></div>
       ${p.marketMemo?`<div class="pc-market">${esc(p.marketMemo)}</div>`:''}
       ${thumbs?`<div class="pc-thumbs">${thumbs}</div>`:''}
-      <div class="pc-foot">${needs}${refsN?`<span class="pc-refs">링크 ${refsN}</span>`:''}</div>
+      <div class="pc-foot">${needs}${refsN?`<button class="pc-reflink" data-plref="${esc(refs[0])}">🔗 링크${refsN>1?' '+refsN:''} 열기</button>`:''}</div>
       <div class="pc-status-sw">${PLAN_STATUS.map(s=>`<button class="pst-mini${(p.status||'아이디어')===s?' on':''}" data-setst="${s}" data-spid="${esc(p.id)}">${PLAN_ST_LABEL[s]}</button>`).join('')}</div>
     </div>`;
   }).join('');
-  box.querySelectorAll('.plan-card').forEach(c=>c.onclick=e=>{if(e.target.closest('[data-setst]'))return;openPlan(c.dataset.pid);});
+  box.querySelectorAll('.plan-card').forEach(c=>c.onclick=e=>{if(e.target.closest('[data-setst]')||e.target.closest('[data-plimg]')||e.target.closest('[data-plref]'))return;openPlan(c.dataset.pid);});
+  box.querySelectorAll('[data-plimg]').forEach(im=>im.onclick=e=>{e.stopPropagation();openLightbox(im.dataset.plimg);});
+  box.querySelectorAll('[data-plref]').forEach(b=>b.onclick=e=>{e.stopPropagation();window.open(b.dataset.plref,'_blank','noopener');});
   box.querySelectorAll('[data-setst]').forEach(b=>b.onclick=async e=>{e.stopPropagation();const it=plans.items.find(x=>x.id===b.dataset.spid);if(!it)return;it.status=b.dataset.setst;it.updatedAt=new Date().toISOString();if(it.status==='승인'&&!it.approvedAt){it.approvedAt=new Date().toISOString();it.approvedBy=curUser();}await savePlans();renderPlans();});
 }
 function renderPlanPhotos(){

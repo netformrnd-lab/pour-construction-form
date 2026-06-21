@@ -2825,6 +2825,25 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
     existing.forEach(t=>{ if(origIdsRef.current.has(t.id)&&!present.has(t.id)) rm("tasks",t.id); });   // 진입 시점에 있던 업무 중 에디터에서 지운 것만 삭제(동시 추가분 보호)
     onClose();
   };
+  // 템플릿으로 저장 — 현재 저장된 업무 트리를 표준 템플릿(manuals)으로 박제(언제든 가능, 완료 게이트 없음). 변경분이 있으면 먼저 저장 안내.
+  const saveAsTemplate=()=>{
+    const tree=buildManualTree(D,proj.id);
+    if(!tree.length){window.alert("템플릿으로 저장할 업무가 없어요 · 먼저 캔버스에 업무를 만들고 [저장]하세요");return;}
+    const now=new Date().toISOString(), by=proj.assigneeId||"";
+    const src=proj.sourceManualId&&(D.manuals||[]).find(m=>m.id===proj.sourceManualId);
+    if(src){
+      const ok=window.confirm(`이 프로젝트는 '${src.name}' 템플릿 기반이에요.\n\n[확인] 기존 템플릿 갱신 (이전판 이력 보관)\n[취소] 새 템플릿으로 저장`);
+      if(ok){ const curV=src.version||1; const note=(window.prompt(`v${curV}→v${curV+1} 변경 메모 (선택)`,"")||"").trim();
+        up("manuals",src.id,{stages:tree,version:curV+1,versions:[...(src.versions||[]),{v:curV,stages:src.stages||[],savedAt:src.updatedAt||src.createdAt||"",savedBy:src.updatedBy||src.createdBy||"",note}],updatedAt:now,updatedBy:by});
+        window.alert(`📋 '${src.name}' 템플릿을 v${curV+1}로 갱신했어요`); return; }
+    }
+    const name=window.prompt("📋 템플릿 이름 (이 구조를 표준으로 저장 · 새 프로젝트에서 재사용)",proj.title||"");
+    if(name===null) return;
+    const id="man"+Date.now()+Math.random().toString(36).slice(2,5), mname=(name.trim()||proj.title||"템플릿");
+    add("manuals",{id,name:mname,projType:team?"team":"solo",stages:tree,version:1,versions:[],createdAt:now,createdBy:by});
+    up("projects",proj.id,{sourceManualId:id,sourceManualName:mname,sourceManualVersion:1});
+    window.alert("📋 템플릿으로 저장됐어요 · 새 프로젝트 시작 시 이 템플릿을 고를 수 있어요");
+  };
   const sel=items.find(x=>x.id===selId);
   return createPortal((
     <div style={{position:"fixed",inset:0,zIndex:1500,background:"#F9FAFB",display:"flex",flexDirection:"column"}}>
@@ -2834,6 +2853,7 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
           <p style={{margin:0,fontSize:14,fontWeight:900,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>🧩 {proj.title}</p>
           <p style={{margin:"2px 0 0",fontSize:10,opacity:0.82}}>{team?"팀 협업 (담당자 지정)":"개인 체크리스트"} · Enter 같은단계 · Space/▸ 하위</p>
         </div>
+        <button onClick={saveAsTemplate} title="현재 구조를 표준 템플릿으로 저장(언제든)" style={{background:"rgba(255,255,255,0.14)",border:"1px solid rgba(255,255,255,0.35)",color:"#fff",borderRadius:9,padding:"8px 11px",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>📋 템플릿</button>
         <button onClick={save} style={{background:"#F97316",border:"none",color:"#fff",borderRadius:9,padding:"8px 16px",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>저장</button>
       </div>
       <div style={{flex:1,overflowY:"auto",padding:"14px 16px 30px",maxWidth:720,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
@@ -2920,7 +2940,26 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
             </div>
           </div>
         )}
-        <p style={{margin:"12px 4px 0",fontSize:10.5,color:"#9CA3AF",lineHeight:1.6}}>※ 여기 항목이 곧 프로젝트의 실제 업무입니다. 체크=완료(진행률 자동). <b>저장</b>하면 업무목록·오늘에 반영됩니다.</p>
+        {sel&&(()=>{
+          const st=sel.tid?D.tasks.find(t=>t.id===sel.tid):null;   // 저장된 업무만 여정·인계 라이브 편집(신규 노드는 저장 후)
+          if(!st) return <p style={{margin:"10px 4px 0",fontSize:10.5,color:"#9CA3AF"}}>💡 「{sel.text||"새 항목"}」 — 고객여정·인계는 <b>저장</b> 후 편집할 수 있어요</p>;
+          const sat=st.satisfaction||0;
+          const ta={width:"100%",padding:"9px 11px",borderRadius:9,border:"1.5px solid #E5E8EB",fontSize:12.5,resize:"vertical",minHeight:42,outline:"none",fontFamily:"inherit",boxSizing:"border-box",marginBottom:10};
+          return(
+            <div style={{backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"12px 14px",marginTop:12}}>
+              <p style={{margin:"0 0 8px",fontSize:11,fontWeight:800,color:"#4B5563"}}>「{st.title||sel.text||"업무"}」 고객여정 · 인계 <span style={{fontWeight:600,color:"#9CA3AF"}}>(선택)</span></p>
+              <p style={{margin:"0 0 3px",fontSize:10,fontWeight:800,color:"#0891B2"}}>🧑 고객여정</p>
+              <textarea key={st.id+"cj"} defaultValue={st.custJourney||""} onBlur={e=>up("tasks",st.id,{custJourney:e.target.value})} placeholder="예: 상세페이지에서 사이즈 정보를 못 찾아 이탈" style={{...ta,border:"1.5px solid #CDEAF2",background:"#F7FCFE"}}/>
+              <p style={{margin:"0 0 3px",fontSize:10,fontWeight:800,color:"#F59E0B"}}>⭐ 만족도</p>
+              <div style={{display:"flex",gap:3,marginBottom:10}}>{[1,2,3,4,5].map(n=><button key={n} onClick={()=>up("tasks",st.id,{satisfaction:sat===n?null:n})} style={{background:"none",border:"none",cursor:"pointer",fontSize:20,padding:0,lineHeight:1,color:n<=sat?"#F59E0B":"#E5E8EB"}}>★</button>)}</div>
+              <p style={{margin:"0 0 3px",fontSize:10,fontWeight:800,color:"#B42318"}}>⚠️ 불편점</p>
+              <textarea key={st.id+"pp"} defaultValue={st.painPoint||""} onBlur={e=>up("tasks",st.id,{painPoint:e.target.value})} placeholder="예: 사이즈 정보 위치 모호 → 상단 고정" style={{...ta,border:"1.5px solid #FBD5D2",background:"#FFFBFA"}}/>
+              <p style={{margin:"0 0 3px",fontSize:10,fontWeight:800,color:"#EA580C"}}>📩 인계 노트</p>
+              <textarea key={st.id+"h"} defaultValue={st.handoffNote||""} onBlur={e=>up("tasks",st.id,{handoffNote:e.target.value})} placeholder="예: 시안 2안 확정·원본 드라이브 / 주의: 사이즈표 누락 확인" style={{...ta,border:"1.5px solid #FBD9B5",background:"#FFFBF5",marginBottom:0}}/>
+            </div>
+          );
+        })()}
+        <p style={{margin:"12px 4px 0",fontSize:10.5,color:"#9CA3AF",lineHeight:1.6}}>※ 여기 항목이 곧 프로젝트의 실제 업무입니다. 체크=완료(진행률 자동). <b>저장</b>하면 업무목록·오늘에 반영됩니다. 항목을 탭하면 담당·여정·인계를 편집할 수 있어요.</p>
       </div>
     </div>
   ),document.body);
@@ -3433,9 +3472,9 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
               const team=isTeamProj(D,p);
               const who=D.users.find(u=>u.id===p.assigneeId);
               return(
-                <button key={p.id} onClick={()=>setRoadmapProj(p)} style={{textAlign:"left",backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"13px 14px",cursor:"pointer",fontFamily:"inherit"}}>
+                <button key={p.id} onClick={()=>setProcessProj(p)} style={{textAlign:"left",backgroundColor:"#fff",borderRadius:14,border:"1px solid #F2F4F6",padding:"13px 14px",cursor:"pointer",fontFamily:"inherit"}}>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-                    <span style={{fontSize:14}}>🗺</span>
+                    <span style={{fontSize:14}}>🧩</span>
                     <span style={{flex:1,minWidth:0,fontSize:13.5,fontWeight:800,color:"#0F1F5C",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.title}</span>
                     <span style={{fontSize:9.5,fontWeight:800,color:team?"#EA580C":"#3182F6",background:team?"#FFEDD5":"#EBF3FF",borderRadius:6,padding:"2px 7px",flexShrink:0}}>{team?"팀":"개인"}</span>
                   </div>
@@ -3531,8 +3570,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
                   <PBar value={proj.progress} color={proj.progress>=70?"#00C073":"#3182F6"} h={7}/>{proj.mainKPIId==="mk2"&&<div style={{marginTop:7,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 10px",backgroundColor:proj.resultValue>0?"#FFF7ED":"#F9FAFB",borderRadius:8}}><span style={{fontSize:10.5,fontWeight:700,color:"#9CA3AF"}}>💵 매출 성과 (결과)</span><span style={{fontSize:12.5,fontWeight:900,color:proj.resultValue>0?"#EA580C":"#D1D5DB"}}>{fmt(proj.resultValue||0,"원")}</span></div>}
                 </div>
                 <div style={{marginTop:10,display:"flex",gap:7}}>
-                  <button onClick={e=>{e.stopPropagation();setRoadmapProj(proj);}} style={{padding:"7px 13px",borderRadius:9,border:"1.5px solid #C7D2FE",background:"#EEF2FF",color:"#3730A3",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🗺 {tasks.length?"로드맵 보기·편집":"로드맵 만들기"}</button>
-                  <button onClick={e=>{e.stopPropagation();setProcessProj(proj);}} title="마인드맵으로 업무 트리 자유 편집" style={{padding:"7px 11px",borderRadius:9,border:"1.5px solid #DDD6FE",background:"#FAF9FF",color:"#7C3AED",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🧩 프로세스</button>
+                  <button onClick={e=>{e.stopPropagation();setProcessProj(proj);}} title="업무 트리를 트리·마인드맵으로 편집 (단계·업무·하위업무·여정·인계)" style={{padding:"7px 13px",borderRadius:9,border:"1.5px solid #DDD6FE",background:"#FAF9FF",color:"#7C3AED",fontSize:11.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>🧩 {tasks.length?"통합 캔버스 (트리·마인드맵)":"통합 캔버스 만들기"}</button>
                 </div>
               </div>
               {projDetail?.id===proj.id&&(

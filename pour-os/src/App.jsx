@@ -832,6 +832,8 @@ export default function App(){
         if(real.length>0){
           const auto=Math.round(real.filter(t=>t.status==="done").length/real.length*100);
           if(auto!==(pr.progress||0)){ np={...np,progress:auto}; changed=true; }
+        } else if((pr.progress||0)!==0){   // 업무가 하나도 없으면 자동 진척은 0 (옛 % 잔존 방지) — 수동·완료(progressManual)는 위 가드로 제외됨
+          np={...np,progress:0}; changed=true;
         }
       }
       // ② 구간(세그먼트) 완료 집계(추가) — segments 없으면 calcSegDone가 null → 무동작(기존과 동일)
@@ -2669,10 +2671,10 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro
         </div>
       </Sheet>
       <Sheet open={!!salesHist} onClose={()=>setSalesHist(null)} title="📜 매출 입력 이력">
-        {salesHist&&(<div style={{marginTop:8}}>
-          <p style={{margin:"0 0 4px",fontSize:13,fontWeight:900,color:"#0F1F5C"}}>{salesHist.title}</p>
-          <p style={{margin:"0 0 12px",fontSize:11.5,color:"#9CA3AF"}}>현재 매출 {fmt(numF(salesHist.resultValue),"원")} · 총 {(salesHist.salesHistory||[]).length}회 기록</p>
-          {[...(salesHist.salesHistory||[])].reverse().map((h,i)=>(
+        {salesHist&&(()=>{const sh=D.projects.find(p=>p.id===salesHist.id)||salesHist;return(<div style={{marginTop:8}}>
+          <p style={{margin:"0 0 4px",fontSize:13,fontWeight:900,color:"#0F1F5C"}}>{sh.title}</p>
+          <p style={{margin:"0 0 12px",fontSize:11.5,color:"#9CA3AF"}}>현재 매출 {fmt(numF(sh.resultValue),"원")} · 총 {(sh.salesHistory||[]).length}회 기록</p>
+          {[...(sh.salesHistory||[])].reverse().map((h,i)=>(
             <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:"1px solid #F2F4F6"}}>
               <Ava name={h.byName} size={28}/>
               <div style={{flex:1,minWidth:0}}>
@@ -2685,28 +2687,28 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro
               </div>
             </div>
           ))}
-          {(!salesHist.salesHistory||salesHist.salesHistory.length===0)&&<p style={{padding:"20px 0",textAlign:"center",fontSize:13,color:"#9CA3AF"}}>아직 매출 입력 이력이 없어요</p>}
-        </div>)}
+          {(!sh.salesHistory||sh.salesHistory.length===0)&&<p style={{padding:"20px 0",textAlign:"center",fontSize:13,color:"#9CA3AF"}}>아직 매출 입력 이력이 없어요</p>}
+        </div>);})()}
       </Sheet>
       <Sheet open={!!histItem} onClose={()=>setHistItem(null)} title="📜 주차별 실적 이력">
-        {histItem&&(<div style={{marginTop:8}}>
-          <p style={{margin:"0 0 4px",fontSize:13,fontWeight:900,color:"#0F1F5C"}}>{histItem.title}</p>
-          <p style={{margin:"0 0 12px",fontSize:11.5,color:"#9CA3AF"}}>현재 {fmt(histItem.currentValue||0,histItem.unit)} · 총 {(histItem.valueHistory||[]).length}회 입력</p>
-          {[...(histItem.valueHistory||[])].reverse().map((h,i)=>(
+        {histItem&&(()=>{const hi=D.subKPIs.find(s=>s.id===histItem.id)||D.mainKPIs.find(m=>m.id===histItem.id)||histItem;return(<div style={{marginTop:8}}>
+          <p style={{margin:"0 0 4px",fontSize:13,fontWeight:900,color:"#0F1F5C"}}>{hi.title}</p>
+          <p style={{margin:"0 0 12px",fontSize:11.5,color:"#9CA3AF"}}>현재 {fmt(hi.currentValue||0,hi.unit)} · 총 {(hi.valueHistory||[]).length}회 입력</p>
+          {[...(hi.valueHistory||[])].reverse().map((h,i)=>(
             <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:"1px solid #F2F4F6"}}>
               <Ava name={h.byName} size={28}/>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
                   {h.week&&<span style={{fontSize:10,fontWeight:800,color:"#3182F6",background:"#EBF3FF",padding:"1px 6px",borderRadius:6}}>{weekLabel(h.week)}</span>}
-                  <span style={{fontSize:10,fontWeight:800,color:h.mode==="total"?"#8B5CF6":"#EA580C",background:h.mode==="total"?"#F3EFFE":"#FFF1E7",padding:"1px 6px",borderRadius:6}}>{h.mode==="total"?"총값":"추가"}{h.mode==="delta"&&h.amount!=null?` +${fmt(h.amount,histItem.unit)}`:""}</span>
+                  <span style={{fontSize:10,fontWeight:800,color:h.mode==="total"?"#8B5CF6":"#EA580C",background:h.mode==="total"?"#F3EFFE":"#FFF1E7",padding:"1px 6px",borderRadius:6}}>{h.mode==="total"?"총값":"추가"}{h.mode==="delta"&&h.amount!=null?` +${fmt(h.amount,hi.unit)}`:""}</span>
                 </div>
-                <p style={{margin:"3px 0 0",fontSize:13,fontWeight:700,color:"#111827"}}>{fmt(h.prev||0,histItem.unit)} → <span style={{color:"#EA580C",fontWeight:900}}>{fmt(h.value||0,histItem.unit)}</span></p>
+                <p style={{margin:"3px 0 0",fontSize:13,fontWeight:700,color:"#111827"}}>{fmt(h.prev||0,hi.unit)} → <span style={{color:"#EA580C",fontWeight:900}}>{fmt(h.value||0,hi.unit)}</span></p>
                 <p style={{margin:"2px 0 0",fontSize:11,color:"#9CA3AF"}}>{h.byName||"—"} · {(h.at||"").slice(0,16).replace("T"," ")}</p>
               </div>
             </div>
           ))}
-          {(!histItem.valueHistory||histItem.valueHistory.length===0)&&<p style={{padding:"20px 0",textAlign:"center",fontSize:13,color:"#9CA3AF"}}>아직 입력 이력이 없어요</p>}
-        </div>)}
+          {(!hi.valueHistory||hi.valueHistory.length===0)&&<p style={{padding:"20px 0",textAlign:"center",fontSize:13,color:"#9CA3AF"}}>아직 입력 이력이 없어요</p>}
+        </div>);})()}
       </Sheet>
       <Sheet open={!!valSheet} onClose={()=>setValSheet(null)} title="📊 이번 주 실적 입력">
         {valSheet&&(()=>{const it=valSheet.item;const prev=Number(it.currentValue||0);const amt=Number(valAmt)||0;const preview=valMode==="delta"?prev+amt:amt;return(
@@ -3355,12 +3357,13 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
   };
   const exportCSV=()=>{
     const goalTypeL={revenue:"매출",metric:"활동지표",journey:"구축"};
-    const rows=[["제목","그룹","담당자","목표유형","거래처유형","메인KPI","서브KPI","우선순위","상태","마감일","진척도%","진척방식","업무(완료/전체)","매출(원)","매출입력자","매출최종일","매출입력횟수","활동지표"]];
+    const rows=[["제목","그룹","담당자","기여자","목표유형","거래처유형","메인KPI","서브KPI","우선순위","상태","마감일","진척도%","진척방식","업무(완료/전체)","매출(원)","매출입력자","매출최종일","매출입력횟수","활동지표"]];
     filtered.forEach(p=>{
       const a=D.users.find(u=>u.id===p.assigneeId);const mk=D.mainKPIs.find(m=>m.id===p.mainKPIId);const sk=D.subKPIs.find(s=>s.id===p.subKPIId);
       const ts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);const dn=ts.filter(t=>t.status==="done").length;
       const aks=(p.activityKPIs||[]).map(ak=>`${ak.name} ${numF(ak.current)}/${numF(ak.target)}${ak.unit||""}`).join(" · ");
-      rows.push([p.title,p.group||"",a?.name||"",goalTypeL[p.goalType]||"",p.dealerType||"",mk?.title||"",sk?.title||"",p.priority||"",(PROJ_STATUS[projStatus(p)]||{}).label||p.status||"",p.dueDate||"",p.progress||0,p.progressManual?"수동":"자동",`${dn}/${ts.length}`,p.resultValue||0,p.salesByName||"",(p.salesAt||"").slice(0,10),(p.salesHistory||[]).length,aks]);
+      const collabs=(p.collaboratorIds||[]).map(id=>(D.users.find(u=>u.id===id)||{}).name).filter(Boolean).join(", ");
+      rows.push([p.title,p.group||"",a?.name||"",collabs,goalTypeL[p.goalType]||"",p.dealerType||"",mk?.title||"",sk?.title||"",p.priority||"",(PROJ_STATUS[projStatus(p)]||{}).label||p.status||"",p.dueDate||"",p.progress||0,p.progressManual?"수동":"자동",`${dn}/${ts.length}`,p.resultValue||0,p.salesByName||"",(p.salesAt||"").slice(0,10),(p.salesHistory||[]).length,aks]);
     });
     dlCSV(rows,"프로젝트");
   };
@@ -6089,8 +6092,8 @@ function ExportPanel({D,up,restore,restoreLocal,pushExternalBackup}){
   };
   const goalTypeL={revenue:"매출",metric:"활동지표",journey:"구축"};
   const expProjects=()=>{
-    const rows=[["제목","그룹","담당자","목표유형","거래처유형","메인KPI","서브KPI","우선순위","상태","진척도%","진척방식","업무(완료/전체)","매출(원)","매출입력자","매출최종일","활동지표"]];
-    (D.projects||[]).forEach(p=>{const mk=D.mainKPIs.find(m=>m.id===p.mainKPIId);const sk=D.subKPIs.find(s=>s.id===p.subKPIId);const ts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);const dn=ts.filter(t=>t.status==="done").length;const aks=(p.activityKPIs||[]).map(ak=>`${ak.name} ${numF(ak.current)}/${numF(ak.target)}${ak.unit||""}`).join(" · ");rows.push([p.title,p.group||"",uname(p.assigneeId),goalTypeL[p.goalType]||"",p.dealerType||"",mk?.title||"",sk?.title||"",p.priority||"",p.status||"",p.progress||0,p.progressManual?"수동":"자동",`${dn}/${ts.length}`,numF(p.resultValue),p.salesByName||"",(p.salesAt||"").slice(0,10),aks]);});
+    const rows=[["제목","그룹","담당자","기여자","목표유형","거래처유형","메인KPI","서브KPI","우선순위","상태","진척도%","진척방식","업무(완료/전체)","매출(원)","매출입력자","매출최종일","활동지표"]];
+    (D.projects||[]).forEach(p=>{const mk=D.mainKPIs.find(m=>m.id===p.mainKPIId);const sk=D.subKPIs.find(s=>s.id===p.subKPIId);const ts=D.tasks.filter(t=>t.projectId===p.id&&!t.isFixed);const dn=ts.filter(t=>t.status==="done").length;const aks=(p.activityKPIs||[]).map(ak=>`${ak.name} ${numF(ak.current)}/${numF(ak.target)}${ak.unit||""}`).join(" · ");const collabs=(p.collaboratorIds||[]).map(id=>uname(id)).filter(Boolean).join(", ");rows.push([p.title,p.group||"",uname(p.assigneeId),collabs,goalTypeL[p.goalType]||"",p.dealerType||"",mk?.title||"",sk?.title||"",p.priority||"",p.status||"",p.progress||0,p.progressManual?"수동":"자동",`${dn}/${ts.length}`,numF(p.resultValue),p.salesByName||"",(p.salesAt||"").slice(0,10),aks]);});
     downloadCSV(rows,"프로젝트");
   };
   const expSales=()=>{

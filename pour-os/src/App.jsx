@@ -2870,13 +2870,19 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
         {view==="map"?(()=>{
           const COLW=148,ROWH=46,NW=126,NH=36,PADX=12,PADY=12;
           const rows=items.map((it,i)=>({it,i})).filter(r=>r.it.text.trim()||r.it.tid||r.it.id===selId);
-          const yOf={}; rows.forEach((r,ri)=>{yOf[r.i]=PADY+ri*ROWH;});
+          // 마인드맵 좌표: x=깊이(열), y=가지 펼침. 말단은 한 줄씩, 상위는 자식들 가운데 정렬 → 계단식 cascade 방지(진짜 마인드맵 모양)
+          const yOf={};
+          const rParent=(p)=>{const d=rows[p].it.depth;for(let q=p-1;q>=0;q--){const dq=rows[q].it.depth;if(dq===d-1)return q;if(dq<d-1)return -1;}return -1;};
+          const rKids=(p)=>{const o=[];for(let q=p+1;q<rows.length;q++){const dq=rows[q].it.depth;if(dq<=rows[p].it.depth)break;if(rParent(q)===p)o.push(q);}return o;};
+          let _slot=0;
+          const _assignY=(p)=>{const ks=rKids(p);if(!ks.length){const y=PADY+_slot*ROWH;_slot++;yOf[rows[p].i]=y;return y;}const ys=ks.map(_assignY);const y=(ys[0]+ys[ys.length-1])/2;yOf[rows[p].i]=y;return y;};
+          for(let p=0;p<rows.length;p++){ if(rParent(p)===-1) _assignY(p); }
           const parentIdx=(i)=>{for(let k=i-1;k>=0;k--){if(items[k].depth===items[i].depth-1)return k;if(items[k].depth<items[i].depth-1)return -1;}return -1;};
           // 인계 상태: 형제(같은 부모·레벨) 순서로 앞이 다 끝나면 ready, 아니면 wait, 끝났으면 done
           const doneOf=(j)=>isP(items,j)?dd[j]:items[j].done;
           const flowOf=(i)=>{ if(doneOf(i)) return "done"; const par=parentIdx(i); for(let j=0;j<i;j++){ if(!(items[j].text.trim()||items[j].tid)) continue; if(items[j].depth===items[i].depth&&parentIdx(j)===par&&!doneOf(j)) return "wait"; } return "ready"; };
           const maxDepth=rows.reduce((m,r)=>Math.max(m,r.it.depth),0);
-          const svgW=PADX*2+maxDepth*COLW+NW, svgH=PADY*2+Math.max(1,rows.length)*ROWH;
+          const svgW=PADX*2+maxDepth*COLW+NW, svgH=PADY*2+Math.max(1,_slot)*ROWH;
           return(<>
             <div style={{display:"flex",gap:12,marginBottom:8,fontSize:10,fontWeight:700,flexWrap:"wrap"}}>
               <span style={{color:"#00A862"}}>● 완료</span><span style={{color:"#EA580C"}}>▶ 진행 가능(지금)</span><span style={{color:"#9CA3AF"}}>○ 대기(앞 단계 진행 중)</span>

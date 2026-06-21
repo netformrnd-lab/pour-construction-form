@@ -347,6 +347,8 @@ const ConfirmDelete=({open,title,desc,word="삭제",onOk,onCancel})=>{
 };
 // ───────────────────────── 기여도 · 개인 주간목표 (실제 기록 집계 · 랭킹 아님) ─────────────────────────
 const matchUid=(D,id,name)=>{ if(id&&(D.users||[]).find(u=>u.id===id))return id; if(name){const u=(D.users||[]).find(u=>u.name===name);if(u)return u.id;} return null; };
+// 지원 완료 — 담당자가 아닌 사람이 완료한 경우, 그 완료자(지원자) uid. 아니면 null.
+const supportDoer=(D,t)=>{ if(!t||t.status!=="done")return null; const d=matchUid(D,t.doneBy,t.doneByName); return (d&&t.assigneeId&&d!==t.assigneeId)?d:null; };
 const inWeek=(at,wk)=>at&&weekKey(new Date(at))===wk;
 // 프로젝트 기여도 — 담당자별 {task,sales,act,total, wk:이번주합} (협업 가시화)
 const projContrib=(D,proj)=>{
@@ -2334,20 +2336,22 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro
                       if(!mkProjs.length) return null;
                       const mkProjIds=new Set(mkProjs.map(p=>p.id));
                       const parentIds=new Set((D.tasks||[]).filter(t=>t.parentId).map(t=>t.parentId));   // 상위(단계) 그릇 제외 — 말단 업무만
-                      const agg={}; D.users.forEach(u=>{agg[u.id]={u,effort:0,done:0};});
+                      const agg={}; D.users.forEach(u=>{agg[u.id]={u,effort:0,done:0,support:0};});
                       // 담당자 카드 — 행동·완료 모두 '담당자(assigneeId)' 기준으로 일관. (완료를 완료처리자(doneBy) 기준으로 잡으면 남이 체크 시 담당자에게 안 잡힘)
-                      (D.tasks||[]).forEach(t=>{ if(t.isFixed||!mkProjIds.has(t.projectId)||parentIds.has(t.id))return; if(agg[t.assigneeId])agg[t.assigneeId].effort++; if(t.status==="done"&&agg[t.assigneeId])agg[t.assigneeId].done++; });
-                      const rows=Object.values(agg).filter(x=>x.effort>0||x.done>0);
-                      const totE=rows.reduce((a,x)=>a+x.effort,0), totD=rows.reduce((a,x)=>a+x.done,0);
+                      // 지원(support): 담당자가 아닌 사람이 완료한 경우 → 그 완료자에게 '지원 완료' 별도 집계
+                      (D.tasks||[]).forEach(t=>{ if(t.isFixed||!mkProjIds.has(t.projectId)||parentIds.has(t.id))return; if(agg[t.assigneeId])agg[t.assigneeId].effort++; if(t.status==="done"&&agg[t.assigneeId])agg[t.assigneeId].done++; const sd=supportDoer(D,t); if(sd&&agg[sd])agg[sd].support++; });
+                      const rows=Object.values(agg).filter(x=>x.effort>0||x.done>0||x.support>0);
+                      const totE=rows.reduce((a,x)=>a+x.effort,0), totD=rows.reduce((a,x)=>a+x.done,0), totS=rows.reduce((a,x)=>a+x.support,0);
                       const totalRev=mkProjs.reduce((s,p)=>s+numF(p.resultValue),0);
-                      const Mini=({title,color,bg,fld,tot})=>(
+                      const Mini=({title,color,bg,fld,tot,sup})=>(
                         <div style={{flex:1,minWidth:0,background:bg,borderRadius:10,padding:"9px 11px"}}>
                           <p style={{margin:"0 0 7px",fontSize:11,fontWeight:800,color}}>{title}</p>
-                          {rows.length===0?<p style={{margin:0,fontSize:11,color:"#C4C9D0"}}>기록 없음</p>:[...rows].sort((a,b)=>b[fld]-a[fld]).map(x=>{const v=x[fld];const pp=tot>0?Math.round(v/tot*100):0;return(
+                          {rows.length===0?<p style={{margin:0,fontSize:11,color:"#C4C9D0"}}>기록 없음</p>:[...rows].sort((a,b)=>(b[fld]-a[fld])||(b.support-a.support)).map(x=>{const v=x[fld];const pp=tot>0?Math.round(v/tot*100):0;return(
                             <div key={x.u.id} style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
                               <Ava name={x.u.name} color={x.u.color} size={18}/>
                               <span style={{fontSize:11,fontWeight:700,color:"#374151",width:34,flexShrink:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{x.u.name}</span>
                               <div style={{flex:1,height:6,borderRadius:6,background:"#fff",overflow:"hidden"}}><div style={{width:pp+"%",height:"100%",background:color,borderRadius:6}}/></div>
+                              {sup&&x.support>0&&<span title="지원 완료 — 담당 아닌 업무를 완료" style={{fontSize:9,fontWeight:800,color:"#1D4ED8",background:"#DBEAFE",borderRadius:5,padding:"1px 5px",flexShrink:0}}>✋{x.support}</span>}
                               <span style={{fontSize:11,fontWeight:800,color,width:28,textAlign:"right",flexShrink:0}}>{v}</span>
                             </div>
                           );})}
@@ -2361,14 +2365,15 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro
                               <span style={{fontSize:10.5,fontWeight:800,color:"#2563EB",background:"#EBF3FF",borderRadius:7,padding:"2px 8px"}}>선행지표 {mkProjs.length}개</span>
                               <span style={{fontSize:10.5,fontWeight:800,color:"#3182F6",background:"#EBF3FF",borderRadius:7,padding:"2px 8px"}}>행동 {totE}</span>
                               <span style={{fontSize:10.5,fontWeight:800,color:"#00A862",background:"#E8FAF1",borderRadius:7,padding:"2px 8px"}}>완료 {totD}</span>
+                              {totS>0&&<span style={{fontSize:10.5,fontWeight:800,color:"#1D4ED8",background:"#DBEAFE",borderRadius:7,padding:"2px 8px"}}>✋지원 {totS}</span>}
                               {mk.unit==="원"&&totalRev>0&&<span style={{fontSize:10.5,fontWeight:800,color:"#EA580C",background:"#FFF1E7",borderRadius:7,padding:"2px 8px"}}>💰{fmt(totalRev,"원")}</span>}
                             </div>
                           </div>
                           <div style={{display:"flex",gap:8}}>
                             <Mini title="⚡ 행동 — 업무 수" color="#3182F6" bg="#EBF3FF" fld="effort" tot={totE}/>
-                            <Mini title="✅ 완료 — 완료 수" color="#00C073" bg="#E8FAF1" fld="done" tot={totD}/>
+                            <Mini title="✅ 완료 — 완료 수" color="#00C073" bg="#E8FAF1" fld="done" tot={totD} sup={true}/>
                           </div>
-                          <p style={{margin:"8px 2px 0",fontSize:10,color:"#9CA3AF",lineHeight:1.5}}>이 매출 KPI에 연결된 모든 프로젝트(선행지표)의 말단 업무 기준 · 담당자(assignee) 기준 · 행동=맡은 업무 수, 완료=맡은 업무 중 완료 수</p>
+                          <p style={{margin:"8px 2px 0",fontSize:10,color:"#9CA3AF",lineHeight:1.5}}>담당자(assignee) 기준 · 행동=맡은 업무 수, 완료=맡은 업무 중 완료 수 · <b style={{color:"#1D4ED8"}}>✋지원</b>=담당 아닌 업무를 대신 완료한 수(완료자에게 별도 표시)</p>
                         </div>
                       );
                     })()}
@@ -3244,7 +3249,7 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
               <select value={t.assigneeId||""} onChange={e=>up("tasks",t.id,{assigneeId:e.target.value})} style={{...inp,background:"#fff",WebkitAppearance:"none"}}>{MEM.map(m=><option key={m.id||"none"} value={m.id}>{m.name}</option>)}</select></>)}
             <label style={lb}>상태</label>
             <div style={{display:"flex",gap:7}}>
-              {[["todo","할일"],["inprogress","진행중"],["done","완료"]].map(([s,l])=>{const on=t.status===s;const c=STATUS_MAP[s].color;return(<button key={s} onClick={()=>up("tasks",t.id,s==="done"?{status:s,doneAt:new Date().toISOString(),doneByName:(D.users.find(u=>u.id===t.assigneeId)||{}).name||""}:{status:s})} style={{flex:1,padding:"9px 0",borderRadius:10,border:`1.5px solid ${on?c:"#E5E8EB"}`,background:on?c+"18":"#fff",color:on?c:"#6B7280",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>);})}
+              {[["todo","할일"],["inprogress","진행중"],["done","완료"]].map(([s,l])=>{const on=t.status===s;const c=STATUS_MAP[s].color;return(<button key={s} onClick={()=>up("tasks",t.id,statusPatch(D,t,s))} style={{flex:1,padding:"9px 0",borderRadius:10,border:`1.5px solid ${on?c:"#E5E8EB"}`,background:on?c+"18":"#fff",color:on?c:"#6B7280",fontSize:12.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>);})}
             </div>
             <button onClick={()=>{addKid(t.id);setExpanded(e=>({...e,[t.id]:true}));}} style={{width:"100%",marginTop:14,padding:"11px 0",borderRadius:11,border:"1.5px solid #FDBA74",background:"#FFF7ED",color:"#EA580C",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>＋ 하위 업무(프로세스) 추가</button>
             <p style={{margin:"8px 2px 0",fontSize:10.5,color:"#9CA3AF",lineHeight:1.5}}>※ 캔버스에서 노드 아래 ●을 다른 노드로 끌면 그 노드의 하위(프로세스)로 이어집니다.</p>
@@ -5478,6 +5483,7 @@ function TaskHierarchy({D,tasks,onPick,color="#3182F6",activeFn=null,showAssigne
     const kids=childrenOf(task.id);
     const act=activeFn?activeFn(task):true;
     const au=showAssignee?D.users.find(u=>u.id===task.assigneeId):null;
+    const sd=supportDoer(D,task); const su=sd?D.users.find(u=>u.id===sd):null;
     return(
       <div key={task.id} style={{marginBottom:3}}>
         <div onClick={onPick?()=>onPick({ref:{kind:"task",id:task.id}}):undefined} style={{display:"flex",alignItems:"center",gap:5,padding:"4px 9px",borderRadius:8,backgroundColor:act?color+"10":"#F9FAFB",border:`1px solid ${act?color+"44":"#EEF1F4"}`,cursor:onPick?"pointer":"default",opacity:act?1:0.55}}>
@@ -5486,6 +5492,7 @@ function TaskHierarchy({D,tasks,onPick,color="#3182F6",activeFn=null,showAssigne
           <span style={{fontSize:11.5,fontWeight:kids.length>0?800:600,color:task.status==="done"?"#9CA3AF":"#1F2937",textDecoration:task.status==="done"?"line-through":"none",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{task.title}</span>
           {kids.length>0&&<span style={{fontSize:9,fontWeight:800,color:"#9CA3AF",flexShrink:0}}>하위 {kids.length}</span>}
           {task.weekDay&&activeFn&&<span style={{fontSize:9,color:color,fontWeight:900,flexShrink:0}}>{task.weekDay}</span>}
+          {su&&<span title={`지원 완료 · ${su.name}`} style={{fontSize:9,fontWeight:800,color:"#1D4ED8",backgroundColor:"#DBEAFE",padding:"1px 5px",borderRadius:4,flexShrink:0}}>✋{su.name}</span>}
           <span style={{fontSize:9,fontWeight:700,color:st.color,backgroundColor:st.bg,padding:"1px 5px",borderRadius:4,flexShrink:0}}>{st.label}</span>
         </div>
         {kids.length>0&&<div style={{marginLeft:11,borderLeft:"1.5px dashed #E5E8EB",paddingLeft:3,marginTop:3}}>{kids.map(node)}</div>}

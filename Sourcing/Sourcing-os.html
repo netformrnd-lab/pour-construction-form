@@ -369,6 +369,11 @@
   .kc-src{font-size:10.5px;color:var(--muted);margin-top:3px}
   .kc-empty{font-size:11px;color:var(--muted);padding:6px 2px}
 
+  /* 기획 뷰 세로 여백 압축 */
+  #view-plans{margin-top:-14px}
+  #view-plans .pl-srcrow{padding-bottom:6px;margin-bottom:0}
+  #view-plans #planStatusChips{margin-bottom:8px}
+
   /* 기획(아이디어 모아보기) 페이지 */
   .pl-card{display:flex;gap:11px;background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:12px;margin-bottom:9px;cursor:pointer}
   .pl-img{width:62px;height:62px;border-radius:10px;object-fit:cover;flex:0 0 62px}
@@ -3425,7 +3430,7 @@ function renderPlans(){
   if(planFilter!=='전체')list=list.filter(p=>p.status===planFilter);
   if(planQuery){const q=planQuery.toLowerCase();list=list.filter(p=>((p.title||'')+' '+(p.category||'')+' '+(p.marketMemo||'')+' '+(p.vendorMemo||'')+' '+(p.source||'')).toLowerCase().includes(q));}
   list.sort((a,b)=>(b.updatedAt||'').localeCompare(a.updatedAt||''));
-  if(!list.length){box.innerHTML='';empty.style.display='';empty.innerHTML='<div class="tempty" style="padding:40px 20px;text-align:center;color:var(--muted)">'+(plans.items.length?'해당하는 기획이 없어요.':'아직 기획이 없어요. <b>위 입력칸</b>에 한 줄로 바로 등록해보세요.')+'</div>';return;}
+  if(!list.length){box.innerHTML='';empty.style.display='';empty.innerHTML='<div class="tempty" style="padding:24px 16px;text-align:center;color:var(--muted)">'+(plans.items.length?'해당하는 기획이 없어요.':'아직 기획이 없어요. <b>위 입력칸</b>에 한 줄로 바로 등록해보세요.')+'</div>';return;}
   empty.style.display='none';
   box.innerHTML=list.map(p=>{
     const col=PLAN_ST_COLOR[p.status]||PLAN_ST_COLOR['아이디어'];

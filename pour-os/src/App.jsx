@@ -2177,7 +2177,9 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro
     }
     const patch={title:cfgForm.title.trim()||item.title,targetValue:numF(cfgForm.target)};
     if(kind!=="goal") patch.unit=cfgForm.unit||item.unit;
-    if(kind!=="goal"&&cfgForm.current!==""&&isFinite(Number(cfgForm.current))){ patch.currentValue=Number(cfgForm.current); if(item.mainKPIId==="mk2"&&item.unit==="원") patch.manualOverride=true; }
+    // mk2(원) 서브KPI는 자식 프로젝트 매출 자동집계 → 현재값/오버라이드를 절대 건드리지 않음(이름·목표만 바꿔도 자동집계 유지)
+    const isAutoRev=item.mainKPIId==="mk2"&&item.unit==="원";
+    if(kind!=="goal"&&!isAutoRev&&cfgForm.current!==""&&isFinite(Number(cfgForm.current))){ patch.currentValue=Number(cfgForm.current); }
     up(coll,item.id,patch);
     setCfg(null);
   };
@@ -2266,7 +2268,7 @@ function KPIPage({D,lead,up,cu,add,rm,restore,restoreLocal,pushExternalBackup,ro
             <p style={{margin:0,fontSize:11,color:"#9A3412",fontWeight:600,lineHeight:1.55}}>· <b>직판·운영</b> KPI → 항목 펼쳐 <b>📊 이번 주 실적 입력</b><br/>· <b>B2B(메인2)</b> → 펼친 뒤 <b>거래처유형별 매출 ✏️입력</b>(프로젝트 매출) = 자동 집계<br/>· 추가값=이번 주만 / 총값=누계 덮어쓰기 · 누가 넣었는지·주차별 이력 자동 기록</p>
           </div>}
           {D.goals.map(g=>{
-            const cur=D.mainKPIs.filter(mk=>mk.unit==="원").reduce((s,mk)=>s+mkCur(mk,D.subKPIs,D.projects),0);
+            const cur=D.mainKPIs.filter(mk=>mk.unit==="원"&&mk.goalId===g.id).reduce((s,mk)=>s+mkCur(mk,D.subKPIs,D.projects),0);
             const p=pct(cur,g.targetValue);
             return(
               <div key={g.id} style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:18,padding:"18px",marginBottom:14,color:"#FFFFFF"}}>
@@ -2769,6 +2771,7 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
     return out;
   };
   const [items,setItems]=useState(load);
+  const origIdsRef=useRef(new Set(D.tasks.filter(t=>t.projectId===proj.id&&!t.isFixed).map(t=>t.id)));   // 에디터 진입 시점의 업무 id — 삭제는 이 범위로만(동시에 외부 추가된 업무 보호)
   const [selId,setSelId]=useState(null);
   const [view,setView]=useState("tree");   // tree(편집) | map(마인드맵 보기, 선택사항)
   const focusRef=useRef(null),uidRef=useRef(0),outRef=useRef(null);
@@ -2816,7 +2819,7 @@ function ProjectProcessEditor({D,proj,cu,add,up,rm,onClose}){
         add("tasks",{id:nid,title:it.text.trim(),projectId:proj.id,parentId,assigneeId:it.who,type:"general",status:dn?"done":"todo",weekDay:null,weekSlot:null,isFixed:false,dueDate:"",memo:"",attachments:[],seq:i,...(dn?{doneAt:new Date().toISOString(),doneBy:_u?.id||null,doneByName:_u?.name||""}:{})});
       }
     });
-    existing.forEach(t=>{ if(!present.has(t.id)) rm("tasks",t.id); });
+    existing.forEach(t=>{ if(origIdsRef.current.has(t.id)&&!present.has(t.id)) rm("tasks",t.id); });   // 진입 시점에 있던 업무 중 에디터에서 지운 것만 삭제(동시 추가분 보호)
     onClose();
   };
   const sel=items.find(x=>x.id===selId);
@@ -3290,7 +3293,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
   const [actHist,setActHist]=useState(null);   // 활동지표 이력 {proj,ak}
   const [actEdit,setActEdit]=useState(null);   // 목표지표 수정 {proj,ak}
   const [actAddOpen,setActAddOpen]=useState(null);   // 지표 추가폼 펼친 프로젝트
-  const actAddIndicator=(proj)=>{ if(!actForm.name.trim())return; const list=[...(proj.activityKPIs||[]),{id:"ak"+Date.now(),name:actForm.name.trim(),unit:actForm.unit||"건",target:Number(actForm.target)||0,current:0,history:[]}]; up("projects",proj.id,{activityKPIs:list}); setActForm({name:"",unit:"건",target:""}); };
+  const actAddIndicator=(proj)=>{ if(!actForm.name.trim())return; const list=[...(proj.activityKPIs||[]),{id:"ak"+Date.now()+Math.random().toString(36).slice(2,5),name:actForm.name.trim(),unit:actForm.unit||"건",target:Number(actForm.target)||0,current:0,history:[]}]; up("projects",proj.id,{activityKPIs:list}); setActForm({name:"",unit:"건",target:""}); };
   const actRecord=(proj,ak,raw)=>{ const amt=Number(raw); if(isNaN(amt))return; const prev=Number(ak.current||0); const v=actMode==="delta"?prev+amt:amt; const at=new Date().toISOString(); const week=weekKey(); const list=(proj.activityKPIs||[]).map(x=>x.id===ak.id?{...x,current:v,week,by:cu?.id||null,byName:cu?.name||"",history:[...(x.history||[]),{week,value:v,amount:amt,mode:actMode,by:cu?.id||null,byName:cu?.name||"",at}]}:x); up("projects",proj.id,{activityKPIs:list}); };
   const actRemove=(proj,ak)=>rmNested("projects",proj.id,"activityKPIs",ak.id,"활동지표");   // 삭제해도 휴지통에 보관·복구 가능
   // 목표지표 수정(이름·단위·목표값) + 변경분 수정이력 기록
@@ -3324,7 +3327,7 @@ function ProjectsPage({D,cu,up,add,rm,rmNested,pc,lead,nav}){
       const man=manualId&&(D.manuals||[]).find(m=>m.id===manualId);
       const proj={id:projId,...rest,status:rest.status||"active",progress:0,resultValue:0};
       if(man){ proj.sourceManualId=man.id; proj.sourceManualName=man.name||""; proj.sourceManualVersion=man.version||1; if(man.countKPIId) proj.countKPIId=man.countKPIId; }   // 로드맵 템플릿 역링크 + 이름 박제(삭제돼도 기록 유지) + 완료집계 상속
-      if(projForm.goalType==="metric"&&metric.name.trim()) proj.activityKPIs=[{id:"ak"+Date.now(),name:metric.name.trim(),unit:metric.unit||"개",target:numF(metric.target),current:0,history:[]}];
+      if(projForm.goalType==="metric"&&metric.name.trim()) proj.activityKPIs=[{id:"ak"+Date.now()+Math.random().toString(36).slice(2,5),name:metric.name.trim(),unit:metric.unit||"개",target:numF(metric.target),current:0,history:[]}];
       add("projects",proj);
       if(man) cloneManualToProject(man,projId,projForm.projType,add);
     }

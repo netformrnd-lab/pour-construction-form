@@ -6,8 +6,9 @@ import { numF, skCur, mkCur, calcSegDone } from "./kpi.js";
 import { applyAutomation, instantiateLaunch } from "./launch.js";
 
 // Firestore 단일 문서에 저장할 공유 데이터 키 (currentUser는 기기별 로컬이라 제외)
-const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","eventTypes","weekGoals","launchTemplates","manuals","trash"];
-const COL_LABEL = {users:"담당자",goals:"최종목표",mainKPIs:"메인KPI",subKPIs:"서브KPI",projects:"프로젝트",tasks:"업무",personalGoals:"개인목표",retros:"회고",aiReviews:"AI점검",events:"일정",eventTypes:"일정유형",weekGoals:"주간목표",launchTemplates:"프로세스템플릿",manuals:"로드맵 템플릿",trash:"휴지통"};
+const SHARED_KEYS = ["users","goals","mainKPIs","subKPIs","projects","tasks","personalGoals","retros","aiReviews","events","eventTypes","weekGoals","launchTemplates","manuals","trash","activityLog"];
+const COL_LABEL = {users:"담당자",goals:"최종목표",mainKPIs:"메인KPI",subKPIs:"서브KPI",projects:"프로젝트",tasks:"업무",personalGoals:"개인목표",retros:"회고",aiReviews:"AI점검",events:"일정",eventTypes:"일정유형",weekGoals:"주간목표",launchTemplates:"프로세스템플릿",manuals:"로드맵 템플릿",trash:"휴지통",activityLog:"활동기록"};
+const ACT_LOG_CAP = 1000;   // 활동기록 최대 보존 건수(초과 시 오래된 것부터 제거 — 컬렉션 1MiB 한도 가드)
 const LOCAL_USER_KEY = "pour-os-current-user";
 const MIRROR_KEY = "pour-os-mirror";        // 2차 안전: 마지막 상태를 이 기기에 거울 저장
 const MIRROR_AT_KEY = "pour-os-mirror-at";  // 거울 저장 시각(ISO)
@@ -163,6 +164,7 @@ const INIT={
   // 로드맵 템플릿 — 잘 된 로드맵(로드단계+프로세스)을 굳혀 재사용하는 표준. 새 프로젝트를 여기서 시작.
   manuals:[],
   trash:[],   // 소프트 삭제 보관소 — 삭제된 모든 데이터는 여기 남고 복구 가능(데이터 자산화)
+  activityLog:[],   // 활동 여정 — 추가·수정·삭제·복구 기록(누가·언제·무엇을). 데이터 자산화: 변화의 이력도 자산.
   // 출시 프로세스 템플릿(마인드맵) — 신상 SKU를 찍어내는 표준 흐름. 동일 프로세스 1개 기본 제공.
   launchTemplates:[
     {id:"tpl_launch", name:"신상 출시 표준 프로세스", version:2, createdAt:"2026-06-12T00:00:00.000Z",
@@ -674,7 +676,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up,onDelete})=>{
 };
 const TABS=[{id:"today",icon:"🏠",label:"오늘"},{id:"kpi",icon:"◎",label:"KPI"},{id:"projects",icon:"▦",label:"프로젝트"},{id:"calendar",icon:"▤",label:"일정"},{id:"more",icon:"⋯",label:"더보기"}];
 const SHARE_NAV=[{id:"kpi",icon:"◎",label:"KPI"},{id:"mindmap",icon:"◈",label:"그로스보드"}];   // 공유 보기 전용 네비
-const MORE=[{id:"mindmap",icon:"◈",label:"그로스보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"team",icon:"👤",label:"담당자"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"},{id:"guide",icon:"📖",label:"가이드"}];
+const MORE=[{id:"mindmap",icon:"◈",label:"그로스보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"team",icon:"👤",label:"담당자"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"},{id:"journey",icon:"🗂",label:"활동 여정"},{id:"guide",icon:"📖",label:"가이드"}];
 // 메뉴 그룹: 개인(나만 보는 내 것) vs 팀(모두 같이 보는 공유) — 출시·프로세스는 프로젝트 하위
 const NAV_GROUPS=[
   {label:"개인 · 나만", ids:["today","fixed","retro"]},
@@ -845,11 +847,19 @@ export default function App(){
     });
     return changed?{...state,projects}:state;
   };
+  // ── 활동 여정(activityLog) 기록 헬퍼 — 추가·수정·삭제·복구를 누가·언제·무엇을 한 줄로 남긴다(데이터 자산화) ──
+  const recLabel=(it)=>it&&(it.title||it.name||it.companyName||it.targetName||it.label||it._label||it.week||it.id)||"(제목 없음)";
+  const FIELD_L={status:"상태",progress:"진척",resultValue:"매출",currentValue:"수치",title:"제목",name:"이름",memo:"메모",dueDate:"마감",assigneeId:"담당",priority:"우선순위",dealerType:"거래처유형",activityKPIs:"활동지표",stages:"단계",nodes:"단계",target:"목표",color:"색상"};
+  const fieldSummary=(c)=>Object.keys(c||{}).filter(f=>!["statusLog","doneAt","doneBy","doneByName","updatedAt","valueHistory","salesHistory","edits"].includes(f)).map(f=>FIELD_L[f]||f).slice(0,4).join("·");
+  const mkLog=(action,col,targetId,label,extra)=>({id:"log"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),action,col,targetId:targetId||null,label:label||"",by:cu?.id||null,byName:cu?.name||"",at:new Date().toISOString(),...(extra||{})});
+  const withLog=(state,action,col,targetId,label,extra)=>{ const arr=[...(state.activityLog||[]),mkLog(action,col,targetId,label,extra)]; return {...state,activityLog:arr.length>ACT_LOG_CAP?arr.slice(arr.length-ACT_LOG_CAP):arr}; };
   const add=(k,item)=>{ if(SHARE) return;  return setD(p=>{
     let it=item;   // 업무는 생성 시점을 진행 이력의 첫 항목으로 기록(여정 시작점)
     if(k==="tasks"&&!Array.isArray(item.statusLog)) it={...item,statusLog:[{status:item.status||"todo",at:new Date().toISOString(),by:cu?.id||null,byName:cu?.name||""}]};
-    const n={...p,[k]:[...p[k],it]};return k==="tasks"?recalcProg(n):n;});};
-  const up=(k,id,c)=>{ if(SHARE) return; return setD(p=>{
+    const n=withLog({...p,[k]:[...p[k],it]},"add",k,it.id,recLabel(it));return k==="tasks"?recalcProg(n):n;});};
+  // silent=true → 활동기록 남기지 않음(대량 일괄 갱신 등 노이즈 방지용)
+  const up=(k,id,c,silent)=>{ if(SHARE) return; return setD(p=>{
+    const before=p[k].find(i=>i.id===id);
     // 업무 상태 전이 시 진행 이력(statusLog) 누적 — 할일→진행중→보류→진행중→완료 여정 전체 보존. 완료 전환 시 완료시각·완료자도 기록.
     const list=p[k].map(i=>{ if(i.id!==id) return i; let patch=c;
       if(k==="tasks"&&c.status&&c.status!==i.status){ const at=new Date().toISOString();
@@ -857,9 +867,10 @@ export default function App(){
         if(c.status==="done") patch={...patch,doneAt:at,doneBy:cu?.id||null,doneByName:cu?.name||""};
       }
       return {...i,...patch}; });
-    const n={...p,[k]:list};
+    let n={...p,[k]:list};
     // 자동화: 업무가 완료로 전이되면 후속 액션 평가(설정 없으면 무동작). recalcProg는 마지막에 한 번.
-    const n2=(k==="tasks"&&c.status==="done")?applyAutomation(n,id,cu):n;
+    let n2=(k==="tasks"&&c.status==="done")?applyAutomation(n,id,cu):n;
+    if(!silent) n2=withLog(n2,"edit",k,id,recLabel(before||{id}),{fields:fieldSummary(c)});
     return k==="tasks"?recalcProg(n2):n2;
   });};
   const newTid=()=>"trash"+Date.now()+"_"+Math.random().toString(36).slice(2,6);
@@ -871,7 +882,7 @@ export default function App(){
     const item=(D[k]||[]).find(i=>i.id===id); if(!item) return;
     const _tid=newTid();
     const entry={...item,_col:k,_tid,...delMeta()};
-    setD(p=>{const n={...p,[k]:(p[k]||[]).filter(i=>i.id!==id),trash:[...(p.trash||[]),entry]};return k==="tasks"?recalcProg(n):n;});
+    setD(p=>{const n=withLog({...p,[k]:(p[k]||[]).filter(i=>i.id!==id),trash:[...(p.trash||[]),entry]},"delete",k,id,recLabel(item),{tid:_tid});return k==="tasks"?recalcProg(n):n;});
     if(!silent) setUndo({tid:_tid,label:`${COL_LABEL[k]||"항목"} 삭제됨`});
   };
   // 레코드 *안의* 항목 삭제(예: 프로젝트의 활동지표)도 휴지통 이동. 부모 맥락을 함께 보관해 제자리로 복구.
@@ -883,7 +894,7 @@ export default function App(){
     const entry={...item,_col:"_nested",_typeLabel:typeLabel||field,_parentCol:parentCol,_parentId:parentId,_field:field,_tid,...delMeta()};
     setD(p=>{const par=(p[parentCol]||[]).find(x=>x.id===parentId); if(!par) return p;
       const newParent={...par,[field]:(par[field]||[]).filter(x=>x.id!==itemId)};
-      return {...p,[parentCol]:(p[parentCol]||[]).map(x=>x.id===parentId?newParent:x),trash:[...(p.trash||[]),entry]};});
+      return withLog({...p,[parentCol]:(p[parentCol]||[]).map(x=>x.id===parentId?newParent:x),trash:[...(p.trash||[]),entry]},"delete","_nested",itemId,recLabel(item),{tid:_tid,typeLabel:typeLabel||field});});
     setUndo({tid:_tid,label:`${typeLabel||"항목"} 삭제됨`});
   };
   // 휴지통 → 원래 자리로 복구(원본 id·내용 그대로, 이미 존재하면 중복 생성 안 함)
@@ -895,11 +906,11 @@ export default function App(){
       const parent=(p[_parentCol]||[]).find(x=>x.id===_parentId); if(!parent) return p;
       const arr=parent[_field]||[]; const exists=arr.some(x=>(item.id&&x.id===item.id)||(item.url&&x.url===item.url));
       const newParent={...parent,[_field]:exists?arr:[...arr,item]};
-      return {...p,[_parentCol]:(p[_parentCol]||[]).map(x=>x.id===_parentId?newParent:x),trash:trashLeft};
+      return withLog({...p,[_parentCol]:(p[_parentCol]||[]).map(x=>x.id===_parentId?newParent:x),trash:trashLeft},"restore","_nested",item.id,recLabel(item),{typeLabel:_typeLabel});
     }
     const {_col,_tid,_deletedAt,_deletedBy,_deletedByName,...orig}=entry;
     const exists=(p[_col]||[]).some(i=>i.id===orig.id);
-    const n={...p,[_col]:exists?(p[_col]||[]):[...(p[_col]||[]),orig],trash:trashLeft};
+    const n=withLog({...p,[_col]:exists?(p[_col]||[]):[...(p[_col]||[]),orig],trash:trashLeft},"restore",_col,orig.id,recLabel(orig));
     return _col==="tasks"?recalcProg(n):n;
   });
   // 로컬 보관(IndexedDB 미러/스냅샷·localStorage)에서 전체 상태 복구 — 명시적 사용자 동작에서만(확인 후). 컬렉션만 교체, currentUser·UI 보존.
@@ -959,6 +970,7 @@ export default function App(){
     {page==="team"&&<TeamPage D={D} cu={cu} lead={lead} add={add} up={up} rm={rm}/>}
     {page==="retro"&&<RetroPage D={D} cu={cu} add={add} up={up} rm={rm}/>}
     {page==="ai"&&<AIPage D={D} cu={cu} add={add} rm={rm}/>}
+    {page==="journey"&&<JourneyPage D={D} cu={cu} restore={restore}/>}
   </>);
   const sheets=(<>
     {syncToast&&<div style={{position:"fixed",top:"calc(env(safe-area-inset-top,0px) + 12px)",left:"50%",transform:"translateX(-50%)",zIndex:5000,background:"#0F1F5C",color:"#fff",padding:"8px 16px",borderRadius:999,fontSize:12,fontWeight:700,boxShadow:"0 6px 20px rgba(0,0,0,0.25)",whiteSpace:"nowrap",pointerEvents:"none"}}>🔄 다른 기기에서 업데이트됨</div>}
@@ -972,7 +984,7 @@ export default function App(){
       {saveErr.level!=="error"&&<button onClick={()=>setSaveErr(null)} style={{flexShrink:0,padding:"5px 7px",borderRadius:8,border:"none",background:"transparent",color:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}}>×</button>}
     </div>}
     <Sheet open={more} onClose={()=>setMore(false)} title="더보기">
-      {[{label:"개인 · 나만",ids:["fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","team","ai"]},{label:"도움말",ids:["guide"]}].map(grp=>(
+      {[{label:"개인 · 나만",ids:["fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","team","ai"]},{label:"데이터 · 기록",ids:["journey"]},{label:"도움말",ids:["guide"]}].map(grp=>(
         <div key={grp.label} style={{marginTop:14}}>
           <p style={{margin:"0 2px 8px",fontSize:11,fontWeight:800,color:"#9CA3AF",letterSpacing:0.5}}>{grp.label}</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -6182,9 +6194,9 @@ function ExportPanel({D,up,restore,restoreLocal,pushExternalBackup}){
   const resetNums=()=>{
     if(!up) return;
     if(!window.confirm("KPI·채널의 현재 수치를 모두 0으로 초기화할까요?\n목표·구조(직판/B2B/운영·채널)는 그대로 두고 현재 숫자만 0으로 만듭니다.\n입력 이력(📜)은 자산으로 보존됩니다. (전체 백업(JSON) 권장)")) return;
-    (D.subKPIs||[]).forEach(s=>up("subKPIs",s.id,{currentValue:0}));    // 이력(valueHistory)은 지우지 않음 — 데이터 자산화
-    (D.mainKPIs||[]).forEach(m=>up("mainKPIs",m.id,{currentValue:0}));
-    (D.goals||[]).forEach(g=>up("goals",g.id,{currentValue:0}));
+    (D.subKPIs||[]).forEach(s=>up("subKPIs",s.id,{currentValue:0},true));    // 이력(valueHistory)은 지우지 않음 — 데이터 자산화. silent: 활동기록 노이즈 방지
+    (D.mainKPIs||[]).forEach(m=>up("mainKPIs",m.id,{currentValue:0},true));
+    (D.goals||[]).forEach(g=>up("goals",g.id,{currentValue:0},true));
   };
   const goalTypeL={revenue:"매출",metric:"활동지표",journey:"구축"};
   const expProjects=()=>{
@@ -6241,25 +6253,13 @@ function ExportPanel({D,up,restore,restoreLocal,pushExternalBackup}){
   const trash=D.trash||[];
   return(
     <>
-    {/* 휴지통 — 삭제된 모든 데이터는 사라지지 않고 보관됨(복구 가능). 데이터 자산화 원칙. */}
-    <div style={{background:"#FFFFFF",borderRadius:16,padding:"14px 16px",marginTop:14,border:"1px solid #F2F4F6"}}>
-      <h3 style={{margin:"0 0 3px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>🗑 휴지통 {trash.length>0&&<span style={{fontSize:12,fontWeight:800,color:"#EA580C"}}>({trash.length})</span>}</h3>
-      <p style={{margin:"0 0 10px",fontSize:10.5,color:"#9CA3AF"}}>삭제한 업무·KPI·프로젝트는 <b>사라지지 않고 여기 보관</b>돼요 — 언제든 복구할 수 있어요</p>
-      {trash.length===0?(
-        <p style={{margin:0,fontSize:11.5,color:"#B0B8C1",textAlign:"center",padding:"14px 0"}}>삭제된 데이터가 없어요</p>
-      ):(
-        <div style={{display:"flex",flexDirection:"column",gap:6}}>
-          {[...trash].reverse().slice(0,60).map(t=>(
-            <div key={t._tid} style={{display:"flex",alignItems:"center",gap:8,background:"#F9FAFB",borderRadius:10,padding:"8px 10px"}}>
-              <span style={{flexShrink:0,fontSize:9.5,fontWeight:800,color:"#6B7280",background:"#EEF1F4",borderRadius:5,padding:"2px 6px"}}>{COL_LABEL[t._col]||t._typeLabel||t._col}</span>
-              <span style={{flex:1,minWidth:0,fontSize:12,fontWeight:700,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title||t.name||t.companyName||t.targetName||t.week||t._label||t.id||"(제목 없음)"}</span>
-              <span style={{flexShrink:0,fontSize:9.5,color:"#9CA3AF"}}>{(t._deletedAt||"").slice(5,10)}{t._deletedByName?" · "+t._deletedByName:""}</span>
-              <button onClick={()=>{ if(t._col==="_nested"&&!(D[t._parentCol]||[]).some(x=>x.id===t._parentId)){ window.alert(`먼저 상위 '${COL_LABEL[t._parentCol]||t._parentCol}'을(를) 복구한 뒤에 이 항목을 복구할 수 있어요.`); return; } restore(t._tid); }} style={{flexShrink:0,padding:"5px 10px",borderRadius:8,border:"1px solid #DBE3FF",background:"#fff",color:"#3182F6",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>복구</button>
-            </div>
-          ))}
-          {trash.length>60&&<p style={{margin:"4px 0 0",fontSize:10,color:"#9CA3AF",textAlign:"center"}}>최근 60건 표시 · 전체 {trash.length}건은 백업(JSON)에 모두 보존됩니다</p>}
-        </div>
-      )}
+    {/* 휴지통·삭제 복구는 [더보기 ▸ 활동 여정]으로 이동(흡수). 데이터 자산화 원칙은 그대로. */}
+    <div style={{background:"#F0F7FF",borderRadius:16,padding:"13px 16px",marginTop:14,border:"1px solid #D5E6FB",display:"flex",alignItems:"center",gap:10}}>
+      <span style={{fontSize:20,flexShrink:0}}>🗂</span>
+      <div style={{flex:1,minWidth:0}}>
+        <p style={{margin:0,fontSize:12.5,fontWeight:900,color:"#0F1F5C"}}>휴지통은 「활동 여정」으로 옮겼어요{trash.length>0&&<span style={{marginLeft:5,fontSize:11,fontWeight:800,color:"#EA580C"}}>· 보관 {trash.length}건</span>}</p>
+        <p style={{margin:"2px 0 0",fontSize:10.5,color:"#6B7280",lineHeight:1.5}}>삭제한 데이터 복구와 추가·수정·삭제 기록은 <b>더보기 ▸ 활동 여정</b>에서 한눈에 보고 되돌릴 수 있어요.</p>
+      </div>
     </div>
     <div style={{background:"#FFFFFF",borderRadius:16,padding:"14px 16px",marginTop:14,border:"1px solid #F2F4F6"}}>
       <h3 style={{margin:"0 0 3px",fontSize:15,fontWeight:900,color:"#0F1F5C"}}>💾 백업 · 데이터 추출</h3>
@@ -6324,6 +6324,111 @@ function ExportPanel({D,up,restore,restoreLocal,pushExternalBackup}){
       </div>
     </div>
     </>
+  );
+}
+// 활동 여정 — 추가·수정·삭제·복구의 전체 기록을 한 흐름으로 보고, 삭제된 데이터를 되돌린다(휴지통 흡수).
+const JOURNEY_ACT={add:{l:"추가",icon:"➕",c:"#059669",bg:"#E8FAF1"},edit:{l:"수정",icon:"✏️",c:"#3182F6",bg:"#EBF3FF"},delete:{l:"삭제",icon:"🗑",c:"#F04452",bg:"#FFF0F1"},restore:{l:"복구",icon:"↩",c:"#EA580C",bg:"#FFF4EC"}};
+function JourneyPage({D,cu,restore}){
+  const [filter,setFilter]=useState("all");   // all|add|edit|delete|restore
+  const [who,setWho]=useState("all");          // all|userId
+  const [showTrash,setShowTrash]=useState(true);
+  const uname=(id)=>D.users.find(u=>u.id===id)?.name||"";
+  const trash=D.trash||[];
+  const log=D.activityLog||[];
+  const cnt=(a)=>log.filter(e=>e.action===a).length;
+  const colName=(e)=>e.col==="_nested"?(e.typeLabel||"항목"):(COL_LABEL[e.col]||e.col);
+  const fmtAt=(s)=>{ if(!s) return ""; const d=new Date(s); if(isNaN(d)) return ""; const now=new Date();
+    const hm=`${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+    if(d.toDateString()===now.toDateString()) return `오늘 ${hm}`;
+    const y=new Date(now); y.setDate(now.getDate()-1); if(d.toDateString()===y.toDateString()) return `어제 ${hm}`;
+    return `${d.getMonth()+1}/${d.getDate()} ${hm}`; };
+  const rows=[...log].filter(e=>(filter==="all"||e.action===filter)&&(who==="all"||e.by===who)).reverse();
+  const tidLive=(tid)=>tid&&trash.some(t=>t._tid===tid);   // 휴지통에 남아있으면 이 기록에서 바로 복구 가능
+  const doRestore=(t)=>{ if(t._col==="_nested"&&!(D[t._parentCol]||[]).some(x=>x.id===t._parentId)){ window.alert(`먼저 상위 '${COL_LABEL[t._parentCol]||t._parentCol}'을(를) 복구한 뒤에 이 항목을 복구할 수 있어요.`); return; } restore(t._tid); };
+  const chip=(k,l,n,active,c)=>(
+    <button key={k} onClick={()=>setFilter(k)} style={{flexShrink:0,padding:"7px 13px",borderRadius:999,border:`1.5px solid ${active?c:"#E5E8EB"}`,background:active?c:"#fff",color:active?"#fff":"#6B7280",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{l}{typeof n==="number"&&<span style={{marginLeft:4,opacity:0.85}}>{n}</span>}</button>
+  );
+  return(
+    <div style={{padding:"14px 16px 28px",maxWidth:480,margin:"0 auto"}}>
+      {/* 헤더 — 활동 여정 요약 */}
+      <div style={{background:"linear-gradient(135deg,#0F1F5C,#1a3a7a)",borderRadius:18,padding:"18px 18px 16px",marginBottom:14,color:"#fff"}}>
+        <p style={{margin:0,fontSize:16,fontWeight:900}}>🗂 활동 여정</p>
+        <p style={{margin:"4px 0 14px",fontSize:11.5,color:"#C7D2FE",lineHeight:1.5}}>추가·수정·삭제·복구가 모두 여기 남아요. 삭제한 데이터도 되돌릴 수 있어요 — <b style={{color:"#fff"}}>기록되지 않은 일은 자산이 되지 않아요.</b></p>
+        <div style={{display:"flex",gap:8}}>
+          {[["add",cnt("add")],["edit",cnt("edit")],["delete",cnt("delete")],["restore",cnt("restore")]].map(([a,n])=>{const m=JOURNEY_ACT[a];return(
+            <div key={a} style={{flex:1,background:"rgba(255,255,255,0.1)",borderRadius:11,padding:"9px 6px",textAlign:"center"}}>
+              <p style={{margin:0,fontSize:18,fontWeight:900,fontFamily:"'IBM Plex Mono',monospace"}}>{n}</p>
+              <p style={{margin:"1px 0 0",fontSize:10,fontWeight:700,color:"#C7D2FE"}}>{m.icon} {m.l}</p>
+            </div>
+          );})}
+        </div>
+      </div>
+      {/* 휴지통 (흡수) — 지금 복구할 수 있는 삭제 데이터 */}
+      <div style={{background:"#FFFFFF",borderRadius:16,padding:"14px 16px",marginBottom:14,border:"1px solid #F2F4F6"}}>
+        <button onClick={()=>setShowTrash(s=>!s)} style={{width:"100%",display:"flex",alignItems:"center",gap:8,background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",padding:0,textAlign:"left"}}>
+          <h3 style={{margin:0,fontSize:15,fontWeight:900,color:"#0F1F5C"}}>🗑 휴지통 {trash.length>0&&<span style={{fontSize:12,fontWeight:800,color:"#EA580C"}}>({trash.length})</span>}</h3>
+          <span style={{marginLeft:"auto",fontSize:12,color:"#9CA3AF"}}>{showTrash?"▲":"▼"}</span>
+        </button>
+        <p style={{margin:"3px 0 10px",fontSize:10.5,color:"#9CA3AF"}}>삭제한 업무·KPI·프로젝트는 <b>사라지지 않고 여기 보관</b>돼요 — 언제든 복구할 수 있어요</p>
+        {showTrash&&(trash.length===0?(
+          <p style={{margin:0,fontSize:11.5,color:"#B0B8C1",textAlign:"center",padding:"14px 0"}}>삭제된 데이터가 없어요</p>
+        ):(
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            {[...trash].reverse().slice(0,80).map(t=>(
+              <div key={t._tid} style={{display:"flex",alignItems:"center",gap:8,background:"#F9FAFB",borderRadius:10,padding:"8px 10px"}}>
+                <span style={{flexShrink:0,fontSize:9.5,fontWeight:800,color:"#6B7280",background:"#EEF1F4",borderRadius:5,padding:"2px 6px"}}>{COL_LABEL[t._col]||t._typeLabel||t._col}</span>
+                <span style={{flex:1,minWidth:0,fontSize:12,fontWeight:700,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.title||t.name||t.companyName||t.targetName||t.week||t._label||t.id||"(제목 없음)"}</span>
+                <span style={{flexShrink:0,fontSize:9.5,color:"#9CA3AF"}}>{(t._deletedAt||"").slice(5,10)}{t._deletedByName?" · "+t._deletedByName:""}</span>
+                <button onClick={()=>doRestore(t)} style={{flexShrink:0,padding:"5px 10px",borderRadius:8,border:"1px solid #DBE3FF",background:"#fff",color:"#3182F6",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>복구</button>
+              </div>
+            ))}
+            {trash.length>80&&<p style={{margin:"4px 0 0",fontSize:10,color:"#9CA3AF",textAlign:"center"}}>최근 80건 표시 · 전체 {trash.length}건은 백업(JSON)에 모두 보존됩니다</p>}
+          </div>
+        ))}
+      </div>
+      {/* 필터 */}
+      <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:4,marginBottom:8,WebkitOverflowScrolling:"touch"}}>
+        {chip("all","전체",log.length,filter==="all","#0F1F5C")}
+        {chip("add","➕ 추가",cnt("add"),filter==="add",JOURNEY_ACT.add.c)}
+        {chip("edit","✏️ 수정",cnt("edit"),filter==="edit",JOURNEY_ACT.edit.c)}
+        {chip("delete","🗑 삭제",cnt("delete"),filter==="delete",JOURNEY_ACT.delete.c)}
+        {chip("restore","↩ 복구",cnt("restore"),filter==="restore",JOURNEY_ACT.restore.c)}
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+        <span style={{fontSize:11,fontWeight:700,color:"#9CA3AF"}}>담당자</span>
+        <select value={who} onChange={e=>setWho(e.target.value)} style={{flex:1,padding:"8px 10px",borderRadius:10,border:"1.5px solid #E5E8EB",fontSize:12,fontWeight:700,color:"#374151",background:"#fff",fontFamily:"inherit",outline:"none"}}>
+          <option value="all">전체 담당자</option>
+          {D.users.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}
+        </select>
+      </div>
+      {/* 기록 피드 */}
+      {rows.length===0?(
+        <div style={{padding:"40px 20px",textAlign:"center",background:"#FFFFFF",borderRadius:16,border:"1px solid #F2F4F6"}}>
+          <p style={{margin:0,fontSize:28}}>🗂</p>
+          <p style={{margin:"8px 0 0",fontSize:13,fontWeight:700,color:"#9CA3AF"}}>{log.length===0?"아직 기록된 활동이 없어요":"이 조건에 해당하는 기록이 없어요"}</p>
+          <p style={{margin:"3px 0 0",fontSize:11.5,color:"#C4C9D0"}}>{log.length===0?"추가·수정·삭제를 하면 여기에 차곡차곡 쌓여요":"필터를 바꿔보세요"}</p>
+        </div>
+      ):(
+        <div style={{background:"#FFFFFF",borderRadius:16,border:"1px solid #F2F4F6",overflow:"hidden"}}>
+          {rows.slice(0,300).map((e,i)=>{const m=JOURNEY_ACT[e.action]||JOURNEY_ACT.edit;const canRestore=e.action==="delete"&&tidLive(e.tid);const t=canRestore?trash.find(x=>x._tid===e.tid):null;return(
+            <div key={e.id||i} style={{display:"flex",alignItems:"flex-start",gap:10,padding:"11px 14px",borderTop:i?"1px solid #F4F4F5":"none"}}>
+              <span style={{flexShrink:0,width:30,height:30,borderRadius:9,background:m.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>{m.icon}</span>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                  <span style={{fontSize:10,fontWeight:800,color:m.c,background:m.bg,borderRadius:5,padding:"1px 6px"}}>{m.l}</span>
+                  <span style={{fontSize:10,fontWeight:800,color:"#6B7280",background:"#F2F4F6",borderRadius:5,padding:"1px 6px"}}>{colName(e)}</span>
+                  {e.action==="edit"&&e.fields&&<span style={{fontSize:10,color:"#9CA3AF",fontWeight:600}}>{e.fields}</span>}
+                </div>
+                <p style={{margin:"4px 0 0",fontSize:12.5,fontWeight:700,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.label||"(제목 없음)"}</p>
+                <p style={{margin:"2px 0 0",fontSize:10.5,color:"#9CA3AF"}}>{fmtAt(e.at)}{e.byName?` · ${e.byName}`:""}</p>
+              </div>
+              {canRestore&&<button onClick={()=>doRestore(t)} style={{flexShrink:0,padding:"6px 11px",borderRadius:8,border:"1px solid #DBE3FF",background:"#fff",color:"#3182F6",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit",alignSelf:"center"}}>되돌리기</button>}
+            </div>
+          );})}
+          {rows.length>300&&<p style={{margin:0,padding:"10px 0",fontSize:10,color:"#9CA3AF",textAlign:"center",borderTop:"1px solid #F4F4F5"}}>최근 300건 표시 · 전체 {rows.length}건</p>}
+        </div>
+      )}
+    </div>
   );
 }
 function AIPage({D,cu,add,rm}){

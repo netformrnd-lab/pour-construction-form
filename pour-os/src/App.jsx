@@ -4133,7 +4133,7 @@ function FlowView({nodes,edges,mode="progress",height=520,nodeW=NODE_W,nodeH=NOD
   const editable=mode==="edit";
   const wrapRef=useRef(null);
   const [view,setView]=useState({x:24,y:20,z:1});
-  const panRef=useRef(null), dragRef=useRef(null), connRef=useRef(null);
+  const panRef=useRef(null), dragRef=useRef(null), connRef=useRef(null), fittedRef=useRef(false);
   const [drag,setDrag]=useState(null);   // {id,x,y} 노드 이동 중
   const [conn,setConn]=useState(null);   // {from,cx,cy} 연결 드래그 중
   const [panning,setPanning]=useState(false);
@@ -4141,6 +4141,18 @@ function FlowView({nodes,edges,mode="progress",height=520,nodeW=NODE_W,nodeH=NOD
   const liveNode=(n)=>(drag&&drag.id===n.id)?{...n,x:drag.x,y:drag.y}:n;
   const toWorld=(cx,cy)=>{const r=wrapRef.current.getBoundingClientRect();return {x:(cx-r.left-view.x)/view.z,y:(cy-r.top-view.y)/view.z};};
   const cap=(e)=>{try{wrapRef.current.setPointerCapture(e.pointerId);}catch(_){}};
+  // 전체 맞춤 — 모든 노드가 화면에 한눈에 들어오게 줌·이동 자동 계산
+  const fitView=()=>{
+    if(!wrapRef.current||!nodes.length)return;
+    const r=wrapRef.current.getBoundingClientRect(); if(!r.width||!r.height)return;
+    const minX=Math.min(...nodes.map(n=>n.x)), minY=Math.min(...nodes.map(n=>n.y));
+    const maxX=Math.max(...nodes.map(n=>n.x+nodeW)), maxY=Math.max(...nodes.map(n=>n.y+nodeH));
+    const bw=Math.max(1,maxX-minX), bh=Math.max(1,maxY-minY), pad=22;
+    const z=Math.max(0.3,Math.min(1.1,Math.min((r.width-pad*2)/bw,(r.height-pad*2)/bh)));
+    setView({z,x:(r.width-bw*z)/2-minX*z,y:(r.height-bh*z)/2-minY*z});
+  };
+  // 열릴 때 한 번 자동 맞춤(단계가 옆으로 멀어 화면 밖에 있던 문제 해결)
+  useEffect(()=>{ if(fittedRef.current||!nodes.length||!wrapRef.current)return; fittedRef.current=true; const t=setTimeout(fitView,60); return ()=>clearTimeout(t); });
   const onBgDown=(e)=>{ panRef.current={sx:e.clientX,sy:e.clientY,vx:view.x,vy:view.y}; setPanning(true); cap(e); };
   const onMove=(e)=>{
     if(connRef.current){ const w=toWorld(e.clientX,e.clientY); setConn(c=>c&&{...c,cx:w.x,cy:w.y}); return; }
@@ -4191,7 +4203,7 @@ function FlowView({nodes,edges,mode="progress",height=520,nodeW=NODE_W,nodeH=NOD
       <div style={{position:"absolute",right:10,bottom:10,display:"flex",flexDirection:"column",gap:6,zIndex:10}}>
         <button onPointerDown={e=>e.stopPropagation()} onClick={()=>zoomBy(1.2)} style={ctrlBtn}>＋</button>
         <button onPointerDown={e=>e.stopPropagation()} onClick={()=>zoomBy(1/1.2)} style={ctrlBtn}>－</button>
-        <button onPointerDown={e=>e.stopPropagation()} onClick={()=>setView({x:24,y:20,z:1})} title="원위치" style={{...ctrlBtn,fontSize:13}}>⤢</button>
+        <button onPointerDown={e=>e.stopPropagation()} onClick={fitView} title="전체 맞춤" style={{...ctrlBtn,fontSize:13}}>⤢</button>
       </div>
       <span style={{position:"absolute",left:10,bottom:10,fontSize:10,fontWeight:700,color:"#AEB6BE",zIndex:10}}>{Math.round(view.z*100)}%{editable?" · 빈곳 드래그=이동 · 노드 ●드래그=연결":" · 빈곳 드래그=이동"}</span>
     </div>

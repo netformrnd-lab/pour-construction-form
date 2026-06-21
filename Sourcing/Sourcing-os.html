@@ -340,6 +340,35 @@
   .tp-mini:active{transform:scale(.9)}
   .tp-mini svg{width:16px;height:16px}
 
+  /* 기획 — 출처칩 / 칸반 / 카드 상태버튼 */
+  .pl-srcrow{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:2px;align-items:center}
+  .pl-srcrow::-webkit-scrollbar{height:0}
+  .srcchip{flex:0 0 auto;padding:7px 12px;border-radius:999px;background:var(--card);border:1px solid var(--border2);font-size:12.5px;font-weight:700;color:var(--ink2);white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+  .srcchip.on{background:var(--blue);border-color:var(--blue);color:#fff}
+  .srcchip.edit{background:var(--surface);color:var(--ink)}
+  .srcchip.edit button{border:none;background:none;cursor:pointer;font-size:12px;color:var(--muted);padding:0 1px;line-height:1}
+  .srcchip.edit button[data-del]{color:var(--red)}
+  .srcedit{flex:0 0 auto;padding:7px 11px;border-radius:999px;background:var(--surface);border:1px dashed var(--border2);font-size:12px;font-weight:700;color:var(--ink2);white-space:nowrap}
+  .srcedit.on{background:var(--blue-pale);border-style:solid;color:#1b64da}
+  .srcadd{flex:0 0 auto;display:inline-flex;gap:5px;align-items:center}
+  .srcadd input{width:88px;padding:6px 9px;border:1px solid var(--border2);border-radius:8px;font-size:12px}
+  .srcadd button{padding:6px 10px;border-radius:8px;background:var(--or);color:#fff;font-weight:700;font-size:12px}
+  .pc-status-sw{display:flex;gap:5px;margin-top:10px}
+  .pst-mini{flex:1;padding:6px 4px;border-radius:7px;background:var(--surface);border:1px solid var(--border2);font-size:10.5px;font-weight:700;color:var(--ink2);white-space:nowrap}
+  .pst-mini.on{background:var(--navy);border-color:var(--navy);color:#fff}
+  .kanban{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px}
+  .kanban::-webkit-scrollbar{height:0}
+  .kcol{flex:0 0 200px;background:var(--cream);border:1px solid var(--border);border-radius:12px;padding:10px}
+  .kcol-h{font-size:12.5px;font-weight:800;display:flex;align-items:center;gap:6px;margin-bottom:8px}
+  .kcol-h b{margin-left:auto}
+  .kdot{width:8px;height:8px;border-radius:50%}
+  .kcol-b{display:flex;flex-direction:column;gap:7px}
+  .kcard{background:#fff;border:1px solid var(--border2);border-radius:9px;padding:9px 10px;cursor:pointer}
+  .kcard:active{transform:scale(.98)}
+  .kc-t{font-size:12.5px;font-weight:700;line-height:1.35}
+  .kc-src{font-size:10.5px;color:var(--muted);margin-top:3px}
+  .kc-empty{font-size:11px;color:var(--muted);padding:6px 2px}
+
   /* 기획(아이디어 모아보기) 페이지 */
   .pl-card{display:flex;gap:11px;background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:12px;margin-bottom:9px;cursor:pointer}
   .pl-img{width:62px;height:62px;border-radius:10px;object-fit:cover;flex:0 0 62px}
@@ -844,9 +873,10 @@
 </div>
 
 <div id="view-plans" style="display:none">
+  <div class="pl-srcrow" id="planSrcRow"></div>
   <div class="tp-add" style="margin:2px 0 8px"><input id="planQuickInput" placeholder="기획 아이디어 입력 후 Enter (예: 무광 블랙 패키지)"><button id="planQuickAdd">+ 추가</button></div>
   <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">
-    <span style="font-size:11px;color:var(--muted);line-height:1.4">아이디어 → 시장분석 → 업체 발굴 → 보고·승인 → 상품작업</span>
+    <div class="vtoggle" id="planViewToggle"><button data-pv="list">목록</button><button data-pv="kanban">칸반</button></div>
     <button class="mini" id="planAdd" style="flex:0 0 auto;white-space:nowrap">＋ 상세 기획</button>
   </div>
   <div class="fchips" id="planStatusChips" style="margin-bottom:12px"></div>
@@ -2578,7 +2608,8 @@ async function addPlanQuick(title){
   const v=(title||'').trim();if(!v)return;
   if(!plansLoaded)await loadPlans();
   const now=new Date().toISOString();
-  plans.items.unshift({id:'plan_'+uid(),title:v,status:'아이디어',source:'기타',marketMemo:'',vendorMemo:'',needs:[],photos:[],refs:[],comments:[],createdBy:curUser(),createdAt:now,updatedAt:now});
+  const src=quickSource||planSources()[0];
+  plans.items.unshift({id:'plan_'+uid(),title:v,status:'아이디어',source:src,marketMemo:'',vendorMemo:'',needs:[],photos:[],refs:[],comments:[],createdBy:curUser(),createdAt:now,updatedAt:now});
   const inp=$('#planQuickInput');if(inp)inp.value='';
   const ok=await savePlans();renderPlans();
   if(ok)flagMsg('기획 추가됨','ok');
@@ -2760,6 +2791,7 @@ document.querySelectorAll('#adminSeg button').forEach(b=>b.onclick=()=>showSub(b
 document.querySelectorAll('.bn-btn').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
 ['testAttachFile','testCamFile'].forEach(id=>{const el=$('#'+id);if(el)el.onchange=e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f&&testMediaTarget)addTestMedia(testMediaTarget.pid,testMediaTarget.tid,f);};});
 (function(){const inp=$('#planQuickInput'),btn=$('#planQuickAdd');if(btn)btn.onclick=()=>addPlanQuick(inp.value);if(inp)inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addPlanQuick(inp.value);}};})();
+document.querySelectorAll('#planViewToggle button').forEach(b=>b.onclick=()=>{planView=b.dataset.pv;renderPlans();});
 
 /* ---- pricing dashboard ---- */
 function renderPricing(){
@@ -3326,6 +3358,41 @@ const PLAN_ST_COLOR={'아이디어':['#EFF6FF','#2563EB'],'검토중':['#FEF3C7'
 const PLAN_NEEDS=['원료','제조','용기','충진'];
 let plans={items:[]},plansLoaded=false,planQuery='',planFilter='전체';
 let editingPlan=null,tmpPlanId=null,tmpPlanPhotos=[],tmpPlanNeeds=[],tmpPlanStatus='아이디어';
+let planView='list', quickSource='', srcEditMode=false;
+function planSources(){if(!Array.isArray(plans.sources)||!plans.sources.length)plans.sources=['인스타','틱톡','길거리','CS데이터','검색','기타'];return plans.sources;}
+function renderPlanSrcRow(){
+  const row=$('#planSrcRow');if(!row)return;
+  const srcs=planSources();
+  if(!quickSource||!srcs.includes(quickSource))quickSource=srcs[0];
+  if(!srcEditMode){
+    row.innerHTML='<span style="flex:0 0 auto;font-size:11px;font-weight:700;color:var(--muted)">출처</span>'+srcs.map(s=>`<button class="srcchip${s===quickSource?' on':''}" data-src="${esc(s)}">${esc(s)}</button>`).join('')+'<button class="srcedit" id="srcEditBtn">✎ 편집</button>';
+    row.querySelectorAll('[data-src]').forEach(b=>b.onclick=()=>{quickSource=b.dataset.src;renderPlanSrcRow();});
+    $('#srcEditBtn').onclick=()=>{srcEditMode=true;renderPlanSrcRow();};
+  }else{
+    row.innerHTML=srcs.map(s=>`<span class="srcchip edit">${esc(s)}<button data-ren="${esc(s)}" title="수정">✎</button><button data-del="${esc(s)}" title="삭제">✕</button></span>`).join('')+'<span class="srcadd"><input id="srcAddInput" placeholder="새 출처"><button id="srcAddBtn">추가</button></span><button class="srcedit on" id="srcDoneBtn">완료</button>';
+    row.querySelectorAll('[data-ren]').forEach(b=>b.onclick=()=>renameSource(b.dataset.ren));
+    row.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>deleteSource(b.dataset.del));
+    const ai=$('#srcAddInput'),ab=$('#srcAddBtn');
+    if(ab)ab.onclick=()=>addSource(ai.value);
+    if(ai)ai.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addSource(ai.value);}};
+    $('#srcDoneBtn').onclick=()=>{srcEditMode=false;renderPlanSrcRow();};
+  }
+}
+async function addSource(name){const v=(name||'').trim();if(!v)return;const s=planSources();if(s.includes(v)){alert('이미 있는 출처예요');return;}s.push(v);await savePlans();const ai=$('#srcAddInput');if(ai)ai.value='';renderPlanSrcRow();}
+async function renameSource(old){const v=(prompt('출처 이름 수정',old)||'').trim();if(!v||v===old)return;const s=planSources();if(s.includes(v)){alert('이미 있는 출처예요');return;}const i=s.indexOf(old);if(i<0)return;s[i]=v;plans.items.forEach(p=>{if(p.source===old)p.source=v;});if(quickSource===old)quickSource=v;await savePlans();renderPlanSrcRow();renderPlans();}
+async function deleteSource(name){const s=planSources();if(s.length<=1){alert('최소 1개는 있어야 해요');return;}if(!confirm('"'+name+'" 출처를 삭제할까요? (기존 기획의 출처 값은 유지)'))return;const i=s.indexOf(name);if(i>=0)s.splice(i,1);if(quickSource===name)quickSource=s[0];await savePlans();renderPlanSrcRow();}
+function renderPlanKanban(){
+  const box=$('#planList'),empty=$('#planEmpty');if(empty)empty.style.display='none';
+  let items=plans.items.slice();
+  if(planQuery){const q=planQuery.toLowerCase();items=items.filter(p=>((p.title||'')+' '+(p.source||'')+' '+(p.category||'')).toLowerCase().includes(q));}
+  box.innerHTML='<div class="kanban">'+PLAN_STATUS.map(s=>{
+    const col=PLAN_ST_COLOR[s]||['#eee','#666'];
+    const its=items.filter(p=>(p.status||'아이디어')===s).sort((a,b)=>(b.updatedAt||'').localeCompare(a.updatedAt||''));
+    const cards=its.map(p=>`<div class="kcard" data-pid="${esc(p.id)}"><div class="kc-t">${esc(p.title||'(제목없음)')}</div><div class="kc-src">${esc(p.source||'')}</div></div>`).join('')||'<div class="kc-empty">없음</div>';
+    return `<div class="kcol"><div class="kcol-h" style="color:${col[1]}"><span class="kdot" style="background:${col[1]}"></span>${PLAN_ST_LABEL[s]} <b>${its.length}</b></div><div class="kcol-b">${cards}</div></div>`;
+  }).join('')+'</div>';
+  box.querySelectorAll('.kcard[data-pid]').forEach(c=>c.onclick=()=>openPlan(c.dataset.pid));
+}
 async function loadPlans(){
   try{const s=await FS.collection('sourcing-os').doc('plans').get();plans=s.exists?s.data():{items:[]};if(!Array.isArray(plans.items))plans.items=[];plansLoaded=true;console.log('[plans] '+plans.items.length+'건 로드');}
   catch(e){console.error('[plans] 로드 실패:',e);plans={items:[]};plansLoaded=true;}
@@ -3348,8 +3415,12 @@ function renderPlanStatusChips(){
 }
 function renderPlans(){
   if(!plansLoaded){loadPlans().then(renderPlans);return;}
+  renderPlanSrcRow();
+  document.querySelectorAll('#planViewToggle button').forEach(b=>b.classList.toggle('on',b.dataset.pv===planView));
   renderPlanStatusChips();
   const box=$('#planList'),empty=$('#planEmpty');if(!box)return;
+  const chipsBox=$('#planStatusChips');if(chipsBox)chipsBox.style.display=(planView==='kanban')?'none':'';
+  if(planView==='kanban'){renderPlanKanban();return;}
   let list=plans.items.slice();
   if(planFilter!=='전체')list=list.filter(p=>p.status===planFilter);
   if(planQuery){const q=planQuery.toLowerCase();list=list.filter(p=>((p.title||'')+' '+(p.category||'')+' '+(p.marketMemo||'')+' '+(p.vendorMemo||'')+' '+(p.source||'')).toLowerCase().includes(q));}
@@ -3367,9 +3438,11 @@ function renderPlans(){
       ${p.marketMemo?`<div class="pc-market">${esc(p.marketMemo)}</div>`:''}
       ${thumbs?`<div class="pc-thumbs">${thumbs}</div>`:''}
       <div class="pc-foot">${needs}${refsN?`<span class="pc-refs">링크 ${refsN}</span>`:''}</div>
+      <div class="pc-status-sw">${PLAN_STATUS.map(s=>`<button class="pst-mini${(p.status||'아이디어')===s?' on':''}" data-setst="${s}" data-spid="${esc(p.id)}">${PLAN_ST_LABEL[s]}</button>`).join('')}</div>
     </div>`;
   }).join('');
-  box.querySelectorAll('[data-pid]').forEach(c=>c.onclick=()=>openPlan(c.dataset.pid));
+  box.querySelectorAll('.plan-card').forEach(c=>c.onclick=e=>{if(e.target.closest('[data-setst]'))return;openPlan(c.dataset.pid);});
+  box.querySelectorAll('[data-setst]').forEach(b=>b.onclick=async e=>{e.stopPropagation();const it=plans.items.find(x=>x.id===b.dataset.spid);if(!it)return;it.status=b.dataset.setst;it.updatedAt=new Date().toISOString();if(it.status==='승인'&&!it.approvedAt){it.approvedAt=new Date().toISOString();it.approvedBy=curUser();}await savePlans();renderPlans();});
 }
 function renderPlanPhotos(){
   const box=$('#pl_photos');if(!box)return;
@@ -3397,7 +3470,7 @@ function openPlan(id){
   tmpPlanStatus=p?(p.status||'아이디어'):'아이디어';
   $('#planTitle').textContent=id?'기획 수정':'새 기획';
   $('#pl_title').value=p?(p.title||''):'';
-  $('#pl_source').value=p?(p.source||'인스타'):'인스타';
+  {const sel=$('#pl_source');const srcs=planSources().slice();const want=p?(p.source||srcs[0]):(quickSource||srcs[0]);if(want&&!srcs.includes(want))srcs.push(want);sel.innerHTML=srcs.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');sel.value=want;}
   $('#pl_cat').value=p?(p.category||''):'';
   $('#pl_market').value=p?(p.marketMemo||''):'';
   $('#pl_refs').value=p?((p.refs||[]).join('\n')):'';

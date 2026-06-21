@@ -121,6 +121,13 @@
 
   .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);z-index:120;padding:12px 22px;border-radius:12px;font-size:13px;font-weight:700;color:#fff;box-shadow:0 6px 24px rgba(0,0,0,.25);white-space:nowrap}
 
+  /* 기획·세트 컷 블록 */
+  .cutblk{border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;background:var(--card)}
+  .cutblk-h{display:flex;align-items:center;gap:8px}
+  .cutname{font-size:14px;font-weight:700;color:var(--ink2)}
+  .cutname.on{color:var(--green)}
+  .cutcnt{margin-left:auto;font-size:11px;font-weight:800;color:var(--muted);background:var(--surface);padding:2px 8px;border-radius:6px}
+  .btn.mini2{flex:0 0 auto;padding:7px 11px;font-size:13px}
   #loginGate{position:fixed;inset:0;z-index:200;background:var(--navy);display:none;align-items:center;justify-content:center;padding:24px}
   #loginGate .box{width:100%;max-width:360px;background:#fff;border-radius:18px;padding:28px 24px;box-shadow:0 20px 48px rgba(0,0,0,.3)}
 </style>
@@ -157,6 +164,7 @@
     <button class="tab active" data-tab="products">제품 컨텐츠 <span class="st" id="cntProducts">0</span></button>
     <button class="tab" data-tab="sellers">협찬 셀러 <span class="st" id="cntSellers">0</span></button>
     <button class="tab" data-tab="inbox">받은 업로드 <span class="st" id="cntInbox">0</span></button>
+    <button class="tab" data-tab="plans">기획·세트 <span class="st" id="cntPlans">0</span></button>
   </div>
   <div id="view"></div>
 </div>
@@ -238,6 +246,18 @@ function copyUTM(sid){
 }
 normalize();
 let inbox=[]; // sourcing-os/content-uploads/items (셀러 업로드)
+let plansItems=[]; // sourcing-os/plans (읽기 전용 — 기획·세트 컨텐츠 대상)
+let curPlan=null;
+const CONTENT_CUTS=['대표컷','누끼컷','구성컷','디테일컷','연출/사용컷','옵션별컷','사이즈/스펙컷'];
+const CUT_OPTIONAL=new Set(['옵션별컷','사이즈/스펙컷']);
+const PLAN_STATUS_COLOR={'아이디어':'#2563EB','검토중':'#D97706','승인':'#059669','보류':'#9CA3AF'};
+function planCutAssets(planId,cut){return state.assets.filter(a=>a.planId===planId&&a.cut===cut);}
+function planCutCore(planId){const need=CONTENT_CUTS.filter(k=>!CUT_OPTIONAL.has(k));const done=need.filter(k=>planCutAssets(planId,k).length>0).length;return {done,total:need.length};}
+async function loadPlans(){
+  if(!FS)return;
+  try{const s=await FS.collection('sourcing-os').doc('plans').get();const d=s.exists?s.data():{};plansItems=Array.isArray(d.items)?d.items:[];console.log(`[plans] ${plansItems.length}건 로드`);}
+  catch(e){console.error('[plans] 로드 실패:',e);}
+}
 
 /* ---- 클라우드 동기화 (Sourcing-os 패턴) ---- */
 let _syncT=null,_syncing=false,_pending=false,booting=true,applyingRemote=false;
@@ -315,9 +335,11 @@ function render(){
   $('#cntProducts').textContent=state.products.length;
   $('#cntSellers').textContent=state.sellers.length;
   $('#cntInbox').textContent=inbox.filter(x=>!x.filed).length;
+  $('#cntPlans').textContent=plansItems.length;
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
   if(tab==='products')renderProducts();
   else if(tab==='sellers')renderSellers();
+  else if(tab==='plans')renderPlansTab();
   else renderInbox();
 }
 
@@ -412,8 +434,54 @@ function renderInbox(){
 }
 
 /* ================= 시트(모달) ================= */
+/* ===== 기획·세트 컨텐츠 (planId+컷으로 업로드, plans 문서엔 안 씀) ===== */
+function renderPlansTab(){
+  const q=query.trim();
+  const list=plansItems.filter(p=>!q||(p.title||'').includes(q));
+  list.sort((a,b)=>(b.updatedAt||'').localeCompare(a.updatedAt||''));
+  let html=`<div class="bar">
+    <div class="searchbox"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><input id="search" placeholder="기획 검색" value="${esc(query)}"></div>
+    <button class="btn ghost" id="reloadPlans">새로고침</button>
+  </div>`;
+  if(!list.length){
+    html+=`<div class="empty"><h3>기획이 없어요</h3><p>소싱앱 기획 탭에서 등록한 기획·세트가 여기 표시됩니다.<br>각 컷(대표·구성·디테일…)별로 촬영물을 올려 확보하세요.</p></div>`;
+  }else{
+    html+='<div class="grid">'+list.map(p=>{
+      const pr=planCutCore(p.id);const col=PLAN_STATUS_COLOR[p.status]||'#9CA3AF';
+      const setN=(p.links||[]).filter(l=>l.rel==='세트').length, optN=(p.links||[]).filter(l=>l.rel==='옵션').length;
+      return `<div class="pcard" data-plid="${esc(p.id)}"><div class="pc-b">
+        <div class="pc-nm">${esc(p.title||'(제목 없음)')}</div>
+        <div class="pc-meta"><span style="color:${col};font-weight:700">${esc(p.status||'아이디어')}</span>${setN?` · 세트 ${setN}`:''}${optN?` · 옵션 ${optN}`:''}</div>
+        <div class="pc-counts"><span class="countpill">컷 <b>${pr.done}/${pr.total}</b></span></div>
+      </div></div>`;
+    }).join('')+'</div>';
+  }
+  $('#view').innerHTML=html;
+  $('#search')&&($('#search').oninput=e=>{query=e.target.value;renderPlansTab();});
+  $('#reloadPlans')&&($('#reloadPlans').onclick=async()=>{await loadPlans();render();toast('새로고침 완료','green');});
+  document.querySelectorAll('[data-plid]').forEach(c=>c.onclick=()=>openPlanSheet(c.dataset.plid));
+}
+function openPlanSheet(plid){curPlan=plid;renderPlanSheet();$('#overlay').classList.add('on');}
+function renderPlanSheet(){
+  const p=plansItems.find(x=>x.id===curPlan);if(!p)return;
+  const pr=planCutCore(curPlan);
+  const blocks=CONTENT_CUTS.map(cut=>{
+    const as=planCutAssets(curPlan,cut);
+    const grid=as.length?`<div class="agrid" style="margin-top:8px">${as.map(a=>`<div class="aitem">${a.kind==='video'?`<video src="${esc(a.url)}" muted onclick="window.open('${esc(a.url)}','_blank')"></video><span class="vbadge">▶</span>`:`<img src="${esc(a.url)}" onclick="window.open('${esc(a.url)}','_blank')">`}<button class="del" data-adel="${a.id}">×</button></div>`).join('')}</div>`:'';
+    return `<div class="cutblk">
+      <div class="cutblk-h"><span class="cutname ${as.length?'on':''}">${as.length?'✓ ':''}${esc(cut)}${CUT_OPTIONAL.has(cut)?' <span style="color:var(--muted);font-weight:600">(선택)</span>':''}</span><span class="cutcnt">${as.length}</span><button class="btn or mini2" data-cutcap="${esc(cut)}">📷</button><button class="btn ghost mini2" data-cutalb="${esc(cut)}">🖼</button></div>
+      ${grid}</div>`;
+  }).join('');
+  $('#sheet').innerHTML=`<h2>${esc(p.title||'기획')}</h2><div class="sub">${esc(p.status||'')} · 컷 확보 ${pr.done}/${pr.total} · 소싱앱 기획과 연결(planId)</div>
+    ${blocks}
+    <div class="sheet-act" style="margin-top:16px"><button class="btn ghost" id="pl_close">닫기</button></div>`;
+  $('#pl_close').onclick=closeSheet;
+  document.querySelectorAll('[data-cutcap]').forEach(b=>b.onclick=()=>{uploadCtx={planId:curPlan,cut:b.dataset.cutcap};$('#fileCapture').click();});
+  document.querySelectorAll('[data-cutalb]').forEach(b=>b.onclick=()=>{uploadCtx={planId:curPlan,cut:b.dataset.cutalb};$('#fileAlbum').click();});
+  document.querySelectorAll('#sheet [data-adel]').forEach(b=>b.onclick=()=>{if(!confirm('이 컷 컨텐츠를 삭제할까요?'))return;state.assets=state.assets.filter(a=>a.id!==b.dataset.adel);save();renderPlanSheet();});
+}
 function openSheet(html){const s=$('#sheet');s.innerHTML=html;$('#overlay').classList.add('on');}
-function closeSheet(){$('#overlay').classList.remove('on');curProduct=null;}
+function closeSheet(){$('#overlay').classList.remove('on');curProduct=null;curPlan=null;}
 $('#overlay').onclick=e=>{if(e.target.id==='overlay')closeSheet();};
 
 /* 제품 추가/수정 */
@@ -579,7 +647,7 @@ $('#fileCapture').onchange=e=>{handleUpload(e.target.files);e.target.value='';};
 $('#fileAlbum').onchange=e=>{handleUpload(e.target.files);e.target.value='';};
 async function handleUpload(fileList){
   const files=Array.from(fileList||[]);if(!files.length||!uploadCtx||!fbStore)return;
-  const {productId,purpose,sellerId}=uploadCtx;
+  const {productId,purpose,sellerId,planId,cut}=uploadCtx;
   toast(`${files.length}개 업로드 중…`,'amber');
   let ok=0,fail=0;
   for(const f of files){
@@ -588,18 +656,19 @@ async function handleUpload(fileList){
       const kind=(f.type||'').startsWith('video')?'video':'photo';
       const ext=(f.name.split('.').pop()||(kind==='video'?'mp4':'jpg')).toLowerCase().replace(/[^\w]/g,'')||'bin';
       let base;
-      if(sellerId){const sn=state.sellers.find(x=>x.id===sellerId);base=`content/sponsors/${slug(sn?sn.name:'무명')}/${today()}`;}
+      if(planId){base=`content/plans/${slug(planId)}/${slug(cut||'기타')}/${today()}`;}
+      else if(sellerId){const sn=state.sellers.find(x=>x.id===sellerId);base=`content/sponsors/${slug(sn?sn.name:'무명')}/${today()}`;}
       else base=`content/products/${slug(productId)}/${purpose}/${today()}`;
       const ref=fbStore.ref(`${CLOUD_ROOT}/${base}/${id}.${ext}`);
       const snap=await ref.put(f,{contentType:f.type||'application/octet-stream'});
       const url=await snap.ref.getDownloadURL();
-      state.assets.push({id,kind,url,path:ref.fullPath,name:f.name||'',size:f.size||0,productId:productId||'',sellerId:sellerId||'',purpose:purpose||'sponsor',createdAt:new Date().toISOString()});
+      state.assets.push({id,kind,url,path:ref.fullPath,name:f.name||'',size:f.size||0,productId:productId||'',sellerId:sellerId||'',planId:planId||'',cut:cut||'',purpose:planId?'plan':(purpose||'sponsor'),createdAt:new Date().toISOString()});
       ok++;
     }catch(err){console.error('[upload] 실패:',f.name,err);fail++;}
   }
   console.log(`[upload] 성공 ${ok} · 실패 ${fail}`);
   save();
-  if($('#overlay').classList.contains('on')){ if(curProduct)renderProductSheet(); else if(curSeller)renderSellerSheet(); }
+  if($('#overlay').classList.contains('on')){ if(curPlan)renderPlanSheet(); else if(curProduct)renderProductSheet(); else if(curSeller)renderSellerSheet(); }
   toast(fail?`${ok}개 완료 · ${fail}개 실패`:`${ok}개 업로드 완료`,fail?'amber':'green');
 }
 
@@ -686,6 +755,7 @@ async function boot(){
   const cloud=await cloudLoad();
   if(cloud){state=cloud;normalize();store.write(state);}
   await loadInbox();
+  await loadPlans();
   booting=false;
   render();
   startRealtime();

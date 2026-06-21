@@ -844,11 +844,11 @@
 </div>
 
 <div id="view-plans" style="display:none">
-  <div class="pactions">
-    <div style="flex:1;font-size:12.5px;color:var(--muted);font-weight:600;line-height:1.5">인스타·틱톡·길거리·CS 데이터에서 발견한 아이디어를 기록 → 시장분석 → 필요한 업체(원료·제조·용기·충진) 탐색 → 보고·승인 후 상품작업.</div>
-    <button class="pbtn add" id="planAdd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>새 기획</button>
+  <div class="tp-add" style="margin:2px 0 8px"><input id="planQuickInput" placeholder="기획 아이디어 입력 후 Enter (예: 무광 블랙 패키지)"><button id="planQuickAdd">+ 추가</button></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">
+    <span style="font-size:11px;color:var(--muted);line-height:1.4">아이디어 → 시장분석 → 업체 발굴 → 보고·승인 → 상품작업</span>
+    <button class="mini" id="planAdd" style="flex:0 0 auto;white-space:nowrap">＋ 상세 기획</button>
   </div>
-  <div class="tp-add" style="margin-bottom:12px"><input id="planQuickInput" placeholder="기획 아이디어 입력 후 Enter (예: 무광 블랙 패키지)"><button id="planQuickAdd">+ 추가</button></div>
   <div class="fchips" id="planStatusChips" style="margin-bottom:12px"></div>
   <div id="planList"></div>
   <div id="planEmpty" style="display:none"></div>
@@ -3354,7 +3354,7 @@ function renderPlans(){
   if(planFilter!=='전체')list=list.filter(p=>p.status===planFilter);
   if(planQuery){const q=planQuery.toLowerCase();list=list.filter(p=>((p.title||'')+' '+(p.category||'')+' '+(p.marketMemo||'')+' '+(p.vendorMemo||'')+' '+(p.source||'')).toLowerCase().includes(q));}
   list.sort((a,b)=>(b.updatedAt||'').localeCompare(a.updatedAt||''));
-  if(!list.length){box.innerHTML='';empty.style.display='';empty.innerHTML='<div class="tempty" style="padding:40px 20px;text-align:center;color:var(--muted)">'+(plans.items.length?'해당하는 기획이 없어요.':'아직 기획이 없어요. <b>+ 새 기획</b>으로 아이디어를 기록해보세요.')+'</div>';return;}
+  if(!list.length){box.innerHTML='';empty.style.display='';empty.innerHTML='<div class="tempty" style="padding:40px 20px;text-align:center;color:var(--muted)">'+(plans.items.length?'해당하는 기획이 없어요.':'아직 기획이 없어요. <b>위 입력칸</b>에 한 줄로 바로 등록해보세요.')+'</div>';return;}
   empty.style.display='none';
   box.innerHTML=list.map(p=>{
     const col=PLAN_ST_COLOR[p.status]||PLAN_ST_COLOR['아이디어'];

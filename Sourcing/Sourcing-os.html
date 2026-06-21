@@ -375,6 +375,20 @@
   .plan-card .pc-thumbs img{cursor:pointer}
   .pc-reflink{font-size:11.5px;font-weight:800;color:var(--blue);background:var(--blue-pale);padding:5px 11px;border-radius:8px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
   .pc-reflink:active{transform:scale(.95)}
+  /* 세트·옵션 연결 칩 */
+  .pc-links{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px}
+  .pc-linkchip{font-size:11px;font-weight:700;padding:4px 9px;border-radius:7px;background:var(--cream);color:var(--ink2);cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+  .pc-linkchip.set{background:#EAF2FF;color:#1b64da}
+  .pc-linkchip.opt{background:#FFF3E0;color:#B45309}
+  .pl-links{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+  .pl-linkchip{font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:8px;background:var(--cream);color:var(--ink2);display:inline-flex;align-items:center;gap:5px}
+  .pl-linkchip.set{background:#EAF2FF;color:#1b64da}
+  .pl-linkchip.opt{background:#FFF3E0;color:#B45309}
+  .pl-linkchip button{border:none;background:none;color:var(--muted);cursor:pointer;font-size:11px;line-height:1}
+  .pl-linkadd{display:flex;gap:6px;flex-wrap:wrap}
+  .pl-linkadd select{flex:1;min-width:64px;padding:9px 8px;border:1px solid var(--border2);border-radius:9px;background:var(--cream);font-size:12.5px}
+  .pl-linkadd #pl_linkTarget{flex:2;min-width:120px}
+  .pl-linkadd button{flex:0 0 auto;padding:9px 14px;border-radius:9px;background:var(--or);color:#fff;font-weight:700;font-size:12.5px}
 
   /* 기획(아이디어 모아보기) 페이지 */
   .pl-card{display:flex;gap:11px;background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:12px;margin-bottom:9px;cursor:pointer}
@@ -926,6 +940,15 @@
       </div>
       <div class="frow"><label>필요한 업체 유형</label>
         <div class="pl-needs" id="pl_needs"></div>
+      </div>
+      <div class="frow"><label>세트·옵션 연결 <span class="opt">(등록 제품/상품 · 다른 기획)</span></label>
+        <div class="pl-links" id="pl_links"></div>
+        <div class="pl-linkadd">
+          <select id="pl_linkRel"><option value="세트">세트</option><option value="옵션">옵션</option></select>
+          <select id="pl_linkKind"><option value="product">제품</option><option value="plan">기획</option></select>
+          <select id="pl_linkTarget"></select>
+          <button type="button" id="pl_linkAdd">연결</button>
+        </div>
       </div>
       <div class="frow"><label>후보 업체 메모 <span class="opt">(원료·제조·용기·충진 업체/연락)</span></label><textarea id="pl_vendor" rows="3" placeholder="예) 원료: A사 견적대기 · 용기: B사 010-... · 충진: 미확정"></textarea></div>
       <div class="frow"><label>진행 상태</label>
@@ -3364,7 +3387,10 @@ const PLAN_ST_LABEL={'아이디어':'아이디어','검토중':'검토중(보고
 const PLAN_ST_COLOR={'아이디어':['#EFF6FF','#2563EB'],'검토중':['#FEF3C7','#B45309'],'승인':['#ECFDF5','#059669'],'보류':['#F3F4F6','#6B7280']};
 const PLAN_NEEDS=['원료','제조','용기','충진'];
 let plans={items:[]},plansLoaded=false,planQuery='',planFilter='전체';
-let editingPlan=null,tmpPlanId=null,tmpPlanPhotos=[],tmpPlanNeeds=[],tmpPlanStatus='아이디어';
+let editingPlan=null,tmpPlanId=null,tmpPlanPhotos=[],tmpPlanNeeds=[],tmpPlanStatus='아이디어',tmpPlanLinks=[];
+function planTargetName(kind,id){if(kind==='product'){const p=state.products.find(x=>x.id===id);return p?dn(p):'(삭제된 제품)';}const pl=plans.items.find(x=>x.id===id);return pl?(pl.title||'(무제)'):'(삭제된 기획)';}
+function renderPlanLinkTargets(){const sel=$('#pl_linkTarget');if(!sel)return;const kind=$('#pl_linkKind').value;let opts='';if(kind==='product'){opts=state.products.map(p=>`<option value="${esc(p.id)}">${esc(dn(p))}</option>`).join('');}else{opts=plans.items.filter(p=>p.id!==editingPlan).map(p=>`<option value="${esc(p.id)}">${esc(p.title||'(무제)')}</option>`).join('');}sel.innerHTML=opts||'<option value="">대상 없음</option>';}
+function renderPlanLinks(){const box=$('#pl_links');if(!box)return;box.innerHTML=tmpPlanLinks.length?tmpPlanLinks.map((l,i)=>`<span class="pl-linkchip ${l.rel==='세트'?'set':'opt'}"><b>${esc(l.rel)}</b> ${l.kind==='product'?'🧪':'💡'} ${esc(planTargetName(l.kind,l.id))}<button type="button" data-lrm="${i}">✕</button></span>`).join(''):'<span class="opt" style="font-size:11.5px;color:var(--muted)">아직 연결 없음</span>';box.querySelectorAll('[data-lrm]').forEach(b=>b.onclick=()=>{tmpPlanLinks.splice(+b.dataset.lrm,1);renderPlanLinks();});}
 let planView='list', quickSource='', srcEditMode=false;
 function planSources(){if(!Array.isArray(plans.sources)||!plans.sources.length)plans.sources=['인스타','틱톡','길거리','CS데이터','검색','기타'];return plans.sources;}
 function renderPlanSrcRow(){
@@ -3445,12 +3471,14 @@ function renderPlans(){
       ${p.marketMemo?`<div class="pc-market">${esc(p.marketMemo)}</div>`:''}
       ${thumbs?`<div class="pc-thumbs">${thumbs}</div>`:''}
       <div class="pc-foot">${needs}${refsN?`<button class="pc-reflink" data-plref="${esc(refs[0])}">🔗 링크${refsN>1?' '+refsN:''} 열기</button>`:''}</div>
+      ${(p.links&&p.links.length)?`<div class="pc-links">${p.links.map(l=>`<span class="pc-linkchip ${l.rel==='세트'?'set':'opt'}" data-ljump="${l.kind}:${esc(l.id)}"><b>${esc(l.rel)}</b> ${l.kind==='product'?'🧪':'💡'} ${esc(planTargetName(l.kind,l.id))}</span>`).join('')}</div>`:''}
       <div class="pc-status-sw">${PLAN_STATUS.map(s=>`<button class="pst-mini${(p.status||'아이디어')===s?' on':''}" data-setst="${s}" data-spid="${esc(p.id)}">${PLAN_ST_LABEL[s]}</button>`).join('')}</div>
     </div>`;
   }).join('');
-  box.querySelectorAll('.plan-card').forEach(c=>c.onclick=e=>{if(e.target.closest('[data-setst]')||e.target.closest('[data-plimg]')||e.target.closest('[data-plref]'))return;openPlan(c.dataset.pid);});
+  box.querySelectorAll('.plan-card').forEach(c=>c.onclick=e=>{if(e.target.closest('[data-setst]')||e.target.closest('[data-plimg]')||e.target.closest('[data-plref]')||e.target.closest('[data-ljump]'))return;openPlan(c.dataset.pid);});
   box.querySelectorAll('[data-plimg]').forEach(im=>im.onclick=e=>{e.stopPropagation();openLightbox(im.dataset.plimg);});
   box.querySelectorAll('[data-plref]').forEach(b=>b.onclick=e=>{e.stopPropagation();window.open(b.dataset.plref,'_blank','noopener');});
+  box.querySelectorAll('[data-ljump]').forEach(el=>el.onclick=e=>{e.stopPropagation();const idx=el.dataset.ljump.indexOf(':');const k=el.dataset.ljump.slice(0,idx),id=el.dataset.ljump.slice(idx+1);if(k==='product'){if(state.products.some(x=>x.id===id)){state.sel=id;save();switchTab('products');openDetail(id);}else alert('연결된 제품을 찾을 수 없어요(삭제됨).');}else{if(plans.items.some(x=>x.id===id))openPlan(id);else alert('연결된 기획을 찾을 수 없어요(삭제됨).');}});
   box.querySelectorAll('[data-setst]').forEach(b=>b.onclick=async e=>{e.stopPropagation();const it=plans.items.find(x=>x.id===b.dataset.spid);if(!it)return;it.status=b.dataset.setst;it.updatedAt=new Date().toISOString();if(it.status==='승인'&&!it.approvedAt){it.approvedAt=new Date().toISOString();it.approvedBy=curUser();}await savePlans();renderPlans();});
 }
 function renderPlanPhotos(){
@@ -3476,6 +3504,7 @@ function openPlan(id){
   tmpPlanId=id||('plan_'+uid());
   tmpPlanPhotos=p?JSON.parse(JSON.stringify(p.photos||[])):[];
   tmpPlanNeeds=p?(p.needs||[]).slice():[];
+  tmpPlanLinks=p?JSON.parse(JSON.stringify(p.links||[])):[];
   tmpPlanStatus=p?(p.status||'아이디어'):'아이디어';
   $('#planTitle').textContent=id?'기획 수정':'새 기획';
   $('#pl_title').value=p?(p.title||''):'';
@@ -3491,7 +3520,7 @@ function openPlan(id){
   if(id&&p&&p.approvedAt){ap.style.display='';ap.textContent='✓ 승인됨 · '+esc(p.approvedBy||'')+' · '+(p.approvedAt||'').slice(0,10);}else ap.style.display='none';
   if(id&&p&&p.productId&&state.products.some(x=>x.id===p.productId))$('#pl_toProduct').textContent='연결된 제품 보기 →';
   else $('#pl_toProduct').textContent='이 기획으로 제품 만들기 →';
-  renderPlanNeeds();renderPlanStatusSeg();renderPlanPhotos();renderPlanComments();
+  renderPlanNeeds();renderPlanStatusSeg();renderPlanPhotos();renderPlanComments();renderPlanLinkTargets();renderPlanLinks();
   openOverlay('planOverlay');
 }
 function renderPlanComments(){
@@ -3525,7 +3554,7 @@ async function savePlanItem(){
   if(!title){$('#pl_title').focus();alert('아이디어명을 입력하세요.');return;}
   const refs=$('#pl_refs').value.split('\n').map(s=>s.trim()).filter(Boolean);
   const now=new Date().toISOString();
-  const data={title,source:$('#pl_source').value,category:$('#pl_cat').value.trim(),marketMemo:$('#pl_market').value.trim(),refs,photos:tmpPlanPhotos.slice(),needs:tmpPlanNeeds.slice(),vendorMemo:$('#pl_vendor').value.trim(),status:tmpPlanStatus,updatedAt:now};
+  const data={title,source:$('#pl_source').value,category:$('#pl_cat').value.trim(),marketMemo:$('#pl_market').value.trim(),refs,photos:tmpPlanPhotos.slice(),needs:tmpPlanNeeds.slice(),links:tmpPlanLinks.slice(),vendorMemo:$('#pl_vendor').value.trim(),status:tmpPlanStatus,updatedAt:now};
   // 승인 시 승인자/일시 기록(최초 1회)
   const ex=editingPlan?plans.items.find(x=>x.id===editingPlan):null;
   if(tmpPlanStatus==='승인'&&!(ex&&ex.approvedAt)){data.approvedBy=curUser();data.approvedAt=now;}
@@ -3538,6 +3567,8 @@ async function savePlanItem(){
 }
 $('#planAdd').onclick=()=>openPlan(null);
 $('#pl_save').onclick=savePlanItem;
+$('#pl_linkKind').onchange=renderPlanLinkTargets;
+$('#pl_linkAdd').onclick=()=>{const kind=$('#pl_linkKind').value,rel=$('#pl_linkRel').value,id=$('#pl_linkTarget').value;if(!id){alert('연결할 대상을 선택하세요');return;}if(tmpPlanLinks.some(l=>l.kind===kind&&l.id===id&&l.rel===rel)){alert('이미 연결돼 있어요');return;}tmpPlanLinks.push({kind,id,rel,name:planTargetName(kind,id)});renderPlanLinks();};
 $('#pl_del').onclick=async()=>{
   if(!editingPlan)return;
   if(!confirm('이 기획을 삭제할까요?'))return;

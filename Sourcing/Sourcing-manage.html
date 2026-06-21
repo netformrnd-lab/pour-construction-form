@@ -250,8 +250,10 @@ const PLAN_ST_COLOR={'아이디어':['#EFF6FF','#2563EB'],'검토중':['#FEF3C7'
 // 상품 컨텐츠 기획 — 기본 컷 체크리스트
 const CONTENT_CUTS=['대표컷','누끼컷','구성컷','디테일컷','연출/사용컷','옵션별컷','사이즈/스펙컷'];
 const CUT_OPTIONAL=new Set(['옵션별컷','사이즈/스펙컷']);
-function planCuts(p){const saved=(p.contentPlan&&Array.isArray(p.contentPlan.cuts))?p.contentPlan.cuts:[];return CONTENT_CUTS.map(k=>{const s=saved.find(c=>c.key===k);return {key:k,need:s?s.need!==false:!CUT_OPTIONAL.has(k),done:s?!!s.done:false};});}
-function cutCore(p){const need=planCuts(p).filter(c=>!CUT_OPTIONAL.has(c.key));return {done:need.filter(c=>c.done).length,total:need.length};}
+let contentAssets=[]; // sourcing-os/content-state assets (읽기 — content-os 업로드 자동 확보)
+function planCutHasAsset(planId,cut){return contentAssets.some(a=>a.planId===planId&&a.cut===cut);}
+function planCuts(p){const saved=(p.contentPlan&&Array.isArray(p.contentPlan.cuts))?p.contentPlan.cuts:[];return CONTENT_CUTS.map(k=>{const s=saved.find(c=>c.key===k);const done=s?!!s.done:false;const auto=planCutHasAsset(p.id,k);return {key:k,need:s?s.need!==false:!CUT_OPTIONAL.has(k),done,auto,secured:done||auto};});}
+function cutCore(p){const need=planCuts(p).filter(c=>!CUT_OPTIONAL.has(c.key));return {done:need.filter(c=>c.secured).length,total:need.length};}
 
 function setSync(txt,color){const t=$('#saveTxt');if(t)t.textContent=txt;const d=document.querySelector('header .dot');if(d&&color)d.style.background=color;}
 const dn=p=>(p&&p.goods)?(p.name+'('+p.goods+')'):(p?p.name:'');
@@ -281,7 +283,8 @@ async function loadAll(){
     if(sc.exists){const d=sc.data();shareCfg.visible=Object.assign(shareCfg.visible,d.visible||{});shareCfg.aliases=d.aliases||{};}
     const pl=await FS.collection('sourcing-os').doc('plans').get();
     plans=pl.exists?pl.data():{items:[]};if(!Array.isArray(plans.items))plans.items=[];
-    console.log('[manage] 제품',state.products.length,'· 제조사',makersAll().length,'· 담당자설정',Object.keys(oc.makers).length,'· 기획',plans.items.length);
+    try{const cs=await FS.collection('sourcing-os').doc('content-state').get();contentAssets=(cs.exists&&Array.isArray(cs.data().assets))?cs.data().assets:[];}catch(e){console.warn('[manage] content-state 읽기 실패(무시):',e&&(e.code||e.message));}
+    console.log('[manage] 제품',state.products.length,'· 제조사',makersAll().length,'· 담당자설정',Object.keys(oc.makers).length,'· 기획',plans.items.length,'· 컨텐츠에셋',contentAssets.length);
     setSync('불러옴 ✓','#059669');
     renderVisNote();
     populateMakerFilter();
@@ -504,7 +507,7 @@ function openMgPlan(id){
   renderC();
   function renderCuts(){
     const box=$('#mgp_cuts');if(!box)return;
-    box.innerHTML=planCuts(p).map(c=>`<button type="button" class="cutitem${c.done?' done':''}" data-cut="${esc(c.key)}"><span class="cbx">${c.done?'✓':''}</span>${esc(c.key)}${CUT_OPTIONAL.has(c.key)?'<span class="opt-tag">선택</span>':''}</button>`).join('');
+    box.innerHTML=planCuts(p).map(c=>`<button type="button" class="cutitem${c.secured?' done':''}" data-cut="${esc(c.key)}"><span class="cbx">${c.secured?'✓':''}</span>${esc(c.key)}${c.auto?'<span class="opt-tag" style="color:var(--blue)">📸업로드</span>':''}${CUT_OPTIONAL.has(c.key)?'<span class="opt-tag">선택</span>':''}</button>`).join('');
     const pr=cutCore(p);const lbl=$('#mgp_cutlbl');if(lbl)lbl.textContent='확보 '+pr.done+'/'+pr.total;
     box.querySelectorAll('[data-cut]').forEach(b=>b.onclick=async()=>{
       const merged=planCuts(p);const t=merged.find(x=>x.key===b.dataset.cut);if(t)t.done=!t.done;

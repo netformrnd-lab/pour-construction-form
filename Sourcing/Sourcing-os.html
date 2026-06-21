@@ -369,6 +369,15 @@
   .kc-src{font-size:10.5px;color:var(--muted);margin-top:3px}
   .kc-empty{font-size:11px;color:var(--muted);padding:6px 2px}
 
+  /* 기획 빠른등록 composer */
+  .plquick{background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:12px;margin:2px 0 12px;box-shadow:var(--shadow)}
+  .plquick input{width:100%;padding:11px 12px;border:1px solid var(--border2);border-radius:10px;background:var(--cream);font-size:14px;margin-bottom:8px}
+  .plquick input:focus{outline:none;border-color:var(--blue);background:#fff}
+  .plquick-act{display:flex;gap:8px}
+  .plquick-act button{padding:11px 14px;border-radius:10px;font-size:13.5px;font-weight:800}
+  #planQuickPhotoBtn{flex:0 0 auto;background:var(--surface);border:1px solid var(--border2);color:var(--ink2)}
+  #planQuickAdd{flex:1;background:var(--or);color:#fff}
+  #planQuickAdd:active{transform:scale(.98)}
   /* 기획 뷰 세로 여백 압축 */
   #view-plans .pl-srcrow{padding-bottom:6px;margin-bottom:0}
   #view-plans #planStatusChips{margin-bottom:8px}
@@ -894,7 +903,13 @@
 
   <div id="view-plans" style="display:none">
   <div class="pl-srcrow" id="planSrcRow"></div>
-  <div class="tp-add" style="margin:2px 0 8px"><input id="planQuickInput" placeholder="기획 아이디어 입력 후 Enter (예: 무광 블랙 패키지)"><button id="planQuickAdd">+ 추가</button></div>
+  <div class="plquick">
+    <input id="planQuickInput" placeholder="기획 아이디어 입력 (예: 무광 블랙 패키지)">
+    <input id="planQuickLink" placeholder="🔗 참고 링크 (선택)">
+    <div id="planQuickPhoto"></div>
+    <div class="plquick-act"><button type="button" id="planQuickPhotoBtn">📷 사진</button><button type="button" id="planQuickAdd">+ 추가</button></div>
+    <input type="file" id="planQuickFile" accept="image/*" hidden>
+  </div>
   <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">
     <div class="vtoggle" id="planViewToggle"><button data-pv="list">목록</button><button data-pv="kanban">칸반</button></div>
     <button class="mini" id="planAdd" style="flex:0 0 auto;white-space:nowrap">＋ 상세 기획</button>
@@ -960,10 +975,10 @@
         <div id="pl_comments" class="pl-comments"></div>
         <div class="pl-cadd"><input type="text" id="pl_cinput" placeholder="메모·결정사항 입력"><button type="button" id="pl_cadd">추가</button></div>
       </div>
-      <button class="save" id="pl_toProduct" style="width:100%;background:var(--green);margin-bottom:10px;display:none">이 기획으로 제품 만들기 →</button>
-      <div class="pl-actions">
-        <button class="btn-ghost" id="pl_del" style="color:var(--red)">삭제</button>
-        <button class="save" id="pl_save" style="flex:1">저장</button>
+      <button id="pl_toProduct" style="display:none;width:100%;padding:14px;border-radius:12px;background:var(--green);color:#fff;font-size:14.5px;font-weight:800;letter-spacing:-.01em;margin-bottom:12px;box-shadow:0 6px 16px rgba(19,184,119,.28)">📦 이 기획으로 제품 만들기 →</button>
+      <div class="pl-actions" style="display:flex;gap:10px">
+        <button id="pl_del" style="flex:0 0 auto;padding:14px 20px;border-radius:12px;background:var(--red-pale);color:var(--red);font-size:14px;font-weight:800">삭제</button>
+        <button id="pl_save" style="flex:1;padding:14px;border-radius:12px;background:var(--blue);color:#fff;font-size:15px;font-weight:800;box-shadow:0 6px 16px rgba(49,130,246,.28)">저장</button>
       </div>
     </div>
   </div>
@@ -2633,14 +2648,17 @@ async function addTestMedia(pid,tid,file){
     else flagMsg('첨부 실패','err');
   }catch(e){console.error('[test-media] 첨부 실패:',e);alert('첨부에 실패했어요.');}
 }
-/* 기획 빠른 등록 (테스트 메뉴처럼 인라인 입력) */
-async function addPlanQuick(title){
-  const v=(title||'').trim();if(!v)return;
+/* 기획 빠른 등록 (아이디어 + 링크 + 사진 한 번에) */
+async function addPlanQuick(){
+  const inp=$('#planQuickInput'),lk=$('#planQuickLink');
+  const v=((inp&&inp.value)||'').trim();
+  const link=((lk&&lk.value)||'').trim();
+  if(!v&&!link&&!planQuickPhoto){if(inp)inp.focus();return;}
   if(!plansLoaded)await loadPlans();
   const now=new Date().toISOString();
   const src=quickSource||planSources()[0];
-  plans.items.unshift({id:'plan_'+uid(),title:v,status:'아이디어',source:src,marketMemo:'',vendorMemo:'',needs:[],photos:[],refs:[],comments:[],createdBy:curUser(),createdAt:now,updatedAt:now});
-  const inp=$('#planQuickInput');if(inp)inp.value='';
+  plans.items.unshift({id:'plan_'+uid(),title:v||'(제목 없음)',status:'아이디어',source:src,marketMemo:'',vendorMemo:'',needs:[],links:[],photos:planQuickPhoto?[planQuickPhoto]:[],refs:link?[link]:[],comments:[],createdBy:curUser(),createdAt:now,updatedAt:now});
+  if(inp)inp.value='';if(lk)lk.value='';planQuickPhoto=null;renderPlanQuickPhoto();
   const ok=await savePlans();renderPlans();
   if(ok)flagMsg('기획 추가됨','ok');
 }
@@ -2820,7 +2838,14 @@ function showSub(s){
 document.querySelectorAll('#adminSeg button').forEach(b=>b.onclick=()=>showSub(b.dataset.sub));
 document.querySelectorAll('.bn-btn').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
 ['testAttachFile','testCamFile'].forEach(id=>{const el=$('#'+id);if(el)el.onchange=e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f&&testMediaTarget)addTestMedia(testMediaTarget.pid,testMediaTarget.tid,f);};});
-(function(){const inp=$('#planQuickInput'),btn=$('#planQuickAdd');if(btn)btn.onclick=()=>addPlanQuick(inp.value);if(inp)inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addPlanQuick(inp.value);}};})();
+(function(){
+  const inp=$('#planQuickInput'),lk=$('#planQuickLink'),add=$('#planQuickAdd'),pb=$('#planQuickPhotoBtn'),pf=$('#planQuickFile');
+  if(add)add.onclick=()=>addPlanQuick();
+  if(inp)inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addPlanQuick();}};
+  if(lk)lk.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addPlanQuick();}};
+  if(pb)pb.onclick=()=>$('#planQuickFile').click();
+  if(pf)pf.onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;flagMsg('사진 업로드 중…');try{const r=await uploadPlanFile('quick-'+uid(),f);planQuickPhoto={url:r.url,path:r.path};renderPlanQuickPhoto();flagMsg('사진 첨부됨','ok');}catch(err){console.error('[plan-quick] 사진 업로드 실패:',err);alert('사진 업로드에 실패했어요.');}};
+})();
 document.querySelectorAll('#planViewToggle button').forEach(b=>b.onclick=()=>{planView=b.dataset.pv;renderPlans();});
 
 /* ---- pricing dashboard ---- */
@@ -3391,7 +3416,8 @@ let editingPlan=null,tmpPlanId=null,tmpPlanPhotos=[],tmpPlanNeeds=[],tmpPlanStat
 function planTargetName(kind,id){if(kind==='product'){const p=state.products.find(x=>x.id===id);return p?dn(p):'(삭제된 제품)';}const pl=plans.items.find(x=>x.id===id);return pl?(pl.title||'(무제)'):'(삭제된 기획)';}
 function renderPlanLinkTargets(){const sel=$('#pl_linkTarget');if(!sel)return;const kind=$('#pl_linkKind').value;let opts='';if(kind==='product'){opts=state.products.map(p=>`<option value="${esc(p.id)}">${esc(dn(p))}</option>`).join('');}else{opts=plans.items.filter(p=>p.id!==editingPlan).map(p=>`<option value="${esc(p.id)}">${esc(p.title||'(무제)')}</option>`).join('');}sel.innerHTML=opts||'<option value="">대상 없음</option>';}
 function renderPlanLinks(){const box=$('#pl_links');if(!box)return;box.innerHTML=tmpPlanLinks.length?tmpPlanLinks.map((l,i)=>`<span class="pl-linkchip ${l.rel==='세트'?'set':'opt'}"><b>${esc(l.rel)}</b> ${l.kind==='product'?'🧪':'💡'} ${esc(planTargetName(l.kind,l.id))}<button type="button" data-lrm="${i}">✕</button></span>`).join(''):'<span class="opt" style="font-size:11.5px;color:var(--muted)">아직 연결 없음</span>';box.querySelectorAll('[data-lrm]').forEach(b=>b.onclick=()=>{tmpPlanLinks.splice(+b.dataset.lrm,1);renderPlanLinks();});}
-let planView='list', quickSource='', srcEditMode=false;
+let planView='list', quickSource='', srcEditMode=false, planQuickPhoto=null;
+function renderPlanQuickPhoto(){const w=$('#planQuickPhoto');if(!w)return;w.innerHTML=planQuickPhoto?`<div style="display:inline-block;position:relative;margin-bottom:8px"><img src="${esc(planQuickPhoto.url||planQuickPhoto.data)}" style="width:62px;height:62px;border-radius:9px;object-fit:cover"><button type="button" id="planQuickPhotoRm" style="position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;border:none;font-size:12px;line-height:1;cursor:pointer">×</button></div>`:'';const rm=$('#planQuickPhotoRm');if(rm)rm.onclick=()=>{planQuickPhoto=null;renderPlanQuickPhoto();};}
 function planSources(){if(!Array.isArray(plans.sources)||!plans.sources.length)plans.sources=['인스타','틱톡','길거리','CS데이터','검색','기타'];return plans.sources;}
 function renderPlanSrcRow(){
   const row=$('#planSrcRow');if(!row)return;

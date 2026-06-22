@@ -41,6 +41,7 @@ const STATUS_MAP={
   done:{label:"완료",color:"#00C073",bg:"#E8FAF1"},
   hold:{label:"보류",color:"#FF9500",bg:"#FFF3E0"},
 };
+const TASK_SICON={todo:"⬜",inprogress:"🔵",done:"✅",hold:"⏸"};   // 업무 상태 아이콘(업무 수정 UI)
 // 프로젝트 진행 상태 4단계 (할일→진행중→보류→완료). 명칭은 업무 상태(STATUS_MAP)와 통일 — todo=할일. 기존 데이터(status 없음)는 진행중으로 간주.
 const PROJ_STATUS={planned:{label:"할일",color:"#6B7280",bg:"#F2F4F6",icon:"📋"},active:{label:"진행중",color:"#3182F6",bg:"#EBF3FF",icon:"▶"},paused:{label:"보류",color:"#FF9500",bg:"#FFF3E0",icon:"⏸"},completed:{label:"완료",color:"#00C073",bg:"#E8FAF1",icon:"✓"}};
 const projStatus=(p)=>(p&&p.status)||"active";
@@ -371,7 +372,7 @@ const taskDescFlat=(D,id,depth=1,out=[])=>{taskKidsOf(D,id).forEach(c=>{out.push
 const taskRollup=(D,id)=>{const f=taskDescFlat(D,id).filter(x=>taskKidsOf(D,x.t.id).length===0);return {total:f.length,done:f.filter(x=>x.t.status==="done").length};};   // 하위 '말단' 완료 롤업(진척과 동일 기준)
 // 상태 변경 패치 — status + doneAt/doneBy(완료 시) + statusLog(이력) 일괄. 모든 토글/저장이 이걸 거쳐 데이터 누락 방지.
 const _curUser=(D)=>(D.users||[]).find(x=>x.id===D.currentUser)||null;
-const statusPatch=(D,task,newStatus)=>{const u=_curUser(D);const at=new Date().toISOString();const p={status:newStatus,statusLog:[...(Array.isArray(task.statusLog)?task.statusLog:[]),{status:newStatus,at,by:u?.id||null,byName:u?.name||""}]};if(newStatus==="done"){p.doneAt=at;p.doneBy=u?.id||null;p.doneByName=u?.name||"";}return p;};
+const statusPatch=(D,task,newStatus)=>{const u=_curUser(D);const at=new Date().toISOString();const wasDone=task.status==="done";const reopen=wasDone&&newStatus!=="done";const p={status:newStatus,statusLog:[...(Array.isArray(task.statusLog)?task.statusLog:[]),{status:newStatus,at,by:u?.id||null,byName:u?.name||"",...(reopen?{reopen:true}:{})}]};if(newStatus==="done"){p.doneAt=at;p.doneBy=u?.id||null;p.doneByName=u?.name||"";}else if(wasDone){p.doneAt=null;p.doneBy=null;p.doneByName=null;}return p;};   // 완료→다른상태 = 재개: 완료표식(doneAt) 해제 + 이력에 reopen 플래그(완료시점은 statusLog에 그대로 보존)
 // 이번 주 내 주간목표 (weekGoals: [{id,userId,week,title,target,current,unit,projectId}])
 const myWeekGoals=(D,uid)=>{ const wk=weekKey(); return (D.weekGoals||[]).filter(g=>g.userId===uid&&g.week===wk); };
 const wgAchieved=(g)=> numF(g.target)>0 && numF(g.current)>=numF(g.target);
@@ -435,7 +436,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up,onDelete})=>{
   const [prevId,setPrevId]=useState(null);
   const [uploading,setUploading]=useState(false);
   const [dropOver,setDropOver]=useState(false);
-  const [advOpen,setAdvOpen]=useState(false);   // 프로세스 위치·하위 업무 편집 펼침(기본 접힘)
+  const [advOpen,setAdvOpen]=useState(false);   // 업무 플로우 위치·하위 업무 편집 펼침(기본 접힘)
   const [histOpen,setHistOpen]=useState(false);  // 진행 이력 펼침(기본 접힘)
   const [childName,setChildName]=useState("");   // 새 하위 업무명 즉시 입력
   const [delText,setDelText]=useState("");        // 삭제 확인 입력('삭제')
@@ -498,7 +499,7 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up,onDelete})=>{
           return(
             <div style={{marginBottom:14,padding:"11px 12px",background:"#F9FAFB",borderRadius:12,border:"1px solid #F2F4F6"}}>
               <button type="button" onClick={()=>setAdvOpen(o=>!o)} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>
-                <span style={{fontSize:11.5,fontWeight:800,color:"#374151"}}>🧩 프로세스 위치 <span style={{fontWeight:600,color:"#9CA3AF"}}>(하위 업무 {desc.length})</span></span>
+                <span style={{fontSize:11.5,fontWeight:800,color:"#374151"}}>🧩 업무 플로우 위치 <span style={{fontWeight:600,color:"#9CA3AF"}}>(하위 업무 {desc.length})</span></span>
                 <span style={{fontSize:11,fontWeight:800,color:"#9CA3AF"}}>{advOpen?"접기 ▴":"상위·하위 편집 ▾"}</span>
               </button>
               {(proj||chain.length>0)&&<p style={{margin:"7px 0 0",fontSize:11,color:"#6B7280",lineHeight:1.55}}>{[proj&&("📁 "+proj.title),...chain.map(c=>c.title)].filter(Boolean).join("  ▸  ")}{"  ▸  "}<b style={{color:"#0F1F5C"}}>{form.title||task.title}</b></p>}
@@ -536,32 +537,48 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up,onDelete})=>{
         })()}
         <div style={{marginBottom:14}}>
           <label style={{display:"block",fontSize:12,fontWeight:700,color:"#374151",marginBottom:6}}>상태</label>
+          {/* 완료된 업무 — 재개(다시 진행) 배너. 완료가 끝이 아니라, 다시 손볼 일이 생기면 되돌릴 수 있어요. */}
+          {task&&task.status==="done"&&form.status==="done"&&(
+            <div style={{display:"flex",alignItems:"center",gap:9,padding:"10px 12px",marginBottom:8,borderRadius:11,background:"#E8FAF1",border:"1px solid #BFF0D6"}}>
+              <span style={{fontSize:16,flexShrink:0}}>✅</span>
+              <div style={{flex:1,minWidth:0}}>
+                <p style={{margin:0,fontSize:12,fontWeight:800,color:"#00875A"}}>완료된 업무예요{task.doneAt?` · ${task.doneAt.slice(5,16).replace("T"," ")}`:""}</p>
+                <p style={{margin:"1px 0 0",fontSize:10,color:"#3F9D74",lineHeight:1.4}}>다시 손봐야 하면 재개하세요 — 완료 기록은 진행 이력에 그대로 남아요</p>
+              </div>
+              <button type="button" onClick={()=>setForm({...form,status:"inprogress"})} style={{flexShrink:0,padding:"9px 13px",borderRadius:9,border:"none",background:"#3182F6",color:"#fff",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>🔄 재개</button>
+            </div>
+          )}
           <div style={{display:"flex",gap:6}}>
-            {Object.entries(STATUS_MAP).map(([k,v])=>{const on=form.status===k;return(
-              <button key={k} type="button" onClick={()=>setForm({...form,status:k})} style={{flex:1,padding:"9px 4px",borderRadius:10,border:`1.5px solid ${on?v.color:"#E5E8EB"}`,background:on?v.color+"16":"#fff",color:on?v.color:"#9CA3AF",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{v.label}</button>
+            {Object.entries(STATUS_MAP).map(([k,v])=>{const on=form.status===k;const ic=TASK_SICON[k]||"";return(
+              <button key={k} type="button" onClick={()=>setForm({...form,status:k})} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"8px 4px",borderRadius:10,border:`1.5px solid ${on?v.color:"#E5E8EB"}`,background:on?v.color+"16":"#fff",color:on?v.color:"#9CA3AF",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}><span style={{fontSize:13,lineHeight:1,filter:on?"none":"grayscale(0.5)"}}>{ic}</span>{v.label}</button>
             );})}
           </div>
-          {form.status!==(task&&task.status)&&<p style={{margin:"6px 2px 0",fontSize:10.5,color:"#EA580C",fontWeight:700}}>저장하면 이 상태 변경이 진행 이력에 날짜와 함께 기록돼요</p>}
+          {form.status!==(task&&task.status)&&(()=>{const reopen=task&&task.status==="done"&&form.status!=="done";return(
+            <p style={{margin:"6px 2px 0",fontSize:10.5,fontWeight:700,color:reopen?"#3182F6":"#EA580C"}}>{reopen?"🔄 저장하면 ‘재개’로 진행 이력에 남고, 완료 표시가 해제돼요":"저장하면 이 상태 변경이 진행 이력에 날짜와 함께 기록돼요"}</p>
+          );})()}
           {task&&(()=>{const ms=taskTimeSpent(task);const sa=inprogressStartAt(task);if(!ms&&!sa)return null;const live=task.status==="inprogress";return(<div style={{margin:"8px 0 0",padding:"8px 11px",borderRadius:10,background:live?"#EBF3FF":"#E8FAF1",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}><span style={{fontSize:13}}>⏱</span>{ms>0&&<span style={{fontSize:12,fontWeight:800,color:live?"#3182F6":"#00A862"}}>{live?"진행 중 누적 소요":"총 소요시간"} · {fmtDur(ms)}</span>}{sa&&<span style={{fontSize:11,fontWeight:700,color:"#6B7280"}}>🔵 진행 시작 {fmtStart(sa)}</span>}</div>);})()}
         </div>
         {task&&((task.statusLog&&task.statusLog.length)||task.doneAt)&&(()=>{
           const log=(task.statusLog&&task.statusLog.length?task.statusLog:(task.doneAt?[{status:"done",at:task.doneAt,byName:task.doneByName}]:[]));
-          const last=log[log.length-1]||{};const lst=STATUS_MAP[last.status]||{};
+          const isReopen=(e,i,arr)=>!!(e&&(e.reopen||(i>0&&arr[i-1].status==="done"&&e.status!=="done")));   // 완료 직후의 상태 전환 = 재개
+          const reopenCount=log.filter((e,i,arr)=>isReopen(e,i,arr)).length;
+          const last=log[log.length-1]||{};const lst=STATUS_MAP[last.status]||{};const lastLbl=isReopen(last,log.length-1,log)?"재개":(lst.label||last.status||"");
           return(
           <div style={{marginBottom:14,padding:"10px 12px",background:"#F9FAFB",borderRadius:12,border:"1px solid #F2F4F6"}}>
             <button type="button" onClick={()=>setHistOpen(o=>!o)} style={{width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",border:"none",background:"none",padding:0,cursor:"pointer",fontFamily:"inherit"}}>
-              <span style={{fontSize:11.5,fontWeight:800,color:"#374151"}}>🧭 진행 이력 <span style={{fontWeight:600,color:"#9CA3AF"}}>({log.length}건{histOpen?"":` · 최근 ${lst.label||last.status||""}`})</span></span>
+              <span style={{fontSize:11.5,fontWeight:800,color:"#374151"}}>🧭 진행 이력 <span style={{fontWeight:600,color:"#9CA3AF"}}>({log.length}건{reopenCount>0?` · 🔄 재개 ${reopenCount}`:""}{histOpen?"":` · 최근 ${lastLbl}`})</span></span>
               <span style={{fontSize:11,fontWeight:800,color:"#9CA3AF"}}>{histOpen?"접기 ▴":"보기 ▾"}</span>
             </button>
             {histOpen&&<div style={{marginTop:8}}>
             <div style={{display:"flex",flexDirection:"column",gap:0}}>
-              {log.map((e,i,arr)=>{const st=STATUS_MAP[e.status]||{};const isLast=i===arr.length-1;return(
+              {log.map((e,i,arr)=>{const st=STATUS_MAP[e.status]||{};const isLast=i===arr.length-1;const reopen=isReopen(e,i,arr);return(
                 <div key={i} style={{display:"flex",alignItems:"flex-start",gap:9}}>
                   <div style={{display:"flex",flexDirection:"column",alignItems:"center",flexShrink:0}}>
-                    <span style={{width:9,height:9,borderRadius:"50%",background:st.color||"#9CA3AF",marginTop:4}}/>
+                    <span style={{width:9,height:9,borderRadius:"50%",background:st.color||"#9CA3AF",marginTop:4,boxShadow:reopen?"0 0 0 3px #DBE9FF":"none"}}/>
                     {!isLast&&<span style={{width:2,flex:1,minHeight:14,background:"#E5E8EB"}}/>}
                   </div>
                   <div style={{flex:1,minWidth:0,paddingBottom:isLast?0:8}}>
+                    {reopen&&<span style={{display:"inline-block",marginRight:5,fontSize:9.5,fontWeight:900,color:"#fff",background:"#3182F6",borderRadius:5,padding:"1px 5px"}}>🔄 재개</span>}
                     <span style={{fontSize:11,fontWeight:800,color:st.color||"#6B7280"}}>{st.label||e.status}</span>
                     <span style={{marginLeft:7,fontSize:10.5,color:"#9CA3AF"}}>{(e.at||"").slice(0,16).replace("T"," ")}{e.byName?` · ${e.byName}`:""}</span>
                   </div>
@@ -862,9 +879,10 @@ export default function App(){
     const before=p[k].find(i=>i.id===id);
     // 업무 상태 전이 시 진행 이력(statusLog) 누적 — 할일→진행중→보류→진행중→완료 여정 전체 보존. 완료 전환 시 완료시각·완료자도 기록.
     const list=p[k].map(i=>{ if(i.id!==id) return i; let patch=c;
-      if(k==="tasks"&&c.status&&c.status!==i.status){ const at=new Date().toISOString();
-        patch={...c,statusLog:[...(Array.isArray(i.statusLog)?i.statusLog:[]),{status:c.status,at,by:cu?.id||null,byName:cu?.name||""}]};
+      if(k==="tasks"&&c.status&&c.status!==i.status){ const at=new Date().toISOString(); const reopen=i.status==="done"&&c.status!=="done";   // 완료된 업무를 다시 진행 = 재개
+        patch={...c,statusLog:[...(Array.isArray(i.statusLog)?i.statusLog:[]),{status:c.status,at,by:cu?.id||null,byName:cu?.name||"",...(reopen?{reopen:true}:{})}]};
         if(c.status==="done") patch={...patch,doneAt:at,doneBy:cu?.id||null,doneByName:cu?.name||""};
+        else if(reopen) patch={...patch,doneAt:null,doneBy:null,doneByName:null};   // 재개 시 완료표식 해제(완료 이력은 statusLog에 보존)
       }
       return {...i,...patch}; });
     let n={...p,[k]:list};
@@ -3237,7 +3255,7 @@ function ProjectRoadmap({D,proj,up,add,rm,onClose,onOpenProcess}){
           </div>
         )}
         <button onClick={saveManual} style={{width:"100%",padding:"11px 0",borderRadius:11,border:"1.5px solid #FBD9B5",background:"#FFF7ED",fontSize:12.5,fontWeight:800,color:"#EA580C",cursor:"pointer",fontFamily:"inherit",marginBottom:14}}>{srcMan?"📋 템플릿 갱신 / 새 템플릿으로 저장":"📋 로드맵 템플릿으로 저장 (다음에 재사용)"}</button>
-        {stages.length===0?<Empty t="로드단계가 없어요 · [+ 로드단계]로 만들거나 🧩프로세스 편집에서 최상위 단계를 만들면 로드단계가 됩니다"/>:(
+        {stages.length===0?<Empty t="로드단계가 없어요 · [+ 로드단계]로 만들거나 🧩업무 플로우 편집에서 최상위 단계를 만들면 로드단계가 됩니다"/>:(
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
             {stages.map((s,idx)=>{
               const m=Mof(s.assigneeId);const col=team?m.color:"#0891B2";const pct=cpct(s.id);

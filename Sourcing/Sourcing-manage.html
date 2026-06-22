@@ -126,7 +126,8 @@
   .mkhdr:first-child{margin-top:0}
   .mkhdr .mkhc{font-size:11.5px;font-weight:700;color:var(--muted)}
   /* 기획 보드 */
-  .fchips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+  .fchips{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-bottom:10px}
+  .flbl{font-size:11.5px;font-weight:800;color:var(--muted);margin-right:4px}
   .fchip{font-size:12px;font-weight:700;padding:7px 12px;border-radius:999px;border:1px solid var(--line2);background:#fff;color:var(--muted);cursor:pointer}
   .fchip.on{background:var(--navy);color:#fff;border-color:transparent}
   #mgPlanList{display:flex;flex-direction:column;gap:12px;max-width:780px}
@@ -191,13 +192,13 @@
 <div class="wrapP" id="mgProducts">
   <div class="ptools">
     <input class="psearch" id="pSearch" placeholder="검색 (제품명·상품명·가명·제조사·담당자)">
-    <select class="pfilter" id="pType"><option value="">전체 유형</option><option value="단품">단품</option><option value="파생">파생</option><option value="패키지">세트</option></select>
-    <select class="pfilter" id="pStage"><option value="">전체 단계</option></select>
     <select class="pfilter" id="pOrder"><option value="">발주담당자 전체</option><option value="set">지정됨</option><option value="none">미지정</option></select>
     <select class="pfilter" id="pMaker"><option value="">전체 제조사</option></select>
     <button class="pfilter" id="pReset" type="button">초기화</button>
     <span class="pcount" id="pCount"></span>
   </div>
+  <div class="fchips" id="pTypeChips"></div>
+  <div class="fchips" id="pStageChips"></div>
   <div class="pgrid" id="pGrid"></div>
 </div>
 
@@ -279,6 +280,8 @@ async function loadAll(){
     setSync('불러옴 ✓','#059669');
     renderVisNote();
     populateMakerFilter();
+    renderTypeChips();
+    renderStageChips();
     renderProducts();
     renderMgPlans();
   }catch(e){ console.error('[manage] 로드 실패:',e); setSync('로드 실패','#DC2626'); }
@@ -316,8 +319,17 @@ function ocWho(maker){const m=maker&&oc.makers[maker];return (m&&m.name)||'';}
 function populateMakerFilter(){
   const sel=$('#pMaker');
   if(sel){sel.innerHTML='<option value="">전체 제조사</option>'+makersAll().map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');sel.value=mkFilter;}
-  const st=$('#pStage');
-  if(st){st.innerHTML='<option value="">전체 단계</option>'+STAGES.map(s=>`<option value="${s}">${s}</option>`).join('');st.value=stageFilter;}
+}
+const TYPE_OPTS=[['','전체'],['단품','단품'],['파생','파생'],['패키지','세트']];
+function renderTypeChips(){
+  const b=$('#pTypeChips');if(!b)return;
+  b.innerHTML='<span class="flbl">유형</span>'+TYPE_OPTS.map(([v,l])=>`<button class="fchip${tyFilter===v?' on':''}" data-ty="${v}">${l}</button>`).join('');
+  b.querySelectorAll('[data-ty]').forEach(x=>x.onclick=()=>{tyFilter=x.dataset.ty;renderTypeChips();renderProducts();});
+}
+function renderStageChips(){
+  const b=$('#pStageChips');if(!b)return;
+  b.innerHTML='<span class="flbl">단계</span>'+[['','전체']].concat(STAGES.map(s=>[s,s])).map(([v,l])=>`<button class="fchip${stageFilter===v?' on':''}" data-st="${v}">${l}</button>`).join('');
+  b.querySelectorAll('[data-st]').forEach(x=>x.onclick=()=>{stageFilter=x.dataset.st;renderStageChips();renderProducts();});
 }
 
 /* ---------- 상품 카드 (제품 단위 · 노출 설정 일관 적용) ---------- */
@@ -520,10 +532,8 @@ document.querySelectorAll('#mgSeg button').forEach(b=>b.onclick=()=>setMgView(b.
 /* ---------- 검색·필터 ---------- */
 $('#pSearch').oninput=e=>{qp=e.target.value.toLowerCase().trim();renderProducts();};
 $('#pMaker').onchange=e=>{mkFilter=e.target.value;renderProducts();};
-$('#pType').onchange=e=>{tyFilter=e.target.value;renderProducts();};
-$('#pStage').onchange=e=>{stageFilter=e.target.value;renderProducts();};
 $('#pOrder').onchange=e=>{orderFilter=e.target.value;renderProducts();};
-$('#pReset').onclick=()=>{qp=mkFilter=tyFilter=stageFilter=orderFilter='';$('#pSearch').value='';$('#pType').value='';$('#pStage').value='';$('#pOrder').value='';$('#pMaker').value='';renderProducts();};
+$('#pReset').onclick=()=>{qp=mkFilter=tyFilter=stageFilter=orderFilter='';$('#pSearch').value='';$('#pOrder').value='';$('#pMaker').value='';renderTypeChips();renderStageChips();renderProducts();};
 
 /* ---------- PIN 로그인 (공용 PIN · Sourcing-os 공유설정에서 지정) ---------- */
 // Sourcing-os에서 PIN 미설정 시 사용하는 기본 PIN. 설정 후에는 share-config.managePinHash 사용.

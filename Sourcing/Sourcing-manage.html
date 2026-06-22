@@ -215,14 +215,6 @@
   </div>
 </div>
 
-<!-- 발주담당자 지정 모달 -->
-<div class="ocm-scrim" id="ocModal">
-  <div class="ocm-box">
-    <div class="ocm-h"><h3 id="ocTitle">발주담당자 지정</h3><button class="ocm-x" id="ocClose">✕</button></div>
-    <div class="sec" id="ocBody"></div>
-  </div>
-</div>
-
 <script>
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -286,15 +278,6 @@ async function loadAll(){
     renderMgPlans();
   }catch(e){ console.error('[manage] 로드 실패:',e); setSync('로드 실패','#DC2626'); }
 }
-async function saveOC(){
-  try{
-    oc.updatedAt=new Date().toISOString();
-    oc.updatedBy='관리센터(PIN)';
-    await FS.collection('sourcing-os').doc('order-contacts').set(oc);
-    setSync('저장됨 ✓','#059669');
-    return true;
-  }catch(e){ console.error('[manage] 저장 실패:',e); setSync('저장 실패','#DC2626'); alert('저장 실패: '+(e&&(e.code||e.message))); return false; }
-}
 
 /* ---------- 노출 설정 안내 ---------- */
 function renderVisNote(){
@@ -338,13 +321,13 @@ function cardHtml(p){
   const ty=p.type==='패키지'?'세트':(p.type||'단품');
   const maker=p.maker||'';
   const mk=v.makerName?(maker?esc(maker):'미입력'):'<span class="hid">비공개</span>';
-  // 발주요청 담당자 (재고관리용) — 누구에게 발주하는가 + 변경/지정
+  // 발주요청 담당자 (재고관리용, 읽기전용) — 누구에게 발주하는가. 지정/수정은 소싱앱 제조사 탭.
   let order;
   if(!maker){ order='<span class="hid">제조사 미입력</span>'; }
   else{
     const m=oc.makers[maker];
-    if(m&&m.name){ order=(m.mode==='maker'?'제조사 ':'내부 ')+esc(m.name)+(v.contact&&m.phone?' · '+esc(m.phone):'')+` <button class="mini" data-oc="${esc(maker)}">변경</button>`; }
-    else{ order='<span class="hid">미지정</span>'+` <button class="mini" data-oc="${esc(maker)}">지정</button>`; }
+    if(m&&m.name){ order=(m.mode==='maker'?'제조사 ':'내부 ')+esc(m.name)+(v.contact&&m.phone?' · '+esc(m.phone):''); }
+    else{ order='<span class="hid">미지정</span>'; }
   }
   const price=v.price?((p.pricing&&p.pricing.sell)?won(p.pricing.sell)+'원'+((p.pricing&&p.pricing.buy)?' (원가 '+won(p.pricing.buy)+')':''):'미설정'):'<span class="hid">비공개</span>';
   const concept=p.concept?esc(p.concept):'<span class="hid">미입력</span>';
@@ -395,46 +378,8 @@ function renderProducts(){
     html+=cardHtml(p);
   });
   grid.innerHTML=html;
-  grid.querySelectorAll('[data-oc]').forEach(b=>b.onclick=()=>openOcModal(b.dataset.oc));
 }
 
-/* ---------- 발주담당자 지정 모달 (제조사 단위) ---------- */
-function openOcModal(maker){
-  if(!maker)return;
-  const m=Object.assign({mode:'internal',name:'',phone:'',memo:'',public:false},oc.makers[maker]||{});
-  $('#ocTitle').textContent='발주담당자 · '+maker;
-  const body=$('#ocBody');
-  body.innerHTML=`
-    <div class="frow"><label>구분</label>
-      <div class="seg" id="oc_mode">
-        <button data-mode="internal" class="${m.mode!=='maker'?'on':''}">내부 팀원</button>
-        <button data-mode="maker" class="${m.mode==='maker'?'on':''}">제조사 담당자</button>
-      </div></div>
-    <div class="ftwo">
-      <div class="frow"><label>담당자명</label><input id="oc_name" value="${esc(m.name)}" placeholder="예) 홍길동"></div>
-      <div class="frow"><label>연락처</label><input id="oc_phone" value="${esc(m.phone)}" placeholder="010-0000-0000"></div>
-    </div>
-    <div class="frow"><label>메모 <span style="color:var(--muted);font-weight:600">(선택)</span></label><input id="oc_memo" value="${esc(m.memo)}" placeholder="예) 발주 리드타임 7일 · 카톡 선호"></div>
-    <div class="toggle"><div><div class="tt">외부 사이트 공개</div><div class="td" id="oc_pubdesc"></div></div><div class="sw ${m.public?'on':''}" id="oc_pub"></div></div>
-    <div class="note">이 제조사의 <b>모든 상품</b>에 적용됩니다. <b>내부 팀원</b>으로 지정하면 외부 사이트에선 제조사명을 숨기고 "담당자에게 발주요청"으로 안내하는 걸 권장합니다.</div>
-    <button class="save-btn" id="oc_save">저장</button>`;
-  let cur={mode:m.mode,public:!!m.public};
-  function note(){ $('#oc_pubdesc').textContent=cur.public?'외부 사이트에 노출됩니다.':'외부 미노출(대외비). 내부에서만 보입니다.'; }
-  body.querySelectorAll('#oc_mode button').forEach(b=>b.onclick=()=>{cur.mode=b.dataset.mode;body.querySelectorAll('#oc_mode button').forEach(x=>x.classList.toggle('on',x.dataset.mode===cur.mode));});
-  $('#oc_pub').onclick=()=>{cur.public=!cur.public;$('#oc_pub').classList.toggle('on',cur.public);note();};
-  note();
-  $('#oc_save').onclick=async()=>{
-    const btn=$('#oc_save');btn.disabled=true;btn.textContent='저장 중…';
-    oc.makers[maker]={mode:cur.mode,name:$('#oc_name').value.trim(),phone:$('#oc_phone').value.trim(),memo:$('#oc_memo').value.trim(),public:cur.public};
-    const ok=await saveOC();
-    btn.disabled=false;btn.textContent='저장';
-    if(ok){closeOcModal();renderProducts();}
-  };
-  $('#ocModal').classList.add('on');
-}
-function closeOcModal(){$('#ocModal').classList.remove('on');}
-$('#ocClose').onclick=closeOcModal;
-$('#ocModal').onclick=e=>{if(e.target.id==='ocModal')closeOcModal();};
 
 /* ---------- 기획 보고함 (열람 + 승인/보류 + 댓글) ---------- */
 async function savePlans(){

@@ -678,6 +678,13 @@
   .pl-cadd input{flex:1;padding:9px 11px;border:1px solid var(--border2);border-radius:9px;background:var(--cream)}
   .pl-cadd button{padding:9px 14px;border-radius:9px;background:var(--navy);color:#fff;font-weight:700;font-size:13px;white-space:nowrap}
   .pl-approved{font-size:11.5px;color:var(--green);font-weight:700;margin:-2px 0 8px}
+  .oc-box{background:var(--cream);border:1px solid var(--border);border-radius:12px;padding:13px 14px;margin-top:8px}
+  .oc-box .frow{margin-bottom:10px}
+  .oc-seg{display:flex;gap:6px;margin-bottom:10px}
+  .oc-seg button{flex:1;padding:9px;border:1px solid var(--border2);border-radius:10px;background:#fff;font-weight:700;font-size:13px;color:var(--muted)}
+  .oc-seg button.on{background:var(--navy);color:#fff;border-color:transparent}
+  .oc-pub{width:100%;padding:10px;border:1px solid var(--border2);border-radius:10px;background:#fff;font-weight:700;font-size:12.5px;color:var(--muted)}
+  .oc-pub.on{background:var(--green-pale);color:var(--green);border-color:transparent}
   .xlsx-blk{background:var(--cream);border:1px solid var(--border);border-radius:13px;padding:12px}
   .xlsx-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
   .xlsx-row:last-of-type{margin-bottom:0}
@@ -2734,8 +2741,19 @@ function mpCardHTML(p){
 
 let makerRevFilter='진행 중';
 function renderMakerDetail(root,name){
+  if(!ocLoaded){loadOrderContacts().then(renderMakerList);return;}
   const prods=makerProducts(name),meets=makerMeetings(name);
   const sellProds=prods.filter(isSellable); // 판매가 대시보드: 상품(파생/세트)만 표시
+  const ocm=Object.assign({mode:'internal',name:'',phone:'',memo:'',public:false},(orderContacts.makers||{})[name]||{});
+  const ocHtml=`<div class="mh" style="margin-top:18px">발주담당자 <span style="font-weight:600;color:var(--muted)">· 누구에게 발주 요청</span></div>
+    <div class="oc-box">
+      <div class="oc-seg" id="oc_mode"><button type="button" data-mode="internal" class="${ocm.mode!=='maker'?'on':''}">내부 팀원</button><button type="button" data-mode="maker" class="${ocm.mode==='maker'?'on':''}">제조사 담당자</button></div>
+      <div class="frow"><label>담당자명</label><input id="oc_name" value="${esc(ocm.name)}" placeholder="예) 김송희"></div>
+      <div class="frow"><label>연락처</label><input id="oc_phone" value="${esc(ocm.phone)}" placeholder="010-0000-0000"></div>
+      <div class="frow"><label>메모 <span class="opt">(선택)</span></label><input id="oc_memo" value="${esc(ocm.memo)}" placeholder="예) 발주 리드타임 7일 · 카톡 선호"></div>
+      <button type="button" class="oc-pub ${ocm.public?'on':''}" id="oc_pub">${ocm.public?'외부 사이트 공개 ✓':'외부 미노출(대외비)'}</button>
+      <button type="button" class="save" id="oc_save" style="width:100%;margin-top:10px">발주담당자 저장</button>
+    </div>`;
   // 예상 매출 (진행 전/중: 판매가 설정 제품 합계 · 완료: 어드민센터 연동 예정)
   const STAT=['진행 전','진행 중','완료'];
   const byStat=s=>sellProds.filter(p=>STATUS[statusIdx(p)]===s);
@@ -2770,7 +2788,8 @@ function renderMakerDetail(root,name){
   const revCard=summaryCard+chips+listCard;
   let html=`<button class="backbtn" id="mkBack">← 제조사 목록</button>
     <div class="mk-deth"><div><div class="mk-dname">${esc(name)}</div><div class="mk-dmeta">상품 ${sellProds.length}개 · 미팅 ${meets.length}건</div></div><button class="del" id="mkDel">삭제</button></div>
-    <div class="mh">예상 매출 <span style="font-weight:600;color:var(--muted)">· 진행 전+중 합산 · 단계별 상세</span></div>
+    ${ocHtml}
+    <div class="mh" style="margin-top:24px">예상 매출 <span style="font-weight:600;color:var(--muted)">· 진행 전+중 합산 · 단계별 상세</span></div>
     ${revCard}
     <div class="mh" style="margin-top:24px">상품(파생/세트) ${sellProds.length}</div>`;
   html+=sellProds.length?('<div class="mp-list">'+sellProds.map(mpCardHTML).join('')+'</div>'):'<div class="tempty">이 제조사의 상품(파생/세트)이 없어요. (제품 탭에서 파생·세트를 만들면 여기에 표시돼요)</div>';
@@ -2794,6 +2813,11 @@ function renderMakerDetail(root,name){
     state.meetings.push({id:uid(),maker:name,date,title:t||'(제목 없음)',note});save();renderMakerList();
   };
   root.querySelectorAll('.meet-del').forEach(b=>b.onclick=()=>{if(!confirm('이 미팅 기록을 삭제할까요?'))return;state.meetings=state.meetings.filter(m=>m.id!==b.dataset.mid);save();renderMakerList();});
+  // 발주담당자 편집
+  let curOc={mode:ocm.mode,public:!!ocm.public};
+  root.querySelectorAll('#oc_mode button').forEach(b=>b.onclick=()=>{curOc.mode=b.dataset.mode;root.querySelectorAll('#oc_mode button').forEach(x=>x.classList.toggle('on',x.dataset.mode===curOc.mode));});
+  const ocPub=$('#oc_pub');if(ocPub)ocPub.onclick=()=>{curOc.public=!curOc.public;ocPub.classList.toggle('on',curOc.public);ocPub.textContent=curOc.public?'외부 사이트 공개 ✓':'외부 미노출(대외비)';};
+  const ocSave=$('#oc_save');if(ocSave)ocSave.onclick=async()=>{ocSave.disabled=true;const lbl=ocSave.textContent;ocSave.textContent='저장 중…';if(!orderContacts.makers)orderContacts.makers={};orderContacts.makers[name]={mode:curOc.mode,name:$('#oc_name').value.trim(),phone:$('#oc_phone').value.trim(),memo:$('#oc_memo').value.trim(),public:curOc.public};const ok=await saveOrderContacts();ocSave.disabled=false;ocSave.textContent=lbl;if(ok)flagMsg('발주담당자 저장 완료','ok');};
 }
 $('#search').addEventListener('input',()=>{
   const v=$('#search').value.trim();
@@ -3524,6 +3548,17 @@ function renderPlanStatusSeg(){
 }
 let curPlanObj=null;
 function curUser(){return (typeof FA!=='undefined'&&FA&&FA.currentUser&&FA.currentUser.email)||'소싱팀';}
+
+/* ===== 발주담당자 — sourcing-os/order-contacts (제조사 탭에서 관리, 관리센터는 읽기전용) ===== */
+let orderContacts={makers:{}},ocLoaded=false;
+async function loadOrderContacts(){
+  try{const s=await FS.collection('sourcing-os').doc('order-contacts').get();orderContacts=s.exists?s.data():{makers:{}};if(!orderContacts.makers)orderContacts.makers={};ocLoaded=true;console.log('[order-contacts] 로드 ·',Object.keys(orderContacts.makers).length);}
+  catch(e){console.error('[order-contacts] 로드 실패:',e);orderContacts={makers:{}};ocLoaded=true;}
+}
+async function saveOrderContacts(){
+  try{orderContacts.updatedAt=new Date().toISOString();orderContacts.updatedBy=curUser();await FS.collection('sourcing-os').doc('order-contacts').set(JSON.parse(JSON.stringify(orderContacts)));return true;}
+  catch(e){console.error('[order-contacts] 저장 실패:',e);alert('발주담당자 저장 실패: '+(e&&(e.code||e.message)));return false;}
+}
 function openPlan(id){
   const p=id?plans.items.find(x=>x.id===id):null;
   editingPlan=id||null;curPlanObj=p||null;

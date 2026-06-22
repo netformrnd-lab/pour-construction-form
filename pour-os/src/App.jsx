@@ -1497,6 +1497,31 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
     const [m]=arr.splice(from,1); arr.splice(to,0,m);
     arr.forEach((t,i)=>{ if((t.weekSlot||0)!==i+1) up("tasks",t.id,{weekSlot:i+1}); });
   };
+  // ── 연속(여러 날) 업무 바 — 캘린더처럼 시작~끝 요일을 가로로 잇는다 ──
+  const dayIdxOf=(ymd)=>{ if(!ymd) return -1; for(let i=0;i<WEEK_DAYS.length;i++){ if(dateOfDay(WEEK_DAYS[i])===ymd) return i; } return -1; };
+  const weekBarSpan=(t)=>{   // 이번 주(월~금) 안에서 이 업무의 표시 구간 [si,ei]. 없으면 null. (완료·고정·단일일은 칸 카드로)
+    if(t.isFixed||t.status==="done") return null;
+    let s,e;
+    if(t.status==="inprogress"){ s=inprogressStartDate(t)||t.workDate||(isThisWeek?todayStr:dateOfDay("월")); e=isThisWeek?todayStr:dateOfDay("금"); }   // 진행중 = 시작일~오늘(이어짐)
+    else { s=t.workDate||(isThisWeek&&t.weekDay?dateOfDay(t.weekDay):""); e=(t.dueDate&&t.dueDate>=s)?t.dueDate:s; }   // 할일·보류 = 목표일~마감일
+    if(!s||!e) return null;
+    const monStr=dateOfDay("월"), friStr=dateOfDay("금");
+    if(e<monStr||s>friStr) return null;   // 이번 주(월~금)에 안 걸침
+    const cs=s<monStr?monStr:s, ce=e>friStr?friStr:e;
+    let si=dayIdxOf(cs), ei=dayIdxOf(ce);
+    if(si<0) si=0; if(ei<0) ei=WEEK_DAYS.length-1;
+    return ei<si?null:[si,ei];
+  };
+  // 여러 날 이어지는 업무만 바로 표시(2일 이상). 레인 배치로 겹침 방지.
+  const weekBars=(()=>{
+    const arr=[];
+    myT.forEach(t=>{ const sp=weekBarSpan(t); if(sp&&sp[1]>sp[0]) arr.push({t,si:sp[0],ei:sp[1]}); });
+    arr.sort((a,b)=>a.si-b.si||b.ei-a.ei||String(a.t.id).localeCompare(String(b.t.id)));
+    const laneEnd=[];
+    arr.forEach(b=>{ let lane=laneEnd.findIndex(end=>b.si>end); if(lane<0) lane=laneEnd.length; laneEnd[lane]=b.ei; b.lane=lane; });
+    return arr;
+  })();
+  const barTaskIds=new Set(weekBars.map(b=>b.t.id));
   const [quick,setQuick]=useState("");
   const [quickProj,setQuickProj]=useState("");
   const [confirmTaskId,setConfirmTaskId]=useState(null);
@@ -1571,26 +1596,21 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
   const myReadyLaunch=(()=>{ const arr=[]; D.projects.filter(p=>p.templateId).forEach(p=>{ const ts=launchProjTasks(D,p); ts.forEach(t=>{ if(t.assigneeId===cu.id&&launchStageStatus(t,ts)==="ready") arr.push({proj:p,task:t}); }); }); return [...arr,...myReadyProcess(D,cu.id)]; })();
   // 주간 배치 — 요일 칸 1개 렌더(모바일=전체폭 크게, 데스크탑=5열 중 하나). 진행날짜/요일 있는 업무 자동 노출 + 순서만 조정
   const renderDayCol=(d,mobile)=>{
-    const list=dayOrdered(d); const isT=d===today&&isThisWeek; const dk="col_"+d;
+    const list=mobile?dayOrdered(d):dayOrdered(d).filter(t=>!barTaskIds.has(t.id)); const isT=d===today&&isThisWeek; const dk="col_"+d;
     return(
       <div key={d} onDragOver={mobile?undefined:e=>{e.preventDefault();if(dragOver!==dk)setDragOver(dk);}} onDragLeave={mobile?undefined:()=>{if(dragOver===dk)setDragOver(null);}} onDrop={mobile?undefined:e=>{e.preventDefault();dropDayCol(d);}}
         style={{flex:mobile?"none":1,minWidth:0,backgroundColor:dragOver===dk?"#FFF7ED":(isT?"rgba(255,237,213,0.5)":"#F9FAFB"),border:`1.5px solid ${dragOver===dk?"#F97316":(isT?"#FBBF77":"#E5E8EB")}`,borderRadius:12,padding:mobile?"6px 8px 8px":"10px 8px"}}>
-        {!mobile&&(
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:7}}>
-            <span style={{fontSize:11,fontWeight:900,color:isT?"#EA580C":"#4B5563"}}>{d}요일 <span style={{fontWeight:700,color:isT?"#F59E5B":"#B0B8C1"}}>{wdDate(d)}</span></span>
-            {isT&&<span style={{fontSize:9,fontWeight:900,color:"#FFFFFF",background:"#F97316",padding:"1px 5px",borderRadius:10}}>오늘</span>}
-          </div>
-        )}
         {list.length===0&&<p style={{margin:"6px 2px",fontSize:mobile?12:9.5,color:"#C4C9D0",textAlign:"center",fontStyle:"italic"}}>{mobile?"이 요일 업무가 없어요 · 아래 ＋배치":"+배치"}</p>}
         {list.map((t,i)=>{
-          const st=STATUS_MAP[t.status]||{}; const done=t.status==="done";
+          const st=STATUS_MAP[t.status]||STATUS_MAP.todo; const done=t.status==="done"; const span=barTaskIds.has(t.id);
           return(
             <div key={t.id} draggable={!mobile} onDragStart={mobile?undefined:e=>{dragRef.current=t;try{e.dataTransfer.effectAllowed="move";}catch(_){}}} onDragEnd={mobile?undefined:()=>{dragRef.current=null;setDragOver(null);}}
               onClick={()=>setEditTask(t)}
-              style={{display:"flex",alignItems:"center",gap:mobile?8:4,padding:mobile?"9px 10px":"5px 7px",marginBottom:mobile?6:4,borderRadius:mobile?10:8,border:`1px solid ${done?"rgba(0,192,115,0.25)":"#E5E8EB"}`,background:done?"#E8FAF1":"#FFFFFF",cursor:mobile?"pointer":"grab",minHeight:mobile?40:28}}>
+              style={{display:"flex",alignItems:"center",gap:mobile?8:5,padding:mobile?"9px 10px":"5px 7px",marginBottom:mobile?6:4,borderRadius:mobile?10:8,border:`1px solid ${st.color}33`,borderLeft:`3px solid ${st.color}`,background:done?"#F6FBF8":"#FFFFFF",cursor:mobile?"pointer":"grab",minHeight:mobile?40:28}}>
               <span style={{flexShrink:0,fontSize:mobile?11:9,fontWeight:900,color:isT?"#EA580C":"#9CA3AF",minWidth:mobile?16:10,textAlign:"center"}}>{i+1}</span>
-              <span style={{flex:1,minWidth:0,fontSize:mobile?13:10,fontWeight:700,color:done?"#9CA3AF":"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:done?"line-through":"none"}}>{t.eventId?"📅":""}{t.title}</span>
-              {mobile&&st.label&&<span style={{flexShrink:0,fontSize:10,fontWeight:700,color:st.color,backgroundColor:st.bg,padding:"2px 7px",borderRadius:6}}>{st.label}</span>}
+              <span title={st.label} style={{flexShrink:0,width:mobile?9:7,height:mobile?9:7,borderRadius:"50%",background:st.color}}/>
+              <span style={{flex:1,minWidth:0,fontSize:mobile?13:10,fontWeight:700,color:done?"#9CA3AF":"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:done?"line-through":"none"}}>{t.eventId?"📅":""}{span?"↔ ":""}{t.title}</span>
+              <span style={{flexShrink:0,fontSize:mobile?10:8.5,fontWeight:800,color:st.color,backgroundColor:st.bg,padding:mobile?"2px 7px":"1px 5px",borderRadius:6}}>{st.label}</span>
               <span onClick={e=>e.stopPropagation()} style={{display:"flex",flexDirection:"column",flexShrink:0,gap:1}}>
                 <button onClick={()=>reorderDay(d,i,i-1)} disabled={i===0} title="위로" style={{width:mobile?22:15,height:mobile?15:11,border:"none",background:"none",cursor:i===0?"default":"pointer",color:i===0?"#E5E8EB":"#9CA3AF",fontSize:mobile?11:8,lineHeight:1,padding:0}}>▲</button>
                 <button onClick={()=>reorderDay(d,i,i+1)} disabled={i===list.length-1} title="아래로" style={{width:mobile?22:15,height:mobile?15:11,border:"none",background:"none",cursor:i===list.length-1?"default":"pointer",color:i===list.length-1?"#E5E8EB":"#9CA3AF",fontSize:mobile?11:8,lineHeight:1,padding:0}}>▼</button>
@@ -1810,6 +1830,27 @@ function TodayPage({D,cu,lead,add,up,rm,nav}){
           </div>
         ):(
           <div style={{paddingBottom:4,marginTop:10}}>
+            {/* 요일 헤더 — 바 밴드 위 정렬용 */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:6}}>
+              {WEEK_DAYS.map(d=>{const isT=d===today&&isThisWeek;return(
+                <div key={d} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:5,fontSize:11,fontWeight:900,color:isT?"#EA580C":"#4B5563"}}>{d} <span style={{fontWeight:700,color:isT?"#F59E5B":"#B0B8C1"}}>{wdDate(d)}</span>{isT&&<span style={{fontSize:8.5,fontWeight:900,color:"#fff",background:"#F97316",padding:"1px 5px",borderRadius:10}}>오늘</span>}</div>
+              );})}
+            </div>
+            {/* 연속(여러 날) 업무 — 캘린더처럼 이어지는 바 */}
+            {weekBars.length>0&&(
+              <div style={{marginBottom:8}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,rowGap:4,gridAutoRows:"minmax(26px,auto)"}}>
+                  {weekBars.map(b=>{const st=STATUS_MAP[b.t.status]||STATUS_MAP.todo;return(
+                    <button key={b.t.id} onClick={()=>setEditTask(b.t)} title={`${b.t.title} · ${st.label}`} style={{gridColumn:`${b.si+1} / ${b.ei+2}`,gridRow:b.lane+1,display:"flex",alignItems:"center",gap:6,minWidth:0,padding:"5px 9px",borderRadius:8,border:`1px solid ${st.color}`,borderLeft:`4px solid ${st.color}`,background:st.bg||"#fff",cursor:"pointer",fontFamily:"inherit",textAlign:"left"}}>
+                      <span style={{flexShrink:0,width:7,height:7,borderRadius:"50%",background:st.color}}/>
+                      <span style={{flex:1,minWidth:0,fontSize:10.5,fontWeight:800,color:st.color,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{b.t.eventId?"📅":""}{b.t.title}</span>
+                      <span style={{flexShrink:0,fontSize:8.5,fontWeight:800,color:"#fff",background:st.color,padding:"1px 6px",borderRadius:5}}>{st.label}</span>
+                    </button>
+                  );})}
+                </div>
+                <p style={{margin:"5px 0 0 2px",fontSize:9.5,color:"#B0B8C1"}}>↔ 여러 날 이어지는 업무 · 진행중은 시작일~오늘까지 이어집니다</p>
+              </div>
+            )}
             <div style={{display:"flex",gap:10}}>{WEEK_DAYS.map(d=>renderDayCol(d,false))}</div>
           </div>
         ))}

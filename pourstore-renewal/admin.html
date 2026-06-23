@@ -343,7 +343,7 @@ const NAV = [
   { id: 'chatbot', icon: '💬', label: '챗봇 관리센터', group: 'chatbot', external: './chatbot.html' },
 
   { type: 'divider', label: '소싱센터', group: 'sourcing', collapsible: true, defaultCollapsed: false },
-  { id: 'sourcing-manage', icon: '🧭', label: '소싱 관리센터', group: 'sourcing', external: '../Sourcing/Sourcing-manage.html' },
+  { id: 'sourcing-manage', icon: '🧭', label: '소싱 관리센터', group: 'sourcing' },
 
   { type: 'divider', label: '디자인/개발 센터', group: 'design', collapsible: true, defaultCollapsed: false },
   { id: 'preview',         icon: '🎨', label: '자사몰 페이지 관리', group: 'design' },
@@ -4855,6 +4855,41 @@ function PourOsPage() {
         src="./os.html"
         title="업무관리 앱 (POUR OS)"
         onLoad={sendActiveStaff}
+        style={{ flex:1, width:'100%', border:0, background:'#fff' }}
+      />
+    </div>
+  );
+}
+
+// ============================================================
+// SourcingManagePage — 소싱 관리센터 (Sourcing/Sourcing-manage.html iframe 임베드)
+// 제조사·출시상품·발주담당자 + 기획 보고함 + 컨텐츠 소스(content-os 내장).
+// 자체 PIN 게이트로 인증 (어드민 staff와 별개).
+// ============================================================
+function SourcingManagePage() {
+  const SRC = '../Sourcing/Sourcing-manage.html';
+  return (
+    <div style={{ display:'flex', flexDirection:'column', height:'100vh', background:'var(--bg)' }}>
+      <div style={{
+        padding:'14px 20px', borderBottom:'1px solid var(--border)', background:'#fff',
+        display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap'
+      }}>
+        <div>
+          <h1 style={{ fontSize:16, fontWeight:900, color:'var(--navy)', marginBottom:2 }}>🧭 소싱 관리센터</h1>
+          <div style={{ fontSize:11, color:'var(--text-sm)', fontWeight:700 }}>
+            제조사 · 출시상품 · 발주담당자 · 기획 보고함 · 컨텐츠 소스(촬영 컷·레퍼런스)
+          </div>
+        </div>
+        <a href={SRC} target="_blank" rel="noopener noreferrer" style={{
+          padding:'7px 14px', fontSize:11.5, fontWeight:800, color:'var(--or-d)',
+          border:'1px solid var(--or-l)', borderRadius:7, background:'#fff', display:'inline-flex', alignItems:'center', gap:6
+        }}>
+          새창에서 열기 <span style={{ fontSize:10 }}>↗</span>
+        </a>
+      </div>
+      <iframe
+        src={SRC}
+        title="소싱 관리센터"
         style={{ flex:1, width:'100%', border:0, background:'#fff' }}
       />
     </div>
@@ -9656,6 +9691,7 @@ function App() {
         {active === 'inquiries' && <Inquiries inquiries={inquiries} onUpdate={loadAll} onToast={setToast} />}
         {active === 'workmgmt' && <WorkMgmtPage />}
         {active === 'pour-os' && <PourOsPage />}
+        {active === 'sourcing-manage' && <SourcingManagePage />}
         {active === 'dashboard-os' && <DashboardPage onToast={setToast} onNav={setActive} />}
         {active === 'recurring' && <RecurringTasksPage onToast={setToast} />}
         {active === 'okr' && <OKRPage onToast={setToast} />}

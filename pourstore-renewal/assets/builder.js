@@ -38,6 +38,11 @@
   const FIRESTORE_COLLECTION = 'pourstore-renewal-builder';
   const FIRESTORE_DOC = 'state';
   const HISTORY_SUBCOL = 'history';   // pourstore-renewal-builder/state/history/{safeKey}
+  const STATE_CHUNK_SUBCOL = 'state-chunks'; // pourstore-renewal-builder/state/state-chunks/{seq}
+  // Firestore 단일 문서/필드 한도는 약 1,048,576 bytes.
+  // 메인 state JSON 이 한도를 넘으면 청크로 쪼개 서브컬렉션에 분산 저장한다.
+  const STATE_INLINE_MAX_BYTES = 900000;  // 이 byte 이하면 메인 doc state 필드에 그대로 저장
+  const STATE_CHUNK_CHARS = 280000;       // 청크당 문자 수 (한글 3byte 가정 시 최대 ~840KB < 1MB)
   const SAVE_DEBOUNCE_MS = 600;
   const HISTORY_BATCH_LIMIT = 400;    // Firestore batch는 500ops 제한 → 여유
 
@@ -46,6 +51,7 @@
   let saveTimer = null;
   let initialSnapshotConsumed = false;
   let firstSnapshotLoaded = false;
+  let lastKnownChunkCount = null; // 메인 state 청크 개수 추적 (null=미상) — 불필요한 정리 조회 방지
   const historyWriteTimers = {};
 
   const SEED_STATS_HTML =
@@ -8631,7 +8637,8 @@ show('entry');
       return;
     }
     const data = snap.data() || {};
-    if (!data.state) {
+    // state 필드(인라인) 도 없고 청크(chunked) 도 아니면 빈 문서로 간주
+    if (!data.state && !data.chunked) {
       initialSnapshotConsumed = true;
       if (!firstSnapshotLoaded) {
         firstSnapshotLoaded = true;
@@ -8646,35 +8653,43 @@ show('entry');
       initialSnapshotConsumed = true;
       return;
     }
-    try {
-      const remote = JSON.parse(data.state);
-      if (!remote || !Array.isArray(remote.pages)) throw new Error('형식 오류');
-      const previousActive = state.activePageId;
-      const previousHistory = state.history; // 메모리 history 보존 — 서브컬렉션이 단일 진실
-      state = migrate(remote);
-      const addedPages = addMissingDefaultPages(state); // 새 기본 페이지(parentHint 포함) 자동 추가
-      // 원격 state에 history가 포함돼 있으면 마이그레이션 후보 (legacy)
-      const embeddedFromRemote = (remote.history && typeof remote.history === 'object') ? remote.history : null;
-      // history는 서브컬렉션에서 로드됨 — 직전 메모리 값 우선 유지
-      state.history = previousHistory || state.history || {};
-      if (previousActive && state.pages.some(p => p.id === previousActive)) {
-        state.activePageId = previousActive;
-      }
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) {}
-      renderAll();
-      setSync('synced', initialSnapshotConsumed ? ('실시간 반영 ' + fmtTime(new Date())) : ('서버에서 불러옴 ' + fmtTime(new Date())));
-      initialSnapshotConsumed = true;
-      if (!firstSnapshotLoaded) {
-        firstSnapshotLoaded = true;
-        handleInitialHistoryLoad(embeddedFromRemote || state.history || {});
-      }
-      if (addedPages > 0) {
-        console.log(`[builder] ${addedPages}개 신규 기본 페이지 추가 → 저장`);
-        saveState(); // 디바운스 저장 — 새 기본 페이지 영구 반영
-      }
-    } catch (e) {
-      console.error('[firestore] 원격 상태 적용 실패:', e);
-      setSync('error', '원격 데이터 형식 오류');
+    // 인라인 또는 청크에서 state 문자열을 확보한 뒤 적용 (청크는 비동기 로드)
+    readStateString(data)
+      .then(stateStr => {
+        if (!stateStr) throw new Error('빈 상태 문자열');
+        applyRemoteStateStr(stateStr);
+      })
+      .catch(e => {
+        console.error('[firestore] 원격 상태 적용 실패:', e);
+        setSync('error', '원격 데이터 형식 오류');
+      });
+  }
+
+  function applyRemoteStateStr(stateStr) {
+    const remote = JSON.parse(stateStr);
+    if (!remote || !Array.isArray(remote.pages)) throw new Error('형식 오류');
+    const previousActive = state.activePageId;
+    const previousHistory = state.history; // 메모리 history 보존 — 서브컬렉션이 단일 진실
+    state = migrate(remote);
+    const addedPages = addMissingDefaultPages(state); // 새 기본 페이지(parentHint 포함) 자동 추가
+    // 원격 state에 history가 포함돼 있으면 마이그레이션 후보 (legacy)
+    const embeddedFromRemote = (remote.history && typeof remote.history === 'object') ? remote.history : null;
+    // history는 서브컬렉션에서 로드됨 — 직전 메모리 값 우선 유지
+    state.history = previousHistory || state.history || {};
+    if (previousActive && state.pages.some(p => p.id === previousActive)) {
+      state.activePageId = previousActive;
+    }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) {}
+    renderAll();
+    setSync('synced', initialSnapshotConsumed ? ('실시간 반영 ' + fmtTime(new Date())) : ('서버에서 불러옴 ' + fmtTime(new Date())));
+    initialSnapshotConsumed = true;
+    if (!firstSnapshotLoaded) {
+      firstSnapshotLoaded = true;
+      handleInitialHistoryLoad(embeddedFromRemote || state.history || {});
+    }
+    if (addedPages > 0) {
+      console.log(`[builder] ${addedPages}개 신규 기본 페이지 추가 → 저장`);
+      saveState(); // 디바운스 저장 — 새 기본 페이지 영구 반영
     }
   }
 
@@ -8691,13 +8706,9 @@ show('entry');
     // 메인 state 직렬화 시 분리하여 1MB 한도 회피
     const stateForFirestore = Object.assign({}, state);
     delete stateForFirestore.history;
-    const payload = {
-      state: JSON.stringify(stateForFirestore),
-      lastWrite: state.lastWrite,
-      updatedAt: new Date().toISOString(),
-    };
-    db.collection(FIRESTORE_COLLECTION).doc(FIRESTORE_DOC)
-      .set(payload, { merge: false })
+    const stateStr = JSON.stringify(stateForFirestore);
+    const lastWrite = state.lastWrite;
+    writeStateDoc(stateStr, lastWrite)
       .then(() => {
         setSync('synced', '저장됨 ' + fmtTime(new Date()));
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) {}
@@ -8707,6 +8718,82 @@ show('entry');
         setSync('error', '서버 저장 실패: ' + (e.code || e.message || ''));
         toast('서버 저장 실패: ' + (e.code || e.message || ''), 'error');
       });
+  }
+
+  // ─────────────────────────────────────────────
+  // State 청크 분산 저장 — 메인 state JSON 이 1MB 한도를 넘을 때
+  // pourstore-renewal-builder/state/state-chunks/{seq} 로 쪼개 저장
+  // 메인 doc: { chunked:true, chunkCount:N, lastWrite, updatedAt } (state 필드 없음)
+  // ─────────────────────────────────────────────
+  function stateChunkColRef() {
+    return db.collection(FIRESTORE_COLLECTION).doc(FIRESTORE_DOC).collection(STATE_CHUNK_SUBCOL);
+  }
+  function byteLength(str) {
+    try { return new TextEncoder().encode(str).length; }
+    catch (_) { return str.length * 3; } // 폴백 — 한글 기준 보수적 추정
+  }
+  // keepCount 이상 인덱스의 잔여 청크 문서를 정리 (best-effort)
+  function cleanupStateChunks(keepCount) {
+    if (!firebaseReady || !db) return;
+    stateChunkColRef().get().then(snap => {
+      const stale = [];
+      snap.forEach(doc => {
+        const idx = parseInt(doc.id, 10);
+        if (!isNaN(idx) && idx >= keepCount) stale.push(doc.ref);
+      });
+      for (let i = 0; i < stale.length; i += HISTORY_BATCH_LIMIT) {
+        const batch = db.batch();
+        stale.slice(i, i + HISTORY_BATCH_LIMIT).forEach(ref => batch.delete(ref));
+        batch.commit().catch(e => console.error('[state-chunk] 잔여 청크 삭제 실패:', e));
+      }
+    }).catch(e => console.error('[state-chunk] 정리 조회 실패:', e));
+  }
+  async function writeStateDoc(stateStr, lastWrite) {
+    const docRef = db.collection(FIRESTORE_COLLECTION).doc(FIRESTORE_DOC);
+    const updatedAt = new Date().toISOString();
+    // 1) 한도 이내 → 기존 방식대로 인라인 저장
+    if (byteLength(stateStr) <= STATE_INLINE_MAX_BYTES) {
+      await docRef.set({ state: stateStr, chunked: false, chunkCount: 0, lastWrite, updatedAt }, { merge: false });
+      // 직전에 청크가 있었을 때만(또는 미상일 때 1회) 잔여 청크 정리 — 매 저장 조회 방지
+      if (lastKnownChunkCount === null || lastKnownChunkCount > 0) cleanupStateChunks(0);
+      lastKnownChunkCount = 0;
+      return;
+    }
+    // 2) 한도 초과 → 청크 분산 저장 (청크 먼저, 메인 doc 마지막)
+    const chunks = [];
+    for (let i = 0; i < stateStr.length; i += STATE_CHUNK_CHARS) {
+      chunks.push(stateStr.slice(i, i + STATE_CHUNK_CHARS));
+    }
+    const colRef = stateChunkColRef();
+    for (let i = 0; i < chunks.length; i += HISTORY_BATCH_LIMIT) {
+      const batch = db.batch();
+      chunks.slice(i, i + HISTORY_BATCH_LIMIT).forEach((c, j) => {
+        batch.set(colRef.doc(String(i + j)), { seq: i + j, data: c });
+      });
+      await batch.commit();
+    }
+    // 메인 doc 은 마지막에 — state 필드 제거(merge:false), chunked 메타만 기록
+    await docRef.set({ chunked: true, chunkCount: chunks.length, lastWrite, updatedAt }, { merge: false });
+    // 청크 수가 줄었을 때만 잔여 청크 정리
+    if (lastKnownChunkCount === null || lastKnownChunkCount > chunks.length) cleanupStateChunks(chunks.length);
+    lastKnownChunkCount = chunks.length;
+    console.log(`[state-chunk] ${chunks.length}개 청크로 분산 저장 (${byteLength(stateStr)} bytes)`);
+  }
+  async function readStateString(data) {
+    // 원격 청크 개수 추적 — 이후 저장 시 잔여 청크 정리 판단에 사용
+    lastKnownChunkCount = (data && data.chunked) ? (data.chunkCount || 0) : 0;
+    if (data && data.chunked) {
+      const snap = await stateChunkColRef().get();
+      const arr = [];
+      snap.forEach(doc => {
+        const x = doc.data() || {};
+        const seq = (typeof x.seq === 'number') ? x.seq : parseInt(doc.id, 10);
+        if (typeof x.data === 'string' && !isNaN(seq)) arr[seq] = x.data;
+      });
+      console.log(`[state-chunk] ${snap.size}개 청크 로드 → 재조합`);
+      return arr.join('');
+    }
+    return (data && data.state) || '';
   }
 
   // ─────────────────────────────────────────────

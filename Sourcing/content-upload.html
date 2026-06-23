@@ -74,6 +74,22 @@
 
   .toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);z-index:50;padding:12px 22px;border-radius:12px;font-size:13px;font-weight:700;color:#fff;box-shadow:0 6px 24px rgba(0,0,0,.25);white-space:nowrap}
   .empty-hint{font-size:12.5px;color:var(--muted);text-align:center;padding:16px 0}
+
+  /* 촬영 가이드 */
+  .guide h2{display:flex;align-items:center;gap:6px}
+  .gscenes{display:flex;flex-direction:column;gap:12px;margin-top:6px}
+  .gscene{border:1px solid var(--border2);border-radius:12px;padding:12px;background:var(--cream)}
+  .gscene-h{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .gnum{flex:0 0 auto;width:22px;height:22px;border-radius:50%;background:var(--or);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
+  .gnm{font-size:14px;font-weight:800}
+  .gdir{font-size:12.5px;color:var(--ink2);line-height:1.5;margin-bottom:8px;white-space:pre-wrap}
+  .grefs{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:6px}
+  .gref{display:block;position:relative;border:1px solid var(--border);border-radius:8px;overflow:hidden;aspect-ratio:1;background:var(--surface);text-decoration:none}
+  .gref img{width:100%;height:100%;object-fit:cover;display:block}
+  .gref span{display:none}
+  .gref.noimg{aspect-ratio:auto;padding:9px 10px;display:flex;align-items:center}
+  .gref.noimg img{display:none}
+  .gref.noimg span{display:block;font-size:11.5px;font-weight:700;color:var(--or2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
@@ -111,6 +127,9 @@
       <select id="productSel"><option value="">제품 선택 안 함</option></select>
     </div>
   </div>
+
+  <!-- 촬영 가이드 (제품의 협찬 촬영 장면) -->
+  <div id="guideWrap"></div>
 
   <!-- 파일 선택 -->
   <div class="card">
@@ -171,6 +190,7 @@ const today=()=>new Date().toISOString().slice(0,10);
 const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 // 폴더 안전 이름(한글 허용, 위험문자만 _) — 기존 uploadDocFile 규칙과 동일 계열
 const slug=s=>(s||'무명').trim().replace(/[^\w.\-가-힣]+/g,'_').slice(0,60)||'무명';
+const refLabel=u=>{try{const x=new URL(u);return x.hostname.replace(/^www\./,'')+(x.pathname&&x.pathname!=='/'?x.pathname:'');}catch(e){return u;}};
 
 const params=new URLSearchParams(location.search);
 const tokenParam=params.get('s')||'';      // 셀러 전용 링크 토큰
@@ -215,6 +235,33 @@ function renderProducts(){
   sel.innerHTML='<option value="">제품 선택 안 함</option>'+
     products.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}${p.code?' · '+esc(p.code):''}</option>`).join('');
   if(fixed){ sel.value=fixed; }
+  sel.onchange=renderGuide;
+  renderGuide();
+}
+
+/* 촬영 가이드 — 선택된 제품의 '협찬촬영' 장면(컷)을 셀러에게 보여줌 */
+let curScenes=[];
+function renderGuide(){
+  const wrap=$('#guideWrap'); if(!wrap)return;
+  const pid=$('#productSel')?$('#productSel').value:'';
+  const p=products.find(x=>x.id===pid);
+  curScenes=(p&&Array.isArray(p.scenes)?p.scenes:[]).filter(s=>s.assignee==='sponsor');
+  if(!p||!curScenes.length){ wrap.innerHTML=''; return; }
+  const cards=curScenes.map((s,i)=>{
+    const refs=(s.refs||[]).map(r=>`<a class="gref" href="${esc(r.url)}" target="_blank" rel="noopener"><img src="${esc(r.url)}" onerror="this.closest('.gref').classList.add('noimg')"><span>${esc(refLabel(r.url))}</span></a>`).join('');
+    return `<div class="gscene">
+      <div class="gscene-h"><span class="gnum">${i+1}</span><span class="gnm">${esc(s.name)}</span></div>
+      ${s.direction?`<div class="gdir">${esc(s.direction)}</div>`:''}
+      ${refs?`<div class="grefs">${refs}</div>`:''}
+    </div>`;
+  }).join('');
+  const opts='<option value="">장면 선택 안 함</option>'+curScenes.map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
+  wrap.innerHTML=`<div class="card guide">
+    <h2>📸 촬영 가이드 <span style="font-size:12px;color:var(--muted);font-weight:600">· ${esc(p.name)}</span></h2>
+    <div class="desc">아래 장면을 참고해서 촬영해 주세요. 올릴 때 어떤 장면인지 선택하면 정리에 도움이 돼요.</div>
+    <div class="gscenes">${cards}</div>
+    <div class="frow" style="margin-top:14px"><label>어떤 장면을 올리나요? <span style="color:var(--muted);font-weight:600">(선택)</span></label><select id="sceneSel">${opts}</select></div>
+  </div>`;
 }
 
 /* 파일 선택 처리 */
@@ -262,6 +309,9 @@ async function doUpload(){
   const sellerName=lockedSeller?lockedSeller.name:($('#sellerName').value||'').trim();
   if(!sellerName){ toast('셀러명을 입력하세요','red'); return; }
   const productId=$('#productSel').value||'';
+  const sceneId=$('#sceneSel')?($('#sceneSel').value||''):'';
+  const scene=curScenes.find(s=>s.id===sceneId);
+  const sceneName=scene?scene.name:'';
   const memo=($('#memo').value||'').trim();
   uploading=true; $('#uploadBtn').disabled=true;
 
@@ -290,6 +340,7 @@ async function doUpload(){
       await db.collection('sourcing-os').doc(UPLOADS_DOC).collection('items').add({
         kind:p.kind, url, path:ref.fullPath, name:p.file.name||'', size:p.file.size||0,
         sellerName, sellerId:lockedSeller?lockedSeller.id:'', productId,
+        sceneId, sceneName,
         purpose:'sponsor', via:tokenParam?'link':'web', memo,
         filed:false, createdAt:new Date().toISOString()
       });

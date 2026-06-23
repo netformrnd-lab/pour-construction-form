@@ -84,6 +84,26 @@
   .refitem .rdel:hover{background:var(--red-pale);color:var(--red)}
   .refnone{font-size:12px;color:var(--muted);padding:2px}
 
+  /* 필요 장면 (촬영 컷) */
+  .cutchips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+  .cutchip{font-size:12px;font-weight:700;padding:7px 11px;border-radius:999px;background:var(--surface);border:1px solid var(--border2);color:var(--ink2)}
+  .cutchip:hover{border-color:var(--or);color:var(--or)}
+  .cutchip.custom{background:var(--or-pale);color:var(--or2);border-color:#cfe2ff}
+  .scenelist{display:flex;flex-direction:column;gap:10px}
+  .scene{border:1px solid var(--border2);border-radius:12px;padding:12px;background:var(--card)}
+  .scene-h{display:flex;align-items:center;gap:7px;margin-bottom:9px}
+  .scene-nm{flex:1;min-width:0;font-size:14px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .scene-sel{flex:0 0 auto;font-size:11.5px;font-weight:800;padding:5px 6px;border:1px solid var(--border2);border-radius:8px;background:var(--cream)}
+  .scene-sel:focus{outline:none;border-color:var(--or)}
+  .scene-dir{width:100%;min-height:44px;resize:vertical;padding:9px 11px;border:1px solid var(--border2);border-radius:10px;background:var(--cream);font-size:12.5px;line-height:1.5;margin-bottom:9px}
+  .scene-dir:focus{outline:none;border-color:var(--or);background:#fff}
+  .scene-refs .refrow{margin-bottom:8px}
+  .scene-refs .refrow input{padding:9px 11px;font-size:13px}
+  .scene-refs .refrow .btn{padding:9px 13px}
+  .scene-foot{font-size:11.5px;color:var(--muted);margin-top:9px;font-weight:600}
+  .sec-title{font-size:13px;font-weight:800;color:var(--ink2);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+  .sec-title .rc{font-size:11px;font-weight:800;color:var(--or);background:var(--or-pale);padding:1px 7px;border-radius:6px}
+
   .empty{text-align:center;padding:60px 20px;color:var(--muted)}
   .empty h3{font-size:16px;font-weight:800;color:var(--ink2);margin-bottom:8px}
   .empty p{font-size:13px;line-height:1.6;margin-bottom:18px}
@@ -230,6 +250,13 @@ function normalize(){
   if(!state.assets)state.assets=[];
   if(!state.settings)state.settings={defaultLanding:'',defaultCampaign:'',defaultMedium:'sponsor'};
   if(state.settings.storeUrlPattern===undefined)state.settings.storeUrlPattern='https://www.pourstore.net/{id}'; // 자사몰 상품 URL 패턴 ({id}=상품번호)
+  // 구버전 제품 레퍼런스(flat refs) → 필요 장면(scene)으로 이관
+  state.products.forEach(p=>{
+    if(Array.isArray(p.refs)&&p.refs.length&&!Array.isArray(p.scenes)){
+      p.scenes=[{id:uid(),name:'기타 참고',refs:p.refs.map(r=>({id:r.id||uid(),url:r.url})),direction:'',assignee:'ai',status:'need',createdAt:new Date().toISOString()}];
+    }
+    if(Array.isArray(p.refs))delete p.refs;
+  });
 }
 const UTM_MEDIUMS=['sponsor','instagram','youtube','blog','sns','tiktok','naver'];
 /* 연결 제품의 자사몰 상품 URL (상품번호=code/sourceId) */
@@ -375,12 +402,12 @@ function renderProducts(){
   }else{
     html+='<div class="grid">'+list.map(p=>{
       const d=assetCount(p.id,'detail'),ad=assetCount(p.id,'ad'),sp=assetCount(p.id,'sponsor');
-      const rf=(p.refs||[]).length;
+      const scp=sceneProgress(p.id);
       return `<div class="pcard" data-pid="${p.id}">
         <div class="pc-b">
           <div class="pc-nm">${esc(p.name)}</div>
           <div class="pc-meta">${esc(p.code||'—')}</div>
-          <div class="pc-counts"><span class="countpill">상세 <b>${d}</b></span><span class="countpill">광고 <b>${ad}</b></span><span class="countpill">협찬 <b>${sp}</b></span>${rf?`<span class="countpill">참고 <b>${rf}</b></span>`:''}</div>
+          <div class="pc-counts">${scp.total?`<span class="countpill">컷 <b>${scp.done}/${scp.total}</b></span>`:''}<span class="countpill">상세 <b>${d}</b></span><span class="countpill">광고 <b>${ad}</b></span><span class="countpill">협찬 <b>${sp}</b></span></div>
         </div></div>`;
     }).join('')+'</div>';
   }
@@ -432,7 +459,7 @@ function renderInbox(){
         <div class="ithumb">${media}</div>
         <div class="ibody">
           <div class="iname">${esc(it.sellerName||'무명')} ${it.kind==='video'?'· 🎬':''}</div>
-          <div class="imeta">${prod?'🔗 '+esc(prod.name)+' · ':''}${fmtDT(it.createdAt)}${it.memo?' · '+esc(it.memo):''}</div>
+          <div class="imeta">${prod?'🔗 '+esc(prod.name)+' · ':''}${it.sceneName?'🎬 '+esc(it.sceneName)+' · ':''}${fmtDT(it.createdAt)}${it.memo?' · '+esc(it.memo):''}</div>
           <div class="iact">
             <button class="linkbtn" data-file="${it._id}">✓ 정리 완료</button>
             <button class="linkbtn" style="background:var(--surface);color:var(--ink2)" data-open="${esc(it.url)}">열기</button>
@@ -617,51 +644,106 @@ function renderProductSheet(){
   const p=state.products.find(x=>x.id===curProduct);if(!p)return;
   const assets=mergedAssets(curProduct,curPurpose);
   const lbl={detail:'상세페이지용',ad:'광고용',sponsor:'협찬 셀러'};
+  const totalAssets=state.assets.filter(a=>a.productId===curProduct).length+inbox.filter(x=>x.productId===curProduct).length;
+  const sc=sceneProgress(curProduct);
   const s=$('#sheet');
-  s.innerHTML=`<h2>${esc(p.name)}</h2><div class="sub">${esc(p.code||'')} · 촬영물 ${state.assets.filter(a=>a.productId===curProduct).length+inbox.filter(x=>x.productId===curProduct).length}개</div>
+  s.innerHTML=`<h2>${esc(p.name)}</h2><div class="sub">${esc(p.code||'')} · 필요 장면 ${sc.done}/${sc.total} · 확보 소스 ${totalAssets}개</div>
+    <div class="scenes-wrap" id="scenesWrap"></div>
+    <div style="height:1px;background:var(--border);margin:18px 0"></div>
+    <div class="sec-title">📦 확보된 소스</div>
     <div class="seg" id="purSeg">${['detail','ad','sponsor'].map(k=>`<button data-pur="${k}" class="${k===curPurpose?'on':''}">${lbl[k]}</button>`).join('')}</div>
     ${curPurpose!=='sponsor'?`<div class="seg" style="gap:10px;margin-bottom:14px"><button class="btn or" style="flex:1" id="upCap">📷 촬영</button><button class="btn ghost" style="flex:1" id="upAlb">🖼 앨범에서</button></div>`:'<div class="sub" style="margin-bottom:12px">협찬 컨텐츠는 셀러가 업로드 링크로 올린 것이 자동 표시됩니다.</div>'}
-    <div class="agrid" id="agrid">${assets.length?assets.map(renderAssetCell).join(''):'<div class="empty" style="grid-column:1/-1;padding:30px 0"><p>아직 등록된 컨텐츠가 없어요.</p></div>'}</div>
-    <div class="refbox" style="margin-top:18px">
-      <div class="refbox-h">🔗 제작 참고 레퍼런스 <span class="rc" id="refCnt">0</span></div>
-      <div class="refrow"><input id="ref_in" type="url" inputmode="url" placeholder="참고 링크 URL 붙여넣기 (여러 개 추가 가능)"><button class="btn or" id="ref_add">추가</button></div>
-      <div class="reflist" id="reflist"></div>
-    </div>
+    <div class="agrid" id="agrid">${assets.length?assets.map(renderAssetCell).join(''):'<div class="empty" style="grid-column:1/-1;padding:30px 0"><p>아직 등록된 소스가 없어요.</p></div>'}</div>
     <div class="sheet-act" style="margin-top:18px"><button class="btn ghost" id="pd_edit">제품 정보 수정</button><button class="btn ghost" id="pd_close">닫기</button></div>`;
   document.querySelectorAll('#purSeg button').forEach(b=>b.onclick=()=>{curPurpose=b.dataset.pur;renderProductSheet();});
   $('#pd_close').onclick=closeSheet;
   $('#pd_edit').onclick=()=>openProductEdit(curProduct);
   $('#upCap')&&($('#upCap').onclick=()=>triggerUpload('capture'));
   $('#upAlb')&&($('#upAlb').onclick=()=>triggerUpload('album'));
-  $('#ref_add')&&($('#ref_add').onclick=addRef);
-  $('#ref_in')&&($('#ref_in').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addRef();}});
-  renderRefList();
+  renderScenes();
   bindAssetDelete();
 }
-/* 제작 참고 레퍼런스 (제품별, 여러 개) */
-function productRefs(pid){const p=state.products.find(x=>x.id===pid);return (p&&p.refs)||[];}
+
+/* ===== 필요 장면 (촬영 컷) — 제품별, 표준 컷 + 자유 추가 ===== */
+const SCENE_ASSIGNEE={ai:{label:'AI생성',color:'#7C3AED'},sponsor:{label:'협찬촬영',color:'#E08600'},self:{label:'직접촬영',color:'#4E5968'}};
+const SCENE_STATUS={need:{label:'필요',color:'#8B95A1'},doing:{label:'진행중',color:'#3182F6'},done:{label:'확보',color:'#13B877'}};
+function productScenes(pid){const p=state.products.find(x=>x.id===pid);return (p&&Array.isArray(p.scenes))?p.scenes:[];}
+function sceneProgress(pid){const sc=productScenes(pid);return {done:sc.filter(s=>s.status==='done').length,total:sc.length};}
+function sceneCaptured(pid,sid){return state.assets.filter(a=>a.productId===pid&&a.sceneId===sid).length+inbox.filter(x=>x.productId===pid&&x.sceneId===sid).length;}
+function ensureScenes(p){if(!Array.isArray(p.scenes))p.scenes=[];return p.scenes;}
 function refLabel(url){try{const u=new URL(url);const path=u.pathname&&u.pathname!=='/'?u.pathname:'';return u.hostname.replace(/^www\./,'')+path;}catch(e){return url;}}
-function addRef(){
-  const inp=$('#ref_in');if(!inp)return;
-  let url=(inp.value||'').trim();if(!url){toast('참고 링크를 입력하세요','red');return;}
+function addScene(name){
+  const p=state.products.find(x=>x.id===curProduct);if(!p)return;
+  const nm=(name||'').trim();if(!nm)return;
+  ensureScenes(p).push({id:uid(),name:nm,refs:[],direction:'',assignee:'sponsor',status:'need',createdAt:new Date().toISOString()});
+  save();renderScenes();
+}
+function delScene(sid){
+  const p=state.products.find(x=>x.id===curProduct);if(!p)return;
+  if(!confirm('이 장면을 삭제할까요?'))return;
+  p.scenes=ensureScenes(p).filter(s=>s.id!==sid);save();renderScenes();
+}
+function sceneField(sid,field,val){
+  const p=state.products.find(x=>x.id===curProduct);if(!p)return;
+  const s=ensureScenes(p).find(x=>x.id===sid);if(!s)return;
+  s[field]=val;save();
+}
+function addSceneRef(sid){
+  const inp=$('#sref_'+sid);if(!inp)return;
+  let url=(inp.value||'').trim();if(!url){toast('레퍼런스 링크를 입력하세요','red');return;}
   if(!/^https?:\/\//i.test(url))url='https://'+url;
   const p=state.products.find(x=>x.id===curProduct);if(!p)return;
-  if(!p.refs)p.refs=[];
-  p.refs.push({id:uid(),url,createdAt:new Date().toISOString()});
-  inp.value='';save();renderRefList();inp.focus();
-  toast('레퍼런스 추가됨','green');
+  const s=ensureScenes(p).find(x=>x.id===sid);if(!s)return;
+  if(!Array.isArray(s.refs))s.refs=[];
+  s.refs.push({id:uid(),url});save();renderScenes();
+  const ni=$('#sref_'+sid);if(ni)ni.focus();
 }
-function renderRefList(){
-  const wrap=$('#reflist');if(!wrap)return;
-  const refs=productRefs(curProduct);
-  $('#refCnt')&&($('#refCnt').textContent=refs.length);
-  wrap.innerHTML=refs.length
-    ?refs.map(r=>`<div class="refitem"><a href="${esc(r.url)}" target="_blank" rel="noopener" title="${esc(r.url)}">${esc(r.title||refLabel(r.url))}</a><button class="rdel" data-rdel="${r.id}">×</button></div>`).join('')
-    :'<div class="refnone">참고할 레퍼런스 링크를 붙여넣고 추가하세요. 여러 개 등록할 수 있어요.</div>';
-  wrap.querySelectorAll('[data-rdel]').forEach(b=>b.onclick=()=>{
-    const p=state.products.find(x=>x.id===curProduct);if(!p)return;
-    p.refs=(p.refs||[]).filter(r=>r.id!==b.dataset.rdel);save();renderRefList();
-  });
+function delSceneRef(sid,refId){
+  const p=state.products.find(x=>x.id===curProduct);if(!p)return;
+  const s=ensureScenes(p).find(x=>x.id===sid);if(!s)return;
+  s.refs=(s.refs||[]).filter(r=>r.id!==refId);save();renderScenes();
+}
+function sceneCard(s){
+  const asg=SCENE_ASSIGNEE[s.assignee]||SCENE_ASSIGNEE.sponsor;
+  const stsColor=(SCENE_STATUS[s.status]||SCENE_STATUS.need).color;
+  const asgOpts=Object.entries(SCENE_ASSIGNEE).map(([k,v])=>`<option value="${k}" ${s.assignee===k?'selected':''}>${v.label}</option>`).join('');
+  const stsOpts=Object.entries(SCENE_STATUS).map(([k,v])=>`<option value="${k}" ${s.status===k?'selected':''}>${v.label}</option>`).join('');
+  const refs=(s.refs||[]).map(r=>`<div class="refitem"><a href="${esc(r.url)}" target="_blank" rel="noopener" title="${esc(r.url)}">${esc(refLabel(r.url))}</a><button class="rdel" data-refdel="${s.id}|${r.id}">×</button></div>`).join('');
+  const cap=sceneCaptured(curProduct,s.id);
+  return `<div class="scene">
+    <div class="scene-h">
+      <span class="scene-nm">${esc(s.name)}</span>
+      <select class="scene-sel" data-asg="${s.id}" style="color:${asg.color}">${asgOpts}</select>
+      <select class="scene-sel" data-sts="${s.id}" style="color:${stsColor}">${stsOpts}</select>
+      <button class="rdel" data-delscene="${s.id}">×</button>
+    </div>
+    <textarea class="scene-dir" data-dir="${s.id}" placeholder="디렉션 / 촬영 메모 (예: 옥상 바닥 시공 장면, 자연광, 정사각형 1:1)">${esc(s.direction||'')}</textarea>
+    <div class="scene-refs">
+      <div class="refrow"><input id="sref_${s.id}" data-refin="${s.id}" type="url" inputmode="url" placeholder="레퍼런스 링크 붙여넣기 (여러 개)"><button class="btn or" data-refadd="${s.id}">추가</button></div>
+      ${refs?`<div class="reflist">${refs}</div>`:''}
+    </div>
+    <div class="scene-foot">확보된 컷 <b>${cap}</b>개${cap?'':' · '+asg.label+'으로 채울 예정'}</div>
+  </div>`;
+}
+function renderScenes(){
+  const wrap=$('#scenesWrap');if(!wrap)return;
+  const scenes=productScenes(curProduct);
+  const used=new Set(scenes.map(s=>s.name));
+  const chips=CONTENT_CUTS.filter(c=>!used.has(c)).map(c=>`<button class="cutchip" data-add="${esc(c)}">+ ${esc(c)}</button>`).join('')
+    +`<button class="cutchip custom" data-addcustom="1">+ 자유 장면</button>`;
+  const list=scenes.length?scenes.map(sceneCard).join(''):'<div class="refnone">필요한 촬영 장면을 추가하세요. 표준 컷을 누르거나 자유 장면을 만들 수 있어요.</div>';
+  wrap.innerHTML=`<div class="sec-title">🎬 필요 장면 (촬영 컷) <span class="rc">${scenes.length}</span></div>
+    <div class="cutchips">${chips}</div>
+    <div class="scenelist">${list}</div>`;
+  wrap.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>addScene(b.dataset.add));
+  wrap.querySelectorAll('[data-addcustom]').forEach(b=>b.onclick=()=>{const n=prompt('장면 이름을 입력하세요 (예: 옥상 시공 연출컷)');if(n)addScene(n);});
+  wrap.querySelectorAll('[data-delscene]').forEach(b=>b.onclick=()=>delScene(b.dataset.delscene));
+  wrap.querySelectorAll('[data-asg]').forEach(sel=>sel.onchange=()=>{sceneField(sel.dataset.asg,'assignee',sel.value);renderScenes();});
+  wrap.querySelectorAll('[data-sts]').forEach(sel=>sel.onchange=()=>{sceneField(sel.dataset.sts,'status',sel.value);renderScenes();});
+  wrap.querySelectorAll('[data-dir]').forEach(t=>t.oninput=()=>sceneField(t.dataset.dir,'direction',t.value));
+  wrap.querySelectorAll('[data-refadd]').forEach(b=>b.onclick=()=>addSceneRef(b.dataset.refadd));
+  wrap.querySelectorAll('[data-refin]').forEach(i=>i.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addSceneRef(i.dataset.refin);}});
+  wrap.querySelectorAll('[data-refdel]').forEach(b=>b.onclick=()=>{const parts=b.dataset.refdel.split('|');delSceneRef(parts[0],parts[1]);});
 }
 function mergedAssets(pid,purpose){
   if(purpose==='sponsor'){

@@ -695,13 +695,14 @@ const EditTaskSheet=({open,onClose,task,onSave,D,add,up,onDelete})=>{
     </Sheet>
   );
 };
-const TABS=[{id:"today",icon:"🏠",label:"오늘"},{id:"kpi",icon:"◎",label:"KPI"},{id:"projects",icon:"▦",label:"프로젝트"},{id:"calendar",icon:"▤",label:"일정"},{id:"more",icon:"⋯",label:"더보기"}];
+const TABS=[{id:"today",icon:"🏠",label:"오늘"},{id:"kpi",icon:"◎",label:"KPI"},{id:"projects",icon:"▦",label:"프로젝트"},{id:"calendar",icon:"▤",label:"일정"},{id:"journey",icon:"🗂",label:"활동 여정"},{id:"more",icon:"⋯",label:"더보기"}];
 const SHARE_NAV=[{id:"kpi",icon:"◎",label:"KPI"},{id:"mindmap",icon:"◈",label:"그로스보드"}];   // 공유 보기 전용 네비
-const MORE=[{id:"mindmap",icon:"◈",label:"그로스보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"team",icon:"👤",label:"담당자"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"},{id:"journey",icon:"🗂",label:"활동 여정"},{id:"guide",icon:"📖",label:"가이드"}];
+const MORE=[{id:"mindmap",icon:"◈",label:"그로스보드"},{id:"fixed",icon:"📌",label:"고정업무"},{id:"team",icon:"👤",label:"담당자"},{id:"retro",icon:"◷",label:"목표·회고"},{id:"ai",icon:"✦",label:"AI 코치"},{id:"guide",icon:"📖",label:"가이드"}];
 // 메뉴 그룹: 개인(나만 보는 내 것) vs 팀(모두 같이 보는 공유) — 출시·프로세스는 프로젝트 하위
 const NAV_GROUPS=[
   {label:"개인 · 나만", ids:["today","fixed","retro"]},
   {label:"팀 · 공유",  ids:["kpi","projects","mindmap","calendar","ai"]},
+  {label:"데이터 · 기록", ids:["journey"]},
   {label:"도움말",     ids:["guide"]},
 ];
 let _projInitView=null;   // 오늘 인계카드 → 프로젝트 '프로세스' 탭으로 진입 (마운트 시 1회 소비)
@@ -1006,7 +1007,7 @@ export default function App(){
       {saveErr.level!=="error"&&<button onClick={()=>setSaveErr(null)} style={{flexShrink:0,padding:"5px 7px",borderRadius:8,border:"none",background:"transparent",color:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}}>×</button>}
     </div>}
     <Sheet open={more} onClose={()=>setMore(false)} title="더보기">
-      {[{label:"개인 · 나만",ids:["fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","team","ai"]},{label:"데이터 · 기록",ids:["journey"]},{label:"도움말",ids:["guide"]}].map(grp=>(
+      {[{label:"개인 · 나만",ids:["fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","team","ai"]},{label:"도움말",ids:["guide"]}].map(grp=>(
         <div key={grp.label} style={{marginTop:14}}>
           <p style={{margin:"0 2px 8px",fontSize:11,fontWeight:800,color:"#9CA3AF",letterSpacing:0.5}}>{grp.label}</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -1125,7 +1126,7 @@ export default function App(){
         {(SHARE?SHARE_NAV:TABS).map(t=>{const act=t.id==="more"?more:page===t.id;return(
           <button key={t.id} onClick={()=>t.id==="more"?setMore(!more):nav(t.id)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"9px 4px 7px",background:"none",border:"none",cursor:"pointer",gap:2}}>
             <span style={{fontSize:20,lineHeight:1}}>{t.icon}</span>
-            <span style={{fontSize:10,fontWeight:act?800:500,color:act?"#F97316":"#9CA3AF"}}>{t.label}</span>
+            <span style={{fontSize:10,fontWeight:act?800:500,color:act?"#F97316":"#9CA3AF",whiteSpace:"nowrap"}}>{t.label}</span>
             {act&&<div style={{width:16,height:2,borderRadius:1,backgroundColor:"#F97316",marginTop:1}}/>}
           </button>
         );})}
@@ -6316,12 +6317,12 @@ function ExportPanel({D,up,restore,restoreLocal,pushExternalBackup}){
   const trash=D.trash||[];
   return(
     <>
-    {/* 휴지통·삭제 복구는 [더보기 ▸ 활동 여정]으로 이동(흡수). 데이터 자산화 원칙은 그대로. */}
+    {/* 휴지통·삭제 복구는 하단 [🗂 활동 여정] 메뉴로 이동(흡수). 데이터 자산화 원칙은 그대로. */}
     <div style={{background:"#F0F7FF",borderRadius:16,padding:"13px 16px",marginTop:14,border:"1px solid #D5E6FB",display:"flex",alignItems:"center",gap:10}}>
       <span style={{fontSize:20,flexShrink:0}}>🗂</span>
       <div style={{flex:1,minWidth:0}}>
         <p style={{margin:0,fontSize:12.5,fontWeight:900,color:"#0F1F5C"}}>휴지통은 「활동 여정」으로 옮겼어요{trash.length>0&&<span style={{marginLeft:5,fontSize:11,fontWeight:800,color:"#EA580C"}}>· 보관 {trash.length}건</span>}</p>
-        <p style={{margin:"2px 0 0",fontSize:10.5,color:"#6B7280",lineHeight:1.5}}>삭제한 데이터 복구와 추가·수정·삭제 기록은 <b>더보기 ▸ 활동 여정</b>에서 한눈에 보고 되돌릴 수 있어요.</p>
+        <p style={{margin:"2px 0 0",fontSize:10.5,color:"#6B7280",lineHeight:1.5}}>삭제한 데이터 복구와 추가·수정·삭제 기록은 하단 <b>🗂 활동 여정</b> 메뉴에서 한눈에 보고 되돌릴 수 있어요.</p>
       </div>
     </div>
     <div style={{background:"#FFFFFF",borderRadius:16,padding:"14px 16px",marginTop:14,border:"1px solid #F2F4F6"}}>

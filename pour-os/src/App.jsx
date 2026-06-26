@@ -705,11 +705,41 @@ const NAV_GROUPS=[
   {label:"데이터 · 기록", ids:["journey"]},
   {label:"도움말",     ids:["guide"]},
 ];
+// 통합검색 — 모든 컬렉션에서 제목·이름을 찾아 타입별로 묶어 반환 (더보기 ▸ 검색)
+// match: 검색 대상 텍스트 배열 / sub: 결과에 곁들일 맥락(상위 프로젝트·KPI 등) / page: 클릭 시 이동할 화면
+const SEARCH_DEFS=[
+  {key:"tasks",           type:"업무",          icon:"✓", page:"projects", match:t=>[t.title],            sub:(t,D)=>{const p=(D.projects||[]).find(x=>x.id===t.projectId);return p?p.title:"";}},
+  {key:"projects",        type:"프로젝트",       icon:"▦", page:"projects", match:p=>[p.title,p.group],     sub:p=>p.group||""},
+  {key:"mainKPIs",        type:"메인KPI",        icon:"◎", page:"kpi",      match:m=>[m.title,m.krKey],     sub:m=>m.krKey||""},
+  {key:"subKPIs",         type:"서브KPI",        icon:"○", page:"kpi",      match:s=>[s.title,s.channelCode],sub:(s,D)=>{const m=(D.mainKPIs||[]).find(x=>x.id===s.mainKPIId);return m?m.title:"";}},
+  {key:"goals",           type:"최종목표",       icon:"🎯",page:"kpi",      match:g=>[g.title],            sub:()=>""},
+  {key:"personalGoals",   type:"개인목표",       icon:"📈",page:"retro",    match:g=>[g.title],            sub:(g,D)=>{const u=(D.users||[]).find(x=>x.id===g.userId);return u?u.name:"";}},
+  {key:"users",           type:"담당자",         icon:"👤",page:"team",     match:u=>[u.name],             sub:u=>u.role==="lead"?"리드":"팀원"},
+  {key:"events",          type:"일정",          icon:"▤", page:"calendar", match:e=>[e.title,e.place],     sub:e=>e.date||""},
+  {key:"manuals",         type:"로드맵 템플릿",   icon:"📖",page:"projects", match:m=>[m.title,m.name],      sub:()=>""},
+  {key:"launchTemplates", type:"프로세스 템플릿", icon:"🚀",page:"launch",   match:t=>[t.name,t.title],      sub:()=>""},
+];
+const globalSearch=(D,q)=>{
+  const s=(q||"").trim().toLowerCase();
+  if(!s) return [];
+  const out=[];
+  SEARCH_DEFS.forEach(def=>{
+    (D[def.key]||[]).forEach(it=>{
+      if(!it||it.deleted) return;
+      const hay=def.match(it).filter(Boolean);
+      if(hay.some(f=>String(f).toLowerCase().includes(s))){
+        out.push({type:def.type,icon:def.icon,page:def.page,id:it.id,title:def.match(it).filter(Boolean)[0]||"(제목 없음)",sub:def.sub(it,D)||""});
+      }
+    });
+  });
+  return out;
+};
 let _projInitView=null;   // 오늘 인계카드 → 프로젝트 '프로세스' 탭으로 진입 (마운트 시 1회 소비)
 export default function App(){
   const [D,setD]=useState(INIT);
   const [page,setPage]=useState(SHARE?"kpi":"today");
   const [more,setMore]=useState(false);
+  const [searchQ,setSearchQ]=useState("");   // 더보기 통합검색어
   const [uSheet,setUSheet]=useState(false);
   const [editUser,setEditUser]=useState(null);   // 담당자 수정 {id,name,dept,color}
   // 화면 모드 (PC / 모바일) — 기본은 화면폭 자동, 토글로 전환, localStorage 기억
@@ -1006,8 +1036,37 @@ export default function App(){
       <button onClick={()=>downloadStateBackup(D)} style={{flexShrink:0,padding:"5px 8px",borderRadius:8,border:"none",background:saveErr.level==="error"?"#DC2626":"#D97706",color:"#fff",fontSize:10.5,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>백업</button>
       {saveErr.level!=="error"&&<button onClick={()=>setSaveErr(null)} style={{flexShrink:0,padding:"5px 7px",borderRadius:8,border:"none",background:"transparent",color:"inherit",fontSize:13,fontWeight:800,cursor:"pointer"}}>×</button>}
     </div>}
-    <Sheet open={more} onClose={()=>setMore(false)} title="더보기">
-      {[{label:"개인 · 나만",ids:["fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","team","ai"]},{label:"도움말",ids:["guide"]}].map(grp=>(
+    <Sheet open={more} onClose={()=>{setMore(false);setSearchQ("");}} title="더보기">
+      {/* 통합검색 — 업무·프로젝트·KPI·목표·담당자·일정·템플릿 한 번에 */}
+      <div style={{position:"relative",marginTop:8}}>
+        <span style={{position:"absolute",left:13,top:"50%",transform:"translateY(-50%)",fontSize:15,color:"#9CA3AF",pointerEvents:"none"}}>🔎</span>
+        <input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="통합검색 — 업무·프로젝트·KPI·담당자·일정" style={{width:"100%",padding:"12px 36px",borderRadius:12,border:"1.5px solid #E5E8EB",fontSize:14,outline:"none",boxSizing:"border-box",fontFamily:"inherit",backgroundColor:"#F9FAFB"}}/>
+        {searchQ&&<button onClick={()=>setSearchQ("")} title="지우기" style={{position:"absolute",right:8,top:"50%",transform:"translateY(-50%)",border:"none",background:"none",cursor:"pointer",fontSize:16,color:"#9CA3AF",padding:6,fontFamily:"inherit"}}>×</button>}
+      </div>
+      {searchQ.trim()?(()=>{
+        const results=globalSearch(D,searchQ);
+        if(!results.length) return <p style={{margin:"26px 4px",fontSize:13,color:"#9CA3AF",textAlign:"center",fontWeight:600}}>「{searchQ.trim()}」 검색 결과가 없어요</p>;
+        const byType={};results.forEach(r=>{(byType[r.type]=byType[r.type]||[]).push(r);});
+        return(<div style={{marginTop:12}}>
+          <p style={{margin:"0 2px 8px",fontSize:11,fontWeight:800,color:"#9CA3AF"}}>검색 결과 {results.length}건</p>
+          {Object.keys(byType).map(type=>(
+            <div key={type} style={{marginBottom:12}}>
+              <p style={{margin:"0 2px 6px",fontSize:10.5,fontWeight:800,color:"#B0B8C1",letterSpacing:0.4}}>{type} · {byType[type].length}</p>
+              {byType[type].slice(0,12).map((r,i)=>(
+                <button key={r.id+"_"+i} onClick={()=>{nav(r.page);setSearchQ("");}} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:10,border:"1px solid #F2F4F6",backgroundColor:"#FFFFFF",cursor:"pointer",textAlign:"left",marginBottom:6,fontFamily:"inherit"}}>
+                  <span style={{fontSize:16,width:22,textAlign:"center",flexShrink:0}}>{r.icon}</span>
+                  <span style={{flex:1,minWidth:0}}>
+                    <span style={{display:"block",fontSize:13,fontWeight:700,color:"#1F2937",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.title}</span>
+                    {r.sub&&<span style={{display:"block",fontSize:11,color:"#9CA3AF",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginTop:1}}>{r.sub}</span>}
+                  </span>
+                  <span style={{fontSize:10.5,color:"#C4C9D0",flexShrink:0,whiteSpace:"nowrap"}}>{type} →</span>
+                </button>
+              ))}
+              {byType[type].length>12&&<p style={{margin:"2px 4px 0",fontSize:10.5,color:"#C4C9D0"}}>외 {byType[type].length-12}건 더 있어요</p>}
+            </div>
+          ))}
+        </div>);
+      })():[{label:"개인 · 나만",ids:["fixed","retro"]},{label:"팀 · 공유",ids:["mindmap","team","ai"]},{label:"도움말",ids:["guide"]}].map(grp=>(
         <div key={grp.label} style={{marginTop:14}}>
           <p style={{margin:"0 2px 8px",fontSize:11,fontWeight:800,color:"#9CA3AF",letterSpacing:0.5}}>{grp.label}</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>

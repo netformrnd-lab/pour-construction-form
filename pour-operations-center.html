@@ -677,6 +677,13 @@ table.moq-table{border-collapse:separate;border-spacing:0;width:100%;min-width:7
 .mc-mg{font-size:10.5px;font-weight:700}
 .mc-profit{font-size:10.5px;font-weight:600;opacity:.85}
 .mc-total{font-size:10px;font-weight:700;margin-top:2px;padding-top:2px;border-top:1px dashed var(--rule);width:100%;text-align:right;font-variant-numeric:tabular-nums}
+/* MOQ 셀 — 라벨형 (마진율/개당마진/개당매출 · 총마진/총매출) */
+.moq-cell{align-items:stretch;min-width:118px}
+.mc-line{display:flex;justify-content:space-between;align-items:baseline;gap:8px;width:100%;font-size:10.5px;line-height:1.55}
+.mc-line i{color:var(--muted);font-style:normal;font-weight:600}
+.mc-line b{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
+.mc-div{height:1px;background:var(--rule);width:100%;margin:3px 0}
+.mc-qty{font-size:9px;color:var(--muted);align-self:flex-end;margin-top:1px}
 .moq-sim-badge{border-radius:5px;padding:4px 9px;font-size:11px;font-weight:800;color:#fff;white-space:nowrap}
 
 /* ══ 전략 대시보드 ══ */
@@ -3403,14 +3410,18 @@ function renderMoqTable2() {
       var retail = prod.retail;
       var disc = retail > 0 && i > 0 ? (1 - c.price/retail)*100 : 0;
       var mgColor = c.mg>=35?'var(--g)':c.mg>=20?'var(--am)':'var(--r)';
-      /* 총순익 = 개당순익 × 해당 구간 최소 주문 수량(minQty) */
+      var profitColor = c.profit>=0?'var(--g)':'var(--r)';
+      /* 총마진 = 개당마진 × 구간 최소수량 / 총매출 = 개당매출(단가) × 구간 최소수량 */
       var totalProfit = c.profit * t.minQty;
+      var totalRev    = c.price  * t.minQty;
       return '<td><div class="moq-cell">'
-        + '<span class="mc-price" style="color:'+(i===moqTiers.length-1?'var(--b)':'var(--ink)')+'">'+fI(c.price)+'원</span>'
-        + (disc>0?'<span class="mc-mg" style="color:var(--am)">−'+disc.toFixed(1)+'%</span>':'')
-        + '<span class="mc-mg" style="color:'+mgColor+'">마진 '+c.mg.toFixed(1)+'%</span>'
-        + '<span class="mc-profit" style="color:'+(c.profit>=0?'var(--g)':'var(--r)')+'">순익 '+(c.profit>=0?'+':'')+fI(Math.round(c.profit))+'원</span>'
-        + '<span class="mc-total" style="color:'+(totalProfit>=0?'var(--g)':'var(--r)')+'">총 '+(totalProfit>=0?'+':'')+fI(Math.round(totalProfit))+'원 ('+t.minQty+'개)</span>'
+        + '<span class="mc-line"><i>마진율</i><b style="color:'+mgColor+'">'+c.mg.toFixed(1)+'%</b></span>'
+        + '<span class="mc-line"><i>개당마진</i><b style="color:'+profitColor+'">'+(c.profit>=0?'+':'')+fI(Math.round(c.profit))+'원</b></span>'
+        + '<span class="mc-line"><i>개당매출</i><b style="color:'+(i===moqTiers.length-1?'var(--b)':'var(--ink)')+'">'+fI(c.price)+'원</b></span>'
+        + '<span class="mc-div"></span>'
+        + '<span class="mc-line"><i>총마진</i><b style="color:'+profitColor+'">'+(totalProfit>=0?'+':'')+fI(Math.round(totalProfit))+'원</b></span>'
+        + '<span class="mc-line"><i>총매출</i><b style="color:var(--ink)">'+fI(Math.round(totalRev))+'원</b></span>'
+        + '<span class="mc-qty">'+t.minQty+'개 기준</span>'
         + '</div></td>';
     }).join('');
     rows += '<tr>'

@@ -716,6 +716,22 @@ table.moq-table{border-collapse:separate;border-spacing:0;width:100%;min-width:7
 .sq-row:last-child{border-bottom:none}
 .sq-row.total{font-size:15px;font-weight:800;border-top:2px solid rgba(255,255,255,.25);border-bottom:none;padding-top:9px;margin-top:4px}
 .sq-row .sq-val.ok{color:#7EFFD4}.sq-row .sq-val.warn{color:#FFE08A}.sq-row .sq-val.bad{color:#FFB3AE}
+/* 📈 볼륨 우선 결정뷰 */
+.vol-guide{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.vg-pill{flex:1;min-width:150px;border-radius:9px;padding:11px 13px;color:#fff}
+.vg-pill.profit{background:var(--g)}
+.vg-pill.rev{background:var(--b)}
+.vg-lbl{font-size:10px;opacity:.85;font-weight:700}
+.vg-val{font-size:17px;font-weight:900;font-variant-numeric:tabular-nums;margin-top:2px}
+.vg-sub{font-size:10.5px;opacity:.85;margin-top:3px;line-height:1.4}
+table.vol-table{border-collapse:separate;border-spacing:0;width:100%;min-width:580px;font-size:11.5px;background:var(--w)}
+.vol-table th{background:var(--ink);color:#fff;padding:8px;text-align:right;white-space:nowrap;font-weight:700}
+.vol-table th:first-child{text-align:center}
+.vol-table td{padding:8px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--rule);white-space:nowrap}
+.vol-table td:first-child{text-align:center;font-weight:800}
+.vol-table tr.best-profit td{background:rgba(27,107,58,.10)}
+.vol-table tr.best-rev td{background:rgba(27,79,138,.08)}
+.vol-badge{font-size:9px;font-weight:800;border-radius:3px;padding:1px 5px;color:#fff;margin-left:3px;white-space:nowrap}
 /* ☁ 클라우드 동기화 */
 .cloud-sec{padding:9px 0;border-top:1px dashed var(--rule)}
 .cloud-sec:first-of-type{border-top:none;padding-top:0}
@@ -1335,6 +1351,27 @@ body:not(.locked) .auth-userbox{display:flex}
         </div>
         <div id="cloudQuoteList" class="cloud-list"></div>
       </div>
+    </div>
+  </div>
+
+  <!-- 📈 볼륨 우선 결정뷰 (총매출·총순익 기준) -->
+  <div class="card" id="volCard" style="border-top:3px solid var(--g)">
+    <div class="card-title">📈 볼륨 우선 결정뷰 <span class="badge">총액 기준</span></div>
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px;line-height:1.65">
+      마진율이 아니라 <b style="color:var(--ink)">총매출·총순익</b>으로 판단합니다. 할인을 열수록 볼륨↑·마진↓ —
+      <b style="color:var(--g)">총이익이 최대</b>가 되는 지점, 그리고 볼륨을 더 키우려면 어디까지 손해를 감수할지 한눈에.
+    </div>
+    <div class="pc-row"><span class="pc-label">기준 월 판매량 <small>(할인 0% 기준)</small></span>
+      <input type="number" class="pc-input" id="volBaseQty" data-strat="vol" value="100" min="0" step="10"><span class="pc-unit">개</span></div>
+    <div class="pc-row"><span class="pc-label">볼륨 탄력성 <small>(할인 1%p당 판매량 증가율)</small></span>
+      <input type="number" class="pc-input" id="volElastic" data-strat="vol" value="3" min="0" max="30" step="0.5"><span class="pc-unit">%</span></div>
+    <div id="volGuide" class="vol-guide"></div>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+      <table class="vol-table" id="volTable"></table>
+    </div>
+    <div style="font-size:10.5px;color:var(--muted);margin-top:8px;line-height:1.6">
+      ※ 기준 상품(<span id="volRefName">—</span>) · 자사몰 정가 기준 · 변동비 = 매입가+PG수수료+택배비.
+      볼륨 가정은 탄력성 입력으로 조절하세요(예: 탄력성 3 → 할인 10% 시 판매량 +30%).
     </div>
   </div>
 
@@ -2611,6 +2648,7 @@ document.addEventListener('input',function(e){
   var t=e.target;
   if(t.dataset.strat==='b2c'){recalcStrategyB2C();return;}
   if(t.dataset.strat==='obm'){recalcStrategyOBM();return;}
+  if(t.dataset.strat==='vol'){renderVolumeView();return;}
   if(t.dataset.stratb2bqty!==undefined){var sbi=strategyB2B.find(function(x){return x.id===t.dataset.stratb2bqty;});if(sbi){sbi.qty=parseInt(t.value)||1;recalcStratB2b();}return;}
   if(t.id==='utmBase'){utmBase=t.value;updateUtmUrls();return;}
   if(t.id==='utmCampaign'){utmCampaign=t.value;updateUtmUrls();return;}
@@ -2627,7 +2665,7 @@ document.addEventListener('input',function(e){
 
 document.addEventListener('change',function(e){
   var t=e.target;
-  if(t.id==='stratRef'){stratRefNo=parseInt(t.value)||PRICE_TABLE[0].no;syncStratAov();recalcStrategyB2C();recalcStrategyOBM();return;}
+  if(t.id==='stratRef'){stratRefNo=parseInt(t.value)||PRICE_TABLE[0].no;syncStratAov();recalcStrategyB2C();recalcStrategyOBM();renderVolumeView();return;}
   if(t.dataset.stratb2bprod!==undefined){var sbp=strategyB2B.find(function(x){return x.id===t.dataset.stratb2bprod;});if(sbp){sbp.prodNo=parseInt(t.value);renderStratB2bRows();}return;}
   if(t.dataset.ctoggle!==undefined){var cp3=coupons.find(function(c){return c.id===t.dataset.ctoggle;});if(cp3){cp3.active=t.checked;renderCoupons();renderPromo();}return;}
   if(t.dataset.ctype!==undefined){var cp4=coupons.find(function(c){return c.id===t.dataset.ctype;});if(cp4){cp4.type=t.value;renderCoupons();renderPromo();}return;}
@@ -3618,6 +3656,56 @@ function soRow(lbl,val,sub,cls,hi){
     +'<span class="so-val'+(cls?' '+cls:'')+'">'+val+(sub?'<small>'+sub+'</small>':'')+'</span></div>';
 }
 
+/* ── 📈 볼륨 우선 결정뷰: 할인 구간별 총매출·총순익 ── */
+function renderVolumeView(){
+  var el=document.getElementById('volTable'); if(!el) return;
+  var ref=getStratRef(); if(!ref){ el.innerHTML=''; return; }
+  setT('volRefName', ref.name);
+  var V0=numv('volBaseQty'), E=numv('volElastic');
+  var feeRate=pcCommonPG/100;
+  var steps=[0,5,10,15,20,25,30,35,40];
+  var rows=steps.map(function(d){
+    var price=Math.round(ref.retail*(1-d/100));
+    var fee=Math.round(price*feeRate);
+    var unitCost=ref.cost+fee+pcCommonShip;
+    var unitProfit=price-unitCost;
+    var mr=price>0?unitProfit/price*100:0;
+    var vol=Math.round(V0*(1+(E/100)*d));      /* 볼륨 가정: 할인 d%일 때 V0×(1+탄력성×d) */
+    return {d:d, price:price, unitProfit:unitProfit, mr:mr, vol:vol,
+            totRev:price*vol, totProfit:unitProfit*vol};
+  });
+  var bestP=rows.reduce(function(a,b){return b.totProfit>a.totProfit?b:a;});
+  var bestR=rows.reduce(function(a,b){return b.totRev>a.totRev?b:a;});
+
+  var g=document.getElementById('volGuide');
+  if(g){
+    g.innerHTML=
+       '<div class="vg-pill profit"><div class="vg-lbl">💰 총순익 최대</div>'
+      +'<div class="vg-val">할인 '+bestP.d+'%</div>'
+      +'<div class="vg-sub">총순익 '+(bestP.totProfit>=0?'+':'')+fI(bestP.totProfit)+'원 · '+fI(bestP.vol)+'개 · 마진 '+bestP.mr.toFixed(1)+'%</div></div>'
+      +'<div class="vg-pill rev"><div class="vg-lbl">🚀 총매출 최대</div>'
+      +'<div class="vg-val">할인 '+bestR.d+'%</div>'
+      +'<div class="vg-sub">총매출 '+fI(bestR.totRev)+'원 · '+fI(bestR.vol)+'개 · 순익 '+(bestR.totProfit>=0?'+':'')+fI(bestR.totProfit)+'원</div></div>';
+  }
+  var head='<thead><tr><th>할인</th><th>적용가</th><th>개당순익</th><th>마진율</th><th>가정 판매량</th><th>총매출</th><th>총순익</th></tr></thead>';
+  var body=rows.map(function(r){
+    var cls=[];
+    if(r.d===bestP.d)cls.push('best-profit');
+    else if(r.d===bestR.d)cls.push('best-rev');
+    var badge='';
+    if(r.d===bestP.d)badge+='<span class="vol-badge" style="background:var(--g)">순익↑</span>';
+    if(r.d===bestR.d)badge+='<span class="vol-badge" style="background:var(--b)">매출↑</span>';
+    return '<tr class="'+cls.join(' ')+'"><td>'+r.d+'%'+badge+'</td>'
+      +'<td>'+fI(r.price)+'</td>'
+      +'<td style="color:'+(r.unitProfit>=0?'var(--g)':'var(--r)')+'">'+(r.unitProfit>=0?'+':'')+fI(r.unitProfit)+'</td>'
+      +'<td style="color:'+(r.mr>=10?'var(--g)':r.mr>=0?'var(--am)':'var(--r)')+'">'+r.mr.toFixed(1)+'%</td>'
+      +'<td>'+fI(r.vol)+'개</td>'
+      +'<td><b>'+fI(r.totRev)+'</b></td>'
+      +'<td style="color:'+(r.totProfit>=0?'var(--g)':'var(--r)')+';font-weight:800">'+(r.totProfit>=0?'+':'')+fI(r.totProfit)+'</td></tr>';
+  }).join('');
+  el.innerHTML=head+'<tbody>'+body+'</tbody>';
+}
+
 /* ── B2C 온라인 전략 ── */
 function recalcStrategyB2C(){
   var out=document.getElementById('b2cOut'); if(!out) return;
@@ -3785,6 +3873,7 @@ function renderStrategy(){
   renderStratB2bRows();
   recalcStrategyB2C();
   recalcStrategyOBM();
+  renderVolumeView();
   renderCloudCard();
 }
 
@@ -3898,7 +3987,7 @@ function doLogout(){
 
 /* ── 전체 상태 수집/복원 ── */
 var STRAT_INPUT_IDS=['b2cRev','b2cMg','b2cAov','b2cCvr','b2cRoas','obmLabor','obmRent','obmEtc',
-  'trfRev','trfAov','trfCvr','trfCtr','trfCpc','ordMonthly','ordSafety'];
+  'trfRev','trfAov','trfCvr','trfCtr','trfCpc','ordMonthly','ordSafety','volBaseQty','volElastic'];
 function readStratInputs(){var o={};STRAT_INPUT_IDS.forEach(function(id){var el=document.getElementById(id);if(el)o[id]=el.value;});return o;}
 function writeStratInputs(o){if(!o)return;STRAT_INPUT_IDS.forEach(function(id){if(o[id]!=null){var el=document.getElementById(id);if(el)el.value=o[id];}});}
 

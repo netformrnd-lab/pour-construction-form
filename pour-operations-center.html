@@ -1508,6 +1508,31 @@ body:not(.locked) .auth-userbox{display:flex}
     <div id="ptnResult"></div>
   </div>
 
+  <!-- ⑦ 수출가 FOB/CIF 역산 -->
+  <div class="card" id="expCard" style="border-top:3px solid var(--r)">
+    <div class="card-title">⑦ 수출가 FOB/CIF 역산 <span class="badge red">해외·도매</span></div>
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px;line-height:1.65">
+      알리바바 등 해외 공급 시 <b style="color:var(--ink)">관세·운임·수수료 빼고 내 손에 얼마</b>가 남나.
+      수출 단가에서 차감 → 실수취액·마진율, 그리고 목표마진 위한 최소 수출가를 역산합니다. (기준 상품: <span id="expRefName">—</span>)
+    </div>
+    <div class="pc-row"><span class="pc-label">수출 단가 <small>(개당 오퍼가)</small></span>
+      <input type="number" class="pc-input" id="expPrice" data-strat="exp" value="0" min="0" step="1000"><span class="pc-unit">원</span></div>
+    <div class="pc-row"><span class="pc-label">조건</span>
+      <select id="expTerm" class="moq-sim-select" style="width:auto;flex:0 0 auto;min-width:180px">
+        <option value="cif" selected>CIF (운임·보험 내 부담)</option>
+        <option value="fob">FOB (운임 바이어 부담)</option>
+      </select></div>
+    <div class="pc-row"><span class="pc-label">운임·물류 <small>(개당, CIF만 차감)</small></span>
+      <input type="number" class="pc-input" id="expFreight" data-strat="exp" value="5000" min="0" step="500"><span class="pc-unit">원</span></div>
+    <div class="pc-row"><span class="pc-label">대행수수료</span>
+      <input type="number" class="pc-input" id="expAgentPct" data-strat="exp" value="5" min="0" max="40" step="0.5"><span class="pc-unit">%</span></div>
+    <div class="pc-row"><span class="pc-label">기타 <small>(통관·인증 개당)</small></span>
+      <input type="number" class="pc-input" id="expEtc" data-strat="exp" value="0" min="0" step="500"><span class="pc-unit">원</span></div>
+    <div class="pc-row"><span class="pc-label">목표 마진율</span>
+      <input type="number" class="pc-input" id="expTargetMg" data-strat="exp" value="20" min="0" max="60" step="1"><span class="pc-unit">%</span></div>
+    <div id="expResult"></div>
+  </div>
+
 </div>
 <!-- /전략 대시보드 -->
 
@@ -2711,6 +2736,7 @@ document.addEventListener('input',function(e){
   if(t.dataset.strat==='chan'){renderChannelAlloc();return;}
   if(t.dataset.strat==='set'){recalcSet();return;}
   if(t.dataset.strat==='ptn'){renderPartnerSupply();return;}
+  if(t.dataset.strat==='exp'){renderExportPrice();return;}
   if(t.dataset.setqty!==undefined){var sti=setItems.find(function(x){return x.id===t.dataset.setqty;});if(sti){sti.qty=parseInt(t.value)||1;recalcSet();}return;}
   if(t.dataset.stratb2bqty!==undefined){var sbi=strategyB2B.find(function(x){return x.id===t.dataset.stratb2bqty;});if(sbi){sbi.qty=parseInt(t.value)||1;recalcStratB2b();}return;}
   if(t.id==='utmBase'){utmBase=t.value;updateUtmUrls();return;}
@@ -2728,7 +2754,8 @@ document.addEventListener('input',function(e){
 
 document.addEventListener('change',function(e){
   var t=e.target;
-  if(t.id==='stratRef'){stratRefNo=parseInt(t.value)||PRICE_TABLE[0].no;syncStratAov();var _pe=document.getElementById('ptnConsumer');if(_pe)_pe.value=getStratRef().retail;recalcStrategyB2C();recalcStrategyOBM();renderVolumeView();renderChannelAlloc();renderPartnerSupply();return;}
+  if(t.id==='stratRef'){stratRefNo=parseInt(t.value)||PRICE_TABLE[0].no;syncStratAov();var _r=getStratRef();var _pe=document.getElementById('ptnConsumer');if(_pe)_pe.value=_r.retail;var _xe=document.getElementById('expPrice');if(_xe)_xe.value=_r.total_dist||_r.retail;recalcStrategyB2C();recalcStrategyOBM();renderVolumeView();renderChannelAlloc();renderPartnerSupply();renderExportPrice();return;}
+  if(t.id==='expTerm'){renderExportPrice();return;}
   if(t.dataset.stratb2bprod!==undefined){var sbp=strategyB2B.find(function(x){return x.id===t.dataset.stratb2bprod;});if(sbp){sbp.prodNo=parseInt(t.value);renderStratB2bRows();}return;}
   if(t.dataset.setprod!==undefined){var stp=setItems.find(function(x){return x.id===t.dataset.setprod;});if(stp){stp.prodNo=parseInt(t.value);renderSetItemRows();}return;}
   if(t.dataset.ctoggle!==undefined){var cp3=coupons.find(function(c){return c.id===t.dataset.ctoggle;});if(cp3){cp3.active=t.checked;renderCoupons();renderPromo();}return;}
@@ -3956,6 +3983,47 @@ function renderPartnerSupply(){
   box.innerHTML='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="vol-table" style="min-width:440px">'+head+'<tbody>'+body+'</tbody></table></div>'+concl;
 }
 
+/* ── ⑦ 수출가 FOB/CIF 역산 ── */
+function renderExportPrice(){
+  var box=document.getElementById('expResult'); if(!box) return;
+  var ref=getStratRef(); if(!ref){ box.innerHTML=''; return; }
+  setT('expRefName', ref.name);
+  var priceEl=document.getElementById('expPrice');
+  var price=numv('expPrice');
+  if(price<=0){ price=ref.total_dist||ref.retail; if(priceEl)priceEl.value=price; }
+  var termEl=document.getElementById('expTerm');
+  var term=termEl?termEl.value:'cif';
+  var freight=numv('expFreight'), agent=numv('expAgentPct')/100, etc=numv('expEtc'), tmg=numv('expTargetMg')/100;
+  var freightDed=(term==='cif')?freight:0;
+  var agentAmt=Math.round(price*agent);
+  var net=price - freightDed - agentAmt - etc;
+  var profit=net - ref.cost;
+  var mr=net>0?profit/net*100:0;
+  var afDenom=1-agent;
+  var minPrice=(afDenom>0 && tmg<1) ? Math.round(((ref.cost/(1-tmg))+freightDed+etc)/afDenom) : 0;
+  var ok=mr>=numv('expTargetMg');
+  function row(lbl,val,neg,strong){
+    return '<div style="display:flex;justify-content:space-between;padding:4px 0;'+(strong?'border-top:1px solid var(--rule);font-weight:800;margin-top:2px;padding-top:6px':'')+'">'
+      +'<span style="color:var(--muted)">'+lbl+'</span><span style="font-variant-numeric:tabular-nums'+(neg?';color:var(--r)':'')+'">'+(neg?'−':'')+fI(Math.abs(Math.round(val)))+'원</span></div>';
+  }
+  var bd='<div style="font-size:12px;margin-bottom:8px">'
+    + row('수출 단가', price)
+    + (freightDed>0?row('운임·물류 (CIF)', freightDed, true):'<div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--muted)">운임·물류</span><span style="color:var(--muted);font-size:11px">FOB · 바이어 부담</span></div>')
+    + row('대행수수료 ('+numv('expAgentPct')+'%)', agentAmt, true)
+    + (etc>0?row('기타(통관·인증)', etc, true):'')
+    + row('= 실수취액', net, false, true)
+    + row('− 원가(매입가)', ref.cost, true)
+    + '<div style="display:flex;justify-content:space-between;padding:6px 0 0;border-top:2px solid var(--ink);font-weight:800;margin-top:2px">'
+      + '<span>개당 이익 (마진율)</span>'
+      + '<span style="color:'+(profit>=0?'var(--g)':'var(--r)')+';font-variant-numeric:tabular-nums">'+(profit>=0?'+':'')+fI(Math.round(profit))+'원 ('+mr.toFixed(1)+'%)</span></div>'
+    + '</div>';
+  var concl = ok
+    ? '<div class="bep-box ok"><div class="bep-title">✅ 실수취 '+fI(Math.round(net))+'원 · 마진 '+mr.toFixed(1)+'%</div>목표마진('+numv('expTargetMg')+'%) 이상 — 이 수출 단가로 남습니다.</div>'
+    : '<div class="bep-box '+(profit>=0?'warn':'bad')+'"><div class="bep-title">'+(profit>=0?'⚠️ 목표마진 미달':'🚨 적자')+' (마진 '+mr.toFixed(1)+'%)</div>'
+        +'목표마진('+numv('expTargetMg')+'%)을 지키려면 <b>수출 단가 최소 '+fI(minPrice)+'원</b> 필요. (현재 '+fI(price)+'원)</div>';
+  box.innerHTML=bd+concl;
+}
+
 /* ── B2C 온라인 전략 ── */
 function recalcStrategyB2C(){
   var out=document.getElementById('b2cOut'); if(!out) return;
@@ -4131,6 +4199,7 @@ function renderStrategy(){
   renderVolumeView();
   renderChannelAlloc();
   renderPartnerSupply();
+  renderExportPrice();
   renderCloudCard();
 }
 
@@ -4246,7 +4315,8 @@ function doLogout(){
 var STRAT_INPUT_IDS=['b2cRev','b2cMg','b2cAov','b2cCvr','b2cRoas','obmLabor','obmRent','obmEtc',
   'trfRev','trfAov','trfCvr','trfCtr','trfCpc','ordMonthly','ordSafety','volBaseQty','volElastic',
   'chanTarget','chanAllocown','chanAlloccoupang','chanAllocdist','chanAllocoffline','chanAllocpartner',
-  'setThreshold','setTargetMg','ptnConsumer','ptnMargin','ptnMyMin'];
+  'setThreshold','setTargetMg','ptnConsumer','ptnMargin','ptnMyMin',
+  'expPrice','expTerm','expFreight','expAgentPct','expEtc','expTargetMg'];
 function readStratInputs(){var o={};STRAT_INPUT_IDS.forEach(function(id){var el=document.getElementById(id);if(el)o[id]=el.value;});return o;}
 function writeStratInputs(o){if(!o)return;STRAT_INPUT_IDS.forEach(function(id){if(o[id]!=null){var el=document.getElementById(id);if(el)el.value=o[id];}});}
 

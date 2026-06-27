@@ -1522,11 +1522,15 @@ body:not(.locked) .auth-userbox{display:flex}
 
       <!-- OBM ③ 발주량 역산 -->
       <div class="card" style="border-top:3px solid #065F46">
-        <div class="card-title" style="color:#065F46">③ 발주량 역산</div>
+        <div class="card-title" style="color:#065F46">③ 발주량 역산 <span class="badge" style="background:#065F46">운전자금</span></div>
         <div class="pc-row"><span class="pc-label">예상 월 판매량</span>
           <input type="number" class="pc-input" id="ordMonthly" data-strat="obm" value="100" min="0" step="10"><span class="pc-unit">개</span></div>
+        <div class="pc-row"><span class="pc-label">현재 재고</span>
+          <input type="number" class="pc-input" id="ordStock" data-strat="obm" value="0" min="0" step="10"><span class="pc-unit">개</span></div>
         <div class="pc-row"><span class="pc-label">안전재고</span>
-          <input type="number" class="pc-input" id="ordSafety" data-strat="obm" value="14" min="0" step="1"><span class="pc-unit">일</span></div>
+          <input type="number" class="pc-input" id="ordSafety" data-strat="obm" value="7" min="0" step="1"><span class="pc-unit">일</span></div>
+        <div class="pc-row"><span class="pc-label">발주 리드타임 <small>(제조사 소요)</small></span>
+          <input type="number" class="pc-input" id="ordLead" data-strat="obm" value="14" min="0" step="1"><span class="pc-unit">일</span></div>
         <div class="strat-out" id="ordOut"></div>
       </div>
     </div>
@@ -4259,15 +4263,28 @@ function recalcStrategyOBM(){
   /* ③ 발주량 역산 */
   var ordOut=document.getElementById('ordOut');
   if(ordOut){
-    var monthlySales=numv('ordMonthly'), safety=numv('ordSafety');
-    var dailySales=monthlySales/30;
-    var orderQty=Math.ceil(monthlySales + dailySales*safety);
-    var workingCapital=orderQty*(ref?ref.cost:0);
-    var cycleWeeks=dailySales>0?(orderQty/dailySales)/7:0;
+    var monthlySales=numv('ordMonthly'), stock=numv('ordStock'), safety=numv('ordSafety'), lead=numv('ordLead');
+    var d=monthlySales/30;                                   /* 일 판매량 */
+    var safetyQty=d*safety, leadQty=d*lead;
+    var targetStock=monthlySales + safetyQty;                /* 목표 보유: 한 달치 + 안전재고 */
+    var orderQty=Math.max(0, Math.ceil(targetStock - stock));/* 발주 필요 수량 = 목표 − 현재재고 */
+    var orderAmt=orderQty*(ref?ref.cost:0);
+    var cycleWeeks=(orderQty>0&&d>0)?(orderQty/d)/7:0;
+    /* 재고 소진 예상일 / 발주 권장일 */
+    var soldOutTxt='—', reorderTxt='—';
+    if(d>0){
+      var fmt=function(days){var dt=new Date();dt.setDate(dt.getDate()+Math.max(0,Math.floor(days)));return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');};
+      soldOutTxt=fmt(stock/d)+' ('+Math.floor(stock/d)+'일 후)';
+      var reorderDays=(stock-(leadQty+safetyQty))/d;          /* 발주점 도달일 (리드+안전 남기고) */
+      reorderTxt=reorderDays<=0?'⚠️ 지금 발주':fmt(reorderDays)+' ('+Math.floor(reorderDays)+'일 후)';
+    }
     ordOut.innerHTML=
-       soRow('발주 수량', fI(orderQty)+'개', '월 판매 '+fI(monthlySales)+'개 + 안전재고 '+safety+'일분')
-      +soRow('필요 운전자금', fI(Math.round(workingCapital))+'원', '발주수량 × 매입가 '+fI(ref?ref.cost:0)+'원', '', true)
-      +soRow('발주 주기 제안', cycleWeeks>0?cycleWeeks.toFixed(1)+'주':'—', '재고 소진 주기');
+       soRow('발주 필요 수량', fI(orderQty)+'개', '목표 '+fI(Math.round(targetStock))+'개(월판매+안전 '+safety+'일) − 현재고 '+fI(stock)+'개')
+      +soRow('발주 금액', fI(Math.round(orderAmt))+'원', '발주수량 × 매입가 '+fI(ref?ref.cost:0)+'원')
+      +soRow('필요 운전자금', fI(Math.round(orderAmt))+'원', '발주 시 묶이는 현금', '', true)
+      +soRow('권장 발주 주기', cycleWeeks>0?cycleWeeks.toFixed(1)+'주마다':'—', '발주량 소진 기간')
+      +soRow('재고 소진 예상일', soldOutTxt, '현재고 ÷ 일판매량 '+d.toFixed(1)+'개')
+      +soRow('발주 권장일', reorderTxt, '리드타임 '+lead+'일+안전 '+safety+'일 남기고');
   }
 }
 
@@ -4551,7 +4568,7 @@ function doLogout(){
 
 /* ── 전체 상태 수집/복원 ── */
 var STRAT_INPUT_IDS=['b2cRev','b2cMg','b2cAov','b2cCvr','b2cRoas','b2cCtr',
-  'trfRev','trfAov','trfCvr','trfCtr','trfCpc','ordMonthly','ordSafety','volBaseQty','volElastic',
+  'trfRev','trfAov','trfCvr','trfCtr','trfCpc','ordMonthly','ordStock','ordSafety','ordLead','volBaseQty','volElastic',
   'chanTarget','bepLabor','bepRent','bepSys','bepEtc2','bepAdPer','bepAllocMode',
   'setThreshold','setTargetMg','ptnConsumer','ptnMargin','ptnMyMin',
   'expPrice','expTerm','expFreight','expAgentPct','expEtc','expTargetMg',

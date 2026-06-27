@@ -1355,6 +1355,14 @@ body:not(.locked) .auth-userbox{display:flex}
       <span style="font-size:10.5px;color:var(--muted)">컬렉션: ops-snapshots · ops-strategy-scenarios · ops-cost-profiles · ops-b2b-quotes</span>
     </div>
     <div id="cloudPanel" style="display:none">
+      <!-- 원가 데이터 Firebase 연동 -->
+      <div class="cloud-sec">
+        <div class="cloud-sec-t">🔒 원가 데이터 (대외비)</div>
+        <div class="cloud-btns">
+          <button class="pc-tool-btn" id="priceUploadBtn" style="background:var(--r);color:#fff;border-color:var(--r)">☁ 원가 Firebase 업로드 (최초 1회)</button>
+        </div>
+        <div style="font-size:10.5px;color:var(--muted);margin-top:5px;line-height:1.6">로그인 상태에서 누르면 현재 원가표를 <code>price-table/current</code>에 저장합니다. 이후 앱은 로그인 시 Firebase에서 원가를 불러옵니다.<br>※ 규칙에 <code>price-table</code> 읽기/쓰기(인증) 허용이 있어야 동작.</div>
+      </div>
       <!-- 전체 상태 백업 -->
       <div class="cloud-sec">
         <div class="cloud-sec-t">📦 전체 상태 백업</div>
@@ -2869,6 +2877,7 @@ document.addEventListener('click',function(e){
   if(t.id==='stratB2bAdd'){strategyB2B.push({id:'sb'+(stratB2bSeq++),prodNo:PRICE_TABLE[0].no,qty:50});renderStratB2bRows();return;}
   if(t.dataset.stratb2bdel!==undefined){strategyB2B=strategyB2B.filter(function(x){return x.id!==t.dataset.stratb2bdel;});renderStratB2bRows();return;}
   if(t.id==='stratPrint'){printB2bQuote();return;}
+  if(t.id==='priceUploadBtn'){uploadPriceTable();return;}
   if(t.id==='chanAutoBtn'){chanAutoAlloc();return;}
   if(t.id==='chanEvenBtn'){chanEvenAlloc();return;}
   if(t.id==='chanAddBtn'){chanList.push({id:'chx'+(chanSeq++),name:'새 채널',src:'custom',om:0,custom:0,alloc:0});renderChanRows();return;}
@@ -4537,6 +4546,44 @@ function initOpsAuth(){
   try{ opsAuth=firebase.auth(opsApp); return opsAuth; }
   catch(e){ console.error('[ops-auth] 초기화 실패:', e); return null; }
 }
+/* ── 원가(PRICE_TABLE) Firebase 연동 ── */
+var priceTableSource='hardcoded';   /* 'hardcoded' | 'firebase' */
+function rerenderData(){
+  /* PRICE_TABLE 의존 화면 전체 재렌더 */
+  try{ renderAll(); }catch(e){ console.error(e); }
+  try{ if(typeof renderPcCatFilter==='function'){ renderPcCatFilter(); renderPcProdList(); } }catch(e){}
+  try{ if(typeof renderMoqTierSetup==='function'){ renderMoqTierSetup(); renderMoqCatFilter2(); renderMoqTable2(); renderMoqSim2(); } }catch(e){}
+  try{ if(typeof renderStrategy==='function') renderStrategy(); }catch(e){}
+}
+function loadPriceTable(){
+  if(!opsDbReady()) return;
+  opsDb.collection('price-table').doc('current').get().then(function(doc){
+    if(!doc.exists){ console.log('[price-table] Firebase에 없음 — 하드코드 사용(최초 업로드 필요)'); return; }
+    try{
+      var arr=JSON.parse((doc.data()||{}).json||'[]');
+      if(arr && arr.length){
+        PRICE_TABLE.length=0; arr.forEach(function(p){ PRICE_TABLE.push(p); });
+        priceTableSource='firebase';
+        console.log('[price-table] Firebase 로드:', arr.length, '건');
+        rerenderData();
+      }
+    }catch(e){ console.error('[price-table] 파싱 실패:', e); }
+  }).catch(function(e){ console.warn('[price-table] 로드 실패(하드코드 유지):', e.code||e.message); });
+}
+function uploadPriceTable(){
+  if(!opsDbReady()){ opsToast('클라우드 미설정',false); return; }
+  if(!PRICE_TABLE.length){ opsToast('업로드할 원가 데이터가 없습니다',false); return; }
+  if(!confirm('현재 원가 데이터('+PRICE_TABLE.length+'건)를 Firebase에 업로드할까요?\n(price-table/current 덮어쓰기)')) return;
+  opsDb.collection('price-table').doc('current').set({
+    json: JSON.stringify(PRICE_TABLE), count: PRICE_TABLE.length, updatedAt: new Date().toISOString()
+  }).then(function(){
+    console.log('[price-table] 업로드 완료', PRICE_TABLE.length);
+    opsToast('원가 '+PRICE_TABLE.length+'건 Firebase 업로드 완료',true);
+  }).catch(function(e){
+    console.error('[price-table] 업로드 실패', e);
+    opsToast('업로드 실패: '+(e.code||e.message)+' — 규칙에 price-table 추가 필요',false);
+  });
+}
 function setupAuthGate(){
   var statusEl=document.getElementById('authStatus');
   var auth=initOpsAuth();
@@ -4554,6 +4601,7 @@ function setupAuthGate(){
       setT('authUserEmail', user.email||'');
       var lo=document.getElementById('authLogout'); if(lo)lo.style.display='inline-block';
       console.log('[ops-auth] 로그인:', user.email);
+      loadPriceTable();   /* 로그인 후 Firebase에서 원가 로드(있으면 하드코드 대체) */
     }else{
       document.body.classList.add('locked');
       var lo2=document.getElementById('authLogout'); if(lo2)lo2.style.display='none';

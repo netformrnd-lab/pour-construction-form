@@ -1476,6 +1476,22 @@ body:not(.locked) .auth-userbox{display:flex}
     <div id="chanResult"></div>
   </div>
 
+  <!-- ⑤ 세트 구매유인 최소 할인 -->
+  <div class="card" id="setStratCard" style="border-top:3px solid var(--am)">
+    <div class="card-title">⑤ 세트 구매유인 최소 할인 <span class="badge amber">세트가 역산</span></div>
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px;line-height:1.65">
+      세트가 <b style="color:var(--ink)">단품 합계보다 충분히 싸 보여야(구매유인)</b> 하면서 마진은 지켜야 합니다.
+      구매유인이 생기는 최소 할인과 마진이 버티는 최대 할인 사이의 <b>권장 세트가 범위</b>를 역산합니다.
+    </div>
+    <div id="setItemRows"></div>
+    <button class="add-cost-btn" id="setAddBtn" style="border-color:#F5C97A;color:var(--am)">＋ 세트 구성 상품 추가</button>
+    <div class="pc-row" style="margin-top:8px"><span class="pc-label">구매유인 임계 할인율 <small>(이만큼은 싸야 매력)</small></span>
+      <input type="number" class="pc-input" id="setThreshold" data-strat="set" value="7" min="0" max="50" step="1"><span class="pc-unit">%</span></div>
+    <div class="pc-row"><span class="pc-label">목표 마진율 <small>(이 이상 지키기)</small></span>
+      <input type="number" class="pc-input" id="setTargetMg" data-strat="set" value="15" min="0" max="60" step="1"><span class="pc-unit">%</span></div>
+    <div id="setResult"></div>
+  </div>
+
 </div>
 <!-- /전략 대시보드 -->
 
@@ -2677,6 +2693,8 @@ document.addEventListener('input',function(e){
   if(t.dataset.strat==='obm'){recalcStrategyOBM();return;}
   if(t.dataset.strat==='vol'){renderVolumeView();return;}
   if(t.dataset.strat==='chan'){renderChannelAlloc();return;}
+  if(t.dataset.strat==='set'){recalcSet();return;}
+  if(t.dataset.setqty!==undefined){var sti=setItems.find(function(x){return x.id===t.dataset.setqty;});if(sti){sti.qty=parseInt(t.value)||1;recalcSet();}return;}
   if(t.dataset.stratb2bqty!==undefined){var sbi=strategyB2B.find(function(x){return x.id===t.dataset.stratb2bqty;});if(sbi){sbi.qty=parseInt(t.value)||1;recalcStratB2b();}return;}
   if(t.id==='utmBase'){utmBase=t.value;updateUtmUrls();return;}
   if(t.id==='utmCampaign'){utmCampaign=t.value;updateUtmUrls();return;}
@@ -2695,6 +2713,7 @@ document.addEventListener('change',function(e){
   var t=e.target;
   if(t.id==='stratRef'){stratRefNo=parseInt(t.value)||PRICE_TABLE[0].no;syncStratAov();recalcStrategyB2C();recalcStrategyOBM();renderVolumeView();renderChannelAlloc();return;}
   if(t.dataset.stratb2bprod!==undefined){var sbp=strategyB2B.find(function(x){return x.id===t.dataset.stratb2bprod;});if(sbp){sbp.prodNo=parseInt(t.value);renderStratB2bRows();}return;}
+  if(t.dataset.setprod!==undefined){var stp=setItems.find(function(x){return x.id===t.dataset.setprod;});if(stp){stp.prodNo=parseInt(t.value);renderSetItemRows();}return;}
   if(t.dataset.ctoggle!==undefined){var cp3=coupons.find(function(c){return c.id===t.dataset.ctoggle;});if(cp3){cp3.active=t.checked;renderCoupons();renderPromo();}return;}
   if(t.dataset.ctype!==undefined){var cp4=coupons.find(function(c){return c.id===t.dataset.ctype;});if(cp4){cp4.type=t.value;renderCoupons();renderPromo();}return;}
   if(t.dataset.name!==undefined&&t.dataset.row!==undefined){var ch5=state.find(function(c){return c.id==t.dataset.row;});if(ch5)ch5.name=t.value.trim()||ch5.name;return;}
@@ -2717,6 +2736,8 @@ document.addEventListener('click',function(e){
   if(t.id==='stratPrint'){printB2bQuote();return;}
   if(t.id==='chanAutoBtn'){chanAutoAlloc();return;}
   if(t.id==='chanEvenBtn'){setChanAlloc({own:20,coupang:20,dist:20,offline:20,partner:20});return;}
+  if(t.id==='setAddBtn'){setItems.push({id:'st'+(setSeq++),prodNo:PRICE_TABLE[0].no,qty:1});renderSetItemRows();return;}
+  if(t.dataset.setdel!==undefined){setItems=setItems.filter(function(x){return x.id!==t.dataset.setdel;});renderSetItemRows();return;}
   if(t.id==='authLoginBtn'){doLogin();return;}
   if(t.id==='authLogout'){doLogout();return;}
   if(t.dataset.cloud!==undefined){var act=t.dataset.cloud;
@@ -3828,6 +3849,58 @@ function renderChannelAlloc(){
   box.innerHTML=warn+guide+'<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="vol-table">'+head+'<tbody>'+body+foot+'</tbody></table></div>';
 }
 
+/* ── ⑤ 세트 구매유인 최소 할인 ── */
+var setItems=[]; var setSeq=1;
+function renderSetItemRows(){
+  var el=document.getElementById('setItemRows'); if(!el) return;
+  el.innerHTML=setItems.map(function(it){
+    var prod=PRICE_TABLE.find(function(p){return p.no==it.prodNo;});
+    return '<div class="strat-b2b-row">'
+      +'<select data-setprod="'+it.id+'">'+PRICE_TABLE.map(function(p){return '<option value="'+p.no+'"'+(p.no==it.prodNo?' selected':'')+'>'+esc(p.name)+'</option>';}).join('')+'</select>'
+      +'<input type="number" class="sb-qty" min="1" data-setqty="'+it.id+'" value="'+it.qty+'">개'
+      +(prod?'<span class="sb-price">정가 '+fI(prod.retail)+'원</span>':'')
+      +'<button class="sb-del" data-setdel="'+it.id+'">✕</button>'
+      +'</div>';
+  }).join('');
+  recalcSet();
+}
+function recalcSet(){
+  var box=document.getElementById('setResult'); if(!box) return;
+  if(!setItems.length){ box.innerHTML='<div style="font-size:11.5px;color:var(--muted);padding:8px 0">세트 구성 상품을 추가하세요.</div>'; return; }
+  var pg=pcCommonPG/100, ship=pcCommonShip;
+  var sumRetail=0,sumCost=0;
+  setItems.forEach(function(it){var p=PRICE_TABLE.find(function(x){return x.no==it.prodNo;}); if(!p)return; sumRetail+=p.retail*it.qty; sumCost+=p.cost*it.qty;});
+  var thr=numv('setThreshold'), tmg=numv('setTargetMg')/100;
+  function atDisc(d){var sp=Math.round(sumRetail*(1-d/100));var fee=Math.round(sp*pg);var vc=sumCost+fee+ship;var pf=sp-vc;var mr=sp>0?pf/sp*100:0;return {d:d,sp:sp,pf:pf,mr:mr};}
+  var tDenom=1-pg-tmg;
+  var dTarget = (sumRetail>0 && tDenom>0) ? Math.max(0,(1-((sumCost+ship)/tDenom)/sumRetail)*100) : 0;
+  var dBep    = sumRetail>0 ? Math.max(0,(1-((sumCost+ship)/(1-pg))/sumRetail)*100) : 0;
+  var feasible = tDenom>0 && thr<=dTarget;
+  var rows=[
+    {lbl:'🛒 구매유인 임계', d:thr,      r:atDisc(thr)},
+    {lbl:'🎯 목표마진 한계', d:dTarget,  r:atDisc(dTarget)},
+    {lbl:'⚖️ 손익분기(BEP)', d:dBep,     r:atDisc(dBep)},
+  ];
+  var head='<thead><tr><th>기준</th><th>할인</th><th>세트가</th><th>개당이익</th><th>마진율</th></tr></thead>';
+  var body=rows.map(function(x){
+    return '<tr><td style="text-align:left">'+x.lbl+'</td><td>'+x.d.toFixed(1)+'%</td><td><b>'+fI(x.r.sp)+'</b></td>'
+      +'<td style="color:'+(x.r.pf>=0?'var(--g)':'var(--r)')+'">'+(x.r.pf>=0?'+':'')+fI(Math.round(x.r.pf))+'</td>'
+      +'<td style="color:'+(x.r.mr>=10?'var(--g)':x.r.mr>=0?'var(--am)':'var(--r)')+'">'+x.r.mr.toFixed(1)+'%</td></tr>';
+  }).join('');
+  var concl = feasible
+    ? '<div class="bep-box ok" style="margin-top:8px"><div class="bep-title">✅ 권장 세트가 '+fI(atDisc(dTarget).sp)+' ~ '+fI(atDisc(thr).sp)+'원</div>'
+        +'할인 '+thr+'% ~ '+dTarget.toFixed(1)+'% 사이에서 정하면 <b>구매유인 있으면서 목표마진('+numv('setTargetMg')+'%) 이상</b> 유지됩니다. (단품합계 '+fI(sumRetail)+'원 대비)</div>'
+    : (tDenom<=0
+        ? '<div class="bep-box bad" style="margin-top:8px"><div class="bep-title">🚨 목표마진이 너무 높음</div>목표마진('+numv('setTargetMg')+'%)+수수료가 100%를 넘어 세트가 산출 불가. 목표마진을 낮추세요.</div>'
+        : '<div class="bep-box warn" style="margin-top:8px"><div class="bep-title">⚠️ 구매유인과 목표마진 충돌</div>'
+          +'구매유인 임계('+thr+'%)를 주면 목표마진('+numv('setTargetMg')+'%)을 못 지킵니다. 목표마진을 낮추거나, 마진을 포기하고 <b>BEP('+dBep.toFixed(1)+'%)</b>까지만 할인하세요.</div>');
+  box.innerHTML='<div style="font-size:11.5px;margin-bottom:8px;line-height:1.7">'
+      +'<div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">단품 정가 합계 <small>(인지 기준가)</small></span><b>'+fI(sumRetail)+'원</b></div>'
+      +'<div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">원가 합계 + 변동비</span><b>'+fI(sumCost+ship)+'원~</b></div></div>'
+    +'<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="vol-table" style="min-width:420px">'+head+'<tbody>'+body+'</tbody></table></div>'
+    +concl;
+}
+
 /* ── B2C 온라인 전략 ── */
 function recalcStrategyB2C(){
   var out=document.getElementById('b2cOut'); if(!out) return;
@@ -3993,6 +4066,11 @@ function renderStrategy(){
   syncStratAov();
   if(!strategyB2B.length) strategyB2B.push({id:'sb'+(stratB2bSeq++),prodNo:stratRefNo,qty:50});
   renderStratB2bRows();
+  if(!setItems.length){
+    setItems.push({id:'st'+(setSeq++),prodNo:PRICE_TABLE[0].no,qty:1});
+    setItems.push({id:'st'+(setSeq++),prodNo:(PRICE_TABLE[1]||PRICE_TABLE[0]).no,qty:1});
+  }
+  renderSetItemRows();
   recalcStrategyB2C();
   recalcStrategyOBM();
   renderVolumeView();
@@ -4111,7 +4189,8 @@ function doLogout(){
 /* ── 전체 상태 수집/복원 ── */
 var STRAT_INPUT_IDS=['b2cRev','b2cMg','b2cAov','b2cCvr','b2cRoas','obmLabor','obmRent','obmEtc',
   'trfRev','trfAov','trfCvr','trfCtr','trfCpc','ordMonthly','ordSafety','volBaseQty','volElastic',
-  'chanTarget','chanAllocown','chanAlloccoupang','chanAllocdist','chanAllocoffline','chanAllocpartner'];
+  'chanTarget','chanAllocown','chanAlloccoupang','chanAllocdist','chanAllocoffline','chanAllocpartner',
+  'setThreshold','setTargetMg'];
 function readStratInputs(){var o={};STRAT_INPUT_IDS.forEach(function(id){var el=document.getElementById(id);if(el)o[id]=el.value;});return o;}
 function writeStratInputs(o){if(!o)return;STRAT_INPUT_IDS.forEach(function(id){if(o[id]!=null){var el=document.getElementById(id);if(el)el.value=o[id];}});}
 
@@ -4131,7 +4210,7 @@ function collectFullState(){
     /* MOQ */
     moqTiers:moqTiers, moqSimItems2:moqSimItems2,
     /* 전략 */
-    stratRefNo:stratRefNo, strategyB2B:strategyB2B, stratInputs:readStratInputs()
+    stratRefNo:stratRefNo, strategyB2B:strategyB2B, setItems:setItems, stratInputs:readStratInputs()
   };
 }
 function applyFullState(d){
@@ -4148,7 +4227,7 @@ function applyFullState(d){
   if(d.pcCommonShip!=null)pcCommonShip=d.pcCommonShip; if(d.pcCommonLogistics!=null)pcCommonLogistics=d.pcCommonLogistics;
   if(d.pcCommonPG!=null)pcCommonPG=d.pcCommonPG; if(d.prodProfiles)prodProfiles=d.prodProfiles;
   if(d.moqTiers)moqTiers=d.moqTiers; if(d.moqSimItems2)moqSimItems2=d.moqSimItems2;
-  if(d.stratRefNo)stratRefNo=d.stratRefNo; if(d.strategyB2B)strategyB2B=d.strategyB2B;
+  if(d.stratRefNo)stratRefNo=d.stratRefNo; if(d.strategyB2B)strategyB2B=d.strategyB2B; if(d.setItems)setItems=d.setItems;
   state.forEach(function(ch){if(!ch.links)ch.links=[mklink('기본','')];if(!ch.utm)ch.utm={source:'',medium:''};if(!ch.ctype)ch.ctype='수확';if(!ch.stage)ch.stage='신규';});
   syncControls();
   var mg=document.getElementById('mgSlider'); if(mg)mg.value=pcMgTarget; setT('pcMgVal',pcMgTarget+'%');

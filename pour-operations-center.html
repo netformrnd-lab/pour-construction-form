@@ -1315,6 +1315,15 @@ body:not(.locked) .auth-userbox{display:flex}
     <div id="moqSimItems"></div>
     <button class="add-cost-btn" id="moqSimAddBtn">＋ 상품 추가</button>
     <div class="moq-sim-result" id="moqSimResult" style="display:none"></div>
+    <!-- TASK 6: 견적서 출력 -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;align-items:center">
+      <input type="text" id="moqQCustomer" class="moq-sim-select" style="flex:1;min-width:130px" placeholder="고객사명">
+      <input type="text" id="moqQContact" class="moq-sim-select" style="flex:1;min-width:130px" placeholder="담당자 / 연락처">
+      <span style="font-size:11px;color:var(--muted)">유효</span>
+      <input type="number" id="moqQValid" class="moq-sim-qty" value="30" min="1"><span style="font-size:11px;color:var(--muted)">일</span>
+      <button class="pc-tool-btn" id="moqPrintBtn" style="background:var(--b);color:#fff;border-color:var(--b)">🖨 견적서 출력</button>
+    </div>
+    <div style="font-size:10.5px;color:var(--muted);margin-top:6px">※ 인쇄 견적서에는 순이익·마진율이 표시되지 않습니다(고객 제공용). 공급자 정보는 ⚡전략 탭의 견적서 정보를 공유합니다.</div>
   </div>
 
 </div>
@@ -3755,6 +3764,7 @@ document.addEventListener('click', function(e) {
   if (t.dataset.moqcatf2!==undefined) {
     moqCatFilter2=t.dataset.moqcatf2; renderMoqCatFilter2(); renderMoqTable2(); return;
   }
+  if (t.id==='moqPrintBtn') { printMoqQuote(); return; }
   if (t.id==='moqSimAddBtn') {
     moqSimItems2.push({id:'ms'+(moqSimSeq2++), prodNo:PRICE_TABLE[0].no, qty:10});
     renderMoqSim2(); return;
@@ -4313,25 +4323,20 @@ function recalcStratB2b(){
 
 /* B2B 견적서 인쇄 — 공급자/고객 정보 + 공급가액·부가세·총액 양식 */
 function qv(id){ var el=document.getElementById(id); return el?el.value.trim():''; }
-function printB2bQuote(){
-  if(!strategyB2B.length){ alert('견적 상품을 추가하세요.'); return; }
+function printQuoteDoc(lines, info){
+  if(!lines.length){ alert('견적 상품을 추가하세요.'); return; }
   var w=window.open('','_blank'); if(!w) return;
-  var supplier=qv('qSupplier')||'넷폼알앤디 (POUR스토어)';
-  var bizNo=qv('qBizNo'), supTel=qv('qSupTel'), supAddr=qv('qSupAddr');
-  var customer=qv('qCustomer'), contact=qv('qContact'), note=qv('qNote');
-  var validDays=parseInt(qv('qValidDays'))||30;
-  var vatEl=document.getElementById('qVat'); var showVat=vatEl?vatEl.checked:true;
+  var supplier=info.supplier||'넷폼알앤디 (POUR스토어)';
+  var bizNo=info.bizNo||'', supTel=info.supTel||'', supAddr=info.supAddr||'';
+  var customer=info.customer||'', contact=info.contact||'', note=info.note||'';
+  var validDays=info.validDays||30;
+  var showVat=info.showVat!==false;
 
   var supply=0, idx=0;
-  var bodyRows=strategyB2B.map(function(item){
-    var prod=PRICE_TABLE.find(function(p){return p.no==item.prodNo;});
-    if(!prod) return '';
-    var tier=getTier2(item.qty);
-    var c=calcTierPrice(prod,tier);
-    if(!c.valid) return '';
-    var line=c.price*item.qty; supply+=line; idx++;
-    return '<tr><td class="c">'+idx+'</td><td class="l">'+esc(prod.name)+'</td><td>'+esc(prod.unit+prod.spec)+'</td>'
-      +'<td>'+fI(item.qty)+'</td><td>'+fI(c.price)+'</td><td>'+fI(Math.round(line))+'</td></tr>';
+  var bodyRows=lines.map(function(l){
+    var line=l.price*l.qty; supply+=line; idx++;
+    return '<tr><td class="c">'+idx+'</td><td class="l">'+esc(l.name)+'</td><td>'+esc(l.spec||'')+'</td>'
+      +'<td>'+fI(l.qty)+'</td><td>'+fI(l.price)+'</td><td>'+fI(Math.round(line))+'</td></tr>';
   }).join('');
   var vat=Math.round(supply*0.1);
   var grand=supply+(showVat?vat:0);
@@ -4385,6 +4390,27 @@ function printB2bQuote(){
   w.document.write(html);
   w.document.close();
   setTimeout(function(){ w.print(); },400);
+}
+function quoteLinesFrom(arr){
+  return arr.map(function(item){
+    var prod=PRICE_TABLE.find(function(p){return p.no==item.prodNo;}); if(!prod)return null;
+    var tier=getTier2(item.qty); var c=calcTierPrice(prod,tier); if(!c.valid)return null;
+    return {name:prod.name, spec:prod.unit+prod.spec, qty:item.qty, price:c.price};
+  }).filter(Boolean);
+}
+function printB2bQuote(){
+  printQuoteDoc(quoteLinesFrom(strategyB2B), {
+    supplier:qv('qSupplier'), bizNo:qv('qBizNo'), supTel:qv('qSupTel'), supAddr:qv('qSupAddr'),
+    customer:qv('qCustomer'), contact:qv('qContact'), note:qv('qNote'),
+    validDays:parseInt(qv('qValidDays'))||30, showVat:(document.getElementById('qVat')||{}).checked!==false
+  });
+}
+function printMoqQuote(){
+  printQuoteDoc(quoteLinesFrom(moqSimItems2), {
+    supplier:qv('qSupplier'), bizNo:qv('qBizNo'), supTel:qv('qSupTel'), supAddr:qv('qSupAddr'),
+    customer:qv('moqQCustomer'), contact:qv('moqQContact'), note:'',
+    validDays:parseInt(qv('moqQValid'))||30, showVat:true
+  });
 }
 
 /* 전략 탭 전체 렌더 */

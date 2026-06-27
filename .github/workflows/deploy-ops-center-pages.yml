@@ -4,7 +4,7 @@ name: Deploy Ops Center to GitHub Pages
 # 기존 박람회 index.html(prod 연결)은 포함하지 않음.
 on:
   push:
-    branches: ["claude/pour-ops-center-setup-xo4qad"]
+    branches: ["main", "claude/pour-ops-center-setup-xo4qad"]
     paths:
       - "pour-operations-center.html"
       - ".github/workflows/deploy-ops-center-pages.yml"

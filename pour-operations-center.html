@@ -716,6 +716,17 @@ table.moq-table{border-collapse:separate;border-spacing:0;width:100%;min-width:7
 .sq-row:last-child{border-bottom:none}
 .sq-row.total{font-size:15px;font-weight:800;border-top:2px solid rgba(255,255,255,.25);border-bottom:none;padding-top:9px;margin-top:4px}
 .sq-row .sq-val.ok{color:#7EFFD4}.sq-row .sq-val.warn{color:#FFE08A}.sq-row .sq-val.bad{color:#FFB3AE}
+/* 🎯 진짜 BEP (고정비 포함) */
+.bep-fixed-grid{display:grid;grid-template-columns:1fr}
+@media(min-width:560px){.bep-fixed-grid{grid-template-columns:1fr 1fr;column-gap:14px}}
+.bep-total-bar{display:flex;justify-content:space-between;align-items:center;background:var(--ink);color:#fff;border-radius:7px;padding:9px 12px;font-size:13px;font-weight:800;margin-top:4px}
+.bep-total-bar .v{font-variant-numeric:tabular-nums}
+.bep-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--bg);border:1px solid var(--rule);border-radius:7px;padding:8px 10px;margin-bottom:6px}
+.bep-row select{flex:1;min-width:120px;border:1.5px solid var(--rule);border-radius:6px;padding:6px 8px;font-family:var(--sans);font-size:12px;background:var(--w)}
+.bep-row .bep-mini{width:62px;border:1.5px solid var(--rule);border-radius:6px;padding:6px 6px;font-family:var(--sans);font-size:12px;text-align:right;background:var(--w);font-variant-numeric:tabular-nums}
+.bep-row .bep-lbl{font-size:10.5px;color:var(--muted);font-weight:600}
+.bep-row .bep-del{border:none;background:none;color:#ccc;font-size:14px;cursor:pointer;padding:3px 6px;touch-action:manipulation}
+.bep-row .bep-del:active{color:var(--r)}
 /* ④ 채널 편집 행 */
 .chan-row{background:var(--bg);border:1px solid var(--rule);border-radius:7px;padding:8px 10px;margin-bottom:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .chan-row .chan-nm{flex:1;min-width:100px;border:1.5px solid var(--rule);border-radius:6px;padding:6px 8px;font-family:var(--sans);font-size:12.5px;font-weight:600;background:var(--w)}
@@ -1391,6 +1402,37 @@ body:not(.locked) .auth-userbox{display:flex}
       ※ 기준 상품(<span id="volRefName">—</span>) · 자사몰 정가 기준 · 변동비 = 매입가+PG수수료+택배비.
       볼륨 가정은 탄력성 입력으로 조절하세요(예: 탄력성 3 → 할인 10% 시 판매량 +30%).
     </div>
+  </div>
+
+  <!-- TASK 4: 진짜 손익분기 (고정비 포함) -->
+  <div class="card" id="bepCard" style="border-top:3px solid var(--r)">
+    <div class="card-title">🎯 진짜 손익분기 BEP <span class="badge red">고정비 포함</span></div>
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px;line-height:1.65">
+      현재 "BEP 할인율"은 <b style="color:var(--ink)">개당 변동비만</b> 본 수치입니다(인건비·임대료 빠짐).
+      여기서는 <b style="color:var(--r)">월 고정비를 몇 개 팔아야 메우는지</b>(BEP 수량·매출)를 상품별·할인별로 계산합니다.
+    </div>
+    <div class="bep-fixed-grid">
+      <div class="pc-row"><span class="pc-label">월 인건비</span>
+        <input type="number" class="pc-input" id="bepLabor" data-strat="bep" value="3000000" min="0" step="100000"><span class="pc-unit">원</span></div>
+      <div class="pc-row"><span class="pc-label">월 임대료</span>
+        <input type="number" class="pc-input" id="bepRent" data-strat="bep" value="1500000" min="0" step="100000"><span class="pc-unit">원</span></div>
+      <div class="pc-row"><span class="pc-label">월 시스템·구독비</span>
+        <input type="number" class="pc-input" id="bepSys" data-strat="bep" value="300000" min="0" step="50000"><span class="pc-unit">원</span></div>
+      <div class="pc-row"><span class="pc-label">월 기타 고정비</span>
+        <input type="number" class="pc-input" id="bepEtc2" data-strat="bep" value="200000" min="0" step="50000"><span class="pc-unit">원</span></div>
+    </div>
+    <div class="bep-total-bar" id="bepTotalBar"></div>
+    <div class="pc-row" style="margin-top:8px"><span class="pc-label">개당 광고비 <small>(변동비에 포함, 없으면 0)</small></span>
+      <input type="number" class="pc-input" id="bepAdPer" data-strat="bep" value="0" min="0" step="500"><span class="pc-unit">원</span></div>
+    <div class="pc-row"><span class="pc-label">고정비 배분 방식</span>
+      <select id="bepAllocMode" class="moq-sim-select" style="width:auto;flex:0 0 auto;min-width:170px">
+        <option value="even" selected>취급 상품 수로 균등</option>
+        <option value="rev">예상 매출 비중으로</option>
+      </select></div>
+    <div style="font-size:11px;color:var(--muted);font-weight:700;margin:8px 0 5px">취급 상품 (할인율·예상 월판매량)</div>
+    <div id="bepItemRows"></div>
+    <button class="add-cost-btn" id="bepAddBtn" style="border-color:var(--rb);color:var(--r)">＋ 상품 추가</button>
+    <div id="bepResult"></div>
   </div>
 
   <div class="strat-layout">
@@ -2766,6 +2808,9 @@ document.addEventListener('input',function(e){
   if(t.dataset.strat==='b2c'){recalcStrategyB2C();return;}
   if(t.dataset.strat==='obm'){recalcStrategyOBM();return;}
   if(t.dataset.strat==='vol'){renderVolumeView();return;}
+  if(t.dataset.strat==='bep'){recalcBep();return;}
+  if(t.dataset.bepdisc!==undefined){var _bi=bepItems.find(function(x){return x.id===t.dataset.bepdisc;});if(_bi){_bi.disc=parseFloat(t.value)||0;recalcBep();}return;}
+  if(t.dataset.bepqty!==undefined){var _bq=bepItems.find(function(x){return x.id===t.dataset.bepqty;});if(_bq){_bq.qty=parseInt(t.value)||0;recalcBep();}return;}
   if(t.dataset.strat==='chan'){renderChannelAlloc();return;}
   if(t.dataset.chanalloc!==undefined){var _c=chanById(t.dataset.chanalloc);if(_c){_c.alloc=parseFloat(t.value)||0;renderChannelAlloc();}return;}
   if(t.dataset.chanom!==undefined){var _c2=chanById(t.dataset.chanom);if(_c2){_c2.om=parseFloat(t.value)||0;renderChannelAlloc();}return;}
@@ -2796,6 +2841,8 @@ document.addEventListener('change',function(e){
   if(t.dataset.stratb2bprod!==undefined){var sbp=strategyB2B.find(function(x){return x.id===t.dataset.stratb2bprod;});if(sbp){sbp.prodNo=parseInt(t.value);renderStratB2bRows();}return;}
   if(t.dataset.setprod!==undefined){var stp=setItems.find(function(x){return x.id===t.dataset.setprod;});if(stp){stp.prodNo=parseInt(t.value);renderSetItemRows();}return;}
   if(t.dataset.chansrc!==undefined){var _cs=chanById(t.dataset.chansrc);if(_cs){_cs.src=t.value;if(CHAN_OM_DEFAULT[t.value]!=null)_cs.om=CHAN_OM_DEFAULT[t.value];else if(t.value!=='custom')_cs.om=0;renderChanRows();}return;}
+  if(t.id==='bepAllocMode'){recalcBep();return;}
+  if(t.dataset.bepprod!==undefined){var _bp=bepItems.find(function(x){return x.id===t.dataset.bepprod;});if(_bp){_bp.prodNo=parseInt(t.value);renderBepRows();}return;}
   if(t.dataset.ctoggle!==undefined){var cp3=coupons.find(function(c){return c.id===t.dataset.ctoggle;});if(cp3){cp3.active=t.checked;renderCoupons();renderPromo();}return;}
   if(t.dataset.ctype!==undefined){var cp4=coupons.find(function(c){return c.id===t.dataset.ctype;});if(cp4){cp4.type=t.value;renderCoupons();renderPromo();}return;}
   if(t.dataset.name!==undefined&&t.dataset.row!==undefined){var ch5=state.find(function(c){return c.id==t.dataset.row;});if(ch5)ch5.name=t.value.trim()||ch5.name;return;}
@@ -2820,6 +2867,8 @@ document.addEventListener('click',function(e){
   if(t.id==='chanEvenBtn'){chanEvenAlloc();return;}
   if(t.id==='chanAddBtn'){chanList.push({id:'chx'+(chanSeq++),name:'새 채널',src:'custom',om:0,custom:0,alloc:0});renderChanRows();return;}
   if(t.dataset.chandel!==undefined){chanList=chanList.filter(function(c){return c.id!==t.dataset.chandel;});renderChanRows();return;}
+  if(t.id==='bepAddBtn'){bepItems.push({id:'bp'+(bepSeq++),prodNo:PRICE_TABLE[0].no,disc:0,qty:100});renderBepRows();return;}
+  if(t.dataset.bepdel!==undefined){bepItems=bepItems.filter(function(x){return x.id!==t.dataset.bepdel;});renderBepRows();return;}
   if(t.id==='setAddBtn'){setItems.push({id:'st'+(setSeq++),prodNo:PRICE_TABLE[0].no,qty:1});renderSetItemRows();return;}
   if(t.dataset.setdel!==undefined){setItems=setItems.filter(function(x){return x.id!==t.dataset.setdel;});renderSetItemRows();return;}
   if(t.id==='authLoginBtn'){doLogin();return;}
@@ -4088,6 +4137,67 @@ function renderExportPrice(){
   box.innerHTML=bd+concl;
 }
 
+/* ── TASK 4: 진짜 손익분기 (고정비 포함) ── */
+var bepItems=[]; var bepSeq=1;
+function renderBepRows(){
+  var el=document.getElementById('bepItemRows'); if(!el) return;
+  el.innerHTML=bepItems.map(function(it){
+    return '<div class="bep-row">'
+      +'<select data-bepprod="'+it.id+'">'+PRICE_TABLE.map(function(p){return '<option value="'+p.no+'"'+(p.no==it.prodNo?' selected':'')+'>'+esc(p.name)+'</option>';}).join('')+'</select>'
+      +'<span class="bep-lbl">할인</span><input type="number" class="bep-mini" data-bepdisc="'+it.id+'" value="'+(it.disc||0)+'" min="0" max="80" step="5"><span class="bep-lbl">%</span>'
+      +'<span class="bep-lbl">월판매</span><input type="number" class="bep-mini" data-bepqty="'+it.id+'" value="'+(it.qty||0)+'" min="0" step="10"><span class="bep-lbl">개</span>'
+      +'<button class="bep-del" data-bepdel="'+it.id+'">✕</button>'
+      +'</div>';
+  }).join('');
+  recalcBep();
+}
+function recalcBep(){
+  var totalBar=document.getElementById('bepTotalBar');
+  var fixedTotal=numv('bepLabor')+numv('bepRent')+numv('bepSys')+numv('bepEtc2');
+  if(totalBar) totalBar.innerHTML='<span>월 총 고정비</span><span class="v">'+fI(fixedTotal)+'원</span>';
+  var box=document.getElementById('bepResult'); if(!box) return;
+  if(!bepItems.length){ box.innerHTML='<div style="font-size:11.5px;color:var(--muted);padding:8px 0">취급 상품을 추가하세요.</div>'; return; }
+  var pg=pcCommonPG/100, ship=pcCommonShip, adPer=numv('bepAdPer');
+  var mode=(document.getElementById('bepAllocMode')||{}).value||'even';
+  var items=bepItems.map(function(it){
+    var prod=PRICE_TABLE.find(function(p){return p.no==it.prodNo;});
+    if(!prod) return null;
+    var price=Math.round(prod.retail*(1-(it.disc||0)/100));
+    var vc=prod.cost+Math.round(price*pg)+ship+adPer;     /* 변동비 = 매입가+PG+배송+광고 */
+    var contrib=price-vc;                                  /* 개당 공헌이익 */
+    var qty=it.qty||0;
+    return {it:it, prod:prod, price:price, contrib:contrib, qty:qty, expRev:price*qty};
+  }).filter(Boolean);
+  var N=items.length;
+  var totExpRev=items.reduce(function(a,x){return a+x.expRev;},0);
+  items.forEach(function(x){
+    x.allocFixed = (mode==='rev' && totExpRev>0) ? fixedTotal*x.expRev/totExpRev : fixedTotal/N;
+    x.bepQty = x.contrib>0 ? Math.ceil(x.allocFixed/x.contrib) : Infinity;   /* BEP수량 = 배분고정비 ÷ 공헌이익 */
+    x.bepRev = isFinite(x.bepQty) ? x.bepQty*x.price : Infinity;
+    x.coverContrib = x.contrib*x.qty;
+    x.covered = x.coverContrib >= x.allocFixed;
+  });
+  var head='<thead><tr><th>상품</th><th>할인</th><th>판매가</th><th>공헌이익</th><th>배분고정비</th><th>BEP수량</th><th>BEP매출</th><th>예상</th></tr></thead>';
+  var body=items.map(function(x){
+    var covCls=x.contrib<=0?'var(--r)':x.covered?'var(--g)':'var(--am)';
+    var covMark=x.contrib<=0?' ⚠':x.covered?' ✅':' ⚠';
+    return '<tr><td style="text-align:left;max-width:120px;white-space:normal;line-height:1.3;font-size:11px">'+esc(x.prod.name)+'</td>'
+      +'<td>'+(x.it.disc||0)+'%</td><td>'+fI(x.price)+'</td>'
+      +'<td style="color:'+(x.contrib>0?'var(--g)':'var(--r)')+';font-weight:700">'+(x.contrib>=0?'+':'')+fI(x.contrib)+'</td>'
+      +'<td>'+fI(Math.round(x.allocFixed))+'</td>'
+      +'<td style="font-weight:800;color:var(--b)">'+(isFinite(x.bepQty)?fI(x.bepQty)+'개':'∞')+'</td>'
+      +'<td>'+(isFinite(x.bepRev)?fI(Math.round(x.bepRev)):'∞')+'</td>'
+      +'<td style="color:'+covCls+';font-weight:700">'+fI(x.qty)+'개'+covMark+'</td></tr>';
+  }).join('');
+  var totContrib=items.reduce(function(a,x){return a+x.coverContrib;},0);
+  var netProfit=totContrib-fixedTotal;
+  var coverPct=fixedTotal>0?totContrib/fixedTotal*100:0;
+  var concl='<div class="bep-box '+(netProfit>=0?'ok':'bad')+'" style="margin-top:8px"><div class="bep-title">'
+    +(netProfit>=0?'✅ 고정비 커버 — 월 순이익 +'+fI(Math.round(netProfit))+'원':'🚨 고정비 미달 — 월 '+fI(Math.abs(Math.round(netProfit)))+'원 적자')+'</div>'
+    +'예상 판매 기준 공헌이익 합계 '+fI(Math.round(totContrib))+'원 vs 월 고정비 '+fI(fixedTotal)+'원 (커버율 '+Math.round(coverPct)+'%) · 배분: '+(mode==='rev'?'매출비중':'균등')+'</div>';
+  box.innerHTML='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="vol-table" style="min-width:620px">'+head+'<tbody>'+body+'</tbody></table></div>'+concl;
+}
+
 /* ── B2C 온라인 전략 ── */
 function recalcStrategyB2C(){
   var out=document.getElementById('b2cOut'); if(!out) return;
@@ -4300,6 +4410,11 @@ function renderStrategy(){
     setItems.push({id:'st'+(setSeq++),prodNo:(PRICE_TABLE[1]||PRICE_TABLE[0]).no,qty:1});
   }
   renderSetItemRows();
+  if(!bepItems.length){
+    bepItems.push({id:'bp'+(bepSeq++),prodNo:PRICE_TABLE[0].no,disc:0,qty:200});
+    bepItems.push({id:'bp'+(bepSeq++),prodNo:(PRICE_TABLE[88]||PRICE_TABLE[0]).no,disc:30,qty:150});
+  }
+  renderBepRows();
   recalcStrategyB2C();
   recalcStrategyOBM();
   renderVolumeView();
@@ -4420,7 +4535,7 @@ function doLogout(){
 /* ── 전체 상태 수집/복원 ── */
 var STRAT_INPUT_IDS=['b2cRev','b2cMg','b2cAov','b2cCvr','b2cRoas','obmLabor','obmRent','obmEtc',
   'trfRev','trfAov','trfCvr','trfCtr','trfCpc','ordMonthly','ordSafety','volBaseQty','volElastic',
-  'chanTarget',
+  'chanTarget','bepLabor','bepRent','bepSys','bepEtc2','bepAdPer','bepAllocMode',
   'setThreshold','setTargetMg','ptnConsumer','ptnMargin','ptnMyMin',
   'expPrice','expTerm','expFreight','expAgentPct','expEtc','expTargetMg',
   'qSupplier','qBizNo','qSupTel','qSupAddr','qCustomer','qContact','qValidDays','qNote'];
@@ -4443,7 +4558,7 @@ function collectFullState(){
     /* MOQ */
     moqTiers:moqTiers, moqSimItems2:moqSimItems2,
     /* 전략 */
-    stratRefNo:stratRefNo, strategyB2B:strategyB2B, setItems:setItems, chanList:chanList, stratInputs:readStratInputs(),
+    stratRefNo:stratRefNo, strategyB2B:strategyB2B, setItems:setItems, chanList:chanList, bepItems:bepItems, stratInputs:readStratInputs(),
     qVat: !!(document.getElementById('qVat')||{}).checked
   };
 }
@@ -4461,7 +4576,7 @@ function applyFullState(d){
   if(d.pcCommonShip!=null)pcCommonShip=d.pcCommonShip; if(d.pcCommonLogistics!=null)pcCommonLogistics=d.pcCommonLogistics;
   if(d.pcCommonPG!=null)pcCommonPG=d.pcCommonPG; if(d.prodProfiles)prodProfiles=d.prodProfiles;
   if(d.moqTiers)moqTiers=d.moqTiers; if(d.moqSimItems2)moqSimItems2=d.moqSimItems2;
-  if(d.stratRefNo)stratRefNo=d.stratRefNo; if(d.strategyB2B)strategyB2B=d.strategyB2B; if(d.setItems)setItems=d.setItems; if(d.chanList)chanList=d.chanList;
+  if(d.stratRefNo)stratRefNo=d.stratRefNo; if(d.strategyB2B)strategyB2B=d.strategyB2B; if(d.setItems)setItems=d.setItems; if(d.chanList)chanList=d.chanList; if(d.bepItems)bepItems=d.bepItems;
   state.forEach(function(ch){if(!ch.links)ch.links=[mklink('기본','')];if(!ch.utm)ch.utm={source:'',medium:''};if(!ch.ctype)ch.ctype='수확';if(!ch.stage)ch.stage='신규';});
   syncControls();
   var mg=document.getElementById('mgSlider'); if(mg)mg.value=pcMgTarget; setT('pcMgVal',pcMgTarget+'%');

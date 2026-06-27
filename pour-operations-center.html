@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>POUR Operations Center</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<!-- Firebase 10.12.0 compat (별도 계정 클라우드 동기화용) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
 :root{
   --g:#1B6B3A;--gm:#2E8B57;--gl:#EAF4EE;--gb:#B8DDC8;
@@ -705,6 +708,16 @@ table.moq-table{border-collapse:separate;border-spacing:0;width:100%;min-width:7
 .sq-row:last-child{border-bottom:none}
 .sq-row.total{font-size:15px;font-weight:800;border-top:2px solid rgba(255,255,255,.25);border-bottom:none;padding-top:9px;margin-top:4px}
 .sq-row .sq-val.ok{color:#7EFFD4}.sq-row .sq-val.warn{color:#FFE08A}.sq-row .sq-val.bad{color:#FFB3AE}
+/* ☁ 클라우드 동기화 */
+.cloud-sec{padding:9px 0;border-top:1px dashed var(--rule)}
+.cloud-sec:first-of-type{border-top:none;padding-top:0}
+.cloud-sec-t{font-size:12px;font-weight:700;margin-bottom:7px}
+.cloud-btns{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.cloud-list{margin-top:7px;display:flex;flex-direction:column;gap:4px}
+.cloud-item{display:flex;align-items:center;gap:6px;background:var(--bg);border-radius:6px;padding:7px 9px}
+.cloud-item .ci-nm{flex:1;min-width:0;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cloud-item .ci-nm small{display:block;font-size:10px;color:var(--muted);font-weight:400}
+.cloud-item .pc-tool-btn{font-size:11px;padding:4px 9px}
 </style>
 </head>
 <body>
@@ -1228,6 +1241,53 @@ table.moq-table{border-collapse:separate;border-spacing:0;width:100%;min-width:7
     </div>
   </div>
 
+  <!-- ☁ 클라우드 동기화 (별도 계정 DB) -->
+  <div class="card" id="cloudCard">
+    <div class="card-title">☁ 클라우드 동기화 <span class="badge red" id="cloudStatusBadge">미설정</span></div>
+    <div id="cloudConfigHint" style="font-size:11.5px;color:var(--am);background:var(--al);border:1px solid #F5C97A;border-radius:7px;padding:10px 12px;line-height:1.7">
+      <b>별도 Firebase 계정 연결 필요</b><br>
+      코드 상단 <code style="background:#fff;border-radius:3px;padding:1px 4px">OPS_DB_CONFIG</code> 객체에 새 프로젝트 web config(apiKey·projectId 등 6종)를 입력하면
+      이 도구의 데이터가 <b>기존 운영 DB와 분리된 새 계정</b>에 저장됩니다.<br>
+      <span style="font-size:10.5px;color:var(--muted)">컬렉션: ops-snapshots · ops-strategy-scenarios · ops-cost-profiles · ops-b2b-quotes</span>
+    </div>
+    <div id="cloudPanel" style="display:none">
+      <!-- 전체 상태 백업 -->
+      <div class="cloud-sec">
+        <div class="cloud-sec-t">📦 전체 상태 백업</div>
+        <div class="cloud-btns">
+          <button class="pc-tool-btn" data-cloud="snapSave" style="background:var(--g);color:#fff;border-color:var(--g)">☁ 백업</button>
+          <button class="pc-tool-btn" data-cloud="snapLoad">↓ 최근 복원</button>
+        </div>
+      </div>
+      <!-- 전략 시나리오 -->
+      <div class="cloud-sec">
+        <div class="cloud-sec-t">🎯 전략 시나리오</div>
+        <div class="cloud-btns">
+          <input type="text" id="scenName" placeholder="시나리오 이름" style="flex:1;min-width:120px;border:1.5px solid var(--rule);border-radius:6px;padding:7px 9px;font-family:var(--sans);font-size:12px;background:var(--w)">
+          <button class="pc-tool-btn" data-cloud="scenSave" style="background:var(--b);color:#fff;border-color:var(--b)">＋ 저장</button>
+          <button class="pc-tool-btn" data-cloud="scenRefresh">↻ 목록</button>
+        </div>
+        <div id="cloudScenList" class="cloud-list"></div>
+      </div>
+      <!-- 원가 프로파일 -->
+      <div class="cloud-sec">
+        <div class="cloud-sec-t">💰 원가 프로파일</div>
+        <div class="cloud-btns">
+          <button class="pc-tool-btn" data-cloud="costSave">☁ 저장</button>
+          <button class="pc-tool-btn" data-cloud="costLoad">↓ 최근 복원</button>
+        </div>
+      </div>
+      <!-- B2B 견적 이력 -->
+      <div class="cloud-sec">
+        <div class="cloud-sec-t">🧾 B2B 견적 이력 <span style="font-size:10px;color:var(--muted);font-weight:400">(아래 견적 카드의 ☁ 저장으로 누적)</span></div>
+        <div class="cloud-btns">
+          <button class="pc-tool-btn" data-cloud="quoteRefresh">↻ 목록</button>
+        </div>
+        <div id="cloudQuoteList" class="cloud-list"></div>
+      </div>
+    </div>
+  </div>
+
   <div class="strat-layout">
 
     <!-- ── 왼쪽: B2C 전략 ── -->
@@ -1268,7 +1328,10 @@ table.moq-table{border-collapse:separate;border-spacing:0;width:100%;min-width:7
         <div id="stratB2bRows"></div>
         <button class="add-cost-btn" id="stratB2bAdd" style="border-color:var(--bb);color:var(--b)">＋ 상품 추가</button>
         <div class="strat-quote" id="stratB2bQuote" style="display:none"></div>
-        <button class="pc-tool-btn" id="stratPrint" style="margin-top:10px;background:var(--b);color:#fff;border-color:var(--b);width:100%;display:none">🖨 견적서 인쇄</button>
+        <div style="display:flex;gap:6px;margin-top:10px">
+          <button class="pc-tool-btn" id="stratPrint" style="background:var(--b);color:#fff;border-color:var(--b);flex:1;display:none">🖨 견적서 인쇄</button>
+          <button class="pc-tool-btn" id="stratB2bSaveBtn" data-cloud="quoteSave" style="background:var(--g);color:#fff;border-color:var(--g);flex:1;display:none">☁ 견적 저장</button>
+        </div>
       </div>
 
       <!-- OBM ② 트래픽 역산 -->
@@ -2536,6 +2599,19 @@ document.addEventListener('click',function(e){
   if(t.id==='stratB2bAdd'){strategyB2B.push({id:'sb'+(stratB2bSeq++),prodNo:PRICE_TABLE[0].no,qty:50});renderStratB2bRows();return;}
   if(t.dataset.stratb2bdel!==undefined){strategyB2B=strategyB2B.filter(function(x){return x.id!==t.dataset.stratb2bdel;});renderStratB2bRows();return;}
   if(t.id==='stratPrint'){printB2bQuote();return;}
+  if(t.dataset.cloud!==undefined){var act=t.dataset.cloud;
+    if(act==='snapSave')dbSaveSnapshot();
+    else if(act==='snapLoad')dbLoadLatestSnapshot();
+    else if(act==='scenSave')dbSaveScenario();
+    else if(act==='scenRefresh')dbListScenarios();
+    else if(act==='costSave')dbSaveCostProfiles();
+    else if(act==='costLoad')dbLoadCostProfiles();
+    else if(act==='quoteSave')dbSaveB2bQuote();
+    else if(act==='quoteRefresh')dbListQuotes();
+    return;}
+  if(t.dataset.scenload!==undefined){dbLoadScenario(t.dataset.scenload);return;}
+  if(t.dataset.scendel!==undefined){dbDeleteScenario(t.dataset.scendel);return;}
+  if(t.dataset.quotedel!==undefined){dbDeleteQuote(t.dataset.quotedel);return;}
   if(t.id==='mToggle'){marketerMode=!marketerMode;renderAll();return;}
   if(t.id==='btnSave'){exportJSON();return;}
   if(t.id==='btnCsv'){exportCSV();return;}
@@ -3582,8 +3658,10 @@ function recalcStratB2b(){
   var quote=document.getElementById('stratB2bQuote');
   var printBtn=document.getElementById('stratPrint');
   if(!quote) return;
-  if(!strategyB2B.length){ quote.style.display='none'; if(printBtn)printBtn.style.display='none'; return; }
+  var saveBtn=document.getElementById('stratB2bSaveBtn');
+  if(!strategyB2B.length){ quote.style.display='none'; if(printBtn)printBtn.style.display='none'; if(saveBtn)saveBtn.style.display='none'; return; }
   quote.style.display='block'; if(printBtn)printBtn.style.display='block';
+  if(saveBtn)saveBtn.style.display=(typeof opsDbReady==='function'&&opsDbReady())?'block':'none';
   var totRev=0, totCost=0, totProfit=0;
   var rows='';
   strategyB2B.forEach(function(item){
@@ -3651,6 +3729,271 @@ function renderStrategy(){
   renderStratB2bRows();
   recalcStrategyB2C();
   recalcStrategyOBM();
+  renderCloudCard();
+}
+
+/* ============================================================
+   ☁ 클라우드 동기화 — 별도 Firebase 계정에 데이터 축적
+   기존 운영 DB(pour-app-new)와 격리: 별도 앱 인스턴스 'opsCenter' 사용
+   ▶▶ 사용법: 아래 OPS_DB_CONFIG 6종 값을 새 프로젝트 config로 채우면 활성화 ◀◀
+============================================================ */
+var OPS_DB_CONFIG = {
+  apiKey:            "",   /* 새 Firebase 프로젝트 웹 config 붙여넣기 */
+  authDomain:        "",
+  projectId:         "",
+  storageBucket:     "",
+  messagingSenderId: "",
+  appId:             ""
+};
+/* 컬렉션 (kebab-case) — ops- 접두어로 기존 컬렉션과 충돌 방지 */
+var OPS_COL = { SNAP:'ops-snapshots', SCEN:'ops-strategy-scenarios', COST:'ops-cost-profiles', QUOTE:'ops-b2b-quotes' };
+var opsApp=null, opsDb=null;
+
+function initOpsDb(){
+  if(opsDb) return opsDb;
+  if(typeof firebase==='undefined'){ return null; }                 /* SDK 미로드(오프라인 등) */
+  if(!OPS_DB_CONFIG.projectId || !OPS_DB_CONFIG.apiKey){ return null; } /* config 미설정 */
+  try{
+    var exists = firebase.apps && firebase.apps.some(function(a){return a.name==='opsCenter';});
+    opsApp = exists ? firebase.app('opsCenter') : firebase.initializeApp(OPS_DB_CONFIG, 'opsCenter');
+    opsDb  = firebase.firestore(opsApp);
+    console.log('[ops-db] 연결됨:', OPS_DB_CONFIG.projectId);
+    return opsDb;
+  }catch(e){ console.error('[ops-db] 초기화 실패:', e); return null; }
+}
+function opsDbReady(){ return !!initOpsDb(); }
+
+/* 간단 토스트 */
+function opsToast(msg, ok){
+  var d=document.createElement('div');
+  d.textContent=(ok?'✅ ':'⚠️ ')+msg;
+  d.style.cssText='position:fixed;bottom:48px;left:50%;transform:translateX(-50%);z-index:9999;'
+    +'padding:11px 18px;border-radius:10px;font-size:13px;font-weight:700;color:#fff;'
+    +'box-shadow:0 6px 24px rgba(0,0,0,.25);max-width:90%;text-align:center;'
+    +'background:'+(ok?'#1B6B3A':'#C0392B');
+  document.body.appendChild(d);
+  setTimeout(function(){d.remove();},2600);
+}
+
+/* ── 전체 상태 수집/복원 ── */
+var STRAT_INPUT_IDS=['b2cRev','b2cMg','b2cAov','b2cCvr','b2cRoas','obmLabor','obmRent','obmEtc',
+  'trfRev','trfAov','trfCvr','trfCtr','trfCpc','ordMonthly','ordSafety'];
+function readStratInputs(){var o={};STRAT_INPUT_IDS.forEach(function(id){var el=document.getElementById(id);if(el)o[id]=el.value;});return o;}
+function writeStratInputs(o){if(!o)return;STRAT_INPUT_IDS.forEach(function(id){if(o[id]!=null){var el=document.getElementById(id);if(el)el.value=o[id];}});}
+
+function collectFullState(){
+  return {
+    v:5, savedAt:new Date().toISOString(),
+    /* 마케팅·프로모션 */
+    products:products, activeProductId:activeProductId, state:state,
+    utmBase:utmBase, utmCampaign:utmCampaign, scenarioMult:scenarioMult,
+    periodDays:periodDays, goalRevenue:goalRevenue,
+    discPct:discPct, pPG:pPG, pOM:pOM, pDelivery:pDelivery, pMkt:pMkt, pPromoMkt:pPromoMkt,
+    pChannel:pChannel, pBaseMode:pBaseMode, pSellRatio:pSellRatio, coupons:coupons,
+    selectedProds:selectedProds, promoPurpose:promoPurpose, couponMode:couponMode,
+    /* 가격설계 */
+    pcMgTarget:pcMgTarget, pcListMult:pcListMult, pcCommonShip:pcCommonShip,
+    pcCommonLogistics:pcCommonLogistics, pcCommonPG:pcCommonPG, prodProfiles:prodProfiles,
+    /* MOQ */
+    moqTiers:moqTiers, moqSimItems2:moqSimItems2,
+    /* 전략 */
+    stratRefNo:stratRefNo, strategyB2B:strategyB2B, stratInputs:readStratInputs()
+  };
+}
+function applyFullState(d){
+  if(!d) return;
+  if(d.products)products=d.products; if(d.activeProductId)activeProductId=d.activeProductId; if(d.state)state=d.state;
+  if(d.utmBase!=null)utmBase=d.utmBase; if(d.utmCampaign!=null)utmCampaign=d.utmCampaign;
+  if(d.scenarioMult)scenarioMult=d.scenarioMult; if(d.periodDays)periodDays=d.periodDays; if(d.goalRevenue)goalRevenue=d.goalRevenue;
+  if(d.discPct!=null)discPct=d.discPct; if(d.pPG!=null)pPG=d.pPG; if(d.pOM!=null)pOM=d.pOM;
+  if(d.pDelivery!=null)pDelivery=d.pDelivery; if(d.pMkt!=null)pMkt=d.pMkt; if(d.pPromoMkt!=null)pPromoMkt=d.pPromoMkt;
+  if(d.pChannel)pChannel=d.pChannel; if(d.pBaseMode)pBaseMode=d.pBaseMode; if(d.pSellRatio!=null)pSellRatio=d.pSellRatio;
+  if(d.coupons)coupons=d.coupons; if(d.selectedProds)selectedProds=d.selectedProds;
+  if(d.promoPurpose!=null)promoPurpose=d.promoPurpose; if(d.couponMode)couponMode=d.couponMode;
+  if(d.pcMgTarget!=null)pcMgTarget=d.pcMgTarget; if(d.pcListMult!=null)pcListMult=d.pcListMult;
+  if(d.pcCommonShip!=null)pcCommonShip=d.pcCommonShip; if(d.pcCommonLogistics!=null)pcCommonLogistics=d.pcCommonLogistics;
+  if(d.pcCommonPG!=null)pcCommonPG=d.pcCommonPG; if(d.prodProfiles)prodProfiles=d.prodProfiles;
+  if(d.moqTiers)moqTiers=d.moqTiers; if(d.moqSimItems2)moqSimItems2=d.moqSimItems2;
+  if(d.stratRefNo)stratRefNo=d.stratRefNo; if(d.strategyB2B)strategyB2B=d.strategyB2B;
+  state.forEach(function(ch){if(!ch.links)ch.links=[mklink('기본','')];if(!ch.utm)ch.utm={source:'',medium:''};if(!ch.ctype)ch.ctype='수확';if(!ch.stage)ch.stage='신규';});
+  syncControls();
+  var mg=document.getElementById('mgSlider'); if(mg)mg.value=pcMgTarget; setT('pcMgVal',pcMgTarget+'%');
+  var lm=document.getElementById('pcListMult'); if(lm)lm.value=pcListMult;
+  var cs=document.getElementById('pcCommonShip'); if(cs)cs.value=pcCommonShip;
+  var cl=document.getElementById('pcCommonLogistics'); if(cl)cl.value=pcCommonLogistics;
+  var cg=document.getElementById('pcCommonPG'); if(cg)cg.value=pcCommonPG;
+  writeStratInputs(d.stratInputs);
+  setCouponMode(couponMode||'product');
+  renderAll();
+  renderPcCatFilter(); renderPcProdList();
+  renderMoqTierSetup(); renderMoqCatFilter2(); renderMoqTable2(); renderMoqSim2();
+  renderStrategy();
+}
+
+/* ── ① 전체 상태 백업/복원 ── */
+function dbSaveSnapshot(){
+  if(!opsDbReady()){ opsToast('클라우드 미설정 — config를 먼저 입력하세요',false); return; }
+  var payload=collectFullState();
+  opsDb.collection(OPS_COL.SNAP).add(payload).then(function(ref){
+    console.log('[ops-snapshots] 저장:', ref.id);
+    opsToast('전체 상태 백업 완료',true); renderCloudCard();
+  }).catch(function(e){ console.error('[ops-snapshots] 저장 실패:',e); opsToast('백업 실패: '+e.message,false); });
+}
+function dbLoadLatestSnapshot(){
+  if(!opsDbReady()){ opsToast('클라우드 미설정',false); return; }
+  opsDb.collection(OPS_COL.SNAP).get().then(function(snap){
+    console.log('[ops-snapshots]',snap.size,'건 로드');
+    if(!snap.size){ opsToast('백업 기록이 없습니다',false); return; }
+    var docs=snap.docs.map(function(x){return Object.assign({id:x.id},x.data());});
+    docs.sort(function(a,b){return (b.savedAt||'').localeCompare(a.savedAt||'');}); /* orderBy 미사용 */
+    applyFullState(docs[0]);
+    opsToast('최근 백업 복원 완료 ('+(docs[0].savedAt||'').slice(0,16).replace('T',' ')+')',true);
+  }).catch(function(e){ console.error('[ops-snapshots] 불러오기 실패:',e); opsToast('복원 실패: '+e.message,false); });
+}
+
+/* ── ② 전략 시나리오 저장/목록/복원/삭제 ── */
+function dbSaveScenario(){
+  if(!opsDbReady()){ opsToast('클라우드 미설정',false); return; }
+  var nameEl=document.getElementById('scenName');
+  var nm=(nameEl&&nameEl.value.trim())||('시나리오 '+new Date().toISOString().slice(5,16).replace('T',' '));
+  opsDb.collection(OPS_COL.SCEN).add({
+    name:nm, savedAt:new Date().toISOString(), stratRefNo:stratRefNo,
+    stratInputs:readStratInputs(), strategyB2B:strategyB2B,
+    common:{pcCommonPG:pcCommonPG, pcCommonShip:pcCommonShip}
+  }).then(function(ref){
+    console.log('[ops-strategy-scenarios] 저장:',ref.id);
+    if(nameEl)nameEl.value='';
+    opsToast('전략 시나리오 저장: '+nm,true); dbListScenarios();
+  }).catch(function(e){ console.error('[ops-strategy-scenarios] 저장 실패:',e); opsToast('저장 실패: '+e.message,false); });
+}
+function dbListScenarios(){
+  var box=document.getElementById('cloudScenList'); if(!box) return;
+  if(!opsDbReady()){ box.innerHTML='<div style="font-size:11px;color:var(--muted)">클라우드 미설정</div>'; return; }
+  box.innerHTML='<div style="font-size:11px;color:var(--muted)">불러오는 중…</div>';
+  opsDb.collection(OPS_COL.SCEN).get().then(function(snap){
+    console.log('[ops-strategy-scenarios]',snap.size,'건');
+    var docs=snap.docs.map(function(x){return Object.assign({id:x.id},x.data());});
+    docs.sort(function(a,b){return (b.savedAt||'').localeCompare(a.savedAt||'');});
+    box.innerHTML = docs.length ? docs.map(function(s){
+      return '<div class="cloud-item"><span class="ci-nm">'+esc(s.name||'(무제)')+'<small>'+(s.savedAt||'').slice(0,16).replace('T',' ')+'</small></span>'
+        +'<button class="pc-tool-btn" data-scenload="'+s.id+'">불러오기</button>'
+        +'<button class="pc-tool-btn" data-scendel="'+s.id+'" style="color:var(--r)">삭제</button></div>';
+    }).join('') : '<div style="font-size:11px;color:var(--muted)">저장된 시나리오 없음</div>';
+  }).catch(function(e){ console.error('[ops-strategy-scenarios] 목록 실패:',e); box.innerHTML='<div style="font-size:11px;color:var(--r)">목록 로드 실패</div>'; });
+}
+function dbLoadScenario(id){
+  if(!opsDbReady())return;
+  opsDb.collection(OPS_COL.SCEN).doc(id).get().then(function(doc){
+    if(!doc.exists){ opsToast('시나리오를 찾을 수 없음',false); return; }
+    var s=doc.data();
+    if(s.stratRefNo)stratRefNo=s.stratRefNo;
+    if(s.strategyB2B)strategyB2B=s.strategyB2B;
+    if(s.common){ if(s.common.pcCommonPG!=null)pcCommonPG=s.common.pcCommonPG; if(s.common.pcCommonShip!=null)pcCommonShip=s.common.pcCommonShip; }
+    renderStrategy();
+    writeStratInputs(s.stratInputs);
+    recalcStrategyB2C(); recalcStrategyOBM();
+    opsToast('시나리오 불러옴: '+(s.name||''),true);
+  }).catch(function(e){ console.error('[scenario load]',e); opsToast('불러오기 실패: '+e.message,false); });
+}
+function dbDeleteScenario(id){
+  if(!opsDbReady())return;
+  if(!confirm('이 시나리오를 삭제할까요?'))return;
+  opsDb.collection(OPS_COL.SCEN).doc(id).delete().then(function(){
+    console.log('[ops-strategy-scenarios] 삭제:',id); opsToast('삭제 완료',true); dbListScenarios();
+  }).catch(function(e){ console.error('[scenario del]',e); opsToast('삭제 실패: '+e.message,false); });
+}
+
+/* ── ③ 원가 프로파일 저장/복원 ── */
+function dbSaveCostProfiles(){
+  if(!opsDbReady()){ opsToast('클라우드 미설정',false); return; }
+  opsDb.collection(OPS_COL.COST).add({
+    savedAt:new Date().toISOString(), prodProfiles:prodProfiles,
+    common:{pcMgTarget:pcMgTarget, pcListMult:pcListMult, pcCommonShip:pcCommonShip,
+      pcCommonLogistics:pcCommonLogistics, pcCommonPG:pcCommonPG}
+  }).then(function(ref){
+    console.log('[ops-cost-profiles] 저장:',ref.id); opsToast('원가 프로파일 저장 완료',true);
+  }).catch(function(e){ console.error('[ops-cost-profiles] 저장 실패:',e); opsToast('저장 실패: '+e.message,false); });
+}
+function dbLoadCostProfiles(){
+  if(!opsDbReady()){ opsToast('클라우드 미설정',false); return; }
+  opsDb.collection(OPS_COL.COST).get().then(function(snap){
+    console.log('[ops-cost-profiles]',snap.size,'건');
+    if(!snap.size){ opsToast('저장된 원가 프로파일 없음',false); return; }
+    var docs=snap.docs.map(function(x){return Object.assign({id:x.id},x.data());});
+    docs.sort(function(a,b){return (b.savedAt||'').localeCompare(a.savedAt||'');});
+    var d=docs[0];
+    if(d.prodProfiles)prodProfiles=d.prodProfiles;
+    if(d.common){ var c=d.common;
+      if(c.pcMgTarget!=null)pcMgTarget=c.pcMgTarget; if(c.pcListMult!=null)pcListMult=c.pcListMult;
+      if(c.pcCommonShip!=null)pcCommonShip=c.pcCommonShip; if(c.pcCommonLogistics!=null)pcCommonLogistics=c.pcCommonLogistics;
+      if(c.pcCommonPG!=null)pcCommonPG=c.pcCommonPG;
+      var mg=document.getElementById('mgSlider'); if(mg)mg.value=pcMgTarget; setT('pcMgVal',pcMgTarget+'%');
+      var lm=document.getElementById('pcListMult'); if(lm)lm.value=pcListMult;
+      var cs=document.getElementById('pcCommonShip'); if(cs)cs.value=pcCommonShip;
+      var clg=document.getElementById('pcCommonLogistics'); if(clg)clg.value=pcCommonLogistics;
+      var cg=document.getElementById('pcCommonPG'); if(cg)cg.value=pcCommonPG;
+    }
+    renderPcCatFilter(); renderPcProdList();
+    opsToast('최근 원가 프로파일 복원 완료',true);
+  }).catch(function(e){ console.error('[ops-cost-profiles] 불러오기 실패:',e); opsToast('복원 실패: '+e.message,false); });
+}
+
+/* ── ④ B2B 견적 이력 저장/목록 ── */
+function dbSaveB2bQuote(){
+  if(!opsDbReady()){ opsToast('클라우드 미설정',false); return; }
+  if(!strategyB2B.length){ opsToast('견적 상품을 먼저 추가하세요',false); return; }
+  var items=[], totRev=0, totCost=0, totProfit=0;
+  strategyB2B.forEach(function(it){
+    var p=PRICE_TABLE.find(function(x){return x.no==it.prodNo;}); if(!p)return;
+    var tier=getTier2(it.qty); var c=calcTierPrice(p,tier); if(!c.valid)return;
+    var lineRev=c.price*it.qty;
+    items.push({no:p.no, name:p.name, qty:it.qty, tier:moqTierLabel(moqTiers.indexOf(tier)), price:c.price, lineTotal:lineRev});
+    totRev+=lineRev; totCost+=c.totalCost*it.qty; totProfit+=c.profit*it.qty;
+  });
+  opsDb.collection(OPS_COL.QUOTE).add({
+    savedAt:new Date().toISOString(), items:items,
+    totRev:Math.round(totRev), totCost:Math.round(totCost), totProfit:Math.round(totProfit),
+    marginRate: totRev>0 ? +(totProfit/totRev*100).toFixed(1) : 0
+  }).then(function(ref){
+    console.log('[ops-b2b-quotes] 저장:',ref.id); opsToast('B2B 견적 이력 저장 완료',true); dbListQuotes();
+  }).catch(function(e){ console.error('[ops-b2b-quotes] 저장 실패:',e); opsToast('저장 실패: '+e.message,false); });
+}
+function dbListQuotes(){
+  var box=document.getElementById('cloudQuoteList'); if(!box) return;
+  if(!opsDbReady()){ box.innerHTML='<div style="font-size:11px;color:var(--muted)">클라우드 미설정</div>'; return; }
+  box.innerHTML='<div style="font-size:11px;color:var(--muted)">불러오는 중…</div>';
+  opsDb.collection(OPS_COL.QUOTE).get().then(function(snap){
+    console.log('[ops-b2b-quotes]',snap.size,'건');
+    var docs=snap.docs.map(function(x){return Object.assign({id:x.id},x.data());});
+    docs.sort(function(a,b){return (b.savedAt||'').localeCompare(a.savedAt||'');});
+    box.innerHTML = docs.length ? docs.slice(0,20).map(function(q){
+      return '<div class="cloud-item"><span class="ci-nm">'+fI(q.totRev||0)+'원 · '+(q.items?q.items.length:0)+'종 '
+        +'<small>'+(q.savedAt||'').slice(0,16).replace('T',' ')+' · 마진 '+(q.marginRate||0)+'%</small></span>'
+        +'<button class="pc-tool-btn" data-quotedel="'+q.id+'" style="color:var(--r)">삭제</button></div>';
+    }).join('') : '<div style="font-size:11px;color:var(--muted)">저장된 견적 없음</div>';
+  }).catch(function(e){ console.error('[ops-b2b-quotes] 목록 실패:',e); box.innerHTML='<div style="font-size:11px;color:var(--r)">목록 로드 실패</div>'; });
+}
+function dbDeleteQuote(id){
+  if(!opsDbReady())return;
+  if(!confirm('이 견적 기록을 삭제할까요?'))return;
+  opsDb.collection(OPS_COL.QUOTE).doc(id).delete().then(function(){
+    opsToast('삭제 완료',true); dbListQuotes();
+  }).catch(function(e){ console.error('[quote del]',e); opsToast('삭제 실패: '+e.message,false); });
+}
+
+/* ── 클라우드 카드 상태 렌더 ── */
+function renderCloudCard(){
+  var badge=document.getElementById('cloudStatusBadge');
+  var hint=document.getElementById('cloudConfigHint');
+  var panel=document.getElementById('cloudPanel');
+  var ready=opsDbReady();
+  if(badge){ badge.textContent=ready?'연결됨':'미설정'; badge.className='badge'+(ready?'':' red'); }
+  if(hint) hint.style.display=ready?'none':'block';
+  if(panel) panel.style.display=ready?'block':'none';
+  if(ready){ dbListScenarios(); dbListQuotes(); }
+  /* B2B 견적 저장 버튼 노출 (config 있을 때만, 상품 있을 때만) */
+  var sb=document.getElementById('stratB2bSaveBtn');
+  if(sb) sb.style.display=(ready && strategyB2B.length)?'block':'none';
 }
 
 renderAll();

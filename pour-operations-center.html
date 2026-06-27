@@ -8,6 +8,7 @@
 <!-- Firebase 10.12.0 compat (별도 계정 클라우드 동기화용) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <style>
 :root{
   --g:#1B6B3A;--gm:#2E8B57;--gl:#EAF4EE;--gb:#B8DDC8;
@@ -718,9 +719,47 @@ table.moq-table{border-collapse:separate;border-spacing:0;width:100%;min-width:7
 .cloud-item .ci-nm{flex:1;min-width:0;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cloud-item .ci-nm small{display:block;font-size:10px;color:var(--muted);font-weight:400}
 .cloud-item .pc-tool-btn{font-size:11px;padding:4px 9px}
+/* 🔒 로그인 게이트 */
+body.locked .shell{display:none!important}
+body:not(.locked) #authGate{display:none}
+.auth-gate{position:fixed;inset:0;z-index:10000;background:linear-gradient(160deg,#0D1B2A,#1B6B3A);display:flex;align-items:center;justify-content:center;padding:20px}
+.auth-box{background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.35);padding:28px 24px;width:100%;max-width:360px;text-align:center}
+.auth-logo{font-size:20px;font-weight:900;color:var(--g);letter-spacing:-.5px}
+.auth-sub{font-size:12px;color:var(--muted);margin:4px 0 20px;font-weight:600}
+.auth-box input{width:100%;border:1.5px solid var(--rule);border-radius:9px;padding:13px 14px;font-family:var(--sans);font-size:15px;margin-bottom:10px;background:var(--bg)}
+.auth-box input:focus{outline:2px solid var(--gm);outline-offset:-2px;background:#fff}
+#authLoginBtn{width:100%;border:none;border-radius:9px;padding:14px;font-family:var(--sans);font-size:15px;font-weight:800;color:#fff;background:var(--g);cursor:pointer;margin-top:4px;touch-action:manipulation}
+#authLoginBtn:active{background:var(--gm)}
+#authLoginBtn:disabled{opacity:.6}
+.auth-err{font-size:12.5px;font-weight:700;color:var(--r);margin-top:12px;min-height:16px;line-height:1.5}
+.auth-status{font-size:11px;color:var(--muted);margin-top:14px;line-height:1.5}
+.auth-hint{font-size:10.5px;color:var(--muted);margin-top:16px;border-top:1px solid var(--rule);padding-top:12px;line-height:1.6}
+/* 로그아웃 버튼 + 이메일 (topbar) */
+.auth-userbox{display:none;align-items:center;gap:7px;margin-left:8px}
+body:not(.locked) .auth-userbox{display:flex}
+.auth-email{font-size:10.5px;color:rgba(255,255,255,.85);font-weight:600;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#authLogout{border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.13);color:#fff;border-radius:5px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--sans);white-space:nowrap;touch-action:manipulation}
+#authLogout:active{background:rgba(255,255,255,.25)}
 </style>
 </head>
-<body>
+<body class="locked">
+
+<!-- 🔒 로그인 게이트 (Firebase 이메일 인증) -->
+<div class="auth-gate" id="authGate">
+  <div class="auth-box">
+    <div class="auth-logo">POUR OPS CENTER</div>
+    <div class="auth-sub">🔒 관리자 이메일 로그인</div>
+    <input id="authEmail" type="email" placeholder="이메일" autocomplete="username"
+      onkeydown="if(event.key==='Enter')doLogin()">
+    <input id="authPw" type="password" placeholder="비밀번호" autocomplete="current-password"
+      onkeydown="if(event.key==='Enter')doLogin()">
+    <button id="authLoginBtn">로그인</button>
+    <div class="auth-err" id="authErr"></div>
+    <div class="auth-status" id="authStatus">Firebase 연결 확인 중…</div>
+    <div class="auth-hint">등록된 관리자 계정만 접근할 수 있습니다.<br>계정 추가는 Firebase 콘솔 → Authentication에서.</div>
+  </div>
+</div>
+
 <div class="shell">
 
 <header class="topbar">
@@ -732,6 +771,10 @@ table.moq-table{border-collapse:separate;border-spacing:0;width:100%;min-width:7
     <div class="kpi hc"><div class="kpi-l">마케팅 순이익</div><div class="kpi-v" id="kMktProfit">0</div></div>
   </div>
   <button class="mtoggle" id="mToggle">👁 마케터</button>
+  <span class="auth-userbox">
+    <span class="auth-email" id="authUserEmail"></span>
+    <button id="authLogout" style="display:none">로그아웃</button>
+  </span>
 </header>
 <!-- KPI strip for mobile (horizontal scroll) -->
 <div class="kpi-strip">
@@ -2599,6 +2642,8 @@ document.addEventListener('click',function(e){
   if(t.id==='stratB2bAdd'){strategyB2B.push({id:'sb'+(stratB2bSeq++),prodNo:PRICE_TABLE[0].no,qty:50});renderStratB2bRows();return;}
   if(t.dataset.stratb2bdel!==undefined){strategyB2B=strategyB2B.filter(function(x){return x.id!==t.dataset.stratb2bdel;});renderStratB2bRows();return;}
   if(t.id==='stratPrint'){printB2bQuote();return;}
+  if(t.id==='authLoginBtn'){doLogin();return;}
+  if(t.id==='authLogout'){doLogout();return;}
   if(t.dataset.cloud!==undefined){var act=t.dataset.cloud;
     if(act==='snapSave')dbSaveSnapshot();
     else if(act==='snapLoad')dbLoadLatestSnapshot();
@@ -3775,6 +3820,71 @@ function opsToast(msg, ok){
   setTimeout(function(){d.remove();},2600);
 }
 
+/* ── 🔒 Firebase 이메일 인증 게이트 ── */
+var opsAuth=null;
+function initOpsAuth(){
+  if(opsAuth) return opsAuth;
+  initOpsDb();                         /* opsApp 생성 보장 */
+  if(!opsApp || typeof firebase==='undefined' || !firebase.auth) return null;
+  try{ opsAuth=firebase.auth(opsApp); return opsAuth; }
+  catch(e){ console.error('[ops-auth] 초기화 실패:', e); return null; }
+}
+function setupAuthGate(){
+  var statusEl=document.getElementById('authStatus');
+  var auth=initOpsAuth();
+  if(!auth){
+    document.body.classList.add('locked');               /* fail-closed: 인증 불가 시 잠금 유지 */
+    if(statusEl) statusEl.textContent = (typeof firebase==='undefined')
+      ? '⚠️ 네트워크/Firebase SDK 로드 실패 — 새로고침 해주세요'
+      : '⚠️ OPS_DB_CONFIG 미설정 — 관리자에게 문의';
+    return;
+  }
+  if(statusEl) statusEl.textContent='';
+  auth.onAuthStateChanged(function(user){
+    if(user){
+      document.body.classList.remove('locked');
+      setT('authUserEmail', user.email||'');
+      var lo=document.getElementById('authLogout'); if(lo)lo.style.display='inline-block';
+      console.log('[ops-auth] 로그인:', user.email);
+    }else{
+      document.body.classList.add('locked');
+      var lo2=document.getElementById('authLogout'); if(lo2)lo2.style.display='none';
+    }
+  });
+}
+function doLogin(){
+  var auth=initOpsAuth();
+  var errEl=document.getElementById('authErr');
+  if(errEl)errEl.textContent='';
+  if(!auth){ if(errEl)errEl.textContent='인증이 설정되지 않았습니다.'; return; }
+  var email=(document.getElementById('authEmail').value||'').trim();
+  var pw=document.getElementById('authPw').value||'';
+  if(!email||!pw){ if(errEl)errEl.textContent='이메일과 비밀번호를 입력하세요.'; return; }
+  var btn=document.getElementById('authLoginBtn'); if(btn){btn.disabled=true;btn.textContent='로그인 중…';}
+  auth.signInWithEmailAndPassword(email,pw).then(function(){
+    var pwEl=document.getElementById('authPw'); if(pwEl)pwEl.value='';
+  }).catch(function(e){
+    console.error('[ops-auth] 로그인 실패:', e.code, e.message);
+    var msg;
+    switch(e.code){
+      case 'auth/invalid-email': msg='이메일 형식이 올바르지 않습니다.'; break;
+      case 'auth/user-not-found':
+      case 'auth/wrong-password':
+      case 'auth/invalid-credential': msg='이메일 또는 비밀번호가 올바르지 않습니다.'; break;
+      case 'auth/too-many-requests': msg='시도가 너무 많습니다. 잠시 후 다시 시도하세요.'; break;
+      case 'auth/user-disabled': msg='비활성화된 계정입니다.'; break;
+      case 'auth/network-request-failed': msg='네트워크 오류. 연결을 확인하세요.'; break;
+      default: msg='로그인 실패: '+(e.message||e.code);
+    }
+    if(errEl)errEl.textContent=msg;
+  }).then(function(){ if(btn){btn.disabled=false;btn.textContent='로그인';} },
+          function(){ if(btn){btn.disabled=false;btn.textContent='로그인';} });
+}
+function doLogout(){
+  var auth=initOpsAuth();
+  if(auth) auth.signOut().then(function(){ console.log('[ops-auth] 로그아웃'); });
+}
+
 /* ── 전체 상태 수집/복원 ── */
 var STRAT_INPUT_IDS=['b2cRev','b2cMg','b2cAov','b2cCvr','b2cRoas','obmLabor','obmRent','obmEtc',
   'trfRev','trfAov','trfCvr','trfCtr','trfCpc','ordMonthly','ordSafety'];
@@ -3997,6 +4107,7 @@ function renderCloudCard(){
 }
 
 renderAll();
+setupAuthGate();   /* 🔒 로그인 게이트 활성화 (인증 전까지 .shell 숨김) */
 </script>
 </body>
 </html>

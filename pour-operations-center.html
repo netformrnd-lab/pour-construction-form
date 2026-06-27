@@ -716,6 +716,51 @@ table.moq-table{border-collapse:separate;border-spacing:0;width:100%;min-width:7
 .sq-row:last-child{border-bottom:none}
 .sq-row.total{font-size:15px;font-weight:800;border-top:2px solid rgba(255,255,255,.25);border-bottom:none;padding-top:9px;margin-top:4px}
 .sq-row .sq-val.ok{color:#7EFFD4}.sq-row .sq-val.warn{color:#FFE08A}.sq-row .sq-val.bad{color:#FFB3AE}
+/* 🎯 진짜 BEP (고정비 포함) */
+.bep-fixed-grid{display:grid;grid-template-columns:1fr}
+@media(min-width:560px){.bep-fixed-grid{grid-template-columns:1fr 1fr;column-gap:14px}}
+.bep-total-bar{display:flex;justify-content:space-between;align-items:center;background:var(--ink);color:#fff;border-radius:7px;padding:9px 12px;font-size:13px;font-weight:800;margin-top:4px}
+.bep-total-bar .v{font-variant-numeric:tabular-nums}
+.bep-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--bg);border:1px solid var(--rule);border-radius:7px;padding:8px 10px;margin-bottom:6px}
+.bep-row select{flex:1;min-width:120px;border:1.5px solid var(--rule);border-radius:6px;padding:6px 8px;font-family:var(--sans);font-size:12px;background:var(--w)}
+.bep-row .bep-mini{width:62px;border:1.5px solid var(--rule);border-radius:6px;padding:6px 6px;font-family:var(--sans);font-size:12px;text-align:right;background:var(--w);font-variant-numeric:tabular-nums}
+.bep-row .bep-lbl{font-size:10.5px;color:var(--muted);font-weight:600}
+.bep-row .bep-del{border:none;background:none;color:#ccc;font-size:14px;cursor:pointer;padding:3px 6px;touch-action:manipulation}
+.bep-row .bep-del:active{color:var(--r)}
+/* ④ 채널 편집 행 */
+.chan-row{background:var(--bg);border:1px solid var(--rule);border-radius:7px;padding:8px 10px;margin-bottom:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chan-row .chan-nm{flex:1;min-width:100px;border:1.5px solid var(--rule);border-radius:6px;padding:6px 8px;font-family:var(--sans);font-size:12.5px;font-weight:600;background:var(--w)}
+.chan-row .chan-src{border:1.5px solid var(--rule);border-radius:6px;padding:6px 7px;font-family:var(--sans);font-size:11.5px;background:var(--w)}
+.chan-row .chan-mini{width:58px;border:1.5px solid var(--rule);border-radius:6px;padding:6px 6px;font-family:var(--sans);font-size:12px;text-align:right;background:var(--w);font-variant-numeric:tabular-nums}
+.chan-row .chan-cust{width:80px}
+.chan-row .chan-lbl{font-size:10.5px;color:var(--muted);font-weight:600}
+.chan-row .chan-del{border:none;background:none;color:#ccc;font-size:14px;cursor:pointer;padding:3px 6px;touch-action:manipulation}
+.chan-row .chan-del:active{color:var(--r)}
+/* 📄 견적서 정보 입력 */
+.qinfo{border:1px solid var(--rule);border-radius:8px;background:var(--bg);overflow:hidden}
+.qinfo>summary{padding:9px 12px;font-size:12px;font-weight:700;color:var(--b);cursor:pointer;list-style:none;user-select:none}
+.qinfo>summary::-webkit-details-marker{display:none}
+.qinfo[open]>summary{border-bottom:1px solid var(--rule)}
+.qinfo-grid{padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.qinfo-sec{font-size:10.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+.qinfo-in{border:1.5px solid var(--rule);border-radius:6px;padding:8px 10px;font-family:var(--sans);font-size:12.5px;background:var(--w)}
+.qinfo-in:focus{outline:2px solid var(--b);outline-offset:-2px}
+/* 📈 볼륨 우선 결정뷰 */
+.vol-guide{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.vg-pill{flex:1;min-width:150px;border-radius:9px;padding:11px 13px;color:#fff}
+.vg-pill.profit{background:var(--g)}
+.vg-pill.rev{background:var(--b)}
+.vg-lbl{font-size:10px;opacity:.85;font-weight:700}
+.vg-val{font-size:17px;font-weight:900;font-variant-numeric:tabular-nums;margin-top:2px}
+.vg-sub{font-size:10.5px;opacity:.85;margin-top:3px;line-height:1.4}
+table.vol-table{border-collapse:separate;border-spacing:0;width:100%;min-width:580px;font-size:11.5px;background:var(--w)}
+.vol-table th{background:var(--ink);color:#fff;padding:8px;text-align:right;white-space:nowrap;font-weight:700}
+.vol-table th:first-child{text-align:center}
+.vol-table td{padding:8px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--rule);white-space:nowrap}
+.vol-table td:first-child{text-align:center;font-weight:800}
+.vol-table tr.best-profit td{background:rgba(27,107,58,.10)}
+.vol-table tr.best-rev td{background:rgba(27,79,138,.08)}
+.vol-badge{font-size:9px;font-weight:800;border-radius:3px;padding:1px 5px;color:#fff;margin-left:3px;white-space:nowrap}
 /* ☁ 클라우드 동기화 */
 .cloud-sec{padding:9px 0;border-top:1px dashed var(--rule)}
 .cloud-sec:first-of-type{border-top:none;padding-top:0}
@@ -1338,6 +1383,58 @@ body:not(.locked) .auth-userbox{display:flex}
     </div>
   </div>
 
+  <!-- 📈 볼륨 우선 결정뷰 (총매출·총순익 기준) -->
+  <div class="card" id="volCard" style="border-top:3px solid var(--g)">
+    <div class="card-title">📈 볼륨 우선 결정뷰 <span class="badge">총액 기준</span></div>
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px;line-height:1.65">
+      마진율이 아니라 <b style="color:var(--ink)">총매출·총순익</b>으로 판단합니다. 할인을 열수록 볼륨↑·마진↓ —
+      <b style="color:var(--g)">총이익이 최대</b>가 되는 지점, 그리고 볼륨을 더 키우려면 어디까지 손해를 감수할지 한눈에.
+    </div>
+    <div class="pc-row"><span class="pc-label">기준 월 판매량 <small>(할인 0% 기준)</small></span>
+      <input type="number" class="pc-input" id="volBaseQty" data-strat="vol" value="100" min="0" step="10"><span class="pc-unit">개</span></div>
+    <div class="pc-row"><span class="pc-label">볼륨 탄력성 <small>(할인 1%p당 판매량 증가율)</small></span>
+      <input type="number" class="pc-input" id="volElastic" data-strat="vol" value="3" min="0" max="30" step="0.5"><span class="pc-unit">%</span></div>
+    <div id="volGuide" class="vol-guide"></div>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+      <table class="vol-table" id="volTable"></table>
+    </div>
+    <div style="font-size:10.5px;color:var(--muted);margin-top:8px;line-height:1.6">
+      ※ 기준 상품(<span id="volRefName">—</span>) · 자사몰 정가 기준 · 변동비 = 매입가+PG수수료+택배비.
+      볼륨 가정은 탄력성 입력으로 조절하세요(예: 탄력성 3 → 할인 10% 시 판매량 +30%).
+    </div>
+  </div>
+
+  <!-- TASK 4: 진짜 손익분기 (고정비 포함) -->
+  <div class="card" id="bepCard" style="border-top:3px solid var(--r)">
+    <div class="card-title">🎯 진짜 손익분기 BEP <span class="badge red">고정비 포함</span></div>
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px;line-height:1.65">
+      현재 "BEP 할인율"은 <b style="color:var(--ink)">개당 변동비만</b> 본 수치입니다(인건비·임대료 빠짐).
+      여기서는 <b style="color:var(--r)">월 고정비를 몇 개 팔아야 메우는지</b>(BEP 수량·매출)를 상품별·할인별로 계산합니다.
+    </div>
+    <div class="bep-fixed-grid">
+      <div class="pc-row"><span class="pc-label">월 인건비</span>
+        <input type="number" class="pc-input" id="bepLabor" data-strat="bep" value="3000000" min="0" step="100000"><span class="pc-unit">원</span></div>
+      <div class="pc-row"><span class="pc-label">월 임대료</span>
+        <input type="number" class="pc-input" id="bepRent" data-strat="bep" value="1500000" min="0" step="100000"><span class="pc-unit">원</span></div>
+      <div class="pc-row"><span class="pc-label">월 시스템·구독비</span>
+        <input type="number" class="pc-input" id="bepSys" data-strat="bep" value="300000" min="0" step="50000"><span class="pc-unit">원</span></div>
+      <div class="pc-row"><span class="pc-label">월 기타 고정비</span>
+        <input type="number" class="pc-input" id="bepEtc2" data-strat="bep" value="200000" min="0" step="50000"><span class="pc-unit">원</span></div>
+    </div>
+    <div class="bep-total-bar" id="bepTotalBar"></div>
+    <div class="pc-row" style="margin-top:8px"><span class="pc-label">개당 광고비 <small>(변동비에 포함, 없으면 0)</small></span>
+      <input type="number" class="pc-input" id="bepAdPer" data-strat="bep" value="0" min="0" step="500"><span class="pc-unit">원</span></div>
+    <div class="pc-row"><span class="pc-label">고정비 배분 방식</span>
+      <select id="bepAllocMode" class="moq-sim-select" style="width:auto;flex:0 0 auto;min-width:170px">
+        <option value="even" selected>취급 상품 수로 균등</option>
+        <option value="rev">예상 매출 비중으로</option>
+      </select></div>
+    <div style="font-size:11px;color:var(--muted);font-weight:700;margin:8px 0 5px">취급 상품 (할인율·예상 월판매량)</div>
+    <div id="bepItemRows"></div>
+    <button class="add-cost-btn" id="bepAddBtn" style="border-color:var(--rb);color:var(--r)">＋ 상품 추가</button>
+    <div id="bepResult"></div>
+  </div>
+
   <div class="strat-layout">
 
     <!-- ── 왼쪽: B2C 전략 ── -->
@@ -1377,6 +1474,29 @@ body:not(.locked) .auth-userbox{display:flex}
         <div class="card-title" style="color:var(--b)">🏭 B2B 대량구매 견적</div>
         <div id="stratB2bRows"></div>
         <button class="add-cost-btn" id="stratB2bAdd" style="border-color:var(--bb);color:var(--b)">＋ 상품 추가</button>
+
+        <details class="qinfo" style="margin-top:10px">
+          <summary>📄 견적서 정보 (인쇄 양식)</summary>
+          <div class="qinfo-grid">
+            <div class="qinfo-sec">공급자 (우리)</div>
+            <input type="text" class="qinfo-in" id="qSupplier"  data-strat="q" placeholder="회사명" value="넷폼알앤디 (POUR스토어)">
+            <input type="text" class="qinfo-in" id="qBizNo"     data-strat="q" placeholder="사업자등록번호">
+            <input type="text" class="qinfo-in" id="qSupTel"    data-strat="q" placeholder="연락처">
+            <input type="text" class="qinfo-in" id="qSupAddr"   data-strat="q" placeholder="주소">
+            <div class="qinfo-sec">받는 분 (고객)</div>
+            <input type="text" class="qinfo-in" id="qCustomer"  data-strat="q" placeholder="고객사명">
+            <input type="text" class="qinfo-in" id="qContact"   data-strat="q" placeholder="담당자 / 연락처">
+            <div class="qinfo-sec">조건</div>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              <span style="font-size:11px;color:var(--muted)">유효기간</span>
+              <input type="number" class="qinfo-in" id="qValidDays" data-strat="q" value="30" min="1" style="width:70px"><span style="font-size:11px;color:var(--muted)">일</span>
+              <label style="font-size:11.5px;display:flex;align-items:center;gap:4px;cursor:pointer;margin-left:6px">
+                <input type="checkbox" id="qVat" data-strat="q" checked style="accent-color:var(--b)">부가세 10% 포함 표기</label>
+            </div>
+            <input type="text" class="qinfo-in" id="qNote" data-strat="q" placeholder="비고 (납기·결제조건 등)">
+          </div>
+        </details>
+
         <div class="strat-quote" id="stratB2bQuote" style="display:none"></div>
         <div style="display:flex;gap:6px;margin-top:10px">
           <button class="pc-tool-btn" id="stratPrint" style="background:var(--b);color:#fff;border-color:var(--b);flex:1;display:none">🖨 견적서 인쇄</button>
@@ -1412,6 +1532,82 @@ body:not(.locked) .auth-userbox{display:flex}
     </div>
 
   </div>
+
+  <!-- ④ 채널별 목표 배분 -->
+  <div class="card" id="chanCard" style="border-top:3px solid var(--b)">
+    <div class="card-title">④ 채널별 목표 배분 <span class="badge blue">순익 최대</span></div>
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px;line-height:1.65">
+      총 매출 목표를 채널에 나눕니다. 채널별 마진이 달라 <b style="color:var(--ink)">같은 매출도 순익이 달라집니다</b> —
+      마진 높은 채널 비중을 키우면 총순익↑. (기준 상품: <span id="chanRefName">—</span>)
+    </div>
+    <div class="pc-row"><span class="pc-label">총 매출 목표</span>
+      <input type="number" class="pc-input" id="chanTarget" data-strat="chan" value="50000000" min="0" step="1000000"><span class="pc-unit">원</span></div>
+    <div id="chanRows"></div>
+    <button class="pc-add-item-btn" id="chanAddBtn" style="margin:2px 0 8px">＋ 채널 추가</button>
+    <div style="display:flex;gap:6px;margin:0 0 10px;flex-wrap:wrap">
+      <button class="pc-tool-btn" id="chanAutoBtn" style="background:var(--b);color:#fff;border-color:var(--b)">⚡ 마진 집중 배분 (순익↑)</button>
+      <button class="pc-tool-btn" id="chanEvenBtn">균등 배분</button>
+    </div>
+    <div id="chanResult"></div>
+  </div>
+
+  <!-- ⑤ 세트 구매유인 최소 할인 -->
+  <div class="card" id="setStratCard" style="border-top:3px solid var(--am)">
+    <div class="card-title">⑤ 세트 구매유인 최소 할인 <span class="badge amber">세트가 역산</span></div>
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px;line-height:1.65">
+      세트가 <b style="color:var(--ink)">단품 합계보다 충분히 싸 보여야(구매유인)</b> 하면서 마진은 지켜야 합니다.
+      구매유인이 생기는 최소 할인과 마진이 버티는 최대 할인 사이의 <b>권장 세트가 범위</b>를 역산합니다.
+    </div>
+    <div id="setItemRows"></div>
+    <button class="add-cost-btn" id="setAddBtn" style="border-color:#F5C97A;color:var(--am)">＋ 세트 구성 상품 추가</button>
+    <div class="pc-row" style="margin-top:8px"><span class="pc-label">구매유인 임계 할인율 <small>(이만큼은 싸야 매력)</small></span>
+      <input type="number" class="pc-input" id="setThreshold" data-strat="set" value="7" min="0" max="50" step="1"><span class="pc-unit">%</span></div>
+    <div class="pc-row"><span class="pc-label">목표 마진율 <small>(이 이상 지키기)</small></span>
+      <input type="number" class="pc-input" id="setTargetMg" data-strat="set" value="15" min="0" max="60" step="1"><span class="pc-unit">%</span></div>
+    <div id="setResult"></div>
+  </div>
+
+  <!-- ⑥ 파트너 공급가 역산 -->
+  <div class="card" id="ptnCard" style="border-top:3px solid var(--purple)">
+    <div class="card-title">⑥ 파트너 공급가 역산 <span class="badge" style="background:var(--purple)">대리점·총판</span></div>
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px;line-height:1.65">
+      대리점·총판에게 <b style="color:var(--ink)">얼마에 줘야 그쪽도 마진 남고 나도 남나.</b>
+      파트너 마진을 보장하는 공급가와, 내 마진을 지키는 한도를 함께 계산합니다. (기준 상품: <span id="ptnRefName">—</span>)
+    </div>
+    <div class="pc-row"><span class="pc-label">소비자 판매가 <small>(파트너가 파는 가격)</small></span>
+      <input type="number" class="pc-input" id="ptnConsumer" data-strat="ptn" value="0" min="0" step="1000"><span class="pc-unit">원</span></div>
+    <div class="pc-row"><span class="pc-label">파트너 목표 마진율 <small>(그쪽이 가져갈 몫)</small></span>
+      <input type="number" class="pc-input" id="ptnMargin" data-strat="ptn" value="20" min="0" max="70" step="1"><span class="pc-unit">%</span></div>
+    <div class="pc-row"><span class="pc-label">내 최소 목표 마진율</span>
+      <input type="number" class="pc-input" id="ptnMyMin" data-strat="ptn" value="15" min="0" max="60" step="1"><span class="pc-unit">%</span></div>
+    <div id="ptnResult"></div>
+  </div>
+
+  <!-- ⑦ 수출가 FOB/CIF 역산 -->
+  <div class="card" id="expCard" style="border-top:3px solid var(--r)">
+    <div class="card-title">⑦ 수출가 FOB/CIF 역산 <span class="badge red">해외·도매</span></div>
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px;line-height:1.65">
+      알리바바 등 해외 공급 시 <b style="color:var(--ink)">관세·운임·수수료 빼고 내 손에 얼마</b>가 남나.
+      수출 단가에서 차감 → 실수취액·마진율, 그리고 목표마진 위한 최소 수출가를 역산합니다. (기준 상품: <span id="expRefName">—</span>)
+    </div>
+    <div class="pc-row"><span class="pc-label">수출 단가 <small>(개당 오퍼가)</small></span>
+      <input type="number" class="pc-input" id="expPrice" data-strat="exp" value="0" min="0" step="1000"><span class="pc-unit">원</span></div>
+    <div class="pc-row"><span class="pc-label">조건</span>
+      <select id="expTerm" class="moq-sim-select" style="width:auto;flex:0 0 auto;min-width:180px">
+        <option value="cif" selected>CIF (운임·보험 내 부담)</option>
+        <option value="fob">FOB (운임 바이어 부담)</option>
+      </select></div>
+    <div class="pc-row"><span class="pc-label">운임·물류 <small>(개당, CIF만 차감)</small></span>
+      <input type="number" class="pc-input" id="expFreight" data-strat="exp" value="5000" min="0" step="500"><span class="pc-unit">원</span></div>
+    <div class="pc-row"><span class="pc-label">대행수수료</span>
+      <input type="number" class="pc-input" id="expAgentPct" data-strat="exp" value="5" min="0" max="40" step="0.5"><span class="pc-unit">%</span></div>
+    <div class="pc-row"><span class="pc-label">기타 <small>(통관·인증 개당)</small></span>
+      <input type="number" class="pc-input" id="expEtc" data-strat="exp" value="0" min="0" step="500"><span class="pc-unit">원</span></div>
+    <div class="pc-row"><span class="pc-label">목표 마진율</span>
+      <input type="number" class="pc-input" id="expTargetMg" data-strat="exp" value="20" min="0" max="60" step="1"><span class="pc-unit">%</span></div>
+    <div id="expResult"></div>
+  </div>
+
 </div>
 <!-- /전략 대시보드 -->
 
@@ -2611,6 +2807,19 @@ document.addEventListener('input',function(e){
   var t=e.target;
   if(t.dataset.strat==='b2c'){recalcStrategyB2C();return;}
   if(t.dataset.strat==='obm'){recalcStrategyOBM();return;}
+  if(t.dataset.strat==='vol'){renderVolumeView();return;}
+  if(t.dataset.strat==='bep'){recalcBep();return;}
+  if(t.dataset.bepdisc!==undefined){var _bi=bepItems.find(function(x){return x.id===t.dataset.bepdisc;});if(_bi){_bi.disc=parseFloat(t.value)||0;recalcBep();}return;}
+  if(t.dataset.bepqty!==undefined){var _bq=bepItems.find(function(x){return x.id===t.dataset.bepqty;});if(_bq){_bq.qty=parseInt(t.value)||0;recalcBep();}return;}
+  if(t.dataset.strat==='chan'){renderChannelAlloc();return;}
+  if(t.dataset.chanalloc!==undefined){var _c=chanById(t.dataset.chanalloc);if(_c){_c.alloc=parseFloat(t.value)||0;renderChannelAlloc();}return;}
+  if(t.dataset.chanom!==undefined){var _c2=chanById(t.dataset.chanom);if(_c2){_c2.om=parseFloat(t.value)||0;renderChannelAlloc();}return;}
+  if(t.dataset.chancust!==undefined){var _c3=chanById(t.dataset.chancust);if(_c3){_c3.custom=parseFloat(t.value)||0;renderChannelAlloc();}return;}
+  if(t.dataset.channm!==undefined){var _c4=chanById(t.dataset.channm);if(_c4){_c4.name=t.value;renderChannelAlloc();}return;}
+  if(t.dataset.strat==='set'){recalcSet();return;}
+  if(t.dataset.strat==='ptn'){renderPartnerSupply();return;}
+  if(t.dataset.strat==='exp'){renderExportPrice();return;}
+  if(t.dataset.setqty!==undefined){var sti=setItems.find(function(x){return x.id===t.dataset.setqty;});if(sti){sti.qty=parseInt(t.value)||1;recalcSet();}return;}
   if(t.dataset.stratb2bqty!==undefined){var sbi=strategyB2B.find(function(x){return x.id===t.dataset.stratb2bqty;});if(sbi){sbi.qty=parseInt(t.value)||1;recalcStratB2b();}return;}
   if(t.id==='utmBase'){utmBase=t.value;updateUtmUrls();return;}
   if(t.id==='utmCampaign'){utmCampaign=t.value;updateUtmUrls();return;}
@@ -2627,8 +2836,13 @@ document.addEventListener('input',function(e){
 
 document.addEventListener('change',function(e){
   var t=e.target;
-  if(t.id==='stratRef'){stratRefNo=parseInt(t.value)||PRICE_TABLE[0].no;syncStratAov();recalcStrategyB2C();recalcStrategyOBM();return;}
+  if(t.id==='stratRef'){stratRefNo=parseInt(t.value)||PRICE_TABLE[0].no;syncStratAov();var _r=getStratRef();var _pe=document.getElementById('ptnConsumer');if(_pe)_pe.value=_r.retail;var _xe=document.getElementById('expPrice');if(_xe)_xe.value=_r.total_dist||_r.retail;recalcStrategyB2C();recalcStrategyOBM();renderVolumeView();renderChannelAlloc();renderPartnerSupply();renderExportPrice();return;}
+  if(t.id==='expTerm'){renderExportPrice();return;}
   if(t.dataset.stratb2bprod!==undefined){var sbp=strategyB2B.find(function(x){return x.id===t.dataset.stratb2bprod;});if(sbp){sbp.prodNo=parseInt(t.value);renderStratB2bRows();}return;}
+  if(t.dataset.setprod!==undefined){var stp=setItems.find(function(x){return x.id===t.dataset.setprod;});if(stp){stp.prodNo=parseInt(t.value);renderSetItemRows();}return;}
+  if(t.dataset.chansrc!==undefined){var _cs=chanById(t.dataset.chansrc);if(_cs){_cs.src=t.value;if(CHAN_OM_DEFAULT[t.value]!=null)_cs.om=CHAN_OM_DEFAULT[t.value];else if(t.value!=='custom')_cs.om=0;renderChanRows();}return;}
+  if(t.id==='bepAllocMode'){recalcBep();return;}
+  if(t.dataset.bepprod!==undefined){var _bp=bepItems.find(function(x){return x.id===t.dataset.bepprod;});if(_bp){_bp.prodNo=parseInt(t.value);renderBepRows();}return;}
   if(t.dataset.ctoggle!==undefined){var cp3=coupons.find(function(c){return c.id===t.dataset.ctoggle;});if(cp3){cp3.active=t.checked;renderCoupons();renderPromo();}return;}
   if(t.dataset.ctype!==undefined){var cp4=coupons.find(function(c){return c.id===t.dataset.ctype;});if(cp4){cp4.type=t.value;renderCoupons();renderPromo();}return;}
   if(t.dataset.name!==undefined&&t.dataset.row!==undefined){var ch5=state.find(function(c){return c.id==t.dataset.row;});if(ch5)ch5.name=t.value.trim()||ch5.name;return;}
@@ -2649,6 +2863,14 @@ document.addEventListener('click',function(e){
   if(t.id==='stratB2bAdd'){strategyB2B.push({id:'sb'+(stratB2bSeq++),prodNo:PRICE_TABLE[0].no,qty:50});renderStratB2bRows();return;}
   if(t.dataset.stratb2bdel!==undefined){strategyB2B=strategyB2B.filter(function(x){return x.id!==t.dataset.stratb2bdel;});renderStratB2bRows();return;}
   if(t.id==='stratPrint'){printB2bQuote();return;}
+  if(t.id==='chanAutoBtn'){chanAutoAlloc();return;}
+  if(t.id==='chanEvenBtn'){chanEvenAlloc();return;}
+  if(t.id==='chanAddBtn'){chanList.push({id:'chx'+(chanSeq++),name:'새 채널',src:'custom',om:0,custom:0,alloc:0});renderChanRows();return;}
+  if(t.dataset.chandel!==undefined){chanList=chanList.filter(function(c){return c.id!==t.dataset.chandel;});renderChanRows();return;}
+  if(t.id==='bepAddBtn'){bepItems.push({id:'bp'+(bepSeq++),prodNo:PRICE_TABLE[0].no,disc:0,qty:100});renderBepRows();return;}
+  if(t.dataset.bepdel!==undefined){bepItems=bepItems.filter(function(x){return x.id!==t.dataset.bepdel;});renderBepRows();return;}
+  if(t.id==='setAddBtn'){setItems.push({id:'st'+(setSeq++),prodNo:PRICE_TABLE[0].no,qty:1});renderSetItemRows();return;}
+  if(t.dataset.setdel!==undefined){setItems=setItems.filter(function(x){return x.id!==t.dataset.setdel;});renderSetItemRows();return;}
   if(t.id==='authLoginBtn'){doLogin();return;}
   if(t.id==='authLogout'){doLogout();return;}
   if(t.dataset.cloud!==undefined){var act=t.dataset.cloud;
@@ -3618,6 +3840,364 @@ function soRow(lbl,val,sub,cls,hi){
     +'<span class="so-val'+(cls?' '+cls:'')+'">'+val+(sub?'<small>'+sub+'</small>':'')+'</span></div>';
 }
 
+/* ── 📈 볼륨 우선 결정뷰: 할인 구간별 총매출·총순익 ── */
+function renderVolumeView(){
+  var el=document.getElementById('volTable'); if(!el) return;
+  var ref=getStratRef(); if(!ref){ el.innerHTML=''; return; }
+  setT('volRefName', ref.name);
+  var V0=numv('volBaseQty'), E=numv('volElastic');
+  var feeRate=pcCommonPG/100;
+  var steps=[0,5,10,15,20,25,30,35,40];
+  var rows=steps.map(function(d){
+    var price=Math.round(ref.retail*(1-d/100));
+    var fee=Math.round(price*feeRate);
+    var unitCost=ref.cost+fee+pcCommonShip;
+    var unitProfit=price-unitCost;
+    var mr=price>0?unitProfit/price*100:0;
+    var vol=Math.round(V0*(1+(E/100)*d));      /* 볼륨 가정: 할인 d%일 때 V0×(1+탄력성×d) */
+    return {d:d, price:price, unitProfit:unitProfit, mr:mr, vol:vol,
+            totRev:price*vol, totProfit:unitProfit*vol};
+  });
+  var bestP=rows.reduce(function(a,b){return b.totProfit>a.totProfit?b:a;});
+  var bestR=rows.reduce(function(a,b){return b.totRev>a.totRev?b:a;});
+
+  var g=document.getElementById('volGuide');
+  if(g){
+    g.innerHTML=
+       '<div class="vg-pill profit"><div class="vg-lbl">💰 총순익 최대</div>'
+      +'<div class="vg-val">할인 '+bestP.d+'%</div>'
+      +'<div class="vg-sub">총순익 '+(bestP.totProfit>=0?'+':'')+fI(bestP.totProfit)+'원 · '+fI(bestP.vol)+'개 · 마진 '+bestP.mr.toFixed(1)+'%</div></div>'
+      +'<div class="vg-pill rev"><div class="vg-lbl">🚀 총매출 최대</div>'
+      +'<div class="vg-val">할인 '+bestR.d+'%</div>'
+      +'<div class="vg-sub">총매출 '+fI(bestR.totRev)+'원 · '+fI(bestR.vol)+'개 · 순익 '+(bestR.totProfit>=0?'+':'')+fI(bestR.totProfit)+'원</div></div>';
+  }
+  var head='<thead><tr><th>할인</th><th>적용가</th><th>개당순익</th><th>마진율</th><th>가정 판매량</th><th>총매출</th><th>총순익</th></tr></thead>';
+  var body=rows.map(function(r){
+    var cls=[];
+    if(r.d===bestP.d)cls.push('best-profit');
+    else if(r.d===bestR.d)cls.push('best-rev');
+    var badge='';
+    if(r.d===bestP.d)badge+='<span class="vol-badge" style="background:var(--g)">순익↑</span>';
+    if(r.d===bestR.d)badge+='<span class="vol-badge" style="background:var(--b)">매출↑</span>';
+    return '<tr class="'+cls.join(' ')+'"><td>'+r.d+'%'+badge+'</td>'
+      +'<td>'+fI(r.price)+'</td>'
+      +'<td style="color:'+(r.unitProfit>=0?'var(--g)':'var(--r)')+'">'+(r.unitProfit>=0?'+':'')+fI(r.unitProfit)+'</td>'
+      +'<td style="color:'+(r.mr>=10?'var(--g)':r.mr>=0?'var(--am)':'var(--r)')+'">'+r.mr.toFixed(1)+'%</td>'
+      +'<td>'+fI(r.vol)+'개</td>'
+      +'<td><b>'+fI(r.totRev)+'</b></td>'
+      +'<td style="color:'+(r.totProfit>=0?'var(--g)':'var(--r)')+';font-weight:800">'+(r.totProfit>=0?'+':'')+fI(r.totProfit)+'</td></tr>';
+  }).join('');
+  el.innerHTML=head+'<tbody>'+body+'</tbody>';
+}
+
+/* ── ④ 채널별 목표 배분 ── */
+var CHAN_SRC=[
+  {k:'retail',n:'자사몰 정가'},{k:'coupang',n:'쿠팡가'},{k:'total_dist',n:'총판가'},
+  {k:'offline',n:'오프라인가'},{k:'partner',n:'파트너가'},
+  {k:'online_consign',n:'온라인위탁'},{k:'online_wholesale',n:'온라인도매'},{k:'custom',n:'직접입력'}
+];
+var CHAN_OM_DEFAULT={coupang:15, online_consign:15, online_wholesale:15};
+var chanList=[
+  {id:'ch_own', name:'🟢 자사몰',  src:'retail',     om:0,  custom:0, alloc:40},
+  {id:'ch_cou', name:'🔵 쿠팡',    src:'coupang',    om:15, custom:0, alloc:20},
+  {id:'ch_dist',name:'🔷 총판유통',src:'total_dist', om:0,  custom:0, alloc:20},
+  {id:'ch_off', name:'🟠 오프라인',src:'offline',    om:0,  custom:0, alloc:10},
+  {id:'ch_ptn', name:'🟣 파트너',  src:'partner',    om:0,  custom:0, alloc:10},
+];
+var chanSeq=1;
+function chanById(id){ return chanList.find(function(c){return c.id===id;}); }
+function chanPrice(ref, ch){ return ch.src==='custom' ? (ch.custom||0) : (ref[ch.src]||0); }
+function chanCalc(ref, ch){
+  var price=chanPrice(ref,ch);
+  var feeRate=pcCommonPG/100 + (ch.om||0)/100;
+  var unitCost = price>0 ? ref.cost + Math.round(price*feeRate) + pcCommonShip : 0;
+  var unitProfit = price>0 ? price - unitCost : 0;
+  var mr = price>0 ? unitProfit/price*100 : 0;
+  return {ch:ch, price:price, unitProfit:unitProfit, mr:mr};
+}
+/* 채널 편집 행 렌더 */
+function renderChanRows(){
+  var el=document.getElementById('chanRows'); if(!el) return;
+  el.innerHTML=chanList.map(function(ch){
+    var srcOpts=CHAN_SRC.map(function(s){return '<option value="'+s.k+'"'+(ch.src===s.k?' selected':'')+'>'+s.n+'</option>';}).join('');
+    return '<div class="chan-row">'
+      +'<input class="chan-nm" data-channm="'+ch.id+'" value="'+esc(ch.name)+'">'
+      +'<select class="chan-src" data-chansrc="'+ch.id+'">'+srcOpts+'</select>'
+      +(ch.src==='custom'?'<input type="number" class="chan-mini chan-cust" data-chancust="'+ch.id+'" value="'+(ch.custom||0)+'" placeholder="단가">':'')
+      +'<span class="chan-lbl">수수료</span><input type="number" class="chan-mini" data-chanom="'+ch.id+'" value="'+(ch.om||0)+'" min="0" max="40" step="0.5"><span class="chan-lbl">%</span>'
+      +'<span class="chan-lbl">배분</span><input type="number" class="chan-mini" data-chanalloc="'+ch.id+'" value="'+(ch.alloc||0)+'" min="0" max="100" step="5"><span class="chan-lbl">%</span>'
+      +'<button class="chan-del" data-chandel="'+ch.id+'" title="삭제">✕</button>'
+      +'</div>';
+  }).join('') || '<div style="font-size:11.5px;color:var(--muted);padding:6px 0">채널을 추가하세요.</div>';
+  renderChannelAlloc();
+}
+function chanEvenAlloc(){
+  var n=chanList.length; if(!n) return;
+  var per=Math.round(100/n/5)*5, acc=0;
+  chanList.forEach(function(ch,i){ if(i<n-1){ch.alloc=per;acc+=per;} else ch.alloc=Math.max(0,100-acc); });
+  renderChanRows();
+}
+function chanAutoAlloc(){
+  var ref=getStratRef(); if(!ref) return;
+  /* 순익 최대화 지향: 최고마진 채널에 50% 집중 + 나머지 50% 마진 비례 (현실화) */
+  var valid=chanList.map(function(ch){return chanCalc(ref,ch);}).filter(function(r){return r.price>0 && r.mr>0;});
+  chanList.forEach(function(ch){ch.alloc=0;});
+  if(!valid.length){ chanEvenAlloc(); return; }
+  var best=valid.reduce(function(a,b){return b.mr>a.mr?b:a;});
+  var others=valid.filter(function(r){return r.ch.id!==best.ch.id;});
+  if(!others.length){ best.ch.alloc=100; renderChanRows(); return; }
+  best.ch.alloc=50;
+  var sumW=others.reduce(function(a,b){return a+b.mr;},0), acc=0;
+  others.forEach(function(r,i){
+    if(i<others.length-1){ var v=Math.round(r.mr/sumW*50); r.ch.alloc=v; acc+=v; }
+    else r.ch.alloc=Math.max(0,50-acc);
+  });
+  renderChanRows();
+}
+function renderChannelAlloc(){
+  var box=document.getElementById('chanResult'); if(!box) return;
+  var ref=getStratRef(); if(!ref){ box.innerHTML=''; return; }
+  setT('chanRefName', ref.name);
+  var target=numv('chanTarget');
+  var rows=chanList.map(function(ch){
+    var base=chanCalc(ref,ch);
+    var alloc=ch.alloc||0;
+    var rev=target*alloc/100;
+    var units=base.price>0?Math.round(rev/base.price):0;
+    var profit=base.unitProfit*units;
+    return {ch:ch, price:base.price, mr:base.mr, unitProfit:base.unitProfit, alloc:alloc, rev:rev, units:units, profit:profit};
+  });
+  var allocSum=rows.reduce(function(a,r){return a+r.alloc;},0);
+  var totRev=rows.reduce(function(a,r){return a+r.rev;},0);
+  var totProfit=rows.reduce(function(a,r){return a+r.profit;},0);
+  var avgMr=totRev>0?totProfit/totRev*100:0;
+  var valid=rows.filter(function(r){return r.price>0;});
+  var bestCh=valid.length?valid.reduce(function(a,b){return b.mr>a.mr?b:a;}):null;
+
+  var head='<thead><tr><th>채널</th><th>배분%</th><th>단가</th><th>마진율</th><th>배분매출</th><th>판매량</th><th>순익</th></tr></thead>';
+  var body=rows.map(function(r){
+    var isBest=bestCh&&r.ch.id===bestCh.ch.id;
+    if(r.price<=0){
+      return '<tr style="opacity:.45"><td style="text-align:left">'+esc(r.ch.name)+'</td><td>'+r.alloc+'%</td><td colspan="5" style="text-align:center;color:var(--muted)">단가 미설정</td></tr>';
+    }
+    return '<tr'+(isBest?' class="best-profit"':'')+'><td style="text-align:left">'+esc(r.ch.name)+(isBest?' <span class="vol-badge" style="background:var(--g)">마진1위</span>':'')+'</td>'
+      +'<td>'+r.alloc+'%</td>'
+      +'<td>'+fI(r.price)+'</td>'
+      +'<td style="color:'+(r.mr>=10?'var(--g)':r.mr>=0?'var(--am)':'var(--r)')+'">'+r.mr.toFixed(1)+'%</td>'
+      +'<td>'+fI(Math.round(r.rev))+'</td>'
+      +'<td>'+fI(r.units)+'개</td>'
+      +'<td style="color:'+(r.profit>=0?'var(--g)':'var(--r)')+';font-weight:800">'+(r.profit>=0?'+':'')+fI(Math.round(r.profit))+'</td></tr>';
+  }).join('');
+  var foot='<tr style="border-top:2px solid var(--ink);font-weight:800"><td style="text-align:left">합계</td>'
+    +'<td style="color:'+(Math.round(allocSum)===100?'var(--g)':'var(--r)')+'">'+allocSum+'%</td><td>—</td>'
+    +'<td style="color:'+(avgMr>=10?'var(--g)':avgMr>=0?'var(--am)':'var(--r)')+'">'+avgMr.toFixed(1)+'%</td>'
+    +'<td>'+fI(Math.round(totRev))+'</td><td>—</td>'
+    +'<td style="color:'+(totProfit>=0?'var(--g)':'var(--r)')+'">'+(totProfit>=0?'+':'')+fI(Math.round(totProfit))+'</td></tr>';
+  var warn = Math.round(allocSum)!==100
+    ? '<div style="font-size:11px;color:var(--r);font-weight:700;margin-bottom:7px">⚠️ 배분 합계가 '+allocSum+'% 입니다 — 100%로 맞춰주세요 (배분매출이 목표와 어긋남).</div>'
+    : '';
+  /* 이론상 최대 순익 = 매출 100%를 마진 1위 채널에 집중했을 때 */
+  var theoMax = bestCh ? target*bestCh.mr/100 : 0;
+  var guide = bestCh
+    ? '<div style="font-size:11.5px;color:var(--b);font-weight:700;margin-bottom:8px;line-height:1.6">'
+      +'💡 마진 1위: '+esc(bestCh.ch.name)+' ('+bestCh.mr.toFixed(1)+'%) — 이 채널 비중↑ = 같은 매출에서 총순익↑<br>'
+      +'<span style="color:var(--muted);font-weight:600">이론상 최대 순익(1위 채널 100% 가정): '+fI(Math.round(theoMax))+'원 · 현재 배분: '+fI(Math.round(totProfit))+'원 ('+(theoMax>0?Math.round(totProfit/theoMax*100):0)+'%)</span></div>'
+    : '';
+  box.innerHTML=warn+guide+'<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="vol-table">'+head+'<tbody>'+body+foot+'</tbody></table></div>';
+}
+
+/* ── ⑤ 세트 구매유인 최소 할인 ── */
+var setItems=[]; var setSeq=1;
+function renderSetItemRows(){
+  var el=document.getElementById('setItemRows'); if(!el) return;
+  el.innerHTML=setItems.map(function(it){
+    var prod=PRICE_TABLE.find(function(p){return p.no==it.prodNo;});
+    return '<div class="strat-b2b-row">'
+      +'<select data-setprod="'+it.id+'">'+PRICE_TABLE.map(function(p){return '<option value="'+p.no+'"'+(p.no==it.prodNo?' selected':'')+'>'+esc(p.name)+'</option>';}).join('')+'</select>'
+      +'<input type="number" class="sb-qty" min="1" data-setqty="'+it.id+'" value="'+it.qty+'">개'
+      +(prod?'<span class="sb-price">정가 '+fI(prod.retail)+'원</span>':'')
+      +'<button class="sb-del" data-setdel="'+it.id+'">✕</button>'
+      +'</div>';
+  }).join('');
+  recalcSet();
+}
+function recalcSet(){
+  var box=document.getElementById('setResult'); if(!box) return;
+  if(!setItems.length){ box.innerHTML='<div style="font-size:11.5px;color:var(--muted);padding:8px 0">세트 구성 상품을 추가하세요.</div>'; return; }
+  var pg=pcCommonPG/100, ship=pcCommonShip;
+  var sumRetail=0,sumCost=0;
+  setItems.forEach(function(it){var p=PRICE_TABLE.find(function(x){return x.no==it.prodNo;}); if(!p)return; sumRetail+=p.retail*it.qty; sumCost+=p.cost*it.qty;});
+  var thr=numv('setThreshold'), tmg=numv('setTargetMg')/100;
+  function atDisc(d){var sp=Math.round(sumRetail*(1-d/100));var fee=Math.round(sp*pg);var vc=sumCost+fee+ship;var pf=sp-vc;var mr=sp>0?pf/sp*100:0;return {d:d,sp:sp,pf:pf,mr:mr};}
+  var tDenom=1-pg-tmg;
+  var dTarget = (sumRetail>0 && tDenom>0) ? Math.max(0,(1-((sumCost+ship)/tDenom)/sumRetail)*100) : 0;
+  var dBep    = sumRetail>0 ? Math.max(0,(1-((sumCost+ship)/(1-pg))/sumRetail)*100) : 0;
+  var feasible = tDenom>0 && thr<=dTarget;
+  var rows=[
+    {lbl:'🛒 구매유인 임계', d:thr,      r:atDisc(thr)},
+    {lbl:'🎯 목표마진 한계', d:dTarget,  r:atDisc(dTarget)},
+    {lbl:'⚖️ 손익분기(BEP)', d:dBep,     r:atDisc(dBep)},
+  ];
+  var head='<thead><tr><th>기준</th><th>할인</th><th>세트가</th><th>개당이익</th><th>마진율</th></tr></thead>';
+  var body=rows.map(function(x){
+    return '<tr><td style="text-align:left">'+x.lbl+'</td><td>'+x.d.toFixed(1)+'%</td><td><b>'+fI(x.r.sp)+'</b></td>'
+      +'<td style="color:'+(x.r.pf>=0?'var(--g)':'var(--r)')+'">'+(x.r.pf>=0?'+':'')+fI(Math.round(x.r.pf))+'</td>'
+      +'<td style="color:'+(x.r.mr>=10?'var(--g)':x.r.mr>=0?'var(--am)':'var(--r)')+'">'+x.r.mr.toFixed(1)+'%</td></tr>';
+  }).join('');
+  var concl = feasible
+    ? '<div class="bep-box ok" style="margin-top:8px"><div class="bep-title">✅ 권장 세트가 '+fI(atDisc(dTarget).sp)+' ~ '+fI(atDisc(thr).sp)+'원</div>'
+        +'할인 '+thr+'% ~ '+dTarget.toFixed(1)+'% 사이에서 정하면 <b>구매유인 있으면서 목표마진('+numv('setTargetMg')+'%) 이상</b> 유지됩니다. (단품합계 '+fI(sumRetail)+'원 대비)</div>'
+    : (tDenom<=0
+        ? '<div class="bep-box bad" style="margin-top:8px"><div class="bep-title">🚨 목표마진이 너무 높음</div>목표마진('+numv('setTargetMg')+'%)+수수료가 100%를 넘어 세트가 산출 불가. 목표마진을 낮추세요.</div>'
+        : '<div class="bep-box warn" style="margin-top:8px"><div class="bep-title">⚠️ 구매유인과 목표마진 충돌</div>'
+          +'구매유인 임계('+thr+'%)를 주면 목표마진('+numv('setTargetMg')+'%)을 못 지킵니다. 목표마진을 낮추거나, 마진을 포기하고 <b>BEP('+dBep.toFixed(1)+'%)</b>까지만 할인하세요.</div>');
+  box.innerHTML='<div style="font-size:11.5px;margin-bottom:8px;line-height:1.7">'
+      +'<div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">단품 정가 합계 <small>(인지 기준가)</small></span><b>'+fI(sumRetail)+'원</b></div>'
+      +'<div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">원가 합계 + 변동비</span><b>'+fI(sumCost+ship)+'원~</b></div></div>'
+    +'<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="vol-table" style="min-width:420px">'+head+'<tbody>'+body+'</tbody></table></div>'
+    +concl;
+}
+
+/* ── ⑥ 파트너 공급가 역산 ── */
+function renderPartnerSupply(){
+  var box=document.getElementById('ptnResult'); if(!box) return;
+  var ref=getStratRef(); if(!ref){ box.innerHTML=''; return; }
+  setT('ptnRefName', ref.name);
+  var consumerEl=document.getElementById('ptnConsumer');
+  var consumer=numv('ptnConsumer');
+  if(consumer<=0){ consumer=ref.retail; if(consumerEl)consumerEl.value=consumer; }
+  var pMar=numv('ptnMargin')/100, myMin=numv('ptnMyMin')/100, pg=pcCommonPG/100, ship=pcCommonShip;
+  function myAt(supply){ var fee=Math.round(supply*pg); var cost=ref.cost+fee+ship; return {pf:supply-cost, mr:supply>0?(supply-cost)/supply*100:0}; }
+  var supply=Math.round(consumer*(1-pMar));
+  var mm=myAt(supply);
+  var partnerProfit=consumer-supply;
+  var myDenom=1-pg-myMin;
+  var supplyMin = myDenom>0 ? (ref.cost+ship)/myDenom : 0;                 /* 내 최소마진 지키는 최저 공급가 */
+  var maxPartnerMargin = (consumer>0 && supplyMin>0) ? Math.max(0,(1-supplyMin/consumer)*100) : 0;
+  var ok = mm.mr >= numv('ptnMyMin');
+
+  /* 파트너 마진별 표 */
+  var steps=[10,15,20,25,30,35];
+  var head='<thead><tr><th>파트너마진</th><th>공급가</th><th>파트너이익</th><th>내 마진</th><th>내 이익</th></tr></thead>';
+  var body=steps.map(function(pm){
+    var sp=Math.round(consumer*(1-pm/100)); var m=myAt(sp); var pp=consumer-sp;
+    var cur=(pm===numv('ptnMargin'));
+    return '<tr'+(cur?' class="best-profit"':'')+'><td style="text-align:left">'+pm+'%'+(cur?' <span class="vol-badge" style="background:var(--purple)">현재</span>':'')+'</td>'
+      +'<td>'+fI(sp)+'</td><td>'+fI(pp)+'</td>'
+      +'<td style="color:'+(m.mr>=numv('ptnMyMin')?'var(--g)':m.mr>=0?'var(--am)':'var(--r)')+'">'+m.mr.toFixed(1)+'%</td>'
+      +'<td style="color:'+(m.pf>=0?'var(--g)':'var(--r)')+'">'+(m.pf>=0?'+':'')+fI(Math.round(m.pf))+'</td></tr>';
+  }).join('');
+  var concl = ok
+    ? '<div class="bep-box ok" style="margin-top:8px"><div class="bep-title">✅ 권장 공급가 '+fI(supply)+'원</div>'
+        +'파트너 마진 '+numv('ptnMargin')+'%(개당 +'+fI(partnerProfit)+'원) 보장 · 내 마진 '+mm.mr.toFixed(1)+'%(개당 '+(mm.pf>=0?'+':'')+fI(Math.round(mm.pf))+'원) — 양쪽 다 남습니다.</div>'
+    : '<div class="bep-box bad" style="margin-top:8px"><div class="bep-title">⚠️ 내 마진 부족 ('+mm.mr.toFixed(1)+'%)</div>'
+        +'파트너 마진 '+numv('ptnMargin')+'%를 주면 내 목표마진('+numv('ptnMyMin')+'%)에 미달합니다. '
+        +'내 마진 지키려면 <b>파트너 마진 최대 '+maxPartnerMargin.toFixed(1)+'%</b>(공급가 '+fI(Math.round(supplyMin))+'원 이상)까지만 양보 가능.</div>';
+  box.innerHTML='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="vol-table" style="min-width:440px">'+head+'<tbody>'+body+'</tbody></table></div>'+concl;
+}
+
+/* ── ⑦ 수출가 FOB/CIF 역산 ── */
+function renderExportPrice(){
+  var box=document.getElementById('expResult'); if(!box) return;
+  var ref=getStratRef(); if(!ref){ box.innerHTML=''; return; }
+  setT('expRefName', ref.name);
+  var priceEl=document.getElementById('expPrice');
+  var price=numv('expPrice');
+  if(price<=0){ price=ref.total_dist||ref.retail; if(priceEl)priceEl.value=price; }
+  var termEl=document.getElementById('expTerm');
+  var term=termEl?termEl.value:'cif';
+  var freight=numv('expFreight'), agent=numv('expAgentPct')/100, etc=numv('expEtc'), tmg=numv('expTargetMg')/100;
+  var freightDed=(term==='cif')?freight:0;
+  var agentAmt=Math.round(price*agent);
+  var net=price - freightDed - agentAmt - etc;
+  var profit=net - ref.cost;
+  var mr=net>0?profit/net*100:0;
+  var afDenom=1-agent;
+  var minPrice=(afDenom>0 && tmg<1) ? Math.round(((ref.cost/(1-tmg))+freightDed+etc)/afDenom) : 0;
+  var ok=mr>=numv('expTargetMg');
+  function row(lbl,val,neg,strong){
+    return '<div style="display:flex;justify-content:space-between;padding:4px 0;'+(strong?'border-top:1px solid var(--rule);font-weight:800;margin-top:2px;padding-top:6px':'')+'">'
+      +'<span style="color:var(--muted)">'+lbl+'</span><span style="font-variant-numeric:tabular-nums'+(neg?';color:var(--r)':'')+'">'+(neg?'−':'')+fI(Math.abs(Math.round(val)))+'원</span></div>';
+  }
+  var bd='<div style="font-size:12px;margin-bottom:8px">'
+    + row('수출 단가', price)
+    + (freightDed>0?row('운임·물류 (CIF)', freightDed, true):'<div style="display:flex;justify-content:space-between;padding:4px 0"><span style="color:var(--muted)">운임·물류</span><span style="color:var(--muted);font-size:11px">FOB · 바이어 부담</span></div>')
+    + row('대행수수료 ('+numv('expAgentPct')+'%)', agentAmt, true)
+    + (etc>0?row('기타(통관·인증)', etc, true):'')
+    + row('= 실수취액', net, false, true)
+    + row('− 원가(매입가)', ref.cost, true)
+    + '<div style="display:flex;justify-content:space-between;padding:6px 0 0;border-top:2px solid var(--ink);font-weight:800;margin-top:2px">'
+      + '<span>개당 이익 (마진율)</span>'
+      + '<span style="color:'+(profit>=0?'var(--g)':'var(--r)')+';font-variant-numeric:tabular-nums">'+(profit>=0?'+':'')+fI(Math.round(profit))+'원 ('+mr.toFixed(1)+'%)</span></div>'
+    + '</div>';
+  var concl = ok
+    ? '<div class="bep-box ok"><div class="bep-title">✅ 실수취 '+fI(Math.round(net))+'원 · 마진 '+mr.toFixed(1)+'%</div>목표마진('+numv('expTargetMg')+'%) 이상 — 이 수출 단가로 남습니다.</div>'
+    : '<div class="bep-box '+(profit>=0?'warn':'bad')+'"><div class="bep-title">'+(profit>=0?'⚠️ 목표마진 미달':'🚨 적자')+' (마진 '+mr.toFixed(1)+'%)</div>'
+        +'목표마진('+numv('expTargetMg')+'%)을 지키려면 <b>수출 단가 최소 '+fI(minPrice)+'원</b> 필요. (현재 '+fI(price)+'원)</div>';
+  box.innerHTML=bd+concl;
+}
+
+/* ── TASK 4: 진짜 손익분기 (고정비 포함) ── */
+var bepItems=[]; var bepSeq=1;
+function renderBepRows(){
+  var el=document.getElementById('bepItemRows'); if(!el) return;
+  el.innerHTML=bepItems.map(function(it){
+    return '<div class="bep-row">'
+      +'<select data-bepprod="'+it.id+'">'+PRICE_TABLE.map(function(p){return '<option value="'+p.no+'"'+(p.no==it.prodNo?' selected':'')+'>'+esc(p.name)+'</option>';}).join('')+'</select>'
+      +'<span class="bep-lbl">할인</span><input type="number" class="bep-mini" data-bepdisc="'+it.id+'" value="'+(it.disc||0)+'" min="0" max="80" step="5"><span class="bep-lbl">%</span>'
+      +'<span class="bep-lbl">월판매</span><input type="number" class="bep-mini" data-bepqty="'+it.id+'" value="'+(it.qty||0)+'" min="0" step="10"><span class="bep-lbl">개</span>'
+      +'<button class="bep-del" data-bepdel="'+it.id+'">✕</button>'
+      +'</div>';
+  }).join('');
+  recalcBep();
+}
+function recalcBep(){
+  var totalBar=document.getElementById('bepTotalBar');
+  var fixedTotal=numv('bepLabor')+numv('bepRent')+numv('bepSys')+numv('bepEtc2');
+  if(totalBar) totalBar.innerHTML='<span>월 총 고정비</span><span class="v">'+fI(fixedTotal)+'원</span>';
+  var box=document.getElementById('bepResult'); if(!box) return;
+  if(!bepItems.length){ box.innerHTML='<div style="font-size:11.5px;color:var(--muted);padding:8px 0">취급 상품을 추가하세요.</div>'; return; }
+  var pg=pcCommonPG/100, ship=pcCommonShip, adPer=numv('bepAdPer');
+  var mode=(document.getElementById('bepAllocMode')||{}).value||'even';
+  var items=bepItems.map(function(it){
+    var prod=PRICE_TABLE.find(function(p){return p.no==it.prodNo;});
+    if(!prod) return null;
+    var price=Math.round(prod.retail*(1-(it.disc||0)/100));
+    var vc=prod.cost+Math.round(price*pg)+ship+adPer;     /* 변동비 = 매입가+PG+배송+광고 */
+    var contrib=price-vc;                                  /* 개당 공헌이익 */
+    var qty=it.qty||0;
+    return {it:it, prod:prod, price:price, contrib:contrib, qty:qty, expRev:price*qty};
+  }).filter(Boolean);
+  var N=items.length;
+  var totExpRev=items.reduce(function(a,x){return a+x.expRev;},0);
+  items.forEach(function(x){
+    x.allocFixed = (mode==='rev' && totExpRev>0) ? fixedTotal*x.expRev/totExpRev : fixedTotal/N;
+    x.bepQty = x.contrib>0 ? Math.ceil(x.allocFixed/x.contrib) : Infinity;   /* BEP수량 = 배분고정비 ÷ 공헌이익 */
+    x.bepRev = isFinite(x.bepQty) ? x.bepQty*x.price : Infinity;
+    x.coverContrib = x.contrib*x.qty;
+    x.covered = x.coverContrib >= x.allocFixed;
+  });
+  var head='<thead><tr><th>상품</th><th>할인</th><th>판매가</th><th>공헌이익</th><th>배분고정비</th><th>BEP수량</th><th>BEP매출</th><th>예상</th></tr></thead>';
+  var body=items.map(function(x){
+    var covCls=x.contrib<=0?'var(--r)':x.covered?'var(--g)':'var(--am)';
+    var covMark=x.contrib<=0?' ⚠':x.covered?' ✅':' ⚠';
+    return '<tr><td style="text-align:left;max-width:120px;white-space:normal;line-height:1.3;font-size:11px">'+esc(x.prod.name)+'</td>'
+      +'<td>'+(x.it.disc||0)+'%</td><td>'+fI(x.price)+'</td>'
+      +'<td style="color:'+(x.contrib>0?'var(--g)':'var(--r)')+';font-weight:700">'+(x.contrib>=0?'+':'')+fI(x.contrib)+'</td>'
+      +'<td>'+fI(Math.round(x.allocFixed))+'</td>'
+      +'<td style="font-weight:800;color:var(--b)">'+(isFinite(x.bepQty)?fI(x.bepQty)+'개':'∞')+'</td>'
+      +'<td>'+(isFinite(x.bepRev)?fI(Math.round(x.bepRev)):'∞')+'</td>'
+      +'<td style="color:'+covCls+';font-weight:700">'+fI(x.qty)+'개'+covMark+'</td></tr>';
+  }).join('');
+  var totContrib=items.reduce(function(a,x){return a+x.coverContrib;},0);
+  var netProfit=totContrib-fixedTotal;
+  var coverPct=fixedTotal>0?totContrib/fixedTotal*100:0;
+  var concl='<div class="bep-box '+(netProfit>=0?'ok':'bad')+'" style="margin-top:8px"><div class="bep-title">'
+    +(netProfit>=0?'✅ 고정비 커버 — 월 순이익 +'+fI(Math.round(netProfit))+'원':'🚨 고정비 미달 — 월 '+fI(Math.abs(Math.round(netProfit)))+'원 적자')+'</div>'
+    +'예상 판매 기준 공헌이익 합계 '+fI(Math.round(totContrib))+'원 vs 월 고정비 '+fI(fixedTotal)+'원 (커버율 '+Math.round(coverPct)+'%) · 배분: '+(mode==='rev'?'매출비중':'균등')+'</div>';
+  box.innerHTML='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="vol-table" style="min-width:620px">'+head+'<tbody>'+body+'</tbody></table></div>'+concl;
+}
+
 /* ── B2C 온라인 전략 ── */
 function recalcStrategyB2C(){
   var out=document.getElementById('b2cOut'); if(!out) return;
@@ -3740,36 +4320,78 @@ function recalcStratB2b(){
     +'<div class="sq-row total"><span>총 견적금액</span><span class="sq-val ok">'+fI(Math.round(totRev))+'원</span></div>';
 }
 
-/* B2B 견적서 인쇄 */
+/* B2B 견적서 인쇄 — 공급자/고객 정보 + 공급가액·부가세·총액 양식 */
+function qv(id){ var el=document.getElementById(id); return el?el.value.trim():''; }
 function printB2bQuote(){
   if(!strategyB2B.length){ alert('견적 상품을 추가하세요.'); return; }
   var w=window.open('','_blank'); if(!w) return;
-  var totRev=0;
+  var supplier=qv('qSupplier')||'넷폼알앤디 (POUR스토어)';
+  var bizNo=qv('qBizNo'), supTel=qv('qSupTel'), supAddr=qv('qSupAddr');
+  var customer=qv('qCustomer'), contact=qv('qContact'), note=qv('qNote');
+  var validDays=parseInt(qv('qValidDays'))||30;
+  var vatEl=document.getElementById('qVat'); var showVat=vatEl?vatEl.checked:true;
+
+  var supply=0, idx=0;
   var bodyRows=strategyB2B.map(function(item){
     var prod=PRICE_TABLE.find(function(p){return p.no==item.prodNo;});
     if(!prod) return '';
     var tier=getTier2(item.qty);
     var c=calcTierPrice(prod,tier);
     if(!c.valid) return '';
-    var lineRev=c.price*item.qty; totRev+=lineRev;
-    return '<tr><td style="text-align:left">'+esc(prod.name)+' ('+prod.unit+prod.spec+')</td>'
-      +'<td>'+item.qty+'개</td><td>'+fI(c.price)+'원</td><td>'+fI(Math.round(lineRev))+'원</td></tr>';
+    var line=c.price*item.qty; supply+=line; idx++;
+    return '<tr><td class="c">'+idx+'</td><td class="l">'+esc(prod.name)+'</td><td>'+esc(prod.unit+prod.spec)+'</td>'
+      +'<td>'+fI(item.qty)+'</td><td>'+fI(c.price)+'</td><td>'+fI(Math.round(line))+'</td></tr>';
   }).join('');
+  var vat=Math.round(supply*0.1);
+  var grand=supply+(showVat?vat:0);
+
   var today=new Date();
   var dStr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
-  w.document.write('<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>POUR스토어 공급 견적서</title>'
-    +'<style>body{font-family:sans-serif;padding:30px;color:#1a1a2e}h1{font-size:20px;margin:0 0 4px}'
-    +'.meta{color:#666;font-size:12px;margin-bottom:18px}table{border-collapse:collapse;width:100%;font-size:13px}'
-    +'th,td{border:1px solid #ccc;padding:8px 10px;text-align:right}th{background:#1B4F8A;color:#fff}'
-    +'td:first-child,th:first-child{text-align:left}tfoot td{font-weight:800;background:#f4f6f9}'
-    +'.note{font-size:11px;color:#888;margin-top:12px}</style></head><body>'
-    +'<h1>POUR스토어 공급 견적서</h1>'
-    +'<div class="meta">발행일: '+dStr+' &nbsp;|&nbsp; 유효기간: 발행일로부터 30일</div>'
-    +'<table><thead><tr><th>상품명</th><th>수량</th><th>단가</th><th>합계</th></tr></thead>'
-    +'<tbody>'+bodyRows+'</tbody>'
-    +'<tfoot><tr><td colspan="3">합계 (부가세 별도)</td><td>'+fI(Math.round(totRev))+'원</td></tr></tfoot></table>'
-    +'<div class="note">※ 본 견적은 MOQ 수량 구간별 공급 단가 기준이며, 부가세는 별도입니다.</div>'
-    +'</body></html>');
+  var qno='Q'+today.getFullYear()+String(today.getMonth()+1).padStart(2,'0')+String(today.getDate()).padStart(2,'0')+'-'+String(today.getHours()).padStart(2,'0')+String(today.getMinutes()).padStart(2,'0');
+
+  var html='<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>견적서 '+qno+'</title>'
+    +'<style>'
+    +'*{box-sizing:border-box}body{font-family:"Malgun Gothic",sans-serif;padding:34px;color:#1a1a2e;font-size:13px}'
+    +'.head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #1B4F8A;padding-bottom:10px;margin-bottom:6px}'
+    +'h1{font-size:26px;letter-spacing:8px;margin:0;color:#1B4F8A}'
+    +'.qno{font-size:11px;color:#666;text-align:right;line-height:1.7}'
+    +'.parties{display:flex;gap:14px;margin:16px 0}'
+    +'.party{flex:1;border:1px solid #ddd;border-radius:6px;padding:10px 12px}'
+    +'.party h2{font-size:11px;color:#1B4F8A;margin:0 0 6px;letter-spacing:1px}'
+    +'.party .nm{font-size:15px;font-weight:800;margin-bottom:3px}'
+    +'.party .ln{font-size:11.5px;color:#444;line-height:1.7}'
+    +'table{border-collapse:collapse;width:100%;font-size:12.5px;margin-top:6px}'
+    +'th,td{border:1px solid #c9c9c9;padding:8px 9px;text-align:right}'
+    +'th{background:#1B4F8A;color:#fff;font-weight:700}'
+    +'td.l,th.l{text-align:left}td.c,th.c{text-align:center}'
+    +'tfoot td{font-weight:800;background:#f4f6f9}'
+    +'.sumbox{margin-top:14px;margin-left:auto;width:280px;font-size:13px}'
+    +'.sumbox .r{display:flex;justify-content:space-between;padding:6px 4px;border-bottom:1px solid #eee}'
+    +'.sumbox .r.total{border-top:2px solid #1B4F8A;border-bottom:none;font-size:17px;font-weight:900;color:#1B4F8A;padding-top:9px}'
+    +'.note{font-size:11.5px;color:#555;margin-top:18px;line-height:1.7;border-top:1px dashed #ccc;padding-top:10px}'
+    +'.stamp{margin-top:20px;text-align:right;font-size:13px;color:#222}'
+    +'@media print{body{padding:0}}'
+    +'</style></head><body>'
+    +'<div class="head"><h1>견 적 서</h1>'
+      +'<div class="qno">견적번호 '+qno+'<br>발행일 '+dStr+'<br>유효기간 발행일로부터 '+validDays+'일</div></div>'
+    +'<div class="parties">'
+      +'<div class="party"><h2>받는 분</h2><div class="nm">'+(customer?esc(customer):'________________')+' 귀하</div>'
+        +'<div class="ln">'+(contact?esc(contact):'담당자 / 연락처')+'</div></div>'
+      +'<div class="party"><h2>공급자</h2><div class="nm">'+esc(supplier)+'</div>'
+        +'<div class="ln">'+(bizNo?'사업자 '+esc(bizNo)+'<br>':'')+(supTel?esc(supTel)+'<br>':'')+(supAddr?esc(supAddr):'')+'</div></div>'
+    +'</div>'
+    +'<table><thead><tr><th class="c" style="width:36px">No</th><th class="l">품목</th><th style="width:90px">규격</th><th style="width:60px">수량</th><th style="width:90px">단가</th><th style="width:110px">공급가액</th></tr></thead>'
+    +'<tbody>'+bodyRows+'</tbody></table>'
+    +'<div class="sumbox">'
+      +'<div class="r"><span>공급가액</span><span>'+fI(Math.round(supply))+' 원</span></div>'
+      +'<div class="r"><span>부가세 (10%)</span><span>'+(showVat?fI(vat)+' 원':'별도')+'</span></div>'
+      +'<div class="r total"><span>합계금액</span><span>'+fI(Math.round(grand))+' 원</span></div>'
+    +'</div>'
+    +'<div class="note">※ 본 견적은 MOQ 수량 구간별 공급 단가 기준입니다.'+(showVat?'':' 부가세 별도.')
+      +(note?'<br>※ '+esc(note):'')+'</div>'
+    +'<div class="stamp">'+esc(supplier)+' &nbsp;&nbsp;(인)</div>'
+    +'</body></html>';
+  w.document.write(html);
   w.document.close();
   setTimeout(function(){ w.print(); },400);
 }
@@ -3783,8 +4405,22 @@ function renderStrategy(){
   syncStratAov();
   if(!strategyB2B.length) strategyB2B.push({id:'sb'+(stratB2bSeq++),prodNo:stratRefNo,qty:50});
   renderStratB2bRows();
+  if(!setItems.length){
+    setItems.push({id:'st'+(setSeq++),prodNo:PRICE_TABLE[0].no,qty:1});
+    setItems.push({id:'st'+(setSeq++),prodNo:(PRICE_TABLE[1]||PRICE_TABLE[0]).no,qty:1});
+  }
+  renderSetItemRows();
+  if(!bepItems.length){
+    bepItems.push({id:'bp'+(bepSeq++),prodNo:PRICE_TABLE[0].no,disc:0,qty:200});
+    bepItems.push({id:'bp'+(bepSeq++),prodNo:(PRICE_TABLE[88]||PRICE_TABLE[0]).no,disc:30,qty:150});
+  }
+  renderBepRows();
   recalcStrategyB2C();
   recalcStrategyOBM();
+  renderVolumeView();
+  renderChanRows();
+  renderPartnerSupply();
+  renderExportPrice();
   renderCloudCard();
 }
 
@@ -3898,7 +4534,11 @@ function doLogout(){
 
 /* ── 전체 상태 수집/복원 ── */
 var STRAT_INPUT_IDS=['b2cRev','b2cMg','b2cAov','b2cCvr','b2cRoas','obmLabor','obmRent','obmEtc',
-  'trfRev','trfAov','trfCvr','trfCtr','trfCpc','ordMonthly','ordSafety'];
+  'trfRev','trfAov','trfCvr','trfCtr','trfCpc','ordMonthly','ordSafety','volBaseQty','volElastic',
+  'chanTarget','bepLabor','bepRent','bepSys','bepEtc2','bepAdPer','bepAllocMode',
+  'setThreshold','setTargetMg','ptnConsumer','ptnMargin','ptnMyMin',
+  'expPrice','expTerm','expFreight','expAgentPct','expEtc','expTargetMg',
+  'qSupplier','qBizNo','qSupTel','qSupAddr','qCustomer','qContact','qValidDays','qNote'];
 function readStratInputs(){var o={};STRAT_INPUT_IDS.forEach(function(id){var el=document.getElementById(id);if(el)o[id]=el.value;});return o;}
 function writeStratInputs(o){if(!o)return;STRAT_INPUT_IDS.forEach(function(id){if(o[id]!=null){var el=document.getElementById(id);if(el)el.value=o[id];}});}
 
@@ -3918,7 +4558,8 @@ function collectFullState(){
     /* MOQ */
     moqTiers:moqTiers, moqSimItems2:moqSimItems2,
     /* 전략 */
-    stratRefNo:stratRefNo, strategyB2B:strategyB2B, stratInputs:readStratInputs()
+    stratRefNo:stratRefNo, strategyB2B:strategyB2B, setItems:setItems, chanList:chanList, bepItems:bepItems, stratInputs:readStratInputs(),
+    qVat: !!(document.getElementById('qVat')||{}).checked
   };
 }
 function applyFullState(d){
@@ -3935,7 +4576,7 @@ function applyFullState(d){
   if(d.pcCommonShip!=null)pcCommonShip=d.pcCommonShip; if(d.pcCommonLogistics!=null)pcCommonLogistics=d.pcCommonLogistics;
   if(d.pcCommonPG!=null)pcCommonPG=d.pcCommonPG; if(d.prodProfiles)prodProfiles=d.prodProfiles;
   if(d.moqTiers)moqTiers=d.moqTiers; if(d.moqSimItems2)moqSimItems2=d.moqSimItems2;
-  if(d.stratRefNo)stratRefNo=d.stratRefNo; if(d.strategyB2B)strategyB2B=d.strategyB2B;
+  if(d.stratRefNo)stratRefNo=d.stratRefNo; if(d.strategyB2B)strategyB2B=d.strategyB2B; if(d.setItems)setItems=d.setItems; if(d.chanList)chanList=d.chanList; if(d.bepItems)bepItems=d.bepItems;
   state.forEach(function(ch){if(!ch.links)ch.links=[mklink('기본','')];if(!ch.utm)ch.utm={source:'',medium:''};if(!ch.ctype)ch.ctype='수확';if(!ch.stage)ch.stage='신규';});
   syncControls();
   var mg=document.getElementById('mgSlider'); if(mg)mg.value=pcMgTarget; setT('pcMgVal',pcMgTarget+'%');
@@ -3944,6 +4585,7 @@ function applyFullState(d){
   var cl=document.getElementById('pcCommonLogistics'); if(cl)cl.value=pcCommonLogistics;
   var cg=document.getElementById('pcCommonPG'); if(cg)cg.value=pcCommonPG;
   writeStratInputs(d.stratInputs);
+  if(d.qVat!=null){ var qv2=document.getElementById('qVat'); if(qv2)qv2.checked=!!d.qVat; }
   setCouponMode(couponMode||'product');
   renderAll();
   renderPcCatFilter(); renderPcProdList();

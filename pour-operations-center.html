@@ -1546,6 +1546,8 @@ body:not(.locked) .auth-userbox{display:flex}
     </div>
     <div class="pc-row"><span class="pc-label">총 매출 목표</span>
       <input type="number" class="pc-input" id="chanTarget" data-strat="chan" value="50000000" min="0" step="1000000"><span class="pc-unit">원</span></div>
+    <div class="pc-row"><span class="pc-label">채널 광고 목표 ROAS <small>(온라인 채널 필요광고비 계산)</small></span>
+      <input type="number" class="pc-input" id="chanRoas" data-strat="chan" value="400" min="1" step="10"><span class="pc-unit">%</span></div>
     <div id="chanRows"></div>
     <button class="pc-add-item-btn" id="chanAddBtn" style="margin:2px 0 8px">＋ 채널 추가</button>
     <div style="display:flex;gap:6px;margin:0 0 10px;flex-wrap:wrap">
@@ -3902,6 +3904,22 @@ var CHAN_SRC=[
   {k:'online_consign',n:'온라인위탁'},{k:'online_wholesale',n:'온라인도매'},{k:'custom',n:'직접입력'}
 ];
 var CHAN_OM_DEFAULT={coupang:15, online_consign:15, online_wholesale:15};
+var CHAN_AD_SRC={retail:1, coupang:1, online_consign:1, online_wholesale:1};  /* 광고 필요 채널(온라인) */
+function chanNeedsAd(ch){ return ch.src!=='custom' && !!CHAN_AD_SRC[ch.src]; }
+/* 순익 최대화 추천 배분(적용 안 함, 텍스트용): 최고마진 50% + 나머지 마진비례 */
+function chanRecommendAlloc(){
+  var ref=getStratRef(); if(!ref) return [];
+  var valid=chanList.map(function(ch){return chanCalc(ref,ch);}).filter(function(r){return r.price>0 && r.mr>0;});
+  if(!valid.length) return [];
+  var best=valid.reduce(function(a,b){return b.mr>a.mr?b:a;});
+  var others=valid.filter(function(r){return r.ch.id!==best.ch.id;});
+  var out=[]; out.push({name:best.ch.name, pct:others.length?50:100});
+  if(others.length){
+    var sumW=others.reduce(function(a,b){return a+b.mr;},0), acc=0;
+    others.forEach(function(r,i){ var v=(i<others.length-1)?Math.round(r.mr/sumW*50):Math.max(0,50-acc); acc+=v; out.push({name:r.ch.name, pct:v}); });
+  }
+  return out.filter(function(x){return x.pct>0;});
+}
 var chanList=[
   {id:'ch_own', name:'🟢 자사몰',  src:'retail',     om:0,  custom:0, alloc:40},
   {id:'ch_cou', name:'🔵 쿠팡',    src:'coupang',    om:15, custom:0, alloc:20},
@@ -3979,11 +3997,14 @@ function renderChannelAlloc(){
   var valid=rows.filter(function(r){return r.price>0;});
   var bestCh=valid.length?valid.reduce(function(a,b){return b.mr>a.mr?b:a;}):null;
 
-  var head='<thead><tr><th>채널</th><th>배분%</th><th>단가</th><th>마진율</th><th>배분매출</th><th>판매량</th><th>순익</th></tr></thead>';
+  var roas=numv('chanRoas')/100;
+  rows.forEach(function(r){ r.adCost = (r.price>0 && chanNeedsAd(r.ch) && roas>0) ? r.rev/roas : null; });
+  var totAd=rows.reduce(function(a,r){return a+(r.adCost||0);},0);
+  var head='<thead><tr><th>채널</th><th>배분%</th><th>단가</th><th>마진율</th><th>배분매출</th><th>판매량</th><th>순익</th><th>필요광고비</th></tr></thead>';
   var body=rows.map(function(r){
     var isBest=bestCh&&r.ch.id===bestCh.ch.id;
     if(r.price<=0){
-      return '<tr style="opacity:.45"><td style="text-align:left">'+esc(r.ch.name)+'</td><td>'+r.alloc+'%</td><td colspan="5" style="text-align:center;color:var(--muted)">단가 미설정</td></tr>';
+      return '<tr style="opacity:.45"><td style="text-align:left">'+esc(r.ch.name)+'</td><td>'+r.alloc+'%</td><td colspan="6" style="text-align:center;color:var(--muted)">단가 미설정</td></tr>';
     }
     return '<tr'+(isBest?' class="best-profit"':'')+'><td style="text-align:left">'+esc(r.ch.name)+(isBest?' <span class="vol-badge" style="background:var(--g)">마진1위</span>':'')+'</td>'
       +'<td>'+r.alloc+'%</td>'
@@ -3991,22 +4012,28 @@ function renderChannelAlloc(){
       +'<td style="color:'+(r.mr>=10?'var(--g)':r.mr>=0?'var(--am)':'var(--r)')+'">'+r.mr.toFixed(1)+'%</td>'
       +'<td>'+fI(Math.round(r.rev))+'</td>'
       +'<td>'+fI(r.units)+'개</td>'
-      +'<td style="color:'+(r.profit>=0?'var(--g)':'var(--r)')+';font-weight:800">'+(r.profit>=0?'+':'')+fI(Math.round(r.profit))+'</td></tr>';
+      +'<td style="color:'+(r.profit>=0?'var(--g)':'var(--r)')+';font-weight:800">'+(r.profit>=0?'+':'')+fI(Math.round(r.profit))+'</td>'
+      +'<td style="color:'+(r.adCost!=null?'var(--am)':'var(--muted)')+'">'+(r.adCost!=null?fI(Math.round(r.adCost)):'—')+'</td></tr>';
   }).join('');
   var foot='<tr style="border-top:2px solid var(--ink);font-weight:800"><td style="text-align:left">합계</td>'
     +'<td style="color:'+(Math.round(allocSum)===100?'var(--g)':'var(--r)')+'">'+allocSum+'%</td><td>—</td>'
     +'<td style="color:'+(avgMr>=10?'var(--g)':avgMr>=0?'var(--am)':'var(--r)')+'">'+avgMr.toFixed(1)+'%</td>'
     +'<td>'+fI(Math.round(totRev))+'</td><td>—</td>'
-    +'<td style="color:'+(totProfit>=0?'var(--g)':'var(--r)')+'">'+(totProfit>=0?'+':'')+fI(Math.round(totProfit))+'</td></tr>';
+    +'<td style="color:'+(totProfit>=0?'var(--g)':'var(--r)')+'">'+(totProfit>=0?'+':'')+fI(Math.round(totProfit))+'</td>'
+    +'<td style="color:var(--am)">'+fI(Math.round(totAd))+'</td></tr>';
   var warn = Math.round(allocSum)!==100
     ? '<div style="font-size:11px;color:var(--r);font-weight:700;margin-bottom:7px">⚠️ 배분 합계가 '+allocSum+'% 입니다 — 100%로 맞춰주세요 (배분매출이 목표와 어긋남).</div>'
     : '';
   /* 이론상 최대 순익 = 매출 100%를 마진 1위 채널에 집중했을 때 */
   var theoMax = bestCh ? target*bestCh.mr/100 : 0;
+  /* 순이익 최대화 추천 배분 (텍스트) */
+  var rec=chanRecommendAlloc();
+  var recTxt=rec.length ? rec.map(function(x){return esc(x.name)+' '+x.pct+'%';}).join(' / ') : '—';
   var guide = bestCh
     ? '<div style="font-size:11.5px;color:var(--b);font-weight:700;margin-bottom:8px;line-height:1.6">'
       +'💡 마진 1위: '+esc(bestCh.ch.name)+' ('+bestCh.mr.toFixed(1)+'%) — 이 채널 비중↑ = 같은 매출에서 총순익↑<br>'
-      +'<span style="color:var(--muted);font-weight:600">이론상 최대 순익(1위 채널 100% 가정): '+fI(Math.round(theoMax))+'원 · 현재 배분: '+fI(Math.round(totProfit))+'원 ('+(theoMax>0?Math.round(totProfit/theoMax*100):0)+'%)</span></div>'
+      +'🏆 <span style="color:var(--g)">순이익 최대화 추천 배분: '+recTxt+'</span> <span style="font-weight:600;color:var(--muted)">(위 "마진 집중 배분" 버튼으로 바로 적용)</span><br>'
+      +'<span style="color:var(--muted);font-weight:600">이론상 최대 순익(1위 채널 100% 가정): '+fI(Math.round(theoMax))+'원 · 현재 배분: '+fI(Math.round(totProfit))+'원 ('+(theoMax>0?Math.round(totProfit/theoMax*100):0)+'%) · 총 필요광고비 '+fI(Math.round(totAd))+'원</span></div>'
     : '';
   box.innerHTML=warn+guide+'<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="vol-table">'+head+'<tbody>'+body+foot+'</tbody></table></div>';
 }
@@ -4569,7 +4596,7 @@ function doLogout(){
 /* ── 전체 상태 수집/복원 ── */
 var STRAT_INPUT_IDS=['b2cRev','b2cMg','b2cAov','b2cCvr','b2cRoas','b2cCtr',
   'trfRev','trfAov','trfCvr','trfCtr','trfCpc','ordMonthly','ordStock','ordSafety','ordLead','volBaseQty','volElastic',
-  'chanTarget','bepLabor','bepRent','bepSys','bepEtc2','bepAdPer','bepAllocMode',
+  'chanTarget','chanRoas','bepLabor','bepRent','bepSys','bepEtc2','bepAdPer','bepAllocMode',
   'setThreshold','setTargetMg','ptnConsumer','ptnMargin','ptnMyMin',
   'expPrice','expTerm','expFreight','expAgentPct','expEtc','expTargetMg',
   'qSupplier','qBizNo','qSupTel','qSupAddr','qCustomer','qContact','qValidDays','qNote'];

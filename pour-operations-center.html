@@ -716,6 +716,15 @@ table.moq-table{border-collapse:separate;border-spacing:0;width:100%;min-width:7
 .sq-row:last-child{border-bottom:none}
 .sq-row.total{font-size:15px;font-weight:800;border-top:2px solid rgba(255,255,255,.25);border-bottom:none;padding-top:9px;margin-top:4px}
 .sq-row .sq-val.ok{color:#7EFFD4}.sq-row .sq-val.warn{color:#FFE08A}.sq-row .sq-val.bad{color:#FFB3AE}
+/* 📄 견적서 정보 입력 */
+.qinfo{border:1px solid var(--rule);border-radius:8px;background:var(--bg);overflow:hidden}
+.qinfo>summary{padding:9px 12px;font-size:12px;font-weight:700;color:var(--b);cursor:pointer;list-style:none;user-select:none}
+.qinfo>summary::-webkit-details-marker{display:none}
+.qinfo[open]>summary{border-bottom:1px solid var(--rule)}
+.qinfo-grid{padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.qinfo-sec{font-size:10.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+.qinfo-in{border:1.5px solid var(--rule);border-radius:6px;padding:8px 10px;font-family:var(--sans);font-size:12.5px;background:var(--w)}
+.qinfo-in:focus{outline:2px solid var(--b);outline-offset:-2px}
 /* 📈 볼륨 우선 결정뷰 */
 .vol-guide{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 .vg-pill{flex:1;min-width:150px;border-radius:9px;padding:11px 13px;color:#fff}
@@ -1414,6 +1423,29 @@ body:not(.locked) .auth-userbox{display:flex}
         <div class="card-title" style="color:var(--b)">🏭 B2B 대량구매 견적</div>
         <div id="stratB2bRows"></div>
         <button class="add-cost-btn" id="stratB2bAdd" style="border-color:var(--bb);color:var(--b)">＋ 상품 추가</button>
+
+        <details class="qinfo" style="margin-top:10px">
+          <summary>📄 견적서 정보 (인쇄 양식)</summary>
+          <div class="qinfo-grid">
+            <div class="qinfo-sec">공급자 (우리)</div>
+            <input type="text" class="qinfo-in" id="qSupplier"  data-strat="q" placeholder="회사명" value="넷폼알앤디 (POUR스토어)">
+            <input type="text" class="qinfo-in" id="qBizNo"     data-strat="q" placeholder="사업자등록번호">
+            <input type="text" class="qinfo-in" id="qSupTel"    data-strat="q" placeholder="연락처">
+            <input type="text" class="qinfo-in" id="qSupAddr"   data-strat="q" placeholder="주소">
+            <div class="qinfo-sec">받는 분 (고객)</div>
+            <input type="text" class="qinfo-in" id="qCustomer"  data-strat="q" placeholder="고객사명">
+            <input type="text" class="qinfo-in" id="qContact"   data-strat="q" placeholder="담당자 / 연락처">
+            <div class="qinfo-sec">조건</div>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              <span style="font-size:11px;color:var(--muted)">유효기간</span>
+              <input type="number" class="qinfo-in" id="qValidDays" data-strat="q" value="30" min="1" style="width:70px"><span style="font-size:11px;color:var(--muted)">일</span>
+              <label style="font-size:11.5px;display:flex;align-items:center;gap:4px;cursor:pointer;margin-left:6px">
+                <input type="checkbox" id="qVat" data-strat="q" checked style="accent-color:var(--b)">부가세 10% 포함 표기</label>
+            </div>
+            <input type="text" class="qinfo-in" id="qNote" data-strat="q" placeholder="비고 (납기·결제조건 등)">
+          </div>
+        </details>
+
         <div class="strat-quote" id="stratB2bQuote" style="display:none"></div>
         <div style="display:flex;gap:6px;margin-top:10px">
           <button class="pc-tool-btn" id="stratPrint" style="background:var(--b);color:#fff;border-color:var(--b);flex:1;display:none">🖨 견적서 인쇄</button>
@@ -4146,36 +4178,78 @@ function recalcStratB2b(){
     +'<div class="sq-row total"><span>총 견적금액</span><span class="sq-val ok">'+fI(Math.round(totRev))+'원</span></div>';
 }
 
-/* B2B 견적서 인쇄 */
+/* B2B 견적서 인쇄 — 공급자/고객 정보 + 공급가액·부가세·총액 양식 */
+function qv(id){ var el=document.getElementById(id); return el?el.value.trim():''; }
 function printB2bQuote(){
   if(!strategyB2B.length){ alert('견적 상품을 추가하세요.'); return; }
   var w=window.open('','_blank'); if(!w) return;
-  var totRev=0;
+  var supplier=qv('qSupplier')||'넷폼알앤디 (POUR스토어)';
+  var bizNo=qv('qBizNo'), supTel=qv('qSupTel'), supAddr=qv('qSupAddr');
+  var customer=qv('qCustomer'), contact=qv('qContact'), note=qv('qNote');
+  var validDays=parseInt(qv('qValidDays'))||30;
+  var vatEl=document.getElementById('qVat'); var showVat=vatEl?vatEl.checked:true;
+
+  var supply=0, idx=0;
   var bodyRows=strategyB2B.map(function(item){
     var prod=PRICE_TABLE.find(function(p){return p.no==item.prodNo;});
     if(!prod) return '';
     var tier=getTier2(item.qty);
     var c=calcTierPrice(prod,tier);
     if(!c.valid) return '';
-    var lineRev=c.price*item.qty; totRev+=lineRev;
-    return '<tr><td style="text-align:left">'+esc(prod.name)+' ('+prod.unit+prod.spec+')</td>'
-      +'<td>'+item.qty+'개</td><td>'+fI(c.price)+'원</td><td>'+fI(Math.round(lineRev))+'원</td></tr>';
+    var line=c.price*item.qty; supply+=line; idx++;
+    return '<tr><td class="c">'+idx+'</td><td class="l">'+esc(prod.name)+'</td><td>'+esc(prod.unit+prod.spec)+'</td>'
+      +'<td>'+fI(item.qty)+'</td><td>'+fI(c.price)+'</td><td>'+fI(Math.round(line))+'</td></tr>';
   }).join('');
+  var vat=Math.round(supply*0.1);
+  var grand=supply+(showVat?vat:0);
+
   var today=new Date();
   var dStr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
-  w.document.write('<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>POUR스토어 공급 견적서</title>'
-    +'<style>body{font-family:sans-serif;padding:30px;color:#1a1a2e}h1{font-size:20px;margin:0 0 4px}'
-    +'.meta{color:#666;font-size:12px;margin-bottom:18px}table{border-collapse:collapse;width:100%;font-size:13px}'
-    +'th,td{border:1px solid #ccc;padding:8px 10px;text-align:right}th{background:#1B4F8A;color:#fff}'
-    +'td:first-child,th:first-child{text-align:left}tfoot td{font-weight:800;background:#f4f6f9}'
-    +'.note{font-size:11px;color:#888;margin-top:12px}</style></head><body>'
-    +'<h1>POUR스토어 공급 견적서</h1>'
-    +'<div class="meta">발행일: '+dStr+' &nbsp;|&nbsp; 유효기간: 발행일로부터 30일</div>'
-    +'<table><thead><tr><th>상품명</th><th>수량</th><th>단가</th><th>합계</th></tr></thead>'
-    +'<tbody>'+bodyRows+'</tbody>'
-    +'<tfoot><tr><td colspan="3">합계 (부가세 별도)</td><td>'+fI(Math.round(totRev))+'원</td></tr></tfoot></table>'
-    +'<div class="note">※ 본 견적은 MOQ 수량 구간별 공급 단가 기준이며, 부가세는 별도입니다.</div>'
-    +'</body></html>');
+  var qno='Q'+today.getFullYear()+String(today.getMonth()+1).padStart(2,'0')+String(today.getDate()).padStart(2,'0')+'-'+String(today.getHours()).padStart(2,'0')+String(today.getMinutes()).padStart(2,'0');
+
+  var html='<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>견적서 '+qno+'</title>'
+    +'<style>'
+    +'*{box-sizing:border-box}body{font-family:"Malgun Gothic",sans-serif;padding:34px;color:#1a1a2e;font-size:13px}'
+    +'.head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #1B4F8A;padding-bottom:10px;margin-bottom:6px}'
+    +'h1{font-size:26px;letter-spacing:8px;margin:0;color:#1B4F8A}'
+    +'.qno{font-size:11px;color:#666;text-align:right;line-height:1.7}'
+    +'.parties{display:flex;gap:14px;margin:16px 0}'
+    +'.party{flex:1;border:1px solid #ddd;border-radius:6px;padding:10px 12px}'
+    +'.party h2{font-size:11px;color:#1B4F8A;margin:0 0 6px;letter-spacing:1px}'
+    +'.party .nm{font-size:15px;font-weight:800;margin-bottom:3px}'
+    +'.party .ln{font-size:11.5px;color:#444;line-height:1.7}'
+    +'table{border-collapse:collapse;width:100%;font-size:12.5px;margin-top:6px}'
+    +'th,td{border:1px solid #c9c9c9;padding:8px 9px;text-align:right}'
+    +'th{background:#1B4F8A;color:#fff;font-weight:700}'
+    +'td.l,th.l{text-align:left}td.c,th.c{text-align:center}'
+    +'tfoot td{font-weight:800;background:#f4f6f9}'
+    +'.sumbox{margin-top:14px;margin-left:auto;width:280px;font-size:13px}'
+    +'.sumbox .r{display:flex;justify-content:space-between;padding:6px 4px;border-bottom:1px solid #eee}'
+    +'.sumbox .r.total{border-top:2px solid #1B4F8A;border-bottom:none;font-size:17px;font-weight:900;color:#1B4F8A;padding-top:9px}'
+    +'.note{font-size:11.5px;color:#555;margin-top:18px;line-height:1.7;border-top:1px dashed #ccc;padding-top:10px}'
+    +'.stamp{margin-top:20px;text-align:right;font-size:13px;color:#222}'
+    +'@media print{body{padding:0}}'
+    +'</style></head><body>'
+    +'<div class="head"><h1>견 적 서</h1>'
+      +'<div class="qno">견적번호 '+qno+'<br>발행일 '+dStr+'<br>유효기간 발행일로부터 '+validDays+'일</div></div>'
+    +'<div class="parties">'
+      +'<div class="party"><h2>받는 분</h2><div class="nm">'+(customer?esc(customer):'________________')+' 귀하</div>'
+        +'<div class="ln">'+(contact?esc(contact):'담당자 / 연락처')+'</div></div>'
+      +'<div class="party"><h2>공급자</h2><div class="nm">'+esc(supplier)+'</div>'
+        +'<div class="ln">'+(bizNo?'사업자 '+esc(bizNo)+'<br>':'')+(supTel?esc(supTel)+'<br>':'')+(supAddr?esc(supAddr):'')+'</div></div>'
+    +'</div>'
+    +'<table><thead><tr><th class="c" style="width:36px">No</th><th class="l">품목</th><th style="width:90px">규격</th><th style="width:60px">수량</th><th style="width:90px">단가</th><th style="width:110px">공급가액</th></tr></thead>'
+    +'<tbody>'+bodyRows+'</tbody></table>'
+    +'<div class="sumbox">'
+      +'<div class="r"><span>공급가액</span><span>'+fI(Math.round(supply))+' 원</span></div>'
+      +'<div class="r"><span>부가세 (10%)</span><span>'+(showVat?fI(vat)+' 원':'별도')+'</span></div>'
+      +'<div class="r total"><span>합계금액</span><span>'+fI(Math.round(grand))+' 원</span></div>'
+    +'</div>'
+    +'<div class="note">※ 본 견적은 MOQ 수량 구간별 공급 단가 기준입니다.'+(showVat?'':' 부가세 별도.')
+      +(note?'<br>※ '+esc(note):'')+'</div>'
+    +'<div class="stamp">'+esc(supplier)+' &nbsp;&nbsp;(인)</div>'
+    +'</body></html>';
+  w.document.write(html);
   w.document.close();
   setTimeout(function(){ w.print(); },400);
 }
@@ -4316,7 +4390,8 @@ var STRAT_INPUT_IDS=['b2cRev','b2cMg','b2cAov','b2cCvr','b2cRoas','obmLabor','ob
   'trfRev','trfAov','trfCvr','trfCtr','trfCpc','ordMonthly','ordSafety','volBaseQty','volElastic',
   'chanTarget','chanAllocown','chanAlloccoupang','chanAllocdist','chanAllocoffline','chanAllocpartner',
   'setThreshold','setTargetMg','ptnConsumer','ptnMargin','ptnMyMin',
-  'expPrice','expTerm','expFreight','expAgentPct','expEtc','expTargetMg'];
+  'expPrice','expTerm','expFreight','expAgentPct','expEtc','expTargetMg',
+  'qSupplier','qBizNo','qSupTel','qSupAddr','qCustomer','qContact','qValidDays','qNote'];
 function readStratInputs(){var o={};STRAT_INPUT_IDS.forEach(function(id){var el=document.getElementById(id);if(el)o[id]=el.value;});return o;}
 function writeStratInputs(o){if(!o)return;STRAT_INPUT_IDS.forEach(function(id){if(o[id]!=null){var el=document.getElementById(id);if(el)el.value=o[id];}});}
 
@@ -4336,7 +4411,8 @@ function collectFullState(){
     /* MOQ */
     moqTiers:moqTiers, moqSimItems2:moqSimItems2,
     /* 전략 */
-    stratRefNo:stratRefNo, strategyB2B:strategyB2B, setItems:setItems, stratInputs:readStratInputs()
+    stratRefNo:stratRefNo, strategyB2B:strategyB2B, setItems:setItems, stratInputs:readStratInputs(),
+    qVat: !!(document.getElementById('qVat')||{}).checked
   };
 }
 function applyFullState(d){
@@ -4362,6 +4438,7 @@ function applyFullState(d){
   var cl=document.getElementById('pcCommonLogistics'); if(cl)cl.value=pcCommonLogistics;
   var cg=document.getElementById('pcCommonPG'); if(cg)cg.value=pcCommonPG;
   writeStratInputs(d.stratInputs);
+  if(d.qVat!=null){ var qv2=document.getElementById('qVat'); if(qv2)qv2.checked=!!d.qVat; }
   setCouponMode(couponMode||'product');
   renderAll();
   renderPcCatFilter(); renderPcProdList();

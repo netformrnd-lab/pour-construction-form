@@ -1492,6 +1492,22 @@ body:not(.locked) .auth-userbox{display:flex}
     <div id="setResult"></div>
   </div>
 
+  <!-- ⑥ 파트너 공급가 역산 -->
+  <div class="card" id="ptnCard" style="border-top:3px solid var(--purple)">
+    <div class="card-title">⑥ 파트너 공급가 역산 <span class="badge" style="background:var(--purple)">대리점·총판</span></div>
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:10px;line-height:1.65">
+      대리점·총판에게 <b style="color:var(--ink)">얼마에 줘야 그쪽도 마진 남고 나도 남나.</b>
+      파트너 마진을 보장하는 공급가와, 내 마진을 지키는 한도를 함께 계산합니다. (기준 상품: <span id="ptnRefName">—</span>)
+    </div>
+    <div class="pc-row"><span class="pc-label">소비자 판매가 <small>(파트너가 파는 가격)</small></span>
+      <input type="number" class="pc-input" id="ptnConsumer" data-strat="ptn" value="0" min="0" step="1000"><span class="pc-unit">원</span></div>
+    <div class="pc-row"><span class="pc-label">파트너 목표 마진율 <small>(그쪽이 가져갈 몫)</small></span>
+      <input type="number" class="pc-input" id="ptnMargin" data-strat="ptn" value="20" min="0" max="70" step="1"><span class="pc-unit">%</span></div>
+    <div class="pc-row"><span class="pc-label">내 최소 목표 마진율</span>
+      <input type="number" class="pc-input" id="ptnMyMin" data-strat="ptn" value="15" min="0" max="60" step="1"><span class="pc-unit">%</span></div>
+    <div id="ptnResult"></div>
+  </div>
+
 </div>
 <!-- /전략 대시보드 -->
 
@@ -2694,6 +2710,7 @@ document.addEventListener('input',function(e){
   if(t.dataset.strat==='vol'){renderVolumeView();return;}
   if(t.dataset.strat==='chan'){renderChannelAlloc();return;}
   if(t.dataset.strat==='set'){recalcSet();return;}
+  if(t.dataset.strat==='ptn'){renderPartnerSupply();return;}
   if(t.dataset.setqty!==undefined){var sti=setItems.find(function(x){return x.id===t.dataset.setqty;});if(sti){sti.qty=parseInt(t.value)||1;recalcSet();}return;}
   if(t.dataset.stratb2bqty!==undefined){var sbi=strategyB2B.find(function(x){return x.id===t.dataset.stratb2bqty;});if(sbi){sbi.qty=parseInt(t.value)||1;recalcStratB2b();}return;}
   if(t.id==='utmBase'){utmBase=t.value;updateUtmUrls();return;}
@@ -2711,7 +2728,7 @@ document.addEventListener('input',function(e){
 
 document.addEventListener('change',function(e){
   var t=e.target;
-  if(t.id==='stratRef'){stratRefNo=parseInt(t.value)||PRICE_TABLE[0].no;syncStratAov();recalcStrategyB2C();recalcStrategyOBM();renderVolumeView();renderChannelAlloc();return;}
+  if(t.id==='stratRef'){stratRefNo=parseInt(t.value)||PRICE_TABLE[0].no;syncStratAov();var _pe=document.getElementById('ptnConsumer');if(_pe)_pe.value=getStratRef().retail;recalcStrategyB2C();recalcStrategyOBM();renderVolumeView();renderChannelAlloc();renderPartnerSupply();return;}
   if(t.dataset.stratb2bprod!==undefined){var sbp=strategyB2B.find(function(x){return x.id===t.dataset.stratb2bprod;});if(sbp){sbp.prodNo=parseInt(t.value);renderStratB2bRows();}return;}
   if(t.dataset.setprod!==undefined){var stp=setItems.find(function(x){return x.id===t.dataset.setprod;});if(stp){stp.prodNo=parseInt(t.value);renderSetItemRows();}return;}
   if(t.dataset.ctoggle!==undefined){var cp3=coupons.find(function(c){return c.id===t.dataset.ctoggle;});if(cp3){cp3.active=t.checked;renderCoupons();renderPromo();}return;}
@@ -3901,6 +3918,44 @@ function recalcSet(){
     +concl;
 }
 
+/* ── ⑥ 파트너 공급가 역산 ── */
+function renderPartnerSupply(){
+  var box=document.getElementById('ptnResult'); if(!box) return;
+  var ref=getStratRef(); if(!ref){ box.innerHTML=''; return; }
+  setT('ptnRefName', ref.name);
+  var consumerEl=document.getElementById('ptnConsumer');
+  var consumer=numv('ptnConsumer');
+  if(consumer<=0){ consumer=ref.retail; if(consumerEl)consumerEl.value=consumer; }
+  var pMar=numv('ptnMargin')/100, myMin=numv('ptnMyMin')/100, pg=pcCommonPG/100, ship=pcCommonShip;
+  function myAt(supply){ var fee=Math.round(supply*pg); var cost=ref.cost+fee+ship; return {pf:supply-cost, mr:supply>0?(supply-cost)/supply*100:0}; }
+  var supply=Math.round(consumer*(1-pMar));
+  var mm=myAt(supply);
+  var partnerProfit=consumer-supply;
+  var myDenom=1-pg-myMin;
+  var supplyMin = myDenom>0 ? (ref.cost+ship)/myDenom : 0;                 /* 내 최소마진 지키는 최저 공급가 */
+  var maxPartnerMargin = (consumer>0 && supplyMin>0) ? Math.max(0,(1-supplyMin/consumer)*100) : 0;
+  var ok = mm.mr >= numv('ptnMyMin');
+
+  /* 파트너 마진별 표 */
+  var steps=[10,15,20,25,30,35];
+  var head='<thead><tr><th>파트너마진</th><th>공급가</th><th>파트너이익</th><th>내 마진</th><th>내 이익</th></tr></thead>';
+  var body=steps.map(function(pm){
+    var sp=Math.round(consumer*(1-pm/100)); var m=myAt(sp); var pp=consumer-sp;
+    var cur=(pm===numv('ptnMargin'));
+    return '<tr'+(cur?' class="best-profit"':'')+'><td style="text-align:left">'+pm+'%'+(cur?' <span class="vol-badge" style="background:var(--purple)">현재</span>':'')+'</td>'
+      +'<td>'+fI(sp)+'</td><td>'+fI(pp)+'</td>'
+      +'<td style="color:'+(m.mr>=numv('ptnMyMin')?'var(--g)':m.mr>=0?'var(--am)':'var(--r)')+'">'+m.mr.toFixed(1)+'%</td>'
+      +'<td style="color:'+(m.pf>=0?'var(--g)':'var(--r)')+'">'+(m.pf>=0?'+':'')+fI(Math.round(m.pf))+'</td></tr>';
+  }).join('');
+  var concl = ok
+    ? '<div class="bep-box ok" style="margin-top:8px"><div class="bep-title">✅ 권장 공급가 '+fI(supply)+'원</div>'
+        +'파트너 마진 '+numv('ptnMargin')+'%(개당 +'+fI(partnerProfit)+'원) 보장 · 내 마진 '+mm.mr.toFixed(1)+'%(개당 '+(mm.pf>=0?'+':'')+fI(Math.round(mm.pf))+'원) — 양쪽 다 남습니다.</div>'
+    : '<div class="bep-box bad" style="margin-top:8px"><div class="bep-title">⚠️ 내 마진 부족 ('+mm.mr.toFixed(1)+'%)</div>'
+        +'파트너 마진 '+numv('ptnMargin')+'%를 주면 내 목표마진('+numv('ptnMyMin')+'%)에 미달합니다. '
+        +'내 마진 지키려면 <b>파트너 마진 최대 '+maxPartnerMargin.toFixed(1)+'%</b>(공급가 '+fI(Math.round(supplyMin))+'원 이상)까지만 양보 가능.</div>';
+  box.innerHTML='<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="vol-table" style="min-width:440px">'+head+'<tbody>'+body+'</tbody></table></div>'+concl;
+}
+
 /* ── B2C 온라인 전략 ── */
 function recalcStrategyB2C(){
   var out=document.getElementById('b2cOut'); if(!out) return;
@@ -4075,6 +4130,7 @@ function renderStrategy(){
   recalcStrategyOBM();
   renderVolumeView();
   renderChannelAlloc();
+  renderPartnerSupply();
   renderCloudCard();
 }
 
@@ -4190,7 +4246,7 @@ function doLogout(){
 var STRAT_INPUT_IDS=['b2cRev','b2cMg','b2cAov','b2cCvr','b2cRoas','obmLabor','obmRent','obmEtc',
   'trfRev','trfAov','trfCvr','trfCtr','trfCpc','ordMonthly','ordSafety','volBaseQty','volElastic',
   'chanTarget','chanAllocown','chanAlloccoupang','chanAllocdist','chanAllocoffline','chanAllocpartner',
-  'setThreshold','setTargetMg'];
+  'setThreshold','setTargetMg','ptnConsumer','ptnMargin','ptnMyMin'];
 function readStratInputs(){var o={};STRAT_INPUT_IDS.forEach(function(id){var el=document.getElementById(id);if(el)o[id]=el.value;});return o;}
 function writeStratInputs(o){if(!o)return;STRAT_INPUT_IDS.forEach(function(id){if(o[id]!=null){var el=document.getElementById(id);if(el)el.value=o[id];}});}
 

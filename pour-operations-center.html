@@ -716,6 +716,15 @@ table.moq-table{border-collapse:separate;border-spacing:0;width:100%;min-width:7
 .sq-row:last-child{border-bottom:none}
 .sq-row.total{font-size:15px;font-weight:800;border-top:2px solid rgba(255,255,255,.25);border-bottom:none;padding-top:9px;margin-top:4px}
 .sq-row .sq-val.ok{color:#7EFFD4}.sq-row .sq-val.warn{color:#FFE08A}.sq-row .sq-val.bad{color:#FFB3AE}
+/* ④ 채널 편집 행 */
+.chan-row{background:var(--bg);border:1px solid var(--rule);border-radius:7px;padding:8px 10px;margin-bottom:6px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chan-row .chan-nm{flex:1;min-width:100px;border:1.5px solid var(--rule);border-radius:6px;padding:6px 8px;font-family:var(--sans);font-size:12.5px;font-weight:600;background:var(--w)}
+.chan-row .chan-src{border:1.5px solid var(--rule);border-radius:6px;padding:6px 7px;font-family:var(--sans);font-size:11.5px;background:var(--w)}
+.chan-row .chan-mini{width:58px;border:1.5px solid var(--rule);border-radius:6px;padding:6px 6px;font-family:var(--sans);font-size:12px;text-align:right;background:var(--w);font-variant-numeric:tabular-nums}
+.chan-row .chan-cust{width:80px}
+.chan-row .chan-lbl{font-size:10.5px;color:var(--muted);font-weight:600}
+.chan-row .chan-del{border:none;background:none;color:#ccc;font-size:14px;cursor:pointer;padding:3px 6px;touch-action:manipulation}
+.chan-row .chan-del:active{color:var(--r)}
 /* 📄 견적서 정보 입력 */
 .qinfo{border:1px solid var(--rule);border-radius:8px;background:var(--bg);overflow:hidden}
 .qinfo>summary{padding:9px 12px;font-size:12px;font-weight:700;color:var(--b);cursor:pointer;list-style:none;user-select:none}
@@ -1491,17 +1500,9 @@ body:not(.locked) .auth-userbox{display:flex}
     </div>
     <div class="pc-row"><span class="pc-label">총 매출 목표</span>
       <input type="number" class="pc-input" id="chanTarget" data-strat="chan" value="50000000" min="0" step="1000000"><span class="pc-unit">원</span></div>
-    <div class="pc-row"><span class="pc-label">🟢 자사몰</span>
-      <input type="number" class="pc-input" id="chanAllocown" data-strat="chan" value="40" min="0" max="100" step="5"><span class="pc-unit">%</span></div>
-    <div class="pc-row"><span class="pc-label">🔵 쿠팡</span>
-      <input type="number" class="pc-input" id="chanAlloccoupang" data-strat="chan" value="20" min="0" max="100" step="5"><span class="pc-unit">%</span></div>
-    <div class="pc-row"><span class="pc-label">🔷 총판유통</span>
-      <input type="number" class="pc-input" id="chanAllocdist" data-strat="chan" value="20" min="0" max="100" step="5"><span class="pc-unit">%</span></div>
-    <div class="pc-row"><span class="pc-label">🟠 오프라인</span>
-      <input type="number" class="pc-input" id="chanAllocoffline" data-strat="chan" value="10" min="0" max="100" step="5"><span class="pc-unit">%</span></div>
-    <div class="pc-row"><span class="pc-label">🟣 파트너</span>
-      <input type="number" class="pc-input" id="chanAllocpartner" data-strat="chan" value="10" min="0" max="100" step="5"><span class="pc-unit">%</span></div>
-    <div style="display:flex;gap:6px;margin:4px 0 10px;flex-wrap:wrap">
+    <div id="chanRows"></div>
+    <button class="pc-add-item-btn" id="chanAddBtn" style="margin:2px 0 8px">＋ 채널 추가</button>
+    <div style="display:flex;gap:6px;margin:0 0 10px;flex-wrap:wrap">
       <button class="pc-tool-btn" id="chanAutoBtn" style="background:var(--b);color:#fff;border-color:var(--b)">⚡ 마진 집중 배분 (순익↑)</button>
       <button class="pc-tool-btn" id="chanEvenBtn">균등 배분</button>
     </div>
@@ -2766,6 +2767,10 @@ document.addEventListener('input',function(e){
   if(t.dataset.strat==='obm'){recalcStrategyOBM();return;}
   if(t.dataset.strat==='vol'){renderVolumeView();return;}
   if(t.dataset.strat==='chan'){renderChannelAlloc();return;}
+  if(t.dataset.chanalloc!==undefined){var _c=chanById(t.dataset.chanalloc);if(_c){_c.alloc=parseFloat(t.value)||0;renderChannelAlloc();}return;}
+  if(t.dataset.chanom!==undefined){var _c2=chanById(t.dataset.chanom);if(_c2){_c2.om=parseFloat(t.value)||0;renderChannelAlloc();}return;}
+  if(t.dataset.chancust!==undefined){var _c3=chanById(t.dataset.chancust);if(_c3){_c3.custom=parseFloat(t.value)||0;renderChannelAlloc();}return;}
+  if(t.dataset.channm!==undefined){var _c4=chanById(t.dataset.channm);if(_c4){_c4.name=t.value;renderChannelAlloc();}return;}
   if(t.dataset.strat==='set'){recalcSet();return;}
   if(t.dataset.strat==='ptn'){renderPartnerSupply();return;}
   if(t.dataset.strat==='exp'){renderExportPrice();return;}
@@ -2790,6 +2795,7 @@ document.addEventListener('change',function(e){
   if(t.id==='expTerm'){renderExportPrice();return;}
   if(t.dataset.stratb2bprod!==undefined){var sbp=strategyB2B.find(function(x){return x.id===t.dataset.stratb2bprod;});if(sbp){sbp.prodNo=parseInt(t.value);renderStratB2bRows();}return;}
   if(t.dataset.setprod!==undefined){var stp=setItems.find(function(x){return x.id===t.dataset.setprod;});if(stp){stp.prodNo=parseInt(t.value);renderSetItemRows();}return;}
+  if(t.dataset.chansrc!==undefined){var _cs=chanById(t.dataset.chansrc);if(_cs){_cs.src=t.value;if(CHAN_OM_DEFAULT[t.value]!=null)_cs.om=CHAN_OM_DEFAULT[t.value];else if(t.value!=='custom')_cs.om=0;renderChanRows();}return;}
   if(t.dataset.ctoggle!==undefined){var cp3=coupons.find(function(c){return c.id===t.dataset.ctoggle;});if(cp3){cp3.active=t.checked;renderCoupons();renderPromo();}return;}
   if(t.dataset.ctype!==undefined){var cp4=coupons.find(function(c){return c.id===t.dataset.ctype;});if(cp4){cp4.type=t.value;renderCoupons();renderPromo();}return;}
   if(t.dataset.name!==undefined&&t.dataset.row!==undefined){var ch5=state.find(function(c){return c.id==t.dataset.row;});if(ch5)ch5.name=t.value.trim()||ch5.name;return;}
@@ -2811,7 +2817,9 @@ document.addEventListener('click',function(e){
   if(t.dataset.stratb2bdel!==undefined){strategyB2B=strategyB2B.filter(function(x){return x.id!==t.dataset.stratb2bdel;});renderStratB2bRows();return;}
   if(t.id==='stratPrint'){printB2bQuote();return;}
   if(t.id==='chanAutoBtn'){chanAutoAlloc();return;}
-  if(t.id==='chanEvenBtn'){setChanAlloc({own:20,coupang:20,dist:20,offline:20,partner:20});return;}
+  if(t.id==='chanEvenBtn'){chanEvenAlloc();return;}
+  if(t.id==='chanAddBtn'){chanList.push({id:'chx'+(chanSeq++),name:'새 채널',src:'custom',om:0,custom:0,alloc:0});renderChanRows();return;}
+  if(t.dataset.chandel!==undefined){chanList=chanList.filter(function(c){return c.id!==t.dataset.chandel;});renderChanRows();return;}
   if(t.id==='setAddBtn'){setItems.push({id:'st'+(setSeq++),prodNo:PRICE_TABLE[0].no,qty:1});renderSetItemRows();return;}
   if(t.dataset.setdel!==undefined){setItems=setItems.filter(function(x){return x.id!==t.dataset.setdel;});renderSetItemRows();return;}
   if(t.id==='authLoginBtn'){doLogin();return;}
@@ -3834,57 +3842,81 @@ function renderVolumeView(){
 }
 
 /* ── ④ 채널별 목표 배분 ── */
-var CHAN_DEFS=[
-  {key:'own',     name:'🟢 자사몰',   field:'retail',     om:0},
-  {key:'coupang', name:'🔵 쿠팡',     field:'coupang',    om:15},
-  {key:'dist',    name:'🔷 총판유통', field:'total_dist', om:0},
-  {key:'offline', name:'🟠 오프라인', field:'offline',    om:0},
-  {key:'partner', name:'🟣 파트너',   field:'partner',    om:0},
+var CHAN_SRC=[
+  {k:'retail',n:'자사몰 정가'},{k:'coupang',n:'쿠팡가'},{k:'total_dist',n:'총판가'},
+  {k:'offline',n:'오프라인가'},{k:'partner',n:'파트너가'},
+  {k:'online_consign',n:'온라인위탁'},{k:'online_wholesale',n:'온라인도매'},{k:'custom',n:'직접입력'}
 ];
-function chanRow(ref, c){
-  var price=ref[c.field]||0;
-  var feeRate=pcCommonPG/100 + c.om/100;
+var CHAN_OM_DEFAULT={coupang:15, online_consign:15, online_wholesale:15};
+var chanList=[
+  {id:'ch_own', name:'🟢 자사몰',  src:'retail',     om:0,  custom:0, alloc:40},
+  {id:'ch_cou', name:'🔵 쿠팡',    src:'coupang',    om:15, custom:0, alloc:20},
+  {id:'ch_dist',name:'🔷 총판유통',src:'total_dist', om:0,  custom:0, alloc:20},
+  {id:'ch_off', name:'🟠 오프라인',src:'offline',    om:0,  custom:0, alloc:10},
+  {id:'ch_ptn', name:'🟣 파트너',  src:'partner',    om:0,  custom:0, alloc:10},
+];
+var chanSeq=1;
+function chanById(id){ return chanList.find(function(c){return c.id===id;}); }
+function chanPrice(ref, ch){ return ch.src==='custom' ? (ch.custom||0) : (ref[ch.src]||0); }
+function chanCalc(ref, ch){
+  var price=chanPrice(ref,ch);
+  var feeRate=pcCommonPG/100 + (ch.om||0)/100;
   var unitCost = price>0 ? ref.cost + Math.round(price*feeRate) + pcCommonShip : 0;
   var unitProfit = price>0 ? price - unitCost : 0;
   var mr = price>0 ? unitProfit/price*100 : 0;
-  return {c:c, price:price, unitProfit:unitProfit, mr:mr};
+  return {ch:ch, price:price, unitProfit:unitProfit, mr:mr};
 }
-function setChanAlloc(vals){
-  CHAN_DEFS.forEach(function(c){ var el=document.getElementById('chanAlloc'+c.key); if(el)el.value=vals[c.key]||0; });
+/* 채널 편집 행 렌더 */
+function renderChanRows(){
+  var el=document.getElementById('chanRows'); if(!el) return;
+  el.innerHTML=chanList.map(function(ch){
+    var srcOpts=CHAN_SRC.map(function(s){return '<option value="'+s.k+'"'+(ch.src===s.k?' selected':'')+'>'+s.n+'</option>';}).join('');
+    return '<div class="chan-row">'
+      +'<input class="chan-nm" data-channm="'+ch.id+'" value="'+esc(ch.name)+'">'
+      +'<select class="chan-src" data-chansrc="'+ch.id+'">'+srcOpts+'</select>'
+      +(ch.src==='custom'?'<input type="number" class="chan-mini chan-cust" data-chancust="'+ch.id+'" value="'+(ch.custom||0)+'" placeholder="단가">':'')
+      +'<span class="chan-lbl">수수료</span><input type="number" class="chan-mini" data-chanom="'+ch.id+'" value="'+(ch.om||0)+'" min="0" max="40" step="0.5"><span class="chan-lbl">%</span>'
+      +'<span class="chan-lbl">배분</span><input type="number" class="chan-mini" data-chanalloc="'+ch.id+'" value="'+(ch.alloc||0)+'" min="0" max="100" step="5"><span class="chan-lbl">%</span>'
+      +'<button class="chan-del" data-chandel="'+ch.id+'" title="삭제">✕</button>'
+      +'</div>';
+  }).join('') || '<div style="font-size:11.5px;color:var(--muted);padding:6px 0">채널을 추가하세요.</div>';
   renderChannelAlloc();
+}
+function chanEvenAlloc(){
+  var n=chanList.length; if(!n) return;
+  var per=Math.round(100/n/5)*5, acc=0;
+  chanList.forEach(function(ch,i){ if(i<n-1){ch.alloc=per;acc+=per;} else ch.alloc=Math.max(0,100-acc); });
+  renderChanRows();
 }
 function chanAutoAlloc(){
   var ref=getStratRef(); if(!ref) return;
-  /* 순익 최대화 지향: 최고마진 채널에 집중(50%), 나머지 50%는 마진 비례 분배.
-     고정 매출에서 총순익 = 매출 × Σ(배분%×마진율)이므로 마진 높은 채널 비중↑ = 순익↑.
-     (100% 집중이 이론상 최대지만 채널 수요 한계를 고려해 50% 집중으로 현실화) */
-  var valid=CHAN_DEFS.map(function(c){return chanRow(ref,c);}).filter(function(r){return r.price>0 && r.mr>0;});
-  var vals={}; CHAN_DEFS.forEach(function(c){vals[c.key]=0;});
-  if(!valid.length){ CHAN_DEFS.forEach(function(c){vals[c.key]=20;}); setChanAlloc(vals); return; }
+  /* 순익 최대화 지향: 최고마진 채널에 50% 집중 + 나머지 50% 마진 비례 (현실화) */
+  var valid=chanList.map(function(ch){return chanCalc(ref,ch);}).filter(function(r){return r.price>0 && r.mr>0;});
+  chanList.forEach(function(ch){ch.alloc=0;});
+  if(!valid.length){ chanEvenAlloc(); return; }
   var best=valid.reduce(function(a,b){return b.mr>a.mr?b:a;});
-  var others=valid.filter(function(r){return r.c.key!==best.c.key;});
-  if(!others.length){ vals[best.c.key]=100; setChanAlloc(vals); return; }
-  vals[best.c.key]=50;
-  var sumW=others.reduce(function(a,b){return a+b.mr;},0);
-  var acc=0;
+  var others=valid.filter(function(r){return r.ch.id!==best.ch.id;});
+  if(!others.length){ best.ch.alloc=100; renderChanRows(); return; }
+  best.ch.alloc=50;
+  var sumW=others.reduce(function(a,b){return a+b.mr;},0), acc=0;
   others.forEach(function(r,i){
-    if(i<others.length-1){ var v=Math.round(r.mr/sumW*50); vals[r.c.key]=v; acc+=v; }
-    else vals[r.c.key]=Math.max(0,50-acc);   /* 마지막 채널로 합 100 보정 */
+    if(i<others.length-1){ var v=Math.round(r.mr/sumW*50); r.ch.alloc=v; acc+=v; }
+    else r.ch.alloc=Math.max(0,50-acc);
   });
-  setChanAlloc(vals);
+  renderChanRows();
 }
 function renderChannelAlloc(){
   var box=document.getElementById('chanResult'); if(!box) return;
   var ref=getStratRef(); if(!ref){ box.innerHTML=''; return; }
   setT('chanRefName', ref.name);
   var target=numv('chanTarget');
-  var rows=CHAN_DEFS.map(function(c){
-    var base=chanRow(ref,c);
-    var alloc=numv('chanAlloc'+c.key);
+  var rows=chanList.map(function(ch){
+    var base=chanCalc(ref,ch);
+    var alloc=ch.alloc||0;
     var rev=target*alloc/100;
     var units=base.price>0?Math.round(rev/base.price):0;
     var profit=base.unitProfit*units;
-    return Object.assign({alloc:alloc, rev:rev, units:units, profit:profit}, base);
+    return {ch:ch, price:base.price, mr:base.mr, unitProfit:base.unitProfit, alloc:alloc, rev:rev, units:units, profit:profit};
   });
   var allocSum=rows.reduce(function(a,r){return a+r.alloc;},0);
   var totRev=rows.reduce(function(a,r){return a+r.rev;},0);
@@ -3895,11 +3927,11 @@ function renderChannelAlloc(){
 
   var head='<thead><tr><th>채널</th><th>배분%</th><th>단가</th><th>마진율</th><th>배분매출</th><th>판매량</th><th>순익</th></tr></thead>';
   var body=rows.map(function(r){
-    var isBest=bestCh&&r.c.key===bestCh.c.key;
+    var isBest=bestCh&&r.ch.id===bestCh.ch.id;
     if(r.price<=0){
-      return '<tr style="opacity:.45"><td style="text-align:left">'+r.c.name+'</td><td>'+r.alloc+'%</td><td colspan="5" style="text-align:center;color:var(--muted)">단가 미설정</td></tr>';
+      return '<tr style="opacity:.45"><td style="text-align:left">'+esc(r.ch.name)+'</td><td>'+r.alloc+'%</td><td colspan="5" style="text-align:center;color:var(--muted)">단가 미설정</td></tr>';
     }
-    return '<tr'+(isBest?' class="best-profit"':'')+'><td style="text-align:left">'+r.c.name+(isBest?' <span class="vol-badge" style="background:var(--g)">마진1위</span>':'')+'</td>'
+    return '<tr'+(isBest?' class="best-profit"':'')+'><td style="text-align:left">'+esc(r.ch.name)+(isBest?' <span class="vol-badge" style="background:var(--g)">마진1위</span>':'')+'</td>'
       +'<td>'+r.alloc+'%</td>'
       +'<td>'+fI(r.price)+'</td>'
       +'<td style="color:'+(r.mr>=10?'var(--g)':r.mr>=0?'var(--am)':'var(--r)')+'">'+r.mr.toFixed(1)+'%</td>'
@@ -3919,8 +3951,8 @@ function renderChannelAlloc(){
   var theoMax = bestCh ? target*bestCh.mr/100 : 0;
   var guide = bestCh
     ? '<div style="font-size:11.5px;color:var(--b);font-weight:700;margin-bottom:8px;line-height:1.6">'
-      +'💡 마진 1위: '+bestCh.c.name+' ('+bestCh.mr.toFixed(1)+'%) — 이 채널 비중↑ = 같은 매출에서 총순익↑<br>'
-      +'<span style="color:var(--muted);font-weight:600">이론상 최대 순익(자사몰류 1위 채널 100% 가정): '+fI(Math.round(theoMax))+'원 · 현재 배분: '+fI(Math.round(totProfit))+'원 ('+(theoMax>0?Math.round(totProfit/theoMax*100):0)+'%)</span></div>'
+      +'💡 마진 1위: '+esc(bestCh.ch.name)+' ('+bestCh.mr.toFixed(1)+'%) — 이 채널 비중↑ = 같은 매출에서 총순익↑<br>'
+      +'<span style="color:var(--muted);font-weight:600">이론상 최대 순익(1위 채널 100% 가정): '+fI(Math.round(theoMax))+'원 · 현재 배분: '+fI(Math.round(totProfit))+'원 ('+(theoMax>0?Math.round(totProfit/theoMax*100):0)+'%)</span></div>'
     : '';
   box.innerHTML=warn+guide+'<div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="vol-table">'+head+'<tbody>'+body+foot+'</tbody></table></div>';
 }
@@ -4271,7 +4303,7 @@ function renderStrategy(){
   recalcStrategyB2C();
   recalcStrategyOBM();
   renderVolumeView();
-  renderChannelAlloc();
+  renderChanRows();
   renderPartnerSupply();
   renderExportPrice();
   renderCloudCard();
@@ -4388,7 +4420,7 @@ function doLogout(){
 /* ── 전체 상태 수집/복원 ── */
 var STRAT_INPUT_IDS=['b2cRev','b2cMg','b2cAov','b2cCvr','b2cRoas','obmLabor','obmRent','obmEtc',
   'trfRev','trfAov','trfCvr','trfCtr','trfCpc','ordMonthly','ordSafety','volBaseQty','volElastic',
-  'chanTarget','chanAllocown','chanAlloccoupang','chanAllocdist','chanAllocoffline','chanAllocpartner',
+  'chanTarget',
   'setThreshold','setTargetMg','ptnConsumer','ptnMargin','ptnMyMin',
   'expPrice','expTerm','expFreight','expAgentPct','expEtc','expTargetMg',
   'qSupplier','qBizNo','qSupTel','qSupAddr','qCustomer','qContact','qValidDays','qNote'];
@@ -4411,7 +4443,7 @@ function collectFullState(){
     /* MOQ */
     moqTiers:moqTiers, moqSimItems2:moqSimItems2,
     /* 전략 */
-    stratRefNo:stratRefNo, strategyB2B:strategyB2B, setItems:setItems, stratInputs:readStratInputs(),
+    stratRefNo:stratRefNo, strategyB2B:strategyB2B, setItems:setItems, chanList:chanList, stratInputs:readStratInputs(),
     qVat: !!(document.getElementById('qVat')||{}).checked
   };
 }
@@ -4429,7 +4461,7 @@ function applyFullState(d){
   if(d.pcCommonShip!=null)pcCommonShip=d.pcCommonShip; if(d.pcCommonLogistics!=null)pcCommonLogistics=d.pcCommonLogistics;
   if(d.pcCommonPG!=null)pcCommonPG=d.pcCommonPG; if(d.prodProfiles)prodProfiles=d.prodProfiles;
   if(d.moqTiers)moqTiers=d.moqTiers; if(d.moqSimItems2)moqSimItems2=d.moqSimItems2;
-  if(d.stratRefNo)stratRefNo=d.stratRefNo; if(d.strategyB2B)strategyB2B=d.strategyB2B; if(d.setItems)setItems=d.setItems;
+  if(d.stratRefNo)stratRefNo=d.stratRefNo; if(d.strategyB2B)strategyB2B=d.strategyB2B; if(d.setItems)setItems=d.setItems; if(d.chanList)chanList=d.chanList;
   state.forEach(function(ch){if(!ch.links)ch.links=[mklink('기본','')];if(!ch.utm)ch.utm={source:'',medium:''};if(!ch.ctype)ch.ctype='수확';if(!ch.stage)ch.stage='신규';});
   syncControls();
   var mg=document.getElementById('mgSlider'); if(mg)mg.value=pcMgTarget; setT('pcMgVal',pcMgTarget+'%');

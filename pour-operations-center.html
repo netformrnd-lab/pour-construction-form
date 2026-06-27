@@ -1440,10 +1440,11 @@ body:not(.locked) .auth-userbox{display:flex}
     <!-- ── 왼쪽: B2C 전략 ── -->
     <div class="strat-col">
       <div class="card" style="border-top:3px solid var(--g)">
-        <div class="card-title" style="color:var(--g)">🛒 B2C 온라인 전략</div>
+        <div class="card-title" style="color:var(--g)">🛒 B2C 온라인 전략 <span class="badge">담당자 지시용</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.6">경영자가 <b style="color:var(--ink)">허용 할인 한도</b>와 <b style="color:var(--ink)">광고비 한도</b> 두 숫자만 정해서 담당자·마케터에게 지시. 허용할인은 <b>고정비 포함 BEP(위 🎯)</b>의 90%로 역산됩니다.</div>
         <div class="pc-row"><span class="pc-label">목표 월매출</span>
           <input type="number" class="pc-input" id="b2cRev" data-strat="b2c" value="25000000" min="0" step="1000000"><span class="pc-unit">원</span></div>
-        <div class="pc-row"><span class="pc-label">목표 마진율</span>
+        <div class="pc-row"><span class="pc-label">최소 허용 마진율 <small>(바닥선)</small></span>
           <input type="number" class="pc-input" id="b2cMg" data-strat="b2c" value="25" min="0" max="80" step="1"><span class="pc-unit">%</span></div>
         <div class="pc-row"><span class="pc-label">객단가 <small>(기준상품 정가 자동, 수정가능)</small></span>
           <input type="number" class="pc-input" id="b2cAov" data-strat="b2c" value="0" min="0" step="1000"><span class="pc-unit">원</span></div>
@@ -1451,20 +1452,10 @@ body:not(.locked) .auth-userbox{display:flex}
           <input type="number" class="pc-input" id="b2cCvr" data-strat="b2c" value="1.5" min="0.01" max="100" step="0.1"><span class="pc-unit">%</span></div>
         <div class="pc-row"><span class="pc-label">목표 ROAS</span>
           <input type="number" class="pc-input" id="b2cRoas" data-strat="b2c" value="400" min="1" step="10"><span class="pc-unit">%</span></div>
+        <div class="pc-row"><span class="pc-label">광고 CTR <small>(클릭률, 필요 노출 계산)</small></span>
+          <input type="number" class="pc-input" id="b2cCtr" data-strat="b2c" value="1.0" min="0.01" max="100" step="0.1"><span class="pc-unit">%</span></div>
 
         <div class="strat-out" id="b2cOut"></div>
-      </div>
-
-      <!-- OBM ① BEP 판매량 -->
-      <div class="card" style="border-top:3px solid var(--am)">
-        <div class="card-title" style="color:var(--am)">① BEP 판매량 역산</div>
-        <div class="pc-row"><span class="pc-label">월 인건비</span>
-          <input type="number" class="pc-input" id="obmLabor" data-strat="obm" value="3000000" min="0" step="100000"><span class="pc-unit">원</span></div>
-        <div class="pc-row"><span class="pc-label">월 임대료</span>
-          <input type="number" class="pc-input" id="obmRent" data-strat="obm" value="1500000" min="0" step="100000"><span class="pc-unit">원</span></div>
-        <div class="pc-row"><span class="pc-label">기타 월 고정비</span>
-          <input type="number" class="pc-input" id="obmEtc" data-strat="obm" value="500000" min="0" step="100000"><span class="pc-unit">원</span></div>
-        <div class="strat-out" id="obmBepOut"></div>
       </div>
     </div>
 
@@ -2808,7 +2799,7 @@ document.addEventListener('input',function(e){
   if(t.dataset.strat==='b2c'){recalcStrategyB2C();return;}
   if(t.dataset.strat==='obm'){recalcStrategyOBM();return;}
   if(t.dataset.strat==='vol'){renderVolumeView();return;}
-  if(t.dataset.strat==='bep'){recalcBep();return;}
+  if(t.dataset.strat==='bep'){recalcBep();recalcStrategyB2C();return;}
   if(t.dataset.bepdisc!==undefined){var _bi=bepItems.find(function(x){return x.id===t.dataset.bepdisc;});if(_bi){_bi.disc=parseFloat(t.value)||0;recalcBep();}return;}
   if(t.dataset.bepqty!==undefined){var _bq=bepItems.find(function(x){return x.id===t.dataset.bepqty;});if(_bq){_bq.qty=parseInt(t.value)||0;recalcBep();}return;}
   if(t.dataset.strat==='chan'){renderChannelAlloc();return;}
@@ -4199,48 +4190,48 @@ function recalcBep(){
 }
 
 /* ── B2C 온라인 전략 ── */
+/* 월 총 고정비 (TASK 4 입력 일원화) */
+function bepFixedTotal(){ return numv('bepLabor')+numv('bepRent')+numv('bepSys')+numv('bepEtc2'); }
 function recalcStrategyB2C(){
   var out=document.getElementById('b2cOut'); if(!out) return;
   var ref=getStratRef();
-  var rev=numv('b2cRev'), mgT=numv('b2cMg')/100, aov=numv('b2cAov'), cvr=numv('b2cCvr')/100, roas=numv('b2cRoas')/100;
+  var rev=numv('b2cRev'), mgFloor=numv('b2cMg')/100, aov=numv('b2cAov'), cvr=numv('b2cCvr')/100, roas=numv('b2cRoas')/100, ctr=numv('b2cCtr')/100;
   if(aov<=0) aov=ref?ref.retail:0;
-  var feeRate=pcCommonPG/100, fixed=(ref?ref.cost:0)+pcCommonShip;
-  /* 허용 할인 한도: 목표 마진을 지키는 최대 할인율 */
-  var allowedDisc=0, discCls='ok', discSub='목표 마진 유지 한도';
-  var denom=1-feeRate-mgT;
-  if(denom<=0){ allowedDisc=0; discCls='bad'; discSub='목표 마진이 너무 높아 할인 불가'; }
-  else if(ref && ref.retail>0){
-    var minPrice=fixed/denom;
-    allowedDisc=(1-minPrice/ref.retail)*100;
-    if(allowedDisc<0){ allowedDisc=0; discCls='bad'; discSub='정가로도 목표 마진 미달'; }
-    else { discCls=allowedDisc>=10?'ok':allowedDisc>=3?'warn':'bad'; }
+  var pg=pcCommonPG/100, ship=pcCommonShip;
+  /* 허용 할인 한도 = BEP할인율(변동비+고정비 포함) × 0.9
+     고정비/개 = 월고정비 ÷ 예상 월판매량(=목표매출÷객단가) */
+  var expVol = aov>0 ? rev/aov : 0;
+  var fixedPerUnit = expVol>0 ? bepFixedTotal()/expVol : 0;
+  var bepDiscFull=0, discCls='bad', discSub='';
+  if(ref && ref.retail>0){
+    var denom=ref.retail*(1-pg);
+    var minRev=ref.cost+ship+fixedPerUnit;            /* 변동비(고정원가)+개당 고정비 */
+    bepDiscFull = denom>0 ? Math.max(0,(1-minRev/denom)*100) : 0;
   }
+  var allowedDisc = Math.max(0, bepDiscFull*0.9);     /* 10% 여유 */
+  discCls = allowedDisc>=10?'ok':allowedDisc>=3?'warn':'bad';
+  discSub = '고정비 포함 BEP '+bepDiscFull.toFixed(1)+'% × 0.9 (10% 여유) · 고정비/개 '+fI(Math.round(fixedPerUnit))+'원';
+  /* 최소 허용 마진율 바닥선과 비교 — 더 보수적인 쪽 안내 */
+  var mgFloorDisc = (1-pg-mgFloor>0 && ref && ref.retail>0) ? Math.max(0,(1-((ref.cost+ship)/(1-pg-mgFloor))/ref.retail)*100) : 0;
+
   var visitors=(aov>0&&cvr>0)?rev/aov/cvr:0;
+  var clicks=visitors;                                 /* 광고 유입 가정 */
+  var impressions=ctr>0?clicks/ctr:0;
   var adBudget=roas>0?rev/roas:0;
   var perDay=adBudget/30;
   out.innerHTML=
      soRow('허용 할인 한도', allowedDisc.toFixed(1)+'%', discSub, discCls)
-    +soRow('필요 방문자 수', fI(Math.ceil(visitors))+'명', '월 '+fI(Math.round(rev))+'원 ÷ 객단가 '+fI(Math.round(aov))+' ÷ 전환율 '+(cvr*100).toFixed(1)+'%')
-    +soRow('광고예산 한도', fI(Math.round(adBudget))+'원', 'ROAS '+numv('b2cRoas')+'% 목표 기준')
-    +soRow('마케터 광고예산', fI(Math.round(perDay))+'원/일', '광고예산 한도 ÷ 30일', '', true);
+    +soRow('└ 마진 바닥선 할인', mgFloorDisc.toFixed(1)+'%', '최소 마진 '+numv('b2cMg')+'% 유지 한계 — 둘 중 낮은 쪽으로 지시 권장', mgFloorDisc<allowedDisc?'warn':'ok')
+    +soRow('광고비 최대 한도', fI(Math.round(adBudget))+'원/월', '목표매출 ÷ (ROAS '+numv('b2cRoas')+'%÷100)')
+    +soRow('마케터 일예산', fI(Math.round(perDay))+'원/일', '광고비 한도 ÷ 30일', '', true)
+    +soRow('필요 방문자', fI(Math.ceil(visitors))+'명/월', '목표매출 ÷ 객단가 '+fI(Math.round(aov))+' ÷ 전환율 '+(cvr*100).toFixed(1)+'%')
+    +soRow('필요 클릭/노출', fI(Math.ceil(clicks))+'클릭', '필요 노출 '+fI(Math.ceil(impressions))+'회 (CTR '+numv('b2cCtr')+'%)');
 }
 
-/* ── OBM ① BEP 판매량 + ② 트래픽 + ③ 발주량 ── */
+/* ── OBM ② 트래픽 + ③ 발주량 (① BEP는 TASK 4 진짜 BEP로 일원화) ── */
 function recalcStrategyOBM(){
   var ref=getStratRef();
   var feeRate=pcCommonPG/100;
-  /* ① BEP 판매량 */
-  var bepOut=document.getElementById('obmBepOut');
-  if(bepOut){
-    var fixedMonthly=numv('obmLabor')+numv('obmRent')+numv('obmEtc');
-    var contrib=ref?(ref.retail - ref.cost - Math.round(ref.retail*feeRate) - pcCommonShip):0;
-    var monthlyBEP=contrib>0?Math.ceil(fixedMonthly/contrib):Infinity;
-    var dailyBEP=isFinite(monthlyBEP)?Math.ceil(monthlyBEP/30):Infinity;
-    bepOut.innerHTML=
-       soRow('개당 공헌이익', fI(Math.round(contrib))+'원', (ref?ref.name:'')+' 정가 − 변동비', contrib>0?'ok':'bad')
-      +soRow('월 최소 판매량', isFinite(monthlyBEP)?fI(monthlyBEP)+'개':'불가', '월 고정비 '+fI(fixedMonthly)+'원 ÷ 공헌이익', isFinite(monthlyBEP)?'warn':'bad', true)
-      +soRow('일 최소 판매량', isFinite(dailyBEP)?fI(dailyBEP)+'개':'불가', '월 최소 ÷ 30일');
-  }
   /* ② 트래픽 역산 */
   var trfOut=document.getElementById('trfOut');
   if(trfOut){
@@ -4533,7 +4524,7 @@ function doLogout(){
 }
 
 /* ── 전체 상태 수집/복원 ── */
-var STRAT_INPUT_IDS=['b2cRev','b2cMg','b2cAov','b2cCvr','b2cRoas','obmLabor','obmRent','obmEtc',
+var STRAT_INPUT_IDS=['b2cRev','b2cMg','b2cAov','b2cCvr','b2cRoas','b2cCtr',
   'trfRev','trfAov','trfCvr','trfCtr','trfCpc','ordMonthly','ordSafety','volBaseQty','volElastic',
   'chanTarget','bepLabor','bepRent','bepSys','bepEtc2','bepAdPer','bepAllocMode',
   'setThreshold','setTargetMg','ptnConsumer','ptnMargin','ptnMyMin',

@@ -674,6 +674,37 @@ table.moq-table{border-collapse:separate;border-spacing:0;width:100%;min-width:7
 .mc-profit{font-size:10.5px;font-weight:600;opacity:.85}
 .mc-total{font-size:10px;font-weight:700;margin-top:2px;padding-top:2px;border-top:1px dashed var(--rule);width:100%;text-align:right;font-variant-numeric:tabular-nums}
 .moq-sim-badge{border-radius:5px;padding:4px 9px;font-size:11px;font-weight:800;color:#fff;white-space:nowrap}
+
+/* ══ 전략 대시보드 ══ */
+.strat-layout{display:flex;flex-direction:column;gap:0}
+.strat-col{display:flex;flex-direction:column}
+@media(min-width:900px){
+  .strat-layout{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+}
+.strat-out{margin-top:10px;border-top:1px dashed var(--rule);padding-top:10px;display:flex;flex-direction:column;gap:6px}
+.so-row{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--bg);border-radius:7px;padding:9px 11px}
+.so-row.hi{background:var(--ink);color:#fff}
+.so-lbl{font-size:12px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:5px}
+.so-row.hi .so-lbl{color:rgba(255,255,255,.8)}
+.so-lbl .so-arrow{color:var(--g);font-weight:800}
+.so-val{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.so-val small{display:block;font-size:10px;font-weight:600;color:var(--muted);margin-top:1px}
+.so-row.hi .so-val small{color:rgba(255,255,255,.6)}
+.so-val.ok{color:var(--g)}.so-val.warn{color:var(--am)}.so-val.bad{color:var(--r)}
+.so-row.hi .so-val{color:#7EFFD4}
+/* B2B 견적 행 */
+.strat-b2b-row{display:flex;align-items:center;gap:6px;background:var(--bg);border-radius:7px;padding:8px 10px;margin-bottom:6px;flex-wrap:wrap}
+.strat-b2b-row select{flex:1;min-width:140px;border:1.5px solid var(--rule);border-radius:6px;padding:7px 9px;font-family:var(--sans);font-size:12px;background:var(--w)}
+.strat-b2b-row .sb-qty{width:72px;border:1.5px solid var(--rule);border-radius:6px;padding:7px 8px;font-family:var(--sans);font-size:13px;text-align:right;font-variant-numeric:tabular-nums;background:var(--w);font-weight:600}
+.strat-b2b-row .sb-tier{border-radius:5px;padding:3px 8px;font-size:10.5px;font-weight:800;color:#fff;white-space:nowrap}
+.strat-b2b-row .sb-price{font-size:12px;font-weight:700;color:var(--g);white-space:nowrap;font-variant-numeric:tabular-nums}
+.strat-b2b-row .sb-del{border:none;background:none;color:#ccc;font-size:14px;cursor:pointer;padding:4px 6px;touch-action:manipulation}
+.strat-b2b-row .sb-del:active{color:var(--r)}
+.strat-quote{background:var(--ink);color:#fff;border-radius:var(--rad);padding:14px 16px;margin-top:10px}
+.sq-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.1);font-size:12.5px;font-variant-numeric:tabular-nums}
+.sq-row:last-child{border-bottom:none}
+.sq-row.total{font-size:15px;font-weight:800;border-top:2px solid rgba(255,255,255,.25);border-bottom:none;padding-top:9px;margin-top:4px}
+.sq-row .sq-val.ok{color:#7EFFD4}.sq-row .sq-val.warn{color:#FFE08A}.sq-row .sq-val.bad{color:#FFB3AE}
 </style>
 </head>
 <body>
@@ -706,6 +737,7 @@ table.moq-table{border-collapse:separate;border-spacing:0;width:100%;min-width:7
   <button class="nav-tab" data-ntab="products">📦 상품·원가</button>
   <button class="nav-tab" data-ntab="pricing">💰 가격 설계</button>
   <button class="nav-tab" data-ntab="moq">📊 MOQ 단가표</button>
+  <button class="nav-tab" data-ntab="strategy">⚡ 전략</button>
 </nav>
 
 <div class="mbanner">🔒 마케터 공유 모드 — 원가·마진·순이익·단가코드를 숨겼어요.</div>
@@ -1179,6 +1211,96 @@ table.moq-table{border-collapse:separate;border-spacing:0;width:100%;min-width:7
 
 </div>
 <!-- /MOQ 단가표 -->
+
+<!-- 전략 대시보드 -->
+<div class="panel" id="panel-strategy">
+
+  <!-- 기준 상품 -->
+  <div class="card">
+    <div class="card-title">⚡ 경영 의사결정 센터 <span class="badge blue">전략</span></div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:12px;font-weight:700;color:var(--muted)">기준 상품</span>
+      <select id="stratRef" class="moq-sim-select" style="flex:1;min-width:180px"></select>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6">
+      객단가·공헌이익·매입가는 기준 상품에서 자동 산출됩니다. 공통 비용은 <b>가격 설계</b> 탭의
+      PG <span id="stratPgEcho">4</span>% · 택배 <span id="stratShipEcho">3,000</span>원을 사용합니다.
+    </div>
+  </div>
+
+  <div class="strat-layout">
+
+    <!-- ── 왼쪽: B2C 전략 ── -->
+    <div class="strat-col">
+      <div class="card" style="border-top:3px solid var(--g)">
+        <div class="card-title" style="color:var(--g)">🛒 B2C 온라인 전략</div>
+        <div class="pc-row"><span class="pc-label">목표 월매출</span>
+          <input type="number" class="pc-input" id="b2cRev" data-strat="b2c" value="25000000" min="0" step="1000000"><span class="pc-unit">원</span></div>
+        <div class="pc-row"><span class="pc-label">목표 마진율</span>
+          <input type="number" class="pc-input" id="b2cMg" data-strat="b2c" value="25" min="0" max="80" step="1"><span class="pc-unit">%</span></div>
+        <div class="pc-row"><span class="pc-label">객단가 <small>(기준상품 정가 자동, 수정가능)</small></span>
+          <input type="number" class="pc-input" id="b2cAov" data-strat="b2c" value="0" min="0" step="1000"><span class="pc-unit">원</span></div>
+        <div class="pc-row"><span class="pc-label">예상 전환율</span>
+          <input type="number" class="pc-input" id="b2cCvr" data-strat="b2c" value="1.5" min="0.01" max="100" step="0.1"><span class="pc-unit">%</span></div>
+        <div class="pc-row"><span class="pc-label">목표 ROAS</span>
+          <input type="number" class="pc-input" id="b2cRoas" data-strat="b2c" value="400" min="1" step="10"><span class="pc-unit">%</span></div>
+
+        <div class="strat-out" id="b2cOut"></div>
+      </div>
+
+      <!-- OBM ① BEP 판매량 -->
+      <div class="card" style="border-top:3px solid var(--am)">
+        <div class="card-title" style="color:var(--am)">① BEP 판매량 역산</div>
+        <div class="pc-row"><span class="pc-label">월 인건비</span>
+          <input type="number" class="pc-input" id="obmLabor" data-strat="obm" value="3000000" min="0" step="100000"><span class="pc-unit">원</span></div>
+        <div class="pc-row"><span class="pc-label">월 임대료</span>
+          <input type="number" class="pc-input" id="obmRent" data-strat="obm" value="1500000" min="0" step="100000"><span class="pc-unit">원</span></div>
+        <div class="pc-row"><span class="pc-label">기타 월 고정비</span>
+          <input type="number" class="pc-input" id="obmEtc" data-strat="obm" value="500000" min="0" step="100000"><span class="pc-unit">원</span></div>
+        <div class="strat-out" id="obmBepOut"></div>
+      </div>
+    </div>
+
+    <!-- ── 오른쪽: B2B 견적 ── -->
+    <div class="strat-col">
+      <div class="card" style="border-top:3px solid var(--b)">
+        <div class="card-title" style="color:var(--b)">🏭 B2B 대량구매 견적</div>
+        <div id="stratB2bRows"></div>
+        <button class="add-cost-btn" id="stratB2bAdd" style="border-color:var(--bb);color:var(--b)">＋ 상품 추가</button>
+        <div class="strat-quote" id="stratB2bQuote" style="display:none"></div>
+        <button class="pc-tool-btn" id="stratPrint" style="margin-top:10px;background:var(--b);color:#fff;border-color:var(--b);width:100%;display:none">🖨 견적서 인쇄</button>
+      </div>
+
+      <!-- OBM ② 트래픽 역산 -->
+      <div class="card" style="border-top:3px solid var(--purple)">
+        <div class="card-title" style="color:var(--purple)">② 트래픽 역산</div>
+        <div class="pc-row"><span class="pc-label">목표 매출</span>
+          <input type="number" class="pc-input" id="trfRev" data-strat="obm" value="25000000" min="0" step="1000000"><span class="pc-unit">원</span></div>
+        <div class="pc-row"><span class="pc-label">객단가 <small>(기준상품 자동, 수정가능)</small></span>
+          <input type="number" class="pc-input" id="trfAov" data-strat="obm" value="0" min="0" step="1000"><span class="pc-unit">원</span></div>
+        <div class="pc-row"><span class="pc-label">전환율</span>
+          <input type="number" class="pc-input" id="trfCvr" data-strat="obm" value="1.5" min="0.01" max="100" step="0.1"><span class="pc-unit">%</span></div>
+        <div class="pc-row"><span class="pc-label">광고 CTR</span>
+          <input type="number" class="pc-input" id="trfCtr" data-strat="obm" value="1.0" min="0.01" max="100" step="0.1"><span class="pc-unit">%</span></div>
+        <div class="pc-row"><span class="pc-label">광고 CPC</span>
+          <input type="number" class="pc-input" id="trfCpc" data-strat="obm" value="500" min="1" step="10"><span class="pc-unit">원</span></div>
+        <div class="strat-out" id="trfOut"></div>
+      </div>
+
+      <!-- OBM ③ 발주량 역산 -->
+      <div class="card" style="border-top:3px solid #065F46">
+        <div class="card-title" style="color:#065F46">③ 발주량 역산</div>
+        <div class="pc-row"><span class="pc-label">예상 월 판매량</span>
+          <input type="number" class="pc-input" id="ordMonthly" data-strat="obm" value="100" min="0" step="10"><span class="pc-unit">개</span></div>
+        <div class="pc-row"><span class="pc-label">안전재고</span>
+          <input type="number" class="pc-input" id="ordSafety" data-strat="obm" value="14" min="0" step="1"><span class="pc-unit">일</span></div>
+        <div class="strat-out" id="ordOut"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+<!-- /전략 대시보드 -->
 
 
 </div><!-- /.content -->
@@ -2374,6 +2496,9 @@ document.addEventListener('focusin',function(e){var t=e.target;if(t.tagName==='I
 
 document.addEventListener('input',function(e){
   var t=e.target;
+  if(t.dataset.strat==='b2c'){recalcStrategyB2C();return;}
+  if(t.dataset.strat==='obm'){recalcStrategyOBM();return;}
+  if(t.dataset.stratb2bqty!==undefined){var sbi=strategyB2B.find(function(x){return x.id===t.dataset.stratb2bqty;});if(sbi){sbi.qty=parseInt(t.value)||1;recalcStratB2b();}return;}
   if(t.id==='utmBase'){utmBase=t.value;updateUtmUrls();return;}
   if(t.id==='utmCampaign'){utmCampaign=t.value;updateUtmUrls();return;}
   if(t.id==='periodDays'){periodDays=parseFloat(t.value)||0;updateTotals();return;}
@@ -2389,6 +2514,8 @@ document.addEventListener('input',function(e){
 
 document.addEventListener('change',function(e){
   var t=e.target;
+  if(t.id==='stratRef'){stratRefNo=parseInt(t.value)||PRICE_TABLE[0].no;syncStratAov();recalcStrategyB2C();recalcStrategyOBM();return;}
+  if(t.dataset.stratb2bprod!==undefined){var sbp=strategyB2B.find(function(x){return x.id===t.dataset.stratb2bprod;});if(sbp){sbp.prodNo=parseInt(t.value);renderStratB2bRows();}return;}
   if(t.dataset.ctoggle!==undefined){var cp3=coupons.find(function(c){return c.id===t.dataset.ctoggle;});if(cp3){cp3.active=t.checked;renderCoupons();renderPromo();}return;}
   if(t.dataset.ctype!==undefined){var cp4=coupons.find(function(c){return c.id===t.dataset.ctype;});if(cp4){cp4.type=t.value;renderCoupons();renderPromo();}return;}
   if(t.dataset.name!==undefined&&t.dataset.row!==undefined){var ch5=state.find(function(c){return c.id==t.dataset.row;});if(ch5)ch5.name=t.value.trim()||ch5.name;return;}
@@ -2405,7 +2532,10 @@ document.addEventListener('change',function(e){
 
 document.addEventListener('click',function(e){
   var t=e.target;
-  if(t.dataset.ntab){document.querySelectorAll('.nav-tab').forEach(function(x){x.classList.toggle('active',x===t);});document.querySelectorAll('.panel').forEach(function(x){x.classList.remove('active');});var p3=document.getElementById('panel-'+t.dataset.ntab);if(p3){p3.classList.add('active');if(t.dataset.ntab==='products')renderCostGrid();}return;}
+  if(t.dataset.ntab){document.querySelectorAll('.nav-tab').forEach(function(x){x.classList.toggle('active',x===t);});document.querySelectorAll('.panel').forEach(function(x){x.classList.remove('active');});var p3=document.getElementById('panel-'+t.dataset.ntab);if(p3){p3.classList.add('active');if(t.dataset.ntab==='products')renderCostGrid();if(t.dataset.ntab==='strategy')renderStrategy();}return;}
+  if(t.id==='stratB2bAdd'){strategyB2B.push({id:'sb'+(stratB2bSeq++),prodNo:PRICE_TABLE[0].no,qty:50});renderStratB2bRows();return;}
+  if(t.dataset.stratb2bdel!==undefined){strategyB2B=strategyB2B.filter(function(x){return x.id!==t.dataset.stratb2bdel;});renderStratB2bRows();return;}
+  if(t.id==='stratPrint'){printB2bQuote();return;}
   if(t.id==='mToggle'){marketerMode=!marketerMode;renderAll();return;}
   if(t.id==='btnSave'){exportJSON();return;}
   if(t.id==='btnCsv'){exportCSV();return;}
@@ -3328,6 +3458,200 @@ document.addEventListener('input', function(e) {
   }
 });
 
+
+/* ============================================================
+   전략 대시보드 (TASK 2 + TASK 3 OBM 역산)
+   - 공통 비용은 가격설계 탭의 pcCommonPG / pcCommonShip 사용
+============================================================ */
+var stratRefNo = (PRICE_TABLE[0] && PRICE_TABLE[0].no) || 1;
+var strategyB2B = [];
+var stratB2bSeq = 1;
+
+function getStratRef(){ return PRICE_TABLE.find(function(p){return p.no==stratRefNo;}) || PRICE_TABLE[0]; }
+function numv(id){ var el=document.getElementById(id); return el?(parseFloat(el.value)||0):0; }
+
+/* 기준 상품 정가를 객단가 필드에 채움 (비어있거나 0일 때) */
+function syncStratAov(){
+  var ref=getStratRef(); if(!ref) return;
+  ['b2cAov','trfAov'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el && (!el.value || parseFloat(el.value)<=0)) el.value=ref.retail;
+  });
+}
+
+/* 출력 행 헬퍼 */
+function soRow(lbl,val,sub,cls,hi){
+  return '<div class="so-row'+(hi?' hi':'')+'">'
+    +'<span class="so-lbl"><span class="so-arrow">→</span>'+lbl+'</span>'
+    +'<span class="so-val'+(cls?' '+cls:'')+'">'+val+(sub?'<small>'+sub+'</small>':'')+'</span></div>';
+}
+
+/* ── B2C 온라인 전략 ── */
+function recalcStrategyB2C(){
+  var out=document.getElementById('b2cOut'); if(!out) return;
+  var ref=getStratRef();
+  var rev=numv('b2cRev'), mgT=numv('b2cMg')/100, aov=numv('b2cAov'), cvr=numv('b2cCvr')/100, roas=numv('b2cRoas')/100;
+  if(aov<=0) aov=ref?ref.retail:0;
+  var feeRate=pcCommonPG/100, fixed=(ref?ref.cost:0)+pcCommonShip;
+  /* 허용 할인 한도: 목표 마진을 지키는 최대 할인율 */
+  var allowedDisc=0, discCls='ok', discSub='목표 마진 유지 한도';
+  var denom=1-feeRate-mgT;
+  if(denom<=0){ allowedDisc=0; discCls='bad'; discSub='목표 마진이 너무 높아 할인 불가'; }
+  else if(ref && ref.retail>0){
+    var minPrice=fixed/denom;
+    allowedDisc=(1-minPrice/ref.retail)*100;
+    if(allowedDisc<0){ allowedDisc=0; discCls='bad'; discSub='정가로도 목표 마진 미달'; }
+    else { discCls=allowedDisc>=10?'ok':allowedDisc>=3?'warn':'bad'; }
+  }
+  var visitors=(aov>0&&cvr>0)?rev/aov/cvr:0;
+  var adBudget=roas>0?rev/roas:0;
+  var perDay=adBudget/30;
+  out.innerHTML=
+     soRow('허용 할인 한도', allowedDisc.toFixed(1)+'%', discSub, discCls)
+    +soRow('필요 방문자 수', fI(Math.ceil(visitors))+'명', '월 '+fI(Math.round(rev))+'원 ÷ 객단가 '+fI(Math.round(aov))+' ÷ 전환율 '+(cvr*100).toFixed(1)+'%')
+    +soRow('광고예산 한도', fI(Math.round(adBudget))+'원', 'ROAS '+numv('b2cRoas')+'% 목표 기준')
+    +soRow('마케터 광고예산', fI(Math.round(perDay))+'원/일', '광고예산 한도 ÷ 30일', '', true);
+}
+
+/* ── OBM ① BEP 판매량 + ② 트래픽 + ③ 발주량 ── */
+function recalcStrategyOBM(){
+  var ref=getStratRef();
+  var feeRate=pcCommonPG/100;
+  /* ① BEP 판매량 */
+  var bepOut=document.getElementById('obmBepOut');
+  if(bepOut){
+    var fixedMonthly=numv('obmLabor')+numv('obmRent')+numv('obmEtc');
+    var contrib=ref?(ref.retail - ref.cost - Math.round(ref.retail*feeRate) - pcCommonShip):0;
+    var monthlyBEP=contrib>0?Math.ceil(fixedMonthly/contrib):Infinity;
+    var dailyBEP=isFinite(monthlyBEP)?Math.ceil(monthlyBEP/30):Infinity;
+    bepOut.innerHTML=
+       soRow('개당 공헌이익', fI(Math.round(contrib))+'원', (ref?ref.name:'')+' 정가 − 변동비', contrib>0?'ok':'bad')
+      +soRow('월 최소 판매량', isFinite(monthlyBEP)?fI(monthlyBEP)+'개':'불가', '월 고정비 '+fI(fixedMonthly)+'원 ÷ 공헌이익', isFinite(monthlyBEP)?'warn':'bad', true)
+      +soRow('일 최소 판매량', isFinite(dailyBEP)?fI(dailyBEP)+'개':'불가', '월 최소 ÷ 30일');
+  }
+  /* ② 트래픽 역산 */
+  var trfOut=document.getElementById('trfOut');
+  if(trfOut){
+    var rev2=numv('trfRev'), aov2=numv('trfAov'), cvr2=numv('trfCvr')/100, ctr=numv('trfCtr')/100, cpc=numv('trfCpc');
+    if(aov2<=0) aov2=ref?ref.retail:0;
+    var visitors2=(aov2>0&&cvr2>0)?rev2/aov2/cvr2:0;
+    var clicks=visitors2;
+    var impressions=ctr>0?clicks/ctr:0;
+    var adBudget2=clicks*cpc;
+    trfOut.innerHTML=
+       soRow('필요 방문자', fI(Math.ceil(visitors2))+'명', '매출 ÷ 객단가 '+fI(Math.round(aov2))+' ÷ 전환율 '+(cvr2*100).toFixed(1)+'%')
+      +soRow('필요 광고클릭', fI(Math.ceil(clicks))+'번', '필요 노출 '+fI(Math.ceil(impressions))+'회 (CTR '+numv('trfCtr')+'%)')
+      +soRow('필요 광고예산', fI(Math.round(adBudget2))+'원', '클릭수 × CPC '+fI(cpc)+'원', '', true);
+  }
+  /* ③ 발주량 역산 */
+  var ordOut=document.getElementById('ordOut');
+  if(ordOut){
+    var monthlySales=numv('ordMonthly'), safety=numv('ordSafety');
+    var dailySales=monthlySales/30;
+    var orderQty=Math.ceil(monthlySales + dailySales*safety);
+    var workingCapital=orderQty*(ref?ref.cost:0);
+    var cycleWeeks=dailySales>0?(orderQty/dailySales)/7:0;
+    ordOut.innerHTML=
+       soRow('발주 수량', fI(orderQty)+'개', '월 판매 '+fI(monthlySales)+'개 + 안전재고 '+safety+'일분')
+      +soRow('필요 운전자금', fI(Math.round(workingCapital))+'원', '발주수량 × 매입가 '+fI(ref?ref.cost:0)+'원', '', true)
+      +soRow('발주 주기 제안', cycleWeeks>0?cycleWeeks.toFixed(1)+'주':'—', '재고 소진 주기');
+  }
+}
+
+/* ── B2B 대량구매 견적 ── */
+function renderStratB2bRows(){
+  var el=document.getElementById('stratB2bRows'); if(!el) return;
+  el.innerHTML=strategyB2B.map(function(item){
+    var prod=PRICE_TABLE.find(function(p){return p.no==item.prodNo;});
+    var tier=getTier2(item.qty);
+    var c=prod?calcTierPrice(prod,tier):null;
+    return '<div class="strat-b2b-row">'
+      +'<select data-stratb2bprod="'+item.id+'">'
+        +PRICE_TABLE.map(function(p){return '<option value="'+p.no+'"'+(p.no==item.prodNo?' selected':'')+'>'+esc(p.name)+'</option>';}).join('')
+      +'</select>'
+      +'<input type="number" class="sb-qty" min="1" data-stratb2bqty="'+item.id+'" value="'+item.qty+'">개'
+      +'<span class="sb-tier" style="background:'+(tier?tier.color:'#888')+'">'+moqTierLabel(moqTiers.indexOf(tier))+'</span>'
+      +(c&&c.valid?'<span class="sb-price">'+fI(c.price)+'원/개</span>':'')
+      +'<button class="sb-del" data-stratb2bdel="'+item.id+'">✕</button>'
+      +'</div>';
+  }).join('');
+  recalcStratB2b();
+}
+
+function recalcStratB2b(){
+  var quote=document.getElementById('stratB2bQuote');
+  var printBtn=document.getElementById('stratPrint');
+  if(!quote) return;
+  if(!strategyB2B.length){ quote.style.display='none'; if(printBtn)printBtn.style.display='none'; return; }
+  quote.style.display='block'; if(printBtn)printBtn.style.display='block';
+  var totRev=0, totCost=0, totProfit=0;
+  var rows='';
+  strategyB2B.forEach(function(item){
+    var prod=PRICE_TABLE.find(function(p){return p.no==item.prodNo;});
+    if(!prod) return;
+    var tier=getTier2(item.qty);
+    var c=calcTierPrice(prod,tier);
+    if(!c.valid) return;
+    var lineRev=c.price*item.qty, lineCost=c.totalCost*item.qty, lineProfit=c.profit*item.qty;
+    totRev+=lineRev; totCost+=lineCost; totProfit+=lineProfit;
+    rows+='<div class="sq-row"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+prod.name+' × '+item.qty+'개</span>'
+      +'<span style="opacity:.7;font-size:11px;white-space:nowrap">'+moqTierLabel(moqTiers.indexOf(tier))+' · '+fI(c.price)+'원</span>'
+      +'<span style="font-weight:700;white-space:nowrap">'+fI(Math.round(lineRev))+'원</span></div>';
+  });
+  var totalMg=totRev>0?totProfit/totRev*100:0;
+  var mgCl=totalMg>=30?'ok':totalMg>=15?'warn':'bad';
+  quote.innerHTML=rows
+    +'<div class="sq-row" style="margin-top:6px;border-top:1px solid rgba(255,255,255,.15);padding-top:8px"><span>총 원가</span><span class="sq-val">'+fI(Math.round(totCost))+'원</span></div>'
+    +'<div class="sq-row"><span>총 순익</span><span class="sq-val '+mgCl+'">'+(totProfit>=0?'+':'')+fI(Math.round(totProfit))+'원 ('+totalMg.toFixed(1)+'%)</span></div>'
+    +'<div class="sq-row total"><span>총 견적금액</span><span class="sq-val ok">'+fI(Math.round(totRev))+'원</span></div>';
+}
+
+/* B2B 견적서 인쇄 */
+function printB2bQuote(){
+  if(!strategyB2B.length){ alert('견적 상품을 추가하세요.'); return; }
+  var w=window.open('','_blank'); if(!w) return;
+  var totRev=0;
+  var bodyRows=strategyB2B.map(function(item){
+    var prod=PRICE_TABLE.find(function(p){return p.no==item.prodNo;});
+    if(!prod) return '';
+    var tier=getTier2(item.qty);
+    var c=calcTierPrice(prod,tier);
+    if(!c.valid) return '';
+    var lineRev=c.price*item.qty; totRev+=lineRev;
+    return '<tr><td style="text-align:left">'+esc(prod.name)+' ('+prod.unit+prod.spec+')</td>'
+      +'<td>'+item.qty+'개</td><td>'+fI(c.price)+'원</td><td>'+fI(Math.round(lineRev))+'원</td></tr>';
+  }).join('');
+  var today=new Date();
+  var dStr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  w.document.write('<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>POUR스토어 공급 견적서</title>'
+    +'<style>body{font-family:sans-serif;padding:30px;color:#1a1a2e}h1{font-size:20px;margin:0 0 4px}'
+    +'.meta{color:#666;font-size:12px;margin-bottom:18px}table{border-collapse:collapse;width:100%;font-size:13px}'
+    +'th,td{border:1px solid #ccc;padding:8px 10px;text-align:right}th{background:#1B4F8A;color:#fff}'
+    +'td:first-child,th:first-child{text-align:left}tfoot td{font-weight:800;background:#f4f6f9}'
+    +'.note{font-size:11px;color:#888;margin-top:12px}</style></head><body>'
+    +'<h1>POUR스토어 공급 견적서</h1>'
+    +'<div class="meta">발행일: '+dStr+' &nbsp;|&nbsp; 유효기간: 발행일로부터 30일</div>'
+    +'<table><thead><tr><th>상품명</th><th>수량</th><th>단가</th><th>합계</th></tr></thead>'
+    +'<tbody>'+bodyRows+'</tbody>'
+    +'<tfoot><tr><td colspan="3">합계 (부가세 별도)</td><td>'+fI(Math.round(totRev))+'원</td></tr></tfoot></table>'
+    +'<div class="note">※ 본 견적은 MOQ 수량 구간별 공급 단가 기준이며, 부가세는 별도입니다.</div>'
+    +'</body></html>');
+  w.document.close();
+  setTimeout(function(){ w.print(); },400);
+}
+
+/* 전략 탭 전체 렌더 */
+function renderStrategy(){
+  var sel=document.getElementById('stratRef');
+  if(sel) sel.innerHTML=PRICE_TABLE.map(function(p){return '<option value="'+p.no+'"'+(p.no==stratRefNo?' selected':'')+'>#'+p.no+' '+esc(p.name)+'</option>';}).join('');
+  setT('stratPgEcho', pcCommonPG);
+  setT('stratShipEcho', fI(pcCommonShip));
+  syncStratAov();
+  if(!strategyB2B.length) strategyB2B.push({id:'sb'+(stratB2bSeq++),prodNo:stratRefNo,qty:50});
+  renderStratB2bRows();
+  recalcStrategyB2C();
+  recalcStrategyOBM();
+}
 
 renderAll();
 </script>

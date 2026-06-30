@@ -6948,141 +6948,1536 @@ show('entry');
 </section>`;
 
   const SEED_OH_GALLERY_HTML = `
-<style>
-.ohg * { box-sizing:border-box; margin:0; padding:0; font-family:'Noto Sans KR',sans-serif; }
-.ohg { max-width:760px; margin:0 auto; padding:0 22px 24px; }
-.ohg-stage { position:relative; width:100%; aspect-ratio:4/3; border-radius:14px; overflow:hidden; background:#F3F4F6; box-shadow:0 4px 24px rgba(15,31,92,.08); }
-.ohg-stage-bg { position:absolute; inset:0; background-size:cover; background-position:center; transition:opacity .3s; }
-.ohg-pin { position:absolute; width:32px; height:32px; border-radius:50%; background:#fff; color:#F97316; border:3px solid #F97316; cursor:pointer; display:grid; place-items:center; font-size:18px; font-weight:900; box-shadow:0 4px 14px rgba(0,0,0,.25); transform:translate(-50%,-50%); transition:transform .15s; z-index:5; animation:ohg-pulse 2.4s ease-in-out infinite; }
-.ohg-pin:hover, .ohg-pin.on { transform:translate(-50%,-50%) scale(1.18); background:#F97316; color:#fff; animation:none; }
-@keyframes ohg-pulse { 0%,100%{box-shadow:0 4px 14px rgba(0,0,0,.25),0 0 0 0 rgba(249,115,22,.5);} 50%{box-shadow:0 4px 14px rgba(0,0,0,.25),0 0 0 10px rgba(249,115,22,0);} }
-.ohg-card { position:absolute; left:50%; bottom:18px; transform:translateX(-50%) translateY(120%); width:calc(100% - 36px); max-width:380px; background:rgba(255,255,255,.98); border-radius:14px; box-shadow:0 12px 36px rgba(0,0,0,.18); padding:12px; display:flex; gap:12px; align-items:center; cursor:pointer; transition:transform .35s cubic-bezier(.4,0,.2,1); z-index:10; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
-.ohg-card.on { transform:translateX(-50%) translateY(0); }
-.ohg-card .pc-img { width:64px; height:64px; flex-shrink:0; border-radius:8px; background-size:cover; background-position:center; background-color:#F3F4F6; }
-.ohg-card .pc-info { flex:1; min-width:0; }
-.ohg-card .pc-brand { font-size:11px; color:#9CA3AF; font-weight:700; margin-bottom:2px; }
-.ohg-card .pc-name { font-size:13px; color:#111827; font-weight:600; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:4px; }
-.ohg-card .pc-price { font-size:14px; color:#111827; font-weight:900; }
-.ohg-card .pc-arrow { width:28px; height:28px; flex-shrink:0; display:grid; place-items:center; color:#9CA3AF; font-size:22px; }
-.ohg-bookmark { position:absolute; right:14px; bottom:14px; width:38px; height:38px; background:rgba(255,255,255,.95); border:0; border-radius:10px; cursor:pointer; display:grid; place-items:center; z-index:6; box-shadow:0 2px 8px rgba(0,0,0,.15); }
-.ohg-bookmark svg { width:18px; height:18px; fill:none; stroke:#374151; stroke-width:2; }
-.ohg-bookmark.on svg { fill:#F97316; stroke:#F97316; }
-.ohg-thumbs { display:flex; gap:8px; margin-top:14px; overflow-x:auto; padding:2px 0; }
-.ohg-thumb { flex-shrink:0; width:96px; height:96px; border-radius:10px; overflow:hidden; cursor:pointer; border:3px solid transparent; background-size:cover; background-position:center; background-color:#F3F4F6; transition:border-color .15s; }
-.ohg-thumb.on { border-color:#F97316; }
-.ohg-help { font-size:12px; color:#6B7280; margin-top:14px; padding:10px 14px; background:#FFF7ED; border:1px dashed #FED7AA; border-radius:10px; display:flex; align-items:center; gap:8px; }
-.ohg-help .ic { width:22px; height:22px; border-radius:50%; background:#F97316; color:#fff; display:grid; place-items:center; font-size:14px; font-weight:900; flex-shrink:0; }
-@media(max-width:640px){ .ohg{ padding:0 16px 20px; } .ohg-thumb{ width:74px; height:74px; } .ohg-card{ width:calc(100% - 28px); } }
-</style>
-<section class="ohg">
-  <div class="ohg-stage" id="ohgStage">
-    <div class="ohg-stage-bg" id="ohgBg"></div>
-    <button class="ohg-bookmark" id="ohgBm" aria-label="스크랩"><svg viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></button>
-    <div class="ohg-card" id="ohgCard">
-      <div class="pc-img" id="ohgPcImg"></div>
-      <div class="pc-info">
-        <div class="pc-brand" id="ohgPcBrand"></div>
-        <div class="pc-name" id="ohgPcName"></div>
-        <div class="pc-price" id="ohgPcPrice"></div>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>POUR 아스팔트 지붕 싱글코팅 - 서버저장 안전 편집용</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css" />
+
+  <style>
+    * { box-sizing: border-box; }
+
+    html {
+      font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+        "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: #f4f4f4;
+      color: #222;
+      font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+        "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      line-height: 1.7;
+    }
+
+    button, input, textarea, select { font-family: inherit; }
+
+    body.modal-open { overflow: hidden; }
+
+    .wrap {
+      width: 100%;
+      max-width: 860px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 34px 34px 54px;
+    }
+
+    .edit-notice {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      border: 1px dashed #ffb27a;
+      border-radius: 10px;
+      background: #fff8f3;
+      color: #8a3a00;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      word-break: keep-all;
+    }
+
+    .edit-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+
+    .mini-btn,
+    .reset-edit-btn,
+    .toggle-empty-btn,
+    .add-card-btn,
+    .add-text-btn,
+    .add-chip-btn {
+      min-height: 32px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 7px;
+      background: #ff5a00;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 900;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .toggle-empty-btn,
+    .reset-edit-btn {
+      background: #fff;
+      color: #ff5a00;
+      border: 1px solid #ffb27a;
+    }
+
+    .toggle-empty-btn.is-active { background: #ffe8d8; }
+
+    .breadcrumb {
+      margin: 0 0 16px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #b7b7b7;
+      letter-spacing: -0.02em;
+    }
+
+    .chips {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 22px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      padding: 8px 18px;
+      border: 2px solid #ff8a3d;
+      border-radius: 6px;
+      background: #fff8f3;
+      color: #ff5a00;
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+    }
+
+    .chip-add-tile,
+    .info-add-tile,
+    .text-add-tile {
+      position: relative;
+      flex: 0 0 auto;
+      border: 2px dashed rgba(255, 90, 0, .42);
+      background: #fff8f3;
+      color: #ff5a00;
+      cursor: pointer;
+      transition: background .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+    }
+
+    .chip-add-tile {
+      width: 48px;
+      height: 40px;
+      min-height: 40px;
+      border-radius: 6px;
+      align-self: stretch;
+    }
+
+    .info-add-tile {
+      width: 100%;
+      min-height: 84px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(17, 24, 39, 0.03);
+    }
+
+    .text-add-tile {
+      width: 48px;
+      height: 40px;
+      margin: -8px 0 22px;
+      display: inline-flex;
+      vertical-align: top;
+      border-radius: 8px;
+    }
+
+    .chip-add-tile:hover,
+    .info-add-tile:hover,
+    .text-add-tile:hover {
+      background: #fff1e7;
+      border-color: #ff5a00;
+      box-shadow: 0 6px 16px rgba(255, 90, 0, .10);
+      transform: translateY(-1px);
+    }
+
+    .chip-add-tile span,
+    .info-add-tile span,
+    .text-add-tile span {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 22px;
+      height: 22px;
+      transform: translate(-50%, -50%);
+      border-radius: 999px;
+      background: rgba(255, 90, 0, .10);
+    }
+
+    .info-add-tile span {
+      width: 32px;
+      height: 32px;
+      background: rgba(255, 90, 0, .09);
+    }
+
+    .chip-add-tile span::before,
+    .chip-add-tile span::after,
+    .info-add-tile span::before,
+    .info-add-tile span::after,
+    .text-add-tile span::before,
+    .text-add-tile span::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      background: #ff5a00;
+      border-radius: 999px;
+      transform: translate(-50%, -50%);
+    }
+
+    .chip-add-tile span::before,
+    .text-add-tile span::before {
+      width: 14px;
+      height: 2px;
+    }
+
+    .chip-add-tile span::after,
+    .text-add-tile span::after {
+      width: 2px;
+      height: 14px;
+    }
+
+    .info-add-tile span::before {
+      width: 18px;
+      height: 2.5px;
+    }
+
+    .info-add-tile span::after {
+      width: 2.5px;
+      height: 18px;
+    }
+
+    .delete-chip,
+    .delete-block,
+    .delete-info-card,
+    .delete-info-item {
+      border: 0;
+      border-radius: 999px;
+      background: #202020;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 900;
+      line-height: 1;
+      box-shadow: 0 4px 10px rgba(0,0,0,.15);
+    }
+
+    .delete-chip {
+      position: absolute;
+      right: -8px;
+      top: -8px;
+      width: 20px;
+      height: 20px;
+      font-size: 12px;
+    }
+
+    .section-control {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+      margin: -8px 0 12px;
+    }
+
+    .hero-card {
+      width: 100%;
+      height: 475px;
+      overflow: hidden;
+      border-radius: 16px;
+      background: #f8f8f8;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+      margin-bottom: 30px;
+      position: relative;
+    }
+
+    .editable-image {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #f3f4f6;
+      border-radius: inherit;
+    }
+
+    .editable-image img {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      max-width: none;
+      object-fit: cover;
+      user-select: none;
+      -webkit-user-drag: none;
+      cursor: move;
+      transform-origin: center center;
+    }
+
+    .image-edit-btn {
+      position: absolute;
+      left: 12px;
+      top: 12px;
+      z-index: 20;
+      min-height: 32px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 999px;
+      background: rgba(255, 90, 0, .95);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 950;
+      cursor: pointer;
+      box-shadow: 0 5px 14px rgba(0,0,0,.18);
+    }
+
+    .image-select-box {
+      position: absolute;
+      z-index: 18;
+      display: none;
+      border: 2px solid #1e9bff;
+      pointer-events: none;
+    }
+
+    .editable-image.is-selected .image-select-box { display: block; }
+
+    .resize-handle {
+      position: absolute;
+      width: 9px;
+      height: 9px;
+      background: #fff;
+      border: 2px solid #1e9bff;
+      pointer-events: auto;
+    }
+
+    .resize-handle.nw { left: -6px; top: -6px; cursor: nwse-resize; }
+    .resize-handle.ne { right: -6px; top: -6px; cursor: nesw-resize; }
+    .resize-handle.sw { left: -6px; bottom: -6px; cursor: nesw-resize; }
+    .resize-handle.se { right: -6px; bottom: -6px; cursor: nwse-resize; }
+
+    .image-size-badge {
+      position: absolute;
+      left: 50%;
+      bottom: -26px;
+      transform: translateX(-50%);
+      display: none;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: #1e9bff;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .editable-image.is-selected .image-size-badge { display: block; }
+
+    .image-panel {
+      position: absolute;
+      left: 12px;
+      top: 52px;
+      z-index: 30;
+      width: min(360px, calc(100% - 24px));
+      padding: 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,.98);
+      box-shadow: 0 12px 34px rgba(0,0,0,.22);
+      display: none;
+    }
+
+    .image-panel.show { display: block; }
+
+    .image-panel label {
+      display: block;
+      margin: 0 0 6px;
+      color: #4b5563;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+    }
+
+    .image-url-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .image-url-input {
+      flex: 1;
+      min-width: 0;
+      height: 34px;
+      padding: 0 9px;
+      border: 1px solid #dde3ea;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #374151;
+    }
+
+    .image-panel .mini-btn {
+      min-height: 34px;
+      padding: 0 10px;
+    }
+
+    .image-panel-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 9px;
+    }
+
+    .title {
+      margin: 0 0 14px;
+      color: #111827;
+      font-size: 32px;
+      line-height: 1.34;
+      font-weight: 950;
+      letter-spacing: -0.06em;
+    }
+
+    .desc {
+      margin: 0 0 28px;
+      color: #8c95a1;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      word-break: keep-all;
+    }
+
+    .content-block {
+      position: relative;
+    }
+
+    .delete-block {
+      position: absolute;
+      right: -8px;
+      top: -8px;
+      width: 22px;
+      height: 22px;
+      display: none;
+      font-size: 13px;
+      z-index: 5;
+    }
+
+    .content-block:hover .delete-block { display: inline-flex; align-items: center; justify-content: center; }
+
+    .cards-area {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .info-card {
+      position: relative;
+      width: 100%;
+      height: auto;
+      min-height: 0;
+      border: 1px solid #dfe3e8;
+      border-radius: 10px;
+      background: #fbfcfd;
+      padding: 22px 24px;
+      transition: padding .18s ease;
+    }
+
+    .delete-info-card {
+      position: absolute;
+      right: -9px;
+      top: -9px;
+      z-index: 10;
+      width: 24px;
+      height: 24px;
+      font-size: 14px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .info-card:hover .delete-info-card { display: inline-flex; }
+
+    .info-toolbar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .info-item {
+      position: relative;
+      min-height: 84px;
+      padding: 12px 10px;
+      border-radius: 10px;
+      background: #fff;
+      border: 1px solid #edf0f3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 4px;
+      box-shadow: 0 4px 12px rgba(17, 24, 39, 0.03);
+    }
+
+    .info-item.is-empty {
+      display: none;
+    }
+
+    body.show-empty-editables .info-item.is-empty {
+      display: flex;
+      opacity: .45;
+      border-style: dashed;
+      min-height: 58px;
+    }
+
+    .delete-info-item {
+      position: absolute;
+      right: -7px;
+      top: -7px;
+      width: 19px;
+      height: 19px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+    }
+
+    .info-item:hover .delete-info-item { display: inline-flex; }
+
+    .info-label {
+      color: #ff5a00;
+      font-size: 13px;
+      font-weight: 950;
+      line-height: 1.2;
+      letter-spacing: -0.04em;
+    }
+
+    .info-value {
+      color: #374151;
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1.35;
+      letter-spacing: -0.035em;
+      word-break: keep-all;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .action-btn {
+      min-height: 48px;
+      border: 1px solid #dfe3e8;
+      border-radius: 8px;
+      background: #fff;
+      color: #374151;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: 0.18s ease;
+    }
+
+    .action-btn:hover {
+      border-color: #ff8a3d;
+      background: #fff8f3;
+      color: #ff5a00;
+    }
+
+    .action-btn.is-bookmarked {
+      border-color: #ff5a00;
+      background: #fff4ea;
+      color: #ff5a00;
+    }
+
+    .action-btn svg {
+      width: 19px;
+      height: 19px;
+      color: currentColor;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 34px;
+      transform: translateX(-50%) translateY(20px);
+      padding: 12px 18px;
+      border-radius: 999px;
+      background: rgba(17, 24, 39, 0.92);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      opacity: 0;
+      pointer-events: none;
+      transition: 0.24s ease;
+      z-index: 2000;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .share-modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 22px;
+      background: rgba(17, 24, 39, 0.45);
+      z-index: 999;
+    }
+
+    .share-modal.show { display: flex; }
+
+    .share-panel {
+      width: 100%;
+      max-width: 430px;
+      border-radius: 18px;
+      background: #fff;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      overflow: hidden;
+      animation: pop 0.18s ease;
+    }
+
+    @keyframes pop {
+      from { opacity: 0; transform: translateY(12px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .share-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 22px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .share-head h2 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 950;
+      letter-spacing: -0.05em;
+      color: #111827;
+    }
+
+    .close-btn {
+      width: 34px;
+      height: 34px;
+      border: 0;
+      border-radius: 50%;
+      background: #f3f4f6;
+      color: #4b5563;
+      font-size: 22px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .share-body { padding: 20px 22px 22px; }
+
+    .share-guide {
+      margin: 0 0 16px;
+      color: #6b7280;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      word-break: keep-all;
+    }
+
+    .share-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .share-option {
+      min-height: 82px;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      background: #fff;
+      color: #374151;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: 0.18s ease;
+    }
+
+    .share-option:hover {
+      border-color: #ff8a3d;
+      background: #fff8f3;
+      color: #ff5a00;
+    }
+
+    .share-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff4ea;
+      color: #ff5a00;
+      font-size: 15px;
+      font-weight: 950;
+    }
+
+    .share-url-box {
+      display: flex;
+      gap: 8px;
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .share-url {
+      flex: 1;
+      min-width: 0;
+      height: 42px;
+      padding: 0 12px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      color: #6b7280;
+      font-size: 13px;
+      font-weight: 700;
+      background: #f9fafb;
+    }
+
+    .copy-btn {
+      width: 86px;
+      height: 42px;
+      border: 0;
+      border-radius: 8px;
+      background: #ff5a00;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    [data-editable="true"] {
+      outline: 0;
+      border-radius: 6px;
+      transition: background 0.16s ease, box-shadow 0.16s ease;
+      cursor: text;
+    }
+
+    [data-editable="true"]:hover {
+      background: rgba(255, 138, 61, 0.08);
+      box-shadow: 0 0 0 4px rgba(255, 138, 61, 0.08);
+    }
+
+    [data-editable="true"]:focus {
+      background: #fff8f3;
+      box-shadow: 0 0 0 2px rgba(255, 90, 0, 0.35), 0 0 0 6px rgba(255, 138, 61, 0.12);
+    }
+
+    [data-empty-text="true"] {
+      display: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      min-height: 0 !important;
+      height: 0 !important;
+      border: 0 !important;
+      overflow: hidden !important;
+    }
+
+    body.show-empty-editables [data-empty-text="true"] {
+      display: block !important;
+      height: auto !important;
+      min-height: 26px !important;
+      padding: 2px 8px !important;
+      border: 1px dashed #ffb27a !important;
+      opacity: 0.45;
+    }
+
+    body.show-empty-editables .chip[data-empty-text="true"] {
+      display: inline-flex !important;
+    }
+
+    body.show-empty-editables [data-editable="true"]:empty::before {
+      content: "다시 입력";
+      color: #c7cdd4;
+      font-weight: 800;
+    }
+
+
+
+    /* 서버 저장 안정화 + 이미지 리사이징 조작 개선 */
+    .image-select-box { overflow: visible; }
+    .resize-handle {
+      width: 15px;
+      height: 15px;
+      z-index: 25;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(0,0,0,.18);
+      touch-action: none;
+    }
+    .resize-handle.nw { left: 4px; top: 4px; }
+    .resize-handle.ne { right: 4px; top: 4px; }
+    .resize-handle.sw { left: 4px; bottom: 4px; }
+    .resize-handle.se { right: 4px; bottom: 4px; }
+    .editable-image, .editable-image img, .image-select-box { touch-action: none; }
+
+    @media (max-width: 700px) {
+      .wrap { padding: 24px 18px 40px; }
+      .edit-notice { align-items: flex-start; flex-direction: column; font-size: 12px; }
+      .edit-actions { width: 100%; justify-content: flex-start; }
+      .breadcrumb { font-size: 12px; margin-bottom: 12px; }
+      .chips { gap: 8px; margin-bottom: 18px; }
+      .chip { min-height: 34px; padding: 7px 12px; font-size: 13px; }
+      .chip-add-tile { width: 42px; height: 34px; min-height: 34px; }
+      .text-add-tile { width: 42px; height: 34px; }
+      .chip-add-tile span, .text-add-tile span { width: 20px; height: 20px; }
+      .info-add-tile span { width: 28px; height: 28px; }
+      .chip-add-tile span::before, .text-add-tile span::before { width: 13px; }
+      .chip-add-tile span::after, .text-add-tile span::after { height: 13px; }
+      .info-add-tile span::before { width: 16px; }
+      .info-add-tile span::after { height: 16px; }
+      .hero-card { height: 285px; border-radius: 14px; margin-bottom: 26px; }
+      .title { font-size: 26px; line-height: 1.35; margin-bottom: 12px; }
+      .desc { font-size: 14px; margin-bottom: 22px; }
+      .info-card { padding: 18px 14px; }
+      .info-grid { grid-template-columns: 1fr 1fr; }
+      .info-item { min-height: 76px; }
+      .actions { gap: 10px; }
+      .action-btn { min-height: 44px; font-size: 14px; }
+      .share-modal { align-items: flex-end; padding: 14px; }
+      .share-panel { max-width: none; border-radius: 18px 18px 14px 14px; }
+      .share-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 420px) {
+      .wrap { padding: 22px 14px 36px; }
+      .title { font-size: 23px; }
+      .hero-card { height: 245px; }
+      .info-grid { grid-template-columns: 1fr; }
+      .actions { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="wrap">
+
+    <p class="breadcrumb content-block" contenteditable="true" data-editable="true" data-edit-key="breadcrumb">POUR 아스팔트 &gt; 지붕 싱글코팅</p>
+
+    <div class="chips" id="chips">
+      <span class="chip" data-chip-id="chip-1"><span contenteditable="true" data-editable="true">아스팔트 슁글 지붕</span><button type="button" class="delete-chip">×</button></span>
+      <span class="chip" data-chip-id="chip-2"><span contenteditable="true" data-editable="true">셀프 시공</span><button type="button" class="delete-chip">×</button></span>
+      <button type="button" class="chip-add-tile" id="addChipTile" aria-label="태그 추가"><span></span></button>
+    </div>
+
+    <section class="hero-card">
+      <div class="editable-image" data-image-id="hero-image">
+        <img src="https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%EA%B3%B5%EB%B2%95%2F%ED%8F%AC%EC%8A%A4%ED%8C%85%2F%EC%8D%B8%EB%84%A4%EC%9D%BC%EC%9D%B4%EB%AF%B8%EC%A7%80.png?alt=media&token=995d4fcc-bbfb-4fcf-b223-d45785b0829c" alt="30년 된 아스팔트 싱글 지붕 복원 사례 이미지">
+        <button type="button" class="image-edit-btn">이미지 편집</button>
+        <div class="image-panel" aria-hidden="true">
+          <label>이미지 링크로 교체</label>
+          <div class="image-url-row">
+            <input type="text" class="image-url-input" placeholder="이미지 URL을 붙여넣어 주세요">
+            <button type="button" class="mini-btn apply-url-btn">적용</button>
+          </div>
+          <div class="image-panel-actions">
+            <button type="button" class="mini-btn reset-image-btn">이미지 초기화</button>
+            <button type="button" class="mini-btn close-image-panel">닫기</button>
+          </div>
+        </div>
+        <div class="image-select-box">
+          <span class="resize-handle nw"></span>
+          <span class="resize-handle ne"></span>
+          <span class="resize-handle sw"></span>
+          <span class="resize-handle se"></span>
+          <span class="image-size-badge">이미지 조절</span>
+        </div>
       </div>
-      <span class="pc-arrow">›</span>
+    </section>
+
+    <div id="textBlocks">
+      <div class="content-block">
+        <button type="button" class="delete-block">×</button>
+        <h1 class="title" contenteditable="true" data-editable="true" data-edit-key="title">30년 된 아스팔트 싱글 지붕, 철거 없이 복원한 방법</h1>
+      </div>
+
+      <div class="content-block">
+        <button type="button" class="delete-block">×</button>
+        <p class="desc" contenteditable="true" data-editable="true" data-edit-key="desc">노후된 아스팔트 슁글 지붕을 POUR 방수코팅제로 복원한 실제 시공 사례입니다.</p>
+      </div>
+    </div>
+
+    <button type="button" class="text-add-tile" id="addTextTile" aria-label="글 추가"><span></span></button>
+
+    <div class="cards-area" id="cardsArea">
+      <section class="info-card" data-card-id="card-1">
+        <button type="button" class="delete-info-card">×</button>
+        <div class="info-grid">
+          <div class="info-item">
+            <button type="button" class="delete-info-item">×</button>
+            <div class="info-label" contenteditable="true" data-editable="true">건물유형</div>
+            <div class="info-value" contenteditable="true" data-editable="true">단독주택</div>
+          </div>
+          <div class="info-item">
+            <button type="button" class="delete-info-item">×</button>
+            <div class="info-label" contenteditable="true" data-editable="true">면적</div>
+            <div class="info-value" contenteditable="true" data-editable="true">30평</div>
+          </div>
+          <div class="info-item">
+            <button type="button" class="delete-info-item">×</button>
+            <div class="info-label" contenteditable="true" data-editable="true">시공방식</div>
+            <div class="info-value" contenteditable="true" data-editable="true">셀프 시공</div>
+          </div>
+          <div class="info-item">
+            <button type="button" class="delete-info-item">×</button>
+            <div class="info-label" contenteditable="true" data-editable="true">지붕자재</div>
+            <div class="info-value" contenteditable="true" data-editable="true">아스팔트 지붕</div>
+          </div>
+          <div class="info-item">
+            <button type="button" class="delete-info-item">×</button>
+            <div class="info-label" contenteditable="true" data-editable="true">위치</div>
+            <div class="info-value" contenteditable="true" data-editable="true">경기도 분당시</div>
+          </div>
+          <button type="button" class="info-add-tile addInfoItem" aria-label="항목 추가"><span></span></button>
+        </div>
+      </section>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="action-btn" id="bookmarkBtn" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 4h12v16l-6-4-6 4V4z"></path>
+        </svg>
+        <span id="bookmarkText">북마크</span>
+      </button>
+
+      <button type="button" class="action-btn" id="shareBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="18" cy="5" r="3"></circle>
+          <circle cx="6" cy="12" r="3"></circle>
+          <circle cx="18" cy="19" r="3"></circle>
+          <path d="M8.5 10.8l7-4.1"></path>
+          <path d="M8.5 13.2l7 4.1"></path>
+        </svg>
+        공유하기
+      </button>
+    </div>
+
+  </main>
+
+  <div class="share-modal" id="shareModal" aria-hidden="true">
+    <div class="share-panel" role="dialog" aria-modal="true" aria-labelledby="shareTitle">
+      <div class="share-head">
+        <h2 id="shareTitle" contenteditable="true" data-editable="true">공유하기</h2>
+        <button type="button" class="close-btn" id="closeShare" aria-label="닫기">×</button>
+      </div>
+
+      <div class="share-body">
+        <p class="share-guide" contenteditable="true" data-editable="true">공유할 채널을 선택하거나 링크를 복사해 전달해 주세요.</p>
+
+        <div class="share-grid">
+          <button type="button" class="share-option" id="nativeShare"><span class="share-icon">↗</span>앱으로 공유</button>
+          <a class="share-option" id="kakaoShare" href="#" target="_blank" rel="noopener"><span class="share-icon">K</span>카카오톡</a>
+          <a class="share-option" id="bandShare" href="#" target="_blank" rel="noopener"><span class="share-icon">B</span>네이버 밴드</a>
+          <a class="share-option" id="facebookShare" href="#" target="_blank" rel="noopener"><span class="share-icon">f</span>페이스북</a>
+          <a class="share-option" id="xShare" href="#" target="_blank" rel="noopener"><span class="share-icon">X</span>X 공유</a>
+          <button type="button" class="share-option" id="instagramShare"><span class="share-icon">◎</span>인스타그램</button>
+        </div>
+
+        <div class="share-url-box">
+          <input type="text" class="share-url" id="shareUrl" readonly>
+          <button type="button" class="copy-btn" id="copyUrl">복사</button>
+        </div>
+      </div>
     </div>
   </div>
-  <div class="ohg-thumbs" id="ohgThumbs"></div>
-  <div class="ohg-help"><span class="ic">+</span><span>사진 위 <b>+</b> 마커를 누르면 사용된 상품을 바로 확인할 수 있어요.</span></div>
-</section>
-<script>
-(function(){
-  // 데모용 — 실제 운영 시 자사몰 상품 DB와 연동
-  var products = {
-    p1: { brand:'아트포스터', name:'모네 — 베테유의 화가 정원 액자 (60×80)', price:'89,000원', img:'https://picsum.photos/seed/oh-art/200', url:'#' },
-    p2: { brand:'그린홈', name:'아레카 야자 화분 — 중형 80cm 스탠드 포함', price:'45,000원', img:'https://picsum.photos/seed/oh-plant/200', url:'#' },
-    p3: { brand:'미러로프트', name:'아치형 풀렝스 미러 — 그린 우드프레임 50×170', price:'168,000원', img:'https://picsum.photos/seed/oh-mirror/200', url:'#' },
-    p4: { brand:'가구로드', name:'발코니 식탁 원목 의자 인테리어 카페 체어 2colors', price:'85,000원', img:'https://picsum.photos/seed/oh-chair/200', url:'#' },
-    p5: { brand:'리빙클래식', name:'유리 사이드 테이블 — 스테인리스 골드 트레이형', price:'124,000원', img:'https://picsum.photos/seed/oh-table/200', url:'#' },
-    p6: { brand:'무드플로어', name:'헤링본 강마루 — 화이트 오크 (1평 패키지)', price:'72,000원', img:'https://picsum.photos/seed/oh-floor/200', url:'#' },
-    p7: { brand:'세라믹랩', name:'무광 세라믹 화분 받침 세트 (3종)', price:'29,000원', img:'https://picsum.photos/seed/oh-pot/200', url:'#' },
-    p8: { brand:'노드아트', name:'미니 조각상 오브제 — 화이트 무광', price:'38,000원', img:'https://picsum.photos/seed/oh-deco/200', url:'#' },
-  };
-  var photos = [
-    { id:1, src:'https://picsum.photos/seed/oh-living-1/1200/900', pins:[
-      { x:18, y:46, product:'p1' }, { x:30, y:62, product:'p2' }, { x:46, y:38, product:'p3' }, { x:55, y:68, product:'p4' }
-    ]},
-    { id:2, src:'https://picsum.photos/seed/oh-living-2/1200/900', pins:[
-      { x:35, y:42, product:'p5' }, { x:60, y:55, product:'p3' }
-    ]},
-    { id:3, src:'https://picsum.photos/seed/oh-living-3/1200/900', pins:[
-      { x:25, y:50, product:'p6' }, { x:55, y:45, product:'p7' }, { x:72, y:60, product:'p8' }
-    ]},
-    { id:4, src:'https://picsum.photos/seed/oh-living-4/1200/900', pins:[
-      { x:40, y:38, product:'p4' }, { x:60, y:55, product:'p1' }
-    ]},
-    { id:5, src:'https://picsum.photos/seed/oh-living-5/1200/900', pins:[
-      { x:30, y:55, product:'p2' }, { x:55, y:45, product:'p4' }, { x:72, y:60, product:'p5' }
-    ]},
-  ];
-  var currentPhoto = 0;
-  var currentProduct = null;
-  function $(id){ return document.getElementById(id); }
-  function renderPhoto(){
-    var p = photos[currentPhoto];
-    $('ohgBg').style.backgroundImage = "url('" + p.src + "')";
-    var stage = $('ohgStage');
-    stage.querySelectorAll('.ohg-pin').forEach(function(el){ el.remove(); });
-    p.pins.forEach(function(pin){
-      var btn = document.createElement('button');
-      btn.className = 'ohg-pin';
-      btn.style.left = pin.x + '%';
-      btn.style.top = pin.y + '%';
-      btn.textContent = '+';
-      btn.setAttribute('aria-label', '상품 보기');
-      btn.addEventListener('click', function(e){
-        e.stopPropagation();
-        showProduct(pin.product, btn);
-      });
-      stage.appendChild(btn);
-    });
-    document.querySelectorAll('.ohg-thumb').forEach(function(t,i){ t.classList.toggle('on', i===currentPhoto); });
-    hideCard();
-  }
-  function showProduct(pid, pinEl){
-    var pr = products[pid];
-    if (!pr) return;
-    $('ohgPcImg').style.backgroundImage = "url('" + pr.img + "')";
-    $('ohgPcBrand').textContent = pr.brand;
-    $('ohgPcName').textContent = pr.name;
-    $('ohgPcPrice').textContent = pr.price;
-    $('ohgCard').classList.add('on');
-    document.querySelectorAll('.ohg-pin.on').forEach(function(el){ el.classList.remove('on'); });
-    if (pinEl) pinEl.classList.add('on');
-    currentProduct = pid;
-    var card = $('ohgCard');
-    card.onclick = function(){ window.open(pr.url || '#', '_blank'); };
-  }
-  function hideCard(){ $('ohgCard').classList.remove('on'); currentProduct = null; document.querySelectorAll('.ohg-pin.on').forEach(function(el){ el.classList.remove('on'); }); }
-  function renderThumbs(){
-    var wrap = $('ohgThumbs');
-    wrap.innerHTML = '';
-    photos.forEach(function(p, i){
-      var t = document.createElement('button');
-      t.className = 'ohg-thumb' + (i===0 ? ' on' : '');
-      t.style.backgroundImage = "url('" + p.src + "')";
-      t.setAttribute('aria-label', '사진 ' + (i+1));
-      t.addEventListener('click', function(){ currentPhoto = i; renderPhoto(); });
-      wrap.appendChild(t);
-    });
-  }
-  $('ohgStage').addEventListener('click', function(e){
-    if (!e.target.closest('.ohg-pin') && !e.target.closest('.ohg-card')) hideCard();
-  });
-  $('ohgBm').addEventListener('click', function(e){
-    e.stopPropagation();
-    e.currentTarget.classList.toggle('on');
-  });
-  renderThumbs();
-  renderPhoto();
-})();
-</script>`;
+
+  <div class="toast" id="toast">저장되었습니다.</div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      const $ = (selector, root = document) => root.querySelector(selector);
+      const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+      const toast = $('#toast');
+      let toastTimer = null;
+
+      function showToast(message) {
+        if (!toast) return;
+        toast.textContent = message;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 1500);
+      }
+
+      function savePage() {
+        // 서버 저장형 페이지에서는 전체 HTML을 localStorage에 다시 저장하지 않습니다.
+        // 편집 결과는 DOM 자체에 반영되므로 서버 저장기가 현재 HTML을 저장하면 됩니다.
+      }
+
+      function bindOnce(el, key, handler) {
+        if (!el || el.dataset[key] === '1') return;
+        el.dataset[key] = '1';
+        handler(el);
+      }
+
+      function getCollapseBox(el) {
+        if (el.closest('.chip')) return el.closest('.chip');
+        if (el.closest('.info-item')) return el.closest('.info-item');
+        if (el.closest('.content-block')) return el.closest('.content-block');
+        if (el.classList.contains('breadcrumb')) return el;
+        return null;
+      }
+
+      function cleanEditable(el) {
+        const text = el.textContent.replace(/ /g, ' ').replace(/​/g, '').trim();
+        const box = getCollapseBox(el);
+        if (text === '') {
+          el.innerHTML = '';
+          if (box) box.dataset.emptyText = 'true';
+        } else if (box) {
+          delete box.dataset.emptyText;
+        }
+      }
+
+      function refreshInfoCards() {
+        $$('.info-card').forEach(card => {
+          const grid = $('.info-grid', card);
+          if (!grid) return;
+          const visibleItems = $$('.info-item', grid).filter(item => item.dataset.emptyText !== 'true');
+          card.style.paddingTop = visibleItems.length ? '' : '12px';
+          card.style.paddingBottom = visibleItems.length ? '' : '12px';
+        });
+      }
+
+      function initEditableText() {
+        $$('[data-editable="true"]').forEach(el => {
+          bindOnce(el, 'boundEditable', target => {
+            target.setAttribute('contenteditable', 'true');
+            target.setAttribute('spellcheck', 'false');
+
+            target.addEventListener('input', () => {
+              cleanEditable(target);
+              refreshInfoCards();
+              savePage();
+            });
+
+            target.addEventListener('blur', () => {
+              cleanEditable(target);
+              refreshInfoCards();
+              savePage();
+            });
+
+            target.addEventListener('keydown', event => {
+              const allowMulti = target.classList.contains('title') || target.classList.contains('desc') || target.classList.contains('share-guide');
+              if (event.key === 'Enter' && !event.shiftKey && !allowMulti) {
+                event.preventDefault();
+                target.blur();
+              }
+            });
+          });
+          cleanEditable(el);
+        });
+        refreshInfoCards();
+      }
+
+      function defaultInfoItem(label = '항목명', value = '내용 입력') {
+        const item = document.createElement('div');
+        item.className = 'info-item';
+        item.innerHTML =
+          '<button type="button" class="delete-info-item">×</button>' +
+          '<div class="info-label" contenteditable="true" data-editable="true">' + label + '</div>' +
+          '<div class="info-value" contenteditable="true" data-editable="true">' + value + '</div>';
+        return item;
+      }
+
+      function defaultInfoCard() {
+        const card = document.createElement('section');
+        card.className = 'info-card';
+        card.innerHTML =
+          '<button type="button" class="delete-info-card">×</button>' +
+          '<div class="info-grid"><button type="button" class="info-add-tile addInfoItem" aria-label="항목 추가"><span></span></button></div>';
+        const grid = $('.info-grid', card);
+        const addTile = $('.info-add-tile', grid);
+        [
+          defaultInfoItem('건물유형', '단독주택'),
+          defaultInfoItem('면적', '30평'),
+          defaultInfoItem('시공방식', '셀프 시공'),
+          defaultInfoItem('지붕자재', '아스팔트 지붕'),
+          defaultInfoItem('위치', '경기도 분당시')
+        ].forEach(item => grid.insertBefore(item, addTile));
+        return card;
+      }
+
+      function initChips() {
+        const chips = $('#chips');
+        const addChip = $('#addChipTile');
+        bindOnce(addChip, 'boundAddChip', btn => {
+          btn.addEventListener('click', () => {
+            const chip = document.createElement('span');
+            chip.className = 'chip';
+            chip.innerHTML = '<span contenteditable="true" data-editable="true">새 태그</span><button type="button" class="delete-chip">×</button>';
+            chips.insertBefore(chip, btn);
+            bindAll();
+            $('[data-editable="true"]', chip).focus();
+          });
+        });
+
+        $$('.delete-chip').forEach(btn => {
+          bindOnce(btn, 'boundDeleteChip', target => {
+            target.addEventListener('click', () => {
+              const chip = target.closest('.chip');
+              if (chip) chip.remove();
+            });
+          });
+        });
+      }
+
+      function initTextBlocks() {
+        const addTextBlock = $('#addTextTile');
+        const textBlocks = $('#textBlocks');
+        bindOnce(addTextBlock, 'boundAddText', btn => {
+          btn.addEventListener('click', () => {
+            const block = document.createElement('div');
+            block.className = 'content-block';
+            block.innerHTML = '<button type="button" class="delete-block">×</button><p class="desc" contenteditable="true" data-editable="true">새 문구를 입력하세요.</p>';
+            textBlocks.appendChild(block);
+            bindAll();
+            $('[data-editable="true"]', block).focus();
+          });
+        });
+
+        $$('.delete-block').forEach(btn => {
+          bindOnce(btn, 'boundDeleteBlock', target => {
+            target.addEventListener('click', () => {
+              const block = target.closest('.content-block');
+              if (block) block.remove();
+            });
+          });
+        });
+      }
+
+      function initInfoCards() {
+        const addInfoCard = $('#addInfoCard');
+        const cardsArea = $('#cardsArea');
+        bindOnce(addInfoCard, 'boundAddInfoCard', btn => {
+          btn.addEventListener('click', () => {
+            cardsArea.appendChild(defaultInfoCard());
+            bindAll();
+            showToast('정보상자를 추가했습니다.');
+          });
+        });
+
+        $$('.addInfoItem').forEach(btn => {
+          bindOnce(btn, 'boundAddInfoItem', target => {
+            target.addEventListener('click', () => {
+              const grid = target.closest('.info-grid');
+              if (!grid) return;
+              grid.insertBefore(defaultInfoItem(), target);
+              bindAll();
+              refreshInfoCards();
+            });
+          });
+        });
+
+        $$('.delete-info-card').forEach(btn => {
+          bindOnce(btn, 'boundDeleteInfoCard', target => {
+            target.addEventListener('click', () => {
+              const card = target.closest('.info-card');
+              if (card) card.remove();
+            });
+          });
+        });
+
+        $$('.delete-info-item').forEach(btn => {
+          bindOnce(btn, 'boundDeleteInfoItem', target => {
+            target.addEventListener('click', () => {
+              const item = target.closest('.info-item');
+              if (item) item.remove();
+              refreshInfoCards();
+            });
+          });
+        });
+      }
+
+      function readNumber(value, fallback) {
+        const num = parseFloat(value);
+        return Number.isFinite(num) ? num : fallback;
+      }
+
+      function getImageState(box) {
+        const img = $('img', box);
+        return {
+          scale: readNumber(box.dataset.imageScale, 1),
+          x: readNumber(box.dataset.imageX, 0),
+          y: readNumber(box.dataset.imageY, 0),
+          src: img ? img.getAttribute('src') : ''
+        };
+      }
+
+      function clampImageState(state) {
+        state.scale = Math.max(0.35, Math.min(3, state.scale));
+        const min = Math.min(0, 100 - state.scale * 100);
+        state.x = Math.max(min, Math.min(0, state.x));
+        state.y = Math.max(min, Math.min(0, state.y));
+      }
+
+      function applyImageState(box, state) {
+        const img = $('img', box);
+        const select = $('.image-select-box', box);
+        const badge = $('.image-size-badge', box);
+        const slider = $('.image-scale-range', box);
+        if (!img) return;
+
+        clampImageState(state);
+        box.dataset.imageScale = String(state.scale);
+        box.dataset.imageX = String(state.x);
+        box.dataset.imageY = String(state.y);
+
+        img.style.width = (state.scale * 100) + '%';
+        img.style.height = (state.scale * 100) + '%';
+        img.style.left = state.x + '%';
+        img.style.top = state.y + '%';
+        img.style.maxWidth = 'none';
+        img.style.objectFit = 'cover';
+
+        if (select) {
+          select.style.left = state.x + '%';
+          select.style.top = state.y + '%';
+          select.style.width = (state.scale * 100) + '%';
+          select.style.height = (state.scale * 100) + '%';
+        }
+        if (badge) badge.textContent = Math.round(state.scale * 100) + '%';
+        if (slider) slider.value = String(Math.round(state.scale * 100));
+      }
+
+      function ensureImagePanelControls(box) {
+        const panel = $('.image-panel', box);
+        if (!panel || $('.image-scale-wrap', panel)) return;
+        const scaleWrap = document.createElement('div');
+        scaleWrap.className = 'image-scale-wrap';
+        scaleWrap.innerHTML = '<label style="margin-top:8px;">이미지 크기 조절</label><input type="range" class="image-scale-range" min="35" max="300" value="100" step="1" style="width:100%; accent-color:#ff5a00;">';
+        const actions = $('.image-panel-actions', panel);
+        panel.insertBefore(scaleWrap, actions || null);
+      }
+
+      function initImageEditors() {
+        $$('.editable-image').forEach((box, index) => {
+          bindOnce(box, 'boundImageEditor', targetBox => {
+            if (!targetBox.dataset.imageId) targetBox.dataset.imageId = 'editable-image-' + index;
+            ensureImagePanelControls(targetBox);
+
+            const img = $('img', targetBox);
+            const panel = $('.image-panel', targetBox);
+            const editBtn = $('.image-edit-btn', targetBox);
+            const urlInput = $('.image-url-input', targetBox);
+            const applyUrl = $('.apply-url-btn', targetBox);
+            const resetImage = $('.reset-image-btn', targetBox);
+            const closePanel = $('.close-image-panel', targetBox);
+            const slider = $('.image-scale-range', targetBox);
+
+            if (!img || !panel) return;
+            const fallbackSrc = targetBox.dataset.originalSrc || img.getAttribute('data-original-src') || 'https://firebasestorage.googleapis.com/v0/b/pour-app-new.firebasestorage.app/o/POUR%EC%8A%A4%ED%86%A0%EC%96%B4%20%EC%BB%A8%ED%85%90%EC%B8%A0%2FPOUR%EA%B3%B5%EB%B2%95%2F%ED%8F%AC%EC%8A%A4%ED%8C%85%2F%EC%8D%B8%EB%84%A4%EC%9D%BC%EC%9D%B4%EB%AF%B8%EC%A7%80.png?alt=media&token=995d4fcc-bbfb-4fcf-b223-d45785b0829c';
+            if (/^(data:|blob:)/i.test(img.getAttribute('src') || '')) {
+              img.setAttribute('src', fallbackSrc);
+            }
+            targetBox.dataset.originalSrc = fallbackSrc;
+            let state = getImageState(targetBox);
+            applyImageState(targetBox, state);
+
+            if (editBtn) {
+              editBtn.addEventListener('click', event => {
+                event.stopPropagation();
+                panel.classList.toggle('show');
+                panel.setAttribute('aria-hidden', panel.classList.contains('show') ? 'false' : 'true');
+                targetBox.classList.add('is-selected');
+                state = getImageState(targetBox);
+                applyImageState(targetBox, state);
+              });
+            }
+
+            if (closePanel) {
+              closePanel.addEventListener('click', () => {
+                panel.classList.remove('show');
+                panel.setAttribute('aria-hidden', 'true');
+              });
+            }
+
+            if (applyUrl) {
+              applyUrl.addEventListener('click', () => {
+                const url = urlInput ? urlInput.value.trim() : '';
+                if (!url) return;
+                if (/^(data:|blob:)/i.test(url)) {
+                  showToast('서버 저장을 위해 data/blob 이미지는 사용할 수 없습니다. 이미지 URL을 넣어 주세요.');
+                  return;
+                }
+                img.src = url;
+                state = { src: url, scale: 1, x: 0, y: 0 };
+                applyImageState(targetBox, state);
+                showToast('이미지를 교체했습니다.');
+              });
+            }
+
+            if (resetImage) {
+              resetImage.addEventListener('click', () => {
+                img.src = targetBox.dataset.originalSrc || img.src;
+                state = { src: img.src, scale: 1, x: 0, y: 0 };
+                applyImageState(targetBox, state);
+                showToast('이미지를 초기화했습니다.');
+              });
+            }
+
+            if (slider) {
+              slider.addEventListener('input', () => {
+                state = getImageState(targetBox);
+                state.scale = readNumber(slider.value, 100) / 100;
+                applyImageState(targetBox, state);
+              });
+            }
+
+            targetBox.addEventListener('pointerdown', event => {
+              if (event.target.closest('.image-panel') || event.target.closest('.image-edit-btn') || event.target.closest('.resize-handle')) return;
+              targetBox.classList.add('is-selected');
+              state = getImageState(targetBox);
+              const rect = targetBox.getBoundingClientRect();
+              const startX = event.clientX;
+              const startY = event.clientY;
+              const startLeft = state.x;
+              const startTop = state.y;
+
+              try { targetBox.setPointerCapture(event.pointerId); } catch (error) {}
+
+              function move(ev) {
+                const dx = ((ev.clientX - startX) / rect.width) * 100;
+                const dy = ((ev.clientY - startY) / rect.height) * 100;
+                state.x = startLeft + dx;
+                state.y = startTop + dy;
+                applyImageState(targetBox, state);
+              }
+
+              function up(ev) {
+                try { targetBox.releasePointerCapture(ev.pointerId); } catch (error) {}
+                targetBox.removeEventListener('pointermove', move);
+                targetBox.removeEventListener('pointerup', up);
+                targetBox.removeEventListener('pointercancel', up);
+              }
+
+              targetBox.addEventListener('pointermove', move);
+              targetBox.addEventListener('pointerup', up);
+              targetBox.addEventListener('pointercancel', up);
+            });
+
+            $$('.resize-handle', targetBox).forEach(handle => {
+              handle.addEventListener('pointerdown', event => {
+                event.preventDefault();
+                event.stopPropagation();
+                targetBox.classList.add('is-selected');
+                state = getImageState(targetBox);
+                const rect = targetBox.getBoundingClientRect();
+                const startX = event.clientX;
+                const startY = event.clientY;
+                const startScale = state.scale;
+                const handleClass = handle.className;
+
+                try { handle.setPointerCapture(event.pointerId); } catch (error) {}
+
+                function move(ev) {
+                  const dx = (ev.clientX - startX) / rect.width;
+                  const dy = (ev.clientY - startY) / rect.height;
+                  const signX = handleClass.includes('w') ? -1 : 1;
+                  const signY = handleClass.includes('n') ? -1 : 1;
+                  const change = ((dx * signX) + (dy * signY)) * 0.7;
+                  state.scale = startScale + change;
+                  applyImageState(targetBox, state);
+                }
+
+                function up(ev) {
+                  try { handle.releasePointerCapture(ev.pointerId); } catch (error) {}
+                  handle.removeEventListener('pointermove', move);
+                  handle.removeEventListener('pointerup', up);
+                  handle.removeEventListener('pointercancel', up);
+                }
+
+                handle.addEventListener('pointermove', move);
+                handle.addEventListener('pointerup', up);
+                handle.addEventListener('pointercancel', up);
+              });
+            });
+          });
+        });
+      }
+
+      function initShareAndBookmark() {
+        const bookmarkBtn = $('#bookmarkBtn');
+        const bookmarkText = $('#bookmarkText');
+        const shareBtn = $('#shareBtn');
+        const shareModal = $('#shareModal');
+        const closeShare = $('#closeShare');
+        const shareUrl = $('#shareUrl');
+        const copyUrl = $('#copyUrl');
+        const nativeShare = $('#nativeShare');
+        const kakaoShare = $('#kakaoShare');
+        const bandShare = $('#bandShare');
+        const facebookShare = $('#facebookShare');
+        const xShare = $('#xShare');
+        const instagramShare = $('#instagramShare');
+        const pageUrl = window.location.href;
+
+        function getPageTitle() {
+          const titleEl = $('.title');
+          return titleEl ? titleEl.textContent.trim() : document.title;
+        }
+
+        function getPageText() {
+          const descEl = $('.desc');
+          return descEl ? descEl.textContent.trim() : '';
+        }
+
+        bindOnce(bookmarkBtn, 'boundBookmark', btn => {
+          btn.addEventListener('click', () => {
+            const active = !btn.classList.contains('is-bookmarked');
+            btn.classList.toggle('is-bookmarked', active);
+            btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+            if (bookmarkText) bookmarkText.textContent = active ? '북마크됨' : '북마크';
+            showToast(active ? '북마크에 저장되었습니다.' : '북마크가 해제되었습니다.');
+          });
+        });
+
+        function openShareModal() {
+          if (!shareModal) return;
+          const encodedUrl = encodeURIComponent(pageUrl);
+          const encodedTitle = encodeURIComponent(getPageTitle());
+          if (shareUrl) shareUrl.value = pageUrl;
+          if (kakaoShare) kakaoShare.href = 'https://sharer.kakao.com/talk/friends/picker/link?url=' + encodedUrl + '&text=' + encodedTitle;
+          if (bandShare) bandShare.href = 'https://band.us/plugin/share?body=' + encodedTitle + '%0A' + encodedUrl + '&route=' + encodedUrl;
+          if (facebookShare) facebookShare.href = 'https://www.facebook.com/sharer/sharer.php?u=' + encodedUrl;
+          if (xShare) xShare.href = 'https://twitter.com/intent/tweet?text=' + encodedTitle + '&url=' + encodedUrl;
+          shareModal.classList.add('show');
+          shareModal.setAttribute('aria-hidden', 'false');
+          document.body.classList.add('modal-open');
+        }
+
+        function closeShareModal() {
+          if (!shareModal) return;
+          shareModal.classList.remove('show');
+          shareModal.setAttribute('aria-hidden', 'true');
+          document.body.classList.remove('modal-open');
+        }
+
+        bindOnce(shareBtn, 'boundShareBtn', btn => btn.addEventListener('click', openShareModal));
+        bindOnce(closeShare, 'boundCloseShare', btn => btn.addEventListener('click', closeShareModal));
+        bindOnce(shareModal, 'boundShareModal', modal => {
+          modal.addEventListener('click', event => {
+            if (event.target === modal) closeShareModal();
+          });
+        });
+        bindOnce(document.body, 'boundEscShare', () => {
+          document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') closeShareModal();
+          });
+        });
+
+        bindOnce(nativeShare, 'boundNativeShare', btn => {
+          btn.addEventListener('click', async () => {
+            if (!navigator.share) return showToast('현재 브라우저에서는 앱 공유가 지원되지 않습니다.');
+            try {
+              await navigator.share({ title: getPageTitle(), text: getPageText(), url: pageUrl });
+              closeShareModal();
+            } catch (error) {
+              if (error.name !== 'AbortError') showToast('공유를 다시 시도해 주세요.');
+            }
+          });
+        });
+
+        bindOnce(instagramShare, 'boundInstagramShare', btn => {
+          btn.addEventListener('click', async () => {
+            if (!navigator.share) return showToast('인스타그램은 웹 직접 공유가 제한되어 링크 복사를 이용해 주세요.');
+            try {
+              await navigator.share({ title: getPageTitle(), text: getPageText(), url: pageUrl });
+              closeShareModal();
+            } catch (error) {
+              if (error.name !== 'AbortError') showToast('공유를 다시 시도해 주세요.');
+            }
+          });
+        });
+
+        bindOnce(copyUrl, 'boundCopyUrl', btn => {
+          btn.addEventListener('click', async () => {
+            try {
+              await navigator.clipboard.writeText(pageUrl);
+              showToast('링크가 복사되었습니다.');
+            } catch (error) {
+              if (shareUrl) {
+                shareUrl.select();
+                document.execCommand('copy');
+              }
+              showToast('링크가 복사되었습니다.');
+            }
+          });
+        });
+      }
+
+      function bindAll() {
+        initEditableText();
+        initChips();
+        initTextBlocks();
+        initInfoCards();
+        initImageEditors();
+        initShareAndBookmark();
+      }
+
+      bindAll();
+    })();
+  </script>
+</body>
+</html>
+`;
 
   const SEED_OH_BODY_HTML = `
 <style>

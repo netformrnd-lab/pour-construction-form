@@ -61,12 +61,18 @@ header p{font-size:14px;color:#c5cbe0;margin-top:10px;max-width:760px}
 .chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
 
 /* table */
-.tablecard{background:#fff;border:1px solid var(--border);border-radius:16px;overflow:hidden}
-.scroll{overflow-x:auto}
+.tablecard{background:#fff;border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:8px}
+.cardctrls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line);background:#fff}
+.tscroll{max-height:66vh;overflow:auto}
 table{width:100%;border-collapse:collapse;min-width:1120px}
 thead th{position:sticky;top:0;background:var(--navy);color:#fff;font-size:12px;font-weight:700;
- padding:12px 10px;text-align:center;white-space:nowrap;border-bottom:2px solid #0a1642;z-index:2}
+ padding:12px 10px;text-align:center;white-space:nowrap;border-bottom:2px solid #0a1642;z-index:4}
 thead th.l{text-align:left}
+th.l,td.l{position:sticky;left:0;min-width:210px;max-width:210px;white-space:normal}
+thead th.l{z-index:6}
+tbody td.l{z-index:2;background:#fff;border-right:1px solid var(--border)}
+tbody tr:hover td.l{background:#fafbfc}
+.review td.l{background:#fff8f2}
 thead th.anchor{background:#0a1642}
 thead th.brkh{background:#16266b}
 thead th.brkh.last{background:var(--or)}
@@ -127,26 +133,27 @@ footer b{color:var(--ink2)}
   <div class="hint">※ 할인계수 0% = 자사몰 정가, 100% = 총판유통. 값은 자사몰 정가와 총판유통 사이에서만 움직여 하한을 절대 넘지 않습니다.</div>
  </div>
 
- <div class="controls">
-  <input class="search" id="q" placeholder="제품명 검색 (예: 코트재, 시트, 파우더)">
-  <div class="chips" id="cats"></div>
- </div>
-
  <div class="legend">
   <span class="k"><span class="sw d0"></span>0%</span>
   <span class="k"><span class="sw d1"></span>~8%</span>
   <span class="k"><span class="sw d2"></span>~13%</span>
   <span class="k"><span class="sw d3"></span>~18%</span>
-  <span class="k"><span class="sw d4"></span>최저구간(=총판유통)</span>
-  <span class="count" id="count"></span>
+  <span class="k"><span class="sw d4"></span>최저구간(=총판유통·POUR공법 협력사)</span>
  </div>
 
- <div class="tablecard"><div class="scroll">
-  <table>
-   <thead><tr id="head"></tr></thead>
-   <tbody id="body"></tbody>
-  </table>
- </div></div>
+ <div class="tablecard">
+  <div class="cardctrls">
+   <input class="search" id="q" placeholder="제품명 검색 (예: 코트재, 시트, 파우더)">
+   <div class="chips" id="cats"></div>
+   <span class="count" id="count"></span>
+  </div>
+  <div class="tscroll">
+   <table>
+    <thead><tr id="head"></tr></thead>
+    <tbody id="body"></tbody>
+   </table>
+  </div>
+ </div>
 
  <footer>
   <b>검토 표기</b> — 총판가가 없는 소량 SKU·세트용(코트재 1·5·10L, 세트용 보강시트), 총판=0(하이롤퍼티·에어쉘시트), 자사몰 정가 &lt; 총판유통 역전(벤트 4종)은 하한 기준을 세울 수 없어 자동 제외했습니다. 총판 과소(트랩 시트포함, 총판 3,200)는 값이 나오되 원가표 확인이 필요합니다.<br>
